@@ -113,16 +113,23 @@ Improvements to clang-tidy
   Checks whether there are underscores in googletest test and test case names in
   test macros, which is prohibited by the Googletest FAQ.
 
-- New alias :doc:`cppcoreguidelines-explicit-virtual-functions
-  <clang-tidy/checks/cppcoreguidelines-explicit-virtual-functions>` to
-  :doc:`modernize-use-override
-  <clang-tidy/checks/modernize-use-override>` was added.
-
 - The :doc:`bugprone-argument-comment
   <clang-tidy/checks/bugprone-argument-comment>` now supports
   `CommentBoolLiterals`, `CommentIntegerLiterals`, `CommentFloatLiterals`,
   `CommentUserDefiniedLiterals`, `CommentStringLiterals`,
   `CommentCharacterLiterals` & `CommentNullPtrs` options.
+
+- New alias :doc:`cppcoreguidelines-explicit-virtual-functions
+  <clang-tidy/checks/cppcoreguidelines-explicit-virtual-functions>` to
+  :doc:`modernize-use-override
+  <clang-tidy/checks/modernize-use-override>` was added.
+
+- New :doc:`cppcoreguidelines-mixed-int-arithmetic
+  <http://clang.llvm.org/extra/clang-tidy/checks/cppcoreguidelines-mixed-int-arithmetic.html>` check.
+
+  Finds cases where unsigned and signed integers are used together in arithmetic expressions.
+  Unsigned integers wrap to 0 when overflowing while the behaviour of signed integers
+  is undefined in this case. The combination leads to possibly unexpected results.
 
 - The :doc:`google-runtime-int <clang-tidy/checks/google-runtime-int>`
   check has been disabled in Objective-C++.
