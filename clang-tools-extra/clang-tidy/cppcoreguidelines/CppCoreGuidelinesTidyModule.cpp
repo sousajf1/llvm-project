@@ -15,6 +15,7 @@
 #include "../modernize/UseOverrideCheck.h"
 #include "../readability/MagicNumbersCheck.h"
 #include "AvoidGotoCheck.h"
+#include "ConstCorrectnessCheck.h"
 #include "InterfacesGlobalInitCheck.h"
 #include "MacroUsageCheck.h"
 #include "NarrowingConversionsCheck.h"
@@ -47,6 +48,8 @@ public:
         "cppcoreguidelines-avoid-goto");
     CheckFactories.registerCheck<readability::MagicNumbersCheck>(
         "cppcoreguidelines-avoid-magic-numbers");
+    CheckFactories.registerCheck<ConstCorrectnessCheck>(
+        "cppcoreguidelines-const-correctness");
     CheckFactories.registerCheck<modernize::UseOverrideCheck>(
         "cppcoreguidelines-explicit-virtual-functions");
     CheckFactories.registerCheck<InterfacesGlobalInitCheck>(
