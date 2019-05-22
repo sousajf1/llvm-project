@@ -35,6 +35,7 @@
 #include "UseNoexceptCheck.h"
 #include "UseNullptrCheck.h"
 #include "UseOverrideCheck.h"
+#include "UseRangesCheck.h"
 #include "UseTrailingReturnTypeCheck.h"
 #include "UseTransparentFunctorsCheck.h"
 #include "UseUncaughtExceptionsCheck.h"
@@ -88,6 +89,7 @@ public:
     CheckFactories.registerCheck<UseNoexceptCheck>("modernize-use-noexcept");
     CheckFactories.registerCheck<UseNullptrCheck>("modernize-use-nullptr");
     CheckFactories.registerCheck<UseOverrideCheck>("modernize-use-override");
+    CheckFactories.registerCheck<UseRangesCheck>("modernize-use-ranges");
     CheckFactories.registerCheck<UseTrailingReturnTypeCheck>(
         "modernize-use-trailing-return-type");
     CheckFactories.registerCheck<UseTransparentFunctorsCheck>(

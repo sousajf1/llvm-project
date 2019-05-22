@@ -165,6 +165,9 @@ Improvements to clang-tidy
   finds and replaces cases that match the pattern ``var &&
   isa<X>(var)``, where ``var`` is evaluated twice.
 
+- New :doc:`modernize-use-ranges
+  <clang-tidy/checks/modernize-use-ranges>` check.
+
 - New :doc:`modernize-use-trailing-return-type
   <clang-tidy/checks/modernize-use-trailing-return-type>` check.
 
