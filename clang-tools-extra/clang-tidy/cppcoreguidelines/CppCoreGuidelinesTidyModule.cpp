@@ -17,6 +17,7 @@
 #include "AvoidGotoCheck.h"
 #include "InterfacesGlobalInitCheck.h"
 #include "MacroUsageCheck.h"
+#include "MixedIntArithmeticCheck.h"
 #include "NarrowingConversionsCheck.h"
 #include "NoMallocCheck.h"
 #include "OwningMemoryCheck.h"
@@ -53,6 +54,8 @@ public:
         "cppcoreguidelines-interfaces-global-init");
     CheckFactories.registerCheck<MacroUsageCheck>(
         "cppcoreguidelines-macro-usage");
+    CheckFactories.registerCheck<MixedIntArithmeticCheck>(
+        "cppcoreguidelines-mixed-int-arithmetic");
     CheckFactories.registerCheck<NarrowingConversionsCheck>(
         "cppcoreguidelines-narrowing-conversions");
     CheckFactories.registerCheck<NoMallocCheck>("cppcoreguidelines-no-malloc");
