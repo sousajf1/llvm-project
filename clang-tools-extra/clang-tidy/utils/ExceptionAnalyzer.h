@@ -31,7 +31,7 @@ public:
   };
 
   /// Bundle the gathered information about an entity like a function regarding
-  /// it's exception behaviour. The 'NonThrowing'-state can be considered as the
+  /// it's exception behaviour. The 'NotThrowing'-state can be considered as the
   /// neutral element in terms of information propagation.
   /// In the case of 'Throwing' state it is possible that 'getExceptionTypes'
   /// does not include *ALL* possible types as there is the possibility that
@@ -43,7 +43,7 @@ public:
     static ExceptionInfo createUnknown() {
       return ExceptionInfo(State::Unknown);
     }
-    static ExceptionInfo createNonThrowing() {
+    static ExceptionInfo createNotThrowing() {
       return ExceptionInfo(State::Throwing);
     }
 
@@ -59,6 +59,19 @@ public:
     ExceptionInfo &operator=(ExceptionInfo &&) = default;
 
     State getBehaviour() const { return Behaviour; }
+
+    /// This method can be called if there is an element that signals in its
+    /// signature that it throws, like 'void foo() noexcept(false)'.
+    void signalThrowing() { Behaviour = State::Throwing; }
+
+    /// This method can be called if there is an element that does not provide
+    /// information on its exception behaviour. This information will be
+    /// stored within the 'ExceptionInfo'.
+    void signalUnknown() {
+      if (Behaviour == State::NotThrowing)
+        Behaviour = State::Unknown;
+      ContainsUnknown = true;
+    }
 
     /// Register a single exception type as recognized potential exception to be
     /// thrown.
@@ -89,7 +102,7 @@ public:
     filterIgnoredExceptions(const llvm::StringSet<> &IgnoredTypes,
                             bool IgnoreBadAlloc);
 
-    /// Clear the state to 'NonThrowing' to make the corresponding entity
+    /// Clear the state to 'NotThrowing' to make the corresponding entity
     /// neutral.
     void clear();
 

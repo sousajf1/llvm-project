@@ -11,9 +11,9 @@ void foo() throw();
 
 template <typename T>
 void foo() throw();
-void footest() { foo<int>(); foo<double>(); }
-// CHECK-MESSAGES: :[[@LINE-2]]:12: warning: dynamic exception specification 'throw()' is deprecated; consider using 'noexcept' instead [modernize-use-noexcept]
+// CHECK-MESSAGES: :[[@LINE-1]]:12: warning: dynamic exception specification 'throw()' is deprecated; consider using 'noexcept' instead [modernize-use-noexcept]
 // CHECK-FIXES: void foo() noexcept;
+void footest() { foo<int>(); foo<double>(); }
 
 void bar() throw(...);
 // CHECK-MESSAGES: :[[@LINE-1]]:12: warning: dynamic exception specification 'throw(...)' is deprecated; consider using 'noexcept(false)' instead [modernize-use-noexcept]
@@ -71,21 +71,21 @@ struct Z {
 
 struct S {
   void f() throw();
+// CHECK-MESSAGES: :[[@LINE-1]]:12: warning: dynamic exception specification 'throw()' is deprecated; consider using 'noexcept' instead [modernize-use-noexcept]
 };
 void f(void (S::*)() throw());
-// CHECK-MESSAGES: :[[@LINE-3]]:12: warning: dynamic exception specification 'throw()' is deprecated; consider using 'noexcept' instead [modernize-use-noexcept]
-// CHECK-MESSAGES: :[[@LINE-2]]:22: warning: dynamic exception specification 'throw()' is deprecated; consider using 'noexcept' instead [modernize-use-noexcept]
+// CHECK-MESSAGES: :[[@LINE-1]]:22: warning: dynamic exception specification 'throw()' is deprecated; consider using 'noexcept' instead [modernize-use-noexcept]
 // CHECK-FIXES: void f() noexcept;
 // CHECK-FIXES: void f(void (S::*)() noexcept);
 
 template <typename T>
 struct ST {
   void foo() throw();
+// CHECK-MESSAGES: :[[@LINE-1]]:14: warning: dynamic exception specification 'throw()' is deprecated; consider using 'noexcept' instead [modernize-use-noexcept]
 };
 template <typename T>
 void ft(void (ST<T>::*)() throw());
-// CHECK-MESSAGES: :[[@LINE-4]]:14: warning: dynamic exception specification 'throw()' is deprecated; consider using 'noexcept' instead [modernize-use-noexcept]
-// CHECK-MESSAGES: :[[@LINE-2]]:27: warning: dynamic exception specification 'throw()' is deprecated; consider using 'noexcept' instead [modernize-use-noexcept]
+// CHECK-MESSAGES: :[[@LINE-1]]:27: warning: dynamic exception specification 'throw()' is deprecated; consider using 'noexcept' instead [modernize-use-noexcept]
 // CHECK-FIXES: void foo() noexcept;
 // CHECK-FIXES: void ft(void (ST<T>::*)() noexcept);
 

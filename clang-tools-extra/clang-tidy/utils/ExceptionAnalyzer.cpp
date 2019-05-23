@@ -112,9 +112,12 @@ void ExceptionAnalyzer::ExceptionInfo::reevaluateBehaviour() {
 ExceptionAnalyzer::ExceptionInfo ExceptionAnalyzer::throwsException(
     const FunctionDecl *Func,
     llvm::SmallSet<const FunctionDecl *, 32> &CallStack) {
-  if (CallStack.count(Func))
-    return ExceptionInfo::createNonThrowing();
+  // This function has already been analyzed. Therefore the neutral element
+  // is returned.
+  if (CallStack.count(Func) != 0)
+    return ExceptionInfo::createNotThrowing();
 
+  // The function body is available in the source-code and is analyzed directly.
   if (const Stmt *Body = Func->getBody()) {
     CallStack.insert(Func);
     ExceptionInfo Result =
@@ -123,10 +126,32 @@ ExceptionAnalyzer::ExceptionInfo ExceptionAnalyzer::throwsException(
     return Result;
   }
 
-  auto Result = ExceptionInfo::createUnknown();
+  // The exception behaviour must be infered by the declaration of the function.
+  auto Result = ExceptionInfo::createNotThrowing();
   if (const auto *FPT = Func->getType()->getAs<FunctionProtoType>()) {
+    // Dynamic exception specifier states the exceptions that can be thrown.
     for (const QualType Ex : FPT->exceptions())
       Result.registerException(Ex.getTypePtr());
+
+    switch (FPT->getExceptionSpecType()) {
+    // The function declaration does not give any information about the
+    // exception behaviour and must be considered as 'Unknown'.
+    case EST_None:
+      Result.signalUnknown();
+      break;
+    // The 'FunctionProtoType' signals that throwing is expected.
+    case EST_NoexceptFalse:
+    case EST_MSAny:
+      Result.signalThrowing();
+      break;
+      // The potential exception list in 'throw()' is handled above.
+      // All other possibilities are not considered here.
+    default:
+      break;
+    }
+    // What's left here is that the function does state to not throw
+    // (e.g. 'void foo() noexcept') which is covered with the initial value of
+    // 'Result'.
   }
   return Result;
 }
@@ -136,7 +161,7 @@ ExceptionAnalyzer::ExceptionInfo ExceptionAnalyzer::throwsException(
 ExceptionAnalyzer::ExceptionInfo ExceptionAnalyzer::throwsException(
     const Stmt *St, const ExceptionInfo::Throwables &Caught,
     llvm::SmallSet<const FunctionDecl *, 32> &CallStack) {
-  auto Results = ExceptionInfo::createNonThrowing();
+  auto Results = ExceptionInfo::createNotThrowing();
   if (!St)
     return Results;
 
@@ -207,7 +232,6 @@ ExceptionAnalyzer::ExceptionInfo ExceptionAnalyzer::throwsException(
 ExceptionAnalyzer::ExceptionInfo
 ExceptionAnalyzer::analyzeImpl(const FunctionDecl *Func) {
   ExceptionInfo ExceptionList;
-
   // Check if the function has already been analyzed and reuse that result.
   if (FunctionCache.count(Func) == 0) {
     llvm::SmallSet<const FunctionDecl *, 32> CallStack;

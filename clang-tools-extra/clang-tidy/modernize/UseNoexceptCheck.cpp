@@ -19,11 +19,13 @@ namespace modernize {
 UseNoexceptCheck::UseNoexceptCheck(StringRef Name, ClangTidyContext *Context)
     : ClangTidyCheck(Name, Context),
       NoexceptMacro(Options.get("ReplacementString", "")),
-      UseNoexceptFalse(Options.get("UseNoexceptFalse", true)) {}
+      UseNoexceptFalse(Options.get("UseNoexceptFalse", true)),
+      AddMissingNoexcept(Options.get("AddMissingNoexcept", false)) {}
 
 void UseNoexceptCheck::storeOptions(ClangTidyOptions::OptionMap &Opts) {
   Options.store(Opts, "ReplacementString", NoexceptMacro);
   Options.store(Opts, "UseNoexceptFalse", UseNoexceptFalse);
+  Options.store(Opts, "AddMissingNoexcept", AddMissingNoexcept);
 }
 
 void UseNoexceptCheck::registerMatchers(MatchFinder *Finder) {
@@ -56,6 +58,14 @@ void UseNoexceptCheck::registerMatchers(MatchFinder *Finder) {
                             functionProtoType(hasDynamicExceptionSpec()))))))))
           .bind("parmVarDecl"),
       this);
+
+  if (AddMissingNoexcept)
+    Finder->addMatcher(
+        functionDecl(allOf(hasBody(stmt()),
+                           unless(anyOf(isNoThrow(), hasDynamicExceptionSpec(),
+                                        isImplicit()))))
+            .bind("potentialNoexcept"),
+        this);
 }
 
 void UseNoexceptCheck::check(const MatchFinder::MatchResult &Result) {
@@ -82,6 +92,22 @@ void UseNoexceptCheck::check(const MatchFinder::MatchResult &Result) {
                   .IgnoreParens()
                   .castAs<FunctionProtoTypeLoc>()
                   .getExceptionSpecRange();
+  } else if (const auto *PotentialNoexcept =
+                 Result.Nodes.getNodeAs<FunctionDecl>("potentialNoexcept")) {
+    // `virtual` methods should not add `noexcept`, even if they could as
+    // on of its overriders could throw an exception. Having `noexcept`
+    // in these cases is a design decision.
+    if (const auto *MDecl = dyn_cast<CXXMethodDecl>(PotentialNoexcept))
+      if (MDecl->isVirtual())
+        return;
+
+    if (Analyzer.analyze(PotentialNoexcept).getBehaviour() ==
+            utils::ExceptionAnalyzer::State::NotThrowing &&
+        PotentialNoexcept->getBeginLoc().isValid())
+      diag(PotentialNoexcept->getBeginLoc(),
+           "this function can not throw an exception, consider adding "
+           "'noexcept'");
+    return;
   }
   CharSourceRange CRange = Lexer::makeFileCharRange(
       CharSourceRange::getTokenRange(Range), *Result.SourceManager,
@@ -92,10 +118,10 @@ void UseNoexceptCheck::check(const MatchFinder::MatchResult &Result) {
   StringRef ReplacementStr =
       IsNoThrow
           ? NoexceptMacro.empty() ? "noexcept" : NoexceptMacro.c_str()
-          : NoexceptMacro.empty()
-                ? (DtorOrOperatorDel || UseNoexceptFalse) ? "noexcept(false)"
-                                                          : ""
-                : "";
+          : NoexceptMacro.empty() ? (DtorOrOperatorDel || UseNoexceptFalse)
+                                        ? "noexcept(false)"
+                                        : ""
+                                  : "";
 
   FixItHint FixIt;
   if ((IsNoThrow || NoexceptMacro.empty()) && CRange.isValid())

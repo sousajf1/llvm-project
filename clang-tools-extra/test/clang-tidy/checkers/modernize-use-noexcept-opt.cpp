@@ -67,11 +67,11 @@ struct Z {
 
 struct S {
   void f() throw();
+// CHECK-MESSAGES: :[[@LINE-1]]:12: warning: dynamic exception specification 'throw()' is deprecated; consider using 'noexcept' instead [modernize-use-noexcept]
+// CHECK-FIXES: void f() noexcept;
 };
 void f(void (S::*)() throw());
-// CHECK-MESSAGES: :[[@LINE-3]]:12: warning: dynamic exception specification 'throw()' is deprecated; consider using 'noexcept' instead [modernize-use-noexcept]
-// CHECK-MESSAGES: :[[@LINE-2]]:22: warning: dynamic exception specification 'throw()' is deprecated; consider using 'noexcept' instead [modernize-use-noexcept]
-// CHECK-FIXES: void f() noexcept;
+// CHECK-MESSAGES: :[[@LINE-1]]:22: warning: dynamic exception specification 'throw()' is deprecated; consider using 'noexcept' instead [modernize-use-noexcept]
 // CHECK-FIXES: void f(void (S::*)() noexcept);
 
 typedef void (*fp)(void (*fp2)(int) throw());
