@@ -155,6 +155,7 @@ namespace {
     enum : unsigned {
       spillClean = 50,
       spillDirty = 100,
+      spillPrefBonus = 20,
       spillImpossible = ~0u
     };
 
@@ -215,6 +216,9 @@ namespace {
     void spillAll(MachineBasicBlock::iterator MI, bool OnlyLiveOut);
     bool setPhysReg(MachineInstr &MI, MachineOperand &MO, MCPhysReg PhysReg);
 
+    unsigned traceCopies(unsigned VirtReg) const;
+    unsigned traceCopyChain(unsigned Reg) const;
+
     int getStackSpaceFor(unsigned VirtReg);
     void spill(MachineBasicBlock::iterator Before, unsigned VirtReg,
                MCPhysReg AssignedReg, bool Kill);
@@ -222,6 +226,7 @@ namespace {
                 MCPhysReg PhysReg);
 
     bool mayLiveOut(unsigned VirtReg);
+    bool mayLiveIn(unsigned VirtReg);
 
     void dumpState();
   };
@@ -266,8 +271,10 @@ bool RegAllocFast::mayLiveOut(unsigned VirtReg) {
 
   // If this block loops back to itself, it would be necessary to check whether
   // the use comes after the def.
-  if (MBB->isSuccessor(MBB))
+  if (MBB->isSuccessor(MBB)) {
+    MayLiveAcrossBlocks.set(TargetRegisterInfo::virtReg2Index(VirtReg));
     return true;
+  }
 
   // See if the first \p Limit uses of the register are all in the current
   // block.
@@ -278,6 +285,24 @@ bool RegAllocFast::mayLiveOut(unsigned VirtReg) {
       MayLiveAcrossBlocks.set(TargetRegisterInfo::virtReg2Index(VirtReg));
       // Cannot be live-out if there are no successors.
       return !MBB->succ_empty();
+    }
+  }
+
+  return false;
+}
+
+/// Returns false if \p VirtReg is known to not be live into the current block.
+bool RegAllocFast::mayLiveIn(unsigned VirtReg) {
+  if (MayLiveAcrossBlocks.test(TargetRegisterInfo::virtReg2Index(VirtReg)))
+    return !MBB->pred_empty();
+
+  // See if the first \p Limit def of the register are all in the current block.
+  static const unsigned Limit = 8;
+  unsigned C = 0;
+  for (const MachineInstr &DefInst : MRI->def_instructions(VirtReg)) {
+    if (DefInst.getParent() != MBB || ++C >= Limit) {
+      MayLiveAcrossBlocks.set(TargetRegisterInfo::virtReg2Index(VirtReg));
+      return !MBB->pred_empty();
     }
   }
 
@@ -593,8 +618,48 @@ void RegAllocFast::assignVirtToPhysReg(LiveReg &LR, MCPhysReg PhysReg) {
   setPhysRegState(PhysReg, VirtReg);
 }
 
+static bool isCoalescable(const MachineInstr &MI) {
+  return MI.isFullCopy();
+}
+
+unsigned RegAllocFast::traceCopyChain(unsigned Reg) const {
+  static const unsigned ChainLengthLimit = 3;
+  unsigned C = 0;
+  do {
+    if (TargetRegisterInfo::isPhysicalRegister(Reg))
+      return Reg;
+    assert(TargetRegisterInfo::isVirtualRegister(Reg));
+
+    MachineInstr *VRegDef = MRI->getUniqueVRegDef(Reg);
+    if (!VRegDef || !isCoalescable(*VRegDef))
+      return 0;
+    Reg = VRegDef->getOperand(1).getReg();
+  } while (++C <= ChainLengthLimit);
+  return 0;
+}
+
+/// Check if any of \p VirtReg's definitions is a copy. If it is follow the
+/// chain of copies to check whether we reach a physical register we can
+/// coalesce with.
+unsigned RegAllocFast::traceCopies(unsigned VirtReg) const {
+  static const unsigned DefLimit = 3;
+  unsigned C = 0;
+  for (const MachineInstr &MI : MRI->def_instructions(VirtReg)) {
+    if (isCoalescable(MI)) {
+      unsigned Reg = MI.getOperand(1).getReg();
+      Reg = traceCopyChain(Reg);
+      if (Reg != 0)
+        return Reg;
+    }
+
+    if (++C >= DefLimit)
+      break;
+  }
+  return 0;
+}
+
 /// Allocates a physical register for VirtReg.
-void RegAllocFast::allocVirtReg(MachineInstr &MI, LiveReg &LR, unsigned Hint) {
+void RegAllocFast::allocVirtReg(MachineInstr &MI, LiveReg &LR, unsigned Hint0) {
   const unsigned VirtReg = LR.VirtReg;
 
   assert(TargetRegisterInfo::isVirtualRegister(VirtReg) &&
@@ -603,19 +668,48 @@ void RegAllocFast::allocVirtReg(MachineInstr &MI, LiveReg &LR, unsigned Hint) {
   const TargetRegisterClass &RC = *MRI->getRegClass(VirtReg);
   LLVM_DEBUG(dbgs() << "Search register for " << printReg(VirtReg)
                     << " in class " << TRI->getRegClassName(&RC)
-                    << " with hint " << printReg(Hint, TRI) << '\n');
+                    << " with hint " << printReg(Hint0, TRI) << '\n');
 
   // Take hint when possible.
-  if (TargetRegisterInfo::isPhysicalRegister(Hint) &&
-      MRI->isAllocatable(Hint) && RC.contains(Hint)) {
+  if (TargetRegisterInfo::isPhysicalRegister(Hint0) &&
+      MRI->isAllocatable(Hint0) && RC.contains(Hint0)) {
     // Ignore the hint if we would have to spill a dirty register.
-    unsigned Cost = calcSpillCost(Hint);
+    unsigned Cost = calcSpillCost(Hint0);
     if (Cost < spillDirty) {
+      LLVM_DEBUG(dbgs() << "\tPreferred Register 1: " << printReg(Hint0, TRI)
+                        << '\n');
       if (Cost)
-        definePhysReg(MI, Hint, regFree);
-      assignVirtToPhysReg(LR, Hint);
+        definePhysReg(MI, Hint0, regFree);
+      assignVirtToPhysReg(LR, Hint0);
       return;
+    } else {
+      LLVM_DEBUG(dbgs() << "\tPreferred Register 1: " << printReg(Hint0, TRI)
+                        << "occupied\n");
     }
+  } else {
+    Hint0 = 0;
+  }
+
+  // Try other hint.
+  unsigned Hint1 = traceCopies(VirtReg);
+  if (TargetRegisterInfo::isPhysicalRegister(Hint1) &&
+      MRI->isAllocatable(Hint1) && RC.contains(Hint1) &&
+      !isRegUsedInInstr(Hint1)) {
+    // Ignore the hint if we would have to spill a dirty register.
+    unsigned Cost = calcSpillCost(Hint1);
+    if (Cost < spillDirty) {
+      LLVM_DEBUG(dbgs() << "\tPreferred Register 0: " << printReg(Hint1, TRI)
+                        << '\n');
+      if (Cost)
+        definePhysReg(MI, Hint1, regFree);
+      assignVirtToPhysReg(LR, Hint1);
+      return;
+    } else {
+      LLVM_DEBUG(dbgs() << "\tPreferred Register 0: " << printReg(Hint1, TRI)
+                        << "occupied\n");
+    }
+  } else {
+    Hint1 = 0;
   }
 
   MCPhysReg BestReg = 0;
@@ -630,6 +724,10 @@ void RegAllocFast::allocVirtReg(MachineInstr &MI, LiveReg &LR, unsigned Hint) {
       assignVirtToPhysReg(LR, PhysReg);
       return;
     }
+
+    if (PhysReg == Hint1 || PhysReg == Hint0)
+      Cost -= spillPrefBonus;
+
     if (Cost < BestCost) {
       BestReg = PhysReg;
       BestCost = Cost;
@@ -1006,6 +1104,11 @@ void RegAllocFast::allocateInstruction(MachineInstr &MI) {
         // There is no need to allocate a register for an undef use.
         continue;
       }
+
+      // Populate MayLiveAcrossBlocks in case the use block is allocated before
+      // the def block (removing the vreg uses).
+      mayLiveIn(Reg);
+
       LiveReg &LR = reloadVirtReg(MI, I, Reg, CopyDstReg);
       MCPhysReg PhysReg = LR.PhysReg;
       CopySrcReg = (CopySrcReg == Reg || CopySrcReg == PhysReg) ? PhysReg : 0;

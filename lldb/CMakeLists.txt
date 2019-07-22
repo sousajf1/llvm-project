@@ -4,18 +4,23 @@ if(POLICY CMP0075)
   cmake_policy(SET CMP0075 NEW)
 endif()
 
-# Add path for custom modules
+# Add path for custom modules.
 set(CMAKE_MODULE_PATH
   ${CMAKE_MODULE_PATH}
   "${CMAKE_CURRENT_SOURCE_DIR}/cmake"
   "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules"
   )
 
-include(LLDBStandalone)
+# If we are not building as part of LLVM, build LLDB as a standalone project,
+# using LLVM as an external library.
+if (CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+  include(LLDBStandalone)
+endif()
+
 include(LLDBConfig)
 include(AddLLDB)
 
-# Define the LLDB_CONFIGURATION_xxx matching the build type
+# Define the LLDB_CONFIGURATION_xxx matching the build type.
 if( uppercase_CMAKE_BUILD_TYPE STREQUAL "DEBUG" )
   add_definitions( -DLLDB_CONFIGURATION_DEBUG )
 else()
@@ -33,6 +38,21 @@ endif()
 if (NOT LLDB_DISABLE_PYTHON)
   add_subdirectory(scripts)
 endif ()
+
+if(CMAKE_CROSSCOMPILING AND LLDB_BUILT_STANDALONE)
+  set(LLVM_USE_HOST_TOOLS ON)
+  include(CrossCompile)
+  if (NOT NATIVE_LLVM_DIR OR NOT NATIVE_Clang_DIR)
+    message(FATAL_ERROR
+      "Crosscompiling standalone requires the variables NATIVE_{CLANG,LLVM}_DIR
+      for building the native lldb-tblgen used during the build process.")
+  endif()
+  llvm_create_cross_target(lldb NATIVE "" Release
+    -DLLVM_DIR=${NATIVE_LLVM_DIR}
+    -DClang_DIR=${NATIVE_Clang_DIR})
+endif()
+
+add_subdirectory(utils/TableGen)
 add_subdirectory(source)
 add_subdirectory(tools)
 add_subdirectory(docs)
@@ -84,14 +104,6 @@ if(LLDB_INCLUDE_TESTS)
 
   if(TARGET lldb-server)
     list(APPEND LLDB_TEST_DEPS lldb-server)
-  endif()
-
-  if(TARGET debugserver)
-    list(APPEND LLDB_TEST_DEPS debugserver)
-  endif()
-
-  if(TARGET lldb-mi)
-    list(APPEND LLDB_TEST_DEPS lldb-mi)
   endif()
 
   if(TARGET lldb-vscode)
@@ -151,8 +163,13 @@ if(LLDB_INCLUDE_TESTS)
     list(APPEND LLDB_TEST_DEPS dsymutil)
   endif()
 
+  if(TARGET lldb-framework)
+    list(APPEND LLDB_TEST_DEPS lldb-framework)
+  endif()
+
   add_custom_target(lldb-test-deps)
   add_dependencies(lldb-test-deps ${LLDB_TEST_DEPS})
+  set_target_properties(lldb-test-deps PROPERTIES FOLDER "lldb misc")
 
   add_subdirectory(test)
   add_subdirectory(unittests)
@@ -172,7 +189,7 @@ if (NOT LLDB_DISABLE_PYTHON)
     get_target_property(liblldb_build_dir liblldb LIBRARY_OUTPUT_DIRECTORY)
 
     # Add a Post-Build Event to copy over Python files and create the symlink
-    # to liblldb.so for the Python API(hardlink on Windows)
+    # to liblldb.so for the Python API(hardlink on Windows).
     add_custom_target(finish_swig ALL
         COMMAND
            ${PYTHON_EXECUTABLE} ${LLDB_SOURCE_DIR}/scripts/finishSwigWrapperClasses.py
@@ -193,13 +210,10 @@ if (NOT LLDB_DISABLE_PYTHON)
       set(readline_dep readline)
     endif()
     add_dependencies(finish_swig swig_wrapper liblldb lldb-argdumper ${readline_dep})
+    set_target_properties(finish_swig swig_wrapper PROPERTIES FOLDER "lldb misc")
 
     # Ensure we do the python post-build step when building lldb.
     add_dependencies(lldb finish_swig)
-
-    if(LLDB_BUILD_FRAMEWORK)
-      add_dependencies(lldb-framework finish_swig)
-    endif()
 
     # Add a Post-Build Event to copy the custom Python DLL to the lldb binaries dir so that Windows can find it when launching
     # lldb.exe or any other executables that were linked with liblldb.
@@ -214,3 +228,7 @@ if (NOT LLDB_DISABLE_PYTHON)
             COMMENT "Copying Python DLL to LLDB binaries directory.")
     endif ()
 endif ()
+
+if(LLDB_BUILT_STANDALONE AND NOT LLVM_ENABLE_IDE)
+  llvm_distribution_add_targets()
+endif()

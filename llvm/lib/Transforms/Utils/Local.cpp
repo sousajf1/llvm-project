@@ -324,7 +324,13 @@ bool llvm::ConstantFoldTerminator(BasicBlock *BB, bool DeleteDeadConditions,
       Value *Address = IBI->getAddress();
       IBI->eraseFromParent();
       if (DeleteDeadConditions)
+        // Delete pointer cast instructions.
         RecursivelyDeleteTriviallyDeadInstructions(Address, TLI);
+
+      // Also zap the blockaddress constant if there are no users remaining,
+      // otherwise the destination is still marked as having its address taken.
+      if (BA->use_empty())
+        BA->destroyConstant();
 
       // If we didn't find our destination in the IBI successor list, then we
       // have undefined behavior.  Replace the unconditional branch with an
@@ -1552,14 +1558,14 @@ void llvm::findDbgUsers(SmallVectorImpl<DbgVariableIntrinsic *> &DbgUsers,
 
 bool llvm::replaceDbgDeclare(Value *Address, Value *NewAddress,
                              Instruction *InsertBefore, DIBuilder &Builder,
-                             bool DerefBefore, int Offset, bool DerefAfter) {
+                             uint8_t DIExprFlags, int Offset) {
   auto DbgAddrs = FindDbgAddrUses(Address);
   for (DbgVariableIntrinsic *DII : DbgAddrs) {
     DebugLoc Loc = DII->getDebugLoc();
     auto *DIVar = DII->getVariable();
     auto *DIExpr = DII->getExpression();
     assert(DIVar && "Missing variable");
-    DIExpr = DIExpression::prepend(DIExpr, DerefBefore, Offset, DerefAfter);
+    DIExpr = DIExpression::prepend(DIExpr, DIExprFlags, Offset);
     // Insert llvm.dbg.declare immediately before InsertBefore, and remove old
     // llvm.dbg.declare.
     Builder.insertDeclare(NewAddress, DIVar, DIExpr, Loc, InsertBefore);
@@ -1571,10 +1577,10 @@ bool llvm::replaceDbgDeclare(Value *Address, Value *NewAddress,
 }
 
 bool llvm::replaceDbgDeclareForAlloca(AllocaInst *AI, Value *NewAllocaAddress,
-                                      DIBuilder &Builder, bool DerefBefore,
-                                      int Offset, bool DerefAfter) {
+                                      DIBuilder &Builder, uint8_t DIExprFlags,
+                                      int Offset) {
   return replaceDbgDeclare(AI, NewAllocaAddress, AI->getNextNode(), Builder,
-                           DerefBefore, Offset, DerefAfter);
+                           DIExprFlags, Offset);
 }
 
 static void replaceOneDbgValueForAlloca(DbgValueInst *DVI, Value *NewAddress,
@@ -2238,7 +2244,7 @@ bool llvm::removeUnreachableBlocks(Function &F, LazyValueInfo *LVI,
   assert(Reachable.size() < F.size());
   NumRemoved += F.size()-Reachable.size();
 
-  SmallPtrSet<BasicBlock *, 16> DeadBlockSet;
+  SmallSetVector<BasicBlock *, 8> DeadBlockSet;
   for (Function::iterator I = ++F.begin(), E = F.end(); I != E; ++I) {
     auto *BB = &*I;
     if (Reachable.count(BB))

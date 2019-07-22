@@ -63,18 +63,6 @@ void TargetMachine::resetTargetOptions(const Function &F) const {
   RESET_OPTION(NoInfsFPMath, "no-infs-fp-math");
   RESET_OPTION(NoNaNsFPMath, "no-nans-fp-math");
   RESET_OPTION(NoSignedZerosFPMath, "no-signed-zeros-fp-math");
-  RESET_OPTION(NoTrappingFPMath, "no-trapping-math");
-
-  StringRef Denormal =
-    F.getFnAttribute("denormal-fp-math").getValueAsString();
-  if (Denormal == "ieee")
-    Options.FPDenormalMode = FPDenormal::IEEE;
-  else if (Denormal == "preserve-sign")
-    Options.FPDenormalMode = FPDenormal::PreserveSign;
-  else if (Denormal == "positive-zero")
-    Options.FPDenormalMode = FPDenormal::PositiveZero;
-  else
-    Options.FPDenormalMode = DefaultOptions.FPDenormalMode;
 }
 
 /// Returns the code generation relocation model. The choices are static, PIC,
@@ -172,6 +160,11 @@ bool TargetMachine::shouldAssumeDSOLocal(const Module &M,
       return true;
     return GV && GV->isStrongDefinitionForLinker();
   }
+
+  // Due to the AIX linkage model, any global with default visibility is
+  // considered non-local.
+  if (TT.isOSBinFormatXCOFF())
+    return false;
 
   assert(TT.isOSBinFormatELF() || TT.isOSBinFormatWasm());
   assert(RM != Reloc::DynamicNoPIC);

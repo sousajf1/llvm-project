@@ -299,7 +299,7 @@ bool DWARFFormValue::extractValue(const DWARFDataExtractor &Data,
     case DW_FORM_data8:
     case DW_FORM_ref8:
     case DW_FORM_ref_sup8:
-      Value.uval = Data.getU64(OffsetPtr);
+      Value.uval = Data.getRelocatedValue(8, OffsetPtr);
       break;
     case DW_FORM_data16:
       // Treat this like a 16-byte block.
@@ -401,12 +401,14 @@ void DWARFFormValue::dump(raw_ostream &OS, DIDumpOptions DumpOpts) const {
   case DW_FORM_addrx3:
   case DW_FORM_addrx4:
   case DW_FORM_GNU_addr_index: {
+    if (U == nullptr) {
+      OS << "<invalid dwarf unit>";
+      break;
+    }
     Optional<object::SectionedAddress> A = U->getAddrOffsetSectionItem(UValue);
     if (!A || DumpOpts.Verbose)
       AddrOS << format("indexed (%8.8x) address = ", (uint32_t)UValue);
-    if (U == nullptr)
-      OS << "<invalid dwarf unit>";
-    else if (A)
+    if (A)
       dumpSectionedAddress(AddrOS, DumpOpts, *A);
     else
       OS << "<no .debug_addr section>";
