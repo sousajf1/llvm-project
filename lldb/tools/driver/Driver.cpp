@@ -610,7 +610,7 @@ int Driver::MainLoop() {
       // that run the target won't run in a sensible way.
       bool old_async = m_debugger.GetAsync();
       m_debugger.SetAsync(false);
-      int num_errors;
+      int num_errors = 0;
 
       SBCommandInterpreterRunOptions options;
       options.SetStopOnError(true);
@@ -706,6 +706,9 @@ void sigwinch_handler(int signo) {
 }
 
 void sigint_handler(int signo) {
+#ifdef _WIN32 // Restore handler as it is not persistent on Windows
+  signal(SIGINT, sigint_handler);
+#endif
   static std::atomic_flag g_interrupt_sent = ATOMIC_FLAG_INIT;
   if (g_driver != nullptr) {
     if (!g_interrupt_sent.test_and_set()) {

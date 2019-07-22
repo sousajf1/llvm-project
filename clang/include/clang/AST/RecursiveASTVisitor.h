@@ -1800,6 +1800,11 @@ DEF_TRAVERSE_DECL(TypeAliasTemplateDecl, {
   TRY_TO(TraverseTemplateParameterListHelper(D->getTemplateParameters()));
 })
 
+DEF_TRAVERSE_DECL(ConceptDecl, {
+  TRY_TO(TraverseTemplateParameterListHelper(D->getTemplateParameters()));
+  TRY_TO(TraverseStmt(D->getConstraintExpr()));
+})
+
 DEF_TRAVERSE_DECL(UnresolvedUsingTypenameDecl, {
   // A dependent using declaration which was marked with 'typename'.
   //   template<class T> class A : public B<T> { using typename B<T>::foo; };
@@ -2282,6 +2287,10 @@ DEF_TRAVERSE_STMT(CXXStaticCastExpr, {
   TRY_TO(TraverseTypeLoc(S->getTypeInfoAsWritten()->getTypeLoc()));
 })
 
+DEF_TRAVERSE_STMT(BuiltinBitCastExpr, {
+  TRY_TO(TraverseTypeLoc(S->getTypeInfoAsWritten()->getTypeLoc()));
+})
+
 template <typename Derived>
 bool RecursiveASTVisitor<Derived>::TraverseSynOrSemInitListExpr(
     InitListExpr *S, DataRecursionQueue *Queue) {
@@ -2550,6 +2559,8 @@ DEF_TRAVERSE_STMT(PredefinedExpr, {})
 DEF_TRAVERSE_STMT(ShuffleVectorExpr, {})
 DEF_TRAVERSE_STMT(ConvertVectorExpr, {})
 DEF_TRAVERSE_STMT(StmtExpr, {})
+DEF_TRAVERSE_STMT(SourceLocExpr, {})
+
 DEF_TRAVERSE_STMT(UnresolvedLookupExpr, {
   TRY_TO(TraverseNestedNameSpecifierLoc(S->getQualifierLoc()));
   if (S->hasExplicitTemplateArgs()) {

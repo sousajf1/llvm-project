@@ -524,9 +524,6 @@ SearchFilterByModuleList::SearchFilterByModuleList(
     enum FilterTy filter_ty)
     : SearchFilter(target_sp, filter_ty), m_module_spec_list(module_list) {}
 
-SearchFilterByModuleList::SearchFilterByModuleList(
-    const SearchFilterByModuleList &rhs) = default;
-
 SearchFilterByModuleList &SearchFilterByModuleList::
 operator=(const SearchFilterByModuleList &rhs) {
   m_target_sp = rhs.m_target_sp;
@@ -643,7 +640,7 @@ SearchFilterSP SearchFilterByModuleList::CreateFromStructuredData(
             "SFBM::CFSD: filter module item %zu not a string.", i);
         return nullptr;
       }
-      modules.Append(FileSpec(module));
+      modules.EmplaceBack(module);
     }
   }
 
@@ -706,7 +703,7 @@ lldb::SearchFilterSP SearchFilterByModuleListAndCU::CreateFromStructuredData(
             "SFBM::CFSD: filter module item %zu not a string.", i);
         return result_sp;
       }
-      modules.Append(FileSpec(module));
+      modules.EmplaceBack(module);
     }
   }
 
@@ -728,7 +725,7 @@ lldb::SearchFilterSP SearchFilterByModuleListAndCU::CreateFromStructuredData(
           "SFBM::CFSD: filter cu item %zu not a string.", i);
       return nullptr;
     }
-    cus.Append(FileSpec(cu));
+    cus.EmplaceBack(cu);
   }
 
   return std::make_shared<SearchFilterByModuleListAndCU>(

@@ -538,6 +538,7 @@ private:
                         unsigned knownArity);
   void mangleCastExpression(const Expr *E, StringRef CastEncoding);
   void mangleInitListElements(const InitListExpr *InitList);
+  void mangleDeclRefExpr(const NamedDecl *D);
   void mangleExpression(const Expr *E, unsigned Arity = UnknownArity);
   void mangleCXXCtorType(CXXCtorType T, const CXXRecordDecl *InheritedFrom);
   void mangleCXXDtorType(CXXDtorType T);
@@ -2606,17 +2607,22 @@ void CXXNameMangler::mangleType(const BuiltinType *T) {
   case BuiltinType::Double:
     Out << 'd';
     break;
-  case BuiltinType::LongDouble:
-    Out << (getASTContext().getTargetInfo().useFloat128ManglingForLongDouble()
-                ? 'g'
-                : 'e');
+  case BuiltinType::LongDouble: {
+    const TargetInfo *TI = getASTContext().getLangOpts().OpenMP &&
+                                   getASTContext().getLangOpts().OpenMPIsDevice
+                               ? getASTContext().getAuxTargetInfo()
+                               : &getASTContext().getTargetInfo();
+    Out << TI->getLongDoubleMangling();
     break;
-  case BuiltinType::Float128:
-    if (getASTContext().getTargetInfo().useFloat128ManglingForLongDouble())
-      Out << "U10__float128"; // Match the GCC mangling
-    else
-      Out << 'g';
+  }
+  case BuiltinType::Float128: {
+    const TargetInfo *TI = getASTContext().getLangOpts().OpenMP &&
+                                   getASTContext().getLangOpts().OpenMPIsDevice
+                               ? getASTContext().getAuxTargetInfo()
+                               : &getASTContext().getTargetInfo();
+    Out << TI->getFloat128Mangling();
     break;
+  }
   case BuiltinType::NullPtr:
     Out << "Dn";
     break;
@@ -3499,6 +3505,32 @@ void CXXNameMangler::mangleInitListElements(const InitListExpr *InitList) {
     mangleExpression(InitList->getInit(i));
 }
 
+void CXXNameMangler::mangleDeclRefExpr(const NamedDecl *D) {
+  switch (D->getKind()) {
+  default:
+    //  <expr-primary> ::= L <mangled-name> E # external name
+    Out << 'L';
+    mangle(D);
+    Out << 'E';
+    break;
+
+  case Decl::ParmVar:
+    mangleFunctionParam(cast<ParmVarDecl>(D));
+    break;
+
+  case Decl::EnumConstant: {
+    const EnumConstantDecl *ED = cast<EnumConstantDecl>(D);
+    mangleIntegerLiteral(ED->getType(), ED->getInitVal());
+    break;
+  }
+
+  case Decl::NonTypeTemplateParm:
+    const NonTypeTemplateParmDecl *PD = cast<NonTypeTemplateParmDecl>(D);
+    mangleTemplateParameter(PD->getIndex());
+    break;
+  }
+}
+
 void CXXNameMangler::mangleExpression(const Expr *E, unsigned Arity) {
   // <expression> ::= <unary operator-name> <expression>
   //              ::= <binary operator-name> <expression> <expression>
@@ -3589,7 +3621,9 @@ recurse:
   case Expr::AsTypeExprClass:
   case Expr::PseudoObjectExprClass:
   case Expr::AtomicExprClass:
+  case Expr::SourceLocExprClass:
   case Expr::FixedPointLiteralClass:
+  case Expr::BuiltinBitCastExprClass:
   {
     if (!NullOut) {
       // As bad as this diagnostic is, it's better than crashing.
@@ -3753,7 +3787,7 @@ recurse:
     if (TypeSourceInfo *ScopeInfo = PDE->getScopeTypeInfo()) {
       if (Qualifier) {
         mangleUnresolvedPrefix(Qualifier,
-                               /*Recursive=*/true);
+                               /*recursive=*/true);
         mangleUnresolvedTypeOrSimpleId(ScopeInfo->getType());
         Out << 'E';
       } else {
@@ -3924,13 +3958,14 @@ recurse:
       Diags.Report(DiagID);
       return;
     }
-    case UETT_OpenMPRequiredSimdAlign:
+    case UETT_OpenMPRequiredSimdAlign: {
       DiagnosticsEngine &Diags = Context.getDiags();
       unsigned DiagID = Diags.getCustomDiagID(
           DiagnosticsEngine::Error,
           "cannot yet mangle __builtin_omp_required_simd_align expression");
       Diags.Report(DiagID);
       return;
+    }
     }
     if (SAE->isArgumentType()) {
       Out << 't';
@@ -4088,37 +4123,9 @@ recurse:
     mangleExpression(cast<ParenExpr>(E)->getSubExpr(), Arity);
     break;
 
-  case Expr::DeclRefExprClass: {
-    const NamedDecl *D = cast<DeclRefExpr>(E)->getDecl();
-
-    switch (D->getKind()) {
-    default:
-      //  <expr-primary> ::= L <mangled-name> E # external name
-      Out << 'L';
-      mangle(D);
-      Out << 'E';
-      break;
-
-    case Decl::ParmVar:
-      mangleFunctionParam(cast<ParmVarDecl>(D));
-      break;
-
-    case Decl::EnumConstant: {
-      const EnumConstantDecl *ED = cast<EnumConstantDecl>(D);
-      mangleIntegerLiteral(ED->getType(), ED->getInitVal());
-      break;
-    }
-
-    case Decl::NonTypeTemplateParm: {
-      const NonTypeTemplateParmDecl *PD = cast<NonTypeTemplateParmDecl>(D);
-      mangleTemplateParameter(PD->getIndex());
-      break;
-    }
-
-    }
-
+  case Expr::DeclRefExprClass:
+    mangleDeclRefExpr(cast<DeclRefExpr>(E)->getDecl());
     break;
-  }
 
   case Expr::SubstNonTypeTemplateParmPackExprClass:
     // FIXME: not clear how to mangle this!
@@ -4132,7 +4139,7 @@ recurse:
     // FIXME: not clear how to mangle this!
     const FunctionParmPackExpr *FPPE = cast<FunctionParmPackExpr>(E);
     Out << "v110_SUBSTPACK";
-    mangleFunctionParam(FPPE->getParameterPack());
+    mangleDeclRefExpr(FPPE->getParameterPack());
     break;
   }
 
@@ -4482,7 +4489,7 @@ void CXXNameMangler::mangleTemplateArg(TemplateArgument A) {
     // It's possible to end up with a DeclRefExpr here in certain
     // dependent cases, in which case we should mangle as a
     // declaration.
-    const Expr *E = A.getAsExpr()->IgnoreParens();
+    const Expr *E = A.getAsExpr()->IgnoreParenImpCasts();
     if (const DeclRefExpr *DRE = dyn_cast<DeclRefExpr>(E)) {
       const ValueDecl *D = DRE->getDecl();
       if (isa<VarDecl>(D) || isa<FunctionDecl>(D)) {
