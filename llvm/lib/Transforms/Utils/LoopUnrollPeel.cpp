@@ -65,6 +65,8 @@ static cl::opt<bool> UnrollPeelMultiDeoptExit(
     "unroll-peel-multi-deopt-exit", cl::init(true), cl::Hidden,
     cl::desc("Allow peeling of loops with multiple deopt exits."));
 
+static const char *PeeledCountMetaData = "llvm.loop.peeled.count";
+
 // Designates that a Phi is estimated to become invariant after an "infinite"
 // number of loop iterations (i.e. only may become an invariant if the loop is
 // fully unrolled).
@@ -210,14 +212,11 @@ static unsigned countToEliminateCompares(Loop &L, unsigned MaxPeelCount,
     const SCEVAddRecExpr *LeftAR = cast<SCEVAddRecExpr>(LeftSCEV);
 
     // Avoid huge SCEV computations in the loop below, make sure we only
-    // consider AddRecs of the loop we are trying to peel and avoid
-    // non-monotonic predicates, as we will not be able to simplify the loop
-    // body.
-    // FIXME: For the non-monotonic predicates ICMP_EQ and ICMP_NE we can
-    //        simplify the loop, if we peel 1 additional iteration, if there
-    //        is no wrapping.
+    // consider AddRecs of the loop we are trying to peel.
+    if (!LeftAR->isAffine() || LeftAR->getLoop() != &L)
+      continue;
     bool Increasing;
-    if (!LeftAR->isAffine() || LeftAR->getLoop() != &L ||
+    if (!(ICmpInst::isEquality(Pred) && LeftAR->hasNoSelfWrap()) &&
         !SE.isMonotonicPredicate(LeftAR, Pred, Increasing))
       continue;
     (void)Increasing;
@@ -236,18 +235,43 @@ static unsigned countToEliminateCompares(Loop &L, unsigned MaxPeelCount,
       Pred = ICmpInst::getInversePredicate(Pred);
 
     const SCEV *Step = LeftAR->getStepRecurrence(SE);
-    while (NewPeelCount < MaxPeelCount &&
-           SE.isKnownPredicate(Pred, IterVal, RightSCEV)) {
-      IterVal = SE.getAddExpr(IterVal, Step);
+    const SCEV *NextIterVal = SE.getAddExpr(IterVal, Step);
+    auto PeelOneMoreIteration = [&IterVal, &NextIterVal, &SE, Step,
+                                 &NewPeelCount]() {
+      IterVal = NextIterVal;
+      NextIterVal = SE.getAddExpr(IterVal, Step);
       NewPeelCount++;
+    };
+
+    auto CanPeelOneMoreIteration = [&NewPeelCount, &MaxPeelCount]() {
+      return NewPeelCount < MaxPeelCount;
+    };
+
+    while (CanPeelOneMoreIteration() &&
+           SE.isKnownPredicate(Pred, IterVal, RightSCEV))
+      PeelOneMoreIteration();
+
+    // With *that* peel count, does the predicate !Pred become known in the
+    // first iteration of the loop body after peeling?
+    if (!SE.isKnownPredicate(ICmpInst::getInversePredicate(Pred), IterVal,
+                             RightSCEV))
+      continue; // If not, give up.
+
+    // However, for equality comparisons, that isn't always sufficient to
+    // eliminate the comparsion in loop body, we may need to peel one more
+    // iteration. See if that makes !Pred become unknown again.
+    if (ICmpInst::isEquality(Pred) &&
+        !SE.isKnownPredicate(ICmpInst::getInversePredicate(Pred), NextIterVal,
+                             RightSCEV)) {
+      assert(!SE.isKnownPredicate(Pred, IterVal, RightSCEV) &&
+             SE.isKnownPredicate(Pred, NextIterVal, RightSCEV) &&
+             "Expected Pred to go from known to unknown.");
+      if (!CanPeelOneMoreIteration())
+        continue; // Need to peel one more iteration, but can't. Give up.
+      PeelOneMoreIteration(); // Great!
     }
 
-    // Only peel the loop if the monotonic predicate !Pred becomes known in the
-    // first iteration of the loop body after peeling.
-    if (NewPeelCount > DesiredPeelCount &&
-        SE.isKnownPredicate(ICmpInst::getInversePredicate(Pred), IterVal,
-                            RightSCEV))
-      DesiredPeelCount = NewPeelCount;
+    DesiredPeelCount = std::max(DesiredPeelCount, NewPeelCount);
   }
 
   return DesiredPeelCount;
@@ -275,11 +299,19 @@ void llvm::computePeelCount(Loop *L, unsigned LoopSize,
     LLVM_DEBUG(dbgs() << "Force-peeling first " << UnrollForcePeelCount
                       << " iterations.\n");
     UP.PeelCount = UnrollForcePeelCount;
+    UP.PeelProfiledIterations = true;
     return;
   }
 
   // Skip peeling if it's disabled.
   if (!UP.AllowPeeling)
+    return;
+
+  unsigned AlreadyPeeled = 0;
+  if (auto Peeled = getOptionalIntLoopAttribute(L, PeeledCountMetaData))
+    AlreadyPeeled = *Peeled;
+  // Stop if we already peeled off the maximum number of iterations.
+  if (AlreadyPeeled >= UnrollPeelMaxCount)
     return;
 
   // Here we try to get rid of Phis which become invariants after 1, 2, ..., N
@@ -317,11 +349,14 @@ void llvm::computePeelCount(Loop *L, unsigned LoopSize,
       DesiredPeelCount = std::min(DesiredPeelCount, MaxPeelCount);
       // Consider max peel count limitation.
       assert(DesiredPeelCount > 0 && "Wrong loop size estimation?");
-      LLVM_DEBUG(dbgs() << "Peel " << DesiredPeelCount
-                        << " iteration(s) to turn"
-                        << " some Phis into invariants.\n");
-      UP.PeelCount = DesiredPeelCount;
-      return;
+      if (DesiredPeelCount + AlreadyPeeled <= UnrollPeelMaxCount) {
+        LLVM_DEBUG(dbgs() << "Peel " << DesiredPeelCount
+                          << " iteration(s) to turn"
+                          << " some Phis into invariants.\n");
+        UP.PeelCount = DesiredPeelCount;
+        UP.PeelProfiledIterations = false;
+        return;
+      }
     }
   }
 
@@ -330,6 +365,9 @@ void llvm::computePeelCount(Loop *L, unsigned LoopSize,
   if (TripCount)
     return;
 
+  // Do not apply profile base peeling if it is disabled.
+  if (!UP.PeelProfiledIterations)
+    return;
   // If we don't know the trip count, but have reason to believe the average
   // trip count is low, peeling should be beneficial, since we will usually
   // hit the peeled section.
@@ -344,7 +382,7 @@ void llvm::computePeelCount(Loop *L, unsigned LoopSize,
                       << "\n");
 
     if (*PeelCount) {
-      if ((*PeelCount <= UnrollPeelMaxCount) &&
+      if ((*PeelCount + AlreadyPeeled <= UnrollPeelMaxCount) &&
           (LoopSize * (*PeelCount + 1) <= UP.Threshold)) {
         LLVM_DEBUG(dbgs() << "Peeling first " << *PeelCount
                           << " iterations.\n");
@@ -352,6 +390,7 @@ void llvm::computePeelCount(Loop *L, unsigned LoopSize,
         return;
       }
       LLVM_DEBUG(dbgs() << "Requested peel count: " << *PeelCount << "\n");
+      LLVM_DEBUG(dbgs() << "Already peel count: " << AlreadyPeeled << "\n");
       LLVM_DEBUG(dbgs() << "Max peel count: " << UnrollPeelMaxCount << "\n");
       LLVM_DEBUG(dbgs() << "Peel cost: " << LoopSize * (*PeelCount + 1)
                         << "\n");
@@ -545,7 +584,7 @@ static void cloneLoopBlocks(
 
   // LastValueMap is updated with the values for the current loop
   // which are used the next time this function is called.
-  for (const auto &KV : VMap)
+  for (auto KV : VMap)
     LVMap[KV.first] = KV.second;
 }
 
@@ -575,11 +614,30 @@ bool llvm::peelLoop(Loop *L, unsigned PeelCount, LoopInfo *LI,
 
   DenseMap<BasicBlock *, BasicBlock *> ExitIDom;
   if (DT) {
+    // We'd like to determine the idom of exit block after peeling one
+    // iteration.
+    // Let Exit is exit block.
+    // Let ExitingSet - is a set of predecessors of Exit block. They are exiting
+    // blocks.
+    // Let Latch' and ExitingSet' are copies after a peeling.
+    // We'd like to find an idom'(Exit) - idom of Exit after peeling.
+    // It is an evident that idom'(Exit) will be the nearest common dominator
+    // of ExitingSet and ExitingSet'.
+    // idom(Exit) is a nearest common dominator of ExitingSet.
+    // idom(Exit)' is a nearest common dominator of ExitingSet'.
+    // Taking into account that we have a single Latch, Latch' will dominate
+    // Header and idom(Exit).
+    // So the idom'(Exit) is nearest common dominator of idom(Exit)' and Latch'.
+    // All these basic blocks are in the same loop, so what we find is
+    // (nearest common dominator of idom(Exit) and Latch)'.
+    // In the loop below we remember nearest common dominator of idom(Exit) and
+    // Latch to update idom of Exit later.
     assert(L->hasDedicatedExits() && "No dedicated exits?");
     for (auto Edge : ExitEdges) {
       if (ExitIDom.count(Edge.second))
         continue;
-      BasicBlock *BB = DT->getNode(Edge.second)->getIDom()->getBlock();
+      BasicBlock *BB = DT->findNearestCommonDominator(
+          DT->getNode(Edge.second)->getIDom()->getBlock(), Latch);
       assert(L->contains(BB) && "IDom is not in a loop");
       ExitIDom[Edge.second] = BB;
     }
@@ -704,6 +762,12 @@ bool llvm::peelLoop(Loop *L, unsigned PeelCount, LoopInfo *LI,
   }
 
   fixupBranchWeights(Header, LatchBR, ExitWeight, FallThroughWeight);
+
+  // Update Metadata for count of peeled off iterations.
+  unsigned AlreadyPeeled = 0;
+  if (auto Peeled = getOptionalIntLoopAttribute(L, PeeledCountMetaData))
+    AlreadyPeeled = *Peeled;
+  addStringMetadataToLoop(L, PeeledCountMetaData, AlreadyPeeled + PeelCount);
 
   if (Loop *ParentLoop = L->getParentLoop())
     L = ParentLoop;

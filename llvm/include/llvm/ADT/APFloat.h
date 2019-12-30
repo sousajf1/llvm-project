@@ -143,7 +143,7 @@ struct APFloatBase {
   static const unsigned integerPartWidth = APInt::APINT_BITS_PER_WORD;
 
   /// A signed type to represent a floating point numbers unbiased exponent.
-  typedef signed short ExponentType;
+  typedef int32_t ExponentType;
 
   /// \name Floating Point Semantics.
   /// @{
@@ -192,6 +192,11 @@ struct APFloatBase {
   /// IEEE-754R 7: Default exception handling.
   ///
   /// opUnderflow or opOverflow are always returned or-ed with opInexact.
+  ///
+  /// APFloat models this behavior specified by IEEE-754:
+  ///   "For operations producing results in floating-point format, the default
+  ///    result of an operation that signals the invalid operation exception
+  ///    shall be a quiet NaN."
   enum opStatus {
     opOK = 0x00,
     opInvalidOp = 0x01,
@@ -846,6 +851,9 @@ public:
   APFloat(const fltSemantics &Semantics) : U(Semantics) {}
   APFloat(const fltSemantics &Semantics, StringRef S);
   APFloat(const fltSemantics &Semantics, integerPart I) : U(Semantics, I) {}
+  template <typename T, typename = typename std::enable_if<
+                            std::is_floating_point<T>::value>::type>
+  APFloat(const fltSemantics &Semantics, T V) = delete;
   // TODO: Remove this constructor. This isn't faster than the first one.
   APFloat(const fltSemantics &Semantics, uninitializedTag)
       : U(Semantics, uninitialized) {}

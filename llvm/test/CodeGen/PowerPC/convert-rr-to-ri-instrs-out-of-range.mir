@@ -187,7 +187,7 @@
     ret i64 %cond
   }
   
-  attributes #0 = { norecurse nounwind readnone "correctly-rounded-divide-sqrt-fp-math"="false" "disable-tail-calls"="false" "less-precise-fpmad"="false" "no-frame-pointer-elim"="false" "no-infs-fp-math"="false" "no-jump-tables"="false" "no-nans-fp-math"="false" "no-signed-zeros-fp-math"="false" "no-trapping-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="pwr9" "target-features"="+altivec,+bpermd,+crypto,+direct-move,+extdiv,+htm,+power8-vector,+power9-vector,+vsx,-qpx" "unsafe-fp-math"="false" "use-soft-float"="false" }
+  attributes #0 = { norecurse nounwind readnone "correctly-rounded-divide-sqrt-fp-math"="false" "disable-tail-calls"="false" "less-precise-fpmad"="false" "frame-pointer"="none" "no-infs-fp-math"="false" "no-jump-tables"="false" "no-nans-fp-math"="false" "no-signed-zeros-fp-math"="false" "no-trapping-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="pwr9" "target-features"="+altivec,+bpermd,+crypto,+direct-move,+extdiv,+htm,+power8-vector,+power9-vector,+vsx,-qpx" "unsafe-fp-math"="false" "use-soft-float"="false" }
   
   !llvm.module.flags = !{!0, !1}
   !llvm.ident = !{!2}
@@ -213,7 +213,7 @@
 ---
 name:            testRLWNM
 # CHECK-ALL: name: testRLWNM
-alignment:       4
+alignment:       16
 exposesReturnsTwice: false
 legalized:       false
 regBankSelected: false
@@ -265,7 +265,7 @@ body:             |
 ---
 name:            testRLWNM8
 # CHECK-ALL: name: testRLWNM8
-alignment:       4
+alignment:       16
 exposesReturnsTwice: false
 legalized:       false
 regBankSelected: false
@@ -313,7 +313,7 @@ body:             |
 ---
 name:            testRLWNMo
 # CHECK-ALL: name: testRLWNMo
-alignment:       4
+alignment:       16
 exposesReturnsTwice: false
 legalized:       false
 regBankSelected: false
@@ -377,7 +377,7 @@ body:             |
 ---
 name:            testRLWNM8o
 # CHECK-ALL: name: testRLWNM8o
-alignment:       4
+alignment:       16
 exposesReturnsTwice: false
 legalized:       false
 regBankSelected: false
@@ -436,7 +436,7 @@ body:             |
 ---
 name:            testSLW
 # CHECK-ALL: name: testSLW
-alignment:       4
+alignment:       16
 exposesReturnsTwice: false
 legalized:       false
 regBankSelected: false
@@ -493,7 +493,7 @@ body:             |
 ---
 name:            testSLWo
 # CHECK-ALL: name: testSLWo
-alignment:       4
+alignment:       16
 exposesReturnsTwice: false
 legalized:       false
 regBankSelected: false
@@ -556,7 +556,7 @@ body:             |
 ---
 name:            testSRW
 # CHECK-ALL: name: testSRW
-alignment:       4
+alignment:       16
 exposesReturnsTwice: false
 legalized:       false
 regBankSelected: false
@@ -613,7 +613,7 @@ body:             |
 ---
 name:            testSRWo
 # CHECK-ALL: name: testSRWo
-alignment:       4
+alignment:       16
 exposesReturnsTwice: false
 legalized:       false
 regBankSelected: false
@@ -676,7 +676,7 @@ body:             |
 ---
 name:            testSRAW
 # CHECK-ALL: name: testSRAW
-alignment:       4
+alignment:       16
 exposesReturnsTwice: false
 legalized:       false
 regBankSelected: false
@@ -732,7 +732,7 @@ body:             |
 ---
 name:            testSRAWo
 # CHECK-ALL: name: testSRAWo
-alignment:       4
+alignment:       16
 exposesReturnsTwice: false
 legalized:       false
 regBankSelected: false
@@ -791,7 +791,7 @@ body:             |
 ---
 name:            testRLDCL
 # CHECK-ALL: name: testRLDCL
-alignment:       4
+alignment:       16
 exposesReturnsTwice: false
 legalized:       false
 regBankSelected: false
@@ -844,7 +844,7 @@ body:             |
 ---
 name:            testRLDCLo
 # CHECK-ALL: name: testRLDCLo
-alignment:       4
+alignment:       16
 exposesReturnsTwice: false
 legalized:       false
 regBankSelected: false
@@ -901,7 +901,7 @@ body:             |
 ---
 name:            testRLDCR
 # CHECK-ALL: name: testRLDCR
-alignment:       4
+alignment:       16
 exposesReturnsTwice: false
 legalized:       false
 regBankSelected: false
@@ -954,7 +954,7 @@ body:             |
 ---
 name:            testRLDCRo
 # CHECK-ALL: name: testRLDCRo
-alignment:       4
+alignment:       16
 exposesReturnsTwice: false
 legalized:       false
 regBankSelected: false
@@ -1011,7 +1011,7 @@ body:             |
 ---
 name:            testSLD
 # CHECK-ALL: name: testSLD
-alignment:       4
+alignment:       16
 exposesReturnsTwice: false
 legalized:       false
 regBankSelected: false
@@ -1062,7 +1062,7 @@ body:             |
 ---
 name:            testSLDo
 # CHECK-ALL: name: testSLDo
-alignment:       4
+alignment:       16
 exposesReturnsTwice: false
 legalized:       false
 regBankSelected: false
@@ -1106,7 +1106,7 @@ body:             |
     %0 = COPY $x3
     %2 = LI 88
     %3 = SLDo %0, killed %2, implicit-def $cr0
-    ; CHECK: ANDIo8 %0, 0, implicit-def $cr0
+    ; CHECK: ANDI8o %0, 0, implicit-def $cr0
     ; CHECK-LATE: andi. 5, 3, 0
     %4 = COPY killed $cr0
     %5 = ISEL8 %1, %0, %4.sub_eq
@@ -1117,7 +1117,7 @@ body:             |
 ---
 name:            testSRD
 # CHECK-ALL: name: testSRD
-alignment:       4
+alignment:       16
 exposesReturnsTwice: false
 legalized:       false
 regBankSelected: false
@@ -1168,7 +1168,7 @@ body:             |
 ---
 name:            testSRDo
 # CHECK-ALL: name: testSRDo
-alignment:       4
+alignment:       16
 exposesReturnsTwice: false
 legalized:       false
 regBankSelected: false
@@ -1212,7 +1212,7 @@ body:             |
     %0 = COPY $x3
     %2 = LI 64
     %3 = SRDo %0, killed %2, implicit-def $cr0
-    ; CHECK: ANDIo8 %0, 0, implicit-def $cr0
+    ; CHECK: ANDI8o %0, 0, implicit-def $cr0
     ; CHECK-LATE: andi. 5, 3, 0
     %4 = COPY killed $cr0
     %5 = ISEL8 %1, %0, %4.sub_eq
@@ -1223,7 +1223,7 @@ body:             |
 ---
 name:            testSRAD
 # CHECK-ALL: name: testSRAD
-alignment:       4
+alignment:       16
 exposesReturnsTwice: false
 legalized:       false
 regBankSelected: false
@@ -1274,7 +1274,7 @@ body:             |
 ---
 name:            testSRADo
 # CHECK-ALL: name: testSRADo
-alignment:       4
+alignment:       16
 exposesReturnsTwice: false
 legalized:       false
 regBankSelected: false

@@ -8,6 +8,7 @@
 
 namespace lldb {
 
+#ifdef SWIGPYTHON
 %pythoncode%{
 # ==================================
 # Helper function for SBModule class
@@ -30,6 +31,7 @@ def in_range(symbol, section):
         else:
             return False
 %}
+#endif
 
 %feature("docstring",
 "Represents an executable image and its associated object and symbol files.
@@ -342,12 +344,7 @@ public:
     lldb::SBAddress
     GetObjectFileEntryPointAddress() const;
 
-    bool
-    operator == (const lldb::SBModule &rhs) const;
-
-    bool
-    operator != (const lldb::SBModule &rhs) const;
-
+#ifdef SWIGPYTHON
     %pythoncode %{
         def __len__(self):
             '''Return the number of symbols in a lldb.SBModule object.'''
@@ -548,6 +545,7 @@ public:
         num_sections = property(GetNumSections, None, doc='''A read only property that returns number of sections in the module as an integer.''')
 
     %}
+#endif
 
 };
 

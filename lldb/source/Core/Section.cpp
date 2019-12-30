@@ -94,6 +94,8 @@ const char *Section::GetTypeAsCString() const {
     return "dwarf-ranges";
   case eSectionTypeDWARFDebugRngLists:
     return "dwarf-rnglists";
+  case eSectionTypeDWARFDebugRngListsDwo:
+    return "dwarf-rnglists-dwo";
   case eSectionTypeDWARFDebugStr:
     return "dwarf-str";
   case eSectionTypeDWARFDebugStrDwo:
@@ -269,7 +271,7 @@ bool Section::ResolveContainedAddress(addr_t offset, Address &so_addr,
 
 bool Section::ContainsFileAddress(addr_t vm_addr) const {
   const addr_t file_addr = GetFileAddress();
-  if (file_addr != LLDB_INVALID_ADDRESS) {
+  if (file_addr != LLDB_INVALID_ADDRESS && !IsThreadSpecific()) {
     if (file_addr <= vm_addr) {
       const addr_t offset = (vm_addr - file_addr) * m_target_byte_size;
       return offset < GetByteSize();
@@ -321,7 +323,7 @@ void Section::Dump(Stream *s, Target *target, uint32_t depth) const {
     }
 
     VMRange range(addr, addr + m_byte_size);
-    range.Dump(s, 0);
+    range.Dump(s->AsRawOstream(), 0);
   }
 
   s->Printf("%c %c%c%c  0x%8.8" PRIx64 " 0x%8.8" PRIx64 " 0x%8.8x ",
@@ -416,10 +418,6 @@ lldb::offset_t Section::GetSectionData(DataExtractor &section_data) {
 }
 
 #pragma mark SectionList
-
-SectionList::SectionList() : m_sections() {}
-
-SectionList::~SectionList() {}
 
 SectionList &SectionList::operator=(const SectionList &rhs) {
   if (this != &rhs)

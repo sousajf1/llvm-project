@@ -1,5 +1,5 @@
 // RUN: %clang_cc1 %s -verify -pedantic -fsyntax-only -cl-std=CL2.0
-// RUN: %clang_cc1 %s -verify -pedantic -fsyntax-only -cl-std=c++
+// RUN: %clang_cc1 %s -verify -pedantic -fsyntax-only -cl-std=clc++
 
 // Taken from opencl-c.h
 #define CLK_NULL_EVENT (__builtin_astype(((__SIZE_MAX__)), clk_event_t))
@@ -12,7 +12,7 @@ int clk_event_tests() {
   clk_event_t ce2;
   clk_event_t ce3 = CLK_NULL_EVENT;
 
-  if (e == ce1) { // expected-error {{invalid operands to binary expression ('event_t' and 'clk_event_t')}}
+  if (e == ce1) { // expected-error {{invalid operands to binary expression ('__private event_t' and '__private clk_event_t')}}
     return 9;
   }
 

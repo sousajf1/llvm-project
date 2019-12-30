@@ -56,8 +56,8 @@ using UnitListTy = std::vector<std::unique_ptr<CompileUnit>>;
 class DwarfLinker {
 public:
   DwarfLinker(raw_fd_ostream &OutFile, BinaryHolder &BinHolder,
-              const LinkOptions &Options)
-      : OutFile(OutFile), BinHolder(BinHolder), Options(Options) {}
+              LinkOptions Options)
+      : OutFile(OutFile), BinHolder(BinHolder), Options(std::move(Options)) {}
 
   /// Link the contents of the DebugMap.
   bool link(const DebugMap &);
@@ -65,6 +65,15 @@ public:
   void reportWarning(const Twine &Warning, const DebugMapObject &DMO,
                      const DWARFDie *DIE = nullptr) const;
 
+  /// Flags passed to DwarfLinker::lookForDIEsToKeep
+  enum TraversalFlags {
+    TF_Keep = 1 << 0,            ///< Mark the traversed DIEs as kept.
+    TF_InFunctionScope = 1 << 1, ///< Current scope is a function scope.
+    TF_DependencyWalk = 1 << 2,  ///< Walking the dependencies of a kept DIE.
+    TF_ParentWalk = 1 << 3,      ///< Walking up the parents of a kept DIE.
+    TF_ODR = 1 << 4,             ///< Use the ODR while keeping dependents.
+    TF_SkipPC = 1 << 5,          ///< Skip all location attributes.
+  };
 private:
   /// Remembers the oldest and newest DWARF version we've seen in a unit.
   void updateDwarfVersion(unsigned Version) {
@@ -82,12 +91,12 @@ private:
   /// Keeps track of relocations.
   class RelocationManager {
     struct ValidReloc {
-      uint32_t Offset;
+      uint64_t Offset;
       uint32_t Size;
       uint64_t Addend;
       const DebugMapObject::DebugMapEntry *Mapping;
 
-      ValidReloc(uint32_t Offset, uint32_t Size, uint64_t Addend,
+      ValidReloc(uint64_t Offset, uint32_t Size, uint64_t Addend,
                  const DebugMapObject::DebugMapEntry *Mapping)
           : Offset(Offset), Size(Size), Addend(Addend), Mapping(Mapping) {}
 
@@ -132,10 +141,10 @@ private:
                               const DebugMapObject &DMO);
     /// @}
 
-    bool hasValidRelocation(uint32_t StartOffset, uint32_t EndOffset,
+    bool hasValidRelocation(uint64_t StartOffset, uint64_t EndOffset,
                             CompileUnit::DIEInfo &Info);
 
-    bool applyValidRelocs(MutableArrayRef<char> Data, uint32_t BaseOffset,
+    bool applyValidRelocs(MutableArrayRef<char> Data, uint64_t BaseOffset,
                           bool IsLittleEndian);
   };
 
@@ -215,15 +224,6 @@ private:
                         unsigned &UnitID, bool IsLittleEndian,
                         unsigned Indent = 0, bool Quiet = false);
 
-  /// Flags passed to DwarfLinker::lookForDIEsToKeep
-  enum TraversalFlags {
-    TF_Keep = 1 << 0,            ///< Mark the traversed DIEs as kept.
-    TF_InFunctionScope = 1 << 1, ///< Current scope is a function scope.
-    TF_DependencyWalk = 1 << 2,  ///< Walking the dependencies of a kept DIE.
-    TF_ParentWalk = 1 << 3,      ///< Walking up the parents of a kept DIE.
-    TF_ODR = 1 << 4,             ///< Use the ODR while keeping dependents.
-    TF_SkipPC = 1 << 5,          ///< Skip all location attributes.
-  };
 
   /// Mark the passed DIE as well as all the ones it depends on as kept.
   void keepDIEAndDependencies(RelocationManager &RelocMgr, RangesTy &Ranges,
@@ -499,7 +499,7 @@ private:
   /// be uniqued and sorted and there are only few entries expected
   /// per compile unit, which is why this is a std::map.
   std::map<std::string, std::string> ParseableSwiftInterfaces;
-  
+
   bool ModuleCacheHintDisplayed = false;
   bool ArchiveHintDisplayed = false;
 };

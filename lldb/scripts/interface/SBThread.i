@@ -254,6 +254,11 @@ public:
     StepUsingScriptedThreadPlan (const char *script_class_name, bool resume_immediately);
 
     SBError
+    StepUsingScriptedThreadPlan(const char *script_class_name,
+                                lldb::SBStructuredData &args_data,
+                                bool resume_immediately);
+
+    SBError
     JumpToLine (lldb::SBFileSpec &file_spec, uint32_t line);
 
     void
@@ -397,6 +402,7 @@ public:
     bool
     SafeToCallFunctions ();
 
+#ifdef SWIGPYTHON
     %pythoncode %{
         def __iter__(self):
             '''Iterate over all frames in a lldb.SBThread object.'''
@@ -446,6 +452,7 @@ public:
         is_suspended = property(IsSuspended, None, doc='''A read only property that returns a boolean value that indicates if this thread is suspended.''')
         is_stopped = property(IsStopped, None, doc='''A read only property that returns a boolean value that indicates if this thread is stopped but not exited.''')
     %}
+#endif
 
 };
 

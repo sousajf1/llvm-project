@@ -30,12 +30,14 @@ using namespace llvm;
 
 namespace {
 
-struct OutgoingArgHandler : public CallLowering::ValueHandler {
-  OutgoingArgHandler(MachineIRBuilder &MIRBuilder, MachineRegisterInfo &MRI,
-                     MachineInstrBuilder MIB, CCAssignFn *AssignFn)
-      : ValueHandler(MIRBuilder, MRI, AssignFn), MIB(MIB) {}
+struct OutgoingValueHandler : public CallLowering::ValueHandler {
+  OutgoingValueHandler(MachineIRBuilder &B, MachineRegisterInfo &MRI,
+                       MachineInstrBuilder MIB, CCAssignFn *AssignFn)
+      : ValueHandler(B, MRI, AssignFn), MIB(MIB) {}
 
   MachineInstrBuilder MIB;
+
+  bool isIncomingArgumentHandler() const override { return false; }
 
   Register getStackAddress(uint64_t Size, int64_t Offset,
                            MachinePointerInfo &MPO) override {
@@ -49,24 +51,33 @@ struct OutgoingArgHandler : public CallLowering::ValueHandler {
 
   void assignValueToReg(Register ValVReg, Register PhysReg,
                         CCValAssign &VA) override {
-    MIB.addUse(PhysReg);
-    MIRBuilder.buildCopy(PhysReg, ValVReg);
+    Register ExtReg;
+    if (VA.getLocVT().getSizeInBits() < 32) {
+      // 16-bit types are reported as legal for 32-bit registers. We need to
+      // extend and do a 32-bit copy to avoid the verifier complaining about it.
+      ExtReg = MIRBuilder.buildAnyExt(LLT::scalar(32), ValVReg).getReg(0);
+    } else
+      ExtReg = extendRegister(ValVReg, VA);
+
+    MIRBuilder.buildCopy(PhysReg, ExtReg);
+    MIB.addUse(PhysReg, RegState::Implicit);
   }
 
   bool assignArg(unsigned ValNo, MVT ValVT, MVT LocVT,
                  CCValAssign::LocInfo LocInfo,
                  const CallLowering::ArgInfo &Info,
+                 ISD::ArgFlagsTy Flags,
                  CCState &State) override {
-    return AssignFn(ValNo, ValVT, LocVT, LocInfo, Info.Flags, State);
+    return AssignFn(ValNo, ValVT, LocVT, LocInfo, Flags, State);
   }
 };
 
 struct IncomingArgHandler : public CallLowering::ValueHandler {
   uint64_t StackUsed = 0;
 
-  IncomingArgHandler(MachineIRBuilder &MIRBuilder, MachineRegisterInfo &MRI,
+  IncomingArgHandler(MachineIRBuilder &B, MachineRegisterInfo &MRI,
                      CCAssignFn *AssignFn)
-    : ValueHandler(MIRBuilder, MRI, AssignFn) {}
+    : ValueHandler(B, MRI, AssignFn) {}
 
   Register getStackAddress(uint64_t Size, int64_t Offset,
                            MachinePointerInfo &MPO) override {
@@ -120,13 +131,13 @@ struct IncomingArgHandler : public CallLowering::ValueHandler {
   virtual void markPhysRegUsed(unsigned PhysReg) = 0;
 
   // FIXME: What is the point of this being a callback?
-  bool isArgumentHandler() const override { return true; }
+  bool isIncomingArgumentHandler() const override { return true; }
 };
 
 struct FormalArgHandler : public IncomingArgHandler {
-  FormalArgHandler(MachineIRBuilder &MIRBuilder, MachineRegisterInfo &MRI,
+  FormalArgHandler(MachineIRBuilder &B, MachineRegisterInfo &MRI,
                    CCAssignFn *AssignFn)
-    : IncomingArgHandler(MIRBuilder, MRI, AssignFn) {}
+    : IncomingArgHandler(B, MRI, AssignFn) {}
 
   void markPhysRegUsed(unsigned PhysReg) override {
     MIRBuilder.getMBB().addLiveIn(PhysReg);
@@ -193,55 +204,144 @@ void AMDGPUCallLowering::splitToValueTypes(
   }
 }
 
-bool AMDGPUCallLowering::lowerReturn(MachineIRBuilder &MIRBuilder,
+// Get the appropriate type to make \p OrigTy \p Factor times bigger.
+static LLT getMultipleType(LLT OrigTy, int Factor) {
+  if (OrigTy.isVector()) {
+    return LLT::vector(OrigTy.getNumElements() * Factor,
+                       OrigTy.getElementType());
+  }
+
+  return LLT::scalar(OrigTy.getSizeInBits() * Factor);
+}
+
+// TODO: Move to generic code
+static void unpackRegsToOrigType(MachineIRBuilder &B,
+                                 ArrayRef<Register> DstRegs,
+                                 Register SrcReg,
+                                 LLT SrcTy,
+                                 LLT PartTy) {
+  assert(DstRegs.size() > 1 && "Nothing to unpack");
+
+  MachineFunction &MF = B.getMF();
+  MachineRegisterInfo &MRI = MF.getRegInfo();
+
+  const unsigned SrcSize = SrcTy.getSizeInBits();
+  const unsigned PartSize = PartTy.getSizeInBits();
+
+  if (SrcTy.isVector() && !PartTy.isVector() &&
+      PartSize > SrcTy.getElementType().getSizeInBits()) {
+    // Vector was scalarized, and the elements extended.
+    auto UnmergeToEltTy = B.buildUnmerge(SrcTy.getElementType(),
+                                                  SrcReg);
+    for (int i = 0, e = DstRegs.size(); i != e; ++i)
+      B.buildAnyExt(DstRegs[i], UnmergeToEltTy.getReg(i));
+    return;
+  }
+
+  if (SrcSize % PartSize == 0) {
+    B.buildUnmerge(DstRegs, SrcReg);
+    return;
+  }
+
+  const int NumRoundedParts = (SrcSize + PartSize - 1) / PartSize;
+
+  LLT BigTy = getMultipleType(PartTy, NumRoundedParts);
+  auto ImpDef = B.buildUndef(BigTy);
+
+  Register BigReg = MRI.createGenericVirtualRegister(BigTy);
+  B.buildInsert(BigReg, ImpDef.getReg(0), SrcReg, 0).getReg(0);
+
+  int64_t Offset = 0;
+  for (unsigned i = 0, e = DstRegs.size(); i != e; ++i, Offset += PartSize)
+    B.buildExtract(DstRegs[i], BigReg, Offset);
+}
+
+/// Lower the return value for the already existing \p Ret. This assumes that
+/// \p B's insertion point is correct.
+bool AMDGPUCallLowering::lowerReturnVal(MachineIRBuilder &B,
+                                        const Value *Val, ArrayRef<Register> VRegs,
+                                        MachineInstrBuilder &Ret) const {
+  if (!Val)
+    return true;
+
+  auto &MF = B.getMF();
+  const auto &F = MF.getFunction();
+  const DataLayout &DL = MF.getDataLayout();
+
+  CallingConv::ID CC = F.getCallingConv();
+  const SITargetLowering &TLI = *getTLI<SITargetLowering>();
+  MachineRegisterInfo &MRI = MF.getRegInfo();
+
+  ArgInfo OrigRetInfo(VRegs, Val->getType());
+  setArgFlags(OrigRetInfo, AttributeList::ReturnIndex, DL, F);
+  SmallVector<ArgInfo, 4> SplitRetInfos;
+
+  splitToValueTypes(
+    OrigRetInfo, SplitRetInfos, DL, MRI, CC,
+    [&](ArrayRef<Register> Regs, LLT LLTy, LLT PartLLT, int VTSplitIdx) {
+      unpackRegsToOrigType(B, Regs, VRegs[VTSplitIdx], LLTy, PartLLT);
+    });
+
+  CCAssignFn *AssignFn = TLI.CCAssignFnForReturn(CC, F.isVarArg());
+
+  OutgoingValueHandler RetHandler(B, MF.getRegInfo(), Ret, AssignFn);
+  return handleAssignments(B, SplitRetInfos, RetHandler);
+}
+
+bool AMDGPUCallLowering::lowerReturn(MachineIRBuilder &B,
                                      const Value *Val,
                                      ArrayRef<Register> VRegs) const {
 
-  MachineFunction &MF = MIRBuilder.getMF();
+  MachineFunction &MF = B.getMF();
   MachineRegisterInfo &MRI = MF.getRegInfo();
   SIMachineFunctionInfo *MFI = MF.getInfo<SIMachineFunctionInfo>();
   MFI->setIfReturnsVoid(!Val);
 
-  if (!Val) {
-    MIRBuilder.buildInstr(AMDGPU::S_ENDPGM).addImm(0);
+  assert(!Val == VRegs.empty() && "Return value without a vreg");
+
+  CallingConv::ID CC = B.getMF().getFunction().getCallingConv();
+  const bool IsShader = AMDGPU::isShader(CC);
+  const bool IsWaveEnd = (IsShader && MFI->returnsVoid()) ||
+                         AMDGPU::isKernel(CC);
+  if (IsWaveEnd) {
+    B.buildInstr(AMDGPU::S_ENDPGM)
+      .addImm(0);
     return true;
   }
 
-  Register VReg = VRegs[0];
+  auto const &ST = B.getMF().getSubtarget<GCNSubtarget>();
 
-  const Function &F = MF.getFunction();
-  auto &DL = F.getParent()->getDataLayout();
-  if (!AMDGPU::isShader(F.getCallingConv()))
-    return false;
+  unsigned ReturnOpc =
+      IsShader ? AMDGPU::SI_RETURN_TO_EPILOG : AMDGPU::S_SETPC_B64_return;
 
-
-  const AMDGPUTargetLowering &TLI = *getTLI<AMDGPUTargetLowering>();
-  SmallVector<EVT, 4> SplitVTs;
-  SmallVector<uint64_t, 4> Offsets;
-  ArgInfo OrigArg{VReg, Val->getType()};
-  setArgFlags(OrigArg, AttributeList::ReturnIndex, DL, F);
-  ComputeValueVTs(TLI, DL, OrigArg.Ty, SplitVTs, &Offsets, 0);
-
-  SmallVector<ArgInfo, 8> SplitArgs;
-  CCAssignFn *AssignFn = CCAssignFnForReturn(F.getCallingConv(), false);
-  for (unsigned i = 0, e = Offsets.size(); i != e; ++i) {
-    Type *SplitTy = SplitVTs[i].getTypeForEVT(F.getContext());
-    SplitArgs.push_back({VRegs[i], SplitTy, OrigArg.Flags, OrigArg.IsFixed});
+  auto Ret = B.buildInstrNoInsert(ReturnOpc);
+  Register ReturnAddrVReg;
+  if (ReturnOpc == AMDGPU::S_SETPC_B64_return) {
+    ReturnAddrVReg = MRI.createVirtualRegister(&AMDGPU::CCR_SGPR_64RegClass);
+    Ret.addUse(ReturnAddrVReg);
   }
-  auto RetInstr = MIRBuilder.buildInstrNoInsert(AMDGPU::SI_RETURN_TO_EPILOG);
-  OutgoingArgHandler Handler(MIRBuilder, MRI, RetInstr, AssignFn);
-  if (!handleAssignments(MIRBuilder, SplitArgs, Handler))
-    return false;
-  MIRBuilder.insertInstr(RetInstr);
 
+  if (!lowerReturnVal(B, Val, VRegs, Ret))
+    return false;
+
+  if (ReturnOpc == AMDGPU::S_SETPC_B64_return) {
+    const SIRegisterInfo *TRI = ST.getRegisterInfo();
+    Register LiveInReturn = MF.addLiveIn(TRI->getReturnAddressReg(MF),
+                                         &AMDGPU::SGPR_64RegClass);
+    B.buildCopy(ReturnAddrVReg, LiveInReturn);
+  }
+
+  // TODO: Handle CalleeSavedRegsViaCopy.
+
+  B.insertInstr(Ret);
   return true;
 }
 
-Register AMDGPUCallLowering::lowerParameterPtr(MachineIRBuilder &MIRBuilder,
+Register AMDGPUCallLowering::lowerParameterPtr(MachineIRBuilder &B,
                                                Type *ParamTy,
                                                uint64_t Offset) const {
 
-  MachineFunction &MF = MIRBuilder.getMF();
+  MachineFunction &MF = B.getMF();
   const SIMachineFunctionInfo *MFI = MF.getInfo<SIMachineFunctionInfo>();
   MachineRegisterInfo &MRI = MF.getRegInfo();
   const Function &F = MF.getFunction();
@@ -254,24 +354,23 @@ Register AMDGPUCallLowering::lowerParameterPtr(MachineIRBuilder &MIRBuilder,
   Register KernArgSegmentVReg = MRI.getLiveInVirtReg(KernArgSegmentPtr);
 
   Register OffsetReg = MRI.createGenericVirtualRegister(LLT::scalar(64));
-  MIRBuilder.buildConstant(OffsetReg, Offset);
+  B.buildConstant(OffsetReg, Offset);
 
-  MIRBuilder.buildGEP(DstReg, KernArgSegmentVReg, OffsetReg);
+  B.buildPtrAdd(DstReg, KernArgSegmentVReg, OffsetReg);
 
   return DstReg;
 }
 
-void AMDGPUCallLowering::lowerParameter(MachineIRBuilder &MIRBuilder,
+void AMDGPUCallLowering::lowerParameter(MachineIRBuilder &B,
                                         Type *ParamTy, uint64_t Offset,
                                         unsigned Align,
                                         Register DstReg) const {
-  MachineFunction &MF = MIRBuilder.getMF();
+  MachineFunction &MF = B.getMF();
   const Function &F = MF.getFunction();
   const DataLayout &DL = F.getParent()->getDataLayout();
-  PointerType *PtrTy = PointerType::get(ParamTy, AMDGPUAS::CONSTANT_ADDRESS);
-  MachinePointerInfo PtrInfo(UndefValue::get(PtrTy));
+  MachinePointerInfo PtrInfo(AMDGPUAS::CONSTANT_ADDRESS);
   unsigned TypeSize = DL.getTypeStoreSize(ParamTy);
-  Register PtrReg = lowerParameterPtr(MIRBuilder, ParamTy, Offset);
+  Register PtrReg = lowerParameterPtr(B, ParamTy, Offset);
 
   MachineMemOperand *MMO =
       MF.getMachineMemOperand(PtrInfo, MachineMemOperand::MOLoad |
@@ -279,12 +378,12 @@ void AMDGPUCallLowering::lowerParameter(MachineIRBuilder &MIRBuilder,
                                        MachineMemOperand::MOInvariant,
                                        TypeSize, Align);
 
-  MIRBuilder.buildLoad(DstReg, PtrReg, *MMO);
+  B.buildLoad(DstReg, PtrReg, *MMO);
 }
 
 // Allocate special inputs passed in user SGPRs.
 static void allocateHSAUserSGPRs(CCState &CCInfo,
-                                 MachineIRBuilder &MIRBuilder,
+                                 MachineIRBuilder &B,
                                  MachineFunction &MF,
                                  const SIRegisterInfo &TRI,
                                  SIMachineFunctionInfo &Info) {
@@ -313,8 +412,8 @@ static void allocateHSAUserSGPRs(CCState &CCInfo,
     const LLT P4 = LLT::pointer(AMDGPUAS::CONSTANT_ADDRESS, 64);
     Register VReg = MRI.createGenericVirtualRegister(P4);
     MRI.addLiveIn(InputPtrReg, VReg);
-    MIRBuilder.getMBB().addLiveIn(InputPtrReg);
-    MIRBuilder.buildCopy(VReg, InputPtrReg);
+    B.getMBB().addLiveIn(InputPtrReg);
+    B.buildCopy(VReg, InputPtrReg);
     CCInfo.AllocateReg(InputPtrReg);
   }
 
@@ -335,9 +434,9 @@ static void allocateHSAUserSGPRs(CCState &CCInfo,
 }
 
 bool AMDGPUCallLowering::lowerFormalArgumentsKernel(
-    MachineIRBuilder &MIRBuilder, const Function &F,
+    MachineIRBuilder &B, const Function &F,
     ArrayRef<ArrayRef<Register>> VRegs) const {
-  MachineFunction &MF = MIRBuilder.getMF();
+  MachineFunction &MF = B.getMF();
   const GCNSubtarget *Subtarget = &MF.getSubtarget<GCNSubtarget>();
   MachineRegisterInfo &MRI = MF.getRegInfo();
   SIMachineFunctionInfo *Info = MF.getInfo<SIMachineFunctionInfo>();
@@ -349,7 +448,7 @@ bool AMDGPUCallLowering::lowerFormalArgumentsKernel(
   SmallVector<CCValAssign, 16> ArgLocs;
   CCState CCInfo(F.getCallingConv(), F.isVarArg(), MF, ArgLocs, F.getContext());
 
-  allocateHSAUserSGPRs(CCInfo, MIRBuilder, MF, *TRI, *Info);
+  allocateHSAUserSGPRs(CCInfo, B, MF, *TRI, *Info);
 
   unsigned i = 0;
   const unsigned KernArgBaseAlign = 16;
@@ -375,9 +474,9 @@ bool AMDGPUCallLowering::lowerFormalArgumentsKernel(
       : MRI.createGenericVirtualRegister(getLLTForType(*ArgTy, DL));
     unsigned Align = MinAlign(KernArgBaseAlign, ArgOffset);
     ArgOffset = alignTo(ArgOffset, DL.getABITypeAlignment(ArgTy));
-    lowerParameter(MIRBuilder, ArgTy, ArgOffset, Align, ArgReg);
+    lowerParameter(B, ArgTy, ArgOffset, Align, ArgReg);
     if (OrigArgRegs.size() > 1)
-      unpackRegs(OrigArgRegs, ArgReg, ArgTy, MIRBuilder);
+      unpackRegs(OrigArgRegs, ArgReg, ArgTy, B);
     ++i;
   }
 
@@ -386,13 +485,14 @@ bool AMDGPUCallLowering::lowerFormalArgumentsKernel(
   return true;
 }
 
-static void packSplitRegsToOrigType(MachineIRBuilder &MIRBuilder,
+// TODO: Move this to generic code
+static void packSplitRegsToOrigType(MachineIRBuilder &B,
                                     ArrayRef<Register> OrigRegs,
                                     ArrayRef<Register> Regs,
                                     LLT LLTy,
                                     LLT PartLLT) {
   if (!LLTy.isVector() && !PartLLT.isVector()) {
-    MIRBuilder.buildMerge(OrigRegs[0], Regs);
+    B.buildMerge(OrigRegs[0], Regs);
     return;
   }
 
@@ -402,15 +502,15 @@ static void packSplitRegsToOrigType(MachineIRBuilder &MIRBuilder,
     int DstElts = LLTy.getNumElements();
     int PartElts = PartLLT.getNumElements();
     if (DstElts % PartElts == 0)
-      MIRBuilder.buildConcatVectors(OrigRegs[0], Regs);
+      B.buildConcatVectors(OrigRegs[0], Regs);
     else {
       // Deal with v3s16 split into v2s16
       assert(PartElts == 2 && DstElts % 2 != 0);
       int RoundedElts = PartElts * ((DstElts + PartElts - 1) / PartElts);
 
       LLT RoundedDestTy = LLT::vector(RoundedElts, PartLLT.getElementType());
-      auto RoundedConcat = MIRBuilder.buildConcatVectors(RoundedDestTy, Regs);
-      MIRBuilder.buildExtract(OrigRegs[0], RoundedConcat, 0);
+      auto RoundedConcat = B.buildConcatVectors(RoundedDestTy, Regs);
+      B.buildExtract(OrigRegs[0], RoundedConcat, 0);
     }
 
     return;
@@ -421,7 +521,7 @@ static void packSplitRegsToOrigType(MachineIRBuilder &MIRBuilder,
   LLT DstEltTy = LLTy.getElementType();
   if (DstEltTy == PartLLT) {
     // Vector was trivially scalarized.
-    MIRBuilder.buildBuildVector(OrigRegs[0], Regs);
+    B.buildBuildVector(OrigRegs[0], Regs);
   } else if (DstEltTy.getSizeInBits() > PartLLT.getSizeInBits()) {
     // Deal with vector with 64-bit elements decomposed to 32-bit
     // registers. Need to create intermediate 64-bit elements.
@@ -431,23 +531,23 @@ static void packSplitRegsToOrigType(MachineIRBuilder &MIRBuilder,
     assert(DstEltTy.getSizeInBits() % PartLLT.getSizeInBits() == 0);
 
     for (int I = 0, NumElts = LLTy.getNumElements(); I != NumElts; ++I)  {
-      auto Merge = MIRBuilder.buildMerge(DstEltTy,
+      auto Merge = B.buildMerge(DstEltTy,
                                          Regs.take_front(PartsPerElt));
       EltMerges.push_back(Merge.getReg(0));
       Regs = Regs.drop_front(PartsPerElt);
     }
 
-    MIRBuilder.buildBuildVector(OrigRegs[0], EltMerges);
+    B.buildBuildVector(OrigRegs[0], EltMerges);
   } else {
     // Vector was split, and elements promoted to a wider type.
     LLT BVType = LLT::vector(LLTy.getNumElements(), PartLLT);
-    auto BV = MIRBuilder.buildBuildVector(BVType, Regs);
-    MIRBuilder.buildTrunc(OrigRegs[0], BV);
+    auto BV = B.buildBuildVector(BVType, Regs);
+    B.buildTrunc(OrigRegs[0], BV);
   }
 }
 
 bool AMDGPUCallLowering::lowerFormalArguments(
-    MachineIRBuilder &MIRBuilder, const Function &F,
+    MachineIRBuilder &B, const Function &F,
     ArrayRef<ArrayRef<Register>> VRegs) const {
   CallingConv::ID CC = F.getCallingConv();
 
@@ -455,17 +555,13 @@ bool AMDGPUCallLowering::lowerFormalArguments(
   // useless for kernels. We want to avoid any kind of legalization or argument
   // splitting.
   if (CC == CallingConv::AMDGPU_KERNEL)
-    return lowerFormalArgumentsKernel(MIRBuilder, F, VRegs);
-
-  // AMDGPU_GS and AMDGP_HS are not supported yet.
-  if (CC == CallingConv::AMDGPU_GS || CC == CallingConv::AMDGPU_HS)
-    return false;
+    return lowerFormalArgumentsKernel(B, F, VRegs);
 
   const bool IsShader = AMDGPU::isShader(CC);
   const bool IsEntryFunc = AMDGPU::isEntryFunctionCC(CC);
 
-  MachineFunction &MF = MIRBuilder.getMF();
-  MachineBasicBlock &MBB = MIRBuilder.getMBB();
+  MachineFunction &MF = B.getMF();
+  MachineBasicBlock &MBB = B.getMBB();
   MachineRegisterInfo &MRI = MF.getRegInfo();
   SIMachineFunctionInfo *Info = MF.getInfo<SIMachineFunctionInfo>();
   const GCNSubtarget &Subtarget = MF.getSubtarget<GCNSubtarget>();
@@ -475,6 +571,14 @@ bool AMDGPUCallLowering::lowerFormalArguments(
 
   SmallVector<CCValAssign, 16> ArgLocs;
   CCState CCInfo(CC, F.isVarArg(), MF, ArgLocs, F.getContext());
+
+  if (!IsEntryFunc) {
+    Register ReturnAddrReg = TRI->getReturnAddressReg(MF);
+    Register LiveInReturn = MF.addLiveIn(ReturnAddrReg,
+                                         &AMDGPU::SGPR_64RegClass);
+    MBB.addLiveIn(ReturnAddrReg);
+    B.buildCopy(LiveInReturn, ReturnAddrReg);
+  }
 
   if (Info->hasImplicitBufferPtr()) {
     Register ImplicitBufferPtrReg = Info->addImplicitBufferPtr(*TRI);
@@ -497,9 +601,7 @@ bool AMDGPUCallLowering::lowerFormalArguments(
     if (!IsShader && InReg)
       return false;
 
-    // TODO: Handle sret.
-    if (Arg.hasAttribute(Attribute::StructRet) ||
-        Arg.hasAttribute(Attribute::SwiftSelf) ||
+    if (Arg.hasAttribute(Attribute::SwiftSelf) ||
         Arg.hasAttribute(Attribute::SwiftError) ||
         Arg.hasAttribute(Attribute::Nest))
       return false;
@@ -518,7 +620,7 @@ bool AMDGPUCallLowering::lowerFormalArguments(
 
       if (SkipArg) {
         for (int I = 0, E = VRegs[Idx].size(); I != E; ++I)
-          MIRBuilder.buildUndef(VRegs[Idx][I]);
+          B.buildUndef(VRegs[Idx][I]);
 
         ++Idx;
         continue;
@@ -533,7 +635,7 @@ bool AMDGPUCallLowering::lowerFormalArguments(
       // FIXME: We should probably be passing multiple registers to
       // handleAssignments to do this
       [&](ArrayRef<Register> Regs, LLT LLTy, LLT PartLLT, int VTSplitIdx) {
-        packSplitRegsToOrigType(MIRBuilder, VRegs[Idx][VTSplitIdx], Regs,
+        packSplitRegsToOrigType(B, VRegs[Idx][VTSplitIdx], Regs,
                                 LLTy, PartLLT);
       });
 
@@ -585,10 +687,10 @@ bool AMDGPUCallLowering::lowerFormalArguments(
   CCAssignFn *AssignFn = TLI.CCAssignFnForCall(CC, F.isVarArg());
 
   if (!MBB.empty())
-    MIRBuilder.setInstr(*MBB.begin());
+    B.setInstr(*MBB.begin());
 
-  FormalArgHandler Handler(MIRBuilder, MRI, AssignFn);
-  if (!handleAssignments(CCInfo, ArgLocs, MIRBuilder, SplitArgs, Handler))
+  FormalArgHandler Handler(B, MRI, AssignFn);
+  if (!handleAssignments(CCInfo, ArgLocs, B, SplitArgs, Handler))
     return false;
 
   if (!IsEntryFunc) {
@@ -607,7 +709,7 @@ bool AMDGPUCallLowering::lowerFormalArguments(
   }
 
   // Move back to the end of the basic block.
-  MIRBuilder.setMBB(MBB);
+  B.setMBB(MBB);
 
   return true;
 }

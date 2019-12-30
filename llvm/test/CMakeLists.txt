@@ -69,10 +69,13 @@ set(LLVM_TEST_DEPENDS
           llvm-exegesis
           llvm-extract
           llvm-isel-fuzzer
+          llvm-ifs
+          llvm-install-name-tool
           llvm-jitlink
           llvm-lib
           llvm-link
           llvm-lipo
+          llvm-locstats
           llvm-lto2
           llvm-mc
           llvm-mca
@@ -89,6 +92,7 @@ set(LLVM_TEST_DEPENDS
           llvm-rc
           llvm-readobj
           llvm-readelf
+          llvm-reduce
           llvm-rtdyld
           llvm-size
           llvm-split

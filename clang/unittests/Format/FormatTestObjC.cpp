@@ -114,7 +114,12 @@ TEST(FormatTestObjCStyle, DetectsObjCInHeaders) {
   EXPECT_EQ(FormatStyle::LK_Cpp, Style->Language);
 
   Style =
-      getStyle("{}", "a.h", "none", "typedef NS_ENUM(NSInteger, Foo) {};\n");
+      getStyle("{}", "a.h", "none", "typedef NS_ENUM(int, Foo) {};\n");
+  ASSERT_TRUE((bool)Style);
+  EXPECT_EQ(FormatStyle::LK_ObjC, Style->Language);
+
+  Style = getStyle("{}", "a.h", "none",
+                   "typedef NS_CLOSED_ENUM(int, Foo) {};\n");
   ASSERT_TRUE((bool)Style);
   EXPECT_EQ(FormatStyle::LK_ObjC, Style->Language);
 
@@ -202,7 +207,7 @@ TEST_F(FormatTestObjC, FormatObjCAutoreleasepool) {
                "  f();\n"
                "}\n");
   Style.BreakBeforeBraces = FormatStyle::BS_Custom;
-  Style.BraceWrapping.AfterControlStatement = true;
+  Style.BraceWrapping.AfterControlStatement = FormatStyle::BWACS_Always;
   verifyFormat("@autoreleasepool\n"
                "{\n"
                "  f();\n"
@@ -232,7 +237,7 @@ TEST_F(FormatTestObjC, FormatObjCSynchronized) {
                "  f();\n"
                "}\n");
   Style.BreakBeforeBraces = FormatStyle::BS_Custom;
-  Style.BraceWrapping.AfterControlStatement = true;
+  Style.BraceWrapping.AfterControlStatement = FormatStyle::BWACS_Always;
   verifyFormat("@synchronized(self)\n"
                "{\n"
                "  f();\n"

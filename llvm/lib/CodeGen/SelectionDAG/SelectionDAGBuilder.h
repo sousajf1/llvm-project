@@ -426,7 +426,7 @@ public:
   SelectionDAGBuilder(SelectionDAG &dag, FunctionLoweringInfo &funcinfo,
                       SwiftErrorValueTracking &swifterror, CodeGenOpt::Level ol)
       : SDNodeOrder(LowestSDNodeOrder), TM(dag.getTarget()), DAG(dag),
-        SL(make_unique<SDAGSwitchLowering>(this, funcinfo)), FuncInfo(funcinfo),
+        SL(std::make_unique<SDAGSwitchLowering>(this, funcinfo)), FuncInfo(funcinfo),
         SwiftError(swifterror) {}
 
   void init(GCFunctionInfo *gfi, AliasAnalysis *AA,
@@ -742,6 +742,7 @@ private:
   void visitAtomicStore(const StoreInst &I);
   void visitLoadFromSwiftError(const LoadInst &I);
   void visitStoreToSwiftError(const StoreInst &I);
+  void visitFreeze(const FreezeInst &I);
 
   void visitInlineAsm(ImmutableCallSite CS);
   void visitIntrinsicCall(const CallInst &I, unsigned Intrinsic);

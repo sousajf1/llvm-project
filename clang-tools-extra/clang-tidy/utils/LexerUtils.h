@@ -10,6 +10,7 @@
 #define LLVM_CLANG_TOOLS_EXTRA_CLANG_TIDY_UTILS_LEXER_UTILS_H
 
 #include "clang/AST/ASTContext.h"
+#include "clang/Basic/TokenKinds.h"
 #include "clang/Lex/Lexer.h"
 
 namespace clang {
@@ -70,9 +71,19 @@ SourceLocation findNextAnyTokenKind(SourceLocation Start,
     if (PotentialMatch.isOneOf(TK, TKs...))
       return PotentialMatch.getLocation();
 
+    // If we reach the end of the file, and eof is not the target token, we stop
+    // the loop, otherwise we will get infinite loop (findNextToken will return
+    // eof on eof).
+    if (PotentialMatch.is(tok::eof))
+      return SourceLocation();
     Start = PotentialMatch.getLastLoc();
   }
 }
+
+// Finds next token that's not a comment.
+Optional<Token> findNextTokenSkippingComments(SourceLocation Start,
+                                              const SourceManager &SM,
+                                              const LangOptions &LangOpts);
 
 /// Re-lex the provide \p Range and return \c false if either a macro spans
 /// multiple tokens, a pre-processor directive or failure to retrieve the
@@ -81,13 +92,15 @@ bool rangeContainsExpansionsOrDirectives(SourceRange Range,
                                          const SourceManager &SM,
                                          const LangOptions &LangOpts);
 
-/// Assuming that ``Range`` spans a const-qualified type, returns the ``const``
-/// token in ``Range`` that is responsible for const qualification. ``Range``
-/// must be valid with respect to ``SM``.  Returns ``None`` if no ``const``
+/// Assuming that ``Range`` spans a CVR-qualified type, returns the
+/// token in ``Range`` that is responsible for the qualification. ``Range``
+/// must be valid with respect to ``SM``.  Returns ``None`` if no qualifying
 /// tokens are found.
-llvm::Optional<Token> getConstQualifyingToken(CharSourceRange Range,
-                                              const ASTContext &Context,
-                                              const SourceManager &SM);
+/// \note: doesn't support member function qualifiers.
+llvm::Optional<Token> getQualifyingToken(tok::TokenKind TK,
+                                         CharSourceRange Range,
+                                         const ASTContext &Context,
+                                         const SourceManager &SM);
 
 } // namespace lexer
 } // namespace utils

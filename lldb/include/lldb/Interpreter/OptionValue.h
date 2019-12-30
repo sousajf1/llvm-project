@@ -61,10 +61,6 @@ public:
   OptionValue()
       : m_callback(nullptr), m_baton(nullptr), m_value_was_set(false) {}
 
-  OptionValue(const OptionValue &rhs)
-      : m_callback(rhs.m_callback), m_baton(rhs.m_baton),
-        m_value_was_set(rhs.m_value_was_set) {}
-
   virtual ~OptionValue() = default;
 
   // Subclasses should override these functions
@@ -93,8 +89,8 @@ public:
 
   virtual lldb::OptionValueSP DeepCopy() const = 0;
 
-  virtual size_t AutoComplete(CommandInterpreter &interpreter,
-                              CompletionRequest &request);
+  virtual void AutoComplete(CommandInterpreter &interpreter,
+                            CompletionRequest &request);
 
   // Subclasses can override these functions
   virtual lldb::OptionValueSP GetSubValue(const ExecutionContext *exe_ctx,

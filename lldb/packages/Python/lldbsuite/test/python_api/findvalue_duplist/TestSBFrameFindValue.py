@@ -1,11 +1,7 @@
 """Test that SBFrame::FindValue finds things but does not duplicate the entire variables list"""
 
-from __future__ import print_function
 
 
-import os
-import sys
-import time
 import lldb
 from lldbsuite.test.decorators import *
 from lldbsuite.test.lldbtest import *

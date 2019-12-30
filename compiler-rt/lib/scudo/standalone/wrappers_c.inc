@@ -38,8 +38,17 @@ INTERFACE WEAK struct SCUDO_MALLINFO SCUDO_PREFIX(mallinfo)(void) {
   struct SCUDO_MALLINFO Info = {};
   scudo::StatCounters Stats;
   SCUDO_ALLOCATOR.getStats(Stats);
+  // Space allocated in mmapped regions (bytes)
+  Info.hblkhd = static_cast<__scudo_mallinfo_data_t>(Stats[scudo::StatMapped]);
+  // Maximum total allocated space (bytes)
+  Info.usmblks = Info.hblkhd;
+  // Space in freed fastbin blocks (bytes)
+  Info.fsmblks = static_cast<__scudo_mallinfo_data_t>(Stats[scudo::StatFree]);
+  // Total allocated space (bytes)
   Info.uordblks =
       static_cast<__scudo_mallinfo_data_t>(Stats[scudo::StatAllocated]);
+  // Total free space (bytes)
+  Info.fordblks = Info.fsmblks;
   return Info;
 }
 
@@ -125,15 +134,7 @@ INTERFACE WEAK void *SCUDO_PREFIX(valloc)(size_t size) {
       size, scudo::Chunk::Origin::Memalign, scudo::getPageSizeCached()));
 }
 
-// Bionic wants a function named PREFIX_iterate and not PREFIX_malloc_iterate
-// which is somewhat inconsistent with the rest, workaround that.
-#if SCUDO_ANDROID && _BIONIC
-#define SCUDO_ITERATE iterate
-#else
-#define SCUDO_ITERATE malloc_iterate
-#endif
-
-INTERFACE WEAK int SCUDO_PREFIX(SCUDO_ITERATE)(
+INTERFACE WEAK int SCUDO_PREFIX(malloc_iterate)(
     uintptr_t base, size_t size,
     void (*callback)(uintptr_t base, size_t size, void *arg), void *arg) {
   SCUDO_ALLOCATOR.iterateOverChunks(base, size, callback, arg);
@@ -170,7 +171,8 @@ INTERFACE WEAK void *SCUDO_PREFIX(aligned_alloc)(size_t alignment,
       SCUDO_ALLOCATOR.allocate(size, scudo::Chunk::Origin::Malloc, alignment));
 }
 
-INTERFACE WEAK int SCUDO_PREFIX(malloc_info)(int, FILE *) {
-  errno = ENOTSUP;
-  return -1;
+INTERFACE WEAK int SCUDO_PREFIX(malloc_info)(UNUSED int options, FILE *stream) {
+  fputs("<malloc version=\"scudo-1\">", stream);
+  fputs("</malloc>", stream);
+  return 0;
 }

@@ -19,6 +19,7 @@
 #include "CodeGenModule.h"
 #include "ConstantEmitter.h"
 #include "TargetInfo.h"
+#include "clang/AST/Attr.h"
 #include "clang/AST/DeclObjC.h"
 #include "clang/CodeGen/ConstantInitBuilder.h"
 #include "llvm/ADT/SmallSet.h"
@@ -1076,7 +1077,7 @@ llvm::Value *CodeGenFunction::EmitBlockLiteral(const CGBlockInfo &blockInfo) {
                           /*RefersToEnclosingVariableOrCapture*/ CI.isNested(),
                           type.getNonReferenceType(), VK_LValue,
                           SourceLocation());
-      src = EmitDeclRefLValue(&declRef).getAddress();
+      src = EmitDeclRefLValue(&declRef).getAddress(*this);
     };
 
     // For byrefs, we just write the pointer to the byref struct into
@@ -1253,8 +1254,7 @@ llvm::Type *CodeGenModule::getGenericBlockLiteralType() {
 
 RValue CodeGenFunction::EmitBlockCallExpr(const CallExpr *E,
                                           ReturnValueSlot ReturnValue) {
-  const BlockPointerType *BPT =
-    E->getCallee()->getType()->getAs<BlockPointerType>();
+  const auto *BPT = E->getCallee()->getType()->castAs<BlockPointerType>();
   llvm::Value *BlockPtr = EmitScalarExpr(E->getCallee());
   llvm::Type *GenBlockTy = CGM.getGenericBlockLiteralType();
   llvm::Value *Func = nullptr;
@@ -1802,7 +1802,7 @@ struct CallBlockRelease final : EHScopeStack::Cleanup {
 bool CodeGenFunction::cxxDestructorCanThrow(QualType T) {
   if (const auto *RD = T->getAsCXXRecordDecl())
     if (const CXXDestructorDecl *DD = RD->getDestructor())
-      return DD->getType()->getAs<FunctionProtoType>()->canThrow();
+      return DD->getType()->castAs<FunctionProtoType>()->canThrow();
   return false;
 }
 

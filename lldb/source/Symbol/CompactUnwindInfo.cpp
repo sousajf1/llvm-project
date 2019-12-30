@@ -190,8 +190,8 @@ bool CompactUnwindInfo::GetUnwindPlan(Target &target, Address addr,
             Address::DumpStyle::DumpStyleResolvedDescriptionNoFunctionArguments,
             Address::DumpStyle::DumpStyleFileAddress,
             arch.GetAddressByteSize());
-        log->Printf("Got compact unwind encoding 0x%x for function %s",
-                    function_info.encoding, strm.GetData());
+        LLDB_LOGF(log, "Got compact unwind encoding 0x%x for function %s",
+                  function_info.encoding, strm.GetData());
       }
 
       if (function_info.valid_range_offset_start != 0 &&
@@ -213,7 +213,8 @@ bool CompactUnwindInfo::GetUnwindPlan(Target &target, Address addr,
         return CreateUnwindPlan_x86_64(target, function_info, unwind_plan,
                                        addr);
       }
-      if (arch.GetTriple().getArch() == llvm::Triple::aarch64) {
+      if (arch.GetTriple().getArch() == llvm::Triple::aarch64 ||
+          arch.GetTriple().getArch() == llvm::Triple::aarch64_32) {
         return CreateUnwindPlan_arm64(target, function_info, unwind_plan, addr);
       }
       if (arch.GetTriple().getArch() == llvm::Triple::x86) {

@@ -1,5 +1,8 @@
+// KEEP-ALL-NOT:  warning:
 // KEEP-ALL:      "-mframe-pointer=all"
+// KEEP-NON-LEAF-NOT: warning:
 // KEEP-NON-LEAF: "-mframe-pointer=non-leaf"
+// KEEP-NONE-NOT: warning:
 // KEEP-NONE:     "-mframe-pointer=none"
 
 // On Linux x86, omit frame pointer when optimization is enabled.
@@ -25,6 +28,13 @@
 // RUN: %clang -### -target i386-linux -S -O1 -momit-leaf-frame-pointer %s 2>&1 | \
 // RUN:   FileCheck --check-prefix=KEEP-NONE %s
 
+// fno-omit-frame-pointer -momit-leaf-frame-pointer can be overwritten by
+// fomit-frame-pointer later on the command without warning
+// RUN: %clang -### -target i386-linux -S -O1 -fno-omit-frame-pointer -momit-leaf-frame-pointer -fomit-frame-pointer %s 2>&1 | \
+// RUN:   FileCheck --check-prefix=KEEP-NONE %s
+
+// RUN: %clang -### -target i386-linux -S -O1 -fno-omit-frame-pointer -momit-leaf-frame-pointer %s 2>&1 | \
+// RUN:   FileCheck --check-prefix=KEEP-NON-LEAF %s
 // Explicit or default -fomit-frame-pointer wins over -mno-omit-leaf-frame-pointer.
 // RUN: %clang -### -target i386 -S %s -fomit-frame-pointer -mno-omit-leaf-frame-pointer 2>&1 | \
 // RUN:   FileCheck --check-prefix=KEEP-NONE %s
@@ -80,7 +90,9 @@
 // WARN-OMIT-LEAF-7S-NOT: warning: optimization flag '-momit-leaf-frame-pointer' is not supported for target 'armv7s'
 // WARN-OMIT-LEAF-7S: "-mframe-pointer=non-leaf"
 
-// On the PS4, we default to omitting the frame pointer on leaf functions
+// On AArch64 and PS4, default to omitting the frame pointer on leaf functions
+// RUN: %clang -### -target aarch64 -S %s 2>&1 | \
+// RUN:   FileCheck --check-prefix=KEEP-NON-LEAF %s
 // RUN: %clang -### -target x86_64-scei-ps4 -S %s 2>&1 | \
 // RUN:   FileCheck --check-prefix=KEEP-NON-LEAF %s
 // RUN: %clang -### -target x86_64-scei-ps4 -S -O2 %s 2>&1 | \

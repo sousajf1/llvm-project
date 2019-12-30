@@ -249,8 +249,10 @@ static MIToken::TokenKind getIdentifierKind(StringRef Identifier) {
       .Case("successors", MIToken::kw_successors)
       .Case("floatpred", MIToken::kw_floatpred)
       .Case("intpred", MIToken::kw_intpred)
+      .Case("shufflemask", MIToken::kw_shufflemask)
       .Case("pre-instr-symbol", MIToken::kw_pre_instr_symbol)
       .Case("post-instr-symbol", MIToken::kw_post_instr_symbol)
+      .Case("heap-alloc-marker", MIToken::kw_heap_alloc_marker)
       .Case("unknown-size", MIToken::kw_unknown_size)
       .Default(MIToken::Identifier);
 }
@@ -581,8 +583,8 @@ static MIToken::TokenKind getMetadataKeywordKind(StringRef Identifier) {
       .Default(MIToken::Error);
 }
 
-static Cursor maybeLexExlaim(Cursor C, MIToken &Token,
-                             ErrorCallbackType ErrorCallback) {
+static Cursor maybeLexExclaim(Cursor C, MIToken &Token,
+                              ErrorCallbackType ErrorCallback) {
   if (C.peek() != '!')
     return None;
   auto Range = C;
@@ -718,7 +720,7 @@ StringRef llvm::lexMIToken(StringRef Source, MIToken &Token,
     return R.remaining();
   if (Cursor R = maybeLexNumericalLiteral(C, Token))
     return R.remaining();
-  if (Cursor R = maybeLexExlaim(C, Token, ErrorCallback))
+  if (Cursor R = maybeLexExclaim(C, Token, ErrorCallback))
     return R.remaining();
   if (Cursor R = maybeLexSymbol(C, Token))
     return R.remaining();

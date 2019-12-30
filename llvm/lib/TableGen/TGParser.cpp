@@ -378,7 +378,7 @@ bool TGParser::resolve(const ForeachLoop &Loop, SubstStack &Substs,
   auto LI = dyn_cast<ListInit>(List);
   if (!LI) {
     if (!Final) {
-      Dest->emplace_back(make_unique<ForeachLoop>(Loop.Loc, Loop.IterVar,
+      Dest->emplace_back(std::make_unique<ForeachLoop>(Loop.Loc, Loop.IterVar,
                                                   List));
       return resolve(Loop.Entries, Substs, Final, &Dest->back().Loop->Entries,
                      Loc);
@@ -413,7 +413,7 @@ bool TGParser::resolve(const std::vector<RecordsEntry> &Source,
     if (E.Loop) {
       Error = resolve(*E.Loop, Substs, Final, Dest);
     } else {
-      auto Rec = make_unique<Record>(*E.Rec);
+      auto Rec = std::make_unique<Record>(*E.Rec);
       if (Loc)
         Rec->appendLoc(*Loc);
 
@@ -905,7 +905,8 @@ Init *TGParser::ParseOperation(Record *CurRec, RecTy *ItemType) {
   case tgtok::XTail:
   case tgtok::XSize:
   case tgtok::XEmpty:
-  case tgtok::XCast: {  // Value ::= !unop '(' Value ')'
+  case tgtok::XCast:
+  case tgtok::XGetOp: {  // Value ::= !unop '(' Value ')'
     UnOpInit::UnaryOp Code;
     RecTy *Type = nullptr;
 
@@ -940,6 +941,28 @@ Init *TGParser::ParseOperation(Record *CurRec, RecTy *ItemType) {
       Lex.Lex();  // eat the operation
       Code = UnOpInit::EMPTY;
       Type = IntRecTy::get();
+      break;
+    case tgtok::XGetOp:
+      Lex.Lex();  // eat the operation
+      if (Lex.getCode() == tgtok::less) {
+        // Parse an optional type suffix, so that you can say
+        // !getop<BaseClass>(someDag) as a shorthand for
+        // !cast<BaseClass>(!getop(someDag)).
+        Type = ParseOperatorType();
+
+        if (!Type) {
+          TokError("did not get type for unary operator");
+          return nullptr;
+        }
+
+        if (!isa<RecordRecTy>(Type)) {
+          TokError("type for !getop must be a record type");
+          // but keep parsing, to consume the operand
+        }
+      } else {
+        Type = RecordRecTy::get({});
+      }
+      Code = UnOpInit::GETOP;
       break;
     }
     if (Lex.getCode() != tgtok::l_paren) {
@@ -1055,7 +1078,8 @@ Init *TGParser::ParseOperation(Record *CurRec, RecTy *ItemType) {
   case tgtok::XGt:
   case tgtok::XListConcat:
   case tgtok::XListSplat:
-  case tgtok::XStrConcat: {  // Value ::= !binop '(' Value ',' Value ')'
+  case tgtok::XStrConcat:
+  case tgtok::XSetOp: {  // Value ::= !binop '(' Value ',' Value ')'
     tgtok::TokKind OpTok = Lex.getCode();
     SMLoc OpLoc = Lex.getLoc();
     Lex.Lex();  // eat the operation
@@ -1080,6 +1104,7 @@ Init *TGParser::ParseOperation(Record *CurRec, RecTy *ItemType) {
     case tgtok::XListConcat: Code = BinOpInit::LISTCONCAT; break;
     case tgtok::XListSplat: Code = BinOpInit::LISTSPLAT; break;
     case tgtok::XStrConcat: Code = BinOpInit::STRCONCAT; break;
+    case tgtok::XSetOp: Code = BinOpInit::SETOP; break;
     }
 
     RecTy *Type = nullptr;
@@ -1088,6 +1113,7 @@ Init *TGParser::ParseOperation(Record *CurRec, RecTy *ItemType) {
     default:
       llvm_unreachable("Unhandled code!");
     case tgtok::XConcat:
+    case tgtok::XSetOp:
       Type = DagRecTy::get();
       ArgType = DagRecTy::get();
       break;
@@ -1146,10 +1172,9 @@ Init *TGParser::ParseOperation(Record *CurRec, RecTy *ItemType) {
       InitList.push_back(ParseValue(CurRec, ArgType));
       if (!InitList.back()) return nullptr;
 
-      // All BinOps require their arguments to be of compatible types.
-      TypedInit *TI = dyn_cast<TypedInit>(InitList.back());
+      RecTy *ListType = cast<TypedInit>(InitList.back())->getType();
       if (!ArgType) {
-        ArgType = TI->getType();
+        ArgType = ListType;
 
         switch (Code) {
         case BinOpInit::LISTCONCAT:
@@ -1198,11 +1223,11 @@ Init *TGParser::ParseOperation(Record *CurRec, RecTy *ItemType) {
         default: llvm_unreachable("other ops have fixed argument types");
         }
       } else {
-        RecTy *Resolved = resolveTypes(ArgType, TI->getType());
+        RecTy *Resolved = resolveTypes(ArgType, ListType);
         if (!Resolved) {
           Error(InitLoc, Twine("expected value of type '") +
-                         ArgType->getAsString() + "', got '" +
-                         TI->getType()->getAsString() + "'");
+                             ArgType->getAsString() + "', got '" +
+                             ListType->getAsString() + "'");
           return nullptr;
         }
         if (Code != BinOpInit::ADD && Code != BinOpInit::AND &&
@@ -1210,6 +1235,18 @@ Init *TGParser::ParseOperation(Record *CurRec, RecTy *ItemType) {
             Code != BinOpInit::SRL && Code != BinOpInit::SHL &&
             Code != BinOpInit::MUL)
           ArgType = Resolved;
+      }
+
+      // Deal with BinOps whose arguments have different types, by
+      // rewriting ArgType in between them.
+      switch (Code) {
+        case BinOpInit::SETOP:
+          // After parsing the first dag argument, switch to expecting
+          // a record, with no restriction on its superclasses.
+          ArgType = RecordRecTy::get({});
+          break;
+        default:
+          break;
       }
 
       if (Lex.getCode() != tgtok::comma)
@@ -1330,7 +1367,7 @@ Init *TGParser::ParseOperation(Record *CurRec, RecTy *ItemType) {
     std::unique_ptr<Record> ParseRecTmp;
     Record *ParseRec = CurRec;
     if (!ParseRec) {
-      ParseRecTmp = make_unique<Record>(".parse", ArrayRef<SMLoc>{}, Records);
+      ParseRecTmp = std::make_unique<Record>(".parse", ArrayRef<SMLoc>{}, Records);
       ParseRec = ParseRecTmp.get();
     }
 
@@ -1597,7 +1634,7 @@ Init *TGParser::ParseOperation(Record *CurRec, RecTy *ItemType) {
     std::unique_ptr<Record> ParseRecTmp;
     Record *ParseRec = CurRec;
     if (!ParseRec) {
-      ParseRecTmp = make_unique<Record>(".parse", ArrayRef<SMLoc>{}, Records);
+      ParseRecTmp = std::make_unique<Record>(".parse", ArrayRef<SMLoc>{}, Records);
       ParseRec = ParseRecTmp.get();
     }
 
@@ -2024,7 +2061,8 @@ Init *TGParser::ParseSimpleValue(Record *CurRec, RecTy *ItemType,
   }
   case tgtok::l_paren: {         // Value ::= '(' IDValue DagArgList ')'
     Lex.Lex();   // eat the '('
-    if (Lex.getCode() != tgtok::Id && Lex.getCode() != tgtok::XCast) {
+    if (Lex.getCode() != tgtok::Id && Lex.getCode() != tgtok::XCast &&
+        Lex.getCode() != tgtok::question && Lex.getCode() != tgtok::XGetOp) {
       TokError("expected identifier in dag init");
       return nullptr;
     }
@@ -2062,7 +2100,8 @@ Init *TGParser::ParseSimpleValue(Record *CurRec, RecTy *ItemType,
   case tgtok::XTail:
   case tgtok::XSize:
   case tgtok::XEmpty:
-  case tgtok::XCast:  // Value ::= !unop '(' Value ')'
+  case tgtok::XCast:
+  case tgtok::XGetOp:  // Value ::= !unop '(' Value ')'
   case tgtok::XIsA:
   case tgtok::XConcat:
   case tgtok::XDag:
@@ -2081,7 +2120,8 @@ Init *TGParser::ParseSimpleValue(Record *CurRec, RecTy *ItemType,
   case tgtok::XGt:
   case tgtok::XListConcat:
   case tgtok::XListSplat:
-  case tgtok::XStrConcat:   // Value ::= !binop '(' Value ',' Value ')'
+  case tgtok::XStrConcat:
+  case tgtok::XSetOp:   // Value ::= !binop '(' Value ',' Value ')'
   case tgtok::XIf:
   case tgtok::XCond:
   case tgtok::XFoldl:
@@ -2702,10 +2742,10 @@ bool TGParser::ParseDef(MultiClass *CurMultiClass) {
     return true;
 
   if (isa<UnsetInit>(Name))
-    CurRec = make_unique<Record>(Records.getNewAnonymousName(), DefLoc, Records,
+    CurRec = std::make_unique<Record>(Records.getNewAnonymousName(), DefLoc, Records,
                                  /*Anonymous=*/true);
   else
-    CurRec = make_unique<Record>(Name, DefLoc, Records);
+    CurRec = std::make_unique<Record>(Name, DefLoc, Records);
 
   if (ParseObjectBody(CurRec.get()))
     return true;
@@ -2783,7 +2823,7 @@ bool TGParser::ParseForeach(MultiClass *CurMultiClass) {
   Lex.Lex();  // Eat the in
 
   // Create a loop object and remember it.
-  Loops.push_back(llvm::make_unique<ForeachLoop>(Loc, IterName, ListValue));
+  Loops.push_back(std::make_unique<ForeachLoop>(Loc, IterName, ListValue));
 
   if (Lex.getCode() != tgtok::l_brace) {
     // FOREACH Declaration IN Object
@@ -2834,7 +2874,7 @@ bool TGParser::ParseClass() {
   } else {
     // If this is the first reference to this class, create and add it.
     auto NewRec =
-        llvm::make_unique<Record>(Lex.getCurStrVal(), Lex.getLoc(), Records,
+        std::make_unique<Record>(Lex.getCurStrVal(), Lex.getLoc(), Records,
                                   /*Class=*/true);
     CurRec = NewRec.get();
     Records.addClass(std::move(NewRec));
@@ -2963,7 +3003,7 @@ bool TGParser::ParseMultiClass() {
 
   auto Result =
     MultiClasses.insert(std::make_pair(Name,
-                    llvm::make_unique<MultiClass>(Name, Lex.getLoc(),Records)));
+                    std::make_unique<MultiClass>(Name, Lex.getLoc(),Records)));
 
   if (!Result.second)
     return TokError("multiclass '" + Name + "' already defined");

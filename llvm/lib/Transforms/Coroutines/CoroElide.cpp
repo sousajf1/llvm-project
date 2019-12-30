@@ -15,6 +15,7 @@
 #include "llvm/Analysis/InstructionSimplify.h"
 #include "llvm/IR/Dominators.h"
 #include "llvm/IR/InstIterator.h"
+#include "llvm/InitializePasses.h"
 #include "llvm/Pass.h"
 #include "llvm/Support/ErrorHandling.h"
 
@@ -286,7 +287,7 @@ struct CoroElide : FunctionPass {
 
   bool doInitialization(Module &M) override {
     if (coro::declaresIntrinsics(M, {"llvm.coro.id"}))
-      L = llvm::make_unique<Lowerer>(M);
+      L = std::make_unique<Lowerer>(M);
     return false;
   }
 

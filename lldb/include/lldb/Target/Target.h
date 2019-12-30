@@ -139,6 +139,8 @@ public:
 
   bool GetEnableSyntheticValue() const;
 
+  uint32_t GetMaxZeroPaddingInFloatFormat() const;
+
   uint32_t GetMaximumNumberOfChildrenToDisplay() const;
 
   uint32_t GetMaximumSizeOfStringSummary() const;
@@ -200,8 +202,6 @@ public:
   bool GetInjectLocalVariables(ExecutionContext *exe_ctx) const;
 
   void SetInjectLocalVariables(ExecutionContext *exe_ctx, bool b);
-
-  bool GetUseModernTypeLookup() const;
 
   void SetRequireHardwareBreakpoints(bool b);
 
@@ -533,7 +533,7 @@ public:
 
   static const lldb::TargetPropertiesSP &GetGlobalProperties();
 
-  std::recursive_mutex &GetAPIMutex() { return m_mutex; }
+  std::recursive_mutex &GetAPIMutex();
 
   void DeleteCurrentProcess();
 
@@ -598,7 +598,7 @@ public:
       const FileSpecList *containingModules,
       const FileSpecList *source_file_list,
       const std::unordered_set<std::string> &function_names,
-      RegularExpression &source_regex, bool internal, bool request_hardware,
+      RegularExpression source_regex, bool internal, bool request_hardware,
       LazyBool move_to_nearest_code);
 
   // Use this to create a breakpoint from a load address
@@ -621,7 +621,7 @@ public:
   // target setting, else we use the values passed in
   lldb::BreakpointSP CreateFuncRegexBreakpoint(
       const FileSpecList *containingModules,
-      const FileSpecList *containingSourceFiles, RegularExpression &func_regexp,
+      const FileSpecList *containingSourceFiles, RegularExpression func_regexp,
       lldb::LanguageType requested_language, LazyBool skip_prologue,
       bool internal, bool request_hardware);
 
@@ -904,8 +904,8 @@ public:
   /// The target call at present just consults the Platform's call of the
   /// same name.
   ///
-  /// \param[in] module_sp
-  ///     A shared pointer reference to the module that checked.
+  /// \param[in] module_spec
+  ///     Path to the module.
   ///
   /// \return \b true if the module should be excluded, \b false otherwise.
   bool ModuleIsExcludedForUnconstrainedSearches(const FileSpec &module_spec);
@@ -1022,9 +1022,11 @@ public:
 
   PathMappingList &GetImageSearchPathList();
 
-  TypeSystem *GetScratchTypeSystemForLanguage(Status *error,
-                                              lldb::LanguageType language,
-                                              bool create_on_demand = true);
+  llvm::Expected<TypeSystem &>
+  GetScratchTypeSystemForLanguage(lldb::LanguageType language,
+                                  bool create_on_demand = true);
+
+  std::vector<TypeSystem *> GetScratchTypeSystems(bool create_on_demand = true);
 
   PersistentExpressionState *
   GetPersistentExpressionStateForLanguage(lldb::LanguageType language);
@@ -1062,8 +1064,6 @@ public:
                                                  lldb::LanguageType language,
                                                  const char *name,
                                                  Status &error);
-
-  ClangASTContext *GetScratchClangASTContext(bool create_on_demand = true);
 
   lldb::ClangASTImporterSP GetClangASTImporter();
 
@@ -1284,6 +1284,12 @@ protected:
   lldb::PlatformSP m_platform_sp; ///< The platform for this target.
   std::recursive_mutex m_mutex; ///< An API mutex that is used by the lldb::SB*
                                 /// classes make the SB interface thread safe
+  /// When the private state thread calls SB API's - usually because it is 
+  /// running OS plugin or Python ThreadPlan code - it should not block on the
+  /// API mutex that is held by the code that kicked off the sequence of events
+  /// that led us to run the code.  We hand out this mutex instead when we 
+  /// detect that code is running on the private state thread.
+  std::recursive_mutex m_private_mutex; 
   Arch m_arch;
   ModuleList m_images; ///< The list of images for this process (shared
                        /// libraries and anything dynamically loaded).

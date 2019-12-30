@@ -84,6 +84,8 @@ ARMLegalizerInfo::ARMLegalizerInfo(const ARMSubtarget &ST) {
   getActionDefinitionsBuilder({G_SEXT, G_ZEXT, G_ANYEXT})
       .legalForCartesianProduct({s8, s16, s32}, {s1, s8, s16});
 
+  getActionDefinitionsBuilder(G_SEXT_INREG).lower();
+
   getActionDefinitionsBuilder({G_MUL, G_AND, G_OR, G_XOR})
       .legalFor({s32})
       .minScalar(0, s32);
@@ -160,7 +162,7 @@ ARMLegalizerInfo::ARMLegalizerInfo(const ARMSubtarget &ST) {
           .legalFor({s32, p0})
           .minScalar(0, s32);
 
-  getActionDefinitionsBuilder(G_GEP)
+  getActionDefinitionsBuilder(G_PTR_ADD)
       .legalFor({{p0, s32}})
       .minScalar(1, s32);
 

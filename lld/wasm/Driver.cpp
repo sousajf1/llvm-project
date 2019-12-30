@@ -37,10 +37,9 @@ using namespace llvm::object;
 using namespace llvm::sys;
 using namespace llvm::wasm;
 
-using namespace lld;
-using namespace lld::wasm;
-
-Configuration *lld::wasm::config;
+namespace lld {
+namespace wasm {
+Configuration *config;
 
 namespace {
 
@@ -79,14 +78,16 @@ private:
 };
 } // anonymous namespace
 
-bool lld::wasm::link(ArrayRef<const char *> args, bool canExitEarly,
-                     raw_ostream &error) {
+bool link(ArrayRef<const char *> args, bool canExitEarly, raw_ostream &stdoutOS,
+          raw_ostream &stderrOS) {
+  lld::stdoutOS = &stdoutOS;
+  lld::stderrOS = &stderrOS;
+
   errorHandler().logName = args::getFilenameWithoutExe(args[0]);
-  errorHandler().errorOS = &error;
-  errorHandler().colorDiagnostics = error.has_colors();
   errorHandler().errorLimitExceededMsg =
       "too many errors emitted, stopping now (use "
       "-error-limit=0 to see all errors)";
+  stderrOS.enable_colors(stderrOS.has_colors());
 
   config = make<Configuration>();
   symtab = make<SymbolTable>();
@@ -134,15 +135,15 @@ static void handleColorDiagnostics(opt::InputArgList &args) {
   if (!arg)
     return;
   if (arg->getOption().getID() == OPT_color_diagnostics) {
-    errorHandler().colorDiagnostics = true;
+    lld::errs().enable_colors(true);
   } else if (arg->getOption().getID() == OPT_no_color_diagnostics) {
-    errorHandler().colorDiagnostics = false;
+    lld::errs().enable_colors(false);
   } else {
     StringRef s = arg->getValue();
     if (s == "always")
-      errorHandler().colorDiagnostics = true;
+      lld::errs().enable_colors(true);
     else if (s == "never")
-      errorHandler().colorDiagnostics = false;
+      lld::errs().enable_colors(false);
     else if (s != "auto")
       error("unknown option: --color-diagnostics=" + s);
   }
@@ -313,15 +314,12 @@ static void readConfigs(opt::InputArgList &args) {
   config->emitRelocs = args.hasArg(OPT_emit_relocs);
   config->entry = getEntry(args);
   config->exportAll = args.hasArg(OPT_export_all);
-  config->exportDynamic = args.hasFlag(OPT_export_dynamic,
-      OPT_no_export_dynamic, false);
   config->exportTable = args.hasArg(OPT_export_table);
+  config->growableTable = args.hasArg(OPT_growable_table);
   errorHandler().fatalWarnings =
       args.hasFlag(OPT_fatal_warnings, OPT_no_fatal_warnings, false);
   config->importMemory = args.hasArg(OPT_import_memory);
   config->sharedMemory = args.hasArg(OPT_shared_memory);
-  config->passiveSegments = args.hasFlag(
-      OPT_passive_segments, OPT_active_segments, config->sharedMemory);
   config->importTable = args.hasArg(OPT_import_table);
   config->ltoo = args::getInteger(args, OPT_lto_O, 2);
   config->ltoPartitions = args::getInteger(args, OPT_lto_partitions, 1);
@@ -358,6 +356,10 @@ static void readConfigs(opt::InputArgList &args) {
   config->zStackSize =
       args::getZOptionValue(args, OPT_z, "stack-size", WasmPageSize);
 
+  // Default value of exportDynamic depends on `-shared`
+  config->exportDynamic =
+      args.hasFlag(OPT_export_dynamic, OPT_no_export_dynamic, config->shared);
+
   if (auto *arg = args.getLastArg(OPT_features)) {
     config->features =
         llvm::Optional<std::vector<std::string>>(std::vector<std::string>());
@@ -381,7 +383,6 @@ static void setConfigs() {
 
   if (config->shared) {
     config->importMemory = true;
-    config->exportDynamic = true;
     config->allowUndefined = true;
   }
 }
@@ -441,19 +442,18 @@ static Symbol *handleUndefined(StringRef name) {
 
 static UndefinedGlobal *
 createUndefinedGlobal(StringRef name, llvm::wasm::WasmGlobalType *type) {
-  auto *sym =
-      cast<UndefinedGlobal>(symtab->addUndefinedGlobal(name, name,
-                                                       defaultModule, 0,
-                                                       nullptr, type));
+  auto *sym = cast<UndefinedGlobal>(symtab->addUndefinedGlobal(
+      name, name, defaultModule, WASM_SYMBOL_UNDEFINED, nullptr, type));
   config->allowUndefinedSymbols.insert(sym->getName());
   sym->isUsedInRegularObj = true;
   return sym;
 }
 
-static GlobalSymbol *createGlobalVariable(StringRef name, bool isMutable) {
+static GlobalSymbol *createGlobalVariable(StringRef name, bool isMutable,
+                                          int value) {
   llvm::wasm::WasmGlobal wasmGlobal;
   wasmGlobal.Type = {WASM_TYPE_I32, isMutable};
-  wasmGlobal.InitExpr.Value.Int32 = 0;
+  wasmGlobal.InitExpr.Value.Int32 = value;
   wasmGlobal.InitExpr.Opcode = WASM_OPCODE_I32_CONST;
   wasmGlobal.SymbolName = name;
   return symtab->addSyntheticGlobal(name, WASM_SYMBOL_VISIBILITY_HIDDEN,
@@ -462,38 +462,26 @@ static GlobalSymbol *createGlobalVariable(StringRef name, bool isMutable) {
 
 // Create ABI-defined synthetic symbols
 static void createSyntheticSymbols() {
+  if (config->relocatable)
+    return;
+
   static WasmSignature nullSignature = {{}, {}};
   static WasmSignature i32ArgSignature = {{}, {ValType::I32}};
   static llvm::wasm::WasmGlobalType globalTypeI32 = {WASM_TYPE_I32, false};
   static llvm::wasm::WasmGlobalType mutableGlobalTypeI32 = {WASM_TYPE_I32,
                                                             true};
+  WasmSym::callCtors = symtab->addSyntheticFunction(
+      "__wasm_call_ctors", WASM_SYMBOL_VISIBILITY_HIDDEN,
+      make<SyntheticFunction>(nullSignature, "__wasm_call_ctors"));
 
-  if (!config->relocatable) {
-    WasmSym::callCtors = symtab->addSyntheticFunction(
-        "__wasm_call_ctors", WASM_SYMBOL_VISIBILITY_HIDDEN,
-        make<SyntheticFunction>(nullSignature, "__wasm_call_ctors"));
-
-    if (config->passiveSegments) {
-      // Passive segments are used to avoid memory being reinitialized on each
-      // thread's instantiation. These passive segments are initialized and
-      // dropped in __wasm_init_memory, which is the first function called from
-      // __wasm_call_ctors.
-      WasmSym::initMemory = symtab->addSyntheticFunction(
-          "__wasm_init_memory", WASM_SYMBOL_VISIBILITY_HIDDEN,
-          make<SyntheticFunction>(nullSignature, "__wasm_init_memory"));
-    }
-
-    if (config->isPic) {
-      // For PIC code we create a synthetic function __wasm_apply_relocs which
-      // is called from __wasm_call_ctors before the user-level constructors.
-      WasmSym::applyRelocs = symtab->addSyntheticFunction(
-          "__wasm_apply_relocs", WASM_SYMBOL_VISIBILITY_HIDDEN,
-          make<SyntheticFunction>(nullSignature, "__wasm_apply_relocs"));
-    }
+  if (config->isPic) {
+    // For PIC code we create a synthetic function __wasm_apply_relocs which
+    // is called from __wasm_call_ctors before the user-level constructors.
+    WasmSym::applyRelocs = symtab->addSyntheticFunction(
+        "__wasm_apply_relocs", WASM_SYMBOL_VISIBILITY_HIDDEN,
+        make<SyntheticFunction>(nullSignature, "__wasm_apply_relocs"));
   }
 
-  if (!config->shared)
-    WasmSym::dataEnd = symtab->addOptionalDataSymbol("__data_end");
 
   if (config->isPic) {
     WasmSym::stackPointer =
@@ -509,34 +497,45 @@ static void createSyntheticSymbols() {
     WasmSym::memoryBase->markLive();
     WasmSym::tableBase->markLive();
   } else {
-    llvm::wasm::WasmGlobal global;
-    global.Type = {WASM_TYPE_I32, true};
-    global.InitExpr.Value.Int32 = 0;
-    global.InitExpr.Opcode = WASM_OPCODE_I32_CONST;
-    global.SymbolName = "__stack_pointer";
-    auto *stackPointer = make<InputGlobal>(global, nullptr);
-    stackPointer->live = true;
     // For non-PIC code
-    // TODO(sbc): Remove WASM_SYMBOL_VISIBILITY_HIDDEN when the mutable global
-    // spec proposal is implemented in all major browsers.
-    // See: https://github.com/WebAssembly/mutable-global
-    WasmSym::stackPointer = symtab->addSyntheticGlobal(
-        "__stack_pointer", WASM_SYMBOL_VISIBILITY_HIDDEN, stackPointer);
-    WasmSym::globalBase = symtab->addOptionalDataSymbol("__global_base");
-    WasmSym::heapBase = symtab->addOptionalDataSymbol("__heap_base");
+    WasmSym::stackPointer = createGlobalVariable("__stack_pointer", true, 0);
+    WasmSym::stackPointer->markLive();
   }
 
   if (config->sharedMemory && !config->shared) {
-    WasmSym::tlsBase = createGlobalVariable("__tls_base", true);
-    WasmSym::tlsSize = createGlobalVariable("__tls_size", false);
-    WasmSym::tlsAlign = createGlobalVariable("__tls_align", false);
+    // Passive segments are used to avoid memory being reinitialized on each
+    // thread's instantiation. These passive segments are initialized and
+    // dropped in __wasm_init_memory, which is registered as the start function
+    WasmSym::initMemory = symtab->addSyntheticFunction(
+        "__wasm_init_memory", WASM_SYMBOL_VISIBILITY_HIDDEN,
+        make<SyntheticFunction>(nullSignature, "__wasm_init_memory"));
+    WasmSym::initMemoryFlag = symtab->addSyntheticDataSymbol(
+        "__wasm_init_memory_flag", WASM_SYMBOL_VISIBILITY_HIDDEN);
+    assert(WasmSym::initMemoryFlag);
+    WasmSym::tlsBase = createGlobalVariable("__tls_base", true, 0);
+    WasmSym::tlsSize = createGlobalVariable("__tls_size", false, 0);
+    WasmSym::tlsAlign = createGlobalVariable("__tls_align", false, 1);
     WasmSym::initTLS = symtab->addSyntheticFunction(
         "__wasm_init_tls", WASM_SYMBOL_VISIBILITY_HIDDEN,
         make<SyntheticFunction>(i32ArgSignature, "__wasm_init_tls"));
   }
+}
 
-  WasmSym::dsoHandle = symtab->addSyntheticDataSymbol(
-      "__dso_handle", WASM_SYMBOL_VISIBILITY_HIDDEN);
+static void createOptionalSymbols() {
+  if (config->relocatable)
+    return;
+
+  WasmSym::dsoHandle = symtab->addOptionalDataSymbol("__dso_handle");
+
+  if (!config->shared)
+    WasmSym::dataEnd = symtab->addOptionalDataSymbol("__data_end");
+
+  if (!config->isPic) {
+    WasmSym::globalBase = symtab->addOptionalDataSymbol("__global_base");
+    WasmSym::heapBase = symtab->addOptionalDataSymbol("__heap_base");
+    WasmSym::definedMemoryBase = symtab->addOptionalDataSymbol("__memory_base");
+    WasmSym::definedTableBase = symtab->addOptionalDataSymbol("__table_base");
+  }
 }
 
 // Reconstructs command line arguments so that so that you can re-run
@@ -582,7 +581,8 @@ struct WrappedSymbol {
 };
 
 static Symbol *addUndefined(StringRef name) {
-  return symtab->addUndefinedFunction(name, "", "", 0, nullptr, nullptr, false);
+  return symtab->addUndefinedFunction(name, "", "", WASM_SYMBOL_UNDEFINED,
+                                      nullptr, nullptr, false);
 }
 
 // Handles -wrap option.
@@ -651,7 +651,7 @@ void LinkerDriver::link(ArrayRef<const char *> argsArr) {
 
   // Handle --help
   if (args.hasArg(OPT_help)) {
-    parser.PrintHelp(outs(),
+    parser.PrintHelp(lld::outs(),
                      (std::string(argsArr[0]) + " [options] file...").c_str(),
                      "LLVM Linker", false);
     return;
@@ -659,7 +659,7 @@ void LinkerDriver::link(ArrayRef<const char *> argsArr) {
 
   // Handle --version
   if (args.hasArg(OPT_version) || args.hasArg(OPT_v)) {
-    outs() << getLLDVersion() << "\n";
+    lld::outs() << getLLDVersion() << "\n";
     return;
   }
 
@@ -705,8 +705,7 @@ void LinkerDriver::link(ArrayRef<const char *> argsArr) {
   for (auto *arg : args.filtered(OPT_export))
     config->exportedSymbols.insert(arg->getValue());
 
-  if (!config->relocatable)
-    createSyntheticSymbols();
+  createSyntheticSymbols();
 
   createFiles(args);
   if (errorCount())
@@ -737,6 +736,8 @@ void LinkerDriver::link(ArrayRef<const char *> argsArr) {
       error("entry symbol not defined (pass --no-entry to supress): " +
             config->entry);
   }
+
+  createOptionalSymbols();
 
   if (errorCount())
     return;
@@ -787,3 +788,6 @@ void LinkerDriver::link(ArrayRef<const char *> argsArr) {
   // Write the result to the file.
   writeResult();
 }
+
+} // namespace wasm
+} // namespace lld

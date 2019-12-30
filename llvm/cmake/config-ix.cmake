@@ -30,6 +30,12 @@ if (UNIX AND ${CMAKE_SYSTEM_NAME} MATCHES "AIX")
           list(APPEND CMAKE_REQUIRED_DEFINITIONS "-D_LARGE_FILE_API")
 endif()
 
+# Do checks with _FILE_OFFSET_BITS=64 on Solaris, because we will build
+# with those too.
+if (UNIX AND ${CMAKE_SYSTEM_NAME} MATCHES "SunOS")
+          list(APPEND CMAKE_REQUIRED_DEFINITIONS "-D_FILE_OFFSET_BITS=64")
+endif()
+
 # include checks
 check_include_file(dlfcn.h HAVE_DLFCN_H)
 check_include_file(errno.h HAVE_ERRNO_H)
@@ -160,7 +166,6 @@ if(NOT LLVM_USE_SANITIZER MATCHES "Memory.*")
         else()
           include_directories(${LIBXML2_INCLUDE_DIR})
         endif()
-        set(LIBXML2_LIBS "xml2")
       endif()
     endif()
   endif()
@@ -468,7 +473,8 @@ if( MSVC )
   set(strdup "_strdup")
 
   # See if the DIA SDK is available and usable.
-  set(MSVC_DIA_SDK_DIR "$ENV{VSINSTALLDIR}DIA SDK")
+  set(MSVC_DIA_SDK_DIR "$ENV{VSINSTALLDIR}DIA SDK" CACHE PATH
+      "Path to the DIA SDK")
 
   # Due to a bug in MSVC 2013's installation software, it is possible
   # for MSVC 2013 to write the DIA SDK into the Visual Studio 2012

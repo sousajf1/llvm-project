@@ -30,6 +30,7 @@
 #include "llvm/Support/JSON.h"
 #include "llvm/Support/raw_ostream.h"
 #include <bitset>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -422,6 +423,10 @@ struct ClientCapabilities {
   /// The content format that should be used for Hover requests.
   /// textDocument.hover.contentEncoding
   MarkupKind HoverContentFormat = MarkupKind::PlainText;
+
+  /// The client supports testing for validity of rename operations
+  /// before execution.
+  bool RenamePrepareSupport = false;
 };
 bool fromJSON(const llvm::json::Value &, ClientCapabilities &);
 
@@ -869,6 +874,12 @@ struct ApplyWorkspaceEditParams {
 };
 llvm::json::Value toJSON(const ApplyWorkspaceEditParams &);
 
+struct ApplyWorkspaceEditResponse {
+  bool applied = true;
+  llvm::Optional<std::string> failureReason;
+};
+bool fromJSON(const llvm::json::Value &, ApplyWorkspaceEditResponse &);
+
 struct TextDocumentPositionParams {
   /// The text document.
   TextDocumentIdentifier textDocument;
@@ -1195,9 +1206,14 @@ llvm::json::Value toJSON(const FileStatus &FStatus);
 /// specific line of the text document.
 struct SemanticHighlightingInformation {
   /// The line these highlightings belong to.
-  int Line;
+  int Line = 0;
   /// The base64 encoded string of highlighting tokens.
   std::string Tokens;
+  /// Is the line in an inactive preprocessor branch?
+  /// This is a clangd extension.
+  /// An inactive line can still contain highlighting tokens as well;
+  /// clients should combine line style and token style if possible.
+  bool IsInactive = false;
 };
 bool operator==(const SemanticHighlightingInformation &Lhs,
                 const SemanticHighlightingInformation &Rhs);
@@ -1211,6 +1227,28 @@ struct SemanticHighlightingParams {
   std::vector<SemanticHighlightingInformation> Lines;
 };
 llvm::json::Value toJSON(const SemanticHighlightingParams &Highlighting);
+
+struct SelectionRangeParams {
+  /// The text document.
+  TextDocumentIdentifier textDocument;
+
+  /// The positions inside the text document.
+  std::vector<Position> positions;
+};
+bool fromJSON(const llvm::json::Value &, SelectionRangeParams &);
+
+struct SelectionRange {
+  /**
+   * The range of this selection range.
+   */
+  Range range;
+  /**
+   * The parent selection range containing this range. Therefore `parent.range`
+   * must contain `this.range`.
+   */
+  std::unique_ptr<SelectionRange> parent;
+};
+llvm::json::Value toJSON(const SelectionRange &);
 
 } // namespace clangd
 } // namespace clang

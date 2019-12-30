@@ -68,6 +68,16 @@ SourceLocation findNextTerminator(SourceLocation Start, const SourceManager &SM,
   return findNextAnyTokenKind(Start, SM, LangOpts, tok::comma, tok::semi);
 }
 
+Optional<Token> findNextTokenSkippingComments(SourceLocation Start,
+                                              const SourceManager &SM,
+                                              const LangOptions &LangOpts) {
+  Optional<Token> CurrentToken;
+  do {
+    CurrentToken = Lexer::findNextToken(Start, SM, LangOpts);
+  } while (CurrentToken && CurrentToken->is(tok::comment));
+  return CurrentToken;
+}
+
 bool rangeContainsExpansionsOrDirectives(SourceRange Range,
                                          const SourceManager &SM,
                                          const LangOptions &LangOpts) {
@@ -92,15 +102,20 @@ bool rangeContainsExpansionsOrDirectives(SourceRange Range,
   return false;
 }
 
-llvm::Optional<Token> getConstQualifyingToken(CharSourceRange Range,
-                                              const ASTContext &Context,
-                                              const SourceManager &SM) {
+llvm::Optional<Token> getQualifyingToken(tok::TokenKind TK,
+                                         CharSourceRange Range,
+                                         const ASTContext &Context,
+                                         const SourceManager &SM) {
+  assert((TK == tok::kw_const || TK == tok::kw_volatile ||
+          TK == tok::kw_restrict) &&
+         "TK is not a qualifier keyword");
   std::pair<FileID, unsigned> LocInfo = SM.getDecomposedLoc(Range.getBegin());
   StringRef File = SM.getBufferData(LocInfo.first);
   Lexer RawLexer(SM.getLocForStartOfFile(LocInfo.first), Context.getLangOpts(),
                  File.begin(), File.data() + LocInfo.second, File.end());
-  llvm::Optional<Token> FirstConstTok;
-  Token LastTokInRange;
+  llvm::Optional<Token> LastMatchBeforeTemplate;
+  llvm::Optional<Token> LastMatchAfterTemplate;
+  bool SawTemplate = false;
   Token Tok;
   while (!RawLexer.LexFromRawLexer(Tok) &&
          Range.getEnd() != Tok.getLocation() &&
@@ -111,13 +126,19 @@ llvm::Optional<Token> getConstQualifyingToken(CharSourceRange Range,
       Tok.setIdentifierInfo(&Info);
       Tok.setKind(Info.getTokenID());
     }
-    if (Tok.is(tok::kw_const) && !FirstConstTok)
-      FirstConstTok = Tok;
-    LastTokInRange = Tok;
+    if (Tok.is(tok::less))
+      SawTemplate = true;
+    else if (Tok.isOneOf(tok::greater, tok::greatergreater))
+      LastMatchAfterTemplate = None;
+    else if (Tok.is(TK)) {
+      if (SawTemplate)
+        LastMatchAfterTemplate = Tok;
+      else
+        LastMatchBeforeTemplate = Tok;
+    }
   }
-  // If the last token in the range is a `const`, then it const qualifies the
-  // type.  Otherwise, the first `const` token, if any, is the qualifier.
-  return LastTokInRange.is(tok::kw_const) ? LastTokInRange : FirstConstTok;
+  return LastMatchAfterTemplate != None ? LastMatchAfterTemplate
+                                        : LastMatchBeforeTemplate;
 }
 } // namespace lexer
 } // namespace utils

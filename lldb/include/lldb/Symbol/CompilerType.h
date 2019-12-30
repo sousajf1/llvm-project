@@ -13,7 +13,6 @@
 #include <string>
 #include <vector>
 
-#include "lldb/Core/ClangForward.h"
 #include "lldb/lldb-private.h"
 #include "llvm/ADT/APSInt.h"
 
@@ -32,7 +31,6 @@ class CompilerType {
 public:
   // Constructors and Destructors
   CompilerType(TypeSystem *type_system, lldb::opaque_compiler_type_t type);
-  CompilerType(clang::ASTContext *ast_context, clang::QualType qual_type);
 
   CompilerType(const CompilerType &rhs)
       : m_type(rhs.m_type), m_type_system(rhs.m_type_system) {}
@@ -110,11 +108,6 @@ public:
 
   bool IsPolymorphicClass() const;
 
-  bool
-  IsPossibleCPlusPlusDynamicType(CompilerType *target_type = nullptr) const {
-    return IsPossibleDynamicType(target_type, true, false);
-  }
-
   bool IsPossibleDynamicType(CompilerType *target_type, // Can pass nullptr
                              bool check_cplusplus, bool check_objc) const;
 
@@ -168,8 +161,6 @@ public:
 
   void SetCompilerType(TypeSystem *type_system,
                        lldb::opaque_compiler_type_t type);
-
-  void SetCompilerType(clang::ASTContext *ast, clang::QualType qual_type);
 
   unsigned GetTypeQualifiers() const;
 
@@ -227,6 +218,11 @@ public:
   // an invalid type.
   CompilerType AddVolatileModifier() const;
 
+  // Return a new CompilerType that is the atomic type of this type. If this
+  // type is not valid or the type system doesn't support atomic types, this
+  // returns an invalid type.
+  CompilerType GetAtomicType() const;
+
   // Return a new CompilerType adds a restrict modifier to this type if this
   // type is valid and the type system supports restrict modifiers, else return
   // an invalid type.
@@ -257,7 +253,7 @@ public:
 
   lldb::Format GetFormat() const;
 
-  size_t GetTypeBitAlign() const;
+  llvm::Optional<size_t> GetTypeBitAlign(ExecutionContextScope *exe_scope) const;
 
   uint32_t GetNumChildren(bool omit_empty_base_classes,
                           const ExecutionContext *exe_ctx) const;
@@ -336,13 +332,6 @@ public:
 
   bool IsMeaninglessWithoutDynamicResolution() const;
 
-  // Pointers & References
-
-  // Converts "s" to a floating point value and place resulting floating point
-  // bytes in the "dst" buffer.
-  size_t ConvertStringToFloatValue(const char *s, uint8_t *dst,
-                                   size_t dst_size) const;
-
   // Dumping types
 
 #ifndef NDEBUG
@@ -372,14 +361,6 @@ public:
 
   bool GetValueAsScalar(const DataExtractor &data, lldb::offset_t data_offset,
                         size_t data_byte_size, Scalar &value) const;
-
-  bool SetValueFromScalar(const Scalar &value, Stream &strm);
-
-  bool ReadFromMemory(ExecutionContext *exe_ctx, lldb::addr_t addr,
-                      AddressType address_type, DataExtractor &data);
-
-  bool WriteToMemory(ExecutionContext *exe_ctx, lldb::addr_t addr,
-                     AddressType address_type, StreamString &new_value);
 
   void Clear() {
     m_type = nullptr;
