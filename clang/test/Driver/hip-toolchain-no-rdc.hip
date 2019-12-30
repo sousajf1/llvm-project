@@ -20,13 +20,13 @@
 // CHECK-SAME: "-aux-triple" "x86_64-unknown-linux-gnu"
 // CHECK-SAME: "-emit-llvm-bc"
 // CHECK-SAME: {{.*}} "-main-file-name" "a.cu" {{.*}} "-target-cpu" "gfx803"
-// CHECK-SAME: "-fcuda-is-device" "-fvisibility" "hidden"
+// CHECK-SAME: "-fcuda-is-device" "-fcuda-allow-variadic-functions" "-fvisibility" "hidden"
 // CHECK-SAME: "-fapply-global-visibility-to-externs"
+// CHECK-SAME: "{{.*}}lib1.bc" "{{.*}}lib2.bc"
 // CHECK-SAME: {{.*}} "-o" [[A_BC_803:".*bc"]] "-x" "hip"
 // CHECK-SAME: {{.*}} [[A_SRC:".*a.cu"]]
 
 // CHECK: [[LLVM_LINK:"*.llvm-link"]] [[A_BC_803]]
-// CHECK-SAME: "{{.*}}lib1.bc" "{{.*}}lib2.bc"
 // CHECK-SAME: "-o" [[LINKED_BC_DEV_A_803:".*-gfx803-linked-.*bc"]]
 
 // CHECK: [[OPT:".*opt"]] [[LINKED_BC_DEV_A_803]] "-mtriple=amdgcn-amd-amdhsa"
@@ -34,10 +34,11 @@
 // CHECK-SAME: "-o" [[OPT_BC_DEV_A_803:".*-gfx803-optimized.*bc"]]
 
 // CHECK: [[LLC: ".*llc"]] [[OPT_BC_DEV_A_803]] "-mtriple=amdgcn-amd-amdhsa"
+// CHECK-SAME: "-mcpu=gfx803"
 // CHECK-SAME: "-filetype=obj"
-// CHECK-SAME: "-mcpu=gfx803" "-o" [[OBJ_DEV_A_803:".*-gfx803-.*o"]]
+// CHECK-SAME: "-o" [[OBJ_DEV_A_803:".*-gfx803-.*o"]]
 
-// CHECK: [[LLD: ".*lld"]] "-flavor" "gnu" "--no-undefined" "-shared"
+// CHECK: [[LLD: ".*lld"]] "-flavor" "gnu" "-shared"
 // CHECK-SAME: "-o" "[[IMG_DEV_A_803:.*out]]" [[OBJ_DEV_A_803]]
 
 //
@@ -48,13 +49,13 @@
 // CHECK-SAME: "-aux-triple" "x86_64-unknown-linux-gnu"
 // CHECK-SAME: "-emit-llvm-bc"
 // CHECK-SAME: {{.*}} "-main-file-name" "a.cu" {{.*}} "-target-cpu" "gfx900"
-// CHECK-SAME: "-fcuda-is-device" "-fvisibility" "hidden"
+// CHECK-SAME: "-fcuda-is-device" "-fcuda-allow-variadic-functions" "-fvisibility" "hidden"
 // CHECK-SAME: "-fapply-global-visibility-to-externs"
+// CHECK-SAME: "{{.*}}lib1.bc" "{{.*}}lib2.bc"
 // CHECK-SAME: {{.*}} "-o" [[A_BC_900:".*bc"]] "-x" "hip"
 // CHECK-SAME: {{.*}} [[A_SRC]]
 
 // CHECK: [[LLVM_LINK:"*.llvm-link"]] [[A_BC_900]]
-// CHECK-SAME: "{{.*}}lib1.bc" "{{.*}}lib2.bc"
 // CHECK-SAME: "-o" [[LINKED_BC_DEV_A_900:".*-gfx900-linked-.*bc"]]
 
 // CHECK: [[OPT:".*opt"]] [[LINKED_BC_DEV_A_900]] "-mtriple=amdgcn-amd-amdhsa"
@@ -62,10 +63,11 @@
 // CHECK-SAME: "-o" [[OPT_BC_DEV_A_900:".*-gfx900-optimized.*bc"]]
 
 // CHECK: [[LLC: ".*llc"]] [[OPT_BC_DEV_A_900]] "-mtriple=amdgcn-amd-amdhsa"
+// CHECK-SAME: "-mcpu=gfx900"
 // CHECK-SAME: "-filetype=obj"
-// CHECK-SAME: "-mcpu=gfx900" "-o" [[OBJ_DEV_A_900:".*-gfx900-.*o"]]
+// CHECK-SAME: "-o" [[OBJ_DEV_A_900:".*-gfx900-.*o"]]
 
-// CHECK: [[LLD: ".*lld"]] "-flavor" "gnu" "--no-undefined" "-shared"
+// CHECK: [[LLD: ".*lld"]] "-flavor" "gnu" "-shared"
 // CHECK-SAME: "-o" "[[IMG_DEV_A_900:.*out]]" [[OBJ_DEV_A_900]]
 
 //
@@ -80,9 +82,9 @@
 // CHECK-SAME: "-aux-triple" "amdgcn-amd-amdhsa"
 // CHECK-SAME: "-emit-obj"
 // CHECK-SAME: {{.*}} "-main-file-name" "a.cu"
+// CHECK-SAME: {{.*}} "-fcuda-include-gpubinary" "[[BUNDLE_A]]"
 // CHECK-SAME: {{.*}} "-o" [[A_OBJ_HOST:".*o"]] "-x" "hip"
 // CHECK-SAME: {{.*}} [[A_SRC]]
-// CHECK-SAME: {{.*}} "-fcuda-include-gpubinary" "[[BUNDLE_A]]"
 
 //
 // Compile device code in b.hip to code object for gfx803.
@@ -92,13 +94,13 @@
 // CHECK-SAME: "-aux-triple" "x86_64-unknown-linux-gnu"
 // CHECK-SAME: "-emit-llvm-bc"
 // CHECK-SAME: {{.*}} "-main-file-name" "b.hip" {{.*}} "-target-cpu" "gfx803"
-// CHECK-SAME: "-fcuda-is-device" "-fvisibility" "hidden"
+// CHECK-SAME: "-fcuda-is-device" "-fcuda-allow-variadic-functions" "-fvisibility" "hidden"
 // CHECK-SAME: "-fapply-global-visibility-to-externs"
+// CHECK-SAME: "{{.*}}lib1.bc" "{{.*}}lib2.bc"
 // CHECK-SAME: {{.*}} "-o" [[B_BC_803:".*bc"]] "-x" "hip"
 // CHECK-SAME: {{.*}} [[B_SRC:".*b.hip"]]
 
 // CHECK: [[LLVM_LINK:"*.llvm-link"]] [[B_BC_803]]
-// CHECK-SAME: "{{.*}}lib1.bc" "{{.*}}lib2.bc"
 // CHECK-SAME: "-o" [[LINKED_BC_DEV_B_803:".*-gfx803-linked-.*bc"]]
 
 // CHECK: [[OPT:".*opt"]] [[LINKED_BC_DEV_B_803]] "-mtriple=amdgcn-amd-amdhsa"
@@ -106,10 +108,11 @@
 // CHECK-SAME: "-o" [[OPT_BC_DEV_B_803:".*-gfx803-optimized.*bc"]]
 
 // CHECK: [[LLC: ".*llc"]] [[OPT_BC_DEV_B_803]] "-mtriple=amdgcn-amd-amdhsa"
+// CHECK-SAME: "-mcpu=gfx803"
 // CHECK-SAME: "-filetype=obj"
-// CHECK-SAME: "-mcpu=gfx803" "-o" [[OBJ_DEV_B_803:".*-gfx803-.*o"]]
+// CHECK-SAME: "-o" [[OBJ_DEV_B_803:".*-gfx803-.*o"]]
 
-// CHECK: [[LLD: ".*lld"]] "-flavor" "gnu" "--no-undefined" "-shared"
+// CHECK: [[LLD: ".*lld"]] "-flavor" "gnu" "-shared"
 // CHECK-SAME: "-o" "[[IMG_DEV_B_803:.*out]]" [[OBJ_DEV_B_803]]
 
 //
@@ -120,13 +123,13 @@
 // CHECK-SAME: "-aux-triple" "x86_64-unknown-linux-gnu"
 // CHECK-SAME: "-emit-llvm-bc"
 // CHECK-SAME: {{.*}} "-main-file-name" "b.hip" {{.*}} "-target-cpu" "gfx900"
-// CHECK-SAME: "-fcuda-is-device" "-fvisibility" "hidden"
+// CHECK-SAME: "-fcuda-is-device" "-fcuda-allow-variadic-functions" "-fvisibility" "hidden"
 // CHECK-SAME: "-fapply-global-visibility-to-externs"
+// CHECK-SAME: "{{.*}}lib1.bc" "{{.*}}lib2.bc"
 // CHECK-SAME: {{.*}} "-o" [[B_BC_900:".*bc"]] "-x" "hip"
 // CHECK-SAME: {{.*}} [[B_SRC]]
 
 // CHECK: [[LLVM_LINK:"*.llvm-link"]] [[B_BC_900]]
-// CHECK-SAME: "{{.*}}lib1.bc" "{{.*}}lib2.bc"
 // CHECK-SAME: "-o" [[LINKED_BC_DEV_B_900:".*-gfx900-linked-.*bc"]]
 
 // CHECK: [[OPT:".*opt"]] [[LINKED_BC_DEV_B_900]] "-mtriple=amdgcn-amd-amdhsa"
@@ -134,10 +137,11 @@
 // CHECK-SAME: "-o" [[OPT_BC_DEV_B_900:".*-gfx900-optimized.*bc"]]
 
 // CHECK: [[LLC: ".*llc"]] [[OPT_BC_DEV_B_900]] "-mtriple=amdgcn-amd-amdhsa"
+// CHECk-SAME: "-mcpu=gfx900"
 // CHECK-SAME: "-filetype=obj"
-// CHECK-SAME: "-mcpu=gfx900" "-o" [[OBJ_DEV_B_900:".*-gfx900-.*o"]]
+// CHECK-SAME: "-o" [[OBJ_DEV_B_900:".*-gfx900-.*o"]]
 
-// CHECK: [[LLD: ".*lld"]] "-flavor" "gnu" "--no-undefined" "-shared"
+// CHECK: [[LLD: ".*lld"]] "-flavor" "gnu" "-shared"
 // CHECK-SAME: "-o" "[[IMG_DEV_B_900:.*out]]" [[OBJ_DEV_B_900]]
 
 //
@@ -152,9 +156,9 @@
 // CHECK-SAME: "-aux-triple" "amdgcn-amd-amdhsa"
 // CHECK-SAME: "-emit-obj"
 // CHECK-SAME: {{.*}} "-main-file-name" "b.hip"
+// CHECK-SAME: {{.*}} "-fcuda-include-gpubinary" "[[BUNDLE_A]]"
 // CHECK-SAME: {{.*}} "-o" [[B_OBJ_HOST:".*o"]] "-x" "hip"
 // CHECK-SAME: {{.*}} [[B_SRC]]
-// CHECK-SAME: {{.*}} "-fcuda-include-gpubinary" "[[BUNDLE_A]]"
 
 //
 // Link host objects.

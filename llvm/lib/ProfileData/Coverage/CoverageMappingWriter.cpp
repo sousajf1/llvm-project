@@ -24,6 +24,16 @@
 using namespace llvm;
 using namespace coverage;
 
+CoverageFilenamesSectionWriter::CoverageFilenamesSectionWriter(
+    ArrayRef<StringRef> Filenames)
+    : Filenames(Filenames) {
+#ifndef NDEBUG
+  StringSet<> NameSet;
+  for (StringRef Name : Filenames)
+    assert(NameSet.insert(Name).second && "Duplicate filename");
+#endif
+}
+
 void CoverageFilenamesSectionWriter::write(raw_ostream &OS) {
   encodeULEB128(Filenames.size(), OS);
   for (const auto &Filename : Filenames) {
@@ -124,15 +134,14 @@ void CoverageMappingWriter::write(raw_ostream &OS) {
 
   // Sort the regions in an ascending order by the file id and the starting
   // location. Sort by region kinds to ensure stable order for tests.
-  std::stable_sort(
-      MappingRegions.begin(), MappingRegions.end(),
-      [](const CounterMappingRegion &LHS, const CounterMappingRegion &RHS) {
-        if (LHS.FileID != RHS.FileID)
-          return LHS.FileID < RHS.FileID;
-        if (LHS.startLoc() != RHS.startLoc())
-          return LHS.startLoc() < RHS.startLoc();
-        return LHS.Kind < RHS.Kind;
-      });
+  llvm::stable_sort(MappingRegions, [](const CounterMappingRegion &LHS,
+                                       const CounterMappingRegion &RHS) {
+    if (LHS.FileID != RHS.FileID)
+      return LHS.FileID < RHS.FileID;
+    if (LHS.startLoc() != RHS.startLoc())
+      return LHS.startLoc() < RHS.startLoc();
+    return LHS.Kind < RHS.Kind;
+  });
 
   // Write out the fileid -> filename mapping.
   encodeULEB128(VirtualFileMapping.size(), OS);

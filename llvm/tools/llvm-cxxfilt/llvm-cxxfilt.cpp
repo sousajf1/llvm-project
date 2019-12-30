@@ -7,8 +7,10 @@
 //===----------------------------------------------------------------------===//
 
 #include "llvm/ADT/StringExtras.h"
+#include "llvm/ADT/Triple.h"
 #include "llvm/Demangle/Demangle.h"
 #include "llvm/Support/CommandLine.h"
+#include "llvm/Support/Host.h"
 #include "llvm/Support/InitLLVM.h"
 #include "llvm/Support/raw_ostream.h"
 #include <cstdlib>
@@ -41,6 +43,13 @@ static cl::opt<bool> StripUnderscore("strip-underscore",
 static cl::alias StripUnderscoreShort("_",
                                       cl::desc("alias for --strip-underscore"),
                                       cl::aliasopt(StripUnderscore));
+static cl::opt<bool>
+    NoStripUnderscore("no-strip-underscore",
+                      cl::desc("do not strip the leading underscore"),
+                      cl::init(false));
+static cl::alias
+    NoStripUnderscoreShort("n", cl::desc("alias for --no-strip-underscore"),
+                           cl::aliasopt(NoStripUnderscore));
 
 static cl::opt<bool>
     Types("types",
@@ -52,28 +61,43 @@ static cl::alias TypesShort("t", cl::desc("alias for --types"),
 static cl::list<std::string>
 Decorated(cl::Positional, cl::desc("<mangled>"), cl::ZeroOrMore);
 
-static std::string demangle(llvm::raw_ostream &OS, const std::string &Mangled) {
-  int Status;
+static cl::extrahelp
+    HelpResponse("\nPass @FILE as argument to read options from FILE.\n");
 
-  const char *Decorated = Mangled.c_str();
+static bool shouldStripUnderscore() {
   if (StripUnderscore)
-    if (Decorated[0] == '_')
-      ++Decorated;
-  size_t DecoratedLength = strlen(Decorated);
+    return true;
+  if (NoStripUnderscore)
+    return false;
+  // If none of them are set, use the default value for platform.
+  // macho has symbols prefix with "_" so strip by default.
+  return Triple(sys::getProcessTriple()).isOSBinFormatMachO();
+}
+
+static std::string demangle(const std::string &Mangled) {
+  int Status;
+  std::string Prefix;
+
+  const char *DecoratedStr = Mangled.c_str();
+  if (shouldStripUnderscore())
+    if (DecoratedStr[0] == '_')
+      ++DecoratedStr;
+  size_t DecoratedLength = strlen(DecoratedStr);
 
   char *Undecorated = nullptr;
 
-  if (Types || ((DecoratedLength >= 2 && strncmp(Decorated, "_Z", 2) == 0) ||
-                (DecoratedLength >= 4 && strncmp(Decorated, "___Z", 4) == 0)))
-    Undecorated = itaniumDemangle(Decorated, nullptr, nullptr, &Status);
+  if (Types ||
+      ((DecoratedLength >= 2 && strncmp(DecoratedStr, "_Z", 2) == 0) ||
+       (DecoratedLength >= 4 && strncmp(DecoratedStr, "___Z", 4) == 0)))
+    Undecorated = itaniumDemangle(DecoratedStr, nullptr, nullptr, &Status);
 
   if (!Undecorated &&
-      (DecoratedLength > 6 && strncmp(Decorated, "__imp_", 6) == 0)) {
-    OS << "import thunk for ";
-    Undecorated = itaniumDemangle(Decorated + 6, nullptr, nullptr, &Status);
+      (DecoratedLength > 6 && strncmp(DecoratedStr, "__imp_", 6) == 0)) {
+    Prefix = "import thunk for ";
+    Undecorated = itaniumDemangle(DecoratedStr + 6, nullptr, nullptr, &Status);
   }
 
-  std::string Result(Undecorated ? Undecorated : Mangled);
+  std::string Result(Undecorated ? Prefix + Undecorated : Mangled);
   free(Undecorated);
   return Result;
 }
@@ -121,9 +145,9 @@ static void demangleLine(llvm::raw_ostream &OS, StringRef Mangled, bool Split) {
     SmallVector<std::pair<StringRef, StringRef>, 16> Words;
     SplitStringDelims(Mangled, Words, IsLegalItaniumChar);
     for (const auto &Word : Words)
-      Result += demangle(OS, Word.first) + Word.second.str();
+      Result += ::demangle(Word.first) + Word.second.str();
   } else
-    Result = demangle(OS, Mangled);
+    Result = ::demangle(Mangled);
   OS << Result << '\n';
   OS.flush();
 }

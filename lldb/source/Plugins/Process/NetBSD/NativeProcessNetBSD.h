@@ -9,12 +9,12 @@
 #ifndef liblldb_NativeProcessNetBSD_H_
 #define liblldb_NativeProcessNetBSD_H_
 
+#include "Plugins/Process/POSIX/NativeProcessELF.h"
 #include "lldb/Target/MemoryRegionInfo.h"
 #include "lldb/Utility/ArchSpec.h"
 #include "lldb/Utility/FileSpec.h"
 
 #include "NativeThreadNetBSD.h"
-#include "lldb/Host/common/NativeProcessProtocol.h"
 
 namespace lldb_private {
 namespace process_netbsd {
@@ -25,7 +25,7 @@ namespace process_netbsd {
 /// for debugging.
 ///
 /// Changes in the inferior process state are broadcasted.
-class NativeProcessNetBSD : public NativeProcessProtocol {
+class NativeProcessNetBSD : public NativeProcessELF {
 public:
   class Factory : public NativeProcessProtocol::Factory {
   public:
@@ -38,9 +38,7 @@ public:
            MainLoop &mainloop) const override;
   };
 
-  // ---------------------------------------------------------------------
   // NativeProcessProtocol Interface
-  // ---------------------------------------------------------------------
   Status Resume(const ResumeActionList &resume_actions) override;
 
   Status Halt() override;
@@ -48,6 +46,8 @@ public:
   Status Detach() override;
 
   Status Signal(int signo) override;
+
+  Status Interrupt() override;
 
   Status Kill() override;
 
@@ -83,9 +83,7 @@ public:
   llvm::ErrorOr<std::unique_ptr<llvm::MemoryBuffer>>
   GetAuxvData() const override;
 
-  // ---------------------------------------------------------------------
   // Interface used by NativeRegisterContext-derived classes.
-  // ---------------------------------------------------------------------
   static Status PtraceWrapper(int req, lldb::pid_t pid, void *addr = nullptr,
                               int data = 0, int *result = nullptr);
 
@@ -95,15 +93,14 @@ private:
   LazyBool m_supports_mem_region = eLazyBoolCalculate;
   std::vector<std::pair<MemoryRegionInfo, FileSpec>> m_mem_region_cache;
 
-  // ---------------------------------------------------------------------
   // Private Instance Methods
-  // ---------------------------------------------------------------------
   NativeProcessNetBSD(::pid_t pid, int terminal_fd, NativeDelegate &delegate,
                       const ArchSpec &arch, MainLoop &mainloop);
 
   bool HasThreadNoLock(lldb::tid_t thread_id);
 
   NativeThreadNetBSD &AddThread(lldb::tid_t thread_id);
+  void RemoveThread(lldb::tid_t thread_id);
 
   void MonitorCallback(lldb::pid_t pid, int signal);
   void MonitorExited(lldb::pid_t pid, WaitStatus status);

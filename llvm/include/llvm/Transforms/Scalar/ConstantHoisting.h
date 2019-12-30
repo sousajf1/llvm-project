@@ -14,7 +14,7 @@
 // cost. If the constant can be folded into the instruction (the cost is
 // TCC_Free) or the cost is just a simple operation (TCC_BASIC), then we don't
 // consider it expensive and leave it alone. This is the default behavior and
-// the default implementation of getIntImmCost will always return TCC_Free.
+// the default implementation of getIntImmCostInst will always return TCC_Free.
 //
 // If the cost is more than TCC_BASIC, then the integer constant can't be folded
 // into the instruction and it might be beneficial to hoist the constant.
@@ -37,7 +37,9 @@
 #define LLVM_TRANSFORMS_SCALAR_CONSTANTHOISTING_H
 
 #include "llvm/ADT/DenseMap.h"
+#include "llvm/ADT/MapVector.h"
 #include "llvm/ADT/PointerUnion.h"
+#include "llvm/ADT/SetVector.h"
 #include "llvm/ADT/SmallPtrSet.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/IR/PassManager.h"
@@ -55,6 +57,7 @@ class DominatorTree;
 class Function;
 class GlobalVariable;
 class Instruction;
+class ProfileSummaryInfo;
 class TargetTransformInfo;
 
 /// A private "module" namespace for types and utilities used by
@@ -124,7 +127,8 @@ public:
 
   // Glue for old PM.
   bool runImpl(Function &F, TargetTransformInfo &TTI, DominatorTree &DT,
-               BlockFrequencyInfo *BFI, BasicBlock &Entry);
+               BlockFrequencyInfo *BFI, BasicBlock &Entry,
+               ProfileSummaryInfo *PSI);
 
   void cleanup() {
     ClonedCastMap.clear();
@@ -148,24 +152,25 @@ private:
   LLVMContext *Ctx;
   const DataLayout *DL;
   BasicBlock *Entry;
+  ProfileSummaryInfo *PSI;
 
   /// Keeps track of constant candidates found in the function.
   using ConstCandVecType = std::vector<consthoist::ConstantCandidate>;
-  using GVCandVecMapType = DenseMap<GlobalVariable *, ConstCandVecType>;
+  using GVCandVecMapType = MapVector<GlobalVariable *, ConstCandVecType>;
   ConstCandVecType ConstIntCandVec;
   GVCandVecMapType ConstGEPCandMap;
 
   /// These are the final constants we decided to hoist.
   using ConstInfoVecType = SmallVector<consthoist::ConstantInfo, 8>;
-  using GVInfoVecMapType = DenseMap<GlobalVariable *, ConstInfoVecType>;
+  using GVInfoVecMapType = MapVector<GlobalVariable *, ConstInfoVecType>;
   ConstInfoVecType ConstIntInfoVec;
   GVInfoVecMapType ConstGEPInfoMap;
 
   /// Keep track of cast instructions we already cloned.
-  SmallDenseMap<Instruction *, Instruction *> ClonedCastMap;
+  MapVector<Instruction *, Instruction *> ClonedCastMap;
 
   Instruction *findMatInsertPt(Instruction *Inst, unsigned Idx = ~0U) const;
-  SmallPtrSet<Instruction *, 8>
+  SetVector<Instruction *>
   findConstantInsertionPoint(const consthoist::ConstantInfo &ConstInfo) const;
   void collectConstantCandidates(ConstCandMapType &ConstCandMap,
                                  Instruction *Inst, unsigned Idx,

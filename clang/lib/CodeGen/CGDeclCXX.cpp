@@ -10,10 +10,12 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "CodeGenFunction.h"
 #include "CGCXXABI.h"
 #include "CGObjCRuntime.h"
 #include "CGOpenMPRuntime.h"
+#include "CodeGenFunction.h"
+#include "TargetInfo.h"
+#include "clang/AST/Attr.h"
 #include "clang/Basic/CodeGenOptions.h"
 #include "llvm/ADT/StringExtras.h"
 #include "llvm/IR/Intrinsics.h"
@@ -53,10 +55,11 @@ static void EmitDeclInit(CodeGenFunction &CGF, const VarDecl &D,
     CGF.EmitComplexExprIntoLValue(Init, lv, /*isInit*/ true);
     return;
   case TEK_Aggregate:
-    CGF.EmitAggExpr(Init, AggValueSlot::forLValue(lv,AggValueSlot::IsDestructed,
-                                          AggValueSlot::DoesNotNeedGCBarriers,
-                                                  AggValueSlot::IsNotAliased,
-                                                  AggValueSlot::DoesNotOverlap));
+    CGF.EmitAggExpr(Init,
+                    AggValueSlot::forLValue(lv, CGF, AggValueSlot::IsDestructed,
+                                            AggValueSlot::DoesNotNeedGCBarriers,
+                                            AggValueSlot::IsNotAliased,
+                                            AggValueSlot::DoesNotOverlap));
     return;
   }
   llvm_unreachable("bad evaluation kind");
@@ -72,15 +75,9 @@ static void EmitDeclDestroy(CodeGenFunction &CGF, const VarDecl &D,
   // that isn't balanced out by a destructor call as intended by the
   // attribute. This also checks for -fno-c++-static-destructors and
   // bails even if the attribute is not present.
-  if (D.isNoDestroy(CGF.getContext()))
-    return;
-  
-  CodeGenModule &CGM = CGF.CGM;
+  QualType::DestructionKind DtorKind = D.needsDestruction(CGF.getContext());
 
   // FIXME:  __attribute__((cleanup)) ?
-
-  QualType Type = D.getType();
-  QualType::DestructionKind DtorKind = Type.isDestructedType();
 
   switch (DtorKind) {
   case QualType::DK_none:
@@ -100,6 +97,9 @@ static void EmitDeclDestroy(CodeGenFunction &CGF, const VarDecl &D,
   llvm::FunctionCallee Func;
   llvm::Constant *Argument;
 
+  CodeGenModule &CGM = CGF.CGM;
+  QualType Type = D.getType();
+
   // Special-case non-array C++ destructors, if they have the right signature.
   // Under some ABIs, destructors return this instead of void, and cannot be
   // passed directly to __cxa_atexit if the target does not allow this
@@ -118,9 +118,22 @@ static void EmitDeclDestroy(CodeGenFunction &CGF, const VarDecl &D,
     CXXDestructorDecl *Dtor = Record->getDestructor();
 
     Func = CGM.getAddrAndTypeOfCXXStructor(GlobalDecl(Dtor, Dtor_Complete));
-    Argument = llvm::ConstantExpr::getBitCast(
-        Addr.getPointer(), CGF.getTypes().ConvertType(Type)->getPointerTo());
-
+    if (CGF.getContext().getLangOpts().OpenCL) {
+      auto DestAS =
+          CGM.getTargetCodeGenInfo().getAddrSpaceOfCxaAtexitPtrParam();
+      auto DestTy = CGF.getTypes().ConvertType(Type)->getPointerTo(
+          CGM.getContext().getTargetAddressSpace(DestAS));
+      auto SrcAS = D.getType().getQualifiers().getAddressSpace();
+      if (DestAS == SrcAS)
+        Argument = llvm::ConstantExpr::getBitCast(Addr.getPointer(), DestTy);
+      else
+        // FIXME: On addr space mismatch we are passing NULL. The generation
+        // of the global destructor function should be adjusted accordingly.
+        Argument = llvm::ConstantPointerNull::get(DestTy);
+    } else {
+      Argument = llvm::ConstantExpr::getBitCast(
+          Addr.getPointer(), CGF.getTypes().ConvertType(Type)->getPointerTo());
+    }
   // Otherwise, the standard logic requires a helper function.
   } else {
     Func = CodeGenFunction(CGM)
@@ -226,19 +239,19 @@ llvm::Function *CodeGenFunction::createAtExitStub(const VarDecl &VD,
   }
 
   const CGFunctionInfo &FI = CGM.getTypes().arrangeNullaryFunction();
-  llvm::Function *fn = CGM.CreateGlobalInitOrDestructFunction(ty, FnName.str(),
-                                                              FI,
-                                                              VD.getLocation());
+  llvm::Function *fn = CGM.CreateGlobalInitOrDestructFunction(
+      ty, FnName.str(), FI, VD.getLocation());
 
   CodeGenFunction CGF(CGM);
 
-  CGF.StartFunction(&VD, CGM.getContext().VoidTy, fn, FI, FunctionArgList());
+  CGF.StartFunction(GlobalDecl(&VD, DynamicInitKind::AtExit),
+                    CGM.getContext().VoidTy, fn, FI, FunctionArgList());
 
   llvm::CallInst *call = CGF.Builder.CreateCall(dtor, addr);
 
  // Make sure the call and the callee agree on calling convention.
-  if (llvm::Function *dtorFn =
-          dyn_cast<llvm::Function>(dtor.getCallee()->stripPointerCasts()))
+  if (auto *dtorFn = dyn_cast<llvm::Function>(
+          dtor.getCallee()->stripPointerCastsAndAliases()))
     call->setCallingConv(dtorFn->getCallingConv());
 
   CGF.FinishFunction();
@@ -355,6 +368,10 @@ llvm::Function *CodeGenModule::CreateGlobalInitOrDestructFunction(
       !isInSanitizerBlacklist(SanitizerKind::KernelHWAddress, Fn, Loc))
     Fn->addFnAttr(llvm::Attribute::SanitizeHWAddress);
 
+  if (getLangOpts().Sanitize.has(SanitizerKind::MemTag) &&
+      !isInSanitizerBlacklist(SanitizerKind::MemTag, Fn, Loc))
+    Fn->addFnAttr(llvm::Attribute::SanitizeMemTag);
+
   if (getLangOpts().Sanitize.has(SanitizerKind::Thread) &&
       !isInSanitizerBlacklist(SanitizerKind::Thread, Fn, Loc))
     Fn->addFnAttr(llvm::Attribute::SanitizeThread);
@@ -422,7 +439,7 @@ CodeGenModule::EmitCXXGlobalVarDeclInitFunc(const VarDecl *D,
   // that are of class type, cannot have a non-empty constructor. All
   // the checks have been done in Sema by now. Whatever initializers
   // are allowed are empty and we just need to ignore them here.
-  if (getLangOpts().CUDA && getLangOpts().CUDAIsDevice &&
+  if (getLangOpts().CUDAIsDevice && !getLangOpts().GPUAllowDeviceInit &&
       (D->hasAttr<CUDADeviceAttr>() || D->hasAttr<CUDAConstantAttr>() ||
        D->hasAttr<CUDASharedAttr>()))
     return;
@@ -467,7 +484,8 @@ CodeGenModule::EmitCXXGlobalVarDeclInitFunc(const VarDecl *D,
   } else if (auto *IPA = D->getAttr<InitPriorityAttr>()) {
     OrderGlobalInits Key(IPA->getPriority(), PrioritizedCXXGlobalInits.size());
     PrioritizedCXXGlobalInits.push_back(std::make_pair(Key, Fn));
-  } else if (isTemplateInstantiation(D->getTemplateSpecializationKind())) {
+  } else if (isTemplateInstantiation(D->getTemplateSpecializationKind()) ||
+             getContext().GetGVALinkageForVariable(D) == GVA_DiscardableODR) {
     // C++ [basic.start.init]p2:
     //   Definitions of explicitly specialized class template static data
     //   members have ordered initialization. Other class template static data
@@ -481,6 +499,11 @@ CodeGenModule::EmitCXXGlobalVarDeclInitFunc(const VarDecl *D,
     // minor startup time optimization.  In the MS C++ ABI, there are no guard
     // variables, so this COMDAT key is required for correctness.
     AddGlobalCtor(Fn, 65535, COMDATKey);
+    if (getTarget().getCXXABI().isMicrosoft() && COMDATKey) {
+      // In The MS C++, MS add template static data member in the linker
+      // drective.
+      addUsedGlobal(COMDATKey);
+    }
   } else if (D->hasAttr<SelectAnyAttr>()) {
     // SelectAny globals will be comdat-folded. Put the initializer into a
     // COMDAT group associated with the global, so the initializers get folded
@@ -574,6 +597,24 @@ CodeGenModule::EmitCXXGlobalInitFunc() {
   CodeGenFunction(*this).GenerateCXXGlobalInitFunc(Fn, CXXGlobalInits);
   AddGlobalCtor(Fn);
 
+  // In OpenCL global init functions must be converted to kernels in order to
+  // be able to launch them from the host.
+  // FIXME: Some more work might be needed to handle destructors correctly.
+  // Current initialization function makes use of function pointers callbacks.
+  // We can't support function pointers especially between host and device.
+  // However it seems global destruction has little meaning without any
+  // dynamic resource allocation on the device and program scope variables are
+  // destroyed by the runtime when program is released.
+  if (getLangOpts().OpenCL) {
+    GenOpenCLArgMetadata(Fn);
+    Fn->setCallingConv(llvm::CallingConv::SPIR_KERNEL);
+  }
+
+  if (getLangOpts().HIP) {
+    Fn->setCallingConv(llvm::CallingConv::AMDGPU_KERNEL);
+    Fn->addFnAttr("device-init");
+  }
+
   CXXGlobalInits.clear();
 }
 
@@ -603,15 +644,21 @@ void CodeGenFunction::GenerateCXXGlobalVarDeclInitFunc(llvm::Function *Fn,
 
   CurEHLocation = D->getBeginLoc();
 
-  StartFunction(GlobalDecl(D), getContext().VoidTy, Fn,
-                getTypes().arrangeNullaryFunction(),
+  StartFunction(GlobalDecl(D, DynamicInitKind::Initializer),
+                getContext().VoidTy, Fn, getTypes().arrangeNullaryFunction(),
                 FunctionArgList(), D->getLocation(),
                 D->getInit()->getExprLoc());
 
   // Use guarded initialization if the global variable is weak. This
   // occurs for, e.g., instantiated static data members and
   // definitions explicitly marked weak.
-  if (Addr->hasWeakLinkage() || Addr->hasLinkOnceLinkage()) {
+  //
+  // Also use guarded initialization for a variable with dynamic TLS and
+  // unordered initialization. (If the initialization is ordered, the ABI
+  // layer will guard the whole-TU initialization for us.)
+  if (Addr->hasWeakLinkage() || Addr->hasLinkOnceLinkage() ||
+      (D->getTLSKind() == VarDecl::TLS_Dynamic &&
+       isTemplateInstantiation(D->getTemplateSpecializationKind()))) {
     EmitCXXGuardedInit(*D, Addr, PerformInit);
   } else {
     EmitCXXGlobalVarDeclInit(*D, Addr, PerformInit);

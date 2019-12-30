@@ -66,6 +66,7 @@
 #include "llvm/IR/Module.h"
 #include "llvm/IR/Type.h"
 #include "llvm/IR/Value.h"
+#include "llvm/InitializePasses.h"
 #include "llvm/Pass.h"
 #include "llvm/Support/Casting.h"
 #include "llvm/Support/Debug.h"
@@ -205,7 +206,7 @@ bool Lint::runOnFunction(Function &F) {
   AA = &getAnalysis<AAResultsWrapperPass>().getAAResults();
   AC = &getAnalysis<AssumptionCacheTracker>().getAssumptionCache(F);
   DT = &getAnalysis<DominatorTreeWrapperPass>().getDomTree();
-  TLI = &getAnalysis<TargetLibraryInfoWrapperPass>().getTLI();
+  TLI = &getAnalysis<TargetLibraryInfoWrapperPass>().getTLI(F);
   visit(F);
   dbgs() << MessagesStr.str();
   Messages.clear();
@@ -267,10 +268,14 @@ void Lint::visitCallSite(CallSite CS) {
         if (Formal->hasNoAliasAttr() && Actual->getType()->isPointerTy()) {
           AttributeList PAL = CS.getAttributes();
           unsigned ArgNo = 0;
-          for (CallSite::arg_iterator BI = CS.arg_begin(); BI != AE; ++BI) {
+          for (CallSite::arg_iterator BI = CS.arg_begin(); BI != AE;
+               ++BI, ++ArgNo) {
             // Skip ByVal arguments since they will be memcpy'd to the callee's
             // stack so we're not really passing the pointer anyway.
-            if (PAL.hasParamAttribute(ArgNo++, Attribute::ByVal))
+            if (PAL.hasParamAttribute(ArgNo, Attribute::ByVal))
+              continue;
+            // If both arguments are readonly, they have no dependence.
+            if (Formal->onlyReadsMemory() && CS.onlyReadsMemory(ArgNo))
               continue;
             if (AI != BI && (*BI)->getType()->isPointerTy()) {
               AliasResult Result = AA->alias(*AI, *BI);

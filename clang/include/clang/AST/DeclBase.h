@@ -13,6 +13,7 @@
 #ifndef LLVM_CLANG_AST_DECLBASE_H
 #define LLVM_CLANG_AST_DECLBASE_H
 
+#include "clang/AST/ASTDumperUtils.h"
 #include "clang/AST/AttrIterator.h"
 #include "clang/AST/DeclarationName.h"
 #include "clang/Basic/IdentifierTable.h"
@@ -41,6 +42,7 @@ namespace clang {
 class ASTContext;
 class ASTMutationListener;
 class Attr;
+class BlockDecl;
 class DeclContext;
 class ExternalSourceSymbolAttr;
 class FunctionDecl;
@@ -366,6 +368,13 @@ private:
     return ModuleOwnershipKind::Unowned;
   }
 
+public:
+  Decl() = delete;
+  Decl(const Decl&) = delete;
+  Decl(Decl &&) = delete;
+  Decl &operator=(const Decl&) = delete;
+  Decl &operator=(Decl&&) = delete;
+
 protected:
   Decl(Kind DK, DeclContext *DC, SourceLocation L)
       : NextInContextAndBits(nullptr, getModuleOwnershipKindForChildOf(DC)),
@@ -598,10 +607,6 @@ public:
   bool isModulePrivate() const {
     return getModuleOwnershipKind() == ModuleOwnershipKind::ModulePrivate;
   }
-
-  /// Whether this declaration is exported (by virtue of being lexically
-  /// within an ExportDecl or by being a NamespaceDecl).
-  bool isExported() const;
 
   /// Return true if this declaration has an attribute which acts as
   /// definition of the entity, such as 'alias' or 'ifunc'.
@@ -954,7 +959,7 @@ public:
   /// as this declaration, or NULL if there is no previous declaration.
   Decl *getPreviousDecl() { return getPreviousDeclImpl(); }
 
-  /// Retrieve the most recent declaration that declares the same entity
+  /// Retrieve the previous declaration that declares the same entity
   /// as this declaration, or NULL if there is no previous declaration.
   const Decl *getPreviousDecl() const {
     return const_cast<Decl *>(this)->getPreviousDeclImpl();
@@ -1137,7 +1142,8 @@ public:
   // Same as dump(), but forces color printing.
   void dumpColor() const;
 
-  void dump(raw_ostream &Out, bool Deserialize = false) const;
+  void dump(raw_ostream &Out, bool Deserialize = false,
+            ASTDumpOutputFormat OutputFormat = ADOF_Default) const;
 
   /// \return Unique reproducible object identifier
   int64_t getID() const;
@@ -1434,6 +1440,13 @@ class DeclContext {
     uint64_t NonTrivialToPrimitiveCopy : 1;
     uint64_t NonTrivialToPrimitiveDestroy : 1;
 
+    /// The following bits indicate whether this is or contains a C union that
+    /// is non-trivial to default-initialize, destruct, or copy. These bits
+    /// imply the associated basic non-triviality predicates declared above.
+    uint64_t HasNonTrivialToPrimitiveDefaultInitializeCUnion : 1;
+    uint64_t HasNonTrivialToPrimitiveDestructCUnion : 1;
+    uint64_t HasNonTrivialToPrimitiveCopyCUnion : 1;
+
     /// Indicates whether this struct is destroyed in the callee.
     uint64_t ParamDestroyedInCallee : 1;
 
@@ -1442,7 +1455,7 @@ class DeclContext {
   };
 
   /// Number of non-inherited bits in RecordDeclBitfields.
-  enum { NumRecordDeclBits = 11 };
+  enum { NumRecordDeclBits = 14 };
 
   /// Stores the bits used by OMPDeclareReductionDecl.
   /// If modified NumOMPDeclareReductionDeclBits and the accessor
@@ -1475,10 +1488,6 @@ class DeclContext {
     uint64_t IsInline : 1;
     uint64_t IsInlineSpecified : 1;
 
-    /// This is shared by CXXConstructorDecl,
-    /// CXXConversionDecl, and CXXDeductionGuideDecl.
-    uint64_t IsExplicitSpecified : 1;
-
     uint64_t IsVirtualAsWritten : 1;
     uint64_t IsPure : 1;
     uint64_t HasInheritedPrototype : 1;
@@ -1492,13 +1501,14 @@ class DeclContext {
     /// constructor or a destructor.
     uint64_t IsTrivialForCall : 1;
 
-    /// Used by CXXMethodDecl
     uint64_t IsDefaulted : 1;
-    /// Used by CXXMethodDecl
     uint64_t IsExplicitlyDefaulted : 1;
+    uint64_t HasDefaultedFunctionInfo : 1;
     uint64_t HasImplicitReturnZero : 1;
     uint64_t IsLateTemplateParsed : 1;
-    uint64_t IsConstexpr : 1;
+
+    /// Kind of contexpr specifier as defined by ConstexprSpecKind.
+    uint64_t ConstexprKind : 2;
     uint64_t InstantiationIsPending : 1;
 
     /// Indicates if the function uses __try.
@@ -1523,10 +1533,13 @@ class DeclContext {
 
     /// Store the ODRHash after first calculation.
     uint64_t HasODRHash : 1;
+
+    /// Indicates if the function uses Floating Point Constrained Intrinsics
+    uint64_t UsesFPIntrin : 1;
   };
 
   /// Number of non-inherited bits in FunctionDeclBitfields.
-  enum { NumFunctionDeclBits = 25 };
+  enum { NumFunctionDeclBits = 27 };
 
   /// Stores the bits used by CXXConstructorDecl. If modified
   /// NumCXXConstructorDeclBits and the accessor
@@ -1538,17 +1551,25 @@ class DeclContext {
     /// For the bits in FunctionDeclBitfields.
     uint64_t : NumFunctionDeclBits;
 
-    /// 25 bits to fit in the remaining availible space.
+    /// 24 bits to fit in the remaining available space.
     /// Note that this makes CXXConstructorDeclBitfields take
     /// exactly 64 bits and thus the width of NumCtorInitializers
     /// will need to be shrunk if some bit is added to NumDeclContextBitfields,
     /// NumFunctionDeclBitfields or CXXConstructorDeclBitfields.
-    uint64_t NumCtorInitializers : 25;
+    uint64_t NumCtorInitializers : 21;
     uint64_t IsInheritingConstructor : 1;
+
+    /// Whether this constructor has a trail-allocated explicit specifier.
+    uint64_t HasTrailingExplicitSpecifier : 1;
+    /// If this constructor does't have a trail-allocated explicit specifier.
+    /// Whether this constructor is explicit specified.
+    uint64_t IsSimpleExplicit : 1;
   };
 
   /// Number of non-inherited bits in CXXConstructorDeclBitfields.
-  enum { NumCXXConstructorDeclBits = 26 };
+  enum {
+    NumCXXConstructorDeclBits = 64 - NumDeclContextBits - NumFunctionDeclBits
+  };
 
   /// Stores the bits used by ObjCMethodDecl.
   /// If modified NumObjCMethodDeclBits and the accessor
@@ -1570,6 +1591,9 @@ class DeclContext {
 
     /// True if this method is the getter or setter for an explicit property.
     uint64_t IsPropertyAccessor : 1;
+
+    /// True if this method is a synthesized property accessor stub.
+    uint64_t IsSynthesizedAccessorStub : 1;
 
     /// Method has a definition.
     uint64_t IsDefined : 1;
@@ -1791,6 +1815,10 @@ public:
   }
 
   bool isClosure() const { return getDeclKind() == Decl::Block; }
+
+  /// Return this DeclContext if it is a BlockDecl. Otherwise, return the
+  /// innermost enclosing BlockDecl or null if there are no enclosing blocks.
+  const BlockDecl *getInnermostBlockDecl() const;
 
   bool isObjCContainer() const {
     switch (getDeclKind()) {

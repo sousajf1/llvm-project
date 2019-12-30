@@ -30,8 +30,9 @@ void CreateEnvironmentBuffer(const Environment &env,
   for (const auto &KV : env) {
     std::wstring warg;
     if (llvm::ConvertUTF8toWide(Environment::compose(KV), warg)) {
-      buffer.insert(buffer.end(), (char *)warg.c_str(),
-                    (char *)(warg.c_str() + warg.size() + 1));
+      buffer.insert(
+          buffer.end(), reinterpret_cast<const char *>(warg.c_str()),
+          reinterpret_cast<const char *>(warg.c_str() + warg.size() + 1));
     }
   }
   // One null wchar_t (to end the block) is two null bytes
@@ -45,7 +46,7 @@ bool GetFlattenedWindowsCommandString(Args args, std::string &command) {
 
   std::vector<llvm::StringRef> args_ref;
   for (auto &entry : args.entries())
-    args_ref.push_back(entry.ref);
+    args_ref.push_back(entry.ref());
 
   command = llvm::sys::flattenWindowsCommandLine(args_ref);
   return true;

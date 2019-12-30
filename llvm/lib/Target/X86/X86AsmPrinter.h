@@ -26,7 +26,7 @@ class MCStreamer;
 class MCSymbol;
 
 class LLVM_LIBRARY_VISIBILITY X86AsmPrinter : public AsmPrinter {
-  const X86Subtarget *Subtarget;
+  const X86Subtarget *Subtarget = nullptr;
   StackMaps SM;
   FaultMaps FM;
   std::unique_ptr<MCCodeEmitter> CodeEmitter;
@@ -60,7 +60,7 @@ class LLVM_LIBRARY_VISIBILITY X86AsmPrinter : public AsmPrinter {
     // to emit any necessary padding-NOPs.
     void emitShadowPadding(MCStreamer &OutStreamer, const MCSubtargetInfo &STI);
   private:
-    const MachineFunction *MF;
+    const MachineFunction *MF = nullptr;
     bool InShadow = false;
 
     // RequiredShadowSize holds the length of the shadow specified in the most
@@ -102,6 +102,18 @@ class LLVM_LIBRARY_VISIBILITY X86AsmPrinter : public AsmPrinter {
   // Choose between emitting .seh_ directives and .cv_fpo_ directives.
   void EmitSEHInstruction(const MachineInstr *MI);
 
+  void PrintSymbolOperand(const MachineOperand &MO, raw_ostream &O) override;
+  void PrintOperand(const MachineInstr *MI, unsigned OpNo, raw_ostream &O);
+  void PrintModifiedOperand(const MachineInstr *MI, unsigned OpNo,
+                            raw_ostream &O, const char *Modifier);
+  void PrintPCRelImm(const MachineInstr *MI, unsigned OpNo, raw_ostream &O);
+  void PrintLeaMemReference(const MachineInstr *MI, unsigned OpNo,
+                            raw_ostream &O, const char *Modifier);
+  void PrintMemReference(const MachineInstr *MI, unsigned OpNo, raw_ostream &O,
+                         const char *Modifier);
+  void PrintIntelMemReference(const MachineInstr *MI, unsigned OpNo,
+                              raw_ostream &O, const char *Modifier);
+
 public:
   X86AsmPrinter(TargetMachine &TM, std::unique_ptr<MCStreamer> Streamer);
 
@@ -123,11 +135,9 @@ public:
   }
 
   bool PrintAsmOperand(const MachineInstr *MI, unsigned OpNo,
-                       unsigned AsmVariant, const char *ExtraCode,
-                       raw_ostream &OS) override;
+                       const char *ExtraCode, raw_ostream &OS) override;
   bool PrintAsmMemoryOperand(const MachineInstr *MI, unsigned OpNo,
-                             unsigned AsmVariant, const char *ExtraCode,
-                             raw_ostream &OS) override;
+                             const char *ExtraCode, raw_ostream &OS) override;
 
   bool doInitialization(Module &M) override {
     SMShadowTracker.reset(0);

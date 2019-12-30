@@ -84,16 +84,10 @@ PreserveAlignmentAssumptions("preserve-alignment-assumptions-during-inlining",
   cl::init(true), cl::Hidden,
   cl::desc("Convert align attributes to assumptions during inlining."));
 
-llvm::InlineResult llvm::InlineFunction(CallInst *CI, InlineFunctionInfo &IFI,
+llvm::InlineResult llvm::InlineFunction(CallBase *CB, InlineFunctionInfo &IFI,
                                         AAResults *CalleeAAR,
                                         bool InsertLifetime) {
-  return InlineFunction(CallSite(CI), IFI, CalleeAAR, InsertLifetime);
-}
-
-llvm::InlineResult llvm::InlineFunction(InvokeInst *II, InlineFunctionInfo &IFI,
-                                        AAResults *CalleeAAR,
-                                        bool InsertLifetime) {
-  return InlineFunction(CallSite(II), IFI, CalleeAAR, InsertLifetime);
+  return InlineFunction(CallSite(CB), IFI, CalleeAAR, InsertLifetime);
 }
 
 namespace {
@@ -1041,11 +1035,10 @@ static void AddAliasScopeMetadata(CallSite CS, ValueToValueMapTy &VMap,
 
       SmallSetVector<const Argument *, 4> NAPtrArgs;
       for (const Value *V : PtrArgs) {
-        SmallVector<Value *, 4> Objects;
-        GetUnderlyingObjects(const_cast<Value*>(V),
-                             Objects, DL, /* LI = */ nullptr);
+        SmallVector<const Value *, 4> Objects;
+        GetUnderlyingObjects(V, Objects, DL, /* LI = */ nullptr);
 
-        for (Value *O : Objects)
+        for (const Value *O : Objects)
           ObjSet.insert(O);
       }
 
@@ -1215,14 +1208,14 @@ static void UpdateCallGraphAfterInlining(CallSite CS,
 
     // If the call was inlined, but then constant folded, there is no edge to
     // add.  Check for this case.
-    Instruction *NewCall = dyn_cast<Instruction>(VMI->second);
+    auto *NewCall = dyn_cast<CallBase>(VMI->second);
     if (!NewCall)
       continue;
 
     // We do not treat intrinsic calls like real function calls because we
     // expect them to become inline code; do not add an edge for an intrinsic.
-    CallSite CS = CallSite(NewCall);
-    if (CS && CS.getCalledFunction() && CS.getCalledFunction()->isIntrinsic())
+    if (NewCall->getCalledFunction() &&
+        NewCall->getCalledFunction()->isIntrinsic())
       continue;
 
     // Remember that this call site got inlined for the client of
@@ -1235,19 +1228,19 @@ static void UpdateCallGraphAfterInlining(CallSite CS,
     // destination.  This can also happen if the call graph node of the caller
     // was just unnecessarily imprecise.
     if (!I->second->getFunction())
-      if (Function *F = CallSite(NewCall).getCalledFunction()) {
+      if (Function *F = NewCall->getCalledFunction()) {
         // Indirect call site resolved to direct call.
-        CallerNode->addCalledFunction(CallSite(NewCall), CG[F]);
+        CallerNode->addCalledFunction(NewCall, CG[F]);
 
         continue;
       }
 
-    CallerNode->addCalledFunction(CallSite(NewCall), I->second);
+    CallerNode->addCalledFunction(NewCall, I->second);
   }
 
   // Update the call graph by deleting the edge from Callee to Caller.  We must
   // do this after the loop above in case Caller and Callee are the same.
-  CallerNode->removeCallEdgeFor(CS);
+  CallerNode->removeCallEdgeFor(*cast<CallBase>(CS.getInstruction()));
 }
 
 static void HandleByValArgumentInit(Value *Dst, Value *Src, Module *M,
@@ -1261,7 +1254,8 @@ static void HandleByValArgumentInit(Value *Dst, Value *Src, Module *M,
   // Always generate a memcpy of alignment 1 here because we don't know
   // the alignment of the src pointer.  Other optimizations can infer
   // better alignment.
-  Builder.CreateMemCpy(Dst, /*DstAlign*/1, Src, /*SrcAlign*/1, Size);
+  Builder.CreateMemCpy(Dst, /*DstAlign*/ Align::None(), Src,
+                       /*SrcAlign*/ Align::None(), Size);
 }
 
 /// When inlining a call site that has a byval argument,
@@ -1300,16 +1294,16 @@ static Value *HandleByValArgument(Value *Arg, Instruction *TheCall,
   }
 
   // Create the alloca.  If we have DataLayout, use nice alignment.
-  unsigned Align = DL.getPrefTypeAlignment(AggTy);
+  Align Alignment(DL.getPrefTypeAlignment(AggTy));
 
   // If the byval had an alignment specified, we *must* use at least that
   // alignment, as it is required by the byval argument (and uses of the
   // pointer inside the callee).
-  Align = std::max(Align, ByValAlignment);
+  Alignment = max(Alignment, MaybeAlign(ByValAlignment));
 
-  Value *NewAlloca = new AllocaInst(AggTy, DL.getAllocaAddrSpace(),
-                                    nullptr, Align, Arg->getName(),
-                                    &*Caller->begin()->begin());
+  Value *NewAlloca =
+      new AllocaInst(AggTy, DL.getAllocaAddrSpace(), nullptr, Alignment,
+                     Arg->getName(), &*Caller->begin()->begin());
   IFI.StaticAllocas.push_back(cast<AllocaInst>(NewAlloca));
 
   // Uses of the argument in the function should use our new alloca
@@ -1352,6 +1346,44 @@ static bool allocaWouldBeStaticInEntry(const AllocaInst *AI ) {
   return isa<Constant>(AI->getArraySize()) && !AI->isUsedWithInAlloca();
 }
 
+/// Returns a DebugLoc for a new DILocation which is a clone of \p OrigDL
+/// inlined at \p InlinedAt. \p IANodes is an inlined-at cache.
+static DebugLoc inlineDebugLoc(DebugLoc OrigDL, DILocation *InlinedAt,
+                               LLVMContext &Ctx,
+                               DenseMap<const MDNode *, MDNode *> &IANodes) {
+  auto IA = DebugLoc::appendInlinedAt(OrigDL, InlinedAt, Ctx, IANodes);
+  return DebugLoc::get(OrigDL.getLine(), OrigDL.getCol(), OrigDL.getScope(),
+                       IA);
+}
+
+/// Returns the LoopID for a loop which has has been cloned from another
+/// function for inlining with the new inlined-at start and end locs.
+static MDNode *inlineLoopID(const MDNode *OrigLoopId, DILocation *InlinedAt,
+                            LLVMContext &Ctx,
+                            DenseMap<const MDNode *, MDNode *> &IANodes) {
+  assert(OrigLoopId && OrigLoopId->getNumOperands() > 0 &&
+         "Loop ID needs at least one operand");
+  assert(OrigLoopId && OrigLoopId->getOperand(0).get() == OrigLoopId &&
+         "Loop ID should refer to itself");
+
+  // Save space for the self-referential LoopID.
+  SmallVector<Metadata *, 4> MDs = {nullptr};
+
+  for (unsigned i = 1; i < OrigLoopId->getNumOperands(); ++i) {
+    Metadata *MD = OrigLoopId->getOperand(i);
+    // Update the DILocations to encode the inlined-at metadata.
+    if (DILocation *DL = dyn_cast<DILocation>(MD))
+      MDs.push_back(inlineDebugLoc(DL, InlinedAt, Ctx, IANodes));
+    else
+      MDs.push_back(MD);
+  }
+
+  MDNode *NewLoopID = MDNode::getDistinct(Ctx, MDs);
+  // Insert the self-referential LoopID.
+  NewLoopID->replaceOperandWith(0, NewLoopID);
+  return NewLoopID;
+}
+
 /// Update inlined instructions' line numbers to
 /// to encode location where these instructions are inlined.
 static void fixupLineNumbers(Function *Fn, Function::iterator FI,
@@ -1374,24 +1406,37 @@ static void fixupLineNumbers(Function *Fn, Function::iterator FI,
   // other.
   DenseMap<const MDNode *, MDNode *> IANodes;
 
+  // Check if we are not generating inline line tables and want to use
+  // the call site location instead.
+  bool NoInlineLineTables = Fn->hasFnAttribute("no-inline-line-tables");
+
   for (; FI != Fn->end(); ++FI) {
     for (BasicBlock::iterator BI = FI->begin(), BE = FI->end();
          BI != BE; ++BI) {
-      if (DebugLoc DL = BI->getDebugLoc()) {
-        auto IA = DebugLoc::appendInlinedAt(DL, InlinedAtNode, BI->getContext(),
-                                            IANodes);
-        auto IDL = DebugLoc::get(DL.getLine(), DL.getCol(), DL.getScope(), IA);
-        BI->setDebugLoc(IDL);
-        continue;
+      // Loop metadata needs to be updated so that the start and end locs
+      // reference inlined-at locations.
+      if (MDNode *LoopID = BI->getMetadata(LLVMContext::MD_loop)) {
+        MDNode *NewLoopID =
+            inlineLoopID(LoopID, InlinedAtNode, BI->getContext(), IANodes);
+        BI->setMetadata(LLVMContext::MD_loop, NewLoopID);
       }
 
-      if (CalleeHasDebugInfo)
+      if (!NoInlineLineTables)
+        if (DebugLoc DL = BI->getDebugLoc()) {
+          DebugLoc IDL =
+              inlineDebugLoc(DL, InlinedAtNode, BI->getContext(), IANodes);
+          BI->setDebugLoc(IDL);
+          continue;
+        }
+
+      if (CalleeHasDebugInfo && !NoInlineLineTables)
         continue;
 
-      // If the inlined instruction has no line number, make it look as if it
-      // originates from the call location. This is important for
-      // ((__always_inline__, __nodebug__)) functions which must use caller
-      // location for all instructions in their function body.
+      // If the inlined instruction has no line number, or if inline info
+      // is not being generated, make it look as if it originates from the call
+      // location. This is important for ((__always_inline, __nodebug__))
+      // functions which must use caller location for all instructions in their
+      // function body.
 
       // Don't update static allocas, as they may get moved later.
       if (auto *AI = dyn_cast<AllocaInst>(BI))
@@ -1400,6 +1445,19 @@ static void fixupLineNumbers(Function *Fn, Function::iterator FI,
 
       BI->setDebugLoc(TheCallDL);
     }
+
+    // Remove debug info intrinsics if we're not keeping inline info.
+    if (NoInlineLineTables) {
+      BasicBlock::iterator BI = FI->begin();
+      while (BI != FI->end()) {
+        if (isa<DbgInfoIntrinsic>(BI)) {
+          BI = BI->eraseFromParent();
+          continue;
+        }
+        ++BI;
+      }
+    }
+
   }
 }
 
@@ -1415,7 +1473,7 @@ static void updateCallerBFI(BasicBlock *CallSiteBlock,
                             BlockFrequencyInfo *CalleeBFI,
                             const BasicBlock &CalleeEntryBlock) {
   SmallPtrSet<BasicBlock *, 16> ClonedBBs;
-  for (auto const &Entry : VMap) {
+  for (auto Entry : VMap) {
     if (!isa<BasicBlock>(Entry.first) || !Entry.second)
       continue;
     auto *OrigBB = cast<BasicBlock>(Entry.first);
@@ -1461,7 +1519,7 @@ void llvm::updateProfileCallee(
     return;
 
   uint64_t priorEntryCount = CalleeCount.getCount();
-  uint64_t newEntryCount = priorEntryCount;
+  uint64_t newEntryCount;
 
   // Since CallSiteCount is an estimate, it could exceed the original callee
   // count and has to be set to 0 so guard against underflow.
@@ -1470,22 +1528,25 @@ void llvm::updateProfileCallee(
   else
     newEntryCount = priorEntryCount + entryDelta;
 
-  Callee->setEntryCount(newEntryCount);
-
   // During inlining ?
   if (VMap) {
     uint64_t cloneEntryCount = priorEntryCount - newEntryCount;
-    for (auto const &Entry : *VMap)
+    for (auto Entry : *VMap)
       if (isa<CallInst>(Entry.first))
         if (auto *CI = dyn_cast_or_null<CallInst>(Entry.second))
           CI->updateProfWeight(cloneEntryCount, priorEntryCount);
   }
-  for (BasicBlock &BB : *Callee)
-    // No need to update the callsite if it is pruned during inlining.
-    if (!VMap || VMap->count(&BB))
-      for (Instruction &I : BB)
-        if (CallInst *CI = dyn_cast<CallInst>(&I))
-          CI->updateProfWeight(newEntryCount, priorEntryCount);
+
+  if (entryDelta) {
+    Callee->setEntryCount(newEntryCount);
+
+    for (BasicBlock &BB : *Callee)
+      // No need to update the callsite if it is pruned during inlining.
+      if (!VMap || VMap->count(&BB))
+        for (Instruction &I : BB)
+          if (CallInst *CI = dyn_cast<CallInst>(&I))
+            CI->updateProfWeight(newEntryCount, priorEntryCount);
+  }
 }
 
 /// This function inlines the called function into the basic block of the
@@ -1804,6 +1865,7 @@ llvm::InlineResult llvm::InlineFunction(CallSite CS, InlineFunctionInfo &IFI,
       // Scan for the block of allocas that we can move over, and move them
       // all at once.
       while (isa<AllocaInst>(I) &&
+             !cast<AllocaInst>(I)->use_empty() &&
              allocaWouldBeStaticInEntry(cast<AllocaInst>(I))) {
         IFI.StaticAllocas.push_back(cast<AllocaInst>(I));
         ++I;
@@ -1818,8 +1880,7 @@ llvm::InlineResult llvm::InlineFunction(CallSite CS, InlineFunctionInfo &IFI,
     // Move any dbg.declares describing the allocas into the entry basic block.
     DIBuilder DIB(*Caller->getParent());
     for (auto &AI : IFI.StaticAllocas)
-      replaceDbgDeclareForAlloca(AI, AI, DIB, DIExpression::NoDeref, 0,
-                                 DIExpression::NoDeref);
+      replaceDbgDeclareForAlloca(AI, AI, DIB, DIExpression::ApplyOffset, 0);
   }
 
   SmallVector<Value*,4> VarArgsToForward;

@@ -30,6 +30,7 @@ def verbose_print(*args, **kwargs):
     print(*args, **kwargs)
 
 def check_file(fname):
+  fname = os.path.normpath(fname)
   if not os.path.isfile(fname):
     sys.exit("ERROR: %s does not exist" % (fname))
   return fname
@@ -40,6 +41,8 @@ def check_cmd(cmd_name, cmd_dir, cmd_path=None):
   or absolute path to cmd_dir/cmd_name.
   """
   if cmd_path:
+    # Make the path absolute so the creduce test can be run from any directory.
+    cmd_path = os.path.abspath(cmd_path)
     cmd = find_executable(cmd_path)
     if cmd:
       return cmd
@@ -93,9 +96,14 @@ class Reduce(object):
   def read_clang_args(self, crash_script, filename):
     print("\nReading arguments from crash script...")
     with open(crash_script) as f:
-      # Assume clang call is on the last line of the script
-      line = f.readlines()[-1]
-      cmd = shlex.split(line)
+      # Assume clang call is the first non comment line.
+      cmd = []
+      for line in f:
+        if not line.lstrip().startswith('#'):
+          cmd = shlex.split(line)
+          break
+    if not cmd:
+      sys.exit("Could not find command in the crash script.");
 
     # Remove clang and filename from the command
     # Assume the last occurrence of the filename is the clang input file
@@ -122,10 +130,10 @@ class Reduce(object):
     # Look for specific error messages
     regexes = [r"Assertion `(.+)' failed", # Linux assert()
                r"Assertion failed: (.+),", # FreeBSD/Mac assert()
-               r"fatal error: backend error: (.+)",
+               r"fatal error: error in backend: (.+)",
                r"LLVM ERROR: (.+)",
                r"UNREACHABLE executed (at .+)?!",
-               r"LLVM IR generation of ceclaration '(.+)'",
+               r"LLVM IR generation of declaration '(.+)'",
                r"Generating code for declaration '(.+)'",
                r"\*\*\* Bad machine code: (.+) \*\*\*"]
     for msg_re in regexes:
@@ -182,7 +190,7 @@ class Reduce(object):
         (pipes.quote(not_cmd), crash_flag, quote_cmd(self.get_crash_cmd()))
 
     for msg in self.expected_output:
-      output += 'grep %s t.log || exit 1\n' % pipes.quote(msg)
+      output += 'grep -F %s t.log || exit 1\n' % pipes.quote(msg)
 
     write_to_script(output, self.testfile)
     self.check_interestingness()
@@ -286,6 +294,10 @@ class Reduce(object):
                                     opts_startswith=["-gcodeview",
                                                      "-debug-info-kind=",
                                                      "-debugger-tuning="])
+
+    new_args = self.try_remove_args(new_args,
+                                    msg="Removed --show-includes",
+                                    opts_startswith=["--show-includes"])
     # Not suppressing warnings (-w) sometimes prevents the crash from occurring
     # after preprocessing
     new_args = self.try_remove_args(new_args,

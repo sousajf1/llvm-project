@@ -9,7 +9,6 @@
 #include "lldb/Utility/Log.h"
 #include "lldb/Utility/VASPrintf.h"
 
-#include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/SmallString.h"
 #include "llvm/ADT/Twine.h"
 #include "llvm/ADT/iterator.h"
@@ -38,13 +37,22 @@ using namespace lldb_private;
 
 llvm::ManagedStatic<Log::ChannelMap> Log::g_channel_map;
 
-void Log::ListCategories(llvm::raw_ostream &stream, const ChannelMap::value_type &entry) {
-  stream << llvm::formatv("Logging categories for '{0}':\n", entry.first());
-  stream << "  all - all available logging categories\n";
-  stream << "  default - default set of logging categories\n";
+void Log::ForEachCategory(
+    const Log::ChannelMap::value_type &entry,
+    llvm::function_ref<void(llvm::StringRef, llvm::StringRef)> lambda) {
+  lambda("all", "all available logging categories");
+  lambda("default", "default set of logging categories");
   for (const auto &category : entry.second.m_channel.categories)
-    stream << llvm::formatv("  {0} - {1}\n", category.name,
-                            category.description);
+    lambda(category.name, category.description);
+}
+
+void Log::ListCategories(llvm::raw_ostream &stream,
+                         const ChannelMap::value_type &entry) {
+  stream << llvm::formatv("Logging categories for '{0}':\n", entry.first());
+  ForEachCategory(entry,
+                  [&stream](llvm::StringRef name, llvm::StringRef description) {
+                    stream << llvm::formatv("  {0} - {1}\n", name, description);
+                  });
 }
 
 uint32_t Log::GetFlags(llvm::raw_ostream &stream, const ChannelMap::value_type &entry,
@@ -109,9 +117,7 @@ const Flags Log::GetMask() const {
 void Log::PutCString(const char *cstr) { Printf("%s", cstr); }
 void Log::PutString(llvm::StringRef str) { PutCString(str.str().c_str()); }
 
-//----------------------------------------------------------------------
 // Simple variable argument logging with flags.
-//----------------------------------------------------------------------
 void Log::Printf(const char *format, ...) {
   va_list args;
   va_start(args, format);
@@ -119,11 +125,9 @@ void Log::Printf(const char *format, ...) {
   va_end(args);
 }
 
-//----------------------------------------------------------------------
 // All logging eventually boils down to this function call. If we have a
 // callback registered, then we call the logging callback. If we have a valid
 // file handle, we also log to the file.
-//----------------------------------------------------------------------
 void Log::VAPrintf(const char *format, va_list args) {
   llvm::SmallString<64> FinalMessage;
   llvm::raw_svector_ostream Stream(FinalMessage);
@@ -137,9 +141,7 @@ void Log::VAPrintf(const char *format, va_list args) {
   WriteMessage(FinalMessage.str());
 }
 
-//----------------------------------------------------------------------
 // Printing of errors that are not fatal.
-//----------------------------------------------------------------------
 void Log::Error(const char *format, ...) {
   va_list args;
   va_start(args, format);
@@ -154,9 +156,7 @@ void Log::VAError(const char *format, va_list args) {
   Printf("error: %s", Content.c_str());
 }
 
-//----------------------------------------------------------------------
 // Printing of warnings that are not fatal only if verbose mode is enabled.
-//----------------------------------------------------------------------
 void Log::Verbose(const char *format, ...) {
   if (!GetVerbose())
     return;
@@ -167,9 +167,7 @@ void Log::Verbose(const char *format, ...) {
   va_end(args);
 }
 
-//----------------------------------------------------------------------
 // Printing of warnings that are not fatal.
-//----------------------------------------------------------------------
 void Log::Warning(const char *format, ...) {
   llvm::SmallString<64> Content;
   va_list args;
@@ -245,6 +243,23 @@ bool Log::ListChannelCategories(llvm::StringRef channel,
 void Log::DisableAllLogChannels() {
   for (auto &entry : *g_channel_map)
     entry.second.Disable(UINT32_MAX);
+}
+
+void Log::ForEachChannelCategory(
+    llvm::StringRef channel,
+    llvm::function_ref<void(llvm::StringRef, llvm::StringRef)> lambda) {
+  auto ch = g_channel_map->find(channel);
+  if (ch == g_channel_map->end())
+    return;
+
+  ForEachCategory(*ch, lambda);
+}
+
+std::vector<llvm::StringRef> Log::ListChannels() {
+  std::vector<llvm::StringRef> result;
+  for (const auto &channel : *g_channel_map)
+    result.push_back(channel.first());
+  return result;
 }
 
 void Log::ListAllLogChannels(llvm::raw_ostream &stream) {

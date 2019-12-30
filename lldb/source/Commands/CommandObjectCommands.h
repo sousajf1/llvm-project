@@ -10,15 +10,11 @@
 #ifndef liblldb_CommandObjectCommands_h_
 #define liblldb_CommandObjectCommands_h_
 
-#include "lldb/Core/STLUtils.h"
-#include "lldb/Interpreter/CommandObject.h"
 #include "lldb/Interpreter/CommandObjectMultiword.h"
 
 namespace lldb_private {
 
-//-------------------------------------------------------------------------
 // CommandObjectMultiwordCommands
-//-------------------------------------------------------------------------
 
 class CommandObjectMultiwordCommands : public CommandObjectMultiword {
 public:

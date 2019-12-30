@@ -49,9 +49,7 @@ using namespace lldb_private;
 
 static inline bool is_newline_char(char ch) { return ch == '\n' || ch == '\r'; }
 
-//----------------------------------------------------------------------
 // SourceManager constructor
-//----------------------------------------------------------------------
 SourceManager::SourceManager(const TargetSP &target_sp)
     : m_last_file_sp(), m_last_line(0), m_last_count(0), m_default_set(false),
       m_target_wp(target_sp),
@@ -61,14 +59,13 @@ SourceManager::SourceManager(const DebuggerSP &debugger_sp)
     : m_last_file_sp(), m_last_line(0), m_last_count(0), m_default_set(false),
       m_target_wp(), m_debugger_wp(debugger_sp) {}
 
-//----------------------------------------------------------------------
 // Destructor
-//----------------------------------------------------------------------
 SourceManager::~SourceManager() {}
 
 SourceManager::FileSP SourceManager::GetFile(const FileSpec &file_spec) {
   bool same_as_previous =
-      m_last_file_sp && m_last_file_sp->FileSpecMatches(file_spec);
+      m_last_file_sp &&
+      FileSpec::Match(file_spec, m_last_file_sp->GetFileSpec());
 
   DebuggerSP debugger_sp(m_debugger_wp.lock());
   FileSP file_sp;
@@ -328,10 +325,10 @@ bool SourceManager::GetDefaultFileAndLine(FileSpec &file_spec, uint32_t &line) {
         ConstString main_name("main");
         bool symbols_okay = false; // Force it to be a debug symbol.
         bool inlines_okay = true;
-        bool append = false;
-        size_t num_matches = executable_ptr->FindFunctions(
-            main_name, NULL, lldb::eFunctionNameTypeBase, inlines_okay,
-            symbols_okay, append, sc_list);
+        executable_ptr->FindFunctions(main_name, nullptr,
+                                      lldb::eFunctionNameTypeBase, inlines_okay,
+                                      symbols_okay, sc_list);
+        size_t num_matches = sc_list.GetSize();
         for (size_t idx = 0; idx < num_matches; idx++) {
           SymbolContext sc;
           sc_list.GetContextAtIndex(idx, sc);
@@ -403,24 +400,25 @@ void SourceManager::File::CommonInitializer(const FileSpec &file_spec,
         if (num_matches != 0) {
           if (num_matches > 1) {
             SymbolContext sc;
-            FileSpec *test_cu_spec = NULL;
+            CompileUnit *test_cu = nullptr;
 
             for (unsigned i = 0; i < num_matches; i++) {
               sc_list.GetContextAtIndex(i, sc);
               if (sc.comp_unit) {
-                if (test_cu_spec) {
-                  if (test_cu_spec != static_cast<FileSpec *>(sc.comp_unit))
+                if (test_cu) {
+                  if (test_cu != sc.comp_unit)
                     got_multiple = true;
                   break;
                 } else
-                  test_cu_spec = sc.comp_unit;
+                  test_cu = sc.comp_unit;
               }
             }
           }
           if (!got_multiple) {
             SymbolContext sc;
             sc_list.GetContextAtIndex(0, sc);
-            m_file_spec = sc.comp_unit;
+            if (sc.comp_unit)
+              m_file_spec = sc.comp_unit->GetPrimaryFile();
             m_mod_time = FileSystem::Instance().GetModificationTime(m_file_spec);
           }
         }
@@ -465,12 +463,12 @@ uint32_t SourceManager::File::GetNumLines() {
 
 const char *SourceManager::File::PeekLineData(uint32_t line) {
   if (!LineIsValid(line))
-    return NULL;
+    return nullptr;
 
   size_t line_offset = GetLineOffset(line);
   if (line_offset < m_data_sp->GetByteSize())
     return (const char *)m_data_sp->GetBytes() + line_offset;
-  return NULL;
+  return nullptr;
 }
 
 uint32_t SourceManager::File::GetLineLength(uint32_t line,
@@ -605,10 +603,6 @@ void SourceManager::File::FindLinesMatchingRegex(
   }
 }
 
-bool SourceManager::File::FileSpecMatches(const FileSpec &file_spec) {
-  return FileSpec::Equal(m_file_spec, file_spec, false);
-}
-
 bool lldb_private::operator==(const SourceManager::File &lhs,
                               const SourceManager::File &rhs) {
   if (lhs.m_file_spec != rhs.m_file_spec)
@@ -625,7 +619,7 @@ bool SourceManager::File::CalculateLineOffsets(uint32_t line) {
       return true;
 
     if (m_offsets.empty()) {
-      if (m_data_sp.get() == NULL)
+      if (m_data_sp.get() == nullptr)
         return false;
 
       const char *start = (char *)m_data_sp->GetBytes();

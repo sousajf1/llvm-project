@@ -10,14 +10,17 @@
 #include "lldb/Core/Address.h"
 #include "lldb/Core/AddressRange.h"
 #include "lldb/Symbol/ArmUnwindInfo.h"
+#include "lldb/Symbol/CallFrameInfo.h"
 #include "lldb/Symbol/CompactUnwindInfo.h"
 #include "lldb/Symbol/DWARFCallFrameInfo.h"
 #include "lldb/Symbol/ObjectFile.h"
+#include "lldb/Symbol/SymbolFile.h"
 #include "lldb/Symbol/UnwindPlan.h"
 #include "lldb/Symbol/UnwindTable.h"
 #include "lldb/Target/ABI.h"
 #include "lldb/Target/ExecutionContext.h"
 #include "lldb/Target/Process.h"
+#include "lldb/Target/RegisterContext.h"
 #include "lldb/Target/RegisterNumber.h"
 #include "lldb/Target/Target.h"
 #include "lldb/Target/Thread.h"
@@ -28,9 +31,7 @@
 using namespace lldb;
 using namespace lldb_private;
 
-//------------------------------------------------
 /// constructor
-//------------------------------------------------
 
 FuncUnwinders::FuncUnwinders(UnwindTable &unwind_table, AddressRange range)
     : m_unwind_table(unwind_table), m_range(range), m_mutex(),
@@ -44,35 +45,37 @@ FuncUnwinders::FuncUnwinders(UnwindTable &unwind_table, AddressRange range)
       m_tried_unwind_plan_eh_frame_augmented(false),
       m_tried_unwind_plan_debug_frame_augmented(false),
       m_tried_unwind_plan_compact_unwind(false),
-      m_tried_unwind_plan_arm_unwind(false), m_tried_unwind_fast(false),
+      m_tried_unwind_plan_arm_unwind(false),
+      m_tried_unwind_plan_symbol_file(false), m_tried_unwind_fast(false),
       m_tried_unwind_arch_default(false),
       m_tried_unwind_arch_default_at_func_entry(false),
       m_first_non_prologue_insn() {}
 
-//------------------------------------------------
 /// destructor
-//------------------------------------------------
 
 FuncUnwinders::~FuncUnwinders() {}
 
 UnwindPlanSP FuncUnwinders::GetUnwindPlanAtCallSite(Target &target,
-                                                    int current_offset) {
+                                                    Thread &thread) {
   std::lock_guard<std::recursive_mutex> guard(m_mutex);
 
-  if (UnwindPlanSP plan_sp = GetEHFrameUnwindPlan(target, current_offset))
+  if (UnwindPlanSP plan_sp = GetObjectFileUnwindPlan(target))
     return plan_sp;
-  if (UnwindPlanSP plan_sp = GetDebugFrameUnwindPlan(target, current_offset))
+  if (UnwindPlanSP plan_sp = GetSymbolFileUnwindPlan(thread))
     return plan_sp;
-  if (UnwindPlanSP plan_sp = GetCompactUnwindUnwindPlan(target, current_offset))
+  if (UnwindPlanSP plan_sp = GetDebugFrameUnwindPlan(target))
     return plan_sp;
-  if (UnwindPlanSP plan_sp = GetArmUnwindUnwindPlan(target, current_offset))
+  if (UnwindPlanSP plan_sp = GetEHFrameUnwindPlan(target))
+    return plan_sp;
+  if (UnwindPlanSP plan_sp = GetCompactUnwindUnwindPlan(target))
+    return plan_sp;
+  if (UnwindPlanSP plan_sp = GetArmUnwindUnwindPlan(target))
     return plan_sp;
 
   return nullptr;
 }
 
-UnwindPlanSP FuncUnwinders::GetCompactUnwindUnwindPlan(Target &target,
-                                                       int current_offset) {
+UnwindPlanSP FuncUnwinders::GetCompactUnwindUnwindPlan(Target &target) {
   std::lock_guard<std::recursive_mutex> guard(m_mutex);
   if (m_unwind_plan_compact_unwind.size() > 0)
     return m_unwind_plan_compact_unwind[0]; // FIXME support multiple compact
@@ -83,8 +86,6 @@ UnwindPlanSP FuncUnwinders::GetCompactUnwindUnwindPlan(Target &target,
   m_tried_unwind_plan_compact_unwind = true;
   if (m_range.GetBaseAddress().IsValid()) {
     Address current_pc(m_range.GetBaseAddress());
-    if (current_offset != -1)
-      current_pc.SetOffset(current_pc.GetOffset() + current_offset);
     CompactUnwindInfo *compact_unwind = m_unwind_table.GetCompactUnwindInfo();
     if (compact_unwind) {
       UnwindPlanSP unwind_plan_sp(new UnwindPlan(lldb::eRegisterKindGeneric));
@@ -99,53 +100,63 @@ UnwindPlanSP FuncUnwinders::GetCompactUnwindUnwindPlan(Target &target,
   return UnwindPlanSP();
 }
 
-UnwindPlanSP FuncUnwinders::GetEHFrameUnwindPlan(Target &target,
-                                                 int current_offset) {
+lldb::UnwindPlanSP FuncUnwinders::GetObjectFileUnwindPlan(Target &target) {
+  std::lock_guard<std::recursive_mutex> guard(m_mutex);
+  if (m_unwind_plan_object_file_sp.get() ||
+      m_tried_unwind_plan_object_file)
+    return m_unwind_plan_object_file_sp;
+
+  m_tried_unwind_plan_object_file = true;
+  if (m_range.GetBaseAddress().IsValid()) {
+    CallFrameInfo *object_file_frame = m_unwind_table.GetObjectFileUnwindInfo();
+    if (object_file_frame) {
+      m_unwind_plan_object_file_sp =
+          std::make_shared<UnwindPlan>(lldb::eRegisterKindGeneric);
+      if (!object_file_frame->GetUnwindPlan(m_range,
+                                            *m_unwind_plan_object_file_sp))
+        m_unwind_plan_object_file_sp.reset();
+    }
+  }
+  return m_unwind_plan_object_file_sp;
+}
+
+UnwindPlanSP FuncUnwinders::GetEHFrameUnwindPlan(Target &target) {
   std::lock_guard<std::recursive_mutex> guard(m_mutex);
   if (m_unwind_plan_eh_frame_sp.get() || m_tried_unwind_plan_eh_frame)
     return m_unwind_plan_eh_frame_sp;
 
   m_tried_unwind_plan_eh_frame = true;
   if (m_range.GetBaseAddress().IsValid()) {
-    Address current_pc(m_range.GetBaseAddress());
-    if (current_offset != -1)
-      current_pc.SetOffset(current_pc.GetOffset() + current_offset);
     DWARFCallFrameInfo *eh_frame = m_unwind_table.GetEHFrameInfo();
     if (eh_frame) {
       m_unwind_plan_eh_frame_sp =
           std::make_shared<UnwindPlan>(lldb::eRegisterKindGeneric);
-      if (!eh_frame->GetUnwindPlan(current_pc, *m_unwind_plan_eh_frame_sp))
+      if (!eh_frame->GetUnwindPlan(m_range, *m_unwind_plan_eh_frame_sp))
         m_unwind_plan_eh_frame_sp.reset();
     }
   }
   return m_unwind_plan_eh_frame_sp;
 }
 
-UnwindPlanSP FuncUnwinders::GetDebugFrameUnwindPlan(Target &target,
-                                                    int current_offset) {
+UnwindPlanSP FuncUnwinders::GetDebugFrameUnwindPlan(Target &target) {
   std::lock_guard<std::recursive_mutex> guard(m_mutex);
   if (m_unwind_plan_debug_frame_sp || m_tried_unwind_plan_debug_frame)
     return m_unwind_plan_debug_frame_sp;
 
   m_tried_unwind_plan_debug_frame = true;
   if (m_range.GetBaseAddress().IsValid()) {
-    Address current_pc(m_range.GetBaseAddress());
-    if (current_offset != -1)
-      current_pc.SetOffset(current_pc.GetOffset() + current_offset);
     DWARFCallFrameInfo *debug_frame = m_unwind_table.GetDebugFrameInfo();
     if (debug_frame) {
       m_unwind_plan_debug_frame_sp =
           std::make_shared<UnwindPlan>(lldb::eRegisterKindGeneric);
-      if (!debug_frame->GetUnwindPlan(current_pc,
-                                      *m_unwind_plan_debug_frame_sp))
+      if (!debug_frame->GetUnwindPlan(m_range, *m_unwind_plan_debug_frame_sp))
         m_unwind_plan_debug_frame_sp.reset();
     }
   }
   return m_unwind_plan_debug_frame_sp;
 }
 
-UnwindPlanSP FuncUnwinders::GetArmUnwindUnwindPlan(Target &target,
-                                                   int current_offset) {
+UnwindPlanSP FuncUnwinders::GetArmUnwindUnwindPlan(Target &target) {
   std::lock_guard<std::recursive_mutex> guard(m_mutex);
   if (m_unwind_plan_arm_unwind_sp.get() || m_tried_unwind_plan_arm_unwind)
     return m_unwind_plan_arm_unwind_sp;
@@ -153,8 +164,6 @@ UnwindPlanSP FuncUnwinders::GetArmUnwindUnwindPlan(Target &target,
   m_tried_unwind_plan_arm_unwind = true;
   if (m_range.GetBaseAddress().IsValid()) {
     Address current_pc(m_range.GetBaseAddress());
-    if (current_offset != -1)
-      current_pc.SetOffset(current_pc.GetOffset() + current_offset);
     ArmUnwindInfo *arm_unwind_info = m_unwind_table.GetArmUnwindInfo();
     if (arm_unwind_info) {
       m_unwind_plan_arm_unwind_sp =
@@ -167,9 +176,72 @@ UnwindPlanSP FuncUnwinders::GetArmUnwindUnwindPlan(Target &target,
   return m_unwind_plan_arm_unwind_sp;
 }
 
+namespace {
+class RegisterContextToInfo: public SymbolFile::RegisterInfoResolver {
+public:
+  RegisterContextToInfo(RegisterContext &ctx) : m_ctx(ctx) {}
+
+  const RegisterInfo *ResolveName(llvm::StringRef name) const {
+    return m_ctx.GetRegisterInfoByName(name);
+  }
+  const RegisterInfo *ResolveNumber(lldb::RegisterKind kind,
+                                    uint32_t number) const {
+    return m_ctx.GetRegisterInfo(kind, number);
+  }
+
+private:
+  RegisterContext &m_ctx;
+};
+} // namespace
+
+UnwindPlanSP FuncUnwinders::GetSymbolFileUnwindPlan(Thread &thread) {
+  std::lock_guard<std::recursive_mutex> guard(m_mutex);
+  if (m_unwind_plan_symbol_file_sp.get() || m_tried_unwind_plan_symbol_file)
+    return m_unwind_plan_symbol_file_sp;
+
+  m_tried_unwind_plan_symbol_file = true;
+  if (SymbolFile *symfile = m_unwind_table.GetSymbolFile()) {
+    m_unwind_plan_symbol_file_sp = symfile->GetUnwindPlan(
+        m_range.GetBaseAddress(),
+        RegisterContextToInfo(*thread.GetRegisterContext()));
+  }
+  return m_unwind_plan_symbol_file_sp;
+}
+
+UnwindPlanSP
+FuncUnwinders::GetObjectFileAugmentedUnwindPlan(Target &target,
+                                                     Thread &thread) {
+  std::lock_guard<std::recursive_mutex> guard(m_mutex);
+  if (m_unwind_plan_object_file_augmented_sp.get() ||
+      m_tried_unwind_plan_object_file_augmented)
+    return m_unwind_plan_object_file_augmented_sp;
+
+  m_tried_unwind_plan_object_file_augmented = true;
+
+  UnwindPlanSP object_file_unwind_plan = GetObjectFileUnwindPlan(target);
+  if (!object_file_unwind_plan)
+    return m_unwind_plan_object_file_augmented_sp;
+
+  m_unwind_plan_object_file_augmented_sp =
+      std::make_shared<UnwindPlan>(*object_file_unwind_plan);
+
+  // Augment the instructions with epilogue descriptions if necessary
+  // so the UnwindPlan can be used at any instruction in the function.
+
+  UnwindAssemblySP assembly_profiler_sp(GetUnwindAssemblyProfiler(target));
+  if (assembly_profiler_sp) {
+    if (!assembly_profiler_sp->AugmentUnwindPlanFromCallSite(
+            m_range, thread, *m_unwind_plan_object_file_augmented_sp)) {
+      m_unwind_plan_object_file_augmented_sp.reset();
+    }
+  } else {
+    m_unwind_plan_object_file_augmented_sp.reset();
+  }
+  return m_unwind_plan_object_file_augmented_sp;
+}
+
 UnwindPlanSP FuncUnwinders::GetEHFrameAugmentedUnwindPlan(Target &target,
-                                                          Thread &thread,
-                                                          int current_offset) {
+                                                          Thread &thread) {
   std::lock_guard<std::recursive_mutex> guard(m_mutex);
   if (m_unwind_plan_eh_frame_augmented_sp.get() ||
       m_tried_unwind_plan_eh_frame_augmented)
@@ -187,7 +259,7 @@ UnwindPlanSP FuncUnwinders::GetEHFrameAugmentedUnwindPlan(Target &target,
 
   m_tried_unwind_plan_eh_frame_augmented = true;
 
-  UnwindPlanSP eh_frame_plan = GetEHFrameUnwindPlan(target, current_offset);
+  UnwindPlanSP eh_frame_plan = GetEHFrameUnwindPlan(target);
   if (!eh_frame_plan)
     return m_unwind_plan_eh_frame_augmented_sp;
 
@@ -209,9 +281,8 @@ UnwindPlanSP FuncUnwinders::GetEHFrameAugmentedUnwindPlan(Target &target,
   return m_unwind_plan_eh_frame_augmented_sp;
 }
 
-UnwindPlanSP
-FuncUnwinders::GetDebugFrameAugmentedUnwindPlan(Target &target, Thread &thread,
-                                                int current_offset) {
+UnwindPlanSP FuncUnwinders::GetDebugFrameAugmentedUnwindPlan(Target &target,
+                                                             Thread &thread) {
   std::lock_guard<std::recursive_mutex> guard(m_mutex);
   if (m_unwind_plan_debug_frame_augmented_sp.get() ||
       m_tried_unwind_plan_debug_frame_augmented)
@@ -229,8 +300,7 @@ FuncUnwinders::GetDebugFrameAugmentedUnwindPlan(Target &target, Thread &thread,
 
   m_tried_unwind_plan_debug_frame_augmented = true;
 
-  UnwindPlanSP debug_frame_plan =
-      GetDebugFrameUnwindPlan(target, current_offset);
+  UnwindPlanSP debug_frame_plan = GetDebugFrameUnwindPlan(target);
   if (!debug_frame_plan)
     return m_unwind_plan_debug_frame_augmented_sp;
 
@@ -253,8 +323,7 @@ FuncUnwinders::GetDebugFrameAugmentedUnwindPlan(Target &target, Thread &thread,
 }
 
 UnwindPlanSP FuncUnwinders::GetAssemblyUnwindPlan(Target &target,
-                                                  Thread &thread,
-                                                  int current_offset) {
+                                                  Thread &thread) {
   std::lock_guard<std::recursive_mutex> guard(m_mutex);
   if (m_unwind_plan_assembly_sp.get() || m_tried_unwind_plan_assembly ||
       !m_unwind_table.GetAllowAssemblyEmulationUnwindPlans()) {
@@ -310,16 +379,16 @@ LazyBool FuncUnwinders::CompareUnwindPlansForIdenticalInitialPCLocation(
 }
 
 UnwindPlanSP FuncUnwinders::GetUnwindPlanAtNonCallSite(Target &target,
-                                                       Thread &thread,
-                                                       int current_offset) {
-  UnwindPlanSP eh_frame_sp = GetEHFrameUnwindPlan(target, current_offset);
+                                                       Thread &thread) {
+  UnwindPlanSP eh_frame_sp = GetEHFrameUnwindPlan(target);
   if (!eh_frame_sp)
-    eh_frame_sp = GetDebugFrameUnwindPlan(target, current_offset);
+    eh_frame_sp = GetDebugFrameUnwindPlan(target);
+  if (!eh_frame_sp)
+    eh_frame_sp = GetObjectFileUnwindPlan(target);
   UnwindPlanSP arch_default_at_entry_sp =
       GetUnwindPlanArchitectureDefaultAtFunctionEntry(thread);
   UnwindPlanSP arch_default_sp = GetUnwindPlanArchitectureDefault(thread);
-  UnwindPlanSP assembly_sp =
-      GetAssemblyUnwindPlan(target, thread, current_offset);
+  UnwindPlanSP assembly_sp = GetAssemblyUnwindPlan(target, thread);
 
   // This point of this code is to detect when a function is using a non-
   // standard ABI, and the eh_frame correctly describes that alternate ABI.
@@ -348,11 +417,13 @@ UnwindPlanSP FuncUnwinders::GetUnwindPlanAtNonCallSite(Target &target,
     return eh_frame_sp;
   }
 
-  if (UnwindPlanSP plan_sp =
-          GetEHFrameAugmentedUnwindPlan(target, thread, current_offset))
+  if (UnwindPlanSP plan_sp = GetSymbolFileUnwindPlan(thread))
     return plan_sp;
-  if (UnwindPlanSP plan_sp =
-          GetDebugFrameAugmentedUnwindPlan(target, thread, current_offset))
+  if (UnwindPlanSP plan_sp = GetDebugFrameAugmentedUnwindPlan(target, thread))
+    return plan_sp;
+  if (UnwindPlanSP plan_sp = GetEHFrameAugmentedUnwindPlan(target, thread))
+    return plan_sp;
+  if (UnwindPlanSP plan_sp = GetObjectFileAugmentedUnwindPlan(target, thread))
     return plan_sp;
 
   return assembly_sp;
@@ -457,9 +528,12 @@ FuncUnwinders::GetUnwindAssemblyProfiler(Target &target) {
 Address FuncUnwinders::GetLSDAAddress(Target &target) {
   Address lsda_addr;
 
-  UnwindPlanSP unwind_plan_sp = GetEHFrameUnwindPlan(target, -1);
+  UnwindPlanSP unwind_plan_sp = GetEHFrameUnwindPlan(target);
   if (unwind_plan_sp.get() == nullptr) {
-    unwind_plan_sp = GetCompactUnwindUnwindPlan(target, -1);
+    unwind_plan_sp = GetCompactUnwindUnwindPlan(target);
+  }
+  if (unwind_plan_sp.get() == nullptr) {
+    unwind_plan_sp = GetObjectFileUnwindPlan(target);
   }
   if (unwind_plan_sp.get() && unwind_plan_sp->GetLSDAAddress().IsValid()) {
     lsda_addr = unwind_plan_sp->GetLSDAAddress();
@@ -470,9 +544,12 @@ Address FuncUnwinders::GetLSDAAddress(Target &target) {
 Address FuncUnwinders::GetPersonalityRoutinePtrAddress(Target &target) {
   Address personality_addr;
 
-  UnwindPlanSP unwind_plan_sp = GetEHFrameUnwindPlan(target, -1);
+  UnwindPlanSP unwind_plan_sp = GetEHFrameUnwindPlan(target);
   if (unwind_plan_sp.get() == nullptr) {
-    unwind_plan_sp = GetCompactUnwindUnwindPlan(target, -1);
+    unwind_plan_sp = GetCompactUnwindUnwindPlan(target);
+  }
+  if (unwind_plan_sp.get() == nullptr) {
+    unwind_plan_sp = GetObjectFileUnwindPlan(target);
   }
   if (unwind_plan_sp.get() &&
       unwind_plan_sp->GetPersonalityFunctionPtr().IsValid()) {

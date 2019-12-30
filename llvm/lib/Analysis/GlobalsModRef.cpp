@@ -25,6 +25,7 @@
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/IntrinsicInst.h"
 #include "llvm/IR/Module.h"
+#include "llvm/InitializePasses.h"
 #include "llvm/Pass.h"
 #include "llvm/Support/CommandLine.h"
 using namespace llvm;
@@ -286,7 +287,7 @@ GlobalsAAResult::getFunctionInfo(const Function *F) {
 void GlobalsAAResult::AnalyzeGlobals(Module &M) {
   SmallPtrSet<Function *, 32> TrackedFunctions;
   for (Function &F : M)
-    if (F.hasLocalLinkage())
+    if (F.hasLocalLinkage()) {
       if (!AnalyzeUsesOfPointer(&F)) {
         // Remember that we are tracking this global.
         NonAddressTakenGlobals.insert(&F);
@@ -294,7 +295,9 @@ void GlobalsAAResult::AnalyzeGlobals(Module &M) {
         Handles.emplace_front(*this, &F);
         Handles.front().I = Handles.begin();
         ++NumNonAddrTakenFunctions;
-      }
+      } else
+        UnknownFunctionsWithLocalLinkage = true;
+    }
 
   SmallPtrSet<Function *, 16> Readers, Writers;
   for (GlobalVariable &GV : M.globals())
@@ -370,7 +373,8 @@ bool GlobalsAAResult::AnalyzeUsesOfPointer(Value *V,
       // passing into the function.
       if (Call->isDataOperand(&U)) {
         // Detect calls to free.
-        if (Call->isArgOperand(&U) && isFreeCall(I, &TLI)) {
+        if (Call->isArgOperand(&U) &&
+            isFreeCall(I, &GetTLI(*Call->getFunction()))) {
           if (Writers)
             Writers->insert(Call->getParent()->getParent());
         } else {
@@ -432,7 +436,7 @@ bool GlobalsAAResult::AnalyzeIndirectGlobalMemory(GlobalVariable *GV) {
       Value *Ptr = GetUnderlyingObject(SI->getOperand(0),
                                        GV->getParent()->getDataLayout());
 
-      if (!isAllocLikeFn(Ptr, &TLI))
+      if (!isAllocLikeFn(Ptr, &GetTLI(*SI->getFunction())))
         return false; // Too hard to analyze.
 
       // Analyze all uses of the allocation.  If any of them are used in a
@@ -513,7 +517,7 @@ void GlobalsAAResult::AnalyzeCallGraph(CallGraph &CG, Module &M) {
         break;
       }
 
-      if (F->isDeclaration() || F->hasFnAttribute(Attribute::OptimizeNone)) {
+      if (F->isDeclaration() || F->hasOptNone()) {
         // Try to get mod/ref behaviour from function attributes.
         if (F->doesNotAccessMemory()) {
           // Can't do better than that!
@@ -525,9 +529,12 @@ void GlobalsAAResult::AnalyzeCallGraph(CallGraph &CG, Module &M) {
             FI.setMayReadAnyGlobal();
         } else {
           FI.addModRefInfo(ModRefInfo::ModRef);
-          // Can't say anything useful unless it's an intrinsic - they don't
-          // read or write global variables of the kind considered here.
-          KnowNothing = !F->isIntrinsic();
+          if (!F->onlyAccessesArgMemory())
+            FI.setMayReadAnyGlobal();
+          if (!F->isIntrinsic()) {
+            KnowNothing = true;
+            break;
+          }
         }
         continue;
       }
@@ -566,7 +573,7 @@ void GlobalsAAResult::AnalyzeCallGraph(CallGraph &CG, Module &M) {
       // Don't prove any properties based on the implementation of an optnone
       // function. Function attributes were already used as a best approximation
       // above.
-      if (Node->getFunction()->hasFnAttribute(Attribute::OptimizeNone))
+      if (Node->getFunction()->hasOptNone())
         continue;
 
       for (Instruction &I : instructions(Node->getFunction())) {
@@ -576,6 +583,7 @@ void GlobalsAAResult::AnalyzeCallGraph(CallGraph &CG, Module &M) {
         // We handle calls specially because the graph-relevant aspects are
         // handled above.
         if (auto *Call = dyn_cast<CallBase>(&I)) {
+          auto &TLI = GetTLI(*Node->getFunction());
           if (isAllocationFn(Call, &TLI) || isFreeCall(Call, &TLI)) {
             // FIXME: It is completely unclear why this is necessary and not
             // handled by the above graph code.
@@ -896,13 +904,13 @@ ModRefInfo GlobalsAAResult::getModRefInfoForArgument(const CallBase *Call,
   // Iterate through all the arguments to the called function. If any argument
   // is based on GV, return the conservative result.
   for (auto &A : Call->args()) {
-    SmallVector<Value*, 4> Objects;
+    SmallVector<const Value*, 4> Objects;
     GetUnderlyingObjects(A, Objects, DL);
 
     // All objects must be identified.
     if (!all_of(Objects, isIdentifiedObject) &&
         // Try ::alias to see if all objects are known not to alias GV.
-        !all_of(Objects, [&](Value *V) {
+        !all_of(Objects, [&](const Value *V) {
           return this->alias(MemoryLocation(V), MemoryLocation(GV), AAQI) ==
                  NoAlias;
         }))
@@ -925,7 +933,9 @@ ModRefInfo GlobalsAAResult::getModRefInfo(const CallBase *Call,
   // global we are tracking, return information if we have it.
   if (const GlobalValue *GV =
           dyn_cast<GlobalValue>(GetUnderlyingObject(Loc.Ptr, DL)))
-    if (GV->hasLocalLinkage())
+    // If GV is internal to this IR and there is no function with local linkage
+    // that has had their address taken, keep looking for a tighter ModRefInfo.
+    if (GV->hasLocalLinkage() && !UnknownFunctionsWithLocalLinkage)
       if (const Function *F = Call->getCalledFunction())
         if (NonAddressTakenGlobals.count(GV))
           if (const FunctionInfo *FI = getFunctionInfo(F))
@@ -937,12 +947,13 @@ ModRefInfo GlobalsAAResult::getModRefInfo(const CallBase *Call,
   return intersectModRef(Known, AAResultBase::getModRefInfo(Call, Loc, AAQI));
 }
 
-GlobalsAAResult::GlobalsAAResult(const DataLayout &DL,
-                                 const TargetLibraryInfo &TLI)
-    : AAResultBase(), DL(DL), TLI(TLI) {}
+GlobalsAAResult::GlobalsAAResult(
+    const DataLayout &DL,
+    std::function<const TargetLibraryInfo &(Function &F)> GetTLI)
+    : AAResultBase(), DL(DL), GetTLI(std::move(GetTLI)) {}
 
 GlobalsAAResult::GlobalsAAResult(GlobalsAAResult &&Arg)
-    : AAResultBase(std::move(Arg)), DL(Arg.DL), TLI(Arg.TLI),
+    : AAResultBase(std::move(Arg)), DL(Arg.DL), GetTLI(std::move(Arg.GetTLI)),
       NonAddressTakenGlobals(std::move(Arg.NonAddressTakenGlobals)),
       IndirectGlobals(std::move(Arg.IndirectGlobals)),
       AllocsForIndirectGlobals(std::move(Arg.AllocsForIndirectGlobals)),
@@ -957,10 +968,10 @@ GlobalsAAResult::GlobalsAAResult(GlobalsAAResult &&Arg)
 
 GlobalsAAResult::~GlobalsAAResult() {}
 
-/*static*/ GlobalsAAResult
-GlobalsAAResult::analyzeModule(Module &M, const TargetLibraryInfo &TLI,
-                               CallGraph &CG) {
-  GlobalsAAResult Result(M.getDataLayout(), TLI);
+/*static*/ GlobalsAAResult GlobalsAAResult::analyzeModule(
+    Module &M, std::function<const TargetLibraryInfo &(Function &F)> GetTLI,
+    CallGraph &CG) {
+  GlobalsAAResult Result(M.getDataLayout(), GetTLI);
 
   // Discover which functions aren't recursive, to feed into AnalyzeGlobals.
   Result.CollectSCCMembership(CG);
@@ -977,8 +988,12 @@ GlobalsAAResult::analyzeModule(Module &M, const TargetLibraryInfo &TLI,
 AnalysisKey GlobalsAA::Key;
 
 GlobalsAAResult GlobalsAA::run(Module &M, ModuleAnalysisManager &AM) {
-  return GlobalsAAResult::analyzeModule(M,
-                                        AM.getResult<TargetLibraryAnalysis>(M),
+  FunctionAnalysisManager &FAM =
+      AM.getResult<FunctionAnalysisManagerModuleProxy>(M).getManager();
+  auto GetTLI = [&FAM](Function &F) -> TargetLibraryInfo & {
+    return FAM.getResult<TargetLibraryAnalysis>(F);
+  };
+  return GlobalsAAResult::analyzeModule(M, GetTLI,
                                         AM.getResult<CallGraphAnalysis>(M));
 }
 
@@ -999,9 +1014,11 @@ GlobalsAAWrapperPass::GlobalsAAWrapperPass() : ModulePass(ID) {
 }
 
 bool GlobalsAAWrapperPass::runOnModule(Module &M) {
+  auto GetTLI = [this](Function &F) -> TargetLibraryInfo & {
+    return this->getAnalysis<TargetLibraryInfoWrapperPass>().getTLI(F);
+  };
   Result.reset(new GlobalsAAResult(GlobalsAAResult::analyzeModule(
-      M, getAnalysis<TargetLibraryInfoWrapperPass>().getTLI(),
-      getAnalysis<CallGraphWrapperPass>().getCallGraph())));
+      M, GetTLI, getAnalysis<CallGraphWrapperPass>().getCallGraph())));
   return false;
 }
 

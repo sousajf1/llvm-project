@@ -36,14 +36,9 @@ Error COFFReader::readExecutableHeaders(Object &Obj) const {
                                     DH->AddressOfNewExeHeader - sizeof(*DH));
 
   if (COFFObj.is64()) {
-    const pe32plus_header *PE32Plus = nullptr;
-    if (auto EC = COFFObj.getPE32PlusHeader(PE32Plus))
-      return errorCodeToError(EC);
-    Obj.PeHeader = *PE32Plus;
+    Obj.PeHeader = *COFFObj.getPE32PlusHeader();
   } else {
-    const pe32_header *PE32 = nullptr;
-    if (auto EC = COFFObj.getPE32Header(PE32))
-      return errorCodeToError(EC);
+    const pe32_header *PE32 = COFFObj.getPE32Header();
     copyPeHeader(Obj.PeHeader, *PE32);
     // The pe32plus_header (stored in Object) lacks the BaseOfData field.
     Obj.BaseOfData = PE32->BaseOfData;
@@ -68,18 +63,18 @@ Error COFFReader::readSections(Object &Obj) const {
     Sections.push_back(Section());
     Section &S = Sections.back();
     S.Header = *Sec;
+    S.Header.Characteristics &= ~COFF::IMAGE_SCN_LNK_NRELOC_OVFL;
     ArrayRef<uint8_t> Contents;
-    if (auto EC = COFFObj.getSectionContents(Sec, Contents))
-      return errorCodeToError(EC);
+    if (Error E = COFFObj.getSectionContents(Sec, Contents))
+      return E;
     S.setContentsRef(Contents);
     ArrayRef<coff_relocation> Relocs = COFFObj.getRelocations(Sec);
     for (const coff_relocation &R : Relocs)
       S.Relocs.push_back(R);
-    if (auto EC = COFFObj.getSectionName(Sec, S.Name))
-      return errorCodeToError(EC);
-    if (Sec->hasExtendedRelocations())
-      return createStringError(object_error::parse_failed,
-                               "Extended relocations not supported yet");
+    if (Expected<StringRef> NameOrErr = COFFObj.getSectionName(Sec))
+      S.Name = *NameOrErr;
+    else
+      return NameOrErr.takeError();
   }
   Obj.addSections(Sections);
   return Error::success();
@@ -133,7 +128,7 @@ Error COFFReader::readSymbols(Object &Obj, bool IsBigObj) const {
       Sym.TargetSectionId = Sections[SymRef.getSectionNumber() - 1].UniqueId;
     else
       return createStringError(object_error::parse_failed,
-                               "Section number out of range");
+                               "section number out of range");
     // For section definitions, check if it is comdat associative, and if
     // it is, find the target section unique id.
     const coff_aux_section_definition *SD = SymRef.getSectionDefinition();
@@ -142,7 +137,7 @@ Error COFFReader::readSymbols(Object &Obj, bool IsBigObj) const {
       int32_t Index = SD->getNumber(IsBigObj);
       if (Index <= 0 || static_cast<uint32_t>(Index - 1) >= Sections.size())
         return createStringError(object_error::parse_failed,
-                                 "Unexpected associative section index");
+                                 "unexpected associative section index");
       Sym.AssociativeComdatTargetSectionId = Sections[Index - 1].UniqueId;
     } else if (WE) {
       // This is a raw symbol index for now, but store it in the Symbol
@@ -169,11 +164,11 @@ Error COFFReader::setSymbolTargets(Object &Obj) const {
     if (Sym.WeakTargetSymbolId) {
       if (*Sym.WeakTargetSymbolId >= RawSymbolTable.size())
         return createStringError(object_error::parse_failed,
-                                 "Weak external reference out of range");
+                                 "weak external reference out of range");
       const Symbol *Target = RawSymbolTable[*Sym.WeakTargetSymbolId];
       if (Target == nullptr)
         return createStringError(object_error::parse_failed,
-                                 "Invalid SymbolTableIndex");
+                                 "invalid SymbolTableIndex");
       Sym.WeakTargetSymbolId = Target->UniqueId;
     }
   }
@@ -185,7 +180,7 @@ Error COFFReader::setSymbolTargets(Object &Obj) const {
       const Symbol *Sym = RawSymbolTable[R.Reloc.SymbolTableIndex];
       if (Sym == nullptr)
         return createStringError(object_error::parse_failed,
-                                 "Invalid SymbolTableIndex");
+                                 "invalid SymbolTableIndex");
       R.Target = Sym->UniqueId;
       R.TargetName = Sym->Name;
     }
@@ -194,19 +189,16 @@ Error COFFReader::setSymbolTargets(Object &Obj) const {
 }
 
 Expected<std::unique_ptr<Object>> COFFReader::create() const {
-  auto Obj = llvm::make_unique<Object>();
+  auto Obj = std::make_unique<Object>();
 
-  const coff_file_header *CFH = nullptr;
-  const coff_bigobj_file_header *CBFH = nullptr;
-  COFFObj.getCOFFHeader(CFH);
-  COFFObj.getCOFFBigObjHeader(CBFH);
   bool IsBigObj = false;
-  if (CFH) {
+  if (const coff_file_header *CFH = COFFObj.getCOFFHeader()) {
     Obj->CoffFileHeader = *CFH;
   } else {
+    const coff_bigobj_file_header *CBFH = COFFObj.getCOFFBigObjHeader();
     if (!CBFH)
       return createStringError(object_error::parse_failed,
-                               "No COFF file header returned");
+                               "no COFF file header returned");
     // Only copying the few fields from the bigobj header that we need
     // and won't recreate in the end.
     Obj->CoffFileHeader.Machine = CBFH->Machine;

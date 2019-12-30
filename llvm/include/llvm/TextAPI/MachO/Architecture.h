@@ -14,17 +14,18 @@
 #define LLVM_TEXTAPI_MACHO_ARCHITECTURE_H
 
 #include "llvm/ADT/StringRef.h"
+#include "llvm/ADT/Triple.h"
 #include "llvm/Support/raw_ostream.h"
 
 namespace llvm {
 namespace MachO {
 
 /// Defines the architecture slices that are supported by Text-based Stub files.
-enum class Architecture : uint8_t {
-#define ARCHINFO(Arch, Type, SubType) Arch,
+enum Architecture : uint8_t {
+#define ARCHINFO(Arch, Type, SubType) AK_##Arch,
 #include "llvm/TextAPI/MachO/Architecture.def"
 #undef ARCHINFO
-  unknown, // this has to go last.
+  AK_unknown, // this has to go last.
 };
 
 /// Convert a CPU Type and Subtype pair to an architecture slice.
@@ -38,6 +39,9 @@ StringRef getArchitectureName(Architecture Arch);
 
 /// Convert an architecture slice to a CPU Type and Subtype pair.
 std::pair<uint32_t, uint32_t> getCPUTypeFromArchitecture(Architecture Arch);
+
+/// Convert a target to an architecture slice.
+Architecture mapToArchitecture(const llvm::Triple &Target);
 
 raw_ostream &operator<<(raw_ostream &OS, Architecture Arch);
 

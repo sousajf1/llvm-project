@@ -1,8 +1,10 @@
-// RUN: sed -e "s:INPUT_DIR:%S/Inputs:g" -e "s:OUT_DIR:%t:g" -e "s:EXTERNAL_NAMES:true:" %S/Inputs/use-external-names.yaml > %t.external.yaml
-// RUN: sed -e "s:INPUT_DIR:%S/Inputs:g" -e "s:OUT_DIR:%t:g" -e "s:EXTERNAL_NAMES:false:" %S/Inputs/use-external-names.yaml > %t.yaml
-// REQUIRES: shell
+// RUN: sed -e "s@INPUT_DIR@%{/S:regex_replacement}/Inputs@g" -e "s@OUT_DIR@%{/t:regex_replacement}@g" -e "s@EXTERNAL_NAMES@true@" %S/Inputs/use-external-names.yaml > %t.external.yaml
+// RUN: sed -e "s@INPUT_DIR@%{/S:regex_replacement}/Inputs@g" -e "s@OUT_DIR@%{/t:regex_replacement}@g" -e "s@EXTERNAL_NAMES@false@" %S/Inputs/use-external-names.yaml > %t.yaml
 
 #include "external-names.h"
+#ifdef REINCLUDE
+#include "external-names.h"
+#endif
 
 ////
 // Preprocessor (__FILE__ macro and # directives):
@@ -33,3 +35,16 @@
 
 // RUN: %clang_cc1 -I %t -ivfsoverlay %t.yaml -triple %itanium_abi_triple -debug-info-kind=limited -emit-llvm %s -o - | FileCheck -check-prefix=CHECK-DEBUG %s
 // CHECK-DEBUG-NOT: Inputs
+
+////
+// Dependency file
+
+// RUN: %clang_cc1 -D REINCLUDE -I %t -ivfsoverlay %t.external.yaml -Eonly %s -MTfoo -dependency-file %t.external.dep
+// RUN: echo "EOF" >> %t.external.dep
+// RUN: cat %t.external.dep | FileCheck --check-prefix=CHECK-DEP-EXTERNAL %s
+// CHECK-DEP-EXTERNAL: Inputs{{.}}external-names.h
+// CHECK-DEP-EXTERNAL-NEXT: EOF
+
+// RUN: %clang_cc1 -D REINCLUDE -I %t -ivfsoverlay %t.yaml -Eonly %s -MTfoo -dependency-file %t.dep
+// RUN: cat %t.dep | FileCheck --check-prefix=CHECK-DEP %s
+// CHECK-DEP-NOT: Inputs

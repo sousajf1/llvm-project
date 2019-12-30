@@ -30,12 +30,15 @@ public:
     SBThreadPlan ();
 
     SBThreadPlan (const lldb::SBThreadPlan &threadPlan);
-    
+
     SBThreadPlan (const lldb::ThreadPlanSP& lldb_object_sp);
 
     SBThreadPlan (lldb::SBThread &thread, const char *class_name);
 
    ~SBThreadPlan ();
+
+    bool
+    IsValid();
 
     bool
     IsValid() const;
@@ -48,29 +51,29 @@ public:
     lldb::StopReason
     GetStopReason();
 
-    /// Get the number of words associated with the stop reason.
-    /// See also GetStopReasonDataAtIndex().
+    %feature("docstring", "
+    Get the number of words associated with the stop reason.
+    See also GetStopReasonDataAtIndex().") GetStopReasonDataCount;
     size_t
     GetStopReasonDataCount();
 
-    //--------------------------------------------------------------------------
-    /// Get information associated with a stop reason.
-    ///
-    /// Breakpoint stop reasons will have data that consists of pairs of 
-    /// breakpoint IDs followed by the breakpoint location IDs (they always come
-    /// in pairs).
-    ///
-    /// Stop Reason              Count Data Type
-    /// ======================== ===== =========================================
-    /// eStopReasonNone          0
-    /// eStopReasonTrace         0
-    /// eStopReasonBreakpoint    N     duple: {breakpoint id, location id}
-    /// eStopReasonWatchpoint    1     watchpoint id
-    /// eStopReasonSignal        1     unix signal number
-    /// eStopReasonException     N     exception data
-    /// eStopReasonExec          0
-    /// eStopReasonPlanComplete  0
-    //--------------------------------------------------------------------------
+    %feature("docstring", "
+    Get information associated with a stop reason.
+
+    Breakpoint stop reasons will have data that consists of pairs of
+    breakpoint IDs followed by the breakpoint location IDs (they always come
+    in pairs).
+
+    Stop Reason              Count Data Type
+    ======================== ===== =========================================
+    eStopReasonNone          0
+    eStopReasonTrace         0
+    eStopReasonBreakpoint    N     duple: {breakpoint id, location id}
+    eStopReasonWatchpoint    1     watchpoint id
+    eStopReasonSignal        1     unix signal number
+    eStopReasonException     N     exception data
+    eStopReasonExec          0
+    eStopReasonPlanComplete  0") GetStopReasonDataAtIndex;
     uint64_t
     GetStopReasonDataAtIndex(uint32_t idx);
 
@@ -89,12 +92,6 @@ public:
     bool
     IsPlanStale();
 
-    bool
-    IsValid();
-
-    explicit operator bool() const;
-
-    // This section allows an SBThreadPlan to push another of the common types of plans...
     SBThreadPlan
     QueueThreadPlanForStepOverRange (SBAddress &start_address,
                                      lldb::addr_t range_size);
@@ -105,12 +102,20 @@ public:
 
     SBThreadPlan
     QueueThreadPlanForStepOut (uint32_t frame_idx_to_step_to, bool first_insn = false);
-    
+
     SBThreadPlan
     QueueThreadPlanForRunToAddress (SBAddress address);
 
     SBThreadPlan
     QueueThreadPlanForStepScripted(const char *script_class_name);
+
+    SBThreadPlan
+    QueueThreadPlanForStepScripted(const char *script_class_name,
+                                   SBError &error);
+    SBThreadPlan
+    QueueThreadPlanForStepScripted(const char *script_class_name,
+                                   SBStructuredData &args_data,
+                                   SBError &error);
 
 
 protected:

@@ -7,16 +7,13 @@
 //
 //===----------------------------------------------------------------------===//
 
+// UNSUPPORTED: c++98, c++03, c++11, c++14
+
 // Tests for count and count_if
 #include "support/pstl_test_config.h"
 
-#ifdef PSTL_STANDALONE_TESTS
-#include "pstl/execution"
-#include "pstl/algorithm"
-#else
 #include <execution>
 #include <algorithm>
-#endif // PSTL_STANDALONE_TESTS
 
 #include "support/utils.h"
 
@@ -93,12 +90,12 @@ struct test_non_const
     }
 };
 
-int32_t
+int
 main()
 {
     test<int32_t>(42, IsEqual<int32_t>(50, OddTag()), [](int32_t j) { return j; });
-#if !__PSTL_ICC_16_17_TEST_REDUCTION_RELEASE_BROKEN
-    test<int32_t>(42, [](const int32_t& x) { return true; }, [](int32_t j) { return j; });
+#if !_PSTL_ICC_16_17_TEST_REDUCTION_RELEASE_BROKEN
+    test<int32_t>(42, [](const int32_t&) { return true; }, [](int32_t j) { return j; });
 #endif
     test<float64_t>(42, IsEqual<float64_t>(50, OddTag()), [](int32_t j) { return float64_t(j); });
     test<Number>(Number(42, OddTag()), IsEqual<Number>(Number(50, OddTag()), OddTag()),

@@ -27,7 +27,6 @@
 #include "llvm/Analysis/LegacyDivergenceAnalysis.h"
 #include "llvm/Analysis/PostDominators.h"
 #include "llvm/Analysis/TargetTransformInfo.h"
-#include "llvm/Transforms/Utils/Local.h"
 #include "llvm/IR/BasicBlock.h"
 #include "llvm/IR/CFG.h"
 #include "llvm/IR/Constants.h"
@@ -36,10 +35,12 @@
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Intrinsics.h"
 #include "llvm/IR/Type.h"
+#include "llvm/InitializePasses.h"
 #include "llvm/Pass.h"
 #include "llvm/Support/Casting.h"
 #include "llvm/Transforms/Scalar.h"
 #include "llvm/Transforms/Utils.h"
+#include "llvm/Transforms/Utils/Local.h"
 
 using namespace llvm;
 
@@ -198,14 +199,11 @@ bool AMDGPUUnifyDivergentExitNodes::runOnFunction(Function &F) {
         BranchInst::Create(LoopHeaderBB, DummyReturnBB, BoolTrue, BB);
       } else { // Conditional branch.
         // Create a new transition block to hold the conditional branch.
-        BasicBlock *TransitionBB = BasicBlock::Create(F.getContext(),
-                                                      "TransitionBlock", &F);
+        BasicBlock *TransitionBB = BB->splitBasicBlock(BI, "TransitionBlock");
 
-        // Move BI from BB to the new transition block.
-        BI->removeFromParent();
-        TransitionBB->getInstList().push_back(BI);
-
-        // Create a branch that will always branch to the transition block.
+        // Create a branch that will always branch to the transition block and
+        // references DummyReturnBB.
+        BB->getTerminator()->eraseFromParent();
         BranchInst::Create(TransitionBB, DummyReturnBB, BoolTrue, BB);
       }
     }

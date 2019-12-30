@@ -23,7 +23,6 @@
 
 namespace lldb_private {
 
-//----------------------------------------------------------------------
 /// \class UserExpression UserExpression.h "lldb/Expression/UserExpression.h"
 /// Encapsulates a one-time expression for use in lldb.
 ///
@@ -33,25 +32,20 @@ namespace lldb_private {
 /// JIT an expression.  The actual parsing part will be provided by the specific
 /// implementations of UserExpression - which will be vended through the
 /// appropriate TypeSystem.
-//----------------------------------------------------------------------
 class UserExpression : public Expression {
+  /// LLVM RTTI support.
+  static char ID;
+
 public:
-  /// LLVM-style RTTI support.
-  static bool classof(const Expression *E) {
-    return E->getKind() == eKindUserExpression;
-  }
-  
+  bool isA(const void *ClassID) const override { return ClassID == &ID; }
+  static bool classof(const Expression *obj) { return obj->isA(&ID); }
+
   enum { kDefaultTimeout = 500000u };
 
-  //------------------------------------------------------------------
   /// Constructor
   ///
   /// \param[in] expr
   ///     The expression to parse.
-  ///
-  /// \param[in] expr_prefix
-  ///     If non-nullptr, a C string containing translation-unit level
-  ///     definitions to be included when the expression is parsed.
   ///
   /// \param[in] language
   ///     If not eLanguageTypeUnknown, a language to use when parsing
@@ -61,19 +55,14 @@ public:
   /// \param[in] desired_type
   ///     If not eResultTypeAny, the type to use for the expression
   ///     result.
-  //------------------------------------------------------------------
   UserExpression(ExecutionContextScope &exe_scope, llvm::StringRef expr,
                  llvm::StringRef prefix, lldb::LanguageType language,
                  ResultType desired_type,
-                 const EvaluateExpressionOptions &options,
-                 ExpressionKind kind);
+                 const EvaluateExpressionOptions &options);
 
-  //------------------------------------------------------------------
   /// Destructor
-  //------------------------------------------------------------------
   ~UserExpression() override;
 
-  //------------------------------------------------------------------
   /// Parse the expression
   ///
   /// \param[in] diagnostic_manager
@@ -93,13 +82,11 @@ public:
   ///
   /// \return
   ///     True on success (no errors); false otherwise.
-  //------------------------------------------------------------------
   virtual bool Parse(DiagnosticManager &diagnostic_manager,
                      ExecutionContext &exe_ctx,
                      lldb_private::ExecutionPolicy execution_policy,
                      bool keep_result_in_memory, bool generate_debug_info) = 0;
 
-  //------------------------------------------------------------------
   /// Attempts to find possible command line completions for the given
   /// (possible incomplete) user expression.
   ///
@@ -121,7 +108,6 @@ public:
   /// \return
   ///     True if we added any completion results to the output;
   ///     false otherwise.
-  //------------------------------------------------------------------
   virtual bool Complete(ExecutionContext &exe_ctx, CompletionRequest &request,
                         unsigned complete_pos) {
     return false;
@@ -131,7 +117,6 @@ public:
 
   bool MatchesContext(ExecutionContext &exe_ctx);
 
-  //------------------------------------------------------------------
   /// Execute the parsed expression by callinng the derived class's DoExecute
   /// method.
   ///
@@ -158,14 +143,12 @@ public:
   ///
   /// \return
   ///     A Process::Execution results value.
-  //------------------------------------------------------------------
   lldb::ExpressionResults Execute(DiagnosticManager &diagnostic_manager,
                                   ExecutionContext &exe_ctx,
                                   const EvaluateExpressionOptions &options,
                                   lldb::UserExpressionSP &shared_ptr_to_me,
                                   lldb::ExpressionVariableSP &result);
 
-  //------------------------------------------------------------------
   /// Apply the side effects of the function to program state.
   ///
   /// \param[in] diagnostic_manager
@@ -179,57 +162,48 @@ public:
   ///     A pointer to direct at the persistent variable in which the
   ///     expression's result is stored.
   ///
-  /// \param[in] function_stack_pointer
-  ///     A pointer to the base of the function's stack frame.  This
+  /// \param[in] function_stack_bottom
+  ///     A pointer to the bottom of the function's stack frame.  This
+  ///     is used to determine whether the expression result resides in
+  ///     memory that will still be valid, or whether it needs to be
+  ///     treated as homeless for the purpose of future expressions.
+  ///
+  /// \param[in] function_stack_top
+  ///     A pointer to the top of the function's stack frame.  This
   ///     is used to determine whether the expression result resides in
   ///     memory that will still be valid, or whether it needs to be
   ///     treated as homeless for the purpose of future expressions.
   ///
   /// \return
   ///     A Process::Execution results value.
-  //------------------------------------------------------------------
   virtual bool FinalizeJITExecution(
       DiagnosticManager &diagnostic_manager, ExecutionContext &exe_ctx,
       lldb::ExpressionVariableSP &result,
       lldb::addr_t function_stack_bottom = LLDB_INVALID_ADDRESS,
       lldb::addr_t function_stack_top = LLDB_INVALID_ADDRESS) = 0;
 
-  //------------------------------------------------------------------
   /// Return the string that the parser should parse.
-  //------------------------------------------------------------------
   const char *Text() override { return m_expr_text.c_str(); }
 
-  //------------------------------------------------------------------
   /// Return the string that the user typed.
-  //------------------------------------------------------------------
   const char *GetUserText() { return m_expr_text.c_str(); }
 
-  //------------------------------------------------------------------
   /// Return the function name that should be used for executing the
   /// expression.  Text() should contain the definition of this function.
-  //------------------------------------------------------------------
   const char *FunctionName() override { return "$__lldb_expr"; }
 
-  //------------------------------------------------------------------
   /// Return the language that should be used when parsing.  To use the
   /// default, return eLanguageTypeUnknown.
-  //------------------------------------------------------------------
   lldb::LanguageType Language() override { return m_language; }
 
-  //------------------------------------------------------------------
   /// Return the desired result type of the function, or eResultTypeAny if
   /// indifferent.
-  //------------------------------------------------------------------
   ResultType DesiredResultType() override { return m_desired_type; }
 
-  //------------------------------------------------------------------
   /// Return true if validation code should be inserted into the expression.
-  //------------------------------------------------------------------
   bool NeedsValidation() override { return true; }
 
-  //------------------------------------------------------------------
   /// Return true if external variables in the expression should be resolved.
-  //------------------------------------------------------------------
   bool NeedsVariableResolution() override { return true; }
 
   EvaluateExpressionOptions *GetOptions() override { return &m_options; }
@@ -241,7 +215,6 @@ public:
 
   virtual lldb::ModuleSP GetJITModule() { return lldb::ModuleSP(); }
 
-  //------------------------------------------------------------------
   /// Evaluate one expression in the scratch context of the target passed in
   /// the exe_ctx and return its result.
   ///
@@ -287,7 +260,6 @@ public:
   /// \result
   ///      A Process::ExpressionResults value.  eExpressionCompleted for
   ///      success.
-  //------------------------------------------------------------------
   static lldb::ExpressionResults
   Evaluate(ExecutionContext &exe_ctx, const EvaluateExpressionOptions &options,
            llvm::StringRef expr_cstr, llvm::StringRef expr_prefix,
@@ -316,10 +288,8 @@ protected:
   static lldb::addr_t GetObjectPointer(lldb::StackFrameSP frame_sp,
                                        ConstString &object_name, Status &err);
 
-  //------------------------------------------------------------------
   /// Populate m_in_cplusplus_method and m_in_objectivec_method based on the
   /// environment.
-  //------------------------------------------------------------------
 
   void InstallContext(ExecutionContext &exe_ctx);
 

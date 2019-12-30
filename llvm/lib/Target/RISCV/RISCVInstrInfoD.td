@@ -231,6 +231,9 @@ def : Pat<(fabs FPR64:$rs1), (FSGNJX_D $rs1, $rs1)>;
 
 def : PatFpr64Fpr64<fcopysign, FSGNJ_D>;
 def : Pat<(fcopysign FPR64:$rs1, (fneg FPR64:$rs2)), (FSGNJN_D $rs1, $rs2)>;
+def : Pat<(fcopysign FPR64:$rs1, FPR32:$rs2), (FSGNJ_D $rs1, (FCVT_D_S $rs2))>;
+def : Pat<(fcopysign FPR32:$rs1, FPR64:$rs2), (FSGNJ_S $rs1, (FCVT_S_D $rs2,
+                                                              0b111))>;
 
 // fmadd: rs1 * rs2 + rs3
 def : Pat<(fma FPR64:$rs1, FPR64:$rs2, FPR64:$rs3),
@@ -269,6 +272,10 @@ def : PatFpr64Fpr64<setole, FLE_D>;
 // Define pattern expansions for setcc operations which aren't directly
 // handled by a RISC-V instruction and aren't expanded in the SelectionDAG
 // Legalizer.
+
+def : Pat<(seto FPR64:$rs1, FPR64:$rs2),
+          (AND (FEQ_D FPR64:$rs1, FPR64:$rs1),
+               (FEQ_D FPR64:$rs2, FPR64:$rs2))>;
 
 def : Pat<(setuo FPR64:$rs1, FPR64:$rs2),
           (SLTIU (AND (FEQ_D FPR64:$rs1, FPR64:$rs1),

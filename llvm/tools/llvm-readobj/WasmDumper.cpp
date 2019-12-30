@@ -32,11 +32,11 @@ static const EnumEntry<unsigned> WasmSymbolTypes[] = {
 static const EnumEntry<uint32_t> WasmSectionTypes[] = {
 #define ENUM_ENTRY(X)                                                          \
   { #X, wasm::WASM_SEC_##X }
-    ENUM_ENTRY(CUSTOM),   ENUM_ENTRY(TYPE),  ENUM_ENTRY(IMPORT),
-    ENUM_ENTRY(FUNCTION), ENUM_ENTRY(TABLE), ENUM_ENTRY(MEMORY),
-    ENUM_ENTRY(GLOBAL),   ENUM_ENTRY(EVENT), ENUM_ENTRY(EXPORT),
-    ENUM_ENTRY(START),    ENUM_ENTRY(ELEM),  ENUM_ENTRY(CODE),
-    ENUM_ENTRY(DATA),
+    ENUM_ENTRY(CUSTOM),   ENUM_ENTRY(TYPE),      ENUM_ENTRY(IMPORT),
+    ENUM_ENTRY(FUNCTION), ENUM_ENTRY(TABLE),     ENUM_ENTRY(MEMORY),
+    ENUM_ENTRY(GLOBAL),   ENUM_ENTRY(EVENT),     ENUM_ENTRY(EXPORT),
+    ENUM_ENTRY(START),    ENUM_ENTRY(ELEM),      ENUM_ENTRY(CODE),
+    ENUM_ENTRY(DATA),     ENUM_ENTRY(DATACOUNT),
 #undef ENUM_ENTRY
 };
 
@@ -50,6 +50,8 @@ static const EnumEntry<unsigned> WasmSymbolFlags[] = {
   ENUM_ENTRY(VISIBILITY_HIDDEN),
   ENUM_ENTRY(UNDEFINED),
   ENUM_ENTRY(EXPORTED),
+  ENUM_ENTRY(EXPLICIT_NAME),
+  ENUM_ENTRY(NO_STRIP),
 #undef ENUM_ENTRY
 };
 
@@ -89,7 +91,7 @@ void WasmDumper::printRelocation(const SectionRef &Section,
   StringRef SymName;
   symbol_iterator SI = Reloc.getSymbol();
   if (SI != Obj->symbol_end())
-    SymName = error(SI->getName());
+    SymName = unwrapOrError(Obj->getFileName(), SI->getName());
 
   bool HasAddend = false;
   switch (RelocType) {
@@ -132,8 +134,8 @@ void WasmDumper::printRelocations() {
   int SectionNumber = 0;
   for (const SectionRef &Section : Obj->sections()) {
     bool PrintedGroup = false;
-    StringRef Name;
-    error(Section.getName(Name));
+    StringRef Name = unwrapOrError(Obj->getFileName(), Section.getName());
+
     ++SectionNumber;
 
     for (const RelocationRef &Reloc : Section.relocations()) {

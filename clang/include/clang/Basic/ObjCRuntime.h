@@ -429,6 +429,37 @@ public:
     }
   }
 
+  /// Returns true if this Objective-C runtime supports Objective-C class
+  /// stubs.
+  bool allowsClassStubs() const {
+    switch (getKind()) {
+    case FragileMacOSX:
+    case GCC:
+    case GNUstep:
+    case ObjFW:
+      return false;
+    case MacOSX:
+    case iOS:
+    case WatchOS:
+      return true;
+    }
+    llvm_unreachable("bad kind");
+  }
+
+  /// Does this runtime supports direct dispatch
+  bool allowsDirectDispatch() const {
+    switch (getKind()) {
+    case FragileMacOSX: return false;
+    case MacOSX: return true;
+    case iOS: return true;
+    case WatchOS: return true;
+    case GCC: return false;
+    case GNUstep: return false;
+    case ObjFW: return false;
+    }
+    llvm_unreachable("bad kind");
+  }
+
   /// Try to parse an Objective-C runtime specification from the given
   /// string.
   ///

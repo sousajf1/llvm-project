@@ -31,11 +31,6 @@ public:
   StringExtractorGDBRemote(const char *cstr)
       : StringExtractor(cstr), m_validator(nullptr) {}
 
-  StringExtractorGDBRemote(const StringExtractorGDBRemote &rhs)
-      : StringExtractor(rhs), m_validator(rhs.m_validator) {}
-
-  virtual ~StringExtractorGDBRemote() {}
-
   bool ValidateResponse() const;
 
   void CopyResponseValidator(const StringExtractorGDBRemote &rhs);
@@ -128,7 +123,7 @@ public:
     eServerPacketType_qVAttachOrWaitSupported,
     eServerPacketType_qWatchpointSupportInfo,
     eServerPacketType_qWatchpointSupportInfoSupported,
-    eServerPacketType_qXfer_auxv_read,
+    eServerPacketType_qXfer,
 
     eServerPacketType_jSignalsInfo,
     eServerPacketType_jModulesInfo,

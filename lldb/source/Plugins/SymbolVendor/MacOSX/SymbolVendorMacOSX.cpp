@@ -10,6 +10,7 @@
 
 #include <string.h>
 
+#include "Plugins/ObjectFile/Mach-O/ObjectFileMachO.h"
 #include "lldb/Core/Module.h"
 #include "lldb/Core/ModuleSpec.h"
 #include "lldb/Core/PluginManager.h"
@@ -25,15 +26,11 @@
 using namespace lldb;
 using namespace lldb_private;
 
-//----------------------------------------------------------------------
 // SymbolVendorMacOSX constructor
-//----------------------------------------------------------------------
 SymbolVendorMacOSX::SymbolVendorMacOSX(const lldb::ModuleSP &module_sp)
     : SymbolVendor(module_sp) {}
 
-//----------------------------------------------------------------------
 // Destructor
-//----------------------------------------------------------------------
 SymbolVendorMacOSX::~SymbolVendorMacOSX() {}
 
 static bool UUIDsMatch(Module *module, ObjectFile *ofile,
@@ -45,7 +42,7 @@ static bool UUIDsMatch(Module *module, ObjectFile *ofile,
       if (feedback_strm) {
         feedback_strm->PutCString(
             "warning: failed to get the uuid for object file: '");
-        ofile->GetFileSpec().Dump(feedback_strm);
+        ofile->GetFileSpec().Dump(feedback_strm->AsRawOstream());
         feedback_strm->PutCString("\n");
       }
       return false;
@@ -60,11 +57,11 @@ static bool UUIDsMatch(Module *module, ObjectFile *ofile,
           "warning: UUID mismatch detected between modules:\n    ");
       module->GetUUID().Dump(feedback_strm);
       feedback_strm->PutChar(' ');
-      module->GetFileSpec().Dump(feedback_strm);
+      module->GetFileSpec().Dump(feedback_strm->AsRawOstream());
       feedback_strm->PutCString("\n    ");
       dsym_uuid.Dump(feedback_strm);
       feedback_strm->PutChar(' ');
-      ofile->GetFileSpec().Dump(feedback_strm);
+      ofile->GetFileSpec().Dump(feedback_strm->AsRawOstream());
       feedback_strm->EOL();
     }
   }
@@ -90,26 +87,20 @@ const char *SymbolVendorMacOSX::GetPluginDescriptionStatic() {
          "executables.";
 }
 
-//----------------------------------------------------------------------
 // CreateInstance
 //
 // Platforms can register a callback to use when creating symbol vendors to
 // allow for complex debug information file setups, and to also allow for
 // finding separate debug information files.
-//----------------------------------------------------------------------
 SymbolVendor *
 SymbolVendorMacOSX::CreateInstance(const lldb::ModuleSP &module_sp,
                                    lldb_private::Stream *feedback_strm) {
   if (!module_sp)
     return NULL;
 
-  ObjectFile *obj_file = module_sp->GetObjectFile();
+  ObjectFile *obj_file =
+      llvm::dyn_cast_or_null<ObjectFileMachO>(module_sp->GetObjectFile());
   if (!obj_file)
-    return NULL;
-
-  static ConstString obj_file_macho("mach-o");
-  ConstString obj_name = obj_file->GetPluginName();
-  if (obj_name != obj_file_macho)
     return NULL;
 
   static Timer::Category func_cat(LLVM_PRETTY_FUNCTION);
@@ -312,9 +303,7 @@ SymbolVendorMacOSX::CreateInstance(const lldb::ModuleSP &module_sp,
   return symbol_vendor;
 }
 
-//------------------------------------------------------------------
 // PluginInterface protocol
-//------------------------------------------------------------------
 ConstString SymbolVendorMacOSX::GetPluginName() {
   return GetPluginNameStatic();
 }

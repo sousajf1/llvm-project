@@ -12,7 +12,7 @@
 ; LINE: v_mov_b32_e32 v{{[0-9]+}}, 0x888
 ; LINE: ; {{.*}}source-lines.cl:3
 ; LINE: ; {{.*}}source-lines.cl:4
-; LINE: v_add_u32_e32
+; LINE: v_add_u32_e64
 ; LINE: ; {{.*}}source-lines.cl:5
 ; LINE: flat_store_dword
 ; Epilogue.
@@ -28,7 +28,7 @@
 ; SOURCE: v_mov_b32_e32 v{{[0-9]+}}, 0x888
 ; SOURCE: ; int var1 = 0x888;
 ; SOURCE: ; int var2 = var0 + var1;
-; SOURCE: v_add_u32_e32
+; SOURCE: v_add_u32_e64
 ; SOURCE: ; *Out = var2;
 ; SOURCE: flat_store_dword
 ; Epilogue.
@@ -67,7 +67,7 @@ entry:
 ; Function Attrs: nounwind readnone
 declare void @llvm.dbg.declare(metadata, metadata, metadata) #1
 
-attributes #0 = { noinline nounwind "correctly-rounded-divide-sqrt-fp-math"="false" "disable-tail-calls"="false" "less-precise-fpmad"="false" "no-frame-pointer-elim"="true" "no-frame-pointer-elim-non-leaf" "no-infs-fp-math"="false" "no-jump-tables"="false" "no-nans-fp-math"="false" "no-signed-zeros-fp-math"="false" "no-trapping-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="gfx700" "target-features"="+fp64-fp16-denormals,-fp32-denormals" "unsafe-fp-math"="false" "use-soft-float"="false" }
+attributes #0 = { noinline nounwind "correctly-rounded-divide-sqrt-fp-math"="false" "disable-tail-calls"="false" "less-precise-fpmad"="false" "frame-pointer"="all" "no-infs-fp-math"="false" "no-jump-tables"="false" "no-nans-fp-math"="false" "no-signed-zeros-fp-math"="false" "no-trapping-math"="false" "stack-protector-buffer-size"="8" "target-cpu"="gfx700" "target-features"="+fp64-fp16-denormals,-fp32-denormals" "unsafe-fp-math"="false" "use-soft-float"="false" }
 attributes #1 = { nounwind readnone }
 
 !llvm.dbg.cu = !{!0}

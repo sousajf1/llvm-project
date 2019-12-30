@@ -67,6 +67,7 @@
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Module.h"
 #include "llvm/IR/Operator.h"
+#include "llvm/InitializePasses.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/Debug.h"
 
@@ -240,6 +241,7 @@ static unsigned ComputeSpeculationCost(const Instruction *I,
     case Instruction::FMul:
     case Instruction::FDiv:
     case Instruction::FRem:
+    case Instruction::FNeg:
     case Instruction::ICmp:
     case Instruction::FCmp:
       return TTI.getUserCost(I);

@@ -1,4 +1,4 @@
-; RUN: llc < %s -filetype=obj | llvm-readobj - -codeview | FileCheck %s
+; RUN: llc < %s -filetype=obj | llvm-readobj - --codeview | FileCheck %s
 ;
 ; -- lexicablock.cxx begin ----------------------------------------------------
 ; int main(int argc, char *argv[]) {
@@ -72,6 +72,19 @@
 ; CHECK: }
 ; CHECK: ScopeEndSym {
 ; CHECK:   Kind: S_END {{.*}}
+; CHECK: }
+; CHECK: BlockSym {
+; CHECK:   Kind: S_BLOCK32 {{.*}}
+; CHECK:   BlockName: 
+; CHECK: }
+; CHECK: ScopeEndSym {
+; CHECK:   Kind: S_END {{.*}}
+; CHECK: }
+; CHECK: BlockSym {
+; CHECK:   Kind: S_BLOCK32 {{.*}}
+; CHECK:   BlockName: 
+; CHECK: }
+; CHECK: ScopeEndSym {
 ; CHECK: }
 ; CHECK: BlockSym {
 ; CHECK:   Kind: S_BLOCK32 {{.*}}
@@ -202,7 +215,7 @@ declare i32 @llvm.expect.i32(i32, i32) #3
 ; Function Attrs: argmemonly nounwind
 declare void @llvm.lifetime.end.p0i8(i64, i8* nocapture) #2
 
-attributes #0 = { norecurse nounwind "correctly-rounded-divide-sqrt-fp-math"="false" "disable-tail-calls"="false" "less-precise-fpmad"="false" "no-frame-pointer-elim"="false" "no-infs-fp-math"="false" "no-jump-tables"="false" "no-nans-fp-math"="false" "no-signed-zeros-fp-math"="false" "no-trapping-math"="false" "stack-protector-buffer-size"="8" "target-features"="+x87" "unsafe-fp-math"="false" "use-soft-float"="false" }
+attributes #0 = { norecurse nounwind "correctly-rounded-divide-sqrt-fp-math"="false" "disable-tail-calls"="false" "less-precise-fpmad"="false" "frame-pointer"="none" "no-infs-fp-math"="false" "no-jump-tables"="false" "no-nans-fp-math"="false" "no-signed-zeros-fp-math"="false" "no-trapping-math"="false" "stack-protector-buffer-size"="8" "target-features"="+x87" "unsafe-fp-math"="false" "use-soft-float"="false" }
 attributes #1 = { nounwind readnone speculatable }
 attributes #2 = { argmemonly nounwind }
 attributes #3 = { nounwind readnone }

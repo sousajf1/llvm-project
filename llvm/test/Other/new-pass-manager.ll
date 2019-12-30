@@ -24,6 +24,7 @@
 ; CHECK-CGSCC-PASS-NEXT: Running analysis: InnerAnalysisManagerProxy<{{.*(FunctionAnalysisManager|AnalysisManager<.*Function.*>).*}},{{.*}}Module>
 ; CHECK-CGSCC-PASS-NEXT: Running analysis: LazyCallGraphAnalysis
 ; CHECK-CGSCC-PASS-NEXT: Running analysis: TargetLibraryAnalysis
+; CHECK-CGSCC-PASS-NEXT: Running analysis: PassInstrumentationAnalysis
 ; CHECK-CGSCC-PASS-NEXT: Running analysis: FunctionAnalysisManagerCGSCCProxy
 ; CHECK-CGSCC-PASS-NEXT: Running analysis: PassInstrumentationAnalysis
 ; CHECK-CGSCC-PASS-NEXT: Running analysis: OuterAnalysisManagerProxy<{{.*}}LazyCallGraph::SCC{{.*}}>
@@ -355,13 +356,11 @@
 ; CHECK-AA-MODULE-INVALIDATE: Running analysis: AAManager
 ; CHECK-AA-MODULE-INVALIDATE: Finished llvm::Function pass manager run
 ; CHECK-AA-MODULE-INVALIDATE: Running pass: InvalidateAnalysisPass
-; CHECK-AA-MODULE-INVALIDATE: Invalidating analysis: AAManager
 ; CHECK-AA-MODULE-INVALIDATE: Invalidating analysis: GlobalsAA
 ; CHECK-AA-MODULE-INVALIDATE: Running pass: RequireAnalysisPass
 ; CHECK-AA-MODULE-INVALIDATE: Running analysis: GlobalsAA
 ; CHECK-AA-MODULE-INVALIDATE: Starting llvm::Function pass manager run
 ; CHECK-AA-MODULE-INVALIDATE: Running pass: AAEvaluator
-; CHECK-AA-MODULE-INVALIDATE: Running analysis: AAManager
 ; CHECK-AA-MODULE-INVALIDATE: Finished llvm::Function pass manager run
 ; CHECK-AA-MODULE-INVALIDATE: Finished llvm::Module pass manager run
 
@@ -412,6 +411,7 @@
 ; CHECK-REPEAT-CGSCC-PASS-NEXT: Running analysis: InnerAnalysisManagerProxy<{{.*(FunctionAnalysisManager|AnalysisManager<.*Function.*>).*}},{{.*}}Module>
 ; CHECK-REPEAT-CGSCC-PASS-NEXT: Running analysis: LazyCallGraphAnalysis
 ; CHECK-REPEAT-CGSCC-PASS-NEXT: Running analysis: TargetLibraryAnalysis
+; CHECK-REPEAT-CGSCC-PASS-NEXT: Running analysis: PassInstrumentationAnalysis
 ; CHECK-REPEAT-CGSCC-PASS-NEXT: Running analysis: FunctionAnalysisManagerCGSCCProxy
 ; CHECK-REPEAT-CGSCC-PASS-NEXT: Running analysis: PassInstrumentationAnalysis
 ; CHECK-REPEAT-CGSCC-PASS-NEXT: Running analysis: OuterAnalysisManagerProxy<{{.*}}LazyCallGraph::SCC{{.*}}>

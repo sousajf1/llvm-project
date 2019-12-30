@@ -88,6 +88,16 @@ bool AArch64::getExtensionFeatures(unsigned Extensions,
     Features.push_back("+rdm");
   if (Extensions & AEK_SVE)
     Features.push_back("+sve");
+  if (Extensions & AEK_SVE2)
+    Features.push_back("+sve2");
+  if (Extensions & AEK_SVE2AES)
+    Features.push_back("+sve2-aes");
+  if (Extensions & AEK_SVE2SM4)
+    Features.push_back("+sve2-sm4");
+  if (Extensions & AEK_SVE2SHA3)
+    Features.push_back("+sve2-sha3");
+  if (Extensions & AEK_SVE2BITPERM)
+    Features.push_back("+sve2-bitperm");
   if (Extensions & AEK_RCPC)
     Features.push_back("+rcpc");
 
@@ -202,4 +212,52 @@ AArch64::ArchKind AArch64::parseCPUArch(StringRef CPU) {
       return C.ArchID;
   }
   return ArchKind::INVALID;
+}
+
+// Parse a branch protection specification, which has the form
+//   standard | none | [bti,pac-ret[+b-key,+leaf]*]
+// Returns true on success, with individual elements of the specification
+// returned in `PBP`. Returns false in error, with `Err` containing
+// an erroneous part of the spec.
+bool AArch64::parseBranchProtection(StringRef Spec, ParsedBranchProtection &PBP,
+                                    StringRef &Err) {
+  PBP = {"none", "a_key", false};
+  if (Spec == "none")
+    return true; // defaults are ok
+
+  if (Spec == "standard") {
+    PBP.Scope = "non-leaf";
+    PBP.BranchTargetEnforcement = true;
+    return true;
+  }
+
+  SmallVector<StringRef, 4> Opts;
+  Spec.split(Opts, "+");
+  for (int I = 0, E = Opts.size(); I != E; ++I) {
+    StringRef Opt = Opts[I].trim();
+    if (Opt == "bti") {
+      PBP.BranchTargetEnforcement = true;
+      continue;
+    }
+    if (Opt == "pac-ret") {
+      PBP.Scope = "non-leaf";
+      for (; I + 1 != E; ++I) {
+        StringRef PACOpt = Opts[I + 1].trim();
+        if (PACOpt == "leaf")
+          PBP.Scope = "all";
+        else if (PACOpt == "b-key")
+          PBP.Key = "b_key";
+        else
+          break;
+      }
+      continue;
+    }
+    if (Opt == "")
+      Err = "<empty>";
+    else
+      Err = Opt;
+    return false;
+  }
+
+  return true;
 }

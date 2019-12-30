@@ -22,11 +22,12 @@ class HostInfoMacOSX : public HostInfoPosix {
 
 private:
   // Static class, unconstructable.
-  HostInfoMacOSX();
-  ~HostInfoMacOSX();
+  HostInfoMacOSX() = delete;
+  ~HostInfoMacOSX() = delete;
 
 public:
   static llvm::VersionTuple GetOSVersion();
+  static llvm::VersionTuple GetMacCatalystVersion();
   static bool GetOSBuildString(std::string &s);
   static bool GetOSKernelDescription(std::string &s);
   static FileSpec GetProgramFileSpec();

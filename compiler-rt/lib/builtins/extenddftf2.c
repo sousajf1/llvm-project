@@ -5,7 +5,6 @@
 // SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
-//
 
 #define QUAD_PRECISION
 #include "fp_lib.h"
@@ -15,8 +14,8 @@
 #define DST_QUAD
 #include "fp_extend_impl.inc"
 
-COMPILER_RT_ABI long double __extenddftf2(double a) {
-    return __extendXfYf2__(a);
+COMPILER_RT_ABI fp_t __extenddftf2(double a) {
+  return __extendXfYf2__(a);
 }
 
 #endif

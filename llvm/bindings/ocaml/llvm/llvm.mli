@@ -266,6 +266,8 @@ module Opcode : sig
   | CatchPad
   | CleanupPad
   | CatchSwitch
+  | FNeg
+  | CallBr
 end
 
 (** The type of a clause of a [landingpad] instruction.
@@ -2588,6 +2590,12 @@ val build_is_not_null : llvalue -> string -> llbuilder -> llvalue
     instruction builder [b].
     See the method [llvm::LLVMBuilder::CreatePtrDiff]. *)
 val build_ptrdiff : llvalue -> llvalue -> string -> llbuilder -> llvalue
+
+(** [build_freeze x name b] creates a
+    [%name = freeze %x]
+    instruction at the position specified by the instruction builder [b].
+    See the method [llvm::LLVMBuilder::CreateFreeze]. *)
+val build_freeze : llvalue -> string -> llbuilder -> llvalue
 
 
 (** {6 Memory buffers} *)

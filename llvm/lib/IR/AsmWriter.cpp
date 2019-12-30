@@ -352,6 +352,8 @@ static void PrintCallingConv(unsigned cc, raw_ostream &Out) {
   case CallingConv::PreserveAll:   Out << "preserve_allcc"; break;
   case CallingConv::CXX_FAST_TLS:  Out << "cxx_fast_tlscc"; break;
   case CallingConv::GHC:           Out << "ghccc"; break;
+  case CallingConv::Tail:          Out << "tailcc"; break;
+  case CallingConv::CFGuard_Check: Out << "cfguard_checkcc"; break;
   case CallingConv::X86_StdCall:   Out << "x86_stdcallcc"; break;
   case CallingConv::X86_FastCall:  Out << "x86_fastcallcc"; break;
   case CallingConv::X86_ThisCall:  Out << "x86_thiscallcc"; break;
@@ -362,6 +364,9 @@ static void PrintCallingConv(unsigned cc, raw_ostream &Out) {
   case CallingConv::ARM_AAPCS:     Out << "arm_aapcscc"; break;
   case CallingConv::ARM_AAPCS_VFP: Out << "arm_aapcs_vfpcc"; break;
   case CallingConv::AArch64_VectorCall: Out << "aarch64_vector_pcs"; break;
+  case CallingConv::AArch64_SVE_VectorCall:
+    Out << "aarch64_sve_vector_pcs";
+    break;
   case CallingConv::MSP430_INTR:   Out << "msp430_intrcc"; break;
   case CallingConv::AVR_INTR:      Out << "avr_intrcc "; break;
   case CallingConv::AVR_SIGNAL:    Out << "avr_signalcc "; break;
@@ -620,7 +625,10 @@ void TypePrinting::print(Type *Ty, raw_ostream &OS) {
   }
   case Type::VectorTyID: {
     VectorType *PTy = cast<VectorType>(Ty);
-    OS << "<" << PTy->getNumElements() << " x ";
+    OS << "<";
+    if (PTy->isScalable())
+      OS << "vscale x ";
+    OS << PTy->getNumElements() << " x ";
     print(PTy->getElementType(), OS);
     OS << '>';
     return;
@@ -832,7 +840,7 @@ SlotTracker *ModuleSlotTracker::getMachine() {
 
   ShouldCreateStorage = false;
   MachineStorage =
-      llvm::make_unique<SlotTracker>(M, ShouldInitializeAllMetadata);
+      std::make_unique<SlotTracker>(M, ShouldInitializeAllMetadata);
   Machine = MachineStorage.get();
   return Machine;
 }
@@ -1036,6 +1044,9 @@ void SlotTracker::processIndex() {
   for (auto TidIter = TheIndex->typeIds().begin();
        TidIter != TheIndex->typeIds().end(); TidIter++)
     CreateTypeIdSlot(TidIter->second.first);
+
+  for (auto &TId : TheIndex->typeIdCompatibleVtableMap())
+    CreateGUIDSlot(GlobalValue::getGUID(TId.first));
 
   ST_DEBUG("end processIndex!\n");
 }
@@ -2001,6 +2012,19 @@ static void writeDINamespace(raw_ostream &Out, const DINamespace *N,
   Out << ")";
 }
 
+static void writeDICommonBlock(raw_ostream &Out, const DICommonBlock *N,
+                               TypePrinting *TypePrinter, SlotTracker *Machine,
+                               const Module *Context) {
+  Out << "!DICommonBlock(";
+  MDFieldPrinter Printer(Out, TypePrinter, Machine, Context);
+  Printer.printMetadata("scope", N->getRawScope(), false);
+  Printer.printMetadata("declaration", N->getRawDecl(), false);
+  Printer.printString("name", N->getName());
+  Printer.printMetadata("file", N->getRawFile());
+  Printer.printInt("line", N->getLineNo());
+  Out << ")";
+}
+
 static void writeDIMacro(raw_ostream &Out, const DIMacro *N,
                          TypePrinting *TypePrinter, SlotTracker *Machine,
                          const Module *Context) {
@@ -2033,7 +2057,7 @@ static void writeDIModule(raw_ostream &Out, const DIModule *N,
   Printer.printString("name", N->getName());
   Printer.printString("configMacros", N->getConfigurationMacros());
   Printer.printString("includePath", N->getIncludePath());
-  Printer.printString("isysroot", N->getISysRoot());
+  Printer.printString("sysroot", N->getSysRoot());
   Out << ")";
 }
 
@@ -2293,7 +2317,7 @@ static void WriteAsOperandInternal(raw_ostream &Out, const Metadata *MD,
   if (const MDNode *N = dyn_cast<MDNode>(MD)) {
     std::unique_ptr<SlotTracker> MachineStorage;
     if (!Machine) {
-      MachineStorage = make_unique<SlotTracker>(Context);
+      MachineStorage = std::make_unique<SlotTracker>(Context);
       Machine = MachineStorage.get();
     }
     int Slot = Machine->getMetadataSlot(N);
@@ -2397,6 +2421,7 @@ public:
   void printGlobalVarSummary(const GlobalVarSummary *GS);
   void printFunctionSummary(const FunctionSummary *FS);
   void printTypeIdSummary(const TypeIdSummary &TIS);
+  void printTypeIdCompatibleVtableSummary(const TypeIdCompatibleVtableInfo &TI);
   void printTypeTestResolution(const TypeTestResolution &TTRes);
   void printArgs(const std::vector<uint64_t> &Args);
   void printWPDRes(const WholeProgramDevirtResolution &WPDRes);
@@ -2699,6 +2724,15 @@ void AssemblyWriter::printModuleSummaryIndex() {
     printTypeIdSummary(TidIter->second.second);
     Out << ") ; guid = " << TidIter->first << "\n";
   }
+
+  // Print the TypeIdCompatibleVtableMap entries.
+  for (auto &TId : TheIndex->typeIdCompatibleVtableMap()) {
+    auto GUID = GlobalValue::getGUID(TId.first);
+    Out << "^" << Machine.getGUIDSlot(GUID)
+        << " = typeidCompatibleVTable: (name: \"" << TId.first << "\"";
+    printTypeIdCompatibleVtableSummary(TId.second);
+    Out << ") ; guid = " << GUID << "\n";
+  }
 }
 
 static const char *
@@ -2781,6 +2815,19 @@ void AssemblyWriter::printTypeIdSummary(const TypeIdSummary &TIS) {
   Out << ")";
 }
 
+void AssemblyWriter::printTypeIdCompatibleVtableSummary(
+    const TypeIdCompatibleVtableInfo &TI) {
+  Out << ", summary: (";
+  FieldSeparator FS;
+  for (auto &P : TI) {
+    Out << FS;
+    Out << "(offset: " << P.AddressPointOffset << ", ";
+    Out << "^" << Machine.getGUIDSlot(P.VTableVI.getGUID());
+    Out << ")";
+  }
+  Out << ")";
+}
+
 void AssemblyWriter::printArgs(const std::vector<uint64_t> &Args) {
   Out << "args: (";
   FieldSeparator FS;
@@ -2849,7 +2896,21 @@ void AssemblyWriter::printAliasSummary(const AliasSummary *AS) {
 }
 
 void AssemblyWriter::printGlobalVarSummary(const GlobalVarSummary *GS) {
-  Out << ", varFlags: (readonly: " << GS->VarFlags.ReadOnly << ")";
+  Out << ", varFlags: (readonly: " << GS->VarFlags.MaybeReadOnly << ", "
+      << "writeonly: " << GS->VarFlags.MaybeWriteOnly << ")";
+
+  auto VTableFuncs = GS->vTableFuncs();
+  if (!VTableFuncs.empty()) {
+    Out << ", vTableFuncs: (";
+    FieldSeparator FS;
+    for (auto &P : VTableFuncs) {
+      Out << FS;
+      Out << "(virtFunc: ^" << Machine.getGUIDSlot(P.FuncVI.getGUID())
+          << ", offset: " << P.VTableOffset;
+      Out << ")";
+    }
+    Out << ")";
+  }
 }
 
 static std::string getLinkageName(GlobalValue::LinkageTypes LT) {
@@ -2894,13 +2955,14 @@ void AssemblyWriter::printFunctionSummary(const FunctionSummary *FS) {
 
   FunctionSummary::FFlags FFlags = FS->fflags();
   if (FFlags.ReadNone | FFlags.ReadOnly | FFlags.NoRecurse |
-      FFlags.ReturnDoesNotAlias) {
+      FFlags.ReturnDoesNotAlias | FFlags.NoInline | FFlags.AlwaysInline) {
     Out << ", funcFlags: (";
     Out << "readNone: " << FFlags.ReadNone;
     Out << ", readOnly: " << FFlags.ReadOnly;
     Out << ", noRecurse: " << FFlags.NoRecurse;
     Out << ", returnDoesNotAlias: " << FFlags.ReturnDoesNotAlias;
     Out << ", noInline: " << FFlags.NoInline;
+    Out << ", alwaysInline: " << FFlags.AlwaysInline;
     Out << ")";
   }
   if (!FS->calls().empty()) {
@@ -3028,6 +3090,7 @@ void AssemblyWriter::printSummary(const GlobalValueSummary &Summary) {
   Out << ", notEligibleToImport: " << GVFlags.NotEligibleToImport;
   Out << ", live: " << GVFlags.Live;
   Out << ", dsoLocal: " << GVFlags.DSOLocal;
+  Out << ", canAutoHide: " << GVFlags.CanAutoHide;
   Out << ")";
 
   if (Summary.getSummaryKind() == GlobalValueSummary::AliasKind)
@@ -3045,6 +3108,8 @@ void AssemblyWriter::printSummary(const GlobalValueSummary &Summary) {
       Out << FS;
       if (Ref.isReadOnly())
         Out << "readonly ";
+      else if (Ref.isWriteOnly())
+        Out << "writeonly ";
       Out << "^" << Machine.getGUIDSlot(Ref.getGUID());
     }
     Out << ")";
@@ -3233,6 +3298,12 @@ void AssemblyWriter::printGlobal(const GlobalVariable *GV) {
     printEscapedString(GV->getSection(), Out);
     Out << '"';
   }
+  if (GV->hasPartition()) {
+    Out << ", partition \"";
+    printEscapedString(GV->getPartition(), Out);
+    Out << '"';
+  }
+
   maybePrintComdat(Out, *GV);
   if (GV->getAlignment())
     Out << ", align " << GV->getAlignment();
@@ -3284,6 +3355,12 @@ void AssemblyWriter::printIndirectSymbol(const GlobalIndirectSymbol *GIS) {
     writeOperand(IS, !isa<ConstantExpr>(IS));
   }
 
+  if (GIS->hasPartition()) {
+    Out << ", partition \"";
+    printEscapedString(GIS->getPartition(), Out);
+    Out << '"';
+  }
+
   printInfoComment(*GIS);
   Out << '\n';
 }
@@ -3323,9 +3400,6 @@ void AssemblyWriter::printTypeIdentities() {
 
 /// printFunction - Print all aspects of a function.
 void AssemblyWriter::printFunction(const Function *F) {
-  // Print out the return type and name.
-  Out << '\n';
-
   if (AnnotationWriter) AnnotationWriter->emitFunctionAnnot(F, Out);
 
   if (F->isMaterializable())
@@ -3424,6 +3498,11 @@ void AssemblyWriter::printFunction(const Function *F) {
     printEscapedString(F->getSection(), Out);
     Out << '"';
   }
+  if (F->hasPartition()) {
+    Out << " partition \"";
+    printEscapedString(F->getPartition(), Out);
+    Out << '"';
+  }
   maybePrintComdat(Out, *F);
   if (F->getAlignment())
     Out << " align " << F->getAlignment();
@@ -3477,11 +3556,16 @@ void AssemblyWriter::printArgument(const Argument *Arg, AttributeSet Attrs) {
   if (Arg->hasName()) {
     Out << ' ';
     PrintLLVMName(Out, Arg);
+  } else {
+    int Slot = Machine.getLocalSlot(Arg);
+    assert(Slot != -1 && "expect argument in function here");
+    Out << " %" << Slot;
   }
 }
 
 /// printBasicBlock - This member is called for each basic block in a method.
 void AssemblyWriter::printBasicBlock(const BasicBlock *BB) {
+  assert(BB && BB->getParent() && "block without parent!");
   bool IsEntryBlock = BB == &BB->getParent()->getEntryBlock();
   if (BB->hasName()) {              // Print out the label if it exists...
     Out << "\n";
@@ -3496,10 +3580,7 @@ void AssemblyWriter::printBasicBlock(const BasicBlock *BB) {
       Out << "<badref>:";
   }
 
-  if (!BB->getParent()) {
-    Out.PadToColumn(50);
-    Out << "; Error: Block without parent!";
-  } else if (!IsEntryBlock) {
+  if (!IsEntryBlock) {
     // Output predecessors for the block.
     Out.PadToColumn(50);
     Out << ";";

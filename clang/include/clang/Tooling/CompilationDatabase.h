@@ -31,6 +31,7 @@
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/ADT/Twine.h"
+#include "llvm/Support/VirtualFileSystem.h"
 #include <memory>
 #include <string>
 #include <utility>
@@ -59,9 +60,15 @@ struct CompileCommand {
   /// The output file associated with the command.
   std::string Output;
 
+  /// If this compile command was guessed rather than read from an authoritative
+  /// source, a short human-readable explanation.
+  /// e.g. "inferred from foo/bar.h".
+  std::string Heuristic;
+
   friend bool operator==(const CompileCommand &LHS, const CompileCommand &RHS) {
     return LHS.Directory == RHS.Directory && LHS.Filename == RHS.Filename &&
-           LHS.CommandLine == RHS.CommandLine && LHS.Output == RHS.Output;
+           LHS.CommandLine == RHS.CommandLine && LHS.Output == RHS.Output &&
+           LHS.Heuristic == RHS.Heuristic;
   }
 
   friend bool operator!=(const CompileCommand &LHS, const CompileCommand &RHS) {
@@ -206,6 +213,18 @@ private:
 /// See InterpolatingCompilationDatabase.cpp for details on heuristics.
 std::unique_ptr<CompilationDatabase>
     inferMissingCompileCommands(std::unique_ptr<CompilationDatabase>);
+
+/// Returns a wrapped CompilationDatabase that will add -target and -mode flags
+/// to commandline when they can be deduced from argv[0] of commandline returned
+/// by underlying database.
+std::unique_ptr<CompilationDatabase>
+inferTargetAndDriverMode(std::unique_ptr<CompilationDatabase> Base);
+
+/// Returns a wrapped CompilationDatabase that will expand all rsp(response)
+/// files on commandline returned by underlying database.
+std::unique_ptr<CompilationDatabase>
+expandResponseFiles(std::unique_ptr<CompilationDatabase> Base,
+                    llvm::IntrusiveRefCntPtr<llvm::vfs::FileSystem> FS);
 
 } // namespace tooling
 } // namespace clang

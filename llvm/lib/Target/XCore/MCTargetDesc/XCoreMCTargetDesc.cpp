@@ -11,8 +11,9 @@
 //===----------------------------------------------------------------------===//
 
 #include "MCTargetDesc/XCoreMCTargetDesc.h"
-#include "InstPrinter/XCoreInstPrinter.h"
+#include "MCTargetDesc/XCoreInstPrinter.h"
 #include "MCTargetDesc/XCoreMCAsmInfo.h"
+#include "TargetInfo/XCoreTargetInfo.h"
 #include "XCoreTargetStreamer.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/MC/MCDwarf.h"
@@ -54,7 +55,8 @@ createXCoreMCSubtargetInfo(const Triple &TT, StringRef CPU, StringRef FS) {
 }
 
 static MCAsmInfo *createXCoreMCAsmInfo(const MCRegisterInfo &MRI,
-                                       const Triple &TT) {
+                                       const Triple &TT,
+                                       const MCTargetOptions &Options) {
   MCAsmInfo *MAI = new XCoreMCAsmInfo(TT);
 
   // Initial state of the frame pointer is SP.

@@ -16,6 +16,7 @@
 #include "NativeProcessLinux.h"
 
 #include "llvm/Support/Compiler.h"
+#include "llvm/Support/Errno.h"
 
 #include "Plugins/Process/POSIX/ProcessPOSIXLog.h"
 #include "lldb/Host/linux/Ptrace.h"
@@ -171,7 +172,7 @@ std::unique_ptr<SingleStepWorkaround> SingleStepWorkaround::Get(::pid_t tid) {
   }
 
   LLDB_LOG(log, "workaround for thread {0} prepared", tid);
-  return llvm::make_unique<SingleStepWorkaround>(tid, original_set);
+  return std::make_unique<SingleStepWorkaround>(tid, original_set);
 }
 
 SingleStepWorkaround::~SingleStepWorkaround() {

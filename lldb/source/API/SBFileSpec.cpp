@@ -59,7 +59,21 @@ const SBFileSpec &SBFileSpec::operator=(const SBFileSpec &rhs) {
 
   if (this != &rhs)
     m_opaque_up = clone(rhs.m_opaque_up);
-  return *this;
+  return LLDB_RECORD_RESULT(*this);
+}
+
+bool SBFileSpec::operator==(const SBFileSpec &rhs) const {
+  LLDB_RECORD_METHOD_CONST(bool, SBFileSpec, operator==,(const SBFileSpec &rhs),
+                           rhs);
+
+  return ref() == rhs.ref();
+}
+
+bool SBFileSpec::operator!=(const SBFileSpec &rhs) const {
+  LLDB_RECORD_METHOD_CONST(bool, SBFileSpec, operator!=,(const SBFileSpec &rhs),
+                           rhs);
+
+  return !(*this == rhs);
 }
 
 bool SBFileSpec::IsValid() const {
@@ -129,7 +143,7 @@ void SBFileSpec::SetDirectory(const char *directory) {
 }
 
 uint32_t SBFileSpec::GetPath(char *dst_path, size_t dst_len) const {
-  LLDB_RECORD_METHOD_CONST(uint32_t, SBFileSpec, GetPath, (char *, size_t),
+  LLDB_RECORD_DUMMY(uint32_t, SBFileSpec, GetPath, (char *, size_t),
                            dst_path, dst_len);
 
   uint32_t result = m_opaque_up->GetPath(dst_path, dst_len);
@@ -185,6 +199,10 @@ void RegisterMethods<SBFileSpec>(Registry &R) {
   LLDB_REGISTER_CONSTRUCTOR(SBFileSpec, (const char *, bool));
   LLDB_REGISTER_METHOD(const lldb::SBFileSpec &,
                        SBFileSpec, operator=,(const lldb::SBFileSpec &));
+  LLDB_REGISTER_METHOD_CONST(bool,
+                             SBFileSpec, operator==,(const lldb::SBFileSpec &));
+  LLDB_REGISTER_METHOD_CONST(bool,
+                             SBFileSpec, operator!=,(const lldb::SBFileSpec &));
   LLDB_REGISTER_METHOD_CONST(bool, SBFileSpec, IsValid, ());
   LLDB_REGISTER_METHOD_CONST(bool, SBFileSpec, operator bool, ());
   LLDB_REGISTER_METHOD_CONST(bool, SBFileSpec, Exists, ());

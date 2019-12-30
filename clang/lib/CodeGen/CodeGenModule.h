@@ -17,7 +17,6 @@
 #include "CodeGenTypeCache.h"
 #include "CodeGenTypes.h"
 #include "SanitizerMetadata.h"
-#include "clang/AST/Attr.h"
 #include "clang/AST/DeclCXX.h"
 #include "clang/AST/DeclObjC.h"
 #include "clang/AST/DeclOpenMP.h"
@@ -45,6 +44,7 @@ class GlobalValue;
 class DataLayout;
 class FunctionType;
 class LLVMContext;
+class OpenMPIRBuilder;
 class IndexedInstrProfReader;
 }
 
@@ -77,6 +77,9 @@ class AnnotateAttr;
 class CXXDestructorDecl;
 class Module;
 class CoverageSourceInfo;
+class TargetAttr;
+class InitSegAttr;
+struct ParsedTargetAttr;
 
 namespace CodeGen {
 
@@ -254,7 +257,8 @@ public:
   /// have different helper functions.
   CharUnits Alignment;
 
-  BlockByrefHelpers(CharUnits alignment) : Alignment(alignment) {}
+  BlockByrefHelpers(CharUnits alignment)
+      : CopyHelper(nullptr), DisposeHelper(nullptr), Alignment(alignment) {}
   BlockByrefHelpers(const BlockByrefHelpers &) = default;
   virtual ~BlockByrefHelpers();
 
@@ -318,6 +322,7 @@ private:
   std::unique_ptr<CGObjCRuntime> ObjCRuntime;
   std::unique_ptr<CGOpenCLRuntime> OpenCLRuntime;
   std::unique_ptr<CGOpenMPRuntime> OpenMPRuntime;
+  std::unique_ptr<llvm::OpenMPIRBuilder> OMPBuilder;
   std::unique_ptr<CGCUDARuntime> CUDARuntime;
   std::unique_ptr<CGDebugInfo> DebugInfo;
   std::unique_ptr<ObjCEntrypoints> ObjCData;
@@ -360,6 +365,10 @@ private:
   /// anymore (because the name is already taken).
   llvm::SmallVector<std::pair<llvm::GlobalValue *, llvm::Constant *>, 8>
     GlobalValReplacements;
+
+  /// Variables for which we've emitted globals containing their constant
+  /// values along with the corresponding globals, for opportunistic reuse.
+  llvm::DenseMap<const VarDecl*, llvm::GlobalVariable*> InitializerConstants;
 
   /// Set of global decls for which we already diagnosed mangled name conflict.
   /// Required to not issue a warning (on a mangling conflict) multiple times
@@ -465,8 +474,11 @@ private:
   /// have been emitted.
   llvm::SmallPtrSet<clang::Module *, 16> EmittedModuleInitializers;
 
-  /// A vector of metadata strings.
+  /// A vector of metadata strings for linker options.
   SmallVector<llvm::MDNode *, 16> LinkerOptionsMetadata;
+
+  /// A vector of metadata strings for dependent libraries for ELF.
+  SmallVector<llvm::MDNode *, 16> ELFDependentLibraries;
 
   /// @name Cache for Objective-C runtime types
   /// @{
@@ -515,17 +527,17 @@ private:
     int GlobalUniqueCount;
   } Block;
 
+  GlobalDecl initializedGlobalDecl;
+
+  /// @}
+
   /// void @llvm.lifetime.start(i64 %size, i8* nocapture <ptr>)
   llvm::Function *LifetimeStartFn = nullptr;
 
   /// void @llvm.lifetime.end(i64 %size, i8* nocapture <ptr>)
   llvm::Function *LifetimeEndFn = nullptr;
 
-  GlobalDecl initializedGlobalDecl;
-
   std::unique_ptr<SanitizerMetadata> SanitizerMD;
-
-  /// @}
 
   llvm::MapVector<const Decl *, bool> DeferredEmptyCoverageMappingDecls;
 
@@ -577,6 +589,9 @@ public:
     return *OpenMPRuntime;
   }
 
+  /// Return a pointer to the configured OpenMPIRBuilder, if any.
+  llvm::OpenMPIRBuilder *getOpenMPIRBuilder() { return OMPBuilder.get(); }
+
   /// Return a reference to the configured CUDA runtime.
   CGCUDARuntime &getCUDARuntime() {
     assert(CUDARuntime != nullptr);
@@ -618,6 +633,9 @@ public:
                                       llvm::GlobalVariable *C) {
     StaticLocalDeclGuardMap[D] = C;
   }
+
+  Address createUnnamedGlobalFrom(const VarDecl &D, llvm::Constant *Constant,
+                                  CharUnits Align);
 
   bool lookupRepresentativeDecl(StringRef MangledName,
                                 GlobalDecl &Result) const;
@@ -755,9 +773,6 @@ public:
   /// Set the visibility for the given LLVM GlobalValue.
   void setGlobalVisibility(llvm::GlobalValue *GV, const NamedDecl *D) const;
 
-  void setGlobalVisibilityAndLocal(llvm::GlobalValue *GV,
-                                   const NamedDecl *D) const;
-
   void setDSOLocal(llvm::GlobalValue *GV) const;
 
   void setDLLImportDLLExport(llvm::GlobalValue *GV, GlobalDecl D) const;
@@ -766,6 +781,8 @@ public:
   /// This must be called after dllimport/dllexport is set.
   void setGVProperties(llvm::GlobalValue *GV, GlobalDecl GD) const;
   void setGVProperties(llvm::GlobalValue *GV, const NamedDecl *D) const;
+
+  void setGVPropertiesAux(llvm::GlobalValue *GV, const NamedDecl *D) const;
 
   /// Set the TLS mode for the given LLVM GlobalValue for the thread-local
   /// variable declaration D.
@@ -1017,11 +1034,22 @@ public:
   }
 
   /// Create or return a runtime function declaration with the specified type
-  /// and name.
+  /// and name. If \p AssumeConvergent is true, the call will have the
+  /// convergent attribute added.
   llvm::FunctionCallee
   CreateRuntimeFunction(llvm::FunctionType *Ty, StringRef Name,
                         llvm::AttributeList ExtraAttrs = llvm::AttributeList(),
-                        bool Local = false);
+                        bool Local = false, bool AssumeConvergent = false);
+
+  /// Create or return a runtime function declaration with the specified type
+  /// and name. This will automatically add the convergent attribute to the
+  /// function declaration.
+  llvm::FunctionCallee CreateConvergentRuntimeFunction(
+      llvm::FunctionType *Ty, StringRef Name,
+      llvm::AttributeList ExtraAttrs = llvm::AttributeList(),
+      bool Local = false) {
+    return CreateRuntimeFunction(Ty, Name, ExtraAttrs, Local, true);
+  }
 
   /// Create a new runtime global variable with the specified type and name.
   llvm::Constant *CreateRuntimeVariable(llvm::Type *Ty,
@@ -1129,18 +1157,12 @@ public:
   /// It's up to you to ensure that this is safe.
   void AddDefaultFnAttrs(llvm::Function &F);
 
-  /// Parses the target attributes passed in, and returns only the ones that are
-  /// valid feature names.
-  TargetAttr::ParsedTargetAttr filterFunctionTargetAttrs(const TargetAttr *TD);
-
-  // Fills in the supplied string map with the set of target features for the
-  // passed in function.
-  void getFunctionFeatureMap(llvm::StringMap<bool> &FeatureMap, GlobalDecl GD);
-
   StringRef getMangledName(GlobalDecl GD);
   StringRef getBlockMangledName(GlobalDecl GD, const BlockDecl *BD);
 
   void EmitTentativeDefinition(const VarDecl *D);
+
+  void EmitExternalDeclaration(const VarDecl *D);
 
   void EmitVTable(CXXRecordDecl *Class);
 
@@ -1152,11 +1174,9 @@ public:
   /// Appends a detect mismatch command to the linker options.
   void AddDetectMismatch(StringRef Name, StringRef Value);
 
-  /// Appends a dependent lib to the "llvm.linker.options" metadata
-  /// value.
+  /// Appends a dependent lib to the appropriate metadata value.
   void AddDependentLib(StringRef Lib);
 
-  void AddELFLibDirective(StringRef Lib);
 
   llvm::GlobalVariable::LinkageTypes getFunctionLinkage(GlobalDecl GD);
 
@@ -1262,13 +1282,26 @@ public:
   /// \param D Requires declaration
   void EmitOMPRequiresDecl(const OMPRequiresDecl *D);
 
+  /// Emits the definition of \p OldGD function with body from \p NewGD.
+  /// Required for proper handling of declare variant directive on the GPU.
+  void emitOpenMPDeviceFunctionRedefinition(GlobalDecl OldGD, GlobalDecl NewGD,
+                                            llvm::GlobalValue *GV);
+
   /// Returns whether the given record has hidden LTO visibility and therefore
   /// may participate in (single-module) CFI and whole-program vtable
   /// optimization.
   bool HasHiddenLTOVisibility(const CXXRecordDecl *RD);
 
+  /// Returns the vcall visibility of the given type. This is the scope in which
+  /// a virtual function call could be made which ends up being dispatched to a
+  /// member function of this class. This scope can be wider than the visibility
+  /// of the class itself when the class has a more-visible dynamic base class.
+  llvm::GlobalObject::VCallVisibility
+  GetVCallVisibilityLevel(const CXXRecordDecl *RD);
+
   /// Emit type metadata for the given vtable using the given layout.
-  void EmitVTableTypeMetadata(llvm::GlobalVariable *VTable,
+  void EmitVTableTypeMetadata(const CXXRecordDecl *RD,
+                              llvm::GlobalVariable *VTable,
                               const VTableLayout &VTLayout);
 
   /// Generate a cross-DSO type identifier for MD.
@@ -1315,6 +1348,20 @@ public:
   llvm::Value *
   createOpenCLIntToSamplerConversion(const Expr *E, CodeGenFunction &CGF);
 
+  /// OpenCL v1.2 s5.6.4.6 allows the compiler to store kernel argument
+  /// information in the program executable. The argument information stored
+  /// includes the argument name, its type, the address and access qualifiers
+  /// used. This helper can be used to generate metadata for source code kernel
+  /// function as well as generated implicitly kernels. If a kernel is generated
+  /// implicitly null value has to be passed to the last two parameters,
+  /// otherwise all parameters must have valid non-null values.
+  /// \param FN is a pointer to IR function being generated.
+  /// \param FD is a pointer to function declaration if any.
+  /// \param CGF is a pointer to CodeGenFunction that generates this function.
+  void GenOpenCLArgMetadata(llvm::Function *FN,
+                            const FunctionDecl *FD = nullptr,
+                            CodeGenFunction *CGF = nullptr);
+
   /// Get target specific null pointer.
   /// \param T is the LLVM type of the null pointer.
   /// \param QT is the clang QualType of the null pointer.
@@ -1352,6 +1399,7 @@ private:
   void EmitMultiVersionFunctionDefinition(GlobalDecl GD, llvm::GlobalValue *GV);
 
   void EmitGlobalVarDefinition(const VarDecl *D, bool IsTentative = false);
+  void EmitExternalVarDeclaration(const VarDecl *D);
   void EmitAliasDefinition(GlobalDecl GD);
   void emitIFuncDefinition(GlobalDecl GD);
   void emitCPUDispatchDefinition(GlobalDecl GD);

@@ -44,26 +44,32 @@ public:
 
     const char *
     GetOutput (bool only_if_no_immediate);
-    
+
     const char *
     GetError (bool if_no_immediate);
-    
+
     size_t
-    PutOutput (FILE *fh);
-    
+    PutOutput (lldb::SBFile file);
+
     size_t
-    PutError (FILE *fh);
+    PutError (lldb::SBFile file);
+
+    size_t
+    PutOutput (lldb::FileSP BORROWED);
+
+    size_t
+    PutError (lldb::FileSP BORROWED);
 
     void
     Clear();
 
     void
     SetStatus (lldb::ReturnStatus status);
-    
+
     void
     SetError (lldb::SBError &error,
               const char *fallback_error_cstr = NULL);
-    
+
     void
     SetError (const char *error_cstr);
 
@@ -84,16 +90,21 @@ public:
 
     bool
     GetDescription (lldb::SBStream &description);
-    
 
-    // wrapping here so that lldb takes ownership of the 
-    // new FILE* created inside of the swig interface
+    void SetImmediateOutputFile(lldb::SBFile file);
+    void SetImmediateErrorFile(lldb::SBFile file);
+    void SetImmediateOutputFile(lldb::FileSP BORROWED);
+    void SetImmediateErrorFile(lldb::FileSP BORROWED);
+
     %extend {
-        void SetImmediateOutputFile(FILE *fh) {
-            self->SetImmediateOutputFile(fh, true);
+        // transfer_ownership does nothing, and is here for compatibility with
+        // old scripts.  Ownership is tracked by reference count in the ordinary way.
+
+        void SetImmediateOutputFile(lldb::FileSP BORROWED, bool transfer_ownership) {
+            self->SetImmediateOutputFile(BORROWED);
         }
-        void SetImmediateErrorFile(FILE *fh) {
-            self->SetImmediateErrorFile(fh, true);
+        void SetImmediateErrorFile(lldb::FileSP BORROWED, bool transfer_ownership) {
+            self->SetImmediateErrorFile(BORROWED);
         }
     }
 

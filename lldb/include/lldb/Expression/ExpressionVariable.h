@@ -20,14 +20,10 @@
 
 namespace lldb_private {
 
-class ClangExpressionVariable;
-
 class ExpressionVariable
     : public std::enable_shared_from_this<ExpressionVariable> {
 public:
-  //----------------------------------------------------------------------
   // See TypeSystem.h for how to add subclasses to this.
-  //----------------------------------------------------------------------
   enum LLVMCastKind { eKindClang, eKindSwift, eKindGo, kNumKinds };
 
   LLVMCastKind getKind() const { return m_kind; }
@@ -102,9 +98,7 @@ public:
     EVTypeIsReference = 1 << 6, ///< The original type of this variable is a
                                 ///reference, so materialize the value rather
                                 ///than the location
-    EVUnknownType = 1 << 7, ///< This is a symbol of unknown type, and the type
-                            ///must be resolved after parsing is complete
-    EVBareRegister = 1 << 8 ///< This variable is a direct reference to $pc or
+    EVBareRegister = 1 << 7 ///< This variable is a direct reference to $pc or
                             ///some other entity.
   };
 
@@ -118,18 +112,14 @@ public:
   LLVMCastKind m_kind;
 };
 
-//----------------------------------------------------------------------
 /// \class ExpressionVariableList ExpressionVariable.h
 /// "lldb/Expression/ExpressionVariable.h"
 /// A list of variable references.
 ///
 /// This class stores variables internally, acting as the permanent store.
-//----------------------------------------------------------------------
 class ExpressionVariableList {
 public:
-  //----------------------------------------------------------------------
   /// Implementation of methods in ExpressionVariableListBase
-  //----------------------------------------------------------------------
   size_t GetSize() { return m_variables.size(); }
 
   lldb::ExpressionVariableSP GetVariableAtIndex(size_t index) {
@@ -160,7 +150,6 @@ public:
     return false;
   }
 
-  //----------------------------------------------------------------------
   /// Finds a variable by name in the list.
   ///
   /// \param[in] name
@@ -169,7 +158,6 @@ public:
   /// \return
   ///     The variable requested, or nullptr if that variable is not in the
   ///     list.
-  //----------------------------------------------------------------------
   lldb::ExpressionVariableSP GetVariable(ConstString name) {
     lldb::ExpressionVariableSP var_sp;
     for (size_t index = 0, size = GetSize(); index < size; ++index) {
@@ -214,9 +202,7 @@ private:
 
 class PersistentExpressionState : public ExpressionVariableList {
 public:
-  //----------------------------------------------------------------------
   // See TypeSystem.h for how to add subclasses to this.
-  //----------------------------------------------------------------------
   enum LLVMCastKind { eKindClang, eKindSwift, eKindGo, kNumKinds };
 
   LLVMCastKind getKind() const { return m_kind; }
@@ -243,6 +229,9 @@ public:
 
   virtual void
   RemovePersistentVariable(lldb::ExpressionVariableSP variable) = 0;
+
+  virtual llvm::Optional<CompilerType>
+  GetCompilerTypeFromPersistentDecl(ConstString type_name) = 0;
 
   virtual lldb::addr_t LookupSymbol(ConstString name);
 

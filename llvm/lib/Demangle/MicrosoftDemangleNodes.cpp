@@ -34,21 +34,20 @@ static void outputSpaceIfNecessary(OutputStream &OS) {
     OS << " ";
 }
 
-static bool outputSingleQualifier(OutputStream &OS, Qualifiers Q) {
+static void outputSingleQualifier(OutputStream &OS, Qualifiers Q) {
   switch (Q) {
   case Q_Const:
     OS << "const";
-    return true;
+    break;
   case Q_Volatile:
     OS << "volatile";
-    return true;
+    break;
   case Q_Restrict:
     OS << "__restrict";
-    return true;
+    break;
   default:
     break;
   }
-  return false;
 }
 
 static bool outputQualifierIfPresent(OutputStream &OS, Qualifiers Q,
@@ -121,8 +120,6 @@ std::string Node::toString(OutputFlags Flags) const {
   return {OS.getBuffer()};
 }
 
-void TypeNode::outputQuals(bool SpaceBefore, bool SpaceAfter) const {}
-
 void PrimitiveTypeNode::outputPre(OutputStream &OS, OutputFlags Flags) const {
   switch (PrimKind) {
     OUTPUT_ENUM_CLASS_VALUE(PrimitiveKind, Void, "void");
@@ -130,6 +127,7 @@ void PrimitiveTypeNode::outputPre(OutputStream &OS, OutputFlags Flags) const {
     OUTPUT_ENUM_CLASS_VALUE(PrimitiveKind, Char, "char");
     OUTPUT_ENUM_CLASS_VALUE(PrimitiveKind, Schar, "signed char");
     OUTPUT_ENUM_CLASS_VALUE(PrimitiveKind, Uchar, "unsigned char");
+    OUTPUT_ENUM_CLASS_VALUE(PrimitiveKind, Char8, "char8_t");
     OUTPUT_ENUM_CLASS_VALUE(PrimitiveKind, Char16, "char16_t");
     OUTPUT_ENUM_CLASS_VALUE(PrimitiveKind, Char32, "char32_t");
     OUTPUT_ENUM_CLASS_VALUE(PrimitiveKind, Short, "short");
@@ -337,8 +335,9 @@ void IntrinsicFunctionIdentifierNode::output(OutputStream &OS,
                             "`vector vbase copy constructor iterator'");
     OUTPUT_ENUM_CLASS_VALUE(IntrinsicFunctionKind, ManVectorVbaseCopyCtorIter,
                             "`managed vector vbase copy constructor iterator'");
-    OUTPUT_ENUM_CLASS_VALUE(IntrinsicFunctionKind, CoAwait, "co_await");
-    OUTPUT_ENUM_CLASS_VALUE(IntrinsicFunctionKind, Spaceship, "operator <=>");
+    OUTPUT_ENUM_CLASS_VALUE(IntrinsicFunctionKind, CoAwait,
+                            "operator co_await");
+    OUTPUT_ENUM_CLASS_VALUE(IntrinsicFunctionKind, Spaceship, "operator<=>");
   case IntrinsicFunctionKind::MaxIntrinsic:
   case IntrinsicFunctionKind::None:
     break;
@@ -348,7 +347,10 @@ void IntrinsicFunctionIdentifierNode::output(OutputStream &OS,
 
 void LocalStaticGuardIdentifierNode::output(OutputStream &OS,
                                             OutputFlags Flags) const {
-  OS << "`local static guard'";
+  if (IsThread)
+    OS << "`local static thread guard'";
+  else
+    OS << "`local static guard'";
   if (ScopeIndex > 0)
     OS << "{" << ScopeIndex << "}";
 }
@@ -376,24 +378,28 @@ void LiteralOperatorIdentifierNode::output(OutputStream &OS,
 
 void FunctionSignatureNode::outputPre(OutputStream &OS,
                                       OutputFlags Flags) const {
-  if (FunctionClass & FC_Public)
-    OS << "public: ";
-  if (FunctionClass & FC_Protected)
-    OS << "protected: ";
-  if (FunctionClass & FC_Private)
-    OS << "private: ";
-
-  if (!(FunctionClass & FC_Global)) {
-    if (FunctionClass & FC_Static)
-      OS << "static ";
+  if (!(Flags & OF_NoAccessSpecifier)) {
+    if (FunctionClass & FC_Public)
+      OS << "public: ";
+    if (FunctionClass & FC_Protected)
+      OS << "protected: ";
+    if (FunctionClass & FC_Private)
+      OS << "private: ";
   }
-  if (FunctionClass & FC_Virtual)
-    OS << "virtual ";
 
-  if (FunctionClass & FC_ExternC)
-    OS << "extern \"C\" ";
+  if (!(Flags & OF_NoMemberType)) {
+    if (!(FunctionClass & FC_Global)) {
+      if (FunctionClass & FC_Static)
+        OS << "static ";
+    }
+    if (FunctionClass & FC_Virtual)
+      OS << "virtual ";
 
-  if (ReturnType) {
+    if (FunctionClass & FC_ExternC)
+      OS << "extern \"C\" ";
+  }
+
+  if (!(Flags & OF_NoReturnType) && ReturnType) {
     ReturnType->outputPre(OS, Flags);
     OS << " ";
   }
@@ -410,6 +416,12 @@ void FunctionSignatureNode::outputPost(OutputStream &OS,
       Params->output(OS, Flags);
     else
       OS << "void";
+
+    if (IsVariadic) {
+      if (OS.back() != '(')
+        OS << ", ";
+      OS << "...";
+    }
     OS << ")";
   }
 
@@ -430,7 +442,7 @@ void FunctionSignatureNode::outputPost(OutputStream &OS,
   else if (RefQualifier == FunctionRefQualifier::RValueReference)
     OS << " &&";
 
-  if (ReturnType)
+  if (!(Flags & OF_NoReturnType) && ReturnType)
     ReturnType->outputPost(OS, Flags);
 }
 
@@ -572,19 +584,26 @@ void FunctionSymbolNode::output(OutputStream &OS, OutputFlags Flags) const {
 }
 
 void VariableSymbolNode::output(OutputStream &OS, OutputFlags Flags) const {
+  const char *AccessSpec = nullptr;
+  bool IsStatic = true;
   switch (SC) {
   case StorageClass::PrivateStatic:
-    OS << "private: static ";
+    AccessSpec = "private";
     break;
   case StorageClass::PublicStatic:
-    OS << "public: static ";
+    AccessSpec = "public";
     break;
   case StorageClass::ProtectedStatic:
-    OS << "protected: static ";
+    AccessSpec = "protected";
     break;
   default:
+    IsStatic = false;
     break;
   }
+  if (!(Flags & OF_NoAccessSpecifier) && AccessSpec)
+    OS << AccessSpec << ": ";
+  if (!(Flags & OF_NoMemberType) && IsStatic)
+    OS << "static ";
 
   if (Type) {
     Type->outputPre(OS, Flags);

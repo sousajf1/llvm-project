@@ -26,3 +26,7 @@
 // CHECK-AARCH64: "darwinpcs"
 // CHECK-AARCH64-NOT: "-fdebug-compilation-dir"
 
+// RUN: %clang -target hexagon-unknown-elf -ffixed-r19 -fembed-bitcode=all -c %s -### 2>&1 \
+// RUN:     | FileCheck --check-prefix=CHECK-HEXAGON %s
+// CHECK-HEXAGON: "-target-feature"
+// CHECK-HEXAGON: "+reserved-r19"

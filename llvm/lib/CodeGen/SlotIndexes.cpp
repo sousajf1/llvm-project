@@ -10,6 +10,7 @@
 #include "llvm/ADT/Statistic.h"
 #include "llvm/CodeGen/MachineFunction.h"
 #include "llvm/Config/llvm-config.h"
+#include "llvm/InitializePasses.h"
 #include "llvm/Support/Debug.h"
 #include "llvm/Support/raw_ostream.h"
 
@@ -18,11 +19,20 @@ using namespace llvm;
 #define DEBUG_TYPE "slotindexes"
 
 char SlotIndexes::ID = 0;
+
+SlotIndexes::SlotIndexes() : MachineFunctionPass(ID), mf(nullptr) {
+  initializeSlotIndexesPass(*PassRegistry::getPassRegistry());
+}
+
+SlotIndexes::~SlotIndexes() {
+  // The indexList's nodes are all allocated in the BumpPtrAllocator.
+  indexList.clearAndLeakNodesUnsafely();
+}
+
 INITIALIZE_PASS(SlotIndexes, DEBUG_TYPE,
                 "Slot index numbering", false, false)
 
 STATISTIC(NumLocalRenum,  "Number of local renumberings");
-STATISTIC(NumGlobalRenum, "Number of global renumberings");
 
 void SlotIndexes::getAnalysisUsage(AnalysisUsage &au) const {
   au.setPreservesAll();
@@ -94,7 +104,7 @@ bool SlotIndexes::runOnMachineFunction(MachineFunction &fn) {
   }
 
   // Sort the Idx2MBBMap
-  llvm::sort(idx2MBBMap, Idx2MBBCompare());
+  llvm::sort(idx2MBBMap, less_first());
 
   LLVM_DEBUG(mf->print(dbgs(), this));
 
@@ -141,20 +151,6 @@ void SlotIndexes::removeSingleMachineInstrFromMaps(MachineInstr &MI) {
   } else {
     // FIXME: Eventually we want to actually delete these indexes.
     MIEntry.setInstr(nullptr);
-  }
-}
-
-void SlotIndexes::renumberIndexes() {
-  // Renumber updates the index of every element of the index list.
-  LLVM_DEBUG(dbgs() << "\n*** Renumbering SlotIndexes ***\n");
-  ++NumGlobalRenum;
-
-  unsigned index = 0;
-
-  for (IndexList::iterator I = indexList.begin(), E = indexList.end();
-       I != E; ++I) {
-    I->setIndex(index);
-    index += SlotIndex::InstrDist;
   }
 }
 

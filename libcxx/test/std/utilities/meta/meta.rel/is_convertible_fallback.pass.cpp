@@ -6,6 +6,8 @@
 //
 //===----------------------------------------------------------------------===//
 
+// UNSUPPORTED: c++98, c++03
+
 // type_traits
 
 // is_convertible
@@ -23,3 +25,4 @@
 #define _LIBCPP_USE_IS_CONVERTIBLE_FALLBACK
 #include "is_convertible.pass.cpp"
 
+#include "test_macros.h"

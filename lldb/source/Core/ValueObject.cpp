@@ -22,19 +22,19 @@
 #include "lldb/DataFormatters/StringPrinter.h"
 #include "lldb/DataFormatters/TypeFormat.h"
 #include "lldb/DataFormatters/TypeSummary.h"
-#include "lldb/DataFormatters/TypeValidator.h"
 #include "lldb/DataFormatters/ValueObjectPrinter.h"
 #include "lldb/Expression/ExpressionVariable.h"
+#include "lldb/Host/Config.h"
 #include "lldb/Symbol/ClangASTContext.h"
 #include "lldb/Symbol/CompileUnit.h"
 #include "lldb/Symbol/CompilerType.h"
 #include "lldb/Symbol/Declaration.h"
 #include "lldb/Symbol/SymbolContext.h"
 #include "lldb/Symbol/Type.h"
+#include "lldb/Symbol/Variable.h"
 #include "lldb/Target/ExecutionContext.h"
 #include "lldb/Target/Language.h"
 #include "lldb/Target/LanguageRuntime.h"
-#include "lldb/Target/ObjCLanguageRuntime.h"
 #include "lldb/Target/Process.h"
 #include "lldb/Target/StackFrame.h"
 #include "lldb/Target/Target.h"
@@ -73,24 +73,21 @@ class SymbolContextScope;
 
 using namespace lldb;
 using namespace lldb_private;
-using namespace lldb_utility;
 
 static user_id_t g_value_obj_uid = 0;
 
-//----------------------------------------------------------------------
 // ValueObject constructor
-//----------------------------------------------------------------------
 ValueObject::ValueObject(ValueObject &parent)
     : UserID(++g_value_obj_uid), // Unique identifier for every value object
-      m_parent(&parent), m_root(NULL), m_update_point(parent.GetUpdatePoint()),
-      m_name(), m_data(), m_value(), m_error(), m_value_str(),
-      m_old_value_str(), m_location_str(), m_summary_str(), m_object_desc_str(),
-      m_validation_result(), m_manager(parent.GetManager()), m_children(),
-      m_synthetic_children(), m_dynamic_value(NULL), m_synthetic_value(NULL),
-      m_deref_valobj(NULL), m_format(eFormatDefault),
-      m_last_format(eFormatDefault), m_last_format_mgr_revision(0),
-      m_type_summary_sp(), m_type_format_sp(), m_synthetic_children_sp(),
-      m_type_validator_sp(), m_user_id_of_forced_summary(),
+      m_parent(&parent), m_root(nullptr),
+      m_update_point(parent.GetUpdatePoint()), m_name(), m_data(), m_value(),
+      m_error(), m_value_str(), m_old_value_str(), m_location_str(),
+      m_summary_str(), m_object_desc_str(), m_manager(parent.GetManager()),
+      m_children(), m_synthetic_children(), m_dynamic_value(nullptr),
+      m_synthetic_value(nullptr), m_deref_valobj(nullptr),
+      m_format(eFormatDefault), m_last_format(eFormatDefault),
+      m_last_format_mgr_revision(0), m_type_summary_sp(), m_type_format_sp(),
+      m_synthetic_children_sp(), m_user_id_of_forced_summary(),
       m_address_type_of_ptr_or_ref_children(eAddressTypeInvalid),
       m_value_checksum(),
       m_preferred_display_language(lldb::eLanguageTypeUnknown),
@@ -102,23 +99,23 @@ ValueObject::ValueObject(ValueObject &parent)
       m_did_calculate_complete_objc_class_type(false),
       m_is_synthetic_children_generated(
           parent.m_is_synthetic_children_generated) {
+  m_data.SetByteOrder(parent.GetDataExtractor().GetByteOrder());
+  m_data.SetAddressByteSize(parent.GetDataExtractor().GetAddressByteSize());
   m_manager->ManageObject(this);
 }
 
-//----------------------------------------------------------------------
 // ValueObject constructor
-//----------------------------------------------------------------------
 ValueObject::ValueObject(ExecutionContextScope *exe_scope,
                          AddressType child_ptr_or_ref_addr_type)
     : UserID(++g_value_obj_uid), // Unique identifier for every value object
-      m_parent(NULL), m_root(NULL), m_update_point(exe_scope), m_name(),
+      m_parent(nullptr), m_root(nullptr), m_update_point(exe_scope), m_name(),
       m_data(), m_value(), m_error(), m_value_str(), m_old_value_str(),
       m_location_str(), m_summary_str(), m_object_desc_str(),
-      m_validation_result(), m_manager(), m_children(), m_synthetic_children(),
-      m_dynamic_value(NULL), m_synthetic_value(NULL), m_deref_valobj(NULL),
-      m_format(eFormatDefault), m_last_format(eFormatDefault),
-      m_last_format_mgr_revision(0), m_type_summary_sp(), m_type_format_sp(),
-      m_synthetic_children_sp(), m_type_validator_sp(),
+      m_manager(), m_children(), m_synthetic_children(),
+      m_dynamic_value(nullptr), m_synthetic_value(nullptr),
+      m_deref_valobj(nullptr), m_format(eFormatDefault),
+      m_last_format(eFormatDefault), m_last_format_mgr_revision(0),
+      m_type_summary_sp(), m_type_format_sp(), m_synthetic_children_sp(),
       m_user_id_of_forced_summary(),
       m_address_type_of_ptr_or_ref_children(child_ptr_or_ref_addr_type),
       m_value_checksum(),
@@ -130,14 +127,72 @@ ValueObject::ValueObject(ExecutionContextScope *exe_scope,
       m_is_getting_summary(false),
       m_did_calculate_complete_objc_class_type(false),
       m_is_synthetic_children_generated(false) {
+  if (exe_scope) {
+    TargetSP target_sp(exe_scope->CalculateTarget());
+    if (target_sp) {
+      const ArchSpec &arch = target_sp->GetArchitecture();
+      m_data.SetByteOrder(arch.GetByteOrder());
+      m_data.SetAddressByteSize(arch.GetAddressByteSize());
+    }
+  }
   m_manager = new ValueObjectManager();
   m_manager->ManageObject(this);
 }
 
-//----------------------------------------------------------------------
 // Destructor
-//----------------------------------------------------------------------
 ValueObject::~ValueObject() {}
+
+void ValueObject::UpdateChildrenAddressType() {
+  Value::ValueType value_type = m_value.GetValueType();
+  ExecutionContext exe_ctx(GetExecutionContextRef());
+  Process *process = exe_ctx.GetProcessPtr();
+  const bool process_is_alive = process && process->IsAlive();
+  const uint32_t type_info = GetCompilerType().GetTypeInfo();
+  const bool is_pointer_or_ref =
+      (type_info & (lldb::eTypeIsPointer | lldb::eTypeIsReference)) != 0;
+
+  switch (value_type) {
+  case Value::eValueTypeFileAddress:
+    // If this type is a pointer, then its children will be considered load
+    // addresses if the pointer or reference is dereferenced, but only if
+    // the process is alive.
+    //
+    // There could be global variables like in the following code:
+    // struct LinkedListNode { Foo* foo; LinkedListNode* next; };
+    // Foo g_foo1;
+    // Foo g_foo2;
+    // LinkedListNode g_second_node = { &g_foo2, NULL };
+    // LinkedListNode g_first_node = { &g_foo1, &g_second_node };
+    //
+    // When we aren't running, we should be able to look at these variables
+    // using the "target variable" command. Children of the "g_first_node"
+    // always will be of the same address type as the parent. But children
+    // of the "next" member of LinkedListNode will become load addresses if
+    // we have a live process, or remain a file address if it was a file
+    // address.
+    if (process_is_alive && is_pointer_or_ref)
+      SetAddressTypeOfChildren(eAddressTypeLoad);
+    else
+      SetAddressTypeOfChildren(eAddressTypeFile);
+    break;
+  case Value::eValueTypeHostAddress:
+    // Same as above for load addresses, except children of pointer or refs
+    // are always load addresses. Host addresses are used to store freeze
+    // dried variables. If this type is a struct, the entire struct
+    // contents will be copied into the heap of the
+    // LLDB process, but we do not currently follow any pointers.
+    if (is_pointer_or_ref)
+      SetAddressTypeOfChildren(eAddressTypeLoad);
+    else
+      SetAddressTypeOfChildren(eAddressTypeHost);
+    break;
+  case Value::eValueTypeLoadAddress:
+  case Value::eValueTypeScalar:
+  case Value::eValueTypeVector:
+    SetAddressTypeOfChildren(eAddressTypeLoad);
+    break;
+  }
+}
 
 bool ValueObject::UpdateValueIfNeeded(bool update_format) {
 
@@ -201,6 +256,7 @@ bool ValueObject::UpdateValueIfNeeded(bool update_format) {
       SetValueIsValid(success);
 
       if (success) {
+        UpdateChildrenAddressType();
         const uint64_t max_checksum_size = 128;
         m_data.Checksum(m_value_checksum, max_checksum_size);
       } else {
@@ -231,12 +287,12 @@ bool ValueObject::UpdateValueIfNeeded(bool update_format) {
 
 bool ValueObject::UpdateFormatsIfNeeded() {
   Log *log(lldb_private::GetLogIfAllCategoriesSet(LIBLLDB_LOG_DATAFORMATTERS));
-  if (log)
-    log->Printf("[%s %p] checking for FormatManager revisions. ValueObject "
-                "rev: %d - Global rev: %d",
-                GetName().GetCString(), static_cast<void *>(this),
-                m_last_format_mgr_revision,
-                DataVisualization::GetCurrentRevision());
+  LLDB_LOGF(log,
+            "[%s %p] checking for FormatManager revisions. ValueObject "
+            "rev: %d - Global rev: %d",
+            GetName().GetCString(), static_cast<void *>(this),
+            m_last_format_mgr_revision,
+            DataVisualization::GetCurrentRevision());
 
   bool any_change = false;
 
@@ -247,11 +303,10 @@ bool ValueObject::UpdateFormatsIfNeeded() {
     SetValueFormat(DataVisualization::GetFormat(*this, eNoDynamicValues));
     SetSummaryFormat(
         DataVisualization::GetSummaryFormat(*this, GetDynamicValueType()));
-#ifndef LLDB_DISABLE_PYTHON
+#if LLDB_ENABLE_PYTHON
     SetSyntheticChildren(
         DataVisualization::GetSyntheticChildren(*this, GetDynamicValueType()));
 #endif
-    SetValidator(DataVisualization::GetValidator(*this, GetDynamicValueType()));
   }
 
   return any_change;
@@ -284,51 +339,21 @@ CompilerType ValueObject::MaybeCalculateCompleteType() {
       return compiler_type;
   }
 
-  CompilerType class_type;
-  bool is_pointer_type = false;
-
-  if (ClangASTContext::IsObjCObjectPointerType(compiler_type, &class_type)) {
-    is_pointer_type = true;
-  } else if (ClangASTContext::IsObjCObjectOrInterfaceType(compiler_type)) {
-    class_type = compiler_type;
-  } else {
-    return compiler_type;
-  }
-
   m_did_calculate_complete_objc_class_type = true;
 
-  if (class_type) {
-    ConstString class_name(class_type.GetConstTypeName());
+  ProcessSP process_sp(
+      GetUpdatePoint().GetExecutionContextRef().GetProcessSP());
 
-    if (class_name) {
-      ProcessSP process_sp(
-          GetUpdatePoint().GetExecutionContextRef().GetProcessSP());
+  if (!process_sp)
+    return compiler_type;
 
-      if (process_sp) {
-        ObjCLanguageRuntime *objc_language_runtime(
-            process_sp->GetObjCLanguageRuntime());
-
-        if (objc_language_runtime) {
-          TypeSP complete_objc_class_type_sp =
-              objc_language_runtime->LookupInCompleteClassCache(class_name);
-
-          if (complete_objc_class_type_sp) {
-            CompilerType complete_class(
-                complete_objc_class_type_sp->GetFullCompilerType());
-
-            if (complete_class.GetCompleteType()) {
-              if (is_pointer_type) {
-                m_override_type = complete_class.GetPointerType();
-              } else {
-                m_override_type = complete_class;
-              }
-
-              if (m_override_type.IsValid())
-                return m_override_type;
-            }
-          }
-        }
-      }
+  if (auto *runtime =
+          process_sp->GetLanguageRuntime(GetObjectRuntimeLanguage())) {
+    if (llvm::Optional<CompilerType> complete_type =
+            runtime->GetRuntimeType(compiler_type)) {
+      m_override_type = complete_type.getValue();
+      if (m_override_type.IsValid())
+        return m_override_type;
     }
   }
   return compiler_type;
@@ -470,7 +495,7 @@ ValueObjectSP ValueObject::GetChildAtIndex(size_t idx, bool can_create) {
     }
 
     ValueObject *child = m_children.GetChildAtIndex(idx);
-    if (child != NULL)
+    if (child != nullptr)
       return child->GetSP();
   }
   return child_sp;
@@ -562,6 +587,10 @@ ValueObjectSP ValueObject::GetChildMemberWithName(ConstString name,
 
   std::vector<uint32_t> child_indexes;
   bool omit_empty_base_classes = true;
+
+  if (!GetCompilerType().IsValid())
+    return ValueObjectSP();
+
   const size_t num_child_indexes =
       GetCompilerType().GetIndexOfChildMemberWithName(
           name.GetCString(), omit_empty_base_classes, child_indexes);
@@ -622,7 +651,7 @@ void ValueObject::SetName(ConstString name) { m_name = name; }
 ValueObject *ValueObject::CreateChildAtIndex(size_t idx,
                                              bool synthetic_array_member,
                                              int32_t synthetic_index) {
-  ValueObject *valobj = NULL;
+  ValueObject *valobj = nullptr;
 
   bool omit_empty_base_classes = true;
   bool ignore_array_bounds = synthetic_array_member;
@@ -715,7 +744,7 @@ const char *ValueObject::GetSummaryAsCString(lldb::LanguageType lang) {
                         summary_options);
   }
   if (m_summary_str.empty())
-    return NULL;
+    return nullptr;
   return m_summary_str.c_str();
 }
 
@@ -768,12 +797,12 @@ size_t ValueObject::GetPointeeData(DataExtractor &data, uint32_t item_idx,
     if (is_pointer_type) {
       Status error;
       ValueObjectSP pointee_sp = Dereference(error);
-      if (error.Fail() || pointee_sp.get() == NULL)
+      if (error.Fail() || pointee_sp.get() == nullptr)
         return 0;
       return pointee_sp->GetData(data, error);
     } else {
       ValueObjectSP child_sp = GetChildAtIndex(0, true);
-      if (child_sp.get() == NULL)
+      if (child_sp.get() == nullptr)
         return 0;
       Status error;
       return child_sp->GetData(data, error);
@@ -782,7 +811,7 @@ size_t ValueObject::GetPointeeData(DataExtractor &data, uint32_t item_idx,
   } else /* (items > 1) */
   {
     Status error;
-    lldb_private::DataBufferHeap *heap_buf_ptr = NULL;
+    lldb_private::DataBufferHeap *heap_buf_ptr = nullptr;
     lldb::DataBufferSP data_sp(heap_buf_ptr =
                                    new lldb_private::DataBufferHeap());
 
@@ -846,7 +875,7 @@ size_t ValueObject::GetPointeeData(DataExtractor &data, uint32_t item_idx,
 uint64_t ValueObject::GetData(DataExtractor &data, Status &error) {
   UpdateValueIfNeeded(false);
   ExecutionContext exe_ctx(GetExecutionContextRef());
-  error = m_value.GetValueAsData(&exe_ctx, data, 0, GetModule().get());
+  error = m_value.GetValueAsData(&exe_ctx, data, GetModule().get());
   if (error.Fail()) {
     if (m_data.GetByteSize()) {
       data = m_data;
@@ -969,7 +998,7 @@ ValueObject::ReadPointedString(lldb::DataBufferSP &buffer_sp, Status &error,
     if (is_array) {
       // We have an array
       uint64_t array_size = 0;
-      if (compiler_type.IsArrayType(NULL, &array_size, NULL)) {
+      if (compiler_type.IsArrayType(nullptr, &array_size, nullptr)) {
         cstr_len = array_size;
         if (cstr_len > max_length) {
           capped_data = true;
@@ -1073,62 +1102,41 @@ ValueObject::ReadPointedString(lldb::DataBufferSP &buffer_sp, Status &error,
   return {total_bytes_read, was_capped};
 }
 
-std::pair<TypeValidatorResult, std::string> ValueObject::GetValidationStatus() {
-  if (!UpdateValueIfNeeded(true))
-    return {TypeValidatorResult::Success,
-            ""}; // not the validator's job to discuss update problems
-
-  if (m_validation_result.hasValue())
-    return m_validation_result.getValue();
-
-  if (!m_type_validator_sp)
-    return {TypeValidatorResult::Success, ""}; // no validator no failure
-
-  auto outcome = m_type_validator_sp->FormatObject(this);
-
-  return (m_validation_result = {outcome.m_result, outcome.m_message})
-      .getValue();
-}
-
 const char *ValueObject::GetObjectDescription() {
-
   if (!UpdateValueIfNeeded(true))
-    return NULL;
+    return nullptr;
 
+  // Return cached value.
   if (!m_object_desc_str.empty())
     return m_object_desc_str.c_str();
 
   ExecutionContext exe_ctx(GetExecutionContextRef());
   Process *process = exe_ctx.GetProcessPtr();
-  if (process == NULL)
-    return NULL;
+  if (!process)
+    return nullptr;
 
-  StreamString s;
-
-  LanguageType language = GetObjectRuntimeLanguage();
-  LanguageRuntime *runtime = process->GetLanguageRuntime(language);
-
-  if (runtime == NULL) {
-    // Aw, hell, if the things a pointer, or even just an integer, let's try
-    // ObjC anyway...
-    CompilerType compiler_type = GetCompilerType();
-    if (compiler_type) {
-      bool is_signed;
-      if (compiler_type.IsIntegerType(is_signed) ||
-          compiler_type.IsPointerType()) {
-        runtime = process->GetLanguageRuntime(eLanguageTypeObjC);
+  // Returns the object description produced by one language runtime.
+  auto get_object_description = [&](LanguageType language) -> const char * {
+    if (LanguageRuntime *runtime = process->GetLanguageRuntime(language)) {
+      StreamString s;
+      if (runtime->GetObjectDescription(s, *this)) {
+        m_object_desc_str.append(s.GetString());
+        return m_object_desc_str.c_str();
       }
     }
-  }
+    return nullptr;
+  };
 
-  if (runtime && runtime->GetObjectDescription(s, *this)) {
-    m_object_desc_str.append(s.GetString());
-  }
+  // Try the native language runtime first.
+  LanguageType native_language = GetObjectRuntimeLanguage();
+  if (const char *desc = get_object_description(native_language))
+    return desc;
 
-  if (m_object_desc_str.empty())
-    return NULL;
-  else
-    return m_object_desc_str.c_str();
+  // Try the Objective-C language runtime. This fallback is necessary
+  // for Objective-C++ and mixed Objective-C / C++ programs.
+  if (Language::LanguageIsCFamily(native_language))
+    return get_object_description(eLanguageTypeObjC);
+  return nullptr;
 }
 
 bool ValueObject::GetValueAsCString(const lldb_private::TypeFormatImpl &format,
@@ -1179,7 +1187,7 @@ const char *ValueObject::GetValueAsCString() {
     }
   }
   if (m_value_str.empty())
-    return NULL;
+    return nullptr;
   return m_value_str.c_str();
 }
 
@@ -1290,7 +1298,7 @@ bool ValueObject::DumpPrintableRepresentation(
             buffer_sp, lldb::eByteOrderInvalid,
             8)); // none of this matters for a string - pass some defaults
         options.SetStream(&s);
-        options.SetPrefixToken(0);
+        options.SetPrefixToken(nullptr);
         options.SetQuote('"');
         options.SetSourceSize(buffer_sp->GetByteSize());
         options.SetIsTruncated(read_string.second);
@@ -1679,7 +1687,7 @@ ValueObject::GetTypeInfo(CompilerType *pointee_or_element_compiler_type) {
 bool ValueObject::IsPointerType() { return GetCompilerType().IsPointerType(); }
 
 bool ValueObject::IsArrayType() {
-  return GetCompilerType().IsArrayType(NULL, NULL, NULL);
+  return GetCompilerType().IsArrayType(nullptr, nullptr, nullptr);
 }
 
 bool ValueObject::IsScalarType() { return GetCompilerType().IsScalarType(); }
@@ -1698,20 +1706,24 @@ bool ValueObject::IsPossibleDynamicType() {
   if (process)
     return process->IsPossibleDynamicValue(*this);
   else
-    return GetCompilerType().IsPossibleDynamicType(NULL, true, true);
+    return GetCompilerType().IsPossibleDynamicType(nullptr, true, true);
 }
 
 bool ValueObject::IsRuntimeSupportValue() {
   Process *process(GetProcessSP().get());
-  if (process) {
-    LanguageRuntime *runtime =
-        process->GetLanguageRuntime(GetObjectRuntimeLanguage());
-    if (!runtime)
-      runtime = process->GetObjCLanguageRuntime();
-    if (runtime)
-      return runtime->IsRuntimeSupportValue(*this);
-  }
-  return false;
+  if (!process)
+    return false;
+
+  // We trust the the compiler did the right thing and marked runtime support
+  // values as artificial.
+  if (!GetVariable() || !GetVariable()->IsArtificial())
+    return false;
+
+  if (auto *runtime = process->GetLanguageRuntime(GetVariable()->GetLanguage()))
+    if (runtime->IsWhitelistedRuntimeValue(GetName()))
+      return false;
+
+  return true;
 }
 
 bool ValueObject::IsNilReference() {
@@ -1906,7 +1918,7 @@ ValueObject::GetSyntheticExpressionPathChild(const char *expression,
     // We haven't made a synthetic array member for expression yet, so lets
     // make one and cache it for any future reference.
     synthetic_child_sp = GetValueForExpressionPath(
-        expression, NULL, NULL,
+        expression, nullptr, nullptr,
         GetValueForExpressionPathOptions().SetSyntheticChildrenTraversal(
             GetValueForExpressionPathOptions::SyntheticChildrenTraversal::
                 None));
@@ -1929,7 +1941,7 @@ void ValueObject::CalculateSyntheticValue(bool use_synthetic) {
 
   TargetSP target_sp(GetTargetSP());
   if (target_sp && !target_sp->GetEnableSyntheticValue()) {
-    m_synthetic_value = NULL;
+    m_synthetic_value = nullptr;
     return;
   }
 
@@ -1938,7 +1950,7 @@ void ValueObject::CalculateSyntheticValue(bool use_synthetic) {
   if (!UpdateFormatsIfNeeded() && m_synthetic_value)
     return;
 
-  if (m_synthetic_children_sp.get() == NULL)
+  if (m_synthetic_children_sp.get() == nullptr)
     return;
 
   if (current_synth_sp == m_synthetic_children_sp && m_synthetic_value)
@@ -1965,7 +1977,7 @@ ValueObjectSP ValueObject::GetDynamicValue(DynamicValueType use_dynamic) {
   if (use_dynamic == eNoDynamicValues)
     return ValueObjectSP();
 
-  if (!IsDynamic() && m_dynamic_value == NULL) {
+  if (!IsDynamic() && m_dynamic_value == nullptr) {
     CalculateDynamicValue(use_dynamic);
   }
   if (m_dynamic_value)
@@ -1993,7 +2005,7 @@ ValueObjectSP ValueObject::GetSyntheticValue(bool use_synthetic) {
 bool ValueObject::HasSyntheticValue() {
   UpdateFormatsIfNeeded();
 
-  if (m_synthetic_children_sp.get() == NULL)
+  if (m_synthetic_children_sp.get() == nullptr)
     return false;
 
   CalculateSyntheticValue(true);
@@ -2006,15 +2018,14 @@ bool ValueObject::GetBaseClassPath(Stream &s) {
     bool parent_had_base_class =
         GetParent() && GetParent()->GetBaseClassPath(s);
     CompilerType compiler_type = GetCompilerType();
-    std::string cxx_class_name;
-    bool this_had_base_class =
-        ClangASTContext::GetCXXClassName(compiler_type, cxx_class_name);
-    if (this_had_base_class) {
+    llvm::Optional<std::string> cxx_class_name =
+        ClangASTContext::GetCXXClassName(compiler_type);
+    if (cxx_class_name) {
       if (parent_had_base_class)
         s.PutCString("::");
-      s.PutCString(cxx_class_name);
+      s.PutCString(cxx_class_name.getValue());
     }
-    return parent_had_base_class || this_had_base_class;
+    return parent_had_base_class || cxx_class_name;
   }
   return false;
 }
@@ -2026,7 +2037,7 @@ ValueObject *ValueObject::GetNonBaseClassParent() {
     else
       return GetParent();
   }
-  return NULL;
+  return nullptr;
 }
 
 bool ValueObject::IsBaseClass(uint32_t &depth) {
@@ -2752,9 +2763,9 @@ ValueObjectSP ValueObject::CreateConstantValue(ConstString name) {
 
     if (IsBitfield()) {
       Value v(Scalar(GetValueAsUnsigned(UINT64_MAX)));
-      m_error = v.GetValueAsData(&exe_ctx, data, 0, GetModule().get());
+      m_error = v.GetValueAsData(&exe_ctx, data, GetModule().get());
     } else
-      m_error = m_value.GetValueAsData(&exe_ctx, data, 0, GetModule().get());
+      m_error = m_value.GetValueAsData(&exe_ctx, data, GetModule().get());
 
     valobj_sp = ValueObjectConstResult::Create(
         exe_ctx.GetBestExecutionContextScope(), GetCompilerType(), name, data,
@@ -3011,12 +3022,12 @@ bool ValueObject::EvaluationPoint::SyncWithProcessState(
   ExecutionContext exe_ctx(
       m_exe_ctx_ref.Lock(thread_and_frame_only_if_stopped));
 
-  if (exe_ctx.GetTargetPtr() == NULL)
+  if (exe_ctx.GetTargetPtr() == nullptr)
     return false;
 
   // If we don't have a process nothing can change.
   Process *process = exe_ctx.GetProcessPtr();
-  if (process == NULL)
+  if (process == nullptr)
     return false;
 
   // If our stop id is the current stop ID, nothing has changed:
@@ -3097,12 +3108,8 @@ void ValueObject::ClearUserVisibleData(uint32_t clear_mask) {
   if ((clear_mask & eClearUserVisibleDataItemsSyntheticChildren) ==
       eClearUserVisibleDataItemsSyntheticChildren) {
     if (m_synthetic_value)
-      m_synthetic_value = NULL;
+      m_synthetic_value = nullptr;
   }
-
-  if ((clear_mask & eClearUserVisibleDataItemsValidator) ==
-      eClearUserVisibleDataItemsValidator)
-    m_validation_result.reset();
 }
 
 SymbolContextScope *ValueObject::GetSymbolContextScope() {
@@ -3110,7 +3117,7 @@ SymbolContextScope *ValueObject::GetSymbolContextScope() {
     if (!m_parent->IsPointerOrReferenceType())
       return m_parent->GetSymbolContextScope();
   }
-  return NULL;
+  return nullptr;
 }
 
 lldb::ValueObjectSP
@@ -3336,32 +3343,32 @@ lldb::ValueObjectSP ValueObjectManager::GetSP() {
   lldb::ProcessSP process_sp = GetProcessSP();
   if (!process_sp)
     return lldb::ValueObjectSP();
-  
+
   const uint32_t current_stop_id = process_sp->GetLastNaturalStopID();
   if (current_stop_id == m_stop_id)
     return m_user_valobj_sp;
-  
+
   m_stop_id = current_stop_id;
-  
+
   if (!m_root_valobj_sp) {
     m_user_valobj_sp.reset();
     return m_root_valobj_sp;
   }
-  
+
   m_user_valobj_sp = m_root_valobj_sp;
-  
+
   if (m_use_dynamic != lldb::eNoDynamicValues) {
     lldb::ValueObjectSP dynamic_sp = m_user_valobj_sp->GetDynamicValue(m_use_dynamic);
     if (dynamic_sp)
       m_user_valobj_sp = dynamic_sp;
   }
-  
+
   if (m_use_synthetic) {
     lldb::ValueObjectSP synthetic_sp = m_user_valobj_sp->GetSyntheticValue(m_use_synthetic);
     if (synthetic_sp)
       m_user_valobj_sp = synthetic_sp;
   }
-  
+
   return m_user_valobj_sp;
 }
 
@@ -3404,4 +3411,3 @@ lldb::StackFrameSP ValueObjectManager::GetFrameSP() const {
     return m_root_valobj_sp->GetFrameSP();
   return lldb::StackFrameSP();
 }
-

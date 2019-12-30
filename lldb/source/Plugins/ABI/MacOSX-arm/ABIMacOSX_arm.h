@@ -63,9 +63,7 @@ public:
 
   bool IsArmv7kProcess() const;
 
-  //------------------------------------------------------------------
   // Static Functions
-  //------------------------------------------------------------------
 
   static void Initialize();
 
@@ -75,9 +73,7 @@ public:
 
   static lldb_private::ConstString GetPluginNameStatic();
 
-  //------------------------------------------------------------------
   // PluginInterface protocol
-  //------------------------------------------------------------------
 
   lldb_private::ConstString GetPluginName() override;
 
@@ -89,7 +85,9 @@ protected:
                            lldb_private::CompilerType &ast_type) const override;
 
 private:
-  ABIMacOSX_arm(lldb::ProcessSP process_sp) : lldb_private::ABI(process_sp) {
+  ABIMacOSX_arm(lldb::ProcessSP process_sp,
+                std::unique_ptr<llvm::MCRegisterInfo> info_up)
+      : lldb_private::ABI(std::move(process_sp), std::move(info_up)) {
     // Call CreateInstance instead.
   }
 };

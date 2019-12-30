@@ -13,15 +13,16 @@
 #include "lldb/Core/ModuleChild.h"
 #include "lldb/Symbol/DebugMacros.h"
 #include "lldb/Symbol/Function.h"
+#include "lldb/Symbol/LineTable.h"
 #include "lldb/Symbol/SourceModule.h"
 #include "lldb/Utility/Stream.h"
 #include "lldb/Utility/UserID.h"
 #include "lldb/lldb-enumerations.h"
 
 #include "llvm/ADT/DenseMap.h"
+#include "llvm/ADT/DenseSet.h"
 
 namespace lldb_private {
-//----------------------------------------------------------------------
 /// \class CompileUnit CompileUnit.h "lldb/Symbol/CompileUnit.h"
 /// A class that describes a compilation unit.
 ///
@@ -33,21 +34,18 @@ namespace lldb_private {
 /// Each compile unit has a list of functions, global and static variables,
 /// support file list (include files and inlined source files), and a line
 /// table.
-//----------------------------------------------------------------------
 class CompileUnit : public std::enable_shared_from_this<CompileUnit>,
                     public ModuleChild,
-                    public FileSpec,
                     public UserID,
                     public SymbolContextScope {
 public:
-  //------------------------------------------------------------------
   /// Construct with a module, path, UID and language.
   ///
   /// Initialize the compile unit given the owning \a module, a path to
   /// convert into a FileSpec, the SymbolFile plug-in supplied \a uid, and the
   /// source language type.
   ///
-  /// \param[in] module
+  /// \param[in] module_sp
   ///     The parent module that owns this compile unit. This value
   ///     must be a valid pointer value.
   ///
@@ -75,19 +73,17 @@ public:
   ///     CompileUnit::GetIsOptimized() is called.
   ///
   /// \see lldb::LanguageType
-  //------------------------------------------------------------------
   CompileUnit(const lldb::ModuleSP &module_sp, void *user_data,
               const char *pathname, lldb::user_id_t uid,
               lldb::LanguageType language, lldb_private::LazyBool is_optimized);
 
-  //------------------------------------------------------------------
   /// Construct with a module, file spec, UID and language.
   ///
   /// Initialize the compile unit given the owning \a module, a path to
   /// convert into a FileSpec, the SymbolFile plug-in supplied \a uid, and the
   /// source language type.
   ///
-  /// \param[in] module
+  /// \param[in] module_sp
   ///     The parent module that owns this compile unit. This value
   ///     must be a valid pointer value.
   ///
@@ -116,17 +112,10 @@ public:
   ///     CompileUnit::GetIsOptimized() is called.
   ///
   /// \see lldb::LanguageType
-  //------------------------------------------------------------------
   CompileUnit(const lldb::ModuleSP &module_sp, void *user_data,
               const FileSpec &file_spec, lldb::user_id_t uid,
               lldb::LanguageType language, lldb_private::LazyBool is_optimized);
 
-  //------------------------------------------------------------------
-  /// Destructor
-  //------------------------------------------------------------------
-  ~CompileUnit() override;
-
-  //------------------------------------------------------------------
   /// Add a function to this compile unit.
   ///
   /// Typically called by the SymbolFile plug-ins as they partially parse the
@@ -134,25 +123,20 @@ public:
   ///
   /// \param[in] function_sp
   ///     A shared pointer to the Function object.
-  //------------------------------------------------------------------
   void AddFunction(lldb::FunctionSP &function_sp);
 
-  //------------------------------------------------------------------
   /// \copydoc SymbolContextScope::CalculateSymbolContext(SymbolContext*)
   ///
   /// \see SymbolContextScope
-  //------------------------------------------------------------------
   void CalculateSymbolContext(SymbolContext *sc) override;
 
   lldb::ModuleSP CalculateSymbolContextModule() override;
 
   CompileUnit *CalculateSymbolContextCompileUnit() override;
 
-  //------------------------------------------------------------------
   /// \copydoc SymbolContextScope::DumpSymbolContext(Stream*)
   ///
   /// \see SymbolContextScope
-  //------------------------------------------------------------------
   void DumpSymbolContext(Stream *s) override;
 
   lldb::LanguageType GetLanguage();
@@ -164,7 +148,6 @@ public:
 
   void GetDescription(Stream *s, lldb::DescriptionLevel level) const;
 
-  //------------------------------------------------------------------
   /// Apply a lambda to each function in this compile unit.
   ///
   /// This provides raw access to the function shared pointer list and will not
@@ -175,11 +158,21 @@ public:
   /// \param[in] lambda
   ///     The lambda that should be applied to every function. The lambda can
   ///     return true if the iteration should be aborted earlier.
-  //------------------------------------------------------------------
   void ForeachFunction(
       llvm::function_ref<bool(const lldb::FunctionSP &)> lambda) const;
 
-  //------------------------------------------------------------------
+  /// Find a function in the compile unit based on the predicate matching_lambda
+  ///
+  /// \param[in] matching_lambda
+  ///     A predicate that will be used within FindFunction to evaluate each
+  ///     FunctionSP in m_functions_by_uid. When the predicate returns true
+  ///     FindFunction will return the corresponding FunctionSP.
+  ///
+  /// \return
+  ///   The first FunctionSP that the matching_lambda prediate returns true for.
+  lldb::FunctionSP FindFunction(
+      llvm::function_ref<bool(const lldb::FunctionSP &)> matching_lambda);
+
   /// Dump the compile unit contents to the stream \a s.
   ///
   /// \param[in] s
@@ -188,10 +181,8 @@ public:
   /// \param[in] show_context
   ///     If \b true, variables will dump their symbol context
   ///     information.
-  //------------------------------------------------------------------
   void Dump(Stream *s, bool show_context) const;
 
-  //------------------------------------------------------------------
   /// Find the line entry by line and optional inlined file spec.
   ///
   /// Finds the first line entry that has an index greater than \a start_idx
@@ -227,12 +218,13 @@ public:
   /// \return
   ///     The zero based index of a matching line entry, or UINT32_MAX
   ///     if no matching line entry is found.
-  //------------------------------------------------------------------
   uint32_t FindLineEntry(uint32_t start_idx, uint32_t line,
                          const FileSpec *file_spec_ptr, bool exact,
                          LineEntry *line_entry);
 
-  //------------------------------------------------------------------
+  /// Return the primary source file associated with this compile unit.
+  const FileSpec &GetPrimaryFile() const { return m_file_spec; }
+
   /// Get the line table for the compile unit.
   ///
   /// Called by clients and the SymbolFile plug-in. The SymbolFile plug-ins
@@ -242,12 +234,29 @@ public:
   /// \return
   ///     The line table object pointer, or NULL if this line table
   ///     hasn't been parsed yet.
-  //------------------------------------------------------------------
   LineTable *GetLineTable();
 
   DebugMacros *GetDebugMacros();
 
-  //------------------------------------------------------------------
+  /// Apply a lambda to each external lldb::Module referenced by this
+  /// compilation unit. Recursively also descends into the referenced external
+  /// modules of any encountered compilation unit.
+  ///
+  /// \param visited_symbol_files
+  ///     A set of SymbolFiles that were already visited to avoid
+  ///     visiting one file more than once.
+  ///
+  /// \param[in] lambda
+  ///     The lambda that should be applied to every function. The lambda can
+  ///     return true if the iteration should be aborted earlier.
+  ///
+  /// \return
+  ///     If the lambda early-exited, this function returns true to
+  ///     propagate the early exit.
+  virtual bool ForEachExternalModule(
+      llvm::DenseSet<lldb_private::SymbolFile *> &visited_symbol_files,
+      llvm::function_ref<bool(Module &)> lambda);
+
   /// Get the compile unit's support file list.
   ///
   /// The support file list is used by the line table, and any objects that
@@ -255,21 +264,17 @@ public:
   ///
   /// \return
   ///     A support file list object.
-  //------------------------------------------------------------------
-  FileSpecList &GetSupportFiles();
+  const FileSpecList &GetSupportFiles();
 
-  //------------------------------------------------------------------
   /// Get the compile unit's imported module list.
   ///
   /// This reports all the imports that the compile unit made, including the
   /// current module.
   ///
   /// \return
-  ///     A list of imported module names.
-  //------------------------------------------------------------------
+  ///     A list of imported modules.
   const std::vector<SourceModule> &GetImportedModules();
 
-  //------------------------------------------------------------------
   /// Get the SymbolFile plug-in user data.
   ///
   /// SymbolFile plug-ins can store user data to internal state or objects to
@@ -278,10 +283,8 @@ public:
   /// \return
   ///     The user data stored with the CompileUnit when it was
   ///     constructed.
-  //------------------------------------------------------------------
   void *GetUserData() const;
 
-  //------------------------------------------------------------------
   /// Get the variable list for a compile unit.
   ///
   /// Called by clients to get the variable list for a compile unit. The
@@ -299,10 +302,8 @@ public:
   ///     A shared pointer to a variable list, that can contain NULL
   ///     VariableList pointer if there are no global or static
   ///     variables.
-  //------------------------------------------------------------------
   lldb::VariableListSP GetVariableList(bool can_create);
 
-  //------------------------------------------------------------------
   /// Finds a function by user ID.
   ///
   /// Typically used by SymbolFile plug-ins when partially parsing the debug
@@ -317,10 +318,8 @@ public:
   /// \return
   ///     A shared pointer to the function object that might contain
   ///     a NULL Function pointer.
-  //------------------------------------------------------------------
   lldb::FunctionSP FindFunctionByUID(lldb::user_id_t uid);
 
-  //------------------------------------------------------------------
   /// Set the line table for the compile unit.
   ///
   /// Called by the SymbolFile plug-in when if first parses the line table and
@@ -329,12 +328,12 @@ public:
   ///
   /// \param[in] line_table
   ///     A line table object pointer that this object now owns.
-  //------------------------------------------------------------------
   void SetLineTable(LineTable *line_table);
+
+  void SetSupportFiles(const FileSpecList &support_files);
 
   void SetDebugMacros(const DebugMacrosSP &debug_macros);
 
-  //------------------------------------------------------------------
   /// Set accessor for the variable list.
   ///
   /// Called by the SymbolFile plug-ins after they have parsed the variable
@@ -342,10 +341,8 @@ public:
   ///
   /// \param[in] variable_list_sp
   ///     A shared pointer to a VariableList.
-  //------------------------------------------------------------------
   void SetVariableList(lldb::VariableListSP &variable_list_sp);
 
-  //------------------------------------------------------------------
   /// Resolve symbol contexts by file and line.
   ///
   /// Given a file in \a file_spec, and a line number, find all instances and
@@ -384,17 +381,12 @@ public:
   ///     A SymbolContext list class that will get any matching
   ///     entries appended to.
   ///
-  /// \return
-  ///     The number of new matches that were added to \a sc_list.
-  ///
   /// \see enum SymbolContext::Scope
-  //------------------------------------------------------------------
-  uint32_t ResolveSymbolContext(const FileSpec &file_spec, uint32_t line,
-                                bool check_inlines, bool exact,
-                                lldb::SymbolContextItem resolve_scope,
-                                SymbolContextList &sc_list);
+  void ResolveSymbolContext(const FileSpec &file_spec, uint32_t line,
+                            bool check_inlines, bool exact,
+                            lldb::SymbolContextItem resolve_scope,
+                            SymbolContextList &sc_list);
 
-  //------------------------------------------------------------------
   /// Get whether compiler optimizations were enabled for this compile unit
   ///
   /// "optimized" means that the debug experience may be difficult for the
@@ -406,12 +398,9 @@ public:
   ///     Returns 'true' if this compile unit was compiled with
   ///     optimization.  'false' indicates that either the optimization
   ///     is unknown, or this compile unit was built without optimization.
-  //------------------------------------------------------------------
   bool GetIsOptimized();
 
-  //------------------------------------------------------------------
   /// Returns the number of functions in this compile unit
-  //------------------------------------------------------------------
   size_t GetNumFunctions() const { return m_functions_by_uid.size(); }
 
 protected:
@@ -426,6 +415,8 @@ protected:
   /// All modules, including the current module, imported by this
   /// compile unit.
   std::vector<SourceModule> m_imported_modules;
+  /// The primary file associated with this compile unit.
+  FileSpec m_file_spec;
   /// Files associated with this compile unit's line table and
   /// declarations.
   FileSpecList m_support_files;

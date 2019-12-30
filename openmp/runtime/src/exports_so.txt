@@ -38,7 +38,6 @@ VERSION {
 
         _You_must_link_with_*;     # Mutual detection/MS compatibility symbols.
 
-
         #
         # Debugger support.
         #
@@ -54,7 +53,6 @@ VERSION {
         ___kmp_allocate;
         ___kmp_free;
         __kmp_thread_pool;
-        __kmp_thread_pool_nth;
 
 	__kmp_reset_stats;
 

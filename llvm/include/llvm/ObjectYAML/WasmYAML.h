@@ -145,7 +145,7 @@ struct Signature {
   uint32_t Index;
   SignatureForm Form = wasm::WASM_TYPE_FUNC;
   std::vector<ValueType> ParamTypes;
-  ValueType ReturnType;
+  std::vector<ValueType> ReturnTypes;
 };
 
 struct SymbolInfo {
@@ -377,6 +377,16 @@ struct DataSection : Section {
   }
 
   std::vector<DataSegment> Segments;
+};
+
+struct DataCountSection : Section {
+  DataCountSection() : Section(wasm::WASM_SEC_DATACOUNT) {}
+
+  static bool classof(const Section *S) {
+    return S->Type == wasm::WASM_SEC_DATACOUNT;
+  }
+
+  uint32_t Count;
 };
 
 struct Object {

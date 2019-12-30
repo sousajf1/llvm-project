@@ -13,7 +13,6 @@
 #include <string>
 #include <vector>
 
-#include "lldb/Core/ClangForward.h"
 #include "lldb/lldb-private.h"
 #include "llvm/ADT/APSInt.h"
 
@@ -21,7 +20,6 @@ namespace lldb_private {
 
 class DataExtractor;
 
-//----------------------------------------------------------------------
 // A class that can carry around a clang ASTContext and a opaque clang
 // QualType. A clang::QualType can be easily reconstructed from an opaque clang
 // type and often the ASTContext is needed when doing various type related
@@ -29,14 +27,10 @@ class DataExtractor;
 // lightweight class that can be used. There are many static equivalents of the
 // member functions that allow the ASTContext and the opaque clang QualType to
 // be specified for ease of use and to avoid code duplication.
-//----------------------------------------------------------------------
 class CompilerType {
 public:
-  //----------------------------------------------------------------------
   // Constructors and Destructors
-  //----------------------------------------------------------------------
   CompilerType(TypeSystem *type_system, lldb::opaque_compiler_type_t type);
-  CompilerType(clang::ASTContext *ast_context, clang::QualType qual_type);
 
   CompilerType(const CompilerType &rhs)
       : m_type(rhs.m_type), m_type_system(rhs.m_type_system) {}
@@ -45,9 +39,7 @@ public:
 
   ~CompilerType();
 
-  //----------------------------------------------------------------------
   // Operators
-  //----------------------------------------------------------------------
 
   const CompilerType &operator=(const CompilerType &rhs) {
     m_type = rhs.m_type;
@@ -55,9 +47,7 @@ public:
     return *this;
   }
 
-  //----------------------------------------------------------------------
   // Tests
-  //----------------------------------------------------------------------
 
   explicit operator bool() const {
     return m_type != nullptr && m_type_system != nullptr;
@@ -118,11 +108,6 @@ public:
 
   bool IsPolymorphicClass() const;
 
-  bool
-  IsPossibleCPlusPlusDynamicType(CompilerType *target_type = nullptr) const {
-    return IsPossibleDynamicType(target_type, true, false);
-  }
-
   bool IsPossibleDynamicType(CompilerType *target_type, // Can pass nullptr
                              bool check_cplusplus, bool check_objc) const;
 
@@ -145,21 +130,15 @@ public:
 
   bool IsVoidType() const;
 
-  //----------------------------------------------------------------------
   // Type Completion
-  //----------------------------------------------------------------------
 
   bool GetCompleteType() const;
 
-  //----------------------------------------------------------------------
   // AST related queries
-  //----------------------------------------------------------------------
 
   size_t GetPointerByteSize() const;
 
-  //----------------------------------------------------------------------
   // Accessors
-  //----------------------------------------------------------------------
 
   TypeSystem *GetTypeSystem() const { return m_type_system; }
 
@@ -183,13 +162,9 @@ public:
   void SetCompilerType(TypeSystem *type_system,
                        lldb::opaque_compiler_type_t type);
 
-  void SetCompilerType(clang::ASTContext *ast, clang::QualType qual_type);
-
   unsigned GetTypeQualifiers() const;
 
-  //----------------------------------------------------------------------
   // Creating related types
-  //----------------------------------------------------------------------
 
   CompilerType GetArrayElementType(uint64_t *stride = nullptr) const;
 
@@ -211,78 +186,61 @@ public:
 
   TypeMemberFunctionImpl GetMemberFunctionAtIndex(size_t idx);
 
-  //----------------------------------------------------------------------
   // If this type is a reference to a type (L value or R value reference),
   // return a new type with the reference removed, else return the current type
   // itself.
-  //----------------------------------------------------------------------
   CompilerType GetNonReferenceType() const;
 
-  //----------------------------------------------------------------------
   // If this type is a pointer type, return the type that the pointer points
   // to, else return an invalid type.
-  //----------------------------------------------------------------------
   CompilerType GetPointeeType() const;
 
-  //----------------------------------------------------------------------
   // Return a new CompilerType that is a pointer to this type
-  //----------------------------------------------------------------------
   CompilerType GetPointerType() const;
 
-  //----------------------------------------------------------------------
   // Return a new CompilerType that is a L value reference to this type if this
   // type is valid and the type system supports L value references, else return
   // an invalid type.
-  //----------------------------------------------------------------------
   CompilerType GetLValueReferenceType() const;
 
-  //----------------------------------------------------------------------
   // Return a new CompilerType that is a R value reference to this type if this
   // type is valid and the type system supports R value references, else return
   // an invalid type.
-  //----------------------------------------------------------------------
   CompilerType GetRValueReferenceType() const;
 
-  //----------------------------------------------------------------------
   // Return a new CompilerType adds a const modifier to this type if this type
   // is valid and the type system supports const modifiers, else return an
   // invalid type.
-  //----------------------------------------------------------------------
   CompilerType AddConstModifier() const;
 
-  //----------------------------------------------------------------------
   // Return a new CompilerType adds a volatile modifier to this type if this
   // type is valid and the type system supports volatile modifiers, else return
   // an invalid type.
-  //----------------------------------------------------------------------
   CompilerType AddVolatileModifier() const;
 
-  //----------------------------------------------------------------------
+  // Return a new CompilerType that is the atomic type of this type. If this
+  // type is not valid or the type system doesn't support atomic types, this
+  // returns an invalid type.
+  CompilerType GetAtomicType() const;
+
   // Return a new CompilerType adds a restrict modifier to this type if this
   // type is valid and the type system supports restrict modifiers, else return
   // an invalid type.
-  //----------------------------------------------------------------------
   CompilerType AddRestrictModifier() const;
 
-  //----------------------------------------------------------------------
   // Create a typedef to this type using "name" as the name of the typedef this
   // type is valid and the type system supports typedefs, else return an
   // invalid type.
-  //----------------------------------------------------------------------
   CompilerType CreateTypedef(const char *name,
                              const CompilerDeclContext &decl_ctx) const;
 
   // If the current object represents a typedef type, get the underlying type
   CompilerType GetTypedefedType() const;
 
-  //----------------------------------------------------------------------
   // Create related types using the current type's AST
-  //----------------------------------------------------------------------
   CompilerType GetBasicTypeFromAST(lldb::BasicType basic_type) const;
 
-  //----------------------------------------------------------------------
   // Exploring the type
-  //----------------------------------------------------------------------
 
   struct IntegralTemplateArgument;
 
@@ -295,7 +253,7 @@ public:
 
   lldb::Format GetFormat() const;
 
-  size_t GetTypeBitAlign() const;
+  llvm::Optional<size_t> GetTypeBitAlign(ExecutionContextScope *exe_scope) const;
 
   uint32_t GetNumChildren(bool omit_empty_base_classes,
                           const ExecutionContext *exe_ctx) const;
@@ -304,11 +262,9 @@ public:
 
   static lldb::BasicType GetBasicTypeEnumeration(ConstString name);
 
-  //----------------------------------------------------------------------
   // If this type is an enumeration, iterate through all of its enumerators
   // using a callback. If the callback returns true, keep iterating, else abort
   // the iteration.
-  //----------------------------------------------------------------------
   void ForEachEnumerator(
       std::function<bool(const CompilerType &integer_type,
                          ConstString name,
@@ -376,18 +332,7 @@ public:
 
   bool IsMeaninglessWithoutDynamicResolution() const;
 
-  //------------------------------------------------------------------
-  // Pointers & References
-  //------------------------------------------------------------------
-
-  // Converts "s" to a floating point value and place resulting floating point
-  // bytes in the "dst" buffer.
-  size_t ConvertStringToFloatValue(const char *s, uint8_t *dst,
-                                   size_t dst_size) const;
-
-  //----------------------------------------------------------------------
   // Dumping types
-  //----------------------------------------------------------------------
 
 #ifndef NDEBUG
   /// Convenience LLVM-style dump method for use in the debugger only.
@@ -416,14 +361,6 @@ public:
 
   bool GetValueAsScalar(const DataExtractor &data, lldb::offset_t data_offset,
                         size_t data_byte_size, Scalar &value) const;
-
-  bool SetValueFromScalar(const Scalar &value, Stream &strm);
-
-  bool ReadFromMemory(ExecutionContext *exe_ctx, lldb::addr_t addr,
-                      AddressType address_type, DataExtractor &data);
-
-  bool WriteToMemory(ExecutionContext *exe_ctx, lldb::addr_t addr,
-                     AddressType address_type, StreamString &new_value);
 
   void Clear() {
     m_type = nullptr;

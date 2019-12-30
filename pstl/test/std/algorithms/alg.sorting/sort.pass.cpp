@@ -7,16 +7,12 @@
 //
 //===----------------------------------------------------------------------===//
 
+// UNSUPPORTED: c++98, c++03, c++11, c++14
+
 #include "support/pstl_test_config.h"
 
-#ifdef PSTL_STANDALONE_TESTS
-
-#include "pstl/execution"
-#include "pstl/algorithm"
-#else
 #include <execution>
 #include <algorithm>
-#endif // PSTL_STANDALONE_TESTS
 
 #include "support/utils.h"
 
@@ -89,7 +85,7 @@ class ParanoidKey
         index = k.index;
         return *this;
     }
-    ParanoidKey(int32_t index, int32_t value, OddTag) : index(index), value(value) {}
+    ParanoidKey(int32_t index, int32_t value, OddTag) : value(value), index(index) {}
     ParanoidKey(ParanoidKey&& k) : value(k.value), index(k.index)
     {
         EXPECT_TRUE(k.isConstructed(), "source for move-construction is dead");
@@ -166,7 +162,7 @@ struct test_sort_with_compare
     typename std::enable_if<is_same_iterator_category<InputIterator, std::random_access_iterator_tag>::value,
                             void>::type
     operator()(Policy&& exec, OutputIterator tmp_first, OutputIterator tmp_last, OutputIterator2 expected_first,
-               OutputIterator2 expected_last, InputIterator first, InputIterator last, Size n, Compare compare)
+               OutputIterator2 expected_last, InputIterator first, InputIterator, Size n, Compare compare)
     {
         using namespace std;
         copy_n(first, n, expected_first);
@@ -193,8 +189,8 @@ struct test_sort_with_compare
               typename Compare>
     typename std::enable_if<!is_same_iterator_category<InputIterator, std::random_access_iterator_tag>::value,
                             void>::type
-    operator()(Policy&& exec, OutputIterator tmp_first, OutputIterator tmp_last, OutputIterator2 expected_first,
-               OutputIterator2 expected_last, InputIterator first, InputIterator last, Size n, Compare compare)
+    operator()(Policy&&, OutputIterator, OutputIterator, OutputIterator2, OutputIterator2, InputIterator, InputIterator,
+               Size, Compare)
     {
     }
 };
@@ -228,7 +224,7 @@ struct test_non_const
     }
 };
 
-int32_t
+int
 main()
 {
     std::srand(42);

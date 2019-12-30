@@ -100,6 +100,7 @@ namespace llvm {
 
 extern cl::opt<bool> ForceTopDown;
 extern cl::opt<bool> ForceBottomUp;
+extern cl::opt<bool> VerifyScheduling;
 
 class LiveIntervals;
 class MachineDominatorTree;
@@ -666,6 +667,10 @@ private:
   // scheduled instruction.
   SmallVector<unsigned, 16> ReservedCycles;
 
+  // For each PIdx, stores first index into ReservedCycles that corresponds to
+  // it.
+  SmallVector<unsigned, 16> ReservedCyclesIndex;
+
 #ifndef NDEBUG
   // Remember the greatest possible stall as an upper bound on the number of
   // times we should retry the pending queue because of a hazard.
@@ -740,7 +745,11 @@ public:
   /// cycle.
   unsigned getLatencyStallCycles(SUnit *SU);
 
-  unsigned getNextResourceCycle(unsigned PIdx, unsigned Cycles);
+  unsigned getNextResourceCycleByInstance(unsigned InstanceIndex,
+                                          unsigned Cycles);
+
+  std::pair<unsigned, unsigned> getNextResourceCycle(unsigned PIdx,
+                                                     unsigned Cycles);
 
   bool checkHazard(SUnit *SU);
 
@@ -1000,7 +1009,7 @@ protected:
 ///   initPolicy -> initialize(DAG) -> registerRoots -> pickNode ...
 class PostGenericScheduler : public GenericSchedulerBase {
 protected:
-  ScheduleDAGMI *DAG;
+  ScheduleDAGMI *DAG = nullptr;
   SchedBoundary Top;
   SmallVector<SUnit*, 8> BotRoots;
 

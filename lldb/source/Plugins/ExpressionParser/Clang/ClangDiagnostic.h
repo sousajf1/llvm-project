@@ -29,11 +29,11 @@ public:
     return diag->getKind() == eDiagnosticOriginClang;
   }
 
-  ClangDiagnostic(const char *message, DiagnosticSeverity severity,
+  ClangDiagnostic(llvm::StringRef message, DiagnosticSeverity severity,
                   uint32_t compiler_id)
       : Diagnostic(message, severity, eDiagnosticOriginClang, compiler_id) {}
 
-  virtual ~ClangDiagnostic() = default;
+  ~ClangDiagnostic() override = default;
 
   bool HasFixIts() const override { return !m_fixit_vec.empty(); }
 
@@ -42,6 +42,7 @@ public:
   }
 
   const FixItList &FixIts() const { return m_fixit_vec; }
+private:
   FixItList m_fixit_vec;
 };
 

@@ -1,5 +1,5 @@
 // -*- C++ -*-
-//===-- glue_numeric_defs.h -----------------------------------------------===//
+//===----------------------------------------------------------------------===//
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
@@ -7,10 +7,15 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef __PSTL_glue_numeric_defs_H
-#define __PSTL_glue_numeric_defs_H
+#ifndef _PSTL_GLUE_NUMERIC_DEFS_H
+#define _PSTL_GLUE_NUMERIC_DEFS_H
+
+#include <iterator>
 
 #include "execution_defs.h"
+#include "pstl_config.h"
+
+_PSTL_HIDE_FROM_ABI_PUSH
 
 namespace std
 {
@@ -113,4 +118,7 @@ adjacent_difference(_ExecutionPolicy&& __exec, _ForwardIterator1 __first, _Forwa
                     _ForwardIterator2 __d_first);
 
 } // namespace std
-#endif /* __PSTL_glue_numeric_defs_H */
+
+_PSTL_HIDE_FROM_ABI_POP
+
+#endif /* _PSTL_GLUE_NUMERIC_DEFS_H */

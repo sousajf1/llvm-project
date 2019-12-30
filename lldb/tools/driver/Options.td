@@ -5,6 +5,8 @@ class S<string name>: Separate<["--", "-"], name>;
 class R<list<string> prefixes, string name>
   : Option<prefixes, name, KIND_REMAINING_ARGS>;
 
+// Please keep this in sync with the man page in docs/man/lldb.rst
+
 // Attaching options.
 def grp_attach : OptionGroup<"attaching">, HelpText<"ATTACHING">;
 
@@ -95,6 +97,9 @@ def: Flag<["-"], "x">,
   Alias<no_lldbinit>,
   HelpText<"Alias for --no-lldbinit">,
   Group<grp_command>;
+def local_lldbinit: F<"local-lldbinit">,
+  HelpText<"Allow the debugger to parse the .lldbinit files in the current working directory, unless --no-lldbinit is passed.">,
+  Group<grp_command>;
 
 def batch: F<"batch">,
   HelpText<"Tells the debugger to run the commands from -s, -S, -o & -O, and then quit.">,
@@ -114,7 +119,7 @@ def: Flag<["-"], "Q">,
 
 def one_line_on_crash: Separate<["--", "-"], "one-line-on-crash">,
   MetaVarName<"<command>">,
-  HelpText<"When in batch mode, tells the debugger to source this file of lldb commands if the target crashes.">,
+  HelpText<"When in batch mode, tells the debugger to run this one-line lldb command if the target crashes.">,
   Group<grp_command>;
 def: Separate<["-"], "k">,
   Alias<one_line_on_crash>,
@@ -227,5 +232,7 @@ def capture_path: Separate<["--", "-"], "capture-path">,
 def replay: Separate<["--", "-"], "replay">,
   MetaVarName<"<filename>">,
   HelpText<"Tells the debugger to replay a reproducer from <filename>.">;
+def skip_version_check: F<"reproducer-skip-version-check">,
+  HelpText<"Skip the reproducer version check.">;
 
 def REM : R<["--"], "">;

@@ -19,16 +19,15 @@
 
 namespace lldb_private {
 
-//----------------------------------------------------------------------
+class ExecutionContext;
+
 /// \class FunctionInfo Function.h "lldb/Symbol/Function.h"
 /// A class that contains generic function information.
 ///
 /// This provides generic function information that gets reused between inline
 /// functions and function types.
-//----------------------------------------------------------------------
 class FunctionInfo {
 public:
-  //------------------------------------------------------------------
   /// Construct with the function method name and optional declaration
   /// information.
   ///
@@ -40,10 +39,8 @@ public:
   /// \param[in] decl_ptr
   ///     Optional declaration information that describes where the
   ///     function was declared. This can be NULL.
-  //------------------------------------------------------------------
   FunctionInfo(const char *name, const Declaration *decl_ptr);
 
-  //------------------------------------------------------------------
   /// Construct with the function method name and optional declaration
   /// information.
   ///
@@ -54,17 +51,13 @@ public:
   /// \param[in] decl_ptr
   ///     Optional declaration information that describes where the
   ///     function was declared. This can be NULL.
-  //------------------------------------------------------------------
   FunctionInfo(ConstString name, const Declaration *decl_ptr);
 
-  //------------------------------------------------------------------
   /// Destructor.
   ///
   /// The destructor is virtual since classes inherit from this class.
-  //------------------------------------------------------------------
   virtual ~FunctionInfo();
 
-  //------------------------------------------------------------------
   /// Compare two function information objects.
   ///
   /// First compares the method names, and if equal, then compares the
@@ -77,13 +70,11 @@ public:
   ///     The Right Hand Side const FunctionInfo object reference.
   ///
   /// \return
-  ///     \li -1 if lhs < rhs
-  ///     \li 0 if lhs == rhs
-  ///     \li 1 if lhs > rhs
-  //------------------------------------------------------------------
+  ///     -1 if lhs < rhs
+  ///     0 if lhs == rhs
+  ///     1 if lhs > rhs
   static int Compare(const FunctionInfo &lhs, const FunctionInfo &rhs);
 
-  //------------------------------------------------------------------
   /// Dump a description of this object to a Stream.
   ///
   /// Dump a description of the contents of this object to the supplied stream
@@ -91,34 +82,26 @@ public:
   ///
   /// \param[in] s
   ///     The stream to which to dump the object description.
-  //------------------------------------------------------------------
   void Dump(Stream *s, bool show_fullpaths) const;
 
-  //------------------------------------------------------------------
   /// Get accessor for the declaration information.
   ///
   /// \return
   ///     A reference to the declaration object.
-  //------------------------------------------------------------------
   Declaration &GetDeclaration();
 
-  //------------------------------------------------------------------
   /// Get const accessor for the declaration information.
   ///
   /// \return
   ///     A const reference to the declaration object.
-  //------------------------------------------------------------------
   const Declaration &GetDeclaration() const;
 
-  //------------------------------------------------------------------
   /// Get accessor for the method name.
   ///
   /// \return
   ///     A const reference to the method name object.
-  //------------------------------------------------------------------
   ConstString GetName() const;
 
-  //------------------------------------------------------------------
   /// Get the memory cost of this object.
   ///
   /// \return
@@ -127,25 +110,19 @@ public:
   ///     shared string values.
   ///
   /// \see ConstString::StaticMemorySize ()
-  //------------------------------------------------------------------
   virtual size_t MemorySize() const;
 
 protected:
-  //------------------------------------------------------------------
   // Member variables.
-  //------------------------------------------------------------------
   ConstString m_name;        ///< Function method name (not a mangled name).
   Declaration m_declaration; ///< Information describing where this function
                              ///information was defined.
 };
 
-//----------------------------------------------------------------------
 /// \class InlineFunctionInfo Function.h "lldb/Symbol/Function.h"
 /// A class that describes information for an inlined function.
-//----------------------------------------------------------------------
 class InlineFunctionInfo : public FunctionInfo {
 public:
-  //------------------------------------------------------------------
   /// Construct with the function method name, mangled name, and optional
   /// declaration information.
   ///
@@ -165,12 +142,10 @@ public:
   /// \param[in] call_decl_ptr
   ///     Optional calling location declaration information that
   ///     describes from where this inlined function was called.
-  //------------------------------------------------------------------
-  InlineFunctionInfo(const char *name, const char *mangled,
+  InlineFunctionInfo(const char *name, llvm::StringRef mangled,
                      const Declaration *decl_ptr,
                      const Declaration *call_decl_ptr);
 
-  //------------------------------------------------------------------
   /// Construct with the function method name, mangled name, and optional
   /// declaration information.
   ///
@@ -189,17 +164,13 @@ public:
   /// \param[in] call_decl_ptr
   ///     Optional calling location declaration information that
   ///     describes from where this inlined function was called.
-  //------------------------------------------------------------------
   InlineFunctionInfo(ConstString name, const Mangled &mangled,
                      const Declaration *decl_ptr,
                      const Declaration *call_decl_ptr);
 
-  //------------------------------------------------------------------
   /// Destructor.
-  //------------------------------------------------------------------
   ~InlineFunctionInfo() override;
 
-  //------------------------------------------------------------------
   /// Compare two inlined function information objects.
   ///
   /// First compares the FunctionInfo objects, and if equal, compares the
@@ -214,13 +185,11 @@ public:
   ///     reference.
   ///
   /// \return
-  ///     \li -1 if lhs < rhs
-  ///     \li 0 if lhs == rhs
-  ///     \li 1 if lhs > rhs
-  //------------------------------------------------------------------
+  ///     -1 if lhs < rhs
+  ///     0 if lhs == rhs
+  ///     1 if lhs > rhs
   int Compare(const InlineFunctionInfo &lhs, const InlineFunctionInfo &rhs);
 
-  //------------------------------------------------------------------
   /// Dump a description of this object to a Stream.
   ///
   /// Dump a description of the contents of this object to the supplied stream
@@ -228,7 +197,6 @@ public:
   ///
   /// \param[in] s
   ///     The stream to which to dump the object description.
-  //------------------------------------------------------------------
   void Dump(Stream *s, bool show_fullpaths) const;
 
   void DumpStopContext(Stream *s, lldb::LanguageType language) const;
@@ -237,39 +205,30 @@ public:
 
   ConstString GetDisplayName(lldb::LanguageType language) const;
 
-  //------------------------------------------------------------------
   /// Get accessor for the call site declaration information.
   ///
   /// \return
   ///     A reference to the declaration object.
-  //------------------------------------------------------------------
   Declaration &GetCallSite();
 
-  //------------------------------------------------------------------
   /// Get const accessor for the call site declaration information.
   ///
   /// \return
   ///     A const reference to the declaration object.
-  //------------------------------------------------------------------
   const Declaration &GetCallSite() const;
 
-  //------------------------------------------------------------------
   /// Get accessor for the mangled name object.
   ///
   /// \return
   ///     A reference to the mangled name object.
-  //------------------------------------------------------------------
   Mangled &GetMangled();
 
-  //------------------------------------------------------------------
   /// Get const accessor for the mangled name object.
   ///
   /// \return
   ///     A const reference to the mangled name object.
-  //------------------------------------------------------------------
   const Mangled &GetMangled() const;
 
-  //------------------------------------------------------------------
   /// Get the memory cost of this object.
   ///
   /// \return
@@ -278,13 +237,10 @@ public:
   ///     shared string values.
   ///
   /// \see ConstString::StaticMemorySize ()
-  //------------------------------------------------------------------
   size_t MemorySize() const override;
 
 private:
-  //------------------------------------------------------------------
   // Member variables.
-  //------------------------------------------------------------------
   Mangled m_mangled; ///< Mangled inlined function name (can be empty if there
                      ///is no mangled information).
   Declaration m_call_decl;
@@ -292,30 +248,32 @@ private:
 
 class Function;
 
-//----------------------------------------------------------------------
+/// \class CallSiteParameter Function.h "lldb/Symbol/Function.h"
+///
+/// Represent the locations of a parameter at a call site, both in the caller
+/// and in the callee.
+struct CallSiteParameter {
+  DWARFExpression LocationInCallee;
+  DWARFExpression LocationInCaller;
+};
+
+/// A vector of \c CallSiteParameter.
+using CallSiteParameterArray = llvm::SmallVector<CallSiteParameter, 0>;
+
 /// \class CallEdge Function.h "lldb/Symbol/Function.h"
 ///
 /// Represent a call made within a Function. This can be used to find a path
-/// in the call graph between two functions.
-//----------------------------------------------------------------------
+/// in the call graph between two functions, or to evaluate DW_OP_entry_value.
 class CallEdge {
 public:
-  /// Construct a call edge using a symbol name to identify the calling
-  /// function, and a return PC within the calling function to identify a
-  /// specific call site.
-  ///
-  /// TODO: A symbol name may not be globally unique. To disambiguate ODR
-  /// conflicts, it's necessary to determine the \c Target a call edge is
-  /// associated with before resolving it.
-  CallEdge(const char *symbol_name, lldb::addr_t return_pc);
-
-  CallEdge(CallEdge &&) = default;
-  CallEdge &operator=(CallEdge &&) = default;
+  virtual ~CallEdge() {}
 
   /// Get the callee's definition.
   ///
-  /// Note that this might lazily invoke the DWARF parser.
-  Function *GetCallee(ModuleList &images);
+  /// Note that this might lazily invoke the DWARF parser. A register context
+  /// from the caller's activation is needed to find indirect call targets.
+  virtual Function *GetCallee(ModuleList &images,
+                              ExecutionContext &exe_ctx) = 0;
 
   /// Get the load PC address of the instruction which executes after the call
   /// returns. Returns LLDB_INVALID_ADDRESS iff this is a tail call. \p caller
@@ -327,28 +285,75 @@ public:
   /// offset.
   lldb::addr_t GetUnresolvedReturnPCAddress() const { return return_pc; }
 
-private:
-  void ParseSymbolFileAndResolve(ModuleList &images);
+  /// Get the call site parameters available at this call edge.
+  llvm::ArrayRef<CallSiteParameter> GetCallSiteParameters() const {
+    return parameters;
+  }
 
-  /// Either the callee's mangled name or its definition, discriminated by
-  /// \ref resolved.
-  union {
-    const char *symbol_name;
-    Function *def;
-  } lazy_callee;
+protected:
+  CallEdge(lldb::addr_t return_pc, CallSiteParameterArray &&parameters)
+      : return_pc(return_pc), parameters(std::move(parameters)) {}
 
   /// An invalid address if this is a tail call. Otherwise, the function-local
   /// PC offset. Adding this PC offset to the function's base load address
   /// gives the return PC for the call.
   lldb::addr_t return_pc;
 
-  /// Whether or not an attempt was made to find the callee's definition.
-  bool resolved;
-
-  DISALLOW_COPY_AND_ASSIGN(CallEdge);
+  CallSiteParameterArray parameters;
 };
 
-//----------------------------------------------------------------------
+/// A direct call site. Used to represent call sites where the address of the
+/// callee is fixed (e.g. a function call in C in which the call target is not
+/// a function pointer).
+class DirectCallEdge : public CallEdge {
+public:
+  /// Construct a call edge using a symbol name to identify the callee, and a
+  /// return PC within the calling function to identify a specific call site.
+  DirectCallEdge(const char *symbol_name, lldb::addr_t return_pc,
+                 CallSiteParameterArray &&parameters)
+      : CallEdge(return_pc, std::move(parameters)) {
+    lazy_callee.symbol_name = symbol_name;
+  }
+
+  Function *GetCallee(ModuleList &images, ExecutionContext &exe_ctx) override;
+
+private:
+  void ParseSymbolFileAndResolve(ModuleList &images);
+
+  // Used to describe a direct call.
+  //
+  // Either the callee's mangled name or its definition, discriminated by
+  // \ref resolved.
+  union {
+    const char *symbol_name;
+    Function *def;
+  } lazy_callee;
+
+  /// Whether or not an attempt was made to find the callee's definition.
+  bool resolved = false;
+};
+
+/// An indirect call site. Used to represent call sites where the address of
+/// the callee is not fixed, e.g. a call to a C++ virtual function (where the
+/// address is loaded out of a vtable), or a call to a function pointer in C.
+class IndirectCallEdge : public CallEdge {
+public:
+  /// Construct a call edge using a DWARFExpression to identify the callee, and
+  /// a return PC within the calling function to identify a specific call site.
+  IndirectCallEdge(DWARFExpression call_target, lldb::addr_t return_pc,
+                   CallSiteParameterArray &&parameters)
+      : CallEdge(return_pc, std::move(parameters)),
+        call_target(std::move(call_target)) {}
+
+  Function *GetCallee(ModuleList &images, ExecutionContext &exe_ctx) override;
+
+private:
+  // Used to describe an indirect call.
+  //
+  // Specifies the location of the callee address in the calling frame.
+  DWARFExpression call_target;
+};
+
 /// \class Function Function.h "lldb/Symbol/Function.h"
 /// A class that describes a function.
 ///
@@ -369,10 +374,8 @@ private:
 ///
 /// The concrete information is the address range information and specific
 /// locations for an instance of this function.
-//----------------------------------------------------------------------
 class Function : public UserID, public SymbolContextScope {
 public:
-  //------------------------------------------------------------------
   /// Construct with a compile unit, function UID, function type UID, optional
   /// mangled name, function type, and a section offset based address range.
   ///
@@ -401,21 +404,16 @@ public:
   ///
   /// \param[in] range
   ///     The section offset based address for this function.
-  //------------------------------------------------------------------
   Function(CompileUnit *comp_unit, lldb::user_id_t func_uid,
            lldb::user_id_t func_type_uid, const Mangled &mangled,
            Type *func_type, const AddressRange &range);
 
-  //------------------------------------------------------------------
   /// Destructor.
-  //------------------------------------------------------------------
   ~Function() override;
 
-  //------------------------------------------------------------------
   /// \copydoc SymbolContextScope::CalculateSymbolContext(SymbolContext*)
   ///
   /// \see SymbolContextScope
-  //------------------------------------------------------------------
   void CalculateSymbolContext(SymbolContext *sc) override;
 
   lldb::ModuleSP CalculateSymbolContextModule() override;
@@ -427,7 +425,6 @@ public:
   const AddressRange &GetAddressRange() { return m_range; }
 
   lldb::LanguageType GetLanguage() const;
-  //------------------------------------------------------------------
   /// Find the file and line number of the source location of the start of the
   /// function.  This will use the declaration if present and fall back on the
   /// line table if that fails.  So there may NOT be a line table entry for
@@ -438,10 +435,8 @@ public:
   ///
   /// \param[out] line_no
   ///     The line number.
-  //------------------------------------------------------------------
   void GetStartLineSourceInfo(FileSpec &source_file, uint32_t &line_no);
 
-  //------------------------------------------------------------------
   /// Find the file and line number of the source location of the end of the
   /// function.
   ///
@@ -451,22 +446,21 @@ public:
   ///
   /// \param[out] line_no
   ///     The line number.
-  //------------------------------------------------------------------
   void GetEndLineSourceInfo(FileSpec &source_file, uint32_t &line_no);
 
-  //------------------------------------------------------------------
   /// Get the outgoing call edges from this function, sorted by their return
   /// PC addresses (in increasing order).
-  //------------------------------------------------------------------
-  llvm::MutableArrayRef<CallEdge> GetCallEdges();
+  llvm::ArrayRef<std::unique_ptr<CallEdge>> GetCallEdges();
 
-  //------------------------------------------------------------------
   /// Get the outgoing tail-calling edges from this function. If none exist,
   /// return None.
-  //------------------------------------------------------------------
-  llvm::MutableArrayRef<CallEdge> GetTailCallingEdges();
+  llvm::ArrayRef<std::unique_ptr<CallEdge>> GetTailCallingEdges();
 
-  //------------------------------------------------------------------
+  /// Get the outgoing call edge from this function which has the given return
+  /// address \p return_pc, or return nullptr. Note that this will not return a
+  /// tail-calling edge.
+  CallEdge *GetCallEdgeForReturnAddress(lldb::addr_t return_pc, Target &target);
+
   /// Get accessor for the block list.
   ///
   /// \return
@@ -474,42 +468,33 @@ public:
   ///     in the function.
   ///
   /// \see BlockList
-  //------------------------------------------------------------------
   Block &GetBlock(bool can_create);
 
-  //------------------------------------------------------------------
   /// Get accessor for the compile unit that owns this function.
   ///
   /// \return
   ///     A compile unit object pointer.
-  //------------------------------------------------------------------
   CompileUnit *GetCompileUnit();
 
-  //------------------------------------------------------------------
   /// Get const accessor for the compile unit that owns this function.
   ///
   /// \return
   ///     A const compile unit object pointer.
-  //------------------------------------------------------------------
   const CompileUnit *GetCompileUnit() const;
 
   void GetDescription(Stream *s, lldb::DescriptionLevel level, Target *target);
 
-  //------------------------------------------------------------------
   /// Get accessor for the frame base location.
   ///
   /// \return
   ///     A location expression that describes the function frame
   ///     base.
-  //------------------------------------------------------------------
   DWARFExpression &GetFrameBaseExpression() { return m_frame_base; }
 
-  //------------------------------------------------------------------
   /// Get const accessor for the frame base location.
   ///
   /// \return
   ///     A const compile unit object pointer.
-  //------------------------------------------------------------------
   const DWARFExpression &GetFrameBaseExpression() const { return m_frame_base; }
 
   ConstString GetName() const;
@@ -520,45 +505,36 @@ public:
 
   const Mangled &GetMangled() const { return m_mangled; }
 
-  //------------------------------------------------------------------
   /// Get the DeclContext for this function, if available.
   ///
   /// \return
   ///     The DeclContext, or NULL if none exists.
-  //------------------------------------------------------------------
   CompilerDeclContext GetDeclContext();
 
-  //------------------------------------------------------------------
   /// Get accessor for the type that describes the function return value type,
   /// and parameter types.
   ///
   /// \return
   ///     A type object pointer.
-  //------------------------------------------------------------------
   Type *GetType();
 
-  //------------------------------------------------------------------
   /// Get const accessor for the type that describes the function return value
   /// type, and parameter types.
   ///
   /// \return
   ///     A const type object pointer.
-  //------------------------------------------------------------------
   const Type *GetType() const;
 
   CompilerType GetCompilerType();
 
-  //------------------------------------------------------------------
   /// Get the size of the prologue instructions for this function.  The
   /// "prologue" instructions include any instructions given line number 0
   /// immediately following the prologue end.
   ///
   /// \return
   ///     The size of the prologue.
-  //------------------------------------------------------------------
   uint32_t GetPrologueByteSize();
 
-  //------------------------------------------------------------------
   /// Dump a description of this object to a Stream.
   ///
   /// Dump a description of the contents of this object to the supplied stream
@@ -570,17 +546,13 @@ public:
   /// \param[in] show_context
   ///     If \b true, variables will dump their symbol context
   ///     information.
-  //------------------------------------------------------------------
   void Dump(Stream *s, bool show_context) const;
 
-  //------------------------------------------------------------------
   /// \copydoc SymbolContextScope::DumpSymbolContext(Stream*)
   ///
   /// \see SymbolContextScope
-  //------------------------------------------------------------------
   void DumpSymbolContext(Stream *s) override;
 
-  //------------------------------------------------------------------
   /// Get the memory cost of this object.
   ///
   /// \return
@@ -589,10 +561,8 @@ public:
   ///     shared string values.
   ///
   /// \see ConstString::StaticMemorySize ()
-  //------------------------------------------------------------------
   size_t MemorySize() const;
 
-  //------------------------------------------------------------------
   /// Get whether compiler optimizations were enabled for this function
   ///
   /// The debug information may provide information about whether this
@@ -606,10 +576,8 @@ public:
   ///     Returns 'true' if this function was compiled with
   ///     optimization.  'false' indicates that either the optimization
   ///     is unknown, or this function was built without optimization.
-  //------------------------------------------------------------------
   bool GetIsOptimized();
 
-  //------------------------------------------------------------------
   /// Get whether this function represents a 'top-level' function
   ///
   /// The concept of a top-level function is language-specific, mostly meant
@@ -623,7 +591,6 @@ public:
   /// \return
   ///     Returns 'true' if this function is a top-level function,
   ///     'false' otherwise.
-  //------------------------------------------------------------------
   bool IsTopLevelFunction();
 
   lldb::DisassemblerSP GetInstructions(const ExecutionContext &exe_ctx,
@@ -639,9 +606,7 @@ protected:
         (1 << 0) ///< Have we already tried to calculate the prologue size?
   };
 
-  //------------------------------------------------------------------
   // Member variables.
-  //------------------------------------------------------------------
   CompileUnit *m_comp_unit; ///< The compile unit that owns this function.
   lldb::user_id_t
       m_type_uid; ///< The user ID of for the prototype Type for this function.
@@ -660,7 +625,7 @@ protected:
 
   bool m_call_edges_resolved = false; ///< Whether call site info has been
                                       ///  parsed.
-  std::vector<CallEdge> m_call_edges; ///< Outgoing call edges.
+  std::vector<std::unique_ptr<CallEdge>> m_call_edges; ///< Outgoing call edges.
 private:
   DISALLOW_COPY_AND_ASSIGN(Function);
 };

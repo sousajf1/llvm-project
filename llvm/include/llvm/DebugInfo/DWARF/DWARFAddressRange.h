@@ -17,6 +17,7 @@
 namespace llvm {
 
 class raw_ostream;
+class DWARFObject;
 
 struct DWARFAddressRange {
   uint64_t LowPC;
@@ -26,7 +27,9 @@ struct DWARFAddressRange {
   DWARFAddressRange() = default;
 
   /// Used for unit testing.
-  DWARFAddressRange(uint64_t LowPC, uint64_t HighPC, uint64_t SectionIndex = 0)
+  DWARFAddressRange(
+      uint64_t LowPC, uint64_t HighPC,
+      uint64_t SectionIndex = object::SectionedAddress::UndefSection)
       : LowPC(LowPC), HighPC(HighPC), SectionIndex(SectionIndex) {}
 
   /// Returns true if LowPC is smaller or equal to HighPC. This accounts for
@@ -42,19 +45,18 @@ struct DWARFAddressRange {
     return LowPC < RHS.HighPC && RHS.LowPC < HighPC;
   }
 
-  /// Returns true if [LowPC, HighPC) fully contains [RHS.LowPC, RHS.HighPC).
-  bool contains(const DWARFAddressRange &RHS) const {
-    assert(valid() && RHS.valid());
-    return LowPC <= RHS.LowPC && RHS.HighPC <= HighPC;
-  }
-
-  void dump(raw_ostream &OS, uint32_t AddressSize,
-            DIDumpOptions DumpOpts = {}) const;
+  void dump(raw_ostream &OS, uint32_t AddressSize, DIDumpOptions DumpOpts = {},
+            const DWARFObject *Obj = nullptr) const;
 };
 
-static inline bool operator<(const DWARFAddressRange &LHS,
-                             const DWARFAddressRange &RHS) {
+inline bool operator<(const DWARFAddressRange &LHS,
+                      const DWARFAddressRange &RHS) {
   return std::tie(LHS.LowPC, LHS.HighPC) < std::tie(RHS.LowPC, RHS.HighPC);
+}
+
+inline bool operator==(const DWARFAddressRange &LHS,
+                       const DWARFAddressRange &RHS) {
+  return std::tie(LHS.LowPC, LHS.HighPC) == std::tie(RHS.LowPC, RHS.HighPC);
 }
 
 raw_ostream &operator<<(raw_ostream &OS, const DWARFAddressRange &R);

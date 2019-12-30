@@ -16,6 +16,8 @@
 #include "llvm/Demangle/DemangleConfig.h"
 #include "llvm/Demangle/StringView.h"
 #include <array>
+#include <cstdint>
+#include <string>
 
 namespace llvm {
 namespace itanium_demangle {
@@ -73,6 +75,9 @@ enum OutputFlags {
   OF_Default = 0,
   OF_NoCallingConvention = 1,
   OF_NoTagSpecifier = 2,
+  OF_NoAccessSpecifier = 4,
+  OF_NoMemberType = 8,
+  OF_NoReturnType = 16,
 };
 
 // Types
@@ -82,6 +87,7 @@ enum class PrimitiveKind {
   Char,
   Schar,
   Uchar,
+  Char8,
   Char16,
   Char32,
   Short,
@@ -170,8 +176,8 @@ enum class IntrinsicFunctionKind : uint8_t {
   VectorCopyCtorIter,         // ?__G vector copy constructor iterator
   VectorVbaseCopyCtorIter,    // ?__H vector vbase copy constructor iterator
   ManVectorVbaseCopyCtorIter, // ?__I managed vector vbase copy constructor
-  CoAwait,                    // ?__L co_await
-  Spaceship,                  // operator<=>
+  CoAwait,                    // ?__L operator co_await
+  Spaceship,                  // ?__M operator<=>
   MaxIntrinsic
 };
 
@@ -300,8 +306,6 @@ struct TypeNode : public Node {
     outputPost(OS, Flags);
   }
 
-  void outputQuals(bool SpaceBefore, bool SpaceAfter) const;
-
   Qualifiers Quals = Q_None;
 };
 
@@ -343,7 +347,7 @@ struct FunctionSignatureNode : public TypeNode {
   // Function parameters
   NodeArrayNode *Params = nullptr;
 
-  // True if the function type is noexcept
+  // True if the function type is noexcept.
   bool IsNoexcept = false;
 };
 
@@ -408,6 +412,7 @@ struct LocalStaticGuardIdentifierNode : public IdentifierNode {
 
   void output(OutputStream &OS, OutputFlags Flags) const override;
 
+  bool IsThread = false;
   uint32_t ScopeIndex = 0;
 };
 
@@ -503,7 +508,7 @@ struct CustomTypeNode : public TypeNode {
   void outputPre(OutputStream &OS, OutputFlags Flags) const override;
   void outputPost(OutputStream &OS, OutputFlags Flags) const override;
 
-  IdentifierNode *Identifier;
+  IdentifierNode *Identifier = nullptr;
 };
 
 struct NodeArrayNode : public Node {
@@ -513,7 +518,7 @@ struct NodeArrayNode : public Node {
 
   void output(OutputStream &OS, OutputFlags Flags, StringView Separator) const;
 
-  Node **Nodes = 0;
+  Node **Nodes = nullptr;
   size_t Count = 0;
 };
 
@@ -579,7 +584,7 @@ struct SpecialTableSymbolNode : public SymbolNode {
 
   void output(OutputStream &OS, OutputFlags Flags) const override;
   QualifiedNameNode *TargetName = nullptr;
-  Qualifiers Quals;
+  Qualifiers Quals = Qualifiers::Q_None;
 };
 
 struct LocalStaticGuardVariableNode : public SymbolNode {

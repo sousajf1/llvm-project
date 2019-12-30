@@ -8,6 +8,8 @@ tablegen(LLVM AArch64GenDAGISel.inc -gen-dag-isel)
 tablegen(LLVM AArch64GenDisassemblerTables.inc -gen-disassembler)
 tablegen(LLVM AArch64GenFastISel.inc -gen-fast-isel)
 tablegen(LLVM AArch64GenGlobalISel.inc -gen-global-isel)
+tablegen(LLVM AArch64GenGICombiner.inc -gen-global-isel-combiner
+              -combiners="AArch64PreLegalizerCombinerHelper")
 tablegen(LLVM AArch64GenInstrInfo.inc -gen-instr-info)
 tablegen(LLVM AArch64GenMCCodeEmitter.inc -gen-emitter)
 tablegen(LLVM AArch64GenMCPseudoLowering.inc -gen-pseudo-lowering)
@@ -55,6 +57,8 @@ add_llvm_target(AArch64CodeGen
   AArch64RegisterInfo.cpp
   AArch64SelectionDAGInfo.cpp
   AArch64SpeculationHardening.cpp
+  AArch64StackTagging.cpp
+  AArch64StackTaggingPreRA.cpp
   AArch64StorePairSuppress.cpp
   AArch64Subtarget.cpp
   AArch64TargetMachine.cpp
@@ -68,7 +72,6 @@ add_llvm_target(AArch64CodeGen
 
 add_subdirectory(AsmParser)
 add_subdirectory(Disassembler)
-add_subdirectory(InstPrinter)
 add_subdirectory(MCTargetDesc)
 add_subdirectory(TargetInfo)
 add_subdirectory(Utils)

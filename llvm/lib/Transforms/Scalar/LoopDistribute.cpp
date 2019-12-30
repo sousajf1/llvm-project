@@ -55,6 +55,7 @@
 #include "llvm/IR/Metadata.h"
 #include "llvm/IR/PassManager.h"
 #include "llvm/IR/Value.h"
+#include "llvm/InitializePasses.h"
 #include "llvm/Pass.h"
 #include "llvm/Support/Casting.h"
 #include "llvm/Support/CommandLine.h"
@@ -766,8 +767,14 @@ public:
                     "cannot isolate unsafe dependencies");
     }
 
-    // Don't distribute the loop if we need too many SCEV run-time checks.
+    // Don't distribute the loop if we need too many SCEV run-time checks, or
+    // any if it's illegal.
     const SCEVUnionPredicate &Pred = LAI->getPSE().getUnionPredicate();
+    if (LAI->hasConvergentOp() && !Pred.isAlwaysTrue()) {
+      return fail("RuntimeCheckWithConvergent",
+                  "may not insert runtime check with convergent operation");
+    }
+
     if (Pred.getComplexity() > (IsForced.getValueOr(false)
                                     ? PragmaDistributeSCEVCheckThreshold
                                     : DistributeSCEVCheckThreshold))
@@ -795,7 +802,14 @@ public:
     auto Checks = includeOnlyCrossPartitionChecks(AllChecks, PtrToPartition,
                                                   RtPtrChecking);
 
+    if (LAI->hasConvergentOp() && !Checks.empty()) {
+      return fail("RuntimeCheckWithConvergent",
+                  "may not insert runtime check with convergent operation");
+    }
+
     if (!Pred.isAlwaysTrue() || !Checks.empty()) {
+      assert(!LAI->hasConvergentOp() && "inserting illegal loop versioning");
+
       MDNode *OrigLoopID = L->getLoopID();
 
       LLVM_DEBUG(dbgs() << "\nPointers:\n");

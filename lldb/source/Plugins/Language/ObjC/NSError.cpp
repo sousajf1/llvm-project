@@ -14,7 +14,6 @@
 #include "lldb/Core/ValueObjectConstResult.h"
 #include "lldb/DataFormatters/FormattersHelpers.h"
 #include "lldb/Symbol/ClangASTContext.h"
-#include "lldb/Target/ObjCLanguageRuntime.h"
 #include "lldb/Target/ProcessStructReader.h"
 #include "lldb/Target/Target.h"
 #include "lldb/Utility/DataBufferHeap.h"
@@ -23,6 +22,7 @@
 #include "lldb/Utility/Stream.h"
 
 #include "Plugins/Language/ObjC/NSString.h"
+#include "Plugins/LanguageRuntime/ObjC/ObjCLanguageRuntime.h"
 
 using namespace lldb;
 using namespace lldb_private;
@@ -86,10 +86,10 @@ bool lldb_private::formatters::NSError_SummaryProvider(
 
   ValueObjectSP domain_str_sp = ValueObject::CreateValueObjectFromData(
       "domain_str", isw.GetAsData(process_sp->GetByteOrder()),
-      valobj.GetExecutionContextRef(), process_sp->GetTarget()
-                                           .GetScratchClangASTContext()
-                                           ->GetBasicType(lldb::eBasicTypeVoid)
-                                           .GetPointerType());
+      valobj.GetExecutionContextRef(),
+      ClangASTContext::GetScratch(process_sp->GetTarget())
+          ->GetBasicType(lldb::eBasicTypeVoid)
+          .GetPointerType());
 
   if (!domain_str_sp)
     return false;
@@ -156,8 +156,8 @@ public:
     m_child_sp = CreateValueObjectFromData(
         "_userInfo", isw.GetAsData(process_sp->GetByteOrder()),
         m_backend.GetExecutionContextRef(),
-        process_sp->GetTarget().GetScratchClangASTContext()->GetBasicType(
-            lldb::eBasicTypeObjCID));
+        ClangASTContext::GetScratch(process_sp->GetTarget())
+            ->GetBasicType(lldb::eBasicTypeObjCID));
     return false;
   }
 
@@ -187,9 +187,7 @@ lldb_private::formatters::NSErrorSyntheticFrontEndCreator(
   lldb::ProcessSP process_sp(valobj_sp->GetProcessSP());
   if (!process_sp)
     return nullptr;
-  ObjCLanguageRuntime *runtime =
-      (ObjCLanguageRuntime *)process_sp->GetLanguageRuntime(
-          lldb::eLanguageTypeObjC);
+  ObjCLanguageRuntime *runtime = ObjCLanguageRuntime::Get(*process_sp);
   if (!runtime)
     return nullptr;
 

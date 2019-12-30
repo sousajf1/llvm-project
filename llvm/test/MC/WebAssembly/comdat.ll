@@ -28,8 +28,9 @@ define linkonce_odr i32 @sharedFn() #1 comdat($sharedComdat) {
 ; CHECK-NEXT:   - Type:            TYPE
 ; CHECK-NEXT:     Signatures:
 ; CHECK-NEXT:       - Index:           0
-; CHECK-NEXT:         ReturnType:      I32
-; CHECK-NEXT:         ParamTypes:
+; CHECK-NEXT:         ParamTypes:      []
+; CHECK-NEXT:         ReturnTypes:
+; CHECK-NEXT:           - I32
 ; CHECK-NEXT:   - Type:            IMPORT
 ; CHECK-NEXT:     Imports:
 ; CHECK-NEXT:       - Module:          env
@@ -50,6 +51,8 @@ define linkonce_odr i32 @sharedFn() #1 comdat($sharedComdat) {
 ; CHECK-NEXT:         SigIndex:        0
 ; CHECK-NEXT:   - Type:            FUNCTION
 ; CHECK-NEXT:     FunctionTypes:   [ 0, 0, 0 ]
+; CHECK-NEXT:  - Type:            DATACOUNT
+; CHECK-NEXT:    Count:           1
 ; CHECK-NEXT:  - Type:            CODE
 ; CHECK-NEXT:    Relocations:
 ; CHECK-NEXT:      - Type:            R_WASM_FUNCTION_INDEX_LEB

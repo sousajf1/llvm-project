@@ -4,20 +4,17 @@ WebAssembly lld port
 The WebAssembly version of lld takes WebAssembly binaries as inputs and produces
 a WebAssembly binary as its output.  For the most part it tries to mimic the
 behaviour of traditional ELF linkers and specifically the ELF lld port.  Where
-possible that command line flags and the semantics should be the same.
+possible the command line flags and the semantics should be the same.
 
 
 Object file format
 ------------------
 
-The format the input object files that lld expects is specified as part of the
+The WebAssembly object file format used by LLVM and LLD is specified as part of
 the WebAssembly tool conventions on linking_.
 
-This is object format that the llvm will produce when run with the
-``wasm32-unknown-unknown`` target.  To build llvm with WebAssembly support
-currently requires enabling the experimental backed using
-``-DLLVM_EXPERIMENTAL_TARGETS_TO_BUILD=WebAssembly``.
-
+This is the object format that the llvm will produce when run with the
+``wasm32-unknown-unknown`` target.
 
 Usage
 -----
@@ -45,8 +42,8 @@ WebAssembly-specific options:
 .. option:: --export-dynamic
 
   When building an executable, export any non-hidden symbols.  By default only
-  the entry point and any symbols marked with --export/--export-all are
-  exported.
+  the entry point and any symbols marked as exports (either via the command line
+  or via the `export-name` source attribute) are exported.
 
 .. option:: --global-base=<value>
 
@@ -87,48 +84,50 @@ WebAssembly-specific options:
 By default the function table is neither imported nor exported, but defined
 for internal use only.
 
-Bahaviour
+Behaviour
 ---------
 
 In general, where possible, the WebAssembly linker attempts to emulate the
-behavior of a traditional ELF linker, and in particular the ELF port of lld.
+behaviour of a traditional ELF linker, and in particular the ELF port of lld.
 For more specific details on how this is achieved see the tool conventions on
 linking_.
 
-Function Signatrues
+Function Signatures
 ~~~~~~~~~~~~~~~~~~~
 
 One way in which the WebAssembly linker differs from traditional native linkers
 is that function signature checking is strict in WebAssembly.  It is a
-validation error for a module to contain to call site that doesn't agree with
-the target signature.  Even though this is undefined behavior in C/C++ its not
-uncommon to find this in real world C/C++ programs.  For example, a call site in
-one complication unit which calls a function defined in another complication
+validation error for a module to contain a call site that doesn't agree with
+the target signature.  Even though this is undefined behaviour in C/C++, it is not
+uncommon to find this in real-world C/C++ programs.  For example, a call site in
+one compilation unit which calls a function defined in another compilation
 unit but with too many arguments.
 
-In order not to generate such invalid modules lld has two modes of handling such
-mismatches: it can simply error out or it can create stub functions that will
+In order not to generate such invalid modules, lld has two modes of handling such
+mismatches: it can simply error-out or it can create stub functions that will
 trap at runtime (functions that contain only an ``unreachable`` instruction)
 and use these stub functions at the otherwise invalid call sites.
 
-The the default befviour is to generate these stub function and to produce
-a warning.  The ``--falal-warnings`` flag can be used to disable this behaviour
+The default behaviour is to generate these stub function and to produce
+a warning.  The ``--fatal-warnings`` flag can be used to disable this behaviour
 and error out if mismatched are found.
 
 Imports and Exports
 ~~~~~~~~~~~~~~~~~~~
 
 When building a shared library any symbols marked as ``visibility=default`` will
-be exported.  When building an executable, only the entry point and symbols
-flagged as ``WASM_SYMBOL_EXPORTED`` are exported by default.  In LLVM the
-``WASM_SYMBOL_EXPORTED`` flag is applied to any symbol in the ``llvm.used`` list
-which corresponds to ``__attribute__((used))`` in C/C++ sources.
+be exported.
+
+When building an executable, only the entry point (``_start``) and symbols with
+the ``WASM_SYMBOL_EXPORTED`` flag are exported by default.  In LLVM the
+``WASM_SYMBOL_EXPORTED`` flag is set by the ``wasm-export-name`` attribute which
+in turn can be set using ``__attribute__((export_name))`` clang attribute.
 
 In addition, symbols can be exported via the linker command line using
 ``--export``.
 
 Finally, just like with native ELF linker the ``--export-dynamic`` flag can be
-used to export symbol in the executable which are marked as
+used to export symbols in the executable which are marked as
 ``visibility=default``.
 
 Garbage Collection

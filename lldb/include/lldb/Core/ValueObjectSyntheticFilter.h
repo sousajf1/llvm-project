@@ -9,8 +9,6 @@
 #ifndef liblldb_ValueObjectSyntheticFilter_h_
 #define liblldb_ValueObjectSyntheticFilter_h_
 
-#include "lldb/Core/ThreadSafeSTLMap.h"
-#include "lldb/Core/ThreadSafeSTLVector.h"
 #include "lldb/Core/ValueObject.h"
 #include "lldb/Symbol/CompilerType.h"
 #include "lldb/Utility/ConstString.h"
@@ -26,22 +24,14 @@
 
 namespace lldb_private {
 class Declaration;
-}
-namespace lldb_private {
 class Status;
-}
-namespace lldb_private {
 class SyntheticChildrenFrontEnd;
-}
-namespace lldb_private {
 
-//----------------------------------------------------------------------
 // A ValueObject that obtains its children from some source other than
 // real information
 // This is currently used to implement Python-based children and filters but
 // you can bind it to any source of synthetic information and have it behave
 // accordingly
-//----------------------------------------------------------------------
 class ValueObjectSynthetic : public ValueObject {
 public:
   ~ValueObjectSynthetic() override;
@@ -143,19 +133,24 @@ protected:
   lldb::SyntheticChildrenSP m_synth_sp;
   std::unique_ptr<SyntheticChildrenFrontEnd> m_synth_filter_up;
 
-  typedef ThreadSafeSTLMap<uint32_t, ValueObject *> ByIndexMap;
-  typedef ThreadSafeSTLMap<const char *, uint32_t> NameToIndexMap;
-  typedef ThreadSafeSTLVector<lldb::ValueObjectSP> SyntheticChildrenCache;
+  typedef std::map<uint32_t, ValueObject *> ByIndexMap;
+  typedef std::map<const char *, uint32_t> NameToIndexMap;
+  typedef std::vector<lldb::ValueObjectSP> SyntheticChildrenCache;
 
   typedef ByIndexMap::iterator ByIndexIterator;
   typedef NameToIndexMap::iterator NameToIndexIterator;
 
+  std::mutex m_child_mutex;
+  /// Guarded by m_child_mutex;
   ByIndexMap m_children_byindex;
+  /// Guarded by m_child_mutex;
   NameToIndexMap m_name_toindex;
+  /// Guarded by m_child_mutex;
+  SyntheticChildrenCache m_synthetic_children_cache;
+
   uint32_t m_synthetic_children_count; // FIXME use the ValueObject's
                                        // ChildrenManager instead of a special
                                        // purpose solution
-  SyntheticChildrenCache m_synthetic_children_cache;
 
   ConstString m_parent_type_name;
 

@@ -19,7 +19,6 @@
 #include "lldb/DataFormatters/FormattersHelpers.h"
 #include "lldb/Symbol/ClangASTContext.h"
 #include "lldb/Target/Language.h"
-#include "lldb/Target/ObjCLanguageRuntime.h"
 #include "lldb/Target/StackFrame.h"
 #include "lldb/Target/Target.h"
 #include "lldb/Utility/DataBufferHeap.h"
@@ -66,7 +65,7 @@ NSDictionary_Additionals::GetAdditionalSynthetics() {
 static CompilerType GetLLDBNSPairType(TargetSP target_sp) {
   CompilerType compiler_type;
 
-  ClangASTContext *target_ast_context = target_sp->GetScratchClangASTContext();
+  ClangASTContext *target_ast_context = ClangASTContext::GetScratch(*target_sp);
 
   if (target_ast_context) {
     ConstString g___lldb_autogen_nspair("__lldb_autogen_nspair");
@@ -347,9 +346,7 @@ bool lldb_private::formatters::NSDictionarySummaryProvider(
   if (!process_sp)
     return false;
 
-  ObjCLanguageRuntime *runtime =
-      (ObjCLanguageRuntime *)process_sp->GetLanguageRuntime(
-          lldb::eLanguageTypeObjC);
+  ObjCLanguageRuntime *runtime = ObjCLanguageRuntime::Get(*process_sp);
 
   if (!runtime)
     return false;
@@ -439,8 +436,8 @@ lldb_private::formatters::NSDictionarySyntheticFrontEndCreator(
   lldb::ProcessSP process_sp(valobj_sp->GetProcessSP());
   if (!process_sp)
     return nullptr;
-  AppleObjCRuntime *runtime =
-      llvm::dyn_cast_or_null<AppleObjCRuntime>(process_sp->GetObjCLanguageRuntime());
+  AppleObjCRuntime *runtime = llvm::dyn_cast_or_null<AppleObjCRuntime>(
+      ObjCLanguageRuntime::Get(*process_sp));
   if (!runtime)
     return nullptr;
 

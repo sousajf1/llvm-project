@@ -10,11 +10,16 @@
 //===----------------------------------------------------------------------===//
 #include "llvm/CodeGen/GlobalISel/CSEInfo.h"
 #include "llvm/CodeGen/MachineRegisterInfo.h"
+#include "llvm/InitializePasses.h"
 
 #define DEBUG_TYPE "cseinfo"
 
 using namespace llvm;
 char llvm::GISelCSEAnalysisWrapperPass::ID = 0;
+GISelCSEAnalysisWrapperPass::GISelCSEAnalysisWrapperPass()
+    : MachineFunctionPass(ID) {
+  initializeGISelCSEAnalysisWrapperPassPass(*PassRegistry::getPassRegistry());
+}
 INITIALIZE_PASS_BEGIN(GISelCSEAnalysisWrapperPass, DEBUG_TYPE,
                       "Analysis containing CSE Info", false, true)
 INITIALIZE_PASS_END(GISelCSEAnalysisWrapperPass, DEBUG_TYPE,
@@ -27,8 +32,8 @@ void UniqueMachineInstr::Profile(FoldingSetNodeID &ID) {
 }
 /// -----------------------------------------
 
-/// --------- CSEConfig ---------- ///
-bool CSEConfig::shouldCSEOpc(unsigned Opc) {
+/// --------- CSEConfigFull ---------- ///
+bool CSEConfigFull::shouldCSEOpc(unsigned Opc) {
   switch (Opc) {
   default:
     break;
@@ -52,6 +57,7 @@ bool CSEConfig::shouldCSEOpc(unsigned Opc) {
   case TargetOpcode::G_ANYEXT:
   case TargetOpcode::G_UNMERGE_VALUES:
   case TargetOpcode::G_TRUNC:
+  case TargetOpcode::G_PTR_ADD:
     return true;
   }
   return false;
@@ -60,6 +66,17 @@ bool CSEConfig::shouldCSEOpc(unsigned Opc) {
 bool CSEConfigConstantOnly::shouldCSEOpc(unsigned Opc) {
   return Opc == TargetOpcode::G_CONSTANT;
 }
+
+std::unique_ptr<CSEConfigBase>
+llvm::getStandardCSEConfigForOpt(CodeGenOpt::Level Level) {
+  std::unique_ptr<CSEConfigBase> Config;
+  if (Level == CodeGenOpt::None)
+    Config = std::make_unique<CSEConfigConstantOnly>();
+  else
+    Config = std::make_unique<CSEConfigFull>();
+  return Config;
+}
+
 /// -----------------------------------------
 
 /// -------- GISelCSEInfo -------------//
@@ -321,7 +338,7 @@ GISelInstProfileBuilder::addNodeIDFlag(unsigned Flag) const {
 const GISelInstProfileBuilder &GISelInstProfileBuilder::addNodeIDMachineOperand(
     const MachineOperand &MO) const {
   if (MO.isReg()) {
-    unsigned Reg = MO.getReg();
+    Register Reg = MO.getReg();
     if (!MO.isDef())
       addNodeIDRegNum(Reg);
     LLT Ty = MRI.getType(Reg);
@@ -348,8 +365,9 @@ const GISelInstProfileBuilder &GISelInstProfileBuilder::addNodeIDMachineOperand(
   return *this;
 }
 
-GISelCSEInfo &GISelCSEAnalysisWrapper::get(std::unique_ptr<CSEConfig> CSEOpt,
-                                           bool Recompute) {
+GISelCSEInfo &
+GISelCSEAnalysisWrapper::get(std::unique_ptr<CSEConfigBase> CSEOpt,
+                             bool Recompute) {
   if (!AlreadyComputed || Recompute) {
     Info.setCSEConfig(std::move(CSEOpt));
     Info.analyze(*MF);

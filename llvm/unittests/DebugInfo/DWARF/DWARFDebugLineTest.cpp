@@ -37,7 +37,7 @@ struct CommonFixture {
   }
 
   bool setupGenerator(uint16_t Version = 4) {
-    Triple T = getHostTripleForAddrSize(8);
+    Triple T = getDefaultTargetTripleForAddrSize(8);
     if (!isConfigurationSupported(T))
       return false;
     auto ExpectedGenerator = Generator::create(T, Version);
@@ -50,8 +50,9 @@ struct CommonFixture {
     Context = createContext();
     assert(Context != nullptr && "test state is not valid");
     const DWARFObject &Obj = Context->getDWARFObj();
-    LineData = DWARFDataExtractor(Obj, Obj.getLineSection(),
-                                  sys::IsLittleEndianHost, 8);
+    LineData = DWARFDataExtractor(
+        Obj, Obj.getLineSection(),
+        getDefaultTargetTripleForAddrSize(8).isLittleEndian(), 8);
   }
 
   std::unique_ptr<DWARFContext> createContext() {
@@ -117,6 +118,16 @@ struct CommonFixture {
     EXPECT_FALSE(Recoverable);
 
     checkError(ExpectedMsg, ExpectedLineTable.takeError());
+  }
+
+  void checkGetOrParseLineTableEmitsError(ArrayRef<StringRef> ExpectedMsgs,
+                                          uint64_t Offset = 0) {
+    auto ExpectedLineTable = Line.getOrParseLineTable(
+        LineData, Offset, *Context, nullptr, RecordRecoverable);
+    EXPECT_FALSE(ExpectedLineTable);
+    EXPECT_FALSE(Recoverable);
+
+    checkError(ExpectedMsgs, ExpectedLineTable.takeError());
   }
 
   std::unique_ptr<Generator> Gen;
@@ -290,13 +301,13 @@ TEST_F(DebugLineBasicFixture, ErrorForReservedLength) {
     return;
 
   LineTable &LT = Gen->addLineTable();
-  LT.setCustomPrologue({{0xffffff00, LineTable::Long}});
+  LT.setCustomPrologue({{0xfffffff0, LineTable::Long}});
 
   generate();
 
   checkGetOrParseLineTableEmitsError(
       "parsing line table prologue at offset 0x00000000 unsupported reserved "
-      "unit length found of value 0xffffff00");
+      "unit length found of value 0xfffffff0");
 }
 
 TEST_F(DebugLineBasicFixture, ErrorForLowVersion) {
@@ -343,8 +354,9 @@ TEST_F(DebugLineBasicFixture, ErrorForInvalidV5IncludeDirTable) {
   generate();
 
   checkGetOrParseLineTableEmitsError(
-      "parsing line table prologue at 0x00000000 found an invalid directory or "
-      "file table description at 0x00000014");
+      {"parsing line table prologue at 0x00000000 found an invalid directory "
+       "or file table description at 0x00000014",
+       "failed to parse entry content descriptions because no path was found"});
 }
 
 TEST_P(DebugLineParameterisedFixture, ErrorForTooLargePrologueLength) {
@@ -531,7 +543,7 @@ TEST_F(DebugLineBasicFixture, ParserMovesToEndForBadLengthWhenParsing) {
     return;
 
   LineTable &LT = Gen->addLineTable();
-  LT.setCustomPrologue({{0xffffff00, LineTable::Long}});
+  LT.setCustomPrologue({{0xfffffff0, LineTable::Long}});
   Gen->addLineTable();
   generate();
 
@@ -543,7 +555,7 @@ TEST_F(DebugLineBasicFixture, ParserMovesToEndForBadLengthWhenParsing) {
   EXPECT_FALSE(Recoverable);
 
   checkError("parsing line table prologue at offset 0x00000000 unsupported "
-             "reserved unit length found of value 0xffffff00",
+             "reserved unit length found of value 0xfffffff0",
              std::move(Unrecoverable));
 }
 
@@ -552,7 +564,7 @@ TEST_F(DebugLineBasicFixture, ParserMovesToEndForBadLengthWhenSkipping) {
     return;
 
   LineTable &LT = Gen->addLineTable();
-  LT.setCustomPrologue({{0xffffff00, LineTable::Long}});
+  LT.setCustomPrologue({{0xfffffff0, LineTable::Long}});
   Gen->addLineTable();
   generate();
 
@@ -563,7 +575,7 @@ TEST_F(DebugLineBasicFixture, ParserMovesToEndForBadLengthWhenSkipping) {
   EXPECT_TRUE(Parser.done());
 
   checkError("parsing line table prologue at offset 0x00000000 unsupported "
-             "reserved unit length found of value 0xffffff00",
+             "reserved unit length found of value 0xfffffff0",
              std::move(Unrecoverable));
 }
 
@@ -661,6 +673,58 @@ TEST_F(DebugLineBasicFixture, ParserIgnoresNonPrologueErrorsWhenSkipping) {
 
   EXPECT_TRUE(Parser.done());
   EXPECT_FALSE(Unrecoverable);
+}
+
+TEST_F(DebugLineBasicFixture, ParserPrintsStandardOpcodesWhenRequested) {
+  if (!setupGenerator())
+    return;
+
+  using ValLen = dwarfgen::LineTable::ValueAndLength;
+  LineTable &LT = Gen->addLineTable(DWARF32);
+  LT.addStandardOpcode(DW_LNS_copy, {});
+  LT.addStandardOpcode(DW_LNS_advance_pc, {ValLen{11, LineTable::ULEB}});
+  LT.addStandardOpcode(DW_LNS_advance_line, {ValLen{22, LineTable::SLEB}});
+  LT.addStandardOpcode(DW_LNS_set_file, {ValLen{33, LineTable::ULEB}});
+  LT.addStandardOpcode(DW_LNS_set_column, {ValLen{44, LineTable::ULEB}});
+  LT.addStandardOpcode(DW_LNS_negate_stmt, {});
+  LT.addStandardOpcode(DW_LNS_set_basic_block, {});
+  LT.addStandardOpcode(DW_LNS_const_add_pc, {});
+  LT.addStandardOpcode(DW_LNS_fixed_advance_pc, {ValLen{55, LineTable::Half}});
+  LT.addStandardOpcode(DW_LNS_set_prologue_end, {});
+  LT.addStandardOpcode(DW_LNS_set_epilogue_begin, {});
+  LT.addStandardOpcode(DW_LNS_set_isa, {ValLen{66, LineTable::ULEB}});
+  LT.addExtendedOpcode(1, DW_LNE_end_sequence, {});
+  generate();
+
+  DWARFDebugLine::SectionParser Parser(LineData, *Context, CUs, TUs);
+  std::string Output;
+  raw_string_ostream OS(Output);
+  Parser.parseNext(RecordRecoverable, RecordUnrecoverable, &OS);
+  OS.flush();
+
+  EXPECT_FALSE(Recoverable);
+  EXPECT_FALSE(Unrecoverable);
+  auto InOutput = [&Output](char const *Str) {
+    return Output.find(Str) != std::string::npos;
+  };
+  EXPECT_TRUE(InOutput("0x0000002e: 01 DW_LNS_copy\n")) << Output;
+  EXPECT_TRUE(InOutput("0x0000002f: 02 DW_LNS_advance_pc (11)\n")) << Output;
+  // FIXME: The value printed after DW_LNS_advance_line is currently the result
+  // of the advance, but it should be the value being advanced by. See
+  // https://bugs.llvm.org/show_bug.cgi?id=44261 for details.
+  EXPECT_TRUE(InOutput("0x00000031: 03 DW_LNS_advance_line (23)\n")) << Output;
+  EXPECT_TRUE(InOutput("0x00000033: 04 DW_LNS_set_file (33)\n")) << Output;
+  EXPECT_TRUE(InOutput("0x00000035: 05 DW_LNS_set_column (44)\n")) << Output;
+  EXPECT_TRUE(InOutput("0x00000037: 06 DW_LNS_negate_stmt\n")) << Output;
+  EXPECT_TRUE(InOutput("0x00000038: 07 DW_LNS_set_basic_block\n")) << Output;
+  EXPECT_TRUE(
+      InOutput("0x00000039: 08 DW_LNS_const_add_pc (0x0000000000000011)\n"))
+      << Output;
+  EXPECT_TRUE(InOutput("0x0000003a: 09 DW_LNS_fixed_advance_pc (0x0037)\n"))
+      << Output;
+  EXPECT_TRUE(InOutput("0x0000003d: 0a DW_LNS_set_prologue_end\n")) << Output;
+  EXPECT_TRUE(InOutput("0x0000003e: 0b DW_LNS_set_epilogue_begin\n")) << Output;
+  EXPECT_TRUE(InOutput("0x0000003f: 0c DW_LNS_set_isa (66)\n")) << Output;
 }
 
 } // end anonymous namespace

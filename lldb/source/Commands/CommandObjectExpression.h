@@ -14,7 +14,6 @@
 #include "lldb/Interpreter/OptionGroupBoolean.h"
 #include "lldb/Interpreter/OptionGroupFormat.h"
 #include "lldb/Interpreter/OptionGroupValueObjectDisplay.h"
-#include "lldb/Target/ExecutionContext.h"
 #include "lldb/lldb-private-enumerations.h"
 namespace lldb_private {
 
@@ -54,12 +53,10 @@ public:
 
   Options *GetOptions() override;
 
-  int HandleCompletion(CompletionRequest &request) override;
+  void HandleCompletion(CompletionRequest &request) override;
 
 protected:
-  //------------------------------------------------------------------
   // IOHandler::Delegate functions
-  //------------------------------------------------------------------
   void IOHandlerInputComplete(IOHandler &io_handler,
                               std::string &line) override;
 
@@ -70,7 +67,7 @@ protected:
 
   bool EvaluateExpression(llvm::StringRef expr, Stream *output_stream,
                           Stream *error_stream,
-                          CommandReturnObject *result = NULL);
+                          CommandReturnObject *result = nullptr);
 
   void GetMultilineExpression();
 

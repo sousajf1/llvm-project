@@ -7,17 +7,13 @@
 //
 //===----------------------------------------------------------------------===//
 
-// Tests for copy, move and copy_n
+// UNSUPPORTED: c++98, c++03, c++11, c++14
 
+// Tests for copy, move and copy_n
 #include "support/pstl_test_config.h"
 
-#ifdef PSTL_STANDALONE_TESTS
-#include "pstl/execution"
-#include "pstl/algorithm"
-#else
 #include <execution>
 #include <algorithm>
-#endif // PSTL_STANDALONE_TESTS
 
 #include "support/utils.h"
 
@@ -26,8 +22,8 @@ using namespace TestUtils;
 struct run_copy
 {
 
-#if __PSTL_ICC_17_VC141_TEST_SIMD_LAMBDA_DEBUG_32_BROKEN ||                                                            \
-    __PSTL_ICC_16_VC14_TEST_SIMD_LAMBDA_DEBUG_32_BROKEN //dummy specialization by policy type, in case of broken configuration
+#if _PSTL_ICC_17_VC141_TEST_SIMD_LAMBDA_DEBUG_32_BROKEN ||                                                             \
+    _PSTL_ICC_16_VC14_TEST_SIMD_LAMBDA_DEBUG_32_BROKEN //dummy specialization by policy type, in case of broken configuration
     template <typename InputIterator, typename OutputIterator, typename OutputIterator2, typename Size, typename T>
     void
     operator()(pstl::execution::unsequenced_policy, InputIterator first, InputIterator last, OutputIterator out_first,
@@ -49,8 +45,7 @@ struct run_copy
               typename T>
     void
     operator()(Policy&& exec, InputIterator first, InputIterator last, OutputIterator out_first,
-               OutputIterator out_last, OutputIterator2 expected_first, OutputIterator2 expected_last, Size size,
-               Size n, T trash)
+               OutputIterator out_last, OutputIterator2 expected_first, OutputIterator2, Size size, Size n, T trash)
     {
         // Cleaning
         std::fill_n(expected_first, size, trash);
@@ -79,8 +74,8 @@ template <typename T>
 struct run_move
 {
 
-#if __PSTL_ICC_17_VC141_TEST_SIMD_LAMBDA_DEBUG_32_BROKEN ||                                                            \
-    __PSTL_ICC_16_VC14_TEST_SIMD_LAMBDA_DEBUG_32_BROKEN //dummy specialization by policy type, in case of broken configuration
+#if _PSTL_ICC_17_VC141_TEST_SIMD_LAMBDA_DEBUG_32_BROKEN ||                                                             \
+    _PSTL_ICC_16_VC14_TEST_SIMD_LAMBDA_DEBUG_32_BROKEN //dummy specialization by policy type, in case of broken configuration
     template <typename InputIterator, typename OutputIterator, typename OutputIterator2, typename Size>
     void
     operator()(pstl::execution::unsequenced_policy, InputIterator first, InputIterator last, OutputIterator out_first,
@@ -101,8 +96,7 @@ struct run_move
     template <typename Policy, typename InputIterator, typename OutputIterator, typename OutputIterator2, typename Size>
     void
     operator()(Policy&& exec, InputIterator first, InputIterator last, OutputIterator out_first,
-               OutputIterator out_last, OutputIterator2 expected_first, OutputIterator2 expected_last, Size size,
-               Size n, T trash)
+               OutputIterator out_last, OutputIterator2 expected_first, OutputIterator2, Size size, Size, T trash)
     {
         // Cleaning
         std::fill_n(expected_first, size, trash);
@@ -122,8 +116,8 @@ template <typename T>
 struct run_move<Wrapper<T>>
 {
 
-#if __PSTL_ICC_17_VC141_TEST_SIMD_LAMBDA_DEBUG_32_BROKEN ||                                                            \
-    __PSTL_ICC_16_VC14_TEST_SIMD_LAMBDA_DEBUG_32_BROKEN //dummy specialization by policy type, in case of broken configuration
+#if _PSTL_ICC_17_VC141_TEST_SIMD_LAMBDA_DEBUG_32_BROKEN ||                                                             \
+    _PSTL_ICC_16_VC14_TEST_SIMD_LAMBDA_DEBUG_32_BROKEN //dummy specialization by policy type, in case of broken configuration
     template <typename InputIterator, typename OutputIterator, typename OutputIterator2, typename Size>
     void
     operator()(pstl::execution::unsequenced_policy, InputIterator first, InputIterator last, OutputIterator out_first,
@@ -144,8 +138,7 @@ struct run_move<Wrapper<T>>
     template <typename Policy, typename InputIterator, typename OutputIterator, typename OutputIterator2, typename Size>
     void
     operator()(Policy&& exec, InputIterator first, InputIterator last, OutputIterator out_first,
-               OutputIterator out_last, OutputIterator2 expected_first, OutputIterator2 expected_last, Size size,
-               Size n, Wrapper<T> trash)
+               OutputIterator out_last, OutputIterator2, OutputIterator2, Size size, Size, Wrapper<T> trash)
     {
         // Cleaning
         std::fill_n(out_first, size, trash);
@@ -189,13 +182,13 @@ test(T trash, Convert convert)
     }
 }
 
-int32_t
+int
 main()
 {
     test<int32_t>(-666, [](size_t j) { return int32_t(j); });
     test<Wrapper<float64_t>>(Wrapper<float64_t>(-666.0), [](int32_t j) { return Wrapper<float64_t>(j); });
 
-#if !__PSTL_ICC_16_17_TEST_64_TIMEOUT
+#if !_PSTL_ICC_16_17_TEST_64_TIMEOUT
     test<float64_t>(-666.0, [](size_t j) { return float64_t(j); });
     test<Number>(Number(42, OddTag()), [](int32_t j) { return Number(j, OddTag()); });
 #endif

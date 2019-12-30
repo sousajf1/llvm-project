@@ -1,6 +1,6 @@
 # RUN: yaml2obj %s -o %t.o
 # RUN: ld.lld %t.o %t.o -o %t -r
-# RUN: llvm-readobj -s %t | FileCheck %s
+# RUN: llvm-readobj -S %t | FileCheck %s
 
 # CHECK:     Name: .text.foo
 # CHECK:     Name: .rela.text.foo
@@ -24,6 +24,7 @@ Sections:
   - Name:            .note
     Type:            SHT_NOTE
     Flags:           [ SHF_GROUP ]
+    Content:         ""
   - Name:            .text.foo
     Type:            SHT_PROGBITS
     Flags:           [ SHF_ALLOC, SHF_EXECINSTR, SHF_GROUP ]
@@ -49,7 +50,7 @@ Sections:
         Symbol:          bar
         Type:            R_X86_64_64
 Symbols:
-  Global:
-    - Name:            foo
-    - Name:            bar
-
+  - Name:            foo
+    Binding:         STB_GLOBAL
+  - Name:            bar
+    Binding:         STB_GLOBAL

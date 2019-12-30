@@ -346,6 +346,14 @@ public:
       : SelectionDAGISel(TM, OptLevel) {}
 
   bool runOnMachineFunction(MachineFunction &MF) override {
+    const Function &F = MF.getFunction();
+    if (F.getFnAttribute("fentry-call").getValueAsString() != "true") {
+      if (F.hasFnAttribute("mnop-mcount"))
+        report_fatal_error("mnop-mcount only supported with fentry-call");
+      if (F.hasFnAttribute("mrecord-mcount"))
+        report_fatal_error("mrecord-mcount only supported with fentry-call");
+    }
+
     Subtarget = &MF.getSubtarget<SystemZSubtarget>();
     return SelectionDAGISel::runOnMachineFunction(MF);
   }
@@ -1146,7 +1154,7 @@ void SystemZDAGToDAGISel::loadVectorConstant(
   SDLoc DL(Node);
   SmallVector<SDValue, 2> Ops;
   for (unsigned OpVal : VCI.OpVals)
-    Ops.push_back(CurDAG->getConstant(OpVal, DL, MVT::i32));
+    Ops.push_back(CurDAG->getTargetConstant(OpVal, DL, MVT::i32));
   SDValue Op = CurDAG->getNode(VCI.Opcode, DL, VCI.VecVT, Ops);
 
   if (VCI.VecVT == VT.getSimpleVT())
@@ -1275,6 +1283,9 @@ static bool isFusableLoadOpStorePattern(StoreSDNode *StoreNode,
     InputChain = LoadNode->getChain();
   } else if (Chain.getOpcode() == ISD::TokenFactor) {
     SmallVector<SDValue, 4> ChainOps;
+    SmallVector<const SDNode *, 4> LoopWorklist;
+    SmallPtrSet<const SDNode *, 16> Visited;
+    const unsigned int Max = 1024;
     for (unsigned i = 0, e = Chain.getNumOperands(); i != e; ++i) {
       SDValue Op = Chain.getOperand(i);
       if (Op == Load.getValue(1)) {
@@ -1283,28 +1294,26 @@ static bool isFusableLoadOpStorePattern(StoreSDNode *StoreNode,
         ChainOps.push_back(Load.getOperand(0));
         continue;
       }
-
-      // Make sure using Op as part of the chain would not cause a cycle here.
-      // In theory, we could check whether the chain node is a predecessor of
-      // the load. But that can be very expensive. Instead visit the uses and
-      // make sure they all have smaller node id than the load.
-      int LoadId = LoadNode->getNodeId();
-      for (SDNode::use_iterator UI = Op.getNode()->use_begin(),
-             UE = UI->use_end(); UI != UE; ++UI) {
-        if (UI.getUse().getResNo() != 0)
-          continue;
-        if (UI->getNodeId() > LoadId)
-          return false;
-      }
-
+      LoopWorklist.push_back(Op.getNode());
       ChainOps.push_back(Op);
     }
 
-    if (ChainCheck)
+    if (ChainCheck) {
+      // Add the other operand of StoredVal to worklist.
+      for (SDValue Op : StoredVal->ops())
+        if (Op.getNode() != LoadNode)
+          LoopWorklist.push_back(Op.getNode());
+
+      // Check if Load is reachable from any of the nodes in the worklist.
+      if (SDNode::hasPredecessorHelper(Load.getNode(), Visited, LoopWorklist, Max,
+                                       true))
+        return false;
+
       // Make a new TokenFactor with all the other input chains except
       // for the load.
       InputChain = CurDAG->getNode(ISD::TokenFactor, SDLoc(Chain),
                                    MVT::Other, ChainOps);
+    }
   }
   if (!ChainCheck)
     return false;
@@ -1479,6 +1488,23 @@ void SystemZDAGToDAGISel::Select(SDNode *Node) {
         Node->getOperand(0).getOpcode() != ISD::Constant)
       if (auto *Op1 = dyn_cast<ConstantSDNode>(Node->getOperand(1))) {
         uint64_t Val = Op1->getZExtValue();
+        // Don't split the operation if we can match one of the combined
+        // logical operations provided by miscellaneous-extensions-3.
+        if (Subtarget->hasMiscellaneousExtensions3()) {
+          unsigned ChildOpcode = Node->getOperand(0).getOpcode();
+          // Check whether this expression matches NAND/NOR/NXOR.
+          if (Val == (uint64_t)-1 && Opcode == ISD::XOR)
+            if (ChildOpcode == ISD::AND || ChildOpcode == ISD::OR ||
+                ChildOpcode == ISD::XOR)
+              break;
+          // Check whether this expression matches OR-with-complement.
+          if (Opcode == ISD::OR && ChildOpcode == ISD::XOR) {
+            auto Op0 = Node->getOperand(0);
+            if (auto *Op0Op1 = dyn_cast<ConstantSDNode>(Op0->getOperand(1)))
+              if (Op0Op1->getZExtValue() == (uint64_t)-1)
+                break;
+          }
+        }
         if (!SystemZ::isImmLF(Val) && !SystemZ::isImmHF(Val)) {
           splitLargeImmediate(Opcode, Node, Node->getOperand(0),
                               Val - uint32_t(Val), uint32_t(Val));
@@ -1532,8 +1558,8 @@ void SystemZDAGToDAGISel::Select(SDNode *Node) {
       uint64_t ConstCCMask =
         cast<ConstantSDNode>(CCMask.getNode())->getZExtValue();
       // Invert the condition.
-      CCMask = CurDAG->getConstant(ConstCCValid ^ ConstCCMask, SDLoc(Node),
-                                   CCMask.getValueType());
+      CCMask = CurDAG->getTargetConstant(ConstCCValid ^ ConstCCMask,
+                                         SDLoc(Node), CCMask.getValueType());
       SDValue Op4 = Node->getOperand(4);
       SDNode *UpdatedNode =
         CurDAG->UpdateNodeOperands(Node, Op1, Op0, CCValid, CCMask, Op4);

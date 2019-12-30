@@ -36,10 +36,6 @@ class Triple;
 class StringRef;
 class raw_pwrite_stream;
 
-Target &getThePPC32Target();
-Target &getThePPC64Target();
-Target &getThePPC64LETarget();
-
 MCCodeEmitter *createPPCMCCodeEmitter(const MCInstrInfo &MCII,
                                       const MCRegisterInfo &MRI,
                                       MCContext &Ctx);
@@ -54,6 +50,9 @@ std::unique_ptr<MCObjectTargetWriter> createPPCELFObjectWriter(bool Is64Bit,
 /// Construct a PPC Mach-O object writer.
 std::unique_ptr<MCObjectTargetWriter>
 createPPCMachObjectWriter(bool Is64Bit, uint32_t CPUType, uint32_t CPUSubtype);
+
+/// Construct a PPC XCOFF object writer.
+std::unique_ptr<MCObjectTargetWriter> createPPCXCOFFObjectWriter(bool Is64Bit);
 
 /// Returns true iff Val consists of one contiguous run of 1s with any number of
 /// 0s on either side.  The 1s are allowed to wrap from LSB to MSB, so
@@ -72,6 +71,30 @@ static inline bool isRunOfOnes(unsigned Val, unsigned &MB, unsigned &ME) {
   } else {
     Val = ~Val; // invert mask
     if (isShiftedMask_32(Val)) {
+      // effectively look for the first zero bit
+      ME = countLeadingZeros(Val) - 1;
+      // effectively look for the first one bit after the run of zeros
+      MB = countLeadingZeros((Val - 1) ^ Val) + 1;
+      return true;
+    }
+  }
+  // no run present
+  return false;
+}
+
+static inline bool isRunOfOnes64(uint64_t Val, unsigned &MB, unsigned &ME) {
+  if (!Val)
+    return false;
+
+  if (isShiftedMask_64(Val)) {
+    // look for the first non-zero bit
+    MB = countLeadingZeros(Val);
+    // look for the first zero bit after the run of ones
+    ME = countLeadingZeros((Val - 1) ^ Val);
+    return true;
+  } else {
+    Val = ~Val; // invert mask
+    if (isShiftedMask_64(Val)) {
       // effectively look for the first zero bit
       ME = countLeadingZeros(Val) - 1;
       // effectively look for the first one bit after the run of zeros

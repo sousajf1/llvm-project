@@ -33,15 +33,12 @@ class Target;
 class Triple;
 class raw_pwrite_stream;
 
-Target &getTheWebAssemblyTarget32();
-Target &getTheWebAssemblyTarget64();
-
 MCCodeEmitter *createWebAssemblyMCCodeEmitter(const MCInstrInfo &MCII);
 
 MCAsmBackend *createWebAssemblyAsmBackend(const Triple &TT);
 
 std::unique_ptr<MCObjectTargetWriter>
-createWebAssemblyWasmObjectWriter(bool Is64Bit);
+createWebAssemblyWasmObjectWriter(bool Is64Bit, bool IsEmscripten);
 
 namespace WebAssembly {
 enum OperandType {
@@ -90,15 +87,21 @@ namespace WebAssemblyII {
 enum TOF {
   MO_NO_FLAG = 0,
 
-  // Flags to indicate the type of the symbol being referenced
-  MO_SYMBOL_FUNCTION = 0x1,
-  MO_SYMBOL_GLOBAL = 0x2,
-  MO_SYMBOL_EVENT = 0x4,
-  MO_SYMBOL_MASK = 0x7,
+  // On a symbol operand this indicates that the immediate is a wasm global
+  // index.  The value of the wasm global will be set to the symbol address at
+  // runtime.  This adds a level of indirection similar to the GOT on native
+  // platforms.
+  MO_GOT,
 
-  // Address of data symbol via a wasm global.  This adds a level of indirection
-  // similar to the GOT on native platforms.
-  MO_GOT = 0x8,
+  // On a symbol operand this indicates that the immediate is the symbol
+  // address relative the __memory_base wasm global.
+  // Only applicable to data symbols.
+  MO_MEMORY_BASE_REL,
+
+  // On a symbol operand this indicates that the immediate is the symbol
+  // address relative the __table_base wasm global.
+  // Only applicable to function symbols.
+  MO_TABLE_BASE_REL,
 };
 
 } // end namespace WebAssemblyII
@@ -119,9 +122,33 @@ enum TOF {
 namespace llvm {
 namespace WebAssembly {
 
+/// Used as immediate MachineOperands for block signatures
+enum class BlockType : unsigned {
+  Invalid = 0x00,
+  Void = 0x40,
+  I32 = unsigned(wasm::ValType::I32),
+  I64 = unsigned(wasm::ValType::I64),
+  F32 = unsigned(wasm::ValType::F32),
+  F64 = unsigned(wasm::ValType::F64),
+  V128 = unsigned(wasm::ValType::V128),
+  Exnref = unsigned(wasm::ValType::EXNREF),
+  // Multivalue blocks (and other non-void blocks) are only emitted when the
+  // blocks will never be exited and are at the ends of functions (see
+  // WebAssemblyCFGStackify::fixEndsAtEndOfFunction). They also are never made
+  // to pop values off the stack, so the exact multivalue signature can always
+  // be inferred from the return type of the parent function in MCInstLower.
+  Multivalue = 0xffff,
+};
+
+/// Instruction opcodes emitted via means other than CodeGen.
+static const unsigned Nop = 0x01;
+static const unsigned End = 0x0b;
+
+wasm::ValType toValType(const MVT &Ty);
+
 /// Return the default p2align value for a load or store with the given opcode.
-inline unsigned GetDefaultP2Align(unsigned Opcode) {
-  switch (Opcode) {
+inline unsigned GetDefaultP2AlignAny(unsigned Opc) {
+  switch (Opc) {
   case WebAssembly::LOAD8_S_I32:
   case WebAssembly::LOAD8_S_I32_S:
   case WebAssembly::LOAD8_U_I32:
@@ -170,6 +197,8 @@ inline unsigned GetDefaultP2Align(unsigned Opcode) {
   case WebAssembly::ATOMIC_RMW8_U_CMPXCHG_I32_S:
   case WebAssembly::ATOMIC_RMW8_U_CMPXCHG_I64:
   case WebAssembly::ATOMIC_RMW8_U_CMPXCHG_I64_S:
+  case WebAssembly::LOAD_SPLAT_v8x16:
+  case WebAssembly::LOAD_SPLAT_v8x16_S:
     return 0;
   case WebAssembly::LOAD16_S_I32:
   case WebAssembly::LOAD16_S_I32_S:
@@ -219,6 +248,8 @@ inline unsigned GetDefaultP2Align(unsigned Opcode) {
   case WebAssembly::ATOMIC_RMW16_U_CMPXCHG_I32_S:
   case WebAssembly::ATOMIC_RMW16_U_CMPXCHG_I64:
   case WebAssembly::ATOMIC_RMW16_U_CMPXCHG_I64_S:
+  case WebAssembly::LOAD_SPLAT_v16x8:
+  case WebAssembly::LOAD_SPLAT_v16x8_S:
     return 1;
   case WebAssembly::LOAD_I32:
   case WebAssembly::LOAD_I32_S:
@@ -274,6 +305,8 @@ inline unsigned GetDefaultP2Align(unsigned Opcode) {
   case WebAssembly::ATOMIC_NOTIFY_S:
   case WebAssembly::ATOMIC_WAIT_I32:
   case WebAssembly::ATOMIC_WAIT_I32_S:
+  case WebAssembly::LOAD_SPLAT_v32x4:
+  case WebAssembly::LOAD_SPLAT_v32x4_S:
     return 2;
   case WebAssembly::LOAD_I64:
   case WebAssembly::LOAD_I64_S:
@@ -303,54 +336,259 @@ inline unsigned GetDefaultP2Align(unsigned Opcode) {
   case WebAssembly::ATOMIC_RMW_CMPXCHG_I64_S:
   case WebAssembly::ATOMIC_WAIT_I64:
   case WebAssembly::ATOMIC_WAIT_I64_S:
+  case WebAssembly::LOAD_SPLAT_v64x2:
+  case WebAssembly::LOAD_SPLAT_v64x2_S:
+  case WebAssembly::LOAD_EXTEND_S_v8i16:
+  case WebAssembly::LOAD_EXTEND_S_v8i16_S:
+  case WebAssembly::LOAD_EXTEND_U_v8i16:
+  case WebAssembly::LOAD_EXTEND_U_v8i16_S:
+  case WebAssembly::LOAD_EXTEND_S_v4i32:
+  case WebAssembly::LOAD_EXTEND_S_v4i32_S:
+  case WebAssembly::LOAD_EXTEND_U_v4i32:
+  case WebAssembly::LOAD_EXTEND_U_v4i32_S:
+  case WebAssembly::LOAD_EXTEND_S_v2i64:
+  case WebAssembly::LOAD_EXTEND_S_v2i64_S:
+  case WebAssembly::LOAD_EXTEND_U_v2i64:
+  case WebAssembly::LOAD_EXTEND_U_v2i64_S:
     return 3;
-  case WebAssembly::LOAD_v16i8:
-  case WebAssembly::LOAD_v16i8_S:
-  case WebAssembly::LOAD_v8i16:
-  case WebAssembly::LOAD_v8i16_S:
-  case WebAssembly::LOAD_v4i32:
-  case WebAssembly::LOAD_v4i32_S:
-  case WebAssembly::LOAD_v2i64:
-  case WebAssembly::LOAD_v2i64_S:
-  case WebAssembly::LOAD_v4f32:
-  case WebAssembly::LOAD_v4f32_S:
-  case WebAssembly::LOAD_v2f64:
-  case WebAssembly::LOAD_v2f64_S:
-  case WebAssembly::STORE_v16i8:
-  case WebAssembly::STORE_v16i8_S:
-  case WebAssembly::STORE_v8i16:
-  case WebAssembly::STORE_v8i16_S:
-  case WebAssembly::STORE_v4i32:
-  case WebAssembly::STORE_v4i32_S:
-  case WebAssembly::STORE_v2i64:
-  case WebAssembly::STORE_v2i64_S:
-  case WebAssembly::STORE_v4f32:
-  case WebAssembly::STORE_v4f32_S:
-  case WebAssembly::STORE_v2f64:
-  case WebAssembly::STORE_v2f64_S:
+  case WebAssembly::LOAD_V128:
+  case WebAssembly::LOAD_V128_S:
+  case WebAssembly::STORE_V128:
+  case WebAssembly::STORE_V128_S:
     return 4;
   default:
-    llvm_unreachable("Only loads and stores have p2align values");
+    return -1;
   }
 }
 
-/// This is used to indicate block signatures.
-enum class ExprType : unsigned {
-  Void = 0x40,
-  I32 = 0x7F,
-  I64 = 0x7E,
-  F32 = 0x7D,
-  F64 = 0x7C,
-  V128 = 0x7B,
-  ExceptRef = 0x68,
-  Invalid = 0x00
-};
+inline unsigned GetDefaultP2Align(unsigned Opc) {
+  auto Align = GetDefaultP2AlignAny(Opc);
+  if (Align == -1U) {
+    llvm_unreachable("Only loads and stores have p2align values");
+  }
+  return Align;
+}
 
-/// Instruction opcodes emitted via means other than CodeGen.
-static const unsigned Nop = 0x01;
-static const unsigned End = 0x0b;
+inline bool isArgument(unsigned Opc) {
+  switch (Opc) {
+  case WebAssembly::ARGUMENT_i32:
+  case WebAssembly::ARGUMENT_i32_S:
+  case WebAssembly::ARGUMENT_i64:
+  case WebAssembly::ARGUMENT_i64_S:
+  case WebAssembly::ARGUMENT_f32:
+  case WebAssembly::ARGUMENT_f32_S:
+  case WebAssembly::ARGUMENT_f64:
+  case WebAssembly::ARGUMENT_f64_S:
+  case WebAssembly::ARGUMENT_v16i8:
+  case WebAssembly::ARGUMENT_v16i8_S:
+  case WebAssembly::ARGUMENT_v8i16:
+  case WebAssembly::ARGUMENT_v8i16_S:
+  case WebAssembly::ARGUMENT_v4i32:
+  case WebAssembly::ARGUMENT_v4i32_S:
+  case WebAssembly::ARGUMENT_v2i64:
+  case WebAssembly::ARGUMENT_v2i64_S:
+  case WebAssembly::ARGUMENT_v4f32:
+  case WebAssembly::ARGUMENT_v4f32_S:
+  case WebAssembly::ARGUMENT_v2f64:
+  case WebAssembly::ARGUMENT_v2f64_S:
+  case WebAssembly::ARGUMENT_exnref:
+  case WebAssembly::ARGUMENT_exnref_S:
+    return true;
+  default:
+    return false;
+  }
+}
 
-wasm::ValType toValType(const MVT &Ty);
+inline bool isCopy(unsigned Opc) {
+  switch (Opc) {
+  case WebAssembly::COPY_I32:
+  case WebAssembly::COPY_I32_S:
+  case WebAssembly::COPY_I64:
+  case WebAssembly::COPY_I64_S:
+  case WebAssembly::COPY_F32:
+  case WebAssembly::COPY_F32_S:
+  case WebAssembly::COPY_F64:
+  case WebAssembly::COPY_F64_S:
+  case WebAssembly::COPY_V128:
+  case WebAssembly::COPY_V128_S:
+  case WebAssembly::COPY_EXNREF:
+  case WebAssembly::COPY_EXNREF_S:
+    return true;
+  default:
+    return false;
+  }
+}
+
+inline bool isTee(unsigned Opc) {
+  switch (Opc) {
+  case WebAssembly::TEE_I32:
+  case WebAssembly::TEE_I32_S:
+  case WebAssembly::TEE_I64:
+  case WebAssembly::TEE_I64_S:
+  case WebAssembly::TEE_F32:
+  case WebAssembly::TEE_F32_S:
+  case WebAssembly::TEE_F64:
+  case WebAssembly::TEE_F64_S:
+  case WebAssembly::TEE_V128:
+  case WebAssembly::TEE_V128_S:
+  case WebAssembly::TEE_EXNREF:
+  case WebAssembly::TEE_EXNREF_S:
+    return true;
+  default:
+    return false;
+  }
+}
+
+inline bool isCallDirect(unsigned Opc) {
+  switch (Opc) {
+  case WebAssembly::CALL_VOID:
+  case WebAssembly::CALL_VOID_S:
+  case WebAssembly::CALL_i32:
+  case WebAssembly::CALL_i32_S:
+  case WebAssembly::CALL_i64:
+  case WebAssembly::CALL_i64_S:
+  case WebAssembly::CALL_f32:
+  case WebAssembly::CALL_f32_S:
+  case WebAssembly::CALL_f64:
+  case WebAssembly::CALL_f64_S:
+  case WebAssembly::CALL_v16i8:
+  case WebAssembly::CALL_v16i8_S:
+  case WebAssembly::CALL_v8i16:
+  case WebAssembly::CALL_v8i16_S:
+  case WebAssembly::CALL_v4i32:
+  case WebAssembly::CALL_v4i32_S:
+  case WebAssembly::CALL_v2i64:
+  case WebAssembly::CALL_v2i64_S:
+  case WebAssembly::CALL_v4f32:
+  case WebAssembly::CALL_v4f32_S:
+  case WebAssembly::CALL_v2f64:
+  case WebAssembly::CALL_v2f64_S:
+  case WebAssembly::CALL_exnref:
+  case WebAssembly::CALL_exnref_S:
+  case WebAssembly::RET_CALL:
+  case WebAssembly::RET_CALL_S:
+    return true;
+  default:
+    return false;
+  }
+}
+
+inline bool isCallIndirect(unsigned Opc) {
+  switch (Opc) {
+  case WebAssembly::CALL_INDIRECT_VOID:
+  case WebAssembly::CALL_INDIRECT_VOID_S:
+  case WebAssembly::CALL_INDIRECT_i32:
+  case WebAssembly::CALL_INDIRECT_i32_S:
+  case WebAssembly::CALL_INDIRECT_i64:
+  case WebAssembly::CALL_INDIRECT_i64_S:
+  case WebAssembly::CALL_INDIRECT_f32:
+  case WebAssembly::CALL_INDIRECT_f32_S:
+  case WebAssembly::CALL_INDIRECT_f64:
+  case WebAssembly::CALL_INDIRECT_f64_S:
+  case WebAssembly::CALL_INDIRECT_v16i8:
+  case WebAssembly::CALL_INDIRECT_v16i8_S:
+  case WebAssembly::CALL_INDIRECT_v8i16:
+  case WebAssembly::CALL_INDIRECT_v8i16_S:
+  case WebAssembly::CALL_INDIRECT_v4i32:
+  case WebAssembly::CALL_INDIRECT_v4i32_S:
+  case WebAssembly::CALL_INDIRECT_v2i64:
+  case WebAssembly::CALL_INDIRECT_v2i64_S:
+  case WebAssembly::CALL_INDIRECT_v4f32:
+  case WebAssembly::CALL_INDIRECT_v4f32_S:
+  case WebAssembly::CALL_INDIRECT_v2f64:
+  case WebAssembly::CALL_INDIRECT_v2f64_S:
+  case WebAssembly::CALL_INDIRECT_exnref:
+  case WebAssembly::CALL_INDIRECT_exnref_S:
+  case WebAssembly::RET_CALL_INDIRECT:
+  case WebAssembly::RET_CALL_INDIRECT_S:
+    return true;
+  default:
+    return false;
+  }
+}
+
+/// Returns the operand number of a callee, assuming the argument is a call
+/// instruction.
+inline unsigned getCalleeOpNo(unsigned Opc) {
+  switch (Opc) {
+  case WebAssembly::CALL_VOID:
+  case WebAssembly::CALL_VOID_S:
+  case WebAssembly::CALL_INDIRECT_VOID:
+  case WebAssembly::CALL_INDIRECT_VOID_S:
+  case WebAssembly::RET_CALL:
+  case WebAssembly::RET_CALL_S:
+  case WebAssembly::RET_CALL_INDIRECT:
+  case WebAssembly::RET_CALL_INDIRECT_S:
+    return 0;
+  case WebAssembly::CALL_i32:
+  case WebAssembly::CALL_i32_S:
+  case WebAssembly::CALL_i64:
+  case WebAssembly::CALL_i64_S:
+  case WebAssembly::CALL_f32:
+  case WebAssembly::CALL_f32_S:
+  case WebAssembly::CALL_f64:
+  case WebAssembly::CALL_f64_S:
+  case WebAssembly::CALL_v16i8:
+  case WebAssembly::CALL_v16i8_S:
+  case WebAssembly::CALL_v8i16:
+  case WebAssembly::CALL_v8i16_S:
+  case WebAssembly::CALL_v4i32:
+  case WebAssembly::CALL_v4i32_S:
+  case WebAssembly::CALL_v2i64:
+  case WebAssembly::CALL_v2i64_S:
+  case WebAssembly::CALL_v4f32:
+  case WebAssembly::CALL_v4f32_S:
+  case WebAssembly::CALL_v2f64:
+  case WebAssembly::CALL_v2f64_S:
+  case WebAssembly::CALL_exnref:
+  case WebAssembly::CALL_exnref_S:
+  case WebAssembly::CALL_INDIRECT_i32:
+  case WebAssembly::CALL_INDIRECT_i32_S:
+  case WebAssembly::CALL_INDIRECT_i64:
+  case WebAssembly::CALL_INDIRECT_i64_S:
+  case WebAssembly::CALL_INDIRECT_f32:
+  case WebAssembly::CALL_INDIRECT_f32_S:
+  case WebAssembly::CALL_INDIRECT_f64:
+  case WebAssembly::CALL_INDIRECT_f64_S:
+  case WebAssembly::CALL_INDIRECT_v16i8:
+  case WebAssembly::CALL_INDIRECT_v16i8_S:
+  case WebAssembly::CALL_INDIRECT_v8i16:
+  case WebAssembly::CALL_INDIRECT_v8i16_S:
+  case WebAssembly::CALL_INDIRECT_v4i32:
+  case WebAssembly::CALL_INDIRECT_v4i32_S:
+  case WebAssembly::CALL_INDIRECT_v2i64:
+  case WebAssembly::CALL_INDIRECT_v2i64_S:
+  case WebAssembly::CALL_INDIRECT_v4f32:
+  case WebAssembly::CALL_INDIRECT_v4f32_S:
+  case WebAssembly::CALL_INDIRECT_v2f64:
+  case WebAssembly::CALL_INDIRECT_v2f64_S:
+  case WebAssembly::CALL_INDIRECT_exnref:
+  case WebAssembly::CALL_INDIRECT_exnref_S:
+    return 1;
+  default:
+    llvm_unreachable("Not a call instruction");
+  }
+}
+
+inline bool isMarker(unsigned Opc) {
+  switch (Opc) {
+  case WebAssembly::BLOCK:
+  case WebAssembly::BLOCK_S:
+  case WebAssembly::END_BLOCK:
+  case WebAssembly::END_BLOCK_S:
+  case WebAssembly::LOOP:
+  case WebAssembly::LOOP_S:
+  case WebAssembly::END_LOOP:
+  case WebAssembly::END_LOOP_S:
+  case WebAssembly::TRY:
+  case WebAssembly::TRY_S:
+  case WebAssembly::END_TRY:
+  case WebAssembly::END_TRY_S:
+    return true;
+  default:
+    return false;
+  }
+}
 
 } // end namespace WebAssembly
 } // end namespace llvm

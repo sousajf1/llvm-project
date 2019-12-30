@@ -44,12 +44,17 @@ void InstrProfSummaryBuilder::addRecord(const InstrProfRecord &R) {
 // To compute the detailed summary, we consider each line containing samples as
 // equivalent to a block with a count in the instrumented profile.
 void SampleProfileSummaryBuilder::addRecord(
-    const sampleprof::FunctionSamples &FS) {
-  NumFunctions++;
-  if (FS.getHeadSamples() > MaxFunctionCount)
-    MaxFunctionCount = FS.getHeadSamples();
+    const sampleprof::FunctionSamples &FS, bool isCallsiteSample) {
+  if (!isCallsiteSample) {
+    NumFunctions++;
+    if (FS.getHeadSamples() > MaxFunctionCount)
+      MaxFunctionCount = FS.getHeadSamples();
+  }
   for (const auto &I : FS.getBodySamples())
     addCount(I.second.getSamples());
+  for (const auto &I : FS.getCallsiteSamples())
+    for (const auto &CS : I.second)
+      addRecord(CS.second, true);
 }
 
 // The argument to this method is a vector of cutoff percentages and the return
@@ -88,14 +93,14 @@ void ProfileSummaryBuilder::computeDetailedSummary() {
 
 std::unique_ptr<ProfileSummary> SampleProfileSummaryBuilder::getSummary() {
   computeDetailedSummary();
-  return llvm::make_unique<ProfileSummary>(
+  return std::make_unique<ProfileSummary>(
       ProfileSummary::PSK_Sample, DetailedSummary, TotalCount, MaxCount, 0,
       MaxFunctionCount, NumCounts, NumFunctions);
 }
 
 std::unique_ptr<ProfileSummary> InstrProfSummaryBuilder::getSummary() {
   computeDetailedSummary();
-  return llvm::make_unique<ProfileSummary>(
+  return std::make_unique<ProfileSummary>(
       ProfileSummary::PSK_Instr, DetailedSummary, TotalCount, MaxCount,
       MaxInternalBlockCount, MaxFunctionCount, NumCounts, NumFunctions);
 }

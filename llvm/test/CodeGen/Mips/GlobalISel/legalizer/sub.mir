@@ -15,7 +15,7 @@
 ...
 ---
 name:            sub_i32
-alignment:       2
+alignment:       4
 tracksRegLiveness: true
 body:             |
   bb.1.entry:
@@ -37,7 +37,7 @@ body:             |
 ...
 ---
 name:            sub_i8_sext
-alignment:       2
+alignment:       4
 tracksRegLiveness: true
 body:             |
   bb.1.entry:
@@ -50,8 +50,8 @@ body:             |
     ; MIPS32: [[COPY2:%[0-9]+]]:_(s32) = COPY [[COPY1]](s32)
     ; MIPS32: [[COPY3:%[0-9]+]]:_(s32) = COPY [[COPY]](s32)
     ; MIPS32: [[SUB:%[0-9]+]]:_(s32) = G_SUB [[COPY2]], [[COPY3]]
-    ; MIPS32: [[C:%[0-9]+]]:_(s32) = G_CONSTANT i32 24
     ; MIPS32: [[COPY4:%[0-9]+]]:_(s32) = COPY [[SUB]](s32)
+    ; MIPS32: [[C:%[0-9]+]]:_(s32) = G_CONSTANT i32 24
     ; MIPS32: [[SHL:%[0-9]+]]:_(s32) = G_SHL [[COPY4]], [[C]](s32)
     ; MIPS32: [[ASHR:%[0-9]+]]:_(s32) = G_ASHR [[SHL]], [[C]](s32)
     ; MIPS32: $v0 = COPY [[ASHR]](s32)
@@ -68,7 +68,7 @@ body:             |
 ...
 ---
 name:            sub_i8_zext
-alignment:       2
+alignment:       4
 tracksRegLiveness: true
 body:             |
   bb.1.entry:
@@ -98,7 +98,7 @@ body:             |
 ...
 ---
 name:            sub_i8_aext
-alignment:       2
+alignment:       4
 tracksRegLiveness: true
 body:             |
   bb.1.entry:
@@ -126,7 +126,7 @@ body:             |
 ...
 ---
 name:            sub_i16_sext
-alignment:       2
+alignment:       4
 tracksRegLiveness: true
 body:             |
   bb.1.entry:
@@ -139,8 +139,8 @@ body:             |
     ; MIPS32: [[COPY2:%[0-9]+]]:_(s32) = COPY [[COPY1]](s32)
     ; MIPS32: [[COPY3:%[0-9]+]]:_(s32) = COPY [[COPY]](s32)
     ; MIPS32: [[SUB:%[0-9]+]]:_(s32) = G_SUB [[COPY2]], [[COPY3]]
-    ; MIPS32: [[C:%[0-9]+]]:_(s32) = G_CONSTANT i32 16
     ; MIPS32: [[COPY4:%[0-9]+]]:_(s32) = COPY [[SUB]](s32)
+    ; MIPS32: [[C:%[0-9]+]]:_(s32) = G_CONSTANT i32 16
     ; MIPS32: [[SHL:%[0-9]+]]:_(s32) = G_SHL [[COPY4]], [[C]](s32)
     ; MIPS32: [[ASHR:%[0-9]+]]:_(s32) = G_ASHR [[SHL]], [[C]](s32)
     ; MIPS32: $v0 = COPY [[ASHR]](s32)
@@ -157,7 +157,7 @@ body:             |
 ...
 ---
 name:            sub_i16_zext
-alignment:       2
+alignment:       4
 tracksRegLiveness: true
 body:             |
   bb.1.entry:
@@ -187,7 +187,7 @@ body:             |
 ...
 ---
 name:            sub_i16_aext
-alignment:       2
+alignment:       4
 tracksRegLiveness: true
 body:             |
   bb.1.entry:
@@ -215,7 +215,7 @@ body:             |
 ...
 ---
 name:            sub_i64
-alignment:       2
+alignment:       4
 tracksRegLiveness: true
 body:             |
   bb.1.entry:
@@ -252,13 +252,13 @@ body:             |
 ...
 ---
 name:            sub_i128
-alignment:       2
+alignment:       4
 tracksRegLiveness: true
 fixedStack:
-  - { id: 0, offset: 28, size: 4, alignment: 4, stack-id: 0, isImmutable: true }
-  - { id: 1, offset: 24, size: 4, alignment: 8, stack-id: 0, isImmutable: true }
-  - { id: 2, offset: 20, size: 4, alignment: 4, stack-id: 0, isImmutable: true }
-  - { id: 3, offset: 16, size: 4, alignment: 8, stack-id: 0, isImmutable: true }
+  - { id: 0, offset: 28, size: 4, alignment: 4, stack-id: default, isImmutable: true }
+  - { id: 1, offset: 24, size: 4, alignment: 8, stack-id: default, isImmutable: true }
+  - { id: 2, offset: 20, size: 4, alignment: 4, stack-id: default, isImmutable: true }
+  - { id: 3, offset: 16, size: 4, alignment: 8, stack-id: default, isImmutable: true }
 body:             |
   bb.1.entry:
     liveins: $a0, $a1, $a2, $a3
@@ -288,27 +288,23 @@ body:             |
     ; MIPS32: [[ICMP2:%[0-9]+]]:_(s32) = G_ICMP intpred(ult), [[LOAD1]](s32), [[COPY1]]
     ; MIPS32: [[COPY5:%[0-9]+]]:_(s32) = COPY [[ICMP]](s32)
     ; MIPS32: [[COPY6:%[0-9]+]]:_(s32) = COPY [[ICMP2]](s32)
-    ; MIPS32: [[C1:%[0-9]+]]:_(s32) = G_CONSTANT i32 1
     ; MIPS32: [[COPY7:%[0-9]+]]:_(s32) = COPY [[ICMP1]](s32)
-    ; MIPS32: [[AND1:%[0-9]+]]:_(s32) = G_AND [[COPY7]], [[C1]]
+    ; MIPS32: [[AND1:%[0-9]+]]:_(s32) = G_AND [[COPY7]], [[C]]
     ; MIPS32: [[SELECT:%[0-9]+]]:_(s32) = G_SELECT [[AND1]](s32), [[COPY5]], [[COPY6]]
     ; MIPS32: [[SUB3:%[0-9]+]]:_(s32) = G_SUB [[LOAD2]], [[COPY2]]
-    ; MIPS32: [[C2:%[0-9]+]]:_(s32) = G_CONSTANT i32 1
     ; MIPS32: [[COPY8:%[0-9]+]]:_(s32) = COPY [[SELECT]](s32)
-    ; MIPS32: [[AND2:%[0-9]+]]:_(s32) = G_AND [[COPY8]], [[C2]]
+    ; MIPS32: [[AND2:%[0-9]+]]:_(s32) = G_AND [[COPY8]], [[C]]
     ; MIPS32: [[SUB4:%[0-9]+]]:_(s32) = G_SUB [[SUB3]], [[AND2]]
     ; MIPS32: [[ICMP3:%[0-9]+]]:_(s32) = G_ICMP intpred(eq), [[LOAD2]](s32), [[COPY2]]
     ; MIPS32: [[ICMP4:%[0-9]+]]:_(s32) = G_ICMP intpred(ult), [[LOAD2]](s32), [[COPY2]]
     ; MIPS32: [[COPY9:%[0-9]+]]:_(s32) = COPY [[SELECT]](s32)
     ; MIPS32: [[COPY10:%[0-9]+]]:_(s32) = COPY [[ICMP4]](s32)
-    ; MIPS32: [[C3:%[0-9]+]]:_(s32) = G_CONSTANT i32 1
     ; MIPS32: [[COPY11:%[0-9]+]]:_(s32) = COPY [[ICMP3]](s32)
-    ; MIPS32: [[AND3:%[0-9]+]]:_(s32) = G_AND [[COPY11]], [[C3]]
+    ; MIPS32: [[AND3:%[0-9]+]]:_(s32) = G_AND [[COPY11]], [[C]]
     ; MIPS32: [[SELECT1:%[0-9]+]]:_(s32) = G_SELECT [[AND3]](s32), [[COPY9]], [[COPY10]]
     ; MIPS32: [[SUB5:%[0-9]+]]:_(s32) = G_SUB [[LOAD3]], [[COPY3]]
-    ; MIPS32: [[C4:%[0-9]+]]:_(s32) = G_CONSTANT i32 1
     ; MIPS32: [[COPY12:%[0-9]+]]:_(s32) = COPY [[SELECT1]](s32)
-    ; MIPS32: [[AND4:%[0-9]+]]:_(s32) = G_AND [[COPY12]], [[C4]]
+    ; MIPS32: [[AND4:%[0-9]+]]:_(s32) = G_AND [[COPY12]], [[C]]
     ; MIPS32: [[SUB6:%[0-9]+]]:_(s32) = G_SUB [[SUB5]], [[AND4]]
     ; MIPS32: $v0 = COPY [[SUB]](s32)
     ; MIPS32: $v1 = COPY [[SUB2]](s32)

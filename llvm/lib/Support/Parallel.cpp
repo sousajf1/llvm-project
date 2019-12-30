@@ -17,7 +17,9 @@
 #include <stack>
 #include <thread>
 
-using namespace llvm;
+namespace llvm {
+namespace parallel {
+namespace detail {
 
 namespace {
 
@@ -30,34 +32,6 @@ public:
   static Executor *getDefaultExecutor();
 };
 
-#if defined(_MSC_VER)
-/// An Executor that runs tasks via ConcRT.
-class ConcRTExecutor : public Executor {
-  struct Taskish {
-    Taskish(std::function<void()> Task) : Task(Task) {}
-
-    std::function<void()> Task;
-
-    static void run(void *P) {
-      Taskish *Self = static_cast<Taskish *>(P);
-      Self->Task();
-      concurrency::Free(Self);
-    }
-  };
-
-public:
-  virtual void add(std::function<void()> F) {
-    Concurrency::CurrentScheduler::ScheduleTask(
-        Taskish::run, new (concurrency::Alloc(sizeof(Taskish))) Taskish(F));
-  }
-};
-
-Executor *Executor::getDefaultExecutor() {
-  static ConcRTExecutor exec;
-  return &exec;
-}
-
-#else
 /// An implementation of an Executor that runs closures on a thread pool
 ///   in filo order.
 class ThreadPoolExecutor : public Executor {
@@ -115,14 +89,30 @@ Executor *Executor::getDefaultExecutor() {
   static ThreadPoolExecutor exec;
   return &exec;
 }
-#endif
+} // namespace
+
+static std::atomic<int> TaskGroupInstances;
+
+// Latch::sync() called by the dtor may cause one thread to block. If is a dead
+// lock if all threads in the default executor are blocked. To prevent the dead
+// lock, only allow the first TaskGroup to run tasks parallelly. In the scenario
+// of nested parallel_for_each(), only the outermost one runs parallelly.
+TaskGroup::TaskGroup() : Parallel(TaskGroupInstances++ == 0) {}
+TaskGroup::~TaskGroup() { --TaskGroupInstances; }
+
+void TaskGroup::spawn(std::function<void()> F) {
+  if (Parallel) {
+    L.inc();
+    Executor::getDefaultExecutor()->add([&, F] {
+      F();
+      L.dec();
+    });
+  } else {
+    F();
+  }
 }
 
-void parallel::detail::TaskGroup::spawn(std::function<void()> F) {
-  L.inc();
-  Executor::getDefaultExecutor()->add([&, F] {
-    F();
-    L.dec();
-  });
-}
+} // namespace detail
+} // namespace parallel
+} // namespace llvm
 #endif // LLVM_ENABLE_THREADS

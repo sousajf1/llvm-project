@@ -19,10 +19,12 @@ subdirectories =
  Analysis
  AsmParser
  Bitcode
+ Bitstream
  CodeGen
  DebugInfo
  Demangle
  ExecutionEngine
+ Frontend
  FuzzMutate
  LineEditor
  Linker

@@ -12,7 +12,7 @@
 # RUN: llvm-objdump -d -r %t | FileCheck %s
 # RUN: not ld.lld -shared %t1.o %t2.o -o %t 2>&1 | FileCheck --check-prefix=FAIL %s
 
-# FAIL: call lacks nop, can't restore toc
+# FAIL: call to def lacks nop, can't restore toc
 
 # Test to document the toc-restore behavior with -Bsymbolic option. Since
 # -Bsymbolic causes the call to bind to the internal defintion we know the
@@ -53,7 +53,7 @@ caller:
 # CHECK-LABEL: caller
 # CHECK:         bl .+44
 # CHECK-NEXT:    mr 31, 3
-# CHECK-NEXT:    bl .-48
+# CHECK-NEXT:    bl .+44
 # CHECK-NEXT:    ld 2, 24(1)
 # CHECK-NEXT:    add 3, 3, 31
 # CHECK-NEXT:    addi 1, 1, 32
@@ -63,6 +63,6 @@ caller:
 # CHECK-EMPTY:
 # CHECK-NEXT:  def:
 # CHECK-NEXT:    addis 2, 12, 2
-# CHECK-NEXT:    addi 2, 2, -32636
+# CHECK-NEXT:    addi 2, 2, -32456
 # CHECK-NEXT:    li 3, 55
 # CHECK-NEXT:    blr

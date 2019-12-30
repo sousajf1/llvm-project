@@ -14,6 +14,7 @@
 #include "CodeGenFunction.h"
 #include "CodeGenModule.h"
 #include "clang/AST/NonTrivialTypeVisitor.h"
+#include "clang/CodeGen/CodeGenABITypes.h"
 #include "llvm/Support/ScopedPrinter.h"
 #include <array>
 
@@ -706,7 +707,7 @@ struct GenMoveConstructor : GenBinaryFunc<GenMoveConstructor, true> {
     LValue SrcLV = CGF->MakeAddrLValue(Addrs[SrcIdx], QT);
     llvm::Value *SrcVal =
         CGF->EmitLoadOfLValue(SrcLV, SourceLocation()).getScalarVal();
-    CGF->EmitStoreOfScalar(getNullForVariable(SrcLV.getAddress()), SrcLV);
+    CGF->EmitStoreOfScalar(getNullForVariable(SrcLV.getAddress(*CGF)), SrcLV);
     CGF->EmitStoreOfScalar(SrcVal, CGF->MakeAddrLValue(Addrs[DstIdx], QT),
                            /* isInitialization */ true);
   }
@@ -769,7 +770,7 @@ struct GenMoveAssignment : GenBinaryFunc<GenMoveAssignment, true> {
     LValue SrcLV = CGF->MakeAddrLValue(Addrs[SrcIdx], QT);
     llvm::Value *SrcVal =
         CGF->EmitLoadOfLValue(SrcLV, SourceLocation()).getScalarVal();
-    CGF->EmitStoreOfScalar(getNullForVariable(SrcLV.getAddress()), SrcLV);
+    CGF->EmitStoreOfScalar(getNullForVariable(SrcLV.getAddress(*CGF)), SrcLV);
     LValue DstLV = CGF->MakeAddrLValue(Addrs[DstIdx], QT);
     llvm::Value *DstVal =
         CGF->EmitLoadOfLValue(DstLV, SourceLocation()).getScalarVal();
@@ -805,7 +806,8 @@ void CodeGenFunction::destroyNonTrivialCStruct(CodeGenFunction &CGF,
 // such structure.
 void CodeGenFunction::defaultInitNonTrivialCStructVar(LValue Dst) {
   GenDefaultInitialize Gen(getContext());
-  Address DstPtr = Builder.CreateBitCast(Dst.getAddress(), CGM.Int8PtrPtrTy);
+  Address DstPtr =
+      Builder.CreateBitCast(Dst.getAddress(*this), CGM.Int8PtrPtrTy);
   Gen.setCGF(this);
   QualType QT = Dst.getType();
   QT = Dst.isVolatile() ? QT.withVolatile() : QT;
@@ -816,16 +818,40 @@ template <class G, size_t N>
 static void callSpecialFunction(G &&Gen, StringRef FuncName, QualType QT,
                                 bool IsVolatile, CodeGenFunction &CGF,
                                 std::array<Address, N> Addrs) {
+  auto SetArtificialLoc = ApplyDebugLocation::CreateArtificial(CGF);
   for (unsigned I = 0; I < N; ++I)
     Addrs[I] = CGF.Builder.CreateBitCast(Addrs[I], CGF.CGM.Int8PtrPtrTy);
   QT = IsVolatile ? QT.withVolatile() : QT;
   Gen.callFunc(FuncName, QT, Addrs, CGF);
 }
 
+template <size_t N> static std::array<Address, N> createNullAddressArray();
+
+template <> std::array<Address, 1> createNullAddressArray() {
+  return std::array<Address, 1>({{Address(nullptr, CharUnits::Zero())}});
+}
+
+template <> std::array<Address, 2> createNullAddressArray() {
+  return std::array<Address, 2>({{Address(nullptr, CharUnits::Zero()),
+                                  Address(nullptr, CharUnits::Zero())}});
+}
+
+template <class G, size_t N>
+static llvm::Function *
+getSpecialFunction(G &&Gen, StringRef FuncName, QualType QT, bool IsVolatile,
+                   std::array<CharUnits, N> Alignments, CodeGenModule &CGM) {
+  QT = IsVolatile ? QT.withVolatile() : QT;
+  // The following call requires an array of addresses as arguments, but doesn't
+  // actually use them (it overwrites them with the addresses of the arguments
+  // of the created function).
+  return Gen.getFunction(FuncName, QT, createNullAddressArray<N>(), Alignments,
+                         CGM);
+}
+
 // Functions to emit calls to the special functions of a non-trivial C struct.
 void CodeGenFunction::callCStructDefaultConstructor(LValue Dst) {
   bool IsVolatile = Dst.isVolatile();
-  Address DstPtr = Dst.getAddress();
+  Address DstPtr = Dst.getAddress(*this);
   QualType QT = Dst.getType();
   GenDefaultInitializeFuncName GenName(DstPtr.getAlignment(), getContext());
   std::string FuncName = GenName.getName(QT, IsVolatile);
@@ -849,7 +875,7 @@ std::string CodeGenFunction::getNonTrivialDestructorStr(QualType QT,
 
 void CodeGenFunction::callCStructDestructor(LValue Dst) {
   bool IsVolatile = Dst.isVolatile();
-  Address DstPtr = Dst.getAddress();
+  Address DstPtr = Dst.getAddress(*this);
   QualType QT = Dst.getType();
   GenDestructorFuncName GenName("__destructor_", DstPtr.getAlignment(),
                                 getContext());
@@ -860,7 +886,7 @@ void CodeGenFunction::callCStructDestructor(LValue Dst) {
 
 void CodeGenFunction::callCStructCopyConstructor(LValue Dst, LValue Src) {
   bool IsVolatile = Dst.isVolatile() || Src.isVolatile();
-  Address DstPtr = Dst.getAddress(), SrcPtr = Src.getAddress();
+  Address DstPtr = Dst.getAddress(*this), SrcPtr = Src.getAddress(*this);
   QualType QT = Dst.getType();
   GenBinaryFuncName<false> GenName("__copy_constructor_", DstPtr.getAlignment(),
                                    SrcPtr.getAlignment(), getContext());
@@ -874,7 +900,7 @@ void CodeGenFunction::callCStructCopyAssignmentOperator(LValue Dst, LValue Src
 
 ) {
   bool IsVolatile = Dst.isVolatile() || Src.isVolatile();
-  Address DstPtr = Dst.getAddress(), SrcPtr = Src.getAddress();
+  Address DstPtr = Dst.getAddress(*this), SrcPtr = Src.getAddress(*this);
   QualType QT = Dst.getType();
   GenBinaryFuncName<false> GenName("__copy_assignment_", DstPtr.getAlignment(),
                                    SrcPtr.getAlignment(), getContext());
@@ -885,7 +911,7 @@ void CodeGenFunction::callCStructCopyAssignmentOperator(LValue Dst, LValue Src
 
 void CodeGenFunction::callCStructMoveConstructor(LValue Dst, LValue Src) {
   bool IsVolatile = Dst.isVolatile() || Src.isVolatile();
-  Address DstPtr = Dst.getAddress(), SrcPtr = Src.getAddress();
+  Address DstPtr = Dst.getAddress(*this), SrcPtr = Src.getAddress(*this);
   QualType QT = Dst.getType();
   GenBinaryFuncName<true> GenName("__move_constructor_", DstPtr.getAlignment(),
                                   SrcPtr.getAlignment(), getContext());
@@ -899,11 +925,77 @@ void CodeGenFunction::callCStructMoveAssignmentOperator(LValue Dst, LValue Src
 
 ) {
   bool IsVolatile = Dst.isVolatile() || Src.isVolatile();
-  Address DstPtr = Dst.getAddress(), SrcPtr = Src.getAddress();
+  Address DstPtr = Dst.getAddress(*this), SrcPtr = Src.getAddress(*this);
   QualType QT = Dst.getType();
   GenBinaryFuncName<true> GenName("__move_assignment_", DstPtr.getAlignment(),
                                   SrcPtr.getAlignment(), getContext());
   std::string FuncName = GenName.getName(QT, IsVolatile);
   callSpecialFunction(GenMoveAssignment(getContext()), FuncName, QT, IsVolatile,
                       *this, std::array<Address, 2>({{DstPtr, SrcPtr}}));
+}
+
+llvm::Function *clang::CodeGen::getNonTrivialCStructDefaultConstructor(
+    CodeGenModule &CGM, CharUnits DstAlignment, bool IsVolatile, QualType QT) {
+  ASTContext &Ctx = CGM.getContext();
+  GenDefaultInitializeFuncName GenName(DstAlignment, Ctx);
+  std::string FuncName = GenName.getName(QT, IsVolatile);
+  return getSpecialFunction(GenDefaultInitialize(Ctx), FuncName, QT, IsVolatile,
+                            std::array<CharUnits, 1>({{DstAlignment}}), CGM);
+}
+
+llvm::Function *clang::CodeGen::getNonTrivialCStructCopyConstructor(
+    CodeGenModule &CGM, CharUnits DstAlignment, CharUnits SrcAlignment,
+    bool IsVolatile, QualType QT) {
+  ASTContext &Ctx = CGM.getContext();
+  GenBinaryFuncName<false> GenName("__copy_constructor_", DstAlignment,
+                                   SrcAlignment, Ctx);
+  std::string FuncName = GenName.getName(QT, IsVolatile);
+  return getSpecialFunction(
+      GenCopyConstructor(Ctx), FuncName, QT, IsVolatile,
+      std::array<CharUnits, 2>({{DstAlignment, SrcAlignment}}), CGM);
+}
+
+llvm::Function *clang::CodeGen::getNonTrivialCStructMoveConstructor(
+    CodeGenModule &CGM, CharUnits DstAlignment, CharUnits SrcAlignment,
+    bool IsVolatile, QualType QT) {
+  ASTContext &Ctx = CGM.getContext();
+  GenBinaryFuncName<true> GenName("__move_constructor_", DstAlignment,
+                                  SrcAlignment, Ctx);
+  std::string FuncName = GenName.getName(QT, IsVolatile);
+  return getSpecialFunction(
+      GenMoveConstructor(Ctx), FuncName, QT, IsVolatile,
+      std::array<CharUnits, 2>({{DstAlignment, SrcAlignment}}), CGM);
+}
+
+llvm::Function *clang::CodeGen::getNonTrivialCStructCopyAssignmentOperator(
+    CodeGenModule &CGM, CharUnits DstAlignment, CharUnits SrcAlignment,
+    bool IsVolatile, QualType QT) {
+  ASTContext &Ctx = CGM.getContext();
+  GenBinaryFuncName<false> GenName("__copy_assignment_", DstAlignment,
+                                   SrcAlignment, Ctx);
+  std::string FuncName = GenName.getName(QT, IsVolatile);
+  return getSpecialFunction(
+      GenCopyAssignment(Ctx), FuncName, QT, IsVolatile,
+      std::array<CharUnits, 2>({{DstAlignment, SrcAlignment}}), CGM);
+}
+
+llvm::Function *clang::CodeGen::getNonTrivialCStructMoveAssignmentOperator(
+    CodeGenModule &CGM, CharUnits DstAlignment, CharUnits SrcAlignment,
+    bool IsVolatile, QualType QT) {
+  ASTContext &Ctx = CGM.getContext();
+  GenBinaryFuncName<true> GenName("__move_assignment_", DstAlignment,
+                                  SrcAlignment, Ctx);
+  std::string FuncName = GenName.getName(QT, IsVolatile);
+  return getSpecialFunction(
+      GenMoveAssignment(Ctx), FuncName, QT, IsVolatile,
+      std::array<CharUnits, 2>({{DstAlignment, SrcAlignment}}), CGM);
+}
+
+llvm::Function *clang::CodeGen::getNonTrivialCStructDestructor(
+    CodeGenModule &CGM, CharUnits DstAlignment, bool IsVolatile, QualType QT) {
+  ASTContext &Ctx = CGM.getContext();
+  GenDestructorFuncName GenName("__destructor_", DstAlignment, Ctx);
+  std::string FuncName = GenName.getName(QT, IsVolatile);
+  return getSpecialFunction(GenDestructor(Ctx), FuncName, QT, IsVolatile,
+                            std::array<CharUnits, 1>({{DstAlignment}}), CGM);
 }

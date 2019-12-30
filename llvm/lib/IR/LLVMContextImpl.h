@@ -30,7 +30,6 @@
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/StringMap.h"
 #include "llvm/ADT/StringRef.h"
-#include "llvm/ADT/StringSet.h"
 #include "llvm/BinaryFormat/Dwarf.h"
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/DebugInfoMetadata.h"
@@ -41,6 +40,7 @@
 #include "llvm/IR/TrackingMDRef.h"
 #include "llvm/Support/Allocator.h"
 #include "llvm/Support/Casting.h"
+#include "llvm/Support/StringSaver.h"
 #include "llvm/Support/YAMLTraits.h"
 #include <algorithm>
 #include <cassert>
@@ -789,32 +789,57 @@ template <> struct MDNodeKeyImpl<DINamespace> {
   }
 };
 
+template <> struct MDNodeKeyImpl<DICommonBlock> {
+  Metadata *Scope;
+  Metadata *Decl;
+  MDString *Name;
+  Metadata *File;
+  unsigned LineNo;
+
+  MDNodeKeyImpl(Metadata *Scope, Metadata *Decl, MDString *Name,
+                Metadata *File, unsigned LineNo)
+      : Scope(Scope), Decl(Decl), Name(Name), File(File), LineNo(LineNo) {}
+  MDNodeKeyImpl(const DICommonBlock *N)
+      : Scope(N->getRawScope()), Decl(N->getRawDecl()), Name(N->getRawName()),
+        File(N->getRawFile()), LineNo(N->getLineNo()) {}
+
+  bool isKeyOf(const DICommonBlock *RHS) const {
+    return Scope == RHS->getRawScope() && Decl == RHS->getRawDecl() &&
+      Name == RHS->getRawName() && File == RHS->getRawFile() &&
+      LineNo == RHS->getLineNo();
+  }
+
+  unsigned getHashValue() const {
+    return hash_combine(Scope, Decl, Name, File, LineNo);
+  }
+};
+
 template <> struct MDNodeKeyImpl<DIModule> {
   Metadata *Scope;
   MDString *Name;
   MDString *ConfigurationMacros;
   MDString *IncludePath;
-  MDString *ISysRoot;
+  MDString *SysRoot;
 
   MDNodeKeyImpl(Metadata *Scope, MDString *Name, MDString *ConfigurationMacros,
-                MDString *IncludePath, MDString *ISysRoot)
+                MDString *IncludePath, MDString *SysRoot)
       : Scope(Scope), Name(Name), ConfigurationMacros(ConfigurationMacros),
-        IncludePath(IncludePath), ISysRoot(ISysRoot) {}
+        IncludePath(IncludePath), SysRoot(SysRoot) {}
   MDNodeKeyImpl(const DIModule *N)
       : Scope(N->getRawScope()), Name(N->getRawName()),
         ConfigurationMacros(N->getRawConfigurationMacros()),
-        IncludePath(N->getRawIncludePath()), ISysRoot(N->getRawISysRoot()) {}
+        IncludePath(N->getRawIncludePath()), SysRoot(N->getRawSysRoot()) {}
 
   bool isKeyOf(const DIModule *RHS) const {
     return Scope == RHS->getRawScope() && Name == RHS->getRawName() &&
            ConfigurationMacros == RHS->getRawConfigurationMacros() &&
            IncludePath == RHS->getRawIncludePath() &&
-           ISysRoot == RHS->getRawISysRoot();
+           SysRoot == RHS->getRawSysRoot();
   }
 
   unsigned getHashValue() const {
     return hash_combine(Scope, Name,
-                        ConfigurationMacros, IncludePath, ISysRoot);
+                        ConfigurationMacros, IncludePath, SysRoot);
   }
 };
 
@@ -1296,9 +1321,8 @@ public:
   Type X86_FP80Ty, FP128Ty, PPC_FP128Ty, X86_MMXTy;
   IntegerType Int1Ty, Int8Ty, Int16Ty, Int32Ty, Int64Ty, Int128Ty;
 
-  /// TypeAllocator - All dynamically allocated types are allocated from this.
-  /// They live forever until the context is torn down.
-  BumpPtrAllocator TypeAllocator;
+  BumpPtrAllocator Alloc;
+  UniqueStringSaver Saver{Alloc};
 
   DenseMap<unsigned, IntegerType*> IntegerTypes;
 
@@ -1310,7 +1334,7 @@ public:
   unsigned NamedStructTypesUniqueID = 0;
 
   DenseMap<std::pair<Type *, uint64_t>, ArrayType*> ArrayTypes;
-  DenseMap<std::pair<Type *, unsigned>, VectorType*> VectorTypes;
+  DenseMap<std::pair<Type *, ElementCount>, VectorType*> VectorTypes;
   DenseMap<Type*, PointerType*> PointerTypes;  // Pointers in AddrSpace = 0
   DenseMap<std::pair<Type*, unsigned>, PointerType*> ASPointerTypes;
 
@@ -1332,8 +1356,8 @@ public:
   /// Collection of per-GlobalObject sections used in this context.
   DenseMap<const GlobalObject *, StringRef> GlobalObjectSections;
 
-  /// Stable collection of section strings.
-  StringSet<> SectionStrings;
+  /// Collection of per-GlobalValue partitions used in this context.
+  DenseMap<const GlobalValue *, StringRef> GlobalValuePartitions;
 
   /// DiscriminatorTable - This table maps file:line locations to an
   /// integer representing the next DWARF path discriminator to assign to

@@ -14,6 +14,7 @@
 #include "llvm/CodeGen/MachineBasicBlock.h"
 #include "llvm/CodeGen/MachineFunction.h"
 #include "llvm/CodeGen/Passes.h"
+#include "llvm/InitializePasses.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/GraphWriter.h"
 #include "llvm/Support/raw_ostream.h"
@@ -27,7 +28,7 @@ ViewEdgeBundles("view-edge-bundles", cl::Hidden,
 char EdgeBundles::ID = 0;
 
 INITIALIZE_PASS(EdgeBundles, "edge-bundles", "Bundle Machine CFG Edges",
-                /* cfg = */true, /* analysis = */ true)
+                /* cfg = */true, /* is_analysis = */ true)
 
 char &llvm::EdgeBundlesID = EdgeBundles::ID;
 

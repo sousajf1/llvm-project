@@ -19,6 +19,7 @@
 #define _LIBCPP_DEBUG 0
 
 #include <iterator>
+#include "test_macros.h"
 #include "debug_mode_helper.h"
 
 #include "test_iterators.h"
@@ -26,7 +27,7 @@
 int main(int, char**)
 {
     int a[] = {1, 2, 3};
-    
+
     bidirectional_iterator<int *> bidi(a+1);
 	std::advance(bidi,  1);  // should work fine
 	std::advance(bidi,  0);  // should work fine
@@ -39,4 +40,3 @@ int main(int, char**)
 
   return 0;
 }
-

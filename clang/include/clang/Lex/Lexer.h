@@ -265,6 +265,21 @@ public:
   /// Return the current location in the buffer.
   const char *getBufferLocation() const { return BufferPtr; }
 
+  /// Returns the current lexing offset.
+  unsigned getCurrentBufferOffset() {
+    assert(BufferPtr >= BufferStart && "Invalid buffer state");
+    return BufferPtr - BufferStart;
+  }
+
+  /// Skip over \p NumBytes bytes.
+  ///
+  /// If the skip is successful, the next token will be lexed from the new
+  /// offset. The lexer also assumes that we skipped to the start of the line.
+  ///
+  /// \returns true if the skip failed (new offset would have been past the
+  /// end of the buffer), false otherwise.
+  bool skipOver(unsigned NumBytes);
+
   /// Stringify - Convert the specified string into a C string by i) escaping
   /// '\\' and " characters and ii) replacing newline character(s) with "\\n".
   /// If Charify is true, this escapes the ' character instead of ".
@@ -382,7 +397,7 @@ public:
     SourceLocation End = getLocForEndOfToken(Range.getEnd(), 0, SM, LangOpts);
     return End.isInvalid() ? CharSourceRange()
                            : CharSourceRange::getCharRange(
-                                 Range.getBegin(), End.getLocWithOffset(-1));
+                                 Range.getBegin(), End);
   }
   static CharSourceRange getAsCharRange(CharSourceRange Range,
                                         const SourceManager &SM,

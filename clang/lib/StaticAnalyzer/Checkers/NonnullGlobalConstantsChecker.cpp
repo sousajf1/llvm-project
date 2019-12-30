@@ -36,6 +36,7 @@ class NonnullGlobalConstantsChecker : public Checker<check::Location> {
   mutable IdentifierInfo *NSStringII = nullptr;
   mutable IdentifierInfo *CFStringRefII = nullptr;
   mutable IdentifierInfo *CFBooleanRefII = nullptr;
+  mutable IdentifierInfo *CFNullRefII = nullptr;
 
 public:
   NonnullGlobalConstantsChecker() {}
@@ -61,6 +62,7 @@ void NonnullGlobalConstantsChecker::initIdentifierInfo(ASTContext &Ctx) const {
   NSStringII = &Ctx.Idents.get("NSString");
   CFStringRefII = &Ctx.Idents.get("CFStringRef");
   CFBooleanRefII = &Ctx.Idents.get("CFBooleanRef");
+  CFNullRefII = &Ctx.Idents.get("CFNullRef");
 }
 
 /// Add an assumption that const string-like globals are non-null.
@@ -106,14 +108,21 @@ bool NonnullGlobalConstantsChecker::isGlobalConstString(SVal V) const {
     return true;
 
   // Look through the typedefs.
-  while (auto *T = dyn_cast<TypedefType>(Ty)) {
-    Ty = T->getDecl()->getUnderlyingType();
-
-    // It is sufficient for any intermediate typedef
-    // to be classified const.
-    HasConst = HasConst || Ty.isConstQualified();
-    if (isNonnullType(Ty) && HasConst)
-      return true;
+  while (const Type *T = Ty.getTypePtr()) {
+    if (const auto *TT = dyn_cast<TypedefType>(T)) {
+      Ty = TT->getDecl()->getUnderlyingType();
+      // It is sufficient for any intermediate typedef
+      // to be classified const.
+      HasConst = HasConst || Ty.isConstQualified();
+      if (isNonnullType(Ty) && HasConst)
+        return true;
+    } else if (const auto *AT = dyn_cast<AttributedType>(T)) {
+      if (AT->getAttrKind() == attr::TypeNonNull)
+        return true;
+      Ty = AT->getModifiedType();
+    } else {
+      return false;
+    }
   }
   return false;
 }
@@ -129,7 +138,7 @@ bool NonnullGlobalConstantsChecker::isNonnullType(QualType Ty) const {
       T->getInterfaceDecl()->getIdentifier() == NSStringII;
   } else if (auto *T = dyn_cast<TypedefType>(Ty)) {
     IdentifierInfo* II = T->getDecl()->getIdentifier();
-    return II == CFStringRefII || II == CFBooleanRefII;
+    return II == CFStringRefII || II == CFBooleanRefII || II == CFNullRefII;
   }
   return false;
 }

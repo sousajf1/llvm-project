@@ -119,9 +119,7 @@ bool BreakpointOptions::NullCallback(void *baton,
   return true;
 }
 
-//----------------------------------------------------------------------
 // BreakpointOptions constructor
-//----------------------------------------------------------------------
 BreakpointOptions::BreakpointOptions(bool all_flags_set)
     : m_callback(BreakpointOptions::NullCallback), m_callback_baton_sp(),
       m_baton_is_command_baton(false), m_callback_is_synchronous(false),
@@ -147,9 +145,7 @@ BreakpointOptions::BreakpointOptions(const char *condition, bool enabled,
     }
 }
 
-//----------------------------------------------------------------------
 // BreakpointOptions copy constructor
-//----------------------------------------------------------------------
 BreakpointOptions::BreakpointOptions(const BreakpointOptions &rhs)
     : m_callback(rhs.m_callback), m_callback_baton_sp(rhs.m_callback_baton_sp),
       m_baton_is_command_baton(rhs.m_baton_is_command_baton),
@@ -163,9 +159,7 @@ BreakpointOptions::BreakpointOptions(const BreakpointOptions &rhs)
   m_condition_text_hash = rhs.m_condition_text_hash;
 }
 
-//----------------------------------------------------------------------
 // BreakpointOptions assignment operator
-//----------------------------------------------------------------------
 const BreakpointOptions &BreakpointOptions::
 operator=(const BreakpointOptions &rhs) {
   m_callback = rhs.m_callback;
@@ -236,9 +230,7 @@ void BreakpointOptions::CopyOverSetOptions(const BreakpointOptions &incoming)
   }
 }
 
-//----------------------------------------------------------------------
 // Destructor
-//----------------------------------------------------------------------
 BreakpointOptions::~BreakpointOptions() = default;
 
 std::unique_ptr<BreakpointOptions> BreakpointOptions::CreateFromStructuredData(
@@ -317,15 +309,14 @@ std::unique_ptr<BreakpointOptions> BreakpointOptions::CreateFromStructuredData(
     }
   }
 
-  auto bp_options = llvm::make_unique<BreakpointOptions>(
+  auto bp_options = std::make_unique<BreakpointOptions>(
       condition_ref.str().c_str(), enabled, 
       ignore_count, one_shot, auto_continue);
   if (cmd_data_up) {
     if (cmd_data_up->interpreter == eScriptLanguageNone)
       bp_options->SetCommandDataCallback(cmd_data_up);
     else {
-      ScriptInterpreter *interp =
-          target.GetDebugger().GetCommandInterpreter().GetScriptInterpreter();
+      ScriptInterpreter *interp = target.GetDebugger().GetScriptInterpreter();
       if (!interp) {
         error.SetErrorStringWithFormat(
             "Can't set script commands - no script interpreter");
@@ -406,9 +397,7 @@ StructuredData::ObjectSP BreakpointOptions::SerializeToStructuredData() {
   return options_dict_sp;
 }
 
-//------------------------------------------------------------------
 // Callbacks
-//------------------------------------------------------------------
 void BreakpointOptions::SetCallback(BreakpointHitCallback callback,
                                     const lldb::BatonSP &callback_baton_sp,
                                     bool callback_is_synchronous) {
@@ -577,7 +566,8 @@ void BreakpointOptions::GetDescription(Stream *s,
   if (m_callback_baton_sp.get()) {
     if (level != eDescriptionLevelBrief) {
       s->EOL();
-      m_callback_baton_sp->GetDescription(s, level);
+      m_callback_baton_sp->GetDescription(s->AsRawOstream(), level,
+                                          s->GetIndentLevel());
     }
   }
   if (!m_condition_text.empty()) {
@@ -589,35 +579,33 @@ void BreakpointOptions::GetDescription(Stream *s,
 }
 
 void BreakpointOptions::CommandBaton::GetDescription(
-    Stream *s, lldb::DescriptionLevel level) const {
+    llvm::raw_ostream &s, lldb::DescriptionLevel level,
+    unsigned indentation) const {
   const CommandData *data = getItem();
 
   if (level == eDescriptionLevelBrief) {
-    s->Printf(", commands = %s",
-              (data && data->user_source.GetSize() > 0) ? "yes" : "no");
+    s << ", commands = "
+      << ((data && data->user_source.GetSize() > 0) ? "yes" : "no");
     return;
   }
 
-  s->IndentMore();
-  s->Indent("Breakpoint commands");
+  indentation += 2;
+  s.indent(indentation);
+  s << "Breakpoint commands";
   if (data->interpreter != eScriptLanguageNone)
-    s->Printf(" (%s):\n",
-              ScriptInterpreter::LanguageToString(data->interpreter).c_str());
+    s << llvm::formatv(" ({0}):\n",
+                       ScriptInterpreter::LanguageToString(data->interpreter));
   else
-    s->PutCString(":\n");
+    s << ":\n";
 
-  s->IndentMore();
+  indentation += 2;
   if (data && data->user_source.GetSize() > 0) {
-    const size_t num_strings = data->user_source.GetSize();
-    for (size_t i = 0; i < num_strings; ++i) {
-      s->Indent(data->user_source.GetStringAtIndex(i));
-      s->EOL();
+    for (llvm::StringRef str : data->user_source) {
+      s.indent(indentation);
+      s << str << "\n";
     }
-  } else {
-    s->PutCString("No commands.\n");
-  }
-  s->IndentLess();
-  s->IndentLess();
+  } else
+    s << "No commands.\n";
 }
 
 void BreakpointOptions::SetCommandDataCallback(
@@ -657,6 +645,7 @@ bool BreakpointOptions::BreakpointOptionsCallbackFunction(
       options.SetStopOnError(data->stop_on_error);
       options.SetEchoCommands(true);
       options.SetPrintResults(true);
+      options.SetPrintErrors(true);
       options.SetAddToHistory(false);
 
       debugger.GetCommandInterpreter().HandleCommands(commands, &exe_ctx,

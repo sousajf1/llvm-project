@@ -7,11 +7,15 @@
 //===----------------------------------------------------------------------===//
 
 #include "SystemInitializerFull.h"
-
 #include "lldb/API/SBCommandInterpreter.h"
+#include "lldb/Host/Config.h"
 
-#if !defined(LLDB_DISABLE_PYTHON)
+#if LLDB_ENABLE_PYTHON
 #include "Plugins/ScriptInterpreter/Python/ScriptInterpreterPython.h"
+#endif
+
+#if LLDB_ENABLE_LUA
+#include "Plugins/ScriptInterpreter/Lua/ScriptInterpreterLua.h"
 #endif
 
 #include "lldb/Core/Debugger.h"
@@ -24,6 +28,7 @@
 #include "Plugins/ABI/MacOSX-arm/ABIMacOSX_arm.h"
 #include "Plugins/ABI/MacOSX-arm64/ABIMacOSX_arm64.h"
 #include "Plugins/ABI/MacOSX-i386/ABIMacOSX_i386.h"
+#include "Plugins/ABI/SysV-arc/ABISysV_arc.h"
 #include "Plugins/ABI/SysV-arm/ABISysV_arm.h"
 #include "Plugins/ABI/SysV-arm64/ABISysV_arm64.h"
 #include "Plugins/ABI/SysV-hexagon/ABISysV_hexagon.h"
@@ -34,6 +39,7 @@
 #include "Plugins/ABI/SysV-ppc64/ABISysV_ppc64.h"
 #include "Plugins/ABI/SysV-s390x/ABISysV_s390x.h"
 #include "Plugins/ABI/SysV-x86_64/ABISysV_x86_64.h"
+#include "Plugins/ABI/Windows-x86_64/ABIWindows_x86_64.h"
 #include "Plugins/Architecture/Arm/ArchitectureArm.h"
 #include "Plugins/Architecture/Mips/ArchitectureMips.h"
 #include "Plugins/Architecture/PPC64/ArchitecturePPC64.h"
@@ -43,7 +49,10 @@
 #include "Plugins/DynamicLoader/POSIX-DYLD/DynamicLoaderPOSIXDYLD.h"
 #include "Plugins/DynamicLoader/Static/DynamicLoaderStatic.h"
 #include "Plugins/DynamicLoader/Windows-DYLD/DynamicLoaderWindowsDYLD.h"
+#include "Plugins/Instruction/ARM/EmulateInstructionARM.h"
 #include "Plugins/Instruction/ARM64/EmulateInstructionARM64.h"
+#include "Plugins/Instruction/MIPS/EmulateInstructionMIPS.h"
+#include "Plugins/Instruction/MIPS64/EmulateInstructionMIPS64.h"
 #include "Plugins/Instruction/PPC64/EmulateInstructionPPC64.h"
 #include "Plugins/InstrumentationRuntime/ASan/ASanRuntime.h"
 #include "Plugins/InstrumentationRuntime/MainThreadChecker/MainThreadCheckerRuntime.h"
@@ -58,6 +67,8 @@
 #include "Plugins/LanguageRuntime/ObjC/AppleObjCRuntime/AppleObjCRuntimeV2.h"
 #include "Plugins/LanguageRuntime/RenderScript/RenderScriptRuntime/RenderScriptRuntime.h"
 #include "Plugins/MemoryHistory/asan/MemoryHistoryASan.h"
+#include "Plugins/ObjectContainer/BSD-Archive/ObjectContainerBSDArchive.h"
+#include "Plugins/ObjectContainer/Universal-Mach-O/ObjectContainerUniversalMachO.h"
 #include "Plugins/ObjectFile/Breakpad/ObjectFileBreakpad.h"
 #include "Plugins/ObjectFile/ELF/ObjectFileELF.h"
 #include "Plugins/ObjectFile/Mach-O/ObjectFileMachO.h"
@@ -92,9 +103,9 @@
 #include "Plugins/Platform/MacOSX/PlatformAppleTVSimulator.h"
 #include "Plugins/Platform/MacOSX/PlatformAppleWatchSimulator.h"
 #include "Plugins/Platform/MacOSX/PlatformDarwinKernel.h"
+#include "Plugins/Platform/MacOSX/PlatformRemoteAppleBridge.h"
 #include "Plugins/Platform/MacOSX/PlatformRemoteAppleTV.h"
 #include "Plugins/Platform/MacOSX/PlatformRemoteAppleWatch.h"
-#include "Plugins/Platform/MacOSX/PlatformRemoteAppleBridge.h"
 #include "Plugins/Platform/MacOSX/PlatformiOSSimulator.h"
 #include "Plugins/Process/MacOSX-Kernel/ProcessKDP.h"
 #include "Plugins/SymbolVendor/MacOSX/SymbolVendorMacOSX.h"
@@ -112,14 +123,51 @@
 
 #include "llvm/Support/TargetSelect.h"
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wglobal-constructors"
+#include "llvm/ExecutionEngine/MCJIT.h"
+#pragma clang diagnostic pop
+
 #include <string>
 
 using namespace lldb_private;
 
-
 SystemInitializerFull::SystemInitializerFull() {}
 
 SystemInitializerFull::~SystemInitializerFull() {}
+
+#define LLDB_PROCESS_AArch64(op)                                               \
+  ABIMacOSX_arm64::op();                                                       \
+  ABISysV_arm64::op();
+#define LLDB_PROCESS_ARM(op)                                                   \
+  ABIMacOSX_arm::op();                                                         \
+  ABISysV_arm::op();
+#define LLDB_PROCESS_ARC(op)                                                   \
+  ABISysV_arc::op();
+#define LLDB_PROCESS_Hexagon(op) ABISysV_hexagon::op();
+#define LLDB_PROCESS_Mips(op)                                                  \
+  ABISysV_mips::op();                                                          \
+  ABISysV_mips64::op();
+#define LLDB_PROCESS_PowerPC(op)                                               \
+  ABISysV_ppc::op();                                                          \
+  ABISysV_ppc64::op();
+#define LLDB_PROCESS_SystemZ(op) ABISysV_s390x::op();
+#define LLDB_PROCESS_X86(op)                                                   \
+  ABIMacOSX_i386::op();                                                        \
+  ABISysV_i386::op();                                                          \
+  ABISysV_x86_64::op();                                                        \
+  ABIWindows_x86_64::op();
+
+#define LLDB_PROCESS_AMDGPU(op)
+#define LLDB_PROCESS_AVR(op)
+#define LLDB_PROCESS_BPF(op)
+#define LLDB_PROCESS_Lanai(op)
+#define LLDB_PROCESS_MSP430(op)
+#define LLDB_PROCESS_NVPTX(op)
+#define LLDB_PROCESS_RISCV(op)
+#define LLDB_PROCESS_Sparc(op)
+#define LLDB_PROCESS_WebAssembly(op)
+#define LLDB_PROCESS_XCore(op)
 
 llvm::Error SystemInitializerFull::Initialize() {
   if (auto e = SystemInitializerCommon::Initialize())
@@ -130,14 +178,21 @@ llvm::Error SystemInitializerFull::Initialize() {
   ObjectFileMachO::Initialize();
   ObjectFilePECOFF::Initialize();
 
+  ObjectContainerBSDArchive::Initialize();
+  ObjectContainerUniversalMachO::Initialize();
+
   ScriptInterpreterNone::Initialize();
 
-#ifndef LLDB_DISABLE_PYTHON
+#if LLDB_ENABLE_PYTHON
   OperatingSystemPython::Initialize();
 #endif
 
-#if !defined(LLDB_DISABLE_PYTHON)
+#if LLDB_ENABLE_PYTHON
   ScriptInterpreterPython::Initialize();
+#endif
+
+#if LLDB_ENABLE_LUA
+  ScriptInterpreterLua::Initialize();
 #endif
 
   platform_freebsd::PlatformFreeBSD::Initialize();
@@ -161,19 +216,8 @@ llvm::Error SystemInitializerFull::Initialize() {
 
   ClangASTContext::Initialize();
 
-  ABIMacOSX_i386::Initialize();
-  ABIMacOSX_arm::Initialize();
-  ABIMacOSX_arm64::Initialize();
-  ABISysV_arm::Initialize();
-  ABISysV_arm64::Initialize();
-  ABISysV_hexagon::Initialize();
-  ABISysV_i386::Initialize();
-  ABISysV_x86_64::Initialize();
-  ABISysV_ppc::Initialize();
-  ABISysV_ppc64::Initialize();
-  ABISysV_mips::Initialize();
-  ABISysV_mips64::Initialize();
-  ABISysV_s390x::Initialize();
+#define LLVM_TARGET(t) LLDB_PROCESS_ ## t(Initialize)
+#include "llvm/Config/Targets.def"
 
   ArchitectureArm::Initialize();
   ArchitectureMips::Initialize();
@@ -198,8 +242,13 @@ llvm::Error SystemInitializerFull::Initialize() {
   SymbolFileSymtab::Initialize();
   UnwindAssemblyInstEmulation::Initialize();
   UnwindAssembly_x86::Initialize();
+
+  EmulateInstructionARM::Initialize();
   EmulateInstructionARM64::Initialize();
+  EmulateInstructionMIPS::Initialize();
+  EmulateInstructionMIPS64::Initialize();
   EmulateInstructionPPC64::Initialize();
+
   SymbolFileDWARFDebugMap::Initialize();
   ItaniumABILanguageRuntime::Initialize();
   AppleObjCRuntimeV2::Initialize();
@@ -232,9 +281,7 @@ llvm::Error SystemInitializerFull::Initialize() {
   // shouldn't be limited to __APPLE__.
   StructuredDataDarwinLog::Initialize();
 
-  //----------------------------------------------------------------------
   // Platform agnostic plugins
-  //----------------------------------------------------------------------
   platform_gdb_server::PlatformRemoteGDBServer::Initialize();
 
   process_gdb_remote::ProcessGDBRemote::Initialize();
@@ -271,19 +318,9 @@ void SystemInitializerFull::Terminate() {
   ArchitectureMips::Terminate();
   ArchitecturePPC64::Terminate();
 
-  ABIMacOSX_i386::Terminate();
-  ABIMacOSX_arm::Terminate();
-  ABIMacOSX_arm64::Terminate();
-  ABISysV_arm::Terminate();
-  ABISysV_arm64::Terminate();
-  ABISysV_hexagon::Terminate();
-  ABISysV_i386::Terminate();
-  ABISysV_x86_64::Terminate();
-  ABISysV_ppc::Terminate();
-  ABISysV_ppc64::Terminate();
-  ABISysV_mips::Terminate();
-  ABISysV_mips64::Terminate();
-  ABISysV_s390x::Terminate();
+#define LLVM_TARGET(t) LLDB_PROCESS_ ## t(Terminate)
+#include "llvm/Config/Targets.def"
+
   DisassemblerLLVMC::Terminate();
 
   JITLoaderGDB::Terminate();
@@ -302,8 +339,13 @@ void SystemInitializerFull::Terminate() {
   SymbolFileSymtab::Terminate();
   UnwindAssembly_x86::Terminate();
   UnwindAssemblyInstEmulation::Terminate();
+
+  EmulateInstructionARM::Terminate();
   EmulateInstructionARM64::Terminate();
+  EmulateInstructionMIPS::Terminate();
+  EmulateInstructionMIPS64::Terminate();
   EmulateInstructionPPC64::Terminate();
+
   SymbolFileDWARFDebugMap::Terminate();
   ItaniumABILanguageRuntime::Terminate();
   AppleObjCRuntimeV2::Terminate();
@@ -341,7 +383,7 @@ void SystemInitializerFull::Terminate() {
   DynamicLoaderStatic::Terminate();
   DynamicLoaderWindowsDYLD::Terminate();
 
-#ifndef LLDB_DISABLE_PYTHON
+#if LLDB_ENABLE_PYTHON
   OperatingSystemPython::Terminate();
 #endif
 
@@ -362,6 +404,9 @@ void SystemInitializerFull::Terminate() {
   ObjectFileELF::Terminate();
   ObjectFileMachO::Terminate();
   ObjectFilePECOFF::Terminate();
+
+  ObjectContainerBSDArchive::Terminate();
+  ObjectContainerUniversalMachO::Terminate();
 
   // Now shutdown the common parts, in reverse order.
   SystemInitializerCommon::Terminate();

@@ -12,9 +12,7 @@
 namespace lldb_private {
 // LLDB register codes (e.g. RegisterKind == eRegisterKindLLDB)
 
-//---------------------------------------------------------------------------
 // Internal codes for all i386 registers.
-//---------------------------------------------------------------------------
 enum {
   k_first_gpr_i386,
   lldb_eax_i386 = k_first_gpr_i386,
@@ -135,9 +133,7 @@ enum {
                               k_num_mpx_registers_i386,
 };
 
-//---------------------------------------------------------------------------
 // Internal codes for all x86_64 registers.
-//---------------------------------------------------------------------------
 enum {
   k_first_gpr_x86_64,
   lldb_rax_x86_64 = k_first_gpr_x86_64,
@@ -298,7 +294,8 @@ enum {
   lldb_bndstatus_x86_64,
   k_last_mpxc_x86_64 = lldb_bndstatus_x86_64,
 
-  lldb_dr0_x86_64,
+  k_first_dbr_x86_64,
+  lldb_dr0_x86_64 = k_first_dbr_x86_64,
   lldb_dr1_x86_64,
   lldb_dr2_x86_64,
   lldb_dr3_x86_64,
@@ -306,6 +303,7 @@ enum {
   lldb_dr5_x86_64,
   lldb_dr6_x86_64,
   lldb_dr7_x86_64,
+  k_last_dbr_x86_64 = lldb_dr7_x86_64,
 
   k_num_registers_x86_64,
   k_num_gpr_registers_x86_64 = k_last_gpr_x86_64 - k_first_gpr_x86_64 + 1,
@@ -316,6 +314,7 @@ enum {
                                 k_num_fpr_registers_x86_64 +
                                 k_num_avx_registers_x86_64 +
                                 k_num_mpx_registers_x86_64,
+  k_num_dbr_registers_x86_64 = k_last_dbr_x86_64 - k_first_dbr_x86_64 + 1,
 };
 }
 

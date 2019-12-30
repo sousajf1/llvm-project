@@ -65,9 +65,7 @@ public:
   const lldb_private::RegisterInfo *
   GetRegisterInfoArray(uint32_t &count) override;
 
-  //------------------------------------------------------------------
   // Static Functions
-  //------------------------------------------------------------------
 
   static void Initialize();
 
@@ -75,9 +73,7 @@ public:
 
   static lldb::ABISP CreateInstance(lldb::ProcessSP process_sp, const lldb_private::ArchSpec &arch);
 
-  //------------------------------------------------------------------
   // PluginInterface protocol
-  //------------------------------------------------------------------
 
   static lldb_private::ConstString GetPluginNameStatic();
 
@@ -97,7 +93,9 @@ protected:
                            lldb_private::CompilerType &ast_type) const override;
 
 private:
-  ABIMacOSX_arm64(lldb::ProcessSP process_sp) : lldb_private::ABI(process_sp) {
+  ABIMacOSX_arm64(lldb::ProcessSP process_sp,
+                  std::unique_ptr<llvm::MCRegisterInfo> info_up)
+      : lldb_private::ABI(std::move(process_sp), std::move(info_up)) {
     // Call CreateInstance instead.
   }
 };

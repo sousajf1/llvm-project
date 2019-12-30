@@ -41,6 +41,11 @@ static QualType Desugar(ASTContext &Context, QualType QT, bool &ShouldAKA) {
       QT = PT->desugar();
       continue;
     }
+    // ... or a macro defined type ...
+    if (const MacroQualifiedType *MDT = dyn_cast<MacroQualifiedType>(Ty)) {
+      QT = MDT->desugar();
+      continue;
+    }
     // ...or a substituted template type parameter ...
     if (const SubstTemplateTypeParmType *ST =
           dyn_cast<SubstTemplateTypeParmType>(Ty)) {
@@ -149,7 +154,7 @@ Underlying = CTy->desugar(); \
 } \
 break; \
 }
-#include "clang/AST/TypeNodes.def"
+#include "clang/AST/TypeNodes.inc"
     }
 
     // If it wasn't sugared, we're done.
@@ -333,6 +338,21 @@ void clang::FormatASTNodeDiagnosticArgument(
 
   switch (Kind) {
     default: llvm_unreachable("unknown ArgumentKind");
+    case DiagnosticsEngine::ak_addrspace: {
+      assert(Modifier.empty() && Argument.empty() &&
+             "Invalid modifier for Qualfiers argument");
+
+      auto S = Qualifiers::getAddrSpaceAsString(static_cast<LangAS>(Val));
+      if (S.empty()) {
+        OS << (Context.getLangOpts().OpenCL ? "default" : "generic");
+        OS << " address space";
+      } else {
+        OS << "address space";
+        OS << " '" << S << "'";
+      }
+      NeedQuotes = false;
+      break;
+    }
     case DiagnosticsEngine::ak_qual: {
       assert(Modifier.empty() && Argument.empty() &&
              "Invalid modifier for Qualfiers argument");
@@ -343,7 +363,7 @@ void clang::FormatASTNodeDiagnosticArgument(
         OS << "unqualified";
         NeedQuotes = false;
       } else {
-        OS << Q.getAsString();
+        OS << S;
       }
       break;
     }

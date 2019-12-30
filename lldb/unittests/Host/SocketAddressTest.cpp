@@ -6,28 +6,21 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include "lldb/Host/SocketAddress.h"
+#include "TestingSupport/SubsystemRAII.h"
+#include "lldb/Host/Socket.h"
+#include "llvm/Testing/Support/Error.h"
+
 #include "gtest/gtest.h"
 
-#include "lldb/Host/SocketAddress.h"
+using namespace lldb_private;
 
 namespace {
 class SocketAddressTest : public testing::Test {
 public:
-  static void SetUpTestCase() {
-#ifdef _MSC_VER
-    WSADATA data;
-    ASSERT_EQ(0, WSAStartup(MAKEWORD(2, 2), &data));
-#endif
-  }
-  static void TearDownTestCase() {
-#ifdef _MSC_VER
-    ASSERT_EQ(0, WSACleanup());
-#endif
-  }
+  SubsystemRAII<Socket> subsystems;
 };
 } // namespace
-
-using namespace lldb_private;
 
 TEST_F(SocketAddressTest, Set) {
   SocketAddress sa;

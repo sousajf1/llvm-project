@@ -113,7 +113,6 @@ defm : AtomWriteResPair<WriteIDiv64, [AtomPort01], [AtomPort01],130,130,[130],[1
 defm : X86WriteResPairUnsupported<WriteCRC32>;
 
 defm : AtomWriteResPair<WriteCMOV,  [AtomPort01], [AtomPort0]>;
-defm : AtomWriteResPair<WriteCMOV2, [AtomPort01], [AtomPort0]>;
 defm : X86WriteRes<WriteFCMOV, [AtomPort01], 9, [9], 1>; // x87 conditional move.
 
 def  : WriteRes<WriteSETCC, [AtomPort01]>;
@@ -217,8 +216,10 @@ defm : X86WriteResUnsupported<WriteFStoreY>;
 def  : WriteRes<WriteFStoreNT,      [AtomPort0]>;
 def  : WriteRes<WriteFStoreNTX,     [AtomPort0]>;
 defm : X86WriteResUnsupported<WriteFStoreNTY>;
-defm : X86WriteResUnsupported<WriteFMaskedStore>;
-defm : X86WriteResUnsupported<WriteFMaskedStoreY>;
+defm : X86WriteResUnsupported<WriteFMaskedStore32>;
+defm : X86WriteResUnsupported<WriteFMaskedStore32Y>;
+defm : X86WriteResUnsupported<WriteFMaskedStore64>;
+defm : X86WriteResUnsupported<WriteFMaskedStore64Y>;
 
 def  : WriteRes<WriteFMove,         [AtomPort01]>;
 def  : WriteRes<WriteFMoveX,        [AtomPort01]>;
@@ -741,7 +742,7 @@ def AtomWrite01_45 : SchedWriteRes<[AtomPort01]> {
   let Latency = 45;
   let ResourceCycles = [45];
 }
-def : InstRW<[AtomWrite01_45], (instrs MONITORrrr)>;
+def : InstRW<[AtomWrite01_45], (instrs MONITOR32rrr, MONITOR64rrr)>;
 
 def AtomWrite01_46 : SchedWriteRes<[AtomPort01]> {
   let Latency = 46;
@@ -887,8 +888,7 @@ def AtomWrite01_174 : SchedWriteRes<[AtomPort01]> {
   let Latency = 174;
   let ResourceCycles = [174];
 }
-def : InstRW<[AtomWrite01_174], (instrs FSINCOS)>;
-def : InstRW<[AtomWrite01_174], (instregex "(COS|SIN)_F")>;
+def : InstRW<[AtomWrite01_174], (instrs FSINCOS, FSIN, FCOS)>;
 
 def AtomWrite01_183 : SchedWriteRes<[AtomPort01]> {
   let Latency = 183;

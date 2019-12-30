@@ -7,15 +7,12 @@
 //
 //===----------------------------------------------------------------------===//
 
+// UNSUPPORTED: c++98, c++03, c++11, c++14
+
 #include "support/pstl_test_config.h"
 
-#ifdef PSTL_STANDALONE_TESTS
-#include "pstl/execution"
-#include "pstl/numeric"
-#else
 #include <execution>
 #include <numeric>
-#endif // PSTL_STANDALONE_TESTS
 
 #include "support/utils.h"
 
@@ -57,7 +54,7 @@ test_long_form(T init, BinaryOp binary_op, F f)
 struct test_two_short_forms
 {
 
-#if __PSTL_ICC_16_VC14_TEST_PAR_TBB_RT_RELEASE_64_BROKEN //dummy specialization by policy type, in case of broken configuration
+#if _PSTL_ICC_16_VC14_TEST_PAR_TBB_RT_RELEASE_64_BROKEN //dummy specialization by policy type, in case of broken configuration
     template <typename Iterator>
     void
     operator()(pstl::execution::parallel_policy, Iterator first, Iterator last, Sum init, Sum expected)
@@ -100,7 +97,7 @@ test_short_forms()
     }
 }
 
-int32_t
+int
 main()
 {
     // Test for popular types

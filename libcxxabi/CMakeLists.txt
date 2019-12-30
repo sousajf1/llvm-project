@@ -43,9 +43,12 @@ include(CMakeDependentOption)
 include(HandleCompilerRT)
 
 # Define options.
-option(LIBCXXABI_ENABLE_EXCEPTIONS "Use exceptions." ON)
+option(LIBCXXABI_ENABLE_EXCEPTIONS
+  "Provide support for exceptions in the runtime.
+  When disabled, libc++abi does not support stack unwinding and other exceptions-related features." ON)
 option(LIBCXXABI_ENABLE_ASSERTIONS "Enable assertions independent of build mode." ON)
 option(LIBCXXABI_ENABLE_PEDANTIC "Compile with pedantic enabled." ON)
+option(LIBCXXABI_ENABLE_PIC "Build Position-Independent Code, even in static library" ON)
 option(LIBCXXABI_ENABLE_WERROR "Fail and stop if a warning is triggered." OFF)
 option(LIBCXXABI_USE_LLVM_UNWINDER "Build and use the LLVM unwinder." OFF)
 option(LIBCXXABI_ENABLE_STATIC_UNWINDER "Statically link the LLVM unwinder." OFF)
@@ -74,6 +77,11 @@ set(LIBCXXABI_TARGET_TRIPLE "" CACHE STRING "Target triple for cross compiling."
 set(LIBCXXABI_GCC_TOOLCHAIN "" CACHE PATH "GCC toolchain for cross compiling.")
 set(LIBCXXABI_SYSROOT "" CACHE PATH "Sysroot for cross compiling.")
 set(LIBCXXABI_LIBCXX_LIBRARY_PATH "" CACHE PATH "The path to libc++ library.")
+set(LIBCXXABI_LIBRARY_VERSION "1.0" CACHE STRING
+"Version of libc++abi. This will be reflected in the name of the shared \
+library produced. For example, -DLIBCXXABI_LIBRARY_VERSION=x.y will \
+result in the library being named libc++abi.x.y.dylib, along with the \
+usual symlinks pointing to that.")
 
 # Default to building a shared library so that the default options still test
 # the libc++abi that is being built. There are two problems with testing a
@@ -177,16 +185,21 @@ string(REGEX MATCH "[0-9]+\\.[0-9]+(\\.[0-9]+)?" CLANG_VERSION
        ${PACKAGE_VERSION})
 
 if(LLVM_ENABLE_PER_TARGET_RUNTIME_DIR AND NOT APPLE)
-  set(DEFAULT_INSTALL_PREFIX lib${LLVM_LIBDIR_SUFFIX}/clang/${CLANG_VERSION}/${LLVM_DEFAULT_TARGET_TRIPLE}/)
-  set(LIBCXXABI_LIBRARY_DIR ${LLVM_LIBRARY_OUTPUT_INTDIR}/clang/${CLANG_VERSION}/${LLVM_DEFAULT_TARGET_TRIPLE}/lib${LIBCXXABI_LIBDIR_SUFFIX})
+  set(LIBCXXABI_LIBRARY_DIR ${LLVM_LIBRARY_OUTPUT_INTDIR}/${LLVM_DEFAULT_TARGET_TRIPLE}/c++)
+  set(LIBCXXABI_INSTALL_LIBRARY_DIR lib${LLVM_LIBDIR_SUFFIX}/${LLVM_DEFAULT_TARGET_TRIPLE}/c++)
+  if(LIBCXX_LIBDIR_SUBDIR)
+    string(APPEND LIBCXXABI_LIBRARY_DIR /${LIBCXXABI_LIBDIR_SUBDIR})
+    string(APPEND LIBCXXABI_INSTALL_LIBRARY_DIR /${LIBCXXABI_LIBDIR_SUBDIR})
+  endif()
 elseif(LLVM_LIBRARY_OUTPUT_INTDIR)
   set(LIBCXXABI_LIBRARY_DIR ${LLVM_LIBRARY_OUTPUT_INTDIR})
+  set(LIBCXXABI_INSTALL_LIBRARY_DIR lib${LIBCXXABI_LIBDIR_SUFFIX})
 else()
   set(LIBCXXABI_LIBRARY_DIR ${CMAKE_BINARY_DIR}/lib${LIBCXXABI_LIBDIR_SUFFIX})
+  set(LIBCXXABI_INSTALL_LIBRARY_DIR lib${LIBCXXABI_LIBDIR_SUFFIX})
 endif()
 
-set(LIBCXXABI_INSTALL_PREFIX ${DEFAULT_INSTALL_PREFIX} CACHE STRING
-    "Define libc++abi destination prefix.")
+set(LIBCXXABI_INSTALL_PREFIX "" CACHE STRING "Define libc++abi destination prefix.")
 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${LIBCXXABI_LIBRARY_DIR})
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${LIBCXXABI_LIBRARY_DIR})
@@ -257,6 +270,13 @@ include(config-ix)
 
 if (LIBCXXABI_HAS_NOSTDINCXX_FLAG)
   list(APPEND LIBCXXABI_COMPILE_FLAGS -nostdinc++)
+  # cmake 3.14 and above remove system include paths that are explicitly
+  # passed on the command line.  We build with -nostdinc++ and explicitly add
+  # just the libcxx system include paths with -I on the command line.
+  # Setting CMAKE_CXX_IMPLICIT_INCLUDE_DIRECTORIES effectively prevents cmake
+  # from removing these.
+  # See: https://gitlab.kitware.com/cmake/cmake/issues/19227
+  set(CMAKE_CXX_IMPLICIT_INCLUDE_DIRECTORIES "")
   # Remove -stdlib flags to prevent them from causing an unused flag warning.
   string(REPLACE "-stdlib=libc++" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
   string(REPLACE "-stdlib=libstdc++" "" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
@@ -435,6 +455,12 @@ if (LIBCXXABI_BAREMETAL)
     add_definitions(-DLIBCXXABI_BAREMETAL)
 endif()
 
+if (LIBCXXABI_HAS_COMMENT_LIB_PRAGMA)
+  if (LIBCXXABI_HAS_PTHREAD_LIB)
+    add_definitions(-D_LIBCXXABI_LINK_PTHREAD_LIB)
+  endif()
+endif()
+
 string(REPLACE ";" " " LIBCXXABI_CXX_FLAGS "${LIBCXXABI_CXX_FLAGS}")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${LIBCXXABI_CXX_FLAGS}")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${LIBCXXABI_C_FLAGS}")
@@ -450,9 +476,7 @@ set(LIBCXXABI_LIBUNWIND_PATH "${LIBCXXABI_LIBUNWIND_PATH}" CACHE PATH
 
 include_directories(include)
 if (LIBCXXABI_USE_LLVM_UNWINDER OR LLVM_NATIVE_ARCH MATCHES ARM)
-  find_path(
-    LIBCXXABI_LIBUNWIND_INCLUDES_INTERNAL
-    libunwind.h
+  find_path(LIBCXXABI_LIBUNWIND_INCLUDES_INTERNAL libunwind.h
     PATHS ${LIBCXXABI_LIBUNWIND_INCLUDES}
           ${LIBCXXABI_LIBUNWIND_PATH}/include
           ${CMAKE_BINARY_DIR}/${LIBCXXABI_LIBUNWIND_INCLUDES}

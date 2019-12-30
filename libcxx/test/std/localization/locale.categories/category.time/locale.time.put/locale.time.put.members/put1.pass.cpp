@@ -15,6 +15,8 @@
 
 #include <locale>
 #include <cassert>
+#include <ios>
+#include "test_macros.h"
 #include "test_iterators.h"
 
 typedef std::time_put<char, output_iterator<char*> > F;

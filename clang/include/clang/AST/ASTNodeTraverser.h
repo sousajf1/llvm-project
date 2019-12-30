@@ -65,6 +65,9 @@ class ASTNodeTraverser
   /// not already been loaded.
   bool Deserialize = false;
 
+  ast_type_traits::TraversalKind Traversal =
+      ast_type_traits::TraversalKind::TK_AsIs;
+
   NodeDelegateType &getNodeDelegate() {
     return getDerived().doGetNodeDelegate();
   }
@@ -73,6 +76,8 @@ class ASTNodeTraverser
 public:
   void setDeserialize(bool D) { Deserialize = D; }
   bool getDeserialize() const { return Deserialize; }
+
+  void SetTraversalKind(ast_type_traits::TraversalKind TK) { Traversal = TK; }
 
   void Visit(const Decl *D) {
     getNodeDelegate().AddChild([=] {
@@ -97,8 +102,23 @@ public:
     });
   }
 
-  void Visit(const Stmt *S, StringRef Label = {}) {
+  void Visit(const Stmt *Node, StringRef Label = {}) {
     getNodeDelegate().AddChild(Label, [=] {
+      const Stmt *S = Node;
+
+      if (auto *E = dyn_cast_or_null<Expr>(S)) {
+        switch (Traversal) {
+        case ast_type_traits::TK_AsIs:
+          break;
+        case ast_type_traits::TK_IgnoreImplicitCastsAndParentheses:
+          S = E->IgnoreParenImpCasts();
+          break;
+        case ast_type_traits::TK_IgnoreUnlessSpelledInSource:
+          S = E->IgnoreUnlessSpelledInSource();
+          break;
+        }
+      }
+
       getNodeDelegate().Visit(S);
 
       if (!S) {
@@ -108,9 +128,12 @@ public:
       ConstStmtVisitor<Derived>::Visit(S);
 
       // Some statements have custom mechanisms for dumping their children.
-      if (isa<DeclStmt>(S) || isa<GenericSelectionExpr>(S)) {
+      if (isa<DeclStmt>(S) || isa<GenericSelectionExpr>(S))
         return;
-      }
+
+      if (isa<LambdaExpr>(S) &&
+          Traversal == ast_type_traits::TK_IgnoreUnlessSpelledInSource)
+        return;
 
       for (const Stmt *SubStmt : S->children())
         Visit(SubStmt);
@@ -205,6 +228,24 @@ public:
     });
   }
 
+  void Visit(const ast_type_traits::DynTypedNode &N) {
+    // FIXME: Improve this with a switch or a visitor pattern.
+    if (const auto *D = N.get<Decl>())
+      Visit(D);
+    else if (const auto *S = N.get<Stmt>())
+      Visit(S);
+    else if (const auto *QT = N.get<QualType>())
+      Visit(*QT);
+    else if (const auto *T = N.get<Type>())
+      Visit(T);
+    else if (const auto *C = N.get<CXXCtorInitializer>())
+      Visit(C);
+    else if (const auto *C = N.get<OMPClause>())
+      Visit(C);
+    else if (const auto *T = N.get<TemplateArgument>())
+      Visit(*T);
+  }
+
   void dumpDeclContext(const DeclContext *DC) {
     if (!DC)
       return;
@@ -219,10 +260,17 @@ public:
 
     for (const auto &TP : *TPL)
       Visit(TP);
+
+    if (const Expr *RC = TPL->getRequiresClause())
+      Visit(RC);
   }
 
-  void dumpTemplateArgumentListInfo(const TemplateArgumentListInfo &TALI) {
-    for (const auto &TA : TALI.arguments())
+  void
+  dumpASTTemplateArgumentListInfo(const ASTTemplateArgumentListInfo *TALI) {
+    if (!TALI)
+      return;
+
+    for (const auto &TA : TALI->arguments())
       dumpTemplateArgumentLoc(TA);
   }
 
@@ -465,8 +513,7 @@ public:
   void VisitClassScopeFunctionSpecializationDecl(
       const ClassScopeFunctionSpecializationDecl *D) {
     Visit(D->getSpecialization());
-    if (D->hasExplicitTemplateArgs())
-      dumpTemplateArgumentListInfo(D->templateArgs());
+    dumpASTTemplateArgumentListInfo(D->getTemplateArgsAsWritten());
   }
   void VisitVarTemplateDecl(const VarTemplateDecl *D) { dumpTemplateDecl(D); }
 
@@ -506,6 +553,11 @@ public:
       dumpTemplateArgumentLoc(
           D->getDefaultArgument(), D->getDefaultArgStorage().getInheritedFrom(),
           D->defaultArgumentWasInherited() ? "inherited from" : "previous");
+  }
+
+  void VisitConceptDecl(const ConceptDecl *D) {
+    dumpTemplateParameters(D->getTemplateParameters());
+    Visit(D->getConstraintExpr());
   }
 
   void VisitUsingShadowDecl(const UsingShadowDecl *D) {
@@ -591,13 +643,29 @@ public:
     Visit(E->getControllingExpr());
     Visit(E->getControllingExpr()->getType()); // FIXME: remove
 
-    for (const auto &Assoc : E->associations()) {
+    for (const auto Assoc : E->associations()) {
       Visit(Assoc);
     }
   }
 
   void VisitLambdaExpr(const LambdaExpr *Node) {
-    Visit(Node->getLambdaClass());
+    if (Traversal == ast_type_traits::TK_IgnoreUnlessSpelledInSource) {
+      for (unsigned I = 0, N = Node->capture_size(); I != N; ++I) {
+        const auto *C = Node->capture_begin() + I;
+        if (!C->isExplicit())
+          continue;
+        if (Node->isInitCapture(C))
+          Visit(C->getCapturedVar());
+        else
+          Visit(Node->capture_init_begin()[I]);
+      }
+      dumpTemplateParameters(Node->getTemplateParameterList());
+      for (const auto *P : Node->getCallOperator()->parameters())
+        Visit(P);
+      Visit(Node->getBody());
+    } else {
+      return Visit(Node->getLambdaClass());
+    }
   }
 
   void VisitSizeOfPackExpr(const SizeOfPackExpr *Node) {

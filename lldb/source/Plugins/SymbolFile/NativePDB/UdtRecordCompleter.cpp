@@ -188,7 +188,7 @@ Error UdtRecordCompleter::visitKnownMember(CVMemberRecord &cvr,
   TypeIndex method_list_idx = overloaded.MethodList;
 
   CVType method_list_type = m_tpi.getType(method_list_idx);
-  assert(method_list_type.Type == LF_METHODLIST);
+  assert(method_list_type.kind() == LF_METHODLIST);
 
   MethodOverloadListRecord method_list;
   llvm::cantFail(TypeDeserializer::deserializeAs<MethodOverloadListRecord>(
@@ -231,6 +231,6 @@ void UdtRecordCompleter::complete() {
   ClangASTContext::CompleteTagDeclarationDefinition(m_derived_ct);
 
   if (auto *record_decl = llvm::dyn_cast<clang::CXXRecordDecl>(&m_tag_decl)) {
-    m_ast_builder.importer().InsertRecordDecl(record_decl, m_layout);
+    m_ast_builder.importer().SetRecordLayout(record_decl, m_layout);
   }
 }

@@ -6,6 +6,8 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include "lldb/Host/Config.h"
+
 #include "ClangUtilityFunction.h"
 #include "ClangExpressionDeclMap.h"
 #include "ClangExpressionParser.h"
@@ -29,7 +31,8 @@
 
 using namespace lldb_private;
 
-//------------------------------------------------------------------
+char ClangUtilityFunction::ID;
+
 /// Constructor
 ///
 /// \param[in] text
@@ -37,10 +40,9 @@ using namespace lldb_private;
 ///
 /// \param[in] name
 ///     The name of the function, as used in the text.
-//------------------------------------------------------------------
 ClangUtilityFunction::ClangUtilityFunction(ExecutionContextScope &exe_scope,
                                            const char *text, const char *name)
-    : UtilityFunction(exe_scope, text, name, eKindClangUtilityFunction) {
+    : UtilityFunction(exe_scope, text, name) {
   m_function_text.assign(ClangExpressionSourceCode::g_expression_prefix);
   if (text && text[0])
     m_function_text.append(text);
@@ -48,7 +50,6 @@ ClangUtilityFunction::ClangUtilityFunction(ExecutionContextScope &exe_scope,
 
 ClangUtilityFunction::~ClangUtilityFunction() {}
 
-//------------------------------------------------------------------
 /// Install the utility function into a process
 ///
 /// \param[in] diagnostic_manager
@@ -59,7 +60,6 @@ ClangUtilityFunction::~ClangUtilityFunction() {}
 ///
 /// \return
 ///     True on success (no errors); false otherwise.
-//------------------------------------------------------------------
 bool ClangUtilityFunction::Install(DiagnosticManager &diagnostic_manager,
                                    ExecutionContext &exe_ctx) {
   if (m_jit_start_addr != LLDB_INVALID_ADDRESS) {
@@ -94,7 +94,7 @@ bool ClangUtilityFunction::Install(DiagnosticManager &diagnostic_manager,
 
   ResetDeclMap(exe_ctx, keep_result_in_memory);
 
-  if (!DeclMap()->WillParse(exe_ctx, NULL)) {
+  if (!DeclMap()->WillParse(exe_ctx, nullptr)) {
     diagnostic_manager.PutString(
         eDiagnosticSeverityError,
         "current process state is unsuitable for expression parsing");
@@ -159,7 +159,7 @@ bool ClangUtilityFunction::Install(DiagnosticManager &diagnostic_manager,
 
 void ClangUtilityFunction::ClangUtilityFunctionHelper::ResetDeclMap(
     ExecutionContext &exe_ctx, bool keep_result_in_memory) {
-  m_expr_decl_map_up.reset(
-      new ClangExpressionDeclMap(keep_result_in_memory, nullptr, exe_ctx,
-                                 nullptr));
+  m_expr_decl_map_up.reset(new ClangExpressionDeclMap(
+      keep_result_in_memory, nullptr, exe_ctx.GetTargetSP(),
+      exe_ctx.GetTargetRef().GetClangASTImporter(), nullptr));
 }

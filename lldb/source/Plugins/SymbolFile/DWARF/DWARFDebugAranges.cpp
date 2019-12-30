@@ -7,31 +7,18 @@
 //===----------------------------------------------------------------------===//
 
 #include "DWARFDebugAranges.h"
-
-#include <assert.h>
-#include <stdio.h>
-
-#include <algorithm>
-
-#include "lldb/Utility/Log.h"
-#include "lldb/Utility/Stream.h"
-#include "lldb/Utility/Timer.h"
-
+#include "DWARFDebugArangeSet.h"
 #include "DWARFUnit.h"
-#include "DWARFDebugInfo.h"
-#include "SymbolFileDWARF.h"
+#include "lldb/Utility/Log.h"
+#include "lldb/Utility/Timer.h"
 
 using namespace lldb;
 using namespace lldb_private;
 
-//----------------------------------------------------------------------
 // Constructor
-//----------------------------------------------------------------------
 DWARFDebugAranges::DWARFDebugAranges() : m_aranges() {}
 
-//----------------------------------------------------------------------
 // CountArangeDescriptors
-//----------------------------------------------------------------------
 class CountArangeDescriptors {
 public:
   CountArangeDescriptors(uint32_t &count_ref) : count(count_ref) {
@@ -43,13 +30,9 @@ public:
   uint32_t &count;
 };
 
-//----------------------------------------------------------------------
 // Extract
-//----------------------------------------------------------------------
 llvm::Error
 DWARFDebugAranges::extract(const DWARFDataExtractor &debug_aranges_data) {
-  assert(debug_aranges_data.ValidOffset(0));
-
   lldb::offset_t offset = 0;
 
   DWARFDebugArangeSet set;
@@ -71,20 +54,20 @@ DWARFDebugAranges::extract(const DWARFDataExtractor &debug_aranges_data) {
       }
     }
     set.Clear();
-    }
-    return llvm::ErrorSuccess();
+  }
+  return llvm::ErrorSuccess();
 }
 
 void DWARFDebugAranges::Dump(Log *log) const {
-  if (log == NULL)
+  if (log == nullptr)
     return;
 
   const size_t num_entries = m_aranges.GetSize();
   for (size_t i = 0; i < num_entries; ++i) {
     const RangeToDIE::Entry *entry = m_aranges.GetEntryAtIndex(i);
     if (entry)
-      log->Printf("0x%8.8x: [0x%" PRIx64 " - 0x%" PRIx64 ")", entry->data,
-                  entry->GetRangeBase(), entry->GetRangeEnd());
+      LLDB_LOGF(log, "0x%8.8x: [0x%" PRIx64 " - 0x%" PRIx64 ")", entry->data,
+                entry->GetRangeBase(), entry->GetRangeEnd());
   }
 }
 
@@ -103,9 +86,7 @@ void DWARFDebugAranges::Sort(bool minimize) {
   m_aranges.CombineConsecutiveEntriesWithEqualData();
 }
 
-//----------------------------------------------------------------------
 // FindAddress
-//----------------------------------------------------------------------
 dw_offset_t DWARFDebugAranges::FindAddress(dw_addr_t address) const {
   const RangeToDIE::Entry *entry = m_aranges.FindEntryThatContains(address);
   if (entry)

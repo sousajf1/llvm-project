@@ -81,6 +81,12 @@ FunctionPass *createX86FlagsCopyLoweringPass();
 /// Return a pass that expands WinAlloca pseudo-instructions.
 FunctionPass *createX86WinAllocaExpander();
 
+/// Return a pass that inserts int3 at the end of the function if it ends with a
+/// CALL instruction. The pass does the same for each funclet as well. This
+/// ensures that the open interval of function start and end PCs contains all
+/// return addresses for the benefit of the Windows x64 unwinder.
+FunctionPass *createX86AvoidTrailingCallPass();
+
 /// Return a pass that optimizes the code-size of x86 call sequences. This is
 /// done by replacing esp-relative movs with pushes.
 FunctionPass *createX86CallFrameOptimization();
@@ -132,6 +138,7 @@ FunctionPass *createX86SpeculativeLoadHardeningPass();
 void initializeEvexToVexInstPassPass(PassRegistry &);
 void initializeFixupBWInstPassPass(PassRegistry &);
 void initializeFixupLEAPassPass(PassRegistry &);
+void initializeFPSPass(PassRegistry &);
 void initializeWinEHStatePassPass(PassRegistry &);
 void initializeX86AvoidSFBPassPass(PassRegistry &);
 void initializeX86CallFrameOptimizationPass(PassRegistry &);
@@ -139,8 +146,21 @@ void initializeX86CmovConverterPassPass(PassRegistry &);
 void initializeX86CondBrFoldingPassPass(PassRegistry &);
 void initializeX86DomainReassignmentPass(PassRegistry &);
 void initializeX86ExecutionDomainFixPass(PassRegistry &);
+void initializeX86ExpandPseudoPass(PassRegistry &);
 void initializeX86FlagsCopyLoweringPassPass(PassRegistry &);
+void initializeX86OptimizeLEAPassPass(PassRegistry &);
 void initializeX86SpeculativeLoadHardeningPassPass(PassRegistry &);
+
+namespace X86AS {
+enum : unsigned {
+  GS = 256,
+  FS = 257,
+  SS = 258,
+  PTR32_SPTR = 270,
+  PTR32_UPTR = 271,
+  PTR64 = 272
+};
+} // End X86AS namespace
 
 } // End llvm namespace
 

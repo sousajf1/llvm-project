@@ -218,7 +218,7 @@ void IdentifierTable::AddKeywords(const LangOptions &LangOpts) {
   if (LangOpts.DeclSpecKeyword)
     AddKeyword("__declspec", tok::kw___declspec, KEYALL, LangOpts, *this);
 
-  // Add the '_experimental_modules_import' contextual keyword.
+  // Add the 'import' contextual keyword.
   get("import").setModulesImport(true);
 }
 
@@ -411,6 +411,21 @@ public:
 };
 
 } // namespace clang.
+
+bool Selector::isKeywordSelector(ArrayRef<StringRef> Names) const {
+  assert(!Names.empty() && "must have >= 1 selector slots");
+  if (getNumArgs() != Names.size())
+    return false;
+  for (unsigned I = 0, E = Names.size(); I != E; ++I) {
+    if (getNameForSlot(I) != Names[I])
+      return false;
+  }
+  return true;
+}
+
+bool Selector::isUnarySelector(StringRef Name) const {
+  return isUnarySelector() && getNameForSlot(0) == Name;
+}
 
 unsigned Selector::getNumArgs() const {
   unsigned IIF = getIdentifierInfoFlag();

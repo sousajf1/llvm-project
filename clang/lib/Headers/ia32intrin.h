@@ -1,22 +1,8 @@
 /* ===-------- ia32intrin.h ---------------------------------------------------===
  *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- * THE SOFTWARE.
+ * Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+ * See https://llvm.org/LICENSE.txt for license information.
+ * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  *
  *===-----------------------------------------------------------------------===
  */
@@ -208,6 +194,74 @@ __writeeflags(unsigned int __f)
   __builtin_ia32_writeeflags_u32(__f);
 }
 #endif /* !__x86_64__ */
+
+/** Cast a 32-bit float value to a 32-bit unsigned integer value
+ *
+ *  \headerfile <x86intrin.h>
+ *  This intrinsic corresponds to the <c> VMOVD / MOVD </c> instruction in x86_64,
+ *  and corresponds to the <c> VMOVL / MOVL </c> instruction in ia32.
+ *
+ *  \param __A
+ *     A 32-bit float value.
+ *  \returns a 32-bit unsigned integer containing the converted value.
+ */
+static __inline__ unsigned int __attribute__((__always_inline__))
+_castf32_u32(float __A) {
+  unsigned int D;
+  __builtin_memcpy(&D, &__A, sizeof(__A));
+  return D;
+}
+
+/** Cast a 64-bit float value to a 64-bit unsigned integer value
+ *
+ *  \headerfile <x86intrin.h>
+ *  This intrinsic corresponds to the <c> VMOVQ / MOVQ </c> instruction in x86_64,
+ *  and corresponds to the <c> VMOVL / MOVL </c> instruction in ia32.
+ *
+ *  \param __A
+ *     A 64-bit float value.
+ *  \returns a 64-bit unsigned integer containing the converted value.
+ */
+static __inline__ unsigned long long __attribute__((__always_inline__))
+_castf64_u64(double __A) {
+  unsigned long long D;
+  __builtin_memcpy(&D, &__A, sizeof(__A));
+  return D;
+}
+
+/** Cast a 32-bit unsigned integer value to a 32-bit float value
+ *
+ *  \headerfile <x86intrin.h>
+ *  This intrinsic corresponds to the <c> VMOVQ / MOVQ </c> instruction in x86_64,
+ *  and corresponds to the <c> FLDS </c> instruction in ia32.
+ *
+ *  \param __A
+ *     A 32-bit unsigned integer value.
+ *  \returns a 32-bit float value containing the converted value.
+ */
+static __inline__ float __attribute__((__always_inline__))
+_castu32_f32(unsigned int __A) {
+  float D;
+  __builtin_memcpy(&D, &__A, sizeof(__A));
+  return D;
+}
+
+/** Cast a 64-bit unsigned integer value to a 64-bit float value
+ *
+ *  \headerfile <x86intrin.h>
+ *  This intrinsic corresponds to the <c> VMOVQ / MOVQ </c> instruction in x86_64,
+ *  and corresponds to the <c> FLDL </c> instruction in ia32.
+ *
+ *  \param __A
+ *     A 64-bit unsigned integer value.
+ *  \returns a 64-bit float value containing the converted value.
+ */
+static __inline__ double __attribute__((__always_inline__))
+_castu64_f64(unsigned long long __A) {
+  double D;
+  __builtin_memcpy(&D, &__A, sizeof(__A));
+  return D;
+}
 
 /** Adds the unsigned integer operand to the CRC-32C checksum of the
  *     unsigned char operand.

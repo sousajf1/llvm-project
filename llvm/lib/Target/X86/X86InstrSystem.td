@@ -43,7 +43,7 @@ def INT3 : I<0xcc, RawFrm, (outs), (ins), "int3", [(int_x86_int (i8 3))]>;
 let SchedRW = [WriteSystem] in {
 
 def INT : Ii8<0xcd, RawFrm, (outs), (ins u8imm:$trap), "int\t$trap",
-              [(int_x86_int imm:$trap)]>;
+              [(int_x86_int timm:$trap)]>;
 
 
 def SYSCALL  : I<0x05, RawFrm, (outs), (ins), "syscall", []>, TB;
@@ -587,18 +587,13 @@ let Defs = [RAX, RDX, RSI], Uses = [RAX, RSI] in
 
 //==-----------------------------------------------------------------------===//
 // PKU  - enable protection key
-let usesCustomInserter = 1, hasNoSchedulingInfo = 1 in {
-  def WRPKRU : PseudoI<(outs), (ins GR32:$src),
-                [(int_x86_wrpkru GR32:$src)]>;
-  def RDPKRU : PseudoI<(outs GR32:$dst), (ins),
-                [(set GR32:$dst, (int_x86_rdpkru))]>;
-}
-
 let SchedRW = [WriteSystem] in {
 let Defs = [EAX, EDX], Uses = [ECX] in
-  def RDPKRUr : I<0x01, MRM_EE, (outs), (ins), "rdpkru", []>, TB;
+  def RDPKRUr : I<0x01, MRM_EE, (outs), (ins), "rdpkru",
+                  [(set EAX, (X86rdpkru ECX)), (implicit EDX)]>, TB;
 let Uses = [EAX, ECX, EDX] in
-  def WRPKRUr : I<0x01, MRM_EF, (outs), (ins), "wrpkru", []>, TB;
+  def WRPKRUr : I<0x01, MRM_EF, (outs), (ins), "wrpkru",
+                  [(X86wrpkru EAX, EDX, ECX)]>, TB;
 } // SchedRW
 
 //===----------------------------------------------------------------------===//

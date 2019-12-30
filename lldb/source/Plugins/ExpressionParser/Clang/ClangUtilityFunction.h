@@ -22,7 +22,6 @@
 
 namespace lldb_private {
 
-//----------------------------------------------------------------------
 /// \class ClangUtilityFunction ClangUtilityFunction.h
 /// "lldb/Expression/ClangUtilityFunction.h" Encapsulates a single expression
 /// for use with Clang
@@ -33,13 +32,15 @@ namespace lldb_private {
 /// functions can perform error-checking for ClangUserExpressions, or can
 /// simply provide a way to push a function into the target for the debugger
 /// to call later on.
-//----------------------------------------------------------------------
 class ClangUtilityFunction : public UtilityFunction {
+  // LLVM RTTI support
+  static char ID;
+
 public:
-  /// LLVM-style RTTI support.
-  static bool classof(const Expression *E) {
-    return E->getKind() == eKindClangUtilityFunction;
+  bool isA(const void *ClassID) const override {
+    return ClassID == &ID || UtilityFunction::isA(ClassID);
   }
+  static bool classof(const Expression *obj) { return obj->isA(&ID); }
 
   class ClangUtilityFunctionHelper : public ClangExpressionHelper {
   public:
@@ -47,10 +48,8 @@ public:
 
     ~ClangUtilityFunctionHelper() override {}
 
-    //------------------------------------------------------------------
     /// Return the object that the parser should use when resolving external
     /// values.  May be NULL if everything should be self-contained.
-    //------------------------------------------------------------------
     ClangExpressionDeclMap *DeclMap() override {
       return m_expr_decl_map_up.get();
     }
@@ -59,14 +58,12 @@ public:
 
     void ResetDeclMap(ExecutionContext &exe_ctx, bool keep_result_in_memory);
 
-    //------------------------------------------------------------------
     /// Return the object that the parser should allow to access ASTs. May be
     /// NULL if the ASTs do not need to be transformed.
     ///
     /// \param[in] passthrough
     ///     The ASTConsumer that the returned transformer should send
     ///     the ASTs to after transformation.
-    //------------------------------------------------------------------
     clang::ASTConsumer *
     ASTTransformer(clang::ASTConsumer *passthrough) override {
       return nullptr;
@@ -75,7 +72,6 @@ public:
   private:
     std::unique_ptr<ClangExpressionDeclMap> m_expr_decl_map_up;
   };
-  //------------------------------------------------------------------
   /// Constructor
   ///
   /// \param[in] text
@@ -83,7 +79,6 @@ public:
   ///
   /// \param[in] name
   ///     The name of the function, as used in the text.
-  //------------------------------------------------------------------
   ClangUtilityFunction(ExecutionContextScope &exe_scope, const char *text,
                        const char *name);
 

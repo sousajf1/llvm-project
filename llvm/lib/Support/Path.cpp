@@ -297,7 +297,8 @@ reverse_iterator rbegin(StringRef Path, Style style) {
   I.Path = Path;
   I.Position = Path.size();
   I.S = style;
-  return ++I;
+  ++I;
+  return I;
 }
 
 reverse_iterator rend(StringRef Path) {
@@ -495,27 +496,50 @@ void replace_extension(SmallVectorImpl<char> &path, const Twine &extension,
   path.append(ext.begin(), ext.end());
 }
 
-void replace_path_prefix(SmallVectorImpl<char> &Path,
+bool replace_path_prefix(SmallVectorImpl<char> &Path,
                          const StringRef &OldPrefix, const StringRef &NewPrefix,
-                         Style style) {
+                         Style style, bool strict) {
   if (OldPrefix.empty() && NewPrefix.empty())
-    return;
+    return false;
 
   StringRef OrigPath(Path.begin(), Path.size());
-  if (!OrigPath.startswith(OldPrefix))
-    return;
+  StringRef OldPrefixDir;
+
+  if (!strict && OldPrefix.size() > OrigPath.size())
+    return false;
+
+  // Ensure OldPrefixDir does not have a trailing separator.
+  if (!OldPrefix.empty() && is_separator(OldPrefix.back()))
+    OldPrefixDir = parent_path(OldPrefix, style);
+  else
+    OldPrefixDir = OldPrefix;
+
+  if (!OrigPath.startswith(OldPrefixDir))
+    return false;
+
+  if (OrigPath.size() > OldPrefixDir.size())
+    if (!is_separator(OrigPath[OldPrefixDir.size()], style) && strict)
+      return false;
 
   // If prefixes have the same size we can simply copy the new one over.
-  if (OldPrefix.size() == NewPrefix.size()) {
+  if (OldPrefixDir.size() == NewPrefix.size() && !strict) {
     llvm::copy(NewPrefix, Path.begin());
-    return;
+    return true;
   }
 
-  StringRef RelPath = OrigPath.substr(OldPrefix.size());
+  StringRef RelPath = OrigPath.substr(OldPrefixDir.size());
   SmallString<256> NewPath;
   path::append(NewPath, style, NewPrefix);
-  path::append(NewPath, style, RelPath);
+  if (!RelPath.empty()) {
+    if (!is_separator(RelPath[0], style) || !strict)
+      path::append(NewPath, style, RelPath);
+    else
+      path::append(NewPath, style, relative_path(RelPath, style));
+  }
+
   Path.swap(NewPath);
+
+  return true;
 }
 
 void native(const Twine &path, SmallVectorImpl<char> &result, Style style) {
@@ -854,11 +878,11 @@ void make_absolute(const Twine &current_directory,
   StringRef p(path.data(), path.size());
 
   bool rootDirectory = path::has_root_directory(p);
-  bool rootName =
-      (real_style(Style::native) != Style::windows) || path::has_root_name(p);
+  bool rootName = path::has_root_name(p);
 
   // Already absolute.
-  if (rootName && rootDirectory)
+  if ((rootName || real_style(Style::native) != Style::windows) &&
+      rootDirectory)
     return;
 
   // All of the following conditions will need the current directory.
@@ -959,6 +983,7 @@ static std::error_code copy_file_internal(int ReadFD, int WriteFD) {
   return std::error_code();
 }
 
+#ifndef __APPLE__
 std::error_code copy_file(const Twine &From, const Twine &To) {
   int ReadFD, WriteFD;
   if (std::error_code EC = openFileForRead(From, ReadFD, OF_None))
@@ -976,6 +1001,7 @@ std::error_code copy_file(const Twine &From, const Twine &To) {
 
   return EC;
 }
+#endif
 
 std::error_code copy_file(const Twine &From, int ToFD) {
   int ReadFD;
@@ -1122,6 +1148,7 @@ TempFile &TempFile::operator=(TempFile &&Other) {
   TmpName = std::move(Other.TmpName);
   FD = Other.FD;
   Other.Done = true;
+  Other.FD = -1;
   return *this;
 }
 

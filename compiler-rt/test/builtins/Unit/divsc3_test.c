@@ -1,4 +1,5 @@
 // RUN: %clang_builtins %s %librt -lm -o %t && %run %t
+// REQUIRES: librt_has_divsc3
 //===-- divsc3_test.c - Test __divsc3 -------------------------------------===//
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
@@ -102,7 +103,7 @@ int test__divsc3(float a, float b, float c, float d)
             {
             float _Complex z = (a * c + b * d) / (c * c + d * d)
                              + (b * c - a * d) / (c * c + d * d) * _Complex_I;
-            if (r != z)
+            if (cabsf((r-z)/r) > 1.e-6)
                 return 1;
             }
             break;

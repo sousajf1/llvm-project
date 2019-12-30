@@ -28,14 +28,10 @@
 using namespace lldb;
 using namespace lldb_private;
 
-//------------------------------------------------------------------
 // Static Variables
-//------------------------------------------------------------------
 static uint32_t g_initialize_count = 0;
 
-//------------------------------------------------------------------
 // Static Functions
-//------------------------------------------------------------------
 void PlatformRemoteAppleWatch::Initialize() {
   PlatformDarwin::Initialize();
 
@@ -70,8 +66,8 @@ PlatformSP PlatformRemoteAppleWatch::CreateInstance(bool force,
     const char *triple_cstr =
         arch ? arch->GetTriple().getTriple().c_str() : "<null>";
 
-    log->Printf("PlatformRemoteAppleWatch::%s(force=%s, arch={%s,%s})",
-                __FUNCTION__, force ? "true" : "false", arch_name, triple_cstr);
+    LLDB_LOGF(log, "PlatformRemoteAppleWatch::%s(force=%s, arch={%s,%s})",
+              __FUNCTION__, force ? "true" : "false", arch_name, triple_cstr);
   }
 
   bool create = force;
@@ -79,6 +75,7 @@ PlatformSP PlatformRemoteAppleWatch::CreateInstance(bool force,
     switch (arch->GetMachine()) {
     case llvm::Triple::arm:
     case llvm::Triple::aarch64:
+    case llvm::Triple::aarch64_32:
     case llvm::Triple::thumb: {
       const llvm::Triple &triple = arch->GetTriple();
       llvm::Triple::VendorType vendor = triple.getVendor();
@@ -126,16 +123,14 @@ PlatformSP PlatformRemoteAppleWatch::CreateInstance(bool force,
 #endif
 
   if (create) {
-    if (log)
-      log->Printf("PlatformRemoteAppleWatch::%s() creating platform",
-                  __FUNCTION__);
+    LLDB_LOGF(log, "PlatformRemoteAppleWatch::%s() creating platform",
+              __FUNCTION__);
 
     return lldb::PlatformSP(new PlatformRemoteAppleWatch());
   }
 
-  if (log)
-    log->Printf("PlatformRemoteAppleWatch::%s() aborting creation of platform",
-                __FUNCTION__);
+  LLDB_LOGF(log, "PlatformRemoteAppleWatch::%s() aborting creation of platform",
+            __FUNCTION__);
 
   return lldb::PlatformSP();
 }
@@ -149,9 +144,7 @@ const char *PlatformRemoteAppleWatch::GetDescriptionStatic() {
   return "Remote Apple Watch platform plug-in.";
 }
 
-//------------------------------------------------------------------
 /// Default Constructor
-//------------------------------------------------------------------
 PlatformRemoteAppleWatch::PlatformRemoteAppleWatch()
     : PlatformRemoteDarwinDevice() {}
 
@@ -184,6 +177,9 @@ bool PlatformRemoteAppleWatch::GetSupportedArchitectureAtIndex(uint32_t idx,
     case 6:
       arch.SetTriple("thumbv7s-apple-watchos");
       return true;
+    case 7:
+      arch.SetTriple("arm64_32-apple-watchos");
+      return true;
     default:
       break;
     }
@@ -212,6 +208,9 @@ bool PlatformRemoteAppleWatch::GetSupportedArchitectureAtIndex(uint32_t idx,
     case 6:
       arch.SetTriple("thumbv7s-apple-watchos");
       return true;
+    case 7:
+      arch.SetTriple("arm64_32-apple-watchos");
+      return true;
     default:
       break;
     }
@@ -236,6 +235,9 @@ bool PlatformRemoteAppleWatch::GetSupportedArchitectureAtIndex(uint32_t idx,
       return true;
     case 5:
       arch.SetTriple("thumbv7s-apple-watchos");
+      return true;
+    case 6:
+      arch.SetTriple("arm64_32-apple-watchos");
       return true;
     default:
       break;
@@ -262,6 +264,9 @@ bool PlatformRemoteAppleWatch::GetSupportedArchitectureAtIndex(uint32_t idx,
     case 5:
       arch.SetTriple("thumbv7s-apple-watchos");
       return true;
+    case 6:
+      arch.SetTriple("arm64_32-apple-watchos");
+      return true;
     default:
       break;
     }
@@ -280,6 +285,9 @@ bool PlatformRemoteAppleWatch::GetSupportedArchitectureAtIndex(uint32_t idx,
       return true;
     case 3:
       arch.SetTriple("thumbv7-apple-watchos");
+      return true;
+    case 4:
+      arch.SetTriple("arm64_32-apple-watchos");
       return true;
     default:
       break;

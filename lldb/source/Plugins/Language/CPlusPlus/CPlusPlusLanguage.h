@@ -92,9 +92,7 @@ public:
 
   const Highlighter *GetHighlighter() const override { return &m_highlighter; }
 
-  //------------------------------------------------------------------
   // Static Functions
-  //------------------------------------------------------------------
   static void Initialize();
 
   static void Terminate();
@@ -103,7 +101,7 @@ public:
 
   static lldb_private::ConstString GetPluginNameStatic();
 
-  static bool IsCPPMangledName(const char *name);
+  static bool IsCPPMangledName(llvm::StringRef name);
 
   // Extract C++ context and identifier from a string using heuristic matching
   // (as opposed to
@@ -127,9 +125,7 @@ public:
   FindAlternateFunctionManglings(const ConstString mangled,
                                  std::set<ConstString> &candidates);
 
-  //------------------------------------------------------------------
   // PluginInterface protocol
-  //------------------------------------------------------------------
   ConstString GetPluginName() override;
 
   uint32_t GetPluginVersion() override;

@@ -3,9 +3,11 @@ set(files
   altivec.h
   ammintrin.h
   arm_acle.h
+  arm_cmse.h
   armintr.h
   arm64intr.h
   avx2intrin.h
+  avx512bf16intrin.h
   avx512bwintrin.h
   avx512bitalgintrin.h
   avx512vlbitalgintrin.h
@@ -21,10 +23,13 @@ set(files
   avx512vbmivlintrin.h
   avx512vbmi2intrin.h
   avx512vlvbmi2intrin.h
+  avx512vlbf16intrin.h
   avx512vlbwintrin.h
   avx512vlcdintrin.h
   avx512vldqintrin.h
   avx512vlintrin.h
+  avx512vp2intersectintrin.h
+  avx512vlvp2intersectintrin.h
   avx512vpopcntdqvlintrin.h
   avx512vnniintrin.h
   avx512vlvnniintrin.h
@@ -46,6 +51,7 @@ set(files
   clflushoptintrin.h
   clwbintrin.h
   emmintrin.h
+  enqcmdintrin.h
   f16cintrin.h
   float.h
   fma4intrin.h
@@ -72,6 +78,7 @@ set(files
   mwaitxintrin.h
   nmmintrin.h
   opencl-c.h
+  opencl-c-base.h
   pkuintrin.h
   pmmintrin.h
   pconfigintrin.h
@@ -122,8 +129,26 @@ set(cuda_wrapper_files
   cuda_wrappers/new
 )
 
+set(ppc_wrapper_files
+  ppc_wrappers/mmintrin.h
+  ppc_wrappers/xmmintrin.h
+  ppc_wrappers/mm_malloc.h
+  ppc_wrappers/emmintrin.h
+  ppc_wrappers/pmmintrin.h
+  ppc_wrappers/tmmintrin.h
+  ppc_wrappers/smmintrin.h
+)
+
+set(openmp_wrapper_files
+  openmp_wrappers/math.h
+  openmp_wrappers/cmath
+  openmp_wrappers/__clang_openmp_math.h
+  openmp_wrappers/__clang_openmp_math_declares.h
+)
+
 set(output_dir ${LLVM_LIBRARY_OUTPUT_INTDIR}/clang/${CLANG_VERSION}/include)
 set(out_files)
+set(generated_files)
 
 function(copy_header_to_output_dir src_dir file)
   set(src ${src_dir}/${file})
@@ -143,11 +168,13 @@ function(clang_generate_header td_option td_file out_file)
 
   copy_header_to_output_dir(${CMAKE_CURRENT_BINARY_DIR} ${out_file})
   set(out_files ${out_files} PARENT_SCOPE)
+  list(APPEND generated_files "${CMAKE_CURRENT_BINARY_DIR}/${out_file}")
+  set(generated_files ${generated_files} PARENT_SCOPE)
 endfunction(clang_generate_header)
 
 
 # Copy header files from the source directory to the build directory
-foreach( f ${files} ${cuda_wrapper_files} )
+foreach( f ${files} ${cuda_wrapper_files} ${ppc_wrapper_files} ${openmp_wrapper_files})
   copy_header_to_output_dir(${CMAKE_CURRENT_SOURCE_DIR} ${f})
 endforeach( f )
 
@@ -156,17 +183,34 @@ endforeach( f )
 clang_generate_header(-gen-arm-neon arm_neon.td arm_neon.h)
 # Generate arm_fp16.h
 clang_generate_header(-gen-arm-fp16 arm_fp16.td arm_fp16.h)
+# Generate arm_mve.h
+clang_generate_header(-gen-arm-mve-header arm_mve.td arm_mve.h)
 
 add_custom_target(clang-resource-headers ALL DEPENDS ${out_files})
 set_target_properties(clang-resource-headers PROPERTIES
   FOLDER "Misc"
   RUNTIME_OUTPUT_DIRECTORY "${output_dir}")
 
-set(header_install_dir lib${LLVM_LIBDIR_SUFFIX}/clang/${CLANG_VERSION})
+set(header_install_dir lib${LLVM_LIBDIR_SUFFIX}/clang/${CLANG_VERSION}/include)
 
 install(
-  DIRECTORY ${output_dir}
+  FILES ${files} ${generated_files}
   DESTINATION ${header_install_dir}
+  COMPONENT clang-resource-headers)
+
+install(
+  FILES ${cuda_wrapper_files}
+  DESTINATION ${header_install_dir}/cuda_wrappers
+  COMPONENT clang-resource-headers)
+
+install(
+  FILES ${ppc_wrapper_files}
+  DESTINATION ${header_install_dir}/ppc_wrappers
+  COMPONENT clang-resource-headers)
+
+install(
+  FILES ${openmp_wrapper_files}
+  DESTINATION ${header_install_dir}/openmp_wrappers
   COMPONENT clang-resource-headers)
 
 if (NOT LLVM_ENABLE_IDE)

@@ -7,16 +7,13 @@
 //
 //===----------------------------------------------------------------------===//
 
+// UNSUPPORTED: c++98, c++03, c++11, c++14
+
 // Tests for unique_copy
 #include "support/pstl_test_config.h"
 
-#ifdef PSTL_STANDALONE_TESTS
-#include "pstl/execution"
-#include "pstl/algorithm"
-#else
 #include <execution>
 #include <algorithm>
-#endif // PSTL_STANDALONE_TESTS
 
 #include "support/utils.h"
 
@@ -24,7 +21,7 @@ using namespace TestUtils;
 
 struct run_unique_copy
 {
-#if __PSTL_ICC_16_VC14_TEST_PAR_TBB_RT_RELEASE_64_BROKEN // dummy specializations to skip testing in case of broken configuration
+#if _PSTL_ICC_16_VC14_TEST_PAR_TBB_RT_RELEASE_64_BROKEN // dummy specializations to skip testing in case of broken configuration
     template <typename InputIterator, typename OutputIterator, typename OutputIterator2, typename Size,
               typename Predicate, typename T>
     void
@@ -48,8 +45,8 @@ struct run_unique_copy
               typename Predicate, typename T>
     void
     operator()(Policy&& exec, InputIterator first, InputIterator last, OutputIterator out_first,
-               OutputIterator out_last, OutputIterator2 expected_first, OutputIterator2 expected_last, Size n,
-               Predicate pred, T trash)
+               OutputIterator out_last, OutputIterator2 expected_first, OutputIterator2, Size n, Predicate pred,
+               T trash)
     {
         // Cleaning
         std::fill_n(expected_first, n, trash);
@@ -118,17 +115,17 @@ struct test_non_const
     }
 };
 
-int32_t
-main(int32_t argc, char* argv[])
+int
+main()
 {
     test<Number>(Number(42, OddTag()), std::equal_to<Number>(),
                  [](int32_t j) { return Number(3 * j / 13 ^ (j & 8), OddTag()); });
 
     test<float32_t>(float32_t(42), std::equal_to<float32_t>(),
                     [](int32_t j) { return float32_t(5 * j / 23 ^ (j / 7)); });
-#if !__PSTL_ICC_16_17_TEST_REDUCTION_RELEASE_BROKEN
-    test<float32_t>(float32_t(42), [](float32_t x, float32_t y) { return false; },
-                    [](int32_t j) { return float32_t(j); }, false);
+#if !_PSTL_ICC_16_17_TEST_REDUCTION_RELEASE_BROKEN
+    test<float32_t>(float32_t(42), [](float32_t, float32_t) { return false; }, [](int32_t j) { return float32_t(j); },
+                    false);
 #endif
 
     test_algo_basic_double<int32_t>(run_for_rnd_fw<test_non_const<int32_t>>());

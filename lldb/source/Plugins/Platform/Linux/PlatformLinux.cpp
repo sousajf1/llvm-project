@@ -10,7 +10,7 @@
 #include "lldb/Host/Config.h"
 
 #include <stdio.h>
-#ifndef LLDB_DISABLE_POSIX
+#if LLDB_ENABLE_POSIX
 #include <sys/utsname.h>
 #endif
 
@@ -36,7 +36,6 @@ using namespace lldb_private::platform_linux;
 
 static uint32_t g_initialize_count = 0;
 
-//------------------------------------------------------------------
 
 PlatformSP PlatformLinux::CreateInstance(bool force, const ArchSpec *arch) {
   Log *log(GetLogIfAllCategoriesSet(LIBLLDB_LOG_PLATFORM));
@@ -118,9 +117,7 @@ void PlatformLinux::Terminate() {
   PlatformPOSIX::Terminate();
 }
 
-//------------------------------------------------------------------
 /// Default Constructor
-//------------------------------------------------------------------
 PlatformLinux::PlatformLinux(bool is_host)
     : PlatformPOSIX(is_host) // This is the local host platform
 {}
@@ -202,7 +199,7 @@ bool PlatformLinux::GetSupportedArchitectureAtIndex(uint32_t idx,
 void PlatformLinux::GetStatus(Stream &strm) {
   Platform::GetStatus(strm);
 
-#ifndef LLDB_DISABLE_POSIX
+#if LLDB_ENABLE_POSIX
   // Display local kernel information only when we are running in host mode.
   // Otherwise, we would end up printing non-Linux information (when running on
   // Mac OS for example).
@@ -240,7 +237,7 @@ PlatformLinux::GetResumeCountForLaunchInfo(ProcessLaunchInfo &launch_info) {
 
   // Figure out what shell we're planning on using.
   const char *shell_name = strrchr(shell_string.c_str(), '/');
-  if (shell_name == NULL)
+  if (shell_name == nullptr)
     shell_name = shell_string.c_str();
   else
     shell_name++;
@@ -260,25 +257,6 @@ bool PlatformLinux::CanDebugProcess() {
   } else {
     // If we're connected, we can debug.
     return IsConnected();
-  }
-}
-
-std::vector<std::string>
-PlatformLinux::GetSystemIncludeDirectories(lldb::LanguageType lang) {
-  std::string sys_root = GetSDKRootDirectory().AsCString("");
-  switch (lang) {
-  case lldb::eLanguageTypeC:
-  case lldb::eLanguageTypeC89:
-  case lldb::eLanguageTypeC99:
-  case lldb::eLanguageTypeC11:
-  case lldb::eLanguageTypeC_plus_plus:
-  case lldb::eLanguageTypeC_plus_plus_03:
-  case lldb::eLanguageTypeC_plus_plus_11:
-  case lldb::eLanguageTypeC_plus_plus_14:
-  case lldb::eLanguageTypeObjC_plus_plus:
-    return {sys_root + "/usr/include/"};
-  default:
-    return {};
   }
 }
 
@@ -375,7 +353,7 @@ PlatformLinux::DebugProcess(ProcessLaunchInfo &launch_info, Debugger &debugger,
     // Handle the hijacking of process events.
     if (listener_sp) {
       const StateType state = process_sp->WaitForProcessToStop(
-          llvm::None, NULL, false, listener_sp);
+          llvm::None, nullptr, false, listener_sp);
 
       LLDB_LOG(log, "pid {0} state {0}", process_sp->GetID(), state);
     }
@@ -399,6 +377,8 @@ PlatformLinux::DebugProcess(ProcessLaunchInfo &launch_info, Debugger &debugger,
 
 void PlatformLinux::CalculateTrapHandlerSymbolNames() {
   m_trap_handlers.push_back(ConstString("_sigtramp"));
+  m_trap_handlers.push_back(ConstString("__kernel_rt_sigreturn"));
+  m_trap_handlers.push_back(ConstString("__restore_rt"));
 }
 
 MmapArgList PlatformLinux::GetMmapArgumentList(const ArchSpec &arch,
@@ -406,14 +386,7 @@ MmapArgList PlatformLinux::GetMmapArgumentList(const ArchSpec &arch,
                                                unsigned prot, unsigned flags,
                                                addr_t fd, addr_t offset) {
   uint64_t flags_platform = 0;
-  uint64_t map_anon = MAP_ANON;
-
-  // To get correct flags for MIPS Architecture
-  if (arch.GetTriple().getArch() == llvm::Triple::mips64 ||
-      arch.GetTriple().getArch() == llvm::Triple::mips64el ||
-      arch.GetTriple().getArch() == llvm::Triple::mips ||
-      arch.GetTriple().getArch() == llvm::Triple::mipsel)
-    map_anon = 0x800;
+  uint64_t map_anon = arch.IsMIPS() ? 0x800 : MAP_ANON;
 
   if (flags & eMmapFlagsPrivate)
     flags_platform |= MAP_PRIVATE;

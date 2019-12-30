@@ -55,19 +55,14 @@ namespace __tsan {
 #if !SANITIZER_GO
 struct MapUnmapCallback;
 #if defined(__mips64) || defined(__aarch64__) || defined(__powerpc__)
-static const uptr kAllocatorRegionSizeLog = 20;
-static const uptr kAllocatorNumRegions =
-    SANITIZER_MMAP_RANGE_SIZE >> kAllocatorRegionSizeLog;
-using ByteMap = TwoLevelByteMap<(kAllocatorNumRegions >> 12), 1 << 12,
-                                LocalAddressSpaceView, MapUnmapCallback>;
+
 struct AP32 {
   static const uptr kSpaceBeg = 0;
   static const u64 kSpaceSize = SANITIZER_MMAP_RANGE_SIZE;
   static const uptr kMetadataSize = 0;
   typedef __sanitizer::CompactSizeClassMap SizeClassMap;
-  static const uptr kRegionSizeLog = kAllocatorRegionSizeLog;
+  static const uptr kRegionSizeLog = 20;
   using AddressSpaceView = LocalAddressSpaceView;
-  using ByteMap = __tsan::ByteMap;
   typedef __tsan::MapUnmapCallback MapUnmapCallback;
   static const uptr kFlags = 0;
 };
@@ -84,10 +79,8 @@ struct AP64 {  // Allocator64 parameters. Deliberately using a short name.
 };
 typedef SizeClassAllocator64<AP64> PrimaryAllocator;
 #endif
-typedef SizeClassAllocatorLocalCache<PrimaryAllocator> AllocatorCache;
-typedef LargeMmapAllocator<MapUnmapCallback> SecondaryAllocator;
-typedef CombinedAllocator<PrimaryAllocator, AllocatorCache,
-    SecondaryAllocator> Allocator;
+typedef CombinedAllocator<PrimaryAllocator> Allocator;
+typedef Allocator::AllocatorCache AllocatorCache;
 Allocator *allocator();
 #endif
 
@@ -245,7 +238,7 @@ class Shadow : public FastState {
       unsigned kS2AccessSize) {
     bool res = false;
     u64 diff = s1.addr0() - s2.addr0();
-    if ((s64)diff < 0) {  // s1.addr0 < s2.addr0  // NOLINT
+    if ((s64)diff < 0) {  // s1.addr0 < s2.addr0
       // if (s1.addr0() + size1) > s2.addr0()) return true;
       if (s1.size() > -diff)
         res = true;
@@ -332,7 +325,6 @@ struct ThreadSignalContext;
 
 struct JmpBuf {
   uptr sp;
-  uptr mangled_sp;
   int int_signal_send;
   bool in_blocking_func;
   uptr in_signal_handler;
@@ -464,6 +456,7 @@ struct ThreadState {
 #if !SANITIZER_GO
 #if SANITIZER_MAC || SANITIZER_ANDROID
 ThreadState *cur_thread();
+void set_cur_thread(ThreadState *thr);
 void cur_thread_finalize();
 INLINE void cur_thread_init() { }
 #else
@@ -687,6 +680,7 @@ void ALWAYS_INLINE StatSet(ThreadState *thr, StatType typ, u64 n) {
 void MapShadow(uptr addr, uptr size);
 void MapThreadTrace(uptr addr, uptr size, const char *name);
 void DontNeedShadowFor(uptr addr, uptr size);
+void UnmapShadow(ThreadState *thr, uptr addr, uptr size);
 void InitializeShadowMemory();
 void InitializeInterceptors();
 void InitializeLibIgnore();
@@ -766,6 +760,8 @@ void ALWAYS_INLINE MemoryWriteAtomic(ThreadState *thr, uptr pc,
 void MemoryResetRange(ThreadState *thr, uptr pc, uptr addr, uptr size);
 void MemoryRangeFreed(ThreadState *thr, uptr pc, uptr addr, uptr size);
 void MemoryRangeImitateWrite(ThreadState *thr, uptr pc, uptr addr, uptr size);
+void MemoryRangeImitateWriteOrResetRange(ThreadState *thr, uptr pc, uptr addr,
+                                         uptr size);
 
 void ThreadIgnoreBegin(ThreadState *thr, uptr pc, bool save_stack = true);
 void ThreadIgnoreEnd(ThreadState *thr, uptr pc);

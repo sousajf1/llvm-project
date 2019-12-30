@@ -14,9 +14,10 @@
 //===----------------------------------------------------------------------===//
 
 #include "WebAssemblyAsmPrinter.h"
-#include "InstPrinter/WebAssemblyInstPrinter.h"
+#include "MCTargetDesc/WebAssemblyInstPrinter.h"
 #include "MCTargetDesc/WebAssemblyMCTargetDesc.h"
 #include "MCTargetDesc/WebAssemblyTargetStreamer.h"
+#include "TargetInfo/WebAssemblyTargetInfo.h"
 #include "WebAssembly.h"
 #include "WebAssemblyMCInstLower.h"
 #include "WebAssemblyMachineFunctionInfo.h"
@@ -66,8 +67,8 @@ MVT WebAssemblyAsmPrinter::getRegType(unsigned RegNo) const {
 }
 
 std::string WebAssemblyAsmPrinter::regToString(const MachineOperand &MO) {
-  unsigned RegNo = MO.getReg();
-  assert(TargetRegisterInfo::isVirtualRegister(RegNo) &&
+  Register RegNo = MO.getReg();
+  assert(Register::isVirtualRegister(RegNo) &&
          "Unlowered physical register encountered during assembly printing");
   assert(!MFI->isVRegStackified(RegNo));
   unsigned WAReg = MFI->getWAReg(RegNo);
@@ -95,8 +96,11 @@ void WebAssemblyAsmPrinter::EmitEndOfAsmFile(Module &M) {
   }
 
   for (const auto &F : M) {
+    if (F.isIntrinsic())
+      continue;
+
     // Emit function type info for all undefined functions
-    if (F.isDeclarationForLinker() && !F.isIntrinsic()) {
+    if (F.isDeclarationForLinker()) {
       SmallVector<MVT, 4> Results;
       SmallVector<MVT, 4> Params;
       computeSignatureVTs(F.getFunctionType(), F, TM, Params, Results);
@@ -128,6 +132,13 @@ void WebAssemblyAsmPrinter::EmitEndOfAsmFile(Module &M) {
         Sym->setImportName(Name);
         getTargetStreamer()->emitImportName(Sym, Name);
       }
+    }
+
+    if (F.hasFnAttribute("wasm-export-name")) {
+      auto *Sym = cast<MCSymbolWasm>(getSymbol(&F));
+      StringRef Name = F.getFnAttribute("wasm-export-name").getValueAsString();
+      Sym->setExportName(Name);
+      getTargetStreamer()->emitExportName(Sym, Name);
     }
   }
 
@@ -331,42 +342,18 @@ void WebAssemblyAsmPrinter::EmitInstruction(const MachineInstr *MI) {
     // These represent values which are live into the function entry, so there's
     // no instruction to emit.
     break;
-  case WebAssembly::FALLTHROUGH_RETURN_I32:
-  case WebAssembly::FALLTHROUGH_RETURN_I32_S:
-  case WebAssembly::FALLTHROUGH_RETURN_I64:
-  case WebAssembly::FALLTHROUGH_RETURN_I64_S:
-  case WebAssembly::FALLTHROUGH_RETURN_F32:
-  case WebAssembly::FALLTHROUGH_RETURN_F32_S:
-  case WebAssembly::FALLTHROUGH_RETURN_F64:
-  case WebAssembly::FALLTHROUGH_RETURN_F64_S:
-  case WebAssembly::FALLTHROUGH_RETURN_v16i8:
-  case WebAssembly::FALLTHROUGH_RETURN_v16i8_S:
-  case WebAssembly::FALLTHROUGH_RETURN_v8i16:
-  case WebAssembly::FALLTHROUGH_RETURN_v8i16_S:
-  case WebAssembly::FALLTHROUGH_RETURN_v4i32:
-  case WebAssembly::FALLTHROUGH_RETURN_v4i32_S:
-  case WebAssembly::FALLTHROUGH_RETURN_v2i64:
-  case WebAssembly::FALLTHROUGH_RETURN_v2i64_S:
-  case WebAssembly::FALLTHROUGH_RETURN_v4f32:
-  case WebAssembly::FALLTHROUGH_RETURN_v4f32_S:
-  case WebAssembly::FALLTHROUGH_RETURN_v2f64:
-  case WebAssembly::FALLTHROUGH_RETURN_v2f64_S: {
+  case WebAssembly::FALLTHROUGH_RETURN: {
     // These instructions represent the implicit return at the end of a
-    // function body. Always pops one value off the stack.
+    // function body.
     if (isVerbose()) {
-      OutStreamer->AddComment("fallthrough-return-value");
+      OutStreamer->AddComment("fallthrough-return");
       OutStreamer->AddBlankLine();
     }
     break;
   }
-  case WebAssembly::FALLTHROUGH_RETURN_VOID:
-  case WebAssembly::FALLTHROUGH_RETURN_VOID_S:
-    // This instruction represents the implicit return at the end of a
-    // function body with no return value.
-    if (isVerbose()) {
-      OutStreamer->AddComment("fallthrough-return-void");
-      OutStreamer->AddBlankLine();
-    }
+  case WebAssembly::COMPILER_FENCE:
+    // This is a compiler barrier that prevents instruction reordering during
+    // backend compilation, and should not be emitted.
     break;
   case WebAssembly::EXTRACT_EXCEPTION_I32:
   case WebAssembly::EXTRACT_EXCEPTION_I32_S:
@@ -387,14 +374,11 @@ void WebAssemblyAsmPrinter::EmitInstruction(const MachineInstr *MI) {
 }
 
 bool WebAssemblyAsmPrinter::PrintAsmOperand(const MachineInstr *MI,
-                                            unsigned OpNo, unsigned AsmVariant,
+                                            unsigned OpNo,
                                             const char *ExtraCode,
                                             raw_ostream &OS) {
-  if (AsmVariant != 0)
-    report_fatal_error("There are no defined alternate asm variants");
-
   // First try the generic code, which knows about modifiers like 'c' and 'n'.
-  if (!AsmPrinter::PrintAsmOperand(MI, OpNo, AsmVariant, ExtraCode, OS))
+  if (!AsmPrinter::PrintAsmOperand(MI, OpNo, ExtraCode, OS))
     return false;
 
   if (!ExtraCode) {
@@ -410,8 +394,7 @@ bool WebAssemblyAsmPrinter::PrintAsmOperand(const MachineInstr *MI,
       OS << regToString(MO);
       return false;
     case MachineOperand::MO_GlobalAddress:
-      getSymbol(MO.getGlobal())->print(OS, MAI);
-      printOffset(MO.getOffset(), OS);
+      PrintSymbolOperand(MO, OS);
       return false;
     case MachineOperand::MO_ExternalSymbol:
       GetExternalSymbolSymbol(MO.getSymbolName())->print(OS, MAI);
@@ -430,19 +413,15 @@ bool WebAssemblyAsmPrinter::PrintAsmOperand(const MachineInstr *MI,
 
 bool WebAssemblyAsmPrinter::PrintAsmMemoryOperand(const MachineInstr *MI,
                                                   unsigned OpNo,
-                                                  unsigned AsmVariant,
                                                   const char *ExtraCode,
                                                   raw_ostream &OS) {
-  if (AsmVariant != 0)
-    report_fatal_error("There are no defined alternate asm variants");
-
   // The current approach to inline asm is that "r" constraints are expressed
   // as local indices, rather than values on the operand stack. This simplifies
   // using "r" as it eliminates the need to push and pop the values in a
   // particular order, however it also makes it impossible to have an "m"
   // constraint. So we don't support it.
 
-  return AsmPrinter::PrintAsmMemoryOperand(MI, OpNo, AsmVariant, ExtraCode, OS);
+  return AsmPrinter::PrintAsmMemoryOperand(MI, OpNo, ExtraCode, OS);
 }
 
 // Force static initialization.

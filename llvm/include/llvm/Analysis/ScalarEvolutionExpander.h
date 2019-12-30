@@ -77,9 +77,13 @@ namespace llvm {
     /// Phis that complete an IV chain. Reuse
     DenseSet<AssertingVH<PHINode>> ChainedPhis;
 
-    /// When true, expressions are expanded in "canonical" form. In particular,
-    /// addrecs are expanded as arithmetic based on a canonical induction
-    /// variable. When false, expression are expanded in a more literal form.
+    /// When true, SCEVExpander tries to expand expressions in "canonical" form.
+    /// When false, expressions are expanded in a more literal form.
+    ///
+    /// In "canonical" form addrecs are expanded as arithmetic based on a
+    /// canonical induction variable. Note that CanonicalMode doesn't guarantee
+    /// that all expressions are expanded in "canonical" form. For some
+    /// expressions literal mode can be preferred.
     bool CanonicalMode;
 
     /// When invoked from LSR, the expander is in "strength reduction" mode. The
@@ -275,8 +279,16 @@ namespace llvm {
 
     /// Clear the current insertion point. This is useful if the instruction
     /// that had been serving as the insertion point may have been deleted.
-    void clearInsertPoint() {
-      Builder.ClearInsertionPoint();
+    void clearInsertPoint() { Builder.ClearInsertionPoint(); }
+
+    /// Set location information used by debugging information.
+    void SetCurrentDebugLocation(DebugLoc L) {
+      Builder.SetCurrentDebugLocation(std::move(L));
+    }
+
+    /// Get location information used by debugging information.
+    const DebugLoc &getCurrentDebugLocation() const {
+      return Builder.getCurrentDebugLocation();
     }
 
     /// Return true if the specified instruction was inserted by the code
@@ -315,8 +327,10 @@ namespace llvm {
                                    SmallPtrSetImpl<const SCEV *> &Processed);
 
     /// Insert the specified binary operator, doing a small amount of work to
-    /// avoid inserting an obviously redundant operation.
-    Value *InsertBinop(Instruction::BinaryOps Opcode, Value *LHS, Value *RHS);
+    /// avoid inserting an obviously redundant operation, and hoisting to an
+    /// outer loop when the opportunity is there and it is safe.
+    Value *InsertBinop(Instruction::BinaryOps Opcode, Value *LHS, Value *RHS,
+                       SCEV::NoWrapFlags Flags, bool IsSafeToHoist);
 
     /// Arrange for there to be a cast of V to Ty at IP, reusing an existing
     /// cast if a suitable one exists, moving an existing cast if a suitable one
@@ -366,6 +380,10 @@ namespace llvm {
     Value *visitSMaxExpr(const SCEVSMaxExpr *S);
 
     Value *visitUMaxExpr(const SCEVUMaxExpr *S);
+
+    Value *visitSMinExpr(const SCEVSMinExpr *S);
+
+    Value *visitUMinExpr(const SCEVUMinExpr *S);
 
     Value *visitUnknown(const SCEVUnknown *S) {
       return S->getValue();

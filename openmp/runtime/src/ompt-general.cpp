@@ -268,6 +268,22 @@ ompt_try_start_tool(unsigned int omp_version, const char *runtime_version) {
     }
     __kmp_str_free(&libs);
   }
+  if (ret)
+    return ret;
+
+#if KMP_OS_UNIX
+  { // Non-standard: load archer tool if application is built with TSan
+    const char *fname = "libarcher.so";
+    void *h = dlopen(fname, RTLD_LAZY);
+    if (h) {
+      start_tool = (ompt_start_tool_t)dlsym(h, "ompt_start_tool");
+      if (start_tool)
+        ret = (*start_tool)(omp_version, runtime_version);
+      if (ret)
+        return ret;
+    }
+  }
+#endif
   return ret;
 }
 
@@ -361,10 +377,11 @@ void ompt_post_init() {
           ompt_thread_initial, __ompt_get_thread_data_internal());
     }
     ompt_data_t *task_data;
-    __ompt_get_task_info_internal(0, NULL, &task_data, NULL, NULL, NULL);
-    if (ompt_enabled.ompt_callback_task_create) {
-      ompt_callbacks.ompt_callback(ompt_callback_task_create)(
-          NULL, NULL, task_data, ompt_task_initial, 0, NULL);
+    ompt_data_t *parallel_data;
+    __ompt_get_task_info_internal(0, NULL, &task_data, NULL, &parallel_data, NULL);
+    if (ompt_enabled.ompt_callback_implicit_task) {
+      ompt_callbacks.ompt_callback(ompt_callback_implicit_task)(
+          ompt_scope_begin, parallel_data, task_data, 1, 1, ompt_task_initial);
     }
 
     ompt_set_thread_state(root_thread, ompt_state_work_serial);
@@ -429,10 +446,8 @@ OMPT_API_ROUTINE ompt_set_result_t ompt_set_callback(ompt_callbacks_t which,
 
 #define ompt_event_macro(event_name, callback_type, event_id)                  \
   case event_name:                                                             \
-    if (ompt_event_implementation_status(event_name)) {                        \
-      ompt_callbacks.ompt_callback(event_name) = (callback_type)callback;      \
-      ompt_enabled.event_name = (callback != 0);                               \
-    }                                                                          \
+    ompt_callbacks.ompt_callback(event_name) = (callback_type)callback;        \
+    ompt_enabled.event_name = (callback != 0);                                 \
     if (callback)                                                              \
       return ompt_event_implementation_status(event_name);                     \
     else                                                                       \
@@ -455,16 +470,15 @@ OMPT_API_ROUTINE int ompt_get_callback(ompt_callbacks_t which,
   switch (which) {
 
 #define ompt_event_macro(event_name, callback_type, event_id)                  \
-  case event_name:                                                             \
-    if (ompt_event_implementation_status(event_name)) {                        \
-      ompt_callback_t mycb =                                                   \
-          (ompt_callback_t)ompt_callbacks.ompt_callback(event_name);           \
-      if (ompt_enabled.event_name && mycb) {                                   \
-        *callback = mycb;                                                      \
-        return ompt_get_callback_success;                                      \
-      }                                                                        \
+  case event_name: {                                                           \
+    ompt_callback_t mycb =                                                     \
+        (ompt_callback_t)ompt_callbacks.ompt_callback(event_name);             \
+    if (ompt_enabled.event_name && mycb) {                                     \
+      *callback = mycb;                                                        \
+      return ompt_get_callback_success;                                        \
     }                                                                          \
-    return ompt_get_callback_failure;
+    return ompt_get_callback_failure;                                          \
+  }
 
     FOREACH_OMPT_EVENT(ompt_event_macro)
 
@@ -523,8 +537,7 @@ OMPT_API_ROUTINE int ompt_get_task_info(int ancestor_level, int *type,
 
 OMPT_API_ROUTINE int ompt_get_task_memory(void **addr, size_t *size,
                                           int block) {
-  // stub
-  return 0;
+  return __ompt_get_task_memory_internal(addr, size, block);
 }
 
 /*****************************************************************************
@@ -699,9 +712,7 @@ OMPT_API_ROUTINE uint64_t ompt_get_unique_id(void) {
   return __ompt_get_unique_id_internal();
 }
 
-OMPT_API_ROUTINE void ompt_finalize_tool(void) {
-  // stub
-}
+OMPT_API_ROUTINE void ompt_finalize_tool(void) { __kmp_internal_end_atexit(); }
 
 /*****************************************************************************
  * Target

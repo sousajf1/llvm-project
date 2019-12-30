@@ -2,10 +2,7 @@
 Test require hardware breakpoints.
 """
 
-from __future__ import print_function
 
-import os
-import time
 import lldb
 from lldbsuite.test.decorators import *
 from lldbsuite.test.lldbtest import *
@@ -28,6 +25,8 @@ class BreakpointLocationsTestCase(TestBase):
         self.assertTrue(breakpoint.IsHardware())
 
     @skipIfWindows
+    @expectedFailureAll(archs="aarch64", oslist="linux",
+                        bugnumber="https://bugs.llvm.org/show_bug.cgi?id=44055")
     def test_step_range(self):
         """Test stepping when hardware breakpoints are required."""
         self.build()
@@ -49,6 +48,8 @@ class BreakpointLocationsTestCase(TestBase):
                         in error.GetCString())
 
     @skipIfWindows
+    @expectedFailureAll(archs="aarch64", oslist="linux",
+                        bugnumber="https://bugs.llvm.org/show_bug.cgi?id=44055")
     def test_step_out(self):
         """Test stepping out when hardware breakpoints are required."""
         self.build()
@@ -69,6 +70,8 @@ class BreakpointLocationsTestCase(TestBase):
                         in error.GetCString())
 
     @skipIfWindows
+    @expectedFailureAll(archs="aarch64", oslist="linux",
+                        bugnumber="https://bugs.llvm.org/show_bug.cgi?id=44055")
     def test_step_over(self):
         """Test stepping over when hardware breakpoints are required."""
         self.build()
@@ -79,15 +82,16 @@ class BreakpointLocationsTestCase(TestBase):
         self.runCmd("settings set target.require-hardware-breakpoint true")
 
         # Step over doesn't fail immediately but fails later on.
-        self.expect("thread step-over")
         self.expect(
-            "process status",
+            "thread step-over",
+            error=True,
             substrs=[
-                'step over failed',
-                'Could not create hardware breakpoint for thread plan'
+                'error: Could not create hardware breakpoint for thread plan.'
             ])
 
     @skipIfWindows
+    @expectedFailureAll(archs="aarch64", oslist="linux",
+                        bugnumber="https://bugs.llvm.org/show_bug.cgi?id=44055")
     def test_step_until(self):
         """Test stepping until when hardware breakpoints are required."""
         self.build()

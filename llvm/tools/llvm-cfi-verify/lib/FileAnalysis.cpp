@@ -22,6 +22,7 @@
 #include "llvm/MC/MCObjectFileInfo.h"
 #include "llvm/MC/MCRegisterInfo.h"
 #include "llvm/MC/MCSubtargetInfo.h"
+#include "llvm/MC/MCTargetOptions.h"
 #include "llvm/Object/Binary.h"
 #include "llvm/Object/COFF.h"
 #include "llvm/Object/ELFObjectFile.h"
@@ -387,7 +388,9 @@ Error FileAnalysis::initialiseDisassemblyMembers() {
     return make_error<UnsupportedDisassembly>(
         "Failed to initialise RegisterInfo.");
 
-  AsmInfo.reset(ObjectTarget->createMCAsmInfo(*RegisterInfo, TripleName));
+  MCTargetOptions MCOptions;
+  AsmInfo.reset(
+      ObjectTarget->createMCAsmInfo(*RegisterInfo, TripleName, MCOptions));
   if (!AsmInfo)
     return make_error<UnsupportedDisassembly>("Failed to initialise AsmInfo.");
 
@@ -449,17 +452,16 @@ Error FileAnalysis::parseCodeSections() {
 
     // Avoid checking the PLT since it produces spurious failures on AArch64
     // when ignoring DWARF data.
-    StringRef SectionName;
-    if (!Section.getName(SectionName) && SectionName == ".plt")
+    Expected<StringRef> NameOrErr = Section.getName();
+    if (NameOrErr && *NameOrErr == ".plt")
       continue;
+    consumeError(NameOrErr.takeError());
 
-    StringRef SectionContents;
-    if (Section.getContents(SectionContents))
-      return make_error<StringError>("Failed to retrieve section contents",
-                                     inconvertibleErrorCode());
+    Expected<StringRef> Contents = Section.getContents();
+    if (!Contents)
+      return Contents.takeError();
+    ArrayRef<uint8_t> SectionBytes = arrayRefFromStringRef(*Contents);
 
-    ArrayRef<uint8_t> SectionBytes((const uint8_t *)SectionContents.data(),
-                                   Section.getSize());
     parseSectionContents(SectionBytes,
                          {Section.getAddress(), Section.getIndex()});
   }
@@ -522,7 +524,7 @@ void FileAnalysis::parseSectionContents(ArrayRef<uint8_t> SectionBytes,
         continue;
       }
 
-      if (LineInfo->FileName == "<invalid>")
+      if (LineInfo->FileName == DILineInfo::BadString)
         continue;
     }
 

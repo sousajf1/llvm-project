@@ -2,7 +2,11 @@
 ; RUN: opt -instcombine -S < %s | FileCheck %s
 
 declare { i8, i1 } @llvm.uadd.with.overflow.i8(i8, i8) nounwind readnone
+declare { i8, i1 } @llvm.sadd.with.overflow.i8(i8, i8) nounwind readnone
+declare { i8, i1 } @llvm.usub.with.overflow.i8(i8, i8) nounwind readnone
+declare { i8, i1 } @llvm.ssub.with.overflow.i8(i8, i8) nounwind readnone
 declare { i8, i1 } @llvm.umul.with.overflow.i8(i8, i8) nounwind readnone
+declare { i8, i1 } @llvm.smul.with.overflow.i8(i8, i8) nounwind readnone
 declare { i32, i1 } @llvm.sadd.with.overflow.i32(i32, i32) nounwind readnone
 declare { i32, i1 } @llvm.uadd.with.overflow.i32(i32, i32) nounwind readnone
 declare { i32, i1 } @llvm.ssub.with.overflow.i32(i32, i32) nounwind readnone
@@ -56,6 +60,7 @@ define i8 @uaddtest3(i8 %A, i8 %B, i1* %overflowPtr) {
 
 define i8 @uaddtest4(i8 %A, i1* %overflowPtr) {
 ; CHECK-LABEL: @uaddtest4(
+; CHECK-NEXT:    store i1 false, i1* [[OVERFLOWPTR:%.*]], align 1
 ; CHECK-NEXT:    ret i8 undef
 ;
   %x = call { i8, i1 } @llvm.uadd.with.overflow.i8(i8 undef, i8 %A)
@@ -351,8 +356,7 @@ define i1 @uadd_res_ult_x(i32 %x, i32 %y, i1* %p) nounwind {
 ; CHECK-NEXT:    [[A:%.*]] = call { i32, i1 } @llvm.uadd.with.overflow.i32(i32 [[X:%.*]], i32 [[Y:%.*]])
 ; CHECK-NEXT:    [[B:%.*]] = extractvalue { i32, i1 } [[A]], 1
 ; CHECK-NEXT:    store i1 [[B]], i1* [[P:%.*]], align 1
-; CHECK-NEXT:    [[C:%.*]] = extractvalue { i32, i1 } [[A]], 0
-; CHECK-NEXT:    [[D:%.*]] = icmp ult i32 [[C]], [[X]]
+; CHECK-NEXT:    [[D:%.*]] = extractvalue { i32, i1 } [[A]], 1
 ; CHECK-NEXT:    ret i1 [[D]]
 ;
   %a = call { i32, i1 } @llvm.uadd.with.overflow.i32(i32 %x, i32 %y)
@@ -368,8 +372,7 @@ define i1 @uadd_res_ult_y(i32 %x, i32 %y, i1* %p) nounwind {
 ; CHECK-NEXT:    [[A:%.*]] = call { i32, i1 } @llvm.uadd.with.overflow.i32(i32 [[X:%.*]], i32 [[Y:%.*]])
 ; CHECK-NEXT:    [[B:%.*]] = extractvalue { i32, i1 } [[A]], 1
 ; CHECK-NEXT:    store i1 [[B]], i1* [[P:%.*]], align 1
-; CHECK-NEXT:    [[C:%.*]] = extractvalue { i32, i1 } [[A]], 0
-; CHECK-NEXT:    [[D:%.*]] = icmp ult i32 [[C]], [[Y]]
+; CHECK-NEXT:    [[D:%.*]] = extractvalue { i32, i1 } [[A]], 1
 ; CHECK-NEXT:    ret i1 [[D]]
 ;
   %a = call { i32, i1 } @llvm.uadd.with.overflow.i32(i32 %x, i32 %y)
@@ -386,8 +389,7 @@ define i1 @uadd_res_ugt_x(i32 %xx, i32 %y, i1* %p) nounwind {
 ; CHECK-NEXT:    [[A:%.*]] = call { i32, i1 } @llvm.uadd.with.overflow.i32(i32 [[X]], i32 [[Y:%.*]])
 ; CHECK-NEXT:    [[B:%.*]] = extractvalue { i32, i1 } [[A]], 1
 ; CHECK-NEXT:    store i1 [[B]], i1* [[P:%.*]], align 1
-; CHECK-NEXT:    [[C:%.*]] = extractvalue { i32, i1 } [[A]], 0
-; CHECK-NEXT:    [[D:%.*]] = icmp ugt i32 [[X]], [[C]]
+; CHECK-NEXT:    [[D:%.*]] = extractvalue { i32, i1 } [[A]], 1
 ; CHECK-NEXT:    ret i1 [[D]]
 ;
   %x = urem i32 42, %xx ; Thwart complexity-based canonicalization
@@ -405,8 +407,7 @@ define i1 @uadd_res_ugt_y(i32 %x, i32 %yy, i1* %p) nounwind {
 ; CHECK-NEXT:    [[A:%.*]] = call { i32, i1 } @llvm.uadd.with.overflow.i32(i32 [[X:%.*]], i32 [[Y]])
 ; CHECK-NEXT:    [[B:%.*]] = extractvalue { i32, i1 } [[A]], 1
 ; CHECK-NEXT:    store i1 [[B]], i1* [[P:%.*]], align 1
-; CHECK-NEXT:    [[C:%.*]] = extractvalue { i32, i1 } [[A]], 0
-; CHECK-NEXT:    [[D:%.*]] = icmp ugt i32 [[Y]], [[C]]
+; CHECK-NEXT:    [[D:%.*]] = extractvalue { i32, i1 } [[A]], 1
 ; CHECK-NEXT:    ret i1 [[D]]
 ;
   %y = urem i32 42, %yy ; Thwart complexity-based canonicalization
@@ -423,8 +424,7 @@ define i1 @uadd_res_ult_const(i32 %x, i1* %p) nounwind {
 ; CHECK-NEXT:    [[A:%.*]] = call { i32, i1 } @llvm.uadd.with.overflow.i32(i32 [[X:%.*]], i32 42)
 ; CHECK-NEXT:    [[B:%.*]] = extractvalue { i32, i1 } [[A]], 1
 ; CHECK-NEXT:    store i1 [[B]], i1* [[P:%.*]], align 1
-; CHECK-NEXT:    [[C:%.*]] = extractvalue { i32, i1 } [[A]], 0
-; CHECK-NEXT:    [[D:%.*]] = icmp ult i32 [[C]], 42
+; CHECK-NEXT:    [[D:%.*]] = extractvalue { i32, i1 } [[A]], 1
 ; CHECK-NEXT:    ret i1 [[D]]
 ;
   %a = call { i32, i1 } @llvm.uadd.with.overflow.i32(i32 %x, i32 42)
@@ -440,8 +440,7 @@ define i1 @uadd_res_ult_const_one(i32 %x, i1* %p) nounwind {
 ; CHECK-NEXT:    [[A:%.*]] = call { i32, i1 } @llvm.uadd.with.overflow.i32(i32 [[X:%.*]], i32 1)
 ; CHECK-NEXT:    [[B:%.*]] = extractvalue { i32, i1 } [[A]], 1
 ; CHECK-NEXT:    store i1 [[B]], i1* [[P:%.*]], align 1
-; CHECK-NEXT:    [[C:%.*]] = extractvalue { i32, i1 } [[A]], 0
-; CHECK-NEXT:    [[D:%.*]] = icmp eq i32 [[C]], 0
+; CHECK-NEXT:    [[D:%.*]] = extractvalue { i32, i1 } [[A]], 1
 ; CHECK-NEXT:    ret i1 [[D]]
 ;
   %a = call { i32, i1 } @llvm.uadd.with.overflow.i32(i32 %x, i32 1)
@@ -457,8 +456,7 @@ define i1 @uadd_res_ult_const_minus_one(i32 %x, i1* %p) nounwind {
 ; CHECK-NEXT:    [[A:%.*]] = call { i32, i1 } @llvm.uadd.with.overflow.i32(i32 [[X:%.*]], i32 -1)
 ; CHECK-NEXT:    [[B:%.*]] = extractvalue { i32, i1 } [[A]], 1
 ; CHECK-NEXT:    store i1 [[B]], i1* [[P:%.*]], align 1
-; CHECK-NEXT:    [[C:%.*]] = extractvalue { i32, i1 } [[A]], 0
-; CHECK-NEXT:    [[D:%.*]] = icmp ne i32 [[C]], -1
+; CHECK-NEXT:    [[D:%.*]] = extractvalue { i32, i1 } [[A]], 1
 ; CHECK-NEXT:    ret i1 [[D]]
 ;
   %a = call { i32, i1 } @llvm.uadd.with.overflow.i32(i32 %x, i32 -1)
@@ -521,4 +519,81 @@ define { i32, i1 } @umul_canonicalize_constant_arg0(i32 %x) nounwind {
 ;
   %a = call { i32, i1 } @llvm.umul.with.overflow.i32(i32 42, i32 %x)
   ret { i32, i1 } %a
+}
+
+; Always overflow tests
+
+define { i8, i1 } @uadd_always_overflow(i8 %x) nounwind {
+; CHECK-LABEL: @uadd_always_overflow(
+; CHECK-NEXT:    [[TMP1:%.*]] = and i8 [[X:%.*]], 63
+; CHECK-NEXT:    [[TMP2:%.*]] = insertvalue { i8, i1 } { i8 undef, i1 true }, i8 [[TMP1]], 0
+; CHECK-NEXT:    ret { i8, i1 } [[TMP2]]
+;
+  %y = or i8 %x, 192
+  %a = call { i8, i1 } @llvm.uadd.with.overflow.i8(i8 %y, i8 64)
+  ret { i8, i1 } %a
+}
+
+define { i8, i1 } @usub_always_overflow(i8 %x) nounwind {
+; CHECK-LABEL: @usub_always_overflow(
+; CHECK-NEXT:    [[Y:%.*]] = or i8 [[X:%.*]], 64
+; CHECK-NEXT:    [[A:%.*]] = sub nsw i8 63, [[Y]]
+; CHECK-NEXT:    [[TMP1:%.*]] = insertvalue { i8, i1 } { i8 undef, i1 true }, i8 [[A]], 0
+; CHECK-NEXT:    ret { i8, i1 } [[TMP1]]
+;
+  %y = or i8 %x, 64
+  %a = call { i8, i1 } @llvm.usub.with.overflow.i8(i8 63, i8 %y)
+  ret { i8, i1 } %a
+}
+
+define { i8, i1 } @umul_always_overflow(i8 %x) nounwind {
+; CHECK-LABEL: @umul_always_overflow(
+; CHECK-NEXT:    [[A:%.*]] = shl i8 [[X:%.*]], 1
+; CHECK-NEXT:    [[TMP1:%.*]] = insertvalue { i8, i1 } { i8 undef, i1 true }, i8 [[A]], 0
+; CHECK-NEXT:    ret { i8, i1 } [[TMP1]]
+;
+  %y = or i8 %x, 128
+  %a = call { i8, i1 } @llvm.umul.with.overflow.i8(i8 %y, i8 2)
+  ret { i8, i1 } %a
+}
+
+define { i8, i1 } @sadd_always_overflow(i8 %x) nounwind {
+; CHECK-LABEL: @sadd_always_overflow(
+; CHECK-NEXT:    [[C:%.*]] = icmp sgt i8 [[X:%.*]], 100
+; CHECK-NEXT:    [[Y:%.*]] = select i1 [[C]], i8 [[X]], i8 100
+; CHECK-NEXT:    [[A:%.*]] = add nuw i8 [[Y]], 28
+; CHECK-NEXT:    [[TMP1:%.*]] = insertvalue { i8, i1 } { i8 undef, i1 true }, i8 [[A]], 0
+; CHECK-NEXT:    ret { i8, i1 } [[TMP1]]
+;
+  %c = icmp sgt i8 %x, 100
+  %y = select i1 %c, i8 %x, i8 100
+  %a = call { i8, i1 } @llvm.sadd.with.overflow.i8(i8 %y, i8 28)
+  ret { i8, i1 } %a
+}
+
+define { i8, i1 } @ssub_always_overflow(i8 %x) nounwind {
+; CHECK-LABEL: @ssub_always_overflow(
+; CHECK-NEXT:    [[C:%.*]] = icmp sgt i8 [[X:%.*]], 29
+; CHECK-NEXT:    [[Y:%.*]] = select i1 [[C]], i8 [[X]], i8 29
+; CHECK-NEXT:    [[A:%.*]] = sub nuw i8 -100, [[Y]]
+; CHECK-NEXT:    [[TMP1:%.*]] = insertvalue { i8, i1 } { i8 undef, i1 true }, i8 [[A]], 0
+; CHECK-NEXT:    ret { i8, i1 } [[TMP1]]
+;
+  %c = icmp sgt i8 %x, 29
+  %y = select i1 %c, i8 %x, i8 29
+  %a = call { i8, i1 } @llvm.ssub.with.overflow.i8(i8 -100, i8 %y)
+  ret { i8, i1 } %a
+}
+
+define { i8, i1 } @smul_always_overflow(i8 %x) nounwind {
+; CHECK-LABEL: @smul_always_overflow(
+; CHECK-NEXT:    [[C:%.*]] = icmp sgt i8 [[X:%.*]], 100
+; CHECK-NEXT:    [[Y:%.*]] = select i1 [[C]], i8 [[X]], i8 100
+; CHECK-NEXT:    [[A:%.*]] = call { i8, i1 } @llvm.smul.with.overflow.i8(i8 [[Y]], i8 2)
+; CHECK-NEXT:    ret { i8, i1 } [[A]]
+;
+  %c = icmp sgt i8 %x, 100
+  %y = select i1 %c, i8 %x, i8 100
+  %a = call { i8, i1 } @llvm.smul.with.overflow.i8(i8 %y, i8 2)
+  ret { i8, i1 } %a
 }

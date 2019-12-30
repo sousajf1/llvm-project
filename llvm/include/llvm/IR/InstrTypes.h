@@ -47,7 +47,7 @@
 namespace llvm {
 
 namespace Intrinsic {
-enum ID : unsigned;
+typedef unsigned ID;
 }
 
 //===----------------------------------------------------------------------===//
@@ -77,7 +77,8 @@ public:
 
   // Methods for support type inquiry through isa, cast, and dyn_cast:
   static bool classof(const Instruction *I) {
-    return I->getOpcode() == Instruction::Alloca ||
+    return I->isUnaryOp() ||
+           I->getOpcode() == Instruction::Alloca ||
            I->getOpcode() == Instruction::Load ||
            I->getOpcode() == Instruction::VAArg ||
            I->getOpcode() == Instruction::ExtractValue ||
@@ -94,6 +95,91 @@ struct OperandTraits<UnaryInstruction> :
 };
 
 DEFINE_TRANSPARENT_OPERAND_ACCESSORS(UnaryInstruction, Value)
+
+//===----------------------------------------------------------------------===//
+//                                UnaryOperator Class
+//===----------------------------------------------------------------------===//
+
+class UnaryOperator : public UnaryInstruction {
+  void AssertOK();
+
+protected:
+  UnaryOperator(UnaryOps iType, Value *S, Type *Ty,
+                const Twine &Name, Instruction *InsertBefore);
+  UnaryOperator(UnaryOps iType, Value *S, Type *Ty,
+                const Twine &Name, BasicBlock *InsertAtEnd);
+
+  // Note: Instruction needs to be a friend here to call cloneImpl.
+  friend class Instruction;
+
+  UnaryOperator *cloneImpl() const;
+
+public:
+
+  /// Construct a unary instruction, given the opcode and an operand.
+  /// Optionally (if InstBefore is specified) insert the instruction
+  /// into a BasicBlock right before the specified instruction.  The specified
+  /// Instruction is allowed to be a dereferenced end iterator.
+  ///
+  static UnaryOperator *Create(UnaryOps Op, Value *S,
+                               const Twine &Name = Twine(),
+                               Instruction *InsertBefore = nullptr);
+
+  /// Construct a unary instruction, given the opcode and an operand.
+  /// Also automatically insert this instruction to the end of the
+  /// BasicBlock specified.
+  ///
+  static UnaryOperator *Create(UnaryOps Op, Value *S,
+                               const Twine &Name,
+                               BasicBlock *InsertAtEnd);
+
+  /// These methods just forward to Create, and are useful when you
+  /// statically know what type of instruction you're going to create.  These
+  /// helpers just save some typing.
+#define HANDLE_UNARY_INST(N, OPC, CLASS) \
+  static UnaryOperator *Create##OPC(Value *V, const Twine &Name = "") {\
+    return Create(Instruction::OPC, V, Name);\
+  }
+#include "llvm/IR/Instruction.def"
+#define HANDLE_UNARY_INST(N, OPC, CLASS) \
+  static UnaryOperator *Create##OPC(Value *V, const Twine &Name, \
+                                    BasicBlock *BB) {\
+    return Create(Instruction::OPC, V, Name, BB);\
+  }
+#include "llvm/IR/Instruction.def"
+#define HANDLE_UNARY_INST(N, OPC, CLASS) \
+  static UnaryOperator *Create##OPC(Value *V, const Twine &Name, \
+                                    Instruction *I) {\
+    return Create(Instruction::OPC, V, Name, I);\
+  }
+#include "llvm/IR/Instruction.def"
+
+  static UnaryOperator *CreateWithCopiedFlags(UnaryOps Opc,
+                                              Value *V,
+                                              Instruction *CopyO,
+                                              const Twine &Name = "") {
+    UnaryOperator *UO = Create(Opc, V, Name);
+    UO->copyIRFlags(CopyO);
+    return UO;
+  }
+
+  static UnaryOperator *CreateFNegFMF(Value *Op, Instruction *FMFSource,
+                                      const Twine &Name = "") {
+    return CreateWithCopiedFlags(Instruction::FNeg, Op, FMFSource, Name);
+  }
+
+  UnaryOps getOpcode() const {
+    return static_cast<UnaryOps>(Instruction::getOpcode());
+  }
+
+  // Methods for support type inquiry through isa, cast, and dyn_cast:
+  static bool classof(const Instruction *I) {
+    return I->isUnaryOp();
+  }
+  static bool classof(const Value *V) {
+    return isa<Instruction>(V) && classof(cast<Instruction>(V));
+  }
+};
 
 //===----------------------------------------------------------------------===//
 //                           BinaryOperator Class
@@ -162,42 +248,42 @@ public:
 
   static BinaryOperator *CreateWithCopiedFlags(BinaryOps Opc,
                                                Value *V1, Value *V2,
-                                               BinaryOperator *CopyBO,
+                                               Instruction *CopyO,
                                                const Twine &Name = "") {
     BinaryOperator *BO = Create(Opc, V1, V2, Name);
-    BO->copyIRFlags(CopyBO);
+    BO->copyIRFlags(CopyO);
     return BO;
   }
 
   static BinaryOperator *CreateFAddFMF(Value *V1, Value *V2,
-                                       BinaryOperator *FMFSource,
+                                       Instruction *FMFSource,
                                        const Twine &Name = "") {
     return CreateWithCopiedFlags(Instruction::FAdd, V1, V2, FMFSource, Name);
   }
   static BinaryOperator *CreateFSubFMF(Value *V1, Value *V2,
-                                       BinaryOperator *FMFSource,
+                                       Instruction *FMFSource,
                                        const Twine &Name = "") {
     return CreateWithCopiedFlags(Instruction::FSub, V1, V2, FMFSource, Name);
   }
   static BinaryOperator *CreateFMulFMF(Value *V1, Value *V2,
-                                       BinaryOperator *FMFSource,
+                                       Instruction *FMFSource,
                                        const Twine &Name = "") {
     return CreateWithCopiedFlags(Instruction::FMul, V1, V2, FMFSource, Name);
   }
   static BinaryOperator *CreateFDivFMF(Value *V1, Value *V2,
-                                       BinaryOperator *FMFSource,
+                                       Instruction *FMFSource,
                                        const Twine &Name = "") {
     return CreateWithCopiedFlags(Instruction::FDiv, V1, V2, FMFSource, Name);
   }
   static BinaryOperator *CreateFRemFMF(Value *V1, Value *V2,
-                                       BinaryOperator *FMFSource,
+                                       Instruction *FMFSource,
                                        const Twine &Name = "") {
     return CreateWithCopiedFlags(Instruction::FRem, V1, V2, FMFSource, Name);
   }
-  static BinaryOperator *CreateFNegFMF(Value *Op, BinaryOperator *FMFSource,
+  static BinaryOperator *CreateFNegFMF(Value *Op, Instruction *FMFSource,
                                        const Twine &Name = "") {
     Value *Zero = ConstantFP::getNegativeZero(Op->getType());
-    return CreateWithCopiedFlags(Instruction::FSub, Zero, Op, FMFSource);
+    return CreateWithCopiedFlags(Instruction::FSub, Zero, Op, FMFSource, Name);
   }
 
   static BinaryOperator *CreateNSW(BinaryOps Opc, Value *V1, Value *V2,
@@ -889,7 +975,7 @@ public:
   static Type* makeCmpResultType(Type* opnd_type) {
     if (VectorType* vt = dyn_cast<VectorType>(opnd_type)) {
       return VectorType::get(Type::getInt1Ty(opnd_type->getContext()),
-                             vt->getNumElements());
+                             vt->getElementCount());
     }
     return Type::getInt1Ty(opnd_type->getContext());
   }
@@ -951,6 +1037,11 @@ struct OperandBundleUse {
   /// Return true if this is a "funclet" operand bundle.
   bool isFuncletOperandBundle() const {
     return getTagID() == LLVMContext::OB_funclet;
+  }
+
+  /// Return true if this is a "cfguardtarget" operand bundle.
+  bool isCFGuardTargetOperandBundle() const {
+    return getTagID() == LLVMContext::OB_cfguardtarget;
   }
 
 private:
@@ -1179,6 +1270,19 @@ public:
   }
   bool isArgOperand(Value::const_user_iterator UI) const {
     return isArgOperand(&UI.getUse());
+  }
+
+  /// Given a use for a arg operand, get the arg operand number that
+  /// corresponds to it.
+  unsigned getArgOperandNo(const Use *U) const {
+    assert(isArgOperand(U) && "Arg operand # out of range!");
+    return U - arg_begin();
+  }
+
+  /// Given a value use iterator, return the arg operand number corresponding to
+  /// it. Iterator must actually correspond to a data operand.
+  unsigned getArgOperandNo(Value::const_user_iterator UI) const {
+    return getArgOperandNo(&UI.getUse());
   }
 
   /// Returns true if this CallSite passes the given Value* as an argument to
@@ -1481,11 +1585,35 @@ public:
   }
 
   /// Extract the alignment of the return value.
-  unsigned getRetAlignment() const { return Attrs.getRetAlignment(); }
+  /// FIXME: Remove this function once transition to Align is over.
+  /// Use getRetAlign() instead.
+  unsigned getRetAlignment() const {
+    if (const auto MA = Attrs.getRetAlignment())
+      return MA->value();
+    return 0;
+  }
+
+  /// Extract the alignment of the return value.
+  MaybeAlign getRetAlign() const { return Attrs.getRetAlignment(); }
 
   /// Extract the alignment for a call or parameter (0=unknown).
+  /// FIXME: Remove this function once transition to Align is over.
+  /// Use getParamAlign() instead.
   unsigned getParamAlignment(unsigned ArgNo) const {
+    if (const auto MA = Attrs.getParamAlignment(ArgNo))
+      return MA->value();
+    return 0;
+  }
+
+  /// Extract the alignment for a call or parameter (0=unknown).
+  MaybeAlign getParamAlign(unsigned ArgNo) const {
     return Attrs.getParamAlignment(ArgNo);
+  }
+
+  /// Extract the byval type for a call or parameter.
+  Type *getParamByValType(unsigned ArgNo) const {
+    Type *Ty = Attrs.getParamByValType(ArgNo);
+    return Ty ? Ty : getArgOperand(ArgNo)->getType()->getPointerElementType();
   }
 
   /// Extract the number of dereferenceable bytes for a call or

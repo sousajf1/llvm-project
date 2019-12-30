@@ -30,6 +30,7 @@ const Builtin::Info PPCTargetInfo::BuiltinInfo[] = {
 /// configured set of features.
 bool PPCTargetInfo::handleTargetFeatures(std::vector<std::string> &Features,
                                          DiagnosticsEngine &Diags) {
+  FloatABI = HardFloat;
   for (const auto &Feature : Features) {
     if (Feature == "+altivec") {
       HasAltivec = true;
@@ -53,6 +54,12 @@ bool PPCTargetInfo::handleTargetFeatures(std::vector<std::string> &Features,
       HasFloat128 = true;
     } else if (Feature == "+power9-vector") {
       HasP9Vector = true;
+    } else if (Feature == "+spe") {
+      HasSPE = true;
+      LongDoubleWidth = LongDoubleAlign = 64;
+      LongDoubleFormat = &llvm::APFloat::IEEEdouble();
+    } else if (Feature == "-hard-float") {
+      FloatABI = SoftFloat;
     }
     // TODO: Finish this list and add an assert that we've handled them
     // all.
@@ -150,6 +157,10 @@ void PPCTargetInfo::getTargetDefines(const LangOptions &Opts,
     Builder.defineMacro("_ARCH_A2Q");
     Builder.defineMacro("_ARCH_QP");
   }
+  if (ArchDefs & ArchDefineE500)
+    Builder.defineMacro("__NO_LWSYNC__");
+  if (ArchDefs & ArchDefineFuture)
+    Builder.defineMacro("_ARCH_PWR_FUTURE");
 
   if (getTriple().getVendor() == llvm::Triple::BGQ) {
     Builder.defineMacro("__bg__");
@@ -161,6 +172,10 @@ void PPCTargetInfo::getTargetDefines(const LangOptions &Opts,
   if (HasAltivec) {
     Builder.defineMacro("__VEC__", "10206");
     Builder.defineMacro("__ALTIVEC__");
+  }
+  if (HasSPE) {
+    Builder.defineMacro("__SPE__");
+    Builder.defineMacro("__NO_FPRS__");
   }
   if (HasVSX)
     Builder.defineMacro("__VSX__");
@@ -200,7 +215,6 @@ void PPCTargetInfo::getTargetDefines(const LangOptions &Opts,
   //   __CMODEL_LARGE__
   //   _CALL_SYSV
   //   _CALL_DARWIN
-  //   __NO_FPRS__
 }
 
 // Handle explicit options being passed to the compiler here: if we've
@@ -302,6 +316,18 @@ bool PPCTargetInfo::initFeatureMap(
                         .Case("pwr8", true)
                         .Default(false);
 
+  Features["spe"] = llvm::StringSwitch<bool>(CPU)
+                        .Case("8548", true)
+                        .Case("e500", true)
+                        .Default(false);
+
+  // Future CPU should include all of the features of Power 9 as well as any
+  // additional features (yet to be determined) specific to it.
+  if (CPU == "future") {
+    initFeatureMap(Features, Diags, "pwr9", FeaturesVec);
+    addFutureSpecificFeatures(Features);
+  }
+
   if (!ppcUserFeaturesCheck(Diags, FeaturesVec))
     return false;
 
@@ -313,6 +339,12 @@ bool PPCTargetInfo::initFeatureMap(
   }
 
   return TargetInfo::initFeatureMap(Features, Diags, CPU, FeaturesVec);
+}
+
+// Add features specific to the "Future" CPU.
+void PPCTargetInfo::addFutureSpecificFeatures(
+    llvm::StringMap<bool> &Features) const {
+  return;
 }
 
 bool PPCTargetInfo::hasFeature(StringRef Feature) const {
@@ -329,6 +361,7 @@ bool PPCTargetInfo::hasFeature(StringRef Feature) const {
       .Case("extdiv", HasExtDiv)
       .Case("float128", HasFloat128)
       .Case("power9-vector", HasP9Vector)
+      .Case("spe", HasSPE)
       .Default(false);
 }
 
@@ -438,16 +471,17 @@ ArrayRef<TargetInfo::AddlRegName> PPCTargetInfo::getGCCAddlRegNames() const {
 }
 
 static constexpr llvm::StringLiteral ValidCPUNames[] = {
-    {"generic"}, {"440"},         {"450"},     {"601"},    {"602"},
-    {"603"},     {"603e"},        {"603ev"},   {"604"},    {"604e"},
-    {"620"},     {"630"},         {"g3"},      {"7400"},   {"g4"},
-    {"7450"},    {"g4+"},         {"750"},     {"970"},    {"g5"},
-    {"a2"},      {"a2q"},         {"e500mc"},  {"e5500"},  {"power3"},
-    {"pwr3"},    {"power4"},      {"pwr4"},    {"power5"}, {"pwr5"},
-    {"power5x"}, {"pwr5x"},       {"power6"},  {"pwr6"},   {"power6x"},
-    {"pwr6x"},   {"power7"},      {"pwr7"},    {"power8"}, {"pwr8"},
-    {"power9"},  {"pwr9"},        {"powerpc"}, {"ppc"},    {"powerpc64"},
-    {"ppc64"},   {"powerpc64le"}, {"ppc64le"},
+    {"generic"},   {"440"},       {"450"},         {"601"},         {"602"},
+    {"603"},       {"603e"},      {"603ev"},       {"604"},         {"604e"},
+    {"620"},       {"630"},       {"g3"},          {"7400"},        {"g4"},
+    {"7450"},      {"g4+"},       {"750"},         {"8548"},        {"970"},
+    {"g5"},        {"a2"},        {"a2q"},         {"e500"},        {"e500mc"},
+    {"e5500"},     {"power3"},    {"pwr3"},        {"power4"},      {"pwr4"},
+    {"power5"},    {"pwr5"},      {"power5x"},     {"pwr5x"},       {"power6"},
+    {"pwr6"},      {"power6x"},   {"pwr6x"},       {"power7"},      {"pwr7"},
+    {"power8"},    {"pwr8"},      {"power9"},      {"pwr9"},        {"powerpc"},
+    {"ppc"},       {"powerpc64"}, {"ppc64"},       {"powerpc64le"}, {"ppc64le"},
+    {"future"}
 };
 
 bool PPCTargetInfo::isValidCPUName(StringRef Name) const {
@@ -462,6 +496,10 @@ void PPCTargetInfo::adjust(LangOptions &Opts) {
   if (HasAltivec)
     Opts.AltiVec = 1;
   TargetInfo::adjust(Opts);
+  if (LongDoubleFormat != &llvm::APFloat::IEEEdouble())
+    LongDoubleFormat = Opts.PPCIEEELongDouble
+                           ? &llvm::APFloat::IEEEquad()
+                           : &llvm::APFloat::PPCDoubleDouble();
 }
 
 ArrayRef<Builtin::Info> PPCTargetInfo::getTargetBuiltins() const {

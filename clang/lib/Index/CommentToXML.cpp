@@ -188,11 +188,8 @@ FullCommentParts::FullCommentParts(const FullComment *C,
   // Sort params in order they are declared in the function prototype.
   // Unresolved parameters are put at the end of the list in the same order
   // they were seen in the comment.
-  std::stable_sort(Params.begin(), Params.end(),
-                   ParamCommandCommentCompareIndex());
-
-  std::stable_sort(TParams.begin(), TParams.end(),
-                   TParamCommandCommentComparePosition());
+  llvm::stable_sort(Params, ParamCommandCommentCompareIndex());
+  llvm::stable_sort(TParams, TParamCommandCommentComparePosition());
 }
 
 void printHTMLStartTagComment(const HTMLStartTagComment *C,
@@ -299,6 +296,10 @@ void CommentASTToHTMLConverter::visitInlineCommandComment(
     Result << "<em>";
     appendToResultWithHTMLEscaping(Arg0);
     Result << "</em>";
+    return;
+  case InlineCommandComment::RenderAnchor:
+    assert(C->getNumArgs() == 1);
+    Result << "<span id=\"" << Arg0 << "\"></span>";
     return;
   }
 }
@@ -643,6 +644,10 @@ void CommentASTToXMLConverter::visitInlineCommandComment(
     Result << "<emphasized>";
     appendToResultWithXMLEscaping(Arg0);
     Result << "</emphasized>";
+    return;
+  case InlineCommandComment::RenderAnchor:
+    assert(C->getNumArgs() == 1);
+    Result << "<anchor id=\"" << Arg0 << "\"></anchor>";
     return;
   }
 }

@@ -23,6 +23,7 @@
 #include <string>
 
 #include "llvm/ADT/BitmaskEnum.h"
+#include "llvm/ADT/FunctionExtras.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/Error.h"
 
@@ -40,6 +41,11 @@ class SymbolRef;
 using JITTargetAddress = uint64_t;
 
 /// Convert a JITTargetAddress to a pointer.
+///
+/// Note: This is a raw cast of the address bit pattern to the given pointer
+/// type. When casting to a function pointer in order to execute JIT'd code
+/// jitTargetAddressToFunction should be preferred, as it will also perform
+/// pointer signing on targets that require it.
 template <typename T> T jitTargetAddressToPointer(JITTargetAddress Addr) {
   static_assert(std::is_pointer<T>::value, "T must be a pointer type");
   uintptr_t IntPtr = static_cast<uintptr_t>(Addr);
@@ -47,6 +53,19 @@ template <typename T> T jitTargetAddressToPointer(JITTargetAddress Addr) {
   return reinterpret_cast<T>(IntPtr);
 }
 
+/// Convert a JITTargetAddress to a callable function pointer.
+///
+/// Casts the given address to a callable function pointer. This operation
+/// will perform pointer signing for platforms that require it (e.g. arm64e).
+template <typename T> T jitTargetAddressToFunction(JITTargetAddress Addr) {
+  static_assert(
+      std::is_pointer<T>::value &&
+          std::is_function<typename std::remove_pointer<T>::type>::value,
+      "T must be a function pointer type");
+  return jitTargetAddressToPointer<T>(Addr);
+}
+
+/// Convert a pointer to a JITTargetAddress.
 template <typename T> JITTargetAddress pointerToJITTargetAddress(T *Ptr) {
   return static_cast<JITTargetAddress>(reinterpret_cast<uintptr_t>(Ptr));
 }
@@ -55,7 +74,7 @@ template <typename T> JITTargetAddress pointerToJITTargetAddress(T *Ptr) {
 class JITSymbolFlags {
 public:
   using UnderlyingType = uint8_t;
-  using TargetFlagsType = uint64_t;
+  using TargetFlagsType = uint8_t;
 
   enum FlagNames : UnderlyingType {
     None = 0,
@@ -65,14 +84,8 @@ public:
     Absolute = 1U << 3,
     Exported = 1U << 4,
     Callable = 1U << 5,
-    Lazy = 1U << 6,
-    Materializing = 1U << 7,
-    LLVM_MARK_AS_BITMASK_ENUM(/* LargestValue = */ Materializing)
+    LLVM_MARK_AS_BITMASK_ENUM(/* LargestValue = */ Callable)
   };
-
-  static JITSymbolFlags stripTransientFlags(JITSymbolFlags Orig) {
-    return static_cast<FlagNames>(Orig.Flags & ~Lazy & ~Materializing);
-  }
 
   /// Default-construct a JITSymbolFlags instance.
   JITSymbolFlags() = default;
@@ -83,7 +96,7 @@ public:
   /// Construct a JITSymbolFlags instance from the given flags and target
   ///        flags.
   JITSymbolFlags(FlagNames Flags, TargetFlagsType TargetFlags)
-    : Flags(Flags), TargetFlags(TargetFlags) {}
+      : TargetFlags(TargetFlags), Flags(Flags) {}
 
   /// Implicitly convert to bool. Returs true if any flag is set.
   explicit operator bool() const { return Flags != None || TargetFlags != 0; }
@@ -109,19 +122,6 @@ public:
   bool hasError() const {
     return (Flags & HasError) == HasError;
   }
-
-  /// Returns true if this is a lazy symbol.
-  ///        This flag is used internally by the JIT APIs to track
-  ///        materialization states.
-  bool isLazy() const { return Flags & Lazy; }
-
-  /// Returns true if this symbol is in the process of being
-  ///        materialized.
-  bool isMaterializing() const { return Flags & Materializing; }
-
-  /// Returns true if this symbol is fully materialized.
-  ///        (i.e. neither lazy, nor materializing).
-  bool isMaterialized() const { return !(Flags & (Lazy | Materializing)); }
 
   /// Returns true if the Weak flag is set.
   bool isWeak() const {
@@ -167,8 +167,8 @@ public:
   fromObjectSymbol(const object::SymbolRef &Symbol);
 
 private:
-  FlagNames Flags = None;
   TargetFlagsType TargetFlags = 0;
+  FlagNames Flags = None;
 };
 
 inline JITSymbolFlags operator&(const JITSymbolFlags &LHS,
@@ -236,7 +236,7 @@ private:
 /// Represents a symbol in the JIT.
 class JITSymbol {
 public:
-  using GetAddressFtor = std::function<Expected<JITTargetAddress>()>;
+  using GetAddressFtor = unique_function<Expected<JITTargetAddress>()>;
 
   /// Create a 'null' symbol, used to represent a "symbol not found"
   ///        result from a successful (non-erroneous) lookup.
@@ -344,7 +344,7 @@ class JITSymbolResolver {
 public:
   using LookupSet = std::set<StringRef>;
   using LookupResult = std::map<StringRef, JITEvaluatedSymbol>;
-  using OnResolvedFunction = std::function<void(Expected<LookupResult>)>;
+  using OnResolvedFunction = unique_function<void(Expected<LookupResult>)>;
 
   virtual ~JITSymbolResolver() = default;
 

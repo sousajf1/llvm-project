@@ -1,22 +1,8 @@
 /*===---- avxintrin.h - AVX intrinsics -------------------------------------===
  *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- * THE SOFTWARE.
+ * Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+ * See https://llvm.org/LICENSE.txt for license information.
+ * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  *
  *===-----------------------------------------------------------------------===
  */
@@ -3083,7 +3069,7 @@ _mm256_broadcast_ps(__m128 const *__a)
 static __inline __m256d __DEFAULT_FN_ATTRS
 _mm256_load_pd(double const *__p)
 {
-  return *(__m256d *)__p;
+  return *(const __m256d *)__p;
 }
 
 /// Loads 8 single-precision floating point values from a 32-byte aligned
@@ -3099,7 +3085,7 @@ _mm256_load_pd(double const *__p)
 static __inline __m256 __DEFAULT_FN_ATTRS
 _mm256_load_ps(float const *__p)
 {
-  return *(__m256 *)__p;
+  return *(const __m256 *)__p;
 }
 
 /// Loads 4 double-precision floating point values from an unaligned
@@ -3119,7 +3105,7 @@ _mm256_loadu_pd(double const *__p)
   struct __loadu_pd {
     __m256d_u __v;
   } __attribute__((__packed__, __may_alias__));
-  return ((struct __loadu_pd*)__p)->__v;
+  return ((const struct __loadu_pd*)__p)->__v;
 }
 
 /// Loads 8 single-precision floating point values from an unaligned
@@ -3139,7 +3125,7 @@ _mm256_loadu_ps(float const *__p)
   struct __loadu_ps {
     __m256_u __v;
   } __attribute__((__packed__, __may_alias__));
-  return ((struct __loadu_ps*)__p)->__v;
+  return ((const struct __loadu_ps*)__p)->__v;
 }
 
 /// Loads 256 bits of integer data from a 32-byte aligned memory
@@ -3175,7 +3161,7 @@ _mm256_loadu_si256(__m256i_u const *__p)
   struct __loadu_si256 {
     __m256i_u __v;
   } __attribute__((__packed__, __may_alias__));
-  return ((struct __loadu_si256*)__p)->__v;
+  return ((const struct __loadu_si256*)__p)->__v;
 }
 
 /// Loads 256 bits of integer data from an unaligned memory location

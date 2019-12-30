@@ -52,7 +52,7 @@ XRayArgs::XRayArgs(const ToolChain &TC, const ArgList &Args) {
     } else if (Triple.isOSFreeBSD() ||
                Triple.isOSOpenBSD() ||
                Triple.isOSNetBSD() ||
-               Triple.getOS() == llvm::Triple::Darwin) {
+               Triple.isMacOSX()) {
       if (Triple.getArch() != llvm::Triple::x86_64) {
         D.Diag(diag::err_drv_clang_unsupported)
             << (std::string(XRayInstrumentOption) + " on " + Triple.str());
@@ -129,7 +129,7 @@ XRayArgs::XRayArgs(const ToolChain &TC, const ArgList &Args) {
     // are treated as actual dependencies.
     for (const auto &Filename :
          Args.getAllArgValues(options::OPT_fxray_always_instrument)) {
-      if (llvm::sys::fs::exists(Filename)) {
+      if (D.getVFS().exists(Filename)) {
         AlwaysInstrumentFiles.push_back(Filename);
         ExtraDeps.push_back(Filename);
       } else
@@ -138,7 +138,7 @@ XRayArgs::XRayArgs(const ToolChain &TC, const ArgList &Args) {
 
     for (const auto &Filename :
          Args.getAllArgValues(options::OPT_fxray_never_instrument)) {
-      if (llvm::sys::fs::exists(Filename)) {
+      if (D.getVFS().exists(Filename)) {
         NeverInstrumentFiles.push_back(Filename);
         ExtraDeps.push_back(Filename);
       } else
@@ -147,7 +147,7 @@ XRayArgs::XRayArgs(const ToolChain &TC, const ArgList &Args) {
 
     for (const auto &Filename :
          Args.getAllArgValues(options::OPT_fxray_attr_list)) {
-      if (llvm::sys::fs::exists(Filename)) {
+      if (D.getVFS().exists(Filename)) {
         AttrListFiles.push_back(Filename);
         ExtraDeps.push_back(Filename);
       } else

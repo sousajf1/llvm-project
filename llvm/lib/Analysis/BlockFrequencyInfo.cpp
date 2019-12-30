@@ -20,6 +20,7 @@
 #include "llvm/IR/CFG.h"
 #include "llvm/IR/Function.h"
 #include "llvm/IR/PassManager.h"
+#include "llvm/InitializePasses.h"
 #include "llvm/Pass.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/GraphWriter.h"
@@ -203,11 +204,12 @@ BlockFrequency BlockFrequencyInfo::getBlockFreq(const BasicBlock *BB) const {
 }
 
 Optional<uint64_t>
-BlockFrequencyInfo::getBlockProfileCount(const BasicBlock *BB) const {
+BlockFrequencyInfo::getBlockProfileCount(const BasicBlock *BB,
+                                         bool AllowSynthetic) const {
   if (!BFI)
     return None;
 
-  return BFI->getBlockProfileCount(*getFunction(), BB);
+  return BFI->getBlockProfileCount(*getFunction(), BB, AllowSynthetic);
 }
 
 Optional<uint64_t>

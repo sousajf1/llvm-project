@@ -83,14 +83,16 @@ int Declaration::Compare(const Declaration &a, const Declaration &b) {
   return 0;
 }
 
+bool Declaration::FileAndLineEqual(const Declaration &declaration) const {
+  int file_compare = FileSpec::Compare(this->m_file, declaration.m_file, true);
+  return file_compare == 0 && this->m_line == declaration.m_line;
+}
+
 bool lldb_private::operator==(const Declaration &lhs, const Declaration &rhs) {
 #ifdef LLDB_ENABLE_DECLARATION_COLUMNS
-  if (lhs.GetColumn() == rhs.GetColumn())
-    if (lhs.GetLine() == rhs.GetLine())
-      return lhs.GetFile() == rhs.GetFile();
+  if (lhs.GetColumn() != rhs.GetColumn())
+    return false;
 #else
-  if (lhs.GetLine() == rhs.GetLine())
-    return FileSpec::Equal(lhs.GetFile(), rhs.GetFile(), true);
+  return lhs.GetLine() == rhs.GetLine() && lhs.GetFile() == rhs.GetFile();
 #endif
-  return false;
 }

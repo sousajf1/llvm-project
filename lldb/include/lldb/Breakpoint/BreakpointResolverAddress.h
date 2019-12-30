@@ -14,12 +14,10 @@
 
 namespace lldb_private {
 
-//----------------------------------------------------------------------
 /// \class BreakpointResolverAddress BreakpointResolverAddress.h
 /// "lldb/Breakpoint/BreakpointResolverAddress.h" This class sets breakpoints
 /// on a given Address.  This breakpoint only takes once, and then it won't
 /// attempt to reset itself.
-//----------------------------------------------------------------------
 
 class BreakpointResolverAddress : public BreakpointResolver {
 public:
@@ -43,8 +41,8 @@ public:
                                   ModuleList &modules) override;
 
   Searcher::CallbackReturn SearchCallback(SearchFilter &filter,
-                                          SymbolContext &context, Address *addr,
-                                          bool containing) override;
+                                          SymbolContext &context,
+                                          Address *addr) override;
 
   lldb::SearchDepth GetDepth() override;
 

@@ -26,24 +26,11 @@
 
 namespace lldb_private {
 class Address;
-}
-namespace lldb_private {
 class DataExtractor;
-}
-namespace lldb_private {
 class ObjectFile;
-}
-namespace lldb_private {
 class Section;
-}
-namespace lldb_private {
 class Stream;
-}
-namespace lldb_private {
 class Target;
-}
-
-namespace lldb_private {
 
 class SectionList {
 public:
@@ -51,9 +38,13 @@ public:
   typedef collection::iterator iterator;
   typedef collection::const_iterator const_iterator;
 
-  SectionList();
+  const_iterator begin() const { return m_sections.begin(); }
+  const_iterator end() const { return m_sections.end(); }
+  const_iterator begin() { return m_sections.begin(); }
+  const_iterator end() { return m_sections.end(); }
 
-  ~SectionList();
+  /// Create an empty list.
+  SectionList() = default;
 
   SectionList &operator=(const SectionList &rhs);
 
@@ -189,20 +180,15 @@ public:
 
   void SetIsThreadSpecific(bool b) { m_thread_specific = b; }
 
-  //------------------------------------------------------------------
   /// Get the permissions as OR'ed bits from lldb::Permissions
-  //------------------------------------------------------------------
   uint32_t GetPermissions() const;
 
-  //------------------------------------------------------------------
   /// Set the permissions using bits OR'ed from lldb::Permissions
-  //------------------------------------------------------------------
   void SetPermissions(uint32_t permissions);
 
   ObjectFile *GetObjectFile() { return m_obj_file; }
   const ObjectFile *GetObjectFile() const { return m_obj_file; }
 
-  //------------------------------------------------------------------
   /// Read the section data from the object file that the section
   /// resides in.
   ///
@@ -220,11 +206,9 @@ public:
   ///     The number of bytes read from the section, or zero if the
   ///     section has no data or \a offset is not a valid offset
   ///     in this section.
-  //------------------------------------------------------------------
   lldb::offset_t GetSectionData(void *dst, lldb::offset_t dst_len,
                                 lldb::offset_t offset = 0);
 
-  //------------------------------------------------------------------
   /// Get the shared reference to the section data from the object
   /// file that the section resides in. No copies of the data will be
   /// make unless the object file has been read from memory. If the
@@ -238,7 +222,6 @@ public:
   ///     The number of bytes read from the section, or zero if the
   ///     section has no data or \a offset is not a valid offset
   ///     in this section.
-  //------------------------------------------------------------------
   lldb::offset_t GetSectionData(DataExtractor &data);
 
   uint32_t GetLog2Align() { return m_log2align; }

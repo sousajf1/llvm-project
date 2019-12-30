@@ -119,17 +119,8 @@ TYPED_TEST(DenseMapTest, EmptyIntMapTest) {
   // Lookup tests
   EXPECT_FALSE(this->Map.count(this->getKey()));
   EXPECT_TRUE(this->Map.find(this->getKey()) == this->Map.end());
-#if !defined(_MSC_VER) || defined(__clang__)
   EXPECT_EQ(typename TypeParam::mapped_type(),
             this->Map.lookup(this->getKey()));
-#else
-  // MSVC, at least old versions, cannot parse the typename to disambiguate
-  // TypeParam::mapped_type as a type. However, because MSVC doesn't implement
-  // two-phase name lookup, it also doesn't require the typename. Deal with
-  // this mutual incompatibility through specialized code.
-  EXPECT_EQ(TypeParam::mapped_type(),
-            this->Map.lookup(this->getKey()));
-#endif
 }
 
 // Constant map tests
@@ -587,6 +578,24 @@ TEST(DenseMapCustomTest, SmallDenseMapGrowTest) {
   // having an empty bucket any more.  Finding an element not in the map would
   // therefore never terminate.
   EXPECT_TRUE(map.find(32) == map.end());
+}
+
+TEST(DenseMapCustomTest, LargeSmallDenseMapCompaction) {
+  SmallDenseMap<unsigned, unsigned, 128, ContiguousDenseMapInfo> map;
+  // Fill to < 3/4 load.
+  for (unsigned i = 0; i < 95; ++i)
+    map[i] = i;
+  // And erase, leaving behind tombstones.
+  for (unsigned i = 0; i < 95; ++i)
+    map.erase(i);
+  // Fill further, so that less than 1/8 are empty, but still below 3/4 load.
+  for (unsigned i = 95; i < 128; ++i)
+    map[i] = i;
+
+  EXPECT_EQ(33u, map.size());
+  // Similar to the previous test, check for a non-existing element, as an
+  // indirect check that tombstones have been removed.
+  EXPECT_TRUE(map.find(0) == map.end());
 }
 
 TEST(DenseMapCustomTest, TryEmplaceTest) {

@@ -1,5 +1,5 @@
 // -*- C++ -*-
-//===-- parallel_impl.h ---------------------------------------------------===//
+//===----------------------------------------------------------------------===//
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
@@ -7,12 +7,16 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef __PSTL_parallel_impl_H
-#define __PSTL_parallel_impl_H
+#ifndef _PSTL_PARALLEL_IMPL_H
+#define _PSTL_PARALLEL_IMPL_H
+
+#include "pstl_config.h"
 
 #include <atomic>
 // This header defines the minimum set of parallel routines required to support Parallel STL,
 // implemented on top of Intel(R) Threading Building Blocks (Intel(R) TBB) library
+
+_PSTL_HIDE_FROM_ABI_PUSH
 
 namespace __pstl
 {
@@ -78,4 +82,6 @@ __parallel_or(_ExecutionPolicy&& __exec, _Index __first, _Index __last, _Brick _
 } // namespace __internal
 } // namespace __pstl
 
-#endif /* __PSTL_parallel_impl_H */
+_PSTL_HIDE_FROM_ABI_POP
+
+#endif /* _PSTL_PARALLEL_IMPL_H */

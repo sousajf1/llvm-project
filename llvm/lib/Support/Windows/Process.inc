@@ -56,7 +56,7 @@ static unsigned computePageSize() {
   return static_cast<unsigned>(info.dwPageSize);
 }
 
-unsigned Process::getPageSize() {
+Expected<unsigned> Process::getPageSize() {
   static unsigned Ret = computePageSize();
   return Ret;
 }
@@ -437,13 +437,6 @@ const char *Process::ResetColor() {
   if (UseANSI) return "\033[0m";
   SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), defaultColors());
   return 0;
-}
-
-// Include GetLastError() in a fatal error message.
-static void ReportLastErrorFatal(const char *Msg) {
-  std::string ErrMsg;
-  MakeErrMsg(&ErrMsg, Msg);
-  report_fatal_error(ErrMsg);
 }
 
 unsigned Process::GetRandomNumber() {

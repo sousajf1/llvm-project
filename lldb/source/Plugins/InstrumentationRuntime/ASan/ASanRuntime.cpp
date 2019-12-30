@@ -71,7 +71,6 @@ bool AddressSanitizerRuntime::CheckIfRuntimeIsValid(
   return symbol != nullptr;
 }
 
-static constexpr std::chrono::seconds g_retrieve_report_data_function_timeout(2);
 const char *address_sanitizer_retrieve_report_data_prefix = R"(
 extern "C"
 {
@@ -126,7 +125,7 @@ StructuredData::ObjectSP AddressSanitizerRuntime::RetrieveReportData() {
   options.SetTryAllThreads(true);
   options.SetStopOthers(true);
   options.SetIgnoreBreakpoints(true);
-  options.SetTimeout(g_retrieve_report_data_function_timeout);
+  options.SetTimeout(process_sp->GetUtilityExpressionTimeout());
   options.SetPrefix(address_sanitizer_retrieve_report_data_prefix);
   options.SetAutoApplyFixIts(false);
   options.SetLanguage(eLanguageTypeObjC_plus_plus);
@@ -265,7 +264,7 @@ bool AddressSanitizerRuntime::NotifyBreakpointHit(
                                      *thread_sp, description, report));
 
     StreamFileSP stream_sp(
-        process_sp->GetTarget().GetDebugger().GetOutputFile());
+        process_sp->GetTarget().GetDebugger().GetOutputStreamSP());
     if (stream_sp) {
       stream_sp->Printf("AddressSanitizer report breakpoint hit. Use 'thread "
                         "info -s' to get extended information about the "
@@ -288,7 +287,7 @@ void AddressSanitizerRuntime::Activate() {
   const Symbol *symbol = GetRuntimeModuleSP()->FindFirstSymbolWithNameAndType(
       symbol_name, eSymbolTypeCode);
 
-  if (symbol == NULL)
+  if (symbol == nullptr)
     return;
 
   if (!symbol->ValueIsAddress() || !symbol->GetAddressRef().IsValid())

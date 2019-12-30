@@ -55,7 +55,7 @@ public:
   };
   // Called by Clangd to receive messages from the client.
   // The transport should in turn invoke the handler to process messages.
-  // If handler returns false, the transport should immedately exit the loop.
+  // If handler returns false, the transport should immediately exit the loop.
   // (This is used to implement the `exit` notification).
   // Otherwise, it returns an error when the transport becomes unusable.
   virtual llvm::Error loop(MessageHandler &) = 0;
@@ -85,7 +85,7 @@ newJSONTransport(std::FILE *In, llvm::raw_ostream &Out,
                  llvm::raw_ostream *InMirror, bool Pretty,
                  JSONStreamStyle = JSONStreamStyle::Standard);
 
-#ifdef CLANGD_BUILD_XPC
+#if CLANGD_BUILD_XPC
 // Returns a Transport for macOS based on XPC.
 // Clangd with this transport is meant to be run as bundled XPC service.
 std::unique_ptr<Transport> newXPCTransport();

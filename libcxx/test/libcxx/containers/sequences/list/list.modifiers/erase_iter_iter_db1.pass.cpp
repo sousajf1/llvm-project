@@ -20,6 +20,8 @@
 #include <cassert>
 #include <cstdlib>
 
+#include "test_macros.h"
+
 int main(int, char**)
 {
     int a1[] = {1, 2, 3};
@@ -30,4 +32,3 @@ int main(int, char**)
 
   return 0;
 }
-

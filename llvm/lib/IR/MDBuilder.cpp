@@ -68,9 +68,7 @@ MDNode *MDBuilder::createFunctionEntryCount(
   Ops.push_back(createConstant(ConstantInt::get(Int64Ty, Count)));
   if (Imports) {
     SmallVector<GlobalValue::GUID, 2> OrderID(Imports->begin(), Imports->end());
-    std::stable_sort(OrderID.begin(), OrderID.end(),
-      [] (GlobalValue::GUID A, GlobalValue::GUID B) {
-        return A < B;});
+    llvm::stable_sort(OrderID);
     for (auto ID : OrderID)
       Ops.push_back(createConstant(ConstantInt::get(Int64Ty, ID)));
   }
@@ -308,6 +306,18 @@ MDNode *MDBuilder::createIrrLoopHeaderWeight(uint64_t Weight) {
   Metadata *Vals[] = {
     createString("loop_header_weight"),
     createConstant(ConstantInt::get(Type::getInt64Ty(Context), Weight)),
+  };
+  return MDNode::get(Context, Vals);
+}
+
+MDNode *MDBuilder::createMisExpect(uint64_t Index, uint64_t LikleyWeight,
+                                   uint64_t UnlikleyWeight) {
+  auto *IntType = Type::getInt64Ty(Context);
+  Metadata *Vals[] = {
+      createString("misexpect"),
+      createConstant(ConstantInt::get(IntType, Index)),
+      createConstant(ConstantInt::get(IntType, LikleyWeight)),
+      createConstant(ConstantInt::get(IntType, UnlikleyWeight)),
   };
   return MDNode::get(Context, Vals);
 }

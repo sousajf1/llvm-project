@@ -1,6 +1,6 @@
-// RUN: %clang_cc1 -verify -fopenmp %s
+// RUN: %clang_cc1 -verify -fopenmp %s -Wuninitialized
 
-// RUN: %clang_cc1 -verify -fopenmp-simd %s
+// RUN: %clang_cc1 -verify -fopenmp-simd %s -Wuninitialized
 
 typedef void **omp_allocator_handle_t;
 extern const omp_allocator_handle_t omp_default_mem_alloc;
@@ -55,7 +55,7 @@ public:
   S5(int v) : a(v) {}
   S5 &operator=(S5 &s) {
 #pragma omp target simd private(a) private(this->a) private(s.a) // expected-error {{expected variable name or data member of current class}}
-    for (int k = 0; k < s.a; ++k) // expected-warning {{Non-trivial type 'S5' is mapped, only trivial types are guaranteed to be mapped correctly}}
+    for (int k = 0; k < s.a; ++k) // expected-warning {{Type 'S5' is not trivially copyable and not guaranteed to be mapped correctly}}
       ++s.a;
     return *this;
   }
@@ -106,7 +106,7 @@ template <class I, class C>
 int foomain(I argc, C **argv) {
   I e(4);
   I g(5);
-  int i;
+  int i, z;
   int &j = i;
 #pragma omp target simd private // expected-error {{expected '(' after 'private'}}
   for (int k = 0; k < argc; ++k)
@@ -138,7 +138,7 @@ int foomain(I argc, C **argv) {
 #pragma omp target simd private(argv[1]) // expected-error {{expected variable name}}
   for (int k = 0; k < argc; ++k)
     ++k;
-#pragma omp target simd private(e, g)
+#pragma omp target simd private(e, g, z)
   for (int k = 0; k < argc; ++k)
     ++k;
 #pragma omp target simd private(h) // expected-error {{threadprivate or thread local variable cannot be private}}
@@ -178,7 +178,7 @@ int main(int argc, char **argv) {
   S5 g(5);
   S6<float> s6(0.0) , s6_0(1.0); // expected-note {{in instantiation of member function 'S6<float>::S6' requested here}}
   S7<S6<float> > s7(0.0) , s7_0(1.0);
-  int i;
+  int i, z;
   int &j = i;
 #pragma omp target simd private // expected-error {{expected '(' after 'private'}}
   for (int k = 0; k < argc; ++k)
@@ -198,7 +198,7 @@ int main(int argc, char **argv) {
 #pragma omp target simd private(argc > 0 ? argv[1] : argv[2]) // expected-error {{expected variable name}}
   for (int k = 0; k < argc; ++k)
     ++k;
-#pragma omp target simd private(argc)
+#pragma omp target simd private(argc, z)
   for (int k = 0; k < argc; ++k)
     ++k;
 #pragma omp target simd private(S1) // expected-error {{'S1' does not refer to a value}}

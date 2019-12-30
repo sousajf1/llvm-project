@@ -402,7 +402,7 @@ enum RelocationTypesARM64 : unsigned {
   IMAGE_REL_ARM64_REL32 = 0x0011,
 };
 
-enum COMDATType : unsigned {
+enum COMDATType : uint8_t {
   IMAGE_COMDAT_SELECT_NODUPLICATES = 1,
   IMAGE_COMDAT_SELECT_ANY,
   IMAGE_COMDAT_SELECT_SAME_SIZE,
@@ -547,7 +547,7 @@ struct PE32Header {
   uint32_t AddressOfEntryPoint; // RVA
   uint32_t BaseOfCode;          // RVA
   uint32_t BaseOfData;          // RVA
-  uint32_t ImageBase;
+  uint64_t ImageBase;
   uint32_t SectionAlignment;
   uint32_t FileAlignment;
   uint16_t MajorOperatingSystemVersion;
@@ -563,10 +563,10 @@ struct PE32Header {
   uint16_t Subsystem;
   // FIXME: This should be DllCharacteristics to match the COFF spec.
   uint16_t DLLCharacteristics;
-  uint32_t SizeOfStackReserve;
-  uint32_t SizeOfStackCommit;
-  uint32_t SizeOfHeapReserve;
-  uint32_t SizeOfHeapCommit;
+  uint64_t SizeOfStackReserve;
+  uint64_t SizeOfStackCommit;
+  uint64_t SizeOfHeapReserve;
+  uint64_t SizeOfHeapCommit;
   uint32_t LoaderFlags;
   // FIXME: This should be NumberOfRvaAndSizes to match the COFF spec.
   uint32_t NumberOfRvaAndSize;

@@ -23,6 +23,14 @@
 #include "test_macros.h"
 #include "MoveOnly.h"
 
+namespace NS {
+struct Namespaced {
+  int i;
+};
+template<typename ...Ts>
+void forward_as_tuple(Ts...) = delete;
+}
+
 int main(int, char**)
 {
     {
@@ -238,6 +246,29 @@ int main(int, char**)
         );
         assert(t2 == std::make_tuple(std::make_tuple(1), std::make_tuple(2)));
     }
+    {
+        int x = 101;
+        std::tuple<int, const int, int&, const int&, int&&> t(42, 101, x, x, std::move(x));
+        const auto& ct = t;
+        std::tuple<int, const int, int&, const int&> t2(42, 101, x, x);
+        const auto& ct2 = t2;
 
+        auto r = std::tuple_cat(std::move(t), std::move(ct), t2, ct2);
+
+        ASSERT_SAME_TYPE(decltype(r), std::tuple<
+            int, const int, int&, const int&, int&&,
+            int, const int, int&, const int&, int&&,
+            int, const int, int&, const int&,
+            int, const int, int&, const int&>);
+        ((void)r);
+    }
+    {
+        std::tuple<NS::Namespaced> t1({1});
+        std::tuple<NS::Namespaced> t = std::tuple_cat(t1);
+        std::tuple<NS::Namespaced, NS::Namespaced> t2 =
+            std::tuple_cat(t1, t1);
+        assert(std::get<0>(t).i == 1);
+        assert(std::get<0>(t2).i == 1);
+    }
   return 0;
 }

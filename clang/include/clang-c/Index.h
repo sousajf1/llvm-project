@@ -18,10 +18,11 @@
 
 #include <time.h>
 
-#include "clang-c/Platform.h"
+#include "clang-c/BuildSystem.h"
 #include "clang-c/CXErrorCode.h"
 #include "clang-c/CXString.h"
-#include "clang-c/BuildSystem.h"
+#include "clang-c/ExternC.h"
+#include "clang-c/Platform.h"
 
 /**
  * The version constants for the libclang API.
@@ -32,7 +33,7 @@
  * compatible, thus CINDEX_VERSION_MAJOR is expected to remain stable.
  */
 #define CINDEX_VERSION_MAJOR 0
-#define CINDEX_VERSION_MINOR 54
+#define CINDEX_VERSION_MINOR 59
 
 #define CINDEX_VERSION_ENCODE(major, minor) ( \
       ((major) * 10000)                       \
@@ -51,9 +52,7 @@
     CINDEX_VERSION_MAJOR,                               \
     CINDEX_VERSION_MINOR)
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+LLVM_CLANG_C_EXTERN_C_BEGIN
 
 /** \defgroup CINDEX libclang: C Interface to Clang
  *
@@ -221,7 +220,12 @@ enum CXCursor_ExceptionSpecificationKind {
   /**
    * The exception specification has not been parsed yet.
    */
-  CXCursor_ExceptionSpecificationKind_Unparsed
+  CXCursor_ExceptionSpecificationKind_Unparsed,
+
+  /**
+   * The cursor has a __declspec(nothrow) exception specification.
+   */
+  CXCursor_ExceptionSpecificationKind_NoThrow
 };
 
 /**
@@ -1341,7 +1345,22 @@ enum CXTranslationUnit_Flags {
   /**
    * Used to indicate that implicit attributes should be visited.
    */
-  CXTranslationUnit_VisitImplicitAttributes = 0x2000
+  CXTranslationUnit_VisitImplicitAttributes = 0x2000,
+
+  /**
+   * Used to indicate that non-errors from included files should be ignored.
+   *
+   * If set, clang_getDiagnosticSetFromTU() will not report e.g. warnings from
+   * included files anymore. This speeds up clang_getDiagnosticSetFromTU() for
+   * the case where these warnings are not of interest, as for an IDE for
+   * example, which typically shows only the diagnostics in the main file.
+   */
+  CXTranslationUnit_IgnoreNonErrorsFromIncludedFiles = 0x4000,
+
+  /**
+   * Tells the preprocessor not to skip excluded conditional blocks.
+   */
+  CXTranslationUnit_RetainExcludedConditionalBlocks = 0x8000
 };
 
 /**
@@ -2531,7 +2550,31 @@ enum CXCursorKind {
    */
   CXCursor_OMPTargetTeamsDistributeSimdDirective = 279,
 
-  CXCursor_LastStmt = CXCursor_OMPTargetTeamsDistributeSimdDirective,
+  /** C++2a std::bit_cast expression.
+   */
+  CXCursor_BuiltinBitCastExpr = 280,
+
+  /** OpenMP master taskloop directive.
+   */
+  CXCursor_OMPMasterTaskLoopDirective = 281,
+
+  /** OpenMP parallel master taskloop directive.
+   */
+  CXCursor_OMPParallelMasterTaskLoopDirective = 282,
+
+  /** OpenMP master taskloop simd directive.
+   */
+  CXCursor_OMPMasterTaskLoopSimdDirective      = 283,
+
+  /** OpenMP parallel master taskloop simd directive.
+   */
+  CXCursor_OMPParallelMasterTaskLoopSimdDirective      = 284,
+
+  /** OpenMP parallel master directive.
+   */
+  CXCursor_OMPParallelMasterDirective      = 285,
+
+  CXCursor_LastStmt = CXCursor_OMPParallelMasterDirective,
 
   /**
    * Cursor that represents the translation unit itself.
@@ -3315,7 +3358,9 @@ enum CXTypeKind {
   CXType_OCLIntelSubgroupAVCImeResultDualRefStreamout = 173,
   CXType_OCLIntelSubgroupAVCImeSingleRefStreamin = 174,
 
-  CXType_OCLIntelSubgroupAVCImeDualRefStreamin = 175
+  CXType_OCLIntelSubgroupAVCImeDualRefStreamin = 175,
+
+  CXType_ExtVector = 176
 };
 
 /**
@@ -3919,10 +3964,22 @@ CINDEX_LINKAGE CXType clang_Type_getModifiedType(CXType T);
 CINDEX_LINKAGE long long clang_Cursor_getOffsetOfField(CXCursor C);
 
 /**
+ * Determine whether the given cursor represents an anonymous
+ * tag or namespace
+ */
+CINDEX_LINKAGE unsigned clang_Cursor_isAnonymous(CXCursor C);
+
+/**
  * Determine whether the given cursor represents an anonymous record
  * declaration.
  */
-CINDEX_LINKAGE unsigned clang_Cursor_isAnonymous(CXCursor C);
+CINDEX_LINKAGE unsigned clang_Cursor_isAnonymousRecordDecl(CXCursor C);
+
+/**
+ * Determine whether the given cursor represents an inline namespace
+ * declaration.
+ */
+CINDEX_LINKAGE unsigned clang_Cursor_isInlineNamespace(CXCursor C);
 
 enum CXRefQualifierKind {
   /** No ref-qualifier was provided. */
@@ -6720,7 +6777,6 @@ CINDEX_LINKAGE unsigned clang_Type_visitFields(CXType T,
  * @}
  */
 
-#ifdef __cplusplus
-}
-#endif
+LLVM_CLANG_C_EXTERN_C_END
+
 #endif

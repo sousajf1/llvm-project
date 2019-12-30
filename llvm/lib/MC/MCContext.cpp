@@ -15,6 +15,7 @@
 #include "llvm/ADT/Twine.h"
 #include "llvm/BinaryFormat/COFF.h"
 #include "llvm/BinaryFormat/ELF.h"
+#include "llvm/BinaryFormat/XCOFF.h"
 #include "llvm/MC/MCAsmInfo.h"
 #include "llvm/MC/MCCodeView.h"
 #include "llvm/MC/MCDwarf.h"
@@ -26,12 +27,14 @@
 #include "llvm/MC/MCSectionELF.h"
 #include "llvm/MC/MCSectionMachO.h"
 #include "llvm/MC/MCSectionWasm.h"
+#include "llvm/MC/MCSectionXCOFF.h"
 #include "llvm/MC/MCStreamer.h"
 #include "llvm/MC/MCSymbol.h"
 #include "llvm/MC/MCSymbolCOFF.h"
 #include "llvm/MC/MCSymbolELF.h"
 #include "llvm/MC/MCSymbolMachO.h"
 #include "llvm/MC/MCSymbolWasm.h"
+#include "llvm/MC/MCSymbolXCOFF.h"
 #include "llvm/MC/SectionKind.h"
 #include "llvm/Support/Casting.h"
 #include "llvm/Support/CommandLine.h"
@@ -56,11 +59,12 @@ AsSecureLogFileName("as-secure-log-file-name",
 
 MCContext::MCContext(const MCAsmInfo *mai, const MCRegisterInfo *mri,
                      const MCObjectFileInfo *mofi, const SourceMgr *mgr,
-                     bool DoAutoReset)
+                     MCTargetOptions const *TargetOpts, bool DoAutoReset)
     : SrcMgr(mgr), InlineSrcMgr(nullptr), MAI(mai), MRI(mri), MOFI(mofi),
       Symbols(Allocator), UsedNames(Allocator),
+      InlineAsmUsedLabelNames(Allocator),
       CurrentDwarfLoc(0, 0, 0, DWARF2_FLAG_IS_STMT, 0, 0),
-      AutoReset(DoAutoReset) {
+      AutoReset(DoAutoReset), TargetOptions(TargetOpts) {
   SecureLogFile = AsSecureLogFileName;
 
   if (SrcMgr && SrcMgr->getNumBuffers())
@@ -85,8 +89,10 @@ void MCContext::reset() {
   COFFAllocator.DestroyAll();
   ELFAllocator.DestroyAll();
   MachOAllocator.DestroyAll();
+  XCOFFAllocator.DestroyAll();
 
   MCSubtargetAllocator.DestroyAll();
+  InlineAsmUsedLabelNames.clear();
   UsedNames.clear();
   Symbols.clear();
   Allocator.Reset();
@@ -106,6 +112,7 @@ void MCContext::reset() {
   ELFUniquingMap.clear();
   COFFUniquingMap.clear();
   WasmUniquingMap.clear();
+  XCOFFUniquingMap.clear();
 
   NextID.clear();
   AllowTemporaryLabels = true;
@@ -162,8 +169,7 @@ MCSymbol *MCContext::createSymbolImpl(const StringMapEntry<bool> *Name,
     case MCObjectFileInfo::IsWasm:
       return new (Name, *this) MCSymbolWasm(Name, IsTemporary);
     case MCObjectFileInfo::IsXCOFF:
-      // TODO: Need to implement class MCSymbolXCOFF.
-      break;
+      return new (Name, *this) MCSymbolXCOFF(Name, IsTemporary);
     }
   }
   return new (Name, *this) MCSymbol(MCSymbol::SymbolKindUnset, Name,
@@ -267,6 +273,10 @@ void MCContext::setSymbolValue(MCStreamer &Streamer,
                               uint64_t Val) {
   auto Symbol = getOrCreateSymbol(Sym);
   Streamer.EmitAssignment(Symbol, MCConstantExpr::create(Val, *this));
+}
+
+void MCContext::registerInlineAsmLabel(MCSymbol *Sym) {
+  InlineAsmUsedLabelNames[Sym->getName()] = Sym;
 }
 
 //===----------------------------------------------------------------------===//
@@ -462,14 +472,6 @@ MCSectionCOFF *MCContext::getCOFFSection(StringRef Section,
                         BeginSymName);
 }
 
-MCSectionCOFF *MCContext::getCOFFSection(StringRef Section) {
-  COFFSectionKey T{Section, "", 0, GenericSectionID};
-  auto Iter = COFFUniquingMap.find(T);
-  if (Iter == COFFUniquingMap.end())
-    return nullptr;
-  return Iter->second;
-}
-
 MCSectionCOFF *MCContext::getAssociativeCOFFSection(MCSectionCOFF *Sec,
                                                     const MCSymbol *KeySym,
                                                     unsigned UniqueID) {
@@ -534,6 +536,42 @@ MCSectionWasm *MCContext::getWasmSection(const Twine &Section, SectionKind Kind,
   return Result;
 }
 
+MCSectionXCOFF *MCContext::getXCOFFSection(StringRef Section,
+                                           XCOFF::StorageMappingClass SMC,
+                                           XCOFF::SymbolType Type,
+                                           XCOFF::StorageClass SC,
+                                           SectionKind Kind,
+                                           const char *BeginSymName) {
+  // Do the lookup. If we have a hit, return it.
+  auto IterBool = XCOFFUniquingMap.insert(
+      std::make_pair(XCOFFSectionKey{Section.str(), SMC}, nullptr));
+  auto &Entry = *IterBool.first;
+  if (!IterBool.second)
+    return Entry.second;
+
+  // Otherwise, return a new section.
+  StringRef CachedName = Entry.first.SectionName;
+  MCSymbol *QualName = getOrCreateSymbol(
+      CachedName + "[" + XCOFF::getMappingClassString(SMC) + "]");
+
+  MCSymbol *Begin = nullptr;
+  if (BeginSymName)
+    Begin = createTempSymbol(BeginSymName, false);
+
+  MCSectionXCOFF *Result = new (XCOFFAllocator.Allocate()) MCSectionXCOFF(
+      CachedName, SMC, Type, SC, Kind, cast<MCSymbolXCOFF>(QualName), Begin);
+  Entry.second = Result;
+
+  auto *F = new MCDataFragment();
+  Result->getFragmentList().insert(Result->begin(), F);
+  F->setParent(Result);
+
+  if (Begin)
+    Begin->setFragment(F);
+
+  return Result;
+}
+
 MCSubtargetInfo &MCContext::getSubtargetCopy(const MCSubtargetInfo &STI) {
   return *new (MCSubtargetAllocator.Allocate()) MCSubtargetInfo(STI);
 }
@@ -572,19 +610,31 @@ void MCContext::RemapDebugPaths() {
 void MCContext::setGenDwarfRootFile(StringRef InputFileName, StringRef Buffer) {
   // MCDwarf needs the root file as well as the compilation directory.
   // If we find a '.file 0' directive that will supersede these values.
-  MD5::MD5Result *Cksum = nullptr;
+  Optional<MD5::MD5Result> Cksum;
   if (getDwarfVersion() >= 5) {
     MD5 Hash;
-    Cksum = (MD5::MD5Result *)allocate(sizeof(MD5::MD5Result), 1);
+    MD5::MD5Result Sum;
     Hash.update(Buffer);
-    Hash.final(*Cksum);
+    Hash.final(Sum);
+    Cksum = Sum;
   }
   // Canonicalize the root filename. It cannot be empty, and should not
   // repeat the compilation dir.
-  StringRef FileName =
-      !getMainFileName().empty() ? StringRef(getMainFileName()) : InputFileName;
-  if (FileName.empty() || FileName == "-")
-    FileName = "<stdin>";
+  // The MCContext ctor initializes MainFileName to the name associated with
+  // the SrcMgr's main file ID, which might be the same as InputFileName (and
+  // possibly include directory components).
+  // Or, MainFileName might have been overridden by a -main-file-name option,
+  // which is supposed to be just a base filename with no directory component.
+  // So, if the InputFileName and MainFileName are not equal, assume
+  // MainFileName is a substitute basename and replace the last component.
+  SmallString<1024> FileNameBuf = InputFileName;
+  if (FileNameBuf.empty() || FileNameBuf == "-")
+    FileNameBuf = "<stdin>";
+  if (!getMainFileName().empty() && FileNameBuf != getMainFileName()) {
+    llvm::sys::path::remove_filename(FileNameBuf);
+    llvm::sys::path::append(FileNameBuf, getMainFileName());
+  }
+  StringRef FileName = FileNameBuf;
   if (FileName.consume_front(getCompilationDir()))
     if (llvm::sys::path::is_separator(FileName.front()))
       FileName = FileName.drop_front();
@@ -600,11 +650,12 @@ void MCContext::setGenDwarfRootFile(StringRef InputFileName, StringRef Buffer) {
 Expected<unsigned> MCContext::getDwarfFile(StringRef Directory,
                                            StringRef FileName,
                                            unsigned FileNumber,
-                                           MD5::MD5Result *Checksum,
+                                           Optional<MD5::MD5Result> Checksum,
                                            Optional<StringRef> Source,
                                            unsigned CUID) {
   MCDwarfLineTable &Table = MCDwarfLineTablesCUMap[CUID];
-  return Table.tryGetFile(Directory, FileName, Checksum, Source, FileNumber);
+  return Table.tryGetFile(Directory, FileName, Checksum, Source, DwarfVersion,
+                          FileNumber);
 }
 
 /// isValidDwarfFileNumber - takes a dwarf file number and returns true if it
@@ -612,7 +663,7 @@ Expected<unsigned> MCContext::getDwarfFile(StringRef Directory,
 bool MCContext::isValidDwarfFileNumber(unsigned FileNumber, unsigned CUID) {
   const MCDwarfLineTable &LineTable = getMCDwarfLineTable(CUID);
   if (FileNumber == 0)
-    return getDwarfVersion() >= 5 && LineTable.hasRootFile();
+    return getDwarfVersion() >= 5;
   if (FileNumber >= LineTable.getMCDwarfFiles().size())
     return false;
 
@@ -648,6 +699,21 @@ void MCContext::reportError(SMLoc Loc, const Twine &Msg) {
     InlineSrcMgr->PrintMessage(Loc, SourceMgr::DK_Error, Msg);
   else
     report_fatal_error(Msg, false);
+}
+
+void MCContext::reportWarning(SMLoc Loc, const Twine &Msg) {
+  if (TargetOptions && TargetOptions->MCNoWarn)
+    return;
+  if (TargetOptions && TargetOptions->MCFatalWarnings)
+    reportError(Loc, Msg);
+  else {
+    // If we have a source manager use it. Otherwise, try using the inline
+    // source manager.
+    if (SrcMgr)
+      SrcMgr->PrintMessage(Loc, SourceMgr::DK_Warning, Msg);
+    else if (InlineSrcMgr)
+      InlineSrcMgr->PrintMessage(Loc, SourceMgr::DK_Warning, Msg);
+  }
 }
 
 void MCContext::reportFatalError(SMLoc Loc, const Twine &Msg) {

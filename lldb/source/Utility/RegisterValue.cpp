@@ -8,7 +8,6 @@
 
 #include "lldb/Utility/RegisterValue.h"
 
-#include "lldb/Utility/Args.h"
 #include "lldb/Utility/DataExtractor.h"
 #include "lldb/Utility/Scalar.h"
 #include "lldb/Utility/Status.h"
@@ -146,13 +145,13 @@ bool RegisterValue::GetScalarValue(Scalar &scalar) const {
       scalar = *(const uint8_t *)buffer.bytes;
       return true;
     case 2:
-      scalar = *(const uint16_t *)buffer.bytes;
+      scalar = *reinterpret_cast<const uint16_t *>(buffer.bytes);
       return true;
     case 4:
-      scalar = *(const uint32_t *)buffer.bytes;
+      scalar = *reinterpret_cast<const uint32_t *>(buffer.bytes);
       return true;
     case 8:
-      scalar = *(const uint64_t *)buffer.bytes;
+      scalar = *reinterpret_cast<const uint64_t *>(buffer.bytes);
       return true;
     case 16:
     case 32:
@@ -162,8 +161,9 @@ bool RegisterValue::GetScalarValue(Scalar &scalar) const {
         const auto length_in_uint64 = buffer.length / sizeof(uint64_t);
         scalar =
             llvm::APInt(length_in_bits,
-                        llvm::ArrayRef<uint64_t>((const uint64_t *)buffer.bytes,
-                                                 length_in_uint64));
+                        llvm::ArrayRef<uint64_t>(
+                            reinterpret_cast<const uint64_t *>(buffer.bytes),
+                            length_in_uint64));
         return true;
       }
       break;
@@ -329,6 +329,35 @@ static bool ParseVectorEncoding(const RegisterInfo *reg_info,
   return true;
 }
 
+static bool UInt64ValueIsValidForByteSize(uint64_t uval64,
+                                          size_t total_byte_size) {
+  if (total_byte_size > 8)
+    return false;
+
+  if (total_byte_size == 8)
+    return true;
+
+  const uint64_t max =
+      (static_cast<uint64_t>(1) << static_cast<uint64_t>(total_byte_size * 8)) -
+      1;
+  return uval64 <= max;
+}
+
+static bool SInt64ValueIsValidForByteSize(int64_t sval64,
+                                          size_t total_byte_size) {
+  if (total_byte_size > 8)
+    return false;
+
+  if (total_byte_size == 8)
+    return true;
+
+  const int64_t max = (static_cast<int64_t>(1)
+                       << static_cast<uint64_t>(total_byte_size * 8 - 1)) -
+                      1;
+  const int64_t min = ~(max);
+  return min <= sval64 && sval64 <= max;
+}
+
 Status RegisterValue::SetValueFromString(const RegisterInfo *reg_info,
                                          llvm::StringRef value_str) {
   Status error;
@@ -367,7 +396,7 @@ Status RegisterValue::SetValueFromString(const RegisterInfo *reg_info,
       break;
     }
 
-    if (!Args::UInt64ValueIsValidForByteSize(uval64, byte_size)) {
+    if (!UInt64ValueIsValidForByteSize(uval64, byte_size)) {
       error.SetErrorStringWithFormat(
           "value 0x%" PRIx64
           " is too large to fit in a %u byte unsigned integer value",
@@ -396,7 +425,7 @@ Status RegisterValue::SetValueFromString(const RegisterInfo *reg_info,
       break;
     }
 
-    if (!Args::SInt64ValueIsValidForByteSize(ival64, byte_size)) {
+    if (!SInt64ValueIsValidForByteSize(ival64, byte_size)) {
       error.SetErrorStringWithFormat(
           "value 0x%" PRIx64
           " is too large to fit in a %u byte signed integer value",
@@ -518,7 +547,7 @@ uint16_t RegisterValue::GetAsUInt16(uint16_t fail_value,
       break;
     case 1:
     case 2:
-      return *(const uint16_t *)buffer.bytes;
+      return *reinterpret_cast<const uint16_t *>(buffer.bytes);
     }
   } break;
   }
@@ -548,7 +577,7 @@ uint32_t RegisterValue::GetAsUInt32(uint32_t fail_value,
     case 1:
     case 2:
     case 4:
-      return *(const uint32_t *)buffer.bytes;
+      return *reinterpret_cast<const uint32_t *>(buffer.bytes);
     }
   } break;
   }
@@ -579,11 +608,11 @@ uint64_t RegisterValue::GetAsUInt64(uint64_t fail_value,
     case 1:
       return *(const uint8_t *)buffer.bytes;
     case 2:
-      return *(const uint16_t *)buffer.bytes;
+      return *reinterpret_cast<const uint16_t *>(buffer.bytes);
     case 4:
-      return *(const uint32_t *)buffer.bytes;
+      return *reinterpret_cast<const uint32_t *>(buffer.bytes);
     case 8:
-      return *(const uint64_t *)buffer.bytes;
+      return *reinterpret_cast<const uint64_t *>(buffer.bytes);
     }
   } break;
   }
@@ -618,7 +647,7 @@ llvm::APInt RegisterValue::GetAsUInt128(const llvm::APInt &fail_value,
     case 8:
     case 16:
       return llvm::APInt(BITWIDTH_INT128, NUM_OF_WORDS_INT128,
-                         ((const type128 *)buffer.bytes)->x);
+                         (reinterpret_cast<const type128 *>(buffer.bytes))->x);
     }
   } break;
   }

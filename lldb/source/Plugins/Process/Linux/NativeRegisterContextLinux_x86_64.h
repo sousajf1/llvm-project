@@ -75,6 +75,8 @@ protected:
 
   Status WriteFPR() override;
 
+  uint32_t GetPtraceOffset(uint32_t reg_index) override;
+
 private:
   // Private member types.
   enum class XStateType { Invalid, FXSAVE, XSAVE };
@@ -108,7 +110,8 @@ private:
 
   // Private member variables.
   mutable XStateType m_xstate_type;
-  FPR m_fpr; // Extended States Area, named FPR for historical reasons.
+  std::unique_ptr<FPR, llvm::FreeDeleter>
+      m_xstate; // Extended States Area, named FPR for historical reasons.
   struct iovec m_iovec;
   YMM m_ymm_set;
   MPX m_mpx_set;

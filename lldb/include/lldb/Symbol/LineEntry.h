@@ -15,16 +15,12 @@
 
 namespace lldb_private {
 
-//----------------------------------------------------------------------
 /// \class LineEntry LineEntry.h "lldb/Symbol/LineEntry.h"
 /// A line table entry class.
-//----------------------------------------------------------------------
 struct LineEntry {
-  //------------------------------------------------------------------
   /// Default constructor.
   ///
   /// Initialize all member variables to invalid values.
-  //------------------------------------------------------------------
   LineEntry();
 
   LineEntry(const lldb::SectionSP &section_sp, lldb::addr_t section_offset,
@@ -33,14 +29,11 @@ struct LineEntry {
             bool _is_start_of_basic_block, bool _is_prologue_end,
             bool _is_epilogue_begin, bool _is_terminal_entry);
 
-  //------------------------------------------------------------------
   /// Clear the object's state.
   ///
   /// Clears all member variables to invalid values.
-  //------------------------------------------------------------------
   void Clear();
 
-  //------------------------------------------------------------------
   /// Dump a description of this object to a Stream.
   ///
   /// Dump a description of the contents of this object to the supplied stream
@@ -48,11 +41,6 @@ struct LineEntry {
   ///
   /// \param[in] s
   ///     The stream to which to dump the object description.
-  ///
-  /// \param[in] comp_unit
-  ///     The compile unit object that contains the support file
-  ///     list so the line entry can dump the file name (since this
-  ///     object contains a file index into the support file list).
   ///
   /// \param[in] show_file
   ///     If \b true, display the filename with the line entry which
@@ -70,42 +58,31 @@ struct LineEntry {
   ///     dumped.
   ///
   /// \see Address::DumpStyle
-  //------------------------------------------------------------------
   bool Dump(Stream *s, Target *target, bool show_file, Address::DumpStyle style,
             Address::DumpStyle fallback_style, bool show_range) const;
 
   bool GetDescription(Stream *s, lldb::DescriptionLevel level, CompileUnit *cu,
                       Target *target, bool show_address_only) const;
 
-  //------------------------------------------------------------------
   /// Dumps information specific to a process that stops at this line entry to
   /// the supplied stream \a s.
   ///
   /// \param[in] s
   ///     The stream to which to dump the object description.
   ///
-  /// \param[in] comp_unit
-  ///     The compile unit object that contains the support file
-  ///     list so the line entry can dump the file name (since this
-  ///     object contains a file index into the support file list).
-  ///
   /// \return
   ///     Returns \b true if the file and line were properly dumped,
   ///     \b false otherwise.
-  //------------------------------------------------------------------
   bool DumpStopContext(Stream *s, bool show_fullpaths) const;
 
-  //------------------------------------------------------------------
   /// Check if a line entry object is valid.
   ///
   /// \return
   ///     Returns \b true if the line entry contains a valid section
   ///     offset address, file index, and line number, \b false
   ///     otherwise.
-  //------------------------------------------------------------------
   bool IsValid() const;
 
-  //------------------------------------------------------------------
   /// Compare two LineEntry objects.
   ///
   /// \param[in] lhs
@@ -115,13 +92,11 @@ struct LineEntry {
   ///     The Right Hand Side const LineEntry object reference.
   ///
   /// \return
-  ///     \li -1 if lhs < rhs
-  ///     \li 0 if lhs == rhs
-  ///     \li 1 if lhs > rhs
-  //------------------------------------------------------------------
+  ///     -1 if lhs < rhs
+  ///     0 if lhs == rhs
+  ///     1 if lhs > rhs
   static int Compare(const LineEntry &lhs, const LineEntry &rhs);
 
-  //------------------------------------------------------------------
   /// Give the range for this LineEntry + any additional LineEntries for this
   /// same source line that are contiguous.
   ///
@@ -138,27 +113,29 @@ struct LineEntry {
   /// LineEntry (and it will include the range of the following LineEntries
   /// that match either 32 or 0.)
   ///
+  /// When \b include_inlined_functions is \b true inlined functions with
+  /// a call site at this LineEntry will also be included in the complete
+  /// range.
+  ///
   /// If the initial LineEntry this method is called on is a line #0, only the
   /// range of contiuous LineEntries with line #0 will be included in the
   /// complete range.
   ///
+  /// @param[in] include_inlined_functions
+  ///     Whether to include inlined functions at the same line or not.
+  ///
   /// \return
   ///     The contiguous AddressRange for this source line.
-  //------------------------------------------------------------------
-  AddressRange GetSameLineContiguousAddressRange() const;
+  AddressRange
+  GetSameLineContiguousAddressRange(bool include_inlined_functions) const;
 
-  //------------------------------------------------------------------
   /// Apply file mappings from target.source-map to the LineEntry's file.
   ///
   /// \param[in] target_sp
   ///     Shared pointer to the target this LineEntry belongs to.
-  //------------------------------------------------------------------
-
   void ApplyFileMappings(lldb::TargetSP target_sp);
 
-  //------------------------------------------------------------------
   // Member variables.
-  //------------------------------------------------------------------
   AddressRange range; ///< The section offset address range for this line entry.
   FileSpec file; ///< The source file, possibly mapped by the target.source-map
                  ///setting
@@ -182,7 +159,6 @@ struct LineEntry {
                              ///instructions.
 };
 
-//------------------------------------------------------------------
 /// Less than operator.
 ///
 /// \param[in] lhs
@@ -193,7 +169,6 @@ struct LineEntry {
 ///
 /// \return
 ///     Returns \b true if lhs < rhs, false otherwise.
-//------------------------------------------------------------------
 bool operator<(const LineEntry &lhs, const LineEntry &rhs);
 
 } // namespace lldb_private

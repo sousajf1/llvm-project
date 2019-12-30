@@ -19,7 +19,6 @@
 
 namespace lldb_private {
 
-//----------------------------------------------------------------------
 /// \class UtilityFunction UtilityFunction.h
 /// "lldb/Expression/UtilityFunction.h" Encapsulates a bit of source code that
 /// provides a function that is callable
@@ -28,15 +27,14 @@ namespace lldb_private {
 /// and as a backend for the expr command.  UtilityFunction encapsulates a
 /// self-contained function meant to be used from other code.  Utility
 /// functions can perform error-checking for ClangUserExpressions,
-//----------------------------------------------------------------------
 class UtilityFunction : public Expression {
+  // LLVM RTTI support
+  static char ID;
+
 public:
-  /// LLVM-style RTTI support.
-  static bool classof(const Expression *E) {
-    return E->getKind() == eKindUtilityFunction;
-  }
-  
-  //------------------------------------------------------------------
+  bool isA(const void *ClassID) const override { return ClassID == &ID; }
+  static bool classof(const Expression *obj) { return obj->isA(&ID); }
+
   /// Constructor
   ///
   /// \param[in] text
@@ -44,13 +42,11 @@ public:
   ///
   /// \param[in] name
   ///     The name of the function, as used in the text.
-  //------------------------------------------------------------------
   UtilityFunction(ExecutionContextScope &exe_scope, const char *text,
-                  const char *name, ExpressionKind kind);
+                  const char *name);
 
   ~UtilityFunction() override;
 
-  //------------------------------------------------------------------
   /// Install the utility function into a process
   ///
   /// \param[in] diagnostic_manager
@@ -61,55 +57,42 @@ public:
   ///
   /// \return
   ///     True on success (no errors); false otherwise.
-  //------------------------------------------------------------------
   virtual bool Install(DiagnosticManager &diagnostic_manager,
                        ExecutionContext &exe_ctx) = 0;
 
-  //------------------------------------------------------------------
-  /// Check whether the given PC is inside the function
+  /// Check whether the given address is inside the function
   ///
   /// Especially useful if the function dereferences nullptr to indicate a
   /// failed assert.
   ///
-  /// \param[in] pc
-  ///     The program counter to check.
+  /// \param[in] address
+  ///     The address to check.
   ///
   /// \return
-  ///     True if the program counter falls within the function's bounds;
+  ///     True if the address falls within the function's bounds;
   ///     false if not (or the function is not JIT compiled)
-  //------------------------------------------------------------------
   bool ContainsAddress(lldb::addr_t address) {
     // nothing is both >= LLDB_INVALID_ADDRESS and < LLDB_INVALID_ADDRESS, so
     // this always returns false if the function is not JIT compiled yet
     return (address >= m_jit_start_addr && address < m_jit_end_addr);
   }
 
-  //------------------------------------------------------------------
   /// Return the string that the parser should parse.  Must be a full
   /// translation unit.
-  //------------------------------------------------------------------
   const char *Text() override { return m_function_text.c_str(); }
 
-  //------------------------------------------------------------------
   /// Return the function name that should be used for executing the
   /// expression.  Text() should contain the definition of this function.
-  //------------------------------------------------------------------
   const char *FunctionName() override { return m_function_name.c_str(); }
 
-  //------------------------------------------------------------------
   /// Return the object that the parser should use when registering local
   /// variables. May be nullptr if the Expression doesn't care.
-  //------------------------------------------------------------------
   ExpressionVariableList *LocalVariables() { return nullptr; }
 
-  //------------------------------------------------------------------
   /// Return true if validation code should be inserted into the expression.
-  //------------------------------------------------------------------
   bool NeedsValidation() override { return false; }
 
-  //------------------------------------------------------------------
   /// Return true if external variables in the expression should be resolved.
-  //------------------------------------------------------------------
   bool NeedsVariableResolution() override { return false; }
 
   // This makes the function caller function. Pass in the ThreadSP if you have

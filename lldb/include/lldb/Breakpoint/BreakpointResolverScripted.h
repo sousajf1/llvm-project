@@ -16,20 +16,17 @@
 
 namespace lldb_private {
 
-//----------------------------------------------------------------------
 /// \class BreakpointResolverScripted BreakpointResolverScripted.h
 /// "lldb/Breakpoint/BreakpointResolverScripted.h" This class sets breakpoints
 /// on a given Address.  This breakpoint only takes once, and then it won't
 /// attempt to reset itself.
-//----------------------------------------------------------------------
 
 class BreakpointResolverScripted : public BreakpointResolver {
 public:
   BreakpointResolverScripted(Breakpoint *bkpt,
                              const llvm::StringRef class_name,
                              lldb::SearchDepth depth,
-                             StructuredDataImpl *args_data,
-                             ScriptInterpreter &script_interp);
+                             StructuredDataImpl *args_data);
 
   ~BreakpointResolverScripted() override;
 
@@ -41,8 +38,8 @@ public:
   StructuredData::ObjectSP SerializeToStructuredData() override;
 
   Searcher::CallbackReturn SearchCallback(SearchFilter &filter,
-                                          SymbolContext &context, Address *addr,
-                                          bool containing) override;
+                                          SymbolContext &context,
+                                          Address *addr) override;
 
   lldb::SearchDepth GetDepth() override;
 

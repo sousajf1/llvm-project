@@ -19,7 +19,7 @@ template("unix_toolchain") {
       depsformat = "gcc"
       description = "CC {{output}}"
       outputs = [
-        "{{source_out_dir}}/{{target_output_name}}.{{source_name_part}}.o",
+        "{{source_out_dir}}/{{label_name}}.{{source_name_part}}.o",
       ]
     }
 
@@ -29,7 +29,7 @@ template("unix_toolchain") {
       depsformat = "gcc"
       description = "CXX {{output}}"
       outputs = [
-        "{{source_out_dir}}/{{target_output_name}}.{{source_name_part}}.o",
+        "{{source_out_dir}}/{{label_name}}.{{source_name_part}}.o",
       ]
     }
 
@@ -39,7 +39,7 @@ template("unix_toolchain") {
       depsformat = "gcc"
       description = "ASM {{output}}"
       outputs = [
-        "{{source_out_dir}}/{{target_output_name}}.{{source_name_part}}.o",
+        "{{source_out_dir}}/{{label_name}}.{{source_name_part}}.o",
       ]
     }
 
@@ -113,9 +113,25 @@ template("unix_toolchain") {
       default_output_dir = "{{root_out_dir}}/bin"
     }
 
+    copy_command = "ln -f {{source}} {{output}} 2>/dev/null || (rm -rf {{output}} && cp -af {{source}} {{output}})"
     tool("copy") {
-      command = "ln -f {{source}} {{output}} 2>/dev/null || (rm -rf {{output}} && cp -af {{source}} {{output}})"
+      command = copy_command
       description = "COPY {{source}} {{output}}"
+    }
+
+    if (current_os == "mac") {
+      tool("copy_bundle_data") {
+        # http://serverfault.com/q/209888/43689
+        _copydir = "mkdir -p {{output}} && cd {{source}} && " +
+                   "pax -rwl . \"\$OLDPWD\"/{{output}}"
+        command = "rm -rf {{output}} && if [[ -d {{source}} ]]; then " +
+                  _copydir + "; else " + copy_command + "; fi"
+        description = "COPY_BUNDLE_DATA {{source}} {{output}}"
+      }
+      tool("compile_xcassets") {
+        command = "false"
+        description = "The LLVM build doesn't use any xcasset files"
+      }
     }
 
     tool("stamp") {
@@ -150,6 +166,8 @@ unix_toolchain("unix") {
   }
 }
 
+# This template defines a toolchain that uses just-built clang and lld
+# as compiler and linker.
 template("stage2_unix_toolchain") {
   unix_toolchain(target_name) {
     forward_variables_from(invoker, "*")
@@ -189,6 +207,15 @@ if (android_ndk_path != "") {
       use_lld = true
     }
   }
+
+  stage2_unix_toolchain("stage2_android_arm") {
+    toolchain_args = {
+      current_os = "android"
+      current_cpu = "arm"
+      is_clang = true
+      use_lld = true
+    }
+  }
 }
 
 toolchain("win") {
@@ -211,7 +238,7 @@ toolchain("win") {
     depsformat = "msvc"
     description = "CC {{output}}"
     outputs = [
-      "{{source_out_dir}}/{{target_output_name}}.{{source_name_part}}.obj",
+      "{{source_out_dir}}/{{label_name}}.{{source_name_part}}.obj",
     ]
   }
 
@@ -220,12 +247,12 @@ toolchain("win") {
     depsformat = "msvc"
     description = "CXX {{output}}"
     outputs = [
-      "{{source_out_dir}}/{{target_output_name}}.{{source_name_part}}.obj",
+      "{{source_out_dir}}/{{label_name}}.{{source_name_part}}.obj",
     ]
   }
 
   tool("alink") {
-    command = "lib /nologo {{arflags}} /out:{{output}} {{inputs}}"
+    command = "$link /lib /nologo {{arflags}} /out:{{output}} {{inputs}}"
     description = "LIB {{output}}"
     outputs = [
       "{{output_dir}}/{{target_output_name}}.lib",
@@ -247,6 +274,7 @@ toolchain("win") {
       dllfile,
       libfile,
     ]
+    lib_switch = ""
     default_output_extension = ".dll"
     restat = true
 
@@ -269,6 +297,7 @@ toolchain("win") {
     outputs = [
       dllfile,
     ]
+    lib_switch = ""
     runtime_outputs = outputs
     default_output_extension = ".dll"
 
@@ -284,6 +313,7 @@ toolchain("win") {
     outputs = [
       outfile,
     ]
+    lib_switch = ""
     default_output_extension = ".exe"
 
     # Setting this allows targets to override the default executable output by

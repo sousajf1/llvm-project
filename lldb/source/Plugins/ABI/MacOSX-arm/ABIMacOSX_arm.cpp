@@ -1316,9 +1316,7 @@ ABIMacOSX_arm::GetRegisterInfoArray(uint32_t &count) {
 
 size_t ABIMacOSX_arm::GetRedZoneSize() const { return 0; }
 
-//------------------------------------------------------------------
 // Static Functions
-//------------------------------------------------------------------
 
 ABISP
 ABIMacOSX_arm::CreateInstance(ProcessSP process_sp, const ArchSpec &arch) {
@@ -1328,7 +1326,8 @@ ABIMacOSX_arm::CreateInstance(ProcessSP process_sp, const ArchSpec &arch) {
   if (vendor_type == llvm::Triple::Apple) {
     if ((arch_type == llvm::Triple::arm) ||
         (arch_type == llvm::Triple::thumb)) {
-      return ABISP(new ABIMacOSX_arm(process_sp));
+      return ABISP(
+          new ABIMacOSX_arm(std::move(process_sp), MakeMCRegisterInfo(arch)));
     }
   }
 
@@ -1848,6 +1847,7 @@ bool ABIMacOSX_arm::CreateDefaultUnwindPlan(UnwindPlan &unwind_plan) {
   unwind_plan.SetSourceName("arm-apple-ios default unwind plan");
   unwind_plan.SetSourcedFromCompiler(eLazyBoolNo);
   unwind_plan.SetUnwindPlanValidAtAllInstructions(eLazyBoolNo);
+  unwind_plan.SetUnwindPlanForSignalTrap(eLazyBoolNo);
 
   return true;
 }
@@ -2045,9 +2045,7 @@ lldb_private::ConstString ABIMacOSX_arm::GetPluginNameStatic() {
   return g_name;
 }
 
-//------------------------------------------------------------------
 // PluginInterface protocol
-//------------------------------------------------------------------
 
 lldb_private::ConstString ABIMacOSX_arm::GetPluginName() {
   return GetPluginNameStatic();

@@ -86,8 +86,6 @@ Pass <arg> to the target offloading toolchain identified by <triple>.
 
 Run the static analyzer
 
-.. option:: --analyze-auto
-
 .. option:: --analyzer-no-default-checks
 
 .. option:: --analyzer-output<arg>
@@ -126,7 +124,11 @@ Output path for the plist report
 
 .. option:: -cfguard
 
-Emit tables required for Windows Control Flow Guard.
+Emit tables and checks for Windows Control Flow Guard.
+
+.. option:: -cfguard-no-checks
+
+Emit tables required for Windows Control Flow Guard without checks.
 
 .. option:: -client\_name<arg>
 
@@ -345,6 +347,8 @@ Disable builtin #include directories
 .. option:: -nopie, -no-pie
 
 .. option:: -noprebind
+
+.. option:: -noprofilelib
 
 .. option:: -noseglinkedit
 
@@ -609,6 +613,10 @@ C++ standard library to use
 .. option:: --target=<arg>, -target <arg>
 
 Generate code for the given target
+
+.. option:: --print-supported-cpus
+
+Print supported cpu models for the given target
 
 .. option:: -time
 
@@ -1140,8 +1148,6 @@ Flags allowing the state of the preprocessor to be dumped in various ways.
 .. program:: clang1
 .. option:: -d<arg>
 .. program:: clang
-
-.. option:: -dA
 
 .. option:: -dD
 
@@ -1693,9 +1699,14 @@ Emit OpenMP code only for SIMD-based constructs.
 
 .. option:: -foperator-arrow-depth=<arg>
 
-.. option:: -foptimization-record-file=<arg>
+.. option:: -foptimization-record-file=<file>
 
-Specify the file name of any generated YAML optimization record
+Implies -fsave-optimization-record. On Darwin platforms, this
+  cannot be used with multiple -arch <arch> options.
+
+.. option:: -foptimization-record-passes=<regex>
+
+Only include passes which match a specified regular expression in the generated optimization record (by default, include all passes)
 
 .. option:: -foptimize-sibling-calls, -fno-optimize-sibling-calls
 
@@ -1828,6 +1839,12 @@ Turn on loop reroller
 
 Generate a YAML optimization record file
 
+.. program:: clang1
+.. option:: -fsave-optimization-record=<format>
+.. program:: clang
+
+Generate an optimization record file in a specific format.
+
 .. option:: -fseh-exceptions
 
 Use SEH style exceptions
@@ -1938,6 +1955,15 @@ Perform ThinLTO importing using provided function summary index
 
 .. option:: -ftime-report
 
+.. option:: -ftime-trace
+
+Turn on time profiler. Results can be analyzed with chrome://tracing or
+`Speedscope App <https://www.speedscope.app>`_ for flamegraph visualization
+
+.. option:: -ftime-trace-granularity=<arg>
+
+Minimum time granularity (in microseconds) traced by time profiler
+
 .. option:: -ftls-model=<arg>
 
 .. option:: -ftrap-function=<arg>
@@ -1998,7 +2024,7 @@ Use the given vector functions library
 
 Enable the loop vectorization passes
 
-.. option:: -fverbose-asm, -fno-verbose-asm
+.. option:: -fverbose-asm, -fno-verbose-asm, -dA
 
 .. option:: -fvisibility-inlines-hidden
 
@@ -2164,6 +2190,8 @@ Link stack frames through backchain on System Z
 
 .. option:: -mcpu=<arg>, -mv5 (equivalent to -mcpu=hexagonv5), -mv55 (equivalent to -mcpu=hexagonv55), -mv60 (equivalent to -mcpu=hexagonv60), -mv62 (equivalent to -mcpu=hexagonv62), -mv65 (equivalent to -mcpu=hexagonv65)
 
+Use -mcpu=? to see a list of supported cpu models.
+
 .. option:: -mcrc, -mno-crc
 
 Allow use of CRC instructions (ARM/Mips only)
@@ -2180,7 +2208,7 @@ Set EABI type, e.g. 4, 5 or gnu (default depends on triple)
 
 .. option:: -mfentry
 
-Insert calls to fentry at function entry (x86 only)
+Insert calls to fentry at function entry (x86/SystemZ only)
 
 .. option:: -mfloat-abi=<arg>
 
@@ -2218,7 +2246,7 @@ Generate branches with extended addressability, usually via indirect jumps.
 
 .. option:: -mmacosx-version-min=<arg>, -mmacos-version-min=<arg>
 
-Set Mac OS X deployment target
+Set macOS deployment target
 
 .. option:: -mmcu=<arg>
 
@@ -2297,6 +2325,8 @@ The thread model to use, e.g. posix, single (posix by default)
 .. option:: -mthumb, -mno-thumb
 
 .. option:: -mtune=<arg>
+
+Use -mtune=? to see a list of supported cpu models.
 
 .. option:: -mtvos-version-min=<arg>, -mappletvos-version-min=<arg>
 
@@ -2396,6 +2426,15 @@ Generate code which only uses the general purpose registers (AArch64 only)
 
 AMDGPU
 ------
+.. option:: -mcumode, -mno-cumode
+
+CU wavefront execution mode is used if enabled and WGP wavefront execution mode
+is used if disabled (AMDGPU only)
+
+.. option:: -mwavefrontsize64, -mno-wavefrontsize64
+
+Wavefront size 64 is used if enabled and wavefront size 32 if disabled (AMDGPU only)
+
 .. option:: -mxnack, -mno-xnack
 
 Enable XNACK (AMDGPU only)
@@ -2610,6 +2649,8 @@ X86
 
 .. option:: -mavx512bitalg, -mno-avx512bitalg
 
+.. option:: -mavx512bf16, -mno-avx512bf16
+
 .. option:: -mavx512bw, -mno-avx512bw
 
 .. option:: -mavx512cd, -mno-avx512cd
@@ -2632,6 +2673,8 @@ X86
 
 .. option:: -mavx512vnni, -mno-avx512vnni
 
+.. option:: -mavx512vp2intersect, -mno-avx512vp2intersect
+
 .. option:: -mavx512vpopcntdq, -mno-avx512vpopcntdq
 
 .. option:: -mbmi, -mno-bmi
@@ -2647,6 +2690,8 @@ X86
 .. option:: -mclzero, -mno-clzero
 
 .. option:: -mcx16, -mno-cx16
+
+.. option:: -menqcmd, -mno-enqcmd
 
 .. option:: -mf16c, -mno-f16c
 

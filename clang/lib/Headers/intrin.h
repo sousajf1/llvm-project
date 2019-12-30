@@ -1,22 +1,8 @@
 /* ===-------- intrin.h ---------------------------------------------------===
  *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- * THE SOFTWARE.
+ * Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+ * See https://llvm.org/LICENSE.txt for license information.
+ * SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
  *
  *===-----------------------------------------------------------------------===
  */
@@ -49,6 +35,12 @@
 
 /* Define the default attributes for the functions in this file. */
 #define __DEFAULT_FN_ATTRS __attribute__((__always_inline__, __nodebug__))
+
+#if __x86_64__
+#define __LPTRINT_TYPE__ __int64
+#else
+#define __LPTRINT_TYPE__ long
+#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -108,8 +100,7 @@ void __outword(unsigned short, unsigned short);
 void __outwordstring(unsigned short, unsigned short *, unsigned long);
 unsigned long __readcr0(void);
 unsigned long __readcr2(void);
-static __inline__
-unsigned long __readcr3(void);
+unsigned __LPTRINT_TYPE__ __readcr3(void);
 unsigned long __readcr4(void);
 unsigned long __readcr8(void);
 unsigned int __readdr(unsigned int);
@@ -146,7 +137,7 @@ void __vmx_vmptrst(unsigned __int64 *);
 void __wbinvd(void);
 void __writecr0(unsigned int);
 static __inline__
-void __writecr3(unsigned int);
+void __writecr3(unsigned __INTPTR_TYPE__);
 void __writecr4(unsigned int);
 void __writecr8(unsigned int);
 void __writedr(unsigned int, unsigned int);
@@ -178,7 +169,6 @@ long _InterlockedExchangeAdd_HLEAcquire(long volatile *, long);
 long _InterlockedExchangeAdd_HLERelease(long volatile *, long);
 __int64 _InterlockedExchangeAdd64_HLEAcquire(__int64 volatile *, __int64);
 __int64 _InterlockedExchangeAdd64_HLERelease(__int64 volatile *, __int64);
-void __cdecl _invpcid(unsigned int, void *);
 static __inline__ void
 __attribute__((__deprecated__("use other intrinsics or C++11 atomics instead")))
 _ReadBarrier(void);
@@ -579,23 +569,25 @@ __readmsr(unsigned long __register) {
   __asm__ ("rdmsr" : "=d"(__edx), "=a"(__eax) : "c"(__register));
   return (((unsigned __int64)__edx) << 32) | (unsigned __int64)__eax;
 }
+#endif
 
-static __inline__ unsigned long __DEFAULT_FN_ATTRS
+static __inline__ unsigned __LPTRINT_TYPE__ __DEFAULT_FN_ATTRS
 __readcr3(void) {
-  unsigned long __cr3_val;
-  __asm__ __volatile__ ("mov %%cr3, %0" : "=q"(__cr3_val) : : "memory");
+  unsigned __LPTRINT_TYPE__ __cr3_val;
+  __asm__ __volatile__ ("mov %%cr3, %0" : "=r"(__cr3_val) : : "memory");
   return __cr3_val;
 }
 
 static __inline__ void __DEFAULT_FN_ATTRS
-__writecr3(unsigned int __cr3_val) {
-  __asm__ ("mov %0, %%cr3" : : "q"(__cr3_val) : "memory");
+__writecr3(unsigned __INTPTR_TYPE__ __cr3_val) {
+  __asm__ ("mov %0, %%cr3" : : "r"(__cr3_val) : "memory");
 }
-#endif
 
 #ifdef __cplusplus
 }
 #endif
+
+#undef __LPTRINT_TYPE__
 
 #undef __DEFAULT_FN_ATTRS
 

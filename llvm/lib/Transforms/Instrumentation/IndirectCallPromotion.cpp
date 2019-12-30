@@ -36,6 +36,7 @@
 #include "llvm/IR/PassManager.h"
 #include "llvm/IR/Type.h"
 #include "llvm/IR/Value.h"
+#include "llvm/InitializePasses.h"
 #include "llvm/Pass.h"
 #include "llvm/ProfileData/InstrProf.h"
 #include "llvm/Support/Casting.h"
@@ -238,7 +239,7 @@ ICallPromotionFunc::getPromotionCandidatesForCallSite(
     LLVM_DEBUG(dbgs() << " Candidate " << I << " Count=" << Count
                       << "  Target_func: " << Target << "\n");
 
-    if (ICPInvokeOnly && dyn_cast<CallInst>(Inst)) {
+    if (ICPInvokeOnly && isa<CallInst>(Inst)) {
       LLVM_DEBUG(dbgs() << " Not promote: User options.\n");
       ORE.emit([&]() {
         return OptimizationRemarkMissed(DEBUG_TYPE, "UserOptions", Inst)
@@ -246,7 +247,7 @@ ICallPromotionFunc::getPromotionCandidatesForCallSite(
       });
       break;
     }
-    if (ICPCallOnly && dyn_cast<InvokeInst>(Inst)) {
+    if (ICPCallOnly && isa<InvokeInst>(Inst)) {
       LLVM_DEBUG(dbgs() << " Not promote: User option.\n");
       ORE.emit([&]() {
         return OptimizationRemarkMissed(DEBUG_TYPE, "UserOptions", Inst)
@@ -393,9 +394,7 @@ static bool promoteIndirectCalls(Module &M, ProfileSummaryInfo *PSI,
   }
   bool Changed = false;
   for (auto &F : M) {
-    if (F.isDeclaration())
-      continue;
-    if (F.hasFnAttribute(Attribute::OptimizeNone))
+    if (F.isDeclaration() || F.hasOptNone())
       continue;
 
     std::unique_ptr<OptimizationRemarkEmitter> OwnedORE;
@@ -405,7 +404,7 @@ static bool promoteIndirectCalls(Module &M, ProfileSummaryInfo *PSI,
           AM->getResult<FunctionAnalysisManagerModuleProxy>(M).getManager();
       ORE = &FAM.getResult<OptimizationRemarkEmitterAnalysis>(F);
     } else {
-      OwnedORE = llvm::make_unique<OptimizationRemarkEmitter>(&F);
+      OwnedORE = std::make_unique<OptimizationRemarkEmitter>(&F);
       ORE = OwnedORE.get();
     }
 

@@ -66,17 +66,6 @@ DataVisualization::GetSyntheticForType(lldb::TypeNameSpecifierImplSP type_sp) {
   return GetFormatManager().GetSyntheticForType(type_sp);
 }
 
-lldb::TypeValidatorImplSP
-DataVisualization::GetValidator(ValueObject &valobj,
-                                lldb::DynamicValueType use_dynamic) {
-  return GetFormatManager().GetValidator(valobj, use_dynamic);
-}
-
-lldb::TypeValidatorImplSP
-DataVisualization::GetValidatorForType(lldb::TypeNameSpecifierImplSP type_sp) {
-  return GetFormatManager().GetValidatorForType(type_sp);
-}
-
 bool DataVisualization::AnyMatches(
     ConstString type_name, TypeCategoryImpl::FormatCategoryItems items,
     bool only_enabled, const char **matching_category,
@@ -89,7 +78,7 @@ bool DataVisualization::Categories::GetCategory(ConstString category,
                                                 lldb::TypeCategoryImplSP &entry,
                                                 bool allow_create) {
   entry = GetFormatManager().GetCategory(category, allow_create);
-  return (entry.get() != NULL);
+  return (entry.get() != nullptr);
 }
 
 bool DataVisualization::Categories::GetCategory(
@@ -122,8 +111,7 @@ void DataVisualization::Categories::Enable(ConstString category,
                                            TypeCategoryMap::Position pos) {
   if (GetFormatManager().GetCategory(category)->IsEnabled())
     GetFormatManager().DisableCategory(category);
-  GetFormatManager().EnableCategory(
-      category, pos, std::initializer_list<lldb::LanguageType>());
+  GetFormatManager().EnableCategory(category, pos, {});
 }
 
 void DataVisualization::Categories::Enable(lldb::LanguageType lang_type) {

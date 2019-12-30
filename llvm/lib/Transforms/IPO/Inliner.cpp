@@ -239,7 +239,7 @@ static void mergeInlinedArrayAllocas(
         }
 
         if (Align1 > Align2)
-          AvailableAlloca->setAlignment(AI->getAlignment());
+          AvailableAlloca->setAlignment(MaybeAlign(AI->getAlignment()));
       }
 
       AI->eraseFromParent();
@@ -527,7 +527,8 @@ static void setInlineRemark(CallSite &CS, StringRef message) {
 static bool
 inlineCallsImpl(CallGraphSCC &SCC, CallGraph &CG,
                 std::function<AssumptionCache &(Function &)> GetAssumptionCache,
-                ProfileSummaryInfo *PSI, TargetLibraryInfo &TLI,
+                ProfileSummaryInfo *PSI,
+                std::function<TargetLibraryInfo &(Function &)> GetTLI,
                 bool InsertLifetime,
                 function_ref<InlineCost(CallSite CS)> GetInlineCost,
                 function_ref<AAResults &(Function &)> AARGetter,
@@ -626,7 +627,8 @@ inlineCallsImpl(CallGraphSCC &SCC, CallGraph &CG,
 
       Instruction *Instr = CS.getInstruction();
 
-      bool IsTriviallyDead = isInstructionTriviallyDead(Instr, &TLI);
+      bool IsTriviallyDead =
+          isInstructionTriviallyDead(Instr, &GetTLI(*Caller));
 
       int InlineHistoryID;
       if (!IsTriviallyDead) {
@@ -671,7 +673,7 @@ inlineCallsImpl(CallGraphSCC &SCC, CallGraph &CG,
         LLVM_DEBUG(dbgs() << "    -> Deleting dead call: " << *Instr << "\n");
         // Update the call graph by deleting the edge from Callee to Caller.
         setInlineRemark(CS, "trivially dead");
-        CG[Caller]->removeCallEdgeFor(CS);
+        CG[Caller]->removeCallEdgeFor(*cast<CallBase>(CS.getInstruction()));
         Instr->eraseFromParent();
         ++NumCallsDeleted;
       } else {
@@ -757,13 +759,16 @@ bool LegacyInlinerBase::inlineCalls(CallGraphSCC &SCC) {
   CallGraph &CG = getAnalysis<CallGraphWrapperPass>().getCallGraph();
   ACT = &getAnalysis<AssumptionCacheTracker>();
   PSI = &getAnalysis<ProfileSummaryInfoWrapperPass>().getPSI();
-  auto &TLI = getAnalysis<TargetLibraryInfoWrapperPass>().getTLI();
+  auto GetTLI = [&](Function &F) -> TargetLibraryInfo & {
+    return getAnalysis<TargetLibraryInfoWrapperPass>().getTLI(F);
+  };
   auto GetAssumptionCache = [&](Function &F) -> AssumptionCache & {
     return ACT->getAssumptionCache(F);
   };
-  return inlineCallsImpl(SCC, CG, GetAssumptionCache, PSI, TLI, InsertLifetime,
-                         [this](CallSite CS) { return getInlineCost(CS); },
-                         LegacyAARGetter(*this), ImportedFunctionsStats);
+  return inlineCallsImpl(
+      SCC, CG, GetAssumptionCache, PSI, GetTLI, InsertLifetime,
+      [this](CallSite CS) { return getInlineCost(CS); }, LegacyAARGetter(*this),
+      ImportedFunctionsStats);
 }
 
 /// Remove now-dead linkonce functions at the end of
@@ -879,7 +884,7 @@ PreservedAnalyses InlinerPass::run(LazyCallGraph::SCC &InitialC,
   if (!ImportedFunctionsStats &&
       InlinerFunctionImportStats != InlinerFunctionImportStatsOpts::No) {
     ImportedFunctionsStats =
-        llvm::make_unique<ImportedFunctionsInliningStatistics>();
+        std::make_unique<ImportedFunctionsInliningStatistics>();
     ImportedFunctionsStats->setModuleInfo(M);
   }
 
@@ -973,7 +978,7 @@ PreservedAnalyses InlinerPass::run(LazyCallGraph::SCC &InitialC,
     LazyCallGraph::Node &N = *CG.lookup(F);
     if (CG.lookupSCC(N) != C)
       continue;
-    if (F.hasFnAttribute(Attribute::OptimizeNone)) {
+    if (F.hasOptNone()) {
       setInlineRemark(Calls[i].first, "optnone attribute");
       continue;
     }
@@ -1008,8 +1013,9 @@ PreservedAnalyses InlinerPass::run(LazyCallGraph::SCC &InitialC,
       bool RemarksEnabled =
           Callee.getContext().getDiagHandlerPtr()->isMissedOptRemarkEnabled(
               DEBUG_TYPE);
-      return getInlineCost(CS, Params, CalleeTTI, GetAssumptionCache, {GetBFI},
-                           PSI, RemarksEnabled ? &ORE : nullptr);
+      return getInlineCost(cast<CallBase>(*CS.getInstruction()), Params,
+                           CalleeTTI, GetAssumptionCache, {GetBFI}, PSI,
+                           RemarksEnabled ? &ORE : nullptr);
     };
 
     // Now process as many calls as we have within this caller in the sequnece.

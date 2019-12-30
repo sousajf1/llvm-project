@@ -12,6 +12,7 @@
 
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/StringRef.h"
+#include "llvm/Support/InitLLVM.h"
 #include "llvm/Support/ManagedStatic.h"
 #include "llvm/Support/PrettyStackTrace.h"
 #include "llvm/Support/Signals.h"
@@ -36,18 +37,19 @@ static void display_usage(const char *progname) {
 int main_gdbserver(int argc, char *argv[]);
 int main_platform(int argc, char *argv[]);
 
+namespace llgs {
 static void initialize() {
   if (auto e = g_debugger_lifetime->Initialize(
-          llvm::make_unique<SystemInitializerLLGS>(), nullptr))
+          std::make_unique<SystemInitializerLLGS>(), nullptr))
     llvm::consumeError(std::move(e));
 }
 
-static void terminate() { g_debugger_lifetime->Terminate(); }
+static void terminate_debugger() { g_debugger_lifetime->Terminate(); }
+} // namespace llgs
 
-//----------------------------------------------------------------------
 // main
-//----------------------------------------------------------------------
 int main(int argc, char *argv[]) {
+  llvm::InitLLVM IL(argc, argv, /*InstallPipeSignalExitHandler=*/false);
   llvm::StringRef ToolName = argv[0];
   llvm::sys::PrintStackTraceOnErrorSignal(ToolName);
   llvm::PrettyStackTraceProgram X(argc, argv);
@@ -61,14 +63,14 @@ int main(int argc, char *argv[]) {
 
   switch (argv[1][0]) {
   case 'g':
-    initialize();
+    llgs::initialize();
     main_gdbserver(argc, argv);
-    terminate();
+    llgs::terminate_debugger();
     break;
   case 'p':
-    initialize();
+    llgs::initialize();
     main_platform(argc, argv);
-    terminate();
+    llgs::terminate_debugger();
     break;
   case 'v':
     fprintf(stderr, "%s\n", lldb_private::GetVersion());

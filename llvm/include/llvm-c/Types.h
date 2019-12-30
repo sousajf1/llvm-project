@@ -15,10 +15,9 @@
 #define LLVM_C_TYPES_H
 
 #include "llvm-c/DataTypes.h"
+#include "llvm-c/ExternC.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+LLVM_C_EXTERN_C_BEGIN
 
 /**
  * @defgroup LLVMCSupportTypes Types and Enumerations
@@ -164,11 +163,14 @@ typedef struct LLVMOpaqueModuleFlagEntry LLVMModuleFlagEntry;
 typedef struct LLVMOpaqueJITEventListener *LLVMJITEventListenerRef;
 
 /**
+ * @see llvm::object::Binary
+ */
+typedef struct LLVMOpaqueBinary *LLVMBinaryRef;
+
+/**
  * @}
  */
 
-#ifdef __cplusplus
-}
-#endif
+LLVM_C_EXTERN_C_END
 
 #endif

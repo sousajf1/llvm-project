@@ -30,6 +30,7 @@
 #include "llvm/IR/Dominators.h"
 #include "llvm/IR/Metadata.h"
 #include "llvm/IR/Module.h"
+#include "llvm/Support/CommandLine.h"
 #include "llvm/Support/Debug.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Transforms/Utils.h"
@@ -124,11 +125,10 @@ static void ConnectProlog(Loop *L, Value *BECount, unsigned Count,
       // Update the existing PHI node operand with the value from the
       // new PHI node.  How this is done depends on if the existing
       // PHI node is in the original loop block, or the exit block.
-      if (L->contains(&PN)) {
-        PN.setIncomingValue(PN.getBasicBlockIndex(NewPreHeader), NewPN);
-      } else {
+      if (L->contains(&PN))
+        PN.setIncomingValueForBlock(NewPreHeader, NewPN);
+      else
         PN.addIncoming(NewPN, PrologExit);
-      }
     }
   }
 
@@ -264,7 +264,7 @@ static void ConnectEpilog(Loop *L, Value *ModVal, BasicBlock *NewExit,
       // Update the existing PHI node operand with the value from the new PHI
       // node.  Corresponding instruction in epilog loop should be PHI.
       PHINode *VPN = cast<PHINode>(VMap[&PN]);
-      VPN->setIncomingValue(VPN->getBasicBlockIndex(EpilogPreHeader), NewPN);
+      VPN->setIncomingValueForBlock(EpilogPreHeader, NewPN);
     }
   }
 
@@ -396,9 +396,9 @@ CloneLoopBlocks(Loop *L, Value *NewIter, const bool CreateRemainderLoop,
     }
   }
   if (CreateRemainderLoop) {
-    Loop *NewLoop = NewLoops[L];
-    MDNode *LoopID = NewLoop->getLoopID();
+    Loop *NewLoop = NewLoops[L];  
     assert(NewLoop && "L should have been cloned");
+    MDNode *LoopID = NewLoop->getLoopID();
 
     // Only add loop metadata if the loop is not going to be completely
     // unrolled.
@@ -425,10 +425,9 @@ CloneLoopBlocks(Loop *L, Value *NewIter, const bool CreateRemainderLoop,
 
 /// Returns true if we can safely unroll a multi-exit/exiting loop. OtherExits
 /// is populated with all the loop exit blocks other than the LatchExit block.
-static bool
-canSafelyUnrollMultiExitLoop(Loop *L, SmallVectorImpl<BasicBlock *> &OtherExits,
-                             BasicBlock *LatchExit, bool PreserveLCSSA,
-                             bool UseEpilogRemainder) {
+static bool canSafelyUnrollMultiExitLoop(Loop *L, BasicBlock *LatchExit,
+                                         bool PreserveLCSSA,
+                                         bool UseEpilogRemainder) {
 
   // We currently have some correctness constrains in unrolling a multi-exit
   // loop. Check for these below.
@@ -436,11 +435,6 @@ canSafelyUnrollMultiExitLoop(Loop *L, SmallVectorImpl<BasicBlock *> &OtherExits,
   // We rely on LCSSA form being preserved when the exit blocks are transformed.
   if (!PreserveLCSSA)
     return false;
-  SmallVector<BasicBlock *, 4> Exits;
-  L->getUniqueExitBlocks(Exits);
-  for (auto *BB : Exits)
-    if (BB != LatchExit)
-      OtherExits.push_back(BB);
 
   // TODO: Support multiple exiting blocks jumping to the `LatchExit` when
   // UnrollRuntimeMultiExit is true. This will need updating the logic in
@@ -470,9 +464,8 @@ static bool canProfitablyUnrollMultiExitLoop(
     bool PreserveLCSSA, bool UseEpilogRemainder) {
 
 #if !defined(NDEBUG)
-  SmallVector<BasicBlock *, 8> OtherExitsDummyCheck;
-  assert(canSafelyUnrollMultiExitLoop(L, OtherExitsDummyCheck, LatchExit,
-                                      PreserveLCSSA, UseEpilogRemainder) &&
+  assert(canSafelyUnrollMultiExitLoop(L, LatchExit, PreserveLCSSA,
+                                      UseEpilogRemainder) &&
          "Should be safe to unroll before checking profitability!");
 #endif
 
@@ -553,10 +546,10 @@ static bool canProfitablyUnrollMultiExitLoop(
 bool llvm::UnrollRuntimeLoopRemainder(Loop *L, unsigned Count,
                                       bool AllowExpensiveTripCount,
                                       bool UseEpilogRemainder,
-                                      bool UnrollRemainder, LoopInfo *LI,
-                                      ScalarEvolution *SE, DominatorTree *DT,
-                                      AssumptionCache *AC, bool PreserveLCSSA,
-                                      Loop **ResultLoop) {
+                                      bool UnrollRemainder, bool ForgetAllSCEV,
+                                      LoopInfo *LI, ScalarEvolution *SE,
+                                      DominatorTree *DT, AssumptionCache *AC,
+                                      bool PreserveLCSSA, Loop **ResultLoop) {
   LLVM_DEBUG(dbgs() << "Trying runtime unrolling on Loop: \n");
   LLVM_DEBUG(L->dump());
   LLVM_DEBUG(UseEpilogRemainder ? dbgs() << "Using epilog remainder.\n"
@@ -596,8 +589,9 @@ bool llvm::UnrollRuntimeLoopRemainder(Loop *L, unsigned Count,
 
   // These are exit blocks other than the target of the latch exiting block.
   SmallVector<BasicBlock *, 4> OtherExits;
+  L->getUniqueNonLatchExitBlocks(OtherExits);
   bool isMultiExitUnrollingEnabled =
-      canSafelyUnrollMultiExitLoop(L, OtherExits, LatchExit, PreserveLCSSA,
+      canSafelyUnrollMultiExitLoop(L, LatchExit, PreserveLCSSA,
                                    UseEpilogRemainder) &&
       canProfitablyUnrollMultiExitLoop(L, OtherExits, LatchExit, PreserveLCSSA,
                                        UseEpilogRemainder);
@@ -949,12 +943,13 @@ bool llvm::UnrollRuntimeLoopRemainder(Loop *L, unsigned Count,
   if (remainderLoop && UnrollRemainder) {
     LLVM_DEBUG(dbgs() << "Unrolling remainder loop\n");
     UnrollResult =
-        UnrollLoop(remainderLoop, /*Count*/ Count - 1, /*TripCount*/ Count - 1,
-                   /*Force*/ false, /*AllowRuntime*/ false,
-                   /*AllowExpensiveTripCount*/ false, /*PreserveCondBr*/ true,
-                   /*PreserveOnlyFirst*/ false, /*TripMultiple*/ 1,
-                   /*PeelCount*/ 0, /*UnrollRemainder*/ false, LI, SE, DT, AC,
-                   /*ORE*/ nullptr, PreserveLCSSA);
+        UnrollLoop(remainderLoop,
+                   {/*Count*/ Count - 1, /*TripCount*/ Count - 1,
+                    /*Force*/ false, /*AllowRuntime*/ false,
+                    /*AllowExpensiveTripCount*/ false, /*PreserveCondBr*/ true,
+                    /*PreserveOnlyFirst*/ false, /*TripMultiple*/ 1,
+                    /*PeelCount*/ 0, /*UnrollRemainder*/ false, ForgetAllSCEV},
+                   LI, SE, DT, AC, /*ORE*/ nullptr, PreserveLCSSA);
   }
 
   if (ResultLoop && UnrollResult != LoopUnrollResult::FullyUnrolled)

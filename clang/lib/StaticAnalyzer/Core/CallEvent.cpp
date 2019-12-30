@@ -14,6 +14,7 @@
 
 #include "clang/StaticAnalyzer/Core/PathSensitive/CallEvent.h"
 #include "clang/AST/ASTContext.h"
+#include "clang/AST/Attr.h"
 #include "clang/AST/Decl.h"
 #include "clang/AST/DeclBase.h"
 #include "clang/AST/DeclCXX.h"
@@ -27,22 +28,22 @@
 #include "clang/Analysis/AnalysisDeclContext.h"
 #include "clang/Analysis/CFG.h"
 #include "clang/Analysis/CFGStmtMap.h"
+#include "clang/Analysis/PathDiagnostic.h"
 #include "clang/Analysis/ProgramPoint.h"
-#include "clang/CrossTU/CrossTranslationUnit.h"
 #include "clang/Basic/IdentifierTable.h"
 #include "clang/Basic/LLVM.h"
 #include "clang/Basic/SourceLocation.h"
 #include "clang/Basic/SourceManager.h"
 #include "clang/Basic/Specifiers.h"
-#include "clang/StaticAnalyzer/Core/BugReporter/PathDiagnostic.h"
+#include "clang/CrossTU/CrossTranslationUnit.h"
 #include "clang/StaticAnalyzer/Core/PathSensitive/CheckerContext.h"
+#include "clang/StaticAnalyzer/Core/PathSensitive/DynamicType.h"
 #include "clang/StaticAnalyzer/Core/PathSensitive/DynamicTypeInfo.h"
-#include "clang/StaticAnalyzer/Core/PathSensitive/DynamicTypeMap.h"
 #include "clang/StaticAnalyzer/Core/PathSensitive/MemRegion.h"
 #include "clang/StaticAnalyzer/Core/PathSensitive/ProgramState.h"
 #include "clang/StaticAnalyzer/Core/PathSensitive/ProgramState_Fwd.h"
-#include "clang/StaticAnalyzer/Core/PathSensitive/SVals.h"
 #include "clang/StaticAnalyzer/Core/PathSensitive/SValBuilder.h"
+#include "clang/StaticAnalyzer/Core/PathSensitive/SVals.h"
 #include "clang/StaticAnalyzer/Core/PathSensitive/Store.h"
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/DenseMap.h"
@@ -191,7 +192,8 @@ AnalysisDeclContext *CallEvent::getCalleeAnalysisDeclContext() const {
   return ADC;
 }
 
-const StackFrameContext *CallEvent::getCalleeStackFrame() const {
+const StackFrameContext *
+CallEvent::getCalleeStackFrame(unsigned BlockCount) const {
   AnalysisDeclContext *ADC = getCalleeAnalysisDeclContext();
   if (!ADC)
     return nullptr;
@@ -217,11 +219,12 @@ const StackFrameContext *CallEvent::getCalleeStackFrame() const {
         break;
   assert(Idx < Sz);
 
-  return ADC->getManager()->getStackFrame(ADC, LCtx, E, B, Idx);
+  return ADC->getManager()->getStackFrame(ADC, LCtx, E, B, BlockCount, Idx);
 }
 
-const VarRegion *CallEvent::getParameterLocation(unsigned Index) const {
-  const StackFrameContext *SFC = getCalleeStackFrame();
+const VarRegion *CallEvent::getParameterLocation(unsigned Index,
+                                                 unsigned BlockCount) const {
+  const StackFrameContext *SFC = getCalleeStackFrame(BlockCount);
   // We cannot construct a VarRegion without a stack frame.
   if (!SFC)
     return nullptr;
@@ -303,23 +306,11 @@ ProgramStateRef CallEvent::invalidateRegions(unsigned BlockCount,
   for (unsigned Idx = 0, Count = getNumArgs(); Idx != Count; ++Idx) {
     // Mark this region for invalidation.  We batch invalidate regions
     // below for efficiency.
-    if (const MemRegion *MR = getArgSVal(Idx).getAsRegion()) {
-      bool UseBaseRegion = true;
-      if (const auto *FR = MR->getAs<FieldRegion>()) {
-        if (const auto *TVR = FR->getSuperRegion()->getAs<TypedValueRegion>()) {
-          if (!TVR->getValueType()->isUnionType()) {
-            ETraits.setTrait(MR, RegionAndSymbolInvalidationTraits::
-                                     TK_DoNotInvalidateSuperRegion);
-            UseBaseRegion = false;
-          }
-        }
-      }
-      // todo: factor this out + handle the lower level const pointers.
-      if (PreserveArgs.count(Idx))
-        ETraits.setTrait(
-            UseBaseRegion ? MR->getBaseRegion() : MR,
-            RegionAndSymbolInvalidationTraits::TK_PreserveContents);
-    }
+    if (PreserveArgs.count(Idx))
+      if (const MemRegion *MR = getArgSVal(Idx).getAsRegion())
+        ETraits.setTrait(MR->getBaseRegion(),
+                        RegionAndSymbolInvalidationTraits::TK_PreserveContents);
+        // TODO: Factor this out + handle the lower level const pointers.
 
     ValuesToInvalidate.push_back(getArgSVal(Idx));
 
@@ -334,7 +325,7 @@ ProgramStateRef CallEvent::invalidateRegions(unsigned BlockCount,
     if (getKind() != CE_CXXAllocator)
       if (isArgumentConstructedDirectly(Idx))
         if (auto AdjIdx = getAdjustedParameterIndex(Idx))
-          if (const VarRegion *VR = getParameterLocation(*AdjIdx))
+          if (const VarRegion *VR = getParameterLocation(*AdjIdx, BlockCount))
             ValuesToInvalidate.push_back(loc::MemRegionVal(VR));
   }
 
@@ -368,20 +359,33 @@ bool CallEvent::isCalled(const CallDescription &CD) const {
   // FIXME: Add ObjC Message support.
   if (getKind() == CE_ObjCMessage)
     return false;
+
+  const IdentifierInfo *II = getCalleeIdentifier();
+  if (!II)
+    return false;
+  const FunctionDecl *FD = dyn_cast_or_null<FunctionDecl>(getDecl());
+  if (!FD)
+    return false;
+
+  if (CD.Flags & CDF_MaybeBuiltin) {
+    return CheckerContext::isCLibraryFunction(FD, CD.getFunctionName()) &&
+           (!CD.RequiredArgs || CD.RequiredArgs <= getNumArgs()) &&
+           (!CD.RequiredParams || CD.RequiredParams <= parameters().size());
+  }
+
   if (!CD.IsLookupDone) {
     CD.IsLookupDone = true;
     CD.II = &getState()->getStateManager().getContext().Idents.get(
         CD.getFunctionName());
   }
-  const IdentifierInfo *II = getCalleeIdentifier();
-  if (!II || II != CD.II)
+
+  if (II != CD.II)
     return false;
 
-  const Decl *D = getDecl();
   // If CallDescription provides prefix names, use them to improve matching
   // accuracy.
-  if (CD.QualifiedName.size() > 1 && D) {
-    const DeclContext *Ctx = D->getDeclContext();
+  if (CD.QualifiedName.size() > 1 && FD) {
+    const DeclContext *Ctx = FD->getDeclContext();
     // See if we'll be able to match them all.
     size_t NumUnmatched = CD.QualifiedName.size() - 1;
     for (; Ctx && isa<NamedDecl>(Ctx); Ctx = Ctx->getParent()) {
@@ -405,8 +409,8 @@ bool CallEvent::isCalled(const CallDescription &CD) const {
       return false;
   }
 
-  return (CD.RequiredArgs == CallDescription::NoArgRequirement ||
-          CD.RequiredArgs == getNumArgs());
+  return (!CD.RequiredArgs || CD.RequiredArgs == getNumArgs()) &&
+         (!CD.RequiredParams || CD.RequiredParams == parameters().size());
 }
 
 SVal CallEvent::getArgSVal(unsigned Index) const {
@@ -516,7 +520,7 @@ static void addParameterValuesToBindings(const StackFrameContext *CalleeCtx,
 
     // TODO: Support allocator calls.
     if (Call.getKind() != CE_CXXAllocator)
-      if (Call.isArgumentConstructedDirectly(Idx))
+      if (Call.isArgumentConstructedDirectly(Call.getASTArgumentIndex(Idx)))
         continue;
 
     // TODO: Allocators should receive the correct size and possibly alignment,
@@ -767,8 +771,11 @@ RuntimeDefinition CXXInstanceCall::getRuntimeDefinition() const {
 
   // Does the decl that we found have an implementation?
   const FunctionDecl *Definition;
-  if (!Result->hasBody(Definition))
+  if (!Result->hasBody(Definition)) {
+    if (!DynType.canBeASubClass())
+      return AnyFunctionCall::getRuntimeDefinition();
     return {};
+  }
 
   // We found a definition. If we're not sure that this devirtualization is
   // actually what will happen at runtime, make sure to provide the region so
@@ -1031,7 +1038,7 @@ getSyntacticFromForPseudoObjectExpr(const PseudoObjectExpr *POE) {
 ObjCMessageKind ObjCMethodCall::getMessageKind() const {
   if (!Data) {
     // Find the parent, ignoring implicit casts.
-    ParentMap &PM = getLocationContext()->getParentMap();
+    const ParentMap &PM = getLocationContext()->getParentMap();
     const Stmt *S = PM.getParentIgnoreParenCasts(getOriginExpr());
 
     // Check if parent is a PseudoObjectExpr.
@@ -1074,7 +1081,7 @@ ObjCMessageKind ObjCMethodCall::getMessageKind() const {
 
 const ObjCPropertyDecl *ObjCMethodCall::getAccessedProperty() const {
   // Look for properties accessed with property syntax (foo.bar = ...)
-  if ( getMessageKind() == OCM_PropertyAccess) {
+  if (getMessageKind() == OCM_PropertyAccess) {
     const PseudoObjectExpr *POE = getContainingPseudoObjectExpr();
     assert(POE && "Property access without PseudoObjectExpr?");
 
@@ -1303,6 +1310,8 @@ RuntimeDefinition ObjCMethodCall::getRuntimeDefinition() const {
         }
 
         const ObjCMethodDecl *MD = Val.getValue();
+        if (MD && !MD->hasBody())
+          MD = MD->getCanonicalDecl();
         if (CanBeSubClassed)
           return RuntimeDefinition(MD, Receiver);
         else

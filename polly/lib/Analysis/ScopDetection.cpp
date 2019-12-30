@@ -74,6 +74,7 @@
 #include "llvm/IR/Module.h"
 #include "llvm/IR/PassManager.h"
 #include "llvm/IR/Value.h"
+#include "llvm/InitializePasses.h"
 #include "llvm/Pass.h"
 #include "llvm/Support/Debug.h"
 #include "llvm/Support/raw_ostream.h"
@@ -468,7 +469,8 @@ bool ScopDetection::onlyValidRequiredInvariantLoads(
 
     for (auto NonAffineRegion : Context.NonAffineSubRegionSet) {
       if (isSafeToLoadUnconditionally(Load->getPointerOperand(),
-                                      Load->getAlignment(), DL))
+                                      Load->getType(),
+                                      MaybeAlign(Load->getAlignment()), DL))
         continue;
 
       if (NonAffineRegion->contains(Load) &&
@@ -913,7 +915,9 @@ bool ScopDetection::hasValidArraySizes(DetectionContext &Context,
   Value *BaseValue = BasePointer->getValue();
   Region &CurRegion = Context.CurRegion;
   for (const SCEV *DelinearizedSize : Sizes) {
-    if (!isAffine(DelinearizedSize, Scope, Context)) {
+    // Don't pass down the scope to isAfffine; array dimensions must be
+    // invariant across the entire scop.
+    if (!isAffine(DelinearizedSize, nullptr, Context)) {
       Sizes.clear();
       break;
     }

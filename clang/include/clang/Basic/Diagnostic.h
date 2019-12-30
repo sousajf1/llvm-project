@@ -25,6 +25,7 @@
 #include "llvm/ADT/StringRef.h"
 #include "llvm/ADT/iterator_range.h"
 #include "llvm/Support/Compiler.h"
+#include "llvm/Support/Error.h"
 #include <cassert>
 #include <cstdint>
 #include <limits>
@@ -175,6 +176,9 @@ public:
 
     /// IdentifierInfo
     ak_identifierinfo,
+
+    /// address space
+    ak_addrspace,
 
     /// Qualifiers
     ak_qual,
@@ -472,6 +476,9 @@ private:
   /// Second string argument for the delayed diagnostic.
   std::string DelayedDiagArg2;
 
+  /// Third string argument for the delayed diagnostic.
+  std::string DelayedDiagArg3;
+
   /// Optional flag value.
   ///
   /// Some flags accept values, for instance: -Wframe-larger-than=<value> and
@@ -631,24 +638,22 @@ public:
   /// Suppress all diagnostics, to silence the front end when we
   /// know that we don't want any more diagnostics to be passed along to the
   /// client
-  void setSuppressAllDiagnostics(bool Val = true) {
-    SuppressAllDiagnostics = Val;
-  }
+  void setSuppressAllDiagnostics(bool Val) { SuppressAllDiagnostics = Val; }
   bool getSuppressAllDiagnostics() const { return SuppressAllDiagnostics; }
 
   /// Set type eliding, to skip outputting same types occurring in
   /// template types.
-  void setElideType(bool Val = true) { ElideType = Val; }
+  void setElideType(bool Val) { ElideType = Val; }
   bool getElideType() { return ElideType; }
 
   /// Set tree printing, to outputting the template difference in a
   /// tree format.
-  void setPrintTemplateTree(bool Val = false) { PrintTemplateTree = Val; }
+  void setPrintTemplateTree(bool Val) { PrintTemplateTree = Val; }
   bool getPrintTemplateTree() { return PrintTemplateTree; }
 
   /// Set color printing, so the type diffing will inject color markers
   /// into the output.
-  void setShowColors(bool Val = false) { ShowColors = Val; }
+  void setShowColors(bool Val) { ShowColors = Val; }
   bool getShowColors() { return ShowColors; }
 
   /// Specify which overload candidates to show when overload resolution
@@ -666,7 +671,7 @@ public:
   /// the middle of another diagnostic.
   ///
   /// This can be used by clients who suppress diagnostics themselves.
-  void setLastDiagnosticIgnored(bool Ignored = true) {
+  void setLastDiagnosticIgnored(bool Ignored) {
     if (LastDiagLevel == DiagnosticIDs::Fatal)
       FatalErrorOccurred = true;
     LastDiagLevel = Ignored ? DiagnosticIDs::Ignored : DiagnosticIDs::Warning;
@@ -875,8 +880,12 @@ public:
   /// \param Arg2 A string argument that will be provided to the
   /// diagnostic. A copy of this string will be stored in the
   /// DiagnosticsEngine object itself.
+  ///
+  /// \param Arg3 A string argument that will be provided to the
+  /// diagnostic. A copy of this string will be stored in the
+  /// DiagnosticsEngine object itself.
   void SetDelayedDiagnostic(unsigned DiagID, StringRef Arg1 = "",
-                            StringRef Arg2 = "");
+                            StringRef Arg2 = "", StringRef Arg3 = "");
 
   /// Clear out the current diagnostic.
   void Clear() { CurDiagID = std::numeric_limits<unsigned>::max(); }
@@ -1126,11 +1135,6 @@ public:
     Emit();
   }
 
-  /// Retrieve an empty diagnostic builder.
-  static DiagnosticBuilder getEmpty() {
-    return {};
-  }
-
   /// Forces the diagnostic to be emitted.
   const DiagnosticBuilder &setForceEmit() const {
     IsForceEmit = true;
@@ -1301,6 +1305,12 @@ inline DiagnosticBuilder DiagnosticsEngine::Report(SourceLocation Loc,
   CurDiagID = DiagID;
   FlagValue.clear();
   return DiagnosticBuilder(this);
+}
+
+inline const DiagnosticBuilder &operator<<(const DiagnosticBuilder &DB,
+                                           llvm::Error &&E) {
+  DB.AddString(toString(std::move(E)));
+  return DB;
 }
 
 inline DiagnosticBuilder DiagnosticsEngine::Report(unsigned DiagID) {

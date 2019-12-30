@@ -124,8 +124,6 @@ define i32 @fcmp_one(float %a, float %b) nounwind {
 ; RV32IF-NEXT:    and a0, a1, a0
 ; RV32IF-NEXT:    feq.s a1, ft0, ft1
 ; RV32IF-NEXT:    not a1, a1
-; RV32IF-NEXT:    seqz a0, a0
-; RV32IF-NEXT:    xori a0, a0, 1
 ; RV32IF-NEXT:    and a0, a1, a0
 ; RV32IF-NEXT:    ret
 ;
@@ -138,8 +136,6 @@ define i32 @fcmp_one(float %a, float %b) nounwind {
 ; RV64IF-NEXT:    and a0, a1, a0
 ; RV64IF-NEXT:    feq.s a1, ft0, ft1
 ; RV64IF-NEXT:    not a1, a1
-; RV64IF-NEXT:    seqz a0, a0
-; RV64IF-NEXT:    xori a0, a0, 1
 ; RV64IF-NEXT:    and a0, a1, a0
 ; RV64IF-NEXT:    ret
   %1 = fcmp one float %a, %b
@@ -150,24 +146,20 @@ define i32 @fcmp_one(float %a, float %b) nounwind {
 define i32 @fcmp_ord(float %a, float %b) nounwind {
 ; RV32IF-LABEL: fcmp_ord:
 ; RV32IF:       # %bb.0:
-; RV32IF-NEXT:    fmv.w.x ft0, a1
-; RV32IF-NEXT:    feq.s a1, ft0, ft0
 ; RV32IF-NEXT:    fmv.w.x ft0, a0
-; RV32IF-NEXT:    feq.s a0, ft0, ft0
-; RV32IF-NEXT:    and a0, a0, a1
-; RV32IF-NEXT:    seqz a0, a0
-; RV32IF-NEXT:    xori a0, a0, 1
+; RV32IF-NEXT:    fmv.w.x ft1, a1
+; RV32IF-NEXT:    feq.s a0, ft1, ft1
+; RV32IF-NEXT:    feq.s a1, ft0, ft0
+; RV32IF-NEXT:    and a0, a1, a0
 ; RV32IF-NEXT:    ret
 ;
 ; RV64IF-LABEL: fcmp_ord:
 ; RV64IF:       # %bb.0:
-; RV64IF-NEXT:    fmv.w.x ft0, a1
-; RV64IF-NEXT:    feq.s a1, ft0, ft0
 ; RV64IF-NEXT:    fmv.w.x ft0, a0
-; RV64IF-NEXT:    feq.s a0, ft0, ft0
-; RV64IF-NEXT:    and a0, a0, a1
-; RV64IF-NEXT:    seqz a0, a0
-; RV64IF-NEXT:    xori a0, a0, 1
+; RV64IF-NEXT:    fmv.w.x ft1, a1
+; RV64IF-NEXT:    feq.s a0, ft1, ft1
+; RV64IF-NEXT:    feq.s a1, ft0, ft0
+; RV64IF-NEXT:    and a0, a1, a0
 ; RV64IF-NEXT:    ret
   %1 = fcmp ord float %a, %b
   %2 = zext i1 %1 to i32
@@ -311,21 +303,21 @@ define i32 @fcmp_une(float %a, float %b) nounwind {
 define i32 @fcmp_uno(float %a, float %b) nounwind {
 ; RV32IF-LABEL: fcmp_uno:
 ; RV32IF:       # %bb.0:
-; RV32IF-NEXT:    fmv.w.x ft0, a1
-; RV32IF-NEXT:    feq.s a1, ft0, ft0
 ; RV32IF-NEXT:    fmv.w.x ft0, a0
-; RV32IF-NEXT:    feq.s a0, ft0, ft0
-; RV32IF-NEXT:    and a0, a0, a1
+; RV32IF-NEXT:    fmv.w.x ft1, a1
+; RV32IF-NEXT:    feq.s a0, ft1, ft1
+; RV32IF-NEXT:    feq.s a1, ft0, ft0
+; RV32IF-NEXT:    and a0, a1, a0
 ; RV32IF-NEXT:    seqz a0, a0
 ; RV32IF-NEXT:    ret
 ;
 ; RV64IF-LABEL: fcmp_uno:
 ; RV64IF:       # %bb.0:
-; RV64IF-NEXT:    fmv.w.x ft0, a1
-; RV64IF-NEXT:    feq.s a1, ft0, ft0
 ; RV64IF-NEXT:    fmv.w.x ft0, a0
-; RV64IF-NEXT:    feq.s a0, ft0, ft0
-; RV64IF-NEXT:    and a0, a0, a1
+; RV64IF-NEXT:    fmv.w.x ft1, a1
+; RV64IF-NEXT:    feq.s a0, ft1, ft1
+; RV64IF-NEXT:    feq.s a1, ft0, ft0
+; RV64IF-NEXT:    and a0, a1, a0
 ; RV64IF-NEXT:    seqz a0, a0
 ; RV64IF-NEXT:    ret
   %1 = fcmp uno float %a, %b

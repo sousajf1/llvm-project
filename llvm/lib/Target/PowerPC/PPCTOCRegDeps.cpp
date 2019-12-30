@@ -82,10 +82,6 @@ using namespace llvm;
 
 #define DEBUG_TYPE "ppc-toc-reg-deps"
 
-namespace llvm {
-  void initializePPCTOCRegDepsPass(PassRegistry&);
-}
-
 namespace {
   // PPCTOCRegDeps pass - For simple functions without epilogue code, move
   // returns up, and create conditional returns, to avoid unnecessary
@@ -99,7 +95,8 @@ namespace {
 protected:
     bool hasTOCLoReloc(const MachineInstr &MI) {
       if (MI.getOpcode() == PPC::LDtocL ||
-          MI.getOpcode() == PPC::ADDItocL)
+          MI.getOpcode() == PPC::ADDItocL ||
+          MI.getOpcode() == PPC::LWZtocL)
         return true;
 
       for (const MachineOperand &MO : MI.operands()) {
@@ -113,11 +110,15 @@ protected:
     bool processBlock(MachineBasicBlock &MBB) {
       bool Changed = false;
 
+      const bool isPPC64 =
+          MBB.getParent()->getSubtarget<PPCSubtarget>().isPPC64();
+      const unsigned TOCReg = isPPC64 ? PPC::X2 : PPC::R2;
+
       for (auto &MI : MBB) {
         if (!hasTOCLoReloc(MI))
           continue;
 
-        MI.addOperand(MachineOperand::CreateReg(PPC::X2,
+        MI.addOperand(MachineOperand::CreateReg(TOCReg,
                                                 false  /*IsDef*/,
                                                 true  /*IsImp*/));
         Changed = true;

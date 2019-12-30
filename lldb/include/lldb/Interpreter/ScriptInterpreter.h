@@ -34,7 +34,7 @@ private:
 
 class ScriptInterpreter : public PluginInterface {
 public:
-  typedef enum {
+  enum ScriptReturnType {
     eScriptReturnTypeCharPtr,
     eScriptReturnTypeBool,
     eScriptReturnTypeShortInt,
@@ -50,10 +50,9 @@ public:
     eScriptReturnTypeChar,
     eScriptReturnTypeCharStrOrNone,
     eScriptReturnTypeOpaqueObject
-  } ScriptReturnType;
+  };
 
-  ScriptInterpreter(CommandInterpreter &interpreter,
-                    lldb::ScriptLanguage script_lang);
+  ScriptInterpreter(Debugger &debugger, lldb::ScriptLanguage script_lang);
 
   ~ScriptInterpreter() override;
 
@@ -66,6 +65,9 @@ public:
 
     bool GetSetLLDBGlobals() const { return m_set_lldb_globals; }
 
+    // If this is true then any exceptions raised by the script will be
+    // cleared with PyErr_Clear().   If false then they will be left for
+    // the caller to clean up
     bool GetMaskoutErrors() const { return m_maskout_errors; }
 
     ExecuteScriptOptions &SetEnableIO(bool enable) {
@@ -118,8 +120,10 @@ public:
     return error;
   }
 
-  virtual Status GenerateBreakpointCommandCallbackData(StringList &input,
-                                                       std::string &output) {
+  virtual Status GenerateBreakpointCommandCallbackData(
+      StringList &input,
+      std::string &output,
+      bool has_extra_args) {
     Status error;
     error.SetErrorString("not implemented");
     return error;
@@ -209,6 +213,8 @@ public:
 
   virtual StructuredData::ObjectSP
   CreateScriptedThreadPlan(const char *class_name,
+                           StructuredDataImpl *args_data,
+                           std::string &error_str,
                            lldb::ThreadPlanSP thread_plan_sp) {
     return StructuredData::ObjectSP();
   }
@@ -247,7 +253,7 @@ public:
                                    lldb::BreakpointSP &bkpt_sp) {
     return StructuredData::GenericSP();
   }
-  
+
   virtual bool
   ScriptedBreakpointResolverSearchCallback(StructuredData::GenericSP implementor_sp,
                                            SymbolContext *sym_ctx)
@@ -307,14 +313,20 @@ public:
     return error;
   }
 
-  void SetBreakpointCommandCallbackFunction(
+  Status SetBreakpointCommandCallbackFunction(
       std::vector<BreakpointOptions *> &bp_options_vec,
-      const char *function_name);
+      const char *function_name, StructuredData::ObjectSP extra_args_sp);
 
-  /// Set a one-liner as the callback for the breakpoint.
-  virtual void
-  SetBreakpointCommandCallbackFunction(BreakpointOptions *bp_options,
-                                       const char *function_name) {}
+  /// Set a script function as the callback for the breakpoint.
+  virtual Status
+  SetBreakpointCommandCallbackFunction(
+      BreakpointOptions *bp_options,
+      const char *function_name,
+      StructuredData::ObjectSP extra_args_sp) {
+    Status error;
+    error.SetErrorString("unimplemented");
+    return error;
+  }
 
   /// Set a one-liner as the callback for the watchpoint.
   virtual void SetWatchpointCommandCallback(WatchpointOptions *wp_options,
@@ -445,12 +457,9 @@ public:
   virtual bool CheckObjectExists(const char *name) { return false; }
 
   virtual bool
-  LoadScriptingModule(const char *filename, bool can_reload, bool init_session,
+  LoadScriptingModule(const char *filename, bool init_session,
                       lldb_private::Status &error,
-                      StructuredData::ObjectSP *module_sp = nullptr) {
-    error.SetErrorString("loading unimplemented");
-    return false;
-  }
+                      StructuredData::ObjectSP *module_sp = nullptr);
 
   virtual bool IsReservedWord(const char *word) { return false; }
 
@@ -460,18 +469,20 @@ public:
 
   int GetMasterFileDescriptor();
 
-  CommandInterpreter &GetCommandInterpreter();
+  virtual llvm::Expected<unsigned>
+  GetMaxPositionalArgumentsForCallable(const llvm::StringRef &callable_name) {
+    return llvm::createStringError(
+    llvm::inconvertibleErrorCode(), "Unimplemented function");
+  }
 
   static std::string LanguageToString(lldb::ScriptLanguage language);
 
   static lldb::ScriptLanguage StringToLanguage(const llvm::StringRef &string);
 
-  virtual void ResetOutputFileHandle(FILE *new_fh) {} // By default, do nothing.
-
   lldb::ScriptLanguage GetLanguage() { return m_script_lang; }
 
 protected:
-  CommandInterpreter &m_interpreter;
+  Debugger &m_debugger;
   lldb::ScriptLanguage m_script_lang;
 };
 

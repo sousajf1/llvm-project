@@ -31,6 +31,7 @@
 #include "llvm/CodeGen/MachineFunction.h"
 #include "llvm/CodeGen/MachineFunctionPass.h"
 #include "llvm/CodeGen/MachineInstr.h"
+#include "llvm/CodeGen/MachineInstrBuilder.h"
 #include "llvm/CodeGen/MachineLoopInfo.h"
 #include "llvm/CodeGen/MachineModuleInfo.h"
 #include "llvm/CodeGen/MachineOperand.h"
@@ -50,6 +51,7 @@
 #include "llvm/IR/Function.h"
 #include "llvm/IR/InlineAsm.h"
 #include "llvm/IR/LLVMContext.h"
+#include "llvm/InitializePasses.h"
 #include "llvm/MC/MCRegisterInfo.h"
 #include "llvm/Pass.h"
 #include "llvm/Support/CodeGen.h"
@@ -541,9 +543,16 @@ static void insertCSRSaves(MachineBasicBlock &SaveBlock,
     for (const CalleeSavedInfo &CS : CSI) {
       // Insert the spill to the stack frame.
       unsigned Reg = CS.getReg();
-      const TargetRegisterClass *RC = TRI->getMinimalPhysRegClass(Reg);
-      TII.storeRegToStackSlot(SaveBlock, I, Reg, true, CS.getFrameIdx(), RC,
-                              TRI);
+
+      if (CS.isSpilledToReg()) {
+        BuildMI(SaveBlock, I, DebugLoc(),
+                TII.get(TargetOpcode::COPY), CS.getDstReg())
+          .addReg(Reg, getKillRegState(true));
+      } else {
+        const TargetRegisterClass *RC = TRI->getMinimalPhysRegClass(Reg);
+        TII.storeRegToStackSlot(SaveBlock, I, Reg, true, CS.getFrameIdx(), RC,
+                                TRI);
+      }
     }
   }
 }
@@ -563,12 +572,17 @@ static void insertCSRRestores(MachineBasicBlock &RestoreBlock,
   if (!TFI->restoreCalleeSavedRegisters(RestoreBlock, I, CSI, TRI)) {
     for (const CalleeSavedInfo &CI : reverse(CSI)) {
       unsigned Reg = CI.getReg();
-      const TargetRegisterClass *RC = TRI->getMinimalPhysRegClass(Reg);
-      TII.loadRegFromStackSlot(RestoreBlock, I, Reg, CI.getFrameIdx(), RC, TRI);
-      assert(I != RestoreBlock.begin() &&
-             "loadRegFromStackSlot didn't insert any code!");
-      // Insert in reverse order.  loadRegFromStackSlot can insert
-      // multiple instructions.
+      if (CI.isSpilledToReg()) {
+        BuildMI(RestoreBlock, I, DebugLoc(), TII.get(TargetOpcode::COPY), Reg)
+          .addReg(CI.getDstReg(), getKillRegState(true));
+      } else {
+        const TargetRegisterClass *RC = TRI->getMinimalPhysRegClass(Reg);
+        TII.loadRegFromStackSlot(RestoreBlock, I, Reg, CI.getFrameIdx(), RC, TRI);
+        assert(I != RestoreBlock.begin() &&
+               "loadRegFromStackSlot didn't insert any code!");
+        // Insert in reverse order.  loadRegFromStackSlot can insert
+        // multiple instructions.
+      }
     }
   }
 }
@@ -661,10 +675,13 @@ computeFreeStackSlots(MachineFrameInfo &MFI, bool StackGrowsDown,
   SmallVector<int, 16> AllocatedFrameSlots;
   // Add fixed objects.
   for (int i = MFI.getObjectIndexBegin(); i != 0; ++i)
-    AllocatedFrameSlots.push_back(i);
+    // StackSlot scavenging is only implemented for the default stack.
+    if (MFI.getStackID(i) == TargetStackID::Default)
+      AllocatedFrameSlots.push_back(i);
   // Add callee-save objects.
   for (int i = MinCSFrameIndex; i <= (int)MaxCSFrameIndex; ++i)
-    AllocatedFrameSlots.push_back(i);
+    if (MFI.getStackID(i) == TargetStackID::Default)
+      AllocatedFrameSlots.push_back(i);
 
   for (int i : AllocatedFrameSlots) {
     // These are converted from int64_t, but they should always fit in int
@@ -786,11 +803,23 @@ void PEI::calculateFrameObjectOffsets(MachineFunction &MF) {
   // Skew to be applied to alignment.
   unsigned Skew = TFI.getStackAlignmentSkew(MF);
 
+#ifdef EXPENSIVE_CHECKS
+  for (unsigned i = 0, e = MFI.getObjectIndexEnd(); i != e; ++i)
+    if (!MFI.isDeadObjectIndex(i) &&
+        MFI.getStackID(i) == TargetStackID::Default)
+      assert(MFI.getObjectAlignment(i) <= MFI.getMaxAlignment() &&
+             "MaxAlignment is invalid");
+#endif
+
   // If there are fixed sized objects that are preallocated in the local area,
   // non-fixed objects can't be allocated right at the start of local area.
   // Adjust 'Offset' to point to the end of last fixed sized preallocated
   // object.
   for (int i = MFI.getObjectIndexBegin(); i != 0; ++i) {
+    if (MFI.getStackID(i) !=
+        TargetStackID::Default) // Only allocate objects on the default stack.
+      continue;
+
     int64_t FixedOff;
     if (StackGrowsDown) {
       // The maximum distance from the stack pointer is at lower address of
@@ -809,6 +838,10 @@ void PEI::calculateFrameObjectOffsets(MachineFunction &MF) {
   // callee saved registers.
   if (StackGrowsDown) {
     for (unsigned i = MinCSFrameIndex; i <= MaxCSFrameIndex; ++i) {
+      if (MFI.getStackID(i) !=
+          TargetStackID::Default) // Only allocate objects on the default stack.
+        continue;
+
       // If the stack grows down, we need to add the size to find the lowest
       // address of the object.
       Offset += MFI.getObjectSize(i);
@@ -823,6 +856,10 @@ void PEI::calculateFrameObjectOffsets(MachineFunction &MF) {
   } else if (MaxCSFrameIndex >= MinCSFrameIndex) {
     // Be careful about underflow in comparisons agains MinCSFrameIndex.
     for (unsigned i = MaxCSFrameIndex; i != MinCSFrameIndex - 1; --i) {
+      if (MFI.getStackID(i) !=
+          TargetStackID::Default) // Only allocate objects on the default stack.
+        continue;
+
       if (MFI.isDeadObjectIndex(i))
         continue;
 
@@ -862,7 +899,7 @@ void PEI::calculateFrameObjectOffsets(MachineFunction &MF) {
   // frame index registers. Functions which don't want/need this optimization
   // will continue to use the existing code path.
   if (MFI.getUseLocalStackAllocationBlock()) {
-    unsigned Align = MFI.getLocalFrameMaxAlign();
+    unsigned Align = MFI.getLocalFrameMaxAlign().value();
 
     // Adjust to alignment boundary.
     Offset = alignTo(Offset, Align, Skew);
@@ -891,18 +928,26 @@ void PEI::calculateFrameObjectOffsets(MachineFunction &MF) {
   // Make sure that the stack protector comes before the local variables on the
   // stack.
   SmallSet<int, 16> ProtectedObjs;
-  if (MFI.getStackProtectorIndex() >= 0) {
+  if (MFI.hasStackProtectorIndex()) {
+    int StackProtectorFI = MFI.getStackProtectorIndex();
     StackObjSet LargeArrayObjs;
     StackObjSet SmallArrayObjs;
     StackObjSet AddrOfObjs;
 
-    AdjustStackOffset(MFI, MFI.getStackProtectorIndex(), StackGrowsDown,
-                      Offset, MaxAlign, Skew);
+    // If we need a stack protector, we need to make sure that
+    // LocalStackSlotPass didn't already allocate a slot for it.
+    // If we are told to use the LocalStackAllocationBlock, the stack protector
+    // is expected to be already pre-allocated.
+    if (!MFI.getUseLocalStackAllocationBlock())
+      AdjustStackOffset(MFI, StackProtectorFI, StackGrowsDown, Offset, MaxAlign,
+                        Skew);
+    else if (!MFI.isObjectPreAllocated(MFI.getStackProtectorIndex()))
+      llvm_unreachable(
+          "Stack protector not pre-allocated by LocalStackSlotPass.");
 
     // Assign large stack objects first.
     for (unsigned i = 0, e = MFI.getObjectIndexEnd(); i != e; ++i) {
-      if (MFI.isObjectPreAllocated(i) &&
-          MFI.getUseLocalStackAllocationBlock())
+      if (MFI.isObjectPreAllocated(i) && MFI.getUseLocalStackAllocationBlock())
         continue;
       if (i >= MinCSFrameIndex && i <= MaxCSFrameIndex)
         continue;
@@ -910,8 +955,10 @@ void PEI::calculateFrameObjectOffsets(MachineFunction &MF) {
         continue;
       if (MFI.isDeadObjectIndex(i))
         continue;
-      if (MFI.getStackProtectorIndex() == (int)i ||
-          EHRegNodeFrameIndex == (int)i)
+      if (StackProtectorFI == (int)i || EHRegNodeFrameIndex == (int)i)
+        continue;
+      if (MFI.getStackID(i) !=
+          TargetStackID::Default) // Only allocate objects on the default stack.
         continue;
 
       switch (MFI.getObjectSSPLayout(i)) {
@@ -929,6 +976,15 @@ void PEI::calculateFrameObjectOffsets(MachineFunction &MF) {
       }
       llvm_unreachable("Unexpected SSPLayoutKind.");
     }
+
+    // We expect **all** the protected stack objects to be pre-allocated by
+    // LocalStackSlotPass. If it turns out that PEI still has to allocate some
+    // of them, we may end up messing up the expected order of the objects.
+    if (MFI.getUseLocalStackAllocationBlock() &&
+        !(LargeArrayObjs.empty() && SmallArrayObjs.empty() &&
+          AddrOfObjs.empty()))
+      llvm_unreachable("Found protected stack objects not pre-allocated by "
+                       "LocalStackSlotPass.");
 
     AssignProtectedObjSet(LargeArrayObjs, ProtectedObjs, MFI, StackGrowsDown,
                           Offset, MaxAlign, Skew);
@@ -951,10 +1007,12 @@ void PEI::calculateFrameObjectOffsets(MachineFunction &MF) {
       continue;
     if (MFI.isDeadObjectIndex(i))
       continue;
-    if (MFI.getStackProtectorIndex() == (int)i ||
-        EHRegNodeFrameIndex == (int)i)
+    if (MFI.getStackProtectorIndex() == (int)i || EHRegNodeFrameIndex == (int)i)
       continue;
     if (ProtectedObjs.count(i))
+      continue;
+    if (MFI.getStackID(i) !=
+        TargetStackID::Default) // Only allocate objects on the default stack.
       continue;
 
     // Add the objects that we need to allocate to our working set.
@@ -1149,12 +1207,37 @@ void PEI::replaceFrameIndices(MachineBasicBlock *BB, MachineFunction &MF,
         assert(i == 0 && "Frame indices can only appear as the first "
                          "operand of a DBG_VALUE machine instruction");
         unsigned Reg;
+        unsigned FrameIdx = MI.getOperand(0).getIndex();
+        unsigned Size = MF.getFrameInfo().getObjectSize(FrameIdx);
+
         int64_t Offset =
-            TFI->getFrameIndexReference(MF, MI.getOperand(0).getIndex(), Reg);
+            TFI->getFrameIndexReference(MF, FrameIdx, Reg);
         MI.getOperand(0).ChangeToRegister(Reg, false /*isDef*/);
         MI.getOperand(0).setIsDebug();
-        auto *DIExpr = DIExpression::prepend(MI.getDebugExpression(),
-                                             DIExpression::NoDeref, Offset);
+
+        const DIExpression *DIExpr = MI.getDebugExpression();
+
+        // If we have a direct DBG_VALUE, and its location expression isn't
+        // currently complex, then adding an offset will morph it into a
+        // complex location that is interpreted as being a memory address.
+        // This changes a pointer-valued variable to dereference that pointer,
+        // which is incorrect. Fix by adding DW_OP_stack_value.
+        unsigned PrependFlags = DIExpression::ApplyOffset;
+        if (!MI.isIndirectDebugValue() && !DIExpr->isComplex())
+          PrependFlags |= DIExpression::StackValue;
+
+        // If we have DBG_VALUE that is indirect and has a Implicit location
+        // expression need to insert a deref before prepending a Memory
+        // location expression. Also after doing this we change the DBG_VALUE
+        // to be direct.
+        if (MI.isIndirectDebugValue() && DIExpr->isImplicit()) {
+          SmallVector<uint64_t, 2> Ops = {dwarf::DW_OP_deref_size, Size};
+          bool WithStackValue = true;
+          DIExpr = DIExpression::prependOpcodes(DIExpr, Ops, WithStackValue);
+          // Make the DBG_VALUE direct.
+          MI.getOperand(1).ChangeToRegister(0, false);
+        }
+        DIExpr = DIExpression::prepend(DIExpr, PrependFlags, Offset);
         MI.getOperand(3).setMetadata(DIExpr);
         continue;
       }

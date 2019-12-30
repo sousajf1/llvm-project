@@ -192,6 +192,11 @@ public:
                                  std::function<bool(Instruction &)>>>
   instructionsWithoutDebug();
 
+  /// Return the size of the basic block ignoring debug instructions
+  filter_iterator<BasicBlock::const_iterator,
+                  std::function<bool(const Instruction &)>>::difference_type
+  sizeWithoutDebug() const;
+
   /// Unlink 'this' from the containing function, but do not delete it.
   void removeFromParent();
 
@@ -389,6 +394,14 @@ public:
   /// Returns true if there are any uses of this basic block other than
   /// direct branches, switches, etc. to it.
   bool hasAddressTaken() const { return getSubclassDataFromValue() != 0; }
+
+  /// Update all phi nodes in this basic block to refer to basic block \p New
+  /// instead of basic block \p Old.
+  void replacePhiUsesWith(BasicBlock *Old, BasicBlock *New);
+
+  /// Update all phi nodes in this basic block's successors to refer to basic
+  /// block \p New instead of basic block \p Old.
+  void replaceSuccessorsPhiUsesWith(BasicBlock *Old, BasicBlock *New);
 
   /// Update all phi nodes in this basic block's successors to refer to basic
   /// block \p New instead of to it.

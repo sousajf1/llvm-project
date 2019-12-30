@@ -16,7 +16,9 @@
 #include <string>
 #include <cassert>
 
-int main(int, char**)
+#include "test_macros.h"
+
+TEST_CONSTEXPR_CXX20 bool test()
 {
 #if defined(__cpp_lib_char8_t) && __cpp_lib_char8_t >= 201811L
     char8_t s1[] = {1, 2, 3};
@@ -31,6 +33,17 @@ int main(int, char**)
     assert(s1[2] == char8_t(3));
     assert(std::char_traits<char8_t>::move(NULL, s1, 0) == NULL);
     assert(std::char_traits<char8_t>::move(s1, NULL, 0) == s1);
+#endif
+
+  return true;
+}
+
+int main(int, char**)
+{
+    test();
+
+#if TEST_STD_VER > 17 && !defined(_LIBCPP_HAS_NO_BUILTIN_IS_CONSTANT_EVALUATED)
+    static_assert(test());
 #endif
 
   return 0;

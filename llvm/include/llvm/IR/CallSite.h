@@ -45,7 +45,7 @@
 namespace llvm {
 
 namespace Intrinsic {
-enum ID : unsigned;
+typedef unsigned ID;
 }
 
 template <typename FunTy = const Function, typename BBTy = const BasicBlock,
@@ -415,6 +415,11 @@ public:
     CALLSITE_DELEGATE_GETTER(getParamAlignment(ArgNo));
   }
 
+  /// Extract the byval type for a call or parameter (nullptr=unknown).
+  Type *getParamByValType(unsigned ArgNo) const {
+    CALLSITE_DELEGATE_GETTER(getParamByValType(ArgNo));
+  }
+
   /// Extract the number of dereferenceable bytes for a call or parameter
   /// (0=unknown).
   uint64_t getDereferenceableBytes(unsigned i) const {
@@ -724,7 +729,7 @@ public:
     /// through (also identified by position but in the call site instruction).
     ///
     /// NOTE that we use LLVM argument numbers (starting at 0) and not
-    /// clang/soruce argument numbers (starting at 1). The -1 entries represent
+    /// clang/source argument numbers (starting at 1). The -1 entries represent
     /// unknown values that are passed to the callee.
     using ParameterEncodingTy = SmallVector<int, 0>;
     ParameterEncodingTy ParameterEncoding;
@@ -845,8 +850,17 @@ public:
   /// callee of this ACS. Only valid for callback calls!
   int getCallArgOperandNoForCallee() const {
     assert(isCallbackCall());
-    assert(CI.ParameterEncoding.size() && CI.ParameterEncoding[0] > 0);
+    assert(CI.ParameterEncoding.size() && CI.ParameterEncoding[0] >= 0);
     return CI.ParameterEncoding[0];
+  }
+
+  /// Return the use of the callee value in the underlying instruction. Only
+  /// valid for callback calls!
+  const Use &getCalleeUseForCallback() const {
+    int CalleeArgIdx = getCallArgOperandNoForCallee();
+    assert(CalleeArgIdx >= 0 &&
+           unsigned(CalleeArgIdx) < getInstruction()->getNumOperands());
+    return getInstruction()->getOperandUse(CalleeArgIdx);
   }
 
   /// Return the pointer to function that is being called.

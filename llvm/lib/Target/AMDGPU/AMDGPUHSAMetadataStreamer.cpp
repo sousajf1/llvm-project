@@ -218,12 +218,13 @@ MetadataStreamerV2::getHSACodeProps(const MachineFunction &MF,
   assert(F.getCallingConv() == CallingConv::AMDGPU_KERNEL ||
          F.getCallingConv() == CallingConv::SPIR_KERNEL);
 
-  unsigned MaxKernArgAlign;
+  Align MaxKernArgAlign;
   HSACodeProps.mKernargSegmentSize = STM.getKernArgSegmentSize(F,
                                                                MaxKernArgAlign);
   HSACodeProps.mGroupSegmentFixedSize = ProgramInfo.LDSSize;
   HSACodeProps.mPrivateSegmentFixedSize = ProgramInfo.ScratchSize;
-  HSACodeProps.mKernargSegmentAlign = std::max(MaxKernArgAlign, 4u);
+  HSACodeProps.mKernargSegmentAlign =
+      std::max(MaxKernArgAlign, Align(4)).value();
   HSACodeProps.mWavefrontSize = STM.getWavefrontSize();
   HSACodeProps.mNumSGPRs = ProgramInfo.NumSGPR;
   HSACodeProps.mNumVGPRs = ProgramInfo.NumVGPR;
@@ -420,7 +421,12 @@ void MetadataStreamerV2::emitHiddenKernelArgs(const Function &Func) {
   if (HiddenArgNumBytes >= 32) {
     if (Func.getParent()->getNamedMetadata("llvm.printf.fmts"))
       emitKernelArg(DL, Int8PtrTy, ValueKind::HiddenPrintfBuffer);
-    else
+    else if (Func.getParent()->getFunction("__ockl_hostcall_internal")) {
+      // The printf runtime binding pass should have ensured that hostcall and
+      // printf are not used in the same module.
+      assert(!Func.getParent()->getNamedMetadata("llvm.printf.fmts"));
+      emitKernelArg(DL, Int8PtrTy, ValueKind::HiddenHostcallBuffer);
+    } else
       emitKernelArg(DL, Int8PtrTy, ValueKind::HiddenNone);
   }
 
@@ -435,6 +441,10 @@ void MetadataStreamerV2::emitHiddenKernelArgs(const Function &Func) {
       emitKernelArg(DL, Int8PtrTy, ValueKind::HiddenNone);
     }
   }
+
+  // Emit the pointer argument for multi-grid object.
+  if (HiddenArgNumBytes >= 56)
+    emitKernelArg(DL, Int8PtrTy, ValueKind::HiddenMultiGridSyncArg);
 }
 
 bool MetadataStreamerV2::emitTo(AMDGPUTargetStreamer &TargetStreamer) {
@@ -713,36 +723,6 @@ void MetadataStreamerV3::emitKernelArgs(const Function &Func,
 
   emitHiddenKernelArgs(Func, Offset, Args);
 
-  // TODO: What about other languages?
-  if (Func.getParent()->getNamedMetadata("opencl.ocl.version")) {
-    auto &DL = Func.getParent()->getDataLayout();
-    auto Int64Ty = Type::getInt64Ty(Func.getContext());
-
-    emitKernelArg(DL, Int64Ty, "hidden_global_offset_x", Offset, Args);
-    emitKernelArg(DL, Int64Ty, "hidden_global_offset_y", Offset, Args);
-    emitKernelArg(DL, Int64Ty, "hidden_global_offset_z", Offset, Args);
-
-    auto Int8PtrTy =
-        Type::getInt8PtrTy(Func.getContext(), AMDGPUAS::GLOBAL_ADDRESS);
-
-    // Emit "printf buffer" argument if printf is used, otherwise emit dummy
-    // "none" argument.
-    if (Func.getParent()->getNamedMetadata("llvm.printf.fmts"))
-      emitKernelArg(DL, Int8PtrTy, "hidden_printf_buffer", Offset, Args);
-    else
-      emitKernelArg(DL, Int8PtrTy, "hidden_none", Offset, Args);
-
-    // Emit "default queue" and "completion action" arguments if enqueue kernel
-    // is used, otherwise emit dummy "none" arguments.
-    if (Func.hasFnAttribute("calls-enqueue-kernel")) {
-      emitKernelArg(DL, Int8PtrTy, "hidden_default_queue", Offset, Args);
-      emitKernelArg(DL, Int8PtrTy, "hidden_completion_action", Offset, Args);
-    } else {
-      emitKernelArg(DL, Int8PtrTy, "hidden_none", Offset, Args);
-      emitKernelArg(DL, Int8PtrTy, "hidden_none", Offset, Args);
-    }
-  }
-
   Kern[".args"] = Args;
 }
 
@@ -879,7 +859,12 @@ void MetadataStreamerV3::emitHiddenKernelArgs(const Function &Func,
   if (HiddenArgNumBytes >= 32) {
     if (Func.getParent()->getNamedMetadata("llvm.printf.fmts"))
       emitKernelArg(DL, Int8PtrTy, "hidden_printf_buffer", Offset, Args);
-    else
+    else if (Func.getParent()->getFunction("__ockl_hostcall_internal")) {
+      // The printf runtime binding pass should have ensured that hostcall and
+      // printf are not used in the same module.
+      assert(!Func.getParent()->getNamedMetadata("llvm.printf.fmts"));
+      emitKernelArg(DL, Int8PtrTy, "hidden_hostcall_buffer", Offset, Args);
+    } else
       emitKernelArg(DL, Int8PtrTy, "hidden_none", Offset, Args);
   }
 
@@ -894,6 +879,10 @@ void MetadataStreamerV3::emitHiddenKernelArgs(const Function &Func,
       emitKernelArg(DL, Int8PtrTy, "hidden_none", Offset, Args);
     }
   }
+
+  // Emit the pointer argument for multi-grid object.
+  if (HiddenArgNumBytes >= 56)
+    emitKernelArg(DL, Int8PtrTy, "hidden_multigrid_sync_arg", Offset, Args);
 }
 
 msgpack::MapDocNode
@@ -905,7 +894,7 @@ MetadataStreamerV3::getHSAKernelProps(const MachineFunction &MF,
 
   auto Kern = HSAMetadataDoc->getMapNode();
 
-  unsigned MaxKernArgAlign;
+  Align MaxKernArgAlign;
   Kern[".kernarg_segment_size"] = Kern.getDocument()->getNode(
       STM.getKernArgSegmentSize(F, MaxKernArgAlign));
   Kern[".group_segment_fixed_size"] =
@@ -913,7 +902,7 @@ MetadataStreamerV3::getHSAKernelProps(const MachineFunction &MF,
   Kern[".private_segment_fixed_size"] =
       Kern.getDocument()->getNode(ProgramInfo.ScratchSize);
   Kern[".kernarg_segment_align"] =
-      Kern.getDocument()->getNode(std::max(uint32_t(4), MaxKernArgAlign));
+      Kern.getDocument()->getNode(std::max(Align(4), MaxKernArgAlign).value());
   Kern[".wavefront_size"] =
       Kern.getDocument()->getNode(STM.getWavefrontSize());
   Kern[".sgpr_count"] = Kern.getDocument()->getNode(ProgramInfo.NumSGPR);

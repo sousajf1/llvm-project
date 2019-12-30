@@ -44,6 +44,7 @@
 #include "llvm/IR/Module.h"
 #include "llvm/IR/Type.h"
 #include "llvm/IR/Value.h"
+#include "llvm/InitializePasses.h"
 #include "llvm/Pass.h"
 #include "llvm/Support/AtomicOrdering.h"
 #include "llvm/Support/Casting.h"
@@ -79,12 +80,16 @@ AAResults::~AAResults() {
 
 bool AAResults::invalidate(Function &F, const PreservedAnalyses &PA,
                            FunctionAnalysisManager::Invalidator &Inv) {
-  // Check if the AA manager itself has been invalidated.
+  // AAResults preserves the AAManager by default, due to the stateless nature
+  // of AliasAnalysis. There is no need to check whether it has been preserved
+  // explicitly. Check if any module dependency was invalidated and caused the
+  // AAManager to be invalidated. Invalidate ourselves in that case.
   auto PAC = PA.getChecker<AAManager>();
-  if (!PAC.preserved() && !PAC.preservedSet<AllAnalysesOn<Function>>())
-    return true; // The manager needs to be blown away, clear everything.
+  if (!PAC.preservedWhenStateless())
+    return true;
 
-  // Check all of the dependencies registered.
+  // Check if any of the function dependencies were invalidated, and invalidate
+  // ourselves in that case.
   for (AnalysisKey *ID : AADeps)
     if (Inv.invalidate(ID, F, PA))
       return true;
@@ -730,6 +735,15 @@ namespace {
 
 } // end anonymous namespace
 
+ExternalAAWrapperPass::ExternalAAWrapperPass() : ImmutablePass(ID) {
+  initializeExternalAAWrapperPassPass(*PassRegistry::getPassRegistry());
+}
+
+ExternalAAWrapperPass::ExternalAAWrapperPass(CallbackT CB)
+    : ImmutablePass(ID), CB(std::move(CB)) {
+  initializeExternalAAWrapperPassPass(*PassRegistry::getPassRegistry());
+}
+
 char ExternalAAWrapperPass::ID = 0;
 
 INITIALIZE_PASS(ExternalAAWrapperPass, "external-aa", "External Alias Analysis",
@@ -780,7 +794,7 @@ bool AAResultsWrapperPass::runOnFunction(Function &F) {
   // previous object first, in this case replacing it with an empty one, before
   // registering new results.
   AAR.reset(
-      new AAResults(getAnalysis<TargetLibraryInfoWrapperPass>().getTLI()));
+      new AAResults(getAnalysis<TargetLibraryInfoWrapperPass>().getTLI(F)));
 
   // BasicAA is always available for function analyses. Also, we add it first
   // so that it can trump TBAA results when it proves MustAlias.
@@ -836,7 +850,7 @@ void AAResultsWrapperPass::getAnalysisUsage(AnalysisUsage &AU) const {
 
 AAResults llvm::createLegacyPMAAResults(Pass &P, Function &F,
                                         BasicAAResult &BAR) {
-  AAResults AAR(P.getAnalysis<TargetLibraryInfoWrapperPass>().getTLI());
+  AAResults AAR(P.getAnalysis<TargetLibraryInfoWrapperPass>().getTLI(F));
 
   // Add in our explicitly constructed BasicAA results.
   if (!DisableBasicAA)

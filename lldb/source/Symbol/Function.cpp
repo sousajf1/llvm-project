@@ -16,18 +16,16 @@
 #include "lldb/Symbol/CompilerType.h"
 #include "lldb/Symbol/LineTable.h"
 #include "lldb/Symbol/SymbolFile.h"
-#include "lldb/Symbol/SymbolVendor.h"
 #include "lldb/Target/Language.h"
+#include "lldb/Target/Target.h"
 #include "lldb/Utility/Log.h"
 #include "llvm/Support/Casting.h"
 
 using namespace lldb;
 using namespace lldb_private;
 
-//----------------------------------------------------------------------
 // Basic function information is contained in the FunctionInfo class. It is
 // designed to contain the name, linkage name, and declaration location.
-//----------------------------------------------------------------------
 FunctionInfo::FunctionInfo(const char *name, const Declaration *decl_ptr)
     : m_name(name), m_declaration(decl_ptr) {}
 
@@ -62,10 +60,11 @@ size_t FunctionInfo::MemorySize() const {
   return m_name.MemorySize() + m_declaration.MemorySize();
 }
 
-InlineFunctionInfo::InlineFunctionInfo(const char *name, const char *mangled,
+InlineFunctionInfo::InlineFunctionInfo(const char *name,
+                                       llvm::StringRef mangled,
                                        const Declaration *decl_ptr,
                                        const Declaration *call_decl_ptr)
-    : FunctionInfo(name, decl_ptr), m_mangled(ConstString(mangled), true),
+    : FunctionInfo(name, decl_ptr), m_mangled(mangled),
       m_call_decl(call_decl_ptr) {}
 
 InlineFunctionInfo::InlineFunctionInfo(ConstString name,
@@ -129,40 +128,42 @@ size_t InlineFunctionInfo::MemorySize() const {
   return FunctionInfo::MemorySize() + m_mangled.MemorySize();
 }
 
-//----------------------------------------------------------------------
-//
-//----------------------------------------------------------------------
-CallEdge::CallEdge(const char *symbol_name, lldb::addr_t return_pc)
-    : return_pc(return_pc), resolved(false) {
-  lazy_callee.symbol_name = symbol_name;
+/// @name Call site related structures
+/// @{
+
+lldb::addr_t CallEdge::GetReturnPCAddress(Function &caller,
+                                          Target &target) const {
+  const Address &base = caller.GetAddressRange().GetBaseAddress();
+  return base.GetLoadAddress(&target) + return_pc;
 }
 
-void CallEdge::ParseSymbolFileAndResolve(ModuleList &images) {
+void DirectCallEdge::ParseSymbolFileAndResolve(ModuleList &images) {
   if (resolved)
     return;
 
   Log *log(lldb_private::GetLogIfAllCategoriesSet(LIBLLDB_LOG_STEP));
-  LLDB_LOG(log, "CallEdge: Lazily parsing the call graph for {0}",
+  LLDB_LOG(log, "DirectCallEdge: Lazily parsing the call graph for {0}",
            lazy_callee.symbol_name);
 
   auto resolve_lazy_callee = [&]() -> Function * {
     ConstString callee_name{lazy_callee.symbol_name};
     SymbolContextList sc_list;
-    size_t num_matches =
-        images.FindFunctionSymbols(callee_name, eFunctionNameTypeAuto, sc_list);
+    images.FindFunctionSymbols(callee_name, eFunctionNameTypeAuto, sc_list);
+    size_t num_matches = sc_list.GetSize();
     if (num_matches == 0 || !sc_list[0].symbol) {
-      LLDB_LOG(log, "CallEdge: Found no symbols for {0}, cannot resolve it",
+      LLDB_LOG(log,
+               "DirectCallEdge: Found no symbols for {0}, cannot resolve it",
                callee_name);
       return nullptr;
     }
     Address callee_addr = sc_list[0].symbol->GetAddress();
     if (!callee_addr.IsValid()) {
-      LLDB_LOG(log, "CallEdge: Invalid symbol address");
+      LLDB_LOG(log, "DirectCallEdge: Invalid symbol address");
       return nullptr;
     }
     Function *f = callee_addr.CalculateSymbolContextFunction();
     if (!f) {
-      LLDB_LOG(log, "CallEdge: Could not find complete function");
+      LLDB_LOG(log, "DirectCallEdge: Could not find complete function");
       return nullptr;
     }
     return f;
@@ -171,26 +172,57 @@ void CallEdge::ParseSymbolFileAndResolve(ModuleList &images) {
   resolved = true;
 }
 
-Function *CallEdge::GetCallee(ModuleList &images) {
+Function *DirectCallEdge::GetCallee(ModuleList &images, ExecutionContext &) {
   ParseSymbolFileAndResolve(images);
+  assert(resolved && "Did not resolve lazy callee");
   return lazy_callee.def;
 }
 
-lldb::addr_t CallEdge::GetReturnPCAddress(Function &caller,
-                                          Target &target) const {
-  const Address &base = caller.GetAddressRange().GetBaseAddress();
-  return base.GetLoadAddress(&target) + return_pc;
+Function *IndirectCallEdge::GetCallee(ModuleList &images,
+                                      ExecutionContext &exe_ctx) {
+  Log *log(lldb_private::GetLogIfAllCategoriesSet(LIBLLDB_LOG_STEP));
+  Status error;
+  Value callee_addr_val;
+  if (!call_target.Evaluate(&exe_ctx, exe_ctx.GetRegisterContext(),
+                            /*loclist_base_addr=*/LLDB_INVALID_ADDRESS,
+                            /*initial_value_ptr=*/nullptr,
+                            /*object_address_ptr=*/nullptr, callee_addr_val,
+                            &error)) {
+    LLDB_LOGF(log, "IndirectCallEdge: Could not evaluate expression: %s",
+              error.AsCString());
+    return nullptr;
+  }
+
+  addr_t raw_addr = callee_addr_val.GetScalar().ULongLong(LLDB_INVALID_ADDRESS);
+  if (raw_addr == LLDB_INVALID_ADDRESS) {
+    LLDB_LOG(log, "IndirectCallEdge: Could not extract address from scalar");
+    return nullptr;
+  }
+
+  Address callee_addr;
+  if (!exe_ctx.GetTargetPtr()->ResolveLoadAddress(raw_addr, callee_addr)) {
+    LLDB_LOG(log, "IndirectCallEdge: Could not resolve callee's load address");
+    return nullptr;
+  }
+
+  Function *f = callee_addr.CalculateSymbolContextFunction();
+  if (!f) {
+    LLDB_LOG(log, "IndirectCallEdge: Could not find complete function");
+    return nullptr;
+  }
+
+  return f;
 }
 
-//----------------------------------------------------------------------
+/// @}
+
 //
-//----------------------------------------------------------------------
 Function::Function(CompileUnit *comp_unit, lldb::user_id_t func_uid,
                    lldb::user_id_t type_uid, const Mangled &mangled, Type *type,
                    const AddressRange &range)
     : UserID(func_uid), m_comp_unit(comp_unit), m_type_uid(type_uid),
       m_type(type), m_mangled(mangled), m_block(func_uid), m_range(range),
-      m_frame_base(nullptr), m_flags(), m_prologue_byte_size(0) {
+      m_frame_base(), m_flags(), m_prologue_byte_size(0) {
   m_block.SetParentScope(this);
   assert(comp_unit != nullptr);
 }
@@ -246,7 +278,7 @@ void Function::GetEndLineSourceInfo(FileSpec &source_file, uint32_t &line_no) {
   }
 }
 
-llvm::MutableArrayRef<CallEdge> Function::GetCallEdges() {
+llvm::ArrayRef<std::unique_ptr<CallEdge>> Function::GetCallEdges() {
   if (m_call_edges_resolved)
     return m_call_edges;
 
@@ -267,33 +299,49 @@ llvm::MutableArrayRef<CallEdge> Function::GetCallEdges() {
 
   // Sort the call edges to speed up return_pc lookups.
   llvm::sort(m_call_edges.begin(), m_call_edges.end(),
-             [](const CallEdge &LHS, const CallEdge &RHS) {
-               return LHS.GetUnresolvedReturnPCAddress() <
-                      RHS.GetUnresolvedReturnPCAddress();
+             [](const std::unique_ptr<CallEdge> &LHS,
+                const std::unique_ptr<CallEdge> &RHS) {
+               return LHS->GetUnresolvedReturnPCAddress() <
+                      RHS->GetUnresolvedReturnPCAddress();
              });
 
   return m_call_edges;
 }
 
-llvm::MutableArrayRef<CallEdge> Function::GetTailCallingEdges() {
+llvm::ArrayRef<std::unique_ptr<CallEdge>> Function::GetTailCallingEdges() {
   // Call edges are sorted by return PC, and tail calling edges have invalid
   // return PCs. Find them at the end of the list.
-  return GetCallEdges().drop_until([](const CallEdge &edge) {
-    return edge.GetUnresolvedReturnPCAddress() == LLDB_INVALID_ADDRESS;
+  return GetCallEdges().drop_until([](const std::unique_ptr<CallEdge> &edge) {
+    return edge->GetUnresolvedReturnPCAddress() == LLDB_INVALID_ADDRESS;
   });
+}
+
+CallEdge *Function::GetCallEdgeForReturnAddress(addr_t return_pc,
+                                                Target &target) {
+  auto edges = GetCallEdges();
+  auto edge_it =
+      std::lower_bound(edges.begin(), edges.end(), return_pc,
+                       [&](const std::unique_ptr<CallEdge> &edge, addr_t pc) {
+                         return edge->GetReturnPCAddress(*this, target) < pc;
+                       });
+  if (edge_it == edges.end() ||
+      edge_it->get()->GetReturnPCAddress(*this, target) != return_pc)
+    return nullptr;
+  return &const_cast<CallEdge &>(*edge_it->get());
 }
 
 Block &Function::GetBlock(bool can_create) {
   if (!m_block.BlockInfoHasBeenParsed() && can_create) {
     ModuleSP module_sp = CalculateSymbolContextModule();
     if (module_sp) {
-      module_sp->GetSymbolVendor()->ParseBlocksRecursive(*this);
+      module_sp->GetSymbolFile()->ParseBlocksRecursive(*this);
     } else {
       Host::SystemLog(Host::eSystemLogError,
                       "error: unable to find module "
                       "shared pointer for function '%s' "
                       "in %s\n",
-                      GetName().GetCString(), m_comp_unit->GetPath().c_str());
+                      GetName().GetCString(),
+                      m_comp_unit->GetPrimaryFile().GetPath().c_str());
     }
     m_block.SetBlockInfoHasBeenParsed(true, true);
   }
@@ -434,14 +482,8 @@ CompilerDeclContext Function::GetDeclContext() {
   ModuleSP module_sp = CalculateSymbolContextModule();
 
   if (module_sp) {
-    SymbolVendor *sym_vendor = module_sp->GetSymbolVendor();
-
-    if (sym_vendor) {
-      SymbolFile *sym_file = sym_vendor->GetSymbolFile();
-
-      if (sym_file)
-        return sym_file->GetDeclContextForUID(GetID());
-    }
+    if (SymbolFile *sym_file = module_sp->GetSymbolFile())
+      return sym_file->GetDeclContextForUID(GetID());
   }
   return CompilerDeclContext();
 }
@@ -455,12 +497,7 @@ Type *Function::GetType() {
     if (!sc.module_sp)
       return nullptr;
 
-    SymbolVendor *sym_vendor = sc.module_sp->GetSymbolVendor();
-
-    if (sym_vendor == nullptr)
-      return nullptr;
-
-    SymbolFile *sym_file = sym_vendor->GetSymbolFile();
+    SymbolFile *sym_file = sc.module_sp->GetSymbolFile();
 
     if (sym_file == nullptr)
       return nullptr;
@@ -552,7 +589,7 @@ uint32_t Function::GetPrologueByteSize() {
 
         // Now calculate the offset to pass the subsequent line 0 entries.
         uint32_t first_non_zero_line = prologue_end_line_idx;
-        while (1) {
+        while (true) {
           LineEntry line_entry;
           if (line_table->GetLineEntryAtIndex(first_non_zero_line,
                                               line_entry)) {
@@ -595,10 +632,14 @@ uint32_t Function::GetPrologueByteSize() {
 }
 
 lldb::LanguageType Function::GetLanguage() const {
+  lldb::LanguageType lang = m_mangled.GuessLanguage();
+  if (lang != lldb::eLanguageTypeUnknown)
+    return lang;
+
   if (m_comp_unit)
     return m_comp_unit->GetLanguage();
-  else
-    return lldb::eLanguageTypeUnknown;
+
+  return lldb::eLanguageTypeUnknown;
 }
 
 ConstString Function::GetName() const {

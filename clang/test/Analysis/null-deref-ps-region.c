@@ -1,4 +1,8 @@
-// RUN: %clang_analyze_cc1 -analyzer-checker=core,alpha.core,unix,alpha.unix -std=gnu99 -analyzer-store=region -verify %s
+// RUN: %clang_analyze_cc1 -verify %s -std=gnu99 \
+// RUN:  -analyzer-checker=core \
+// RUN:  -analyzer-checker=alpha.core \
+// RUN:  -analyzer-checker=unix \
+// RUN:  -analyzer-checker=alpha.unix
 
 #include "Inputs/system-header-simulator.h"
 
@@ -35,7 +39,7 @@ void bar() {
 
 void testConcreteNull() {
   int *x = 0;
-  memset(x, 0, 1); // expected-warning {{Null pointer argument in call to memory set function}}
+  memset(x, 0, 1); // expected-warning {{Null pointer passed as 1st argument to memory set function}}
 }
 
 void testStackArray() {

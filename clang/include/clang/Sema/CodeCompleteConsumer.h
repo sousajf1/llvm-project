@@ -339,6 +339,11 @@ public:
 private:
   Kind CCKind;
 
+  /// Indicates whether we are completing a name of a using declaration, e.g.
+  ///     using ^;
+  ///     using a::^;
+  bool IsUsingDeclaration;
+
   /// The type that would prefer to see at this point (e.g., the type
   /// of an initializer or function parameter).
   QualType PreferredType;
@@ -359,12 +364,13 @@ private:
 
 public:
   /// Construct a new code-completion context of the given kind.
-  CodeCompletionContext(Kind CCKind) : CCKind(CCKind), SelIdents(None) {}
+  CodeCompletionContext(Kind CCKind)
+      : CCKind(CCKind), IsUsingDeclaration(false), SelIdents(None) {}
 
   /// Construct a new code-completion context of the given kind.
   CodeCompletionContext(Kind CCKind, QualType T,
                         ArrayRef<IdentifierInfo *> SelIdents = None)
-      : CCKind(CCKind), SelIdents(SelIdents) {
+      : CCKind(CCKind), IsUsingDeclaration(false), SelIdents(SelIdents) {
     if (CCKind == CCC_DotMemberAccess || CCKind == CCC_ArrowMemberAccess ||
         CCKind == CCC_ObjCPropertyAccess || CCKind == CCC_ObjCClassMessage ||
         CCKind == CCC_ObjCInstanceMessage)
@@ -372,6 +378,9 @@ public:
     else
       PreferredType = T;
   }
+
+  bool isUsingDeclaration() const { return IsUsingDeclaration; }
+  void setIsUsingDeclaration(bool V) { IsUsingDeclaration = V; }
 
   /// Retrieve the kind of code-completion context.
   Kind getKind() const { return CCKind; }
@@ -992,10 +1001,6 @@ class CodeCompleteConsumer {
 protected:
   const CodeCompleteOptions CodeCompleteOpts;
 
-  /// Whether the output format for the code-completion consumer is
-  /// binary.
-  bool OutputIsBinary;
-
 public:
   class OverloadCandidate {
   public:
@@ -1066,9 +1071,8 @@ public:
                                       bool IncludeBriefComments) const;
   };
 
-  CodeCompleteConsumer(const CodeCompleteOptions &CodeCompleteOpts,
-                       bool OutputIsBinary)
-      : CodeCompleteOpts(CodeCompleteOpts), OutputIsBinary(OutputIsBinary) {}
+  CodeCompleteConsumer(const CodeCompleteOptions &CodeCompleteOpts)
+      : CodeCompleteOpts(CodeCompleteOpts) {}
 
   /// Whether the code-completion consumer wants to see macros.
   bool includeMacros() const {
@@ -1105,9 +1109,6 @@ public:
   bool loadExternal() const {
     return CodeCompleteOpts.LoadExternal;
   }
-
-  /// Determine whether the output of this consumer is binary.
-  bool isOutputBinary() const { return OutputIsBinary; }
 
   /// Deregisters and destroys this code-completion consumer.
   virtual ~CodeCompleteConsumer();
@@ -1181,7 +1182,7 @@ public:
   /// results to the given raw output stream.
   PrintingCodeCompleteConsumer(const CodeCompleteOptions &CodeCompleteOpts,
                                raw_ostream &OS)
-      : CodeCompleteConsumer(CodeCompleteOpts, false), OS(OS),
+      : CodeCompleteConsumer(CodeCompleteOpts), OS(OS),
         CCTUInfo(std::make_shared<GlobalCodeCompletionAllocator>()) {}
 
   /// Prints the finalized code-completion results.

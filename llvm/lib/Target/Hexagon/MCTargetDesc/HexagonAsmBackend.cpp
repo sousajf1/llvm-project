@@ -6,7 +6,6 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "Hexagon.h"
 #include "HexagonFixupKinds.h"
 #include "MCTargetDesc/HexagonBaseInfo.h"
 #include "MCTargetDesc/HexagonMCChecker.h"
@@ -61,7 +60,7 @@ class HexagonAsmBackend : public MCAsmBackend {
 public:
   HexagonAsmBackend(const Target &T, const Triple &TT, uint8_t OSABI,
                     StringRef CPU)
-      : MCAsmBackend(support::little), OSABI(OSABI), CPU(CPU),
+      : MCAsmBackend(support::little), OSABI(OSABI), CPU(CPU), relaxedCnt(0),
         MCII(T.createMCInstrInfo()), RelaxTarget(new MCInst *),
         Extender(nullptr) {}
 
@@ -202,9 +201,7 @@ public:
 
   bool shouldForceRelocation(const MCAssembler &Asm, const MCFixup &Fixup,
                              const MCValue &Target) override {
-    MCFixupKind Kind = Fixup.getKind();
-
-    switch((unsigned)Kind) {
+    switch(Fixup.getTargetKind()) {
       default:
         llvm_unreachable("Unknown Fixup Kind!");
 
@@ -584,7 +581,7 @@ public:
       return false;
     // If we cannot resolve the fixup value, it requires relaxation.
     if (!Resolved) {
-      switch ((unsigned)Fixup.getKind()) {
+      switch (Fixup.getTargetKind()) {
       case fixup_Hexagon_B22_PCREL:
         // GetFixupCount assumes B22 won't relax
         LLVM_FALLTHROUGH;

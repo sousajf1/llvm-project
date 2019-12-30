@@ -11,9 +11,11 @@
 //===----------------------------------------------------------------------===//
 
 #include "ARCMCTargetDesc.h"
+#include "ARCInstPrinter.h"
 #include "ARCMCAsmInfo.h"
 #include "ARCTargetStreamer.h"
-#include "InstPrinter/ARCInstPrinter.h"
+#include "TargetInfo/ARCTargetInfo.h"
+#include "llvm/MC/MCDwarf.h"
 #include "llvm/MC/MCInstrInfo.h"
 #include "llvm/MC/MCRegisterInfo.h"
 #include "llvm/MC/MCSubtargetInfo.h"
@@ -50,7 +52,8 @@ static MCSubtargetInfo *createARCMCSubtargetInfo(const Triple &TT,
 }
 
 static MCAsmInfo *createARCMCAsmInfo(const MCRegisterInfo &MRI,
-                                     const Triple &TT) {
+                                     const Triple &TT,
+                                     const MCTargetOptions &Options) {
   MCAsmInfo *MAI = new ARCMCAsmInfo(TT);
 
   // Initial state of the frame pointer is SP.

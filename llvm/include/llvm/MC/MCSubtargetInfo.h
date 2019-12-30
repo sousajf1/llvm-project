@@ -141,6 +141,10 @@ public:
   /// all feature bits implied by the flag.
   FeatureBitset ApplyFeatureFlag(StringRef FS);
 
+  /// Set/clear additional feature bits, including all other bits they imply.
+  FeatureBitset SetFeatureBitsTransitively(const FeatureBitset& FB);
+  FeatureBitset ClearFeatureBitsTransitively(const FeatureBitset &FB);
+
   /// Check whether the subtarget features are enabled/disabled as per
   /// the provided string, ignoring all other features.
   bool checkFeatures(StringRef FS) const;
@@ -217,6 +221,52 @@ public:
     auto Found = std::lower_bound(ProcDesc.begin(), ProcDesc.end(), CPU);
     return Found != ProcDesc.end() && StringRef(Found->Key) == CPU;
   }
+
+  virtual unsigned getHwMode() const { return 0; }
+
+  /// Return the cache size in bytes for the given level of cache.
+  /// Level is zero-based, so a value of zero means the first level of
+  /// cache.
+  ///
+  virtual Optional<unsigned> getCacheSize(unsigned Level) const;
+
+  /// Return the cache associatvity for the given level of cache.
+  /// Level is zero-based, so a value of zero means the first level of
+  /// cache.
+  ///
+  virtual Optional<unsigned> getCacheAssociativity(unsigned Level) const;
+
+  /// Return the target cache line size in bytes at a given level.
+  ///
+  virtual Optional<unsigned> getCacheLineSize(unsigned Level) const;
+
+  /// Return the target cache line size in bytes.  By default, return
+  /// the line size for the bottom-most level of cache.  This provides
+  /// a more convenient interface for the common case where all cache
+  /// levels have the same line size.  Return zero if there is no
+  /// cache model.
+  ///
+  virtual unsigned getCacheLineSize() const {
+    Optional<unsigned> Size = getCacheLineSize(0);
+    if (Size)
+      return *Size;
+
+    return 0;
+  }
+
+  /// Return the preferred prefetch distance in terms of instructions.
+  ///
+  virtual unsigned getPrefetchDistance() const;
+
+  /// Return the maximum prefetch distance in terms of loop
+  /// iterations.
+  ///
+  virtual unsigned getMaxPrefetchIterationsAhead() const;
+
+  /// Return the minimum stride necessary to trigger software
+  /// prefetching.
+  ///
+  virtual unsigned getMinPrefetchStride() const;
 };
 
 } // end namespace llvm

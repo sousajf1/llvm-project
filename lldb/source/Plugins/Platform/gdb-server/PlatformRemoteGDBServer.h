@@ -33,18 +33,14 @@ public:
 
   PlatformRemoteGDBServer();
 
-  virtual ~PlatformRemoteGDBServer();
+  ~PlatformRemoteGDBServer() override;
 
-  //------------------------------------------------------------
   // lldb_private::PluginInterface functions
-  //------------------------------------------------------------
   ConstString GetPluginName() override { return GetPluginNameStatic(); }
 
   uint32_t GetPluginVersion() override { return 1; }
 
-  //------------------------------------------------------------
   // lldb_private::Platform functions
-  //------------------------------------------------------------
   Status
   ResolveExecutable(const ModuleSpec &module_spec, lldb::ModuleSP &module_sp,
                     const FileSpecList *module_search_paths_ptr) override;
@@ -117,7 +113,7 @@ public:
   Status SetFilePermissions(const FileSpec &file_spec,
                             uint32_t file_permissions) override;
 
-  lldb::user_id_t OpenFile(const FileSpec &file_spec, uint32_t flags,
+  lldb::user_id_t OpenFile(const FileSpec &file_spec, File::OpenOptions flags,
                            uint32_t mode, Status &error) override;
 
   bool CloseFile(lldb::user_id_t fd, Status &error) override;

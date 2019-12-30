@@ -44,6 +44,10 @@
 #include <sys/time.h> // for gettimeofday and timeval
 #endif                // !defined(CLOCK_REALTIME)
 
+#if defined(__ELF__) && defined(_LIBCPP_LINK_RT_LIB)
+#pragma comment(lib, "rt")
+#endif
+
 #if defined(_LIBCPP_COMPILER_GCC)
 #if _GNUC_VER < 500
 #pragma GCC diagnostic ignored "-Wmissing-field-initializers"
@@ -1588,7 +1592,7 @@ static int CompareRootDir(PathParser *LHS, PathParser *RHS) {
 static int CompareRelative(PathParser *LHSPtr, PathParser *RHSPtr) {
   auto &LHS = *LHSPtr;
   auto &RHS = *RHSPtr;
-  
+
   int res;
   while (LHS && RHS) {
     if ((res = (*LHS).compare(*RHS)) != 0)

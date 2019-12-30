@@ -43,6 +43,7 @@
 #include "llvm/MC/MCSectionELF.h"
 #include "llvm/MC/MCSectionMachO.h"
 #include "llvm/MC/MCSectionWasm.h"
+#include "llvm/MC/MCSectionXCOFF.h"
 #include "llvm/MC/MCStreamer.h"
 #include "llvm/MC/MCSymbol.h"
 #include "llvm/MC/MCSymbolELF.h"
@@ -154,6 +155,7 @@ void TargetLoweringObjectFileELF::Initialize(MCContext &Ctx,
     break;
   case Triple::aarch64:
   case Triple::aarch64_be:
+  case Triple::aarch64_32:
     // The small model guarantees static code/data size < 4GB, but not where it
     // will be in memory. Most of these could end up >2GB away so even a signed
     // pc-relative 32-bit address is insufficient, theoretically.
@@ -218,6 +220,16 @@ void TargetLoweringObjectFileELF::Initialize(MCContext &Ctx,
       PersonalityEncoding = dwarf::DW_EH_PE_absptr;
       TTypeEncoding = dwarf::DW_EH_PE_absptr;
     }
+    CallSiteEncoding = dwarf::DW_EH_PE_udata4;
+    break;
+  case Triple::riscv32:
+  case Triple::riscv64:
+    LSDAEncoding = dwarf::DW_EH_PE_pcrel | dwarf::DW_EH_PE_sdata4;
+    PersonalityEncoding = dwarf::DW_EH_PE_indirect | dwarf::DW_EH_PE_pcrel |
+                          dwarf::DW_EH_PE_sdata4;
+    TTypeEncoding = dwarf::DW_EH_PE_indirect | dwarf::DW_EH_PE_pcrel |
+                    dwarf::DW_EH_PE_sdata4;
+    CallSiteEncoding = dwarf::DW_EH_PE_udata4;
     break;
   case Triple::sparcv9:
     LSDAEncoding = dwarf::DW_EH_PE_pcrel | dwarf::DW_EH_PE_sdata4;
@@ -268,6 +280,19 @@ void TargetLoweringObjectFileELF::emitModuleMetadata(MCStreamer &Streamer,
         Streamer.EmitBytes(cast<MDString>(Option)->getString());
         Streamer.EmitIntValue(0, 1);
       }
+    }
+  }
+
+  if (NamedMDNode *DependentLibraries = M.getNamedMetadata("llvm.dependent-libraries")) {
+    auto *S = C.getELFSection(".deplibs", ELF::SHT_LLVM_DEPENDENT_LIBRARIES,
+                              ELF::SHF_MERGE | ELF::SHF_STRINGS, 1, "");
+
+    Streamer.SwitchSection(S);
+
+    for (const auto &Operand : DependentLibraries->operands()) {
+      Streamer.EmitBytes(
+          cast<MDString>(cast<MDNode>(Operand)->getOperand(0))->getString());
+      Streamer.EmitIntValue(0, 1);
     }
   }
 
@@ -352,7 +377,7 @@ void TargetLoweringObjectFileELF::emitPersonalityValue(
                                                    ELF::SHT_PROGBITS, Flags, 0);
   unsigned Size = DL.getPointerSize();
   Streamer.SwitchSection(Sec);
-  Streamer.EmitValueToAlignment(DL.getPointerABIAlignment(0));
+  Streamer.EmitValueToAlignment(DL.getPointerABIAlignment(0).value());
   Streamer.EmitSymbolAttribute(Label, MCSA_ELF_TypeObject);
   const MCExpr *E = MCConstantExpr::create(Size, getContext());
   Streamer.emitELFSize(Label, E);
@@ -501,8 +526,8 @@ static const MCSymbolELF *getAssociatedSymbol(const GlobalObject *GO,
   if (!VM)
     report_fatal_error("MD_associated operand is not ValueAsMetadata");
 
-  GlobalObject *OtherGO = dyn_cast<GlobalObject>(VM->getValue());
-  return OtherGO ? dyn_cast<MCSymbolELF>(TM.getSymbol(OtherGO)) : nullptr;
+  auto *OtherGV = dyn_cast<GlobalValue>(VM->getValue());
+  return OtherGV ? dyn_cast<MCSymbolELF>(TM.getSymbol(OtherGV)) : nullptr;
 }
 
 static unsigned getEntrySizeForKind(SectionKind Kind) {
@@ -543,6 +568,8 @@ MCSection *TargetLoweringObjectFileELF::getExplicitSectionGlobal(
       SectionName = Attrs.getAttribute("bss-section").getValueAsString();
     } else if (Attrs.hasAttribute("rodata-section") && Kind.isReadOnly()) {
       SectionName = Attrs.getAttribute("rodata-section").getValueAsString();
+    } else if (Attrs.hasAttribute("relro-section") && Kind.isReadOnlyWithRel()) {
+      SectionName = Attrs.getAttribute("relro-section").getValueAsString();
     } else if (Attrs.hasAttribute("data-section") && Kind.isData()) {
       SectionName = Attrs.getAttribute("data-section").getValueAsString();
     }
@@ -1084,8 +1111,8 @@ MCSymbol *TargetLoweringObjectFileMachO::getCFIPersonalitySymbol(
 }
 
 const MCExpr *TargetLoweringObjectFileMachO::getIndirectSymViaGOTPCRel(
-    const MCSymbol *Sym, const MCValue &MV, int64_t Offset,
-    MachineModuleInfo *MMI, MCStreamer &Streamer) const {
+    const GlobalValue *GV, const MCSymbol *Sym, const MCValue &MV,
+    int64_t Offset, MachineModuleInfo *MMI, MCStreamer &Streamer) const {
   // Although MachO 32-bit targets do not explicitly have a GOTPCREL relocation
   // as 64-bit do, we replace the GOT equivalent by accessing the final symbol
   // through a non_lazy_ptr stub instead. One advantage is that it allows the
@@ -1142,12 +1169,10 @@ const MCExpr *TargetLoweringObjectFileMachO::getIndirectSymViaGOTPCRel(
   MCSymbol *Stub = Ctx.getOrCreateSymbol(Name);
 
   MachineModuleInfoImpl::StubValueTy &StubSym = MachOMMI.getGVStubEntry(Stub);
-  if (!StubSym.getPointer()) {
-    bool IsIndirectLocal = Sym->isDefined() && !Sym->isExternal();
-    // With the assumption that IsIndirectLocal == GV->hasLocalLinkage().
+
+  if (!StubSym.getPointer())
     StubSym = MachineModuleInfoImpl::StubValueTy(const_cast<MCSymbol *>(Sym),
-                                                 !IsIndirectLocal);
-  }
+                                                 !GV->hasLocalLinkage());
 
   const MCExpr *BSymExpr =
     MCSymbolRefExpr::create(BaseSym, MCSymbolRefExpr::VK_None, Ctx);
@@ -1457,7 +1482,7 @@ void TargetLoweringObjectFileCOFF::Initialize(MCContext &Ctx,
                                               const TargetMachine &TM) {
   TargetLoweringObjectFile::Initialize(Ctx, TM);
   const Triple &T = TM.getTargetTriple();
-  if (T.isKnownWindowsMSVCEnvironment() || T.isWindowsItaniumEnvironment()) {
+  if (T.isWindowsMSVCEnvironment() || T.isWindowsItaniumEnvironment()) {
     StaticCtorSection =
         Ctx.getCOFFSection(".CRT$XCU", COFF::IMAGE_SCN_CNT_INITIALIZED_DATA |
                                            COFF::IMAGE_SCN_MEM_READ,
@@ -1483,7 +1508,7 @@ static MCSectionCOFF *getCOFFStaticStructorSection(MCContext &Ctx,
                                                    unsigned Priority,
                                                    const MCSymbol *KeySym,
                                                    MCSectionCOFF *Default) {
-  if (T.isKnownWindowsMSVCEnvironment() || T.isWindowsItaniumEnvironment()) {
+  if (T.isWindowsMSVCEnvironment() || T.isWindowsItaniumEnvironment()) {
     // If the priority is the default, use .CRT$XCU, possibly associative.
     if (Priority == 65535)
       return Ctx.getAssociativeCOFFSection(Default, KeySym, 0);
@@ -1496,7 +1521,8 @@ static MCSectionCOFF *getCOFFStaticStructorSection(MCContext &Ctx,
     // internally, so we use ".CRT$XCA00001" for them.
     SmallString<24> Name;
     raw_svector_ostream OS(Name);
-    OS << ".CRT$XC" << (Priority < 200 ? 'A' : 'T') << format("%05u", Priority);
+    OS << ".CRT$X" << (IsCtor ? "C" : "T") <<
+        (Priority < 200 ? 'A' : 'T') << format("%05u", Priority);
     MCSectionCOFF *Sec = Ctx.getCOFFSection(
         Name, COFF::IMAGE_SCN_CNT_INITIALIZED_DATA | COFF::IMAGE_SCN_MEM_READ,
         SectionKind::getReadOnly());
@@ -1543,9 +1569,7 @@ const MCExpr *TargetLoweringObjectFileCOFF::lowerRelativeReference(
     const GlobalValue *LHS, const GlobalValue *RHS,
     const TargetMachine &TM) const {
   const Triple &T = TM.getTargetTriple();
-  if (!T.isKnownWindowsMSVCEnvironment() &&
-      !T.isWindowsItaniumEnvironment() &&
-      !T.isWindowsCoreCLREnvironment())
+  if (T.isOSCygMing())
     return nullptr;
 
   // Our symbols should exist in address space zero, cowardly no-op if
@@ -1574,7 +1598,8 @@ const MCExpr *TargetLoweringObjectFileCOFF::lowerRelativeReference(
 
 static std::string APIntToHexString(const APInt &AI) {
   unsigned Width = (AI.getBitWidth() / 8) * 2;
-  std::string HexString = utohexstr(AI.getLimitedValue(), /*LowerCase=*/true);
+  std::string HexString = AI.toString(16, /*Signed=*/false);
+  transform(HexString.begin(), HexString.end(), HexString.begin(), tolower);
   unsigned Size = HexString.size();
   assert(Width >= Size && "hex string is too large!");
   HexString.insert(HexString.begin(), Width - Size, '0');
@@ -1797,4 +1822,129 @@ MCSection *TargetLoweringObjectFileWasm::getStaticDtorSection(
     unsigned Priority, const MCSymbol *KeySym) const {
   llvm_unreachable("@llvm.global_dtors should have been lowered already");
   return nullptr;
+}
+
+//===----------------------------------------------------------------------===//
+//                                  XCOFF
+//===----------------------------------------------------------------------===//
+MCSection *TargetLoweringObjectFileXCOFF::getExplicitSectionGlobal(
+    const GlobalObject *GO, SectionKind Kind, const TargetMachine &TM) const {
+  report_fatal_error("XCOFF explicit sections not yet implemented.");
+}
+
+MCSection *TargetLoweringObjectFileXCOFF::SelectSectionForGlobal(
+    const GlobalObject *GO, SectionKind Kind, const TargetMachine &TM) const {
+  assert(!TM.getFunctionSections() && !TM.getDataSections() &&
+         "XCOFF unique sections not yet implemented.");
+
+  // Common symbols go into a csect with matching name which will get mapped
+  // into the .bss section.
+  if (Kind.isBSSLocal() || Kind.isCommon()) {
+    SmallString<128> Name;
+    getNameWithPrefix(Name, GO, TM);
+    XCOFF::StorageClass SC =
+        TargetLoweringObjectFileXCOFF::getStorageClassForGlobal(GO);
+    return getContext().getXCOFFSection(
+        Name, Kind.isBSSLocal() ? XCOFF::XMC_BS : XCOFF::XMC_RW, XCOFF::XTY_CM,
+        SC, Kind, /* BeginSymbolName */ nullptr);
+  }
+
+  if (Kind.isMergeableCString()) {
+    if (!Kind.isMergeable1ByteCString())
+      report_fatal_error("Unhandled multi-byte mergeable string kind.");
+
+    unsigned Align = GO->getParent()->getDataLayout().getPreferredAlignment(
+        cast<GlobalVariable>(GO));
+
+    unsigned EntrySize = getEntrySizeForKind(Kind);
+    std::string SizeSpec = ".rodata.str" + utostr(EntrySize) + ".";
+    SmallString<128> Name;
+    Name = SizeSpec + utostr(Align);
+
+    return getContext().getXCOFFSection(
+        Name, XCOFF::XMC_RO, XCOFF::XTY_SD,
+        TargetLoweringObjectFileXCOFF::getStorageClassForGlobal(GO),
+        Kind, /* BeginSymbolName */ nullptr);
+  }
+
+  if (Kind.isText())
+    return TextSection;
+
+  if (Kind.isData())
+    return DataSection;
+
+  // Zero initialized data must be emitted to the .data section because external
+  // linkage control sections that get mapped to the .bss section will be linked
+  // as tentative defintions, which is only appropriate for SectionKind::Common.
+  if (Kind.isBSS())
+    return DataSection;
+
+  if (Kind.isReadOnly() && !Kind.isMergeableConst())
+    return ReadOnlySection;
+
+  report_fatal_error("XCOFF other section types not yet implemented.");
+}
+
+MCSection *TargetLoweringObjectFileXCOFF::getSectionForJumpTable(
+    const Function &F, const TargetMachine &TM) const {
+  assert (!TM.getFunctionSections() && "Unique sections not supported on XCOFF"
+          " yet.");
+  assert (!F.getComdat() && "Comdat not supported on XCOFF.");
+  //TODO: Enable emiting jump table to unique sections when we support it.
+  return ReadOnlySection;
+}
+
+bool TargetLoweringObjectFileXCOFF::shouldPutJumpTableInFunctionSection(
+    bool UsesLabelDifference, const Function &F) const {
+  return false;
+}
+
+/// Given a mergeable constant with the specified size and relocation
+/// information, return a section that it should be placed in.
+MCSection *TargetLoweringObjectFileXCOFF::getSectionForConstant(
+    const DataLayout &DL, SectionKind Kind, const Constant *C,
+    unsigned &Align) const {
+  //TODO: Enable emiting constant pool to unique sections when we support it.
+  return ReadOnlySection;
+}
+
+void TargetLoweringObjectFileXCOFF::Initialize(MCContext &Ctx,
+                                               const TargetMachine &TgtM) {
+  TargetLoweringObjectFile::Initialize(Ctx, TgtM);
+  TTypeEncoding = 0;
+  PersonalityEncoding = 0;
+  LSDAEncoding = 0;
+}
+
+MCSection *TargetLoweringObjectFileXCOFF::getStaticCtorSection(
+    unsigned Priority, const MCSymbol *KeySym) const {
+  report_fatal_error("XCOFF ctor section not yet implemented.");
+}
+
+MCSection *TargetLoweringObjectFileXCOFF::getStaticDtorSection(
+    unsigned Priority, const MCSymbol *KeySym) const {
+  report_fatal_error("XCOFF dtor section not yet implemented.");
+}
+
+const MCExpr *TargetLoweringObjectFileXCOFF::lowerRelativeReference(
+    const GlobalValue *LHS, const GlobalValue *RHS,
+    const TargetMachine &TM) const {
+  report_fatal_error("XCOFF not yet implemented.");
+}
+
+XCOFF::StorageClass TargetLoweringObjectFileXCOFF::getStorageClassForGlobal(
+    const GlobalObject *GO) {
+  switch (GO->getLinkage()) {
+  case GlobalValue::InternalLinkage:
+  case GlobalValue::PrivateLinkage:
+    return XCOFF::C_HIDEXT;
+  case GlobalValue::ExternalLinkage:
+  case GlobalValue::CommonLinkage:
+    return XCOFF::C_EXT;
+  case GlobalValue::ExternalWeakLinkage:
+    return XCOFF::C_WEAKEXT;
+  default:
+    report_fatal_error(
+        "Unhandled linkage when mapping linkage to StorageClass.");
+  }
 }

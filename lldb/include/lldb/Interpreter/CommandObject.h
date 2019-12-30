@@ -121,6 +121,7 @@ public:
   GetArgumentDescriptionAsCString(const lldb::CommandArgumentType arg_type);
 
   CommandInterpreter &GetCommandInterpreter() { return m_interpreter; }
+  Debugger &GetDebugger();
 
   virtual llvm::StringRef GetHelp();
 
@@ -220,47 +221,25 @@ public:
 
   void SetCommandName(llvm::StringRef name);
 
-  //------------------------------------------------------------------
   /// This default version handles calling option argument completions and then
   /// calls HandleArgumentCompletion if the cursor is on an argument, not an
   /// option. Don't override this method, override HandleArgumentCompletion
   /// instead unless you have special reasons.
   ///
-  /// \param[in/out] request
+  /// \param[in,out] request
   ///    The completion request that needs to be answered.
-  ///
-  /// FIXME: This is the wrong return value, since we also need to make a
-  /// distinction between
-  /// total number of matches, and the window the user wants returned.
-  ///
-  /// \return
-  ///     \btrue if we were in an option, \bfalse otherwise.
-  //------------------------------------------------------------------
-  virtual int HandleCompletion(CompletionRequest &request);
+  virtual void HandleCompletion(CompletionRequest &request);
 
-  //------------------------------------------------------------------
-  /// The input array contains a parsed version of the line.  The insertion
-  /// point is given by cursor_index (the index in input of the word containing
-  /// the cursor) and cursor_char_position (the position of the cursor in that
-  /// word.)
+  /// The input array contains a parsed version of the line.
+  ///
   /// We've constructed the map of options and their arguments as well if that
   /// is helpful for the completion.
   ///
-  /// \param[in/out] request
+  /// \param[in,out] request
   ///    The completion request that needs to be answered.
-  ///
-  /// FIXME: This is the wrong return value, since we also need to make a
-  /// distinction between
-  /// total number of matches, and the window the user wants returned.
-  ///
-  /// \return
-  ///     The number of completions.
-  //------------------------------------------------------------------
-  virtual int
+  virtual void
   HandleArgumentCompletion(CompletionRequest &request,
-                           OptionElementVector &opt_element_vector) {
-    return 0;
-  }
+                           OptionElementVector &opt_element_vector) {}
 
   bool HelpTextContainsWord(llvm::StringRef search_word,
                             bool search_short_help = true,
@@ -268,27 +247,22 @@ public:
                             bool search_syntax = true,
                             bool search_options = true);
 
-  //------------------------------------------------------------------
   /// The flags accessor.
   ///
   /// \return
   ///     A reference to the Flags member variable.
-  //------------------------------------------------------------------
   Flags &GetFlags() { return m_flags; }
 
-  //------------------------------------------------------------------
   /// The flags const accessor.
   ///
   /// \return
   ///     A const reference to the Flags member variable.
-  //------------------------------------------------------------------
   const Flags &GetFlags() const { return m_flags; }
 
-  //------------------------------------------------------------------
   /// Get the command that appropriate for a "repeat" of the current command.
   ///
-  /// \param[in] current_command_line
-  ///    The complete current command line.
+  /// \param[in] current_command_args
+  ///    The command arguments.
   ///
   /// \return
   ///     nullptr if there is no special repeat command - it will use the
@@ -296,7 +270,6 @@ public:
   ///     Otherwise a pointer to the command to be repeated.
   ///     If the returned string is the empty string, the command won't be
   ///     repeated.
-  //------------------------------------------------------------------
   virtual const char *GetRepeatCommand(Args &current_command_args,
                                        uint32_t index) {
     return nullptr;
@@ -357,8 +330,9 @@ protected:
   // This is for use in the command interpreter, when you either want the
   // selected target, or if no target is present you want to prime the dummy
   // target with entities that will be copied over to new targets.
-  Target *GetSelectedOrDummyTarget(bool prefer_dummy = false);
-  Target *GetDummyTarget();
+  Target &GetSelectedOrDummyTarget(bool prefer_dummy = false);
+  Target &GetSelectedTarget();
+  Target &GetDummyTarget();
 
   // If a command needs to use the "current" thread, use this call. Command
   // objects will have an ExecutionContext to use, and that may or may not have
@@ -367,7 +341,6 @@ protected:
   // insulates you from the details of this calculation.
   Thread *GetDefaultThread();
 
-  //------------------------------------------------------------------
   /// Check the command to make sure anything required by this
   /// command is available.
   ///
@@ -377,7 +350,6 @@ protected:
   ///
   /// \return
   ///     \b true if it is okay to run this command, \b false otherwise.
-  //------------------------------------------------------------------
   bool CheckRequirements(CommandReturnObject &result);
 
   void Cleanup();

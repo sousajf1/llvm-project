@@ -28,6 +28,8 @@ struct SIProgramInfo {
     uint32_t DX10Clamp = 0;
     uint32_t DebugMode = 0;
     uint32_t IEEEMode = 0;
+    uint32_t WgpMode = 0; // GFX10+
+    uint32_t MemOrdered = 0; // GFX10+
     uint64_t ScratchSize = 0;
 
     uint64_t ComputePGMRSrc1 = 0;
@@ -39,6 +41,8 @@ struct SIProgramInfo {
     uint64_t ComputePGMRSrc2 = 0;
 
     uint32_t NumVGPR = 0;
+    uint32_t NumArchVGPR = 0;
+    uint32_t NumAccVGPR = 0;
     uint32_t NumSGPR = 0;
     uint32_t LDSSize = 0;
     bool FlatUsed = false;
@@ -48,6 +52,9 @@ struct SIProgramInfo {
 
     // Number of VGPRs that meets number of waves per execution unit request.
     uint32_t NumVGPRsForWavesPerEU = 0;
+
+    // Final occupancy.
+    uint32_t Occupancy = 0;
 
     // Whether there is recursion, dynamic allocas, indirect calls or some other
     // reason there may be statically unknown stack usage.

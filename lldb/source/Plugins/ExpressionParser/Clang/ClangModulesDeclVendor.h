@@ -10,23 +10,26 @@
 #define liblldb_ClangModulesDeclVendor_h
 
 #include "lldb/Core/ClangForward.h"
-#include "lldb/Symbol/DeclVendor.h"
 #include "lldb/Symbol/SourceModule.h"
 #include "lldb/Target/Platform.h"
+
+#include "Plugins/ExpressionParser/Clang/ClangDeclVendor.h"
 
 #include <set>
 #include <vector>
 
 namespace lldb_private {
 
-class ClangModulesDeclVendor : public DeclVendor {
+class ClangModulesDeclVendor : public ClangDeclVendor {
 public:
-  //------------------------------------------------------------------
   // Constructors and Destructors
-  //------------------------------------------------------------------
   ClangModulesDeclVendor();
 
   ~ClangModulesDeclVendor() override;
+
+  static bool classof(const DeclVendor *vendor) {
+    return vendor->GetKind() == eClangModuleDeclVendor;
+  }
 
   static ClangModulesDeclVendor *Create(Target &target);
 
@@ -34,7 +37,6 @@ public:
   typedef uintptr_t ModuleID;
   typedef std::vector<ModuleID> ModuleVector;
 
-  //------------------------------------------------------------------
   /// Add a module to the list of modules to search.
   ///
   /// \param[in] module
@@ -53,12 +55,10 @@ public:
   ///     True if the module could be loaded; false if not.  If the
   ///     compiler encountered a fatal error during a previous module
   ///     load, then this will always return false for this ModuleImporter.
-  //------------------------------------------------------------------
   virtual bool AddModule(const SourceModule &module,
                          ModuleVector *exported_modules,
                          Stream &error_stream) = 0;
 
-  //------------------------------------------------------------------
   /// Add all modules referred to in a given compilation unit to the list
   /// of modules to search.
   ///
@@ -78,12 +78,10 @@ public:
   ///     loaded; false if one could not be loaded.  If the compiler
   ///     encountered a fatal error during a previous module
   ///     load, then this will always return false for this ModuleImporter.
-  //------------------------------------------------------------------
   virtual bool AddModulesForCompileUnit(CompileUnit &cu,
                                         ModuleVector &exported_modules,
                                         Stream &error_stream) = 0;
 
-  //------------------------------------------------------------------
   /// Enumerate all the macros that are defined by a given set of modules
   /// that are already imported.
   ///
@@ -97,12 +95,10 @@ public:
   ///     #define directive).  #undef directives are not included; we simply
   ///     elide any corresponding #define.  If this function returns true,
   ///     we stop the iteration immediately.
-  //------------------------------------------------------------------
   virtual void
   ForEachMacro(const ModuleVector &modules,
                std::function<bool(const std::string &)> handler) = 0;
 
-  //------------------------------------------------------------------
   /// Query whether Clang supports modules for a particular language.
   /// LLDB uses this to decide whether to try to find the modules loaded
   /// by a given compile unit.
@@ -112,7 +108,6 @@ public:
   ///
   /// \return
   ///     True if Clang has modules for the given language.
-  //------------------------------------------------------------------
   static bool LanguageSupportsClangModules(lldb::LanguageType language);
 };
 

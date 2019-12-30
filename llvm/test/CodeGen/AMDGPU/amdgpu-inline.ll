@@ -31,12 +31,12 @@ entry:
   %cmp = fcmp ogt float %tmp1, 1.000000e+00
   br i1 %cmp, label %if.then, label %if.end
 
-if.then:                                          ; preds = %entry
+if.then:
   %div = fdiv float 2.000000e+00, %tmp1
   store float %div, float addrspace(5)* %p2, align 4
   br label %if.end
 
-if.end:                                           ; preds = %if.then, %entry
+if.end:
   ret void
 }
 

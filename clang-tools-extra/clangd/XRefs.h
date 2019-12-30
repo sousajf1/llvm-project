@@ -13,14 +13,21 @@
 #ifndef LLVM_CLANG_TOOLS_EXTRA_CLANGD_XREFS_H
 #define LLVM_CLANG_TOOLS_EXTRA_CLANGD_XREFS_H
 
-#include "ClangdUnit.h"
+#include "FormattedString.h"
+#include "Path.h"
 #include "Protocol.h"
 #include "index/Index.h"
+#include "index/SymbolLocation.h"
+#include "clang/AST/Type.h"
+#include "clang/Format/Format.h"
+#include "clang/Index/IndexSymbol.h"
 #include "llvm/ADT/Optional.h"
+#include "llvm/Support/raw_ostream.h"
 #include <vector>
 
 namespace clang {
 namespace clangd {
+class ParsedAST;
 
 // Describes where a symbol is declared and defined (as far as clangd knows).
 // There are three cases:
@@ -46,14 +53,14 @@ std::vector<LocatedSymbol> locateSymbolAt(ParsedAST &AST, Position Pos,
 std::vector<DocumentHighlight> findDocumentHighlights(ParsedAST &AST,
                                                       Position Pos);
 
-/// Get the hover information when hovering at \p Pos.
-llvm::Optional<Hover> getHover(ParsedAST &AST, Position Pos);
-
-/// Returns reference locations of the symbol at a specified \p Pos.
+struct ReferencesResult {
+  std::vector<Location> References;
+  bool HasMore = false;
+};
+/// Returns references of the symbol at a specified \p Pos.
 /// \p Limit limits the number of results returned (0 means no limit).
-std::vector<Location> findReferences(ParsedAST &AST, Position Pos,
-                                     uint32_t Limit,
-                                     const SymbolIndex *Index = nullptr);
+ReferencesResult findReferences(ParsedAST &AST, Position Pos, uint32_t Limit,
+                                const SymbolIndex *Index = nullptr);
 
 /// Get info about symbols at \p Pos.
 std::vector<SymbolDetails> getSymbolInfo(ParsedAST &AST, Position Pos);
@@ -65,10 +72,17 @@ const CXXRecordDecl *findRecordTypeAt(ParsedAST &AST, Position Pos);
 std::vector<const CXXRecordDecl *> typeParents(const CXXRecordDecl *CXXRD);
 
 /// Get type hierarchy information at \p Pos.
-llvm::Optional<TypeHierarchyItem>
-getTypeHierarchy(ParsedAST &AST, Position Pos, int Resolve,
-                 TypeHierarchyDirection Direction);
+llvm::Optional<TypeHierarchyItem> getTypeHierarchy(
+    ParsedAST &AST, Position Pos, int Resolve, TypeHierarchyDirection Direction,
+    const SymbolIndex *Index = nullptr, PathRef TUPath = PathRef{});
 
+void resolveTypeHierarchy(TypeHierarchyItem &Item, int ResolveLevels,
+                          TypeHierarchyDirection Direction,
+                          const SymbolIndex *Index);
+
+/// Returns all decls that are referenced in the \p FD except local symbols.
+llvm::DenseSet<const Decl *> getNonLocalDeclRefs(ParsedAST &AST,
+                                                 const FunctionDecl *FD);
 } // namespace clangd
 } // namespace clang
 

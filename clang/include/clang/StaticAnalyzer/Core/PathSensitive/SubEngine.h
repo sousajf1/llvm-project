@@ -15,6 +15,7 @@
 #include "clang/Analysis/ProgramPoint.h"
 #include "clang/StaticAnalyzer/Core/PathSensitive/SVals.h"
 #include "clang/StaticAnalyzer/Core/PathSensitive/Store.h"
+#include "clang/StaticAnalyzer/Core/CheckerManager.h"
 
 namespace clang {
 
@@ -148,8 +149,10 @@ public:
     return processRegionChanges(state, nullptr, MR, MR, LCtx, nullptr);
   }
 
-  virtual ProgramStateRef
-  processPointerEscapedOnBind(ProgramStateRef State, SVal Loc, SVal Val, const LocationContext *LCtx) = 0;
+  virtual ProgramStateRef processPointerEscapedOnBind(
+      ProgramStateRef State, ArrayRef<std::pair<SVal, SVal>> LocAndVals,
+      const LocationContext *LCtx, PointerEscapeKind Kind,
+      const CallEvent *Call) = 0;
 
   virtual ProgramStateRef
   notifyCheckersOfPointerEscape(ProgramStateRef State,
@@ -158,10 +161,10 @@ public:
                            const CallEvent *Call,
                            RegionAndSymbolInvalidationTraits &HTraits) = 0;
 
-  /// printState - Called by ProgramStateManager to print checker-specific data.
-  virtual void printState(raw_ostream &Out, ProgramStateRef State,
-                          const char *NL, const char *Sep,
-                          const LocationContext *LCtx = nullptr) = 0;
+  /// printJson - Called by ProgramStateManager to print checker-specific data.
+  virtual void printJson(raw_ostream &Out, ProgramStateRef State,
+                         const LocationContext *LCtx, const char *NL,
+                         unsigned int Space, bool IsDot) const = 0;
 
   /// Called by CoreEngine when the analysis worklist is either empty or the
   //  maximum number of analysis steps have been reached.

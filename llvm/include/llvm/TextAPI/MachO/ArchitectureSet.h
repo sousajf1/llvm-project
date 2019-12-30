@@ -38,7 +38,7 @@ public:
   ArchitectureSet(const std::vector<Architecture> &Archs);
 
   void set(Architecture Arch) {
-    if (Arch == Architecture::unknown)
+    if (Arch == AK_unknown)
       return;
     ArchSet |= 1U << static_cast<int>(Arch);
   }
@@ -59,6 +59,10 @@ public:
 
   ArchSetType rawValue() const { return ArchSet; }
 
+  bool hasX86() const {
+    return has(AK_i386) || has(AK_x86_64) || has(AK_x86_64h);
+  }
+
   template <typename Ty>
   class arch_iterator
       : public std::iterator<std::forward_iterator_tag, Architecture, size_t> {
@@ -69,11 +73,10 @@ public:
     void findNextSetBit() {
       if (Index == EndIndexVal)
         return;
-
-      do {
-        if (*ArchSet & (1UL << ++Index))
+      while (++Index < sizeof(Ty) * 8) {
+        if (*ArchSet & (1UL << Index))
           return;
-      } while (Index < sizeof(Ty) * 8);
+      }
 
       Index = EndIndexVal;
     }

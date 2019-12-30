@@ -1,14 +1,14 @@
-; RUN: llc < %s -mtriple aarch64-unknown-unknown -aarch64-neon-syntax=apple -asm-verbose=false -disable-post-ra -frame-pointer=all | FileCheck %s --check-prefix=CHECK-CVT --check-prefix=CHECK-COMMON
-; RUN: llc < %s -mtriple aarch64-unknown-unknown -mattr=+fullfp16 -aarch64-neon-syntax=apple -asm-verbose=false -disable-post-ra -frame-pointer=all | FileCheck %s --check-prefix=CHECK-COMMON --check-prefix=CHECK-FP16
+; RUN: llc < %s -mtriple aarch64-unknown-unknown -aarch64-neon-syntax=apple -asm-verbose=false -disable-post-ra -frame-pointer=non-leaf | FileCheck %s --check-prefix=CHECK-CVT --check-prefix=CHECK-COMMON
+; RUN: llc < %s -mtriple aarch64-unknown-unknown -mattr=+fullfp16 -aarch64-neon-syntax=apple -asm-verbose=false -disable-post-ra -frame-pointer=non-leaf | FileCheck %s --check-prefix=CHECK-COMMON --check-prefix=CHECK-FP16
 
 ; RUN: llc < %s -mtriple aarch64-unknown-unknown -aarch64-neon-syntax=apple \
-; RUN: -asm-verbose=false -disable-post-ra -frame-pointer=all -global-isel \
+; RUN: -asm-verbose=false -disable-post-ra -frame-pointer=non-leaf -global-isel \
 ; RUN: -global-isel-abort=2 -pass-remarks-missed=gisel-* 2>&1 | FileCheck %s \
 ; RUN: --check-prefixes=FALLBACK,GISEL-CVT,GISEL
 
 ; RUN: llc < %s -mtriple aarch64-unknown-unknown -mattr=+fullfp16 \
 ; RUN: -aarch64-neon-syntax=apple -asm-verbose=false -disable-post-ra \
-; RUN: -frame-pointer=all -global-isel -global-isel-abort=2 \
+; RUN: -frame-pointer=non-leaf -global-isel -global-isel-abort=2 \
 ; RUN: -pass-remarks-missed=gisel-* 2>&1 | FileCheck %s \
 ; RUN: --check-prefixes=FALLBACK-FP16,GISEL-FP16,GISEL
 
@@ -919,6 +919,15 @@ define half @test_exp(half %a) #0 {
 ; CHECK-COMMON-NEXT: fcvt h0, s0
 ; CHECK-COMMON-NEXT: ldp x29, x30, [sp], #16
 ; CHECK-COMMON-NEXT: ret
+
+; GISEL-LABEL: test_exp2:
+; GISEL-NEXT: stp x29, x30, [sp, #-16]!
+; GISEL-NEXT: mov  x29, sp
+; GISEL-NEXT: fcvt s0, h0
+; GISEL-NEXT: bl {{_?}}exp2f
+; GISEL-NEXT: fcvt h0, s0
+; GISEL-NEXT: ldp x29, x30, [sp], #16
+; GISEL-NEXT: ret
 define half @test_exp2(half %a) #0 {
   %r = call half @llvm.exp2.f16(half %a)
   ret half %r
@@ -1264,9 +1273,20 @@ define half @test_nearbyint(half %a) #0 {
 ; CHECK-CVT-NEXT: fcvt h0, [[INT32]]
 ; CHECK-CVT-NEXT: ret
 
+; GISEL-CVT-LABEL: test_round:
+; GISEL-CVT-NEXT: fcvt [[FLOAT32:s[0-9]+]], h0
+; GISEL-CVT-NEXT: frinta [[INT32:s[0-9]+]], [[FLOAT32]]
+; GISEL-CVT-NEXT: fcvt h0, [[INT32]]
+; GISEL-CVT-NEXT: ret
+
+
 ; CHECK-FP16-LABEL: test_round:
 ; CHECK-FP16-NEXT: frinta h0, h0
 ; CHECK-FP16-NEXT: ret
+
+; GISEL-FP16-LABEL: test_round:
+; GISEL-FP16-NEXT: frinta h0, h0
+; GISEL-FP16-NEXT: ret
 
 define half @test_round(half %a) #0 {
   %r = call half @llvm.round.f16(half %a)

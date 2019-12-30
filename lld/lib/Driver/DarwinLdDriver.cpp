@@ -95,7 +95,7 @@ public:
 static std::vector<std::unique_ptr<File>>
 makeErrorFile(StringRef path, std::error_code ec) {
   std::vector<std::unique_ptr<File>> result;
-  result.push_back(llvm::make_unique<ErrorFile>(path, ec));
+  result.push_back(std::make_unique<ErrorFile>(path, ec));
   return result;
 }
 
@@ -160,7 +160,7 @@ static void addFile(StringRef path, MachOLinkingContext &ctx,
   std::vector<std::unique_ptr<File>> files =
       loadFile(ctx, path, loadWholeArchive, upwardDylib);
   for (std::unique_ptr<File> &file : files)
-    ctx.getNodes().push_back(llvm::make_unique<FileNode>(std::move(file)));
+    ctx.getNodes().push_back(std::make_unique<FileNode>(std::move(file)));
 }
 
 // Export lists are one symbol per line.  Blank lines are ignored.
@@ -232,7 +232,7 @@ static std::error_code parseOrderFile(StringRef orderFilePath,
      sym = prefixAndSym.first;
     if (!sym.empty()) {
       ctx.appendOrderedSymbol(sym, prefix);
-      //llvm::errs() << sym << ", prefix=" << prefix << "\n";
+      // llvm::errs() << sym << ", prefix=" << prefix << "\n";
     }
   }
   return std::error_code();
@@ -333,8 +333,8 @@ bool parse(llvm::ArrayRef<const char *> args, MachOLinkingContext &ctx) {
          Twine(unknownArg->getAsString(parsedArgs)));
   }
 
-  errorHandler().Verbose = parsedArgs.hasArg(OPT_v);
-  errorHandler().ErrorLimit = args::getInteger(parsedArgs, OPT_error_limit, 20);
+  errorHandler().verbose = parsedArgs.hasArg(OPT_v);
+  errorHandler().errorLimit = args::getInteger(parsedArgs, OPT_error_limit, 20);
 
   // Figure out output kind ( -dylib, -r, -bundle, -preload, or -static )
   llvm::MachO::HeaderFileType fileType = llvm::MachO::MH_EXECUTE;
@@ -637,7 +637,7 @@ bool parse(llvm::ArrayRef<const char *> args, MachOLinkingContext &ctx) {
 
   // Now that we've constructed the final set of search paths, print out those
   // search paths in verbose mode.
-  if (errorHandler().Verbose) {
+  if (errorHandler().verbose) {
     message("Library search paths:");
     for (auto path : ctx.searchDirs()) {
       message("    " + path);
@@ -1138,20 +1138,22 @@ static void createFiles(MachOLinkingContext &ctx, bool Implicit) {
     ctx.createInternalFiles(Files);
   for (auto i = Files.rbegin(), e = Files.rend(); i != e; ++i) {
     auto &members = ctx.getNodes();
-    members.insert(members.begin(), llvm::make_unique<FileNode>(std::move(*i)));
+    members.insert(members.begin(), std::make_unique<FileNode>(std::move(*i)));
   }
 }
 
 /// This is where the link is actually performed.
 bool link(llvm::ArrayRef<const char *> args, bool CanExitEarly,
-          raw_ostream &Error) {
-  errorHandler().LogName = args::getFilenameWithoutExe(args[0]);
-  errorHandler().ErrorLimitExceededMsg =
+          raw_ostream &StdoutOS, raw_ostream &StderrOS) {
+  lld::stdoutOS = &StdoutOS;
+  lld::stderrOS = &StderrOS;
+
+  errorHandler().logName = args::getFilenameWithoutExe(args[0]);
+  errorHandler().errorLimitExceededMsg =
       "too many errors emitted, stopping now (use "
       "'-error-limit 0' to see all errors)";
-  errorHandler().ErrorOS = &Error;
-  errorHandler().ExitEarly = CanExitEarly;
-  errorHandler().ColorDiagnostics = Error.has_colors();
+  errorHandler().exitEarly = CanExitEarly;
+  StderrOS.enable_colors(StderrOS.has_colors());
 
   MachOLinkingContext ctx;
   if (!parse(args, ctx))
@@ -1185,7 +1187,7 @@ bool link(llvm::ArrayRef<const char *> args, bool CanExitEarly,
     merged = mergedFile.get();
     auto &members = ctx.getNodes();
     members.insert(members.begin(),
-                   llvm::make_unique<FileNode>(std::move(mergedFile)));
+                   std::make_unique<FileNode>(std::move(mergedFile)));
   }
   resolveTask.end();
 
@@ -1196,10 +1198,9 @@ bool link(llvm::ArrayRef<const char *> args, bool CanExitEarly,
   if (auto ec = pm.runOnFile(*merged)) {
     // FIXME: This should be passed to logAllUnhandledErrors but it needs
     // to be passed a Twine instead of a string.
-    *errorHandler().ErrorOS << "Failed to run passes on file '"
-                            << ctx.outputPath() << "': ";
-    logAllUnhandledErrors(std::move(ec), *errorHandler().ErrorOS,
-                          std::string());
+    lld::errs() << "Failed to run passes on file '" << ctx.outputPath()
+                << "': ";
+    logAllUnhandledErrors(std::move(ec), lld::errs(), std::string());
     return false;
   }
 
@@ -1210,10 +1211,8 @@ bool link(llvm::ArrayRef<const char *> args, bool CanExitEarly,
   if (auto ec = ctx.writeFile(*merged)) {
     // FIXME: This should be passed to logAllUnhandledErrors but it needs
     // to be passed a Twine instead of a string.
-    *errorHandler().ErrorOS << "Failed to write file '" << ctx.outputPath()
-                            << "': ";
-    logAllUnhandledErrors(std::move(ec), *errorHandler().ErrorOS,
-                          std::string());
+    lld::errs() << "Failed to write file '" << ctx.outputPath() << "': ";
+    logAllUnhandledErrors(std::move(ec), lld::errs(), std::string());
     return false;
   }
 

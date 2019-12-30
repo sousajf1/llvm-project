@@ -115,6 +115,7 @@
 #include "llvm/IR/Value.h"
 #include "llvm/IR/ValueHandle.h"
 #include "llvm/IR/ValueMap.h"
+#include "llvm/InitializePasses.h"
 #include "llvm/Pass.h"
 #include "llvm/Support/Casting.h"
 #include "llvm/Support/CommandLine.h"
@@ -189,8 +190,6 @@ public:
   void replaceBy(Function *G) const {
     F = G;
   }
-
-  void release() { F = nullptr; }
 };
 
 /// MergeFunctions finds functions which will generate identical machine code,
@@ -403,12 +402,7 @@ bool MergeFunctions::runOnModule(Module &M) {
     }
   }
 
-  std::stable_sort(
-      HashedFuncs.begin(), HashedFuncs.end(),
-      [](const std::pair<FunctionComparator::FunctionHash, Function *> &a,
-         const std::pair<FunctionComparator::FunctionHash, Function *> &b) {
-        return a.first < b.first;
-      });
+  llvm::stable_sort(HashedFuncs, less_first());
 
   auto S = HashedFuncs.begin();
   for (auto I = HashedFuncs.begin(), IE = HashedFuncs.end(); I != IE; ++I) {
@@ -456,28 +450,10 @@ void MergeFunctions::replaceDirectCallers(Function *Old, Function *New) {
     ++UI;
     CallSite CS(U->getUser());
     if (CS && CS.isCallee(U)) {
-      // Transfer the called function's attributes to the call site. Due to the
-      // bitcast we will 'lose' ABI changing attributes because the 'called
-      // function' is no longer a Function* but the bitcast. Code that looks up
-      // the attributes from the called function will fail.
-
-      // FIXME: This is not actually true, at least not anymore. The callsite
-      // will always have the same ABI affecting attributes as the callee,
-      // because otherwise the original input has UB. Note that Old and New
-      // always have matching ABI, so no attributes need to be changed.
-      // Transferring other attributes may help other optimizations, but that
-      // should be done uniformly and not in this ad-hoc way.
-      auto &Context = New->getContext();
-      auto NewPAL = New->getAttributes();
-      SmallVector<AttributeSet, 4> NewArgAttrs;
-      for (unsigned argIdx = 0; argIdx < CS.arg_size(); argIdx++)
-        NewArgAttrs.push_back(NewPAL.getParamAttributes(argIdx));
-      // Don't transfer attributes from the function to the callee. Function
-      // attributes typically aren't relevant to the calling convention or ABI.
-      CS.setAttributes(AttributeList::get(Context, /*FnAttrs=*/AttributeSet(),
-                                          NewPAL.getRetAttributes(),
-                                          NewArgAttrs));
-
+      // Do not copy attributes from the called function to the call-site.
+      // Function comparison ensures that the attributes are the same up to
+      // type congruences in byval(), in which case we need to keep the byval
+      // type of the call-site, not the callee function.
       remove(CS.getInstruction()->getFunction());
       U->set(BitcastNew);
     }
@@ -703,6 +679,7 @@ void MergeFunctions::writeThunk(Function *F, Function *G) {
   } else {
     NewG = Function::Create(G->getFunctionType(), G->getLinkage(),
                             G->getAddressSpace(), "", G->getParent());
+    NewG->setComdat(G->getComdat());
     BB = BasicBlock::Create(F->getContext(), "", NewG);
   }
 
@@ -775,7 +752,7 @@ void MergeFunctions::writeAlias(Function *F, Function *G) {
       PtrType->getElementType(), PtrType->getAddressSpace(),
       G->getLinkage(), "", BitcastF, G->getParent());
 
-  F->setAlignment(std::max(F->getAlignment(), G->getAlignment()));
+  F->setAlignment(MaybeAlign(std::max(F->getAlignment(), G->getAlignment())));
   GA->takeName(G);
   GA->setVisibility(G->getVisibility());
   GA->setUnnamedAddr(GlobalValue::UnnamedAddr::Global);
@@ -822,7 +799,7 @@ void MergeFunctions::mergeTwoFunctions(Function *F, Function *G) {
     removeUsers(F);
     F->replaceAllUsesWith(NewF);
 
-    unsigned MaxAlignment = std::max(G->getAlignment(), NewF->getAlignment());
+    MaybeAlign MaxAlignment(std::max(G->getAlignment(), NewF->getAlignment()));
 
     writeThunkOrAlias(F, G);
     writeThunkOrAlias(F, NewF);
@@ -952,25 +929,7 @@ void MergeFunctions::remove(Function *F) {
 // For each instruction used by the value, remove() the function that contains
 // the instruction. This should happen right before a call to RAUW.
 void MergeFunctions::removeUsers(Value *V) {
-  std::vector<Value *> Worklist;
-  Worklist.push_back(V);
-  SmallPtrSet<Value*, 8> Visited;
-  Visited.insert(V);
-  while (!Worklist.empty()) {
-    Value *V = Worklist.back();
-    Worklist.pop_back();
-
-    for (User *U : V->users()) {
-      if (Instruction *I = dyn_cast<Instruction>(U)) {
-        remove(I->getFunction());
-      } else if (isa<GlobalValue>(U)) {
-        // do nothing
-      } else if (Constant *C = dyn_cast<Constant>(U)) {
-        for (User *UU : C->users()) {
-          if (!Visited.insert(UU).second)
-            Worklist.push_back(UU);
-        }
-      }
-    }
-  }
+  for (User *U : V->users())
+    if (auto *I = dyn_cast<Instruction>(U))
+      remove(I->getFunction());
 }

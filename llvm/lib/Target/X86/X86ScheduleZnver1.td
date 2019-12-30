@@ -215,7 +215,6 @@ defm : ZnWriteResPair<WriteJump,  [ZnALU], 1>;
 defm : ZnWriteResFpuPair<WriteCRC32, [ZnFPU0], 3>;
 
 defm : ZnWriteResPair<WriteCMOV,   [ZnALU], 1>;
-defm : ZnWriteResPair<WriteCMOV2,  [ZnALU], 1>;
 def  : WriteRes<WriteSETCC,  [ZnALU]>;
 def  : WriteRes<WriteSETCCStore,  [ZnALU, ZnAGU]>;
 defm : X86WriteRes<WriteLAHFSAHF, [ZnALU], 2, [1], 2>;
@@ -269,8 +268,12 @@ defm : X86WriteRes<WriteFStoreY,       [ZnAGU], 1, [1], 1>;
 defm : X86WriteRes<WriteFStoreNT,      [ZnAGU,ZnFPU2], 8, [1,1], 1>;
 defm : X86WriteRes<WriteFStoreNTX,     [ZnAGU], 1, [1], 1>;
 defm : X86WriteRes<WriteFStoreNTY,     [ZnAGU], 1, [1], 1>;
-defm : X86WriteRes<WriteFMaskedStore,  [ZnAGU,ZnFPU01], 4, [1,1], 1>;
-defm : X86WriteRes<WriteFMaskedStoreY, [ZnAGU,ZnFPU01], 5, [1,2], 2>;
+
+defm : X86WriteRes<WriteFMaskedStore32,  [ZnAGU,ZnFPU01], 4, [1,1], 1>;
+defm : X86WriteRes<WriteFMaskedStore32Y, [ZnAGU,ZnFPU01], 5, [1,2], 2>;
+defm : X86WriteRes<WriteFMaskedStore64,  [ZnAGU,ZnFPU01], 4, [1,1], 1>;
+defm : X86WriteRes<WriteFMaskedStore64Y, [ZnAGU,ZnFPU01], 5, [1,2], 2>;
+
 defm : X86WriteRes<WriteFMove,         [ZnFPU], 1, [1], 1>;
 defm : X86WriteRes<WriteFMoveX,        [ZnFPU], 1, [1], 1>;
 defm : X86WriteRes<WriteFMoveY,        [ZnFPU], 1, [1], 1>;

@@ -8,9 +8,8 @@
 
 #include "lldb/Target/ThreadPlanStepThrough.h"
 #include "lldb/Breakpoint/Breakpoint.h"
-#include "lldb/Target/CPPLanguageRuntime.h"
 #include "lldb/Target/DynamicLoader.h"
-#include "lldb/Target/ObjCLanguageRuntime.h"
+#include "lldb/Target/LanguageRuntime.h"
 #include "lldb/Target/Process.h"
 #include "lldb/Target/RegisterContext.h"
 #include "lldb/Target/Target.h"
@@ -20,12 +19,10 @@
 using namespace lldb;
 using namespace lldb_private;
 
-//----------------------------------------------------------------------
 // ThreadPlanStepThrough: If the current instruction is a trampoline, step
 // through it If it is the beginning of the prologue of a function, step
 // through that as well.
 // FIXME: At present only handles DYLD trampolines.
-//----------------------------------------------------------------------
 
 ThreadPlanStepThrough::ThreadPlanStepThrough(Thread &thread,
                                              StackID &m_stack_id,
@@ -67,8 +64,8 @@ ThreadPlanStepThrough::ThreadPlanStepThrough(Thread &thread,
       }
       Log *log(lldb_private::GetLogIfAllCategoriesSet(LIBLLDB_LOG_STEP));
       if (log) {
-        log->Printf("Setting backstop breakpoint %d at address: 0x%" PRIx64,
-                    m_backstop_bkpt_id, m_backstop_addr);
+        LLDB_LOGF(log, "Setting backstop breakpoint %d at address: 0x%" PRIx64,
+                  m_backstop_bkpt_id, m_backstop_addr);
       }
     }
   }
@@ -87,22 +84,17 @@ void ThreadPlanStepThrough::LookForPlanToStepThroughFromCurrentPC() {
     m_sub_plan_sp =
         loader->GetStepThroughTrampolinePlan(m_thread, m_stop_others);
 
-  // If that didn't come up with anything, try the ObjC runtime plugin:
-  if (!m_sub_plan_sp.get()) {
-    ObjCLanguageRuntime *objc_runtime =
-        m_thread.GetProcess()->GetObjCLanguageRuntime();
-    if (objc_runtime)
+  // If the DynamicLoader was unable to provide us with a ThreadPlan, then we
+  // try the LanguageRuntimes.
+  if (!m_sub_plan_sp) {
+    for (LanguageRuntime *runtime :
+         m_thread.GetProcess()->GetLanguageRuntimes()) {
       m_sub_plan_sp =
-          objc_runtime->GetStepThroughTrampolinePlan(m_thread, m_stop_others);
+          runtime->GetStepThroughTrampolinePlan(m_thread, m_stop_others);
 
-    CPPLanguageRuntime *cpp_runtime =
-        m_thread.GetProcess()->GetCPPLanguageRuntime();
-
-    // If the ObjC runtime did not provide us with a step though plan then if we
-    // have it check the C++ runtime for a step though plan.
-    if (!m_sub_plan_sp.get() && cpp_runtime)
-      m_sub_plan_sp =
-          cpp_runtime->GetStepThroughTrampolinePlan(m_thread, m_stop_others);
+      if (m_sub_plan_sp)
+        break;
+    }
   }
 
   Log *log(lldb_private::GetLogIfAllCategoriesSet(LIBLLDB_LOG_STEP));
@@ -111,11 +103,12 @@ void ThreadPlanStepThrough::LookForPlanToStepThroughFromCurrentPC() {
     if (m_sub_plan_sp) {
       StreamString s;
       m_sub_plan_sp->GetDescription(&s, lldb::eDescriptionLevelFull);
-      log->Printf("Found step through plan from 0x%" PRIx64 ": %s",
-                  current_address, s.GetData());
+      LLDB_LOGF(log, "Found step through plan from 0x%" PRIx64 ": %s",
+                current_address, s.GetData());
     } else {
-      log->Printf("Couldn't find step through plan from address 0x%" PRIx64 ".",
-                  current_address);
+      LLDB_LOGF(log,
+                "Couldn't find step through plan from address 0x%" PRIx64 ".",
+                current_address);
     }
   }
 }
@@ -126,11 +119,11 @@ void ThreadPlanStepThrough::GetDescription(Stream *s,
     s->Printf("Step through");
   else {
     s->PutCString("Stepping through trampoline code from: ");
-    s->Address(m_start_address, sizeof(addr_t));
+    DumpAddress(s->AsRawOstream(), m_start_address, sizeof(addr_t));
     if (m_backstop_bkpt_id != LLDB_INVALID_BREAK_ID) {
       s->Printf(" with backstop breakpoint ID: %d at address: ",
                 m_backstop_bkpt_id);
-      s->Address(m_backstop_addr, sizeof(addr_t));
+      DumpAddress(s->AsRawOstream(), m_backstop_addr, sizeof(addr_t));
     } else
       s->PutCString(" unable to set a backstop breakpoint.");
   }
@@ -242,8 +235,7 @@ bool ThreadPlanStepThrough::MischiefManaged() {
   if (!IsPlanComplete()) {
     return false;
   } else {
-    if (log)
-      log->Printf("Completed step through step plan.");
+    LLDB_LOGF(log, "Completed step through step plan.");
 
     ClearBackstopBreakpoint();
     ThreadPlan::MischiefManaged();

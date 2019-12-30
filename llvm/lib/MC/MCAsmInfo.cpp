@@ -70,6 +70,10 @@ MCAsmInfo::MCAsmInfo() {
 
 MCAsmInfo::~MCAsmInfo() = default;
 
+void MCAsmInfo::addInitialFrameState(const MCCFIInstruction &Inst) {
+  InitialFrameState.push_back(Inst);
+}
+
 bool MCAsmInfo::isSectionAtomizableBySymbols(const MCSection &Section) const {
   return false;
 }
@@ -96,7 +100,7 @@ MCAsmInfo::getExprForFDESymbol(const MCSymbol *Sym,
   return MCBinaryExpr::createSub(Res, PC, Context);
 }
 
-static bool isAcceptableChar(char C) {
+bool MCAsmInfo::isAcceptableChar(char C) const {
   return (C >= 'a' && C <= 'z') || (C >= 'A' && C <= 'Z') ||
          (C >= '0' && C <= '9') || C == '_' || C == '$' || C == '.' || C == '@';
 }

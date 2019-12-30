@@ -538,7 +538,10 @@ public:
   bool allowFMA(MachineFunction &MF, CodeGenOpt::Level OptLevel) const;
   bool allowUnsafeFPMath(MachineFunction &MF) const;
 
-  bool isFMAFasterThanFMulAndFAdd(EVT) const override { return true; }
+  bool isFMAFasterThanFMulAndFAdd(const MachineFunction &MF,
+                                  EVT) const override {
+    return true;
+  }
 
   bool enableAggressiveFMAFusion(EVT VT) const override { return true; }
 
@@ -555,6 +558,10 @@ private:
   SDValue LowerBUILD_VECTOR(SDValue Op, SelectionDAG &DAG) const;
   SDValue LowerCONCAT_VECTORS(SDValue Op, SelectionDAG &DAG) const;
   SDValue LowerEXTRACT_VECTOR_ELT(SDValue Op, SelectionDAG &DAG) const;
+
+  SDValue LowerFROUND(SDValue Op, SelectionDAG &DAG) const;
+  SDValue LowerFROUND32(SDValue Op, SelectionDAG &DAG) const;
+  SDValue LowerFROUND64(SDValue Op, SelectionDAG &DAG) const;
 
   SDValue LowerLOAD(SDValue Op, SelectionDAG &DAG) const;
   SDValue LowerLOADi1(SDValue Op, SelectionDAG &DAG) const;

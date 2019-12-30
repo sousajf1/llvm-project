@@ -30,6 +30,8 @@
 #include "llvm/Analysis/ScalarEvolutionAliasAnalysis.h"
 #include "llvm/Analysis/TargetTransformInfo.h"
 #include "llvm/IR/Dominators.h"
+#include "llvm/InitializePasses.h"
+#include "llvm/Support/CommandLine.h"
 #include "llvm/Transforms/Scalar.h"
 #include "llvm/Transforms/Scalar/LoopPassManager.h"
 #include "llvm/Transforms/Utils.h"
@@ -428,8 +430,8 @@ private:
   /// relevant updates to DT and LI.
   void deleteDeadLoopBlocks() {
     if (MSSAU) {
-      SmallPtrSet<BasicBlock *, 8> DeadLoopBlocksSet(DeadLoopBlocks.begin(),
-                                                     DeadLoopBlocks.end());
+      SmallSetVector<BasicBlock *, 8> DeadLoopBlocksSet(DeadLoopBlocks.begin(),
+                                                        DeadLoopBlocks.end());
       MSSAU->removeBlocks(DeadLoopBlocksSet);
     }
 
@@ -598,7 +600,13 @@ public:
 
 #ifndef NDEBUG
     // Make sure that we have preserved all data structures after the transform.
-    assert(DT.verify() && "DT broken after transform!");
+#if defined(EXPENSIVE_CHECKS)
+    assert(DT.verify(DominatorTree::VerificationLevel::Full) &&
+           "DT broken after transform!");
+#else
+    assert(DT.verify(DominatorTree::VerificationLevel::Fast) &&
+           "DT broken after transform!");
+#endif
     assert(DT.isReachableFromEntry(Header));
     LI.verify(DT);
 #endif
@@ -654,6 +662,9 @@ static bool mergeBlocksIntoPredecessors(Loop &L, DominatorTree &DT,
     // Merge Succ into Pred and delete it.
     MergeBlockIntoPredecessor(Succ, &DTU, &LI, MSSAU);
 
+    if (MSSAU && VerifyMemorySSA)
+      MSSAU->getMemorySSA()->verifyMemorySSA();
+
     Changed = true;
   }
 
@@ -684,7 +695,7 @@ PreservedAnalyses LoopSimplifyCFGPass::run(Loop &L, LoopAnalysisManager &AM,
                                            LoopStandardAnalysisResults &AR,
                                            LPMUpdater &LPMU) {
   Optional<MemorySSAUpdater> MSSAU;
-  if (EnableMSSALoopDependency && AR.MSSA)
+  if (AR.MSSA)
     MSSAU = MemorySSAUpdater(AR.MSSA);
   bool DeleteCurrentLoop = false;
   if (!simplifyLoopCFG(L, AR.DT, AR.LI, AR.SE,
@@ -695,7 +706,10 @@ PreservedAnalyses LoopSimplifyCFGPass::run(Loop &L, LoopAnalysisManager &AM,
   if (DeleteCurrentLoop)
     LPMU.markLoopAsDeleted(L, "loop-simplifycfg");
 
-  return getLoopPassPreservedAnalyses();
+  auto PA = getLoopPassPreservedAnalyses();
+  if (AR.MSSA)
+    PA.preserve<MemorySSAAnalysis>();
+  return PA;
 }
 
 namespace {

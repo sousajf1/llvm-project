@@ -42,15 +42,17 @@ public:
     CortexA53,
     CortexA55,
     CortexA57,
+    CortexA65,
     CortexA72,
     CortexA73,
     CortexA75,
     CortexA76,
     Cyclone,
-    ExynosM1,
     ExynosM3,
     Falkor,
     Kryo,
+    NeoverseE1,
+    NeoverseN1,
     Saphira,
     ThunderX2T99,
     ThunderX,
@@ -93,6 +95,12 @@ protected:
   bool HasPAN_RWV = false;
   bool HasCCPP = false;
 
+  // Armv8.2 Crypto extensions
+  bool HasSM4 = false;
+  bool HasSHA3 = false;
+  bool HasSHA2 = false;
+  bool HasAES = false;
+
   // ARMv8.3 extensions
   bool HasPA = false;
   bool HasJS = false;
@@ -107,18 +115,14 @@ protected:
   bool HasTRACEV8_4 = false;
   bool HasAM = false;
   bool HasSEL2 = false;
+  bool HasPMU = false;
   bool HasTLB_RMI = false;
   bool HasFMI = false;
   bool HasRCPC_IMMO = false;
-  // ARMv8.4 Crypto extensions
-  bool HasSM4 = true;
-  bool HasSHA3 = true;
-
-  bool HasSHA2 = true;
-  bool HasAES = true;
 
   bool HasLSLFast = false;
   bool HasSVE = false;
+  bool HasSVE2 = false;
   bool HasRCPC = false;
   bool HasAggressiveFMA = false;
 
@@ -133,6 +137,17 @@ protected:
   bool HasBTI = false;
   bool HasRandGen = false;
   bool HasMTE = false;
+  bool HasTME = false;
+
+  // Arm SVE2 extensions
+  bool HasSVE2AES = false;
+  bool HasSVE2SM4 = false;
+  bool HasSVE2SHA3 = false;
+  bool HasSVE2BitPerm = false;
+
+  // Future architecture extensions.
+  bool HasETE = false;
+  bool HasTRBE = false;
 
   // HasZeroCycleRegMove - Has zero-cycle register mov instructions.
   bool HasZeroCycleRegMove = false;
@@ -176,14 +191,15 @@ protected:
   bool UseEL1ForTP = false;
   bool UseEL2ForTP = false;
   bool UseEL3ForTP = false;
+  bool AllowTaggedGlobals = false;
   uint8_t MaxInterleaveFactor = 2;
   uint8_t VectorInsertExtractBaseCost = 3;
   uint16_t CacheLineSize = 0;
   uint16_t PrefetchDistance = 0;
   uint16_t MinPrefetchStride = 1;
   unsigned MaxPrefetchIterationsAhead = UINT_MAX;
-  unsigned PrefFunctionAlignment = 0;
-  unsigned PrefLoopAlignment = 0;
+  unsigned PrefFunctionLogAlignment = 0;
+  unsigned PrefLoopLogAlignment = 0;
   unsigned MaxJumpTableSize = 0;
   unsigned WideningBaseCost = 0;
 
@@ -240,7 +256,7 @@ public:
     return &getInstrInfo()->getRegisterInfo();
   }
   const CallLowering *getCallLowering() const override;
-  const InstructionSelector *getInstructionSelector() const override;
+  InstructionSelector *getInstructionSelector() const override;
   const LegalizerInfo *getLegalizerInfo() const override;
   const RegisterBankInfo *getRegBankInfo() const override;
   const Triple &getTargetTriple() const { return TargetTriple; }
@@ -337,14 +353,16 @@ public:
   unsigned getVectorInsertExtractBaseCost() const {
     return VectorInsertExtractBaseCost;
   }
-  unsigned getCacheLineSize() const { return CacheLineSize; }
-  unsigned getPrefetchDistance() const { return PrefetchDistance; }
-  unsigned getMinPrefetchStride() const { return MinPrefetchStride; }
-  unsigned getMaxPrefetchIterationsAhead() const {
+  unsigned getCacheLineSize() const override { return CacheLineSize; }
+  unsigned getPrefetchDistance() const override { return PrefetchDistance; }
+  unsigned getMinPrefetchStride() const override { return MinPrefetchStride; }
+  unsigned getMaxPrefetchIterationsAhead() const override {
     return MaxPrefetchIterationsAhead;
   }
-  unsigned getPrefFunctionAlignment() const { return PrefFunctionAlignment; }
-  unsigned getPrefLoopAlignment() const { return PrefLoopAlignment; }
+  unsigned getPrefFunctionLogAlignment() const {
+    return PrefFunctionLogAlignment;
+  }
+  unsigned getPrefLoopLogAlignment() const { return PrefLoopLogAlignment; }
 
   unsigned getMaximumJumpTableSize() const { return MaxJumpTableSize; }
 
@@ -360,6 +378,7 @@ public:
   bool hasSPE() const { return HasSPE; }
   bool hasLSLFast() const { return HasLSLFast; }
   bool hasSVE() const { return HasSVE; }
+  bool hasSVE2() const { return HasSVE2; }
   bool hasRCPC() const { return HasRCPC; }
   bool hasAggressiveFMA() const { return HasAggressiveFMA; }
   bool hasAlternativeNZCV() const { return HasAlternativeNZCV; }
@@ -372,6 +391,12 @@ public:
   bool hasBTI() const { return HasBTI; }
   bool hasRandGen() const { return HasRandGen; }
   bool hasMTE() const { return HasMTE; }
+  bool hasTME() const { return HasTME; }
+  // Arm SVE2 extensions
+  bool hasSVE2AES() const { return HasSVE2AES; }
+  bool hasSVE2SM4() const { return HasSVE2SM4; }
+  bool hasSVE2SHA3() const { return HasSVE2SHA3; }
+  bool hasSVE2BitPerm() const { return HasSVE2BitPerm; }
 
   bool isLittleEndian() const { return IsLittle; }
 
@@ -385,6 +410,8 @@ public:
   bool isTargetCOFF() const { return TargetTriple.isOSBinFormatCOFF(); }
   bool isTargetELF() const { return TargetTriple.isOSBinFormatELF(); }
   bool isTargetMachO() const { return TargetTriple.isOSBinFormatMachO(); }
+
+  bool isTargetILP32() const { return TargetTriple.isArch32Bit(); }
 
   bool useAA() const override { return UseAA; }
 
@@ -408,9 +435,16 @@ public:
   bool hasTRACEV8_4() const { return HasTRACEV8_4; }
   bool hasAM() const { return HasAM; }
   bool hasSEL2() const { return HasSEL2; }
+  bool hasPMU() const { return HasPMU; }
   bool hasTLB_RMI() const { return HasTLB_RMI; }
   bool hasFMI() const { return HasFMI; }
   bool hasRCPC_IMMO() const { return HasRCPC_IMMO; }
+
+  bool addrSinkUsingGEPs() const override {
+    // Keeping GEPs inbounds is important for exploiting AArch64
+    // addressing-modes in ILP32 mode.
+    return useAA() || isTargetILP32();
+  }
 
   bool useSmallAddressing() const {
     switch (TLInfo.getTargetMachine().getCodeModel()) {
@@ -430,16 +464,18 @@ public:
 
   /// ClassifyGlobalReference - Find the target operand flags that describe
   /// how a global value should be referenced for the current subtarget.
-  unsigned char ClassifyGlobalReference(const GlobalValue *GV,
-                                        const TargetMachine &TM) const;
+  unsigned ClassifyGlobalReference(const GlobalValue *GV,
+                                   const TargetMachine &TM) const;
 
-  unsigned char classifyGlobalFunctionReference(const GlobalValue *GV,
-                                                const TargetMachine &TM) const;
+  unsigned classifyGlobalFunctionReference(const GlobalValue *GV,
+                                           const TargetMachine &TM) const;
 
   void overrideSchedPolicy(MachineSchedPolicy &Policy,
                            unsigned NumRegionInstrs) const override;
 
   bool enableEarlyIfConversion() const override;
+
+  bool enableAdvancedRASplitCost() const override { return true; }
 
   std::unique_ptr<PBQPRAConstraint> getCustomPBQPConstraints() const override;
 

@@ -7,18 +7,14 @@
 //
 //===----------------------------------------------------------------------===//
 
-// Tests for partial_sort_copy
+// UNSUPPORTED: c++98, c++03, c++11, c++14
 
-#include <cmath>
+// Tests for partial_sort_copy
 #include "support/pstl_test_config.h"
 
-#ifdef PSTL_STANDALONE_TESTS
-#include "pstl/execution"
-#include "pstl/algorithm"
-#else
+#include <cmath>
 #include <execution>
 #include <algorithm>
-#endif // PSTL_STANDALONE_TESTS
 
 #include "support/utils.h"
 
@@ -59,8 +55,8 @@ struct test_one_policy
         : d_first(b1), d_last(e1), exp_first(b2), exp_last(e2)
     {
     }
-#if __PSTL_ICC_17_VC141_TEST_SIMD_LAMBDA_DEBUG_32_BROKEN ||                                                            \
-    __PSTL_ICC_16_VC14_TEST_SIMD_LAMBDA_DEBUG_32_BROKEN // dummy specialization by policy type, in case of broken configuration
+#if _PSTL_ICC_17_VC141_TEST_SIMD_LAMBDA_DEBUG_32_BROKEN ||                                                             \
+    _PSTL_ICC_16_VC14_TEST_SIMD_LAMBDA_DEBUG_32_BROKEN // dummy specialization by policy type, in case of broken configuration
     template <typename InputIterator, typename Size, typename T, typename Compare>
     void
     operator()(pstl::execution::unsequenced_policy, InputIterator first, InputIterator last, Size n1, Size n2,
@@ -182,7 +178,7 @@ struct test_non_const
     }
 };
 
-int32_t
+int
 main()
 {
     test_partial_sort_copy<Num<float32_t>>([](Num<float32_t> x, Num<float32_t> y) { return x < y; });

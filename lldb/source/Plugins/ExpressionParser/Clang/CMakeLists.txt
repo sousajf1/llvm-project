@@ -3,11 +3,11 @@ if(NOT LLDB_BUILT_STANDALONE)
 endif()
 
 add_lldb_library(lldbPluginExpressionParserClang PLUGIN
-  ASTDumper.cpp
   ASTResultSynthesizer.cpp
   ASTStructExtractor.cpp
   ASTUtils.cpp
   ClangASTSource.cpp
+  ClangDeclVendor.cpp
   ClangExpressionDeclMap.cpp
   ClangExpressionParser.cpp
   ClangExpressionSourceCode.cpp
@@ -18,12 +18,24 @@ add_lldb_library(lldbPluginExpressionParserClang PLUGIN
   ClangPersistentVariables.cpp
   ClangUserExpression.cpp
   ClangUtilityFunction.cpp
+  CppModuleConfiguration.cpp
   IRForTarget.cpp
+  IRDynamicChecks.cpp
 
   DEPENDS
   ${tablegen_deps}
 
   LINK_LIBS
+    lldbCore
+    lldbExpression
+    lldbHost
+    lldbInterpreter
+    lldbSymbol
+    lldbTarget
+    lldbUtility
+    lldbPluginCPlusPlusLanguage
+    lldbPluginCPPRuntime
+  CLANG_LIBS
     clangAST
     clangCodeGen
     clangDriver
@@ -35,14 +47,6 @@ add_lldb_library(lldbPluginExpressionParserClang PLUGIN
     clangRewriteFrontend
     clangSema
     clangSerialization
-    lldbCore
-    lldbExpression
-    lldbHost
-    lldbInterpreter
-    lldbSymbol
-    lldbTarget
-    lldbUtility
-    lldbPluginCPlusPlusLanguage
   LINK_COMPONENTS
     Core
     ExecutionEngine

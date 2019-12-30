@@ -22,19 +22,22 @@
 #include "llvm/Bitcode/BitcodeWriter.h"
 #include "llvm/IR/LegacyPassManager.h"
 #include "llvm/IR/PassManager.h"
+#include "llvm/IR/RemarkStreamer.h"
 #include "llvm/IR/Verifier.h"
 #include "llvm/LTO/LTO.h"
 #include "llvm/MC/SubtargetFeature.h"
 #include "llvm/Object/ModuleSymbolTable.h"
 #include "llvm/Passes/PassBuilder.h"
+#include "llvm/Passes/StandardInstrumentations.h"
 #include "llvm/Support/Error.h"
 #include "llvm/Support/FileSystem.h"
 #include "llvm/Support/MemoryBuffer.h"
 #include "llvm/Support/Path.h"
 #include "llvm/Support/Program.h"
-#include "llvm/Support/raw_ostream.h"
+#include "llvm/Support/SmallVectorMemoryBuffer.h"
 #include "llvm/Support/TargetRegistry.h"
 #include "llvm/Support/ThreadPool.h"
+#include "llvm/Support/raw_ostream.h"
 #include "llvm/Target/TargetMachine.h"
 #include "llvm/Transforms/IPO.h"
 #include "llvm/Transforms/IPO/PassManagerBuilder.h"
@@ -56,8 +59,8 @@ Error Config::addSaveTemps(std::string OutputFileName,
   ShouldDiscardValueNames = false;
 
   std::error_code EC;
-  ResolutionFile = llvm::make_unique<raw_fd_ostream>(
-      OutputFileName + "resolution.txt", EC, sys::fs::OpenFlags::F_Text);
+  ResolutionFile = std::make_unique<raw_fd_ostream>(
+      OutputFileName + "resolution.txt", EC, sys::fs::OpenFlags::OF_Text);
   if (EC)
     return errorCodeToError(EC);
 
@@ -82,7 +85,7 @@ Error Config::addSaveTemps(std::string OutputFileName,
         PathPrefix = M.getModuleIdentifier() + ".";
       std::string Path = PathPrefix + PathSuffix + ".bc";
       std::error_code EC;
-      raw_fd_ostream OS(Path, EC, sys::fs::OpenFlags::F_None);
+      raw_fd_ostream OS(Path, EC, sys::fs::OpenFlags::OF_None);
       // Because -save-temps is a debugging feature, we report the error
       // directly and exit.
       if (EC)
@@ -99,23 +102,25 @@ Error Config::addSaveTemps(std::string OutputFileName,
   setHook("4.opt", PostOptModuleHook);
   setHook("5.precodegen", PreCodeGenModuleHook);
 
-  CombinedIndexHook = [=](const ModuleSummaryIndex &Index) {
-    std::string Path = OutputFileName + "index.bc";
-    std::error_code EC;
-    raw_fd_ostream OS(Path, EC, sys::fs::OpenFlags::F_None);
-    // Because -save-temps is a debugging feature, we report the error
-    // directly and exit.
-    if (EC)
-      reportOpenError(Path, EC.message());
-    WriteIndexToFile(Index, OS);
+  CombinedIndexHook =
+      [=](const ModuleSummaryIndex &Index,
+          const DenseSet<GlobalValue::GUID> &GUIDPreservedSymbols) {
+        std::string Path = OutputFileName + "index.bc";
+        std::error_code EC;
+        raw_fd_ostream OS(Path, EC, sys::fs::OpenFlags::OF_None);
+        // Because -save-temps is a debugging feature, we report the error
+        // directly and exit.
+        if (EC)
+          reportOpenError(Path, EC.message());
+        WriteIndexToFile(Index, OS);
 
-    Path = OutputFileName + "index.dot";
-    raw_fd_ostream OSDot(Path, EC, sys::fs::OpenFlags::F_None);
-    if (EC)
-      reportOpenError(Path, EC.message());
-    Index.exportToDot(OSDot);
-    return true;
-  };
+        Path = OutputFileName + "index.dot";
+        raw_fd_ostream OSDot(Path, EC, sys::fs::OpenFlags::OF_None);
+        if (EC)
+          reportOpenError(Path, EC.message());
+        Index.exportToDot(OSDot, GUIDPreservedSymbols);
+        return true;
+      };
 
   return Error::success();
 }
@@ -164,7 +169,10 @@ static void runNewPMPasses(Config &Conf, Module &Mod, TargetMachine *TM,
                         PGOOptions::IRUse, PGOOptions::CSIRUse);
   }
 
-  PassBuilder PB(TM, PGOOpt);
+  PassInstrumentationCallbacks PIC;
+  StandardInstrumentations SI;
+  SI.registerCallbacks(PIC);
+  PassBuilder PB(TM, PipelineTuningOptions(),PGOOpt, &PIC);
   AAManager AA;
 
   // Parse a custom AA pipeline if asked to.
@@ -307,13 +315,32 @@ bool opt(Config &Conf, TargetMachine *TM, unsigned Task, Module &Mod,
   return !Conf.PostOptModuleHook || Conf.PostOptModuleHook(Task, Mod);
 }
 
+static cl::opt<bool> EmbedBitcode(
+    "lto-embed-bitcode", cl::init(false),
+    cl::desc("Embed LLVM bitcode in object files produced by LTO"));
+
+static void EmitBitcodeSection(Module &M, Config &Conf) {
+  if (!EmbedBitcode)
+    return;
+  SmallVector<char, 0> Buffer;
+  raw_svector_ostream OS(Buffer);
+  WriteBitcodeToFile(M, OS);
+
+  std::unique_ptr<MemoryBuffer> Buf(
+      new SmallVectorMemoryBuffer(std::move(Buffer)));
+  llvm::EmbedBitcodeInModule(M, Buf->getMemBufferRef(), /*EmbedBitcode*/ true,
+                             /*EmbedMarker*/ false, /*CmdArgs*/ nullptr);
+}
+
 void codegen(Config &Conf, TargetMachine *TM, AddStreamFn AddStream,
              unsigned Task, Module &Mod) {
   if (Conf.PreCodeGenModuleHook && !Conf.PreCodeGenModuleHook(Task, Mod))
     return;
 
+  EmitBitcodeSection(Mod, Conf);
+
   std::unique_ptr<ToolOutputFile> DwoOut;
-  SmallString<1024> DwoFile(Conf.DwoPath);
+  SmallString<1024> DwoFile(Conf.SplitDwarfOutput);
   if (!Conf.DwoDir.empty()) {
     std::error_code EC;
     if (auto EC = llvm::sys::fs::create_directories(Conf.DwoDir))
@@ -322,12 +349,13 @@ void codegen(Config &Conf, TargetMachine *TM, AddStreamFn AddStream,
 
     DwoFile = Conf.DwoDir;
     sys::path::append(DwoFile, std::to_string(Task) + ".dwo");
-  }
+    TM->Options.MCOptions.SplitDwarfFile = DwoFile.str().str();
+  } else
+    TM->Options.MCOptions.SplitDwarfFile = Conf.SplitDwarfFile;
 
   if (!DwoFile.empty()) {
     std::error_code EC;
-    TM->Options.MCOptions.SplitDwarfFile = DwoFile.str().str();
-    DwoOut = llvm::make_unique<ToolOutputFile>(DwoFile, EC, sys::fs::F_None);
+    DwoOut = std::make_unique<ToolOutputFile>(DwoFile, EC, sys::fs::OF_None);
     if (EC)
       report_fatal_error("Failed to open " + DwoFile + ": " + EC.message());
   }
@@ -429,9 +457,9 @@ Error lto::backend(Config &C, AddStreamFn AddStream,
   std::unique_ptr<TargetMachine> TM = createTargetMachine(C, *TOrErr, *Mod);
 
   // Setup optimization remarks.
-  auto DiagFileOrErr =
-      lto::setupOptimizationRemarks(Mod->getContext(), C.RemarksFilename,
-                                    C.RemarksPasses, C.RemarksWithHotness);
+  auto DiagFileOrErr = lto::setupOptimizationRemarks(
+      Mod->getContext(), C.RemarksFilename, C.RemarksPasses, C.RemarksFormat,
+      C.RemarksWithHotness);
   if (!DiagFileOrErr)
     return DiagFileOrErr.takeError();
   auto DiagnosticOutputFile = std::move(*DiagFileOrErr);
@@ -486,7 +514,7 @@ Error lto::thinBackend(Config &Conf, unsigned Task, AddStreamFn AddStream,
   // Setup optimization remarks.
   auto DiagFileOrErr = lto::setupOptimizationRemarks(
       Mod.getContext(), Conf.RemarksFilename, Conf.RemarksPasses,
-      Conf.RemarksWithHotness, Task);
+      Conf.RemarksFormat, Conf.RemarksWithHotness, Task);
   if (!DiagFileOrErr)
     return DiagFileOrErr.takeError();
   auto DiagnosticOutputFile = std::move(*DiagFileOrErr);

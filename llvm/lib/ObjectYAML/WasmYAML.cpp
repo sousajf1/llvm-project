@@ -153,6 +153,11 @@ static void sectionMapping(IO &IO, WasmYAML::DataSection &Section) {
   IO.mapRequired("Segments", Section.Segments);
 }
 
+static void sectionMapping(IO &IO, WasmYAML::DataCountSection &Section) {
+  commonSectionMapping(IO, Section);
+  IO.mapRequired("Count", Section.Count);
+}
+
 void MappingTraits<std::unique_ptr<WasmYAML::Section>>::mapping(
     IO &IO, std::unique_ptr<WasmYAML::Section> &Section) {
   WasmYAML::SectionType SectionType;
@@ -257,6 +262,11 @@ void MappingTraits<std::unique_ptr<WasmYAML::Section>>::mapping(
       Section.reset(new WasmYAML::DataSection());
     sectionMapping(IO, *cast<WasmYAML::DataSection>(Section.get()));
     break;
+  case wasm::WASM_SEC_DATACOUNT:
+    if (!IO.outputting())
+      Section.reset(new WasmYAML::DataCountSection());
+    sectionMapping(IO, *cast<WasmYAML::DataCountSection>(Section.get()));
+    break;
   default:
     llvm_unreachable("Unknown section type");
   }
@@ -278,14 +288,15 @@ void ScalarEnumerationTraits<WasmYAML::SectionType>::enumeration(
   ECase(ELEM);
   ECase(CODE);
   ECase(DATA);
+  ECase(DATACOUNT);
 #undef ECase
 }
 
 void MappingTraits<WasmYAML::Signature>::mapping(
     IO &IO, WasmYAML::Signature &Signature) {
   IO.mapRequired("Index", Signature.Index);
-  IO.mapRequired("ReturnType", Signature.ReturnType);
   IO.mapRequired("ParamTypes", Signature.ParamTypes);
+  IO.mapRequired("ReturnTypes", Signature.ReturnTypes);
 }
 
 void MappingTraits<WasmYAML::Table>::mapping(IO &IO, WasmYAML::Table &Table) {
@@ -473,7 +484,8 @@ void MappingTraits<WasmYAML::SymbolInfo>::mapping(IO &IO,
                                                   WasmYAML::SymbolInfo &Info) {
   IO.mapRequired("Index", Info.Index);
   IO.mapRequired("Kind", Info.Kind);
-  IO.mapRequired("Name", Info.Name);
+  if (Info.Kind != wasm::WASM_SYMBOL_TYPE_SECTION)
+    IO.mapRequired("Name", Info.Name);
   IO.mapRequired("Flags", Info.Flags);
   if (Info.Kind == wasm::WASM_SYMBOL_TYPE_FUNCTION) {
     IO.mapRequired("Function", Info.ElementIndex);
@@ -522,6 +534,8 @@ void ScalarBitSetTraits<WasmYAML::SymbolFlags>::bitset(
   BCaseMask(VISIBILITY_MASK, VISIBILITY_HIDDEN);
   BCaseMask(UNDEFINED, UNDEFINED);
   BCaseMask(EXPORTED, EXPORTED);
+  BCaseMask(EXPLICIT_NAME, EXPLICIT_NAME);
+  BCaseMask(NO_STRIP, NO_STRIP);
 #undef BCaseMask
 }
 
@@ -546,7 +560,6 @@ void ScalarEnumerationTraits<WasmYAML::ValueType>::enumeration(
   ECase(V128);
   ECase(FUNCREF);
   ECase(FUNC);
-  ECase(NORESULT);
 #undef ECase
 }
 

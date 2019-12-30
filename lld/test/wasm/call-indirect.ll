@@ -40,22 +40,25 @@ define void @call_ptr(i64 (i64)* %arg) {
 ; CHECK-NEXT:   - Type:            TYPE
 ; CHECK-NEXT:     Signatures:
 ; CHECK-NEXT:       - Index:           0
-; CHECK-NEXT:         ReturnType:      I64
 ; CHECK-NEXT:         ParamTypes:
+; CHECK-NEXT:         ReturnTypes:
+; CHECK-NEXT:           - I64
 ; CHECK-NEXT:       - Index:           1
-; CHECK-NEXT:         ReturnType:      I32
 ; CHECK-NEXT:         ParamTypes:
+; CHECK-NEXT:         ReturnTypes:
+; CHECK-NEXT:           - I32
 ; CHECK-NEXT:       - Index:           2
-; CHECK-NEXT:         ReturnType:      I64
 ; CHECK-NEXT:         ParamTypes:
 ; CHECK-NEXT:           - I64
+; CHECK-NEXT:         ReturnTypes:
+; CHECK-NEXT:           - I64
 ; CHECK-NEXT:       - Index:           3
-; CHECK-NEXT:         ReturnType:      NORESULT
 ; CHECK-NEXT:         ParamTypes:
+; CHECK-NEXT:         ReturnTypes:     []
 ; CHECK-NEXT:       - Index:           4
-; CHECK-NEXT:         ReturnType:      NORESULT
 ; CHECK-NEXT:         ParamTypes:
 ; CHECK-NEXT:           - I32
+; CHECK-NEXT:         ReturnTypes:     []
 ; CHECK-NEXT:   - Type:            FUNCTION
 ; CHECK-NEXT:     FunctionTypes:   [ 0, 3, 1, 3, 4 ]
 ; CHECK-NEXT:   - Type:            TABLE
@@ -81,30 +84,12 @@ define void @call_ptr(i64 (i64)* %arg) {
 ; CHECK-NEXT:         Mutable:         false
 ; CHECK-NEXT:         InitExpr:
 ; CHECK-NEXT:           Opcode:          I32_CONST
-; CHECK-NEXT:           Value:           66576
-; CHECK-NEXT:       - Index:           2
-; CHECK-NEXT:         Type:            I32
-; CHECK-NEXT:         Mutable:         false
-; CHECK-NEXT:         InitExpr:
-; CHECK-NEXT:           Opcode:          I32_CONST
-; CHECK-NEXT:           Value:           1036
-; CHECK-NEXT:       - Index:           3
-; CHECK-NEXT:         Type:            I32
-; CHECK-NEXT:         Mutable:         false
-; CHECK-NEXT:         InitExpr:
-; CHECK-NEXT:           Opcode:          I32_CONST
 ; CHECK-NEXT:           Value:           1032
 ; CHECK-NEXT:   - Type:            EXPORT
 ; CHECK-NEXT:     Exports:
 ; CHECK-NEXT:       - Name:            memory
 ; CHECK-NEXT:         Kind:            MEMORY
 ; CHECK-NEXT:         Index:           0
-; CHECK-NEXT:       - Name:            __heap_base
-; CHECK-NEXT:         Kind:            GLOBAL
-; CHECK-NEXT:         Index:           1
-; CHECK-NEXT:       - Name:            __data_end
-; CHECK-NEXT:         Kind:            GLOBAL
-; CHECK-NEXT:         Index:           2
 ; CHECK-NEXT:       - Name:            bar
 ; CHECK-NEXT:         Kind:            FUNCTION
 ; CHECK-NEXT:         Index:           0
@@ -119,7 +104,7 @@ define void @call_ptr(i64 (i64)* %arg) {
 ; CHECK-NEXT:         Index:           3
 ; CHECK-NEXT:       - Name:            indirect_func
 ; CHECK-NEXT:         Kind:            GLOBAL
-; CHECK-NEXT:         Index:           3
+; CHECK-NEXT:         Index:           1
 ; CHECK-NEXT:       - Name:            call_ptr
 ; CHECK-NEXT:         Kind:            FUNCTION
 ; CHECK-NEXT:         Index:           4

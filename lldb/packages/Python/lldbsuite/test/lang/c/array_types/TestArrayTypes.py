@@ -1,10 +1,7 @@
 """Test breakpoint by file/line number; and list variables with array types."""
 
-from __future__ import print_function
 
 
-import os
-import time
 import lldb
 from lldbsuite.test.decorators import *
 from lldbsuite.test.lldbtest import *
@@ -175,6 +172,8 @@ class ArrayTypesTestCase(TestBase):
         self.DebugSBValue(variable)
         self.assertTrue(variable.GetNumChildren() == 4,
                         "Variable 'strings' should have 4 children")
+        byte_size = variable.GetByteSize()
+        self.assertTrue(byte_size >= 4*4 and byte_size <= 1024)
 
         child3 = variable.GetChildAtIndex(3)
         self.DebugSBValue(child3)

@@ -1,7 +1,7 @@
 // Check that calling dispatch_once from a report callback works.
 
 // RUN: %clang_tsan %s -o %t
-// RUN: not %run %t 2>&1 | FileCheck %s
+// RUN: not %env_tsan_opts=ignore_noninstrumented_modules=0 %run %t 2>&1 | FileCheck %s
 
 #include <dispatch/dispatch.h>
 
@@ -28,8 +28,8 @@ int main() {
 
   f();
 
-  pthread_mutex_t mutex = {0};
-  pthread_mutex_lock(&mutex);
+  pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+  pthread_mutex_unlock(&mutex); // Unlock of an unlocked mutex
 
   fprintf(stderr, "g = %ld.\n", g);
   fprintf(stderr, "h = %ld.\n", h);

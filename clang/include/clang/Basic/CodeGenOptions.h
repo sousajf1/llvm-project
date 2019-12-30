@@ -16,6 +16,7 @@
 #include "clang/Basic/DebugInfoOptions.h"
 #include "clang/Basic/Sanitizers.h"
 #include "clang/Basic/XRayInstr.h"
+#include "llvm/ADT/FloatingPointMode.h"
 #include "llvm/Support/CodeGen.h"
 #include "llvm/Support/Regex.h"
 #include "llvm/Target/TargetOptions.h"
@@ -53,6 +54,7 @@ public:
   enum VectorLibrary {
     NoLibrary,  // Don't use any vector library.
     Accelerate, // Use the Accelerate framework.
+    MASSV,      // IBM MASS vector library.
     SVML        // Intel short vector math library.
   };
 
@@ -69,8 +71,6 @@ public:
     InitialExecTLSModel,
     LocalExecTLSModel
   };
-
-  enum DwarfFissionKind { NoFission, SplitFileFission, SingleFileFission };
 
   /// Clang versions with different platform ABI conformance.
   enum class ClangABI {
@@ -110,13 +110,19 @@ public:
     Embed_Marker    // Embed a marker as a placeholder for bitcode.
   };
 
-  enum SignReturnAddressScope {
+  enum class SignReturnAddressScope {
     None,    // No signing for any function
     NonLeaf, // Sign the return address of functions that spill LR
     All      // Sign the return address of all functions
   };
 
-  enum SignReturnAddressKeyValue { AKey, BKey };
+  enum class SignReturnAddressKeyValue { AKey, BKey };
+
+  enum class FramePointerKind {
+    None,        // Omit all frame pointers.
+    NonLeaf,     // Keep non-leaf frame pointers.
+    All,         // Keep all frame pointers.
+  };
 
   /// The code model to use (-mcmodel).
   std::string CodeModel;
@@ -158,7 +164,7 @@ public:
   std::string FloatABI;
 
   /// The floating-point denormal mode to use.
-  std::string FPDenormalMode;
+  llvm::DenormalMode FPDenormalMode = llvm::DenormalMode::Invalid;
 
   /// The float precision limit to use, if non-empty.
   std::string LimitFloatPrecision;
@@ -184,9 +190,12 @@ public:
   /// file, for example with -save-temps.
   std::string MainFileName;
 
-  /// The name for the split debug info file that we'll break out. This is used
-  /// in the backend for setting the name in the skeleton cu.
+  /// The name for the split debug info file used for the DW_AT_[GNU_]dwo_name
+  /// attribute in the skeleton CU.
   std::string SplitDwarfFile;
+
+  /// Output filename for the split debug info, not used in the skeleton CU.
+  std::string SplitDwarfOutput;
 
   /// The name of the relocation model to use.
   llvm::Reloc::Model RelocationModel;
@@ -241,6 +250,13 @@ public:
   /// The regex that filters the passes that should be saved to the optimization
   /// records.
   std::string OptRecordPasses;
+
+  /// The format used for serializing remarks (default: YAML)
+  std::string OptRecordFormat;
+
+  /// The name of the partition that symbols are assigned to, specified with
+  /// -fsymbol-partition (see https://lld.llvm.org/Partitions.html).
+  std::string SymbolPartition;
 
   /// Regular expression to select optimizations for which we should enable
   /// optimization remarks. Transformation passes whose name matches this

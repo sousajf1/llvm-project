@@ -153,7 +153,7 @@ bool MainThreadCheckerRuntime::NotifyBreakpointHit(
     user_id_t break_loc_id) {
   assert(baton && "null baton");
   if (!baton)
-    return false; //< false => resume execution.
+    return false; ///< false => resume execution.
 
   MainThreadCheckerRuntime *const instance =
       static_cast<MainThreadCheckerRuntime *>(baton);
@@ -241,33 +241,30 @@ MainThreadCheckerRuntime::GetBacktracesFromExtendedStopInfo(
     StructuredData::ObjectSP info) {
   ThreadCollectionSP threads;
   threads = std::make_shared<ThreadCollection>();
-  
+
   ProcessSP process_sp = GetProcessSP();
-  
+
   if (info->GetObjectForDotSeparatedPath("instrumentation_class")
       ->GetStringValue() != "MainThreadChecker")
     return threads;
-  
+
   std::vector<lldb::addr_t> PCs;
   auto trace = info->GetObjectForDotSeparatedPath("trace")->GetAsArray();
   trace->ForEach([&PCs](StructuredData::Object *PC) -> bool {
     PCs.push_back(PC->GetAsInteger()->GetValue());
     return true;
   });
-  
+
   if (PCs.empty())
     return threads;
-  
+
   StructuredData::ObjectSP thread_id_obj =
       info->GetObjectForDotSeparatedPath("tid");
   tid_t tid = thread_id_obj ? thread_id_obj->GetIntegerValue() : 0;
-  
-  uint32_t stop_id = 0;
-  bool stop_id_is_valid = false;
-  HistoryThread *history_thread =
-      new HistoryThread(*process_sp, tid, PCs, stop_id, stop_id_is_valid);
+
+  HistoryThread *history_thread = new HistoryThread(*process_sp, tid, PCs);
   ThreadSP new_thread_sp(history_thread);
-  
+
   // Save this in the Process' ExtendedThreadList so a strong pointer retains
   // the object
   process_sp->GetExtendedThreadList().AddThread(new_thread_sp);

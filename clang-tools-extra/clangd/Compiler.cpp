@@ -10,6 +10,7 @@
 #include "Logger.h"
 #include "clang/Basic/TargetInfo.h"
 #include "clang/Lex/PreprocessorOptions.h"
+#include "clang/Serialization/PCHContainerOperations.h"
 #include "llvm/Support/Format.h"
 #include "llvm/Support/FormatVariadic.h"
 
@@ -40,7 +41,9 @@ void IgnoreDiagnostics::HandleDiagnostic(DiagnosticsEngine::Level DiagLevel,
 }
 
 std::unique_ptr<CompilerInvocation>
-buildCompilerInvocation(const ParseInputs &Inputs) {
+buildCompilerInvocation(const ParseInputs &Inputs,
+                        clang::DiagnosticConsumer &D,
+                        std::vector<std::string> *CC1Args) {
   std::vector<const char *> ArgStrs;
   for (const auto &S : Inputs.CompileCommand.CommandLine)
     ArgStrs.push_back(S.c_str());
@@ -51,19 +54,17 @@ buildCompilerInvocation(const ParseInputs &Inputs) {
     // dirs.
   }
 
-  // FIXME(ibiryukov): store diagnostics from CommandLine when we start
-  // reporting them.
-  IgnoreDiagnostics IgnoreDiagnostics;
   llvm::IntrusiveRefCntPtr<DiagnosticsEngine> CommandLineDiagsEngine =
-      CompilerInstance::createDiagnostics(new DiagnosticOptions,
-                                          &IgnoreDiagnostics, false);
+      CompilerInstance::createDiagnostics(new DiagnosticOptions, &D, false);
   std::unique_ptr<CompilerInvocation> CI = createInvocationFromCommandLine(
-      ArgStrs, CommandLineDiagsEngine, Inputs.FS);
+      ArgStrs, CommandLineDiagsEngine, Inputs.FS,
+      /*ShouldRecoverOnErrors=*/true, CC1Args);
   if (!CI)
     return nullptr;
   // createInvocationFromCommandLine sets DisableFree.
   CI->getFrontendOpts().DisableFree = false;
   CI->getLangOpts()->CommentOpts.ParseAllComments = true;
+  CI->getLangOpts()->RetainCommentsFromSystemHeaders = true;
   return CI;
 }
 
@@ -71,7 +72,6 @@ std::unique_ptr<CompilerInstance>
 prepareCompilerInstance(std::unique_ptr<clang::CompilerInvocation> CI,
                         const PrecompiledPreamble *Preamble,
                         std::unique_ptr<llvm::MemoryBuffer> Buffer,
-                        std::shared_ptr<PCHContainerOperations> PCHs,
                         llvm::IntrusiveRefCntPtr<llvm::vfs::FileSystem> VFS,
                         DiagnosticConsumer &DiagsClient) {
   assert(VFS && "VFS is null");
@@ -88,7 +88,8 @@ prepareCompilerInstance(std::unique_ptr<clang::CompilerInvocation> CI,
         CI->getFrontendOpts().Inputs[0].getFile(), Buffer.get());
   }
 
-  auto Clang = llvm::make_unique<CompilerInstance>(PCHs);
+  auto Clang = std::make_unique<CompilerInstance>(
+      std::make_shared<PCHContainerOperations>());
   Clang->setInvocation(std::move(CI));
   Clang->createDiagnostics(&DiagsClient, false);
 

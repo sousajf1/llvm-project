@@ -63,3 +63,61 @@ void ForRangeInit() {
     // expected-warning@-4 {{range-based for loop initialization statements are incompatible with C++ standards before C++2a}}
 #endif
 }
+
+struct ConstexprVirtual {
+  virtual constexpr void f() {}
+#if __cplusplus <= 201703L
+    // expected-error@-2 {{virtual function cannot be constexpr}}
+#else
+    // expected-warning@-4 {{virtual constexpr functions are incompatible with C++ standards before C++2a}}
+#endif
+};
+
+struct C { int x, y, z; };
+static auto [cx, cy, cz] = C();
+#if __cplusplus <= 201703L
+    // expected-warning@-2 {{decomposition declaration declared 'static' is a C++2a extension}}
+#else
+    // expected-warning@-4 {{decomposition declaration declared 'static' is incompatible with C++ standards before C++2a}}
+#endif
+void f() {
+  static thread_local auto [cx, cy, cz] = C();
+#if __cplusplus <= 201703L
+    // expected-warning@-2 {{decomposition declaration declared with 'static thread_local' specifiers is a C++2a extension}}
+#else
+    // expected-warning@-4 {{decomposition declaration declared with 'static thread_local' specifiers is incompatible with C++ standards before C++2a}}
+#endif
+}
+
+struct DefaultedComparisons {
+  bool operator==(const DefaultedComparisons&) const = default;
+  bool operator!=(const DefaultedComparisons&) const = default;
+#if __cplusplus <= 201703L
+  // expected-warning@-3 {{defaulted comparison operators are a C++20 extension}}
+  // expected-warning@-3 {{defaulted comparison operators are a C++20 extension}}
+#else
+  // expected-warning@-6 {{defaulted comparison operators are incompatible with C++ standards before C++20}}
+  // expected-warning@-6 {{defaulted comparison operators are incompatible with C++ standards before C++20}}
+#endif
+  bool operator<=>(const DefaultedComparisons&) const = default;
+#if __cplusplus <= 201703L
+  // expected-error@-2 {{'operator<=' cannot be the name of a variable or data member}} expected-error@-2 0+{{}} expected-warning@-2 {{}}
+#else
+  // expected-warning@-4 {{'<=>' operator is incompatible with C++ standards before C++2a}}
+#endif
+  bool operator<(const DefaultedComparisons&) const = default;
+  bool operator<=(const DefaultedComparisons&) const = default;
+  bool operator>(const DefaultedComparisons&) const = default;
+  bool operator>=(const DefaultedComparisons&) const = default;
+#if __cplusplus <= 201703L
+  // expected-error@-5 {{only special member functions}}
+  // expected-error@-5 {{only special member functions}}
+  // expected-error@-5 {{only special member functions}}
+  // expected-error@-5 {{only special member functions}}
+#else
+  // expected-warning@-10 {{defaulted comparison operators are incompatible with C++ standards before C++20}}
+  // expected-warning@-10 {{defaulted comparison operators are incompatible with C++ standards before C++20}}
+  // expected-warning@-10 {{defaulted comparison operators are incompatible with C++ standards before C++20}}
+  // expected-warning@-10 {{defaulted comparison operators are incompatible with C++ standards before C++20}}
+#endif
+};

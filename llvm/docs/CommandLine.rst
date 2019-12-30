@@ -128,6 +128,7 @@ this:
   USAGE: compiler [options]
 
   OPTIONS:
+    -h                - Alias for -help
     -help             - display available options (-help-hidden for more)
     -o <filename>     - Specify output filename
 
@@ -194,6 +195,7 @@ declarations above, the ``-help`` option synopsis is now extended to:
   USAGE: compiler [options] <input file>
 
   OPTIONS:
+    -h                - Alias for -help
     -help             - display available options (-help-hidden for more)
     -o <filename>     - Specify output filename
 
@@ -994,6 +996,31 @@ This section describes the basic attributes that you can specify on options.
 * The **cl::cat** attribute specifies the option category that the option
   belongs to. The category should be a `cl::OptionCategory`_ object.
 
+.. _cl::callback:
+
+* The **cl::callback** attribute specifies a callback function that is
+  called when an option is seen, and can be used to set other options,
+  as in option B implies option A.  If the option is a `cl::list`_,
+  and `cl::CommaSeparated`_ is also specified, the callback will fire
+  once for each value.  This could be used to validate combinations or
+  selectively set other options.
+
+  .. code-block:: c++
+
+    cl::opt<bool> OptA("a", cl::desc("option a"));
+    cl::opt<bool> OptB(
+        "b", cl::desc("option b -- This option turns on option a"),
+        cl::callback([&](const bool &) { OptA = true; }));
+    cl::list<std::string, cl::list<std::string>> List(
+      "list",
+      cl::desc("option list -- This option turns on options a when "
+               "'foo' is included in list"),
+      cl::CommaSeparated,
+      cl::callback([&](const std::string &Str) {
+        if (Str == "foo")
+          OptA = true;
+      }));
+
 Option Modifiers
 ----------------
 
@@ -1232,6 +1259,14 @@ specify boolean properties that modify the option.
   option is allowed to accept one or more values (i.e. it is a `cl::list`_
   option).
 
+.. _cl::DefaultOption:
+
+* The **cl::DefaultOption** modifier is used to specify that the option is a
+  default that can be overridden by application specific parsers. For example,
+  the ``-help`` alias, ``-h``, is registered this way, so it can be overridden
+  by applications that need to use the ``-h`` option for another purpose,
+  either as a regular option or an alias for another option.
+
 .. _cl::PositionalEatsArgs:
 
 * The **cl::PositionalEatsArgs** modifier (which only applies to positional
@@ -1267,7 +1302,7 @@ Top-Level Classes and Functions
 -------------------------------
 
 Despite all of the built-in flexibility, the CommandLine option library really
-only consists of one function `cl::ParseCommandLineOptions`_) and three main
+only consists of one function `cl::ParseCommandLineOptions`_ and three main
 classes: `cl::opt`_, `cl::list`_, and `cl::alias`_.  This section describes
 these three classes in detail.
 
@@ -1284,7 +1319,7 @@ it cannot be guaranteed that all options will have been initialised. Hence it
 should be called from ``main``.
 
 This function can be used to gain access to options declared in libraries that
-the tool writter may not have direct access to.
+the tool writer may not have direct access to.
 
 The function retrieves a :ref:`StringMap <dss_stringmap>` that maps the option
 string (e.g. ``-help``) to an ``Option*``.

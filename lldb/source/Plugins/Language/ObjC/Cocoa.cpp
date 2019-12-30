@@ -17,7 +17,6 @@
 #include "lldb/Host/Time.h"
 #include "lldb/Symbol/ClangASTContext.h"
 #include "lldb/Target/Language.h"
-#include "lldb/Target/ObjCLanguageRuntime.h"
 #include "lldb/Target/Process.h"
 #include "lldb/Target/ProcessStructReader.h"
 #include "lldb/Target/Target.h"
@@ -43,9 +42,7 @@ bool lldb_private::formatters::NSBundleSummaryProvider(
   if (!process_sp)
     return false;
 
-  ObjCLanguageRuntime *runtime =
-      (ObjCLanguageRuntime *)process_sp->GetLanguageRuntime(
-          lldb::eLanguageTypeObjC);
+  ObjCLanguageRuntime *runtime = ObjCLanguageRuntime::Get(*process_sp);
 
   if (!runtime)
     return false;
@@ -93,9 +90,7 @@ bool lldb_private::formatters::NSTimeZoneSummaryProvider(
   if (!process_sp)
     return false;
 
-  ObjCLanguageRuntime *runtime =
-      (ObjCLanguageRuntime *)process_sp->GetLanguageRuntime(
-          lldb::eLanguageTypeObjC);
+  ObjCLanguageRuntime *runtime = ObjCLanguageRuntime::Get(*process_sp);
 
   if (!runtime)
     return false;
@@ -140,9 +135,7 @@ bool lldb_private::formatters::NSNotificationSummaryProvider(
   if (!process_sp)
     return false;
 
-  ObjCLanguageRuntime *runtime =
-      (ObjCLanguageRuntime *)process_sp->GetLanguageRuntime(
-          lldb::eLanguageTypeObjC);
+  ObjCLanguageRuntime *runtime = ObjCLanguageRuntime::Get(*process_sp);
 
   if (!runtime)
     return false;
@@ -187,9 +180,7 @@ bool lldb_private::formatters::NSMachPortSummaryProvider(
   if (!process_sp)
     return false;
 
-  ObjCLanguageRuntime *runtime =
-      (ObjCLanguageRuntime *)process_sp->GetLanguageRuntime(
-          lldb::eLanguageTypeObjC);
+  ObjCLanguageRuntime *runtime = ObjCLanguageRuntime::Get(*process_sp);
 
   if (!runtime)
     return false;
@@ -235,9 +226,7 @@ bool lldb_private::formatters::NSIndexSetSummaryProvider(
   if (!process_sp)
     return false;
 
-  ObjCLanguageRuntime *runtime =
-      (ObjCLanguageRuntime *)process_sp->GetLanguageRuntime(
-          lldb::eLanguageTypeObjC);
+  ObjCLanguageRuntime *runtime = ObjCLanguageRuntime::Get(*process_sp);
 
   if (!runtime)
     return false;
@@ -426,9 +415,7 @@ bool lldb_private::formatters::NSNumberSummaryProvider(
   if (!process_sp)
     return false;
 
-  ObjCLanguageRuntime *runtime =
-      (ObjCLanguageRuntime *)process_sp->GetLanguageRuntime(
-          lldb::eLanguageTypeObjC);
+  ObjCLanguageRuntime *runtime = ObjCLanguageRuntime::Get(*process_sp);
 
   if (!runtime)
     return false;
@@ -484,10 +471,9 @@ bool lldb_private::formatters::NSNumberSummaryProvider(
       return true;
     } else {
       Status error;
-      
-      AppleObjCRuntime *runtime =
-      llvm::dyn_cast_or_null<AppleObjCRuntime>(
-          process_sp->GetObjCLanguageRuntime());
+
+      AppleObjCRuntime *runtime = llvm::dyn_cast_or_null<AppleObjCRuntime>(
+          ObjCLanguageRuntime::Get(*process_sp));
 
       const bool new_format =
           (runtime && runtime->GetFoundationVersion() >= 1400);
@@ -679,9 +665,7 @@ bool lldb_private::formatters::NSURLSummaryProvider(
   if (!process_sp)
     return false;
 
-  ObjCLanguageRuntime *runtime =
-      (ObjCLanguageRuntime *)process_sp->GetLanguageRuntime(
-          lldb::eLanguageTypeObjC);
+  ObjCLanguageRuntime *runtime = ObjCLanguageRuntime::Get(*process_sp);
 
   if (!runtime)
     return false;
@@ -710,32 +694,44 @@ bool lldb_private::formatters::NSURLSummaryProvider(
   CompilerType type(valobj.GetCompilerType());
   ValueObjectSP text(valobj.GetSyntheticChildAtOffset(offset_text, type, true));
   ValueObjectSP base(valobj.GetSyntheticChildAtOffset(offset_base, type, true));
-  if (!text)
+  if (!text || text->GetValueAsUnsigned(0) == 0)
     return false;
-  if (text->GetValueAsUnsigned(0) == 0)
-    return false;
-  StreamString summary;
-  if (!NSStringSummaryProvider(*text, summary, options))
-    return false;
-  if (base && base->GetValueAsUnsigned(0)) {
-    std::string summary_str = summary.GetString();
 
-    if (!summary_str.empty())
-      summary_str.pop_back();
-    summary_str += " -- ";
-    StreamString base_summary;
-    if (NSURLSummaryProvider(*base, base_summary, options) &&
-        !base_summary.Empty()) {
-      llvm::StringRef base_str = base_summary.GetString();
-      if (base_str.size() > 2)
-        base_str = base_str.drop_front(2);
-      summary_str += base_str;
-    }
-    summary.Clear();
-    summary.PutCString(summary_str);
+  StreamString base_summary;
+  if (base && base->GetValueAsUnsigned(0)) {
+    if (!NSURLSummaryProvider(*base, base_summary, options))
+      base_summary.Clear();
   }
-  if (!summary.Empty()) {
-    stream.PutCString(summary.GetString());
+  if (base_summary.Empty())
+    return NSStringSummaryProvider(*text, stream, options);
+
+  StreamString summary;
+  if (!NSStringSummaryProvider(*text, summary, options) || summary.Empty())
+    return false;
+
+  const char quote_char = '"';
+  std::string prefix, suffix;
+  if (Language *language = Language::FindPlugin(options.GetLanguage())) {
+    if (!language->GetFormatterPrefixSuffix(*text, ConstString("NSString"),
+                                            prefix, suffix)) {
+      prefix.clear();
+      suffix.clear();
+    }
+  }
+  // @"A" -> @"A
+  llvm::StringRef summary_str = summary.GetString();
+  bool back_consumed = summary_str.consume_back(quote_char + suffix);
+  assert(back_consumed);
+  UNUSED_IF_ASSERT_DISABLED(back_consumed);
+  // @"B" -> B"
+  llvm::StringRef base_summary_str = base_summary.GetString();
+  bool front_consumed = base_summary_str.consume_front(prefix + quote_char);
+  assert(front_consumed);
+  UNUSED_IF_ASSERT_DISABLED(front_consumed);
+  // @"A -- B"
+  if (!summary_str.empty() && !base_summary_str.empty()) {
+    stream.Printf("%s -- %s", summary_str.str().c_str(),
+                  base_summary_str.str().c_str());
     return true;
   }
 
@@ -795,9 +791,7 @@ bool lldb_private::formatters::NSDateSummaryProvider(
   if (!process_sp)
     return false;
 
-  ObjCLanguageRuntime *runtime =
-      (ObjCLanguageRuntime *)process_sp->GetLanguageRuntime(
-          lldb::eLanguageTypeObjC);
+  ObjCLanguageRuntime *runtime = ObjCLanguageRuntime::Get(*process_sp);
 
   if (!runtime)
     return false;
@@ -864,7 +858,7 @@ bool lldb_private::formatters::NSDateSummaryProvider(
   // Accomodate for the __NSTaggedDate format introduced in Foundation 1600.
   if (class_name == g___NSTaggedDate) {
     auto *runtime = llvm::dyn_cast_or_null<AppleObjCRuntime>(
-        process_sp->GetObjCLanguageRuntime());
+        ObjCLanguageRuntime::Get(*process_sp));
     if (runtime && runtime->GetFoundationVersion() >= 1600)
       date_value = decodeTaggedTimeInterval(value_bits << 4);
   }
@@ -892,9 +886,7 @@ bool lldb_private::formatters::ObjCClassSummaryProvider(
   if (!process_sp)
     return false;
 
-  ObjCLanguageRuntime *runtime =
-      (ObjCLanguageRuntime *)process_sp->GetLanguageRuntime(
-          lldb::eLanguageTypeObjC);
+  ObjCLanguageRuntime *runtime = ObjCLanguageRuntime::Get(*process_sp);
 
   if (!runtime)
     return false;
@@ -953,9 +945,7 @@ bool lldb_private::formatters::NSDataSummaryProvider(
   if (!process_sp)
     return false;
 
-  ObjCLanguageRuntime *runtime =
-      (ObjCLanguageRuntime *)process_sp->GetLanguageRuntime(
-          lldb::eLanguageTypeObjC);
+  ObjCLanguageRuntime *runtime = ObjCLanguageRuntime::Get(*process_sp);
 
   if (!runtime)
     return false;
@@ -1054,8 +1044,8 @@ bool lldb_private::formatters::ObjCBooleanSummaryProvider(
   if (!process_sp)
     return false;
 
-  if (AppleObjCRuntime *objc_runtime =
-          (AppleObjCRuntime *)process_sp->GetObjCLanguageRuntime()) {
+  if (AppleObjCRuntime *objc_runtime = llvm::dyn_cast_or_null<AppleObjCRuntime>(
+          ObjCLanguageRuntime::Get(*process_sp))) {
     lldb::addr_t cf_true = LLDB_INVALID_ADDRESS,
                  cf_false = LLDB_INVALID_ADDRESS;
     objc_runtime->GetValuesForGlobalCFBooleans(cf_true, cf_false);

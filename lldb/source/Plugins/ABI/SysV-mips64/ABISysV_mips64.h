@@ -74,9 +74,7 @@ public:
   const lldb_private::RegisterInfo *
   GetRegisterInfoArray(uint32_t &count) override;
 
-  //------------------------------------------------------------------
   // Static Functions
-  //------------------------------------------------------------------
 
   static void Initialize();
 
@@ -86,9 +84,7 @@ public:
 
   static lldb_private::ConstString GetPluginNameStatic();
 
-  //------------------------------------------------------------------
   // PluginInterface protocol
-  //------------------------------------------------------------------
 
   lldb_private::ConstString GetPluginName() override;
 
@@ -104,7 +100,9 @@ protected:
   bool RegisterIsCalleeSaved(const lldb_private::RegisterInfo *reg_info);
 
 private:
-  ABISysV_mips64(lldb::ProcessSP process_sp) : lldb_private::ABI(process_sp) {
+  ABISysV_mips64(lldb::ProcessSP process_sp,
+                 std::unique_ptr<llvm::MCRegisterInfo> info_up)
+      : lldb_private::ABI(std::move(process_sp), std::move(info_up)) {
     // Call CreateInstance instead.
   }
 };

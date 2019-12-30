@@ -127,6 +127,8 @@ public:
   /// the mappings are kept in DwarfDebug.
   void insertDIE(const DINode *Desc, DIE *D);
 
+  void insertDIE(DIE *D);
+
   /// Add a flag that is true to the DIE.
   void addFlag(DIE &Die, dwarf::Attribute Attribute);
 
@@ -198,6 +200,7 @@ public:
   void addConstantValue(DIE &Die, const ConstantInt *CI, const DIType *Ty);
   void addConstantValue(DIE &Die, const APInt &Val, const DIType *Ty);
   void addConstantValue(DIE &Die, const APInt &Val, bool Unsigned);
+  void addConstantValue(DIE &Die, uint64_t Val, const DIType *Ty);
   void addConstantValue(DIE &Die, bool Unsigned, uint64_t Val);
 
   /// Add constant value entry in variable DIE.
@@ -212,15 +215,6 @@ public:
 
   /// Add thrown types.
   void addThrownTypes(DIE &Die, DINodeArray ThrownTypes);
-
-  // FIXME: Should be reformulated in terms of addComplexAddress.
-  /// Start with the address based on the location provided, and generate the
-  /// DWARF information necessary to find the actual Block variable (navigating
-  /// the Block struct) based on the starting location.  Add the DWARF
-  /// information to the die.  Obsolete, please use addComplexAddress instead.
-  void addBlockByrefAddress(const DbgVariable &DV, DIE &Die,
-                            dwarf::Attribute Attribute,
-                            const MachineLocation &Location);
 
   /// Add a new type attribute to the specified entity.
   ///
@@ -278,9 +272,6 @@ public:
   /// Add the DW_AT_rnglists_base attribute to the unit DIE.
   void addRnglistsBase();
 
-  /// Add the DW_AT_loclists_base attribute to the unit DIE.
-  void addLoclistsBase();
-
   virtual DwarfCompileUnit &getCU() = 0;
 
   void constructTypeDIE(DIE &Buffer, const DICompositeType *CTy);
@@ -296,7 +287,10 @@ public:
 
   /// If the \p File has an MD5 checksum, return it as an MD5Result
   /// allocated in the MCContext.
-  MD5::MD5Result *getMD5AsBytes(const DIFile *File) const;
+  Optional<MD5::MD5Result> getMD5AsBytes(const DIFile *File) const;
+
+  /// Get context owner's DIE.
+  DIE *createTypeDIE(const DICompositeType *Ty);
 
 protected:
   ~DwarfUnit();
@@ -307,17 +301,6 @@ protected:
   /// Look up the source ID for the given file. If none currently exists,
   /// create a new ID and insert it in the line table.
   virtual unsigned getOrCreateSourceID(const DIFile *File) = 0;
-
-  /// Look in the DwarfDebug map for the MDNode that corresponds to the
-  /// reference.
-  template <typename T> T *resolve(TypedDINodeRef<T> Ref) const {
-    return Ref.resolve();
-  }
-
-  /// If this is a named finished type then include it in the list of types for
-  /// the accelerator tables.
-  void updateAcceleratorTables(const DIScope *Context, const DIType *Ty,
-                               const DIE &TyDIE);
 
   /// Emit the common part of the header for this unit.
   void emitCommonHeader(bool UseOffsets, dwarf::UnitType UT);
@@ -346,6 +329,13 @@ private:
   /// Set D as anonymous type for index which can be reused later.
   void setIndexTyDie(DIE *D) { IndexTyDie = D; }
 
+  virtual void finishNonUnitTypeDIE(DIE& D, const DICompositeType *CTy) = 0;
+
+  /// If this is a named finished type then include it in the list of types for
+  /// the accelerator tables.
+  void updateAcceleratorTables(const DIScope *Context, const DIType *Ty,
+                               const DIE &TyDIE);
+
   virtual bool isDwoUnit() const = 0;
   const MCSymbol *getCrossSectionRelativeBaseAddress() const override;
 };
@@ -358,6 +348,7 @@ class DwarfTypeUnit final : public DwarfUnit {
   bool UsedLineTable = false;
 
   unsigned getOrCreateSourceID(const DIFile *File) override;
+  void finishNonUnitTypeDIE(DIE& D, const DICompositeType *CTy) override;
   bool isDwoUnit() const override;
 
 public:
@@ -366,9 +357,6 @@ public:
 
   void setTypeSignature(uint64_t Signature) { TypeSignature = Signature; }
   void setType(const DIE *Ty) { this->Ty = Ty; }
-
-  /// Get context owner's DIE.
-  DIE *createTypeDIE(const DICompositeType *Ty);
 
   /// Emit the header for this unit, not including the initial length field.
   void emitHeader(bool UseOffsets) override;

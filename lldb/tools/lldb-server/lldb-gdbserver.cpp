@@ -22,7 +22,7 @@
 #include "LLDBServerUtilities.h"
 #include "Plugins/Process/gdb-remote/GDBRemoteCommunicationServerLLGS.h"
 #include "Plugins/Process/gdb-remote/ProcessGDBRemoteLog.h"
-#include "lldb/Core/PluginManager.h"
+#include "lldb/Host/Config.h"
 #include "lldb/Host/ConnectionFileDescriptor.h"
 #include "lldb/Host/FileSystem.h"
 #include "lldb/Host/HostGetOpt.h"
@@ -31,6 +31,7 @@
 #include "lldb/Host/Socket.h"
 #include "lldb/Host/StringConvert.h"
 #include "lldb/Host/common/NativeProcessProtocol.h"
+#include "lldb/Target/Process.h"
 #include "lldb/Utility/Status.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/Errno.h"
@@ -39,6 +40,8 @@
 #include "Plugins/Process/Linux/NativeProcessLinux.h"
 #elif defined(__NetBSD__)
 #include "Plugins/Process/NetBSD/NativeProcessNetBSD.h"
+#elif defined(_WIN32)
+#include "Plugins/Process/Windows/Common/NativeProcessWindows.h"
 #endif
 
 #ifndef LLGS_PROGRAM_NAME
@@ -60,6 +63,8 @@ namespace {
 typedef process_linux::NativeProcessLinux::Factory NativeProcessFactory;
 #elif defined(__NetBSD__)
 typedef process_netbsd::NativeProcessNetBSD::Factory NativeProcessFactory;
+#elif defined(_WIN32)
+typedef NativeProcessWindows::Factory NativeProcessFactory;
 #else
 // Dummy implementation to make sure the code compiles
 class NativeProcessFactory : public NativeProcessProtocol::Factory {
@@ -79,9 +84,7 @@ public:
 #endif
 }
 
-//----------------------------------------------------------------------
 // option descriptors for getopt_long_only()
-//----------------------------------------------------------------------
 
 static int g_debug = 0;
 static int g_verbose = 0;
@@ -89,36 +92,33 @@ static int g_verbose = 0;
 static struct option g_long_options[] = {
     {"debug", no_argument, &g_debug, 1},
     {"verbose", no_argument, &g_verbose, 1},
-    {"log-file", required_argument, NULL, 'l'},
-    {"log-channels", required_argument, NULL, 'c'},
-    {"attach", required_argument, NULL, 'a'},
-    {"named-pipe", required_argument, NULL, 'N'},
-    {"pipe", required_argument, NULL, 'U'},
-    {"native-regs", no_argument, NULL,
+    {"log-file", required_argument, nullptr, 'l'},
+    {"log-channels", required_argument, nullptr, 'c'},
+    {"attach", required_argument, nullptr, 'a'},
+    {"named-pipe", required_argument, nullptr, 'N'},
+    {"pipe", required_argument, nullptr, 'U'},
+    {"native-regs", no_argument, nullptr,
      'r'}, // Specify to use the native registers instead of the gdb defaults
            // for the architecture.  NOTE: this is a do-nothing arg as it's
            // behavior is default now.  FIXME remove call from lldb-platform.
-    {"reverse-connect", no_argument, NULL,
+    {"reverse-connect", no_argument, nullptr,
      'R'}, // Specifies that llgs attaches to the client address:port rather
            // than llgs listening for a connection from address on port.
-    {"setsid", no_argument, NULL,
+    {"setsid", no_argument, nullptr,
      'S'}, // Call setsid() to make llgs run in its own session.
-    {"fd", required_argument, NULL, 'F'},
-    {NULL, 0, NULL, 0}};
-
-//----------------------------------------------------------------------
-// Watch for signals
-//----------------------------------------------------------------------
-static int g_sighup_received_count = 0;
+    {"fd", required_argument, nullptr, 'F'},
+    {nullptr, 0, nullptr, 0}};
 
 #ifndef _WIN32
+// Watch for signals
+static int g_sighup_received_count = 0;
+
 static void sighup_handler(MainLoopBase &mainloop) {
   ++g_sighup_received_count;
 
   Log *log(GetLogIfAnyCategoriesSet(LIBLLDB_LOG_PROCESS));
-  if (log)
-    log->Printf("lldb-server:%s swallowing SIGHUP (receive count=%d)",
-                __FUNCTION__, g_sighup_received_count);
+  LLDB_LOGF(log, "lldb-server:%s swallowing SIGHUP (receive count=%d)",
+            __FUNCTION__, g_sighup_received_count);
 
   if (g_sighup_received_count >= 2)
     mainloop.RequestTermination();
@@ -238,7 +238,7 @@ void ConnectToRemote(MainLoop &mainloop,
     snprintf(connection_url, sizeof(connection_url), "fd://%d", connection_fd);
 
     // Create the connection.
-#if !defined LLDB_DISABLE_POSIX && !defined _WIN32
+#if LLDB_ENABLE_POSIX && !defined _WIN32
     ::fcntl(connection_fd, F_SETFD, FD_CLOEXEC);
 #endif
     connection_up.reset(new ConnectionFileDescriptor);
@@ -356,9 +356,7 @@ void ConnectToRemote(MainLoop &mainloop,
   printf("Connection established.\n");
 }
 
-//----------------------------------------------------------------------
 // main
-//----------------------------------------------------------------------
 int main_gdbserver(int argc, char *argv[]) {
   Status error;
   MainLoop mainloop;
@@ -485,9 +483,9 @@ int main_gdbserver(int argc, char *argv[]) {
 
   Log *log(lldb_private::GetLogIfAnyCategoriesSet(GDBR_LOG_PROCESS));
   if (log) {
-    log->Printf("lldb-server launch");
+    LLDB_LOGF(log, "lldb-server launch");
     for (int i = 0; i < argc; i++) {
-      log->Printf("argv[%i] = '%s'", i, argv[i]);
+      LLDB_LOGF(log, "argv[%i] = '%s'", i, argv[i]);
     }
   }
 
@@ -521,10 +519,10 @@ int main_gdbserver(int argc, char *argv[]) {
     handle_launch(gdb_server, argc, argv);
 
   // Print version info.
-  printf("%s-%s", LLGS_PROGRAM_NAME, LLGS_VERSION_STR);
+  printf("%s-%s\n", LLGS_PROGRAM_NAME, LLGS_VERSION_STR);
 
   ConnectToRemote(mainloop, gdb_server, reverse_connect, host_and_port,
-                  progname, subcommand, named_pipe_path.c_str(), 
+                  progname, subcommand, named_pipe_path.c_str(),
                   unnamed_pipe, connection_fd);
 
   if (!gdb_server.IsConnected()) {

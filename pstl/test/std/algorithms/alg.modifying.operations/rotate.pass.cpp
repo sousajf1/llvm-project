@@ -7,17 +7,13 @@
 //
 //===----------------------------------------------------------------------===//
 
+// UNSUPPORTED: c++98, c++03, c++11, c++14
+
 #include "support/pstl_test_config.h"
 
-#ifdef PSTL_STANDALONE_TESTS
 #include <iterator>
-
-#include "pstl/execution"
-#include "pstl/algorithm"
-#else
 #include <execution>
 #include <algorithm>
-#endif // PSTL_STANDALONE_TESTS
 
 #include "support/utils.h"
 
@@ -78,8 +74,8 @@ struct compare<wrapper<T>>
 struct test_one_policy
 {
 
-#if __PSTL_ICC_17_VC141_TEST_SIMD_LAMBDA_DEBUG_32_BROKEN ||                                                            \
-    __PSTL_ICC_16_VC14_TEST_SIMD_LAMBDA_DEBUG_32_BROKEN // dummy specializations to skip testing in case of broken configuration
+#if _PSTL_ICC_17_VC141_TEST_SIMD_LAMBDA_DEBUG_32_BROKEN ||                                                             \
+    _PSTL_ICC_16_VC14_TEST_SIMD_LAMBDA_DEBUG_32_BROKEN // dummy specializations to skip testing in case of broken configuration
     template <typename Iterator, typename Size>
     void
     operator()(pstl::execution::unsequenced_policy, Iterator data_b, Iterator data_e, Iterator actual_b,
@@ -118,10 +114,10 @@ struct test_one_policy
     template <typename ExecutionPolicy, typename Iterator, typename Size>
     typename std::enable_if<
         is_same_iterator_category<Iterator, std::random_access_iterator_tag>::value &&
-            !std::is_same<ExecutionPolicy, pstl::execution::sequenced_policy>::value &&
+            !std::is_same<ExecutionPolicy, std::execution::sequenced_policy>::value &&
             std::is_same<typename std::iterator_traits<Iterator>::value_type, wrapper<float32_t>>::value,
         bool>::type
-    check_move(ExecutionPolicy&& exec, Iterator b, Iterator e, Size shift)
+    check_move(ExecutionPolicy&&, Iterator b, Iterator e, Size shift)
     {
         bool result = all_of(b, e, [](wrapper<float32_t>& a) {
             bool temp = a.move_count > 0;
@@ -134,10 +130,10 @@ struct test_one_policy
     template <typename ExecutionPolicy, typename Iterator, typename Size>
     typename std::enable_if<
         !(is_same_iterator_category<Iterator, std::random_access_iterator_tag>::value &&
-          !std::is_same<ExecutionPolicy, pstl::execution::sequenced_policy>::value &&
+          !std::is_same<ExecutionPolicy, std::execution::sequenced_policy>::value &&
           std::is_same<typename std::iterator_traits<Iterator>::value_type, wrapper<float32_t>>::value),
         bool>::type
-    check_move(ExecutionPolicy&& exec, Iterator b, Iterator e, Size shift)
+    check_move(ExecutionPolicy&&, Iterator, Iterator, Size)
     {
         return true;
     }
@@ -166,7 +162,7 @@ test()
     }
 }
 
-int32_t
+int
 main()
 {
     test<int32_t>();

@@ -12,17 +12,28 @@
 #include "Plugins/ObjectFile/Breakpad/BreakpadRecords.h"
 #include "lldb/Core/FileSpecList.h"
 #include "lldb/Symbol/LineTable.h"
+#include "lldb/Symbol/PostfixExpression.h"
 #include "lldb/Symbol/SymbolFile.h"
+#include "lldb/Symbol/UnwindPlan.h"
 
 namespace lldb_private {
 
 namespace breakpad {
 
 class SymbolFileBreakpad : public SymbolFile {
+  /// LLVM RTTI support.
+  static char ID;
+
 public:
-  //------------------------------------------------------------------
+  /// LLVM RTTI support.
+  /// \{
+  bool isA(const void *ClassID) const override {
+    return ClassID == &ID || SymbolFile::isA(ClassID);
+  }
+  static bool classof(const SymbolFile *obj) { return obj->isA(&ID); }
+  /// \}
+
   // Static Functions
-  //------------------------------------------------------------------
   static void Initialize();
   static void Terminate();
   static void DebuggerInitialize(Debugger &debugger) {}
@@ -32,14 +43,13 @@ public:
     return "Breakpad debug symbol file reader.";
   }
 
-  static SymbolFile *CreateInstance(ObjectFile *obj_file) {
-    return new SymbolFileBreakpad(obj_file);
+  static SymbolFile *CreateInstance(lldb::ObjectFileSP objfile_sp) {
+    return new SymbolFileBreakpad(std::move(objfile_sp));
   }
 
-  //------------------------------------------------------------------
   // Constructors and Destructors
-  //------------------------------------------------------------------
-  SymbolFileBreakpad(ObjectFile *object_file) : SymbolFile(object_file) {}
+  SymbolFileBreakpad(lldb::ObjectFileSP objfile_sp)
+      : SymbolFile(std::move(objfile_sp)) {}
 
   ~SymbolFileBreakpad() override {}
 
@@ -47,13 +57,7 @@ public:
 
   void InitializeObject() override {}
 
-  //------------------------------------------------------------------
   // Compile Unit function calls
-  //------------------------------------------------------------------
-
-  uint32_t GetNumCompileUnits() override;
-
-  lldb::CompUnitSP ParseCompileUnitAtIndex(uint32_t index) override;
 
   lldb::LanguageType ParseLanguage(CompileUnit &comp_unit) override {
     return lldb::eLanguageTypeUnknown;
@@ -77,12 +81,10 @@ public:
 
   size_t ParseBlocksRecursive(Function &func) override { return 0; }
 
-  uint32_t FindGlobalVariables(ConstString name,
-                               const CompilerDeclContext *parent_decl_ctx,
-                               uint32_t max_matches,
-                               VariableList &variables) override {
-    return 0;
-  }
+  void FindGlobalVariables(ConstString name,
+                           const CompilerDeclContext *parent_decl_ctx,
+                           uint32_t max_matches,
+                           VariableList &variables) override {}
 
   size_t ParseVariablesForContext(const SymbolContext &sc) override {
     return 0;
@@ -104,31 +106,31 @@ public:
                                 lldb::SymbolContextItem resolve_scope,
                                 SymbolContextList &sc_list) override;
 
-  size_t GetTypes(SymbolContextScope *sc_scope, lldb::TypeClass type_mask,
-                  TypeList &type_list) override {
-    return 0;
-  }
+  void GetTypes(SymbolContextScope *sc_scope, lldb::TypeClass type_mask,
+                TypeList &type_list) override {}
 
-  uint32_t FindFunctions(ConstString name,
-                         const CompilerDeclContext *parent_decl_ctx,
-                         lldb::FunctionNameType name_type_mask,
-                         bool include_inlines, bool append,
-                         SymbolContextList &sc_list) override;
+  void FindFunctions(ConstString name,
+                     const CompilerDeclContext *parent_decl_ctx,
+                     lldb::FunctionNameType name_type_mask,
+                     bool include_inlines, SymbolContextList &sc_list) override;
 
-  uint32_t FindFunctions(const RegularExpression &regex, bool include_inlines,
-                         bool append, SymbolContextList &sc_list) override;
+  void FindFunctions(const RegularExpression &regex, bool include_inlines,
+                     SymbolContextList &sc_list) override;
 
-  uint32_t FindTypes(ConstString name,
-                     const CompilerDeclContext *parent_decl_ctx, bool append,
-                     uint32_t max_matches,
-                     llvm::DenseSet<SymbolFile *> &searched_symbol_files,
-                     TypeMap &types) override;
+  void FindTypes(ConstString name, const CompilerDeclContext *parent_decl_ctx,
+                 uint32_t max_matches,
+                 llvm::DenseSet<SymbolFile *> &searched_symbol_files,
+                 TypeMap &types) override;
 
-  size_t FindTypes(const std::vector<CompilerContext> &context, bool append,
-                   TypeMap &types) override;
+  void FindTypes(llvm::ArrayRef<CompilerContext> pattern, LanguageSet languages,
+                 llvm::DenseSet<SymbolFile *> &searched_symbol_files,
+                 TypeMap &types) override;
 
-  TypeSystem *GetTypeSystemForLanguage(lldb::LanguageType language) override {
-    return nullptr;
+  llvm::Expected<TypeSystem &>
+  GetTypeSystemForLanguage(lldb::LanguageType language) override {
+    return llvm::make_error<llvm::StringError>(
+        "SymbolFileBreakpad does not support GetTypeSystemForLanguage",
+        llvm::inconvertibleErrorCode());
   }
 
   CompilerDeclContext
@@ -138,6 +140,12 @@ public:
   }
 
   void AddSymbols(Symtab &symtab) override;
+
+  llvm::Expected<lldb::addr_t> GetParameterStackSize(Symbol &symbol) override;
+
+  lldb::UnwindPlanSP
+  GetUnwindPlan(const Address &address,
+                const RegisterInfoResolver &resolver) override;
 
   ConstString GetPluginName() override { return GetPluginNameStatic(); }
   uint32_t GetPluginVersion() override { return 1; }
@@ -150,6 +158,11 @@ private:
   struct Bookmark {
     uint32_t section;
     size_t offset;
+
+    friend bool operator<(const Bookmark &lhs, const Bookmark &rhs) {
+      return std::tie(lhs.section, lhs.offset) <
+             std::tie(rhs.section, rhs.offset);
+    }
   };
 
   // At iterator class for simplifying algorithms reading data from the breakpad
@@ -183,8 +196,7 @@ private:
       return *this;
     }
     friend bool operator<(const CompUnitData &lhs, const CompUnitData &rhs) {
-      return std::tie(lhs.bookmark.section, lhs.bookmark.offset) <
-             std::tie(rhs.bookmark.section, rhs.bookmark.offset);
+      return lhs.bookmark < rhs.bookmark;
     }
 
     Bookmark bookmark;
@@ -193,16 +205,35 @@ private:
 
   };
 
-  SymbolVendor &GetSymbolVendor();
+  uint32_t CalculateNumCompileUnits() override;
+  lldb::CompUnitSP ParseCompileUnitAtIndex(uint32_t index) override;
+
   lldb::addr_t GetBaseFileAddress();
   void ParseFileRecords();
   void ParseCUData();
   void ParseLineTableAndSupportFiles(CompileUnit &cu, CompUnitData &data);
+  void ParseUnwindData();
+  llvm::ArrayRef<uint8_t> SaveAsDWARF(postfix::Node &node);
+  lldb::UnwindPlanSP ParseCFIUnwindPlan(const Bookmark &bookmark,
+                                        const RegisterInfoResolver &resolver);
+  bool ParseCFIUnwindRow(llvm::StringRef unwind_rules,
+                         const RegisterInfoResolver &resolver,
+                         UnwindPlan::Row &row);
+  lldb::UnwindPlanSP ParseWinUnwindPlan(const Bookmark &bookmark,
+                                        const RegisterInfoResolver &resolver);
 
   using CompUnitMap = RangeDataVector<lldb::addr_t, lldb::addr_t, CompUnitData>;
 
   llvm::Optional<std::vector<FileSpec>> m_files;
   llvm::Optional<CompUnitMap> m_cu_data;
+
+  using UnwindMap = RangeDataVector<lldb::addr_t, lldb::addr_t, Bookmark>;
+  struct UnwindData {
+    UnwindMap cfi;
+    UnwindMap win;
+  };
+  llvm::Optional<UnwindData> m_unwind_data;
+  llvm::BumpPtrAllocator m_allocator;
 };
 
 } // namespace breakpad

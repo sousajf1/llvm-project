@@ -15,7 +15,7 @@
 #include "InstrProfilingInternal.h"
 
 #define INSTR_PROF_VALUE_PROF_DATA
-#include "InstrProfData.inc"
+#include "profile/InstrProfData.inc"
 
 
 COMPILER_RT_WEAK uint64_t INSTR_PROF_RAW_VERSION_VAR = INSTR_PROF_RAW_VERSION;
@@ -33,6 +33,10 @@ COMPILER_RT_VISIBILITY unsigned lprofProfileDumped() {
 
 COMPILER_RT_VISIBILITY void lprofSetProfileDumped() {
   ProfileDumped = 1;
+}
+
+COMPILER_RT_VISIBILITY void __llvm_profile_set_dumped() {
+  lprofSetProfileDumped();
 }
 
 /* Return the number of bytes needed to add to SizeInBytes to make it

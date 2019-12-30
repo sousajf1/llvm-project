@@ -55,7 +55,8 @@ public:
     SOUTHERN_ISLANDS = 4,
     SEA_ISLANDS = 5,
     VOLCANIC_ISLANDS = 6,
-    GFX9 = 7
+    GFX9 = 7,
+    GFX10 = 8
   };
 
 private:
@@ -74,6 +75,7 @@ protected:
   bool HasFminFmaxLegacy;
   bool EnablePromoteAlloca;
   bool HasTrigReducedRange;
+  unsigned MaxWavesPerEU;
   int LocalMemorySize;
   unsigned WavefrontSize;
 
@@ -146,7 +148,12 @@ public:
     return HasMadMixInsts;
   }
 
-  bool hasFP32Denormals() const {
+  bool hasFP32Denormals(const Function &F) const {
+    // FIXME: This should not be a property of the subtarget. This should be a
+    // property with a default set by the calling convention which can be
+    // overridden by attributes. For now, use the subtarget feature as a
+    // placeholder attribute. The function arguments only purpose is to
+    // discourage use without a function context until this is removed.
     return FP32Denormals;
   }
 
@@ -194,8 +201,8 @@ public:
     return LocalMemorySize;
   }
 
-  unsigned getAlignmentForImplicitArgPtr() const {
-    return isAmdHsaOS() ? 8 : 4;
+  Align getAlignmentForImplicitArgPtr() const {
+    return isAmdHsaOS() ? Align(8) : Align(4);
   }
 
   /// Returns the offset in bytes from the start of the input buffer
@@ -222,7 +229,9 @@ public:
   /// subtarget.
   virtual unsigned getMinWavesPerEU() const = 0;
 
-  unsigned getMaxWavesPerEU() const { return 10; }
+  /// \returns Maximum number of waves per execution unit supported by the
+  /// subtarget without any kind of limitation.
+  unsigned getMaxWavesPerEU() const { return MaxWavesPerEU; }
 
   /// Creates value range metadata on an workitemid.* inrinsic call or load.
   bool makeLIDRangeMetadata(Instruction *I) const;
@@ -234,16 +243,17 @@ public:
       return 16;
     return AMDGPU::getIntegerAttribute(F, "amdgpu-implicitarg-num-bytes", 0);
   }
-  uint64_t getExplicitKernArgSize(const Function &F,
-                                  unsigned &MaxAlign) const;
-  unsigned getKernArgSegmentSize(const Function &F,
-                                 unsigned &MaxAlign) const;
+  uint64_t getExplicitKernArgSize(const Function &F, Align &MaxAlign) const;
+  unsigned getKernArgSegmentSize(const Function &F, Align &MaxAlign) const;
 
   virtual ~AMDGPUSubtarget() {}
 };
 
 class GCNSubtarget : public AMDGPUGenSubtargetInfo,
                      public AMDGPUSubtarget {
+
+  using AMDGPUSubtarget::getMaxWavesPerEU;
+
 public:
   enum TrapHandlerAbi {
     TrapHandlerAbiNone = 0,
@@ -293,10 +303,11 @@ protected:
   bool UnalignedBufferAccess;
   bool HasApertureRegs;
   bool EnableXNACK;
+  bool DoesNotSupportXNACK;
+  bool EnableCuMode;
   bool TrapHandler;
 
   // Used as options.
-  bool EnableHugePrivateBuffer;
   bool EnableLoadStoreOpt;
   bool EnableUnsafeDSOffsetFolding;
   bool EnableSIScheduler;
@@ -311,8 +322,10 @@ protected:
   bool IsGCN;
   bool GCN3Encoding;
   bool CIInsts;
-  bool VIInsts;
+  bool GFX8Insts;
   bool GFX9Insts;
+  bool GFX10Insts;
+  bool GFX7GFX8GFX9Insts;
   bool SGPRInitBug;
   bool HasSMemRealTime;
   bool HasIntClamp;
@@ -327,23 +340,51 @@ protected:
   bool HasSDWAMac;
   bool HasSDWAOutModsVOPC;
   bool HasDPP;
+  bool HasDPP8;
   bool HasR128A16;
+  bool HasNSAEncoding;
   bool HasDLInsts;
   bool HasDot1Insts;
   bool HasDot2Insts;
+  bool HasDot3Insts;
+  bool HasDot4Insts;
+  bool HasDot5Insts;
+  bool HasDot6Insts;
+  bool HasMAIInsts;
+  bool HasPkFmacF16Inst;
+  bool HasAtomicFaddInsts;
   bool EnableSRAMECC;
+  bool DoesNotSupportSRAMECC;
+  bool HasNoSdstCMPX;
+  bool HasVscnt;
+  bool HasRegisterBanking;
+  bool HasVOP3Literal;
+  bool HasNoDataDepHazard;
   bool FlatAddressSpace;
   bool FlatInstOffsets;
   bool FlatGlobalInsts;
   bool FlatScratchInsts;
+  bool ScalarFlatScratchInsts;
   bool AddNoCarryInsts;
   bool HasUnpackedD16VMem;
   bool R600ALUInst;
   bool CaymanISA;
   bool CFALUBug;
+  bool LDSMisalignedBug;
+  bool HasMFMAInlineLiteralBug;
   bool HasVertexCache;
   short TexVTXClauseSize;
   bool ScalarizeGlobal;
+
+  bool HasVcmpxPermlaneHazard;
+  bool HasVMEMtoScalarWriteHazard;
+  bool HasSMEMtoVectorWriteHazard;
+  bool HasInstFwdPrefetchBug;
+  bool HasVcmpxExecWARHazard;
+  bool HasLdsBranchVmemWARHazard;
+  bool HasNSAtoVMEMBug;
+  bool HasOffset3fBug;
+  bool HasFlatSegmentOffsetBug;
 
   // Dummy feature to use for assembler in tablegen.
   bool FeatureDisable;
@@ -353,6 +394,9 @@ private:
   SIInstrInfo InstrInfo;
   SITargetLowering TLInfo;
   SIFrameLowering FrameLowering;
+
+  // See COMPUTE_TMPRING_SIZE.WAVESIZE, 13-bit field in units of 256-dword.
+  static const unsigned MaxWaveScratchSize = (256 * 4) * ((1 << 13) - 1);
 
 public:
   GCNSubtarget(const Triple &TT, StringRef GPU, StringRef FS,
@@ -382,7 +426,7 @@ public:
     return CallLoweringInfo.get();
   }
 
-  const InstructionSelector *getInstructionSelector() const override {
+  InstructionSelector *getInstructionSelector() const override {
     return InstSelector.get();
   }
 
@@ -413,6 +457,11 @@ public:
     return Log2_32(WavefrontSize);
   }
 
+  /// Return the number of high bits known to be zero fror a frame index.
+  unsigned getKnownHighZeroBitsForFrameIndex() const {
+    return countLeadingZeros(MaxWaveScratchSize) + getWavefrontSizeLog2();
+  }
+
   int getLDSBankCount() const {
     return LDSBankCount;
   }
@@ -420,6 +469,8 @@ public:
   unsigned getMaxPrivateElementSize() const {
     return MaxPrivateElementSize;
   }
+
+  unsigned getConstantBusLimit(unsigned Opcode) const;
 
   bool hasIntClamp() const {
     return HasIntClamp;
@@ -447,6 +498,12 @@ public:
 
   bool hasAddr64() const {
     return (getGeneration() < AMDGPUSubtarget::VOLCANIC_ISLANDS);
+  }
+
+  // Return true if the target only has the reverse operand versions of VALU
+  // shift instructions (e.g. v_lshrrev_b32, and no v_lshr_b32).
+  bool hasOnlyRevVALUShifts() const {
+    return getGeneration() >= VOLCANIC_ISLANDS;
   }
 
   bool hasBFE() const {
@@ -497,16 +554,58 @@ public:
     return GFX9Insts;
   }
 
+  bool hasScalarPackInsts() const {
+    return GFX9Insts;
+  }
+
+  bool hasScalarMulHiInsts() const {
+    return GFX9Insts;
+  }
+
   TrapHandlerAbi getTrapHandlerAbi() const {
     return isAmdHsaOS() ? TrapHandlerAbiHsa : TrapHandlerAbiNone;
   }
 
-  bool enableHugePrivateBuffer() const {
-    return EnableHugePrivateBuffer;
+  /// True if the offset field of DS instructions works as expected. On SI, the
+  /// offset uses a 16-bit adder and does not always wrap properly.
+  bool hasUsableDSOffset() const {
+    return getGeneration() >= SEA_ISLANDS;
   }
 
   bool unsafeDSOffsetFoldingEnabled() const {
     return EnableUnsafeDSOffsetFolding;
+  }
+
+  /// Condition output from div_scale is usable.
+  bool hasUsableDivScaleConditionOutput() const {
+    return getGeneration() != SOUTHERN_ISLANDS;
+  }
+
+  /// Extra wait hazard is needed in some cases before
+  /// s_cbranch_vccnz/s_cbranch_vccz.
+  bool hasReadVCCZBug() const {
+    return getGeneration() <= SEA_ISLANDS;
+  }
+
+  /// A read of an SGPR by SMRD instruction requires 4 wait states when the SGPR
+  /// was written by a VALU instruction.
+  bool hasSMRDReadVALUDefHazard() const {
+    return getGeneration() == SOUTHERN_ISLANDS;
+  }
+
+  /// A read of an SGPR by a VMEM instruction requires 5 wait states when the
+  /// SGPR was written by a VALU Instruction.
+  bool hasVMEMReadSGPRVALUDefHazard() const {
+    return getGeneration() >= VOLCANIC_ISLANDS;
+  }
+
+  bool hasRFEHazards() const {
+    return getGeneration() >= VOLCANIC_ISLANDS;
+  }
+
+  /// Number of hazard wait states for s_setreg_b32/s_setreg_imm32_b32.
+  unsigned getSetRegWaitStates() const {
+    return getGeneration() <= SEA_ISLANDS ? 1 : 2;
   }
 
   bool dumpCode() const {
@@ -518,16 +617,27 @@ public:
   unsigned getMaxLocalMemSizeWithWaveCount(unsigned WaveCount,
                                            const Function &) const;
 
-  bool hasFP16Denormals() const {
+  /// Alias for hasFP64FP16Denormals
+  bool hasFP16Denormals(const Function &F) const {
     return FP64FP16Denormals;
   }
 
-  bool hasFP64Denormals() const {
+  /// Alias for hasFP64FP16Denormals
+  bool hasFP64Denormals(const Function &F) const {
+    return FP64FP16Denormals;
+  }
+
+  bool hasFP64FP16Denormals(const Function &F) const {
     return FP64FP16Denormals;
   }
 
   bool supportsMinMaxDenormModes() const {
     return getGeneration() >= AMDGPUSubtarget::GFX9;
+  }
+
+  /// \returns If target supports S_DENORM_MODE.
+  bool hasDenormModeInst() const {
+    return getGeneration() >= AMDGPUSubtarget::GFX10;
   }
 
   bool useFlatForGlobal() const {
@@ -538,6 +648,11 @@ public:
   /// of ds_read/write_b128.
   bool useDS128() const {
     return CIInsts && EnableDS128;
+  }
+
+  /// Have v_trunc_f64, v_ceil_f64, v_rndne_f64
+  bool haveRoundOpsF64() const {
+    return CIInsts;
   }
 
   /// \returns If MUBUF instructions always perform range checking, even for
@@ -581,8 +696,16 @@ public:
     return EnableXNACK;
   }
 
+  bool isCuModeEnabled() const {
+    return EnableCuMode;
+  }
+
   bool hasFlatAddressSpace() const {
     return FlatAddressSpace;
+  }
+
+  bool hasFlatScrRegister() const {
+    return hasFlatAddressSpace();
   }
 
   bool hasFlatInstOffsets() const {
@@ -597,6 +720,14 @@ public:
     return FlatScratchInsts;
   }
 
+  bool hasScalarFlatScratchInsts() const {
+    return ScalarFlatScratchInsts;
+  }
+
+  bool hasFlatSegmentOffsetBug() const {
+    return HasFlatSegmentOffsetBug;
+  }
+
   bool hasFlatLgkmVMemCountInOrder() const {
     return getGeneration() > GFX9;
   }
@@ -609,10 +740,28 @@ public:
     return hasD16LoadStore() && !isSRAMECCEnabled();
   }
 
+  bool hasD16Images() const {
+    return getGeneration() >= VOLCANIC_ISLANDS;
+  }
+
   /// Return if most LDS instructions have an m0 use that require m0 to be
   /// iniitalized.
   bool ldsRequiresM0Init() const {
     return getGeneration() < GFX9;
+  }
+
+  // True if the hardware rewinds and replays GWS operations if a wave is
+  // preempted.
+  //
+  // If this is false, a GWS operation requires testing if a nack set the
+  // MEM_VIOL bit, and repeating if so.
+  bool hasGWSAutoReplay() const {
+    return getGeneration() >= GFX9;
+  }
+
+  /// \returns if target has ds_gws_sema_release_all instruction.
+  bool hasGWSSemaReleaseAll() const {
+    return CIInsts;
   }
 
   bool hasAddNoCarry() const {
@@ -652,10 +801,6 @@ public:
     return HasSDWAOutModsVOPC;
   }
 
-  bool vmemWriteNeedsExpWaitcnt() const {
-    return getGeneration() < SEA_ISLANDS;
-  }
-
   bool hasDLInsts() const {
     return HasDLInsts;
   }
@@ -668,8 +813,60 @@ public:
     return HasDot2Insts;
   }
 
+  bool hasDot3Insts() const {
+    return HasDot3Insts;
+  }
+
+  bool hasDot4Insts() const {
+    return HasDot4Insts;
+  }
+
+  bool hasDot5Insts() const {
+    return HasDot5Insts;
+  }
+
+  bool hasDot6Insts() const {
+    return HasDot6Insts;
+  }
+
+  bool hasMAIInsts() const {
+    return HasMAIInsts;
+  }
+
+  bool hasPkFmacF16Inst() const {
+    return HasPkFmacF16Inst;
+  }
+
+  bool hasAtomicFaddInsts() const {
+    return HasAtomicFaddInsts;
+  }
+
   bool isSRAMECCEnabled() const {
     return EnableSRAMECC;
+  }
+
+  bool hasNoSdstCMPX() const {
+    return HasNoSdstCMPX;
+  }
+
+  bool hasVscnt() const {
+    return HasVscnt;
+  }
+
+  bool hasRegisterBanking() const {
+    return HasRegisterBanking;
+  }
+
+  bool hasVOP3Literal() const {
+    return HasVOP3Literal;
+  }
+
+  bool hasNoDataDepHazard() const {
+    return HasNoDataDepHazard;
+  }
+
+  bool vmemWriteNeedsExpWaitcnt() const {
+    return getGeneration() < SEA_ISLANDS;
   }
 
   // Scratch is allocated in 256 dword per wave blocks for the entire
@@ -680,9 +877,7 @@ public:
   // on the pointer value itself may rely on the alignment / known low bits of
   // the pointer. Set this to something above the minimum to avoid needing
   // dynamic realignment in common cases.
-  unsigned getStackAlignment() const {
-    return 16;
-  }
+  Align getStackAlignment() const { return Align(16); }
 
   bool enableMachineScheduler() const override {
     return true;
@@ -711,12 +906,6 @@ public:
   /// subtarget and limited by given \p FlatWorkGroupSize.
   unsigned getMaxWavesPerCU(unsigned FlatWorkGroupSize) const {
     return AMDGPU::IsaInfo::getMaxWavesPerCU(this, FlatWorkGroupSize);
-  }
-
-  /// \returns Maximum number of waves per execution unit supported by the
-  /// subtarget without any kind of limitation.
-  unsigned getMaxWavesPerEU() const {
-    return AMDGPU::IsaInfo::getMaxWavesPerEU();
   }
 
   /// \returns Number of waves per work group supported by the subtarget and
@@ -769,16 +958,38 @@ public:
   }
 
   bool hasLDSFPAtomics() const {
-    return VIInsts;
+    return GFX8Insts;
   }
 
   bool hasDPP() const {
     return HasDPP;
   }
 
+  bool hasDPPBroadcasts() const {
+    return HasDPP && getGeneration() < GFX10;
+  }
+
+  bool hasDPPWavefrontShifts() const {
+    return HasDPP && getGeneration() < GFX10;
+  }
+
+  bool hasDPP8() const {
+    return HasDPP8;
+  }
+
   bool hasR128A16() const {
     return HasR128A16;
   }
+
+  bool hasOffset3fBug() const {
+    return HasOffset3fBug;
+  }
+
+  bool hasNSAEncoding() const {
+    return HasNSAEncoding;
+  }
+
+  bool hasMadF16() const;
 
   bool enableSIScheduler() const {
     return EnableSIScheduler;
@@ -792,6 +1003,10 @@ public:
     return SGPRInitBug;
   }
 
+  bool hasMFMAInlineLiteralBug() const {
+    return HasMFMAInlineLiteralBug;
+  }
+
   bool has12DWordStoreHazard() const {
     return getGeneration() != AMDGPUSubtarget::SOUTHERN_ISLANDS;
   }
@@ -802,15 +1017,48 @@ public:
   }
 
   bool hasSMovFedHazard() const {
-    return getGeneration() >= AMDGPUSubtarget::GFX9;
+    return getGeneration() == AMDGPUSubtarget::GFX9;
   }
 
   bool hasReadM0MovRelInterpHazard() const {
-    return getGeneration() >= AMDGPUSubtarget::GFX9;
+    return getGeneration() == AMDGPUSubtarget::GFX9;
   }
 
   bool hasReadM0SendMsgHazard() const {
-    return getGeneration() >= AMDGPUSubtarget::VOLCANIC_ISLANDS;
+    return getGeneration() >= AMDGPUSubtarget::VOLCANIC_ISLANDS &&
+           getGeneration() <= AMDGPUSubtarget::GFX9;
+  }
+
+  bool hasVcmpxPermlaneHazard() const {
+    return HasVcmpxPermlaneHazard;
+  }
+
+  bool hasVMEMtoScalarWriteHazard() const {
+    return HasVMEMtoScalarWriteHazard;
+  }
+
+  bool hasSMEMtoVectorWriteHazard() const {
+    return HasSMEMtoVectorWriteHazard;
+  }
+
+  bool hasLDSMisalignedBug() const {
+    return LDSMisalignedBug && !EnableCuMode;
+  }
+
+  bool hasInstFwdPrefetchBug() const {
+    return HasInstFwdPrefetchBug;
+  }
+
+  bool hasVcmpxExecWARHazard() const {
+    return HasVcmpxExecWARHazard;
+  }
+
+  bool hasLdsBranchVmemWARHazard() const {
+    return HasLdsBranchVmemWARHazard;
+  }
+
+  bool hasNSAtoVMEMBug() const {
+    return HasNSAtoVMEMBug;
   }
 
   /// Return the maximum number of waves per SIMD for kernels using \p SGPRs
@@ -820,6 +1068,13 @@ public:
   /// Return the maximum number of waves per SIMD for kernels using \p VGPRs
   /// VGPRs
   unsigned getOccupancyWithNumVGPRs(unsigned VGPRs) const;
+
+  /// Return occupancy for the given function. Used LDS and a number of
+  /// registers if provided.
+  /// Note, occupancy can be affected by the scratch allocation as well, but
+  /// we do not have enough information to compute it.
+  unsigned computeOccupancy(const MachineFunction &MF, unsigned LDSSize = 0,
+                            unsigned NumSGPRs = 0, unsigned NumVGPRs = 0) const;
 
   /// \returns true if the flat_scratch register should be initialized with the
   /// pointer to the wave's scratch memory rather than a size and offset.
@@ -924,6 +1179,14 @@ public:
       std::vector<std::unique_ptr<ScheduleDAGMutation>> &Mutations)
       const override;
 
+  bool isWave32() const {
+    return WavefrontSize == 32;
+  }
+
+  const TargetRegisterClass *getBoolRC() const {
+    return getRegisterInfo()->getBoolRC();
+  }
+
   /// \returns Maximum number of work groups per compute unit supported by the
   /// subtarget and limited by given \p FlatWorkGroupSize.
   unsigned getMaxWorkGroupsPerCU(unsigned FlatWorkGroupSize) const override {
@@ -1003,9 +1266,7 @@ public:
     return Gen;
   }
 
-  unsigned getStackAlignment() const {
-    return 4;
-  }
+  Align getStackAlignment() const { return Align(4); }
 
   R600Subtarget &initializeSubtargetDependencies(const Triple &TT,
                                                  StringRef GPU, StringRef FS);

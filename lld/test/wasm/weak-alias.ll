@@ -23,11 +23,12 @@ entry:
 ; CHECK-NEXT:   - Type:            TYPE
 ; CHECK-NEXT:     Signatures:
 ; CHECK-NEXT:       - Index:           0
-; CHECK-NEXT:         ReturnType:      NORESULT
 ; CHECK-NEXT:         ParamTypes:
+; CHECK-NEXT:         ReturnTypes:     []
 ; CHECK-NEXT:       - Index:           1
-; CHECK-NEXT:         ReturnType:      I32
-; CHECK-NEXT:         ParamTypes:
+; CHECK-NEXT:         ParamTypes:      []
+; CHECK-NEXT:         ReturnTypes:
+; CHECK-NEXT:           - I32
 ; CHECK-NEXT:   - Type:            FUNCTION
 ; CHECK-NEXT:     FunctionTypes:   [ 0, 1, 1, 1, 1, 1 ]
 ; CHECK-NEXT:   - Type:            TABLE
@@ -48,29 +49,11 @@ entry:
 ; CHECK-NEXT:         InitExpr:
 ; CHECK-NEXT:           Opcode:          I32_CONST
 ; CHECK-NEXT:           Value:           66560
-; CHECK-NEXT:       - Index:           1
-; CHECK-NEXT:         Type:            I32
-; CHECK-NEXT:         Mutable:         false
-; CHECK-NEXT:         InitExpr:
-; CHECK-NEXT:           Opcode:          I32_CONST
-; CHECK-NEXT:           Value:           66560
-; CHECK-NEXT:       - Index:           2
-; CHECK-NEXT:         Type:            I32
-; CHECK-NEXT:         Mutable:         false
-; CHECK-NEXT:         InitExpr:
-; CHECK-NEXT:           Opcode:          I32_CONST
-; CHECK-NEXT:           Value:           1024
 ; CHECK-NEXT:   - Type:            EXPORT
 ; CHECK-NEXT:     Exports:
 ; CHECK-NEXT:       - Name:            memory
 ; CHECK-NEXT:         Kind:            MEMORY
 ; CHECK-NEXT:         Index:           0
-; CHECK-NEXT:       - Name:            __heap_base
-; CHECK-NEXT:         Kind:            GLOBAL
-; CHECK-NEXT:         Index:           1
-; CHECK-NEXT:       - Name:            __data_end
-; CHECK-NEXT:         Kind:            GLOBAL
-; CHECK-NEXT:         Index:           2
 ; CHECK-NEXT:       - Name:            _start
 ; CHECK-NEXT:         Kind:            FUNCTION
 ; CHECK-NEXT:         Index:           0
@@ -149,11 +132,12 @@ entry:
 ; RELOC-NEXT:   - Type:            TYPE
 ; RELOC-NEXT:     Signatures:
 ; RELOC-NEXT:       - Index:           0
-; RELOC-NEXT:         ReturnType:      NORESULT
-; RELOC-NEXT:         ParamTypes:
+; RELOC-NEXT:         ParamTypes:      []
+; RELOC-NEXT:         ReturnTypes:     []
 ; RELOC-NEXT:       - Index:           1
-; RELOC-NEXT:         ReturnType:      I32
-; RELOC-NEXT:         ParamTypes:
+; RELOC-NEXT:         ParamTypes:      []
+; RELOC-NEXT:         ReturnTypes:
+; RELOC-NEXT:           - I32
 ; RELOC-NEXT:   - Type:            IMPORT
 ; RELOC-NEXT:     Imports:
 ; RELOC-NEXT:       - Module:          env

@@ -48,7 +48,7 @@ vblendvps %xmm1, (%rdi), %xmm2, %xmm3
 # BDVER2:       Dispatch Width:    4
 # BDVER2-NEXT:  uOps Per Cycle:    0.20
 # BDVER2-NEXT:  IPC:               0.20
-# BDVER2-NEXT:  Block RThroughput: 2.5
+# BDVER2-NEXT:  Block RThroughput: 2.0
 
 # BDWELL:       Dispatch Width:    4
 # BDWELL-NEXT:  uOps Per Cycle:    0.40
@@ -149,10 +149,25 @@ vblendvps %xmm1, (%rdi), %xmm2, %xmm3
 # ALL-NEXT:     0.     1     1.0    1.0    0.0       vaddps	%xmm0, %xmm0, %xmm1
 
 # BDVER2-NEXT:  1.     1     1.0    0.0    0.0       vblendvps	%xmm1, (%rdi), %xmm2, %xmm3
+# BDVER2-NEXT:         1     1.0    0.5    0.0       <total>
+
 # BDWELL-NEXT:  1.     1     1.0    0.0    0.0       vblendvps	%xmm1, (%rdi), %xmm2, %xmm3
+# BDWELL-NEXT:         1     1.0    0.5    0.0       <total>
+
 # BTVER2-NEXT:  1.     1     1.0    1.0    0.0       vblendvps	%xmm1, (%rdi), %xmm2, %xmm3
+# BTVER2-NEXT:         1     1.0    1.0    0.0       <total>
+
 # HASWELL-NEXT: 1.     1     1.0    0.0    0.0       vblendvps	%xmm1, (%rdi), %xmm2, %xmm3
+# HASWELL-NEXT:        1     1.0    0.5    0.0       <total>
+
 # IVY-NEXT:     1.     1     1.0    0.0    0.0       vblendvps	%xmm1, (%rdi), %xmm2, %xmm3
+# IVY-NEXT:            1     1.0    0.5    0.0       <total>
+
 # SANDY-NEXT:   1.     1     1.0    0.0    0.0       vblendvps	%xmm1, (%rdi), %xmm2, %xmm3
+# SANDY-NEXT:          1     1.0    0.5    0.0       <total>
+
 # SKYLAKE-NEXT: 1.     1     1.0    0.0    0.0       vblendvps	%xmm1, (%rdi), %xmm2, %xmm3
+# SKYLAKE-NEXT:        1     1.0    0.5    0.0       <total>
+
 # ZNVER1-NEXT:  1.     1     1.0    0.0    0.0       vblendvps	%xmm1, (%rdi), %xmm2, %xmm3
+# ZNVER1-NEXT:         1     1.0    0.5    0.0       <total>

@@ -75,42 +75,11 @@ define <4 x i32> @add_and_v4i32(<4 x i32> %a, <4 x i32> %b) {
 }
 
 define <4 x i32> @add_mul_v4i32(<4 x i32> %a, <4 x i32> %b) {
-; SSE-LABEL: @add_mul_v4i32(
-; SSE-NEXT:    [[TMP1:%.*]] = mul <4 x i32> [[A:%.*]], [[B:%.*]]
-; SSE-NEXT:    [[TMP2:%.*]] = add <4 x i32> [[A]], [[B]]
-; SSE-NEXT:    [[R3:%.*]] = shufflevector <4 x i32> [[TMP1]], <4 x i32> [[TMP2]], <4 x i32> <i32 0, i32 5, i32 6, i32 3>
-; SSE-NEXT:    ret <4 x i32> [[R3]]
-;
-; SLM-LABEL: @add_mul_v4i32(
-; SLM-NEXT:    [[A0:%.*]] = extractelement <4 x i32> [[A:%.*]], i32 0
-; SLM-NEXT:    [[A1:%.*]] = extractelement <4 x i32> [[A]], i32 1
-; SLM-NEXT:    [[A2:%.*]] = extractelement <4 x i32> [[A]], i32 2
-; SLM-NEXT:    [[A3:%.*]] = extractelement <4 x i32> [[A]], i32 3
-; SLM-NEXT:    [[B0:%.*]] = extractelement <4 x i32> [[B:%.*]], i32 0
-; SLM-NEXT:    [[B1:%.*]] = extractelement <4 x i32> [[B]], i32 1
-; SLM-NEXT:    [[B2:%.*]] = extractelement <4 x i32> [[B]], i32 2
-; SLM-NEXT:    [[B3:%.*]] = extractelement <4 x i32> [[B]], i32 3
-; SLM-NEXT:    [[AB0:%.*]] = mul i32 [[A0]], [[B0]]
-; SLM-NEXT:    [[AB1:%.*]] = add i32 [[A1]], [[B1]]
-; SLM-NEXT:    [[AB2:%.*]] = add i32 [[A2]], [[B2]]
-; SLM-NEXT:    [[AB3:%.*]] = mul i32 [[A3]], [[B3]]
-; SLM-NEXT:    [[R0:%.*]] = insertelement <4 x i32> undef, i32 [[AB0]], i32 0
-; SLM-NEXT:    [[R1:%.*]] = insertelement <4 x i32> [[R0]], i32 [[AB1]], i32 1
-; SLM-NEXT:    [[R2:%.*]] = insertelement <4 x i32> [[R1]], i32 [[AB2]], i32 2
-; SLM-NEXT:    [[R3:%.*]] = insertelement <4 x i32> [[R2]], i32 [[AB3]], i32 3
-; SLM-NEXT:    ret <4 x i32> [[R3]]
-;
-; AVX-LABEL: @add_mul_v4i32(
-; AVX-NEXT:    [[TMP1:%.*]] = mul <4 x i32> [[A:%.*]], [[B:%.*]]
-; AVX-NEXT:    [[TMP2:%.*]] = add <4 x i32> [[A]], [[B]]
-; AVX-NEXT:    [[R3:%.*]] = shufflevector <4 x i32> [[TMP1]], <4 x i32> [[TMP2]], <4 x i32> <i32 0, i32 5, i32 6, i32 3>
-; AVX-NEXT:    ret <4 x i32> [[R3]]
-;
-; AVX512-LABEL: @add_mul_v4i32(
-; AVX512-NEXT:    [[TMP1:%.*]] = mul <4 x i32> [[A:%.*]], [[B:%.*]]
-; AVX512-NEXT:    [[TMP2:%.*]] = add <4 x i32> [[A]], [[B]]
-; AVX512-NEXT:    [[R3:%.*]] = shufflevector <4 x i32> [[TMP1]], <4 x i32> [[TMP2]], <4 x i32> <i32 0, i32 5, i32 6, i32 3>
-; AVX512-NEXT:    ret <4 x i32> [[R3]]
+; CHECK-LABEL: @add_mul_v4i32(
+; CHECK-NEXT:    [[TMP1:%.*]] = mul <4 x i32> [[A:%.*]], [[B:%.*]]
+; CHECK-NEXT:    [[TMP2:%.*]] = add <4 x i32> [[A]], [[B]]
+; CHECK-NEXT:    [[R3:%.*]] = shufflevector <4 x i32> [[TMP1]], <4 x i32> [[TMP2]], <4 x i32> <i32 0, i32 5, i32 6, i32 3>
+; CHECK-NEXT:    ret <4 x i32> [[R3]]
 ;
   %a0 = extractelement <4 x i32> %a, i32 0
   %a1 = extractelement <4 x i32> %a, i32 1
@@ -536,13 +505,11 @@ define <8 x i32> @sdiv_v8i32_undefs(<8 x i32> %a) {
 
 define <8 x i32> @add_sub_v8i32_splat(<8 x i32> %a, i32 %b) {
 ; CHECK-LABEL: @add_sub_v8i32_splat(
-; CHECK-NEXT:    [[TMP1:%.*]] = shufflevector <8 x i32> [[A:%.*]], <8 x i32> undef, <4 x i32> <i32 0, i32 1, i32 2, i32 3>
-; CHECK-NEXT:    [[TMP2:%.*]] = insertelement <4 x i32> undef, i32 [[B:%.*]], i32 0
-; CHECK-NEXT:    [[TMP3:%.*]] = shufflevector <4 x i32> [[TMP2]], <4 x i32> undef, <4 x i32> zeroinitializer
-; CHECK-NEXT:    [[TMP4:%.*]] = add <4 x i32> [[TMP1]], [[TMP3]]
-; CHECK-NEXT:    [[TMP5:%.*]] = shufflevector <8 x i32> [[A]], <8 x i32> undef, <4 x i32> <i32 4, i32 5, i32 6, i32 7>
-; CHECK-NEXT:    [[TMP6:%.*]] = sub <4 x i32> [[TMP3]], [[TMP5]]
-; CHECK-NEXT:    [[R7:%.*]] = shufflevector <4 x i32> [[TMP4]], <4 x i32> [[TMP6]], <8 x i32> <i32 0, i32 1, i32 2, i32 3, i32 4, i32 5, i32 6, i32 7>
+; CHECK-NEXT:    [[TMP1:%.*]] = insertelement <8 x i32> undef, i32 [[B:%.*]], i32 0
+; CHECK-NEXT:    [[TMP2:%.*]] = shufflevector <8 x i32> [[TMP1]], <8 x i32> undef, <8 x i32> zeroinitializer
+; CHECK-NEXT:    [[TMP3:%.*]] = add <8 x i32> [[TMP2]], [[A:%.*]]
+; CHECK-NEXT:    [[TMP4:%.*]] = sub <8 x i32> [[TMP2]], [[A]]
+; CHECK-NEXT:    [[R7:%.*]] = shufflevector <8 x i32> [[TMP3]], <8 x i32> [[TMP4]], <8 x i32> <i32 0, i32 1, i32 2, i32 3, i32 12, i32 13, i32 14, i32 15>
 ; CHECK-NEXT:    ret <8 x i32> [[R7]]
 ;
   %a0 = extractelement <8 x i32> %a, i32 0

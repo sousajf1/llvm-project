@@ -18,8 +18,6 @@
 #include "llvm/ADT/BitmaskEnum.h"
 #include "llvm/ADT/PointerUnion.h"
 #include "llvm/CodeGen/PseudoSourceValue.h"
-#include "llvm/IR/Instructions.h"
-#include "llvm/IR/Metadata.h"
 #include "llvm/IR/Value.h" // PointerLikeTypeTraits<Value*>
 #include "llvm/Support/AtomicOrdering.h"
 #include "llvm/Support/DataTypes.h"
@@ -222,13 +220,16 @@ public:
   /// Return the size in bytes of the memory reference.
   uint64_t getSize() const { return Size; }
 
+  /// Return the size in bits of the memory reference.
+  uint64_t getSizeInBits() const { return Size * 8; }
+
   /// Return the minimum known alignment in bytes of the actual memory
   /// reference.
   uint64_t getAlignment() const;
 
   /// Return the minimum known alignment in bytes of the base address, without
   /// the offset.
-  uint64_t getBaseAlignment() const { return (1u << BaseAlignLog2) >> 1; }
+  uint64_t getBaseAlignment() const { return (1ull << BaseAlignLog2) >> 1; }
 
   /// Return the AA tags for the memory reference.
   AAMDNodes getAAInfo() const { return AAInfo; }
@@ -292,8 +293,6 @@ public:
 
   /// Support for operator<<.
   /// @{
-  void print(raw_ostream &OS) const;
-  void print(raw_ostream &OS, ModuleSlotTracker &MST) const;
   void print(raw_ostream &OS, ModuleSlotTracker &MST,
              SmallVectorImpl<StringRef> &SSNs, const LLVMContext &Context,
              const MachineFrameInfo *MFI, const TargetInstrInfo *TII) const;
@@ -317,11 +316,6 @@ public:
     return !(LHS == RHS);
   }
 };
-
-inline raw_ostream &operator<<(raw_ostream &OS, const MachineMemOperand &MRO) {
-  MRO.print(OS);
-  return OS;
-}
 
 } // End llvm namespace
 

@@ -35,8 +35,9 @@ test0:
 # BIN-NEXT:   - Type:            TYPE
 # BIN-NEXT:     Signatures:
 # BIN-NEXT:       - Index:           0
-# BIN-NEXT:         ReturnType:      I32
 # BIN-NEXT:         ParamTypes:      []
+# BIN-NEXT:         ReturnTypes:
+# BIN-NEXT:           - I32
 # BIN-NEXT:   - Type:            IMPORT
 # BIN-NEXT:     Imports:
 # BIN-NEXT:       - Module:          env
@@ -53,6 +54,8 @@ test0:
 # BIN-NEXT:             Initial:         0x00000000
 # BIN-NEXT:   - Type:            FUNCTION
 # BIN-NEXT:     FunctionTypes:   [ 0 ]
+# BIN-NEXT:   - Type:            DATACOUNT
+# BIN-NEXT:     Count:           1
 # BIN-NEXT:   - Type:            CODE
 # BIN-NEXT:     Relocations:
 # BIN-NEXT:       - Type:            R_WASM_MEMORY_ADDR_SLEB
@@ -91,4 +94,3 @@ test0:
 # BIN-NEXT:         Alignment:       0
 # BIN-NEXT:         Flags:           [  ]
 # BIN-NEXT: ...
-

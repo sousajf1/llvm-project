@@ -23,10 +23,19 @@ class DWARFDebugAranges;
 class DWARFDeclContext;
 
 class SymbolFileDWARFDebugMap : public lldb_private::SymbolFile {
+  /// LLVM RTTI support.
+  static char ID;
+
 public:
-  //------------------------------------------------------------------
+  /// LLVM RTTI support.
+  /// \{
+  bool isA(const void *ClassID) const override {
+    return ClassID == &ID || SymbolFile::isA(ClassID);
+  }
+  static bool classof(const SymbolFile *obj) { return obj->isA(&ID); }
+  /// \}
+
   // Static Functions
-  //------------------------------------------------------------------
   static void Initialize();
 
   static void Terminate();
@@ -36,23 +45,16 @@ public:
   static const char *GetPluginDescriptionStatic();
 
   static lldb_private::SymbolFile *
-  CreateInstance(lldb_private::ObjectFile *obj_file);
+  CreateInstance(lldb::ObjectFileSP objfile_sp);
 
-  //------------------------------------------------------------------
   // Constructors and Destructors
-  //------------------------------------------------------------------
-  SymbolFileDWARFDebugMap(lldb_private::ObjectFile *ofile);
+  SymbolFileDWARFDebugMap(lldb::ObjectFileSP objfile_sp);
   ~SymbolFileDWARFDebugMap() override;
 
   uint32_t CalculateAbilities() override;
   void InitializeObject() override;
 
-  //------------------------------------------------------------------
   // Compile Unit function calls
-  //------------------------------------------------------------------
-  uint32_t GetNumCompileUnits() override;
-  lldb::CompUnitSP ParseCompileUnitAtIndex(uint32_t index) override;
-
   lldb::LanguageType
   ParseLanguage(lldb_private::CompileUnit &comp_unit) override;
 
@@ -61,6 +63,10 @@ public:
   bool ParseLineTable(lldb_private::CompileUnit &comp_unit) override;
 
   bool ParseDebugMacros(lldb_private::CompileUnit &comp_unit) override;
+
+  bool ForEachExternalModule(
+      lldb_private::CompileUnit &, llvm::DenseSet<lldb_private::SymbolFile *> &,
+      llvm::function_ref<bool(lldb_private::Module &)>) override;
 
   bool ParseSupportFiles(lldb_private::CompileUnit &comp_unit,
                          lldb_private::FileSpecList &support_files) override;
@@ -97,42 +103,45 @@ public:
                        bool check_inlines,
                        lldb::SymbolContextItem resolve_scope,
                        lldb_private::SymbolContextList &sc_list) override;
-  uint32_t
+  void
   FindGlobalVariables(lldb_private::ConstString name,
                       const lldb_private::CompilerDeclContext *parent_decl_ctx,
                       uint32_t max_matches,
                       lldb_private::VariableList &variables) override;
-  uint32_t FindGlobalVariables(const lldb_private::RegularExpression &regex,
-                               uint32_t max_matches,
-                               lldb_private::VariableList &variables) override;
-  uint32_t
-  FindFunctions(lldb_private::ConstString name,
-                const lldb_private::CompilerDeclContext *parent_decl_ctx,
-                lldb::FunctionNameType name_type_mask, bool include_inlines,
-                bool append, lldb_private::SymbolContextList &sc_list) override;
-  uint32_t FindFunctions(const lldb_private::RegularExpression &regex,
-                         bool include_inlines, bool append,
-                         lldb_private::SymbolContextList &sc_list) override;
-  uint32_t
+  void FindGlobalVariables(const lldb_private::RegularExpression &regex,
+                           uint32_t max_matches,
+                           lldb_private::VariableList &variables) override;
+  void FindFunctions(lldb_private::ConstString name,
+                     const lldb_private::CompilerDeclContext *parent_decl_ctx,
+                     lldb::FunctionNameType name_type_mask,
+                     bool include_inlines,
+                     lldb_private::SymbolContextList &sc_list) override;
+  void FindFunctions(const lldb_private::RegularExpression &regex,
+                     bool include_inlines,
+                     lldb_private::SymbolContextList &sc_list) override;
+  void
   FindTypes(lldb_private::ConstString name,
             const lldb_private::CompilerDeclContext *parent_decl_ctx,
-            bool append, uint32_t max_matches,
+            uint32_t max_matches,
+            llvm::DenseSet<lldb_private::SymbolFile *> &searched_symbol_files,
+            lldb_private::TypeMap &types) override;
+  void
+  FindTypes(llvm::ArrayRef<lldb_private::CompilerContext> context,
+            lldb_private::LanguageSet languages,
             llvm::DenseSet<lldb_private::SymbolFile *> &searched_symbol_files,
             lldb_private::TypeMap &types) override;
   lldb_private::CompilerDeclContext FindNamespace(
       lldb_private::ConstString name,
       const lldb_private::CompilerDeclContext *parent_decl_ctx) override;
-  size_t GetTypes(lldb_private::SymbolContextScope *sc_scope,
-                  lldb::TypeClass type_mask,
-                  lldb_private::TypeList &type_list) override;
-  std::vector<lldb_private::CallEdge>
+  void GetTypes(lldb_private::SymbolContextScope *sc_scope,
+                lldb::TypeClass type_mask,
+                lldb_private::TypeList &type_list) override;
+  std::vector<std::unique_ptr<lldb_private::CallEdge>>
   ParseCallEdgesInFunction(lldb_private::UserID func_id) override;
 
   void DumpClangAST(lldb_private::Stream &s) override;
 
-  //------------------------------------------------------------------
   // PluginInterface protocol
-  //------------------------------------------------------------------
   lldb_private::ConstString GetPluginName() override;
 
   uint32_t GetPluginVersion() override;
@@ -141,9 +150,8 @@ protected:
   enum { kHaveInitializedOSOs = (1 << 0), kNumFlags };
 
   friend class DebugMapModule;
-  friend struct DIERef;
   friend class DWARFASTParserClang;
-  friend class DWARFUnit;
+  friend class DWARFCompileUnit;
   friend class SymbolFileDWARF;
   struct OSOInfo {
     lldb::ModuleSP module_sp;
@@ -157,9 +165,7 @@ protected:
                                         lldb::addr_t>
       FileRangeMap;
 
-  //------------------------------------------------------------------
   // Class specific types
-  //------------------------------------------------------------------
   struct CompileUnitInfo {
     lldb_private::FileSpec so_file;
     lldb_private::ConstString oso_path;
@@ -182,10 +188,11 @@ protected:
     const FileRangeMap &GetFileRangeMap(SymbolFileDWARFDebugMap *exe_symfile);
   };
 
-  //------------------------------------------------------------------
   // Protected Member Functions
-  //------------------------------------------------------------------
   void InitOSO();
+
+  uint32_t CalculateNumCompileUnits() override;
+  lldb::CompUnitSP ParseCompileUnitAtIndex(uint32_t index) override;
 
   static uint32_t GetOSOIndexFromUserID(lldb::user_id_t uid) {
     return (uint32_t)((uid >> 32ull) - 1ull);
@@ -245,7 +252,7 @@ protected:
   static int SymbolContainsSymbolWithID(lldb::user_id_t *symbol_idx_ptr,
                                         const CompileUnitInfo *comp_unit_info);
 
-  uint32_t PrivateFindGlobalVariables(
+  void PrivateFindGlobalVariables(
       lldb_private::ConstString name,
       const lldb_private::CompilerDeclContext *parent_decl_ctx,
       const std::vector<uint32_t> &name_symbol_indexes, uint32_t max_matches,
@@ -271,9 +278,7 @@ protected:
     return m_unique_ast_type_map;
   }
 
-  //------------------------------------------------------------------
   // OSOEntry
-  //------------------------------------------------------------------
   class OSOEntry {
   public:
     OSOEntry()
@@ -302,9 +307,7 @@ protected:
   typedef lldb_private::RangeDataVector<lldb::addr_t, lldb::addr_t, OSOEntry>
       DebugMap;
 
-  //------------------------------------------------------------------
   // Member Variables
-  //------------------------------------------------------------------
   std::bitset<kNumFlags> m_flags;
   std::vector<CompileUnitInfo> m_compile_unit_infos;
   std::vector<uint32_t> m_func_indexes; // Sorted by address
@@ -316,24 +319,19 @@ protected:
   lldb_private::LazyBool m_supports_DW_AT_APPLE_objc_complete_type;
   DebugMap m_debug_map;
 
-  //------------------------------------------------------------------
   // When an object file from the debug map gets parsed in
   // SymbolFileDWARF, it needs to tell the debug map about the object
   // files addresses by calling this function once for each N_FUN,
   // N_GSYM and N_STSYM and after all entries in the debug map have
   // been matched up, FinalizeOSOFileRanges() should be called.
-  //------------------------------------------------------------------
   bool AddOSOFileRange(CompileUnitInfo *cu_info, lldb::addr_t exe_file_addr,
                        lldb::addr_t exe_byte_size, lldb::addr_t oso_file_addr,
                        lldb::addr_t oso_byte_size);
 
-  //------------------------------------------------------------------
   // Called after calling AddOSOFileRange() for each object file debug
   // map entry to finalize the info for the unlinked compile unit.
-  //------------------------------------------------------------------
   void FinalizeOSOFileRanges(CompileUnitInfo *cu_info);
 
-  //------------------------------------------------------------------
   /// Convert \a addr from a .o file address, to an executable address.
   ///
   /// \param[in] addr
@@ -342,10 +340,8 @@ protected:
   /// \return
   ///     Returns true if \a addr was converted to be an executable
   ///     section/offset address, false otherwise.
-  //------------------------------------------------------------------
   bool LinkOSOAddress(lldb_private::Address &addr);
 
-  //------------------------------------------------------------------
   /// Convert a .o file "file address" to an executable "file address".
   ///
   /// \param[in] oso_symfile
@@ -358,11 +354,9 @@ protected:
   ///     LLDB_INVALID_ADDRESS if \a oso_file_addr is not in the
   ///     linked executable, otherwise a valid "file address" from the
   ///     linked executable that contains the debug map.
-  //------------------------------------------------------------------
   lldb::addr_t LinkOSOFileAddress(SymbolFileDWARF *oso_symfile,
                                   lldb::addr_t oso_file_addr);
 
-  //------------------------------------------------------------------
   /// Given a line table full of lines with "file addresses" that are
   /// for a .o file represented by \a oso_symfile, link a new line table
   /// and return it.
@@ -370,14 +364,13 @@ protected:
   /// \param[in] oso_symfile
   ///     The DWARF symbol file that produced the \a line_table
   ///
-  /// \param[in] addr
-  ///     A section offset address from a .o file
+  /// \param[in] line_table
+  ///     A pointer to the line table.
   ///
   /// \return
   ///     Returns a valid line table full of linked addresses, or NULL
   ///     if none of the line table addresses exist in the main
   ///     executable.
-  //------------------------------------------------------------------
   lldb_private::LineTable *
   LinkOSOLineTable(SymbolFileDWARF *oso_symfile,
                    lldb_private::LineTable *line_table);

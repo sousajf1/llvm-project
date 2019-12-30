@@ -113,6 +113,42 @@ namespace llvm {
   static const fltSemantics semPPCDoubleDoubleLegacy = {1023, -1022 + 53,
                                                         53 + 53, 128};
 
+  const llvm::fltSemantics &APFloatBase::EnumToSemantics(Semantics S) {
+    switch (S) {
+    case S_IEEEhalf:
+      return IEEEhalf();
+    case S_IEEEsingle:
+      return IEEEsingle();
+    case S_IEEEdouble:
+      return IEEEdouble();
+    case S_x87DoubleExtended:
+      return x87DoubleExtended();
+    case S_IEEEquad:
+      return IEEEquad();
+    case S_PPCDoubleDouble:
+      return PPCDoubleDouble();
+    }
+    llvm_unreachable("Unrecognised floating semantics");
+  }
+
+  APFloatBase::Semantics
+  APFloatBase::SemanticsToEnum(const llvm::fltSemantics &Sem) {
+    if (&Sem == &llvm::APFloat::IEEEhalf())
+      return S_IEEEhalf;
+    else if (&Sem == &llvm::APFloat::IEEEsingle())
+      return S_IEEEsingle;
+    else if (&Sem == &llvm::APFloat::IEEEdouble())
+      return S_IEEEdouble;
+    else if (&Sem == &llvm::APFloat::x87DoubleExtended())
+      return S_x87DoubleExtended;
+    else if (&Sem == &llvm::APFloat::IEEEquad())
+      return S_IEEEquad;
+    else if (&Sem == &llvm::APFloat::PPCDoubleDouble())
+      return S_PPCDoubleDouble;
+    else
+      llvm_unreachable("Unknown floating semantics");
+  }
+
   const fltSemantics &APFloatBase::IEEEhalf() {
     return semIEEEhalf;
   }
@@ -1448,22 +1484,19 @@ lostFraction IEEEFloat::addOrSubtractSignificand(const IEEEFloat &rhs,
   /* Subtraction is more subtle than one might naively expect.  */
   if (subtract) {
     IEEEFloat temp_rhs(rhs);
-    bool reverse;
 
-    if (bits == 0) {
-      reverse = compareAbsoluteValue(temp_rhs) == cmpLessThan;
+    if (bits == 0)
       lost_fraction = lfExactlyZero;
-    } else if (bits > 0) {
+    else if (bits > 0) {
       lost_fraction = temp_rhs.shiftSignificandRight(bits - 1);
       shiftSignificandLeft(1);
-      reverse = false;
     } else {
       lost_fraction = shiftSignificandRight(-bits - 1);
       temp_rhs.shiftSignificandLeft(1);
-      reverse = true;
     }
 
-    if (reverse) {
+    // Should we reverse the subtraction.
+    if (compareAbsoluteValue(temp_rhs) == cmpLessThan) {
       carry = temp_rhs.subtractSignificand
         (*this, lost_fraction != lfExactlyZero);
       copySignificand(temp_rhs);
@@ -4418,8 +4451,9 @@ APFloat::Storage::Storage(IEEEFloat F, const fltSemantics &Semantics) {
     return;
   }
   if (usesLayout<DoubleAPFloat>(Semantics)) {
+    const fltSemantics& S = F.getSemantics();
     new (&Double)
-        DoubleAPFloat(Semantics, APFloat(std::move(F), F.getSemantics()),
+        DoubleAPFloat(Semantics, APFloat(std::move(F), S),
                       APFloat(semIEEEdouble));
     return;
   }

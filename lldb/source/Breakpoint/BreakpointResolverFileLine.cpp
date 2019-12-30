@@ -18,9 +18,7 @@
 using namespace lldb;
 using namespace lldb_private;
 
-//----------------------------------------------------------------------
 // BreakpointResolverFileLine:
-//----------------------------------------------------------------------
 BreakpointResolverFileLine::BreakpointResolverFileLine(
     Breakpoint *bkpt, const FileSpec &file_spec, uint32_t line_no,
     uint32_t column, lldb::addr_t offset, bool check_inlines,
@@ -200,13 +198,11 @@ void BreakpointResolverFileLine::FilterContexts(SymbolContextList &sc_list,
   }
 }
 
-Searcher::CallbackReturn
-BreakpointResolverFileLine::SearchCallback(SearchFilter &filter,
-                                           SymbolContext &context,
-                                           Address *addr, bool containing) {
+Searcher::CallbackReturn BreakpointResolverFileLine::SearchCallback(
+    SearchFilter &filter, SymbolContext &context, Address *addr) {
   SymbolContextList sc_list;
 
-  assert(m_breakpoint != NULL);
+  assert(m_breakpoint != nullptr);
 
   // There is a tricky bit here.  You can have two compilation units that
   // #include the same file, and in one of them the function at m_line_number

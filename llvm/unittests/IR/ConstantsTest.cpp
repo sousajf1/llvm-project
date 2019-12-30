@@ -229,7 +229,7 @@ TEST(ConstantsTest, AsInstructionsTest) {
   #define P6STR "bitcast (i32 ptrtoint (i32** @dummy2 to i32) to <2 x i16>)"
 
   CHECK(ConstantExpr::getNeg(P0), "sub i32 0, " P0STR);
-  CHECK(ConstantExpr::getFNeg(P1), "fsub float -0.000000e+00, " P1STR);
+  CHECK(ConstantExpr::getFNeg(P1), "fneg float " P1STR);
   CHECK(ConstantExpr::getNot(P0), "xor i32 " P0STR ", -1");
   CHECK(ConstantExpr::getAdd(P0, P0), "add i32 " P0STR ", " P0STR);
   CHECK(ConstantExpr::getAdd(P0, P0, false, true), "add nsw i32 " P0STR ", "
@@ -476,13 +476,15 @@ TEST(ConstantsTest, BitcastToGEP) {
 }
 
 bool foldFuncPtrAndConstToNull(LLVMContext &Context, Module *TheModule,
-                               uint64_t AndValue, unsigned FunctionAlign = 0) {
+                               uint64_t AndValue,
+                               MaybeAlign FunctionAlign = llvm::None) {
   Type *VoidType(Type::getVoidTy(Context));
   FunctionType *FuncType(FunctionType::get(VoidType, false));
   Function *Func(Function::Create(
       FuncType, GlobalValue::ExternalLinkage, "", TheModule));
 
-  if (FunctionAlign) Func->setAlignment(FunctionAlign);
+  if (FunctionAlign)
+    Func->setAlignment(*FunctionAlign);
 
   IntegerType *ConstantIntType(Type::getInt32Ty(Context));
   ConstantInt *TheConstant(ConstantInt::get(ConstantIntType, AndValue));
@@ -547,21 +549,21 @@ TEST(ConstantsTest, FoldFunctionAlign4PtrAlignMultiple) {
   LLVMContext Context;
   Module TheModule("TestModule", Context);
   TheModule.setDataLayout("Fn8");
-  ASSERT_TRUE(foldFuncPtrAndConstToNull(Context, &TheModule, 2, 4));
+  ASSERT_TRUE(foldFuncPtrAndConstToNull(Context, &TheModule, 2, Align(4)));
 }
 
 TEST(ConstantsTest, DontFoldFunctionAlign4PtrAlignIndependent) {
   LLVMContext Context;
   Module TheModule("TestModule", Context);
   TheModule.setDataLayout("Fi8");
-  ASSERT_FALSE(foldFuncPtrAndConstToNull(Context, &TheModule, 2, 4));
+  ASSERT_FALSE(foldFuncPtrAndConstToNull(Context, &TheModule, 2, Align(4)));
 }
 
 TEST(ConstantsTest, DontFoldFunctionPtrIfNoModule) {
   LLVMContext Context;
   // Even though the function is explicitly 4 byte aligned, in the absence of a
   // DataLayout we can't assume that the function pointer is aligned.
-  ASSERT_FALSE(foldFuncPtrAndConstToNull(Context, nullptr, 2, 4));
+  ASSERT_FALSE(foldFuncPtrAndConstToNull(Context, nullptr, 2, Align(4)));
 }
 
 TEST(ConstantsTest, FoldGlobalVariablePtr) {
@@ -572,7 +574,7 @@ TEST(ConstantsTest, FoldGlobalVariablePtr) {
   std::unique_ptr<GlobalVariable> Global(
       new GlobalVariable(IntType, true, GlobalValue::ExternalLinkage));
 
-  Global->setAlignment(4);
+  Global->setAlignment(Align(4));
 
   ConstantInt *TheConstant(ConstantInt::get(IntType, 2));
 

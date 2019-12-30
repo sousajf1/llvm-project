@@ -16,47 +16,36 @@
 
 namespace lldb_private {
 
-//----------------------------------------------------------------------
 /// \class PseudoTerminal PseudoTerminal.h "lldb/Host/PseudoTerminal.h"
 /// A pseudo terminal helper class.
 ///
 /// The pseudo terminal class abstracts the use of pseudo terminals on the
 /// host system.
-//----------------------------------------------------------------------
 class PseudoTerminal {
 public:
   enum {
     invalid_fd = -1 ///< Invalid file descriptor value
   };
 
-  //------------------------------------------------------------------
   /// Default constructor
   ///
   /// Constructs this object with invalid master and slave file descriptors.
-  //------------------------------------------------------------------
   PseudoTerminal();
 
-  //------------------------------------------------------------------
   /// Destructor
   ///
   /// The destructor will close the master and slave file descriptors if they
   /// are valid and ownership has not been released using one of: @li
   /// PseudoTerminal::ReleaseMasterFileDescriptor() @li
   /// PseudoTerminal::ReleaseSaveFileDescriptor()
-  //------------------------------------------------------------------
   ~PseudoTerminal();
 
-  //------------------------------------------------------------------
   /// Close the master file descriptor if it is valid.
-  //------------------------------------------------------------------
   void CloseMasterFileDescriptor();
 
-  //------------------------------------------------------------------
   /// Close the slave file descriptor if it is valid.
-  //------------------------------------------------------------------
   void CloseSlaveFileDescriptor();
 
-  //------------------------------------------------------------------
   /// Fork a child process that uses pseudo terminals for its stdio.
   ///
   /// In the parent process, a call to this function results in a pid being
@@ -72,18 +61,16 @@ public:
   /// PseudoTerminal::ReleaseMasterFileDescriptor() @li
   /// PseudoTerminal::ReleaseSaveFileDescriptor()
   ///
-  /// \param[out] error
+  /// \param[out] error_str
   ///     An pointer to an error that can describe any errors that
   ///     occur. This can be NULL if no error status is desired.
   ///
   /// \return
-  ///     \li \b Parent process: a child process ID that is greater
+  ///     \b Parent process: a child process ID that is greater
   ///         than zero, or -1 if the fork fails.
-  ///     \li \b Child process: zero.
-  //------------------------------------------------------------------
+  ///     \b Child process: zero.
   lldb::pid_t Fork(char *error_str, size_t error_len);
 
-  //------------------------------------------------------------------
   /// The master file descriptor accessor.
   ///
   /// This object retains ownership of the master file descriptor when this
@@ -96,10 +83,8 @@ public:
   ///     if the master file  descriptor is not currently valid.
   ///
   /// \see PseudoTerminal::ReleaseMasterFileDescriptor()
-  //------------------------------------------------------------------
   int GetMasterFileDescriptor() const;
 
-  //------------------------------------------------------------------
   /// The slave file descriptor accessor.
   ///
   /// This object retains ownership of the slave file descriptor when this
@@ -112,16 +97,14 @@ public:
   ///     if the slave file descriptor is not currently valid.
   ///
   /// \see PseudoTerminal::ReleaseSlaveFileDescriptor()
-  //------------------------------------------------------------------
   int GetSlaveFileDescriptor() const;
 
-  //------------------------------------------------------------------
   /// Get the name of the slave pseudo terminal.
   ///
   /// A master pseudo terminal should already be valid prior to
   /// calling this function.
   ///
-  /// \param[out] error
+  /// \param[out] error_str
   ///     An pointer to an error that can describe any errors that
   ///     occur. This can be NULL if no error status is desired.
   ///
@@ -134,10 +117,8 @@ public:
   ///     \c ptsname() fails.
   ///
   /// \see PseudoTerminal::OpenFirstAvailableMaster()
-  //------------------------------------------------------------------
   const char *GetSlaveName(char *error_str, size_t error_len) const;
 
-  //------------------------------------------------------------------
   /// Open the first available pseudo terminal.
   ///
   /// Opens the first available pseudo terminal with \a oflag as the
@@ -155,21 +136,19 @@ public:
   ///     Flags to use when calling \c posix_openpt(\a oflag).
   ///     A value of "O_RDWR|O_NOCTTY" is suggested.
   ///
-  /// \param[out] error
+  /// \param[out] error_str
   ///     An pointer to an error that can describe any errors that
   ///     occur. This can be NULL if no error status is desired.
   ///
   /// \return
-  ///     \li \b true when the master files descriptor is
+  ///     \b true when the master files descriptor is
   ///         successfully opened.
-  ///     \li \b false if anything goes wrong.
+  ///     \b false if anything goes wrong.
   ///
   /// \see PseudoTerminal::GetMasterFileDescriptor() @see
   /// PseudoTerminal::ReleaseMasterFileDescriptor()
-  //------------------------------------------------------------------
   bool OpenFirstAvailableMaster(int oflag, char *error_str, size_t error_len);
 
-  //------------------------------------------------------------------
   /// Open the slave for the current master pseudo terminal.
   ///
   /// A master pseudo terminal should already be valid prior to
@@ -186,22 +165,20 @@ public:
   /// \param[in] oflag
   ///     Flags to use when calling \c open(\a oflag).
   ///
-  /// \param[out] error
+  /// \param[out] error_str
   ///     An pointer to an error that can describe any errors that
   ///     occur. This can be NULL if no error status is desired.
   ///
   /// \return
-  ///     \li \b true when the master files descriptor is
+  ///     \b true when the master files descriptor is
   ///         successfully opened.
-  ///     \li \b false if anything goes wrong.
+  ///     \b false if anything goes wrong.
   ///
   /// \see PseudoTerminal::OpenFirstAvailableMaster() @see
   /// PseudoTerminal::GetSlaveFileDescriptor() @see
   /// PseudoTerminal::ReleaseSlaveFileDescriptor()
-  //------------------------------------------------------------------
   bool OpenSlave(int oflag, char *error_str, size_t error_len);
 
-  //------------------------------------------------------------------
   /// Release the master file descriptor.
   ///
   /// Releases ownership of the master pseudo terminal file descriptor without
@@ -212,10 +189,8 @@ public:
   /// \return
   ///     The master file descriptor, or PseudoTerminal::invalid_fd
   ///     if the mast file descriptor is not currently valid.
-  //------------------------------------------------------------------
   int ReleaseMasterFileDescriptor();
 
-  //------------------------------------------------------------------
   /// Release the slave file descriptor.
   ///
   /// Release ownership of the slave pseudo terminal file descriptor without
@@ -226,13 +201,10 @@ public:
   /// \return
   ///     The slave file descriptor, or PseudoTerminal::invalid_fd
   ///     if the slave file descriptor is not currently valid.
-  //------------------------------------------------------------------
   int ReleaseSlaveFileDescriptor();
 
 protected:
-  //------------------------------------------------------------------
   // Member variables
-  //------------------------------------------------------------------
   int m_master_fd; ///< The file descriptor for the master.
   int m_slave_fd;  ///< The file descriptor for the slave.
 

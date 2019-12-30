@@ -58,7 +58,8 @@ enum NodeType : unsigned {
   ICMP,
 
   // Floating-point comparisons.  The two operands are the values to compare.
-  FCMP,
+  // Regular and strict (quiet and signaling) versions.
+  FCMP, STRICT_FCMP, STRICT_FCMPS,
 
   // Test under mask.  The first operand is ANDed with the second operand
   // and the condition codes are set on the result.  The third operand is
@@ -245,12 +246,13 @@ enum NodeType : unsigned {
   VICMPHS,
   VICMPHLS,
 
-  // Compare floating-point vector operands 0 and 1 to preoduce the usual 0/-1
+  // Compare floating-point vector operands 0 and 1 to produce the usual 0/-1
   // vector result.  VFCMPE is for "ordered and equal", VFCMPH for "ordered and
   // greater than" and VFCMPHE for "ordered and greater than or equal to".
-  VFCMPE,
-  VFCMPH,
-  VFCMPHE,
+  // Regular and strict (quiet and signaling) versions.
+  VFCMPE, STRICT_VFCMPE, STRICT_VFCMPES,
+  VFCMPH, STRICT_VFCMPH, STRICT_VFCMPHS,
+  VFCMPHE, STRICT_VFCMPHE, STRICT_VFCMPHES,
 
   // Likewise, but also set the condition codes on the result.
   VFCMPES,
@@ -261,12 +263,12 @@ enum NodeType : unsigned {
   VFTCI,
 
   // Extend the even f32 elements of vector operand 0 to produce a vector
-  // of f64 elements.
-  VEXTEND,
+  // of f64 elements.  Regular and strict versions.
+  VEXTEND, STRICT_VEXTEND,
 
   // Round the f64 elements of vector operand 0 to f32s and store them in the
-  // even elements of the result.
-  VROUND,
+  // even elements of the result.  Regular and strict versions.
+  VROUND, STRICT_VROUND,
 
   // AND the two vector operands together and set CC based on the result.
   VTM,
@@ -281,6 +283,8 @@ enum NodeType : unsigned {
   VISTR_CC,
   VSTRC_CC,
   VSTRCZ_CC,
+  VSTRS_CC,
+  VSTRSZ_CC,
 
   // Test Data Class.
   //
@@ -339,6 +343,9 @@ enum NodeType : unsigned {
 
   // Byte swapping load/store.  Same operands as regular load/store.
   LRV, STRV,
+
+  // Element swapping load/store.  Same operands as regular load/store.
+  VLER, VSTER,
 
   // Prefetch from the second operand using the 4-bit control code in
   // the first operand.  The code is 1 for a load prefetch and 2 for
@@ -399,7 +406,8 @@ public:
   bool isCheapToSpeculateCtlz() const override { return true; }
   EVT getSetCCResultType(const DataLayout &DL, LLVMContext &,
                          EVT) const override;
-  bool isFMAFasterThanFMulAndFAdd(EVT VT) const override;
+  bool isFMAFasterThanFMulAndFAdd(const MachineFunction &MF,
+                                  EVT VT) const override;
   bool isFPImmLegal(const APFloat &Imm, EVT VT,
                     bool ForCodeSize) const override;
   bool isLegalICmpImmediate(int64_t Imm) const override;
@@ -409,6 +417,7 @@ public:
                              Instruction *I = nullptr) const override;
   bool allowsMisalignedMemoryAccesses(EVT VT, unsigned AS,
                                       unsigned Align,
+                                      MachineMemOperand::Flags Flags,
                                       bool *Fast) const override;
   bool isTruncateFree(Type *, Type *) const override;
   bool isTruncateFree(EVT, EVT) const override;
@@ -524,11 +533,15 @@ private:
   // Implement LowerOperation for individual opcodes.
   SDValue getVectorCmp(SelectionDAG &DAG, unsigned Opcode,
                        const SDLoc &DL, EVT VT,
-                       SDValue CmpOp0, SDValue CmpOp1) const;
+                       SDValue CmpOp0, SDValue CmpOp1, SDValue Chain) const;
   SDValue lowerVectorSETCC(SelectionDAG &DAG, const SDLoc &DL,
                            EVT VT, ISD::CondCode CC,
-                           SDValue CmpOp0, SDValue CmpOp1) const;
+                           SDValue CmpOp0, SDValue CmpOp1,
+                           SDValue Chain = SDValue(),
+                           bool IsSignaling = false) const;
   SDValue lowerSETCC(SDValue Op, SelectionDAG &DAG) const;
+  SDValue lowerSTRICT_FSETCC(SDValue Op, SelectionDAG &DAG,
+                             bool IsSignaling) const;
   SDValue lowerBR_CC(SDValue Op, SelectionDAG &DAG) const;
   SDValue lowerSELECT_CC(SDValue Op, SelectionDAG &DAG) const;
   SDValue lowerGlobalAddress(GlobalAddressSDNode *Node,
@@ -570,6 +583,9 @@ private:
   SDValue lowerPREFETCH(SDValue Op, SelectionDAG &DAG) const;
   SDValue lowerINTRINSIC_W_CHAIN(SDValue Op, SelectionDAG &DAG) const;
   SDValue lowerINTRINSIC_WO_CHAIN(SDValue Op, SelectionDAG &DAG) const;
+  bool isVectorElementLoad(SDValue Op) const;
+  SDValue buildVector(SelectionDAG &DAG, const SDLoc &DL, EVT VT,
+                      SmallVectorImpl<SDValue> &Elems) const;
   SDValue lowerBUILD_VECTOR(SDValue Op, SelectionDAG &DAG) const;
   SDValue lowerVECTOR_SHUFFLE(SDValue Op, SelectionDAG &DAG) const;
   SDValue lowerSCALAR_TO_VECTOR(SDValue Op, SelectionDAG &DAG) const;
@@ -589,8 +605,10 @@ private:
   SDValue combineSIGN_EXTEND(SDNode *N, DAGCombinerInfo &DCI) const;
   SDValue combineSIGN_EXTEND_INREG(SDNode *N, DAGCombinerInfo &DCI) const;
   SDValue combineMERGE(SDNode *N, DAGCombinerInfo &DCI) const;
+  bool canLoadStoreByteSwapped(EVT VT) const;
   SDValue combineLOAD(SDNode *N, DAGCombinerInfo &DCI) const;
   SDValue combineSTORE(SDNode *N, DAGCombinerInfo &DCI) const;
+  SDValue combineVECTOR_SHUFFLE(SDNode *N, DAGCombinerInfo &DCI) const;
   SDValue combineEXTRACT_VECTOR_ELT(SDNode *N, DAGCombinerInfo &DCI) const;
   SDValue combineJOIN_DWORDS(SDNode *N, DAGCombinerInfo &DCI) const;
   SDValue combineFP_ROUND(SDNode *N, DAGCombinerInfo &DCI) const;

@@ -8,15 +8,22 @@ include_directories(../..)
 set(MSAN_LIBCXX_CFLAGS
   -fsanitize=memory
   -fsanitize-memory-track-origins
-  -Wno-pedantic)
+  -Wno-pedantic
+  -Xclang -fdepfile-entry=${COMPILER_RT_OUTPUT_DIR}/share/msan_blacklist.txt
+  )
 
 # Unittest sources and build flags.
-set(MSAN_UNITTEST_SOURCES msan_test.cc msan_test_main.cc)
-set(MSAN_LOADABLE_SOURCE msan_loadable.cc)
+set(MSAN_UNITTEST_SOURCES
+  msan_test.cpp
+  msan_test_main.cpp
+  )
+set(MSAN_LOADABLE_SOURCE
+  msan_loadable.cpp
+  )
 set(MSAN_UNITTEST_HEADERS
   msan_test_config.h
   ../../../include/sanitizer/msan_interface.h
-)
+  )
 set(MSAN_UNITTEST_COMMON_CFLAGS
   -nostdinc++
   -isystem ${COMPILER_RT_LIBCXX_PATH}/include
@@ -27,7 +34,6 @@ set(MSAN_UNITTEST_COMMON_CFLAGS
   -I${COMPILER_RT_SOURCE_DIR}/lib/msan
   -g
   -O2
-  -fno-exceptions
   -fno-omit-frame-pointer
   -mno-omit-leaf-frame-pointer
   -Wno-deprecated-declarations
@@ -47,6 +53,7 @@ set(MSAN_UNITTEST_INSTRUMENTED_CFLAGS
   -mllvm -msan-keep-going=1
 )
 set(MSAN_UNITTEST_LINK_FLAGS
+  ${COMPILER_RT_UNITTEST_LINK_FLAGS}
   -fsanitize=memory
   # Don't need -stdlib=libc++ because we explicitly list libc++.a in the linker
   # inputs.
@@ -73,7 +80,7 @@ macro(msan_link_shared so_list so_name arch kind)
   endif()
   clang_link_shared(${output_so}
                 OBJECTS ${SOURCE_OBJECTS}
-                LINK_FLAGS ${TARGET_LINK_FLAGS} ${SOURCE_LINK_FLAGS}
+                LINK_FLAGS ${COMPILER_RT_UNITTEST_LINK_FLAGS} ${TARGET_LINK_FLAGS} ${SOURCE_LINK_FLAGS}
                 DEPS ${SOURCE_DEPS})
   list(APPEND ${so_list} ${output_so})
 endmacro()
@@ -108,13 +115,14 @@ macro(add_msan_tests_for_arch arch kind cflags)
 
   set(MSAN_TEST_OBJECTS ${MSAN_INST_TEST_OBJECTS} ${MSAN_INST_GTEST})
   set(MSAN_TEST_DEPS ${MSAN_TEST_OBJECTS} libcxx_msan_${arch}-build
-                     ${MSAN_LOADABLE_SO})
+                     ${MSAN_LOADABLE_SO}
+		     "${MSAN_LIBCXX_DIR}/libc++.a" "${MSAN_LIBCXX_DIR}/libc++abi.a")
   if(NOT COMPILER_RT_STANDALONE_BUILD)
     list(APPEND MSAN_TEST_DEPS msan)
   endif()
   get_target_flags_for_arch(${arch} TARGET_LINK_FLAGS)
   add_compiler_rt_test(MsanUnitTests "Msan-${arch}${kind}-Test" ${arch}
-    OBJECTS ${MSAN_TEST_OBJECTS} "${MSAN_LIBCXX_DIR}/libc++.a"
+    OBJECTS ${MSAN_TEST_OBJECTS} "${MSAN_LIBCXX_DIR}/libc++.a" "${MSAN_LIBCXX_DIR}/libc++abi.a"
     DEPS ${MSAN_TEST_DEPS}
     LINK_FLAGS ${MSAN_UNITTEST_LINK_FLAGS}
                ${TARGET_LINK_FLAGS})

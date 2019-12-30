@@ -202,11 +202,9 @@ const char *__kmp_speculative_statsfile = "-";
 
 #endif // KMP_USE_ADAPTIVE_LOCKS
 
-#if OMP_40_ENABLED
 int __kmp_display_env = FALSE;
 int __kmp_display_env_verbose = FALSE;
 int __kmp_omp_cancellation = FALSE;
-#endif
 
 /* map OMP 3.0 schedule types with our internal schedule types */
 enum sched_type __kmp_sch_map[kmp_sched_upper - kmp_sched_lower_ext +
@@ -270,15 +268,10 @@ char *__kmp_cpuinfo_file = NULL;
 
 #endif /* KMP_AFFINITY_SUPPORTED */
 
-#if OMP_40_ENABLED
 kmp_nested_proc_bind_t __kmp_nested_proc_bind = {NULL, 0, 0};
 int __kmp_affinity_num_places = 0;
-#endif
-
-#if OMP_50_ENABLED
 int __kmp_display_affinity = FALSE;
 char *__kmp_affinity_format = NULL;
-#endif // OMP_50_ENABLED
 
 kmp_hws_item_t __kmp_hws_socket = {0, 0};
 kmp_hws_item_t __kmp_hws_node = {0, 0};
@@ -288,30 +281,44 @@ kmp_hws_item_t __kmp_hws_proc = {0, 0};
 int __kmp_hws_requested = 0;
 int __kmp_hws_abs_flag = 0; // absolute or per-item number requested
 
-#if OMP_40_ENABLED
 kmp_int32 __kmp_default_device = 0;
-#endif
 
 kmp_tasking_mode_t __kmp_tasking_mode = tskm_task_teams;
-#if OMP_45_ENABLED
 kmp_int32 __kmp_max_task_priority = 0;
 kmp_uint64 __kmp_taskloop_min_tasks = 0;
-#endif
 
-#if OMP_50_ENABLED
 int __kmp_memkind_available = 0;
-int __kmp_hbw_mem_available = 0;
-const omp_allocator_t *OMP_NULL_ALLOCATOR = NULL;
-const omp_allocator_t *omp_default_mem_alloc = (const omp_allocator_t *)1;
-const omp_allocator_t *omp_large_cap_mem_alloc = (const omp_allocator_t *)2;
-const omp_allocator_t *omp_const_mem_alloc = (const omp_allocator_t *)3;
-const omp_allocator_t *omp_high_bw_mem_alloc = (const omp_allocator_t *)4;
-const omp_allocator_t *omp_low_lat_mem_alloc = (const omp_allocator_t *)5;
-const omp_allocator_t *omp_cgroup_mem_alloc = (const omp_allocator_t *)6;
-const omp_allocator_t *omp_pteam_mem_alloc = (const omp_allocator_t *)7;
-const omp_allocator_t *omp_thread_mem_alloc = (const omp_allocator_t *)8;
-void *const *__kmp_def_allocator = omp_default_mem_alloc;
-#endif
+omp_allocator_handle_t const omp_null_allocator = NULL;
+omp_allocator_handle_t const omp_default_mem_alloc =
+    (omp_allocator_handle_t const)1;
+omp_allocator_handle_t const omp_large_cap_mem_alloc =
+    (omp_allocator_handle_t const)2;
+omp_allocator_handle_t const omp_const_mem_alloc =
+    (omp_allocator_handle_t const)3;
+omp_allocator_handle_t const omp_high_bw_mem_alloc =
+    (omp_allocator_handle_t const)4;
+omp_allocator_handle_t const omp_low_lat_mem_alloc =
+    (omp_allocator_handle_t const)5;
+omp_allocator_handle_t const omp_cgroup_mem_alloc =
+    (omp_allocator_handle_t const)6;
+omp_allocator_handle_t const omp_pteam_mem_alloc =
+    (omp_allocator_handle_t const)7;
+omp_allocator_handle_t const omp_thread_mem_alloc =
+    (omp_allocator_handle_t const)8;
+omp_allocator_handle_t const kmp_max_mem_alloc =
+    (omp_allocator_handle_t const)1024;
+omp_allocator_handle_t __kmp_def_allocator = omp_default_mem_alloc;
+
+omp_memspace_handle_t const omp_default_mem_space =
+    (omp_memspace_handle_t const)0;
+omp_memspace_handle_t const omp_large_cap_mem_space =
+    (omp_memspace_handle_t const)1;
+omp_memspace_handle_t const omp_const_mem_space =
+    (omp_memspace_handle_t const)2;
+omp_memspace_handle_t const omp_high_bw_mem_space =
+    (omp_memspace_handle_t const)3;
+omp_memspace_handle_t const omp_low_lat_mem_space =
+    (omp_memspace_handle_t const)4;
 
 /* This check ensures that the compiler is passing the correct data type for the
    flags formal parameter of the function kmpc_omp_task_alloc(). If the type is
@@ -321,6 +328,7 @@ void *const *__kmp_def_allocator = omp_default_mem_alloc;
 KMP_BUILD_ASSERT(sizeof(kmp_tasking_flags_t) == 4);
 
 int __kmp_task_stealing_constraint = 1; /* Constrain task stealing by default */
+int __kmp_enable_task_throttling = 1;
 
 #ifdef DEBUG_SUSPEND
 int __kmp_suspend_count = 0;
@@ -414,7 +422,6 @@ kmp_root_t **__kmp_root = NULL;
 KMP_ALIGN_CACHE
 volatile int __kmp_nth = 0;
 volatile int __kmp_all_nth = 0;
-int __kmp_thread_pool_nth = 0;
 volatile kmp_info_t *__kmp_thread_pool = NULL;
 volatile kmp_team_t *__kmp_team_pool = NULL;
 
@@ -424,7 +431,7 @@ std::atomic<int> __kmp_thread_pool_active_nth = ATOMIC_VAR_INIT(0);
 /* -------------------------------------------------
  * GLOBAL/ROOT STATE */
 KMP_ALIGN_CACHE
-kmp_global_t __kmp_global = {{0}};
+kmp_global_t __kmp_global;
 
 /* ----------------------------------------------- */
 /* GLOBAL SYNCHRONIZATION LOCKS */
@@ -519,11 +526,9 @@ int _You_must_link_with_Intel_OpenMP_library = 1;
 int _You_must_link_with_Microsoft_OpenMP_library = 1;
 #endif
 
-#if OMP_50_ENABLED
 kmp_target_offload_kind_t __kmp_target_offload = tgt_default;
 
 // OMP Pause Resources
 kmp_pause_status_t __kmp_pause_status = kmp_not_paused;
-#endif // OMP_50_ENABLED
 
 // end of file //

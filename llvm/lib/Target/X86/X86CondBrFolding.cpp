@@ -61,9 +61,7 @@ STATISTIC(NumFixedCondBrs, "Number of x86 condbr folded");
 namespace {
 class X86CondBrFoldingPass : public MachineFunctionPass {
 public:
-  X86CondBrFoldingPass() : MachineFunctionPass(ID) {
-    initializeX86CondBrFoldingPassPass(*PassRegistry::getPassRegistry());
-  }
+  X86CondBrFoldingPass() : MachineFunctionPass(ID) { }
   StringRef getPassName() const override { return "X86 CondBr Folding"; }
 
   bool runOnMachineFunction(MachineFunction &MF) override;
@@ -117,8 +115,6 @@ private:
 
   void optimizeCondBr(MachineBasicBlock &MBB,
                       SmallVectorImpl<MachineBasicBlock *> &BranchPath);
-  void fixBranchProb(MachineBasicBlock *NextMBB, MachineBasicBlock *RootMBB,
-                     SmallVectorImpl<MachineBasicBlock *> &BranchPath);
   void replaceBrDest(MachineBasicBlock *MBB, MachineBasicBlock *OrigDest,
                      MachineBasicBlock *NewDest);
   void fixupModifiedCond(MachineBasicBlock *MBB);
@@ -225,10 +221,9 @@ void X86CondBrFolding::replaceBrDest(MachineBasicBlock *MBB,
   MachineInstr *BrMI;
   if (MBBInfo->TBB == OrigDest) {
     BrMI = MBBInfo->BrInstr;
-    unsigned JNCC = GetCondBranchFromCond(MBBInfo->BranchCode);
     MachineInstrBuilder MIB =
-        BuildMI(*MBB, BrMI, MBB->findDebugLoc(BrMI), TII->get(JNCC))
-            .addMBB(NewDest);
+        BuildMI(*MBB, BrMI, MBB->findDebugLoc(BrMI), TII->get(X86::JCC_1))
+            .addMBB(NewDest).addImm(MBBInfo->BranchCode);
     MBBInfo->TBB = NewDest;
     MBBInfo->BrInstr = MIB.getInstr();
   } else { // Should be the unconditional jump stmt.
@@ -254,8 +249,8 @@ void X86CondBrFolding::fixupModifiedCond(MachineBasicBlock *MBB) {
   MachineInstr *BrMI = MBBInfo->BrInstr;
   X86::CondCode CC = MBBInfo->BranchCode;
   MachineInstrBuilder MIB = BuildMI(*MBB, BrMI, MBB->findDebugLoc(BrMI),
-                                    TII->get(GetCondBranchFromCond(CC)))
-                                .addMBB(MBBInfo->TBB);
+                                    TII->get(X86::JCC_1))
+                                .addMBB(MBBInfo->TBB).addImm(CC);
   BrMI->eraseFromParent();
   MBBInfo->BrInstr = MIB.getInstr();
 
@@ -323,8 +318,8 @@ void X86CondBrFolding::optimizeCondBr(
       llvm_unreachable("unexpected condtional code.");
     }
     BuildMI(*RootMBB, UncondBrI, RootMBB->findDebugLoc(UncondBrI),
-            TII->get(GetCondBranchFromCond(NewCC)))
-        .addMBB(RootMBBInfo->FBB);
+            TII->get(X86::JCC_1))
+        .addMBB(RootMBBInfo->FBB).addImm(NewCC);
 
     // RootMBB: Jump to TargetMBB
     BuildMI(*RootMBB, UncondBrI, RootMBB->findDebugLoc(UncondBrI),
@@ -512,7 +507,7 @@ X86CondBrFolding::analyzeMBB(MachineBasicBlock &MBB) {
     if (I->isBranch()) {
       if (TBB)
         return nullptr;
-      CC = X86::getCondFromBranchOpc(I->getOpcode());
+      CC = X86::getCondFromBranch(*I);
       switch (CC) {
       default:
         return nullptr;
@@ -567,7 +562,7 @@ X86CondBrFolding::analyzeMBB(MachineBasicBlock &MBB) {
     Modified = false;
     break;
   }
-  return llvm::make_unique<TargetMBBInfo>(TargetMBBInfo{
+  return std::make_unique<TargetMBBInfo>(TargetMBBInfo{
       TBB, FBB, BrInstr, CmpInstr, CC, SrcReg, CmpValue, Modified, CmpBrOnly});
 }
 

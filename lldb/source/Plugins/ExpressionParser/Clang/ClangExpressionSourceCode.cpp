@@ -8,6 +8,11 @@
 
 #include "ClangExpressionSourceCode.h"
 
+#include "clang/Basic/CharInfo.h"
+#include "clang/Basic/SourceManager.h"
+#include "clang/Lex/Lexer.h"
+#include "llvm/ADT/StringRef.h"
+
 #include "Plugins/ExpressionParser/Clang/ClangModulesDeclVendor.h"
 #include "Plugins/ExpressionParser/Clang/ClangPersistentVariables.h"
 #include "lldb/Symbol/Block.h"
@@ -24,7 +29,15 @@
 
 using namespace lldb_private;
 
-const char *ClangExpressionSourceCode::g_expression_prefix = R"(
+#define PREFIX_NAME "<lldb wrapper prefix>"
+
+const llvm::StringRef ClangExpressionSourceCode::g_prefix_file_name = PREFIX_NAME;
+
+const char *ClangExpressionSourceCode::g_expression_prefix =
+"#line 1 \"" PREFIX_NAME R"("
+#ifndef offsetof
+#define offsetof(t, d) __builtin_offsetof(t, d)
+#endif
 #ifndef NULL
 #define NULL (__null)
 #endif
@@ -58,9 +71,6 @@ extern "C"
     int printf(const char * __restrict, ...);
 }
 )";
-
-static const char *c_start_marker = "    /*LLDB_BODY_START*/\n    ";
-static const char *c_end_marker = ";\n    /*LLDB_BODY_END*/\n";
 
 namespace {
 
@@ -161,31 +171,139 @@ static void AddMacros(const DebugMacros *dm, CompileUnit *comp_unit,
   }
 }
 
+lldb_private::ClangExpressionSourceCode::ClangExpressionSourceCode(
+    llvm::StringRef filename, llvm::StringRef name, llvm::StringRef prefix,
+    llvm::StringRef body, Wrapping wrap)
+    : ExpressionSourceCode(name, prefix, body, wrap) {
+  // Use #line markers to pretend that we have a single-line source file
+  // containing only the user expression. This will hide our wrapper code
+  // from the user when we render diagnostics with Clang.
+  m_start_marker = "#line 1 \"" + filename.str() + "\"\n";
+  m_end_marker = "\n;\n#line 1 \"<lldb wrapper suffix>\"\n";
+}
+
+namespace {
+/// Allows checking if a token is contained in a given expression.
+class TokenVerifier {
+  /// The tokens we found in the expression.
+  llvm::StringSet<> m_tokens;
+
+public:
+  TokenVerifier(std::string body);
+  /// Returns true iff the given expression body contained a token with the
+  /// given content.
+  bool hasToken(llvm::StringRef token) const {
+    return m_tokens.find(token) != m_tokens.end();
+  }
+};
+} // namespace
+
+TokenVerifier::TokenVerifier(std::string body) {
+  using namespace clang;
+
+  // We only care about tokens and not their original source locations. If we
+  // move the whole expression to only be in one line we can simplify the
+  // following code that extracts the token contents.
+  std::replace(body.begin(), body.end(), '\n', ' ');
+  std::replace(body.begin(), body.end(), '\r', ' ');
+
+  FileSystemOptions file_opts;
+  FileManager file_mgr(file_opts,
+                       FileSystem::Instance().GetVirtualFileSystem());
+
+  // Let's build the actual source code Clang needs and setup some utility
+  // objects.
+  llvm::IntrusiveRefCntPtr<DiagnosticIDs> diag_ids(new DiagnosticIDs());
+  llvm::IntrusiveRefCntPtr<DiagnosticOptions> diags_opts(
+      new DiagnosticOptions());
+  DiagnosticsEngine diags(diag_ids, diags_opts);
+  clang::SourceManager SM(diags, file_mgr);
+  auto buf = llvm::MemoryBuffer::getMemBuffer(body);
+
+  FileID FID = SM.createFileID(clang::SourceManager::Unowned, buf.get());
+
+  // Let's just enable the latest ObjC and C++ which should get most tokens
+  // right.
+  LangOptions Opts;
+  Opts.ObjC = true;
+  Opts.DollarIdents = true;
+  Opts.CPlusPlus17 = true;
+  Opts.LineComment = true;
+
+  Lexer lex(FID, buf.get(), SM, Opts);
+
+  Token token;
+  bool exit = false;
+  while (!exit) {
+    // Returns true if this is the last token we get from the lexer.
+    exit = lex.LexFromRawLexer(token);
+
+    // Extract the column number which we need to extract the token content.
+    // Our expression is just one line, so we don't need to handle any line
+    // numbers here.
+    bool invalid = false;
+    unsigned start = SM.getSpellingColumnNumber(token.getLocation(), &invalid);
+    if (invalid)
+      continue;
+    // Column numbers start at 1, but indexes in our string start at 0.
+    --start;
+
+    // Annotations don't have a length, so let's skip them.
+    if (token.isAnnotation())
+      continue;
+
+    // Extract the token string from our source code and store it.
+    std::string token_str = body.substr(start, token.getLength());
+    if (token_str.empty())
+      continue;
+    m_tokens.insert(token_str);
+  }
+}
+
 static void AddLocalVariableDecls(const lldb::VariableListSP &var_list_sp,
-                                  StreamString &stream) {
+                                  StreamString &stream,
+                                  const std::string &expr,
+                                  lldb::LanguageType wrapping_language) {
+  TokenVerifier tokens(expr);
+
   for (size_t i = 0; i < var_list_sp->GetSize(); i++) {
     lldb::VariableSP var_sp = var_list_sp->GetVariableAtIndex(i);
 
     ConstString var_name = var_sp->GetName();
-    if (!var_name || var_name == ConstString("this") ||
-        var_name == ConstString(".block_descriptor"))
+
+
+    // We can check for .block_descriptor w/o checking for langauge since this
+    // is not a valid identifier in either C or C++.
+    if (!var_name || var_name == ".block_descriptor")
+      continue;
+
+    if (!expr.empty() && !tokens.hasToken(var_name.GetStringRef()))
+      continue;
+
+    if ((var_name == "self" || var_name == "_cmd") &&
+        (wrapping_language == lldb::eLanguageTypeObjC ||
+         wrapping_language == lldb::eLanguageTypeObjC_plus_plus))
+      continue;
+
+    if (var_name == "this" &&
+        wrapping_language == lldb::eLanguageTypeC_plus_plus)
       continue;
 
     stream.Printf("using $__lldb_local_vars::%s;\n", var_name.AsCString());
   }
 }
 
-bool ClangExpressionSourceCode::GetText(std::string &text,
-                                   lldb::LanguageType wrapping_language,
-                                   bool static_method,
-                                   ExecutionContext &exe_ctx, bool add_locals,
-                                   llvm::ArrayRef<std::string> modules) const {
+bool ClangExpressionSourceCode::GetText(
+    std::string &text, lldb::LanguageType wrapping_language, bool static_method,
+    ExecutionContext &exe_ctx, bool add_locals, bool force_add_all_locals,
+    llvm::ArrayRef<std::string> modules) const {
   const char *target_specific_defines = "typedef signed char BOOL;\n";
   std::string module_macros;
 
   Target *target = exe_ctx.GetTargetPtr();
   if (target) {
-    if (target->GetArchitecture().GetMachine() == llvm::Triple::aarch64) {
+    if (target->GetArchitecture().GetMachine() == llvm::Triple::aarch64 ||
+        target->GetArchitecture().GetMachine() == llvm::Triple::aarch64_32) {
       target_specific_defines = "typedef bool BOOL;\n";
     }
     if (target->GetArchitecture().GetMachine() == llvm::Triple::x86_64) {
@@ -252,15 +370,14 @@ bool ClangExpressionSourceCode::GetText(std::string &text,
       }
     }
 
-    if (add_locals) {
-      if (Language::LanguageIsCPlusPlus(frame->GetLanguage())) {
-        if (target->GetInjectLocalVariables(&exe_ctx)) {
-          lldb::VariableListSP var_list_sp =
-              frame->GetInScopeVariableList(false, true);
-          AddLocalVariableDecls(var_list_sp, lldb_local_var_decls);
-        }
+    if (add_locals)
+      if (target->GetInjectLocalVariables(&exe_ctx)) {
+        lldb::VariableListSP var_list_sp =
+            frame->GetInScopeVariableList(false, true);
+        AddLocalVariableDecls(var_list_sp, lldb_local_var_decls,
+                              force_add_all_locals ? "" : m_body,
+                              wrapping_language);
       }
-    }
   }
 
   if (m_wrap) {
@@ -298,9 +415,9 @@ bool ClangExpressionSourceCode::GetText(std::string &text,
     case lldb::eLanguageTypeC:
     case lldb::eLanguageTypeC_plus_plus:
     case lldb::eLanguageTypeObjC:
-      tagged_body.append(c_start_marker);
+      tagged_body.append(m_start_marker);
       tagged_body.append(m_body);
-      tagged_body.append(c_end_marker);
+      tagged_body.append(m_end_marker);
       break;
     }
     switch (wrapping_language) {
@@ -338,11 +455,12 @@ bool ClangExpressionSourceCode::GetText(std::string &text,
             "@implementation $__lldb_objc_class ($__lldb_category)   \n"
             "+(void)%s:(void *)$__lldb_arg                           \n"
             "{                                                       \n"
+            "    %s;                                                 \n"
             "%s"
             "}                                                       \n"
             "@end                                                    \n",
             module_imports.c_str(), m_name.c_str(), m_name.c_str(),
-            tagged_body.c_str());
+            lldb_local_var_decls.GetData(), tagged_body.c_str());
       } else {
         wrap_stream.Printf(
             "%s"
@@ -352,11 +470,12 @@ bool ClangExpressionSourceCode::GetText(std::string &text,
             "@implementation $__lldb_objc_class ($__lldb_category)  \n"
             "-(void)%s:(void *)$__lldb_arg                          \n"
             "{                                                      \n"
+            "    %s;                                                \n"
             "%s"
             "}                                                      \n"
             "@end                                                   \n",
             module_imports.c_str(), m_name.c_str(), m_name.c_str(),
-            tagged_body.c_str());
+            lldb_local_var_decls.GetData(), tagged_body.c_str());
       }
       break;
     }
@@ -372,24 +491,19 @@ bool ClangExpressionSourceCode::GetText(std::string &text,
 bool ClangExpressionSourceCode::GetOriginalBodyBounds(
     std::string transformed_text, lldb::LanguageType wrapping_language,
     size_t &start_loc, size_t &end_loc) {
-  const char *start_marker;
-  const char *end_marker;
-
   switch (wrapping_language) {
   default:
     return false;
   case lldb::eLanguageTypeC:
   case lldb::eLanguageTypeC_plus_plus:
   case lldb::eLanguageTypeObjC:
-    start_marker = c_start_marker;
-    end_marker = c_end_marker;
     break;
   }
 
-  start_loc = transformed_text.find(start_marker);
+  start_loc = transformed_text.find(m_start_marker);
   if (start_loc == std::string::npos)
     return false;
-  start_loc += strlen(start_marker);
-  end_loc = transformed_text.find(end_marker);
+  start_loc += m_start_marker.size();
+  end_loc = transformed_text.find(m_end_marker);
   return end_loc != std::string::npos;
 }

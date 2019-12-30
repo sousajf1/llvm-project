@@ -14,6 +14,8 @@
 
 #include <type_traits>
 
+#include "test_macros.h"
+
 template <class T, bool B>
 void test_array_imp()
 {
@@ -61,7 +63,7 @@ int main(int, char**)
     test_array<Abstract,       false>();
     test_array<Enum,           false>();
     test_array<FunctionPtr,    false>();
-    
+
 //  Array types
     test_array<array,             false>();
     test_array<incomplete_array,  true>();

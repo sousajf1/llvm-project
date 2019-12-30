@@ -13,6 +13,7 @@
 // template <class U> propagate_const(U&&);
 
 #include <experimental/propagate_const>
+#include "test_macros.h"
 #include "propagate_const_helpers.h"
 #include <type_traits>
 
@@ -26,4 +27,3 @@ int main(int, char**) {
 
   return 0;
 }
-

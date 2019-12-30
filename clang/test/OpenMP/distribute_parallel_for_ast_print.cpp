@@ -1,10 +1,10 @@
-// RUN: %clang_cc1 -verify -std=c++11 -fopenmp -fopenmp-version=45 -ast-print %s -Wno-openmp-target | FileCheck %s
+// RUN: %clang_cc1 -verify -std=c++11 -fopenmp -fopenmp-version=45 -ast-print %s -Wno-openmp-mapping | FileCheck %s
 // RUN: %clang_cc1 -fopenmp -fopenmp-version=45 -x c++ -std=c++11 -emit-pch -o %t %s
-// RUN: %clang_cc1 -fopenmp -fopenmp-version=45 -std=c++11 -include-pch %t -fsyntax-only -verify %s -ast-print -Wno-openmp-target | FileCheck %s
+// RUN: %clang_cc1 -fopenmp -fopenmp-version=45 -std=c++11 -include-pch %t -fsyntax-only -verify %s -ast-print -Wno-openmp-mapping | FileCheck %s
 
-// RUN: %clang_cc1 -verify -std=c++11 -fopenmp-simd -fopenmp-version=45 -ast-print %s -Wno-openmp-target | FileCheck %s
+// RUN: %clang_cc1 -verify -std=c++11 -fopenmp-simd -fopenmp-version=45 -ast-print %s -Wno-openmp-mapping | FileCheck %s
 // RUN: %clang_cc1 -fopenmp-simd -fopenmp-version=45 -x c++ -std=c++11 -emit-pch -o %t %s
-// RUN: %clang_cc1 -fopenmp-simd -fopenmp-version=45 -std=c++11 -include-pch %t -fsyntax-only -verify %s -ast-print -Wno-openmp-target | FileCheck %s
+// RUN: %clang_cc1 -fopenmp-simd -fopenmp-version=45 -std=c++11 -include-pch %t -fsyntax-only -verify %s -ast-print -Wno-openmp-mapping | FileCheck %s
 // expected-no-diagnostics
 
 #ifndef HEADER
@@ -122,8 +122,8 @@ void foo(int argc, char **argv) {
   [&]() {
 #pragma omp target
 #pragma omp teams
-#pragma omp distribute parallel for schedule(guided, argc) default(none) copyin(g) dist_schedule(static, a) private(a)
-    // CHECK: #pragma omp distribute parallel for schedule(guided, argc) default(none) copyin(g) dist_schedule(static, a) private(a)
+#pragma omp distribute parallel for schedule(guided, argc) default(none) copyin(g) dist_schedule(static, a) private(a) shared(argc)
+    // CHECK: #pragma omp distribute parallel for schedule(guided, argc) default(none) copyin(g) dist_schedule(static, a) private(a) shared(argc)
     for (int i = 0; i < 2; ++i)
 // CHECK: for (int i = 0; i < 2; ++i)
       [&]() {
@@ -156,8 +156,8 @@ int main(int argc, char **argv) {
 #pragma omp threadprivate(g)
 #pragma omp target
 #pragma omp teams
-#pragma omp distribute parallel for schedule(guided, argc) default(none) copyin(g) dist_schedule(static, a) private(a)
-  // CHECK: #pragma omp distribute parallel for schedule(guided, argc) default(none) copyin(g) dist_schedule(static, a) private(a)
+#pragma omp distribute parallel for schedule(guided, argc) default(none) copyin(g) dist_schedule(static, a) private(a) shared(argc)
+  // CHECK: #pragma omp distribute parallel for schedule(guided, argc) default(none) copyin(g) dist_schedule(static, a) private(a) shared(argc)
   for (int i = 0; i < 2; ++i)
     a = 2;
 // CHECK-NEXT: for (int i = 0; i < 2; ++i)

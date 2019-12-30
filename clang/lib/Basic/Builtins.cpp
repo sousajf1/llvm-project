@@ -47,8 +47,7 @@ void Builtin::Context::InitializeTarget(const TargetInfo &Target,
     AuxTSRecords = AuxTarget->getTargetBuiltins();
 }
 
-bool Builtin::Context::isBuiltinFunc(const char *Name) {
-  StringRef FuncName(Name);
+bool Builtin::Context::isBuiltinFunc(llvm::StringRef FuncName) {
   for (unsigned i = Builtin::NotBuiltin + 1; i != Builtin::FirstTSBuiltin; ++i)
     if (FuncName.equals(BuiltinInfo[i].Name))
       return strchr(BuiltinInfo[i].Attributes, 'f') != nullptr;
@@ -70,14 +69,18 @@ bool Builtin::Context::builtinIsSupported(const Builtin::Info &BuiltinInfo,
   bool ObjCUnsupported = !LangOpts.ObjC && BuiltinInfo.Langs == OBJC_LANG;
   bool OclC1Unsupported = (LangOpts.OpenCLVersion / 100) != 1 &&
                           (BuiltinInfo.Langs & ALL_OCLC_LANGUAGES ) ==  OCLC1X_LANG;
-  bool OclC2Unsupported = LangOpts.OpenCLVersion != 200 &&
-                          (BuiltinInfo.Langs & ALL_OCLC_LANGUAGES) == OCLC20_LANG;
+  bool OclC2Unsupported =
+      (LangOpts.OpenCLVersion != 200 && !LangOpts.OpenCLCPlusPlus) &&
+      (BuiltinInfo.Langs & ALL_OCLC_LANGUAGES) == OCLC20_LANG;
   bool OclCUnsupported = !LangOpts.OpenCL &&
                          (BuiltinInfo.Langs & ALL_OCLC_LANGUAGES);
   bool OpenMPUnsupported = !LangOpts.OpenMP && BuiltinInfo.Langs == OMP_LANG;
+  bool CPlusPlusUnsupported =
+      !LangOpts.CPlusPlus && BuiltinInfo.Langs == CXX_LANG;
   return !BuiltinsUnsupported && !MathBuiltinsUnsupported && !OclCUnsupported &&
          !OclC1Unsupported && !OclC2Unsupported && !OpenMPUnsupported &&
-         !GnuModeUnsupported && !MSModeUnsupported && !ObjCUnsupported;
+         !GnuModeUnsupported && !MSModeUnsupported && !ObjCUnsupported &&
+         !CPlusPlusUnsupported;
 }
 
 /// initializeBuiltins - Mark the identifiers for all the builtins with their

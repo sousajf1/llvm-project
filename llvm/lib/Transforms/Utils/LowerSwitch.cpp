@@ -27,6 +27,7 @@
 #include "llvm/IR/InstrTypes.h"
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Value.h"
+#include "llvm/InitializePasses.h"
 #include "llvm/Pass.h"
 #include "llvm/Support/Casting.h"
 #include "llvm/Support/Compiler.h"
@@ -62,9 +63,8 @@ static bool IsInRanges(const IntRange &R,
   // Find the first range whose High field is >= R.High,
   // then check if the Low field is <= R.Low. If so, we
   // have a Range that covers R.
-  auto I = std::lower_bound(
-      Ranges.begin(), Ranges.end(), R,
-      [](const IntRange &A, const IntRange &B) { return A.High < B.High; });
+  auto I = llvm::lower_bound(
+      Ranges, R, [](IntRange A, IntRange B) { return A.High < B.High; });
   return I != Ranges.end() && I->Low <= R.Low;
 }
 
@@ -495,7 +495,7 @@ void LowerSwitch::processSwitchInst(SwitchInst *SI,
     KnownBits Known = computeKnownBits(Val, DL, /*Depth=*/0, AC, SI);
     // TODO Shouldn't this create a signed range?
     ConstantRange KnownBitsRange =
-        ConstantRange::fromKnownBits(Known, /*ForSigned=*/false);
+        ConstantRange::fromKnownBits(Known, /*IsSigned=*/false);
     const ConstantRange LVIRange = LVI->getConstantRange(Val, OrigBlock, SI);
     ConstantRange ValRange = KnownBitsRange.intersectWith(LVIRange);
     // We delegate removal of unreachable non-default cases to other passes. In
@@ -585,6 +585,11 @@ void LowerSwitch::processSwitchInst(SwitchInst *SI,
         PopSucc->removePredecessor(OrigBlock);
       return;
     }
+
+    // If the condition was a PHI node with the switch block as a predecessor
+    // removing predecessors may have caused the condition to be erased.
+    // Getting the condition value again here protects against that.
+    Val = SI->getCondition();
   }
 
   // Create a new, empty default block so that the new hierarchy of

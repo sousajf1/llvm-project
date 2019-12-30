@@ -118,6 +118,12 @@ TEST(CastingTest, isa) {
   EXPECT_TRUE(isa<foo>(B4));
 }
 
+TEST(CastingTest, isa_and_nonnull) {
+  EXPECT_TRUE(isa_and_nonnull<foo>(B2));
+  EXPECT_TRUE(isa_and_nonnull<foo>(B4));
+  EXPECT_FALSE(isa_and_nonnull<foo>(fub()));
+}
+
 TEST(CastingTest, cast) {
   foo &F1 = cast<foo>(B1);
   EXPECT_NE(&F1, null_foo);
@@ -187,12 +193,12 @@ TEST(CastingTest, dyn_cast_or_null) {
   EXPECT_NE(F5, null_foo);
 }
 
-std::unique_ptr<derived> newd() { return llvm::make_unique<derived>(); }
-std::unique_ptr<base> newb() { return llvm::make_unique<derived>(); }
+std::unique_ptr<derived> newd() { return std::make_unique<derived>(); }
+std::unique_ptr<base> newb() { return std::make_unique<derived>(); }
 
 TEST(CastingTest, unique_dyn_cast) {
   derived *OrigD = nullptr;
-  auto D = llvm::make_unique<derived>();
+  auto D = std::make_unique<derived>();
   OrigD = D.get();
 
   // Converting from D to itself is valid, it should return a new unique_ptr

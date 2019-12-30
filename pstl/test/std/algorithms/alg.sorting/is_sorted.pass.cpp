@@ -7,16 +7,12 @@
 //
 //===----------------------------------------------------------------------===//
 
+// UNSUPPORTED: c++98, c++03, c++11, c++14
+
 #include "support/pstl_test_config.h"
 
-#ifdef PSTL_STANDALONE_TESTS
-
-#include "pstl/execution"
-#include "pstl/algorithm"
-#else
 #include <execution>
 #include <algorithm>
-#endif // PSTL_STANDALONE_TESTS
 
 #include "support/utils.h"
 
@@ -71,7 +67,7 @@ test_is_sorted_by_type()
     invoke_on_all_policies(test_is_sorted(), in0.cbegin(), in0.cend(), std::is_sorted(in0.begin(), in0.end()));
 
     //non-descending order
-    Sequence<T> in1(9, [](size_t v) -> T { return T(0); });
+    Sequence<T> in1(9, [](size_t) -> T { return T(0); });
     invoke_on_all_policies(test_is_sorted(), in1.begin(), in1.end(), std::is_sorted(in1.begin(), in1.end()));
     invoke_on_all_policies(test_is_sorted(), in1.cbegin(), in1.cend(), std::is_sorted(in1.begin(), in1.end()));
 }
@@ -88,7 +84,7 @@ struct test_non_const
     }
 };
 
-int32_t
+int
 main()
 {
 
