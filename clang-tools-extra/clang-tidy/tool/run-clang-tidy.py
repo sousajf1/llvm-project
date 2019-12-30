@@ -37,6 +37,7 @@ from __future__ import print_function
 
 import argparse
 import glob
+import hashlib
 import json
 import multiprocessing
 import os
@@ -56,9 +57,182 @@ except ImportError:
 is_py2 = sys.version[0] == '2'
 
 if is_py2:
-    import Queue as queue
+  import Queue as queue
 else:
-    import queue as queue
+  import queue as queue
+
+
+class Diagnostic(object):
+  """
+  This class represents a parsed diagnostic message coming from clang-tidy
+  output. While parsing the raw output each new diagnostic will incrementally
+  build a temporary object of this class. Once the end of the diagnotic
+  message is found its content is hashed with SHA256 and stored in a set.
+  """
+
+  def __init__(self, path, line, column, diag):
+    """
+    Start initializing this object. The source location is always known
+    as it is emitted first and always in a single line.
+    `diag` will contain all warning/error/note information until the first
+    line-break. These are very uncommon but for example CSA's
+    PaddingChecker emits a multi-line warning containing the optimal
+    layout of a record. These additional lines must be added after
+    creation of the `Diagnostic`.
+    """
+    self._path = path
+    self._line = line
+    self._column = column
+    self._diag = diag
+    self._additional = ""
+
+  def add_additional_line(self, line):
+    """Store more additional information line per line while parsing."""
+    self._additional += "\n" + line
+
+  def get_fingerprint(self):
+    """Return a secure fingerprint (SHA256 hash) of the diagnostic."""
+    return hashlib.sha256(self.__str__().encode("utf-8", "backslachreplace")).hexdigest()
+
+  def __str__(self):
+    """Transform the object back into a raw diagnostic."""
+    return (self._path + ":" + str(self._line) + ":" + str(self._column)\
+                       + ": " + self._diag + self._additional).encode("ascii", "backslashreplace")
+
+
+class Deduplication(object):
+  """
+  This class provides an interface to deduplicate diagnostics emitted from
+  `clang-tidy`. It maintains a `set` of SHA 256 hashes of the diagnostics
+  and allows to query if an diagnostic is already emitted
+  (according to the corresponding hash of the diagnostic string!).
+  """
+
+  def __init__(self):
+    """Initializes an empty set."""
+    self._set = set()
+
+  def insert_and_query(self, diag):
+    """
+    This method returns True if the `diag` was *NOT* emitted already
+    signaling that the parser shall store/emit this diagnostic.
+    If the `diag` was stored already this method return False and has
+    no effect.
+    """
+    fp = diag.get_fingerprint()
+    if fp not in self._set:
+      self._set.add(fp)
+      return True
+    return False
+
+
+def _is_valid_diag_match(match_groups):
+  """Return true if all elements in `match_groups` are not None."""
+  return all(g is not None for g in match_groups)
+
+
+def _diag_from_match(match_groups):
+  """Helper function to create a diagnostic object from a regex match."""
+  return Diagnostic(
+      str(match_groups[0]), int(match_groups[1]), int(match_groups[2]),
+      str(match_groups[3]) + ": " + str(match_groups[4]))
+
+
+class ParseClangTidyDiagnostics(object):
+  """
+  This class is a stateful parser for `clang-tidy` diagnostic output.
+  The parser collects all unique diagnostics that can be emitted after
+  deduplication.
+  """
+
+  def __init__(self):
+    super(ParseClangTidyDiagnostics, self).__init__()
+    self._diag_re = re.compile(
+        r"^(.+):(\d+):(\d+): (error|warning): (.*)$")
+    self._current_diag = None
+
+    self._dedup = Deduplication()
+    self._uniq_diags = list()
+
+  def reset_parser(self):
+    """
+    Clean the parsing data to prepare for another set of output from
+    `clang-tidy`. The deduplication is not cleaned because that data
+    is required between multiple parsing runs. The diagnostics are cleaned
+    as the parser assumes the new unique diagnostics are consumed before
+    the parser is reset.
+    """
+    self._current_diag = None
+    self._uniq_diags = list()
+
+  def get_diags(self):
+    """
+    Returns a list of diagnostics that can be emitted after parsing the
+    full output of a `clang-tidy` invocation.
+    The list contains no duplicates.
+    """
+    return self._uniq_diags
+
+  def parse_string(self, input_str):
+    """Parse a string, e.g. captured stdout."""
+    if self._current_diag:
+      print("WARNING: FOUND CURRENT DIAG TO BE SET! BUG!!")
+      print("DIAGNOSTIC MESSAGE:")
+      print(str(self._current_diag))
+      print("SETTING _current_diag TO NONE")
+      self._current_diag = None
+    self._parse_lines(input_str.splitlines())
+
+  def _parse_line(self, line):
+    """Parses one line and returns nothing."""
+    match = self._diag_re.match(line)
+
+    # A new diagnostic is found (either error or warning).
+    if match and _is_valid_diag_match(match.groups()):
+      self._handle_new_diag(match.groups())
+
+    # There was no new diagnostic but a previous diagnostic is in flight.
+    # Interpret this situation as additional output like notes or
+    # code-pointers from the diagnostic that is in flight.
+    elif not match and self._current_diag:
+      self._current_diag.add_additional_line(line)
+
+    # There was no diagnostic in flight and this line did not create a
+    # new one. This situation should not occur, but might happen if
+    # `clang-tidy` emits information before warnings start.
+    else:
+      return
+
+  def _handle_new_diag(self, match_groups):
+    """Potentially store an in-flight diagnostic and create a new one."""
+    self._register_diag()
+    self._current_diag = _diag_from_match(match_groups)
+
+  def _register_diag(self):
+    """
+    Stores a potential in-flight diagnostic if it is a new unique message.
+    """
+    # The current in-flight diagnostic was not emitted before, therefor
+    # it should be stored as a new unique diagnostic.
+    if self._current_diag and \
+       self._dedup.insert_and_query(self._current_diag):
+      self._uniq_diags.append(self._current_diag)
+
+  def _parse_lines(self, line_list):
+    """Parse a list of lines without \\n at the end of each string."""
+    assert self._current_diag is None, \
+           "Parser not in a clean state to restart parsing"
+
+    for line in line_list:
+      self._parse_line(line.rstrip())
+    # Register the last diagnostic after all input is parsed.
+    self._register_diag()
+
+  def _parse_file(self, filename):
+    """Helper to parse a full file, for testing purposes only."""
+    with open(filename, "r") as input_file:
+      self._parse_lines(input_file.readlines())
+
 
 def find_compilation_database(path):
   """Adjusts the directory until a compilation database is found."""
@@ -94,14 +268,14 @@ def get_tidy_invocation(f, clang_tidy_binary, checks, tmpdir, build_path,
     os.close(handle)
     start.append(name)
   for arg in extra_arg:
-      start.append('-extra-arg=%s' % arg)
+    start.append('-extra-arg=%s' % arg)
   for arg in extra_arg_before:
-      start.append('-extra-arg-before=%s' % arg)
+    start.append('-extra-arg-before=%s' % arg)
   start.append('-p=' + build_path)
   if quiet:
-      start.append('-quiet')
+    start.append('-quiet')
   if config:
-      start.append('-config=' + config)
+    start.append('-config=' + config)
   start.append(f)
   return start
 
@@ -153,7 +327,7 @@ def apply_fixes(args, tmpdir):
   subprocess.call(invocation)
 
 
-def run_tidy(args, tmpdir, build_path, queue, lock, failed_files):
+def run_tidy(args, tmpdir, build_path, queue, lock, failed_files, parser):
   """Takes filenames out of queue and runs clang-tidy on them."""
   while True:
     name = queue.get()
@@ -166,11 +340,28 @@ def run_tidy(args, tmpdir, build_path, queue, lock, failed_files):
     output, err = proc.communicate()
     if proc.returncode != 0:
       failed_files.append(name)
+
     with lock:
-      sys.stdout.write(' '.join(invocation) + '\n' + output.decode('utf-8'))
-      if len(err) > 0:
-        sys.stdout.flush()
-        sys.stderr.write(err.decode('utf-8'))
+      invoc = ' '.join(invocation) + '\n'
+      if parser:
+        parser.parse_string(output.decode('utf-8', 'backslashreplace'))
+        diags = [str(diag) for diag in parser.get_diags()]
+        diag_str = '\n'.join(diags)
+        sys.stdout.write(''.join([invoc, diag_str]).rstrip().encode('utf-8', 'backslashreplace'))
+        sys.stdout.write('\n')
+        parser.reset_parser()
+      else:
+        sys.stdout.write(invoc + output.decode('utf-8', 'backslashreplace').strip() + '\n')
+      sys.stdout.flush()
+
+    if len(err) > 0:
+      sys.stderr.write(err.decode('utf-8') + '\n')
+      err_lines = err.splitlines()
+      errors = [l for l in err_lines if not "warnings generated" in l]
+      for l in errors:
+        sys.stderr.write(l.decode('utf-8', 'backslashreplace'))
+      sys.stderr.flush()
+
     queue.task_done()
 
 
@@ -226,6 +417,8 @@ def main():
                       'command line.')
   parser.add_argument('-quiet', action='store_true',
                       help='Run clang-tidy in quiet mode')
+  parser.add_argument('-deduplicate', action='store_true',
+                      help='Deduplicate diagnostic message from clang-tidy')
   args = parser.parse_args()
 
   db_path = 'compile_commands.json'
@@ -276,9 +469,12 @@ def main():
     # List of files with a non-zero return code.
     failed_files = []
     lock = threading.Lock()
+    parser = None
+    if args.deduplicate:
+        diag_parser = ParseClangTidyDiagnostics()
     for _ in range(max_task):
       t = threading.Thread(target=run_tidy,
-                           args=(args, tmpdir, build_path, task_queue, lock, failed_files))
+                           args=(args, tmpdir, build_path, task_queue, lock, failed_files, diag_parser))
       t.daemon = True
       t.start()
 

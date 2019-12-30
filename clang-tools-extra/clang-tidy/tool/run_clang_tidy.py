@@ -1,0 +1,1 @@
+run-clang-tidy.py

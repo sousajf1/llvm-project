@@ -1,0 +1,93 @@
+/project/git/Source/kwsys/Glob.cxx:200:28: warning: string concatenation results in allocation of unnecessary temporary strings; consider using 'operator+=' or 'string::append()' instead [performance-inefficient-string-concatenation]
+      realname = dir + "/" + fname;
+                           ^
+/project/git/Source/kwsys/Glob.cxx:223:47: warning: string concatenation results in allocation of unnecessary temporary strings; consider using 'operator+=' or 'string::append()' instead [performance-inefficient-string-concatenation]
+                        "' failed! Reason: '" + realPathErrorMessage + "'"));
+                                              ^
+/project/git/Source/kwsys/Glob.cxx:253:42: warning: string concatenation results in allocation of unnecessary temporary strings; consider using 'operator+=' or 'string::append()' instead [performance-inefficient-string-concatenation]
+          message += canonicalPath + "/" + fname;
+                                         ^
+/project/git/Source/kwsys/Glob.cxx:305:28: warning: string concatenation results in allocation of unnecessary temporary strings; consider using 'operator+=' or 'string::append()' instead [performance-inefficient-string-concatenation]
+      realname = dir + "/" + fname;
+                           ^
+/project/git/Source/kwsys/SystemTools.cxx:1993:25: warning: 'find_first_of' called with a string literal consisting of a single character; consider using the more effective overload accepting a character [performance-faster-string-find]
+  if (ret.find_first_of(" ") != std::string::npos) {
+                        ^~~
+                        ' '
+/project/git/Source/kwsys/SystemTools.cxx:2068:17: warning: local copy 'source_name' of the variable 'source' is never modified; consider avoiding the copy [performance-unnecessary-copy-initialization]
+    std::string source_name = source;
+                ^
+    const      &
+/project/git/Source/kwsys/SystemTools.cxx:2212:19: warning: local copy 'source_name' of the variable 'source' is never modified; consider avoiding the copy [performance-unnecessary-copy-initialization]
+      std::string source_name = source;
+                  ^
+      const      &
+/project/git/Source/kwsys/SystemTools.cxx:3050:49: warning: 'rfind' called with a string literal consisting of a single character; consider using the more effective overload accepting a character [performance-faster-string-find]
+    std::string::size_type slashPos = dir.rfind("/");
+                                                ^~~
+                                                '/'
+/project/git/Source/kwsys/SystemTools.cxx:3207:32: warning: std::move of the const expression has no effect; remove std::move() [performance-move-const-arg]
+      out_components.push_back(std::move(*i));
+                               ^~~~~~~~~~  ~
+/project/git/Source/kwsys/SystemTools.cxx:3638:15: warning: local copy 'data' of the variable 'str' is never modified; consider avoiding the copy [performance-unnecessary-copy-initialization]
+  std::string data(str);
+              ^
+  const      &
+/project/git/Source/kwsys/SystemTools.cxx:3688:47: warning: 'rfind' called with a string literal consisting of a single character; consider using the more effective overload accepting a character [performance-faster-string-find]
+  std::string::size_type slash_pos = fn.rfind("/");
+                                              ^~~
+                                              '/'
+/project/git/Source/kwsys/SystemInformation.cxx:1340:28: warning: 'rfind' called with a string literal consisting of a single character; consider using the more effective overload accepting a character [performance-faster-string-find]
+    size_t at = file.rfind("/");
+                           ^~~
+                           '/'
+/project/git/Source/kwsys/SystemInformation.cxx:3354:23: warning: 'find' called with a string literal consisting of a single character; consider using the more effective overload accepting a character [performance-faster-string-find]
+    pos = buffer.find(":", pos);
+                      ^~~
+                      ':'
+/project/git/Source/kwsys/SystemInformation.cxx:3355:31: warning: 'find' called with a string literal consisting of a single character; consider using the more effective overload accepting a character [performance-faster-string-find]
+    size_t pos2 = buffer.find("\n", pos);
+                              ^~~~
+                              '\n'
+/project/git/Source/kwsys/SystemInformation.cxx:4605:43: warning: 'find' called with a string literal consisting of a single character; consider using the more effective overload accepting a character [performance-faster-string-find]
+    size_t pos2 = this->SysCtlBuffer.find("\n", pos);
+                                          ^~~~
+                                          '\n'
+/project/git/Source/kwsys/SystemInformation.cxx:5407:29: warning: 'find' called with a string literal consisting of a single character; consider using the more effective overload accepting a character [performance-faster-string-find]
+  while ((pos = output.find("\r", pos)) != std::string::npos) {
+                            ^~~~
+                            '\r'
+/project/git/Source/kwsys/SystemInformation.cxx:5413:29: warning: 'find' called with a string literal consisting of a single character; consider using the more effective overload accepting a character [performance-faster-string-find]
+  while ((pos = output.find("\n", pos)) != std::string::npos) {
+                            ^~~~
+                            '\n'
+/project/git/Utilities/cmjsoncpp/include/json/value.h:235:5: warning: move constructors should be marked noexcept [performance-noexcept-move-constructor]
+    CZString(CZString&& other);
+    ^
+/project/git/Utilities/cmjsoncpp/include/json/value.h:241:15: warning: move assignment operators should be marked noexcept [performance-noexcept-move-constructor]
+    CZString& operator=(CZString&& other);
+              ^
+/project/git/Utilities/cmjsoncpp/include/json/value.h:326:3: warning: move constructors should be marked noexcept [performance-noexcept-move-constructor]
+  Value(Value&& other);
+  ^
+/project/git/Utilities/cmjsoncpp/src/lib_json/json_reader.cpp:1998:53: warning: the parameter 'key' is copied for each invocation but only used as a const reference; consider making it a const reference [performance-unnecessary-value-param]
+Value& CharReaderBuilder::operator[](JSONCPP_STRING key)
+                                                    ^
+/project/git/Utilities/cmjsoncpp/include/json/value.h:235:5: warning: move constructors should be marked noexcept [performance-noexcept-move-constructor]
+    CZString(CZString&& other);
+    ^
+/project/git/Utilities/cmjsoncpp/include/json/value.h:241:15: warning: move assignment operators should be marked noexcept [performance-noexcept-move-constructor]
+    CZString& operator=(CZString&& other);
+              ^
+/project/git/Utilities/cmjsoncpp/include/json/value.h:326:3: warning: move constructors should be marked noexcept [performance-noexcept-move-constructor]
+  Value(Value&& other);
+  ^
+/project/git/Utilities/cmjsoncpp/src/lib_json/json_value.cpp:278:18: warning: move constructors should be marked noexcept [performance-noexcept-move-constructor]
+Value::CZString::CZString(CZString&& other)
+                 ^
+/project/git/Utilities/cmjsoncpp/src/lib_json/json_value.cpp:302:35: warning: move assignment operators should be marked noexcept [performance-noexcept-move-constructor]
+Value::CZString& Value::CZString::operator=(CZString&& other) {
+                                  ^
+/project/git/Utilities/cmjsoncpp/src/lib_json/json_value.cpp:490:8: warning: move constructors should be marked noexcept [performance-noexcept-move-constructor]
+Value::Value(Value&& other) {
+       ^

@@ -1,0 +1,69 @@
+/project/git/Source/kwsys/testCommandLineArguments1.cxx:83:16: warning: Null pointer passed as an argument to a 'nonnull' parameter [clang-analyzer-core.NonNullParamChecker]
+               strcmp(valid_unused_args[cc], newArgv[cc]) != 0) {
+               ^
+/project/git/Source/kwsys/testCommandLineArguments1.cxx:35:7: note: Assuming the condition is false
+  if (!arg.Parse()) {
+      ^
+/project/git/Source/kwsys/testCommandLineArguments1.cxx:35:3: note: Taking false branch
+  if (!arg.Parse()) {
+  ^
+/project/git/Source/kwsys/testCommandLineArguments1.cxx:79:5: note: Taking false branch
+    if (cc >= 9) {
+    ^
+/project/git/Source/kwsys/testCommandLineArguments1.cxx:82:16: note: Left side of '&&' is true
+    } else if (valid_unused_args[cc] &&
+               ^
+/project/git/Source/kwsys/testCommandLineArguments1.cxx:83:16: note: Null pointer passed as an argument to a 'nonnull' parameter
+               strcmp(valid_unused_args[cc], newArgv[cc]) != 0) {
+               ^
+/project/git/Utilities/cmcurl/lib/urldata.h:1209:8: warning: Excessive padding in 'struct UrlState' (61 padding bytes, where 5 is optimal). 
+Optimal fields order: 
+conn_cache, 
+lastconnect, 
+headerbuff, 
+headersize, 
+prev_block_had_trailing_cr, 
+slash_removed, 
+use_range, 
+rangestringalloc, 
+done, 
+stream_depends_e, 
+consider reordering the fields or adding explicit padding members [clang-analyzer-optin.performance.Padding]
+struct UrlState {
+       ^
+/project/git/Tests/CMakeLib/testUTF8.cxx:11:3: warning: 3rd function call argument is an uninitialized value [clang-analyzer-core.CallAndMessage]
+  printf("[0x%02X,0x%02X,0x%02X,0x%02X]", static_cast<int>(d[0]),
+  ^
+/project/git/Tests/CMakeLib/testUTF8.cxx:93:3: note: Loop condition is false. Execution continues on line 98
+  for (test_utf8_entry const* e = good_entry; e->n; ++e) {
+  ^
+/project/git/Tests/CMakeLib/testUTF8.cxx:98:3: note: Loop condition is true.  Entering loop body
+  for (test_utf8_char const* c = bad_chars; (*c)[0]; ++c) {
+  ^
+/project/git/Tests/CMakeLib/testUTF8.cxx:99:5: note: Taking false branch
+    if (!decode_bad(*c)) {
+    ^
+/project/git/Tests/CMakeLib/testUTF8.cxx:98:3: note: Loop condition is true.  Entering loop body
+  for (test_utf8_char const* c = bad_chars; (*c)[0]; ++c) {
+  ^
+/project/git/Tests/CMakeLib/testUTF8.cxx:99:10: note: Calling 'decode_bad'
+    if (!decode_bad(*c)) {
+         ^
+/project/git/Tests/CMakeLib/testUTF8.cxx:80:7: note: Assuming 'e' is null
+  if (e) {
+      ^
+/project/git/Tests/CMakeLib/testUTF8.cxx:80:3: note: Taking false branch
+  if (e) {
+  ^
+/project/git/Tests/CMakeLib/testUTF8.cxx:85:3: note: Calling 'report_bad'
+  report_bad(true, s);
+  ^
+/project/git/Tests/CMakeLib/testUTF8.cxx:46:32: note: '?' condition is true
+  printf("%s: decoding bad  ", passed ? "pass" : "FAIL");
+                               ^
+/project/git/Tests/CMakeLib/testUTF8.cxx:47:3: note: Calling 'test_utf8_char_print'
+  test_utf8_char_print(c);
+  ^
+/project/git/Tests/CMakeLib/testUTF8.cxx:11:3: note: 3rd function call argument is an uninitialized value
+  printf("[0x%02X,0x%02X,0x%02X,0x%02X]", static_cast<int>(d[0]),
+  ^

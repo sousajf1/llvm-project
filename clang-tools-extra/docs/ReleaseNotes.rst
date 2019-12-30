@@ -220,6 +220,9 @@ Improvements to clang-tidy
   added to address situations where the existing fix-it logic would sometimes generate
   code that no longer compiles.
 
+- `run-clang-tidy.py` support deduplication of `clang-tidy` diagnostics
+  to reduce the amount of output with the optional `-deduplicate` flag.
+
 Improvements to include-fixer
 -----------------------------
 
