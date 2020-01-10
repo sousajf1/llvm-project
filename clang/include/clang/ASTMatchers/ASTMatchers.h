@@ -4249,26 +4249,23 @@ AST_POLYMORPHIC_MATCHER_P2(forEachArgumentWithParamType,
   const FunctionProtoType *FProto = nullptr;
 
   if (const auto *Call = dyn_cast<CallExpr>(&Node)) {
-    if (const Decl *Callee = Call->getCalleeDecl()) {
-      if (const auto *Value = dyn_cast<ValueDecl>(Callee)) {
-        QualType QT = Value->getType();
+    if (const auto *Value =
+            dyn_cast_or_null<ValueDecl>(Call->getCalleeDecl())) {
+      QualType QT = Value->getCanonicalType();
 
-        if (QT->isFunctionPointerType()) {
-          QualType FPT = QT->getPointeeType();
-          FProto = FPT->getAs<FunctionProtoType>();
-          assert(FProto &&
-                 "The call must have happened through a function pointer");
-        }
+      // This does not necessarily lead to a `FunctionProtoType`,
+      // e.g. K&R functions do not have a function prototype.
+      if (QT->isFunctionPointerType())
+        FProto = QT->getPointeeType()->getAs<FunctionProtoType>();
 
-        if (QT->isMemberFunctionPointerType()) {
-          const auto *MP = QT->getAs<MemberPointerType>();
-          assert(MP &&
-                 "Must be member-pointer if its a memberfunctionpointer");
-          FProto = MP->getPointeeType()->getAs<FunctionProtoType>();
-          assert(FProto &&
-                 "The call must have happened through a member function "
-                 "pointer");
-        }
+      if (QT->isMemberFunctionPointerType()) {
+        const auto *MP = QT->getAs<MemberPointerType>();
+        assert(MP &&
+               "Must be member-pointer if its a memberfunctionpointer");
+        FProto = MP->getPointeeType()->getAs<FunctionProtoType>();
+        assert(FProto &&
+               "The call must have happened through a member function "
+               "pointer");
       }
     }
   }
