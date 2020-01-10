@@ -311,8 +311,12 @@ extern const internal::VariadicAllOfMatcher<Decl> decl;
 
 /// Matches decomposition-declarations.
 ///
-/// Examples matches the declaration node.;
+/// Examples matches the declaration node with \c foo and \c bar, but not
+/// \c number.
+/// (matcher = declStmt(has(decompositionDecl())))
+///
 /// \code
+///   int number = 42;
 ///   auto [foo, bar] = std::make_pair{42, 42};
 /// \endcode
 extern const internal::VariadicAllOfMatcher<DecompositionDecl> decompositionDecl;
@@ -4157,10 +4161,12 @@ AST_POLYMORPHIC_MATCHER_P2(forEachArgumentWithParam,
   return Matched;
 }
 
-/// Matches all arguments and their respective Types. It is very similar to
-/// 'forEachArgumentWithParam' but it works on calls through function pointers
-/// as well. The difference is, that function pointers to not have 'ParmVarDecl'
-/// but only 'QualType' for each argument.
+/// Matches all arguments and their respective types for a \c CallExpr or
+/// \c CXXConstructExpr. It is very similar to \c forEachArgumentWithParam but
+/// it works on calls through function pointers as well.
+///
+/// The difference is, that function pointers do not provide access to a
+/// \c ParmVarDecl, but only the \c QualType for each argument.
 ///
 /// Given
 /// \code
@@ -4173,13 +4179,13 @@ AST_POLYMORPHIC_MATCHER_P2(forEachArgumentWithParam,
 /// callExpr(
 ///   forEachArgumentWithParamType(
 ///     declRefExpr(to(varDecl(hasName("y")))),
-///     parmVarDecl(hasType(isInteger()))
+///     qualType(isInteger()).bind("type)
 /// ))
-///   matches f(y);
+///   matches f(y) and f_ptr(y)
 /// with declRefExpr(...)
 ///   matching int y
-/// and parmVarDecl(...)
-///   matching int i
+/// and qualType(...)
+///   matching int
 AST_POLYMORPHIC_MATCHER_P2(forEachArgumentWithParamType,
                            AST_POLYMORPHIC_SUPPORTED_TYPES(CallExpr,
                                                            CXXConstructExpr),
@@ -4215,7 +4221,8 @@ AST_POLYMORPHIC_MATCHER_P2(forEachArgumentWithParamType,
                  "Must be member-pointer if its a memberfunctionpointer");
           FProto = MP->getPointeeType()->getAs<FunctionProtoType>();
           assert(FProto &&
-                 "The call must have happened through a member function pointer");
+                 "The call must have happened through a member function "
+                 "pointer");
         }
       }
     }
@@ -4234,8 +4241,6 @@ AST_POLYMORPHIC_MATCHER_P2(forEachArgumentWithParamType,
       // Therefore, please keep this order.
       if (FProto) {
         QualType ParamType = FProto->getParamType(ParamIndex);
-        BoundNodesTreeBuilder ParamMatches(ArgMatches);
-
         if (ParamMatcher.matches(ParamType, Finder, &ParamMatches)) {
           Result.addMatch(ParamMatches);
           Matched = true;
