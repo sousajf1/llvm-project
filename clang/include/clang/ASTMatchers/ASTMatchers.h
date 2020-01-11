@@ -4251,7 +4251,7 @@ AST_POLYMORPHIC_MATCHER_P2(forEachArgumentWithParamType,
   if (const auto *Call = dyn_cast<CallExpr>(&Node)) {
     if (const auto *Value =
             dyn_cast_or_null<ValueDecl>(Call->getCalleeDecl())) {
-      QualType QT = Value->getCanonicalType();
+      QualType QT = Value->getType().getCanonicalType();
 
       // This does not necessarily lead to a `FunctionProtoType`,
       // e.g. K&R functions do not have a function prototype.
