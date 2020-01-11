@@ -806,6 +806,20 @@ TEST(ForEachArgumentWithParamType, MatchesConstructExpr) {
     std::make_unique<VerifyIdIsBoundTo<DeclRefExpr>>("arg")));
 }
 
+TEST(ForEachArgumentWithParamType, HandlesKandRFunctions) {
+  StatementMatcher ArgumentY =
+      declRefExpr(to(varDecl(hasName("y")))).bind("arg");
+  TypeMatcher IntType = qualType(isInteger()).bind("type");
+  StatementMatcher CallExpr =
+      callExpr(forEachArgumentWithParamType(ArgumentY, IntType));
+
+  EXPECT_TRUE(matchesC("void f();\n"
+                       "void call_it(void) { int x, y; f(x, y); }\n"
+                       "void f(a, b) int a, b; {}\n"
+                       "void call_it2(void) { int x, y; f(x, y); }",
+                       CallExpr));
+}
+
 TEST(ForEachArgumentWithParamType, HandlesBoundNodesForNonMatches) {
   EXPECT_TRUE(matchAndVerifyResultTrue(
     "void g(int i, int j) {"
