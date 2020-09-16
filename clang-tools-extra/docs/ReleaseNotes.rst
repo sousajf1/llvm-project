@@ -106,10 +106,19 @@ New checks
   Finds condition variables in nested ``if`` statements that were also checked
   in the outer ``if`` statement and were not changed.
 
+- New :doc:`cppcoreguidelines-const-correctness
+  <clang-tidy/checks/cppcoreguidelines-const-correctness>` check.
+
+  Suggest adding ``const`` to unmodified local variables.
+
 - New :doc:`readability-function-cognitive-complexity
   <clang-tidy/checks/readability-function-cognitive-complexity>` check.
 
   Flags functions with Cognitive Complexity metric exceeding the configured limit.
+
+New check aliases
+^^^^^^^^^^^^^^^^^
+>>>>>>> 8d940dfbccb... remove spurious formatting change
 
 Changes in existing checks
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
