@@ -114,7 +114,13 @@ TEST(ExprMutationAnalyzerTest, Trivial) {
 
 class AssignmentTest : public ::testing::TestWithParam<std::string> {};
 
+// This test is for the most basic and direct modification of a variable,
+// assignment to it (e.g. `x = 10;`).
+// It additionally tests, that reference to a variable are not only captured
+// directly, but expression that result in the variable are handled, too.
+// This includes the comma operator, parens and the ternary operator.
 TEST_P(AssignmentTest, AssignmentModifies) {
+  // Test the detection of the raw expression modifications.
   {
     const std::string ModExpr = "x " + GetParam() + " 10";
     const auto AST = buildASTFromCode("void f() { int x; " + ModExpr + "; }");
@@ -123,9 +129,64 @@ TEST_P(AssignmentTest, AssignmentModifies) {
     EXPECT_THAT(mutatedBy(Results, AST.get()), ElementsAre(ModExpr));
   }
 
+  // Test the detection if the expression is surrounded by parens.
   {
     const std::string ModExpr = "(x) " + GetParam() + " 10";
     const auto AST = buildASTFromCode("void f() { int x; " + ModExpr + "; }");
+    const auto Results =
+        match(withEnclosingCompound(declRefTo("x")), AST->getASTContext());
+    EXPECT_THAT(mutatedBy(Results, AST.get()), ElementsAre(ModExpr));
+  }
+
+  // Test the detection if the comma operator yields the expression as result.
+  {
+    const std::string ModExpr = "x " + GetParam() + " 10";
+    const auto AST = buildASTFromCodeWithArgs(
+        "void f() { int x, y; y, " + ModExpr + "; }", {"-Wno-unused-value"});
+    const auto Results =
+        match(withEnclosingCompound(declRefTo("x")), AST->getASTContext());
+    EXPECT_THAT(mutatedBy(Results, AST.get()), ElementsAre(ModExpr));
+  }
+
+  // Ensure no detection if t he comma operator does not yield the expression as
+  // result.
+  {
+    const std::string ModExpr = "y, x, y " + GetParam() + " 10";
+    const auto AST = buildASTFromCodeWithArgs(
+        "void f() { int x, y; " + ModExpr + "; }", {"-Wno-unused-value"});
+    const auto Results =
+        match(withEnclosingCompound(declRefTo("x")), AST->getASTContext());
+    EXPECT_FALSE(isMutated(Results, AST.get()));
+  }
+
+  // Test the detection if the a ternary operator can result in the expression.
+  {
+    const std::string ModExpr = "(y != 0 ? y : x) " + GetParam() + " 10";
+    const auto AST =
+        buildASTFromCode("void f() { int y = 0, x; " + ModExpr + "; }");
+    const auto Results =
+        match(withEnclosingCompound(declRefTo("x")), AST->getASTContext());
+    EXPECT_THAT(mutatedBy(Results, AST.get()), ElementsAre(ModExpr));
+  }
+
+  // Test the detection if the a ternary operator can result in the expression
+  // through multiple nesting of ternary operators.
+  {
+    const std::string ModExpr =
+        "(y != 0 ? (y > 5 ? y : x) : (y)) " + GetParam() + " 10";
+    const auto AST =
+        buildASTFromCode("void f() { int y = 0, x; " + ModExpr + "; }");
+    const auto Results =
+        match(withEnclosingCompound(declRefTo("x")), AST->getASTContext());
+    EXPECT_THAT(mutatedBy(Results, AST.get()), ElementsAre(ModExpr));
+  }
+
+  // Test the detection if the a ternary operator can result in the expression
+  // with additional parens.
+  {
+    const std::string ModExpr = "(y != 0 ? (y) : ((x))) " + GetParam() + " 10";
+    const auto AST =
+        buildASTFromCode("void f() { int y = 0, x; " + ModExpr + "; }");
     const auto Results =
         match(withEnclosingCompound(declRefTo("x")), AST->getASTContext());
     EXPECT_THAT(mutatedBy(Results, AST.get()), ElementsAre(ModExpr));

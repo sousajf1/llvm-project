@@ -54,9 +54,9 @@ AST_MATCHER_P(Expr, canResolveToExpr, ast_matchers::internal::Matcher<Expr>,
       expr(anyOf(maybeEvalCommaExpr(IgnoreDerivedToBase),
                  conditionalOperator(
                      anyOf(hasTrueExpression(ignoringParens(
-                               maybeEvalCommaExpr(IgnoreDerivedToBase))),
+                               canResolveToExpr(IgnoreDerivedToBase))),
                            hasFalseExpression(ignoringParens(
-                               maybeEvalCommaExpr(IgnoreDerivedToBase))))))));
+                               canResolveToExpr(IgnoreDerivedToBase))))))));
   return ComplexMatcher.matches(Node, Finder, Builder);
 }
 
@@ -259,9 +259,9 @@ const Stmt *ExprMutationAnalyzer::findDirectMutation(const Expr *Exp) {
       cxxOperatorCallExpr(
           callee(NonConstMethod),
           hasArgument(0, ignoringImpCasts(canResolveToExpr(equalsNode(Exp))))),
-      // operator call expression might be unresolved as well. If that is
-      // the case and the operator is called on the 'Exp' itself, this is
-      // considered a moditication.
+      // An `OperatorCallExpr` might be unresolved. If that is the case and the
+      // operator is called on the 'Exp' itself, this is considered a
+      // moditication.
       cxxOperatorCallExpr(
           callee(expr(anyOf(unresolvedLookupExpr(), unresolvedMemberExpr(),
                             cxxDependentScopeMemberExpr(),
@@ -271,10 +271,7 @@ const Stmt *ExprMutationAnalyzer::findDirectMutation(const Expr *Exp) {
           anyOf(unresolvedMemberExpr(hasObjectExpression(
                     ignoringImpCasts(canResolveToExpr(equalsNode(Exp))))),
                 cxxDependentScopeMemberExpr(hasObjectExpression(
-                    ignoringImpCasts(canResolveToExpr(equalsNode(Exp))))))))),
-      callExpr(allOf(isTypeDependent(),
-                     callee(memberExpr(
-                         hasDeclaration(cxxMethodDecl(unless(isConst())))))))));
+                    ignoringImpCasts(canResolveToExpr(equalsNode(Exp)))))))))));
 
   // Taking address of 'Exp'.
   // We're assuming 'Exp' is mutated as soon as its address is taken, though in
