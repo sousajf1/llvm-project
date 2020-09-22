@@ -259,14 +259,27 @@ const Stmt *ExprMutationAnalyzer::findDirectMutation(const Expr *Exp) {
       cxxOperatorCallExpr(
           callee(NonConstMethod),
           hasArgument(0, ignoringImpCasts(canResolveToExpr(equalsNode(Exp))))),
+      // In case of a templated type, calling overloaded operators is not
+      // resolved and modelled as `binaryOperator` on a dependent type.
+      // Such instances are considered a modification, because they can modify
+      // in different instantiations of the template.
+      binaryOperator(hasEitherOperand(
+          allOf(ignoringImpCasts(canResolveToExpr(equalsNode(Exp))),
+                isTypeDependent()))),
+#if 0
       // An `OperatorCallExpr` might be unresolved. If that is the case and the
       // operator is called on the 'Exp' itself, this is considered a
-      // moditication.
+      // moditication. This happens in class templates.
       cxxOperatorCallExpr(
           callee(expr(anyOf(unresolvedLookupExpr(), unresolvedMemberExpr(),
                             cxxDependentScopeMemberExpr(),
                             hasType(templateTypeParmType())))),
-          hasArgument(0, canResolveToExpr(equalsNode(Exp)))),
+          hasArgument(0, canResolveToExpr(equalsNode(Exp))))
+          ,
+#endif
+      // Within class templates and member functions the member expression might
+      // not be resolved. In that case, the `callExpr` is considered to be a
+      // modification.
       callExpr(callee(expr(
           anyOf(unresolvedMemberExpr(hasObjectExpression(
                     ignoringImpCasts(canResolveToExpr(equalsNode(Exp))))),

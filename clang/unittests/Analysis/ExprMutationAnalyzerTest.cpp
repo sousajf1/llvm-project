@@ -211,6 +211,8 @@ INSTANTIATE_TEST_CASE_P(AllIncDecOperators, IncDecTest,
                         Values("++x", "--x", "x++", "x--", "++(x)", "--(x)",
                                "(x)++", "(x)--"), );
 
+// Section: member functions
+
 TEST(ExprMutationAnalyzerTest, NonConstMemberFunc) {
   const auto AST = buildASTFromCode(
       "void f() { struct Foo { void mf(); }; Foo x; x.mf(); }");
@@ -249,6 +251,8 @@ TEST(ExprMutationAnalyzerTest, ConstMemberFunc) {
   EXPECT_FALSE(isMutated(Results, AST.get()));
 }
 
+// Section: overloaded operators
+
 TEST(ExprMutationAnalyzerTest, NonConstOperator) {
   const auto AST = buildASTFromCode(
       "void f() { struct Foo { Foo& operator=(int); }; Foo x; x = 10; }");
@@ -264,6 +268,19 @@ TEST(ExprMutationAnalyzerTest, ConstOperator) {
       match(withEnclosingCompound(declRefTo("x")), AST->getASTContext());
   EXPECT_FALSE(isMutated(Results, AST.get()));
 }
+
+TEST(ExprMutationAnalyzerTest, UnresolvedOperator) {
+  const auto AST = buildASTFromCodeWithArgs(
+      "template <typename Stream> void input_operator_template() {"
+      "Stream x; unsigned y = 42;"
+      "x >> y; }",
+      {"-fno-delayed-template-parsing"});
+  const auto Results =
+      match(withEnclosingCompound(declRefTo("x")), AST->getASTContext());
+  EXPECT_TRUE(isMutated(Results, AST.get()));
+}
+
+// Section: expression as call argument
 
 TEST(ExprMutationAnalyzerTest, ByValueArgument) {
   auto AST = buildASTFromCode("void g(int); void f() { int x; g(x); }");
