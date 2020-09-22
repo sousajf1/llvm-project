@@ -853,7 +853,7 @@ template <class T>
 void EmitProtocolMethodList(T &&Methods) {
   // Note: If the template is uninstantiated the analysis does not figure out,
   // that p_local0 could be const. Not sure why, but probably bails because
-  // some expressions are type-dependant.
+  // some expressions are type-dependent.
   SmallVector<const int *> p_local0;
   // CHECK-MESSAGES: [[@LINE-1]]:3: warning: variable 'p_local0' of type 'SmallVector<const int *>' can be declared 'const'
   SmallVector<const int *> np_local0;
