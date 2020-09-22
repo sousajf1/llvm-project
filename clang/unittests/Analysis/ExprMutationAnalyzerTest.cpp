@@ -251,6 +251,16 @@ TEST(ExprMutationAnalyzerTest, ConstMemberFunc) {
   EXPECT_FALSE(isMutated(Results, AST.get()));
 }
 
+TEST(ExprMutationAnalyzerTest, TypeDependentMemberCall) {
+  const auto AST = buildASTFromCodeWithArgs(
+      "template <class T> class vector { void push_back(T); }; "
+      "template <class T> void f() { vector<T> x; x.push_back(T()); }",
+      {"-Wno-delayed-template-parsing"});
+  const auto Results =
+      match(withEnclosingCompound(declRefTo("x")), AST->getASTContext());
+  EXPECT_THAT(mutatedBy(Results, AST.get()), ElementsAre("x.push_back(T())"));
+}
+
 // Section: overloaded operators
 
 TEST(ExprMutationAnalyzerTest, NonConstOperator) {

@@ -247,18 +247,15 @@ const Stmt *ExprMutationAnalyzer::findDirectMutation(const Expr *Exp) {
       unaryOperator(anyOf(hasOperatorName("++"), hasOperatorName("--")),
                     hasUnaryOperand(canResolveToExpr(equalsNode(Exp))));
 
-  const auto NotInstantiated = unless(hasDeclaration(isInstantiated()));
   // Invoking non-const member function.
   // A member function is assumed to be non-const when it is unresolved.
   const auto NonConstMethod = cxxMethodDecl(unless(isConst()));
 
   const auto AsNonConstThis = expr(anyOf(
-      cxxMemberCallExpr(
-          callee(NonConstMethod),
-          on(ignoringImpCasts(canResolveToExpr(equalsNode(Exp))))),
-      cxxOperatorCallExpr(
-          callee(NonConstMethod),
-          hasArgument(0, ignoringImpCasts(canResolveToExpr(equalsNode(Exp))))),
+      cxxMemberCallExpr(callee(NonConstMethod),
+                        on(canResolveToExpr(equalsNode(Exp)))),
+      cxxOperatorCallExpr(callee(NonConstMethod),
+                          hasArgument(0, canResolveToExpr(equalsNode(Exp)))),
       // In case of a templated type, calling overloaded operators is not
       // resolved and modelled as `binaryOperator` on a dependent type.
       // Such instances are considered a modification, because they can modify
@@ -266,25 +263,19 @@ const Stmt *ExprMutationAnalyzer::findDirectMutation(const Expr *Exp) {
       binaryOperator(hasEitherOperand(
           allOf(ignoringImpCasts(canResolveToExpr(equalsNode(Exp))),
                 isTypeDependent()))),
-#if 0
-      // An `OperatorCallExpr` might be unresolved. If that is the case and the
-      // operator is called on the 'Exp' itself, this is considered a
-      // moditication. This happens in class templates.
-      cxxOperatorCallExpr(
-          callee(expr(anyOf(unresolvedLookupExpr(), unresolvedMemberExpr(),
-                            cxxDependentScopeMemberExpr(),
-                            hasType(templateTypeParmType())))),
-          hasArgument(0, canResolveToExpr(equalsNode(Exp))))
-          ,
-#endif
       // Within class templates and member functions the member expression might
       // not be resolved. In that case, the `callExpr` is considered to be a
       // modification.
-      callExpr(callee(expr(
-          anyOf(unresolvedMemberExpr(hasObjectExpression(
-                    ignoringImpCasts(canResolveToExpr(equalsNode(Exp))))),
-                cxxDependentScopeMemberExpr(hasObjectExpression(
-                    ignoringImpCasts(canResolveToExpr(equalsNode(Exp)))))))))));
+      callExpr(
+          callee(expr(anyOf(unresolvedMemberExpr(hasObjectExpression(
+                                canResolveToExpr(equalsNode(Exp)))),
+                            cxxDependentScopeMemberExpr(hasObjectExpression(
+                                canResolveToExpr(equalsNode(Exp)))))))),
+      // Call to a know method, but the call itself is type dependent.
+      callExpr(allOf(isTypeDependent(),
+                     callee(memberExpr(hasDeclaration(NonConstMethod),
+                                       hasObjectExpression(canResolveToExpr(
+                                           equalsNode(Exp)))))))));
 
   // Taking address of 'Exp'.
   // We're assuming 'Exp' is mutated as soon as its address is taken, though in
@@ -317,6 +308,7 @@ const Stmt *ExprMutationAnalyzer::findDirectMutation(const Expr *Exp) {
       anyOf(canResolveToExpr(equalsNode(Exp)),
             memberExpr(hasObjectExpression(canResolveToExpr(equalsNode(Exp))))),
       nonConstReferenceType());
+  const auto NotInstantiated = unless(hasDeclaration(isInstantiated()));
   const auto AsNonConstRefArg = anyOf(
       callExpr(NonConstRefParam, NotInstantiated),
       cxxConstructExpr(NonConstRefParam, NotInstantiated),
@@ -360,13 +352,13 @@ const Stmt *ExprMutationAnalyzer::findDirectMutation(const Expr *Exp) {
                                      hasType(nonConstReferenceType())))));
 
   const auto Matches = match(
-      traverse(
-          ast_type_traits::TK_AsIs,
-          findAll(stmt(anyOf(AsAssignmentLhs, AsIncDecOperand, AsNonConstThis,
-                             AsAmpersandOperand, AsPointerFromArrayDecay,
-                             AsOperatorArrowThis, AsNonConstRefArg,
-                             AsLambdaRefCaptureInit, AsNonConstRefReturn))
-                      .bind("stmt"))),
+      traverse(ast_type_traits::TK_AsIs,
+               findAll(stmt(anyOf(AsAssignmentLhs, AsIncDecOperand,
+                                  AsNonConstThis, AsAmpersandOperand,
+                                  AsPointerFromArrayDecay, AsOperatorArrowThis,
+                                  AsNonConstRefArg, AsLambdaRefCaptureInit,
+                                  AsNonConstRefReturn, AsNonConstRefRangeInit))
+                           .bind("stmt"))),
       Stm, Context);
   return selectFirst<Stmt>("stmt", Matches);
 }
