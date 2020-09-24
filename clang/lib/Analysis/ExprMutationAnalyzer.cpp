@@ -41,9 +41,8 @@ AST_MATCHER_P(Expr, maybeEvalCommaExpr, ast_matchers::internal::Matcher<Expr>,
 
 AST_MATCHER_P(Expr, canResolveToExpr, ast_matchers::internal::Matcher<Expr>,
               InnerMatcher) {
-  // Unless the value is a derived class and is assigned to a
-  // reference to the base class. Other implicit casts should not
-  // happen.
+  // Matches unless the value is a derived class and is assigned to a
+  // reference to the base class. Other implicit casts should not happen.
   const auto IgnoreDerivedToBase = ignoringParens(
       expr(anyOf(implicitCastExpr(anyOf(hasCastKind(CK_DerivedToBase),
                                         hasCastKind(CK_UncheckedDerivedToBase)),
@@ -62,8 +61,8 @@ AST_MATCHER_P(Expr, canResolveToExpr, ast_matchers::internal::Matcher<Expr>,
 
 // Similar to 'hasAnyArgument', but does not work because 'InitListExpr' does
 // not have the 'arguments()' method.
-AST_MATCHER_P(InitListExpr, hasAnyArgumentExpr,
-              ast_matchers::internal::Matcher<Expr>, InnerMatcher) {
+AST_MATCHER_P(InitListExpr, hasAnyInit, ast_matchers::internal::Matcher<Expr>,
+              InnerMatcher) {
   for (const Expr *Arg : Node.inits()) {
     ast_matchers::internal::BoundNodesTreeBuilder Result(*Builder);
     if (InnerMatcher.matches(*Arg, Finder, &Result)) {
@@ -271,7 +270,8 @@ const Stmt *ExprMutationAnalyzer::findDirectMutation(const Expr *Exp) {
                                 canResolveToExpr(equalsNode(Exp)))),
                             cxxDependentScopeMemberExpr(hasObjectExpression(
                                 canResolveToExpr(equalsNode(Exp)))))))),
-      // Call to a know method, but the call itself is type dependent.
+      // Match on a call to a know method, but the call itself is type
+      // dependent (e.g. `vector<T> v; v.push(T{});` in a templated function).
       callExpr(allOf(isTypeDependent(),
                      callee(memberExpr(hasDeclaration(NonConstMethod),
                                        hasObjectExpression(canResolveToExpr(
@@ -325,9 +325,8 @@ const Stmt *ExprMutationAnalyzer::findDirectMutation(const Expr *Exp) {
       // type-dependent.
       parenListExpr(hasDescendant(expr(canResolveToExpr(equalsNode(Exp))))),
       // If the initializer is for a reference type, there is no cast for
-      // the variable. Values are casted to RValue first.
-      initListExpr(
-          hasAnyArgumentExpr(expr(canResolveToExpr(equalsNode(Exp))))));
+      // the variable. Values are cast to RValue first.
+      initListExpr(hasAnyInit(expr(canResolveToExpr(equalsNode(Exp))))));
 
   // Captured by a lambda by reference.
   // If we're initializing a capture with 'Exp' directly then we're initializing
@@ -448,10 +447,12 @@ const Stmt *ExprMutationAnalyzer::findRangeLoopMutation(const Expr *Exp) {
           selectFirst<Stmt>("stmt", RefToArrayRefToElements))
     return BadRangeInitFromArray;
 
-  // It is possible, that containers do not provide a const-overload for their
+  // Small helper to match special cases in range-for loops.
+  //
+  // It is possible that containers do not provide a const-overload for their
   // iterator accessors. If this is the case, the variable is used non-const
   // no matter what happens in the loop. This requires special detection as it
-  // is faster to find then all mutations of the loop variable.
+  // is then faster to find all mutations of the loop variable.
   // It aims at a different modification as well.
   const auto HasAnyNonConstIterator =
       anyOf(allOf(hasMethod(allOf(hasName("begin"), unless(isConst()))),
