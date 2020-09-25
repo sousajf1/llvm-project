@@ -62,17 +62,16 @@ mutatedBy(const SmallVectorImpl<BoundNodes> &Results, ASTUnit *AST) {
   SmallVector<std::string, 1> Chain;
   ExprMutationAnalyzer Analyzer(*S, AST->getASTContext());
 
-  std::string buffer;
   for (const auto *E = selectFirst<Expr>("expr", Results); E != nullptr;) {
     const Stmt *By = Analyzer.findMutation(E);
     if (!By)
       break;
 
-    llvm::raw_string_ostream stream(buffer);
-    By->printPretty(stream, nullptr, AST->getASTContext().getPrintingPolicy());
-    Chain.emplace_back(StringRef(stream.str()).trim().str());
+    std::string Buffer;
+    llvm::raw_string_ostream Stream(Buffer);
+    By->printPretty(Stream, nullptr, AST->getASTContext().getPrintingPolicy());
+    Chain.emplace_back(StringRef(Stream.str()).trim().str());
     E = dyn_cast<DeclRefExpr>(By);
-    buffer.clear();
   }
   return Chain;
 }
