@@ -41,13 +41,16 @@ AST_MATCHER_P(Expr, maybeEvalCommaExpr, ast_matchers::internal::Matcher<Expr>,
 
 AST_MATCHER_P(Expr, canResolveToExpr, ast_matchers::internal::Matcher<Expr>,
               InnerMatcher) {
+  auto DerivedToBase = [](const ast_matchers::internal::Matcher<Expr> &Inner) {
+    return implicitCastExpr(anyOf(hasCastKind(CK_DerivedToBase),
+                                  hasCastKind(CK_UncheckedDerivedToBase)),
+                            hasSourceExpression(Inner));
+  };
   // Matches unless the value is a derived class and is assigned to a
   // reference to the base class. Other implicit casts should not happen.
-  const auto IgnoreDerivedToBase = ignoringParens(
-      expr(anyOf(implicitCastExpr(anyOf(hasCastKind(CK_DerivedToBase),
-                                        hasCastKind(CK_UncheckedDerivedToBase)),
-                                  hasSourceExpression(InnerMatcher)),
-                 InnerMatcher)));
+  const auto IgnoreDerivedToBase = ignoringParens(expr(
+      anyOf(InnerMatcher,
+            DerivedToBase(canResolveToExpr(ignoringParens(InnerMatcher))))));
 
   auto const ComplexMatcher = ignoringParens(
       expr(anyOf(maybeEvalCommaExpr(IgnoreDerivedToBase),

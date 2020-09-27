@@ -196,6 +196,19 @@ INSTANTIATE_TEST_CASE_P(AllAssignmentOperators, AssignmentTest,
                         Values("=", "+=", "-=", "*=", "/=", "%=", "&=", "|=",
                                "^=", "<<=", ">>="), );
 
+TEST(ExprMutationAnalyzerTest, AssignmentConditionalWithInheritance) {
+  const auto AST = buildASTFromCode("struct Base {void nonconst(); };"
+                                    "struct Derived : Base {};"
+                                    "static void f() {"
+                                    "  Derived x, y;"
+                                    "  Base &b = true ? x : y;"
+                                    "  b.nonconst();"
+                                    "}");
+  const auto Results =
+      match(withEnclosingCompound(declRefTo("x")), AST->getASTContext());
+  EXPECT_THAT(mutatedBy(Results, AST.get()), ElementsAre("b", "b.nonconst()"));
+}
+
 class IncDecTest : public ::testing::TestWithParam<std::string> {};
 
 TEST_P(IncDecTest, IncDecModifies) {
