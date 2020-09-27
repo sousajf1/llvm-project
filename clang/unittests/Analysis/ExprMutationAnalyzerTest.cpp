@@ -506,6 +506,8 @@ TEST(ExprMutationAnalyzerTest, ByConstRRefArgument) {
               ElementsAre("static_cast<A &&>(x)"));
 }
 
+// section: explicit std::move and std::forward testing
+
 TEST(ExprMutationAnalyzerTest, Move) {
   auto AST = buildASTFromCode(StdRemoveReference + StdMove +
                               "void f() { struct A {}; A x; std::move(x); }");
@@ -584,6 +586,9 @@ TEST(ExprMutationAnalyzerTest, Forward) {
               ElementsAre("std::forward<A &>(x) = y"));
 }
 
+// section: template constellations that prohibit reasoning about modifications
+//          as it depends on instantiations.
+
 TEST(ExprMutationAnalyzerTest, CallUnresolved) {
   auto AST =
       buildASTFromCodeWithArgs("template <class T> void f() { T x; g(x); }",
@@ -637,6 +642,8 @@ TEST(ExprMutationAnalyzerTest, CallUnresolved) {
   EXPECT_THAT(mutatedBy(Results, AST.get()), ElementsAre("T(x)"));
 }
 
+// section: return values
+
 TEST(ExprMutationAnalyzerTest, ReturnAsValue) {
   auto AST = buildASTFromCode("int f() { int x; return x; }");
   auto Results =
@@ -685,6 +692,8 @@ TEST(ExprMutationAnalyzerTest, ReturnAsConstRRef) {
               ElementsAre("static_cast<int &&>(x)"));
 }
 
+// section: taking the address of a variable and pointers
+
 TEST(ExprMutationAnalyzerTest, TakeAddress) {
   const auto AST = buildASTFromCode("void g(int*); void f() { int x; g(&x); }");
   const auto Results =
@@ -715,6 +724,9 @@ TEST(ExprMutationAnalyzerTest, TemplateWithArrayToPointerDecay) {
       match(withEnclosingCompound(declRefTo("y")), AST->getASTContext());
   EXPECT_THAT(mutatedBy(ResultsY, AST.get()), ElementsAre("y"));
 }
+
+// section: special case: all created references are non-mutating themself
+//          and therefore all become 'const'/the value is not modified!
 
 TEST(ExprMutationAnalyzerTest, FollowRefModified) {
   auto AST = buildASTFromCode(
@@ -887,6 +899,8 @@ TEST(ExprMutationAnalyzerTest, FollowFuncArgNotModified) {
   EXPECT_FALSE(isMutated(Results, AST.get()));
 }
 
+// section: builtin arrays
+
 TEST(ExprMutationAnalyzerTest, ArrayElementModified) {
   const auto AST = buildASTFromCode("void f() { int x[2]; x[0] = 10; }");
   const auto Results =
@@ -900,6 +914,8 @@ TEST(ExprMutationAnalyzerTest, ArrayElementNotModified) {
       match(withEnclosingCompound(declRefTo("x")), AST->getASTContext());
   EXPECT_FALSE(isMutated(Results, AST.get()));
 }
+
+// section: member modifications
 
 TEST(ExprMutationAnalyzerTest, NestedMemberModified) {
   auto AST =
@@ -943,6 +959,8 @@ TEST(ExprMutationAnalyzerTest, NestedMemberNotModified) {
   Results = match(withEnclosingCompound(declRefTo("x")), AST->getASTContext());
   EXPECT_FALSE(isMutated(Results, AST.get()));
 }
+
+// section: casts
 
 TEST(ExprMutationAnalyzerTest, CastToValue) {
   const auto AST =
@@ -988,6 +1006,8 @@ TEST(ExprMutationAnalyzerTest, CastToConstRef) {
   Results = match(withEnclosingCompound(declRefTo("x")), AST->getASTContext());
   EXPECT_FALSE(isMutated(Results, AST.get()));
 }
+
+// section: comma expressions
 
 TEST(ExprMutationAnalyzerTest, CommaExprWithAnAssigment) {
   const auto AST = buildASTFromCodeWithArgs(
@@ -1115,6 +1135,8 @@ TEST(ExprMutationAnalyzerTest, CommaExprAsUniquePtr) {
   EXPECT_TRUE(isMutated(Results, AST.get()));
 }
 
+// section: lambda captures
+
 TEST(ExprMutationAnalyzerTest, LambdaDefaultCaptureByValue) {
   const auto AST = buildASTFromCode("void f() { int x; [=]() { x; }; }");
   const auto Results =
@@ -1144,6 +1166,8 @@ TEST(ExprMutationAnalyzerTest, LambdaExplicitCaptureByRef) {
   EXPECT_THAT(mutatedBy(Results, AST.get()),
               ElementsAre(ResultOf(removeSpace, "[&x](){x=10;}")));
 }
+
+// section: range-for loops
 
 TEST(ExprMutationAnalyzerTest, RangeForArrayByRefModified) {
   auto AST =
@@ -1235,6 +1259,8 @@ TEST(ExprMutationAnalyzerTest, RangeForNonArrayByConstRef) {
   EXPECT_FALSE(isMutated(Results, AST.get()));
 }
 
+// section: unevaluated expressions
+
 TEST(ExprMutationAnalyzerTest, UnevaluatedExpressions) {
   auto AST = buildASTFromCode("void f() { int x, y; decltype(x = 10) z = y; }");
   auto Results =
@@ -1287,6 +1313,8 @@ TEST(ExprMutationAnalyzerTest, NotUnevaluatedExpressions) {
   Results = match(withEnclosingCompound(declRefTo("x")), AST->getASTContext());
   EXPECT_THAT(mutatedBy(Results, AST.get()), ElementsAre("x.f()"));
 }
+
+// section: special case: smartpointers
 
 TEST(ExprMutationAnalyzerTest, UniquePtr) {
   const std::string UniquePtrDef =
@@ -1344,6 +1372,8 @@ TEST(ExprMutationAnalyzerTest, UniquePtr) {
   Results = match(withEnclosingCompound(declRefTo("x")), AST->getASTContext());
   EXPECT_THAT(mutatedBy(Results, AST.get()), ElementsAre("x->mf()"));
 }
+
+// section: complex problems detected on real code
 
 TEST(ExprMutationAnalyzerTest, UnevaluatedContext) {
   const std::string Example =
