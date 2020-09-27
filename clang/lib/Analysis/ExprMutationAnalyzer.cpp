@@ -312,8 +312,11 @@ const Stmt *ExprMutationAnalyzer::findDirectMutation(const Expr *Exp) {
             memberExpr(hasObjectExpression(canResolveToExpr(equalsNode(Exp))))),
       nonConstReferenceType());
   const auto NotInstantiated = unless(hasDeclaration(isInstantiated()));
+
   const auto AsNonConstRefArg = anyOf(
       callExpr(NonConstRefParam, NotInstantiated),
+      callExpr(hasAnyArgument(canResolveToExpr(equalsNode(Exp))),
+               isTypeDependent()),
       cxxConstructExpr(NonConstRefParam, NotInstantiated),
       callExpr(callee(expr(anyOf(unresolvedLookupExpr(), unresolvedMemberExpr(),
                                  cxxDependentScopeMemberExpr(),
