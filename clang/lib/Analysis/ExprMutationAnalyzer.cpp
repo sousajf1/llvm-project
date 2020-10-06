@@ -63,9 +63,10 @@ AST_MATCHER_P(Expr, canResolveToExpr, ast_matchers::internal::Matcher<Expr>,
       hasTrueExpression(ignoringParens(canResolveToExpr(InnerMatcher))),
       hasFalseExpression(ignoringParens(canResolveToExpr(InnerMatcher)))));
 
-  auto const ComplexMatcher = ignoringParens(expr(
-      anyOf(IgnoreDerivedToBase(InnerMatcher), maybeEvalCommaExpr(InnerMatcher),
-            IgnoreDerivedToBase(ConditionalOperator))));
+  auto const ComplexMatcher = ignoringParens(
+      expr(anyOf(IgnoreDerivedToBase(InnerMatcher),
+                 maybeEvalCommaExpr(IgnoreDerivedToBase(InnerMatcher)),
+                 IgnoreDerivedToBase(ConditionalOperator))));
 
   return ComplexMatcher.matches(Node, Finder, Builder);
 }

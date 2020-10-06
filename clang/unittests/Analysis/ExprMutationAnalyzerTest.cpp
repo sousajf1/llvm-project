@@ -437,22 +437,21 @@ TEST(ExprMutationAnalyzerTest, ByNonConstRefArgumentFunctionTypeDependent) {
       "    CB(x);"
       "  }"
       "}"
-      // "void usage1() {"
-      // "  auto const_lambda = [](int arg) { (void) arg; };"
-      // "  foreachUse(const_lambda);"
-      // "}"
-      // "void usage2() {"
-      // "  int number = 42;"
-      // "  auto mod_lambda = [&](int& arg) { arg+= number; };"
-      // "  foreachUse(mod_lambda);"
-      // "}"
-  );
+      "void usage1() {"
+      "  auto const_lambda = [](int arg) { (void) arg; };"
+      "  foreachUse(const_lambda);"
+      "}"
+      "void usage2() {"
+      "  int number = 42;"
+      "  auto mod_lambda = [&](int& arg) { arg+= number; };"
+      "  foreachUse(mod_lambda);"
+      "}");
   auto Results =
       match(withEnclosingCompound(declRefTo("x")), AST->getASTContext());
   EXPECT_THAT(mutatedBy(Results, AST.get()), ElementsAre("CB(x)"));
 #endif
 
-#if 0
+#if 1
   AST = buildASTFromCodeWithArgs(
       "enum MyEnum { foo, bar };"
       "void tryParser(unsigned& first, MyEnum Type) { first++, (void)Type; }"
