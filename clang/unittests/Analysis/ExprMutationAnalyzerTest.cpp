@@ -426,7 +426,7 @@ TEST(ExprMutationAnalyzerTest, ByNonConstRefArgument) {
 }
 
 TEST(ExprMutationAnalyzerTest, ByNonConstRefArgumentFunctionTypeDependent) {
-#if 0
+#if 1
   // This testcase did not actually reproduce a problem. Maybe the second one
   // points to the same issue!
   auto AST = buildASTFromCode(
@@ -437,32 +437,35 @@ TEST(ExprMutationAnalyzerTest, ByNonConstRefArgumentFunctionTypeDependent) {
       "    CB(x);"
       "  }"
       "}"
-      "void usage1() {"
-      "  auto const_lambda = [](int arg) { (void) arg; };"
-      "  foreachUse(const_lambda);"
-      "}"
-      "void usage2() {"
-      "  int number = 42;"
-      "  auto mod_lambda = [&](int& arg) { arg+= number; };"
-      "  foreachUse(mod_lambda);"
-      "}");
+      // "void usage1() {"
+      // "  auto const_lambda = [](int arg) { (void) arg; };"
+      // "  foreachUse(const_lambda);"
+      // "}"
+      // "void usage2() {"
+      // "  int number = 42;"
+      // "  auto mod_lambda = [&](int& arg) { arg+= number; };"
+      // "  foreachUse(mod_lambda);"
+      // "}"
+  );
   auto Results =
       match(withEnclosingCompound(declRefTo("x")), AST->getASTContext());
   EXPECT_THAT(mutatedBy(Results, AST.get()), ElementsAre("CB(x)"));
 #endif
 
-  auto AST = buildASTFromCodeWithArgs(
+#if 0
+  AST = buildASTFromCodeWithArgs(
       "enum MyEnum { foo, bar };"
       "void tryParser(unsigned& first, MyEnum Type) { first++, (void)Type; }"
       "template <MyEnum Type> void parse() {"
-      "    auto parser = [](unsigned& second) { tryParser(second, Type); };"
-      "    unsigned x = 42;"
-      "    parser(x);"
+      "  auto parser = [](unsigned& first) { first++; tryParser(first, Type); };"
+      "  unsigned x = 42;"
+      "  parser(x);"
       "}",
       {"-fno-delayed-template-parsing"});
-  auto Results =
+  Results =
       match(withEnclosingCompound(declRefTo("x")), AST->getASTContext());
   EXPECT_THAT(mutatedBy(Results, AST.get()), ElementsAre("parser(x)"));
+#endif
 }
 
 TEST(ExprMutationAnalyzerTest, ByConstRefArgument) {
@@ -1186,6 +1189,16 @@ TEST(ExprMutationAnalyzerTest, CommaExprAsUniquePtr) {
   const auto Results =
       match(withEnclosingCompound(declRefTo("x")), AST->getASTContext());
   EXPECT_TRUE(isMutated(Results, AST.get()));
+}
+
+TEST(ExprMutationAnalyzerTest, CommaNestedConditional) {
+  const std::string Code = "void f() { int x, y = 42;"
+                           " y, (true ? x : y) = 42; }";
+  const auto AST = buildASTFromCodeWithArgs(Code, {"-Wno-unused-value"});
+  const auto Results =
+      match(withEnclosingCompound(declRefTo("x")), AST->getASTContext());
+  EXPECT_THAT(mutatedBy(Results, AST.get()),
+              ElementsAre("(true ? x : y) = 42"));
 }
 
 // section: lambda captures

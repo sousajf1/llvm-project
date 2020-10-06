@@ -48,17 +48,25 @@ AST_MATCHER_P(Expr, canResolveToExpr, ast_matchers::internal::Matcher<Expr>,
   };
   // Matches unless the value is a derived class and is assigned to a
   // reference to the base class. Other implicit casts should not happen.
-  const auto IgnoreDerivedToBase = ignoringParens(expr(
-      anyOf(InnerMatcher,
-            DerivedToBase(canResolveToExpr(ignoringParens(InnerMatcher))))));
+  auto IgnoreDerivedToBase =
+      [&DerivedToBase](const ast_matchers::internal::Matcher<Expr> &Inner) {
+        return ignoringParens(expr(anyOf(Inner, DerivedToBase(Inner))));
+      };
 
-  auto const ComplexMatcher = ignoringParens(
-      expr(anyOf(maybeEvalCommaExpr(IgnoreDerivedToBase),
-                 conditionalOperator(
-                     anyOf(hasTrueExpression(ignoringParens(
-                               canResolveToExpr(IgnoreDerivedToBase))),
-                           hasFalseExpression(ignoringParens(
-                               canResolveToExpr(IgnoreDerivedToBase))))))));
+  // The 'ConditionalOperator' matches on `<anything> ? <expr> : <expr>`.
+  // This matching must be recursive, because <expr> can be anything resolving
+  // to the `InnerMatcher`, for example another conditional operator.
+  // The edge-case `BaseClass &b = <cond> ? DerivedVar1 : DerivedVar2;`
+  // is handled, too. The implicit cast happens outside of the conditional.
+  // This is matched by `DerivedToBase(canResolveToExpr(InnerMatcher))` below.
+  auto const ConditionalOperator = conditionalOperator(anyOf(
+      hasTrueExpression(ignoringParens(canResolveToExpr(InnerMatcher))),
+      hasFalseExpression(ignoringParens(canResolveToExpr(InnerMatcher)))));
+
+  auto const ComplexMatcher = ignoringParens(expr(
+      anyOf(IgnoreDerivedToBase(InnerMatcher), maybeEvalCommaExpr(InnerMatcher),
+            IgnoreDerivedToBase(ConditionalOperator))));
+
   return ComplexMatcher.matches(Node, Finder, Builder);
 }
 
@@ -312,15 +320,23 @@ const Stmt *ExprMutationAnalyzer::findDirectMutation(const Expr *Exp) {
             memberExpr(hasObjectExpression(canResolveToExpr(equalsNode(Exp))))),
       nonConstReferenceType());
   const auto NotInstantiated = unless(hasDeclaration(isInstantiated()));
+  const auto TypeDependentCallee = callee(
+      expr(anyOf(unresolvedLookupExpr(), unresolvedMemberExpr(),
+                 cxxDependentScopeMemberExpr(), hasType(templateTypeParmType())
+#if 1
+                                                    ,
+                 isTypeDependent())));
+#else
+                                                    ,
+                 // Lambdas as type parameter are caught by this.
+                 , ignoringParenImpCasts(declRefExpr(
+                       to(varDecl(hasType(substTemplateTypeParmType()))))))));
+#endif
 
   const auto AsNonConstRefArg = anyOf(
       callExpr(NonConstRefParam, NotInstantiated),
-      callExpr(hasAnyArgument(canResolveToExpr(equalsNode(Exp))),
-               isTypeDependent()),
       cxxConstructExpr(NonConstRefParam, NotInstantiated),
-      callExpr(callee(expr(anyOf(unresolvedLookupExpr(), unresolvedMemberExpr(),
-                                 cxxDependentScopeMemberExpr(),
-                                 hasType(templateTypeParmType())))),
+      callExpr(TypeDependentCallee,
                hasAnyArgument(canResolveToExpr(equalsNode(Exp)))),
       cxxUnresolvedConstructExpr(
           hasAnyArgument(canResolveToExpr(equalsNode(Exp)))),
