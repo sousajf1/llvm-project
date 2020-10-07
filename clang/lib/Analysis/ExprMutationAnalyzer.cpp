@@ -46,19 +46,18 @@ AST_MATCHER_P(Expr, canResolveToExpr, ast_matchers::internal::Matcher<Expr>,
                                   hasCastKind(CK_UncheckedDerivedToBase)),
                             hasSourceExpression(Inner));
   };
-  // Matches unless the value is a derived class and is assigned to a
-  // reference to the base class. Other implicit casts should not happen.
   auto IgnoreDerivedToBase =
       [&DerivedToBase](const ast_matchers::internal::Matcher<Expr> &Inner) {
         return ignoringParens(expr(anyOf(Inner, DerivedToBase(Inner))));
       };
 
   // The 'ConditionalOperator' matches on `<anything> ? <expr> : <expr>`.
-  // This matching must be recursive, because <expr> can be anything resolving
+  // This matching must be recursive because `<expr>` can be anything resolving
   // to the `InnerMatcher`, for example another conditional operator.
   // The edge-case `BaseClass &b = <cond> ? DerivedVar1 : DerivedVar2;`
   // is handled, too. The implicit cast happens outside of the conditional.
-  // This is matched by `DerivedToBase(canResolveToExpr(InnerMatcher))` below.
+  // This is matched by `IgnoreDerivedToBase(canResolveToExpr(InnerMatcher))`
+  // below.
   auto const ConditionalOperator = conditionalOperator(anyOf(
       hasTrueExpression(ignoringParens(canResolveToExpr(InnerMatcher))),
       hasFalseExpression(ignoringParens(canResolveToExpr(InnerMatcher)))));
@@ -282,7 +281,7 @@ const Stmt *ExprMutationAnalyzer::findDirectMutation(const Expr *Exp) {
                                 canResolveToExpr(equalsNode(Exp)))),
                             cxxDependentScopeMemberExpr(hasObjectExpression(
                                 canResolveToExpr(equalsNode(Exp)))))))),
-      // Match on a call to a know method, but the call itself is type
+      // Match on a call to a known method, but the call itself is type
       // dependent (e.g. `vector<T> v; v.push(T{});` in a templated function).
       callExpr(allOf(isTypeDependent(),
                      callee(memberExpr(hasDeclaration(NonConstMethod),
@@ -321,18 +320,10 @@ const Stmt *ExprMutationAnalyzer::findDirectMutation(const Expr *Exp) {
             memberExpr(hasObjectExpression(canResolveToExpr(equalsNode(Exp))))),
       nonConstReferenceType());
   const auto NotInstantiated = unless(hasDeclaration(isInstantiated()));
-  const auto TypeDependentCallee = callee(
-      expr(anyOf(unresolvedLookupExpr(), unresolvedMemberExpr(),
-                 cxxDependentScopeMemberExpr(), hasType(templateTypeParmType())
-#if 1
-                                                    ,
-                 isTypeDependent())));
-#else
-                                                    ,
-                 // Lambdas as type parameter are caught by this.
-                 , ignoringParenImpCasts(declRefExpr(
-                       to(varDecl(hasType(substTemplateTypeParmType()))))))));
-#endif
+  const auto TypeDependentCallee =
+      callee(expr(anyOf(unresolvedLookupExpr(), unresolvedMemberExpr(),
+                        cxxDependentScopeMemberExpr(),
+                        hasType(templateTypeParmType()), isTypeDependent())));
 
   const auto AsNonConstRefArg = anyOf(
       callExpr(NonConstRefParam, NotInstantiated),
@@ -362,11 +353,8 @@ const Stmt *ExprMutationAnalyzer::findDirectMutation(const Expr *Exp) {
   // For returning by value there will be an ImplicitCastExpr <LValueToRValue>.
   // For returning by const-ref there will be an ImplicitCastExpr <NoOp> (for
   // adding const.)
-  const auto AsNonConstRefReturn = returnStmt(hasReturnValue(
-      anyOf(canResolveToExpr(equalsNode(Exp)),
-            castExpr(allOf(
-                hasCastKind(CK_DerivedToBase),
-                hasSourceExpression(canResolveToExpr(equalsNode(Exp))))))));
+  const auto AsNonConstRefReturn =
+      returnStmt(hasReturnValue(canResolveToExpr(equalsNode(Exp))));
 
   // It is used as a non-const-reference for initalizing a range-for loop.
   const auto AsNonConstRefRangeInit = cxxForRangeStmt(
@@ -450,8 +438,8 @@ const Stmt *ExprMutationAnalyzer::findCastMutation(const Expr *Exp) {
 
 const Stmt *ExprMutationAnalyzer::findRangeLoopMutation(const Expr *Exp) {
   // Keep the ordering for the specific initialization matches to happen first,
-  // because it is cheaper to match then all potential modifications of the
-  // loop variable.
+  // because it is cheaper to match all potential modifications of the loop
+  // variable.
 
   // The range variable is a reference to a builtin array. In that case the
   // array is considered modified if the loop-variable is a non-const reference.

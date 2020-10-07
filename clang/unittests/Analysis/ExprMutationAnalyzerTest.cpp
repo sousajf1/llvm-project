@@ -115,8 +115,8 @@ class AssignmentTest : public ::testing::TestWithParam<std::string> {};
 
 // This test is for the most basic and direct modification of a variable,
 // assignment to it (e.g. `x = 10;`).
-// It additionally tests, that reference to a variable are not only captured
-// directly, but expression that result in the variable are handled, too.
+// It additionally tests that references to a variable are not only captured
+// directly but expressions that result in the variable are handled, too.
 // This includes the comma operator, parens and the ternary operator.
 TEST_P(AssignmentTest, AssignmentModifies) {
   // Test the detection of the raw expression modifications.
@@ -147,7 +147,7 @@ TEST_P(AssignmentTest, AssignmentModifies) {
     EXPECT_THAT(mutatedBy(Results, AST.get()), ElementsAre(ModExpr));
   }
 
-  // Ensure no detection if t he comma operator does not yield the expression as
+  // Ensure no detection if the comma operator does not yield the expression as
   // result.
   {
     const std::string ModExpr = "y, x, y " + GetParam() + " 10";
@@ -426,45 +426,19 @@ TEST(ExprMutationAnalyzerTest, ByNonConstRefArgument) {
 }
 
 TEST(ExprMutationAnalyzerTest, ByNonConstRefArgumentFunctionTypeDependent) {
-#if 1
-  // This testcase did not actually reproduce a problem. Maybe the second one
-  // points to the same issue!
-  auto AST = buildASTFromCode(
-      "template <typename CBTy> static void foreachUse(CBTy CB) {"
-      "  int array[4] = {1, 2, 3, 4};"
-      "  for (unsigned idx = 0; idx < 4; ++idx) {"
-      "    int &x = array[idx];"
-      "    CB(x);"
-      "  }"
-      "}"
-      "void usage1() {"
-      "  auto const_lambda = [](int arg) { (void) arg; };"
-      "  foreachUse(const_lambda);"
-      "}"
-      "void usage2() {"
-      "  int number = 42;"
-      "  auto mod_lambda = [&](int& arg) { arg+= number; };"
-      "  foreachUse(mod_lambda);"
-      "}");
-  auto Results =
-      match(withEnclosingCompound(declRefTo("x")), AST->getASTContext());
-  EXPECT_THAT(mutatedBy(Results, AST.get()), ElementsAre("CB(x)"));
-#endif
-
-#if 1
-  AST = buildASTFromCodeWithArgs(
+  auto AST = buildASTFromCodeWithArgs(
       "enum MyEnum { foo, bar };"
       "void tryParser(unsigned& first, MyEnum Type) { first++, (void)Type; }"
       "template <MyEnum Type> void parse() {"
-      "  auto parser = [](unsigned& first) { first++; tryParser(first, Type); };"
+      "  auto parser = [](unsigned& first) { first++; tryParser(first, Type); "
+      "};"
       "  unsigned x = 42;"
       "  parser(x);"
       "}",
       {"-fno-delayed-template-parsing"});
-  Results =
+  auto Results =
       match(withEnclosingCompound(declRefTo("x")), AST->getASTContext());
   EXPECT_THAT(mutatedBy(Results, AST.get()), ElementsAre("parser(x)"));
-#endif
 }
 
 TEST(ExprMutationAnalyzerTest, ByConstRefArgument) {
