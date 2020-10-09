@@ -113,7 +113,7 @@ void range_for() {
 
 void casts() {
   decltype(sizeof(void *)) p_local0 = 42;
-  // CHECK-MESSAGES: [[@LINE-1]]:3: warning: variable 'p_local0' of type 'decltype(sizeof(void *))' (aka 'unsigned long') can be declared 'const'
+  // CHECK-MESSAGES: [[@LINE-1]]:3: warning: variable 'p_local0' of type 'decltype(sizeof(void *))'
   // CHECK-FIXES: const
 }
 
