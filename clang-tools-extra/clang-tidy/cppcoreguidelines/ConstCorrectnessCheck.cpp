@@ -102,7 +102,7 @@ void ConstCorrectnessCheck::check(const MatchFinder::MatchResult &Result) {
   if (Variable->getType()->isPointerType())
     VC = VariableCategory::Pointer;
 
-  // Each variable can only in one category: Value, Pointer, Reference.
+  // Each variable can only be in one category: Value, Pointer, Reference.
   // Analysis can be controlled for every category.
   if (VC == VariableCategory::Reference && !AnalyzeReferences)
     return;

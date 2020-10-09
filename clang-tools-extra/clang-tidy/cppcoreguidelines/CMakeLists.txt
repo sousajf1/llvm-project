@@ -30,11 +30,6 @@ add_clang_library(clangTidyCppCoreGuidelinesModule
 
   LINK_LIBS
   clangAnalysis
-  clangAST
-  clangASTMatchers
-  clangBasic
-  clangLex
-  clangSerialization
   clangTidy
   clangTidyMiscModule
   clangTidyModernizeModule
