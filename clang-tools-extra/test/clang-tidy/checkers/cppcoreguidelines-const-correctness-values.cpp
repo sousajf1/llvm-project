@@ -520,7 +520,7 @@ void conversion_operators() {
 
 void casts() {
   decltype(sizeof(void *)) p_local0 = 42;
-  // CHECK-MESSAGES: [[@LINE-1]]:3: warning: variable 'p_local0' of type 'decltype(sizeof(void *))' (aka 'unsigned long') can be declared 'const'
+  // CHECK-MESSAGES: [[@LINE-1]]:3: warning: variable 'p_local0' of type 'decltype(sizeof(void *))'
   auto np_local0 = reinterpret_cast<void *>(p_local0);
   np_local0 = nullptr;
 
