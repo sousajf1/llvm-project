@@ -61,11 +61,15 @@ AST_MATCHER_P(Expr, canResolveToExpr, ast_matchers::internal::Matcher<Expr>,
   auto const ConditionalOperator = conditionalOperator(anyOf(
       hasTrueExpression(ignoringParens(canResolveToExpr(InnerMatcher))),
       hasFalseExpression(ignoringParens(canResolveToExpr(InnerMatcher)))));
+  auto const ElvisOperator = binaryConditionalOperator(anyOf(
+      hasTrueExpression(ignoringParens(canResolveToExpr(InnerMatcher))),
+      hasFalseExpression(ignoringParens(canResolveToExpr(InnerMatcher)))));
 
   auto const ComplexMatcher = ignoringParens(
       expr(anyOf(IgnoreDerivedToBase(InnerMatcher),
                  maybeEvalCommaExpr(IgnoreDerivedToBase(InnerMatcher)),
-                 IgnoreDerivedToBase(ConditionalOperator))));
+                 IgnoreDerivedToBase(ConditionalOperator),
+                 IgnoreDerivedToBase(ElvisOperator))));
 
   return ComplexMatcher.matches(Node, Finder, Builder);
 }

@@ -3848,9 +3848,23 @@ struct AAAlignFloating : AAAlignImpl {
                             AAAlign::StateType &T, bool Stripped) -> bool {
       const auto &AA = A.getAAFor<AAAlign>(*this, IRPosition::value(V));
       if (!Stripped && this == &AA) {
+        int64_t Offset;
+        unsigned Alignment = 1;
+        if (const Value *Base =
+                GetPointerBaseWithConstantOffset(&V, Offset, DL)) {
+          Align PA = Base->getPointerAlignment(DL);
+          // BasePointerAddr + Offset = Alignment * Q for some integer Q.
+          // So we can say that the maximum power of two which is a divisor of
+          // gcd(Offset, Alignment) is an alignment.
+
+          uint32_t gcd = greatestCommonDivisor(uint32_t(abs((int32_t)Offset)),
+                                               uint32_t(PA.value()));
+          Alignment = llvm::PowerOf2Floor(gcd);
+        } else {
+          Alignment = V.getPointerAlignment(DL).value();
+        }
         // Use only IR information if we did not strip anything.
-        Align PA = V.getPointerAlignment(DL);
-        T.takeKnownMaximum(PA.value());
+        T.takeKnownMaximum(Alignment);
         T.indicatePessimisticFixpoint();
       } else {
         // Use abstract attribute information.
@@ -4007,6 +4021,17 @@ struct AANoReturnFunction final : AANoReturnImpl {
 struct AANoReturnCallSite final : AANoReturnImpl {
   AANoReturnCallSite(const IRPosition &IRP, Attributor &A)
       : AANoReturnImpl(IRP, A) {}
+
+  /// See AbstractAttribute::initialize(...).
+  void initialize(Attributor &A) override {
+    AANoReturnImpl::initialize(A);
+    if (Function *F = getAssociatedFunction()) {
+      const IRPosition &FnPos = IRPosition::function(*F);
+      auto &FnAA = A.getAAFor<AANoReturn>(*this, FnPos);
+      if (!FnAA.isAssumedNoReturn())
+        indicatePessimisticFixpoint();
+    }
+  }
 
   /// See AbstractAttribute::updateImpl(...).
   ChangeStatus updateImpl(Attributor &A) override {
@@ -6594,6 +6619,7 @@ void AAMemoryLocationImpl::categorizePtrValue(
   auto VisitValueCB = [&](Value &V, const Instruction *,
                           AAMemoryLocation::StateType &T,
                           bool Stripped) -> bool {
+    // TODO: recognize the TBAA used for constant accesses.
     MemoryLocationsKind MLK = NO_LOCATIONS;
     assert(!isa<GEPOperator>(V) && "GEPs should have been stripped.");
     if (isa<UndefValue>(V))
@@ -6604,6 +6630,13 @@ void AAMemoryLocationImpl::categorizePtrValue(
       else
         MLK = NO_ARGUMENT_MEM;
     } else if (auto *GV = dyn_cast<GlobalValue>(&V)) {
+      // Reading constant memory is not treated as a read "effect" by the
+      // function attr pass so we won't neither. Constants defined by TBAA are
+      // similar. (We know we do not write it because it is constant.)
+      if (auto *GVar = dyn_cast<GlobalVariable>(GV))
+        if (GVar->isConstant())
+          return true;
+
       if (GV->hasLocalLinkage())
         MLK = NO_GLOBAL_INTERNAL_MEM;
       else

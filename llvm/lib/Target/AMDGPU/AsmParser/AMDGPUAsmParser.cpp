@@ -3882,8 +3882,10 @@ bool AMDGPUAsmParser::MatchAndEmitInstruction(SMLoc IDLoc, unsigned &Opcode,
   switch (Result) {
   default: break;
   case Match_MissingFeature:
-    // FIXME: this case should be analyzed and error message corrected.
-    return Error(IDLoc, "instruction not supported on this GPU");
+    // It has been verified that the specified instruction
+    // mnemonic is valid. A match was found but it requires
+    // features which are not supported on this GPU.
+    return Error(IDLoc, "operands are not valid for this GPU or mode");
 
   case Match_InvalidOperand: {
     SMLoc ErrorLoc = IDLoc;
@@ -6887,6 +6889,8 @@ void AMDGPUAsmParser::cvtVOP3(MCInst &Inst, const OperandVector &Operands,
   if (Opc == AMDGPU::V_MAC_F32_e64_gfx6_gfx7 ||
       Opc == AMDGPU::V_MAC_F32_e64_gfx10 ||
       Opc == AMDGPU::V_MAC_F32_e64_vi ||
+      Opc == AMDGPU::V_MAC_LEGACY_F32_e64_gfx6_gfx7 ||
+      Opc == AMDGPU::V_MAC_LEGACY_F32_e64_gfx10 ||
       Opc == AMDGPU::V_MAC_F16_e64_vi ||
       Opc == AMDGPU::V_FMAC_F32_e64_gfx10 ||
       Opc == AMDGPU::V_FMAC_F32_e64_vi ||

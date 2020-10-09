@@ -7,6 +7,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "clang/Analysis/Analyses/ExprMutationAnalyzer.h"
+#include "clang/AST/TypeLoc.h"
 #include "clang/ASTMatchers/ASTMatchFinder.h"
 #include "clang/ASTMatchers/ASTMatchers.h"
 #include "clang/Tooling/Tooling.h"
@@ -184,6 +185,16 @@ TEST_P(AssignmentTest, AssignmentModifies) {
   // with additional parens.
   {
     const std::string ModExpr = "(y != 0 ? (y) : ((x))) " + GetParam() + " 10";
+    const auto AST =
+        buildASTFromCode("void f() { int y = 0, x; " + ModExpr + "; }");
+    const auto Results =
+        match(withEnclosingCompound(declRefTo("x")), AST->getASTContext());
+    EXPECT_THAT(mutatedBy(Results, AST.get()), ElementsAre(ModExpr));
+  }
+
+  // Test the detection for the binary conditional operator.
+  {
+    const std::string ModExpr = "(y ?: x) " + GetParam() + " 10";
     const auto AST =
         buildASTFromCode("void f() { int y = 0, x; " + ModExpr + "; }");
     const auto Results =
