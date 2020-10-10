@@ -1,4 +1,4 @@
-// RUN: %check_clang_tidy %s cppcoreguidelines-const-correctness %t -- -- -std=c++17
+// RUN: %check_clang_tidy %s cppcoreguidelines-const-correctness %t -- -- -std=c++17 -fno-delayed-template-parsing
 
 template <typename L, typename R>
 struct MyPair {

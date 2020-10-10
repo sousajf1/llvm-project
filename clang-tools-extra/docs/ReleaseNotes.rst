@@ -116,10 +116,6 @@ New checks
 
   Flags functions with Cognitive Complexity metric exceeding the configured limit.
 
-New check aliases
-^^^^^^^^^^^^^^^^^
->>>>>>> 8d940dfbccb... remove spurious formatting change
-
 Changes in existing checks
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 

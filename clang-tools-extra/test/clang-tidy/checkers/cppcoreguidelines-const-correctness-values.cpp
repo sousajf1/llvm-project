@@ -3,7 +3,7 @@
 // RUN:   {key: 'cppcoreguidelines-const-correctness.TransformValues', value: 1}, \
 // RUN:   {key: 'cppcoreguidelines-const-correctness.WarnPointersAsValues', value: 0}, \
 // RUN:   {key: 'cppcoreguidelines-const-correctness.TransformPointersAsValues', value: 0}, \
-// RUN:   ]}" --
+// RUN:   ]}" -- -- -fno-delayed-template-parsing
 
 // ------- Provide test samples for primitive builtins ---------
 // - every 'p_*' variable is a 'potential_const_*' variable
