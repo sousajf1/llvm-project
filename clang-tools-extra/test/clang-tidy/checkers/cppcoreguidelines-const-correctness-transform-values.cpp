@@ -3,7 +3,7 @@
 // RUN:   {key: 'cppcoreguidelines-const-correctness.TransformValues', value: 1},\
 // RUN:   {key: 'cppcoreguidelines-const-correctness.WarnPointersAsValues', value: 0}, \
 // RUN:   {key: 'cppcoreguidelines-const-correctness.TransformPointersAsValues', value: 0}, \
-// RUN:   ]}" -- -- -fno-delayed-template-parsing
+// RUN:   ]}" -- -fno-delayed-template-parsing
 
 bool global;
 char np_global = 0; // globals can't be known to be const

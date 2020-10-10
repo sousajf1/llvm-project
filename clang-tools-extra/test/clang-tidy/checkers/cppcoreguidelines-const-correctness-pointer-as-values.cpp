@@ -2,7 +2,7 @@
 // RUN: -config='{CheckOptions: \
 // RUN:  [{key: "cppcoreguidelines-const-correctness.AnalyzeValues", value: 1},\
 // RUN:   {key: "cppcoreguidelines-const-correctness.WarnPointersAsValues", value: 1}]}' \
-// RUN: -- -- -fno-delayed-template-parsing
+// RUN: -- -fno-delayed-template-parsing
 
 void potential_const_pointer() {
   double np_local0[10] = {0., 1., 2., 3., 4., 5., 6., 7., 8., 9.};
