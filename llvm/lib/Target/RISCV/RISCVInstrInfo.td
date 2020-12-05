@@ -44,8 +44,7 @@ def riscv_sret_flag : SDNode<"RISCVISD::SRET_FLAG", SDTNone,
                              [SDNPHasChain, SDNPOptInGlue]>;
 def riscv_mret_flag : SDNode<"RISCVISD::MRET_FLAG", SDTNone,
                              [SDNPHasChain, SDNPOptInGlue]>;
-def riscv_selectcc  : SDNode<"RISCVISD::SELECT_CC", SDT_RISCVSelectCC,
-                             [SDNPInGlue]>;
+def riscv_selectcc  : SDNode<"RISCVISD::SELECT_CC", SDT_RISCVSelectCC>;
 def riscv_tail      : SDNode<"RISCVISD::TAIL", SDT_RISCVCall,
                              [SDNPHasChain, SDNPOptInGlue, SDNPOutGlue,
                               SDNPVariadic]>;
@@ -161,6 +160,7 @@ def simm12_plus1 : Operand<XLenVT>, ImmLeaf<XLenVT,
 // A 13-bit signed immediate where the least significant bit is zero.
 def simm13_lsb0 : Operand<OtherVT> {
   let ParserMatchClass = SImmAsmOperand<13, "Lsb0">;
+  let PrintMethod = "printBranchOperand";
   let EncoderMethod = "getImmOpValueAsr1";
   let DecoderMethod = "decodeSImmOperandAndLsl1<13>";
   let MCOperandPredicate = [{
@@ -169,8 +169,7 @@ def simm13_lsb0 : Operand<OtherVT> {
       return isShiftedInt<12, 1>(Imm);
     return MCOp.isBareSymbolRef();
   }];
-  let OperandType = "OPERAND_SIMM13_LSB0";
-  let OperandNamespace = "RISCVOp";
+  let OperandType = "OPERAND_PCREL";
 }
 
 class UImm20Operand : Operand<XLenVT> {
@@ -200,6 +199,7 @@ def Simm21Lsb0JALAsmOperand : SImmAsmOperand<21, "Lsb0JAL"> {
 // A 21-bit signed immediate where the least significant bit is zero.
 def simm21_lsb0_jal : Operand<OtherVT> {
   let ParserMatchClass = Simm21Lsb0JALAsmOperand;
+  let PrintMethod = "printBranchOperand";
   let EncoderMethod = "getImmOpValueAsr1";
   let DecoderMethod = "decodeSImmOperandAndLsl1<21>";
   let MCOperandPredicate = [{
@@ -208,8 +208,7 @@ def simm21_lsb0_jal : Operand<OtherVT> {
       return isShiftedInt<20, 1>(Imm);
     return MCOp.isBareSymbolRef();
   }];
-  let OperandType = "OPERAND_SIMM21_LSB0";
-  let OperandNamespace = "RISCVOp";
+  let OperandType = "OPERAND_PCREL";
 }
 
 def BareSymbol : AsmOperandClass {
@@ -291,6 +290,11 @@ def immbottomxlenset : ImmLeaf<XLenVT, [{
   return countTrailingOnes<uint64_t>(Imm) >= 5;
 }]>;
 
+// A 6-bit constant greater than 32.
+def uimm6gt32 : ImmLeaf<XLenVT, [{
+  return isUInt<6>(Imm) && Imm > 32;
+}]>;
+
 // Addressing modes.
 // Necessary because a frameindex can't be matched directly in a pattern.
 def AddrFI : ComplexPattern<iPTR, 1, "SelectAddrFI", [frameindex], []>;
@@ -313,6 +317,12 @@ def HI20 : SDNodeXForm<imm, [{
 // Return the negation of an immediate value.
 def NegImm : SDNodeXForm<imm, [{
   return CurDAG->getTargetConstant(-N->getSExtValue(), SDLoc(N),
+                                   N->getValueType(0));
+}]>;
+
+// Return an immediate value minus 32.
+def ImmSub32 : SDNodeXForm<imm, [{
+  return CurDAG->getTargetConstant(N->getSExtValue() - 32, SDLoc(N),
                                    N->getValueType(0));
 }]>;
 
@@ -1109,12 +1119,14 @@ def ADJCALLSTACKUP   : Pseudo<(outs), (ins i32imm:$amt1, i32imm:$amt2),
 
 /// RV64 patterns
 
+let Predicates = [IsRV64, NotHasStdExtZbbOrZbp] in
+def : Pat<(and GPR:$rs1, 0xffffffff), (SRLI (SLLI GPR:$rs1, 32), 32)>;
+
 let Predicates = [IsRV64] in {
 
 /// sext and zext
 
 def : Pat<(sext_inreg GPR:$rs1, i32), (ADDIW GPR:$rs1, 0)>;
-def : Pat<(and GPR:$rs1, 0xffffffff), (SRLI (SLLI GPR:$rs1, 32), 32)>;
 
 /// ALU operations
 
@@ -1128,8 +1140,12 @@ def : Pat<(sext_inreg (shl GPR:$rs1, uimm5:$shamt), i32),
           (SLLIW GPR:$rs1, uimm5:$shamt)>;
 // (srl (zexti32 ...), uimm5:$shamt) is matched with custom code due to the
 // need to undo manipulation of the mask value performed by DAGCombine.
+def : Pat<(srl (shl GPR:$rs1, (i64 32)), uimm6gt32:$shamt),
+          (SRLIW GPR:$rs1, (ImmSub32 uimm6gt32:$shamt))>;
 def : Pat<(sra (sext_inreg GPR:$rs1, i32), uimm5:$shamt),
           (SRAIW GPR:$rs1, uimm5:$shamt)>;
+def : Pat<(sra (shl GPR:$rs1, (i64 32)), uimm6gt32:$shamt),
+          (SRAIW GPR:$rs1, (ImmSub32 uimm6gt32:$shamt))>;
 
 def : PatGprGpr<riscv_sllw, SLLW>;
 def : PatGprGpr<riscv_srlw, SRLW>;
@@ -1179,3 +1195,4 @@ include "RISCVInstrInfoD.td"
 include "RISCVInstrInfoC.td"
 include "RISCVInstrInfoB.td"
 include "RISCVInstrInfoV.td"
+include "RISCVInstrInfoZfh.td"
