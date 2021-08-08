@@ -6,9 +6,9 @@ target triple = "x86_64-unknown-linux-gnux32"
 
 %struct.a = type { [65 x i32] }
 
-@c = global %struct.a zeroinitializer, align 4
+@c = dso_local global %struct.a zeroinitializer, align 4
 
-define void @e() nounwind {
+define dso_local void @e() nounwind {
 ; CHECK-LABEL: e:
 ; CHECK:       # %bb.0: # %entry
 ; CHECK-NEXT:    pushq %rbx # encoding: [0x53]
@@ -42,6 +42,6 @@ entry:
   ret void
 }
 
-declare void @d(%struct.a* byval(%struct.a) align 8) local_unnamed_addr #1
+declare dso_local void @d(%struct.a* byval(%struct.a) align 8) local_unnamed_addr #1
 
-declare void @llvm.memcpy.p0i8.p0i8.i32(i8* nocapture writeonly, i8* nocapture readonly, i32, i1)
+declare dso_local void @llvm.memcpy.p0i8.p0i8.i32(i8* nocapture writeonly, i8* nocapture readonly, i32, i1)

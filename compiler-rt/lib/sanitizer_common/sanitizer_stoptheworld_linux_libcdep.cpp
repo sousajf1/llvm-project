@@ -108,7 +108,7 @@ struct TracerThreadArgument {
   void *callback_argument;
   // The tracer thread waits on this mutex while the parent finishes its
   // preparations.
-  BlockingMutex mutex;
+  Mutex mutex;
   // Tracer thread signals its completion by setting done.
   atomic_uintptr_t done;
   uptr parent_pid;
@@ -489,6 +489,9 @@ typedef user_regs_struct regs_struct;
 // Support ptrace extensions even when compiled without required kernel support
 #ifndef NT_X86_XSTATE
 #define NT_X86_XSTATE 0x202
+#endif
+#ifndef PTRACE_GETREGSET
+#define PTRACE_GETREGSET 0x4204
 #endif
 // Compiler may use FP registers to store pointers.
 static constexpr uptr kExtraRegs[] = {NT_X86_XSTATE, NT_FPREGSET};

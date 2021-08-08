@@ -1,5 +1,5 @@
-// RUN: mlir-opt %s -inline="disable-simplify" | FileCheck %s
-// RUN: mlir-opt %s -inline="disable-simplify" -mlir-print-debuginfo -mlir-print-local-scope | FileCheck %s --check-prefix INLINE-LOC
+// RUN: mlir-opt %s -inline='default-pipeline=''' | FileCheck %s
+// RUN: mlir-opt %s -inline='default-pipeline=''' -mlir-print-debuginfo -mlir-print-local-scope | FileCheck %s --check-prefix INLINE-LOC
 // RUN: mlir-opt %s -inline | FileCheck %s --check-prefix INLINE_SIMPLIFY
 
 // Inline a function that takes an argument.
@@ -140,9 +140,9 @@ func @convert_callee_fn_multiblock() -> i32 {
 
 // CHECK-LABEL: func @inline_convert_result_multiblock
 func @inline_convert_result_multiblock() -> i16 {
-// CHECK:   br ^bb1
+// CHECK:   br ^bb1 {inlined_conversion}
 // CHECK: ^bb1:
-// CHECK:   %[[C:.+]] = constant 0 : i32
+// CHECK:   %[[C:.+]] = constant {inlined_conversion} 0 : i32
 // CHECK:   br ^bb2(%[[C]] : i32)
 // CHECK: ^bb2(%[[BBARG:.+]]: i32):
 // CHECK:   %[[CAST_RESULT:.+]] = "test.cast"(%[[BBARG]]) : (i32) -> i16

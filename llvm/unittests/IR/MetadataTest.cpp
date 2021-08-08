@@ -2459,9 +2459,10 @@ TEST_F(DIModuleTest, get) {
   StringRef Includes = "-I.";
   StringRef APINotes = "/tmp/m.apinotes";
   unsigned LineNo = 4;
+  bool IsDecl = true;
 
   auto *N = DIModule::get(Context, File, Scope, Name, ConfigMacro, Includes,
-                          APINotes, LineNo);
+                          APINotes, LineNo, IsDecl);
 
   EXPECT_EQ(dwarf::DW_TAG_module, N->getTag());
   EXPECT_EQ(File, N->getFile());
@@ -2471,22 +2472,25 @@ TEST_F(DIModuleTest, get) {
   EXPECT_EQ(Includes, N->getIncludePath());
   EXPECT_EQ(APINotes, N->getAPINotesFile());
   EXPECT_EQ(LineNo, N->getLineNo());
+  EXPECT_EQ(IsDecl, N->getIsDecl());
   EXPECT_EQ(N, DIModule::get(Context, File, Scope, Name, ConfigMacro, Includes,
-                             APINotes, LineNo));
+                             APINotes, LineNo, IsDecl));
   EXPECT_NE(N, DIModule::get(Context, getFile(), getFile(), Name, ConfigMacro,
-                             Includes, APINotes, LineNo));
+                             Includes, APINotes, LineNo, IsDecl));
   EXPECT_NE(N, DIModule::get(Context, File, Scope, "other", ConfigMacro,
-                             Includes, APINotes, LineNo));
+                             Includes, APINotes, LineNo, IsDecl));
   EXPECT_NE(N, DIModule::get(Context, File, Scope, Name, "other", Includes,
-                             APINotes, LineNo));
+                             APINotes, LineNo, IsDecl));
   EXPECT_NE(N, DIModule::get(Context, File, Scope, Name, ConfigMacro, "other",
-                             APINotes, LineNo));
+                             APINotes, LineNo, IsDecl));
   EXPECT_NE(N, DIModule::get(Context, File, Scope, Name, ConfigMacro, Includes,
-                             "other", LineNo));
+                             "other", LineNo, IsDecl));
   EXPECT_NE(N, DIModule::get(Context, getFile(), Scope, Name, ConfigMacro,
-                             Includes, APINotes, LineNo));
+                             Includes, APINotes, LineNo, IsDecl));
   EXPECT_NE(N, DIModule::get(Context, File, Scope, Name, ConfigMacro, Includes,
-                             APINotes, 5));
+                             APINotes, 5, IsDecl));
+  EXPECT_NE(N, DIModule::get(Context, File, Scope, Name, ConfigMacro, Includes,
+                             APINotes, LineNo, false));
 
   TempDIModule Temp = N->clone();
   EXPECT_EQ(N, MDNode::replaceWithUniqued(std::move(Temp)));
@@ -2862,6 +2866,83 @@ TEST_F(DIExpressionTest, createFragmentExpression) {
 #undef EXPECT_INVALID_FRAGMENT
 }
 
+TEST_F(DIExpressionTest, replaceArg) {
+#define EXPECT_REPLACE_ARG_EQ(Expr, OldArg, NewArg, ...)                       \
+  do {                                                                         \
+    uint64_t Elements[] = {__VA_ARGS__};                                       \
+    ArrayRef<uint64_t> Expected = Elements;                                    \
+    DIExpression *Expression = DIExpression::replaceArg(Expr, OldArg, NewArg); \
+    EXPECT_EQ(Expression->getElements(), Expected);                            \
+  } while (false)
+
+  auto N = DIExpression::get(
+      Context, {dwarf::DW_OP_LLVM_arg, 0, dwarf::DW_OP_LLVM_arg, 1,
+                dwarf::DW_OP_plus, dwarf::DW_OP_LLVM_arg, 2, dwarf::DW_OP_mul});
+  EXPECT_REPLACE_ARG_EQ(N, 0, 1, dwarf::DW_OP_LLVM_arg, 0,
+                        dwarf::DW_OP_LLVM_arg, 0, dwarf::DW_OP_plus,
+                        dwarf::DW_OP_LLVM_arg, 1, dwarf::DW_OP_mul);
+  EXPECT_REPLACE_ARG_EQ(N, 0, 2, dwarf::DW_OP_LLVM_arg, 1,
+                        dwarf::DW_OP_LLVM_arg, 0, dwarf::DW_OP_plus,
+                        dwarf::DW_OP_LLVM_arg, 1, dwarf::DW_OP_mul);
+  EXPECT_REPLACE_ARG_EQ(N, 2, 0, dwarf::DW_OP_LLVM_arg, 0,
+                        dwarf::DW_OP_LLVM_arg, 1, dwarf::DW_OP_plus,
+                        dwarf::DW_OP_LLVM_arg, 0, dwarf::DW_OP_mul);
+  EXPECT_REPLACE_ARG_EQ(N, 2, 1, dwarf::DW_OP_LLVM_arg, 0,
+                        dwarf::DW_OP_LLVM_arg, 1, dwarf::DW_OP_plus,
+                        dwarf::DW_OP_LLVM_arg, 1, dwarf::DW_OP_mul);
+
+#undef EXPECT_REPLACE_ARG_EQ
+}
+
+TEST_F(DIExpressionTest, foldConstant) {
+  const ConstantInt *Int;
+  const ConstantInt *NewInt;
+  DIExpression *Expr;
+  DIExpression *NewExpr;
+
+#define EXPECT_FOLD_CONST(StartWidth, StartValue, EndWidth, EndValue, NumElts)  \
+  Int = ConstantInt::get(Context, APInt(StartWidth, StartValue));               \
+  std::tie(NewExpr, NewInt) = Expr->constantFold(Int);                          \
+  ASSERT_EQ(NewInt->getBitWidth(), EndWidth##u);                                \
+  EXPECT_EQ(NewInt->getValue(), APInt(EndWidth, EndValue));                     \
+  EXPECT_EQ(NewExpr->getNumElements(), NumElts##u)
+
+  // Unfoldable expression should return the original unmodified Int/Expr.
+  Expr = DIExpression::get(Context, {dwarf::DW_OP_deref});
+  EXPECT_FOLD_CONST(32, 117, 32, 117, 1);
+  EXPECT_EQ(NewExpr, Expr);
+  EXPECT_EQ(NewInt, Int);
+  EXPECT_TRUE(NewExpr->startsWithDeref());
+
+  // One unsigned bit-width conversion.
+  Expr = DIExpression::get(
+      Context, {dwarf::DW_OP_LLVM_convert, 72, dwarf::DW_ATE_unsigned});
+  EXPECT_FOLD_CONST(8, 12, 72, 12, 0);
+
+  // Two unsigned bit-width conversions (mask truncation).
+  Expr = DIExpression::get(
+      Context, {dwarf::DW_OP_LLVM_convert, 8, dwarf::DW_ATE_unsigned,
+                dwarf::DW_OP_LLVM_convert, 16, dwarf::DW_ATE_unsigned});
+  EXPECT_FOLD_CONST(32, -1, 16, 0xff, 0);
+
+  // Sign extension.
+  Expr = DIExpression::get(
+      Context, {dwarf::DW_OP_LLVM_convert, 32, dwarf::DW_ATE_signed});
+  EXPECT_FOLD_CONST(16, -1, 32, -1, 0);
+
+  // Get non-foldable operations back in the new Expr.
+  uint64_t Elements[] = {dwarf::DW_OP_deref, dwarf::DW_OP_stack_value};
+  ArrayRef<uint64_t> Expected = Elements;
+  Expr = DIExpression::get(
+      Context, {dwarf::DW_OP_LLVM_convert, 32, dwarf::DW_ATE_signed});
+  Expr = DIExpression::append(Expr, Expected);
+  ASSERT_EQ(Expr->getNumElements(), 5u);
+  EXPECT_FOLD_CONST(16, -1, 32, -1, 2);
+  EXPECT_EQ(NewExpr->getElements(), Expected);
+
+#undef EXPECT_FOLD_CONST
+}
+
 typedef MetadataTest DIObjCPropertyTest;
 
 TEST_F(DIObjCPropertyTest, get) {
@@ -3050,6 +3131,42 @@ TEST_F(ValueAsMetadataTest, CollidingDoubleUpdates) {
 
   // Clean up Temp for teardown.
   Temp->replaceAllUsesWith(nullptr);
+}
+
+typedef MetadataTest DIArgListTest;
+
+TEST_F(DIArgListTest, get) {
+  SmallVector<ValueAsMetadata *, 2> VMs;
+  VMs.push_back(
+      ConstantAsMetadata::get(ConstantInt::get(Context, APInt(8, 0))));
+  VMs.push_back(
+      ConstantAsMetadata::get(ConstantInt::get(Context, APInt(2, 0))));
+  DIArgList *DV0 = DIArgList::get(Context, VMs);
+  DIArgList *DV1 = DIArgList::get(Context, VMs);
+  EXPECT_EQ(DV0, DV1);
+}
+
+TEST_F(DIArgListTest, UpdatesOnRAUW) {
+  Type *Ty = Type::getInt1PtrTy(Context);
+  ConstantAsMetadata *CI =
+      ConstantAsMetadata::get(ConstantInt::get(Context, APInt(8, 0)));
+  std::unique_ptr<GlobalVariable> GV0(
+      new GlobalVariable(Ty, false, GlobalValue::ExternalLinkage));
+  auto *MD0 = ValueAsMetadata::get(GV0.get());
+
+  SmallVector<ValueAsMetadata *, 2> VMs;
+  VMs.push_back(CI);
+  VMs.push_back(MD0);
+  auto *AL = DIArgList::get(Context, VMs);
+  EXPECT_EQ(AL->getArgs()[0], CI);
+  EXPECT_EQ(AL->getArgs()[1], MD0);
+
+  std::unique_ptr<GlobalVariable> GV1(
+      new GlobalVariable(Ty, false, GlobalValue::ExternalLinkage));
+  auto *MD1 = ValueAsMetadata::get(GV1.get());
+  GV0->replaceAllUsesWith(GV1.get());
+  EXPECT_EQ(AL->getArgs()[0], CI);
+  EXPECT_EQ(AL->getArgs()[1], MD1);
 }
 
 typedef MetadataTest TrackingMDRefTest;

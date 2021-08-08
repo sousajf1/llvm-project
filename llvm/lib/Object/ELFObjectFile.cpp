@@ -73,7 +73,8 @@ ObjectFile::createELFObjectFile(MemoryBufferRef Obj, bool InitContent) {
   std::pair<unsigned char, unsigned char> Ident =
       getElfArchType(Obj.getBuffer());
   std::size_t MaxAlignment =
-      1ULL << countTrailingZeros(uintptr_t(Obj.getBufferStart()));
+      1ULL << countTrailingZeros(
+          reinterpret_cast<uintptr_t>(Obj.getBufferStart()));
 
   if (MaxAlignment < 2)
     return createError("Insufficient alignment");
@@ -456,6 +457,8 @@ StringRef ELFObjectFileBase::getAMDGPUCPUName() const {
     return "gfx908";
   case ELF::EF_AMDGPU_MACH_AMDGCN_GFX909:
     return "gfx909";
+  case ELF::EF_AMDGPU_MACH_AMDGCN_GFX90A:
+    return "gfx90a";
   case ELF::EF_AMDGPU_MACH_AMDGCN_GFX90C:
     return "gfx90c";
 
@@ -466,6 +469,8 @@ StringRef ELFObjectFileBase::getAMDGPUCPUName() const {
     return "gfx1011";
   case ELF::EF_AMDGPU_MACH_AMDGCN_GFX1012:
     return "gfx1012";
+  case ELF::EF_AMDGPU_MACH_AMDGCN_GFX1013:
+    return "gfx1013";
   case ELF::EF_AMDGPU_MACH_AMDGCN_GFX1030:
     return "gfx1030";
   case ELF::EF_AMDGPU_MACH_AMDGCN_GFX1031:
@@ -474,6 +479,10 @@ StringRef ELFObjectFileBase::getAMDGPUCPUName() const {
     return "gfx1032";
   case ELF::EF_AMDGPU_MACH_AMDGCN_GFX1033:
     return "gfx1033";
+  case ELF::EF_AMDGPU_MACH_AMDGCN_GFX1034:
+    return "gfx1034";
+  case ELF::EF_AMDGPU_MACH_AMDGCN_GFX1035:
+    return "gfx1035";
   default:
     llvm_unreachable("Unknown EF_AMDGPU_MACH value");
   }
@@ -529,9 +538,16 @@ void ELFObjectFileBase::setARMSubArch(Triple &TheTriple) const {
     case ARMBuildAttrs::v6K:
       Triple += "v6k";
       break;
-    case ARMBuildAttrs::v7:
-      Triple += "v7";
+    case ARMBuildAttrs::v7: {
+      Optional<unsigned> ArchProfileAttr =
+          Attributes.getAttributeValue(ARMBuildAttrs::CPU_arch_profile);
+      if (ArchProfileAttr.hasValue() &&
+          ArchProfileAttr.getValue() == ARMBuildAttrs::MicroControllerProfile)
+        Triple += "v7m";
+      else
+        Triple += "v7";
       break;
+    }
     case ARMBuildAttrs::v6_M:
       Triple += "v6m";
       break;
@@ -580,6 +596,7 @@ ELFObjectFileBase::getPltAddresses() const {
       JumpSlotReloc = ELF::R_X86_64_JUMP_SLOT;
       break;
     case Triple::aarch64:
+    case Triple::aarch64_be:
       JumpSlotReloc = ELF::R_AARCH64_JUMP_SLOT;
       break;
     default:

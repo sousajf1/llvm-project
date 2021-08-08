@@ -20,14 +20,15 @@
 using namespace mlir;
 using namespace mlir::toy;
 
+#include "toy/Dialect.cpp.inc"
+
 //===----------------------------------------------------------------------===//
 // ToyDialect
 //===----------------------------------------------------------------------===//
 
-/// Dialect creation, the instance will be owned by the context. This is the
-/// point of registration of custom types and operations for the dialect.
-ToyDialect::ToyDialect(mlir::MLIRContext *ctx)
-    : mlir::Dialect(getDialectNamespace(), ctx, TypeID::get<ToyDialect>()) {
+/// Dialect initialization, the instance will be owned by the context. This is
+/// the point of registration of types and operations for the dialect.
+void ToyDialect::initialize() {
   addOperations<
 #define GET_OP_LIST
 #include "toy/Ops.cpp.inc"
@@ -121,7 +122,7 @@ static mlir::ParseResult parseConstantOp(mlir::OpAsmParser &parser,
 /// strings, attributes, operands, types, etc.
 static void print(mlir::OpAsmPrinter &printer, ConstantOp op) {
   printer << "toy.constant ";
-  printer.printOptionalAttrDict(op.getAttrs(), /*elidedAttrs=*/{"value"});
+  printer.printOptionalAttrDict(op->getAttrs(), /*elidedAttrs=*/{"value"});
   printer << op.value();
 }
 
@@ -191,7 +192,7 @@ void MulOp::build(mlir::OpBuilder &builder, mlir::OperationState &state,
 static mlir::LogicalResult verify(ReturnOp op) {
   // We know that the parent operation is a function, because of the 'HasParent'
   // trait attached to the operation definition.
-  auto function = cast<FuncOp>(op.getParentOp());
+  auto function = cast<FuncOp>(op->getParentOp());
 
   /// ReturnOps can only have a single optional operand.
   if (op.getNumOperands() > 1)

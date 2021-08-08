@@ -17,6 +17,7 @@
 
 #include "llvm/MC/MCInstPrinter.h"
 #include "llvm/MCA/HWEventListener.h"
+#include "llvm/Support/JSON.h"
 #include "llvm/Support/raw_ostream.h"
 
 namespace llvm {
@@ -24,36 +25,15 @@ namespace mca {
 
 class View : public HWEventListener {
 public:
-  virtual void printView(llvm::raw_ostream &OS) const = 0;
   virtual ~View() = default;
+
+  virtual void printView(llvm::raw_ostream &OS) const = 0;
+  virtual StringRef getNameAsString() const = 0;
+
+  virtual json::Value toJSON() const { return "not implemented"; }
+  virtual bool isSerializable() const { return true; }
+
   void anchor() override;
-};
-
-// The base class for views that deal with individual machine instructions.
-class InstructionView : public View {
-  const llvm::MCSubtargetInfo &STI;
-  llvm::MCInstPrinter &MCIP;
-  llvm::ArrayRef<llvm::MCInst> Source;
-
-  mutable std::string InstructionString;
-  mutable raw_string_ostream InstrStream;
-
-protected:
-  InstructionView(const llvm::MCSubtargetInfo &STI,
-                  llvm::MCInstPrinter &Printer,
-                  llvm::ArrayRef<llvm::MCInst> S)
-      : STI(STI), MCIP(Printer), Source(S), InstrStream(InstructionString) {}
-
-  virtual ~InstructionView() = default;
-
-  // Return a reference to a string representing a given machine instruction.
-  // The result should be used or copied before the next call to
-  // printInstructionString() as it will overwrite the previous result.
-  StringRef printInstructionString(const llvm::MCInst &MCI) const;
-  
-  const llvm::MCSubtargetInfo &getSubTargetInfo() const { return STI; }
-  llvm::MCInstPrinter &getInstPrinter() const { return MCIP; }
-  llvm::ArrayRef<llvm::MCInst> getSource() const { return Source; }
 };
 } // namespace mca
 } // namespace llvm

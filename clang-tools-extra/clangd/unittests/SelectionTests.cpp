@@ -18,6 +18,7 @@
 namespace clang {
 namespace clangd {
 namespace {
+using ::testing::ElementsAreArray;
 using ::testing::UnorderedElementsAreArray;
 
 // Create a selection tree corresponding to a point or pair of points.
@@ -260,6 +261,27 @@ TEST(SelectionTest, CommonAncestor) {
           )cpp",
           "StringLiteral", // Not DeclRefExpr to operator()!
       },
+      {
+          R"cpp(
+            struct Foo {};
+            struct Bar : [[v^ir^tual private Foo]] {};
+          )cpp",
+          "CXXBaseSpecifier",
+      },
+      {
+          R"cpp(
+            struct Foo {};
+            struct Bar : private [[Fo^o]] {};
+          )cpp",
+          "RecordTypeLoc",
+      },
+      {
+          R"cpp(
+            struct Foo {};
+            struct Bar : [[Fo^o]] {};
+          )cpp",
+          "RecordTypeLoc",
+      },
 
       // Point selections.
       {"void foo() { [[^foo]](); }", "DeclRefExpr"},
@@ -431,7 +453,19 @@ TEST(SelectionTest, CommonAncestor) {
         template <template <typename> class Container> class A {};
         A<[[V^ector]]> a;
       )cpp",
-       "TemplateArgumentLoc"}};
+       "TemplateArgumentLoc"},
+
+      // Attributes
+      {R"cpp(
+        void f(int * __attribute__(([[no^nnull]])) );
+      )cpp",
+       "NonNullAttr"},
+
+      {R"cpp(
+        // Digraph syntax for attributes to avoid accidental annotations.
+        class <:[gsl::Owner([[in^t]])]:> X{};
+      )cpp",
+       "BuiltinTypeLoc"}};
 
   for (const Case &C : Cases) {
     trace::TestTracer Tracer;
@@ -440,9 +474,6 @@ TEST(SelectionTest, CommonAncestor) {
     TestTU TU;
     TU.Code = std::string(Test.code());
 
-    // FIXME: Auto-completion in a template requires disabling delayed template
-    // parsing.
-    TU.ExtraArgs.push_back("-fno-delayed-template-parsing");
     TU.ExtraArgs.push_back("-xobjective-c++");
 
     auto AST = TU.build();
@@ -452,7 +483,8 @@ TEST(SelectionTest, CommonAncestor) {
     if (Test.ranges().empty()) {
       // If no [[range]] is marked in the example, there should be no selection.
       EXPECT_FALSE(T.commonAncestor()) << C.Code << "\n" << T;
-      EXPECT_THAT(Tracer.takeMetric("selection_recovery"), testing::IsEmpty());
+      EXPECT_THAT(Tracer.takeMetric("selection_recovery", "C++"),
+                  testing::IsEmpty());
     } else {
       // If there is an expected selection, common ancestor should exist
       // with the appropriate node type.
@@ -468,8 +500,8 @@ TEST(SelectionTest, CommonAncestor) {
       // and no nodes outside it are selected.
       EXPECT_TRUE(verifyCommonAncestor(T.root(), T.commonAncestor(), C.Code))
           << C.Code;
-      EXPECT_THAT(Tracer.takeMetric("selection_recovery"),
-                  testing::ElementsAreArray({0}));
+      EXPECT_THAT(Tracer.takeMetric("selection_recovery", "C++"),
+                  ElementsAreArray({0}));
     }
   }
 }
@@ -494,10 +526,10 @@ TEST(SelectionTree, Metrics) {
   auto AST = TestTU::withCode(Annotations(Code).code()).build();
   trace::TestTracer Tracer;
   auto T = makeSelectionTree(Code, AST);
-  EXPECT_THAT(Tracer.takeMetric("selection_recovery"),
-              testing::ElementsAreArray({1}));
-  EXPECT_THAT(Tracer.takeMetric("selection_recovery_type"),
-              testing::ElementsAreArray({1}));
+  EXPECT_THAT(Tracer.takeMetric("selection_recovery", "C++"),
+              ElementsAreArray({1}));
+  EXPECT_THAT(Tracer.takeMetric("selection_recovery_type", "C++"),
+              ElementsAreArray({1}));
 }
 
 // FIXME: Doesn't select the binary operator node in
@@ -561,7 +593,7 @@ TEST(SelectionTest, PathologicalPreprocessor) {
   auto TU = TestTU::withCode(Test.code());
   TU.AdditionalFiles["Expand.inc"] = "MACRO\n";
   auto AST = TU.build();
-  EXPECT_THAT(AST.getDiagnostics(), ::testing::IsEmpty());
+  EXPECT_THAT(*AST.getDiagnostics(), ::testing::IsEmpty());
   auto T = makeSelectionTree(Case, AST);
 
   EXPECT_EQ("BreakStmt", T.commonAncestor()->kind());
@@ -639,10 +671,11 @@ TEST(SelectionTest, CreateAll) {
       AST.getASTContext(), AST.getTokens(), Test.point("ambiguous"),
       Test.point("ambiguous"), [&](SelectionTree T) {
         // Expect to see the right-biased tree first.
-        if (Seen == 0)
+        if (Seen == 0) {
           EXPECT_EQ("BinaryOperator", nodeKind(T.commonAncestor()));
-        else if (Seen == 1)
+        } else if (Seen == 1) {
           EXPECT_EQ("IntegerLiteral", nodeKind(T.commonAncestor()));
+        }
         ++Seen;
         return false;
       });

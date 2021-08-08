@@ -41,8 +41,6 @@
 //      *++p = c;
 //===----------------------------------------------------------------------===//
 
-#define DEBUG_TYPE "ppc-loop-instr-form-prep"
-
 #include "PPC.h"
 #include "PPCSubtarget.h"
 #include "PPCTargetMachine.h"
@@ -79,12 +77,12 @@
 #include <iterator>
 #include <utility>
 
+#define DEBUG_TYPE "ppc-loop-instr-form-prep"
+
 using namespace llvm;
 
-// By default, we limit this to creating 16 common bases out of loops per
-// function. 16 is a little over half of the allocatable register set.
 static cl::opt<unsigned> MaxVarsPrep("ppc-formprep-max-vars",
-                                 cl::Hidden, cl::init(16),
+                                 cl::Hidden, cl::init(24),
   cl::desc("Potential common base number threshold per function for PPC loop "
            "prep"));
 
@@ -94,8 +92,7 @@ static cl::opt<bool> PreferUpdateForm("ppc-formprep-prefer-update",
 
 // Sum of following 3 per loop thresholds for all loops can not be larger
 // than MaxVarsPrep.
-// By default, we limit this to creating 9 PHIs for one loop.
-// 9 and 3 for each kind prep are exterimental values on Power9.
+// now the thresholds for each kind prep are exterimental values on Power9.
 static cl::opt<unsigned> MaxVarsUpdateForm("ppc-preinc-prep-max-vars",
                                  cl::Hidden, cl::init(3),
   cl::desc("Potential PHI threshold per loop for PPC loop prep of update "
@@ -106,7 +103,7 @@ static cl::opt<unsigned> MaxVarsDSForm("ppc-dsprep-max-vars",
   cl::desc("Potential PHI threshold per loop for PPC loop prep of DS form"));
 
 static cl::opt<unsigned> MaxVarsDQForm("ppc-dqprep-max-vars",
-                                 cl::Hidden, cl::init(3),
+                                 cl::Hidden, cl::init(8),
   cl::desc("Potential PHI threshold per loop for PPC loop prep of DQ form"));
 
 
@@ -194,11 +191,11 @@ namespace {
 
     /// Collect condition matched(\p isValidCandidate() returns true)
     /// candidates in Loop \p L.
-    SmallVector<Bucket, 16>
-    collectCandidates(Loop *L,
-                      std::function<bool(const Instruction *, const Value *)>
-                          isValidCandidate,
-                      unsigned MaxCandidateNum);
+    SmallVector<Bucket, 16> collectCandidates(
+        Loop *L,
+        std::function<bool(const Instruction *, const Value *, const Type *)>
+            isValidCandidate,
+        unsigned MaxCandidateNum);
 
     /// Add a candidate to candidates \p Buckets.
     void addOneCandidate(Instruction *MemI, const SCEV *LSCEV,
@@ -279,9 +276,9 @@ static Value *GetPointerOperand(Value *MemI) {
     return SMemI->getPointerOperand();
   } else if (IntrinsicInst *IMemI = dyn_cast<IntrinsicInst>(MemI)) {
     if (IMemI->getIntrinsicID() == Intrinsic::prefetch ||
-        IMemI->getIntrinsicID() == Intrinsic::ppc_mma_lxvp)
+        IMemI->getIntrinsicID() == Intrinsic::ppc_vsx_lxvp)
       return IMemI->getArgOperand(0);
-    if (IMemI->getIntrinsicID() == Intrinsic::ppc_mma_stxvp)
+    if (IMemI->getIntrinsicID() == Intrinsic::ppc_vsx_stxvp)
       return IMemI->getArgOperand(1);
   }
 
@@ -334,27 +331,27 @@ void PPCLoopInstrFormPrep::addOneCandidate(Instruction *MemI, const SCEV *LSCEV,
 
 SmallVector<Bucket, 16> PPCLoopInstrFormPrep::collectCandidates(
     Loop *L,
-    std::function<bool(const Instruction *, const Value *)> isValidCandidate,
+    std::function<bool(const Instruction *, const Value *, const Type *)>
+        isValidCandidate,
     unsigned MaxCandidateNum) {
   SmallVector<Bucket, 16> Buckets;
   for (const auto &BB : L->blocks())
     for (auto &J : *BB) {
       Value *PtrValue;
-      Instruction *MemI;
+      Type *PointerElementType;
 
       if (LoadInst *LMemI = dyn_cast<LoadInst>(&J)) {
-        MemI = LMemI;
         PtrValue = LMemI->getPointerOperand();
+        PointerElementType = LMemI->getType();
       } else if (StoreInst *SMemI = dyn_cast<StoreInst>(&J)) {
-        MemI = SMemI;
         PtrValue = SMemI->getPointerOperand();
+        PointerElementType = SMemI->getValueOperand()->getType();
       } else if (IntrinsicInst *IMemI = dyn_cast<IntrinsicInst>(&J)) {
+        PointerElementType = Type::getInt8Ty(J.getContext());
         if (IMemI->getIntrinsicID() == Intrinsic::prefetch ||
-            IMemI->getIntrinsicID() == Intrinsic::ppc_mma_lxvp) {
-          MemI = IMemI;
+            IMemI->getIntrinsicID() == Intrinsic::ppc_vsx_lxvp) {
           PtrValue = IMemI->getArgOperand(0);
-        } else if (IMemI->getIntrinsicID() == Intrinsic::ppc_mma_stxvp) {
-          MemI = IMemI;
+        } else if (IMemI->getIntrinsicID() == Intrinsic::ppc_vsx_stxvp) {
           PtrValue = IMemI->getArgOperand(1);
         } else continue;
       } else continue;
@@ -371,8 +368,8 @@ SmallVector<Bucket, 16> PPCLoopInstrFormPrep::collectCandidates(
       if (!LARSCEV || LARSCEV->getLoop() != L)
         continue;
 
-      if (isValidCandidate(&J, PtrValue))
-        addOneCandidate(MemI, LSCEV, Buckets, MaxCandidateNum);
+      if (isValidCandidate(&J, PtrValue, PointerElementType))
+        addOneCandidate(&J, LSCEV, Buckets, MaxCandidateNum);
     }
   return Buckets;
 }
@@ -828,24 +825,23 @@ bool PPCLoopInstrFormPrep::runOnLoop(Loop *L) {
   }
   // Check if a load/store has update form. This lambda is used by function
   // collectCandidates which can collect candidates for types defined by lambda.
-  auto isUpdateFormCandidate = [&] (const Instruction *I,
-                                    const Value *PtrValue) {
+  auto isUpdateFormCandidate = [&](const Instruction *I, const Value *PtrValue,
+                                   const Type *PointerElementType) {
     assert((PtrValue && I) && "Invalid parameter!");
     // There are no update forms for Altivec vector load/stores.
-    if (ST && ST->hasAltivec() &&
-        PtrValue->getType()->getPointerElementType()->isVectorTy())
+    if (ST && ST->hasAltivec() && PointerElementType->isVectorTy())
       return false;
     // There are no update forms for P10 lxvp/stxvp intrinsic.
     auto *II = dyn_cast<IntrinsicInst>(I);
-    if (II && ((II->getIntrinsicID() == Intrinsic::ppc_mma_lxvp) ||
-               II->getIntrinsicID() == Intrinsic::ppc_mma_stxvp))
+    if (II && ((II->getIntrinsicID() == Intrinsic::ppc_vsx_lxvp) ||
+               II->getIntrinsicID() == Intrinsic::ppc_vsx_stxvp))
       return false;
     // See getPreIndexedAddressParts, the displacement for LDU/STDU has to
     // be 4's multiple (DS-form). For i64 loads/stores when the displacement
     // fits in a 16-bit signed field but isn't a multiple of 4, it will be
     // useless and possible to break some original well-form addressing mode
     // to make this pre-inc prep for it.
-    if (PtrValue->getType()->getPointerElementType()->isIntegerTy(64)) {
+    if (PointerElementType->isIntegerTy(64)) {
       const SCEV *LSCEV = SE->getSCEVAtScope(const_cast<Value *>(PtrValue), L);
       const SCEVAddRecExpr *LARSCEV = dyn_cast<SCEVAddRecExpr>(LSCEV);
       if (!LARSCEV || LARSCEV->getLoop() != L)
@@ -859,13 +855,13 @@ bool PPCLoopInstrFormPrep::runOnLoop(Loop *L) {
     }
     return true;
   };
-  
+
   // Check if a load/store has DS form.
-  auto isDSFormCandidate = [] (const Instruction *I, const Value *PtrValue) {
+  auto isDSFormCandidate = [](const Instruction *I, const Value *PtrValue,
+                              const Type *PointerElementType) {
     assert((PtrValue && I) && "Invalid parameter!");
     if (isa<IntrinsicInst>(I))
       return false;
-    Type *PointerElementType = PtrValue->getType()->getPointerElementType();
     return (PointerElementType->isIntegerTy(64)) ||
            (PointerElementType->isFloatTy()) ||
            (PointerElementType->isDoubleTy()) ||
@@ -875,16 +871,16 @@ bool PPCLoopInstrFormPrep::runOnLoop(Loop *L) {
   };
 
   // Check if a load/store has DQ form.
-  auto isDQFormCandidate = [&] (const Instruction *I, const Value *PtrValue) {
+  auto isDQFormCandidate = [&](const Instruction *I, const Value *PtrValue,
+                               const Type *PointerElementType) {
     assert((PtrValue && I) && "Invalid parameter!");
     // Check if it is a P10 lxvp/stxvp intrinsic.
     auto *II = dyn_cast<IntrinsicInst>(I);
     if (II)
-      return II->getIntrinsicID() == Intrinsic::ppc_mma_lxvp ||
-             II->getIntrinsicID() == Intrinsic::ppc_mma_stxvp;
+      return II->getIntrinsicID() == Intrinsic::ppc_vsx_lxvp ||
+             II->getIntrinsicID() == Intrinsic::ppc_vsx_stxvp;
     // Check if it is a P9 vector load/store.
-    return ST && ST->hasP9Vector() &&
-           (PtrValue->getType()->getPointerElementType()->isVectorTy());
+    return ST && ST->hasP9Vector() && (PointerElementType->isVectorTy());
   };
 
   // intrinsic for update form.

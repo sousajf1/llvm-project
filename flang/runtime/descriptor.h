@@ -18,7 +18,6 @@
 // User C code is welcome to depend on that ISO_Fortran_binding.h file,
 // but should never reference this internal header.
 
-#include "derived-type.h"
 #include "memory.h"
 #include "type-code.h"
 #include "flang/ISO_Fortran_binding.h"
@@ -27,6 +26,11 @@
 #include <cstddef>
 #include <cstdio>
 #include <cstring>
+
+namespace Fortran::runtime::typeInfo {
+using TypeParameterValue = std::int64_t;
+class DerivedType;
+} // namespace Fortran::runtime::typeInfo
 
 namespace Fortran::runtime {
 
@@ -49,6 +53,19 @@ public:
     raw_.extent = upper >= lower ? upper - lower + 1 : 0;
     return *this;
   }
+  Dimension &SetLowerBound(SubscriptValue lower) {
+    raw_.lower_bound = lower;
+    return *this;
+  }
+  Dimension &SetUpperBound(SubscriptValue upper) {
+    auto lower{raw_.lower_bound};
+    raw_.extent = upper >= lower ? upper - lower + 1 : 0;
+    return *this;
+  }
+  Dimension &SetExtent(SubscriptValue extent) {
+    raw_.extent = extent;
+    return *this;
+  }
   Dimension &SetByteStride(SubscriptValue bytes) {
     raw_.sm = bytes;
     return *this;
@@ -63,52 +80,40 @@ private:
 // descriptors serve as POINTER and ALLOCATABLE components of derived type
 // instances.  The presence of this structure is implied by the flag
 // CFI_cdesc_t.f18Addendum, and the number of elements in the len_[]
-// array is determined by DerivedType::lenParameters().
+// array is determined by derivedType_->LenParameters().
 class DescriptorAddendum {
 public:
-  enum Flags {
-    StaticDescriptor = 0x001,
-    ImplicitAllocatable = 0x002, // compiler-created allocatable
-    DoNotFinalize = 0x004, // compiler temporary
-    Target = 0x008, // TARGET attribute
-  };
+  explicit DescriptorAddendum(const typeInfo::DerivedType *dt = nullptr)
+      : derivedType_{dt} {}
+  DescriptorAddendum &operator=(const DescriptorAddendum &);
 
-  explicit DescriptorAddendum(
-      const DerivedType *dt = nullptr, std::uint64_t flags = 0)
-      : derivedType_{dt}, flags_{flags} {}
-
-  const DerivedType *derivedType() const { return derivedType_; }
-  DescriptorAddendum &set_derivedType(const DerivedType *dt) {
+  const typeInfo::DerivedType *derivedType() const { return derivedType_; }
+  DescriptorAddendum &set_derivedType(const typeInfo::DerivedType *dt) {
     derivedType_ = dt;
     return *this;
   }
-  std::uint64_t &flags() { return flags_; }
-  const std::uint64_t &flags() const { return flags_; }
 
-  std::size_t LenParameters() const {
-    if (derivedType_) {
-      return derivedType_->lenParameters();
-    }
-    return 0;
+  std::size_t LenParameters() const;
+
+  typeInfo::TypeParameterValue LenParameterValue(int which) const {
+    return len_[which];
   }
-
-  TypeParameterValue LenParameterValue(int which) const { return len_[which]; }
   static constexpr std::size_t SizeInBytes(int lenParameters) {
-    return sizeof(DescriptorAddendum) - sizeof(TypeParameterValue) +
-        lenParameters * sizeof(TypeParameterValue);
+    // TODO: Don't waste that last word if lenParameters == 0
+    return sizeof(DescriptorAddendum) +
+        std::max(lenParameters - 1, 0) * sizeof(typeInfo::TypeParameterValue);
   }
   std::size_t SizeInBytes() const;
 
-  void SetLenParameterValue(int which, TypeParameterValue x) {
+  void SetLenParameterValue(int which, typeInfo::TypeParameterValue x) {
     len_[which] = x;
   }
 
   void Dump(FILE * = stdout) const;
 
 private:
-  const DerivedType *derivedType_{nullptr};
-  std::uint64_t flags_{0};
-  TypeParameterValue len_[1]; // must be the last component
+  const typeInfo::DerivedType *derivedType_;
+  typeInfo::TypeParameterValue len_[1]; // must be the last component
   // The LEN type parameter values can also include captured values of
   // specification expressions that were used for bounds and for LEN type
   // parameters of components.  The values have been truncated to the LEN
@@ -129,15 +134,8 @@ public:
   // Create() static member functions otherwise to dynamically allocate a
   // descriptor.
 
-  Descriptor() {
-    // Minimal initialization to prevent the destructor from running amuck
-    // later if the descriptor is never established.
-    raw_.base_addr = nullptr;
-    raw_.f18Addendum = false;
-  }
   Descriptor(const Descriptor &);
-
-  ~Descriptor();
+  Descriptor &operator=(const Descriptor &);
 
   static constexpr std::size_t BytesFor(TypeCategory category, int kind) {
     return category == TypeCategory::Complex ? kind * 2 : kind;
@@ -155,8 +153,8 @@ public:
       int rank = maxRank, const SubscriptValue *extent = nullptr,
       ISO::CFI_attribute_t attribute = CFI_attribute_other,
       bool addendum = false);
-  void Establish(const DerivedType &dt, void *p = nullptr, int rank = maxRank,
-      const SubscriptValue *extent = nullptr,
+  void Establish(const typeInfo::DerivedType &dt, void *p = nullptr,
+      int rank = maxRank, const SubscriptValue *extent = nullptr,
       ISO::CFI_attribute_t attribute = CFI_attribute_other);
 
   static OwningPtr<Descriptor> Create(TypeCode t, std::size_t elementBytes,
@@ -171,8 +169,9 @@ public:
       SubscriptValue characters, void *p = nullptr, int rank = maxRank,
       const SubscriptValue *extent = nullptr,
       ISO::CFI_attribute_t attribute = CFI_attribute_other);
-  static OwningPtr<Descriptor> Create(const DerivedType &dt, void *p = nullptr,
-      int rank = maxRank, const SubscriptValue *extent = nullptr,
+  static OwningPtr<Descriptor> Create(const typeInfo::DerivedType &dt,
+      void *p = nullptr, int rank = maxRank,
+      const SubscriptValue *extent = nullptr,
       ISO::CFI_attribute_t attribute = CFI_attribute_other);
 
   ISO::CFI_cdesc_t &raw() { return raw_; }
@@ -230,10 +229,18 @@ public:
     return nullptr;
   }
 
-  void GetLowerBounds(SubscriptValue subscript[]) const {
+  int GetLowerBounds(SubscriptValue subscript[]) const {
     for (int j{0}; j < raw_.rank; ++j) {
       subscript[j] = GetDimension(j).LowerBound();
     }
+    return raw_.rank;
+  }
+
+  int GetShape(SubscriptValue subscript[]) const {
+    for (int j{0}; j < raw_.rank; ++j) {
+      subscript[j] = GetDimension(j).Extent();
+    }
+    return raw_.rank;
   }
 
   // When the passed subscript vector contains the last (or first)
@@ -280,11 +287,20 @@ public:
 
   std::size_t Elements() const;
 
-  // TODO: SOURCE= and MOLD=
+  // Allocate() assumes Elements() and ElementBytes() work;
+  // define the extents of the dimensions and the element length
+  // before calling.  It (re)computes the byte strides after
+  // allocation.  Does not allocate automatic components or
+  // perform default component initialization.
   int Allocate();
-  int Allocate(const SubscriptValue lb[], const SubscriptValue ub[]);
-  int Deallocate(bool finalize = true);
-  void Destroy(char *data, bool finalize = true) const;
+
+  // Deallocates storage; does not call FINAL subroutines or
+  // deallocate allocatable/automatic components.
+  int Deallocate();
+
+  // Deallocates storage, including allocatable and automatic
+  // components.  Optionally invokes FINAL subroutines.
+  int Destroy(bool finalize = false);
 
   bool IsContiguous(int leadingDimensions = maxRank) const {
     auto bytes{static_cast<SubscriptValue>(ElementBytes())};
@@ -298,9 +314,13 @@ public:
     return true;
   }
 
-  void Check() const;
+  // Establishes a pointer to a section or element.
+  bool EstablishPointerSection(const Descriptor &source,
+      const SubscriptValue *lower = nullptr,
+      const SubscriptValue *upper = nullptr,
+      const SubscriptValue *stride = nullptr);
 
-  // TODO: creation of array sections
+  void Check() const;
 
   void Dump(FILE * = stdout) const;
 
@@ -327,10 +347,6 @@ public:
   static constexpr std::size_t byteSize{
       Descriptor::SizeInBytes(maxRank, hasAddendum, maxLengthTypeParameters)};
 
-  StaticDescriptor() { new (storage_) Descriptor{}; }
-
-  ~StaticDescriptor() { descriptor().~Descriptor(); }
-
   Descriptor &descriptor() { return *reinterpret_cast<Descriptor *>(storage_); }
   const Descriptor &descriptor() const {
     return *reinterpret_cast<const Descriptor *>(storage_);
@@ -341,11 +357,7 @@ public:
     assert(descriptor().SizeInBytes() <= byteSize);
     if (DescriptorAddendum * addendum{descriptor().Addendum()}) {
       assert(hasAddendum);
-      if (const DerivedType * dt{addendum->derivedType()}) {
-        assert(dt->lenParameters() <= maxLengthTypeParameters);
-      } else {
-        assert(maxLengthTypeParameters == 0);
-      }
+      assert(addendum->LenParameters() <= maxLengthTypeParameters);
     } else {
       assert(!hasAddendum);
       assert(maxLengthTypeParameters == 0);
@@ -354,7 +366,7 @@ public:
   }
 
 private:
-  char storage_[byteSize];
+  char storage_[byteSize]{};
 };
 } // namespace Fortran::runtime
 #endif // FORTRAN_RUNTIME_DESCRIPTOR_H_

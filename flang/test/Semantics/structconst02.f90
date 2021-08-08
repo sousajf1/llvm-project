@@ -1,4 +1,5 @@
-! RUN: %S/test_errors.sh %s %t %f18
+! RUN: %S/test_errors.sh %s %t %flang_fc1
+! REQUIRES: shell
 ! Error tests for structure constructors: per-component type
 ! (in)compatibility.
 
@@ -14,6 +15,7 @@ module module1
     integer(kind=ik) :: ix = 0
     real(kind=rk) :: rx = 0.
     complex(kind=zk) :: zx = (0.,0.)
+    !ERROR: An automatic variable or component must not be initialized
     character(kind=ck,len=len) :: cx = ' '
     logical(kind=lk) :: lx = .false.
     real(kind=rk), pointer :: rp => NULL()

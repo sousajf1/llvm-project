@@ -1,5 +1,5 @@
-// RUN: mlir-opt %s -pass-pipeline='module(test-dynamic-pipeline{op-name=inner_mod1 dynamic-pipeline=cse})'  --mlir-disable-threading  -print-ir-before-all 2>&1 | FileCheck %s --check-prefix=NOTNESTED --check-prefix=CHECK
-// RUN: mlir-opt %s -pass-pipeline='module(test-dynamic-pipeline{op-name=inner_mod1 run-on-nested-operations=1 dynamic-pipeline=cse})'  --mlir-disable-threading  -print-ir-before-all 2>&1 | FileCheck %s --check-prefix=NESTED --check-prefix=CHECK
+// RUN: mlir-opt %s -pass-pipeline='builtin.module(test-dynamic-pipeline{op-name=inner_mod1 dynamic-pipeline=cse})'  --mlir-disable-threading  -print-ir-before-all 2>&1 | FileCheck %s --check-prefix=NOTNESTED --check-prefix=CHECK
+// RUN: mlir-opt %s -pass-pipeline='builtin.module(test-dynamic-pipeline{op-name=inner_mod1 run-on-nested-operations=1 dynamic-pipeline=cse})'  --mlir-disable-threading  -print-ir-before-all 2>&1 | FileCheck %s --check-prefix=NESTED --check-prefix=CHECK
 
 
 // Verify that we can schedule a dynamic pipeline on a nested operation
@@ -20,9 +20,9 @@ module @inner_mod1 {
 // CHECK: Dump Before CSE
 // NOTNESTED-NEXT: @inner_mod1
 // NESTED-NEXT: @foo
-  func private @foo()
+  module @foo {}
 // Only in the nested case we have a second run of the pass here.
 // NESTED: Dump Before CSE
 // NESTED-NEXT: @baz
-  func private @baz()
+  module @baz {}
 }

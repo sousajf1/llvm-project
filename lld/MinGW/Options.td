@@ -16,6 +16,11 @@ multiclass EqLong<string name, string help> {
     HelpText<help>;
 }
 
+multiclass EqNoHelp<string name> {
+  def NAME: Separate<["--", "-"], name>;
+  def NAME # _eq: Joined<["--", "-"], name # "=">, Alias<!cast<Separate>(NAME)>;
+}
+
 multiclass B<string name, string help1, string help2> {
   def NAME: Flag<["--", "-"], name>, HelpText<help1>;
   def no_ # NAME: Flag<["--", "-"], "no-" # name>, HelpText<help2>;
@@ -28,27 +33,37 @@ defm allow_multiple_definition: B<"allow-multiple-definition",
     "Do not allow multiple definitions (default)">;
 def Bdynamic: F<"Bdynamic">, HelpText<"Link against shared libraries">;
 def Bstatic: F<"Bstatic">, HelpText<"Do not link against shared libraries">;
+defm demangle: B<"demangle",
+    "Demangle symbol names (default)",
+    "Do not demangle symbol names">;
 def disable_auto_import: F<"disable-auto-import">,
     HelpText<"Don't automatically import data symbols from other DLLs without dllimport">;
 def disable_runtime_pseudo_reloc: F<"disable-runtime-pseudo-reloc">,
     HelpText<"Don't do automatic imports that require runtime fixups">;
+def disable_stdcall_fixup: F<"disable-stdcall-fixup">,
+    HelpText<"Don't resolve stdcall/fastcall/vectorcall to undecorated symbols">;
 defm dynamicbase: B<"dynamicbase", "Enable ASLR", "Disable ASLR">;
 def enable_auto_import: F<"enable-auto-import">,
     HelpText<"Automatically import data symbols from other DLLs where needed">;
 def enable_runtime_pseudo_reloc: F<"enable-runtime-pseudo-reloc">,
     HelpText<"Allow automatic imports that require runtime fixups">;
+def enable_stdcall_fixup: F<"enable-stdcall-fixup">,
+    HelpText<"Resolve stdcall/fastcall/vectorcall to undecorated symbols without warnings">;
 defm entry: Eq<"entry", "Name of entry point symbol">, MetaVarName<"<entry>">;
 def exclude_all_symbols: F<"exclude-all-symbols">,
     HelpText<"Don't automatically export any symbols">;
 def export_all_symbols: F<"export-all-symbols">,
     HelpText<"Export all symbols even if a def file or dllexport attributes are used">;
+defm fatal_warnings: B<"fatal-warnings",
+    "Treat warnings as errors",
+    "Do not treat warnings as errors (default)">;
 defm file_alignment: Eq<"file-alignment", "Set file alignment">;
 defm gc_sections: B<"gc-sections",
     "Remove unused sections",
     "Don't remove unused sections">;
 def help: F<"help">, HelpText<"Print option help">;
-def icf: J<"icf=">, HelpText<"Identical code folding">;
-def image_base: S<"image-base">, HelpText<"Base address of the program">;
+defm icf: Eq<"icf", "Identical code folding">;
+defm image_base: Eq<"image-base", "Base address of the program">;
 defm insert_timestamp: B<"insert-timestamp",
     "Include PE header timestamp",
     "Don't include PE header timestamp">;
@@ -75,7 +90,7 @@ defm output_def: Eq<"output-def", "Output def file">;
 defm section_alignment: Eq<"section-alignment", "Set section alignment">;
 def shared: F<"shared">, HelpText<"Build a shared object">;
 defm subs: Eq<"subsystem", "Specify subsystem">;
-def stack: S<"stack">;
+defm stack: Eq<"stack", "Set size of the initial stack">;
 def strip_all: F<"strip-all">,
     HelpText<"Omit all symbol information from the output binary">;
 def strip_debug: F<"strip-debug">,
@@ -99,14 +114,18 @@ def _HASH_HASH_HASH : Flag<["-"], "###">,
     HelpText<"Print (but do not run) the commands to run for this compilation">;
 def appcontainer: F<"appcontainer">, HelpText<"Set the appcontainer flag in the executable">;
 defm delayload: Eq<"delayload", "DLL to load only on demand">;
-def mllvm: S<"mllvm">;
+defm mllvm: EqNoHelp<"mllvm">;
 defm pdb: Eq<"pdb", "Output PDB debug info file, chosen implicitly if the argument is empty">;
 defm thinlto_cache_dir: EqLong<"thinlto-cache-dir",
   "Path to ThinLTO cached object file directory">;
-def Xlink : J<"Xlink=">, MetaVarName<"<arg>">,
-    HelpText<"Pass <arg> to the COFF linker">;
+defm Xlink : Eq<"Xlink", "Pass <arg> to the COFF linker">, MetaVarName<"<arg>">;
 
 // Alias
+def alias_Bdynamic_call_shared: Flag<["-"], "call_shared">, Alias<Bdynamic>;
+def alias_Bdynamic_dy: Flag<["-"], "dy">, Alias<Bdynamic>;
+def alias_Bstatic_dn: Flag<["-"], "dn">, Alias<Bstatic>;
+def alias_Bstatic_non_shared: Flag<["-"], "non_shared">, Alias<Bstatic>;
+def alias_Bstatic_static: Flag<["-"], "static">, Alias<Bstatic>;
 def alias_entry_e: JoinedOrSeparate<["-"], "e">, Alias<entry>;
 def alias_strip_s: Flag<["-"], "s">, Alias<strip_all>;
 def alias_strip_S: Flag<["-"], "S">, Alias<strip_debug>;
@@ -120,14 +139,13 @@ def: F<"enable-auto-image-base">;
 def: F<"end-group">;
 def: Flag<["--"], "full-shutdown">;
 def: F<"high-entropy-va">;
-def: S<"major-image-version">;
-def: S<"minor-image-version">;
+defm: EqNoHelp<"major-image-version">;
+defm: EqNoHelp<"minor-image-version">;
+def: F<"no-undefined">;
 def: F<"nxcompat">;
 def: F<"pic-executable">;
-def: S<"plugin">;
-def: J<"plugin=">;
-def: S<"plugin-opt">;
-def: J<"plugin-opt=">;
-def: J<"sysroot">;
+defm: EqNoHelp<"plugin">;
+defm: EqNoHelp<"plugin-opt">;
+defm: EqNoHelp<"sysroot">;
 def: F<"start-group">;
 def: F<"tsaware">;

@@ -184,9 +184,8 @@ static unsigned matchOption(const OptTable::Info *I, StringRef Str,
     StringRef Prefix(*Pre);
     if (Str.startswith(Prefix)) {
       StringRef Rest = Str.substr(Prefix.size());
-      bool Matched = IgnoreCase
-          ? Rest.startswith_lower(I->Name)
-          : Rest.startswith(I->Name);
+      bool Matched = IgnoreCase ? Rest.startswith_insensitive(I->Name)
+                                : Rest.startswith(I->Name);
       if (Matched)
         return Prefix.size() + StringRef(I->Name).size();
     }
@@ -196,11 +195,13 @@ static unsigned matchOption(const OptTable::Info *I, StringRef Str,
 
 // Returns true if one of the Prefixes + In.Names matches Option
 static bool optionMatches(const OptTable::Info &In, StringRef Option) {
-  if (In.Prefixes)
+  if (In.Prefixes) {
+    StringRef InName(In.Name);
     for (size_t I = 0; In.Prefixes[I]; I++)
-      if (Option.endswith(In.Name))
-        if (Option == std::string(In.Prefixes[I]) + In.Name)
+      if (Option.endswith(InName))
+        if (Option.slice(0, Option.size() - InName.size()) == In.Prefixes[I])
           return true;
+  }
   return false;
 }
 
@@ -241,7 +242,7 @@ OptTable::findByPrefix(StringRef Cur, unsigned int DisableFlags) const {
       std::string S = std::string(In.Prefixes[I]) + std::string(In.Name) + "\t";
       if (In.HelpText)
         S += In.HelpText;
-      if (StringRef(S).startswith(Cur) && S.compare(std::string(Cur) + "\t"))
+      if (StringRef(S).startswith(Cur) && S != std::string(Cur) + "\t")
         Ret.push_back(S);
     }
   }
@@ -617,13 +618,13 @@ static const char *getOptionHelpGroup(const OptTable &Opts, OptSpecifier Id) {
   return getOptionHelpGroup(Opts, GroupID);
 }
 
-void OptTable::PrintHelp(raw_ostream &OS, const char *Usage, const char *Title,
+void OptTable::printHelp(raw_ostream &OS, const char *Usage, const char *Title,
                          bool ShowHidden, bool ShowAllAliases) const {
-  PrintHelp(OS, Usage, Title, /*Include*/ 0, /*Exclude*/
+  printHelp(OS, Usage, Title, /*Include*/ 0, /*Exclude*/
             (ShowHidden ? 0 : HelpHidden), ShowAllAliases);
 }
 
-void OptTable::PrintHelp(raw_ostream &OS, const char *Usage, const char *Title,
+void OptTable::printHelp(raw_ostream &OS, const char *Usage, const char *Title,
                          unsigned FlagsToInclude, unsigned FlagsToExclude,
                          bool ShowAllAliases) const {
   OS << "OVERVIEW: " << Title << "\n\n";

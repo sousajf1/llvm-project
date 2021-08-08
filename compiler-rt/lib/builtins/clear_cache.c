@@ -7,7 +7,9 @@
 //===----------------------------------------------------------------------===//
 
 #include "int_lib.h"
+#if defined(__linux__)
 #include <assert.h>
+#endif
 #include <stddef.h>
 
 #if __APPLE__
@@ -125,6 +127,7 @@ void __clear_cache(void *start, void *end) {
     for (addr = xstart & ~(icache_line_size - 1); addr < xend;
          addr += icache_line_size)
       __asm __volatile("ic ivau, %0" ::"r"(addr));
+    __asm __volatile("dsb ish");
   }
   __asm __volatile("isb sy");
 #elif defined(__powerpc64__)
@@ -167,6 +170,8 @@ void __clear_cache(void *start, void *end) {
 #if __APPLE__
   // On Darwin, sys_icache_invalidate() provides this functionality
   sys_icache_invalidate(start, end - start);
+#elif defined(__ve__)
+  __asm__ volatile("fencec 2");
 #else
   compilerrt_abort();
 #endif

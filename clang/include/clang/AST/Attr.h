@@ -162,6 +162,21 @@ public:
   }
 };
 
+class DeclOrStmtAttr : public InheritableAttr {
+protected:
+  DeclOrStmtAttr(ASTContext &Context, const AttributeCommonInfo &CommonInfo,
+                 attr::Kind AK, bool IsLateParsed,
+                 bool InheritEvenIfAlreadyPresent)
+      : InheritableAttr(Context, CommonInfo, AK, IsLateParsed,
+                        InheritEvenIfAlreadyPresent) {}
+
+public:
+  static bool classof(const Attr *A) {
+    return A->getKind() >= attr::FirstDeclOrStmtAttr &&
+           A->getKind() <= attr::LastDeclOrStmtAttr;
+  }
+};
+
 class InheritableParamAttr : public InheritableAttr {
 protected:
   InheritableParamAttr(ASTContext &Context,
@@ -193,6 +208,8 @@ public:
     switch (getKind()) {
     case attr::SwiftContext:
       return ParameterABI::SwiftContext;
+    case attr::SwiftAsyncContext:
+      return ParameterABI::SwiftAsyncContext;
     case attr::SwiftErrorResult:
       return ParameterABI::SwiftErrorResult;
     case attr::SwiftIndirectResult:

@@ -10,8 +10,10 @@
 #include "Config.h"
 #include "ConfigFragment.h"
 #include "support/FileCache.h"
+#include "support/Path.h"
 #include "support/ThreadsafeFS.h"
 #include "support/Trace.h"
+#include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/ScopeExit.h"
 #include "llvm/ADT/StringMap.h"
 #include "llvm/ADT/StringRef.h"
@@ -34,7 +36,7 @@ public:
       : FileCache(Path), Directory(Directory) {}
 
   void get(const ThreadsafeFS &TFS, DiagnosticCallback DC,
-           std::chrono::steady_clock::time_point FreshTime,
+           std::chrono::steady_clock::time_point FreshTime, bool Trusted,
            std::vector<CompiledFragment> &Out) const {
     read(
         TFS, FreshTime,
@@ -43,6 +45,7 @@ public:
           if (Data)
             for (auto &Fragment : Fragment::parseYAML(*Data, path(), DC)) {
               Fragment.Source.Directory = Directory;
+              Fragment.Source.Trusted = Trusted;
               CachedValue.push_back(std::move(Fragment).compile(DC));
             }
         },
@@ -52,38 +55,41 @@ public:
 
 std::unique_ptr<Provider> Provider::fromYAMLFile(llvm::StringRef AbsPath,
                                                  llvm::StringRef Directory,
-                                                 const ThreadsafeFS &FS) {
+                                                 const ThreadsafeFS &FS,
+                                                 bool Trusted) {
   class AbsFileProvider : public Provider {
     mutable FileConfigCache Cache; // threadsafe
     const ThreadsafeFS &FS;
+    bool Trusted;
 
     std::vector<CompiledFragment>
     getFragments(const Params &P, DiagnosticCallback DC) const override {
       std::vector<CompiledFragment> Result;
-      Cache.get(FS, DC, P.FreshTime, Result);
+      Cache.get(FS, DC, P.FreshTime, Trusted, Result);
       return Result;
     };
 
   public:
     AbsFileProvider(llvm::StringRef Path, llvm::StringRef Directory,
-                    const ThreadsafeFS &FS)
-        : Cache(Path, Directory), FS(FS) {
+                    const ThreadsafeFS &FS, bool Trusted)
+        : Cache(Path, Directory), FS(FS), Trusted(Trusted) {
       assert(llvm::sys::path::is_absolute(Path));
     }
   };
 
-  return std::make_unique<AbsFileProvider>(AbsPath, Directory, FS);
+  return std::make_unique<AbsFileProvider>(AbsPath, Directory, FS, Trusted);
 }
 
 std::unique_ptr<Provider>
 Provider::fromAncestorRelativeYAMLFiles(llvm::StringRef RelPath,
-                                        const ThreadsafeFS &FS) {
+                                        const ThreadsafeFS &FS, bool Trusted) {
   class RelFileProvider : public Provider {
     std::string RelPath;
     const ThreadsafeFS &FS;
+    bool Trusted;
 
     mutable std::mutex Mu;
-    // Keys are the ancestor directory, not the actual config path within it.
+    // Keys are the (posix-style) ancestor directory, not the config within it.
     // We only insert into this map, so pointers to values are stable forever.
     // Mutex guards the map itself, not the values (which are threadsafe).
     mutable llvm::StringMap<FileConfigCache> Cache;
@@ -96,16 +102,10 @@ Provider::fromAncestorRelativeYAMLFiles(llvm::StringRef RelPath,
         return {};
 
       // Compute absolute paths to all ancestors (substrings of P.Path).
-      llvm::StringRef Parent = path::parent_path(P.Path);
       llvm::SmallVector<llvm::StringRef, 8> Ancestors;
-      for (auto I = path::begin(Parent, path::Style::posix),
-                E = path::end(Parent);
-           I != E; ++I) {
-        // Avoid weird non-substring cases like phantom "." components.
-        // In practice, Component is a substring for all "normal" ancestors.
-        if (I->end() < Parent.begin() || I->end() > Parent.end())
-          continue;
-        Ancestors.emplace_back(Parent.begin(), I->end() - Parent.begin());
+      for (auto Ancestor = absoluteParent(P.Path); !Ancestor.empty();
+           Ancestor = absoluteParent(Ancestor)) {
+        Ancestors.emplace_back(Ancestor);
       }
       // Ensure corresponding cache entries exist in the map.
       llvm::SmallVector<FileConfigCache *, 8> Caches;
@@ -117,6 +117,8 @@ Provider::fromAncestorRelativeYAMLFiles(llvm::StringRef RelPath,
           if (It == Cache.end()) {
             llvm::SmallString<256> ConfigPath = Ancestor;
             path::append(ConfigPath, RelPath);
+            // Use native slashes for reading the file, affects diagnostics.
+            llvm::sys::path::native(ConfigPath);
             It = Cache.try_emplace(Ancestor, ConfigPath.str(), Ancestor).first;
           }
           Caches.push_back(&It->second);
@@ -125,24 +127,25 @@ Provider::fromAncestorRelativeYAMLFiles(llvm::StringRef RelPath,
       // Finally query each individual file.
       // This will take a (per-file) lock for each file that actually exists.
       std::vector<CompiledFragment> Result;
-      for (FileConfigCache *Cache : Caches)
-        Cache->get(FS, DC, P.FreshTime, Result);
+      for (FileConfigCache *Cache : llvm::reverse(Caches))
+        Cache->get(FS, DC, P.FreshTime, Trusted, Result);
       return Result;
     };
 
   public:
-    RelFileProvider(llvm::StringRef RelPath, const ThreadsafeFS &FS)
-        : RelPath(RelPath), FS(FS) {
+    RelFileProvider(llvm::StringRef RelPath, const ThreadsafeFS &FS,
+                    bool Trusted)
+        : RelPath(RelPath), FS(FS), Trusted(Trusted) {
       assert(llvm::sys::path::is_relative(RelPath));
     }
   };
 
-  return std::make_unique<RelFileProvider>(RelPath, FS);
+  return std::make_unique<RelFileProvider>(RelPath, FS, Trusted);
 }
 
 std::unique_ptr<Provider>
 Provider::combine(std::vector<const Provider *> Providers) {
-  struct CombinedProvider : Provider {
+  class CombinedProvider : public Provider {
     std::vector<const Provider *> Providers;
 
     std::vector<CompiledFragment>
@@ -154,14 +157,13 @@ Provider::combine(std::vector<const Provider *> Providers) {
       }
       return Result;
     }
+
+  public:
+    CombinedProvider(std::vector<const Provider *> Providers)
+        : Providers(std::move(Providers)) {}
   };
-  auto Result = std::make_unique<CombinedProvider>();
-  Result->Providers = std::move(Providers);
-  // FIXME: This is a workaround for a bug in older versions of clang (< 3.9)
-  //   The constructor that is supposed to allow for Derived to Base
-  //   conversion does not work. Remove this if we drop support for such
-  //   configurations.
-  return std::unique_ptr<Provider>(Result.release());
+
+  return std::make_unique<CombinedProvider>(std::move(Providers));
 }
 
 Config Provider::getConfig(const Params &P, DiagnosticCallback DC) const {

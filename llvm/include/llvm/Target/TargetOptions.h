@@ -73,12 +73,6 @@ namespace llvm {
     None    // Do not use Basic Block Sections.
   };
 
-  enum class StackProtectorGuards {
-    None,
-    TLS,
-    Global
-  };
-
   enum class EABI {
     Unknown,
     Default, // Default means not specified
@@ -100,15 +94,12 @@ namespace llvm {
   /// o if the feature is useful (or not) on a particular platform, regardless
   ///   of the debugger, that's a target decision.
   /// It's not impossible to see both factors in some specific case.
-  ///
-  /// The "tuning" should be used to set defaults for individual feature flags
-  /// in DwarfDebug; if a given feature has a more specific command-line option,
-  /// that option should take precedence over the tuning.
   enum class DebuggerKind {
-    Default,  // No specific tuning requested.
-    GDB,      // Tune debug info for gdb.
-    LLDB,     // Tune debug info for lldb.
-    SCE       // Tune debug info for SCE targets (e.g. PS4).
+    Default, ///< No specific tuning requested.
+    GDB,     ///< Tune debug info for gdb.
+    LLDB,    ///< Tune debug info for lldb.
+    SCE,     ///< Tune debug info for SCE targets (e.g. PS4).
+    DBX      ///< Tune debug info for dbx.
   };
 
   /// Enable abort calls when global instruction selection fails to lower/select
@@ -130,21 +121,26 @@ namespace llvm {
           EnableFastISel(false), EnableGlobalISel(false), UseInitArray(false),
           DisableIntegratedAS(false), RelaxELFRelocations(false),
           FunctionSections(false), DataSections(false),
-          IgnoreXCOFFVisibility(false), UniqueSectionNames(true),
-          UniqueBasicBlockSectionNames(false), TrapUnreachable(false),
-          NoTrapAfterNoreturn(false), TLSSize(0), EmulatedTLS(false),
-          ExplicitEmulatedTLS(false), EnableIPRA(false),
+          IgnoreXCOFFVisibility(false), XCOFFTracebackTable(true),
+          UniqueSectionNames(true), UniqueBasicBlockSectionNames(false),
+          TrapUnreachable(false), NoTrapAfterNoreturn(false), TLSSize(0),
+          EmulatedTLS(false), ExplicitEmulatedTLS(false), EnableIPRA(false),
           EmitStackSizeSection(false), EnableMachineOutliner(false),
           EnableMachineFunctionSplitter(false), SupportsDefaultOutlining(false),
           EmitAddrsig(false), EmitCallSiteInfo(false),
           SupportsDebugEntryValues(false), EnableDebugEntryValues(false),
           PseudoProbeForProfiling(false), ValueTrackingVariableLocations(false),
           ForceDwarfFrameSection(false), XRayOmitFunctionIndex(false),
+          DebugStrictDwarf(false),
           FPDenormalMode(DenormalMode::IEEE, DenormalMode::IEEE) {}
 
     /// DisableFramePointerElim - This returns true if frame pointer elimination
     /// optimization should be disabled for the given machine function.
     bool DisableFramePointerElim(const MachineFunction &MF) const;
+
+    /// If greater than 0, override the default value of
+    /// MCAsmInfo::BinutilsVersion.
+    std::pair<int, int> BinutilsVersion{0, 0};
 
     /// UnsafeFPMath - This flag is enabled when the
     /// -enable-unsafe-fp-math flag is specified on the command line.  When
@@ -205,9 +201,6 @@ namespace llvm {
     /// as their parent function, etc.), using an alternate ABI if necessary.
     unsigned GuaranteedTailCallOpt : 1;
 
-    /// StackAlignmentOverride - Override default stack alignment for target.
-    unsigned StackAlignmentOverride = 0;
-
     /// StackSymbolOrdering - When true, this will allow CodeGen to order
     /// the local stack symbols (for code size, code locality, or any other
     /// heuristics). When false, the local symbols are left in whatever order
@@ -246,6 +239,9 @@ namespace llvm {
 
     /// Do not emit visibility attribute for xcoff.
     unsigned IgnoreXCOFFVisibility : 1;
+
+    /// Emit XCOFF traceback table.
+    unsigned XCOFFTracebackTable : 1;
 
     unsigned UniqueSectionNames : 1;
 
@@ -323,15 +319,17 @@ namespace llvm {
     /// Emit XRay Function Index section
     unsigned XRayOmitFunctionIndex : 1;
 
-    /// Stack protector guard offset to use.
-    unsigned StackProtectorGuardOffset : 32;
+    /// When set to true, don't use DWARF extensions in later DWARF versions.
+    /// By default, it is set to false.
+    unsigned DebugStrictDwarf : 1;
 
-    /// Stack protector guard mode to use, e.g. tls, global.
-    StackProtectorGuards StackProtectorGuard =
-                                         StackProtectorGuards::None;
+    /// Name of the stack usage file (i.e., .su file) if user passes
+    /// -fstack-usage. If empty, it can be implied that -fstack-usage is not
+    /// passed on the command line.
+    std::string StackUsageOutput;
 
-    /// Stack protector guard reg to use, e.g. usually fs or gs in X86.
-    std::string StackProtectorGuardReg = "None";
+    /// If greater than 0, override TargetLoweringBase::PrefLoopAlignment.
+    unsigned LoopAlignment = 0;
 
     /// FloatABIType - This setting is set by -float-abi=xxx option is specfied
     /// on the command line. This setting may either be Default, Soft, or Hard.
@@ -341,7 +339,7 @@ namespace llvm {
     /// arm-apple-darwin). Hard presumes that the normal FP ABI is used.
     FloatABI::ABIType FloatABIType = FloatABI::Default;
 
-    /// AllowFPOpFusion - This flag is set by the -fuse-fp-ops=xxx option.
+    /// AllowFPOpFusion - This flag is set by the -fp-contract=xxx option.
     /// This controls the creation of fused FP ops that store intermediate
     /// results in higher precision than IEEE allows (E.g. FMAs).
     ///

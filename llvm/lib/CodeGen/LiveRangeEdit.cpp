@@ -113,9 +113,10 @@ bool LiveRangeEdit::allUsesAvailableAt(const MachineInstr *OrigMI,
     if (!MO.isReg() || !MO.getReg() || !MO.readsReg())
       continue;
 
-    // We can't remat physreg uses, unless it is a constant.
+    // We can't remat physreg uses, unless it is a constant or target wants
+    // to ignore this use.
     if (Register::isPhysicalRegister(MO.getReg())) {
-      if (MRI.isConstantPhysReg(MO.getReg()))
+      if (MRI.isConstantPhysReg(MO.getReg()) || TII.isIgnorableUse(MO))
         continue;
       return false;
     }
@@ -435,7 +436,7 @@ void LiveRangeEdit::eliminateDeadDefs(SmallVectorImpl<MachineInstr *> &Dead,
     if (!SplitLIs.empty())
       ++NumFracRanges;
 
-    unsigned Original = VRM ? VRM->getOriginal(VReg) : 0;
+    Register Original = VRM ? VRM->getOriginal(VReg) : Register();
     for (const LiveInterval *SplitLI : SplitLIs) {
       // If LI is an original interval that hasn't been split yet, make the new
       // intervals their own originals instead of referring to LI. The original
@@ -458,11 +459,8 @@ LiveRangeEdit::MRI_NoteNewVirtualRegister(Register VReg) {
   NewRegs.push_back(VReg);
 }
 
-void
-LiveRangeEdit::calculateRegClassAndHint(MachineFunction &MF,
-                                        const MachineLoopInfo &Loops,
-                                        const MachineBlockFrequencyInfo &MBFI) {
-  VirtRegAuxInfo VRAI(MF, LIS, *VRM, Loops, MBFI);
+void LiveRangeEdit::calculateRegClassAndHint(MachineFunction &MF,
+                                             VirtRegAuxInfo &VRAI) {
   for (unsigned I = 0, Size = size(); I < Size; ++I) {
     LiveInterval &LI = LIS.getInterval(get(I));
     if (MRI.recomputeRegClass(LI.reg()))

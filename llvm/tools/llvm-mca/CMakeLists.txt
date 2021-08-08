@@ -2,6 +2,7 @@ include_directories(include)
 
 set(LLVM_LINK_COMPONENTS
   AllTargetsAsmParsers
+  AllTargetsMCAs          # CustomBehaviour and InstrPostProcess
   AllTargetsDescs
   AllTargetsDisassemblers
   AllTargetsInfos
@@ -19,6 +20,7 @@ add_llvm_tool(llvm-mca
   Views/BottleneckAnalysis.cpp
   Views/DispatchStatistics.cpp
   Views/InstructionInfoView.cpp
+  Views/InstructionView.cpp
   Views/RegisterFileStatistics.cpp
   Views/ResourcePressureView.cpp
   Views/RetireControlUnitStatistics.cpp

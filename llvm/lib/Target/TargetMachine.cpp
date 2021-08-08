@@ -56,7 +56,7 @@ bool TargetMachine::isPositionIndependent() const {
 void TargetMachine::resetTargetOptions(const Function &F) const {
 #define RESET_OPTION(X, Y)                                              \
   do {                                                                  \
-    Options.X = (F.getFnAttribute(Y).getValueAsString() == "true");     \
+    Options.X = F.getFnAttribute(Y).getValueAsBool();     \
   } while (0)
 
   RESET_OPTION(UnsafeFPMath, "unsafe-fp-math");
@@ -101,10 +101,9 @@ bool TargetMachine::shouldAssumeDSOLocal(const Module &M,
   // dso_preemptable.  At this point in time, the various IR producers
   // have not been transitioned to always produce a dso_local when it
   // is possible to do so.
-  // In the case of ExternalSymbolSDNode, GV is null and there is nowhere to put
-  // dso_local. Returning false for those will produce worse code in some
-  // architectures. For example, on x86 the caller has to set ebx before calling
-  // a plt.
+  // In the case of ExternalSymbolSDNode, GV is null and we should just return
+  // false. However, COFF currently relies on this to be true
+  //
   // As a result we still have some logic in here to improve the quality of the
   // generated code.
   // FIXME: Add a module level metadata for whether intrinsics should be assumed
@@ -144,16 +143,6 @@ bool TargetMachine::shouldAssumeDSOLocal(const Module &M,
   if (TT.isOSBinFormatCOFF() || TT.isOSWindows())
     return true;
 
-  // Most PIC code sequences that assume that a symbol is local cannot
-  // produce a 0 if it turns out the symbol is undefined. While this
-  // is ABI and relocation depended, it seems worth it to handle it
-  // here.
-  if (isPositionIndependent() && GV->hasExternalWeakLinkage())
-    return false;
-
-  if (!GV->hasDefaultVisibility())
-    return true;
-
   if (TT.isOSBinFormatMachO()) {
     if (RM == Reloc::Static)
       return true;
@@ -167,49 +156,6 @@ bool TargetMachine::shouldAssumeDSOLocal(const Module &M,
 
   assert(TT.isOSBinFormatELF() || TT.isOSBinFormatWasm());
   assert(RM != Reloc::DynamicNoPIC);
-
-  bool IsExecutable =
-      RM == Reloc::Static || M.getPIELevel() != PIELevel::Default;
-  if (IsExecutable) {
-    // If the symbol is defined, it cannot be preempted.
-    if (!GV->isDeclarationForLinker())
-      return true;
-
-    // A symbol marked nonlazybind should not be accessed with a plt. If the
-    // symbol turns out to be external, the linker will convert a direct
-    // access to an access via the plt, so don't assume it is local.
-    const Function *F = dyn_cast<Function>(GV);
-    if (F && F->hasFnAttribute(Attribute::NonLazyBind))
-      return false;
-    Triple::ArchType Arch = TT.getArch();
-
-    // PowerPC64 prefers TOC indirection to avoid copy relocations.
-    if (TT.isPPC64())
-      return false;
-
-    // dso_local is traditionally implied for Reloc::Static. Eventually we shall
-    // drop the if block entirely and respect dso_local/dso_preemptable
-    // specifiers set by the frontend.
-    if (RM == Reloc::Static) {
-      // We currently respect dso_local/dso_preemptable specifiers for
-      // variables.
-      if (F)
-        return true;
-      // TODO Remove the special case for x86-32.
-      if (Arch == Triple::x86 && !GV->isThreadLocal())
-        return true;
-    }
-  } else if (TT.isOSBinFormatELF()) {
-    // If dso_local allows AsmPrinter::getSymbolPreferLocal to use a local
-    // alias, set the flag. We cannot set dso_local for other global values,
-    // because otherwise direct accesses to a probably interposable symbol (even
-    // if the codegen assumes not) will be rejected by the linker.
-    if (!GV->canBenefitFromLocalAlias())
-      return false;
-    return TT.isX86() && M.noSemanticInterposition();
-  }
-
-  // ELF & wasm support preemption of other symbols.
   return false;
 }
 
@@ -286,4 +232,13 @@ TargetIRAnalysis TargetMachine::getTargetIRAnalysis() {
   // dependency.
   return TargetIRAnalysis(
       [this](const Function &F) { return this->getTargetTransformInfo(F); });
+}
+
+std::pair<int, int> TargetMachine::parseBinutilsVersion(StringRef Version) {
+  if (Version == "none")
+    return {INT_MAX, INT_MAX}; // Make binutilsIsAtLeast() return true.
+  std::pair<int, int> Ret;
+  if (!Version.consumeInteger(10, Ret.first) && Version.consume_front("."))
+    Version.consumeInteger(10, Ret.second);
+  return Ret;
 }

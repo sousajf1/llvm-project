@@ -49,9 +49,11 @@ let Definition = "target" in {
   def AutoImportClangModules: Property<"auto-import-clang-modules", "Boolean">,
     DefaultTrue,
     Desc<"Automatically load Clang modules referred to by the program.">;
-  def ImportStdModule: Property<"import-std-module", "Boolean">,
-    DefaultFalse,
-    Desc<"Import the C++ std module to improve debugging STL containers.">;
+  def ImportStdModule: Property<"import-std-module", "Enum">,
+    DefaultEnumValue<"eImportStdModuleFalse">,
+    EnumValues<"OptionEnumValues(g_import_std_module_value_types)">,
+    Desc<"Import the 'std' C++ module to improve expression parsing involving "
+         " C++ standard library types.">;
   def AutoApplyFixIts: Property<"auto-apply-fixits", "Boolean">,
     DefaultTrue,
     Desc<"Automatically apply fix-it hints to expressions.">;
@@ -170,6 +172,9 @@ let Definition = "target" in {
   def AutoInstallMainExecutable: Property<"auto-install-main-executable", "Boolean">,
     DefaultTrue,
     Desc<"Always install the main executable when connected to a remote platform.">;
+  def DebugUtilityExpression: Property<"debug-utility-expression", "Boolean">,
+    DefaultFalse,
+    Desc<"Enable debugging of LLDB-internal utility expressions.">;
 }
 
 let Definition = "process_experimental" in {
@@ -201,6 +206,10 @@ let Definition = "process" in {
     Global,
     DefaultFalse,
     Desc<"If true, stop when a shared library is loaded or unloaded.">;
+  def DisableLangRuntimeUnwindPlans: Property<"disable-language-runtime-unwindplans", "Boolean">,
+    Global,
+    DefaultFalse,
+    Desc<"If true, LanguageRuntime plugins' UnwindPlans will not be used when backtracing.">;
   def DetachKeepsStopped: Property<"detach-keeps-stopped", "Boolean">,
     Global,
     DefaultFalse,
@@ -221,9 +230,15 @@ let Definition = "process" in {
   def UtilityExpressionTimeout: Property<"utility-expression-timeout", "UInt64">,
     DefaultUnsignedValue<15>,
     Desc<"The time in seconds to wait for LLDB-internal utility expressions.">;
+  def InterruptTimeout: Property<"interrupt-timeout", "UInt64">,
+    DefaultUnsignedValue<20>,
+    Desc<"The time in seconds to wait for an interrupt succeed in stopping the target.">;
   def SteppingRunsAllThreads: Property<"run-all-threads", "Boolean">,
     DefaultFalse,
     Desc<"If true, stepping operations will run all threads.  This is equivalent to setting the run-mode option to 'all-threads'.">;
+  def VirtualAddressableBits: Property<"virtual-addressable-bits", "UInt64">,
+    DefaultUnsignedValue<0>,
+    Desc<"The number of bits used for addressing. If the value is 39, then bits 0..38 are used for addressing. The default value of 0 means unspecified.">;
 }
 
 let Definition = "platform" in {

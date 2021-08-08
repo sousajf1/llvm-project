@@ -27,6 +27,7 @@ add_llvm_target(PowerPCCodeGen
   PPCCallingConv.cpp
   PPCCCState.cpp
   PPCCTRLoops.cpp
+  PPCExpandAtomicPseudoInsts.cpp
   PPCHazardRecognizers.cpp
   PPCInstrInfo.cpp
   PPCISelDAGToDAG.cpp
@@ -61,6 +62,7 @@ add_llvm_target(PowerPCCodeGen
   LINK_COMPONENTS
   Analysis
   AsmPrinter
+  BinaryFormat
   CodeGen
   Core
   MC

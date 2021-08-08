@@ -830,6 +830,44 @@ define i32 @test44(i32 %x) {
   ret i32 %sub
 }
 
+define <2 x i32> @test44vec(<2 x i32> %x) {
+; CHECK-LABEL: @test44vec(
+; CHECK-NEXT:    [[SUB:%.*]] = add nsw <2 x i32> [[X:%.*]], <i32 -32768, i32 -32768>
+; CHECK-NEXT:    ret <2 x i32> [[SUB]]
+;
+  %sub = sub nsw <2 x i32> %x, <i32 32768, i32 32768>
+  ret <2 x i32> %sub
+}
+
+define <vscale x 2 x i32> @test44scalablevec(<vscale x 2 x i32> %x) {
+; CHECK-LABEL: @test44scalablevec(
+; CHECK-NEXT:    [[SUB:%.*]] = add nsw <vscale x 2 x i32> [[X:%.*]], shufflevector (<vscale x 2 x i32> insertelement (<vscale x 2 x i32> undef, i32 -32768, i32 0), <vscale x 2 x i32> undef, <vscale x 2 x i32> zeroinitializer)
+; CHECK-NEXT:    ret <vscale x 2 x i32> [[SUB]]
+;
+  %sub = sub nsw <vscale x 2 x i32> %x, shufflevector (<vscale x 2 x i32> insertelement (<vscale x 2 x i32> undef, i32 32768, i32 0), <vscale x 2 x i32> undef, <vscale x 2 x i32> zeroinitializer)
+  ret <vscale x 2 x i32> %sub
+}
+
+define <2 x i16> @test44vecminval(<2 x i16> %x) {
+; CHECK-LABEL: @test44vecminval(
+; CHECK-NEXT:    [[SUB:%.*]] = xor <2 x i16> [[X:%.*]], <i16 -32768, i16 -32768>
+; CHECK-NEXT:    ret <2 x i16> [[SUB]]
+;
+  %sub = sub nsw <2 x i16> %x, <i16 -32768, i16 -32768>
+  ret <2 x i16> %sub
+}
+
+; FIXME: This isn't combined to xor as above because the pattern in visitSub
+; uses m_ImmConstant which matches Constant but (explicitly) not ConstantExpr.
+define <vscale x 2 x i16> @test44scalablevecminval(<vscale x 2 x i16> %x) {
+; CHECK-LABEL: @test44scalablevecminval(
+; CHECK-NEXT:    [[SUB:%.*]] = add <vscale x 2 x i16> [[X:%.*]], shufflevector (<vscale x 2 x i16> insertelement (<vscale x 2 x i16> undef, i16 -32768, i32 0), <vscale x 2 x i16> undef, <vscale x 2 x i32> zeroinitializer)
+; CHECK-NEXT:    ret <vscale x 2 x i16> [[SUB]]
+;
+  %sub = sub nsw <vscale x 2 x i16> %x, shufflevector (<vscale x 2 x i16> insertelement (<vscale x 2 x i16> undef, i16 -32768, i32 0), <vscale x 2 x i16> undef, <vscale x 2 x i32> zeroinitializer)
+  ret <vscale x 2 x i16> %sub
+}
+
 define i32 @test45(i32 %x, i32 %y) {
 ; CHECK-LABEL: @test45(
 ; CHECK-NEXT:    [[SUB:%.*]] = and i32 [[X:%.*]], [[Y:%.*]]
@@ -1573,4 +1611,92 @@ define i16 @sub_mul_nuw(i16 %x, i16 %y) {
   %y8 = mul nuw i16 %y, 32
   %r = sub i16 %x8, %y8
   ret i16 %r
+}
+define i32 @and_test(i32 %x, i32 %y) {
+; CHECK-LABEL: @and_test(
+; CHECK-NEXT:    [[R:%.*]] = and i32 [[X:%.*]], [[Y:%.*]]
+; CHECK-NEXT:    ret i32 [[R]]
+;
+  %a = add i32 %x, %y
+  %o = or i32 %x, %y
+  %r = sub i32 %a, %o
+  ret i32 %r
+}
+
+define i32 @and_test2(i32 %x, i32 %y) {
+; CHECK-LABEL: @and_test2(
+; CHECK-NEXT:    [[R:%.*]] = and i32 [[X:%.*]], [[Y:%.*]]
+; CHECK-NEXT:    ret i32 [[R]]
+;
+  %a = add i32 %x, %y
+  %o = or i32 %y, %x
+  %r = sub i32 %a, %o
+  ret i32 %r
+}
+
+define i32 @and_test3(i32 %x, i32 %y) {
+; CHECK-LABEL: @and_test3(
+; CHECK-NEXT:    [[R:%.*]] = and i32 [[Y:%.*]], [[X:%.*]]
+; CHECK-NEXT:    ret i32 [[R]]
+;
+  %a = add i32 %y, %x
+  %o = or i32 %x, %y
+  %r = sub i32 %a, %o
+  ret i32 %r
+}
+
+
+define <2 x i8> @and_vec(<2 x i8> %X, <2 x i8> %Y) {
+; CHECK-LABEL: @and_vec(
+; CHECK-NEXT:    [[R:%.*]] = and <2 x i8> [[X:%.*]], [[Y:%.*]]
+; CHECK-NEXT:    ret <2 x i8> [[R]]
+;
+  %a = add <2 x i8> %X, %Y
+  %o = or <2 x i8> %X, %Y
+  %r = sub <2 x i8> %a, %o
+  ret <2 x i8> %r
+}
+
+define i32 @or_test(i32 %x, i32 %y) {
+; CHECK-LABEL: @or_test(
+; CHECK-NEXT:    [[R:%.*]] = or i32 [[X:%.*]], [[Y:%.*]]
+; CHECK-NEXT:    ret i32 [[R]]
+;
+  %a = add i32 %x, %y
+  %b = and i32 %x, %y
+  %r = sub i32 %a, %b
+  ret i32 %r
+}
+
+define i32 @or_test2(i32 %x, i32 %y) {
+; CHECK-LABEL: @or_test2(
+; CHECK-NEXT:    [[R:%.*]] = or i32 [[X:%.*]], [[Y:%.*]]
+; CHECK-NEXT:    ret i32 [[R]]
+;
+  %a = add i32 %x, %y
+  %b = and i32 %y, %x
+  %r = sub i32 %a, %b
+  ret i32 %r
+}
+
+define i32 @or_test3(i32 %x, i32 %y) {
+; CHECK-LABEL: @or_test3(
+; CHECK-NEXT:    [[R:%.*]] = or i32 [[Y:%.*]], [[X:%.*]]
+; CHECK-NEXT:    ret i32 [[R]]
+;
+  %a = add i32 %y, %x
+  %b = and i32 %x, %y
+  %r = sub i32 %a, %b
+  ret i32 %r
+}
+
+define <2 x i8> @or_vec(<2 x i8> %X, <2 x i8> %Y) {
+; CHECK-LABEL: @or_vec(
+; CHECK-NEXT:    [[R:%.*]] = or <2 x i8> [[X:%.*]], [[Y:%.*]]
+; CHECK-NEXT:    ret <2 x i8> [[R]]
+;
+  %a = add <2 x i8> %X, %Y
+  %b = and <2 x i8> %X, %Y
+  %r = sub <2 x i8> %a, %b
+  ret <2 x i8> %r
 }

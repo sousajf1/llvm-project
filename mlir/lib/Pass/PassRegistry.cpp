@@ -10,6 +10,7 @@
 #include "mlir/Pass/Pass.h"
 #include "mlir/Pass/PassManager.h"
 #include "llvm/ADT/DenseMap.h"
+#include "llvm/Support/Format.h"
 #include "llvm/Support/ManagedStatic.h"
 #include "llvm/Support/MemoryBuffer.h"
 #include "llvm/Support/SourceMgr.h"
@@ -18,7 +19,11 @@ using namespace mlir;
 using namespace detail;
 
 /// Static mapping of all of the registered passes.
-static llvm::ManagedStatic<DenseMap<TypeID, PassInfo>> passRegistry;
+static llvm::ManagedStatic<llvm::StringMap<PassInfo>> passRegistry;
+
+/// A mapping of the above pass registry entries to the corresponding TypeID
+/// of the pass that they generate.
+static llvm::ManagedStatic<llvm::StringMap<TypeID>> passRegistryTypeIDs;
 
 /// Static mapping of all of the registered pass pipelines.
 static llvm::ManagedStatic<llvm::StringMap<PassPipelineInfo>>
@@ -93,7 +98,7 @@ void mlir::registerPassPipeline(
 // PassInfo
 //===----------------------------------------------------------------------===//
 
-PassInfo::PassInfo(StringRef arg, StringRef description, TypeID passID,
+PassInfo::PassInfo(StringRef arg, StringRef description,
                    const PassAllocatorFunction &allocator)
     : PassRegistryEntry(
           arg, description, buildDefaultRegistryFn(allocator),
@@ -104,18 +109,34 @@ PassInfo::PassInfo(StringRef arg, StringRef description, TypeID passID,
 
 void mlir::registerPass(StringRef arg, StringRef description,
                         const PassAllocatorFunction &function) {
-  // TODO: We should use the 'arg' as the lookup key instead of the pass id.
-  TypeID passID = function()->getTypeID();
-  PassInfo passInfo(arg, description, passID, function);
-  passRegistry->try_emplace(passID, passInfo);
+  PassInfo passInfo(arg, description, function);
+  passRegistry->try_emplace(arg, passInfo);
+
+  // Verify that the registered pass has the same ID as any registered to this
+  // arg before it.
+  TypeID entryTypeID = function()->getTypeID();
+  auto it = passRegistryTypeIDs->try_emplace(arg, entryTypeID).first;
+  if (it->second != entryTypeID)
+    llvm::report_fatal_error(
+        "pass allocator creates a different pass than previously "
+        "registered for pass " +
+        arg);
 }
 
-/// Returns the pass info for the specified pass class or null if unknown.
-const PassInfo *mlir::Pass::lookupPassInfo(TypeID passID) {
-  auto it = passRegistry->find(passID);
-  if (it == passRegistry->end())
-    return nullptr;
-  return &it->getSecond();
+void mlir::registerPass(const PassAllocatorFunction &function) {
+  std::unique_ptr<Pass> pass = function();
+  StringRef arg = pass->getArgument();
+  if (arg.empty())
+    llvm::report_fatal_error(
+        "Trying to register a pass that does not override `getArgument()`: " +
+        pass->getName());
+  registerPass(arg, pass->getDescription(), function);
+}
+
+/// Returns the pass info for the specified pass argument or null if unknown.
+const PassInfo *mlir::Pass::lookupPassInfo(StringRef passArg) {
+  auto it = passRegistry->find(passArg);
+  return it == passRegistry->end() ? nullptr : &it->second;
 }
 
 //===----------------------------------------------------------------------===//
@@ -250,9 +271,9 @@ private:
   ///
   /// A pipeline is defined as a series of names, each of which may in itself
   /// recursively contain a nested pipeline. A name is either the name of a pass
-  /// (e.g. "cse") or the name of an operation type (e.g. "func"). If the name
-  /// is the name of a pass, the InnerPipeline is empty, since passes cannot
-  /// contain inner pipelines.
+  /// (e.g. "cse") or the name of an operation type (e.g. "builtin.func"). If
+  /// the name is the name of a pass, the InnerPipeline is empty, since passes
+  /// cannot contain inner pipelines.
   struct PipelineElement {
     PipelineElement(StringRef name) : name(name), registryEntry(nullptr) {}
 
@@ -291,11 +312,15 @@ private:
 /// given to enable accurate error reporting.
 LogicalResult TextualPipeline::initialize(StringRef text,
                                           raw_ostream &errorStream) {
+  if (text.empty())
+    return success();
+
   // Build a source manager to use for error reporting.
   llvm::SourceMgr pipelineMgr;
-  pipelineMgr.AddNewSourceBuffer(llvm::MemoryBuffer::getMemBuffer(
-                                     text, "MLIR Textual PassPipeline Parser"),
-                                 llvm::SMLoc());
+  pipelineMgr.AddNewSourceBuffer(
+      llvm::MemoryBuffer::getMemBuffer(text, "MLIR Textual PassPipeline Parser",
+                                       /*RequiresNullTerminator=*/false),
+      llvm::SMLoc());
   auto errorHandler = [&](const char *rawLoc, Twine msg) {
     pipelineMgr.PrintMessage(errorStream, llvm::SMLoc::getFromPointer(rawLoc),
                              llvm::SourceMgr::DK_Error, msg);
@@ -327,7 +352,7 @@ LogicalResult TextualPipeline::parsePipelineText(StringRef text,
     pipeline.emplace_back(/*name=*/text.substr(0, pos).trim());
 
     // If we have a single terminating name, we're done.
-    if (pos == text.npos)
+    if (pos == StringRef::npos)
       break;
 
     text = text.substr(pos);
@@ -338,9 +363,19 @@ LogicalResult TextualPipeline::parsePipelineText(StringRef text,
       text = text.substr(1);
 
       // Skip over everything until the closing '}' and store as options.
-      size_t close = text.find('}');
+      size_t close = StringRef::npos;
+      for (unsigned i = 0, e = text.size(), braceCount = 1; i < e; ++i) {
+        if (text[i] == '{') {
+          ++braceCount;
+          continue;
+        }
+        if (text[i] == '}' && --braceCount == 0) {
+          close = i;
+          break;
+        }
+      }
 
-      // TODO: Handle skipping over quoted sub-strings.
+      // Check to see if a closing options brace was found.
       if (close == StringRef::npos) {
         return errorHandler(
             /*rawLoc=*/text.data() - 1,
@@ -418,12 +453,8 @@ TextualPipeline::resolvePipelineElement(PipelineElement &element,
   }
 
   // If not, then this must be a specific pass name.
-  for (auto &passIt : *passRegistry) {
-    if (passIt.second.getPassArgument() == element.name) {
-      element.registryEntry = &passIt.second;
-      return success();
-    }
-  }
+  if ((element.registryEntry = Pass::lookupPassInfo(element.name)))
+    return success();
 
   // Emit an error for the unknown pass.
   auto *rawLoc = element.name.data();
@@ -438,12 +469,15 @@ LogicalResult TextualPipeline::addToPipeline(
     function_ref<LogicalResult(const Twine &)> errorHandler) const {
   for (auto &elt : elements) {
     if (elt.registryEntry) {
-      if (failed(
-              elt.registryEntry->addToPipeline(pm, elt.options, errorHandler)))
-        return failure();
+      if (failed(elt.registryEntry->addToPipeline(pm, elt.options,
+                                                  errorHandler))) {
+        return errorHandler("failed to add `" + elt.name + "` with options `" +
+                            elt.options + "`");
+      }
     } else if (failed(addToPipeline(elt.innerPipeline, pm.nest(elt.name),
                                     errorHandler))) {
-      return failure();
+      return errorHandler("failed to add `" + elt.name + "` with options `" +
+                          elt.options + "` to inner pipeline");
     }
   }
   return success();
@@ -529,6 +563,12 @@ struct PassNameParser : public llvm::cl::parser<PassArgData> {
   size_t getOptionWidth(const llvm::cl::Option &opt) const override;
   bool parse(llvm::cl::Option &opt, StringRef argName, StringRef arg,
              PassArgData &value);
+
+  /// If true, this parser only parses entries that correspond to a concrete
+  /// pass registry entry, and does not add a `pass-pipeline` argument, does not
+  /// include the options for pass entries, and does not include pass pipelines
+  /// entries.
+  bool passNamesOnly = false;
 };
 } // namespace
 
@@ -536,8 +576,10 @@ void PassNameParser::initialize() {
   llvm::cl::parser<PassArgData>::initialize();
 
   /// Add an entry for the textual pass pipeline option.
-  addLiteralOption(passPipelineArg, PassArgData(),
-                   "A textual description of a pass pipeline to run");
+  if (!passNamesOnly) {
+    addLiteralOption(passPipelineArg, PassArgData(),
+                     "A textual description of a pass pipeline to run");
+  }
 
   /// Add the pass entries.
   for (const auto &kv : *passRegistry) {
@@ -545,14 +587,24 @@ void PassNameParser::initialize() {
                      kv.second.getPassDescription());
   }
   /// Add the pass pipeline entries.
-  for (const auto &kv : *passPipelineRegistry) {
-    addLiteralOption(kv.second.getPassArgument(), &kv.second,
-                     kv.second.getPassDescription());
+  if (!passNamesOnly) {
+    for (const auto &kv : *passPipelineRegistry) {
+      addLiteralOption(kv.second.getPassArgument(), &kv.second,
+                       kv.second.getPassDescription());
+    }
   }
 }
 
 void PassNameParser::printOptionInfo(const llvm::cl::Option &opt,
                                      size_t globalWidth) const {
+  // If this parser is just parsing pass names, print a simplified option
+  // string.
+  if (passNamesOnly) {
+    llvm::outs() << "  --" << opt.ArgStr << "=<pass-arg>";
+    opt.printHelpStr(opt.HelpStr, globalWidth, opt.ArgStr.size() + 18);
+    return;
+  }
+
   // Print the information for the top-level option.
   if (opt.hasArgStr()) {
     llvm::outs() << "  --" << opt.ArgStr;
@@ -621,9 +673,19 @@ bool PassNameParser::parse(llvm::cl::Option &opt, StringRef argName,
 namespace mlir {
 namespace detail {
 struct PassPipelineCLParserImpl {
-  PassPipelineCLParserImpl(StringRef arg, StringRef description)
+  PassPipelineCLParserImpl(StringRef arg, StringRef description,
+                           bool passNamesOnly)
       : passList(arg, llvm::cl::desc(description)) {
+    passList.getParser().passNamesOnly = passNamesOnly;
     passList.setValueExpectedFlag(llvm::cl::ValueExpected::ValueOptional);
+  }
+
+  /// Returns true if the given pass registry entry was registered at the
+  /// top-level of the parser, i.e. not within an explicit textual pipeline.
+  bool contains(const PassRegistryEntry *entry) const {
+    return llvm::any_of(passList, [&](const PassArgData &data) {
+      return data.registryEntry == entry;
+    });
   }
 
   /// The set of passes and pass pipelines to run.
@@ -634,8 +696,8 @@ struct PassPipelineCLParserImpl {
 
 /// Construct a pass pipeline parser with the given command line description.
 PassPipelineCLParser::PassPipelineCLParser(StringRef arg, StringRef description)
-    : impl(std::make_unique<detail::PassPipelineCLParserImpl>(arg,
-                                                              description)) {}
+    : impl(std::make_unique<detail::PassPipelineCLParserImpl>(
+          arg, description, /*passNamesOnly=*/false)) {}
 PassPipelineCLParser::~PassPipelineCLParser() {}
 
 /// Returns true if this parser contains any valid options to add.
@@ -646,9 +708,7 @@ bool PassPipelineCLParser::hasAnyOccurrences() const {
 /// Returns true if the given pass registry entry was registered at the
 /// top-level of the parser, i.e. not within an explicit textual pipeline.
 bool PassPipelineCLParser::contains(const PassRegistryEntry *entry) const {
-  return llvm::any_of(impl->passList, [&](const PassArgData &data) {
-    return data.registryEntry == entry;
-  });
+  return impl->contains(entry);
 }
 
 /// Adds the passes defined by this parser entry to the given pass manager.
@@ -670,4 +730,26 @@ LogicalResult PassPipelineCLParser::addToPipeline(
     }
   }
   return success();
+}
+
+//===----------------------------------------------------------------------===//
+// PassNameCLParser
+
+/// Construct a pass pipeline parser with the given command line description.
+PassNameCLParser::PassNameCLParser(StringRef arg, StringRef description)
+    : impl(std::make_unique<detail::PassPipelineCLParserImpl>(
+          arg, description, /*passNamesOnly=*/true)) {
+  impl->passList.setMiscFlag(llvm::cl::CommaSeparated);
+}
+PassNameCLParser::~PassNameCLParser() {}
+
+/// Returns true if this parser contains any valid options to add.
+bool PassNameCLParser::hasAnyOccurrences() const {
+  return impl->passList.getNumOccurrences() != 0;
+}
+
+/// Returns true if the given pass registry entry was registered at the
+/// top-level of the parser, i.e. not within an explicit textual pipeline.
+bool PassNameCLParser::contains(const PassRegistryEntry *entry) const {
+  return impl->contains(entry);
 }

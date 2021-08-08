@@ -383,6 +383,8 @@ uint64_t MCAssembler::computeFragmentSize(const MCAsmLayout &Layout,
     return cast<MCCVInlineLineTableFragment>(F).getContents().size();
   case MCFragment::FT_CVDefRange:
     return cast<MCCVDefRangeFragment>(F).getContents().size();
+  case MCFragment::FT_PseudoProbe:
+    return cast<MCPseudoProbeAddrFragment>(F).getContents().size();
   case MCFragment::FT_Dummy:
     llvm_unreachable("Should not have been added");
   }
@@ -704,6 +706,11 @@ static void writeFragment(raw_ostream &OS, const MCAssembler &Asm,
     OS << DRF.getContents();
     break;
   }
+  case MCFragment::FT_PseudoProbe: {
+    const MCPseudoProbeAddrFragment &PF = cast<MCPseudoProbeAddrFragment>(F);
+    OS << PF.getContents();
+    break;
+  }
   case MCFragment::FT_Dummy:
     llvm_unreachable("Should not have been added");
   }
@@ -785,26 +792,7 @@ MCAssembler::handleFixup(const MCAsmLayout &Layout, MCFragment &F,
     // The fixup was unresolved, we need a relocation. Inform the object
     // writer of the relocation, and give it an opportunity to adjust the
     // fixup value if need be.
-    if (Target.getSymA() && Target.getSymB() &&
-        getBackend().requiresDiffExpressionRelocations()) {
-      // The fixup represents the difference between two symbols, which the
-      // backend has indicated must be resolved at link time. Split up the fixup
-      // into two relocations, one for the add, and one for the sub, and emit
-      // both of these. The constant will be associated with the add half of the
-      // expression.
-      MCFixup FixupAdd = MCFixup::createAddFor(Fixup);
-      MCValue TargetAdd =
-          MCValue::get(Target.getSymA(), nullptr, Target.getConstant());
-      getWriter().recordRelocation(*this, Layout, &F, FixupAdd, TargetAdd,
-                                   FixedValue);
-      MCFixup FixupSub = MCFixup::createSubFor(Fixup);
-      MCValue TargetSub = MCValue::get(Target.getSymB());
-      getWriter().recordRelocation(*this, Layout, &F, FixupSub, TargetSub,
-                                   FixedValue);
-    } else {
-      getWriter().recordRelocation(*this, Layout, &F, Fixup, Target,
-                                   FixedValue);
-    }
+    getWriter().recordRelocation(*this, Layout, &F, Fixup, Target, FixedValue);
   }
   return std::make_tuple(Target, FixedValue, IsResolved);
 }
@@ -913,6 +901,12 @@ void MCAssembler::layout(MCAsmLayout &Layout) {
         MCDwarfCallFrameFragment &DF = cast<MCDwarfCallFrameFragment>(Frag);
         Fixups = DF.getFixups();
         Contents = DF.getContents();
+        break;
+      }
+      case MCFragment::FT_PseudoProbe: {
+        MCPseudoProbeAddrFragment &PF = cast<MCPseudoProbeAddrFragment>(Frag);
+        Fixups = PF.getFixups();
+        Contents = PF.getContents();
         break;
       }
       }
@@ -1087,6 +1081,11 @@ bool MCAssembler::relaxBoundaryAlign(MCAsmLayout &Layout,
 
 bool MCAssembler::relaxDwarfLineAddr(MCAsmLayout &Layout,
                                      MCDwarfLineAddrFragment &DF) {
+
+  bool WasRelaxed;
+  if (getBackend().relaxDwarfLineAddr(DF, Layout, WasRelaxed))
+    return WasRelaxed;
+
   MCContext &Context = Layout.getAssembler().getContext();
   uint64_t OldSize = DF.getContents().size();
   int64_t AddrDelta;
@@ -1100,34 +1099,17 @@ bool MCAssembler::relaxDwarfLineAddr(MCAsmLayout &Layout,
   raw_svector_ostream OSE(Data);
   DF.getFixups().clear();
 
-  if (!getBackend().requiresDiffExpressionRelocations()) {
-    MCDwarfLineAddr::Encode(Context, getDWARFLinetableParams(), LineDelta,
-                            AddrDelta, OSE);
-  } else {
-    uint32_t Offset;
-    uint32_t Size;
-    bool SetDelta = MCDwarfLineAddr::FixedEncode(Context,
-                                                 getDWARFLinetableParams(),
-                                                 LineDelta, AddrDelta,
-                                                 OSE, &Offset, &Size);
-    // Add Fixups for address delta or new address.
-    const MCExpr *FixupExpr;
-    if (SetDelta) {
-      FixupExpr = &DF.getAddrDelta();
-    } else {
-      const MCBinaryExpr *ABE = cast<MCBinaryExpr>(&DF.getAddrDelta());
-      FixupExpr = ABE->getLHS();
-    }
-    DF.getFixups().push_back(
-        MCFixup::create(Offset, FixupExpr,
-                        MCFixup::getKindForSize(Size, false /*isPCRel*/)));
-  }
-
+  MCDwarfLineAddr::Encode(Context, getDWARFLinetableParams(), LineDelta,
+                          AddrDelta, OSE);
   return OldSize != Data.size();
 }
 
 bool MCAssembler::relaxDwarfCallFrameFragment(MCAsmLayout &Layout,
                                               MCDwarfCallFrameFragment &DF) {
+  bool WasRelaxed;
+  if (getBackend().relaxDwarfCFA(DF, Layout, WasRelaxed))
+    return WasRelaxed;
+
   MCContext &Context = Layout.getAssembler().getContext();
   uint64_t OldSize = DF.getContents().size();
   int64_t AddrDelta;
@@ -1139,20 +1121,7 @@ bool MCAssembler::relaxDwarfCallFrameFragment(MCAsmLayout &Layout,
   raw_svector_ostream OSE(Data);
   DF.getFixups().clear();
 
-  if (getBackend().requiresDiffExpressionRelocations()) {
-    uint32_t Offset;
-    uint32_t Size;
-    MCDwarfFrameEmitter::EncodeAdvanceLoc(Context, AddrDelta, OSE, &Offset,
-                                          &Size);
-    if (Size) {
-      DF.getFixups().push_back(MCFixup::create(
-          Offset, &DF.getAddrDelta(),
-          MCFixup::getKindForSizeInBits(Size /*In bits.*/, false /*isPCRel*/)));
-    }
-  } else {
-    MCDwarfFrameEmitter::EncodeAdvanceLoc(Context, AddrDelta, OSE);
-  }
-
+  MCDwarfFrameEmitter::EncodeAdvanceLoc(Context, AddrDelta, OSE);
   return OldSize != Data.size();
 }
 
@@ -1168,6 +1137,23 @@ bool MCAssembler::relaxCVDefRange(MCAsmLayout &Layout,
   unsigned OldSize = F.getContents().size();
   getContext().getCVContext().encodeDefRange(Layout, F);
   return OldSize != F.getContents().size();
+}
+
+bool MCAssembler::relaxPseudoProbeAddr(MCAsmLayout &Layout,
+                                       MCPseudoProbeAddrFragment &PF) {
+  uint64_t OldSize = PF.getContents().size();
+  int64_t AddrDelta;
+  bool Abs = PF.getAddrDelta().evaluateKnownAbsolute(AddrDelta, Layout);
+  assert(Abs && "We created a pseudo probe with an invalid expression");
+  (void)Abs;
+  SmallVectorImpl<char> &Data = PF.getContents();
+  Data.clear();
+  raw_svector_ostream OSE(Data);
+  PF.getFixups().clear();
+
+  // AddrDelta is a signed integer
+  encodeSLEB128(AddrDelta, OSE, OldSize);
+  return OldSize != Data.size();
 }
 
 bool MCAssembler::relaxFragment(MCAsmLayout &Layout, MCFragment &F) {
@@ -1191,6 +1177,8 @@ bool MCAssembler::relaxFragment(MCAsmLayout &Layout, MCFragment &F) {
     return relaxCVInlineLineTable(Layout, cast<MCCVInlineLineTableFragment>(F));
   case MCFragment::FT_CVDefRange:
     return relaxCVDefRange(Layout, cast<MCCVDefRangeFragment>(F));
+  case MCFragment::FT_PseudoProbe:
+    return relaxPseudoProbeAddr(Layout, cast<MCPseudoProbeAddrFragment>(F));
   }
 }
 

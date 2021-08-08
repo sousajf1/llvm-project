@@ -14,6 +14,14 @@ include "mlir/Pass/PassBase.td"
 def SCFBufferize : FunctionPass<"scf-bufferize"> {
   let summary = "Bufferize the scf dialect.";
   let constructor = "mlir::createSCFBufferizePass()";
+  let dependentDialects = ["memref::MemRefDialect"];
+}
+
+def SCFForLoopPeeling
+    : FunctionPass<"for-loop-peeling"> {
+  let summary = "Peel `for` loops at their upper bounds.";
+  let constructor = "mlir::createForLoopPeelingPass()";
+  let dependentDialects = ["AffineDialect"];
 }
 
 def SCFForLoopSpecialization
@@ -42,6 +50,12 @@ def SCFParallelLoopTiling : FunctionPass<"parallel-loop-tiling"> {
                "llvm::cl::ZeroOrMore, llvm::cl::MiscFlags::CommaSeparated">
   ];
   let dependentDialects = ["AffineDialect"];
+}
+
+def SCFForLoopRangeFolding
+    : Pass<"for-loop-range-folding"> {
+  let summary = "Fold add/mul ops into loop range";
+  let constructor = "mlir::createForLoopRangeFoldingPass()";
 }
 
 #endif // MLIR_DIALECT_SCF_PASSES

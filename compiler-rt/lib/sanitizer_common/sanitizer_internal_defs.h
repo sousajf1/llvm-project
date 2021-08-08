@@ -409,6 +409,15 @@ inline void Trap() {
     (void)enable_fp;                      \
   } while (0)
 
+// Internal thread identifier allocated by ThreadRegistry.
+typedef u32 Tid;
+constexpr Tid kInvalidTid = -1;
+constexpr Tid kMainTid = 0;
+
+// Stack depot stack identifier.
+typedef u32 StackID;
+const StackID kInvalidStackID = 0;
+
 }  // namespace __sanitizer
 
 namespace __asan {

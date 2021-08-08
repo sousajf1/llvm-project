@@ -215,8 +215,8 @@ static void my_pthread_introspection_hook(unsigned int event, pthread_t thread,
       Processor *proc = ProcCreate();
       ProcWire(proc, thr);
       ThreadState *parent_thread_state = nullptr;  // No parent.
-      int tid = ThreadCreate(parent_thread_state, 0, (uptr)thread, true);
-      CHECK_NE(tid, 0);
+      Tid tid = ThreadCreate(parent_thread_state, 0, (uptr)thread, true);
+      CHECK_NE(tid, kMainTid);
       ThreadStart(thr, tid, GetTid(), ThreadType::Worker);
     }
   } else if (event == PTHREAD_INTROSPECTION_THREAD_TERMINATE) {
@@ -234,7 +234,7 @@ static void my_pthread_introspection_hook(unsigned int event, pthread_t thread,
 #endif
 
 void InitializePlatformEarly() {
-#if !SANITIZER_GO && defined(__aarch64__)
+#if !SANITIZER_GO && !HAS_48_BIT_ADDRESS_SPACE
   uptr max_vm = GetMaxUserVirtualAddress() + 1;
   if (max_vm != Mapping::kHiAppMemEnd) {
     Printf("ThreadSanitizer: unsupported vm address limit %p, expected %p.\n",

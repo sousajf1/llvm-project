@@ -35,6 +35,11 @@ static const unsigned X86AddrSpaceMap[] = {
     0,   // cuda_device
     0,   // cuda_constant
     0,   // cuda_shared
+    0,   // sycl_global
+    0,   // sycl_global_device
+    0,   // sycl_global_host
+    0,   // sycl_local
+    0,   // sycl_private
     270, // ptr32_sptr
     271, // ptr32_uptr
     272  // ptr64
@@ -160,7 +165,7 @@ public:
     return LongDoubleFormat == &llvm::APFloat::IEEEquad() ? "g" : "e";
   }
 
-  unsigned getFloatEvalMethod() const override {
+  int getFPEvalMethod() const override {
     // X87 evaluates with 80 bits "long double" precision.
     return SSELevel == NoSSE ? 2 : 0;
   }
@@ -333,6 +338,10 @@ public:
 
   bool setFPMath(StringRef Name) override;
 
+  bool supportsExtendIntArgs() const override {
+    return getTriple().getArch() != llvm::Triple::x86;
+  }
+
   CallingConvCheckResult checkCallingConvention(CallingConv CC) const override {
     // Most of the non-ARM calling conventions are i386 conventions.
     switch (CC) {
@@ -348,10 +357,14 @@ public:
     case CC_IntelOclBicc:
     case CC_OpenCLKernel:
       return CCCR_OK;
+    case CC_SwiftAsync:
+      return CCCR_Error;
     default:
       return CCCR_Warning;
     }
   }
+
+  bool checkArithmeticFenceSupported() const override { return true; }
 
   CallingConv getDefaultCallingConv() const override {
     return CC_C;
@@ -359,9 +372,7 @@ public:
 
   bool hasSjLjLowering() const override { return true; }
 
-  void setSupportedOpenCLOpts() override {
-    getSupportedOpenCLOpts().supportAll();
-  }
+  void setSupportedOpenCLOpts() override { supportAllOpenCLOpts(); }
 
   uint64_t getPointerWidthV(unsigned AddrSpace) const override {
     if (AddrSpace == ptr32_sptr || AddrSpace == ptr32_uptr)
@@ -385,11 +396,13 @@ public:
     LongDoubleWidth = 96;
     LongDoubleAlign = 32;
     SuitableAlign = 128;
-    resetDataLayout(Triple.isOSBinFormatMachO() ?
-                    "e-m:o-p:32:32-p270:32:32-p271:32:32-p272:64:64-f64:32:64-"
-                    "f80:32-n8:16:32-S128" :
-                    "e-m:e-p:32:32-p270:32:32-p271:32:32-p272:64:64-f64:32:64-"
-                    "f80:32-n8:16:32-S128");
+    resetDataLayout(
+        Triple.isOSBinFormatMachO()
+            ? "e-m:o-p:32:32-p270:32:32-p271:32:32-p272:64:64-f64:32:64-"
+              "f80:32-n8:16:32-S128"
+            : "e-m:e-p:32:32-p270:32:32-p271:32:32-p272:64:64-f64:32:64-"
+              "f80:32-n8:16:32-S128",
+        Triple.isOSBinFormatMachO() ? "_" : "");
     SizeType = UnsignedInt;
     PtrDiffType = SignedInt;
     IntPtrType = SignedInt;
@@ -455,12 +468,12 @@ public:
   NetBSDI386TargetInfo(const llvm::Triple &Triple, const TargetOptions &Opts)
       : NetBSDTargetInfo<X86_32TargetInfo>(Triple, Opts) {}
 
-  unsigned getFloatEvalMethod() const override {
+  int getFPEvalMethod() const override {
     unsigned Major, Minor, Micro;
     getTriple().getOSVersion(Major, Minor, Micro);
     // New NetBSD uses the default rounding mode.
     if (Major >= 7 || (Major == 6 && Minor == 99 && Micro >= 26) || Major == 0)
-      return X86_32TargetInfo::getFloatEvalMethod();
+      return X86_32TargetInfo::getFPEvalMethod();
     // NetBSD before 6.99.26 defaults to "double" rounding.
     return 1;
   }
@@ -493,7 +506,7 @@ public:
     SizeType = UnsignedLong;
     IntPtrType = SignedLong;
     resetDataLayout("e-m:o-p:32:32-p270:32:32-p271:32:32-p272:64:64-f64:32:64-"
-                    "f80:128-n8:16:32-S128");
+                    "f80:128-n8:16:32-S128", "_");
     HasAlignMac68kSupport = true;
   }
 
@@ -521,7 +534,8 @@ public:
     resetDataLayout(IsWinCOFF ? "e-m:x-p:32:32-p270:32:32-p271:32:32-p272:64:"
                                 "64-i64:64-f80:32-n8:16:32-a:0:32-S32"
                               : "e-m:e-p:32:32-p270:32:32-p271:32:32-p272:64:"
-                                "64-i64:64-f80:32-n8:16:32-a:0:32-S32");
+                                "64-i64:64-f80:32-n8:16:32-a:0:32-S32",
+                    IsWinCOFF ? "_" : "");
   }
 };
 
@@ -570,7 +584,8 @@ public:
     this->WCharType = TargetInfo::UnsignedShort;
     DoubleAlign = LongLongAlign = 64;
     resetDataLayout("e-m:x-p:32:32-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:"
-                    "32-n8:16:32-a:0:32-S32");
+                    "32-n8:16:32-a:0:32-S32",
+                    "_");
   }
 
   void getTargetDefines(const LangOptions &Opts,
@@ -650,7 +665,7 @@ class LLVM_LIBRARY_VISIBILITY X86_64TargetInfo : public X86TargetInfo {
 public:
   X86_64TargetInfo(const llvm::Triple &Triple, const TargetOptions &Opts)
       : X86TargetInfo(Triple, Opts) {
-    const bool IsX32 = getTriple().getEnvironment() == llvm::Triple::GNUX32;
+    const bool IsX32 = getTriple().isX32();
     bool IsWinCOFF =
         getTriple().isOSWindows() && getTriple().isOSBinFormatCOFF();
     LongWidth = LongAlign = PointerWidth = PointerAlign = IsX32 ? 32 : 64;
@@ -704,6 +719,7 @@ public:
     switch (CC) {
     case CC_C:
     case CC_Swift:
+    case CC_SwiftAsync:
     case CC_X86VectorCall:
     case CC_IntelOclBicc:
     case CC_Win64:
@@ -785,6 +801,7 @@ public:
     case CC_PreserveAll:
     case CC_X86_64SysV:
     case CC_Swift:
+    case CC_SwiftAsync:
     case CC_X86RegCall:
     case CC_OpenCLKernel:
       return CCCR_OK;
@@ -865,7 +882,7 @@ public:
     if (T.isiOS())
       UseSignedCharForObjCBool = false;
     resetDataLayout("e-m:o-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:"
-                    "16:32:64-S128");
+                    "16:32:64-S128", "_");
   }
 
   bool handleTargetFeatures(std::vector<std::string> &Features,

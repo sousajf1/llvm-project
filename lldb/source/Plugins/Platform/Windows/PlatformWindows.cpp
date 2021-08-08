@@ -8,7 +8,7 @@
 
 #include "PlatformWindows.h"
 
-#include <stdio.h>
+#include <cstdio>
 #if defined(_WIN32)
 #include "lldb/Host/windows/windows.h"
 #include <winsock2.h>
@@ -271,8 +271,6 @@ lldb::ProcessSP PlatformWindows::Attach(ProcessAttachInfo &attach_info,
 
   if (!target || error.Fail())
     return process_sp;
-
-  debugger.GetTargetList().SetSelectedTarget(target);
 
   const char *plugin_name = attach_info.GetProcessPluginName();
   process_sp = target->CreateProcess(

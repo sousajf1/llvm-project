@@ -152,8 +152,7 @@ public:
   virtual bool IsFloatingPointType(lldb::opaque_compiler_type_t type,
                                    uint32_t &count, bool &is_complex) = 0;
 
-  virtual bool IsFunctionType(lldb::opaque_compiler_type_t type,
-                              bool *is_variadic_ptr) = 0;
+  virtual bool IsFunctionType(lldb::opaque_compiler_type_t type) = 0;
 
   virtual size_t
   GetNumberOfFunctionArguments(lldb::opaque_compiler_type_t type) = 0;
@@ -175,6 +174,8 @@ public:
     is_signed = false;
     return false;
   }
+
+  virtual bool IsScopedEnumerationType(lldb::opaque_compiler_type_t type) = 0;
 
   virtual bool IsPossibleDynamicType(lldb::opaque_compiler_type_t type,
                                      CompilerType *target_type, // Can pass NULL
@@ -225,6 +226,9 @@ public:
                                     uint64_t size);
 
   virtual CompilerType GetCanonicalType(lldb::opaque_compiler_type_t type) = 0;
+
+  virtual CompilerType
+  GetEnumerationIntegerType(lldb::opaque_compiler_type_t type) = 0;
 
   // Returns -1 if this isn't a function of if the function doesn't have a
   // prototype Returns a value >= 0 if there is a prototype.
@@ -520,7 +524,7 @@ protected:
   mutable std::mutex m_mutex; ///< A mutex to keep this object happy in
                               ///multi-threaded environments.
   collection m_map;
-  bool m_clear_in_progress;
+  bool m_clear_in_progress = false;
 
 private:
   typedef llvm::function_ref<lldb::TypeSystemSP()> CreateCallback;

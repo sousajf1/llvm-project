@@ -19,22 +19,6 @@
 
 namespace __tsan {
 
-ReportStack::ReportStack() : frames(nullptr), suppressable(false) {}
-
-ReportStack *ReportStack::New() {
-  void *mem = internal_alloc(MBlockReportStack, sizeof(ReportStack));
-  return new(mem) ReportStack();
-}
-
-ReportLocation::ReportLocation(ReportLocationType type)
-    : type(type), global(), heap_chunk_start(0), heap_chunk_size(0), tid(0),
-      fd(0), suppressable(false), stack(nullptr) {}
-
-ReportLocation *ReportLocation::New(ReportLocationType type) {
-  void *mem = internal_alloc(MBlockReportStack, sizeof(ReportLocation));
-  return new(mem) ReportLocation(type);
-}
-
 class Decorator: public __sanitizer::SanitizerCommonDecorator {
  public:
   Decorator() : SanitizerCommonDecorator() { }
@@ -68,8 +52,8 @@ ReportDesc::~ReportDesc() {
 #if !SANITIZER_GO
 
 const int kThreadBufSize = 32;
-const char *thread_name(char *buf, int tid) {
-  if (tid == 0)
+const char *thread_name(char *buf, Tid tid) {
+  if (tid == kMainTid)
     return "main thread";
   internal_snprintf(buf, kThreadBufSize, "thread T%d", tid);
   return buf;
@@ -127,7 +111,7 @@ void PrintStack(const ReportStack *ent) {
   }
   SymbolizedStack *frame = ent->frames;
   for (int i = 0; frame && frame->info.address; frame = frame->next, i++) {
-    InternalScopedString res(2 * GetPageSizeCached());
+    InternalScopedString res;
     RenderFrame(&res, common_flags()->stack_trace_format, i,
                 frame->info.address, &frame->info,
                 common_flags()->symbolize_vs_style,
@@ -250,7 +234,7 @@ static void PrintMutex(const ReportMutex *rm) {
 
 static void PrintThread(const ReportThread *rt) {
   Decorator d;
-  if (rt->id == 0)  // Little sense in describing the main thread.
+  if (rt->id == kMainTid)  // Little sense in describing the main thread.
     return;
   Printf("%s", d.ThreadDescription());
   Printf("  Thread T%d", rt->id);
@@ -394,7 +378,7 @@ void PrintReport(const ReportDesc *rep) {
 
 #else  // #if !SANITIZER_GO
 
-const int kMainThreadId = 1;
+const Tid kMainGoroutineId = 1;
 
 void PrintStack(const ReportStack *ent) {
   if (ent == 0 || ent->frames == 0) {
@@ -415,7 +399,7 @@ static void PrintMop(const ReportMop *mop, bool first) {
   Printf("%s at %p by ",
       (first ? (mop->write ? "Write" : "Read")
              : (mop->write ? "Previous write" : "Previous read")), mop->addr);
-  if (mop->tid == kMainThreadId)
+  if (mop->tid == kMainGoroutineId)
     Printf("main goroutine:\n");
   else
     Printf("goroutine %d:\n", mop->tid);
@@ -428,7 +412,7 @@ static void PrintLocation(const ReportLocation *loc) {
     Printf("\n");
     Printf("Heap block of size %zu at %p allocated by ",
         loc->heap_chunk_size, loc->heap_chunk_start);
-    if (loc->tid == kMainThreadId)
+    if (loc->tid == kMainGoroutineId)
       Printf("main goroutine:\n");
     else
       Printf("goroutine %d:\n", loc->tid);
@@ -448,7 +432,7 @@ static void PrintLocation(const ReportLocation *loc) {
 }
 
 static void PrintThread(const ReportThread *rt) {
-  if (rt->id == kMainThreadId)
+  if (rt->id == kMainGoroutineId)
     return;
   Printf("\n");
   Printf("Goroutine %d (%s) created at:\n",

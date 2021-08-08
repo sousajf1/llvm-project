@@ -1,5 +1,5 @@
 // RUN: mlir-opt -allow-unregistered-dialect %s -sccp -split-input-file | FileCheck %s
-// RUN: mlir-opt -allow-unregistered-dialect %s -pass-pipeline="module(sccp)" -split-input-file | FileCheck %s --check-prefix=NESTED
+// RUN: mlir-opt -allow-unregistered-dialect %s -pass-pipeline="builtin.module(sccp)" -split-input-file | FileCheck %s --check-prefix=NESTED
 
 /// Check that a constant is properly propagated through the arguments and
 /// results of a private function.
@@ -140,7 +140,7 @@ func @unknown_terminator() -> i32 {
 /// Check that return values are overdefined when the constant conflicts.
 
 func private @callable(%arg0 : i32) -> i32 {
-  "unknown.return"(%arg0) : (i32) -> ()
+  return %arg0 : i32
 }
 
 // CHECK-LABEL: func @conflicting_constant(
@@ -188,7 +188,7 @@ func private @complex_inner_if(%arg0 : i32) -> i32 {
   // CHECK: cond_br %[[TRUE]], ^bb1
 
   %cst_20 = constant 20 : i32
-  %cond = cmpi "ult", %arg0, %cst_20 : i32
+  %cond = cmpi ult, %arg0, %cst_20 : i32
   cond_br %cond, ^bb1, ^bb2
 
 ^bb1:
@@ -254,4 +254,19 @@ func @non_symbol_defining_callable() -> i32 {
   }) : () -> (() -> i32)
   %res = call_indirect %fn() : () -> (i32)
   return %res : i32
+}
+
+// -----
+
+/// Check that private callables don't get processed if they have no uses.
+
+// CHECK-LABEL: func private @unreferenced_private_function
+func private @unreferenced_private_function() -> i32 {
+  // CHECK: %[[RES:.*]] = select
+  // CHECK: return %[[RES]] : i32
+  %true = constant true
+  %cst0 = constant 0 : i32
+  %cst1 = constant 1 : i32
+  %result = select %true, %cst0, %cst1 : i32
+  return %result : i32
 }

@@ -495,7 +495,10 @@ bool ContinuationIndenter::mustBreak(const LineState &State) {
   if (((Current.is(TT_FunctionDeclarationName) &&
         // Don't break before a C# function when no break after return type
         (!Style.isCSharp() ||
-         Style.AlwaysBreakAfterReturnType != FormatStyle::RTBS_None)) ||
+         Style.AlwaysBreakAfterReturnType != FormatStyle::RTBS_None) &&
+        // Don't always break between a JavaScript `function` and the function
+        // name.
+        Style.Language != FormatStyle::LK_JavaScript) ||
        (Current.is(tok::kw_operator) && !Previous.is(tok::coloncolon))) &&
       !Previous.is(tok::kw_template) && State.Stack.back().BreakBeforeParameter)
     return true;
@@ -1651,7 +1654,7 @@ unsigned ContinuationIndenter::reformatRawStringLiteral(
   StringRef OldDelimiter = *getRawStringDelimiter(Current.TokenText);
   StringRef NewDelimiter =
       getCanonicalRawStringDelimiter(Style, RawStringStyle.Language);
-  if (NewDelimiter.empty() || OldDelimiter.empty())
+  if (NewDelimiter.empty())
     NewDelimiter = OldDelimiter;
   // The text of a raw string is between the leading 'R"delimiter(' and the
   // trailing 'delimiter)"'.
@@ -1906,12 +1909,12 @@ ContinuationIndenter::createBreakableToken(const FormatToken &Current,
                                            LineState &State, bool AllowBreak) {
   unsigned StartColumn = State.Column - Current.ColumnWidth;
   if (Current.isStringLiteral()) {
-    // FIXME: String literal breaking is currently disabled for C#, Java and
-    // JavaScript, as it requires strings to be merged using "+" which we
+    // FIXME: String literal breaking is currently disabled for C#, Java, Json
+    // and JavaScript, as it requires strings to be merged using "+" which we
     // don't support.
     if (Style.Language == FormatStyle::LK_Java ||
         Style.Language == FormatStyle::LK_JavaScript || Style.isCSharp() ||
-        !Style.BreakStringLiterals || !AllowBreak)
+        Style.isJson() || !Style.BreakStringLiterals || !AllowBreak)
       return nullptr;
 
     // Don't break string literals inside preprocessor directives (except for
@@ -1974,8 +1977,7 @@ ContinuationIndenter::createBreakableToken(const FormatToken &Current,
         switchesFormatting(Current))
       return nullptr;
     return std::make_unique<BreakableLineCommentSection>(
-        Current, StartColumn, Current.OriginalColumn, !Current.Previous,
-        /*InPPDirective=*/false, Encoding, Style);
+        Current, StartColumn, /*InPPDirective=*/false, Encoding, Style);
   }
   return nullptr;
 }
@@ -1993,6 +1995,11 @@ ContinuationIndenter::breakProtrudingToken(const FormatToken &Current,
   if (Current.is(TT_LineComment)) {
     // We don't insert backslashes when breaking line comments.
     ColumnLimit = Style.ColumnLimit;
+  }
+  if (ColumnLimit == 0) {
+    // To make the rest of the function easier set the column limit to the
+    // maximum, if there should be no limit.
+    ColumnLimit = std::numeric_limits<decltype(ColumnLimit)>::max();
   }
   if (Current.UnbreakableTailLength >= ColumnLimit)
     return {0, false};

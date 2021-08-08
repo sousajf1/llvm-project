@@ -1,4 +1,5 @@
-! RUN: %S/test_errors.sh %s %t %f18
+! RUN: %S/test_errors.sh %s %t %flang_fc1
+! REQUIRES: shell
 !Testing data constraints : C876, C877
 module m
   integer :: first
@@ -62,7 +63,6 @@ module m
       end type
       type(large) largeNumber
       type(large), allocatable :: allocatableLarge
-      !ERROR: An automatic variable must not be initialized
       type(large) :: largeNumberArray(i)
       type(large) :: largeArray(5)
       character :: name(i)

@@ -24,18 +24,47 @@ namespace Fortran::frontend {
 static std::unique_ptr<FrontendAction> CreateFrontendBaseAction(
     CompilerInstance &ci) {
 
-  ActionKind ak = ci.frontendOpts().programAction_;
+  ActionKind ak = ci.frontendOpts().programAction;
   switch (ak) {
   case InputOutputTest:
     return std::make_unique<InputOutputTestAction>();
-    break;
   case PrintPreprocessedInput:
     return std::make_unique<PrintPreprocessedAction>();
-    break;
+  case ParseSyntaxOnly:
+    return std::make_unique<ParseSyntaxOnlyAction>();
+  case EmitObj:
+    return std::make_unique<EmitObjAction>();
+  case DebugUnparse:
+    return std::make_unique<DebugUnparseAction>();
+  case DebugUnparseNoSema:
+    return std::make_unique<DebugUnparseNoSemaAction>();
+  case DebugUnparseWithSymbols:
+    return std::make_unique<DebugUnparseWithSymbolsAction>();
+  case DebugDumpSymbols:
+    return std::make_unique<DebugDumpSymbolsAction>();
+  case DebugDumpParseTree:
+    return std::make_unique<DebugDumpParseTreeAction>();
+  case DebugDumpParseTreeNoSema:
+    return std::make_unique<DebugDumpParseTreeNoSemaAction>();
+  case DebugDumpAll:
+    return std::make_unique<DebugDumpAllAction>();
+  case DebugDumpProvenance:
+    return std::make_unique<DebugDumpProvenanceAction>();
+  case DebugDumpParsingLog:
+    return std::make_unique<DebugDumpParsingLogAction>();
+  case DebugMeasureParseTree:
+    return std::make_unique<DebugMeasureParseTreeAction>();
+  case DebugPreFIRTree:
+    return std::make_unique<DebugPreFIRTreeAction>();
+  case GetDefinition:
+    return std::make_unique<GetDefinitionAction>();
+  case GetSymbolsSources:
+    return std::make_unique<GetSymbolsSourcesAction>();
+  case InitOnly:
+    return std::make_unique<InitOnlyAction>();
   default:
     break;
     // TODO:
-    // case RunPreprocessor:
     // case ParserSyntaxOnly:
     // case EmitLLVM:
     // case EmitLLVMOnly:
@@ -55,8 +84,8 @@ std::unique_ptr<FrontendAction> CreateFrontendAction(CompilerInstance &ci) {
 }
 bool ExecuteCompilerInvocation(CompilerInstance *flang) {
   // Honor -help.
-  if (flang->frontendOpts().showHelp_) {
-    clang::driver::getDriverOptTable().PrintHelp(llvm::outs(),
+  if (flang->frontendOpts().showHelp) {
+    clang::driver::getDriverOptTable().printHelp(llvm::outs(),
         "flang-new -fc1 [options] file...", "LLVM 'Flang' Compiler",
         /*Include=*/clang::driver::options::FC1Option,
         /*Exclude=*/llvm::opt::DriverFlag::HelpHidden,
@@ -65,7 +94,7 @@ bool ExecuteCompilerInvocation(CompilerInstance *flang) {
   }
 
   // Honor -version.
-  if (flang->frontendOpts().showVersion_) {
+  if (flang->frontendOpts().showVersion) {
     llvm::cl::PrintVersionMessage();
     return true;
   }

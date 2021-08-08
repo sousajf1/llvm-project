@@ -14,11 +14,11 @@
 #define LLVM_EXECUTIONENGINE_ORC_TARGETPROCESS_ORCRPCTPCSERVER_H
 
 #include "llvm/ADT/BitmaskEnum.h"
-#include "llvm/ExecutionEngine/Orc/RPC/RPCUtils.h"
-#include "llvm/ExecutionEngine/Orc/RPC/RawByteChannel.h"
+#include "llvm/ExecutionEngine/Orc/Shared/RPCUtils.h"
+#include "llvm/ExecutionEngine/Orc/Shared/RawByteChannel.h"
 #include "llvm/ExecutionEngine/Orc/Shared/TargetProcessControlTypes.h"
+#include "llvm/ExecutionEngine/Orc/Shared/WrapperFunctionUtils.h"
 #include "llvm/ExecutionEngine/Orc/TargetProcess/TargetExecutionUtils.h"
-#include "llvm/ExecutionEngine/Orc/TargetProcessControl.h"
 #include "llvm/Support/DynamicLibrary.h"
 #include "llvm/Support/FormatVariadic.h"
 #include "llvm/Support/Host.h"
@@ -39,6 +39,13 @@ enum WireProtectionFlags : uint8_t {
   WPF_Write = 1U << 1,
   WPF_Exec = 1U << 2,
   LLVM_MARK_AS_BITMASK_ENUM(WPF_Exec)
+};
+
+struct ExecutorProcessInfo {
+  std::string Triple;
+  unsigned PageSize;
+  JITTargetAddress DispatchFuncAddr;
+  JITTargetAddress DispatchCtxAddr;
 };
 
 /// Convert from sys::Memory::ProtectionFlags
@@ -93,51 +100,87 @@ using ReleaseOrFinalizeMemRequest =
 
 } // end namespace orcrpctpc
 
-namespace rpc {
+namespace shared {
 
-template <> class RPCTypeName<tpctypes::UInt8Write> {
+template <> class SerializationTypeName<WrapperFunctionResult> {
+public:
+  static const char *getName() { return "WrapperFunctionResult"; }
+};
+
+template <typename ChannelT>
+class SerializationTraits<
+    ChannelT, WrapperFunctionResult, WrapperFunctionResult,
+    std::enable_if_t<std::is_base_of<RawByteChannel, ChannelT>::value>> {
+public:
+  static Error serialize(ChannelT &C, const WrapperFunctionResult &E) {
+    if (auto Err = serializeSeq(C, static_cast<uint64_t>(E.size())))
+      return Err;
+    if (E.size() == 0)
+      return Error::success();
+    return C.appendBytes(E.data(), E.size());
+  }
+
+  static Error deserialize(ChannelT &C, WrapperFunctionResult &E) {
+    uint64_t Size;
+    if (auto Err = deserializeSeq(C, Size))
+      return Err;
+
+    WrapperFunctionResult Tmp;
+    char *Data = WrapperFunctionResult::allocate(Tmp, Size);
+
+    if (auto Err = C.readBytes(Data, Size))
+      return Err;
+
+    E = std::move(Tmp);
+
+    return Error::success();
+  }
+};
+
+template <> class SerializationTypeName<tpctypes::UInt8Write> {
 public:
   static const char *getName() { return "UInt8Write"; }
 };
 
-template <> class RPCTypeName<tpctypes::UInt16Write> {
+template <> class SerializationTypeName<tpctypes::UInt16Write> {
 public:
   static const char *getName() { return "UInt16Write"; }
 };
 
-template <> class RPCTypeName<tpctypes::UInt32Write> {
+template <> class SerializationTypeName<tpctypes::UInt32Write> {
 public:
   static const char *getName() { return "UInt32Write"; }
 };
 
-template <> class RPCTypeName<tpctypes::UInt64Write> {
+template <> class SerializationTypeName<tpctypes::UInt64Write> {
 public:
   static const char *getName() { return "UInt64Write"; }
 };
 
-template <> class RPCTypeName<tpctypes::BufferWrite> {
+template <> class SerializationTypeName<tpctypes::BufferWrite> {
 public:
   static const char *getName() { return "BufferWrite"; }
 };
 
-template <> class RPCTypeName<orcrpctpc::ReserveMemRequestElement> {
+template <> class SerializationTypeName<orcrpctpc::ReserveMemRequestElement> {
 public:
   static const char *getName() { return "ReserveMemRequestElement"; }
 };
 
-template <> class RPCTypeName<orcrpctpc::ReserveMemResultElement> {
+template <> class SerializationTypeName<orcrpctpc::ReserveMemResultElement> {
 public:
   static const char *getName() { return "ReserveMemResultElement"; }
 };
 
-template <> class RPCTypeName<orcrpctpc::ReleaseOrFinalizeMemRequestElement> {
+template <>
+class SerializationTypeName<orcrpctpc::ReleaseOrFinalizeMemRequestElement> {
 public:
   static const char *getName() { return "ReleaseOrFinalizeMemRequestElement"; }
 };
 
-template <> class RPCTypeName<tpctypes::WrapperFunctionResult> {
+template <> class SerializationTypeName<orcrpctpc::ExecutorProcessInfo> {
 public:
-  static const char *getName() { return "WrapperFunctionResult"; }
+  static const char *getName() { return "ExecutorProcessInfo"; }
 };
 
 template <typename ChannelT, typename WriteT>
@@ -233,45 +276,21 @@ public:
 };
 
 template <typename ChannelT>
-class SerializationTraits<
-    ChannelT, tpctypes::WrapperFunctionResult, tpctypes::WrapperFunctionResult,
-    std::enable_if_t<std::is_base_of<RawByteChannel, ChannelT>::value>> {
+class SerializationTraits<ChannelT, orcrpctpc::ExecutorProcessInfo> {
 public:
   static Error serialize(ChannelT &C,
-                         const tpctypes::WrapperFunctionResult &E) {
-    auto Data = E.getData();
-    if (auto Err = serializeSeq(C, static_cast<uint64_t>(Data.size())))
-      return Err;
-    if (Data.size() == 0)
-      return Error::success();
-    return C.appendBytes(reinterpret_cast<const char *>(Data.data()),
-                         Data.size());
+                         const orcrpctpc::ExecutorProcessInfo &EPI) {
+    return serializeSeq(C, EPI.Triple, EPI.PageSize, EPI.DispatchFuncAddr,
+                        EPI.DispatchCtxAddr);
   }
 
-  static Error deserialize(ChannelT &C, tpctypes::WrapperFunctionResult &E) {
-    tpctypes::CWrapperFunctionResult R;
-
-    R.Size = 0;
-    R.Data.ValuePtr = nullptr;
-    R.Destroy = nullptr;
-
-    if (auto Err = deserializeSeq(C, R.Size))
-      return Err;
-    if (R.Size == 0)
-      return Error::success();
-    R.Data.ValuePtr = new uint8_t[R.Size];
-    if (auto Err =
-            C.readBytes(reinterpret_cast<char *>(R.Data.ValuePtr), R.Size)) {
-      R.Destroy = tpctypes::WrapperFunctionResult::destroyWithDeleteArray;
-      return Err;
-    }
-
-    E = tpctypes::WrapperFunctionResult(R);
-    return Error::success();
+  static Error deserialize(ChannelT &C, orcrpctpc::ExecutorProcessInfo &EPI) {
+    return deserializeSeq(C, EPI.Triple, EPI.PageSize, EPI.DispatchFuncAddr,
+                          EPI.DispatchCtxAddr);
   }
 };
 
-} // end namespace rpc
+} // end namespace shared
 
 namespace orcrpctpc {
 
@@ -279,100 +298,101 @@ using RemoteSymbolLookupSet = std::vector<std::pair<std::string, bool>>;
 using RemoteLookupRequest =
     std::pair<tpctypes::DylibHandle, RemoteSymbolLookupSet>;
 
-class GetTargetTriple : public rpc::Function<GetTargetTriple, std::string()> {
+class GetExecutorProcessInfo
+    : public shared::RPCFunction<GetExecutorProcessInfo,
+                                 orcrpctpc::ExecutorProcessInfo()> {
 public:
-  static const char *getName() { return "GetTargetTriple"; }
+  static const char *getName() { return "GetJITDispatchInfo"; }
 };
 
-class GetPageSize : public rpc::Function<GetPageSize, uint64_t()> {
-public:
-  static const char *getName() { return "GetPageSize"; }
-};
-
-class ReserveMem : public rpc::Function<ReserveMem, Expected<ReserveMemResult>(
-                                                        ReserveMemRequest)> {
+class ReserveMem
+    : public shared::RPCFunction<ReserveMem, Expected<ReserveMemResult>(
+                                                 ReserveMemRequest)> {
 public:
   static const char *getName() { return "ReserveMem"; }
 };
 
 class FinalizeMem
-    : public rpc::Function<FinalizeMem, Error(ReleaseOrFinalizeMemRequest)> {
+    : public shared::RPCFunction<FinalizeMem,
+                                 Error(ReleaseOrFinalizeMemRequest)> {
 public:
   static const char *getName() { return "FinalizeMem"; }
 };
 
 class ReleaseMem
-    : public rpc::Function<ReleaseMem, Error(ReleaseOrFinalizeMemRequest)> {
+    : public shared::RPCFunction<ReleaseMem,
+                                 Error(ReleaseOrFinalizeMemRequest)> {
 public:
   static const char *getName() { return "ReleaseMem"; }
 };
 
 class WriteUInt8s
-    : public rpc::Function<WriteUInt8s,
-                           Error(std::vector<tpctypes::UInt8Write>)> {
+    : public shared::RPCFunction<WriteUInt8s,
+                                 Error(std::vector<tpctypes::UInt8Write>)> {
 public:
   static const char *getName() { return "WriteUInt8s"; }
 };
 
 class WriteUInt16s
-    : public rpc::Function<WriteUInt16s,
-                           Error(std::vector<tpctypes::UInt16Write>)> {
+    : public shared::RPCFunction<WriteUInt16s,
+                                 Error(std::vector<tpctypes::UInt16Write>)> {
 public:
   static const char *getName() { return "WriteUInt16s"; }
 };
 
 class WriteUInt32s
-    : public rpc::Function<WriteUInt32s,
-                           Error(std::vector<tpctypes::UInt32Write>)> {
+    : public shared::RPCFunction<WriteUInt32s,
+                                 Error(std::vector<tpctypes::UInt32Write>)> {
 public:
   static const char *getName() { return "WriteUInt32s"; }
 };
 
 class WriteUInt64s
-    : public rpc::Function<WriteUInt64s,
-                           Error(std::vector<tpctypes::UInt64Write>)> {
+    : public shared::RPCFunction<WriteUInt64s,
+                                 Error(std::vector<tpctypes::UInt64Write>)> {
 public:
   static const char *getName() { return "WriteUInt64s"; }
 };
 
 class WriteBuffers
-    : public rpc::Function<WriteBuffers,
-                           Error(std::vector<tpctypes::BufferWrite>)> {
+    : public shared::RPCFunction<WriteBuffers,
+                                 Error(std::vector<tpctypes::BufferWrite>)> {
 public:
   static const char *getName() { return "WriteBuffers"; }
 };
 
 class LoadDylib
-    : public rpc::Function<LoadDylib, Expected<tpctypes::DylibHandle>(
-                                          std::string DylibPath)> {
+    : public shared::RPCFunction<LoadDylib, Expected<tpctypes::DylibHandle>(
+                                                std::string DylibPath)> {
 public:
   static const char *getName() { return "LoadDylib"; }
 };
 
 class LookupSymbols
-    : public rpc::Function<LookupSymbols,
-                           Expected<std::vector<tpctypes::LookupResult>>(
-                               std::vector<RemoteLookupRequest>)> {
+    : public shared::RPCFunction<LookupSymbols,
+                                 Expected<std::vector<tpctypes::LookupResult>>(
+                                     std::vector<RemoteLookupRequest>)> {
 public:
   static const char *getName() { return "LookupSymbols"; }
 };
 
 class RunMain
-    : public rpc::Function<RunMain, int32_t(JITTargetAddress MainAddr,
-                                            std::vector<std::string> Args)> {
+    : public shared::RPCFunction<RunMain,
+                                 int64_t(JITTargetAddress MainAddr,
+                                         std::vector<std::string> Args)> {
 public:
   static const char *getName() { return "RunMain"; }
 };
 
 class RunWrapper
-    : public rpc::Function<RunWrapper,
-                           tpctypes::WrapperFunctionResult(
-                               JITTargetAddress, std::vector<uint8_t>)> {
+    : public shared::RPCFunction<RunWrapper,
+                                 shared::WrapperFunctionResult(
+                                     JITTargetAddress, std::vector<uint8_t>)> {
 public:
   static const char *getName() { return "RunWrapper"; }
 };
 
-class CloseConnection : public rpc::Function<CloseConnection, void()> {
+class CloseConnection : public shared::RPCFunction<CloseConnection, void()> {
 public:
   static const char *getName() { return "CloseConnection"; }
 };
@@ -381,18 +401,18 @@ public:
 
 /// TargetProcessControl for a process connected via an ORC RPC Endpoint.
 template <typename RPCEndpointT> class OrcRPCTPCServer {
+private:
+  using ThisT = OrcRPCTPCServer<RPCEndpointT>;
+
 public:
   /// Create an OrcRPCTPCServer from the given endpoint.
   OrcRPCTPCServer(RPCEndpointT &EP) : EP(EP) {
-    using ThisT = OrcRPCTPCServer<RPCEndpointT>;
 
     TripleStr = sys::getProcessTriple();
     PageSize = sys::Process::getPageSizeEstimate();
 
-    EP.template addHandler<orcrpctpc::GetTargetTriple>(*this,
-                                                       &ThisT::getTargetTriple);
-    EP.template addHandler<orcrpctpc::GetPageSize>(*this, &ThisT::getPageSize);
-
+    EP.template addHandler<orcrpctpc::GetExecutorProcessInfo>(
+        *this, &ThisT::getExecutorProcessInfo);
     EP.template addHandler<orcrpctpc::ReserveMem>(*this, &ThisT::reserveMemory);
     EP.template addHandler<orcrpctpc::FinalizeMem>(*this,
                                                    &ThisT::finalizeMemory);
@@ -437,9 +457,34 @@ public:
     return Error::success();
   }
 
+  Expected<shared::WrapperFunctionResult>
+  runWrapperInJIT(JITTargetAddress FunctionId, ArrayRef<char> ArgBuffer) {
+    return EP.template callB<orcrpctpc::RunWrapper>(
+        FunctionId,
+        ArrayRef<uint8_t>(reinterpret_cast<const uint8_t *>(ArgBuffer.data()),
+                          ArgBuffer.size()));
+  }
+
 private:
-  std::string getTargetTriple() { return TripleStr; }
-  uint64_t getPageSize() { return PageSize; }
+  static shared::detail::CWrapperFunctionResult
+  jitDispatchViaOrcRPCTPCServer(void *Ctx, const void *FnTag, const char *Data,
+                                size_t Size) {
+    assert(Ctx && "Attempt to dispatch with null context ptr");
+    auto R = static_cast<ThisT *>(Ctx)->runWrapperInJIT(
+        pointerToJITTargetAddress(FnTag), {Data, Size});
+    if (!R) {
+      auto ErrMsg = toString(R.takeError());
+      return shared::WrapperFunctionResult::createOutOfBandError(ErrMsg.data())
+          .release();
+    }
+    return R->release();
+  }
+
+  orcrpctpc::ExecutorProcessInfo getExecutorProcessInfo() {
+    return {TripleStr, static_cast<uint32_t>(PageSize),
+            pointerToJITTargetAddress(jitDispatchViaOrcRPCTPCServer),
+            pointerToJITTargetAddress(this)};
+  }
 
   template <typename WriteT>
   static void handleWriteUInt(const std::vector<WriteT> &Ws) {
@@ -578,7 +623,7 @@ private:
     return Result;
   }
 
-  int32_t runMain(JITTargetAddress MainFnAddr,
+  int64_t runMain(JITTargetAddress MainFnAddr,
                   const std::vector<std::string> &Args) {
     Optional<StringRef> ProgramNameOverride;
     if (ProgramName)
@@ -589,13 +634,14 @@ private:
         ProgramNameOverride);
   }
 
-  tpctypes::WrapperFunctionResult
+  shared::WrapperFunctionResult
   runWrapper(JITTargetAddress WrapperFnAddr,
              const std::vector<uint8_t> &ArgBuffer) {
-    using WrapperFnTy = tpctypes::CWrapperFunctionResult (*)(
-        const uint8_t *Data, uint64_t Size);
+    using WrapperFnTy = shared::detail::CWrapperFunctionResult (*)(
+        const char *Data, uint64_t Size);
     auto *WrapperFn = jitTargetAddressToFunction<WrapperFnTy>(WrapperFnAddr);
-    return WrapperFn(ArgBuffer.data(), ArgBuffer.size());
+    return WrapperFn(reinterpret_cast<const char *>(ArgBuffer.data()),
+                     ArgBuffer.size());
   }
 
   void closeConnection() { Finished = true; }

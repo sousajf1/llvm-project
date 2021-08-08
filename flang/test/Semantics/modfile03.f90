@@ -1,4 +1,5 @@
-! RUN: %S/test_modfile.sh %s %t %f18
+! RUN: %S/test_modfile.sh %s %t %flang_fc1
+! REQUIRES: shell
 ! Check modfile generation with use-association.
 
 module m1
@@ -157,4 +158,22 @@ end
 !   type(t2)::x
 !  end
 ! end interface
+!end
+
+module m7a
+  real :: x
+end
+!Expect: m7a.mod
+!module m7a
+! real(4)::x
+!end
+
+module m7b
+  use m7a
+  private
+end
+!Expect: m7b.mod
+!module m7b
+! use m7a,only:x
+! private::x
 !end

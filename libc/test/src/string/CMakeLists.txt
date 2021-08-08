@@ -43,6 +43,16 @@ add_libc_unittest(
 )
 
 add_libc_unittest(
+  strncmp_test
+  SUITE
+    libc_string_unittests
+  SRCS
+    strncmp_test.cpp
+  DEPENDS
+    libc.src.string.strncmp
+)
+
+add_libc_unittest(
   memchr_test
   SUITE
     libc_string_unittests
@@ -162,12 +172,12 @@ add_libc_unittest(
     libc.src.string.strtok_r
 )
 
-# Tests all implementations that can run on the host.
+# Tests all implementations that can run on the target CPU.
 function(add_libc_multi_impl_test name)
   get_property(fq_implementations GLOBAL PROPERTY ${name}_implementations)
   foreach(fq_config_name IN LISTS fq_implementations)
     get_target_property(required_cpu_features ${fq_config_name} REQUIRE_CPU_FEATURES)
-    host_supports(can_run "${required_cpu_features}")
+    cpu_supports(can_run "${required_cpu_features}")
     if(can_run)
       add_libc_unittest(
         ${fq_config_name}_test
@@ -175,6 +185,8 @@ function(add_libc_multi_impl_test name)
           libc_string_unittests
         DEPENDS
           ${fq_config_name}
+        COMPILE_OPTIONS
+          ${LIBC_COMPILE_OPTIONS_NATIVE}
         ${ARGN}
       )
     else()
@@ -186,3 +198,5 @@ endfunction()
 add_libc_multi_impl_test(memcpy SRCS memcpy_test.cpp)
 add_libc_multi_impl_test(memset SRCS memset_test.cpp)
 add_libc_multi_impl_test(bzero SRCS bzero_test.cpp)
+add_libc_multi_impl_test(memcmp SRCS memcmp_test.cpp)
+add_libc_multi_impl_test(memmove SRCS memmove_test.cpp)

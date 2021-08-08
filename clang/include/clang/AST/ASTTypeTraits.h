@@ -22,13 +22,11 @@
 #include "clang/AST/TypeLoc.h"
 #include "clang/Basic/LLVM.h"
 #include "llvm/ADT/DenseMapInfo.h"
-#include <type_traits>
+#include "llvm/Support/AlignOf.h"
 
 namespace llvm {
-
 class raw_ostream;
-
-}
+} // namespace llvm
 
 namespace clang {
 
@@ -66,6 +64,7 @@ public:
   static ASTNodeKind getFromNode(const Stmt &S);
   static ASTNodeKind getFromNode(const Type &T);
   static ASTNodeKind getFromNode(const OMPClause &C);
+  static ASTNodeKind getFromNode(const Attr &A);
   /// \}
 
   /// Returns \c true if \c this and \c Other represent the same kind.
@@ -99,6 +98,8 @@ public:
   /// Return ASTNodeKind() if they are not related.
   static ASTNodeKind getMostDerivedCommonAncestor(ASTNodeKind Kind1,
                                                   ASTNodeKind Kind2);
+
+  ASTNodeKind getCladeKind() const;
 
   /// Hooks for using ASTNodeKind as a key in a DenseMap.
   struct DenseMapInfo {
@@ -147,8 +148,12 @@ private:
 #define TYPE(DERIVED, BASE) NKI_##DERIVED##Type,
 #include "clang/AST/TypeNodes.inc"
     NKI_OMPClause,
-#define OMP_CLAUSE_CLASS(Enum, Str, Class) NKI_##Class,
-#include "llvm/Frontend/OpenMP/OMPKinds.def"
+#define GEN_CLANG_CLAUSE_CLASS
+#define CLAUSE_CLASS(Enum, Str, Class) NKI_##Class,
+#include "llvm/Frontend/OpenMP/OMP.inc"
+    NKI_Attr,
+#define ATTR(A) NKI_##A##Attr,
+#include "clang/Basic/AttrList.inc"
     NKI_NumberOfKinds
   };
 
@@ -198,6 +203,7 @@ KIND_TO_KIND_ID(Decl)
 KIND_TO_KIND_ID(Stmt)
 KIND_TO_KIND_ID(Type)
 KIND_TO_KIND_ID(OMPClause)
+KIND_TO_KIND_ID(Attr)
 KIND_TO_KIND_ID(CXXBaseSpecifier)
 #define DECL(DERIVED, BASE) KIND_TO_KIND_ID(DERIVED##Decl)
 #include "clang/AST/DeclNodes.inc"
@@ -205,8 +211,11 @@ KIND_TO_KIND_ID(CXXBaseSpecifier)
 #include "clang/AST/StmtNodes.inc"
 #define TYPE(DERIVED, BASE) KIND_TO_KIND_ID(DERIVED##Type)
 #include "clang/AST/TypeNodes.inc"
-#define OMP_CLAUSE_CLASS(Enum, Str, Class) KIND_TO_KIND_ID(Class)
-#include "llvm/Frontend/OpenMP/OMPKinds.def"
+#define GEN_CLANG_CLAUSE_CLASS
+#define CLAUSE_CLASS(Enum, Str, Class) KIND_TO_KIND_ID(Class)
+#include "llvm/Frontend/OpenMP/OMP.inc"
+#define ATTR(A) KIND_TO_KIND_ID(A##Attr)
+#include "clang/Basic/AttrList.inc"
 #undef KIND_TO_KIND_ID
 
 inline raw_ostream &operator<<(raw_ostream &OS, ASTNodeKind K) {
@@ -456,8 +465,9 @@ private:
   /// \c QualTypes, \c NestedNameSpecifierLocs, \c TypeLocs,
   /// \c TemplateArguments and \c TemplateArgumentLocs on the other hand do not
   /// have storage or unique pointers and thus need to be stored by value.
-  std::aligned_union_t<1, const void *, TemplateArgument, TemplateArgumentLoc,
-                       NestedNameSpecifierLoc, QualType, TypeLoc>
+  llvm::AlignedCharArrayUnion<const void *, TemplateArgument,
+                              TemplateArgumentLoc, NestedNameSpecifierLoc,
+                              QualType, TypeLoc>
       Storage;
 };
 
@@ -480,6 +490,11 @@ template <typename T>
 struct DynTypedNode::BaseConverter<
     T, std::enable_if_t<std::is_base_of<OMPClause, T>::value>>
     : public DynCastPtrConverter<T, OMPClause> {};
+
+template <typename T>
+struct DynTypedNode::BaseConverter<
+    T, std::enable_if_t<std::is_base_of<Attr, T>::value>>
+    : public DynCastPtrConverter<T, Attr> {};
 
 template <>
 struct DynTypedNode::BaseConverter<
@@ -527,18 +542,6 @@ template <typename T, typename EnablerT> struct DynTypedNode::BaseConverter {
     return NULL;
   }
 };
-
-// Previously these types were defined in the clang::ast_type_traits namespace.
-// Provide typedefs so that legacy code can be fixed asynchronously.
-namespace ast_type_traits {
-using DynTypedNode = ::clang::DynTypedNode;
-using ASTNodeKind = ::clang::ASTNodeKind;
-using TraversalKind = ::clang::TraversalKind;
-
-constexpr TraversalKind TK_AsIs = ::clang::TK_AsIs;
-constexpr TraversalKind TK_IgnoreUnlessSpelledInSource =
-    ::clang::TK_IgnoreUnlessSpelledInSource;
-} // namespace ast_type_traits
 
 } // end namespace clang
 

@@ -91,7 +91,6 @@
 // AARCH64-NEXT: #define __FLT_DENORM_MIN__ 1.40129846e-45F
 // AARCH64-NEXT: #define __FLT_DIG__ 6
 // AARCH64-NEXT: #define __FLT_EPSILON__ 1.19209290e-7F
-// AARCH64-NEXT: #define __FLT_EVAL_METHOD__ 0
 // AARCH64-NEXT: #define __FLT_HAS_DENORM__ 1
 // AARCH64-NEXT: #define __FLT_HAS_INFINITY__ 1
 // AARCH64-NEXT: #define __FLT_HAS_QUIET_NAN__ 1
@@ -373,7 +372,6 @@
 // AARCH64-DARWIN: #define __FLT_DENORM_MIN__ 1.40129846e-45F
 // AARCH64-DARWIN: #define __FLT_DIG__ 6
 // AARCH64-DARWIN: #define __FLT_EPSILON__ 1.19209290e-7F
-// AARCH64-DARWIN: #define __FLT_EVAL_METHOD__ 0
 // AARCH64-DARWIN: #define __FLT_HAS_DENORM__ 1
 // AARCH64-DARWIN: #define __FLT_HAS_INFINITY__ 1
 // AARCH64-DARWIN: #define __FLT_HAS_QUIET_NAN__ 1
@@ -532,6 +530,9 @@
 // AARCH64-DARWIN: #define __WINT_WIDTH__ 32
 // AARCH64-DARWIN: #define __aarch64__ 1
 
+// RUN: %clang_cc1 -E -dM -triple=aarch64-apple-ios7.0 -x c++ < /dev/null | FileCheck -match-full-lines -check-prefix AARCH64-DARWIN-CXX %s
+// AARCH64-DARWIN-CXX: #define __STDCPP_DEFAULT_NEW_ALIGNMENT__ 16UL
+
 // RUN: %clang_cc1 -E -dM -ffreestanding -triple=aarch64-windows-msvc < /dev/null | FileCheck -match-full-lines -check-prefix AARCH64-MSVC %s
 
 // AARCH64-MSVC: #define _INTEGRAL_MAX_BITS 64
@@ -586,7 +587,6 @@
 // AARCH64-MSVC: #define __FLT_DENORM_MIN__ 1.40129846e-45F
 // AARCH64-MSVC: #define __FLT_DIG__ 6
 // AARCH64-MSVC: #define __FLT_EPSILON__ 1.19209290e-7F
-// AARCH64-MSVC: #define __FLT_EVAL_METHOD__ 0
 // AARCH64-MSVC: #define __FLT_HAS_DENORM__ 1
 // AARCH64-MSVC: #define __FLT_HAS_INFINITY__ 1
 // AARCH64-MSVC: #define __FLT_HAS_QUIET_NAN__ 1

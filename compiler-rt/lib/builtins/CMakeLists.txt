@@ -5,6 +5,7 @@
 if (CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
   cmake_minimum_required(VERSION 3.13.4)
 
+  set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
   project(CompilerRTBuiltins C ASM)
   set(COMPILER_RT_STANDALONE_BUILD TRUE)
   set(COMPILER_RT_BUILTINS_STANDALONE_BUILD TRUE)
@@ -46,6 +47,13 @@ if (COMPILER_RT_STANDALONE_BUILD)
 endif()
 
 include(builtin-config-ix)
+
+if(${CMAKE_SYSTEM_NAME} MATCHES "AIX")
+  include(CompilerRTAIXUtils)
+endif()
+
+option(COMPILER_RT_BUILTINS_HIDE_SYMBOLS
+  "Do not export any symbols from the static library." ON)
 
 # TODO: Need to add a mechanism for logging errors when builtin source files are
 # added to a sub-directory and not this CMakeLists file.
@@ -179,6 +187,7 @@ set(GENERIC_TF_SOURCES
   divtc3.c
   divtf3.c
   extenddftf2.c
+  extendhftf2.c
   extendsftf2.c
   fixtfdi.c
   fixtfsi.c
@@ -197,6 +206,7 @@ set(GENERIC_TF_SOURCES
   powitf2.c
   subtf3.c
   trunctfdf2.c
+  trunctfhf2.c
   trunctfsf2.c
 )
 
@@ -483,7 +493,7 @@ if(MINGW)
     arm/aeabi_uldivmod.S
     arm/chkstk.S
     mingw_fixfloat.c
-    ${GENERIC_SOURCES}
+    ${arm_SOURCES}
   )
 elseif(NOT WIN32)
   # TODO the EABI sources should only be added to EABI targets
@@ -507,29 +517,28 @@ set(aarch64_SOURCES
 )
 
 # Generate outline atomics helpers from lse.S base
-set(CUSTOM_FLAGS ${CMAKE_C_FLAGS})
-if(NOT ANDROID)
-  append_list_if(COMPILER_RT_HAS_VISIBILITY_HIDDEN_FLAG -DVISIBILITY_HIDDEN CUSTOM_FLAGS)
+set(OA_HELPERS_DIR "${CMAKE_CURRENT_BINARY_DIR}/outline_atomic_helpers.dir")
+file(MAKE_DIRECTORY "${OA_HELPERS_DIR}")
+
+if(CMAKE_HOST_UNIX)
+  set(COMPILER_RT_LINK_OR_COPY create_symlink)
+else()
+  set(COMPILER_RT_LINK_OR_COPY copy)
 endif()
-append_list_if(COMPILER_RT_HAS_ASM_LSE -DHAS_ASM_LSE CUSTOM_FLAGS)
-string(REPLACE " " "\t" CUSTOM_FLAGS "${CUSTOM_FLAGS}")
 
 foreach(pat cas swp ldadd ldclr ldeor ldset)
   foreach(size 1 2 4 8 16)
     foreach(model 1 2 3 4)
       if(pat STREQUAL "cas" OR NOT size STREQUAL "16")
-        set(helper_asm outline_atomic_${pat}${size}_${model}.S)
-        add_custom_command(
-          OUTPUT ${helper_asm}
-          COMMAND ${CMAKE_C_COMPILER} -E ${CUSTOM_FLAGS} -DL_${pat} -DSIZE=${size} -DMODEL=${model}
-                  ${CMAKE_CURRENT_SOURCE_DIR}/aarch64/lse.S -o ${helper_asm}
-          DEPENDS aarch64/lse.S assembly.h
+        set(helper_asm "${OA_HELPERS_DIR}/outline_atomic_${pat}${size}_${model}.S")
+        list(APPEND lse_builtins "${helper_asm}")
+        list(APPEND arm64_lse_commands COMMAND ${CMAKE_COMMAND} -E ${COMPILER_RT_LINK_OR_COPY} "${CMAKE_CURRENT_SOURCE_DIR}/aarch64/lse.S" "${helper_asm}")
+        set_source_files_properties("${helper_asm}"
+          PROPERTIES
+          COMPILE_DEFINITIONS "L_${pat};SIZE=${size};MODEL=${model}"
+          INCLUDE_DIRECTORIES "${CMAKE_CURRENT_SOURCE_DIR}"
         )
-        set_source_files_properties(${helper_asm} PROPERTIES GENERATED TRUE)
-        set(aarch64_SOURCES
-          ${aarch64_SOURCES}
-          ${helper_asm}
-        )
+        list(APPEND aarch64_SOURCES "${helper_asm}")
       endif()
     endforeach(model)
   endforeach(size)
@@ -548,11 +557,14 @@ set(armv7s_SOURCES ${arm_SOURCES})
 set(armv7k_SOURCES ${arm_SOURCES})
 set(arm64_SOURCES ${aarch64_SOURCES})
 set(arm64e_SOURCES ${aarch64_SOURCES})
+set(arm64_32_SOURCES ${aarch64_SOURCES})
 
 # macho_embedded archs
 set(armv6m_SOURCES ${thumb1_SOURCES})
 set(armv7m_SOURCES ${arm_SOURCES})
 set(armv7em_SOURCES ${arm_SOURCES})
+set(armv8m.main_SOURCES ${arm_SOURCES})
+set(armv8.1m.main_SOURCES ${arm_SOURCES})
 
 # hexagon arch
 set(hexagon_SOURCES
@@ -620,7 +632,12 @@ if (NOT ${CMAKE_SYSTEM_NAME} MATCHES "AIX")
 endif()
 set(powerpc64le_SOURCES ${powerpc64_SOURCES})
 
-set(riscv_SOURCES ${GENERIC_SOURCES} ${GENERIC_TF_SOURCES})
+set(riscv_SOURCES
+  riscv/save.S
+  riscv/restore.S
+  ${GENERIC_SOURCES}
+  ${GENERIC_TF_SOURCES}
+)
 set(riscv32_SOURCES
   riscv/mulsi3.S
   ${riscv_SOURCES}
@@ -669,7 +686,7 @@ else ()
       append_list_if(COMPILER_RT_HAS_FPIC_FLAG -fPIC BUILTIN_CFLAGS)
     endif()
     append_list_if(COMPILER_RT_HAS_FNO_BUILTIN_FLAG -fno-builtin BUILTIN_CFLAGS)
-    if(NOT ANDROID)
+    if(COMPILER_RT_BUILTINS_HIDE_SYMBOLS)
       append_list_if(COMPILER_RT_HAS_VISIBILITY_HIDDEN_FLAG -fvisibility=hidden BUILTIN_CFLAGS)
     endif()
     if(NOT COMPILER_RT_DEBUG)
@@ -679,24 +696,28 @@ else ()
 
   set(BUILTIN_DEFS "")
 
-  if(NOT ANDROID)
+  if(COMPILER_RT_BUILTINS_HIDE_SYMBOLS)
     append_list_if(COMPILER_RT_HAS_VISIBILITY_HIDDEN_FLAG VISIBILITY_HIDDEN BUILTIN_DEFS)
   endif()
 
+  append_list_if(COMPILER_RT_HAS_ASM_LSE HAS_ASM_LSE BUILTIN_DEFS)
+
   foreach (arch ${BUILTIN_SUPPORTED_ARCH})
     if (CAN_TARGET_${arch})
+      set(BUILTIN_CFLAGS_${arch} ${BUILTIN_CFLAGS})
       # For ARM archs, exclude any VFP builtins if VFP is not supported
-      if (${arch} MATCHES "^(arm|armhf|armv7|armv7s|armv7k|armv7m|armv7em)$")
+      if (${arch} MATCHES "^(arm|armhf|armv7|armv7s|armv7k|armv7m|armv7em|armv8m.main|armv8.1m.main)$")
         string(REPLACE ";" " " _TARGET_${arch}_CFLAGS "${TARGET_${arch}_CFLAGS}")
         check_compile_definition(__ARM_FP "${CMAKE_C_FLAGS} ${_TARGET_${arch}_CFLAGS}" COMPILER_RT_HAS_${arch}_VFP)
         if(NOT COMPILER_RT_HAS_${arch}_VFP)
           list(REMOVE_ITEM ${arch}_SOURCES ${arm_Thumb1_VFPv2_DP_SOURCES} ${arm_Thumb1_VFPv2_SP_SOURCES} ${arm_Thumb1_SjLj_EH_SOURCES})
         else()
           # Exclude any double-precision builtins if VFP is single-precision-only
-          check_c_source_compiles("#if !(__ARM_FP & 0x8)
+          try_compile_only(COMPILER_RT_HAS_${arch}_VFP_DP
+                           SOURCE "#if !(__ARM_FP & 0x8)
                                    #error No double-precision support!
                                    #endif
-                                   int main() { return 0; }" COMPILER_RT_HAS_${arch}_VFP_DP)
+                                   int main() { return 0; }")
           if(NOT COMPILER_RT_HAS_${arch}_VFP_DP)
             list(REMOVE_ITEM ${arch}_SOURCES ${arm_Thumb1_VFPv2_DP_SOURCES})
           endif()
@@ -709,24 +730,77 @@ else ()
       # Needed for clear_cache on debug mode, due to r7's usage in inline asm.
       # Release mode already sets it via -O2/3, Debug mode doesn't.
       if (${arch} STREQUAL "armhf")
-        list(APPEND BUILTIN_CFLAGS -fomit-frame-pointer -DCOMPILER_RT_ARMHF_TARGET)
+        list(APPEND BUILTIN_CFLAGS_${arch} -fomit-frame-pointer -DCOMPILER_RT_ARMHF_TARGET)
       endif()
 
       # For RISCV32, we must force enable int128 for compiling long
       # double routines.
       if("${arch}" STREQUAL "riscv32")
-        list(APPEND BUILTIN_CFLAGS -fforce-enable-int128)
+        list(APPEND BUILTIN_CFLAGS_${arch} -fforce-enable-int128)
+      endif()
+
+      if(arch STREQUAL "aarch64")
+        add_custom_target(
+          lse_builtin_symlinks
+          BYPRODUCTS ${lse_builtins}
+          ${arm64_lse_commands}
+        )
+
+        set(deps_aarch64 lse_builtin_symlinks)
       endif()
 
       add_compiler_rt_runtime(clang_rt.builtins
                               STATIC
                               ARCHS ${arch}
+                              DEPS ${deps_${arch}}
                               SOURCES ${${arch}_SOURCES}
                               DEFS ${BUILTIN_DEFS}
-                              CFLAGS ${BUILTIN_CFLAGS}
+                              CFLAGS ${BUILTIN_CFLAGS_${arch}}
                               PARENT_TARGET builtins)
     endif ()
   endforeach ()
 endif ()
+
+option(COMPILER_RT_BUILD_STANDALONE_LIBATOMIC
+  "Build standalone shared atomic library."
+  OFF)
+
+if(COMPILER_RT_BUILD_STANDALONE_LIBATOMIC)
+  add_custom_target(builtins-standalone-atomic)
+  set(BUILTIN_DEPS "")
+  set(BUILTIN_TYPE SHARED)
+  if(${CMAKE_SYSTEM_NAME} MATCHES "AIX")
+    if(NOT COMPILER_RT_LIBATOMIC_LINK_FLAGS)
+      get_aix_libatomic_default_link_flags(COMPILER_RT_LIBATOMIC_LINK_FLAGS
+        "${CMAKE_CURRENT_SOURCE_DIR}/ppc/atomic.exp")
+    endif()
+    # The compiler needs builtins to link any other binaries, so let
+    # clang_rt.atomic be built after builtins.
+    set(BUILTIN_DEPS builtins)
+    # For different versions of cmake, SHARED behaves differently. For some
+    # versions, we might need MODULE rather than SHARED.
+    get_aix_libatomic_type(BUILTIN_TYPE)
+  endif()
+  foreach (arch ${BUILTIN_SUPPORTED_ARCH})
+    if(CAN_TARGET_${arch})
+      add_compiler_rt_runtime(clang_rt.atomic
+                              ${BUILTIN_TYPE}
+                              ARCHS ${arch}
+                              SOURCES atomic.c
+                              LINK_FLAGS ${COMPILER_RT_LIBATOMIC_LINK_FLAGS}
+                              DEPS ${BUILTIN_DEPS}
+                              PARENT_TARGET builtins-standalone-atomic)
+    endif()
+  endforeach()
+  # FIXME: On AIX, we have to archive built shared libraries into a static
+  # archive, i.e., libatomic.a. Once cmake adds support of such usage for AIX,
+  # this ad-hoc part can be removed.
+  if(${CMAKE_SYSTEM_NAME} MATCHES "AIX")
+    archive_aix_libatomic(clang_rt.atomic
+                          ARCHS ${BUILTIN_SUPPORTED_ARCH}
+                          PARENT_TARGET builtins-standalone-atomic)
+  endif()
+  add_dependencies(compiler-rt builtins-standalone-atomic)
+endif()
 
 add_dependencies(compiler-rt builtins)

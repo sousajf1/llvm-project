@@ -1,4 +1,4 @@
-//===--------------------- SummaryView.h ---------------------*- C++ -*-===//
+//===--------------------- SummaryView.h ------------------------*- C++ -*-===//
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
@@ -87,8 +87,9 @@ public:
   void onCycleEnd() override { ++TotalCycles; }
   void onEvent(const HWInstructionEvent &Event) override;
   void printView(llvm::raw_ostream &OS) const override;
+  StringRef getNameAsString() const override { return "SummaryView"; }
+  json::Value toJSON() const override;
 };
-
 } // namespace mca
 } // namespace llvm
 
