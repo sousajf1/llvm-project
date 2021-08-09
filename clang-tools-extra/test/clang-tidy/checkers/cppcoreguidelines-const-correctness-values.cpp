@@ -920,7 +920,6 @@ void func_references() {
   my_function_type ptr = function_ref_target;
 }
 
-#if 0
 template <typename T>
 T &return_ref() {
   static T global;
@@ -935,10 +934,16 @@ void auto_usage_variants() {
   // for the analysis. That results in bad transformations.
   auto auto_val0 = T{};
   auto &auto_val1 = auto_val0; // Bad
+  // CHECK-MESSAGES:[[@LINE-1]]:3: warning: variable 'auto_val1' of type 'System &' can be declared 'const'
+  // CHECK-MESSAGES:[[@LINE-2]]:3: warning: variable 'auto_val1' of type 'int &' can be declared 'const'
   auto *auto_val2 = &auto_val0;
 
-  auto auto_ref0 = return_ref<T>();  // Bad
+  auto auto_ref0 = return_ref<T>();
+  // CHECK-MESSAGES:[[@LINE-1]]:3: warning: variable 'auto_ref0' of type 'System' can be declared 'const'
+  // CHECK-MESSAGES:[[@LINE-2]]:3: warning: variable 'auto_ref0' of type 'int' can be declared 'const'
   auto &auto_ref1 = return_ref<T>(); // Bad
+  // CHECK-MESSAGES:[[@LINE-1]]:3: warning: variable 'auto_ref1' of type 'System &' can be declared 'const'
+  // CHECK-MESSAGES:[[@LINE-2]]:3: warning: variable 'auto_ref1' of type 'int &' can be declared 'const'
   auto *auto_ref2 = return_ptr<T>();
 
   auto auto_ptr0 = return_ptr<T>();
@@ -948,10 +953,11 @@ void auto_usage_variants() {
   using MyTypedef = T;
   auto auto_td0 = MyTypedef{};
   auto &auto_td1 = auto_td0; // Bad
+  // CHECK-MESSAGES:[[@LINE-1]]:3: warning: variable 'auto_td1' of type 'System &' can be declared 'const'
+  // CHECK-MESSAGES:[[@LINE-2]]:3: warning: variable 'auto_td1' of type 'int &' can be declared 'const'
   auto *auto_td2 = &auto_td0;
 }
 void instantiate_auto_cases() {
   auto_usage_variants<int>();
   auto_usage_variants<System>();
 }
-#endif

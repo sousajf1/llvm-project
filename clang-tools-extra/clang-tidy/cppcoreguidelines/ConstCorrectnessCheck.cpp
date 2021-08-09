@@ -90,11 +90,12 @@ enum class VariableCategory { Value, Reference, Pointer };
 
 void ConstCorrectnessCheck::check(const MatchFinder::MatchResult &Result) {
   const auto *LocalScope = Result.Nodes.getNodeAs<CompoundStmt>("scope");
-  assert(LocalScope && "Did not match scope for local variable");
-  registerScope(LocalScope, Result.Context);
-
   const auto *Variable = Result.Nodes.getNodeAs<VarDecl>("local-value");
-  assert(Variable && "Did not match local variable definition");
+
+  // There have been crashes on 'Variable == nullptr', even though the matcher
+  // is not conditional. This comes probably from 'findAll'-matching.
+  if (!Variable || !LocalScope)
+    return;
 
   VariableCategory VC = VariableCategory::Value;
   if (Variable->getType()->isReferenceType())
@@ -117,6 +118,9 @@ void ConstCorrectnessCheck::check(const MatchFinder::MatchResult &Result) {
 
   if (VC == VariableCategory::Value && !AnalyzeValues)
     return;
+
+  // The scope is only registered if the analysis shall be run.
+  registerScope(LocalScope, Result.Context);
 
   // Offload const-analysis to utility function.
   if (ScopesCache[LocalScope]->isMutated(Variable))
