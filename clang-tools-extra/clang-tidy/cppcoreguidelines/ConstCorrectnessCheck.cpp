@@ -44,6 +44,10 @@ void ConstCorrectnessCheck::storeOptions(ClangTidyOptions::OptionMap &Opts) {
 }
 
 void ConstCorrectnessCheck::registerMatchers(MatchFinder *Finder) {
+  // The rules for C and 'const' are different and incompatible for this check.
+  if (!getLangOpts().CPlusPlus)
+    return;
+
   const auto ConstType = hasType(isConstQualified());
   const auto ConstReference = hasType(references(isConstQualified()));
   const auto RValueReference = hasType(

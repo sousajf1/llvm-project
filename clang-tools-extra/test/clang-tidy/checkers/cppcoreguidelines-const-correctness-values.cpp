@@ -835,6 +835,11 @@ void complex_usage() {
   (np_local0 == p_local0 ? np_local0 : (p_local0, np_local1))++;
 }
 
+void vlas() {
+  int N = 1; // Can't make N 'const' because VLAs make everything awful
+  sizeof(int[++N]);
+}
+
 template <typename T>
 struct SmallVectorBase {
   T data[4];
