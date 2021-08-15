@@ -63,8 +63,7 @@ void ConstCorrectnessCheck::registerMatchers(MatchFinder *Finder) {
 
   const auto AutoTemplateType = varDecl(
       anyOf(hasType(autoType()), hasType(referenceType(pointee(autoType()))),
-            hasType(pointerType(pointee(autoType())))),
-      hasInitializer(isInstantiationDependent()));
+            hasType(pointerType(pointee(autoType())))));
 
   const auto FunctionPointerRef =
       hasType(hasCanonicalType(referenceType(pointee(functionType()))));
@@ -74,6 +73,7 @@ void ConstCorrectnessCheck::registerMatchers(MatchFinder *Finder) {
   const auto LocalValDecl = varDecl(
       allOf(isLocal(), hasInitializer(anything()),
             unless(anyOf(ConstType, ConstReference, TemplateType,
+                         hasInitializer(isInstantiationDependent()),
                          AutoTemplateType, RValueReference, FunctionPointerRef,
                          hasType(cxxRecordDecl(isLambda())), isImplicit()))));
 
