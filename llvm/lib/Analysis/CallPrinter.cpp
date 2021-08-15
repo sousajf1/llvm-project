@@ -277,7 +277,7 @@ bool CallGraphDOTPrinter::runOnModule(Module &M) {
   raw_fd_ostream File(Filename, EC, sys::fs::OF_Text);
 
   CallGraph CG(M);
-  CallGraphDOTInfo const CFGInfo(&M, &CG, LookupBFI);
+  CallGraphDOTInfo CFGInfo(&M, &CG, LookupBFI);
 
   if (!EC)
     WriteGraph(File, &CFGInfo);

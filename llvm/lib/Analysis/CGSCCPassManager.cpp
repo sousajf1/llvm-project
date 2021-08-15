@@ -218,7 +218,7 @@ ModuleToPostOrderCGSCCPassAdaptor::run(Module &M, ModuleAnalysisManager &AM) {
 
       // Push the initial SCCs in reverse post-order as we'll pop off the
       // back and so see this in post-order.
-      for (LazyCallGraph::SCC  const&C : llvm::reverse(*RC))
+      for (LazyCallGraph::SCC  &C : llvm::reverse(*RC))
         CWorklist.insert(&C);
 
       do {
@@ -1200,7 +1200,7 @@ static LazyCallGraph::SCC &updateCGAndAnalysisManagerForPass(
       LLVM_DEBUG(dbgs() << "Enqueuing the existing SCC in the worklist: " << *C
                         << "\n");
       // Enqueue in reverse order as we pop off the back of the worklist.
-      for (SCC  const&MovedC : llvm::reverse(make_range(RC->begin() + InitialSCCIndex,
+      for (SCC  &MovedC : llvm::reverse(make_range(RC->begin() + InitialSCCIndex,
                                                   RC->begin() + NewSCCIndex))) {
         UR.CWorklist.insert(&MovedC);
         LLVM_DEBUG(dbgs() << "Enqueuing a newly earlier in post-order SCC: "

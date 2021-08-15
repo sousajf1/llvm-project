@@ -143,9 +143,9 @@ bool ProcessImplicitDefs::runOnMachineFunction(MachineFunction &MF) {
   assert(MRI->isSSA() && "ProcessImplicitDefs only works on SSA form.");
   assert(WorkList.empty() && "Inconsistent worklist state");
 
-  for (MachineBasicBlock  const&MBB : MF) {
+  for (MachineBasicBlock  &MBB : MF) {
     // Scan the basic block for implicit defs.
-    for (MachineInstr  const&MI : MBB)
+    for (MachineInstr  &MI : MBB)
       if (MI.isImplicitDef())
         WorkList.insert(&MI);
 

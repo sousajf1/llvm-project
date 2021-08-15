@@ -2897,7 +2897,7 @@ PreservedAnalyses AttributorPass::run(Module &M, ModuleAnalysisManager &AM) {
   AnalysisGetter AG(FAM);
 
   SetVector<Function *> Functions;
-  for (Function  const&F : M)
+  for (Function  &F : M)
     Functions.insert(&F);
 
   CallGraphUpdater CGUpdater;
@@ -3001,7 +3001,7 @@ struct AttributorLegacyPass : public ModulePass {
 
     AnalysisGetter AG;
     SetVector<Function *> Functions;
-    for (Function  const&F : M)
+    for (Function  &F : M)
       Functions.insert(&F);
 
     CallGraphUpdater CGUpdater;

@@ -402,7 +402,7 @@ Error RawInstrProfReader<IntPtrT>::readHeader(
   NamesStart = Start + NamesOffset;
   ValueDataStart = reinterpret_cast<const uint8_t *>(Start + ValueDataOffset);
 
-  std::unique_ptr<InstrProfSymtab> const NewSymtab = std::make_unique<InstrProfSymtab>();
+  std::unique_ptr<InstrProfSymtab> NewSymtab = std::make_unique<InstrProfSymtab>();
   if (Error E = createSymtab(*NewSymtab.get()))
     return E;
 

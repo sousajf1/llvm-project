@@ -2313,7 +2313,7 @@ struct DOTGraphTraits<DOTFuncMSSAInfo *> : public DefaultDOTGraphTraits {
 bool MemorySSAPrinterLegacyPass::runOnFunction(Function &F) {
   auto &MSSA = getAnalysis<MemorySSAWrapperPass>().getMSSA();
   if (DotCFGMSSA != "") {
-    DOTFuncMSSAInfo const CFGInfo(F, MSSA);
+    DOTFuncMSSAInfo CFGInfo(F, MSSA);
     WriteGraph(&CFGInfo, "", false, "MSSA", DotCFGMSSA);
   } else
     MSSA.print(dbgs());
@@ -2345,7 +2345,7 @@ PreservedAnalyses MemorySSAPrinterPass::run(Function &F,
                                             FunctionAnalysisManager &AM) {
   auto &MSSA = AM.getResult<MemorySSAAnalysis>(F).getMSSA();
   if (DotCFGMSSA != "") {
-    DOTFuncMSSAInfo const CFGInfo(F, MSSA);
+    DOTFuncMSSAInfo CFGInfo(F, MSSA);
     WriteGraph(&CFGInfo, "", false, "MSSA", DotCFGMSSA);
   } else {
     OS << "MemorySSA for function: " << F.getName() << "\n";

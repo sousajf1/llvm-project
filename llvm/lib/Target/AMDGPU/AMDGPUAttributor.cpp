@@ -494,7 +494,7 @@ public:
   bool runOnModule(Module &M) override {
     SetVector<Function *> Functions;
     AnalysisGetter AG;
-    for (Function  const&F : M) {
+    for (Function  &F : M) {
       if (!F.isIntrinsic())
         Functions.insert(&F);
     }

@@ -266,7 +266,7 @@ void Function::viewCFG(bool ViewCFGOnly, const BlockFrequencyInfo *BFI,
                        const BranchProbabilityInfo *BPI) const {
   if (!CFGFuncName.empty() && !getName().contains(CFGFuncName))
     return;
-  DOTFuncInfo const CFGInfo(this, BFI, BPI, BFI ? getMaxFreq(*this, BFI) : 0);
+  DOTFuncInfo CFGInfo(this, BFI, BPI, BFI ? getMaxFreq(*this, BFI) : 0);
   ViewGraph(&CFGInfo, "cfg" + getName(), ViewCFGOnly);
 }
 

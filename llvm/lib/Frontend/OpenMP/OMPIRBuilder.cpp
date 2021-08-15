@@ -757,7 +757,7 @@ IRBuilder<>::InsertPoint OpenMPIRBuilder::createParallel(
       return;
 
     SetVector<Use *> Uses;
-    for (Use  const&U : V.uses())
+    for (Use  &U : V.uses())
       if (auto *UserI = dyn_cast<Instruction>(U.getUser()))
         if (ParallelRegionBlockSet.count(UserI->getParent()))
           Uses.insert(&U);

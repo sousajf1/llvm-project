@@ -37,7 +37,7 @@ void IRMutationStrategy::mutate(Module &M, RandomIRBuilder &IB) {
     createEmptyFunction(M);
 
   auto RS = makeSampler<Function *>(IB.Rand);
-  for (Function  const&F : M)
+  for (Function  &F : M)
     if (!F.isDeclaration())
       RS.sample(&F, /*Weight=*/1);
   mutate(*RS.getSelection(), IB);
@@ -155,7 +155,7 @@ uint64_t InstDeleterIRStrategy::getWeight(size_t CurrentSize, size_t MaxSize,
 
 void InstDeleterIRStrategy::mutate(Function &F, RandomIRBuilder &IB) {
   auto RS = makeSampler<Instruction *>(IB.Rand);
-  for (Instruction  const&Inst : instructions(F)) {
+  for (Instruction  &Inst : instructions(F)) {
     // TODO: We can't handle these instructions.
     if (Inst.isTerminator() || Inst.isEHPad() ||
         Inst.isSwiftError() || isa<PHINode>(Inst))

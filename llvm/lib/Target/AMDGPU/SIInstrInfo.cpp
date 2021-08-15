@@ -6346,11 +6346,11 @@ void SIInstrInfo::splitScalarNotBinop(SetVectorType &Worklist,
   Register const NewDest = MRI.createVirtualRegister(&AMDGPU::SReg_32RegClass);
   Register const Interm = MRI.createVirtualRegister(&AMDGPU::SReg_32RegClass);
 
-  MachineInstr  const&Op = *BuildMI(MBB, MII, DL, get(Opcode), Interm)
+  MachineInstr  &Op = *BuildMI(MBB, MII, DL, get(Opcode), Interm)
     .add(Src0)
     .add(Src1);
 
-  MachineInstr  const&Not = *BuildMI(MBB, MII, DL, get(AMDGPU::S_NOT_B32), NewDest)
+  MachineInstr  &Not = *BuildMI(MBB, MII, DL, get(AMDGPU::S_NOT_B32), NewDest)
     .addReg(Interm);
 
   Worklist.insert(&Op);
@@ -6375,10 +6375,10 @@ void SIInstrInfo::splitScalarBinOpN2(SetVectorType& Worklist,
   Register const NewDest = MRI.createVirtualRegister(&AMDGPU::SReg_32_XM0RegClass);
   Register const Interm = MRI.createVirtualRegister(&AMDGPU::SReg_32_XM0RegClass);
 
-  MachineInstr  const&Not = *BuildMI(MBB, MII, DL, get(AMDGPU::S_NOT_B32), Interm)
+  MachineInstr  &Not = *BuildMI(MBB, MII, DL, get(AMDGPU::S_NOT_B32), Interm)
     .add(Src1);
 
-  MachineInstr  const&Op = *BuildMI(MBB, MII, DL, get(Opcode), NewDest)
+  MachineInstr  &Op = *BuildMI(MBB, MII, DL, get(Opcode), NewDest)
     .add(Src0)
     .addReg(Interm);
 
@@ -6416,13 +6416,13 @@ void SIInstrInfo::splitScalar64BitUnaryOp(
   const TargetRegisterClass *NewDestSubRC = RI.getSubRegClass(NewDestRC, AMDGPU::sub0);
 
   Register DestSub0 = MRI.createVirtualRegister(NewDestSubRC);
-  MachineInstr  const&LoHalf = *BuildMI(MBB, MII, DL, InstDesc, DestSub0).add(SrcReg0Sub0);
+  MachineInstr  &LoHalf = *BuildMI(MBB, MII, DL, InstDesc, DestSub0).add(SrcReg0Sub0);
 
   MachineOperand const SrcReg0Sub1 = buildExtractSubRegOrImm(MII, MRI, Src0, Src0RC,
                                                        AMDGPU::sub1, Src0SubRC);
 
   Register DestSub1 = MRI.createVirtualRegister(NewDestSubRC);
-  MachineInstr  const&HiHalf = *BuildMI(MBB, MII, DL, InstDesc, DestSub1).add(SrcReg0Sub1);
+  MachineInstr  &HiHalf = *BuildMI(MBB, MII, DL, InstDesc, DestSub1).add(SrcReg0Sub1);
 
   if (Swap)
     std::swap(DestSub0, DestSub1);
@@ -6557,12 +6557,12 @@ void SIInstrInfo::splitScalar64BitBinaryOp(SetVectorType &Worklist,
   const TargetRegisterClass *NewDestSubRC = RI.getSubRegClass(NewDestRC, AMDGPU::sub0);
 
   Register const DestSub0 = MRI.createVirtualRegister(NewDestSubRC);
-  MachineInstr  const&LoHalf = *BuildMI(MBB, MII, DL, InstDesc, DestSub0)
+  MachineInstr  &LoHalf = *BuildMI(MBB, MII, DL, InstDesc, DestSub0)
                               .add(SrcReg0Sub0)
                               .add(SrcReg1Sub0);
 
   Register const DestSub1 = MRI.createVirtualRegister(NewDestSubRC);
-  MachineInstr  const&HiHalf = *BuildMI(MBB, MII, DL, InstDesc, DestSub1)
+  MachineInstr  &HiHalf = *BuildMI(MBB, MII, DL, InstDesc, DestSub1)
                               .add(SrcReg0Sub1)
                               .add(SrcReg1Sub1);
 
@@ -6615,7 +6615,7 @@ void SIInstrInfo::splitScalar64BitXnor(SetVectorType &Worklist,
 
   Register const NewDest = MRI.createVirtualRegister(DestRC);
 
-  MachineInstr  const&Xor = *BuildMI(MBB, MII, DL, get(AMDGPU::S_XOR_B64), NewDest)
+  MachineInstr  &Xor = *BuildMI(MBB, MII, DL, get(AMDGPU::S_XOR_B64), NewDest)
     .addReg(Interm)
     .add(*Op1);
 
@@ -6895,7 +6895,7 @@ void SIInstrInfo::addSCCDefsToVALUWorklist(MachineOperand &Op,
   // then there is nothing to do because the defining instruction has been
   // converted to a VALU already. If SCC then that instruction needs to be
   // converted to a VALU.
-  for (MachineInstr  const&MI :
+  for (MachineInstr  &MI :
        make_range(std::next(MachineBasicBlock::reverse_iterator(SCCUseInst)),
                   SCCUseInst->getParent()->rend())) {
     if (MI.modifiesRegister(AMDGPU::VCC, &RI))

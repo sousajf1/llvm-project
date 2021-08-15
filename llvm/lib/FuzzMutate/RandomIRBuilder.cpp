@@ -101,7 +101,7 @@ void RandomIRBuilder::connectToSink(BasicBlock &BB,
       // there's no easy way to verify that a given replacement is valid given
       // that intrinsics can impose arbitrary constraints.
       continue;
-    for (Use  const&U : I->operands())
+    for (Use  &U : I->operands())
       if (isCompatibleReplacement(I, U, V))
         RS.sample(&U, 1);
   }
