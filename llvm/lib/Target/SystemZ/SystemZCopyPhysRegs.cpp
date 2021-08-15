@@ -82,12 +82,12 @@ bool SystemZCopyPhysRegs::visitMBB(MachineBasicBlock &MBB) {
     if (!MI->isCopy())
       continue;
 
-    DebugLoc DL = MI->getDebugLoc();
-    Register SrcReg = MI->getOperand(1).getReg();
-    Register DstReg = MI->getOperand(0).getReg();
+    DebugLoc const DL = MI->getDebugLoc();
+    Register const SrcReg = MI->getOperand(1).getReg();
+    Register const DstReg = MI->getOperand(0).getReg();
     if (DstReg.isVirtual() &&
         (SrcReg == SystemZ::CC || SystemZ::AR32BitRegClass.contains(SrcReg))) {
-      Register Tmp = MRI->createVirtualRegister(&SystemZ::GR32BitRegClass);
+      Register const Tmp = MRI->createVirtualRegister(&SystemZ::GR32BitRegClass);
       if (SrcReg == SystemZ::CC)
         BuildMI(MBB, MI, DL, TII->get(SystemZ::IPM), Tmp);
       else
@@ -97,7 +97,7 @@ bool SystemZCopyPhysRegs::visitMBB(MachineBasicBlock &MBB) {
     }
     else if (SrcReg.isVirtual() &&
              SystemZ::AR32BitRegClass.contains(DstReg)) {
-      Register Tmp = MRI->createVirtualRegister(&SystemZ::GR32BitRegClass);
+      Register const Tmp = MRI->createVirtualRegister(&SystemZ::GR32BitRegClass);
       MI->getOperand(0).setReg(Tmp);
       BuildMI(MBB, MBBI, DL, TII->get(SystemZ::SAR), DstReg).addReg(Tmp);
       Modified = true;

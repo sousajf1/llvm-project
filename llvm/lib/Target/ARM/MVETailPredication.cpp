@@ -129,7 +129,7 @@ bool MVETailPredication::runOnLoop(Loop *L, LPPassManager&) {
     return false;
 
   MaskedInsts.clear();
-  Function &F = *L->getHeader()->getParent();
+  Function  const&F = *L->getHeader()->getParent();
   auto &TPC = getAnalysis<TargetPassConfig>();
   auto &TM = TPC.getTM<TargetMachine>();
   ST = &TM.getSubtarget<ARMSubtarget>(F);
@@ -154,7 +154,7 @@ bool MVETailPredication::runOnLoop(Loop *L, LPPassManager&) {
       if (!Call)
         continue;
 
-      Intrinsic::ID ID = Call->getIntrinsicID();
+      Intrinsic::ID const ID = Call->getIntrinsicID();
       if (ID == Intrinsic::start_loop_iterations ||
           ID == Intrinsic::test_start_loop_iterations)
         return cast<IntrinsicInst>(&I);
@@ -176,7 +176,7 @@ bool MVETailPredication::runOnLoop(Loop *L, LPPassManager&) {
 
   LLVM_DEBUG(dbgs() << "ARM TP: Running on Loop: " << *L << *Setup << "\n");
 
-  bool Changed = TryConvertActiveLaneMask(Setup->getArgOperand(0));
+  bool const Changed = TryConvertActiveLaneMask(Setup->getArgOperand(0));
 
   return Changed;
 }
@@ -200,7 +200,7 @@ bool MVETailPredication::runOnLoop(Loop *L, LPPassManager&) {
 //    vector width.
 bool MVETailPredication::IsSafeActiveMask(IntrinsicInst *ActiveLaneMask,
                                           Value *TripCount) {
-  bool ForceTailPredication =
+  bool const ForceTailPredication =
     EnableTailPredication == TailPredication::ForceEnabledNoReductions ||
     EnableTailPredication == TailPredication::ForceEnabled;
 
@@ -211,7 +211,7 @@ bool MVETailPredication::IsSafeActiveMask(IntrinsicInst *ActiveLaneMask,
 
   auto *EC= SE->getSCEV(ElemCount);
   auto *TC = SE->getSCEV(TripCount);
-  int VectorWidth =
+  int const VectorWidth =
       cast<FixedVectorType>(ActiveLaneMask->getType())->getNumElements();
   if (VectorWidth != 4 && VectorWidth != 8 && VectorWidth != 16)
     return false;
@@ -237,8 +237,8 @@ bool MVETailPredication::IsSafeActiveMask(IntrinsicInst *ActiveLaneMask,
     // each other. The TripCount for a predicated vector loop body is
     // ceil(ElementCount/Width), or floor((ElementCount+Width-1)/Width) as we
     // work it out here.
-    uint64_t TC1 = TC->getZExtValue();
-    uint64_t TC2 =
+    uint64_t const TC1 = TC->getZExtValue();
+    uint64_t const TC2 =
         (ConstElemCount->getZExtValue() + VectorWidth - 1) / VectorWidth;
 
     // If the tripcount values are inconsistent, we can't insert the VCTP and
@@ -293,7 +293,7 @@ bool MVETailPredication::IsSafeActiveMask(IntrinsicInst *ActiveLaneMask,
     // Check for equality of TC and Ceil by calculating SCEV expression
     // TC - Ceil and test it for zero.
     //
-    bool Zero = SE->getMinusSCEV(
+    bool const Zero = SE->getMinusSCEV(
                       SE->getBackedgeTakenCount(L),
                       SE->getUDivExpr(SE->getAddExpr(SE->getMulExpr(Ceil, VW),
                                                      SE->getNegativeSCEV(VW)),
@@ -350,7 +350,7 @@ void MVETailPredication::InsertVCTPIntrinsic(IntrinsicInst *ActiveLaneMask,
   IRBuilder<> Builder(L->getLoopPreheader()->getTerminator());
   Module *M = L->getHeader()->getModule();
   Type *Ty = IntegerType::get(M->getContext(), 32);
-  unsigned VectorWidth =
+  unsigned const VectorWidth =
       cast<FixedVectorType>(ActiveLaneMask->getType())->getNumElements();
 
   // Insert a phi to count the number of elements processed by the loop.

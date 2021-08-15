@@ -41,7 +41,7 @@ namespace {
 
     /// Emit the size prefix.
     void EmitSize(size_t Size) {
-      size_t SizeInWords = (Size + 3) / 4;
+      size_t const SizeInWords = (Size + 3) / 4;
       assert(SizeInWords <= 0x100u &&
              "Only 256 additional words are allowed for unwind opcodes");
       EmitByte(static_cast<uint8_t>(SizeInWords - 1));
@@ -74,12 +74,12 @@ void UnwindOpcodeAssembler::EmitRegSave(uint32_t RegSave) {
 
     // Compute the consecutive registers from r4 to r11.
     uint32_t Mask = RegSave & 0xff0u;
-    uint32_t Range = countTrailingOnes(Mask >> 5); // Exclude r4.
+    uint32_t const Range = countTrailingOnes(Mask >> 5); // Exclude r4.
     // Mask off non-consecutive registers. Keep r4.
     Mask &= ~(0xffffffe0u << Range);
 
     // Emit this opcode when the mask covers every registers.
-    uint32_t UnmaskedReg = RegSave & 0xfff0u & (~Mask);
+    uint32_t const UnmaskedReg = RegSave & 0xfff0u & (~Mask);
     if (UnmaskedReg == 0u) {
       // Pop r[4 : (4 + n)]
       EmitInt8(ARM::EHABI::UNWIND_OPCODE_POP_REG_RANGE_R4 | Range);
@@ -111,7 +111,7 @@ void UnwindOpcodeAssembler::EmitVFPRegSave(uint32_t VFPRegSave) {
       auto RangeLen = countLeadingOnes(Regs << (32 - RangeMSB));
       auto RangeLSB = RangeMSB - RangeLen;
 
-      int Opcode = RangeLSB >= 16
+      int const Opcode = RangeLSB >= 16
                        ? ARM::EHABI::UNWIND_OPCODE_POP_VFP_REG_RANGE_FSTMFDD_D16
                        : ARM::EHABI::UNWIND_OPCODE_POP_VFP_REG_RANGE_FSTMFDD;
 
@@ -133,7 +133,7 @@ void UnwindOpcodeAssembler::EmitSPOffset(int64_t Offset) {
   if (Offset > 0x200) {
     uint8_t Buff[16];
     Buff[0] = ARM::EHABI::UNWIND_OPCODE_INC_VSP_ULEB128;
-    size_t ULEBSize = encodeULEB128((Offset - 0x204) >> 2, Buff + 1);
+    size_t const ULEBSize = encodeULEB128((Offset - 0x204) >> 2, Buff + 1);
     emitBytes(Buff, ULEBSize + 1);
   } else if (Offset > 0) {
     if (Offset > 0x100) {
@@ -159,8 +159,8 @@ void UnwindOpcodeAssembler::Finalize(unsigned &PersonalityIndex,
   if (HasPersonality) {
     // User-specifed personality routine: [ SIZE , OP1 , OP2 , ... ]
     PersonalityIndex = ARM::EHABI::NUM_PERSONALITY_INDEX;
-    size_t TotalSize = Ops.size() + 1;
-    size_t RoundUpSize = (TotalSize + 3) / 4 * 4;
+    size_t const TotalSize = Ops.size() + 1;
+    size_t const RoundUpSize = (TotalSize + 3) / 4 * 4;
     Result.resize(RoundUpSize);
     OpStreamer.EmitSize(RoundUpSize);
   } else {
@@ -175,8 +175,8 @@ void UnwindOpcodeAssembler::Finalize(unsigned &PersonalityIndex,
       OpStreamer.EmitPersonalityIndex(PersonalityIndex);
     } else {
       // __aeabi_unwind_cpp_pr{1,2}: [ {0x81,0x82} , SIZE , OP1 , OP2 , ... ]
-      size_t TotalSize = Ops.size() + 2;
-      size_t RoundUpSize = (TotalSize + 3) / 4 * 4;
+      size_t const TotalSize = Ops.size() + 2;
+      size_t const RoundUpSize = (TotalSize + 3) / 4 * 4;
       Result.resize(RoundUpSize);
       OpStreamer.EmitPersonalityIndex(PersonalityIndex);
       OpStreamer.EmitSize(RoundUpSize);

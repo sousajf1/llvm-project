@@ -81,7 +81,7 @@ void DwarfFile::computeSizeAndOffsets() {
 
 unsigned DwarfFile::computeSizeAndOffsetsForUnit(DwarfUnit *TheU) {
   // CU-relative offset is reset to 0 here.
-  unsigned Offset = Asm->getUnitLengthFieldByteSize() + // Length of Unit Info
+  unsigned const Offset = Asm->getUnitLengthFieldByteSize() + // Length of Unit Info
                     TheU->getHeaderSize();              // Unit-specific headers
 
   // The return value here is CU-relative, after laying out
@@ -106,7 +106,7 @@ void DwarfFile::emitStrings(MCSection *StrSection, MCSection *OffsetSection,
 bool DwarfFile::addScopeVariable(LexicalScope *LS, DbgVariable *Var) {
   auto &ScopeVars = ScopeVariables[LS];
   const DILocalVariable *DV = Var->getVariable();
-  if (unsigned ArgNum = DV->getArg()) {
+  if (unsigned const ArgNum = DV->getArg()) {
     auto Cached = ScopeVars.Args.find(ArgNum);
     if (Cached == ScopeVars.Args.end())
       ScopeVars.Args[ArgNum] = Var;

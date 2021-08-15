@@ -34,13 +34,13 @@ Error BinaryStreamWriter::writeBytes(ArrayRef<uint8_t> Buffer) {
 
 Error BinaryStreamWriter::writeULEB128(uint64_t Value) {
   uint8_t EncodedBytes[10] = {0};
-  unsigned Size = encodeULEB128(Value, &EncodedBytes[0]);
+  unsigned const Size = encodeULEB128(Value, &EncodedBytes[0]);
   return writeBytes({EncodedBytes, Size});
 }
 
 Error BinaryStreamWriter::writeSLEB128(int64_t Value) {
   uint8_t EncodedBytes[10] = {0};
-  unsigned Size = encodeSLEB128(Value, &EncodedBytes[0]);
+  unsigned const Size = encodeSLEB128(Value, &EncodedBytes[0]);
   return writeBytes({EncodedBytes, Size});
 }
 
@@ -85,15 +85,15 @@ BinaryStreamWriter::split(uint32_t Off) const {
 
   WritableBinaryStreamRef First = Stream.drop_front(Offset);
 
-  WritableBinaryStreamRef Second = First.drop_front(Off);
+  WritableBinaryStreamRef const Second = First.drop_front(Off);
   First = First.keep_front(Off);
-  BinaryStreamWriter W1{First};
-  BinaryStreamWriter W2{Second};
+  BinaryStreamWriter const W1{First};
+  BinaryStreamWriter const W2{Second};
   return std::make_pair(W1, W2);
 }
 
 Error BinaryStreamWriter::padToAlignment(uint32_t Align) {
-  uint32_t NewOffset = alignTo(Offset, Align);
+  uint32_t const NewOffset = alignTo(Offset, Align);
   if (NewOffset > getLength())
     return make_error<BinaryStreamError>(stream_error_code::stream_too_short);
   while (Offset < NewOffset)

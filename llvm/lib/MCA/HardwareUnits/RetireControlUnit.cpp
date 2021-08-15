@@ -42,10 +42,10 @@ RetireControlUnit::RetireControlUnit(const MCSchedModel &SM)
 // Reserves a number of slots, and returns a new token.
 unsigned RetireControlUnit::dispatch(const InstRef &IR) {
   const Instruction &Inst = *IR.getInstruction();
-  unsigned Entries = normalizeQuantity(Inst.getNumMicroOps());
+  unsigned const Entries = normalizeQuantity(Inst.getNumMicroOps());
   assert((AvailableEntries >= Entries) && "Reorder Buffer unavailable!");
 
-  unsigned TokenID = NextAvailableSlotIdx;
+  unsigned const TokenID = NextAvailableSlotIdx;
   Queue[NextAvailableSlotIdx] = {IR, Entries, false};
   NextAvailableSlotIdx += std::max(1U, Entries);
   NextAvailableSlotIdx %= Queue.size();
@@ -66,7 +66,7 @@ const RetireControlUnit::RUToken &RetireControlUnit::getCurrentToken() const {
 
 unsigned RetireControlUnit::computeNextSlotIdx() const {
   const RetireControlUnit::RUToken &Current = getCurrentToken();
-  unsigned NextSlotIdx = CurrentInstructionSlotIdx + std::max(1U, Current.NumSlots);
+  unsigned const NextSlotIdx = CurrentInstructionSlotIdx + std::max(1U, Current.NumSlots);
   return NextSlotIdx % Queue.size();
 }
 

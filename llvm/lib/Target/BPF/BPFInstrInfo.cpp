@@ -43,13 +43,13 @@ void BPFInstrInfo::copyPhysReg(MachineBasicBlock &MBB,
 }
 
 void BPFInstrInfo::expandMEMCPY(MachineBasicBlock::iterator MI) const {
-  Register DstReg = MI->getOperand(0).getReg();
-  Register SrcReg = MI->getOperand(1).getReg();
-  uint64_t CopyLen = MI->getOperand(2).getImm();
-  uint64_t Alignment = MI->getOperand(3).getImm();
-  Register ScratchReg = MI->getOperand(4).getReg();
+  Register const DstReg = MI->getOperand(0).getReg();
+  Register const SrcReg = MI->getOperand(1).getReg();
+  uint64_t const CopyLen = MI->getOperand(2).getImm();
+  uint64_t const Alignment = MI->getOperand(3).getImm();
+  Register const ScratchReg = MI->getOperand(4).getReg();
   MachineBasicBlock *BB = MI->getParent();
-  DebugLoc dl = MI->getDebugLoc();
+  DebugLoc const dl = MI->getDebugLoc();
   unsigned LdOpc, StOpc;
 
   switch (Alignment) {
@@ -73,7 +73,7 @@ void BPFInstrInfo::expandMEMCPY(MachineBasicBlock::iterator MI) const {
     llvm_unreachable("unsupported memcpy alignment");
   }
 
-  unsigned IterationNum = CopyLen >> Log2_64(Alignment);
+  unsigned const IterationNum = CopyLen >> Log2_64(Alignment);
   for(unsigned I = 0; I < IterationNum; ++I) {
     BuildMI(*BB, MI, dl, get(LdOpc))
             .addReg(ScratchReg, RegState::Define).addReg(SrcReg)
@@ -83,11 +83,11 @@ void BPFInstrInfo::expandMEMCPY(MachineBasicBlock::iterator MI) const {
             .addImm(I * Alignment);
   }
 
-  unsigned BytesLeft = CopyLen & (Alignment - 1);
+  unsigned const BytesLeft = CopyLen & (Alignment - 1);
   unsigned Offset = IterationNum * Alignment;
-  bool Hanging4Byte = BytesLeft & 0x4;
-  bool Hanging2Byte = BytesLeft & 0x2;
-  bool Hanging1Byte = BytesLeft & 0x1;
+  bool const Hanging4Byte = BytesLeft & 0x4;
+  bool const Hanging2Byte = BytesLeft & 0x2;
+  bool const Hanging1Byte = BytesLeft & 0x1;
   if (Hanging4Byte) {
     BuildMI(*BB, MI, dl, get(BPF::LDW))
             .addReg(ScratchReg, RegState::Define).addReg(SrcReg).addImm(Offset);

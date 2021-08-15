@@ -115,7 +115,7 @@ static bool bitTrackingDCE(Function &F, DemandedBits &DB) {
 
     // Convert SExt into ZExt if none of the extension bits is required
     if (SExtInst *SE = dyn_cast<SExtInst>(&I)) {
-      APInt Demanded = DB.getDemandedBits(SE);
+      APInt const Demanded = DB.getDemandedBits(SE);
       const uint32_t SrcBitSize = SE->getSrcTy()->getScalarSizeInBits();
       auto *const DstTy = SE->getDestTy();
       const uint32_t DestBitSize = DstTy->getScalarSizeInBits();

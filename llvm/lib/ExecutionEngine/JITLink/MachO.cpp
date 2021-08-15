@@ -28,7 +28,7 @@ namespace jitlink {
 
 Expected<std::unique_ptr<LinkGraph>>
 createLinkGraphFromMachOObject(MemoryBufferRef ObjectBuffer) {
-  StringRef Data = ObjectBuffer.getBuffer();
+  StringRef const Data = ObjectBuffer.getBuffer();
   if (Data.size() < 4)
     return make_error<JITLinkError>("Truncated MachO buffer \"" +
                                     ObjectBuffer.getBufferIdentifier() + "\"");

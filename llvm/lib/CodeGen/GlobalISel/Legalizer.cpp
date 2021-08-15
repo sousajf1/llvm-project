@@ -184,7 +184,7 @@ Legalizer::legalizeMachineFunction(MachineFunction &MF, const LegalizerInfo &LI,
   // Populate worklists.
   InstListTy InstList;
   ArtifactListTy ArtifactList;
-  ReversePostOrderTraversal<MachineFunction *> RPOT(&MF);
+  ReversePostOrderTraversal<MachineFunction *> const RPOT(&MF);
   // Perform legalization bottom up so we can DCE as we legalize.
   // Traverse BB in RPOT and within each basic block, add insts top down,
   // so when we pop_back_val in the legalization process, we traverse bottom-up.
@@ -215,7 +215,7 @@ Legalizer::legalizeMachineFunction(MachineFunction &MF, const LegalizerInfo &LI,
 
   // Now install the observer as the delegate to MF.
   // This will keep all the observers notified about new insertions/deletions.
-  RAIIMFObsDelInstaller Installer(MF, WrapperObserver);
+  RAIIMFObsDelInstaller const Installer(MF, WrapperObserver);
   LegalizerHelper Helper(MF, LI, WrapperObserver, MIRBuilder);
   LegalizationArtifactCombiner ArtCombiner(MIRBuilder, MRI, LI);
   auto RemoveDeadInstFromLists = [&WrapperObserver](MachineInstr *DeadMI) {
@@ -226,7 +226,7 @@ Legalizer::legalizeMachineFunction(MachineFunction &MF, const LegalizerInfo &LI,
   do {
     LLVM_DEBUG(dbgs() << "=== New Iteration ===\n");
     assert(RetryList.empty() && "Expected no instructions in RetryList");
-    unsigned NumArtifacts = ArtifactList.size();
+    unsigned const NumArtifacts = ArtifactList.size();
     while (!InstList.empty()) {
       MachineInstr &MI = *InstList.pop_back_val();
       assert(isPreISelGenericOpcode(MI.getOpcode()) &&
@@ -332,7 +332,7 @@ bool Legalizer::runOnMachineFunction(MachineFunction &MF) {
 
   std::unique_ptr<MachineIRBuilder> MIRBuilder;
   GISelCSEInfo *CSEInfo = nullptr;
-  bool EnableCSE = EnableCSEInLegalizer.getNumOccurrences()
+  bool const EnableCSE = EnableCSEInLegalizer.getNumOccurrences()
                        ? EnableCSEInLegalizer
                        : TPC.isGISelCSEEnabled();
   if (EnableCSE) {
@@ -353,7 +353,7 @@ bool Legalizer::runOnMachineFunction(MachineFunction &MF) {
     AuxObservers.push_back(&LocObserver);
 
   const LegalizerInfo &LI = *MF.getSubtarget().getLegalizerInfo();
-  MFResult Result =
+  MFResult const Result =
       legalizeMachineFunction(MF, LI, AuxObservers, LocObserver, *MIRBuilder);
 
   if (Result.FailedOn) {

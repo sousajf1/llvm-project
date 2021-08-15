@@ -129,7 +129,7 @@ ArrayRef<MCSymbol *> MMIAddrLabelMap::getAddrLabelSymbolToEmit(BasicBlock *BB) {
 /// If we have any deleted symbols for F, return them.
 void MMIAddrLabelMap::
 takeDeletedSymbolsForFunction(Function *F, std::vector<MCSymbol*> &Result) {
-  DenseMap<AssertingVH<Function>, std::vector<MCSymbol*>>::iterator I =
+  DenseMap<AssertingVH<Function>, std::vector<MCSymbol*>>::iterator const I =
     DeletedAddrLabelsNeedingEmission.find(F);
 
   // If there are no entries for the function, just return.
@@ -144,7 +144,7 @@ void MMIAddrLabelMap::UpdateForDeletedBlock(BasicBlock *BB) {
   // If the block got deleted, there is no need for the symbol.  If the symbol
   // was already emitted, we can just forget about it, otherwise we need to
   // queue it up for later emission when the function is output.
-  AddrLabelSymEntry Entry = std::move(AddrLabelSymbols[BB]);
+  AddrLabelSymEntry const Entry = std::move(AddrLabelSymbols[BB]);
   AddrLabelSymbols.erase(BB);
   assert(!Entry.Symbols.empty() && "Didn't have a symbol, why a callback?");
   BBCallbacks[Entry.Index] = nullptr;  // Clear the callback.
@@ -372,7 +372,7 @@ char MachineModuleInfoWrapperPass::ID = 0;
 static unsigned getLocCookie(const SMDiagnostic &SMD, const SourceMgr &SrcMgr,
                              std::vector<const MDNode *> &LocInfos) {
   // Look up a LocInfo for the buffer this diagnostic is coming from.
-  unsigned BufNum = SrcMgr.FindBufferContainingLoc(SMD.getLoc());
+  unsigned const BufNum = SrcMgr.FindBufferContainingLoc(SMD.getLoc());
   const MDNode *LocInfo = nullptr;
   if (BufNum > 0 && BufNum <= LocInfos.size())
     LocInfo = LocInfos[BufNum - 1];

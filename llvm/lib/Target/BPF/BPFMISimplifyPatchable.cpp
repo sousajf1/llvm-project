@@ -106,7 +106,7 @@ void BPFMISimplifyPatchable::checkADDrr(MachineRegisterInfo *MRI,
       continue;
 
     MachineInstr *DefInst = I->getParent();
-    unsigned Opcode = DefInst->getOpcode();
+    unsigned const Opcode = DefInst->getOpcode();
     unsigned COREOp;
     if (Opcode == BPF::LDB || Opcode == BPF::LDH || Opcode == BPF::LDW ||
         Opcode == BPF::LDD || Opcode == BPF::STB || Opcode == BPF::STH ||
@@ -174,7 +174,7 @@ void BPFMISimplifyPatchable::processCandidate(MachineRegisterInfo *MRI,
         if (!MRI->getUniqueVRegDef(I->getReg()))
           continue;
 
-        unsigned Opcode = I->getParent()->getOpcode();
+        unsigned const Opcode = I->getParent()->getOpcode();
         if (Opcode == BPF::SUBREG_TO_REG) {
           Register TmpReg = I->getParent()->getOperand(0).getReg();
           processDstReg(MRI, TmpReg, DstReg, GVal, false, IsAma);
@@ -230,7 +230,7 @@ void BPFMISimplifyPatchable::processDstReg(MachineRegisterInfo *MRI,
 //       %r4 = SRA_ri %r4, 63
 void BPFMISimplifyPatchable::processInst(MachineRegisterInfo *MRI,
     MachineInstr *Inst, MachineOperand *RelocOp, const GlobalValue *GVal) {
-  unsigned Opcode = Inst->getOpcode();
+  unsigned const Opcode = Inst->getOpcode();
   if (Opcode == BPF::ADD_rr)
     checkADDrr(MRI, RelocOp, GVal);
   else if (Opcode == BPF::SLL_rr)

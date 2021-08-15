@@ -88,7 +88,7 @@ bool LowerEmuTLS::addEmuTlsVar(Module &M, const GlobalVariable *GV) {
   LLVMContext &C = M.getContext();
   PointerType *VoidPtrType = Type::getInt8PtrTy(C);
 
-  std::string EmuTlsVarName = ("__emutls_v." + GV->getName()).str();
+  std::string const EmuTlsVarName = ("__emutls_v." + GV->getName()).str();
   GlobalVariable *EmuTlsVar = M.getNamedGlobal(EmuTlsVarName);
   if (EmuTlsVar)
     return false;  // It has been added before.
@@ -118,7 +118,7 @@ bool LowerEmuTLS::addEmuTlsVar(Module &M, const GlobalVariable *GV) {
   PointerType *InitPtrType = InitValue ?
       PointerType::getUnqual(InitValue->getType()) : VoidPtrType;
   Type *ElementTypes[4] = {WordType, WordType, VoidPtrType, InitPtrType};
-  ArrayRef<Type*> ElementTypeArray(ElementTypes, 4);
+  ArrayRef<Type*> const ElementTypeArray(ElementTypes, 4);
   StructType *EmuTlsVarType = StructType::create(ElementTypeArray);
   EmuTlsVar = cast<GlobalVariable>(
       M.getOrInsertGlobal(EmuTlsVarName, EmuTlsVarType));
@@ -129,12 +129,12 @@ bool LowerEmuTLS::addEmuTlsVar(Module &M, const GlobalVariable *GV) {
     return true;
 
   Type *GVType = GV->getValueType();
-  Align GVAlignment = DL.getValueOrABITypeAlignment(GV->getAlign(), GVType);
+  Align const GVAlignment = DL.getValueOrABITypeAlignment(GV->getAlign(), GVType);
 
   // Define "__emutls_t.*" if there is InitValue
   GlobalVariable *EmuTlsTmplVar = nullptr;
   if (InitValue) {
-    std::string EmuTlsTmplName = ("__emutls_t." + GV->getName()).str();
+    std::string const EmuTlsTmplName = ("__emutls_t." + GV->getName()).str();
     EmuTlsTmplVar = dyn_cast_or_null<GlobalVariable>(
         M.getOrInsertGlobal(EmuTlsTmplName, GVType));
     assert(EmuTlsTmplVar && "Failed to create emualted TLS initializer");
@@ -149,10 +149,10 @@ bool LowerEmuTLS::addEmuTlsVar(Module &M, const GlobalVariable *GV) {
       ConstantInt::get(WordType, DL.getTypeStoreSize(GVType)),
       ConstantInt::get(WordType, GVAlignment.value()), NullPtr,
       EmuTlsTmplVar ? EmuTlsTmplVar : NullPtr};
-  ArrayRef<Constant*> ElementValueArray(ElementValues, 4);
+  ArrayRef<Constant*> const ElementValueArray(ElementValues, 4);
   EmuTlsVar->setInitializer(
       ConstantStruct::get(EmuTlsVarType, ElementValueArray));
-  Align MaxAlignment =
+  Align const MaxAlignment =
       std::max(DL.getABITypeAlign(WordType), DL.getABITypeAlign(VoidPtrType));
   EmuTlsVar->setAlignment(MaxAlignment);
   return true;

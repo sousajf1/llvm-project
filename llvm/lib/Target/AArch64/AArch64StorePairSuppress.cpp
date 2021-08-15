@@ -77,18 +77,18 @@ bool AArch64StorePairSuppress::shouldAddSTPToBlock(const MachineBasicBlock *BB) 
   if (!MinInstr)
     MinInstr = Traces->getEnsemble(MachineTraceMetrics::TS_MinInstrCount);
 
-  MachineTraceMetrics::Trace BBTrace = MinInstr->getTrace(BB);
-  unsigned ResLength = BBTrace.getResourceLength();
+  MachineTraceMetrics::Trace const BBTrace = MinInstr->getTrace(BB);
+  unsigned const ResLength = BBTrace.getResourceLength();
 
   // Get the machine model's scheduling class for STPQi.
   // Bypass TargetSchedule's SchedClass resolution since we only have an opcode.
-  unsigned SCIdx = TII->get(AArch64::STPDi).getSchedClass();
+  unsigned const SCIdx = TII->get(AArch64::STPDi).getSchedClass();
   const MCSchedClassDesc *SCDesc =
       SchedModel.getMCSchedModel()->getSchedClassDesc(SCIdx);
 
   // If a subtarget does not define resources for STPQi, bail here.
   if (SCDesc->isValid() && !SCDesc->isVariant()) {
-    unsigned ResLenWithSTP = BBTrace.getResourceLength(None, SCDesc);
+    unsigned const ResLenWithSTP = BBTrace.getResourceLength(None, SCDesc);
     if (ResLenWithSTP > ResLength) {
       LLVM_DEBUG(dbgs() << "  Suppress STP in BB: " << BB->getNumber()
                         << " resources " << ResLength << " -> " << ResLenWithSTP
@@ -153,7 +153,7 @@ bool AArch64StorePairSuppress::runOnMachineFunction(MachineFunction &MF) {
       if (TII->getMemOperandWithOffset(MI, BaseOp, Offset, OffsetIsScalable,
                                        TRI) &&
           BaseOp->isReg()) {
-        Register BaseReg = BaseOp->getReg();
+        Register const BaseReg = BaseOp->getReg();
         if (PrevBaseReg == BaseReg) {
           // If this block can take STPs, skip ahead to the next block.
           if (!SuppressSTP && shouldAddSTPToBlock(MI.getParent()))

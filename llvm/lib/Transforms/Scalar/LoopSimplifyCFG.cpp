@@ -242,7 +242,7 @@ private:
       // folding. Only handle blocks from current loop: branches in child loops
       // are skipped because if they can be folded, they should be folded during
       // the processing of child loops.
-      bool TakeFoldCandidate = TheOnlySucc && LI.getLoopFor(BB) == &L;
+      bool const TakeFoldCandidate = TheOnlySucc && LI.getLoopFor(BB) == &L;
       if (TakeFoldCandidate)
         FoldCandidates.push_back(BB);
 
@@ -436,7 +436,7 @@ private:
   /// relevant updates to DT and LI.
   void deleteDeadLoopBlocks() {
     if (MSSAU) {
-      SmallSetVector<BasicBlock *, 8> DeadLoopBlocksSet(DeadLoopBlocks.begin(),
+      SmallSetVector<BasicBlock *, 8> const DeadLoopBlocksSet(DeadLoopBlocks.begin(),
                                                         DeadLoopBlocks.end());
       MSSAU->removeBlocks(DeadLoopBlocksSet);
     }
@@ -498,7 +498,7 @@ private:
           DeadSuccessors.insert(Succ);
           // If our successor lies in a different loop, we don't want to remove
           // the one-input Phi because it is a LCSSA Phi.
-          bool PreserveLCSSAPhi = !L.contains(Succ);
+          bool const PreserveLCSSAPhi = !L.contains(Succ);
           Succ->removePredecessor(BB, PreserveLCSSAPhi);
           if (MSSAU)
             MSSAU->removeEdge(BB, Succ);
@@ -509,7 +509,7 @@ private:
       // If TheOnlySucc was BB's successor more than once, after transform it
       // will be its successor only once. Remove redundant inputs from
       // TheOnlySucc's Phis.
-      bool PreserveLCSSAPhi = !L.contains(TheOnlySucc);
+      bool const PreserveLCSSAPhi = !L.contains(TheOnlySucc);
       for (unsigned Dup = 1; Dup < TheOnlySuccDuplicates; ++Dup)
         TheOnlySucc->removePredecessor(BB, PreserveLCSSAPhi);
       if (MSSAU && TheOnlySuccDuplicates > 1)
@@ -641,7 +641,7 @@ static bool constantFoldTerminators(Loop &L, DominatorTree &DT, LoopInfo &LI,
     return false;
 
   ConstantTerminatorFoldingImpl BranchFolder(L, LI, DT, SE, MSSAU);
-  bool Changed = BranchFolder.run();
+  bool const Changed = BranchFolder.run();
   IsLoopDeleted = Changed && BranchFolder.foldingBreaksCurrentLoop();
   return Changed;
 }
@@ -741,7 +741,7 @@ public:
         MSSA->verifyMemorySSA();
     }
     bool DeleteCurrentLoop = false;
-    bool Changed = simplifyLoopCFG(
+    bool const Changed = simplifyLoopCFG(
         *L, DT, LI, SE, MSSAU.hasValue() ? MSSAU.getPointer() : nullptr,
         DeleteCurrentLoop);
     if (DeleteCurrentLoop)

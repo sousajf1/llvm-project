@@ -77,7 +77,7 @@ tgtok::TokKind TGLexer::ReturnError(const char *Loc, const Twine &Msg) {
 }
 
 bool TGLexer::processEOF() {
-  SMLoc ParentIncludeLoc = SrcMgr.getParentIncludeLoc(CurBuffer);
+  SMLoc const ParentIncludeLoc = SrcMgr.getParentIncludeLoc(CurBuffer);
   if (ParentIncludeLoc != SMLoc()) {
     // If prepExitInclude() detects a problem with the preprocessing
     // control stack, it will return false.  Pretend that we reached
@@ -104,7 +104,7 @@ bool TGLexer::processEOF() {
 }
 
 int TGLexer::getNextChar() {
-  char CurChar = *CurPtr++;
+  char const CurChar = *CurPtr++;
   switch (CurChar) {
   default:
     return (unsigned char)CurChar;
@@ -140,7 +140,7 @@ int TGLexer::peekNextChar(int Index) const {
 tgtok::TokKind TGLexer::LexToken(bool FileOrLineStart) {
   TokStart = CurPtr;
   // This always consumes at least one character.
-  int CurChar = getNextChar();
+  int const CurChar = getNextChar();
 
   switch (CurChar) {
   default:
@@ -176,7 +176,7 @@ tgtok::TokKind TGLexer::LexToken(bool FileOrLineStart) {
   case '?': return tgtok::question;
   case '#':
     if (FileOrLineStart) {
-      tgtok::TokKind Kind = prepIsDirective();
+      tgtok::TokKind const Kind = prepIsDirective();
       if (Kind != tgtok::Error)
         return lexPreprocessor(Kind);
     }
@@ -234,7 +234,7 @@ tgtok::TokKind TGLexer::LexToken(bool FileOrLineStart) {
       if (NextChar == 'x' || NextChar == 'b') {
         // If this is [0-9]b[01] or [0-9]x[0-9A-fa-f] this is most
         // likely a number.
-        int NextNextChar = peekNextChar(i);
+        int const NextNextChar = peekNextChar(i);
         switch (NextNextChar) {
         default:
           break;
@@ -341,9 +341,9 @@ tgtok::TokKind TGLexer::LexIdentifier() {
     ++CurPtr;
 
   // Check to see if this identifier is a reserved keyword.
-  StringRef Str(IdentStart, CurPtr-IdentStart);
+  StringRef const Str(IdentStart, CurPtr-IdentStart);
 
-  tgtok::TokKind Kind = StringSwitch<tgtok::TokKind>(Str)
+  tgtok::TokKind const Kind = StringSwitch<tgtok::TokKind>(Str)
     .Case("int", tgtok::Int)
     .Case("bit", tgtok::Bit)
     .Case("bits", tgtok::Bits)
@@ -389,7 +389,7 @@ tgtok::TokKind TGLexer::LexIdentifier() {
 /// comes next and enter the include.
 bool TGLexer::LexInclude() {
   // The token after the include must be a string.
-  tgtok::TokKind Tok = LexToken();
+  tgtok::TokKind const Tok = LexToken();
   if (Tok == tgtok::Error) return true;
   if (Tok != tgtok::StrVal) {
     PrintError(getLoc(), "Expected filename after include");
@@ -397,7 +397,7 @@ bool TGLexer::LexInclude() {
   }
 
   // Get the string.
-  std::string Filename = CurStrVal;
+  std::string const Filename = CurStrVal;
   std::string IncludedFile;
 
   CurBuffer = SrcMgr.AddIncludeFile(Filename, SMLoc::getFromPointer(CurPtr),
@@ -432,7 +432,7 @@ bool TGLexer::SkipCComment() {
   unsigned CommentDepth = 1;
 
   while (true) {
-    int CurChar = getNextChar();
+    int const CurChar = getNextChar();
     switch (CurChar) {
     case EOF:
       PrintError(TokStart, "Unterminated comment!");
@@ -546,7 +546,7 @@ tgtok::TokKind TGLexer::LexExclaim() {
     ++CurPtr;
 
   // Check to see which operator this is.
-  tgtok::TokKind Kind =
+  tgtok::TokKind const Kind =
     StringSwitch<tgtok::TokKind>(StringRef(Start, CurPtr - Start))
     .Case("eq", tgtok::XEq)
     .Case("ne", tgtok::XNe)
@@ -635,7 +635,7 @@ tgtok::TokKind TGLexer::prepIsDirective() const {
     // Check for whitespace after the directive.  If there is no whitespace,
     // then we do not recognize it as a preprocessing directive.
     if (Match) {
-      tgtok::TokKind Kind = PD.Kind;
+      tgtok::TokKind const Kind = PD.Kind;
 
       // New line and EOF may follow only #else/#endif.  It will be reported
       // as an error for #ifdef/#define after the call to prepLexMacroName().
@@ -697,8 +697,8 @@ tgtok::TokKind TGLexer::lexPreprocessor(
                     "preprocessor directive");
 
   if (Kind == tgtok::Ifdef || Kind == tgtok::Ifndef) {
-    StringRef MacroName = prepLexMacroName();
-    StringRef IfTokName = Kind == tgtok::Ifdef ? "#ifdef" : "#ifndef";
+    StringRef const MacroName = prepLexMacroName();
+    StringRef const IfTokName = Kind == tgtok::Ifdef ? "#ifdef" : "#ifndef";
     if (MacroName.empty())
       return ReturnError(TokStart, "Expected macro name after " + IfTokName);
 
@@ -743,7 +743,7 @@ tgtok::TokKind TGLexer::lexPreprocessor(
     if (PrepIncludeStack.back()->empty())
       return ReturnError(TokStart, "#else without #ifdef or #ifndef");
 
-    PreprocessorControlDesc IfdefEntry = PrepIncludeStack.back()->back();
+    PreprocessorControlDesc const IfdefEntry = PrepIncludeStack.back()->back();
 
     if (IfdefEntry.Kind != tgtok::Ifdef) {
       PrintError(TokStart, "double #else");
@@ -798,7 +798,7 @@ tgtok::TokKind TGLexer::lexPreprocessor(
     // Return to the lines skipping code.
     return Kind;
   } else if (Kind == tgtok::Define) {
-    StringRef MacroName = prepLexMacroName();
+    StringRef const MacroName = prepLexMacroName();
     if (MacroName.empty())
       return ReturnError(TokStart, "Expected macro name after #define");
 
@@ -843,7 +843,7 @@ bool TGLexer::prepSkipRegion(bool MustNeverBeFalse) {
     else
       continue;
 
-    tgtok::TokKind Kind = prepIsDirective();
+    tgtok::TokKind const Kind = prepIsDirective();
 
     // If we did not find a preprocessing directive or it is #define,
     // then just skip to the next line.  We do not have to do anything
@@ -851,7 +851,7 @@ bool TGLexer::prepSkipRegion(bool MustNeverBeFalse) {
     if (Kind == tgtok::Error || Kind == tgtok::Define)
       continue;
 
-    tgtok::TokKind ProcessedKind = lexPreprocessor(Kind, false);
+    tgtok::TokKind const ProcessedKind = lexPreprocessor(Kind, false);
 
     // If lexPreprocessor() encountered an error during lexing this
     // preprocessor idiom, then return false to the calling lexPreprocessor().
@@ -911,7 +911,7 @@ bool TGLexer::prepSkipLineBegin() {
       break;
 
     case '/': {
-      int NextChar = peekNextChar(1);
+      int const NextChar = peekNextChar(1);
       if (NextChar == '*') {
         // Skip C-style comment.
         // Note that we do not care about skipping the C++-style comments.
@@ -962,7 +962,7 @@ bool TGLexer::prepSkipDirectiveEnd() {
       return true;
 
     case '/': {
-      int NextChar = peekNextChar(1);
+      int const NextChar = peekNextChar(1);
       if (NextChar == '/') {
         // Skip C++-style comment.
         // We may just return true now, but let's skip to the line/buffer end

@@ -58,7 +58,7 @@ bool MipsInstrInfo::isZeroImm(const MachineOperand &op) const {
 void MipsInstrInfo::
 insertNoop(MachineBasicBlock &MBB, MachineBasicBlock::iterator MI) const
 {
-  DebugLoc DL;
+  DebugLoc const DL;
   BuildMI(MBB, MI, DL, get(Mips::NOP));
 }
 
@@ -66,7 +66,7 @@ MachineMemOperand *
 MipsInstrInfo::GetMemOperand(MachineBasicBlock &MBB, int FI,
                              MachineMemOperand::Flags Flags) const {
   MachineFunction &MF = *MBB.getParent();
-  MachineFrameInfo &MFI = MF.getFrameInfo();
+  MachineFrameInfo  const&MFI = MF.getFrameInfo();
 
   return MF.getMachineMemOperand(MachinePointerInfo::getFixedStack(MF, FI),
                                  Flags, MFI.getObjectSize(FI),
@@ -81,7 +81,7 @@ void MipsInstrInfo::AnalyzeCondBr(const MachineInstr *Inst, unsigned Opc,
                                   MachineBasicBlock *&BB,
                                   SmallVectorImpl<MachineOperand> &Cond) const {
   assert(getAnalyzableBrOpc(Opc) && "Not an analyzable branch");
-  int NumOp = Inst->getNumExplicitOperands();
+  int const NumOp = Inst->getNumExplicitOperands();
 
   // for both int and fp branches, the last explicit operand is the
   // MBB.
@@ -98,7 +98,7 @@ bool MipsInstrInfo::analyzeBranch(MachineBasicBlock &MBB,
                                   SmallVectorImpl<MachineOperand> &Cond,
                                   bool AllowModify) const {
   SmallVector<MachineInstr*, 2> BranchInstrs;
-  BranchType BT = analyzeBranch(MBB, TBB, FBB, Cond, AllowModify, BranchInstrs);
+  BranchType const BT = analyzeBranch(MBB, TBB, FBB, Cond, AllowModify, BranchInstrs);
 
   return (BT == BT_None) || (BT == BT_Indirect);
 }
@@ -106,9 +106,9 @@ bool MipsInstrInfo::analyzeBranch(MachineBasicBlock &MBB,
 void MipsInstrInfo::BuildCondBr(MachineBasicBlock &MBB, MachineBasicBlock *TBB,
                                 const DebugLoc &DL,
                                 ArrayRef<MachineOperand> Cond) const {
-  unsigned Opc = Cond[0].getImm();
+  unsigned const Opc = Cond[0].getImm();
   const MCInstrDesc &MCID = get(Opc);
-  MachineInstrBuilder MIB = BuildMI(&MBB, DL, MCID);
+  MachineInstrBuilder const MIB = BuildMI(&MBB, DL, MCID);
 
   for (unsigned i = 1; i < Cond.size(); ++i) {
     assert((Cond[i].isImm() || Cond[i].isReg()) &&
@@ -206,7 +206,7 @@ MipsInstrInfo::BranchType MipsInstrInfo::analyzeBranch(
   }
 
   MachineInstr *LastInst = &*I;
-  unsigned LastOpc = LastInst->getOpcode();
+  unsigned const LastOpc = LastInst->getOpcode();
   BranchInstrs.push_back(LastInst);
 
   // Not an analyzable branch (e.g., indirect jump).
@@ -438,7 +438,7 @@ bool MipsInstrInfo::isBranchOffsetInRange(unsigned BranchOpc,
 /// Return the corresponding compact (no delay slot) form of a branch.
 unsigned MipsInstrInfo::getEquivalentCompactForm(
     const MachineBasicBlock::iterator I) const {
-  unsigned Opcode = I->getOpcode();
+  unsigned const Opcode = I->getOpcode();
   bool canUseShortMicroMipsCTI = false;
 
   if (Subtarget.inMicroMipsMode()) {
@@ -726,23 +726,23 @@ static bool verifyInsExtInstruction(const MachineInstr &MI, StringRef &ErrInfo,
                                     const int64_t SizeHigh,
                                     const int64_t BothLow,
                                     const int64_t BothHigh) {
-  MachineOperand MOPos = MI.getOperand(2);
+  MachineOperand const MOPos = MI.getOperand(2);
   if (!MOPos.isImm()) {
     ErrInfo = "Position is not an immediate!";
     return false;
   }
-  int64_t Pos = MOPos.getImm();
+  int64_t const Pos = MOPos.getImm();
   if (!((PosLow <= Pos) && (Pos < PosHigh))) {
     ErrInfo = "Position operand is out of range!";
     return false;
   }
 
-  MachineOperand MOSize = MI.getOperand(3);
+  MachineOperand const MOSize = MI.getOperand(3);
   if (!MOSize.isImm()) {
     ErrInfo = "Size operand is not an immediate!";
     return false;
   }
-  int64_t Size = MOSize.getImm();
+  int64_t const Size = MOSize.getImm();
   if (!((SizeLow < Size) && (Size <= SizeHigh))) {
     ErrInfo = "Size operand is out of range!";
     return false;
@@ -850,8 +850,8 @@ MipsInstrInfo::describeLoadedValue(const MachineInstr &MI, Register Reg) const {
 
   // TODO: Special MIPS instructions that need to be described separately.
   if (auto RegImm = isAddImmediate(MI, Reg)) {
-    Register SrcReg = RegImm->Reg;
-    int64_t Offset = RegImm->Imm;
+    Register const SrcReg = RegImm->Reg;
+    int64_t const Offset = RegImm->Imm;
     // When SrcReg is $zero, treat loaded value as immediate only.
     // Ex. $a2 = ADDiu $zero, 10
     if (SrcReg == Mips::ZERO || SrcReg == Mips::ZERO_64) {
@@ -862,7 +862,7 @@ MipsInstrInfo::describeLoadedValue(const MachineInstr &MI, Register Reg) const {
   } else if (auto DestSrc = isCopyInstr(MI)) {
     const MachineFunction *MF = MI.getMF();
     const TargetRegisterInfo *TRI = MF->getSubtarget().getRegisterInfo();
-    Register DestReg = DestSrc->Destination->getReg();
+    Register const DestReg = DestSrc->Destination->getReg();
     // TODO: Handle cases where the Reg is sub- or super-register of the
     // DestReg.
     if (TRI->isSuperRegister(Reg, DestReg) || TRI->isSubRegister(Reg, DestReg))

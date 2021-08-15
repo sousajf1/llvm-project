@@ -257,8 +257,8 @@ static MCAsmInfo *createAArch64MCAsmInfo(const MCRegisterInfo &MRI,
   }
 
   // Initial state of the frame pointer is SP.
-  unsigned Reg = MRI.getDwarfRegNum(AArch64::SP, true);
-  MCCFIInstruction Inst = MCCFIInstruction::cfiDefCfa(nullptr, Reg, 0);
+  unsigned const Reg = MRI.getDwarfRegNum(AArch64::SP, true);
+  MCCFIInstruction const Inst = MCCFIInstruction::cfiDefCfa(nullptr, Reg, 0);
   MAI->addInitialFrameState(Inst);
 
   return MAI;
@@ -321,7 +321,7 @@ public:
     const auto &Desc = Info->get(Inst.getOpcode());
     for (unsigned i = 0, e = Inst.getNumOperands(); i != e; i++) {
       if (Desc.OpInfo[i].OperandType == MCOI::OPERAND_PCREL) {
-        int64_t Imm = Inst.getOperand(i).getImm() * 4;
+        int64_t const Imm = Inst.getOperand(i).getImm() * 4;
         Target = Addr + Imm;
         return true;
       }
@@ -350,7 +350,7 @@ public:
       Off += 4;
       uint64_t Imm = (((PltSectionVA + Byte) >> 12) << 12) +
             (((Insn >> 29) & 3) << 12) + (((Insn >> 5) & 0x3ffff) << 14);
-      uint32_t Insn2 =
+      uint32_t const Insn2 =
           support::endian::read32le(PltContents.data() + Byte + Off);
       // Check for: ldr Xt, [Xn, #pimm].
       if (Insn2 >> 22 == 0x3e5) {
@@ -375,7 +375,7 @@ extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializeAArch64TargetMC() {
                     &getTheAArch64_32Target(), &getTheARM64Target(),
                     &getTheARM64_32Target()}) {
     // Register the MC asm info.
-    RegisterMCAsmInfoFn X(*T, createAArch64MCAsmInfo);
+    RegisterMCAsmInfoFn const X(*T, createAArch64MCAsmInfo);
 
     // Register the MC instruction info.
     TargetRegistry::RegisterMCInstrInfo(*T, createAArch64MCInstrInfo);

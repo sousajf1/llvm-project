@@ -160,7 +160,7 @@ void AArch64MachObjectWriter::recordRelocation(
   int64_t Value = 0;
   unsigned Index = 0;
   unsigned Type = 0;
-  unsigned Kind = Fixup.getKind();
+  unsigned const Kind = Fixup.getKind();
   const MCSymbol *RelSymbol = nullptr;
 
   FixupOffset += Fixup.getOffset();
@@ -302,7 +302,7 @@ void AArch64MachObjectWriter::recordRelocation(
     const MCSectionMachO &Section =
         static_cast<const MCSectionMachO &>(*Fragment->getParent());
 
-    bool CanUseLocalRelocation =
+    bool const CanUseLocalRelocation =
         canUseLocalRelocation(Section, *Symbol, Log2Size);
     if (Symbol->isTemporary() && (Value || !CanUseLocalRelocation)) {
       // Make sure that the symbol is actually in a section here. If it isn't,

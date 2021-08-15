@@ -78,7 +78,7 @@ bool NVPTXTTIImpl::isSourceOfDivergence(const Value *V) {
     // Without pointer analysis, we conservatively assume values loaded from
     // generic or local address space are divergent.
     if (const LoadInst *LI = dyn_cast<LoadInst>(I)) {
-      unsigned AS = LI->getPointerAddressSpace();
+      unsigned const AS = LI->getPointerAddressSpace();
       return AS == ADDRESS_SPACE_GENERIC || AS == ADDRESS_SPACE_LOCAL;
     }
     // Atomic instructions may cause divergence. Atomic instructions are
@@ -316,11 +316,11 @@ static Instruction *simplifyNvvmIntrinsic(IntrinsicInst *II, InstCombiner &IC) {
   // intrinsic, we don't have to look up any module metadata, as
   // FtzRequirementTy will be FTZ_Any.)
   if (Action.FtzRequirement != FTZ_Any) {
-    StringRef Attr = II->getFunction()
+    StringRef const Attr = II->getFunction()
                          ->getFnAttribute("denormal-fp-math-f32")
                          .getValueAsString();
-    DenormalMode Mode = parseDenormalFPAttribute(Attr);
-    bool FtzEnabled = Mode.Output != DenormalMode::IEEE;
+    DenormalMode const Mode = parseDenormalFPAttribute(Attr);
+    bool const FtzEnabled = Mode.Output != DenormalMode::IEEE;
 
     if (FtzEnabled != (Action.FtzRequirement == FTZ_MustBeOn))
       return nullptr;
@@ -328,10 +328,10 @@ static Instruction *simplifyNvvmIntrinsic(IntrinsicInst *II, InstCombiner &IC) {
 
   // Simplify to target-generic intrinsic.
   if (Action.IID) {
-    SmallVector<Value *, 4> Args(II->arg_operands());
+    SmallVector<Value *, 4> const Args(II->arg_operands());
     // All the target-generic intrinsics currently of interest to us have one
     // type argument, equal to that of the nvvm intrinsic's argument.
-    Type *Tys[] = {II->getArgOperand(0)->getType()};
+    Type *const Tys[] = {II->getArgOperand(0)->getType()};
     return CallInst::Create(
         Intrinsic::getDeclaration(II->getModule(), *Action.IID, Tys), Args);
   }
@@ -375,9 +375,9 @@ InstructionCost NVPTXTTIImpl::getArithmeticInstrCost(
     TTI::OperandValueProperties Opd2PropInfo, ArrayRef<const Value *> Args,
     const Instruction *CxtI) {
   // Legalize the type.
-  std::pair<InstructionCost, MVT> LT = TLI->getTypeLegalizationCost(DL, Ty);
+  std::pair<InstructionCost, MVT> const LT = TLI->getTypeLegalizationCost(DL, Ty);
 
-  int ISD = TLI->InstructionOpcodeToISD(Opcode);
+  int const ISD = TLI->InstructionOpcodeToISD(Opcode);
 
   switch (ISD) {
   default:

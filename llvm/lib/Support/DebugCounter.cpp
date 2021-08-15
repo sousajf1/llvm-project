@@ -37,7 +37,7 @@ private:
     for (const auto &Name : CounterInstance) {
       const auto Info =
           CounterInstance.getCounterInfo(CounterInstance.getCounterId(Name));
-      size_t NumSpaces = GlobalWidth - Info.first.size() - 8;
+      size_t const NumSpaces = GlobalWidth - Info.first.size() - 8;
       outs() << "    =" << Info.first;
       outs().indent(NumSpaces) << " -   " << Info.second << '\n';
     }
@@ -61,7 +61,7 @@ static bool PrintDebugCounter;
 
 void llvm::initDebugCounterOptions() {
   *DebugCounterOption;
-  static cl::opt<bool, true> RegisterPrintDebugCounter(
+  static cl::opt<bool, true> const RegisterPrintDebugCounter(
       "print-debug-counter", cl::Hidden, cl::location(PrintDebugCounter),
       cl::init(false), cl::Optional,
       cl::desc("Print out debug counter info after all counters accumulated"));
@@ -100,7 +100,7 @@ void DebugCounter::push_back(const std::string &Val) {
   // add it to the counter values.
   if (CounterPair.first.endswith("-skip")) {
     auto CounterName = CounterPair.first.drop_back(5);
-    unsigned CounterID = getCounterId(std::string(CounterName));
+    unsigned const CounterID = getCounterId(std::string(CounterName));
     if (!CounterID) {
       errs() << "DebugCounter Error: " << CounterName
              << " is not a registered counter\n";
@@ -113,7 +113,7 @@ void DebugCounter::push_back(const std::string &Val) {
     Counter.IsSet = true;
   } else if (CounterPair.first.endswith("-count")) {
     auto CounterName = CounterPair.first.drop_back(6);
-    unsigned CounterID = getCounterId(std::string(CounterName));
+    unsigned const CounterID = getCounterId(std::string(CounterName));
     if (!CounterID) {
       errs() << "DebugCounter Error: " << CounterName
              << " is not a registered counter\n";
@@ -138,7 +138,7 @@ void DebugCounter::print(raw_ostream &OS) const {
   auto &Us = instance();
   OS << "Counters and values:\n";
   for (auto &CounterName : CounterNames) {
-    unsigned CounterID = getCounterId(std::string(CounterName));
+    unsigned const CounterID = getCounterId(std::string(CounterName));
     OS << left_justify(RegisteredCounters[CounterID], 32) << ": {"
        << Us.Counters[CounterID].Count << "," << Us.Counters[CounterID].Skip
        << "," << Us.Counters[CounterID].StopAfter << "}\n";

@@ -285,12 +285,12 @@ bool ImplicitNullChecks::canReorder(const MachineInstr *A,
     if (!(MOA.isReg() && MOA.getReg()))
       continue;
 
-    Register RegA = MOA.getReg();
+    Register const RegA = MOA.getReg();
     for (const auto &MOB : B->operands()) {
       if (!(MOB.isReg() && MOB.getReg()))
         continue;
 
-      Register RegB = MOB.getReg();
+      Register const RegB = MOB.getReg();
 
       if (TRI->regsOverlap(RegA, RegB) && (MOA.isDef() || MOB.isDef()))
         return false;
@@ -385,7 +385,7 @@ ImplicitNullChecks::isSuitableMemoryOp(const MachineInstr &MI,
   if (BaseReg != PointerReg && ScaledReg != PointerReg)
     return SR_Unsuitable;
   const MachineRegisterInfo &MRI = MI.getMF()->getRegInfo();
-  unsigned PointerRegSizeInBits = TRI->getRegSizeInBits(PointerReg, MRI);
+  unsigned const PointerRegSizeInBits = TRI->getRegSizeInBits(PointerReg, MRI);
   // Bail out of the sizes of BaseReg, ScaledReg and PointerReg are not the
   // same.
   if ((BaseReg &&
@@ -422,15 +422,15 @@ ImplicitNullChecks::isSuitableMemoryOp(const MachineInstr &MI,
       return false;
     // Calculate the reg size in bits, since this is needed for bailing out in
     // case of overflow.
-    int32_t RegSizeInBits = TRI->getRegSizeInBits(RegUsedInAddr, MRI);
-    APInt ImmValC(RegSizeInBits, ImmVal, true /*IsSigned*/);
-    APInt MultiplierC(RegSizeInBits, Multiplier);
+    int32_t const RegSizeInBits = TRI->getRegSizeInBits(RegUsedInAddr, MRI);
+    APInt const ImmValC(RegSizeInBits, ImmVal, true /*IsSigned*/);
+    APInt const MultiplierC(RegSizeInBits, Multiplier);
     assert(MultiplierC.isStrictlyPositive() &&
            "expected to be a positive value!");
     bool IsOverflow;
     // Sign of the product depends on the sign of the ImmVal, since Multiplier
     // is always positive.
-    APInt Product = ImmValC.smul_ov(MultiplierC, IsOverflow);
+    APInt const Product = ImmValC.smul_ov(MultiplierC, IsOverflow);
     if (IsOverflow)
       return false;
     APInt DisplacementC(64, Displacement, true /*isSigned*/);
@@ -469,7 +469,7 @@ ImplicitNullChecks::isSuitableMemoryOp(const MachineInstr &MI,
 
   // Finally, check whether the current memory access aliases with previous one.
   for (auto *PrevMI : PrevInsts) {
-    AliasResult AR = areMemoryOpsAliased(MI, PrevMI);
+    AliasResult const AR = areMemoryOpsAliased(MI, PrevMI);
     if (AR == AR_WillAliasEverything)
       return SR_Impossible;
     if (AR == AR_MayAlias)
@@ -682,7 +682,7 @@ bool ImplicitNullChecks::analyzeBlockForNullChecks(
       return false;
 
     MachineInstr *Dependence;
-    SuitabilityResult SR = isSuitableMemoryOp(MI, PointerReg, InstsSeenSoFar);
+    SuitabilityResult const SR = isSuitableMemoryOp(MI, PointerReg, InstsSeenSoFar);
     if (SR == SR_Impossible)
       return false;
     if (SR == SR_Suitable &&
@@ -711,8 +711,8 @@ MachineInstr *ImplicitNullChecks::insertFaultingInstr(
   const unsigned NoRegister = 0; // Guaranteed to be the NoRegister value for
                                  // all targets.
 
-  DebugLoc DL;
-  unsigned NumDefs = MI->getDesc().getNumDefs();
+  DebugLoc const DL;
+  unsigned const NumDefs = MI->getDesc().getNumDefs();
   assert(NumDefs <= 1 && "other cases unhandled!");
 
   unsigned DefReg = NoRegister;
@@ -756,11 +756,11 @@ MachineInstr *ImplicitNullChecks::insertFaultingInstr(
 /// Rewrite the null checks in NullCheckList into implicit null checks.
 void ImplicitNullChecks::rewriteNullChecks(
     ArrayRef<ImplicitNullChecks::NullCheck> NullCheckList) {
-  DebugLoc DL;
+  DebugLoc const DL;
 
   for (auto &NC : NullCheckList) {
     // Remove the conditional branch dependent on the null check.
-    unsigned BranchesRemoved = TII->removeBranch(*NC.getCheckBlock());
+    unsigned const BranchesRemoved = TII->removeBranch(*NC.getCheckBlock());
     (void)BranchesRemoved;
     assert(BranchesRemoved > 0 && "expected at least one branch!");
 
@@ -783,7 +783,7 @@ void ImplicitNullChecks::rewriteNullChecks(
     for (const MachineOperand &MO : FaultingInstr->operands()) {
       if (!MO.isReg() || !MO.isDef())
         continue;
-      Register Reg = MO.getReg();
+      Register const Reg = MO.getReg();
       if (!Reg || MBB->isLiveIn(Reg))
         continue;
       MBB->addLiveIn(Reg);

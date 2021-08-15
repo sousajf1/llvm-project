@@ -67,7 +67,7 @@ raw_ostream &llvm::gsym::operator<<(raw_ostream &OS, const AddressRange &R) {
 }
 
 raw_ostream &llvm::gsym::operator<<(raw_ostream &OS, const AddressRanges &AR) {
-  size_t Size = AR.size();
+  size_t const Size = AR.size();
   for (size_t I = 0; I < Size; ++I) {
     if (I)
       OS << ' ';
@@ -102,7 +102,7 @@ void AddressRanges::encode(FileWriter &O, uint64_t BaseAddr) const {
 void AddressRanges::decode(DataExtractor &Data, uint64_t BaseAddr,
                            uint64_t &Offset) {
   clear();
-  uint64_t NumRanges = Data.getULEB128(&Offset);
+  uint64_t const NumRanges = Data.getULEB128(&Offset);
   if (NumRanges == 0)
     return;
   Ranges.resize(NumRanges);
@@ -116,7 +116,7 @@ void AddressRange::skip(DataExtractor &Data, uint64_t &Offset) {
 }
 
 uint64_t AddressRanges::skip(DataExtractor &Data, uint64_t &Offset) {
-  uint64_t NumRanges = Data.getULEB128(&Offset);
+  uint64_t const NumRanges = Data.getULEB128(&Offset);
   for (uint64_t I=0; I<NumRanges; ++I)
     AddressRange::skip(Data, Offset);
   return NumRanges;

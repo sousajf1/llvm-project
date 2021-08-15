@@ -26,7 +26,7 @@ char EndOfFileError::ID = 0;
 ParsedStringTable::ParsedStringTable(StringRef InBuffer) : Buffer(InBuffer) {
   while (!InBuffer.empty()) {
     // Strings are separated by '\0' bytes.
-    std::pair<StringRef, StringRef> Split = InBuffer.split('\0');
+    std::pair<StringRef, StringRef> const Split = InBuffer.split('\0');
     // We only store the offset from the beginning of the buffer.
     Offsets.push_back(Split.first.data() - Buffer.data());
     InBuffer = Split.second;
@@ -40,10 +40,10 @@ Expected<StringRef> ParsedStringTable::operator[](size_t Index) const {
         "String with index %u is out of bounds (size = %u).", Index,
         Offsets.size());
 
-  size_t Offset = Offsets[Index];
+  size_t const Offset = Offsets[Index];
   // If it's the last offset, we can't use the next offset to know the size of
   // the string.
-  size_t NextOffset =
+  size_t const NextOffset =
       (Index == Offsets.size() - 1) ? Buffer.size() : Offsets[Index + 1];
   return StringRef(Buffer.data() + Offset, NextOffset - Offset - 1);
 }

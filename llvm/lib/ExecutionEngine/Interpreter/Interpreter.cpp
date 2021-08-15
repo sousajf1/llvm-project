@@ -89,7 +89,7 @@ GenericValue Interpreter::runFunction(Function *F,
   // take into account gratuitous differences in declared types,
   // though.
   const size_t ArgCount = F->getFunctionType()->getNumParams();
-  ArrayRef<GenericValue> ActualArgs =
+  ArrayRef<GenericValue> const ActualArgs =
       ArgValues.slice(0, std::min(ArgValues.size(), ArgCount));
 
   // Set up the function call.

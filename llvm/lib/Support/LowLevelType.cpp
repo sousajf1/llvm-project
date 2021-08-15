@@ -17,7 +17,7 @@ using namespace llvm;
 
 LLT::LLT(MVT VT) {
   if (VT.isVector()) {
-    bool asVector = VT.getVectorNumElements() > 1;
+    bool const asVector = VT.getVectorNumElements() > 1;
     init(/*IsPointer=*/false, asVector, /*IsScalar=*/!asVector,
          VT.getVectorElementCount(), VT.getVectorElementType().getSizeInBits(),
          /*AddressSpace=*/0);

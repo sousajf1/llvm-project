@@ -184,7 +184,7 @@ bool CanonicalizeFreezeInLoopsImpl::run() {
 
     InsertFreezeAndForgetFromSCEV(StepI->getOperandUse(Info.StepValIdx));
 
-    unsigned OperandIdx =
+    unsigned const OperandIdx =
         PHI->getOperandNumForIncomingValue(PHI->getIncomingValue(0) == StepI);
     InsertFreezeAndForgetFromSCEV(PHI->getOperandUse(OperandIdx));
   }

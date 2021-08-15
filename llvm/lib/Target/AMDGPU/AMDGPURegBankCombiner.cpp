@@ -107,14 +107,14 @@ bool AMDGPURegBankCombinerHelper::matchMed(MachineInstr &MI,
 
 bool AMDGPURegBankCombinerHelper::matchIntMinMaxToMed3(
     MachineInstr &MI, Med3MatchInfo &MatchInfo) {
-  Register Dst = MI.getOperand(0).getReg();
+  Register const Dst = MI.getOperand(0).getReg();
   if (!isVgprRegBank(Dst))
     return false;
 
   if (MRI.getType(Dst).isVector())
     return false;
 
-  MinMaxMedOpc OpcodeTriple = getMinMaxPair(MI.getOpcode());
+  MinMaxMedOpc const OpcodeTriple = getMinMaxPair(MI.getOpcode());
   Register Val, K0, K1;
   // Match min(max(Val, K0), K1) or max(min(Val, K1), K0). Then see if K0 <= K1.
   if (!matchMed<ICstRegMatch>(MI, MRI, OpcodeTriple, Val, K0, K1))
@@ -185,7 +185,7 @@ bool AMDGPURegBankCombinerInfo::combine(GISelChangeObserver &Observer,
                                               MachineIRBuilder &B) const {
   CombinerHelper Helper(Observer, B, KB, MDT);
   AMDGPURegBankCombinerHelper RegBankHelper(B, Helper);
-  AMDGPUGenRegBankCombinerHelper Generated(GeneratedRuleCfg, Helper,
+  AMDGPUGenRegBankCombinerHelper const Generated(GeneratedRuleCfg, Helper,
                                            RegBankHelper);
 
   if (Generated.tryCombineAll(Observer, MI, B))
@@ -243,7 +243,7 @@ bool AMDGPURegBankCombiner::runOnMachineFunction(MachineFunction &MF) {
     return false;
   auto *TPC = &getAnalysis<TargetPassConfig>();
   const Function &F = MF.getFunction();
-  bool EnableOpt =
+  bool const EnableOpt =
       MF.getTarget().getOptLevel() != CodeGenOpt::None && !skipFunction(F);
 
   const GCNSubtarget &ST = MF.getSubtarget<GCNSubtarget>();

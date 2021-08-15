@@ -275,7 +275,7 @@ PreservedAnalyses FunctionToLoopPassAdaptor::run(Function &F,
 
     PreservedAnalyses PassPA;
     {
-      TimeTraceScope TimeScope(Pass->name());
+      TimeTraceScope const TimeScope(Pass->name());
       PassPA = Pass->run(*L, LAM, LAR, Updater);
     }
 

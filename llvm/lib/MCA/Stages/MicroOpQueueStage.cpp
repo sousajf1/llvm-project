@@ -25,7 +25,7 @@ Error MicroOpQueueStage::moveInstructions() {
       return Val;
 
     Buffer[CurrentInstructionSlotIdx].invalidate();
-    unsigned NormalizedOpcodes = getNormalizedOpcodes(IR);
+    unsigned const NormalizedOpcodes = getNormalizedOpcodes(IR);
     CurrentInstructionSlotIdx += NormalizedOpcodes;
     CurrentInstructionSlotIdx %= Buffer.size();
     AvailableEntries += NormalizedOpcodes;
@@ -45,7 +45,7 @@ MicroOpQueueStage::MicroOpQueueStage(unsigned Size, unsigned IPC,
 
 Error MicroOpQueueStage::execute(InstRef &IR) {
   Buffer[NextAvailableSlotIdx] = IR;
-  unsigned NormalizedOpcodes = getNormalizedOpcodes(IR);
+  unsigned const NormalizedOpcodes = getNormalizedOpcodes(IR);
   NextAvailableSlotIdx += NormalizedOpcodes;
   NextAvailableSlotIdx %= Buffer.size();
   AvailableEntries -= NormalizedOpcodes;

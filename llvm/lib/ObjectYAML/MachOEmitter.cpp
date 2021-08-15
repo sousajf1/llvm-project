@@ -292,7 +292,7 @@ Error MachOWriter::writeSectionData(raw_ostream &OS) {
     switch (LC.Data.load_command_data.cmd) {
     case MachO::LC_SEGMENT:
     case MachO::LC_SEGMENT_64:
-      uint64_t segOff = is64Bit ? LC.Data.segment_command_64_data.fileoff
+      uint64_t const segOff = is64Bit ? LC.Data.segment_command_64_data.fileoff
                                 : LC.Data.segment_command_data.fileoff;
       if (0 ==
           strncmp(&LC.Data.segment_command_data.segname[0], "__LINKEDIT", 16)) {
@@ -308,7 +308,7 @@ Error MachOWriter::writeSectionData(raw_ostream &OS) {
               errc::invalid_argument,
               "wrote too much data somewhere, section offsets don't line up");
 
-        StringRef SectName(Sec.sectname,
+        StringRef const SectName(Sec.sectname,
                            strnlen(Sec.sectname, sizeof(Sec.sectname)));
         // If the section's content is specified in the 'DWARF' entry, we will
         // emit it regardless of the section's segname.
@@ -329,7 +329,7 @@ Error MachOWriter::writeSectionData(raw_ostream &OS) {
           continue;
 
         if (Sec.content) {
-          yaml::BinaryRef Content = *Sec.content;
+          yaml::BinaryRef const Content = *Sec.content;
           Content.writeAsBinary(OS);
           ZeroFillBytes(OS, Sec.size - Content.binary_size());
         } else {
@@ -337,7 +337,7 @@ Error MachOWriter::writeSectionData(raw_ostream &OS) {
           Fill(OS, Sec.size, 0xDEADBEEFu);
         }
       }
-      uint64_t segSize = is64Bit ? LC.Data.segment_command_64_data.filesize
+      uint64_t const segSize = is64Bit ? LC.Data.segment_command_64_data.filesize
                                  : LC.Data.segment_command_data.filesize;
       ZeroToOffset(OS, segOff + segSize);
       break;
@@ -507,7 +507,7 @@ void MachOWriter::writeLinkEditData(raw_ostream &OS) {
 }
 
 void MachOWriter::writeRebaseOpcodes(raw_ostream &OS) {
-  MachOYAML::LinkEditData &LinkEdit = Obj.LinkEdit;
+  MachOYAML::LinkEditData  const&LinkEdit = Obj.LinkEdit;
 
   for (auto Opcode : LinkEdit.RebaseOpcodes) {
     uint8_t OpByte = Opcode.Opcode | Opcode.Imm;
@@ -636,7 +636,7 @@ void writeFatArch<MachO::fat_arch_64>(MachOYAML::FatArch &Arch,
 
 void UniversalWriter::writeFatArchs(raw_ostream &OS) {
   auto &FatFile = *ObjectFile.FatMachO;
-  bool is64Bit = FatFile.Header.magic == MachO::FAT_MAGIC_64;
+  bool const is64Bit = FatFile.Header.magic == MachO::FAT_MAGIC_64;
   for (auto Arch : FatFile.FatArchs) {
     if (is64Bit)
       writeFatArch<MachO::fat_arch_64>(Arch, OS);

@@ -101,13 +101,13 @@ void MCSectionMachO::PrintSwitchToSection(const MCAsmInfo &MAI, const Triple &T,
   OS << "\t.section\t" << getSegmentName() << ',' << getName();
 
   // Get the section type and attributes.
-  unsigned TAA = getTypeAndAttributes();
+  unsigned const TAA = getTypeAndAttributes();
   if (TAA == 0) {
     OS << '\n';
     return;
   }
 
-  MachO::SectionType SectionType = getType();
+  MachO::SectionType const SectionType = getType();
   assert(SectionType <= MachO::LAST_KNOWN_SECTION_TYPE &&
          "Invalid SectionType specified!");
 
@@ -191,8 +191,8 @@ Error MCSectionMachO::ParseSectionSpecifier(StringRef Spec,       // In.
   Segment = GetEmptyOrTrim(0);
   Section = GetEmptyOrTrim(1);
   StringRef SectionType = GetEmptyOrTrim(2);
-  StringRef Attrs = GetEmptyOrTrim(3);
-  StringRef StubSizeStr = GetEmptyOrTrim(4);
+  StringRef const Attrs = GetEmptyOrTrim(3);
+  StringRef const StubSizeStr = GetEmptyOrTrim(4);
 
   // Verify that the section is present.
   if (Section.empty())

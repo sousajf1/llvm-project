@@ -56,7 +56,7 @@ VRegRenamer::getVRegRenameMap(const std::vector<NamedVReg> &VRegs) {
 
 std::string VRegRenamer::getInstructionOpcodeHash(MachineInstr &MI) {
   std::string S;
-  raw_string_ostream OS(S);
+  raw_string_ostream const OS(S);
 
   if (UseStableNamerHash) {
     auto Hash = stableHashValue(MI, /* HashVRegs */ true,
@@ -138,13 +138,13 @@ std::string VRegRenamer::getInstructionOpcodeHash(MachineInstr &MI) {
 
 unsigned VRegRenamer::createVirtualRegister(unsigned VReg) {
   assert(Register::isVirtualRegister(VReg) && "Expected Virtual Registers");
-  std::string Name = getInstructionOpcodeHash(*MRI.getVRegDef(VReg));
+  std::string const Name = getInstructionOpcodeHash(*MRI.getVRegDef(VReg));
   return createVirtualRegisterWithLowerName(VReg, Name);
 }
 
 bool VRegRenamer::renameInstsInMBB(MachineBasicBlock *MBB) {
   std::vector<NamedVReg> VRegs;
-  std::string Prefix = "bb" + std::to_string(CurrentBBNumber) + "_";
+  std::string const Prefix = "bb" + std::to_string(CurrentBBNumber) + "_";
   for (MachineInstr &Candidate : *MBB) {
     // Don't rename stores/branches.
     if (Candidate.mayStore() || Candidate.isBranch())
@@ -152,7 +152,7 @@ bool VRegRenamer::renameInstsInMBB(MachineBasicBlock *MBB) {
     if (!Candidate.getNumOperands())
       continue;
     // Look for instructions that define VRegs in operand 0.
-    MachineOperand &MO = Candidate.getOperand(0);
+    MachineOperand  const&MO = Candidate.getOperand(0);
     // Avoid non regs, instructions defining physical regs.
     if (!MO.isReg() || !Register::isVirtualRegister(MO.getReg()))
       continue;
@@ -165,7 +165,7 @@ bool VRegRenamer::renameInstsInMBB(MachineBasicBlock *MBB) {
 
 unsigned VRegRenamer::createVirtualRegisterWithLowerName(unsigned VReg,
                                                          StringRef Name) {
-  std::string LowerName = Name.lower();
+  std::string const LowerName = Name.lower();
   const TargetRegisterClass *RC = MRI.getRegClassOrNull(VReg);
   return RC ? MRI.createVirtualRegister(RC, LowerName)
             : MRI.createGenericVirtualRegister(MRI.getType(VReg), LowerName);

@@ -41,8 +41,8 @@ HWStallEvent::GenericEventType toHWStallEventType(Scheduler::Status Status) {
 }
 
 bool ExecuteStage::isAvailable(const InstRef &IR) const {
-  if (Scheduler::Status S = HWS.isAvailable(IR)) {
-    HWStallEvent::GenericEventType ET = toHWStallEventType(S);
+  if (Scheduler::Status const S = HWS.isAvailable(IR)) {
+    HWStallEvent::GenericEventType const ET = toHWStallEventType(S);
     notifyEvent<HWStallEvent>(HWStallEvent(ET, IR));
     return false;
   }
@@ -56,7 +56,7 @@ Error ExecuteStage::issueInstruction(InstRef &IR) {
   SmallVector<InstRef, 4> Ready;
 
   HWS.issueInstruction(IR, Used, Pending, Ready);
-  Instruction &IS = *IR.getInstruction();
+  Instruction  const&IS = *IR.getInstruction();
   NumIssuedOpcodes += IS.getNumMicroOps();
 
   notifyReservedOrReleasedBuffers(IR, /* Reserved */ false);
@@ -129,12 +129,12 @@ Error ExecuteStage::cycleEnd() {
     return ErrorSuccess();
 
   SmallVector<InstRef, 8> Insts;
-  uint64_t Mask = HWS.analyzeResourcePressure(Insts);
+  uint64_t const Mask = HWS.analyzeResourcePressure(Insts);
   if (Mask) {
     LLVM_DEBUG(dbgs() << "[E] Backpressure increased because of unavailable "
                          "pipeline resources: "
                       << format_hex(Mask, 16) << '\n');
-    HWPressureEvent Ev(HWPressureEvent::RESOURCES, Insts, Mask);
+    HWPressureEvent const Ev(HWPressureEvent::RESOURCES, Insts, Mask);
     notifyEvent(Ev);
   }
 
@@ -144,13 +144,13 @@ Error ExecuteStage::cycleEnd() {
   if (RegDeps.size()) {
     LLVM_DEBUG(
         dbgs() << "[E] Backpressure increased by register dependencies\n");
-    HWPressureEvent Ev(HWPressureEvent::REGISTER_DEPS, RegDeps);
+    HWPressureEvent const Ev(HWPressureEvent::REGISTER_DEPS, RegDeps);
     notifyEvent(Ev);
   }
 
   if (MemDeps.size()) {
     LLVM_DEBUG(dbgs() << "[E] Backpressure increased by memory dependencies\n");
-    HWPressureEvent Ev(HWPressureEvent::MEMORY_DEPS, MemDeps);
+    HWPressureEvent const Ev(HWPressureEvent::MEMORY_DEPS, MemDeps);
     notifyEvent(Ev);
   }
 
@@ -198,9 +198,9 @@ Error ExecuteStage::execute(InstRef &IR) {
   // BufferSize=0 as reserved. Resources with a buffer size of zero will only
   // be released after MCIS is issued, and all the ResourceCycles for those
   // units have been consumed.
-  bool IsReadyInstruction = HWS.dispatch(IR);
+  bool const IsReadyInstruction = HWS.dispatch(IR);
   const Instruction &Inst = *IR.getInstruction();
-  unsigned NumMicroOps = Inst.getNumMicroOps();
+  unsigned const NumMicroOps = Inst.getNumMicroOps();
   NumDispatchedOpcodes += NumMicroOps;
   notifyReservedOrReleasedBuffers(IR, /* Reserved */ true);
 
@@ -276,7 +276,7 @@ void ExecuteStage::notifyReservedOrReleasedBuffers(const InstRef &IR,
 
   SmallVector<unsigned, 4> BufferIDs(countPopulation(UsedBuffers), 0);
   for (unsigned I = 0, E = BufferIDs.size(); I < E; ++I) {
-    uint64_t CurrentBufferMask = UsedBuffers & (-UsedBuffers);
+    uint64_t const CurrentBufferMask = UsedBuffers & (-UsedBuffers);
     BufferIDs[I] = HWS.getResourceID(CurrentBufferMask);
     UsedBuffers ^= CurrentBufferMask;
   }

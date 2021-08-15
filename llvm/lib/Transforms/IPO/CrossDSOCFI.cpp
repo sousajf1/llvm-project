@@ -82,7 +82,7 @@ void CrossDSOCFI::buildCFICheck(Module &M) {
   // but before the jump slots created in LowerTypeTests.
   SetVector<uint64_t> TypeIds;
   SmallVector<MDNode *, 2> Types;
-  for (GlobalObject &GO : M.global_objects()) {
+  for (GlobalObject  const&GO : M.global_objects()) {
     Types.clear();
     GO.getMetadata(LLVMContext::MD_type, Types);
     for (MDNode *Type : Types)
@@ -111,7 +111,7 @@ void CrossDSOCFI::buildCFICheck(Module &M) {
   F->deleteBody();
   F->setAlignment(Align(4096));
 
-  Triple T(M.getTargetTriple());
+  Triple const T(M.getTargetTriple());
   if (T.isARM() || T.isThumb())
     F->addFnAttr("target-features", "+thumb-mode");
 
@@ -129,7 +129,7 @@ void CrossDSOCFI::buildCFICheck(Module &M) {
 
   BasicBlock *TrapBB = BasicBlock::Create(Ctx, "fail", F);
   IRBuilder<> IRBFail(TrapBB);
-  FunctionCallee CFICheckFailFn =
+  FunctionCallee const CFICheckFailFn =
       M.getOrInsertFunction("__cfi_check_fail", Type::getVoidTy(Ctx),
                             Type::getInt8PtrTy(Ctx), Type::getInt8PtrTy(Ctx));
   IRBFail.CreateCall(CFICheckFailFn, {&CFICheckFailData, &Addr});
@@ -140,7 +140,7 @@ void CrossDSOCFI::buildCFICheck(Module &M) {
 
   IRBuilder<> IRB(BB);
   SwitchInst *SI = IRB.CreateSwitch(&CallSiteTypeId, TrapBB, TypeIds.size());
-  for (uint64_t TypeId : TypeIds) {
+  for (uint64_t const TypeId : TypeIds) {
     ConstantInt *CaseTypeId = ConstantInt::get(Type::getInt64Ty(Ctx), TypeId);
     BasicBlock *TestBB = BasicBlock::Create(Ctx, "test", F);
     IRBuilder<> IRBTest(TestBB);
@@ -168,7 +168,7 @@ bool CrossDSOCFI::runOnModule(Module &M) {
 
 PreservedAnalyses CrossDSOCFIPass::run(Module &M, ModuleAnalysisManager &AM) {
   CrossDSOCFI Impl;
-  bool Changed = Impl.runOnModule(M);
+  bool const Changed = Impl.runOnModule(M);
   if (!Changed)
     return PreservedAnalyses::all();
   return PreservedAnalyses::none();

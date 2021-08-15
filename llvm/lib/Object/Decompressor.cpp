@@ -51,11 +51,11 @@ Error Decompressor::consumeCompressedGnuHeader() {
 Error Decompressor::consumeCompressedZLibHeader(bool Is64Bit,
                                                 bool IsLittleEndian) {
   using namespace ELF;
-  uint64_t HdrSize = Is64Bit ? sizeof(Elf64_Chdr) : sizeof(Elf32_Chdr);
+  uint64_t const HdrSize = Is64Bit ? sizeof(Elf64_Chdr) : sizeof(Elf32_Chdr);
   if (SectionData.size() < HdrSize)
     return createError("corrupted compressed section header");
 
-  DataExtractor Extractor(SectionData, IsLittleEndian, 0);
+  DataExtractor const Extractor(SectionData, IsLittleEndian, 0);
   uint64_t Offset = 0;
   if (Extractor.getUnsigned(&Offset, Is64Bit ? sizeof(Elf64_Word)
                                              : sizeof(Elf32_Word)) !=

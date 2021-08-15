@@ -155,7 +155,7 @@ static bool isTraversalComponent(StringRef Component) {
 static bool pathHasTraversal(StringRef Path) {
   using namespace llvm::sys;
 
-  for (StringRef Comp : llvm::make_range(path::begin(Path), path::end(Path)))
+  for (StringRef const Comp : llvm::make_range(path::begin(Path), path::end(Path)))
     if (isTraversalComponent(Comp))
       return true;
   return false;
@@ -344,7 +344,7 @@ RealFileSystem::getRealPath(const Twine &Path,
 }
 
 IntrusiveRefCntPtr<FileSystem> vfs::getRealFileSystem() {
-  static IntrusiveRefCntPtr<FileSystem> FS(new RealFileSystem(true));
+  static IntrusiveRefCntPtr<FileSystem> const FS(new RealFileSystem(true));
   return FS;
 }
 
@@ -500,7 +500,7 @@ class CombiningDirIterImpl : public llvm::vfs::detail::DirIterImpl {
         return EC;
       }
       CurrentEntry = *CurrentDirIter;
-      StringRef Name = llvm::sys::path::filename(CurrentEntry.path());
+      StringRef const Name = llvm::sys::path::filename(CurrentEntry.path());
       if (SeenNames.insert(Name).second)
         return EC; // name not seen before
     }
@@ -722,7 +722,7 @@ bool InMemoryFileSystem::addFile(const Twine &P, time_t ModificationTime,
   P.toVector(Path);
 
   // Fix up relative paths. This just prepends the current working directory.
-  std::error_code EC = makeAbsolute(Path);
+  std::error_code const EC = makeAbsolute(Path);
   assert(!EC);
   (void)EC;
 
@@ -743,7 +743,7 @@ bool InMemoryFileSystem::addFile(const Twine &P, time_t ModificationTime,
   // the owner, even if Perms says otherwise for the final path.
   const auto NewDirectoryPerms = ResolvedPerms | sys::fs::owner_all;
   while (true) {
-    StringRef Name = *I;
+    StringRef const Name = *I;
     detail::InMemoryNode *Node = Dir->getChild(Name);
     ++I;
     if (!Node) {
@@ -830,7 +830,7 @@ lookupInMemoryNode(const InMemoryFileSystem &FS, detail::InMemoryDirectory *Dir,
   P.toVector(Path);
 
   // Fix up relative paths. This just prepends the current working directory.
-  std::error_code EC = FS.makeAbsolute(Path);
+  std::error_code const EC = FS.makeAbsolute(Path);
   assert(!EC);
   (void)EC;
 
@@ -972,7 +972,7 @@ std::error_code InMemoryFileSystem::setCurrentWorkingDirectory(const Twine &P) {
   P.toVector(Path);
 
   // Fix up relative paths. This just prepends the current working directory.
-  std::error_code EC = makeAbsolute(Path);
+  std::error_code const EC = makeAbsolute(Path);
   assert(!EC);
   (void)EC;
 
@@ -1024,7 +1024,7 @@ static llvm::sys::path::Style getExistingStyle(llvm::StringRef Path) {
 /// Removes leading "./" as well as path components like ".." and ".".
 static llvm::SmallString<256> canonicalize(llvm::StringRef Path) {
   // First detect the path style in use by checking the first separator.
-  llvm::sys::path::Style style = getExistingStyle(Path);
+  llvm::sys::path::Style const style = getExistingStyle(Path);
 
   // Now remove the dots.  Explicitly specifying the path style prevents the
   // direction of the slashes from changing.
@@ -1109,9 +1109,9 @@ public:
   }
 
   void setCurrentEntry() {
-    StringRef ExternalPath = ExternalIter->path();
-    llvm::sys::path::Style ExternalStyle = getExistingStyle(ExternalPath);
-    StringRef File = llvm::sys::path::filename(ExternalPath, ExternalStyle);
+    StringRef const ExternalPath = ExternalIter->path();
+    llvm::sys::path::Style const ExternalStyle = getExistingStyle(ExternalPath);
+    StringRef const File = llvm::sys::path::filename(ExternalPath, ExternalStyle);
 
     SmallString<128> NewPath(Dir);
     llvm::sys::path::append(NewPath, DirStyle, File);
@@ -1154,7 +1154,7 @@ std::error_code RedirectingFileSystem::isLocal(const Twine &Path_,
   SmallString<256> Path;
   Path_.toVector(Path);
 
-  if (std::error_code EC = makeCanonical(Path))
+  if (std::error_code const EC = makeCanonical(Path))
     return {};
 
   return ExternalFS->isLocal(Path, Result);
@@ -1179,7 +1179,7 @@ std::error_code RedirectingFileSystem::makeAbsolute(SmallVectorImpl<char> &Path)
   }
 
   std::string Result = WorkingDir.get();
-  StringRef Dir(Result);
+  StringRef const Dir(Result);
   if (!Dir.endswith(sys::path::get_separator(style))) {
     Result += sys::path::get_separator(style);
   }
@@ -1272,7 +1272,7 @@ void RedirectingFileSystem::dump(raw_ostream &OS) const {
 void RedirectingFileSystem::dumpEntry(raw_ostream &OS,
                                       RedirectingFileSystem::Entry *E,
                                       int NumSpaces) const {
-  StringRef Name = E->getName();
+  StringRef const Name = E->getName();
   for (int i = 0, e = NumSpaces; i < e; ++i)
     OS << " ";
   OS << "'" << Name.str().c_str() << "'"
@@ -1282,7 +1282,7 @@ void RedirectingFileSystem::dumpEntry(raw_ostream &OS,
     auto *DE = dyn_cast<RedirectingFileSystem::DirectoryEntry>(E);
     assert(DE && "Should be a directory");
 
-    for (std::unique_ptr<Entry> &SubEntry :
+    for (std::unique_ptr<Entry>  const&SubEntry :
          llvm::make_range(DE->contents_begin(), DE->contents_end()))
       dumpEntry(OS, SubEntry.get(), NumSpaces + 2);
   }
@@ -1413,7 +1413,7 @@ private:
   void uniqueOverlayTree(RedirectingFileSystem *FS,
                          RedirectingFileSystem::Entry *SrcE,
                          RedirectingFileSystem::Entry *NewParentE = nullptr) {
-    StringRef Name = SrcE->getName();
+    StringRef const Name = SrcE->getName();
     switch (SrcE->getKind()) {
     case RedirectingFileSystem::EK_Directory: {
       auto *DE = cast<RedirectingFileSystem::DirectoryEntry>(SrcE);
@@ -1422,7 +1422,7 @@ private:
       // is parsed. This only leads to redundant walks, ignore it.
       if (!Name.empty())
         NewParentE = lookupOrCreateEntry(FS, Name, NewParentE);
-      for (std::unique_ptr<RedirectingFileSystem::Entry> &SubEntry :
+      for (std::unique_ptr<RedirectingFileSystem::Entry>  const&SubEntry :
            llvm::make_range(DE->contents_begin(), DE->contents_end()))
         uniqueOverlayTree(FS, SubEntry.get(), NewParentE);
       break;
@@ -1605,13 +1605,13 @@ private:
 
     // Remove trailing slash(es), being careful not to remove the root path
     StringRef Trimmed = Name;
-    size_t RootPathLen = sys::path::root_path(Trimmed, path_style).size();
+    size_t const RootPathLen = sys::path::root_path(Trimmed, path_style).size();
     while (Trimmed.size() > RootPathLen &&
            sys::path::is_separator(Trimmed.back(), path_style))
       Trimmed = Trimmed.slice(0, Trimmed.size() - 1);
 
     // Get the last component
-    StringRef LastComponent = sys::path::filename(Trimmed, path_style);
+    StringRef const LastComponent = sys::path::filename(Trimmed, path_style);
 
     std::unique_ptr<RedirectingFileSystem::Entry> Result;
     switch (Kind) {
@@ -1631,7 +1631,7 @@ private:
       break;
     }
 
-    StringRef Parent = sys::path::parent_path(Trimmed, path_style);
+    StringRef const Parent = sys::path::parent_path(Trimmed, path_style);
     if (Parent.empty())
       return Result;
 
@@ -1778,7 +1778,7 @@ RedirectingFileSystem::create(std::unique_ptr<MemoryBuffer> Buffer,
     //  FS->ExternalContentsPrefixDir => /<absolute_path_to>/dummy.cache/vfs
     //
     SmallString<256> OverlayAbsDir = sys::path::parent_path(YAMLFilePath);
-    std::error_code EC = llvm::sys::fs::make_absolute(OverlayAbsDir);
+    std::error_code const EC = llvm::sys::fs::make_absolute(OverlayAbsDir);
     assert(!EC && "Overlay dir final path must be absolute");
     (void)EC;
     FS->setExternalContentsPrefixDir(OverlayAbsDir);
@@ -1816,7 +1816,7 @@ std::unique_ptr<RedirectingFileSystem> RedirectingFileSystem::create(
 
     // Add parent directories.
     RedirectingFileSystem::Entry *Parent = nullptr;
-    StringRef FromDirectory = llvm::sys::path::parent_path(From);
+    StringRef const FromDirectory = llvm::sys::path::parent_path(From);
     for (auto I = llvm::sys::path::begin(FromDirectory),
               E = llvm::sys::path::end(FromDirectory);
          I != E; ++I) {
@@ -1881,8 +1881,8 @@ RedirectingFileSystem::makeCanonical(SmallVectorImpl<char> &Path) const {
 
 ErrorOr<RedirectingFileSystem::LookupResult>
 RedirectingFileSystem::lookupPath(StringRef Path) const {
-  sys::path::const_iterator Start = sys::path::begin(Path);
-  sys::path::const_iterator End = sys::path::end(Path);
+  sys::path::const_iterator const Start = sys::path::begin(Path);
+  sys::path::const_iterator const End = sys::path::end(Path);
   for (const auto &Root : Roots) {
     ErrorOr<RedirectingFileSystem::LookupResult> Result =
         lookupPathImpl(Start, End, Root.get());
@@ -1900,7 +1900,7 @@ RedirectingFileSystem::lookupPathImpl(
          !isTraversalComponent(From->getName()) &&
          "Paths should not contain traversal components");
 
-  StringRef FromName = From->getName();
+  StringRef const FromName = From->getName();
 
   // Forward the search to the next component in case this is an empty one.
   if (!FromName.empty()) {
@@ -2020,7 +2020,7 @@ RedirectingFileSystem::openFileForRead(const Twine &Path_) {
   if (!Result->getExternalRedirect()) // FIXME: errc::not_a_file?
     return make_error_code(llvm::errc::invalid_argument);
 
-  StringRef ExtRedirect = *Result->getExternalRedirect();
+  StringRef const ExtRedirect = *Result->getExternalRedirect();
   auto *RE = cast<RedirectingFileSystem::RemapEntry>(Result->E);
 
   auto ExternalFile = ExternalFS->openFileForRead(ExtRedirect);
@@ -2035,7 +2035,7 @@ RedirectingFileSystem::openFileForRead(const Twine &Path_) {
     return ExternalStatus.getError();
 
   // FIXME: Update the status with the name and VFSMapped.
-  Status S = getRedirectedFileStatus(
+  Status const S = getRedirectedFileStatus(
       Path, RE->useExternalName(UseExternalNames), *ExternalStatus);
   return std::unique_ptr<File>(
       std::make_unique<FileWithFixedStatus>(std::move(*ExternalFile), S));
@@ -2141,7 +2141,7 @@ void vfs::collectVFSFromYAML(std::unique_ptr<MemoryBuffer> Buffer,
 
 UniqueID vfs::getNextVirtualUniqueID() {
   static std::atomic<unsigned> UID;
-  unsigned ID = ++UID;
+  unsigned const ID = ++UID;
   // The following assumes that uint64_t max will never collide with a real
   // dev_t value from the OS.
   return UniqueID(std::numeric_limits<uint64_t>::max(), ID);
@@ -2209,10 +2209,10 @@ StringRef JSONWriter::containedPart(StringRef Parent, StringRef Path) {
 }
 
 void JSONWriter::startDirectory(StringRef Path) {
-  StringRef Name =
+  StringRef const Name =
       DirStack.empty() ? Path : containedPart(DirStack.back(), Path);
   DirStack.push_back(Path);
-  unsigned Indent = getDirIndent();
+  unsigned const Indent = getDirIndent();
   OS.indent(Indent) << "{\n";
   OS.indent(Indent + 2) << "'type': 'directory',\n";
   OS.indent(Indent + 2) << "'name': \"" << llvm::yaml::escape(Name) << "\",\n";
@@ -2220,7 +2220,7 @@ void JSONWriter::startDirectory(StringRef Path) {
 }
 
 void JSONWriter::endDirectory() {
-  unsigned Indent = getDirIndent();
+  unsigned const Indent = getDirIndent();
   OS.indent(Indent + 2) << "]\n";
   OS.indent(Indent) << "}";
 
@@ -2228,7 +2228,7 @@ void JSONWriter::endDirectory() {
 }
 
 void JSONWriter::writeEntry(StringRef VPath, StringRef RPath) {
-  unsigned Indent = getFileIndent();
+  unsigned const Indent = getFileIndent();
   OS.indent(Indent) << "{\n";
   OS.indent(Indent + 2) << "'type': 'file',\n";
   OS.indent(Indent + 2) << "'name': \"" << llvm::yaml::escape(VPath) << "\",\n";
@@ -2269,7 +2269,7 @@ void JSONWriter::write(ArrayRef<YAMLVFSEntry> Entries,
 
     StringRef RPath = Entry.RPath;
     if (UseOverlayRelative) {
-      unsigned OverlayDirLen = OverlayDir.size();
+      unsigned const OverlayDirLen = OverlayDir.size();
       assert(RPath.substr(0, OverlayDirLen) == OverlayDir &&
              "Overlay dir must be contained in RPath");
       RPath = RPath.slice(OverlayDirLen, RPath.size());
@@ -2282,7 +2282,7 @@ void JSONWriter::write(ArrayRef<YAMLVFSEntry> Entries,
     }
 
     for (const auto &Entry : Entries.slice(1)) {
-      StringRef Dir =
+      StringRef const Dir =
           Entry.IsDirectory ? Entry.VPath : path::parent_path(Entry.VPath);
       if (Dir == DirStack.back()) {
         if (!IsCurrentDirEmpty) {
@@ -2303,7 +2303,7 @@ void JSONWriter::write(ArrayRef<YAMLVFSEntry> Entries,
       }
       StringRef RPath = Entry.RPath;
       if (UseOverlayRelative) {
-        unsigned OverlayDirLen = OverlayDir.size();
+        unsigned const OverlayDirLen = OverlayDir.size();
         assert(RPath.substr(0, OverlayDirLen) == OverlayDir &&
                "Overlay dir must be contained in RPath");
         RPath = RPath.slice(OverlayDirLen, RPath.size());
@@ -2337,7 +2337,7 @@ void YAMLVFSWriter::write(llvm::raw_ostream &OS) {
 vfs::recursive_directory_iterator::recursive_directory_iterator(
     FileSystem &FS_, const Twine &Path, std::error_code &EC)
     : FS(&FS_) {
-  directory_iterator I = FS->dir_begin(Path, EC);
+  directory_iterator const I = FS->dir_begin(Path, EC);
   if (I != directory_iterator()) {
     State = std::make_shared<detail::RecDirIterState>();
     State->Stack.push(I);
@@ -2348,13 +2348,13 @@ vfs::recursive_directory_iterator &
 recursive_directory_iterator::increment(std::error_code &EC) {
   assert(FS && State && !State->Stack.empty() && "incrementing past end");
   assert(!State->Stack.top()->path().empty() && "non-canonical end iterator");
-  vfs::directory_iterator End;
+  vfs::directory_iterator const End;
 
   if (State->HasNoPushRequest)
     State->HasNoPushRequest = false;
   else {
     if (State->Stack.top()->type() == sys::fs::file_type::directory_file) {
-      vfs::directory_iterator I = FS->dir_begin(State->Stack.top()->path(), EC);
+      vfs::directory_iterator const I = FS->dir_begin(State->Stack.top()->path(), EC);
       if (I != End) {
         State->Stack.push(I);
         return *this;

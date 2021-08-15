@@ -82,7 +82,7 @@ void LivePhysRegs::stepForward(const MachineInstr &MI,
   // Remove killed registers from the set.
   for (ConstMIBundleOperands O(MI); O.isValid(); ++O) {
     if (O->isReg() && !O->isDebug()) {
-      Register Reg = O->getReg();
+      Register const Reg = O->getReg();
       if (!Register::isPhysicalRegister(Reg))
         continue;
       if (O->isDef()) {
@@ -125,7 +125,7 @@ void LivePhysRegs::print(raw_ostream &OS) const {
     return;
   }
 
-  for (MCPhysReg R : *this)
+  for (MCPhysReg const R : *this)
     OS << " " << printReg(R, TRI);
   OS << "\n";
 }
@@ -152,8 +152,8 @@ bool LivePhysRegs::available(const MachineRegisterInfo &MRI,
 /// Add live-in registers of basic block \p MBB to \p LiveRegs.
 void LivePhysRegs::addBlockLiveIns(const MachineBasicBlock &MBB) {
   for (const auto &LI : MBB.liveins()) {
-    MCPhysReg Reg = LI.PhysReg;
-    LaneBitmask Mask = LI.LaneMask;
+    MCPhysReg const Reg = LI.PhysReg;
+    LaneBitmask const Mask = LI.LaneMask;
     MCSubRegIndexIterator S(Reg, TRI);
     assert(Mask.any() && "Invalid livein mask");
     if (Mask.all() || !S.isValid()) {
@@ -161,7 +161,7 @@ void LivePhysRegs::addBlockLiveIns(const MachineBasicBlock &MBB) {
       continue;
     }
     for (; S.isValid(); ++S) {
-      unsigned SI = S.getSubRegIndex();
+      unsigned const SI = S.getSubRegIndex();
       if ((Mask & TRI->getSubRegIndexLaneMask(SI)).any())
         addReg(S.getSubReg());
     }
@@ -200,7 +200,7 @@ void LivePhysRegs::addPristines(const MachineFunction &MF) {
   /// Remove the ones that are not saved/restored; they are pristine.
   for (const CalleeSavedInfo &Info : MFI.getCalleeSavedInfo())
     Pristine.removeReg(Info.getReg());
-  for (MCPhysReg R : Pristine)
+  for (MCPhysReg const R : Pristine)
     addReg(R);
 }
 
@@ -259,7 +259,7 @@ void llvm::addLiveIns(MachineBasicBlock &MBB, const LivePhysRegs &LiveRegs) {
   const MachineFunction &MF = *MBB.getParent();
   const MachineRegisterInfo &MRI = MF.getRegInfo();
   const TargetRegisterInfo &TRI = *MRI.getTargetRegisterInfo();
-  for (MCPhysReg Reg : LiveRegs) {
+  for (MCPhysReg const Reg : LiveRegs) {
     if (MRI.isReserved(Reg))
       continue;
     // Skip the register if we are about to add one of its super registers.
@@ -293,7 +293,7 @@ void llvm::recomputeLivenessFlags(MachineBasicBlock &MBB) {
       if (!MO->isReg() || !MO->isDef() || MO->isDebug())
         continue;
 
-      Register Reg = MO->getReg();
+      Register const Reg = MO->getReg();
       if (Reg == 0)
         continue;
       assert(Register::isPhysicalRegister(Reg));
@@ -322,12 +322,12 @@ void llvm::recomputeLivenessFlags(MachineBasicBlock &MBB) {
       if (!MO->isReg() || !MO->readsReg() || MO->isDebug())
         continue;
 
-      Register Reg = MO->getReg();
+      Register const Reg = MO->getReg();
       if (Reg == 0)
         continue;
       assert(Register::isPhysicalRegister(Reg));
 
-      bool IsNotLive = LiveRegs.available(MRI, Reg);
+      bool const IsNotLive = LiveRegs.available(MRI, Reg);
       MO->setIsKill(IsNotLive);
     }
 

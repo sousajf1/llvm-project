@@ -35,7 +35,7 @@ bool X86SelectionDAGInfo::isBaseRegConflictPossible(
   // alignment requirements.  Fall back to generic code if there are any
   // dynamic stack adjustments (hopefully rare) and the base pointer would
   // conflict if we had to use it.
-  MachineFrameInfo &MFI = DAG.getMachineFunction().getFrameInfo();
+  MachineFrameInfo  const&MFI = DAG.getMachineFunction().getFrameInfo();
   if (!MFI.hasVarSizedObjects() && !MFI.hasOpaqueSPAdjustment())
     return false;
 
@@ -75,7 +75,7 @@ SDValue X86SelectionDAGInfo::EmitTargetCodeForMemset(
         ? DAG.getTargetLoweringInfo().getLibcallName(RTLIB::BZERO)
         : nullptr) {
       const TargetLowering &TLI = DAG.getTargetLoweringInfo();
-      EVT IntPtr = TLI.getPointerTy(DAG.getDataLayout());
+      EVT const IntPtr = TLI.getPointerTy(DAG.getDataLayout());
       Type *IntPtrTy = DAG.getDataLayout().getIntPtrType(*DAG.getContext());
       TargetLowering::ArgListTy Args;
       TargetLowering::ArgListEntry Entry;
@@ -93,7 +93,7 @@ SDValue X86SelectionDAGInfo::EmitTargetCodeForMemset(
                         std::move(Args))
           .setDiscardResult();
 
-      std::pair<SDValue,SDValue> CallResult = TLI.LowerCallTo(CLI);
+      std::pair<SDValue,SDValue> const CallResult = TLI.LowerCallTo(CLI);
       return CallResult.second;
     }
 
@@ -101,7 +101,7 @@ SDValue X86SelectionDAGInfo::EmitTargetCodeForMemset(
     return SDValue();
   }
 
-  uint64_t SizeVal = ConstantSize->getZExtValue();
+  uint64_t const SizeVal = ConstantSize->getZExtValue();
   SDValue InFlag;
   EVT AVT;
   SDValue Count;
@@ -136,7 +136,7 @@ SDValue X86SelectionDAGInfo::EmitTargetCodeForMemset(
     }
 
     if (AVT.bitsGT(MVT::i8)) {
-      unsigned UBytes = AVT.getSizeInBits() / 8;
+      unsigned const UBytes = AVT.getSizeInBits() / 8;
       Count = DAG.getIntPtrConstant(SizeVal / UBytes, dl);
       BytesLeft = SizeVal % UBytes;
     }
@@ -151,7 +151,7 @@ SDValue X86SelectionDAGInfo::EmitTargetCodeForMemset(
     InFlag = Chain.getValue(1);
   }
 
-  bool Use64BitRegs = Subtarget.isTarget64BitLP64();
+  bool const Use64BitRegs = Subtarget.isTarget64BitLP64();
   Chain = DAG.getCopyToReg(Chain, dl, Use64BitRegs ? X86::RCX : X86::ECX,
                            Count, InFlag);
   InFlag = Chain.getValue(1);
@@ -159,15 +159,15 @@ SDValue X86SelectionDAGInfo::EmitTargetCodeForMemset(
                            Dst, InFlag);
   InFlag = Chain.getValue(1);
 
-  SDVTList Tys = DAG.getVTList(MVT::Other, MVT::Glue);
-  SDValue Ops[] = { Chain, DAG.getValueType(AVT), InFlag };
+  SDVTList const Tys = DAG.getVTList(MVT::Other, MVT::Glue);
+  SDValue const Ops[] = { Chain, DAG.getValueType(AVT), InFlag };
   Chain = DAG.getNode(X86ISD::REP_STOS, dl, Tys, Ops);
 
   if (BytesLeft) {
     // Handle the last 1 - 7 bytes.
-    unsigned Offset = SizeVal - BytesLeft;
-    EVT AddrVT = Dst.getValueType();
-    EVT SizeVT = Size.getValueType();
+    unsigned const Offset = SizeVal - BytesLeft;
+    EVT const AddrVT = Dst.getValueType();
+    EVT const SizeVT = Size.getValueType();
 
     Chain =
         DAG.getMemset(Chain, dl,
@@ -198,8 +198,8 @@ static SDValue emitRepmovs(const X86Subtarget &Subtarget, SelectionDAG &DAG,
   Chain = DAG.getCopyToReg(Chain, dl, SI, Src, InFlag);
   InFlag = Chain.getValue(1);
 
-  SDVTList Tys = DAG.getVTList(MVT::Other, MVT::Glue);
-  SDValue Ops[] = {Chain, DAG.getValueType(AVT), InFlag};
+  SDVTList const Tys = DAG.getVTList(MVT::Other, MVT::Glue);
+  SDValue const Ops[] = {Chain, DAG.getValueType(AVT), InFlag};
   return DAG.getNode(X86ISD::REP_MOVS, dl, Tys, Ops);
 }
 
@@ -275,9 +275,9 @@ static SDValue emitConstantSizeRepmov(
   // Handle the last 1 - 7 bytes.
   SmallVector<SDValue, 4> Results;
   Results.push_back(RepMovs);
-  unsigned Offset = Size - BytesLeft;
-  EVT DstVT = Dst.getValueType();
-  EVT SrcVT = Src.getValueType();
+  unsigned const Offset = Size - BytesLeft;
+  EVT const DstVT = Dst.getValueType();
+  EVT const SrcVT = Src.getValueType();
   Results.push_back(DAG.getMemcpy(
       Chain, dl,
       DAG.getNode(ISD::ADD, dl, DstVT, Dst, DAG.getConstant(Offset, dl, DstVT)),

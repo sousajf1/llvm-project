@@ -219,13 +219,13 @@ shouldReplaceInst(MachineFunction *MF, const MCInstrDesc *InstDesc,
                   SmallVectorImpl<const MCInstrDesc*> &InstDescRepl) {
   // Check if replacement decision is already available in the cached table.
   // if so, return it.
-  std::string Subtarget = std::string(SchedModel.getSubtargetInfo()->getCPU());
+  std::string const Subtarget = std::string(SchedModel.getSubtargetInfo()->getCPU());
   auto InstID = std::make_pair(InstDesc->getOpcode(), Subtarget);
   auto It = SIMDInstrTable.find(InstID);
   if (It != SIMDInstrTable.end())
     return It->second;
 
-  unsigned SCIdx = InstDesc->getSchedClass();
+  unsigned const SCIdx = InstDesc->getSchedClass();
   const MCSchedClassDesc *SCDesc =
     SchedModel.getMCSchedModel()->getSchedClassDesc(SCIdx);
 
@@ -289,7 +289,7 @@ bool AArch64SIMDInstrOpt::shouldExitEarly(MachineFunction *MF, Subpass SP) {
 
   // For this optimization, check for all concerned instructions.
   case Interleave:
-    std::string Subtarget =
+    std::string const Subtarget =
         std::string(SchedModel.getSubtargetInfo()->getCPU());
     auto It = InterlEarlyExit.find(Subtarget);
     if (It != InterlEarlyExit.end())
@@ -429,18 +429,18 @@ bool AArch64SIMDInstrOpt::optimizeVectElement(MachineInstr &MI) {
   MachineRegisterInfo &MRI = MBB.getParent()->getRegInfo();
 
   // Get the operands of the current SIMD arithmetic instruction.
-  Register MulDest = MI.getOperand(0).getReg();
-  Register SrcReg0 = MI.getOperand(1).getReg();
-  unsigned Src0IsKill = getKillRegState(MI.getOperand(1).isKill());
-  Register SrcReg1 = MI.getOperand(2).getReg();
-  unsigned Src1IsKill = getKillRegState(MI.getOperand(2).isKill());
+  Register const MulDest = MI.getOperand(0).getReg();
+  Register const SrcReg0 = MI.getOperand(1).getReg();
+  unsigned const Src0IsKill = getKillRegState(MI.getOperand(1).isKill());
+  Register const SrcReg1 = MI.getOperand(2).getReg();
+  unsigned const Src1IsKill = getKillRegState(MI.getOperand(2).isKill());
   unsigned DupDest;
 
   // Instructions of interest have either 4 or 5 operands.
   if (MI.getNumOperands() == 5) {
-    Register SrcReg2 = MI.getOperand(3).getReg();
-    unsigned Src2IsKill = getKillRegState(MI.getOperand(3).isKill());
-    unsigned LaneNumber = MI.getOperand(4).getImm();
+    Register const SrcReg2 = MI.getOperand(3).getReg();
+    unsigned const Src2IsKill = getKillRegState(MI.getOperand(3).isKill());
+    unsigned const LaneNumber = MI.getOperand(4).getImm();
     // Create a new DUP instruction. Note that if an equivalent DUP instruction
     // has already been created before, then use that one instead of creating
     // a new one.
@@ -455,7 +455,7 @@ bool AArch64SIMDInstrOpt::optimizeVectElement(MachineInstr &MI) {
         .addReg(SrcReg1, Src1IsKill)
         .addReg(DupDest, Src2IsKill);
   } else if (MI.getNumOperands() == 4) {
-    unsigned LaneNumber = MI.getOperand(3).getImm();
+    unsigned const LaneNumber = MI.getOperand(3).getImm();
     if (!reuseDUP(MI, DupMCID->getOpcode(), SrcReg1, LaneNumber, &DupDest)) {
       DupDest = MRI.createVirtualRegister(RC);
       BuildMI(MBB, MI, DL, *DupMCID, DupDest)
@@ -520,7 +520,7 @@ bool AArch64SIMDInstrOpt::optimizeLdStInterleave(MachineInstr &MI) {
       SeqReg  = MI.getOperand(0).getReg();
       AddrReg = MI.getOperand(1).getReg();
       DefiningMI = MRI->getUniqueVRegDef(SeqReg);
-      unsigned NumReg = determineSrcReg(MI);
+      unsigned const NumReg = determineSrcReg(MI);
       if (!processSeqRegInst(DefiningMI, StReg, StRegKill, NumReg))
         return false;
 

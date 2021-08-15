@@ -106,13 +106,13 @@ unsigned AArch64ELFObjectWriter::getRelocType(MCContext &Ctx,
                                               const MCValue &Target,
                                               const MCFixup &Fixup,
                                               bool IsPCRel) const {
-  unsigned Kind = Fixup.getTargetKind();
+  unsigned const Kind = Fixup.getTargetKind();
   if (Kind >= FirstLiteralRelocationKind)
     return Kind - FirstLiteralRelocationKind;
-  AArch64MCExpr::VariantKind RefKind =
+  AArch64MCExpr::VariantKind const RefKind =
       static_cast<AArch64MCExpr::VariantKind>(Target.getRefKind());
-  AArch64MCExpr::VariantKind SymLoc = AArch64MCExpr::getSymbolLoc(RefKind);
-  bool IsNC = AArch64MCExpr::isNotChecked(RefKind);
+  AArch64MCExpr::VariantKind const SymLoc = AArch64MCExpr::getSymbolLoc(RefKind);
+  bool const IsNC = AArch64MCExpr::isNotChecked(RefKind);
 
   assert((!Target.getSymA() ||
           Target.getSymA()->getKind() == MCSymbolRefExpr::VK_None ||
@@ -322,7 +322,7 @@ unsigned AArch64ELFObjectWriter::getRelocType(MCContext &Ctx,
       if (SymLoc == AArch64MCExpr::VK_ABS && IsNC)
         return R_CLS(LDST64_ABS_LO12_NC);
       if (SymLoc == AArch64MCExpr::VK_GOT && IsNC) {
-        AArch64MCExpr::VariantKind AddressLoc =
+        AArch64MCExpr::VariantKind const AddressLoc =
             AArch64MCExpr::getAddressFrag(RefKind);
         if (!IsILP32) {
           if (AddressLoc == AArch64MCExpr::VK_LO15)

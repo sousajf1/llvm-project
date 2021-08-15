@@ -39,7 +39,7 @@ SymbolizableObjectFile::create(const object::ObjectFile *Obj,
   // Find the .opd (function descriptor) section if any, for big-endian
   // PowerPC64 ELF.
   if (Obj->getArch() == Triple::ppc64) {
-    for (section_iterator Section : Obj->sections()) {
+    for (section_iterator const Section : Obj->sections()) {
       Expected<StringRef> NameOrErr = Section->getName();
       if (!NameOrErr)
         return NameOrErr.takeError();
@@ -55,7 +55,7 @@ SymbolizableObjectFile::create(const object::ObjectFile *Obj,
       }
     }
   }
-  std::vector<std::pair<SymbolRef, uint64_t>> Symbols =
+  std::vector<std::pair<SymbolRef, uint64_t>> const Symbols =
       computeSymbolSizes(*Obj);
   for (auto &P : Symbols)
     if (Error E =
@@ -127,13 +127,13 @@ Error SymbolizableObjectFile::addCoffExportSymbols(
 
   // Approximate the symbol sizes by assuming they run to the next symbol.
   // FIXME: This assumes all exports are functions.
-  uint64_t ImageBase = CoffObj->getImageBase();
+  uint64_t const ImageBase = CoffObj->getImageBase();
   for (auto I = ExportSyms.begin(), E = ExportSyms.end(); I != E; ++I) {
-    OffsetNamePair &Export = *I;
+    OffsetNamePair  const&Export = *I;
     // FIXME: The last export has a one byte size now.
-    uint32_t NextOffset = I != E ? I->Offset : Export.Offset + 1;
-    uint64_t SymbolStart = ImageBase + Export.Offset;
-    uint64_t SymbolSize = NextOffset - Export.Offset;
+    uint32_t const NextOffset = I != E ? I->Offset : Export.Offset + 1;
+    uint64_t const SymbolStart = ImageBase + Export.Offset;
+    uint64_t const SymbolSize = NextOffset - Export.Offset;
     Symbols.push_back({SymbolStart, SymbolSize, Export.Name, 0});
   }
   return Error::success();
@@ -156,7 +156,7 @@ Error SymbolizableObjectFile::addSymbol(const SymbolRef &Symbol,
   if (!Sec || Obj.section_end() == *Sec) {
     if (Obj.isELF()) {
       // Store the (index, filename) pair for a file symbol.
-      ELFSymbolRef ESym(Symbol);
+      ELFSymbolRef const ESym(Symbol);
       if (ESym.getELFType() == ELF::STT_FILE)
         FileSymbols.emplace_back(ELFSymIdx, SymbolName);
     }
@@ -166,17 +166,17 @@ Error SymbolizableObjectFile::addSymbol(const SymbolRef &Symbol,
   Expected<SymbolRef::Type> SymbolTypeOrErr = Symbol.getType();
   if (!SymbolTypeOrErr)
     return SymbolTypeOrErr.takeError();
-  SymbolRef::Type SymbolType = *SymbolTypeOrErr;
+  SymbolRef::Type const SymbolType = *SymbolTypeOrErr;
   if (Obj.isELF()) {
     // Allow function and data symbols. Additionally allow STT_NONE, which are
     // common for functions defined in assembly.
-    uint8_t Type = ELFSymbolRef(Symbol).getELFType();
+    uint8_t const Type = ELFSymbolRef(Symbol).getELFType();
     if (Type != ELF::STT_NOTYPE && Type != ELF::STT_FUNC &&
         Type != ELF::STT_OBJECT && Type != ELF::STT_GNU_IFUNC)
       return Error::success();
     // Some STT_NOTYPE symbols are not desired. This excludes STT_SECTION and
     // ARM mapping symbols.
-    uint32_t Flags = cantFail(Symbol.getFlags());
+    uint32_t const Flags = cantFail(Symbol.getFlags());
     if (Flags & SymbolRef::SF_FormatSpecific)
       return Error::success();
   } else if (SymbolType != SymbolRef::ST_Function &&
@@ -229,7 +229,7 @@ uint64_t SymbolizableObjectFile::getModulePreferredBase() const {
 bool SymbolizableObjectFile::getNameFromSymbolTable(
     uint64_t Address, std::string &Name, uint64_t &Addr, uint64_t &Size,
     std::string &FileName) const {
-  SymbolDesc SD{Address, UINT64_C(-1), StringRef(), 0};
+  SymbolDesc const SD{Address, UINT64_C(-1), StringRef(), 0};
   auto SymbolIterator = llvm::upper_bound(Symbols, SD);
   if (SymbolIterator == Symbols.begin())
     return false;
@@ -342,7 +342,7 @@ std::vector<DILocal> SymbolizableObjectFile::symbolizeFrame(
 uint64_t SymbolizableObjectFile::getModuleSectionIndexForAddress(
     uint64_t Address) const {
 
-  for (SectionRef Sec : Module->sections()) {
+  for (SectionRef const Sec : Module->sections()) {
     if (!Sec.isText() || Sec.isVirtual())
       continue;
 

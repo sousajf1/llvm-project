@@ -496,7 +496,7 @@ PreservedAnalyses LoopDeletionPass::run(Loop &L, LoopAnalysisManager &AM,
 
   LLVM_DEBUG(dbgs() << "Analyzing Loop for deletion: ");
   LLVM_DEBUG(L.dump());
-  std::string LoopName = std::string(L.getName());
+  std::string const LoopName = std::string(L.getName());
   // For the new PM, we can't use OptimizationRemarkEmitter as an analysis
   // pass. Function analyses need to be preserved across loop transformations
   // but ORE cannot be preserved (see comment before the pass definition).

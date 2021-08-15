@@ -105,8 +105,8 @@ void PDBFileBuilder::addInjectedSource(StringRef Name,
   SmallString<64> VName;
   sys::path::native(Name.lower(), VName);
 
-  uint32_t NI = getStringTableBuilder().insert(Name);
-  uint32_t VNI = getStringTableBuilder().insert(VName);
+  uint32_t const NI = getStringTableBuilder().insert(Name);
+  uint32_t const VNI = getStringTableBuilder().insert(VName);
 
   InjectedSourceDescriptor Desc;
   Desc.Content = std::move(Buffer);
@@ -130,7 +130,7 @@ Error PDBFileBuilder::finalizeMsfLayout() {
     Info.addFeature(PdbRaw_FeatureSig::VC140);
   }
 
-  uint32_t StringsLen = Strings.calculateSerializedSize();
+  uint32_t const StringsLen = Strings.calculateSerializedSize();
 
   Expected<uint32_t> SN = allocateNamedStream("/LinkInfo", 0);
   if (!SN)
@@ -185,12 +185,12 @@ Error PDBFileBuilder::finalizeMsfLayout() {
       Entry.Version =
           static_cast<uint32_t>(PdbRaw_SrcHeaderBlockVer::SrcVerOne);
       Entry.CRC = CRC.getCRC();
-      StringRef VName = getStringTableBuilder().getStringForId(IS.VNameIndex);
+      StringRef const VName = getStringTableBuilder().getStringForId(IS.VNameIndex);
       InjectedSourceTable.set_as(VName, std::move(Entry),
                                  InjectedSourceHashTraits);
     }
 
-    uint32_t SrcHeaderBlockSize =
+    uint32_t const SrcHeaderBlockSize =
         sizeof(SrcHeaderBlockHeader) +
         InjectedSourceTable.calculateSerializedLength();
     SN = allocateNamedStream("/src/headerblock", SrcHeaderBlockSize);
@@ -224,7 +224,7 @@ void PDBFileBuilder::commitSrcHeaderBlock(WritableBinaryStream &MsfBuffer,
                                           const msf::MSFLayout &Layout) {
   assert(!InjectedSourceTable.empty());
 
-  uint32_t SN = cantFail(getNamedStreamIndex("/src/headerblock"));
+  uint32_t const SN = cantFail(getNamedStreamIndex("/src/headerblock"));
   auto Stream = WritableMappedBlockStream::createIndexedStream(
       Layout, MsfBuffer, SN, Allocator);
   BinaryStreamWriter Writer(*Stream);
@@ -248,7 +248,7 @@ void PDBFileBuilder::commitInjectedSources(WritableBinaryStream &MsfBuffer,
   commitSrcHeaderBlock(MsfBuffer, Layout);
 
   for (const auto &IS : InjectedSources) {
-    uint32_t SN = cantFail(getNamedStreamIndex(IS.StreamName));
+    uint32_t const SN = cantFail(getNamedStreamIndex(IS.StreamName));
 
     auto SourceStream = WritableMappedBlockStream::createIndexedStream(
         Layout, MsfBuffer, SN, Allocator);
@@ -319,7 +319,7 @@ Error PDBFileBuilder::commit(StringRef Filename, codeview::GUID *Guid) {
 
   auto InfoStreamBlocks = Layout.StreamMap[StreamPDB];
   assert(!InfoStreamBlocks.empty());
-  uint64_t InfoStreamFileOffset =
+  uint64_t const InfoStreamFileOffset =
       blockToOffset(InfoStreamBlocks.front(), Layout.SB->BlockSize);
   InfoStreamHeader *H = reinterpret_cast<InfoStreamHeader *>(
       Buffer.getBufferStart() + InfoStreamFileOffset);

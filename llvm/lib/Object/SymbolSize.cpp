@@ -54,7 +54,7 @@ llvm::object::computeSymbolSizes(const ObjectFile &O) {
     auto Syms = E->symbols();
     if (Syms.empty())
       Syms = E->getDynamicSymbolIterators();
-    for (ELFSymbolRef Sym : Syms)
+    for (ELFSymbolRef const Sym : Syms)
       Ret.push_back({Sym, Sym.getSize()});
     return Ret;
   }
@@ -64,7 +64,7 @@ llvm::object::computeSymbolSizes(const ObjectFile &O) {
   std::vector<SymEntry> Addresses;
   unsigned SymNum = 0;
   for (symbol_iterator I = O.symbol_begin(), E = O.symbol_end(); I != E; ++I) {
-    SymbolRef Sym = *I;
+    SymbolRef const Sym = *I;
     Expected<uint64_t> ValueOrErr = Sym.getValue();
     if (!ValueOrErr)
       // TODO: Actually report errors helpfully.
@@ -72,9 +72,9 @@ llvm::object::computeSymbolSizes(const ObjectFile &O) {
     Addresses.push_back({I, *ValueOrErr, SymNum, getSymbolSectionID(O, Sym)});
     ++SymNum;
   }
-  for (SectionRef Sec : O.sections()) {
-    uint64_t Address = Sec.getAddress();
-    uint64_t Size = Sec.getSize();
+  for (SectionRef const Sec : O.sections()) {
+    uint64_t const Address = Sec.getAddress();
+    uint64_t const Size = Sec.getSize();
     Addresses.push_back(
         {O.symbol_end(), Address + Size, 0, getSectionID(O, Sec)});
   }
@@ -95,13 +95,13 @@ llvm::object::computeSymbolSizes(const ObjectFile &O) {
     while (NextI < N && Addresses[NextI].Address == P.Address)
       ++NextI;
 
-    uint64_t Size = Addresses[NextI].Address - P.Address;
+    uint64_t const Size = Addresses[NextI].Address - P.Address;
     P.Address = Size;
   }
 
   // Assign the sorted symbols in the original order.
   Ret.resize(SymNum);
-  for (SymEntry &P : Addresses) {
+  for (SymEntry  const&P : Addresses) {
     if (P.I == O.symbol_end())
       continue;
     Ret[P.Number] = {*P.I, P.Address};

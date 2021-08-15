@@ -306,9 +306,9 @@ CallBase &llvm::pgo::promoteIndirectCall(CallBase &CB, Function *DirectCallee,
                                          bool AttachProfToDirectCall,
                                          OptimizationRemarkEmitter *ORE) {
 
-  uint64_t ElseCount = TotalCount - Count;
-  uint64_t MaxCount = (Count >= ElseCount ? Count : ElseCount);
-  uint64_t Scale = calculateCountScale(MaxCount);
+  uint64_t const ElseCount = TotalCount - Count;
+  uint64_t const MaxCount = (Count >= ElseCount ? Count : ElseCount);
+  uint64_t const Scale = calculateCountScale(MaxCount);
   MDBuilder MDB(CB.getContext());
   MDNode *BranchWeights = MDB.createBranchWeights(
       scaleBranchCount(Count, Scale), scaleBranchCount(ElseCount, Scale));
@@ -342,7 +342,7 @@ uint32_t ICallPromotionFunc::tryToPromote(
   uint32_t NumPromoted = 0;
 
   for (auto &C : Candidates) {
-    uint64_t Count = C.Count;
+    uint64_t const Count = C.Count;
     pgo::promoteIndirectCall(CB, C.TargetFunction, Count, TotalCount, SamplePGO,
                              &ORE);
     assert(TotalCount >= Count);
@@ -368,7 +368,7 @@ bool ICallPromotionFunc::processFunction(ProfileSummaryInfo *PSI) {
       continue;
     auto PromotionCandidates = getPromotionCandidatesForCallSite(
         *CB, ICallProfDataRef, TotalCount, NumCandidates);
-    uint32_t NumPromoted = tryToPromote(*CB, PromotionCandidates, TotalCount);
+    uint32_t const NumPromoted = tryToPromote(*CB, PromotionCandidates, TotalCount);
     if (NumPromoted == 0)
       continue;
 
@@ -393,7 +393,7 @@ static bool promoteIndirectCalls(Module &M, ProfileSummaryInfo *PSI,
     return false;
   InstrProfSymtab Symtab;
   if (Error E = Symtab.create(M, InLTO)) {
-    std::string SymtabFailure = toString(std::move(E));
+    std::string const SymtabFailure = toString(std::move(E));
     M.getContext().emitError("Failed to create symtab: " + SymtabFailure);
     return false;
   }
@@ -414,7 +414,7 @@ static bool promoteIndirectCalls(Module &M, ProfileSummaryInfo *PSI,
     }
 
     ICallPromotionFunc ICallPromotion(F, &M, &Symtab, SamplePGO, *ORE);
-    bool FuncChanged = ICallPromotion.processFunction(PSI);
+    bool const FuncChanged = ICallPromotion.processFunction(PSI);
     if (ICPDUMPAFTER && FuncChanged) {
       LLVM_DEBUG(dbgs() << "\n== IR Dump After =="; F.print(dbgs()));
       LLVM_DEBUG(dbgs() << "\n");

@@ -167,8 +167,8 @@ SparcRegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
   assert(SPAdj == 0 && "Unexpected");
 
   MachineInstr &MI = *II;
-  DebugLoc dl = MI.getDebugLoc();
-  int FrameIndex = MI.getOperand(FIOperandNum).getIndex();
+  DebugLoc const dl = MI.getDebugLoc();
+  int const FrameIndex = MI.getOperand(FIOperandNum).getIndex();
   MachineFunction &MF = *MI.getParent()->getParent();
   const SparcSubtarget &Subtarget = MF.getSubtarget<SparcSubtarget>();
   const SparcFrameLowering *TFI = getFrameLowering(MF);
@@ -182,9 +182,9 @@ SparcRegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
   if (!Subtarget.isV9() || !Subtarget.hasHardQuad()) {
     if (MI.getOpcode() == SP::STQFri) {
       const TargetInstrInfo &TII = *Subtarget.getInstrInfo();
-      Register SrcReg = MI.getOperand(2).getReg();
-      Register SrcEvenReg = getSubReg(SrcReg, SP::sub_even64);
-      Register SrcOddReg = getSubReg(SrcReg, SP::sub_odd64);
+      Register const SrcReg = MI.getOperand(2).getReg();
+      Register const SrcEvenReg = getSubReg(SrcReg, SP::sub_even64);
+      Register const SrcOddReg = getSubReg(SrcReg, SP::sub_odd64);
       MachineInstr *StMI =
         BuildMI(*MI.getParent(), II, dl, TII.get(SP::STDFri))
         .addReg(FrameReg).addImm(0).addReg(SrcEvenReg);
@@ -194,9 +194,9 @@ SparcRegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
       Offset += 8;
     } else if (MI.getOpcode() == SP::LDQFri) {
       const TargetInstrInfo &TII = *Subtarget.getInstrInfo();
-      Register DestReg = MI.getOperand(0).getReg();
-      Register DestEvenReg = getSubReg(DestReg, SP::sub_even64);
-      Register DestOddReg = getSubReg(DestReg, SP::sub_odd64);
+      Register const DestReg = MI.getOperand(0).getReg();
+      Register const DestEvenReg = getSubReg(DestReg, SP::sub_even64);
+      Register const DestOddReg = getSubReg(DestReg, SP::sub_odd64);
       MachineInstr *LdMI =
         BuildMI(*MI.getParent(), II, dl, TII.get(SP::LDDFri), DestEvenReg)
         .addReg(FrameReg).addImm(0);

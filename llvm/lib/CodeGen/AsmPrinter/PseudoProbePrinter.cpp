@@ -35,14 +35,14 @@ void PseudoProbeHandler::emitPseudoProbe(uint64_t Guid, uint64_t Index,
     auto Name = SP->getLinkageName();
     if (Name.empty())
       Name = SP->getName();
-    uint64_t CallerGuid = Function::getGUID(Name);
-    uint64_t CallerProbeId = PseudoProbeDwarfDiscriminator::extractProbeIndex(
+    uint64_t const CallerGuid = Function::getGUID(Name);
+    uint64_t const CallerProbeId = PseudoProbeDwarfDiscriminator::extractProbeIndex(
         InlinedAt->getDiscriminator());
     ReversedInlineStack.emplace_back(CallerGuid, CallerProbeId);
     InlinedAt = InlinedAt->getInlinedAt();
   }
 
-  SmallVector<InlineSite, 8> InlineStack(ReversedInlineStack.rbegin(),
+  SmallVector<InlineSite, 8> const InlineStack(ReversedInlineStack.rbegin(),
                                          ReversedInlineStack.rend());
   Asm->OutStreamer->emitPseudoProbe(Guid, Index, Type, Attr, InlineStack);
 }

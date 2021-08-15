@@ -506,7 +506,7 @@ bool PlaceSafepoints::runOnFunction(Function &F) {
     // appropriately.  Doing this by hand is painful and just not worth messing
     // with for the moment.
     legacy::FunctionPassManager FPM(F.getParent());
-    bool CanAssumeCallSafepoints = enableCallSafepoints(F);
+    bool const CanAssumeCallSafepoints = enableCallSafepoints(F);
     auto *PBS = new PlaceBackedgeSafepointsImpl(CanAssumeCallSafepoints);
     FPM.add(PBS);
     FPM.run(F);
@@ -560,7 +560,7 @@ bool PlaceSafepoints::runOnFunction(Function &F) {
         // The split loop structure here is so that we only need to recalculate
         // the dominator tree once.  Alternatively, we could just keep it up to
         // date and use a more natural merged loop.
-        SetVector<BasicBlock *> SplitBackedges;
+        SetVector<BasicBlock *> const SplitBackedges;
         for (BasicBlock *Header : Headers) {
           BasicBlock *NewBB = SplitEdge(Term->getParent(), Header, &DT);
           PollsNeeded.push_back(NewBB->getTerminator());
@@ -650,7 +650,7 @@ InsertSafepointPoll(Instruction *InsertBefore,
 
   // Do the actual inlining
   InlineFunctionInfo IFI;
-  bool InlineStatus = InlineFunction(*PollCall, IFI).isSuccess();
+  bool const InlineStatus = InlineFunction(*PollCall, IFI).isSuccess();
   assert(InlineStatus && "inline must succeed");
   (void)InlineStatus; // suppress warning in release-asserts
 
@@ -662,7 +662,7 @@ InsertSafepointPoll(Instruction *InsertBefore,
 
   // Include only the newly inserted instructions, Note: begin may not be valid
   // if we inserted to the beginning of the basic block
-  BasicBlock::iterator Start = IsBegin ? OrigBB->begin() : std::next(Before);
+  BasicBlock::iterator const Start = IsBegin ? OrigBB->begin() : std::next(Before);
 
   // If your poll function includes an unreachable at the end, that's not
   // valid.  Bugpoint likes to create this, so check for it.

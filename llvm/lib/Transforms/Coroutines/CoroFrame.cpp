@@ -494,7 +494,7 @@ public:
     assert(Ty && "must provide a type for a field");
 
     // The field size is always the alloc size of the type.
-    uint64_t FieldSize = DL.getTypeAllocSize(Ty);
+    uint64_t const FieldSize = DL.getTypeAllocSize(Ty);
 
     // For an alloca with size=0, we don't need to add a field and they
     // can just point to any index in the frame. Use index 0.
@@ -507,7 +507,7 @@ public:
     // If we are spilling values we don't need to worry about ABI alignment
     // concerns.
     auto ABIAlign = DL.getABITypeAlign(Ty);
-    Align TyAlignment =
+    Align const TyAlignment =
         (IsSpillOfValue && MaxFrameAlignment)
             ? (*MaxFrameAlignment < ABIAlign ? *MaxFrameAlignment : ABIAlign)
             : ABIAlign;
@@ -585,7 +585,7 @@ void FrameTypeBuilder::addFieldForAllocas(const Function &F,
   } Helper([&]() {
     for (auto AllocaList : NonOverlapedAllocas) {
       auto *LargestAI = *AllocaList.begin();
-      FieldIDType Id = addFieldForAlloca(LargestAI);
+      FieldIDType const Id = addFieldForAlloca(LargestAI);
       for (auto *Alloca : AllocaList)
         FrameData.setFieldIndex(Alloca, Id);
     }
@@ -657,7 +657,7 @@ void FrameTypeBuilder::addFieldForAllocas(const Function &F,
     // NonOverlappedAllocaSet.
     for (auto &AllocaSet : NonOverlapedAllocas) {
       assert(!AllocaSet.empty() && "Processing Alloca Set is not empty.\n");
-      bool NoInference = none_of(AllocaSet, [&](auto Iter) {
+      bool const NoInference = none_of(AllocaSet, [&](auto Iter) {
         return IsAllocaInferenre(Alloca, Iter);
       });
       // If the alignment of A is multiple of the alignment of B, the address
@@ -666,12 +666,12 @@ void FrameTypeBuilder::addFieldForAllocas(const Function &F,
       // There may be other more fine-grained strategies to handle the alignment
       // infomation during the merging process. But it seems hard to handle
       // these strategies and benefit little.
-      bool Alignable = [&]() -> bool {
+      bool const Alignable = [&]() -> bool {
         auto *LargestAlloca = *AllocaSet.begin();
         return LargestAlloca->getAlign().value() % Alloca->getAlign().value() ==
                0;
       }();
-      bool CouldMerge = NoInference && Alignable;
+      bool const CouldMerge = NoInference && Alignable;
       if (!CouldMerge)
         continue;
       AllocaSet.push_back(Alloca);
@@ -726,7 +726,7 @@ void FrameTypeBuilder::finish(StructType *Ty) {
 
   // We need to produce a packed struct type if there's a field whose
   // assigned offset isn't a multiple of its natural type alignment.
-  bool Packed = [&] {
+  bool const Packed = [&] {
     for (auto &LayoutField : LayoutFields) {
       auto &F = getField(LayoutField);
       if (!isAligned(F.TyAlignment, LayoutField.Offset))
@@ -846,7 +846,7 @@ static DIType *solveDIType(DIBuilder &Builder, Type *Ty, DataLayout &Layout,
   if (DIType *DT = DITypeCache.lookup(Ty))
     return DT;
 
-  StringRef Name = solveTypeName(Ty);
+  StringRef const Name = solveTypeName(Ty);
 
   DIType *RetType = nullptr;
 
@@ -937,7 +937,7 @@ static void buildFrameDebugInfo(Function &F, coro::Shape &Shape,
   assert(PromiseAlloca &&
          "Coroutine with switch ABI should own Promise alloca");
 
-  TinyPtrVector<DbgDeclareInst *> DIs = FindDbgDeclareUses(PromiseAlloca);
+  TinyPtrVector<DbgDeclareInst *> const DIs = FindDbgDeclareUses(PromiseAlloca);
   if (DIs.empty())
     return;
 
@@ -946,7 +946,7 @@ static void buildFrameDebugInfo(Function &F, coro::Shape &Shape,
   DILocalScope *PromiseDIScope = PromiseDIVariable->getScope();
   DIFile *DFile = PromiseDIScope->getFile();
   DILocation *DILoc = PromiseDDI->getDebugLoc().get();
-  unsigned LineNum = PromiseDIVariable->getLine();
+  unsigned const LineNum = PromiseDIVariable->getLine();
 
   DICompositeType *FrameDITy = DBuilder.createStructType(
       DIS, "__coro_frame_ty", DFile, LineNum, Shape.FrameSize * 8,
@@ -959,9 +959,9 @@ static void buildFrameDebugInfo(Function &F, coro::Shape &Shape,
   DenseMap<Value *, DILocalVariable *> DIVarCache;
   cacheDIVar(FrameData, DIVarCache);
 
-  unsigned ResumeIndex = coro::Shape::SwitchFieldIndex::Resume;
-  unsigned DestroyIndex = coro::Shape::SwitchFieldIndex::Destroy;
-  unsigned IndexIndex = Shape.SwitchLowering.IndexField;
+  unsigned const ResumeIndex = coro::Shape::SwitchFieldIndex::Resume;
+  unsigned const DestroyIndex = coro::Shape::SwitchFieldIndex::Destroy;
+  unsigned const IndexIndex = Shape.SwitchLowering.IndexField;
 
   DenseMap<unsigned, StringRef> NameCache;
   NameCache.insert({ResumeIndex, "__resume_fn"});
@@ -1130,7 +1130,7 @@ static StructType *buildFrameType(Function &F, coro::Shape &Shape,
 
     // Add a field to store the suspend index.  This doesn't need to
     // be in the header.
-    unsigned IndexBits = std::max(1U, Log2_64_Ceil(Shape.CoroSuspends.size()));
+    unsigned const IndexBits = std::max(1U, Log2_64_Ceil(Shape.CoroSuspends.size()));
     Type *IndexType = Type::getIntNTy(C, IndexBits);
 
     SwitchIndexFieldId = B.addField(IndexType, None);
@@ -1158,7 +1158,7 @@ static StructType *buildFrameType(Function &F, coro::Shape &Shape,
     if (const Argument *A = dyn_cast<Argument>(S.first))
       if (A->hasByValAttr())
         FieldType = A->getParamByValType();
-    FieldIDType Id =
+    FieldIDType const Id =
         B.addField(FieldType, None, false /*header*/, true /*IsSpillOfValue*/);
     FrameData.setFieldIndex(S.first, Id);
   }
@@ -1526,7 +1526,7 @@ static Instruction *insertSpills(const FrameDataInfo &FrameData,
   // value Orig. Appends an extra 0 index for array-allocas, preserving the
   // original type.
   auto GetFramePointer = [&](Value *Orig) -> Value * {
-    FieldIDType Index = FrameData.getFieldIndex(Orig);
+    FieldIDType const Index = FrameData.getFieldIndex(Orig);
     SmallVector<Value *, 3> Indices = {
         ConstantInt::get(Type::getInt32Ty(C), 0),
         ConstantInt::get(Type::getInt32Ty(C), Index),
@@ -1643,9 +1643,9 @@ static Instruction *insertSpills(const FrameDataInfo &FrameData,
               FrameTy->getElementType(FrameData.getFieldIndex(E.first)), GEP,
               SpillAlignment, E.first->getName() + Twine(".reload"));
 
-        TinyPtrVector<DbgDeclareInst *> DIs = FindDbgDeclareUses(Def);
+        TinyPtrVector<DbgDeclareInst *> const DIs = FindDbgDeclareUses(Def);
         for (DbgDeclareInst *DDI : DIs) {
-          bool AllowUnresolved = false;
+          bool const AllowUnresolved = false;
           // This dbg.declare is preserved for all coro-split function
           // fragments. It will be unreachable in the main function, and
           // processed by coro::salvageDebugInfo() by CoroCloner.
@@ -1770,7 +1770,7 @@ static void movePHIValuesToInsertedBlock(BasicBlock *SuccBB,
                                          PHINode *UntilPHI = nullptr) {
   auto *PN = cast<PHINode>(&SuccBB->front());
   do {
-    int Index = PN->getBasicBlockIndex(InsertedBB);
+    int const Index = PN->getBasicBlockIndex(InsertedBB);
     Value *V = PN->getIncomingValue(Index);
     PHINode *InputV = PHINode::Create(
         V->getType(), 1, V->getName() + Twine(".") + SuccBB->getName(),
@@ -1832,7 +1832,7 @@ static void rewritePHIsForCleanupPad(BasicBlock *CleanupPadBB,
                                                 pred_size(CleanupPadBB));
 
   int SwitchIndex = 0;
-  SmallVector<BasicBlock *, 8> Preds(predecessors(CleanupPadBB));
+  SmallVector<BasicBlock *, 8> const Preds(predecessors(CleanupPadBB));
   for (BasicBlock *Pred : Preds) {
     // Create a new cleanuppad and move the PHI values to there.
     auto *CaseBB = BasicBlock::Create(CleanupPadBB->getContext(),
@@ -1901,7 +1901,7 @@ static void rewritePHIs(BasicBlock &BB) {
   // so we need to create an additional "dispatcher" block.
   if (auto *CleanupPad =
           dyn_cast_or_null<CleanupPadInst>(BB.getFirstNonPHI())) {
-    SmallVector<BasicBlock *, 8> Preds(predecessors(&BB));
+    SmallVector<BasicBlock *, 8> const Preds(predecessors(&BB));
     for (BasicBlock *Pred : Preds) {
       if (CatchSwitchInst *CS =
               dyn_cast<CatchSwitchInst>(Pred->getTerminator())) {
@@ -1928,7 +1928,7 @@ static void rewritePHIs(BasicBlock &BB) {
     // ehAwareSplitEdge cloned it in the transition blocks.
   }
 
-  SmallVector<BasicBlock *, 8> Preds(predecessors(&BB));
+  SmallVector<BasicBlock *, 8> const Preds(predecessors(&BB));
   for (BasicBlock *Pred : Preds) {
     auto *IncomingBB = ehAwareSplitEdge(Pred, &BB, LandingPad, ReplPHI);
     IncomingBB->setName(BB.getName() + Twine(".from.") + Pred->getName());
@@ -1983,7 +1983,7 @@ static void rewriteMaterializableInstructions(IRBuilder<> &IRB,
       // If we have not seen this block, materialize the value.
       if (CurrentBlock != U->getParent()) {
 
-        bool IsInCoroSuspendBlock = isa<AnyCoroSuspendInst>(U);
+        bool const IsInCoroSuspendBlock = isa<AnyCoroSuspendInst>(U);
         CurrentBlock = U->getParent();
         auto *InsertBlock = IsInCoroSuspendBlock
                                 ? CurrentBlock->getSinglePredecessor()
@@ -2393,7 +2393,7 @@ static void sinkSpillUsesAfterCoroBegin(Function &F,
 /// hence minimizing the amount of data we end up putting on the frame.
 static void sinkLifetimeStartMarkers(Function &F, coro::Shape &Shape,
                                      SuspendCrossingInfo &Checker) {
-  DominatorTree DT(F);
+  DominatorTree const DT(F);
 
   // Collect all possible basic blocks which may dominate all uses of allocas.
   SmallPtrSet<BasicBlock *, 4> DomSet;
@@ -2488,7 +2488,7 @@ static void collectFrameAllocas(Function &F, coro::Shape &Shape,
     if (AI == Shape.SwitchLowering.PromiseAlloca) {
       continue;
     }
-    DominatorTree DT(F);
+    DominatorTree const DT(F);
     AllocaUseVisitor Visitor{F.getParent()->getDataLayout(), DT,
                              *Shape.CoroBegin, Checker};
     Visitor.visitPtr(*AI);
@@ -2614,7 +2614,7 @@ void coro::buildCoroutineFrame(Function &F, Shape &Shape) {
       if (!MustTailCallFn)
         continue;
       IRBuilder<> Builder(AsyncEnd);
-      SmallVector<Value *, 8> Args(AsyncEnd->args());
+      SmallVector<Value *, 8> const Args(AsyncEnd->args());
       auto Arguments = ArrayRef<Value *>(Args).drop_front(3);
       auto *Call = createMustTailCall(AsyncEnd->getDebugLoc(), MustTailCallFn,
                                       Arguments, Builder);

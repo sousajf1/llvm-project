@@ -46,7 +46,7 @@ std::string PDBSymbolCompiland::getSourceFileFullPath() const {
       std::string EnvWorkingDir, EnvSrc;
 
       while (auto Env = Envs->getNext()) {
-        std::string Var = Env->getName();
+        std::string const Var = Env->getName();
         if (Var == "cwd") {
           EnvWorkingDir = Env->getValue();
           continue;
@@ -87,11 +87,11 @@ std::string PDBSymbolCompiland::getSourceFileFullPath() const {
   // and determine the right source file if any that is used to generate this
   // compiland based on language indicated in compilanddetails language field.
   auto Details = findOneChild<PDBSymbolCompilandDetails>();
-  PDB_Lang Lang = Details ? Details->getLanguage() : PDB_Lang::Cpp;
+  PDB_Lang const Lang = Details ? Details->getLanguage() : PDB_Lang::Cpp;
   auto SrcFiles = Session.getSourceFilesForCompiland(*this);
   if (SrcFiles) {
     while (auto File = SrcFiles->getNext()) {
-      std::string FileName = File->getFileName();
+      std::string const FileName = File->getFileName();
       auto file_extension = sys::path::extension(FileName);
       if (StringSwitch<bool>(file_extension.lower())
               .Case(".cpp", Lang == PDB_Lang::Cpp)

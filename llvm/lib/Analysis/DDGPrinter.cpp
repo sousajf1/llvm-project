@@ -37,7 +37,7 @@ PreservedAnalyses DDGDotPrinterPass::run(Loop &L, LoopAnalysisManager &AM,
 }
 
 static void writeDDGToDotFile(DataDependenceGraph &G, bool DOnly) {
-  std::string Filename =
+  std::string const Filename =
       Twine(DDGDotFilenamePrefix + "." + G.getName() + ".dot").str();
   errs() << "Writing '" << Filename << "'...";
 
@@ -130,7 +130,7 @@ std::string DDGDotGraphTraits::getSimpleEdgeAttributes(
     const DDGNode *Src, const DDGEdge *Edge, const DataDependenceGraph *G) {
   std::string Str;
   raw_string_ostream OS(Str);
-  DDGEdge::EdgeKind Kind = Edge->getKind();
+  DDGEdge::EdgeKind const Kind = Edge->getKind();
   OS << "label=\"[" << Kind << "]\"";
   return OS.str();
 }
@@ -139,7 +139,7 @@ std::string DDGDotGraphTraits::getVerboseEdgeAttributes(
     const DDGNode *Src, const DDGEdge *Edge, const DataDependenceGraph *G) {
   std::string Str;
   raw_string_ostream OS(Str);
-  DDGEdge::EdgeKind Kind = Edge->getKind();
+  DDGEdge::EdgeKind const Kind = Edge->getKind();
   OS << "label=\"[";
   if (Kind == DDGEdge::EdgeKind::MemoryDependence)
     OS << G->getDependenceString(*Src, Edge->getTargetNode());

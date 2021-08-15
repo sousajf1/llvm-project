@@ -26,16 +26,16 @@ NativeEnumTypes::NativeEnumTypes(NativeSession &PDBSession,
     : Matches(), Index(0), Session(PDBSession) {
   Optional<TypeIndex> TI = Types.getFirst();
   while (TI) {
-    CVType CVT = Types.getType(*TI);
-    TypeLeafKind K = CVT.kind();
+    CVType const CVT = Types.getType(*TI);
+    TypeLeafKind const K = CVT.kind();
     if (llvm::is_contained(Kinds, K)) {
       // Don't add forward refs, we'll find those later while enumerating.
       if (!isUdtForwardRef(CVT))
         Matches.push_back(*TI);
     } else if (K == TypeLeafKind::LF_MODIFIER) {
-      TypeIndex ModifiedTI = getModifiedType(CVT);
+      TypeIndex const ModifiedTI = getModifiedType(CVT);
       if (!ModifiedTI.isSimple()) {
-        CVType UnmodifiedCVT = Types.getType(ModifiedTI);
+        CVType const UnmodifiedCVT = Types.getType(ModifiedTI);
         // LF_MODIFIERs point to forward refs, but don't worry about that
         // here.  We're pushing the TypeIndex of the LF_MODIFIER itself,
         // so we'll worry about resolving forward refs later.
@@ -57,7 +57,7 @@ uint32_t NativeEnumTypes::getChildCount() const {
 
 std::unique_ptr<PDBSymbol> NativeEnumTypes::getChildAtIndex(uint32_t N) const {
   if (N < Matches.size()) {
-    SymIndexId Id = Session.getSymbolCache().findSymbolByTypeIndex(Matches[N]);
+    SymIndexId const Id = Session.getSymbolCache().findSymbolByTypeIndex(Matches[N]);
     return Session.getSymbolCache().getSymbolById(Id);
   }
   return nullptr;

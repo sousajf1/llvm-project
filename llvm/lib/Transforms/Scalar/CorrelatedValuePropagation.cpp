@@ -305,7 +305,7 @@ static bool processCmp(CmpInst *Cmp, LazyValueInfo *LVI) {
   if (!C)
     return false;
 
-  LazyValueInfo::Tristate Result =
+  LazyValueInfo::Tristate const Result =
       LVI->getPredicateAt(Cmp->getPredicate(), Op0, C, Cmp,
                           /*UseBlockValue=*/true);
   if (Result == LazyValueInfo::Unknown)
@@ -343,7 +343,7 @@ static bool processSwitch(SwitchInst *I, LazyValueInfo *LVI,
 
     for (auto CI = SI->case_begin(), CE = SI->case_end(); CI != CE;) {
       ConstantInt *Case = CI->getCaseValue();
-      LazyValueInfo::Tristate State =
+      LazyValueInfo::Tristate const State =
           LVI->getPredicateAt(CmpInst::ICMP_EQ, Cond, Case, I,
                               /* UseBlockValue */ true);
 
@@ -389,9 +389,9 @@ static bool processSwitch(SwitchInst *I, LazyValueInfo *LVI,
 
 // See if we can prove that the given binary op intrinsic will not overflow.
 static bool willNotOverflow(BinaryOpIntrinsic *BO, LazyValueInfo *LVI) {
-  ConstantRange LRange = LVI->getConstantRange(BO->getLHS(), BO);
-  ConstantRange RRange = LVI->getConstantRange(BO->getRHS(), BO);
-  ConstantRange NWRegion = ConstantRange::makeGuaranteedNoWrapRegion(
+  ConstantRange const LRange = LVI->getConstantRange(BO->getLHS(), BO);
+  ConstantRange const RRange = LVI->getConstantRange(BO->getRHS(), BO);
+  ConstantRange const NWRegion = ConstantRange::makeGuaranteedNoWrapRegion(
       BO->getBinaryOp(), RRange, BO->getNoWrapKind());
   return NWRegion.contains(LRange);
 }
@@ -450,7 +450,7 @@ static bool processBinOp(BinaryOperator *BinOp, LazyValueInfo *LVI);
 // because it is negation-invariant.
 static bool processAbsIntrinsic(IntrinsicInst *II, LazyValueInfo *LVI) {
   Value *X = II->getArgOperand(0);
-  bool IsIntMinPoison = cast<ConstantInt>(II->getArgOperand(1))->isOne();
+  bool const IsIntMinPoison = cast<ConstantInt>(II->getArgOperand(1))->isOne();
 
   Type *Ty = X->getType();
   Constant *IntMin =
@@ -506,8 +506,8 @@ static bool processAbsIntrinsic(IntrinsicInst *II, LazyValueInfo *LVI) {
 
 // See if this min/max intrinsic always picks it's one specific operand.
 static bool processMinMaxIntrinsic(MinMaxIntrinsic *MM, LazyValueInfo *LVI) {
-  CmpInst::Predicate Pred = CmpInst::getNonStrictPredicate(MM->getPredicate());
-  LazyValueInfo::Tristate Result = LVI->getPredicateAt(
+  CmpInst::Predicate const Pred = CmpInst::getNonStrictPredicate(MM->getPredicate());
+  LazyValueInfo::Tristate const Result = LVI->getPredicateAt(
       Pred, MM->getLHS(), MM->getRHS(), MM, /*UseBlockValue=*/true);
   if (Result == LazyValueInfo::Unknown)
     return false;
@@ -521,9 +521,9 @@ static bool processMinMaxIntrinsic(MinMaxIntrinsic *MM, LazyValueInfo *LVI) {
 // Rewrite this with.overflow intrinsic as non-overflowing.
 static bool processOverflowIntrinsic(WithOverflowInst *WO, LazyValueInfo *LVI) {
   IRBuilder<> B(WO);
-  Instruction::BinaryOps Opcode = WO->getBinaryOp();
-  bool NSW = WO->isSigned();
-  bool NUW = !WO->isSigned();
+  Instruction::BinaryOps const Opcode = WO->getBinaryOp();
+  bool const NSW = WO->isSigned();
+  bool const NUW = !WO->isSigned();
 
   Value *NewOp =
       B.CreateBinOp(Opcode, WO->getLHS(), WO->getRHS(), WO->getName());
@@ -546,9 +546,9 @@ static bool processOverflowIntrinsic(WithOverflowInst *WO, LazyValueInfo *LVI) {
 }
 
 static bool processSaturatingInst(SaturatingInst *SI, LazyValueInfo *LVI) {
-  Instruction::BinaryOps Opcode = SI->getBinaryOp();
-  bool NSW = SI->isSigned();
-  bool NUW = !SI->isSigned();
+  Instruction::BinaryOps const Opcode = SI->getBinaryOp();
+  bool const NSW = SI->isSigned();
+  bool const NUW = !SI->isSigned();
   BinaryOperator *BinOp = BinaryOperator::Create(
       Opcode, SI->getLHS(), SI->getRHS(), SI->getName(), SI);
   BinOp->setDebugLoc(SI->getDebugLoc());
@@ -677,7 +677,7 @@ static bool narrowSDivOrSRem(BinaryOperator *Instr, LazyValueInfo *LVI) {
 
   // Find the smallest power of two bitwidth that's sufficient to hold Instr's
   // operands.
-  unsigned OrigWidth = Instr->getType()->getIntegerBitWidth();
+  unsigned const OrigWidth = Instr->getType()->getIntegerBitWidth();
 
   // What is the smallest bit width that can accomodate the entire value ranges
   // of both of the operands?
@@ -696,7 +696,7 @@ static bool narrowSDivOrSRem(BinaryOperator *Instr, LazyValueInfo *LVI) {
     ++MinSignedBits;
 
   // Don't shrink below 8 bits wide.
-  unsigned NewWidth = std::max<unsigned>(PowerOf2Ceil(MinSignedBits), 8);
+  unsigned const NewWidth = std::max<unsigned>(PowerOf2Ceil(MinSignedBits), 8);
 
   // NewWidth might be greater than OrigWidth if OrigWidth is not a power of
   // two.
@@ -736,11 +736,11 @@ static bool processUDivOrURem(BinaryOperator *Instr, LazyValueInfo *LVI) {
   // of both of the operands?
   unsigned MaxActiveBits = 0;
   for (Value *Operand : Instr->operands()) {
-    ConstantRange CR = LVI->getConstantRange(Operand, Instr);
+    ConstantRange const CR = LVI->getConstantRange(Operand, Instr);
     MaxActiveBits = std::max(CR.getActiveBits(), MaxActiveBits);
   }
   // Don't shrink below 8 bits wide.
-  unsigned NewWidth = std::max<unsigned>(PowerOf2Ceil(MaxActiveBits), 8);
+  unsigned const NewWidth = std::max<unsigned>(PowerOf2Ceil(MaxActiveBits), 8);
 
   // NewWidth might be greater than OrigWidth if OrigWidth is not a power of
   // two.
@@ -933,28 +933,28 @@ static bool processBinOp(BinaryOperator *BinOp, LazyValueInfo *LVI) {
   if (BinOp->getType()->isVectorTy())
     return false;
 
-  bool NSW = BinOp->hasNoSignedWrap();
-  bool NUW = BinOp->hasNoUnsignedWrap();
+  bool const NSW = BinOp->hasNoSignedWrap();
+  bool const NUW = BinOp->hasNoUnsignedWrap();
   if (NSW && NUW)
     return false;
 
-  Instruction::BinaryOps Opcode = BinOp->getOpcode();
+  Instruction::BinaryOps const Opcode = BinOp->getOpcode();
   Value *LHS = BinOp->getOperand(0);
   Value *RHS = BinOp->getOperand(1);
 
-  ConstantRange LRange = LVI->getConstantRange(LHS, BinOp);
-  ConstantRange RRange = LVI->getConstantRange(RHS, BinOp);
+  ConstantRange const LRange = LVI->getConstantRange(LHS, BinOp);
+  ConstantRange const RRange = LVI->getConstantRange(RHS, BinOp);
 
   bool Changed = false;
   bool NewNUW = false, NewNSW = false;
   if (!NUW) {
-    ConstantRange NUWRange = ConstantRange::makeGuaranteedNoWrapRegion(
+    ConstantRange const NUWRange = ConstantRange::makeGuaranteedNoWrapRegion(
         Opcode, RRange, OBO::NoUnsignedWrap);
     NewNUW = NUWRange.contains(LRange);
     Changed |= NewNUW;
   }
   if (!NSW) {
-    ConstantRange NSWRange = ConstantRange::makeGuaranteedNoWrapRegion(
+    ConstantRange const NSWRange = ConstantRange::makeGuaranteedNoWrapRegion(
         Opcode, RRange, OBO::NoSignedWrap);
     NewNSW = NSWRange.contains(LRange);
     Changed |= NewNSW;
@@ -978,7 +978,7 @@ static bool processAnd(BinaryOperator *BinOp, LazyValueInfo *LVI) {
 
   // We can only replace the AND with LHS based on range info if the range does
   // not include undef.
-  ConstantRange LRange =
+  ConstantRange const LRange =
       LVI->getConstantRange(LHS, BinOp, /*UndefAllowed=*/false);
   if (!LRange.getUnsignedMax().ule(RHS->getValue()))
     return false;
@@ -1003,7 +1003,7 @@ static Constant *getConstantAt(Value *V, Instruction *At, LazyValueInfo *LVI) {
   Constant *Op1 = dyn_cast<Constant>(C->getOperand(1));
   if (!Op1) return nullptr;
 
-  LazyValueInfo::Tristate Result = LVI->getPredicateAt(
+  LazyValueInfo::Tristate const Result = LVI->getPredicateAt(
       C->getPredicate(), Op0, Op1, At, /*UseBlockValue=*/false);
   if (Result == LazyValueInfo::Unknown)
     return nullptr;
@@ -1112,7 +1112,7 @@ CorrelatedValuePropagationPass::run(Function &F, FunctionAnalysisManager &AM) {
   LazyValueInfo *LVI = &AM.getResult<LazyValueAnalysis>(F);
   DominatorTree *DT = &AM.getResult<DominatorTreeAnalysis>(F);
 
-  bool Changed = runImpl(F, LVI, DT, getBestSimplifyQuery(AM, F));
+  bool const Changed = runImpl(F, LVI, DT, getBestSimplifyQuery(AM, F));
 
   PreservedAnalyses PA;
   if (!Changed) {

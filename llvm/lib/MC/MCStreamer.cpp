@@ -137,7 +137,7 @@ void MCStreamer::emitIntValue(uint64_t Value, unsigned Size) {
   const bool IsLittleEndian = Context.getAsmInfo()->isLittleEndian();
   uint64_t Swapped = support::endian::byte_swap(
       Value, IsLittleEndian ? support::little : support::big);
-  unsigned Index = IsLittleEndian ? 0 : 8 - Size;
+  unsigned const Index = IsLittleEndian ? 0 : 8 - Size;
   emitBytes(StringRef(reinterpret_cast<char *>(&Swapped) + Index, Size));
 }
 void MCStreamer::emitIntValue(APInt Value) {
@@ -262,7 +262,7 @@ void MCStreamer::emitDwarfLocDirective(unsigned FileNo, unsigned Line,
 MCSymbol *MCStreamer::getDwarfLineTableSymbol(unsigned CUID) {
   MCDwarfLineTable &Table = getContext().getMCDwarfLineTable(CUID);
   if (!Table.getLabel()) {
-    StringRef Prefix = Context.getAsmInfo()->getPrivateGlobalPrefix();
+    StringRef const Prefix = Context.getAsmInfo()->getPrivateGlobalPrefix();
     Table.setLabel(
         Context.getOrCreateSymbol(Prefix + "line_table_start" + Twine(CUID)));
   }
@@ -480,7 +480,7 @@ MCSymbol *MCStreamer::emitCFILabel() {
 
 void MCStreamer::emitCFIDefCfa(int64_t Register, int64_t Offset) {
   MCSymbol *Label = emitCFILabel();
-  MCCFIInstruction Instruction =
+  MCCFIInstruction const Instruction =
       MCCFIInstruction::cfiDefCfa(Label, Register, Offset);
   MCDwarfFrameInfo *CurFrame = getCurrentDwarfFrameInfo();
   if (!CurFrame)
@@ -491,7 +491,7 @@ void MCStreamer::emitCFIDefCfa(int64_t Register, int64_t Offset) {
 
 void MCStreamer::emitCFIDefCfaOffset(int64_t Offset) {
   MCSymbol *Label = emitCFILabel();
-  MCCFIInstruction Instruction =
+  MCCFIInstruction const Instruction =
       MCCFIInstruction::cfiDefCfaOffset(Label, Offset);
   MCDwarfFrameInfo *CurFrame = getCurrentDwarfFrameInfo();
   if (!CurFrame)
@@ -501,7 +501,7 @@ void MCStreamer::emitCFIDefCfaOffset(int64_t Offset) {
 
 void MCStreamer::emitCFIAdjustCfaOffset(int64_t Adjustment) {
   MCSymbol *Label = emitCFILabel();
-  MCCFIInstruction Instruction =
+  MCCFIInstruction const Instruction =
     MCCFIInstruction::createAdjustCfaOffset(Label, Adjustment);
   MCDwarfFrameInfo *CurFrame = getCurrentDwarfFrameInfo();
   if (!CurFrame)
@@ -511,7 +511,7 @@ void MCStreamer::emitCFIAdjustCfaOffset(int64_t Adjustment) {
 
 void MCStreamer::emitCFIDefCfaRegister(int64_t Register) {
   MCSymbol *Label = emitCFILabel();
-  MCCFIInstruction Instruction =
+  MCCFIInstruction const Instruction =
     MCCFIInstruction::createDefCfaRegister(Label, Register);
   MCDwarfFrameInfo *CurFrame = getCurrentDwarfFrameInfo();
   if (!CurFrame)
@@ -523,7 +523,7 @@ void MCStreamer::emitCFIDefCfaRegister(int64_t Register) {
 void MCStreamer::emitCFILLVMDefAspaceCfa(int64_t Register, int64_t Offset,
                                          int64_t AddressSpace) {
   MCSymbol *Label = emitCFILabel();
-  MCCFIInstruction Instruction = MCCFIInstruction::createLLVMDefAspaceCfa(
+  MCCFIInstruction const Instruction = MCCFIInstruction::createLLVMDefAspaceCfa(
       Label, Register, Offset, AddressSpace);
   MCDwarfFrameInfo *CurFrame = getCurrentDwarfFrameInfo();
   if (!CurFrame)
@@ -534,7 +534,7 @@ void MCStreamer::emitCFILLVMDefAspaceCfa(int64_t Register, int64_t Offset,
 
 void MCStreamer::emitCFIOffset(int64_t Register, int64_t Offset) {
   MCSymbol *Label = emitCFILabel();
-  MCCFIInstruction Instruction =
+  MCCFIInstruction const Instruction =
     MCCFIInstruction::createOffset(Label, Register, Offset);
   MCDwarfFrameInfo *CurFrame = getCurrentDwarfFrameInfo();
   if (!CurFrame)
@@ -544,7 +544,7 @@ void MCStreamer::emitCFIOffset(int64_t Register, int64_t Offset) {
 
 void MCStreamer::emitCFIRelOffset(int64_t Register, int64_t Offset) {
   MCSymbol *Label = emitCFILabel();
-  MCCFIInstruction Instruction =
+  MCCFIInstruction const Instruction =
     MCCFIInstruction::createRelOffset(Label, Register, Offset);
   MCDwarfFrameInfo *CurFrame = getCurrentDwarfFrameInfo();
   if (!CurFrame)
@@ -571,7 +571,7 @@ void MCStreamer::emitCFILsda(const MCSymbol *Sym, unsigned Encoding) {
 
 void MCStreamer::emitCFIRememberState() {
   MCSymbol *Label = emitCFILabel();
-  MCCFIInstruction Instruction = MCCFIInstruction::createRememberState(Label);
+  MCCFIInstruction const Instruction = MCCFIInstruction::createRememberState(Label);
   MCDwarfFrameInfo *CurFrame = getCurrentDwarfFrameInfo();
   if (!CurFrame)
     return;
@@ -581,7 +581,7 @@ void MCStreamer::emitCFIRememberState() {
 void MCStreamer::emitCFIRestoreState() {
   // FIXME: Error if there is no matching cfi_remember_state.
   MCSymbol *Label = emitCFILabel();
-  MCCFIInstruction Instruction = MCCFIInstruction::createRestoreState(Label);
+  MCCFIInstruction const Instruction = MCCFIInstruction::createRestoreState(Label);
   MCDwarfFrameInfo *CurFrame = getCurrentDwarfFrameInfo();
   if (!CurFrame)
     return;
@@ -590,7 +590,7 @@ void MCStreamer::emitCFIRestoreState() {
 
 void MCStreamer::emitCFISameValue(int64_t Register) {
   MCSymbol *Label = emitCFILabel();
-  MCCFIInstruction Instruction =
+  MCCFIInstruction const Instruction =
     MCCFIInstruction::createSameValue(Label, Register);
   MCDwarfFrameInfo *CurFrame = getCurrentDwarfFrameInfo();
   if (!CurFrame)
@@ -600,7 +600,7 @@ void MCStreamer::emitCFISameValue(int64_t Register) {
 
 void MCStreamer::emitCFIRestore(int64_t Register) {
   MCSymbol *Label = emitCFILabel();
-  MCCFIInstruction Instruction =
+  MCCFIInstruction const Instruction =
     MCCFIInstruction::createRestore(Label, Register);
   MCDwarfFrameInfo *CurFrame = getCurrentDwarfFrameInfo();
   if (!CurFrame)
@@ -610,7 +610,7 @@ void MCStreamer::emitCFIRestore(int64_t Register) {
 
 void MCStreamer::emitCFIEscape(StringRef Values) {
   MCSymbol *Label = emitCFILabel();
-  MCCFIInstruction Instruction = MCCFIInstruction::createEscape(Label, Values);
+  MCCFIInstruction const Instruction = MCCFIInstruction::createEscape(Label, Values);
   MCDwarfFrameInfo *CurFrame = getCurrentDwarfFrameInfo();
   if (!CurFrame)
     return;
@@ -619,7 +619,7 @@ void MCStreamer::emitCFIEscape(StringRef Values) {
 
 void MCStreamer::emitCFIGnuArgsSize(int64_t Size) {
   MCSymbol *Label = emitCFILabel();
-  MCCFIInstruction Instruction =
+  MCCFIInstruction const Instruction =
     MCCFIInstruction::createGnuArgsSize(Label, Size);
   MCDwarfFrameInfo *CurFrame = getCurrentDwarfFrameInfo();
   if (!CurFrame)
@@ -636,7 +636,7 @@ void MCStreamer::emitCFISignalFrame() {
 
 void MCStreamer::emitCFIUndefined(int64_t Register) {
   MCSymbol *Label = emitCFILabel();
-  MCCFIInstruction Instruction =
+  MCCFIInstruction const Instruction =
     MCCFIInstruction::createUndefined(Label, Register);
   MCDwarfFrameInfo *CurFrame = getCurrentDwarfFrameInfo();
   if (!CurFrame)
@@ -646,7 +646,7 @@ void MCStreamer::emitCFIUndefined(int64_t Register) {
 
 void MCStreamer::emitCFIRegister(int64_t Register1, int64_t Register2) {
   MCSymbol *Label = emitCFILabel();
-  MCCFIInstruction Instruction =
+  MCCFIInstruction const Instruction =
     MCCFIInstruction::createRegister(Label, Register1, Register2);
   MCDwarfFrameInfo *CurFrame = getCurrentDwarfFrameInfo();
   if (!CurFrame)
@@ -656,7 +656,7 @@ void MCStreamer::emitCFIRegister(int64_t Register1, int64_t Register2) {
 
 void MCStreamer::emitCFIWindowSave() {
   MCSymbol *Label = emitCFILabel();
-  MCCFIInstruction Instruction =
+  MCCFIInstruction const Instruction =
     MCCFIInstruction::createWindowSave(Label);
   MCDwarfFrameInfo *CurFrame = getCurrentDwarfFrameInfo();
   if (!CurFrame)
@@ -666,7 +666,7 @@ void MCStreamer::emitCFIWindowSave() {
 
 void MCStreamer::emitCFINegateRAState() {
   MCSymbol *Label = emitCFILabel();
-  MCCFIInstruction Instruction = MCCFIInstruction::createNegateRAState(Label);
+  MCCFIInstruction const Instruction = MCCFIInstruction::createNegateRAState(Label);
   MCDwarfFrameInfo *CurFrame = getCurrentDwarfFrameInfo();
   if (!CurFrame)
     return;
@@ -807,7 +807,7 @@ static MCSection *getWinCFISection(MCContext &Context, unsigned *NextWinCFIID,
 
   const auto *TextSecCOFF = cast<MCSectionCOFF>(TextSec);
   auto *MainCFISecCOFF = cast<MCSectionCOFF>(MainCFISec);
-  unsigned UniqueID = TextSecCOFF->getOrAssignWinCFISectionID(NextWinCFIID);
+  unsigned const UniqueID = TextSecCOFF->getOrAssignWinCFISectionID(NextWinCFIID);
 
   // If this section is COMDAT, this unwind section should be COMDAT associative
   // with its group.
@@ -819,7 +819,7 @@ static MCSection *getWinCFISection(MCContext &Context, unsigned *NextWinCFIID,
     // GCC does, which is to make plain comdat selectany section named like
     // ".[px]data$_Z3foov".
     if (!Context.getAsmInfo()->hasCOFFAssociativeComdats()) {
-      std::string SectionName = (MainCFISecCOFF->getName() + "$" +
+      std::string const SectionName = (MainCFISecCOFF->getName() + "$" +
                                  TextSecCOFF->getName().split('$').second)
                                     .str();
       return Context.getCOFFSection(
@@ -857,7 +857,7 @@ void MCStreamer::EmitWinCFIPushReg(MCRegister Register, SMLoc Loc) {
 
   MCSymbol *Label = emitCFILabel();
 
-  WinEH::Instruction Inst = Win64EH::Instruction::PushNonVol(
+  WinEH::Instruction const Inst = Win64EH::Instruction::PushNonVol(
       Label, encodeSEHRegNum(Context, Register));
   CurFrame->Instructions.push_back(Inst);
 }
@@ -878,7 +878,7 @@ void MCStreamer::EmitWinCFISetFrame(MCRegister Register, unsigned Offset,
 
   MCSymbol *Label = emitCFILabel();
 
-  WinEH::Instruction Inst = Win64EH::Instruction::SetFPReg(
+  WinEH::Instruction const Inst = Win64EH::Instruction::SetFPReg(
       Label, encodeSEHRegNum(getContext(), Register), Offset);
   CurFrame->LastFrameInst = CurFrame->Instructions.size();
   CurFrame->Instructions.push_back(Inst);
@@ -897,7 +897,7 @@ void MCStreamer::EmitWinCFIAllocStack(unsigned Size, SMLoc Loc) {
 
   MCSymbol *Label = emitCFILabel();
 
-  WinEH::Instruction Inst = Win64EH::Instruction::Alloc(Label, Size);
+  WinEH::Instruction const Inst = Win64EH::Instruction::Alloc(Label, Size);
   CurFrame->Instructions.push_back(Inst);
 }
 
@@ -913,7 +913,7 @@ void MCStreamer::EmitWinCFISaveReg(MCRegister Register, unsigned Offset,
 
   MCSymbol *Label = emitCFILabel();
 
-  WinEH::Instruction Inst = Win64EH::Instruction::SaveNonVol(
+  WinEH::Instruction const Inst = Win64EH::Instruction::SaveNonVol(
       Label, encodeSEHRegNum(Context, Register), Offset);
   CurFrame->Instructions.push_back(Inst);
 }
@@ -928,7 +928,7 @@ void MCStreamer::EmitWinCFISaveXMM(MCRegister Register, unsigned Offset,
 
   MCSymbol *Label = emitCFILabel();
 
-  WinEH::Instruction Inst = Win64EH::Instruction::SaveXMM(
+  WinEH::Instruction const Inst = Win64EH::Instruction::SaveXMM(
       Label, encodeSEHRegNum(Context, Register), Offset);
   CurFrame->Instructions.push_back(Inst);
 }
@@ -943,7 +943,7 @@ void MCStreamer::EmitWinCFIPushFrame(bool Code, SMLoc Loc) {
 
   MCSymbol *Label = emitCFILabel();
 
-  WinEH::Instruction Inst = Win64EH::Instruction::PushMachFrame(Label, Code);
+  WinEH::Instruction const Inst = Win64EH::Instruction::PushMachFrame(Label, Code);
   CurFrame->Instructions.push_back(Inst);
 }
 
@@ -1103,7 +1103,7 @@ void MCStreamer::emitPseudoProbe(uint64_t Guid, uint64_t Index, uint64_t Type,
   emitLabel(ProbeSym);
 
   // Create a (local) probe entry with the symbol.
-  MCPseudoProbe Probe(ProbeSym, Guid, Index, Type, Attr);
+  MCPseudoProbe const Probe(ProbeSym, Guid, Index, Type, Attr);
 
   // Add the probe entry to this section's entries.
   Context.getMCPseudoProbeTable().getProbeSections().addPseudoProbe(
@@ -1210,7 +1210,7 @@ void MCStreamer::emitBundleUnlock() {}
 
 void MCStreamer::SwitchSection(MCSection *Section, const MCExpr *Subsection) {
   assert(Section && "Cannot switch to a null section!");
-  MCSectionSubPair curSection = SectionStack.back().first;
+  MCSectionSubPair const curSection = SectionStack.back().first;
   SectionStack.back().second = curSection;
   if (MCSectionSubPair(Section, Subsection) != curSection) {
     changeSection(Section, Subsection);
@@ -1237,7 +1237,7 @@ MCSymbol *MCStreamer::endSection(MCSection *Section) {
 static VersionTuple
 targetVersionOrMinimumSupportedOSVersion(const Triple &Target,
                                          VersionTuple TargetVersion) {
-  VersionTuple Min = Target.getMinimumSupportedOSVersion();
+  VersionTuple const Min = Target.getMinimumSupportedOSVersion();
   return !Min.empty() && Min > TargetVersion ? Min : TargetVersion;
 }
 

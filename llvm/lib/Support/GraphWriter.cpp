@@ -85,7 +85,7 @@ std::string llvm::DOT::EscapeString(const std::string &Label) {
 /// from a reasonable number of colors.
 StringRef llvm::DOT::getColorString(unsigned ColorNumber) {
   static const int NumColors = 20;
-  static const char* Colors[NumColors] = {
+  static const char* const Colors[NumColors] = {
     "aaaaaa", "aa0000", "00aa00", "aa5500", "0055ff", "aa00aa", "00aaaa",
     "555555", "ff5555", "55ff55", "ffff55", "5555ff", "ff55ff", "55ffff",
     "ffaaaa", "aaffaa", "ffffaa", "aaaaff", "ffaaff", "aaffff"};
@@ -97,10 +97,10 @@ static std::string replaceIllegalFilenameChars(std::string Filename,
 #ifdef _WIN32
   std::string IllegalChars = "\\/:?\"<>|";
 #else
-  std::string IllegalChars = "/";
+  std::string const IllegalChars = "/";
 #endif
 
-  for (char IllegalChar : IllegalChars) {
+  for (char const IllegalChar : IllegalChars) {
     std::replace(Filename.begin(), Filename.end(), IllegalChar,
                  ReplacementChar);
   }
@@ -117,9 +117,9 @@ std::string llvm::createGraphFilename(const Twine &Name, int &FD) {
   N = N.substr(0, std::min<std::size_t>(N.size(), 140));
 
   // Replace illegal characters in graph Filename with '_' if needed
-  std::string CleansedName = replaceIllegalFilenameChars(N, '_');
+  std::string const CleansedName = replaceIllegalFilenameChars(N, '_');
 
-  std::error_code EC =
+  std::error_code const EC =
       sys::fs::createTemporaryFile(CleansedName, "dot", FD, Filename);
   if (EC) {
     errs() << "Error: " << EC.message() << "\n";
@@ -188,7 +188,7 @@ static const char *getProgramName(GraphProgram::Name program) {
 
 bool llvm::DisplayGraph(StringRef FilenameRef, bool wait,
                         GraphProgram::Name program) {
-  std::string Filename = std::string(FilenameRef);
+  std::string const Filename = std::string(FilenameRef);
   std::string ErrMsg;
   std::string ViewerPath;
   GraphSession S;
@@ -265,7 +265,7 @@ bool llvm::DisplayGraph(StringRef FilenameRef, bool wait,
   if (Viewer &&
       (S.TryFindProgram(getProgramName(program), GeneratorPath) ||
        S.TryFindProgram("dot|fdp|neato|twopi|circo", GeneratorPath))) {
-    std::string OutputFilename =
+    std::string const OutputFilename =
         Filename + (Viewer == VK_CmdStart ? ".pdf" : ".ps");
 
     std::vector<StringRef> args;

@@ -157,7 +157,7 @@ int llvm::Intrinsic::lookupLLVMIntrinsicByName(ArrayRef<const char *> NameTable,
   const char *const *High = NameTable.end();
   const char *const *LastLow = Low;
   while (CmpEnd < Name.size() && High - Low > 0) {
-    size_t CmpStart = CmpEnd;
+    size_t const CmpStart = CmpEnd;
     CmpEnd = Name.find('.', CmpStart + 1);
     CmpEnd = CmpEnd == StringRef::npos ? Name.size() : CmpEnd;
     auto Cmp = [CmpStart, CmpEnd](const char *LHS, const char *RHS) {
@@ -171,7 +171,7 @@ int llvm::Intrinsic::lookupLLVMIntrinsicByName(ArrayRef<const char *> NameTable,
 
   if (LastLow == NameTable.end())
     return -1;
-  StringRef NameFound = *LastLow;
+  StringRef const NameFound = *LastLow;
   if (Name == NameFound ||
       (Name.startswith(NameFound) && Name[NameFound.size()] == '.'))
     return LastLow - NameTable.begin();
@@ -188,7 +188,7 @@ Value *InstrProfIncrementInst::getStep() const {
 }
 
 Optional<RoundingMode> ConstrainedFPIntrinsic::getRoundingMode() const {
-  unsigned NumOperands = getNumArgOperands();
+  unsigned const NumOperands = getNumArgOperands();
   Metadata *MD = nullptr;
   auto *MAV = dyn_cast<MetadataAsValue>(getArgOperand(NumOperands - 2));
   if (MAV)
@@ -200,7 +200,7 @@ Optional<RoundingMode> ConstrainedFPIntrinsic::getRoundingMode() const {
 
 Optional<fp::ExceptionBehavior>
 ConstrainedFPIntrinsic::getExceptionBehavior() const {
-  unsigned NumOperands = getNumArgOperands();
+  unsigned const NumOperands = getNumArgOperands();
   Metadata *MD = nullptr;
   auto *MAV = dyn_cast<MetadataAsValue>(getArgOperand(NumOperands - 1));
   if (MAV)
@@ -429,7 +429,7 @@ Intrinsic::ID VPIntrinsic::getForOpcode(unsigned IROPC) {
 bool VPIntrinsic::canIgnoreVectorLengthParam() const {
   using namespace PatternMatch;
 
-  ElementCount EC = getStaticVectorLength();
+  ElementCount const EC = getStaticVectorLength();
 
   // No vlen param - no lanes masked-off by it.
   auto *VLParam = getVectorLengthParam();
@@ -461,7 +461,7 @@ bool VPIntrinsic::canIgnoreVectorLengthParam() const {
   if (!VLConst)
     return false;
 
-  uint64_t VLNum = VLConst->getZExtValue();
+  uint64_t const VLNum = VLConst->getZExtValue();
   if (VLNum >= EC.getKnownMinValue())
     return true;
 

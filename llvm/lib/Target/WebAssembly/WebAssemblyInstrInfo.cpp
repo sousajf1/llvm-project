@@ -91,7 +91,7 @@ void WebAssemblyInstrInfo::copyPhysReg(MachineBasicBlock &MBB,
 MachineInstr *WebAssemblyInstrInfo::commuteInstructionImpl(
     MachineInstr &MI, bool NewMI, unsigned OpIdx1, unsigned OpIdx2) const {
   // If the operands are stackified, we can't reorder them.
-  WebAssemblyFunctionInfo &MFI =
+  WebAssemblyFunctionInfo  const&MFI =
       *MI.getParent()->getParent()->getInfo<WebAssemblyFunctionInfo>();
   if (MFI.isVRegStackified(MI.getOperand(OpIdx1).getReg()) ||
       MFI.isVRegStackified(MI.getOperand(OpIdx2).getReg()))

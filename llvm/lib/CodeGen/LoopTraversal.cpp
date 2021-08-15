@@ -13,7 +13,7 @@
 using namespace llvm;
 
 bool LoopTraversal::isBlockDone(MachineBasicBlock *MBB) {
-  unsigned MBBNumber = MBB->getNumber();
+  unsigned const MBBNumber = MBB->getNumber();
   assert(MBBNumber < MBBInfos.size() && "Unexpected basic block number.");
   return MBBInfos[MBBNumber].PrimaryCompleted &&
          MBBInfos[MBBNumber].IncomingCompleted ==
@@ -26,13 +26,13 @@ LoopTraversal::TraversalOrder LoopTraversal::traverse(MachineFunction &MF) {
   MBBInfos.assign(MF.getNumBlockIDs(), MBBInfo());
 
   MachineBasicBlock *Entry = &*MF.begin();
-  ReversePostOrderTraversal<MachineBasicBlock *> RPOT(Entry);
+  ReversePostOrderTraversal<MachineBasicBlock *> const RPOT(Entry);
   SmallVector<MachineBasicBlock *, 4> Workqueue;
   SmallVector<TraversedMBBInfo, 4> MBBTraversalOrder;
   for (MachineBasicBlock *MBB : RPOT) {
     // N.B: IncomingProcessed and IncomingCompleted were already updated while
     // processing this block's predecessors.
-    unsigned MBBNumber = MBB->getNumber();
+    unsigned const MBBNumber = MBB->getNumber();
     assert(MBBNumber < MBBInfos.size() && "Unexpected basic block number.");
     MBBInfos[MBBNumber].PrimaryCompleted = true;
     MBBInfos[MBBNumber].PrimaryIncoming = MBBInfos[MBBNumber].IncomingProcessed;
@@ -41,10 +41,10 @@ LoopTraversal::TraversalOrder LoopTraversal::traverse(MachineFunction &MF) {
     while (!Workqueue.empty()) {
       MachineBasicBlock *ActiveMBB = &*Workqueue.back();
       Workqueue.pop_back();
-      bool Done = isBlockDone(ActiveMBB);
+      bool const Done = isBlockDone(ActiveMBB);
       MBBTraversalOrder.push_back(TraversedMBBInfo(ActiveMBB, Primary, Done));
       for (MachineBasicBlock *Succ : ActiveMBB->successors()) {
-        unsigned SuccNumber = Succ->getNumber();
+        unsigned const SuccNumber = Succ->getNumber();
         assert(SuccNumber < MBBInfos.size() &&
                "Unexpected basic block number.");
         if (!isBlockDone(Succ)) {

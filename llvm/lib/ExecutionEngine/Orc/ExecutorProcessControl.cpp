@@ -86,7 +86,7 @@ SelfExecutorProcessControl::lookupSymbols(ArrayRef<LookupRequest> Request) {
     R.push_back(std::vector<JITTargetAddress>());
     for (auto &KV : Elem.Symbols) {
       auto &Sym = KV.first;
-      std::string Tmp((*Sym).data() + !!GlobalManglingPrefix,
+      std::string const Tmp((*Sym).data() + !!GlobalManglingPrefix,
                       (*Sym).size() - !!GlobalManglingPrefix);
       void *Addr = Dylib->getAddressOfSymbol(Tmp.c_str());
       if (!Addr && KV.second == SymbolLookupFlags::RequiredSymbol) {

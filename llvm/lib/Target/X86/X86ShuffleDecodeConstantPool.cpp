@@ -44,14 +44,14 @@ static bool extractConstantMask(const Constant *C, unsigned MaskEltSizeInBits,
   if (!CstEltTy->isIntegerTy())
     return false;
 
-  unsigned CstSizeInBits = CstTy->getPrimitiveSizeInBits();
-  unsigned CstEltSizeInBits = CstTy->getScalarSizeInBits();
-  unsigned NumCstElts = CstTy->getNumElements();
+  unsigned const CstSizeInBits = CstTy->getPrimitiveSizeInBits();
+  unsigned const CstEltSizeInBits = CstTy->getScalarSizeInBits();
+  unsigned const NumCstElts = CstTy->getNumElements();
 
   assert((CstSizeInBits % MaskEltSizeInBits) == 0 &&
          "Unaligned shuffle mask size");
 
-  unsigned NumMaskElts = CstSizeInBits / MaskEltSizeInBits;
+  unsigned const NumMaskElts = CstSizeInBits / MaskEltSizeInBits;
   UndefElts = APInt(NumMaskElts, 0);
   RawMask.resize(NumMaskElts, 0);
 
@@ -83,7 +83,7 @@ static bool extractConstantMask(const Constant *C, unsigned MaskEltSizeInBits,
     if (!COp || (!isa<UndefValue>(COp) && !isa<ConstantInt>(COp)))
       return false;
 
-    unsigned BitOffset = i * CstEltSizeInBits;
+    unsigned const BitOffset = i * CstEltSizeInBits;
 
     if (isa<UndefValue>(COp)) {
       UndefBits.setBits(BitOffset, BitOffset + CstEltSizeInBits);
@@ -95,8 +95,8 @@ static bool extractConstantMask(const Constant *C, unsigned MaskEltSizeInBits,
 
   // Now extract the undef/constant bit data into the raw shuffle masks.
   for (unsigned i = 0; i != NumMaskElts; ++i) {
-    unsigned BitOffset = i * MaskEltSizeInBits;
-    APInt EltUndef = UndefBits.extractBits(MaskEltSizeInBits, BitOffset);
+    unsigned const BitOffset = i * MaskEltSizeInBits;
+    APInt const EltUndef = UndefBits.extractBits(MaskEltSizeInBits, BitOffset);
 
     // Only treat the element as UNDEF if all bits are UNDEF, otherwise
     // treat it as zero.
@@ -106,7 +106,7 @@ static bool extractConstantMask(const Constant *C, unsigned MaskEltSizeInBits,
       continue;
     }
 
-    APInt EltBits = MaskBits.extractBits(MaskEltSizeInBits, BitOffset);
+    APInt const EltBits = MaskBits.extractBits(MaskEltSizeInBits, BitOffset);
     RawMask[i] = EltBits.getZExtValue();
   }
 
@@ -125,7 +125,7 @@ void DecodePSHUFBMask(const Constant *C, unsigned Width,
   if (!extractConstantMask(C, 8, UndefElts, RawMask))
     return;
 
-  unsigned NumElts = Width / 8;
+  unsigned const NumElts = Width / 8;
   assert((NumElts == 16 || NumElts == 32 || NumElts == 64) &&
          "Unexpected number of vector elements.");
 
@@ -135,17 +135,17 @@ void DecodePSHUFBMask(const Constant *C, unsigned Width,
       continue;
     }
 
-    uint64_t Element = RawMask[i];
+    uint64_t const Element = RawMask[i];
     // If the high bit (7) of the byte is set, the element is zeroed.
     if (Element & (1 << 7))
       ShuffleMask.push_back(SM_SentinelZero);
     else {
       // For AVX vectors with 32 bytes the base of the shuffle is the 16-byte
       // lane of the vector we're inside.
-      unsigned Base = i & ~0xf;
+      unsigned const Base = i & ~0xf;
 
       // Only the least significant 4 bits of the byte are used.
-      int Index = Base + (Element & 0xf);
+      int const Index = Base + (Element & 0xf);
       ShuffleMask.push_back(Index);
     }
   }
@@ -164,8 +164,8 @@ void DecodeVPERMILPMask(const Constant *C, unsigned ElSize, unsigned Width,
   if (!extractConstantMask(C, ElSize, UndefElts, RawMask))
     return;
 
-  unsigned NumElts = Width / ElSize;
-  unsigned NumEltsPerLane = 128 / ElSize;
+  unsigned const NumElts = Width / ElSize;
+  unsigned const NumEltsPerLane = 128 / ElSize;
   assert((NumElts == 2 || NumElts == 4 || NumElts == 8 || NumElts == 16) &&
          "Unexpected number of vector elements.");
 
@@ -176,7 +176,7 @@ void DecodeVPERMILPMask(const Constant *C, unsigned ElSize, unsigned Width,
     }
 
     int Index = i & ~(NumEltsPerLane - 1);
-    uint64_t Element = RawMask[i];
+    uint64_t const Element = RawMask[i];
     if (ElSize == 64)
       Index += (Element >> 1) & 0x1;
     else
@@ -189,7 +189,7 @@ void DecodeVPERMILPMask(const Constant *C, unsigned ElSize, unsigned Width,
 void DecodeVPERMIL2PMask(const Constant *C, unsigned M2Z, unsigned ElSize,
                          unsigned Width, SmallVectorImpl<int> &ShuffleMask) {
   Type *MaskTy = C->getType();
-  unsigned MaskTySize = MaskTy->getPrimitiveSizeInBits();
+  unsigned const MaskTySize = MaskTy->getPrimitiveSizeInBits();
   (void)MaskTySize;
   assert((MaskTySize == 128 || MaskTySize == 256) && Width >= MaskTySize &&
          "Unexpected vector size.");
@@ -200,8 +200,8 @@ void DecodeVPERMIL2PMask(const Constant *C, unsigned M2Z, unsigned ElSize,
   if (!extractConstantMask(C, ElSize, UndefElts, RawMask))
     return;
 
-  unsigned NumElts = Width / ElSize;
-  unsigned NumEltsPerLane = 128 / ElSize;
+  unsigned const NumElts = Width / ElSize;
+  unsigned const NumEltsPerLane = 128 / ElSize;
   assert((NumElts == 2 || NumElts == 4 || NumElts == 8) &&
          "Unexpected number of vector elements.");
 
@@ -215,8 +215,8 @@ void DecodeVPERMIL2PMask(const Constant *C, unsigned M2Z, unsigned ElSize,
     // Bits[3] - Match Bit.
     // Bits[2:1] - (Per Lane) PD Shuffle Mask.
     // Bits[2:0] - (Per Lane) PS Shuffle Mask.
-    uint64_t Selector = RawMask[i];
-    unsigned MatchBit = (Selector >> 3) & 0x1;
+    uint64_t const Selector = RawMask[i];
+    unsigned const MatchBit = (Selector >> 3) & 0x1;
 
     // M2Z[0:1]     MatchBit
     //   0Xb           X        Source selected by Selector index.
@@ -235,7 +235,7 @@ void DecodeVPERMIL2PMask(const Constant *C, unsigned M2Z, unsigned ElSize,
     else
       Index += Selector & 0x3;
 
-    int Src = (Selector >> 2) & 0x1;
+    int const Src = (Selector >> 2) & 0x1;
     Index += Src * NumElts;
     ShuffleMask.push_back(Index);
   }
@@ -244,7 +244,7 @@ void DecodeVPERMIL2PMask(const Constant *C, unsigned M2Z, unsigned ElSize,
 void DecodeVPPERMMask(const Constant *C, unsigned Width,
                       SmallVectorImpl<int> &ShuffleMask) {
   Type *MaskTy = C->getType();
-  unsigned MaskTySize = MaskTy->getPrimitiveSizeInBits();
+  unsigned const MaskTySize = MaskTy->getPrimitiveSizeInBits();
   (void)MaskTySize;
   assert(Width == 128 && Width >= MaskTySize && "Unexpected vector size.");
 
@@ -254,7 +254,7 @@ void DecodeVPPERMMask(const Constant *C, unsigned Width,
   if (!extractConstantMask(C, 8, UndefElts, RawMask))
     return;
 
-  unsigned NumElts = Width / 8;
+  unsigned const NumElts = Width / 8;
   assert(NumElts == 16 && "Unexpected number of vector elements.");
 
   for (unsigned i = 0; i != NumElts; ++i) {
@@ -277,9 +277,9 @@ void DecodeVPPERMMask(const Constant *C, unsigned Width,
     // 6 - Most significant bit of source byte replicated in all bit positions.
     // 7 - Invert most significant bit of source byte and replicate in all bit
     // positions.
-    uint64_t Element = RawMask[i];
-    uint64_t Index = Element & 0x1F;
-    uint64_t PermuteOp = (Element >> 5) & 0x7;
+    uint64_t const Element = RawMask[i];
+    uint64_t const Index = Element & 0x1F;
+    uint64_t const PermuteOp = (Element >> 5) & 0x7;
 
     if (PermuteOp == 4) {
       ShuffleMask.push_back(SM_SentinelZero);

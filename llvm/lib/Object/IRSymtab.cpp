@@ -133,7 +133,7 @@ Error Builder::addModule(Module *M) {
   SmallVector<GlobalValue *, 4> UsedV;
   collectUsedGlobalVariables(*M, UsedV, /*CompilerUsed=*/false);
   collectUsedGlobalVariables(*M, UsedV, /*CompilerUsed=*/true);
-  SmallPtrSet<GlobalValue *, 4> Used(UsedV.begin(), UsedV.end());
+  SmallPtrSet<GlobalValue *, 4> const Used(UsedV.begin(), UsedV.end());
 
   ModuleSymbolTable Msymtab;
   Msymtab.addModule(M);
@@ -169,7 +169,7 @@ Error Builder::addModule(Module *M) {
     }
   }
 
-  for (ModuleSymbolTable::Symbol Msym : Msymtab.symbols())
+  for (ModuleSymbolTable::Symbol const Msym : Msymtab.symbols())
     if (Error Err = addSymbol(Msymtab, Used, Msym))
       return Err;
 
@@ -261,7 +261,7 @@ Error Builder::addSymbol(const ModuleSymbolTable &Msymtab,
 
   setStr(Sym.IRName, GV->getName());
 
-  bool IsBuiltinFunc = llvm::is_contained(LibcallRoutineNames, GV->getName());
+  bool const IsBuiltinFunc = llvm::is_contained(LibcallRoutineNames, GV->getName());
 
   if (Used.count(GV) || IsBuiltinFunc)
     Sym.Flags |= 1 << storage::Symbol::FB_used;
@@ -402,8 +402,8 @@ Expected<FileContents> irsymtab::readBitcode(const BitcodeFileContents &BFC) {
   // can rely on is that the version and producer will be present as the first
   // struct elements.
   auto *Hdr = reinterpret_cast<const storage::Header *>(BFC.Symtab.data());
-  unsigned Version = Hdr->Version;
-  StringRef Producer = Hdr->Producer.get(BFC.StrtabForSymtab);
+  unsigned const Version = Hdr->Version;
+  StringRef const Producer = Hdr->Producer.get(BFC.StrtabForSymtab);
   if (Version != storage::Header::kCurrentVersion ||
       Producer != kExpectedProducerName)
     return upgrade(BFC.Mods);

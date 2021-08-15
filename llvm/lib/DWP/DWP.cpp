@@ -28,7 +28,7 @@ static uint64_t debugStrOffsetsHeaderSize(DataExtractor StrOffsetsData,
   if (DwarfVersion <= 4)
     return 0; // There is no header before dwarf 5.
   uint64_t Offset = 0;
-  uint64_t Length = StrOffsetsData.getU32(&Offset);
+  uint64_t const Length = StrOffsetsData.getU32(&Offset);
   if (Length == llvm::dwarf::DW_LENGTH_DWARF64)
     return 16; // unit length: 12 bytes, version: 2 bytes, padding: 2 bytes.
   return 8;    // unit length: 4 bytes, version: 2 bytes, padding: 2 bytes.
@@ -36,7 +36,7 @@ static uint64_t debugStrOffsetsHeaderSize(DataExtractor StrOffsetsData,
 
 static uint64_t getCUAbbrev(StringRef Abbrev, uint64_t AbbrCode) {
   uint64_t Offset = 0;
-  DataExtractor AbbrevData(Abbrev, true, 0);
+  DataExtractor const AbbrevData(Abbrev, true, 0);
   while (AbbrevData.getULEB128(&Offset) != AbbrCode) {
     // Tag
     AbbrevData.getULEB128(&Offset);
@@ -78,19 +78,19 @@ getIndexedString(dwarf::Form Form, DataExtractor InfoData, uint64_t &InfoOffset,
         "DW_FORM_string, DW_FORM_strx, DW_FORM_strx1, DW_FORM_strx2, "
         "DW_FORM_strx3, DW_FORM_strx4, or DW_FORM_GNU_str_index.");
   }
-  DataExtractor StrOffsetsData(StrOffsets, true, 0);
+  DataExtractor const StrOffsetsData(StrOffsets, true, 0);
   uint64_t StrOffsetsOffset = 4 * StrIndex;
   StrOffsetsOffset += debugStrOffsetsHeaderSize(StrOffsetsData, Version);
 
   uint64_t StrOffset = StrOffsetsData.getU32(&StrOffsetsOffset);
-  DataExtractor StrData(Str, true, 0);
+  DataExtractor const StrData(Str, true, 0);
   return StrData.getCStr(&StrOffset);
 }
 
 static Expected<CompileUnitIdentifiers>
 getCUIdentifiers(InfoSectionUnitHeader &Header, StringRef Abbrev,
                  StringRef Info, StringRef StrOffsets, StringRef Str) {
-  DataExtractor InfoData(Info, true, 0);
+  DataExtractor const InfoData(Info, true, 0);
   uint64_t Offset = Header.HeaderSize;
   if (Header.Version >= 5 && Header.UnitType != dwarf::DW_UT_split_compile)
     return make_error<DWPError>(
@@ -100,8 +100,8 @@ getCUIdentifiers(InfoSectionUnitHeader &Header, StringRef Abbrev,
 
   CompileUnitIdentifiers ID;
 
-  uint32_t AbbrCode = InfoData.getULEB128(&Offset);
-  DataExtractor AbbrevData(Abbrev, true, 0);
+  uint32_t const AbbrCode = InfoData.getULEB128(&Offset);
+  DataExtractor const AbbrevData(Abbrev, true, 0);
   uint64_t AbbrevOffset = getCUAbbrev(Abbrev, AbbrCode);
   auto Tag = static_cast<dwarf::Tag>(AbbrevData.getULEB128(&AbbrevOffset));
   if (Tag != dwarf::DW_TAG_compile_unit)
@@ -214,10 +214,10 @@ static void addAllTypesFromTypesSection(
     MCStreamer &Out, MapVector<uint64_t, UnitIndexEntry> &TypeIndexEntries,
     MCSection *OutputTypes, const std::vector<StringRef> &TypesSections,
     const UnitIndexEntry &CUEntry, uint32_t &TypesOffset) {
-  for (StringRef Types : TypesSections) {
+  for (StringRef const Types : TypesSections) {
     Out.SwitchSection(OutputTypes);
     uint64_t Offset = 0;
-    DataExtractor Data(Types, true, 0);
+    DataExtractor const Data(Types, true, 0);
     while (Data.isValidOffset(Offset)) {
       UnitIndexEntry Entry = CUEntry;
       // Zero out the debug_info contribution
@@ -296,7 +296,7 @@ Expected<InfoSectionUnitHeader> parseInfoSectionUnitHeader(StringRef Info) {
   InfoSectionUnitHeader Header;
   Error Err = Error::success();
   uint64_t Offset = 0;
-  DWARFDataExtractor InfoData(Info, true, 0);
+  DWARFDataExtractor const InfoData(Info, true, 0);
   std::tie(Header.Length, Header.Format) =
       InfoData.getInitialLength(&Offset, &Err);
   if (Err)
@@ -375,9 +375,9 @@ void writeStringsAndOffsets(MCStreamer &Out, DWPStringPool &Strings,
 
   Out.SwitchSection(StrOffsetSection);
 
-  uint64_t HeaderSize = debugStrOffsetsHeaderSize(Data, Version);
+  uint64_t const HeaderSize = debugStrOffsetsHeaderSize(Data, Version);
   uint64_t Offset = 0;
-  uint64_t Size = CurStrOffsetSection.size();
+  uint64_t const Size = CurStrOffsetSection.size();
   // FIXME: This can be caused by bad input and should be handled as such.
   assert(HeaderSize <= Size && "StrOffsetSection size is less than its header");
   // Copy the header to the output.
@@ -412,7 +412,7 @@ void writeIndex(MCStreamer &Out, MCSection *Section,
       ++Columns;
 
   std::vector<unsigned> Buckets(NextPowerOf2(3 * IndexEntries.size() / 2));
-  uint64_t Mask = Buckets.size() - 1;
+  uint64_t const Mask = Buckets.size() - 1;
   size_t I = 0;
   for (const auto &P : IndexEntries) {
     auto S = P.first;
@@ -502,7 +502,7 @@ Error handleSection(
   if (SectionPair == KnownSections.end())
     return Error::success();
 
-  if (DWARFSectionKind Kind = SectionPair->second.second) {
+  if (DWARFSectionKind const Kind = SectionPair->second.second) {
     if (Kind != DW_SECT_EXT_TYPES && Kind != DW_SECT_INFO) {
       SectionLength.push_back(std::make_pair(Kind, Contents.size()));
     }
@@ -610,7 +610,7 @@ Error write(MCStreamer &Out, ArrayRef<std::string> Inputs) {
         parseInfoSectionUnitHeader(CurInfoSection.front());
     if (!HeaderOrErr)
       return HeaderOrErr.takeError();
-    InfoSectionUnitHeader &Header = *HeaderOrErr;
+    InfoSectionUnitHeader  const&Header = *HeaderOrErr;
 
     if (Version == 0) {
       Version = Header.Version;
@@ -634,7 +634,7 @@ Error write(MCStreamer &Out, ArrayRef<std::string> Inputs) {
     if (CurCUIndexSection.empty()) {
       bool FoundCUUnit = false;
       Out.SwitchSection(InfoSection);
-      for (StringRef Info : CurInfoSection) {
+      for (StringRef const Info : CurInfoSection) {
         uint64_t UnitOffset = 0;
         while (Info.size() > UnitOffset) {
           Expected<InfoSectionUnitHeader> HeaderOrError =
@@ -692,10 +692,10 @@ Error write(MCStreamer &Out, ArrayRef<std::string> Inputs) {
     if (CurInfoSection.size() != 1)
       return make_error<DWPError>("expected exactly one occurrence of a debug "
                                   "info section in a .dwp file");
-    StringRef DwpSingleInfoSection = CurInfoSection.front();
+    StringRef const DwpSingleInfoSection = CurInfoSection.front();
 
     DWARFUnitIndex CUIndex(DW_SECT_INFO);
-    DataExtractor CUIndexData(CurCUIndexSection, Obj.isLittleEndian(), 0);
+    DataExtractor const CUIndexData(CurCUIndexSection, Obj.isLittleEndian(), 0);
     if (!CUIndex.parse(CUIndexData))
       return make_error<DWPError>("failed to parse cu_index");
     if (CUIndex.getVersion() != IndexVersion)
@@ -709,7 +709,7 @@ Error write(MCStreamer &Out, ArrayRef<std::string> Inputs) {
       if (!I)
         continue;
       auto P = IndexEntries.insert(std::make_pair(E.getSignature(), CurEntry));
-      StringRef CUInfoSection =
+      StringRef const CUInfoSection =
           getSubsection(DwpSingleInfoSection, E, DW_SECT_INFO);
       Expected<InfoSectionUnitHeader> HeaderOrError =
           parseInfoSectionUnitHeader(CUInfoSection);
@@ -740,7 +740,7 @@ Error write(MCStreamer &Out, ArrayRef<std::string> Inputs) {
         C.Length = I->Length;
         ++I;
       }
-      unsigned Index = getContributionIndex(DW_SECT_INFO, IndexVersion);
+      unsigned const Index = getContributionIndex(DW_SECT_INFO, IndexVersion);
       auto &C = NewEntry.Contributions[Index];
       Out.emitBytes(CUInfoSection);
       C.Offset = InfoSectionOffset;
@@ -768,7 +768,7 @@ Error write(MCStreamer &Out, ArrayRef<std::string> Inputs) {
       }
 
       DWARFUnitIndex TUIndex(TUSectionKind);
-      DataExtractor TUIndexData(CurTUIndexSection, Obj.isLittleEndian(), 0);
+      DataExtractor const TUIndexData(CurTUIndexSection, Obj.isLittleEndian(), 0);
       if (!TUIndex.parse(TUIndexData))
         return make_error<DWPError>("failed to parse tu_index");
       if (TUIndex.getVersion() != IndexVersion)
@@ -776,7 +776,7 @@ Error write(MCStreamer &Out, ArrayRef<std::string> Inputs) {
                                     utostr(TUIndex.getVersion()) +
                                     " and expecting " + utostr(IndexVersion));
 
-      unsigned TypesContributionIndex =
+      unsigned const TypesContributionIndex =
           getContributionIndex(TUSectionKind, IndexVersion);
       addAllTypesFromDWP(Out, TypeIndexEntries, TUIndex, OutSection,
                          TypeInputSection, CurEntry,

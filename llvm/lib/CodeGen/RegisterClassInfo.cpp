@@ -79,7 +79,7 @@ void RegisterClassInfo::runOnMachineFunction(const MachineFunction &mf) {
 
   // Invalidate cached information from previous function.
   if (Update) {
-    unsigned NumPSets = TRI->getNumRegPressureSets();
+    unsigned const NumPSets = TRI->getNumRegPressureSets();
     PSetLimits.reset(new unsigned[NumPSets]);
     std::fill(&PSetLimits[0], &PSetLimits[NumPSets], 0);
     ++Tag;
@@ -95,7 +95,7 @@ void RegisterClassInfo::compute(const TargetRegisterClass *RC) const {
   auto &STI = MF->getSubtarget();
 
   // Raw register count, including all reserved regs.
-  unsigned NumRegs = RC->getNumRegs();
+  unsigned const NumRegs = RC->getNumRegs();
 
   if (!RCI.Order)
     RCI.Order.reset(new MCPhysReg[NumRegs]);
@@ -108,13 +108,13 @@ void RegisterClassInfo::compute(const TargetRegisterClass *RC) const {
 
   // FIXME: Once targets reserve registers instead of removing them from the
   // allocation order, we can simply use begin/end here.
-  ArrayRef<MCPhysReg> RawOrder = RC->getRawAllocationOrder(*MF);
+  ArrayRef<MCPhysReg> const RawOrder = RC->getRawAllocationOrder(*MF);
   for (unsigned i = 0; i != RawOrder.size(); ++i) {
-    unsigned PhysReg = RawOrder[i];
+    unsigned const PhysReg = RawOrder[i];
     // Remove reserved registers from the allocation order.
     if (Reserved.test(PhysReg))
       continue;
-    uint8_t Cost = RegCosts[PhysReg];
+    uint8_t const Cost = RegCosts[PhysReg];
     MinCost = std::min(MinCost, Cost);
 
     if (CalleeSavedAliases[PhysReg] &&
@@ -133,8 +133,8 @@ void RegisterClassInfo::compute(const TargetRegisterClass *RC) const {
 
   // CSR aliases go after the volatile registers, preserve the target's order.
   for (unsigned i = 0, e = CSRAlias.size(); i != e; ++i) {
-    unsigned PhysReg = CSRAlias[i];
-    uint8_t Cost = RegCosts[PhysReg];
+    unsigned const PhysReg = CSRAlias[i];
+    uint8_t const Cost = RegCosts[PhysReg];
     if (Cost != LastCost)
       LastCostChange = N;
     RCI.Order[N++] = PhysReg;
@@ -182,7 +182,7 @@ unsigned RegisterClassInfo::computePSetLimit(unsigned Idx) const {
 
     // Found a register class that counts against this pressure set.
     // For efficiency, only compute the set order for the largest set.
-    unsigned NUnits = TRI->getRegClassWeight(C).WeightLimit;
+    unsigned const NUnits = TRI->getRegClassWeight(C).WeightLimit;
     if (!RC || NUnits > NumRCUnits) {
       RC = C;
       NumRCUnits = NUnits;
@@ -190,14 +190,14 @@ unsigned RegisterClassInfo::computePSetLimit(unsigned Idx) const {
   }
   assert(RC && "Failed to find register class");
   compute(RC);
-  unsigned NAllocatableRegs = getNumAllocatableRegs(RC);
-  unsigned RegPressureSetLimit = TRI->getRegPressureSetLimit(*MF, Idx);
+  unsigned const NAllocatableRegs = getNumAllocatableRegs(RC);
+  unsigned const RegPressureSetLimit = TRI->getRegPressureSetLimit(*MF, Idx);
   // If all the regs are reserved, return raw RegPressureSetLimit.
   // One example is VRSAVERC in PowerPC.
   // Avoid returning zero, getRegPressureSetLimit(Idx) assumes computePSetLimit
   // return non-zero value.
   if (NAllocatableRegs == 0)
     return RegPressureSetLimit;
-  unsigned NReserved = RC->getNumRegs() - NAllocatableRegs;
+  unsigned const NReserved = RC->getNumRegs() - NAllocatableRegs;
   return RegPressureSetLimit - TRI->getRegClassWeight(RC).RegWeight * NReserved;
 }

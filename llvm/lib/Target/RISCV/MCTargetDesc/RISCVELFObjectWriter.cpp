@@ -51,7 +51,7 @@ unsigned RISCVELFObjectWriter::getRelocType(MCContext &Ctx,
                                             bool IsPCRel) const {
   const MCExpr *Expr = Fixup.getValue();
   // Determine the type of the relocation
-  unsigned Kind = Fixup.getTargetKind();
+  unsigned const Kind = Fixup.getTargetKind();
   if (Kind >= FirstLiteralRelocationKind)
     return Kind - FirstLiteralRelocationKind;
   if (IsPCRel) {

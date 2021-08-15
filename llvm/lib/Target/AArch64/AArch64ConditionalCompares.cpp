@@ -221,7 +221,7 @@ bool SSACCmpConv::trivialTailPHIs() {
     // PHI operands come in (VReg, MBB) pairs.
     for (unsigned oi = 1, oe = I.getNumOperands(); oi != oe; oi += 2) {
       MachineBasicBlock *MBB = I.getOperand(oi + 1).getMBB();
-      Register Reg = I.getOperand(oi).getReg();
+      Register const Reg = I.getOperand(oi).getReg();
       if (MBB == Head) {
         assert((!HeadReg || HeadReg == Reg) && "Inconsistent PHI operands");
         HeadReg = Reg;
@@ -316,7 +316,7 @@ MachineInstr *SSACCmpConv::findConvertibleCompare(MachineBasicBlock *MBB) {
   }
 
   // Now find the instruction controlling the terminator.
-  for (MachineBasicBlock::iterator B = MBB->begin(); I != B;) {
+  for (MachineBasicBlock::iterator const B = MBB->begin(); I != B;) {
     I = prev_nodbg(I, MBB->begin());
     assert(!I->isTerminator() && "Spurious terminator");
     switch (I->getOpcode()) {
@@ -352,7 +352,7 @@ MachineInstr *SSACCmpConv::findConvertibleCompare(MachineBasicBlock *MBB) {
     }
 
     // Check for flag reads and clobbers.
-    PhysRegInfo PRI = AnalyzePhysRegInBundle(*I, AArch64::NZCV, TRI);
+    PhysRegInfo const PRI = AnalyzePhysRegInBundle(*I, AArch64::NZCV, TRI);
 
     if (PRI.Read) {
       // The ccmp doesn't produce exactly the same flags as the original
@@ -577,8 +577,8 @@ void SSACCmpConv::convert(SmallVectorImpl<MachineBasicBlock *> &RemovedBlocks) {
 
   // Save successor probabilties before removing CmpBB and Tail from their
   // parents.
-  BranchProbability Head2CmpBB = MBPI->getEdgeProbability(Head, CmpBB);
-  BranchProbability CmpBB2Tail = MBPI->getEdgeProbability(CmpBB, Tail);
+  BranchProbability const Head2CmpBB = MBPI->getEdgeProbability(Head, CmpBB);
+  BranchProbability const CmpBB2Tail = MBPI->getEdgeProbability(CmpBB, Tail);
 
   Head->removeSuccessor(CmpBB);
   CmpBB->removeSuccessor(Tail);
@@ -593,7 +593,7 @@ void SSACCmpConv::convert(SmallVectorImpl<MachineBasicBlock *> &RemovedBlocks) {
     //
     // Pr(Tail|Head) += Pr(CmpBB|Head) * Pr(Tail|CmpBB).
     assert(*Head->succ_begin() == Tail && "Head successor is not Tail");
-    BranchProbability Head2Tail = MBPI->getEdgeProbability(Head, Tail);
+    BranchProbability const Head2Tail = MBPI->getEdgeProbability(Head, Tail);
     Head->setSuccProbability(Head->succ_begin(),
                              Head2Tail + Head2CmpBB * CmpBB2Tail);
 
@@ -603,13 +603,13 @@ void SSACCmpConv::convert(SmallVectorImpl<MachineBasicBlock *> &RemovedBlocks) {
     //
     // Pr(I|Head) = Pr(CmpBB|Head) * Pr(I|CmpBB).
     for (auto I = CmpBB->succ_begin(), E = CmpBB->succ_end(); I != E; ++I) {
-      BranchProbability CmpBB2I = MBPI->getEdgeProbability(CmpBB, *I);
+      BranchProbability const CmpBB2I = MBPI->getEdgeProbability(CmpBB, *I);
       CmpBB->setSuccProbability(I, Head2CmpBB * CmpBB2I);
     }
   }
 
   Head->transferSuccessorsAndUpdatePHIs(CmpBB);
-  DebugLoc TermDL = Head->getFirstTerminator()->getDebugLoc();
+  DebugLoc const TermDL = Head->getFirstTerminator()->getDebugLoc();
   TII->removeBranch(*Head);
 
   // If the Head terminator was one of the cbz / tbz branches with built-in
@@ -631,7 +631,7 @@ void SSACCmpConv::convert(SmallVectorImpl<MachineBasicBlock *> &RemovedBlocks) {
     }
     const MCInstrDesc &MCID = TII->get(Opc);
     // Create a dummy virtual register for the SUBS def.
-    Register DestReg =
+    Register const DestReg =
         MRI->createVirtualRegister(TII->getRegClass(MCID, 0, TRI, *MF));
     // Insert a SUBS Rn, #0 instruction instead of the cbz / cbnz.
     BuildMI(*Head, Head->end(), TermDL, MCID)
@@ -685,14 +685,14 @@ void SSACCmpConv::convert(SmallVectorImpl<MachineBasicBlock *> &RemovedBlocks) {
   // The NZCV immediate operand should provide flags for the case where Head
   // would have branched to Tail. These flags should cause the new Head
   // terminator to branch to tail.
-  unsigned NZCV = AArch64CC::getNZCVToSatisfyCondCode(CmpBBTailCC);
+  unsigned const NZCV = AArch64CC::getNZCVToSatisfyCondCode(CmpBBTailCC);
   const MCInstrDesc &MCID = TII->get(Opc);
   MRI->constrainRegClass(CmpMI->getOperand(FirstOp).getReg(),
                          TII->getRegClass(MCID, 0, TRI, *MF));
   if (CmpMI->getOperand(FirstOp + 1).isReg())
     MRI->constrainRegClass(CmpMI->getOperand(FirstOp + 1).getReg(),
                            TII->getRegClass(MCID, 1, TRI, *MF));
-  MachineInstrBuilder MIB = BuildMI(*Head, CmpMI, CmpMI->getDebugLoc(), MCID)
+  MachineInstrBuilder const MIB = BuildMI(*Head, CmpMI, CmpMI->getDebugLoc(), MCID)
                                 .add(CmpMI->getOperand(FirstOp)); // Register Rn
   if (isZBranch)
     MIB.addImm(0); // cbz/cbnz Rn -> ccmp Rn, #0
@@ -703,7 +703,7 @@ void SSACCmpConv::convert(SmallVectorImpl<MachineBasicBlock *> &RemovedBlocks) {
   // If CmpMI was a terminator, we need a new conditional branch to replace it.
   // This now becomes a Head terminator.
   if (isZBranch) {
-    bool isNZ = CmpMI->getOpcode() == AArch64::CBNZW ||
+    bool const isNZ = CmpMI->getOpcode() == AArch64::CBNZW ||
                 CmpMI->getOpcode() == AArch64::CBNZX;
     BuildMI(*Head, CmpMI, CmpMI->getDebugLoc(), TII->get(AArch64::Bcc))
         .addImm(isNZ ? AArch64CC::NE : AArch64CC::EQ)
@@ -859,11 +859,11 @@ bool AArch64ConditionalCompares::shouldConvert() {
     MinInstr = Traces->getEnsemble(MachineTraceMetrics::TS_MinInstrCount);
 
   // Head dominates CmpBB, so it is always included in its trace.
-  MachineTraceMetrics::Trace Trace = MinInstr->getTrace(CmpConv.CmpBB);
+  MachineTraceMetrics::Trace const Trace = MinInstr->getTrace(CmpConv.CmpBB);
 
   // If code size is the main concern
   if (MinSize) {
-    int CodeSizeDelta = CmpConv.expectedCodeSizeDelta();
+    int const CodeSizeDelta = CmpConv.expectedCodeSizeDelta();
     LLVM_DEBUG(dbgs() << "Code size delta:  " << CodeSizeDelta << '\n');
     // If we are minimizing the code size, do the conversion whatever
     // the cost is.
@@ -882,12 +882,12 @@ bool AArch64ConditionalCompares::shouldConvert() {
   // the cost of a misprediction.
   //
   // Set a limit on the delay we will accept.
-  unsigned DelayLimit = SchedModel.MispredictPenalty * 3 / 4;
+  unsigned const DelayLimit = SchedModel.MispredictPenalty * 3 / 4;
 
   // Instruction depths can be computed for all trace instructions above CmpBB.
-  unsigned HeadDepth =
+  unsigned const HeadDepth =
       Trace.getInstrCycles(*CmpConv.Head->getFirstTerminator()).Depth;
-  unsigned CmpBBDepth =
+  unsigned const CmpBBDepth =
       Trace.getInstrCycles(*CmpConv.CmpBB->getFirstTerminator()).Depth;
   LLVM_DEBUG(dbgs() << "Head depth:  " << HeadDepth
                     << "\nCmpBB depth: " << CmpBBDepth << '\n');
@@ -899,7 +899,7 @@ bool AArch64ConditionalCompares::shouldConvert() {
 
   // Check the resource depth at the bottom of CmpBB - these instructions will
   // be speculated.
-  unsigned ResDepth = Trace.getResourceDepth(true);
+  unsigned const ResDepth = Trace.getResourceDepth(true);
   LLVM_DEBUG(dbgs() << "Resources:   " << ResDepth << '\n');
 
   // Heuristic: The speculatively executed instructions must all be able to

@@ -34,7 +34,7 @@ void SubtargetFeatures::Split(std::vector<std::string> &V, StringRef S) {
   SmallVector<StringRef, 3> Tmp;
   S.split(Tmp, ',', -1, false /* KeepEmpty */);
   V.reserve(Tmp.size());
-  for (StringRef T : Tmp)
+  for (StringRef const T : Tmp)
     V.push_back(std::string(T));
 }
 

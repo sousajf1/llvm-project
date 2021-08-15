@@ -69,7 +69,7 @@ void AArch64TargetStreamer::emitNoteSection(unsigned Flags) {
   MCSectionELF *Nt = Context.getELFSection(".note.gnu.property", ELF::SHT_NOTE,
                                            ELF::SHF_ALLOC);
   if (Nt->isRegistered()) {
-    SMLoc Loc;
+    SMLoc const Loc;
     Context.reportWarning(
         Loc,
         "The .note.gnu.property is not emitted because it is already present.");

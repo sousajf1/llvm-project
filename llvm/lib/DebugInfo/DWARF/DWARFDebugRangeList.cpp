@@ -38,7 +38,7 @@ Error DWARFDebugRangeList::extract(const DWARFDataExtractor &data,
     RangeListEntry Entry;
     Entry.SectionIndex = -1ULL;
 
-    uint64_t prev_offset = *offset_ptr;
+    uint64_t const prev_offset = *offset_ptr;
     Entry.StartAddress = data.getRelocatedAddress(offset_ptr);
     Entry.EndAddress =
         data.getRelocatedAddress(offset_ptr, &Entry.SectionIndex);
@@ -72,7 +72,7 @@ DWARFAddressRangesVector DWARFDebugRangeList::getAbsoluteRanges(
   DWARFAddressRangesVector Res;
   // debug_addr can't use the max integer tombstone because that's used for the
   // base address specifier entry - so use max-1.
-  uint64_t Tombstone = dwarf::computeTombstoneAddress(AddressSize) - 1;
+  uint64_t const Tombstone = dwarf::computeTombstoneAddress(AddressSize) - 1;
   for (const RangeListEntry &RLE : Entries) {
     if (RLE.isBaseAddressSelectionEntry(AddressSize)) {
       BaseAddr = {RLE.EndAddress, RLE.SectionIndex};

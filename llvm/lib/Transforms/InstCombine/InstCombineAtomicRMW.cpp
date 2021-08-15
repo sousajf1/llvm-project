@@ -111,7 +111,7 @@ Instruction *InstCombinerImpl::visitAtomicRMWInst(AtomicRMWInst &RMWI) {
     return &RMWI;
   }
 
-  AtomicOrdering Ordering = RMWI.getOrdering();
+  AtomicOrdering const Ordering = RMWI.getOrdering();
   assert(Ordering != AtomicOrdering::NotAtomic &&
          Ordering != AtomicOrdering::Unordered &&
          "AtomicRMWs don't make sense with Unordered or NotAtomic");

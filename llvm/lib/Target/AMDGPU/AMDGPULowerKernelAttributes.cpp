@@ -100,7 +100,7 @@ static bool processUse(CallInst *CI) {
     if (!Load || !Load->isSimple())
       continue;
 
-    unsigned LoadSize = DL.getTypeStoreSize(Load->getType());
+    unsigned const LoadSize = DL.getTypeStoreSize(Load->getType());
 
     // TODO: Handle merged loads.
     switch (Offset) {
@@ -154,8 +154,8 @@ static bool processUse(CallInst *CI) {
   // the same).
 
   bool MadeChange = false;
-  Value *WorkGroupSizes[3] = { WorkGroupSizeX, WorkGroupSizeY, WorkGroupSizeZ };
-  Value *GridSizes[3] = { GridSizeX, GridSizeY, GridSizeZ };
+  Value *const WorkGroupSizes[3] = { WorkGroupSizeX, WorkGroupSizeY, WorkGroupSizeZ };
+  Value *const GridSizes[3] = { GridSizeX, GridSizeY, GridSizeZ };
 
   for (int I = 0; HasUniformWorkGroupSize && I < 3; ++I) {
     Value *GroupSize = WorkGroupSizes[I];
@@ -227,7 +227,7 @@ static bool processUse(CallInst *CI) {
 // TODO: Move makeLIDRangeMetadata usage into here. Seem to not get
 // TargetPassConfig for subtarget.
 bool AMDGPULowerKernelAttributes::runOnModule(Module &M) {
-  StringRef DispatchPtrName
+  StringRef const DispatchPtrName
     = Intrinsic::getName(Intrinsic::amdgcn_dispatch_ptr);
 
   Function *DispatchPtr = M.getFunction(DispatchPtrName);
@@ -261,7 +261,7 @@ ModulePass *llvm::createAMDGPULowerKernelAttributesPass() {
 
 PreservedAnalyses
 AMDGPULowerKernelAttributesPass::run(Function &F, FunctionAnalysisManager &AM) {
-  StringRef DispatchPtrName =
+  StringRef const DispatchPtrName =
       Intrinsic::getName(Intrinsic::amdgcn_dispatch_ptr);
 
   Function *DispatchPtr = F.getParent()->getFunction(DispatchPtrName);

@@ -363,7 +363,7 @@ int columnWidthUTF8(StringRef Text) {
     if (conversionOK != ConvertUTF8toUTF32(&Start, Start + Length, &Target,
                                            Target + 1, strictConversion))
       return ErrorInvalidUTF8;
-    int Width = charWidth(buf[0]);
+    int const Width = charWidth(buf[0]);
     if (Width < 0)
       return ErrorNonPrintableCharacter;
     ColumnWidth += Width;

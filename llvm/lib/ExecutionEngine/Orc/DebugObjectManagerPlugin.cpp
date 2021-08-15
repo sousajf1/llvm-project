@@ -230,9 +230,9 @@ static bool isDwarfSection(StringRef SectionName) {
 
 std::unique_ptr<WritableMemoryBuffer>
 ELFDebugObject::CopyBuffer(MemoryBufferRef Buffer, Error &Err) {
-  ErrorAsOutParameter _(&Err);
-  size_t Size = Buffer.getBufferSize();
-  StringRef Name = Buffer.getBufferIdentifier();
+  ErrorAsOutParameter const _(&Err);
+  size_t const Size = Buffer.getBufferSize();
+  StringRef const Name = Buffer.getBufferIdentifier();
   if (auto Copy = WritableMemoryBuffer::getNewUninitMemBuffer(Size, Name)) {
     memcpy(Copy->getBufferStart(), Buffer.getBufferStart(), Size);
     return Copy;
@@ -259,7 +259,7 @@ ELFDebugObject::CreateArchType(MemoryBufferRef Buffer, JITLinkContext &Ctx,
     return ObjRef.takeError();
 
   // TODO: Add support for other architectures.
-  uint16_t TargetMachineArch = ObjRef->getHeader().e_machine;
+  uint16_t const TargetMachineArch = ObjRef->getHeader().e_machine;
   if (TargetMachineArch != ELF::EM_X86_64)
     return nullptr;
 
@@ -324,10 +324,10 @@ ELFDebugObject::finalizeWorkingMemory(JITLinkContext &Ctx) {
   });
 
   // TODO: This works, but what actual alignment requirements do we have?
-  unsigned Alignment = sys::Process::getPageSizeEstimate();
+  unsigned const Alignment = sys::Process::getPageSizeEstimate();
   JITLinkMemoryManager &MemMgr = Ctx.getMemoryManager();
   const JITLinkDylib *JD = Ctx.getJITLinkDylib();
-  size_t Size = Buffer->getBufferSize();
+  size_t const Size = Buffer->getBufferSize();
 
   // Allocate working memory for debug object in read-only segment.
   JITLinkMemoryManager::SegmentsRequestMap SingleReadOnlySegment;
@@ -341,7 +341,7 @@ ELFDebugObject::finalizeWorkingMemory(JITLinkContext &Ctx) {
   // Initialize working memory with a copy of our object buffer.
   // TODO: Use our buffer as working memory directly.
   std::unique_ptr<Allocation> Alloc = std::move(*AllocOrErr);
-  MutableArrayRef<char> WorkingMem = Alloc->getWorkingMemory(ReadOnly);
+  MutableArrayRef<char> const WorkingMem = Alloc->getWorkingMemory(ReadOnly);
   memcpy(WorkingMem.data(), Buffer->getBufferStart(), Size);
   Buffer.reset();
 
@@ -397,7 +397,7 @@ DebugObjectManagerPlugin::~DebugObjectManagerPlugin() = default;
 void DebugObjectManagerPlugin::notifyMaterializing(
     MaterializationResponsibility &MR, LinkGraph &G, JITLinkContext &Ctx,
     MemoryBufferRef ObjBuffer) {
-  std::lock_guard<std::mutex> Lock(PendingObjsLock);
+  std::lock_guard<std::mutex> const Lock(PendingObjsLock);
   assert(PendingObjs.count(&MR) == 0 &&
          "Cannot have more than one pending debug object per "
          "MaterializationResponsibility");
@@ -415,7 +415,7 @@ void DebugObjectManagerPlugin::modifyPassConfig(
     MaterializationResponsibility &MR, LinkGraph &G,
     PassConfiguration &PassConfig) {
   // Not all link artifacts have associated debug objects.
-  std::lock_guard<std::mutex> Lock(PendingObjsLock);
+  std::lock_guard<std::mutex> const Lock(PendingObjsLock);
   auto It = PendingObjs.find(&MR);
   if (It == PendingObjs.end())
     return;
@@ -434,7 +434,7 @@ void DebugObjectManagerPlugin::modifyPassConfig(
 
 Error DebugObjectManagerPlugin::notifyEmitted(
     MaterializationResponsibility &MR) {
-  std::lock_guard<std::mutex> Lock(PendingObjsLock);
+  std::lock_guard<std::mutex> const Lock(PendingObjsLock);
   auto It = PendingObjs.find(&MR);
   if (It == PendingObjs.end())
     return Error::success();
@@ -462,7 +462,7 @@ Error DebugObjectManagerPlugin::notifyEmitted(
         // finish materialization.
         FinalizePromise.set_value(MR.withResourceKeyDo([&](ResourceKey K) {
           assert(PendingObjs.count(&MR) && "We still hold PendingObjsLock");
-          std::lock_guard<std::mutex> Lock(RegisteredObjsLock);
+          std::lock_guard<std::mutex> const Lock(RegisteredObjsLock);
           RegisteredObjs[K].push_back(std::move(PendingObjs[&MR]));
           PendingObjs.erase(&MR);
         }));
@@ -473,7 +473,7 @@ Error DebugObjectManagerPlugin::notifyEmitted(
 
 Error DebugObjectManagerPlugin::notifyFailed(
     MaterializationResponsibility &MR) {
-  std::lock_guard<std::mutex> Lock(PendingObjsLock);
+  std::lock_guard<std::mutex> const Lock(PendingObjsLock);
   PendingObjs.erase(&MR);
   return Error::success();
 }
@@ -482,7 +482,7 @@ void DebugObjectManagerPlugin::notifyTransferringResources(ResourceKey DstKey,
                                                            ResourceKey SrcKey) {
   // Debug objects are stored by ResourceKey only after registration.
   // Thus, pending objects don't need to be updated here.
-  std::lock_guard<std::mutex> Lock(RegisteredObjsLock);
+  std::lock_guard<std::mutex> const Lock(RegisteredObjsLock);
   auto SrcIt = RegisteredObjs.find(SrcKey);
   if (SrcIt != RegisteredObjs.end()) {
     // Resources from distinct MaterializationResponsibilitys can get merged
@@ -496,7 +496,7 @@ void DebugObjectManagerPlugin::notifyTransferringResources(ResourceKey DstKey,
 Error DebugObjectManagerPlugin::notifyRemovingResources(ResourceKey Key) {
   // Removing the resource for a pending object fails materialization, so they
   // get cleaned up in the notifyFailed() handler.
-  std::lock_guard<std::mutex> Lock(RegisteredObjsLock);
+  std::lock_guard<std::mutex> const Lock(RegisteredObjsLock);
   RegisteredObjs.erase(Key);
 
   // TODO: Implement unregister notifications.

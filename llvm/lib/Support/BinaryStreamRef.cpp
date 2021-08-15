@@ -94,7 +94,7 @@ Error BinaryStreamRef::readLongestContiguousChunk(
   // This StreamRef might refer to a smaller window over a larger stream.  In
   // that case we will have read out more bytes than we should return, because
   // we should not read past the end of the current view.
-  uint32_t MaxLength = getLength() - Offset;
+  uint32_t const MaxLength = getLength() - Offset;
   if (Buffer.size() > MaxLength)
     Buffer = Buffer.slice(0, MaxLength);
   return Error::success();

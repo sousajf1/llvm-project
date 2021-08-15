@@ -30,7 +30,7 @@ namespace llvm {
 bool DwarfStreamer::init(Triple TheTriple) {
   std::string ErrorStr;
   std::string TripleName;
-  StringRef Context = "dwarf streamer init";
+  StringRef const Context = "dwarf streamer init";
 
   // Get the target.
   const Target *TheTarget =
@@ -45,7 +45,7 @@ bool DwarfStreamer::init(Triple TheTriple) {
     return error(Twine("no register info for target ") + TripleName, Context),
            false;
 
-  MCTargetOptions MCOptions = mc::InitMCTargetOptionsFromFlags();
+  MCTargetOptions const MCOptions = mc::InitMCTargetOptionsFromFlags();
   MAI.reset(TheTarget->createMCAsmInfo(*MRI, TripleName, MCOptions));
   if (!MAI)
     return error("no asm info for target " + TripleName, Context), false;
@@ -220,7 +220,7 @@ void DwarfStreamer::emitPaperTrailWarningsDie(DIE &Die) {
 /// Emit the debug_str section stored in \p Pool.
 void DwarfStreamer::emitStrings(const NonRelocatableStringpool &Pool) {
   Asm->OutStreamer->SwitchSection(MOFI->getDwarfStrSection());
-  std::vector<DwarfStringPoolEntryRef> Entries = Pool.getEntriesForEmission();
+  std::vector<DwarfStringPoolEntryRef> const Entries = Pool.getEntriesForEmission();
   for (auto Entry : Entries) {
     // Emit the string itself.
     Asm->OutStreamer->emitBytes(Entry.getString());
@@ -314,7 +314,7 @@ void DwarfStreamer::emitRangesEntries(
   MS->SwitchSection(MC->getObjectFileInfo()->getDwarfRangesSection());
 
   // Offset each range by the right amount.
-  int64_t PcOffset = Entries.empty() ? 0 : FuncRange.value() + UnitPcOffset;
+  int64_t const PcOffset = Entries.empty() ? 0 : FuncRange.value() + UnitPcOffset;
   for (const auto &Range : Entries) {
     if (Range.isBaseAddressSelectionEntry(AddressSize)) {
       warn("unsupported base address selection operation",
@@ -347,7 +347,7 @@ void DwarfStreamer::emitRangesEntries(
 /// Just aggregate all the ranges gathered inside that unit.
 void DwarfStreamer::emitUnitRangesEntries(CompileUnit &Unit,
                                           bool DoDebugRanges) {
-  unsigned AddressSize = Unit.getOrigUnit().getAddressByteSize();
+  unsigned const AddressSize = Unit.getOrigUnit().getAddressByteSize();
   // Gather the ranges in a vector, so that we can simplify them. The
   // IntervalMap will have coalesced the non-linked ranges, but here
   // we want to coalesce the linked addresses.
@@ -368,15 +368,15 @@ void DwarfStreamer::emitUnitRangesEntries(CompileUnit &Unit,
     MCSymbol *BeginLabel = Asm->createTempSymbol("Barange");
     MCSymbol *EndLabel = Asm->createTempSymbol("Earange");
 
-    unsigned HeaderSize =
+    unsigned const HeaderSize =
         sizeof(int32_t) + // Size of contents (w/o this field
         sizeof(int16_t) + // DWARF ARange version number
         sizeof(int32_t) + // Offset of CU in the .debug_info section
         sizeof(int8_t) +  // Pointer Size (in bytes)
         sizeof(int8_t);   // Segment Size (in bytes)
 
-    unsigned TupleSize = AddressSize * 2;
-    unsigned Padding = offsetToAlignment(HeaderSize, Align(TupleSize));
+    unsigned const TupleSize = AddressSize * 2;
+    unsigned const Padding = offsetToAlignment(HeaderSize, Align(TupleSize));
 
     Asm->emitLabelDifference(EndLabel, BeginLabel, 4); // Arange length
     Asm->OutStreamer->emitLabel(BeginLabel);
@@ -389,7 +389,7 @@ void DwarfStreamer::emitUnitRangesEntries(CompileUnit &Unit,
 
     for (auto Range = Ranges.begin(), End = Ranges.end(); Range != End;
          ++Range) {
-      uint64_t RangeStart = Range->first;
+      uint64_t const RangeStart = Range->first;
       MS->emitIntValue(RangeStart, AddressSize);
       while ((Range + 1) != End && Range->second == (Range + 1)->first)
         ++Range;
@@ -407,7 +407,7 @@ void DwarfStreamer::emitUnitRangesEntries(CompileUnit &Unit,
 
   MS->SwitchSection(MC->getObjectFileInfo()->getDwarfRangesSection());
   // Offset each range by the right amount.
-  int64_t PcOffset = -Unit.getLowPc();
+  int64_t const PcOffset = -Unit.getLowPc();
   // Emit coalesced ranges.
   for (auto Range = Ranges.begin(), End = Ranges.end(); Range != End; ++Range) {
     MS->emitIntValue(Range->first + PcOffset, AddressSize);
@@ -435,12 +435,12 @@ void DwarfStreamer::emitLocationsForUnit(
 
   MS->SwitchSection(MC->getObjectFileInfo()->getDwarfLocSection());
 
-  unsigned AddressSize = Unit.getOrigUnit().getAddressByteSize();
-  uint64_t BaseAddressMarker = (AddressSize == 8)
+  unsigned const AddressSize = Unit.getOrigUnit().getAddressByteSize();
+  uint64_t const BaseAddressMarker = (AddressSize == 8)
                                    ? std::numeric_limits<uint64_t>::max()
                                    : std::numeric_limits<uint32_t>::max();
   const DWARFSection &InputSec = Dwarf.getDWARFObj().getLocSection();
-  DataExtractor Data(InputSec.Data, Dwarf.isLittleEndian(), AddressSize);
+  DataExtractor const Data(InputSec.Data, Dwarf.isLittleEndian(), AddressSize);
   DWARFUnit &OrigUnit = Unit.getOrigUnit();
   auto OrigUnitDie = OrigUnit.getUnitDIE(false);
   int64_t UnitPcOffset = 0;
@@ -455,8 +455,8 @@ void DwarfStreamer::emitLocationsForUnit(
     // the correct address for the new one.
     int64_t LocPcOffset = Attr.second + UnitPcOffset;
     while (Data.isValidOffset(Offset)) {
-      uint64_t Low = Data.getUnsigned(&Offset, AddressSize);
-      uint64_t High = Data.getUnsigned(&Offset, AddressSize);
+      uint64_t const Low = Data.getUnsigned(&Offset, AddressSize);
+      uint64_t const High = Data.getUnsigned(&Offset, AddressSize);
       LocSectionSize += 2 * AddressSize;
       // End of list entry.
       if (Low == 0 && High == 0) {
@@ -474,12 +474,12 @@ void DwarfStreamer::emitLocationsForUnit(
       // Location list entry.
       Asm->OutStreamer->emitIntValue(Low + LocPcOffset, AddressSize);
       Asm->OutStreamer->emitIntValue(High + LocPcOffset, AddressSize);
-      uint64_t Length = Data.getU16(&Offset);
+      uint64_t const Length = Data.getU16(&Offset);
       Asm->OutStreamer->emitIntValue(Length, 2);
       // Copy the bytes into to the buffer, process them, emit them.
       Buffer.reserve(Length);
       Buffer.resize(0);
-      StringRef Input = InputSec.Data.substr(Offset, Length);
+      StringRef const Input = InputSec.Data.substr(Offset, Length);
       ProcessExpr(Input, Buffer);
       Asm->OutStreamer->emitBytes(
           StringRef((const char *)Buffer.data(), Length));
@@ -593,7 +593,7 @@ void DwarfStreamer::emitLineTableForUnit(MCDwarfLineTableParams Params,
       LineSectionSize += 1;
     }
 
-    int64_t LineDelta = int64_t(Row.Line) - LastLine;
+    int64_t const LineDelta = int64_t(Row.Line) - LastLine;
     if (!Row.EndSequence) {
       MCDwarfLineAddr::Encode(*MC, Params, LineDelta, AddressDelta, EncodingOS);
       MS->emitBytes(EncodingOS.str());
@@ -639,16 +639,16 @@ void DwarfStreamer::emitLineTableForUnit(MCDwarfLineTableParams Params,
 /// names and directories.
 void DwarfStreamer::translateLineTable(DataExtractor Data, uint64_t Offset) {
   MS->SwitchSection(MC->getObjectFileInfo()->getDwarfLineSection());
-  StringRef Contents = Data.getData();
+  StringRef const Contents = Data.getData();
 
   // We have to deconstruct the line table header, because it contains to
   // length fields that will need to be updated when we change the length of
   // the files and directories in there.
-  unsigned UnitLength = Data.getU32(&Offset);
-  uint64_t UnitEnd = Offset + UnitLength;
+  unsigned const UnitLength = Data.getU32(&Offset);
+  uint64_t const UnitEnd = Offset + UnitLength;
   MCSymbol *BeginLabel = MC->createTempSymbol();
   MCSymbol *EndLabel = MC->createTempSymbol();
-  unsigned Version = Data.getU16(&Offset);
+  unsigned const Version = Data.getU16(&Offset);
 
   if (Version > 5) {
     warn("Unsupported line table version: dropping contents and not "
@@ -668,10 +668,10 @@ void DwarfStreamer::translateLineTable(DataExtractor Data, uint64_t Offset) {
   Offset += 4;
   LineSectionSize += 4;
 
-  uint64_t AfterHeaderLengthOffset = Offset;
+  uint64_t const AfterHeaderLengthOffset = Offset;
   // Skip to the directories.
   Offset += (Version >= 4) ? 5 : 4;
-  unsigned OpcodeBase = Data.getU8(&Offset);
+  unsigned const OpcodeBase = Data.getU8(&Offset);
   Offset += OpcodeBase - 1;
   Asm->OutStreamer->emitBytes(Contents.slice(AfterHeaderLengthOffset, Offset));
   LineSectionSize += Offset - AfterHeaderLengthOffset;
@@ -681,7 +681,7 @@ void DwarfStreamer::translateLineTable(DataExtractor Data, uint64_t Offset) {
     if (Dir[0] == 0)
       break;
 
-    StringRef Translated = Translator(Dir);
+    StringRef const Translated = Translator(Dir);
     Asm->OutStreamer->emitBytes(Translated);
     Asm->emitInt8(0);
     LineSectionSize += Translated.size() + 1;
@@ -693,12 +693,12 @@ void DwarfStreamer::translateLineTable(DataExtractor Data, uint64_t Offset) {
     if (File[0] == 0)
       break;
 
-    StringRef Translated = Translator(File);
+    StringRef const Translated = Translator(File);
     Asm->OutStreamer->emitBytes(Translated);
     Asm->emitInt8(0);
     LineSectionSize += Translated.size() + 1;
 
-    uint64_t OffsetBeforeLEBs = Offset;
+    uint64_t const OffsetBeforeLEBs = Offset;
     Asm->emitULEB128(Data.getULEB128(&Offset));
     Asm->emitULEB128(Data.getULEB128(&Offset));
     Asm->emitULEB128(Data.getULEB128(&Offset));

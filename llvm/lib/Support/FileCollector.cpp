@@ -19,8 +19,8 @@ FileCollectorBase::FileCollectorBase() = default;
 FileCollectorBase::~FileCollectorBase() = default;
 
 void FileCollectorBase::addFile(const Twine &File) {
-  std::lock_guard<std::mutex> lock(Mutex);
-  std::string FileStr = File.str();
+  std::lock_guard<std::mutex> const lock(Mutex);
+  std::string const FileStr = File.str();
   if (markAsSeen(FileStr))
     addFileImpl(FileStr);
 }
@@ -55,9 +55,9 @@ FileCollector::FileCollector(std::string Root, std::string OverlayRoot)
 
 void FileCollector::PathCanonicalizer::updateWithRealPath(
     SmallVectorImpl<char> &Path) {
-  StringRef SrcPath(Path.begin(), Path.size());
-  StringRef Filename = sys::path::filename(SrcPath);
-  StringRef Directory = sys::path::parent_path(SrcPath);
+  StringRef const SrcPath(Path.begin(), Path.size());
+  StringRef const Filename = sys::path::filename(SrcPath);
+  StringRef const Directory = sys::path::parent_path(SrcPath);
 
   // Use real_path to fix any symbolic link component present in the directory
   // part of the path, caching the search because computing the real path is
@@ -118,7 +118,7 @@ FileCollector::PathCanonicalizer::canonicalize(StringRef SrcPath) {
 }
 
 void FileCollector::addFileImpl(StringRef SrcPath) {
-  PathCanonicalizer::PathStorage Paths = Canonicalizer.canonicalize(SrcPath);
+  PathCanonicalizer::PathStorage const Paths = Canonicalizer.canonicalize(SrcPath);
 
   SmallString<256> DstPath = StringRef(Root);
   sys::path::append(DstPath, sys::path::relative_path(Paths.CopyFrom));
@@ -179,7 +179,7 @@ std::error_code FileCollector::copyFiles(bool StopOnError) {
     return Err;
   }
 
-  std::lock_guard<std::mutex> lock(Mutex);
+  std::lock_guard<std::mutex> const lock(Mutex);
 
   for (auto &entry : VFSWriter.getMappings()) {
     // Get the status of the original file/directory.
@@ -234,7 +234,7 @@ std::error_code FileCollector::copyFiles(bool StopOnError) {
 }
 
 std::error_code FileCollector::writeMapping(StringRef MappingFile) {
-  std::lock_guard<std::mutex> lock(Mutex);
+  std::lock_guard<std::mutex> const lock(Mutex);
 
   VFSWriter.setOverlayDir(OverlayRoot);
   VFSWriter.setCaseSensitivity(isCaseSensitivePath(OverlayRoot));

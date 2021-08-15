@@ -112,7 +112,7 @@ bool Combiner::combineMachineInstrs(MachineFunction &MF,
 
   LLVM_DEBUG(dbgs() << "Generic MI Combiner for: " << MF.getName() << '\n');
 
-  MachineOptimizationRemarkEmitter MORE(MF, /*MBFI=*/nullptr);
+  MachineOptimizationRemarkEmitter const MORE(MF, /*MBFI=*/nullptr);
 
   bool MFChanged = false;
   bool Changed;
@@ -128,7 +128,7 @@ bool Combiner::combineMachineInstrs(MachineFunction &MF,
     GISelObserverWrapper WrapperObserver(&Observer);
     if (CSEInfo)
       WrapperObserver.addObserver(CSEInfo);
-    RAIIDelegateInstaller DelInstall(MF, &WrapperObserver);
+    RAIIDelegateInstaller const DelInstall(MF, &WrapperObserver);
     for (MachineBasicBlock *MBB : post_order(&MF)) {
       for (auto MII = MBB->rbegin(), MIE = MBB->rend(); MII != MIE;) {
         MachineInstr *CurMI = &*MII;

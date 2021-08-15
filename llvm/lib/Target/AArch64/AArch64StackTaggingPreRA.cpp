@@ -171,7 +171,7 @@ bool AArch64StackTaggingPreRA::mayUseUncheckedLoadStore() {
   unsigned FrameSize = 0;
   for (unsigned i = 0, e = MFI->getObjectIndexEnd(); i != e; ++i)
     FrameSize += MFI->getObjectSize(i);
-  bool EntireFrameReachableFromSP = FrameSize < 0xf00;
+  bool const EntireFrameReachableFromSP = FrameSize < 0xf00;
   return !MFI->hasVarSizedObjects() && EntireFrameReachableFromSP;
 }
 
@@ -181,7 +181,7 @@ void AArch64StackTaggingPreRA::uncheckUsesOf(unsigned TaggedReg, int FI) {
     MachineInstr *UseI = &*(UI++);
     if (isUncheckedLoadOrStoreOpcode(UseI->getOpcode())) {
       // FI operand is always the one before the immediate offset.
-      unsigned OpIdx = TII->getLoadStoreImmIdx(UseI->getOpcode()) - 1;
+      unsigned const OpIdx = TII->getLoadStoreImmIdx(UseI->getOpcode()) - 1;
       if (UseI->getOperand(OpIdx).isReg() &&
           UseI->getOperand(OpIdx).getReg() == TaggedReg) {
         UseI->getOperand(OpIdx).ChangeToFrameIndex(FI);
@@ -196,8 +196,8 @@ void AArch64StackTaggingPreRA::uncheckUsesOf(unsigned TaggedReg, int FI) {
 
 void AArch64StackTaggingPreRA::uncheckLoadsAndStores() {
   for (auto *I : ReTags) {
-    unsigned TaggedReg = I->getOperand(0).getReg();
-    int FI = I->getOperand(1).getIndex();
+    unsigned const TaggedReg = I->getOperand(0).getReg();
+    int const FI = I->getOperand(1).getIndex();
     uncheckUsesOf(TaggedReg, FI);
   }
 }
@@ -263,11 +263,11 @@ Optional<int> AArch64StackTaggingPreRA::findFirstSlotCandidate() {
   SlotWithTag MaxScoreST{-1, -1};
   int MaxScore = -1;
   for (auto *I : ReTags) {
-    SlotWithTag ST{*I};
+    SlotWithTag const ST{*I};
     if (isSlotPreAllocated(MFI, ST.FI))
       continue;
 
-    Register RetagReg = I->getOperand(0).getReg();
+    Register const RetagReg = I->getOperand(0).getReg();
     if (!Register::isVirtualRegister(RetagReg))
       continue;
 
@@ -276,10 +276,10 @@ Optional<int> AArch64StackTaggingPreRA::findFirstSlotCandidate() {
     WorkList.push_back(RetagReg);
 
     while (!WorkList.empty()) {
-      Register UseReg = WorkList.back();
+      Register const UseReg = WorkList.back();
       WorkList.pop_back();
       for (auto &UseI : MRI->use_instructions(UseReg)) {
-        unsigned Opcode = UseI.getOpcode();
+        unsigned const Opcode = UseI.getOpcode();
         if (Opcode == AArch64::STGOffset || Opcode == AArch64::ST2GOffset ||
             Opcode == AArch64::STZGOffset || Opcode == AArch64::STZ2GOffset ||
             Opcode == AArch64::STGPi || Opcode == AArch64::STGloop ||
@@ -287,7 +287,7 @@ Optional<int> AArch64StackTaggingPreRA::findFirstSlotCandidate() {
             Opcode == AArch64::STZGloop_wback)
           continue;
         if (UseI.isCopy()) {
-          Register DstReg = UseI.getOperand(0).getReg();
+          Register const DstReg = UseI.getOperand(0).getReg();
           if (Register::isVirtualRegister(DstReg))
             WorkList.push_back(DstReg);
           continue;
@@ -299,7 +299,7 @@ Optional<int> AArch64StackTaggingPreRA::findFirstSlotCandidate() {
       }
     }
 
-    int TotalScore = RetagScore[ST] += Score;
+    int const TotalScore = RetagScore[ST] += Score;
     if (TotalScore > MaxScore ||
         (TotalScore == MaxScore && ST.FI > MaxScoreST.FI)) {
       MaxScore = TotalScore;
@@ -317,7 +317,7 @@ Optional<int> AArch64StackTaggingPreRA::findFirstSlotCandidate() {
   // Otherwise, find a random victim pair (FI, Tag) where Tag == 0.
   SlotWithTag SwapST{-1, -1};
   for (auto *I : ReTags) {
-    SlotWithTag ST{*I};
+    SlotWithTag const ST{*I};
     if (ST.Tag == 0) {
       SwapST = ST;
       break;
@@ -328,7 +328,7 @@ Optional<int> AArch64StackTaggingPreRA::findFirstSlotCandidate() {
   // If SwapWith is still (-1, -1), that's fine, too - we'll simply take tag for
   // the highest score slot without changing anything else.
   for (auto *&I : ReTags) {
-    SlotWithTag ST{*I};
+    SlotWithTag const ST{*I};
     MachineOperand &TagOp = I->getOperand(4);
     if (ST == MaxScoreST) {
       TagOp.setImm(0);
@@ -359,7 +359,7 @@ bool AArch64StackTaggingPreRA::runOnMachineFunction(MachineFunction &Func) {
     for (auto &I : BB) {
       if (I.getOpcode() == AArch64::TAGPstack) {
         ReTags.push_back(&I);
-        int FI = I.getOperand(1).getIndex();
+        int const FI = I.getOperand(1).getIndex();
         TaggedSlots.insert(FI);
         // There should be no offsets in TAGP yet.
         assert(I.getOperand(2).getImm() == 0);
@@ -369,7 +369,7 @@ bool AArch64StackTaggingPreRA::runOnMachineFunction(MachineFunction &Func) {
 
   // Take over from SSP. It does nothing for tagged slots, and should not really
   // have been enabled in the first place.
-  for (int FI : TaggedSlots)
+  for (int const FI : TaggedSlots)
     MFI->setObjectSSPLayout(FI, MachineFrameInfo::SSPLK_None);
 
   if (ReTags.empty())
@@ -386,9 +386,9 @@ bool AArch64StackTaggingPreRA::runOnMachineFunction(MachineFunction &Func) {
     AFI->setTaggedBasePointerIndex(*BaseSlot);
 
   for (auto *I : ReTags) {
-    int FI = I->getOperand(1).getIndex();
-    int Tag = I->getOperand(4).getImm();
-    Register Base = I->getOperand(3).getReg();
+    int const FI = I->getOperand(1).getIndex();
+    int const Tag = I->getOperand(4).getImm();
+    Register const Base = I->getOperand(3).getReg();
     if (Tag == 0 && FI == BaseSlot) {
       BuildMI(*I->getParent(), I, {}, TII->get(AArch64::COPY),
               I->getOperand(0).getReg())

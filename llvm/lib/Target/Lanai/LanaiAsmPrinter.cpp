@@ -123,17 +123,17 @@ bool LanaiAsmPrinter::PrintAsmOperand(const MachineInstr *MI, unsigned OpNo,
       const MachineOperand &FlagsOP = MI->getOperand(OpNo - 1);
       if (!FlagsOP.isImm())
         return true;
-      unsigned Flags = FlagsOP.getImm();
-      unsigned NumVals = InlineAsm::getNumOperandRegisters(Flags);
+      unsigned const Flags = FlagsOP.getImm();
+      unsigned const NumVals = InlineAsm::getNumOperandRegisters(Flags);
       if (NumVals != 2)
         return true;
-      unsigned RegOp = OpNo + 1;
+      unsigned const RegOp = OpNo + 1;
       if (RegOp >= MI->getNumOperands())
         return true;
       const MachineOperand &MO = MI->getOperand(RegOp);
       if (!MO.isReg())
         return true;
-      Register Reg = MO.getReg();
+      Register const Reg = MO.getReg();
       O << LanaiInstPrinter::getRegisterName(Reg);
       return false;
     }
@@ -150,8 +150,8 @@ void LanaiAsmPrinter::emitCallInstruction(const MachineInstr *MI) {
   assert((MI->getOpcode() == Lanai::CALL || MI->getOpcode() == Lanai::CALLR) &&
          "Unsupported call function");
 
-  LanaiMCInstLower MCInstLowering(OutContext, *this);
-  MCSubtargetInfo STI = getSubtargetInfo();
+  LanaiMCInstLower const MCInstLowering(OutContext, *this);
+  MCSubtargetInfo const STI = getSubtargetInfo();
   // Insert save rca instruction immediately before the call.
   // TODO: We should generate a pc-relative mov instruction here instead
   // of pc + 16 (should be mov .+16 %rca).
@@ -187,8 +187,8 @@ void LanaiAsmPrinter::emitCallInstruction(const MachineInstr *MI) {
 }
 
 void LanaiAsmPrinter::customEmitInstruction(const MachineInstr *MI) {
-  LanaiMCInstLower MCInstLowering(OutContext, *this);
-  MCSubtargetInfo STI = getSubtargetInfo();
+  LanaiMCInstLower const MCInstLowering(OutContext, *this);
+  MCSubtargetInfo const STI = getSubtargetInfo();
   MCInst TmpInst;
   MCInstLowering.Lower(MI, TmpInst);
   OutStreamer->emitInstruction(TmpInst, STI);
@@ -196,7 +196,7 @@ void LanaiAsmPrinter::customEmitInstruction(const MachineInstr *MI) {
 
 void LanaiAsmPrinter::emitInstruction(const MachineInstr *MI) {
   MachineBasicBlock::const_instr_iterator I = MI->getIterator();
-  MachineBasicBlock::const_instr_iterator E = MI->getParent()->instr_end();
+  MachineBasicBlock::const_instr_iterator const E = MI->getParent()->instr_end();
 
   do {
     if (I->isCall()) {
@@ -238,5 +238,5 @@ bool LanaiAsmPrinter::isBlockOnlyReachableByFallthrough(
 
 // Force static initialization.
 extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializeLanaiAsmPrinter() {
-  RegisterAsmPrinter<LanaiAsmPrinter> X(getTheLanaiTarget());
+  RegisterAsmPrinter<LanaiAsmPrinter> const X(getTheLanaiTarget());
 }

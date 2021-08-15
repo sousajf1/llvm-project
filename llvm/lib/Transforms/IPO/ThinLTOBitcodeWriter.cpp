@@ -68,8 +68,8 @@ void promoteInternals(Module &ExportM, Module &ImportM, StringRef ModuleId,
       }
     }
 
-    std::string OldName = Name.str();
-    std::string NewName = (Name + ModuleId).str();
+    std::string const OldName = Name.str();
+    std::string const NewName = (Name + ModuleId).str();
 
     if (const auto *C = ExportGV.getComdat())
       if (C->getName() == Name)
@@ -87,7 +87,7 @@ void promoteInternals(Module &ExportM, Module &ImportM, StringRef ModuleId,
     if (isa<Function>(&ExportGV) && allowPromotionAlias(OldName)) {
       // Create a local alias with the original name to avoid breaking
       // references from inline assembly.
-      std::string Alias = ".set " + OldName + "," + NewName + "\n";
+      std::string const Alias = ".set " + OldName + "," + NewName + "\n";
       ExportM.appendModuleInlineAsm(Alias);
     }
   }
@@ -115,7 +115,7 @@ void promoteTypeIds(Module &M, StringRef ModuleId) {
     if (isa<MDNode>(MD) && cast<MDNode>(MD)->isDistinct()) {
       Metadata *&GlobalMD = LocalToGlobal[MD];
       if (!GlobalMD) {
-        std::string NewName = (Twine(LocalToGlobal.size()) + ModuleId).str();
+        std::string const NewName = (Twine(LocalToGlobal.size()) + ModuleId).str();
         GlobalMD = MDString::get(M.getContext(), NewName);
       }
 
@@ -246,13 +246,13 @@ static void cloneUsedGlobalVariables(const Module &SrcM, Module &DestM,
 void splitAndWriteThinLTOBitcode(
     raw_ostream &OS, raw_ostream *ThinLinkOS,
     function_ref<AAResults &(Function &)> AARGetter, Module &M) {
-  std::string ModuleId = getUniqueModuleId(&M);
+  std::string const ModuleId = getUniqueModuleId(&M);
   if (ModuleId.empty()) {
     // We couldn't generate a module ID for this module, write it out as a
     // regular LTO module with an index for summary-based dead stripping.
     ProfileSummaryInfo PSI(M);
     M.addModuleFlag(Module::Error, "ThinLTO", uint32_t(0));
-    ModuleSummaryIndex Index = buildModuleSummaryIndex(M, nullptr, &PSI);
+    ModuleSummaryIndex const Index = buildModuleSummaryIndex(M, nullptr, &PSI);
     WriteBitcodeToFile(M, OS, /*ShouldPreserveUseListOrder=*/false, &Index);
 
     if (ThinLinkOS)
@@ -401,7 +401,7 @@ void splitAndWriteThinLTOBitcode(
 
     auto *F = cast<Function>(A.getAliasee());
 
-    Metadata *Elts[] = {
+    Metadata *const Elts[] = {
         MDString::get(Ctx, A.getName()),
         MDString::get(Ctx, F->getName()),
         ConstantAsMetadata::get(
@@ -439,12 +439,12 @@ void splitAndWriteThinLTOBitcode(
 
   // FIXME: Try to re-use BSI and PFI from the original module here.
   ProfileSummaryInfo PSI(M);
-  ModuleSummaryIndex Index = buildModuleSummaryIndex(M, nullptr, &PSI);
+  ModuleSummaryIndex const Index = buildModuleSummaryIndex(M, nullptr, &PSI);
 
   // Mark the merged module as requiring full LTO. We still want an index for
   // it though, so that it can participate in summary-based dead stripping.
   MergedM->addModuleFlag(Module::Error, "ThinLTO", uint32_t(0));
-  ModuleSummaryIndex MergedMIndex =
+  ModuleSummaryIndex const MergedMIndex =
       buildModuleSummaryIndex(*MergedM, nullptr, &PSI);
 
   SmallVector<char, 0> Buffer;
@@ -505,7 +505,7 @@ void writeThinLTOBitcode(raw_ostream &OS, raw_ostream *ThinLinkOS,
     if (enableSplitLTOUnit(M))
       return splitAndWriteThinLTOBitcode(OS, ThinLinkOS, AARGetter, M);
     // Promote type ids as needed for index-based WPD.
-    std::string ModuleId = getUniqueModuleId(&M);
+    std::string const ModuleId = getUniqueModuleId(&M);
     if (!ModuleId.empty()) {
       promoteTypeIds(M, ModuleId);
       // Need to rebuild the index so that it contains type metadata

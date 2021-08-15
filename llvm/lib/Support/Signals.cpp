@@ -126,7 +126,7 @@ static bool findModulesAndOffsets(void **StackTrace, int Depth,
 /// same width.
 static FormattedNumber format_ptr(void *PC) {
   // Each byte is two hex digits plus 2 for the 0x prefix.
-  unsigned PtrWidth = 2 + 2 * sizeof(void *);
+  unsigned const PtrWidth = 2 + 2 * sizeof(void *);
   return format_hex((uint64_t)PC, PtrWidth);
 }
 
@@ -149,7 +149,7 @@ static bool printSymbolizedStackTrace(StringRef Argv0, void **StackTrace,
   if (const char *Path = getenv(LLVMSymbolizerPathEnv)) {
     LLVMSymbolizerPathOrErr = sys::findProgramByName(Path);
   } else if (!Argv0.empty()) {
-    StringRef Parent = llvm::sys::path::parent_path(Argv0);
+    StringRef const Parent = llvm::sys::path::parent_path(Argv0);
     if (!Parent.empty())
       LLVMSymbolizerPathOrErr = sys::findProgramByName("llvm-symbolizer", Parent);
   }
@@ -161,7 +161,7 @@ static bool printSymbolizedStackTrace(StringRef Argv0, void **StackTrace,
 
   // If we don't know argv0 or the address of main() at this point, try
   // to guess it anyway (it's possible on some platforms).
-  std::string MainExecutableName =
+  std::string const MainExecutableName =
       sys::fs::exists(Argv0) ? (std::string)std::string(Argv0)
                              : sys::fs::getMainExecutable(nullptr, nullptr);
   BumpPtrAllocator Allocator;
@@ -175,8 +175,8 @@ static bool printSymbolizedStackTrace(StringRef Argv0, void **StackTrace,
   SmallString<32> InputFile, OutputFile;
   sys::fs::createTemporaryFile("symbolizer-input", "", InputFD, InputFile);
   sys::fs::createTemporaryFile("symbolizer-output", "", OutputFile);
-  FileRemover InputRemover(InputFile.c_str());
-  FileRemover OutputRemover(OutputFile.c_str());
+  FileRemover const InputRemover(InputFile.c_str());
+  FileRemover const OutputRemover(OutputFile.c_str());
 
   {
     raw_fd_ostream Input(InputFD, true);
@@ -186,9 +186,9 @@ static bool printSymbolizedStackTrace(StringRef Argv0, void **StackTrace,
     }
   }
 
-  Optional<StringRef> Redirects[] = {InputFile.str(), OutputFile.str(),
+  Optional<StringRef> const Redirects[] = {InputFile.str(), OutputFile.str(),
                                      StringRef("")};
-  StringRef Args[] = {"llvm-symbolizer", "--functions=linkage", "--inlining",
+  StringRef const Args[] = {"llvm-symbolizer", "--functions=linkage", "--inlining",
 #ifdef _WIN32
                       // Pass --relative-address on Windows so that we don't
                       // have to add ImageBase from PE file.
@@ -196,7 +196,7 @@ static bool printSymbolizedStackTrace(StringRef Argv0, void **StackTrace,
                       "--relative-address",
 #endif
                       "--demangle"};
-  int RunResult =
+  int const RunResult =
       sys::ExecuteAndWait(LLVMSymbolizerPath, Args, None, Redirects);
   if (RunResult != 0)
     return false;
@@ -206,7 +206,7 @@ static bool printSymbolizedStackTrace(StringRef Argv0, void **StackTrace,
   auto OutputBuf = MemoryBuffer::getFile(OutputFile.c_str());
   if (!OutputBuf)
     return false;
-  StringRef Output = OutputBuf.get()->getBuffer();
+  StringRef const Output = OutputBuf.get()->getBuffer();
   SmallVector<StringRef, 32> Lines;
   Output.split(Lines, "\n");
   auto CurLine = Lines.begin();
@@ -227,7 +227,7 @@ static bool printSymbolizedStackTrace(StringRef Argv0, void **StackTrace,
     for (;;) {
       if (CurLine == Lines.end())
         return false;
-      StringRef FunctionName = *CurLine++;
+      StringRef const FunctionName = *CurLine++;
       if (FunctionName.empty())
         break;
       PrintLineHeader();
@@ -235,7 +235,7 @@ static bool printSymbolizedStackTrace(StringRef Argv0, void **StackTrace,
         OS << FunctionName << ' ';
       if (CurLine == Lines.end())
         return false;
-      StringRef FileLineInfo = *CurLine++;
+      StringRef const FileLineInfo = *CurLine++;
       if (!FileLineInfo.startswith("??"))
         OS << FileLineInfo;
       else

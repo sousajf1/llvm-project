@@ -151,8 +151,8 @@ static void setCallTargetReg(MachineBasicBlock *MBB,
                              MachineBasicBlock::iterator I) {
   MachineFunction &MF = *MBB->getParent();
   const TargetInstrInfo &TII = *MF.getSubtarget().getInstrInfo();
-  Register SrcReg = I->getOperand(0).getReg();
-  unsigned DstReg = getRegTy(SrcReg, MF) == MVT::i32 ? Mips::T9 : Mips::T9_64;
+  Register const SrcReg = I->getOperand(0).getReg();
+  unsigned const DstReg = getRegTy(SrcReg, MF) == MVT::i32 ? Mips::T9 : Mips::T9_64;
   BuildMI(*MBB, I, I->getDebugLoc(), TII.get(TargetOpcode::COPY), DstReg)
       .addReg(SrcReg);
   I->getOperand(0).setReg(DstReg);
@@ -164,11 +164,11 @@ static void eraseGPOpnd(MachineInstr &MI) {
     return;
 
   MachineFunction &MF = *MI.getParent()->getParent();
-  MVT::SimpleValueType Ty = getRegTy(MI.getOperand(0).getReg(), MF);
-  unsigned Reg = Ty == MVT::i32 ? Mips::GP : Mips::GP_64;
+  MVT::SimpleValueType const Ty = getRegTy(MI.getOperand(0).getReg(), MF);
+  unsigned const Reg = Ty == MVT::i32 ? Mips::GP : Mips::GP_64;
 
   for (unsigned I = 0; I < MI.getNumOperands(); ++I) {
-    MachineOperand &MO = MI.getOperand(I);
+    MachineOperand  const&MO = MI.getOperand(I);
     if (MO.isReg() && MO.getReg() == Reg) {
       MI.RemoveOperand(I);
       return;
@@ -238,7 +238,7 @@ bool OptimizePICCall::visitNode(MBBInfo &MBBI) {
       continue;
 
     Changed = true;
-    unsigned N = getCount(Entry);
+    unsigned const N = getCount(Entry);
 
     if (N != 0) {
       // If a function has been called more than twice, we do not have to emit a
@@ -276,7 +276,7 @@ bool OptimizePICCall::isCallViaRegister(MachineInstr &MI, unsigned &Reg,
   // Get the instruction that loads the function address from the GOT.
   Reg = MO->getReg();
   Val = nullptr;
-  MachineRegisterInfo &MRI = MI.getParent()->getParent()->getRegInfo();
+  MachineRegisterInfo  const&MRI = MI.getParent()->getParent()->getRegInfo();
   MachineInstr *DefMI = MRI.getVRegDef(Reg);
 
   assert(DefMI);
@@ -286,7 +286,7 @@ bool OptimizePICCall::isCallViaRegister(MachineInstr &MI, unsigned &Reg,
   if (!DefMI->mayLoad() || DefMI->getNumOperands() < 3)
     return true;
 
-  unsigned Flags = DefMI->getOperand(2).getTargetFlags();
+  unsigned const Flags = DefMI->getOperand(2).getTargetFlags();
 
   if (Flags != MipsII::MO_GOT_CALL && Flags != MipsII::MO_CALL_LO16)
     return true;
@@ -304,13 +304,13 @@ unsigned OptimizePICCall::getCount(ValueType Entry) {
 }
 
 unsigned OptimizePICCall::getReg(ValueType Entry) {
-  unsigned Reg = ScopedHT.lookup(Entry).second;
+  unsigned const Reg = ScopedHT.lookup(Entry).second;
   assert(Reg);
   return Reg;
 }
 
 void OptimizePICCall::incCntAndSetReg(ValueType Entry, unsigned Reg) {
-  CntRegP P = ScopedHT.lookup(Entry);
+  CntRegP const P = ScopedHT.lookup(Entry);
   ScopedHT.insert(Entry, std::make_pair(P.first + 1, Reg));
 }
 

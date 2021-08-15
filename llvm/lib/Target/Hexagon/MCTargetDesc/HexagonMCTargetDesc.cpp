@@ -131,8 +131,8 @@ StringRef Hexagon_MC::selectHexagonCPU(StringRef CPU) {
   if (!ArchV.empty() && !CPU.empty()) {
     // Tiny cores have a "t" suffix that is discarded when creating a secondary
     // non-tiny subtarget.  See: addArchSubtarget
-    std::pair<StringRef,StringRef> ArchP = ArchV.split('t');
-    std::pair<StringRef,StringRef> CPUP = CPU.split('t');
+    std::pair<StringRef,StringRef> const ArchP = ArchV.split('t');
+    std::pair<StringRef,StringRef> const CPUP = CPU.split('t');
     if (!ArchP.first.equals(CPUP.first))
         report_fatal_error("conflicting architectures specified.");
     return CPU;
@@ -217,11 +217,11 @@ public:
       raw_string_ostream TempStream(Buffer);
       InstPrinter.printInst(&Inst, Address, "", STI, TempStream);
     }
-    StringRef Contents(Buffer);
+    StringRef const Contents(Buffer);
     auto PacketBundle = Contents.rsplit('\n');
     auto HeadTail = PacketBundle.first.split('\n');
-    StringRef Separator = "\n";
-    StringRef Indent = "\t";
+    StringRef const Separator = "\n";
+    StringRef const Indent = "\t";
     OS << "\t{\n";
     while (!HeadTail.first.empty()) {
       StringRef InstTxt;
@@ -295,7 +295,7 @@ static MCAsmInfo *createHexagonMCAsmInfo(const MCRegisterInfo &MRI,
   MCAsmInfo *MAI = new HexagonMCAsmInfo(TT);
 
   // VirtualFP = (R30 + #0).
-  MCCFIInstruction Inst = MCCFIInstruction::cfiDefCfa(
+  MCCFIInstruction const Inst = MCCFIInstruction::cfiDefCfa(
       nullptr, MRI.getDwarfRegNum(Hexagon::R30, true), 0);
   MAI->addInitialFrameState(Inst);
 
@@ -409,7 +409,7 @@ std::unordered_map<std::string, std::unique_ptr<MCSubtargetInfo const>>
 
 MCSubtargetInfo const *
 Hexagon_MC::getArchSubtarget(MCSubtargetInfo const *STI) {
-  std::lock_guard<std::mutex> Lock(ArchSubtargetMutex);
+  std::lock_guard<std::mutex> const Lock(ArchSubtargetMutex);
   auto Existing = ArchSubtarget.find(std::string(STI->getCPU()));
   if (Existing == ArchSubtarget.end())
     return nullptr;
@@ -422,7 +422,7 @@ FeatureBitset Hexagon_MC::completeHVXFeatures(const FeatureBitset &S) {
   // turns on hvxvNN, corresponding to the existing ArchVNN.
   FeatureBitset FB = S;
   unsigned CpuArch = ArchV5;
-  for (unsigned F : {ArchV68, ArchV67, ArchV66, ArchV65, ArchV62, ArchV60,
+  for (unsigned const F : {ArchV68, ArchV67, ArchV66, ArchV65, ArchV62, ArchV60,
                      ArchV55, ArchV5}) {
     if (!FB.test(F))
       continue;
@@ -430,14 +430,14 @@ FeatureBitset Hexagon_MC::completeHVXFeatures(const FeatureBitset &S) {
     break;
   }
   bool UseHvx = false;
-  for (unsigned F : {ExtensionHVX, ExtensionHVX64B, ExtensionHVX128B}) {
+  for (unsigned const F : {ExtensionHVX, ExtensionHVX64B, ExtensionHVX128B}) {
     if (!FB.test(F))
       continue;
     UseHvx = true;
     break;
   }
   bool HasHvxVer = false;
-  for (unsigned F : {ExtensionHVXV60, ExtensionHVXV62, ExtensionHVXV65,
+  for (unsigned const F : {ExtensionHVXV60, ExtensionHVXV62, ExtensionHVXV65,
                      ExtensionHVXV66, ExtensionHVXV67, ExtensionHVXV68}) {
     if (!FB.test(F))
       continue;
@@ -476,9 +476,9 @@ FeatureBitset Hexagon_MC::completeHVXFeatures(const FeatureBitset &S) {
 MCSubtargetInfo *Hexagon_MC::createHexagonMCSubtargetInfo(const Triple &TT,
                                                           StringRef CPU,
                                                           StringRef FS) {
-  std::pair<std::string, std::string> Features = selectCPUAndFS(CPU, FS);
-  StringRef CPUName = Features.first;
-  StringRef ArchFS = Features.second;
+  std::pair<std::string, std::string> const Features = selectCPUAndFS(CPU, FS);
+  StringRef const CPUName = Features.first;
+  StringRef const ArchFS = Features.second;
 
   MCSubtargetInfo *X = createHexagonMCSubtargetInfoImpl(
       TT, CPUName, /*TuneCPU*/ CPUName, ArchFS);
@@ -521,7 +521,7 @@ void Hexagon_MC::addArchSubtarget(MCSubtargetInfo const *STI,
     auto ArchSTI = createHexagonMCSubtargetInfo(
         STI->getTargetTriple(),
         STI->getCPU().substr(0, STI->getCPU().size() - 1), FS);
-    std::lock_guard<std::mutex> Lock(ArchSubtargetMutex);
+    std::lock_guard<std::mutex> const Lock(ArchSubtargetMutex);
     ArchSubtarget[std::string(STI->getCPU())] =
         std::unique_ptr<MCSubtargetInfo const>(ArchSTI);
   }
@@ -591,7 +591,7 @@ static MCInstrAnalysis *createHexagonMCInstrAnalysis(const MCInstrInfo *Info) {
 // Force static initialization.
 extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializeHexagonTargetMC() {
   // Register the MC asm info.
-  RegisterMCAsmInfoFn X(getTheHexagonTarget(), createHexagonMCAsmInfo);
+  RegisterMCAsmInfoFn const X(getTheHexagonTarget(), createHexagonMCAsmInfo);
 
   // Register the MC instruction info.
   TargetRegistry::RegisterMCInstrInfo(getTheHexagonTarget(),

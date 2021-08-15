@@ -41,7 +41,7 @@ findInlineeByTypeIndex(TypeIndex Id, ModuleDebugStreamRef &ModS) {
       continue;
 
     DebugInlineeLinesSubsectionRef InlineeLines;
-    BinaryStreamReader Reader(SS.getRecordData());
+    BinaryStreamReader const Reader(SS.getRecordData());
     if (auto EC = InlineeLines.initialize(Reader)) {
       consumeError(std::move(EC));
       continue;
@@ -74,14 +74,14 @@ std::string NativeInlineSiteSymbol::getName() const {
     MemberFuncIdRecord MFRecord;
     cantFail(TypeDeserializer::deserializeAs<MemberFuncIdRecord>(InlineeType,
                                                                  MFRecord));
-    TypeIndex ClassTy = MFRecord.getClassType();
+    TypeIndex const ClassTy = MFRecord.getClassType();
     QualifiedName.append(std::string(Types.getTypeName(ClassTy)));
     QualifiedName.append("::");
   } else if (InlineeType.kind() == LF_FUNC_ID) {
     FuncIdRecord FRecord;
     cantFail(
         TypeDeserializer::deserializeAs<FuncIdRecord>(InlineeType, FRecord));
-    TypeIndex ParentScope = FRecord.getParentScope();
+    TypeIndex const ParentScope = FRecord.getParentScope();
     if (!ParentScope.isNoneType()) {
       QualifiedName.append(std::string(Ids.getTypeName(ParentScope)));
       QualifiedName.append("::");
@@ -157,18 +157,18 @@ NativeInlineSiteSymbol::findInlineeLinesByVA(uint64_t VA,
   if (!Inlinee)
     return nullptr;
 
-  uint32_t SrcLine = Inlinee->Header->SourceLineNum + SrcLineOffset;
-  uint32_t SrcCol = 0; // Inline sites don't seem to have column info.
-  uint32_t FileChecksumOffset =
+  uint32_t const SrcLine = Inlinee->Header->SourceLineNum + SrcLineOffset;
+  uint32_t const SrcCol = 0; // Inline sites don't seem to have column info.
+  uint32_t const FileChecksumOffset =
       (SrcFileOffset == 0) ? Inlinee->Header->FileID : SrcFileOffset;
 
   auto ChecksumIter = Checksums->getArray().at(FileChecksumOffset);
-  uint32_t SrcFileId =
+  uint32_t const SrcFileId =
       Session.getSymbolCache().getOrCreateSourceFile(*ChecksumIter);
 
   uint32_t LineSect, LineOff;
   Session.addressForVA(VA, LineSect, LineOff);
-  NativeLineNumber LineNum(Session, SrcLine, SrcCol, LineSect, LineOff, Length,
+  NativeLineNumber const LineNum(Session, SrcLine, SrcCol, LineSect, LineOff, Length,
                            SrcFileId, Modi);
   auto SrcFile = Session.getSymbolCache().getSourceFileById(SrcFileId);
   std::vector<NativeLineNumber> Lines{LineNum};

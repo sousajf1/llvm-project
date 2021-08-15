@@ -431,7 +431,7 @@ Value *LibCallsShrinkWrap::generateCondForPow(CallInst *CI,
 
   // Constant Base case.
   if (ConstantFP *CF = dyn_cast<ConstantFP>(Base)) {
-    double D = CF->getValueAPF().convertToDouble();
+    double const D = CF->getValueAPF().convertToDouble();
     if (D < 1.0f || D > APInt::getMaxValue(8).getZExtValue()) {
       LLVM_DEBUG(dbgs() << "Not handled pow(): constant base out of range\n");
       return nullptr;
@@ -450,9 +450,9 @@ Value *LibCallsShrinkWrap::generateCondForPow(CallInst *CI,
     LLVM_DEBUG(dbgs() << "Not handled pow(): FP type base\n");
     return nullptr;
   }
-  unsigned Opcode = I->getOpcode();
+  unsigned const Opcode = I->getOpcode();
   if (Opcode == Instruction::UIToFP || Opcode == Instruction::SIToFP) {
-    unsigned BW = I->getOperand(0)->getType()->getPrimitiveSizeInBits();
+    unsigned const BW = I->getOperand(0)->getType()->getPrimitiveSizeInBits();
     float UpperV = 0.0f;
     if (BW == 8)
       UpperV = 128.0f;
@@ -526,7 +526,7 @@ static bool runImpl(Function &F, const TargetLibraryInfo &TLI,
     return false;
   LibCallsShrinkWrap CCDCE(TLI, DT);
   CCDCE.visit(F);
-  bool Changed = CCDCE.perform();
+  bool const Changed = CCDCE.perform();
 
 // Verify the dominator after we've updated it locally.
   assert(!DT || DT->verify(DominatorTree::VerificationLevel::Fast));

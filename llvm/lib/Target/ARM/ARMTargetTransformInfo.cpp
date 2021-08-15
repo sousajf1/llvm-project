@@ -70,7 +70,7 @@ static Value *simplifyNeonVld1(const IntrinsicInst &II, unsigned MemAlign,
   if (!IntrAlign)
     return nullptr;
 
-  unsigned Alignment = IntrAlign->getLimitedValue() < MemAlign
+  unsigned const Alignment = IntrAlign->getLimitedValue() < MemAlign
                            ? MemAlign
                            : IntrAlign->getLimitedValue();
 
@@ -91,11 +91,11 @@ bool ARMTTIImpl::areInlineCompatible(const Function *Caller,
       TM.getSubtargetImpl(*Callee)->getFeatureBits();
 
   // To inline a callee, all features not in the allowed list must match exactly.
-  bool MatchExact = (CallerBits & ~InlineFeaturesAllowed) ==
+  bool const MatchExact = (CallerBits & ~InlineFeaturesAllowed) ==
                     (CalleeBits & ~InlineFeaturesAllowed);
   // For features in the allowed list, the callee's features must be a subset of
   // the callers'.
-  bool MatchSubset = ((CallerBits & CalleeBits) & InlineFeaturesAllowed) ==
+  bool const MatchSubset = ((CallerBits & CalleeBits) & InlineFeaturesAllowed) ==
                      (CalleeBits & InlineFeaturesAllowed);
   return MatchExact && MatchSubset;
 }
@@ -119,12 +119,12 @@ ARMTTIImpl::getPreferredAddressingMode(const Loop *L,
 Optional<Instruction *>
 ARMTTIImpl::instCombineIntrinsic(InstCombiner &IC, IntrinsicInst &II) const {
   using namespace PatternMatch;
-  Intrinsic::ID IID = II.getIntrinsicID();
+  Intrinsic::ID const IID = II.getIntrinsicID();
   switch (IID) {
   default:
     break;
   case Intrinsic::arm_neon_vld1: {
-    Align MemAlign =
+    Align const MemAlign =
         getKnownAlignment(II.getArgOperand(0), IC.getDataLayout(), &II,
                           &IC.getAssumptionCache(), &IC.getDominatorTree());
     if (Value *V = simplifyNeonVld1(II, MemAlign.value(), IC.Builder)) {
@@ -146,10 +146,10 @@ ARMTTIImpl::instCombineIntrinsic(InstCombiner &IC, IntrinsicInst &II) const {
   case Intrinsic::arm_neon_vst2lane:
   case Intrinsic::arm_neon_vst3lane:
   case Intrinsic::arm_neon_vst4lane: {
-    Align MemAlign =
+    Align const MemAlign =
         getKnownAlignment(II.getArgOperand(0), IC.getDataLayout(), &II,
                           &IC.getAssumptionCache(), &IC.getDominatorTree());
-    unsigned AlignArg = II.getNumArgOperands() - 1;
+    unsigned const AlignArg = II.getNumArgOperands() - 1;
     Value *AlignArgOp = II.getArgOperand(AlignArg);
     MaybeAlign Align = cast<ConstantInt>(AlignArgOp)->getMaybeAlignValue();
     if (Align && *Align < MemAlign) {
@@ -199,7 +199,7 @@ ARMTTIImpl::instCombineIntrinsic(InstCombiner &IC, IntrinsicInst &II) const {
     }
     if (!II.getMetadata(LLVMContext::MD_range)) {
       Type *IntTy32 = Type::getInt32Ty(II.getContext());
-      Metadata *M[] = {
+      Metadata *const M[] = {
           ConstantAsMetadata::get(ConstantInt::get(IntTy32, 0)),
           ConstantAsMetadata::get(ConstantInt::get(IntTy32, 0x10000))};
       II.setMetadata(LLVMContext::MD_range, MDNode::get(II.getContext(), M));
@@ -209,7 +209,7 @@ ARMTTIImpl::instCombineIntrinsic(InstCombiner &IC, IntrinsicInst &II) const {
   }
   case Intrinsic::arm_mve_vadc:
   case Intrinsic::arm_mve_vadc_predicated: {
-    unsigned CarryOp =
+    unsigned const CarryOp =
         (II.getIntrinsicID() == Intrinsic::arm_mve_vadc_predicated) ? 3 : 2;
     assert(II.getArgOperand(CarryOp)->getType()->getScalarSizeInBits() == 32 &&
            "Bad type for intrinsic!");
@@ -252,12 +252,12 @@ InstructionCost ARMTTIImpl::getIntImmCost(const APInt &Imm, Type *Ty,
                                           TTI::TargetCostKind CostKind) {
   assert(Ty->isIntegerTy());
 
- unsigned Bits = Ty->getPrimitiveSizeInBits();
+ unsigned const Bits = Ty->getPrimitiveSizeInBits();
  if (Bits == 0 || Imm.getActiveBits() >= 64)
    return 4;
 
-  int64_t SImmVal = Imm.getSExtValue();
-  uint64_t ZImmVal = Imm.getZExtValue();
+  int64_t const SImmVal = Imm.getSExtValue();
+  uint64_t const ZImmVal = Imm.getZExtValue();
   if (!ST->isThumb()) {
     if ((SImmVal >= 0 && SImmVal < 65536) ||
         (ARM_AM::getSOImmVal(ZImmVal) != -1) ||
@@ -296,7 +296,7 @@ InstructionCost ARMTTIImpl::getIntImmCodeSizeCost(unsigned Opcode, unsigned Idx,
 static bool isSSATMinMaxPattern(Instruction *Inst, const APInt &Imm) {
   Value *LHS, *RHS;
   ConstantInt *C;
-  SelectPatternFlavor InstSPF = matchSelectPattern(Inst, LHS, RHS).Flavor;
+  SelectPatternFlavor const InstSPF = matchSelectPattern(Inst, LHS, RHS).Flavor;
 
   if (InstSPF == SPF_SMAX &&
       PatternMatch::match(RHS, PatternMatch::m_ConstantInt(C)) &&
@@ -306,7 +306,7 @@ static bool isSSATMinMaxPattern(Instruction *Inst, const APInt &Imm) {
       if (isa<SelectInst>(MinInst)) {
         Value *MinLHS, *MinRHS;
         ConstantInt *MinC;
-        SelectPatternFlavor MinSPF =
+        SelectPatternFlavor const MinSPF =
             matchSelectPattern(MinInst, MinLHS, MinRHS).Flavor;
         if (MinSPF == SPF_SMIN &&
             PatternMatch::match(MinRHS, PatternMatch::m_ConstantInt(MinC)) &&
@@ -358,7 +358,7 @@ InstructionCost ARMTTIImpl::getIntImmCostInst(unsigned Opcode, unsigned Idx,
 
   if (Opcode == Instruction::ICmp && Imm.isNegative() &&
       Ty->getIntegerBitWidth() == 32) {
-    int64_t NegImm = -Imm.getSExtValue();
+    int64_t const NegImm = -Imm.getSExtValue();
     if (ST->isThumb2() && NegImm < 1<<12)
       // icmp X, #-C -> cmn X, #C
       return 0;
@@ -403,7 +403,7 @@ InstructionCost ARMTTIImpl::getCastInstrCost(unsigned Opcode, Type *Dst,
                                              TTI::CastContextHint CCH,
                                              TTI::TargetCostKind CostKind,
                                              const Instruction *I) {
-  int ISD = TLI->InstructionOpcodeToISD(Opcode);
+  int const ISD = TLI->InstructionOpcodeToISD(Opcode);
   assert(ISD && "Invalid opcode");
 
   // TODO: Allow non-throughput costs that aren't binary.
@@ -413,14 +413,14 @@ InstructionCost ARMTTIImpl::getCastInstrCost(unsigned Opcode, Type *Dst,
     return Cost;
   };
   auto IsLegalFPType = [this](EVT VT) {
-    EVT EltVT = VT.getScalarType();
+    EVT const EltVT = VT.getScalarType();
     return (EltVT == MVT::f32 && ST->hasVFP2Base()) ||
             (EltVT == MVT::f64 && ST->hasFP64()) ||
             (EltVT == MVT::f16 && ST->hasFullFP16());
   };
 
-  EVT SrcTy = TLI->getValueType(DL, Src);
-  EVT DstTy = TLI->getValueType(DL, Dst);
+  EVT const SrcTy = TLI->getValueType(DL, Src);
+  EVT const DstTy = TLI->getValueType(DL, Dst);
 
   if (!SrcTy.isSimple() || !DstTy.isSimple())
     return AdjustCost(
@@ -544,7 +544,7 @@ InstructionCost ARMTTIImpl::getCastInstrCost(unsigned Opcode, Type *Dst,
     };
 
     auto *User = cast<Instruction>(*I->user_begin());
-    int UserISD = TLI->InstructionOpcodeToISD(User->getOpcode());
+    int const UserISD = TLI->InstructionOpcodeToISD(User->getOpcode());
     if (auto *Entry = ConvertCostTableLookup(NEONDoubleWidthTbl, UserISD,
                                              DstTy.getSimpleVT(),
                                              SrcTy.getSimpleVT())) {
@@ -564,7 +564,7 @@ InstructionCost ARMTTIImpl::getCastInstrCost(unsigned Opcode, Type *Dst,
         {ISD::FP_EXTEND, MVT::v2f32, 2},
         {ISD::FP_EXTEND, MVT::v4f32, 4}};
 
-    std::pair<InstructionCost, MVT> LT = TLI->getTypeLegalizationCost(DL, Src);
+    std::pair<InstructionCost, MVT> const LT = TLI->getTypeLegalizationCost(DL, Src);
     if (const auto *Entry = CostTableLookup(NEONFltDblTbl, ISD, LT.second))
       return AdjustCost(LT.first * Entry->Cost);
   }
@@ -795,7 +795,7 @@ InstructionCost ARMTTIImpl::getCastInstrCost(unsigned Opcode, Type *Dst,
       return AdjustCost(Entry->Cost);
   }
 
-  int BaseCost = ST->hasMVEIntegerOps() && Src->isVectorTy()
+  int const BaseCost = ST->hasMVEIntegerOps() && Src->isVectorTy()
                      ? ST->getMVEVectorCostFactor(CostKind)
                      : 1;
   return AdjustCost(
@@ -830,7 +830,7 @@ InstructionCost ARMTTIImpl::getVectorInstrCost(unsigned Opcode, Type *ValTy,
     // Integer cross-lane moves are more expensive than float, which can
     // sometimes just be vmovs. Integer involve being passes to GPR registers,
     // causing more of a delay.
-    std::pair<InstructionCost, MVT> LT =
+    std::pair<InstructionCost, MVT> const LT =
         getTLI()->getTypeLegalizationCost(DL, ValTy->getScalarType());
     return LT.first * (ValTy->getScalarType()->isIntegerTy() ? 4 : 1);
   }
@@ -843,7 +843,7 @@ InstructionCost ARMTTIImpl::getCmpSelInstrCost(unsigned Opcode, Type *ValTy,
                                                CmpInst::Predicate VecPred,
                                                TTI::TargetCostKind CostKind,
                                                const Instruction *I) {
-  int ISD = TLI->InstructionOpcodeToISD(Opcode);
+  int const ISD = TLI->InstructionOpcodeToISD(Opcode);
 
   // Thumb scalar code size cost for select.
   if (CostKind == TTI::TCK_CodeSize && ISD == ISD::SELECT &&
@@ -879,7 +879,7 @@ InstructionCost ARMTTIImpl::getCmpSelInstrCost(unsigned Opcode, Type *ValTy,
   if (Sel && ValTy->isVectorTy() &&
       (ValTy->isIntOrIntVectorTy() || ValTy->isFPOrFPVectorTy())) {
     const Value *LHS, *RHS;
-    SelectPatternFlavor SPF = matchSelectPattern(Sel, LHS, RHS).Flavor;
+    SelectPatternFlavor const SPF = matchSelectPattern(Sel, LHS, RHS).Flavor;
     unsigned IID = 0;
     switch (SPF) {
     case SPF_ABS:
@@ -910,7 +910,7 @@ InstructionCost ARMTTIImpl::getCmpSelInstrCost(unsigned Opcode, Type *ValTy,
       // The ICmp is free, the select gets the cost of the min/max/etc
       if (Sel != I)
         return 0;
-      IntrinsicCostAttributes CostAttrs(IID, ValTy, {ValTy, ValTy});
+      IntrinsicCostAttributes const CostAttrs(IID, ValTy, {ValTy, ValTy});
       return getIntrinsicInstrCost(CostAttrs, CostKind);
     }
   }
@@ -924,8 +924,8 @@ InstructionCost ARMTTIImpl::getCmpSelInstrCost(unsigned Opcode, Type *ValTy,
       { ISD::SELECT, MVT::v16i1, MVT::v16i64, 100 }
     };
 
-    EVT SelCondTy = TLI->getValueType(DL, CondTy);
-    EVT SelValTy = TLI->getValueType(DL, ValTy);
+    EVT const SelCondTy = TLI->getValueType(DL, CondTy);
+    EVT const SelValTy = TLI->getValueType(DL, ValTy);
     if (SelCondTy.isSimple() && SelValTy.isSimple()) {
       if (const auto *Entry = ConvertCostTableLookup(NEONVectorSelectTbl, ISD,
                                                      SelCondTy.getSimpleVT(),
@@ -933,7 +933,7 @@ InstructionCost ARMTTIImpl::getCmpSelInstrCost(unsigned Opcode, Type *ValTy,
         return Entry->Cost;
     }
 
-    std::pair<InstructionCost, MVT> LT =
+    std::pair<InstructionCost, MVT> const LT =
         TLI->getTypeLegalizationCost(DL, ValTy);
     return LT.first;
   }
@@ -958,9 +958,9 @@ InstructionCost ARMTTIImpl::getCmpSelInstrCost(unsigned Opcode, Type *ValTy,
                                     I);
     }
 
-    std::pair<InstructionCost, MVT> LT =
+    std::pair<InstructionCost, MVT> const LT =
         TLI->getTypeLegalizationCost(DL, ValTy);
-    int BaseCost = ST->getMVEVectorCostFactor(CostKind);
+    int const BaseCost = ST->getMVEVectorCostFactor(CostKind);
     // There are two types - the input that specifies the type of the compare
     // and the output vXi1 type. Because we don't know how the output will be
     // split, we may need an expensive shuffle to get two in sync. This has the
@@ -991,8 +991,8 @@ InstructionCost ARMTTIImpl::getAddressComputationCost(Type *Ty,
   // likely result in more instructions compared to scalar code where the
   // computation can more often be merged into the index mode. The resulting
   // extra micro-ops can significantly decrease throughput.
-  unsigned NumVectorInstToHideOverhead = 10;
-  int MaxMergeDistance = 64;
+  unsigned const NumVectorInstToHideOverhead = 10;
+  int const MaxMergeDistance = 64;
 
   if (ST->hasNEON()) {
     if (Ty->isVectorTy() && SE &&
@@ -1033,12 +1033,12 @@ bool ARMTTIImpl::isLegalMaskedLoad(Type *DataTy, Align Alignment) {
       return false;
 
     // We don't support extending fp types.
-     unsigned VecWidth = DataTy->getPrimitiveSizeInBits();
+     unsigned const VecWidth = DataTy->getPrimitiveSizeInBits();
     if (VecWidth != 128 && VecTy->getElementType()->isFloatingPointTy())
       return false;
   }
 
-  unsigned EltWidth = DataTy->getScalarSizeInBits();
+  unsigned const EltWidth = DataTy->getScalarSizeInBits();
   return (EltWidth == 32 && Alignment >= 4) ||
          (EltWidth == 16 && Alignment >= 2) || (EltWidth == 8);
 }
@@ -1059,7 +1059,7 @@ bool ARMTTIImpl::isLegalMaskedGather(Type *Ty, Align Alignment) {
   if (isa<VectorType>(Ty))
     return false;
 
-  unsigned EltWidth = Ty->getScalarSizeInBits();
+  unsigned const EltWidth = Ty->getScalarSizeInBits();
   return ((EltWidth == 32 && Alignment >= 4) ||
           (EltWidth == 16 && Alignment >= 2) || EltWidth == 8);
 }
@@ -1134,7 +1134,7 @@ int ARMTTIImpl::getNumMemOps(const IntrinsicInst *I) const {
 }
 
 InstructionCost ARMTTIImpl::getMemcpyCost(const Instruction *I) {
-  int NumOps = getNumMemOps(cast<IntrinsicInst>(I));
+  int const NumOps = getNumMemOps(cast<IntrinsicInst>(I));
 
   // To model the cost of a library call, we assume 1 for the call, and
   // 3 for the argument setup.
@@ -1163,7 +1163,7 @@ InstructionCost ARMTTIImpl::getShuffleCost(TTI::ShuffleKind Kind,
           {ISD::VECTOR_SHUFFLE, MVT::v8i16, 1},
           {ISD::VECTOR_SHUFFLE, MVT::v16i8, 1}};
 
-      std::pair<InstructionCost, MVT> LT = TLI->getTypeLegalizationCost(DL, Tp);
+      std::pair<InstructionCost, MVT> const LT = TLI->getTypeLegalizationCost(DL, Tp);
       if (const auto *Entry =
               CostTableLookup(NEONDupTbl, ISD::VECTOR_SHUFFLE, LT.second))
         return LT.first * Entry->Cost;
@@ -1184,7 +1184,7 @@ InstructionCost ARMTTIImpl::getShuffleCost(TTI::ShuffleKind Kind,
           {ISD::VECTOR_SHUFFLE, MVT::v8i16, 2},
           {ISD::VECTOR_SHUFFLE, MVT::v16i8, 2}};
 
-      std::pair<InstructionCost, MVT> LT = TLI->getTypeLegalizationCost(DL, Tp);
+      std::pair<InstructionCost, MVT> const LT = TLI->getTypeLegalizationCost(DL, Tp);
       if (const auto *Entry =
               CostTableLookup(NEONShuffleTbl, ISD::VECTOR_SHUFFLE, LT.second))
         return LT.first * Entry->Cost;
@@ -1208,7 +1208,7 @@ InstructionCost ARMTTIImpl::getShuffleCost(TTI::ShuffleKind Kind,
 
           {ISD::VECTOR_SHUFFLE, MVT::v16i8, 32}};
 
-      std::pair<InstructionCost, MVT> LT = TLI->getTypeLegalizationCost(DL, Tp);
+      std::pair<InstructionCost, MVT> const LT = TLI->getTypeLegalizationCost(DL, Tp);
       if (const auto *Entry = CostTableLookup(NEONSelShuffleTbl,
                                               ISD::VECTOR_SHUFFLE, LT.second))
         return LT.first * Entry->Cost;
@@ -1224,7 +1224,7 @@ InstructionCost ARMTTIImpl::getShuffleCost(TTI::ShuffleKind Kind,
           {ISD::VECTOR_SHUFFLE, MVT::v4f32, 1},
           {ISD::VECTOR_SHUFFLE, MVT::v8f16, 1}};
 
-      std::pair<InstructionCost, MVT> LT = TLI->getTypeLegalizationCost(DL, Tp);
+      std::pair<InstructionCost, MVT> const LT = TLI->getTypeLegalizationCost(DL, Tp);
       if (const auto *Entry = CostTableLookup(MVEDupTbl, ISD::VECTOR_SHUFFLE,
                                               LT.second))
         return LT.first * Entry->Cost *
@@ -1232,7 +1232,7 @@ InstructionCost ARMTTIImpl::getShuffleCost(TTI::ShuffleKind Kind,
     }
 
     if (!Mask.empty()) {
-      std::pair<InstructionCost, MVT> LT = TLI->getTypeLegalizationCost(DL, Tp);
+      std::pair<InstructionCost, MVT> const LT = TLI->getTypeLegalizationCost(DL, Tp);
       if (Mask.size() <= LT.second.getVectorNumElements() &&
           (isVREVMask(Mask, LT.second, 16) || isVREVMask(Mask, LT.second, 32) ||
            isVREVMask(Mask, LT.second, 64)))
@@ -1240,7 +1240,7 @@ InstructionCost ARMTTIImpl::getShuffleCost(TTI::ShuffleKind Kind,
     }
   }
 
-  int BaseCost = ST->hasMVEIntegerOps() && Tp->isVectorTy()
+  int const BaseCost = ST->hasMVEIntegerOps() && Tp->isVectorTy()
                      ? ST->getMVEVectorCostFactor(TTI::TCK_RecipThroughput)
                      : 1;
   return BaseCost * BaseT::getShuffleCost(Kind, Tp, Mask, Index, SubTp);
@@ -1252,7 +1252,7 @@ InstructionCost ARMTTIImpl::getArithmeticInstrCost(
     TTI::OperandValueProperties Opd1PropInfo,
     TTI::OperandValueProperties Opd2PropInfo, ArrayRef<const Value *> Args,
     const Instruction *CxtI) {
-  int ISDOpcode = TLI->InstructionOpcodeToISD(Opcode);
+  int const ISDOpcode = TLI->InstructionOpcodeToISD(Opcode);
   if (ST->isThumb() && CostKind == TTI::TCK_CodeSize && Ty->isIntegerTy(1)) {
     // Make operations on i1 relatively expensive as this often involves
     // combining predicates. AND and XOR should be easier to handle with IT
@@ -1268,7 +1268,7 @@ InstructionCost ARMTTIImpl::getArithmeticInstrCost(
     }
   }
 
-  std::pair<InstructionCost, MVT> LT = TLI->getTypeLegalizationCost(DL, Ty);
+  std::pair<InstructionCost, MVT> const LT = TLI->getTypeLegalizationCost(DL, Ty);
 
   if (ST->hasNEON()) {
     const unsigned FunctionCallDivCost = 20;
@@ -1376,12 +1376,12 @@ InstructionCost ARMTTIImpl::getArithmeticInstrCost(
 
   // Else this is expand, assume that we need to scalarize this op.
   if (auto *VTy = dyn_cast<FixedVectorType>(Ty)) {
-    unsigned Num = VTy->getNumElements();
-    InstructionCost Cost =
+    unsigned const Num = VTy->getNumElements();
+    InstructionCost const Cost =
         getArithmeticInstrCost(Opcode, Ty->getScalarType(), CostKind);
     // Return the cost of multiple scalar invocation plus the cost of
     // inserting and extracting the values.
-    SmallVector<Type *> Tys(Args.size(), Ty);
+    SmallVector<Type *> const Tys(Args.size(), Ty);
     return BaseT::getScalarizationOverhead(VTy, Args, Tys) + Num * Cost;
   }
 
@@ -1407,7 +1407,7 @@ InstructionCost ARMTTIImpl::getMemoryOpCost(unsigned Opcode, Type *Src,
       cast<VectorType>(Src)->getElementType()->isDoubleTy()) {
     // Unaligned loads/stores are extremely inefficient.
     // We need 4 uops for vst.1/vld.1 vs 1uop for vldr/vstr.
-    std::pair<InstructionCost, MVT> LT = TLI->getTypeLegalizationCost(DL, Src);
+    std::pair<InstructionCost, MVT> const LT = TLI->getTypeLegalizationCost(DL, Src);
     return LT.first * 4;
   }
 
@@ -1427,7 +1427,7 @@ InstructionCost ARMTTIImpl::getMemoryOpCost(unsigned Opcode, Type *Src,
       return ST->getMVEVectorCostFactor(CostKind);
   }
 
-  int BaseCost = ST->hasMVEIntegerOps() && Src->isVectorTy()
+  int const BaseCost = ST->hasMVEIntegerOps() && Src->isVectorTy()
                      ? ST->getMVEVectorCostFactor(CostKind)
                      : 1;
   return BaseCost * BaseT::getMemoryOpCost(Opcode, Src, Alignment, AddressSpace,
@@ -1460,18 +1460,18 @@ InstructionCost ARMTTIImpl::getInterleavedMemoryOpCost(
   assert(isa<VectorType>(VecTy) && "Expect a vector type");
 
   // vldN/vstN doesn't support vector types of i64/f64 element.
-  bool EltIs64Bits = DL.getTypeSizeInBits(VecTy->getScalarType()) == 64;
+  bool const EltIs64Bits = DL.getTypeSizeInBits(VecTy->getScalarType()) == 64;
 
   if (Factor <= TLI->getMaxSupportedInterleaveFactor() && !EltIs64Bits &&
       !UseMaskForCond && !UseMaskForGaps) {
-    unsigned NumElts = cast<FixedVectorType>(VecTy)->getNumElements();
+    unsigned const NumElts = cast<FixedVectorType>(VecTy)->getNumElements();
     auto *SubVecTy =
         FixedVectorType::get(VecTy->getScalarType(), NumElts / Factor);
 
     // vldN/vstN only support legal vector types of size 64 or 128 in bits.
     // Accesses having vector types that are a multiple of 128 bits can be
     // matched to more than one vldN/vstN instruction.
-    int BaseCost =
+    int const BaseCost =
         ST->hasMVEIntegerOps() ? ST->getMVEVectorCostFactor(CostKind) : 1;
     if (NumElts % Factor == 0 &&
         TLI->isLegalInterleavedAccessType(Factor, SubVecTy, Alignment, DL))
@@ -1506,9 +1506,9 @@ InstructionCost ARMTTIImpl::getGatherScatterOpCost(
 
   // TODO: Splitting, once we do that.
 
-  unsigned NumElems = VTy->getNumElements();
-  unsigned EltSize = VTy->getScalarSizeInBits();
-  std::pair<InstructionCost, MVT> LT = TLI->getTypeLegalizationCost(DL, DataTy);
+  unsigned const NumElems = VTy->getNumElements();
+  unsigned const EltSize = VTy->getScalarSizeInBits();
+  std::pair<InstructionCost, MVT> const LT = TLI->getTypeLegalizationCost(DL, DataTy);
 
   // For now, it is assumed that for the MVE gather instructions the loads are
   // all effectively serialised. This means the cost is the scalar cost
@@ -1538,7 +1538,7 @@ InstructionCost ARMTTIImpl::getGatherScatterOpCost(
       const User *Us = *I->users().begin();
       if (isa<ZExtInst>(Us) || isa<SExtInst>(Us)) {
         // only allow valid type combinations
-        unsigned TypeSize =
+        unsigned const TypeSize =
             cast<Instruction>(Us)->getType()->getScalarSizeInBits();
         if (((TypeSize == 32 && (EltSize == 8 || EltSize == 16)) ||
              (TypeSize == 16 && EltSize == 8)) &&
@@ -1553,7 +1553,7 @@ InstructionCost ARMTTIImpl::getGatherScatterOpCost(
          match(I, m_Intrinsic<Intrinsic::masked_scatter>())) &&
         (T = dyn_cast<TruncInst>(I->getOperand(0)))) {
       // Only allow valid type combinations
-      unsigned TypeSize = T->getOperand(0)->getType()->getScalarSizeInBits();
+      unsigned const TypeSize = T->getOperand(0)->getType()->getScalarSizeInBits();
       if (((EltSize == 16 && TypeSize == 32) ||
            (EltSize == 8 && (TypeSize == 32 || TypeSize == 16))) &&
           TypeSize * NumElems == 128)
@@ -1578,7 +1578,7 @@ InstructionCost ARMTTIImpl::getGatherScatterOpCost(
   if (const auto *GEP = dyn_cast<GetElementPtrInst>(Ptr)) {
     if (GEP->getNumOperands() != 2)
       return ScalarCost;
-    unsigned Scale = DL.getTypeAllocSize(GEP->getResultElementType());
+    unsigned const Scale = DL.getTypeAllocSize(GEP->getResultElementType());
     // Scale needs to be correct (which is only relevant for i16s).
     if (Scale != 1 && Scale * 8 != ExtSize)
       return ScalarCost;
@@ -1599,12 +1599,12 @@ ARMTTIImpl::getArithmeticReductionCost(unsigned Opcode, VectorType *ValTy,
   if (TTI::requiresOrderedReduction(FMF))
     return BaseT::getArithmeticReductionCost(Opcode, ValTy, FMF, CostKind);
 
-  EVT ValVT = TLI->getValueType(DL, ValTy);
-  int ISD = TLI->InstructionOpcodeToISD(Opcode);
+  EVT const ValVT = TLI->getValueType(DL, ValTy);
+  int const ISD = TLI->InstructionOpcodeToISD(Opcode);
   if (!ST->hasMVEIntegerOps() || !ValVT.isSimple() || ISD != ISD::ADD)
     return BaseT::getArithmeticReductionCost(Opcode, ValTy, FMF, CostKind);
 
-  std::pair<InstructionCost, MVT> LT = TLI->getTypeLegalizationCost(DL, ValTy);
+  std::pair<InstructionCost, MVT> const LT = TLI->getTypeLegalizationCost(DL, ValTy);
 
   static const CostTblEntry CostTblAdd[]{
       {ISD::ADD, MVT::v16i8, 1},
@@ -1621,11 +1621,11 @@ InstructionCost
 ARMTTIImpl::getExtendedAddReductionCost(bool IsMLA, bool IsUnsigned,
                                         Type *ResTy, VectorType *ValTy,
                                         TTI::TargetCostKind CostKind) {
-  EVT ValVT = TLI->getValueType(DL, ValTy);
-  EVT ResVT = TLI->getValueType(DL, ResTy);
+  EVT const ValVT = TLI->getValueType(DL, ValTy);
+  EVT const ResVT = TLI->getValueType(DL, ResTy);
 
   if (ST->hasMVEIntegerOps() && ValVT.isSimple() && ResVT.isSimple()) {
-    std::pair<InstructionCost, MVT> LT =
+    std::pair<InstructionCost, MVT> const LT =
         TLI->getTypeLegalizationCost(DL, ValTy);
 
     // The legal cases are:
@@ -1636,7 +1636,7 @@ ARMTTIImpl::getExtendedAddReductionCost(bool IsMLA, bool IsUnsigned,
     // Codegen currently cannot always handle larger than legal vectors very
     // well, especially for predicated reductions where the mask needs to be
     // split, so restrict to 128bit or smaller input types.
-    unsigned RevVTSize = ResVT.getSizeInBits();
+    unsigned const RevVTSize = ResVT.getSizeInBits();
     if (ValVT.getSizeInBits() <= 128 &&
         ((LT.second == MVT::v16i8 && RevVTSize <= 32) ||
          (LT.second == MVT::v8i16 && RevVTSize <= (IsMLA ? 64u : 32u)) ||
@@ -1671,12 +1671,12 @@ ARMTTIImpl::getIntrinsicInstrCost(const IntrinsicCostAttributes &ICA,
       break;
     Type *VT = ICA.getReturnType();
 
-    std::pair<InstructionCost, MVT> LT = TLI->getTypeLegalizationCost(DL, VT);
+    std::pair<InstructionCost, MVT> const LT = TLI->getTypeLegalizationCost(DL, VT);
     if (LT.second == MVT::v4i32 || LT.second == MVT::v8i16 ||
         LT.second == MVT::v16i8) {
       // This is a base cost of 1 for the vqadd, plus 3 extract shifts if we
       // need to extend the type, as it uses shr(qadd(shl, shl)).
-      unsigned Instrs =
+      unsigned const Instrs =
           LT.second.getScalarSizeInBits() == VT->getScalarSizeInBits() ? 1 : 4;
       return LT.first * ST->getMVEVectorCostFactor(CostKind) * Instrs;
     }
@@ -1691,7 +1691,7 @@ ARMTTIImpl::getIntrinsicInstrCost(const IntrinsicCostAttributes &ICA,
       break;
     Type *VT = ICA.getReturnType();
 
-    std::pair<InstructionCost, MVT> LT = TLI->getTypeLegalizationCost(DL, VT);
+    std::pair<InstructionCost, MVT> const LT = TLI->getTypeLegalizationCost(DL, VT);
     if (LT.second == MVT::v4i32 || LT.second == MVT::v8i16 ||
         LT.second == MVT::v16i8)
       return LT.first * ST->getMVEVectorCostFactor(CostKind);
@@ -1702,7 +1702,7 @@ ARMTTIImpl::getIntrinsicInstrCost(const IntrinsicCostAttributes &ICA,
     if (!ST->hasMVEFloatOps())
       break;
     Type *VT = ICA.getReturnType();
-    std::pair<InstructionCost, MVT> LT = TLI->getTypeLegalizationCost(DL, VT);
+    std::pair<InstructionCost, MVT> const LT = TLI->getTypeLegalizationCost(DL, VT);
     if (LT.second == MVT::v4f32 || LT.second == MVT::v8f16)
       return LT.first * ST->getMVEVectorCostFactor(CostKind);
     break;
@@ -1774,8 +1774,8 @@ bool ARMTTIImpl::isLoweredToCall(const Function *F) {
 }
 
 bool ARMTTIImpl::maybeLoweredToCall(Instruction &I) {
-  unsigned ISD = TLI->InstructionOpcodeToISD(I.getOpcode());
-  EVT VT = TLI->getValueType(DL, I.getType(), true);
+  unsigned const ISD = TLI->InstructionOpcodeToISD(I.getOpcode());
+  EVT const VT = TLI->getValueType(DL, I.getType(), true);
   if (TLI->getOperationAction(ISD, VT) == TargetLowering::LibCall)
     return true;
 
@@ -2006,7 +2006,7 @@ static bool canTailPredicateLoop(Loop *L, LoopInfo *LI, ScalarEvolution &SE,
   // vectorization automatically.
   SmallVector< Instruction *, 8 > LiveOuts;
   LiveOuts = llvm::findDefsUsedOutsideOfLoop(L);
-  bool ReductionsDisabled =
+  bool const ReductionsDisabled =
       EnableTailPredication == TailPredication::EnabledNoReductions ||
       EnableTailPredication == TailPredication::ForceEnabledNoReductions;
 
@@ -2025,7 +2025,7 @@ static bool canTailPredicateLoop(Loop *L, LoopInfo *LI, ScalarEvolution &SE,
 
   // Next, check that all instructions can be tail-predicated.
   PredicatedScalarEvolution PSE = LAI->getPSE();
-  SmallVector<Instruction *, 16> LoadStores;
+  SmallVector<Instruction *, 16> const LoadStores;
   int ICmpCount = 0;
 
   for (BasicBlock *BB : L->blocks()) {
@@ -2047,7 +2047,7 @@ static bool canTailPredicateLoop(Loop *L, LoopInfo *LI, ScalarEvolution &SE,
       }
       if (isa<StoreInst>(I) || isa<LoadInst>(I)) {
         Value *Ptr = isa<LoadInst>(I) ? I.getOperand(0) : I.getOperand(1);
-        int64_t NextStride = getPtrStride(PSE, Ptr, L);
+        int64_t const NextStride = getPtrStride(PSE, Ptr, L);
         if (NextStride == 1) {
           // TODO: for now only allow consecutive strides of 1. We could support
           // other strides as long as it is uniform, but let's keep it simple
@@ -2200,7 +2200,7 @@ void ARMTTIImpl::getUnrollingPreferences(Loop *L, ScalarEvolution &SE,
         return;
       }
 
-      SmallVector<const Value*, 4> Operands(I.operand_values());
+      SmallVector<const Value*, 4> const Operands(I.operand_values());
       Cost +=
         getUserCost(&I, Operands, TargetTransformInfo::TCK_SizeAndLatency);
     }
@@ -2220,7 +2220,7 @@ void ARMTTIImpl::getUnrollingPreferences(Loop *L, ScalarEvolution &SE,
     for (auto *Exit : ExitBlocks) {
       // Count the number of LCSSA phis. Exclude values coming from GEP's as
       // only the last is expected to be needed for address operands.
-      unsigned LiveOuts = count_if(Exit->phis(), [](auto &PH) {
+      unsigned const LiveOuts = count_if(Exit->phis(), [](auto &PH) {
         return PH.getNumOperands() != 1 ||
                !isa<GetElementPtrInst>(PH.getOperand(0));
       });
@@ -2258,7 +2258,7 @@ bool ARMTTIImpl::preferInLoopReduction(unsigned Opcode, Type *Ty,
   if (!ST->hasMVEIntegerOps())
     return false;
 
-  unsigned ScalarBits = Ty->getScalarSizeInBits();
+  unsigned const ScalarBits = Ty->getScalarSizeInBits();
   switch (Opcode) {
   case Instruction::Add:
     return ScalarBits <= 64;

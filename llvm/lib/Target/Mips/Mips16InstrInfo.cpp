@@ -87,7 +87,7 @@ void Mips16InstrInfo::copyPhysReg(MachineBasicBlock &MBB,
 
   assert(Opc && "Cannot copy registers");
 
-  MachineInstrBuilder MIB = BuildMI(MBB, I, DL, get(Opc));
+  MachineInstrBuilder const MIB = BuildMI(MBB, I, DL, get(Opc));
 
   if (DestReg)
     MIB.addReg(DestReg, RegState::Define);
@@ -190,7 +190,7 @@ static void addSaveRestoreRegs(MachineInstrBuilder &MIB,
     // method MipsTargetLowering::lowerRETURNADDR.
     // It's killed at the spill, unless the register is RA and return address
     // is taken.
-    unsigned Reg = CSI[e-i-1].getReg();
+    unsigned const Reg = CSI[e-i-1].getReg();
     switch (Reg) {
     case Mips::RA:
     case Mips::S0:
@@ -210,13 +210,13 @@ static void addSaveRestoreRegs(MachineInstrBuilder &MIB,
 void Mips16InstrInfo::makeFrame(unsigned SP, int64_t FrameSize,
                                 MachineBasicBlock &MBB,
                                 MachineBasicBlock::iterator I) const {
-  DebugLoc DL;
+  DebugLoc const DL;
   MachineFunction &MF = *MBB.getParent();
   MachineFrameInfo &MFI    = MF.getFrameInfo();
   const BitVector Reserved = RI.getReservedRegs(MF);
-  bool SaveS2 = Reserved[Mips::S2];
+  bool const SaveS2 = Reserved[Mips::S2];
   MachineInstrBuilder MIB;
-  unsigned Opc = ((FrameSize <= 128) && !SaveS2)? Mips::Save16:Mips::SaveX16;
+  unsigned const Opc = ((FrameSize <= 128) && !SaveS2)? Mips::Save16:Mips::SaveX16;
   MIB = BuildMI(MBB, I, DL, get(Opc));
   const std::vector<CalleeSavedInfo> &CSI = MFI.getCalleeSavedInfo();
   addSaveRestoreRegs(MIB, CSI);
@@ -225,9 +225,9 @@ void Mips16InstrInfo::makeFrame(unsigned SP, int64_t FrameSize,
   if (isUInt<11>(FrameSize))
     MIB.addImm(FrameSize);
   else {
-    int Base = 2040; // should create template function like isUInt that
+    int const Base = 2040; // should create template function like isUInt that
                      // returns largest possible n bit unsigned integer
-    int64_t Remainder = FrameSize - Base;
+    int64_t const Remainder = FrameSize - Base;
     MIB.addImm(Base);
     if (isInt<16>(-Remainder))
       BuildAddiuSpImm(MBB, I, -Remainder);
@@ -240,18 +240,18 @@ void Mips16InstrInfo::makeFrame(unsigned SP, int64_t FrameSize,
 void Mips16InstrInfo::restoreFrame(unsigned SP, int64_t FrameSize,
                                    MachineBasicBlock &MBB,
                                    MachineBasicBlock::iterator I) const {
-  DebugLoc DL = I != MBB.end() ? I->getDebugLoc() : DebugLoc();
+  DebugLoc const DL = I != MBB.end() ? I->getDebugLoc() : DebugLoc();
   MachineFunction *MF = MBB.getParent();
   MachineFrameInfo &MFI    = MF->getFrameInfo();
   const BitVector Reserved = RI.getReservedRegs(*MF);
-  bool SaveS2 = Reserved[Mips::S2];
+  bool const SaveS2 = Reserved[Mips::S2];
   MachineInstrBuilder MIB;
-  unsigned Opc = ((FrameSize <= 128) && !SaveS2)?
+  unsigned const Opc = ((FrameSize <= 128) && !SaveS2)?
     Mips::Restore16:Mips::RestoreX16;
 
   if (!isUInt<11>(FrameSize)) {
-    unsigned Base = 2040;
-    int64_t Remainder = FrameSize - Base;
+    unsigned const Base = 2040;
+    int64_t const Remainder = FrameSize - Base;
     FrameSize = Base; // should create template function like isUInt that
                      // returns largest possible n bit unsigned integer
 
@@ -276,7 +276,7 @@ void Mips16InstrInfo::adjustStackPtrBig(unsigned SP, int64_t Amount,
                                         MachineBasicBlock &MBB,
                                         MachineBasicBlock::iterator I,
                                         unsigned Reg1, unsigned Reg2) const {
-  DebugLoc DL;
+  DebugLoc const DL;
   //
   // li reg1, constant
   // move reg2, sp
@@ -284,14 +284,14 @@ void Mips16InstrInfo::adjustStackPtrBig(unsigned SP, int64_t Amount,
   // move sp, reg1
   //
   //
-  MachineInstrBuilder MIB1 = BuildMI(MBB, I, DL, get(Mips::LwConstant32), Reg1);
+  MachineInstrBuilder const MIB1 = BuildMI(MBB, I, DL, get(Mips::LwConstant32), Reg1);
   MIB1.addImm(Amount).addImm(-1);
-  MachineInstrBuilder MIB2 = BuildMI(MBB, I, DL, get(Mips::MoveR3216), Reg2);
+  MachineInstrBuilder const MIB2 = BuildMI(MBB, I, DL, get(Mips::MoveR3216), Reg2);
   MIB2.addReg(Mips::SP, RegState::Kill);
-  MachineInstrBuilder MIB3 = BuildMI(MBB, I, DL, get(Mips::AdduRxRyRz16), Reg1);
+  MachineInstrBuilder const MIB3 = BuildMI(MBB, I, DL, get(Mips::AdduRxRyRz16), Reg1);
   MIB3.addReg(Reg1);
   MIB3.addReg(Reg2, RegState::Kill);
-  MachineInstrBuilder MIB4 = BuildMI(MBB, I, DL, get(Mips::Move32R16),
+  MachineInstrBuilder const MIB4 = BuildMI(MBB, I, DL, get(Mips::Move32R16),
                                                      Mips::SP);
   MIB4.addReg(Reg1, RegState::Kill);
 }
@@ -335,7 +335,7 @@ unsigned Mips16InstrInfo::loadImmediate(unsigned FrameReg, int64_t Imm,
   // add T, Rx, T
   //
   RegScavenger rs;
-  int32_t lo = Imm & 0xFFFF;
+  int32_t const lo = Imm & 0xFFFF;
   NewImm = lo;
   int Reg =0;
   int SpReg = 0;
@@ -352,7 +352,7 @@ unsigned Mips16InstrInfo::loadImmediate(unsigned FrameReg, int64_t Imm,
       (*II->getParent()->getParent(), &Mips::CPU16RegsRegClass);
   // Exclude all the registers being used by the instruction.
   for (unsigned i = 0, e = II->getNumOperands(); i != e; ++i) {
-    MachineOperand &MO = II->getOperand(i);
+    MachineOperand  const&MO = II->getOperand(i);
     if (MO.isReg() && MO.getReg() != 0 && !MO.isDef() &&
         !Register::isVirtualRegister(MO.getReg()))
       Candidates.reset(MO.getReg());
@@ -368,7 +368,7 @@ unsigned Mips16InstrInfo::loadImmediate(unsigned FrameReg, int64_t Imm,
   // then we don't need to save it in case there are no free registers.
   int DefReg = 0;
   for (unsigned i = 0, e = II->getNumOperands(); i != e; ++i) {
-    MachineOperand &MO = II->getOperand(i);
+    MachineOperand  const&MO = II->getOperand(i);
     if (MO.isReg() && MO.isDef()) {
       DefReg = MO.getReg();
       break;
@@ -461,7 +461,7 @@ const MCInstrDesc &Mips16InstrInfo::AddiuSpImm(int64_t Imm) const {
 
 void Mips16InstrInfo::BuildAddiuSpImm
   (MachineBasicBlock &MBB, MachineBasicBlock::iterator I, int64_t Imm) const {
-  DebugLoc DL;
+  DebugLoc const DL;
   BuildMI(MBB, I, DL, AddiuSpImm(Imm)).addImm(Imm);
 }
 

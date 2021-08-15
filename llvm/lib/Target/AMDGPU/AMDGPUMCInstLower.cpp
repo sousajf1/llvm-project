@@ -114,7 +114,7 @@ bool AMDGPUMCInstLower::lowerOperand(const MachineOperand &MO,
     MCSymbol *Sym = Ctx.getOrCreateSymbol(SymbolName);
     const MCExpr *Expr =
       MCSymbolRefExpr::create(Sym, getVariantKind(MO.getTargetFlags()),Ctx);
-    int64_t Offset = MO.getOffset();
+    int64_t const Offset = MO.getOffset();
     if (Offset != 0) {
       Expr = MCBinaryExpr::createAdd(Expr,
                                      MCConstantExpr::create(Offset, Ctx), Ctx);
@@ -167,7 +167,7 @@ void AMDGPUMCInstLower::lower(const MachineInstr *MI, MCInst &OutMI) const {
     Opcode = AMDGPU::S_SETPC_B64;
   }
 
-  int MCOpcode = TII->pseudoToMCOpcode(Opcode);
+  int const MCOpcode = TII->pseudoToMCOpcode(Opcode);
   if (MCOpcode == -1) {
     LLVMContext &C = MI->getParent()->getParent()->getFunction().getContext();
     C.emitError("AMDGPUMCInstLower::lower - Pseudo instruction doesn't have "
@@ -182,7 +182,7 @@ void AMDGPUMCInstLower::lower(const MachineInstr *MI, MCInst &OutMI) const {
     OutMI.addOperand(MCOp);
   }
 
-  int FIIdx = AMDGPU::getNamedOperandIdx(MCOpcode, AMDGPU::OpName::fi);
+  int const FIIdx = AMDGPU::getNamedOperandIdx(MCOpcode, AMDGPU::OpName::fi);
   if (FIIdx >= (int)OutMI.getNumOperands())
     OutMI.addOperand(MCOperand::createImm(0));
 }
@@ -190,7 +190,7 @@ void AMDGPUMCInstLower::lower(const MachineInstr *MI, MCInst &OutMI) const {
 bool AMDGPUAsmPrinter::lowerOperand(const MachineOperand &MO,
                                     MCOperand &MCOp) const {
   const GCNSubtarget &STI = MF->getSubtarget<GCNSubtarget>();
-  AMDGPUMCInstLower MCInstLowering(OutContext, STI, *this);
+  AMDGPUMCInstLower const MCInstLowering(OutContext, STI, *this);
   return MCInstLowering.lowerOperand(MO, MCOp);
 }
 
@@ -229,7 +229,7 @@ void AMDGPUAsmPrinter::emitInstruction(const MachineInstr *MI) {
     return;
 
   const GCNSubtarget &STI = MF->getSubtarget<GCNSubtarget>();
-  AMDGPUMCInstLower MCInstLowering(OutContext, STI, *this);
+  AMDGPUMCInstLower const MCInstLowering(OutContext, STI, *this);
 
   StringRef Err;
   if (!STI.getInstrInfo()->verifyInstruction(*MI, Err)) {
@@ -316,7 +316,7 @@ void AMDGPUAsmPrinter::emitInstruction(const MachineInstr *MI) {
       raw_string_ostream HexStream(HexLine);
 
       for (size_t i = 0; i < CodeBytes.size(); i += 4) {
-        unsigned int CodeDWord = *(unsigned int *)&CodeBytes[i];
+        unsigned int const CodeDWord = *(unsigned int *)&CodeBytes[i];
         HexStream << format("%s%08X", (i > 0 ? " " : ""), CodeDWord);
       }
 
@@ -341,7 +341,7 @@ void R600MCInstLower::lower(const MachineInstr *MI, MCInst &OutMI) const {
 
 void R600AsmPrinter::emitInstruction(const MachineInstr *MI) {
   const R600Subtarget &STI = MF->getSubtarget<R600Subtarget>();
-  R600MCInstLower MCInstLowering(OutContext, STI, *this);
+  R600MCInstLower const MCInstLowering(OutContext, STI, *this);
 
   StringRef Err;
   if (!STI.getInstrInfo()->verifyInstruction(*MI, Err)) {

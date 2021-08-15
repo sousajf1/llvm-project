@@ -47,7 +47,7 @@ Error DebugCrossModuleImportsSubsectionRef::initialize(
 }
 
 Error DebugCrossModuleImportsSubsectionRef::initialize(BinaryStreamRef Stream) {
-  BinaryStreamReader Reader(Stream);
+  BinaryStreamReader const Reader(Stream);
   return initialize(Reader);
 }
 

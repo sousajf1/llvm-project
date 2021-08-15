@@ -123,10 +123,10 @@ bool HexagonCFGOptimizer::runOnMachineFunction(MachineFunction &Fn) {
     MachineBasicBlock *MBB = &*MBBb;
 
     // Traverse the basic block.
-    MachineBasicBlock::iterator MII = MBB->getFirstTerminator();
+    MachineBasicBlock::iterator const MII = MBB->getFirstTerminator();
     if (MII != MBB->end()) {
       MachineInstr &MI = *MII;
-      int Opc = MI.getOpcode();
+      int const Opc = MI.getOpcode();
       if (IsConditionalBranch(Opc)) {
         // (Case 1) Transform the code if the following condition occurs:
         //   BB1: if (p0) jump BB3
@@ -155,7 +155,7 @@ bool HexagonCFGOptimizer::runOnMachineFunction(MachineFunction &Fn) {
         //   Remove BB2
         //   BB3: ...
         //   BB4: ...
-        unsigned NumSuccs = MBB->succ_size();
+        unsigned const NumSuccs = MBB->succ_size();
         MachineBasicBlock::succ_iterator SI = MBB->succ_begin();
         MachineBasicBlock* FirstSucc = *SI;
         MachineBasicBlock* SecondSucc = *(++SI);
@@ -192,8 +192,8 @@ bool HexagonCFGOptimizer::runOnMachineFunction(MachineFunction &Fn) {
             MachineBasicBlock* UncondTarget =
               LayoutSucc->front().getOperand(0).getMBB();
             // Check if the layout successor of BB2 is BB3.
-            bool case1 = LayoutSucc->isLayoutSuccessor(JumpAroundTarget);
-            bool case2 = JumpAroundTarget->isSuccessor(UncondTarget) &&
+            bool const case1 = LayoutSucc->isLayoutSuccessor(JumpAroundTarget);
+            bool const case2 = JumpAroundTarget->isSuccessor(UncondTarget) &&
               !JumpAroundTarget->empty() &&
               IsUnconditionalJump(JumpAroundTarget->back().getOpcode()) &&
               JumpAroundTarget->pred_size() == 1 &&
@@ -220,9 +220,9 @@ bool HexagonCFGOptimizer::runOnMachineFunction(MachineFunction &Fn) {
               // Correct live-in information. Is used by post-RA scheduler
               // The live-in to LayoutSucc is now all values live-in to
               // JumpAroundTarget.
-              std::vector<MachineBasicBlock::RegisterMaskPair> OrigLiveIn(
+              std::vector<MachineBasicBlock::RegisterMaskPair> const OrigLiveIn(
                   LayoutSucc->livein_begin(), LayoutSucc->livein_end());
-              std::vector<MachineBasicBlock::RegisterMaskPair> NewLiveIn(
+              std::vector<MachineBasicBlock::RegisterMaskPair> const NewLiveIn(
                   JumpAroundTarget->livein_begin(),
                   JumpAroundTarget->livein_end());
               for (const auto &OrigLI : OrigLiveIn)

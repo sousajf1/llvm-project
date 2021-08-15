@@ -85,7 +85,7 @@ static bool isDSAddress(const Constant *C) {
   const GlobalValue *GV = dyn_cast<GlobalValue>(C);
   if (!GV)
     return false;
-  unsigned AS = GV->getAddressSpace();
+  unsigned const AS = GV->getAddressSpace();
   return AS == AMDGPUAS::LOCAL_ADDRESS || AS == AMDGPUAS::REGION_ADDRESS;
 }
 
@@ -109,7 +109,7 @@ private:
   /// Check if the ConstantExpr \p CE requires queue ptr attribute.
   static bool visitConstExpr(const ConstantExpr *CE) {
     if (CE->getOpcode() == Instruction::AddrSpaceCast) {
-      unsigned SrcAS = CE->getOperand(0)->getType()->getPointerAddressSpace();
+      unsigned const SrcAS = CE->getOperand(0)->getType()->getPointerAddressSpace();
       return castRequiresQueuePtr(SrcAS);
     }
     return false;
@@ -142,14 +142,14 @@ private:
 public:
   /// Returns true if \p Fn needs a queue ptr attribute because of \p C.
   bool needsQueuePtr(const Constant *C, Function &Fn) {
-    bool IsNonEntryFunc = !AMDGPU::isEntryFunctionCC(Fn.getCallingConv());
-    bool HasAperture = hasApertureRegs(Fn);
+    bool const IsNonEntryFunc = !AMDGPU::isEntryFunctionCC(Fn.getCallingConv());
+    bool const HasAperture = hasApertureRegs(Fn);
 
     // No need to explore the constants.
     if (!IsNonEntryFunc && HasAperture)
       return false;
 
-    uint8_t Access = getConstantAccess(C);
+    uint8_t const Access = getConstantAccess(C);
 
     // We need to trap on DS globals in non-entry functions.
     if (IsNonEntryFunc && (Access & DS_GLOBAL))
@@ -222,7 +222,7 @@ struct AAAMDWorkGroupSizeFunction : public AAAMDWorkGroupSize {
 
   void initialize(Attributor &A) override {
     Function *F = getAssociatedFunction();
-    CallingConv::ID CC = F->getCallingConv();
+    CallingConv::ID const CC = F->getCallingConv();
 
     if (CC != CallingConv::AMDGPU_KERNEL)
       return;
@@ -299,8 +299,8 @@ struct AAAMDAttributesFunction : public AAAMDAttributes {
 
   void initialize(Attributor &A) override {
     Function *F = getAssociatedFunction();
-    CallingConv::ID CC = F->getCallingConv();
-    bool CallingConvSupportsAllImplicits = (CC != CallingConv::AMDGPU_Gfx);
+    CallingConv::ID const CC = F->getCallingConv();
+    bool const CallingConvSupportsAllImplicits = (CC != CallingConv::AMDGPU_Gfx);
 
     // Ignore functions with graphics calling conventions, these are currently
     // not allowed to have kernel arguments.
@@ -309,7 +309,7 @@ struct AAAMDAttributesFunction : public AAAMDAttributes {
       return;
     }
 
-    for (StringRef Attr : ImplicitAttrNames) {
+    for (StringRef const Attr : ImplicitAttrNames) {
       if (F->hasFnAttribute(Attr))
         Attributes.insert(Attr);
     }
@@ -317,7 +317,7 @@ struct AAAMDAttributesFunction : public AAAMDAttributes {
     // TODO: We shouldn't need this in the future.
     if (CallingConvSupportsAllImplicits &&
         F->hasAddressTaken(nullptr, true, true, true)) {
-      for (StringRef AttrName : ImplicitAttrNames) {
+      for (StringRef const AttrName : ImplicitAttrNames) {
         Attributes.insert(AttrName);
       }
     }
@@ -326,9 +326,9 @@ struct AAAMDAttributesFunction : public AAAMDAttributes {
   ChangeStatus updateImpl(Attributor &A) override {
     Function *F = getAssociatedFunction();
     ChangeStatus Change = ChangeStatus::UNCHANGED;
-    bool IsNonEntryFunc = !AMDGPU::isEntryFunctionCC(F->getCallingConv());
-    CallingConv::ID CC = F->getCallingConv();
-    bool CallingConvSupportsAllImplicits = (CC != CallingConv::AMDGPU_Gfx);
+    bool const IsNonEntryFunc = !AMDGPU::isEntryFunctionCC(F->getCallingConv());
+    CallingConv::ID const CC = F->getCallingConv();
+    bool const CallingConvSupportsAllImplicits = (CC != CallingConv::AMDGPU_Gfx);
     auto &InfoCache = static_cast<AMDGPUInformationCache &>(A.getInfoCache());
 
     auto AddAttribute = [&](StringRef AttrName) {
@@ -343,7 +343,7 @@ struct AAAMDAttributesFunction : public AAAMDAttributes {
     // We have to assume that we can reach a function with these attributes.
     // We do not consider inline assembly as a unknown callee.
     if (CallingConvSupportsAllImplicits && AAEdges.hasNonAsmUnknownCallee()) {
-      for (StringRef AttrName : ImplicitAttrNames) {
+      for (StringRef const AttrName : ImplicitAttrNames) {
         AddAttribute(AttrName);
       }
     }
@@ -351,7 +351,7 @@ struct AAAMDAttributesFunction : public AAAMDAttributes {
     bool NeedsQueuePtr = false;
     bool HasCall = false;
     for (Function *Callee : AAEdges.getOptimisticEdges()) {
-      Intrinsic::ID IID = Callee->getIntrinsicID();
+      Intrinsic::ID const IID = Callee->getIntrinsicID();
       if (IID != Intrinsic::not_intrinsic) {
         if (!IsNonEntryFunc && IID == Intrinsic::amdgcn_kernarg_segment_ptr) {
           AddAttribute("amdgpu-kernarg-segment-ptr");
@@ -359,7 +359,7 @@ struct AAAMDAttributesFunction : public AAAMDAttributes {
         }
 
         bool NonKernelOnly = false;
-        StringRef AttrName =
+        StringRef const AttrName =
             intrinsicToAttrName(IID, NonKernelOnly, NeedsQueuePtr);
 
         if (!AttrName.empty() && (IsNonEntryFunc || !NonKernelOnly))
@@ -373,7 +373,7 @@ struct AAAMDAttributesFunction : public AAAMDAttributes {
           *this, IRPosition::function(*Callee), DepClassTy::REQUIRED);
       const DenseSet<StringRef> &CalleeAttributes = AAAMD.getAttributes();
       // Propagate implicit attributes from called function.
-      for (StringRef AttrName : ImplicitAttrNames)
+      for (StringRef const AttrName : ImplicitAttrNames)
         if (CalleeAttributes.count(AttrName))
           AddAttribute(AttrName);
     }
@@ -399,7 +399,7 @@ struct AAAMDAttributesFunction : public AAAMDAttributes {
     }
 
     auto CheckAddrSpaceCasts = [&](Instruction &I) {
-      unsigned SrcAS = static_cast<AddrSpaceCastInst &>(I).getSrcAddressSpace();
+      unsigned const SrcAS = static_cast<AddrSpaceCastInst &>(I).getSrcAddressSpace();
       if (castRequiresQueuePtr(SrcAS)) {
         NeedsQueuePtr = true;
         return false;
@@ -407,7 +407,7 @@ struct AAAMDAttributesFunction : public AAAMDAttributes {
       return true;
     };
 
-    bool HasApertureRegs = InfoCache.hasApertureRegs(*F);
+    bool const HasApertureRegs = InfoCache.hasApertureRegs(*F);
 
     // `checkForAllInstructions` is much more cheaper than going through all
     // instructions, try it first.
@@ -447,7 +447,7 @@ struct AAAMDAttributesFunction : public AAAMDAttributes {
     SmallVector<Attribute, 8> AttrList;
     LLVMContext &Ctx = getAssociatedFunction()->getContext();
 
-    for (StringRef AttrName : Attributes)
+    for (StringRef const AttrName : Attributes)
       AttrList.push_back(Attribute::get(Ctx, AttrName));
 
     return IRAttributeManifest::manifestAttrs(A, getIRPosition(), AttrList,
@@ -494,7 +494,7 @@ public:
   bool runOnModule(Module &M) override {
     SetVector<Function *> Functions;
     AnalysisGetter AG;
-    for (Function &F : M) {
+    for (Function  const&F : M) {
       if (!F.isIntrinsic())
         Functions.insert(&F);
     }
@@ -504,14 +504,14 @@ public:
     AMDGPUInformationCache InfoCache(M, AG, Allocator, nullptr, *TM);
     Attributor A(Functions, InfoCache, CGUpdater);
 
-    for (Function &F : M) {
+    for (Function  const&F : M) {
       if (!F.isIntrinsic()) {
         A.getOrCreateAAFor<AAAMDAttributes>(IRPosition::function(F));
         A.getOrCreateAAFor<AAAMDWorkGroupSize>(IRPosition::function(F));
       }
     }
 
-    ChangeStatus Change = A.run();
+    ChangeStatus const Change = A.run();
     return Change == ChangeStatus::CHANGED;
   }
 

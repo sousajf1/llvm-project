@@ -99,7 +99,7 @@ void AMDGPUAnnotateUniformValues::visitLoadInst(LoadInst &I) {
   }
 
   bool NotClobbered = false;
-  bool GlobalLoad = isGlobalLoad(I);
+  bool const GlobalLoad = isGlobalLoad(I);
   if (PtrI)
     NotClobbered = GlobalLoad && !isClobberedInFunction(&I);
   else if (isa<Argument>(Ptr) || isa<GlobalValue>(Ptr)) {

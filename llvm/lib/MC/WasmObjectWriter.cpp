@@ -145,7 +145,7 @@ raw_ostream &operator<<(raw_ostream &OS, const WasmRelocationEntry &Rel) {
 template <int W>
 void writePatchableLEB(raw_pwrite_stream &Stream, uint64_t X, uint64_t Offset) {
   uint8_t Buffer[W];
-  unsigned SizeLen = encodeULEB128(X, Buffer, W);
+  unsigned const SizeLen = encodeULEB128(X, Buffer, W);
   assert(SizeLen == W);
   Stream.pwrite((char *)Buffer, SizeLen, Offset);
 }
@@ -155,7 +155,7 @@ void writePatchableLEB(raw_pwrite_stream &Stream, uint64_t X, uint64_t Offset) {
 template <int W>
 void writePatchableSLEB(raw_pwrite_stream &Stream, int64_t X, uint64_t Offset) {
   uint8_t Buffer[W];
-  unsigned SizeLen = encodeSLEB128(X, Buffer, W);
+  unsigned const SizeLen = encodeSLEB128(X, Buffer, W);
   assert(SizeLen == W);
   Stream.pwrite((char *)Buffer, SizeLen, Offset);
 }
@@ -443,7 +443,7 @@ void WasmObjectWriter::recordRelocation(MCAssembler &Asm,
 
   const auto &FixupSection = cast<MCSectionWasm>(*Fragment->getParent());
   uint64_t C = Target.getConstant();
-  uint64_t FixupOffset = Layout.getFragmentOffset(Fragment) + Fixup.getOffset();
+  uint64_t const FixupOffset = Layout.getFragmentOffset(Fragment) + Fixup.getOffset();
   MCContext &Ctx = Asm.getContext();
   bool IsLocRel = false;
 
@@ -498,7 +498,7 @@ void WasmObjectWriter::recordRelocation(MCAssembler &Asm,
   // be negative and don't wrap.
   FixedValue = 0;
 
-  unsigned Type =
+  unsigned const Type =
       TargetObjectWriter->getRelocType(Target, Fixup, FixupSection, IsLocRel);
 
   // Absolute offset within a section or a function.
@@ -568,7 +568,7 @@ void WasmObjectWriter::recordRelocation(MCAssembler &Asm,
   if (RefA->getKind() == MCSymbolRefExpr::VK_GOT)
     SymA->setUsedInGOT();
 
-  WasmRelocationEntry Rec(FixupOffset, SymA, C, Type, &FixupSection);
+  WasmRelocationEntry const Rec(FixupOffset, SymA, C, Type, &FixupSection);
   LLVM_DEBUG(dbgs() << "WasmReloc: " << Rec << "\n");
 
   if (FixupSection.isWasmData()) {
@@ -672,8 +672,8 @@ static void addData(SmallVectorImpl<char> &DataBytes,
       if (Align->getValueSize() != 1)
         report_fatal_error("only byte values supported for alignment");
       // If nops are requested, use zeros, as this is the data section.
-      uint8_t Value = Align->hasEmitNops() ? 0 : Align->getValue();
-      uint64_t Size =
+      uint8_t const Value = Align->hasEmitNops() ? 0 : Align->getValue();
+      uint64_t const Size =
           std::min<uint64_t>(alignTo(DataBytes.size(), Align->getAlignment()),
                              DataBytes.size() + Align->getMaxBytesToEmit());
       DataBytes.resize(Size, Value);
@@ -715,7 +715,7 @@ void WasmObjectWriter::applyRelocations(
     const MCAsmLayout &Layout) {
   auto &Stream = static_cast<raw_pwrite_stream &>(W->OS);
   for (const WasmRelocationEntry &RelEntry : Relocations) {
-    uint64_t Offset = ContentsOffset +
+    uint64_t const Offset = ContentsOffset +
                       RelEntry.FixupSection->getSectionOffset() +
                       RelEntry.Offset;
 
@@ -780,10 +780,10 @@ void WasmObjectWriter::writeTypeSection(
   for (const wasm::WasmSignature &Sig : Signatures) {
     W->OS << char(wasm::WASM_TYPE_FUNC);
     encodeULEB128(Sig.Params.size(), W->OS);
-    for (wasm::ValType Ty : Sig.Params)
+    for (wasm::ValType const Ty : Sig.Params)
       writeValueType(Ty);
     encodeULEB128(Sig.Returns.size(), W->OS);
-    for (wasm::ValType Ty : Sig.Returns)
+    for (wasm::ValType const Ty : Sig.Returns)
       writeValueType(Ty);
   }
 
@@ -796,7 +796,7 @@ void WasmObjectWriter::writeImportSection(ArrayRef<wasm::WasmImport> Imports,
   if (Imports.empty())
     return;
 
-  uint64_t NumPages = (DataSize + wasm::WasmPageSize - 1) / wasm::WasmPageSize;
+  uint64_t const NumPages = (DataSize + wasm::WasmPageSize - 1) / wasm::WasmPageSize;
 
   SectionBookkeeping Section;
   startSection(Section, wasm::WASM_SEC_IMPORT);
@@ -951,7 +951,7 @@ void WasmObjectWriter::writeElemSection(
   encodeULEB128(1, W->OS); // number of "segments"
 
   assert(WasmIndices.count(IndirectFunctionTable));
-  uint32_t TableNumber = WasmIndices.find(IndirectFunctionTable)->second;
+  uint32_t const TableNumber = WasmIndices.find(IndirectFunctionTable)->second;
   uint32_t Flags = 0;
   if (TableNumber)
     Flags |= wasm::WASM_ELEM_SEGMENT_HAS_TABLE_NUMBER;
@@ -972,7 +972,7 @@ void WasmObjectWriter::writeElemSection(
   }
 
   encodeULEB128(TableElems.size(), W->OS);
-  for (uint32_t Elem : TableElems)
+  for (uint32_t const Elem : TableElems)
     encodeULEB128(Elem, W->OS);
 
   endSection(Section);
@@ -1075,9 +1075,9 @@ void WasmObjectWriter::writeRelocSection(
   encodeULEB128(SectionIndex, W->OS);
   encodeULEB128(Relocs.size(), W->OS);
   for (const WasmRelocationEntry &RelEntry : Relocs) {
-    uint64_t Offset =
+    uint64_t const Offset =
         RelEntry.Offset + RelEntry.FixupSection->getSectionOffset();
-    uint32_t Index = getRelocationIndexValue(RelEntry);
+    uint32_t const Index = getRelocationIndexValue(RelEntry);
 
     W->OS << char(RelEntry.Type);
     encodeULEB128(Offset, W->OS);
@@ -1385,7 +1385,7 @@ uint64_t WasmObjectWriter::writeObject(MCAssembler &Asm,
   support::endian::Writer MainWriter(*OS, support::little);
   W = &MainWriter;
   if (IsSplitDwarf) {
-    uint64_t TotalSize = writeOneObject(Asm, Layout, DwoMode::NonDwoOnly);
+    uint64_t const TotalSize = writeOneObject(Asm, Layout, DwoMode::NonDwoOnly);
     assert(DwoOS);
     support::endian::Writer DwoWriter(*DwoOS, support::little);
     W = &DwoWriter;
@@ -1398,7 +1398,7 @@ uint64_t WasmObjectWriter::writeObject(MCAssembler &Asm,
 uint64_t WasmObjectWriter::writeOneObject(MCAssembler &Asm,
                                           const MCAsmLayout &Layout,
                                           DwoMode Mode) {
-  uint64_t StartOffset = W->OS.tell();
+  uint64_t const StartOffset = W->OS.tell();
   SectionCount = 0;
   CustomSections.clear();
 
@@ -1424,7 +1424,7 @@ uint64_t WasmObjectWriter::writeOneObject(MCAssembler &Asm,
   // populating DataLocations.
   for (MCSection &Sec : Asm) {
     auto &Section = static_cast<MCSectionWasm &>(Sec);
-    StringRef SectionName = Section.getName();
+    StringRef const SectionName = Section.getName();
 
     if (Mode == DwoMode::NonDwoOnly && isDwoSection(Sec))
       continue;
@@ -1443,7 +1443,7 @@ uint64_t WasmObjectWriter::writeOneObject(MCAssembler &Asm,
       continue;
 
     if (Section.isWasmData()) {
-      uint32_t SegmentIndex = DataSegments.size();
+      uint32_t const SegmentIndex = DataSegments.size();
       DataSize = alignTo(DataSize, Section.getAlignment());
       DataSegments.emplace_back();
       WasmDataSegment &Segment = DataSegments.back();
@@ -1592,7 +1592,7 @@ uint64_t WasmObjectWriter::writeOneObject(MCAssembler &Asm,
 
         // For each data symbol, export it in the symtab as a reference to the
         // corresponding Wasm data segment.
-        wasm::WasmDataReference Ref = wasm::WasmDataReference{
+        wasm::WasmDataReference const Ref = wasm::WasmDataReference{
             DataSection.getSegmentIndex(), Layout.getSymbolOffset(WS),
             static_cast<uint64_t>(Size)};
         assert(DataLocations.count(&WS) == 0);
@@ -1689,13 +1689,13 @@ uint64_t WasmObjectWriter::writeOneObject(MCAssembler &Asm,
 
       if (Base->isFunction()) {
         assert(WasmIndices.count(Base) > 0);
-        uint32_t WasmIndex = WasmIndices.find(Base)->second;
+        uint32_t const WasmIndex = WasmIndices.find(Base)->second;
         assert(WasmIndices.count(&WS) == 0);
         WasmIndices[&WS] = WasmIndex;
         LLVM_DEBUG(dbgs() << "  -> index:" << WasmIndex << "\n");
       } else if (Base->isData()) {
         auto &DataSection = static_cast<MCSectionWasm &>(WS.getSection());
-        uint64_t Offset = Layout.getSymbolOffset(S);
+        uint64_t const Offset = Layout.getSymbolOffset(S);
         int64_t Size = 0;
         // For data symbol alias we use the size of the base symbol as the
         // size of the alias.  When an offset from the base is involved this
@@ -1707,7 +1707,7 @@ uint64_t WasmObjectWriter::writeOneObject(MCAssembler &Asm,
             DataSegments[DataSection.getSegmentIndex()];
         Size =
             std::min(static_cast<uint64_t>(Size), Segment.Data.size() - Offset);
-        wasm::WasmDataReference Ref = wasm::WasmDataReference{
+        wasm::WasmDataReference const Ref = wasm::WasmDataReference{
             DataSection.getSegmentIndex(),
             static_cast<uint32_t>(Layout.getSymbolOffset(S)),
             static_cast<uint32_t>(Size)};
@@ -1778,8 +1778,8 @@ uint64_t WasmObjectWriter::writeOneObject(MCAssembler &Asm,
       assert(Rel.Symbol->isFunction());
       const MCSymbolWasm *Base =
           cast<MCSymbolWasm>(Layout.getBaseSymbol(*Rel.Symbol));
-      uint32_t FunctionIndex = WasmIndices.find(Base)->second;
-      uint32_t TableIndex = TableElems.size() + InitialTableOffset;
+      uint32_t const FunctionIndex = WasmIndices.find(Base)->second;
+      uint32_t const TableIndex = TableElems.size() + InitialTableOffset;
       if (TableIndices.try_emplace(Base, TableIndex).second) {
         LLVM_DEBUG(dbgs() << "  -> adding " << Base->getName()
                           << " to table: " << TableIndex << "\n");
@@ -1825,7 +1825,7 @@ uint64_t WasmObjectWriter::writeOneObject(MCAssembler &Asm,
       report_fatal_error("only data supported in .init_array section");
 
     uint16_t Priority = UINT16_MAX;
-    unsigned PrefixLength = strlen(".init_array");
+    unsigned const PrefixLength = strlen(".init_array");
     if (WS.getName().size() > PrefixLength) {
       if (WS.getName()[PrefixLength] != '.')
         report_fatal_error(

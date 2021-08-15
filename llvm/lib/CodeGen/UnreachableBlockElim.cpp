@@ -69,7 +69,7 @@ FunctionPass *llvm::createUnreachableBlockEliminationPass() {
 
 PreservedAnalyses UnreachableBlockElimPass::run(Function &F,
                                                 FunctionAnalysisManager &AM) {
-  bool Changed = llvm::EliminateUnreachableBlocks(F);
+  bool const Changed = llvm::EliminateUnreachableBlocks(F);
   if (!Changed)
     return PreservedAnalyses::all();
   PreservedAnalyses PA;
@@ -157,7 +157,7 @@ bool UnreachableMachineBlockElim::runOnMachineFunction(MachineFunction &F) {
   for (MachineFunction::iterator I = F.begin(), E = F.end(); I != E; ++I) {
     MachineBasicBlock *BB = &*I;
     // Prune unneeded PHI entries.
-    SmallPtrSet<MachineBasicBlock*, 8> preds(BB->pred_begin(),
+    SmallPtrSet<MachineBasicBlock*, 8> const preds(BB->pred_begin(),
                                              BB->pred_end());
     MachineBasicBlock::iterator phi = BB->begin();
     while (phi != BB->end() && phi->isPHI()) {
@@ -171,14 +171,14 @@ bool UnreachableMachineBlockElim::runOnMachineFunction(MachineFunction &F) {
       if (phi->getNumOperands() == 3) {
         const MachineOperand &Input = phi->getOperand(1);
         const MachineOperand &Output = phi->getOperand(0);
-        Register InputReg = Input.getReg();
-        Register OutputReg = Output.getReg();
+        Register const InputReg = Input.getReg();
+        Register const OutputReg = Output.getReg();
         assert(Output.getSubReg() == 0 && "Cannot have output subregister");
         ModifiedPHI = true;
 
         if (InputReg != OutputReg) {
           MachineRegisterInfo &MRI = F.getRegInfo();
-          unsigned InputSub = Input.getSubReg();
+          unsigned const InputSub = Input.getSubReg();
           if (InputSub == 0 &&
               MRI.constrainRegClass(InputReg, MRI.getRegClass(OutputReg)) &&
               !Input.isUndef()) {

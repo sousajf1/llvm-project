@@ -58,8 +58,8 @@ static cl::opt<bool> EnableMachineCombinerPass("x86-machine-combiner",
 
 extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializeX86Target() {
   // Register the target.
-  RegisterTargetMachine<X86TargetMachine> X(getTheX86_32Target());
-  RegisterTargetMachine<X86TargetMachine> Y(getTheX86_64Target());
+  RegisterTargetMachine<X86TargetMachine> const X(getTheX86_32Target());
+  RegisterTargetMachine<X86TargetMachine> const Y(getTheX86_64Target());
 
   PassRegistry &PR = *PassRegistry::getPassRegistry();
   initializeX86LowerAMXIntrinsicsLegacyPassPass(PR);
@@ -153,7 +153,7 @@ static std::string computeDataLayout(const Triple &TT) {
 static Reloc::Model getEffectiveRelocModel(const Triple &TT,
                                            bool JIT,
                                            Optional<Reloc::Model> RM) {
-  bool is64Bit = TT.getArch() == Triple::x86_64;
+  bool const is64Bit = TT.getArch() == Triple::x86_64;
   if (!RM.hasValue()) {
     // JIT codegen should use static relocations by default, since it's
     // typically executed in process and not relocatable.
@@ -237,13 +237,13 @@ X86TargetMachine::~X86TargetMachine() = default;
 
 const X86Subtarget *
 X86TargetMachine::getSubtargetImpl(const Function &F) const {
-  Attribute CPUAttr = F.getFnAttribute("target-cpu");
-  Attribute TuneAttr = F.getFnAttribute("tune-cpu");
-  Attribute FSAttr = F.getFnAttribute("target-features");
+  Attribute const CPUAttr = F.getFnAttribute("target-cpu");
+  Attribute const TuneAttr = F.getFnAttribute("tune-cpu");
+  Attribute const FSAttr = F.getFnAttribute("target-features");
 
-  StringRef CPU =
+  StringRef const CPU =
       CPUAttr.isValid() ? CPUAttr.getValueAsString() : (StringRef)TargetCPU;
-  StringRef TuneCPU =
+  StringRef const TuneCPU =
       TuneAttr.isValid() ? TuneAttr.getValueAsString() : (StringRef)CPU;
   StringRef FS =
       FSAttr.isValid() ? FSAttr.getValueAsString() : (StringRef)TargetFS;
@@ -256,9 +256,9 @@ X86TargetMachine::getSubtargetImpl(const Function &F) const {
 
   // Extract prefer-vector-width attribute.
   unsigned PreferVectorWidthOverride = 0;
-  Attribute PreferVecWidthAttr = F.getFnAttribute("prefer-vector-width");
+  Attribute const PreferVecWidthAttr = F.getFnAttribute("prefer-vector-width");
   if (PreferVecWidthAttr.isValid()) {
-    StringRef Val = PreferVecWidthAttr.getValueAsString();
+    StringRef const Val = PreferVecWidthAttr.getValueAsString();
     unsigned Width;
     if (!Val.getAsInteger(0, Width)) {
       Key += 'p';
@@ -269,9 +269,9 @@ X86TargetMachine::getSubtargetImpl(const Function &F) const {
 
   // Extract min-legal-vector-width attribute.
   unsigned RequiredVectorWidth = UINT32_MAX;
-  Attribute MinLegalVecWidthAttr = F.getFnAttribute("min-legal-vector-width");
+  Attribute const MinLegalVecWidthAttr = F.getFnAttribute("min-legal-vector-width");
   if (MinLegalVecWidthAttr.isValid()) {
-    StringRef Val = MinLegalVecWidthAttr.getValueAsString();
+    StringRef const Val = MinLegalVecWidthAttr.getValueAsString();
     unsigned Width;
     if (!Val.getAsInteger(0, Width)) {
       Key += 'm';
@@ -287,14 +287,14 @@ X86TargetMachine::getSubtargetImpl(const Function &F) const {
   Key += TuneCPU;
 
   // Keep track of the start of the feature portion of the string.
-  unsigned FSStart = Key.size();
+  unsigned const FSStart = Key.size();
 
   // FIXME: This is related to the code below to reset the target options,
   // we need to know whether or not the soft float flag is set on the
   // function before we can generate a subtarget. We also need to use
   // it as a key for the subtarget since that can be the only difference
   // between two functions.
-  bool SoftFloat = F.getFnAttribute("use-soft-float").getValueAsBool();
+  bool const SoftFloat = F.getFnAttribute("use-soft-float").getValueAsBool();
   // If the soft float attribute is set on the function turn on the soft float
   // subtarget feature.
   if (SoftFloat)

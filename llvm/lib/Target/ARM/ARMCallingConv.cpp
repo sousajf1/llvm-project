@@ -24,7 +24,7 @@ static bool f64AssignAPCS(unsigned ValNo, MVT ValVT, MVT LocVT,
   static const MCPhysReg RegList[] = { ARM::R0, ARM::R1, ARM::R2, ARM::R3 };
 
   // Try to get the first register.
-  if (unsigned Reg = State.AllocateReg(RegList))
+  if (unsigned const Reg = State.AllocateReg(RegList))
     State.addLoc(CCValAssign::getCustomReg(ValNo, ValVT, Reg, LocVT, LocInfo));
   else {
     // For the 2nd half of a v2f64, do not fail.
@@ -38,7 +38,7 @@ static bool f64AssignAPCS(unsigned ValNo, MVT ValVT, MVT LocVT,
   }
 
   // Try to get the second register.
-  if (unsigned Reg = State.AllocateReg(RegList))
+  if (unsigned const Reg = State.AllocateReg(RegList))
     State.addLoc(CCValAssign::getCustomReg(ValNo, ValVT, Reg, LocVT, LocInfo));
   else
     State.addLoc(CCValAssign::getCustomMem(
@@ -89,7 +89,7 @@ static bool f64AssignAAPCS(unsigned ValNo, MVT ValVT, MVT LocVT,
     if (HiRegList[i] == Reg)
       break;
 
-  unsigned T = State.AllocateReg(LoRegList[i]);
+  unsigned const T = State.AllocateReg(LoRegList[i]);
   (void)T;
   assert(T == LoRegList[i] && "Could not allocate register");
 
@@ -116,7 +116,7 @@ static bool f64RetAssign(unsigned ValNo, MVT ValVT, MVT LocVT,
   static const MCPhysReg HiRegList[] = { ARM::R0, ARM::R2 };
   static const MCPhysReg LoRegList[] = { ARM::R1, ARM::R3 };
 
-  unsigned Reg = State.AllocateReg(HiRegList, LoRegList);
+  unsigned const Reg = State.AllocateReg(HiRegList, LoRegList);
   if (Reg == 0)
     return false; // we didn't handle it
 
@@ -202,7 +202,7 @@ static bool CC_ARM_AAPCS_Custom_Aggregate(unsigned ValNo, MVT ValVT,
 
     // First consume all registers that would give an unaligned object. Whether
     // we go on stack or in regs, no-one will be using them in future.
-    unsigned RegAlign = alignTo(Alignment.value(), 4) / 4;
+    unsigned const RegAlign = alignTo(Alignment.value(), 4) / 4;
     while (RegIdx % RegAlign != 0 && RegIdx < RegList.size())
       State.AllocateReg(RegList[RegIdx++]);
 
@@ -241,7 +241,7 @@ static bool CC_ARM_AAPCS_Custom_Aggregate(unsigned ValNo, MVT ValVT,
   }
 
   // Register allocation failed, we'll be needing the stack
-  unsigned Size = LocVT.getSizeInBits() / 8;
+  unsigned const Size = LocVT.getSizeInBits() / 8;
   if (LocVT == MVT::i32 && State.getNextStackOffset() == 0) {
     // If nothing else has used the stack until this point, a non-HFA aggregate
     // can be split between regs and stack.
@@ -288,7 +288,7 @@ static bool CC_ARM_AAPCS_Custom_Aggregate(unsigned ValNo, MVT ValVT,
 static bool CustomAssignInRegList(unsigned ValNo, MVT ValVT, MVT LocVT,
                                   CCValAssign::LocInfo LocInfo, CCState &State,
                                   ArrayRef<MCPhysReg> RegList) {
-  unsigned Reg = State.AllocateReg(RegList);
+  unsigned const Reg = State.AllocateReg(RegList);
   if (Reg) {
     State.addLoc(CCValAssign::getCustomReg(ValNo, ValVT, Reg, LocVT, LocInfo));
     return true;

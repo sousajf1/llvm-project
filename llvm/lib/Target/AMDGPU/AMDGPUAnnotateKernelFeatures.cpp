@@ -89,13 +89,13 @@ static bool isDSAddress(const Constant *C) {
   const GlobalValue *GV = dyn_cast<GlobalValue>(C);
   if (!GV)
     return false;
-  unsigned AS = GV->getAddressSpace();
+  unsigned const AS = GV->getAddressSpace();
   return AS == AMDGPUAS::LOCAL_ADDRESS || AS == AMDGPUAS::REGION_ADDRESS;
 }
 
 bool AMDGPUAnnotateKernelFeatures::visitConstantExpr(const ConstantExpr *CE) {
   if (CE->getOpcode() == Instruction::AddrSpaceCast) {
-    unsigned SrcAS = CE->getOperand(0)->getType()->getPointerAddressSpace();
+    unsigned const SrcAS = CE->getOperand(0)->getType()->getPointerAddressSpace();
     return castRequiresQueuePtr(SrcAS);
   }
 
@@ -204,7 +204,7 @@ static void copyFeaturesToFunction(Function &Parent, const Function &Callee,
   if (handleAttr(Parent, Callee, "amdgpu-queue-ptr"))
     NeedQueuePtr = true;
 
-  for (StringRef AttrName : ImplicitAttrNames)
+  for (StringRef const AttrName : ImplicitAttrNames)
     handleAttr(Parent, Callee, AttrName);
 }
 
@@ -260,7 +260,7 @@ bool AMDGPUAnnotateKernelFeatures::propagateUniformWorkGroupAttribute(
 
 bool AMDGPUAnnotateKernelFeatures::addFeatureAttributes(Function &F) {
   const GCNSubtarget &ST = TM->getSubtarget<GCNSubtarget>(F);
-  bool HasApertureRegs = ST.hasApertureRegs();
+  bool const HasApertureRegs = ST.hasApertureRegs();
   SmallPtrSet<const Constant *, 8> ConstantExprVisited;
 
   bool HaveStackObjects = false;
@@ -268,15 +268,15 @@ bool AMDGPUAnnotateKernelFeatures::addFeatureAttributes(Function &F) {
   bool NeedQueuePtr = false;
   bool HaveCall = false;
   bool HasIndirectCall = false;
-  bool IsFunc = !AMDGPU::isEntryFunctionCC(F.getCallingConv());
-  CallingConv::ID CC = F.getCallingConv();
-  bool CallingConvSupportsAllImplicits = (CC != CallingConv::AMDGPU_Gfx);
+  bool const IsFunc = !AMDGPU::isEntryFunctionCC(F.getCallingConv());
+  CallingConv::ID const CC = F.getCallingConv();
+  bool const CallingConvSupportsAllImplicits = (CC != CallingConv::AMDGPU_Gfx);
 
   // If this function hasAddressTaken() = true
   // then add all attributes corresponding to the implicit args.
   if (CallingConvSupportsAllImplicits &&
       F.hasAddressTaken(nullptr, true, true, true)) {
-    for (StringRef AttrName : ImplicitAttrNames) {
+    for (StringRef const AttrName : ImplicitAttrNames) {
       F.addFnAttr(AttrName);
     }
     Changed = true;
@@ -302,7 +302,7 @@ bool AMDGPUAnnotateKernelFeatures::addFeatureAttributes(Function &F) {
           continue;
         }
 
-        Intrinsic::ID IID = Callee->getIntrinsicID();
+        Intrinsic::ID const IID = Callee->getIntrinsicID();
         if (IID == Intrinsic::not_intrinsic) {
           HaveCall = true;
           copyFeaturesToFunction(F, *Callee, NeedQueuePtr);
@@ -313,7 +313,7 @@ bool AMDGPUAnnotateKernelFeatures::addFeatureAttributes(Function &F) {
           if (!IsFunc && IID == Intrinsic::amdgcn_kernarg_segment_ptr) {
             F.addFnAttr("amdgpu-kernarg-segment-ptr");
           } else {
-            StringRef AttrName = intrinsicToAttrName(IID, NonKernelOnly,
+            StringRef const AttrName = intrinsicToAttrName(IID, NonKernelOnly,
                                                      NeedQueuePtr);
             if (!AttrName.empty() && (IsFunc || !NonKernelOnly)) {
               F.addFnAttr(AttrName);
@@ -381,7 +381,7 @@ bool AMDGPUAnnotateKernelFeatures::addFeatureAttributes(Function &F) {
   //    false), the pass will not add all implicit args to F1 (which is
   //    essential for correctness).
   if (CallingConvSupportsAllImplicits && HasIndirectCall) {
-    for (StringRef AttrName : ImplicitAttrNames) {
+    for (StringRef const AttrName : ImplicitAttrNames) {
       F.addFnAttr(AttrName);
     }
     Changed = true;

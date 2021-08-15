@@ -126,7 +126,7 @@ static unsigned getBaseAddressRegister(const MachineInstr *MI) {
 }
 
 static int64_t getStoreOffset(const MachineInstr *MI) {
-  unsigned OpC = MI->getOpcode();
+  unsigned const OpC = MI->getOpcode();
   assert(HexagonStoreWidening::handledStoreType(MI) && "Unhandled opcode");
 
   switch (OpC) {
@@ -153,7 +153,7 @@ static const MachineMemOperand &getStoreTarget(const MachineInstr *MI) {
 inline bool HexagonStoreWidening::handledStoreType(const MachineInstr *MI) {
   // For now, only handle stores of immediate values.
   // Also, reject stores to stack slots.
-  unsigned Opc = MI->getOpcode();
+  unsigned const Opc = MI->getOpcode();
   switch (Opc) {
     case Hexagon::S4_storeirb_io:
     case Hexagon::S4_storeirh_io:
@@ -172,14 +172,14 @@ bool HexagonStoreWidening::instrAliased(InstrGroup &Stores,
   if (!MMO.getValue())
     return true;
 
-  MemoryLocation L(MMO.getValue(), MMO.getSize(), MMO.getAAInfo());
+  MemoryLocation const L(MMO.getValue(), MMO.getSize(), MMO.getAAInfo());
 
   for (auto SI : Stores) {
     const MachineMemOperand &SMO = getStoreTarget(SI);
     if (!SMO.getValue())
       return true;
 
-    MemoryLocation SL(SMO.getValue(), SMO.getSize(), SMO.getAAInfo());
+    MemoryLocation const SL(SMO.getValue(), SMO.getSize(), SMO.getAAInfo());
     if (!AA->isNoAlias(L, SL))
       return true;
   }
@@ -239,7 +239,7 @@ void HexagonStoreWidening::createStoreGroups(MachineBasicBlock &MBB,
 void HexagonStoreWidening::createStoreGroup(MachineInstr *BaseStore,
       InstrGroup::iterator Begin, InstrGroup::iterator End, InstrGroup &Group) {
   assert(handledStoreType(BaseStore) && "Unexpected instruction");
-  unsigned BaseReg = getBaseAddressRegister(BaseStore);
+  unsigned const BaseReg = getBaseAddressRegister(BaseStore);
   InstrGroup Other;
 
   Group.push_back(BaseStore);
@@ -259,7 +259,7 @@ void HexagonStoreWidening::createStoreGroup(MachineInstr *BaseStore,
       if (instrAliased(Other, getStoreTarget(MI)))
         return;
 
-      unsigned BR = getBaseAddressRegister(MI);
+      unsigned const BR = getBaseAddressRegister(MI);
       if (BR == BaseReg) {
         Group.push_back(MI);
         *I = nullptr;
@@ -289,8 +289,8 @@ bool HexagonStoreWidening::storesAreAdjacent(const MachineInstr *S1,
   const MachineMemOperand &S1MO = getStoreTarget(S1);
 
   // Currently only handling immediate stores.
-  int Off1 = S1->getOperand(1).getImm();
-  int Off2 = S2->getOperand(1).getImm();
+  int const Off1 = S1->getOperand(1).getImm();
+  int const Off2 = S2->getOperand(1).getImm();
 
   return (Off1 >= 0) ? Off1+S1MO.getSize() == unsigned(Off2)
                      : int(Off1+S1MO.getSize()) == Off2;
@@ -314,9 +314,9 @@ bool HexagonStoreWidening::selectStores(InstrGroup::iterator Begin,
   MachineInstr *FirstMI = *Begin;
   assert(!FirstMI->memoperands_empty() && "Expecting some memory operands");
   const MachineMemOperand &FirstMMO = getStoreTarget(FirstMI);
-  unsigned Alignment = FirstMMO.getAlign().value();
+  unsigned const Alignment = FirstMMO.getAlign().value();
   unsigned SizeAccum = FirstMMO.getSize();
-  unsigned FirstOffset = getStoreOffset(FirstMI);
+  unsigned const FirstOffset = getStoreOffset(FirstMI);
 
   // The initial value of SizeAccum should always be a power of 2.
   assert(isPowerOf2_32(SizeAccum) && "First store size not a power of 2");
@@ -357,7 +357,7 @@ bool HexagonStoreWidening::selectStores(InstrGroup::iterator Begin,
     if (!storesAreAdjacent(S1, S2))
       break;
 
-    unsigned S2Size = getStoreTarget(S2).getSize();
+    unsigned const S2Size = getStoreTarget(S2).getSize();
     if (SizeAccum + S2Size > std::min(MaxSize, Alignment))
       break;
 
@@ -403,18 +403,18 @@ bool HexagonStoreWidening::createWideStores(InstrGroup &OG, InstrGroup &NG,
   for (InstrGroup::iterator I = OG.begin(), E = OG.end(); I != E; ++I) {
     MachineInstr *MI = *I;
     const MachineMemOperand &MMO = getStoreTarget(MI);
-    MachineOperand &SO = MI->getOperand(2);  // Source.
+    MachineOperand  const&SO = MI->getOperand(2);  // Source.
     assert(SO.isImm() && "Expecting an immediate operand");
 
-    unsigned NBits = MMO.getSize()*8;
-    unsigned Mask = (0xFFFFFFFFU >> (32-NBits));
-    unsigned Val = (SO.getImm() & Mask) << Shift;
+    unsigned const NBits = MMO.getSize()*8;
+    unsigned const Mask = (0xFFFFFFFFU >> (32-NBits));
+    unsigned const Val = (SO.getImm() & Mask) << Shift;
     Acc |= Val;
     Shift += NBits;
   }
 
   MachineInstr *FirstSt = OG.front();
-  DebugLoc DL = OG.back()->getDebugLoc();
+  DebugLoc const DL = OG.back()->getDebugLoc();
   const MachineMemOperand &OldM = getStoreTarget(FirstSt);
   MachineMemOperand *NewM =
       MF->getMachineMemOperand(OldM.getPointerInfo(), OldM.getFlags(),
@@ -422,14 +422,14 @@ bool HexagonStoreWidening::createWideStores(InstrGroup &OG, InstrGroup &NG,
 
   if (Acc < 0x10000) {
     // Create mem[hw] = #Acc
-    unsigned WOpc = (TotalSize == 2) ? Hexagon::S4_storeirh_io :
+    unsigned const WOpc = (TotalSize == 2) ? Hexagon::S4_storeirh_io :
                     (TotalSize == 4) ? Hexagon::S4_storeiri_io : 0;
     assert(WOpc && "Unexpected size");
 
-    int Val = (TotalSize == 2) ? int16_t(Acc) : int(Acc);
+    int const Val = (TotalSize == 2) ? int16_t(Acc) : int(Acc);
     const MCInstrDesc &StD = TII->get(WOpc);
-    MachineOperand &MR = FirstSt->getOperand(0);
-    int64_t Off = FirstSt->getOperand(1).getImm();
+    MachineOperand  const&MR = FirstSt->getOperand(0);
+    int64_t const Off = FirstSt->getOperand(1).getImm();
     MachineInstr *StI =
         BuildMI(*MF, DL, StD)
             .addReg(MR.getReg(), getKillRegState(MR.isKill()), MR.getSubReg())
@@ -441,18 +441,18 @@ bool HexagonStoreWidening::createWideStores(InstrGroup &OG, InstrGroup &NG,
     // Create vreg = A2_tfrsi #Acc; mem[hw] = vreg
     const MCInstrDesc &TfrD = TII->get(Hexagon::A2_tfrsi);
     const TargetRegisterClass *RC = TII->getRegClass(TfrD, 0, TRI, *MF);
-    Register VReg = MF->getRegInfo().createVirtualRegister(RC);
+    Register const VReg = MF->getRegInfo().createVirtualRegister(RC);
     MachineInstr *TfrI = BuildMI(*MF, DL, TfrD, VReg)
                            .addImm(int(Acc));
     NG.push_back(TfrI);
 
-    unsigned WOpc = (TotalSize == 2) ? Hexagon::S2_storerh_io :
+    unsigned const WOpc = (TotalSize == 2) ? Hexagon::S2_storerh_io :
                     (TotalSize == 4) ? Hexagon::S2_storeri_io : 0;
     assert(WOpc && "Unexpected size");
 
     const MCInstrDesc &StD = TII->get(WOpc);
-    MachineOperand &MR = FirstSt->getOperand(0);
-    int64_t Off = FirstSt->getOperand(1).getImm();
+    MachineOperand  const&MR = FirstSt->getOperand(0);
+    int64_t const Off = FirstSt->getOperand(1).getImm();
     MachineInstr *StI =
         BuildMI(*MF, DL, StD)
             .addReg(MR.getReg(), getKillRegState(MR.isKill()), MR.getSubReg())
@@ -542,7 +542,7 @@ bool HexagonStoreWidening::processStoreGroup(InstrGroup &Group) {
     OG.clear();
     NG.clear();
 
-    bool Succ = selectStores(I++, E, OG, CollectedSize, MaxWideSize) &&
+    bool const Succ = selectStores(I++, E, OG, CollectedSize, MaxWideSize) &&
                 createWideStores(OG, NG, CollectedSize)              &&
                 replaceStores(OG, NG);
     if (!Succ)

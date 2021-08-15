@@ -49,12 +49,12 @@ void MSP430FrameLowering::emitPrologue(MachineFunction &MF,
   DebugLoc DL = MBBI != MBB.end() ? MBBI->getDebugLoc() : DebugLoc();
 
   // Get the number of bytes to allocate from the FrameInfo.
-  uint64_t StackSize = MFI.getStackSize();
+  uint64_t const StackSize = MFI.getStackSize();
 
   uint64_t NumBytes = 0;
   if (hasFP(MF)) {
     // Calculate required stack adjustment
-    uint64_t FrameSize = StackSize - 2;
+    uint64_t const FrameSize = StackSize - 2;
     NumBytes = FrameSize - MSP430FI->getCalleeSavedFrameSize();
 
     // Get the offset of the stack slot for the EBP register... which is
@@ -111,7 +111,7 @@ void MSP430FrameLowering::emitEpilogue(MachineFunction &MF,
       *static_cast<const MSP430InstrInfo *>(MF.getSubtarget().getInstrInfo());
 
   MachineBasicBlock::iterator MBBI = MBB.getLastNonDebugInstr();
-  unsigned RetOpcode = MBBI->getOpcode();
+  unsigned const RetOpcode = MBBI->getOpcode();
   DebugLoc DL = MBBI->getDebugLoc();
 
   switch (RetOpcode) {
@@ -122,13 +122,13 @@ void MSP430FrameLowering::emitEpilogue(MachineFunction &MF,
   }
 
   // Get the number of bytes to allocate from the FrameInfo
-  uint64_t StackSize = MFI.getStackSize();
-  unsigned CSSize = MSP430FI->getCalleeSavedFrameSize();
+  uint64_t const StackSize = MFI.getStackSize();
+  unsigned const CSSize = MSP430FI->getCalleeSavedFrameSize();
   uint64_t NumBytes = 0;
 
   if (hasFP(MF)) {
     // Calculate required stack adjustment
-    uint64_t FrameSize = StackSize - 2;
+    uint64_t const FrameSize = StackSize - 2;
     NumBytes = FrameSize - CSSize;
 
     // pop FP.
@@ -138,8 +138,8 @@ void MSP430FrameLowering::emitEpilogue(MachineFunction &MF,
 
   // Skip the callee-saved pop instructions.
   while (MBBI != MBB.begin()) {
-    MachineBasicBlock::iterator PI = std::prev(MBBI);
-    unsigned Opc = PI->getOpcode();
+    MachineBasicBlock::iterator const PI = std::prev(MBBI);
+    unsigned const Opc = PI->getOpcode();
     if (Opc != MSP430::POP16r && !PI->isTerminator())
       break;
     --MBBI;
@@ -191,7 +191,7 @@ bool MSP430FrameLowering::spillCalleeSavedRegisters(
   MFI->setCalleeSavedFrameSize(CSI.size() * 2);
 
   for (unsigned i = CSI.size(); i != 0; --i) {
-    unsigned Reg = CSI[i-1].getReg();
+    unsigned const Reg = CSI[i-1].getReg();
     // Add the callee-saved register as live-in. It's killed at the spill.
     MBB.addLiveIn(Reg);
     BuildMI(MBB, MI, DL, TII.get(MSP430::PUSH16r))
@@ -209,7 +209,7 @@ bool MSP430FrameLowering::restoreCalleeSavedRegisters(
   DebugLoc DL;
   if (MI != MBB.end()) DL = MI->getDebugLoc();
 
-  MachineFunction &MF = *MBB.getParent();
+  MachineFunction  const&MF = *MBB.getParent();
   const TargetInstrInfo &TII = *MF.getSubtarget().getInstrInfo();
 
   for (unsigned i = 0, e = CSI.size(); i != e; ++i)
@@ -228,7 +228,7 @@ MachineBasicBlock::iterator MSP430FrameLowering::eliminateCallFramePseudoInstr(
     // adjcallstackup instruction into a 'sub SP, <amt>' and the
     // adjcallstackdown instruction into 'add SP, <amt>'
     // TODO: consider using push / pop instead of sub + store / add
-    MachineInstr &Old = *I;
+    MachineInstr  const&Old = *I;
     uint64_t Amount = TII.getFrameSize(Old);
     if (Amount != 0) {
       // We need to keep the stack aligned properly.  To do this, we round the
@@ -264,8 +264,8 @@ MachineBasicBlock::iterator MSP430FrameLowering::eliminateCallFramePseudoInstr(
   } else if (I->getOpcode() == TII.getCallFrameDestroyOpcode()) {
     // If we are performing frame pointer elimination and if the callee pops
     // something off the stack pointer, add it back.
-    if (uint64_t CalleeAmt = TII.getFramePoppedByCallee(*I)) {
-      MachineInstr &Old = *I;
+    if (uint64_t const CalleeAmt = TII.getFramePoppedByCallee(*I)) {
+      MachineInstr  const&Old = *I;
       MachineInstr *New =
           BuildMI(MF, Old.getDebugLoc(), TII.get(MSP430::SUB16ri), MSP430::SP)
               .addReg(MSP430::SP)
@@ -285,7 +285,7 @@ MSP430FrameLowering::processFunctionBeforeFrameFinalized(MachineFunction &MF,
                                                          RegScavenger *) const {
   // Create a frame entry for the FP register that must be saved.
   if (hasFP(MF)) {
-    int FrameIdx = MF.getFrameInfo().CreateFixedObject(2, -4, true);
+    int const FrameIdx = MF.getFrameInfo().CreateFixedObject(2, -4, true);
     (void)FrameIdx;
     assert(FrameIdx == MF.getFrameInfo().getObjectIndexBegin() &&
            "Slot for FP register must be last in order to be found!");

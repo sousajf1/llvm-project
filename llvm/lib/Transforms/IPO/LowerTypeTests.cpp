@@ -129,7 +129,7 @@ bool BitSetInfo::containsGlobalOffset(uint64_t Offset) const {
   if ((Offset - ByteOffset) % (uint64_t(1) << AlignLog2) != 0)
     return false;
 
-  uint64_t BitOffset = (Offset - ByteOffset) >> AlignLog2;
+  uint64_t const BitOffset = (Offset - ByteOffset) >> AlignLog2;
   if (BitOffset >= BitSize)
     return false;
 
@@ -146,7 +146,7 @@ void BitSetInfo::print(raw_ostream &OS) const {
   }
 
   OS << " { ";
-  for (uint64_t B : Bits)
+  for (uint64_t const B : Bits)
     OS << B << ' ';
   OS << "}\n";
 }
@@ -188,10 +188,10 @@ void GlobalLayoutBuilder::addFragment(const std::set<uint64_t> &F) {
   // Create a new fragment to hold the layout for F.
   Fragments.emplace_back();
   std::vector<uint64_t> &Fragment = Fragments.back();
-  uint64_t FragmentIndex = Fragments.size() - 1;
+  uint64_t const FragmentIndex = Fragments.size() - 1;
 
   for (auto ObjIndex : F) {
-    uint64_t OldFragmentIndex = FragmentMap[ObjIndex];
+    uint64_t const OldFragmentIndex = FragmentMap[ObjIndex];
     if (OldFragmentIndex == 0) {
       // We haven't seen this object index before, so just add it to the current
       // fragment.
@@ -209,7 +209,7 @@ void GlobalLayoutBuilder::addFragment(const std::set<uint64_t> &F) {
   }
 
   // Update the fragment map to point our object indices to this fragment.
-  for (uint64_t ObjIndex : Fragment)
+  for (uint64_t const ObjIndex : Fragment)
     FragmentMap[ObjIndex] = FragmentIndex;
 }
 
@@ -225,14 +225,14 @@ void ByteArrayBuilder::allocate(const std::set<uint64_t> &Bits,
   AllocByteOffset = BitAllocs[Bit];
 
   // Add our size to it.
-  unsigned ReqSize = AllocByteOffset + BitSize;
+  unsigned const ReqSize = AllocByteOffset + BitSize;
   BitAllocs[Bit] = ReqSize;
   if (Bytes.size() < ReqSize)
     Bytes.resize(ReqSize);
 
   // Set our bits.
   AllocMask = 1 << Bit;
-  for (uint64_t B : Bits)
+  for (uint64_t const B : Bits)
     Bytes[AllocByteOffset + B] |= AllocMask;
 }
 
@@ -573,7 +573,7 @@ BitSetInfo LowerTypeTestsModule::buildBitSet(
     for (MDNode *Type : GlobalAndOffset.first->types()) {
       if (Type->getOperand(1) != TypeId)
         continue;
-      uint64_t Offset =
+      uint64_t const Offset =
           cast<ConstantInt>(
               cast<ConstantAsMetadata>(Type->getOperand(0))->getValue())
               ->getZExtValue();
@@ -589,7 +589,7 @@ BitSetInfo LowerTypeTestsModule::buildBitSet(
 static Value *createMaskedBitTest(IRBuilder<> &B, Value *Bits,
                                   Value *BitOffset) {
   auto BitsType = cast<IntegerType>(Bits->getType());
-  unsigned BitWidth = BitsType->getBitWidth();
+  unsigned const BitWidth = BitsType->getBitWidth();
 
   BitOffset = B.CreateZExtOrTrunc(BitOffset, BitsType);
   Value *BitIndex =
@@ -648,7 +648,7 @@ void LowerTypeTestsModule::allocateByteArrays() {
   for (unsigned I = 0; I != ByteArrayInfos.size(); ++I) {
     ByteArrayInfo *BAI = &ByteArrayInfos[I];
 
-    Constant *Idxs[] = {ConstantInt::get(IntPtrTy, 0),
+    Constant *const Idxs[] = {ConstantInt::get(IntPtrTy, 0),
                         ConstantInt::get(IntPtrTy, ByteArrayOffsets[I])};
     Constant *GEP = ConstantExpr::getInBoundsGetElementPtr(
         ByteArrayConst->getType(), ByteArray, Idxs);
@@ -705,7 +705,7 @@ static bool isKnownTypeIdMember(Metadata *TypeId, const DataLayout &DL,
     for (MDNode *Type : Types) {
       if (Type->getOperand(1) != TypeId)
         continue;
-      uint64_t Offset =
+      uint64_t const Offset =
           cast<ConstantInt>(
               cast<ConstantAsMetadata>(Type->getOperand(0))->getValue())
               ->getZExtValue();
@@ -717,7 +717,7 @@ static bool isKnownTypeIdMember(Metadata *TypeId, const DataLayout &DL,
 
   if (auto GEP = dyn_cast<GEPOperator>(V)) {
     APInt APOffset(DL.getPointerSizeInBits(0), 0);
-    bool Result = GEP->accumulateConstantOffset(DL, APOffset);
+    bool const Result = GEP->accumulateConstantOffset(DL, APOffset);
     if (!Result)
       return false;
     COffset += APOffset.getZExtValue();
@@ -843,19 +843,19 @@ void LowerTypeTestsModule::buildBitSetsFromGlobalVariables(
   uint64_t DesiredPadding = 0;
   for (GlobalTypeMember *G : Globals) {
     auto *GV = cast<GlobalVariable>(G->getGlobal());
-    Align Alignment =
+    Align const Alignment =
         DL.getValueOrABITypeAlignment(GV->getAlign(), GV->getValueType());
     MaxAlign = std::max(MaxAlign, Alignment);
-    uint64_t GVOffset = alignTo(CurOffset + DesiredPadding, Alignment);
+    uint64_t const GVOffset = alignTo(CurOffset + DesiredPadding, Alignment);
     GlobalLayout[G] = GVOffset;
     if (GVOffset != 0) {
-      uint64_t Padding = GVOffset - CurOffset;
+      uint64_t const Padding = GVOffset - CurOffset;
       GlobalInits.push_back(
           ConstantAggregateZero::get(ArrayType::get(Int8Ty, Padding)));
     }
 
     GlobalInits.push_back(GV->getInitializer());
-    uint64_t InitSize = DL.getTypeAllocSize(GV->getValueType());
+    uint64_t const InitSize = DL.getTypeAllocSize(GV->getValueType());
     CurOffset = GVOffset + InitSize;
 
     // Compute the amount of padding that we'd like for the next element.
@@ -885,7 +885,7 @@ void LowerTypeTestsModule::buildBitSetsFromGlobalVariables(
     GlobalVariable *GV = cast<GlobalVariable>(Globals[I]->getGlobal());
 
     // Multiply by 2 to account for padding elements.
-    Constant *CombinedGlobalIdxs[] = {ConstantInt::get(Int32Ty, 0),
+    Constant *const CombinedGlobalIdxs[] = {ConstantInt::get(Int32Ty, 0),
                                       ConstantInt::get(Int32Ty, I * 2)};
     Constant *CombinedGlobalElemPtr = ConstantExpr::getGetElementPtr(
         NewInit->getType(), CombinedGlobal, CombinedGlobalIdxs);
@@ -942,7 +942,7 @@ uint8_t *LowerTypeTestsModule::exportTypeId(StringRef TypeId,
     ExportConstant("align", TTRes.AlignLog2, TIL.AlignLog2);
     ExportConstant("size_m1", TTRes.SizeM1, TIL.SizeM1);
 
-    uint64_t BitSize = cast<ConstantInt>(TIL.SizeM1)->getZExtValue() + 1;
+    uint64_t const BitSize = cast<ConstantInt>(TIL.SizeM1)->getZExtValue() + 1;
     if (TIL.TheKind == TypeTestResolution::Inline)
       TTRes.SizeM1BitWidth = (BitSize <= 32) ? 5 : 6;
     else
@@ -1050,7 +1050,7 @@ void LowerTypeTestsModule::importTypeTest(CallInst *CI) {
   if (!TypeIdStr)
     return;
 
-  TypeIdLowering TIL = importTypeId(TypeIdStr->getString());
+  TypeIdLowering const TIL = importTypeId(TypeIdStr->getString());
   Value *Lowered = lowerTypeTestCall(TypeIdStr, CI, TIL);
   if (Lowered) {
     CI->replaceAllUsesWith(Lowered);
@@ -1066,7 +1066,7 @@ void LowerTypeTestsModule::importFunction(
   assert(F->getType()->getAddressSpace() == 0);
 
   GlobalValue::VisibilityTypes Visibility = F->getVisibility();
-  std::string Name = std::string(F->getName());
+  std::string const Name = std::string(F->getName());
 
   if (F->isDeclarationForLinker() && isJumpTableCanonical) {
     // Non-dso_local functions may be overriden at run time,
@@ -1166,7 +1166,7 @@ void LowerTypeTestsModule::lowerTypeTestCalls(
       TIL.BitMask = BAI->MaskGlobal;
     }
 
-    TypeIdUserInfo &TIUI = TypeIdUsers[TypeId];
+    TypeIdUserInfo  const&TIUI = TypeIdUsers[TypeId];
 
     if (TIUI.IsExported) {
       uint8_t *MaskPtr = exportTypeId(cast<MDString>(TypeId)->getString(), TIL);
@@ -1238,7 +1238,7 @@ void LowerTypeTestsModule::createJumpTableEntry(
     raw_ostream &AsmOS, raw_ostream &ConstraintOS,
     Triple::ArchType JumpTableArch, SmallVectorImpl<Value *> &AsmArgs,
     Function *Dest) {
-  unsigned ArgIndex = AsmArgs.size();
+  unsigned const ArgIndex = AsmArgs.size();
 
   if (JumpTableArch == Triple::x86 || JumpTableArch == Triple::x86_64) {
     AsmOS << "jmp ${" << ArgIndex << ":c}@plt\n";
@@ -1342,11 +1342,11 @@ void LowerTypeTestsModule::replaceWeakDeclarationWithJumpTablePtr(
 }
 
 static bool isThumbFunction(Function *F, Triple::ArchType ModuleArch) {
-  Attribute TFAttr = F->getFnAttribute("target-features");
+  Attribute const TFAttr = F->getFnAttribute("target-features");
   if (TFAttr.isValid()) {
     SmallVector<StringRef, 6> Features;
     TFAttr.getValueAsString().split(Features, ',');
-    for (StringRef Feature : Features) {
+    for (StringRef const Feature : Features) {
       if (Feature == "-thumb-mode")
         return false;
       else if (Feature == "+thumb-mode")
@@ -1389,7 +1389,7 @@ void LowerTypeTestsModule::createJumpTable(
   SmallVector<Value *, 16> AsmArgs;
   AsmArgs.reserve(Functions.size() * 2);
 
-  Triple::ArchType JumpTableArch = selectJumpTableArmEncoding(Functions, Arch);
+  Triple::ArchType const JumpTableArch = selectJumpTableArmEncoding(Functions, Arch);
 
   for (unsigned I = 0; I != Functions.size(); ++I)
     createJumpTableEntry(AsmOS, ConstraintOS, JumpTableArch, AsmArgs,
@@ -1518,7 +1518,7 @@ void LowerTypeTestsModule::buildBitSetsFromFunctionsNative(
 
   // Build a simple layout based on the regular layout of jump tables.
   DenseMap<GlobalTypeMember *, uint64_t> GlobalLayout;
-  unsigned EntrySize = getJumpTableEntrySize();
+  unsigned const EntrySize = getJumpTableEntrySize();
   for (unsigned I = 0; I != Functions.size(); ++I)
     GlobalLayout[Functions[I]] = I * EntrySize;
 
@@ -1536,13 +1536,13 @@ void LowerTypeTestsModule::buildBitSetsFromFunctionsNative(
   lowerTypeTestCalls(TypeIds, JumpTable, GlobalLayout);
 
   {
-    ScopedSaveAliaseesAndUsed S(M);
+    ScopedSaveAliaseesAndUsed const S(M);
 
     // Build aliases pointing to offsets into the jump table, and replace
     // references to the original functions with references to the aliases.
     for (unsigned I = 0; I != Functions.size(); ++I) {
       Function *F = cast<Function>(Functions[I]->getGlobal());
-      bool IsJumpTableCanonical = Functions[I]->isJumpTableCanonical();
+      bool const IsJumpTableCanonical = Functions[I]->isJumpTableCanonical();
 
       Constant *CombinedGlobalElemPtr = ConstantExpr::getBitCast(
           ConstantExpr::getInBoundsGetElementPtr(
@@ -1668,7 +1668,7 @@ void LowerTypeTestsModule::buildBitSetsFromDisjointSet(
     GLB.addFragment(MemSet);
 
   // Build a vector of globals with the computed layout.
-  bool IsGlobalSet =
+  bool const IsGlobalSet =
       Globals.empty() || isa<GlobalVariable>(Globals[0]->getGlobal());
   std::vector<GlobalTypeMember *> OrderedGTMs(Globals.size());
   auto OGTMI = OrderedGTMs.begin();
@@ -1695,7 +1695,7 @@ LowerTypeTestsModule::LowerTypeTestsModule(
     : M(M), ExportSummary(ExportSummary), ImportSummary(ImportSummary),
       DropTypeTests(DropTypeTests || ClDropTypeTests) {
   assert(!(ExportSummary && ImportSummary));
-  Triple TargetTriple(M.getTargetTriple());
+  Triple const TargetTriple(M.getTargetTriple());
   Arch = TargetTriple.getArch();
   OS = TargetTriple.getOS();
   ObjectFormat = TargetTriple.getObjectFormat();
@@ -1707,7 +1707,7 @@ bool LowerTypeTestsModule::runForTesting(Module &M) {
   // Handle the command-line summary arguments. This code is for testing
   // purposes only, so we handle errors directly.
   if (!ClReadSummary.empty()) {
-    ExitOnError ExitOnErr("-lowertypetests-read-summary: " + ClReadSummary +
+    ExitOnError const ExitOnErr("-lowertypetests-read-summary: " + ClReadSummary +
                           ": ");
     auto ReadSummaryFile =
         ExitOnErr(errorOrToExpected(MemoryBuffer::getFile(ClReadSummary)));
@@ -1717,7 +1717,7 @@ bool LowerTypeTestsModule::runForTesting(Module &M) {
     ExitOnErr(errorCodeToError(In.error()));
   }
 
-  bool Changed =
+  bool const Changed =
       LowerTypeTestsModule(
           M, ClSummaryAction == PassSummaryAction::Export ? &Summary : nullptr,
           ClSummaryAction == PassSummaryAction::Import ? &Summary : nullptr,
@@ -1725,7 +1725,7 @@ bool LowerTypeTestsModule::runForTesting(Module &M) {
           .lower();
 
   if (!ClWriteSummary.empty()) {
-    ExitOnError ExitOnErr("-lowertypetests-write-summary: " + ClWriteSummary +
+    ExitOnError const ExitOnErr("-lowertypetests-write-summary: " + ClWriteSummary +
                           ": ");
     std::error_code EC;
     raw_fd_ostream OS(ClWriteSummary, EC, sys::fs::OF_TextWithCRLF);
@@ -1863,7 +1863,7 @@ bool LowerTypeTestsModule::lower() {
 
     std::vector<GlobalAlias *> AliasesToErase;
     {
-      ScopedSaveAliaseesAndUsed S(M);
+      ScopedSaveAliaseesAndUsed const S(M);
       for (auto F : Defs)
         importFunction(F, /*isJumpTableCanonical*/ true, AliasesToErase);
       for (auto F : Decls)
@@ -1920,9 +1920,9 @@ bool LowerTypeTestsModule::lower() {
     if (CfiFunctionsMD) {
       for (auto FuncMD : CfiFunctionsMD->operands()) {
         assert(FuncMD->getNumOperands() >= 2);
-        StringRef FunctionName =
+        StringRef const FunctionName =
             cast<MDString>(FuncMD->getOperand(0))->getString();
-        CfiFunctionLinkage Linkage = static_cast<CfiFunctionLinkage>(
+        CfiFunctionLinkage const Linkage = static_cast<CfiFunctionLinkage>(
             cast<ConstantAsMetadata>(FuncMD->getOperand(1))
                 ->getValue()
                 ->getUniqueInteger()
@@ -1952,8 +1952,8 @@ bool LowerTypeTestsModule::lower() {
       }
 
       for (const auto &P : ExportedFunctions) {
-        StringRef FunctionName = P.first;
-        CfiFunctionLinkage Linkage = P.second.Linkage;
+        StringRef const FunctionName = P.first;
+        CfiFunctionLinkage const Linkage = P.second.Linkage;
         MDNode *FuncMD = P.second.FuncMD;
         Function *F = M.getFunction(FunctionName);
         if (F && F->hasLocalLinkage()) {
@@ -2052,7 +2052,7 @@ bool LowerTypeTestsModule::lower() {
     auto Ins = TypeIdUsers.insert({TypeId, {}});
     if (Ins.second) {
       // Add the type identifier to the equivalence class.
-      GlobalClassesTy::iterator GCI = GlobalClasses.insert(TypeId);
+      GlobalClassesTy::iterator const GCI = GlobalClasses.insert(TypeId);
       GlobalClassesTy::member_iterator CurSet = GlobalClasses.findLeader(GCI);
 
       // Add the referenced globals to the type identifier's equivalence class.
@@ -2114,7 +2114,7 @@ bool LowerTypeTestsModule::lower() {
 
         GlobalTypeMember *GTM = GlobalTypeMembers[Base];
         Targets.push_back(GTM);
-        GlobalClassesTy::member_iterator NewSet =
+        GlobalClassesTy::member_iterator const NewSet =
             GlobalClasses.findLeader(GlobalClasses.insert(GTM));
         if (I == 1)
           CurSet = NewSet;
@@ -2142,7 +2142,7 @@ bool LowerTypeTestsModule::lower() {
         if (!ExportSummary->isGlobalValueLive(S.get()))
           continue;
         if (auto *FS = dyn_cast<FunctionSummary>(S->getBaseObject()))
-          for (GlobalValue::GUID G : FS->type_tests())
+          for (GlobalValue::GUID const G : FS->type_tests())
             for (Metadata *MD : MetadataByGUID[G])
               AddTypeIdUse(MD).IsExported = true;
       }
@@ -2219,22 +2219,22 @@ bool LowerTypeTestsModule::lower() {
     if (NamedMDNode *AliasesMD = M.getNamedMetadata("aliases")) {
       for (auto AliasMD : AliasesMD->operands()) {
         assert(AliasMD->getNumOperands() >= 4);
-        StringRef AliasName =
+        StringRef const AliasName =
             cast<MDString>(AliasMD->getOperand(0))->getString();
-        StringRef Aliasee = cast<MDString>(AliasMD->getOperand(1))->getString();
+        StringRef const Aliasee = cast<MDString>(AliasMD->getOperand(1))->getString();
 
         if (!ExportedFunctions.count(Aliasee) ||
             ExportedFunctions[Aliasee].Linkage != CFL_Definition ||
             !M.getNamedAlias(Aliasee))
           continue;
 
-        GlobalValue::VisibilityTypes Visibility =
+        GlobalValue::VisibilityTypes const Visibility =
             static_cast<GlobalValue::VisibilityTypes>(
                 cast<ConstantAsMetadata>(AliasMD->getOperand(2))
                     ->getValue()
                     ->getUniqueInteger()
                     .getZExtValue());
-        bool Weak =
+        bool const Weak =
             static_cast<bool>(cast<ConstantAsMetadata>(AliasMD->getOperand(3))
                                   ->getValue()
                                   ->getUniqueInteger()
@@ -2261,9 +2261,9 @@ bool LowerTypeTestsModule::lower() {
     if (NamedMDNode *SymversMD = M.getNamedMetadata("symvers")) {
       for (auto Symver : SymversMD->operands()) {
         assert(Symver->getNumOperands() >= 2);
-        StringRef SymbolName =
+        StringRef const SymbolName =
             cast<MDString>(Symver->getOperand(0))->getString();
-        StringRef Alias = cast<MDString>(Symver->getOperand(1))->getString();
+        StringRef const Alias = cast<MDString>(Symver->getOperand(1))->getString();
 
         if (!ExportedFunctions.count(SymbolName))
           continue;

@@ -34,7 +34,7 @@ RISCVTargetELFStreamer::RISCVTargetELFStreamer(MCStreamer &S,
   MCAssembler &MCA = getStreamer().getAssembler();
   const FeatureBitset &Features = STI.getFeatureBits();
   auto &MAB = static_cast<RISCVAsmBackend &>(MCA.getBackend());
-  RISCVABI::ABI ABI = MAB.getTargetABI();
+  RISCVABI::ABI const ABI = MAB.getTargetABI();
   assert(ABI != RISCVABI::ABI_Unknown && "Improperly initialised target ABI");
 
   unsigned EFlags = MCA.getELFHeaderEFlags();
@@ -100,7 +100,7 @@ void RISCVTargetELFStreamer::finishAttributeSection() {
   if (AttributeSection) {
     Streamer.SwitchSection(AttributeSection);
   } else {
-    MCAssembler &MCA = getStreamer().getAssembler();
+    MCAssembler  const&MCA = getStreamer().getAssembler();
     AttributeSection = MCA.getContext().getELFSection(
         ".riscv.attributes", ELF::SHT_RISCV_ATTRIBUTES, 0);
     Streamer.SwitchSection(AttributeSection);
@@ -125,7 +125,7 @@ void RISCVTargetELFStreamer::finishAttributeSection() {
 
   // Size should have been accounted for already, now
   // emit each field as its type (ULEB or String).
-  for (AttributeItem item : Contents) {
+  for (AttributeItem const item : Contents) {
     Streamer.emitULEB128IntValue(item.Tag);
     switch (item.Type) {
     default:
@@ -150,7 +150,7 @@ void RISCVTargetELFStreamer::finishAttributeSection() {
 
 size_t RISCVTargetELFStreamer::calculateContentSize() const {
   size_t Result = 0;
-  for (AttributeItem item : Contents) {
+  for (AttributeItem const item : Contents) {
     switch (item.Type) {
     case AttributeType::Hidden:
       break;

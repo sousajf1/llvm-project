@@ -97,8 +97,8 @@ static bool runPass(Function &F) {
 PreservedAnalyses RegToMemPass::run(Function &F, FunctionAnalysisManager &AM) {
   auto *DT = &AM.getResult<DominatorTreeAnalysis>(F);
   auto *LI = &AM.getResult<LoopAnalysis>(F);
-  unsigned N = SplitAllCriticalEdges(F, CriticalEdgeSplittingOptions(DT, LI));
-  bool Changed = runPass(F);
+  unsigned const N = SplitAllCriticalEdges(F, CriticalEdgeSplittingOptions(DT, LI));
+  bool const Changed = runPass(F);
   if (N == 0 && !Changed)
     return PreservedAnalyses::all();
   PreservedAnalyses PA;

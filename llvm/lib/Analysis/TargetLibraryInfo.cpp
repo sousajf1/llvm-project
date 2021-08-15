@@ -241,9 +241,9 @@ static void initialize(TargetLibraryInfoImpl &TLI, const Triple &T,
     }
 
     // Latest targets support C89 math functions, in part.
-    bool isARM = (T.getArch() == Triple::aarch64 ||
+    bool const isARM = (T.getArch() == Triple::aarch64 ||
                   T.getArch() == Triple::arm);
-    bool hasPartialFloat = (isARM ||
+    bool const hasPartialFloat = (isARM ||
                             T.getArch() == Triple::x86_64);
 
     // Win32 does not support float C89 math functions, in general.
@@ -1695,7 +1695,7 @@ bool TargetLibraryInfoImpl::isFunctionVectorizable(StringRef funcName) const {
   if (funcName.empty())
     return false;
 
-  std::vector<VecDesc>::const_iterator I =
+  std::vector<VecDesc>::const_iterator const I =
       llvm::lower_bound(VectorDescs, funcName, compareWithScalarFnName);
   return I != VectorDescs.end() && StringRef(I->ScalarFnName) == funcName;
 }

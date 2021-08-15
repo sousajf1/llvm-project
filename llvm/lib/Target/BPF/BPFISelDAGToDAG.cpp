@@ -99,7 +99,7 @@ private:
 // ComplexPattern used on BPF Load/Store instructions
 bool BPFDAGToDAGISel::SelectAddr(SDValue Addr, SDValue &Base, SDValue &Offset) {
   // if Address is FI, get the TargetFrameIndex.
-  SDLoc DL(Addr);
+  SDLoc const DL(Addr);
   if (auto *FIN = dyn_cast<FrameIndexSDNode>(Addr)) {
     Base = CurDAG->getTargetFrameIndex(FIN->getIndex(), MVT::i64);
     Offset = CurDAG->getTargetConstant(0, DL, MVT::i64);
@@ -133,7 +133,7 @@ bool BPFDAGToDAGISel::SelectAddr(SDValue Addr, SDValue &Base, SDValue &Offset) {
 // ComplexPattern used on BPF FI instruction
 bool BPFDAGToDAGISel::SelectFIAddr(SDValue Addr, SDValue &Base,
                                    SDValue &Offset) {
-  SDLoc DL(Addr);
+  SDLoc const DL(Addr);
 
   if (!CurDAG->isBaseWithConstantOffset(Addr))
     return false;
@@ -166,8 +166,8 @@ bool BPFDAGToDAGISel::SelectInlineAsmMemoryOperand(
     break;
   }
 
-  SDLoc DL(Op);
-  SDValue AluOp = CurDAG->getTargetConstant(ISD::ADD, DL, MVT::i32);;
+  SDLoc const DL(Op);
+  SDValue const AluOp = CurDAG->getTargetConstant(ISD::ADD, DL, MVT::i32);;
   OutOps.push_back(Op0);
   OutOps.push_back(Op1);
   OutOps.push_back(AluOp);
@@ -175,7 +175,7 @@ bool BPFDAGToDAGISel::SelectInlineAsmMemoryOperand(
 }
 
 void BPFDAGToDAGISel::Select(SDNode *Node) {
-  unsigned Opcode = Node->getOpcode();
+  unsigned const Opcode = Node->getOpcode();
 
   // If we have a custom node, we already have selected!
   if (Node->isMachineOpcode()) {
@@ -188,7 +188,7 @@ void BPFDAGToDAGISel::Select(SDNode *Node) {
   default:
     break;
   case ISD::SDIV: {
-    DebugLoc Empty;
+    DebugLoc const Empty;
     const DebugLoc &DL = Node->getDebugLoc();
     if (DL != Empty)
       errs() << "Error at line " << DL.getLine() << ": ";
@@ -200,18 +200,18 @@ void BPFDAGToDAGISel::Select(SDNode *Node) {
     break;
   }
   case ISD::INTRINSIC_W_CHAIN: {
-    unsigned IntNo = cast<ConstantSDNode>(Node->getOperand(1))->getZExtValue();
+    unsigned const IntNo = cast<ConstantSDNode>(Node->getOperand(1))->getZExtValue();
     switch (IntNo) {
     case Intrinsic::bpf_load_byte:
     case Intrinsic::bpf_load_half:
     case Intrinsic::bpf_load_word: {
-      SDLoc DL(Node);
+      SDLoc const DL(Node);
       SDValue Chain = Node->getOperand(0);
-      SDValue N1 = Node->getOperand(1);
-      SDValue Skb = Node->getOperand(2);
-      SDValue N3 = Node->getOperand(3);
+      SDValue const N1 = Node->getOperand(1);
+      SDValue const Skb = Node->getOperand(2);
+      SDValue const N3 = Node->getOperand(3);
 
-      SDValue R6Reg = CurDAG->getRegister(BPF::R6, MVT::i64);
+      SDValue const R6Reg = CurDAG->getRegister(BPF::R6, MVT::i64);
       Chain = CurDAG->getCopyToReg(Chain, DL, R6Reg, Skb, SDValue());
       Node = CurDAG->UpdateNodeOperands(Node, Chain, N1, R6Reg, N3);
       break;
@@ -221,10 +221,10 @@ void BPFDAGToDAGISel::Select(SDNode *Node) {
   }
 
   case ISD::FrameIndex: {
-    int FI = cast<FrameIndexSDNode>(Node)->getIndex();
-    EVT VT = Node->getValueType(0);
-    SDValue TFI = CurDAG->getTargetFrameIndex(FI, VT);
-    unsigned Opc = BPF::MOV_rr;
+    int const FI = cast<FrameIndexSDNode>(Node)->getIndex();
+    EVT const VT = Node->getValueType(0);
+    SDValue const TFI = CurDAG->getTargetFrameIndex(FI, VT);
+    unsigned const Opc = BPF::MOV_rr;
     if (Node->hasOneUse()) {
       CurDAG->SelectNodeTo(Node, Opc, VT, TFI);
       return;
@@ -247,19 +247,19 @@ void BPFDAGToDAGISel::PreprocessLoad(SDNode *Node,
     uint64_t d;
   } new_val; // hold up the constant values replacing loads.
   bool to_replace = false;
-  SDLoc DL(Node);
+  SDLoc const DL(Node);
   const LoadSDNode *LD = cast<LoadSDNode>(Node);
-  uint64_t size = LD->getMemOperand()->getSize();
+  uint64_t const size = LD->getMemOperand()->getSize();
 
   if (!size || size > 8 || (size & (size - 1)) || !LD->isSimple())
     return;
 
   SDNode *LDAddrNode = LD->getOperand(1).getNode();
   // Match LDAddr against either global_addr or (global_addr + offset)
-  unsigned opcode = LDAddrNode->getOpcode();
+  unsigned const opcode = LDAddrNode->getOpcode();
   if (opcode == ISD::ADD) {
-    SDValue OP1 = LDAddrNode->getOperand(0);
-    SDValue OP2 = LDAddrNode->getOperand(1);
+    SDValue const OP1 = LDAddrNode->getOperand(0);
+    SDValue const OP2 = LDAddrNode->getOperand(1);
 
     // We want to find the pattern global_addr + offset
     SDNode *OP1N = OP1.getNode();
@@ -278,7 +278,7 @@ void BPFDAGToDAGISel::PreprocessLoad(SDNode *Node,
              LDAddrNode->getNumOperands() > 0) {
     LLVM_DEBUG(dbgs() << "Check candidate load: "; LD->dump(); dbgs() << '\n');
 
-    SDValue OP1 = LDAddrNode->getOperand(0);
+    SDValue const OP1 = LDAddrNode->getOperand(0);
     if (const GlobalAddressSDNode *GADN =
             dyn_cast<GlobalAddressSDNode>(OP1.getNode()))
       to_replace = getConstantFieldValue(GADN, 0, size, new_val.c);
@@ -301,7 +301,7 @@ void BPFDAGToDAGISel::PreprocessLoad(SDNode *Node,
 
   LLVM_DEBUG(dbgs() << "Replacing load of size " << size << " with constant "
                     << val << '\n');
-  SDValue NVal = CurDAG->getConstant(val, DL, LD->getValueType(0));
+  SDValue const NVal = CurDAG->getConstant(val, DL, LD->getValueType(0));
 
   // After replacement, the current node is dead, we need to
   // go backward one step to make iterator still work
@@ -326,7 +326,7 @@ void BPFDAGToDAGISel::PreprocessISelDAG() {
                                        E = CurDAG->allnodes_end();
        I != E;) {
     SDNode *Node = &*I++;
-    unsigned Opcode = Node->getOpcode();
+    unsigned const Opcode = Node->getOpcode();
     if (Opcode == ISD::LOAD)
       PreprocessLoad(Node, I);
     else if (Opcode == ISD::AND)
@@ -372,13 +372,13 @@ bool BPFDAGToDAGISel::getConstantFieldValue(const GlobalAddressSDNode *Node,
     uint8_t c[2];
     uint16_t s;
   } test_buf;
-  uint16_t test_val = 0x2345;
+  uint16_t const test_val = 0x2345;
   if (DL.isLittleEndian())
     support::endian::write16le(test_buf.c, test_val);
   else
     support::endian::write16be(test_buf.c, test_val);
 
-  bool endian_match = test_buf.s == test_val;
+  bool const endian_match = test_buf.s == test_val;
   for (uint64_t i = Offset, j = 0; i < Offset + Size; i++, j++)
     ByteSeq[j] = endian_match ? TmpVal[i] : TmpVal[Offset + Size - 1 - j];
 
@@ -388,13 +388,13 @@ bool BPFDAGToDAGISel::getConstantFieldValue(const GlobalAddressSDNode *Node,
 bool BPFDAGToDAGISel::fillGenericConstant(const DataLayout &DL,
                                           const Constant *CV,
                                           val_vec_type &Vals, uint64_t Offset) {
-  uint64_t Size = DL.getTypeAllocSize(CV->getType());
+  uint64_t const Size = DL.getTypeAllocSize(CV->getType());
 
   if (isa<ConstantAggregateZero>(CV) || isa<UndefValue>(CV))
     return true; // already done
 
   if (const ConstantInt *CI = dyn_cast<ConstantInt>(CV)) {
-    uint64_t val = CI->getZExtValue();
+    uint64_t const val = CI->getZExtValue();
     LLVM_DEBUG(dbgs() << "Byte array at offset " << Offset << " with value "
                       << val << '\n');
 
@@ -453,7 +453,7 @@ bool BPFDAGToDAGISel::fillConstantStruct(const DataLayout &DL,
   const StructLayout *Layout = DL.getStructLayout(CS->getType());
   for (unsigned i = 0, e = CS->getNumOperands(); i != e; ++i) {
     const Constant *Field = CS->getOperand(i);
-    uint64_t SizeSoFar = Layout->getElementOffset(i);
+    uint64_t const SizeSoFar = Layout->getElementOffset(i);
     if (fillGenericConstant(DL, Field, Vals, Offset + SizeSoFar) == false)
       return false;
   }
@@ -472,12 +472,12 @@ void BPFDAGToDAGISel::PreprocessTrunc(SDNode *Node,
   // when the Reg operand comes from bpf_load_[byte | half | word] for
   // which the generic optimizer doesn't understand their results are
   // zero extended.
-  SDValue BaseV = Node->getOperand(0);
+  SDValue const BaseV = Node->getOperand(0);
   if (BaseV.getOpcode() != ISD::INTRINSIC_W_CHAIN)
     return;
 
-  unsigned IntNo = cast<ConstantSDNode>(BaseV->getOperand(1))->getZExtValue();
-  uint64_t MaskV = MaskN->getZExtValue();
+  unsigned const IntNo = cast<ConstantSDNode>(BaseV->getOperand(1))->getZExtValue();
+  uint64_t const MaskV = MaskN->getZExtValue();
 
   if (!((IntNo == Intrinsic::bpf_load_byte && MaskV == 0xFF) ||
         (IntNo == Intrinsic::bpf_load_half && MaskV == 0xFFFF) ||

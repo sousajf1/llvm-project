@@ -94,11 +94,11 @@ TypeIndex MergingTypeTableBuilder::insertRecordAs(hash_code Hash,
          "The type record size is not a multiple of 4 bytes which will cause "
          "misalignment in the output TPI stream!");
 
-  LocallyHashedType WeakHash{Hash, Record};
+  LocallyHashedType const WeakHash{Hash, Record};
   auto Result = HashedRecords.try_emplace(WeakHash, nextTypeIndex());
 
   if (Result.second) {
-    ArrayRef<uint8_t> RecordData = stabilize(RecordStorage, Record);
+    ArrayRef<uint8_t> const RecordData = stabilize(RecordStorage, Record);
     Result.first->first.RecordData = RecordData;
     SeenRecords.push_back(RecordData);
   }
@@ -135,7 +135,7 @@ bool MergingTypeTableBuilder::replaceType(TypeIndex &Index, CVType Data,
          "The type record size is not a multiple of 4 bytes which will cause "
          "misalignment in the output TPI stream!");
 
-  LocallyHashedType WeakHash{hash_value(Record), Record};
+  LocallyHashedType const WeakHash{hash_value(Record), Record};
   auto Result = HashedRecords.try_emplace(WeakHash, Index.toArrayIndex());
   if (!Result.second) {
     Index = Result.first->second;

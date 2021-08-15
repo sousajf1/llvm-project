@@ -80,7 +80,7 @@ Expected<ArrayRef<T>> MinidumpFile::getListStream(StreamType Type) const {
   if (!ExpectedSize)
     return ExpectedSize.takeError();
 
-  size_t ListSize = ExpectedSize.get()[0];
+  size_t const ListSize = ExpectedSize.get()[0];
 
   size_t ListOffset = 4;
   // Some producers insert additional padding bytes to align the list to an
@@ -109,7 +109,7 @@ MinidumpFile::getDataSlice(ArrayRef<uint8_t> Data, size_t Offset, size_t Size) {
 
 Expected<std::unique_ptr<MinidumpFile>>
 MinidumpFile::create(MemoryBufferRef Source) {
-  ArrayRef<uint8_t> Data = arrayRefFromStringRef(Source.getBuffer());
+  ArrayRef<uint8_t> const Data = arrayRefFromStringRef(Source.getBuffer());
   auto ExpectedHeader = getDataSliceAs<minidump::Header>(Data, 0, 1);
   if (!ExpectedHeader)
     return ExpectedHeader.takeError();
@@ -127,7 +127,7 @@ MinidumpFile::create(MemoryBufferRef Source) {
 
   DenseMap<StreamType, std::size_t> StreamMap;
   for (const auto &StreamDescriptor : llvm::enumerate(*ExpectedStreams)) {
-    StreamType Type = StreamDescriptor.value().Type;
+    StreamType const Type = StreamDescriptor.value().Type;
     const LocationDescriptor &Loc = StreamDescriptor.value().Location;
 
     Expected<ArrayRef<uint8_t>> Stream =

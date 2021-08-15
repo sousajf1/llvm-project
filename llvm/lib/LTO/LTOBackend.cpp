@@ -99,7 +99,7 @@ Error Config::addSaveTemps(std::string OutputFileName,
 
   auto setHook = [&](std::string PathSuffix, ModuleHookFn &Hook) {
     // Keep track of the hook provided by the linker, which also needs to run.
-    ModuleHookFn LinkerHook = Hook;
+    ModuleHookFn const LinkerHook = Hook;
     Hook = [=](unsigned Task, const Module &M) {
       // If the linker's hook returned false, we need to pass that result
       // through.
@@ -116,7 +116,7 @@ Error Config::addSaveTemps(std::string OutputFileName,
           PathPrefix += utostr(Task) + ".";
       } else
         PathPrefix = M.getModuleIdentifier() + ".";
-      std::string Path = PathPrefix + PathSuffix + ".bc";
+      std::string const Path = PathPrefix + PathSuffix + ".bc";
       std::error_code EC;
       raw_fd_ostream OS(Path, EC, sys::fs::OpenFlags::OF_None);
       // Because -save-temps is a debugging feature, we report the error
@@ -183,7 +183,7 @@ static void RegisterPassPlugins(ArrayRef<std::string> PassPlugins,
 
 static std::unique_ptr<TargetMachine>
 createTargetMachine(const Config &Conf, const Target *TheTarget, Module &M) {
-  StringRef TheTriple = M.getTargetTriple();
+  StringRef const TheTriple = M.getTargetTriple();
   SubtargetFeatures Features;
   Features.getDefaultSubtargetFeatures(Triple(TheTriple));
   for (const std::string &A : Conf.MAttrs)
@@ -390,7 +390,7 @@ static void codegen(const Config &Conf, TargetMachine *TM,
   std::unique_ptr<ToolOutputFile> DwoOut;
   SmallString<1024> DwoFile(Conf.SplitDwarfOutput);
   if (!Conf.DwoDir.empty()) {
-    std::error_code EC;
+    std::error_code const EC;
     if (auto EC = llvm::sys::fs::create_directories(Conf.DwoDir))
       report_fatal_error("Failed to create directory " + Conf.DwoDir + ": " +
                          EC.message());
@@ -457,7 +457,7 @@ static void splitCodeGen(const Config &C, TargetMachine *TM,
                 report_fatal_error("Failed to read bitcode");
               std::unique_ptr<Module> MPartInCtx = std::move(MOrErr.get());
 
-              std::unique_ptr<TargetMachine> TM =
+              std::unique_ptr<TargetMachine> const TM =
                   createTargetMachine(C, T, *MPartInCtx);
 
               codegen(C, TM.get(), AddStream, ThreadId, *MPartInCtx,
@@ -507,7 +507,7 @@ Error lto::backend(const Config &C, AddStreamFn AddStream,
   if (!TOrErr)
     return TOrErr.takeError();
 
-  std::unique_ptr<TargetMachine> TM = createTargetMachine(C, *TOrErr, Mod);
+  std::unique_ptr<TargetMachine> const TM = createTargetMachine(C, *TOrErr, Mod);
 
   if (!C.CodeGenOnly) {
     if (!opt(C, TM.get(), 0, Mod, /*IsThinLTO=*/false,
@@ -596,7 +596,7 @@ Error lto::thinBackend(const Config &Conf, unsigned Task, AddStreamFn AddStream,
 
   // When linking an ELF shared object, dso_local should be dropped. We
   // conservatively do this for -fpic.
-  bool ClearDSOLocalOnDeclarations =
+  bool const ClearDSOLocalOnDeclarations =
       TM->getTargetTriple().isOSBinFormatELF() &&
       TM->getRelocationModel() != Reloc::Static &&
       Mod.getPIELevel() == PIELevel::Default;

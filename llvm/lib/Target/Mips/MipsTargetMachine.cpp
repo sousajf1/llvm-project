@@ -47,10 +47,10 @@ using namespace llvm;
 
 extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializeMipsTarget() {
   // Register the target.
-  RegisterTargetMachine<MipsebTargetMachine> X(getTheMipsTarget());
-  RegisterTargetMachine<MipselTargetMachine> Y(getTheMipselTarget());
-  RegisterTargetMachine<MipsebTargetMachine> A(getTheMips64Target());
-  RegisterTargetMachine<MipselTargetMachine> B(getTheMips64elTarget());
+  RegisterTargetMachine<MipsebTargetMachine> const X(getTheMipsTarget());
+  RegisterTargetMachine<MipselTargetMachine> const Y(getTheMipselTarget());
+  RegisterTargetMachine<MipsebTargetMachine> const A(getTheMips64Target());
+  RegisterTargetMachine<MipselTargetMachine> const B(getTheMips64elTarget());
 
   PassRegistry *PR = PassRegistry::getPassRegistry();
   initializeGlobalISel(*PR);
@@ -64,7 +64,7 @@ static std::string computeDataLayout(const Triple &TT, StringRef CPU,
                                      const TargetOptions &Options,
                                      bool isLittle) {
   std::string Ret;
-  MipsABIInfo ABI = MipsABIInfo::computeTargetABI(TT, CPU, Options.MCOptions);
+  MipsABIInfo const ABI = MipsABIInfo::computeTargetABI(TT, CPU, Options.MCOptions);
 
   // There are both little and big endian mips.
   if (isLittle)
@@ -156,23 +156,23 @@ MipselTargetMachine::MipselTargetMachine(const Target &T, const Triple &TT,
 
 const MipsSubtarget *
 MipsTargetMachine::getSubtargetImpl(const Function &F) const {
-  Attribute CPUAttr = F.getFnAttribute("target-cpu");
-  Attribute FSAttr = F.getFnAttribute("target-features");
+  Attribute const CPUAttr = F.getFnAttribute("target-cpu");
+  Attribute const FSAttr = F.getFnAttribute("target-features");
 
-  std::string CPU =
+  std::string const CPU =
       CPUAttr.isValid() ? CPUAttr.getValueAsString().str() : TargetCPU;
   std::string FS =
       FSAttr.isValid() ? FSAttr.getValueAsString().str() : TargetFS;
-  bool hasMips16Attr = F.getFnAttribute("mips16").isValid();
-  bool hasNoMips16Attr = F.getFnAttribute("nomips16").isValid();
+  bool const hasMips16Attr = F.getFnAttribute("mips16").isValid();
+  bool const hasNoMips16Attr = F.getFnAttribute("nomips16").isValid();
 
-  bool HasMicroMipsAttr = F.getFnAttribute("micromips").isValid();
-  bool HasNoMicroMipsAttr = F.getFnAttribute("nomicromips").isValid();
+  bool const HasMicroMipsAttr = F.getFnAttribute("micromips").isValid();
+  bool const HasNoMicroMipsAttr = F.getFnAttribute("nomicromips").isValid();
 
   // FIXME: This is related to the code below to reset the target options,
   // we need to know whether or not the soft float flag is set on the
   // function, so we can enable it as a subtarget feature.
-  bool softFloat = F.getFnAttribute("use-soft-float").getValueAsBool();
+  bool const softFloat = F.getFnAttribute("use-soft-float").getValueAsBool();
 
   if (hasMips16Attr)
     FS += FS.empty() ? "+mips16" : ",+mips16";

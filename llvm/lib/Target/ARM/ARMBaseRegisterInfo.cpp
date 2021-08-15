@@ -62,7 +62,7 @@ ARMBaseRegisterInfo::ARMBaseRegisterInfo()
 const MCPhysReg*
 ARMBaseRegisterInfo::getCalleeSavedRegs(const MachineFunction *MF) const {
   const ARMSubtarget &STI = MF->getSubtarget<ARMSubtarget>();
-  bool UseSplitPush = STI.splitFramePushPop(*MF);
+  bool const UseSplitPush = STI.splitFramePushPop(*MF);
   const MCPhysReg *RegList =
       STI.isTargetDarwin()
           ? CSR_iOS_SaveList
@@ -215,7 +215,7 @@ getReservedRegs(const MachineFunction &MF) const {
       markSuperRegs(Reserved, ARM::D16 + R);
   }
   const TargetRegisterClass &RC = ARM::GPRPairRegClass;
-  for (unsigned Reg : RC)
+  for (unsigned const Reg : RC)
     for (MCSubRegIterator SI(Reg, this); SI.isValid(); ++SI)
       if (Reserved.test(*SI))
         markSuperRegs(Reserved, Reg);
@@ -295,12 +295,12 @@ ARMBaseRegisterInfo::getRegPressureLimit(const TargetRegisterClass *RC,
     // hasFP ends up calling getMaxCallFrameComputed() which may not be
     // available when getPressureLimit() is called as part of
     // ScheduleDAGRRList.
-    bool HasFP = MF.getFrameInfo().isMaxCallFrameSizeComputed()
+    bool const HasFP = MF.getFrameInfo().isMaxCallFrameSizeComputed()
                  ? TFI->hasFP(MF) : true;
     return 5 - HasFP;
   }
   case ARM::GPRRegClassID: {
-    bool HasFP = MF.getFrameInfo().isMaxCallFrameSizeComputed()
+    bool const HasFP = MF.getFrameInfo().isMaxCallFrameSizeComputed()
                  ? TFI->hasFP(MF) : true;
     return 10 - HasFP - (STI.isR9Reserved() ? 1 : 0);
   }
@@ -325,7 +325,7 @@ bool ARMBaseRegisterInfo::getRegAllocationHints(
     SmallVectorImpl<MCPhysReg> &Hints, const MachineFunction &MF,
     const VirtRegMap *VRM, const LiveRegMatrix *Matrix) const {
   const MachineRegisterInfo &MRI = MF.getRegInfo();
-  std::pair<Register, Register> Hint = MRI.getRegAllocationHint(VirtReg);
+  std::pair<Register, Register> const Hint = MRI.getRegAllocationHint(VirtReg);
 
   unsigned Odd;
   switch (Hint.first) {
@@ -347,7 +347,7 @@ bool ARMBaseRegisterInfo::getRegAllocationHints(
   // This register should preferably be even (Odd == 0) or odd (Odd == 1).
   // Check if the other part of the pair has already been assigned, and provide
   // the paired register as the first hint.
-  Register Paired = Hint.second;
+  Register const Paired = Hint.second;
   if (!Paired)
     return false;
 
@@ -363,11 +363,11 @@ bool ARMBaseRegisterInfo::getRegAllocationHints(
     Hints.push_back(PairedPhys);
 
   // Then prefer even or odd registers.
-  for (MCPhysReg Reg : Order) {
+  for (MCPhysReg const Reg : Order) {
     if (Reg == PairedPhys || (getEncodingValue(Reg) & 1) != Odd)
       continue;
     // Don't provide hints that are paired to a reserved register.
-    MCPhysReg Paired = getPairedGPR(Reg, !Odd, this);
+    MCPhysReg const Paired = getPairedGPR(Reg, !Odd, this);
     if (!Paired || MRI.isReserved(Paired))
       continue;
     Hints.push_back(Reg);
@@ -385,7 +385,7 @@ void ARMBaseRegisterInfo::updateRegAllocHint(Register Reg, Register NewReg,
     // (e.g. coalesced) into a different register. The other register of the
     // pair allocation hint must be updated to reflect the relationship
     // change.
-    Register OtherReg = Hint.second;
+    Register const OtherReg = Hint.second;
     Hint = MRI->getRegAllocationHint(OtherReg);
     // Make sure the pair has not already divorced.
     if (Hint.second == Reg) {
@@ -489,7 +489,7 @@ void ARMBaseRegisterInfo::emitLoadConstPool(
   MachineConstantPool *ConstantPool = MF.getConstantPool();
   const Constant *C =
         ConstantInt::get(Type::getInt32Ty(MF.getFunction().getContext()), Val);
-  unsigned Idx = ConstantPool->getConstantPoolIndex(C, Align(4));
+  unsigned const Idx = ConstantPool->getConstantPoolIndex(C, Align(4));
 
   BuildMI(MBB, MBBI, dl, TII.get(ARM::LDRcp))
       .addReg(DestReg, getDefRegState(true), SubIdx)
@@ -517,7 +517,7 @@ requiresVirtualBaseRegisters(const MachineFunction &MF) const {
 int64_t ARMBaseRegisterInfo::
 getFrameIndexInstrOffset(const MachineInstr *MI, int Idx) const {
   const MCInstrDesc &Desc = MI->getDesc();
-  unsigned AddrMode = (Desc.TSFlags & ARMII::AddrModeMask);
+  unsigned const AddrMode = (Desc.TSFlags & ARMII::AddrModeMask);
   int64_t InstrOffs = 0;
   int Scale = 1;
   unsigned ImmIdx = 0;
@@ -580,7 +580,7 @@ needsFrameBaseReg(MachineInstr *MI, int64_t Offset) const {
 
   // We only generate virtual base registers for loads and stores, so
   // return false for everything else.
-  unsigned Opc = MI->getOpcode();
+  unsigned const Opc = MI->getOpcode();
   switch (Opc) {
   case ARM::LDRi12: case ARM::LDRH: case ARM::LDRBi12:
   case ARM::STRi12: case ARM::STRH: case ARM::STRBi12:
@@ -601,7 +601,7 @@ needsFrameBaseReg(MachineInstr *MI, int64_t Offset) const {
   // so it'll be negative.
   MachineFunction &MF = *MI->getParent()->getParent();
   const ARMFrameLowering *TFI = getFrameLowering(MF);
-  MachineFrameInfo &MFI = MF.getFrameInfo();
+  MachineFrameInfo  const&MFI = MF.getFrameInfo();
   ARMFunctionInfo *AFI = MF.getInfo<ARMFunctionInfo>();
 
   // Estimate an offset from the frame pointer.
@@ -651,10 +651,10 @@ ARMBaseRegisterInfo::materializeFrameBaseRegister(MachineBasicBlock *MBB,
                                                   int FrameIdx,
                                                   int64_t Offset) const {
   ARMFunctionInfo *AFI = MBB->getParent()->getInfo<ARMFunctionInfo>();
-  unsigned ADDriOpc = !AFI->isThumbFunction() ? ARM::ADDri :
+  unsigned const ADDriOpc = !AFI->isThumbFunction() ? ARM::ADDri :
     (AFI->isThumb1OnlyFunction() ? ARM::tADDframe : ARM::t2ADDri);
 
-  MachineBasicBlock::iterator Ins = MBB->begin();
+  MachineBasicBlock::iterator const Ins = MBB->begin();
   DebugLoc DL;                  // Defaults to "unknown"
   if (Ins != MBB->end())
     DL = Ins->getDebugLoc();
@@ -666,7 +666,7 @@ ARMBaseRegisterInfo::materializeFrameBaseRegister(MachineBasicBlock *MBB,
   Register BaseReg = MRI.createVirtualRegister(&ARM::GPRRegClass);
   MRI.constrainRegClass(BaseReg, TII.getRegClass(MCID, 0, this, MF));
 
-  MachineInstrBuilder MIB = BuildMI(*MBB, Ins, DL, MCID, BaseReg)
+  MachineInstrBuilder const MIB = BuildMI(*MBB, Ins, DL, MCID, BaseReg)
     .addFrameIndex(FrameIdx).addImm(Offset);
 
   if (!AFI->isThumb1OnlyFunction())
@@ -707,7 +707,7 @@ bool ARMBaseRegisterInfo::isFrameOffsetLegal(const MachineInstr *MI,
                                              Register BaseReg,
                                              int64_t Offset) const {
   const MCInstrDesc &Desc = MI->getDesc();
-  unsigned AddrMode = (Desc.TSFlags & ARMII::AddrModeMask);
+  unsigned const AddrMode = (Desc.TSFlags & ARMII::AddrModeMask);
   unsigned i = 0;
   for (; !MI->getOperand(i).isFI(); ++i)
     assert(i+1 < MI->getNumOperands() && "Instr doesn't have FrameIndex operand!");
@@ -762,7 +762,7 @@ bool ARMBaseRegisterInfo::isFrameOffsetLegal(const MachineInstr *MI,
   if (isSigned && Offset < 0)
     Offset = -Offset;
 
-  unsigned Mask = (1 << NumBits) - 1;
+  unsigned const Mask = (1 << NumBits) - 1;
   if ((unsigned)Offset <= Mask * Scale)
     return true;
 
@@ -782,7 +782,7 @@ ARMBaseRegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
   ARMFunctionInfo *AFI = MF.getInfo<ARMFunctionInfo>();
   assert(!AFI->isThumb1OnlyFunction() &&
          "This eliminateFrameIndex does not support Thumb1!");
-  int FrameIndex = MI.getOperand(FIOperandNum).getIndex();
+  int const FrameIndex = MI.getOperand(FIOperandNum).getIndex();
   Register FrameReg;
 
   int Offset = TFI->ResolveFrameIndexReference(MF, FrameIndex, FrameReg, SPAdj);
@@ -829,10 +829,10 @@ ARMBaseRegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
       "This code isn't needed if offset already handled!");
 
   unsigned ScratchReg = 0;
-  int PIdx = MI.findFirstPredOperandIdx();
-  ARMCC::CondCodes Pred = (PIdx == -1)
+  int const PIdx = MI.findFirstPredOperandIdx();
+  ARMCC::CondCodes const Pred = (PIdx == -1)
     ? ARMCC::AL : (ARMCC::CondCodes)MI.getOperand(PIdx).getImm();
-  Register PredReg = (PIdx == -1) ? Register() : MI.getOperand(PIdx+1).getReg();
+  Register const PredReg = (PIdx == -1) ? Register() : MI.getOperand(PIdx+1).getReg();
 
   const MCInstrDesc &MCID = MI.getDesc();
   const TargetRegisterClass *RegClass =

@@ -92,7 +92,7 @@ unsigned ARMInstrInfo::getUnindexedOpcode(unsigned Opc) const {
 }
 
 void ARMInstrInfo::expandLoadStackGuard(MachineBasicBlock::iterator MI) const {
-  MachineFunction &MF = *MI->getParent()->getParent();
+  MachineFunction  const&MF = *MI->getParent()->getParent();
   const ARMSubtarget &Subtarget = MF.getSubtarget<ARMSubtarget>();
   const TargetMachine &TM = MF.getTarget();
 
@@ -118,8 +118,8 @@ void ARMInstrInfo::expandLoadStackGuard(MachineBasicBlock::iterator MI) const {
   }
 
   MachineBasicBlock &MBB = *MI->getParent();
-  DebugLoc DL = MI->getDebugLoc();
-  Register Reg = MI->getOperand(0).getReg();
+  DebugLoc const DL = MI->getDebugLoc();
+  Register const Reg = MI->getOperand(0).getReg();
   MachineInstrBuilder MIB;
 
   MIB = BuildMI(MBB, MI, DL, get(ARM::MOV_ga_pcrel_ldr), Reg)

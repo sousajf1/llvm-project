@@ -25,7 +25,7 @@ bool RISCVCallLowering::lowerReturn(MachineIRBuilder &MIRBuilder,
                                     const Value *Val, ArrayRef<Register> VRegs,
                                     FunctionLoweringInfo &FLI) const {
 
-  MachineInstrBuilder Ret = MIRBuilder.buildInstrNoInsert(RISCV::PseudoRET);
+  MachineInstrBuilder const Ret = MIRBuilder.buildInstrNoInsert(RISCV::PseudoRET);
 
   if (Val != nullptr) {
     return false;

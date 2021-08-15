@@ -42,7 +42,7 @@ using namespace llvm;
 // Return true if Expr is in the range [MinValue, MaxValue].
 static bool inRange(const MCExpr *Expr, int64_t MinValue, int64_t MaxValue) {
   if (auto *CE = dyn_cast<MCConstantExpr>(Expr)) {
-    int64_t Value = CE->getValue();
+    int64_t const Value = CE->getValue();
     return Value >= MinValue && Value <= MaxValue;
   }
   return false;
@@ -762,13 +762,13 @@ bool SystemZAsmParser::parseRegister(Register &Reg, bool RestoreOnFailure) {
   }
 
   // Check that there's a prefix.
-  StringRef Name = Parser.getTok().getString();
+  StringRef const Name = Parser.getTok().getString();
   if (Name.size() < 2) {
     if (RestoreOnFailure)
       getLexer().UnLex(PercentTok);
     return Error(Reg.StartLoc, "invalid register");
   }
-  char Prefix = Name[0];
+  char const Prefix = Name[0];
 
   // Treat the rest of the register name as a register number.
   if (Name.substr(1).getAsInteger(10, Reg.Num)) {
@@ -890,7 +890,7 @@ SystemZAsmParser::parseRegister(OperandVector &Operands, RegisterKind Kind) {
 // Parse any type of register (including integers) and add it to Operands.
 OperandMatchResultTy
 SystemZAsmParser::parseAnyRegister(OperandVector &Operands) {
-  SMLoc StartLoc = Parser.getTok().getLoc();
+  SMLoc const StartLoc = Parser.getTok().getLoc();
 
   // Handle integer values.
   if (Parser.getTok().is(AsmToken::Integer)) {
@@ -899,14 +899,14 @@ SystemZAsmParser::parseAnyRegister(OperandVector &Operands) {
       return MatchOperand_ParseFail;
 
     if (auto *CE = dyn_cast<MCConstantExpr>(Register)) {
-      int64_t Value = CE->getValue();
+      int64_t const Value = CE->getValue();
       if (Value < 0 || Value > 15) {
         Error(StartLoc, "invalid register");
         return MatchOperand_ParseFail;
       }
     }
 
-    SMLoc EndLoc =
+    SMLoc const EndLoc =
       SMLoc::getFromPointer(Parser.getTok().getLoc().getPointer() - 1);
 
     Operands.push_back(SystemZOperand::createImm(Register, StartLoc, EndLoc));
@@ -969,8 +969,8 @@ bool SystemZAsmParser::parseIntegerRegister(Register &Reg,
   if (!CE)
     return true;
 
-  int64_t MaxRegNum = (Group == RegV) ? 31 : 15;
-  int64_t Value = CE->getValue();
+  int64_t const MaxRegNum = (Group == RegV) ? 31 : 15;
+  int64_t const Value = CE->getValue();
   if (Value < 0 || Value > MaxRegNum) {
     Error(Parser.getTok().getLoc(), "invalid register");
     return true;
@@ -1017,7 +1017,7 @@ bool SystemZAsmParser::parseAddress(bool &HaveReg1, Register &Reg1,
   // The restriction only applies to the first Register (i.e. Reg1). Reg2 is
   // always a general register. Reg1 should be of group RegV if "HasVectorIndex"
   // (i.e. insn is of type BDVMem) is true.
-  RegisterGroup RegGroup = HasVectorIndex ? RegV : RegGR;
+  RegisterGroup const RegGroup = HasVectorIndex ? RegV : RegGR;
 
   if (getLexer().is(AsmToken::LParen)) {
     Parser.Lex();
@@ -1096,15 +1096,15 @@ SystemZAsmParser::parseAddressRegister(Register &Reg) {
 OperandMatchResultTy
 SystemZAsmParser::parseAddress(OperandVector &Operands, MemoryKind MemKind,
                                RegisterKind RegKind) {
-  SMLoc StartLoc = Parser.getTok().getLoc();
+  SMLoc const StartLoc = Parser.getTok().getLoc();
   unsigned Base = 0, Index = 0, LengthReg = 0;
   Register Reg1, Reg2;
   bool HaveReg1, HaveReg2;
   const MCExpr *Disp;
   const MCExpr *Length;
 
-  bool HasLength = (MemKind == BDLMem) ? true : false;
-  bool HasVectorIndex = (MemKind == BDVMem) ? true : false;
+  bool const HasLength = (MemKind == BDLMem) ? true : false;
+  bool const HasVectorIndex = (MemKind == BDVMem) ? true : false;
   if (parseAddress(HaveReg1, Reg1, HaveReg2, Reg2, Disp, Length, HasLength,
                    HasVectorIndex))
     return MatchOperand_ParseFail;
@@ -1197,7 +1197,7 @@ SystemZAsmParser::parseAddress(OperandVector &Operands, MemoryKind MemKind,
     break;
   }
 
-  SMLoc EndLoc =
+  SMLoc const EndLoc =
       SMLoc::getFromPointer(Parser.getTok().getLoc().getPointer() - 1);
   Operands.push_back(SystemZOperand::createMem(MemKind, RegKind, Base, Disp,
                                                Index, Length, LengthReg,
@@ -1206,7 +1206,7 @@ SystemZAsmParser::parseAddress(OperandVector &Operands, MemoryKind MemKind,
 }
 
 bool SystemZAsmParser::ParseDirective(AsmToken DirectiveID) {
-  StringRef IDVal = DirectiveID.getIdentifier();
+  StringRef const IDVal = DirectiveID.getIdentifier();
 
   if (IDVal == ".insn")
     return ParseDirectiveInsn(DirectiveID.getLoc());
@@ -1221,7 +1221,7 @@ bool SystemZAsmParser::ParseDirectiveInsn(SMLoc L) {
 
   // Expect instruction format as identifier.
   StringRef Format;
-  SMLoc ErrorLoc = Parser.getTok().getLoc();
+  SMLoc const ErrorLoc = Parser.getTok().getLoc();
   if (Parser.parseIdentifier(Format))
     return Error(ErrorLoc, "expected instruction format");
 
@@ -1243,9 +1243,9 @@ bool SystemZAsmParser::ParseDirectiveInsn(SMLoc L) {
 
   // Parse the following operands using the table's information.
   for (int i = 0; i < Entry->NumOperands; i++) {
-    MatchClassKind Kind = Entry->OperandKinds[i];
+    MatchClassKind const Kind = Entry->OperandKinds[i];
 
-    SMLoc StartLoc = Parser.getTok().getLoc();
+    SMLoc const StartLoc = Parser.getTok().getLoc();
 
     // Always expect commas as separators for operands.
     if (getLexer().isNot(AsmToken::Comma))
@@ -1271,13 +1271,13 @@ bool SystemZAsmParser::ParseDirectiveInsn(SMLoc L) {
     else {
       // Only remaining operand kind is an immediate.
       const MCExpr *Expr;
-      SMLoc StartLoc = Parser.getTok().getLoc();
+      SMLoc const StartLoc = Parser.getTok().getLoc();
 
       // Expect immediate expression.
       if (Parser.parseExpression(Expr))
         return Error(StartLoc, "unexpected token in directive");
 
-      SMLoc EndLoc =
+      SMLoc const EndLoc =
         SMLoc::getFromPointer(Parser.getTok().getLoc().getPointer() - 1);
 
       Operands.push_back(SystemZOperand::createImm(Expr, StartLoc, EndLoc));
@@ -1293,15 +1293,15 @@ bool SystemZAsmParser::ParseDirectiveInsn(SMLoc L) {
 
   for (size_t i = 0; i < Operands.size(); i++) {
     MCParsedAsmOperand &Operand = *Operands[i];
-    MatchClassKind Kind = Entry->OperandKinds[i];
+    MatchClassKind const Kind = Entry->OperandKinds[i];
 
     // Verify operand.
-    unsigned Res = validateOperandClass(Operand, Kind);
+    unsigned const Res = validateOperandClass(Operand, Kind);
     if (Res != Match_Success)
       return Error(Operand.getStartLoc(), "unexpected operand type");
 
     // Add operands to instruction.
-    SystemZOperand &ZOperand = static_cast<SystemZOperand &>(Operand);
+    SystemZOperand  const&ZOperand = static_cast<SystemZOperand &>(Operand);
     if (ZOperand.isReg())
       ZOperand.addRegOperands(Inst, 1);
     else if (ZOperand.isMem(BDMem))
@@ -1350,9 +1350,9 @@ bool SystemZAsmParser::ParseRegister(unsigned &RegNo, SMLoc &StartLoc,
 OperandMatchResultTy SystemZAsmParser::tryParseRegister(unsigned &RegNo,
                                                         SMLoc &StartLoc,
                                                         SMLoc &EndLoc) {
-  bool Result =
+  bool const Result =
       ParseRegister(RegNo, StartLoc, EndLoc, /*RestoreOnFailure=*/true);
-  bool PendingErrors = getParser().hasPendingError();
+  bool const PendingErrors = getParser().hasPendingError();
   getParser().clearPendingErrors();
   if (PendingErrors)
     return MatchOperand_ParseFail;
@@ -1398,7 +1398,7 @@ bool SystemZAsmParser::ParseInstruction(ParseInstructionInfo &Info,
     // remark field.
     if (isParsingHLASM() && getTok().is(AsmToken::Space)) {
       // We've confirmed that there is a Remark field.
-      StringRef Remark(getLexer().LexUntilEndOfStatement());
+      StringRef const Remark(getLexer().LexUntilEndOfStatement());
       Parser.Lex();
 
       // If there is nothing after the space, then there is nothing to emit
@@ -1414,7 +1414,7 @@ bool SystemZAsmParser::ParseInstruction(ParseInstructionInfo &Info,
     }
 
     if (getLexer().isNot(AsmToken::EndOfStatement)) {
-      SMLoc Loc = getLexer().getLoc();
+      SMLoc const Loc = getLexer().getLoc();
       return Error(Loc, "unexpected token in argument list");
     }
   }
@@ -1431,11 +1431,11 @@ bool SystemZAsmParser::parseOperand(OperandVector &Operands,
   // features to be available during the operand check, or else we will fail to
   // find the custom parser, and then we will later get an InvalidOperand error
   // instead of a MissingFeature errror.
-  FeatureBitset AvailableFeatures = getAvailableFeatures();
+  FeatureBitset const AvailableFeatures = getAvailableFeatures();
   FeatureBitset All;
   All.set();
   setAvailableFeatures(All);
-  OperandMatchResultTy ResTy = MatchOperandParserImpl(Operands, Mnemonic);
+  OperandMatchResultTy const ResTy = MatchOperandParserImpl(Operands, Mnemonic);
   setAvailableFeatures(AvailableFeatures);
   if (ResTy == MatchOperand_Success)
     return false;
@@ -1461,7 +1461,7 @@ bool SystemZAsmParser::parseOperand(OperandVector &Operands,
   // The only other type of operand is an immediate or address.  As above,
   // real address operands should have used a context-dependent parse routine,
   // so we treat any plain expression as an immediate.
-  SMLoc StartLoc = Parser.getTok().getLoc();
+  SMLoc const StartLoc = Parser.getTok().getLoc();
   Register Reg1, Reg2;
   bool HaveReg1, HaveReg2;
   const MCExpr *Expr;
@@ -1477,7 +1477,7 @@ bool SystemZAsmParser::parseOperand(OperandVector &Operands,
   if (HaveReg2 && parseAddressRegister(Reg2))
     return true;
 
-  SMLoc EndLoc =
+  SMLoc const EndLoc =
     SMLoc::getFromPointer(Parser.getTok().getLoc().getPointer() - 1);
   if (HaveReg1 || HaveReg2 || Length)
     Operands.push_back(SystemZOperand::createInvalid(StartLoc, EndLoc));
@@ -1498,7 +1498,7 @@ bool SystemZAsmParser::MatchAndEmitInstruction(SMLoc IDLoc, unsigned &Opcode,
   MCInst Inst;
   unsigned MatchResult;
 
-  unsigned Dialect = getMAIAssemblerDialect();
+  unsigned const Dialect = getMAIAssemblerDialect();
 
   FeatureBitset MissingFeatures;
   MatchResult = MatchInstructionImpl(Operands, Inst, ErrorInfo, MissingFeatures,
@@ -1537,8 +1537,8 @@ bool SystemZAsmParser::MatchAndEmitInstruction(SMLoc IDLoc, unsigned &Opcode,
   }
 
   case Match_MnemonicFail: {
-    FeatureBitset FBS = ComputeAvailableFeatures(getSTI().getFeatureBits());
-    std::string Suggestion = SystemZMnemonicSpellCheck(
+    FeatureBitset const FBS = ComputeAvailableFeatures(getSTI().getFeatureBits());
+    std::string const Suggestion = SystemZMnemonicSpellCheck(
         ((SystemZOperand &)*Operands[0]).getToken(), FBS, Dialect);
     return Error(IDLoc, "invalid instruction" + Suggestion,
                  ((SystemZOperand &)*Operands[0]).getLocRange());
@@ -1554,13 +1554,13 @@ SystemZAsmParser::parsePCRel(OperandVector &Operands, int64_t MinVal,
   MCContext &Ctx = getContext();
   MCStreamer &Out = getStreamer();
   const MCExpr *Expr;
-  SMLoc StartLoc = Parser.getTok().getLoc();
+  SMLoc const StartLoc = Parser.getTok().getLoc();
   if (getParser().parseExpression(Expr))
     return MatchOperand_NoMatch;
 
   auto isOutOfRangeConstant = [&](const MCExpr *E) -> bool {
     if (auto *CE = dyn_cast<MCConstantExpr>(E)) {
-      int64_t Value = CE->getValue();
+      int64_t const Value = CE->getValue();
       if ((Value & 1) || Value < MinVal || Value > MaxVal)
         return true;
     }
@@ -1578,7 +1578,7 @@ SystemZAsmParser::parsePCRel(OperandVector &Operands, int64_t MinVal,
       Error(StartLoc, "offset out of range");
       return MatchOperand_ParseFail;
     }
-    int64_t Value = CE->getValue();
+    int64_t const Value = CE->getValue();
     MCSymbol *Sym = Ctx.createTempSymbol();
     Out.emitLabel(Sym);
     const MCExpr *Base = MCSymbolRefExpr::create(Sym, MCSymbolRefExpr::VK_None,
@@ -1606,7 +1606,7 @@ SystemZAsmParser::parsePCRel(OperandVector &Operands, int64_t MinVal,
     }
 
     MCSymbolRefExpr::VariantKind Kind = MCSymbolRefExpr::VK_None;
-    StringRef Name = Parser.getTok().getString();
+    StringRef const Name = Parser.getTok().getString();
     if (Name == "tls_gdcall")
       Kind = MCSymbolRefExpr::VK_TLSGD;
     else if (Name == "tls_ldcall")
@@ -1628,13 +1628,13 @@ SystemZAsmParser::parsePCRel(OperandVector &Operands, int64_t MinVal,
       return MatchOperand_ParseFail;
     }
 
-    StringRef Identifier = Parser.getTok().getString();
+    StringRef const Identifier = Parser.getTok().getString();
     Sym = MCSymbolRefExpr::create(Ctx.getOrCreateSymbol(Identifier),
                                   Kind, Ctx);
     Parser.Lex();
   }
 
-  SMLoc EndLoc =
+  SMLoc const EndLoc =
     SMLoc::getFromPointer(Parser.getTok().getLoc().getPointer() - 1);
 
   if (AllowTLS)
@@ -1661,8 +1661,8 @@ bool SystemZAsmParser::isLabel(AsmToken &Token) {
   // 2. Labels are case-insensitive. E.g. "lab123", "LAB123", "lAb123", etc.
   //    are all treated as the same symbol. However, the processing for the case
   //    folding will not be done in this function.
-  StringRef RawLabel = Token.getString();
-  SMLoc Loc = Token.getLoc();
+  StringRef const RawLabel = Token.getString();
+  SMLoc const Loc = Token.getLoc();
 
   // An HLASM label cannot be empty.
   if (!RawLabel.size())
@@ -1689,5 +1689,5 @@ bool SystemZAsmParser::isLabel(AsmToken &Token) {
 
 // Force static initialization.
 extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializeSystemZAsmParser() {
-  RegisterMCAsmParser<SystemZAsmParser> X(getTheSystemZTarget());
+  RegisterMCAsmParser<SystemZAsmParser> const X(getTheSystemZTarget());
 }

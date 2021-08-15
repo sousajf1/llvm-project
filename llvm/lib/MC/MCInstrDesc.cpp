@@ -22,7 +22,7 @@ bool MCInstrDesc::mayAffectControlFlow(const MCInst &MI,
                                        const MCRegisterInfo &RI) const {
   if (isBranch() || isCall() || isReturn() || isIndirectBranch())
     return true;
-  unsigned PC = RI.getProgramCounter();
+  unsigned const PC = RI.getProgramCounter();
   if (PC == 0)
     return false;
   if (hasDefOfPhysReg(MI, PC, RI))

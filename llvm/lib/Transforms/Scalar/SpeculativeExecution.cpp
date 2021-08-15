@@ -338,7 +338,7 @@ PreservedAnalyses SpeculativeExecutionPass::run(Function &F,
                                                 FunctionAnalysisManager &AM) {
   auto *TTI = &AM.getResult<TargetIRAnalysis>(F);
 
-  bool Changed = runImpl(F, TTI);
+  bool const Changed = runImpl(F, TTI);
 
   if (!Changed)
     return PreservedAnalyses::all();

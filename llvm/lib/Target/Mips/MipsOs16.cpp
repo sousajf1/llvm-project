@@ -56,7 +56,7 @@ static  bool needsFPFromSig(Function &F) {
     ;
   }
   if (F.arg_size() >=1) {
-    Argument &Arg = *F.arg_begin();
+    Argument  const&Arg = *F.arg_begin();
     switch (Arg.getType()->getTypeID()) {
     case Type::FloatTyID:
     case Type::DoubleTyID:
@@ -107,7 +107,7 @@ static bool needsFP(Function &F) {
 
 
 bool MipsOs16::runOnModule(Module &M) {
-  bool usingMask = Mips32FunctionMask.length() > 0;
+  bool const usingMask = Mips32FunctionMask.length() > 0;
   bool doneUsingMask = false; // this will make it stop repeating
 
   LLVM_DEBUG(dbgs() << "Run on Module MipsOs16 \n"
@@ -116,7 +116,7 @@ bool MipsOs16::runOnModule(Module &M) {
     LLVM_DEBUG(dbgs() << "using mask \n" << Mips32FunctionMask << "\n");
 
   unsigned int functionIndex = 0;
-  bool modified = false;
+  bool const modified = false;
 
   for (auto &F : M) {
     if (F.isDeclaration())

@@ -233,8 +233,8 @@ void HexagonMCInstrInfo::extendIfNeeded(MCContext &Context,
 
 unsigned HexagonMCInstrInfo::getMemAccessSize(MCInstrInfo const &MCII,
       MCInst const &MCI) {
-  uint64_t F = HexagonMCInstrInfo::getDesc(MCII, MCI).TSFlags;
-  unsigned S = (F >> HexagonII::MemAccessSizePos) & HexagonII::MemAccesSizeMask;
+  uint64_t const F = HexagonMCInstrInfo::getDesc(MCII, MCI).TSFlags;
+  unsigned const S = (F >> HexagonII::MemAccessSizePos) & HexagonII::MemAccesSizeMask;
   return HexagonII::getMemAccessSizeInBytes(HexagonII::MemAccessSize(S));
 }
 
@@ -315,7 +315,7 @@ unsigned short HexagonMCInstrInfo::getExtendableOp(MCInstrInfo const &MCII,
 MCOperand const &
 HexagonMCInstrInfo::getExtendableOperand(MCInstrInfo const &MCII,
                                          MCInst const &MCI) {
-  unsigned O = HexagonMCInstrInfo::getExtendableOp(MCII, MCI);
+  unsigned const O = HexagonMCInstrInfo::getExtendableOp(MCII, MCI);
   MCOperand const &MO = MCI.getOperand(O);
 
   assert((HexagonMCInstrInfo::isExtendable(MCII, MCI) ||
@@ -380,10 +380,10 @@ MCOperand const &HexagonMCInstrInfo::getNewValueOperand(MCInstrInfo const &MCII,
   if (HexagonMCInstrInfo::hasTmpDst(MCII, MCI)) {
     // VTMP doesn't actually exist in the encodings for these 184
     // 3 instructions so go ahead and create it here.
-    static MCOperand MCO = MCOperand::createReg(Hexagon::VTMP);
+    static MCOperand const MCO = MCOperand::createReg(Hexagon::VTMP);
     return (MCO);
   } else {
-    unsigned O = HexagonMCInstrInfo::getNewValueOp(MCII, MCI);
+    unsigned const O = HexagonMCInstrInfo::getNewValueOp(MCII, MCI);
     MCOperand const &MCO = MCI.getOperand(O);
 
     assert((HexagonMCInstrInfo::isNewValue(MCII, MCI) ||
@@ -403,7 +403,7 @@ unsigned short HexagonMCInstrInfo::getNewValueOp2(MCInstrInfo const &MCII,
 MCOperand const &
 HexagonMCInstrInfo::getNewValueOperand2(MCInstrInfo const &MCII,
                                         MCInst const &MCI) {
-  unsigned O = HexagonMCInstrInfo::getNewValueOp2(MCII, MCI);
+  unsigned const O = HexagonMCInstrInfo::getNewValueOp2(MCII, MCI);
   MCOperand const &MCO = MCI.getOperand(O);
 
   assert((HexagonMCInstrInfo::isNewValue(MCII, MCI) ||
@@ -425,14 +425,14 @@ unsigned HexagonMCInstrInfo::getCVIResources(MCInstrInfo const &MCII,
                                       MCInst const &MCI) {
 
   const InstrItinerary *II = STI.getSchedModel().InstrItineraries;
-  int SchedClass = HexagonMCInstrInfo::getDesc(MCII, MCI).getSchedClass();
-  int Size = II[SchedClass].LastStage - II[SchedClass].FirstStage;
+  int const SchedClass = HexagonMCInstrInfo::getDesc(MCII, MCI).getSchedClass();
+  int const Size = II[SchedClass].LastStage - II[SchedClass].FirstStage;
 
   // HVX resources used are currenty located at the second to last stage.
   // This could also be done with a linear search of the stages looking for:
   // CVI_ALL, CVI_MPY01, CVI_XLSHF, CVI_MPY0, CVI_MPY1, CVI_SHIFT, CVI_XLANE,
   // CVI_ZW
-  unsigned Stage = II[SchedClass].LastStage - 1;
+  unsigned const Stage = II[SchedClass].LastStage - 1;
 
   if (Size < 2)
     return 0;
@@ -444,7 +444,7 @@ unsigned HexagonMCInstrInfo::getUnits(MCInstrInfo const &MCII,
                                       MCSubtargetInfo const &STI,
                                       MCInst const &MCI) {
   const InstrItinerary *II = STI.getSchedModel().InstrItineraries;
-  int SchedClass = HexagonMCInstrInfo::getDesc(MCII, MCI).getSchedClass();
+  int const SchedClass = HexagonMCInstrInfo::getDesc(MCII, MCI).getSchedClass();
   return ((II[SchedClass].FirstStage + HexagonStages)->getUnits());
 }
 
@@ -455,7 +455,7 @@ unsigned HexagonMCInstrInfo::getOtherReservedSlots(MCInstrInfo const &MCII,
                                                    MCSubtargetInfo const &STI,
                                                    MCInst const &MCI) {
   const InstrItinerary *II = STI.getSchedModel().InstrItineraries;
-  int SchedClass = HexagonMCInstrInfo::getDesc(MCII, MCI).getSchedClass();
+  int const SchedClass = HexagonMCInstrInfo::getDesc(MCII, MCI).getSchedClass();
   unsigned Slots = 0;
 
   // FirstStage are slots that this instruction can execute in.
@@ -463,7 +463,7 @@ unsigned HexagonMCInstrInfo::getOtherReservedSlots(MCInstrInfo const &MCII,
   // For example: vmemu can only execute in slot 0 but also consumes slot 1.
   for (unsigned Stage = II[SchedClass].FirstStage + 1;
        Stage < II[SchedClass].LastStage; ++Stage) {
-    unsigned Units = (Stage + HexagonStages)->getUnits();
+    unsigned const Units = (Stage + HexagonStages)->getUnits();
     if (Units > HexagonGetLastSlot())
       break;
     // fyi: getUnits() will return 0x1, 0x2, 0x4 or 0x8
@@ -564,8 +564,8 @@ bool HexagonMCInstrInfo::isConstExtended(MCInstrInfo const &MCII,
   int64_t Value;
   if (!MO.getExpr()->evaluateAsAbsolute(Value))
     return true;
-  int MinValue = HexagonMCInstrInfo::getMinValue(MCII, MCI);
-  int MaxValue = HexagonMCInstrInfo::getMaxValue(MCII, MCI);
+  int const MinValue = HexagonMCInstrInfo::getMinValue(MCII, MCI);
+  int const MaxValue = HexagonMCInstrInfo::getMaxValue(MCII, MCI);
   return (MinValue > Value || Value > MaxValue);
 }
 
@@ -638,7 +638,7 @@ bool HexagonMCInstrInfo::isImmext(MCInst const &MCI) {
 
 bool HexagonMCInstrInfo::isInnerLoop(MCInst const &MCI) {
   assert(isBundle(MCI));
-  int64_t Flags = MCI.getOperand(0).getImm();
+  int64_t const Flags = MCI.getOperand(0).getImm();
   return (Flags & innerLoopMask) != 0;
 }
 
@@ -672,7 +672,7 @@ bool HexagonMCInstrInfo::isOpExtendable(MCInstrInfo const &MCII,
 
 bool HexagonMCInstrInfo::isOuterLoop(MCInst const &MCI) {
   assert(isBundle(MCI));
-  int64_t Flags = MCI.getOperand(0).getImm();
+  int64_t const Flags = MCI.getOperand(0).getImm();
   return (Flags & outerLoopMask) != 0;
 }
 

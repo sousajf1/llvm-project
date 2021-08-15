@@ -41,7 +41,7 @@ void ScalarTraits<char_16>::output(const char_16 &Val, void *,
 }
 
 StringRef ScalarTraits<char_16>::input(StringRef Scalar, void *, char_16 &Val) {
-  size_t CopySize = 16 >= Scalar.size() ? 16 : Scalar.size();
+  size_t const CopySize = 16 >= Scalar.size() ? 16 : Scalar.size();
   memcpy((void *)Val, Scalar.data(), CopySize);
 
   if (Scalar.size() < 16) {

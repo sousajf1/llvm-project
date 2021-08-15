@@ -106,7 +106,7 @@ char &llvm::GCNNSAReassignID = GCNNSAReassign::ID;
 bool
 GCNNSAReassign::tryAssignRegisters(SmallVectorImpl<LiveInterval *> &Intervals,
                                    unsigned StartReg) const {
-  unsigned NumRegs = Intervals.size();
+  unsigned const NumRegs = Intervals.size();
 
   for (unsigned N = 0; N < NumRegs; ++N)
     if (VRM->hasPhys(Intervals[N]->reg()))
@@ -124,7 +124,7 @@ GCNNSAReassign::tryAssignRegisters(SmallVectorImpl<LiveInterval *> &Intervals,
 
 bool GCNNSAReassign::canAssign(unsigned StartReg, unsigned NumRegs) const {
   for (unsigned N = 0; N < NumRegs; ++N) {
-    unsigned Reg = StartReg + N;
+    unsigned const Reg = StartReg + N;
     if (!MRI->isAllocatable(Reg))
       return false;
 
@@ -139,11 +139,11 @@ bool GCNNSAReassign::canAssign(unsigned StartReg, unsigned NumRegs) const {
 
 bool
 GCNNSAReassign::scavengeRegs(SmallVectorImpl<LiveInterval *> &Intervals) const {
-  unsigned NumRegs = Intervals.size();
+  unsigned const NumRegs = Intervals.size();
 
   if (NumRegs > MaxNumVGPRs)
     return false;
-  unsigned MaxReg = MaxNumVGPRs - NumRegs + AMDGPU::VGPR0;
+  unsigned const MaxReg = MaxNumVGPRs - NumRegs + AMDGPU::VGPR0;
 
   for (unsigned Reg = AMDGPU::VGPR0; Reg <= MaxReg; ++Reg) {
     if (!canAssign(Reg, NumRegs))
@@ -162,18 +162,18 @@ GCNNSAReassign::CheckNSA(const MachineInstr &MI, bool Fast) const {
   if (!Info || Info->MIMGEncoding != AMDGPU::MIMGEncGfx10NSA)
     return NSA_Status::NOT_NSA;
 
-  int VAddr0Idx =
+  int const VAddr0Idx =
     AMDGPU::getNamedOperandIdx(MI.getOpcode(), AMDGPU::OpName::vaddr0);
 
   unsigned VgprBase = 0;
   bool NSA = false;
   for (unsigned I = 0; I < Info->VAddrDwords; ++I) {
     const MachineOperand &Op = MI.getOperand(VAddr0Idx + I);
-    Register Reg = Op.getReg();
+    Register const Reg = Op.getReg();
     if (Reg.isPhysical() || !VRM->isAssignedReg(Reg))
       return NSA_Status::FIXED;
 
-    Register PhysReg = VRM->getPhys(Reg);
+    Register const PhysReg = VRM->getPhys(Reg);
 
     if (!Fast) {
       if (!PhysReg)
@@ -272,7 +272,7 @@ bool GCNNSAReassign::runOnMachineFunction(MachineFunction &MF) {
     }
 
     const AMDGPU::MIMGInfo *Info = AMDGPU::getMIMGInfo(MI->getOpcode());
-    int VAddr0Idx =
+    int const VAddr0Idx =
       AMDGPU::getNamedOperandIdx(MI->getOpcode(), AMDGPU::OpName::vaddr0);
 
     SmallVector<LiveInterval *, 16> Intervals;
@@ -280,7 +280,7 @@ bool GCNNSAReassign::runOnMachineFunction(MachineFunction &MF) {
     SlotIndex MinInd, MaxInd;
     for (unsigned I = 0; I < Info->VAddrDwords; ++I) {
       const MachineOperand &Op = MI->getOperand(VAddr0Idx + I);
-      Register Reg = Op.getReg();
+      Register const Reg = Op.getReg();
       LiveInterval *LI = &LIS->getInterval(Reg);
       if (llvm::is_contained(Intervals, LI)) {
         // Same register used, unable to make sequential

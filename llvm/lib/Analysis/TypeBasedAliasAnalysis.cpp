@@ -242,7 +242,7 @@ public:
   /// which are not modified (by any means) in the context where this
   /// AliasAnalysis is relevant.
   bool isTypeImmutable() const {
-    unsigned OpNo = isNewFormat() ? 4 : 3;
+    unsigned const OpNo = isNewFormat() ? 4 : 3;
     if (Node->getNumOperands() < OpNo + 1)
       return false;
     ConstantInt *CI = mdconst::dyn_extract<ConstantInt>(Node->getOperand(OpNo));
@@ -287,15 +287,15 @@ public:
   }
 
   unsigned getNumFields() const {
-    unsigned FirstFieldOpNo = isNewFormat() ? 3 : 1;
-    unsigned NumOpsPerField = isNewFormat() ? 3 : 2;
+    unsigned const FirstFieldOpNo = isNewFormat() ? 3 : 1;
+    unsigned const NumOpsPerField = isNewFormat() ? 3 : 2;
     return (getNode()->getNumOperands() - FirstFieldOpNo) / NumOpsPerField;
   }
 
   TBAAStructTypeNode getFieldType(unsigned FieldIndex) const {
-    unsigned FirstFieldOpNo = isNewFormat() ? 3 : 1;
-    unsigned NumOpsPerField = isNewFormat() ? 3 : 2;
-    unsigned OpIndex = FirstFieldOpNo + FieldIndex * NumOpsPerField;
+    unsigned const FirstFieldOpNo = isNewFormat() ? 3 : 1;
+    unsigned const NumOpsPerField = isNewFormat() ? 3 : 2;
+    unsigned const OpIndex = FirstFieldOpNo + FieldIndex * NumOpsPerField;
     auto *TypeNode = cast<MDNode>(getNode()->getOperand(OpIndex));
     return TBAAStructTypeNode(TypeNode);
   }
@@ -303,7 +303,7 @@ public:
   /// Get this TBAAStructTypeNode's field in the type DAG with
   /// given offset. Update the offset to be relative to the field type.
   TBAAStructTypeNode getField(uint64_t &Offset) const {
-    bool NewFormat = isNewFormat();
+    bool const NewFormat = isNewFormat();
     if (NewFormat) {
       // New-format root and scalar type nodes have no fields.
       if (Node->getNumOperands() < 6)
@@ -316,7 +316,7 @@ public:
       // Fast path for a scalar type node and a struct type node with a single
       // field.
       if (Node->getNumOperands() <= 3) {
-        uint64_t Cur = Node->getNumOperands() == 2
+        uint64_t const Cur = Node->getNumOperands() == 2
                            ? 0
                            : mdconst::extract<ConstantInt>(Node->getOperand(2))
                                  ->getZExtValue();
@@ -330,12 +330,12 @@ public:
 
     // Assume the offsets are in order. We return the previous field if
     // the current offset is bigger than the given offset.
-    unsigned FirstFieldOpNo = NewFormat ? 3 : 1;
-    unsigned NumOpsPerField = NewFormat ? 3 : 2;
+    unsigned const FirstFieldOpNo = NewFormat ? 3 : 1;
+    unsigned const NumOpsPerField = NewFormat ? 3 : 2;
     unsigned TheIdx = 0;
     for (unsigned Idx = FirstFieldOpNo; Idx < Node->getNumOperands();
          Idx += NumOpsPerField) {
-      uint64_t Cur = mdconst::extract<ConstantInt>(Node->getOperand(Idx + 1))
+      uint64_t const Cur = mdconst::extract<ConstantInt>(Node->getOperand(Idx + 1))
                          ->getZExtValue();
       if (Cur > Offset) {
         assert(Idx >= FirstFieldOpNo + NumOpsPerField &&
@@ -347,7 +347,7 @@ public:
     // Move along the last field.
     if (TheIdx == 0)
       TheIdx = Node->getNumOperands() - NumOpsPerField;
-    uint64_t Cur = mdconst::extract<ConstantInt>(Node->getOperand(TheIdx + 1))
+    uint64_t const Cur = mdconst::extract<ConstantInt>(Node->getOperand(TheIdx + 1))
                        ->getZExtValue();
     Offset -= Cur;
     MDNode *P = dyn_cast_or_null<MDNode>(Node->getOperand(TheIdx));
@@ -463,8 +463,8 @@ bool MDNode::isTBAAVtableAccess() const {
   }
 
   // For struct-path aware TBAA, we use the access type of the tag.
-  TBAAStructTagNode Tag(this);
-  TBAAStructTypeNode AccessType(Tag.getAccessType());
+  TBAAStructTagNode const Tag(this);
+  TBAAStructTypeNode const AccessType(Tag.getAccessType());
   if(auto *Id = dyn_cast<MDString>(AccessType.getId()))
     if (Id->getString() == "vtable pointer")
       return true;
@@ -550,16 +550,16 @@ static const MDNode *createAccessTag(const MDNode *AccessType) {
   if (TBAAStructTypeNode(AccessType).isNewFormat()) {
     // TODO: Take access ranges into account when matching access tags and
     // fix this code to generate actual access sizes for generic tags.
-    uint64_t AccessSize = UINT64_MAX;
+    uint64_t const AccessSize = UINT64_MAX;
     auto *SizeNode =
         ConstantAsMetadata::get(ConstantInt::get(Int64, AccessSize));
-    Metadata *Ops[] = {const_cast<MDNode*>(AccessType),
+    Metadata *const Ops[] = {const_cast<MDNode*>(AccessType),
                        const_cast<MDNode*>(AccessType),
                        OffsetNode, SizeNode};
     return MDNode::get(AccessType->getContext(), Ops);
   }
 
-  Metadata *Ops[] = {const_cast<MDNode*>(AccessType),
+  Metadata *const Ops[] = {const_cast<MDNode*>(AccessType),
                      const_cast<MDNode*>(AccessType),
                      OffsetNode};
   return MDNode::get(AccessType->getContext(), Ops);
@@ -568,7 +568,7 @@ static const MDNode *createAccessTag(const MDNode *AccessType) {
 static bool hasField(TBAAStructTypeNode BaseType,
                      TBAAStructTypeNode FieldType) {
   for (unsigned I = 0, E = BaseType.getNumFields(); I != E; ++I) {
-    TBAAStructTypeNode T = BaseType.getFieldType(I);
+    TBAAStructTypeNode const T = BaseType.getFieldType(I);
     if (T == FieldType || hasField(T, FieldType))
       return true;
   }
@@ -602,7 +602,7 @@ static bool mayBeAccessToSubobjectOf(TBAAStructTagNode BaseTag,
   // from the base type, follow the edge with the correct offset in the type DAG
   // and adjust the offset until we reach the field type or until we reach the
   // access type.
-  bool NewFormat = BaseTag.isNewFormat();
+  bool const NewFormat = BaseTag.isNewFormat();
   TBAAStructTypeNode BaseType(BaseTag.getBaseType());
   uint64_t OffsetInBase = BaseTag.getOffset();
 
@@ -615,7 +615,7 @@ static bool mayBeAccessToSubobjectOf(TBAAStructTagNode BaseTag,
     }
 
     if (BaseType.getNode() == SubobjectTag.getBaseType()) {
-      bool SameMemberAccess = OffsetInBase == SubobjectTag.getOffset();
+      bool const SameMemberAccess = OffsetInBase == SubobjectTag.getOffset();
       if (GenericTag) {
         *GenericTag = SameMemberAccess ? SubobjectTag.getNode() :
                                          createAccessTag(CommonType);
@@ -638,7 +638,7 @@ static bool mayBeAccessToSubobjectOf(TBAAStructTagNode BaseTag,
   // we support aggregates as access types.
   if (NewFormat) {
     // TBAAStructTypeNode BaseAccessType(BaseTag.getAccessType());
-    TBAAStructTypeNode FieldType(SubobjectTag.getBaseType());
+    TBAAStructTypeNode const FieldType(SubobjectTag.getBaseType());
     if (hasField(BaseType, FieldType)) {
       if (GenericTag)
         *GenericTag = createAccessTag(CommonType);

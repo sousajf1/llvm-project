@@ -351,7 +351,7 @@ bool Lowerer::processCoroId(CoroIdInst *CoroId, AAResults &AA,
 
   replaceWithConstant(ResumeAddrConstant, ResumeAddr);
 
-  bool ShouldElide = shouldElide(CoroId->getFunction(), DT);
+  bool const ShouldElide = shouldElide(CoroId->getFunction(), DT);
 
   auto *DestroyAddrConstant = ConstantExpr::getExtractValue(
       Resumers,
@@ -389,7 +389,7 @@ static bool replaceDevirtTrigger(Function &F) {
   if (DevirtAddr.empty())
     return false;
 
-  Module &M = *F.getParent();
+  Module  const&M = *F.getParent();
   Function *DevirtFn = M.getFunction(CORO_DEVIRT_TRIGGER_FN);
   assert(DevirtFn && "coro.devirt.fn not found");
   replaceWithConstant(DevirtFn, DevirtAddr);

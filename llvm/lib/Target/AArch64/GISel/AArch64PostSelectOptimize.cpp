@@ -137,11 +137,11 @@ bool AArch64PostSelectOptimize::optimizeNZCVDefs(MachineBasicBlock &MBB) {
     }
 
     // Did this instruction define NZCV?
-    bool NZCVDeadAtCurrInstr = LRU.available(AArch64::NZCV);
+    bool const NZCVDeadAtCurrInstr = LRU.available(AArch64::NZCV);
     if (NZCVDead && NZCVDeadAtCurrInstr && II.definesRegister(AArch64::NZCV)) {
       // If we have a def and NZCV is dead, then we may convert this op.
-      unsigned NewOpc = getNonFlagSettingVariant(II.getOpcode());
-      int DeadNZCVIdx = II.findRegisterDefOperandIdx(AArch64::NZCV);
+      unsigned const NewOpc = getNonFlagSettingVariant(II.getOpcode());
+      int const DeadNZCVIdx = II.findRegisterDefOperandIdx(AArch64::NZCV);
       if (DeadNZCVIdx != -1) {
         // If we're inside an fcmp range, then convert flag setting ops.
         if (InsideCmpRange && NewOpc) {

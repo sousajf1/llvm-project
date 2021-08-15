@@ -75,7 +75,7 @@ static void registerJITLoaderGDBImpl(JITTargetAddress Addr, uint64_t Size) {
   E->symfile_size = Size;
   E->prev_entry = nullptr;
 
-  std::lock_guard<std::mutex> Lock(*JITDebugLock);
+  std::lock_guard<std::mutex> const Lock(*JITDebugLock);
 
   // Insert this entry at the head of the list.
   jit_code_entry *NextEntry = __jit_debug_descriptor.first_entry;

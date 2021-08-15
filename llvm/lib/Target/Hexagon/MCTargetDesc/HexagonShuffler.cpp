@@ -70,7 +70,7 @@ public:
   // Allocate slots.
   bool bid(unsigned B) {
     // Exclude already auctioned slots from the bid.
-    unsigned b = B & ~isSold;
+    unsigned const b = B & ~isSold;
     if (b) {
       for (unsigned i = 0; i < HEXAGON_PACKET_SIZE; ++i)
         if (b & (1 << i)) {
@@ -90,8 +90,8 @@ public:
 unsigned HexagonResource::setWeight(unsigned s) {
   const unsigned SlotWeight = 8;
   const unsigned MaskWeight = SlotWeight - 1;
-  unsigned Units = getUnits();
-  unsigned Key = ((1u << s) & Units) != 0;
+  unsigned const Units = getUnits();
+  unsigned const Key = ((1u << s) & Units) != 0;
 
   // Calculate relative weight of the insn for the given slot, weighing it the
   // heavier the more restrictive the insn is and the lowest the slots that the
@@ -99,8 +99,8 @@ unsigned HexagonResource::setWeight(unsigned s) {
   if (Key == 0 || Units == 0 || (SlotWeight * s >= 32))
     return Weight = 0;
 
-  unsigned Ctpop = countPopulation(Units);
-  unsigned Cttz = countTrailingZeros(Units);
+  unsigned const Ctpop = countPopulation(Units);
+  unsigned const Cttz = countTrailingZeros(Units);
   Weight = (1u << (SlotWeight * s)) * ((MaskWeight - Ctpop) << Cttz);
   return Weight;
 }
@@ -153,7 +153,7 @@ static bool checkHVXPipes(const HVXInstsT &hvxInsts, unsigned startIdx,
     for (unsigned b = 0x1; b <= 0x8; b <<= 1) {
       if ((hvxInsts[startIdx].Units & b) == 0)
         continue;
-      unsigned allBits = makeAllBits(b, hvxInsts[startIdx].Lanes);
+      unsigned const allBits = makeAllBits(b, hvxInsts[startIdx].Lanes);
       if ((allBits & usedUnits) == 0) {
         if (checkHVXPipes(hvxInsts, startIdx + 1, usedUnits | allBits))
           return true;
@@ -179,7 +179,7 @@ void HexagonShuffler::reset() {
 
 void HexagonShuffler::append(MCInst const &ID, MCInst const *Extender,
                              unsigned S) {
-  HexagonInstr PI(MCII, STI, &ID, Extender, S);
+  HexagonInstr const PI(MCII, STI, &ID, Extender, S);
 
   Packet.push_back(PI);
 }
@@ -228,7 +228,7 @@ void HexagonShuffler::restrictNoSlot1Store(
   for (HexagonInstr &ISJ : insts()) {
     MCInst const &Inst = ISJ.getDesc();
     if (HexagonMCInstrInfo::getDesc(MCII, Inst).mayStore()) {
-      unsigned Units = ISJ.Core.getUnits();
+      unsigned const Units = ISJ.Core.getUnits();
       if (Units & Slot1Mask) {
         AppliedRestriction = true;
         AppliedRestrictions.push_back(std::make_pair(
@@ -280,7 +280,7 @@ void HexagonShuffler::restrictBranchOrder(HexagonPacketSummary const &Summary) {
   const static std::pair<unsigned, unsigned> jumpSlots[] = {
       {8, 4}, {8, 2}, {8, 1}, {4, 2}, {4, 1}, {2, 1}};
   // try all possible choices
-  for (std::pair<unsigned, unsigned> jumpSlot : jumpSlots) {
+  for (std::pair<unsigned, unsigned> const jumpSlot : jumpSlots) {
     // validate first jump with this slot rule
     if (!(jumpSlot.first & Summary.branchInsts[0]->Core.getUnits()))
       continue;

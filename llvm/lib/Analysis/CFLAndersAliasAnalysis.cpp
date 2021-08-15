@@ -780,7 +780,7 @@ static AliasAttrMap buildAttrMap(const CFLGraph &Graph,
 
 CFLAndersAAResult::FunctionInfo
 CFLAndersAAResult::buildInfoFrom(const Function &Fn) {
-  CFLGraphBuilder<CFLAndersAAResult> GraphBuilder(
+  CFLGraphBuilder<CFLAndersAAResult> const GraphBuilder(
       *this, GetTLI(const_cast<Function &>(Fn)),
       // Cast away the constness here due to GraphBuilder's API requirement
       const_cast<Function &>(Fn));

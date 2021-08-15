@@ -81,7 +81,7 @@ std::unique_ptr<MappedBlockStream>
 MappedBlockStream::createFpmStream(const MSFLayout &Layout,
                                    BinaryStreamRef MsfData,
                                    BumpPtrAllocator &Allocator) {
-  MSFStreamLayout SL(getFpmStreamLayout(Layout));
+  MSFStreamLayout const SL(getFpmStreamLayout(Layout));
   return createStream(Layout.SB->BlockSize, SL, MsfData, Allocator);
 }
 
@@ -109,7 +109,7 @@ Error MappedBlockStream::readBytes(uint32_t Offset, uint32_t Size,
   // common scenario).  Try to see if there is a buffer that starts at some
   // other offset but overlaps the desired range.
   for (auto &CacheItem : CacheMap) {
-    Interval RequestExtent = std::make_pair(Offset, Offset + Size);
+    Interval const RequestExtent = std::make_pair(Offset, Offset + Size);
 
     // We already checked this one on the fast path above.
     if (CacheItem.first == Offset)
@@ -127,18 +127,18 @@ Error MappedBlockStream::readBytes(uint32_t Offset, uint32_t Size,
     auto CachedAlloc = CacheItem.second.back();
     // If the initial extent of the request is beyond the ending extent of
     // the cached item, there is no overlap.
-    Interval CachedExtent =
+    Interval const CachedExtent =
         std::make_pair(CacheItem.first, CacheItem.first + CachedAlloc.size());
     if (RequestExtent.first >= CachedExtent.first + CachedExtent.second)
       continue;
 
-    Interval Intersection = intersect(CachedExtent, RequestExtent);
+    Interval const Intersection = intersect(CachedExtent, RequestExtent);
     // Only use this if the entire request extent is contained in the cached
     // extent.
     if (Intersection != RequestExtent)
       continue;
 
-    uint32_t CacheRangeOffset =
+    uint32_t const CacheRangeOffset =
         AbsoluteDifference(CachedExtent.first, Intersection.first);
     Buffer = CachedAlloc.slice(CacheRangeOffset, Size);
     return Error::success();
@@ -169,7 +169,7 @@ Error MappedBlockStream::readLongestContiguousChunk(uint32_t Offset,
   if (auto EC = checkOffsetForRead(Offset, 1))
     return EC;
 
-  uint32_t First = Offset / BlockSize;
+  uint32_t const First = Offset / BlockSize;
   uint32_t Last = First;
 
   while (Last < getNumBlocks() - 1) {
@@ -178,13 +178,13 @@ Error MappedBlockStream::readLongestContiguousChunk(uint32_t Offset,
     ++Last;
   }
 
-  uint32_t OffsetInFirstBlock = Offset % BlockSize;
-  uint32_t BytesFromFirstBlock = BlockSize - OffsetInFirstBlock;
-  uint32_t BlockSpan = Last - First + 1;
-  uint32_t ByteSpan = BytesFromFirstBlock + (BlockSpan - 1) * BlockSize;
+  uint32_t const OffsetInFirstBlock = Offset % BlockSize;
+  uint32_t const BytesFromFirstBlock = BlockSize - OffsetInFirstBlock;
+  uint32_t const BlockSpan = Last - First + 1;
+  uint32_t const ByteSpan = BytesFromFirstBlock + (BlockSpan - 1) * BlockSize;
 
   ArrayRef<uint8_t> BlockData;
-  uint32_t MsfOffset = blockToOffset(StreamLayout.Blocks[First], BlockSize);
+  uint32_t const MsfOffset = blockToOffset(StreamLayout.Blocks[First], BlockSize);
   if (auto EC = MsfData.readBytes(MsfOffset, BlockSize, BlockData))
     return EC;
 
@@ -206,13 +206,13 @@ bool MappedBlockStream::tryReadContiguously(uint32_t Offset, uint32_t Size,
   // all subsequent blocks are contiguous.  For example, a 10k read with a 4k
   // block size can be filled with a reference if, from the starting offset,
   // 3 blocks in a row are contiguous.
-  uint32_t BlockNum = Offset / BlockSize;
-  uint32_t OffsetInBlock = Offset % BlockSize;
-  uint32_t BytesFromFirstBlock = std::min(Size, BlockSize - OffsetInBlock);
-  uint32_t NumAdditionalBlocks =
+  uint32_t const BlockNum = Offset / BlockSize;
+  uint32_t const OffsetInBlock = Offset % BlockSize;
+  uint32_t const BytesFromFirstBlock = std::min(Size, BlockSize - OffsetInBlock);
+  uint32_t const NumAdditionalBlocks =
       alignTo(Size - BytesFromFirstBlock, BlockSize) / BlockSize;
 
-  uint32_t RequiredContiguousBlocks = NumAdditionalBlocks + 1;
+  uint32_t const RequiredContiguousBlocks = NumAdditionalBlocks + 1;
   uint32_t E = StreamLayout.Blocks[BlockNum];
   for (uint32_t I = 0; I < RequiredContiguousBlocks; ++I, ++E) {
     if (StreamLayout.Blocks[I + BlockNum] != E)
@@ -225,8 +225,8 @@ bool MappedBlockStream::tryReadContiguously(uint32_t Offset, uint32_t Size,
   // cross-block span, explicitly resize the ArrayRef to cover the entire
   // request length.
   ArrayRef<uint8_t> BlockData;
-  uint32_t FirstBlockAddr = StreamLayout.Blocks[BlockNum];
-  uint32_t MsfOffset = blockToOffset(FirstBlockAddr, BlockSize);
+  uint32_t const FirstBlockAddr = StreamLayout.Blocks[BlockNum];
+  uint32_t const MsfOffset = blockToOffset(FirstBlockAddr, BlockSize);
   if (auto EC = MsfData.readBytes(MsfOffset, BlockSize, BlockData)) {
     consumeError(std::move(EC));
     return false;
@@ -249,15 +249,15 @@ Error MappedBlockStream::readBytes(uint32_t Offset,
   uint32_t BytesWritten = 0;
   uint8_t *WriteBuffer = Buffer.data();
   while (BytesLeft > 0) {
-    uint32_t StreamBlockAddr = StreamLayout.Blocks[BlockNum];
+    uint32_t const StreamBlockAddr = StreamLayout.Blocks[BlockNum];
 
     ArrayRef<uint8_t> BlockData;
-    uint32_t Offset = blockToOffset(StreamBlockAddr, BlockSize);
+    uint32_t const Offset = blockToOffset(StreamBlockAddr, BlockSize);
     if (auto EC = MsfData.readBytes(Offset, BlockSize, BlockData))
       return EC;
 
     const uint8_t *ChunkStart = BlockData.data() + OffsetInBlock;
-    uint32_t BytesInChunk = std::min(BytesLeft, BlockSize - OffsetInBlock);
+    uint32_t const BytesInChunk = std::min(BytesLeft, BlockSize - OffsetInBlock);
     ::memcpy(WriteBuffer + BytesWritten, ChunkStart, BytesInChunk);
 
     BytesWritten += BytesInChunk;
@@ -289,18 +289,18 @@ void MappedBlockStream::fixCacheAfterWrite(uint32_t Offset,
         continue;
 
       // If we get here, they are guaranteed to overlap.
-      Interval WriteInterval = std::make_pair(Offset, Offset + Data.size());
-      Interval CachedInterval =
+      Interval const WriteInterval = std::make_pair(Offset, Offset + Data.size());
+      Interval const CachedInterval =
           std::make_pair(MapEntry.first, MapEntry.first + Alloc.size());
       // If they overlap, we need to write the new data into the overlapping
       // range.
       auto Intersection = intersect(WriteInterval, CachedInterval);
       assert(Intersection.first <= Intersection.second);
 
-      uint32_t Length = Intersection.second - Intersection.first;
-      uint32_t SrcOffset =
+      uint32_t const Length = Intersection.second - Intersection.first;
+      uint32_t const SrcOffset =
           AbsoluteDifference(WriteInterval.first, Intersection.first);
-      uint32_t DestOffset =
+      uint32_t const DestOffset =
           AbsoluteDifference(CachedInterval.first, Intersection.first);
       ::memcpy(Alloc.data() + DestOffset, Data.data() + SrcOffset, Length);
     }
@@ -356,14 +356,14 @@ WritableMappedBlockStream::createFpmStream(const MSFLayout &Layout,
   // bytes and all blocks, and initialize everything to 0xFF (all blocks in the
   // file are unused).  Then we create the minimal layout (which contains only a
   // subset of the bytes previously initialized), and return that to the user.
-  MSFStreamLayout MinLayout(getFpmStreamLayout(Layout, false, AltFpm));
+  MSFStreamLayout const MinLayout(getFpmStreamLayout(Layout, false, AltFpm));
 
-  MSFStreamLayout FullLayout(getFpmStreamLayout(Layout, true, AltFpm));
+  MSFStreamLayout const FullLayout(getFpmStreamLayout(Layout, true, AltFpm));
   auto Result =
       createStream(Layout.SB->BlockSize, FullLayout, MsfData, Allocator);
   if (!Result)
     return Result;
-  std::vector<uint8_t> InitData(Layout.SB->BlockSize, 0xFF);
+  std::vector<uint8_t> const InitData(Layout.SB->BlockSize, 0xFF);
   BinaryStreamWriter Initializer(*Result);
   while (Initializer.bytesRemaining() > 0)
     cantFail(Initializer.writeBytes(InitData));
@@ -396,12 +396,12 @@ Error WritableMappedBlockStream::writeBytes(uint32_t Offset,
   uint32_t BytesLeft = Buffer.size();
   uint32_t BytesWritten = 0;
   while (BytesLeft > 0) {
-    uint32_t StreamBlockAddr = getStreamLayout().Blocks[BlockNum];
-    uint32_t BytesToWriteInChunk =
+    uint32_t const StreamBlockAddr = getStreamLayout().Blocks[BlockNum];
+    uint32_t const BytesToWriteInChunk =
         std::min(BytesLeft, getBlockSize() - OffsetInBlock);
 
     const uint8_t *Chunk = Buffer.data() + BytesWritten;
-    ArrayRef<uint8_t> ChunkData(Chunk, BytesToWriteInChunk);
+    ArrayRef<uint8_t> const ChunkData(Chunk, BytesToWriteInChunk);
     uint32_t MsfOffset = blockToOffset(StreamBlockAddr, getBlockSize());
     MsfOffset += OffsetInBlock;
     if (auto EC = WriteInterface.writeBytes(MsfOffset, ChunkData))

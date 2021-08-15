@@ -32,7 +32,7 @@ void EntryStage::getNextInstruction() {
   assert(!CurrentInstruction && "There is already an instruction to process!");
   if (!SM.hasNext())
     return;
-  SourceRef SR = SM.peekNext();
+  SourceRef const SR = SM.peekNext();
   std::unique_ptr<Instruction> Inst = std::make_unique<Instruction>(SR.second);
   CurrentInstruction = InstRef(SR.first, Inst.get());
   Instructions.emplace_back(std::move(Inst));

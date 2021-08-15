@@ -1060,7 +1060,7 @@ TargetTransformInfo::getInstructionLatency(const Instruction *I) const {
 
 InstructionCost
 TargetTransformInfo::getInstructionThroughput(const Instruction *I) const {
-  TTI::TargetCostKind CostKind = TTI::TCK_RecipThroughput;
+  TTI::TargetCostKind const CostKind = TTI::TCK_RecipThroughput;
 
   switch (I->getOpcode()) {
   case Instruction::GetElementPtr:

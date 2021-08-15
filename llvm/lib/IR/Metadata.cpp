@@ -198,7 +198,7 @@ bool MetadataTracking::isReplaceable(const Metadata &MD) {
 SmallVector<Metadata *> ReplaceableMetadataImpl::getAllArgListUsers() {
   SmallVector<std::pair<OwnerTy, uint64_t> *> MDUsersWithID;
   for (auto Pair : UseMap) {
-    OwnerTy Owner = Pair.second.first;
+    OwnerTy const Owner = Pair.second.first;
     if (!Owner.is<Metadata *>())
       continue;
     Metadata *OwnerMD = Owner.get<Metadata *>();
@@ -215,7 +215,7 @@ SmallVector<Metadata *> ReplaceableMetadataImpl::getAllArgListUsers() {
 }
 
 void ReplaceableMetadataImpl::addRef(void *Ref, OwnerTy Owner) {
-  bool WasInserted =
+  bool const WasInserted =
       UseMap.insert(std::make_pair(Ref, std::make_pair(Owner, NextIndex)))
           .second;
   (void)WasInserted;
@@ -226,7 +226,7 @@ void ReplaceableMetadataImpl::addRef(void *Ref, OwnerTy Owner) {
 }
 
 void ReplaceableMetadataImpl::dropRef(void *Ref) {
-  bool WasErased = UseMap.erase(Ref);
+  bool const WasErased = UseMap.erase(Ref);
   (void)WasErased;
   assert(WasErased && "Expected to drop a reference");
 }
@@ -237,7 +237,7 @@ void ReplaceableMetadataImpl::moveRef(void *Ref, void *New,
   assert(I != UseMap.end() && "Expected to move a reference");
   auto OwnerAndIndex = I->second;
   UseMap.erase(I);
-  bool WasInserted = UseMap.insert(std::make_pair(New, OwnerAndIndex)).second;
+  bool const WasInserted = UseMap.insert(std::make_pair(New, OwnerAndIndex)).second;
   (void)WasInserted;
   assert(WasInserted && "Expected to add a reference");
 
@@ -265,7 +265,7 @@ void ReplaceableMetadataImpl::replaceAllUsesWith(Metadata *MD) {
     if (!UseMap.count(Pair.first))
       continue;
 
-    OwnerTy Owner = Pair.second.first;
+    OwnerTy const Owner = Pair.second.first;
     if (!Owner) {
       // Update unowned tracking references directly.
       Metadata *&Ref = *static_cast<Metadata **>(Pair.first);
@@ -414,7 +414,7 @@ void ValueAsMetadata::handleRAUW(Value *From, Value *To) {
   assert(From != To && "Expected changed value");
   assert(From->getType() == To->getType() && "Unexpected type change");
 
-  LLVMContext &Context = From->getType()->getContext();
+  LLVMContext  const&Context = From->getType()->getContext();
   auto &Store = Context.pImpl->ValuesAsMetadata;
   auto I = Store.find(From);
   if (I == Store.end()) {
@@ -715,7 +715,7 @@ void MDNode::dropAllReferences() {
 }
 
 void MDNode::handleChangedOperand(void *Ref, Metadata *New) {
-  unsigned Op = static_cast<MDOperand *>(Ref) - op_begin();
+  unsigned const Op = static_cast<MDOperand *>(Ref) - op_begin();
   assert(Op < getNumOperands() && "Expected valid operand");
 
   if (!isUniqued()) {
@@ -832,7 +832,7 @@ MDTuple *MDTuple::getImpl(LLVMContext &Context, ArrayRef<Metadata *> MDs,
                           StorageType Storage, bool ShouldCreate) {
   unsigned Hash = 0;
   if (Storage == Uniqued) {
-    MDTupleInfo::KeyTy Key(MDs);
+    MDTupleInfo::KeyTy const Key(MDs);
     if (auto *N = getUniqued(Context.pImpl->MDTuples, Key))
       return N;
     if (!ShouldCreate)
@@ -974,8 +974,8 @@ MDNode *MDNode::getMostGenericFPMath(MDNode *A, MDNode *B) {
   if (!A || !B)
     return nullptr;
 
-  APFloat AVal = mdconst::extract<ConstantFP>(A->getOperand(0))->getValueAPF();
-  APFloat BVal = mdconst::extract<ConstantFP>(B->getOperand(0))->getValueAPF();
+  APFloat const AVal = mdconst::extract<ConstantFP>(A->getOperand(0))->getValueAPF();
+  APFloat const BVal = mdconst::extract<ConstantFP>(B->getOperand(0))->getValueAPF();
   if (AVal < BVal)
     return A;
   return B;
@@ -991,13 +991,13 @@ static bool canBeMerged(const ConstantRange &A, const ConstantRange &B) {
 
 static bool tryMergeRange(SmallVectorImpl<ConstantInt *> &EndPoints,
                           ConstantInt *Low, ConstantInt *High) {
-  ConstantRange NewRange(Low->getValue(), High->getValue());
-  unsigned Size = EndPoints.size();
-  APInt LB = EndPoints[Size - 2]->getValue();
-  APInt LE = EndPoints[Size - 1]->getValue();
-  ConstantRange LastRange(LB, LE);
+  ConstantRange const NewRange(Low->getValue(), High->getValue());
+  unsigned const Size = EndPoints.size();
+  APInt const LB = EndPoints[Size - 2]->getValue();
+  APInt const LE = EndPoints[Size - 1]->getValue();
+  ConstantRange const LastRange(LB, LE);
   if (canBeMerged(NewRange, LastRange)) {
-    ConstantRange Union = LastRange.unionWith(NewRange);
+    ConstantRange const Union = LastRange.unionWith(NewRange);
     Type *Ty = High->getType();
     EndPoints[Size - 2] =
         cast<ConstantInt>(ConstantInt::get(Ty, Union.getLower()));
@@ -1034,8 +1034,8 @@ MDNode *MDNode::getMostGenericRange(MDNode *A, MDNode *B) {
   SmallVector<ConstantInt *, 4> EndPoints;
   int AI = 0;
   int BI = 0;
-  int AN = A->getNumOperands() / 2;
-  int BN = B->getNumOperands() / 2;
+  int const AN = A->getNumOperands() / 2;
+  int const BN = B->getNumOperands() / 2;
   while (AI < AN && BI < BN) {
     ConstantInt *ALow = mdconst::extract<ConstantInt>(A->getOperand(2 * AI));
     ConstantInt *BLow = mdconst::extract<ConstantInt>(B->getOperand(2 * BI));
@@ -1063,7 +1063,7 @@ MDNode *MDNode::getMostGenericRange(MDNode *A, MDNode *B) {
 
   // If we have more than 2 ranges (4 endpoints) we have to try to merge
   // the last and first ones.
-  unsigned Size = EndPoints.size();
+  unsigned const Size = EndPoints.size();
   if (Size > 4) {
     ConstantInt *FB = EndPoints[0];
     ConstantInt *FE = EndPoints[1];
@@ -1078,7 +1078,7 @@ MDNode *MDNode::getMostGenericRange(MDNode *A, MDNode *B) {
   // If in the end we have a single range, it is possible that it is now the
   // full range. Just drop the metadata in that case.
   if (EndPoints.size() == 2) {
-    ConstantRange Range(EndPoints[0]->getValue(), EndPoints[1]->getValue());
+    ConstantRange const Range(EndPoints[0]->getValue(), EndPoints[1]->getValue());
     if (Range.isFullSet())
       return nullptr;
   }
@@ -1282,7 +1282,7 @@ bool Value::eraseMetadata(unsigned KindID) {
     return false;
 
   auto &Store = getContext().pImpl->ValueMetadata[this];
-  bool Changed = Store.erase(KindID);
+  bool const Changed = Store.erase(KindID);
   if (Store.empty())
     clearMetadata();
   return Changed;
@@ -1516,7 +1516,7 @@ void GlobalObject::setVCallVisibilityMetadata(VCallVisibility Visibility) {
 
 GlobalObject::VCallVisibility GlobalObject::getVCallVisibility() const {
   if (MDNode *MD = getMetadata(LLVMContext::MD_vcall_visibility)) {
-    uint64_t Val = cast<ConstantInt>(
+    uint64_t const Val = cast<ConstantInt>(
                        cast<ConstantAsMetadata>(MD->getOperand(0))->getValue())
                        ->getZExtValue();
     assert(Val <= 2 && "unknown vcall visibility!");

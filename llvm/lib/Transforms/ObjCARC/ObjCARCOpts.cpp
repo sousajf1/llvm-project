@@ -304,7 +304,7 @@ namespace {
       if (TopDownPathCount == OverflowOccurredValue ||
           BottomUpPathCount == OverflowOccurredValue)
         return true;
-      unsigned long long Product =
+      unsigned long long const Product =
         (unsigned long long)TopDownPathCount*BottomUpPathCount;
       // Overflow occurred if any of the upper bits of Product are set or if all
       // the lower bits of Product are all set.
@@ -859,7 +859,7 @@ void ObjCARCOpt::OptimizeIndividualCalls(Function &F) {
         Changed = true;
       }
 
-    ARCInstKind Class = GetBasicARCInstKind(Inst);
+    ARCInstKind const Class = GetBasicARCInstKind(Inst);
 
     // Skip this loop if this instruction isn't itself an ARC intrinsic.
     const Value *Arg = nullptr;
@@ -1117,7 +1117,7 @@ void ObjCARCOpt::OptimizeIndividualCallImpl(
   SmallVector<std::pair<Instruction *, const Value *>, 4> Worklist;
   Worklist.push_back(std::make_pair(Inst, Arg));
   do {
-    std::pair<Instruction *, const Value *> Pair = Worklist.pop_back_val();
+    std::pair<Instruction *, const Value *> const Pair = Worklist.pop_back_val();
     Inst = Pair.first;
     Arg = Pair.second;
 
@@ -1368,7 +1368,7 @@ bool ObjCARCOpt::VisitInstructionBottomUp(
     Instruction *Inst, BasicBlock *BB, BlotMapVector<Value *, RRInfo> &Retains,
     BBState &MyStates) {
   bool NestingDetected = false;
-  ARCInstKind Class = GetARCInstKind(Inst);
+  ARCInstKind const Class = GetARCInstKind(Inst);
   const Value *Arg = nullptr;
 
   LLVM_DEBUG(dbgs() << "        Class: " << Class << "\n");
@@ -1535,7 +1535,7 @@ bool ObjCARCOpt::VisitInstructionTopDown(
     const DenseMap<const Instruction *, SmallPtrSet<const Value *, 2>>
         &ReleaseInsertPtToRCIdentityRoots) {
   bool NestingDetected = false;
-  ARCInstKind Class = GetARCInstKind(Inst);
+  ARCInstKind const Class = GetARCInstKind(Inst);
   const Value *Arg = nullptr;
 
   // Make sure a call to objc_retain isn't moved past insertion points of calls
@@ -1703,7 +1703,7 @@ ComputePostOrders(Function &F,
   do {
   dfs_next_succ:
     BasicBlock *CurrBB = SuccStack.back().first;
-    succ_iterator SE(CurrBB->getTerminator(), false);
+    succ_iterator const SE(CurrBB->getTerminator(), false);
 
     while (SuccStack.back().second != SE) {
       BasicBlock *SuccBB = *SuccStack.back().second++;
@@ -2010,7 +2010,7 @@ bool ObjCARCOpt::PairUpRetainsAndReleases(
   }
 
   // We can only remove pointers if we are known safe in both directions.
-  bool UnconditionallySafe = KnownSafeTD && KnownSafeBU;
+  bool const UnconditionallySafe = KnownSafeTD && KnownSafeBU;
   if (UnconditionallySafe) {
     RetainsToMove.ReverseInsertPts.clear();
     ReleasesToMove.ReverseInsertPts.clear();
@@ -2093,7 +2093,7 @@ bool ObjCARCOpt::PerformCodePlacement(
     // bottom-up-collected ReleasesToMove to form sets of related calls.
     RRInfo RetainsToMove, ReleasesToMove;
 
-    bool PerformMoveCalls = PairUpRetainsAndReleases(
+    bool const PerformMoveCalls = PairUpRetainsAndReleases(
         BBStates, Retains, Releases, M, Retain, DeadInsts,
         RetainsToMove, ReleasesToMove, Arg, KnownSafe,
         AnyPairsCompletelyEliminated);
@@ -2126,7 +2126,7 @@ void ObjCARCOpt::OptimizeWeakCalls(Function &F) {
 
     LLVM_DEBUG(dbgs() << "Visiting: " << *Inst << "\n");
 
-    ARCInstKind Class = GetBasicARCInstKind(Inst);
+    ARCInstKind const Class = GetBasicARCInstKind(Inst);
     if (Class != ARCInstKind::LoadWeak &&
         Class != ARCInstKind::LoadWeakRetained)
       continue;
@@ -2148,7 +2148,7 @@ void ObjCARCOpt::OptimizeWeakCalls(Function &F) {
                               J = Current.getInstructionIterator();
          J != B; --J) {
       Instruction *EarlierInst = &*std::prev(J);
-      ARCInstKind EarlierClass = GetARCInstKind(EarlierInst);
+      ARCInstKind const EarlierClass = GetARCInstKind(EarlierInst);
       switch (EarlierClass) {
       case ARCInstKind::LoadWeak:
       case ARCInstKind::LoadWeakRetained: {
@@ -2231,7 +2231,7 @@ void ObjCARCOpt::OptimizeWeakCalls(Function &F) {
   // the alloca and all its users can be zapped.
   for (inst_iterator I = inst_begin(&F), E = inst_end(&F); I != E; ) {
     Instruction *Inst = &*I++;
-    ARCInstKind Class = GetBasicARCInstKind(Inst);
+    ARCInstKind const Class = GetBasicARCInstKind(Inst);
     if (Class != ARCInstKind::DestroyWeak)
       continue;
 
@@ -2287,13 +2287,13 @@ bool ObjCARCOpt::OptimizeSequences(Function &F) {
   DenseMap<const BasicBlock *, BBState> BBStates;
 
   // Analyze the CFG of the function, and all instructions.
-  bool NestingDetected = Visit(F, BBStates, Retains, Releases);
+  bool const NestingDetected = Visit(F, BBStates, Retains, Releases);
 
   if (DisableRetainReleasePairing)
     return false;
 
   // Transform.
-  bool AnyPairsCompletelyEliminated = PerformCodePlacement(BBStates, Retains,
+  bool const AnyPairsCompletelyEliminated = PerformCodePlacement(BBStates, Retains,
                                                            Releases,
                                                            F.getParent());
 
@@ -2314,7 +2314,7 @@ static CallInst *HasSafePathToPredecessorCall(const Value *Arg,
     return nullptr;
 
   // Check that the call is a regular call.
-  ARCInstKind Class = GetBasicARCInstKind(Call);
+  ARCInstKind const Class = GetBasicARCInstKind(Call);
   return Class == ARCInstKind::CallOrUser || Class == ARCInstKind::Call
              ? Call
              : nullptr;
@@ -2346,13 +2346,13 @@ static CallInst *
 FindPredecessorAutoreleaseWithSafePath(const Value *Arg, BasicBlock *BB,
                                        ReturnInst *Ret,
                                        ProvenanceAnalysis &PA) {
-  SmallPtrSet<Instruction *, 4> DepInsts;
+  SmallPtrSet<Instruction *, 4> const DepInsts;
   auto *Autorelease = dyn_cast_or_null<CallInst>(
       findSingleDependency(NeedsPositiveRetainCount, Arg, BB, Ret, PA));
 
   if (!Autorelease)
     return nullptr;
-  ARCInstKind AutoreleaseClass = GetBasicARCInstKind(Autorelease);
+  ARCInstKind const AutoreleaseClass = GetBasicARCInstKind(Autorelease);
   if (!IsAutorelease(AutoreleaseClass))
     return nullptr;
   if (GetArgRCIdentityRoot(Autorelease) != Arg)
@@ -2469,7 +2469,7 @@ bool ObjCARCOpt::run(Function &F, AAResults &AA) {
                     << " >>>"
                        "\n");
 
-  std::pair<bool, bool> R = BundledInsts->insertAfterInvokes(F, nullptr);
+  std::pair<bool, bool> const R = BundledInsts->insertAfterInvokes(F, nullptr);
   Changed |= R.first;
   CFGChanged |= R.second;
 
@@ -2536,8 +2536,8 @@ PreservedAnalyses ObjCARCOptPass::run(Function &F,
   ObjCARCOpt OCAO;
   OCAO.init(*F.getParent());
 
-  bool Changed = OCAO.run(F, AM.getResult<AAManager>(F));
-  bool CFGChanged = OCAO.hasCFGChanged();
+  bool const Changed = OCAO.run(F, AM.getResult<AAManager>(F));
+  bool const CFGChanged = OCAO.hasCFGChanged();
   if (Changed) {
     PreservedAnalyses PA;
     if (!CFGChanged)

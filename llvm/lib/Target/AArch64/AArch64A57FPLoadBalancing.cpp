@@ -264,8 +264,8 @@ public:
 
   /// Return true if this chain (StartInst..KillInst) overlaps with Other.
   bool rangeOverlapsWith(const Chain &Other) const {
-    unsigned End = KillInst ? KillInstIdx : LastInstIdx;
-    unsigned OtherEnd = Other.KillInst ?
+    unsigned const End = KillInst ? KillInstIdx : LastInstIdx;
+    unsigned const OtherEnd = Other.KillInst ?
       Other.KillInstIdx : Other.LastInstIdx;
 
     return StartInstIdx <= OtherEnd && Other.StartInstIdx <= End;
@@ -414,7 +414,7 @@ Chain *AArch64A57FPLoadBalancing::getAndEraseNext(Color PreferredColor,
 
   // FIXME: Does this need to be configurable?
   const unsigned SizeFuzz = 1;
-  unsigned MinSize = L.front()->size() - SizeFuzz;
+  unsigned const MinSize = L.front()->size() - SizeFuzz;
   for (auto I = L.begin(), E = L.end(); I != E; ++I) {
     if ((*I)->size() <= MinSize) {
       // We've gone past the size limit. Return the previous item.
@@ -500,14 +500,14 @@ int AArch64A57FPLoadBalancing::scavengeRegister(Chain *G, Color C,
   LiveRegUnits Units(*TRI);
   Units.addLiveOuts(MBB);
   MachineBasicBlock::iterator I = MBB.end();
-  MachineBasicBlock::iterator ChainEnd = G->end();
+  MachineBasicBlock::iterator const ChainEnd = G->end();
   while (I != ChainEnd) {
     --I;
     Units.stepBackward(*I);
   }
 
   // Check which register units are alive throughout the chain.
-  MachineBasicBlock::iterator ChainBegin = G->begin();
+  MachineBasicBlock::iterator const ChainBegin = G->begin();
   assert(ChainBegin != ChainEnd && "Chain should contain instructions");
   do {
     --I;
@@ -515,7 +515,7 @@ int AArch64A57FPLoadBalancing::scavengeRegister(Chain *G, Color C,
   } while (I != ChainBegin);
 
   // Make sure we allocate in-order, to get the cheapest registers first.
-  unsigned RegClassID = ChainBegin->getDesc().OpInfo[0].RegClass;
+  unsigned const RegClassID = ChainBegin->getDesc().OpInfo[0].RegClass;
   auto Ord = RCI.getOrder(TRI->getRegClass(RegClassID));
   for (auto Reg : Ord) {
     if (!Units.available(Reg))
@@ -535,7 +535,7 @@ bool AArch64A57FPLoadBalancing::colorChain(Chain *G, Color C,
 
   // Try and obtain a free register of the right class. Without a register
   // to play with we cannot continue.
-  int Reg = scavengeRegister(G, C, MBB);
+  int const Reg = scavengeRegister(G, C, MBB);
   if (Reg == -1) {
     LLVM_DEBUG(dbgs() << "Scavenging (thus coloring) failed!\n");
     return false;
@@ -552,7 +552,7 @@ bool AArch64A57FPLoadBalancing::colorChain(Chain *G, Color C,
     std::vector<unsigned> ToErase;
     for (auto &U : I.operands()) {
       if (U.isReg() && U.isUse() && Substs.find(U.getReg()) != Substs.end()) {
-        Register OrigReg = U.getReg();
+        Register const OrigReg = U.getReg();
         U.setReg(Substs[OrigReg]);
         if (U.isKill())
           // Don't erase straight away, because there may be other operands
@@ -611,7 +611,7 @@ void AArch64A57FPLoadBalancing::scanInstruction(
 
     // Create a new chain. Multiplies don't require forwarding so can go on any
     // unit.
-    Register DestReg = MI->getOperand(0).getReg();
+    Register const DestReg = MI->getOperand(0).getReg();
 
     LLVM_DEBUG(dbgs() << "New chain started for register "
                       << printReg(DestReg, TRI) << " at " << *MI);
@@ -624,8 +624,8 @@ void AArch64A57FPLoadBalancing::scanInstruction(
 
     // It is beneficial to keep MLAs on the same functional unit as their
     // accumulator operand.
-    Register DestReg = MI->getOperand(0).getReg();
-    Register AccumReg = MI->getOperand(3).getReg();
+    Register const DestReg = MI->getOperand(0).getReg();
+    Register const AccumReg = MI->getOperand(3).getReg();
 
     maybeKillChain(MI->getOperand(1), Idx, ActiveChains);
     maybeKillChain(MI->getOperand(2), Idx, ActiveChains);

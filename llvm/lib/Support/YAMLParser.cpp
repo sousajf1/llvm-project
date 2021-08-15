@@ -207,7 +207,7 @@ static UTF8Decoded decodeUTF8(StringRef Range) {
   // Bit pattern: 110xxxxx 10xxxxxx
   if (Position + 1 < End && ((*Position & 0xE0) == 0xC0) &&
       ((*(Position + 1) & 0xC0) == 0x80)) {
-    uint32_t codepoint = ((*Position & 0x1F) << 6) |
+    uint32_t const codepoint = ((*Position & 0x1F) << 6) |
                           (*(Position + 1) & 0x3F);
     if (codepoint >= 0x80)
       return std::make_pair(codepoint, 2);
@@ -217,7 +217,7 @@ static UTF8Decoded decodeUTF8(StringRef Range) {
   if (Position + 2 < End && ((*Position & 0xF0) == 0xE0) &&
       ((*(Position + 1) & 0xC0) == 0x80) &&
       ((*(Position + 2) & 0xC0) == 0x80)) {
-    uint32_t codepoint = ((*Position & 0x0F) << 12) |
+    uint32_t const codepoint = ((*Position & 0x0F) << 12) |
                          ((*(Position + 1) & 0x3F) << 6) |
                           (*(Position + 2) & 0x3F);
     // Codepoints between 0xD800 and 0xDFFF are invalid, as
@@ -232,7 +232,7 @@ static UTF8Decoded decodeUTF8(StringRef Range) {
       ((*(Position + 1) & 0xC0) == 0x80) &&
       ((*(Position + 2) & 0xC0) == 0x80) &&
       ((*(Position + 3) & 0xC0) == 0x80)) {
-    uint32_t codepoint = ((*Position & 0x07) << 18) |
+    uint32_t const codepoint = ((*Position & 0x07) << 18) |
                          ((*(Position + 1) & 0x3F) << 12) |
                          ((*(Position + 2) & 0x3F) << 6) |
                           (*(Position + 3) & 0x3F);
@@ -560,22 +560,22 @@ static void encodeUTF8( uint32_t UnicodeScalarValue
   if (UnicodeScalarValue <= 0x7F) {
     Result.push_back(UnicodeScalarValue & 0x7F);
   } else if (UnicodeScalarValue <= 0x7FF) {
-    uint8_t FirstByte = 0xC0 | ((UnicodeScalarValue & 0x7C0) >> 6);
-    uint8_t SecondByte = 0x80 | (UnicodeScalarValue & 0x3F);
+    uint8_t const FirstByte = 0xC0 | ((UnicodeScalarValue & 0x7C0) >> 6);
+    uint8_t const SecondByte = 0x80 | (UnicodeScalarValue & 0x3F);
     Result.push_back(FirstByte);
     Result.push_back(SecondByte);
   } else if (UnicodeScalarValue <= 0xFFFF) {
-    uint8_t FirstByte = 0xE0 | ((UnicodeScalarValue & 0xF000) >> 12);
-    uint8_t SecondByte = 0x80 | ((UnicodeScalarValue & 0xFC0) >> 6);
-    uint8_t ThirdByte = 0x80 | (UnicodeScalarValue & 0x3F);
+    uint8_t const FirstByte = 0xE0 | ((UnicodeScalarValue & 0xF000) >> 12);
+    uint8_t const SecondByte = 0x80 | ((UnicodeScalarValue & 0xFC0) >> 6);
+    uint8_t const ThirdByte = 0x80 | (UnicodeScalarValue & 0x3F);
     Result.push_back(FirstByte);
     Result.push_back(SecondByte);
     Result.push_back(ThirdByte);
   } else if (UnicodeScalarValue <= 0x10FFFF) {
-    uint8_t FirstByte = 0xF0 | ((UnicodeScalarValue & 0x1F0000) >> 18);
-    uint8_t SecondByte = 0x80 | ((UnicodeScalarValue & 0x3F000) >> 12);
-    uint8_t ThirdByte = 0x80 | ((UnicodeScalarValue & 0xFC0) >> 6);
-    uint8_t FourthByte = 0x80 | (UnicodeScalarValue & 0x3F);
+    uint8_t const FirstByte = 0xF0 | ((UnicodeScalarValue & 0x1F0000) >> 18);
+    uint8_t const SecondByte = 0x80 | ((UnicodeScalarValue & 0x3F000) >> 12);
+    uint8_t const ThirdByte = 0x80 | ((UnicodeScalarValue & 0xFC0) >> 6);
+    uint8_t const FourthByte = 0x80 | (UnicodeScalarValue & 0x3F);
     Result.push_back(FirstByte);
     Result.push_back(SecondByte);
     Result.push_back(ThirdByte);
@@ -587,7 +587,7 @@ bool yaml::dumpTokens(StringRef Input, raw_ostream &OS) {
   SourceMgr SM;
   Scanner scanner(Input, SM);
   while (true) {
-    Token T = scanner.getNext();
+    Token const T = scanner.getNext();
     switch (T.Kind) {
     case Token::TK_StreamStart:
       OS << "Stream-Start: ";
@@ -671,7 +671,7 @@ bool yaml::scanTokens(StringRef Input) {
   SourceMgr SM;
   Scanner scanner(Input, SM);
   while (true) {
-    Token T = scanner.getNext();
+    Token const T = scanner.getNext();
     if (T.Kind == Token::TK_StreamEnd)
       break;
     else if (T.Kind == Token::TK_Error)
@@ -706,10 +706,10 @@ std::string yaml::escape(StringRef Input, bool EscapePrintable) {
     else if (*i == 0x1B)
       EscapedInput += "\\e";
     else if ((unsigned char)*i < 0x20) { // Control characters not handled above.
-      std::string HexStr = utohexstr(*i);
+      std::string const HexStr = utohexstr(*i);
       EscapedInput += "\\x" + std::string(2 - HexStr.size(), '0') + HexStr;
     } else if (*i & 0x80) { // UTF-8 multiple code unit subsequence.
-      UTF8Decoded UnicodeScalarValue
+      UTF8Decoded const UnicodeScalarValue
         = decodeUTF8(StringRef(i, Input.end() - i));
       if (UnicodeScalarValue.second == 0) {
         // Found invalid char.
@@ -731,7 +731,7 @@ std::string yaml::escape(StringRef Input, bool EscapePrintable) {
                sys::unicode::isPrintable(UnicodeScalarValue.first))
         EscapedInput += StringRef(i, UnicodeScalarValue.second);
       else {
-        std::string HexStr = utohexstr(UnicodeScalarValue.first);
+        std::string const HexStr = utohexstr(UnicodeScalarValue.first);
         if (HexStr.size() <= 2)
           EscapedInput += "\\x" + std::string(2 - HexStr.size(), '0') + HexStr;
         else if (HexStr.size() <= 4)
@@ -911,7 +911,7 @@ StringRef::iterator Scanner::skip_nb_char(StringRef::iterator Position) {
 
   // Check for valid UTF-8.
   if (uint8_t(*Position) & 0x80) {
-    UTF8Decoded u8d = decodeUTF8(Position);
+    UTF8Decoded const u8d = decodeUTF8(Position);
     if (   u8d.second != 0
         && u8d.first != 0xFEFF
         && ( u8d.first == 0x85
@@ -1148,7 +1148,7 @@ void Scanner::scanToNextToken() {
 bool Scanner::scanStreamStart() {
   IsStartOfStream = false;
 
-  EncodingInfo EI = getUnicodeEncoding(currentInput());
+  EncodingInfo const EI = getUnicodeEncoding(currentInput());
 
   Token T;
   T.Kind = Token::TK_StreamStart;
@@ -1186,7 +1186,7 @@ bool Scanner::scanDirective() {
   consume('%');
   StringRef::iterator NameStart = Current;
   Current = skip_while(&Scanner::skip_ns_char, Current);
-  StringRef Name(NameStart, Current - NameStart);
+  StringRef const Name(NameStart, Current - NameStart);
   Current = skip_while(&Scanner::skip_s_white, Current);
 
   Token T;
@@ -1294,7 +1294,7 @@ bool Scanner::scanValue() {
   // If the previous token could have been a simple key, insert the key token
   // into the token queue.
   if (!SimpleKeys.empty()) {
-    SimpleKey SK = SimpleKeys.pop_back_val();
+    SimpleKey const SK = SimpleKeys.pop_back_val();
     Token T;
     T.Kind = Token::TK_Key;
     T.Range = SK.Tok->Range;
@@ -1348,7 +1348,7 @@ static bool wasEscaped(StringRef::iterator First,
 
 bool Scanner::scanFlowScalar(bool IsDoubleQuoted) {
   StringRef::iterator Start = Current;
-  unsigned ColStart = Column;
+  unsigned const ColStart = Column;
   if (IsDoubleQuoted) {
     do {
       ++Current;
@@ -1405,10 +1405,10 @@ bool Scanner::scanFlowScalar(bool IsDoubleQuoted) {
 
 bool Scanner::scanPlainScalar() {
   StringRef::iterator Start = Current;
-  unsigned ColStart = Column;
+  unsigned const ColStart = Column;
   unsigned LeadingBlanks = 0;
   assert(Indent >= -1 && "Indent must be >= -1 !");
-  unsigned indent = static_cast<unsigned>(Indent + 1);
+  unsigned const indent = static_cast<unsigned>(Indent + 1);
   while (Current != End) {
     if (*Current == '#')
       break;
@@ -1484,7 +1484,7 @@ bool Scanner::scanPlainScalar() {
 
 bool Scanner::scanAliasOrAnchor(bool IsAlias) {
   StringRef::iterator Start = Current;
-  unsigned ColStart = Column;
+  unsigned const ColStart = Column;
   skip(1);
   while (Current != End) {
     if (   *Current == '[' || *Current == ']'
@@ -1668,7 +1668,7 @@ bool Scanner::scanBlockScalar(bool IsLiteral) {
     return true;
 
   auto Start = Current;
-  unsigned BlockExitIndent = Indent < 0 ? 0 : (unsigned)Indent;
+  unsigned const BlockExitIndent = Indent < 0 ? 0 : (unsigned)Indent;
   unsigned LineBreaks = 0;
   if (BlockIndent == 0) {
     if (!findBlockScalarIndent(BlockIndent, BlockExitIndent, LineBreaks,
@@ -1721,7 +1721,7 @@ bool Scanner::scanBlockScalar(bool IsLiteral) {
 
 bool Scanner::scanTag() {
   StringRef::iterator Start = Current;
-  unsigned ColStart = Column;
+  unsigned const ColStart = Column;
   skip(1); // Eat !.
   if (Current == End || isBlankOrBreak(Current)); // An empty tag.
   else if (*Current == '<') {
@@ -1823,7 +1823,7 @@ bool Scanner::fetchMoreTokens() {
     return scanFlowScalar(true);
 
   // Get a plain scalar.
-  StringRef FirstChar(Current, 1);
+  StringRef const FirstChar(Current, 1);
   if (!(isBlankOrBreak(Current)
         || FirstChar.find_first_of("-?:,[]{}#&*!|>'\"%@`") != StringRef::npos)
       || (*Current == '-' && !isBlankOrBreak(Current + 1))
@@ -1883,12 +1883,12 @@ void Stream::skip() {
 Node::Node(unsigned int Type, std::unique_ptr<Document> &D, StringRef A,
            StringRef T)
     : Doc(D), TypeID(Type), Anchor(A), Tag(T) {
-  SMLoc Start = SMLoc::getFromPointer(peekNext().Range.begin());
+  SMLoc const Start = SMLoc::getFromPointer(peekNext().Range.begin());
   SourceRange = SMRange(Start, Start);
 }
 
 std::string Node::getVerbatimTag() const {
-  StringRef Raw = getRawTag();
+  StringRef const Raw = getRawTag();
   if (!Raw.empty() && Raw != "!") {
     std::string Ret;
     if (Raw.find_last_of('!') == 0) {
@@ -1900,8 +1900,8 @@ std::string Node::getVerbatimTag() const {
       Ret += Raw.substr(2);
       return Ret;
     } else {
-      StringRef TagHandle = Raw.substr(0, Raw.find_last_of('!') + 1);
-      std::map<StringRef, StringRef>::const_iterator It =
+      StringRef const TagHandle = Raw.substr(0, Raw.find_last_of('!') + 1);
+      std::map<StringRef, StringRef>::const_iterator const It =
           Doc->getTagMap().find(TagHandle);
       if (It != Doc->getTagMap().end())
         Ret = std::string(It->second);
@@ -1962,7 +1962,7 @@ StringRef ScalarNode::getValue(SmallVectorImpl<char> &Storage) const {
     // Pull off the leading and trailing "s.
     StringRef UnquotedValue = Value.substr(1, Value.size() - 2);
     // Search for characters that would require unescaping the value.
-    StringRef::size_type i = UnquotedValue.find_first_of("\\\r\n");
+    StringRef::size_type const i = UnquotedValue.find_first_of("\\\r\n");
     if (i != StringRef::npos)
       return unescapeDoubleQuoted(UnquotedValue, i, Storage);
     return UnquotedValue;
@@ -1975,7 +1975,7 @@ StringRef ScalarNode::getValue(SmallVectorImpl<char> &Storage) const {
       Storage.clear();
       Storage.reserve(UnquotedValue.size());
       for (; i != StringRef::npos; i = UnquotedValue.find('\'')) {
-        StringRef Valid(UnquotedValue.begin(), i);
+        StringRef const Valid(UnquotedValue.begin(), i);
         llvm::append_range(Storage, Valid);
         Storage.push_back('\'');
         UnquotedValue = UnquotedValue.substr(i + 2);
@@ -1998,7 +1998,7 @@ StringRef ScalarNode::unescapeDoubleQuoted( StringRef UnquotedValue
   Storage.reserve(UnquotedValue.size());
   for (; i != StringRef::npos; i = UnquotedValue.find_first_of("\\\r\n")) {
     // Insert all previous chars into Storage.
-    StringRef Valid(UnquotedValue.begin(), i);
+    StringRef const Valid(UnquotedValue.begin(), i);
     llvm::append_range(Storage, Valid);
     // Chop off inserted chars.
     UnquotedValue = UnquotedValue.substr(i);
@@ -2140,7 +2140,7 @@ Node *KeyValueNode::getKey() {
     return Key;
   // Handle implicit null keys.
   {
-    Token &t = peekNext();
+    Token  const&t = peekNext();
     if (   t.Kind == Token::TK_BlockEnd
         || t.Kind == Token::TK_Value
         || t.Kind == Token::TK_Error) {
@@ -2151,7 +2151,7 @@ Node *KeyValueNode::getKey() {
   }
 
   // Handle explicit null keys.
-  Token &t = peekNext();
+  Token  const&t = peekNext();
   if (t.Kind == Token::TK_BlockEnd || t.Kind == Token::TK_Value) {
     return Key = new (getAllocator()) NullNode(Doc);
   }
@@ -2193,7 +2193,7 @@ Node *KeyValueNode::getValue() {
   }
 
   // Handle explicit null values.
-  Token &t = peekNext();
+  Token  const&t = peekNext();
   if (t.Kind == Token::TK_BlockEnd || t.Kind == Token::TK_Key) {
     return Value = new (getAllocator()) NullNode(Doc);
   }
@@ -2353,7 +2353,7 @@ Document::Document(Stream &S) : stream(S), Root(nullptr) {
 
   if (parseDirectives())
     expectToken(Token::TK_DocumentStart);
-  Token &T = peekNext();
+  Token  const&T = peekNext();
   if (T.Kind == Token::TK_DocumentStart)
     getNext();
 }
@@ -2364,7 +2364,7 @@ bool Document::skip()  {
   if (!Root && !getRoot())
     return false;
   Root->skip();
-  Token &T = peekNext();
+  Token  const&T = peekNext();
   if (T.Kind == Token::TK_StreamEnd)
     return false;
   if (T.Kind == Token::TK_DocumentEnd) {
@@ -2466,8 +2466,8 @@ parse_property:
                 , T.Range);
   case Token::TK_BlockScalar: {
     getNext();
-    StringRef NullTerminatedStr(T.Value.c_str(), T.Value.length() + 1);
-    StringRef StrCopy = NullTerminatedStr.copy(NodeAllocator).drop_back();
+    StringRef const NullTerminatedStr(T.Value.c_str(), T.Value.length() + 1);
+    StringRef const StrCopy = NullTerminatedStr.copy(NodeAllocator).drop_back();
     return new (NodeAllocator)
         BlockScalarNode(stream.CurrentDoc, AnchorInfo.Range.substr(1),
                         TagInfo.Range, StrCopy, T.Range);
@@ -2505,7 +2505,7 @@ parse_property:
 bool Document::parseDirectives() {
   bool isDirective = false;
   while (true) {
-    Token T = peekNext();
+    Token const T = peekNext();
     if (T.Kind == Token::TK_TagDirective) {
       parseTAGDirective();
       isDirective = true;
@@ -2523,13 +2523,13 @@ void Document::parseYAMLDirective() {
 }
 
 void Document::parseTAGDirective() {
-  Token Tag = getNext(); // %TAG <handle> <prefix>
+  Token const Tag = getNext(); // %TAG <handle> <prefix>
   StringRef T = Tag.Range;
   // Strip %TAG
   T = T.substr(T.find_first_of(" \t")).ltrim(" \t");
-  std::size_t HandleEnd = T.find_first_of(" \t");
-  StringRef TagHandle = T.substr(0, HandleEnd);
-  StringRef TagPrefix = T.substr(HandleEnd).ltrim(" \t");
+  std::size_t const HandleEnd = T.find_first_of(" \t");
+  StringRef const TagHandle = T.substr(0, HandleEnd);
+  StringRef const TagPrefix = T.substr(HandleEnd).ltrim(" \t");
   TagMap[TagHandle] = TagPrefix;
 }
 

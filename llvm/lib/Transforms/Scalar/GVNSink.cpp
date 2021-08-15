@@ -200,8 +200,8 @@ struct SinkingInstructionCandidate {
   SmallVector<BasicBlock *, 4> Blocks;
 
   void calculateCost(unsigned NumOrigPHIs, unsigned NumOrigBlocks) {
-    unsigned NumExtraPHIs = NumPHIs - NumOrigPHIs;
-    unsigned SplitEdgeCost = (NumOrigBlocks > NumBlocks) ? 2 : 0;
+    unsigned const NumExtraPHIs = NumPHIs - NumOrigPHIs;
+    unsigned const SplitEdgeCost = (NumOrigBlocks > NumBlocks) ? 2 : 0;
     Cost = (NumInstructions * (NumBlocks - 1)) -
            (NumExtraPHIs *
             NumExtraPHIs) // PHIs are expensive, so make sure they're worth it.
@@ -401,7 +401,7 @@ class ValueTable {
       E->setMemoryUseOrder(getMemoryUseOrder(I));
 
     if (CmpInst *C = dyn_cast<CmpInst>(I)) {
-      CmpInst::Predicate Predicate = C->getPredicate();
+      CmpInst::Predicate const Predicate = C->getPredicate();
       E->setOpcode((C->getOpcode() << 8) | Predicate);
     }
     return E;
@@ -497,7 +497,7 @@ public:
 
     uint32_t e = ExpressionNumbering[exp];
     if (!e) {
-      hash_code H = exp->getHashValue([=](Value *V) { return lookupOrAdd(V); });
+      hash_code const H = exp->getHashValue([=](Value *V) { return lookupOrAdd(V); });
       auto I = HashNumbering.find(H);
       if (I != HashNumbering.end()) {
         e = I->second;
@@ -569,7 +569,7 @@ public:
                       << "\n");
 
     unsigned NumSunk = 0;
-    ReversePostOrderTraversal<Function*> RPOT(&F);
+    ReversePostOrderTraversal<Function*> const RPOT(&F);
     for (auto *N : RPOT)
       NumSunk += sinkBB(N);
 
@@ -597,7 +597,7 @@ private:
   /// Create a ModelledPHI for each PHI in BB, adding to PHIs.
   void analyzeInitialPHIs(BasicBlock *BB, ModelledPHISet &PHIs,
                           SmallPtrSetImpl<Value *> &PHIContents) {
-    for (PHINode &PN : BB->phis()) {
+    for (PHINode  const&PN : BB->phis()) {
       auto MPHI = ModelledPHI(&PN);
       PHIs.insert(MPHI);
       for (auto *V : MPHI.getValues())
@@ -641,13 +641,13 @@ Optional<SinkingInstructionCandidate> GVNSink::analyzeInstructionForSinking(
 
   DenseMap<uint32_t, unsigned> VNums;
   for (auto *I : Insts) {
-    uint32_t N = VN.lookupOrAdd(I);
+    uint32_t const N = VN.lookupOrAdd(I);
     LLVM_DEBUG(dbgs() << " VN=" << Twine::utohexstr(N) << " for" << *I << "\n");
     if (N == ~0U)
       return None;
     VNums[N]++;
   }
-  unsigned VNumToSink =
+  unsigned const VNumToSink =
       std::max_element(VNums.begin(), VNums.end(),
                        [](const std::pair<uint32_t, unsigned> &I,
                           const std::pair<uint32_t, unsigned> &J) {
@@ -662,7 +662,7 @@ Optional<SinkingInstructionCandidate> GVNSink::analyzeInstructionForSinking(
   // Now restrict the number of incoming blocks down to only those with
   // VNumToSink.
   auto &ActivePreds = LRI.getActiveBlocks();
-  unsigned InitialActivePredSize = ActivePreds.size();
+  unsigned const InitialActivePredSize = ActivePreds.size();
   SmallVector<Instruction *, 4> NewInsts;
   for (auto *I : Insts) {
     if (VN.lookup(I) != VNumToSink)
@@ -689,7 +689,7 @@ Optional<SinkingInstructionCandidate> GVNSink::analyzeInstructionForSinking(
   }
 
   // The sunk instruction's results.
-  ModelledPHI NewPHI(NewInsts, ActivePreds);
+  ModelledPHI const NewPHI(NewInsts, ActivePreds);
 
   // Does sinking this instruction render previous PHIs redundant?
   if (NeededPHIs.erase(NewPHI))
@@ -726,7 +726,7 @@ Optional<SinkingInstructionCandidate> GVNSink::analyzeInstructionForSinking(
     return None;
 
   for (unsigned OpNum = 0, E = I0->getNumOperands(); OpNum != E; ++OpNum) {
-    ModelledPHI PHI(NewInsts, OpNum, ActivePreds);
+    ModelledPHI const PHI(NewInsts, OpNum, ActivePreds);
     if (PHI.areAllIncomingValuesSame())
       continue;
     if (!canReplaceOperandWithVariable(I0, OpNum))
@@ -774,7 +774,7 @@ unsigned GVNSink::sinkBB(BasicBlock *BBEnd) {
     return 0;
   llvm::sort(Preds);
 
-  unsigned NumOrigPreds = Preds.size();
+  unsigned const NumOrigPreds = Preds.size();
   // We can only sink instructions through unconditional branches.
   for (auto I = Preds.begin(); I != Preds.end();) {
     if ((*I)->getTerminator()->getNumSuccessors() != 1)
@@ -789,7 +789,7 @@ unsigned GVNSink::sinkBB(BasicBlock *BBEnd) {
   ModelledPHISet NeededPHIs;
   SmallPtrSet<Value *, 4> PHIContents;
   analyzeInitialPHIs(BBEnd, NeededPHIs, PHIContents);
-  unsigned NumOrigPHIs = NeededPHIs.size();
+  unsigned const NumOrigPHIs = NeededPHIs.size();
 
   while (LRI.isValid()) {
     auto Cand = analyzeInstructionForSinking(LRI, InstNum, MemoryInstNum,
@@ -839,7 +839,7 @@ void GVNSink::sinkLastInstruction(ArrayRef<BasicBlock *> Blocks,
 
   SmallVector<Value *, 4> NewOperands;
   for (unsigned O = 0, E = I0->getNumOperands(); O != E; ++O) {
-    bool NeedPHI = llvm::any_of(Insts, [&I0, O](const Instruction *I) {
+    bool const NeedPHI = llvm::any_of(Insts, [&I0, O](const Instruction *I) {
       return I->getOperand(O) != I0->getOperand(O);
     });
     if (!NeedPHI) {

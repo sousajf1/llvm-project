@@ -27,7 +27,7 @@ using namespace llvm;
 
 void X86InstPrinterCommon::printCondCode(const MCInst *MI, unsigned Op,
                                          raw_ostream &O) {
-  int64_t Imm = MI->getOperand(Op).getImm();
+  int64_t const Imm = MI->getOperand(Op).getImm();
   switch (Imm) {
   default: llvm_unreachable("Invalid condcode argument!");
   case    0: O << "o";  break;
@@ -51,7 +51,7 @@ void X86InstPrinterCommon::printCondCode(const MCInst *MI, unsigned Op,
 
 void X86InstPrinterCommon::printSSEAVXCC(const MCInst *MI, unsigned Op,
                                          raw_ostream &O) {
-  int64_t Imm = MI->getOperand(Op).getImm();
+  int64_t const Imm = MI->getOperand(Op).getImm();
   switch (Imm) {
   default: llvm_unreachable("Invalid ssecc/avxcc argument!");
   case    0: O << "eq"; break;
@@ -93,7 +93,7 @@ void X86InstPrinterCommon::printVPCOMMnemonic(const MCInst *MI,
                                               raw_ostream &OS) {
   OS << "vpcom";
 
-  int64_t Imm = MI->getOperand(MI->getNumOperands() - 1).getImm();
+  int64_t const Imm = MI->getOperand(MI->getNumOperands() - 1).getImm();
   switch (Imm) {
   default: llvm_unreachable("Invalid vpcom argument!");
   case 0: OS << "lt"; break;
@@ -287,7 +287,7 @@ void X86InstPrinterCommon::printCMPMnemonic(const MCInst *MI, bool IsVCmp,
 
 void X86InstPrinterCommon::printRoundingControl(const MCInst *MI, unsigned Op,
                                                 raw_ostream &O) {
-  int64_t Imm = MI->getOperand(Op).getImm();
+  int64_t const Imm = MI->getOperand(Op).getImm();
   switch (Imm) {
   default:
     llvm_unreachable("Invalid rounding control!");
@@ -351,8 +351,8 @@ void X86InstPrinterCommon::printOptionalSegReg(const MCInst *MI, unsigned OpNo,
 
 void X86InstPrinterCommon::printInstFlags(const MCInst *MI, raw_ostream &O) {
   const MCInstrDesc &Desc = MII.get(MI->getOpcode());
-  uint64_t TSFlags = Desc.TSFlags;
-  unsigned Flags = MI->getFlags();
+  uint64_t const TSFlags = Desc.TSFlags;
+  unsigned const Flags = MI->getFlags();
 
   if ((TSFlags & X86II::LOCK) || (Flags & X86::IP_HAS_LOCK))
     O << "\tlock\t";

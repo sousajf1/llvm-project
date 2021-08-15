@@ -75,7 +75,7 @@ bool X86_MC::hasLockPrefix(const MCInst &MI) {
 void X86_MC::initLLVMToSEHAndCVRegMapping(MCRegisterInfo *MRI) {
   // FIXME: TableGen these.
   for (unsigned Reg = X86::NoRegister + 1; Reg < X86::NUM_TARGET_REGS; ++Reg) {
-    unsigned SEH = MRI->getEncodingValue(Reg);
+    unsigned const SEH = MRI->getEncodingValue(Reg);
     MRI->mapLLVMRegToSEHReg(Reg, SEH);
   }
 
@@ -305,7 +305,7 @@ static MCInstrInfo *createX86MCInstrInfo() {
 }
 
 static MCRegisterInfo *createX86MCRegisterInfo(const Triple &TT) {
-  unsigned RA = (TT.getArch() == Triple::x86_64)
+  unsigned const RA = (TT.getArch() == Triple::x86_64)
                     ? X86::RIP  // Should have dwarf #16.
                     : X86::EIP; // Should have dwarf #8.
 
@@ -319,7 +319,7 @@ static MCRegisterInfo *createX86MCRegisterInfo(const Triple &TT) {
 static MCAsmInfo *createX86MCAsmInfo(const MCRegisterInfo &MRI,
                                      const Triple &TheTriple,
                                      const MCTargetOptions &Options) {
-  bool is64Bit = TheTriple.getArch() == Triple::x86_64;
+  bool const is64Bit = TheTriple.getArch() == Triple::x86_64;
 
   MCAsmInfo *MAI;
   if (TheTriple.isOSBinFormatMachO()) {
@@ -346,17 +346,17 @@ static MCAsmInfo *createX86MCAsmInfo(const MCRegisterInfo &MRI,
 
   // Initialize initial frame state.
   // Calculate amount of bytes used for return address storing
-  int stackGrowth = is64Bit ? -8 : -4;
+  int const stackGrowth = is64Bit ? -8 : -4;
 
   // Initial state of the frame pointer is esp+stackGrowth.
-  unsigned StackPtr = is64Bit ? X86::RSP : X86::ESP;
-  MCCFIInstruction Inst = MCCFIInstruction::cfiDefCfa(
+  unsigned const StackPtr = is64Bit ? X86::RSP : X86::ESP;
+  MCCFIInstruction const Inst = MCCFIInstruction::cfiDefCfa(
       nullptr, MRI.getDwarfRegNum(StackPtr, true), -stackGrowth);
   MAI->addInitialFrameState(Inst);
 
   // Add return address to move list
-  unsigned InstPtr = is64Bit ? X86::RIP : X86::EIP;
-  MCCFIInstruction Inst2 = MCCFIInstruction::createOffset(
+  unsigned const InstPtr = is64Bit ? X86::RIP : X86::EIP;
+  MCCFIInstruction const Inst2 = MCCFIInstruction::createOffset(
       nullptr, MRI.getDwarfRegNum(InstPtr, true), stackGrowth);
   MAI->addInitialFrameState(Inst2);
 
@@ -417,14 +417,14 @@ bool X86MCInstrAnalysis::clearsSuperRegisters(const MCRegisterInfo &MRI,
                                               const MCInst &Inst,
                                               APInt &Mask) const {
   const MCInstrDesc &Desc = Info->get(Inst.getOpcode());
-  unsigned NumDefs = Desc.getNumDefs();
-  unsigned NumImplicitDefs = Desc.getNumImplicitDefs();
+  unsigned const NumDefs = Desc.getNumDefs();
+  unsigned const NumImplicitDefs = Desc.getNumImplicitDefs();
   assert(Mask.getBitWidth() == NumDefs + NumImplicitDefs &&
          "Unexpected number of bits in the mask!");
 
-  bool HasVEX = (Desc.TSFlags & X86II::EncodingMask) == X86II::VEX;
-  bool HasEVEX = (Desc.TSFlags & X86II::EncodingMask) == X86II::EVEX;
-  bool HasXOP = (Desc.TSFlags & X86II::EncodingMask) == X86II::XOP;
+  bool const HasVEX = (Desc.TSFlags & X86II::EncodingMask) == X86II::VEX;
+  bool const HasEVEX = (Desc.TSFlags & X86II::EncodingMask) == X86II::EVEX;
+  bool const HasXOP = (Desc.TSFlags & X86II::EncodingMask) == X86II::XOP;
 
   const MCRegisterClass &GR32RC = MRI.getRegClass(X86::GR32RegClassID);
   const MCRegisterClass &VR128XRC = MRI.getRegClass(X86::VR128XRegClassID);
@@ -475,14 +475,14 @@ findX86PltEntries(uint64_t PltSectionVA, ArrayRef<uint8_t> PltContents,
     if (PltContents[Byte] == 0xff && PltContents[Byte + 1] == 0xa3) {
       // The jmp instruction at the beginning of each PLT entry jumps to the
       // address of the base of the .got.plt section plus the immediate.
-      uint32_t Imm = support::endian::read32le(PltContents.data() + Byte + 2);
+      uint32_t const Imm = support::endian::read32le(PltContents.data() + Byte + 2);
       Result.push_back(
           std::make_pair(PltSectionVA + Byte, GotPltSectionVA + Imm));
       Byte += 6;
     } else if (PltContents[Byte] == 0xff && PltContents[Byte + 1] == 0x25) {
       // The jmp instruction at the beginning of each PLT entry jumps to the
       // immediate.
-      uint32_t Imm = support::endian::read32le(PltContents.data() + Byte + 2);
+      uint32_t const Imm = support::endian::read32le(PltContents.data() + Byte + 2);
       Result.push_back(std::make_pair(PltSectionVA + Byte, Imm));
       Byte += 6;
     } else
@@ -500,7 +500,7 @@ findX86_64PltEntries(uint64_t PltSectionVA, ArrayRef<uint8_t> PltContents) {
     if (PltContents[Byte] == 0xff && PltContents[Byte + 1] == 0x25) {
       // The jmp instruction at the beginning of each PLT entry jumps to the
       // address of the next instruction plus the immediate.
-      uint32_t Imm = support::endian::read32le(PltContents.data() + Byte + 2);
+      uint32_t const Imm = support::endian::read32le(PltContents.data() + Byte + 2);
       Result.push_back(
           std::make_pair(PltSectionVA + Byte, PltSectionVA + Byte + 6 + Imm));
       Byte += 6;
@@ -569,7 +569,7 @@ static MCInstrAnalysis *createX86MCInstrAnalysis(const MCInstrInfo *Info) {
 extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializeX86TargetMC() {
   for (Target *T : {&getTheX86_32Target(), &getTheX86_64Target()}) {
     // Register the MC asm info.
-    RegisterMCAsmInfoFn X(*T, createX86MCAsmInfo);
+    RegisterMCAsmInfoFn const X(*T, createX86MCAsmInfo);
 
     // Register the MC instruction info.
     TargetRegistry::RegisterMCInstrInfo(*T, createX86MCInstrInfo);

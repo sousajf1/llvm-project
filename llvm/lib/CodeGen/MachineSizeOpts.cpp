@@ -204,7 +204,7 @@ bool llvm::shouldOptimizeForSize(const MachineBasicBlock *MBB,
   assert(MBB);
   if (!PSI || !MBFIW)
     return false;
-  BlockFrequency BlockFreq = MBFIW->getBlockFreq(MBB);
+  BlockFrequency const BlockFreq = MBFIW->getBlockFreq(MBB);
   return shouldOptimizeForSizeImpl<MachineBasicBlockBFIAdapter>(
       BlockFreq, PSI, &MBFIW->getMBFI(), QueryType);
 }

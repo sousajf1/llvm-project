@@ -232,7 +232,7 @@ static void viewRegionInfo(RegionInfo *RI, bool ShortNames) {
   assert(RI && "Argument must be non-null");
 
   llvm::Function *F = RI->getTopLevelRegion()->getEntry()->getParent();
-  std::string GraphName = DOTGraphTraits<RegionInfo *>::getGraphName(RI);
+  std::string const GraphName = DOTGraphTraits<RegionInfo *>::getGraphName(RI);
 
   llvm::ViewGraph(RI, "reg", ShortNames,
                   Twine(GraphName) + " for '" + F->getName() + "' function");

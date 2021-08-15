@@ -71,7 +71,7 @@ static AllocaInst *createAllocaInstAtEntry(IRBuilder<> &Builder,
   Type *V256I32Ty = VectorType::get(Builder.getInt32Ty(), 256, false);
   LLVMContext &Ctx = Builder.getContext();
   auto AllocaAlignment = DL.getPrefTypeAlign(Type::getX86_AMXTy(Ctx));
-  unsigned AllocaAS = DL.getAllocaAddrSpace();
+  unsigned const AllocaAS = DL.getAllocaAddrSpace();
   AllocaInst *AllocaRes =
       new AllocaInst(V256I32Ty, AllocaAS, "", &F.getEntryBlock().front());
   AllocaRes->setAlignment(AllocaAlignment);
@@ -169,8 +169,8 @@ std::pair<Value *, Value *> X86LowerAMXType::getShape(IntrinsicInst *II,
 // i8* %addr, i64 %stride64)
 void X86LowerAMXType::combineLoadBitcast(LoadInst *LD, BitCastInst *Bitcast) {
   Value *Row = nullptr, *Col = nullptr;
-  Use &U = *(Bitcast->use_begin());
-  unsigned OpNo = U.getOperandNo();
+  Use  const&U = *(Bitcast->use_begin());
+  unsigned const OpNo = U.getOperandNo();
   auto *II = cast<IntrinsicInst>(U.getUser());
   std::tie(Row, Col) = getShape(II, OpNo);
   IRBuilder<> Builder(Bitcast);
@@ -178,7 +178,7 @@ void X86LowerAMXType::combineLoadBitcast(LoadInst *LD, BitCastInst *Bitcast) {
   Value *Stride = Builder.getInt64(64);
   Value *I8Ptr =
       Builder.CreateBitCast(LD->getOperand(0), Builder.getInt8PtrTy());
-  std::array<Value *, 4> Args = {Row, Col, I8Ptr, Stride};
+  std::array<Value *, 4> const Args = {Row, Col, I8Ptr, Stride};
 
   Value *NewInst =
       Builder.CreateIntrinsic(Intrinsic::x86_tileloadd64_internal, None, Args);
@@ -206,7 +206,7 @@ void X86LowerAMXType::combineBitcastStore(BitCastInst *Bitcast, StoreInst *ST) {
   Value *Stride = Builder.getInt64(64);
   Value *I8Ptr =
       Builder.CreateBitCast(ST->getOperand(1), Builder.getInt8PtrTy());
-  std::array<Value *, 5> Args = {Row, Col, I8Ptr, Stride, Tile};
+  std::array<Value *, 5> const Args = {Row, Col, I8Ptr, Stride, Tile};
   Builder.CreateIntrinsic(Intrinsic::x86_tilestored64_internal, None, Args);
   if (Bitcast->hasOneUse())
     return;
@@ -245,8 +245,8 @@ bool X86LowerAMXType::transformBitcast(BitCastInst *Bitcast) {
     // %2 = call x86_amx @llvm.x86.tileloadd64.internal(i16 %row, i16 %col,
     //                                                  i8* %addr2,
     //                                                  i64 64)
-    Use &U = *(Bitcast->use_begin());
-    unsigned OpNo = U.getOperandNo();
+    Use  const&U = *(Bitcast->use_begin());
+    unsigned const OpNo = U.getOperandNo();
     auto *II = dyn_cast<IntrinsicInst>(U.getUser());
     if (!II)
       return false; // May be bitcast from x86amx to <256 x i32>.
@@ -255,7 +255,7 @@ bool X86LowerAMXType::transformBitcast(BitCastInst *Bitcast) {
     // TODO we can pick an constant operand for the shape.
     Value *Row = nullptr, *Col = nullptr;
     std::tie(Row, Col) = getShape(II, OpNo);
-    std::array<Value *, 4> Args = {Row, Col, I8Ptr, Stride};
+    std::array<Value *, 4> const Args = {Row, Col, I8Ptr, Stride};
     Value *NewInst = Builder.CreateIntrinsic(
         Intrinsic::x86_tileloadd64_internal, None, Args);
     Bitcast->replaceAllUsesWith(NewInst);
@@ -273,7 +273,7 @@ bool X86LowerAMXType::transformBitcast(BitCastInst *Bitcast) {
     Prepare();
     Value *Row = II->getOperand(0);
     Value *Col = II->getOperand(1);
-    std::array<Value *, 5> Args = {Row, Col, I8Ptr, Stride, Src};
+    std::array<Value *, 5> const Args = {Row, Col, I8Ptr, Stride, Src};
     Builder.CreateIntrinsic(Intrinsic::x86_tilestored64_internal, None, Args);
     Value *NewInst = Builder.CreateLoad(Bitcast->getType(), AllocaAddr);
     Bitcast->replaceAllUsesWith(NewInst);
@@ -372,7 +372,7 @@ bool X86LowerAMXType::visit() {
     }
   }
 
-  bool C = !DeadInsts.empty();
+  bool const C = !DeadInsts.empty();
 
   for (auto *Inst : DeadInsts)
     Inst->eraseFromParent();
@@ -386,7 +386,7 @@ static Value *getAllocaPos(BasicBlock *BB) {
   Function *F = BB->getParent();
   IRBuilder<> Builder(&F->getEntryBlock().front());
   const DataLayout &DL = M->getDataLayout();
-  unsigned AllocaAS = DL.getAllocaAddrSpace();
+  unsigned const AllocaAS = DL.getAllocaAddrSpace();
   Type *V256I32Ty = VectorType::get(Builder.getInt32Ty(), 256, false);
   AllocaInst *AllocaRes =
       new AllocaInst(V256I32Ty, AllocaAS, "", &F->getEntryBlock().front());
@@ -408,7 +408,7 @@ static Instruction *createTileStore(Instruction *TileDef, Value *Ptr) {
   BasicBlock::iterator Iter = TileDef->getIterator();
   IRBuilder<> Builder(BB, ++Iter);
   Value *Stride = Builder.getInt64(64);
-  std::array<Value *, 5> Args = {Row, Col, Ptr, Stride, TileDef};
+  std::array<Value *, 5> const Args = {Row, Col, Ptr, Stride, TileDef};
 
   Instruction *TileStore =
       Builder.CreateIntrinsic(Intrinsic::x86_tilestored64_internal, None, Args);
@@ -433,7 +433,7 @@ static void replaceWithTileLoad(Use &U, Value *Ptr, bool IsPHI = false) {
   Instruction *UserI = dyn_cast<Instruction>(U.getUser());
   IRBuilder<> Builder(UserI);
   Value *Stride = Builder.getInt64(64);
-  std::array<Value *, 4> Args = {Row, Col, Ptr, Stride};
+  std::array<Value *, 4> const Args = {Row, Col, Ptr, Stride};
 
   Value *TileLoad =
       Builder.CreateIntrinsic(Intrinsic::x86_tileloadd64_internal, None, Args);
@@ -441,7 +441,7 @@ static void replaceWithTileLoad(Use &U, Value *Ptr, bool IsPHI = false) {
 }
 
 static bool isIncomingOfPHI(Instruction *I) {
-  for (Use &U : I->uses()) {
+  for (Use  const&U : I->uses()) {
     User *V = U.getUser();
     if (isa<PHINode>(V))
       return true;

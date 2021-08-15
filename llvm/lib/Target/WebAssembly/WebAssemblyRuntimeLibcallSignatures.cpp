@@ -520,7 +520,7 @@ void llvm::getLibcallSignature(const WebAssemblySubtarget &Subtarget,
   assert(Rets.empty());
   assert(Params.empty());
 
-  wasm::ValType PtrTy =
+  wasm::ValType const PtrTy =
       Subtarget.hasAddr64() ? wasm::ValType::I64 : wasm::ValType::I32;
 
   auto &Table = RuntimeLibcallSignatures->Table;

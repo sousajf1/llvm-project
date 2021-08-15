@@ -342,11 +342,11 @@ auto AlignVectors::ByteSpan::extent() const -> int {
 auto AlignVectors::ByteSpan::section(int Start, int Length) const -> ByteSpan {
   ByteSpan Section;
   for (const ByteSpan::Block &B : Blocks) {
-    int L = std::max(B.Pos, Start);                       // Left end.
-    int R = std::min(B.Pos + B.Seg.Size, Start + Length); // Right end+1.
+    int const L = std::max(B.Pos, Start);                       // Left end.
+    int const R = std::min(B.Pos + B.Seg.Size, Start + Length); // Right end+1.
     if (L < R) {
       // How much to chop off the beginning of the segment:
-      int Off = L > B.Pos ? L - B.Pos : 0;
+      int const Off = L > B.Pos ? L - B.Pos : 0;
       Section.Blocks.emplace_back(B.Seg.Val, B.Seg.Start + Off, R - L, L);
     }
   }
@@ -380,7 +380,7 @@ auto AlignVectors::getAddrInfo(Instruction &In) const -> Optional<AddrInfo> {
     return AddrInfo(HVC, S, S->getPointerOperand(),
                     S->getValueOperand()->getType(), S->getAlign());
   if (auto *II = isCandidate<IntrinsicInst>(&In)) {
-    Intrinsic::ID ID = II->getIntrinsicID();
+    Intrinsic::ID const ID = II->getIntrinsicID();
     switch (ID) {
     case Intrinsic::masked_load:
       return AddrInfo(HVC, II, II->getArgOperand(0), II->getType(),
@@ -421,7 +421,7 @@ auto AlignVectors::getMask(Value *Val) const -> Value * {
 
   Type *ValTy = getPayload(Val)->getType();
   if (auto *VecTy = dyn_cast<VectorType>(ValTy)) {
-    int ElemCount = VecTy->getElementCount().getFixedValue();
+    int const ElemCount = VecTy->getElementCount().getFixedValue();
     return HVC.getFullValue(HVC.getBoolTy(ElemCount));
   }
   return HVC.getFullValue(HVC.getBoolTy());
@@ -443,7 +443,7 @@ auto AlignVectors::createAdjustedPointer(IRBuilder<> &Builder, Value *Ptr,
   auto *PtrTy = cast<PointerType>(Ptr->getType());
   if (!PtrTy->isOpaque()) {
     Type *ElemTy = PtrTy->getElementType();
-    int ElemSize = HVC.getSizeOf(ElemTy);
+    int const ElemSize = HVC.getSizeOf(ElemTy);
     if (Adjust % ElemSize == 0) {
       Value *Tmp0 =
           Builder.CreateGEP(ElemTy, Ptr, HVC.getConstInt(Adjust / ElemSize));
@@ -494,7 +494,7 @@ auto AlignVectors::createAddressGroups() -> bool {
   AddrList WorkStack;
 
   auto findBaseAndOffset = [&](AddrInfo &AI) -> std::pair<Instruction *, int> {
-    for (AddrInfo &W : WorkStack) {
+    for (AddrInfo  const&W : WorkStack) {
       if (auto D = HVC.calculatePointerDifference(AI.Addr, W.Addr))
         return std::make_pair(W.Inst, *D);
     }
@@ -661,7 +661,7 @@ auto AlignVectors::move(const MoveGroup &Move) const -> bool {
     for (Instruction *D : Move.Deps)
       D->moveBefore(Where);
     // Move all main instructions to after Where, keeping order.
-    ArrayRef<Instruction *> Main(Move.Main);
+    ArrayRef<Instruction *> const Main(Move.Main);
     for (Instruction *M : Main.drop_front(1)) {
       M->moveAfter(Where);
       Where = M;
@@ -671,7 +671,7 @@ auto AlignVectors::move(const MoveGroup &Move) const -> bool {
     // non-empty, decide on the order.
     assert(Move.Deps.empty());
     // Move all main instructions to before Where, inverting order.
-    ArrayRef<Instruction *> Main(Move.Main);
+    ArrayRef<Instruction *> const Main(Move.Main);
     for (Instruction *M : Main.drop_front(1)) {
       M->moveBefore(Where);
       Where = M;
@@ -718,7 +718,7 @@ auto AlignVectors::realignGroup(const MoveGroup &Move) const -> bool {
   // Maximum alignment present in the whole address group.
   const AddrInfo &WithMaxAlign =
       getMaxOf(BaseInfos, [](const AddrInfo &AI) { return AI.HaveAlign; });
-  Align MaxGiven = WithMaxAlign.HaveAlign;
+  Align const MaxGiven = WithMaxAlign.HaveAlign;
 
   // Minimum alignment present in the move address group.
   const AddrInfo &WithMinOffset =
@@ -726,7 +726,7 @@ auto AlignVectors::realignGroup(const MoveGroup &Move) const -> bool {
 
   const AddrInfo &WithMaxNeeded =
       getMaxOf(MoveInfos, [](const AddrInfo &AI) { return AI.NeedAlign; });
-  Align MinNeeded = WithMaxNeeded.NeedAlign;
+  Align const MinNeeded = WithMaxNeeded.NeedAlign;
 
   // Set the builder at the top instruction in the move group.
   Instruction *TopIn = Move.IsLoad ? Move.Main.front() : Move.Main.back();
@@ -735,18 +735,18 @@ auto AlignVectors::realignGroup(const MoveGroup &Move) const -> bool {
   Value *AlignVal = nullptr;  // Right-shift amount (for valign).
 
   if (MinNeeded <= MaxGiven) {
-    int Start = WithMinOffset.Offset;
-    int OffAtMax = WithMaxAlign.Offset;
+    int const Start = WithMinOffset.Offset;
+    int const OffAtMax = WithMaxAlign.Offset;
     // Shift the offset of the maximally aligned instruction (OffAtMax)
     // back by just enough multiples of the required alignment to cover the
     // distance from Start to OffAtMax.
     // Calculate the address adjustment amount based on the address with the
     // maximum alignment. This is to allow a simple gep instruction instead
     // of potential bitcasts to i8*.
-    int Adjust = -alignTo(OffAtMax - Start, MinNeeded.value());
+    int const Adjust = -alignTo(OffAtMax - Start, MinNeeded.value());
     AlignAddr = createAdjustedPointer(Builder, WithMaxAlign.Addr,
                                       WithMaxAlign.ValTy, Adjust);
-    int Diff = Start - (OffAtMax + Adjust);
+    int const Diff = Start - (OffAtMax + Adjust);
     AlignVal = HVC.getConstInt(Diff);
     // Sanity.
     assert(Diff >= 0);
@@ -773,14 +773,14 @@ auto AlignVectors::realignGroup(const MoveGroup &Move) const -> bool {
   // The aligned loads/stores will use blocks that are either scalars,
   // or HVX vectors. Let "sector" be the unified term for such a block.
   // blend(scalar, vector) -> sector...
-  int ScLen = Move.IsHvx ? HVC.HST.getVectorLength()
+  int const ScLen = Move.IsHvx ? HVC.HST.getVectorLength()
                          : std::max<int>(MinNeeded.value(), 4);
   assert(!Move.IsHvx || ScLen == 64 || ScLen == 128);
   assert(Move.IsHvx || ScLen == 4 || ScLen == 8);
 
   Type *SecTy = HVC.getByteTy(ScLen);
-  int NumSectors = (VSpan.extent() + ScLen - 1) / ScLen;
-  bool DoAlign = !HVC.isZero(AlignVal);
+  int const NumSectors = (VSpan.extent() + ScLen - 1) / ScLen;
+  bool const DoAlign = !HVC.isZero(AlignVal);
 
   if (Move.IsLoad) {
     ByteSpan ASpan;
@@ -793,8 +793,8 @@ auto AlignVectors::realignGroup(const MoveGroup &Move) const -> bool {
       Value *Load = createAlignedLoad(Builder, SecTy, Ptr, ScLen, True, Undef);
       // If vector shifting is potentially needed, accumulate metadata
       // from source sections of twice the load width.
-      int Start = (i - DoAlign) * ScLen;
-      int Width = (1 + DoAlign) * ScLen;
+      int const Start = (i - DoAlign) * ScLen;
+      int const Width = (1 + DoAlign) * ScLen;
       propagateMetadata(cast<Instruction>(Load),
                         VSpan.section(Start, Width).values());
       ASpan.Blocks.emplace_back(Load, ScLen, i * ScLen);
@@ -808,9 +808,9 @@ auto AlignVectors::realignGroup(const MoveGroup &Move) const -> bool {
     }
 
     for (ByteSpan::Block &B : VSpan) {
-      ByteSpan ASection = ASpan.section(B.Pos, B.Seg.Size).shift(-B.Pos);
+      ByteSpan const ASection = ASpan.section(B.Pos, B.Seg.Size).shift(-B.Pos);
       Value *Accum = UndefValue::get(HVC.getByteTy(B.Seg.Size));
-      for (ByteSpan::Block &S : ASection) {
+      for (ByteSpan::Block  const&S : ASection) {
         Value *Pay = HVC.vbytes(Builder, getPayload(S.Seg.Val));
         Accum =
             HVC.insertb(Builder, Accum, Pay, S.Seg.Start, S.Seg.Size, S.Pos);
@@ -846,10 +846,10 @@ auto AlignVectors::realignGroup(const MoveGroup &Move) const -> bool {
     for (int i = (DoAlign ? -1 : 0); i != NumSectors + DoAlign; ++i) {
       // For stores, the size of each section is an aligned vector length.
       // Adjust the store offsets relative to the section start offset.
-      ByteSpan VSection = VSpan.section(i * ScLen, ScLen).shift(-i * ScLen);
+      ByteSpan const VSection = VSpan.section(i * ScLen, ScLen).shift(-i * ScLen);
       Value *AccumV = UndefValue::get(SecTy);
       Value *AccumM = HVC.getNullValue(SecTy);
-      for (ByteSpan::Block &S : VSection) {
+      for (ByteSpan::Block  const&S : VSection) {
         Value *Pay = getPayload(S.Seg.Val);
         Value *Mask = HVC.rescale(Builder, MakeVec(Builder, getMask(S.Seg.Val)),
                                   Pay->getType(), HVC.getByteTy());
@@ -881,8 +881,8 @@ auto AlignVectors::realignGroup(const MoveGroup &Move) const -> bool {
                                           HVC.vlsb(Builder, Mask));
         // If vector shifting is potentially needed, accumulate metadata
         // from source sections of twice the store width.
-        int Start = (i - DoAlign) * ScLen;
-        int Width = (1 + DoAlign) * ScLen;
+        int const Start = (i - DoAlign) * ScLen;
+        int const Width = (1 + DoAlign) * ScLen;
         propagateMetadata(cast<Instruction>(Store),
                           VSpan.section(Start, Width).values());
       }
@@ -926,7 +926,7 @@ auto HexagonVectorCombine::run() -> bool {
   if (!HST.useHVXOps())
     return false;
 
-  bool Changed = AlignVectors(*this).run();
+  bool const Changed = AlignVectors(*this).run();
   return Changed;
 }
 
@@ -1008,12 +1008,12 @@ auto HexagonVectorCombine::insertb(IRBuilder<> &Builder, Value *Dst, Value *Src,
                                    int Start, int Length, int Where) const
     -> Value * {
   assert(isByteVecTy(Dst->getType()) && isByteVecTy(Src->getType()));
-  int SrcLen = getSizeOf(Src);
-  int DstLen = getSizeOf(Dst);
+  int const SrcLen = getSizeOf(Src);
+  int const DstLen = getSizeOf(Dst);
   assert(0 <= Start && Start + Length <= SrcLen);
   assert(0 <= Where && Where + Length <= DstLen);
 
-  int P2Len = PowerOf2Ceil(SrcLen | DstLen);
+  int const P2Len = PowerOf2Ceil(SrcLen | DstLen);
   auto *Undef = UndefValue::get(getByteTy());
   Value *P2Src = vresize(Builder, Src, P2Len, Undef);
   Value *P2Dst = vresize(Builder, Dst, P2Len, Undef);
@@ -1036,15 +1036,15 @@ auto HexagonVectorCombine::vlalignb(IRBuilder<> &Builder, Value *Lo, Value *Hi,
   assert(isSectorTy(Hi->getType()));
   if (isZero(Amt))
     return Hi;
-  int VecLen = getSizeOf(Hi);
+  int const VecLen = getSizeOf(Hi);
   if (auto IntAmt = getIntValue(Amt))
     return getElementRange(Builder, Lo, Hi, VecLen - IntAmt->getSExtValue(),
                            VecLen);
 
   if (HST.isTypeForHVX(Hi->getType())) {
-    int HwLen = HST.getVectorLength();
+    int const HwLen = HST.getVectorLength();
     assert(VecLen == HwLen && "Expecting an exact HVX type");
-    Intrinsic::ID V6_vlalignb = HwLen == 64
+    Intrinsic::ID const V6_vlalignb = HwLen == 64
                                     ? Intrinsic::hexagon_V6_vlalignb
                                     : Intrinsic::hexagon_V6_vlalignb_128B;
     return createHvxIntrinsic(Builder, V6_vlalignb, Hi->getType(),
@@ -1070,14 +1070,14 @@ auto HexagonVectorCombine::vralignb(IRBuilder<> &Builder, Value *Lo, Value *Hi,
   assert(isSectorTy(Lo->getType()));
   if (isZero(Amt))
     return Lo;
-  int VecLen = getSizeOf(Lo);
+  int const VecLen = getSizeOf(Lo);
   if (auto IntAmt = getIntValue(Amt))
     return getElementRange(Builder, Lo, Hi, IntAmt->getSExtValue(), VecLen);
 
   if (HST.isTypeForHVX(Lo->getType())) {
-    int HwLen = HST.getVectorLength();
+    int const HwLen = HST.getVectorLength();
     assert(VecLen == HwLen && "Expecting an exact HVX type");
-    Intrinsic::ID V6_valignb = HwLen == 64 ? Intrinsic::hexagon_V6_valignb
+    Intrinsic::ID const V6_valignb = HwLen == 64 ? Intrinsic::hexagon_V6_valignb
                                            : Intrinsic::hexagon_V6_valignb_128B;
     return createHvxIntrinsic(Builder, V6_valignb, Lo->getType(),
                               {Hi, Lo, Amt});
@@ -1112,7 +1112,7 @@ auto HexagonVectorCombine::concat(IRBuilder<> &Builder,
   Work[ThisW].assign(Vecs.begin(), Vecs.end());
   while (Work[ThisW].size() > 1) {
     auto *Ty = cast<VectorType>(Work[ThisW].front()->getType());
-    int ElemCount = Ty->getElementCount().getFixedValue();
+    int const ElemCount = Ty->getElementCount().getFixedValue();
     SMask.resize(ElemCount * 2);
     std::iota(SMask.begin(), SMask.end(), 0);
 
@@ -1142,7 +1142,7 @@ auto HexagonVectorCombine::vresize(IRBuilder<> &Builder, Value *Val,
   auto *ValTy = cast<VectorType>(Val->getType());
   assert(ValTy->getElementType() == Pad->getType());
 
-  int CurSize = ValTy->getElementCount().getFixedValue();
+  int const CurSize = ValTy->getElementCount().getFixedValue();
   if (CurSize == NewSize)
     return Val;
   // Truncate?
@@ -1168,13 +1168,13 @@ auto HexagonVectorCombine::rescale(IRBuilder<> &Builder, Value *Mask,
   if (FromSTy == ToSTy)
     return Mask;
 
-  int FromSize = getSizeOf(FromSTy);
-  int ToSize = getSizeOf(ToSTy);
+  int const FromSize = getSizeOf(FromSTy);
+  int const ToSize = getSizeOf(ToSTy);
   assert(FromSize % ToSize == 0 || ToSize % FromSize == 0);
 
   auto *MaskTy = cast<VectorType>(Mask->getType());
-  int FromCount = MaskTy->getElementCount().getFixedValue();
-  int ToCount = (FromCount * FromSize) / ToSize;
+  int const FromCount = MaskTy->getElementCount().getFixedValue();
+  int const ToCount = (FromCount * FromSize) / ToSize;
   assert((FromCount * FromSize) % ToSize == 0);
 
   // Mask <N x i1> -> sext to <N x FromTy> -> bitcast to <M x ToTy> ->
@@ -1249,7 +1249,7 @@ auto HexagonVectorCombine::createHvxIntrinsic(IRBuilder<> &Builder,
       if (cast<VectorType>(SrcTy)->getElementType() == BoolTy) {
         // This should take care of casts the other way too, for example
         // v1024i1 -> v32i1.
-        Intrinsic::ID TC = HwLen == 64
+        Intrinsic::ID const TC = HwLen == 64
                                ? Intrinsic::hexagon_V6_pred_typecast
                                : Intrinsic::hexagon_V6_pred_typecast_128B;
         Function *FI = Intrinsic::getDeclaration(F.getParent(), TC,
@@ -1302,7 +1302,7 @@ auto HexagonVectorCombine::calculatePointerDifference(Value *Ptr0,
 
   auto Simplify = [&](Value *V) {
     if (auto *I = dyn_cast<Instruction>(V)) {
-      SimplifyQuery Q(DL, &TLI, &DT, &AC, I);
+      SimplifyQuery const Q(DL, &TLI, &DT, &AC, I);
       if (Value *S = SimplifyInstruction(I, Q))
         return S;
     }
@@ -1326,7 +1326,7 @@ auto HexagonVectorCombine::calculatePointerDifference(Value *Ptr0,
     return None;
 
   Builder B(Gep0->getParent());
-  int Scale = DL.getTypeStoreSize(Gep0->getSourceElementType());
+  int const Scale = DL.getTypeStoreSize(Gep0->getSourceElementType());
 
   // FIXME: for now only check GEPs with a single index.
   if (Gep0->getNumOperands() != 2 || Gep1->getNumOperands() != 2)
@@ -1340,9 +1340,9 @@ auto HexagonVectorCombine::calculatePointerDifference(Value *Ptr0,
           Simplify(CallBuilder(B, CreateSub(Idx0, Idx1)))))
     return Diff->getSExtValue() * Scale;
 
-  KnownBits Known0 = computeKnownBits(Idx0, DL, 0, &AC, Gep0, &DT);
-  KnownBits Known1 = computeKnownBits(Idx1, DL, 0, &AC, Gep1, &DT);
-  APInt Unknown = ~(Known0.Zero | Known0.One) | ~(Known1.Zero | Known1.One);
+  KnownBits const Known0 = computeKnownBits(Idx0, DL, 0, &AC, Gep0, &DT);
+  KnownBits const Known1 = computeKnownBits(Idx1, DL, 0, &AC, Gep1, &DT);
+  APInt const Unknown = ~(Known0.Zero | Known0.One) | ~(Known1.Zero | Known1.One);
   if (Unknown.isAllOnesValue())
     return None;
 
@@ -1399,13 +1399,13 @@ auto HexagonVectorCombine::isSafeToMoveBeforeInBB(const Instruction &In,
 
   if (!mayBeMemoryDependent(In))
     return true;
-  bool MayWrite = In.mayWriteToMemory();
+  bool const MayWrite = In.mayWriteToMemory();
   auto MaybeLoc = getLocOrNone(In);
 
   auto From = In.getIterator();
   if (From == To)
     return true;
-  bool MoveUp = (To != Block.end() && To->comesBefore(&In));
+  bool const MoveUp = (To != Block.end() && To->comesBefore(&In));
   auto Range =
       MoveUp ? std::make_pair(To, From) : std::make_pair(std::next(From), To);
   for (auto It = Range.first; It != Range.second; ++It) {
@@ -1449,7 +1449,7 @@ auto HexagonVectorCombine::isByteVecTy(Type *Ty) const -> bool {
 auto HexagonVectorCombine::isSectorTy(Type *Ty) const -> bool {
   if (!isByteVecTy(Ty))
     return false;
-  int Size = getSizeOf(Ty);
+  int const Size = getSizeOf(Ty);
   if (HST.isTypeForHVX(Ty))
     return Size == static_cast<int>(HST.getVectorLength());
   return Size == 4 || Size == 8;

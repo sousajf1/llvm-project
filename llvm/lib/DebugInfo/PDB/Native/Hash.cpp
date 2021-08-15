@@ -19,9 +19,9 @@ using namespace llvm::support;
 // Used for name hash table and TPI/IPI hashes.
 uint32_t pdb::hashStringV1(StringRef Str) {
   uint32_t Result = 0;
-  uint32_t Size = Str.size();
+  uint32_t const Size = Str.size();
 
-  ArrayRef<ulittle32_t> Longs(reinterpret_cast<const ulittle32_t *>(Str.data()),
+  ArrayRef<ulittle32_t> const Longs(reinterpret_cast<const ulittle32_t *>(Str.data()),
                               Size / 4);
 
   for (auto Value : Longs)
@@ -33,7 +33,7 @@ uint32_t pdb::hashStringV1(StringRef Str) {
   // Maximum of 3 bytes left.  Hash a 2 byte word if possible, then hash the
   // possibly remaining 1 byte.
   if (RemainderSize >= 2) {
-    uint16_t Value = *reinterpret_cast<const ulittle16_t *>(Remainder);
+    uint16_t const Value = *reinterpret_cast<const ulittle16_t *>(Remainder);
     Result ^= static_cast<uint32_t>(Value);
     Remainder += 2;
     RemainderSize -= 2;
@@ -58,16 +58,16 @@ uint32_t pdb::hashStringV2(StringRef Str) {
 
   ArrayRef<char> Buffer(Str.begin(), Str.end());
 
-  ArrayRef<ulittle32_t> Items(
+  ArrayRef<ulittle32_t> const Items(
       reinterpret_cast<const ulittle32_t *>(Buffer.data()),
       Buffer.size() / sizeof(ulittle32_t));
-  for (ulittle32_t Item : Items) {
+  for (ulittle32_t const Item : Items) {
     Hash += Item;
     Hash += (Hash << 10);
     Hash ^= (Hash >> 6);
   }
   Buffer = Buffer.slice(Items.size() * sizeof(ulittle32_t));
-  for (uint8_t Item : Buffer) {
+  for (uint8_t const Item : Buffer) {
     Hash += Item;
     Hash += (Hash << 10);
     Hash ^= (Hash >> 6);

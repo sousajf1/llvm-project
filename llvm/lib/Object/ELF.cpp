@@ -380,11 +380,11 @@ ELFFile<ELFT>::android_relas(const Elf_Shdr &Sec) const {
   Expected<ArrayRef<uint8_t>> ContentsOrErr = getSectionContents(Sec);
   if (!ContentsOrErr)
     return ContentsOrErr.takeError();
-  ArrayRef<uint8_t> Content = *ContentsOrErr;
+  ArrayRef<uint8_t> const Content = *ContentsOrErr;
   if (Content.size() < 4 || Content[0] != 'A' || Content[1] != 'P' ||
       Content[2] != 'S' || Content[3] != '2')
     return createError("invalid packed relocation header");
-  DataExtractor Data(Content, isLE(), ELFT::Is64Bits ? 8 : 4);
+  DataExtractor const Data(Content, isLE(), ELFT::Is64Bits ? 8 : 4);
   DataExtractor::Cursor Cur(/*Offset=*/4);
 
   uint64_t NumRelocs = Data.getSLEB128(Cur);
@@ -397,18 +397,18 @@ ELFFile<ELFT>::android_relas(const Elf_Shdr &Sec) const {
   std::vector<Elf_Rela> Relocs;
   Relocs.reserve(NumRelocs);
   while (NumRelocs) {
-    uint64_t NumRelocsInGroup = Data.getSLEB128(Cur);
+    uint64_t const NumRelocsInGroup = Data.getSLEB128(Cur);
     if (!Cur)
       return std::move(Cur.takeError());
     if (NumRelocsInGroup > NumRelocs)
       return createError("relocation group unexpectedly large");
     NumRelocs -= NumRelocsInGroup;
 
-    uint64_t GroupFlags = Data.getSLEB128(Cur);
-    bool GroupedByInfo = GroupFlags & ELF::RELOCATION_GROUPED_BY_INFO_FLAG;
-    bool GroupedByOffsetDelta = GroupFlags & ELF::RELOCATION_GROUPED_BY_OFFSET_DELTA_FLAG;
-    bool GroupedByAddend = GroupFlags & ELF::RELOCATION_GROUPED_BY_ADDEND_FLAG;
-    bool GroupHasAddend = GroupFlags & ELF::RELOCATION_GROUP_HAS_ADDEND_FLAG;
+    uint64_t const GroupFlags = Data.getSLEB128(Cur);
+    bool const GroupedByInfo = GroupFlags & ELF::RELOCATION_GROUPED_BY_INFO_FLAG;
+    bool const GroupedByOffsetDelta = GroupFlags & ELF::RELOCATION_GROUPED_BY_OFFSET_DELTA_FLAG;
+    bool const GroupedByAddend = GroupFlags & ELF::RELOCATION_GROUPED_BY_ADDEND_FLAG;
+    bool const GroupHasAddend = GroupFlags & ELF::RELOCATION_GROUP_HAS_ADDEND_FLAG;
 
     uint64_t GroupOffsetDelta;
     if (GroupedByOffsetDelta)
@@ -604,12 +604,12 @@ ELFFile<ELFT>::toMappedAddr(uint64_t VAddr, WarningHandler WarnHandler) const {
                        Twine::utohexstr(VAddr));
   --I;
   const Elf_Phdr &Phdr = **I;
-  uint64_t Delta = VAddr - Phdr.p_vaddr;
+  uint64_t const Delta = VAddr - Phdr.p_vaddr;
   if (Delta >= Phdr.p_filesz)
     return createError("virtual address is not in any segment: 0x" +
                        Twine::utohexstr(VAddr));
 
-  uint64_t Offset = Phdr.p_offset + Delta;
+  uint64_t const Offset = Phdr.p_offset + Delta;
   if (Offset >= getBufSize())
     return createError("can't map virtual address 0x" +
                        Twine::utohexstr(VAddr) + " to the segment with index " +
@@ -628,7 +628,7 @@ ELFFile<ELFT>::decodeBBAddrMap(const Elf_Shdr &Sec) const {
   Expected<ArrayRef<uint8_t>> ContentsOrErr = getSectionContents(Sec);
   if (!ContentsOrErr)
     return ContentsOrErr.takeError();
-  ArrayRef<uint8_t> Content = *ContentsOrErr;
+  ArrayRef<uint8_t> const Content = *ContentsOrErr;
   DataExtractor Data(Content, isLE(), ELFT::Is64Bits ? 8 : 4);
   std::vector<Elf_BBAddrMap> FunctionEntries;
 
@@ -643,8 +643,8 @@ ELFFile<ELFT>::decodeBBAddrMap(const Elf_Shdr &Sec) const {
     // Bail out and do not extract data if ULEBSizeErr is already set.
     if (ULEBSizeErr)
       return 0;
-    uint64_t Offset = Cur.tell();
-    uint64_t Value = Data.getULEB128(Cur);
+    uint64_t const Offset = Cur.tell();
+    uint64_t const Value = Data.getULEB128(Cur);
     if (Value > UINT32_MAX) {
       ULEBSizeErr = createError(
           "ULEB128 value at offset 0x" + Twine::utohexstr(Offset) +
@@ -655,14 +655,14 @@ ELFFile<ELFT>::decodeBBAddrMap(const Elf_Shdr &Sec) const {
   };
 
   while (!ULEBSizeErr && Cur && Cur.tell() < Content.size()) {
-    uintX_t Address = static_cast<uintX_t>(Data.getAddress(Cur));
-    uint32_t NumBlocks = ReadULEB128AsUInt32();
+    uintX_t const Address = static_cast<uintX_t>(Data.getAddress(Cur));
+    uint32_t const NumBlocks = ReadULEB128AsUInt32();
     std::vector<typename Elf_BBAddrMap::BBEntry> BBEntries;
     for (uint32_t BlockID = 0; !ULEBSizeErr && Cur && (BlockID < NumBlocks);
          ++BlockID) {
-      uint32_t Offset = ReadULEB128AsUInt32();
-      uint32_t Size = ReadULEB128AsUInt32();
-      uint32_t Metadata = ReadULEB128AsUInt32();
+      uint32_t const Offset = ReadULEB128AsUInt32();
+      uint32_t const Size = ReadULEB128AsUInt32();
+      uint32_t const Metadata = ReadULEB128AsUInt32();
       BBEntries.push_back({Offset, Size, Metadata});
     }
     FunctionEntries.push_back({Address, BBEntries});

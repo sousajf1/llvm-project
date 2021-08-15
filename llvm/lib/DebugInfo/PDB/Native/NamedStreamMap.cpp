@@ -69,7 +69,7 @@ Error NamedStreamMap::commit(BinaryStreamWriter &Writer) const {
     return EC;
 
   // Then the actual string data.
-  StringRef Data(NamesBuffer.data(), NamesBuffer.size());
+  StringRef const Data(NamesBuffer.data(), NamesBuffer.size());
   if (auto EC = Writer.writeFixedString(Data))
     return EC;
 
@@ -108,14 +108,14 @@ bool NamedStreamMap::get(StringRef Stream, uint32_t &StreamNo) const {
 StringMap<uint32_t> NamedStreamMap::entries() const {
   StringMap<uint32_t> Result;
   for (const auto &Entry : OffsetIndexMap) {
-    StringRef Stream(NamesBuffer.data() + Entry.first);
+    StringRef const Stream(NamesBuffer.data() + Entry.first);
     Result.try_emplace(Stream, Entry.second);
   }
   return Result;
 }
 
 uint32_t NamedStreamMap::appendStringData(StringRef S) {
-  uint32_t Offset = NamesBuffer.size();
+  uint32_t const Offset = NamesBuffer.size();
   llvm::append_range(NamesBuffer, S);
   NamesBuffer.push_back('\0');
   return Offset;

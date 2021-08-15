@@ -195,7 +195,7 @@ bool PHILinearize::findSourcesFromMBB(MachineBasicBlock *SourceMBB,
 
 void PHILinearize::addDest(unsigned DestReg, const DebugLoc &DL) {
   assert(findPHIInfoElement(DestReg) == nullptr && "Dest already exsists");
-  PHISourcesT EmptySet;
+  PHISourcesT const EmptySet;
   PHIInfoElementT *NewElement = new PHIInfoElementT();
   NewElement->DestReg = DestReg;
   NewElement->DL = DL;
@@ -248,7 +248,7 @@ LLVM_DUMP_METHOD void PHILinearize::dump(MachineRegisterInfo *MRI) {
   const TargetRegisterInfo *TRI = MRI->getTargetRegisterInfo();
   dbgs() << "=PHIInfo Start=\n";
   for (auto PII : this->PHIInfo) {
-    PHIInfoElementT &Element = *PII;
+    PHIInfoElementT  const&Element = *PII;
     dbgs() << "Dest: " << printReg(Element.DestReg, TRI)
            << " Sources: {";
     for (auto &SI : Element.Sources) {
@@ -617,7 +617,7 @@ MRT::initializeMRT(MachineFunction &MF, const MachineRegionInfo *RegionInfo,
 RegionMRT *MRT::buildMRT(MachineFunction &MF,
                          const MachineRegionInfo *RegionInfo,
                          const SIInstrInfo *TII, MachineRegisterInfo *MRI) {
-  SmallPtrSet<MachineRegion *, 4> PlacedRegions;
+  SmallPtrSet<MachineRegion *, 4> const PlacedRegions;
   DenseMap<MachineRegion *, RegionMRT *> RegionMap;
   MachineRegion *TopLevelRegion = RegionInfo->getTopLevelRegion();
   RegionMRT *Result = new RegionMRT(TopLevelRegion);
@@ -627,7 +627,7 @@ RegionMRT *MRT::buildMRT(MachineFunction &MF,
   // for the top level region.
   MachineBasicBlock *Exit = initializeMRT(MF, RegionInfo, RegionMap);
 
-  unsigned BBSelectRegIn = createBBSelectReg(TII, MRI);
+  unsigned const BBSelectRegIn = createBBSelectReg(TII, MRI);
   MBBMRT *ExitMRT = new MBBMRT(Exit);
   RegionMap[RegionInfo->getRegionFor(Exit)]->addChild(ExitMRT);
   ExitMRT->setBBSelectRegIn(BBSelectRegIn);
@@ -754,10 +754,10 @@ void LinearizedRegion::storeLiveOuts(MachineBasicBlock *MBB,
     for (auto &II : *(*SI)) {
       if (II.isPHI()) {
         MachineInstr &PHI = II;
-        int numPreds = getPHINumInputs(PHI);
+        int const numPreds = getPHINumInputs(PHI);
         for (int i = 0; i < numPreds; ++i) {
           if (getPHIPred(PHI, i) == MBB) {
-            unsigned PHIReg = getPHISourceReg(PHI, i);
+            unsigned const PHIReg = getPHISourceReg(PHI, i);
             LLVM_DEBUG(dbgs()
                        << "Add LiveOut (PhiSource " << printMBBReference(*MBB)
                        << " -> " << printMBBReference(*(*SI))
@@ -825,10 +825,10 @@ void LinearizedRegion::storeLiveOuts(RegionMRT *Region,
     for (auto &II : *Succ) {
       if (II.isPHI()) {
         MachineInstr &PHI = II;
-        int numPreds = getPHINumInputs(PHI);
+        int const numPreds = getPHINumInputs(PHI);
         for (int i = 0; i < numPreds; ++i) {
           if (Region->contains(getPHIPred(PHI, i))) {
-            unsigned PHIReg = getPHISourceReg(PHI, i);
+            unsigned const PHIReg = getPHISourceReg(PHI, i);
             LLVM_DEBUG(dbgs() << "Add Region LiveOut (" << (void *)Region
                               << "): " << printReg(PHIReg, TRI) << "\n");
             addLiveOut(PHIReg);
@@ -924,10 +924,10 @@ void LinearizedRegion::replaceRegister(unsigned Register,
     if (O.isDef())
       continue;
 
-    bool IsInside = contains(O.getParent()->getParent());
-    bool IsLoopPHI = IsInside && (O.getParent()->isPHI() &&
+    bool const IsInside = contains(O.getParent()->getParent());
+    bool const IsLoopPHI = IsInside && (O.getParent()->isPHI() &&
                                   O.getParent()->getParent() == getEntry());
-    bool ShouldReplace = (IsInside && ReplaceInside) ||
+    bool const ShouldReplace = (IsInside && ReplaceInside) ||
                          (!IsInside && ReplaceOutside) ||
                          (IncludeLoopPHI && IsLoopPHI);
     if (ShouldReplace) {
@@ -1006,7 +1006,7 @@ void LinearizedRegion::removeFalseRegisterKills(MachineRegisterInfo *MRI) {
     for (auto &II : *MBB) {
       for (auto &RI : II.uses()) {
         if (RI.isReg()) {
-          Register Reg = RI.getReg();
+          Register const Reg = RI.getReg();
           if (Reg.isVirtual()) {
             if (hasNoDef(Reg, MRI))
               continue;
@@ -1028,7 +1028,7 @@ void LinearizedRegion::removeFalseRegisterKills(MachineRegisterInfo *MRI) {
             assert(MRI->hasOneDef(Reg) && "Register has multiple definitions");
             MachineOperand *Def = &(*(MRI->def_begin(Reg)));
             MachineOperand *UseOperand = &(RI);
-            bool UseIsOutsideDefMBB = Def->getParent()->getParent() != MBB;
+            bool const UseIsOutsideDefMBB = Def->getParent()->getParent() != MBB;
             if (UseIsOutsideDefMBB && UseOperand->isKill()) {
               LLVM_DEBUG(dbgs() << "Removing kill flag on register: "
                                 << printReg(Reg, TRI) << "\n");
@@ -1279,7 +1279,7 @@ static void fixRegionTerminator(RegionMRT *Region) {
   LinearizedRegion *LRegion = Region->getLinearizedRegion();
   auto Exit = LRegion->getExit();
 
-  SmallPtrSet<MachineBasicBlock *, 2> Successors;
+  SmallPtrSet<MachineBasicBlock *, 2> const Successors;
   for (MachineBasicBlock::const_succ_iterator SI = Exit->succ_begin(),
                                               SE = Exit->succ_end();
        SI != SE; ++SI) {
@@ -1336,7 +1336,7 @@ void fixupRegionExits(RegionMRT *Region) {
 void AMDGPUMachineCFGStructurizer::getPHIRegionIndices(
     RegionMRT *Region, MachineInstr &PHI,
     SmallVector<unsigned, 2> &PHIRegionIndices) {
-  unsigned NumInputs = getPHINumInputs(PHI);
+  unsigned const NumInputs = getPHINumInputs(PHI);
   for (unsigned i = 0; i < NumInputs; ++i) {
     MachineBasicBlock *Pred = getPHIPred(PHI, i);
     if (Region->contains(Pred)) {
@@ -1348,7 +1348,7 @@ void AMDGPUMachineCFGStructurizer::getPHIRegionIndices(
 void AMDGPUMachineCFGStructurizer::getPHIRegionIndices(
     LinearizedRegion *Region, MachineInstr &PHI,
     SmallVector<unsigned, 2> &PHIRegionIndices) {
-  unsigned NumInputs = getPHINumInputs(PHI);
+  unsigned const NumInputs = getPHINumInputs(PHI);
   for (unsigned i = 0; i < NumInputs; ++i) {
     MachineBasicBlock *Pred = getPHIPred(PHI, i);
     if (Region->contains(Pred)) {
@@ -1360,7 +1360,7 @@ void AMDGPUMachineCFGStructurizer::getPHIRegionIndices(
 void AMDGPUMachineCFGStructurizer::getPHINonRegionIndices(
     LinearizedRegion *Region, MachineInstr &PHI,
     SmallVector<unsigned, 2> &PHINonRegionIndices) {
-  unsigned NumInputs = getPHINumInputs(PHI);
+  unsigned const NumInputs = getPHINumInputs(PHI);
   for (unsigned i = 0; i < NumInputs; ++i) {
     MachineBasicBlock *Pred = getPHIPred(PHI, i);
     if (!Region->contains(Pred)) {
@@ -1377,7 +1377,7 @@ void AMDGPUMachineCFGStructurizer::storePHILinearizationInfoDest(
       PHIInfo.addSource(LDestReg, getPHISourceReg(PHI, i), getPHIPred(PHI, i));
     }
   } else {
-    unsigned NumInputs = getPHINumInputs(PHI);
+    unsigned const NumInputs = getPHINumInputs(PHI);
     for (unsigned i = 0; i < NumInputs; ++i) {
       PHIInfo.addSource(LDestReg, getPHISourceReg(PHI, i), getPHIPred(PHI, i));
     }
@@ -1386,8 +1386,8 @@ void AMDGPUMachineCFGStructurizer::storePHILinearizationInfoDest(
 
 unsigned AMDGPUMachineCFGStructurizer::storePHILinearizationInfo(
     MachineInstr &PHI, SmallVector<unsigned, 2> *RegionIndices) {
-  unsigned DestReg = getPHIDestReg(PHI);
-  Register LinearizeDestReg =
+  unsigned const DestReg = getPHIDestReg(PHI);
+  Register const LinearizeDestReg =
       MRI->createVirtualRegister(MRI->getRegClass(DestReg));
   PHIInfo.addDest(LinearizeDestReg, PHI.getDebugLoc());
   storePHILinearizationInfoDest(LinearizeDestReg, PHI, RegionIndices);
@@ -1403,7 +1403,7 @@ void AMDGPUMachineCFGStructurizer::extractKilledPHIs(MachineBasicBlock *MBB) {
        I != E; ++I) {
     MachineInstr &Instr = *I;
     if (Instr.isPHI()) {
-      unsigned PHIDestReg = getPHIDestReg(Instr);
+      unsigned const PHIDestReg = getPHIDestReg(Instr);
       LLVM_DEBUG(dbgs() << "Extractking killed phi:\n");
       LLVM_DEBUG(Instr.dump());
       PHIs.insert(&Instr);
@@ -1439,7 +1439,7 @@ bool AMDGPUMachineCFGStructurizer::shrinkPHI(MachineInstr &PHI,
                     << " = PHI(");
 
   bool Replaced = false;
-  unsigned NumInputs = getPHINumInputs(PHI);
+  unsigned const NumInputs = getPHINumInputs(PHI);
   int SingleExternalEntryIndex = -1;
   for (unsigned i = 0; i < NumInputs; ++i) {
     if (!isPHIRegionIndex(PHIIndices, i)) {
@@ -1460,7 +1460,7 @@ bool AMDGPUMachineCFGStructurizer::shrinkPHI(MachineInstr &PHI,
     Replaced = true;
   } else {
     MachineBasicBlock *MBB = PHI.getParent();
-    MachineInstrBuilder MIB =
+    MachineInstrBuilder const MIB =
         BuildMI(*MBB, PHI, PHI.getDebugLoc(), TII->get(TargetOpcode::PHI),
                 getPHIDestReg(PHI));
     if (SourceMBB) {
@@ -1474,7 +1474,7 @@ bool AMDGPUMachineCFGStructurizer::shrinkPHI(MachineInstr &PHI,
       if (isPHIRegionIndex(PHIIndices, i)) {
         continue;
       }
-      unsigned SourceReg = getPHISourceReg(PHI, i);
+      unsigned const SourceReg = getPHISourceReg(PHI, i);
       MachineBasicBlock *SourcePred = getPHIPred(PHI, i);
       MIB.addReg(SourceReg);
       MIB.addMBB(SourcePred);
@@ -1496,7 +1496,7 @@ void AMDGPUMachineCFGStructurizer::replacePHI(
                     << " = PHI(");
 
   bool HasExternalEdge = false;
-  unsigned NumInputs = getPHINumInputs(PHI);
+  unsigned const NumInputs = getPHINumInputs(PHI);
   for (unsigned i = 0; i < NumInputs; ++i) {
     if (!isPHIRegionIndex(PHIRegionIndices, i)) {
       HasExternalEdge = true;
@@ -1505,7 +1505,7 @@ void AMDGPUMachineCFGStructurizer::replacePHI(
 
   if (HasExternalEdge) {
     MachineBasicBlock *MBB = PHI.getParent();
-    MachineInstrBuilder MIB =
+    MachineInstrBuilder const MIB =
         BuildMI(*MBB, PHI, PHI.getDebugLoc(), TII->get(TargetOpcode::PHI),
                 getPHIDestReg(PHI));
     MIB.addReg(CombinedSourceReg);
@@ -1516,7 +1516,7 @@ void AMDGPUMachineCFGStructurizer::replacePHI(
       if (isPHIRegionIndex(PHIRegionIndices, i)) {
         continue;
       }
-      unsigned SourceReg = getPHISourceReg(PHI, i);
+      unsigned const SourceReg = getPHISourceReg(PHI, i);
       MachineBasicBlock *SourcePred = getPHIPred(PHI, i);
       MIB.addReg(SourceReg);
       MIB.addMBB(SourcePred);
@@ -1537,7 +1537,7 @@ void AMDGPUMachineCFGStructurizer::replaceEntryPHI(
   LLVM_DEBUG(PHI.dump());
   LLVM_DEBUG(dbgs() << " with ");
 
-  unsigned NumInputs = getPHINumInputs(PHI);
+  unsigned const NumInputs = getPHINumInputs(PHI);
   unsigned NumNonRegionInputs = NumInputs;
   for (unsigned i = 0; i < NumInputs; ++i) {
     if (isPHIRegionIndex(PHIRegionIndices, i)) {
@@ -1554,19 +1554,19 @@ void AMDGPUMachineCFGStructurizer::replaceEntryPHI(
   } else {
     LLVM_DEBUG(dbgs() << printReg(getPHIDestReg(PHI), TRI) << " = PHI(");
     MachineBasicBlock *MBB = PHI.getParent();
-    MachineInstrBuilder MIB =
+    MachineInstrBuilder const MIB =
         BuildMI(*MBB, PHI, PHI.getDebugLoc(), TII->get(TargetOpcode::PHI),
                 getPHIDestReg(PHI));
     MIB.addReg(CombinedSourceReg);
     MIB.addMBB(IfMBB);
     LLVM_DEBUG(dbgs() << printReg(CombinedSourceReg, TRI) << ", "
                       << printMBBReference(*IfMBB));
-    unsigned NumInputs = getPHINumInputs(PHI);
+    unsigned const NumInputs = getPHINumInputs(PHI);
     for (unsigned i = 0; i < NumInputs; ++i) {
       if (isPHIRegionIndex(PHIRegionIndices, i)) {
         continue;
       }
-      unsigned SourceReg = getPHISourceReg(PHI, i);
+      unsigned const SourceReg = getPHISourceReg(PHI, i);
       MachineBasicBlock *SourcePred = getPHIPred(PHI, i);
       MIB.addReg(SourceReg);
       MIB.addMBB(SourcePred);
@@ -1583,7 +1583,7 @@ void AMDGPUMachineCFGStructurizer::replaceLiveOutRegs(
     unsigned CombinedSourceReg, LinearizedRegion *LRegion) {
   bool WasLiveOut = false;
   for (auto PII : PHIRegionIndices) {
-    unsigned Reg = getPHISourceReg(PHI, PII);
+    unsigned const Reg = getPHISourceReg(PHI, PII);
     if (LRegion->isLiveOut(Reg)) {
       bool IsDead = true;
 
@@ -1615,7 +1615,7 @@ void AMDGPUMachineCFGStructurizer::rewriteRegionExitPHI(RegionMRT *Region,
                                                   LinearizedRegion *LRegion) {
   SmallVector<unsigned, 2> PHIRegionIndices;
   getPHIRegionIndices(Region, PHI, PHIRegionIndices);
-  unsigned LinearizedSourceReg =
+  unsigned const LinearizedSourceReg =
       storePHILinearizationInfo(PHI, &PHIRegionIndices);
 
   replacePHI(PHI, LinearizedSourceReg, LastMerge, PHIRegionIndices);
@@ -1627,7 +1627,7 @@ void AMDGPUMachineCFGStructurizer::rewriteRegionEntryPHI(LinearizedRegion *Regio
                                                    MachineInstr &PHI) {
   SmallVector<unsigned, 2> PHINonRegionIndices;
   getPHINonRegionIndices(Region, PHI, PHINonRegionIndices);
-  unsigned LinearizedSourceReg =
+  unsigned const LinearizedSourceReg =
       storePHILinearizationInfo(PHI, &PHINonRegionIndices);
   replaceEntryPHI(PHI, LinearizedSourceReg, IfMBB, PHINonRegionIndices);
 }
@@ -1673,8 +1673,8 @@ void AMDGPUMachineCFGStructurizer::insertUnconditionalBranch(MachineBasicBlock *
                                                        const DebugLoc &DL) {
   LLVM_DEBUG(dbgs() << "Inserting unconditional branch: " << MBB->getNumber()
                     << " -> " << Dest->getNumber() << "\n");
-  MachineBasicBlock::instr_iterator Terminator = MBB->getFirstInstrTerminator();
-  bool HasTerminator = Terminator != MBB->instr_end();
+  MachineBasicBlock::instr_iterator const Terminator = MBB->getFirstInstrTerminator();
+  bool const HasTerminator = Terminator != MBB->instr_end();
   if (HasTerminator) {
     TII->ReplaceTailWithBranchTo(Terminator, Dest);
   }
@@ -1714,10 +1714,10 @@ AMDGPUMachineCFGStructurizer::createLinearizedExitBlock(RegionMRT *Region) {
 
   MachineBasicBlock *LastMerge = MF->CreateMachineBasicBlock();
   if (Exit == nullptr) {
-    MachineFunction::iterator ExitIter = MF->end();
+    MachineFunction::iterator const ExitIter = MF->end();
     MF->insert(ExitIter, LastMerge);
   } else {
-    MachineFunction::iterator ExitIter = Exit->getIterator();
+    MachineFunction::iterator const ExitIter = Exit->getIterator();
     MF->insert(ExitIter, LastMerge);
     LastMerge->addSuccessor(Exit);
     insertUnconditionalBranch(LastMerge, Exit);
@@ -1745,7 +1745,7 @@ void AMDGPUMachineCFGStructurizer::insertMergePHI(MachineBasicBlock *IfBB,
                     << printReg(CodeSourceRegister, TRI) << ", "
                     << printMBBReference(*CodeBB) << ")\n");
   const DebugLoc &DL = MergeBB->findDebugLoc(MergeBB->begin());
-  MachineInstrBuilder MIB = BuildMI(*MergeBB, MergeBB->instr_begin(), DL,
+  MachineInstrBuilder const MIB = BuildMI(*MergeBB, MergeBB->instr_begin(), DL,
                                     TII->get(TargetOpcode::PHI), DestRegister);
   if (IsUndefIfSource && false) {
     MIB.addReg(IfSourceRegister, RegState::Undef);
@@ -1774,7 +1774,7 @@ static void removeExternalCFGEdges(MachineBasicBlock *StartMBB,
   // structurized region with a loop will have the entry block split,
   // and the backedge will go to the entry successor.
   DenseSet<std::pair<MachineBasicBlock *, MachineBasicBlock *>> Succs;
-  unsigned SuccSize = StartMBB->succ_size();
+  unsigned const SuccSize = StartMBB->succ_size();
   if (SuccSize > 0) {
     MachineBasicBlock *StartMBBSucc = *(StartMBB->succ_begin());
     for (MachineBasicBlock::succ_iterator PI = EndMBB->succ_begin(),
@@ -1850,15 +1850,15 @@ MachineBasicBlock *AMDGPUMachineCFGStructurizer::createIfBlock(
                     ? SinglePred->findDebugLoc(SinglePred->getFirstTerminator())
                     : DebugLoc();
 
-  Register Reg =
+  Register const Reg =
       TII->insertEQ(IfBB, IfBB->begin(), DL, IfReg,
                     SelectBB->getNumber() /* CodeBBStart->getNumber() */);
   if (&(*(IfBB->getParent()->begin())) == IfBB) {
     TII->materializeImmediate(*IfBB, IfBB->begin(), DL, IfReg,
                               CodeBBStart->getNumber());
   }
-  MachineOperand RegOp = MachineOperand::CreateReg(Reg, false, false, true);
-  ArrayRef<MachineOperand> Cond(RegOp);
+  MachineOperand const RegOp = MachineOperand::CreateReg(Reg, false, false, true);
+  ArrayRef<MachineOperand> const Cond(RegOp);
   TII->insertBranch(*IfBB, MergeBB, CodeBBStart, Cond, DL);
 
   return IfBB;
@@ -1871,7 +1871,7 @@ void AMDGPUMachineCFGStructurizer::ensureCondIsNotKilled(
   if (!Cond[0].isReg())
     return;
 
-  Register CondReg = Cond[0].getReg();
+  Register const CondReg = Cond[0].getReg();
   for (auto UI = MRI->use_begin(CondReg), E = MRI->use_end(); UI != E; ++UI) {
     (*UI).setIsKill(false);
   }
@@ -1910,8 +1910,8 @@ void AMDGPUMachineCFGStructurizer::rewriteCodeBBTerminator(MachineBasicBlock *Co
                               BBSelectReg, TrueBB->getNumber());
   } else {
     const TargetRegisterClass *RegClass = MRI->getRegClass(BBSelectReg);
-    Register TrueBBReg = MRI->createVirtualRegister(RegClass);
-    Register FalseBBReg = MRI->createVirtualRegister(RegClass);
+    Register const TrueBBReg = MRI->createVirtualRegister(RegClass);
+    Register const FalseBBReg = MRI->createVirtualRegister(RegClass);
     TII->materializeImmediate(*CodeBB, CodeBB->getFirstTerminator(), DL,
                               TrueBBReg, TrueBB->getNumber());
     TII->materializeImmediate(*CodeBB, CodeBB->getFirstTerminator(), DL,
@@ -1953,7 +1953,7 @@ void AMDGPUMachineCFGStructurizer::insertChainedPHI(MachineBasicBlock *IfBB,
   // In this function we know we are part of a chain already, so we need
   // to add the registers to the existing chain, and rename the register
   // inside the region.
-  bool IsSingleBB = InnerRegion->getEntry() == InnerRegion->getExit();
+  bool const IsSingleBB = InnerRegion->getEntry() == InnerRegion->getExit();
   MachineInstr *DefInstr = getDefInstr(SourceReg);
   if (DefInstr->isPHI() && DefInstr->getParent() == CodeBB && IsSingleBB) {
     // Handle the case where the def is a PHI-def inside a basic
@@ -1977,8 +1977,8 @@ void AMDGPUMachineCFGStructurizer::insertChainedPHI(MachineBasicBlock *IfBB,
       InnerRegion->replaceRegisterOutsideRegion(SourceReg, DestReg, false, MRI);
     }
     const TargetRegisterClass *RegClass = MRI->getRegClass(DestReg);
-    Register NextDestReg = MRI->createVirtualRegister(RegClass);
-    bool IsLastDef = PHIInfo.getNumSources(DestReg) == 1;
+    Register const NextDestReg = MRI->createVirtualRegister(RegClass);
+    bool const IsLastDef = PHIInfo.getNumSources(DestReg) == 1;
     LLVM_DEBUG(dbgs() << "Insert Chained PHI\n");
     insertMergePHI(IfBB, InnerRegion->getExit(), MergeBB, DestReg, NextDestReg,
                    SourceReg, IsLastDef);
@@ -2009,7 +2009,7 @@ void AMDGPUMachineCFGStructurizer::rewriteLiveOutRegs(MachineBasicBlock *IfBB,
                                                 LinearizedRegion *LRegion) {
   DenseSet<unsigned> *LiveOuts = InnerRegion->getLiveOuts();
   SmallVector<unsigned, 4> OldLiveOuts;
-  bool IsSingleBB = InnerRegion->getEntry() == InnerRegion->getExit();
+  bool const IsSingleBB = InnerRegion->getEntry() == InnerRegion->getExit();
   for (auto OLI : *LiveOuts) {
     OldLiveOuts.push_back(OLI);
   }
@@ -2025,7 +2025,7 @@ void AMDGPUMachineCFGStructurizer::rewriteLiveOutRegs(MachineBasicBlock *IfBB,
       continue;
     }
     LLVM_DEBUG(dbgs() << "\n");
-    unsigned Reg = LI;
+    unsigned const Reg = LI;
     if (/*!PHIInfo.isSource(Reg) &&*/ Reg != InnerRegion->getBBSelectRegOut()) {
       // If the register is live out, we do want to create a phi,
       // unless it is from the Exit block, becasuse in that case there
@@ -2037,8 +2037,8 @@ void AMDGPUMachineCFGStructurizer::rewriteLiveOutRegs(MachineBasicBlock *IfBB,
       // register, unless it is the outgoing BB select register. We have
       // already creaed phi nodes for these.
       const TargetRegisterClass *RegClass = MRI->getRegClass(Reg);
-      Register PHIDestReg = MRI->createVirtualRegister(RegClass);
-      Register IfSourceReg = MRI->createVirtualRegister(RegClass);
+      Register const PHIDestReg = MRI->createVirtualRegister(RegClass);
+      Register const IfSourceReg = MRI->createVirtualRegister(RegClass);
       // Create initializer, this value is never used, but is needed
       // to satisfy SSA.
       LLVM_DEBUG(dbgs() << "Initializer for reg: " << printReg(Reg) << "\n");
@@ -2077,13 +2077,13 @@ void AMDGPUMachineCFGStructurizer::prunePHIInfo(MachineBasicBlock *MBB) {
   for (auto DRI = PHIInfo.dests_begin(), DE = PHIInfo.dests_end(); DRI != DE;
        ++DRI) {
 
-    unsigned DestReg = *DRI;
+    unsigned const DestReg = *DRI;
     auto SE = PHIInfo.sources_end(DestReg);
 
     bool MBBContainsPHISource = false;
     // Check if there is a PHI source in this MBB
     for (auto SRI = PHIInfo.sources_begin(DestReg); SRI != SE; ++SRI) {
-      unsigned SourceReg = (*SRI).first;
+      unsigned const SourceReg = (*SRI).first;
       MachineOperand *Def = &(*(MRI->def_begin(SourceReg)));
       if (Def->getParent()->getParent() == MBB) {
         MBBContainsPHISource = true;
@@ -2094,8 +2094,8 @@ void AMDGPUMachineCFGStructurizer::prunePHIInfo(MachineBasicBlock *MBB) {
     // is always executed when the region is executed.
     if (MBBContainsPHISource) {
       for (auto SRI = PHIInfo.sources_begin(DestReg); SRI != SE; ++SRI) {
-        PHILinearize::PHISourceT Source = *SRI;
-        unsigned SourceReg = Source.first;
+        PHILinearize::PHISourceT const Source = *SRI;
+        unsigned const SourceReg = Source.first;
         MachineBasicBlock *SourceMBB = Source.second;
         MachineOperand *Def = &(*(MRI->def_begin(SourceReg)));
         if (Def->getParent()->getParent() != MBB) {
@@ -2132,18 +2132,18 @@ void AMDGPUMachineCFGStructurizer::createEntryPHI(LinearizedRegion *CurrentRegio
 
   if (NumSources == 1) {
     auto SRI = PHIInfo.sources_begin(DestReg);
-    unsigned SourceReg = (*SRI).first;
+    unsigned const SourceReg = (*SRI).first;
     replaceRegisterWith(DestReg, SourceReg);
   } else {
     const DebugLoc &DL = Entry->findDebugLoc(Entry->begin());
-    MachineInstrBuilder MIB = BuildMI(*Entry, Entry->instr_begin(), DL,
+    MachineInstrBuilder const MIB = BuildMI(*Entry, Entry->instr_begin(), DL,
                                       TII->get(TargetOpcode::PHI), DestReg);
     LLVM_DEBUG(dbgs() << "Entry PHI " << printReg(DestReg, TRI) << " = PHI(");
 
     unsigned CurrentBackedgeReg = 0;
 
     for (auto SRI = PHIInfo.sources_begin(DestReg); SRI != SE; ++SRI) {
-      unsigned SourceReg = (*SRI).first;
+      unsigned const SourceReg = (*SRI).first;
 
       if (CurrentRegion->contains((*SRI).second)) {
         if (CurrentBackedgeReg == 0) {
@@ -2153,8 +2153,8 @@ void AMDGPUMachineCFGStructurizer::createEntryPHI(LinearizedRegion *CurrentRegio
           MachineBasicBlock *PHIDefMBB = PHIDefInstr->getParent();
           const TargetRegisterClass *RegClass =
               MRI->getRegClass(CurrentBackedgeReg);
-          Register NewBackedgeReg = MRI->createVirtualRegister(RegClass);
-          MachineInstrBuilder BackedgePHI =
+          Register const NewBackedgeReg = MRI->createVirtualRegister(RegClass);
+          MachineInstrBuilder const BackedgePHI =
               BuildMI(*PHIDefMBB, PHIDefMBB->instr_begin(), DL,
                       TII->get(TargetOpcode::PHI), NewBackedgeReg);
           BackedgePHI.addReg(CurrentBackedgeReg);
@@ -2196,7 +2196,7 @@ void AMDGPUMachineCFGStructurizer::createEntryPHIs(LinearizedRegion *CurrentRegi
   for (auto DRI = PHIInfo.dests_begin(), DE = PHIInfo.dests_end(); DRI != DE;
        ++DRI) {
 
-    unsigned DestReg = *DRI;
+    unsigned const DestReg = *DRI;
     createEntryPHI(CurrentRegion, DestReg);
   }
   PHIInfo.clear();
@@ -2240,10 +2240,10 @@ void AMDGPUMachineCFGStructurizer::resolvePHIInfos(MachineBasicBlock *FunctionEn
   LLVM_DEBUG(PHIInfo.dump(MRI));
   for (auto DRI = PHIInfo.dests_begin(), DE = PHIInfo.dests_end(); DRI != DE;
        ++DRI) {
-    unsigned DestReg = *DRI;
+    unsigned const DestReg = *DRI;
     LLVM_DEBUG(dbgs() << "DestReg: " << printReg(DestReg, TRI) << "\n");
     auto SRI = PHIInfo.sources_begin(DestReg);
-    unsigned SourceReg = (*SRI).first;
+    unsigned const SourceReg = (*SRI).first;
     LLVM_DEBUG(dbgs() << "DestReg: " << printReg(DestReg, TRI)
                       << " SourceReg: " << printReg(SourceReg, TRI) << "\n");
 
@@ -2290,9 +2290,9 @@ MachineBasicBlock *AMDGPUMachineCFGStructurizer::createIfRegion(
   } else {
     // Handle internal block.
     const TargetRegisterClass *RegClass = MRI->getRegClass(BBSelectRegIn);
-    Register CodeBBSelectReg = MRI->createVirtualRegister(RegClass);
+    Register const CodeBBSelectReg = MRI->createVirtualRegister(RegClass);
     rewriteCodeBBTerminator(CodeBB, MergeBB, CodeBBSelectReg);
-    bool IsRegionEntryBB = CurrentRegion->getEntry() == CodeBB;
+    bool const IsRegionEntryBB = CurrentRegion->getEntry() == CodeBB;
     MachineBasicBlock *IfBB = createIfBlock(MergeBB, CodeBB, CodeBB, CodeBB,
                                             BBSelectRegIn, IsRegionEntryBB);
     CurrentRegion->addMBB(IfBB);
@@ -2312,13 +2312,13 @@ MachineBasicBlock *AMDGPUMachineCFGStructurizer::createIfRegion(
         TII->removeBranch(*RegionExit);
 
         // We need to create a backedge if there is a loop
-        Register Reg = TII->insertNE(
+        Register const Reg = TII->insertNE(
             RegionExit, RegionExit->instr_end(), DL,
             CurrentRegion->getRegionMRT()->getInnerOutputRegister(),
             CurrentRegion->getRegionMRT()->getEntry()->getNumber());
-        MachineOperand RegOp =
+        MachineOperand const RegOp =
             MachineOperand::CreateReg(Reg, false, false, true);
-        ArrayRef<MachineOperand> Cond(RegOp);
+        ArrayRef<MachineOperand> const Cond(RegOp);
         LLVM_DEBUG(dbgs() << "RegionExitReg: ");
         LLVM_DEBUG(Cond[0].print(dbgs(), TRI));
         LLVM_DEBUG(dbgs() << "\n");
@@ -2350,14 +2350,14 @@ MachineBasicBlock *AMDGPUMachineCFGStructurizer::createIfRegion(
     MachineBasicBlock *MergeBB, LinearizedRegion *InnerRegion,
     LinearizedRegion *CurrentRegion, MachineBasicBlock *SelectBB,
     unsigned BBSelectRegIn, unsigned BBSelectRegOut) {
-  unsigned CodeBBSelectReg =
+  unsigned const CodeBBSelectReg =
       InnerRegion->getRegionMRT()->getInnerOutputRegister();
   MachineBasicBlock *CodeEntryBB = InnerRegion->getEntry();
   MachineBasicBlock *CodeExitBB = InnerRegion->getExit();
   MachineBasicBlock *IfBB = createIfBlock(MergeBB, CodeEntryBB, CodeExitBB,
                                           SelectBB, BBSelectRegIn, true);
   CurrentRegion->addMBB(IfBB);
-  bool isEntry = CurrentRegion->getEntry() == InnerRegion->getEntry();
+  bool const isEntry = CurrentRegion->getEntry() == InnerRegion->getEntry();
   if (isEntry) {
 
     if (CurrentRegion->getHasLoop()) {
@@ -2371,12 +2371,12 @@ MachineBasicBlock *AMDGPUMachineCFGStructurizer::createIfRegion(
       TII->removeBranch(*RegionExit);
 
       // We need to create a backedge if there is a loop
-      Register Reg =
+      Register const Reg =
           TII->insertNE(RegionExit, RegionExit->instr_end(), DL,
                         CurrentRegion->getRegionMRT()->getInnerOutputRegister(),
                         CurrentRegion->getRegionMRT()->getEntry()->getNumber());
-      MachineOperand RegOp = MachineOperand::CreateReg(Reg, false, false, true);
-      ArrayRef<MachineOperand> Cond(RegOp);
+      MachineOperand const RegOp = MachineOperand::CreateReg(Reg, false, false, true);
+      ArrayRef<MachineOperand> const Cond(RegOp);
       LLVM_DEBUG(dbgs() << "RegionExitReg: ");
       LLVM_DEBUG(Cond[0].print(dbgs(), TRI));
       LLVM_DEBUG(dbgs() << "\n");
@@ -2415,10 +2415,10 @@ void AMDGPUMachineCFGStructurizer::splitLoopPHI(MachineInstr &PHI,
 
   assert(PHIRegionIndices.size() == 1);
 
-  unsigned RegionIndex = PHIRegionIndices[0];
-  unsigned RegionSourceReg = getPHISourceReg(PHI, RegionIndex);
+  unsigned const RegionIndex = PHIRegionIndices[0];
+  unsigned const RegionSourceReg = getPHISourceReg(PHI, RegionIndex);
   MachineBasicBlock *RegionSourceMBB = getPHIPred(PHI, RegionIndex);
-  unsigned PHIDest = getPHIDestReg(PHI);
+  unsigned const PHIDest = getPHIDestReg(PHI);
   unsigned PHISource = PHIDest;
   unsigned ReplaceReg;
 
@@ -2427,9 +2427,9 @@ void AMDGPUMachineCFGStructurizer::splitLoopPHI(MachineInstr &PHI,
   }
 
   const TargetRegisterClass *RegClass = MRI->getRegClass(PHIDest);
-  Register NewDestReg = MRI->createVirtualRegister(RegClass);
+  Register const NewDestReg = MRI->createVirtualRegister(RegClass);
   LRegion->replaceRegisterInsideRegion(PHIDest, NewDestReg, false, MRI);
-  MachineInstrBuilder MIB =
+  MachineInstrBuilder const MIB =
       BuildMI(*EntrySucc, EntrySucc->instr_begin(), PHI.getDebugLoc(),
               TII->get(TargetOpcode::PHI), NewDestReg);
   LLVM_DEBUG(dbgs() << "Split Entry PHI " << printReg(NewDestReg, TRI)
@@ -2485,7 +2485,7 @@ AMDGPUMachineCFGStructurizer::splitExit(LinearizedRegion *LRegion) {
     if (!Instr.isPHI())
       break;
 
-    int numPreds = getPHINumInputs(Instr);
+    int const numPreds = getPHINumInputs(Instr);
     for (int i = 0; i < numPreds; ++i) {
       auto Pred = getPHIPred(Instr, i);
       if (Pred == Exit) {
@@ -2651,8 +2651,8 @@ bool AMDGPUMachineCFGStructurizer::structurizeComplexRegion(RegionMRT *Region) {
       MachineBasicBlock *InnerEntry = InnerLRegion->getEntry();
       if ((&(*(InnerEntry->getParent()->begin()))) == InnerEntry) {
         // Entry has already been linearized, no need to do this region.
-        unsigned OuterSelect = InnerLRegion->getBBSelectRegOut();
-        unsigned InnerSelectReg =
+        unsigned const OuterSelect = InnerLRegion->getBBSelectRegOut();
+        unsigned const InnerSelectReg =
             InnerLRegion->getRegionMRT()->getInnerOutputRegister();
         replaceRegisterWith(InnerSelectReg, OuterSelect),
             resolvePHIInfos(InnerEntry);
@@ -2714,10 +2714,10 @@ bool AMDGPUMachineCFGStructurizer::structurizeComplexRegion(RegionMRT *Region) {
       resolvePHIInfos(LRegion->getEntry());
     }
     const DebugLoc &DL = NewSucc->findDebugLoc(NewSucc->getFirstNonPHI());
-    unsigned InReg = LRegion->getBBSelectRegIn();
-    Register InnerSelectReg =
+    unsigned const InReg = LRegion->getBBSelectRegIn();
+    Register const InnerSelectReg =
         MRI->createVirtualRegister(MRI->getRegClass(InReg));
-    Register NewInReg = MRI->createVirtualRegister(MRI->getRegClass(InReg));
+    Register const NewInReg = MRI->createVirtualRegister(MRI->getRegClass(InReg));
     TII->materializeImmediate(*(LRegion->getEntry()),
                               LRegion->getEntry()->getFirstTerminator(), DL,
                               NewInReg, Region->getEntry()->getNumber());
@@ -2827,7 +2827,7 @@ AMDGPUMachineCFGStructurizer::initializeSelectRegisters(MRT *MRT, unsigned Selec
     return InnerSelectOut;
   } else {
     MRT->setBBSelectRegOut(SelectOut);
-    unsigned NewSelectIn = createBBSelectReg(TII, MRI);
+    unsigned const NewSelectIn = createBBSelectReg(TII, MRI);
     MRT->setBBSelectRegIn(NewSelectIn);
     return NewSelectIn;
   }
@@ -2840,7 +2840,7 @@ static void checkRegOnlyPHIInputs(MachineFunction &MF) {
          I != E; ++I) {
       MachineInstr &Instr = *I;
       if (Instr.isPHI()) {
-        int numPreds = getPHINumInputs(Instr);
+        int const numPreds = getPHINumInputs(Instr);
         for (int i = 0; i < numPreds; ++i) {
           assert(Instr.getOperand(i * 2 + 1).isReg() &&
                  "PHI Operand not a register");
@@ -2868,7 +2868,7 @@ bool AMDGPUMachineCFGStructurizer::runOnMachineFunction(MachineFunction &MF) {
   setRegionMRT(RTree);
   initializeSelectRegisters(RTree, 0, MRI, TII);
   LLVM_DEBUG(RTree->dump(TRI));
-  bool result = structurizeRegions(RTree, true);
+  bool const result = structurizeRegions(RTree, true);
   delete RTree;
   LLVM_DEBUG(dbgs() << "----STRUCTURIZER END----\n");
   initFallthroughMap(MF);

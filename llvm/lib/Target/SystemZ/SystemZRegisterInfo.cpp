@@ -39,7 +39,7 @@ static const TargetRegisterClass *getRC32(MachineOperand &MO,
     return &SystemZ::GRH32BitRegClass;
 
   if (VRM && VRM->hasPhys(MO.getReg())) {
-    Register PhysReg = VRM->getPhys(MO.getReg());
+    Register const PhysReg = VRM->getPhys(MO.getReg());
     if (SystemZ::GR32BitRegClass.contains(PhysReg))
       return &SystemZ::GR32BitRegClass;
     assert (SystemZ::GRH32BitRegClass.contains(PhysReg) &&
@@ -61,11 +61,11 @@ static void addHints(ArrayRef<MCPhysReg> Order,
   SmallSet<unsigned, 4> CopyHints;
   CopyHints.insert(Hints.begin(), Hints.end());
   Hints.clear();
-  for (MCPhysReg Reg : Order)
+  for (MCPhysReg const Reg : Order)
     if (CopyHints.count(Reg) &&
         RC->contains(Reg) && !MRI->isReserved(Reg))
       Hints.push_back(Reg);
-  for (MCPhysReg Reg : Order)
+  for (MCPhysReg const Reg : Order)
     if (!CopyHints.count(Reg) &&
         RC->contains(Reg) && !MRI->isReserved(Reg))
       Hints.push_back(Reg);
@@ -79,7 +79,7 @@ bool SystemZRegisterInfo::getRegAllocationHints(
   const SystemZSubtarget &Subtarget = MF.getSubtarget<SystemZSubtarget>();
   const TargetRegisterInfo *TRI = Subtarget.getRegisterInfo();
 
-  bool BaseImplRetVal = TargetRegisterInfo::getRegAllocationHints(
+  bool const BaseImplRetVal = TargetRegisterInfo::getRegAllocationHints(
       VirtReg, Order, Hints, MF, VRM, Matrix);
 
   if (VRM != nullptr) {
@@ -106,7 +106,7 @@ bool SystemZRegisterInfo::getRegAllocationHints(
           continue;
 
         auto tryAddHint = [&](const MachineOperand *MO) -> void {
-          Register Reg = MO->getReg();
+          Register const Reg = MO->getReg();
           Register PhysReg = Register::isPhysicalRegister(Reg)
                                  ? Reg
                                  : Register(VRM->getPhys(Reg));
@@ -124,7 +124,7 @@ bool SystemZRegisterInfo::getRegAllocationHints(
         if (CommuMO)
           tryAddHint(CommuMO);
       }
-    for (MCPhysReg OrderReg : Order)
+    for (MCPhysReg const OrderReg : Order)
       if (TwoAddrHints.count(OrderReg))
         Hints.push_back(OrderReg);
   }
@@ -134,7 +134,7 @@ bool SystemZRegisterInfo::getRegAllocationHints(
     SmallSet<Register, 4> DoneRegs;
     Worklist.push_back(VirtReg);
     while (Worklist.size()) {
-      Register Reg = Worklist.pop_back_val();
+      Register const Reg = Worklist.pop_back_val();
       if (!DoneRegs.insert(Reg).second)
         continue;
 
@@ -162,7 +162,7 @@ bool SystemZRegisterInfo::getRegAllocationHints(
           }
 
           // Add the other operand of the LOCRMux to the worklist.
-          Register OtherReg =
+          Register const OtherReg =
               (TrueMO.getReg() == Reg ? FalseMO.getReg() : TrueMO.getReg());
           if (MRI->getRegClass(OtherReg) == &SystemZ::GRX32BitRegClass)
             Worklist.push_back(OtherReg);
@@ -171,7 +171,7 @@ bool SystemZRegisterInfo::getRegAllocationHints(
                  Use.getOpcode() == SystemZ::CFIMux) {
           if (Use.getOperand(1).getImm() == 0) {
             bool OnlyLMuxes = true;
-            for (MachineInstr &DefMI : MRI->def_instructions(VirtReg))
+            for (MachineInstr  const&DefMI : MRI->def_instructions(VirtReg))
               if (DefMI.getOpcode() != SystemZ::LMux)
                 OnlyLMuxes = false;
             if (OnlyLMuxes) {
@@ -289,10 +289,10 @@ SystemZRegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator MI,
   auto *TII =
       static_cast<const SystemZInstrInfo *>(MF.getSubtarget().getInstrInfo());
   const SystemZFrameLowering *TFI = getFrameLowering(MF);
-  DebugLoc DL = MI->getDebugLoc();
+  DebugLoc const DL = MI->getDebugLoc();
 
   // Decompose the frame index into a base and offset.
-  int FrameIndex = MI->getOperand(FIOperandNum).getIndex();
+  int const FrameIndex = MI->getOperand(FIOperandNum).getIndex();
   Register BasePtr;
   int64_t Offset =
       (TFI->getFrameIndexReference(MF, FrameIndex, BasePtr).getFixed() +
@@ -304,7 +304,7 @@ SystemZRegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator MI,
     if (MI->isNonListDebugValue()) {
       MI->getDebugOffset().ChangeToImmediate(Offset);
     } else {
-      unsigned OpIdx = MI->getDebugOperandIndex(&MI->getOperand(FIOperandNum));
+      unsigned const OpIdx = MI->getDebugOperandIndex(&MI->getOperand(FIOperandNum));
       SmallVector<uint64_t, 3> Ops;
       DIExpression::appendOffset(
           Ops, TFI->getFrameIndexReference(MF, FrameIndex, BasePtr).getFixed());
@@ -316,7 +316,7 @@ SystemZRegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator MI,
 
   // See if the offset is in range, or if an equivalent instruction that
   // accepts the offset exists.
-  unsigned Opcode = MI->getOpcode();
+  unsigned const Opcode = MI->getOpcode();
   unsigned OpcodeForOffset = TII->getOpcodeForOffset(Opcode, Offset);
   if (OpcodeForOffset) {
     if (OpcodeForOffset == SystemZ::LE &&
@@ -329,7 +329,7 @@ SystemZRegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator MI,
   else {
     // Create an anchor point that is in range.  Start at 0xffff so that
     // can use LLILH to load the immediate.
-    int64_t OldOffset = Offset;
+    int64_t const OldOffset = Offset;
     int64_t Mask = 0xffff;
     do {
       Offset = OldOffset & Mask;
@@ -338,9 +338,9 @@ SystemZRegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator MI,
       assert(Mask && "One offset must be OK");
     } while (!OpcodeForOffset);
 
-    Register ScratchReg =
+    Register const ScratchReg =
         MF.getRegInfo().createVirtualRegister(&SystemZ::ADDR64BitRegClass);
-    int64_t HighOffset = OldOffset - Offset;
+    int64_t const HighOffset = OldOffset - Offset;
 
     if (MI->getDesc().TSFlags & SystemZII::HasIndex
         && MI->getOperand(FIOperandNum + 2).getReg() == 0) {
@@ -352,7 +352,7 @@ SystemZRegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator MI,
                                                         false, false, true);
     } else {
       // Load the anchor address into a scratch register.
-      unsigned LAOpcode = TII->getOpcodeForOffset(SystemZ::LA, HighOffset);
+      unsigned const LAOpcode = TII->getOpcodeForOffset(SystemZ::LA, HighOffset);
       if (LAOpcode)
         BuildMI(MBB, MI, DL, TII->get(LAOpcode),ScratchReg)
           .addReg(BasePtr).addImm(HighOffset).addReg(0);
@@ -391,11 +391,11 @@ bool SystemZRegisterInfo::shouldCoalesce(MachineInstr *MI,
   // and local to one MBB with not too much interferring registers. Otherwise
   // regalloc may run out of registers.
 
-  unsigned WideOpNo = (getRegSizeInBits(*SrcRC) == 128 ? 1 : 0);
-  Register GR128Reg = MI->getOperand(WideOpNo).getReg();
-  Register GRNarReg = MI->getOperand((WideOpNo == 1) ? 0 : 1).getReg();
-  LiveInterval &IntGR128 = LIS.getInterval(GR128Reg);
-  LiveInterval &IntGRNar = LIS.getInterval(GRNarReg);
+  unsigned const WideOpNo = (getRegSizeInBits(*SrcRC) == 128 ? 1 : 0);
+  Register const GR128Reg = MI->getOperand(WideOpNo).getReg();
+  Register const GRNarReg = MI->getOperand((WideOpNo == 1) ? 0 : 1).getReg();
+  LiveInterval  const&IntGR128 = LIS.getInterval(GR128Reg);
+  LiveInterval  const&IntGRNar = LIS.getInterval(GRNarReg);
 
   // Check that the two virtual registers are local to MBB.
   MachineBasicBlock *MBB = MI->getParent();

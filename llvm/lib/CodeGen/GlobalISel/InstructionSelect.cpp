@@ -92,7 +92,7 @@ bool InstructionSelect::runOnMachineFunction(MachineFunction &MF) {
   const TargetPassConfig &TPC = getAnalysis<TargetPassConfig>();
   InstructionSelector *ISel = MF.getSubtarget().getInstructionSelector();
 
-  CodeGenOpt::Level OldOptLevel = OptLevel;
+  CodeGenOpt::Level const OldOptLevel = OptLevel;
   auto RestoreOptLevel = make_scope_exit([=]() { OptLevel = OldOptLevel; });
   OptLevel = MF.getFunction().hasOptNone() ? CodeGenOpt::None
                                            : MF.getTarget().getOptLevel();
@@ -166,8 +166,8 @@ bool InstructionSelect::runOnMachineFunction(MachineFunction &MF) {
 
       // Eliminate hints.
       if (isPreISelGenericOptimizationHint(MI.getOpcode())) {
-        Register DstReg = MI.getOperand(0).getReg();
-        Register SrcReg = MI.getOperand(1).getReg();
+        Register const DstReg = MI.getOperand(0).getReg();
+        Register const SrcReg = MI.getOperand(1).getReg();
 
         // At this point, the destination register class of the hint may have
         // been decided.
@@ -218,8 +218,8 @@ bool InstructionSelect::runOnMachineFunction(MachineFunction &MF) {
         --MII;
       if (MI.getOpcode() != TargetOpcode::COPY)
         continue;
-      Register SrcReg = MI.getOperand(1).getReg();
-      Register DstReg = MI.getOperand(0).getReg();
+      Register const SrcReg = MI.getOperand(1).getReg();
+      Register const DstReg = MI.getOperand(0).getReg();
       if (Register::isVirtualRegister(SrcReg) &&
           Register::isVirtualRegister(DstReg)) {
         auto SrcRC = MRI.getRegClass(SrcReg);
@@ -238,7 +238,7 @@ bool InstructionSelect::runOnMachineFunction(MachineFunction &MF) {
   // that the size of the now-constrained vreg is unchanged and that it has a
   // register class.
   for (unsigned I = 0, E = MRI.getNumVirtRegs(); I != E; ++I) {
-    unsigned VReg = Register::index2VirtReg(I);
+    unsigned const VReg = Register::index2VirtReg(I);
 
     MachineInstr *MI = nullptr;
     if (!MRI.def_empty(VReg))

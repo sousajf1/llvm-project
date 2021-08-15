@@ -171,7 +171,7 @@ bool LoopExtractor::runOnFunction(Function &F) {
   if (F.empty())
     return false;
 
-  bool Changed = false;
+  bool const Changed = false;
   LoopInfo &LI = LookupLoopInfo(F);
 
   // If there are no loops in the function.
@@ -245,7 +245,7 @@ bool LoopExtractor::extractLoop(Loop *L, LoopInfo &LI, DominatorTree &DT) {
   assert(NumLoops != 0);
   Function &Func = *L->getHeader()->getParent();
   AssumptionCache *AC = LookupAssumptionCache(Func);
-  CodeExtractorAnalysisCache CEAC(Func);
+  CodeExtractorAnalysisCache const CEAC(Func);
   CodeExtractor Extractor(DT, *L, false, nullptr, nullptr, AC);
   if (Extractor.extractCodeRegion(CEAC)) {
     LI.erase(L);

@@ -72,15 +72,15 @@ Error BinaryStreamReader::readSLEB128(int64_t &Dest) {
 }
 
 Error BinaryStreamReader::readCString(StringRef &Dest) {
-  uint32_t OriginalOffset = getOffset();
+  uint32_t const OriginalOffset = getOffset();
   uint32_t FoundOffset = 0;
   while (true) {
-    uint32_t ThisOffset = getOffset();
+    uint32_t const ThisOffset = getOffset();
     ArrayRef<uint8_t> Buffer;
     if (auto EC = readLongestContiguousChunk(Buffer))
       return EC;
-    StringRef S(reinterpret_cast<const char *>(Buffer.begin()), Buffer.size());
-    size_t Pos = S.find_first_of('\0');
+    StringRef const S(reinterpret_cast<const char *>(Buffer.begin()), Buffer.size());
+    size_t const Pos = S.find_first_of('\0');
     if (LLVM_LIKELY(Pos != StringRef::npos)) {
       FoundOffset = Pos + ThisOffset;
       break;
@@ -89,7 +89,7 @@ Error BinaryStreamReader::readCString(StringRef &Dest) {
   assert(FoundOffset >= OriginalOffset);
 
   setOffset(OriginalOffset);
-  size_t Length = FoundOffset - OriginalOffset;
+  size_t const Length = FoundOffset - OriginalOffset;
 
   if (auto EC = readFixedString(Dest, Length))
     return EC;
@@ -101,7 +101,7 @@ Error BinaryStreamReader::readCString(StringRef &Dest) {
 
 Error BinaryStreamReader::readWideString(ArrayRef<UTF16> &Dest) {
   uint32_t Length = 0;
-  uint32_t OriginalOffset = getOffset();
+  uint32_t const OriginalOffset = getOffset();
   const UTF16 *C;
   while (true) {
     if (auto EC = readObject(C))
@@ -110,7 +110,7 @@ Error BinaryStreamReader::readWideString(ArrayRef<UTF16> &Dest) {
       break;
     ++Length;
   }
-  uint32_t NewOffset = getOffset();
+  uint32_t const NewOffset = getOffset();
   setOffset(OriginalOffset);
 
   if (auto EC = readArray(Dest, Length))
@@ -153,7 +153,7 @@ Error BinaryStreamReader::skip(uint32_t Amount) {
 }
 
 Error BinaryStreamReader::padToAlignment(uint32_t Align) {
-  uint32_t NewOffset = alignTo(Offset, Align);
+  uint32_t const NewOffset = alignTo(Offset, Align);
   return skip(NewOffset - Offset);
 }
 
@@ -171,9 +171,9 @@ BinaryStreamReader::split(uint32_t Off) const {
 
   BinaryStreamRef First = Stream.drop_front(Offset);
 
-  BinaryStreamRef Second = First.drop_front(Off);
+  BinaryStreamRef const Second = First.drop_front(Off);
   First = First.keep_front(Off);
-  BinaryStreamReader W1{First};
-  BinaryStreamReader W2{Second};
+  BinaryStreamReader const W1{First};
+  BinaryStreamReader const W2{Second};
   return std::make_pair(W1, W2);
 }

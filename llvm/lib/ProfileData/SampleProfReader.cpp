@@ -81,8 +81,8 @@ static bool ParseHead(const StringRef &Input, StringRef &FName,
                       uint64_t &NumSamples, uint64_t &NumHeadSamples) {
   if (Input[0] == ' ')
     return false;
-  size_t n2 = Input.rfind(':');
-  size_t n1 = Input.rfind(':', n2 - 1);
+  size_t const n2 = Input.rfind(':');
+  size_t const n1 = Input.rfind(':', n2 - 1);
   FName = Input.substr(0, n1);
   if (Input.substr(n1 + 1, n2 - n1 - 1).getAsInteger(10, NumSamples))
     return false;
@@ -104,12 +104,12 @@ static bool isOffsetLegal(unsigned L) { return (L & 0xffff) == L; }
 static bool parseMetadata(const StringRef &Input, uint64_t &FunctionHash,
                           uint32_t &Attributes) {
   if (Input.startswith("!CFGChecksum:")) {
-    StringRef CFGInfo = Input.substr(strlen("!CFGChecksum:")).trim();
+    StringRef const CFGInfo = Input.substr(strlen("!CFGChecksum:")).trim();
     return !CFGInfo.getAsInteger(10, FunctionHash);
   }
 
   if (Input.startswith("!Attributes:")) {
-    StringRef Attrib = Input.substr(strlen("!Attributes:")).trim();
+    StringRef const Attrib = Input.substr(strlen("!Attributes:")).trim();
     return !Attrib.getAsInteger(10, Attributes);
   }
 
@@ -149,9 +149,9 @@ static bool ParseLine(const StringRef &Input, LineType &LineTy, uint32_t &Depth,
     return parseMetadata(Input.substr(Depth), FunctionHash, Attributes);
   }
 
-  size_t n1 = Input.find(':');
-  StringRef Loc = Input.substr(Depth, n1 - Depth);
-  size_t n2 = Loc.find('.');
+  size_t const n1 = Input.find(':');
+  StringRef const Loc = Input.substr(Depth, n1 - Depth);
+  size_t const n2 = Loc.find('.');
   if (n2 == StringRef::npos) {
     if (Loc.getAsInteger(10, LineOffset) || !isOffsetLegal(LineOffset))
       return false;
@@ -197,18 +197,18 @@ static bool ParseLine(const StringRef &Input, LineType &LineTy, uint32_t &Depth,
       uint64_t count, n4;
       while (true) {
         // Get the segment after the current colon.
-        StringRef AfterColon = Rest.substr(n3 + 1);
+        StringRef const AfterColon = Rest.substr(n3 + 1);
         // Get the target symbol before the current colon.
         Target = Rest.substr(0, n3);
         // Check if the word after the current colon is an integer.
         n4 = AfterColon.find_first_of(' ');
         n4 = (n4 != StringRef::npos) ? n3 + n4 + 1 : Rest.size();
-        StringRef WordAfterColon = Rest.substr(n3 + 1, n4 - n3 - 1);
+        StringRef const WordAfterColon = Rest.substr(n3 + 1, n4 - n3 - 1);
         if (!WordAfterColon.getAsInteger(10, count))
           break;
 
         // Try to find the next colon.
-        uint64_t n5 = AfterColon.find_first_of(':');
+        uint64_t const n5 = AfterColon.find_first_of(':');
         if (n5 == StringRef::npos)
           return false;
         n3 += n5 + 1;
@@ -223,7 +223,7 @@ static bool ParseLine(const StringRef &Input, LineType &LineTy, uint32_t &Depth,
     }
   } else {
     LineTy = LineType::CallSiteProfile;
-    size_t n3 = Rest.find_last_of(':');
+    size_t const n3 = Rest.find_last_of(':');
     CalleeName = Rest.substr(0, n3);
     if (Rest.substr(n3 + 1).getAsInteger(10, NumSamples))
       return false;
@@ -273,7 +273,7 @@ std::error_code SampleProfileReaderText::readImpl() {
         return sampleprof_error::malformed;
       }
       SeenMetadata = false;
-      SampleContext FContext(FName);
+      SampleContext const FContext(FName);
       if (FContext.hasContext())
         ++CSProfileCount;
       Profiles[FContext] = FunctionSamples();
@@ -370,7 +370,7 @@ bool SampleProfileReaderText::hasFormat(const MemoryBuffer &Buffer) {
   bool result = false;
 
   // Check that the first non-comment line is a valid function header.
-  line_iterator LineIt(Buffer, /*SkipBlanks=*/true, '#');
+  line_iterator const LineIt(Buffer, /*SkipBlanks=*/true, '#');
   if (!LineIt.is_at_eof()) {
     if ((*LineIt)[0] != ' ') {
       uint64_t NumSamples, NumHeadSamples;
@@ -385,7 +385,7 @@ bool SampleProfileReaderText::hasFormat(const MemoryBuffer &Buffer) {
 template <typename T> ErrorOr<T> SampleProfileReaderBinary::readNumber() {
   unsigned NumBytesRead = 0;
   std::error_code EC;
-  uint64_t Val = decodeULEB128(Data, &NumBytesRead);
+  uint64_t const Val = decodeULEB128(Data, &NumBytesRead);
 
   if (Val > std::numeric_limits<T>::max())
     EC = sampleprof_error::malformed;
@@ -433,7 +433,7 @@ ErrorOr<T> SampleProfileReaderBinary::readUnencodedNumber() {
 
 template <typename T>
 inline ErrorOr<uint32_t> SampleProfileReaderBinary::readStringIndex(T &Table) {
-  std::error_code EC;
+  std::error_code const EC;
   auto Idx = readNumber<uint32_t>();
   if (std::error_code EC = Idx.getError())
     return EC;
@@ -520,7 +520,7 @@ SampleProfileReaderBinary::readProfile(FunctionSamples &FProfile) {
       return EC;
 
     // Here we handle FS discriminators:
-    uint32_t DiscriminatorVal = (*Discriminator) & getDiscriminatorMask();
+    uint32_t const DiscriminatorVal = (*Discriminator) & getDiscriminatorMask();
 
     for (uint32_t J = 0; J < *NumCalls; ++J) {
       auto CalledFunction(readStringFromTable());
@@ -557,7 +557,7 @@ SampleProfileReaderBinary::readProfile(FunctionSamples &FProfile) {
       return EC;
 
     // Here we handle FS discriminators:
-    uint32_t DiscriminatorVal = (*Discriminator) & getDiscriminatorMask();
+    uint32_t const DiscriminatorVal = (*Discriminator) & getDiscriminatorMask();
 
     FunctionSamples &CalleeProfile = FProfile.functionSamplesAt(
         LineLocation(*LineOffset, DiscriminatorVal))[std::string(*FName)];
@@ -580,7 +580,7 @@ SampleProfileReaderBinary::readFuncProfile(const uint8_t *Start) {
   if (std::error_code EC = FName.getError())
     return EC;
 
-  SampleContext FContext(*FName);
+  SampleContext const FContext(*FName);
   Profiles[FContext] = FunctionSamples();
   FunctionSamples &FProfile = Profiles[FContext];
   FProfile.setName(FContext.getNameWithoutContext());
@@ -623,7 +623,7 @@ std::error_code SampleProfileReaderExtBinaryBase::readOneSection(
   case SecNameTable: {
     FixedLengthMD5 =
         hasSecFlag(Entry, SecNameTableFlags::SecFlagFixedLengthMD5);
-    bool UseMD5 = hasSecFlag(Entry, SecNameTableFlags::SecFlagMD5Name);
+    bool const UseMD5 = hasSecFlag(Entry, SecNameTableFlags::SecFlagMD5Name);
     assert((!FixedLengthMD5 || UseMD5) &&
            "If FixedLengthMD5 is true, UseMD5 has to be true");
     FunctionSamples::HasUniqSuffix =
@@ -644,7 +644,7 @@ std::error_code SampleProfileReaderExtBinaryBase::readOneSection(
     ProfileIsProbeBased =
         hasSecFlag(Entry, SecFuncMetadataFlags::SecFlagIsProbeBased);
     FunctionSamples::ProfileIsProbeBased = ProfileIsProbeBased;
-    bool HasAttribute =
+    bool const HasAttribute =
         hasSecFlag(Entry, SecFuncMetadataFlags::SecFlagHasAttribute);
     if (std::error_code EC = readFuncMetadata(HasAttribute))
       return EC;
@@ -703,7 +703,7 @@ std::error_code SampleProfileReaderExtBinaryBase::readFuncProfiles() {
   // which will query FunctionSamples::HasUniqSuffix, so it has to be
   // called after FunctionSamples::HasUniqSuffix is set, i.e. after
   // NameTable section is read.
-  bool LoadFuncsToBeUsed = collectFuncsFromModule();
+  bool const LoadFuncsToBeUsed = collectFuncsFromModule();
 
   // When LoadFuncsToBeUsed is false, load all the function profiles.
   const uint8_t *Start = Data;
@@ -750,8 +750,8 @@ std::error_code SampleProfileReaderExtBinaryBase::readFuncProfiles() {
       // For each function in current module, load all
       // context profiles for the function.
       for (auto NameOffset : FuncOffsetTable) {
-        StringRef ContextName = NameOffset.first;
-        SampleContext FContext(ContextName);
+        StringRef const ContextName = NameOffset.first;
+        SampleContext const FContext(ContextName);
         auto FuncName = FContext.getNameWithoutContext();
         if (!FuncsToUse.count(FuncName) &&
             (!Remapper || !Remapper->exist(FuncName)))
@@ -774,7 +774,7 @@ std::error_code SampleProfileReaderExtBinaryBase::readFuncProfiles() {
       }
     } else {
       for (auto NameOffset : FuncOffsetTable) {
-        SampleContext FContext(NameOffset.first);
+        SampleContext const FContext(NameOffset.first);
         auto FuncName = FContext.getNameWithoutContext();
         if (!FuncsToUse.count(FuncName) &&
             (!Remapper || !Remapper->exist(FuncName)))
@@ -822,7 +822,7 @@ std::error_code SampleProfileReaderExtBinaryBase::decompressSection(
   if (!llvm::zlib::isAvailable())
     return sampleprof_error::zlib_unavailable;
 
-  StringRef CompressedStrings(reinterpret_cast<const char *>(Data),
+  StringRef const CompressedStrings(reinterpret_cast<const char *>(Data),
                               *CompressSize);
   char *Buffer = Allocator.Allocate<char>(DecompressBufSize);
   size_t UCSize = DecompressBufSize;
@@ -854,7 +854,7 @@ std::error_code SampleProfileReaderExtBinaryBase::readImpl() {
     // DecompressBuf before reading the actual data. The pointee of
     // 'Data' will be changed to buffer hold by DecompressBuf
     // temporarily when reading the actual data.
-    bool isCompressed = hasSecFlag(Entry, SecCommonFlags::SecFlagCompress);
+    bool const isCompressed = hasSecFlag(Entry, SecCommonFlags::SecFlagCompress);
     if (isCompressed) {
       const uint8_t *DecompressBuf;
       uint64_t DecompressBufSize;
@@ -883,7 +883,7 @@ std::error_code SampleProfileReaderExtBinaryBase::readImpl() {
 std::error_code SampleProfileReaderCompactBinary::readImpl() {
   // Collect functions used by current module if the Reader has been
   // given a module.
-  bool LoadFuncsToBeUsed = collectFuncsFromModule();
+  bool const LoadFuncsToBeUsed = collectFuncsFromModule();
   ProfileIsFS = ProfileIsFSDisciminator;
   std::vector<uint64_t> OffsetsToUse;
   if (!LoadFuncsToBeUsed) {
@@ -990,8 +990,8 @@ SampleProfileReaderExtBinaryBase::readFuncMetadata(bool ProfileHasAttribute) {
     if (std::error_code EC = FName.getError())
       return EC;
 
-    SampleContext FContext(*FName);
-    bool ProfileInMap = Profiles.count(FContext);
+    SampleContext const FContext(*FName);
+    bool const ProfileInMap = Profiles.count(FContext);
 
     if (ProfileIsProbeBased) {
       auto Checksum = readNumber<uint64_t>();
@@ -1152,7 +1152,7 @@ bool SampleProfileReaderExtBinaryBase::dumpSectionInfo(raw_ostream &OS) {
     ;
     TotalSecsSize += Entry.Size;
   }
-  uint64_t HeaderSize = SecHdrTable.front().Offset;
+  uint64_t const HeaderSize = SecHdrTable.front().Offset;
   assert(HeaderSize + TotalSecsSize == getFileSize() &&
          "Size of 'header + sections' doesn't match the total size of profile");
 
@@ -1302,21 +1302,21 @@ std::error_code SampleProfileReaderBinary::readSummary() {
 bool SampleProfileReaderRawBinary::hasFormat(const MemoryBuffer &Buffer) {
   const uint8_t *Data =
       reinterpret_cast<const uint8_t *>(Buffer.getBufferStart());
-  uint64_t Magic = decodeULEB128(Data);
+  uint64_t const Magic = decodeULEB128(Data);
   return Magic == SPMagic();
 }
 
 bool SampleProfileReaderExtBinary::hasFormat(const MemoryBuffer &Buffer) {
   const uint8_t *Data =
       reinterpret_cast<const uint8_t *>(Buffer.getBufferStart());
-  uint64_t Magic = decodeULEB128(Data);
+  uint64_t const Magic = decodeULEB128(Data);
   return Magic == SPMagic(SPF_Ext_Binary);
 }
 
 bool SampleProfileReaderCompactBinary::hasFormat(const MemoryBuffer &Buffer) {
   const uint8_t *Data =
       reinterpret_cast<const uint8_t *>(Buffer.getBufferStart());
-  uint64_t Magic = decodeULEB128(Data);
+  uint64_t const Magic = decodeULEB128(Data);
   return Magic == SPMagic(SPF_Compact_Binary);
 }
 
@@ -1411,7 +1411,7 @@ std::error_code SampleProfileReaderGCC::readFunctionProfiles() {
   if (!GcovBuffer.readInt(NumFunctions))
     return sampleprof_error::truncated;
 
-  InlineCallStack Stack;
+  InlineCallStack const Stack;
   for (uint32_t I = 0; I < NumFunctions; ++I)
     if (std::error_code EC = readOneFunctionProfile(Stack, true, 0))
       return EC;
@@ -1431,7 +1431,7 @@ std::error_code SampleProfileReaderGCC::readOneFunctionProfile(
   if (!GcovBuffer.readInt(NameIdx))
     return sampleprof_error::truncated;
 
-  StringRef Name(Names[NameIdx]);
+  StringRef const Name(Names[NameIdx]);
 
   uint32_t NumPosCounts;
   if (!GcovBuffer.readInt(NumPosCounts))
@@ -1458,8 +1458,8 @@ std::error_code SampleProfileReaderGCC::readOneFunctionProfile(
     // inline stack contains the profile of the caller. Insert this
     // callee in the caller's CallsiteMap.
     FunctionSamples *CallerProfile = InlineStack.front();
-    uint32_t LineOffset = Offset >> 16;
-    uint32_t Discriminator = Offset & 0xffff;
+    uint32_t const LineOffset = Offset >> 16;
+    uint32_t const Discriminator = Offset & 0xffff;
     FProfile = &CallerProfile->functionSamplesAt(
         LineLocation(LineOffset, Discriminator))[std::string(Name)];
   }
@@ -1481,8 +1481,8 @@ std::error_code SampleProfileReaderGCC::readOneFunctionProfile(
     // The line location is encoded in the offset as:
     //   high 16 bits: line offset to the start of the function.
     //   low 16 bits: discriminator.
-    uint32_t LineOffset = Offset >> 16;
-    uint32_t Discriminator = Offset & 0xffff;
+    uint32_t const LineOffset = Offset >> 16;
+    uint32_t const Discriminator = Offset & 0xffff;
 
     InlineCallStack NewStack;
     NewStack.push_back(FProfile);
@@ -1511,7 +1511,7 @@ std::error_code SampleProfileReaderGCC::readOneFunctionProfile(
       uint64_t TargetIdx;
       if (!GcovBuffer.readInt64(TargetIdx))
         return sampleprof_error::truncated;
-      StringRef TargetName(Names[TargetIdx]);
+      StringRef const TargetName(Names[TargetIdx]);
 
       uint64_t TargetCount;
       if (!GcovBuffer.readInt64(TargetCount))
@@ -1560,7 +1560,7 @@ std::error_code SampleProfileReaderGCC::readImpl() {
 }
 
 bool SampleProfileReaderGCC::hasFormat(const MemoryBuffer &Buffer) {
-  StringRef Magic(reinterpret_cast<const char *>(Buffer.getBufferStart()));
+  StringRef const Magic(reinterpret_cast<const char *>(Buffer.getBufferStart()));
   return Magic == "adcg*704";
 }
 
@@ -1717,7 +1717,7 @@ SampleProfileReader::create(std::unique_ptr<MemoryBuffer> &B, LLVMContext &C,
     auto ReaderOrErr =
         SampleProfileReaderItaniumRemapper::create(RemapFilename, *Reader, C);
     if (std::error_code EC = ReaderOrErr.getError()) {
-      std::string Msg = "Could not create remapper: " + EC.message();
+      std::string const Msg = "Could not create remapper: " + EC.message();
       C.diagnose(DiagnosticInfoSampleProfile(RemapFilename, Msg));
       return EC;
     }

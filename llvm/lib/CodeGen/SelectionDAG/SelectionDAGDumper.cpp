@@ -142,8 +142,8 @@ std::string SDNode::getOperationName(const SelectionDAG *G) const {
   case ISD::INTRINSIC_WO_CHAIN:
   case ISD::INTRINSIC_VOID:
   case ISD::INTRINSIC_W_CHAIN: {
-    unsigned OpNo = getOpcode() == ISD::INTRINSIC_WO_CHAIN ? 0 : 1;
-    unsigned IID = cast<ConstantSDNode>(getOperand(OpNo))->getZExtValue();
+    unsigned const OpNo = getOpcode() == ISD::INTRINSIC_WO_CHAIN ? 0 : 1;
+    unsigned const IID = cast<ConstantSDNode>(getOperand(OpNo))->getZExtValue();
     if (IID < Intrinsic::num_intrinsics)
       return Intrinsic::getBaseName((Intrinsic::ID)IID).str();
     if (!G)
@@ -605,7 +605,7 @@ void SDNode::print_details(raw_ostream &OS, const SelectionDAG *G) const {
                dyn_cast<ShuffleVectorSDNode>(this)) {
     OS << "<";
     for (unsigned i = 0, e = ValueList[0].getVectorNumElements(); i != e; ++i) {
-      int Idx = SVN->getMaskElt(i);
+      int const Idx = SVN->getMaskElt(i);
       if (i) OS << ",";
       if (Idx < 0)
         OS << "u";
@@ -627,7 +627,7 @@ void SDNode::print_details(raw_ostream &OS, const SelectionDAG *G) const {
     }
   } else if (const GlobalAddressSDNode *GADN =
              dyn_cast<GlobalAddressSDNode>(this)) {
-    int64_t offset = GADN->getOffset();
+    int64_t const offset = GADN->getOffset();
     OS << '<';
     GADN->getGlobal()->printAsOperand(OS);
     OS << '>';
@@ -635,16 +635,16 @@ void SDNode::print_details(raw_ostream &OS, const SelectionDAG *G) const {
       OS << " + " << offset;
     else
       OS << " " << offset;
-    if (unsigned int TF = GADN->getTargetFlags())
+    if (unsigned int const TF = GADN->getTargetFlags())
       OS << " [TF=" << TF << ']';
   } else if (const FrameIndexSDNode *FIDN = dyn_cast<FrameIndexSDNode>(this)) {
     OS << "<" << FIDN->getIndex() << ">";
   } else if (const JumpTableSDNode *JTDN = dyn_cast<JumpTableSDNode>(this)) {
     OS << "<" << JTDN->getIndex() << ">";
-    if (unsigned int TF = JTDN->getTargetFlags())
+    if (unsigned int const TF = JTDN->getTargetFlags())
       OS << " [TF=" << TF << ']';
   } else if (const ConstantPoolSDNode *CP = dyn_cast<ConstantPoolSDNode>(this)){
-    int offset = CP->getOffset();
+    int const offset = CP->getOffset();
     if (CP->isMachineConstantPoolEntry())
       OS << "<" << *CP->getMachineCPVal() << ">";
     else
@@ -653,11 +653,11 @@ void SDNode::print_details(raw_ostream &OS, const SelectionDAG *G) const {
       OS << " + " << offset;
     else
       OS << " " << offset;
-    if (unsigned int TF = CP->getTargetFlags())
+    if (unsigned int const TF = CP->getTargetFlags())
       OS << " [TF=" << TF << ']';
   } else if (const TargetIndexSDNode *TI = dyn_cast<TargetIndexSDNode>(this)) {
     OS << "<" << TI->getIndex() << '+' << TI->getOffset() << ">";
-    if (unsigned TF = TI->getTargetFlags())
+    if (unsigned const TF = TI->getTargetFlags())
       OS << " [TF=" << TF << ']';
   } else if (const BasicBlockSDNode *BBDN = dyn_cast<BasicBlockSDNode>(this)) {
     OS << "<";
@@ -671,7 +671,7 @@ void SDNode::print_details(raw_ostream &OS, const SelectionDAG *G) const {
   } else if (const ExternalSymbolSDNode *ES =
              dyn_cast<ExternalSymbolSDNode>(this)) {
     OS << "'" << ES->getSymbol() << "'";
-    if (unsigned int TF = ES->getTargetFlags())
+    if (unsigned int const TF = ES->getTargetFlags())
       OS << " [TF=" << TF << ']';
   } else if (const SrcValueSDNode *M = dyn_cast<SrcValueSDNode>(this)) {
     if (M->getValue())
@@ -793,7 +793,7 @@ void SDNode::print_details(raw_ostream &OS, const SelectionDAG *G) const {
     OS << ">";
   } else if (const BlockAddressSDNode *BA =
                dyn_cast<BlockAddressSDNode>(this)) {
-    int64_t offset = BA->getOffset();
+    int64_t const offset = BA->getOffset();
     OS << "<";
     BA->getBlockAddress()->getFunction()->printAsOperand(OS, false);
     OS << ", ";
@@ -803,7 +803,7 @@ void SDNode::print_details(raw_ostream &OS, const SelectionDAG *G) const {
       OS << " + " << offset;
     else
       OS << " " << offset;
-    if (unsigned int TF = BA->getTargetFlags())
+    if (unsigned int const TF = BA->getTargetFlags())
       OS << " [TF=" << TF << ']';
   } else if (const AddrSpaceCastSDNode *ASC =
                dyn_cast<AddrSpaceCastSDNode>(this)) {
@@ -818,7 +818,7 @@ void SDNode::print_details(raw_ostream &OS, const SelectionDAG *G) const {
   }
 
   if (VerboseDAGDumping) {
-    if (unsigned Order = getIROrder())
+    if (unsigned const Order = getIROrder())
         OS << " [ORD=" << Order << ']';
 
     if (getNodeId() != -1)
@@ -959,7 +959,7 @@ static bool printOperand(raw_ostream &OS, const SelectionDAG *G,
   }
 
   OS << PrintNodeId(*Value.getNode());
-  if (unsigned RN = Value.getResNo())
+  if (unsigned const RN = Value.getResNo())
     OS << ':' << RN;
   return false;
 }
@@ -982,7 +982,7 @@ static void DumpNodesr(raw_ostream &OS, const SDNode *N, unsigned indent,
     OS << " ";
 
     const SDValue Op = N->getOperand(i);
-    bool printedInline = printOperand(OS, G, Op);
+    bool const printedInline = printOperand(OS, G, Op);
     if (printedInline)
       once.insert(Op.getNode());
   }
@@ -1052,7 +1052,7 @@ void SDNode::print(raw_ostream &OS, const SelectionDAG *G) const {
     if (i) OS << ", "; else OS << " ";
     printOperand(OS, G, getOperand(i));
   }
-  if (DebugLoc DL = getDebugLoc()) {
+  if (DebugLoc const DL = getDebugLoc()) {
     OS << ", ";
     DL.print(OS);
   }

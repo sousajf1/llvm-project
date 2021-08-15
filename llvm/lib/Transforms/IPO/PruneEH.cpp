@@ -87,13 +87,13 @@ static bool runImpl(CallGraphUpdater &CGU, SetVector<Function *> &Functions) {
       SCCMightUnwind |= !F->doesNotThrow();
       SCCMightReturn |= !F->doesNotReturn();
     } else {
-      bool CheckUnwind = !SCCMightUnwind && !F->doesNotThrow();
-      bool CheckReturn = !SCCMightReturn && !F->doesNotReturn();
+      bool const CheckUnwind = !SCCMightUnwind && !F->doesNotThrow();
+      bool const CheckReturn = !SCCMightReturn && !F->doesNotReturn();
       // Determine if we should scan for InlineAsm in a naked function as it
       // is the only way to return without a ReturnInst.  Only do this for
       // no-inline functions as functions which may be inlined cannot
       // meaningfully return via assembly.
-      bool CheckReturnViaAsm = CheckReturn &&
+      bool const CheckReturnViaAsm = CheckReturn &&
                                F->hasFnAttribute(Attribute::Naked) &&
                                F->hasFnAttribute(Attribute::NoInline);
 

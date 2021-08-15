@@ -104,8 +104,8 @@ bool SIPreEmitPeephole::optimizeVccBranch(MachineInstr &MI) const {
   if (A == E)
     return false;
 
-  MachineOperand &Op1 = A->getOperand(1);
-  MachineOperand &Op2 = A->getOperand(2);
+  MachineOperand  const&Op1 = A->getOperand(1);
+  MachineOperand  const&Op2 = A->getOperand(2);
   if (Op1.getReg() != ExecReg && Op2.isReg() && Op2.getReg() == ExecReg) {
     TII->commuteInstruction(*A);
     Changed = true;
@@ -164,7 +164,7 @@ bool SIPreEmitPeephole::optimizeVccBranch(MachineInstr &MI) const {
     A->eraseFromParent();
   }
 
-  bool IsVCCZ = MI.getOpcode() == AMDGPU::S_CBRANCH_VCCZ;
+  bool const IsVCCZ = MI.getOpcode() == AMDGPU::S_CBRANCH_VCCZ;
   if (SReg == ExecReg) {
     // EXEC is updated directly
     if (IsVCCZ) {
@@ -188,7 +188,7 @@ bool SIPreEmitPeephole::optimizeVccBranch(MachineInstr &MI) const {
     }
     assert(Found && "conditional branch is not terminator");
     for (auto BranchMI : ToRemove) {
-      MachineOperand &Dst = BranchMI->getOperand(0);
+      MachineOperand  const&Dst = BranchMI->getOperand(0);
       assert(Dst.isMBB() && "destination is not basic block");
       Parent->removeSuccessor(Dst.getMBB());
       BranchMI->eraseFromParent();
@@ -202,7 +202,7 @@ bool SIPreEmitPeephole::optimizeVccBranch(MachineInstr &MI) const {
     MI.setDesc(TII->get(AMDGPU::S_BRANCH));
   } else if (!IsVCCZ && MaskValue == 0) {
     // Will never branch
-    MachineOperand &Dst = MI.getOperand(0);
+    MachineOperand  const&Dst = MI.getOperand(0);
     assert(Dst.isMBB() && "destination is not basic block");
     MI.getParent()->removeSuccessor(Dst.getMBB());
     MI.eraseFromParent();
@@ -225,7 +225,7 @@ bool SIPreEmitPeephole::optimizeSetGPR(MachineInstr &First,
   const MachineFunction &MF = *MBB.getParent();
   const MachineRegisterInfo &MRI = MF.getRegInfo();
   MachineOperand *Idx = TII->getNamedOperand(MI, AMDGPU::OpName::src0);
-  Register IdxReg = Idx->isReg() ? Idx->getReg() : Register();
+  Register const IdxReg = Idx->isReg() ? Idx->getReg() : Register();
   SmallVector<MachineInstr *, 4> ToRemove;
   bool IdxOn = true;
 
@@ -349,7 +349,7 @@ bool SIPreEmitPeephole::runOnMachineFunction(MachineFunction &MF) {
   MF.RenumberBlocks();
 
   for (MachineBasicBlock &MBB : MF) {
-    MachineBasicBlock::iterator TermI = MBB.getFirstTerminator();
+    MachineBasicBlock::iterator const TermI = MBB.getFirstTerminator();
     // Check first terminator for branches to optimize
     if (TermI != MBB.end()) {
       MachineInstr &MI = *TermI;

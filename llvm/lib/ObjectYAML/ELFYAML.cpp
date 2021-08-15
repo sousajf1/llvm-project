@@ -1088,9 +1088,9 @@ struct NormalizedOther {
                        "assumes a non-empty Original");
     std::vector<StOtherPiece> Ret;
     const auto *Object = static_cast<ELFYAML::Object *>(YamlIO.getContext());
-    for (std::pair<StringRef, uint8_t> &P :
+    for (std::pair<StringRef, uint8_t>  const&P :
          getFlags(Object->getMachine()).takeVector()) {
-      uint8_t FlagValue = P.second;
+      uint8_t const FlagValue = P.second;
       if ((*Original & FlagValue) != FlagValue)
         continue;
       *Original &= ~FlagValue;
@@ -1127,7 +1127,7 @@ struct NormalizedOther {
     if (!Other)
       return None;
     uint8_t Ret = 0;
-    for (StOtherPiece &Val : *Other)
+    for (StOtherPiece  const&Val : *Other)
       Ret |= toValue(Val);
     return Ret;
   }
@@ -1622,7 +1622,7 @@ std::string MappingTraits<std::unique_ptr<ELFYAML::Chunk>>::validate(
   auto BuildErrPrefix = [](ArrayRef<std::pair<StringRef, bool>> EntV) {
     std::string Msg;
     for (size_t I = 0, E = EntV.size(); I != E; ++I) {
-      StringRef Name = EntV[I].first;
+      StringRef const Name = EntV[I].first;
       if (I == 0) {
         Msg = "\"" + Name.str() + "\"";
         continue;
@@ -1683,7 +1683,7 @@ struct NormalizedMips64RelType {
         Type3(Original >> 16 & 0xFF), SpecSym(Original >> 24 & 0xFF) {}
 
   ELFYAML::ELF_REL denormalize(IO &) {
-    ELFYAML::ELF_REL Res = Type | Type2 << 8 | Type3 << 16 | SpecSym << 24;
+    ELFYAML::ELF_REL const Res = Type | Type2 << 8 | Type3 << 16 | SpecSym << 24;
     return Res;
   }
 

@@ -70,7 +70,7 @@ static void emitThumb1LoadConstPool(MachineBasicBlock &MBB,
   MachineConstantPool *ConstantPool = MF.getConstantPool();
   const Constant *C = ConstantInt::get(
           Type::getInt32Ty(MBB.getParent()->getFunction().getContext()), Val);
-  unsigned Idx = ConstantPool->getConstantPoolIndex(C, Align(4));
+  unsigned const Idx = ConstantPool->getConstantPoolIndex(C, Align(4));
 
   BuildMI(MBB, MBBI, dl, TII.get(ARM::tLDRpci))
     .addReg(DestReg, getDefRegState(true), SubIdx)
@@ -89,7 +89,7 @@ static void emitThumb2LoadConstPool(MachineBasicBlock &MBB,
   MachineConstantPool *ConstantPool = MF.getConstantPool();
   const Constant *C = ConstantInt::get(
            Type::getInt32Ty(MBB.getParent()->getFunction().getContext()), Val);
-  unsigned Idx = ConstantPool->getConstantPoolIndex(C, Align(4));
+  unsigned const Idx = ConstantPool->getConstantPoolIndex(C, Align(4));
 
   BuildMI(MBB, MBBI, dl, TII.get(ARM::t2LDRpci))
       .addReg(DestReg, getDefRegState(true), SubIdx)
@@ -104,7 +104,7 @@ void ThumbRegisterInfo::emitLoadConstPool(
     MachineBasicBlock &MBB, MachineBasicBlock::iterator &MBBI,
     const DebugLoc &dl, Register DestReg, unsigned SubIdx, int Val,
     ARMCC::CondCodes Pred, Register PredReg, unsigned MIFlags) const {
-  MachineFunction &MF = *MBB.getParent();
+  MachineFunction  const&MF = *MBB.getParent();
   const ARMSubtarget &STI = MF.getSubtarget<ARMSubtarget>();
   if (STI.isThumb1Only()) {
     assert((isARMLowRegister(DestReg) || DestReg.isVirtual()) &&
@@ -127,7 +127,7 @@ static void emitThumbRegPlusImmInReg(
     const ARMBaseRegisterInfo &MRI, unsigned MIFlags = MachineInstr::NoFlags) {
   MachineFunction &MF = *MBB.getParent();
   const ARMSubtarget &ST = MF.getSubtarget<ARMSubtarget>();
-  bool isHigh = !isARMLowRegister(DestReg) ||
+  bool const isHigh = !isARMLowRegister(DestReg) ||
                 (BaseReg != 0 && !isARMLowRegister(BaseReg));
   bool isSub = false;
   // Subtract doesn't have high register version. Load the negative value
@@ -166,7 +166,7 @@ static void emitThumbRegPlusImmInReg(
                           MIFlags);
 
   // Emit add / sub.
-  int Opc = (isSub) ? ARM::tSUBrr
+  int const Opc = (isSub) ? ARM::tSUBrr
                     : ((isHigh || !CanChangeCC) ? ARM::tADDhirr : ARM::tADDrr);
   MachineInstrBuilder MIB = BuildMI(MBB, MBBI, dl, TII.get(Opc), DestReg);
   if (Opc != ARM::tADDhirr)
@@ -189,7 +189,7 @@ void llvm::emitThumbRegPlusImmediate(MachineBasicBlock &MBB,
                                      const TargetInstrInfo &TII,
                                      const ARMBaseRegisterInfo &MRI,
                                      unsigned MIFlags) {
-  bool isSub = NumBytes < 0;
+  bool const isSub = NumBytes < 0;
   unsigned Bytes = (unsigned)NumBytes;
   if (isSub) Bytes = -NumBytes;
 
@@ -275,9 +275,9 @@ void llvm::emitThumbRegPlusImmediate(MachineBasicBlock &MBB,
     CopyNeedsCC = false;
     CopyRange = 0;
   }
-  unsigned ExtraRange = ((1 << ExtraBits) - 1) * ExtraScale; // per instruction
-  unsigned RequiredCopyInstrs = CopyOpc ? 1 : 0;
-  unsigned RangeAfterCopy = (CopyRange > Bytes) ? 0 : (Bytes - CopyRange);
+  unsigned const ExtraRange = ((1 << ExtraBits) - 1) * ExtraScale; // per instruction
+  unsigned const RequiredCopyInstrs = CopyOpc ? 1 : 0;
+  unsigned const RangeAfterCopy = (CopyRange > Bytes) ? 0 : (Bytes - CopyRange);
 
   // We could handle this case when the copy instruction does not require an
   // aligned immediate, but we do not currently do this.
@@ -292,8 +292,8 @@ void llvm::emitThumbRegPlusImmediate(MachineBasicBlock &MBB,
     RequiredExtraInstrs = 1000000;
   else
     RequiredExtraInstrs = 0;
-  unsigned RequiredInstrs = RequiredCopyInstrs + RequiredExtraInstrs;
-  unsigned Threshold = (DestReg == ARM::SP) ? 3 : 2;
+  unsigned const RequiredInstrs = RequiredCopyInstrs + RequiredExtraInstrs;
+  unsigned const Threshold = (DestReg == ARM::SP) ? 3 : 2;
 
   // Use a constant pool, if the sequence of ADDs/SUBs is too expensive.
   if (RequiredInstrs > Threshold) {
@@ -305,7 +305,7 @@ void llvm::emitThumbRegPlusImmediate(MachineBasicBlock &MBB,
 
   // Emit zero or one copy instructions
   if (CopyOpc) {
-    unsigned CopyImm = std::min(Bytes, CopyRange) / CopyScale;
+    unsigned const CopyImm = std::min(Bytes, CopyRange) / CopyScale;
     Bytes -= CopyImm * CopyScale;
 
     MachineInstrBuilder MIB = BuildMI(MBB, MBBI, dl, TII.get(CopyOpc), DestReg);
@@ -322,7 +322,7 @@ void llvm::emitThumbRegPlusImmediate(MachineBasicBlock &MBB,
 
   // Emit zero or more in-place add/sub instructions
   while (Bytes) {
-    unsigned ExtraImm = std::min(Bytes, ExtraRange) / ExtraScale;
+    unsigned const ExtraImm = std::min(Bytes, ExtraRange) / ExtraScale;
     Bytes -= ExtraImm * ExtraScale;
 
     MachineInstrBuilder MIB = BuildMI(MBB, MBBI, dl, TII.get(ExtraOpc), DestReg);
@@ -336,8 +336,8 @@ void llvm::emitThumbRegPlusImmediate(MachineBasicBlock &MBB,
 }
 
 static void removeOperands(MachineInstr &MI, unsigned i) {
-  unsigned Op = i;
-  for (unsigned e = MI.getNumOperands(); i != e; ++i)
+  unsigned const Op = i;
+  for (unsigned const e = MI.getNumOperands(); i != e; ++i)
     MI.RemoveOperand(Op);
 }
 
@@ -363,15 +363,15 @@ bool ThumbRegisterInfo::rewriteFrameIndex(MachineBasicBlock::iterator II,
   MachineBasicBlock &MBB = *MI.getParent();
   assert(MBB.getParent()->getSubtarget<ARMSubtarget>().isThumb1Only() &&
          "This isn't needed for thumb2!");
-  DebugLoc dl = MI.getDebugLoc();
-  MachineInstrBuilder MIB(*MBB.getParent(), &MI);
-  unsigned Opcode = MI.getOpcode();
+  DebugLoc const dl = MI.getDebugLoc();
+  MachineInstrBuilder const MIB(*MBB.getParent(), &MI);
+  unsigned const Opcode = MI.getOpcode();
   const MCInstrDesc &Desc = MI.getDesc();
-  unsigned AddrMode = (Desc.TSFlags & ARMII::AddrModeMask);
+  unsigned const AddrMode = (Desc.TSFlags & ARMII::AddrModeMask);
 
   if (Opcode == ARM::tADDframe) {
     Offset += MI.getOperand(FrameRegIdx+1).getImm();
-    Register DestReg = MI.getOperand(0).getReg();
+    Register const DestReg = MI.getOperand(0).getReg();
 
     emitThumbRegPlusImmediate(MBB, II, dl, DestReg, FrameReg, Offset, TII,
                               *this);
@@ -381,10 +381,10 @@ bool ThumbRegisterInfo::rewriteFrameIndex(MachineBasicBlock::iterator II,
     if (AddrMode != ARMII::AddrModeT1_s)
       llvm_unreachable("Unsupported addressing mode!");
 
-    unsigned ImmIdx = FrameRegIdx + 1;
-    int InstrOffs = MI.getOperand(ImmIdx).getImm();
+    unsigned const ImmIdx = FrameRegIdx + 1;
+    int const InstrOffs = MI.getOperand(ImmIdx).getImm();
     unsigned NumBits = (FrameReg == ARM::SP) ? 8 : 5;
-    unsigned Scale = 4;
+    unsigned const Scale = 4;
 
     Offset += InstrOffs * Scale;
     assert((Offset & (Scale - 1)) == 0 && "Can't encode this offset!");
@@ -401,7 +401,7 @@ bool ThumbRegisterInfo::rewriteFrameIndex(MachineBasicBlock::iterator II,
 
       // If we're using a register where sp was stored, convert the instruction
       // to the non-SP version.
-      unsigned NewOpc = convertToNonSPOpcode(Opcode);
+      unsigned const NewOpc = convertToNonSPOpcode(Opcode);
       if (NewOpc != Opcode && FrameReg != ARM::SP)
         MI.setDesc(TII.get(NewOpc));
 
@@ -441,7 +441,7 @@ void ThumbRegisterInfo::resolveFrameIndex(MachineInstr &MI, Register BaseReg,
     ++i;
     assert(i < MI.getNumOperands() && "Instr doesn't have FrameIndex operand!");
   }
-  bool Done = rewriteFrameIndex(MI, i, BaseReg, Off, TII);
+  bool const Done = rewriteFrameIndex(MI, i, BaseReg, Off, TII);
   assert (Done && "Unable to resolve frame index!");
   (void)Done;
 }
@@ -459,11 +459,11 @@ void ThumbRegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
 
   Register VReg;
   const ARMBaseInstrInfo &TII = *STI.getInstrInfo();
-  DebugLoc dl = MI.getDebugLoc();
-  MachineInstrBuilder MIB(*MBB.getParent(), &MI);
+  DebugLoc const dl = MI.getDebugLoc();
+  MachineInstrBuilder const MIB(*MBB.getParent(), &MI);
 
   Register FrameReg;
-  int FrameIndex = MI.getOperand(FIOperandNum).getIndex();
+  int const FrameIndex = MI.getOperand(FIOperandNum).getIndex();
   const ARMFrameLowering *TFI = getFrameLowering(MF);
   int Offset = TFI->ResolveFrameIndexReference(MF, FrameIndex, FrameReg, SPAdj);
 
@@ -500,16 +500,16 @@ void ThumbRegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
   // SP+LargeImm.
   assert(Offset && "This code isn't needed if offset already handled!");
 
-  unsigned Opcode = MI.getOpcode();
+  unsigned const Opcode = MI.getOpcode();
 
   // Remove predicate first.
-  int PIdx = MI.findFirstPredOperandIdx();
+  int const PIdx = MI.findFirstPredOperandIdx();
   if (PIdx != -1)
     removeOperands(MI, PIdx);
 
   if (MI.mayLoad()) {
     // Use the destination register to materialize sp + offset.
-    Register TmpReg = MI.getOperand(0).getReg();
+    Register const TmpReg = MI.getOperand(0).getReg();
     bool UseRR = false;
     if (Opcode == ARM::tLDRspi) {
       if (FrameReg == ARM::SP || STI.genExecuteOnly())

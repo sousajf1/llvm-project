@@ -69,9 +69,9 @@ bool PAEval::runOnFunction(Function &F) {
   PA.setAA(&getAnalysis<AAResultsWrapperPass>().getAAResults());
 
   for (Value *V1 : Values) {
-    StringRef NameV1 = getName(V1);
+    StringRef const NameV1 = getName(V1);
     for (Value *V2 : Values) {
-      StringRef NameV2 = getName(V2);
+      StringRef const NameV2 = getName(V2);
       if (NameV1 >= NameV2)
         continue;
       errs() << NameV1 << " and " << NameV2;

@@ -446,7 +446,7 @@ unsigned GCNIterativeScheduler::tryMaximizeOccupancy(unsigned TargetOcc) {
     LLVM_DEBUG(printRegion(dbgs(), R->Begin, R->End, LIS, 3);
                printLivenessInfo(dbgs(), R->Begin, R->End, LIS));
 
-    BuildDAG DAG(*R, *this);
+    BuildDAG const DAG(*R, *this);
     const auto MinSchedule = makeMinRegSchedule(DAG.getTopRoots(), *this);
     const auto MaxRP = getSchedulePressure(*R, MinSchedule);
     LLVM_DEBUG(dbgs() << "Occupancy improvement attempt:\n";
@@ -534,7 +534,7 @@ void GCNIterativeScheduler::scheduleMinReg(bool force) {
     if (!force && R->MaxPressure.less(ST, MaxPressure, TgtOcc))
       break;
 
-    BuildDAG DAG(*R, *this);
+    BuildDAG const DAG(*R, *this);
     const auto MinSchedule = makeMinRegSchedule(DAG.getTopRoots(), *this);
 
     const auto RP = getSchedulePressure(*R, MinSchedule);
@@ -575,7 +575,7 @@ void GCNIterativeScheduler::scheduleILP(
 
   unsigned FinalOccupancy = std::min(Occ, MFI->getOccupancy());
   for (auto R : Regions) {
-    BuildDAG DAG(*R, *this);
+    BuildDAG const DAG(*R, *this);
     const auto ILPSchedule = makeGCNILPScheduler(DAG.getBottomRoots(), *this);
 
     const auto RP = getSchedulePressure(*R, ILPSchedule);

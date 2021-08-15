@@ -100,11 +100,11 @@ public:
 
     if (Info->get(Inst.getOpcode()).OpInfo[0].OperandType ==
         MCOI::OPERAND_PCREL) {
-      int64_t Imm = Inst.getOperand(0).getImm();
+      int64_t const Imm = Inst.getOperand(0).getImm();
       Target = Addr + Size + Imm;
       return true;
     } else {
-      int64_t Imm = Inst.getOperand(0).getImm();
+      int64_t const Imm = Inst.getOperand(0).getImm();
 
       // Skip case where immediate is 0 as that occurs in file that isn't linked
       // and the branch target inferred would be wrong.
@@ -125,7 +125,7 @@ static MCInstrAnalysis *createLanaiInstrAnalysis(const MCInstrInfo *Info) {
 
 extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializeLanaiTargetMC() {
   // Register the MC asm info.
-  RegisterMCAsmInfo<LanaiMCAsmInfo> X(getTheLanaiTarget());
+  RegisterMCAsmInfo<LanaiMCAsmInfo> const X(getTheLanaiTarget());
 
   // Register the MC instruction info.
   TargetRegistry::RegisterMCInstrInfo(getTheLanaiTarget(),

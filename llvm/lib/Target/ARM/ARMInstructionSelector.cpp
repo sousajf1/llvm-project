@@ -211,7 +211,7 @@ static const TargetRegisterClass *guessRegClass(unsigned Reg,
 static bool selectCopy(MachineInstr &I, const TargetInstrInfo &TII,
                        MachineRegisterInfo &MRI, const TargetRegisterInfo &TRI,
                        const RegisterBankInfo &RBI) {
-  Register DstReg = I.getOperand(0).getReg();
+  Register const DstReg = I.getOperand(0).getReg();
   if (Register::isPhysicalRegister(DstReg))
     return true;
 
@@ -237,17 +237,17 @@ static bool selectMergeValues(MachineInstrBuilder &MIB,
 
   // We only support G_MERGE_VALUES as a way to stick together two scalar GPRs
   // into one DPR.
-  Register VReg0 = MIB.getReg(0);
+  Register const VReg0 = MIB.getReg(0);
   (void)VReg0;
   assert(MRI.getType(VReg0).getSizeInBits() == 64 &&
          RBI.getRegBank(VReg0, MRI, TRI)->getID() == ARM::FPRRegBankID &&
          "Unsupported operand for G_MERGE_VALUES");
-  Register VReg1 = MIB.getReg(1);
+  Register const VReg1 = MIB.getReg(1);
   (void)VReg1;
   assert(MRI.getType(VReg1).getSizeInBits() == 32 &&
          RBI.getRegBank(VReg1, MRI, TRI)->getID() == ARM::GPRRegBankID &&
          "Unsupported operand for G_MERGE_VALUES");
-  Register VReg2 = MIB.getReg(2);
+  Register const VReg2 = MIB.getReg(2);
   (void)VReg2;
   assert(MRI.getType(VReg2).getSizeInBits() == 32 &&
          RBI.getRegBank(VReg2, MRI, TRI)->getID() == ARM::GPRRegBankID &&
@@ -269,17 +269,17 @@ static bool selectUnmergeValues(MachineInstrBuilder &MIB,
 
   // We only support G_UNMERGE_VALUES as a way to break up one DPR into two
   // GPRs.
-  Register VReg0 = MIB.getReg(0);
+  Register const VReg0 = MIB.getReg(0);
   (void)VReg0;
   assert(MRI.getType(VReg0).getSizeInBits() == 32 &&
          RBI.getRegBank(VReg0, MRI, TRI)->getID() == ARM::GPRRegBankID &&
          "Unsupported operand for G_UNMERGE_VALUES");
-  Register VReg1 = MIB.getReg(1);
+  Register const VReg1 = MIB.getReg(1);
   (void)VReg1;
   assert(MRI.getType(VReg1).getSizeInBits() == 32 &&
          RBI.getRegBank(VReg1, MRI, TRI)->getID() == ARM::GPRRegBankID &&
          "Unsupported operand for G_UNMERGE_VALUES");
-  Register VReg2 = MIB.getReg(2);
+  Register const VReg2 = MIB.getReg(2);
   (void)VReg2;
   assert(MRI.getType(VReg2).getSizeInBits() == 64 &&
          RBI.getRegBank(VReg2, MRI, TRI)->getID() == ARM::FPRRegBankID &&
@@ -292,7 +292,7 @@ static bool selectUnmergeValues(MachineInstrBuilder &MIB,
 }
 
 ARMInstructionSelector::OpcodeCache::OpcodeCache(const ARMSubtarget &STI) {
-  bool isThumb = STI.isThumb();
+  bool const isThumb = STI.isThumb();
 
   using namespace TargetOpcode;
 
@@ -355,7 +355,7 @@ unsigned ARMInstructionSelector::selectSimpleExtOpc(unsigned Opc,
 unsigned ARMInstructionSelector::selectLoadStoreOpCode(unsigned Opc,
                                                        unsigned RegBank,
                                                        unsigned Size) const {
-  bool isStore = Opc == TargetOpcode::G_STORE;
+  bool const isStore = Opc == TargetOpcode::G_STORE;
 
   if (RegBank == ARM::GPRRegBankID) {
     switch (Size) {
@@ -622,9 +622,9 @@ bool ARMInstructionSelector::selectGlobal(MachineInstrBuilder &MIB,
   auto &MBB = *MIB->getParent();
   auto &MF = *MBB.getParent();
 
-  bool UseMovt = STI.useMovt();
+  bool const UseMovt = STI.useMovt();
 
-  unsigned Size = TM.getPointerSize(0);
+  unsigned const Size = TM.getPointerSize(0);
   const Align Alignment(4);
 
   auto addOpsForConstantPoolLoad = [&MF, Alignment,
@@ -657,18 +657,18 @@ bool ARMInstructionSelector::selectGlobal(MachineInstrBuilder &MIB,
   };
 
   if (TM.isPositionIndependent()) {
-    bool Indirect = STI.isGVIndirectSymbol(GV);
+    bool const Indirect = STI.isGVIndirectSymbol(GV);
 
     // For ARM mode, we have different pseudoinstructions for direct accesses
     // and indirect accesses, and the ones for indirect accesses include the
     // load from GOT. For Thumb mode, we use the same pseudoinstruction for both
     // direct and indirect accesses, and we need to manually generate the load
     // from GOT.
-    bool UseOpcodeThatLoads = Indirect && !STI.isThumb();
+    bool const UseOpcodeThatLoads = Indirect && !STI.isThumb();
 
     // FIXME: Taking advantage of MOVT for ELF is pretty involved, so we don't
     // support it yet. See PR28229.
-    unsigned Opc =
+    unsigned const Opc =
         UseMovt && !STI.isTargetELF()
             ? (UseOpcodeThatLoads ? (unsigned)ARM::MOV_ga_pcrel_ldr
                                   : Opcodes.MOV_ga_pcrel)
@@ -709,9 +709,9 @@ bool ARMInstructionSelector::selectGlobal(MachineInstrBuilder &MIB,
     return constrainSelectedInstRegOperands(*MIB, TII, TRI, RBI);
   }
 
-  bool isReadOnly = STI.getTargetLowering()->isReadOnly(GV);
+  bool const isReadOnly = STI.getTargetLowering()->isReadOnly(GV);
   if (STI.isROPI() && isReadOnly) {
-    unsigned Opc = UseMovt ? Opcodes.MOV_ga_pcrel : Opcodes.LDRLIT_ga_pcrel;
+    unsigned const Opc = UseMovt ? Opcodes.MOV_ga_pcrel : Opcodes.LDRLIT_ga_pcrel;
     MIB->setDesc(TII.get(Opc));
     return constrainSelectedInstRegOperands(*MIB, TII, TRI, RBI);
   }
@@ -816,8 +816,8 @@ void ARMInstructionSelector::renderVFPF32Imm(
   assert(OldInst.getOpcode() == TargetOpcode::G_FCONSTANT &&
          OpIdx == -1 && "Expected G_FCONSTANT");
 
-  APFloat FPImmValue = OldInst.getOperand(1).getFPImm()->getValueAPF();
-  int FPImmEncoding = ARM_AM::getFP32Imm(FPImmValue);
+  APFloat const FPImmValue = OldInst.getOperand(1).getFPImm()->getValueAPF();
+  int const FPImmEncoding = ARM_AM::getFP32Imm(FPImmValue);
   assert(FPImmEncoding != -1 && "Invalid immediate value");
 
   NewInstBuilder.addImm(FPImmEncoding);
@@ -828,8 +828,8 @@ void ARMInstructionSelector::renderVFPF64Imm(
   assert(OldInst.getOpcode() == TargetOpcode::G_FCONSTANT &&
          OpIdx == -1 && "Expected G_FCONSTANT");
 
-  APFloat FPImmValue = OldInst.getOperand(1).getFPImm()->getValueAPF();
-  int FPImmEncoding = ARM_AM::getFP64Imm(FPImmValue);
+  APFloat const FPImmValue = OldInst.getOperand(1).getFPImm()->getValueAPF();
+  int const FPImmEncoding = ARM_AM::getFP64Imm(FPImmValue);
   assert(FPImmEncoding != -1 && "Invalid immediate value");
 
   NewInstBuilder.addImm(FPImmEncoding);
@@ -866,8 +866,8 @@ bool ARMInstructionSelector::select(MachineInstr &I) {
     assert(MRI.getType(I.getOperand(0).getReg()).getSizeInBits() <= 32 &&
            "Unsupported destination size for extension");
 
-    LLT SrcTy = MRI.getType(I.getOperand(1).getReg());
-    unsigned SrcSize = SrcTy.getSizeInBits();
+    LLT const SrcTy = MRI.getType(I.getOperand(1).getReg());
+    unsigned const SrcSize = SrcTy.getSizeInBits();
     switch (SrcSize) {
     case 1: {
       // ZExt boils down to & 0x1; for SExt we also subtract that from 0
@@ -875,10 +875,10 @@ bool ARMInstructionSelector::select(MachineInstr &I) {
       MIB.addImm(1).add(predOps(ARMCC::AL)).add(condCodeOp());
 
       if (isSExt) {
-        Register SExtResult = I.getOperand(0).getReg();
+        Register const SExtResult = I.getOperand(0).getReg();
 
         // Use a new virtual register for the result of the AND
-        Register AndResult = MRI.createVirtualRegister(&ARM::GPRRegClass);
+        Register const AndResult = MRI.createVirtualRegister(&ARM::GPRRegClass);
         I.getOperand(0).setReg(AndResult);
 
         auto InsertBefore = std::next(I.getIterator());
@@ -896,7 +896,7 @@ bool ARMInstructionSelector::select(MachineInstr &I) {
     }
     case 8:
     case 16: {
-      unsigned NewOpc = selectSimpleExtOpc(I.getOpcode(), SrcSize);
+      unsigned const NewOpc = selectSimpleExtOpc(I.getOpcode(), SrcSize);
       if (NewOpc == I.getOpcode())
         return false;
       I.setDesc(TII.get(NewOpc));
@@ -929,7 +929,7 @@ bool ARMInstructionSelector::select(MachineInstr &I) {
       assert(MRI.getType(SrcReg).getSizeInBits() == 64 && "Unsupported size");
       assert(MRI.getType(DstReg).getSizeInBits() <= 32 && "Unsupported size");
 
-      Register IgnoredBits = MRI.createVirtualRegister(&ARM::GPRRegClass);
+      Register const IgnoredBits = MRI.createVirtualRegister(&ARM::GPRRegClass);
       auto InsertBefore = std::next(I.getIterator());
       auto MovI =
           BuildMI(MBB, InsertBefore, I.getDebugLoc(), TII.get(ARM::VMOVRRD))
@@ -987,8 +987,8 @@ bool ARMInstructionSelector::select(MachineInstr &I) {
   }
   case G_FCONSTANT: {
     // Load from constant pool
-    unsigned Size = MRI.getType(I.getOperand(0).getReg()).getSizeInBits() / 8;
-    Align Alignment(Size);
+    unsigned const Size = MRI.getType(I.getOperand(0).getReg()).getSizeInBits() / 8;
+    Align const Alignment(Size);
 
     assert((Size == 4 || Size == 8) && "Unsupported FP constant type");
     auto LoadOpcode = Size == 4 ? ARM::VLDRS : ARM::VLDRD;
@@ -1033,15 +1033,15 @@ bool ARMInstructionSelector::select(MachineInstr &I) {
   case G_SELECT:
     return selectSelect(MIB, MRI);
   case G_ICMP: {
-    CmpConstants Helper(Opcodes.CMPrr, ARM::INSTRUCTION_LIST_END,
+    CmpConstants const Helper(Opcodes.CMPrr, ARM::INSTRUCTION_LIST_END,
                         Opcodes.MOVCCi, ARM::GPRRegBankID, 32);
     return selectCmp(Helper, MIB, MRI);
   }
   case G_FCMP: {
     assert(STI.hasVFP2Base() && "Can't select fcmp without VFP");
 
-    Register OpReg = I.getOperand(2).getReg();
-    unsigned Size = MRI.getType(OpReg).getSizeInBits();
+    Register const OpReg = I.getOperand(2).getReg();
+    unsigned const Size = MRI.getType(OpReg).getSizeInBits();
 
     if (Size == 64 && !STI.hasFP64()) {
       LLVM_DEBUG(dbgs() << "Subtarget only supports single precision");
@@ -1052,7 +1052,7 @@ bool ARMInstructionSelector::select(MachineInstr &I) {
       return false;
     }
 
-    CmpConstants Helper(Size == 32 ? ARM::VCMPS : ARM::VCMPD, ARM::FMSTAT,
+    CmpConstants const Helper(Size == 32 ? ARM::VCMPS : ARM::VCMPD, ARM::FMSTAT,
                         Opcodes.MOVCCi, ARM::FPRRegBankID, Size);
     return selectCmp(Helper, MIB, MRI);
   }
@@ -1083,10 +1083,10 @@ bool ARMInstructionSelector::select(MachineInstr &I) {
       return false;
     }
 
-    Register Reg = I.getOperand(0).getReg();
-    unsigned RegBank = RBI.getRegBank(Reg, MRI, TRI)->getID();
+    Register const Reg = I.getOperand(0).getReg();
+    unsigned const RegBank = RBI.getRegBank(Reg, MRI, TRI)->getID();
 
-    LLT ValTy = MRI.getType(Reg);
+    LLT const ValTy = MRI.getType(Reg);
     const auto ValSize = ValTy.getSizeInBits();
 
     assert((ValSize != 64 || STI.hasVFP2Base()) &&
@@ -1142,7 +1142,7 @@ bool ARMInstructionSelector::select(MachineInstr &I) {
   case G_PHI: {
     I.setDesc(TII.get(PHI));
 
-    Register DstReg = I.getOperand(0).getReg();
+    Register const DstReg = I.getOperand(0).getReg();
     const TargetRegisterClass *RC = guessRegClass(DstReg, MRI, TRI, RBI);
     if (!RBI.constrainGenericRegister(DstReg, *RC, MRI)) {
       break;

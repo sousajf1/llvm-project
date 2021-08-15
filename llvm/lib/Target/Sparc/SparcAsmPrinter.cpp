@@ -261,7 +261,7 @@ void SparcAsmPrinter::emitInstruction(const MachineInstr *MI) {
     return;
   }
   MachineBasicBlock::const_instr_iterator I = MI->getIterator();
-  MachineBasicBlock::const_instr_iterator E = MI->getParent()->instr_end();
+  MachineBasicBlock::const_instr_iterator const E = MI->getParent()->instr_end();
   do {
     MCInst TmpInst;
     LowerSparcMachineInstrToMCInst(&*I, TmpInst, *this);
@@ -276,7 +276,7 @@ void SparcAsmPrinter::emitFunctionBodyStart() {
   const MachineRegisterInfo &MRI = MF->getRegInfo();
   const unsigned globalRegs[] = { SP::G2, SP::G3, SP::G6, SP::G7, 0 };
   for (unsigned i = 0; globalRegs[i] != 0; ++i) {
-    unsigned reg = globalRegs[i];
+    unsigned const reg = globalRegs[i];
     if (MRI.use_empty(reg))
       continue;
 
@@ -291,7 +291,7 @@ void SparcAsmPrinter::printOperand(const MachineInstr *MI, int opNum,
                                    raw_ostream &O) {
   const DataLayout &DL = getDataLayout();
   const MachineOperand &MO = MI->getOperand (opNum);
-  SparcMCExpr::VariantKind TF = (SparcMCExpr::VariantKind) MO.getTargetFlags();
+  SparcMCExpr::VariantKind const TF = (SparcMCExpr::VariantKind) MO.getTargetFlags();
 
 #ifndef NDEBUG
   // Verify the target flags.
@@ -344,7 +344,7 @@ void SparcAsmPrinter::printOperand(const MachineInstr *MI, int opNum,
 #endif
 
 
-  bool CloseParen = SparcMCExpr::printVariantKind(O, TF);
+  bool const CloseParen = SparcMCExpr::printVariantKind(O, TF);
 
   switch (MO.getType()) {
   case MachineOperand::MO_Register:
@@ -440,7 +440,7 @@ bool SparcAsmPrinter::PrintAsmMemoryOperand(const MachineInstr *MI,
 
 // Force static initialization.
 extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializeSparcAsmPrinter() {
-  RegisterAsmPrinter<SparcAsmPrinter> X(getTheSparcTarget());
-  RegisterAsmPrinter<SparcAsmPrinter> Y(getTheSparcV9Target());
-  RegisterAsmPrinter<SparcAsmPrinter> Z(getTheSparcelTarget());
+  RegisterAsmPrinter<SparcAsmPrinter> const X(getTheSparcTarget());
+  RegisterAsmPrinter<SparcAsmPrinter> const Y(getTheSparcV9Target());
+  RegisterAsmPrinter<SparcAsmPrinter> const Z(getTheSparcelTarget());
 }

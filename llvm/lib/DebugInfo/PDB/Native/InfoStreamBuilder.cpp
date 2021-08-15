@@ -47,7 +47,7 @@ void InfoStreamBuilder::setGuid(GUID G) { Guid = G; }
 
 
 Error InfoStreamBuilder::finalizeMsfLayout() {
-  uint32_t Length = sizeof(InfoStreamHeader) +
+  uint32_t const Length = sizeof(InfoStreamHeader) +
                     NamedStreams.calculateSerializedLength() +
                     (Features.size() + 1) * sizeof(uint32_t);
   if (auto EC = Msf.setStreamSize(StreamPDB, Length))

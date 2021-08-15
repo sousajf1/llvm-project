@@ -24,7 +24,7 @@ using namespace llvm;
 void llvm::dumpBytes(ArrayRef<uint8_t> bytes, raw_ostream &OS) {
   static const char hex_rep[] = "0123456789abcdef";
   bool First = true;
-  for (char i: bytes) {
+  for (char const i: bytes) {
     if (First)
       First = false;
     else
@@ -81,7 +81,7 @@ static bool matchAliasCondition(const MCInst &MI, const MCSubtargetInfo *STI,
     return true;
   }
   if (C.Kind == AliasPatternCond::K_EndOrFeatures) {
-    bool Res = OrPredicateResult;
+    bool const Res = OrPredicateResult;
     OrPredicateResult = false;
     return Res;
   }
@@ -134,7 +134,7 @@ const char *MCInstPrinter::matchAliasPatterns(const MCInst *MI,
 
   // Try all patterns for this opcode.
   uint32_t AsmStrOffset = ~0U;
-  ArrayRef<AliasPattern> Patterns =
+  ArrayRef<AliasPattern> const Patterns =
       M.Patterns.slice(It->PatternStart, It->NumPatterns);
   for (const AliasPattern &P : Patterns) {
     // Check operand count first.
@@ -182,7 +182,7 @@ static bool needsLeadingZero(uint64_t Value)
 {
   while (Value)
   {
-    uint64_t digit = (Value >> 60) & 0xf;
+    uint64_t const digit = (Value >> 60) & 0xf;
     if (digit != 0)
       return (digit >= 0xa);
     Value <<= 4;

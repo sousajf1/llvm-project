@@ -83,7 +83,7 @@ static void insertSpeculationBarrier(const AArch64Subtarget *ST,
   assert(std::prev(MBBI)->isTerminator() &&
          "SpeculationBarrierEndBB must only follow terminators.");
   const TargetInstrInfo *TII = ST->getInstrInfo();
-  unsigned BarrierOpc = ST->hasSB() && !AlwaysUseISBDSB
+  unsigned const BarrierOpc = ST->hasSB() && !AlwaysUseISBDSB
                             ? AArch64::SpeculationBarrierSBEndBB
                             : AArch64::SpeculationBarrierISBDSBEndBB;
   if (MBBI == MBB.end() ||
@@ -129,7 +129,7 @@ bool AArch64SLSHardening::hardenReturnsAndBRs(MachineBasicBlock &MBB) const {
   MachineBasicBlock::iterator MBBI = MBB.getFirstTerminator(), E = MBB.end();
   MachineBasicBlock::iterator NextMBBI;
   for (; MBBI != E; MBBI = NextMBBI) {
-    MachineInstr &MI = *MBBI;
+    MachineInstr  const&MI = *MBBI;
     NextMBBI = std::next(MBBI);
     if (MI.isReturn() || isIndirectBranchOpcode(MI.getOpcode())) {
       assert(MI.isTerminator());
@@ -214,7 +214,7 @@ void SLSBLRThunkInserter::populateThunk(MachineFunction &MF) {
   auto ThunkIt = llvm::find_if(
       SLSBLRThunks, [&MF](auto T) { return T.Name == MF.getName(); });
   assert(ThunkIt != std::end(SLSBLRThunks));
-  Register ThunkReg = ThunkIt->Reg;
+  Register const ThunkReg = ThunkIt->Reg;
 
   const TargetInstrInfo *TII =
       MF.getSubtarget<AArch64Subtarget>().getInstrInfo();
@@ -300,7 +300,7 @@ AArch64SLSHardening::ConvertBLRToBL(MachineBasicBlock &MBB,
   default:
     llvm_unreachable("unhandled BLR");
   }
-  DebugLoc DL = BLR.getDebugLoc();
+  DebugLoc const DL = BLR.getDebugLoc();
 
   // If we'd like to support also BLRAA and BLRAB instructions, we'd need
   // a lot more different kind of thunks.
@@ -348,7 +348,7 @@ AArch64SLSHardening::ConvertBLRToBL(MachineBasicBlock &MBB,
   int ImpSPOpIdx = -1;
   for (unsigned OpIdx = BL->getNumExplicitOperands();
        OpIdx < BL->getNumOperands(); OpIdx++) {
-    MachineOperand Op = BL->getOperand(OpIdx);
+    MachineOperand const Op = BL->getOperand(OpIdx);
     if (!Op.isReg())
       continue;
     if (Op.getReg() == AArch64::LR && Op.isDef())
@@ -358,8 +358,8 @@ AArch64SLSHardening::ConvertBLRToBL(MachineBasicBlock &MBB,
   }
   assert(ImpLROpIdx != -1);
   assert(ImpSPOpIdx != -1);
-  int FirstOpIdxToRemove = std::max(ImpLROpIdx, ImpSPOpIdx);
-  int SecondOpIdxToRemove = std::min(ImpLROpIdx, ImpSPOpIdx);
+  int const FirstOpIdxToRemove = std::max(ImpLROpIdx, ImpSPOpIdx);
+  int const SecondOpIdxToRemove = std::min(ImpLROpIdx, ImpSPOpIdx);
   BL->RemoveOperand(FirstOpIdxToRemove);
   BL->RemoveOperand(SecondOpIdxToRemove);
   // Now copy over the implicit operands from the original BLR
@@ -381,7 +381,7 @@ bool AArch64SLSHardening::hardenBLRs(MachineBasicBlock &MBB) const {
   MachineBasicBlock::iterator MBBI = MBB.begin(), E = MBB.end();
   MachineBasicBlock::iterator NextMBBI;
   for (; MBBI != E; MBBI = NextMBBI) {
-    MachineInstr &MI = *MBBI;
+    MachineInstr  const&MI = *MBBI;
     NextMBBI = std::next(MBBI);
     if (isBLR(MI)) {
       ConvertBLRToBL(MBB, MBBI);

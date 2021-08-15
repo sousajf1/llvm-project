@@ -24,7 +24,7 @@ SDValue HexagonSelectionDAGInfo::EmitTargetCodeForMemcpy(
   if (AlwaysInline || Alignment < Align(4) || !ConstantSize)
     return SDValue();
 
-  uint64_t SizeVal = ConstantSize->getZExtValue();
+  uint64_t const SizeVal = ConstantSize->getZExtValue();
   if (SizeVal < 32 || (SizeVal % 8) != 0)
     return SDValue();
 
@@ -44,8 +44,8 @@ SDValue HexagonSelectionDAGInfo::EmitTargetCodeForMemcpy(
   const char *SpecialMemcpyName =
       "__hexagon_memcpy_likely_aligned_min32bytes_mult8bytes";
   const MachineFunction &MF = DAG.getMachineFunction();
-  bool LongCalls = MF.getSubtarget<HexagonSubtarget>().useLongCalls();
-  unsigned Flags = LongCalls ? HexagonII::HMOTF_ConstExtended : 0;
+  bool const LongCalls = MF.getSubtarget<HexagonSubtarget>().useLongCalls();
+  unsigned const Flags = LongCalls ? HexagonII::HMOTF_ConstExtended : 0;
 
   TargetLowering::CallLoweringInfo CLI(DAG);
   CLI.setDebugLoc(dl)
@@ -58,6 +58,6 @@ SDValue HexagonSelectionDAGInfo::EmitTargetCodeForMemcpy(
           std::move(Args))
       .setDiscardResult();
 
-  std::pair<SDValue, SDValue> CallResult = TLI.LowerCallTo(CLI);
+  std::pair<SDValue, SDValue> const CallResult = TLI.LowerCallTo(CLI);
   return CallResult.second;
 }

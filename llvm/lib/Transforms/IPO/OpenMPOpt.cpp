@@ -262,7 +262,7 @@ struct OMPInformationCache : public InformationCache {
       // Remove the to-be-deleted indices in reverse order as prior
       // modifications will not modify the smaller indices.
       while (!ToBeDeleted.empty()) {
-        unsigned Idx = ToBeDeleted.pop_back_val();
+        unsigned const Idx = ToBeDeleted.pop_back_val();
         UV[Idx] = UV.back();
         UV.pop_back();
       }
@@ -349,7 +349,7 @@ struct OMPInformationCache : public InformationCache {
       return false;
 
     auto RTFTyIt = RTFArgTypes.begin();
-    for (Argument &Arg : F->args()) {
+    for (Argument  const&Arg : F->args()) {
       if (Arg.getType() != *RTFTyIt)
         return false;
 
@@ -402,7 +402,7 @@ struct OMPInformationCache : public InformationCache {
   /// Helper to initialize all runtime function information for those defined
   /// in OpenMPKinds.def.
   void initializeRuntimeFunctions() {
-    Module &M = *((*ModuleSlice.begin())->getParent());
+    Module  const&M = *((*ModuleSlice.begin())->getParent());
 
     // Helper macros for handling __VA_ARGS__ in OMP_RTL
 #define OMP_TYPE(VarName, ...)                                                 \
@@ -688,7 +688,7 @@ private:
       auto *Dst =
           GetPointerBaseWithConstantOffset(S->getPointerOperand(), Offset, DL);
       if (Dst == &Array) {
-        int64_t Idx = Offset / PointerSize;
+        int64_t const Idx = Offset / PointerSize;
         StoredValues[Idx] = getUnderlyingObject(S->getValueOperand());
         LastAccesses[Idx] = S;
       }
@@ -779,7 +779,7 @@ struct OpenMPOpt {
   /// Print initial ICV values for testing.
   /// FIXME: This should be done from the Attributor once it is added.
   void printICVs() const {
-    InternalControlVar ICVs[] = {ICV_nthreads, ICV_active_levels, ICV_cancel,
+    InternalControlVar const ICVs[] = {ICV_nthreads, ICV_active_levels, ICV_cancel,
                                  ICV_proc_bind};
 
     for (Function *F : OMPInfoCache.ModuleSlice) {
@@ -954,9 +954,9 @@ private:
         }
       }
 
-      OpenMPIRBuilder::LocationDescription Loc(
+      OpenMPIRBuilder::LocationDescription const Loc(
           InsertPointTy(ParentBB, ParentBB->end()), DL);
-      InsertPointTy SeqAfterIP =
+      InsertPointTy const SeqAfterIP =
           OMPInfoCache.OMPBuilder.createMaster(Loc, BodyGenCB, FiniCB);
 
       OMPInfoCache.OMPBuilder.createBarrier(SeqAfterIP, OMPD_parallel);
@@ -1023,14 +1023,14 @@ private:
                                NextForkCI->getPrevNode());
       }
 
-      OpenMPIRBuilder::LocationDescription Loc(InsertPointTy(BB, BB->end()),
+      OpenMPIRBuilder::LocationDescription const Loc(InsertPointTy(BB, BB->end()),
                                                DL);
-      IRBuilder<>::InsertPoint AllocaIP(
+      IRBuilder<>::InsertPoint const AllocaIP(
           &OriginalFn->getEntryBlock(),
           OriginalFn->getEntryBlock().getFirstInsertionPt());
       // Create the merged parallel region with default proc binding, to
       // avoid overriding binding settings, and without explicit cancellation.
-      InsertPointTy AfterIP = OMPInfoCache.OMPBuilder.createParallel(
+      InsertPointTy const AfterIP = OMPInfoCache.OMPBuilder.createParallel(
           Loc, AllocaIP, BodyGenCB, PrivCB, FiniCB, nullptr, nullptr,
           OMP_PROC_BIND_default, /* IsCancellable */ false);
       BranchInst::Create(AfterBB, AfterIP.getBlock());
@@ -1172,7 +1172,7 @@ private:
         // Forward the instruction iterator to skip the next parallel region
         // since there is an unmergable instruction which can affect it.
         for (; It != End; ++It) {
-          Instruction &SkipI = *It;
+          Instruction  const&SkipI = *It;
           if (CIs.count(&SkipI)) {
             LLVM_DEBUG(dbgs() << TAG << "Skip parallel region " << SkipI
                               << " due to " << I << "\n");
@@ -1262,7 +1262,7 @@ private:
   bool deduplicateRuntimeCalls() {
     bool Changed = false;
 
-    RuntimeFunction DeduplicableRuntimeCallIDs[] = {
+    RuntimeFunction const DeduplicableRuntimeCallIDs[] = {
         OMPRTL_omp_get_num_threads,
         OMPRTL_omp_in_parallel,
         OMPRTL_omp_get_cancellation,
@@ -1421,7 +1421,7 @@ private:
     LLVM_DEBUG(dbgs() << TAG << " Successfully got offload values:\n");
     std::string ValuesStr;
     raw_string_ostream Printer(ValuesStr);
-    std::string Separator = " --- ";
+    std::string const Separator = " --- ";
 
     for (auto *BP : OAs[0].StoredValues) {
       BP->print(Printer);
@@ -1488,7 +1488,7 @@ private:
     // Add "issue" runtime call declaration:
     // declare %struct.tgt_async_info @__tgt_target_data_begin_issue(i64, i32,
     //   i8**, i8**, i64*, i64*)
-    FunctionCallee IssueDecl = IRBuilder.getOrCreateRuntimeFunction(
+    FunctionCallee const IssueDecl = IRBuilder.getOrCreateRuntimeFunction(
         M, OMPRTL___tgt_target_data_begin_mapper_issue);
 
     // Change RuntimeCall call site for its asynchronous version.
@@ -1503,10 +1503,10 @@ private:
 
     // Add "wait" runtime call declaration:
     // declare void @__tgt_target_data_begin_wait(i64, %struct.__tgt_async_info)
-    FunctionCallee WaitDecl = IRBuilder.getOrCreateRuntimeFunction(
+    FunctionCallee const WaitDecl = IRBuilder.getOrCreateRuntimeFunction(
         M, OMPRTL___tgt_target_data_begin_mapper_wait);
 
-    Value *WaitParams[2] = {
+    Value *const WaitParams[2] = {
         IssueCallsite->getArgOperand(
             OffloadArray::DeviceIDArgNum), // device_id.
         Handle                             // handle to wait on.
@@ -1583,7 +1583,7 @@ private:
 
     // TODO: Use dominance to find a good position instead.
     auto CanBeMoved = [this](CallBase &CB) {
-      unsigned NumArgs = CB.getNumArgOperands();
+      unsigned const NumArgs = CB.getNumArgOperands();
       if (NumArgs == 0)
         return true;
       if (CB.getArgOperand(0)->getType() != OMPInfoCache.OMPBuilder.IdentPtr)
@@ -1694,7 +1694,7 @@ private:
 
     // Helper to identify uses of a GTId as GTId arguments.
     auto AddUserArgs = [&](Value &GTId) {
-      for (Use &U : GTId.uses())
+      for (Use  const&U : GTId.uses())
         if (CallInst *CI = dyn_cast<CallInst>(U.getUser()))
           if (CI->isArgOperand(&U))
             if (Function *Callee = CI->getCalledFunction())
@@ -1837,15 +1837,15 @@ private:
 
     // Temporarily make these function have external linkage so the Attributor
     // doesn't remove them when we try to look them up later.
-    ExternalizationRAII Parallel(OMPInfoCache, OMPRTL___kmpc_kernel_parallel);
-    ExternalizationRAII EndParallel(OMPInfoCache,
+    ExternalizationRAII const Parallel(OMPInfoCache, OMPRTL___kmpc_kernel_parallel);
+    ExternalizationRAII const EndParallel(OMPInfoCache,
                                     OMPRTL___kmpc_kernel_end_parallel);
-    ExternalizationRAII BarrierSPMD(OMPInfoCache,
+    ExternalizationRAII const BarrierSPMD(OMPInfoCache,
                                     OMPRTL___kmpc_barrier_simple_spmd);
 
     registerAAs(IsModulePass);
 
-    ChangeStatus Changed = A.run();
+    ChangeStatus const Changed = A.run();
 
     LLVM_DEBUG(dbgs() << "[Attributor] Done with " << SCC.size()
                       << " functions, result: " << Changed << ".\n");
@@ -2224,7 +2224,7 @@ struct AAICVTrackerFunction : public AAICVTracker {
       // ICV.
       while ((CurrInst = CurrInst->getPrevNode())) {
         if (ValuesMap.count(CurrInst)) {
-          Optional<Value *> NewReplVal = ValuesMap.lookup(CurrInst);
+          Optional<Value *> const NewReplVal = ValuesMap.lookup(CurrInst);
           // Unknown value, track new.
           if (!ReplVal.hasValue()) {
             ReplVal = NewReplVal;
@@ -2239,7 +2239,7 @@ struct AAICVTrackerFunction : public AAICVTracker {
           break;
         }
 
-        Optional<Value *> NewReplVal = getValueForCall(A, CurrInst, ICV);
+        Optional<Value *> const NewReplVal = getValueForCall(A, CurrInst, ICV);
         if (!NewReplVal.hasValue())
           continue;
 
@@ -2310,7 +2310,7 @@ struct AAICVTrackerFunctionReturned : AAICVTracker {
       Optional<Value *> UniqueICVValue;
 
       auto CheckReturnInst = [&](Instruction &I) {
-        Optional<Value *> NewReplVal =
+        Optional<Value *> const NewReplVal =
             ICVTrackingAA.getReplacementValue(ICV, &I, A);
 
         // If we found a second ICV value there is no unique returned value.
@@ -2351,7 +2351,7 @@ struct AAICVTrackerCallSite : AAICVTracker {
     // We only initialize this AA for getters, so we need to know which ICV it
     // gets.
     auto &OMPInfoCache = static_cast<OMPInformationCache &>(A.getInfoCache());
-    for (InternalControlVar ICV : TrackableICVs) {
+    for (InternalControlVar const ICV : TrackableICVs) {
       auto ICVInfo = OMPInfoCache.ICVs[ICV];
       auto &Getter = OMPInfoCache.RFIs[ICVInfo.Getter];
       if (Getter.Declaration == getAssociatedFunction()) {
@@ -2391,7 +2391,7 @@ struct AAICVTrackerCallSite : AAICVTracker {
     if (!ICVTrackingAA.isAssumedTracked())
       return indicatePessimisticFixpoint();
 
-    Optional<Value *> NewReplVal =
+    Optional<Value *> const NewReplVal =
         ICVTrackingAA.getReplacementValue(AssociatedICV, getCtxI(), A);
 
     if (ReplVal == NewReplVal)
@@ -2448,9 +2448,9 @@ struct AAICVTrackerCallSiteReturned : AAICVTracker {
     if (!ICVTrackingAA.isAssumedTracked())
       return indicatePessimisticFixpoint();
 
-    for (InternalControlVar ICV : TrackableICVs) {
+    for (InternalControlVar const ICV : TrackableICVs) {
       Optional<Value *> &ReplVal = ICVReplacementValuesMap[ICV];
-      Optional<Value *> NewReplVal =
+      Optional<Value *> const NewReplVal =
           ICVTrackingAA.getUniqueReplacementValue(ICV);
 
       if (ReplVal == NewReplVal)
@@ -2511,7 +2511,7 @@ struct AAExecutionDomainFunction : public AAExecutionDomain {
 
 ChangeStatus AAExecutionDomainFunction::updateImpl(Attributor &A) {
   Function *F = getAnchorScope();
-  ReversePostOrderTraversal<Function *> RPOT(F);
+  ReversePostOrderTraversal<Function *> const RPOT(F);
   auto NumSingleThreadedBBs = SingleThreadedBBs.size();
 
   bool AllCallSitesKnown;
@@ -2881,7 +2881,7 @@ struct AAKernelInfoFunction : AAKernelInfo {
     // knows the constant arguments to __kmpc_target_init and
     // __kmpc_target_deinit might actually change.
 
-    Attributor::SimplifictionCallbackTy StateMachineSimplifyCB =
+    Attributor::SimplifictionCallbackTy const StateMachineSimplifyCB =
         [&](const IRPosition &IRP, const AbstractAttribute *AA,
             bool &UsedAssumedInformation) -> Optional<Value *> {
       // IRP represents the "use generic state machine" argument of an
@@ -2902,7 +2902,7 @@ struct AAKernelInfoFunction : AAKernelInfo {
       return FalseVal;
     };
 
-    Attributor::SimplifictionCallbackTy IsSPMDModeSimplifyCB =
+    Attributor::SimplifictionCallbackTy const IsSPMDModeSimplifyCB =
         [&](const IRPosition &IRP, const AbstractAttribute *AA,
             bool &UsedAssumedInformation) -> Optional<Value *> {
       // IRP represents the "SPMDCompatibilityTracker" argument of an
@@ -2923,7 +2923,7 @@ struct AAKernelInfoFunction : AAKernelInfo {
       return Val;
     };
 
-    Attributor::SimplifictionCallbackTy IsGenericModeSimplifyCB =
+    Attributor::SimplifictionCallbackTy const IsGenericModeSimplifyCB =
         [&](const IRPosition &IRP, const AbstractAttribute *AA,
             bool &UsedAssumedInformation) -> Optional<Value *> {
       // IRP represents the "RequiresFullRuntime" argument of an
@@ -3131,7 +3131,7 @@ struct AAKernelInfoFunction : AAKernelInfo {
       // Go to tid check BB in ParentBB.
       const DebugLoc DL = ParentBB->getTerminator()->getDebugLoc();
       ParentBB->getTerminator()->eraseFromParent();
-      OpenMPIRBuilder::LocationDescription Loc(
+      OpenMPIRBuilder::LocationDescription const Loc(
           InsertPointTy(ParentBB, ParentBB->end()), DL);
       OMPInfoCache.OMPBuilder.updateToLocation(Loc);
       auto *SrcLocStr = OMPInfoCache.OMPBuilder.getOrCreateSrcLocStr(Loc);
@@ -3140,10 +3140,10 @@ struct AAKernelInfoFunction : AAKernelInfo {
 
       // Add check for Tid in RegionCheckTidBB
       RegionCheckTidBB->getTerminator()->eraseFromParent();
-      OpenMPIRBuilder::LocationDescription LocRegionCheckTid(
+      OpenMPIRBuilder::LocationDescription const LocRegionCheckTid(
           InsertPointTy(RegionCheckTidBB, RegionCheckTidBB->end()), DL);
       OMPInfoCache.OMPBuilder.updateToLocation(LocRegionCheckTid);
-      FunctionCallee HardwareTidFn =
+      FunctionCallee const HardwareTidFn =
           OMPInfoCache.OMPBuilder.getOrCreateRuntimeFunction(
               M, OMPRTL___kmpc_get_hardware_thread_id_in_block);
       Value *Tid =
@@ -3155,7 +3155,7 @@ struct AAKernelInfoFunction : AAKernelInfo {
 
       // First barrier for synchronization, ensures main thread has updated
       // values.
-      FunctionCallee BarrierFn =
+      FunctionCallee const BarrierFn =
           OMPInfoCache.OMPBuilder.getOrCreateRuntimeFunction(
               M, OMPRTL___kmpc_barrier_simple_spmd);
       OMPInfoCache.OMPBuilder.updateToLocation(InsertPointTy(
@@ -3422,13 +3422,13 @@ struct AAKernelInfoFunction : AAKernelInfo {
     Value *GTid = KernelInitCB;
 
     Module &M = *Kernel->getParent();
-    FunctionCallee BarrierFn =
+    FunctionCallee const BarrierFn =
         OMPInfoCache.OMPBuilder.getOrCreateRuntimeFunction(
             M, OMPRTL___kmpc_barrier_simple_spmd);
     CallInst::Create(BarrierFn, {Ident, GTid}, "", StateMachineBeginBB)
         ->setDebugLoc(DLoc);
 
-    FunctionCallee KernelParallelFn =
+    FunctionCallee const KernelParallelFn =
         OMPInfoCache.OMPBuilder.getOrCreateRuntimeFunction(
             M, OMPRTL___kmpc_kernel_parallel);
     Instruction *IsActiveWorker = CallInst::Create(
@@ -3530,7 +3530,7 @@ struct AAKernelInfoFunction : AAKernelInfo {
   /// Fixpoint iteration update function. Will be called every time a dependence
   /// changed its state (and in the beginning).
   ChangeStatus updateImpl(Attributor &A) override {
-    KernelInfoState StateBefore = getState();
+    KernelInfoState const StateBefore = getState();
 
     // Callback to check a read/write instruction.
     auto CheckRWInst = [&](Instruction &I) {
@@ -3742,7 +3742,7 @@ struct AAKernelInfoCallSite : AAKernelInfo {
     }
 
     const unsigned int WrapperFunctionArgNo = 6;
-    RuntimeFunction RF = It->getSecond();
+    RuntimeFunction const RF = It->getSecond();
     switch (RF) {
     // All the functions we know are compatible with SPMD mode.
     case OMPRTL___kmpc_is_spmd_exec_mode:
@@ -3761,10 +3761,10 @@ struct AAKernelInfoCallSite : AAKernelInfo {
     case OMPRTL___kmpc_for_static_init_8:
     case OMPRTL___kmpc_for_static_init_8u: {
       // Check the schedule and allow static schedule in SPMD mode.
-      unsigned ScheduleArgOpNo = 2;
+      unsigned const ScheduleArgOpNo = 2;
       auto *ScheduleTypeCI =
           dyn_cast<ConstantInt>(CB.getArgOperand(ScheduleArgOpNo));
-      unsigned ScheduleTypeVal =
+      unsigned const ScheduleTypeVal =
           ScheduleTypeCI ? ScheduleTypeCI->getZExtValue() : 0;
       switch (OMPScheduleType(ScheduleTypeVal)) {
       case OMPScheduleType::Static:
@@ -3840,7 +3840,7 @@ struct AAKernelInfoCallSite : AAKernelInfo {
 
     // F is a runtime function that allocates or frees memory, check
     // AAHeapToStack and AAHeapToShared.
-    KernelInfoState StateBefore = getState();
+    KernelInfoState const StateBefore = getState();
     assert((It->getSecond() == OMPRTL___kmpc_alloc_shared ||
             It->getSecond() == OMPRTL___kmpc_free_shared) &&
            "Expected a __kmpc_alloc_shared or __kmpc_free_shared runtime call");
@@ -3852,7 +3852,7 @@ struct AAKernelInfoCallSite : AAKernelInfo {
     auto &HeapToSharedAA = A.getAAFor<AAHeapToShared>(
         *this, IRPosition::function(*CB.getCaller()), DepClassTy::OPTIONAL);
 
-    RuntimeFunction RF = It->getSecond();
+    RuntimeFunction const RF = It->getSecond();
 
     switch (RF) {
     // If neither HeapToStack nor HeapToShared assume the call is removed,
@@ -3913,7 +3913,7 @@ struct AAFoldRuntimeCallCallSiteReturned : AAFoldRuntimeCall {
     if (!isValidState())
       return "<invalid>";
 
-    std::string Str("simplified value: ");
+    std::string const Str("simplified value: ");
 
     if (!SimplifiedValue.hasValue())
       return Str + std::string("none");
@@ -3940,7 +3940,7 @@ struct AAFoldRuntimeCallCallSiteReturned : AAFoldRuntimeCall {
 
     RFKind = It->getSecond();
 
-    CallBase &CB = cast<CallBase>(getAssociatedValue());
+    CallBase  const&CB = cast<CallBase>(getAssociatedValue());
     A.registerSimplificationCallback(
         IRPosition::callsite_returned(CB),
         [&](const IRPosition &IRP, const AbstractAttribute *AA,
@@ -4008,7 +4008,7 @@ struct AAFoldRuntimeCallCallSiteReturned : AAFoldRuntimeCall {
 private:
   /// Fold __kmpc_is_spmd_exec_mode into a constant if possible.
   ChangeStatus foldIsSPMDExecMode(Attributor &A) {
-    Optional<Value *> SimplifiedValueBefore = SimplifiedValue;
+    Optional<Value *> const SimplifiedValueBefore = SimplifiedValue;
 
     unsigned AssumedSPMDCount = 0, KnownSPMDCount = 0;
     unsigned AssumedNonSPMDCount = 0, KnownNonSPMDCount = 0;
@@ -4070,7 +4070,7 @@ private:
 
   /// Fold __kmpc_is_generic_main_thread_id into a constant if possible.
   ChangeStatus foldIsGenericMainThread(Attributor &A) {
-    Optional<Value *> SimplifiedValueBefore = SimplifiedValue;
+    Optional<Value *> const SimplifiedValueBefore = SimplifiedValue;
 
     CallBase &CB = cast<CallBase>(getAssociatedValue());
     Function *F = CB.getFunction();
@@ -4092,7 +4092,7 @@ private:
 
   /// Fold __kmpc_parallel_level into a constant if possible.
   ChangeStatus foldParallelLevel(Attributor &A) {
-    Optional<Value *> SimplifiedValueBefore = SimplifiedValue;
+    Optional<Value *> const SimplifiedValueBefore = SimplifiedValue;
 
     auto &CallerKernelInfoAA = A.getAAFor<AAKernelInfo>(
         *this, IRPosition::function(*getAnchorScope()), DepClassTy::REQUIRED);
@@ -4154,7 +4154,7 @@ private:
   ChangeStatus foldKernelFnAttribute(Attributor &A, llvm::StringRef Attr) {
     // Specialize only if all the calls agree with the attribute constant value
     int32_t CurrentAttrValue = -1;
-    Optional<Value *> SimplifiedValueBefore = SimplifiedValue;
+    Optional<Value *> const SimplifiedValueBefore = SimplifiedValue;
 
     auto &CallerKernelInfoAA = A.getAAFor<AAKernelInfo>(
         *this, IRPosition::function(*getAnchorScope()), DepClassTy::REQUIRED);
@@ -4246,7 +4246,7 @@ void OpenMPOpt::registerAAs(bool IsModulePass) {
 
       auto &CB = cast<CallBase>(*CI);
 
-      IRPosition CBPos = IRPosition::callsite_function(CB);
+      IRPosition const CBPos = IRPosition::callsite_function(CB);
       A.getOrCreateAAFor<AAICVTracker>(CBPos);
       return false;
     };
@@ -4467,12 +4467,12 @@ PreservedAnalyses OpenMPOptPass::run(Module &M, ModuleAnalysisManager &AM) {
   SetVector<Function *> Functions(SCC.begin(), SCC.end());
   OMPInformationCache InfoCache(M, AG, Allocator, /*CGSCC*/ Functions, Kernels);
 
-  unsigned MaxFixpointIterations = (isOpenMPDevice(M)) ? 128 : 32;
+  unsigned const MaxFixpointIterations = (isOpenMPDevice(M)) ? 128 : 32;
   Attributor A(Functions, InfoCache, CGUpdater, nullptr, true, false,
                MaxFixpointIterations, OREGetter, DEBUG_TYPE);
 
   OpenMPOpt OMPOpt(SCC, CGUpdater, OREGetter, InfoCache, A);
-  bool Changed = OMPOpt.run(true);
+  bool const Changed = OMPOpt.run(true);
   if (Changed)
     return PreservedAnalyses::none();
 
@@ -4490,7 +4490,7 @@ PreservedAnalyses OpenMPOptCGSCCPass::run(LazyCallGraph::SCC &C,
 
   SmallVector<Function *, 16> SCC;
   // If there are kernels in the module, we have to run on all SCC's.
-  for (LazyCallGraph::Node &N : C) {
+  for (LazyCallGraph::Node  const&N : C) {
     Function *Fn = &N.getFunction();
     SCC.push_back(Fn);
   }
@@ -4519,12 +4519,12 @@ PreservedAnalyses OpenMPOptCGSCCPass::run(LazyCallGraph::SCC &C,
   OMPInformationCache InfoCache(*(Functions.back()->getParent()), AG, Allocator,
                                 /*CGSCC*/ Functions, Kernels);
 
-  unsigned MaxFixpointIterations = (isOpenMPDevice(M)) ? 128 : 32;
+  unsigned const MaxFixpointIterations = (isOpenMPDevice(M)) ? 128 : 32;
   Attributor A(Functions, InfoCache, CGUpdater, nullptr, false, true,
                MaxFixpointIterations, OREGetter, DEBUG_TYPE);
 
   OpenMPOpt OMPOpt(SCC, CGUpdater, OREGetter, InfoCache, A);
-  bool Changed = OMPOpt.run(false);
+  bool const Changed = OMPOpt.run(false);
   if (Changed)
     return PreservedAnalyses::none();
 
@@ -4585,7 +4585,7 @@ struct OpenMPOptCGSCCLegacyPass : public CallGraphSCCPass {
                                   Allocator,
                                   /*CGSCC*/ Functions, Kernels);
 
-    unsigned MaxFixpointIterations = (isOpenMPDevice(M)) ? 128 : 32;
+    unsigned const MaxFixpointIterations = (isOpenMPDevice(M)) ? 128 : 32;
     Attributor A(Functions, InfoCache, CGUpdater, nullptr, false, true,
                  MaxFixpointIterations, OREGetter, DEBUG_TYPE);
 

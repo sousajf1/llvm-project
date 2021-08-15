@@ -336,7 +336,7 @@ bool GlobalMerge::doMerge(SmallVectorImpl<GlobalVariable*> &Globals,
         if (OnlyOptimizeForSize && !ParentFn->hasMinSize())
           continue;
 
-        size_t UGSIdx = GlobalUsesByFunction[ParentFn];
+        size_t const UGSIdx = GlobalUsesByFunction[ParentFn];
 
         // If this is the first global the basic block uses, map it to the set
         // consisting of this global only.
@@ -364,7 +364,7 @@ bool GlobalMerge::doMerge(SmallVectorImpl<GlobalVariable*> &Globals,
 
         // If we already expanded the previous set to include this global, just
         // reuse that expanded set.
-        if (size_t ExpandedIdx = EncounteredUGS[UGSIdx]) {
+        if (size_t const ExpandedIdx = EncounteredUGS[UGSIdx]) {
           ++UsedGlobalSets[ExpandedIdx].UsageCount;
           GlobalUsesByFunction[ParentFn] = ExpandedIdx;
           continue;
@@ -465,8 +465,8 @@ bool GlobalMerge::doMerge(const SmallVectorImpl<GlobalVariable *> &Globals,
       Type *Ty = Globals[j]->getValueType();
 
       // Make sure we use the same alignment AsmPrinter would use.
-      Align Alignment = DL.getPreferredAlign(Globals[j]);
-      unsigned Padding = alignTo(MergedSize, Alignment) - MergedSize;
+      Align const Alignment = DL.getPreferredAlign(Globals[j]);
+      unsigned const Padding = alignTo(MergedSize, Alignment) - MergedSize;
       MergedSize += Padding;
       MergedSize += DL.getTypeAllocSize(Ty);
       if (MergedSize > MaxOffset) {
@@ -497,7 +497,7 @@ bool GlobalMerge::doMerge(const SmallVectorImpl<GlobalVariable *> &Globals,
 
     // If merged variables doesn't have external linkage, we needn't to expose
     // the symbol after merging.
-    GlobalValue::LinkageTypes Linkage = HasExternal
+    GlobalValue::LinkageTypes const Linkage = HasExternal
                                             ? GlobalValue::ExternalLinkage
                                             : GlobalValue::InternalLinkage;
     // Use a packed struct so we can control alignment.
@@ -510,7 +510,7 @@ bool GlobalMerge::doMerge(const SmallVectorImpl<GlobalVariable *> &Globals,
     // of the first variable merged as the suffix of global symbol
     // name.  This avoids a link-time naming conflict for the
     // _MergedGlobals symbols.
-    Twine MergedName =
+    Twine const MergedName =
         (IsMachO && HasExternal)
             ? "_MergedGlobals_" + FirstExternalName
             : "_MergedGlobals";
@@ -524,10 +524,10 @@ bool GlobalMerge::doMerge(const SmallVectorImpl<GlobalVariable *> &Globals,
 
     const StructLayout *MergedLayout = DL.getStructLayout(MergedTy);
     for (ssize_t k = i, idx = 0; k != j; k = GlobalSet.find_next(k), ++idx) {
-      GlobalValue::LinkageTypes Linkage = Globals[k]->getLinkage();
-      std::string Name(Globals[k]->getName());
-      GlobalValue::VisibilityTypes Visibility = Globals[k]->getVisibility();
-      GlobalValue::DLLStorageClassTypes DLLStorage =
+      GlobalValue::LinkageTypes const Linkage = Globals[k]->getLinkage();
+      std::string const Name(Globals[k]->getName());
+      GlobalValue::VisibilityTypes const Visibility = Globals[k]->getVisibility();
+      GlobalValue::DLLStorageClassTypes const DLLStorage =
           Globals[k]->getDLLStorageClass();
 
       // Copy metadata while adjusting any debug info metadata by the original
@@ -535,7 +535,7 @@ bool GlobalMerge::doMerge(const SmallVectorImpl<GlobalVariable *> &Globals,
       MergedGV->copyMetadata(Globals[k],
                              MergedLayout->getElementOffset(StructIdxs[idx]));
 
-      Constant *Idx[2] = {
+      Constant *const Idx[2] = {
           ConstantInt::get(Int32Ty, 0),
           ConstantInt::get(Int32Ty, StructIdxs[idx]),
       };
@@ -628,8 +628,8 @@ bool GlobalMerge::doInitialization(Module &M) {
     PointerType *PT = dyn_cast<PointerType>(GV.getType());
     assert(PT && "Global variable is not a pointer!");
 
-    unsigned AddressSpace = PT->getAddressSpace();
-    StringRef Section = GV.getSection();
+    unsigned const AddressSpace = PT->getAddressSpace();
+    StringRef const Section = GV.getSection();
 
     // Ignore all 'special' globals.
     if (GV.getName().startswith("llvm.") ||
@@ -680,7 +680,7 @@ bool GlobalMerge::doFinalization(Module &M) {
 Pass *llvm::createGlobalMergePass(const TargetMachine *TM, unsigned Offset,
                                   bool OnlyOptimizeForSize,
                                   bool MergeExternalByDefault) {
-  bool MergeExternal = (EnableGlobalMergeOnExternal == cl::BOU_UNSET) ?
+  bool const MergeExternal = (EnableGlobalMergeOnExternal == cl::BOU_UNSET) ?
     MergeExternalByDefault : (EnableGlobalMergeOnExternal == cl::BOU_TRUE);
   return new GlobalMerge(TM, Offset, OnlyOptimizeForSize, MergeExternal);
 }

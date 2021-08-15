@@ -93,13 +93,13 @@ static bool calculateUpperBound(const Loop &L, ScalarEvolution &SE,
 
   if (IntegerType *BoundSCEVIntType =
           dyn_cast<IntegerType>(Cond.BoundSCEV->getType())) {
-    unsigned BitWidth = BoundSCEVIntType->getBitWidth();
-    APInt Max = ICmpInst::isSigned(Cond.Pred)
+    unsigned const BitWidth = BoundSCEVIntType->getBitWidth();
+    APInt const Max = ICmpInst::isSigned(Cond.Pred)
                     ? APInt::getSignedMaxValue(BitWidth)
                     : APInt::getMaxValue(BitWidth);
     const SCEV *MaxSCEV = SE.getConstant(Max);
     // Check Bound < INT_MAX
-    ICmpInst::Predicate Pred =
+    ICmpInst::Predicate const Pred =
         ICmpInst::isSigned(Cond.Pred) ? ICmpInst::ICMP_SLT : ICmpInst::ICMP_ULT;
     if (SE.isKnownPredicate(Pred, Cond.BoundSCEV, MaxSCEV)) {
       const SCEV *BoundPlusOneSCEV =
@@ -345,7 +345,7 @@ static bool splitLoopBound(Loop &L, DominatorTree &DT, LoopInfo &LI,
   BasicBlock *PostLoopPreHeader = PostLoop->getLoopPreheader();
   IRBuilder<> Builder(PostLoopPreHeader);
   Instruction *OrigBI = PostLoopPreHeader->getTerminator();
-  ICmpInst::Predicate Pred = ICmpInst::ICMP_NE;
+  ICmpInst::Predicate const Pred = ICmpInst::ICMP_NE;
   Value *Cond =
       Builder.CreateICmp(Pred, ExitingCond.AddRecValue, ExitingCond.BoundValue);
   Builder.CreateCondBr(Cond, PostLoop->getHeader(), PostLoop->getExitBlock());
@@ -421,7 +421,7 @@ static bool splitLoopBound(Loop &L, DominatorTree &DT, LoopInfo &LI,
 PreservedAnalyses LoopBoundSplitPass::run(Loop &L, LoopAnalysisManager &AM,
                                           LoopStandardAnalysisResults &AR,
                                           LPMUpdater &U) {
-  Function &F = *L.getHeader()->getParent();
+  Function  const&F = *L.getHeader()->getParent();
   (void)F;
 
   LLVM_DEBUG(dbgs() << "Spliting bound of loop in " << F.getName() << ": " << L

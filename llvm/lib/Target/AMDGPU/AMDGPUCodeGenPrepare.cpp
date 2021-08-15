@@ -306,8 +306,8 @@ static bool promotedOpIsNUW(const Instruction &I) {
 bool AMDGPUCodeGenPrepare::canWidenScalarExtLoad(LoadInst &I) const {
   Type *Ty = I.getType();
   const DataLayout &DL = Mod->getDataLayout();
-  int TySize = DL.getTypeSizeInBits(Ty);
-  Align Alignment = DL.getValueOrABITypeAlignment(I.getAlign(), Ty);
+  int const TySize = DL.getTypeSizeInBits(Ty);
+  Align const Alignment = DL.getValueOrABITypeAlignment(I.getAlign(), Ty);
 
   return I.isSimple() && TySize < 32 && Alignment >= 4 && DA->isUniform(&I);
 }
@@ -443,7 +443,7 @@ bool AMDGPUCodeGenPrepare::promoteUniformBitreverseToI32(
 
 unsigned AMDGPUCodeGenPrepare::numBitsUnsigned(Value *Op,
                                                unsigned ScalarSize) const {
-  KnownBits Known = computeKnownBits(Op, *DL, 0, AC);
+  KnownBits const Known = computeKnownBits(Op, *DL, 0, AC);
   return ScalarSize - Known.countMinLeadingZeros();
 }
 
@@ -494,7 +494,7 @@ bool AMDGPUCodeGenPrepare::replaceMulWithMul24(BinaryOperator &I) const {
     return false;
 
   Type *Ty = I.getType();
-  unsigned Size = Ty->getScalarSizeInBits();
+  unsigned const Size = Ty->getScalarSizeInBits();
   if (Size <= 16 && ST->has16BitInsts())
     return false;
 
@@ -525,7 +525,7 @@ bool AMDGPUCodeGenPrepare::replaceMulWithMul24(BinaryOperator &I) const {
 
 
   IntegerType *I32Ty = Builder.getInt32Ty();
-  FunctionCallee Intrin = Intrinsic::getDeclaration(Mod, IntrID);
+  FunctionCallee const Intrin = Intrinsic::getDeclaration(Mod, IntrID);
   for (int I = 0, E = LHSVals.size(); I != E; ++I) {
     Value *LHS, *RHS;
     if (IntrID == Intrinsic::amdgcn_mul_u24) {
@@ -754,7 +754,7 @@ bool AMDGPUCodeGenPrepare::visitFDiv(BinaryOperator &FDiv) {
   const float ReqdAccuracy =  FPOp->getFPAccuracy();
 
   // Inaccurate rcp is allowed with unsafe-fp-math or afn.
-  FastMathFlags FMF = FPOp->getFastMathFlags();
+  FastMathFlags const FMF = FPOp->getFastMathFlags();
   const bool AllowInaccurateRcp = HasUnsafeFPMath || FMF.approxFunc();
 
   // rcp_f16 is accurate for !fpmath >= 1.0ulp.
@@ -835,7 +835,7 @@ bool AMDGPUCodeGenPrepare::visitXor(BinaryOperator &I) {
 }
 
 static bool hasUnsafeFPMath(const Function &F) {
-  Attribute Attr = F.getFnAttribute("unsafe-fp-math");
+  Attribute const Attr = F.getFnAttribute("unsafe-fp-math");
   return Attr.getValueAsBool();
 }
 
@@ -864,15 +864,15 @@ int AMDGPUCodeGenPrepare::getDivNumBits(BinaryOperator &I,
                                         Value *Num, Value *Den,
                                         unsigned AtLeast, bool IsSigned) const {
   const DataLayout &DL = Mod->getDataLayout();
-  unsigned LHSSignBits = ComputeNumSignBits(Num, DL, 0, AC, &I);
+  unsigned const LHSSignBits = ComputeNumSignBits(Num, DL, 0, AC, &I);
   if (LHSSignBits < AtLeast)
     return -1;
 
-  unsigned RHSSignBits = ComputeNumSignBits(Den, DL, 0, AC, &I);
+  unsigned const RHSSignBits = ComputeNumSignBits(Den, DL, 0, AC, &I);
   if (RHSSignBits < AtLeast)
     return -1;
 
-  unsigned SignBits = std::min(LHSSignBits, RHSSignBits);
+  unsigned const SignBits = std::min(LHSSignBits, RHSSignBits);
   unsigned DivBits = Num->getType()->getScalarSizeInBits() - SignBits;
   if (IsSigned)
     ++DivBits;
@@ -885,7 +885,7 @@ Value *AMDGPUCodeGenPrepare::expandDivRem24(IRBuilder<> &Builder,
                                             BinaryOperator &I,
                                             Value *Num, Value *Den,
                                             bool IsDiv, bool IsSigned) const {
-  int DivBits = getDivNumBits(I, Num, Den, 9, IsSigned);
+  int const DivBits = getDivNumBits(I, Num, Den, 9, IsSigned);
   if (DivBits == -1)
     return nullptr;
   return expandDivRem24Impl(Builder, I, Num, Den, DivBits, IsDiv, IsSigned);
@@ -977,7 +977,7 @@ Value *AMDGPUCodeGenPrepare::expandDivRem24Impl(IRBuilder<> &Builder,
   if (DivBits != 0 && DivBits < 32) {
     // Extend in register from the number of bits this divide really is.
     if (IsSigned) {
-      int InRegBits = 32 - DivBits;
+      int const InRegBits = 32 - DivBits;
 
       Res = Builder.CreateShl(Res, InRegBits);
       Res = Builder.CreateAShr(Res, InRegBits);
@@ -1029,7 +1029,7 @@ bool AMDGPUCodeGenPrepare::divHasSpecialOptimization(
 
 static Value *getSign32(Value *V, IRBuilder<> &Builder, const DataLayout *DL) {
   // Check whether the sign can be determined statically.
-  KnownBits Known = computeKnownBits(V, *DL);
+  KnownBits const Known = computeKnownBits(V, *DL);
   if (Known.isNegative())
     return Constant::getAllOnesValue(V->getType());
   if (Known.isNonNegative())
@@ -1040,7 +1040,7 @@ static Value *getSign32(Value *V, IRBuilder<> &Builder, const DataLayout *DL) {
 Value *AMDGPUCodeGenPrepare::expandDivRem32(IRBuilder<> &Builder,
                                             BinaryOperator &I, Value *X,
                                             Value *Y) const {
-  Instruction::BinaryOps Opc = I.getOpcode();
+  Instruction::BinaryOps const Opc = I.getOpcode();
   assert(Opc == Instruction::URem || Opc == Instruction::UDiv ||
          Opc == Instruction::SRem || Opc == Instruction::SDiv);
 
@@ -1051,8 +1051,8 @@ Value *AMDGPUCodeGenPrepare::expandDivRem32(IRBuilder<> &Builder,
   if (divHasSpecialOptimization(I, X, Y))
     return nullptr;  // Keep it for later optimization.
 
-  bool IsDiv = Opc == Instruction::UDiv || Opc == Instruction::SDiv;
-  bool IsSigned = Opc == Instruction::SRem || Opc == Instruction::SDiv;
+  bool const IsDiv = Opc == Instruction::UDiv || Opc == Instruction::SDiv;
+  bool const IsSigned = Opc == Instruction::SRem || Opc == Instruction::SDiv;
 
   Type *Ty = X->getType();
   Type *I32Ty = Builder.getInt32Ty();
@@ -1168,12 +1168,12 @@ Value *AMDGPUCodeGenPrepare::shrinkDivRem64(IRBuilder<> &Builder,
   if (!ExpandDiv64InIR && divHasSpecialOptimization(I, Num, Den))
     return nullptr;  // Keep it for later optimization.
 
-  Instruction::BinaryOps Opc = I.getOpcode();
+  Instruction::BinaryOps const Opc = I.getOpcode();
 
-  bool IsDiv = Opc == Instruction::SDiv || Opc == Instruction::UDiv;
-  bool IsSigned = Opc == Instruction::SDiv || Opc == Instruction::SRem;
+  bool const IsDiv = Opc == Instruction::SDiv || Opc == Instruction::UDiv;
+  bool const IsSigned = Opc == Instruction::SDiv || Opc == Instruction::SRem;
 
-  int NumDivBits = getDivNumBits(I, Num, Den, 32, IsSigned);
+  int const NumDivBits = getDivNumBits(I, Num, Den, 32, IsSigned);
   if (NumDivBits == -1)
     return nullptr;
 
@@ -1194,7 +1194,7 @@ Value *AMDGPUCodeGenPrepare::shrinkDivRem64(IRBuilder<> &Builder,
 }
 
 void AMDGPUCodeGenPrepare::expandDivRem64(BinaryOperator &I) const {
-  Instruction::BinaryOps Opc = I.getOpcode();
+  Instruction::BinaryOps const Opc = I.getOpcode();
   // Do the general expansion.
   if (Opc == Instruction::UDiv || Opc == Instruction::SDiv) {
     expandDivisionUpTo64Bits(&I);
@@ -1221,10 +1221,10 @@ bool AMDGPUCodeGenPrepare::visitBinaryOperator(BinaryOperator &I) {
     return true;
 
   bool Changed = false;
-  Instruction::BinaryOps Opc = I.getOpcode();
+  Instruction::BinaryOps const Opc = I.getOpcode();
   Type *Ty = I.getType();
   Value *NewDiv = nullptr;
-  unsigned ScalarSize = Ty->getScalarSizeInBits();
+  unsigned const ScalarSize = Ty->getScalarSizeInBits();
 
   SmallVector<BinaryOperator *, 8> Div64ToExpand;
 
@@ -1317,7 +1317,7 @@ bool AMDGPUCodeGenPrepare::visitLoadInst(LoadInst &I) {
       if (Lower->getValue().isNullValue()) {
         WidenLoad->setMetadata(LLVMContext::MD_range, nullptr);
       } else {
-        Metadata *LowAndHigh[] = {
+        Metadata *const LowAndHigh[] = {
           ConstantAsMetadata::get(ConstantInt::get(I32Ty, Lower->getValue().zext(32))),
           // Don't make assumptions about the high bits.
           ConstantAsMetadata::get(ConstantInt::get(I32Ty, 0))
@@ -1328,7 +1328,7 @@ bool AMDGPUCodeGenPrepare::visitLoadInst(LoadInst &I) {
       }
     }
 
-    int TySize = Mod->getDataLayout().getTypeSizeInBits(I.getType());
+    int const TySize = Mod->getDataLayout().getTypeSizeInBits(I.getType());
     Type *IntNTy = Builder.getIntNTy(TySize);
     Value *ValTrunc = Builder.CreateTrunc(WidenLoad, IntNTy);
     Value *ValOrig = Builder.CreateBitCast(ValTrunc, I.getType());
@@ -1403,7 +1403,7 @@ bool AMDGPUCodeGenPrepare::runOnFunction(Function &F) {
 
   HasUnsafeFPMath = hasUnsafeFPMath(F);
 
-  AMDGPU::SIModeRegisterDefaults Mode(F);
+  AMDGPU::SIModeRegisterDefaults const Mode(F);
   HasFP32Denormals = Mode.allFP32Denormals();
 
   bool MadeChange = false;

@@ -31,7 +31,7 @@ PassInstrumentationCallbacks::getPassNameForClassName(StringRef ClassName) {
 AnalysisKey PassInstrumentationAnalysis::Key;
 
 bool isSpecialPass(StringRef PassID, const std::vector<StringRef> &Specials) {
-  size_t Pos = PassID.find('<');
+  size_t const Pos = PassID.find('<');
   StringRef Prefix = PassID;
   if (Pos != StringRef::npos)
     Prefix = PassID.substr(0, Pos);

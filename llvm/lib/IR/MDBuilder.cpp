@@ -112,7 +112,7 @@ MDNode *MDBuilder::createCallbackEncoding(unsigned CalleeArgNo,
   Type *Int64 = Type::getInt64Ty(Context);
   Ops.push_back(createConstant(ConstantInt::get(Int64, CalleeArgNo)));
 
-  for (int ArgNo : Arguments)
+  for (int const ArgNo : Arguments)
     Ops.push_back(createConstant(ConstantInt::get(Int64, ArgNo, true)));
 
   Type *Int1 = Type::getInt1Ty(Context);
@@ -127,19 +127,19 @@ MDNode *MDBuilder::mergeCallbackEncodings(MDNode *ExistingCallbacks,
     return MDNode::get(Context, {NewCB});
 
   auto *NewCBCalleeIdxAsCM = cast<ConstantAsMetadata>(NewCB->getOperand(0));
-  uint64_t NewCBCalleeIdx =
+  uint64_t const NewCBCalleeIdx =
       cast<ConstantInt>(NewCBCalleeIdxAsCM->getValue())->getZExtValue();
   (void)NewCBCalleeIdx;
 
   SmallVector<Metadata *, 4> Ops;
-  unsigned NumExistingOps = ExistingCallbacks->getNumOperands();
+  unsigned const NumExistingOps = ExistingCallbacks->getNumOperands();
   Ops.resize(NumExistingOps + 1);
 
   for (unsigned u = 0; u < NumExistingOps; u++) {
     Ops[u] = ExistingCallbacks->getOperand(u);
 
     auto *OldCBCalleeIdxAsCM = cast<ConstantAsMetadata>(Ops[u]);
-    uint64_t OldCBCalleeIdx =
+    uint64_t const OldCBCalleeIdx =
       cast<ConstantInt>(OldCBCalleeIdxAsCM->getValue())->getZExtValue();
     (void)OldCBCalleeIdx;
     assert(NewCBCalleeIdx != OldCBCalleeIdx &&
@@ -275,12 +275,12 @@ MDNode *MDBuilder::createMutableTBAAAccessTag(MDNode *Tag) {
   MDNode *BaseType = cast<MDNode>(Tag->getOperand(0));
   MDNode *AccessType = cast<MDNode>(Tag->getOperand(1));
   Metadata *OffsetNode = Tag->getOperand(2);
-  uint64_t Offset = mdconst::extract<ConstantInt>(OffsetNode)->getZExtValue();
+  uint64_t const Offset = mdconst::extract<ConstantInt>(OffsetNode)->getZExtValue();
 
-  bool NewFormat = isa<MDNode>(AccessType->getOperand(0));
+  bool const NewFormat = isa<MDNode>(AccessType->getOperand(0));
 
   // See if the tag is already mutable.
-  unsigned ImmutabilityFlagOp = NewFormat ? 4 : 3;
+  unsigned const ImmutabilityFlagOp = NewFormat ? 4 : 3;
   if (Tag->getNumOperands() <= ImmutabilityFlagOp)
     return Tag;
 
@@ -294,12 +294,12 @@ MDNode *MDBuilder::createMutableTBAAAccessTag(MDNode *Tag) {
     return createTBAAStructTagNode(BaseType, AccessType, Offset);
 
   Metadata *SizeNode = Tag->getOperand(3);
-  uint64_t Size = mdconst::extract<ConstantInt>(SizeNode)->getZExtValue();
+  uint64_t const Size = mdconst::extract<ConstantInt>(SizeNode)->getZExtValue();
   return createTBAAAccessTag(BaseType, AccessType, Offset, Size);
 }
 
 MDNode *MDBuilder::createIrrLoopHeaderWeight(uint64_t Weight) {
-  Metadata *Vals[] = {
+  Metadata *const Vals[] = {
     createString("loop_header_weight"),
     createConstant(ConstantInt::get(Type::getInt64Ty(Context), Weight)),
   };

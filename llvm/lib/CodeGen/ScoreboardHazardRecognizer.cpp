@@ -47,7 +47,7 @@ ScoreboardHazardRecognizer::ScoreboardHazardRecognizer(
       unsigned CurCycle = 0;
       unsigned ItinDepth = 0;
       for (; IS != E; ++IS) {
-        unsigned StageDepth = CurCycle + IS->getCycles();
+        unsigned const StageDepth = CurCycle + IS->getCycles();
         if (ItinDepth < StageDepth) ItinDepth = StageDepth;
         CurCycle += IS->getNextCycles();
       }
@@ -92,7 +92,7 @@ LLVM_DUMP_METHOD void ScoreboardHazardRecognizer::Scoreboard::dump() const {
     last--;
 
   for (unsigned i = 0; i <= last; i++) {
-    InstrStage::FuncUnits FUs = (*this)[i];
+    InstrStage::FuncUnits const FUs = (*this)[i];
     dbgs() << "\t";
     for (int j = std::numeric_limits<InstrStage::FuncUnits>::digits - 1;
          j >= 0; j--)
@@ -125,14 +125,14 @@ ScoreboardHazardRecognizer::getHazardType(SUnit *SU, int Stalls) {
     // Don't check hazards for non-machineinstr Nodes.
     return NoHazard;
   }
-  unsigned idx = MCID->getSchedClass();
+  unsigned const idx = MCID->getSchedClass();
   for (const InstrStage *IS = ItinData->beginStage(idx),
          *E = ItinData->endStage(idx); IS != E; ++IS) {
     // We must find one of the stage's units free for every cycle the
     // stage is occupied. FIXME it would be more accurate to find the
     // same unit free in all the cycles.
     for (unsigned int i = 0; i < IS->getCycles(); ++i) {
-      int StageCycle = cycle + (int)i;
+      int const StageCycle = cycle + (int)i;
       if (StageCycle < 0)
         continue;
 
@@ -184,7 +184,7 @@ void ScoreboardHazardRecognizer::EmitInstruction(SUnit *SU) {
 
   unsigned cycle = 0;
 
-  unsigned idx = MCID->getSchedClass();
+  unsigned const idx = MCID->getSchedClass();
   for (const InstrStage *IS = ItinData->beginStage(idx),
          *E = ItinData->endStage(idx); IS != E; ++IS) {
     // We must reserve one of the stage's units for every cycle the

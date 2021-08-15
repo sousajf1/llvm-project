@@ -21,7 +21,7 @@ static inline MethodKind getMethodKind(uint16_t Attrs) {
 }
 
 static inline bool isIntroVirtual(uint16_t Attrs) {
-  MethodKind MK = getMethodKind(Attrs);
+  MethodKind const MK = getMethodKind(Attrs);
   return MK == MethodKind::IntroducingVirtual ||
          MK == MethodKind::PureIntroducingVirtual;
 }
@@ -32,13 +32,13 @@ static inline PointerMode getPointerMode(uint32_t Attrs) {
 }
 
 static inline bool isMemberPointer(uint32_t Attrs) {
-  PointerMode Mode = getPointerMode(Attrs);
+  PointerMode const Mode = getPointerMode(Attrs);
   return Mode == PointerMode::PointerToDataMember ||
          Mode == PointerMode::PointerToMemberFunction;
 }
 
 static inline uint32_t getEncodedIntegerLength(ArrayRef<uint8_t> Data) {
-  uint16_t N = support::endian::read16le(Data.data());
+  uint16_t const N = support::endian::read16le(Data.data());
   if (N < LF_NUMERIC)
     return 2;
 
@@ -82,7 +82,7 @@ static void handleMethodOverloadList(ArrayRef<uint8_t> Content,
     // intro virtual.
     uint32_t Len = 8;
 
-    uint16_t Attrs = support::endian::read16le(Content.data());
+    uint16_t const Attrs = support::endian::read16le(Content.data());
     Refs.push_back({TiRefKind::TypeRef, Offset + 4, 1});
 
     if (LLVM_UNLIKELY(isIntroVirtual(Attrs)))
@@ -108,7 +108,7 @@ static uint32_t handleEnumerator(ArrayRef<uint8_t> Data, uint32_t Offset,
   // 2: Padding
   // 4: Encoded Integer
   // <next>: Name
-  uint32_t Size = 4 + getEncodedIntegerLength(Data.drop_front(4));
+  uint32_t const Size = 4 + getEncodedIntegerLength(Data.drop_front(4));
   return Size + getCStringLength(Data.drop_front(Size));
 }
 
@@ -120,7 +120,7 @@ static uint32_t handleDataMember(ArrayRef<uint8_t> Data, uint32_t Offset,
   // 8: Encoded Integer
   // <next>: Name
   Refs.push_back({TiRefKind::TypeRef, Offset + 4, 1});
-  uint32_t Size = 8 + getEncodedIntegerLength(Data.drop_front(8));
+  uint32_t const Size = 8 + getEncodedIntegerLength(Data.drop_front(8));
   return Size + getCStringLength(Data.drop_front(Size));
 }
 
@@ -145,7 +145,7 @@ static uint32_t handleOneMethod(ArrayRef<uint8_t> Data, uint32_t Offset,
   uint32_t Size = 8;
   Refs.push_back({TiRefKind::TypeRef, Offset + 4, 1});
 
-  uint16_t Attrs = support::endian::read16le(Data.drop_front(2).data());
+  uint16_t const Attrs = support::endian::read16le(Data.drop_front(2).data());
   if (LLVM_UNLIKELY(isIntroVirtual(Attrs)))
     Size += 4;
 
@@ -211,7 +211,7 @@ static void handleFieldList(ArrayRef<uint8_t> Content,
   uint32_t Offset = 0;
   uint32_t ThisLen = 0;
   while (!Content.empty()) {
-    TypeLeafKind Kind =
+    TypeLeafKind const Kind =
         static_cast<TypeLeafKind>(support::endian::read16le(Content.data()));
     switch (Kind) {
     case LF_BCLASS:
@@ -252,9 +252,9 @@ static void handleFieldList(ArrayRef<uint8_t> Content,
     Content = Content.drop_front(ThisLen);
     Offset += ThisLen;
     if (!Content.empty()) {
-      uint8_t Pad = Content.front();
+      uint8_t const Pad = Content.front();
       if (Pad >= LF_PAD0) {
-        uint32_t Skip = Pad & 0x0F;
+        uint32_t const Skip = Pad & 0x0F;
         Content = Content.drop_front(Skip);
         Offset += Skip;
       }
@@ -266,7 +266,7 @@ static void handlePointer(ArrayRef<uint8_t> Content,
                           SmallVectorImpl<TiReference> &Refs) {
   Refs.push_back({TiRefKind::TypeRef, 0, 1});
 
-  uint32_t Attrs = support::endian::read32le(Content.drop_front(4).data());
+  uint32_t const Attrs = support::endian::read32le(Content.drop_front(4).data());
   if (isMemberPointer(Attrs))
     Refs.push_back({TiRefKind::TypeRef, 8, 1});
 }
@@ -494,13 +494,13 @@ void llvm::codeview::discoverTypeIndices(ArrayRef<uint8_t> RecordData,
                                          SmallVectorImpl<TiReference> &Refs) {
   const RecordPrefix *P =
       reinterpret_cast<const RecordPrefix *>(RecordData.data());
-  TypeLeafKind K = static_cast<TypeLeafKind>(uint16_t(P->RecordKind));
+  TypeLeafKind const K = static_cast<TypeLeafKind>(uint16_t(P->RecordKind));
   ::discoverTypeIndices(RecordData.drop_front(sizeof(RecordPrefix)), K, Refs);
 }
 
 bool llvm::codeview::discoverTypeIndicesInSymbol(
     const CVSymbol &Sym, SmallVectorImpl<TiReference> &Refs) {
-  SymbolKind K = Sym.kind();
+  SymbolKind const K = Sym.kind();
   return ::discoverTypeIndices(Sym.content(), K, Refs);
 }
 
@@ -508,7 +508,7 @@ bool llvm::codeview::discoverTypeIndicesInSymbol(
     ArrayRef<uint8_t> RecordData, SmallVectorImpl<TiReference> &Refs) {
   const RecordPrefix *P =
       reinterpret_cast<const RecordPrefix *>(RecordData.data());
-  SymbolKind K = static_cast<SymbolKind>(uint16_t(P->RecordKind));
+  SymbolKind const K = static_cast<SymbolKind>(uint16_t(P->RecordKind));
   return ::discoverTypeIndices(RecordData.drop_front(sizeof(RecordPrefix)), K,
                                Refs);
 }

@@ -57,13 +57,13 @@ void MCSymbolELF::setBinding(unsigned Binding) const {
     Val = 3;
     break;
   }
-  uint32_t OtherFlags = getFlags() & ~(0x3 << ELF_STB_Shift);
+  uint32_t const OtherFlags = getFlags() & ~(0x3 << ELF_STB_Shift);
   setFlags(OtherFlags | (Val << ELF_STB_Shift));
 }
 
 unsigned MCSymbolELF::getBinding() const {
   if (isBindingSet()) {
-    uint32_t Val = (Flags >> ELF_STB_Shift) & 3;
+    uint32_t const Val = (Flags >> ELF_STB_Shift) & 3;
     switch (Val) {
     default:
       llvm_unreachable("Invalid value");
@@ -116,12 +116,12 @@ void MCSymbolELF::setType(unsigned Type) const {
     Val = 6;
     break;
   }
-  uint32_t OtherFlags = getFlags() & ~(0x7 << ELF_STT_Shift);
+  uint32_t const OtherFlags = getFlags() & ~(0x7 << ELF_STT_Shift);
   setFlags(OtherFlags | (Val << ELF_STT_Shift));
 }
 
 unsigned MCSymbolELF::getType() const {
-  uint32_t Val = (Flags >> ELF_STT_Shift) & 7;
+  uint32_t const Val = (Flags >> ELF_STT_Shift) & 7;
   switch (Val) {
   default:
     llvm_unreachable("Invalid value");
@@ -146,12 +146,12 @@ void MCSymbolELF::setVisibility(unsigned Visibility) {
   assert(Visibility == ELF::STV_DEFAULT || Visibility == ELF::STV_INTERNAL ||
          Visibility == ELF::STV_HIDDEN || Visibility == ELF::STV_PROTECTED);
 
-  uint32_t OtherFlags = getFlags() & ~(0x3 << ELF_STV_Shift);
+  uint32_t const OtherFlags = getFlags() & ~(0x3 << ELF_STV_Shift);
   setFlags(OtherFlags | (Visibility << ELF_STV_Shift));
 }
 
 unsigned MCSymbolELF::getVisibility() const {
-  unsigned Visibility = (Flags >> ELF_STV_Shift) & 3;
+  unsigned const Visibility = (Flags >> ELF_STV_Shift) & 3;
   return Visibility;
 }
 
@@ -159,17 +159,17 @@ void MCSymbolELF::setOther(unsigned Other) {
   assert((Other & 0x1f) == 0);
   Other >>= 5;
   assert(Other <= 0x7);
-  uint32_t OtherFlags = getFlags() & ~(0x7 << ELF_STO_Shift);
+  uint32_t const OtherFlags = getFlags() & ~(0x7 << ELF_STO_Shift);
   setFlags(OtherFlags | (Other << ELF_STO_Shift));
 }
 
 unsigned MCSymbolELF::getOther() const {
-  unsigned Other = (Flags >> ELF_STO_Shift) & 7;
+  unsigned const Other = (Flags >> ELF_STO_Shift) & 7;
   return Other << 5;
 }
 
 void MCSymbolELF::setIsWeakrefUsedInReloc() const {
-  uint32_t OtherFlags = getFlags() & ~(0x1 << ELF_WeakrefUsedInReloc_Shift);
+  uint32_t const OtherFlags = getFlags() & ~(0x1 << ELF_WeakrefUsedInReloc_Shift);
   setFlags(OtherFlags | (1 << ELF_WeakrefUsedInReloc_Shift));
 }
 
@@ -178,7 +178,7 @@ bool MCSymbolELF::isWeakrefUsedInReloc() const {
 }
 
 void MCSymbolELF::setIsSignature() const {
-  uint32_t OtherFlags = getFlags() & ~(0x1 << ELF_IsSignature_Shift);
+  uint32_t const OtherFlags = getFlags() & ~(0x1 << ELF_IsSignature_Shift);
   setFlags(OtherFlags | (1 << ELF_IsSignature_Shift));
 }
 
@@ -187,7 +187,7 @@ bool MCSymbolELF::isSignature() const {
 }
 
 void MCSymbolELF::setIsBindingSet() const {
-  uint32_t OtherFlags = getFlags() & ~(0x1 << ELF_BindingSet_Shift);
+  uint32_t const OtherFlags = getFlags() & ~(0x1 << ELF_BindingSet_Shift);
   setFlags(OtherFlags | (1 << ELF_BindingSet_Shift));
 }
 

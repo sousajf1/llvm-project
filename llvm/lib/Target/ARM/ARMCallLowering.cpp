@@ -67,12 +67,12 @@ static bool isSupportedType(const DataLayout &DL, const ARMTargetLowering &TLI,
     return isSupportedType(DL, TLI, StructT->getElementType(0));
   }
 
-  EVT VT = TLI.getValueType(DL, T, true);
+  EVT const VT = TLI.getValueType(DL, T, true);
   if (!VT.isSimple() || VT.isVector() ||
       !(VT.isInteger() || VT.isFloatingPoint()))
     return false;
 
-  unsigned VTSize = VT.getSimpleVT().getSizeInBits();
+  unsigned const VTSize = VT.getSimpleVT().getSizeInBits();
 
   if (VTSize == 64)
     // FIXME: Support i64 too
@@ -96,8 +96,8 @@ struct ARMOutgoingValueHandler : public CallLowering::OutgoingValueHandler {
     assert((Size == 1 || Size == 2 || Size == 4 || Size == 8) &&
            "Unsupported size");
 
-    LLT p0 = LLT::pointer(0, 32);
-    LLT s32 = LLT::scalar(32);
+    LLT const p0 = LLT::pointer(0, 32);
+    LLT const s32 = LLT::scalar(32);
     auto SPReg = MIRBuilder.buildCopy(p0, Register(ARM::SP));
 
     auto OffsetReg = MIRBuilder.buildConstant(s32, Offset);
@@ -116,14 +116,14 @@ struct ARMOutgoingValueHandler : public CallLowering::OutgoingValueHandler {
     assert(VA.getValVT().getSizeInBits() <= 64 && "Unsupported value size");
     assert(VA.getLocVT().getSizeInBits() <= 64 && "Unsupported location size");
 
-    Register ExtReg = extendRegister(ValVReg, VA);
+    Register const ExtReg = extendRegister(ValVReg, VA);
     MIRBuilder.buildCopy(PhysReg, ExtReg);
     MIB.addUse(PhysReg, RegState::Implicit);
   }
 
   void assignValueToAddress(Register ValVReg, Register Addr, LLT MemTy,
                             MachinePointerInfo &MPO, CCValAssign &VA) override {
-    Register ExtReg = extendRegister(ValVReg, VA);
+    Register const ExtReg = extendRegister(ValVReg, VA);
     auto MMO = MIRBuilder.getMF().getMachineMemOperand(
         MPO, MachineMemOperand::MOStore, MemTy, Align(1));
     MIRBuilder.buildStore(ExtReg, Addr, *MMO);
@@ -154,7 +154,7 @@ struct ARMOutgoingValueHandler : public CallLowering::OutgoingValueHandler {
                           MRI.createGenericVirtualRegister(LLT::scalar(32))};
     MIRBuilder.buildUnmerge(NewRegs, Arg.Regs[0]);
 
-    bool IsLittle = MIRBuilder.getMF().getSubtarget<ARMSubtarget>().isLittle();
+    bool const IsLittle = MIRBuilder.getMF().getSubtarget<ARMSubtarget>().isLittle();
     if (!IsLittle)
       std::swap(NewRegs[0], NewRegs[1]);
 
@@ -208,7 +208,7 @@ bool ARMCallLowering::lowerReturn(MachineIRBuilder &MIRBuilder,
   assert(!Val == VRegs.empty() && "Return value without a vreg");
 
   auto const &ST = MIRBuilder.getMF().getSubtarget<ARMSubtarget>();
-  unsigned Opcode = ST.getReturnOpcode();
+  unsigned const Opcode = ST.getReturnOpcode();
   auto Ret = MIRBuilder.buildInstrNoInsert(Opcode).add(predOps(ARMCC::AL));
 
   if (!lowerReturnVal(MIRBuilder, Val, VRegs, Ret))
@@ -239,7 +239,7 @@ struct ARMIncomingValueHandler : public CallLowering::IncomingValueHandler {
     // are not.
     const bool IsImmutable = !Flags.isByVal();
 
-    int FI = MFI.CreateFixedObject(Size, Offset, IsImmutable);
+    int const FI = MFI.CreateFixedObject(Size, Offset, IsImmutable);
     MPO = MachinePointerInfo::getFixedStack(MIRBuilder.getMF(), FI);
 
     return MIRBuilder.buildFrameIndex(LLT::pointer(MPO.getAddrSpace(), 32), FI)
@@ -277,8 +277,8 @@ struct ARMIncomingValueHandler : public CallLowering::IncomingValueHandler {
     assert(VA.isRegLoc() && "Value shouldn't be assigned to reg");
     assert(VA.getLocReg() == PhysReg && "Assigning to the wrong reg?");
 
-    uint64_t ValSize = VA.getValVT().getFixedSizeInBits();
-    uint64_t LocSize = VA.getLocVT().getFixedSizeInBits();
+    uint64_t const ValSize = VA.getValVT().getFixedSizeInBits();
+    uint64_t const LocSize = VA.getLocVT().getFixedSizeInBits();
 
     assert(ValSize <= 64 && "Unsupported value size");
     assert(LocSize <= 64 && "Unsupported location size");
@@ -324,7 +324,7 @@ struct ARMIncomingValueHandler : public CallLowering::IncomingValueHandler {
     assignValueToReg(NewRegs[0], VA.getLocReg(), VA);
     assignValueToReg(NewRegs[1], NextVA.getLocReg(), NextVA);
 
-    bool IsLittle = MIRBuilder.getMF().getSubtarget<ARMSubtarget>().isLittle();
+    bool const IsLittle = MIRBuilder.getMF().getSubtarget<ARMSubtarget>().isLittle();
     if (!IsLittle)
       std::swap(NewRegs[0], NewRegs[1]);
 
@@ -460,11 +460,11 @@ bool ARMCallLowering::lowerCall(MachineIRBuilder &MIRBuilder, CallLoweringInfo &
 
   // Create the call instruction so we can add the implicit uses of arg
   // registers, but don't insert it yet.
-  bool IsDirect = !Info.Callee.isReg();
+  bool const IsDirect = !Info.Callee.isReg();
   auto CallOpcode = getCallOpcode(MF, STI, IsDirect);
   auto MIB = MIRBuilder.buildInstrNoInsert(CallOpcode);
 
-  bool IsThumb = STI.isThumb();
+  bool const IsThumb = STI.isThumb();
   if (IsThumb)
     MIB.add(predOps(ARMCC::AL));
 
@@ -472,7 +472,7 @@ bool ARMCallLowering::lowerCall(MachineIRBuilder &MIRBuilder, CallLoweringInfo &
   if (!IsDirect) {
     auto CalleeReg = Info.Callee.getReg();
     if (CalleeReg && !Register::isPhysicalRegister(CalleeReg)) {
-      unsigned CalleeIdx = IsThumb ? 2 : 0;
+      unsigned const CalleeIdx = IsThumb ? 2 : 0;
       MIB->getOperand(CalleeIdx).setReg(constrainOperandRegClass(
           MF, *TRI, MRI, *STI.getInstrInfo(), *STI.getRegBankInfo(),
           *MIB.getInstr(), MIB->getDesc(), Info.Callee, CalleeIdx));

@@ -200,10 +200,10 @@ DAGDeltaAlgorithmImpl::DAGDeltaAlgorithmImpl(
   // Pre-compute the closure of the successor relation.
   std::vector<change_ty> Worklist(Roots.begin(), Roots.end());
   while (!Worklist.empty()) {
-    change_ty Change = Worklist.back();
+    change_ty const Change = Worklist.back();
     Worklist.pop_back();
 
-    std::set<change_ty> &ChangeSuccs = SuccClosure[Change];
+    std::set<change_ty>  const&ChangeSuccs = SuccClosure[Change];
     for (pred_iterator_ty it = pred_begin(Change),
            ie = pred_end(Change); it != ie; ++it) {
       SuccClosure[*it].insert(Change);
@@ -298,7 +298,7 @@ bool DAGDeltaAlgorithmImpl::GetTestResult(const changeset_ty &Changes,
   if (FailedTestsCache.count(Extended))
     return false;
 
-  bool Result = ExecuteOneTest(Extended);
+  bool const Result = ExecuteOneTest(Extended);
   if (!Result)
     FailedTestsCache.insert(Extended);
 
@@ -326,7 +326,7 @@ DAGDeltaAlgorithmImpl::Run() {
 
     // Minimize the current set of changes.
     DeltaActiveSetHelper Helper(*this, Required);
-    changeset_ty CurrentMinSet = Helper.Run(CurrentSet);
+    changeset_ty const CurrentMinSet = Helper.Run(CurrentSet);
 
     // Update the set of required changes. Since
     //   CurrentMinSet subset CurrentSet

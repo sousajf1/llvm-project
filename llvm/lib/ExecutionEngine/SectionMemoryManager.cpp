@@ -46,7 +46,7 @@ uint8_t *SectionMemoryManager::allocateSection(
 
   assert(!(Alignment & (Alignment - 1)) && "Alignment must be a power of two.");
 
-  uintptr_t RequiredSize = Alignment * ((Size + Alignment - 1) / Alignment + 1);
+  uintptr_t const RequiredSize = Alignment * ((Size + Alignment - 1) / Alignment + 1);
   uintptr_t Addr = 0;
 
   MemoryGroup &MemGroup = [&]() -> MemoryGroup & {
@@ -66,7 +66,7 @@ uint8_t *SectionMemoryManager::allocateSection(
   for (FreeMemBlock &FreeMB : MemGroup.FreeMem) {
     if (FreeMB.Free.allocatedSize() >= RequiredSize) {
       Addr = (uintptr_t)FreeMB.Free.base();
-      uintptr_t EndOfBlock = Addr + FreeMB.Free.allocatedSize();
+      uintptr_t const EndOfBlock = Addr + FreeMB.Free.allocatedSize();
       // Align the address.
       Addr = (Addr + Alignment - 1) & ~(uintptr_t)(Alignment - 1);
 
@@ -101,7 +101,7 @@ uint8_t *SectionMemoryManager::allocateSection(
   // FIXME: Initialize the Near member for each memory group to avoid
   // interleaving.
   std::error_code ec;
-  sys::MemoryBlock MB = MMapper.allocateMappedMemory(
+  sys::MemoryBlock const MB = MMapper.allocateMappedMemory(
       Purpose, RequiredSize, &MemGroup.Near,
       sys::Memory::MF_READ | sys::Memory::MF_WRITE, ec);
   if (ec) {
@@ -124,7 +124,7 @@ uint8_t *SectionMemoryManager::allocateSection(
   // Remember that we allocated this memory
   MemGroup.AllocatedMem.push_back(MB);
   Addr = (uintptr_t)MB.base();
-  uintptr_t EndOfBlock = Addr + MB.allocatedSize();
+  uintptr_t const EndOfBlock = Addr + MB.allocatedSize();
 
   // Align the address.
   Addr = (Addr + Alignment - 1) & ~(uintptr_t)(Alignment - 1);
@@ -134,7 +134,7 @@ uint8_t *SectionMemoryManager::allocateSection(
 
   // The allocateMappedMemory may allocate much more memory than we need. In
   // this case, we store the unused memory as a free memory block.
-  unsigned FreeSize = EndOfBlock - Addr - Size;
+  unsigned const FreeSize = EndOfBlock - Addr - Size;
   if (FreeSize > 16) {
     FreeMemBlock FreeMB;
     FreeMB.Free = sys::MemoryBlock((void *)(Addr + Size), FreeSize);
@@ -182,7 +182,7 @@ bool SectionMemoryManager::finalizeMemory(std::string *ErrMsg) {
 static sys::MemoryBlock trimBlockToPageSize(sys::MemoryBlock M) {
   static const size_t PageSize = sys::Process::getPageSizeEstimate();
 
-  size_t StartOverlap =
+  size_t const StartOverlap =
       (PageSize - ((uintptr_t)M.base() % PageSize)) % PageSize;
 
   size_t TrimmedSize = M.allocatedSize();
@@ -203,7 +203,7 @@ static sys::MemoryBlock trimBlockToPageSize(sys::MemoryBlock M) {
 std::error_code
 SectionMemoryManager::applyMemoryGroupPermissions(MemoryGroup &MemGroup,
                                                   unsigned Permissions) {
-  for (sys::MemoryBlock &MB : MemGroup.PendingMem)
+  for (sys::MemoryBlock  const&MB : MemGroup.PendingMem)
     if (std::error_code EC = MMapper.protectMappedMemory(MB, Permissions))
       return EC;
 
@@ -226,7 +226,7 @@ SectionMemoryManager::applyMemoryGroupPermissions(MemoryGroup &MemGroup,
 }
 
 void SectionMemoryManager::invalidateInstructionCache() {
-  for (sys::MemoryBlock &Block : CodeMem.PendingMem)
+  for (sys::MemoryBlock  const&Block : CodeMem.PendingMem)
     sys::Memory::InvalidateInstructionCache(Block.base(),
                                             Block.allocatedSize());
 }

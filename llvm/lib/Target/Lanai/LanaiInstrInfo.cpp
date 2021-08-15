@@ -106,9 +106,9 @@ bool LanaiInstrInfo::areMemAccessesTriviallyDisjoint(
   if (getMemOperandWithOffsetWidth(MIa, BaseOpA, OffsetA, WidthA, TRI) &&
       getMemOperandWithOffsetWidth(MIb, BaseOpB, OffsetB, WidthB, TRI)) {
     if (BaseOpA->isIdenticalTo(*BaseOpB)) {
-      int LowOffset = std::min(OffsetA, OffsetB);
-      int HighOffset = std::max(OffsetA, OffsetB);
-      int LowWidth = (LowOffset == OffsetA) ? WidthA : WidthB;
+      int const LowOffset = std::min(OffsetA, OffsetB);
+      int const HighOffset = std::max(OffsetA, OffsetB);
+      int const LowWidth = (LowOffset == OffsetA) ? WidthA : WidthB;
       if (LowOffset + LowWidth <= HighOffset)
         return true;
     }
@@ -372,7 +372,7 @@ bool LanaiInstrInfo::optimizeCompareInstr(
         CC = (LPCC::CondCode)Instr.getOperand(IO - 1).getImm();
 
         if (Sub) {
-          LPCC::CondCode NewCC = getOppositeCondition(CC);
+          LPCC::CondCode const NewCC = getOppositeCondition(CC);
           if (NewCC == LPCC::ICC_T)
             return false;
           // If we have SUB(r1, r2) and CMP(r2, r1), the condition code based on
@@ -496,7 +496,7 @@ LanaiInstrInfo::optimizeSelect(MachineInstr &MI,
   assert(MI.getOpcode() == Lanai::SELECT && "unknown select instruction");
   MachineRegisterInfo &MRI = MI.getParent()->getParent()->getRegInfo();
   MachineInstr *DefMI = canFoldIntoSelect(MI.getOperand(1).getReg(), MRI);
-  bool Invert = !DefMI;
+  bool const Invert = !DefMI;
   if (!DefMI)
     DefMI = canFoldIntoSelect(MI.getOperand(2).getReg(), MRI);
   if (!DefMI)
@@ -504,13 +504,13 @@ LanaiInstrInfo::optimizeSelect(MachineInstr &MI,
 
   // Find new register class to use.
   MachineOperand FalseReg = MI.getOperand(Invert ? 1 : 2);
-  Register DestReg = MI.getOperand(0).getReg();
+  Register const DestReg = MI.getOperand(0).getReg();
   const TargetRegisterClass *PreviousClass = MRI.getRegClass(FalseReg.getReg());
   if (!MRI.constrainRegClass(DestReg, PreviousClass))
     return nullptr;
 
   // Create a new predicated version of DefMI.
-  MachineInstrBuilder NewMI =
+  MachineInstrBuilder const NewMI =
       BuildMI(*MI.getParent(), MI, MI.getDebugLoc(), DefMI->getDesc(), DestReg);
 
   // Copy all the DefMI operands, excluding its (null) predicate.
@@ -519,7 +519,7 @@ LanaiInstrInfo::optimizeSelect(MachineInstr &MI,
        i != e && !DefDesc.OpInfo[i].isPredicate(); ++i)
     NewMI.add(DefMI->getOperand(i));
 
-  unsigned CondCode = MI.getOperand(3).getImm();
+  unsigned const CondCode = MI.getOperand(3).getImm();
   if (Invert)
     NewMI.addImm(getOppositeCondition(LPCC::CondCode(CondCode)));
   else
@@ -615,14 +615,14 @@ bool LanaiInstrInfo::analyzeBranch(MachineBasicBlock &MBB,
     }
 
     // Handle conditional branches
-    unsigned Opcode = Instruction->getOpcode();
+    unsigned const Opcode = Instruction->getOpcode();
     if (Opcode != Lanai::BRCC)
       return true; // Unknown opcode.
 
     // Multiple conditional branches are not handled here so only proceed if
     // there are no conditions enqueued.
     if (Condition.empty()) {
-      LPCC::CondCode BranchCond =
+      LPCC::CondCode const BranchCond =
           static_cast<LPCC::CondCode>(Instruction->getOperand(1).getImm());
 
       // TrueBlock is the target of the previously seen unconditional branch.
@@ -648,7 +648,7 @@ bool LanaiInstrInfo::reverseBranchCondition(
   assert((Condition.size() == 1) &&
          "Lanai branch conditions should have one component.");
 
-  LPCC::CondCode BranchCond =
+  LPCC::CondCode const BranchCond =
       static_cast<LPCC::CondCode>(Condition[0].getImm());
   Condition[0].setImm(getOppositeCondition(BranchCond));
   return false;
@@ -677,7 +677,7 @@ unsigned LanaiInstrInfo::insertBranch(MachineBasicBlock &MBB,
   // Else a conditional branch is inserted.
   assert((Condition.size() == 1) &&
          "Lanai branch conditions should have one component.");
-  unsigned ConditionalCode = Condition[0].getImm();
+  unsigned const ConditionalCode = Condition[0].getImm();
   BuildMI(&MBB, DL, get(Lanai::BRCC)).addMBB(TrueBlock).addImm(ConditionalCode);
 
   // If no false block, then false behavior is fall through and no branch needs

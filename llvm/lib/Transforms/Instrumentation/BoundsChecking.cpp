@@ -58,11 +58,11 @@ static Value *getBoundsCheckCond(Value *Ptr, Value *InstVal,
                                  const DataLayout &DL, TargetLibraryInfo &TLI,
                                  ObjectSizeOffsetEvaluator &ObjSizeEval,
                                  BuilderTy &IRB, ScalarEvolution &SE) {
-  uint64_t NeededSize = DL.getTypeStoreSize(InstVal->getType());
+  uint64_t const NeededSize = DL.getTypeStoreSize(InstVal->getType());
   LLVM_DEBUG(dbgs() << "Instrument " << *Ptr << " for " << Twine(NeededSize)
                     << " bytes\n");
 
-  SizeOffsetEvalType SizeOffset = ObjSizeEval.compute(Ptr);
+  SizeOffsetEvalType const SizeOffset = ObjSizeEval.compute(Ptr);
 
   if (!ObjSizeEval.bothKnown(SizeOffset)) {
     ++ChecksUnable;
@@ -123,7 +123,7 @@ static void insertBoundsCheck(Value *Or, BuilderTy &IRB, GetTrapBBT GetTrapBB) {
   }
   ++ChecksAdded;
 
-  BasicBlock::iterator SplitI = IRB.GetInsertPoint();
+  BasicBlock::iterator const SplitI = IRB.GetInsertPoint();
   BasicBlock *OldBB = SplitI->getParent();
   BasicBlock *Cont = OldBB->splitBasicBlock(SplitI);
   OldBB->getTerminator()->eraseFromParent();
@@ -187,7 +187,7 @@ static bool addBoundsChecking(Function &F, TargetLibraryInfo &TLI,
     // FIXME: This debug location doesn't make a lot of sense in the
     // `SingleTrapBB` case.
     auto DebugLoc = IRB.getCurrentDebugLocation();
-    IRBuilder<>::InsertPointGuard Guard(IRB);
+    IRBuilder<>::InsertPointGuard const Guard(IRB);
     TrapBB = BasicBlock::Create(Fn->getContext(), "trap", Fn);
     IRB.SetInsertPoint(TrapBB);
 

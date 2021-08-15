@@ -27,7 +27,7 @@ bool convertYAML(yaml::Input &YIn, raw_ostream &Out, ErrorHandler ErrHandler,
 
     yaml::YamlObjectFile Doc;
     YIn >> Doc;
-    if (std::error_code EC = YIn.error()) {
+    if (std::error_code const EC = YIn.error()) {
       ErrHandler("failed to parse YAML input: " + EC.message());
       return false;
     }

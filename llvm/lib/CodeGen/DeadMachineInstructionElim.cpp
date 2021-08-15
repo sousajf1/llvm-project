@@ -79,7 +79,7 @@ bool DeadMachineInstructionElim::isDead(const MachineInstr *MI) const {
   for (unsigned i = 0, e = MI->getNumOperands(); i != e; ++i) {
     const MachineOperand &MO = MI->getOperand(i);
     if (MO.isReg() && MO.isDef()) {
-      Register Reg = MO.getReg();
+      Register const Reg = MO.getReg();
       if (Register::isPhysicalRegister(Reg)) {
         // Don't delete live physreg defs, or any reserved register defs.
         if (LivePhysRegs.test(Reg) || MRI->isReserved(Reg))
@@ -110,7 +110,7 @@ bool DeadMachineInstructionElim::isDead(const MachineInstr *MI) const {
 bool DeadMachineInstructionElim::runOnMachineFunction(MachineFunction &MF) {
   if (skipFunction(MF.getFunction()))
     return false;
-  bool AnyChanges = eliminateDeadMI(MF);
+  bool const AnyChanges = eliminateDeadMI(MF);
   while (AnyChanges && eliminateDeadMI(MF))
     ;
   return AnyChanges;
@@ -159,7 +159,7 @@ bool DeadMachineInstructionElim::eliminateDeadMI(MachineFunction &MF) {
       for (unsigned i = 0, e = MI->getNumOperands(); i != e; ++i) {
         const MachineOperand &MO = MI->getOperand(i);
         if (MO.isReg() && MO.isDef()) {
-          Register Reg = MO.getReg();
+          Register const Reg = MO.getReg();
           if (Register::isPhysicalRegister(Reg)) {
             // Check the subreg set, not the alias set, because a def
             // of a super-register may still be partially live after
@@ -178,7 +178,7 @@ bool DeadMachineInstructionElim::eliminateDeadMI(MachineFunction &MF) {
       for (unsigned i = 0, e = MI->getNumOperands(); i != e; ++i) {
         const MachineOperand &MO = MI->getOperand(i);
         if (MO.isReg() && MO.isUse()) {
-          Register Reg = MO.getReg();
+          Register const Reg = MO.getReg();
           if (Register::isPhysicalRegister(Reg)) {
             for (MCRegAliasIterator AI(Reg, TRI, true); AI.isValid(); ++AI)
               LivePhysRegs.set(*AI);

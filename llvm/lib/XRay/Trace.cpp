@@ -154,7 +154,7 @@ Error loadNaiveFormatLog(StringRef Data, bool IsLittleEndian,
       // type and the CPU record for arg payloads.
       OffsetPtr += 2;
       PreReadOffset = OffsetPtr;
-      int32_t FuncId = Reader.getSigned(&OffsetPtr, sizeof(int32_t));
+      int32_t const FuncId = Reader.getSigned(&OffsetPtr, sizeof(int32_t));
       if (OffsetPtr == PreReadOffset)
         return createStringError(
             std::make_error_code(std::errc::executable_format_error),
@@ -395,7 +395,7 @@ Expected<Trace> llvm::xray::loadTraceFile(StringRef Filename, bool Sort) {
 
   // Map the opened file into memory and use a StringRef to access it later.
   std::error_code EC;
-  sys::fs::mapped_file_region MappedFile(
+  sys::fs::mapped_file_region const MappedFile(
       *FdOrErr, sys::fs::mapped_file_region::mapmode::readonly, FileSize, 0,
       EC);
   sys::fs::closeFile(*FdOrErr);
@@ -406,10 +406,10 @@ Expected<Trace> llvm::xray::loadTraceFile(StringRef Filename, bool Sort) {
   auto Data = StringRef(MappedFile.data(), MappedFile.size());
 
   // TODO: Lift the endianness and implementation selection here.
-  DataExtractor LittleEndianDE(Data, true, 8);
+  DataExtractor const LittleEndianDE(Data, true, 8);
   auto TraceOrError = loadTrace(LittleEndianDE, Sort);
   if (!TraceOrError) {
-    DataExtractor BigEndianDE(Data, false, 8);
+    DataExtractor const BigEndianDE(Data, false, 8);
     consumeError(TraceOrError.takeError());
     TraceOrError = loadTrace(BigEndianDE, Sort);
   }
@@ -431,10 +431,10 @@ Expected<Trace> llvm::xray::loadTrace(const DataExtractor &DE, bool Sort) {
   //
   // Only if we can't load either the binary or the YAML format will we yield an
   // error.
-  DataExtractor HeaderExtractor(DE.getData(), DE.isLittleEndian(), 8);
+  DataExtractor const HeaderExtractor(DE.getData(), DE.isLittleEndian(), 8);
   uint64_t OffsetPtr = 0;
-  uint16_t Version = HeaderExtractor.getU16(&OffsetPtr);
-  uint16_t Type = HeaderExtractor.getU16(&OffsetPtr);
+  uint16_t const Version = HeaderExtractor.getU16(&OffsetPtr);
+  uint16_t const Type = HeaderExtractor.getU16(&OffsetPtr);
 
   enum BinaryFormatType { NAIVE_FORMAT = 0, FLIGHT_DATA_RECORDER_FORMAT = 1 };
 

@@ -37,7 +37,7 @@ class WasmAsmParser : public MCAsmParserExtension {
 
   template<bool (WasmAsmParser::*HandlerMethod)(StringRef, SMLoc)>
   void addDirectiveHandler(StringRef Directive) {
-    MCAsmParser::ExtensionDirectiveHandler Handler = std::make_pair(
+    MCAsmParser::ExtensionDirectiveHandler const Handler = std::make_pair(
         this, HandleDirective<WasmAsmParser, HandlerMethod>);
 
     getParser().addDirectiveHandler(Directive, Handler);
@@ -92,7 +92,7 @@ public:
 
   uint32_t parseSectionFlags(StringRef FlagStr, bool &Passive, bool &Group) {
     uint32_t flags = 0;
-    for (char C : FlagStr) {
+    for (char const C : FlagStr) {
       switch (C) {
       case 'p':
         Passive = true;
@@ -162,7 +162,7 @@ public:
     // Update section flags if present in this .section directive
     bool Passive = false;
     bool Group = false;
-    uint32_t Flags =
+    uint32_t const Flags =
         parseSectionFlags(getTok().getStringContents(), Passive, Group);
     if (Flags == -1U)
       return TokError("unknown flag");
@@ -254,7 +254,7 @@ public:
   bool ParseDirectiveIdent(StringRef, SMLoc) {
     if (getLexer().isNot(AsmToken::String))
       return TokError("unexpected token in '.ident' directive");
-    StringRef Data = getTok().getIdentifier();
+    StringRef const Data = getTok().getIdentifier();
     Lex();
     if (getLexer().isNot(AsmToken::EndOfStatement))
       return TokError("unexpected token in '.ident' directive");
@@ -267,7 +267,7 @@ public:
   /// ParseDirectiveSymbolAttribute
   ///  ::= { ".local", ".weak", ... } [ identifier ( , identifier )* ]
   bool ParseDirectiveSymbolAttribute(StringRef Directive, SMLoc) {
-    MCSymbolAttr Attr = StringSwitch<MCSymbolAttr>(Directive)
+    MCSymbolAttr const Attr = StringSwitch<MCSymbolAttr>(Directive)
       .Case(".weak", MCSA_Weak)
       .Case(".local", MCSA_Local)
       .Case(".hidden", MCSA_Hidden)

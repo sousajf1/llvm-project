@@ -30,7 +30,7 @@ FindFirstNonCommonLetter(const std::vector<const
   assert(!Matches.empty());
   for (unsigned i = 0, e = Matches[0]->first.size(); i != e; ++i) {
     // Check to see if letter i is the same across the set.
-    char Letter = Matches[0]->first[i];
+    char const Letter = Matches[0]->first[i];
 
     for (unsigned str = 0, e = Matches.size(); str != e; ++str)
       if (Matches[str]->first[i] != Letter)
@@ -49,7 +49,7 @@ bool StringMatcher::EmitStringMatcherForChar(
     const std::vector<const StringPair *> &Matches, unsigned CharNo,
     unsigned IndentCount, bool IgnoreDuplicates) const {
   assert(!Matches.empty() && "Must have at least one string to match!");
-  std::string Indent(IndentCount * 2 + 4, ' ');
+  std::string const Indent(IndentCount * 2 + 4, ' ');
 
   // If we have verified that the entire string matches, we're done: output the
   // matching code.
@@ -82,8 +82,8 @@ bool StringMatcher::EmitStringMatcherForChar(
   // If we have exactly one bucket to match, see how many characters are common
   // across the whole set and match all of them at once.
   if (MatchesByLetter.size() == 1) {
-    unsigned FirstNonCommonLetter = FindFirstNonCommonLetter(Matches);
-    unsigned NumChars = FirstNonCommonLetter-CharNo;
+    unsigned const FirstNonCommonLetter = FindFirstNonCommonLetter(Matches);
+    unsigned const NumChars = FirstNonCommonLetter-CharNo;
 
     // Emit code to break out if the prefix doesn't match.
     if (NumChars == 1) {

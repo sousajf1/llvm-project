@@ -103,7 +103,7 @@ static DecodeStatus DecodeGPRRegisterClass(MCInst &Inst, unsigned RegNo,
   if (RegNo > 11)
     return MCDisassembler::Fail;
 
-  unsigned Reg = GPRDecoderTable[RegNo];
+  unsigned const Reg = GPRDecoderTable[RegNo];
   Inst.addOperand(MCOperand::createReg(Reg));
   return MCDisassembler::Success;
 }
@@ -118,19 +118,19 @@ static DecodeStatus DecodeGPR32RegisterClass(MCInst &Inst, unsigned RegNo,
   if (RegNo > 11)
     return MCDisassembler::Fail;
 
-  unsigned Reg = GPR32DecoderTable[RegNo];
+  unsigned const Reg = GPR32DecoderTable[RegNo];
   Inst.addOperand(MCOperand::createReg(Reg));
   return MCDisassembler::Success;
 }
 
 static DecodeStatus decodeMemoryOpValue(MCInst &Inst, unsigned Insn,
                                         uint64_t Address, const void *Decoder) {
-  unsigned Register = (Insn >> 16) & 0xf;
+  unsigned const Register = (Insn >> 16) & 0xf;
   if (Register > 11)
     return MCDisassembler::Fail;
 
   Inst.addOperand(MCOperand::createReg(GPRDecoderTable[Register]));
-  unsigned Offset = (Insn & 0xffff);
+  unsigned const Offset = (Insn & 0xffff);
   Inst.addOperand(MCOperand::createImm(SignExtend32<16>(Offset)));
 
   return MCDisassembler::Success;
@@ -165,15 +165,15 @@ DecodeStatus BPFDisassembler::getInstruction(MCInst &Instr, uint64_t &Size,
                                              ArrayRef<uint8_t> Bytes,
                                              uint64_t Address,
                                              raw_ostream &CStream) const {
-  bool IsLittleEndian = getContext().getAsmInfo()->isLittleEndian();
+  bool const IsLittleEndian = getContext().getAsmInfo()->isLittleEndian();
   uint64_t Insn, Hi;
   DecodeStatus Result;
 
   Result = readInstruction64(Bytes, Address, Size, Insn, IsLittleEndian);
   if (Result == MCDisassembler::Fail) return MCDisassembler::Fail;
 
-  uint8_t InstClass = getInstClass(Insn);
-  uint8_t InstMode = getInstMode(Insn);
+  uint8_t const InstClass = getInstClass(Insn);
+  uint8_t const InstMode = getInstMode(Insn);
   if ((InstClass == BPF_LDX || InstClass == BPF_STX) &&
       getInstSize(Insn) != BPF_DW &&
       (InstMode == BPF_MEM || InstMode == BPF_ATOMIC) &&

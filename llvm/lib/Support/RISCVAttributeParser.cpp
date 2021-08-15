@@ -39,13 +39,13 @@ const RISCVAttributeParser::DisplayHandler
         }};
 
 Error RISCVAttributeParser::unalignedAccess(unsigned tag) {
-  static const char *strings[] = {"No unaligned access", "Unaligned access"};
+  static const char *const strings[] = {"No unaligned access", "Unaligned access"};
   return parseStringAttribute("Unaligned_access", tag, makeArrayRef(strings));
 }
 
 Error RISCVAttributeParser::stackAlign(unsigned tag) {
-  uint64_t value = de.getULEB128(cursor);
-  std::string description =
+  uint64_t const value = de.getULEB128(cursor);
+  std::string const description =
       "Stack alignment is " + utostr(value) + std::string("-bytes");
   printAttribute(tag, value, description);
   return Error::success();

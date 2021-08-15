@@ -611,7 +611,7 @@ void HWAddressSanitizer::initializeModule() {
   // x86_64 currently has two modes:
   // - Intel LAM (default)
   // - pointer aliasing (heap only)
-  bool IsX86_64 = TargetTriple.getArch() == Triple::x86_64;
+  bool const IsX86_64 = TargetTriple.getArch() == Triple::x86_64;
   UsePageAliases = shouldUsePageAliases(TargetTriple);
   InstrumentWithCalls = shouldInstrumentWithCalls(TargetTriple);
   InstrumentStack = shouldInstrumentStack(TargetTriple);
@@ -633,7 +633,7 @@ void HWAddressSanitizer::initializeModule() {
   // Older versions of Android do not have the required runtime support for
   // short granules, global or personality function instrumentation. On other
   // platforms we currently require using the latest version of the runtime.
-  bool NewRuntime =
+  bool const NewRuntime =
       !TargetTriple.isAndroid() || !TargetTriple.isAndroidVersionLT(30);
 
   UseShortGranules =
@@ -659,13 +659,13 @@ void HWAddressSanitizer::initializeModule() {
 
   if (!CompileKernel) {
     createHwasanCtorComdat();
-    bool InstrumentGlobals =
+    bool const InstrumentGlobals =
         ClGlobals.getNumOccurrences() ? ClGlobals : NewRuntime;
 
     if (InstrumentGlobals && !UsePageAliases)
       instrumentGlobals();
 
-    bool InstrumentPersonalityFunctions =
+    bool const InstrumentPersonalityFunctions =
         ClInstrumentPersonalityFunctions.getNumOccurrences()
             ? ClInstrumentPersonalityFunctions
             : NewRuntime;
@@ -834,7 +834,7 @@ static unsigned getPointerOperandIndex(Instruction *I) {
 }
 
 static size_t TypeSizeToSizeIndex(uint32_t TypeSize) {
-  size_t Res = countTrailingZeros(TypeSize / 8);
+  size_t const Res = countTrailingZeros(TypeSize / 8);
   assert(Res < kNumberOfAccessSizes);
   return Res;
 }
@@ -989,7 +989,7 @@ bool HWAddressSanitizer::instrumentMemAccess(InterestingMemoryOperand &O) {
       (O.TypeSize / 8 <= (1ULL << (kNumberOfAccessSizes - 1))) &&
       (!O.Alignment || *O.Alignment >= (1ULL << Mapping.Scale) ||
        *O.Alignment >= O.TypeSize / 8)) {
-    size_t AccessSizeIndex = TypeSizeToSizeIndex(O.TypeSize);
+    size_t const AccessSizeIndex = TypeSizeToSizeIndex(O.TypeSize);
     if (InstrumentWithCalls) {
       IRB.CreateCall(HwasanMemoryAccessCallback[O.IsWrite][AccessSizeIndex],
                      IRB.CreatePointerCast(Addr, IntptrTy));
@@ -1014,13 +1014,13 @@ static uint64_t getAllocaSizeInBytes(const AllocaInst &AI) {
     ArraySize = CI->getZExtValue();
   }
   Type *Ty = AI.getAllocatedType();
-  uint64_t SizeInBytes = AI.getModule()->getDataLayout().getTypeAllocSize(Ty);
+  uint64_t const SizeInBytes = AI.getModule()->getDataLayout().getTypeAllocSize(Ty);
   return SizeInBytes * ArraySize;
 }
 
 void HWAddressSanitizer::tagAlloca(IRBuilder<> &IRB, AllocaInst *AI, Value *Tag,
                                    size_t Size) {
-  size_t AlignedSize = alignTo(Size, Mapping.getObjectAlignment());
+  size_t const AlignedSize = alignTo(Size, Mapping.getObjectAlignment());
   if (!UseShortGranules)
     Size = AlignedSize;
 
@@ -1030,7 +1030,7 @@ void HWAddressSanitizer::tagAlloca(IRBuilder<> &IRB, AllocaInst *AI, Value *Tag,
                    {IRB.CreatePointerCast(AI, Int8PtrTy), JustTag,
                     ConstantInt::get(IntptrTy, AlignedSize)});
   } else {
-    size_t ShadowSize = Size >> Mapping.Scale;
+    size_t const ShadowSize = Size >> Mapping.Scale;
     Value *ShadowPtr = memToShadow(IRB.CreatePointerCast(AI, IntptrTy), IRB);
     // If this memset is not inlined, it will be intercepted in the hwasan
     // runtime library. That's OK, because the interceptor skips the checks if
@@ -1065,7 +1065,7 @@ unsigned HWAddressSanitizer::retagMask(unsigned AllocaNo) {
   // mask allocated (temporally) nearby. The program that generated this list
   // can be found at:
   // https://github.com/google/sanitizers/blob/master/hwaddress-sanitizer/sort_masks.py
-  static unsigned FastMasks[] = {0,  128, 64,  192, 32,  96,  224, 112, 240,
+  static unsigned const FastMasks[] = {0,  128, 64,  192, 32,  96,  224, 112, 240,
                                  48, 16,  120, 248, 56,  24,  8,   124, 252,
                                  60, 28,  12,  4,   126, 254, 62,  30,  14,
                                  6,  2,   127, 63,  31,  15,  7,   3,   1};
@@ -1264,7 +1264,7 @@ Value *HWAddressSanitizer::readRegister(IRBuilder<> &IRB, StringRef Name) {
   Function *ReadRegister =
       Intrinsic::getDeclaration(M, Intrinsic::read_register, IntptrTy);
   MDNode *MD = MDNode::get(*C, {MDString::get(*C, Name)});
-  Value *Args[] = {MetadataAsValue::get(*C, MD)};
+  Value *const Args[] = {MetadataAsValue::get(*C, MD)};
   return IRB.CreateCall(ReadRegister, Args);
 }
 
@@ -1304,7 +1304,7 @@ bool HWAddressSanitizer::instrumentStack(
     Value *Tag = getAllocaTag(IRB, StackTag, AI, N);
     Value *AILong = IRB.CreatePointerCast(AI, IntptrTy);
     Value *Replacement = tagPointer(IRB, AI->getType(), AILong, Tag);
-    std::string Name =
+    std::string const Name =
         AI->hasName() ? AI->getName().str() : "alloca." + itostr(N);
     Replacement->setName(Name + ".hwasan");
 
@@ -1315,7 +1315,7 @@ bool HWAddressSanitizer::instrumentStack(
       // Prepend "tag_offset, N" to the dwarf expression.
       // Tag offset logically applies to the alloca pointer, and it makes sense
       // to put it at the beginning of the expression.
-      SmallVector<uint64_t, 8> NewOps = {dwarf::DW_OP_LLVM_tag_offset,
+      SmallVector<uint64_t, 8> const NewOps = {dwarf::DW_OP_LLVM_tag_offset,
                                          retagMask(N)};
       for (size_t LocNo = 0; LocNo < DDI->getNumVariableLocationOps(); ++LocNo)
         if (DDI->getVariableLocationOp(LocNo) == AI)
@@ -1323,9 +1323,9 @@ bool HWAddressSanitizer::instrumentStack(
                                                           NewOps, LocNo));
     }
 
-    size_t Size = getAllocaSizeInBytes(*AI);
+    size_t const Size = getAllocaSizeInBytes(*AI);
     size_t AlignedSize = alignTo(Size, Mapping.getObjectAlignment());
-    bool StandardLifetime = UnrecognizedLifetimes.empty() &&
+    bool const StandardLifetime = UnrecognizedLifetimes.empty() &&
                             Info.LifetimeStart.size() == 1 &&
                             Info.LifetimeEnd.size() == 1;
     if (DetectUseAfterScope && StandardLifetime) {
@@ -1484,14 +1484,14 @@ bool HWAddressSanitizer::sanitizeFunction(
   DenseMap<AllocaInst *, AllocaInst *> AllocaToPaddedAllocaMap;
   for (auto &KV : AllocasToInstrument) {
     AllocaInst *AI = KV.first;
-    uint64_t Size = getAllocaSizeInBytes(*AI);
-    uint64_t AlignedSize = alignTo(Size, Mapping.getObjectAlignment());
+    uint64_t const Size = getAllocaSizeInBytes(*AI);
+    uint64_t const AlignedSize = alignTo(Size, Mapping.getObjectAlignment());
     AI->setAlignment(
         Align(std::max(AI->getAlignment(), Mapping.getObjectAlignment())));
     if (Size != AlignedSize) {
       Type *AllocatedType = AI->getAllocatedType();
       if (AI->isArrayAllocation()) {
-        uint64_t ArraySize =
+        uint64_t const ArraySize =
             cast<ConstantInt>(AI->getArraySize())->getZExtValue();
         AllocatedType = ArrayType::get(AllocatedType, ArraySize);
       }
@@ -1514,7 +1514,7 @@ bool HWAddressSanitizer::sanitizeFunction(
     for (auto &BB : F) {
       for (auto &Inst : BB) {
         if (auto *DVI = dyn_cast<DbgVariableIntrinsic>(&Inst)) {
-          SmallDenseSet<Value *> LocationOps(DVI->location_ops().begin(),
+          SmallDenseSet<Value *> const LocationOps(DVI->location_ops().begin(),
                                              DVI->location_ops().end());
           for (Value *V : LocationOps) {
             if (auto *AI = dyn_cast_or_null<AllocaInst>(V)) {
@@ -1561,9 +1561,9 @@ bool HWAddressSanitizer::sanitizeFunction(
 void HWAddressSanitizer::instrumentGlobal(GlobalVariable *GV, uint8_t Tag) {
   assert(!UsePageAliases);
   Constant *Initializer = GV->getInitializer();
-  uint64_t SizeInBytes =
+  uint64_t const SizeInBytes =
       M.getDataLayout().getTypeAllocSize(Initializer->getType());
-  uint64_t NewSize = alignTo(SizeInBytes, Mapping.getObjectAlignment());
+  uint64_t const NewSize = alignTo(SizeInBytes, Mapping.getObjectAlignment());
   if (SizeInBytes != NewSize) {
     // Pad the initializer out to the next multiple of 16 bytes and add the
     // required short granule tag.
@@ -1612,7 +1612,7 @@ void HWAddressSanitizer::instrumentGlobal(GlobalVariable *GV, uint8_t Tag) {
                 ConstantExpr::getPtrToInt(Descriptor, Int64Ty)),
             ConstantInt::get(Int64Ty, DescriptorPos)),
         Int32Ty);
-    uint32_t Size = std::min(SizeInBytes - DescriptorPos, MaxDescriptorSize);
+    uint32_t const Size = std::min(SizeInBytes - DescriptorPos, MaxDescriptorSize);
     auto *SizeAndTag = ConstantInt::get(Int32Ty, Size | (uint32_t(Tag) << 24));
     Descriptor->setComdat(NewGV->getComdat());
     Descriptor->setInitializer(ConstantStruct::getAnon({GVRelPtr, SizeAndTag}));
@@ -1718,7 +1718,7 @@ void HWAddressSanitizer::instrumentPersonalityFunctions() {
   if (PersonalityFns.empty())
     return;
 
-  FunctionCallee HwasanPersonalityWrapper = M.getOrInsertFunction(
+  FunctionCallee const HwasanPersonalityWrapper = M.getOrInsertFunction(
       "__hwasan_personality_wrapper", Int32Ty, Int32Ty, Int32Ty, Int64Ty,
       Int8PtrTy, Int8PtrTy, Int8PtrTy, Int8PtrTy, Int8PtrTy);
   FunctionCallee UnwindGetGR = M.getOrInsertFunction("_Unwind_GetGR", VoidTy);
@@ -1730,7 +1730,7 @@ void HWAddressSanitizer::instrumentPersonalityFunctions() {
       ThunkName += ("." + P.first->getName()).str();
     FunctionType *ThunkFnTy = FunctionType::get(
         Int32Ty, {Int32Ty, Int32Ty, Int64Ty, Int8PtrTy, Int8PtrTy}, false);
-    bool IsLocal = P.first && (!isa<GlobalValue>(P.first) ||
+    bool const IsLocal = P.first && (!isa<GlobalValue>(P.first) ||
                                cast<GlobalValue>(P.first)->hasLocalLinkage());
     auto *ThunkFn = Function::Create(ThunkFnTy,
                                      IsLocal ? GlobalValue::InternalLinkage

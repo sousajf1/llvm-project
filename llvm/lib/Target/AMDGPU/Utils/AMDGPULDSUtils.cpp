@@ -267,7 +267,7 @@ bool shouldLowerLDSToStruct(const GlobalVariable &GV, const Function *F) {
     Visited.insert(V);
 
     if (auto *G = dyn_cast<GlobalValue>(V)) {
-      StringRef GName = G->getName();
+      StringRef const GName = G->getName();
       if (F && GName != "llvm.used" && GName != "llvm.compiler.used") {
         // For kernel LDS lowering, if G is not a compiler.used list, then we
         // cannot lower the lds GV since we cannot replace the use of GV within

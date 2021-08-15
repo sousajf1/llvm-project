@@ -218,15 +218,15 @@ bool MCAssembler::evaluateFixup(const MCAsmLayout &Layout,
   }
 
   assert(getBackendPtr() && "Expected assembler backend");
-  bool IsTarget = getBackendPtr()->getFixupKindInfo(Fixup.getKind()).Flags &
+  bool const IsTarget = getBackendPtr()->getFixupKindInfo(Fixup.getKind()).Flags &
                   MCFixupKindInfo::FKF_IsTarget;
 
   if (IsTarget)
     return getBackend().evaluateTargetFixup(*this, Layout, Fixup, DF, Target,
                                             Value, WasForced);
 
-  unsigned FixupFlags = getBackendPtr()->getFixupKindInfo(Fixup.getKind()).Flags;
-  bool IsPCRel = getBackendPtr()->getFixupKindInfo(Fixup.getKind()).Flags &
+  unsigned const FixupFlags = getBackendPtr()->getFixupKindInfo(Fixup.getKind()).Flags;
+  bool const IsPCRel = getBackendPtr()->getFixupKindInfo(Fixup.getKind()).Flags &
                  MCFixupKindInfo::FKF_IsPCRel;
 
   bool IsResolved = false;
@@ -263,7 +263,7 @@ bool MCAssembler::evaluateFixup(const MCAsmLayout &Layout,
       Value -= Layout.getSymbolOffset(Sym);
   }
 
-  bool ShouldAlignPC = getBackend().getFixupKindInfo(Fixup.getKind()).Flags &
+  bool const ShouldAlignPC = getBackend().getFixupKindInfo(Fixup.getKind()).Flags &
                        MCFixupKindInfo::FKF_IsAlignedDownTo32Bits;
   assert((ShouldAlignPC ? IsPCRel : true) &&
     "FKF_IsAlignedDownTo32Bits is only allowed on PC-relative fixups!");
@@ -304,7 +304,7 @@ uint64_t MCAssembler::computeFragmentSize(const MCAsmLayout &Layout,
                                "expected assembly-time absolute expression");
       return 0;
     }
-    int64_t Size = NumValues * FF.getValueSize();
+    int64_t const Size = NumValues * FF.getValueSize();
     if (Size < 0) {
       getContext().reportError(FF.getLoc(), "invalid number of bytes");
       return 0;
@@ -326,7 +326,7 @@ uint64_t MCAssembler::computeFragmentSize(const MCAsmLayout &Layout,
 
   case MCFragment::FT_Align: {
     const MCAlignFragment &AF = cast<MCAlignFragment>(F);
-    unsigned Offset = Layout.getFragmentOffset(&AF);
+    unsigned const Offset = Layout.getFragmentOffset(&AF);
     unsigned Size = offsetToAlignment(Offset, Align(AF.getAlignment()));
 
     // Insert extra Nops for code alignment if the target define
@@ -355,7 +355,7 @@ uint64_t MCAssembler::computeFragmentSize(const MCAsmLayout &Layout,
         return 0;
     }
 
-    uint64_t FragmentOffset = Layout.getFragmentOffset(&OF);
+    uint64_t const FragmentOffset = Layout.getFragmentOffset(&OF);
     int64_t TargetLocation = Value.getConstant();
     if (const MCSymbolRefExpr *A = Value.getSymA()) {
       uint64_t Val;
@@ -365,7 +365,7 @@ uint64_t MCAssembler::computeFragmentSize(const MCAsmLayout &Layout,
       }
       TargetLocation += Val;
     }
-    int64_t Size = TargetLocation - FragmentOffset;
+    int64_t const Size = TargetLocation - FragmentOffset;
     if (Size < 0 || Size >= 0x40000000) {
       getContext().reportError(
           OF.getLoc(), "invalid .org offset '" + Twine(TargetLocation) +
@@ -446,12 +446,12 @@ void MCAsmLayout::layoutFragment(MCFragment *F) {
     assert(isa<MCEncodedFragment>(F) &&
            "Only MCEncodedFragment implementations have instructions");
     MCEncodedFragment *EF = cast<MCEncodedFragment>(F);
-    uint64_t FSize = Assembler.computeFragmentSize(*this, *EF);
+    uint64_t const FSize = Assembler.computeFragmentSize(*this, *EF);
 
     if (!Assembler.getRelaxAll() && FSize > Assembler.getBundleAlignSize())
       report_fatal_error("Fragment can't be larger than a bundle size");
 
-    uint64_t RequiredBundlePadding =
+    uint64_t const RequiredBundlePadding =
         computeBundlePadding(Assembler, EF, EF->Offset, FSize);
     if (RequiredBundlePadding > UINT8_MAX)
       report_fatal_error("Padding cannot exceed 255 bytes");
@@ -461,7 +461,7 @@ void MCAsmLayout::layoutFragment(MCFragment *F) {
 }
 
 void MCAssembler::registerSymbol(const MCSymbol &Symbol, bool *Created) {
-  bool New = !Symbol.isRegistered();
+  bool const New = !Symbol.isRegistered();
   if (Created)
     *Created = New;
   if (New) {
@@ -482,7 +482,7 @@ void MCAssembler::writeFragmentPadding(raw_ostream &OS,
     assert(EF.hasInstructions() &&
            "Writing bundle padding for a fragment without instructions");
 
-    unsigned TotalLength = BundlePadding + static_cast<unsigned>(FSize);
+    unsigned const TotalLength = BundlePadding + static_cast<unsigned>(FSize);
     if (EF.alignToBundleEnd() && TotalLength > getBundleAlignSize()) {
       // If the padding itself crosses a bundle boundary, it must be emitted
       // in 2 pieces, since even nop instructions must not cross boundaries.
@@ -492,7 +492,7 @@ void MCAssembler::writeFragmentPadding(raw_ostream &OS,
       // | Prev |####|####|    F    |
       // ----------------------------
       //        ^-------------------^   <- TotalLength
-      unsigned DistanceToBoundary = TotalLength - getBundleAlignSize();
+      unsigned const DistanceToBoundary = TotalLength - getBundleAlignSize();
       if (!getBackend().writeNopData(OS, DistanceToBoundary))
         report_fatal_error("unable to write NOP sequence of " +
                            Twine(DistanceToBoundary) + " bytes");
@@ -508,16 +508,16 @@ void MCAssembler::writeFragmentPadding(raw_ostream &OS,
 static void writeFragment(raw_ostream &OS, const MCAssembler &Asm,
                           const MCAsmLayout &Layout, const MCFragment &F) {
   // FIXME: Embed in fragments instead?
-  uint64_t FragmentSize = Asm.computeFragmentSize(Layout, F);
+  uint64_t const FragmentSize = Asm.computeFragmentSize(Layout, F);
 
-  support::endianness Endian = Asm.getBackend().Endian;
+  support::endianness const Endian = Asm.getBackend().Endian;
 
   if (const MCEncodedFragment *EF = dyn_cast<MCEncodedFragment>(&F))
     Asm.writeFragmentPadding(OS, *EF, FragmentSize);
 
   // This variable (and its dummy usage) is to participate in the assert at
   // the end of the function.
-  uint64_t Start = OS.tell();
+  uint64_t const Start = OS.tell();
   (void) Start;
 
   ++stats::EmittedFragments;
@@ -528,7 +528,7 @@ static void writeFragment(raw_ostream &OS, const MCAssembler &Asm,
     const MCAlignFragment &AF = cast<MCAlignFragment>(F);
     assert(AF.getValueSize() && "Invalid virtual align in concrete fragment!");
 
-    uint64_t Count = FragmentSize / AF.getValueSize();
+    uint64_t const Count = FragmentSize / AF.getValueSize();
 
     // FIXME: This error shouldn't actually occur (the front end should emit
     // multiple .align directives to enforce the semantics it wants), but is
@@ -587,15 +587,15 @@ static void writeFragment(raw_ostream &OS, const MCAssembler &Asm,
   case MCFragment::FT_Fill: {
     ++stats::EmittedFillFragments;
     const MCFillFragment &FF = cast<MCFillFragment>(F);
-    uint64_t V = FF.getValue();
-    unsigned VSize = FF.getValueSize();
+    uint64_t const V = FF.getValue();
+    unsigned const VSize = FF.getValueSize();
     const unsigned MaxChunkSize = 16;
     char Data[MaxChunkSize];
     assert(0 < VSize && VSize <= MaxChunkSize && "Illegal fragment fill size");
     // Duplicate V into Data as byte vector to reduce number of
     // writes done. As such, do endian conversion here.
     for (unsigned I = 0; I != VSize; ++I) {
-      unsigned index = Endian == support::little ? I : (VSize - I - 1);
+      unsigned const index = Endian == support::little ? I : (VSize - I - 1);
       Data[I] = uint8_t(V >> (index * 8));
     }
     for (unsigned I = VSize; I < MaxChunkSize; ++I)
@@ -607,12 +607,12 @@ static void writeFragment(raw_ostream &OS, const MCAssembler &Asm,
     const unsigned ChunkSize = VSize * NumPerChunk;
 
     // Do copies by chunk.
-    StringRef Ref(Data, ChunkSize);
+    StringRef const Ref(Data, ChunkSize);
     for (uint64_t I = 0, E = FragmentSize / ChunkSize; I != E; ++I)
       OS << Ref;
 
     // do remainder if needed.
-    unsigned TrailingCount = FragmentSize % ChunkSize;
+    unsigned const TrailingCount = FragmentSize % ChunkSize;
     if (TrailingCount)
       OS.write(Data, TrailingCount);
     break;
@@ -623,7 +623,7 @@ static void writeFragment(raw_ostream &OS, const MCAssembler &Asm,
     const MCNopsFragment &NF = cast<MCNopsFragment>(F);
     int64_t NumBytes = NF.getNumBytes();
     int64_t ControlledNopLength = NF.getControlledNopLength();
-    int64_t MaximumNopLength = Asm.getBackend().getMaximumNopSize();
+    int64_t const MaximumNopLength = Asm.getBackend().getMaximumNopSize();
 
     assert(NumBytes > 0 && "Expected positive NOPs fragment size");
     assert(ControlledNopLength >= 0 && "Expected non-negative NOP size");
@@ -644,7 +644,7 @@ static void writeFragment(raw_ostream &OS, const MCAssembler &Asm,
       ControlledNopLength = MaximumNopLength;
 
     while (NumBytes) {
-      uint64_t NumBytesToEmit =
+      uint64_t const NumBytesToEmit =
           (uint64_t)std::min(NumBytes, ControlledNopLength);
       assert(NumBytesToEmit && "try to emit empty NOP instruction");
       if (!Asm.getBackend().writeNopData(OS, NumBytesToEmit)) {
@@ -769,7 +769,7 @@ void MCAssembler::writeSectionData(raw_ostream &OS, const MCSection *Sec,
     return;
   }
 
-  uint64_t Start = OS.tell();
+  uint64_t const Start = OS.tell();
   (void)Start;
 
   for (const MCFragment &F : *Sec)
@@ -786,7 +786,7 @@ MCAssembler::handleFixup(const MCAsmLayout &Layout, MCFragment &F,
   MCValue Target;
   uint64_t FixedValue;
   bool WasForced;
-  bool IsResolved = evaluateFixup(Layout, Fixup, &F, Target, FixedValue,
+  bool const IsResolved = evaluateFixup(Layout, Fixup, &F, Target, FixedValue,
                                   WasForced);
   if (!IsResolved) {
     // The fixup was unresolved, we need a relocation. Inform the object
@@ -939,7 +939,7 @@ bool MCAssembler::fixupNeedsRelaxation(const MCFixup &Fixup,
   MCValue Target;
   uint64_t Value;
   bool WasForced;
-  bool Resolved = evaluateFixup(Layout, Fixup, DF, Target, Value, WasForced);
+  bool const Resolved = evaluateFixup(Layout, Fixup, DF, Target, Value, WasForced);
   if (Target.getSymA() &&
       Target.getSymA()->getKind() == MCSymbolRefExpr::VK_X86_ABS8 &&
       Fixup.getKind() == FK_Data_1)
@@ -999,9 +999,9 @@ bool MCAssembler::relaxInstruction(MCAsmLayout &Layout,
 }
 
 bool MCAssembler::relaxLEB(MCAsmLayout &Layout, MCLEBFragment &LF) {
-  uint64_t OldSize = LF.getContents().size();
+  uint64_t const OldSize = LF.getContents().size();
   int64_t Value;
-  bool Abs = LF.getValue().evaluateKnownAbsolute(Value, Layout);
+  bool const Abs = LF.getValue().evaluateKnownAbsolute(Value, Layout);
   if (!Abs)
     report_fatal_error("sleb128 and uleb128 expressions must be absolute");
   SmallString<8> &Data = LF.getContents();
@@ -1026,7 +1026,7 @@ bool MCAssembler::relaxLEB(MCAsmLayout &Layout, MCLEBFragment &LF) {
 /// \returns true if the branch cross the boundary.
 static bool mayCrossBoundary(uint64_t StartAddr, uint64_t Size,
                              Align BoundaryAlignment) {
-  uint64_t EndAddr = StartAddr + Size;
+  uint64_t const EndAddr = StartAddr + Size;
   return (StartAddr >> Log2(BoundaryAlignment)) !=
          ((EndAddr - 1) >> Log2(BoundaryAlignment));
 }
@@ -1039,7 +1039,7 @@ static bool mayCrossBoundary(uint64_t StartAddr, uint64_t Size,
 /// \returns true if the branch is against the boundary.
 static bool isAgainstBoundary(uint64_t StartAddr, uint64_t Size,
                               Align BoundaryAlignment) {
-  uint64_t EndAddr = StartAddr + Size;
+  uint64_t const EndAddr = StartAddr + Size;
   return (EndAddr & (BoundaryAlignment.value() - 1)) == 0;
 }
 
@@ -1062,14 +1062,14 @@ bool MCAssembler::relaxBoundaryAlign(MCAsmLayout &Layout,
   if (!BF.getLastFragment())
     return false;
 
-  uint64_t AlignedOffset = Layout.getFragmentOffset(&BF);
+  uint64_t const AlignedOffset = Layout.getFragmentOffset(&BF);
   uint64_t AlignedSize = 0;
   for (const MCFragment *F = BF.getLastFragment(); F != &BF;
        F = F->getPrevNode())
     AlignedSize += computeFragmentSize(Layout, *F);
 
-  Align BoundaryAlignment = BF.getAlignment();
-  uint64_t NewSize = needPadding(AlignedOffset, AlignedSize, BoundaryAlignment)
+  Align const BoundaryAlignment = BF.getAlignment();
+  uint64_t const NewSize = needPadding(AlignedOffset, AlignedSize, BoundaryAlignment)
                          ? offsetToAlignment(AlignedOffset, BoundaryAlignment)
                          : 0U;
   if (NewSize == BF.getSize())
@@ -1087,9 +1087,9 @@ bool MCAssembler::relaxDwarfLineAddr(MCAsmLayout &Layout,
     return WasRelaxed;
 
   MCContext &Context = Layout.getAssembler().getContext();
-  uint64_t OldSize = DF.getContents().size();
+  uint64_t const OldSize = DF.getContents().size();
   int64_t AddrDelta;
-  bool Abs = DF.getAddrDelta().evaluateKnownAbsolute(AddrDelta, Layout);
+  bool const Abs = DF.getAddrDelta().evaluateKnownAbsolute(AddrDelta, Layout);
   assert(Abs && "We created a line delta with an invalid expression");
   (void)Abs;
   int64_t LineDelta;
@@ -1111,9 +1111,9 @@ bool MCAssembler::relaxDwarfCallFrameFragment(MCAsmLayout &Layout,
     return WasRelaxed;
 
   MCContext &Context = Layout.getAssembler().getContext();
-  uint64_t OldSize = DF.getContents().size();
+  uint64_t const OldSize = DF.getContents().size();
   int64_t AddrDelta;
-  bool Abs = DF.getAddrDelta().evaluateKnownAbsolute(AddrDelta, Layout);
+  bool const Abs = DF.getAddrDelta().evaluateKnownAbsolute(AddrDelta, Layout);
   assert(Abs && "We created call frame with an invalid expression");
   (void) Abs;
   SmallVectorImpl<char> &Data = DF.getContents();
@@ -1127,23 +1127,23 @@ bool MCAssembler::relaxDwarfCallFrameFragment(MCAsmLayout &Layout,
 
 bool MCAssembler::relaxCVInlineLineTable(MCAsmLayout &Layout,
                                          MCCVInlineLineTableFragment &F) {
-  unsigned OldSize = F.getContents().size();
+  unsigned const OldSize = F.getContents().size();
   getContext().getCVContext().encodeInlineLineTable(Layout, F);
   return OldSize != F.getContents().size();
 }
 
 bool MCAssembler::relaxCVDefRange(MCAsmLayout &Layout,
                                   MCCVDefRangeFragment &F) {
-  unsigned OldSize = F.getContents().size();
+  unsigned const OldSize = F.getContents().size();
   getContext().getCVContext().encodeDefRange(Layout, F);
   return OldSize != F.getContents().size();
 }
 
 bool MCAssembler::relaxPseudoProbeAddr(MCAsmLayout &Layout,
                                        MCPseudoProbeAddrFragment &PF) {
-  uint64_t OldSize = PF.getContents().size();
+  uint64_t const OldSize = PF.getContents().size();
   int64_t AddrDelta;
-  bool Abs = PF.getAddrDelta().evaluateKnownAbsolute(AddrDelta, Layout);
+  bool const Abs = PF.getAddrDelta().evaluateKnownAbsolute(AddrDelta, Layout);
   assert(Abs && "We created a pseudo probe with an invalid expression");
   (void)Abs;
   SmallVectorImpl<char> &Data = PF.getContents();
@@ -1192,7 +1192,7 @@ bool MCAssembler::layoutSectionOnce(MCAsmLayout &Layout, MCSection &Sec) {
   // Attempt to relax all the fragments in the section.
   for (MCFragment &Frag : Sec) {
     // Check if this is a fragment that needs relaxation.
-    bool RelaxedFrag = relaxFragment(Layout, Frag);
+    bool const RelaxedFrag = relaxFragment(Layout, Frag);
     if (RelaxedFrag && !FirstRelaxedFragment)
       FirstRelaxedFragment = &Frag;
   }

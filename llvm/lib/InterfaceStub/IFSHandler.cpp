@@ -161,7 +161,7 @@ template <> struct MappingTraits<IFSStubTriple> {
 /// Attempt to determine if a Text stub uses target triple.
 bool usesTriple(StringRef Buf) {
   for (line_iterator I(MemoryBufferRef(Buf, "ELFStub")); !I.is_at_eof(); ++I) {
-    StringRef Line = (*I).trim();
+    StringRef const Line = (*I).trim();
     if (Line.startswith("Target:")) {
       if (Line == "Target:" || (Line.find("{") != Line.npos)) {
         return false;
@@ -179,7 +179,7 @@ Expected<std::unique_ptr<IFSStub>> ifs::readIFSFromBuffer(StringRef Buf) {
   } else {
     YamlIn >> *static_cast<IFSStub *>(Stub.get());
   }
-  if (std::error_code Err = YamlIn.error()) {
+  if (std::error_code const Err = YamlIn.error()) {
     return createStringError(Err, "YAML failed reading as IFS");
   }
 
@@ -201,7 +201,7 @@ Error ifs::writeIFSToOutputStream(raw_ostream &OS, const IFSStub &Stub) {
     CopyStub->Target.ArchString = std::string(
         ELF::convertEMachineToArchName(Stub.Target.Arch.getValue()));
   }
-  IFSTarget Target = Stub.Target;
+  IFSTarget const Target = Stub.Target;
 
   if (CopyStub->Target.Triple ||
       (!CopyStub->Target.ArchString && !CopyStub->Target.Endianness &&
@@ -216,7 +216,7 @@ Error ifs::overrideIFSTarget(IFSStub &Stub, Optional<IFSArch> OverrideArch,
                              Optional<IFSEndiannessType> OverrideEndianness,
                              Optional<IFSBitWidthType> OverrideBitWidth,
                              Optional<std::string> OverrideTriple) {
-  std::error_code OverrideEC(1, std::generic_category());
+  std::error_code const OverrideEC(1, std::generic_category());
   if (OverrideArch) {
     if (Stub.Target.Arch &&
         Stub.Target.Arch.getValue() != OverrideArch.getValue()) {
@@ -253,7 +253,7 @@ Error ifs::overrideIFSTarget(IFSStub &Stub, Optional<IFSArch> OverrideArch,
 }
 
 Error ifs::validateIFSTarget(IFSStub &Stub, bool ParseTriple) {
-  std::error_code ValidationEC(1, std::generic_category());
+  std::error_code const ValidationEC(1, std::generic_category());
   if (Stub.Target.Triple) {
     if (Stub.Target.Arch || Stub.Target.BitWidth || Stub.Target.Endianness ||
         Stub.Target.ObjectFormat) {
@@ -262,7 +262,7 @@ Error ifs::validateIFSTarget(IFSStub &Stub, bool ParseTriple) {
           ValidationEC);
     }
     if (ParseTriple) {
-      IFSTarget TargetFromTriple = parseTriple(Stub.Target.Triple.getValue());
+      IFSTarget const TargetFromTriple = parseTriple(Stub.Target.Triple.getValue());
       Stub.Target.Arch = TargetFromTriple.Arch;
       Stub.Target.BitWidth = TargetFromTriple.BitWidth;
       Stub.Target.Endianness = TargetFromTriple.Endianness;
@@ -288,7 +288,7 @@ Error ifs::validateIFSTarget(IFSStub &Stub, bool ParseTriple) {
 }
 
 IFSTarget ifs::parseTriple(StringRef TripleStr) {
-  Triple IFSTriple(TripleStr);
+  Triple const IFSTriple(TripleStr);
   IFSTarget RetTarget;
   // TODO: Implement a Triple Arch enum to e_machine map.
   switch (IFSTriple.getArch()) {

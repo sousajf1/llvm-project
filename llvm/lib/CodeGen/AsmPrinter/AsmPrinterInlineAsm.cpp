@@ -53,7 +53,7 @@ unsigned AsmPrinter::addInlineAsmDiagBuffer(StringRef AsmStr,
   Buffer = MemoryBuffer::getMemBufferCopy(AsmStr, "<inline asm>");
 
   // Tell SrcMgr about this buffer, it takes ownership of the buffer.
-  unsigned BufNum = SrcMgr.AddNewSourceBuffer(std::move(Buffer), SMLoc());
+  unsigned const BufNum = SrcMgr.AddNewSourceBuffer(std::move(Buffer), SMLoc());
 
   // Store LocMDNode in DiagInfo, using BufNum as an identifier.
   if (LocMDNode) {
@@ -73,7 +73,7 @@ void AsmPrinter::emitInlineAsm(StringRef Str, const MCSubtargetInfo &STI,
   assert(!Str.empty() && "Can't emit empty inline asm block");
 
   // Remember if the buffer is nul terminated or not so we can avoid a copy.
-  bool isNullTerminated = Str.back() == 0;
+  bool const isNullTerminated = Str.back() == 0;
   if (isNullTerminated)
     Str = Str.substr(0, Str.size()-1);
 
@@ -93,7 +93,7 @@ void AsmPrinter::emitInlineAsm(StringRef Str, const MCSubtargetInfo &STI,
     return;
   }
 
-  unsigned BufNum = addInlineAsmDiagBuffer(Str, LocMDNode);
+  unsigned const BufNum = addInlineAsmDiagBuffer(Str, LocMDNode);
   SourceMgr &SrcMgr = *MMI->getContext().getInlineSourceManager();
   SrcMgr.setIncludeDirs(MCOptions.IASSearchPaths);
 
@@ -107,7 +107,7 @@ void AsmPrinter::emitInlineAsm(StringRef Str, const MCSubtargetInfo &STI,
   // and not have a MachineFunction to initialize the TargetInstrInfo from and
   // we only need MCInstrInfo for asm parsing. We create one unconditionally
   // because it's not subtarget dependent.
-  std::unique_ptr<MCInstrInfo> MII(TM.getTarget().createMCInstrInfo());
+  std::unique_ptr<MCInstrInfo> const MII(TM.getTarget().createMCInstrInfo());
   assert(MII && "Failed to create instruction info");
   std::unique_ptr<MCTargetAsmParser> TAP(TM.getTarget().createMCAsmParser(
       STI, *Parser, *MII, MCOptions));
@@ -135,7 +135,7 @@ static void EmitMSInlineAsmStr(const char *AsmStr, const MachineInstr *MI,
   OS << "\t.intel_syntax\n\t";
 
   const char *LastEmitted = AsmStr; // One past the last character emitted.
-  unsigned NumOperands = MI->getNumOperands();
+  unsigned const NumOperands = MI->getNumOperands();
 
   while (*LastEmitted) {
     switch (*LastEmitted) {
@@ -184,7 +184,7 @@ static void EmitMSInlineAsmStr(const char *AsmStr, const MachineInstr *MI,
           report_fatal_error("Unterminated ${:foo} operand in inline asm"
                              " string: '" + Twine(AsmStr) + "'");
 
-        std::string Val(StrStart, StrEnd);
+        std::string const Val(StrStart, StrEnd);
         AP->PrintSpecial(MI, OS, Val.c_str());
         LastEmitted = StrEnd+1;
         break;
@@ -235,7 +235,7 @@ static void EmitMSInlineAsmStr(const char *AsmStr, const MachineInstr *MI,
       // Scan to find the machine operand number for the operand.
       for (; Val; --Val) {
         if (OpNo >= MI->getNumOperands()) break;
-        unsigned OpFlags = MI->getOperand(OpNo).getImm();
+        unsigned const OpFlags = MI->getOperand(OpNo).getImm();
         OpNo += InlineAsm::getNumOperandRegisters(OpFlags) + 1;
       }
 
@@ -246,7 +246,7 @@ static void EmitMSInlineAsmStr(const char *AsmStr, const MachineInstr *MI,
           MI->getOperand(OpNo).isMetadata()) {
         Error = true;
       } else {
-        unsigned OpFlags = MI->getOperand(OpNo).getImm();
+        unsigned const OpFlags = MI->getOperand(OpNo).getImm();
         ++OpNo;  // Skip over the ID number.
 
         if (InlineAsm::isMemKind(OpFlags)) {
@@ -276,8 +276,8 @@ static void EmitGCCInlineAsmStr(const char *AsmStr, const MachineInstr *MI,
                                 raw_ostream &OS) {
   int CurVariant = -1;            // The number of the {.|.|.} region we are in.
   const char *LastEmitted = AsmStr; // One past the last character emitted.
-  unsigned NumOperands = MI->getNumOperands();
-  int AsmPrinterVariant = MAI->getAssemblerDialect();
+  unsigned const NumOperands = MI->getNumOperands();
+  int const AsmPrinterVariant = MAI->getAssemblerDialect();
 
   if (MAI->getEmitGNUAsmStartIndentationMarker())
     OS << '\t';
@@ -352,7 +352,7 @@ static void EmitGCCInlineAsmStr(const char *AsmStr, const MachineInstr *MI,
           report_fatal_error("Unterminated ${:foo} operand in inline asm"
                              " string: '" + Twine(AsmStr) + "'");
 
-        std::string Val(StrStart, StrEnd);
+        std::string const Val(StrStart, StrEnd);
         AP->PrintSpecial(MI, OS, Val.c_str());
         LastEmitted = StrEnd+1;
         break;
@@ -404,7 +404,7 @@ static void EmitGCCInlineAsmStr(const char *AsmStr, const MachineInstr *MI,
         // Scan to find the machine operand number for the operand.
         for (; Val; --Val) {
           if (OpNo >= MI->getNumOperands()) break;
-          unsigned OpFlags = MI->getOperand(OpNo).getImm();
+          unsigned const OpFlags = MI->getOperand(OpNo).getImm();
           OpNo += InlineAsm::getNumOperandRegisters(OpFlags) + 1;
         }
 
@@ -415,7 +415,7 @@ static void EmitGCCInlineAsmStr(const char *AsmStr, const MachineInstr *MI,
             MI->getOperand(OpNo).isMetadata()) {
           Error = true;
         } else {
-          unsigned OpFlags = MI->getOperand(OpNo).getImm();
+          unsigned const OpFlags = MI->getOperand(OpNo).getImm();
           ++OpNo;  // Skip over the ID number.
 
           // FIXME: Shouldn't arch-independent output template handling go into
@@ -518,9 +518,9 @@ void AsmPrinter::emitInlineAsm(const MachineInstr *MI) const {
     const MachineOperand &MO = MI->getOperand(I);
     if (!MO.isImm())
       continue;
-    unsigned Flags = MO.getImm();
+    unsigned const Flags = MO.getImm();
     if (InlineAsm::getKind(Flags) == InlineAsm::Kind_Clobber) {
-      Register Reg = MI->getOperand(I + 1).getReg();
+      Register const Reg = MI->getOperand(I + 1).getReg();
       if (!TRI->isAsmClobberable(*MF, Reg))
         RestrRegs.push_back(Reg);
     }

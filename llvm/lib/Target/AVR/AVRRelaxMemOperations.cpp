@@ -64,7 +64,7 @@ bool AVRRelaxMem::runOnMachineFunction(MachineFunction &MF) {
   TII = STI.getInstrInfo();
 
   for (Block &MBB : MF) {
-    bool BlockModified = runOnBasicBlock(MBB);
+    bool const BlockModified = runOnBasicBlock(MBB);
     Modified |= BlockModified;
   }
 
@@ -76,7 +76,7 @@ bool AVRRelaxMem::runOnBasicBlock(Block &MBB) {
 
   BlockIt MBBI = MBB.begin(), E = MBB.end();
   while (MBBI != E) {
-    BlockIt NMBBI = std::next(MBBI);
+    BlockIt const NMBBI = std::next(MBBI);
     Modified |= runOnInstruction(MBB, MBBI);
     MBBI = NMBBI;
   }
@@ -88,9 +88,9 @@ template <>
 bool AVRRelaxMem::relax<AVR::STDWPtrQRr>(Block &MBB, BlockIt MBBI) {
   MachineInstr &MI = *MBBI;
 
-  MachineOperand &Ptr = MI.getOperand(0);
-  MachineOperand &Src = MI.getOperand(2);
-  int64_t Imm = MI.getOperand(1).getImm();
+  MachineOperand  const&Ptr = MI.getOperand(0);
+  MachineOperand  const&Src = MI.getOperand(2);
+  int64_t const Imm = MI.getOperand(1).getImm();
 
   // We can definitely optimise this better.
   if (Imm > 63) {
@@ -123,7 +123,7 @@ bool AVRRelaxMem::relax<AVR::STDWPtrQRr>(Block &MBB, BlockIt MBBI) {
 
 bool AVRRelaxMem::runOnInstruction(Block &MBB, BlockIt MBBI) {
   MachineInstr &MI = *MBBI;
-  int Opcode = MBBI->getOpcode();
+  int const Opcode = MBBI->getOpcode();
 
 #define RELAX(Op)                \
   case Op:                       \

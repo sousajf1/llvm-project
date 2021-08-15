@@ -40,7 +40,7 @@ VPValue *VPlanPredicator::getOrCreateNotPredicate(VPBasicBlock *PredBB,
 
   // Set the intermediate value - this is either 'CBV', or 'not CBV'
   // depending on the edge type.
-  EdgeType ET = getEdgeTypeBetween(PredBB, CurrBB);
+  EdgeType const ET = getEdgeTypeBetween(PredBB, CurrBB);
   VPValue *IntermediateVal = nullptr;
   switch (ET) {
   case EdgeType::TRUE_EDGE:
@@ -157,7 +157,7 @@ void VPlanPredicator::createOrPropagatePredicates(VPBlockBase *CurrBlock,
       continue;
 
     VPValue *IncomingPredicate = nullptr;
-    unsigned NumPredSuccsNoBE =
+    unsigned const NumPredSuccsNoBE =
         VPBlockUtils::countSuccessorsNoBE(PredBlock, VPLI);
 
     // If there is an unconditional branch to the currBB, then we don't create
@@ -186,7 +186,7 @@ void VPlanPredicator::createOrPropagatePredicates(VPBlockBase *CurrBlock,
 // Generate all predicates needed for Region.
 void VPlanPredicator::predicateRegionRec(VPRegionBlock *Region) {
   VPBasicBlock *EntryBlock = cast<VPBasicBlock>(Region->getEntry());
-  ReversePostOrderTraversal<VPBlockBase *> RPOT(EntryBlock);
+  ReversePostOrderTraversal<VPBlockBase *> const RPOT(EntryBlock);
 
   // Generate edge predicates and append them to the block predicate. RPO is
   // necessary since the predecessor blocks' block predicate needs to be set
@@ -205,7 +205,7 @@ void VPlanPredicator::predicateRegionRec(VPRegionBlock *Region) {
 // reuse it here. This becomes even more important once we have nested
 // regions.
 void VPlanPredicator::linearizeRegionRec(VPRegionBlock *Region) {
-  ReversePostOrderTraversal<VPBlockBase *> RPOT(Region->getEntry());
+  ReversePostOrderTraversal<VPBlockBase *> const RPOT(Region->getEntry());
   VPBlockBase *PrevBlock = nullptr;
 
   for (VPBlockBase *CurrBlock : RPOT) {

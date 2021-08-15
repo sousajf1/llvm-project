@@ -170,13 +170,13 @@ static void addIntrinsicToSummary(
     auto *TypeId = dyn_cast<MDString>(TypeMDVal->getMetadata());
     if (!TypeId)
       break;
-    GlobalValue::GUID Guid = GlobalValue::getGUID(TypeId->getString());
+    GlobalValue::GUID const Guid = GlobalValue::getGUID(TypeId->getString());
 
     // Produce a summary from type.test intrinsics. We only summarize type.test
     // intrinsics that are used other than by an llvm.assume intrinsic.
     // Intrinsics that are assumed are relevant only to the devirtualization
     // pass, not the type test lowering pass.
-    bool HasNonAssumeUses = llvm::any_of(CI->uses(), [](const Use &CIU) {
+    bool const HasNonAssumeUses = llvm::any_of(CI->uses(), [](const Use &CIU) {
       return !isa<AssumeInst>(CIU.getUser());
     });
     if (HasNonAssumeUses)
@@ -197,7 +197,7 @@ static void addIntrinsicToSummary(
     auto *TypeId = dyn_cast<MDString>(TypeMDVal->getMetadata());
     if (!TypeId)
       break;
-    GlobalValue::GUID Guid = GlobalValue::getGUID(TypeId->getString());
+    GlobalValue::GUID const Guid = GlobalValue::getGUID(TypeId->getString());
 
     SmallVector<DevirtCallSite, 4> DevirtCalls;
     SmallVector<Instruction *, 4> LoadedPtrs;
@@ -365,8 +365,8 @@ static void computeFunctionSummary(
         // Add the relative block frequency to CalleeInfo if there is no profile
         // information.
         if (BFI != nullptr && Hotness == CalleeInfo::HotnessType::Unknown) {
-          uint64_t BBFreq = BFI->getBlockFreq(&BB).getFrequency();
-          uint64_t EntryFreq = BFI->getEntryFreq();
+          uint64_t const BBFreq = BFI->getBlockFreq(&BB).getFrequency();
+          uint64_t const EntryFreq = BFI->getEntryFreq();
           ValueInfo.updateRelBlockFreq(BBFreq, EntryFreq);
         }
       } else {
@@ -444,7 +444,7 @@ static void computeFunctionSummary(
     for (auto &VI : LoadRefEdges)
       RefEdges.insert(VI);
 
-    unsigned FirstWORef = RefEdges.size();
+    unsigned const FirstWORef = RefEdges.size();
     for (auto &VI : StoreRefEdges)
       RefEdges.insert(VI);
 
@@ -465,15 +465,15 @@ static void computeFunctionSummary(
             ? CalleeInfo::HotnessType::Cold
             : CalleeInfo::HotnessType::Critical);
 
-  bool NonRenamableLocal = isNonRenamableLocal(F);
-  bool NotEligibleForImport = NonRenamableLocal ||
+  bool const NonRenamableLocal = isNonRenamableLocal(F);
+  bool const NotEligibleForImport = NonRenamableLocal ||
                               HasInlineAsmMaybeReferencingInternal ||
                               HasIndirBranchToBlockAddress;
-  GlobalValueSummary::GVFlags Flags(
+  GlobalValueSummary::GVFlags const Flags(
       F.getLinkage(), F.getVisibility(), NotEligibleForImport,
       /* Live = */ false, F.isDSOLocal(),
       F.hasLinkOnceODRLinkage() && F.hasGlobalUnnamedAddr());
-  FunctionSummary::FFlags FunFlags{
+  FunctionSummary::FFlags const FunFlags{
       F.hasFnAttribute(Attribute::ReadNone),
       F.hasFnAttribute(Attribute::ReadOnly),
       F.hasFnAttribute(Attribute::NoRecurse), F.returnDoesNotAlias(),
@@ -523,14 +523,14 @@ static void findFuncPointers(const Constant *I, uint64_t StartingOffset,
 
     for (auto EI : llvm::enumerate(STy->elements())) {
       auto Offset = SL->getElementOffset(EI.index());
-      unsigned Op = SL->getElementContainingOffset(Offset);
+      unsigned const Op = SL->getElementContainingOffset(Offset);
       findFuncPointers(cast<Constant>(I->getOperand(Op)),
                        StartingOffset + Offset, M, Index, VTableFuncs);
     }
   } else if (auto *C = dyn_cast<ConstantArray>(I)) {
     ArrayType *ATy = C->getType();
     Type *EltTy = ATy->getElementType();
-    uint64_t EltSize = DL.getTypeAllocSize(EltTy);
+    uint64_t const EltSize = DL.getTypeAllocSize(EltTy);
     for (unsigned i = 0, e = ATy->getNumElements(); i != e; ++i) {
       findFuncPointers(cast<Constant>(I->getOperand(i)),
                        StartingOffset + i * EltSize, M, Index, VTableFuncs);
@@ -569,7 +569,7 @@ recordTypeIdCompatibleVtableReferences(ModuleSummaryIndex &Index,
   for (MDNode *Type : Types) {
     auto TypeID = Type->getOperand(1).get();
 
-    uint64_t Offset =
+    uint64_t const Offset =
         cast<ConstantInt>(
             cast<ConstantAsMetadata>(Type->getOperand(0))->getValue())
             ->getZExtValue();
@@ -587,9 +587,9 @@ static void computeVariableSummary(ModuleSummaryIndex &Index,
                                    SmallVectorImpl<MDNode *> &Types) {
   SetVector<ValueInfo> RefEdges;
   SmallPtrSet<const User *, 8> Visited;
-  bool HasBlockAddress = findRefEdges(Index, &V, RefEdges, Visited);
-  bool NonRenamableLocal = isNonRenamableLocal(V);
-  GlobalValueSummary::GVFlags Flags(
+  bool const HasBlockAddress = findRefEdges(Index, &V, RefEdges, Visited);
+  bool const NonRenamableLocal = isNonRenamableLocal(V);
+  GlobalValueSummary::GVFlags const Flags(
       V.getLinkage(), V.getVisibility(), NonRenamableLocal,
       /* Live = */ false, V.isDSOLocal(),
       V.hasLinkOnceODRLinkage() && V.hasGlobalUnnamedAddr());
@@ -610,11 +610,11 @@ static void computeVariableSummary(ModuleSummaryIndex &Index,
   }
 
   // Don't mark variables we won't be able to internalize as read/write-only.
-  bool CanBeInternalized =
+  bool const CanBeInternalized =
       !V.hasComdat() && !V.hasAppendingLinkage() && !V.isInterposable() &&
       !V.hasAvailableExternallyLinkage() && !V.hasDLLExportStorageClass();
-  bool Constant = V.isConstant();
-  GlobalVarSummary::GVarFlags VarFlags(CanBeInternalized,
+  bool const Constant = V.isConstant();
+  GlobalVarSummary::GVarFlags const VarFlags(CanBeInternalized,
                                        Constant ? false : CanBeInternalized,
                                        Constant, V.getVCallVisibility());
   auto GVarSummary = std::make_unique<GlobalVarSummary>(Flags, VarFlags,
@@ -631,8 +631,8 @@ static void computeVariableSummary(ModuleSummaryIndex &Index,
 static void
 computeAliasSummary(ModuleSummaryIndex &Index, const GlobalAlias &A,
                     DenseSet<GlobalValue::GUID> &CantBePromoted) {
-  bool NonRenamableLocal = isNonRenamableLocal(A);
-  GlobalValueSummary::GVFlags Flags(
+  bool const NonRenamableLocal = isNonRenamableLocal(A);
+  GlobalValueSummary::GVFlags const Flags(
       A.getLinkage(), A.getVisibility(), NonRenamableLocal,
       /* Live = */ false, A.isDSOLocal(),
       A.hasLinkOnceODRLinkage() && A.hasGlobalUnnamedAddr());
@@ -650,7 +650,7 @@ computeAliasSummary(ModuleSummaryIndex &Index, const GlobalAlias &A,
 
 // Set LiveRoot flag on entries matching the given value name.
 static void setLiveRoot(ModuleSummaryIndex &Index, StringRef Name) {
-  if (ValueInfo VI = Index.getValueInfo(GlobalValue::getGUID(Name)))
+  if (ValueInfo const VI = Index.getValueInfo(GlobalValue::getGUID(Name)))
     for (auto &Summary : VI.getSummaryList())
       Summary->setLive(true);
 }
@@ -708,7 +708,7 @@ ModuleSummaryIndex llvm::buildModuleSummaryIndex(
           if (!GV)
             return;
           assert(GV->isDeclaration() && "Def in module asm already has definition");
-          GlobalValueSummary::GVFlags GVFlags(
+          GlobalValueSummary::GVFlags const GVFlags(
               GlobalValue::InternalLinkage, GlobalValue::DefaultVisibility,
               /* NotEligibleToImport = */ true,
               /* Live = */ true,
@@ -766,8 +766,8 @@ ModuleSummaryIndex llvm::buildModuleSummaryIndex(
     if (GetBFICallback)
       BFI = GetBFICallback(F);
     else if (F.hasProfileData()) {
-      LoopInfo LI{DT};
-      BranchProbabilityInfo BPI{F, LI};
+      LoopInfo const LI{DT};
+      BranchProbabilityInfo const BPI{F, LI};
       BFIPtr = std::make_unique<BlockFrequencyInfo>(F, BPI, LI);
       BFI = BFIPtr.get();
     }
@@ -819,7 +819,7 @@ ModuleSummaryIndex llvm::buildModuleSummaryIndex(
       continue;
     }
 
-    bool AllRefsCanBeExternallyReferenced =
+    bool const AllRefsCanBeExternallyReferenced =
         llvm::all_of(Summary->refs(), [&](const ValueInfo &VI) {
           return !CantBePromoted.count(VI.getGUID());
         });
@@ -829,7 +829,7 @@ ModuleSummaryIndex llvm::buildModuleSummaryIndex(
     }
 
     if (auto *FuncSummary = dyn_cast<FunctionSummary>(Summary.get())) {
-      bool AllCallsCanBeExternallyReferenced = llvm::all_of(
+      bool const AllCallsCanBeExternallyReferenced = llvm::all_of(
           FuncSummary->calls(), [&](const FunctionSummary::EdgeTy &Edge) {
             return !CantBePromoted.count(Edge.first.getGUID());
           });
@@ -856,7 +856,7 @@ ModuleSummaryIndex
 ModuleSummaryIndexAnalysis::run(Module &M, ModuleAnalysisManager &AM) {
   ProfileSummaryInfo &PSI = AM.getResult<ProfileSummaryAnalysis>(M);
   auto &FAM = AM.getResult<FunctionAnalysisManagerModuleProxy>(M).getManager();
-  bool NeedSSI = needsParamAccessSummary(M);
+  bool const NeedSSI = needsParamAccessSummary(M);
   return buildModuleSummaryIndex(
       M,
       [&FAM](const Function &F) {

@@ -145,7 +145,7 @@ void AArch64ConditionOptimizer::getAnalysisUsage(AnalysisUsage &AU) const {
 // instructions.
 MachineInstr *AArch64ConditionOptimizer::findSuitableCompare(
     MachineBasicBlock *MBB) {
-  MachineBasicBlock::iterator Term = MBB->getFirstTerminator();
+  MachineBasicBlock::iterator const Term = MBB->getFirstTerminator();
   if (Term == MBB->end())
     return nullptr;
 
@@ -172,7 +172,7 @@ MachineInstr *AArch64ConditionOptimizer::findSuitableCompare(
     // cmn is an alias for adds with a dead destination register.
     case AArch64::ADDSWri:
     case AArch64::ADDSXri: {
-      unsigned ShiftAmt = AArch64_AM::getShiftValue(I.getOperand(3).getImm());
+      unsigned const ShiftAmt = AArch64_AM::getShiftValue(I.getOperand(3).getImm());
       if (!I.getOperand(2).isImm()) {
         LLVM_DEBUG(dbgs() << "Immediate of cmp is symbolic, " << I << '\n');
         return nullptr;
@@ -246,7 +246,7 @@ AArch64ConditionOptimizer::CmpInfo AArch64ConditionOptimizer::adjustCmp(
 
   // CMN (compare with negative immediate) is an alias to ADDS (as
   // "operand - negative" == "operand + positive")
-  bool Negative = (Opc == AArch64::ADDSWri || Opc == AArch64::ADDSXri);
+  bool const Negative = (Opc == AArch64::ADDSWri || Opc == AArch64::ADDSXri);
 
   int Correction = (Cmp == AArch64CC::GT) ? 1 : -1;
   // Negate Correction value for comparison with negative immediate (CMN).

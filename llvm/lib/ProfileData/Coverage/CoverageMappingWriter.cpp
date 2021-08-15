@@ -31,7 +31,7 @@ CoverageFilenamesSectionWriter::CoverageFilenamesSectionWriter(
     : Filenames(Filenames) {
 #ifndef NDEBUG
   StringSet<> NameSet;
-  for (StringRef Name : Filenames)
+  for (StringRef const Name : Filenames)
     assert(NameSet.insert(Name).second && "Duplicate filename");
 #endif
 }
@@ -47,7 +47,7 @@ void CoverageFilenamesSectionWriter::write(raw_ostream &OS, bool Compress) {
   }
 
   SmallString<128> CompressedStr;
-  bool doCompression =
+  bool const doCompression =
       Compress && zlib::isAvailable() && DoInstrProfNameCompression;
   if (doCompression) {
     auto E =
@@ -93,7 +93,7 @@ public:
   void mark(Counter C) {
     if (!C.isExpression())
       return;
-    unsigned ID = C.getExpressionID();
+    unsigned const ID = C.getExpressionID();
     AdjustedExpressionIDs[ID] = 1;
     mark(Expressions[ID].LHS);
     mark(Expressions[ID].RHS);
@@ -141,7 +141,7 @@ static unsigned encodeCounter(ArrayRef<CounterExpression> Expressions,
   unsigned Tag = unsigned(C.getKind());
   if (C.isExpression())
     Tag += Expressions[C.getExpressionID()].Kind;
-  unsigned ID = C.getCounterID();
+  unsigned const ID = C.getCounterID();
   assert(ID <=
          (std::numeric_limits<unsigned>::max() >> Counter::EncodingTagBits));
   return Tag | (ID << Counter::EncodingTagBits);
@@ -177,7 +177,7 @@ void CoverageMappingWriter::write(raw_ostream &OS) {
     encodeULEB128(FileID, OS);
 
   // Write out the expressions.
-  CounterExpressionsMinimizer Minimizer(Expressions, MappingRegions);
+  CounterExpressionsMinimizer const Minimizer(Expressions, MappingRegions);
   auto MinExpressions = Minimizer.getExpressions();
   encodeULEB128(MinExpressions.size(), OS);
   for (const auto &E : MinExpressions) {
@@ -204,8 +204,8 @@ void CoverageMappingWriter::write(raw_ostream &OS) {
       CurrentFileID = I->FileID;
       PrevLineStart = 0;
     }
-    Counter Count = Minimizer.adjust(I->Count);
-    Counter FalseCount = Minimizer.adjust(I->FalseCount);
+    Counter const Count = Minimizer.adjust(I->Count);
+    Counter const FalseCount = Minimizer.adjust(I->FalseCount);
     switch (I->Kind) {
     case CounterMappingRegion::CodeRegion:
     case CounterMappingRegion::GapRegion:
@@ -218,7 +218,7 @@ void CoverageMappingWriter::write(raw_ostream &OS) {
               Counter::EncodingCounterTagAndExpansionRegionTagBits));
       // Mark an expansion region with a set bit that follows the counter tag,
       // and pack the expanded file id into the remaining bits.
-      unsigned EncodedTagExpandedFileID =
+      unsigned const EncodedTagExpandedFileID =
           (1 << Counter::EncodingTagBits) |
           (I->ExpandedFileID
            << Counter::EncodingCounterTagAndExpansionRegionTagBits);

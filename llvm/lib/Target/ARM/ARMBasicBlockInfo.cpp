@@ -51,7 +51,7 @@ void ARMBasicBlockUtils::computeBlockSize(MachineBasicBlock *MBB) {
   BBI.Unalign = 0;
   BBI.PostAlign = Align(1);
 
-  for (MachineInstr &I : *MBB) {
+  for (MachineInstr  const&I : *MBB) {
     BBI.Size += TII->getInstSizeInBytes(I);
     // For inline asm, getInstSizeInBytes returns a conservative estimate.
     // The actual size may be smaller, but still a multiple of the instr size.
@@ -93,9 +93,9 @@ unsigned ARMBasicBlockUtils::getOffsetOf(MachineInstr *MI) const {
 bool ARMBasicBlockUtils::isBBInRange(MachineInstr *MI,
                                      MachineBasicBlock *DestBB,
                                      unsigned MaxDisp) const {
-  unsigned PCAdj      = isThumb ? 4 : 8;
-  unsigned BrOffset   = getOffsetOf(MI) + PCAdj;
-  unsigned DestOffset = BBInfo[DestBB->getNumber()].Offset;
+  unsigned const PCAdj      = isThumb ? 4 : 8;
+  unsigned const BrOffset   = getOffsetOf(MI) + PCAdj;
+  unsigned const DestOffset = BBInfo[DestBB->getNumber()].Offset;
 
   LLVM_DEBUG(dbgs() << "Branch of destination " << printMBBReference(*DestBB)
                     << " from " << printMBBReference(*MI->getParent())
@@ -118,7 +118,7 @@ void ARMBasicBlockUtils::adjustBBOffsetsAfter(MachineBasicBlock *BB) {
   assert(BB->getParent() == &MF &&
          "Basic block is not a child of the current function.\n");
 
-  unsigned BBNum = BB->getNumber();
+  unsigned const BBNum = BB->getNumber();
   LLVM_DEBUG(dbgs() << "Adjust block:\n"
              << " - name: " << BB->getName() << "\n"
              << " - number: " << BB->getNumber() << "\n"

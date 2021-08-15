@@ -70,7 +70,7 @@ using StringPair = std::pair<CachedHashStringRef, size_t>;
 void StringTableBuilder::write(uint8_t *Buf) const {
   assert(isFinalized());
   for (const StringPair &P : StringIndexMap) {
-    StringRef Data = P.first.val();
+    StringRef const Data = P.first.val();
     if (!Data.empty())
       memcpy(Buf + P.second, Data.data(), Data.size());
   }
@@ -84,7 +84,7 @@ void StringTableBuilder::write(uint8_t *Buf) const {
 
 // Returns the character at Pos from end of a string.
 static int charTailAt(StringPair *P, size_t Pos) {
-  StringRef S = P->first.val();
+  StringRef const S = P->first.val();
   if (Pos >= S.size())
     return -1;
   return (unsigned char)S[S.size() - Pos - 1];
@@ -100,11 +100,11 @@ tailcall:
   // Partition items so that items in [0, I) are greater than the pivot,
   // [I, J) are the same as the pivot, and [J, Vec.size()) are less than
   // the pivot.
-  int Pivot = charTailAt(Vec[0], Pos);
+  int const Pivot = charTailAt(Vec[0], Pos);
   size_t I = 0;
   size_t J = Vec.size();
   for (size_t K = 1; K < J;) {
-    int C = charTailAt(Vec[K], Pos);
+    int const C = charTailAt(Vec[K], Pos);
     if (C > Pivot)
       std::swap(Vec[I++], Vec[K++]);
     else if (C < Pivot)
@@ -148,9 +148,9 @@ void StringTableBuilder::finalizeStringTable(bool Optimize) {
 
     StringRef Previous;
     for (StringPair *P : Strings) {
-      StringRef S = P->first.val();
+      StringRef const S = P->first.val();
       if (Previous.endswith(S)) {
-        size_t Pos = Size - S.size() - (K != RAW);
+        size_t const Pos = Size - S.size() - (K != RAW);
         if (!(Pos & (Alignment - 1))) {
           P->second = Pos;
           continue;
@@ -205,7 +205,7 @@ size_t StringTableBuilder::add(CachedHashStringRef S) {
   assert(!isFinalized());
   auto P = StringIndexMap.insert(std::make_pair(S, 0));
   if (P.second) {
-    size_t Start = alignTo(Size, Alignment);
+    size_t const Start = alignTo(Size, Alignment);
     P.first->second = Start;
     Size = Start + S.size() + (K != RAW);
   }

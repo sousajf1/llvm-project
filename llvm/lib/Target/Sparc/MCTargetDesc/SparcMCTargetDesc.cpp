@@ -36,8 +36,8 @@ static MCAsmInfo *createSparcMCAsmInfo(const MCRegisterInfo &MRI,
                                        const Triple &TT,
                                        const MCTargetOptions &Options) {
   MCAsmInfo *MAI = new SparcELFMCAsmInfo(TT);
-  unsigned Reg = MRI.getDwarfRegNum(SP::O6, true);
-  MCCFIInstruction Inst = MCCFIInstruction::cfiDefCfa(nullptr, Reg, 0);
+  unsigned const Reg = MRI.getDwarfRegNum(SP::O6, true);
+  MCCFIInstruction const Inst = MCCFIInstruction::cfiDefCfa(nullptr, Reg, 0);
   MAI->addInitialFrameState(Inst);
   return MAI;
 }
@@ -46,8 +46,8 @@ static MCAsmInfo *createSparcV9MCAsmInfo(const MCRegisterInfo &MRI,
                                          const Triple &TT,
                                          const MCTargetOptions &Options) {
   MCAsmInfo *MAI = new SparcELFMCAsmInfo(TT);
-  unsigned Reg = MRI.getDwarfRegNum(SP::O6, true);
-  MCCFIInstruction Inst = MCCFIInstruction::cfiDefCfa(nullptr, Reg, 2047);
+  unsigned const Reg = MRI.getDwarfRegNum(SP::O6, true);
+  MCCFIInstruction const Inst = MCCFIInstruction::cfiDefCfa(nullptr, Reg, 2047);
   MAI->addInitialFrameState(Inst);
   return MAI;
 }
@@ -93,9 +93,9 @@ static MCInstPrinter *createSparcMCInstPrinter(const Triple &T,
 
 extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializeSparcTargetMC() {
   // Register the MC asm info.
-  RegisterMCAsmInfoFn X(getTheSparcTarget(), createSparcMCAsmInfo);
-  RegisterMCAsmInfoFn Y(getTheSparcV9Target(), createSparcV9MCAsmInfo);
-  RegisterMCAsmInfoFn Z(getTheSparcelTarget(), createSparcMCAsmInfo);
+  RegisterMCAsmInfoFn const X(getTheSparcTarget(), createSparcMCAsmInfo);
+  RegisterMCAsmInfoFn const Y(getTheSparcV9Target(), createSparcV9MCAsmInfo);
+  RegisterMCAsmInfoFn const Z(getTheSparcelTarget(), createSparcMCAsmInfo);
 
   for (Target *T :
        {&getTheSparcTarget(), &getTheSparcV9Target(), &getTheSparcelTarget()}) {

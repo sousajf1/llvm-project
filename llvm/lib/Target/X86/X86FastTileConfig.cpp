@@ -100,7 +100,7 @@ static bool isTilePhysReg(MachineOperand &Op) {
   if (!Op.isReg())
     return false;
 
-  Register Reg = Op.getReg();
+  Register const Reg = Op.getReg();
   if (Reg >= X86::TMM0 && Reg <= X86::TMM7)
     return true;
   return false;
@@ -112,12 +112,12 @@ static unsigned getTilePhysRegIdx(MachineOperand *Op) {
 }
 
 static inline void adjustRowCfg(unsigned TIdx, MachineInstr *MI) {
-  unsigned Offset = 48 + TIdx;
+  unsigned const Offset = 48 + TIdx;
   MI->getOperand(3).ChangeToImmediate(Offset);
 }
 
 static inline void adjustColCfg(unsigned TIdx, MachineInstr *MI) {
-  unsigned Offset = 16 + TIdx * 2;
+  unsigned const Offset = 16 + TIdx * 2;
   MI->getOperand(3).ChangeToImmediate(Offset);
 }
 
@@ -202,13 +202,13 @@ void X86FastTileConfig::getShapeCfgInstrs(
     if (!MemPtr)
       continue;
 
-    StringRef Name = MemPtr->getName();
+    StringRef const Name = MemPtr->getName();
     if (!Name.startswith("amx.tmm."))
       continue;
 
     // Get the 'N'th tile shape config in key amx instruction.
     auto N = Name.find(".shape");
-    StringRef STileIdx = Name.slice(8, N);
+    StringRef const STileIdx = Name.slice(8, N);
     unsigned Idx;
     STileIdx.getAsInteger(10, Idx);
 
@@ -250,7 +250,7 @@ void X86FastTileConfig::rewriteTileCfg(
   // Orderly get the tiles and adjust the shape config.
   for (unsigned I = 0, E = ShapedTiles.size(); I < E; I++) {
     MachineOperand *MO = ShapedTiles[I];
-    unsigned TmmIdx = getTilePhysRegIdx(MO);
+    unsigned const TmmIdx = getTilePhysRegIdx(MO);
     if (I == TmmIdx)
       continue;
     adjustRowCfg(TmmIdx, RowCfgs[I]);

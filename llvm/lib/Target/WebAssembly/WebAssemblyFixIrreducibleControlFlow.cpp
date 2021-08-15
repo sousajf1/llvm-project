@@ -255,7 +255,7 @@ bool WebAssemblyFixIrreducibleControlFlow::processRegion(
   // Remove irreducibility before processing child loops, which may take
   // multiple iterations.
   while (true) {
-    ReachabilityGraph Graph(Entry, Blocks);
+    ReachabilityGraph const Graph(Entry, Blocks);
 
     bool FoundIrreducibility = false;
 
@@ -363,13 +363,13 @@ void WebAssemblyFixIrreducibleControlFlow::makeSingleEntryLoop(
 
   // Add the jump table.
   const auto &TII = *MF.getSubtarget<WebAssemblySubtarget>().getInstrInfo();
-  MachineInstrBuilder MIB =
+  MachineInstrBuilder const MIB =
       BuildMI(Dispatch, DebugLoc(), TII.get(WebAssembly::BR_TABLE_I32));
 
   // Add the register which will be used to tell the jump table which block to
   // jump to.
   MachineRegisterInfo &MRI = MF.getRegInfo();
-  Register Reg = MRI.createVirtualRegister(&WebAssembly::I32RegClass);
+  Register const Reg = MRI.createVirtualRegister(&WebAssembly::I32RegClass);
   MIB.addReg(Reg);
 
   // Compute the indices in the superheader, one for each bad block, and
@@ -379,7 +379,7 @@ void WebAssemblyFixIrreducibleControlFlow::makeSingleEntryLoop(
     auto Pair = Indices.insert(std::make_pair(Entry, 0));
     assert(Pair.second);
 
-    unsigned Index = MIB.getInstr()->getNumExplicitOperands() - 1;
+    unsigned const Index = MIB.getInstr()->getNumExplicitOperands() - 1;
     Pair.first->second = Index;
 
     MIB.addMBB(Entry);
@@ -417,7 +417,7 @@ void WebAssemblyFixIrreducibleControlFlow::makeSingleEntryLoop(
   DenseMap<PointerIntPair<MachineBasicBlock *, 1, bool>, MachineBasicBlock *>
       EntryToLayoutPred;
   for (auto *Pred : AllPreds) {
-    bool PredInLoop = InLoop.count(Pred);
+    bool const PredInLoop = InLoop.count(Pred);
     for (auto *Entry : Pred->successors())
       if (Entries.count(Entry) && Pred->isLayoutSuccessor(Entry))
         EntryToLayoutPred[{Entry, PredInLoop}] = Pred;
@@ -430,7 +430,7 @@ void WebAssemblyFixIrreducibleControlFlow::makeSingleEntryLoop(
   DenseMap<PointerIntPair<MachineBasicBlock *, 1, bool>, MachineBasicBlock *>
       Map;
   for (auto *Pred : AllPreds) {
-    bool PredInLoop = InLoop.count(Pred);
+    bool const PredInLoop = InLoop.count(Pred);
     for (auto *Entry : Pred->successors()) {
       if (!Entries.count(Entry) || Map.count({Entry, PredInLoop}))
         continue;
@@ -460,7 +460,7 @@ void WebAssemblyFixIrreducibleControlFlow::makeSingleEntryLoop(
   }
 
   for (auto *Pred : AllPreds) {
-    bool PredInLoop = InLoop.count(Pred);
+    bool const PredInLoop = InLoop.count(Pred);
     // Remap the terminator operands and the successor list.
     for (MachineInstr &Term : Pred->terminators())
       for (auto &Op : Term.explicit_uses())

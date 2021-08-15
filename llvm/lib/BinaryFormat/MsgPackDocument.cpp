@@ -203,7 +203,7 @@ bool Document::readFromBlob(
       // In a merge, there is already a value at this position. Call the
       // callback to attempt to resolve the conflict. The resolution must result
       // in an array or map if Node is an array or map respectively.
-      DocNode MapKey = !Stack.empty() && !Stack.back().MapKey.isEmpty()
+      DocNode const MapKey = !Stack.empty() && !Stack.back().MapKey.isEmpty()
                            ? Stack.back().MapKey
                            : getNode();
       MergeResult = Merger(DestNode, Node, MapKey);

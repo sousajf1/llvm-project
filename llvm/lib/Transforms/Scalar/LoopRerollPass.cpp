@@ -306,9 +306,9 @@ namespace {
       // Are the two instructions both from reductions, and furthermore, from
       // the same reduction?
       bool isPairInSame(Instruction *J1, Instruction *J2) {
-        DenseMap<Instruction *, int>::iterator J1I = PossibleRedIdx.find(J1);
+        DenseMap<Instruction *, int>::iterator const J1I = PossibleRedIdx.find(J1);
         if (J1I != PossibleRedIdx.end()) {
-          DenseMap<Instruction *, int>::iterator J2I = PossibleRedIdx.find(J2);
+          DenseMap<Instruction *, int>::iterator const J2I = PossibleRedIdx.find(J2);
           if (J2I != PossibleRedIdx.end() && J1I->second == J2I->second)
             return true;
         }
@@ -327,7 +327,7 @@ namespace {
           PossibleRedIter[J1] = 0;
           PossibleRedIter[J2] = i;
 
-          int Idx = PossibleRedIdx[J1];
+          int const Idx = PossibleRedIdx[J1];
           assert(Idx == PossibleRedIdx[J2] &&
                  "Recording pair from different reductions?");
           Reds.insert(Idx);
@@ -523,13 +523,13 @@ static bool hasUsesOutsideLoop(Instruction *I, Loop *L) {
 // 2. It is used by loop increment and the comparison, the loop increment is
 // only used by the PHI, and the comparison is used only by the branch.
 bool LoopReroll::isLoopControlIV(Loop *L, Instruction *IV) {
-  unsigned IVUses = IV->getNumUses();
+  unsigned const IVUses = IV->getNumUses();
   if (IVUses != 2 && IVUses != 1)
     return false;
 
   for (auto *User : IV->users()) {
-    int32_t IncOrCmpUses = User->getNumUses();
-    bool IsCompInst = isCompareUsedByBranch(cast<Instruction>(User));
+    int32_t const IncOrCmpUses = User->getNumUses();
+    bool const IsCompInst = isCompareUsedByBranch(cast<Instruction>(User));
 
     // User can only have one or two uses.
     if (IncOrCmpUses != 2 && IncOrCmpUses != 1)
@@ -702,7 +702,7 @@ void LoopReroll::DAGRootTracker::collectInLoopUserSet(
       continue;
 
     if (!Final.count(I))
-      for (Use &U : I->uses()) {
+      for (Use  const&U : I->uses()) {
         Instruction *User = cast<Instruction>(U.getUser());
         if (PHINode *PN = dyn_cast<PHINode>(User)) {
           // Ignore "wrap-around" uses to PHIs of this loop's header.
@@ -817,7 +817,7 @@ collectPossibleRoots(Instruction *Base, std::map<int64_t,Instruction*> &Roots) {
       }
     }
 
-    int64_t V = std::abs(CI->getValue().getSExtValue());
+    int64_t const V = std::abs(CI->getValue().getSExtValue());
     if (Roots.find(V) != Roots.end())
       // No duplicates, please.
       return false;
@@ -909,7 +909,7 @@ bool LoopReroll::DAGRootTracker::validateRootSet(DAGRootSet &DRS) {
     return false;
 
   // Check that the first root is evenly spaced.
-  unsigned N = DRS.Roots.size() + 1;
+  unsigned const N = DRS.Roots.size() + 1;
   const SCEV *StepSCEV = SE->getMinusSCEV(SE->getSCEV(DRS.Roots[0]), ADR);
   if (isa<SCEVCouldNotCompute>(StepSCEV) || StepSCEV->getType()->isPointerTy())
     return false;
@@ -1365,7 +1365,7 @@ bool LoopReroll::DAGRootTracker::validate(ReductionTracker &Reductions) {
       //   x += a[i]; x += b[i];
       //   x += a[i+1]; x += b[i+1];
       //   x += b[i+2]; x += a[i+2];
-      bool InReduction = Reductions.isPairInSame(BaseInst, RootInst);
+      bool const InReduction = Reductions.isPairInSame(BaseInst, RootInst);
 
       if (!(InReduction && BaseInst->isAssociative())) {
         bool Swapped = false, SomeOpMatched = false;
@@ -1380,7 +1380,7 @@ bool LoopReroll::DAGRootTracker::validate(ReductionTracker &Reductions) {
               if (Reductions.isPairInSame(RootInst, Op2I))
                 continue;
 
-          DenseMap<Value *, Value *>::iterator BMI = BaseMap.find(Op2);
+          DenseMap<Value *, Value *>::iterator const BMI = BaseMap.find(Op2);
           if (BMI != BaseMap.end()) {
             Op2 = BMI->second;
           } else {
@@ -1458,7 +1458,7 @@ void LoopReroll::DAGRootTracker::replace(const SCEV *BackedgeTakenCount) {
   // Remove instructions associated with non-base iterations.
   for (BasicBlock::reverse_iterator J = Header->rbegin(), JE = Header->rend();
        J != JE;) {
-    unsigned I = Uses[&*J].find_first();
+    unsigned const I = Uses[&*J].find_first();
     if (I > 0 && I < IL_All) {
       LLVM_DEBUG(dbgs() << "LRR: removing: " << *J << "\n");
       J++->eraseFromParent();
@@ -1529,13 +1529,13 @@ void LoopReroll::DAGRootTracker::replaceIV(DAGRootSet &DRS,
 // entries must appear in order.
 bool LoopReroll::ReductionTracker::validateSelected() {
   // For a non-associative reduction, the chain entries must appear in order.
-  for (int i : Reds) {
+  for (int const i : Reds) {
     int PrevIter = 0, BaseCount = 0, Count = 0;
     for (Instruction *J : PossibleReds[i]) {
       // Note that all instructions in the chain must have been found because
       // all instructions in the function must have been assigned to some
       // iteration.
-      int Iter = PossibleRedIter[J];
+      int const Iter = PossibleRedIter[J];
       if (Iter != PrevIter && Iter != PrevIter + 1 &&
           !PossibleReds[i].getReducedValue()->isAssociative()) {
         LLVM_DEBUG(dbgs() << "LRR: Out-of-order non-associative reduction: "
@@ -1573,9 +1573,9 @@ bool LoopReroll::ReductionTracker::validateSelected() {
 void LoopReroll::ReductionTracker::replaceSelected() {
   // Fixup reductions to refer to the last instruction associated with the
   // first iteration (not the last).
-  for (int i : Reds) {
+  for (int const i : Reds) {
     int j = 0;
-    for (int e = PossibleReds[i].size(); j != e; ++j)
+    for (int const e = PossibleReds[i].size(); j != e; ++j)
       if (PossibleRedIter[PossibleReds[i][j]] != 0) {
         --j;
         break;
@@ -1721,7 +1721,7 @@ bool LoopRerollLegacyPass::runOnLoop(Loop *L, LPPassManager &LPM) {
   auto *TLI = &getAnalysis<TargetLibraryInfoWrapperPass>().getTLI(
       *L->getHeader()->getParent());
   auto *DT = &getAnalysis<DominatorTreeWrapperPass>().getDomTree();
-  bool PreserveLCSSA = mustPreserveAnalysisID(LCSSAID);
+  bool const PreserveLCSSA = mustPreserveAnalysisID(LCSSAID);
 
   return LoopReroll(AA, LI, SE, TLI, DT, PreserveLCSSA).runOnLoop(L);
 }

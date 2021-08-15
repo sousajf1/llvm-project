@@ -112,7 +112,7 @@ using SCCNodeSet = SmallSetVector<Function *, 8>;
 static MemoryAccessKind checkFunctionMemoryAccess(Function &F, bool ThisBody,
                                                   AAResults &AAR,
                                                   const SCCNodeSet &SCCNodes) {
-  FunctionModRefBehavior MRB = AAR.getModRefBehavior(&F);
+  FunctionModRefBehavior const MRB = AAR.getModRefBehavior(&F);
   if (MRB == FMRB_DoesNotAccessMemory)
     // Already perfect!
     return MAK_ReadNone;
@@ -144,8 +144,8 @@ static MemoryAccessKind checkFunctionMemoryAccess(Function &F, bool ThisBody,
       if (!Call->hasOperandBundles() && Call->getCalledFunction() &&
           SCCNodes.count(Call->getCalledFunction()))
         continue;
-      FunctionModRefBehavior MRB = AAR.getModRefBehavior(Call);
-      ModRefInfo MRI = createModRefInfo(MRB);
+      FunctionModRefBehavior const MRB = AAR.getModRefBehavior(Call);
+      ModRefInfo const MRI = createModRefInfo(MRB);
 
       // If the call doesn't access memory, we're done.
       if (isNoModRef(MRI))
@@ -177,7 +177,7 @@ static MemoryAccessKind checkFunctionMemoryAccess(Function &F, bool ThisBody,
 
         AAMDNodes AAInfo;
         I->getAAMetadata(AAInfo);
-        MemoryLocation Loc = MemoryLocation::getBeforeOrAfter(Arg, AAInfo);
+        MemoryLocation const Loc = MemoryLocation::getBeforeOrAfter(Arg, AAInfo);
 
         // Skip accesses to local or constant memory as they don't impact the
         // externally visible mod/ref behavior.
@@ -195,20 +195,20 @@ static MemoryAccessKind checkFunctionMemoryAccess(Function &F, bool ThisBody,
     } else if (LoadInst *LI = dyn_cast<LoadInst>(I)) {
       // Ignore non-volatile loads from local memory. (Atomic is okay here.)
       if (!LI->isVolatile()) {
-        MemoryLocation Loc = MemoryLocation::get(LI);
+        MemoryLocation const Loc = MemoryLocation::get(LI);
         if (AAR.pointsToConstantMemory(Loc, /*OrLocal=*/true))
           continue;
       }
     } else if (StoreInst *SI = dyn_cast<StoreInst>(I)) {
       // Ignore non-volatile stores to local memory. (Atomic is okay here.)
       if (!SI->isVolatile()) {
-        MemoryLocation Loc = MemoryLocation::get(SI);
+        MemoryLocation const Loc = MemoryLocation::get(SI);
         if (AAR.pointsToConstantMemory(Loc, /*OrLocal=*/true))
           continue;
       }
     } else if (VAArgInst *VI = dyn_cast<VAArgInst>(I)) {
       // Ignore vaargs on local memory.
-      MemoryLocation Loc = MemoryLocation::get(VI);
+      MemoryLocation const Loc = MemoryLocation::get(VI);
       if (AAR.pointsToConstantMemory(Loc, /*OrLocal=*/true))
         continue;
     }
@@ -389,7 +389,7 @@ struct ArgumentUsesTracker : public CaptureTracker {
     // operands.  This means there is no need to adjust UseIndex to account for
     // these.
 
-    unsigned UseIndex =
+    unsigned const UseIndex =
         std::distance(const_cast<const Use *>(CB->arg_begin()), U);
 
     assert(UseIndex < CB->data_operands_size() &&
@@ -521,7 +521,7 @@ determinePointerReadAttrs(Argument *A,
       // operands.  This means there is no need to adjust UseIndex to account
       // for these.
 
-      unsigned UseIndex = std::distance(CB.arg_begin(), U);
+      unsigned const UseIndex = std::distance(CB.arg_begin(), U);
 
       // U cannot be the callee operand use: since we're exploring the
       // transitive uses of an Argument, having such a use be a callee would
@@ -530,7 +530,7 @@ determinePointerReadAttrs(Argument *A,
       assert(UseIndex < CB.data_operands_size() &&
              "Data operand use expected!");
 
-      bool IsOperandBundleUse = UseIndex >= CB.getNumArgOperands();
+      bool const IsOperandBundleUse = UseIndex >= CB.getNumArgOperands();
 
       if (UseIndex >= F->arg_size() && !IsOperandBundleUse) {
         assert(F->isVarArg() && "More params than args in non-varargs call");
@@ -759,7 +759,7 @@ static bool addArgumentAttrs(const SCCNodeSet &SCCNodes) {
         // SCC.
         SmallPtrSet<Argument *, 8> Self;
         Self.insert(&*A);
-        Attribute::AttrKind R = determinePointerReadAttrs(&*A, Self);
+        Attribute::AttrKind const R = determinePointerReadAttrs(&*A, Self);
         if (R != Attribute::None)
           Changed = addReadAttr(A, R);
       }
@@ -844,7 +844,7 @@ static bool addArgumentAttrs(const SCCNodeSet &SCCNodes) {
     Attribute::AttrKind ReadAttr = Attribute::ReadNone;
     for (unsigned i = 0, e = ArgumentSCC.size(); i != e; ++i) {
       Argument *A = ArgumentSCC[i]->Definition;
-      Attribute::AttrKind K = determinePointerReadAttrs(A, ArgumentSCCNodes);
+      Attribute::AttrKind const K = determinePointerReadAttrs(A, ArgumentSCCNodes);
       if (K == Attribute::ReadNone)
         continue;
       if (K == Attribute::ReadOnly) {
@@ -915,7 +915,7 @@ static bool isFunctionMallocLike(Function *F, const SCCNodeSet &SCCNodes) {
         break;
       case Instruction::Call:
       case Instruction::Invoke: {
-        CallBase &CB = cast<CallBase>(*RVI);
+        CallBase  const&CB = cast<CallBase>(*RVI);
         if (CB.hasRetAttr(Attribute::NoAlias))
           break;
         if (CB.getCalledFunction() && SCCNodes.count(CB.getCalledFunction()))
@@ -1024,7 +1024,7 @@ static bool isReturnNonNull(Function *F, const SCCNodeSet &SCCNodes,
     }
     case Instruction::Call:
     case Instruction::Invoke: {
-      CallBase &CB = cast<CallBase>(*RVI);
+      CallBase  const&CB = cast<CallBase>(*RVI);
       Function *Callee = CB.getCalledFunction();
       // A call to a node within the SCC is assumed to return null until
       // proven otherwise
@@ -1582,7 +1582,7 @@ static SCCNodesResult createSCCNodeSet(ArrayRef<Function *> Functions) {
 template <typename AARGetterT>
 static bool deriveAttrsInPostOrder(ArrayRef<Function *> Functions,
                                    AARGetterT &&AARGetter) {
-  SCCNodesResult Nodes = createSCCNodeSet(Functions);
+  SCCNodesResult const Nodes = createSCCNodeSet(Functions);
   bool Changed = false;
 
   // Bail if the SCC only contains optnone functions.
@@ -1632,7 +1632,7 @@ PreservedAnalyses PostOrderFunctionAttrsPass::run(LazyCallGraph::SCC &C,
   };
 
   SmallVector<Function *, 8> Functions;
-  for (LazyCallGraph::Node &N : C) {
+  for (LazyCallGraph::Node  const&N : C) {
     Functions.push_back(&N.getFunction());
   }
 

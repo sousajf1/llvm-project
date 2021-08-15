@@ -98,7 +98,7 @@ bool AMDGPUAtomicOptimizer::runOnFunction(Function &F) {
 
   const bool Changed = !ToReplace.empty();
 
-  for (ReplacementInfo &Info : ToReplace) {
+  for (ReplacementInfo  const&Info : ToReplace) {
     optimizeAtomic(*Info.I, Info.Op, Info.ValIdx, Info.ValDivergent);
   }
 
@@ -117,7 +117,7 @@ void AMDGPUAtomicOptimizer::visitAtomicRMWInst(AtomicRMWInst &I) {
     break;
   }
 
-  AtomicRMWInst::BinOp Op = I.getOperation();
+  AtomicRMWInst::BinOp const Op = I.getOperation();
 
   switch (Op) {
   default:

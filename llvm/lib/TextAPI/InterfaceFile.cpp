@@ -101,7 +101,7 @@ void InterfaceFile::addTarget(const Target &Target) {
 
 InterfaceFile::const_filtered_target_range
 InterfaceFile::targets(ArchitectureSet Archs) const {
-  std::function<bool(const Target &)> fn = [Archs](const Target &Target_) {
+  std::function<bool(const Target &)> const fn = [Archs](const Target &Target_) {
     return Archs.has(Target_.Arch);
   };
   return make_filter_range(Targets, fn);

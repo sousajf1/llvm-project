@@ -100,7 +100,7 @@ void SparcMCCodeEmitter::encodeInstruction(const MCInst &MI, raw_ostream &OS,
   verifyInstructionPredicates(MI,
                               computeAvailableFeatures(STI.getFeatureBits()));
 
-  unsigned Bits = getBinaryCodeForInstr(MI, Fixups, STI);
+  unsigned const Bits = getBinaryCodeForInstr(MI, Fixups, STI);
   support::endian::write(OS, Bits,
                          Ctx.getAsmInfo()->isLittleEndian() ? support::little
                                                             : support::big);
@@ -115,7 +115,7 @@ void SparcMCCodeEmitter::encodeInstruction(const MCInst &MI, raw_ostream &OS,
   }
   if (tlsOpNo != 0) {
     const MCOperand &MO = MI.getOperand(tlsOpNo);
-    uint64_t op = getMachineOpValue(MI, MO, Fixups, STI);
+    uint64_t const op = getMachineOpValue(MI, MO, Fixups, STI);
     assert(op == 0 && "Unexpected operand value!");
     (void)op; // suppress warning.
   }
@@ -136,7 +136,7 @@ getMachineOpValue(const MCInst &MI, const MCOperand &MO,
   assert(MO.isExpr());
   const MCExpr *Expr = MO.getExpr();
   if (const SparcMCExpr *SExpr = dyn_cast<SparcMCExpr>(Expr)) {
-    MCFixupKind Kind = (MCFixupKind)SExpr->getFixupKind();
+    MCFixupKind const Kind = (MCFixupKind)SExpr->getFixupKind();
     Fixups.push_back(MCFixup::create(0, Expr, Kind));
     return 0;
   }
@@ -171,7 +171,7 @@ SparcMCCodeEmitter::getSImm13OpValue(const MCInst &MI, unsigned OpNo,
   if (const SparcMCExpr *SExpr = dyn_cast<SparcMCExpr>(Expr)) {
     Kind = MCFixupKind(SExpr->getFixupKind());
   } else {
-    bool IsPic = Ctx.getObjectFileInfo()->isPositionIndependent();
+    bool const IsPic = Ctx.getObjectFileInfo()->isPositionIndependent();
     Kind = IsPic ? MCFixupKind(Sparc::fixup_sparc_got13)
                  : MCFixupKind(Sparc::fixup_sparc_13);
   }
@@ -202,7 +202,7 @@ getCallTargetOpValue(const MCInst &MI, unsigned OpNo,
     return 0;
   }
 
-  MCFixupKind Kind = MCFixupKind(SExpr->getFixupKind());
+  MCFixupKind const Kind = MCFixupKind(SExpr->getFixupKind());
   Fixups.push_back(MCFixup::create(0, Expr, Kind));
   return 0;
 }

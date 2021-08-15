@@ -103,8 +103,8 @@ static void Help(ArrayRef<SubtargetSubTypeKV> CPUTable,
   }
 
   // Determine the length of the longest CPU and Feature entries.
-  unsigned MaxCPULen  = getLongestEntryLength(CPUTable);
-  unsigned MaxFeatLen = getLongestEntryLength(FeatTable);
+  unsigned const MaxCPULen  = getLongestEntryLength(CPUTable);
+  unsigned const MaxFeatLen = getLongestEntryLength(FeatTable);
 
   // Print the CPU table.
   errs() << "Available CPUs for this target:\n\n";
@@ -150,7 +150,7 @@ static void cpuHelp(ArrayRef<SubtargetSubTypeKV> CPUTable) {
 static FeatureBitset getFeatures(StringRef CPU, StringRef TuneCPU, StringRef FS,
                                  ArrayRef<SubtargetSubTypeKV> ProcDesc,
                                  ArrayRef<SubtargetFeatureKV> ProcFeatures) {
-  SubtargetFeatures Features(FS);
+  SubtargetFeatures const Features(FS);
 
   if (ProcDesc.empty() || ProcFeatures.empty())
     return FeatureBitset();
@@ -295,7 +295,7 @@ FeatureBitset MCSubtargetInfo::ApplyFeatureFlag(StringRef FS) {
 }
 
 bool MCSubtargetInfo::checkFeatures(StringRef FS) const {
-  SubtargetFeatures T(FS);
+  SubtargetFeatures const T(FS);
   FeatureBitset Set, All;
   for (std::string F : T.getFeatures()) {
     ::ApplyFeatureFlag(Set, F, ProcFeatures);

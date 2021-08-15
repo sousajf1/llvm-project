@@ -50,7 +50,7 @@ const uint32_t SECTION_ALIGNMENT = sizeof(uint64_t);
 
 WindowsResource::WindowsResource(MemoryBufferRef Source)
     : Binary(Binary::ID_WinRes, Source) {
-  size_t LeadingSize = WIN_RES_MAGIC_SIZE + WIN_RES_NULL_ENTRY_SIZE;
+  size_t const LeadingSize = WIN_RES_MAGIC_SIZE + WIN_RES_NULL_ENTRY_SIZE;
   BBS = BinaryByteStream(Data.getBuffer().drop_front(LeadingSize),
                          support::little);
 }
@@ -281,7 +281,7 @@ void WindowsResourceParser::cleanUpManifests(
   auto LangZeroIt = NameNode->IDChildren.find(0);
   if (LangZeroIt != NameNode->IDChildren.end() &&
       LangZeroIt->second->IsDataNode) {
-    uint32_t RemovedIndex = LangZeroIt->second->DataIndex;
+    uint32_t const RemovedIndex = LangZeroIt->second->DataIndex;
     NameNode->IDChildren.erase(LangZeroIt);
     Data.erase(Data.begin() + RemovedIndex);
     Root.shiftDataIndexDown(RemovedIndex);
@@ -293,10 +293,10 @@ void WindowsResourceParser::cleanUpManifests(
 
   // More than one non-language-zero manifest
   auto FirstIt = NameNode->IDChildren.begin();
-  uint32_t FirstLang = FirstIt->first;
+  uint32_t const FirstLang = FirstIt->first;
   TreeNode *FirstNode = FirstIt->second.get();
   auto LastIt = NameNode->IDChildren.rbegin();
-  uint32_t LastLang = LastIt->first;
+  uint32_t const LastLang = LastIt->first;
   TreeNode *LastNode = LastIt->second.get();
   Duplicates.push_back(
       ("duplicate non-default manifests with languages " + Twine(FirstLang) +
@@ -345,13 +345,13 @@ Error WindowsResourceParser::parse(WindowsResource *WR,
   }
 
   ResourceEntryRef Entry = EntryOrErr.get();
-  uint32_t Origin = InputFilenames.size();
+  uint32_t const Origin = InputFilenames.size();
   InputFilenames.push_back(std::string(WR->getFileName()));
   bool End = false;
   while (!End) {
 
     TreeNode *Node;
-    bool IsNewNode = Root.addEntry(Entry, Origin, Data, StringTable, Node);
+    bool const IsNewNode = Root.addEntry(Entry, Origin, Data, StringTable, Node);
     if (!IsNewNode) {
       if (!shouldIgnoreDuplicate(Entry))
         Duplicates.push_back(makeDuplicateResourceError(
@@ -367,7 +367,7 @@ Error WindowsResourceParser::parse(WindowsResource *WR,
 Error WindowsResourceParser::parse(ResourceSectionRef &RSR, StringRef Filename,
                                    std::vector<std::string> &Duplicates) {
   UNWRAP_REF_OR_RETURN(BaseTable, RSR.getBaseTable());
-  uint32_t Origin = InputFilenames.size();
+  uint32_t const Origin = InputFilenames.size();
   InputFilenames.push_back(std::string(Filename));
   std::vector<StringOrID> Context;
   return addChildren(Root, RSR, BaseTable, Origin, Context, Duplicates);
@@ -429,7 +429,7 @@ Error WindowsResourceParser::addChildren(TreeNode &Node,
       UNWRAP_REF_OR_RETURN(DataEntry, RSR.getEntryData(Entry));
       TreeNode *Child;
       Context.push_back(StringOrID(Entry.Identifier.ID));
-      bool Added = Node.addDataChild(Entry.Identifier.ID, Table.MajorVersion,
+      bool const Added = Node.addDataChild(Entry.Identifier.ID, Table.MajorVersion,
                                      Table.MinorVersion, Table.Characteristics,
                                      Origin, Data.size(), Child);
       if (Added) {
@@ -501,7 +501,7 @@ WindowsResourceParser::TreeNode &WindowsResourceParser::TreeNode::addNameNode(
 bool WindowsResourceParser::TreeNode::addLanguageNode(
     const ResourceEntryRef &Entry, uint32_t Origin,
     std::vector<std::vector<uint8_t>> &Data, TreeNode *&Result) {
-  bool Added = addDataChild(Entry.getLanguage(), Entry.getMajorVersion(),
+  bool const Added = addDataChild(Entry.getLanguage(), Entry.getMajorVersion(),
                             Entry.getMinorVersion(), Entry.getCharacteristics(),
                             Origin, Data.size(), Result);
   if (Added)
@@ -550,7 +550,7 @@ WindowsResourceParser::TreeNode &WindowsResourceParser::TreeNode::addNameChild(
 
 void WindowsResourceParser::TreeNode::print(ScopedPrinter &Writer,
                                             StringRef Name) const {
-  ListScope NodeScope(Writer, Name);
+  ListScope const NodeScope(Writer, Name);
   for (auto const &Child : StringChildren) {
     Child.second->print(Writer, Child.first);
   }
@@ -675,7 +675,7 @@ void WindowsResourceCOFFWriter::performSectionOneLayout() {
   uint32_t TotalStringTableSize = 0;
   for (auto const &String : StringTable) {
     StringTableOffsets.push_back(CurrentStringOffset);
-    uint32_t StringSize = String.size() * sizeof(UTF16) + sizeof(uint16_t);
+    uint32_t const StringSize = String.size() * sizeof(UTF16) + sizeof(uint16_t);
     CurrentStringOffset += StringSize;
     TotalStringTableSize += StringSize;
   }
@@ -957,7 +957,7 @@ void WindowsResourceCOFFWriter::writeDirectoryStringTable() {
   // Now write the directory string table for .rsrc$01
   uint32_t TotalStringTableSize = 0;
   for (auto &String : StringTable) {
-    uint16_t Length = String.size();
+    uint16_t const Length = String.size();
     support::endian::write16le(BufferStart + CurrentOffset, Length);
     CurrentOffset += sizeof(uint16_t);
     auto *Start = reinterpret_cast<UTF16 *>(BufferStart + CurrentOffset);

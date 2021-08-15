@@ -107,9 +107,9 @@ uint32_t DbiModuleDescriptorBuilder::calculateC13DebugInfoSize() const {
 }
 
 uint32_t DbiModuleDescriptorBuilder::calculateSerializedLength() const {
-  uint32_t L = sizeof(Layout);
-  uint32_t M = ModuleName.size() + 1;
-  uint32_t O = ObjFileName.size() + 1;
+  uint32_t const L = sizeof(Layout);
+  uint32_t const M = ModuleName.size() + 1;
+  uint32_t const O = ObjFileName.size() + 1;
   return alignTo(L + M + O, sizeof(uint32_t));
 }
 
@@ -132,7 +132,7 @@ void DbiModuleDescriptorBuilder::finalize() {
 
 Error DbiModuleDescriptorBuilder::finalizeMsfLayout() {
   this->Layout.ModDiStream = kInvalidStreamIndex;
-  uint32_t C13Size = calculateC13DebugInfoSize();
+  uint32_t const C13Size = calculateC13DebugInfoSize();
   if (!C13Size && !SymbolByteSize)
     return Error::success();
   auto ExpectedSN =
@@ -164,7 +164,7 @@ Error DbiModuleDescriptorBuilder::commitSymbolStream(
 
   auto NS = WritableMappedBlockStream::createIndexedStream(
       MsfLayout, MsfBuffer, Layout.ModDiStream, MSF.getAllocator());
-  WritableBinaryStreamRef Ref(*NS);
+  WritableBinaryStreamRef const Ref(*NS);
   BinaryStreamWriter SymbolWriter(Ref);
   // Write the symbols.
   if (auto EC = SymbolWriter.writeInteger<uint32_t>(COFF::DEBUG_SECTION_MAGIC))

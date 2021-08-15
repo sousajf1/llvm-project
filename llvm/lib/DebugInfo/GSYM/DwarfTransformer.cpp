@@ -37,7 +37,7 @@ struct llvm::gsym::CUInfo {
     FileCache.clear();
     if (LineTable)
       FileCache.assign(LineTable->Prologue.FileNames.size() + 1, UINT32_MAX);
-    DWARFDie Die = CU->getUnitDIE();
+    DWARFDie const Die = CU->getUnitDIE();
     Language = dwarf::toUnsigned(Die.find(dwarf::DW_AT_language), 0);
     AddrSize = CU->getAddressByteSize();
   }
@@ -137,7 +137,7 @@ static Optional<uint32_t> getQualifiedNameIndex(DWARFDie &Die,
                           nullptr))
     return Gsym.insertString(LinkageName, /* Copy */ false);
 
-  StringRef ShortName(Die.getName(DINameKind::ShortName));
+  StringRef const ShortName(Die.getName(DINameKind::ShortName));
   if (ShortName.empty())
     return llvm::None;
 
@@ -163,7 +163,7 @@ static Optional<uint32_t> getQualifiedNameIndex(DWARFDie &Die,
   if (ParentDeclCtxDie) {
     std::string Name = ShortName.str();
     while (ParentDeclCtxDie) {
-      StringRef ParentName(ParentDeclCtxDie.getName(DINameKind::ShortName));
+      StringRef const ParentName(ParentDeclCtxDie.getName(DINameKind::ShortName));
       if (!ParentName.empty()) {
         // "lambda" names are wrapped in < >. Replace with { }
         // to be consistent with demangled names and not to confuse with
@@ -197,7 +197,7 @@ static bool hasInlineInfo(DWARFDie Die, uint32_t Depth) {
   }
   if (!CheckChildren)
     return false;
-  for (DWARFDie ChildDie : Die.children()) {
+  for (DWARFDie const ChildDie : Die.children()) {
     if (hasInlineInfo(ChildDie, Depth + 1))
       return true;
   }
@@ -210,11 +210,11 @@ static void parseInlineInfo(GsymCreator &Gsym, CUInfo &CUI, DWARFDie Die,
   if (!hasInlineInfo(Die, Depth))
     return;
 
-  dwarf::Tag Tag = Die.getTag();
+  dwarf::Tag const Tag = Die.getTag();
   if (Tag == dwarf::DW_TAG_inlined_subroutine) {
     // create new InlineInfo and append to parent.children
     InlineInfo II;
-    DWARFAddressRange FuncRange =
+    DWARFAddressRange const FuncRange =
         DWARFAddressRange(FI.startAddress(), FI.endAddress());
     Expected<DWARFAddressRangesVector> RangesOrError = Die.getAddressRanges();
     if (RangesOrError) {
@@ -234,14 +234,14 @@ static void parseInlineInfo(GsymCreator &Gsym, CUInfo &CUI, DWARFDie Die,
         Gsym, dwarf::toUnsigned(Die.find(dwarf::DW_AT_call_file), 0));
     II.CallLine = dwarf::toUnsigned(Die.find(dwarf::DW_AT_call_line), 0);
     // parse all children and append to parent
-    for (DWARFDie ChildDie : Die.children())
+    for (DWARFDie const ChildDie : Die.children())
       parseInlineInfo(Gsym, CUI, ChildDie, Depth + 1, FI, II);
     parent.Children.emplace_back(std::move(II));
     return;
   }
   if (Tag == dwarf::DW_TAG_subprogram || Tag == dwarf::DW_TAG_lexical_block) {
     // skip this Die and just recurse down
-    for (DWARFDie ChildDie : Die.children())
+    for (DWARFDie const ChildDie : Die.children())
       parseInlineInfo(Gsym, CUI, ChildDie, Depth + 1, FI, parent);
   }
 }
@@ -264,7 +264,7 @@ static void convertFunctionLineTable(raw_ostream &Log, CUInfo &CUI,
             dwarf::toUnsigned(Die.findRecursively({dwarf::DW_AT_decl_file}))) {
       if (auto Line =
               dwarf::toUnsigned(Die.findRecursively({dwarf::DW_AT_decl_line}))) {
-        LineEntry LE(StartAddress, CUI.DWARFToGSYMFileIndex(Gsym, *FileIdx),
+        LineEntry const LE(StartAddress, CUI.DWARFToGSYMFileIndex(Gsym, *FileIdx),
                      *Line);
         FI.OptLineTable = LineTable();
         FI.OptLineTable->push(LE);
@@ -277,7 +277,7 @@ static void convertFunctionLineTable(raw_ostream &Log, CUInfo &CUI,
 
   FI.OptLineTable = LineTable();
   DWARFDebugLine::Row PrevRow;
-  for (uint32_t RowIndex : RowVector) {
+  for (uint32_t const RowIndex : RowVector) {
     // Take file number and line/column from the row.
     const DWARFDebugLine::Row &Row = CUI.LineTable->Rows[RowIndex];
     const uint32_t FileIdx = CUI.DWARFToGSYMFileIndex(Gsym, Row.File);
@@ -300,7 +300,7 @@ static void convertFunctionLineTable(raw_ostream &Log, CUInfo &CUI,
       }
     }
 
-    LineEntry LE(RowAddress, FileIdx, Row.Line);
+    LineEntry const LE(RowAddress, FileIdx, Row.Line);
     if (RowIndex != RowVector[0] && Row.Address < PrevRow.Address) {
       // We have seen full duplicate line tables for functions in some
       // DWARF files. Watch for those here by checking the the last
@@ -318,7 +318,7 @@ static void convertFunctionLineTable(raw_ostream &Log, CUInfo &CUI,
         // Print out (ignore if os == nulls as this is expensive)
         Log << "error: line table has addresses that do not "
              << "monotonically increase:\n";
-        for (uint32_t RowIndex2 : RowVector) {
+        for (uint32_t const RowIndex2 : RowVector) {
           CUI.LineTable->Rows[RowIndex2].dump(Log);
         }
         Die.dump(Log, 0, DIDumpOptions::getForSingleDIE());
@@ -423,17 +423,17 @@ void DwarfTransformer::handleDie(raw_ostream &OS, CUInfo &CUI, DWARFDie Die) {
   default:
     break;
   }
-  for (DWARFDie ChildDie : Die.children())
+  for (DWARFDie const ChildDie : Die.children())
     handleDie(OS, CUI, ChildDie);
 }
 
 Error DwarfTransformer::convert(uint32_t NumThreads) {
-  size_t NumBefore = Gsym.getNumFunctionInfos();
+  size_t const NumBefore = Gsym.getNumFunctionInfos();
   if (NumThreads == 1) {
     // Parse all DWARF data from this thread, use the same string/file table
     // for everything
     for (const auto &CU : DICtx.compile_units()) {
-      DWARFDie Die = CU->getUnitDIE(false);
+      DWARFDie const Die = CU->getUnitDIE(false);
       CUInfo CUI(DICtx, dyn_cast<DWARFCompileUnit>(CU.get()));
       handleDie(Log, CUI, Die);
     }
@@ -458,7 +458,7 @@ Error DwarfTransformer::convert(uint32_t NumThreads) {
     // Now convert all DWARF to GSYM in a thread pool.
     std::mutex LogMutex;
     for (const auto &CU : DICtx.compile_units()) {
-      DWARFDie Die = CU->getUnitDIE(false /*CUDieOnly*/);
+      DWARFDie const Die = CU->getUnitDIE(false /*CUDieOnly*/);
       if (Die) {
         CUInfo CUI(DICtx, dyn_cast<DWARFCompileUnit>(CU.get()));
         pool.async([this, CUI, &LogMutex, Die]() mutable {
@@ -468,7 +468,7 @@ Error DwarfTransformer::convert(uint32_t NumThreads) {
           ThreadOS.flush();
           if (!ThreadLogStorage.empty()) {
             // Print ThreadLogStorage lines into an actual stream under a lock
-            std::lock_guard<std::mutex> guard(LogMutex);
+            std::lock_guard<std::mutex> const guard(LogMutex);
             Log << ThreadLogStorage;
           }
         });
@@ -476,7 +476,7 @@ Error DwarfTransformer::convert(uint32_t NumThreads) {
     }
     pool.wait();
   }
-  size_t FunctionsAddedCount = Gsym.getNumFunctionInfos() - NumBefore;
+  size_t const FunctionsAddedCount = Gsym.getNumFunctionInfos() - NumBefore;
   Log << "Loaded " << FunctionsAddedCount << " functions from DWARF.\n";
   return Error::success();
 }
@@ -489,7 +489,7 @@ llvm::Error DwarfTransformer::verify(StringRef GsymPath) {
     return Gsym.takeError();
 
   auto NumAddrs = Gsym->getNumAddresses();
-  DILineInfoSpecifier DLIS(
+  DILineInfoSpecifier const DLIS(
       DILineInfoSpecifier::FileLineInfoKind::AbsoluteFilePath,
       DILineInfoSpecifier::FunctionNameKind::LinkageName);
   std::string gsymFilename;

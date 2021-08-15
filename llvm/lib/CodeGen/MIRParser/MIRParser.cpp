@@ -308,7 +308,7 @@ bool MIRParserImpl::parseMachineFunction(Module &M, MachineModuleInfo &MMI) {
     return true;
 
   // Search for the corresponding IR function.
-  StringRef FunctionName = YamlMF.Name;
+  StringRef const FunctionName = YamlMF.Name;
   Function *F = M.getFunction(FunctionName);
   if (!F) {
     if (NoLLVMIR) {
@@ -333,7 +333,7 @@ bool MIRParserImpl::parseMachineFunction(Module &M, MachineModuleInfo &MMI) {
 static bool isSSA(const MachineFunction &MF) {
   const MachineRegisterInfo &MRI = MF.getRegInfo();
   for (unsigned I = 0, E = MRI.getNumVirtRegs(); I != E; ++I) {
-    Register Reg = Register::index2VirtReg(I);
+    Register const Reg = Register::index2VirtReg(I);
     if (!MRI.hasOneDef(Reg) && !MRI.def_empty(Reg))
       return false;
 
@@ -378,7 +378,7 @@ bool MIRParserImpl::initializeCallSiteInfo(
   SMDiagnostic Error;
   const LLVMTargetMachine &TM = MF.getTarget();
   for (auto YamlCSInfo : YamlMF.CallSitesInfo) {
-    yaml::CallSiteInfo::MachineInstrLoc MILoc = YamlCSInfo.CallLocation;
+    yaml::CallSiteInfo::MachineInstrLoc const MILoc = YamlCSInfo.CallLocation;
     if (MILoc.BlockNum >= MF.size())
       return error(Twine(MF.getName()) +
                    Twine(" call instruction block out of range.") +
@@ -468,7 +468,7 @@ MIRParserImpl::initializeMachineFunction(const yaml::MachineFunction &YamlMF,
       parseMachineMetadataNodes(PFS, MF, YamlMF))
     return true;
 
-  StringRef BlockStr = YamlMF.Body.Value.Value;
+  StringRef const BlockStr = YamlMF.Body.Value.Value;
   SMDiagnostic Error;
   SourceMgr BlockSM;
   BlockSM.AddNewSourceBuffer(
@@ -499,7 +499,7 @@ MIRParserImpl::initializeMachineFunction(const yaml::MachineFunction &YamlMF,
     return true;
   // Parse the machine instructions after creating all of the MBBs so that the
   // parser can resolve the MBB references.
-  StringRef InsnStr = YamlMF.Body.Value.Value;
+  StringRef const InsnStr = YamlMF.Body.Value.Value;
   SourceMgr InsnSM;
   InsnSM.AddNewSourceBuffer(
       MemoryBuffer::getMemBuffer(InsnStr, "", /*RequiresNullTerminator=*/false),
@@ -637,7 +637,7 @@ bool MIRParserImpl::setupRegisterInfo(const PerFunctionMIParsingState &PFS,
   bool Error = false;
   // Create VRegs
   auto populateVRegInfo = [&] (const VRegInfo &Info, Twine Name) {
-    Register Reg = Info.VReg;
+    Register const Reg = Info.VReg;
     switch (Info.Kind) {
     case VRegInfo::UNKNOWN:
       error(Twine("Cannot determine class/bank of virtual register ") +
@@ -890,7 +890,7 @@ bool MIRParserImpl::initializeConstantPool(PerFunctionMIParsingState &PFS,
     const Align PrefTypeAlign =
         M.getDataLayout().getPrefTypeAlign(Value->getType());
     const Align Alignment = YamlConstant.Alignment.getValueOr(PrefTypeAlign);
-    unsigned Index = ConstantPool.getConstantPoolIndex(Value, Alignment);
+    unsigned const Index = ConstantPool.getConstantPoolIndex(Value, Alignment);
     if (!ConstantPoolSlots.insert(std::make_pair(YamlConstant.ID.Value, Index))
              .second)
       return error(YamlConstant.ID.SourceRange.Start,
@@ -911,7 +911,7 @@ bool MIRParserImpl::initializeJumpTableInfo(PerFunctionMIParsingState &PFS,
         return true;
       Blocks.push_back(MBB);
     }
-    unsigned Index = JTI->createJumpTableIndex(Blocks);
+    unsigned const Index = JTI->createJumpTableIndex(Blocks);
     if (!PFS.JumpTableSlots.insert(std::make_pair(Entry.ID.Value, Index))
              .second)
       return error(Entry.ID.SourceRange.Start,
@@ -957,7 +957,7 @@ SMDiagnostic MIRParserImpl::diagFromMIStringDiag(const SMDiagnostic &Error,
                                                  SMRange SourceRange) {
   assert(SourceRange.isValid() && "Invalid source range");
   SMLoc Loc = SourceRange.Start;
-  bool HasQuote = Loc.getPointer() < SourceRange.End.getPointer() &&
+  bool const HasQuote = Loc.getPointer() < SourceRange.End.getPointer() &&
                   *Loc.getPointer() == '\'';
   // Translate the location of the error from the location in the MI string to
   // the corresponding location in the MIR file.
@@ -976,7 +976,7 @@ SMDiagnostic MIRParserImpl::diagFromBlockStringDiag(const SMDiagnostic &Error,
   // Translate the location of the error from the location in the llvm IR string
   // to the corresponding location in the MIR file.
   auto LineAndColumn = SM.getLineAndColumn(SourceRange.Start);
-  unsigned Line = LineAndColumn.first + Error.getLineNo() - 1;
+  unsigned const Line = LineAndColumn.first + Error.getLineNo() - 1;
   unsigned Column = Error.getColumnNo();
   StringRef LineStr = Error.getLineContents();
   SMLoc Loc = Error.getLoc();
@@ -1018,7 +1018,7 @@ std::unique_ptr<MIRParser> llvm::createMIRParserFromFile(
     StringRef Filename, SMDiagnostic &Error, LLVMContext &Context,
     std::function<void(Function &)> ProcessIRFunction) {
   auto FileOrErr = MemoryBuffer::getFileOrSTDIN(Filename, /*IsText=*/true);
-  if (std::error_code EC = FileOrErr.getError()) {
+  if (std::error_code const EC = FileOrErr.getError()) {
     Error = SMDiagnostic(Filename, SourceMgr::DK_Error,
                          "Could not open input file: " + EC.message());
     return nullptr;

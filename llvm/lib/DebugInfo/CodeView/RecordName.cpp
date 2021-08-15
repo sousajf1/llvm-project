@@ -75,7 +75,7 @@ Error TypeNameComputer::visitKnownRecord(CVRecord<TypeLeafKind> &CVR,
 
 Error TypeNameComputer::visitKnownRecord(CVType &CVR, ArgListRecord &Args) {
   auto Indices = Args.getIndices();
-  uint32_t Size = Indices.size();
+  uint32_t const Size = Indices.size();
   Name = "(";
   for (uint32_t I = 0; I < Size; ++I) {
     if (Indices[I] < CurrentTypeIndex)
@@ -92,7 +92,7 @@ Error TypeNameComputer::visitKnownRecord(CVType &CVR, ArgListRecord &Args) {
 Error TypeNameComputer::visitKnownRecord(CVType &CVR,
                                          StringListRecord &Strings) {
   auto Indices = Strings.getIndices();
-  uint32_t Size = Indices.size();
+  uint32_t const Size = Indices.size();
   Name = "\"";
   for (uint32_t I = 0; I < Size; ++I) {
     Name.append(Types.getTypeName(Indices[I]));
@@ -192,7 +192,7 @@ Error TypeNameComputer::visitKnownRecord(CVType &CVR, PointerRecord &Ptr) {
 }
 
 Error TypeNameComputer::visitKnownRecord(CVType &CVR, ModifierRecord &Mod) {
-  uint16_t Mods = static_cast<uint16_t>(Mod.getModifiers());
+  uint16_t const Mods = static_cast<uint16_t>(Mod.getModifiers());
 
   if (Mods & uint16_t(ModifierOptions::Const))
     Name.append("const ");
@@ -330,10 +330,10 @@ StringRef llvm::codeview::getSymbolName(CVSymbol Sym) {
     return Const.Name;
   }
 
-  int Offset = getSymbolNameOffset(Sym);
+  int const Offset = getSymbolNameOffset(Sym);
   if (Offset == -1)
     return StringRef();
 
-  StringRef StringData = toStringRef(Sym.content()).drop_front(Offset);
+  StringRef const StringData = toStringRef(Sym.content()).drop_front(Offset);
   return StringData.split('\0').first;
 }

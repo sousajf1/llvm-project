@@ -87,7 +87,7 @@ void DemandedBits::determineLiveOperandBits(
     const Instruction *UserI, const Value *Val, unsigned OperandNo,
     const APInt &AOut, APInt &AB, KnownBits &Known, KnownBits &Known2,
     bool &KnownBitsComputed) {
-  unsigned BitWidth = AB.getBitWidth();
+  unsigned const BitWidth = AB.getBitWidth();
 
   // We're called once per operand, but for some instructions, we need to
   // compute known bits of both operands in order to determine the live bits of
@@ -207,7 +207,7 @@ void DemandedBits::determineLiveOperandBits(
     if (OperandNo == 0) {
       const APInt *ShiftAmtC;
       if (match(UserI->getOperand(1), m_APInt(ShiftAmtC))) {
-        uint64_t ShiftAmt = ShiftAmtC->getLimitedValue(BitWidth - 1);
+        uint64_t const ShiftAmt = ShiftAmtC->getLimitedValue(BitWidth - 1);
         AB = AOut.lshr(ShiftAmt);
 
         // If the shift is nuw/nsw, then the high bits are not dead
@@ -224,7 +224,7 @@ void DemandedBits::determineLiveOperandBits(
     if (OperandNo == 0) {
       const APInt *ShiftAmtC;
       if (match(UserI->getOperand(1), m_APInt(ShiftAmtC))) {
-        uint64_t ShiftAmt = ShiftAmtC->getLimitedValue(BitWidth - 1);
+        uint64_t const ShiftAmt = ShiftAmtC->getLimitedValue(BitWidth - 1);
         AB = AOut.shl(ShiftAmt);
 
         // If the shift is exact, then the low bits are not dead
@@ -238,7 +238,7 @@ void DemandedBits::determineLiveOperandBits(
     if (OperandNo == 0) {
       const APInt *ShiftAmtC;
       if (match(UserI->getOperand(1), m_APInt(ShiftAmtC))) {
-        uint64_t ShiftAmt = ShiftAmtC->getLimitedValue(BitWidth - 1);
+        uint64_t const ShiftAmt = ShiftAmtC->getLimitedValue(BitWidth - 1);
         AB = AOut.shl(ShiftAmt);
         // Because the high input bit is replicated into the
         // high-order bits of the result, if we need any of those
@@ -406,7 +406,7 @@ void DemandedBits::performAnalysis() {
 
       Type *T = OI->getType();
       if (T->isIntOrIntVectorTy()) {
-        unsigned BitWidth = T->getScalarSizeInBits();
+        unsigned const BitWidth = T->getScalarSizeInBits();
         APInt AB = APInt::getAllOnesValue(BitWidth);
         if (InputIsKnownDead) {
           AB = APInt(BitWidth, 0);
@@ -456,7 +456,7 @@ APInt DemandedBits::getDemandedBits(Use *U) {
   Type *T = (*U)->getType();
   Instruction *UserI = cast<Instruction>(U->getUser());
   const DataLayout &DL = UserI->getModule()->getDataLayout();
-  unsigned BitWidth = DL.getTypeSizeInBits(T->getScalarType());
+  unsigned const BitWidth = DL.getTypeSizeInBits(T->getScalarType());
 
   // We only track integer uses, everything else produces a mask with all bits
   // set
@@ -468,7 +468,7 @@ APInt DemandedBits::getDemandedBits(Use *U) {
 
   performAnalysis();
 
-  APInt AOut = getDemandedBits(UserI);
+  APInt const AOut = getDemandedBits(UserI);
   APInt AB = APInt::getAllOnesValue(BitWidth);
   KnownBits Known, Known2;
   bool KnownBitsComputed = false;
@@ -548,18 +548,18 @@ static APInt determineLiveOperandBitsAddCarry(unsigned OperandNo,
   //   return AOut;
 
   // Boundary bits' carry out is unaffected by their carry in.
-  APInt Bound = (LHS.Zero & RHS.Zero) | (LHS.One & RHS.One);
+  APInt const Bound = (LHS.Zero & RHS.Zero) | (LHS.One & RHS.One);
 
   // First, the alive carry bits are determined from the alive output bits:
   // Let demand ripple to the right but only up to any set bit in Bound.
   //   AOut         = -1----
   //   Bound        = ----1-
   //   ACarry&~AOut = --111-
-  APInt RBound = Bound.reverseBits();
-  APInt RAOut = AOut.reverseBits();
-  APInt RProp = RAOut + (RAOut | ~RBound);
-  APInt RACarry = RProp ^ ~RBound;
-  APInt ACarry = RACarry.reverseBits();
+  APInt const RBound = Bound.reverseBits();
+  APInt const RAOut = AOut.reverseBits();
+  APInt const RProp = RAOut + (RAOut | ~RBound);
+  APInt const RACarry = RProp ^ ~RBound;
+  APInt const ACarry = RACarry.reverseBits();
 
   // Then, the alive input bits are determined from the alive carry bits:
   APInt NeededToMaintainCarryZero;
@@ -573,8 +573,8 @@ static APInt determineLiveOperandBitsAddCarry(unsigned OperandNo,
   }
 
   // As in computeForAddCarry
-  APInt PossibleSumZero = ~LHS.Zero + ~RHS.Zero + !CarryZero;
-  APInt PossibleSumOne = LHS.One + RHS.One + CarryOne;
+  APInt const PossibleSumZero = ~LHS.Zero + ~RHS.Zero + !CarryZero;
+  APInt const PossibleSumOne = LHS.One + RHS.One + CarryOne;
 
   // The below is simplified from
   //
@@ -587,7 +587,7 @@ static APInt determineLiveOperandBitsAddCarry(unsigned OperandNo,
   //   (CarryKnownOne  & NeededToMaintainCarryOne) |
   //   CarryUnknown;
 
-  APInt NeededToMaintainCarry = (~PossibleSumZero | NeededToMaintainCarryZero) &
+  APInt const NeededToMaintainCarry = (~PossibleSumZero | NeededToMaintainCarryZero) &
                                 (PossibleSumOne | NeededToMaintainCarryOne);
 
   APInt AB = AOut | (ACarry & NeededToMaintainCarry);

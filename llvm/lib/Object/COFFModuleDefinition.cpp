@@ -98,7 +98,7 @@ public:
     case '\0':
       return Token(Eof);
     case ';': {
-      size_t End = Buf.find('\n');
+      size_t const End = Buf.find('\n');
       Buf = (End == Buf.npos) ? "" : Buf.drop_front(End);
       return lex();
     }
@@ -118,9 +118,9 @@ public:
       return Token(Identifier, S);
     }
     default: {
-      size_t End = Buf.find_first_of("=,;\r\n \t\v");
-      StringRef Word = Buf.substr(0, End);
-      Kind K = llvm::StringSwitch<Kind>(Word)
+      size_t const End = Buf.find_first_of("=,;\r\n \t\v");
+      StringRef const Word = Buf.substr(0, End);
+      Kind const K = llvm::StringSwitch<Kind>(Word)
                    .Case("BASE", KwBase)
                    .Case("CONSTANT", KwConstant)
                    .Case("DATA", KwData)
@@ -203,7 +203,7 @@ private:
       return parseNumbers(&Info.StackReserve, &Info.StackCommit);
     case KwLibrary:
     case KwName: {
-      bool IsDll = Tok.K == KwLibrary; // Check before parseName.
+      bool const IsDll = Tok.K == KwLibrary; // Check before parseName.
       std::string Name;
       if (Error Err = parseName(&Name, &Info.ImageBase))
         return Err;

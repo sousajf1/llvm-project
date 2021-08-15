@@ -232,8 +232,8 @@ template <> struct DenseMapInfo<MemoryLocOrCall> {
 /// (Where potentially clobbering ops are memory barriers, aliased stores, etc.)
 static bool areLoadsReorderable(const LoadInst *Use,
                                 const LoadInst *MayClobber) {
-  bool VolatileUse = Use->isVolatile();
-  bool VolatileClobber = MayClobber->isVolatile();
+  bool const VolatileUse = Use->isVolatile();
+  bool const VolatileClobber = MayClobber->isVolatile();
   // Volatile operations may never be reordered with other volatile operations.
   if (VolatileUse && VolatileClobber)
     return false;
@@ -248,8 +248,8 @@ static bool areLoadsReorderable(const LoadInst *Use,
   //
   // Note that this explicitly *does* allow the free reordering of monotonic (or
   // weaker) loads of the same address.
-  bool SeqCstUse = Use->getOrdering() == AtomicOrdering::SequentiallyConsistent;
-  bool MayClobberIsAcquire = isAtLeastOrStrongerThan(MayClobber->getOrdering(),
+  bool const SeqCstUse = Use->getOrdering() == AtomicOrdering::SequentiallyConsistent;
+  bool const MayClobberIsAcquire = isAtLeastOrStrongerThan(MayClobber->getOrdering(),
                                                      AtomicOrdering::Acquire);
   return !(SeqCstUse || MayClobberIsAcquire);
 }
@@ -298,7 +298,7 @@ instructionClobbersQuery(const MemoryDef *MD, const MemoryLocation &UseLoc,
   }
 
   if (auto *CB = dyn_cast_or_null<CallBase>(UseInst)) {
-    ModRefInfo I = AA.getModRefInfo(DefInst, CB);
+    ModRefInfo const I = AA.getModRefInfo(DefInst, CB);
     AR = isMustSet(I) ? AliasResult::MustAlias : AliasResult::MayAlias;
     return {isModOrRefSet(I), AR};
   }
@@ -308,7 +308,7 @@ instructionClobbersQuery(const MemoryDef *MD, const MemoryLocation &UseLoc,
       return {!areLoadsReorderable(UseLoad, DefLoad),
               AliasResult(AliasResult::MayAlias)};
 
-  ModRefInfo I = AA.getModRefInfo(DefInst, UseLoc);
+  ModRefInfo const I = AA.getModRefInfo(DefInst, UseLoc);
   AR = isMustSet(I) ? AliasResult::MustAlias : AliasResult::MayAlias;
   return {isModSet(I), AR};
 }
@@ -580,7 +580,7 @@ template <class AliasAnalysisType> class ClobberWalker {
         if (!--*UpwardWalkLimit)
           return {Current, true, AliasResult(AliasResult::MayAlias)};
 
-        ClobberAlias CA =
+        ClobberAlias const CA =
             instructionClobbersQuery(MD, Desc.Loc, Query->Inst, AA);
         if (CA.IsClobber)
           return {MD, true, CA.AR};
@@ -632,7 +632,7 @@ template <class AliasAnalysisType> class ClobberWalker {
     // BFS vs DFS really doesn't make a difference here, so just do a DFS with
     // PausedSearches as our stack.
     while (!PausedSearches.empty()) {
-      ListIndex PathIndex = PausedSearches.pop_back_val();
+      ListIndex const PathIndex = PausedSearches.pop_back_val();
       DefPath &Node = Paths[PathIndex];
 
       // If we've already visited this path with this MemoryLocation, we don't
@@ -670,7 +670,7 @@ template <class AliasAnalysisType> class ClobberWalker {
         SkipStopWhere = Query->OriginalAccess;
       }
 
-      UpwardsWalkResult Res = walkToPhiOrClobber(Node,
+      UpwardsWalkResult const Res = walkToPhiOrClobber(Node,
                                                  /*StopAt=*/StopWhere,
                                                  /*SkipStopAt=*/SkipStopWhere);
       if (Res.IsKnownClobber) {
@@ -827,7 +827,7 @@ template <class AliasAnalysisType> class ClobberWalker {
         });
         assert(Iter != def_path_iterator());
 
-        DefPath &CurNode = *Iter;
+        DefPath  const&CurNode = *Iter;
         assert(CurNode.Last == Current);
 
         // Two things:
@@ -855,7 +855,7 @@ template <class AliasAnalysisType> class ClobberWalker {
         //    the bottom part of D to the cached clobber, ignoring the clobber
         //    in N. Again, this problem goes away if we start tracking all
         //    blockers for a given phi optimization.
-        TerminatedPath Result{CurNode.Last, defPathIndex(CurNode)};
+        TerminatedPath const Result{CurNode.Last, defPathIndex(CurNode)};
         return {Result, {}};
       }
 
@@ -864,14 +864,14 @@ template <class AliasAnalysisType> class ClobberWalker {
       // the rest to be cached back.
       if (NewPaused.empty()) {
         MoveDominatedPathToEnd(TerminatedPaths);
-        TerminatedPath Result = TerminatedPaths.pop_back_val();
+        TerminatedPath const Result = TerminatedPaths.pop_back_val();
         return {Result, std::move(TerminatedPaths)};
       }
 
       MemoryAccess *DefChainEnd = nullptr;
       SmallVector<TerminatedPath, 4> Clobbers;
-      for (ListIndex Paused : NewPaused) {
-        UpwardsWalkResult WR = walkToPhiOrClobber(Paths[Paused]);
+      for (ListIndex const Paused : NewPaused) {
+        UpwardsWalkResult const WR = walkToPhiOrClobber(Paths[Paused]);
         if (WR.IsKnownClobber)
           Clobbers.push_back({WR.Result, Paused});
         else
@@ -902,7 +902,7 @@ template <class AliasAnalysisType> class ClobberWalker {
       // and quit.
       if (!Clobbers.empty()) {
         MoveDominatedPathToEnd(Clobbers);
-        TerminatedPath Result = Clobbers.pop_back_val();
+        TerminatedPath const Result = Clobbers.pop_back_val();
         return {Result, std::move(Clobbers)};
       }
 
@@ -914,7 +914,7 @@ template <class AliasAnalysisType> class ClobberWalker {
 
       PriorPathsSize = Paths.size();
       PausedSearches.clear();
-      for (ListIndex I : NewPaused)
+      for (ListIndex const I : NewPaused)
         addSearches(DefChainPhi, PausedSearches, I);
       NewPaused.clear();
 
@@ -958,13 +958,13 @@ public:
     DefPath FirstDesc(Q.StartingLoc, Current, Current, None);
     // Fast path for the overly-common case (no crazy phi optimization
     // necessary)
-    UpwardsWalkResult WalkResult = walkToPhiOrClobber(FirstDesc);
+    UpwardsWalkResult const WalkResult = walkToPhiOrClobber(FirstDesc);
     MemoryAccess *Result;
     if (WalkResult.IsKnownClobber) {
       Result = WalkResult.Result;
       Q.AR = WalkResult.AR;
     } else {
-      OptznResult OptRes = tryOptimizePhi(cast<MemoryPhi>(FirstDesc.Last),
+      OptznResult const OptRes = tryOptimizePhi(cast<MemoryPhi>(FirstDesc.Last),
                                           Current, Q.StartingLoc);
       verifyOptResult(OptRes);
       resetPhiOptznState();
@@ -1372,7 +1372,7 @@ void MemorySSA::OptimizeUses::optimizeUsesInBlock(
       continue;
     }
 
-    MemoryLocOrCall UseMLOC(MU);
+    MemoryLocOrCall const UseMLOC(MU);
     auto &LocInfo = LocStackInfo[UseMLOC];
     // If the pop epoch changed, it means we've removed stuff from top of
     // stack due to changing blocks. We may have to reset the lower bound or
@@ -1450,7 +1450,7 @@ void MemorySSA::OptimizeUses::optimizeUsesInBlock(
       }
 
       MemoryDef *MD = cast<MemoryDef>(VersionStack[UpperBound]);
-      ClobberAlias CA = instructionClobbersQuery(MD, MU, UseMLOC, *AA);
+      ClobberAlias const CA = instructionClobbersQuery(MD, MU, UseMLOC, *AA);
       if (CA.IsClobber) {
         FoundClobberResult = true;
         LocInfo.AR = CA.AR;
@@ -1630,7 +1630,7 @@ void MemorySSA::insertIntoListsForBlock(MemoryAccess *NewAccess,
 void MemorySSA::insertIntoListsBefore(MemoryAccess *What, const BasicBlock *BB,
                                       AccessList::iterator InsertPt) {
   auto *Accesses = getWritableBlockAccesses(BB);
-  bool WasEnd = InsertPt == Accesses->end();
+  bool const WasEnd = InsertPt == Accesses->end();
   Accesses->insert(AccessList::iterator(InsertPt), What);
   if (!isa<MemoryUse>(What)) {
     auto *Defs = getOrCreateDefsList(BB);
@@ -1684,7 +1684,7 @@ void MemorySSA::moveTo(MemoryAccess *What, BasicBlock *BB,
            "Can only move a Phi at the beginning of the block");
     // Update lookup table entry
     ValueToMemoryAccess.erase(What->getBlock());
-    bool Inserted = ValueToMemoryAccess.insert({BB, What}).second;
+    bool const Inserted = ValueToMemoryAccess.insert({BB, What}).second;
     (void)Inserted;
     assert(Inserted && "Cannot move a Phi to a block that already has one");
   }
@@ -1765,7 +1765,7 @@ MemoryUseOrDef *MemorySSA::createNewAccess(Instruction *I,
     Def = isa<MemoryDef>(Template);
     Use = isa<MemoryUse>(Template);
 #if !defined(NDEBUG)
-    ModRefInfo ModRef = AAP->getModRefInfo(I, None);
+    ModRefInfo const ModRef = AAP->getModRefInfo(I, None);
     bool DefCheck, UseCheck;
     DefCheck = isModSet(ModRef) || isOrdered(I);
     UseCheck = isRefSet(ModRef);
@@ -1773,7 +1773,7 @@ MemoryUseOrDef *MemorySSA::createNewAccess(Instruction *I,
 #endif
   } else {
     // Find out what affect this instruction has on memory.
-    ModRefInfo ModRef = AAP->getModRefInfo(I, None);
+    ModRefInfo const ModRef = AAP->getModRefInfo(I, None);
     // The isOrdered check is used to ensure that volatiles end up as defs
     // (atomics end up as ModRef right now anyway).  Until we separate the
     // ordering chain from the memory chain, this enables people to see at least
@@ -1940,7 +1940,7 @@ void MemorySSA::verifyDominationNumbers(const Function &F) const {
       assert(ThisNumberIter != BlockNumbering.end() &&
              "MemoryAccess has no domination number in a valid block!");
 
-      unsigned long ThisNumber = ThisNumberIter->second;
+      unsigned long const ThisNumber = ThisNumberIter->second;
       assert(ThisNumber > LastNumber &&
              "Domination numbers should be strictly increasing!");
       LastNumber = ThisNumber;
@@ -1965,7 +1965,7 @@ void MemorySSA::verifyOrderingDominationAndDefUses(Function &F) const {
   // lists.
   SmallVector<MemoryAccess *, 32> ActualAccesses;
   SmallVector<MemoryAccess *, 32> ActualDefs;
-  for (BasicBlock &B : F) {
+  for (BasicBlock  const&B : F) {
     const AccessList *AL = getBlockAccesses(&B);
     const auto *DL = getBlockDefs(&B);
     MemoryPhi *Phi = getMemoryAccess(&B);
@@ -1989,7 +1989,7 @@ void MemorySSA::verifyOrderingDominationAndDefUses(Function &F) const {
 #endif
     }
 
-    for (Instruction &I : B) {
+    for (Instruction  const&I : B) {
       MemoryUseOrDef *MA = getMemoryAccess(&I);
       assert((!MA || (AL && (isa<MemoryUse>(MA) || DL))) &&
              "We have memory affecting instructions "
@@ -2103,10 +2103,10 @@ bool MemorySSA::locallyDominates(const MemoryAccess *Dominator,
   if (!BlockNumberingValid.count(DominatorBlock))
     renumberBlock(DominatorBlock);
 
-  unsigned long DominatorNum = BlockNumbering.lookup(Dominator);
+  unsigned long const DominatorNum = BlockNumbering.lookup(Dominator);
   // All numbers start with 1
   assert(DominatorNum != 0 && "Block was not numbered properly");
-  unsigned long DominateeNum = BlockNumbering.lookup(Dominatee);
+  unsigned long const DominateeNum = BlockNumbering.lookup(Dominatee);
   assert(DominateeNum != 0 && "Block was not numbered properly");
   return DominatorNum < DominateeNum;
 }
@@ -2185,7 +2185,7 @@ void MemoryPhi::print(raw_ostream &OS) const {
     else
       BB->printAsOperand(OS, false);
     OS << ',';
-    if (unsigned ID = MA->getID())
+    if (unsigned const ID = MA->getID())
       OS << ID;
     else
       OS << LiveOnEntryStr;
@@ -2280,8 +2280,8 @@ struct DOTGraphTraits<DOTFuncMSSAInfo *> : public DefaultDOTGraphTraits {
           BB.print(OS, &CFGInfo->getWriter(), true, true);
         },
         [](std::string &S, unsigned &I, unsigned Idx) -> void {
-          std::string Str = S.substr(I, Idx - I);
-          StringRef SR = Str;
+          std::string const Str = S.substr(I, Idx - I);
+          StringRef const SR = Str;
           if (SR.count(" = MemoryDef(") || SR.count(" = MemoryPhi(") ||
               SR.count("MemoryUse("))
             return;
@@ -2313,7 +2313,7 @@ struct DOTGraphTraits<DOTFuncMSSAInfo *> : public DefaultDOTGraphTraits {
 bool MemorySSAPrinterLegacyPass::runOnFunction(Function &F) {
   auto &MSSA = getAnalysis<MemorySSAWrapperPass>().getMSSA();
   if (DotCFGMSSA != "") {
-    DOTFuncMSSAInfo CFGInfo(F, MSSA);
+    DOTFuncMSSAInfo const CFGInfo(F, MSSA);
     WriteGraph(&CFGInfo, "", false, "MSSA", DotCFGMSSA);
   } else
     MSSA.print(dbgs());
@@ -2345,7 +2345,7 @@ PreservedAnalyses MemorySSAPrinterPass::run(Function &F,
                                             FunctionAnalysisManager &AM) {
   auto &MSSA = AM.getResult<MemorySSAAnalysis>(F).getMSSA();
   if (DotCFGMSSA != "") {
-    DOTFuncMSSAInfo CFGInfo(F, MSSA);
+    DOTFuncMSSAInfo const CFGInfo(F, MSSA);
     WriteGraph(&CFGInfo, "", false, "MSSA", DotCFGMSSA);
   } else {
     OS << "MemorySSA for function: " << F.getName() << "\n";

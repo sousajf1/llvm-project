@@ -33,7 +33,7 @@ AllocationOrder AllocationOrder::create(unsigned VirtReg, const VirtRegMap &VRM,
   const TargetRegisterInfo *TRI = &VRM.getTargetRegInfo();
   auto Order = RegClassInfo.getOrder(MF.getRegInfo().getRegClass(VirtReg));
   SmallVector<MCPhysReg, 16> Hints;
-  bool HardHints =
+  bool const HardHints =
       TRI->getRegAllocationHints(VirtReg, Order, Hints, MF, &VRM, Matrix);
 
   LLVM_DEBUG({

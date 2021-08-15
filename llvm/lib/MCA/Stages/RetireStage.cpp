@@ -50,7 +50,7 @@ llvm::Error RetireStage::execute(InstRef &IR) {
   Instruction &IS = *IR.getInstruction();
 
   PRF.onInstructionExecuted(&IS);
-  unsigned TokenID = IS.getRCUTokenID();
+  unsigned const TokenID = IS.getRCUTokenID();
   assert(TokenID != RetireControlUnit::UnhandledTokenID);
   RCU.onInstructionExecuted(TokenID);
 

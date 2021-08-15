@@ -65,7 +65,7 @@ namespace {
 
 void MSP430AsmPrinter::PrintSymbolOperand(const MachineOperand &MO,
                                           raw_ostream &O) {
-  uint64_t Offset = MO.getOffset();
+  uint64_t const Offset = MO.getOffset();
   if (Offset)
     O << '(' << Offset << '+';
 
@@ -149,7 +149,7 @@ bool MSP430AsmPrinter::PrintAsmMemoryOperand(const MachineInstr *MI,
 
 //===----------------------------------------------------------------------===//
 void MSP430AsmPrinter::emitInstruction(const MachineInstr *MI) {
-  MSP430MCInstLower MCInstLowering(OutContext, *this);
+  MSP430MCInstLower const MCInstLowering(OutContext, *this);
 
   MCInst TmpInst;
   MCInstLowering.Lower(MI, TmpInst);
@@ -162,7 +162,7 @@ void MSP430AsmPrinter::EmitInterruptVectorSection(MachineFunction &ISR) {
   if (F->getCallingConv() != CallingConv::MSP430_INTR) {
     report_fatal_error("Functions with 'interrupt' attribute must have msp430_intrcc CC");
   }
-  StringRef IVIdx = F->getFnAttribute("interrupt").getValueAsString();
+  StringRef const IVIdx = F->getFnAttribute("interrupt").getValueAsString();
   MCSection *IV = OutStreamer->getContext().getELFSection(
     "__interrupt_vector_" + IVIdx,
     ELF::SHT_PROGBITS, ELF::SHF_ALLOC | ELF::SHF_EXECINSTR);
@@ -186,5 +186,5 @@ bool MSP430AsmPrinter::runOnMachineFunction(MachineFunction &MF) {
 
 // Force static initialization.
 extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializeMSP430AsmPrinter() {
-  RegisterAsmPrinter<MSP430AsmPrinter> X(getTheMSP430Target());
+  RegisterAsmPrinter<MSP430AsmPrinter> const X(getTheMSP430Target());
 }

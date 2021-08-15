@@ -99,10 +99,10 @@ static cl::opt<bool>
                   cl::init(true), cl::Hidden);
 extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializePowerPCTarget() {
   // Register the targets
-  RegisterTargetMachine<PPCTargetMachine> A(getThePPC32Target());
-  RegisterTargetMachine<PPCTargetMachine> B(getThePPC32LETarget());
-  RegisterTargetMachine<PPCTargetMachine> C(getThePPC64Target());
-  RegisterTargetMachine<PPCTargetMachine> D(getThePPC64LETarget());
+  RegisterTargetMachine<PPCTargetMachine> const A(getThePPC32Target());
+  RegisterTargetMachine<PPCTargetMachine> const B(getThePPC32LETarget());
+  RegisterTargetMachine<PPCTargetMachine> const C(getThePPC64Target());
+  RegisterTargetMachine<PPCTargetMachine> const D(getThePPC64LETarget());
 
   PassRegistry &PR = *PassRegistry::getPassRegistry();
 #ifndef NDEBUG
@@ -133,7 +133,7 @@ static bool isLittleEndianTriple(const Triple &T) {
 
 /// Return the datalayout string of a subtarget.
 static std::string getDataLayoutString(const Triple &T) {
-  bool is64Bit = T.getArch() == Triple::ppc64 || T.getArch() == Triple::ppc64le;
+  bool const is64Bit = T.getArch() == Triple::ppc64 || T.getArch() == Triple::ppc64le;
   std::string Ret;
 
   // Most PPC* platforms are big endian, PPC(64)LE is little endian.
@@ -331,10 +331,10 @@ PPCTargetMachine::~PPCTargetMachine() = default;
 
 const PPCSubtarget *
 PPCTargetMachine::getSubtargetImpl(const Function &F) const {
-  Attribute CPUAttr = F.getFnAttribute("target-cpu");
-  Attribute FSAttr = F.getFnAttribute("target-features");
+  Attribute const CPUAttr = F.getFnAttribute("target-cpu");
+  Attribute const FSAttr = F.getFnAttribute("target-features");
 
-  std::string CPU =
+  std::string const CPU =
       CPUAttr.isValid() ? CPUAttr.getValueAsString().str() : TargetCPU;
   std::string FS =
       FSAttr.isValid() ? FSAttr.getValueAsString().str() : TargetFS;
@@ -344,7 +344,7 @@ PPCTargetMachine::getSubtargetImpl(const Function &F) const {
   // function before we can generate a subtarget. We also need to use
   // it as a key for the subtarget since that can be the only difference
   // between two functions.
-  bool SoftFloat = F.getFnAttribute("use-soft-float").getValueAsBool();
+  bool const SoftFloat = F.getFnAttribute("use-soft-float").getValueAsBool();
   // If the soft float attribute is set on the function turn on the soft float
   // subtarget feature.
   if (SoftFloat)

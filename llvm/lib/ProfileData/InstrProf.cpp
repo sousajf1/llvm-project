@@ -273,7 +273,7 @@ std::string getPGOFuncName(const Function &F, bool InLTO, uint64_t Version) {
 
   // In LTO mode (when InLTO is true), first check if there is a meta data.
   if (MDNode *MD = getPGOFuncNameMetadata(F)) {
-    StringRef S = cast<MDString>(MD->getOperand(0))->getString();
+    StringRef const S = cast<MDString>(MD->getOperand(0))->getString();
     return S.str();
   }
 
@@ -403,7 +403,7 @@ Error collectPGOFuncNameStrings(ArrayRef<std::string> NameStrs,
   assert(!NameStrs.empty() && "No name data to emit");
 
   uint8_t Header[16], *P = Header;
-  std::string UncompressedNameStrings =
+  std::string const UncompressedNameStrings =
       join(NameStrs.begin(), NameStrs.end(), getInstrProfNameSeparator());
 
   assert(StringRef(UncompressedNameStrings)
@@ -417,7 +417,7 @@ Error collectPGOFuncNameStrings(ArrayRef<std::string> NameStrs,
     EncLen = encodeULEB128(CompressedLen, P);
     P += EncLen;
     char *HeaderStr = reinterpret_cast<char *>(&Header[0]);
-    unsigned HeaderLen = P - &Header[0];
+    unsigned const HeaderLen = P - &Header[0];
     Result.append(HeaderStr, HeaderLen);
     Result += InputStr;
     return Error::success();
@@ -461,18 +461,18 @@ Error readPGOFuncNameStrings(StringRef NameStrings, InstrProfSymtab &Symtab) {
   const uint8_t *EndP = NameStrings.bytes_end();
   while (P < EndP) {
     uint32_t N;
-    uint64_t UncompressedSize = decodeULEB128(P, &N);
+    uint64_t const UncompressedSize = decodeULEB128(P, &N);
     P += N;
-    uint64_t CompressedSize = decodeULEB128(P, &N);
+    uint64_t const CompressedSize = decodeULEB128(P, &N);
     P += N;
-    bool isCompressed = (CompressedSize != 0);
+    bool const isCompressed = (CompressedSize != 0);
     SmallString<128> UncompressedNameStrings;
     StringRef NameStrings;
     if (isCompressed) {
       if (!llvm::zlib::isAvailable())
         return make_error<InstrProfError>(instrprof_error::zlib_unavailable);
 
-      StringRef CompressedNameStrings(reinterpret_cast<const char *>(P),
+      StringRef const CompressedNameStrings(reinterpret_cast<const char *>(P),
                                       CompressedSize);
       if (Error E =
               zlib::uncompress(CompressedNameStrings, UncompressedNameStrings,
@@ -491,7 +491,7 @@ Error readPGOFuncNameStrings(StringRef NameStrings, InstrProfSymtab &Symtab) {
     // Now parse the name strings.
     SmallVector<StringRef, 0> Names;
     NameStrings.split(Names, getInstrProfNameSeparator());
-    for (StringRef &Name : Names)
+    for (StringRef  const&Name : Names)
       if (Error E = Symtab.addFuncName(Name))
         return E;
 
@@ -510,10 +510,10 @@ void InstrProfRecord::accumulateCounts(CountSumOrPercent &Sum) const {
 
   for (uint32_t VK = IPVK_First; VK <= IPVK_Last; ++VK) {
     uint64_t KindSum = 0;
-    uint32_t NumValueSites = getNumValueSites(VK);
+    uint32_t const NumValueSites = getNumValueSites(VK);
     for (size_t I = 0; I < NumValueSites; ++I) {
-      uint32_t NV = getNumValueDataForSite(VK, I);
-      std::unique_ptr<InstrProfValueData[]> VD = getValueForSite(VK, I);
+      uint32_t const NV = getNumValueDataForSite(VK, I);
+      std::unique_ptr<InstrProfValueData[]> const VD = getValueForSite(VK, I);
       for (uint32_t V = 0; V < NV; V++)
         KindSum += VD[V].Count;
     }
@@ -556,14 +556,14 @@ void InstrProfRecord::overlapValueProfData(uint32_t ValueKind,
                                            InstrProfRecord &Other,
                                            OverlapStats &Overlap,
                                            OverlapStats &FuncLevelOverlap) {
-  uint32_t ThisNumValueSites = getNumValueSites(ValueKind);
+  uint32_t const ThisNumValueSites = getNumValueSites(ValueKind);
   assert(ThisNumValueSites == Other.getNumValueSites(ValueKind));
   if (!ThisNumValueSites)
     return;
 
   std::vector<InstrProfValueSiteRecord> &ThisSiteRecords =
       getOrCreateValueSitesForKind(ValueKind);
-  MutableArrayRef<InstrProfValueSiteRecord> OtherSiteRecords =
+  MutableArrayRef<InstrProfValueSiteRecord> const OtherSiteRecords =
       Other.getValueSitesForKind(ValueKind);
   for (uint32_t I = 0; I < ThisNumValueSites; I++)
     ThisSiteRecords[I].overlap(OtherSiteRecords[I], ValueKind, Overlap,
@@ -581,8 +581,8 @@ void InstrProfRecord::overlap(InstrProfRecord &Other, OverlapStats &Overlap,
   // Check if the value profiles mismatch.
   if (!Mismatch) {
     for (uint32_t Kind = IPVK_First; Kind <= IPVK_Last; ++Kind) {
-      uint32_t ThisNumValueSites = getNumValueSites(Kind);
-      uint32_t OtherNumValueSites = Other.getNumValueSites(Kind);
+      uint32_t const ThisNumValueSites = getNumValueSites(Kind);
+      uint32_t const OtherNumValueSites = Other.getNumValueSites(Kind);
       if (ThisNumValueSites != OtherNumValueSites) {
         Mismatch = true;
         break;
@@ -659,8 +659,8 @@ void InstrProfValueSiteRecord::scale(uint64_t N, uint64_t D,
 void InstrProfRecord::mergeValueProfData(
     uint32_t ValueKind, InstrProfRecord &Src, uint64_t Weight,
     function_ref<void(instrprof_error)> Warn) {
-  uint32_t ThisNumValueSites = getNumValueSites(ValueKind);
-  uint32_t OtherNumValueSites = Src.getNumValueSites(ValueKind);
+  uint32_t const ThisNumValueSites = getNumValueSites(ValueKind);
+  uint32_t const OtherNumValueSites = Src.getNumValueSites(ValueKind);
   if (ThisNumValueSites != OtherNumValueSites) {
     Warn(instrprof_error::value_site_count_mismatch);
     return;
@@ -669,7 +669,7 @@ void InstrProfRecord::mergeValueProfData(
     return;
   std::vector<InstrProfValueSiteRecord> &ThisSiteRecords =
       getOrCreateValueSitesForKind(ValueKind);
-  MutableArrayRef<InstrProfValueSiteRecord> OtherSiteRecords =
+  MutableArrayRef<InstrProfValueSiteRecord> const OtherSiteRecords =
       Src.getValueSitesForKind(ValueKind);
   for (uint32_t I = 0; I < ThisNumValueSites; I++)
     ThisSiteRecords[I].merge(OtherSiteRecords[I], Weight, Warn);
@@ -815,7 +815,7 @@ void ValueProfRecord::deserializeTo(InstrProfRecord &Record,
 
   InstrProfValueData *ValueData = getValueProfRecordValueData(this);
   for (uint64_t VSite = 0; VSite < NumValueSites; ++VSite) {
-    uint8_t ValueDataCount = this->SiteCountArray[VSite];
+    uint8_t const ValueDataCount = this->SiteCountArray[VSite];
     Record.addValueData(Kind, VSite, ValueData, ValueDataCount, SymTab);
     ValueData += ValueDataCount;
   }
@@ -835,7 +835,7 @@ void ValueProfRecord::swapBytes(support::endianness Old,
     sys::swapByteOrder<uint32_t>(NumValueSites);
     sys::swapByteOrder<uint32_t>(Kind);
   }
-  uint32_t ND = getValueProfRecordNumValueData(this);
+  uint32_t const ND = getValueProfRecordNumValueData(this);
   InstrProfValueData *VD = getValueProfRecordValueData(this);
 
   // No need to swap byte array: SiteCountArrray.
@@ -904,7 +904,7 @@ ValueProfData::getValueProfData(const unsigned char *D,
     return make_error<InstrProfError>(instrprof_error::truncated);
 
   const unsigned char *Header = D;
-  uint32_t TotalSize = swapToHostOrder<uint32_t>(Header, Endianness);
+  uint32_t const TotalSize = swapToHostOrder<uint32_t>(Header, Endianness);
   if (D + TotalSize > BufferEnd)
     return make_error<InstrProfError>(instrprof_error::too_large);
 
@@ -956,15 +956,15 @@ void annotateValueSite(Module &M, Instruction &Inst,
                        const InstrProfRecord &InstrProfR,
                        InstrProfValueKind ValueKind, uint32_t SiteIdx,
                        uint32_t MaxMDCount) {
-  uint32_t NV = InstrProfR.getNumValueDataForSite(ValueKind, SiteIdx);
+  uint32_t const NV = InstrProfR.getNumValueDataForSite(ValueKind, SiteIdx);
   if (!NV)
     return;
 
   uint64_t Sum = 0;
-  std::unique_ptr<InstrProfValueData[]> VD =
+  std::unique_ptr<InstrProfValueData[]> const VD =
       InstrProfR.getValueForSite(ValueKind, SiteIdx, &Sum);
 
-  ArrayRef<InstrProfValueData> VDs(VD.get(), NV);
+  ArrayRef<InstrProfValueData> const VDs(VD.get(), NV);
   annotateValueSite(M, Inst, VDs, Sum, ValueKind, MaxMDCount);
 }
 
@@ -1007,7 +1007,7 @@ bool getValueProfDataFromInst(const Instruction &Inst,
   if (!MD)
     return false;
 
-  unsigned NOps = MD->getNumOperands();
+  unsigned const NOps = MD->getNumOperands();
 
   if (NOps < 5)
     return false;
@@ -1043,7 +1043,7 @@ bool getValueProfDataFromInst(const Instruction &Inst,
         mdconst::dyn_extract<ConstantInt>(MD->getOperand(I + 1));
     if (!Value || !Count)
       return false;
-    uint64_t CntValue = Count->getZExtValue();
+    uint64_t const CntValue = Count->getZExtValue();
     if (!GetNoICPValue && (CntValue == NOMORE_ICP_MAGICNUM))
       continue;
     ValueData[ActualNumValueData].Value = Value->getZExtValue();
@@ -1086,7 +1086,7 @@ bool needsComdatForCounter(const Function &F, const Module &M) {
   // available_externally functions will end up being duplicated in raw profile
   // data. This can result in distorted profile as the counts of those dups
   // will be accumulated by the profile merger.
-  GlobalValue::LinkageTypes Linkage = F.getLinkage();
+  GlobalValue::LinkageTypes const Linkage = F.getLinkage();
   if (Linkage != GlobalValue::ExternalWeakLinkage &&
       Linkage != GlobalValue::AvailableExternallyLinkage)
     return false;
@@ -1150,7 +1150,7 @@ void createIRLevelProfileFlagVar(Module &M, bool IsCS,
       M, IntTy64, true, GlobalValue::WeakAnyLinkage,
       Constant::getIntegerValue(IntTy64, APInt(64, ProfileVersion)), VarName);
   IRLevelVersionVariable->setVisibility(GlobalValue::DefaultVisibility);
-  Triple TT(M.getTargetTriple());
+  Triple const TT(M.getTargetTriple());
   if (TT.supportsCOMDAT()) {
     IRLevelVersionVariable->setLinkage(GlobalValue::ExternalLinkage);
     IRLevelVersionVariable->setComdat(M.getOrInsertComdat(VarName));
@@ -1166,7 +1166,7 @@ void createProfileFileNameVar(Module &M, StringRef InstrProfileOutput) {
   GlobalVariable *ProfileNameVar = new GlobalVariable(
       M, ProfileNameConst->getType(), true, GlobalValue::WeakAnyLinkage,
       ProfileNameConst, INSTR_PROF_QUOTE(INSTR_PROF_PROFILE_NAME_VAR));
-  Triple TT(M.getTargetTriple());
+  Triple const TT(M.getTargetTriple());
   if (TT.supportsCOMDAT()) {
     ProfileNameVar->setLinkage(GlobalValue::ExternalLinkage);
     ProfileNameVar->setComdat(M.getOrInsertComdat(

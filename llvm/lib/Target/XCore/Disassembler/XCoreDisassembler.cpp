@@ -202,7 +202,7 @@ static DecodeStatus DecodeGRRegsRegisterClass(MCInst &Inst,
 {
   if (RegNo > 11)
     return MCDisassembler::Fail;
-  unsigned Reg = getReg(Decoder, XCore::GRRegsRegClassID, RegNo);
+  unsigned const Reg = getReg(Decoder, XCore::GRRegsRegClassID, RegNo);
   Inst.addOperand(MCOperand::createReg(Reg));
   return MCDisassembler::Success;
 }
@@ -214,7 +214,7 @@ static DecodeStatus DecodeRRegsRegisterClass(MCInst &Inst,
 {
   if (RegNo > 15)
     return MCDisassembler::Fail;
-  unsigned Reg = getReg(Decoder, XCore::RRegsRegClassID, RegNo);
+  unsigned const Reg = getReg(Decoder, XCore::RRegsRegClassID, RegNo);
   Inst.addOperand(MCOperand::createReg(Reg));
   return MCDisassembler::Success;
 }
@@ -247,8 +247,8 @@ Decode2OpInstruction(unsigned Insn, unsigned &Op1, unsigned &Op2) {
     Combined += 5;
   }
   Combined -= 27;
-  unsigned Op1High = Combined % 3;
-  unsigned Op2High = Combined / 3;
+  unsigned const Op1High = Combined % 3;
+  unsigned const Op2High = Combined / 3;
   Op1 = (Op1High << 2) | fieldFromInstruction(Insn, 2, 2);
   Op2 = (Op2High << 2) | fieldFromInstruction(Insn, 0, 2);
   return MCDisassembler::Success;
@@ -257,13 +257,13 @@ Decode2OpInstruction(unsigned Insn, unsigned &Op1, unsigned &Op2) {
 static DecodeStatus
 Decode3OpInstruction(unsigned Insn, unsigned &Op1, unsigned &Op2,
                      unsigned &Op3) {
-  unsigned Combined = fieldFromInstruction(Insn, 6, 5);
+  unsigned const Combined = fieldFromInstruction(Insn, 6, 5);
   if (Combined >= 27)
     return MCDisassembler::Fail;
 
-  unsigned Op1High = Combined % 3;
-  unsigned Op2High = (Combined / 3) % 3;
-  unsigned Op3High = Combined / 9;
+  unsigned const Op1High = Combined % 3;
+  unsigned const Op2High = (Combined / 3) % 3;
+  unsigned const Op3High = Combined / 9;
   Op1 = (Op1High << 2) | fieldFromInstruction(Insn, 4, 2);
   Op2 = (Op2High << 2) | fieldFromInstruction(Insn, 2, 2);
   Op3 = (Op3High << 2) | fieldFromInstruction(Insn, 0, 2);
@@ -274,7 +274,7 @@ static DecodeStatus
 Decode2OpInstructionFail(MCInst &Inst, unsigned Insn, uint64_t Address,
                          const void *Decoder) {
   // Try and decode as a 3R instruction.
-  unsigned Opcode = fieldFromInstruction(Insn, 11, 5);
+  unsigned const Opcode = fieldFromInstruction(Insn, 11, 5);
   switch (Opcode) {
   case 0x0:
     Inst.setOpcode(XCore::STW_2rus);
@@ -344,7 +344,7 @@ static DecodeStatus
 Decode2RInstruction(MCInst &Inst, unsigned Insn, uint64_t Address,
                     const void *Decoder) {
   unsigned Op1, Op2;
-  DecodeStatus S = Decode2OpInstruction(Insn, Op1, Op2);
+  DecodeStatus const S = Decode2OpInstruction(Insn, Op1, Op2);
   if (S != MCDisassembler::Success)
     return Decode2OpInstructionFail(Inst, Insn, Address, Decoder);
 
@@ -357,7 +357,7 @@ static DecodeStatus
 Decode2RImmInstruction(MCInst &Inst, unsigned Insn, uint64_t Address,
                        const void *Decoder) {
   unsigned Op1, Op2;
-  DecodeStatus S = Decode2OpInstruction(Insn, Op1, Op2);
+  DecodeStatus const S = Decode2OpInstruction(Insn, Op1, Op2);
   if (S != MCDisassembler::Success)
     return Decode2OpInstructionFail(Inst, Insn, Address, Decoder);
 
@@ -370,7 +370,7 @@ static DecodeStatus
 DecodeR2RInstruction(MCInst &Inst, unsigned Insn, uint64_t Address,
                      const void *Decoder) {
   unsigned Op1, Op2;
-  DecodeStatus S = Decode2OpInstruction(Insn, Op2, Op1);
+  DecodeStatus const S = Decode2OpInstruction(Insn, Op2, Op1);
   if (S != MCDisassembler::Success)
     return Decode2OpInstructionFail(Inst, Insn, Address, Decoder);
 
@@ -383,7 +383,7 @@ static DecodeStatus
 Decode2RSrcDstInstruction(MCInst &Inst, unsigned Insn, uint64_t Address,
                           const void *Decoder) {
   unsigned Op1, Op2;
-  DecodeStatus S = Decode2OpInstruction(Insn, Op1, Op2);
+  DecodeStatus const S = Decode2OpInstruction(Insn, Op1, Op2);
   if (S != MCDisassembler::Success)
     return Decode2OpInstructionFail(Inst, Insn, Address, Decoder);
 
@@ -397,7 +397,7 @@ static DecodeStatus
 DecodeRUSInstruction(MCInst &Inst, unsigned Insn, uint64_t Address,
                      const void *Decoder) {
   unsigned Op1, Op2;
-  DecodeStatus S = Decode2OpInstruction(Insn, Op1, Op2);
+  DecodeStatus const S = Decode2OpInstruction(Insn, Op1, Op2);
   if (S != MCDisassembler::Success)
     return Decode2OpInstructionFail(Inst, Insn, Address, Decoder);
 
@@ -410,7 +410,7 @@ static DecodeStatus
 DecodeRUSBitpInstruction(MCInst &Inst, unsigned Insn, uint64_t Address,
                          const void *Decoder) {
   unsigned Op1, Op2;
-  DecodeStatus S = Decode2OpInstruction(Insn, Op1, Op2);
+  DecodeStatus const S = Decode2OpInstruction(Insn, Op1, Op2);
   if (S != MCDisassembler::Success)
     return Decode2OpInstructionFail(Inst, Insn, Address, Decoder);
 
@@ -423,7 +423,7 @@ static DecodeStatus
 DecodeRUSSrcDstBitpInstruction(MCInst &Inst, unsigned Insn, uint64_t Address,
                                const void *Decoder) {
   unsigned Op1, Op2;
-  DecodeStatus S = Decode2OpInstruction(Insn, Op1, Op2);
+  DecodeStatus const S = Decode2OpInstruction(Insn, Op1, Op2);
   if (S != MCDisassembler::Success)
     return Decode2OpInstructionFail(Inst, Insn, Address, Decoder);
 
@@ -437,7 +437,7 @@ static DecodeStatus
 DecodeL2OpInstructionFail(MCInst &Inst, unsigned Insn, uint64_t Address,
                           const void *Decoder) {
   // Try and decode as a L3R / L2RUS instruction.
-  unsigned Opcode = fieldFromInstruction(Insn, 16, 4) |
+  unsigned const Opcode = fieldFromInstruction(Insn, 16, 4) |
                     fieldFromInstruction(Insn, 27, 5) << 4;
   switch (Opcode) {
   case 0x0c:
@@ -508,7 +508,7 @@ static DecodeStatus
 DecodeL2RInstruction(MCInst &Inst, unsigned Insn, uint64_t Address,
                                const void *Decoder) {
   unsigned Op1, Op2;
-  DecodeStatus S = Decode2OpInstruction(fieldFromInstruction(Insn, 0, 16),
+  DecodeStatus const S = Decode2OpInstruction(fieldFromInstruction(Insn, 0, 16),
                                         Op1, Op2);
   if (S != MCDisassembler::Success)
     return DecodeL2OpInstructionFail(Inst, Insn, Address, Decoder);
@@ -522,7 +522,7 @@ static DecodeStatus
 DecodeLR2RInstruction(MCInst &Inst, unsigned Insn, uint64_t Address,
                                const void *Decoder) {
   unsigned Op1, Op2;
-  DecodeStatus S = Decode2OpInstruction(fieldFromInstruction(Insn, 0, 16),
+  DecodeStatus const S = Decode2OpInstruction(fieldFromInstruction(Insn, 0, 16),
                                         Op1, Op2);
   if (S != MCDisassembler::Success)
     return DecodeL2OpInstructionFail(Inst, Insn, Address, Decoder);
@@ -536,7 +536,7 @@ static DecodeStatus
 Decode3RInstruction(MCInst &Inst, unsigned Insn, uint64_t Address,
                     const void *Decoder) {
   unsigned Op1, Op2, Op3;
-  DecodeStatus S = Decode3OpInstruction(Insn, Op1, Op2, Op3);
+  DecodeStatus const S = Decode3OpInstruction(Insn, Op1, Op2, Op3);
   if (S == MCDisassembler::Success) {
     DecodeGRRegsRegisterClass(Inst, Op1, Address, Decoder);
     DecodeGRRegsRegisterClass(Inst, Op2, Address, Decoder);
@@ -549,7 +549,7 @@ static DecodeStatus
 Decode3RImmInstruction(MCInst &Inst, unsigned Insn, uint64_t Address,
                        const void *Decoder) {
   unsigned Op1, Op2, Op3;
-  DecodeStatus S = Decode3OpInstruction(Insn, Op1, Op2, Op3);
+  DecodeStatus const S = Decode3OpInstruction(Insn, Op1, Op2, Op3);
   if (S == MCDisassembler::Success) {
     Inst.addOperand(MCOperand::createImm(Op1));
     DecodeGRRegsRegisterClass(Inst, Op2, Address, Decoder);
@@ -562,7 +562,7 @@ static DecodeStatus
 Decode2RUSInstruction(MCInst &Inst, unsigned Insn, uint64_t Address,
                       const void *Decoder) {
   unsigned Op1, Op2, Op3;
-  DecodeStatus S = Decode3OpInstruction(Insn, Op1, Op2, Op3);
+  DecodeStatus const S = Decode3OpInstruction(Insn, Op1, Op2, Op3);
   if (S == MCDisassembler::Success) {
     DecodeGRRegsRegisterClass(Inst, Op1, Address, Decoder);
     DecodeGRRegsRegisterClass(Inst, Op2, Address, Decoder);
@@ -575,7 +575,7 @@ static DecodeStatus
 Decode2RUSBitpInstruction(MCInst &Inst, unsigned Insn, uint64_t Address,
                       const void *Decoder) {
   unsigned Op1, Op2, Op3;
-  DecodeStatus S = Decode3OpInstruction(Insn, Op1, Op2, Op3);
+  DecodeStatus const S = Decode3OpInstruction(Insn, Op1, Op2, Op3);
   if (S == MCDisassembler::Success) {
     DecodeGRRegsRegisterClass(Inst, Op1, Address, Decoder);
     DecodeGRRegsRegisterClass(Inst, Op2, Address, Decoder);
@@ -588,7 +588,7 @@ static DecodeStatus
 DecodeL3RInstruction(MCInst &Inst, unsigned Insn, uint64_t Address,
                      const void *Decoder) {
   unsigned Op1, Op2, Op3;
-  DecodeStatus S =
+  DecodeStatus const S =
     Decode3OpInstruction(fieldFromInstruction(Insn, 0, 16), Op1, Op2, Op3);
   if (S == MCDisassembler::Success) {
     DecodeGRRegsRegisterClass(Inst, Op1, Address, Decoder);
@@ -602,7 +602,7 @@ static DecodeStatus
 DecodeL3RSrcDstInstruction(MCInst &Inst, unsigned Insn, uint64_t Address,
                            const void *Decoder) {
   unsigned Op1, Op2, Op3;
-  DecodeStatus S =
+  DecodeStatus const S =
   Decode3OpInstruction(fieldFromInstruction(Insn, 0, 16), Op1, Op2, Op3);
   if (S == MCDisassembler::Success) {
     DecodeGRRegsRegisterClass(Inst, Op1, Address, Decoder);
@@ -617,7 +617,7 @@ static DecodeStatus
 DecodeL2RUSInstruction(MCInst &Inst, unsigned Insn, uint64_t Address,
                        const void *Decoder) {
   unsigned Op1, Op2, Op3;
-  DecodeStatus S =
+  DecodeStatus const S =
   Decode3OpInstruction(fieldFromInstruction(Insn, 0, 16), Op1, Op2, Op3);
   if (S == MCDisassembler::Success) {
     DecodeGRRegsRegisterClass(Inst, Op1, Address, Decoder);
@@ -631,7 +631,7 @@ static DecodeStatus
 DecodeL2RUSBitpInstruction(MCInst &Inst, unsigned Insn, uint64_t Address,
                            const void *Decoder) {
   unsigned Op1, Op2, Op3;
-  DecodeStatus S =
+  DecodeStatus const S =
   Decode3OpInstruction(fieldFromInstruction(Insn, 0, 16), Op1, Op2, Op3);
   if (S == MCDisassembler::Success) {
     DecodeGRRegsRegisterClass(Inst, Op1, Address, Decoder);
@@ -666,7 +666,7 @@ DecodeL5RInstructionFail(MCInst &Inst, unsigned Insn, uint64_t Address,
                      const void *Decoder) {
   // Try and decode as a L6R instruction.
   Inst.clear();
-  unsigned Opcode = fieldFromInstruction(Insn, 27, 5);
+  unsigned const Opcode = fieldFromInstruction(Insn, 27, 5);
   switch (Opcode) {
   case 0x00:
     Inst.setOpcode(XCore::LMUL_l6r);
@@ -699,7 +699,7 @@ static DecodeStatus
 DecodeL4RSrcDstInstruction(MCInst &Inst, unsigned Insn, uint64_t Address,
                            const void *Decoder) {
   unsigned Op1, Op2, Op3;
-  unsigned Op4 = fieldFromInstruction(Insn, 16, 4);
+  unsigned const Op4 = fieldFromInstruction(Insn, 16, 4);
   DecodeStatus S =
     Decode3OpInstruction(fieldFromInstruction(Insn, 0, 16), Op1, Op2, Op3);
   if (S == MCDisassembler::Success) {
@@ -718,7 +718,7 @@ static DecodeStatus
 DecodeL4RSrcDstSrcDstInstruction(MCInst &Inst, unsigned Insn, uint64_t Address,
                                  const void *Decoder) {
   unsigned Op1, Op2, Op3;
-  unsigned Op4 = fieldFromInstruction(Insn, 16, 4);
+  unsigned const Op4 = fieldFromInstruction(Insn, 16, 4);
   DecodeStatus S =
   Decode3OpInstruction(fieldFromInstruction(Insn, 0, 16), Op1, Op2, Op3);
   if (S == MCDisassembler::Success) {

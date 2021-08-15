@@ -332,8 +332,8 @@ static GenericValue executeICMP_SGE(GenericValue Src1, GenericValue Src2,
 void Interpreter::visitICmpInst(ICmpInst &I) {
   ExecutionContext &SF = ECStack.back();
   Type *Ty    = I.getOperand(0)->getType();
-  GenericValue Src1 = getOperandValue(I.getOperand(0), SF);
-  GenericValue Src2 = getOperandValue(I.getOperand(1), SF);
+  GenericValue const Src1 = getOperandValue(I.getOperand(0), SF);
+  GenericValue const Src2 = getOperandValue(I.getOperand(1), SF);
   GenericValue R;   // Result
 
   switch (I.getPredicate()) {
@@ -665,8 +665,8 @@ static GenericValue executeFCMP_BOOL(GenericValue Src1, GenericValue Src2,
 void Interpreter::visitFCmpInst(FCmpInst &I) {
   ExecutionContext &SF = ECStack.back();
   Type *Ty    = I.getOperand(0)->getType();
-  GenericValue Src1 = getOperandValue(I.getOperand(0), SF);
-  GenericValue Src2 = getOperandValue(I.getOperand(1), SF);
+  GenericValue const Src1 = getOperandValue(I.getOperand(0), SF);
+  GenericValue const Src2 = getOperandValue(I.getOperand(1), SF);
   GenericValue R;   // Result
 
   switch (I.getPredicate()) {
@@ -699,7 +699,7 @@ void Interpreter::visitFCmpInst(FCmpInst &I) {
 
 static GenericValue executeCmpInst(unsigned predicate, GenericValue Src1,
                                    GenericValue Src2, Type *Ty) {
-  GenericValue Result;
+  GenericValue const Result;
   switch (predicate) {
   case ICmpInst::ICMP_EQ:    return executeICMP_EQ(Src1, Src2, Ty);
   case ICmpInst::ICMP_NE:    return executeICMP_NE(Src1, Src2, Ty);
@@ -861,10 +861,10 @@ static GenericValue executeSelectInst(GenericValue Src1, GenericValue Src2,
 void Interpreter::visitSelectInst(SelectInst &I) {
   ExecutionContext &SF = ECStack.back();
   Type * Ty = I.getOperand(0)->getType();
-  GenericValue Src1 = getOperandValue(I.getOperand(0), SF);
-  GenericValue Src2 = getOperandValue(I.getOperand(1), SF);
-  GenericValue Src3 = getOperandValue(I.getOperand(2), SF);
-  GenericValue R = executeSelectInst(Src1, Src2, Src3, Ty);
+  GenericValue const Src1 = getOperandValue(I.getOperand(0), SF);
+  GenericValue const Src2 = getOperandValue(I.getOperand(1), SF);
+  GenericValue const Src3 = getOperandValue(I.getOperand(2), SF);
+  GenericValue const R = executeSelectInst(Src1, Src2, Src3, Ty);
   SetValue(&I, R, SF);
 }
 
@@ -950,12 +950,12 @@ void Interpreter::visitSwitchInst(SwitchInst &I) {
   ExecutionContext &SF = ECStack.back();
   Value* Cond = I.getCondition();
   Type *ElTy = Cond->getType();
-  GenericValue CondVal = getOperandValue(Cond, SF);
+  GenericValue const CondVal = getOperandValue(Cond, SF);
 
   // Check to see if any of the cases match...
   BasicBlock *Dest = nullptr;
   for (auto Case : I.cases()) {
-    GenericValue CaseVal = getOperandValue(Case.getCaseValue(), SF);
+    GenericValue const CaseVal = getOperandValue(Case.getCaseValue(), SF);
     if (executeICMP_EQ(CondVal, CaseVal, ElTy).IntVal != 0) {
       Dest = cast<BasicBlock>(Case.getCaseSuccessor());
       break;
@@ -994,7 +994,7 @@ void Interpreter::SwitchToNewBasicBlock(BasicBlock *Dest, ExecutionContext &SF){
 
   for (; PHINode *PN = dyn_cast<PHINode>(SF.CurInst); ++SF.CurInst) {
     // Search for the value corresponding to this previous bb...
-    int i = PN->getBasicBlockIndex(PrevBB);
+    int const i = PN->getBasicBlockIndex(PrevBB);
     assert(i != -1 && "PHINode doesn't contain entry for predecessor??");
     Value *IncomingValue = PN->getIncomingValue(i);
 
@@ -1020,13 +1020,13 @@ void Interpreter::visitAllocaInst(AllocaInst &I) {
   Type *Ty = I.getAllocatedType(); // Type to be allocated
 
   // Get the number of elements being allocated by the array...
-  unsigned NumElements =
+  unsigned const NumElements =
     getOperandValue(I.getOperand(0), SF).IntVal.getZExtValue();
 
-  unsigned TypeSize = (size_t)getDataLayout().getTypeAllocSize(Ty);
+  unsigned const TypeSize = (size_t)getDataLayout().getTypeAllocSize(Ty);
 
   // Avoid malloc-ing zero bytes, use max()...
-  unsigned MemToAlloc = std::max(1U, NumElements * TypeSize);
+  unsigned const MemToAlloc = std::max(1U, NumElements * TypeSize);
 
   // Allocate enough memory to hold the type...
   void *Memory = safe_malloc(MemToAlloc);
@@ -1035,7 +1035,7 @@ void Interpreter::visitAllocaInst(AllocaInst &I) {
                     << " bytes) x " << NumElements << " (Total: " << MemToAlloc
                     << ") at " << uintptr_t(Memory) << '\n');
 
-  GenericValue Result = PTOGV(Memory);
+  GenericValue const Result = PTOGV(Memory);
   assert(Result.PointerVal && "Null pointer returned by malloc!");
   SetValue(&I, Result, SF);
 
@@ -1058,15 +1058,15 @@ GenericValue Interpreter::executeGEPOperation(Value *Ptr, gep_type_iterator I,
       const StructLayout *SLO = getDataLayout().getStructLayout(STy);
 
       const ConstantInt *CPU = cast<ConstantInt>(I.getOperand());
-      unsigned Index = unsigned(CPU->getZExtValue());
+      unsigned const Index = unsigned(CPU->getZExtValue());
 
       Total += SLO->getElementOffset(Index);
     } else {
       // Get the index number for the array... which must be long type...
-      GenericValue IdxGV = getOperandValue(I.getOperand(), SF);
+      GenericValue const IdxGV = getOperandValue(I.getOperand(), SF);
 
       int64_t Idx;
-      unsigned BitWidth =
+      unsigned const BitWidth =
         cast<IntegerType>(I.getOperand()->getType())->getBitWidth();
       if (BitWidth == 32)
         Idx = (int64_t)(int32_t)IdxGV.IntVal.getZExtValue();
@@ -1092,7 +1092,7 @@ void Interpreter::visitGetElementPtrInst(GetElementPtrInst &I) {
 
 void Interpreter::visitLoadInst(LoadInst &I) {
   ExecutionContext &SF = ECStack.back();
-  GenericValue SRC = getOperandValue(I.getPointerOperand(), SF);
+  GenericValue const SRC = getOperandValue(I.getPointerOperand(), SF);
   GenericValue *Ptr = (GenericValue*)GVTOP(SRC);
   GenericValue Result;
   LoadValueFromMemory(Result, Ptr, I.getType());
@@ -1103,8 +1103,8 @@ void Interpreter::visitLoadInst(LoadInst &I) {
 
 void Interpreter::visitStoreInst(StoreInst &I) {
   ExecutionContext &SF = ECStack.back();
-  GenericValue Val = getOperandValue(I.getOperand(0), SF);
-  GenericValue SRC = getOperandValue(I.getPointerOperand(), SF);
+  GenericValue const Val = getOperandValue(I.getOperand(0), SF);
+  GenericValue const SRC = getOperandValue(I.getPointerOperand(), SF);
   StoreValueToMemory(Val, (GenericValue *)GVTOP(SRC),
                      I.getOperand(0)->getType());
   if (I.isVolatile() && PrintVolatile)
@@ -1140,7 +1140,7 @@ void Interpreter::visitIntrinsicInst(IntrinsicInst &I) {
   //
   BasicBlock::iterator Me(&I);
   BasicBlock *Parent = I.getParent();
-  bool atBegin(Parent->begin() == Me);
+  bool const atBegin(Parent->begin() == Me);
   if (!atBegin)
     --Me;
   IL->LowerIntrinsicCall(&I);
@@ -1167,14 +1167,14 @@ void Interpreter::visitCallBase(CallBase &I) {
 
   // To handle indirect calls, we must get the pointer value from the argument
   // and treat it as a function pointer.
-  GenericValue SRC = getOperandValue(SF.Caller->getCalledOperand(), SF);
+  GenericValue const SRC = getOperandValue(SF.Caller->getCalledOperand(), SF);
   callFunction((Function*)GVTOP(SRC), ArgVals);
 }
 
 // auxiliary function for shift operations
 static unsigned getShiftAmount(uint64_t orgShiftAmount,
                                llvm::APInt valueToShift) {
-  unsigned valueWidth = valueToShift.getBitWidth();
+  unsigned const valueWidth = valueToShift.getBitWidth();
   if (orgShiftAmount < (uint64_t)valueWidth)
     return orgShiftAmount;
   // according to the llvm documentation, if orgShiftAmount > valueWidth,
@@ -1191,19 +1191,19 @@ void Interpreter::visitShl(BinaryOperator &I) {
   Type *Ty = I.getType();
 
   if (Ty->isVectorTy()) {
-    uint32_t src1Size = uint32_t(Src1.AggregateVal.size());
+    uint32_t const src1Size = uint32_t(Src1.AggregateVal.size());
     assert(src1Size == Src2.AggregateVal.size());
     for (unsigned i = 0; i < src1Size; i++) {
       GenericValue Result;
-      uint64_t shiftAmount = Src2.AggregateVal[i].IntVal.getZExtValue();
-      llvm::APInt valueToShift = Src1.AggregateVal[i].IntVal;
+      uint64_t const shiftAmount = Src2.AggregateVal[i].IntVal.getZExtValue();
+      llvm::APInt const valueToShift = Src1.AggregateVal[i].IntVal;
       Result.IntVal = valueToShift.shl(getShiftAmount(shiftAmount, valueToShift));
       Dest.AggregateVal.push_back(Result);
     }
   } else {
     // scalar
-    uint64_t shiftAmount = Src2.IntVal.getZExtValue();
-    llvm::APInt valueToShift = Src1.IntVal;
+    uint64_t const shiftAmount = Src2.IntVal.getZExtValue();
+    llvm::APInt const valueToShift = Src1.IntVal;
     Dest.IntVal = valueToShift.shl(getShiftAmount(shiftAmount, valueToShift));
   }
 
@@ -1218,19 +1218,19 @@ void Interpreter::visitLShr(BinaryOperator &I) {
   Type *Ty = I.getType();
 
   if (Ty->isVectorTy()) {
-    uint32_t src1Size = uint32_t(Src1.AggregateVal.size());
+    uint32_t const src1Size = uint32_t(Src1.AggregateVal.size());
     assert(src1Size == Src2.AggregateVal.size());
     for (unsigned i = 0; i < src1Size; i++) {
       GenericValue Result;
-      uint64_t shiftAmount = Src2.AggregateVal[i].IntVal.getZExtValue();
-      llvm::APInt valueToShift = Src1.AggregateVal[i].IntVal;
+      uint64_t const shiftAmount = Src2.AggregateVal[i].IntVal.getZExtValue();
+      llvm::APInt const valueToShift = Src1.AggregateVal[i].IntVal;
       Result.IntVal = valueToShift.lshr(getShiftAmount(shiftAmount, valueToShift));
       Dest.AggregateVal.push_back(Result);
     }
   } else {
     // scalar
-    uint64_t shiftAmount = Src2.IntVal.getZExtValue();
-    llvm::APInt valueToShift = Src1.IntVal;
+    uint64_t const shiftAmount = Src2.IntVal.getZExtValue();
+    llvm::APInt const valueToShift = Src1.IntVal;
     Dest.IntVal = valueToShift.lshr(getShiftAmount(shiftAmount, valueToShift));
   }
 
@@ -1245,19 +1245,19 @@ void Interpreter::visitAShr(BinaryOperator &I) {
   Type *Ty = I.getType();
 
   if (Ty->isVectorTy()) {
-    size_t src1Size = Src1.AggregateVal.size();
+    size_t const src1Size = Src1.AggregateVal.size();
     assert(src1Size == Src2.AggregateVal.size());
     for (unsigned i = 0; i < src1Size; i++) {
       GenericValue Result;
-      uint64_t shiftAmount = Src2.AggregateVal[i].IntVal.getZExtValue();
-      llvm::APInt valueToShift = Src1.AggregateVal[i].IntVal;
+      uint64_t const shiftAmount = Src2.AggregateVal[i].IntVal.getZExtValue();
+      llvm::APInt const valueToShift = Src1.AggregateVal[i].IntVal;
       Result.IntVal = valueToShift.ashr(getShiftAmount(shiftAmount, valueToShift));
       Dest.AggregateVal.push_back(Result);
     }
   } else {
     // scalar
-    uint64_t shiftAmount = Src2.IntVal.getZExtValue();
-    llvm::APInt valueToShift = Src1.IntVal;
+    uint64_t const shiftAmount = Src2.IntVal.getZExtValue();
+    llvm::APInt const valueToShift = Src1.IntVal;
     Dest.IntVal = valueToShift.ashr(getShiftAmount(shiftAmount, valueToShift));
   }
 
@@ -1270,15 +1270,15 @@ GenericValue Interpreter::executeTruncInst(Value *SrcVal, Type *DstTy,
   Type *SrcTy = SrcVal->getType();
   if (SrcTy->isVectorTy()) {
     Type *DstVecTy = DstTy->getScalarType();
-    unsigned DBitWidth = cast<IntegerType>(DstVecTy)->getBitWidth();
-    unsigned NumElts = Src.AggregateVal.size();
+    unsigned const DBitWidth = cast<IntegerType>(DstVecTy)->getBitWidth();
+    unsigned const NumElts = Src.AggregateVal.size();
     // the sizes of src and dst vectors must be equal
     Dest.AggregateVal.resize(NumElts);
     for (unsigned i = 0; i < NumElts; i++)
       Dest.AggregateVal[i].IntVal = Src.AggregateVal[i].IntVal.trunc(DBitWidth);
   } else {
     IntegerType *DITy = cast<IntegerType>(DstTy);
-    unsigned DBitWidth = DITy->getBitWidth();
+    unsigned const DBitWidth = DITy->getBitWidth();
     Dest.IntVal = Src.IntVal.trunc(DBitWidth);
   }
   return Dest;
@@ -1290,15 +1290,15 @@ GenericValue Interpreter::executeSExtInst(Value *SrcVal, Type *DstTy,
   GenericValue Dest, Src = getOperandValue(SrcVal, SF);
   if (SrcTy->isVectorTy()) {
     Type *DstVecTy = DstTy->getScalarType();
-    unsigned DBitWidth = cast<IntegerType>(DstVecTy)->getBitWidth();
-    unsigned size = Src.AggregateVal.size();
+    unsigned const DBitWidth = cast<IntegerType>(DstVecTy)->getBitWidth();
+    unsigned const size = Src.AggregateVal.size();
     // the sizes of src and dst vectors must be equal.
     Dest.AggregateVal.resize(size);
     for (unsigned i = 0; i < size; i++)
       Dest.AggregateVal[i].IntVal = Src.AggregateVal[i].IntVal.sext(DBitWidth);
   } else {
     auto *DITy = cast<IntegerType>(DstTy);
-    unsigned DBitWidth = DITy->getBitWidth();
+    unsigned const DBitWidth = DITy->getBitWidth();
     Dest.IntVal = Src.IntVal.sext(DBitWidth);
   }
   return Dest;
@@ -1310,16 +1310,16 @@ GenericValue Interpreter::executeZExtInst(Value *SrcVal, Type *DstTy,
   GenericValue Dest, Src = getOperandValue(SrcVal, SF);
   if (SrcTy->isVectorTy()) {
     Type *DstVecTy = DstTy->getScalarType();
-    unsigned DBitWidth = cast<IntegerType>(DstVecTy)->getBitWidth();
+    unsigned const DBitWidth = cast<IntegerType>(DstVecTy)->getBitWidth();
 
-    unsigned size = Src.AggregateVal.size();
+    unsigned const size = Src.AggregateVal.size();
     // the sizes of src and dst vectors must be equal.
     Dest.AggregateVal.resize(size);
     for (unsigned i = 0; i < size; i++)
       Dest.AggregateVal[i].IntVal = Src.AggregateVal[i].IntVal.zext(DBitWidth);
   } else {
     auto *DITy = cast<IntegerType>(DstTy);
-    unsigned DBitWidth = DITy->getBitWidth();
+    unsigned const DBitWidth = DITy->getBitWidth();
     Dest.IntVal = Src.IntVal.zext(DBitWidth);
   }
   return Dest;
@@ -1334,7 +1334,7 @@ GenericValue Interpreter::executeFPTruncInst(Value *SrcVal, Type *DstTy,
            DstTy->getScalarType()->isFloatTy() &&
            "Invalid FPTrunc instruction");
 
-    unsigned size = Src.AggregateVal.size();
+    unsigned const size = Src.AggregateVal.size();
     // the sizes of src and dst vectors must be equal.
     Dest.AggregateVal.resize(size);
     for (unsigned i = 0; i < size; i++)
@@ -1356,7 +1356,7 @@ GenericValue Interpreter::executeFPExtInst(Value *SrcVal, Type *DstTy,
     assert(SrcVal->getType()->getScalarType()->isFloatTy() &&
            DstTy->getScalarType()->isDoubleTy() && "Invalid FPExt instruction");
 
-    unsigned size = Src.AggregateVal.size();
+    unsigned const size = Src.AggregateVal.size();
     // the sizes of src and dst vectors must be equal.
     Dest.AggregateVal.resize(size);
     for (unsigned i = 0; i < size; i++)
@@ -1378,8 +1378,8 @@ GenericValue Interpreter::executeFPToUIInst(Value *SrcVal, Type *DstTy,
   if (isa<VectorType>(SrcTy)) {
     Type *DstVecTy = DstTy->getScalarType();
     Type *SrcVecTy = SrcTy->getScalarType();
-    uint32_t DBitWidth = cast<IntegerType>(DstVecTy)->getBitWidth();
-    unsigned size = Src.AggregateVal.size();
+    uint32_t const DBitWidth = cast<IntegerType>(DstVecTy)->getBitWidth();
+    unsigned const size = Src.AggregateVal.size();
     // the sizes of src and dst vectors must be equal.
     Dest.AggregateVal.resize(size);
 
@@ -1395,7 +1395,7 @@ GenericValue Interpreter::executeFPToUIInst(Value *SrcVal, Type *DstTy,
     }
   } else {
     // scalar
-    uint32_t DBitWidth = cast<IntegerType>(DstTy)->getBitWidth();
+    uint32_t const DBitWidth = cast<IntegerType>(DstTy)->getBitWidth();
     assert(SrcTy->isFloatingPointTy() && "Invalid FPToUI instruction");
 
     if (SrcTy->getTypeID() == Type::FloatTyID)
@@ -1416,8 +1416,8 @@ GenericValue Interpreter::executeFPToSIInst(Value *SrcVal, Type *DstTy,
   if (isa<VectorType>(SrcTy)) {
     Type *DstVecTy = DstTy->getScalarType();
     Type *SrcVecTy = SrcTy->getScalarType();
-    uint32_t DBitWidth = cast<IntegerType>(DstVecTy)->getBitWidth();
-    unsigned size = Src.AggregateVal.size();
+    uint32_t const DBitWidth = cast<IntegerType>(DstVecTy)->getBitWidth();
+    unsigned const size = Src.AggregateVal.size();
     // the sizes of src and dst vectors must be equal
     Dest.AggregateVal.resize(size);
 
@@ -1433,7 +1433,7 @@ GenericValue Interpreter::executeFPToSIInst(Value *SrcVal, Type *DstTy,
     }
   } else {
     // scalar
-    unsigned DBitWidth = cast<IntegerType>(DstTy)->getBitWidth();
+    unsigned const DBitWidth = cast<IntegerType>(DstTy)->getBitWidth();
     assert(SrcTy->isFloatingPointTy() && "Invalid FPToSI instruction");
 
     if (SrcTy->getTypeID() == Type::FloatTyID)
@@ -1451,7 +1451,7 @@ GenericValue Interpreter::executeUIToFPInst(Value *SrcVal, Type *DstTy,
 
   if (isa<VectorType>(SrcVal->getType())) {
     Type *DstVecTy = DstTy->getScalarType();
-    unsigned size = Src.AggregateVal.size();
+    unsigned const size = Src.AggregateVal.size();
     // the sizes of src and dst vectors must be equal
     Dest.AggregateVal.resize(size);
 
@@ -1483,7 +1483,7 @@ GenericValue Interpreter::executeSIToFPInst(Value *SrcVal, Type *DstTy,
 
   if (isa<VectorType>(SrcVal->getType())) {
     Type *DstVecTy = DstTy->getScalarType();
-    unsigned size = Src.AggregateVal.size();
+    unsigned const size = Src.AggregateVal.size();
     // the sizes of src and dst vectors must be equal
     Dest.AggregateVal.resize(size);
 
@@ -1513,7 +1513,7 @@ GenericValue Interpreter::executeSIToFPInst(Value *SrcVal, Type *DstTy,
 
 GenericValue Interpreter::executePtrToIntInst(Value *SrcVal, Type *DstTy,
                                               ExecutionContext &SF) {
-  uint32_t DBitWidth = cast<IntegerType>(DstTy)->getBitWidth();
+  uint32_t const DBitWidth = cast<IntegerType>(DstTy)->getBitWidth();
   GenericValue Dest, Src = getOperandValue(SrcVal, SF);
   assert(SrcVal->getType()->isPointerTy() && "Invalid PtrToInt instruction");
 
@@ -1526,7 +1526,7 @@ GenericValue Interpreter::executeIntToPtrInst(Value *SrcVal, Type *DstTy,
   GenericValue Dest, Src = getOperandValue(SrcVal, SF);
   assert(DstTy->isPointerTy() && "Invalid PtrToInt instruction");
 
-  uint32_t PtrSize = getDataLayout().getPointerSizeInBits();
+  uint32_t const PtrSize = getDataLayout().getPointerSizeInBits();
   if (PtrSize != Src.IntVal.getBitWidth())
     Src.IntVal = Src.IntVal.zextOrTrunc(PtrSize);
 
@@ -1545,7 +1545,7 @@ GenericValue Interpreter::executeBitCastInst(Value *SrcVal, Type *DstTy,
   if (isa<VectorType>(SrcTy) || isa<VectorType>(DstTy)) {
     // vector src bitcast to vector dst or vector src bitcast to scalar dst or
     // scalar src bitcast to vector dst
-    bool isLittleEndian = getDataLayout().isLittleEndian();
+    bool const isLittleEndian = getDataLayout().isLittleEndian();
     GenericValue TempDst, TempSrc, SrcVec;
     Type *SrcElemTy;
     Type *DstElemTy;
@@ -1602,7 +1602,7 @@ GenericValue Interpreter::executeBitCastInst(Value *SrcVal, Type *DstTy,
     // now TempSrc is integer type vector
     if (DstNum < SrcNum) {
       // Example: bitcast <4 x i32> <i32 0, i32 1, i32 2, i32 3> to <2 x i64>
-      unsigned Ratio = SrcNum / DstNum;
+      unsigned const Ratio = SrcNum / DstNum;
       unsigned SrcElt = 0;
       for (unsigned i = 0; i < DstNum; i++) {
         GenericValue Elt;
@@ -1622,7 +1622,7 @@ GenericValue Interpreter::executeBitCastInst(Value *SrcVal, Type *DstTy,
       }
     } else {
       // Example: bitcast <2 x i64> <i64 0, i64 1> to <4 x i32>
-      unsigned Ratio = DstNum / SrcNum;
+      unsigned const Ratio = DstNum / SrcNum;
       for (unsigned i = 0; i < SrcNum; i++) {
         unsigned ShiftAmt = isLittleEndian ? 0 : DstBitSize * (Ratio - 1);
         for (unsigned j = 0; j < Ratio; j++) {
@@ -1769,7 +1769,7 @@ void Interpreter::visitVAArgInst(VAArgInst &I) {
   // (ec-stack-depth var-arg-index) pair.
   GenericValue VAList = getOperandValue(I.getOperand(0), SF);
   GenericValue Dest;
-  GenericValue Src = ECStack[VAList.UIntPairVal.first]
+  GenericValue const Src = ECStack[VAList.UIntPairVal.first]
                       .VarArgs[VAList.UIntPairVal.second];
   Type *Ty = I.getType();
   switch (Ty->getTypeID()) {
@@ -1794,7 +1794,7 @@ void Interpreter::visitVAArgInst(VAArgInst &I) {
 void Interpreter::visitExtractElementInst(ExtractElementInst &I) {
   ExecutionContext &SF = ECStack.back();
   GenericValue Src1 = getOperandValue(I.getOperand(0), SF);
-  GenericValue Src2 = getOperandValue(I.getOperand(1), SF);
+  GenericValue const Src2 = getOperandValue(I.getOperand(1), SF);
   GenericValue Dest;
 
   Type *Ty = I.getType();
@@ -1828,9 +1828,9 @@ void Interpreter::visitInsertElementInst(InsertElementInst &I) {
   ExecutionContext &SF = ECStack.back();
   VectorType *Ty = cast<VectorType>(I.getType());
 
-  GenericValue Src1 = getOperandValue(I.getOperand(0), SF);
-  GenericValue Src2 = getOperandValue(I.getOperand(1), SF);
-  GenericValue Src3 = getOperandValue(I.getOperand(2), SF);
+  GenericValue const Src1 = getOperandValue(I.getOperand(0), SF);
+  GenericValue const Src2 = getOperandValue(I.getOperand(1), SF);
+  GenericValue const Src3 = getOperandValue(I.getOperand(2), SF);
   GenericValue Dest;
 
   Type *TyContained = Ty->getElementType();
@@ -1870,9 +1870,9 @@ void Interpreter::visitShuffleVectorInst(ShuffleVectorInst &I){
   // shufflevector instruction.
 
   Type *TyContained = Ty->getElementType();
-  unsigned src1Size = (unsigned)Src1.AggregateVal.size();
-  unsigned src2Size = (unsigned)Src2.AggregateVal.size();
-  unsigned src3Size = I.getShuffleMask().size();
+  unsigned const src1Size = (unsigned)Src1.AggregateVal.size();
+  unsigned const src2Size = (unsigned)Src2.AggregateVal.size();
+  unsigned const src3Size = I.getShuffleMask().size();
 
   Dest.AggregateVal.resize(src3Size);
 
@@ -1882,7 +1882,7 @@ void Interpreter::visitShuffleVectorInst(ShuffleVectorInst &I){
       break;
     case Type::IntegerTyID:
       for( unsigned i=0; i<src3Size; i++) {
-        unsigned j = std::max(0, I.getMaskValue(i));
+        unsigned const j = std::max(0, I.getMaskValue(i));
         if(j < src1Size)
           Dest.AggregateVal[i].IntVal = Src1.AggregateVal[j].IntVal;
         else if(j < src1Size + src2Size)
@@ -1898,7 +1898,7 @@ void Interpreter::visitShuffleVectorInst(ShuffleVectorInst &I){
       break;
     case Type::FloatTyID:
       for( unsigned i=0; i<src3Size; i++) {
-        unsigned j = std::max(0, I.getMaskValue(i));
+        unsigned const j = std::max(0, I.getMaskValue(i));
         if(j < src1Size)
           Dest.AggregateVal[i].FloatVal = Src1.AggregateVal[j].FloatVal;
         else if(j < src1Size + src2Size)
@@ -1909,7 +1909,7 @@ void Interpreter::visitShuffleVectorInst(ShuffleVectorInst &I){
       break;
     case Type::DoubleTyID:
       for( unsigned i=0; i<src3Size; i++) {
-        unsigned j = std::max(0, I.getMaskValue(i));
+        unsigned const j = std::max(0, I.getMaskValue(i));
         if(j < src1Size)
           Dest.AggregateVal[i].DoubleVal = Src1.AggregateVal[j].DoubleVal;
         else if(j < src1Size + src2Size)
@@ -1930,7 +1930,7 @@ void Interpreter::visitExtractValueInst(ExtractValueInst &I) {
   GenericValue Src = getOperandValue(Agg, SF);
 
   ExtractValueInst::idx_iterator IdxBegin = I.idx_begin();
-  unsigned Num = I.getNumIndices();
+  unsigned const Num = I.getNumIndices();
   GenericValue *pSrc = &Src;
 
   for (unsigned i = 0 ; i < Num; ++i) {
@@ -1971,12 +1971,12 @@ void Interpreter::visitInsertValueInst(InsertValueInst &I) {
   ExecutionContext &SF = ECStack.back();
   Value *Agg = I.getAggregateOperand();
 
-  GenericValue Src1 = getOperandValue(Agg, SF);
-  GenericValue Src2 = getOperandValue(I.getOperand(1), SF);
+  GenericValue const Src1 = getOperandValue(Agg, SF);
+  GenericValue const Src2 = getOperandValue(I.getOperand(1), SF);
   GenericValue Dest = Src1; // Dest is a slightly changed Src1
 
   ExtractValueInst::idx_iterator IdxBegin = I.idx_begin();
-  unsigned Num = I.getNumIndices();
+  unsigned const Num = I.getNumIndices();
 
   GenericValue *pDest = &Dest;
   for (unsigned i = 0 ; i < Num; ++i) {
@@ -2061,8 +2061,8 @@ GenericValue Interpreter::getConstantExprValue (ConstantExpr *CE,
 
   // The cases below here require a GenericValue parameter for the result
   // so we initialize one, compute it and then return it.
-  GenericValue Op0 = getOperandValue(CE->getOperand(0), SF);
-  GenericValue Op1 = getOperandValue(CE->getOperand(1), SF);
+  GenericValue const Op0 = getOperandValue(CE->getOperand(0), SF);
+  GenericValue const Op1 = getOperandValue(CE->getOperand(1), SF);
   GenericValue Dest;
   Type * Ty = CE->getOperand(0)->getType();
   switch (CE->getOpcode()) {
@@ -2127,7 +2127,7 @@ void Interpreter::callFunction(Function *F, ArrayRef<GenericValue> ArgVals) {
 
   // Special handling for external functions.
   if (F->isDeclaration()) {
-    GenericValue Result = callExternalFunction (F, ArgVals);
+    GenericValue const Result = callExternalFunction (F, ArgVals);
     // Simulate a 'ret' instruction of the appropriate type.
     popStackAndReturnValueToCaller (F->getReturnType (), Result);
     return;

@@ -58,7 +58,7 @@ static void initELFHeader(typename ELFT::Ehdr &ElfHeader, uint16_t Machine) {
   ElfHeader.e_ident[EI_MAG2] = ElfMagic[EI_MAG2];
   ElfHeader.e_ident[EI_MAG3] = ElfMagic[EI_MAG3];
   ElfHeader.e_ident[EI_CLASS] = ELFT::Is64Bits ? ELFCLASS64 : ELFCLASS32;
-  bool IsLittleEndian = ELFT::TargetEndianness == support::little;
+  bool const IsLittleEndian = ELFT::TargetEndianness == support::little;
   ElfHeader.e_ident[EI_DATA] = IsLittleEndian ? ELFDATA2LSB : ELFDATA2MSB;
   ElfHeader.e_ident[EI_VERSION] = EV_CURRENT;
   ElfHeader.e_ident[EI_OSABI] = ELFOSABI_NONE;
@@ -214,19 +214,19 @@ public:
 
     // Populate dynamic symbol table.
     for (const IFSSymbol &Sym : Stub.Symbols) {
-      uint8_t Bind = Sym.Weak ? STB_WEAK : STB_GLOBAL;
+      uint8_t const Bind = Sym.Weak ? STB_WEAK : STB_GLOBAL;
       // For non-undefined symbols, value of the shndx is not relevant at link
       // time as long as it is not SHN_UNDEF. Set shndx to 1, which
       // points to ".dynsym".
-      uint16_t Shndx = Sym.Undefined ? SHN_UNDEF : 1;
+      uint16_t const Shndx = Sym.Undefined ? SHN_UNDEF : 1;
       DynSym.Content.add(DynStr.Content.getOffset(Sym.Name), Sym.Size, Bind,
                          convertIFSSymbolTypeToELF(Sym.Type), 0, Shndx);
     }
     DynSym.Size = DynSym.Content.getSize();
 
     // Poplulate dynamic table.
-    size_t DynSymIndex = DynTab.Content.addAddr(DT_SYMTAB, 0);
-    size_t DynStrIndex = DynTab.Content.addAddr(DT_STRTAB, 0);
+    size_t const DynSymIndex = DynTab.Content.addAddr(DT_SYMTAB, 0);
+    size_t const DynStrIndex = DynTab.Content.addAddr(DT_STRTAB, 0);
     for (const std::string &Lib : Stub.NeededLibs)
       DynTab.Content.addValue(DT_NEEDED, DynStr.Content.getOffset(Lib));
     if (Stub.SoName)
@@ -344,13 +344,13 @@ private:
 /// @param Str Source string to create a substring from.
 /// @param Offset The start index of the desired substring.
 static Expected<StringRef> terminatedSubstr(StringRef Str, size_t Offset) {
-  size_t StrEnd = Str.find('\0', Offset);
+  size_t const StrEnd = Str.find('\0', Offset);
   if (StrEnd == StringLiteral::npos) {
     return createError(
         "String overran bounds of string table (no null terminator)");
   }
 
-  size_t StrLen = StrEnd - Offset;
+  size_t const StrLen = StrEnd - Offset;
   return Str.substr(Offset, StrLen);
 }
 
@@ -432,7 +432,7 @@ static Error populateDynamic(DynamicEntries &Dyn,
                              ") outside of dynamic string table",
                              *Dyn.SONameOffset);
   }
-  for (uint64_t Offset : Dyn.NeededLibNames) {
+  for (uint64_t const Offset : Dyn.NeededLibNames) {
     if (Offset >= Dyn.StrSize) {
       return createStringError(object_error::parse_failed,
                                "DT_NEEDED string offset (0x%016" PRIx64
@@ -453,7 +453,7 @@ template <class ELFT>
 static IFSSymbol createELFSym(StringRef SymName,
                               const typename ELFT::Sym &RawSym) {
   IFSSymbol TargetSym{std::string(SymName)};
-  uint8_t Binding = RawSym.getBinding();
+  uint8_t const Binding = RawSym.getBinding();
   if (Binding == STB_WEAK)
     TargetSym.Weak = true;
   else
@@ -483,11 +483,11 @@ static Error populateSymbols(IFSStub &TargetStub,
   // Skips the first symbol since it's the NULL symbol.
   for (auto RawSym : DynSym.drop_front(1)) {
     // If a symbol does not have global or weak binding, ignore it.
-    uint8_t Binding = RawSym.getBinding();
+    uint8_t const Binding = RawSym.getBinding();
     if (!(Binding == STB_GLOBAL || Binding == STB_WEAK))
       continue;
     // If a symbol doesn't have default or protected visibility, ignore it.
-    uint8_t Visibility = RawSym.getVisibility();
+    uint8_t const Visibility = RawSym.getVisibility();
     if (!(Visibility == STV_DEFAULT || Visibility == STV_PROTECTED))
       continue;
     // Create an IFSSymbol and populate it with information from the symbol
@@ -536,7 +536,7 @@ buildStub(const ELFObjectFile<ELFT> &ElfObj) {
     return appendToError(DynStrPtr.takeError(),
                          "when locating .dynstr section contents");
 
-  StringRef DynStr(reinterpret_cast<const char *>(DynStrPtr.get()),
+  StringRef const DynStr(reinterpret_cast<const char *>(DynStrPtr.get()),
                    DynEnt.StrSize);
 
   // Populate Arch from ELF header.
@@ -558,7 +558,7 @@ buildStub(const ELFObjectFile<ELFT> &ElfObj) {
   }
 
   // Populate NeededLibs from .dynamic entries and dynamic string table.
-  for (uint64_t NeededStrOffset : DynEnt.NeededLibNames) {
+  for (uint64_t const NeededStrOffset : DynEnt.NeededLibNames) {
     Expected<StringRef> LibNameOrErr =
         terminatedSubstr(DynStr, NeededStrOffset);
     if (!LibNameOrErr) {
@@ -578,7 +578,7 @@ buildStub(const ELFObjectFile<ELFT> &ElfObj) {
     if (!DynSymPtr)
       return appendToError(DynSymPtr.takeError(),
                            "when locating .dynsym section contents");
-    Elf_Sym_Range DynSyms = ArrayRef<Elf_Sym>(
+    Elf_Sym_Range const DynSyms = ArrayRef<Elf_Sym>(
         reinterpret_cast<const Elf_Sym *>(*DynSymPtr), *SymCount);
     Error SymReadError = populateSymbols<ELFT>(*DestStub, DynSyms, DynStr);
     if (SymReadError)
@@ -597,7 +597,7 @@ buildStub(const ELFObjectFile<ELFT> &ElfObj) {
 template <class ELFT>
 static Error writeELFBinaryToFile(StringRef FilePath, const IFSStub &Stub,
                                   bool WriteIfChanged) {
-  ELFStubBuilder<ELFT> Builder{Stub};
+  ELFStubBuilder<ELFT> const Builder{Stub};
   // Write Stub to memory first.
   std::vector<uint8_t> Buf(Builder.getSize());
   Builder.write(Buf.data());

@@ -299,7 +299,7 @@ InductiveRangeCheck::parseRangeCheckICmp(Loop *L, ICmpInst *ICI,
     return SE.isLoopInvariant(SE.getSCEV(V), L);
   };
 
-  ICmpInst::Predicate Pred = ICI->getPredicate();
+  ICmpInst::Predicate const Pred = ICI->getPredicate();
   Value *LHS = ICI->getOperand(0);
   Value *RHS = ICI->getOperand(1);
 
@@ -378,7 +378,7 @@ void InductiveRangeCheck::extractRangeChecksFromCond(
     return;
 
   const auto *IndexAddRec = dyn_cast<SCEVAddRecExpr>(SE.getSCEV(Index));
-  bool IsAffineIndex =
+  bool const IsAffineIndex =
       IndexAddRec && (IndexAddRec->getLoop() == L) && IndexAddRec->isAffine();
 
   if (!IsAffineIndex)
@@ -393,7 +393,7 @@ void InductiveRangeCheck::extractRangeChecksFromCond(
     // So far we can only reach this point for Signed range check. This may
     // change in future. In this case we will need to pick Unsigned max for the
     // unsigned range check.
-    unsigned BitWidth = cast<IntegerType>(IndexAddRec->getType())->getBitWidth();
+    unsigned const BitWidth = cast<IntegerType>(IndexAddRec->getType())->getBitWidth();
     const SCEV *SIntMax = SE.getConstant(APInt::getSignedMaxValue(BitWidth));
     End = SIntMax;
   }
@@ -412,7 +412,7 @@ void InductiveRangeCheck::extractRangeChecksFromBranch(
   if (BI->isUnconditional() || BI->getParent() == L->getLoopLatch())
     return;
 
-  BranchProbability LikelyTaken(15, 16);
+  BranchProbability const LikelyTaken(15, 16);
 
   if (!SkipProfitabilityChecks && BPI &&
       BPI->getEdgeProbability(BI->getParent(), (unsigned)0) < LikelyTaken)
@@ -678,10 +678,10 @@ static bool isSafeDecreasingBound(const SCEV *Start,
                     << "\n");
   LLVM_DEBUG(dbgs() << "irce: LatchExitBrIdx: " << LatchBrExitIdx << "\n");
 
-  bool IsSigned = ICmpInst::isSigned(Pred);
+  bool const IsSigned = ICmpInst::isSigned(Pred);
   // The predicate that we need to check that the induction variable lies
   // within bounds.
-  ICmpInst::Predicate BoundPred =
+  ICmpInst::Predicate const BoundPred =
     IsSigned ? CmpInst::ICMP_SGT : CmpInst::ICMP_UGT;
 
   if (LatchBrExitIdx == 1)
@@ -691,8 +691,8 @@ static bool isSafeDecreasingBound(const SCEV *Start,
          "LatchBrExitIdx should be either 0 or 1");
 
   const SCEV *StepPlusOne = SE.getAddExpr(Step, SE.getOne(Step->getType()));
-  unsigned BitWidth = cast<IntegerType>(BoundSCEV->getType())->getBitWidth();
-  APInt Min = IsSigned ? APInt::getSignedMinValue(BitWidth) :
+  unsigned const BitWidth = cast<IntegerType>(BoundSCEV->getType())->getBitWidth();
+  APInt const Min = IsSigned ? APInt::getSignedMinValue(BitWidth) :
     APInt::getMinValue(BitWidth);
   const SCEV *Limit = SE.getMinusSCEV(SE.getConstant(Min), StepPlusOne);
 
@@ -726,10 +726,10 @@ static bool isSafeIncreasingBound(const SCEV *Start,
                     << "\n");
   LLVM_DEBUG(dbgs() << "irce: LatchExitBrIdx: " << LatchBrExitIdx << "\n");
 
-  bool IsSigned = ICmpInst::isSigned(Pred);
+  bool const IsSigned = ICmpInst::isSigned(Pred);
   // The predicate that we need to check that the induction variable lies
   // within bounds.
-  ICmpInst::Predicate BoundPred =
+  ICmpInst::Predicate const BoundPred =
       IsSigned ? CmpInst::ICMP_SLT : CmpInst::ICMP_ULT;
 
   if (LatchBrExitIdx == 1)
@@ -739,8 +739,8 @@ static bool isSafeIncreasingBound(const SCEV *Start,
 
   const SCEV *StepMinusOne =
     SE.getMinusSCEV(Step, SE.getOne(Step->getType()));
-  unsigned BitWidth = cast<IntegerType>(BoundSCEV->getType())->getBitWidth();
-  APInt Max = IsSigned ? APInt::getSignedMaxValue(BitWidth) :
+  unsigned const BitWidth = cast<IntegerType>(BoundSCEV->getType())->getBitWidth();
+  APInt const Max = IsSigned ? APInt::getSignedMaxValue(BitWidth) :
     APInt::getMaxValue(BitWidth);
   const SCEV *Limit = SE.getMinusSCEV(SE.getConstant(Max), StepMinusOne);
 
@@ -783,7 +783,7 @@ LoopStructure::parseLoopStructure(ScalarEvolution &SE, Loop &L,
     return None;
   }
 
-  unsigned LatchBrExitIdx = LatchBr->getSuccessor(0) == Header ? 1 : 0;
+  unsigned const LatchBrExitIdx = LatchBr->getSuccessor(0) == Header ? 1 : 0;
 
   ICmpInst *ICI = dyn_cast<ICmpInst>(LatchBr->getCondition());
   if (!ICI || !isa<IntegerType>(ICI->getOperand(0)->getType())) {
@@ -832,7 +832,7 @@ LoopStructure::parseLoopStructure(ScalarEvolution &SE, Loop &L,
       const SCEV *ExtendedStep =
           SE.getSignExtendExpr(AR->getStepRecurrence(SE), WideTy);
 
-      bool NoSignedWrap = ExtendAfterOp->getStart() == ExtendedStart &&
+      bool const NoSignedWrap = ExtendAfterOp->getStart() == ExtendedStart &&
                           ExtendAfterOp->getStepRecurrence(SE) == ExtendedStep;
 
       if (NoSignedWrap)
@@ -864,7 +864,7 @@ LoopStructure::parseLoopStructure(ScalarEvolution &SE, Loop &L,
   }
 
   assert(!StepCI->isZero() && "Zero step?");
-  bool IsIncreasing = !StepCI->isNegative();
+  bool const IsIncreasing = !StepCI->isNegative();
   bool IsSignedPredicate;
   const SCEV *StartNext = IndVarBase->getStart();
   const SCEV *Addend = SE.getNegativeSCEV(IndVarBase->getStepRecurrence(SE));
@@ -916,9 +916,9 @@ LoopStructure::parseLoopStructure(ScalarEvolution &SE, Loop &L,
       }
     }
 
-    bool LTPred = (Pred == ICmpInst::ICMP_SLT || Pred == ICmpInst::ICMP_ULT);
-    bool GTPred = (Pred == ICmpInst::ICMP_SGT || Pred == ICmpInst::ICMP_UGT);
-    bool FoundExpectedPred =
+    bool const LTPred = (Pred == ICmpInst::ICMP_SLT || Pred == ICmpInst::ICMP_ULT);
+    bool const GTPred = (Pred == ICmpInst::ICMP_SGT || Pred == ICmpInst::ICMP_UGT);
+    bool const FoundExpectedPred =
         (LTPred && LatchBrExitIdx == 1) || (GTPred && LatchBrExitIdx == 0);
 
     if (!FoundExpectedPred) {
@@ -978,10 +978,10 @@ LoopStructure::parseLoopStructure(ScalarEvolution &SE, Loop &L,
       }
     }
 
-    bool LTPred = (Pred == ICmpInst::ICMP_SLT || Pred == ICmpInst::ICMP_ULT);
-    bool GTPred = (Pred == ICmpInst::ICMP_SGT || Pred == ICmpInst::ICMP_UGT);
+    bool const LTPred = (Pred == ICmpInst::ICMP_SLT || Pred == ICmpInst::ICMP_ULT);
+    bool const GTPred = (Pred == ICmpInst::ICMP_SGT || Pred == ICmpInst::ICMP_UGT);
 
-    bool FoundExpectedPred =
+    bool const FoundExpectedPred =
         (GTPred && LatchBrExitIdx == 1) || (LTPred && LatchBrExitIdx == 0);
 
     if (!FoundExpectedPred) {
@@ -1081,7 +1081,7 @@ LoopConstrainer::calculateSubRanges(bool IsSignedPredicate) const {
   const SCEV *End = NoopOrExtend(SE.getSCEV(MainLoopStructure.LoopExitAt), RTy,
                                  SE, IsSignedPredicate);
 
-  bool Increasing = MainLoopStructure.IndVarIncreasing;
+  bool const Increasing = MainLoopStructure.IndVarIncreasing;
 
   // We compute `Smallest` and `Greatest` such that [Smallest, Greatest), or
   // [Smallest, GreatestSeen] is the range of values the induction variable
@@ -1123,17 +1123,17 @@ LoopConstrainer::calculateSubRanges(bool IsSignedPredicate) const {
   };
 
   // In some cases we can prove that we don't need a pre or post loop.
-  ICmpInst::Predicate PredLE =
+  ICmpInst::Predicate const PredLE =
       IsSignedPredicate ? ICmpInst::ICMP_SLE : ICmpInst::ICMP_ULE;
-  ICmpInst::Predicate PredLT =
+  ICmpInst::Predicate const PredLT =
       IsSignedPredicate ? ICmpInst::ICMP_SLT : ICmpInst::ICMP_ULT;
 
-  bool ProvablyNoPreloop =
+  bool const ProvablyNoPreloop =
       SE.isKnownPredicate(PredLE, Range.getBegin(), Smallest);
   if (!ProvablyNoPreloop)
     Result.LowLimit = Clamp(Range.getBegin());
 
-  bool ProvablyNoPostLoop =
+  bool const ProvablyNoPostLoop =
       SE.isKnownPredicate(PredLT, GreatestSeen, Range.getEnd());
   if (!ProvablyNoPostLoop)
     Result.HighLimit = Clamp(Range.getEnd());
@@ -1274,7 +1274,7 @@ LoopConstrainer::RewrittenRangeInfo LoopConstrainer::changeIterationSpaceEnd(
                                       BBInsertLocation);
 
   BranchInst *PreheaderJump = cast<BranchInst>(Preheader->getTerminator());
-  bool Increasing = LS.IndVarIncreasing;
+  bool const Increasing = LS.IndVarIncreasing;
   bool IsSignedPredicate = LS.IsSignedPredicate;
 
   IRBuilder<> B(PreheaderJump);
@@ -1324,7 +1324,7 @@ LoopConstrainer::RewrittenRangeInfo LoopConstrainer::changeIterationSpaceEnd(
   // We emit PHI nodes into `RRI.PseudoExit' that compute the "latest" value of
   // each of the PHI nodes in the loop header.  This feeds into the initial
   // value of the same PHI nodes if/when we continue execution.
-  for (PHINode &PN : LS.Header->phis()) {
+  for (PHINode  const&PN : LS.Header->phis()) {
     PHINode *NewPHI = PHINode::Create(PN.getType(), 2, PN.getName() + ".copy",
                                       BranchToContinuation);
 
@@ -1409,7 +1409,7 @@ bool LoopConstrainer::run() {
   OriginalPreheader = Preheader;
   MainLoopPreheader = Preheader;
 
-  bool IsSignedPredicate = MainLoopStructure.IsSignedPredicate;
+  bool const IsSignedPredicate = MainLoopStructure.IsSignedPredicate;
   Optional<SubRanges> MaybeSR = calculateSubRanges(IsSignedPredicate);
   if (!MaybeSR.hasValue()) {
     LLVM_DEBUG(dbgs() << "irce: could not compute subranges\n");
@@ -1417,7 +1417,7 @@ bool LoopConstrainer::run() {
   }
 
   SubRanges SR = MaybeSR.getValue();
-  bool Increasing = MainLoopStructure.IndVarIncreasing;
+  bool const Increasing = MainLoopStructure.IndVarIncreasing;
   IntegerType *IVTy =
       cast<IntegerType>(Range.getBegin()->getType());
 
@@ -1428,9 +1428,9 @@ bool LoopConstrainer::run() {
   // `Optional<ClonedLoop>'s, but `ValueToValueMapTy' does not have a copy
   // constructor.
   ClonedLoop PreLoop, PostLoop;
-  bool NeedsPreLoop =
+  bool const NeedsPreLoop =
       Increasing ? SR.LowLimit.hasValue() : SR.HighLimit.hasValue();
-  bool NeedsPostLoop =
+  bool const NeedsPostLoop =
       Increasing ? SR.HighLimit.hasValue() : SR.LowLimit.hasValue();
 
   Value *ExitPreLoopAt = nullptr;
@@ -1624,7 +1624,7 @@ InductiveRangeCheck::computeSafeIterationSpace(
     return None;
 
   assert(!D->getValue()->isZero() && "Recurrence with zero step?");
-  unsigned BitWidth = RCType->getBitWidth();
+  unsigned const BitWidth = RCType->getBitWidth();
   const SCEV *SIntMax = SE.getConstant(APInt::getSignedMaxValue(BitWidth));
 
   // Subtract Y from X so that it does not go through border of the IV
@@ -1855,9 +1855,9 @@ InductiveRangeCheckElimination::isProfitableToTransform(const Loop &L,
   if (SkipProfitabilityChecks)
     return true;
   if (GetBFI.hasValue()) {
-    BlockFrequencyInfo &BFI = (*GetBFI)();
-    uint64_t hFreq = BFI.getBlockFreq(LS.Header).getFrequency();
-    uint64_t phFreq = BFI.getBlockFreq(L.getLoopPreheader()).getFrequency();
+    BlockFrequencyInfo  const&BFI = (*GetBFI)();
+    uint64_t const hFreq = BFI.getBlockFreq(LS.Header).getFrequency();
+    uint64_t const phFreq = BFI.getBlockFreq(L.getLoopPreheader()).getFrequency();
     if (phFreq != 0 && hFreq != 0 && (hFreq / phFreq < MinRuntimeIterations)) {
       LLVM_DEBUG(dbgs() << "irce: could not prove profitability: "
                         << "the estimated number of iterations basing on "
@@ -1869,7 +1869,7 @@ InductiveRangeCheckElimination::isProfitableToTransform(const Loop &L,
 
   if (!BPI)
     return true;
-  BranchProbability ExitProbability =
+  BranchProbability const ExitProbability =
       BPI->getEdgeProbability(LS.Latch, LS.LatchBrExitIdx);
   if (ExitProbability > BranchProbability(1, MinRuntimeIterations)) {
     LLVM_DEBUG(dbgs() << "irce: could not prove profitability: "
@@ -1908,7 +1908,7 @@ bool InductiveRangeCheckElimination::run(
     OS << "irce: looking at loop "; L->print(OS);
     OS << "irce: loop has " << RangeChecks.size()
        << " inductive range checks: \n";
-    for (InductiveRangeCheck &IRC : RangeChecks)
+    for (InductiveRangeCheck  const&IRC : RangeChecks)
       IRC.print(OS);
   };
 
@@ -1942,8 +1942,8 @@ bool InductiveRangeCheckElimination::run(
   auto IntersectRange =
       LS.IsSignedPredicate ? IntersectSignedRange : IntersectUnsignedRange;
 
-  IRBuilder<> B(ExprInsertPt);
-  for (InductiveRangeCheck &IRC : RangeChecks) {
+  IRBuilder<> const B(ExprInsertPt);
+  for (InductiveRangeCheck  const&IRC : RangeChecks) {
     auto Result = IRC.computeSafeIterationSpace(SE, IndVar,
                                                 LS.IsSignedPredicate);
     if (Result.hasValue()) {
@@ -1964,7 +1964,7 @@ bool InductiveRangeCheckElimination::run(
 
   LoopConstrainer LC(*L, LI, LPMAddNewLoop, LS, SE, DT,
                      SafeIterRange.getValue());
-  bool Changed = LC.run();
+  bool const Changed = LC.run();
 
   if (Changed) {
     auto PrintConstrainedLoopInfo = [L]() {

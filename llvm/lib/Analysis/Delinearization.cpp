@@ -93,7 +93,7 @@ void printDelinearization(raw_ostream &O, Function *F, LoopInfo *LI,
 
       O << "Base offset: " << *BasePointer << "\n";
       O << "ArrayDecl[UnknownSize]";
-      int Size = Subscripts.size();
+      int const Size = Subscripts.size();
       for (int i = 0; i < Size - 1; i++)
         O << "[" << *Sizes[i] << "]";
       O << " with elements of " << *Sizes[Size - 1] << " bytes.\n";

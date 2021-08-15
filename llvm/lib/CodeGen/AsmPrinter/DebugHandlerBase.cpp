@@ -59,7 +59,7 @@ DbgVariableLocation::extractFromMachineInstruction(
   while (Op != DIExpr->expr_op_end()) {
     switch (Op->getOp()) {
     case dwarf::DW_OP_constu: {
-      int Value = Op->getArg(0);
+      int const Value = Op->getArg(0);
       ++Op;
       if (Op != DIExpr->expr_op_end()) {
         switch (Op->getOp()) {
@@ -151,7 +151,7 @@ uint64_t DebugHandlerBase::getBaseTypeSize(const DIType *Ty) {
   if (!DDTy)
     return Ty->getSizeInBits();
 
-  unsigned Tag = DDTy->getTag();
+  unsigned const Tag = DDTy->getTag();
 
   if (Tag != dwarf::DW_TAG_member && Tag != dwarf::DW_TAG_typedef &&
       Tag != dwarf::DW_TAG_const_type && Tag != dwarf::DW_TAG_volatile_type &&
@@ -192,7 +192,7 @@ bool DebugHandlerBase::isUnsignedDIType(const DIType *Ty) {
   }
 
   if (auto *DTy = dyn_cast<DIDerivedType>(Ty)) {
-    dwarf::Tag T = (dwarf::Tag)Ty->getTag();
+    dwarf::Tag const T = (dwarf::Tag)Ty->getTag();
     // Encode pointer constants as unsigned bytes. This is used at least for
     // null pointer constant emission.
     // FIXME: reference and rvalue_reference /probably/ shouldn't be allowed
@@ -211,7 +211,7 @@ bool DebugHandlerBase::isUnsignedDIType(const DIType *Ty) {
   }
 
   auto *BTy = cast<DIBasicType>(Ty);
-  unsigned Encoding = BTy->getEncoding();
+  unsigned const Encoding = BTy->getEncoding();
   assert((Encoding == dwarf::DW_ATE_unsigned ||
           Encoding == dwarf::DW_ATE_unsigned_char ||
           Encoding == dwarf::DW_ATE_signed ||
@@ -347,7 +347,7 @@ void DebugHandlerBase::beginInstruction(const MachineInstr *MI) {
   CurMI = MI;
 
   // Insert labels where requested.
-  DenseMap<const MachineInstr *, MCSymbol *>::iterator I =
+  DenseMap<const MachineInstr *, MCSymbol *>::iterator const I =
       LabelsBeforeInsn.find(MI);
 
   // No label needed.
@@ -377,7 +377,7 @@ void DebugHandlerBase::endInstruction() {
     PrevInstBB = CurMI->getParent();
   }
 
-  DenseMap<const MachineInstr *, MCSymbol *>::iterator I =
+  DenseMap<const MachineInstr *, MCSymbol *>::iterator const I =
       LabelsAfterInsn.find(CurMI);
 
   // No label needed or label already assigned.

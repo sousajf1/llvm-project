@@ -22,14 +22,14 @@ Error DebugFrameDataSubsectionRef::initialize(BinaryStreamReader Reader) {
     return make_error<CodeViewError>(cv_error_code::corrupt_record,
                                      "Invalid frame data record format!");
 
-  uint32_t Count = Reader.bytesRemaining() / sizeof(FrameData);
+  uint32_t const Count = Reader.bytesRemaining() / sizeof(FrameData);
   if (auto EC = Reader.readArray(Frames, Count))
     return EC;
   return Error::success();
 }
 
 Error DebugFrameDataSubsectionRef::initialize(BinaryStreamRef Section) {
-  BinaryStreamReader Reader(Section);
+  BinaryStreamReader const Reader(Section);
   return initialize(Reader);
 }
 

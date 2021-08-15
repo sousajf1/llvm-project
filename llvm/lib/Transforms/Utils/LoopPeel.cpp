@@ -165,7 +165,7 @@ static unsigned calculateIterationsToInvariance(
       return InfiniteIterationsToInvariance;
     // If the input becomes an invariant after X iterations, then our Phi
     // becomes an invariant after X + 1 iterations.
-    unsigned InputToInvariance = calculateIterationsToInvariance(
+    unsigned const InputToInvariance = calculateIterationsToInvariance(
         IncPhi, L, BackEdge, IterationsToInvariance);
     if (InputToInvariance != InfiniteIterationsToInvariance)
       ToInvariance = InputToInvariance + 1u;
@@ -297,7 +297,7 @@ void llvm::computePeelCount(Loop *L, unsigned LoopSize,
   assert(LoopSize > 0 && "Zero loop size is not allowed!");
   // Save the PP.PeelCount value set by the target in
   // TTI.getPeelingPreferences or by the flag -unroll-peel-count.
-  unsigned TargetPeelCount = PP.PeelCount;
+  unsigned const TargetPeelCount = PP.PeelCount;
   PP.PeelCount = 0;
   if (!canPeel(L))
     return;
@@ -309,7 +309,7 @@ void llvm::computePeelCount(Loop *L, unsigned LoopSize,
     return;
 
   // If the user provided a peel count, use that.
-  bool UserPeelCount = UnrollForcePeelCount.getNumOccurrences() > 0;
+  bool const UserPeelCount = UnrollForcePeelCount.getNumOccurrences() > 0;
   if (UserPeelCount) {
     LLVM_DEBUG(dbgs() << "Force-peeling first " << UnrollForcePeelCount
                       << " iterations.\n");
@@ -347,7 +347,7 @@ void llvm::computePeelCount(Loop *L, unsigned LoopSize,
     assert(BackEdge && "Loop is not in simplified form?");
     for (auto BI = L->getHeader()->begin(); isa<PHINode>(&*BI); ++BI) {
       PHINode *Phi = cast<PHINode>(&*BI);
-      unsigned ToInvariance = calculateIterationsToInvariance(
+      unsigned const ToInvariance = calculateIterationsToInvariance(
           Phi, L, BackEdge, IterationsToInvariance);
       if (ToInvariance != InfiniteIterationsToInvariance)
         DesiredPeelCount = std::max(DesiredPeelCount, ToInvariance);
@@ -442,7 +442,7 @@ static void updateBranchWeights(BasicBlock *Header, BranchInst *LatchBR,
   if (!FallThroughWeight)
     return;
 
-  unsigned HeaderIdx = (LatchBR->getSuccessor(0) == Header ? 0 : 1);
+  unsigned const HeaderIdx = (LatchBR->getSuccessor(0) == Header ? 0 : 1);
   MDBuilder MDB(LatchBR->getContext());
   MDNode *WeightNode =
       HeaderIdx ? MDB.createBranchWeights(ExitWeight, FallThroughWeight)
@@ -464,7 +464,7 @@ static void initBranchWeights(BasicBlock *Header, BranchInst *LatchBR,
   uint64_t TrueWeight, FalseWeight;
   if (!LatchBR->extractProfMetadata(TrueWeight, FalseWeight))
     return;
-  unsigned HeaderIdx = LatchBR->getSuccessor(0) == Header ? 0 : 1;
+  unsigned const HeaderIdx = LatchBR->getSuccessor(0) == Header ? 0 : 1;
   ExitWeight = HeaderIdx ? TrueWeight : FalseWeight;
   FallThroughWeight = HeaderIdx ? FalseWeight : TrueWeight;
 }
@@ -485,7 +485,7 @@ static void fixupBranchWeights(BasicBlock *Header, BranchInst *LatchBR,
 
   // Sets the branch weights on the loop exit.
   MDBuilder MDB(LatchBR->getContext());
-  unsigned HeaderIdx = LatchBR->getSuccessor(0) == Header ? 0 : 1;
+  unsigned const HeaderIdx = LatchBR->getSuccessor(0) == Header ? 0 : 1;
   MDNode *WeightNode =
       HeaderIdx ? MDB.createBranchWeights(ExitWeight, FallThroughWeight)
                 : MDB.createBranchWeights(FallThroughWeight, ExitWeight);
@@ -513,8 +513,8 @@ static void cloneLoopBlocks(
   BasicBlock *PreHeader = L->getLoopPreheader();
 
   Function *F = Header->getParent();
-  LoopBlocksDFS::RPOIterator BlockBegin = LoopBlocks.beginRPO();
-  LoopBlocksDFS::RPOIterator BlockEnd = LoopBlocks.endRPO();
+  LoopBlocksDFS::RPOIterator const BlockBegin = LoopBlocks.beginRPO();
+  LoopBlocksDFS::RPOIterator const BlockEnd = LoopBlocks.endRPO();
   Loop *ParentLoop = L->getParentLoop();
 
   // For each block in the original loop, create a new copy,
@@ -547,7 +547,7 @@ static void cloneLoopBlocks(
     // Identify what other metadata depends on the cloned version. After
     // cloning, replace the metadata with the corrected version for both
     // memory instructions and noalias intrinsics.
-    std::string Ext = (Twine("Peel") + Twine(IterNumber)).str();
+    std::string const Ext = (Twine("Peel") + Twine(IterNumber)).str();
     cloneAndAdaptNoAliasScopes(LoopLocalNoAliasDeclScopes, NewBlocks,
                                Header->getContext(), Ext);
   }

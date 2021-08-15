@@ -160,7 +160,7 @@ void MCWasmStreamer::emitInstToFragment(const MCInst &Inst,
 
 void MCWasmStreamer::emitInstToData(const MCInst &Inst,
                                     const MCSubtargetInfo &STI) {
-  MCAssembler &Assembler = getAssembler();
+  MCAssembler  const&Assembler = getAssembler();
   SmallVector<MCFixup, 4> Fixups;
   SmallString<256> Code;
   raw_svector_ostream VecOS(Code);

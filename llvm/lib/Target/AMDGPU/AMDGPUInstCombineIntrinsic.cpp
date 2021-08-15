@@ -42,14 +42,14 @@ struct AMDGPUImageDMaskIntrinsic {
 // handling NaNs.
 static APFloat fmed3AMDGCN(const APFloat &Src0, const APFloat &Src1,
                            const APFloat &Src2) {
-  APFloat Max3 = maxnum(maxnum(Src0, Src1), Src2);
+  APFloat const Max3 = maxnum(maxnum(Src0, Src1), Src2);
 
-  APFloat::cmpResult Cmp0 = Max3.compare(Src0);
+  APFloat::cmpResult const Cmp0 = Max3.compare(Src0);
   assert(Cmp0 != APFloat::cmpUnordered && "nans handled separately");
   if (Cmp0 == APFloat::cmpEqual)
     return maxnum(Src1, Src2);
 
-  APFloat::cmpResult Cmp1 = Max3.compare(Src1);
+  APFloat::cmpResult const Cmp1 = Max3.compare(Src1);
   assert(Cmp1 != APFloat::cmpUnordered && "nans handled separately");
   if (Cmp1 == APFloat::cmpEqual)
     return maxnum(Src0, Src2);
@@ -151,7 +151,7 @@ simplifyAMDGCNImageIntrinsic(const GCNSubtarget *ST,
 
   SmallVector<Value *, 8> Args(II.arg_operands());
 
-  unsigned EndIndex =
+  unsigned const EndIndex =
       OnlyDerivatives ? ImageDimIntr->CoordStart : ImageDimIntr->VAddrEnd;
   for (unsigned OperandIndex = ImageDimIntr->GradientStart;
        OperandIndex < EndIndex; OperandIndex++) {
@@ -190,7 +190,7 @@ bool GCNTTIImpl::canSimplifyLegacyMulToMul(const Value *Op0, const Value *Op1,
 
 Optional<Instruction *>
 GCNTTIImpl::instCombineIntrinsic(InstCombiner &IC, IntrinsicInst &II) const {
-  Intrinsic::ID IID = II.getIntrinsicID();
+  Intrinsic::ID const IID = II.getIntrinsicID();
   switch (IID) {
   case Intrinsic::amdgcn_rcp: {
     Value *Src = II.getArgOperand(0);
@@ -236,7 +236,7 @@ GCNTTIImpl::instCombineIntrinsic(InstCombiner &IC, IntrinsicInst &II) const {
     Value *Src = II.getArgOperand(0);
     if (const ConstantFP *C = dyn_cast<ConstantFP>(Src)) {
       int Exp;
-      APFloat Significand =
+      APFloat const Significand =
           frexp(C->getValueAPF(), Exp, APFloat::rmNearestTiesToEven);
 
       if (IID == Intrinsic::amdgcn_frexp_mant) {
@@ -290,7 +290,7 @@ GCNTTIImpl::instCombineIntrinsic(InstCombiner &IC, IntrinsicInst &II) const {
       break;
     }
 
-    uint32_t Mask = CMask->getZExtValue();
+    uint32_t const Mask = CMask->getZExtValue();
 
     // If all tests are made, it doesn't matter what the value is.
     if ((Mask & FullMask) == FullMask) {
@@ -345,7 +345,7 @@ GCNTTIImpl::instCombineIntrinsic(InstCombiner &IC, IntrinsicInst &II) const {
 
     const APFloat &Val = CVal->getValueAPF();
 
-    bool Result =
+    bool const Result =
         ((Mask & S_NAN) && Val.isNaN() && Val.isSignaling()) ||
         ((Mask & Q_NAN) && Val.isNaN() && !Val.isSignaling()) ||
         ((Mask & N_INFINITY) && Val.isInfinity() && Val.isNegative()) ||
@@ -408,7 +408,7 @@ GCNTTIImpl::instCombineIntrinsic(InstCombiner &IC, IntrinsicInst &II) const {
 
     unsigned Width;
     Type *Ty = II.getType();
-    unsigned IntSize = Ty->getIntegerBitWidth();
+    unsigned const IntSize = Ty->getIntegerBitWidth();
 
     ConstantInt *CWidth = dyn_cast<ConstantInt>(II.getArgOperand(2));
     if (CWidth) {
@@ -435,7 +435,7 @@ GCNTTIImpl::instCombineIntrinsic(InstCombiner &IC, IntrinsicInst &II) const {
       }
     }
 
-    bool Signed = IID == Intrinsic::amdgcn_sbfe;
+    bool const Signed = IID == Intrinsic::amdgcn_sbfe;
 
     if (!CWidth || !COffset)
       break;
@@ -464,11 +464,11 @@ GCNTTIImpl::instCombineIntrinsic(InstCombiner &IC, IntrinsicInst &II) const {
   case Intrinsic::amdgcn_exp:
   case Intrinsic::amdgcn_exp_compr: {
     ConstantInt *En = cast<ConstantInt>(II.getArgOperand(1));
-    unsigned EnBits = En->getZExtValue();
+    unsigned const EnBits = En->getZExtValue();
     if (EnBits == 0xf)
       break; // All inputs enabled.
 
-    bool IsCompr = IID == Intrinsic::amdgcn_exp_compr;
+    bool const IsCompr = IID == Intrinsic::amdgcn_exp_compr;
     bool Changed = false;
     for (int I = 0; I < (IsCompr ? 2 : 4); ++I) {
       if ((!IsCompr && (EnBits & (1 << I)) == 0) ||
@@ -542,7 +542,7 @@ GCNTTIImpl::instCombineIntrinsic(InstCombiner &IC, IntrinsicInst &II) const {
     if (const ConstantFP *C0 = dyn_cast<ConstantFP>(Src0)) {
       if (const ConstantFP *C1 = dyn_cast<ConstantFP>(Src1)) {
         if (const ConstantFP *C2 = dyn_cast<ConstantFP>(Src2)) {
-          APFloat Result = fmed3AMDGCN(C0->getValueAPF(), C1->getValueAPF(),
+          APFloat const Result = fmed3AMDGCN(C0->getValueAPF(), C1->getValueAPF(),
                                        C2->getValueAPF());
           return IC.replaceInstUsesWith(
               II, ConstantFP::get(IC.Builder.getContext(), Result));
@@ -556,8 +556,8 @@ GCNTTIImpl::instCombineIntrinsic(InstCombiner &IC, IntrinsicInst &II) const {
   case Intrinsic::amdgcn_fcmp: {
     const ConstantInt *CC = cast<ConstantInt>(II.getArgOperand(2));
     // Guard against invalid arguments.
-    int64_t CCVal = CC->getZExtValue();
-    bool IsInteger = IID == Intrinsic::amdgcn_icmp;
+    int64_t const CCVal = CC->getZExtValue();
+    bool const IsInteger = IID == Intrinsic::amdgcn_icmp;
     if ((IsInteger && (CCVal < CmpInst::FIRST_ICMP_PREDICATE ||
                        CCVal > CmpInst::LAST_ICMP_PREDICATE)) ||
         (!IsInteger && (CCVal < CmpInst::FIRST_FCMP_PREDICATE ||
@@ -582,9 +582,9 @@ GCNTTIImpl::instCombineIntrinsic(InstCombiner &IC, IntrinsicInst &II) const {
         // EXEC register.
         Function *NewF = Intrinsic::getDeclaration(
             II.getModule(), Intrinsic::read_register, II.getType());
-        Metadata *MDArgs[] = {MDString::get(II.getContext(), "exec")};
+        Metadata *const MDArgs[] = {MDString::get(II.getContext(), "exec")};
         MDNode *MD = MDNode::get(II.getContext(), MDArgs);
-        Value *Args[] = {MetadataAsValue::get(II.getContext(), MD)};
+        Value *const Args[] = {MetadataAsValue::get(II.getContext(), MD)};
         CallInst *NewCall = IC.Builder.CreateCall(NewF, Args);
         NewCall->addAttribute(AttributeList::FunctionIndex,
                               Attribute::Convergent);
@@ -593,7 +593,7 @@ GCNTTIImpl::instCombineIntrinsic(InstCombiner &IC, IntrinsicInst &II) const {
       }
 
       // Canonicalize constants to RHS.
-      CmpInst::Predicate SwapPred =
+      CmpInst::Predicate const SwapPred =
           CmpInst::getSwappedPredicate(static_cast<CmpInst::Predicate>(CCVal));
       II.setArgOperand(0, Src1);
       II.setArgOperand(1, Src0);
@@ -644,14 +644,14 @@ GCNTTIImpl::instCombineIntrinsic(InstCombiner &IC, IntrinsicInst &II) const {
       if (CCVal == CmpInst::ICMP_EQ)
         SrcPred = CmpInst::getInversePredicate(SrcPred);
 
-      Intrinsic::ID NewIID = CmpInst::isFPPredicate(SrcPred)
+      Intrinsic::ID const NewIID = CmpInst::isFPPredicate(SrcPred)
                                  ? Intrinsic::amdgcn_fcmp
                                  : Intrinsic::amdgcn_icmp;
 
       Type *Ty = SrcLHS->getType();
       if (auto *CmpType = dyn_cast<IntegerType>(Ty)) {
         // Promote to next legal integer type.
-        unsigned Width = CmpType->getBitWidth();
+        unsigned const Width = CmpType->getBitWidth();
         unsigned NewWidth = Width;
 
         // Don't do anything for i1 comparisons.
@@ -682,7 +682,7 @@ GCNTTIImpl::instCombineIntrinsic(InstCombiner &IC, IntrinsicInst &II) const {
 
       Function *NewF = Intrinsic::getDeclaration(
           II.getModule(), NewIID, {II.getType(), SrcLHS->getType()});
-      Value *Args[] = {SrcLHS, SrcRHS,
+      Value *const Args[] = {SrcLHS, SrcRHS,
                        ConstantInt::get(CC->getType(), SrcPred)};
       CallInst *NewCall = IC.Builder.CreateCall(NewF, Args);
       NewCall->takeName(&II);
@@ -708,9 +708,9 @@ GCNTTIImpl::instCombineIntrinsic(InstCombiner &IC, IntrinsicInst &II) const {
 
         Function *NewF = Intrinsic::getDeclaration(
             II.getModule(), Intrinsic::read_register, II.getType());
-        Metadata *MDArgs[] = {MDString::get(II.getContext(), RegName)};
+        Metadata *const MDArgs[] = {MDString::get(II.getContext(), RegName)};
         MDNode *MD = MDNode::get(II.getContext(), MDArgs);
-        Value *Args[] = {MetadataAsValue::get(II.getContext(), MD)};
+        Value *const Args[] = {MetadataAsValue::get(II.getContext(), MD)};
         CallInst *NewCall = IC.Builder.CreateCall(NewF, Args);
         NewCall->addAttribute(AttributeList::FunctionIndex,
                               Attribute::Convergent);
@@ -915,11 +915,11 @@ static Value *simplifyAMDGCNMemoryIntrinsicDemanded(InstCombiner &IC,
                                                     int DMaskIdx = -1) {
 
   auto *IIVTy = cast<FixedVectorType>(II.getType());
-  unsigned VWidth = IIVTy->getNumElements();
+  unsigned const VWidth = IIVTy->getNumElements();
   if (VWidth == 1)
     return nullptr;
 
-  IRBuilderBase::InsertPointGuard Guard(IC.Builder);
+  IRBuilderBase::InsertPointGuard const Guard(IC.Builder);
   IC.Builder.SetInsertPoint(&II);
 
   // Assume the arguments are unchanged and later override them, if needed.
@@ -966,9 +966,9 @@ static Value *simplifyAMDGCNMemoryIntrinsicDemanded(InstCombiner &IC,
         // Clear demanded bits and update the offset.
         DemandedElts &= ~((1 << UnusedComponentsAtFront) - 1);
         auto *Offset = II.getArgOperand(OffsetIdx);
-        unsigned SingleComponentSizeInBits =
+        unsigned const SingleComponentSizeInBits =
             IC.getDataLayout().getTypeSizeInBits(II.getType()->getScalarType());
-        unsigned OffsetAdd =
+        unsigned const OffsetAdd =
             UnusedComponentsAtFront * SingleComponentSizeInBits / 8;
         auto *OffsetAddVal = ConstantInt::get(Offset->getType(), OffsetAdd);
         Args[OffsetIdx] = IC.Builder.CreateAdd(Offset, OffsetAddVal);
@@ -978,7 +978,7 @@ static Value *simplifyAMDGCNMemoryIntrinsicDemanded(InstCombiner &IC,
     // Image case.
 
     ConstantInt *DMask = cast<ConstantInt>(II.getArgOperand(DMaskIdx));
-    unsigned DMaskVal = DMask->getZExtValue() & 0xf;
+    unsigned const DMaskVal = DMask->getZExtValue() & 0xf;
 
     // Mask off values that are undefined because the dmask doesn't cover them
     DemandedElts &= (1 << countPopulation(DMaskVal)) - 1;
@@ -998,7 +998,7 @@ static Value *simplifyAMDGCNMemoryIntrinsicDemanded(InstCombiner &IC,
       Args[DMaskIdx] = ConstantInt::get(DMask->getType(), NewDMaskVal);
   }
 
-  unsigned NewNumElts = DemandedElts.countPopulation();
+  unsigned const NewNumElts = DemandedElts.countPopulation();
   if (!NewNumElts)
     return UndefValue::get(II.getType());
 

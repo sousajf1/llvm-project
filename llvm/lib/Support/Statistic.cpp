@@ -47,12 +47,12 @@ static bool Enabled;
 static bool PrintOnExit;
 
 void llvm::initStatisticOptions() {
-  static cl::opt<bool, true> registerEnableStats{
+  static cl::opt<bool, true> const registerEnableStats{
       "stats",
       cl::desc(
           "Enable statistics output from program (available with Asserts)"),
       cl::location(EnableStats), cl::Hidden};
-  static cl::opt<bool, true> registerStatsAsJson{
+  static cl::opt<bool, true> const registerStatsAsJson{
       "stats-json", cl::desc("Display statistics as json data"),
       cl::location(StatsAsJSON), cl::Hidden};
 }
@@ -107,7 +107,7 @@ void TrackingStatistic::RegisterStatistic() {
   if (!Initialized.load(std::memory_order_relaxed)) {
     sys::SmartMutex<true> &Lock = *StatLock;
     StatisticInfo &SI = *StatInfo;
-    sys::SmartScopedLock<true> Writer(Lock);
+    sys::SmartScopedLock<true> const Writer(Lock);
     // Check Initialized again after acquiring the lock.
     if (Initialized.load(std::memory_order_relaxed))
       return;
@@ -140,10 +140,10 @@ bool llvm::AreStatisticsEnabled() { return Enabled || EnableStats; }
 void StatisticInfo::sort() {
   llvm::stable_sort(
       Stats, [](const TrackingStatistic *LHS, const TrackingStatistic *RHS) {
-        if (int Cmp = std::strcmp(LHS->getDebugType(), RHS->getDebugType()))
+        if (int const Cmp = std::strcmp(LHS->getDebugType(), RHS->getDebugType()))
           return Cmp < 0;
 
-        if (int Cmp = std::strcmp(LHS->getName(), RHS->getName()))
+        if (int const Cmp = std::strcmp(LHS->getName(), RHS->getName()))
           return Cmp < 0;
 
         return std::strcmp(LHS->getDesc(), RHS->getDesc()) < 0;
@@ -151,7 +151,7 @@ void StatisticInfo::sort() {
 }
 
 void StatisticInfo::reset() {
-  sys::SmartScopedLock<true> Writer(*StatLock);
+  sys::SmartScopedLock<true> const Writer(*StatLock);
 
   // Tell each statistic that it isn't registered so it has to register
   // again. We're holding the lock so it won't be able to do so until we're
@@ -203,7 +203,7 @@ void llvm::PrintStatistics(raw_ostream &OS) {
 }
 
 void llvm::PrintStatisticsJSON(raw_ostream &OS) {
-  sys::SmartScopedLock<true> Reader(*StatLock);
+  sys::SmartScopedLock<true> const Reader(*StatLock);
   StatisticInfo &Stats = *StatInfo;
 
   Stats.sort();
@@ -230,8 +230,8 @@ void llvm::PrintStatisticsJSON(raw_ostream &OS) {
 
 void llvm::PrintStatistics() {
 #if LLVM_ENABLE_STATS
-  sys::SmartScopedLock<true> Reader(*StatLock);
-  StatisticInfo &Stats = *StatInfo;
+  sys::SmartScopedLock<true> const Reader(*StatLock);
+  StatisticInfo  const&Stats = *StatInfo;
 
   // Statistics not enabled?
   if (Stats.Stats.empty()) return;
@@ -257,7 +257,7 @@ void llvm::PrintStatistics() {
 }
 
 const std::vector<std::pair<StringRef, unsigned>> llvm::GetStatistics() {
-  sys::SmartScopedLock<true> Reader(*StatLock);
+  sys::SmartScopedLock<true> const Reader(*StatLock);
   std::vector<std::pair<StringRef, unsigned>> ReturnStats;
 
   for (const auto &Stat : StatInfo->statistics())

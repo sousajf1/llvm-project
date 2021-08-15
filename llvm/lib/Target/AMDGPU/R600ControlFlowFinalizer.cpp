@@ -129,7 +129,7 @@ unsigned CFStack::getSubEntrySize(CFStack::StackItem Item) {
 }
 
 void CFStack::updateMaxStackSize() {
-  unsigned CurrentStackSize = CurrentEntries + divideCeil(CurrentSubEntries, 4);
+  unsigned const CurrentStackSize = CurrentEntries + divideCeil(CurrentSubEntries, 4);
   MaxStackSize = std::max(CurrentStackSize, MaxStackSize);
 }
 
@@ -170,7 +170,7 @@ void CFStack::pushLoop() {
 }
 
 void CFStack::popBranch() {
-  CFStack::StackItem Top = BranchStack.back();
+  CFStack::StackItem const Top = BranchStack.back();
   if (Top == CFStack::ENTRY)
     CurrentEntries--;
   else
@@ -218,7 +218,7 @@ private:
 
   const MCInstrDesc &getHWInstrDesc(ControlFlowInstruction CFI) const {
     unsigned Opcode = 0;
-    bool isEg = (ST->getGeneration() >= AMDGPUSubtarget::EVERGREEN);
+    bool const isEg = (ST->getGeneration() >= AMDGPUSubtarget::EVERGREEN);
     switch (CFI) {
     case CF_TC:
       Opcode = isEg ? R600::CF_TC_EG : R600::CF_TC_R600;
@@ -272,7 +272,7 @@ private:
       if (!MO.isReg())
         continue;
       if (MO.isDef()) {
-        Register Reg = MO.getReg();
+        Register const Reg = MO.getReg();
         if (R600::R600_Reg128RegClass.contains(Reg))
           DstMI = Reg;
         else
@@ -281,7 +281,7 @@ private:
               &R600::R600_Reg128RegClass);
       }
       if (MO.isUse()) {
-        Register Reg = MO.getReg();
+        Register const Reg = MO.getReg();
         if (R600::R600_Reg128RegClass.contains(Reg))
           SrcMI = Reg;
         else
@@ -300,12 +300,12 @@ private:
   ClauseFile
   MakeFetchClause(MachineBasicBlock &MBB, MachineBasicBlock::iterator &I)
       const {
-    MachineBasicBlock::iterator ClauseHead = I;
+    MachineBasicBlock::iterator const ClauseHead = I;
     std::vector<MachineInstr *> ClauseContent;
     unsigned AluInstCount = 0;
-    bool IsTex = TII->usesTextureCache(*ClauseHead);
+    bool const IsTex = TII->usesTextureCache(*ClauseHead);
     std::set<unsigned> DstRegs;
-    for (MachineBasicBlock::iterator E = MBB.end(); I != E; ++I) {
+    for (MachineBasicBlock::iterator const E = MBB.end(); I != E; ++I) {
       if (IsTrivialInst(*I))
         continue;
       if (AluInstCount >= MaxFetchInst)
@@ -338,7 +338,7 @@ private:
       if (Src.first->getReg() != R600::ALU_LITERAL_X)
         continue;
       int64_t Imm = Src.second;
-      std::vector<MachineOperand *>::iterator It =
+      std::vector<MachineOperand *>::iterator const It =
           llvm::find_if(Lits, [&](MachineOperand *val) {
             return val->isImm() && (val->getImm() == Imm);
           });
@@ -349,7 +349,7 @@ private:
 
       if (It != Lits.end()) {
         // Reuse existing literal reg
-        unsigned Index = It - Lits.begin();
+        unsigned const Index = It - Lits.begin();
         Src.first->setReg(LiteralRegs[Index]);
       } else {
         // Allocate new literal reg
@@ -365,8 +365,8 @@ private:
       const std::vector<unsigned> &Literals) const {
     MachineBasicBlock *MBB = InsertPos->getParent();
     for (unsigned i = 0, e = Literals.size(); i < e; i+=2) {
-      unsigned LiteralPair0 = Literals[i];
-      unsigned LiteralPair1 = (i + 1 < e)?Literals[i + 1]:0;
+      unsigned const LiteralPair0 = Literals[i];
+      unsigned const LiteralPair1 = (i + 1 < e)?Literals[i + 1]:0;
       InsertPos = BuildMI(MBB, InsertPos->getDebugLoc(),
           TII->get(R600::LITERALS))
           .addImm(LiteralPair0)
@@ -381,7 +381,7 @@ private:
     MachineInstr &ClauseHead = *I;
     std::vector<MachineInstr *> ClauseContent;
     I++;
-    for (MachineBasicBlock::instr_iterator E = MBB.instr_end(); I != E;) {
+    for (MachineBasicBlock::instr_iterator const E = MBB.instr_end(); I != E;) {
       if (IsTrivialInst(*I)) {
         ++I;
         continue;
@@ -409,7 +409,7 @@ private:
         I++;
       }
       for (unsigned i = 0, e = Literals.size(); i < e; i += 2) {
-        MachineInstrBuilder MILit = BuildMI(MBB, I, I->getDebugLoc(),
+        MachineInstrBuilder const MILit = BuildMI(MBB, I, I->getDebugLoc(),
             TII->get(R600::LITERALS));
         if (Literals[i]->isImm()) {
             MILit.addImm(Literals[i]->getImm());
@@ -507,13 +507,13 @@ public:
           continue;
         }
 
-        MachineBasicBlock::iterator MI = I;
+        MachineBasicBlock::iterator const MI = I;
         if (MI->getOpcode() != R600::ENDIF)
           LastAlu.back() = nullptr;
         if (MI->getOpcode() == R600::CF_ALU)
           LastAlu.back() = &*MI;
         I++;
-        bool RequiresWorkAround =
+        bool const RequiresWorkAround =
             CFStack.requiresWorkAroundForInst(MI->getOpcode());
         switch (MI->getOpcode()) {
         case R600::CF_ALU_PUSH_BEFORE:
@@ -550,7 +550,7 @@ public:
         }
         case R600::ENDLOOP: {
           CFStack.popLoop();
-          std::pair<unsigned, std::set<MachineInstr *>> Pair =
+          std::pair<unsigned, std::set<MachineInstr *>> const Pair =
               std::move(LoopStack.back());
           LoopStack.pop_back();
           CounterPropagateAddr(Pair.second, CfCount);
@@ -627,7 +627,7 @@ public:
           break;
         }
         case R600::RETURN: {
-          DebugLoc DL = MBB.findDebugLoc(MI);
+          DebugLoc const DL = MBB.findDebugLoc(MI);
           BuildMI(MBB, MI, DL, getHWInstrDesc(CF_END));
           CfCount++;
           if (CfCount % 2) {

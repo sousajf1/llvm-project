@@ -39,12 +39,12 @@ static bool isError(Error *E) { return E && *E; }
 
 template <typename T>
 T DataExtractor::getU(uint64_t *offset_ptr, Error *Err) const {
-  ErrorAsOutParameter ErrAsOut(Err);
+  ErrorAsOutParameter const ErrAsOut(Err);
   T val = 0;
   if (isError(Err))
     return val;
 
-  uint64_t offset = *offset_ptr;
+  uint64_t const offset = *offset_ptr;
   if (!prepareRead(offset, sizeof(T), Err))
     return val;
   std::memcpy(&val, &Data.data()[offset], sizeof(val));
@@ -59,7 +59,7 @@ T DataExtractor::getU(uint64_t *offset_ptr, Error *Err) const {
 template <typename T>
 T *DataExtractor::getUs(uint64_t *offset_ptr, T *dst, uint32_t count,
                         Error *Err) const {
-  ErrorAsOutParameter ErrAsOut(Err);
+  ErrorAsOutParameter const ErrAsOut(Err);
   if (isError(Err))
     return nullptr;
 
@@ -100,7 +100,7 @@ uint16_t *DataExtractor::getU16(uint64_t *offset_ptr, uint16_t *dst,
 }
 
 uint32_t DataExtractor::getU24(uint64_t *OffsetPtr, Error *Err) const {
-  uint24_t ExtractedVal = getU<uint24_t>(OffsetPtr, Err);
+  uint24_t const ExtractedVal = getU<uint24_t>(OffsetPtr, Err);
   // The 3 bytes are in the correct byte order for the host.
   return ExtractedVal.getAsUint32(sys::IsLittleEndianHost);
 }
@@ -154,12 +154,12 @@ DataExtractor::getSigned(uint64_t *offset_ptr, uint32_t byte_size) const {
 }
 
 StringRef DataExtractor::getCStrRef(uint64_t *OffsetPtr, Error *Err) const {
-  ErrorAsOutParameter ErrAsOut(Err);
+  ErrorAsOutParameter const ErrAsOut(Err);
   if (isError(Err))
     return StringRef();
 
-  uint64_t Start = *OffsetPtr;
-  StringRef::size_type Pos = Data.find('\0', Start);
+  uint64_t const Start = *OffsetPtr;
+  StringRef::size_type const Pos = Data.find('\0', Start);
   if (Pos != StringRef::npos) {
     *OffsetPtr = Pos + 1;
     return StringRef(Data.data() + Start, Pos - Start);
@@ -174,13 +174,13 @@ StringRef DataExtractor::getCStrRef(uint64_t *OffsetPtr, Error *Err) const {
 StringRef DataExtractor::getFixedLengthString(uint64_t *OffsetPtr,
                                               uint64_t Length,
                                               StringRef TrimChars) const {
-  StringRef Bytes(getBytes(OffsetPtr, Length));
+  StringRef const Bytes(getBytes(OffsetPtr, Length));
   return Bytes.trim(TrimChars);
 }
 
 StringRef DataExtractor::getBytes(uint64_t *OffsetPtr, uint64_t Length,
                                   Error *Err) const {
-  ErrorAsOutParameter ErrAsOut(Err);
+  ErrorAsOutParameter const ErrAsOut(Err);
   if (isError(Err))
     return StringRef();
 
@@ -196,9 +196,9 @@ template <typename T>
 static T getLEB128(StringRef Data, uint64_t *OffsetPtr, Error *Err,
                    T (&Decoder)(const uint8_t *p, unsigned *n,
                                 const uint8_t *end, const char **error)) {
-  ArrayRef<uint8_t> Bytes = arrayRefFromStringRef(Data);
+  ArrayRef<uint8_t> const Bytes = arrayRefFromStringRef(Data);
   assert(*OffsetPtr <= Bytes.size());
-  ErrorAsOutParameter ErrAsOut(Err);
+  ErrorAsOutParameter const ErrAsOut(Err);
   if (isError(Err))
     return T();
 
@@ -227,7 +227,7 @@ int64_t DataExtractor::getSLEB128(uint64_t *offset_ptr, Error *Err) const {
 }
 
 void DataExtractor::skip(Cursor &C, uint64_t Length) const {
-  ErrorAsOutParameter ErrAsOut(&C.Err);
+  ErrorAsOutParameter const ErrAsOut(&C.Err);
   if (isError(&C.Err))
     return;
 

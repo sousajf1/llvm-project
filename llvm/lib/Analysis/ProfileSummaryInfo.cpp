@@ -252,8 +252,8 @@ void ProfileSummaryInfo::computeThresholds() {
   } else {
     // Scale the working set size of the partial sample profile to reflect the
     // size of the program being compiled.
-    double PartialProfileRatio = Summary->getPartialProfileRatio();
-    uint64_t ScaledHotEntryNumCounts =
+    double const PartialProfileRatio = Summary->getPartialProfileRatio();
+    uint64_t const ScaledHotEntryNumCounts =
         static_cast<uint64_t>(HotEntry.NumCounts * PartialProfileRatio *
                               PartialSampleProfileWorkingSetSizeScaleFactor);
     HasHugeWorkingSetSize =
@@ -404,7 +404,7 @@ ProfileSummaryInfo ProfileSummaryAnalysis::run(Module &M,
 
 PreservedAnalyses ProfileSummaryPrinterPass::run(Module &M,
                                                  ModuleAnalysisManager &AM) {
-  ProfileSummaryInfo &PSI = AM.getResult<ProfileSummaryAnalysis>(M);
+  ProfileSummaryInfo  const&PSI = AM.getResult<ProfileSummaryAnalysis>(M);
 
   OS << "Functions in " << M.getName() << " with hot/cold annotations: \n";
   for (auto &F : M) {

@@ -146,7 +146,7 @@ void RTDyldObjectLinkingLayer::emit(
 
   // Switch to shared ownership of MR so that it can be captured by both
   // lambdas below.
-  std::shared_ptr<MaterializationResponsibility> SharedR(std::move(R));
+  std::shared_ptr<MaterializationResponsibility> const SharedR(std::move(R));
 
   JITDylibSearchOrderResolver Resolver(*SharedR);
 
@@ -170,14 +170,14 @@ void RTDyldObjectLinkingLayer::emit(
 }
 
 void RTDyldObjectLinkingLayer::registerJITEventListener(JITEventListener &L) {
-  std::lock_guard<std::mutex> Lock(RTDyldLayerMutex);
+  std::lock_guard<std::mutex> const Lock(RTDyldLayerMutex);
   assert(!llvm::is_contained(EventListeners, &L) &&
          "Listener has already been registered");
   EventListeners.push_back(&L);
 }
 
 void RTDyldObjectLinkingLayer::unregisterJITEventListener(JITEventListener &L) {
-  std::lock_guard<std::mutex> Lock(RTDyldLayerMutex);
+  std::lock_guard<std::mutex> const Lock(RTDyldLayerMutex);
   auto I = llvm::find(EventListeners, &L);
   assert(I != EventListeners.end() && "Listener not registered");
   EventListeners.erase(I);
@@ -202,7 +202,7 @@ Error RTDyldObjectLinkingLayer::onObjLoad(
     // weak.
     for (auto &Sym : COFFObj->symbols()) {
       // getFlags() on COFF symbols can't fail.
-      uint32_t SymFlags = cantFail(Sym.getFlags());
+      uint32_t const SymFlags = cantFail(Sym.getFlags());
       if (SymFlags & object::BasicSymbolRef::SF_Undefined)
         continue;
       auto Name = Sym.getName();
@@ -295,7 +295,7 @@ void RTDyldObjectLinkingLayer::onObjEmit(
 
   // Run EventListener notifyLoaded callbacks.
   {
-    std::lock_guard<std::mutex> Lock(RTDyldLayerMutex);
+    std::lock_guard<std::mutex> const Lock(RTDyldLayerMutex);
     for (auto *L : EventListeners)
       L->notifyObjectLoaded(pointerToJITTargetAddress(MemMgr.get()), *Obj,
                             *LoadedObjInfo);
@@ -324,7 +324,7 @@ Error RTDyldObjectLinkingLayer::handleRemoveResources(ResourceKey K) {
   });
 
   {
-    std::lock_guard<std::mutex> Lock(RTDyldLayerMutex);
+    std::lock_guard<std::mutex> const Lock(RTDyldLayerMutex);
     for (auto &MemMgr : MemMgrsToRemove) {
       for (auto *L : EventListeners)
         L->notifyFreeingObject(pointerToJITTargetAddress(MemMgr.get()));

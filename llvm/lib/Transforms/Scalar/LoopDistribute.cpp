@@ -506,7 +506,7 @@ public:
   computePartitionSetForPointers(const LoopAccessInfo &LAI) {
     const RuntimePointerChecking *RtPtrCheck = LAI.getRuntimePointerChecking();
 
-    unsigned N = RtPtrCheck->Pointers.size();
+    unsigned const N = RtPtrCheck->Pointers.size();
     SmallVector<int, 8> PtrToPartitions(N);
     for (unsigned I = 0; I < N; ++I) {
       Value *Ptr = RtPtrCheck->Pointers[I].PointerValue;
@@ -519,7 +519,7 @@ public:
       for (Instruction *Inst : Instructions) {
         // Note that this could be -1 if Inst is duplicated across multiple
         // partitions.
-        int ThisPartition = this->InstToPartitionId[Inst];
+        int const ThisPartition = this->InstToPartitionId[Inst];
         if (Partition == -2)
           Partition = ThisPartition;
         // -1 means belonging to multiple partitions.
@@ -714,7 +714,7 @@ public:
     // we just keep assigning to the same cyclic partition until
     // NumUnsafeDependencesActive reaches 0.
     const MemoryDepChecker &DepChecker = LAI->getDepChecker();
-    MemoryInstructionDependences MID(DepChecker.getMemoryInstructions(),
+    MemoryInstructionDependences const MID(DepChecker.getMemoryInstructions(),
                                      *Dependences);
 
     int NumUnsafeDependencesActive = 0;
@@ -859,7 +859,7 @@ public:
   /// Provide diagnostics then \return with false.
   bool fail(StringRef RemarkName, StringRef Message) {
     LLVMContext &Ctx = F->getContext();
-    bool Forced = isForced().getValueOr(false);
+    bool const Forced = isForced().getValueOr(false);
 
     LLVM_DEBUG(dbgs() << "Skipping; " << Message << "\n");
 
@@ -910,8 +910,8 @@ private:
 
     copy_if(AllChecks, std::back_inserter(Checks),
             [&](const RuntimePointerCheck &Check) {
-              for (unsigned PtrIdx1 : Check.first->Members)
-                for (unsigned PtrIdx2 : Check.second->Members)
+              for (unsigned const PtrIdx1 : Check.first->Members)
+                for (unsigned const PtrIdx2 : Check.second->Members)
                   // Only include this check if there is a pair of pointers
                   // that require checking and the pointers fall into
                   // separate partitions.
@@ -1062,7 +1062,7 @@ PreservedAnalyses LoopDistributePass::run(Function &F,
     return LAM.getResult<LoopAccessAnalysis>(L, AR);
   };
 
-  bool Changed = runImpl(F, &LI, &DT, &SE, &ORE, GetLAA);
+  bool const Changed = runImpl(F, &LI, &DT, &SE, &ORE, GetLAA);
   if (!Changed)
     return PreservedAnalyses::all();
   PreservedAnalyses PA;

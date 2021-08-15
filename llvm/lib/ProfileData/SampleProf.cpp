@@ -55,7 +55,7 @@ class SampleProfErrorCategoryType : public std::error_category {
   const char *name() const noexcept override { return "llvm.sampleprof"; }
 
   std::string message(int IE) const override {
-    sampleprof_error E = static_cast<sampleprof_error>(IE);
+    sampleprof_error const E = static_cast<sampleprof_error>(IE);
     switch (E) {
     case sampleprof_error::success:
       return "Success";
@@ -162,7 +162,7 @@ void FunctionSamples::print(raw_ostream &OS, unsigned Indent) const {
   OS.indent(Indent);
   if (!BodySamples.empty()) {
     OS << "Samples collected in the function's body {\n";
-    SampleSorter<LineLocation, SampleRecord> SortedBodySamples(BodySamples);
+    SampleSorter<LineLocation, SampleRecord> const SortedBodySamples(BodySamples);
     for (const auto &SI : SortedBodySamples.get()) {
       OS.indent(Indent + 2);
       OS << SI->first << ": " << SI->second;
@@ -176,7 +176,7 @@ void FunctionSamples::print(raw_ostream &OS, unsigned Indent) const {
   OS.indent(Indent);
   if (!CallsiteSamples.empty()) {
     OS << "Samples collected in inlined callsites {\n";
-    SampleSorter<LineLocation, FunctionSamplesMap> SortedCallsiteSamples(
+    SampleSorter<LineLocation, FunctionSamplesMap> const SortedCallsiteSamples(
         CallsiteSamples);
     for (const auto &CS : SortedCallsiteSamples.get()) {
       for (const auto &FS : CS->second) {
@@ -304,7 +304,7 @@ std::error_code ProfileSymbolList::read(const uint8_t *Data,
   uint64_t Size = 0;
   uint64_t StrNum = 0;
   while (Size < ListSize && StrNum < ProfileSymbolListCutOff) {
-    StringRef Str(ListStart + Size);
+    StringRef const Str(ListStart + Size);
     add(Str);
     Size += Str.size() + 1;
     StrNum++;
@@ -359,7 +359,7 @@ void SampleContextTrimmer::trimAndMergeColdContextProfiles(
     // as a new profile
     auto Ret = ProfileMap.try_emplace(I.getKey(), FunctionSamples());
     if (Ret.second) {
-      SampleContext FContext(Ret.first->first(), RawContext);
+      SampleContext const FContext(Ret.first->first(), RawContext);
       FunctionSamples &FProfile = Ret.first->second;
       FProfile.setContext(FContext);
       FProfile.setName(FContext.getNameWithoutContext());
@@ -374,7 +374,7 @@ void SampleContextTrimmer::canonicalizeContextProfiles() {
   StringMap<FunctionSamples> ProfilesToBeAdded;
   for (auto &I : ProfileMap) {
     FunctionSamples &FProfile = I.second;
-    StringRef ContextStr = FProfile.getNameWithContext();
+    StringRef const ContextStr = FProfile.getNameWithContext();
     if (I.first() == ContextStr)
       continue;
 

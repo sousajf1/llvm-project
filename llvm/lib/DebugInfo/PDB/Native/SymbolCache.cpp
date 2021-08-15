@@ -131,7 +131,7 @@ SymbolCache::createSymbolForModifiedType(codeview::TypeIndex ModifierTI,
     return createSimpleType(Record.ModifiedType, Record.Modifiers);
 
   // Make sure we create and cache a record for the unmodified type.
-  SymIndexId UnmodifiedId = findSymbolByTypeIndex(Record.ModifiedType);
+  SymIndexId const UnmodifiedId = findSymbolByTypeIndex(Record.ModifiedType);
   NativeRawSymbol &UnmodifiedNRS = *Cache[UnmodifiedId];
 
   switch (UnmodifiedNRS.getSymTag()) {
@@ -158,7 +158,7 @@ SymIndexId SymbolCache::findSymbolByTypeIndex(codeview::TypeIndex Index) const {
 
   // Symbols for built-in types are created on the fly.
   if (Index.isSimple()) {
-    SymIndexId Result = createSimpleType(Index, ModifierOptions::None);
+    SymIndexId const Result = createSimpleType(Index, ModifierOptions::None);
     assert(TypeIndexToSymbolId.count(Index) == 0);
     TypeIndexToSymbolId[Index] = Result;
     return Result;
@@ -180,7 +180,7 @@ SymIndexId SymbolCache::findSymbolByTypeIndex(codeview::TypeIndex Index) const {
       consumeError(EFD.takeError());
     else if (*EFD != Index) {
       assert(!isUdtForwardRef(Types.getType(*EFD)));
-      SymIndexId Result = findSymbolByTypeIndex(*EFD);
+      SymIndexId const Result = findSymbolByTypeIndex(*EFD);
       // Record a mapping from ForwardRef -> SymIndex of complete type so that
       // we'll take the fast path next time.
       assert(TypeIndexToSymbolId.count(Index) == 0);
@@ -271,8 +271,8 @@ SymIndexId SymbolCache::getOrCreateGlobalSymbolByOffset(uint32_t Offset) {
   if (Iter != GlobalOffsetToSymbolId.end())
     return Iter->second;
 
-  SymbolStream &SS = cantFail(Session.getPDBFile().getPDBSymbolStream());
-  CVSymbol CVS = SS.readRecord(Offset);
+  SymbolStream  const&SS = cantFail(Session.getPDBFile().getPDBSymbolStream());
+  CVSymbol const CVS = SS.readRecord(Offset);
   SymIndexId Id = 0;
   switch (CVS.kind()) {
   case SymbolKind::S_UDT: {
@@ -300,7 +300,7 @@ SymIndexId SymbolCache::getOrCreateInlineSymbol(InlineSiteSym Sym,
   if (Iter != SymTabOffsetToSymbolId.end())
     return Iter->second;
 
-  SymIndexId Id = createSymbol<NativeInlineSiteSymbol>(Sym, ParentAddr);
+  SymIndexId const Id = createSymbol<NativeInlineSiteSymbol>(Sym, ParentAddr);
   SymTabOffsetToSymbolId.insert({{Modi, RecordOffset}, Id});
   return Id;
 }
@@ -350,7 +350,7 @@ SymbolCache::findFunctionSymbolBySectOffset(uint32_t Sect, uint32_t Offset) {
     consumeError(ExpectedModS.takeError());
     return nullptr;
   }
-  CVSymbolArray Syms = ExpectedModS->getSymbolArray();
+  CVSymbolArray const Syms = ExpectedModS->getSymbolArray();
 
   // Search for the symbol in this module.
   for (auto I = Syms.begin(), E = Syms.end(); I != E; ++I) {
@@ -365,7 +365,7 @@ SymbolCache::findFunctionSymbolBySectOffset(uint32_t Sect, uint32_t Offset) {
         return getSymbolById(Found->second);
 
       // Otherwise, create a new symbol.
-      SymIndexId Id = createSymbol<NativeFunctionSymbol>(PS, I.offset());
+      SymIndexId const Id = createSymbol<NativeFunctionSymbol>(PS, I.offset());
       AddressToSymbolId.insert({{PS.Segment, PS.CodeOffset}, Id});
       return getSymbolById(Id);
     }
@@ -389,7 +389,7 @@ SymbolCache::findPublicSymbolBySectOffset(uint32_t Sect, uint32_t Offset) {
   auto ExpectedSyms = Session.getPDBFile().getPDBSymbolStream();
   if (!ExpectedSyms)
     return nullptr;
-  BinaryStreamRef SymStream =
+  BinaryStreamRef const SymStream =
       ExpectedSyms->getSymbolArray().getUnderlyingStream();
 
   // Use binary search to find the first public symbol with an address greater
@@ -434,7 +434,7 @@ SymbolCache::findPublicSymbolBySectOffset(uint32_t Sect, uint32_t Offset) {
     return getSymbolById(Found->second);
 
   // Otherwise, create a new symbol.
-  SymIndexId Id = createSymbol<NativePublicSymbol>(PS);
+  SymIndexId const Id = createSymbol<NativePublicSymbol>(PS);
   AddressToPublicSymId.insert({{PS.Segment, PS.Offset}, Id});
   return getSymbolById(Id);
 }
@@ -463,14 +463,14 @@ SymbolCache::findLineTable(uint16_t Modi) const {
       continue;
 
     DebugLinesSubsectionRef Lines;
-    BinaryStreamReader Reader(SS.getRecordData());
+    BinaryStreamReader const Reader(SS.getRecordData());
     if (auto EC = Lines.initialize(Reader)) {
       consumeError(std::move(EC));
       continue;
     }
 
-    uint32_t RelocSegment = Lines.header()->RelocSegment;
-    uint32_t RelocOffset = Lines.header()->RelocOffset;
+    uint32_t const RelocSegment = Lines.header()->RelocSegment;
+    uint32_t const RelocOffset = Lines.header()->RelocOffset;
     for (const LineColumnEntry &Group : Lines) {
       if (Group.LineNumbers.empty())
         continue;
@@ -483,17 +483,17 @@ SymbolCache::findLineTable(uint16_t Modi) const {
       auto ColsEnd = Group.Columns.end();
 
       // Add a line to mark the beginning of this section.
-      uint64_t StartAddr =
+      uint64_t const StartAddr =
           Session.getVAFromSectOffset(RelocSegment, RelocOffset);
-      LineInfo FirstLine(Group.LineNumbers.front().Flags);
+      LineInfo const FirstLine(Group.LineNumbers.front().Flags);
       uint32_t ColNum =
           (Lines.hasColumnInfo()) ? Group.Columns.front().StartColumn : 0;
       Entries.push_back({StartAddr, FirstLine, ColNum, Group.NameIndex, false});
 
       for (const LineNumberEntry &LN : Group.LineNumbers) {
-        uint64_t VA =
+        uint64_t const VA =
             Session.getVAFromSectOffset(RelocSegment, RelocOffset + LN.Offset);
-        LineInfo Line(LN.Flags);
+        LineInfo const Line(LN.Flags);
         ColNum = 0;
 
         if (Lines.hasColumnInfo() && ColIt != ColsEnd) {
@@ -504,8 +504,8 @@ SymbolCache::findLineTable(uint16_t Modi) const {
       }
 
       // Add a terminal entry line to mark the end of this subsection.
-      uint64_t EndAddr = StartAddr + Lines.header()->CodeSize;
-      LineInfo LastLine(Group.LineNumbers.back().Flags);
+      uint64_t const EndAddr = StartAddr + Lines.header()->CodeSize;
+      LineInfo const LastLine(Group.LineNumbers.back().Flags);
       ColNum = (Lines.hasColumnInfo()) ? Group.Columns.back().StartColumn : 0;
       Entries.push_back({EndAddr, LastLine, ColNum, Group.NameIndex, true});
 
@@ -576,11 +576,11 @@ SymbolCache::findLineNumbersByVA(uint64_t VA, uint32_t Length) const {
 
     uint32_t LineSect, LineOff;
     Session.addressForVA(LineIter->Addr, LineSect, LineOff);
-    uint32_t LineLength = std::next(LineIter)->Addr - LineIter->Addr;
+    uint32_t const LineLength = std::next(LineIter)->Addr - LineIter->Addr;
     auto ChecksumIter =
         ExpectedChecksums->getArray().at(LineIter->FileNameIndex);
-    uint32_t SrcFileId = getOrCreateSourceFile(*ChecksumIter);
-    NativeLineNumber LineNum(Session, LineIter->Line, LineIter->ColumnNumber,
+    uint32_t const SrcFileId = getOrCreateSourceFile(*ChecksumIter);
+    NativeLineNumber const LineNum(Session, LineIter->Line, LineIter->ColumnNumber,
                              LineSect, LineOff, LineLength, SrcFileId, Modi);
     LineNumbers.push_back(LineNum);
     ++LineIter;
@@ -623,7 +623,7 @@ SymbolCache::getOrCreateSourceFile(const FileChecksumEntry &Checksums) const {
   if (Iter != FileNameOffsetToId.end())
     return Iter->second;
 
-  SymIndexId Id = SourceFiles.size();
+  SymIndexId const Id = SourceFiles.size();
   auto SrcFile = std::make_unique<NativeSourceFile>(Session, Id, Checksums);
   SourceFiles.push_back(std::move(SrcFile));
   FileNameOffsetToId[Checksums.FileNameOffset] = Id;

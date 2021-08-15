@@ -135,14 +135,14 @@ bool MemsetRange::isProfitableToUseMemset(const DataLayout &DL) const {
   // the maximum GPR width is the same size as the largest legal integer
   // size. If so, check to see whether we will end up actually reducing the
   // number of stores used.
-  unsigned Bytes = unsigned(End-Start);
+  unsigned const Bytes = unsigned(End-Start);
   unsigned MaxIntSize = DL.getLargestLegalIntTypeSizeInBits() / 8;
   if (MaxIntSize == 0)
     MaxIntSize = 1;
-  unsigned NumPointerStores = Bytes / MaxIntSize;
+  unsigned const NumPointerStores = Bytes / MaxIntSize;
 
   // Assume the remaining bytes if any are done a byte at a time.
-  unsigned NumByteStores = Bytes % MaxIntSize;
+  unsigned const NumByteStores = Bytes % MaxIntSize;
 
   // If we will reduce the # stores (according to this heuristic), do the
   // transformation.  This encourages merging 4 x i8 -> i32 and 2 x i16 -> i32
@@ -177,14 +177,14 @@ public:
   }
 
   void addStore(int64_t OffsetFromFirst, StoreInst *SI) {
-    int64_t StoreSize = DL.getTypeStoreSize(SI->getOperand(0)->getType());
+    int64_t const StoreSize = DL.getTypeStoreSize(SI->getOperand(0)->getType());
 
     addRange(OffsetFromFirst, StoreSize, SI->getPointerOperand(),
              SI->getAlign().value(), SI);
   }
 
   void addMemSet(int64_t OffsetFromFirst, MemSetInst *MSI) {
-    int64_t Size = cast<ConstantInt>(MSI->getLength())->getZExtValue();
+    int64_t const Size = cast<ConstantInt>(MSI->getLength())->getZExtValue();
     addRange(OffsetFromFirst, Size, MSI->getDest(), MSI->getDestAlignment(), MSI);
   }
 
@@ -199,7 +199,7 @@ public:
 /// existing ranges as appropriate.
 void MemsetRanges::addRange(int64_t Start, int64_t Size, Value *Ptr,
                             unsigned Alignment, Instruction *Inst) {
-  int64_t End = Start+Size;
+  int64_t const End = Start+Size;
 
   range_iterator I = partition_point(
       Ranges, [=](const MemsetRange &O) { return O.End < Start; });
@@ -511,7 +511,7 @@ Instruction *MemCpyOptPass::tryMergingIntoMemset(Instruction *StartInst,
 // The method returns true if it was successful.
 bool MemCpyOptPass::moveUp(StoreInst *SI, Instruction *P, const LoadInst *LI) {
   // If the store alias this position, early bail out.
-  MemoryLocation StoreLoc = MemoryLocation::get(SI);
+  MemoryLocation const StoreLoc = MemoryLocation::get(SI);
   if (isModOrRefSet(AA->getModRefInfo(P, StoreLoc)))
     return false;
 
@@ -541,7 +541,7 @@ bool MemCpyOptPass::moveUp(StoreInst *SI, Instruction *P, const LoadInst *LI) {
     if (!isGuaranteedToTransferExecutionToSuccessor(C))
       return false;
 
-    bool MayAlias = isModOrRefSet(AA->getModRefInfo(C, None));
+    bool const MayAlias = isModOrRefSet(AA->getModRefInfo(C, None));
 
     bool NeedLift = false;
     if (Args.erase(C))
@@ -663,7 +663,7 @@ bool MemCpyOptPass::processStore(StoreInst *SI, BasicBlock::iterator &BBI) {
       if (T->isAggregateType() &&
           (EnableMemCpyOptWithoutLibcalls ||
            (TLI->has(LibFunc_memcpy) && TLI->has(LibFunc_memmove)))) {
-        MemoryLocation LoadLoc = MemoryLocation::get(LI);
+        MemoryLocation const LoadLoc = MemoryLocation::get(LI);
 
         // We use alias analysis to check if an instruction may store to
         // the memory we load from in between the load and the store. If
@@ -698,7 +698,7 @@ bool MemCpyOptPass::processStore(StoreInst *SI, BasicBlock::iterator &BBI) {
           if (isModSet(AA->getModRefInfo(SI, LoadLoc)))
             UseMemMove = true;
 
-          uint64_t Size = DL.getTypeStoreSize(T);
+          uint64_t const Size = DL.getTypeStoreSize(T);
 
           IRBuilder<> Builder(P);
           Instruction *M;
@@ -744,14 +744,14 @@ bool MemCpyOptPass::processStore(StoreInst *SI, BasicBlock::iterator &BBI) {
       if (C) {
         // Check that nothing touches the dest of the "copy" between
         // the call and the store.
-        MemoryLocation StoreLoc = MemoryLocation::get(SI);
+        MemoryLocation const StoreLoc = MemoryLocation::get(SI);
         if (accessedBetween(*AA, StoreLoc, MSSA->getMemoryAccess(C),
                             MSSA->getMemoryAccess(SI)))
           C = nullptr;
       }
 
       if (C) {
-        bool changed = performCallSlotOptzn(
+        bool const changed = performCallSlotOptzn(
             LI, SI, SI->getPointerOperand()->stripPointerCasts(),
             LI->getPointerOperand()->stripPointerCasts(),
             DL.getTypeStoreSize(SI->getOperand(0)->getType()),
@@ -792,7 +792,7 @@ bool MemCpyOptPass::processStore(StoreInst *SI, BasicBlock::iterator &BBI) {
     // in subsequent passes.
     auto *T = V->getType();
     if (T->isAggregateType()) {
-      uint64_t Size = DL.getTypeStoreSize(T);
+      uint64_t const Size = DL.getTypeStoreSize(T);
       IRBuilder<> Builder(SI);
       auto *M = Builder.CreateMemSet(SI->getPointerOperand(), ByteVal, Size,
                                      SI->getAlign());
@@ -866,7 +866,7 @@ bool MemCpyOptPass::performCallSlotOptzn(Instruction *cpyLoad,
     return false;
 
   const DataLayout &DL = cpyLoad->getModule()->getDataLayout();
-  uint64_t srcSize = DL.getTypeAllocSize(srcAlloca->getAllocatedType()) *
+  uint64_t const srcSize = DL.getTypeAllocSize(srcAlloca->getAllocatedType()) *
                      srcArraySize->getZExtValue();
 
   if (cpyLen < srcSize)
@@ -897,8 +897,8 @@ bool MemCpyOptPass::performCallSlotOptzn(Instruction *cpyLoad,
     return false;
 
   // Check that dest points to memory that is at least as aligned as src.
-  Align srcAlign = srcAlloca->getAlign();
-  bool isDestSufficientlyAligned = srcAlign <= cpyAlign;
+  Align const srcAlign = srcAlloca->getAlign();
+  bool const isDestSufficientlyAligned = srcAlign <= cpyAlign;
   // If dest is not aligned enough and we can't increase its alignment then
   // bail out.
   if (!isDestSufficientlyAligned && !isa<AllocaInst>(cpyDest))
@@ -999,7 +999,7 @@ bool MemCpyOptPass::performCallSlotOptzn(Instruction *cpyLoad,
   // Update AA metadata
   // FIXME: MD_tbaa_struct and MD_mem_parallel_loop_access should also be
   // handled here, but combineMetadata doesn't support them yet
-  unsigned KnownIDs[] = {LLVMContext::MD_tbaa, LLVMContext::MD_alias_scope,
+  unsigned const KnownIDs[] = {LLVMContext::MD_tbaa, LLVMContext::MD_alias_scope,
                          LLVMContext::MD_noalias,
                          LLVMContext::MD_invariant_group,
                          LLVMContext::MD_access_group};
@@ -1167,7 +1167,7 @@ bool MemCpyOptPass::processMemSetMemCpyDependence(MemCpyInst *MemCpy,
   Value *SizeDiff = Builder.CreateSub(DestSize, SrcSize);
   Value *MemsetLen = Builder.CreateSelect(
       Ule, ConstantInt::getNullValue(DestSize->getType()), SizeDiff);
-  unsigned DestAS = Dest->getType()->getPointerAddressSpace();
+  unsigned const DestAS = Dest->getType()->getPointerAddressSpace();
   Instruction *NewMemSet = Builder.CreateMemSet(
       Builder.CreateGEP(Builder.getInt8Ty(),
                         Builder.CreatePointerCast(Dest,
@@ -1265,7 +1265,7 @@ bool MemCpyOptPass::performMemCpyToMemSetOptzn(MemCpyInst *MemCpy,
       // to the memset, we can just ignore the tail. Technically we're only
       // interested in the bytes from MemSetSize..CopySize here, but as we can't
       // easily represent this location, we use the full 0..CopySize range.
-      MemoryLocation MemCpyLoc = MemoryLocation::getForSource(MemCpy);
+      MemoryLocation const MemCpyLoc = MemoryLocation::getForSource(MemCpy);
       bool CanReduceSize = false;
       MemoryUseOrDef *MemSetAccess = MSSA->getMemoryAccess(MemSet);
       MemoryAccess *Clobber = MSSA->getWalker()->getClobberingMemoryAccess(
@@ -1330,7 +1330,7 @@ bool MemCpyOptPass::processMemCpy(MemCpyInst *M, BasicBlock::iterator &BBI) {
 
   MemoryUseOrDef *MA = MSSA->getMemoryAccess(M);
   MemoryAccess *AnyClobber = MSSA->getWalker()->getClobberingMemoryAccess(MA);
-  MemoryLocation DestLoc = MemoryLocation::getForDest(M);
+  MemoryLocation const DestLoc = MemoryLocation::getForDest(M);
   const MemoryAccess *DestClobber =
       MSSA->getWalker()->getClobberingMemoryAccess(AnyClobber, DestLoc);
 
@@ -1367,7 +1367,7 @@ bool MemCpyOptPass::processMemCpy(MemCpyInst *M, BasicBlock::iterator &BBI) {
               !accessedBetween(*AA, DestLoc, MD, MA)) {
             // FIXME: Can we pass in either of dest/src alignment here instead
             // of conservatively taking the minimum?
-            Align Alignment = std::min(M->getDestAlign().valueOrOne(),
+            Align const Alignment = std::min(M->getDestAlign().valueOrOne(),
                                        M->getSourceAlign().valueOrOne());
             if (performCallSlotOptzn(M, M, M->getDest(), M->getSource(),
                                      CopySize->getZExtValue(), Alignment, C)) {
@@ -1415,7 +1415,7 @@ bool MemCpyOptPass::processMemMove(MemMoveInst *M) {
                     << "\n");
 
   // If not, then we know we can transform this.
-  Type *ArgTys[3] = { M->getRawDest()->getType(),
+  Type *const ArgTys[3] = { M->getRawDest()->getType(),
                       M->getRawSource()->getType(),
                       M->getLength()->getType() };
   M->setCalledFunction(Intrinsic::getDeclaration(M->getModule(),
@@ -1434,8 +1434,8 @@ bool MemCpyOptPass::processByValArgument(CallBase &CB, unsigned ArgNo) {
   // Find out what feeds this byval argument.
   Value *ByValArg = CB.getArgOperand(ArgNo);
   Type *ByValTy = CB.getParamByValType(ArgNo);
-  uint64_t ByValSize = DL.getTypeAllocSize(ByValTy);
-  MemoryLocation Loc(ByValArg, LocationSize::precise(ByValSize));
+  uint64_t const ByValSize = DL.getTypeAllocSize(ByValTy);
+  MemoryLocation const Loc(ByValArg, LocationSize::precise(ByValSize));
   MemoryUseOrDef *CallAccess = MSSA->getMemoryAccess(&CB);
   if (!CallAccess)
     return false;
@@ -1556,7 +1556,7 @@ PreservedAnalyses MemCpyOptPass::run(Function &F, FunctionAnalysisManager &AM) {
   auto *DT = &AM.getResult<DominatorTreeAnalysis>(F);
   auto *MSSA = &AM.getResult<MemorySSAAnalysis>(F);
 
-  bool MadeChange = runImpl(F, &TLI, AA, AC, DT, &MSSA->getMSSA());
+  bool const MadeChange = runImpl(F, &TLI, AA, AC, DT, &MSSA->getMSSA());
   if (!MadeChange)
     return PreservedAnalyses::all();
 

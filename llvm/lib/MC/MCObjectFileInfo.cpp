@@ -131,7 +131,7 @@ void MCObjectFileInfo::initMachOMCObjectFileInfo(const Triple &T) {
   // "__TEXT/__textcoal_nt" => section "__TEXT/__text"
   // "__TEXT/__const_coal"  => section "__TEXT/__const"
   // "__DATA/__datacoal_nt" => section "__DATA/__data"
-  Triple::ArchType ArchTy = T.getArch();
+  Triple::ArchType const ArchTy = T.getArch();
 
   ConstDataSection  // .const_data
     = Ctx->getMachOSection("__DATA", "__const", 0,
@@ -338,7 +338,7 @@ void MCObjectFileInfo::initELFMCObjectFileInfo(const Triple &T, bool Large) {
     break;
   }
 
-  unsigned EHSectionType = T.getArch() == Triple::x86_64
+  unsigned const EHSectionType = T.getArch() == Triple::x86_64
                                ? ELF::SHT_X86_64_UNWIND
                                : ELF::SHT_PROGBITS;
 
@@ -1003,7 +1003,7 @@ void MCObjectFileInfo::initMCObjectFileInfo(MCContext &MCCtx, bool PIC,
   DwarfAccelNamespaceSection = nullptr; // Used only by selected targets.
   DwarfAccelTypesSection = nullptr;     // Used only by selected targets.
 
-  Triple TheTriple = Ctx->getTargetTriple();
+  Triple const TheTriple = Ctx->getTargetTriple();
   switch (Ctx->getObjectFileType()) {
   case MCContext::IsMachO:
     initMachOMCObjectFileInfo(TheTriple);

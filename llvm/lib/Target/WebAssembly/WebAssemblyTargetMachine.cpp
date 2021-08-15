@@ -57,9 +57,9 @@ static cl::opt<bool> WasmDisableExplicitLocals(
 
 extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializeWebAssemblyTarget() {
   // Register the target.
-  RegisterTargetMachine<WebAssemblyTargetMachine> X(
+  RegisterTargetMachine<WebAssemblyTargetMachine> const X(
       getTheWebAssemblyTarget32());
-  RegisterTargetMachine<WebAssemblyTargetMachine> Y(
+  RegisterTargetMachine<WebAssemblyTargetMachine> const Y(
       getTheWebAssemblyTarget64());
 
   // Register backend passes
@@ -170,12 +170,12 @@ WebAssemblyTargetMachine::getSubtargetImpl(std::string CPU,
 
 const WebAssemblySubtarget *
 WebAssemblyTargetMachine::getSubtargetImpl(const Function &F) const {
-  Attribute CPUAttr = F.getFnAttribute("target-cpu");
-  Attribute FSAttr = F.getFnAttribute("target-features");
+  Attribute const CPUAttr = F.getFnAttribute("target-cpu");
+  Attribute const FSAttr = F.getFnAttribute("target-features");
 
-  std::string CPU =
+  std::string const CPU =
       CPUAttr.isValid() ? CPUAttr.getValueAsString().str() : TargetCPU;
-  std::string FS =
+  std::string const FS =
       FSAttr.isValid() ? FSAttr.getValueAsString().str() : TargetFS;
 
   // This needs to be done before we create a new subtarget since any
@@ -201,9 +201,9 @@ public:
       : ModulePass(ID), WasmTM(WasmTM) {}
 
   bool runOnModule(Module &M) override {
-    FeatureBitset Features = coalesceFeatures(M);
+    FeatureBitset const Features = coalesceFeatures(M);
 
-    std::string FeatureStr = getFeatureString(Features);
+    std::string const FeatureStr = getFeatureString(Features);
     WasmTM->setTargetFeatureString(FeatureStr);
     for (auto &F : M)
       replaceFeatures(F, FeatureStr);
@@ -297,7 +297,7 @@ private:
     for (const SubtargetFeatureKV &KV : WebAssemblyFeatureKV) {
       if (Features[KV.Value]) {
         // Mark features as used
-        std::string MDKey = (StringRef("wasm-feature-") + KV.Key).str();
+        std::string const MDKey = (StringRef("wasm-feature-") + KV.Key).str();
         M.addModuleFlag(Module::ModFlagBehavior::Error, MDKey,
                         wasm::WASM_FEATURE_PREFIX_USED);
       }

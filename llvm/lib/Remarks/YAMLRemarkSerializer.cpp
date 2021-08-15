@@ -62,9 +62,9 @@ template <> struct MappingTraits<remarks::Remark *> {
       assert(Serializer->StrTab.hasValue() &&
              "YAMLStrTabSerializer with no StrTab.");
       StringTable &StrTab = *Serializer->StrTab;
-      unsigned PassID = StrTab.add(Remark->PassName).first;
-      unsigned NameID = StrTab.add(Remark->RemarkName).first;
-      unsigned FunctionID = StrTab.add(Remark->FunctionName).first;
+      unsigned const PassID = StrTab.add(Remark->PassName).first;
+      unsigned const NameID = StrTab.add(Remark->RemarkName).first;
+      unsigned const FunctionID = StrTab.add(Remark->FunctionName).first;
       mapRemarkHeader(io, PassID, NameID, Remark->Loc, FunctionID,
                       Remark->Hotness, Remark->Args);
     } else {
@@ -221,7 +221,7 @@ static void emitVersion(raw_ostream &OS) {
 
 static void emitStrTab(raw_ostream &OS, Optional<const StringTable *> StrTab) {
   // Emit the string table in the section.
-  uint64_t StrTabSize = StrTab ? (*StrTab)->SerializedSize : 0;
+  uint64_t const StrTabSize = StrTab ? (*StrTab)->SerializedSize : 0;
   // Emit the total size of the string table (the size itself excluded):
   // little-endian uint64_t.
   // Note: even if no string table is used, emit 0.

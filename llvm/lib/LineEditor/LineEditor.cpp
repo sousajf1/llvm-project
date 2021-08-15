@@ -40,7 +40,7 @@ std::string LineEditor::ListCompleterConcept::getCommonPrefix(
   for (std::vector<Completion>::const_iterator I = Comps.begin() + 1,
                                                E = Comps.end();
        I != E; ++I) {
-    size_t Len = std::min(CommonPrefix.size(), I->TypedText.size());
+    size_t const Len = std::min(CommonPrefix.size(), I->TypedText.size());
     size_t CommonLen = 0;
     for (; CommonLen != Len; ++CommonLen) {
       if (CommonPrefix[CommonLen] != I->TypedText[CommonLen])
@@ -60,7 +60,7 @@ LineEditor::ListCompleterConcept::complete(StringRef Buffer, size_t Pos) const {
     return Action;
   }
 
-  std::string CommonPrefix = getCommonPrefix(Comps);
+  std::string const CommonPrefix = getCommonPrefix(Comps);
 
   // If the common prefix is non-empty we can simply insert it. If there is a
   // single completion, this will insert the full completion. If there is more

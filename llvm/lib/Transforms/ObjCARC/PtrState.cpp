@@ -188,7 +188,7 @@ bool BottomUpPtrState::InitBottomUp(ARCMDKindCache &Cache, Instruction *I) {
 
   MDNode *ReleaseMetadata =
       I->getMetadata(Cache.get(ARCMDKindID::ImpreciseRelease));
-  Sequence NewSeq = ReleaseMetadata ? S_MovableRelease : S_Stop;
+  Sequence const NewSeq = ReleaseMetadata ? S_MovableRelease : S_Stop;
   ResetSequenceProgress(NewSeq);
   if (NewSeq == S_Stop)
     InsertReverseInsertPt(I);
@@ -203,7 +203,7 @@ bool BottomUpPtrState::InitBottomUp(ARCMDKindCache &Cache, Instruction *I) {
 bool BottomUpPtrState::MatchWithRetain() {
   SetKnownPositiveRefCount();
 
-  Sequence OldSeq = GetSeq();
+  Sequence const OldSeq = GetSeq();
   switch (OldSeq) {
   case S_Stop:
   case S_MovableRelease:
@@ -227,7 +227,7 @@ bool BottomUpPtrState::HandlePotentialAlterRefCount(Instruction *Inst,
                                                     const Value *Ptr,
                                                     ProvenanceAnalysis &PA,
                                                     ARCInstKind Class) {
-  Sequence S = GetSeq();
+  Sequence const S = GetSeq();
 
   // Check for possible releases.
   if (!CanDecrementRefCount(Inst, Ptr, PA, Class))
@@ -350,7 +350,7 @@ bool TopDownPtrState::MatchWithRelease(ARCMDKindCache &Cache,
                                        Instruction *Release) {
   ClearKnownPositiveRefCount();
 
-  Sequence OldSeq = GetSeq();
+  Sequence const OldSeq = GetSeq();
 
   MDNode *ReleaseMetadata =
       Release->getMetadata(Cache.get(ARCMDKindID::ImpreciseRelease));

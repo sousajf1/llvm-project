@@ -121,8 +121,8 @@ bool ProvenanceAnalysis::relatedCheck(const Value *A, const Value *B) {
     break;
   }
 
-  bool AIsIdentified = IsObjCIdentifiedObject(A);
-  bool BIsIdentified = IsObjCIdentifiedObject(B);
+  bool const AIsIdentified = IsObjCIdentifiedObject(A);
+  bool const BIsIdentified = IsObjCIdentifiedObject(B);
 
   // An ObjC-Identified object can't alias a load if it is never locally stored.
   if (AIsIdentified) {
@@ -168,12 +168,12 @@ bool ProvenanceAnalysis::related(const Value *A, const Value *B) {
   // fails, we have the answer already. If it succeeds, leave it there until we
   // compute the real answer to guard against recursive queries.
   if (A > B) std::swap(A, B);
-  std::pair<CachedResultsTy::iterator, bool> Pair =
+  std::pair<CachedResultsTy::iterator, bool> const Pair =
     CachedResults.insert(std::make_pair(ValuePairTy(A, B), true));
   if (!Pair.second)
     return Pair.first->second;
 
-  bool Result = relatedCheck(A, B);
+  bool const Result = relatedCheck(A, B);
   CachedResults[ValuePairTy(A, B)] = Result;
   return Result;
 }

@@ -89,7 +89,7 @@ uint32_t llvm::crc32(uint32_t CRC, ArrayRef<uint8_t> Data) {
   // sizes. One could use crc32_z() instead, but that's a recent (2017) addition
   // and may not be available on all systems.
   do {
-    ArrayRef<uint8_t> Slice = Data.take_front(UINT32_MAX);
+    ArrayRef<uint8_t> const Slice = Data.take_front(UINT32_MAX);
     CRC = ::crc32(CRC, (const Bytef *)Slice.data(), (uInt)Slice.size());
     Data = Data.drop_front(Slice.size());
   } while (Data.size() > 0);

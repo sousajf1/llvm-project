@@ -63,16 +63,16 @@ static bool foldImmediates(MachineInstr &MI, const SIInstrInfo *TII,
                            MachineRegisterInfo &MRI, bool TryToCommute = true) {
   assert(TII->isVOP1(MI) || TII->isVOP2(MI) || TII->isVOPC(MI));
 
-  int Src0Idx = AMDGPU::getNamedOperandIdx(MI.getOpcode(), AMDGPU::OpName::src0);
+  int const Src0Idx = AMDGPU::getNamedOperandIdx(MI.getOpcode(), AMDGPU::OpName::src0);
 
   // Try to fold Src0
   MachineOperand &Src0 = MI.getOperand(Src0Idx);
   if (Src0.isReg()) {
-    Register Reg = Src0.getReg();
+    Register const Reg = Src0.getReg();
     if (Reg.isVirtual() && MRI.hasOneUse(Reg)) {
       MachineInstr *Def = MRI.getUniqueVRegDef(Reg);
       if (Def && Def->isMoveImmediate()) {
-        MachineOperand &MovSrc = Def->getOperand(1);
+        MachineOperand  const&MovSrc = Def->getOperand(1);
         bool ConstantFolded = false;
 
         if (TII->isOperandLegal(MI, Src0Idx, &MovSrc)) {
@@ -221,7 +221,7 @@ void SIShrinkInstructions::shrinkMIMG(MachineInstr &MI) {
   const GCNSubtarget &ST = MF->getSubtarget<GCNSubtarget>();
   const SIInstrInfo *TII = ST.getInstrInfo();
   const SIRegisterInfo &TRI = TII->getRegisterInfo();
-  int VAddr0Idx =
+  int const VAddr0Idx =
       AMDGPU::getNamedOperandIdx(MI.getOpcode(), AMDGPU::OpName::vaddr0);
   unsigned NewAddrDwords = Info->VAddrDwords;
   const TargetRegisterClass *RC;
@@ -250,7 +250,7 @@ void SIShrinkInstructions::shrinkMIMG(MachineInstr &MI) {
   bool IsKill = NewAddrDwords == Info->VAddrDwords;
   for (unsigned i = 0; i < Info->VAddrDwords; ++i) {
     const MachineOperand &Op = MI.getOperand(VAddr0Idx + i);
-    unsigned Vgpr = TRI.getHWRegIndex(Op.getReg());
+    unsigned const Vgpr = TRI.getHWRegIndex(Op.getReg());
 
     if (i == 0) {
       VgprBase = Vgpr;
@@ -268,10 +268,10 @@ void SIShrinkInstructions::shrinkMIMG(MachineInstr &MI) {
 
   // Further check for implicit tied operands - this may be present if TFE is
   // enabled
-  int TFEIdx = AMDGPU::getNamedOperandIdx(MI.getOpcode(), AMDGPU::OpName::tfe);
-  int LWEIdx = AMDGPU::getNamedOperandIdx(MI.getOpcode(), AMDGPU::OpName::lwe);
-  unsigned TFEVal = (TFEIdx == -1) ? 0 : MI.getOperand(TFEIdx).getImm();
-  unsigned LWEVal = (LWEIdx == -1) ? 0 : MI.getOperand(LWEIdx).getImm();
+  int const TFEIdx = AMDGPU::getNamedOperandIdx(MI.getOpcode(), AMDGPU::OpName::tfe);
+  int const LWEIdx = AMDGPU::getNamedOperandIdx(MI.getOpcode(), AMDGPU::OpName::lwe);
+  unsigned const TFEVal = (TFEIdx == -1) ? 0 : MI.getOperand(TFEIdx).getImm();
+  unsigned const LWEVal = (LWEIdx == -1) ? 0 : MI.getOperand(LWEIdx).getImm();
   int ToUntie = -1;
   if (TFEVal || LWEVal) {
     // TFE/LWE is enabled so we need to deal with an implicit tied operand
@@ -288,7 +288,7 @@ void SIShrinkInstructions::shrinkMIMG(MachineInstr &MI) {
     }
   }
 
-  unsigned NewOpcode =
+  unsigned const NewOpcode =
       AMDGPU::getMIMGOpcode(Info->BaseOpcode, AMDGPU::MIMGEncGfx10Default,
                             Info->VDataDwords, NewAddrDwords);
   MI.setDesc(TII->get(NewOpcode));
@@ -326,7 +326,7 @@ static bool shrinkScalarLogicOp(const GCNSubtarget &ST,
       AMDGPU::isInlinableLiteral32(SrcImm->getImm(), ST.hasInv2PiInlineImm()))
     return false;
 
-  uint32_t Imm = static_cast<uint32_t>(SrcImm->getImm());
+  uint32_t const Imm = static_cast<uint32_t>(SrcImm->getImm());
   uint32_t NewImm = 0;
 
   if (Opc == AMDGPU::S_AND_B32) {
@@ -401,7 +401,7 @@ static bool instAccessReg(iterator_range<MachineInstr::const_mop_iterator> &&R,
       if (TRI.regsOverlap(Reg, MO.getReg()))
         return true;
     } else if (MO.getReg() == Reg && Reg.isVirtual()) {
-      LaneBitmask Overlap = TRI.getSubRegIndexLaneMask(SubReg) &
+      LaneBitmask const Overlap = TRI.getSubRegIndexLaneMask(SubReg) &
                             TRI.getSubRegIndexLaneMask(MO.getSubReg());
       if (Overlap.any())
         return true;
@@ -475,16 +475,16 @@ static MachineInstr* matchSwap(MachineInstr &MovT, MachineRegisterInfo &MRI,
   assert(MovT.getOpcode() == AMDGPU::V_MOV_B32_e32 ||
          MovT.getOpcode() == AMDGPU::COPY);
 
-  Register T = MovT.getOperand(0).getReg();
-  unsigned Tsub = MovT.getOperand(0).getSubReg();
+  Register const T = MovT.getOperand(0).getReg();
+  unsigned const Tsub = MovT.getOperand(0).getSubReg();
   MachineOperand &Xop = MovT.getOperand(1);
 
   if (!Xop.isReg())
     return nullptr;
-  Register X = Xop.getReg();
-  unsigned Xsub = Xop.getSubReg();
+  Register const X = Xop.getReg();
+  unsigned const Xsub = Xop.getSubReg();
 
-  unsigned Size = TII->getOpSize(MovT, 0) / 4;
+  unsigned const Size = TII->getOpSize(MovT, 0) / 4;
 
   const SIRegisterInfo &TRI = TII->getRegisterInfo();
   if (!TRI.isVGPR(MRI, X))
@@ -511,8 +511,8 @@ static MachineInstr* matchSwap(MachineInstr &MovT, MachineRegisterInfo &MRI,
         MovY->hasRegisterImplicitUseOperand(AMDGPU::M0))
       continue;
 
-    Register Y = MovY->getOperand(0).getReg();
-    unsigned Ysub = MovY->getOperand(0).getSubReg();
+    Register const Y = MovY->getOperand(0).getReg();
+    unsigned const Ysub = MovY->getOperand(0).getSubReg();
 
     if (!TRI.isVGPR(MRI, Y))
       continue;
@@ -583,7 +583,7 @@ static MachineInstr* matchSwap(MachineInstr &MovT, MachineRegisterInfo &MRI,
     } else {
       Xop.setIsKill(false);
       for (int I = MovT.getNumImplicitOperands() - 1; I >= 0; --I ) {
-        unsigned OpNo = MovT.getNumExplicitOperands() + I;
+        unsigned const OpNo = MovT.getNumExplicitOperands() + I;
         const MachineOperand &Op = MovT.getOperand(OpNo);
         if (Op.isKill() && TRI.regsOverlap(X, Op.getReg()))
           MovT.RemoveOperand(OpNo);
@@ -603,9 +603,9 @@ bool SIShrinkInstructions::runOnMachineFunction(MachineFunction &MF) {
   MachineRegisterInfo &MRI = MF.getRegInfo();
   const GCNSubtarget &ST = MF.getSubtarget<GCNSubtarget>();
   const SIInstrInfo *TII = ST.getInstrInfo();
-  unsigned VCCReg = ST.isWave32() ? AMDGPU::VCC_LO : AMDGPU::VCC;
+  unsigned const VCCReg = ST.isWave32() ? AMDGPU::VCC_LO : AMDGPU::VCC;
 
-  std::vector<unsigned> I1Defs;
+  std::vector<unsigned> const I1Defs;
 
   for (MachineFunction::iterator BI = MF.begin(), BE = MF.end();
                                                   BI != BE; ++BI) {
@@ -671,7 +671,7 @@ bool SIShrinkInstructions::runOnMachineFunction(MachineFunction &MF) {
 
         if (Src0->isReg() && Src0->getReg() == Dest->getReg()) {
           if (Src1->isImm() && isKImmOperand(TII, *Src1)) {
-            unsigned Opc = (MI.getOpcode() == AMDGPU::S_ADD_I32) ?
+            unsigned const Opc = (MI.getOpcode() == AMDGPU::S_ADD_I32) ?
               AMDGPU::S_ADDK_I32 : AMDGPU::S_MULK_I32;
 
             MI.setDesc(TII->get(Opc));
@@ -736,10 +736,10 @@ bool SIShrinkInstructions::runOnMachineFunction(MachineFunction &MF) {
       if (!TII->hasVALU32BitEncoding(MI.getOpcode()))
         continue;
 
-      int Op32 = AMDGPU::getVOPe32(MI.getOpcode());
+      int const Op32 = AMDGPU::getVOPe32(MI.getOpcode());
 
       if (TII->isVOPC(Op32)) {
-        Register DstReg = MI.getOperand(0).getReg();
+        Register const DstReg = MI.getOperand(0).getReg();
         if (DstReg.isVirtual()) {
           // VOPC instructions can only write to the VCC register. We can't
           // force them to use VCC here, because this is only one register and
@@ -763,7 +763,7 @@ bool SIShrinkInstructions::runOnMachineFunction(MachineFunction &MF) {
             TII->getNamedOperand(MI, AMDGPU::OpName::src2);
         if (!Src2->isReg())
           continue;
-        Register SReg = Src2->getReg();
+        Register const SReg = Src2->getReg();
         if (SReg.isVirtual()) {
           MRI.setRegAllocationHint(SReg, 0, VCCReg);
           continue;

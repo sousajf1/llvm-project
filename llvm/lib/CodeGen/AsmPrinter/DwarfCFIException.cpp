@@ -66,7 +66,7 @@ void DwarfCFIException::endModule() {
 
   const TargetLoweringObjectFile &TLOF = Asm->getObjFileLowering();
 
-  unsigned PerEncoding = TLOF.getPersonalityEncoding();
+  unsigned const PerEncoding = TLOF.getPersonalityEncoding();
 
   if ((PerEncoding & 0x80) != dwarf::DW_EH_PE_indirect)
     return;
@@ -90,14 +90,14 @@ void DwarfCFIException::beginFunction(const MachineFunction *MF) {
   const Function &F = MF->getFunction();
 
   // If any landing pads survive, we need an EH table.
-  bool hasLandingPads = !MF->getLandingPads().empty();
+  bool const hasLandingPads = !MF->getLandingPads().empty();
 
   // See if we need frame move info.
-  bool shouldEmitMoves =
+  bool const shouldEmitMoves =
       Asm->getFunctionCFISectionType(*MF) != AsmPrinter::CFISection::None;
 
   const TargetLoweringObjectFile &TLOF = Asm->getObjFileLowering();
-  unsigned PerEncoding = TLOF.getPersonalityEncoding();
+  unsigned const PerEncoding = TLOF.getPersonalityEncoding();
   const Function *Per = nullptr;
   if (F.hasPersonalityFn())
     Per = dyn_cast<Function>(F.getPersonalityFn()->stripPointerCasts());
@@ -116,7 +116,7 @@ void DwarfCFIException::beginFunction(const MachineFunction *MF) {
        (hasLandingPads && PerEncoding != dwarf::DW_EH_PE_omit)) &&
       Per;
 
-  unsigned LSDAEncoding = TLOF.getLSDAEncoding();
+  unsigned const LSDAEncoding = TLOF.getLSDAEncoding();
   shouldEmitLSDA = shouldEmitPersonality &&
     LSDAEncoding != dwarf::DW_EH_PE_omit;
 
@@ -136,7 +136,7 @@ void DwarfCFIException::beginFragment(const MachineBasicBlock *MBB,
     return;
 
   if (!hasEmittedCFISections) {
-    AsmPrinter::CFISection CFISecType = Asm->getModuleCFISectionType();
+    AsmPrinter::CFISection const CFISecType = Asm->getModuleCFISectionType();
     // If we don't say anything it implies `.cfi_sections .eh_frame`, so we
     // chose not to be verbose in that case. And with `ForceDwarfFrameSection`,
     // we should always emit .debug_frame.
@@ -163,7 +163,7 @@ void DwarfCFIException::beginFragment(const MachineBasicBlock *MBB,
     MMI->addPersonality(P);
 
   const TargetLoweringObjectFile &TLOF = Asm->getObjFileLowering();
-  unsigned PerEncoding = TLOF.getPersonalityEncoding();
+  unsigned const PerEncoding = TLOF.getPersonalityEncoding();
   const MCSymbol *Sym = TLOF.getCFIPersonalitySymbol(P, Asm->TM, MMI);
   Asm->OutStreamer->emitCFIPersonality(Sym, PerEncoding);
 

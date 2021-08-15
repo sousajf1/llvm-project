@@ -214,7 +214,7 @@ public:
 } // end anonymous namespace
 
 static unsigned getRelaxedOpcodeBranch(const MCInst &Inst, bool Is16BitMode) {
-  unsigned Op = Inst.getOpcode();
+  unsigned const Op = Inst.getOpcode();
   switch (Op) {
   default:
     return Op;
@@ -226,7 +226,7 @@ static unsigned getRelaxedOpcodeBranch(const MCInst &Inst, bool Is16BitMode) {
 }
 
 static unsigned getRelaxedOpcodeArith(const MCInst &Inst) {
-  unsigned Op = Inst.getOpcode();
+  unsigned const Op = Inst.getOpcode();
   switch (Op) {
   default:
     return Op;
@@ -311,7 +311,7 @@ static unsigned getRelaxedOpcodeArith(const MCInst &Inst) {
 }
 
 static unsigned getRelaxedOpcode(const MCInst &Inst, bool Is16BitMode) {
-  unsigned R = getRelaxedOpcodeArith(Inst);
+  unsigned const R = getRelaxedOpcodeArith(Inst);
   if (R != Inst.getOpcode())
     return R;
   return getRelaxedOpcodeBranch(Inst, Is16BitMode);
@@ -319,7 +319,7 @@ static unsigned getRelaxedOpcode(const MCInst &Inst, bool Is16BitMode) {
 
 static X86::CondCode getCondFromBranch(const MCInst &MI,
                                        const MCInstrInfo &MCII) {
-  unsigned Opcode = MI.getOpcode();
+  unsigned const Opcode = MI.getOpcode();
   switch (Opcode) {
   default:
     return X86::COND_INVALID;
@@ -333,21 +333,21 @@ static X86::CondCode getCondFromBranch(const MCInst &MI,
 
 static X86::SecondMacroFusionInstKind
 classifySecondInstInMacroFusion(const MCInst &MI, const MCInstrInfo &MCII) {
-  X86::CondCode CC = getCondFromBranch(MI, MCII);
+  X86::CondCode const CC = getCondFromBranch(MI, MCII);
   return classifySecondCondCodeInMacroFusion(CC);
 }
 
 /// Check if the instruction uses RIP relative addressing.
 static bool isRIPRelative(const MCInst &MI, const MCInstrInfo &MCII) {
-  unsigned Opcode = MI.getOpcode();
+  unsigned const Opcode = MI.getOpcode();
   const MCInstrDesc &Desc = MCII.get(Opcode);
-  uint64_t TSFlags = Desc.TSFlags;
-  unsigned CurOp = X86II::getOperandBias(Desc);
-  int MemoryOperand = X86II::getMemoryOperandNo(TSFlags);
+  uint64_t const TSFlags = Desc.TSFlags;
+  unsigned const CurOp = X86II::getOperandBias(Desc);
+  int const MemoryOperand = X86II::getMemoryOperandNo(TSFlags);
   if (MemoryOperand < 0)
     return false;
-  unsigned BaseRegNum = MemoryOperand + CurOp + X86::AddrBaseReg;
-  unsigned BaseReg = MI.getOperand(BaseRegNum).getReg();
+  unsigned const BaseRegNum = MemoryOperand + CurOp + X86::AddrBaseReg;
+  unsigned const BaseReg = MI.getOperand(BaseRegNum).getReg();
   return (BaseReg == X86::RIP);
 }
 
@@ -362,7 +362,7 @@ static bool isFirstMacroFusibleInst(const MCInst &Inst,
   // An Intel instruction with RIP relative addressing is not macro fusible.
   if (isRIPRelative(Inst, MCII))
     return false;
-  X86::FirstMacroFusionInstKind FIK =
+  X86::FirstMacroFusionInstKind const FIK =
       X86::classifyFirstOpcodeInMacroFusion(Inst.getOpcode());
   return FIK != X86::FirstMacroFusionInstKind::Invalid;
 }
@@ -380,7 +380,7 @@ uint8_t X86AsmBackend::determinePaddingPrefix(const MCInst &Inst) const {
   assert((STI.hasFeature(X86::Mode32Bit) || STI.hasFeature(X86::Mode64Bit)) &&
          "Prefixes can be added only in 32-bit or 64-bit mode.");
   const MCInstrDesc &Desc = MCII->get(Inst.getOpcode());
-  uint64_t TSFlags = Desc.TSFlags;
+  uint64_t const TSFlags = Desc.TSFlags;
 
   // Determine where the memory operand starts, if present.
   int MemoryOperand = X86II::getMemoryOperandNo(TSFlags);
@@ -422,8 +422,8 @@ uint8_t X86AsmBackend::determinePaddingPrefix(const MCInst &Inst) const {
     return X86::CS_Encoding;
 
   if (MemoryOperand >= 0) {
-    unsigned BaseRegNum = MemoryOperand + X86::AddrBaseReg;
-    unsigned BaseReg = Inst.getOperand(BaseRegNum).getReg();
+    unsigned const BaseRegNum = MemoryOperand + X86::AddrBaseReg;
+    unsigned const BaseReg = Inst.getOperand(BaseRegNum).getReg();
     if (BaseReg == X86::ESP || BaseReg == X86::EBP)
       return X86::SS_Encoding;
   }
@@ -776,14 +776,14 @@ void X86AsmBackend::applyFixup(const MCAssembler &Asm, const MCFixup &Fixup,
                                MutableArrayRef<char> Data,
                                uint64_t Value, bool IsResolved,
                                const MCSubtargetInfo *STI) const {
-  unsigned Kind = Fixup.getKind();
+  unsigned const Kind = Fixup.getKind();
   if (Kind >= FirstLiteralRelocationKind)
     return;
-  unsigned Size = getFixupKindSize(Kind);
+  unsigned const Size = getFixupKindSize(Kind);
 
   assert(Fixup.getOffset() + Size <= Data.size() && "Invalid fixup offset!");
 
-  int64_t SignedValue = static_cast<int64_t>(Value);
+  int64_t const SignedValue = static_cast<int64_t>(Value);
   if ((Target.isAbsolute() || IsResolved) &&
       getFixupKindInfo(Fixup.getKind()).Flags &
       MCFixupKindInfo::FKF_IsPCRel) {
@@ -819,7 +819,7 @@ bool X86AsmBackend::mayNeedRelaxation(const MCInst &Inst,
 
   // Check if the relaxable operand has an expression. For the current set of
   // relaxable instructions, the relaxable operand is always the last operand.
-  unsigned RelaxableOp = Inst.getNumOperands() - 1;
+  unsigned const RelaxableOp = Inst.getNumOperands() - 1;
   if (Inst.getOperand(RelaxableOp).isExpr())
     return true;
 
@@ -839,8 +839,8 @@ bool X86AsmBackend::fixupNeedsRelaxation(const MCFixup &Fixup,
 void X86AsmBackend::relaxInstruction(MCInst &Inst,
                                      const MCSubtargetInfo &STI) const {
   // The only relaxations X86 does is from a 1byte pcrel to a 4byte pcrel.
-  bool Is16BitMode = STI.getFeatureBits()[X86::Mode16Bit];
-  unsigned RelaxedOp = getRelaxedOpcode(Inst, Is16BitMode);
+  bool const Is16BitMode = STI.getFeatureBits()[X86::Mode16Bit];
+  unsigned const RelaxedOp = getRelaxedOpcode(Inst, Is16BitMode);
 
   if (RelaxedOp == Inst.getOpcode()) {
     SmallString<256> Tmp;
@@ -858,7 +858,7 @@ void X86AsmBackend::relaxInstruction(MCInst &Inst,
 static bool isFullyRelaxed(const MCRelaxableFragment &RF) {
   auto &Inst = RF.getInst();
   auto &STI = *RF.getSubtargetInfo();
-  bool Is16BitMode = STI.getFeatureBits()[X86::Mode16Bit];
+  bool const Is16BitMode = STI.getFeatureBits()[X86::Mode16Bit];
   return getRelaxedOpcode(Inst, Is16BitMode) == Inst.getOpcode();
 }
 
@@ -890,7 +890,7 @@ bool X86AsmBackend::padInstructionViaPrefix(MCRelaxableFragment &RF,
     // targets (older chips mostly, but also Atom family) encounter decoder
     // stalls with too many prefixes.  For testing purposes, we set the value
     // externally for the moment.
-    unsigned ExistingPrefixSize = Code.size();
+    unsigned const ExistingPrefixSize = Code.size();
     if (TargetPrefixMax <= ExistingPrefixSize)
       return 0;
     return TargetPrefixMax - ExistingPrefixSize;
@@ -934,7 +934,7 @@ bool X86AsmBackend::padInstructionViaRelaxation(MCRelaxableFragment &RF,
   const unsigned OldSize = RF.getContents().size();
   const unsigned NewSize = Code.size();
   assert(NewSize >= OldSize && "size decrease during relaxation?");
-  unsigned Delta = NewSize - OldSize;
+  unsigned const Delta = NewSize - OldSize;
   if (Delta > RemainingSize)
     return false;
   RF.setInst(Relaxed);
@@ -1140,7 +1140,7 @@ bool X86AsmBackend::writeNopData(raw_ostream &OS, uint64_t Count) const {
   const char(*Nops)[11] =
       STI.getFeatureBits()[X86::Mode16Bit] ? Nops16Bit : Nops32Bit;
 
-  uint64_t MaxNopLength = (uint64_t)getMaximumNopSize();
+  uint64_t const MaxNopLength = (uint64_t)getMaximumNopSize();
 
   // Emit as many MaxNopLength NOPs as needed, then emit a NOP of the remaining
   // length.
@@ -1330,10 +1330,10 @@ private:
     // order. The registers are numbered from 1 to CU_NUM_SAVED_REGS.
     uint32_t RegEnc = 0;
     for (int i = 0, Idx = 0; i != CU_NUM_SAVED_REGS; ++i) {
-      unsigned Reg = SavedRegs[i];
+      unsigned const Reg = SavedRegs[i];
       if (Reg == 0) break;
 
-      int CURegNum = getCompactUnwindRegNum(Reg);
+      int const CURegNum = getCompactUnwindRegNum(Reg);
       if (CURegNum == -1) return ~0U;
 
       // Encode the 3-bit register number in order, skipping over 3-bits for
@@ -1364,7 +1364,7 @@ private:
     //     5       3
     //
     for (unsigned i = 0; i < RegCount; ++i) {
-      int CUReg = getCompactUnwindRegNum(SavedRegs[i]);
+      int const CUReg = getCompactUnwindRegNum(SavedRegs[i]);
       if (CUReg == -1) return ~0U;
       SavedRegs[i] = CUReg;
     }
@@ -1429,8 +1429,8 @@ public:
 
   std::unique_ptr<MCObjectTargetWriter>
   createObjectTargetWriter() const override {
-    uint32_t CPUType = cantFail(MachO::getCPUType(TT));
-    uint32_t CPUSubType = cantFail(MachO::getCPUSubType(TT));
+    uint32_t const CPUType = cantFail(MachO::getCPUType(TT));
+    uint32_t const CPUSubType = cantFail(MachO::getCPUSubType(TT));
     return createX86MachObjectWriter(Is64Bit, CPUType, CPUSubType);
   }
 
@@ -1524,7 +1524,7 @@ public:
           // unwind encoding.
           return CU::UNWIND_MODE_DWARF;
 
-        unsigned Reg = *MRI.getLLVMRegNum(Inst.getRegister(), true);
+        unsigned const Reg = *MRI.getLLVMRegNum(Inst.getRegister(), true);
         SavedRegs[SavedRegIdx++] = Reg;
         StackAdjust += OffsetSize;
         MinAbsOffset = std::min(MinAbsOffset, abs(Inst.getOffset()));
@@ -1547,7 +1547,7 @@ public:
         return CU::UNWIND_MODE_DWARF;
 
       // Get the encoding of the saved registers when we have a frame pointer.
-      uint32_t RegEnc = encodeCompactUnwindRegistersWithFrame();
+      uint32_t const RegEnc = encodeCompactUnwindRegistersWithFrame();
       if (RegEnc == ~0U) return CU::UNWIND_MODE_DWARF;
 
       CompactUnwindEncoding |= CU::UNWIND_MODE_BP_FRAME;
@@ -1585,7 +1585,7 @@ public:
 
       // Get the encoding of the saved registers when we don't have a frame
       // pointer.
-      uint32_t RegEnc = encodeCompactUnwindRegistersWithoutFrame(SavedRegIdx);
+      uint32_t const RegEnc = encodeCompactUnwindRegistersWithoutFrame(SavedRegIdx);
       if (RegEnc == ~0U) return CU::UNWIND_MODE_DWARF;
 
       // Encode the register encoding.
@@ -1610,7 +1610,7 @@ MCAsmBackend *llvm::createX86_32AsmBackend(const Target &T,
   if (TheTriple.isOSWindows() && TheTriple.isOSBinFormatCOFF())
     return new WindowsX86AsmBackend(T, false, STI);
 
-  uint8_t OSABI = MCELFObjectTargetWriter::getOSABI(TheTriple.getOS());
+  uint8_t const OSABI = MCELFObjectTargetWriter::getOSABI(TheTriple.getOS());
 
   if (TheTriple.isOSIAMCU())
     return new ELFX86_IAMCUAsmBackend(T, OSABI, STI);
@@ -1629,7 +1629,7 @@ MCAsmBackend *llvm::createX86_64AsmBackend(const Target &T,
   if (TheTriple.isOSWindows() && TheTriple.isOSBinFormatCOFF())
     return new WindowsX86AsmBackend(T, true, STI);
 
-  uint8_t OSABI = MCELFObjectTargetWriter::getOSABI(TheTriple.getOS());
+  uint8_t const OSABI = MCELFObjectTargetWriter::getOSABI(TheTriple.getOS());
 
   if (TheTriple.isX32())
     return new ELFX86_X32AsmBackend(T, OSABI, STI);

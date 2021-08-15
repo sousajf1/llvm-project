@@ -79,7 +79,7 @@ bool X86LoadValueInjectionRetHardeningPass::runOnMachineFunction(
       if (MBBI->getOpcode() != X86::RETQ)
         continue;
 
-      unsigned ClobberReg = TRI->findDeadCallerSavedReg(MBB, MBBI);
+      unsigned const ClobberReg = TRI->findDeadCallerSavedReg(MBB, MBBI);
       if (ClobberReg != X86::NoRegister) {
         BuildMI(MBB, MBBI, DebugLoc(), TII->get(X86::POP64r))
             .addReg(ClobberReg, RegState::Define)

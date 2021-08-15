@@ -106,7 +106,7 @@ static bool isSuitableForBSS(const GlobalVariable *GV) {
 static bool IsNullTerminatedString(const Constant *C) {
   // First check: is we have constant array terminated with zero
   if (const ConstantDataSequential *CDS = dyn_cast<ConstantDataSequential>(C)) {
-    unsigned NumElts = CDS->getNumElements();
+    unsigned const NumElts = CDS->getNumElements();
     assert(NumElts != 0 && "Can't have an empty CDS");
 
     if (CDS->getElementAsInteger(NumElts-1) != 0)
@@ -157,7 +157,7 @@ void TargetLoweringObjectFile::emitCGProfileMetadata(MCStreamer &Streamer,
   MDNode *CFGProfile = nullptr;
 
   for (const auto &MFE : ModuleFlags) {
-    StringRef Key = MFE.Key->getString();
+    StringRef const Key = MFE.Key->getString();
     if (Key == "CG Profile") {
       CFGProfile = cast<MDNode>(MFE.Val);
       break;
@@ -185,7 +185,7 @@ void TargetLoweringObjectFile::emitCGProfileMetadata(MCStreamer &Streamer,
     // the CGProfile pass has been run.
     if (!From || !To)
       continue;
-    uint64_t Count = cast<ConstantAsMetadata>(E->getOperand(2))
+    uint64_t const Count = cast<ConstantAsMetadata>(E->getOperand(2))
                          ->getValue()
                          ->getUniqueInteger()
                          .getZExtValue();
@@ -294,7 +294,7 @@ SectionKind TargetLoweringObjectFile::getKindForGlobal(const GlobalObject *GO,
       // the time the app starts up.  However, we can't put this into a
       // mergable section, because the linker doesn't take relocations into
       // consideration when it tries to merge entries in the section.
-      Reloc::Model ReloModel = TM.getRelocationModel();
+      Reloc::Model const ReloModel = TM.getRelocationModel();
       if (ReloModel == Reloc::Static || ReloModel == Reloc::ROPI ||
           ReloModel == Reloc::RWPI || ReloModel == Reloc::ROPI_RWPI ||
           !C->needsDynamicRelocation())

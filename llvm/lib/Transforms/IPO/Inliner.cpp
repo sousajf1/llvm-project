@@ -185,8 +185,8 @@ static void mergeInlinedArrayAllocas(Function *Caller, InlineFunctionInfo &IFI,
     // function.  Also, AllocasForType can be empty of course!
     bool MergedAwayAlloca = false;
     for (AllocaInst *AvailableAlloca : AllocasForType) {
-      Align Align1 = AI->getAlign();
-      Align Align2 = AvailableAlloca->getAlign();
+      Align const Align1 = AI->getAlign();
+      Align const Align2 = AvailableAlloca->getAlign();
 
       // The available alloca has to be in the right function, not in some other
       // function in this SCC.
@@ -402,7 +402,7 @@ inlineCallsImpl(CallGraphSCC &SCC, CallGraph &CG,
       if (!Callee || Callee->isDeclaration())
         continue;
 
-      bool IsTriviallyDead = isInstructionTriviallyDead(&CB, &GetTLI(*Caller));
+      bool const IsTriviallyDead = isInstructionTriviallyDead(&CB, &GetTLI(*Caller));
 
       if (!IsTriviallyDead) {
         // If this call site was obtained by inlining another function, verify
@@ -471,7 +471,7 @@ inlineCallsImpl(CallGraphSCC &SCC, CallGraph &CG,
         if (!InlineInfo.InlinedCalls.empty()) {
           // Create a new inline history entry for this, so that we remember
           // that these new callsites came about due to inlining Callee.
-          int NewHistoryID = InlineHistory.size();
+          int const NewHistoryID = InlineHistory.size();
           InlineHistory.push_back(std::make_pair(Callee, InlineHistoryID));
 
 #ifndef NDEBUG
@@ -840,7 +840,7 @@ PreservedAnalyses InlinerPass::run(LazyCallGraph::SCC &InitialC,
           &FAM.getResult<BlockFrequencyAnalysis>(*(CB->getCaller())),
           &FAM.getResult<BlockFrequencyAnalysis>(Callee));
 
-      InlineResult IR =
+      InlineResult const IR =
           InlineFunction(*CB, IFI, &FAM.getResult<AAManager>(*CB->getCaller()));
       if (!IR.isSuccess()) {
         Advice->recordUnsuccessfulInlining(IR);
@@ -856,7 +856,7 @@ PreservedAnalyses InlinerPass::run(LazyCallGraph::SCC &InitialC,
 
       // Add any new callsites to defined functions to the worklist.
       if (!IFI.InlinedCallSites.empty()) {
-        int NewHistoryID = InlineHistory.size();
+        int const NewHistoryID = InlineHistory.size();
         InlineHistory.push_back({&Callee, InlineHistoryID});
 
         for (CallBase *ICB : reverse(IFI.InlinedCallSites)) {

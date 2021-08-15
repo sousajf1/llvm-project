@@ -108,7 +108,7 @@ extern "C" uint32_t LLVMRemarkEntryGetNumArgs(LLVMRemarkEntryRef Remark) {
 
 extern "C" LLVMRemarkArgRef
 LLVMRemarkEntryGetFirstArg(LLVMRemarkEntryRef Remark) {
-  ArrayRef<Argument> Args = unwrap(Remark)->Args;
+  ArrayRef<Argument> const Args = unwrap(Remark)->Args;
   // No arguments to iterate on.
   if (Args.empty())
     return NULL;

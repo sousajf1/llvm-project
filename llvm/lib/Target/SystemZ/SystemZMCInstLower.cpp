@@ -69,7 +69,7 @@ SystemZMCInstLower::getExpr(const MachineOperand &MO,
   }
   const MCExpr *Expr = MCSymbolRefExpr::create(Symbol, Kind, Ctx);
   if (HasOffset)
-    if (int64_t Offset = MO.getOffset()) {
+    if (int64_t const Offset = MO.getOffset()) {
       const MCExpr *OffsetExpr = MCConstantExpr::create(Offset, Ctx);
       Expr = MCBinaryExpr::createAdd(Expr, OffsetExpr, Ctx);
     }
@@ -85,7 +85,7 @@ MCOperand SystemZMCInstLower::lowerOperand(const MachineOperand &MO) const {
     return MCOperand::createImm(MO.getImm());
 
   default: {
-    MCSymbolRefExpr::VariantKind Kind = getVariantKind(MO.getTargetFlags());
+    MCSymbolRefExpr::VariantKind const Kind = getVariantKind(MO.getTargetFlags());
     return MCOperand::createExpr(getExpr(MO, Kind));
   }
   }

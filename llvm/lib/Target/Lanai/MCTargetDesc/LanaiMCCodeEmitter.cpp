@@ -91,7 +91,7 @@ static Lanai::Fixups FixupKind(const MCExpr *Expr) {
   if (isa<MCSymbolRefExpr>(Expr))
     return Lanai::FIXUP_LANAI_21;
   if (const LanaiMCExpr *McExpr = dyn_cast<LanaiMCExpr>(Expr)) {
-    LanaiMCExpr::VariantKind ExprKind = McExpr->getKind();
+    LanaiMCExpr::VariantKind const ExprKind = McExpr->getKind();
     switch (ExprKind) {
     case LanaiMCExpr::VK_Lanai_None:
       return Lanai::FIXUP_LANAI_21;
@@ -135,7 +135,7 @@ unsigned LanaiMCCodeEmitter::getMachineOpValue(
 static unsigned adjustPqBits(const MCInst &Inst, unsigned Value,
                              unsigned PBitShift, unsigned QBitShift) {
   const MCOperand AluOp = Inst.getOperand(3);
-  unsigned AluCode = AluOp.getImm();
+  unsigned const AluCode = AluOp.getImm();
 
   // Set the P bit to one iff the immediate is nonzero and not a post-op
   // instruction.
@@ -173,7 +173,7 @@ void LanaiMCCodeEmitter::encodeInstruction(
     const MCInst &Inst, raw_ostream &Ostream, SmallVectorImpl<MCFixup> &Fixups,
     const MCSubtargetInfo &SubtargetInfo) const {
   // Get instruction encoding and emit it
-  unsigned Value = getBinaryCodeForInstr(Inst, Fixups, SubtargetInfo);
+  unsigned const Value = getBinaryCodeForInstr(Inst, Fixups, SubtargetInfo);
   ++MCNumEmitted; // Keep track of the number of emitted insns.
 
   // Emit bytes in big-endian
@@ -229,7 +229,7 @@ unsigned LanaiMCCodeEmitter::getRrMemoryOpValue(
 
   assert(AluMCOp.isImm() && "Third operator is not immediate.");
   // Set BBB
-  unsigned AluOp = AluMCOp.getImm();
+  unsigned const AluOp = AluMCOp.getImm();
   Encoding |= LPAC::encodeLanaiAluCode(AluOp) << 5;
   // Set P and Q
   if (LPAC::isPreOp(AluOp))

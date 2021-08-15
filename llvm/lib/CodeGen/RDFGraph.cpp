@@ -66,9 +66,9 @@ raw_ostream &operator<< (raw_ostream &OS, const Print<RegisterRef> &P) {
 
 raw_ostream &operator<< (raw_ostream &OS, const Print<NodeId> &P) {
   auto NA = P.G.addr<NodeBase*>(P.Obj);
-  uint16_t Attrs = NA.Addr->getAttrs();
-  uint16_t Kind = NodeAttrs::kind(Attrs);
-  uint16_t Flags = NodeAttrs::flags(Attrs);
+  uint16_t const Attrs = NA.Addr->getAttrs();
+  uint16_t const Kind = NodeAttrs::kind(Attrs);
+  uint16_t const Flags = NodeAttrs::flags(Attrs);
   switch (NodeAttrs::type(Attrs)) {
     case NodeAttrs::Code:
       switch (Kind) {
@@ -116,16 +116,16 @@ static void printRefHeader(raw_ostream &OS, const NodeAddr<RefNode*> RA,
 raw_ostream &operator<< (raw_ostream &OS, const Print<NodeAddr<DefNode*>> &P) {
   printRefHeader(OS, P.Obj, P.G);
   OS << '(';
-  if (NodeId N = P.Obj.Addr->getReachingDef())
+  if (NodeId const N = P.Obj.Addr->getReachingDef())
     OS << Print<NodeId>(N, P.G);
   OS << ',';
-  if (NodeId N = P.Obj.Addr->getReachedDef())
+  if (NodeId const N = P.Obj.Addr->getReachedDef())
     OS << Print<NodeId>(N, P.G);
   OS << ',';
-  if (NodeId N = P.Obj.Addr->getReachedUse())
+  if (NodeId const N = P.Obj.Addr->getReachedUse())
     OS << Print<NodeId>(N, P.G);
   OS << "):";
-  if (NodeId N = P.Obj.Addr->getSibling())
+  if (NodeId const N = P.Obj.Addr->getSibling())
     OS << Print<NodeId>(N, P.G);
   return OS;
 }
@@ -133,10 +133,10 @@ raw_ostream &operator<< (raw_ostream &OS, const Print<NodeAddr<DefNode*>> &P) {
 raw_ostream &operator<< (raw_ostream &OS, const Print<NodeAddr<UseNode*>> &P) {
   printRefHeader(OS, P.Obj, P.G);
   OS << '(';
-  if (NodeId N = P.Obj.Addr->getReachingDef())
+  if (NodeId const N = P.Obj.Addr->getReachingDef())
     OS << Print<NodeId>(N, P.G);
   OS << "):";
-  if (NodeId N = P.Obj.Addr->getSibling())
+  if (NodeId const N = P.Obj.Addr->getSibling())
     OS << Print<NodeId>(N, P.G);
   return OS;
 }
@@ -145,13 +145,13 @@ raw_ostream &operator<< (raw_ostream &OS,
       const Print<NodeAddr<PhiUseNode*>> &P) {
   printRefHeader(OS, P.Obj, P.G);
   OS << '(';
-  if (NodeId N = P.Obj.Addr->getReachingDef())
+  if (NodeId const N = P.Obj.Addr->getReachingDef())
     OS << Print<NodeId>(N, P.G);
   OS << ',';
-  if (NodeId N = P.Obj.Addr->getPredecessor())
+  if (NodeId const N = P.Obj.Addr->getPredecessor())
     OS << Print<NodeId>(N, P.G);
   OS << "):";
-  if (NodeId N = P.Obj.Addr->getSibling())
+  if (NodeId const N = P.Obj.Addr->getSibling())
     OS << Print<NodeId>(N, P.G);
   return OS;
 }
@@ -205,7 +205,7 @@ namespace {
   template <typename T>
   raw_ostream &operator<< (raw_ostream &OS, const PrintListV<T> &P) {
     unsigned N = P.List.size();
-    for (NodeAddr<T> A : P.List) {
+    for (NodeAddr<T> const A : P.List) {
       OS << PrintNode<T>(A, P.G);
       if (--N)
         OS << ", ";
@@ -223,7 +223,7 @@ raw_ostream &operator<< (raw_ostream &OS, const Print<NodeAddr<PhiNode*>> &P) {
 
 raw_ostream &operator<<(raw_ostream &OS, const Print<NodeAddr<StmtNode *>> &P) {
   const MachineInstr &MI = *P.Obj.Addr->getCode();
-  unsigned Opc = MI.getOpcode();
+  unsigned const Opc = MI.getOpcode();
   OS << Print<NodeId>(P.Obj.Id, P.G) << ": " << P.G.getTII().getName(Opc);
   // Print the target for calls and branches (for readability).
   if (MI.isCall() || MI.isBranch()) {
@@ -265,11 +265,11 @@ raw_ostream &operator<< (raw_ostream &OS,
 raw_ostream &operator<< (raw_ostream &OS,
       const Print<NodeAddr<BlockNode*>> &P) {
   MachineBasicBlock *BB = P.Obj.Addr->getCode();
-  unsigned NP = BB->pred_size();
+  unsigned const NP = BB->pred_size();
   std::vector<int> Ns;
   auto PrintBBs = [&OS] (std::vector<int> Ns) -> void {
     unsigned N = Ns.size();
-    for (int I : Ns) {
+    for (int const I : Ns) {
       OS << "%bb." << I;
       if (--N)
         OS << ", ";
@@ -282,7 +282,7 @@ raw_ostream &operator<< (raw_ostream &OS,
     Ns.push_back(B->getNumber());
   PrintBBs(Ns);
 
-  unsigned NS = BB->succ_size();
+  unsigned const NS = BB->succ_size();
   OS << "  succs(" << NS << "): ";
   Ns.clear();
   for (MachineBasicBlock *B : BB->successors())
@@ -358,7 +358,7 @@ bool NodeAllocator::needNewBlock() {
     return true;
 
   char *ActiveBegin = Blocks.back();
-  uint32_t Index = (ActiveEnd-ActiveBegin)/NodeMemSize;
+  uint32_t const Index = (ActiveEnd-ActiveBegin)/NodeMemSize;
   return Index >= NodesPerBlock;
 }
 
@@ -366,8 +366,8 @@ NodeAddr<NodeBase*> NodeAllocator::New() {
   if (needNewBlock())
     startNewBlock();
 
-  uint32_t ActiveB = Blocks.size()-1;
-  uint32_t Index = (ActiveEnd - Blocks[ActiveB])/NodeMemSize;
+  uint32_t const ActiveB = Blocks.size()-1;
+  uint32_t const Index = (ActiveEnd - Blocks[ActiveB])/NodeMemSize;
   NodeAddr<NodeBase*> NA = { reinterpret_cast<NodeBase*>(ActiveEnd),
                              makeId(ActiveB, Index) };
   ActiveEnd += NodeMemSize;
@@ -375,12 +375,12 @@ NodeAddr<NodeBase*> NodeAllocator::New() {
 }
 
 NodeId NodeAllocator::id(const NodeBase *P) const {
-  uintptr_t A = reinterpret_cast<uintptr_t>(P);
+  uintptr_t const A = reinterpret_cast<uintptr_t>(P);
   for (unsigned i = 0, n = Blocks.size(); i != n; ++i) {
-    uintptr_t B = reinterpret_cast<uintptr_t>(Blocks[i]);
+    uintptr_t const B = reinterpret_cast<uintptr_t>(Blocks[i]);
     if (A < B || A >= B + NodesPerBlock*NodeMemSize)
       continue;
-    uint32_t Idx = (A-B)/NodeMemSize;
+    uint32_t const Idx = (A-B)/NodeMemSize;
     return makeId(i, Idx);
   }
   llvm_unreachable("Invalid node address");
@@ -394,7 +394,7 @@ void NodeAllocator::clear() {
 
 // Insert node NA after "this" in the circular chain.
 void NodeBase::append(NodeAddr<NodeBase*> NA) {
-  NodeId Nx = Next;
+  NodeId const Nx = Next;
   // If NA is already "next", do nothing.
   if (Next != NA.Id) {
     Next = NA.Id;
@@ -477,7 +477,7 @@ void CodeNode::addMember(NodeAddr<NodeBase*> NA, const DataFlowGraph &G) {
     ML.Addr->append(NA);
   } else {
     Code.FirstM = NA.Id;
-    NodeId Self = G.id(this);
+    NodeId const Self = G.id(this);
     NA.Addr->setNext(Self);
   }
   Code.LastM = NA.Id;
@@ -509,7 +509,7 @@ void CodeNode::removeMember(NodeAddr<NodeBase*> NA, const DataFlowGraph &G) {
   }
 
   while (MA.Addr != this) {
-    NodeId MX = MA.Addr->getNext();
+    NodeId const MX = MA.Addr->getNext();
     if (MX == NA.Id) {
       MA.Addr->setNext(NA.Addr->getNext());
       // If the member to remove happens to be the last one, update the
@@ -633,7 +633,7 @@ bool TargetOperandInfo::isFixedReg(const MachineInstr &In, unsigned OpNum)
   // uses or defs, and those lists do not allow sub-registers.
   if (Op.getSubReg() != 0)
     return false;
-  Register Reg = Op.getReg();
+  Register const Reg = Op.getReg();
   const MCPhysReg *ImpR = Op.isDef() ? D.getImplicitDefs()
                                      : D.getImplicitUses();
   if (!ImpR)
@@ -687,7 +687,7 @@ unsigned DataFlowGraph::DefStack::size() const {
 // is a non-delimiter.
 void DataFlowGraph::DefStack::pop() {
   assert(!empty());
-  unsigned P = nextDown(Stack.size());
+  unsigned const P = nextDown(Stack.size());
   Stack.resize(P);
 }
 
@@ -704,7 +704,7 @@ void DataFlowGraph::DefStack::clear_block(NodeId N) {
   assert(N != 0);
   unsigned P = Stack.size();
   while (P > 0) {
-    bool Found = isDelimiter(Stack[P-1], N);
+    bool const Found = isDelimiter(Stack[P-1], N);
     P--;
     if (Found)
       break;
@@ -717,7 +717,7 @@ void DataFlowGraph::DefStack::clear_block(NodeId N) {
 unsigned DataFlowGraph::DefStack::nextUp(unsigned P) const {
   // Get the next valid position after P (skipping all delimiters).
   // The input position P does not have to point to a non-delimiter.
-  unsigned SS = Stack.size();
+  unsigned const SS = Stack.size();
   bool IsDelim;
   assert(P < SS);
   do {
@@ -751,10 +751,10 @@ RegisterSet DataFlowGraph::getLandingPadLiveIns() const {
   const Constant *PF = F.hasPersonalityFn() ? F.getPersonalityFn()
                                             : nullptr;
   const TargetLowering &TLI = *MF.getSubtarget().getTargetLowering();
-  if (RegisterId R = TLI.getExceptionPointerRegister(PF))
+  if (RegisterId const R = TLI.getExceptionPointerRegister(PF))
     LR.insert(RegisterRef(R));
   if (!isFuncletEHPersonality(classifyEHPersonality(PF))) {
-    if (RegisterId R = TLI.getExceptionSelectorRegister(PF))
+    if (RegisterId const R = TLI.getExceptionSelectorRegister(PF))
       LR.insert(RegisterRef(R));
   }
   return LR;
@@ -873,7 +873,7 @@ void DataFlowGraph::build(unsigned Options) {
     return;
 
   for (MachineBasicBlock &B : MF) {
-    NodeAddr<BlockNode*> BA = newBlock(Func, &B);
+    NodeAddr<BlockNode*> const BA = newBlock(Func, &B);
     BlockNodes.insert(std::make_pair(&B, BA));
     for (MachineInstr &I : B) {
       if (I.isDebugInstr())
@@ -882,21 +882,21 @@ void DataFlowGraph::build(unsigned Options) {
     }
   }
 
-  NodeAddr<BlockNode*> EA = Func.Addr->getEntryBlock(*this);
-  NodeList Blocks = Func.Addr->members(*this);
+  NodeAddr<BlockNode*> const EA = Func.Addr->getEntryBlock(*this);
+  NodeList const Blocks = Func.Addr->members(*this);
 
   // Collect information about block references.
   RegisterSet AllRefs;
-  for (NodeAddr<BlockNode*> BA : Blocks)
-    for (NodeAddr<InstrNode*> IA : BA.Addr->members(*this))
-      for (NodeAddr<RefNode*> RA : IA.Addr->members(*this))
+  for (NodeAddr<BlockNode*> const BA : Blocks)
+    for (NodeAddr<InstrNode*> const IA : BA.Addr->members(*this))
+      for (NodeAddr<RefNode*> const RA : IA.Addr->members(*this))
         AllRefs.insert(RA.Addr->getRegRef(*this));
 
   // Collect function live-ins and entry block live-ins.
-  MachineRegisterInfo &MRI = MF.getRegInfo();
-  MachineBasicBlock &EntryB = *EA.Addr->getCode();
+  MachineRegisterInfo  const&MRI = MF.getRegInfo();
+  MachineBasicBlock  const&EntryB = *EA.Addr->getCode();
   assert(EntryB.pred_empty() && "Function entry block has predecessors");
-  for (std::pair<unsigned,unsigned> P : MRI.liveins())
+  for (std::pair<unsigned,unsigned> const P : MRI.liveins())
     LiveIns.insert(RegisterRef(P.first));
   if (MRI.tracksLiveness()) {
     for (auto I : EntryB.liveins())
@@ -906,10 +906,10 @@ void DataFlowGraph::build(unsigned Options) {
   // Add function-entry phi nodes for the live-in registers.
   //for (std::pair<RegisterId,LaneBitmask> P : LiveIns) {
   for (auto I = LiveIns.rr_begin(), E = LiveIns.rr_end(); I != E; ++I) {
-    RegisterRef RR = *I;
+    RegisterRef const RR = *I;
     NodeAddr<PhiNode*> PA = newPhi(EA);
-    uint16_t PhiFlags = NodeAttrs::PhiRef | NodeAttrs::Preserving;
-    NodeAddr<DefNode*> DA = newDef(PA, RR, PhiFlags);
+    uint16_t const PhiFlags = NodeAttrs::PhiRef | NodeAttrs::Preserving;
+    NodeAddr<DefNode*> const DA = newDef(PA, RR, PhiFlags);
     PA.Addr->addMember(DA, *this);
   }
 
@@ -918,9 +918,9 @@ void DataFlowGraph::build(unsigned Options) {
   // branches in the program, or fall-throughs from other blocks. They
   // are entered from the exception handling runtime and target's ABI
   // may define certain registers as defined on entry to such a block.
-  RegisterSet EHRegs = getLandingPadLiveIns();
+  RegisterSet const EHRegs = getLandingPadLiveIns();
   if (!EHRegs.empty()) {
-    for (NodeAddr<BlockNode*> BA : Blocks) {
+    for (NodeAddr<BlockNode*> const BA : Blocks) {
       const MachineBasicBlock &B = *BA.Addr->getCode();
       if (!B.isEHPad())
         continue;
@@ -931,15 +931,15 @@ void DataFlowGraph::build(unsigned Options) {
         Preds.push_back(findBlock(PB));
 
       // Build phi nodes for each live-in.
-      for (RegisterRef RR : EHRegs) {
+      for (RegisterRef const RR : EHRegs) {
         NodeAddr<PhiNode*> PA = newPhi(BA);
-        uint16_t PhiFlags = NodeAttrs::PhiRef | NodeAttrs::Preserving;
+        uint16_t const PhiFlags = NodeAttrs::PhiRef | NodeAttrs::Preserving;
         // Add def:
-        NodeAddr<DefNode*> DA = newDef(PA, RR, PhiFlags);
+        NodeAddr<DefNode*> const DA = newDef(PA, RR, PhiFlags);
         PA.Addr->addMember(DA, *this);
         // Add uses (no reaching defs for phi uses):
-        for (NodeAddr<BlockNode*> PBA : Preds) {
-          NodeAddr<PhiUseNode*> PUA = newPhiUse(PA, RR, PBA);
+        for (NodeAddr<BlockNode*> const PBA : Preds) {
+          NodeAddr<PhiUseNode*> const PUA = newPhiUse(PA, RR, PBA);
           PA.Addr->addMember(PUA, *this);
         }
       }
@@ -949,9 +949,9 @@ void DataFlowGraph::build(unsigned Options) {
   // Build a map "PhiM" which will contain, for each block, the set
   // of references that will require phi definitions in that block.
   BlockRefsMap PhiM;
-  for (NodeAddr<BlockNode*> BA : Blocks)
+  for (NodeAddr<BlockNode*> const BA : Blocks)
     recordDefsForDF(PhiM, BA);
-  for (NodeAddr<BlockNode*> BA : Blocks)
+  for (NodeAddr<BlockNode*> const BA : Blocks)
     buildPhis(PhiM, AllRefs, BA);
 
   // Link all the refs. This will recursively traverse the dominator tree.
@@ -981,7 +981,7 @@ RegisterRef DataFlowGraph::makeRegRef(const MachineOperand &Op) const {
 
 RegisterRef DataFlowGraph::restrictRef(RegisterRef AR, RegisterRef BR) const {
   if (AR.Reg == BR.Reg) {
-    LaneBitmask M = AR.Mask & BR.Mask;
+    LaneBitmask const M = AR.Mask & BR.Mask;
     return M.any() ? RegisterRef(AR.Reg, M) : RegisterRef();
   }
   // This isn't strictly correct, because the overlap may happen in the
@@ -1040,28 +1040,28 @@ void DataFlowGraph::pushClobbers(NodeAddr<InstrNode*> IA, DefStackMap &DefM) {
   //     unspecified order), but the order does not matter from the data-
   //     -flow perspective.
 
-  for (NodeAddr<DefNode*> DA : IA.Addr->members_if(IsDef, *this)) {
+  for (NodeAddr<DefNode*> const DA : IA.Addr->members_if(IsDef, *this)) {
     if (Visited.count(DA.Id))
       continue;
     if (!(DA.Addr->getFlags() & NodeAttrs::Clobbering))
       continue;
 
     NodeList Rel = getRelatedRefs(IA, DA);
-    NodeAddr<DefNode*> PDA = Rel.front();
-    RegisterRef RR = PDA.Addr->getRegRef(*this);
+    NodeAddr<DefNode*> const PDA = Rel.front();
+    RegisterRef const RR = PDA.Addr->getRegRef(*this);
 
     // Push the definition on the stack for the register and all aliases.
     // The def stack traversal in linkNodeUp will check the exact aliasing.
     DefM[RR.Reg].push(DA);
     Defined.insert(RR.Reg);
-    for (RegisterId A : PRI.getAliasSet(RR.Reg)) {
+    for (RegisterId const A : PRI.getAliasSet(RR.Reg)) {
       // Check that we don't push the same def twice.
       assert(A != RR.Reg);
       if (!Defined.count(A))
         DefM[A].push(DA);
     }
     // Mark all the related defs as visited.
-    for (NodeAddr<NodeBase*> T : Rel)
+    for (NodeAddr<NodeBase*> const T : Rel)
       Visited.insert(T.Id);
   }
 }
@@ -1086,15 +1086,15 @@ void DataFlowGraph::pushDefs(NodeAddr<InstrNode*> IA, DefStackMap &DefM) {
   //     unspecified order), but the order does not matter from the data-
   //     -flow perspective.
 
-  for (NodeAddr<DefNode*> DA : IA.Addr->members_if(IsDef, *this)) {
+  for (NodeAddr<DefNode*> const DA : IA.Addr->members_if(IsDef, *this)) {
     if (Visited.count(DA.Id))
       continue;
     if (DA.Addr->getFlags() & NodeAttrs::Clobbering)
       continue;
 
     NodeList Rel = getRelatedRefs(IA, DA);
-    NodeAddr<DefNode*> PDA = Rel.front();
-    RegisterRef RR = PDA.Addr->getRegRef(*this);
+    NodeAddr<DefNode*> const PDA = Rel.front();
+    RegisterRef const RR = PDA.Addr->getRegRef(*this);
 #ifndef NDEBUG
     // Assert if the register is defined in two or more unrelated defs.
     // This could happen if there are two or more def operands defining it.
@@ -1109,13 +1109,13 @@ void DataFlowGraph::pushDefs(NodeAddr<InstrNode*> IA, DefStackMap &DefM) {
     // Push the definition on the stack for the register and all aliases.
     // The def stack traversal in linkNodeUp will check the exact aliasing.
     DefM[RR.Reg].push(DA);
-    for (RegisterId A : PRI.getAliasSet(RR.Reg)) {
+    for (RegisterId const A : PRI.getAliasSet(RR.Reg)) {
       // Check that we don't push the same def twice.
       assert(A != RR.Reg);
       DefM[A].push(DA);
     }
     // Mark all the related defs as visited.
-    for (NodeAddr<NodeBase*> T : Rel)
+    for (NodeAddr<NodeBase*> const T : Rel)
       Visited.insert(T.Id);
   }
 }
@@ -1127,7 +1127,7 @@ NodeList DataFlowGraph::getRelatedRefs(NodeAddr<InstrNode*> IA,
   assert(IA.Id != 0 && RA.Id != 0);
 
   NodeList Refs;
-  NodeId Start = RA.Id;
+  NodeId const Start = RA.Id;
   do {
     Refs.push_back(RA);
     RA = getNextRelated(IA, RA);
@@ -1174,7 +1174,7 @@ NodeAddr<RefNode*> DataFlowGraph::getNextRelated(NodeAddr<InstrNode*> IA,
     return TUA.Addr->getPredecessor() == RUA.Addr->getPredecessor();
   };
 
-  RegisterRef RR = RA.Addr->getRegRef(*this);
+  RegisterRef const RR = RA.Addr->getRegRef(*this);
   if (IA.Addr->getKind() == NodeAttrs::Stmt)
     return RA.Addr->getNextRef(RR, RelatedStmt, true, *this);
   return RA.Addr->getNextRef(RR, RelatedPhi, true, *this);
@@ -1192,7 +1192,7 @@ DataFlowGraph::locateNextRef(NodeAddr<InstrNode*> IA, NodeAddr<RefNode*> RA,
   assert(IA.Id != 0 && RA.Id != 0);
 
   NodeAddr<RefNode*> NA;
-  NodeId Start = RA.Id;
+  NodeId const Start = RA.Id;
   while (true) {
     NA = getNextRelated(IA, RA);
     if (NA.Id == 0 || NA.Id == Start)
@@ -1213,7 +1213,7 @@ NodeAddr<RefNode*> DataFlowGraph::getNextShadow(NodeAddr<InstrNode*> IA,
       NodeAddr<RefNode*> RA, bool Create) {
   assert(IA.Id != 0 && RA.Id != 0);
 
-  uint16_t Flags = RA.Addr->getFlags() | NodeAttrs::Shadow;
+  uint16_t const Flags = RA.Addr->getFlags() | NodeAttrs::Shadow;
   auto IsShadow = [Flags] (NodeAddr<RefNode*> TA) -> bool {
     return TA.Addr->getFlags() == Flags;
   };
@@ -1233,7 +1233,7 @@ NodeAddr<RefNode*> DataFlowGraph::getNextShadow(NodeAddr<InstrNode*> IA,
 NodeAddr<RefNode*> DataFlowGraph::getNextShadow(NodeAddr<InstrNode*> IA,
       NodeAddr<RefNode*> RA) const {
   assert(IA.Id != 0 && RA.Id != 0);
-  uint16_t Flags = RA.Addr->getFlags() | NodeAttrs::Shadow;
+  uint16_t const Flags = RA.Addr->getFlags() | NodeAttrs::Shadow;
   auto IsShadow = [Flags] (NodeAddr<RefNode*> TA) -> bool {
     return TA.Addr->getFlags() == Flags;
   };
@@ -1268,15 +1268,15 @@ void DataFlowGraph::buildStmt(NodeAddr<BlockNode*> BA, MachineInstr &In) {
     for (const MachineOperand &Op : In.operands()) {
       if (!Op.isReg() || Op.getReg() == 0 || !Op.isUse() || Op.isUndef())
         continue;
-      RegisterRef UR = makeRegRef(Op);
+      RegisterRef const UR = makeRegRef(Op);
       if (PRI.alias(DR, UR))
         return false;
     }
     return true;
   };
 
-  bool IsCall = isCall(In);
-  unsigned NumOps = In.getNumOperands();
+  bool const IsCall = isCall(In);
+  unsigned const NumOps = In.getNumOperands();
 
   // Avoid duplicate implicit defs. This will not detect cases of implicit
   // defs that define registers that overlap, but it is not clear how to
@@ -1288,7 +1288,7 @@ void DataFlowGraph::buildStmt(NodeAddr<BlockNode*> BA, MachineInstr &In) {
     MachineOperand &Op = In.getOperand(OpN);
     if (!Op.isReg() || !Op.isDef() || Op.isImplicit())
       continue;
-    Register R = Op.getReg();
+    Register const R = Op.getReg();
     if (!R || !Register::isPhysicalRegister(R))
       continue;
     uint16_t Flags = NodeAttrs::None;
@@ -1304,7 +1304,7 @@ void DataFlowGraph::buildStmt(NodeAddr<BlockNode*> BA, MachineInstr &In) {
       Flags |= NodeAttrs::Fixed;
     if (IsCall && Op.isDead())
       Flags |= NodeAttrs::Dead;
-    NodeAddr<DefNode*> DA = newDef(SA, Op, Flags);
+    NodeAddr<DefNode*> const DA = newDef(SA, Op, Flags);
     SA.Addr->addMember(DA, *this);
     assert(!DoneDefs.test(R));
     DoneDefs.set(R);
@@ -1316,9 +1316,9 @@ void DataFlowGraph::buildStmt(NodeAddr<BlockNode*> BA, MachineInstr &In) {
     MachineOperand &Op = In.getOperand(OpN);
     if (!Op.isRegMask())
       continue;
-    uint16_t Flags = NodeAttrs::Clobbering | NodeAttrs::Fixed |
+    uint16_t const Flags = NodeAttrs::Clobbering | NodeAttrs::Fixed |
                      NodeAttrs::Dead;
-    NodeAddr<DefNode*> DA = newDef(SA, Op, Flags);
+    NodeAddr<DefNode*> const DA = newDef(SA, Op, Flags);
     SA.Addr->addMember(DA, *this);
     // Record all clobbered registers in DoneDefs.
     const uint32_t *RM = Op.getRegMask();
@@ -1333,10 +1333,10 @@ void DataFlowGraph::buildStmt(NodeAddr<BlockNode*> BA, MachineInstr &In) {
     MachineOperand &Op = In.getOperand(OpN);
     if (!Op.isReg() || !Op.isDef() || !Op.isImplicit())
       continue;
-    Register R = Op.getReg();
+    Register const R = Op.getReg();
     if (!R || !Register::isPhysicalRegister(R) || DoneDefs.test(R))
       continue;
-    RegisterRef RR = makeRegRef(Op);
+    RegisterRef const RR = makeRegRef(Op);
     uint16_t Flags = NodeAttrs::None;
     if (TOI.isPreserving(In, OpN)) {
       Flags |= NodeAttrs::Preserving;
@@ -1353,7 +1353,7 @@ void DataFlowGraph::buildStmt(NodeAddr<BlockNode*> BA, MachineInstr &In) {
         continue;
       Flags |= NodeAttrs::Dead;
     }
-    NodeAddr<DefNode*> DA = newDef(SA, Op, Flags);
+    NodeAddr<DefNode*> const DA = newDef(SA, Op, Flags);
     SA.Addr->addMember(DA, *this);
     DoneDefs.set(R);
   }
@@ -1362,7 +1362,7 @@ void DataFlowGraph::buildStmt(NodeAddr<BlockNode*> BA, MachineInstr &In) {
     MachineOperand &Op = In.getOperand(OpN);
     if (!Op.isReg() || !Op.isUse())
       continue;
-    Register R = Op.getReg();
+    Register const R = Op.getReg();
     if (!R || !Register::isPhysicalRegister(R))
       continue;
     uint16_t Flags = NodeAttrs::None;
@@ -1370,7 +1370,7 @@ void DataFlowGraph::buildStmt(NodeAddr<BlockNode*> BA, MachineInstr &In) {
       Flags |= NodeAttrs::Undef;
     if (TOI.isFixedReg(In, OpN))
       Flags |= NodeAttrs::Fixed;
-    NodeAddr<UseNode*> UA = newUse(SA, Op, Flags);
+    NodeAddr<UseNode*> const UA = newUse(SA, Op, Flags);
     SA.Addr->addMember(UA, *this);
   }
 }
@@ -1394,8 +1394,8 @@ void DataFlowGraph::recordDefsForDF(BlockRefsMap &PhiM,
   // This is done to make sure that each defined reference gets only one
   // phi node, even if it is defined multiple times.
   RegisterSet Defs;
-  for (NodeAddr<InstrNode*> IA : BA.Addr->members(*this))
-    for (NodeAddr<RefNode*> RA : IA.Addr->members_if(IsDef, *this))
+  for (NodeAddr<InstrNode*> const IA : BA.Addr->members(*this))
+    for (NodeAddr<RefNode*> const RA : IA.Addr->members_if(IsDef, *this))
       Defs.insert(RA.Addr->getRegRef(*this));
 
   // Calculate the iterated dominance frontier of BB.
@@ -1410,7 +1410,7 @@ void DataFlowGraph::recordDefsForDF(BlockRefsMap &PhiM,
   // Finally, add the set of defs to each block in the iterated dominance
   // frontier.
   for (auto DB : IDF) {
-    NodeAddr<BlockNode*> DBA = findBlock(DB);
+    NodeAddr<BlockNode*> const DBA = findBlock(DB);
     PhiM[DBA.Id].insert(Defs.begin(), Defs.end());
   }
 }
@@ -1430,18 +1430,18 @@ void DataFlowGraph::buildPhis(BlockRefsMap &PhiM, RegisterSet &AllRefs,
   // are not covered by another ref (i.e. maximal with respect to covering).
 
   auto MaxCoverIn = [this] (RegisterRef RR, RegisterSet &RRs) -> RegisterRef {
-    for (RegisterRef I : RRs)
+    for (RegisterRef const I : RRs)
       if (I != RR && RegisterAggr::isCoverOf(I, RR, PRI))
         RR = I;
     return RR;
   };
 
   RegisterSet MaxDF;
-  for (RegisterRef I : HasDF->second)
+  for (RegisterRef const I : HasDF->second)
     MaxDF.insert(MaxCoverIn(I, HasDF->second));
 
   std::vector<RegisterRef> MaxRefs;
-  for (RegisterRef I : MaxDF)
+  for (RegisterRef const I : MaxDF)
     MaxRefs.push_back(MaxCoverIn(I, AllRefs));
 
   // Now, for each R in MaxRefs, get the alias closure of R. If the closure
@@ -1456,7 +1456,7 @@ void DataFlowGraph::buildPhis(BlockRefsMap &PhiM, RegisterSet &AllRefs,
 
   auto Aliased = [this,&MaxRefs](RegisterRef RR,
                                  std::vector<unsigned> &Closure) -> bool {
-    for (unsigned I : Closure)
+    for (unsigned const I : Closure)
       if (PRI.alias(RR, MaxRefs[I]))
         return true;
     return false;
@@ -1479,21 +1479,21 @@ void DataFlowGraph::buildPhis(BlockRefsMap &PhiM, RegisterSet &AllRefs,
         ClosureIdx.push_back(i);
 
     // Build a phi for the closure.
-    unsigned CS = ClosureIdx.size();
+    unsigned const CS = ClosureIdx.size();
     NodeAddr<PhiNode*> PA = newPhi(BA);
 
     // Add defs.
     for (unsigned X = 0; X != CS; ++X) {
-      RegisterRef RR = MaxRefs[ClosureIdx[X]];
-      uint16_t PhiFlags = NodeAttrs::PhiRef | NodeAttrs::Preserving;
-      NodeAddr<DefNode*> DA = newDef(PA, RR, PhiFlags);
+      RegisterRef const RR = MaxRefs[ClosureIdx[X]];
+      uint16_t const PhiFlags = NodeAttrs::PhiRef | NodeAttrs::Preserving;
+      NodeAddr<DefNode*> const DA = newDef(PA, RR, PhiFlags);
       PA.Addr->addMember(DA, *this);
     }
     // Add phi uses.
-    for (NodeAddr<BlockNode*> PBA : Preds) {
+    for (NodeAddr<BlockNode*> const PBA : Preds) {
       for (unsigned X = 0; X != CS; ++X) {
-        RegisterRef RR = MaxRefs[ClosureIdx[X]];
-        NodeAddr<PhiUseNode*> PUA = newPhiUse(PA, RR, PBA);
+        RegisterRef const RR = MaxRefs[ClosureIdx[X]];
+        NodeAddr<PhiUseNode*> const PUA = newPhiUse(PA, RR, PBA);
         PA.Addr->addMember(PUA, *this);
       }
     }
@@ -1514,16 +1514,16 @@ void DataFlowGraph::removeUnusedPhis() {
   // that are easily determinable to be unnecessary.
 
   SetVector<NodeId> PhiQ;
-  for (NodeAddr<BlockNode*> BA : Func.Addr->members(*this)) {
+  for (NodeAddr<BlockNode*> const BA : Func.Addr->members(*this)) {
     for (auto P : BA.Addr->members_if(IsPhi, *this))
       PhiQ.insert(P.Id);
   }
 
   static auto HasUsedDef = [](NodeList &Ms) -> bool {
-    for (NodeAddr<NodeBase*> M : Ms) {
+    for (NodeAddr<NodeBase*> const M : Ms) {
       if (M.Addr->getKind() != NodeAttrs::Def)
         continue;
-      NodeAddr<DefNode*> DA = M;
+      NodeAddr<DefNode*> const DA = M;
       if (DA.Addr->getReachedDef() != 0 || DA.Addr->getReachedUse() != 0)
         return true;
     }
@@ -1539,10 +1539,10 @@ void DataFlowGraph::removeUnusedPhis() {
     NodeList Refs = PA.Addr->members(*this);
     if (HasUsedDef(Refs))
       continue;
-    for (NodeAddr<RefNode*> RA : Refs) {
-      if (NodeId RD = RA.Addr->getReachingDef()) {
+    for (NodeAddr<RefNode*> const RA : Refs) {
+      if (NodeId const RD = RA.Addr->getReachingDef()) {
         auto RDA = addr<DefNode*>(RD);
-        NodeAddr<InstrNode*> OA = RDA.Addr->getOwner(*this);
+        NodeAddr<InstrNode*> const OA = RDA.Addr->getOwner(*this);
         if (IsPhi(OA))
           PhiQ.insert(OA.Id);
       }
@@ -1564,19 +1564,19 @@ void DataFlowGraph::linkRefUp(NodeAddr<InstrNode*> IA, NodeAddr<T> TA,
       DefStack &DS) {
   if (DS.empty())
     return;
-  RegisterRef RR = TA.Addr->getRegRef(*this);
+  RegisterRef const RR = TA.Addr->getRegRef(*this);
   NodeAddr<T> TAP;
 
   // References from the def stack that have been examined so far.
   RegisterAggr Defs(PRI);
 
   for (auto I = DS.top(), E = DS.bottom(); I != E; I.down()) {
-    RegisterRef QR = I->Addr->getRegRef(*this);
+    RegisterRef const QR = I->Addr->getRegRef(*this);
 
     // Skip all defs that are aliased to any of the defs that we have already
     // seen. If this completes a cover of RR, stop the stack traversal.
-    bool Alias = Defs.hasAliasOf(QR);
-    bool Cover = Defs.insert(QR).hasCoverOf(RR);
+    bool const Alias = Defs.hasAliasOf(QR);
+    bool const Cover = Defs.insert(QR).hasCoverOf(RR);
     if (Alias) {
       if (Cover)
         break;
@@ -1584,7 +1584,7 @@ void DataFlowGraph::linkRefUp(NodeAddr<InstrNode*> IA, NodeAddr<T> TA,
     }
 
     // The reaching def.
-    NodeAddr<DefNode*> RDA = *I;
+    NodeAddr<DefNode*> const RDA = *I;
 
     // Pick the reached node.
     if (TAP.Id == 0) {
@@ -1612,10 +1612,10 @@ void DataFlowGraph::linkStmtRefs(DefStackMap &DefM, NodeAddr<StmtNode*> SA,
 #endif
 
   // Link all nodes (upwards in the data-flow) with their reaching defs.
-  for (NodeAddr<RefNode*> RA : SA.Addr->members_if(P, *this)) {
-    uint16_t Kind = RA.Addr->getKind();
+  for (NodeAddr<RefNode*> const RA : SA.Addr->members_if(P, *this)) {
+    uint16_t const Kind = RA.Addr->getKind();
     assert(Kind == NodeAttrs::Def || Kind == NodeAttrs::Use);
-    RegisterRef RR = RA.Addr->getRegRef(*this);
+    RegisterRef const RR = RA.Addr->getRegRef(*this);
 #ifndef NDEBUG
     // Do not expect multiple defs of the same reference.
     assert(Kind != NodeAttrs::Def || !Defs.count(RR));
@@ -1652,7 +1652,7 @@ void DataFlowGraph::linkBlockRefs(DefStackMap &DefM, NodeAddr<BlockNode*> BA) {
   // For each non-phi instruction in the block, link all the defs and uses
   // to their reaching defs. For any member of the block (including phis),
   // push the defs on the corresponding stacks.
-  for (NodeAddr<InstrNode*> IA : BA.Addr->members(*this)) {
+  for (NodeAddr<InstrNode*> const IA : BA.Addr->members(*this)) {
     // Ignore phi nodes here. They will be linked part by part from the
     // predecessors.
     if (IA.Addr->getKind() == NodeAttrs::Stmt) {
@@ -1673,7 +1673,7 @@ void DataFlowGraph::linkBlockRefs(DefStackMap &DefM, NodeAddr<BlockNode*> BA) {
   MachineDomTreeNode *N = MDT.getNode(BA.Addr->getCode());
   for (auto I : *N) {
     MachineBasicBlock *SB = I->getBlock();
-    NodeAddr<BlockNode*> SBA = findBlock(SB);
+    NodeAddr<BlockNode*> const SBA = findBlock(SB);
     linkBlockRefs(DefM, SBA);
   }
 
@@ -1682,29 +1682,29 @@ void DataFlowGraph::linkBlockRefs(DefStackMap &DefM, NodeAddr<BlockNode*> BA) {
     if (NA.Addr->getKind() != NodeAttrs::Use)
       return false;
     assert(NA.Addr->getFlags() & NodeAttrs::PhiRef);
-    NodeAddr<PhiUseNode*> PUA = NA;
+    NodeAddr<PhiUseNode*> const PUA = NA;
     return PUA.Addr->getPredecessor() == BA.Id;
   };
 
-  RegisterSet EHLiveIns = getLandingPadLiveIns();
+  RegisterSet const EHLiveIns = getLandingPadLiveIns();
   MachineBasicBlock *MBB = BA.Addr->getCode();
 
   for (MachineBasicBlock *SB : MBB->successors()) {
-    bool IsEHPad = SB->isEHPad();
-    NodeAddr<BlockNode*> SBA = findBlock(SB);
-    for (NodeAddr<InstrNode*> IA : SBA.Addr->members_if(IsPhi, *this)) {
+    bool const IsEHPad = SB->isEHPad();
+    NodeAddr<BlockNode*> const SBA = findBlock(SB);
+    for (NodeAddr<InstrNode*> const IA : SBA.Addr->members_if(IsPhi, *this)) {
       // Do not link phi uses for landing pad live-ins.
       if (IsEHPad) {
         // Find what register this phi is for.
-        NodeAddr<RefNode*> RA = IA.Addr->getFirstMember(*this);
+        NodeAddr<RefNode*> const RA = IA.Addr->getFirstMember(*this);
         assert(RA.Id != 0);
         if (EHLiveIns.count(RA.Addr->getRegRef(*this)))
           continue;
       }
       // Go over each phi use associated with MBB, and link it.
       for (auto U : IA.Addr->members_if(IsUseForBA, *this)) {
-        NodeAddr<PhiUseNode*> PUA = U;
-        RegisterRef RR = PUA.Addr->getRegRef(*this);
+        NodeAddr<PhiUseNode*> const PUA = U;
+        RegisterRef const RR = PUA.Addr->getRegRef(*this);
         linkRefUp<UseNode*>(IA, PUA, DefM[RR.Reg]);
       }
     }
@@ -1716,8 +1716,8 @@ void DataFlowGraph::linkBlockRefs(DefStackMap &DefM, NodeAddr<BlockNode*> BA) {
 
 // Remove the use node UA from any data-flow and structural links.
 void DataFlowGraph::unlinkUseDF(NodeAddr<UseNode*> UA) {
-  NodeId RD = UA.Addr->getReachingDef();
-  NodeId Sib = UA.Addr->getSibling();
+  NodeId const RD = UA.Addr->getReachingDef();
+  NodeId const Sib = UA.Addr->getSibling();
 
   if (RD == 0) {
     assert(Sib == 0);
@@ -1732,7 +1732,7 @@ void DataFlowGraph::unlinkUseDF(NodeAddr<UseNode*> UA) {
   }
 
   while (TA.Id != 0) {
-    NodeId S = TA.Addr->getSibling();
+    NodeId const S = TA.Addr->getSibling();
     if (S == UA.Id) {
       TA.Addr->setSibling(UA.Addr->getSibling());
       return;
@@ -1761,7 +1761,7 @@ void DataFlowGraph::unlinkDefDF(NodeAddr<DefNode*> DA) {
   //         . use
   //        ... : sibling chain of reached uses
 
-  NodeId RD = DA.Addr->getReachingDef();
+  NodeId const RD = DA.Addr->getReachingDef();
 
   // Visit all siblings of the reached def and reset their reaching defs.
   // Also, defs reached by DA are now "promoted" to being reached by RD,
@@ -1791,7 +1791,7 @@ void DataFlowGraph::unlinkDefDF(NodeAddr<DefNode*> DA) {
   for (NodeAddr<UseNode*> I : ReachedUses)
     I.Addr->setReachingDef(RD);
 
-  NodeId Sib = DA.Addr->getSibling();
+  NodeId const Sib = DA.Addr->getSibling();
   if (RD == 0) {
     assert(Sib == 0);
     return;
@@ -1808,7 +1808,7 @@ void DataFlowGraph::unlinkDefDF(NodeAddr<DefNode*> DA) {
     // Otherwise, traverse the sibling list of the reached defs and remove
     // DA from it.
     while (TA.Id != 0) {
-      NodeId S = TA.Addr->getSibling();
+      NodeId const S = TA.Addr->getSibling();
       if (S == DA.Id) {
         TA.Addr->setSibling(Sib);
         break;

@@ -18,7 +18,7 @@ void MachineModuleSlotTracker::processMachineFunctionMetadata(
   for (const MachineBasicBlock &MBB : MF)
     for (const MachineInstr &MI : MBB.instrs())
       for (const MachineMemOperand *MMO : MI.memoperands()) {
-        AAMDNodes AAInfo = MMO->getAAInfo();
+        AAMDNodes const AAInfo = MMO->getAAInfo();
         if (AAInfo.TBAA)
           AST->createMetadataSlot(AAInfo.TBAA);
         if (AAInfo.TBAAStruct)

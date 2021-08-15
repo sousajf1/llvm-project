@@ -31,7 +31,7 @@ void XCoreMCInstLower::Initialize(MCContext *C) { Ctx = C; }
 MCOperand XCoreMCInstLower::LowerSymbolOperand(const MachineOperand &MO,
                                                MachineOperandType MOTy,
                                                unsigned Offset) const {
-  MCSymbolRefExpr::VariantKind Kind = MCSymbolRefExpr::VK_None;
+  MCSymbolRefExpr::VariantKind const Kind = MCSymbolRefExpr::VK_None;
   const MCSymbol *Symbol;
 
   switch (MOTy) {
@@ -76,7 +76,7 @@ MCOperand XCoreMCInstLower::LowerSymbolOperand(const MachineOperand &MO,
 
 MCOperand XCoreMCInstLower::LowerOperand(const MachineOperand &MO,
                                          unsigned offset) const {
-  MachineOperandType MOTy = MO.getType();
+  MachineOperandType const MOTy = MO.getType();
 
   switch (MOTy) {
     default: llvm_unreachable("unknown operand type");
@@ -105,7 +105,7 @@ void XCoreMCInstLower::Lower(const MachineInstr *MI, MCInst &OutMI) const {
 
   for (unsigned i = 0, e = MI->getNumOperands(); i != e; ++i) {
     const MachineOperand &MO = MI->getOperand(i);
-    MCOperand MCOp = LowerOperand(MO);
+    MCOperand const MCOp = LowerOperand(MO);
 
     if (MCOp.isValid())
       OutMI.addOperand(MCOp);

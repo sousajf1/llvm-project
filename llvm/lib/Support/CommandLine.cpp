@@ -106,7 +106,7 @@ static StringRef ArgPrefixLong = "--";
 static StringRef ArgHelpPrefix = " - ";
 
 static size_t argPlusPrefixesSize(StringRef ArgName, size_t Pad = DefaultPad) {
-  size_t Len = ArgName.size();
+  size_t const Len = ArgName.size();
   if (Len == 1)
     return Len + Pad + ArgPrefix.size() + ArgHelpPrefix.size();
   return Len + Pad + ArgPrefixLong.size() + ArgHelpPrefix.size();
@@ -526,7 +526,7 @@ Option *CommandLineParser::LookupOption(SubCommand &Sub, StringRef &Arg,
     return nullptr;
   assert(&Sub != &*AllSubCommands);
 
-  size_t EqualPos = Arg.find('=');
+  size_t const EqualPos = Arg.find('=');
 
   // If we have an equals sign, remember the value.
   if (EqualPos == StringRef::npos) {
@@ -577,9 +577,9 @@ static Option *LookupNearestOption(StringRef Arg,
     return nullptr;
 
   // Split on any equal sign.
-  std::pair<StringRef, StringRef> SplitArg = Arg.split('=');
-  StringRef &LHS = SplitArg.first; // LHS == Arg when no '=' is present.
-  StringRef &RHS = SplitArg.second;
+  std::pair<StringRef, StringRef> const SplitArg = Arg.split('=');
+  StringRef  const&LHS = SplitArg.first; // LHS == Arg when no '=' is present.
+  StringRef  const&RHS = SplitArg.second;
 
   // Find the closest match.
   Option *Best = nullptr;
@@ -597,10 +597,10 @@ static Option *LookupNearestOption(StringRef Arg,
     if (O->hasArgStr())
       OptionNames.push_back(O->ArgStr);
 
-    bool PermitValue = O->getValueExpectedFlag() != cl::ValueDisallowed;
-    StringRef Flag = PermitValue ? LHS : Arg;
+    bool const PermitValue = O->getValueExpectedFlag() != cl::ValueDisallowed;
+    StringRef const Flag = PermitValue ? LHS : Arg;
     for (const auto &Name : OptionNames) {
-      unsigned Distance = StringRef(Name).edit_distance(
+      unsigned const Distance = StringRef(Name).edit_distance(
           Flag, /*AllowReplacements=*/true, /*MaxEditDistance=*/BestDistance);
       if (!Best || Distance < BestDistance) {
         Best = O;
@@ -759,7 +759,7 @@ HandlePrefixedOrGroupedOption(StringRef &Arg, StringRef &Value,
     return nullptr;
 
   do {
-    StringRef MaybeValue =
+    StringRef const MaybeValue =
         (Length < Arg.size()) ? Arg.substr(Length) : StringRef();
     Arg = Arg.substr(0, Length);
     assert(OptionsMap.count(Arg) && OptionsMap.find(Arg)->second == PGOpt);
@@ -837,7 +837,7 @@ void cl::TokenizeGNUCommandLine(StringRef Src, StringSaver &Saver,
         break;
     }
 
-    char C = Src[I];
+    char const C = Src[I];
 
     // Backslash escapes the next character.
     if (I + 1 < E && C == '\\') {
@@ -899,7 +899,7 @@ void cl::TokenizeGNUCommandLine(StringRef Src, StringSaver &Saver,
 ///
 ///  * Otherwise, backslashes are interpreted literally.
 static size_t parseBackslash(StringRef Src, size_t I, SmallString<128> &Token) {
-  size_t E = Src.size();
+  size_t const E = Src.size();
   int BackslashCount = 0;
   // Skip the backslashes.
   do {
@@ -907,7 +907,7 @@ static size_t parseBackslash(StringRef Src, size_t I, SmallString<128> &Token) {
     ++BackslashCount;
   } while (I != E && Src[I] == '\\');
 
-  bool FollowedByDoubleQuote = (I != E && Src[I] == '"');
+  bool const FollowedByDoubleQuote = (I != E && Src[I] == '"');
   if (FollowedByDoubleQuote) {
     Token.append(BackslashCount / 2, '\\');
     if (BackslashCount % 2 == 0)
@@ -947,10 +947,10 @@ tokenizeWindowsCommandLineImpl(StringRef Src, StringSaver &Saver,
       // Stop if this was trailing whitespace.
       if (I >= E)
         break;
-      size_t Start = I;
+      size_t const Start = I;
       while (I < E && !isWindowsSpecialChar(Src[I]))
         ++I;
-      StringRef NormalChars = Src.slice(Start, I);
+      StringRef const NormalChars = Src.slice(Start, I);
       if (I >= E || isWhitespaceOrNull(Src[I])) {
         // No special characters: slice out the substring and start the next
         // token. Copy the string if the caller asks us to.
@@ -1088,11 +1088,11 @@ static llvm::Error ExpandResponseFile(
       FS.getBufferForFile(FName);
   if (!MemBufOrErr)
     return llvm::errorCodeToError(MemBufOrErr.getError());
-  MemoryBuffer &MemBuf = *MemBufOrErr.get();
+  MemoryBuffer  const&MemBuf = *MemBufOrErr.get();
   StringRef Str(MemBuf.getBufferStart(), MemBuf.getBufferSize());
 
   // If we have a UTF-16 byte order mark, convert to UTF-8 for parsing.
-  ArrayRef<char> BufRef(MemBuf.getBufferStart(), MemBuf.getBufferEnd());
+  ArrayRef<char> const BufRef(MemBuf.getBufferStart(), MemBuf.getBufferEnd());
   std::string UTF8Buf;
   if (hasUTF16ByteOrderMark(BufRef)) {
     if (!convertUTF16ToUTF8String(BufRef, UTF8Buf))
@@ -1111,7 +1111,7 @@ static llvm::Error ExpandResponseFile(
 
   if (!RelativeNames)
     return Error::success();
-  llvm::StringRef BasePath = llvm::sys::path::parent_path(FName);
+  llvm::StringRef const BasePath = llvm::sys::path::parent_path(FName);
   // If names of nested response files should be resolved relative to including
   // file, replace the included response file names with their full paths
   // obtained by required resolution.
@@ -1120,7 +1120,7 @@ static llvm::Error ExpandResponseFile(
     if (!Arg || Arg[0] != '@')
       continue;
 
-    StringRef FileName(Arg + 1);
+    StringRef const FileName(Arg + 1);
     // Skip if non-relative.
     if (!llvm::sys::path::is_relative(FileName))
       continue;
@@ -1314,7 +1314,7 @@ bool cl::ParseCommandLineOptions(int argc, const char *const *argv,
   // Append options from command line.
   for (int I = 1; I < argc; ++I)
     NewArgv.push_back(argv[I]);
-  int NewArgc = static_cast<int>(NewArgv.size());
+  int const NewArgc = static_cast<int>(NewArgv.size());
 
   // Parse all options.
   return GlobalParser->ParseCommandLineOptions(NewArgc, &NewArgv[0], Overview,
@@ -1352,7 +1352,7 @@ bool CommandLineParser::ParseCommandLineOptions(int argc,
   ProgramName = std::string(sys::path::filename(StringRef(argv[0])));
 
   ProgramOverview = Overview;
-  bool IgnoreErrors = Errs;
+  bool const IgnoreErrors = Errs;
   if (!Errs)
     Errs = &errs();
   bool ErrorParsing = false;
@@ -1927,7 +1927,7 @@ bool parser<float>::parse(Option &O, StringRef ArgName, StringRef Arg,
 // argument string.  If the option is not found, getNumOptions() is returned.
 //
 unsigned generic_parser_base::findOption(StringRef Name) {
-  unsigned e = getNumOptions();
+  unsigned const e = getNumOptions();
 
   for (unsigned i = 0; i != e; ++i) {
     if (getOption(i) == Name)
@@ -1955,10 +1955,10 @@ size_t generic_parser_base::getOptionWidth(const Option &O) const {
     size_t Size =
         argPlusPrefixesSize(O.ArgStr) + EqValue.size();
     for (unsigned i = 0, e = getNumOptions(); i != e; ++i) {
-      StringRef Name = getOption(i);
+      StringRef const Name = getOption(i);
       if (!shouldPrintOption(Name, getDescription(i), O))
         continue;
-      size_t NameSize = Name.empty() ? EmptyOption.size() : Name.size();
+      size_t const NameSize = Name.empty() ? EmptyOption.size() : Name.size();
       Size = std::max(Size, NameSize + getOptionPrefixesSize());
     }
     return Size;
@@ -1994,8 +1994,8 @@ void generic_parser_base::printOptionInfo(const Option &O,
                          EqValue.size() +
                              argPlusPrefixesSize(O.ArgStr));
     for (unsigned i = 0, e = getNumOptions(); i != e; ++i) {
-      StringRef OptionName = getOption(i);
-      StringRef Description = getDescription(i);
+      StringRef const OptionName = getOption(i);
+      StringRef const Description = getDescription(i);
       if (!shouldPrintOption(OptionName, Description, O))
         continue;
       size_t FirstLineIndent = OptionName.size() + getOptionPrefixesSize();
@@ -2014,7 +2014,7 @@ void generic_parser_base::printOptionInfo(const Option &O,
     if (!O.HelpStr.empty())
       outs() << "  " << O.HelpStr << '\n';
     for (unsigned i = 0, e = getNumOptions(); i != e; ++i) {
-      StringRef Option = getOption(i);
+      StringRef const Option = getOption(i);
       outs() << "    " << PrintArg(Option);
       Option::printHelpStr(getDescription(i), GlobalWidth, Option.size() + 8);
     }
@@ -2032,14 +2032,14 @@ void generic_parser_base::printGenericOptionDiff(
   outs() << "  " << PrintArg(O.ArgStr);
   outs().indent(GlobalWidth - O.ArgStr.size());
 
-  unsigned NumOpts = getNumOptions();
+  unsigned const NumOpts = getNumOptions();
   for (unsigned i = 0; i != NumOpts; ++i) {
     if (Value.compare(getOptionValue(i)))
       continue;
 
     outs() << "= " << getOption(i);
-    size_t L = getOption(i).size();
-    size_t NumSpaces = MaxOptWidth > L ? MaxOptWidth - L : 0;
+    size_t const L = getOption(i).size();
+    size_t const NumSpaces = MaxOptWidth > L ? MaxOptWidth - L : 0;
     outs().indent(NumSpaces) << " (default: ";
     for (unsigned j = 0; j != NumOpts; ++j) {
       if (Default.compare(getOptionValue(j)))
@@ -2092,7 +2092,7 @@ void parser<std::string>::printOptionDiff(const Option &O, StringRef V,
                                           size_t GlobalWidth) const {
   printOptionName(O, GlobalWidth);
   outs() << "= " << V;
-  size_t NumSpaces = MaxOptWidth > V.size() ? MaxOptWidth - V.size() : 0;
+  size_t const NumSpaces = MaxOptWidth > V.size() ? MaxOptWidth - V.size() : 0;
   outs().indent(NumSpaces) << " (default: ";
   if (D.hasValue())
     outs() << D.getValue();
@@ -2332,7 +2332,7 @@ protected:
          Category != E; ++Category) {
       // Hide empty categories for --help, but show for --help-hidden.
       const auto &CategoryOptions = CategorizedOptions[*Category];
-      bool IsEmptyCategory = CategoryOptions.empty();
+      bool const IsEmptyCategory = CategoryOptions.empty();
       if (!ShowHidden && IsEmptyCategory)
         continue;
 

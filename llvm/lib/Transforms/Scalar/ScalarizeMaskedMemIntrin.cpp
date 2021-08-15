@@ -95,7 +95,7 @@ static bool isConstantIntVector(Value *Mask) {
   if (!C)
     return false;
 
-  unsigned NumElts = cast<FixedVectorType>(Mask->getType())->getNumElements();
+  unsigned const NumElts = cast<FixedVectorType>(Mask->getType())->getNumElements();
   for (unsigned i = 0; i != NumElts; ++i) {
     Constant *CElt = C->getAggregateElement(i);
     if (!CElt || !isa<ConstantInt>(CElt))
@@ -176,7 +176,7 @@ static void scalarizeMaskedLoad(const DataLayout &DL, CallInst *CI,
   Type *NewPtrType =
       EltTy->getPointerTo(Ptr->getType()->getPointerAddressSpace());
   Value *FirstEltPtr = Builder.CreateBitCast(Ptr, NewPtrType);
-  unsigned VectorWidth = cast<FixedVectorType>(VecType)->getNumElements();
+  unsigned const VectorWidth = cast<FixedVectorType>(VecType)->getNumElements();
 
   // The result vector
   Value *VResult = Src0;
@@ -315,7 +315,7 @@ static void scalarizeMaskedStore(const DataLayout &DL, CallInst *CI,
   Type *NewPtrType =
       EltTy->getPointerTo(Ptr->getType()->getPointerAddressSpace());
   Value *FirstEltPtr = Builder.CreateBitCast(Ptr, NewPtrType);
-  unsigned VectorWidth = cast<FixedVectorType>(VecType)->getNumElements();
+  unsigned const VectorWidth = cast<FixedVectorType>(VecType)->getNumElements();
 
   if (isConstantIntVector(Mask)) {
     for (unsigned Idx = 0; Idx < VectorWidth; ++Idx) {
@@ -426,13 +426,13 @@ static void scalarizeMaskedGather(const DataLayout &DL, CallInst *CI,
   Instruction *InsertPt = CI;
   BasicBlock *IfBlock = CI->getParent();
   Builder.SetInsertPoint(InsertPt);
-  MaybeAlign AlignVal = cast<ConstantInt>(Alignment)->getMaybeAlignValue();
+  MaybeAlign const AlignVal = cast<ConstantInt>(Alignment)->getMaybeAlignValue();
 
   Builder.SetCurrentDebugLocation(CI->getDebugLoc());
 
   // The result vector
   Value *VResult = Src0;
-  unsigned VectorWidth = VecType->getNumElements();
+  unsigned const VectorWidth = VecType->getNumElements();
 
   // Shorten the way if the mask is a vector of constants.
   if (isConstantIntVector(Mask)) {
@@ -561,8 +561,8 @@ static void scalarizeMaskedScatter(const DataLayout &DL, CallInst *CI,
   Builder.SetInsertPoint(InsertPt);
   Builder.SetCurrentDebugLocation(CI->getDebugLoc());
 
-  MaybeAlign AlignVal = cast<ConstantInt>(Alignment)->getMaybeAlignValue();
-  unsigned VectorWidth = SrcFVTy->getNumElements();
+  MaybeAlign const AlignVal = cast<ConstantInt>(Alignment)->getMaybeAlignValue();
+  unsigned const VectorWidth = SrcFVTy->getNumElements();
 
   // Shorten the way if the mask is a vector of constants.
   if (isConstantIntVector(Mask)) {
@@ -649,7 +649,7 @@ static void scalarizeMaskedExpandLoad(const DataLayout &DL, CallInst *CI,
   Builder.SetInsertPoint(InsertPt);
   Builder.SetCurrentDebugLocation(CI->getDebugLoc());
 
-  unsigned VectorWidth = VecType->getNumElements();
+  unsigned const VectorWidth = VecType->getNumElements();
 
   // The result vector
   Value *VResult = PassThru;
@@ -777,7 +777,7 @@ static void scalarizeMaskedCompressStore(const DataLayout &DL, CallInst *CI,
 
   Type *EltTy = VecType->getElementType();
 
-  unsigned VectorWidth = VecType->getNumElements();
+  unsigned const VectorWidth = VecType->getNumElements();
 
   // Shorten the way if the mask is a vector of constants.
   if (isConstantIntVector(Mask)) {
@@ -956,10 +956,10 @@ static bool optimizeCallInst(CallInst *CI, bool &ModifiedDT,
       scalarizeMaskedStore(DL, CI, DTU, ModifiedDT);
       return true;
     case Intrinsic::masked_gather: {
-      MaybeAlign MA =
+      MaybeAlign const MA =
           cast<ConstantInt>(CI->getArgOperand(1))->getMaybeAlignValue();
       Type *LoadTy = CI->getType();
-      Align Alignment = DL.getValueOrABITypeAlignment(MA,
+      Align const Alignment = DL.getValueOrABITypeAlignment(MA,
                                                       LoadTy->getScalarType());
       if (TTI.isLegalMaskedGather(LoadTy, Alignment))
         return false;
@@ -967,10 +967,10 @@ static bool optimizeCallInst(CallInst *CI, bool &ModifiedDT,
       return true;
     }
     case Intrinsic::masked_scatter: {
-      MaybeAlign MA =
+      MaybeAlign const MA =
           cast<ConstantInt>(CI->getArgOperand(2))->getMaybeAlignValue();
       Type *StoreTy = CI->getArgOperand(0)->getType();
-      Align Alignment = DL.getValueOrABITypeAlignment(MA,
+      Align const Alignment = DL.getValueOrABITypeAlignment(MA,
                                                       StoreTy->getScalarType());
       if (TTI.isLegalMaskedScatter(StoreTy, Alignment))
         return false;

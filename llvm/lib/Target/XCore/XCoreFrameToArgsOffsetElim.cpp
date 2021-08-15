@@ -47,7 +47,7 @@ FunctionPass *llvm::createXCoreFrameToArgsOffsetEliminationPass() {
 bool XCoreFTAOElim::runOnMachineFunction(MachineFunction &MF) {
   const XCoreInstrInfo &TII =
       *static_cast<const XCoreInstrInfo *>(MF.getSubtarget().getInstrInfo());
-  unsigned StackSize = MF.getFrameInfo().getStackSize();
+  unsigned const StackSize = MF.getFrameInfo().getStackSize();
   for (MachineFunction::iterator MFI = MF.begin(), E = MF.end(); MFI != E;
        ++MFI) {
     MachineBasicBlock &MBB = *MFI;
@@ -55,7 +55,7 @@ bool XCoreFTAOElim::runOnMachineFunction(MachineFunction &MF) {
          MBBI != EE; ++MBBI) {
       if (MBBI->getOpcode() == XCore::FRAME_TO_ARGS_OFFSET) {
         MachineInstr &OldInst = *MBBI;
-        Register Reg = OldInst.getOperand(0).getReg();
+        Register const Reg = OldInst.getOperand(0).getReg();
         MBBI = TII.loadImmediate(MBB, MBBI, Reg, StackSize);
         OldInst.eraseFromParent();
       }

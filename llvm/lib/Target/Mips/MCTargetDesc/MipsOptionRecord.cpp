@@ -75,7 +75,7 @@ void MipsRegInfoRecord::SetPhysRegUsed(unsigned Reg,
   unsigned Value = 0;
 
   for (const MCPhysReg &SubReg : MCRegInfo->subregs_inclusive(Reg)) {
-    unsigned EncVal = MCRegInfo->getEncodingValue(SubReg);
+    unsigned const EncVal = MCRegInfo->getEncodingValue(SubReg);
     Value |= 1 << EncVal;
 
     if (GPR32RegClass->contains(SubReg) || GPR64RegClass->contains(SubReg))

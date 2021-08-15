@@ -416,8 +416,8 @@ void MemProfiler::instrumentMaskedLoadOrStore(const DataLayout &DL, Value *Mask,
                                               uint32_t TypeSize, bool IsWrite) {
   auto *VTy = cast<FixedVectorType>(
       cast<PointerType>(Addr->getType())->getElementType());
-  uint64_t ElemTypeSize = DL.getTypeStoreSizeInBits(VTy->getScalarType());
-  unsigned Num = VTy->getNumElements();
+  uint64_t const ElemTypeSize = DL.getTypeStoreSizeInBits(VTy->getScalarType());
+  unsigned const Num = VTy->getNumElements();
   auto *Zero = ConstantInt::get(IntptrTy, 0);
   for (unsigned Idx = 0; Idx < Num; ++Idx) {
     Value *InstrumentedAddress = nullptr;
@@ -501,7 +501,7 @@ void createProfileFileNameVar(Module &M) {
   GlobalVariable *ProfileNameVar = new GlobalVariable(
       M, ProfileNameConst->getType(), /*isConstant=*/true,
       GlobalValue::WeakAnyLinkage, ProfileNameConst, MemProfFilenameVar);
-  Triple TT(M.getTargetTriple());
+  Triple const TT(M.getTargetTriple());
   if (TT.supportsCOMDAT()) {
     ProfileNameVar->setLinkage(GlobalValue::ExternalLinkage);
     ProfileNameVar->setComdat(M.getOrInsertComdat(MemProfFilenameVar));
@@ -510,8 +510,8 @@ void createProfileFileNameVar(Module &M) {
 
 bool ModuleMemProfiler::instrumentModule(Module &M) {
   // Create a module constructor.
-  std::string MemProfVersion = std::to_string(LLVM_MEM_PROFILER_VERSION);
-  std::string VersionCheckName =
+  std::string const MemProfVersion = std::to_string(LLVM_MEM_PROFILER_VERSION);
+  std::string const VersionCheckName =
       ClInsertVersionCheck ? (MemProfVersionCheckNamePrefix + MemProfVersion)
                            : "";
   std::tie(MemProfCtorFunction, std::ignore) =
@@ -533,8 +533,8 @@ void MemProfiler::initializeCallbacks(Module &M) {
   for (size_t AccessIsWrite = 0; AccessIsWrite <= 1; AccessIsWrite++) {
     const std::string TypeStr = AccessIsWrite ? "store" : "load";
 
-    SmallVector<Type *, 3> Args2 = {IntptrTy, IntptrTy};
-    SmallVector<Type *, 2> Args1{1, IntptrTy};
+    SmallVector<Type *, 3> const Args2 = {IntptrTy, IntptrTy};
+    SmallVector<Type *, 2> const Args1{1, IntptrTy};
     MemProfMemoryAccessCallbackSized[AccessIsWrite] =
         M.getOrInsertFunction(ClMemoryAccessCallbackPrefix + TypeStr + "N",
                               FunctionType::get(IRB.getVoidTy(), Args2, false));
@@ -563,7 +563,7 @@ bool MemProfiler::maybeInsertMemProfInitAtFunctionEntry(Function &F) {
   // We cannot just ignore these methods, because they may call other
   // instrumented functions.
   if (F.getName().find(" load]") != std::string::npos) {
-    FunctionCallee MemProfInitFunction =
+    FunctionCallee const MemProfInitFunction =
         declareSanitizerInitFunction(*F.getParent(), MemProfInitName, {});
     IRBuilder<> IRB(&F.front(), F.front().begin());
     IRB.CreateCall(MemProfInitFunction, {});

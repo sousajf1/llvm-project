@@ -81,7 +81,7 @@ bool PostRAHazardRecognizer::runOnMachineFunction(MachineFunction &Fn) {
     // hazards at the start of basic blocks.
     for (MachineInstr &MI : MBB) {
       // If we need to emit noops prior to this instruction, then do so.
-      unsigned NumPreNoops = HazardRec->PreEmitNoops(&MI);
+      unsigned const NumPreNoops = HazardRec->PreEmitNoops(&MI);
       HazardRec->EmitNoops(NumPreNoops);
       TII->insertNoops(MBB, MachineBasicBlock::iterator(MI), NumPreNoops);
       NumNoops += NumPreNoops;

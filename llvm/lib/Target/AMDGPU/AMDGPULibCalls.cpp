@@ -476,7 +476,7 @@ bool AMDGPULibCalls::isUnsafeMath(const CallInst *CI) const {
     if (Op->isFast())
       return true;
   const Function *F = CI->getParent()->getParent();
-  Attribute Attr = F->getFnAttribute("unsafe-fp-math");
+  Attribute const Attr = F->getFnAttribute("unsafe-fp-math");
   return Attr.getValueAsBool();
 }
 
@@ -491,8 +491,8 @@ void AMDGPULibCalls::initNativeFuncs() {
 }
 
 bool AMDGPULibCalls::sincosUseNative(CallInst *aCI, const FuncInfo &FInfo) {
-  bool native_sin = useNativeFunc("sin");
-  bool native_cos = useNativeFunc("cos");
+  bool const native_sin = useNativeFunc("sin");
+  bool const native_cos = useNativeFunc("cos");
 
   if (native_sin && native_cos) {
     Module *M = aCI->getModule();
@@ -574,8 +574,8 @@ bool AMDGPULibCalls::fold_read_write_pipe(CallInst *CI, IRBuilder<> &B,
   auto *PacketAlign = CI->getArgOperand(NumArg - 1);
   if (!isa<ConstantInt>(PacketSize) || !isa<ConstantInt>(PacketAlign))
     return false;
-  unsigned Size = cast<ConstantInt>(PacketSize)->getZExtValue();
-  Align Alignment = cast<ConstantInt>(PacketAlign)->getAlignValue();
+  unsigned const Size = cast<ConstantInt>(PacketSize)->getZExtValue();
+  Align const Alignment = cast<ConstantInt>(PacketAlign)->getAlignValue();
   if (Alignment != Size)
     return false;
 
@@ -584,9 +584,9 @@ bool AMDGPULibCalls::fold_read_write_pipe(CallInst *CI, IRBuilder<> &B,
     PtrElemTy = Type::getIntNTy(Ctx, Size * 8);
   else
     PtrElemTy = FixedVectorType::get(Type::getInt64Ty(Ctx), Size / 8);
-  unsigned PtrArgLoc = CI->getNumArgOperands() - 3;
+  unsigned const PtrArgLoc = CI->getNumArgOperands() - 3;
   auto PtrArg = CI->getArgOperand(PtrArgLoc);
-  unsigned PtrArgAS = PtrArg->getType()->getPointerAddressSpace();
+  unsigned const PtrArgAS = PtrArg->getType()->getPointerAddressSpace();
   auto *PtrTy = llvm::PointerType::get(PtrElemTy, PtrArgAS);
 
   SmallVector<llvm::Type *, 6> ArgTys;
@@ -597,7 +597,7 @@ bool AMDGPULibCalls::fold_read_write_pipe(CallInst *CI, IRBuilder<> &B,
   Name = Name + "_" + std::to_string(Size);
   auto *FTy = FunctionType::get(Callee->getReturnType(),
                                 ArrayRef<Type *>(ArgTys), false);
-  AMDGPULibFunc NewLibFunc(Name, FTy);
+  AMDGPULibFunc const NewLibFunc(Name, FTy);
   FunctionCallee F = AMDGPULibFunc::getOrInsertFunction(M, NewLibFunc);
   if (!F)
     return false;
@@ -751,10 +751,10 @@ bool AMDGPULibCalls::TDOFold(CallInst *CI, const FuncInfo &FInfo) {
         for (unsigned i = 0; i < DVal.size(); ++i) {
           FVal.push_back((float)DVal[i]);
         }
-        ArrayRef<float> tmp(FVal);
+        ArrayRef<float> const tmp(FVal);
         nval = ConstantDataVector::get(context, tmp);
       } else { // F64
-        ArrayRef<double> tmp(DVal);
+        ArrayRef<double> const tmp(DVal);
         nval = ConstantDataVector::get(context, tmp);
       }
       LLVM_DEBUG(errs() << "AMDIC: " << *CI << " ---> " << *nval << "\n");
@@ -925,7 +925,7 @@ bool AMDGPULibCalls::fold_pow(CallInst *CI, IRBuilder<> &B,
   Module *M = CI->getModule();
   if (CF && (CF->isExactlyValue(0.5) || CF->isExactlyValue(-0.5))) {
     // pow[r](x, [-]0.5) = sqrt(x)
-    bool issqrt = CF->isExactlyValue(0.5);
+    bool const issqrt = CF->isExactlyValue(0.5);
     if (FunctionCallee FPExpr =
             getFunction(M, AMDGPULibFunc(issqrt ? AMDGPULibFunc::EI_SQRT
                                                 : AMDGPULibFunc::EI_RSQRT,
@@ -946,10 +946,10 @@ bool AMDGPULibCalls::fold_pow(CallInst *CI, IRBuilder<> &B,
 
   // Remember that ci_opr1 is set if opr1 is integral
   if (CF) {
-    double dval = (getArgType(FInfo) == AMDGPULibFunc::F32)
+    double const dval = (getArgType(FInfo) == AMDGPULibFunc::F32)
                     ? (double)CF->getValueAPF().convertToFloat()
                     : CF->getValueAPF().convertToDouble();
-    int ival = (int)dval;
+    int const ival = (int)dval;
     if ((double)ival == dval) {
       ci_opr1 = ival;
     } else
@@ -1046,10 +1046,10 @@ bool AMDGPULibCalls::fold_pow(CallInst *CI, IRBuilder<> &B,
         for (unsigned i=0; i < DVal.size(); ++i) {
           FVal.push_back((float)DVal[i]);
         }
-        ArrayRef<float> tmp(FVal);
+        ArrayRef<float> const tmp(FVal);
         cnval = ConstantDataVector::get(M->getContext(), tmp);
       } else {
-        ArrayRef<double> tmp(DVal);
+        ArrayRef<double> const tmp(DVal);
         cnval = ConstantDataVector::get(M->getContext(), tmp);
       }
     }
@@ -1060,7 +1060,7 @@ bool AMDGPULibCalls::fold_pow(CallInst *CI, IRBuilder<> &B,
     // unless y is a constant integral value. Then proceed as if it were pown.
     if (getVecSize(FInfo) == 1) {
       if (const ConstantFP *CF = dyn_cast<ConstantFP>(opr1)) {
-        double y = (getArgType(FInfo) == AMDGPULibFunc::F32)
+        double const y = (getArgType(FInfo) == AMDGPULibFunc::F32)
                    ? (double)CF->getValueAPF().convertToFloat()
                    : CF->getValueAPF().convertToDouble();
         if (y != (double)(int64_t)y)
@@ -1070,7 +1070,7 @@ bool AMDGPULibCalls::fold_pow(CallInst *CI, IRBuilder<> &B,
     } else {
       if (const ConstantDataVector *CDV = dyn_cast<ConstantDataVector>(opr1)) {
         for (int i=0; i < getVecSize(FInfo); ++i) {
-          double y = (getArgType(FInfo) == AMDGPULibFunc::F32)
+          double const y = (getArgType(FInfo) == AMDGPULibFunc::F32)
                      ? (double)CDV->getElementAsFloat(i)
                      : CDV->getElementAsDouble(i);
           if (y != (double)(int64_t)y)
@@ -1113,7 +1113,7 @@ bool AMDGPULibCalls::fold_pow(CallInst *CI, IRBuilder<> &B,
     Type *nTy = nTyS;
     if (const auto *vTy = dyn_cast<FixedVectorType>(rTy))
       nTy = FixedVectorType::get(nTyS, vTy);
-    unsigned size = nTy->getScalarSizeInBits();
+    unsigned const size = nTy->getScalarSizeInBits();
     opr_n = CI->getArgOperand(1);
     if (opr_n->getType()->isIntegerTy())
       opr_n = B.CreateZExtOrBitCast(opr_n, nTy, "__ytou");
@@ -1142,7 +1142,7 @@ bool AMDGPULibCalls::fold_rootn(CallInst *CI, IRBuilder<> &B,
   if (!CINT) {
     return false;
   }
-  int ci_opr1 = (int)CINT->getSExtValue();
+  int const ci_opr1 = (int)CINT->getSExtValue();
   if (ci_opr1 == 1) {  // rootn(x, 1) = x
     LLVM_DEBUG(errs() << "AMDIC: " << *CI << " ---> " << *opr0 << "\n");
     replaceCall(opr0);
@@ -1331,7 +1331,7 @@ bool AMDGPULibCalls::fold_sincos(CallInst *CI, IRBuilder<> &B,
   if (!Fsincos)
     return Changed;
 
-  BasicBlock::iterator ItOld = B.GetInsertPoint();
+  BasicBlock::iterator const ItOld = B.GetInsertPoint();
   AllocaInst *Alloc = insertAlloca(UI, B, "__sincos_");
   B.SetInsertPoint(UI);
 
@@ -1368,8 +1368,8 @@ bool AMDGPULibCalls::fold_wavefrontsize(CallInst *CI, IRBuilder<> &B) {
   if (!TM)
     return false;
 
-  StringRef CPU = TM->getTargetCPU();
-  StringRef Features = TM->getTargetFeatureString();
+  StringRef const CPU = TM->getTargetCPU();
+  StringRef const Features = TM->getTargetFeatureString();
   if ((CPU.empty() || CPU.equals_insensitive("generic")) &&
       (Features.empty() ||
        Features.find_insensitive("wavefrontsize") == StringRef::npos))
@@ -1377,7 +1377,7 @@ bool AMDGPULibCalls::fold_wavefrontsize(CallInst *CI, IRBuilder<> &B) {
 
   Function *F = CI->getParent()->getParent();
   const GCNSubtarget &ST = TM->getSubtarget<GCNSubtarget>(*F);
-  unsigned N = ST.getWavefrontSize();
+  unsigned const N = ST.getWavefrontSize();
 
   LLVM_DEBUG(errs() << "AMDIC: fold_wavefrontsize (" << *CI << ") with "
                << N << "\n");
@@ -1399,7 +1399,7 @@ BasicBlock::iterator AMDGPULibCalls::getEntryIns(CallInst * UI) {
 // Insert a AllocsInst at the beginning of function entry block.
 AllocaInst* AMDGPULibCalls::insertAlloca(CallInst *UI, IRBuilder<> &B,
                                          const char *prefix) {
-  BasicBlock::iterator ItNew = getEntryIns(UI);
+  BasicBlock::iterator const ItNew = getEntryIns(UI);
   Function *UCallee = UI->getCalledFunction();
   Type *RetType = UCallee->getReturnType();
   B.SetInsertPoint(&*ItNew);
@@ -1573,7 +1573,7 @@ bool AMDGPULibCalls::evaluateScalarMathFunc(FuncInfo &FInfo,
 
   case AMDGPULibFunc::EI_POWN: {
     if (ConstantInt *iopr1 = dyn_cast_or_null<ConstantInt>(copr1)) {
-      double val = (double)iopr1->getSExtValue();
+      double const val = (double)iopr1->getSExtValue();
       Res0 = pow(opr0, val);
       return true;
     }
@@ -1582,7 +1582,7 @@ bool AMDGPULibCalls::evaluateScalarMathFunc(FuncInfo &FInfo,
 
   case AMDGPULibFunc::EI_ROOTN: {
     if (ConstantInt *iopr1 = dyn_cast_or_null<ConstantInt>(copr1)) {
-      double val = (double)iopr1->getSExtValue();
+      double const val = (double)iopr1->getSExtValue();
       Res0 = pow(opr0, 1.0 / val);
       return true;
     }
@@ -1606,7 +1606,7 @@ bool AMDGPULibCalls::evaluateScalarMathFunc(FuncInfo &FInfo,
 }
 
 bool AMDGPULibCalls::evaluateCall(CallInst *aCI, FuncInfo &FInfo) {
-  int numArgs = (int)aCI->getNumArgOperands();
+  int const numArgs = (int)aCI->getNumArgOperands();
   if (numArgs > 3)
     return false;
 
@@ -1634,7 +1634,7 @@ bool AMDGPULibCalls::evaluateCall(CallInst *aCI, FuncInfo &FInfo) {
 
   // max vector size is 16, and sincos will generate two results.
   double DVal0[16], DVal1[16];
-  bool hasTwoResults = (FInfo.getId() == AMDGPULibFunc::EI_SINCOS);
+  bool const hasTwoResults = (FInfo.getId() == AMDGPULibFunc::EI_SINCOS);
   if (getVecSize(FInfo) == 1) {
     if (!evaluateScalarMathFunc(FInfo, DVal0[0],
                                 DVal1[0], copr0, copr1, copr2)) {
@@ -1666,19 +1666,19 @@ bool AMDGPULibCalls::evaluateCall(CallInst *aCI, FuncInfo &FInfo) {
       SmallVector <float, 0> FVal0, FVal1;
       for (int i=0; i < getVecSize(FInfo); ++i)
         FVal0.push_back((float)DVal0[i]);
-      ArrayRef<float> tmp0(FVal0);
+      ArrayRef<float> const tmp0(FVal0);
       nval0 = ConstantDataVector::get(context, tmp0);
       if (hasTwoResults) {
         for (int i=0; i < getVecSize(FInfo); ++i)
           FVal1.push_back((float)DVal1[i]);
-        ArrayRef<float> tmp1(FVal1);
+        ArrayRef<float> const tmp1(FVal1);
         nval1 = ConstantDataVector::get(context, tmp1);
       }
     } else {
-      ArrayRef<double> tmp0(DVal0);
+      ArrayRef<double> const tmp0(DVal0);
       nval0 = ConstantDataVector::get(context, tmp0);
       if (hasTwoResults) {
-        ArrayRef<double> tmp1(DVal1);
+        ArrayRef<double> const tmp1(DVal1);
         nval1 = ConstantDataVector::get(context, tmp1);
       }
     }

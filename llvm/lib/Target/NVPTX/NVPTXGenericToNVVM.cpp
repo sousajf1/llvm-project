@@ -144,7 +144,7 @@ bool GenericToNVVM::runOnModule(Module &M) {
     // variable initializers, as other uses have been already been removed
     // while walking through the instructions in function definitions.
     GV->replaceAllUsesWith(BitCastNewGV);
-    std::string Name = std::string(GV->getName());
+    std::string const Name = std::string(GV->getName());
     GV->eraseFromParent();
     NewGV->setName(Name);
   }
@@ -157,7 +157,7 @@ Value *GenericToNVVM::remapConstant(Module *M, Function *F, Constant *C,
                                     IRBuilder<> &Builder) {
   // If the constant C has been converted already in the given function  F, just
   // return the converted value.
-  ConstantToValueMapTy::iterator CTII = ConstantToValueMap.find(C);
+  ConstantToValueMapTy::iterator const CTII = ConstantToValueMap.find(C);
   if (CTII != ConstantToValueMap.end()) {
     return CTII->second;
   }
@@ -169,7 +169,7 @@ Value *GenericToNVVM::remapConstant(Module *M, Function *F, Constant *C,
     //   addrspacecast GVMap[C] to addrspace(0)
     //
     // for our use of C.
-    GVMapTy::iterator I = GVMap.find(cast<GlobalVariable>(C));
+    GVMapTy::iterator const I = GVMap.find(cast<GlobalVariable>(C));
     if (I != GVMap.end()) {
       GlobalVariable *GV = I->second;
       NewValue = Builder.CreateAddrSpaceCast(
@@ -196,7 +196,7 @@ Value *GenericToNVVM::remapConstantVectorOrConstantAggregate(
     Module *M, Function *F, Constant *C, IRBuilder<> &Builder) {
   bool OperandChanged = false;
   SmallVector<Value *, 4> NewOperands;
-  unsigned NumOperands = C->getNumOperands();
+  unsigned const NumOperands = C->getNumOperands();
 
   // Check if any element is or uses a global variable in  GVMap, and thus
   // converted to another value.
@@ -235,7 +235,7 @@ Value *GenericToNVVM::remapConstantExpr(Module *M, Function *F, ConstantExpr *C,
                                         IRBuilder<> &Builder) {
   bool OperandChanged = false;
   SmallVector<Value *, 4> NewOperands;
-  unsigned NumOperands = C->getNumOperands();
+  unsigned const NumOperands = C->getNumOperands();
 
   // Check if any operand is or uses a global variable in  GVMap, and thus
   // converted to another value.
@@ -253,7 +253,7 @@ Value *GenericToNVVM::remapConstantExpr(Module *M, Function *F, ConstantExpr *C,
 
   // If any of the operands has been modified, construct the instruction with
   // the converted operands.
-  unsigned Opcode = C->getOpcode();
+  unsigned const Opcode = C->getOpcode();
   switch (Opcode) {
   case Instruction::ICmp:
     // CompareConstantExpr (icmp)

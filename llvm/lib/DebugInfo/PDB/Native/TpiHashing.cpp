@@ -26,11 +26,11 @@ static bool isAnonymous(StringRef Name) {
 // class, union, or enum.
 static uint32_t getHashForUdt(const TagRecord &Rec,
                               ArrayRef<uint8_t> FullRecord) {
-  ClassOptions Opts = Rec.getOptions();
-  bool ForwardRef = bool(Opts & ClassOptions::ForwardReference);
-  bool Scoped = bool(Opts & ClassOptions::Scoped);
-  bool HasUniqueName = bool(Opts & ClassOptions::HasUniqueName);
-  bool IsAnon = HasUniqueName && isAnonymous(Rec.getName());
+  ClassOptions const Opts = Rec.getOptions();
+  bool const ForwardRef = bool(Opts & ClassOptions::ForwardReference);
+  bool const Scoped = bool(Opts & ClassOptions::Scoped);
+  bool const HasUniqueName = bool(Opts & ClassOptions::HasUniqueName);
+  bool const IsAnon = HasUniqueName && isAnonymous(Rec.getName());
 
   if (!ForwardRef && !Scoped && !IsAnon)
     return hashStringV1(Rec.getName());
@@ -55,22 +55,22 @@ static Expected<TagRecordHash> getTagRecordHashForUdt(const CVType &Rec) {
                                                Deserialized))
     return std::move(E);
 
-  ClassOptions Opts = Deserialized.getOptions();
+  ClassOptions const Opts = Deserialized.getOptions();
 
-  bool ForwardRef = bool(Opts & ClassOptions::ForwardReference);
+  bool const ForwardRef = bool(Opts & ClassOptions::ForwardReference);
 
-  uint32_t ThisRecordHash = getHashForUdt(Deserialized, Rec.data());
+  uint32_t const ThisRecordHash = getHashForUdt(Deserialized, Rec.data());
 
   // If we don't have a forward ref we can't compute the hash of it from the
   // full record because it requires hashing the entire buffer.
   if (!ForwardRef)
     return TagRecordHash{std::move(Deserialized), ThisRecordHash, 0};
 
-  bool Scoped = bool(Opts & ClassOptions::Scoped);
+  bool const Scoped = bool(Opts & ClassOptions::Scoped);
 
-  StringRef NameToHash =
+  StringRef const NameToHash =
       Scoped ? Deserialized.getUniqueName() : Deserialized.getName();
-  uint32_t FullHash = hashStringV1(NameToHash);
+  uint32_t const FullHash = hashStringV1(NameToHash);
   return TagRecordHash{std::move(Deserialized), FullHash, ThisRecordHash};
 }
 

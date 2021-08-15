@@ -204,7 +204,7 @@ Value *CachingVPExpander::convertEVLToMask(IRBuilder<> &Builder,
 
   // Fixed vector %evl conversion.
   Type *LaneTy = EVLParam->getType();
-  unsigned NumElems = ElemCount.getFixedValue();
+  unsigned const NumElems = ElemCount.getFixedValue();
   Value *VLSplat = Builder.CreateVectorSplat(NumElems, EVLParam);
   Value *IdxVec = createStepVector(Builder, LaneTy, NumElems);
   return Builder.CreateICmp(CmpInst::ICMP_ULT, IdxVec, VLSplat);
@@ -258,7 +258,7 @@ void CachingVPExpander::discardEVLParameter(VPIntrinsic &VPI) {
   if (!EVLParam)
     return;
 
-  ElementCount StaticElemCount = VPI.getStaticVectorLength();
+  ElementCount const StaticElemCount = VPI.getStaticVectorLength();
   Value *MaxEVL = nullptr;
   Type *Int32Ty = Type::getInt32Ty(VPI.getContext());
   if (StaticElemCount.isScalable()) {
@@ -296,7 +296,7 @@ Value *CachingVPExpander::foldEVLIntoMask(VPIntrinsic &VPI) {
   LLVM_DEBUG(dbgs() << "OLD mask: " << *OldMaskParam << '\n');
 
   // Convert the %evl predication into vector mask predication.
-  ElementCount ElemCount = VPI.getStaticVectorLength();
+  ElementCount const ElemCount = VPI.getStaticVectorLength();
   Value *VLMask = convertEVLToMask(Builder, OldEVLParam, ElemCount);
   Value *NewMaskParam = Builder.CreateAnd(VLMask, OldMaskParam);
   VPI.setMaskParam(NewMaskParam);

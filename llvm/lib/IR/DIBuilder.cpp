@@ -61,7 +61,7 @@ void DIBuilder::finalizeSubprogram(DISubprogram *SP) {
   if (PL != PreservedLabels.end())
     RetainedNodes.append(PL->second.begin(), PL->second.end());
 
-  DINodeArray Node = getOrCreateArray(RetainedNodes);
+  DINodeArray const Node = getOrCreateArray(RetainedNodes);
 
   TempMDTuple(Temp)->replaceAllUsesWith(Node.get());
 }
@@ -88,7 +88,7 @@ void DIBuilder::finalize() {
   if (!RetainValues.empty())
     CUNode->replaceRetainedTypes(MDTuple::get(VMContext, RetainValues));
 
-  DISubprogramArray SPs = MDTuple::get(VMContext, AllSubprograms);
+  DISubprogramArray const SPs = MDTuple::get(VMContext, AllSubprograms);
   for (auto *SP : SPs)
     finalizeSubprogram(SP);
   for (auto *N : RetainValues)
@@ -167,7 +167,7 @@ createImportedModule(LLVMContext &C, dwarf::Tag Tag, DIScope *Context,
                      SmallVectorImpl<TrackingMDNodeRef> &AllImportedModules) {
   if (Line)
     assert(File && "Source location has line number but no file");
-  unsigned EntitiesCount = C.pImpl->DIImportedEntitys.size();
+  unsigned const EntitiesCount = C.pImpl->DIImportedEntitys.size();
   auto *M = DIImportedEntity::get(C, Tag, Context, cast_or_null<DINode>(NS),
                                   File, Line, Name);
   if (EntitiesCount < C.pImpl->DIImportedEntitys.size())
@@ -596,7 +596,7 @@ DIType *DIBuilder::createObjectPointerType(DIType *Ty) {
   // FIXME: Restrict this to the nodes where it's valid.
   if (Ty->isObjectPointer())
     return Ty;
-  DINode::DIFlags Flags = DINode::FlagObjectPointer | DINode::FlagArtificial;
+  DINode::DIFlags const Flags = DINode::FlagObjectPointer | DINode::FlagArtificial;
   return createTypeWithFlags(Ty, Flags);
 }
 
@@ -801,7 +801,7 @@ DIExpression *DIBuilder::createExpression(ArrayRef<uint64_t> Addr) {
 
 DIExpression *DIBuilder::createExpression(ArrayRef<int64_t> Signed) {
   // TODO: Remove the callers of this signed version and delete.
-  SmallVector<uint64_t, 8> Addr(Signed.begin(), Signed.end());
+  SmallVector<uint64_t, 8> const Addr(Signed.begin(), Signed.end());
   return createExpression(Addr);
 }
 
@@ -818,7 +818,7 @@ DISubprogram *DIBuilder::createFunction(
     DINode::DIFlags Flags, DISubprogram::DISPFlags SPFlags,
     DITemplateParameterArray TParams, DISubprogram *Decl,
     DITypeArray ThrownTypes) {
-  bool IsDefinition = SPFlags & DISubprogram::SPFlagDefinition;
+  bool const IsDefinition = SPFlags & DISubprogram::SPFlagDefinition;
   auto *Node = getSubprogram(
       /*IsDistinct=*/IsDefinition, VMContext, getNonCompileUnitScope(Context),
       Name, LinkageName, File, LineNo, Ty, ScopeLine, nullptr, 0, 0, Flags,
@@ -837,7 +837,7 @@ DISubprogram *DIBuilder::createTempFunctionFwdDecl(
     DINode::DIFlags Flags, DISubprogram::DISPFlags SPFlags,
     DITemplateParameterArray TParams, DISubprogram *Decl,
     DITypeArray ThrownTypes) {
-  bool IsDefinition = SPFlags & DISubprogram::SPFlagDefinition;
+  bool const IsDefinition = SPFlags & DISubprogram::SPFlagDefinition;
   return DISubprogram::getTemporary(VMContext, getNonCompileUnitScope(Context),
                                     Name, LinkageName, File, LineNo, Ty,
                                     ScopeLine, nullptr, 0, 0, Flags, SPFlags,
@@ -856,7 +856,7 @@ DISubprogram *DIBuilder::createMethod(
          "Methods should have both a Context and a context that isn't "
          "the compile unit.");
   // FIXME: Do we want to use different scope/lines?
-  bool IsDefinition = SPFlags & DISubprogram::SPFlagDefinition;
+  bool const IsDefinition = SPFlags & DISubprogram::SPFlagDefinition;
   auto *SP = getSubprogram(
       /*IsDistinct=*/IsDefinition, VMContext, cast<DIScope>(Context), Name,
       LinkageName, F, LineNo, Ty, LineNo, VTableHolder, VIndex, ThisAdjustment,
@@ -991,7 +991,7 @@ Instruction *DIBuilder::insertDeclare(Value *Storage, DILocalVariable *VarInfo,
 
   trackIfUnresolved(VarInfo);
   trackIfUnresolved(Expr);
-  Value *Args[] = {getDbgIntrinsicValueImpl(VMContext, Storage),
+  Value *const Args[] = {getDbgIntrinsicValueImpl(VMContext, Storage),
                    MetadataAsValue::get(VMContext, VarInfo),
                    MetadataAsValue::get(VMContext, Expr)};
 
@@ -1014,7 +1014,7 @@ Instruction *DIBuilder::insertDbgValueIntrinsic(
 
   trackIfUnresolved(VarInfo);
   trackIfUnresolved(Expr);
-  Value *Args[] = {getDbgIntrinsicValueImpl(VMContext, V),
+  Value *const Args[] = {getDbgIntrinsicValueImpl(VMContext, V),
                    MetadataAsValue::get(VMContext, VarInfo),
                    MetadataAsValue::get(VMContext, Expr)};
 
@@ -1035,7 +1035,7 @@ Instruction *DIBuilder::insertLabel(
     LabelFn = Intrinsic::getDeclaration(&M, Intrinsic::dbg_label);
 
   trackIfUnresolved(LabelInfo);
-  Value *Args[] = {MetadataAsValue::get(VMContext, LabelInfo)};
+  Value *const Args[] = {MetadataAsValue::get(VMContext, LabelInfo)};
 
   IRBuilder<> B(DL->getContext());
   initIRBuilder(B, DL, InsertBB, InsertBefore);
@@ -1045,7 +1045,7 @@ Instruction *DIBuilder::insertLabel(
 void DIBuilder::replaceVTableHolder(DICompositeType *&T,
                                     DIType *VTableHolder) {
   {
-    TypedTrackingMDRef<DICompositeType> N(T);
+    TypedTrackingMDRef<DICompositeType> const N(T);
     N->replaceVTableHolder(VTableHolder);
     T = N.get();
   }
@@ -1065,7 +1065,7 @@ void DIBuilder::replaceVTableHolder(DICompositeType *&T,
 void DIBuilder::replaceArrays(DICompositeType *&T, DINodeArray Elements,
                               DINodeArray TParams) {
   {
-    TypedTrackingMDRef<DICompositeType> N(T);
+    TypedTrackingMDRef<DICompositeType> const N(T);
     if (Elements)
       N->replaceElements(Elements);
     if (TParams)

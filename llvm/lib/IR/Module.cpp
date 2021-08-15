@@ -253,7 +253,7 @@ GlobalIFunc *Module::getNamedIFunc(StringRef Name) const {
 /// specified name is not found.
 NamedMDNode *Module::getNamedMetadata(const Twine &Name) const {
   SmallString<256> NameData;
-  StringRef NameRef = Name.toStringRef(NameData);
+  StringRef const NameRef = Name.toStringRef(NameData);
   return NamedMDSymTab.lookup(NameRef);
 }
 
@@ -279,7 +279,7 @@ void Module::eraseNamedMetadata(NamedMDNode *NMD) {
 
 bool Module::isValidModFlagBehavior(Metadata *MD, ModFlagBehavior &MFB) {
   if (ConstantInt *Behavior = mdconst::dyn_extract_or_null<ConstantInt>(MD)) {
-    uint64_t Val = Behavior->getLimitedValue();
+    uint64_t const Val = Behavior->getLimitedValue();
     if (Val >= ModFlagBehaviorFirstVal && Val <= ModFlagBehaviorLastVal) {
       MFB = static_cast<ModFlagBehavior>(Val);
       return true;
@@ -352,7 +352,7 @@ NamedMDNode *Module::getOrInsertModuleFlagsMetadata() {
 void Module::addModuleFlag(ModFlagBehavior Behavior, StringRef Key,
                            Metadata *Val) {
   Type *Int32Ty = Type::getInt32Ty(Context);
-  Metadata *Ops[3] = {
+  Metadata *const Ops[3] = {
       ConstantAsMetadata::get(ConstantInt::get(Int32Ty, Behavior)),
       MDString::get(Context, Key), Val};
   getOrInsertModuleFlagsMetadata()->addOperand(MDNode::get(Context, Ops));
@@ -798,11 +798,11 @@ void Module::setPartialSampleProfileRatio(const ModuleSummaryIndex &Index) {
       if (ProfileSummary->getKind() != ProfileSummary::PSK_Sample ||
           !ProfileSummary->isPartialProfile())
         return;
-      uint64_t BlockCount = Index.getBlockCount();
-      uint32_t NumCounts = ProfileSummary->getNumCounts();
+      uint64_t const BlockCount = Index.getBlockCount();
+      uint32_t const NumCounts = ProfileSummary->getNumCounts();
       if (!NumCounts)
         return;
-      double Ratio = (double)BlockCount / NumCounts;
+      double const Ratio = (double)BlockCount / NumCounts;
       ProfileSummary->setPartialProfileRatio(Ratio);
       setProfileSummary(ProfileSummary->getMD(getContext()),
                         ProfileSummary::PSK_Sample);

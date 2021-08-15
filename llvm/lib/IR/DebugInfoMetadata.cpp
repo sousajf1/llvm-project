@@ -153,9 +153,9 @@ Optional<unsigned> DILocation::encodeDiscriminator(unsigned BD, unsigned DF, uns
   unsigned Ret = 0;
   unsigned NextBitInsertionIndex = 0;
   while (RemainingWork > 0) {
-    unsigned C = Components[I++];
+    unsigned const C = Components[I++];
     RemainingWork -= C;
-    unsigned EC = encodeComponent(C);
+    unsigned const EC = encodeComponent(C);
     Ret |= (EC << NextBitInsertionIndex);
     NextBitInsertionIndex += encodingBits(C);
   }
@@ -202,7 +202,7 @@ DINode::DIFlags DINode::splitFlags(DIFlags Flags,
   // Flags that are packed together need to be specially handled, so
   // that, for example, we emit "DIFlagPublic" and not
   // "DIFlagPrivate | DIFlagProtected".
-  if (DIFlags A = Flags & FlagAccessibility) {
+  if (DIFlags const A = Flags & FlagAccessibility) {
     if (A == FlagPrivate)
       SplitFlags.push_back(FlagPrivate);
     else if (A == FlagProtected)
@@ -211,7 +211,7 @@ DINode::DIFlags DINode::splitFlags(DIFlags Flags,
       SplitFlags.push_back(FlagPublic);
     Flags &= ~A;
   }
-  if (DIFlags R = Flags & FlagPtrToMemberRep) {
+  if (DIFlags const R = Flags & FlagPtrToMemberRep) {
     if (R == FlagSingleInheritance)
       SplitFlags.push_back(FlagSingleInheritance);
     else if (R == FlagMultipleInheritance)
@@ -287,7 +287,7 @@ GenericDINode *GenericDINode::getImpl(LLVMContext &Context, unsigned Tag,
                                       StorageType Storage, bool ShouldCreate) {
   unsigned Hash = 0;
   if (Storage == Uniqued) {
-    GenericDINodeInfo::KeyTy Key(Tag, Header, DwarfOps);
+    GenericDINodeInfo::KeyTy const Key(Tag, Header, DwarfOps);
     if (auto *N = getUniqued(Context.pImpl->GenericDINodes, Key))
       return N;
     if (!ShouldCreate)
@@ -299,7 +299,7 @@ GenericDINode *GenericDINode::getImpl(LLVMContext &Context, unsigned Tag,
 
   // Use a nullptr for empty headers.
   assert(isCanonical(Header) && "Expected canonical MDString");
-  Metadata *PreOps[] = {Header};
+  Metadata *const PreOps[] = {Header};
   return storeImpl(new (DwarfOps.size() + 1) GenericDINode(
                        Context, Storage, Hash, Tag, PreOps, DwarfOps),
                    Storage, Context.pImpl->GenericDINodes);
@@ -1058,7 +1058,7 @@ DIExpression *DIExpression::getImpl(LLVMContext &Context,
 }
 
 unsigned DIExpression::ExprOperand::getSize() const {
-  uint64_t Op = getOp();
+  uint64_t const Op = getOp();
 
   if (Op >= dwarf::DW_OP_breg0 && Op <= dwarf::DW_OP_breg31)
     return 2;
@@ -1088,7 +1088,7 @@ bool DIExpression::isValid() const {
     if (I->get() + I->getSize() > E->get())
       return false;
 
-    uint64_t Op = I->getOp();
+    uint64_t const Op = I->getOp();
     if ((Op >= dwarf::DW_OP_reg0 && Op <= dwarf::DW_OP_reg31) ||
         (Op >= dwarf::DW_OP_breg0 && Op <= dwarf::DW_OP_breg31))
       return true;
@@ -1292,8 +1292,8 @@ DIExpression *DIExpression::prepend(const DIExpression *Expr, uint8_t Flags,
   if (Flags & DIExpression::DerefAfter)
     Ops.push_back(dwarf::DW_OP_deref);
 
-  bool StackValue = Flags & DIExpression::StackValue;
-  bool EntryValue = Flags & DIExpression::EntryValue;
+  bool const StackValue = Flags & DIExpression::StackValue;
+  bool const EntryValue = Flags & DIExpression::EntryValue;
 
   return prependOpcodes(Expr, Ops, StackValue, EntryValue);
 }
@@ -1416,13 +1416,13 @@ DIExpression *DIExpression::appendToStack(const DIExpression *Expr,
   // has no DW_OP_stack_value.
   //
   // Match .* DW_OP_stack_value (DW_OP_LLVM_fragment A B)?.
-  Optional<FragmentInfo> FI = Expr->getFragmentInfo();
-  unsigned DropUntilStackValue = FI.hasValue() ? 3 : 0;
-  ArrayRef<uint64_t> ExprOpsBeforeFragment =
+  Optional<FragmentInfo> const FI = Expr->getFragmentInfo();
+  unsigned const DropUntilStackValue = FI.hasValue() ? 3 : 0;
+  ArrayRef<uint64_t> const ExprOpsBeforeFragment =
       Expr->getElements().drop_back(DropUntilStackValue);
-  bool NeedsDeref = (Expr->getNumElements() > DropUntilStackValue) &&
+  bool const NeedsDeref = (Expr->getNumElements() > DropUntilStackValue) &&
                     (ExprOpsBeforeFragment.back() != dwarf::DW_OP_stack_value);
-  bool NeedsStackValue = NeedsDeref || ExprOpsBeforeFragment.empty();
+  bool const NeedsStackValue = NeedsDeref || ExprOpsBeforeFragment.empty();
 
   // Append a DW_OP_deref after Expr's current op list if needed, then append
   // the new ops, and finally ensure that a single DW_OP_stack_value is present.
@@ -1457,8 +1457,8 @@ Optional<DIExpression *> DIExpression::createFragmentExpression(
         return None;
       case dwarf::DW_OP_LLVM_fragment: {
         // Make the new offset point into the existing fragment.
-        uint64_t FragmentOffsetInBits = Op.getArg(0);
-        uint64_t FragmentSizeInBits = Op.getArg(1);
+        uint64_t const FragmentOffsetInBits = Op.getArg(0);
+        uint64_t const FragmentSizeInBits = Op.getArg(1);
         (void)FragmentSizeInBits;
         assert((OffsetInBits + SizeInBits <= FragmentSizeInBits) &&
                "new fragment outside of original fragment");

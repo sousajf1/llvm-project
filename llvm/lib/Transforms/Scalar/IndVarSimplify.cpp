@@ -210,8 +210,8 @@ static bool ConvertToSInt(const APFloat &APF, int64_t &IntVal) {
 /// for(int i = 0; i < 10000; ++i)
 ///   bar((double)i);
 bool IndVarSimplify::handleFloatingPointIV(Loop *L, PHINode *PN) {
-  unsigned IncomingEdge = L->contains(PN->getIncomingBlock(0));
-  unsigned BackEdge     = IncomingEdge^1;
+  unsigned const IncomingEdge = L->contains(PN->getIncomingBlock(0));
+  unsigned const BackEdge     = IncomingEdge^1;
 
   // Check incoming value.
   auto *InitValueVal = dyn_cast<ConstantFP>(PN->getIncomingValue(IncomingEdge));
@@ -316,7 +316,7 @@ bool IndVarSimplify::handleFloatingPointIV(Loop *L, PHINode *PN) {
       if (++Range == 0) return false;  // Range overflows.
     }
 
-    unsigned Leftover = Range % uint32_t(IncValue);
+    unsigned const Leftover = Range % uint32_t(IncValue);
 
     // If this is an equality comparison, we require that the strided value
     // exactly land on the exit value, otherwise the IV condition will wrap
@@ -342,7 +342,7 @@ bool IndVarSimplify::handleFloatingPointIV(Loop *L, PHINode *PN) {
       if (++Range == 0) return false;  // Range overflows.
     }
 
-    unsigned Leftover = Range % uint32_t(-IncValue);
+    unsigned const Leftover = Range % uint32_t(-IncValue);
 
     // If this is an equality comparison, we require that the strided value
     // exactly land on the exit value, otherwise the IV condition will wrap
@@ -375,7 +375,7 @@ bool IndVarSimplify::handleFloatingPointIV(Loop *L, PHINode *PN) {
 
   // In the following deletions, PN may become dead and may be deleted.
   // Use a WeakTrackingVH to observe whether this happens.
-  WeakTrackingVH WeakPH = PN;
+  WeakTrackingVH const WeakPH = PN;
 
   // Delete the old floating point exit comparison.  The branch starts using the
   // new comparison.
@@ -487,7 +487,7 @@ bool IndVarSimplify::rewriteFirstIterationLoopExitValues(Loop *L) {
         // on the first iteration.
         auto *LoopPreheader = L->getLoopPreheader();
         assert(LoopPreheader && "Invalid loop");
-        int PreheaderIdx = ExitVal->getBasicBlockIndex(LoopPreheader);
+        int const PreheaderIdx = ExitVal->getBasicBlockIndex(LoopPreheader);
         if (PreheaderIdx != -1) {
           assert(ExitVal->getParent() == L->getHeader() &&
                  "ExitVal must be in loop header");
@@ -511,12 +511,12 @@ bool IndVarSimplify::rewriteFirstIterationLoopExitValues(Loop *L) {
 static void visitIVCast(CastInst *Cast, WideIVInfo &WI,
                         ScalarEvolution *SE,
                         const TargetTransformInfo *TTI) {
-  bool IsSigned = Cast->getOpcode() == Instruction::SExt;
+  bool const IsSigned = Cast->getOpcode() == Instruction::SExt;
   if (!IsSigned && Cast->getOpcode() != Instruction::ZExt)
     return;
 
   Type *Ty = Cast->getType();
-  uint64_t Width = SE->getTypeSizeInBits(Ty);
+  uint64_t const Width = SE->getTypeSizeInBits(Ty);
   if (!Cast->getModule()->getDataLayout().isLegalInteger(Width))
     return;
 
@@ -524,7 +524,7 @@ static void visitIVCast(CastInst *Cast, WideIVInfo &WI,
   // later).  This takes care of cases where `Cast` is extending a truncation of
   // the narrow induction variable, and thus can end up being narrower than the
   // "narrow" induction variable.
-  uint64_t NarrowIVWidth = SE->getTypeSizeInBits(WI.NarrowIV->getType());
+  uint64_t const NarrowIVWidth = SE->getTypeSizeInBits(WI.NarrowIV->getType());
   if (NarrowIVWidth >= Width)
     return;
 
@@ -599,7 +599,7 @@ bool IndVarSimplify::simplifyAndExtend(Loop *L,
 
   auto *GuardDecl = L->getBlocks()[0]->getModule()->getFunction(
           Intrinsic::getName(Intrinsic::experimental_guard));
-  bool HasGuards = GuardDecl && !GuardDecl->use_empty();
+  bool const HasGuards = GuardDecl && !GuardDecl->use_empty();
 
   SmallVector<PHINode*, 8> LoopPhis;
   for (BasicBlock::iterator I = L->getHeader()->begin(); isa<PHINode>(I); ++I) {
@@ -726,7 +726,7 @@ static bool needsLFTR(Loop *L, BasicBlock *ExitingBB) {
     return true;
 
   // Do LFTR to simplify the exit ICMP to EQ/NE
-  ICmpInst::Predicate Pred = Cond->getPredicate();
+  ICmpInst::Predicate const Pred = Cond->getPredicate();
   if (Pred != ICmpInst::ICMP_NE && Pred != ICmpInst::ICMP_EQ)
     return true;
 
@@ -747,7 +747,7 @@ static bool needsLFTR(Loop *L, BasicBlock *ExitingBB) {
     return true;
 
   // Do LFTR if PHI node is defined in the loop, but is *not* a counter.
-  int Idx = Phi->getBasicBlockIndex(L->getLoopLatch());
+  int const Idx = Phi->getBasicBlockIndex(L->getLoopLatch());
   if (Idx < 0)
     return true;
 
@@ -843,7 +843,7 @@ static bool hasConcreteDef(Value *V) {
 /// Return true if this IV has any uses other than the (soon to be rewritten)
 /// loop exit test.
 static bool AlmostDeadIV(PHINode *Phi, BasicBlock *LatchBlock, Value *Cond) {
-  int LatchIdx = Phi->getBasicBlockIndex(LatchBlock);
+  int const LatchIdx = Phi->getBasicBlockIndex(LatchBlock);
   Value *IncV = Phi->getIncomingValue(LatchIdx);
 
   for (User *U : Phi->users())
@@ -873,7 +873,7 @@ static bool isLoopCounter(PHINode* Phi, Loop *L,
   if (!Step || !Step->isOne())
     return false;
 
-  int LatchIdx = Phi->getBasicBlockIndex(L->getLoopLatch());
+  int const LatchIdx = Phi->getBasicBlockIndex(L->getLoopLatch());
   Value *IncV = Phi->getIncomingValue(LatchIdx);
   return (getLoopPhiForCounter(IncV, L) == Phi &&
           isa<SCEVAddRecExpr>(SE->getSCEV(IncV)));
@@ -889,7 +889,7 @@ static bool isLoopCounter(PHINode* Phi, Loop *L,
 static PHINode *FindLoopCounter(Loop *L, BasicBlock *ExitingBB,
                                 const SCEV *BECount,
                                 ScalarEvolution *SE, DominatorTree *DT) {
-  uint64_t BCWidth = SE->getTypeSizeInBits(BECount->getType());
+  uint64_t const BCWidth = SE->getTypeSizeInBits(BECount->getType());
 
   Value *Cond = cast<BranchInst>(ExitingBB->getTerminator())->getCondition();
 
@@ -914,7 +914,7 @@ static PHINode *FindLoopCounter(Loop *L, BasicBlock *ExitingBB,
     // AR may be a pointer type, while BECount is an integer type.
     // AR may be wider than BECount. With eq/ne tests overflow is immaterial.
     // AR may not be a narrower type, or we may never exit.
-    uint64_t PhiWidth = SE->getTypeSizeInBits(AR->getType());
+    uint64_t const PhiWidth = SE->getTypeSizeInBits(AR->getType());
     if (PhiWidth < BCWidth || !DL.isLegalInteger(PhiWidth))
       continue;
 
@@ -1081,7 +1081,7 @@ linearFunctionTestReplace(Loop *L, BasicBlock *ExitingBB,
     // to add a potentially UB introducing use.  We need to either a) show
     // the loop test we're modifying is already in post-inc form, or b) show
     // that adding a use must not introduce UB.
-    bool SafeToPostInc =
+    bool const SafeToPostInc =
         IndVar->getType()->isIntegerTy() ||
         isLoopExitTestBasedOn(IncVar, ExitingBB) ||
         mustExecuteUBIfPoisonOnPathTo(IncVar, ExitingBB->getTerminator(), DT);
@@ -1137,8 +1137,8 @@ linearFunctionTestReplace(Loop *L, BasicBlock *ExitingBB,
   // emit a truncate to narrow the IV to the ExitCount type.  This is safe
   // since we know (from the exit count bitwidth), that we can't self-wrap in
   // the narrower type.
-  unsigned CmpIndVarSize = SE->getTypeSizeInBits(CmpIndVar->getType());
-  unsigned ExitCntSize = SE->getTypeSizeInBits(ExitCnt->getType());
+  unsigned const CmpIndVarSize = SE->getTypeSizeInBits(CmpIndVar->getType());
+  unsigned const ExitCntSize = SE->getTypeSizeInBits(ExitCnt->getType());
   if (CmpIndVarSize > ExitCntSize) {
     assert(!CmpIndVar->getType()->isPointerTy() &&
            !ExitCnt->getType()->isPointerTy());
@@ -1248,11 +1248,11 @@ bool IndVarSimplify::sinkUnusedInvariants(Loop *L) {
     // Determine if there is a use in or before the loop (direct or
     // otherwise).
     bool UsedInLoop = false;
-    for (Use &U : I->uses()) {
+    for (Use  const&U : I->uses()) {
       Instruction *User = cast<Instruction>(U.getUser());
       BasicBlock *UseBB = User->getParent();
       if (PHINode *P = dyn_cast<PHINode>(User)) {
-        unsigned i =
+        unsigned const i =
           PHINode::getIncomingValueNumForOperand(U.getOperandNo());
         UseBB = P->getIncomingBlock(i);
       }
@@ -1302,7 +1302,7 @@ static void replaceExitCond(BranchInst *BI, Value *NewCond,
 static void foldExit(const Loop *L, BasicBlock *ExitingBB, bool IsTaken,
                      SmallVectorImpl<WeakTrackingVH> &DeadInsts) {
   BranchInst *BI = cast<BranchInst>(ExitingBB->getTerminator());
-  bool ExitIfTrue = !L->contains(*succ_begin(ExitingBB));
+  bool const ExitIfTrue = !L->contains(*succ_begin(ExitingBB));
   auto *OldCond = BI->getCondition();
   auto *NewCond =
       ConstantInt::get(OldCond->getType(), IsTaken ? ExitIfTrue : !ExitIfTrue);
@@ -1317,7 +1317,7 @@ static void replaceWithInvariantCond(
   Rewriter.setInsertPoint(BI);
   auto *LHSV = Rewriter.expandCodeFor(InvariantLHS);
   auto *RHSV = Rewriter.expandCodeFor(InvariantRHS);
-  bool ExitIfTrue = !L->contains(*succ_begin(ExitingBB));
+  bool const ExitIfTrue = !L->contains(*succ_begin(ExitingBB));
   if (ExitIfTrue)
     InvariantPred = ICmpInst::getInversePredicate(InvariantPred);
   IRBuilder<> Builder(BI);
@@ -1773,7 +1773,7 @@ bool IndVarSimplify::run(Loop *L) {
   // loop into any instructions outside of the loop that use the final values
   // of the current expressions.
   if (ReplaceExitValue != NeverRepl) {
-    if (int Rewrites = rewriteLoopExitValues(L, LI, TLI, SE, TTI, Rewriter, DT,
+    if (int const Rewrites = rewriteLoopExitValues(L, LI, TLI, SE, TTI, Rewriter, DT,
                                              ReplaceExitValue, DeadInsts)) {
       NumReplaced += Rewrites;
       Changed = true;

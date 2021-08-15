@@ -214,7 +214,7 @@ void SparcInstPrinter::printMembarTag(const MCInst *MI, int opNum,
       "#LoadLoad",  "#StoreLoad", "#LoadStore", "#StoreStore",
       "#Lookaside", "#MemIssue",  "#Sync"};
 
-  unsigned Imm = MI->getOperand(opNum).getImm();
+  unsigned const Imm = MI->getOperand(opNum).getImm();
 
   if (Imm > 127) {
     O << Imm;

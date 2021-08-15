@@ -134,10 +134,10 @@ public:
     SetupMachineFunction(MF);
 
     if (STI->isTargetCOFF()) {
-      bool Internal = MF.getFunction().hasInternalLinkage();
-      COFF::SymbolStorageClass Scl = Internal ? COFF::IMAGE_SYM_CLASS_STATIC
+      bool const Internal = MF.getFunction().hasInternalLinkage();
+      COFF::SymbolStorageClass const Scl = Internal ? COFF::IMAGE_SYM_CLASS_STATIC
                                               : COFF::IMAGE_SYM_CLASS_EXTERNAL;
-      int Type =
+      int const Type =
         COFF::IMAGE_SYM_DTYPE_FUNCTION << COFF::SCT_COMPLEX_TYPE_SHIFT;
 
       OutStreamer->BeginCOFFSymbolDef(CurrentFnSym);
@@ -242,7 +242,7 @@ void AArch64AsmPrinter::emitStartOfAsmFile(Module &M) {
 
 void AArch64AsmPrinter::emitFunctionHeaderComment() {
   const AArch64FunctionInfo *FI = MF->getInfo<AArch64FunctionInfo>();
-  Optional<std::string> OutlinerString = FI->getOutliningStyle();
+  Optional<std::string> const OutlinerString = FI->getOutliningStyle();
   if (OutlinerString != None)
     OutStreamer->GetCommentOS() << ' ' << OutlinerString;
 }
@@ -311,10 +311,10 @@ void AArch64AsmPrinter::emitSled(const MachineInstr &MI, SledKind Kind) {
 }
 
 void AArch64AsmPrinter::LowerHWASAN_CHECK_MEMACCESS(const MachineInstr &MI) {
-  Register Reg = MI.getOperand(0).getReg();
-  bool IsShort =
+  Register const Reg = MI.getOperand(0).getReg();
+  bool const IsShort =
       MI.getOpcode() == AArch64::HWASAN_CHECK_MEMACCESS_SHORTGRANULES;
-  uint32_t AccessInfo = MI.getOperand(1).getImm();
+  uint32_t const AccessInfo = MI.getOperand(1).getImm();
   MCSymbol *&Sym =
       HwasanMemaccessSymbols[HwasanMemaccessTuple(Reg, IsShort, AccessInfo)];
   if (!Sym) {
@@ -340,7 +340,7 @@ void AArch64AsmPrinter::emitHwasanMemaccessSymbols(Module &M) {
 
   const Triple &TT = TM.getTargetTriple();
   assert(TT.isOSBinFormatELF());
-  std::unique_ptr<MCSubtargetInfo> STI(
+  std::unique_ptr<MCSubtargetInfo> const STI(
       TM.getTarget().createMCSubtargetInfo(TT.str(), "", ""));
   assert(STI && "Unable to create subtarget info");
 
@@ -355,20 +355,20 @@ void AArch64AsmPrinter::emitHwasanMemaccessSymbols(Module &M) {
       MCSymbolRefExpr::create(HwasanTagMismatchV2Sym, OutContext);
 
   for (auto &P : HwasanMemaccessSymbols) {
-    unsigned Reg = std::get<0>(P.first);
-    bool IsShort = std::get<1>(P.first);
-    uint32_t AccessInfo = std::get<2>(P.first);
+    unsigned const Reg = std::get<0>(P.first);
+    bool const IsShort = std::get<1>(P.first);
+    uint32_t const AccessInfo = std::get<2>(P.first);
     const MCSymbolRefExpr *HwasanTagMismatchRef =
         IsShort ? HwasanTagMismatchV2Ref : HwasanTagMismatchV1Ref;
     MCSymbol *Sym = P.second;
 
-    bool HasMatchAllTag =
+    bool const HasMatchAllTag =
         (AccessInfo >> HWASanAccessInfo::HasMatchAllShift) & 1;
-    uint8_t MatchAllTag =
+    uint8_t const MatchAllTag =
         (AccessInfo >> HWASanAccessInfo::MatchAllShift) & 0xff;
-    unsigned Size =
+    unsigned const Size =
         1 << ((AccessInfo >> HWASanAccessInfo::AccessSizeShift) & 0xf);
-    bool CompileKernel =
+    bool const CompileKernel =
         (AccessInfo >> HWASanAccessInfo::CompileKernelShift) & 1;
 
     OutStreamer->SwitchSection(OutContext.getELFSection(
@@ -584,7 +584,7 @@ void AArch64AsmPrinter::emitLOHs() {
 
   for (const auto &D : AArch64FI->getLOHContainer()) {
     for (const MachineInstr *MI : D.getArgs()) {
-      MInstToMCSymbol::iterator LabelIt = LOHInstToLabel.find(MI);
+      MInstToMCSymbol::iterator const LabelIt = LOHInstToLabel.find(MI);
       assert(LabelIt != LOHInstToLabel.end() &&
              "Label hasn't been inserted for LOH related instruction");
       MCArgs.push_back(LabelIt->second);
@@ -619,7 +619,7 @@ void AArch64AsmPrinter::printOperand(const MachineInstr *MI, unsigned OpNum,
   default:
     llvm_unreachable("<unknown operand type>");
   case MachineOperand::MO_Register: {
-    Register Reg = MO.getReg();
+    Register const Reg = MO.getReg();
     assert(Register::isPhysicalRegister(Reg));
     assert(!MO.getSubReg() && "Subregs should be eliminated!");
     O << AArch64InstPrinter::getRegisterName(Reg);
@@ -670,8 +670,8 @@ bool AArch64AsmPrinter::printAsmRegInClass(const MachineOperand &MO,
                                            unsigned AltName, raw_ostream &O) {
   assert(MO.isReg() && "Should only get here with a register!");
   const TargetRegisterInfo *RI = STI->getRegisterInfo();
-  Register Reg = MO.getReg();
-  unsigned RegToPrint = RC->getRegister(RI->getEncodingValue(Reg));
+  Register const Reg = MO.getReg();
+  unsigned const RegToPrint = RC->getRegister(RI->getEncodingValue(Reg));
   if (!RI->regsOverlap(RegToPrint, Reg))
     return true;
   O << AArch64InstPrinter::getRegisterName(RegToPrint, AltName);
@@ -699,7 +699,7 @@ bool AArch64AsmPrinter::PrintAsmOperand(const MachineInstr *MI, unsigned OpNum,
       if (MO.isReg())
         return printAsmMRegister(MO, ExtraCode[0], O);
       if (MO.isImm() && MO.getImm() == 0) {
-        unsigned Reg = ExtraCode[0] == 'w' ? AArch64::WZR : AArch64::XZR;
+        unsigned const Reg = ExtraCode[0] == 'w' ? AArch64::WZR : AArch64::XZR;
         O << AArch64InstPrinter::getRegisterName(Reg);
         return false;
       }
@@ -745,7 +745,7 @@ bool AArch64AsmPrinter::PrintAsmOperand(const MachineInstr *MI, unsigned OpNum,
   // According to ARM, we should emit x and v registers unless we have a
   // modifier.
   if (MO.isReg()) {
-    Register Reg = MO.getReg();
+    Register const Reg = MO.getReg();
 
     // If this is a w or x register, print an x register.
     if (AArch64::GPR32allRegClass.contains(Reg) ||
@@ -790,7 +790,7 @@ bool AArch64AsmPrinter::PrintAsmMemoryOperand(const MachineInstr *MI,
 
 void AArch64AsmPrinter::PrintDebugValueComment(const MachineInstr *MI,
                                                raw_ostream &OS) {
-  unsigned NOps = MI->getNumOperands();
+  unsigned const NOps = MI->getNumOperands();
   assert(NOps == 4);
   OS << '\t' << MAI->getCommentString() << "DEBUG_VALUE: ";
   // cast away const; DIetc do not take const operands for some reason.
@@ -820,7 +820,7 @@ void AArch64AsmPrinter::emitJumpTableInfo() {
 
   const Function &F = MF->getFunction();
   const TargetLoweringObjectFile &TLOF = getObjFileLowering();
-  bool JTInDiffSection =
+  bool const JTInDiffSection =
       !STI->isTargetCOFF() ||
       !TLOF.shouldPutJumpTableInFunctionSection(
           MJTI->getEntryKind() == MachineJumpTableInfo::EK_LabelDifference32,
@@ -838,7 +838,7 @@ void AArch64AsmPrinter::emitJumpTableInfo() {
     // If this jump table was deleted, ignore it.
     if (JTBBs.empty()) continue;
 
-    unsigned Size = AFI->getJumpTableEntrySize(JTI);
+    unsigned const Size = AFI->getJumpTableEntrySize(JTI);
     emitAlignment(Align(Size));
     OutStreamer->emitLabel(GetJTISymbol(JTI));
 
@@ -887,14 +887,14 @@ void AArch64AsmPrinter::emitFunctionEntryLabel() {
 ///             add xDest, xDest, xScratch (with "lsl #2" for smaller entries)
 void AArch64AsmPrinter::LowerJumpTableDest(llvm::MCStreamer &OutStreamer,
                                            const llvm::MachineInstr &MI) {
-  Register DestReg = MI.getOperand(0).getReg();
-  Register ScratchReg = MI.getOperand(1).getReg();
-  Register ScratchRegW =
+  Register const DestReg = MI.getOperand(0).getReg();
+  Register const ScratchReg = MI.getOperand(1).getReg();
+  Register const ScratchRegW =
       STI->getRegisterInfo()->getSubReg(ScratchReg, AArch64::sub_32);
-  Register TableReg = MI.getOperand(2).getReg();
-  Register EntryReg = MI.getOperand(3).getReg();
-  int JTIdx = MI.getOperand(4).getIndex();
-  int Size = AArch64FI->getJumpTableEntrySize(JTIdx);
+  Register const TableReg = MI.getOperand(2).getReg();
+  Register const EntryReg = MI.getOperand(3).getReg();
+  int const JTIdx = MI.getOperand(4).getIndex();
+  int const Size = AArch64FI->getJumpTableEntrySize(JTIdx);
 
   // This has to be first because the compression pass based its reachability
   // calculations on the start of the JumpTableDest instruction.
@@ -979,14 +979,14 @@ void AArch64AsmPrinter::LowerPATCHPOINT(MCStreamer &OutStreamer, StackMaps &SM,
   OutStreamer.emitLabel(MILabel);
   SM.recordPatchPoint(*MILabel, MI);
 
-  PatchPointOpers Opers(&MI);
+  PatchPointOpers const Opers(&MI);
 
-  int64_t CallTarget = Opers.getCallTarget().getImm();
+  int64_t const CallTarget = Opers.getCallTarget().getImm();
   unsigned EncodedBytes = 0;
   if (CallTarget) {
     assert((CallTarget & 0xFFFFFFFFFFFF) == CallTarget &&
            "High 16 bits of call target should be zero.");
-    Register ScratchReg = MI.getOperand(Opers.getNextScratchIdx()).getReg();
+    Register const ScratchReg = MI.getOperand(Opers.getNextScratchIdx()).getReg();
     EncodedBytes = 16;
     // Materialize the jump address:
     EmitToStreamer(OutStreamer, MCInstBuilder(AArch64::MOVZXi)
@@ -1006,7 +1006,7 @@ void AArch64AsmPrinter::LowerPATCHPOINT(MCStreamer &OutStreamer, StackMaps &SM,
     EmitToStreamer(OutStreamer, MCInstBuilder(AArch64::BLR).addReg(ScratchReg));
   }
   // Emit padding.
-  unsigned NumBytes = Opers.getNumPatchBytes();
+  unsigned const NumBytes = Opers.getNumPatchBytes();
   assert(NumBytes >= EncodedBytes &&
          "Patchpoint can't request size less than the length of a call.");
   assert((NumBytes - EncodedBytes) % 4 == 0 &&
@@ -1017,8 +1017,8 @@ void AArch64AsmPrinter::LowerPATCHPOINT(MCStreamer &OutStreamer, StackMaps &SM,
 
 void AArch64AsmPrinter::LowerSTATEPOINT(MCStreamer &OutStreamer, StackMaps &SM,
                                         const MachineInstr &MI) {
-  StatepointOpers SOpers(&MI);
-  if (unsigned PatchBytes = SOpers.getNumPatchBytes()) {
+  StatepointOpers const SOpers(&MI);
+  if (unsigned const PatchBytes = SOpers.getNumPatchBytes()) {
     assert(PatchBytes % 4 == 0 && "Invalid number of NOP bytes requested!");
     for (unsigned i = 0; i < PatchBytes; i += 4)
       EmitToStreamer(OutStreamer, MCInstBuilder(AArch64::HINT).addImm(0));
@@ -1060,12 +1060,12 @@ void AArch64AsmPrinter::LowerFAULTING_OP(const MachineInstr &FaultingMI) {
   // FAULTING_LOAD_OP <def>, <faltinf type>, <MBB handler>,
   //                  <opcode>, <operands>
 
-  Register DefRegister = FaultingMI.getOperand(0).getReg();
-  FaultMaps::FaultKind FK =
+  Register const DefRegister = FaultingMI.getOperand(0).getReg();
+  FaultMaps::FaultKind const FK =
       static_cast<FaultMaps::FaultKind>(FaultingMI.getOperand(1).getImm());
   MCSymbol *HandlerLabel = FaultingMI.getOperand(2).getMBB()->getSymbol();
-  unsigned Opcode = FaultingMI.getOperand(3).getImm();
-  unsigned OperandsBeginIdx = 4;
+  unsigned const Opcode = FaultingMI.getOperand(3).getImm();
+  unsigned const OperandsBeginIdx = 4;
 
   auto &Ctx = OutStreamer->getContext();
   MCSymbol *FaultingLabel = Ctx.createTempSymbol();
@@ -1163,7 +1163,7 @@ void AArch64AsmPrinter::emitInstruction(const MachineInstr *MI) {
     if (CurrentPatchableFunctionEntrySym &&
         CurrentPatchableFunctionEntrySym == CurrentFnBegin &&
         MI == &MF->front().front()) {
-      int64_t Imm = MI->getOperand(0).getImm();
+      int64_t const Imm = MI->getOperand(0).getImm();
       if ((Imm & 32) && (Imm & 6)) {
         MCInst Inst;
         MCInstLowering.Lower(MI, Inst);
@@ -1176,7 +1176,7 @@ void AArch64AsmPrinter::emitInstruction(const MachineInstr *MI) {
     break;
   }
     case AArch64::MOVMCSym: {
-      Register DestReg = MI->getOperand(0).getReg();
+      Register const DestReg = MI->getOperand(0).getReg();
       const MachineOperand &MO_Sym = MI->getOperand(1);
       MachineOperand Hi_MOSym(MO_Sym), Lo_MOSym(MO_Sym);
       MCOperand Hi_MCSym, Lo_MCSym;
@@ -1228,7 +1228,7 @@ void AArch64AsmPrinter::emitInstruction(const MachineInstr *MI) {
     return;
 
   case AArch64::EMITBKEY: {
-      ExceptionHandling ExceptionHandlingType = MAI->getExceptionHandlingType();
+      ExceptionHandling const ExceptionHandlingType = MAI->getExceptionHandlingType();
       if (ExceptionHandlingType != ExceptionHandling::DwarfCFI &&
           ExceptionHandlingType != ExceptionHandling::ARM)
         return;
@@ -1498,9 +1498,9 @@ void AArch64AsmPrinter::emitInstruction(const MachineInstr *MI) {
 
 // Force static initialization.
 extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializeAArch64AsmPrinter() {
-  RegisterAsmPrinter<AArch64AsmPrinter> X(getTheAArch64leTarget());
-  RegisterAsmPrinter<AArch64AsmPrinter> Y(getTheAArch64beTarget());
-  RegisterAsmPrinter<AArch64AsmPrinter> Z(getTheARM64Target());
-  RegisterAsmPrinter<AArch64AsmPrinter> W(getTheARM64_32Target());
-  RegisterAsmPrinter<AArch64AsmPrinter> V(getTheAArch64_32Target());
+  RegisterAsmPrinter<AArch64AsmPrinter> const X(getTheAArch64leTarget());
+  RegisterAsmPrinter<AArch64AsmPrinter> const Y(getTheAArch64beTarget());
+  RegisterAsmPrinter<AArch64AsmPrinter> const Z(getTheARM64Target());
+  RegisterAsmPrinter<AArch64AsmPrinter> const W(getTheARM64_32Target());
+  RegisterAsmPrinter<AArch64AsmPrinter> const V(getTheAArch64_32Target());
 }

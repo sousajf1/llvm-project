@@ -92,7 +92,7 @@ private:
 /// Insert (K, V) pair into the ValueToValueMap, and verify the key did not
 /// previously exist in the map, and the value was inserted.
 static void InsertNewValueIntoMap(ValueToValueMapTy &VM, Value *K, Value *V) {
-  bool Inserted = VM.insert({K, V}).second;
+  bool const Inserted = VM.insert({K, V}).second;
   assert(Inserted);
   (void)Inserted;
 }
@@ -621,7 +621,7 @@ bool LoopRotate::rotateLoop(Loop *L, bool SimplifiedLatch) {
       // one predecessor. Note that Exit could be an exit block for multiple
       // nested loops, causing both of the edges to now be critical and need to
       // be split.
-      SmallVector<BasicBlock *, 4> ExitPreds(pred_begin(Exit), pred_end(Exit));
+      SmallVector<BasicBlock *, 4> const ExitPreds(pred_begin(Exit), pred_end(Exit));
       bool SplitLatchEdge = false;
       for (BasicBlock *ExitPred : ExitPreds) {
         // We only need to split loop exit edges.
@@ -666,7 +666,7 @@ bool LoopRotate::rotateLoop(Loop *L, bool SimplifiedLatch) {
     // emitted code isn't too gross in this common case.
     DomTreeUpdater DTU(DT, DomTreeUpdater::UpdateStrategy::Eager);
     BasicBlock *PredBB = OrigHeader->getUniquePredecessor();
-    bool DidMerge = MergeBlockIntoPredecessor(OrigHeader, &DTU, LI, MSSAU);
+    bool const DidMerge = MergeBlockIntoPredecessor(OrigHeader, &DTU, LI, MSSAU);
     if (DidMerge)
       RemoveRedundantDbgInstrs(PredBB);
 
@@ -813,7 +813,7 @@ bool LoopRotate::processLoop(Loop *L) {
   if (!RotationOnly)
     SimplifiedLatch = simplifyLoopLatch(L);
 
-  bool MadeChange = rotateLoop(L, SimplifiedLatch);
+  bool const MadeChange = rotateLoop(L, SimplifiedLatch);
   assert((!MadeChange || L->isLoopExiting(L->getLoopLatch())) &&
          "Loop latch should be exiting after loop-rotate.");
 

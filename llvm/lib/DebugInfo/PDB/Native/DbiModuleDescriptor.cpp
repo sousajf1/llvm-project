@@ -78,8 +78,8 @@ StringRef DbiModuleDescriptor::getModuleName() const { return ModuleName; }
 StringRef DbiModuleDescriptor::getObjFileName() const { return ObjFileName; }
 
 uint32_t DbiModuleDescriptor::getRecordLength() const {
-  uint32_t M = ModuleName.str().size() + 1;
-  uint32_t O = ObjFileName.str().size() + 1;
+  uint32_t const M = ModuleName.str().size() + 1;
+  uint32_t const O = ObjFileName.str().size() + 1;
   uint32_t Size = sizeof(ModuleInfoHeader) + M + O;
   Size = alignTo(Size, 4);
   return Size;

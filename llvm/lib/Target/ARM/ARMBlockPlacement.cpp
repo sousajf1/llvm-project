@@ -117,7 +117,7 @@ bool ARMBlockPlacement::revertWhileToDo(MachineInstr *WLS, MachineLoop *ML) {
   NewBlock->addSuccessor(Br->getOperand(0).getMBB());
 
   // Create a new DLS to replace the WLS
-  MachineInstrBuilder MIB =
+  MachineInstrBuilder const MIB =
       BuildMI(*NewBlock, Br, WLS->getDebugLoc(),
               TII->get(WLS->getOpcode() == ARM::t2WhileLoopStartTP
                            ? ARM::t2DoLoopStartTP
@@ -258,11 +258,11 @@ void ARMBlockPlacement::moveBasicBlock(MachineBasicBlock *BB,
                       << From->getName() << " to " << To->getName() << "\n");
     assert(From->isSuccessor(To) &&
            "'To' is expected to be a successor of 'From'");
-    MachineInstr &Terminator = *(--From->terminators().end());
+    MachineInstr  const&Terminator = *(--From->terminators().end());
     if (!Terminator.isUnconditionalBranch()) {
       // The BB doesn't have an unconditional branch so it relied on
       // fall-through. Fix by adding an unconditional branch to the moved BB.
-      MachineInstrBuilder MIB =
+      MachineInstrBuilder const MIB =
           BuildMI(From, Terminator.getDebugLoc(), TII->get(ARM::t2B));
       MIB.addMBB(To);
       MIB.addImm(ARMCC::CondCodes::AL);

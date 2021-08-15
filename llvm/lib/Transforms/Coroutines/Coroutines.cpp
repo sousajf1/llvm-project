@@ -160,7 +160,7 @@ static bool isCoroutineIntrinsicName(StringRef Name) {
 // that names are intrinsic names.
 bool coro::declaresIntrinsics(const Module &M,
                               const std::initializer_list<StringRef> List) {
-  for (StringRef Name : List) {
+  for (StringRef const Name : List) {
     assert(isCoroutineIntrinsicName(Name) && "not a coroutine intrinsic");
     if (M.getNamedValue(Name))
       return true;

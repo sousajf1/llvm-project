@@ -76,7 +76,7 @@ void SSAUpdater::AddAvailableValue(BasicBlock *BB, Value *V) {
 
 static bool IsEquivalentPHI(PHINode *PHI,
                         SmallDenseMap<BasicBlock *, Value *, 8> &ValueMapping) {
-  unsigned PHINumValues = PHI->getNumIncomingValues();
+  unsigned const PHINumValues = PHI->getNumIncomingValues();
   if (PHINumValues != ValueMapping.size())
     return false;
 

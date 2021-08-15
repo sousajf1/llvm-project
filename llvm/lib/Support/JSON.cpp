@@ -260,7 +260,7 @@ void abbreviate(const Value &V, OStream &JOS) {
     JOS.rawValue(V.getAsObject()->empty() ? "{}" : "{ ... }");
     break;
   case Value::String: {
-    llvm::StringRef S = *V.getAsString();
+    llvm::StringRef const S = *V.getAsString();
     if (S.size() < 40) {
       JOS.value(V);
     } else {
@@ -322,7 +322,7 @@ void Path::Root::printErrorContext(const Value &R, raw_ostream &OS) const {
     const Segment &S = Path.back(); // Path is in reverse order.
     if (S.isField()) {
       // Current node is an object, path names a field.
-      llvm::StringRef FieldName = S.field();
+      llvm::StringRef const FieldName = S.field();
       const Object *O = V.getAsObject();
       if (!O || !O->get(FieldName))
         return HighlightCurrent();
@@ -412,7 +412,7 @@ bool Parser::parseValue(Value &Out) {
   eatWhitespace();
   if (P == End)
     return parseError("Unexpected EOF");
-  switch (char C = next()) {
+  switch (char const C = next()) {
   // Bare null/true/false are easy - first char identifies them.
   case 'n':
     Out = nullptr;
@@ -565,22 +565,22 @@ static void encodeUtf8(uint32_t Rune, std::string &Out) {
   if (Rune < 0x80) {
     Out.push_back(Rune & 0x7F);
   } else if (Rune < 0x800) {
-    uint8_t FirstByte = 0xC0 | ((Rune & 0x7C0) >> 6);
-    uint8_t SecondByte = 0x80 | (Rune & 0x3F);
+    uint8_t const FirstByte = 0xC0 | ((Rune & 0x7C0) >> 6);
+    uint8_t const SecondByte = 0x80 | (Rune & 0x3F);
     Out.push_back(FirstByte);
     Out.push_back(SecondByte);
   } else if (Rune < 0x10000) {
-    uint8_t FirstByte = 0xE0 | ((Rune & 0xF000) >> 12);
-    uint8_t SecondByte = 0x80 | ((Rune & 0xFC0) >> 6);
-    uint8_t ThirdByte = 0x80 | (Rune & 0x3F);
+    uint8_t const FirstByte = 0xE0 | ((Rune & 0xF000) >> 12);
+    uint8_t const SecondByte = 0x80 | ((Rune & 0xFC0) >> 6);
+    uint8_t const ThirdByte = 0x80 | (Rune & 0x3F);
     Out.push_back(FirstByte);
     Out.push_back(SecondByte);
     Out.push_back(ThirdByte);
   } else if (Rune < 0x110000) {
-    uint8_t FirstByte = 0xF0 | ((Rune & 0x1F0000) >> 18);
-    uint8_t SecondByte = 0x80 | ((Rune & 0x3F000) >> 12);
-    uint8_t ThirdByte = 0x80 | ((Rune & 0xFC0) >> 6);
-    uint8_t FourthByte = 0x80 | (Rune & 0x3F);
+    uint8_t const FirstByte = 0xF0 | ((Rune & 0x1F0000) >> 18);
+    uint8_t const SecondByte = 0x80 | ((Rune & 0x3F000) >> 12);
+    uint8_t const ThirdByte = 0x80 | ((Rune & 0xFC0) >> 6);
+    uint8_t const FourthByte = 0x80 | (Rune & 0x3F);
     Out.push_back(FirstByte);
     Out.push_back(SecondByte);
     Out.push_back(ThirdByte);
@@ -600,8 +600,8 @@ bool Parser::parseUnicode(std::string &Out) {
   // Decodes 4 hex digits from the stream into Out, returns false on error.
   auto Parse4Hex = [this](uint16_t &Out) -> bool {
     Out = 0;
-    char Bytes[] = {next(), next(), next(), next()};
-    for (unsigned char C : Bytes) {
+    char const Bytes[] = {next(), next(), next(), next()};
+    for (unsigned char const C : Bytes) {
       if (!std::isxdigit(C))
         return parseError("Invalid \\u escape sequence");
       Out <<= 4;
@@ -708,7 +708,7 @@ std::string fixUTF8(llvm::StringRef S) {
 
 static void quote(llvm::raw_ostream &OS, llvm::StringRef S) {
   OS << '\"';
-  for (unsigned char C : S) {
+  for (unsigned char const C : S) {
     if (C == 0x22 || C == 0x5C)
       OS << '\\';
     if (C >= 0x20) {

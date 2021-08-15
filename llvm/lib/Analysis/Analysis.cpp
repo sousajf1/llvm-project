@@ -102,7 +102,7 @@ LLVMBool LLVMVerifyModule(LLVMModuleRef M, LLVMVerifierFailureAction Action,
   std::string Messages;
   raw_string_ostream MsgsOS(Messages);
 
-  LLVMBool Result = verifyModule(*unwrap(M), OutMessages ? &MsgsOS : DebugOS);
+  LLVMBool const Result = verifyModule(*unwrap(M), OutMessages ? &MsgsOS : DebugOS);
 
   // Duplicate the output to stderr.
   if (DebugOS && OutMessages)
@@ -118,7 +118,7 @@ LLVMBool LLVMVerifyModule(LLVMModuleRef M, LLVMVerifierFailureAction Action,
 }
 
 LLVMBool LLVMVerifyFunction(LLVMValueRef Fn, LLVMVerifierFailureAction Action) {
-  LLVMBool Result = verifyFunction(
+  LLVMBool const Result = verifyFunction(
       *unwrap<Function>(Fn), Action != LLVMReturnStatusAction ? &errs()
                                                               : nullptr);
 

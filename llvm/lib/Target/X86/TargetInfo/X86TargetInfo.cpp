@@ -20,9 +20,9 @@ Target &llvm::getTheX86_64Target() {
 }
 
 extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializeX86TargetInfo() {
-  RegisterTarget<Triple::x86, /*HasJIT=*/true> X(
+  RegisterTarget<Triple::x86, /*HasJIT=*/true> const X(
       getTheX86_32Target(), "x86", "32-bit X86: Pentium-Pro and above", "X86");
 
-  RegisterTarget<Triple::x86_64, /*HasJIT=*/true> Y(
+  RegisterTarget<Triple::x86_64, /*HasJIT=*/true> const Y(
       getTheX86_64Target(), "x86-64", "64-bit X86: EM64T and AMD64", "X86");
 }

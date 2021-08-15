@@ -40,8 +40,8 @@ static void signed_width(unsigned Width, uint64_t Value,
   if (!isIntN(Width, Value)) {
     std::string Diagnostic = "out of range " + Description;
 
-    int64_t Min = minIntN(Width);
-    int64_t Max = maxIntN(Width);
+    int64_t const Min = minIntN(Width);
+    int64_t const Max = maxIntN(Width);
 
     Diagnostic += " (expected an integer in the range " + std::to_string(Min) +
       " to " + std::to_string(Max) + ")";
@@ -60,7 +60,7 @@ static void unsigned_width(unsigned Width, uint64_t Value,
   if (!isUIntN(Width, Value)) {
     std::string Diagnostic = "out of range " + Description;
 
-    int64_t Max = maxUIntN(Width);
+    int64_t const Max = maxUIntN(Width);
 
     Diagnostic += " (expected an integer in the range 0 to " +
       std::to_string(Max) + ")";
@@ -201,8 +201,8 @@ namespace ldi {
 /// Offset of 0 (so the result isn't left-shifted before application).
 static void fixup(unsigned Size, const MCFixup &Fixup, uint64_t &Value,
                   MCContext *Ctx = nullptr) {
-  uint64_t upper = Value & 0xf0;
-  uint64_t lower = Value & 0x0f;
+  uint64_t const upper = Value & 0xf0;
+  uint64_t const lower = Value & 0x0f;
 
   Value = (upper << 4) | lower;
 }
@@ -244,9 +244,9 @@ void AVRAsmBackend::adjustFixupValue(const MCFixup &Fixup,
                                      uint64_t &Value,
                                      MCContext *Ctx) const {
   // The size of the fixup in bits.
-  uint64_t Size = AVRAsmBackend::getFixupKindInfo(Fixup.getKind()).TargetSize;
+  uint64_t const Size = AVRAsmBackend::getFixupKindInfo(Fixup.getKind()).TargetSize;
 
-  unsigned Kind = Fixup.getKind();
+  unsigned const Kind = Fixup.getKind();
   switch (Kind) {
   default:
     llvm_unreachable("unhandled fixup");
@@ -367,7 +367,7 @@ void AVRAsmBackend::applyFixup(const MCAssembler &Asm, const MCFixup &Fixup,
   if (Value == 0)
     return; // Doesn't change encoding.
 
-  MCFixupKindInfo Info = getFixupKindInfo(Fixup.getKind());
+  MCFixupKindInfo const Info = getFixupKindInfo(Fixup.getKind());
 
   // The number of bits in the fixup mask
   auto NumBits = Info.TargetSize + Info.TargetOffset;
@@ -376,13 +376,13 @@ void AVRAsmBackend::applyFixup(const MCAssembler &Asm, const MCFixup &Fixup,
   // Shift the value into position.
   Value <<= Info.TargetOffset;
 
-  unsigned Offset = Fixup.getOffset();
+  unsigned const Offset = Fixup.getOffset();
   assert(Offset + NumBytes <= Data.size() && "Invalid fixup offset!");
 
   // For each byte of the fragment that the fixup touches, mask in the
   // bits from the fixup value.
   for (unsigned i = 0; i < NumBytes; ++i) {
-    uint8_t mask = (((Value >> (i * 8)) & 0xff));
+    uint8_t const mask = (((Value >> (i * 8)) & 0xff));
     Data[Offset + i] |= mask;
   }
 }

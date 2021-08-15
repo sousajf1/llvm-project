@@ -121,7 +121,7 @@ bool Input::mapTag(StringRef Tag, bool Default) {
   if (!CurrentNode)
     return false;
 
-  std::string foundTag = CurrentNode->_node->getVerbatimTag();
+  std::string const foundTag = CurrentNode->_node->getVerbatimTag();
   if (foundTag.empty()) {
     // If no tag found and 'Tag' is the default, say it was found.
     return Default;
@@ -406,7 +406,7 @@ std::unique_ptr<Input::HNode> Input::createHNodes(Node *N) {
     }
     return std::make_unique<ScalarHNode>(N, KeyStr);
   } else if (BlockScalarNode *BSN = dyn_cast<BlockScalarNode>(N)) {
-    StringRef ValueCopy = BSN->getValue().copy(StringAllocator);
+    StringRef const ValueCopy = BSN->getValue().copy(StringAllocator);
     return std::make_unique<ScalarHNode>(N, ValueCopy);
   } else if (SequenceNode *SQ = dyn_cast<SequenceNode>(N)) {
     auto SQHNode = std::make_unique<SequenceHNode>(N);
@@ -719,7 +719,7 @@ void Output::scalarString(StringRef &S, QuotingType MustQuote) {
 
   unsigned i = 0;
   unsigned j = 0;
-  unsigned End = S.size();
+  unsigned const End = S.size();
   const char *Base = S.data();
 
   // When using single-quoted strings, any single quote ' must be doubled to be escaped.
@@ -741,7 +741,7 @@ void Output::blockScalarString(StringRef &S) {
   output(" |");
   outputNewLine();
 
-  unsigned Indent = StateStack.empty() ? 1 : StateStack.size();
+  unsigned const Indent = StateStack.empty() ? 1 : StateStack.size();
 
   auto Buffer = MemoryBuffer::getMemBuffer(S, "", false);
   for (line_iterator Lines(*Buffer, false); !Lines.is_at_end(); ++Lines) {
@@ -916,7 +916,7 @@ StringRef ScalarTraits<std::string>::input(StringRef Scalar, void *,
 void ScalarTraits<uint8_t>::output(const uint8_t &Val, void *,
                                    raw_ostream &Out) {
   // use temp uin32_t because ostream thinks uint8_t is a character
-  uint32_t Num = Val;
+  uint32_t const Num = Val;
   Out << Num;
 }
 
@@ -978,7 +978,7 @@ StringRef ScalarTraits<uint64_t>::input(StringRef Scalar, void *,
 
 void ScalarTraits<int8_t>::output(const int8_t &Val, void *, raw_ostream &Out) {
   // use temp in32_t because ostream thinks int8_t is a character
-  int32_t Num = Val;
+  int32_t const Num = Val;
   Out << Num;
 }
 

@@ -206,7 +206,7 @@ private:
 
     for (auto &S : Obj.sections()) {
 
-      JITTargetAddress SectionAddress = S.getAddress();
+      JITTargetAddress const SectionAddress = S.getAddress();
 
       // Skip relocations virtual sections.
       if (S.isVirtual()) {
@@ -237,7 +237,7 @@ private:
         MachO::relocation_info RI = getRelocationInfo(RelItr);
 
         // Find the address of the value to fix up.
-        JITTargetAddress FixupAddress = SectionAddress + (uint32_t)RI.r_address;
+        JITTargetAddress const FixupAddress = SectionAddress + (uint32_t)RI.r_address;
 
         LLVM_DEBUG({
           auto &NSec =
@@ -341,7 +341,7 @@ private:
           Kind = x86_64::Pointer64;
           break;
         case MachOPointer64Anon: {
-          JITTargetAddress TargetAddress = *(const ulittle64_t *)FixupContent;
+          JITTargetAddress const TargetAddress = *(const ulittle64_t *)FixupContent;
           if (auto TargetSymbolOrErr = findSymbolByAddress(TargetAddress))
             TargetSymbol = &*TargetSymbolOrErr;
           else
@@ -361,7 +361,7 @@ private:
           Kind = x86_64::Delta32;
           break;
         case MachOPCRel32Anon: {
-          JITTargetAddress TargetAddress =
+          JITTargetAddress const TargetAddress =
               FixupAddress + 4 + *(const little32_t *)FixupContent;
           if (auto TargetSymbolOrErr = findSymbolByAddress(TargetAddress))
             TargetSymbol = &*TargetSymbolOrErr;
@@ -374,10 +374,10 @@ private:
         case MachOPCRel32Minus1Anon:
         case MachOPCRel32Minus2Anon:
         case MachOPCRel32Minus4Anon: {
-          JITTargetAddress Delta =
+          JITTargetAddress const Delta =
               4 + static_cast<JITTargetAddress>(
                       1ULL << (*MachORelocKind - MachOPCRel32Minus1Anon));
-          JITTargetAddress TargetAddress =
+          JITTargetAddress const TargetAddress =
               FixupAddress + Delta + *(const little32_t *)FixupContent;
           if (auto TargetSymbolOrErr = findSymbolByAddress(TargetAddress))
             TargetSymbol = &*TargetSymbolOrErr;

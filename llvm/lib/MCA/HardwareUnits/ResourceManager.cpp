@@ -120,13 +120,13 @@ ResourceManager::ResourceManager(const MCSchedModel &SM)
 
   // initialize vector ResIndex2ProcResID.
   for (unsigned I = 1, E = SM.getNumProcResourceKinds(); I < E; ++I) {
-    unsigned Index = getResourceStateIndex(ProcResID2Mask[I]);
+    unsigned const Index = getResourceStateIndex(ProcResID2Mask[I]);
     ResIndex2ProcResID[Index] = I;
   }
 
   for (unsigned I = 1, E = SM.getNumProcResourceKinds(); I < E; ++I) {
-    uint64_t Mask = ProcResID2Mask[I];
-    unsigned Index = getResourceStateIndex(Mask);
+    uint64_t const Mask = ProcResID2Mask[I];
+    unsigned const Index = getResourceStateIndex(Mask);
     Resources[Index] =
         std::make_unique<ResourceState>(*SM.getProcResource(I), I, Mask);
     Strategies[Index] = getStrategyFor(*Resources[Index]);
@@ -134,19 +134,19 @@ ResourceManager::ResourceManager(const MCSchedModel &SM)
 
   for (unsigned I = 1, E = SM.getNumProcResourceKinds(); I < E; ++I) {
     uint64_t Mask = ProcResID2Mask[I];
-    unsigned Index = getResourceStateIndex(Mask);
+    unsigned const Index = getResourceStateIndex(Mask);
     const ResourceState &RS = *Resources[Index];
     if (!RS.isAResourceGroup()) {
       ProcResUnitMask |= Mask;
       continue;
     }
 
-    uint64_t GroupMaskIdx = 1ULL << Index;
+    uint64_t const GroupMaskIdx = 1ULL << Index;
     Mask -= GroupMaskIdx;
     while (Mask) {
       // Extract lowest set isolated bit.
-      uint64_t Unit = Mask & (-Mask);
-      unsigned IndexUnit = getResourceStateIndex(Unit);
+      uint64_t const Unit = Mask & (-Mask);
+      unsigned const IndexUnit = getResourceStateIndex(Unit);
       Resource2Groups[IndexUnit] |= GroupMaskIdx;
       Mask ^= Unit;
     }
@@ -157,7 +157,7 @@ ResourceManager::ResourceManager(const MCSchedModel &SM)
 
 void ResourceManager::setCustomStrategyImpl(std::unique_ptr<ResourceStrategy> S,
                                             uint64_t ResourceMask) {
-  unsigned Index = getResourceStateIndex(ResourceMask);
+  unsigned const Index = getResourceStateIndex(ResourceMask);
   assert(Index < Resources.size() && "Invalid processor resource index!");
   assert(S && "Unexpected null strategy in input!");
   Strategies[Index] = std::move(S);
@@ -175,9 +175,9 @@ unsigned ResourceManager::getNumUnits(uint64_t ResourceID) const {
 // First, is the primary resource ID.
 // Second, is the specific sub-resource ID.
 ResourceRef ResourceManager::selectPipe(uint64_t ResourceID) {
-  unsigned Index = getResourceStateIndex(ResourceID);
+  unsigned const Index = getResourceStateIndex(ResourceID);
   assert(Index < Resources.size() && "Invalid resource use!");
-  ResourceState &RS = *Resources[Index];
+  ResourceState  const&RS = *Resources[Index];
   assert(RS.isReady() && "No available units to select!");
 
   // Special case where RS is not a group, and it only declares a single
@@ -185,7 +185,7 @@ ResourceRef ResourceManager::selectPipe(uint64_t ResourceID) {
   if (!RS.isAResourceGroup() && RS.getNumUnits() == 1)
     return std::make_pair(ResourceID, RS.getReadyMask());
 
-  uint64_t SubResourceID = Strategies[Index]->select(RS.getReadyMask());
+  uint64_t const SubResourceID = Strategies[Index]->select(RS.getReadyMask());
   if (RS.isAResourceGroup())
     return selectPipe(SubResourceID);
   return std::make_pair(ResourceID, SubResourceID);
@@ -193,7 +193,7 @@ ResourceRef ResourceManager::selectPipe(uint64_t ResourceID) {
 
 void ResourceManager::use(const ResourceRef &RR) {
   // Mark the sub-resource referenced by RR as used.
-  unsigned RSID = getResourceStateIndex(RR.first);
+  unsigned const RSID = getResourceStateIndex(RR.first);
   ResourceState &RS = *Resources[RSID];
   RS.markSubResourceAsUsed(RR.second);
   // Remember to update the resource strategy for non-group resources with
@@ -212,7 +212,7 @@ void ResourceManager::use(const ResourceRef &RR) {
   uint64_t Users = Resource2Groups[RSID];
   while (Users) {
     // Extract lowest set isolated bit.
-    unsigned GroupIndex = getResourceStateIndex(Users & (-Users));
+    unsigned const GroupIndex = getResourceStateIndex(Users & (-Users));
     ResourceState &CurrentUser = *Resources[GroupIndex];
     CurrentUser.markSubResourceAsUsed(RR.first);
     Strategies[GroupIndex]->used(RR.first);
@@ -222,9 +222,9 @@ void ResourceManager::use(const ResourceRef &RR) {
 }
 
 void ResourceManager::release(const ResourceRef &RR) {
-  unsigned RSID = getResourceStateIndex(RR.first);
+  unsigned const RSID = getResourceStateIndex(RR.first);
   ResourceState &RS = *Resources[RSID];
-  bool WasFullyUsed = !RS.isReady();
+  bool const WasFullyUsed = !RS.isReady();
   RS.releaseSubResource(RR.second);
   if (!WasFullyUsed)
     return;
@@ -234,7 +234,7 @@ void ResourceManager::release(const ResourceRef &RR) {
   // Notify groups that RR.first is now available again.
   uint64_t Users = Resource2Groups[RSID];
   while (Users) {
-    unsigned GroupIndex = getResourceStateIndex(Users & (-Users));
+    unsigned const GroupIndex = getResourceStateIndex(Users & (-Users));
     ResourceState &CurrentUser = *Resources[GroupIndex];
     CurrentUser.releaseSubResource(RR.first);
     Users &= Users - 1;
@@ -252,7 +252,7 @@ ResourceManager::canBeDispatched(uint64_t ConsumedBuffers) const {
 
 void ResourceManager::reserveBuffers(uint64_t ConsumedBuffers) {
   while (ConsumedBuffers) {
-    uint64_t CurrentBuffer = ConsumedBuffers & (-ConsumedBuffers);
+    uint64_t const CurrentBuffer = ConsumedBuffers & (-ConsumedBuffers);
     ResourceState &RS = *Resources[getResourceStateIndex(CurrentBuffer)];
     ConsumedBuffers ^= CurrentBuffer;
     assert(RS.isBufferAvailable() == ResourceStateEvent::RS_BUFFER_AVAILABLE);
@@ -270,7 +270,7 @@ void ResourceManager::reserveBuffers(uint64_t ConsumedBuffers) {
 void ResourceManager::releaseBuffers(uint64_t ConsumedBuffers) {
   AvailableBuffers |= ConsumedBuffers;
   while (ConsumedBuffers) {
-    uint64_t CurrentBuffer = ConsumedBuffers & (-ConsumedBuffers);
+    uint64_t const CurrentBuffer = ConsumedBuffers & (-ConsumedBuffers);
     ResourceState &RS = *Resources[getResourceStateIndex(CurrentBuffer)];
     ConsumedBuffers ^= CurrentBuffer;
     RS.releaseBuffer();
@@ -282,17 +282,17 @@ void ResourceManager::releaseBuffers(uint64_t ConsumedBuffers) {
 uint64_t ResourceManager::checkAvailability(const InstrDesc &Desc) const {
   uint64_t BusyResourceMask = 0;
   for (const std::pair<uint64_t, ResourceUsage> &E : Desc.Resources) {
-    unsigned NumUnits = E.second.isReserved() ? 0U : E.second.NumUnits;
-    unsigned Index = getResourceStateIndex(E.first);
+    unsigned const NumUnits = E.second.isReserved() ? 0U : E.second.NumUnits;
+    unsigned const Index = getResourceStateIndex(E.first);
     if (!Resources[Index]->isReady(NumUnits))
       BusyResourceMask |= E.first;
   }
 
   uint64_t ImplicitUses = Desc.ImplicitlyUsedProcResUnits;
   while (ImplicitUses) {
-    uint64_t Use = ImplicitUses & -ImplicitUses;
+    uint64_t const Use = ImplicitUses & -ImplicitUses;
     ImplicitUses ^= Use;
-    unsigned Index = getResourceStateIndex(Use);
+    unsigned const Index = getResourceStateIndex(Use);
     if (!Resources[Index]->isReady(/* NumUnits */ 1))
       BusyResourceMask |= Index;
   }
@@ -315,7 +315,7 @@ void ResourceManager::issueInstruction(
 
     assert(CS.begin() == 0 && "Invalid {Start, End} cycles!");
     if (!R.second.isReserved()) {
-      ResourceRef Pipe = selectPipe(R.first);
+      ResourceRef const Pipe = selectPipe(R.first);
       use(Pipe);
       BusyResources[Pipe] += CS.size();
       Pipes.emplace_back(std::pair<ResourceRef, ResourceCycles>(

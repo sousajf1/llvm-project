@@ -38,7 +38,7 @@ void AccelTableBase::computeBucketCount() {
   for (const auto &E : Entries)
     Uniques.push_back(E.second.HashValue);
   array_pod_sort(Uniques.begin(), Uniques.end());
-  std::vector<uint32_t>::iterator P =
+  std::vector<uint32_t>::iterator const P =
       std::unique(Uniques.begin(), Uniques.end());
 
   UniqueHashCount = std::distance(Uniques.begin(), P);
@@ -73,7 +73,7 @@ void AccelTableBase::finalize(AsmPrinter *Asm, StringRef Prefix) {
   // Compute bucket contents and final ordering.
   Buckets.resize(BucketCount);
   for (auto &E : Entries) {
-    uint32_t Bucket = E.second.HashValue % BucketCount;
+    uint32_t const Bucket = E.second.HashValue % BucketCount;
     Buckets[Bucket].push_back(&E.second);
     E.second.Sym = Asm->createTempSymbol(Prefix);
   }
@@ -248,7 +248,7 @@ void AccelTableWriter::emitHashes() const {
   unsigned BucketIdx = 0;
   for (auto &Bucket : Contents.getBuckets()) {
     for (auto &Hash : Bucket) {
-      uint32_t HashValue = Hash->HashValue;
+      uint32_t const HashValue = Hash->HashValue;
       if (SkipIdenticalHashes && PrevHash == HashValue)
         continue;
       Asm->OutStreamer->AddComment("Hash in Bucket " + Twine(BucketIdx));
@@ -264,7 +264,7 @@ void AccelTableWriter::emitOffsets(const MCSymbol *Base) const {
   uint64_t PrevHash = std::numeric_limits<uint64_t>::max();
   for (size_t i = 0, e = Buckets.size(); i < e; ++i) {
     for (auto *Hash : Buckets[i]) {
-      uint32_t HashValue = Hash->HashValue;
+      uint32_t const HashValue = Hash->HashValue;
       if (SkipIdenticalHashes && PrevHash == HashValue)
         continue;
       PrevHash = HashValue;
@@ -316,7 +316,7 @@ void AppleAccelTableWriter::emitBuckets() const {
     // the index multiple times in case of hash collisions.
     uint64_t PrevHash = std::numeric_limits<uint64_t>::max();
     for (auto *HD : Buckets[i]) {
-      uint32_t HashValue = HD->HashValue;
+      uint32_t const HashValue = HD->HashValue;
       if (PrevHash != HashValue)
         ++index;
       PrevHash = HashValue;
@@ -395,7 +395,7 @@ DenseSet<uint32_t> Dwarf5AccelTableWriter<DataT>::getUniqueTags() const {
   for (auto &Bucket : Contents.getBuckets()) {
     for (auto *Hash : Bucket) {
       for (auto *Value : Hash->Values) {
-        unsigned Tag = static_cast<const DataT *>(Value)->getDieTag();
+        unsigned const Tag = static_cast<const DataT *>(Value)->getDieTag();
         UniqueTags.insert(Tag);
       }
     }
@@ -408,8 +408,8 @@ SmallVector<typename Dwarf5AccelTableWriter<DataT>::AttributeEncoding, 2>
 Dwarf5AccelTableWriter<DataT>::getUniformAttributes() const {
   SmallVector<AttributeEncoding, 2> UA;
   if (CompUnits.size() > 1) {
-    size_t LargestCUIndex = CompUnits.size() - 1;
-    dwarf::Form Form = DIEInteger::BestForm(/*IsSigned*/ false, LargestCUIndex);
+    size_t const LargestCUIndex = CompUnits.size() - 1;
+    dwarf::Form const Form = DIEInteger::BestForm(/*IsSigned*/ false, LargestCUIndex);
     UA.push_back({dwarf::DW_IDX_compile_unit, Form});
   }
   UA.push_back({dwarf::DW_IDX_die_offset, dwarf::DW_FORM_ref4});
@@ -438,7 +438,7 @@ template <typename DataT>
 void Dwarf5AccelTableWriter<DataT>::emitStringOffsets() const {
   for (const auto &Bucket : enumerate(Contents.getBuckets())) {
     for (auto *Hash : Bucket.value()) {
-      DwarfStringPoolEntryRef String = Hash->Name;
+      DwarfStringPoolEntryRef const String = Hash->Name;
       Asm->OutStreamer->AddComment("String in Bucket " + Twine(Bucket.index()) +
                                    ": " + String.getString());
       Asm->emitDwarfStringOffset(String);
@@ -478,7 +478,7 @@ void Dwarf5AccelTableWriter<DataT>::emitEntry(const DataT &Entry) const {
     Asm->OutStreamer->AddComment(dwarf::IndexString(AttrEnc.Index));
     switch (AttrEnc.Index) {
     case dwarf::DW_IDX_compile_unit: {
-      DIEInteger ID(getCUIndexForEntry(Entry));
+      DIEInteger const ID(getCUIndexForEntry(Entry));
       ID.emitValue(Asm, AttrEnc.Form);
       break;
     }
@@ -515,11 +515,11 @@ Dwarf5AccelTableWriter<DataT>::Dwarf5AccelTableWriter(
       Header(CompUnits.size(), Contents.getBucketCount(),
              Contents.getUniqueNameCount()),
       CompUnits(CompUnits), getCUIndexForEntry(std::move(getCUIndexForEntry)) {
-  DenseSet<uint32_t> UniqueTags = getUniqueTags();
-  SmallVector<AttributeEncoding, 2> UniformAttributes = getUniformAttributes();
+  DenseSet<uint32_t> const UniqueTags = getUniqueTags();
+  SmallVector<AttributeEncoding, 2> const UniformAttributes = getUniformAttributes();
 
   Abbreviations.reserve(UniqueTags.size());
-  for (uint32_t Tag : UniqueTags)
+  for (uint32_t const Tag : UniqueTags)
     Abbreviations.try_emplace(Tag, UniformAttributes);
 }
 

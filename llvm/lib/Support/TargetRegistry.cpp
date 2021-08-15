@@ -41,7 +41,7 @@ const Target *TargetRegistry::lookupTarget(const std::string &ArchName,
 
     // Adjust the triple to match (if known), otherwise stick with the
     // given triple.
-    Triple::ArchType Type = Triple::getArchTypeForLLVMName(ArchName);
+    Triple::ArchType const Type = Triple::getArchTypeForLLVMName(ArchName);
     if (Type != Triple::UnknownArch)
       TheTriple.setArch(Type);
   } else {

@@ -50,7 +50,7 @@ bool MemoryOpRemark::canHandle(const Instruction *I, const TargetLibraryInfo &TL
       return false;
 
     LibFunc LF;
-    bool KnownLibCall = TLI.getLibFunc(*CF, LF) && TLI.has(LF);
+    bool const KnownLibCall = TLI.getLibFunc(*CF, LF) && TLI.has(LF);
     if (!KnownLibCall)
       return false;
 
@@ -164,9 +164,9 @@ MemoryOpRemark::makeRemark(Ts... Args) {
 }
 
 void MemoryOpRemark::visitStore(const StoreInst &SI) {
-  bool Volatile = SI.isVolatile();
-  bool Atomic = SI.isAtomic();
-  int64_t Size = DL.getTypeStoreSize(SI.getOperand(0)->getType());
+  bool const Volatile = SI.isVolatile();
+  bool const Atomic = SI.isAtomic();
+  int64_t const Size = DL.getTypeStoreSize(SI.getOperand(0)->getType());
 
   auto R = makeRemark(RemarkPass.data(), remarkName(RK_Store), &SI);
   *R << explainSource("Store") << "\nStore size: " << NV("StoreSize", Size)
@@ -222,7 +222,7 @@ void MemoryOpRemark::visitIntrinsicCall(const IntrinsicInst &II) {
 
   auto *CIVolatile = dyn_cast<ConstantInt>(II.getOperand(3));
   // No such thing as a memory intrinsic that is both atomic and volatile.
-  bool Volatile = !Atomic && CIVolatile && CIVolatile->getZExtValue();
+  bool const Volatile = !Atomic && CIVolatile && CIVolatile->getZExtValue();
   switch (II.getIntrinsicID()) {
   case Intrinsic::memcpy_inline:
   case Intrinsic::memcpy:
@@ -246,7 +246,7 @@ void MemoryOpRemark::visitCall(const CallInst &CI) {
     return visitUnknown(CI);
 
   LibFunc LF;
-  bool KnownLibCall = TLI.getLibFunc(*F, LF) && TLI.has(LF);
+  bool const KnownLibCall = TLI.getLibFunc(*F, LF) && TLI.has(LF);
   auto R = makeRemark(RemarkPass.data(), remarkName(RK_Call), &CI);
   visitCallee(F, KnownLibCall, *R);
   visitKnownLibCall(CI, LF, *R);
@@ -292,7 +292,7 @@ void MemoryOpRemark::visitKnownLibCall(const CallInst &CI, LibFunc LF,
 
 void MemoryOpRemark::visitSizeOperand(Value *V, DiagnosticInfoIROptimization &R) {
   if (auto *Len = dyn_cast<ConstantInt>(V)) {
-    uint64_t Size = Len->getZExtValue();
+    uint64_t const Size = Len->getZExtValue();
     R << " Memory operation size: " << NV("StoreSize", Size) << " bytes.";
   }
 }
@@ -307,8 +307,8 @@ void MemoryOpRemark::visitVariable(const Value *V,
                                    SmallVectorImpl<VariableInfo> &Result) {
   if (auto *GV = dyn_cast<GlobalVariable>(V)) {
     auto *Ty = GV->getValueType();
-    uint64_t Size = DL.getTypeSizeInBits(Ty).getFixedSize();
-    VariableInfo Var{nameOrNone(GV), Size};
+    uint64_t const Size = DL.getTypeSizeInBits(Ty).getFixedSize();
+    VariableInfo const Var{nameOrNone(GV), Size};
     if (!Var.isEmpty())
       Result.push_back(std::move(Var));
     return;
@@ -321,8 +321,8 @@ void MemoryOpRemark::visitVariable(const Value *V,
   for (const DbgVariableIntrinsic *DVI :
        FindDbgAddrUses(const_cast<Value *>(V))) {
     if (DILocalVariable *DILV = DVI->getVariable()) {
-      Optional<uint64_t> DISize = getSizeInBytes(DILV->getSizeInBits());
-      VariableInfo Var{DILV->getName(), DISize};
+      Optional<uint64_t> const DISize = getSizeInBytes(DILV->getSizeInBits());
+      VariableInfo const Var{DILV->getName(), DISize};
       if (!Var.isEmpty()) {
         Result.push_back(std::move(Var));
         FoundDI = true;
@@ -340,9 +340,9 @@ void MemoryOpRemark::visitVariable(const Value *V,
 
   // If not, get it from the alloca.
   Optional<TypeSize> TySize = AI->getAllocationSizeInBits(DL);
-  Optional<uint64_t> Size =
+  Optional<uint64_t> const Size =
       TySize ? getSizeInBytes(TySize->getFixedSize()) : None;
-  VariableInfo Var{nameOrNone(AI), Size};
+  VariableInfo const Var{nameOrNone(AI), Size};
   if (!Var.isEmpty())
     Result.push_back(std::move(Var));
 }
@@ -358,7 +358,7 @@ void MemoryOpRemark::visitPtr(Value *Ptr, bool IsRead, DiagnosticInfoIROptimizat
   if (VIs.empty()) {
     bool CanBeNull;
     bool CanBeFreed;
-    uint64_t Size = Ptr->getPointerDereferenceableBytes(DL, CanBeNull, CanBeFreed);
+    uint64_t const Size = Ptr->getPointerDereferenceableBytes(DL, CanBeNull, CanBeFreed);
     if (!Size)
       return;
     VIs.push_back({None, Size});

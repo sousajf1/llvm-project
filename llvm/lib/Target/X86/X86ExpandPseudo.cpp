@@ -236,7 +236,7 @@ void X86ExpandPseudo::expandCALL_RVMARKER(MachineBasicBlock &MBB,
     MBB.getParent()->moveCallSiteInfo(&MI, Marker);
 
   // Emit call to ObjC runtime.
-  unsigned RuntimeCallType = MI.getOperand(0).getImm();
+  unsigned const RuntimeCallType = MI.getOperand(0).getImm();
   assert(RuntimeCallType <= 1 && "objc runtime call type must be 0 or 1");
   Module *M = MBB.getParent()->getFunction().getParent();
   auto &Context = M->getContext();
@@ -264,7 +264,7 @@ void X86ExpandPseudo::expandCALL_RVMARKER(MachineBasicBlock &MBB,
 bool X86ExpandPseudo::ExpandMI(MachineBasicBlock &MBB,
                                MachineBasicBlock::iterator MBBI) {
   MachineInstr &MI = *MBBI;
-  unsigned Opcode = MI.getOpcode();
+  unsigned const Opcode = MI.getOpcode();
   const DebugLoc &DL = MBBI->getDebugLoc();
   switch (Opcode) {
   default:
@@ -277,15 +277,15 @@ bool X86ExpandPseudo::ExpandMI(MachineBasicBlock &MBB,
   case X86::TCRETURNdi64cc:
   case X86::TCRETURNri64:
   case X86::TCRETURNmi64: {
-    bool isMem = Opcode == X86::TCRETURNmi || Opcode == X86::TCRETURNmi64;
+    bool const isMem = Opcode == X86::TCRETURNmi || Opcode == X86::TCRETURNmi64;
     MachineOperand &JumpTarget = MBBI->getOperand(0);
-    MachineOperand &StackAdjust = MBBI->getOperand(isMem ? X86::AddrNumOperands
+    MachineOperand  const&StackAdjust = MBBI->getOperand(isMem ? X86::AddrNumOperands
                                                          : 1);
     assert(StackAdjust.isImm() && "Expecting immediate value.");
 
     // Adjust stack pointer.
-    int StackAdj = StackAdjust.getImm();
-    int MaxTCDelta = X86FI->getTCReturnAddrDelta();
+    int const StackAdj = StackAdjust.getImm();
+    int const MaxTCDelta = X86FI->getTCReturnAddrDelta();
     int Offset = 0;
     assert(MaxTCDelta <= 0 && "MaxTCDelta should never be positive");
 
@@ -304,7 +304,7 @@ bool X86ExpandPseudo::ExpandMI(MachineBasicBlock &MBB,
     }
 
     // Jump to label or value in register.
-    bool IsWin64 = STI->isTargetWin64();
+    bool const IsWin64 = STI->isTargetWin64();
     if (Opcode == X86::TCRETURNdi || Opcode == X86::TCRETURNdicc ||
         Opcode == X86::TCRETURNdi64 || Opcode == X86::TCRETURNdi64cc) {
       unsigned Op;
@@ -327,7 +327,7 @@ bool X86ExpandPseudo::ExpandMI(MachineBasicBlock &MBB,
         Op = X86::TAILJMPd64;
         break;
       }
-      MachineInstrBuilder MIB = BuildMI(MBB, MBBI, DL, TII->get(Op));
+      MachineInstrBuilder const MIB = BuildMI(MBB, MBBI, DL, TII->get(Op));
       if (JumpTarget.isGlobal()) {
         MIB.addGlobalAddress(JumpTarget.getGlobal(), JumpTarget.getOffset(),
                              JumpTarget.getTargetFlags());
@@ -341,10 +341,10 @@ bool X86ExpandPseudo::ExpandMI(MachineBasicBlock &MBB,
       }
 
     } else if (Opcode == X86::TCRETURNmi || Opcode == X86::TCRETURNmi64) {
-      unsigned Op = (Opcode == X86::TCRETURNmi)
+      unsigned const Op = (Opcode == X86::TCRETURNmi)
                         ? X86::TAILJMPm
                         : (IsWin64 ? X86::TAILJMPm64_REX : X86::TAILJMPm64);
-      MachineInstrBuilder MIB = BuildMI(MBB, MBBI, DL, TII->get(Op));
+      MachineInstrBuilder const MIB = BuildMI(MBB, MBBI, DL, TII->get(Op));
       for (unsigned i = 0; i != X86::AddrNumOperands; ++i)
         MIB.add(MBBI->getOperand(i));
     } else if (Opcode == X86::TCRETURNri64) {
@@ -372,11 +372,11 @@ bool X86ExpandPseudo::ExpandMI(MachineBasicBlock &MBB,
   }
   case X86::EH_RETURN:
   case X86::EH_RETURN64: {
-    MachineOperand &DestAddr = MBBI->getOperand(0);
+    MachineOperand  const&DestAddr = MBBI->getOperand(0);
     assert(DestAddr.isReg() && "Offset should be in register!");
     const bool Uses64BitFramePtr =
         STI->isTarget64BitLP64() || STI->isTargetNaCl64();
-    Register StackPtr = TRI->getStackRegister();
+    Register const StackPtr = TRI->getStackRegister();
     BuildMI(MBB, MBBI, DL,
             TII->get(Uses64BitFramePtr ? X86::MOV64rr : X86::MOV32rr), StackPtr)
         .addReg(DestAddr.getReg());
@@ -385,7 +385,7 @@ bool X86ExpandPseudo::ExpandMI(MachineBasicBlock &MBB,
   }
   case X86::IRET: {
     // Adjust stack to erase error code
-    int64_t StackAdj = MBBI->getOperand(0).getImm();
+    int64_t const StackAdj = MBBI->getOperand(0).getImm();
     X86FL->emitSPUpdate(MBB, MBBI, DL, StackAdj, true);
     // Replace pseudo with machine iret
     unsigned RetOp = STI->is64Bit() ? X86::IRET64 : X86::IRET32;
@@ -399,7 +399,7 @@ bool X86ExpandPseudo::ExpandMI(MachineBasicBlock &MBB,
   }
   case X86::RET: {
     // Adjust stack to erase error code
-    int64_t StackAdj = MBBI->getOperand(0).getImm();
+    int64_t const StackAdj = MBBI->getOperand(0).getImm();
     MachineInstrBuilder MIB;
     if (StackAdj == 0) {
       MIB = BuildMI(MBB, MBBI, DL,
@@ -431,7 +431,7 @@ bool X86ExpandPseudo::ExpandMI(MachineBasicBlock &MBB,
     // actualcmpxchg Addr
     // RBX = SaveRbx
     const MachineOperand &InArg = MBBI->getOperand(6);
-    Register SaveRbx = MBBI->getOperand(7).getReg();
+    Register const SaveRbx = MBBI->getOperand(7).getReg();
 
     // Copy the input argument of the pseudo into the argument of the
     // actual instruction.
@@ -460,12 +460,12 @@ bool X86ExpandPseudo::ExpandMI(MachineBasicBlock &MBB,
   // The displacement value might wrap around in theory, thus the asserts in
   // both cases.
   case X86::MASKPAIR16LOAD: {
-    int64_t Disp = MBBI->getOperand(1 + X86::AddrDisp).getImm();
+    int64_t const Disp = MBBI->getOperand(1 + X86::AddrDisp).getImm();
     assert(Disp >= 0 && Disp <= INT32_MAX - 2 && "Unexpected displacement");
-    Register Reg = MBBI->getOperand(0).getReg();
-    bool DstIsDead = MBBI->getOperand(0).isDead();
-    Register Reg0 = TRI->getSubReg(Reg, X86::sub_mask_0);
-    Register Reg1 = TRI->getSubReg(Reg, X86::sub_mask_1);
+    Register const Reg = MBBI->getOperand(0).getReg();
+    bool const DstIsDead = MBBI->getOperand(0).isDead();
+    Register const Reg0 = TRI->getSubReg(Reg, X86::sub_mask_0);
+    Register const Reg1 = TRI->getSubReg(Reg, X86::sub_mask_1);
 
     auto MIBLo = BuildMI(MBB, MBBI, DL, TII->get(X86::KMOVWkm))
       .addReg(Reg0, RegState::Define | getDeadRegState(DstIsDead));
@@ -494,12 +494,12 @@ bool X86ExpandPseudo::ExpandMI(MachineBasicBlock &MBB,
     return true;
   }
   case X86::MASKPAIR16STORE: {
-    int64_t Disp = MBBI->getOperand(X86::AddrDisp).getImm();
+    int64_t const Disp = MBBI->getOperand(X86::AddrDisp).getImm();
     assert(Disp >= 0 && Disp <= INT32_MAX - 2 && "Unexpected displacement");
-    Register Reg = MBBI->getOperand(X86::AddrNumOperands).getReg();
-    bool SrcIsKill = MBBI->getOperand(X86::AddrNumOperands).isKill();
-    Register Reg0 = TRI->getSubReg(Reg, X86::sub_mask_0);
-    Register Reg1 = TRI->getSubReg(Reg, X86::sub_mask_1);
+    Register const Reg = MBBI->getOperand(X86::AddrNumOperands).getReg();
+    bool const SrcIsKill = MBBI->getOperand(X86::AddrNumOperands).isKill();
+    Register const Reg0 = TRI->getSubReg(Reg, X86::sub_mask_0);
+    Register const Reg1 = TRI->getSubReg(Reg, X86::sub_mask_1);
 
     auto MIBLo = BuildMI(MBB, MBBI, DL, TII->get(X86::KMOVWmk));
     auto MIBHi = BuildMI(MBB, MBBI, DL, TII->get(X86::KMOVWmk));
@@ -541,7 +541,7 @@ bool X86ExpandPseudo::ExpandMI(MachineBasicBlock &MBB,
     // Create the actual instruction.
     BuildMI(MBB, MBBI, DL, TII->get(X86::MWAITXrrr));
     // Finally, restore the value of RBX.
-    Register SaveRbx = MBBI->getOperand(2).getReg();
+    Register const SaveRbx = MBBI->getOperand(2).getReg();
     TII->copyPhysReg(MBB, MBBI, DL, X86::RBX, SaveRbx, /*SrcIsKill*/ true);
     // Delete the pseudo.
     MBBI->eraseFromParent();
@@ -558,7 +558,7 @@ bool X86ExpandPseudo::ExpandMI(MachineBasicBlock &MBB,
   case X86::PTILELOADDT1V: {
     for (unsigned i = 2; i > 0; --i)
       MI.RemoveOperand(i);
-    unsigned Opc =
+    unsigned const Opc =
         Opcode == X86::PTILELOADDV ? X86::TILELOADD : X86::TILELOADDT1;
     MI.setDesc(TII->get(Opc));
     return true;
@@ -627,14 +627,14 @@ void X86ExpandPseudo::ExpandVastartSaveXmmRegs(
   MachineFunction *Func = EntryBlk->getParent();
   const TargetInstrInfo *TII = STI->getInstrInfo();
   const DebugLoc &DL = VAStartPseudoInstr->getDebugLoc();
-  Register CountReg = VAStartPseudoInstr->getOperand(0).getReg();
+  Register const CountReg = VAStartPseudoInstr->getOperand(0).getReg();
 
   // Calculate liveins for newly created blocks.
   LivePhysRegs LiveRegs(*STI->getRegisterInfo());
   SmallVector<std::pair<MCPhysReg, const MachineOperand *>, 8> Clobbers;
 
   LiveRegs.addLiveIns(*EntryBlk);
-  for (MachineInstr &MI : EntryBlk->instrs()) {
+  for (MachineInstr  const&MI : EntryBlk->instrs()) {
     if (MI.getOpcode() == VAStartPseudoInstr->getOpcode())
       break;
 
@@ -645,7 +645,7 @@ void X86ExpandPseudo::ExpandVastartSaveXmmRegs(
   // and another block is the final destination regardless of whether any
   // stores were performed.
   const BasicBlock *LLVMBlk = EntryBlk->getBasicBlock();
-  MachineFunction::iterator EntryBlkIter = ++EntryBlk->getIterator();
+  MachineFunction::iterator const EntryBlkIter = ++EntryBlk->getIterator();
   MachineBasicBlock *GuardedRegsBlk = Func->CreateMachineBasicBlock(LLVMBlk);
   MachineBasicBlock *TailBlk = Func->CreateMachineBasicBlock(LLVMBlk);
   Func->insert(EntryBlkIter, GuardedRegsBlk);
@@ -657,21 +657,21 @@ void X86ExpandPseudo::ExpandVastartSaveXmmRegs(
                   EntryBlk->end());
   TailBlk->transferSuccessorsAndUpdatePHIs(EntryBlk);
 
-  int64_t FrameIndex = VAStartPseudoInstr->getOperand(1).getImm();
+  int64_t const FrameIndex = VAStartPseudoInstr->getOperand(1).getImm();
   Register BaseReg;
-  uint64_t FrameOffset =
+  uint64_t const FrameOffset =
       X86FL->getFrameIndexReference(*Func, FrameIndex, BaseReg).getFixed();
-  uint64_t VarArgsRegsOffset = VAStartPseudoInstr->getOperand(2).getImm();
+  uint64_t const VarArgsRegsOffset = VAStartPseudoInstr->getOperand(2).getImm();
 
   // TODO: add support for YMM and ZMM here.
-  unsigned MOVOpc = STI->hasAVX() ? X86::VMOVAPSmr : X86::MOVAPSmr;
+  unsigned const MOVOpc = STI->hasAVX() ? X86::VMOVAPSmr : X86::MOVAPSmr;
 
   // In the XMM save block, save all the XMM argument registers.
   for (int64_t OpndIdx = 3, RegIdx = 0;
        OpndIdx < VAStartPseudoInstr->getNumOperands() - 1;
        OpndIdx++, RegIdx++) {
 
-    int64_t Offset = FrameOffset + VarArgsRegsOffset + RegIdx * 16;
+    int64_t const Offset = FrameOffset + VarArgsRegsOffset + RegIdx * 16;
 
     MachineMemOperand *MMO = Func->getMachineMemOperand(
         MachinePointerInfo::getFixedStack(*Func, FrameIndex, Offset),
@@ -722,7 +722,7 @@ bool X86ExpandPseudo::ExpandMBB(MachineBasicBlock &MBB) {
   // MBBI may be invalidated by the expansion.
   MachineBasicBlock::iterator MBBI = MBB.begin(), E = MBB.end();
   while (MBBI != E) {
-    MachineBasicBlock::iterator NMBBI = std::next(MBBI);
+    MachineBasicBlock::iterator const NMBBI = std::next(MBBI);
     Modified |= ExpandMI(MBB, MBBI);
     MBBI = NMBBI;
   }

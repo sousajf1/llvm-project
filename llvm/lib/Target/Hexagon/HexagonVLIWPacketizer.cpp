@@ -150,7 +150,7 @@ static bool hasWriteToReadDep(const MachineInstr &FirstI,
   for (auto &MO : FirstI.operands()) {
     if (!MO.isReg() || !MO.isDef())
       continue;
-    Register R = MO.getReg();
+    Register const R = MO.getReg();
     if (SecondI.readsRegister(R, TRI))
       return true;
   }
@@ -183,7 +183,7 @@ static MachineBasicBlock::iterator moveInstrOut(MachineInstr &MI,
 
   // Get the size of the bundle without asserting.
   MachineBasicBlock::const_instr_iterator I = BundleIt.getInstrIterator();
-  MachineBasicBlock::const_instr_iterator E = B.instr_end();
+  MachineBasicBlock::const_instr_iterator const E = B.instr_end();
   unsigned Size = 0;
   for (++I; I != E && I->isBundledWithPred(); ++I)
     ++Size;
@@ -214,7 +214,7 @@ bool HexagonPacketizer::runOnMachineFunction(MachineFunction &MF) {
     HII->genAllInsnTimingClasses(MF);
 
   // Instantiate the packetizer.
-  bool MinOnly = Minimal || DisablePacketizer || !HST.usePackets() ||
+  bool const MinOnly = Minimal || DisablePacketizer || !HST.usePackets() ||
                  skipFunction(MF.getFunction());
   HexagonPacketizerList Packetizer(MF, MLI, AA, MBPI, MinOnly);
 
@@ -294,7 +294,7 @@ bool HexagonPacketizerList::canReserveResourcesForConstExt() {
 // return true, otherwise, return false.
 bool HexagonPacketizerList::tryAllocateResourcesForConstExt(bool Reserve) {
   auto *ExtMI = MF.CreateMachineInstr(HII->get(Hexagon::A4_ext), DebugLoc());
-  bool Avail = ResourceTracker->canReserveResources(*ExtMI);
+  bool const Avail = ResourceTracker->canReserveResources(*ExtMI);
   if (Reserve && Avail)
     ResourceTracker->reserveResources(*ExtMI);
   MF.DeleteMachineInstr(ExtMI);
@@ -378,7 +378,7 @@ bool HexagonPacketizerList::promoteToDotCur(MachineInstr &MI,
       SDep::Kind DepType, MachineBasicBlock::iterator &MII,
       const TargetRegisterClass* RC) {
   assert(DepType == SDep::Data);
-  int CurOpcode = HII->getDotCurOp(MI);
+  int const CurOpcode = HII->getDotCurOp(MI);
   MI.setDesc(HII->get(CurOpcode));
   return true;
 }
@@ -432,7 +432,7 @@ bool HexagonPacketizerList::canPromoteToDotCur(const MachineInstr &MI,
     dbgs() << "Checking CUR against ";
     MJ.dump();
   });
-  Register DestReg = MI.getOperand(0).getReg();
+  Register const DestReg = MI.getOperand(0).getReg();
   bool FoundMatch = false;
   for (auto &MO : MJ.operands())
     if (MO.isReg() && MO.getReg() == DestReg)
@@ -470,13 +470,13 @@ bool HexagonPacketizerList::promoteToDotNew(MachineInstr &MI,
 }
 
 bool HexagonPacketizerList::demoteToDotOld(MachineInstr &MI) {
-  int NewOpcode = HII->getDotOldOp(MI);
+  int const NewOpcode = HII->getDotOldOp(MI);
   MI.setDesc(HII->get(NewOpcode));
   return true;
 }
 
 bool HexagonPacketizerList::useCallersSP(MachineInstr &MI) {
-  unsigned Opc = MI.getOpcode();
+  unsigned const Opc = MI.getOpcode();
   switch (Opc) {
     case Hexagon::S2_storerd_io:
     case Hexagon::S2_storeri_io:
@@ -486,9 +486,9 @@ bool HexagonPacketizerList::useCallersSP(MachineInstr &MI) {
     default:
       llvm_unreachable("Unexpected instruction");
   }
-  unsigned FrameSize = MF.getFrameInfo().getStackSize();
+  unsigned const FrameSize = MF.getFrameInfo().getStackSize();
   MachineOperand &Off = MI.getOperand(1);
-  int64_t NewOff = Off.getImm() - (FrameSize + HEXAGON_LRFP_SIZE);
+  int64_t const NewOff = Off.getImm() - (FrameSize + HEXAGON_LRFP_SIZE);
   if (HII->isValidOffset(Opc, NewOff, HRI)) {
     Off.setImm(NewOff);
     return true;
@@ -497,7 +497,7 @@ bool HexagonPacketizerList::useCallersSP(MachineInstr &MI) {
 }
 
 void HexagonPacketizerList::useCalleesSP(MachineInstr &MI) {
-  unsigned Opc = MI.getOpcode();
+  unsigned const Opc = MI.getOpcode();
   switch (Opc) {
     case Hexagon::S2_storerd_io:
     case Hexagon::S2_storeri_io:
@@ -507,7 +507,7 @@ void HexagonPacketizerList::useCalleesSP(MachineInstr &MI) {
     default:
       llvm_unreachable("Unexpected instruction");
   }
-  unsigned FrameSize = MF.getFrameInfo().getStackSize();
+  unsigned const FrameSize = MF.getFrameInfo().getStackSize();
   MachineOperand &Off = MI.getOperand(1);
   Off.setImm(Off.getImm() + FrameSize + HEXAGON_LRFP_SIZE);
 }
@@ -525,7 +525,7 @@ bool HexagonPacketizerList::updateOffset(SUnit *SUI, SUnit *SUJ) {
   unsigned BPJ, OPJ;
   if (!HII->getBaseAndOffsetPosition(MJ, BPJ, OPJ))
     return false;
-  Register Reg = MI.getOperand(BPI).getReg();
+  Register const Reg = MI.getOperand(BPI).getReg();
   if (Reg != MJ.getOperand(BPJ).getReg())
     return false;
   // Make sure that the dependences do not restrict adding MI to the packet.
@@ -539,7 +539,7 @@ bool HexagonPacketizerList::updateOffset(SUnit *SUI, SUnit *SUJ) {
   if (!HII->getIncrementValue(MJ, Incr))
     return false;
 
-  int64_t Offset = MI.getOperand(OPI).getImm();
+  int64_t const Offset = MI.getOperand(OPI).getImm();
   if (!HII->isValidOffset(MI.getOpcode(), Offset+Incr, HRI))
     return false;
 
@@ -614,7 +614,7 @@ static const MachineOperand& getStoreValueOperand(const MachineInstr &MI) {
 }
 
 static bool isLoadAbsSet(const MachineInstr &MI) {
-  unsigned Opc = MI.getOpcode();
+  unsigned const Opc = MI.getOpcode();
   switch (Opc) {
     case Hexagon::L4_loadrd_ap:
     case Hexagon::L4_loadrb_ap:
@@ -758,7 +758,7 @@ bool HexagonPacketizerList::canPromoteToNewValueStore(const MachineInstr &MI,
 
   for (auto I : CurrentPacketMIs) {
     SUnit *TempSU = MIToSUnit.find(I)->second;
-    MachineInstr &TempMI = *TempSU->getInstr();
+    MachineInstr  const&TempMI = *TempSU->getInstr();
 
     // Following condition is true for all the instructions until PacketMI is
     // reached (StartCheck is set to 0 before the for loop).
@@ -798,7 +798,7 @@ bool HexagonPacketizerList::canPromoteToNewValueStore(const MachineInstr &MI,
       return false;
     if (!MO.isReg() || !MO.isDef() || !MO.isImplicit())
       continue;
-    Register R = MO.getReg();
+    Register const R = MO.getReg();
     if (R == DepReg || HRI->isSuperRegister(DepReg, R))
       return false;
   }
@@ -825,7 +825,7 @@ bool HexagonPacketizerList::canPromoteToNewValue(const MachineInstr &MI,
     return false;
 
   // Check to see the store can be new value'ed.
-  MachineInstr &PacketMI = *PacketSU->getInstr();
+  MachineInstr  const&PacketMI = *PacketSU->getInstr();
   if (canPromoteToNewValueStore(MI, PacketMI, DepReg))
     return true;
 
@@ -889,10 +889,10 @@ bool HexagonPacketizerList::canPromoteToDotNew(const MachineInstr &MI,
 
   // Create a dot new machine instruction to see if resources can be
   // allocated. If not, bail out now.
-  int NewOpcode = HII->getDotNewOp(MI);
+  int const NewOpcode = HII->getDotNewOp(MI);
   const MCInstrDesc &D = HII->get(NewOpcode);
   MachineInstr *NewMI = MF.CreateMachineInstr(D, DebugLoc());
-  bool ResourcesAvailable = ResourceTracker->canReserveResources(*NewMI);
+  bool const ResourcesAvailable = ResourceTracker->canReserveResources(*NewMI);
   MF.DeleteMachineInstr(NewMI);
   if (!ResourcesAvailable)
     return false;
@@ -1021,8 +1021,8 @@ bool HexagonPacketizerList::arePredicatesComplements(MachineInstr &MI1,
   // Check that the predicate register is the same and that the predicate
   // sense is different We also need to differentiate .old vs. .new: !p0
   // is not complementary to p0.new.
-  unsigned PReg1 = getPredicatedRegister(MI1, HII);
-  unsigned PReg2 = getPredicatedRegister(MI2, HII);
+  unsigned const PReg1 = getPredicatedRegister(MI1, HII);
+  unsigned const PReg2 = getPredicatedRegister(MI2, HII);
   return PReg1 == PReg2 &&
          Hexagon::PredRegsRegClass.contains(PReg1) &&
          Hexagon::PredRegsRegClass.contains(PReg2) &&
@@ -1131,7 +1131,7 @@ static bool cannotCoexistAsymm(const MachineInstr &MI, const MachineInstr &MJ,
     // These instructions can only be grouped with ALU32 or non-floating-point
     // XTYPE instructions.  Since there is no convenient way of identifying fp
     // XTYPE instructions, only allow grouping with ALU32 for now.
-    unsigned TJ = HII.getType(MJ);
+    unsigned const TJ = HII.getType(MJ);
     if (TJ != HexagonII::TypeALU32_2op &&
         TJ != HexagonII::TypeALU32_3op &&
         TJ != HexagonII::TypeALU32_ADDI)
@@ -1186,7 +1186,7 @@ void HexagonPacketizerList::unpacketizeSoloInstrs(MachineFunction &MF) {
 
 // Check if a given instruction is of class "system".
 static bool isSystemInstr(const MachineInstr &MI) {
-  unsigned Opc = MI.getOpcode();
+  unsigned const Opc = MI.getOpcode();
   switch (Opc) {
     case Hexagon::Y2_barrier:
     case Hexagon::Y2_dcfetchbo:
@@ -1217,7 +1217,7 @@ bool HexagonPacketizerList::hasDeadDependence(const MachineInstr &I,
   for (auto &MO : J.operands()) {
     if (!MO.isReg() || !MO.isDef() || !MO.isDead())
       continue;
-    Register R = MO.getReg();
+    Register const R = MO.getReg();
     if (R != Hexagon::USR_OVF && DeadDefs[R])
       return true;
   }
@@ -1303,8 +1303,8 @@ bool HexagonPacketizerList::hasDualStoreDependence(const MachineInstr &I,
   } else {
     // A memop cannot be in the same packet with another memop or a store.
     // Two stores can be together, but here I and J cannot both be stores.
-    bool MopStI = HII->isMemOp(I) || StoreI;
-    bool MopStJ = HII->isMemOp(J) || StoreJ;
+    bool const MopStI = HII->isMemOp(I) || StoreI;
+    bool const MopStJ = HII->isMemOp(J) || StoreJ;
     if (MopStI && MopStJ)
       return true;
   }
@@ -1407,7 +1407,7 @@ bool HexagonPacketizerList::isLegalToPacketizeTogether(SUnit *SUI, SUnit *SUJ) {
     if (SUJ->Succs[i].getSUnit() != SUI)
       continue;
 
-    SDep::Kind DepType = SUJ->Succs[i].getKind();
+    SDep::Kind const DepType = SUJ->Succs[i].getKind();
     // For direct calls:
     // Ignore register dependences for call instructions for packetization
     // purposes except for those due to r31 and predicate registers.
@@ -1513,7 +1513,7 @@ bool HexagonPacketizerList::isLegalToPacketizeTogether(SUnit *SUI, SUnit *SUJ) {
     // 4. Load followed by any memory operation is allowed.
     if (DepType == SDep::Order) {
       if (!PacketizeVolatiles) {
-        bool OrdRefs = I.hasOrderedMemoryRef() || J.hasOrderedMemoryRef();
+        bool const OrdRefs = I.hasOrderedMemoryRef() || J.hasOrderedMemoryRef();
         if (OrdRefs) {
           FoundSequentialDependence = true;
           break;
@@ -1522,10 +1522,10 @@ bool HexagonPacketizerList::isLegalToPacketizeTogether(SUnit *SUI, SUnit *SUJ) {
       // J is first, I is second.
       bool LoadJ = J.mayLoad(), StoreJ = J.mayStore();
       bool LoadI = I.mayLoad(), StoreI = I.mayStore();
-      bool NVStoreJ = HII->isNewValueStore(J);
-      bool NVStoreI = HII->isNewValueStore(I);
-      bool IsVecJ = HII->isHVXVec(J);
-      bool IsVecI = HII->isHVXVec(I);
+      bool const NVStoreJ = HII->isNewValueStore(J);
+      bool const NVStoreI = HII->isNewValueStore(I);
+      bool const IsVecJ = HII->isHVXVec(J);
+      bool const IsVecI = HII->isHVXVec(I);
 
       if (Slot1Store && MF.getSubtarget<HexagonSubtarget>().hasV65Ops() &&
           ((LoadJ && StoreI && !NVStoreI) ||
@@ -1561,7 +1561,7 @@ bool HexagonPacketizerList::isLegalToPacketizeTogether(SUnit *SUI, SUnit *SUJ) {
     // in a same packet. This implies that the store is using the caller's
     // SP. Hence, offset needs to be updated accordingly.
     if (DepType == SDep::Data && J.getOpcode() == Hexagon::S2_allocframe) {
-      unsigned Opc = I.getOpcode();
+      unsigned const Opc = I.getOpcode();
       switch (Opc) {
         case Hexagon::S2_storerd_io:
         case Hexagon::S2_storeri_io:
@@ -1594,7 +1594,7 @@ bool HexagonPacketizerList::isLegalToPacketizeTogether(SUnit *SUI, SUnit *SUJ) {
       // subset of the volatile register set.
       for (const MachineOperand &Op : I.operands()) {
         if (Op.isReg() && Op.isDef()) {
-          Register R = Op.getReg();
+          Register const R = Op.getReg();
           if (!J.readsRegister(R, HRI) && !J.modifiesRegister(R, HRI))
             continue;
         } else if (!Op.isRegMask()) {
@@ -1629,9 +1629,9 @@ bool HexagonPacketizerList::isLegalToPacketizeTogether(SUnit *SUI, SUnit *SUJ) {
 bool HexagonPacketizerList::isLegalToPruneDependencies(SUnit *SUI, SUnit *SUJ) {
   assert(SUI->getInstr() && SUJ->getInstr());
   MachineInstr &I = *SUI->getInstr();
-  MachineInstr &J = *SUJ->getInstr();
+  MachineInstr  const&J = *SUJ->getInstr();
 
-  bool Coexist = !cannotCoexist(I, J);
+  bool const Coexist = !cannotCoexist(I, J);
 
   if (Coexist && !Dependence)
     return true;
@@ -1678,7 +1678,7 @@ bool HexagonPacketizerList::foundLSInPacket() {
   bool FoundStore = false;
 
   for (auto MJ : CurrentPacketMIs) {
-    unsigned Opc = MJ->getOpcode();
+    unsigned const Opc = MJ->getOpcode();
     if (Opc == Hexagon::S2_allocframe || Opc == Hexagon::L2_deallocframe)
       continue;
     if (HII->isMemOp(*MJ))
@@ -1709,7 +1709,7 @@ HexagonPacketizerList::addToPacket(MachineInstr &MI) {
   }
   assert(ResourceTracker->canReserveResources(MI));
 
-  bool ExtMI = HII->isExtended(MI) || HII->isConstExtended(MI);
+  bool const ExtMI = HII->isExtended(MI) || HII->isConstExtended(MI);
   bool Good = true;
 
   if (GlueToNewValueJump) {
@@ -1722,7 +1722,7 @@ HexagonPacketizerList::addToPacket(MachineInstr &MI) {
     if (ExtMI)
       Good = tryAllocateResourcesForConstExt(true);
 
-    bool ExtNvjMI = HII->isExtended(NvjMI) || HII->isConstExtended(NvjMI);
+    bool const ExtNvjMI = HII->isExtended(NvjMI) || HII->isConstExtended(NvjMI);
     if (Good) {
       if (ResourceTracker->canReserveResources(NvjMI))
         ResourceTracker->reserveResources(NvjMI);
@@ -1792,15 +1792,15 @@ void HexagonPacketizerList::endPacket(MachineBasicBlock *MBB,
 
   OldPacketMIs.clear();
   for (MachineInstr *MI : CurrentPacketMIs) {
-    MachineBasicBlock::instr_iterator NextMI = std::next(MI->getIterator());
+    MachineBasicBlock::instr_iterator const NextMI = std::next(MI->getIterator());
     for (auto &I : make_range(HII->expandVGatherPseudo(*MI), NextMI))
       OldPacketMIs.push_back(&I);
   }
   CurrentPacketMIs.clear();
 
   if (OldPacketMIs.size() > 1) {
-    MachineBasicBlock::instr_iterator FirstMI(OldPacketMIs.front());
-    MachineBasicBlock::instr_iterator LastMI(EndMI.getInstrIterator());
+    MachineBasicBlock::instr_iterator const FirstMI(OldPacketMIs.front());
+    MachineBasicBlock::instr_iterator const LastMI(EndMI.getInstrIterator());
     finalizeBundle(*MBB, FirstMI, LastMI);
     auto BundleMII = std::prev(FirstMI);
     if (memShufDisabled)
@@ -1846,7 +1846,7 @@ bool HexagonPacketizerList::shouldAddToPacket(const MachineInstr &MI) {
     for (auto &MJ : CurrentPacketMIs)
       PacketHasSLOT0OnlyInsn |= HII->isPureSlot0(*MJ);
     // Get the Big Core Opcode (dup_*).
-    int Opcode = HII->getDuplexOpcode(MI, false);
+    int const Opcode = HII->getDuplexOpcode(MI, false);
     if (Opcode >= 0) {
       // We now have an instruction that can be duplexed.
       for (auto &MJ : CurrentPacketMIs) {

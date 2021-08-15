@@ -30,7 +30,7 @@ using namespace llvm::lto;
 
 Expected<NativeObjectCache> lto::localCache(StringRef CacheDirectoryPath,
                                             AddBufferFn AddBuffer) {
-  if (std::error_code EC = sys::fs::create_directories(CacheDirectoryPath))
+  if (std::error_code const EC = sys::fs::create_directories(CacheDirectoryPath))
     return errorCodeToError(EC);
 
   return [=](unsigned Task, StringRef Key) -> AddStreamFn {
@@ -108,7 +108,7 @@ Expected<NativeObjectCache> lto::localCache(StringRef CacheDirectoryPath,
         // delete the file before we get a chance to use it.
         Error E = TempFile.keep(EntryPath);
         E = handleErrors(std::move(E), [&](const ECError &E) -> Error {
-          std::error_code EC = E.convertToErrorCode();
+          std::error_code const EC = E.convertToErrorCode();
           if (EC != errc::permission_denied)
             return errorCodeToError(EC);
 

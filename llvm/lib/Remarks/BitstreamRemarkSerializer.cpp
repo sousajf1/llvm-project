@@ -99,7 +99,7 @@ void BitstreamRemarkSerializerHelper::emitMetaStrTab(
   std::string Buf;
   raw_string_ostream OS(Buf);
   StrTab.serialize(OS);
-  StringRef Blob = OS.str();
+  StringRef const Blob = OS.str();
   Bitstream.EmitRecordWithBlob(RecordMetaStrTabAbbrevID, R, Blob);
 }
 
@@ -294,9 +294,9 @@ void BitstreamRemarkSerializerHelper::emitRemarkBlock(const Remark &Remark,
 
   for (const Argument &Arg : Remark.Args) {
     R.clear();
-    unsigned Key = StrTab.add(Arg.Key).first;
-    unsigned Val = StrTab.add(Arg.Val).first;
-    bool HasDebugLoc = Arg.Loc != None;
+    unsigned const Key = StrTab.add(Arg.Key).first;
+    unsigned const Val = StrTab.add(Arg.Val).first;
+    bool const HasDebugLoc = Arg.Loc != None;
     R.push_back(HasDebugLoc ? RECORD_REMARK_ARG_WITH_DEBUGLOC
                             : RECORD_REMARK_ARG_WITHOUT_DEBUGLOC);
     R.push_back(Key);
@@ -348,7 +348,7 @@ void BitstreamRemarkSerializer::emit(const Remark &Remark) {
   if (!DidSetUp) {
     // Emit the metadata that is embedded in the remark file.
     // If we're in standalone mode, serialize the string table as well.
-    bool IsStandalone =
+    bool const IsStandalone =
         Helper.ContainerType == BitstreamRemarkContainerType::Standalone;
     BitstreamMetaSerializer MetaSerializer(
         OS, Helper,
@@ -368,7 +368,7 @@ std::unique_ptr<MetaSerializer> BitstreamRemarkSerializer::metaSerializer(
     raw_ostream &OS, Optional<StringRef> ExternalFilename) {
   assert(Helper.ContainerType !=
          BitstreamRemarkContainerType::SeparateRemarksMeta);
-  bool IsStandalone =
+  bool const IsStandalone =
       Helper.ContainerType == BitstreamRemarkContainerType::Standalone;
   return std::make_unique<BitstreamMetaSerializer>(
       OS,

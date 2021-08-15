@@ -87,7 +87,7 @@ static bool finishStackBlock(SmallVectorImpl<CCValAssign> &PendingMembers,
     return true;
   }
 
-  unsigned Size = LocVT.getSizeInBits() / 8;
+  unsigned const Size = LocVT.getSizeInBits() / 8;
   for (auto &It : PendingMembers) {
     It.convertToMem(State.AllocateStack(Size, SlotAlign));
     State.addLoc(It);
@@ -125,7 +125,7 @@ static bool CC_AArch64_Custom_Block(unsigned &ValNo, MVT &ValVT, MVT &LocVT,
                                     ISD::ArgFlagsTy &ArgFlags, CCState &State) {
   const AArch64Subtarget &Subtarget = static_cast<const AArch64Subtarget &>(
       State.getMachineFunction().getSubtarget());
-  bool IsDarwinILP32 = Subtarget.isTargetILP32() && Subtarget.isTargetMachO();
+  bool const IsDarwinILP32 = Subtarget.isTargetILP32() && Subtarget.isTargetMachO();
 
   // Try to allocate a contiguous block of registers, each of the correct
   // size to hold one member.
@@ -159,7 +159,7 @@ static bool CC_AArch64_Custom_Block(unsigned &ValNo, MVT &ValVT, MVT &LocVT,
 
   // [N x i32] arguments get packed into x-registers on Darwin's arm64_32
   // because that's how the armv7k Clang front-end emits small structs.
-  unsigned EltsPerReg = (IsDarwinILP32 && LocVT.SimpleTy == MVT::i32) ? 2 : 1;
+  unsigned const EltsPerReg = (IsDarwinILP32 && LocVT.SimpleTy == MVT::i32) ? 2 : 1;
   unsigned RegResult = State.AllocateRegBlock(
       RegList, alignTo(PendingMembers.size(), EltsPerReg) / EltsPerReg);
   if (RegResult && EltsPerReg == 1) {

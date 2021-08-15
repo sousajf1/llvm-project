@@ -131,7 +131,7 @@ doPromotion(Function *F, SmallPtrSetImpl<Argument *> &ArgsToPromote,
   // that we are *not* promoting. For the ones that we do promote, the parameter
   // attributes are lost
   SmallVector<AttributeSet, 8> ArgAttrVec;
-  AttributeList PAL = F->getAttributes();
+  AttributeList const PAL = F->getAttributes();
 
   // First, determine the new argument list
   unsigned ArgNo = 0;
@@ -265,13 +265,13 @@ doPromotion(Function *F, SmallPtrSetImpl<Argument *> &ArgsToPromote,
         Value *Idxs[2] = {
             ConstantInt::get(Type::getInt32Ty(F->getContext()), 0), nullptr};
         const StructLayout *SL = DL.getStructLayout(STy);
-        Align StructAlign = *I->getParamAlign();
+        Align const StructAlign = *I->getParamAlign();
         for (unsigned i = 0, e = STy->getNumElements(); i != e; ++i) {
           Idxs[1] = ConstantInt::get(Type::getInt32Ty(F->getContext()), i);
           auto *Idx =
               IRB.CreateGEP(STy, *AI, Idxs, (*AI)->getName() + "." + Twine(i));
           // TODO: Tell AA about the new values?
-          Align Alignment =
+          Align const Alignment =
               commonAlignment(StructAlign, SL->getElementOffset(i));
           Args.push_back(IRB.CreateAlignedLoad(
               STy->getElementType(i), Idx, Alignment, Idx->getName() + ".val"));
@@ -279,7 +279,7 @@ doPromotion(Function *F, SmallPtrSetImpl<Argument *> &ArgsToPromote,
         }
       } else if (!I->use_empty()) {
         // Non-dead argument: insert GEPs and loads as appropriate.
-        ScalarizeTable &ArgIndices = ScalarizedElements[&*I];
+        ScalarizeTable  const&ArgIndices = ScalarizedElements[&*I];
         // Store the Value* version of the indices in here, but declare it now
         // for reuse.
         std::vector<Value *> Ops;
@@ -388,7 +388,7 @@ doPromotion(Function *F, SmallPtrSetImpl<Argument *> &ArgsToPromote,
 
       // Just add all the struct element types.
       Type *AgTy = I->getParamByValType();
-      Align StructAlign = *I->getParamAlign();
+      Align const StructAlign = *I->getParamAlign();
       Value *TheAlloca = new AllocaInst(AgTy, DL.getAllocaAddrSpace(), nullptr,
                                         StructAlign, "", InsertPt);
       StructType *STy = cast<StructType>(AgTy);
@@ -402,7 +402,7 @@ doPromotion(Function *F, SmallPtrSetImpl<Argument *> &ArgsToPromote,
             AgTy, TheAlloca, Idxs, TheAlloca->getName() + "." + Twine(i),
             InsertPt);
         I2->setName(I->getName() + "." + Twine(i));
-        Align Alignment = commonAlignment(StructAlign, SL->getElementOffset(i));
+        Align const Alignment = commonAlignment(StructAlign, SL->getElementOffset(i));
         new StoreInst(&*I2++, Idx, false, Alignment, InsertPt);
       }
 
@@ -423,7 +423,7 @@ doPromotion(Function *F, SmallPtrSetImpl<Argument *> &ArgsToPromote,
     // Otherwise, if we promoted this argument, then all users are load
     // instructions (or GEPs with only load users), and all loads should be
     // using the new argument that we added.
-    ScalarizeTable &ArgIndices = ScalarizedElements[&*I];
+    ScalarizeTable  const&ArgIndices = ScalarizedElements[&*I];
 
     while (!I->use_empty()) {
       if (LoadInst *LI = dyn_cast<LoadInst>(I->user_back())) {
@@ -482,12 +482,12 @@ static bool allCallersPassValidPointerForArgument(Argument *Arg, Type *Ty) {
   Function *Callee = Arg->getParent();
   const DataLayout &DL = Callee->getParent()->getDataLayout();
 
-  unsigned ArgNo = Arg->getArgNo();
+  unsigned const ArgNo = Arg->getArgNo();
 
   // Look at all call sites of the function.  At this point we know we only have
   // direct callees.
   for (User *U : Callee->users()) {
-    CallBase &CB = cast<CallBase>(*U);
+    CallBase  const&CB = cast<CallBase>(*U);
 
     if (!isDereferenceablePointer(CB.getArgOperand(ArgNo), Ty, DL))
       return false;
@@ -549,9 +549,9 @@ static void markIndicesSafe(const IndicesVector &ToMark,
   Low = Safe.insert(Low, ToMark);
   ++Low;
   // If there we're a prefix of longer index list(s), remove those
-  std::set<IndicesVector>::iterator End = Safe.end();
+  std::set<IndicesVector>::iterator const End = Safe.end();
   while (Low != End && isPrefix(ToMark, *Low)) {
-    std::set<IndicesVector>::iterator Remove = Low;
+    std::set<IndicesVector>::iterator const Remove = Low;
     ++Low;
     Safe.erase(Remove);
   }
@@ -657,7 +657,7 @@ static bool isSafeToPromoteArgument(Argument *Arg, Type *ByValTy, AAResults &AAR
   // not (GEP+)loads, or any (GEP+)loads that are not safe to promote.
   SmallVector<LoadInst *, 16> Loads;
   IndicesVector Operands;
-  for (Use &U : Arg->uses()) {
+  for (Use  const&U : Arg->uses()) {
     User *UR = U.getUser();
     Operands.clear();
     if (LoadInst *LI = dyn_cast<LoadInst>(UR)) {
@@ -742,7 +742,7 @@ static bool isSafeToPromoteArgument(Argument *Arg, Type *ByValTy, AAResults &AAR
     // the load itself.
     BasicBlock *BB = Load->getParent();
 
-    MemoryLocation Loc = MemoryLocation::get(Load);
+    MemoryLocation const Loc = MemoryLocation::get(Load);
     if (AAR.canInstructionRangeModRef(BB->front(), *Load, Loc, ModRefInfo::Mod))
       return false; // Pointer is invalidated!
 
@@ -896,7 +896,7 @@ promoteArguments(Function *F, function_ref<AAResults &(Function &F)> AARGetter,
   // transform functions that have indirect callers.  Also see if the function
   // is self-recursive and check that target features are compatible.
   bool isSelfRecursive = false;
-  for (Use &U : F->uses()) {
+  for (Use  const&U : F->uses()) {
     CallBase *CB = dyn_cast<CallBase>(U.getUser());
     // Must be a direct call.
     if (CB == nullptr || !CB->isCallee(&U))
@@ -930,10 +930,10 @@ promoteArguments(Function *F, function_ref<AAResults &(Function &F)> AARGetter,
     // Replace sret attribute with noalias. This reduces register pressure by
     // avoiding a register copy.
     if (PtrArg->hasStructRetAttr()) {
-      unsigned ArgNo = PtrArg->getArgNo();
+      unsigned const ArgNo = PtrArg->getArgNo();
       F->removeParamAttr(ArgNo, Attribute::StructRet);
       F->addParamAttr(ArgNo, Attribute::NoAlias);
-      for (Use &U : F->uses()) {
+      for (Use  const&U : F->uses()) {
         CallBase &CB = cast<CallBase>(*U.getUser());
         CB.removeParamAttr(ArgNo, Attribute::StructRet);
         CB.addParamAttr(ArgNo, Attribute::NoAlias);
@@ -946,7 +946,7 @@ promoteArguments(Function *F, function_ref<AAResults &(Function &F)> AARGetter,
     //
     // Only handle arguments with specified alignment; if it's unspecified, the
     // actual alignment of the argument is target-specific.
-    bool isSafeToPromote = PtrArg->hasByValAttr() && PtrArg->getParamAlign() &&
+    bool const isSafeToPromote = PtrArg->hasByValAttr() && PtrArg->getParamAlign() &&
                            (ArgumentPromotionPass::isDenselyPacked(AgTy, DL) ||
                             !canPaddingBeAccessed(PtrArg));
     if (isSafeToPromote) {
@@ -983,7 +983,7 @@ promoteArguments(Function *F, function_ref<AAResults &(Function &F)> AARGetter,
     // function, we could end up infinitely peeling the function argument.
     if (isSelfRecursive) {
       if (StructType *STy = dyn_cast<StructType>(AgTy)) {
-        bool RecursiveType =
+        bool const RecursiveType =
             llvm::is_contained(STy->elements(), PtrArg->getType());
         if (RecursiveType)
           continue;

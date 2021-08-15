@@ -124,7 +124,7 @@ INITIALIZE_PASS(BranchRelaxation, DEBUG_TYPE, BRANCH_RELAX_NAME, false, false)
 void BranchRelaxation::verify() {
 #ifndef NDEBUG
   unsigned PrevNum = MF->begin()->getNumber();
-  for (MachineBasicBlock &MBB : *MF) {
+  for (MachineBasicBlock  const&MBB : *MF) {
     const unsigned Num = MBB.getNumber();
     assert(!Num || BlockInfo[PrevNum].postOffset(MBB) <= BlockInfo[Num].Offset);
     assert(BlockInfo[Num].Size == computeBlockSize(MBB));
@@ -154,7 +154,7 @@ void BranchRelaxation::scanFunction() {
   // has any inline assembly in it. If so, we have to be conservative about
   // alignment assumptions, as we don't know for sure the size of any
   // instructions in the inline assembly.
-  for (MachineBasicBlock &MBB : *MF)
+  for (MachineBasicBlock  const&MBB : *MF)
     BlockInfo[MBB.getNumber()].Size = computeBlockSize(MBB);
 
   // Compute block offsets and known bits.
@@ -193,7 +193,7 @@ void BranchRelaxation::adjustBlockOffsets(MachineBasicBlock &Start) {
   unsigned PrevNum = Start.getNumber();
   for (auto &MBB :
        make_range(std::next(MachineFunction::iterator(Start)), MF->end())) {
-    unsigned Num = MBB.getNumber();
+    unsigned const Num = MBB.getNumber();
     // Get the offset and known bits at the end of the layout predecessor.
     // Include the alignment of the current block.
     BlockInfo[Num].Offset = BlockInfo[PrevNum].postOffset(MBB);
@@ -274,8 +274,8 @@ MachineBasicBlock *BranchRelaxation::splitBlockBeforeInstr(MachineInstr &MI,
 /// specific BB can fit in MI's displacement field.
 bool BranchRelaxation::isBlockInRange(
   const MachineInstr &MI, const MachineBasicBlock &DestBB) const {
-  int64_t BrOffset = getInstrOffset(MI);
-  int64_t DestOffset = BlockInfo[DestBB.getNumber()].Offset;
+  int64_t const BrOffset = getInstrOffset(MI);
+  int64_t const DestOffset = BlockInfo[DestBB.getNumber()].Offset;
 
   if (TII->isBranchOffsetInRange(MI.getOpcode(), DestOffset - BrOffset))
     return true;
@@ -331,7 +331,7 @@ bool BranchRelaxation::fixupConditionalBranch(MachineInstr &MI) {
       computeAndAddLiveIns(LiveRegs, *NewBB);
   };
 
-  bool Fail = TII->analyzeBranch(*MBB, TBB, FBB, Cond);
+  bool const Fail = TII->analyzeBranch(*MBB, TBB, FBB, Cond);
   assert(!Fail && "branches to be relaxed must be analyzable");
   (void)Fail;
 
@@ -343,7 +343,7 @@ bool BranchRelaxation::fixupConditionalBranch(MachineInstr &MI) {
   // b   L1
   // L2:
 
-  bool ReversedCond = !TII->reverseBranchCondition(Cond);
+  bool const ReversedCond = !TII->reverseBranchCondition(Cond);
   if (ReversedCond) {
     if (FBB && isBlockInRange(MI, *FBB)) {
       // Last MI in the BB is an unconditional branch. We can simply invert the
@@ -433,11 +433,11 @@ bool BranchRelaxation::fixupConditionalBranch(MachineInstr &MI) {
 bool BranchRelaxation::fixupUnconditionalBranch(MachineInstr &MI) {
   MachineBasicBlock *MBB = MI.getParent();
 
-  unsigned OldBrSize = TII->getInstSizeInBytes(MI);
+  unsigned const OldBrSize = TII->getInstSizeInBytes(MI);
   MachineBasicBlock *DestBB = TII->getBranchDestBlock(MI);
 
-  int64_t DestOffset = BlockInfo[DestBB->getNumber()].Offset;
-  int64_t SrcOffset = getInstrOffset(MI);
+  int64_t const DestOffset = BlockInfo[DestBB->getNumber()].Offset;
+  int64_t const SrcOffset = getInstrOffset(MI);
 
   assert(!TII->isBranchOffsetInRange(MI.getOpcode(), DestOffset - SrcOffset));
 
@@ -461,7 +461,7 @@ bool BranchRelaxation::fixupUnconditionalBranch(MachineInstr &MI) {
     MBB->replaceSuccessor(DestBB, BranchBB);
   }
 
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc const DL = MI.getDebugLoc();
   MI.eraseFromParent();
   BlockInfo[BranchBB->getNumber()].Size += TII->insertIndirectBranch(
     *BranchBB, *DestBB, DL, DestOffset - SrcOffset, RS.get());
@@ -479,7 +479,7 @@ bool BranchRelaxation::relaxBranchInstructions() {
     MachineBasicBlock &MBB = *I;
 
     // Empty block?
-    MachineBasicBlock::iterator Last = MBB.getLastNonDebugInstr();
+    MachineBasicBlock::iterator const Last = MBB.getLastNonDebugInstr();
     if (Last == MBB.end())
       continue;
 

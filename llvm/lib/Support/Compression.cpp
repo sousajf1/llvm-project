@@ -50,7 +50,7 @@ Error zlib::compress(StringRef InputBuffer,
                      SmallVectorImpl<char> &CompressedBuffer, int Level) {
   unsigned long CompressedSize = ::compressBound(InputBuffer.size());
   CompressedBuffer.reserve(CompressedSize);
-  int Res =
+  int const Res =
       ::compress2((Bytef *)CompressedBuffer.data(), &CompressedSize,
                   (const Bytef *)InputBuffer.data(), InputBuffer.size(), Level);
   // Tell MemorySanitizer that zlib output buffer is fully initialized.
@@ -62,7 +62,7 @@ Error zlib::compress(StringRef InputBuffer,
 
 Error zlib::uncompress(StringRef InputBuffer, char *UncompressedBuffer,
                        size_t &UncompressedSize) {
-  int Res =
+  int const Res =
       ::uncompress((Bytef *)UncompressedBuffer, (uLongf *)&UncompressedSize,
                    (const Bytef *)InputBuffer.data(), InputBuffer.size());
   // Tell MemorySanitizer that zlib output buffer is fully initialized.

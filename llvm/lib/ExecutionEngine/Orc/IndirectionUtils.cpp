@@ -63,7 +63,7 @@ JITCompileCallbackManager::getCompileCallback(CompileFunction Compile) {
     auto CallbackName =
         ES.intern(std::string("cc") + std::to_string(++NextCallbackId));
 
-    std::lock_guard<std::mutex> Lock(CCMgrMutex);
+    std::lock_guard<std::mutex> const Lock(CCMgrMutex);
     AddrToSymbol[*TrampolineAddr] = CallbackName;
     cantFail(
         CallbacksJD.define(std::make_unique<CompileCallbackMaterializationUnit>(
@@ -238,7 +238,7 @@ GlobalVariable* createImplPointer(PointerType &PT, Module &M,
 void makeStub(Function &F, Value &ImplPointer) {
   assert(F.isDeclaration() && "Can't turn a definition into a stub.");
   assert(F.getParent() && "Function isn't in a module.");
-  Module &M = *F.getParent();
+  Module  const&M = *F.getParent();
   BasicBlock *EntryBlock = BasicBlock::Create(M.getContext(), "entry", &F);
   IRBuilder<> Builder(EntryBlock);
   LoadInst *ImplAddr = Builder.CreateLoad(F.getType(), &ImplPointer);

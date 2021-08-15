@@ -22,7 +22,7 @@ using namespace llvm::codeview;
 
 template <typename T>
 static Error visitKnownRecord(CVType &Record, TypeVisitorCallbacks &Callbacks) {
-  TypeRecordKind RK = static_cast<TypeRecordKind>(Record.kind());
+  TypeRecordKind const RK = static_cast<TypeRecordKind>(Record.kind());
   T KnownRecord(RK);
   if (auto EC = Callbacks.visitKnownRecord(Record, KnownRecord))
     return EC;
@@ -32,7 +32,7 @@ static Error visitKnownRecord(CVType &Record, TypeVisitorCallbacks &Callbacks) {
 template <typename T>
 static Error visitKnownMember(CVMemberRecord &Record,
                               TypeVisitorCallbacks &Callbacks) {
-  TypeRecordKind RK = static_cast<TypeRecordKind>(Record.Kind);
+  TypeRecordKind const RK = static_cast<TypeRecordKind>(Record.Kind);
   T KnownRecord(RK);
   if (auto EC = Callbacks.visitKnownMember(Record, KnownRecord))
     return EC;

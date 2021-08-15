@@ -121,13 +121,13 @@ void AAEvaluator::runInternal(Function &F, AAResults &AA) {
       if (!isa<Function>(Callee) && isInterestingPointer(Callee))
         Pointers.insert(Callee);
       // Consider formals.
-      for (Use &DataOp : Call->data_ops())
+      for (Use  const&DataOp : Call->data_ops())
         if (isInterestingPointer(DataOp))
           Pointers.insert(DataOp);
       Calls.insert(Call);
     } else {
       // Consider all operands.
-      for (Use &Op : Inst.operands())
+      for (Use  const&Op : Inst.operands())
         if (isInterestingPointer(Op))
           Pointers.insert(Op);
     }
@@ -152,7 +152,7 @@ void AAEvaluator::runInternal(Function &F, AAResults &AA) {
       if (I2ElTy->isSized())
         I2Size = LocationSize::precise(DL.getTypeStoreSize(I2ElTy));
 
-      AliasResult AR = AA.alias(*I1, I1Size, *I2, I2Size);
+      AliasResult const AR = AA.alias(*I1, I1Size, *I2, I2Size);
       switch (AR) {
       case AliasResult::NoAlias:
         PrintResults(AR, PrintNoAlias, *I1, *I2, F.getParent());
@@ -178,7 +178,7 @@ void AAEvaluator::runInternal(Function &F, AAResults &AA) {
     // iterate over all pairs of load, store
     for (Value *Load : Loads) {
       for (Value *Store : Stores) {
-        AliasResult AR = AA.alias(MemoryLocation::get(cast<LoadInst>(Load)),
+        AliasResult const AR = AA.alias(MemoryLocation::get(cast<LoadInst>(Load)),
                                   MemoryLocation::get(cast<StoreInst>(Store)));
         switch (AR) {
         case AliasResult::NoAlias:
@@ -205,7 +205,7 @@ void AAEvaluator::runInternal(Function &F, AAResults &AA) {
     for (SetVector<Value *>::iterator I1 = Stores.begin(), E = Stores.end();
          I1 != E; ++I1) {
       for (SetVector<Value *>::iterator I2 = Stores.begin(); I2 != I1; ++I2) {
-        AliasResult AR = AA.alias(MemoryLocation::get(cast<StoreInst>(*I1)),
+        AliasResult const AR = AA.alias(MemoryLocation::get(cast<StoreInst>(*I1)),
                                   MemoryLocation::get(cast<StoreInst>(*I2)));
         switch (AR) {
         case AliasResult::NoAlias:
@@ -336,7 +336,7 @@ AAEvaluator::~AAEvaluator() {
   if (FunctionCount == 0)
     return;
 
-  int64_t AliasSum =
+  int64_t const AliasSum =
       NoAliasCount + MayAliasCount + PartialAliasCount + MustAliasCount;
   errs() << "===== Alias Analysis Evaluator Report =====\n";
   if (AliasSum == 0) {
@@ -359,7 +359,7 @@ AAEvaluator::~AAEvaluator() {
   }
 
   // Display the summary for mod/ref analysis
-  int64_t ModRefSum = NoModRefCount + RefCount + ModCount + ModRefCount +
+  int64_t const ModRefSum = NoModRefCount + RefCount + ModCount + ModRefCount +
                       MustCount + MustRefCount + MustModCount + MustModRefCount;
   if (ModRefSum == 0) {
     errs() << "  Alias Analysis Mod/Ref Evaluator Summary: no "

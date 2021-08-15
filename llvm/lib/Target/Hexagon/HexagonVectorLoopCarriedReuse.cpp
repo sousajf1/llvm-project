@@ -123,7 +123,7 @@ namespace {
   LLVM_ATTRIBUTE_UNUSED
   raw_ostream &operator<<(raw_ostream &OS, const DepChain &D) {
     const ChainOfDependences &CD = D.Chain;
-    int ChainSize = CD.size();
+    int const ChainSize = CD.size();
     OS << "**DepChain Start::**\n";
     for (int i = 0; i < ChainSize -1; ++i) {
       OS << *(CD[i]) << " -->\n";
@@ -338,7 +338,7 @@ bool HexagonVectorLoopCarriedReuse::isEquivalentOperation(Instruction *I1,
   // If both the Instructions are of Vector Type and any of the element
   // is integer constant, check their values too for equivalence.
   if (I1->getType()->isVectorTy() && I2->getType()->isVectorTy()) {
-    unsigned NumOperands = I1->getNumOperands();
+    unsigned const NumOperands = I1->getNumOperands();
     for (unsigned i = 0; i < NumOperands; ++i) {
       ConstantInt *C1 = dyn_cast<ConstantInt>(I1->getOperand(i));
       ConstantInt *C2 = dyn_cast<ConstantInt>(I2->getOperand(i));
@@ -380,14 +380,14 @@ void HexagonVectorLoopCarriedReuse::findValueToReuse() {
 
     PHINode *PN = cast<PHINode>(D->front());
     Instruction *BEInst = D->back();
-    int Iters = D->iterations();
+    int const Iters = D->iterations();
     BasicBlock *BB = PN->getParent();
     LLVM_DEBUG(dbgs() << "Checking if any uses of " << *PN
                       << " can be reused\n");
 
     SmallVector<Instruction *, 4> PNUsers;
     for (auto UI = PN->use_begin(), E = PN->use_end(); UI != E; ++UI) {
-      Use &U = *UI;
+      Use  const&U = *UI;
       Instruction *User = cast<Instruction>(U.getUser());
 
       if (User->getParent() != BB)
@@ -417,7 +417,7 @@ void HexagonVectorLoopCarriedReuse::findValueToReuse() {
     for (Instruction *I : PNUsers) {
       for (auto UI = BEInst->use_begin(), E = BEInst->use_end(); UI != E;
            ++UI) {
-        Use &U = *UI;
+        Use  const&U = *UI;
         Instruction *BEUser = cast<Instruction>(U.getUser());
 
         if (BEUser->getParent() != BB)
@@ -425,7 +425,7 @@ void HexagonVectorLoopCarriedReuse::findValueToReuse() {
         if (!isEquivalentOperation(I, BEUser))
           continue;
 
-        int NumOperands = I->getNumOperands();
+        int const NumOperands = I->getNumOperands();
 
         // Take operands of each PNUser one by one and try to find DepChain
         // with every operand of the BEUser. If any of the operands of BEUser
@@ -524,9 +524,9 @@ void HexagonVectorLoopCarriedReuse::reuseValue() {
   LLVM_DEBUG(dbgs() << ReuseCandidate);
   Instruction *Inst2Replace = ReuseCandidate.Inst2Replace;
   Instruction *BEInst = ReuseCandidate.BackedgeInst;
-  int NumOperands = Inst2Replace->getNumOperands();
+  int const NumOperands = Inst2Replace->getNumOperands();
   std::map<Instruction *, DepChain *> &DepChains = ReuseCandidate.DepChains;
-  int Iterations = ReuseCandidate.Iterations;
+  int const Iterations = ReuseCandidate.Iterations;
   BasicBlock *LoopPH = CurLoop->getLoopPreheader();
   assert(!DepChains.empty() && "No DepChains");
   LLVM_DEBUG(dbgs() << "reuseValue is making the following changes\n");
@@ -534,7 +534,7 @@ void HexagonVectorLoopCarriedReuse::reuseValue() {
   SmallVector<Instruction *, 4> InstsInPreheader;
   for (int i = 0; i < Iterations; ++i) {
     Instruction *InstInPreheader = Inst2Replace->clone();
-    SmallVector<Value *, 4> Ops;
+    SmallVector<Value *, 4> const Ops;
     for (int j = 0; j < NumOperands; ++j) {
       Instruction *I = dyn_cast<Instruction>(Inst2Replace->getOperand(j));
       if (!I)

@@ -59,24 +59,24 @@ void WebAssemblyRegisterInfo::eliminateFrameIndex(
   MachineBasicBlock &MBB = *MI.getParent();
   MachineFunction &MF = *MBB.getParent();
   MachineRegisterInfo &MRI = MF.getRegInfo();
-  int FrameIndex = MI.getOperand(FIOperandNum).getIndex();
+  int const FrameIndex = MI.getOperand(FIOperandNum).getIndex();
   const MachineFrameInfo &MFI = MF.getFrameInfo();
-  int64_t FrameOffset = MFI.getStackSize() + MFI.getObjectOffset(FrameIndex);
+  int64_t const FrameOffset = MFI.getStackSize() + MFI.getObjectOffset(FrameIndex);
 
   assert(MFI.getObjectSize(FrameIndex) != 0 &&
          "We assume that variable-sized objects have already been lowered, "
          "and don't use FrameIndex operands.");
-  Register FrameRegister = getFrameRegister(MF);
+  Register const FrameRegister = getFrameRegister(MF);
 
   // If this is the address operand of a load or store, make it relative to SP
   // and fold the frame offset directly in.
-  unsigned AddrOperandNum = WebAssembly::getNamedOperandIdx(
+  unsigned const AddrOperandNum = WebAssembly::getNamedOperandIdx(
       MI.getOpcode(), WebAssembly::OpName::addr);
   if (AddrOperandNum == FIOperandNum) {
-    unsigned OffsetOperandNum = WebAssembly::getNamedOperandIdx(
+    unsigned const OffsetOperandNum = WebAssembly::getNamedOperandIdx(
         MI.getOpcode(), WebAssembly::OpName::off);
     assert(FrameOffset >= 0 && MI.getOperand(OffsetOperandNum).getImm() >= 0);
-    int64_t Offset = MI.getOperand(OffsetOperandNum).getImm() + FrameOffset;
+    int64_t const Offset = MI.getOperand(OffsetOperandNum).getImm() + FrameOffset;
 
     if (static_cast<uint64_t>(Offset) <= std::numeric_limits<uint32_t>::max()) {
       MI.getOperand(OffsetOperandNum).setImm(Offset);
@@ -89,9 +89,9 @@ void WebAssemblyRegisterInfo::eliminateFrameIndex(
   // If this is an address being added to a constant, fold the frame offset
   // into the constant.
   if (MI.getOpcode() == WebAssemblyFrameLowering::getOpcAdd(MF)) {
-    MachineOperand &OtherMO = MI.getOperand(3 - FIOperandNum);
+    MachineOperand  const&OtherMO = MI.getOperand(3 - FIOperandNum);
     if (OtherMO.isReg()) {
-      Register OtherMOReg = OtherMO.getReg();
+      Register const OtherMOReg = OtherMO.getReg();
       if (Register::isVirtualRegister(OtherMOReg)) {
         MachineInstr *Def = MF.getRegInfo().getUniqueVRegDef(OtherMOReg);
         // TODO: For now we just opportunistically do this in the case where
@@ -120,7 +120,7 @@ void WebAssemblyRegisterInfo::eliminateFrameIndex(
     // Create i32/64.add SP, offset and make it the operand.
     const TargetRegisterClass *PtrRC =
         MRI.getTargetRegisterInfo()->getPointerRegClass(MF);
-    Register OffsetOp = MRI.createVirtualRegister(PtrRC);
+    Register const OffsetOp = MRI.createVirtualRegister(PtrRC);
     BuildMI(MBB, *II, II->getDebugLoc(),
             TII->get(WebAssemblyFrameLowering::getOpcConst(MF)),
             OffsetOp)

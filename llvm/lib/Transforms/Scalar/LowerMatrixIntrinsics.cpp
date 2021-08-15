@@ -137,7 +137,7 @@ Value *computeVectorAddr(Value *BasePtr, Value *VecIdx, Value *Stride,
   assert((!isa<ConstantInt>(Stride) ||
           cast<ConstantInt>(Stride)->getZExtValue() >= NumElements) &&
          "Stride must be >= the number of elements in the result vector.");
-  unsigned AS = cast<PointerType>(BasePtr->getType())->getAddressSpace();
+  unsigned const AS = cast<PointerType>(BasePtr->getType())->getAddressSpace();
 
   // Compute the start of the vector with index VecIdx as VecIdx * Stride.
   Value *VecStart = Builder.CreateMul(VecIdx, Stride, "vec.start");
@@ -229,7 +229,7 @@ class LowerMatrixIntrinsics {
     MatrixTy(unsigned NumRows, unsigned NumColumns, Type *EltTy)
         : IsColumnMajor(MatrixLayout == MatrixLayoutTy::ColumnMajor) {
 
-      unsigned D = isColumnMajor() ? NumColumns : NumRows;
+      unsigned const D = isColumnMajor() ? NumColumns : NumRows;
       for (unsigned J = 0; J < D; ++J)
         addVector(UndefValue::get(FixedVectorType::get(
             EltTy, isColumnMajor() ? NumRows : NumColumns)));
@@ -461,7 +461,7 @@ public:
     // vector and split it later.
     auto Found = Inst2ColumnMatrix.find(MatrixVal);
     if (Found != Inst2ColumnMatrix.end()) {
-      MatrixTy &M = Found->second;
+      MatrixTy  const&M = Found->second;
       // Return the found matrix, if its shape matches the requested shape
       // information
       if (SI.NumRows == M.getNumRows() && SI.NumColumns == M.getNumColumns())
@@ -629,7 +629,7 @@ public:
     while (!WorkList.empty()) {
       Value *V = WorkList.pop_back_val();
 
-      size_t BeforeProcessingV = WorkList.size();
+      size_t const BeforeProcessingV = WorkList.size();
       if (!isa<Instruction>(V))
         continue;
 
@@ -666,8 +666,8 @@ public:
         // backward propagate to an instruction with an already known shape.
       } else if (isUniformShape(V)) {
         // Propagate to all operands.
-        ShapeInfo Shape = ShapeMap[V];
-        for (Use &U : cast<Instruction>(V)->operands()) {
+        ShapeInfo const Shape = ShapeMap[V];
+        for (Use  const&U : cast<Instruction>(V)->operands()) {
           if (setShapeInfo(U.get(), Shape))
             pushInstruction(U.get(), WorkList);
         }
@@ -846,7 +846,7 @@ public:
 
     // First, collect all instructions with shape information and candidates for
     // fusion (currently only matrix multiplies).
-    ReversePostOrderTraversal<Function *> RPOT(&Func);
+    ReversePostOrderTraversal<Function *> const RPOT(&Func);
     for (auto *BB : RPOT)
       for (Instruction &I : *BB) {
         if (ShapeMap.find(&I) == ShapeMap.end())
@@ -922,7 +922,7 @@ public:
 
   /// Turns \p BasePtr into an elementwise pointer to \p EltType.
   Value *createElementPtr(Value *BasePtr, Type *EltType, IRBuilder<> &Builder) {
-    unsigned AS = cast<PointerType>(BasePtr->getType())->getAddressSpace();
+    unsigned const AS = cast<PointerType>(BasePtr->getType())->getAddressSpace();
     Type *EltPtrType = PointerType::get(EltType, AS);
     return Builder.CreatePointerCast(BasePtr, EltPtrType);
   }
@@ -962,9 +962,9 @@ public:
     if (Idx == 0)
       return InitialAlign;
 
-    TypeSize ElementSizeInBits = DL.getTypeSizeInBits(ElementTy);
+    TypeSize const ElementSizeInBits = DL.getTypeSizeInBits(ElementTy);
     if (auto *ConstStride = dyn_cast<ConstantInt>(Stride)) {
-      uint64_t StrideInBytes =
+      uint64_t const StrideInBytes =
           ConstStride->getZExtValue() * ElementSizeInBits / 8;
       return commonAlignment(InitialAlign, Idx * StrideInBytes);
     }
@@ -1004,7 +1004,7 @@ public:
     Value *Offset = Builder.CreateAdd(
         Builder.CreateMul(J, Builder.getInt64(MatrixShape.getStride())), I);
 
-    unsigned AS = cast<PointerType>(MatrixPtr->getType())->getAddressSpace();
+    unsigned const AS = cast<PointerType>(MatrixPtr->getType())->getAddressSpace();
     Value *EltPtr =
         Builder.CreatePointerCast(MatrixPtr, PointerType::get(EltTy, AS));
     Value *TileStart = Builder.CreateGEP(EltTy, EltPtr, Offset);
@@ -1050,7 +1050,7 @@ public:
     Value *Offset = Builder.CreateAdd(
         Builder.CreateMul(J, Builder.getInt64(MatrixShape.getStride())), I);
 
-    unsigned AS = cast<PointerType>(MatrixPtr->getType())->getAddressSpace();
+    unsigned const AS = cast<PointerType>(MatrixPtr->getType())->getAddressSpace();
     Value *EltPtr =
         Builder.CreatePointerCast(MatrixPtr, PointerType::get(EltTy, AS));
     Value *TileStart = Builder.CreateGEP(EltTy, EltPtr, Offset);
@@ -1117,9 +1117,9 @@ public:
                       IRBuilder<> &Builder) {
 
     // First, bring Block to the same size as Col
-    unsigned BlockNumElts =
+    unsigned const BlockNumElts =
         cast<FixedVectorType>(Block->getType())->getNumElements();
-    unsigned NumElts = cast<FixedVectorType>(Col->getType())->getNumElements();
+    unsigned const NumElts = cast<FixedVectorType>(Col->getType())->getNumElements();
     assert(NumElts >= BlockNumElts && "Too few elements for current block");
 
     Block = Builder.CreateShuffleVector(
@@ -1132,7 +1132,7 @@ public:
     for (i = 0; i < I; i++)
       Mask.push_back(i);
 
-    unsigned VecNumElts =
+    unsigned const VecNumElts =
         cast<FixedVectorType>(Col->getType())->getNumElements();
     for (; i < I + BlockNumElts; i++)
       Mask.push_back(i - I + VecNumElts);
@@ -1205,11 +1205,11 @@ public:
                 .getFixedSize() /
             Result.getElementType()->getPrimitiveSizeInBits().getFixedSize(),
         1U);
-    unsigned R = Result.getNumRows();
-    unsigned C = Result.getNumColumns();
-    unsigned M = A.getNumColumns();
+    unsigned const R = Result.getNumRows();
+    unsigned const C = Result.getNumColumns();
+    unsigned const M = A.getNumColumns();
 
-    bool IsFP = Result.getElementType()->isFloatingPointTy();
+    bool const IsFP = Result.getElementType()->isFloatingPointTy();
     assert(A.isColumnMajor() == B.isColumnMajor() &&
            Result.isColumnMajor() == A.isColumnMajor() &&
            "operands must agree on matrix layout");
@@ -1224,7 +1224,7 @@ public:
       for (unsigned J = 0; J < C; ++J) {
         unsigned BlockSize = VF;
         // If Result is zero, we don't need to accumulate in the K==0 iteration.
-        bool isSumZero = isa<ConstantAggregateZero>(Result.getColumn(J));
+        bool const isSumZero = isa<ConstantAggregateZero>(Result.getColumn(J));
 
         for (unsigned I = 0; I < R; I += BlockSize) {
           // Gradually lower the vectorization factor to cover the remainder.
@@ -1253,7 +1253,7 @@ public:
       // the adds can be vectorized without reassociation.
       for (unsigned I = 0; I < R; ++I) {
         unsigned BlockSize = VF;
-        bool isSumZero = isa<ConstantAggregateZero>(Result.getRow(I));
+        bool const isSumZero = isa<ConstantAggregateZero>(Result.getRow(I));
         for (unsigned J = 0; J < C; J += BlockSize) {
           // Gradually lower the vectorization factor to cover the remainder.
           while (J + BlockSize > C)
@@ -1283,8 +1283,8 @@ public:
   /// is returned.
   Value *getNonAliasingPointer(LoadInst *Load, StoreInst *Store,
                                CallInst *MatMul) {
-    MemoryLocation StoreLoc = MemoryLocation::get(Store);
-    MemoryLocation LoadLoc = MemoryLocation::get(Load);
+    MemoryLocation const StoreLoc = MemoryLocation::get(Store);
+    MemoryLocation const LoadLoc = MemoryLocation::get(Load);
 
     // If we can statically determine noalias we're good.
     if (AA->isNoAlias(LoadLoc, StoreLoc))
@@ -1366,8 +1366,8 @@ public:
     if (ForceFusion)
       return true;
 
-    ShapeInfo LShape(MatMul->getArgOperand(2), MatMul->getArgOperand(3));
-    ShapeInfo RShape(MatMul->getArgOperand(3), MatMul->getArgOperand(4));
+    ShapeInfo const LShape(MatMul->getArgOperand(2), MatMul->getArgOperand(3));
+    ShapeInfo const RShape(MatMul->getArgOperand(3), MatMul->getArgOperand(4));
 
     const unsigned R = LShape.NumRows;
     const unsigned C = RShape.NumColumns;
@@ -1392,8 +1392,8 @@ public:
     // registers we have.  Note that this is an oversimplification since
     // fusing also takes some extra loads which may exceed the number of
     // reloads necessary.
-    unsigned Op0Regs = (R + VF - 1) / VF * M;
-    unsigned Op1Regs = (M + VF - 1) / VF * C;
+    unsigned const Op0Regs = (R + VF - 1) / VF * M;
+    unsigned const Op1Regs = (M + VF - 1) / VF * C;
     return Op0Regs + Op1Regs > TTI.getNumberOfRegisters(true);
   }
 
@@ -1438,9 +1438,9 @@ public:
     //   Res += Load(CurrentRow, K) * Load(K, CurrentColumn)
     Builder.SetInsertPoint(InnerBody->getTerminator());
     // Load tiles of the operands.
-    MatrixTy A = loadMatrix(LPtr, {}, false, LShape, TI.CurrentRow, TI.CurrentK,
+    MatrixTy const A = loadMatrix(LPtr, {}, false, LShape, TI.CurrentRow, TI.CurrentK,
                             {TileSize, TileSize}, EltType, Builder);
-    MatrixTy B = loadMatrix(RPtr, {}, false, RShape, TI.CurrentK, TI.CurrentCol,
+    MatrixTy const B = loadMatrix(RPtr, {}, false, RShape, TI.CurrentK, TI.CurrentCol,
                             {TileSize, TileSize}, EltType, Builder);
     emitMatrixMultiply(TileResult, A, B, Builder, true, false,
                        getFastMathFlags(MatMul));
@@ -1457,7 +1457,7 @@ public:
     // is enough work per iteration.
     // FIXME: The unroller should make this decision directly instead, but
     // currently the cost-model is not up to the task.
-    unsigned InnerLoopUnrollCount = std::min(10u, LShape.NumColumns / TileSize);
+    unsigned const InnerLoopUnrollCount = std::min(10u, LShape.NumColumns / TileSize);
     addStringMetadataToLoop(LI->getLoopFor(TI.InnerLoopHeader),
                             "llvm.loop.unroll.count", InnerLoopUnrollCount);
   }
@@ -1470,8 +1470,8 @@ public:
     if (!isFusionProfitable(MatMul))
       return;
 
-    ShapeInfo LShape(MatMul->getArgOperand(2), MatMul->getArgOperand(3));
-    ShapeInfo RShape(MatMul->getArgOperand(3), MatMul->getArgOperand(4));
+    ShapeInfo const LShape(MatMul->getArgOperand(2), MatMul->getArgOperand(3));
+    ShapeInfo const RShape(MatMul->getArgOperand(3), MatMul->getArgOperand(4));
 
     const unsigned R = LShape.NumRows;
     const unsigned C = RShape.NumColumns;
@@ -1494,11 +1494,11 @@ public:
 
           for (unsigned K = 0; K < M; K += TileSize) {
             const unsigned TileM = std::min(M - K, unsigned(TileSize));
-            MatrixTy A =
+            MatrixTy const A =
                 loadMatrix(APtr, LoadOp0->getAlign(), LoadOp0->isVolatile(),
                            LShape, Builder.getInt64(I), Builder.getInt64(K),
                            {TileR, TileM}, EltType, Builder);
-            MatrixTy B =
+            MatrixTy const B =
                 loadMatrix(BPtr, LoadOp1->getAlign(), LoadOp1->isVolatile(),
                            RShape, Builder.getInt64(K), Builder.getInt64(J),
                            {TileM, TileC}, EltType, Builder);
@@ -1547,8 +1547,8 @@ public:
             : match(A, m_Intrinsic<Intrinsic::matrix_transpose>(m_Value(T)))) {
       IRBuilder<> Builder(MatMul);
       auto *EltType = cast<VectorType>(MatMul->getType())->getElementType();
-      ShapeInfo LShape(MatMul->getArgOperand(2), MatMul->getArgOperand(3));
-      ShapeInfo RShape(MatMul->getArgOperand(3), MatMul->getArgOperand(4));
+      ShapeInfo const LShape(MatMul->getArgOperand(2), MatMul->getArgOperand(3));
+      ShapeInfo const RShape(MatMul->getArgOperand(3), MatMul->getArgOperand(4));
       const unsigned R = LShape.NumRows;
       const unsigned M = LShape.NumColumns;
       const unsigned C = RShape.NumColumns;
@@ -1629,8 +1629,8 @@ public:
   void LowerMultiply(CallInst *MatMul) {
     IRBuilder<> Builder(MatMul);
     auto *EltType = cast<VectorType>(MatMul->getType())->getElementType();
-    ShapeInfo LShape(MatMul->getArgOperand(2), MatMul->getArgOperand(3));
-    ShapeInfo RShape(MatMul->getArgOperand(3), MatMul->getArgOperand(4));
+    ShapeInfo const LShape(MatMul->getArgOperand(2), MatMul->getArgOperand(3));
+    ShapeInfo const RShape(MatMul->getArgOperand(3), MatMul->getArgOperand(4));
 
     const MatrixTy &Lhs = getMatrix(MatMul->getArgOperand(0), LShape, Builder);
     const MatrixTy &Rhs = getMatrix(MatMul->getArgOperand(1), RShape, Builder);
@@ -1657,7 +1657,7 @@ public:
     IRBuilder<> Builder(Inst);
     Value *InputVal = Inst->getArgOperand(0);
     VectorType *VectorTy = cast<VectorType>(InputVal->getType());
-    ShapeInfo ArgShape(Inst->getArgOperand(1), Inst->getArgOperand(2));
+    ShapeInfo const ArgShape(Inst->getArgOperand(1), Inst->getArgOperand(2));
     MatrixTy InputMatrix = getMatrix(InputVal, ArgShape, Builder);
 
     const unsigned NewNumVecs =
@@ -1723,11 +1723,11 @@ public:
     Value *Rhs = Inst->getOperand(1);
 
     IRBuilder<> Builder(Inst);
-    ShapeInfo &Shape = I->second;
+    ShapeInfo  const&Shape = I->second;
 
     MatrixTy Result;
-    MatrixTy A = getMatrix(Lhs, Shape, Builder);
-    MatrixTy B = getMatrix(Rhs, Shape, Builder);
+    MatrixTy const A = getMatrix(Lhs, Shape, Builder);
+    MatrixTy const B = getMatrix(Rhs, Shape, Builder);
     assert(A.isColumnMajor() == B.isColumnMajor() &&
            Result.isColumnMajor() == A.isColumnMajor() &&
            "operands must agree on matrix layout");
@@ -1773,10 +1773,10 @@ public:
     Value *Op = Inst->getOperand(0);
 
     IRBuilder<> Builder(Inst);
-    ShapeInfo &Shape = I->second;
+    ShapeInfo  const&Shape = I->second;
 
     MatrixTy Result;
-    MatrixTy M = getMatrix(Op, Shape, Builder);
+    MatrixTy const M = getMatrix(Op, Shape, Builder);
 
     Builder.setFastMathFlags(getFastMathFlags(Inst));
 
@@ -1891,7 +1891,7 @@ public:
       if (!CI->getCalledFunction())
         write("<no called fn>");
       else {
-        StringRef Name = CI->getCalledFunction()->getName();
+        StringRef const Name = CI->getCalledFunction()->getName();
         if (!Name.startswith("llvm.matrix")) {
           write(Name);
           return;
@@ -2006,14 +2006,14 @@ public:
         for (Value *S : SI->second) {
           if (S == Leaf)
             continue;
-          DebugLoc DL = cast<Instruction>(S)->getDebugLoc();
+          DebugLoc const DL = cast<Instruction>(S)->getDebugLoc();
           write("shared with remark at line " + std::to_string(DL.getLine()) +
                 " column " + std::to_string(DL.getCol()) + " (");
         }
         ExprShared = SI->second.size() > 1;
       }
 
-      bool Reused = !ReusedExprs.insert(Expr).second;
+      bool const Reused = !ReusedExprs.insert(Expr).second;
       if (Reused && !ParentReused)
         write("(reused) ");
 
@@ -2171,7 +2171,7 @@ public:
         }
       }
       for (auto &KV : Subprog2Exprs) {
-        SmallSetVector<Value *, 32> ExprsInSubprogram(KV.second.begin(),
+        SmallSetVector<Value *, 32> const ExprsInSubprogram(KV.second.begin(),
                                                       KV.second.end());
         auto Leaves = getExpressionLeaves(ExprsInSubprogram);
 
@@ -2282,7 +2282,7 @@ public:
     auto &DT = getAnalysis<DominatorTreeWrapperPass>().getDomTree();
     auto &LI = getAnalysis<LoopInfoWrapperPass>().getLoopInfo();
     LowerMatrixIntrinsics LMT(F, TTI, &AA, &DT, &LI, &ORE);
-    bool C = LMT.Visit();
+    bool const C = LMT.Visit();
     return C;
   }
 
@@ -2331,7 +2331,7 @@ public:
   bool runOnFunction(Function &F) override {
     auto &TTI = getAnalysis<TargetTransformInfoWrapperPass>().getTTI(F);
     LowerMatrixIntrinsics LMT(F, TTI, nullptr, nullptr, nullptr, nullptr);
-    bool C = LMT.Visit();
+    bool const C = LMT.Visit();
     return C;
   }
 

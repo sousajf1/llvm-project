@@ -29,15 +29,15 @@ void llvm::createMemCpyLoopKnownSize(Instruction *InsertBefore, Value *SrcAddr,
   LLVMContext &Ctx = PreLoopBB->getContext();
   const DataLayout &DL = ParentFunc->getParent()->getDataLayout();
 
-  unsigned SrcAS = cast<PointerType>(SrcAddr->getType())->getAddressSpace();
-  unsigned DstAS = cast<PointerType>(DstAddr->getType())->getAddressSpace();
+  unsigned const SrcAS = cast<PointerType>(SrcAddr->getType())->getAddressSpace();
+  unsigned const DstAS = cast<PointerType>(DstAddr->getType())->getAddressSpace();
 
   Type *TypeOfCopyLen = CopyLen->getType();
   Type *LoopOpType = TTI.getMemcpyLoopLoweringType(
       Ctx, CopyLen, SrcAS, DstAS, SrcAlign.value(), DstAlign.value());
 
-  unsigned LoopOpSize = DL.getTypeStoreSize(LoopOpType);
-  uint64_t LoopEndCount = CopyLen->getZExtValue() / LoopOpSize;
+  unsigned const LoopOpSize = DL.getTypeStoreSize(LoopOpType);
+  uint64_t const LoopEndCount = CopyLen->getZExtValue() / LoopOpSize;
 
   if (LoopEndCount != 0) {
     // Split
@@ -59,8 +59,8 @@ void llvm::createMemCpyLoopKnownSize(Instruction *InsertBefore, Value *SrcAddr,
       DstAddr = PLBuilder.CreateBitCast(DstAddr, DstOpType);
     }
 
-    Align PartDstAlign(commonAlignment(DstAlign, LoopOpSize));
-    Align PartSrcAlign(commonAlignment(SrcAlign, LoopOpSize));
+    Align const PartDstAlign(commonAlignment(DstAlign, LoopOpSize));
+    Align const PartSrcAlign(commonAlignment(SrcAlign, LoopOpSize));
 
     IRBuilder<> LoopBuilder(LoopBB);
     PHINode *LoopIndex = LoopBuilder.CreatePHI(TypeOfCopyLen, 2, "loop-index");
@@ -85,7 +85,7 @@ void llvm::createMemCpyLoopKnownSize(Instruction *InsertBefore, Value *SrcAddr,
   }
 
   uint64_t BytesCopied = LoopEndCount * LoopOpSize;
-  uint64_t RemainingBytes = CopyLen->getZExtValue() - BytesCopied;
+  uint64_t const RemainingBytes = CopyLen->getZExtValue() - BytesCopied;
   if (RemainingBytes) {
     IRBuilder<> RBuilder(PostLoopBB ? PostLoopBB->getFirstNonPHI()
                                     : InsertBefore);
@@ -96,12 +96,12 @@ void llvm::createMemCpyLoopKnownSize(Instruction *InsertBefore, Value *SrcAddr,
                                           DstAlign.value());
 
     for (auto OpTy : RemainingOps) {
-      Align PartSrcAlign(commonAlignment(SrcAlign, BytesCopied));
-      Align PartDstAlign(commonAlignment(DstAlign, BytesCopied));
+      Align const PartSrcAlign(commonAlignment(SrcAlign, BytesCopied));
+      Align const PartDstAlign(commonAlignment(DstAlign, BytesCopied));
 
       // Calaculate the new index
-      unsigned OperandSize = DL.getTypeStoreSize(OpTy);
-      uint64_t GepIndex = BytesCopied / OperandSize;
+      unsigned const OperandSize = DL.getTypeStoreSize(OpTy);
+      uint64_t const GepIndex = BytesCopied / OperandSize;
       assert(GepIndex * OperandSize == BytesCopied &&
              "Division should have no Remainder!");
       // Cast source to operand type and load
@@ -143,12 +143,12 @@ void llvm::createMemCpyLoopUnknownSize(Instruction *InsertBefore,
   Function *ParentFunc = PreLoopBB->getParent();
   const DataLayout &DL = ParentFunc->getParent()->getDataLayout();
   LLVMContext &Ctx = PreLoopBB->getContext();
-  unsigned SrcAS = cast<PointerType>(SrcAddr->getType())->getAddressSpace();
-  unsigned DstAS = cast<PointerType>(DstAddr->getType())->getAddressSpace();
+  unsigned const SrcAS = cast<PointerType>(SrcAddr->getType())->getAddressSpace();
+  unsigned const DstAS = cast<PointerType>(DstAddr->getType())->getAddressSpace();
 
   Type *LoopOpType = TTI.getMemcpyLoopLoweringType(
       Ctx, CopyLen, SrcAS, DstAS, SrcAlign.value(), DstAlign.value());
-  unsigned LoopOpSize = DL.getTypeStoreSize(LoopOpType);
+  unsigned const LoopOpSize = DL.getTypeStoreSize(LoopOpType);
 
   IRBuilder<> PLBuilder(PreLoopBB->getTerminator());
 
@@ -167,7 +167,7 @@ void llvm::createMemCpyLoopUnknownSize(Instruction *InsertBefore,
   assert(ILengthType &&
          "expected size argument to memcpy to be an integer type!");
   Type *Int8Type = Type::getInt8Ty(Ctx);
-  bool LoopOpIsInt8 = LoopOpType == Int8Type;
+  bool const LoopOpIsInt8 = LoopOpType == Int8Type;
   ConstantInt *CILoopOpSize = ConstantInt::get(ILengthType, LoopOpSize);
   Value *RuntimeLoopCount = LoopOpIsInt8 ?
                             CopyLen :
@@ -176,8 +176,8 @@ void llvm::createMemCpyLoopUnknownSize(Instruction *InsertBefore,
       BasicBlock::Create(Ctx, "loop-memcpy-expansion", ParentFunc, PostLoopBB);
   IRBuilder<> LoopBuilder(LoopBB);
 
-  Align PartSrcAlign(commonAlignment(SrcAlign, LoopOpSize));
-  Align PartDstAlign(commonAlignment(DstAlign, LoopOpSize));
+  Align const PartSrcAlign(commonAlignment(SrcAlign, LoopOpSize));
+  Align const PartDstAlign(commonAlignment(DstAlign, LoopOpSize));
 
   PHINode *LoopIndex = LoopBuilder.CreatePHI(CopyLenType, 2, "loop-index");
   LoopIndex->addIncoming(ConstantInt::get(CopyLenType, 0U), PreLoopBB);
@@ -323,9 +323,9 @@ static void createMemMoveLoop(Instruction *InsertBefore, Value *SrcAddr,
   BasicBlock *ExitBB = InsertBefore->getParent();
   ExitBB->setName("memmove_done");
 
-  unsigned PartSize = DL.getTypeStoreSize(EltTy);
-  Align PartSrcAlign(commonAlignment(SrcAlign, PartSize));
-  Align PartDstAlign(commonAlignment(DstAlign, PartSize));
+  unsigned const PartSize = DL.getTypeStoreSize(EltTy);
+  Align const PartSrcAlign(commonAlignment(SrcAlign, PartSize));
+  Align const PartDstAlign(commonAlignment(DstAlign, PartSize));
 
   // Initial comparison of n == 0 that lets us skip the loops altogether. Shared
   // between both backwards and forward copy clauses.
@@ -390,7 +390,7 @@ static void createMemSetLoop(Instruction *InsertBefore, Value *DstAddr,
   IRBuilder<> Builder(OrigBB->getTerminator());
 
   // Cast pointer to the type of value getting stored
-  unsigned dstAS = cast<PointerType>(DstAddr->getType())->getAddressSpace();
+  unsigned const dstAS = cast<PointerType>(DstAddr->getType())->getAddressSpace();
   DstAddr = Builder.CreateBitCast(DstAddr,
                                   PointerType::get(SetValue->getType(), dstAS));
 
@@ -399,8 +399,8 @@ static void createMemSetLoop(Instruction *InsertBefore, Value *DstAddr,
       LoopBB);
   OrigBB->getTerminator()->eraseFromParent();
 
-  unsigned PartSize = DL.getTypeStoreSize(SetValue->getType());
-  Align PartAlign(commonAlignment(DstAlign, PartSize));
+  unsigned const PartSize = DL.getTypeStoreSize(SetValue->getType());
+  Align const PartAlign(commonAlignment(DstAlign, PartSize));
 
   IRBuilder<> LoopBuilder(LoopBB);
   PHINode *LoopIndex = LoopBuilder.CreatePHI(TypeOfCopyLen, 0);

@@ -285,8 +285,8 @@ static bool tryInterleave(Instruction *Start,
   assert(!Truncs.empty() && "Expected some truncs");
 
   // Check types
-  unsigned NumElts = VT->getNumElements();
-  unsigned BaseElts = VT->getScalarSizeInBits() == 16
+  unsigned const NumElts = VT->getNumElements();
+  unsigned const BaseElts = VT->getScalarSizeInBits() == 16
                           ? 8
                           : (VT->getScalarSizeInBits() == 8 ? 16 : 0);
   if (BaseElts == 0 || NumElts % BaseElts != 0) {
@@ -337,8 +337,8 @@ static bool tryInterleave(Instruction *Start,
     LLVM_DEBUG(dbgs() << "Replacing ext " << *I << "\n");
     Builder.SetInsertPoint(I);
     Value *Shuffle = Builder.CreateShuffleVector(I->getOperand(0), LeafMask);
-    bool FPext = isa<FPExtInst>(I);
-    bool Sext = isa<SExtInst>(I);
+    bool const FPext = isa<FPExtInst>(I);
+    bool const Sext = isa<SExtInst>(I);
     Value *Ext = FPext ? Builder.CreateFPExt(Shuffle, I->getType())
                        : Sext ? Builder.CreateSExt(Shuffle, I->getType())
                               : Builder.CreateZExt(Shuffle, I->getType());

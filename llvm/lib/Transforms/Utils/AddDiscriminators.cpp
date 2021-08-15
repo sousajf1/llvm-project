@@ -205,7 +205,7 @@ static bool addDiscriminators(Function &F) {
       const DILocation *DIL = I.getDebugLoc();
       if (!DIL)
         continue;
-      Location L = std::make_pair(DIL->getFilename(), DIL->getLine());
+      Location const L = std::make_pair(DIL->getFilename(), DIL->getLine());
       auto &BBMap = LBM[L];
       auto R = BBMap.insert(&B);
       if (BBMap.size() == 1)
@@ -214,7 +214,7 @@ static bool addDiscriminators(Function &F) {
       // discriminator is needed to distinguish both instructions.
       // Only the lowest 7 bits are used to represent a discriminator to fit
       // it in 1 byte ULEB128 representation.
-      unsigned Discriminator = R.second ? ++LDM[L] : LDM[L];
+      unsigned const Discriminator = R.second ? ++LDM[L] : LDM[L];
       auto NewDIL = DIL->cloneWithBaseDiscriminator(Discriminator);
       if (!NewDIL) {
         LLVM_DEBUG(dbgs() << "Could not encode discriminator: "
@@ -248,10 +248,10 @@ static bool addDiscriminators(Function &F) {
       DILocation *CurrentDIL = I.getDebugLoc();
       if (!CurrentDIL)
         continue;
-      Location L =
+      Location const L =
           std::make_pair(CurrentDIL->getFilename(), CurrentDIL->getLine());
       if (!CallLocations.insert(L).second) {
-        unsigned Discriminator = ++LDM[L];
+        unsigned const Discriminator = ++LDM[L];
         auto NewDIL = CurrentDIL->cloneWithBaseDiscriminator(Discriminator);
         if (!NewDIL) {
           LLVM_DEBUG(dbgs()

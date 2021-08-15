@@ -113,7 +113,7 @@ static InputIt find_best(InputIt First, InputIt Last, UnaryPredicate Predicate,
   InputIt Best = Last;
 
   for (InputIt I = First; I != Last; ++I) {
-    unsigned Matched = Predicate(*I);
+    unsigned const Matched = Predicate(*I);
     if (Matched != FindBest_NoMatch) {
       LLVM_DEBUG(dbgs() << std::distance(First, I) << " is a match (";
                  I->print(dbgs()); dbgs() << ")\n");
@@ -139,7 +139,7 @@ static InputIt find_best(InputIt First, InputIt Last, UnaryPredicate Predicate,
 /// R_(MIPS|MICROMIPS|MIPS16)_HI16 for all symbols and
 /// R_(MIPS|MICROMIPS|MIPS16)_GOT16 for local symbols only.
 static unsigned getMatchingLoType(const ELFRelocationEntry &Reloc) {
-  unsigned Type = Reloc.Type;
+  unsigned const Type = Reloc.Type;
   if (Type == ELF::R_MIPS_HI16)
     return ELF::R_MIPS_LO16;
   if (Type == ELF::R_MICROMIPS_HI16)
@@ -219,7 +219,7 @@ unsigned MipsELFObjectWriter::getRelocType(MCContext &Ctx,
                                            const MCFixup &Fixup,
                                            bool IsPCRel) const {
   // Determine the type of the relocation.
-  unsigned Kind = Fixup.getTargetKind();
+  unsigned const Kind = Fixup.getTargetKind();
 
   switch (Kind) {
   case FK_NONE:
@@ -662,9 +662,9 @@ bool MipsELFObjectWriter::needsRelocateWithSymbol(const MCSymbol &Sym,
 
 std::unique_ptr<MCObjectTargetWriter>
 llvm::createMipsELFObjectWriter(const Triple &TT, bool IsN32) {
-  uint8_t OSABI = MCELFObjectTargetWriter::getOSABI(TT.getOS());
-  bool IsN64 = TT.isArch64Bit() && !IsN32;
-  bool HasRelocationAddend = TT.isArch64Bit();
+  uint8_t const OSABI = MCELFObjectTargetWriter::getOSABI(TT.getOS());
+  bool const IsN64 = TT.isArch64Bit() && !IsN32;
+  bool const HasRelocationAddend = TT.isArch64Bit();
   return std::make_unique<MipsELFObjectWriter>(OSABI, HasRelocationAddend,
                                                 IsN64);
 }

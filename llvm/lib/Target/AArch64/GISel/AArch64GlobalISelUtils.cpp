@@ -24,7 +24,7 @@ AArch64GISelUtils::getAArch64VectorSplat(const MachineInstr &MI,
     return Splat;
   if (MI.getOpcode() != AArch64::G_DUP)
     return None;
-  Register Src = MI.getOperand(1).getReg();
+  Register const Src = MI.getOperand(1).getReg();
   if (auto ValAndVReg =
           getConstantVRegValWithLookThrough(MI.getOperand(1).getReg(), MRI))
     return RegOrConstant(ValAndVReg->Value.getSExtValue());
@@ -64,7 +64,7 @@ bool AArch64GISelUtils::tryEmitBZero(MachineInstr &MI,
                                      MachineIRBuilder &MIRBuilder,
                                      bool MinSize) {
   assert(MI.getOpcode() == TargetOpcode::G_MEMSET);
-  MachineRegisterInfo &MRI = *MIRBuilder.getMRI();
+  MachineRegisterInfo  const&MRI = *MIRBuilder.getMRI();
   auto &TLI = *MIRBuilder.getMF().getSubtarget().getTargetLowering();
   if (!TLI.getLibcallName(RTLIB::BZERO))
     return false;

@@ -348,7 +348,7 @@ transformFunctionAttributes(const TransformedFunction &TransformedFunction,
   // old argument position to new.
   for (unsigned I = 0, IE = TransformedFunction.ArgumentIndexMapping.size();
        I < IE; ++I) {
-    unsigned TransformedIndex = TransformedFunction.ArgumentIndexMapping[I];
+    unsigned const TransformedIndex = TransformedFunction.ArgumentIndexMapping[I];
     ArgumentAttributes[TransformedIndex] = CallSiteAttrs.getParamAttrs(I);
   }
 
@@ -875,7 +875,7 @@ bool DataFlowSanitizer::isZeroShadow(Value *V) {
 }
 
 bool DataFlowSanitizer::hasLoadSizeForFastPath(uint64_t Size) {
-  uint64_t ShadowSize = Size * ShadowWidthBytes;
+  uint64_t const ShadowSize = Size * ShadowWidthBytes;
   return ShadowSize % 8 == 0 || ShadowSize == 4;
 }
 
@@ -1033,7 +1033,7 @@ Type *DataFlowSanitizer::getShadowTy(Value *V) {
 }
 
 bool DataFlowSanitizer::initializeModule(Module &M) {
-  Triple TargetTriple(M.getTargetTriple());
+  Triple const TargetTriple(M.getTargetTriple());
   const DataLayout &DL = M.getDataLayout();
 
   if (TargetTriple.getOS() != Triple::Linux)
@@ -1053,16 +1053,16 @@ bool DataFlowSanitizer::initializeModule(Module &M) {
   ZeroPrimitiveShadow = ConstantInt::getSigned(PrimitiveShadowTy, 0);
   ZeroOrigin = ConstantInt::getSigned(OriginTy, 0);
 
-  Type *DFSanUnionLoadArgs[2] = {PrimitiveShadowPtrTy, IntptrTy};
+  Type *const DFSanUnionLoadArgs[2] = {PrimitiveShadowPtrTy, IntptrTy};
   DFSanUnionLoadFnTy = FunctionType::get(PrimitiveShadowTy, DFSanUnionLoadArgs,
                                          /*isVarArg=*/false);
-  Type *DFSanLoadLabelAndOriginArgs[2] = {Int8Ptr, IntptrTy};
+  Type *const DFSanLoadLabelAndOriginArgs[2] = {Int8Ptr, IntptrTy};
   DFSanLoadLabelAndOriginFnTy =
       FunctionType::get(IntegerType::get(*Ctx, 64), DFSanLoadLabelAndOriginArgs,
                         /*isVarArg=*/false);
   DFSanUnimplementedFnTy = FunctionType::get(
       Type::getVoidTy(*Ctx), Type::getInt8PtrTy(*Ctx), /*isVarArg=*/false);
-  Type *DFSanSetLabelArgs[4] = {PrimitiveShadowTy, OriginTy,
+  Type *const DFSanSetLabelArgs[4] = {PrimitiveShadowTy, OriginTy,
                                 Type::getInt8PtrTy(*Ctx), IntptrTy};
   DFSanSetLabelFnTy = FunctionType::get(Type::getVoidTy(*Ctx),
                                         DFSanSetLabelArgs, /*isVarArg=*/false);
@@ -1075,21 +1075,21 @@ bool DataFlowSanitizer::initializeModule(Module &M) {
                         /*isVarArg=*/false);
   DFSanChainOriginFnTy =
       FunctionType::get(OriginTy, OriginTy, /*isVarArg=*/false);
-  Type *DFSanChainOriginIfTaintedArgs[2] = {PrimitiveShadowTy, OriginTy};
+  Type *const DFSanChainOriginIfTaintedArgs[2] = {PrimitiveShadowTy, OriginTy};
   DFSanChainOriginIfTaintedFnTy = FunctionType::get(
       OriginTy, DFSanChainOriginIfTaintedArgs, /*isVarArg=*/false);
-  Type *DFSanMaybeStoreOriginArgs[4] = {IntegerType::get(*Ctx, ShadowWidthBits),
+  Type *const DFSanMaybeStoreOriginArgs[4] = {IntegerType::get(*Ctx, ShadowWidthBits),
                                         Int8Ptr, IntptrTy, OriginTy};
   DFSanMaybeStoreOriginFnTy = FunctionType::get(
       Type::getVoidTy(*Ctx), DFSanMaybeStoreOriginArgs, /*isVarArg=*/false);
-  Type *DFSanMemOriginTransferArgs[3] = {Int8Ptr, Int8Ptr, IntptrTy};
+  Type *const DFSanMemOriginTransferArgs[3] = {Int8Ptr, Int8Ptr, IntptrTy};
   DFSanMemOriginTransferFnTy = FunctionType::get(
       Type::getVoidTy(*Ctx), DFSanMemOriginTransferArgs, /*isVarArg=*/false);
-  Type *DFSanLoadStoreCallbackArgs[2] = {PrimitiveShadowTy, Int8Ptr};
+  Type *const DFSanLoadStoreCallbackArgs[2] = {PrimitiveShadowTy, Int8Ptr};
   DFSanLoadStoreCallbackFnTy =
       FunctionType::get(Type::getVoidTy(*Ctx), DFSanLoadStoreCallbackArgs,
                         /*isVarArg=*/false);
-  Type *DFSanMemTransferCallbackArgs[2] = {PrimitiveShadowPtrTy, IntptrTy};
+  Type *const DFSanMemTransferCallbackArgs[2] = {PrimitiveShadowPtrTy, IntptrTy};
   DFSanMemTransferCallbackFnTy =
       FunctionType::get(Type::getVoidTy(*Ctx), DFSanMemTransferCallbackArgs,
                         /*isVarArg=*/false);
@@ -1132,7 +1132,7 @@ void DataFlowSanitizer::addGlobalNameSuffix(GlobalValue *GV) {
   // Note that the substitution for .symver assumes that the versioned symbol
   // also has an instrumented name.
   std::string Asm = GV->getParent()->getModuleInlineAsm();
-  std::string SearchStr = ".symver " + GVName + ",";
+  std::string const SearchStr = ".symver " + GVName + ",";
   size_t Pos = Asm.find(SearchStr);
   if (Pos != std::string::npos) {
     Asm.replace(Pos, SearchStr.size(), ".symver " + GVName + Suffix + ",");
@@ -1168,7 +1168,7 @@ DataFlowSanitizer::buildWrapperFunction(Function *F, StringRef NewFName,
     new UnreachableInst(*Ctx, BB);
   } else {
     auto ArgIt = pointer_iterator<Argument *>(NewF->arg_begin());
-    std::vector<Value *> Args(ArgIt, ArgIt + FT->getNumParams());
+    std::vector<Value *> const Args(ArgIt, ArgIt + FT->getNumParams());
 
     CallInst *CI = CallInst::Create(F, Args, "", BB);
     if (FT->getReturnType()->isVoidTy())
@@ -1452,7 +1452,7 @@ bool DataFlowSanitizer::runImpl(Module &M) {
     Function &F = **FI;
     FunctionType *FT = F.getFunctionType();
 
-    bool IsZeroArgsVoidRet = (FT->getNumParams() == 0 && !FT->isVarArg() &&
+    bool const IsZeroArgsVoidRet = (FT->getNumParams() == 0 && !FT->isVarArg() &&
                               FT->getReturnType()->isVoidTy());
 
     if (isInstrumented(&F)) {
@@ -1503,7 +1503,7 @@ bool DataFlowSanitizer::runImpl(Module &M) {
 
       // If the function being wrapped has local linkage, then preserve the
       // function's linkage in the wrapper function.
-      GlobalValue::LinkageTypes WrapperLinkage =
+      GlobalValue::LinkageTypes const WrapperLinkage =
           F.hasLocalLinkage() ? F.getLinkage()
                               : GlobalValue::LinkOnceODRLinkage;
 
@@ -1556,7 +1556,7 @@ bool DataFlowSanitizer::runImpl(Module &M) {
 
     // DFSanVisitor may create new basic blocks, which confuses df_iterator.
     // Build a copy of the list before iterating over it.
-    SmallVector<BasicBlock *, 4> BBList(depth_first(&F->getEntryBlock()));
+    SmallVector<BasicBlock *, 4> const BBList(depth_first(&F->getEntryBlock()));
 
     for (BasicBlock *BB : BBList) {
       Instruction *Inst = &BB->front();
@@ -1567,7 +1567,7 @@ bool DataFlowSanitizer::runImpl(Module &M) {
         Instruction *Next = Inst->getNextNode();
         // DFSanVisitor may delete Inst, so keep track of whether it was a
         // terminator.
-        bool IsTerminator = Inst->isTerminator();
+        bool const IsTerminator = Inst->isTerminator();
         if (!DFSF.SkipInsts.count(Inst))
           DFSanVisitor(DFSF).visit(Inst);
         if (IsTerminator)
@@ -1692,7 +1692,7 @@ Value *DFSanFunction::getShadowForTLSArgument(Argument *A) {
       continue;
     }
 
-    unsigned Size = DL.getTypeAllocSize(DFS.getShadowTy(&FArg));
+    unsigned const Size = DL.getTypeAllocSize(DFS.getShadowTy(&FArg));
     if (A != &FArg) {
       ArgOffset += alignTo(Size, ShadowTLSAlignment);
       if (ArgOffset > ArgTLSSize)
@@ -1727,7 +1727,7 @@ Value *DFSanFunction::getShadow(Value *V) {
         break;
       }
       case DataFlowSanitizer::IA_Args: {
-        unsigned ArgIdx = A->getArgNo() + F->arg_size() / 2;
+        unsigned const ArgIdx = A->getArgNo() + F->arg_size() / 2;
         Function::arg_iterator Arg = F->arg_begin();
         std::advance(Arg, ArgIdx);
         Shadow = &*Arg;
@@ -1758,12 +1758,12 @@ Value *DataFlowSanitizer::getShadowOffset(Value *Addr, IRBuilder<> &IRB) {
   assert(Addr != RetvalTLS && "Reinstrumenting?");
   Value *OffsetLong = IRB.CreatePointerCast(Addr, IntptrTy);
 
-  uint64_t AndMask = MapParams->AndMask;
+  uint64_t const AndMask = MapParams->AndMask;
   if (AndMask)
     OffsetLong =
         IRB.CreateAnd(OffsetLong, ConstantInt::get(IntptrTy, ~AndMask));
 
-  uint64_t XorMask = MapParams->XorMask;
+  uint64_t const XorMask = MapParams->XorMask;
   if (XorMask)
     OffsetLong = IRB.CreateXor(OffsetLong, ConstantInt::get(IntptrTy, XorMask));
   return OffsetLong;
@@ -1776,7 +1776,7 @@ DataFlowSanitizer::getShadowOriginAddress(Value *Addr, Align InstAlignment,
   IRBuilder<> IRB(Pos);
   Value *ShadowOffset = getShadowOffset(Addr, IRB);
   Value *ShadowLong = ShadowOffset;
-  uint64_t ShadowBase = MapParams->ShadowBase;
+  uint64_t const ShadowBase = MapParams->ShadowBase;
   if (ShadowBase != 0) {
     ShadowLong =
         IRB.CreateAdd(ShadowLong, ConstantInt::get(IntptrTy, ShadowBase));
@@ -1787,7 +1787,7 @@ DataFlowSanitizer::getShadowOriginAddress(Value *Addr, Align InstAlignment,
   Value *OriginPtr = nullptr;
   if (shouldTrackOrigins()) {
     Value *OriginLong = ShadowOffset;
-    uint64_t OriginBase = MapParams->OriginBase;
+    uint64_t const OriginBase = MapParams->OriginBase;
     if (OriginBase != 0)
       OriginLong =
           IRB.CreateAdd(OriginLong, ConstantInt::get(IntptrTy, OriginBase));
@@ -1795,7 +1795,7 @@ DataFlowSanitizer::getShadowOriginAddress(Value *Addr, Align InstAlignment,
     // When alignment is >= 4, Addr must be aligned to 4, otherwise it is UB.
     // So Mask is unnecessary.
     if (Alignment < MinOriginAlignment) {
-      uint64_t Mask = MinOriginAlignment.value() - 1;
+      uint64_t const Mask = MinOriginAlignment.value() - 1;
       OriginLong = IRB.CreateAnd(OriginLong, ConstantInt::get(IntptrTy, ~Mask));
     }
     OriginPtr = IRB.CreateIntToPtr(OriginLong, OriginPtrTy);
@@ -1905,7 +1905,7 @@ Value *DFSanFunction::combineOrigins(const std::vector<Value *> &Shadows,
                                      const std::vector<Value *> &Origins,
                                      Instruction *Pos, ConstantInt *Zero) {
   assert(Shadows.size() == Origins.size());
-  size_t Size = Origins.size();
+  size_t const Size = Origins.size();
   if (Size == 0)
     return DFS.ZeroOrigin;
   Value *Origin = nullptr;
@@ -1930,7 +1930,7 @@ Value *DFSanFunction::combineOrigins(const std::vector<Value *> &Shadows,
 }
 
 Value *DFSanFunction::combineOperandOrigins(Instruction *Inst) {
-  size_t Size = Inst->getNumOperands();
+  size_t const Size = Inst->getNumOperands();
   std::vector<Value *> Shadows(Size);
   std::vector<Value *> Origins(Size);
   for (unsigned I = 0; I != Size; ++I) {
@@ -2162,7 +2162,7 @@ std::pair<Value *, Value *> DFSanFunction::loadShadowOriginSansLoadTracking(
     return {combineShadows(Load, Load1, Pos), Origin};
   }
   }
-  bool HasSizeForFastPath = DFS.hasLoadSizeForFastPath(Size);
+  bool const HasSizeForFastPath = DFS.hasLoadSizeForFastPath(Size);
 
   if (HasSizeForFastPath)
     return loadShadowFast(ShadowAddr, OriginAddr, Size, ShadowAlign,
@@ -2212,7 +2212,7 @@ static AtomicOrdering addAcquireOrdering(AtomicOrdering AO) {
 
 void DFSanVisitor::visitLoadInst(LoadInst &LI) {
   auto &DL = LI.getModule()->getDataLayout();
-  uint64_t Size = DL.getTypeStoreSize(LI.getType());
+  uint64_t const Size = DL.getTypeStoreSize(LI.getType());
   if (Size == 0) {
     DFSF.setShadow(&LI, DFSF.DFS.getZeroShadow(&LI));
     DFSF.setOrigin(&LI, DFSF.DFS.ZeroOrigin);
@@ -2279,7 +2279,7 @@ Value *DFSanFunction::updateOrigin(Value *V, IRBuilder<> &IRB) {
 Value *DFSanFunction::originToIntptr(IRBuilder<> &IRB, Value *Origin) {
   const unsigned OriginSize = DataFlowSanitizer::OriginWidthBytes;
   const DataLayout &DL = F->getParent()->getDataLayout();
-  unsigned IntptrSize = DL.getTypeStoreSize(DFS.IntptrTy);
+  unsigned const IntptrSize = DL.getTypeStoreSize(DFS.IntptrTy);
   if (IntptrSize == OriginSize)
     return Origin;
   assert(IntptrSize == OriginSize * 2);
@@ -2293,7 +2293,7 @@ void DFSanFunction::paintOrigin(IRBuilder<> &IRB, Value *Origin,
   const unsigned OriginSize = DataFlowSanitizer::OriginWidthBytes;
   const DataLayout &DL = F->getParent()->getDataLayout();
   const Align IntptrAlignment = DL.getABITypeAlign(DFS.IntptrTy);
-  unsigned IntptrSize = DL.getTypeStoreSize(DFS.IntptrTy);
+  unsigned const IntptrSize = DL.getTypeStoreSize(DFS.IntptrTy);
   assert(IntptrAlignment >= MinOriginAlignment);
   assert(IntptrSize >= OriginSize);
 
@@ -2473,7 +2473,7 @@ static AtomicOrdering addReleaseOrdering(AtomicOrdering AO) {
 void DFSanVisitor::visitStoreInst(StoreInst &SI) {
   auto &DL = SI.getModule()->getDataLayout();
   Value *Val = SI.getValueOperand();
-  uint64_t Size = DL.getTypeStoreSize(Val->getType());
+  uint64_t const Size = DL.getTypeStoreSize(Val->getType());
   if (Size == 0)
     return;
 
@@ -2526,13 +2526,13 @@ void DFSanVisitor::visitCASOrRMW(Align InstAlignment, Instruction &I) {
 
   Value *Val = I.getOperand(1);
   const auto &DL = I.getModule()->getDataLayout();
-  uint64_t Size = DL.getTypeStoreSize(Val->getType());
+  uint64_t const Size = DL.getTypeStoreSize(Val->getType());
   if (Size == 0)
     return;
 
   // Conservatively set data at stored addresses and return with zero shadow to
   // prevent shadow data races.
-  IRBuilder<> IRB(&I);
+  IRBuilder<> const IRB(&I);
   Value *Addr = I.getOperand(0);
   const Align ShadowAlign = DFSF.getShadowAlign(InstAlignment);
   DFSF.storeZeroPrimitiveShadow(Addr, Size, ShadowAlign, &I);
@@ -2807,7 +2807,7 @@ void DFSanVisitor::visitReturnInst(ReturnInst &RI) {
       Value *S = DFSF.getShadow(RI.getReturnValue());
       IRBuilder<> IRB(&RI);
       Type *RT = DFSF.F->getFunctionType()->getReturnType();
-      unsigned Size =
+      unsigned const Size =
           getDataLayout().getTypeAllocSize(DFSF.DFS.getShadowTy(RT));
       if (Size <= RetvalTLSSize) {
         // If the size overflows, stores nothing. At callsite, oversized return
@@ -2943,7 +2943,7 @@ bool DFSanVisitor::visitWrappedCallBase(Function &F, CallBase &CB) {
 
     const bool ShouldTrackOrigins = DFSF.DFS.shouldTrackOrigins();
     FunctionType *FT = F.getFunctionType();
-    TransformedFunction CustomFn = DFSF.DFS.getCustomFunctionType(FT);
+    TransformedFunction const CustomFn = DFSF.DFS.getCustomFunctionType(FT);
     std::string CustomFName = ShouldTrackOrigins ? "__dfso_" : "__dfsw_";
     CustomFName += F.getName();
     FunctionCallee CustomF = DFSF.DFS.Mod->getOrInsertFunction(
@@ -3046,7 +3046,7 @@ void DFSanVisitor::visitCallBase(CallBase &CB) {
   if (F == DFSF.DFS.DFSanVarargWrapperFn.getCallee()->stripPointerCasts())
     return;
 
-  DenseMap<Value *, Function *>::iterator UnwrappedFnIt =
+  DenseMap<Value *, Function *>::iterator const UnwrappedFnIt =
       DFSF.DFS.UnwrappedFnMap.find(CB.getCalledOperand());
   if (UnwrappedFnIt != DFSF.DFS.UnwrappedFnMap.end())
     if (visitWrappedCallBase(*UnwrappedFnIt->second, CB))
@@ -3070,7 +3070,7 @@ void DFSanVisitor::visitCallBase(CallBase &CB) {
                           DFSF.getArgOriginTLS(I, IRB));
       }
 
-      unsigned Size =
+      unsigned const Size =
           DL.getTypeAllocSize(DFSF.DFS.getShadowTy(FT->getParamType(I)));
       // Stop storing if arguments' size overflows. Inside a function, arguments
       // after overflow have zero shadow values.
@@ -3107,7 +3107,7 @@ void DFSanVisitor::visitCallBase(CallBase &CB) {
       // Loads the return value shadow.
       IRBuilder<> NextIRB(Next);
       const DataLayout &DL = getDataLayout();
-      unsigned Size = DL.getTypeAllocSize(DFSF.DFS.getShadowTy(&CB));
+      unsigned const Size = DL.getTypeAllocSize(DFSF.DFS.getShadowTy(&CB));
       if (Size > RetvalTLSSize) {
         // Set overflowed return shadow to be zero.
         DFSF.setShadow(&CB, DFSF.DFS.getZeroShadow(&CB));
@@ -3150,7 +3150,7 @@ void DFSanVisitor::visitCallBase(CallBase &CB) {
                     [&]() { return DFSF.getShadow(*ArgIt++); });
 
     if (FT->isVarArg()) {
-      unsigned VarArgSize = CB.arg_size() - NumParams;
+      unsigned const VarArgSize = CB.arg_size() - NumParams;
       ArrayType *VarArgArrayTy =
           ArrayType::get(DFSF.DFS.PrimitiveShadowTy, VarArgSize);
       AllocaInst *VarArgShadow =

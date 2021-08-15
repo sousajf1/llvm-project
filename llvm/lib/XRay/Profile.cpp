@@ -270,14 +270,14 @@ Expected<Profile> loadProfile(StringRef Filename) {
         Twine("Cannot get filesize of '") + Filename + "'", EC);
 
   std::error_code EC;
-  sys::fs::mapped_file_region MappedFile(
+  sys::fs::mapped_file_region const MappedFile(
       *FdOrErr, sys::fs::mapped_file_region::mapmode::readonly, FileSize, 0,
       EC);
   sys::fs::closeFile(*FdOrErr);
   if (EC)
     return make_error<StringError>(
         Twine("Cannot mmap profile '") + Filename + "'", EC);
-  StringRef Data(MappedFile.data(), MappedFile.size());
+  StringRef const Data(MappedFile.data(), MappedFile.size());
 
   Profile P;
   uint64_t Offset = 0;

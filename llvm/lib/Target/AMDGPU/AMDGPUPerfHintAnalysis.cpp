@@ -210,7 +210,7 @@ AMDGPUPerfHintAnalysis::FuncInfo *AMDGPUPerfHint::visit(const Function &F) {
     LastAccess = MemAccessInfo();
     for (auto &I : B) {
       if (const Value *Ptr = getMemoryInstrPtr(&I)) {
-        unsigned Size = divideCeil(
+        unsigned const Size = divideCeil(
             Ptr->getType()->getPointerElementType()->getPrimitiveSizeInBits(),
             32);
         if (isIndirectAccess(&I))
@@ -299,7 +299,7 @@ bool AMDGPUPerfHint::needLimitWave(const AMDGPUPerfHintAnalysis::FuncInfo &FI) {
 
 bool AMDGPUPerfHint::isGlobalAddr(const Value *V) const {
   if (auto PT = dyn_cast<PointerType>(V->getType())) {
-    unsigned As = PT->getAddressSpace();
+    unsigned const As = PT->getAddressSpace();
     // Flat likely points to global too.
     return As == AMDGPUAS::GLOBAL_ADDRESS || As == AMDGPUAS::FLAT_ADDRESS;
   }
@@ -316,7 +316,7 @@ bool AMDGPUPerfHint::isLargeStride(const Instruction *Inst) {
   LLVM_DEBUG(dbgs() << "[isLargeStride] " << *Inst << '\n');
 
   MemAccessInfo MAI = makeMemAccessInfo(const_cast<Instruction *>(Inst));
-  bool IsLargeStride = MAI.isLargeStride(LastAccess);
+  bool const IsLargeStride = MAI.isLargeStride(LastAccess);
   if (MAI.Base)
     LastAccess = std::move(MAI);
 
@@ -340,7 +340,7 @@ AMDGPUPerfHint::makeMemAccessInfo(Instruction *Inst) const {
 
 bool AMDGPUPerfHint::isConstantAddr(const Value *V) const {
   if (auto PT = dyn_cast<PointerType>(V->getType())) {
-    unsigned As = PT->getAddressSpace();
+    unsigned const As = PT->getAddressSpace();
     return As == AMDGPUAS::CONSTANT_ADDRESS ||
            As == AMDGPUAS::CONSTANT_ADDRESS_32BIT;
   }
@@ -353,9 +353,9 @@ bool AMDGPUPerfHint::MemAccessInfo::isLargeStride(
   if (!Base || !Reference.Base || Base != Reference.Base)
     return false;
 
-  uint64_t Diff = Offset > Reference.Offset ? Offset - Reference.Offset
+  uint64_t const Diff = Offset > Reference.Offset ? Offset - Reference.Offset
                                             : Reference.Offset - Offset;
-  bool Result = Diff > LargeStrideThresh;
+  bool const Result = Diff > LargeStrideThresh;
   LLVM_DEBUG(dbgs() << "[isLargeStride compare]\n"
                << print() << "<=>\n"
                << Reference.print() << "Result:" << Result << '\n');

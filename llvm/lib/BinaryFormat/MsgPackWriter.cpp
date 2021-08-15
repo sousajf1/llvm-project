@@ -87,7 +87,7 @@ void Writer::write(uint64_t u) {
 
 void Writer::write(double d) {
   // If no loss of precision, encode as a Float32.
-  double a = std::fabs(d);
+  double const a = std::fabs(d);
   if (a >= std::numeric_limits<float>::min() &&
       a <= std::numeric_limits<float>::max()) {
     EW.write(FirstByte::Float32);
@@ -99,7 +99,7 @@ void Writer::write(double d) {
 }
 
 void Writer::write(StringRef s) {
-  size_t Size = s.size();
+  size_t const Size = s.size();
 
   if (Size <= FixMax::String)
     EW.write(static_cast<uint8_t>(FixBits::String | Size));
@@ -121,7 +121,7 @@ void Writer::write(StringRef s) {
 void Writer::write(MemoryBufferRef Buffer) {
   assert(!Compatible && "Attempt to write Bin format in compatible mode");
 
-  size_t Size = Buffer.getBufferSize();
+  size_t const Size = Buffer.getBufferSize();
 
   if (Size <= UINT8_MAX) {
     EW.write(FirstByte::Bin8);
@@ -171,7 +171,7 @@ void Writer::writeMapSize(uint32_t Size) {
 }
 
 void Writer::writeExt(int8_t Type, MemoryBufferRef Buffer) {
-  size_t Size = Buffer.getBufferSize();
+  size_t const Size = Buffer.getBufferSize();
 
   switch (Size) {
   case FixLen::Ext1:

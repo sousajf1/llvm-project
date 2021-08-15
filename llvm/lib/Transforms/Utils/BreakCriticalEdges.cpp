@@ -56,7 +56,7 @@ namespace {
 
       auto *LIWP = getAnalysisIfAvailable<LoopInfoWrapperPass>();
       auto *LI = LIWP ? &LIWP->getLoopInfo() : nullptr;
-      unsigned N =
+      unsigned const N =
           SplitAllCriticalEdges(F, CriticalEdgeSplittingOptions(DT, LI, nullptr, PDT));
       NumBroken += N;
       return N > 0;
@@ -86,7 +86,7 @@ PreservedAnalyses BreakCriticalEdgesPass::run(Function &F,
                                               FunctionAnalysisManager &AM) {
   auto *DT = AM.getCachedResult<DominatorTreeAnalysis>(F);
   auto *LI = AM.getCachedResult<LoopAnalysis>(F);
-  unsigned N = SplitAllCriticalEdges(F, CriticalEdgeSplittingOptions(DT, LI));
+  unsigned const N = SplitAllCriticalEdges(F, CriticalEdgeSplittingOptions(DT, LI));
   NumBroken += N;
   if (N == 0)
     return PreservedAnalyses::all();
@@ -367,7 +367,7 @@ bool llvm::SplitIndirectBrCriticalEdges(Function &F,
   if (Targets.empty())
     return false;
 
-  bool ShouldUpdateAnalysis = BPI && BFI;
+  bool const ShouldUpdateAnalysis = BPI && BFI;
   bool Changed = false;
   for (BasicBlock *Target : Targets) {
     SmallVector<BasicBlock *, 16> OtherPreds;
@@ -421,7 +421,7 @@ bool llvm::SplitIndirectBrCriticalEdges(Function &F,
     }
     if (ShouldUpdateAnalysis) {
       BFI->setBlockFreq(DirectSucc, BlockFreqForDirectSucc.getFrequency());
-      BlockFrequency NewBlockFreqForTarget =
+      BlockFrequency const NewBlockFreqForTarget =
           BFI->getBlockFreq(Target) - BlockFreqForDirectSucc;
       BFI->setBlockFreq(Target, NewBlockFreqForTarget.getFrequency());
     }
@@ -434,7 +434,7 @@ bool llvm::SplitIndirectBrCriticalEdges(Function &F,
     BasicBlock::iterator Indirect = Target->begin(),
                          End = Target->getFirstNonPHI()->getIterator();
     BasicBlock::iterator Direct = DirectSucc->begin();
-    BasicBlock::iterator MergeInsert = BodyBlock->getFirstInsertionPt();
+    BasicBlock::iterator const MergeInsert = BodyBlock->getFirstInsertionPt();
 
     assert(&*End == Target->getTerminator() &&
            "Block was expected to only contain PHIs");

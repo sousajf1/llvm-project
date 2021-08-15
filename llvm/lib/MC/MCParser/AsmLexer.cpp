@@ -279,7 +279,7 @@ static unsigned doHexLookAhead(const char *&CurPtr, unsigned DefaultRadix,
         break;
     }
   }
-  bool isHex = LexHex && (*LookAhead == 'h' || *LookAhead == 'H');
+  bool const isHex = LexHex && (*LookAhead == 'h' || *LookAhead == 'H');
   CurPtr = isHex || !FirstNonDec ? LookAhead : FirstNonDec;
   if (isHex)
     return 16;
@@ -398,7 +398,7 @@ AsmToken AsmLexer::LexDigit() {
     }
 
     if (Radix) {
-      StringRef Result(TokStart, CurPtr - TokStart);
+      StringRef const Result(TokStart, CurPtr - TokStart);
       APInt Value(128, 0, true);
 
       if (Result.drop_back().getAsInteger(Radix, Value))
@@ -418,7 +418,7 @@ AsmToken AsmLexer::LexDigit() {
   // (All other integer literals have a radix specifier.)
   if (LexMasmIntegers && UseMasmDefaultRadix) {
     CurPtr = findLastDigit(CurPtr, 16);
-    StringRef Result(TokStart, CurPtr - TokStart);
+    StringRef const Result(TokStart, CurPtr - TokStart);
 
     APInt Value(128, 0, true);
     if (Result.getAsInteger(DefaultRadix, Value)) {
@@ -460,10 +460,10 @@ AsmToken AsmLexer::LexDigit() {
   // FIXME: Later on, support for fb for HLASM has to be added in
   // as they probably would be needed for asm goto
   if (LexHLASMIntegers || CurPtr[-1] != '0' || CurPtr[0] == '.') {
-    unsigned Radix = doHexLookAhead(CurPtr, 10, LexMasmIntegers);
+    unsigned const Radix = doHexLookAhead(CurPtr, 10, LexMasmIntegers);
 
     if (!LexHLASMIntegers) {
-      bool IsHex = Radix == 16;
+      bool const IsHex = Radix == 16;
       // Check for floating point literals.
       if (!IsHex && (*CurPtr == '.' || *CurPtr == 'e' || *CurPtr == 'E')) {
         if (*CurPtr == '.')
@@ -472,7 +472,7 @@ AsmToken AsmLexer::LexDigit() {
       }
     }
 
-    StringRef Result(TokStart, CurPtr - TokStart);
+    StringRef const Result(TokStart, CurPtr - TokStart);
 
     APInt Value(128, 0, true);
     if (Result.getAsInteger(Radix, Value))
@@ -491,7 +491,7 @@ AsmToken AsmLexer::LexDigit() {
     // See if we actually have "0b" as part of something like "jmp 0b\n"
     if (!isDigit(CurPtr[0])) {
       --CurPtr;
-      StringRef Result(TokStart, CurPtr - TokStart);
+      StringRef const Result(TokStart, CurPtr - TokStart);
       return AsmToken(AsmToken::Integer, Result, 0);
     }
     const char *NumStart = CurPtr;
@@ -502,7 +502,7 @@ AsmToken AsmLexer::LexDigit() {
     if (CurPtr == NumStart)
       return ReturnError(TokStart, "invalid binary number");
 
-    StringRef Result(TokStart, CurPtr - TokStart);
+    StringRef const Result(TokStart, CurPtr - TokStart);
 
     APInt Value(128, 0, true);
     if (Result.substr(2).getAsInteger(2, Value))
@@ -547,8 +547,8 @@ AsmToken AsmLexer::LexDigit() {
 
   // Either octal or hexadecimal.
   APInt Value(128, 0, true);
-  unsigned Radix = doHexLookAhead(CurPtr, 8, LexMasmIntegers);
-  StringRef Result(TokStart, CurPtr - TokStart);
+  unsigned const Radix = doHexLookAhead(CurPtr, 8, LexMasmIntegers);
+  StringRef const Result(TokStart, CurPtr - TokStart);
   if (Result.getAsInteger(Radix, Value))
     return ReturnError(TokStart, "invalid " + radixName(Radix) + " number");
 
@@ -601,11 +601,11 @@ AsmToken AsmLexer::LexSingleQuote() {
 
   // The idea here being that 'c' is basically just an integral
   // constant.
-  StringRef Res = StringRef(TokStart,CurPtr - TokStart);
+  StringRef const Res = StringRef(TokStart,CurPtr - TokStart);
   long long Value;
 
   if (Res.startswith("\'\\")) {
-    char theChar = Res[2];
+    char const theChar = Res[2];
     switch (theChar) {
       default: Value = theChar; break;
       case '\'': Value = '\''; break;
@@ -683,18 +683,18 @@ StringRef AsmLexer::LexUntilEndOfLine() {
 
 size_t AsmLexer::peekTokens(MutableArrayRef<AsmToken> Buf,
                             bool ShouldSkipSpace) {
-  SaveAndRestore<const char *> SavedTokenStart(TokStart);
-  SaveAndRestore<const char *> SavedCurPtr(CurPtr);
-  SaveAndRestore<bool> SavedAtStartOfLine(IsAtStartOfLine);
-  SaveAndRestore<bool> SavedAtStartOfStatement(IsAtStartOfStatement);
-  SaveAndRestore<bool> SavedSkipSpace(SkipSpace, ShouldSkipSpace);
-  SaveAndRestore<bool> SavedIsPeeking(IsPeeking, true);
-  std::string SavedErr = getErr();
-  SMLoc SavedErrLoc = getErrLoc();
+  SaveAndRestore<const char *> const SavedTokenStart(TokStart);
+  SaveAndRestore<const char *> const SavedCurPtr(CurPtr);
+  SaveAndRestore<bool> const SavedAtStartOfLine(IsAtStartOfLine);
+  SaveAndRestore<bool> const SavedAtStartOfStatement(IsAtStartOfStatement);
+  SaveAndRestore<bool> const SavedSkipSpace(SkipSpace, ShouldSkipSpace);
+  SaveAndRestore<bool> const SavedIsPeeking(IsPeeking, true);
+  std::string const SavedErr = getErr();
+  SMLoc const SavedErrLoc = getErrLoc();
 
   size_t ReadCount;
   for (ReadCount = 0; ReadCount < Buf.size(); ++ReadCount) {
-    AsmToken Token = LexToken();
+    AsmToken const Token = LexToken();
 
     Buf[ReadCount] = Token;
 
@@ -710,7 +710,7 @@ bool AsmLexer::isAtStartOfComment(const char *Ptr) {
   if (MAI.getRestrictCommentStringToStartOfStatement() && !IsAtStartOfStatement)
     return false;
 
-  StringRef CommentString = MAI.getCommentString();
+  StringRef const CommentString = MAI.getCommentString();
 
   if (CommentString.size() == 1)
     return CommentString[0] == Ptr[0];
@@ -730,19 +730,19 @@ bool AsmLexer::isAtStatementSeparator(const char *Ptr) {
 AsmToken AsmLexer::LexToken() {
   TokStart = CurPtr;
   // This always consumes at least one character.
-  int CurChar = getNextChar();
+  int const CurChar = getNextChar();
 
   if (!IsPeeking && CurChar == '#' && IsAtStartOfStatement) {
     // If this starts with a '#', this may be a cpp
     // hash directive and otherwise a line comment.
     AsmToken TokenBuf[2];
-    MutableArrayRef<AsmToken> Buf(TokenBuf, 2);
-    size_t num = peekTokens(Buf, true);
+    MutableArrayRef<AsmToken> const Buf(TokenBuf, 2);
+    size_t const num = peekTokens(Buf, true);
     // There cannot be a space preceding this
     if (IsAtStartOfLine && num == 2 && TokenBuf[0].is(AsmToken::Integer) &&
         TokenBuf[1].is(AsmToken::String)) {
       CurPtr = TokStart; // reset curPtr;
-      StringRef s = LexUntilEndOfLine();
+      StringRef const s = LexUntilEndOfLine();
       UnLex(TokenBuf[1]);
       UnLex(TokenBuf[0]);
       return AsmToken(AsmToken::HashDirective, s);
@@ -771,7 +771,7 @@ AsmToken AsmLexer::LexToken() {
     return AsmToken(AsmToken::EndOfStatement, StringRef(TokStart, 0));
   }
   IsAtStartOfLine = false;
-  bool OldIsAtStartOfStatement = IsAtStartOfStatement;
+  bool const OldIsAtStartOfStatement = IsAtStartOfStatement;
   IsAtStartOfStatement = false;
   switch (CurChar) {
   default:

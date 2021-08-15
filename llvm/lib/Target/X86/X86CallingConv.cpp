@@ -50,7 +50,7 @@ static bool CC_X86_32_RegCall_Assign2Regs(unsigned &ValNo, MVT &ValVT,
   for (unsigned I = 0; I < RequiredGprsUponSplit; I++) {
 
     // Marking the register as located.
-    unsigned Reg = State.AllocateReg(AvailableRegs[I]);
+    unsigned const Reg = State.AllocateReg(AvailableRegs[I]);
 
     // Since we previously made sure that 2 registers are available
     // we expect that a real register number will be returned.
@@ -93,15 +93,15 @@ static bool CC_X86_VectorCallAssignRegister(unsigned &ValNo, MVT &ValVT,
                                             ISD::ArgFlagsTy &ArgFlags,
                                             CCState &State) {
 
-  ArrayRef<MCPhysReg> RegList = CC_X86_VectorCallGetSSEs(ValVT);
-  bool Is64bit = static_cast<const X86Subtarget &>(
+  ArrayRef<MCPhysReg> const RegList = CC_X86_VectorCallGetSSEs(ValVT);
+  bool const Is64bit = static_cast<const X86Subtarget &>(
                      State.getMachineFunction().getSubtarget())
                      .is64Bit();
 
   for (auto Reg : RegList) {
     // If the register is not marked as allocated - assign to it.
     if (!State.isAllocated(Reg)) {
-      unsigned AssigedReg = State.AllocateReg(Reg);
+      unsigned const AssigedReg = State.AllocateReg(Reg);
       assert(AssigedReg == Reg && "Expecting a valid register allocation");
       State.addLoc(
           CCValAssign::getReg(ValNo, ValVT, AssigedReg, LocVT, LocInfo));
@@ -157,7 +157,7 @@ static bool CC_X86_64_VectorCall(unsigned &ValNo, MVT &ValVT, MVT &LocVT,
     (void)State.AllocateReg(CC_X86_64_VectorCallGetGPRs());
 
     // Assign XMM register - (shadow for HVA and non-shadow for non HVA).
-    if (unsigned Reg = State.AllocateReg(CC_X86_VectorCallGetSSEs(ValVT))) {
+    if (unsigned const Reg = State.AllocateReg(CC_X86_VectorCallGetSSEs(ValVT))) {
       // In Vectorcall Calling convention, additional shadow stack can be
       // created on top of the basic 32 bytes of win64.
       // It can happen if the fifth or sixth argument is vector type or HVA.
@@ -208,7 +208,7 @@ static bool CC_X86_32_VectorCall(unsigned &ValNo, MVT &ValVT, MVT &LocVT,
     return true; // If this is an HVA - Stop the search.
 
   // Assign XMM register.
-  if (unsigned Reg = State.AllocateReg(CC_X86_VectorCallGetSSEs(ValVT))) {
+  if (unsigned const Reg = State.AllocateReg(CC_X86_VectorCallGetSSEs(ValVT))) {
     State.addLoc(CCValAssign::getReg(ValNo, ValVT, Reg, LocVT, LocInfo));
     return true;
   }
@@ -258,7 +258,7 @@ static bool CC_X86_32_MCUInReg(unsigned &ValNo, MVT &ValVT, MVT &LocVT,
   // If there are no pending members, we are not in the middle of a split,
   // so do the usual inreg stuff.
   if (PendingMembers.empty()) {
-    if (unsigned Reg = State.AllocateReg(RegList)) {
+    if (unsigned const Reg = State.AllocateReg(RegList)) {
       State.addLoc(CCValAssign::getReg(ValNo, ValVT, Reg, LocVT, LocInfo));
       return true;
     }
@@ -275,7 +275,7 @@ static bool CC_X86_32_MCUInReg(unsigned &ValNo, MVT &ValVT, MVT &LocVT,
   // b) We never want to use more than 2 registers for a single argument.
 
   unsigned FirstFree = State.getFirstUnallocated(RegList);
-  bool UseRegs = PendingMembers.size() <= std::min(2U, NumRegs - FirstFree);
+  bool const UseRegs = PendingMembers.size() <= std::min(2U, NumRegs - FirstFree);
 
   for (auto &It : PendingMembers) {
     if (UseRegs)
@@ -298,9 +298,9 @@ static bool CC_X86_Intr(unsigned &ValNo, MVT &ValVT, MVT &LocVT,
                         CCValAssign::LocInfo &LocInfo,
                         ISD::ArgFlagsTy &ArgFlags, CCState &State) {
   const MachineFunction &MF = State.getMachineFunction();
-  size_t ArgCount = State.getMachineFunction().getFunction().arg_size();
-  bool Is64Bit = static_cast<const X86Subtarget &>(MF.getSubtarget()).is64Bit();
-  unsigned SlotSize = Is64Bit ? 8 : 4;
+  size_t const ArgCount = State.getMachineFunction().getFunction().arg_size();
+  bool const Is64Bit = static_cast<const X86Subtarget &>(MF.getSubtarget()).is64Bit();
+  unsigned const SlotSize = Is64Bit ? 8 : 4;
   unsigned Offset;
   if (ArgCount == 1 && ValNo == 0) {
     // If we have one argument, the argument is five stack slots big, at fixed

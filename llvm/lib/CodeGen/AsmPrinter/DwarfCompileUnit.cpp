@@ -74,7 +74,7 @@ void DwarfCompileUnit::addLabelAddress(DIE &Die, dwarf::Attribute Attribute,
   if (Label)
     DD->addArangeLabel(SymbolCU(this, Label));
 
-  bool UseAddrOffsetFormOrExpressions =
+  bool const UseAddrOffsetFormOrExpressions =
       DD->useAddrOffsetForm() || DD->useAddrOffsetExpressions();
 
   const MCSymbol *Base = nullptr;
@@ -82,7 +82,7 @@ void DwarfCompileUnit::addLabelAddress(DIE &Die, dwarf::Attribute Attribute,
     Base = DD->getSectionLabel(&Label->getSection());
 
   if (!Base || Base == Label) {
-    unsigned idx = DD->getAddressPool().getIndex(Label);
+    unsigned const idx = DD->getAddressPool().getIndex(Label);
     addAttribute(Die, Attribute,
                  DD->getDwarfVersion() >= 5 ? dwarf::DW_FORM_addrx
                                             : dwarf::DW_FORM_GNU_addr_index,
@@ -123,7 +123,7 @@ unsigned DwarfCompileUnit::getOrCreateSourceID(const DIFile *File) {
 
   // FIXME: add a better feature test than hasRawTextSupport. Even better,
   // extend .file to support this.
-  unsigned CUID = Asm->OutStreamer->hasRawTextSupport() ? 0 : getUniqueID();
+  unsigned const CUID = Asm->OutStreamer->hasRawTextSupport() ? 0 : getUniqueID();
   if (!File)
     return Asm->OutStreamer->emitDwarfFileDirective(0, "", "", None, None,
                                                     CUID);
@@ -183,7 +183,7 @@ DIE *DwarfCompileUnit::getOrCreateGlobalVariableDIE(
   else
     addGlobalName(GV->getName(), *VariableDIE, DeclContext);
 
-  if (uint32_t AlignInBytes = GV->getAlignInBytes())
+  if (uint32_t const AlignInBytes = GV->getAlignInBytes())
     addUInt(*VariableDIE, dwarf::DW_AT_alignment, dwarf::DW_FORM_udata,
             AlignInBytes);
 
@@ -265,7 +265,7 @@ void DwarfCompileUnit::addLocationAttribute(
           // TODO: add debug info for emulated thread local mode.
         } else {
           // FIXME: Make this work with -gsplit-dwarf.
-          unsigned PointerSize = Asm->getDataLayout().getPointerSize();
+          unsigned const PointerSize = Asm->getDataLayout().getPointerSize();
           assert((PointerSize == 4 || PointerSize == 8) &&
                  "Add support for other sizes if necessary");
           // Based on GCC's support for TLS:
@@ -338,7 +338,7 @@ DIE *DwarfCompileUnit::getOrCreateCommonBlock(
   if (DIE *NDie = getDIE(CB))
     return NDie;
   DIE &NDie = createAndAddDIE(dwarf::DW_TAG_common_block, *ContextDIE, CB);
-  StringRef Name = CB->getName().empty() ? "_BLNK_" : CB->getName();
+  StringRef const Name = CB->getName().empty() ? "_BLNK_" : CB->getName();
   addString(NDie, dwarf::DW_AT_name, Name);
   addGlobalName(Name, NDie, CB->getScope());
   if (CB->getFile())
@@ -351,7 +351,7 @@ DIE *DwarfCompileUnit::getOrCreateCommonBlock(
 void DwarfCompileUnit::addRange(RangeSpan Range) {
   DD->insertSectionLabel(Range.Begin);
 
-  bool SameAsPrevCU = this == DD->getPrevCU();
+  bool const SameAsPrevCU = this == DD->getPrevCU();
   DD->setPrevCU(this);
   // If we have no current ranges just add the range and return, otherwise,
   // check the current section and CU against the previous section and CU we
@@ -430,12 +430,12 @@ DIE &DwarfCompileUnit::updateSubprogramScopeDIE(const DISubprogram *SP) {
   // Only include DW_AT_frame_base in full debug info
   if (!includeMinimalInlineScopes()) {
     const TargetFrameLowering *TFI = Asm->MF->getSubtarget().getFrameLowering();
-    TargetFrameLowering::DwarfFrameBase FrameBase =
+    TargetFrameLowering::DwarfFrameBase const FrameBase =
         TFI->getDwarfFrameBase(*Asm->MF);
     switch (FrameBase.Kind) {
     case TargetFrameLowering::DwarfFrameBase::Register: {
       if (Register::isPhysicalRegister(FrameBase.Location.Reg)) {
-        MachineLocation Location(FrameBase.Location.Reg);
+        MachineLocation const Location(FrameBase.Location.Reg);
         addAddress(*SPDie, dwarf::DW_AT_frame_base, Location);
       }
       break;
@@ -566,7 +566,7 @@ void DwarfCompileUnit::addScopeRangeList(DIE &ScopeDIE,
       (DD->getDwarfVersion() < 5 && Skeleton ? Skeleton->DU : DU)
           ->addRange(*(Skeleton ? Skeleton : this), std::move(Range));
 
-  uint32_t Index = IndexAndList.first;
+  uint32_t const Index = IndexAndList.first;
   auto &List = *IndexAndList.second;
 
   // Under fission, ranges are specified by constant offsets relative to the
@@ -719,7 +719,7 @@ DIE *DwarfCompileUnit::constructVariableDIEImpl(const DbgVariable &DV,
 
   // Add variable address.
 
-  unsigned Index = DV.getDebugLocListIndex();
+  unsigned const Index = DV.getDebugLocListIndex();
   if (Index != ~0U) {
     addLocationList(*VariableDie, dwarf::DW_AT_location, Index);
     auto TagOffset = DV.getDebugLocListTagOffset();
@@ -788,13 +788,13 @@ DIE *DwarfCompileUnit::constructVariableDIEImpl(const DbgVariable &DV,
         // If there is an expression, emit raw unsigned bytes.
         DwarfExpr.addUnsignedConstant(Entry.getInt());
       } else if (Entry.isConstantFP()) {
-        APInt RawBytes = Entry.getConstantFP()->getValueAPF().bitcastToAPInt();
+        APInt const RawBytes = Entry.getConstantFP()->getValueAPF().bitcastToAPInt();
         DwarfExpr.addUnsignedConstant(RawBytes);
       } else if (Entry.isConstantInt()) {
-        APInt RawBytes = Entry.getConstantInt()->getValue();
+        APInt const RawBytes = Entry.getConstantInt()->getValue();
         DwarfExpr.addUnsignedConstant(RawBytes);
       } else if (Entry.isTargetIndexLocation()) {
-        TargetIndexLocation Loc = Entry.getTargetIndexLocation();
+        TargetIndexLocation const Loc = Entry.getTargetIndexLocation();
         // TODO TargetIndexLocation is a target-independent. Currently only the
         // WebAssembly-specific encoding is supported.
         assert(Asm->TM.getTargetTriple().isWasm());
@@ -831,7 +831,7 @@ DIE *DwarfCompileUnit::constructVariableDIEImpl(const DbgVariable &DV,
     Register FrameReg;
     const DIExpression *Expr = Fragment.Expr;
     const TargetFrameLowering *TFI = Asm->MF->getSubtarget().getFrameLowering();
-    StackOffset Offset =
+    StackOffset const Offset =
         TFI->getFrameIndexReference(*Asm->MF, Fragment.FI, FrameReg);
     DwarfExpr.addFragmentOffset(Expr);
 
@@ -958,7 +958,7 @@ sortLocalVars(SmallVectorImpl<DbgVariable *> &Input) {
   while (!WorkList.empty()) {
     auto Item = WorkList.back();
     DbgVariable *Var = Item.getPointer();
-    bool visitedAllDependencies = Item.getInt();
+    bool const visitedAllDependencies = Item.getInt();
     WorkList.pop_back();
 
     // Dependency is in a different lexical scope or a global.
@@ -1045,7 +1045,7 @@ DIE &DwarfCompileUnit::constructSubprogramScopeDIE(const DISubprogram *Sub,
   }
 
   // If this is a variadic function, add an unspecified parameter.
-  DITypeRefArray FnArgs = Sub->getType()->getTypeArray();
+  DITypeRefArray const FnArgs = Sub->getType()->getTypeArray();
 
   // If we have a single element of null, it is a function that returns void.
   // If we have more than one elements and the last one is null, it is a
@@ -1220,7 +1220,7 @@ DIE &DwarfCompileUnit::constructCallSiteEntryDIE(DIE &ScopeDIE,
 void DwarfCompileUnit::constructCallSiteParmEntryDIEs(
     DIE &CallSiteDIE, SmallVector<DbgCallSiteParam, 4> &Params) {
   for (const auto &Param : Params) {
-    unsigned Register = Param.getRegister();
+    unsigned const Register = Param.getRegister();
     auto CallSiteDieParam =
         DIE::get(DIEValueAllocator,
                  getDwarf5OrGNUTag(dwarf::DW_TAG_call_site_parameter));
@@ -1262,7 +1262,7 @@ DIE *DwarfCompileUnit::constructImportedEntityDIE(
   assert(EntityDie);
   addSourceLine(*IMDie, Module->getLine(), Module->getFile());
   addDIEEntry(*IMDie, dwarf::DW_AT_import, *EntityDie);
-  StringRef Name = Module->getName();
+  StringRef const Name = Module->getName();
   if (!Name.empty())
     addString(*IMDie, dwarf::DW_AT_name, Name);
 
@@ -1337,7 +1337,7 @@ void DwarfCompileUnit::emitHeader(bool UseOffsets) {
     Asm->OutStreamer->emitLabel(LabelBegin);
   }
 
-  dwarf::UnitType UT = Skeleton ? dwarf::DW_UT_split_compile
+  dwarf::UnitType const UT = Skeleton ? dwarf::DW_UT_split_compile
                                 : DD->useSplitDwarf() ? dwarf::DW_UT_skeleton
                                                       : dwarf::DW_UT_compile;
   DwarfUnit::emitCommonHeader(UseOffsets, UT);
@@ -1367,7 +1367,7 @@ void DwarfCompileUnit::addGlobalName(StringRef Name, const DIE &Die,
                                      const DIScope *Context) {
   if (!hasDwarfPubSections())
     return;
-  std::string FullName = getParentContextString(Context) + Name.str();
+  std::string const FullName = getParentContextString(Context) + Name.str();
   GlobalNames[FullName] = &Die;
 }
 
@@ -1388,7 +1388,7 @@ void DwarfCompileUnit::addGlobalType(const DIType *Ty, const DIE &Die,
                                      const DIScope *Context) {
   if (!hasDwarfPubSections())
     return;
-  std::string FullName = getParentContextString(Context) + Ty->getName().str();
+  std::string const FullName = getParentContextString(Context) + Ty->getName().str();
   GlobalTypes[FullName] = &Die;
 }
 
@@ -1468,7 +1468,7 @@ void DwarfCompileUnit::addComplexAddress(const DbgVariable &DV, DIE &Die,
 /// Add a Dwarf loclistptr attribute data and value.
 void DwarfCompileUnit::addLocationList(DIE &Die, dwarf::Attribute Attribute,
                                        unsigned Index) {
-  dwarf::Form Form = (DD->getDwarfVersion() >= 5)
+  dwarf::Form const Form = (DD->getDwarfVersion() >= 5)
                          ? dwarf::DW_FORM_loclistx
                          : DD->getDwarfSectionOffsetForm();
   addAttribute(Die, Attribute, Form, DIELocList(Index));
@@ -1476,12 +1476,12 @@ void DwarfCompileUnit::addLocationList(DIE &Die, dwarf::Attribute Attribute,
 
 void DwarfCompileUnit::applyVariableAttributes(const DbgVariable &Var,
                                                DIE &VariableDie) {
-  StringRef Name = Var.getName();
+  StringRef const Name = Var.getName();
   if (!Name.empty())
     addString(VariableDie, dwarf::DW_AT_name, Name);
   const auto *DIVar = Var.getVariable();
   if (DIVar)
-    if (uint32_t AlignInBytes = DIVar->getAlignInBytes())
+    if (uint32_t const AlignInBytes = DIVar->getAlignInBytes())
       addUInt(VariableDie, dwarf::DW_AT_alignment, dwarf::DW_FORM_udata,
               AlignInBytes);
 
@@ -1493,7 +1493,7 @@ void DwarfCompileUnit::applyVariableAttributes(const DbgVariable &Var,
 
 void DwarfCompileUnit::applyLabelAttributes(const DbgLabel &Label,
                                             DIE &LabelDie) {
-  StringRef Name = Label.getName();
+  StringRef const Name = Label.getName();
   if (!Name.empty())
     addString(LabelDie, dwarf::DW_AT_name, Name);
   const auto *DILabel = Label.getLabel();

@@ -85,7 +85,7 @@ FileBasedRecordProducer::findNextBufferExtent() {
   std::unique_ptr<Record> R;
   while (!R) {
     auto PreReadOffset = OffsetPtr;
-    uint8_t FirstByte = E.getU8(&OffsetPtr);
+    uint8_t const FirstByte = E.getU8(&OffsetPtr);
     if (OffsetPtr == PreReadOffset)
       return createStringError(
           std::make_error_code(std::errc::executable_format_error),
@@ -147,7 +147,7 @@ Expected<std::unique_ptr<Record>> FileBasedRecordProducer::produce() {
   // We read first byte, then create the appropriate type of record to consume
   // the rest of the bytes.
   auto PreReadOffset = OffsetPtr;
-  uint8_t FirstByte = E.getU8(&OffsetPtr);
+  uint8_t const FirstByte = E.getU8(&OffsetPtr);
   if (OffsetPtr == PreReadOffset)
     return createStringError(
         std::make_error_code(std::errc::executable_format_error),

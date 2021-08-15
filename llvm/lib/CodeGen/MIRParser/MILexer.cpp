@@ -132,7 +132,7 @@ static std::string unescapeQuotedString(StringRef Value) {
   std::string Str;
   Str.reserve(C.remaining().size());
   while (!C.isEOF()) {
-    char Char = C.peek();
+    char const Char = C.peek();
     if (Char == '\\') {
       if (C.peek(1) == '\\') {
         // Two '\' become one
@@ -173,7 +173,7 @@ static Cursor lexName(Cursor C, MIToken &Token, MIToken::TokenKind Type,
   C.advance(PrefixLength);
   if (C.peek() == '"') {
     if (Cursor R = lexStringConstant(C, ErrorCallback)) {
-      StringRef String = Range.upto(R);
+      StringRef const String = Range.upto(R);
       Token.reset(Type, String)
           .setOwnedStringValue(
               unescapeQuotedString(String.drop_front(PrefixLength)));
@@ -291,11 +291,11 @@ static Cursor maybeLexIdentifier(Cursor C, MIToken &Token) {
 
 static Cursor maybeLexMachineBasicBlock(Cursor C, MIToken &Token,
                                         ErrorCallbackType ErrorCallback) {
-  bool IsReference = C.remaining().startswith("%bb.");
+  bool const IsReference = C.remaining().startswith("%bb.");
   if (!IsReference && !C.remaining().startswith("bb."))
     return None;
   auto Range = C;
-  unsigned PrefixLength = IsReference ? 4 : 3;
+  unsigned const PrefixLength = IsReference ? 4 : 3;
   C.advance(PrefixLength); // Skip '%bb.' or 'bb.'
   if (!isdigit(C.peek())) {
     Token.reset(MIToken::Error, C.remaining());
@@ -305,7 +305,7 @@ static Cursor maybeLexMachineBasicBlock(Cursor C, MIToken &Token,
   auto NumberRange = C;
   while (isdigit(C.peek()))
     C.advance();
-  StringRef Number = NumberRange.upto(C);
+  StringRef const Number = NumberRange.upto(C);
   unsigned StringOffset = PrefixLength + Number.size(); // Drop '%bb.<id>'
   // TODO: The format bb.<id>.<irname> is supported only when it's not a
   // reference. Once we deprecate the format where the irname shows up, we
@@ -346,7 +346,7 @@ static Cursor maybeLexIndexAndName(Cursor C, MIToken &Token, StringRef Rule,
   auto NumberRange = C;
   while (isdigit(C.peek()))
     C.advance();
-  StringRef Number = NumberRange.upto(C);
+  StringRef const Number = NumberRange.upto(C);
   unsigned StringOffset = Rule.size() + Number.size();
   if (C.peek() == '.') {
     C.advance();
@@ -430,7 +430,7 @@ static bool isRegisterChar(char C) {
 }
 
 static Cursor lexNamedVirtualRegister(Cursor C, MIToken &Token) {
-  Cursor Range = C;
+  Cursor const Range = C;
   C.advance(); // Skip '%'
   while (isRegisterChar(C.peek()))
     C.advance();
@@ -501,7 +501,7 @@ static Cursor maybeLexMCSymbol(Cursor C, MIToken &Token,
   if (C.peek() != '"') {
     while (isIdentifierChar(C.peek()))
       C.advance();
-    StringRef String = Start.upto(C).drop_front(Rule.size());
+    StringRef const String = Start.upto(C).drop_front(Rule.size());
     if (C.peek() != '>') {
       ErrorCallback(C.location(),
                     "expected the '<mcsymbol ...' to be closed by a '>'");
@@ -522,7 +522,7 @@ static Cursor maybeLexMCSymbol(Cursor C, MIToken &Token,
     Token.reset(MIToken::Error, Start.remaining());
     return Start;
   }
-  StringRef String = Start.upto(R).drop_front(Rule.size());
+  StringRef const String = Start.upto(R).drop_front(Rule.size());
   if (R.peek() != '>') {
     ErrorCallback(R.location(),
                   "expected the '<mcsymbol ...' to be closed by a '>'");
@@ -559,7 +559,7 @@ static Cursor lexFloatingPointLiteral(Cursor Range, Cursor C, MIToken &Token) {
 static Cursor maybeLexHexadecimalLiteral(Cursor C, MIToken &Token) {
   if (C.peek() != '0' || (C.peek(1) != 'x' && C.peek(1) != 'X'))
     return None;
-  Cursor Range = C;
+  Cursor const Range = C;
   C.advance(2);
   unsigned PrefLen = 2;
   if (isValidHexFloatingPointPrefix(C.peek())) {
@@ -568,7 +568,7 @@ static Cursor maybeLexHexadecimalLiteral(Cursor C, MIToken &Token) {
   }
   while (isxdigit(C.peek()))
     C.advance();
-  StringRef StrVal = Range.upto(C);
+  StringRef const StrVal = Range.upto(C);
   if (StrVal.size() <= PrefLen)
     return None;
   if (PrefLen == 2)
@@ -587,7 +587,7 @@ static Cursor maybeLexNumericalLiteral(Cursor C, MIToken &Token) {
     C.advance();
   if (C.peek() == '.')
     return lexFloatingPointLiteral(Range, C, Token);
-  StringRef StrVal = Range.upto(C);
+  StringRef const StrVal = Range.upto(C);
   Token.reset(MIToken::IntegerLiteral, StrVal).setIntegerValue(APSInt(StrVal));
   return C;
 }
@@ -615,7 +615,7 @@ static Cursor maybeLexExclaim(Cursor C, MIToken &Token,
   }
   while (isIdentifierChar(C.peek()))
     C.advance();
-  StringRef StrVal = Range.upto(C);
+  StringRef const StrVal = Range.upto(C);
   Token.reset(getMetadataKeywordKind(StrVal), StrVal);
   if (Token.isError())
     ErrorCallback(Token.location(),
@@ -696,7 +696,7 @@ static Cursor maybeLexEscapedIRValue(Cursor C, MIToken &Token,
     }
     C.advance();
   }
-  StringRef Value = StrRange.upto(C);
+  StringRef const Value = StrRange.upto(C);
   C.advance();
   Token.reset(MIToken::QuotedIRValue, Range.upto(C)).setStringValue(Value);
   return C;
@@ -712,45 +712,45 @@ StringRef llvm::lexMIToken(StringRef Source, MIToken &Token,
 
   C = skipMachineOperandComment(C);
 
-  if (Cursor R = maybeLexMachineBasicBlock(C, Token, ErrorCallback))
+  if (Cursor const R = maybeLexMachineBasicBlock(C, Token, ErrorCallback))
     return R.remaining();
-  if (Cursor R = maybeLexIdentifier(C, Token))
+  if (Cursor const R = maybeLexIdentifier(C, Token))
     return R.remaining();
-  if (Cursor R = maybeLexJumpTableIndex(C, Token))
+  if (Cursor const R = maybeLexJumpTableIndex(C, Token))
     return R.remaining();
-  if (Cursor R = maybeLexStackObject(C, Token))
+  if (Cursor const R = maybeLexStackObject(C, Token))
     return R.remaining();
-  if (Cursor R = maybeLexFixedStackObject(C, Token))
+  if (Cursor const R = maybeLexFixedStackObject(C, Token))
     return R.remaining();
-  if (Cursor R = maybeLexConstantPoolItem(C, Token))
+  if (Cursor const R = maybeLexConstantPoolItem(C, Token))
     return R.remaining();
-  if (Cursor R = maybeLexSubRegisterIndex(C, Token, ErrorCallback))
+  if (Cursor const R = maybeLexSubRegisterIndex(C, Token, ErrorCallback))
     return R.remaining();
-  if (Cursor R = maybeLexIRBlock(C, Token, ErrorCallback))
+  if (Cursor const R = maybeLexIRBlock(C, Token, ErrorCallback))
     return R.remaining();
-  if (Cursor R = maybeLexIRValue(C, Token, ErrorCallback))
+  if (Cursor const R = maybeLexIRValue(C, Token, ErrorCallback))
     return R.remaining();
-  if (Cursor R = maybeLexRegister(C, Token, ErrorCallback))
+  if (Cursor const R = maybeLexRegister(C, Token, ErrorCallback))
     return R.remaining();
-  if (Cursor R = maybeLexGlobalValue(C, Token, ErrorCallback))
+  if (Cursor const R = maybeLexGlobalValue(C, Token, ErrorCallback))
     return R.remaining();
-  if (Cursor R = maybeLexExternalSymbol(C, Token, ErrorCallback))
+  if (Cursor const R = maybeLexExternalSymbol(C, Token, ErrorCallback))
     return R.remaining();
-  if (Cursor R = maybeLexMCSymbol(C, Token, ErrorCallback))
+  if (Cursor const R = maybeLexMCSymbol(C, Token, ErrorCallback))
     return R.remaining();
-  if (Cursor R = maybeLexHexadecimalLiteral(C, Token))
+  if (Cursor const R = maybeLexHexadecimalLiteral(C, Token))
     return R.remaining();
-  if (Cursor R = maybeLexNumericalLiteral(C, Token))
+  if (Cursor const R = maybeLexNumericalLiteral(C, Token))
     return R.remaining();
-  if (Cursor R = maybeLexExclaim(C, Token, ErrorCallback))
+  if (Cursor const R = maybeLexExclaim(C, Token, ErrorCallback))
     return R.remaining();
-  if (Cursor R = maybeLexSymbol(C, Token))
+  if (Cursor const R = maybeLexSymbol(C, Token))
     return R.remaining();
-  if (Cursor R = maybeLexNewline(C, Token))
+  if (Cursor const R = maybeLexNewline(C, Token))
     return R.remaining();
-  if (Cursor R = maybeLexEscapedIRValue(C, Token, ErrorCallback))
+  if (Cursor const R = maybeLexEscapedIRValue(C, Token, ErrorCallback))
     return R.remaining();
-  if (Cursor R = maybeLexStringConstant(C, Token, ErrorCallback))
+  if (Cursor const R = maybeLexStringConstant(C, Token, ErrorCallback))
     return R.remaining();
 
   Token.reset(MIToken::Error, C.remaining());

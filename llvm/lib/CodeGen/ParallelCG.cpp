@@ -85,7 +85,7 @@ void llvm::splitCodeGen(
                     Ctx);
                 if (!MOrErr)
                   report_fatal_error("Failed to read bitcode");
-                std::unique_ptr<Module> MPartInCtx = std::move(MOrErr.get());
+                std::unique_ptr<Module> const MPartInCtx = std::move(MOrErr.get());
 
                 codegen(MPartInCtx.get(), *ThreadOS, TMFactory, FileType);
               },

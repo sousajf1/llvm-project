@@ -163,7 +163,7 @@ bool WinEHStatePass::runOnFunction(Function &F) {
   // Skip this function if there are no EH pads and we aren't using IR-level
   // outlining.
   bool HasPads = false;
-  for (BasicBlock &BB : F) {
+  for (BasicBlock  const&BB : F) {
     if (BB.isEHPad()) {
       HasPads = true;
       break;
@@ -211,7 +211,7 @@ Type *WinEHStatePass::getEHLinkRegistrationType() {
     return EHLinkRegistrationTy;
   LLVMContext &Context = TheModule->getContext();
   EHLinkRegistrationTy = StructType::create(Context, "EHRegistrationNode");
-  Type *FieldTys[] = {
+  Type *const FieldTys[] = {
       EHLinkRegistrationTy->getPointerTo(0), // EHRegistrationNode *Next
       Type::getInt8PtrTy(Context) // EXCEPTION_DISPOSITION (*Handler)(...)
   };
@@ -229,7 +229,7 @@ Type *WinEHStatePass::getCXXEHRegistrationType() {
   if (CXXEHRegistrationTy)
     return CXXEHRegistrationTy;
   LLVMContext &Context = TheModule->getContext();
-  Type *FieldTys[] = {
+  Type *const FieldTys[] = {
       Type::getInt8PtrTy(Context), // void *SavedESP
       getEHLinkRegistrationType(), // EHRegistrationNode SubRecord
       Type::getInt32Ty(Context)    // int32_t TryLevel
@@ -251,7 +251,7 @@ Type *WinEHStatePass::getSEHRegistrationType() {
   if (SEHRegistrationTy)
     return SEHRegistrationTy;
   LLVMContext &Context = TheModule->getContext();
-  Type *FieldTys[] = {
+  Type *const FieldTys[] = {
       Type::getInt8PtrTy(Context), // void *SavedESP
       Type::getInt8PtrTy(Context), // void *ExceptionPointers
       getEHLinkRegistrationType(), // EHRegistrationNode SubRecord
@@ -302,7 +302,7 @@ void WinEHStatePass::emitExceptionRegistrationRecord(Function *F) {
   } else if (Personality == EHPersonality::MSVC_X86SEH) {
     // If _except_handler4 is in use, some additional guard checks and prologue
     // stuff is required.
-    StringRef PersonalityName = PersonalityFn->getName();
+    StringRef const PersonalityName = PersonalityFn->getName();
     UseStackGuard = (PersonalityName == "_except_handler4");
 
     // Allocate local structures.
@@ -386,7 +386,7 @@ Function *WinEHStatePass::generateLSDAInEAXThunk(Function *ParentFunc) {
   LLVMContext &Context = ParentFunc->getContext();
   Type *Int32Ty = Type::getInt32Ty(Context);
   Type *Int8PtrType = Type::getInt8PtrTy(Context);
-  Type *ArgTys[5] = {Int8PtrType, Int8PtrType, Int8PtrType, Int8PtrType,
+  Type *const ArgTys[5] = {Int8PtrType, Int8PtrType, Int8PtrType, Int8PtrType,
                      Int8PtrType};
   FunctionType *TrampolineTy =
       FunctionType::get(Int32Ty, makeArrayRef(&ArgTys[0], 4),
@@ -407,7 +407,7 @@ Function *WinEHStatePass::generateLSDAInEAXThunk(Function *ParentFunc) {
   Value *CastPersonality =
       Builder.CreateBitCast(PersonalityFn, TargetFuncTy->getPointerTo());
   auto AI = Trampoline->arg_begin();
-  Value *Args[5] = {LSDA, &*AI++, &*AI++, &*AI++, &*AI++};
+  Value *const Args[5] = {LSDA, &*AI++, &*AI++, &*AI++, &*AI++};
   CallInst *Call = Builder.CreateCall(TargetFuncTy, CastPersonality, Args);
   // Can't use musttail due to prototype mismatch, but we can use tail.
   Call->setTailCall(true);
@@ -562,7 +562,7 @@ static int getPredState(DenseMap<BasicBlock *, int> &FinalStates, Function &F,
     if (isa<CatchReturnInst>(PredBB->getTerminator()))
       return OverdefinedState;
 
-    int PredState = PredEndState->second;
+    int const PredState = PredEndState->second;
     assert(PredState != OverdefinedState &&
            "overdefined BBs shouldn't be in FinalStates");
     if (CommonState == OverdefinedState)
@@ -598,7 +598,7 @@ static int getSuccState(DenseMap<BasicBlock *, int> &InitialStates, Function &F,
     if (SuccBB->isEHPad())
       return OverdefinedState;
 
-    int SuccState = SuccStartState->second;
+    int const SuccState = SuccStartState->second;
     assert(SuccState != OverdefinedState &&
            "overdefined BBs shouldn't be in FinalStates");
     if (CommonState == OverdefinedState)
@@ -649,7 +649,7 @@ void WinEHStatePass::addStateStores(Function &F, WinEHFuncInfo &FuncInfo) {
 
   // Iterate all the instructions and emit state number stores.
   DenseMap<BasicBlock *, ColorVector> BlockColors = colorEHFunclets(F);
-  ReversePostOrderTraversal<Function *> RPOT(&F);
+  ReversePostOrderTraversal<Function *> const RPOT(&F);
 
   // InitialStates yields the state of the first call-site for a BasicBlock.
   DenseMap<BasicBlock *, int> InitialStates;
@@ -669,7 +669,7 @@ void WinEHStatePass::addStateStores(Function &F, WinEHFuncInfo &FuncInfo) {
       if (!Call || !isStateStoreNeeded(Personality, *Call))
         continue;
 
-      int State = getStateForCall(BlockColors, FuncInfo, *Call);
+      int const State = getStateForCall(BlockColors, FuncInfo, *Call);
       if (InitialState == OverdefinedState)
         InitialState = State;
       FinalState = State;
@@ -696,7 +696,7 @@ void WinEHStatePass::addStateStores(Function &F, WinEHFuncInfo &FuncInfo) {
     if (InitialStates.count(BB) != 0)
       continue;
 
-    int PredState = getPredState(FinalStates, F, ParentBaseState, BB);
+    int const PredState = getPredState(FinalStates, F, ParentBaseState, BB);
     if (PredState == OverdefinedState)
       continue;
 
@@ -710,7 +710,7 @@ void WinEHStatePass::addStateStores(Function &F, WinEHFuncInfo &FuncInfo) {
 
   // Try to hoist stores from successors.
   for (BasicBlock *BB : RPOT) {
-    int SuccState = getSuccState(InitialStates, F, ParentBaseState, BB);
+    int const SuccState = getSuccState(InitialStates, F, ParentBaseState, BB);
     if (SuccState == OverdefinedState)
       continue;
 
@@ -736,7 +736,7 @@ void WinEHStatePass::addStateStores(Function &F, WinEHFuncInfo &FuncInfo) {
       if (!Call || !isStateStoreNeeded(Personality, *Call))
         continue;
 
-      int State = getStateForCall(BlockColors, FuncInfo, *Call);
+      int const State = getStateForCall(BlockColors, FuncInfo, *Call);
       if (State != PrevState)
         insertStateNumberStore(&I, State);
       PrevState = State;
@@ -766,7 +766,7 @@ void WinEHStatePass::addStateStores(Function &F, WinEHFuncInfo &FuncInfo) {
   for (CallBase *Call : SetJmp3Calls) {
     auto &BBColors = BlockColors[Call->getParent()];
     BasicBlock *FuncletEntryBB = BBColors.front();
-    bool InCleanup = isa<CleanupPadInst>(FuncletEntryBB->getFirstNonPHI());
+    bool const InCleanup = isa<CleanupPadInst>(FuncletEntryBB->getFirstNonPHI());
 
     IRBuilder<> Builder(Call);
     Value *State;

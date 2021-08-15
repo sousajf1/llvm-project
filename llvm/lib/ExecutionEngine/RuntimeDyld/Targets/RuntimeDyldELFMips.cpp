@@ -75,31 +75,31 @@ RuntimeDyldELFMips::evaluateMIPS32Relocation(const SectionEntry &Section,
   case ELF::R_MIPS_LO16:
     return Value;
   case ELF::R_MIPS_PC32: {
-    uint32_t FinalAddress = Section.getLoadAddressWithOffset(Offset);
+    uint32_t const FinalAddress = Section.getLoadAddressWithOffset(Offset);
     return Value - FinalAddress;
   }
   case ELF::R_MIPS_PC16: {
-    uint32_t FinalAddress = Section.getLoadAddressWithOffset(Offset);
+    uint32_t const FinalAddress = Section.getLoadAddressWithOffset(Offset);
     return (Value - FinalAddress) >> 2;
   }
   case ELF::R_MIPS_PC19_S2: {
-    uint32_t FinalAddress = Section.getLoadAddressWithOffset(Offset);
+    uint32_t const FinalAddress = Section.getLoadAddressWithOffset(Offset);
     return (Value - (FinalAddress & ~0x3)) >> 2;
   }
   case ELF::R_MIPS_PC21_S2: {
-    uint32_t FinalAddress = Section.getLoadAddressWithOffset(Offset);
+    uint32_t const FinalAddress = Section.getLoadAddressWithOffset(Offset);
     return (Value - FinalAddress) >> 2;
   }
   case ELF::R_MIPS_PC26_S2: {
-    uint32_t FinalAddress = Section.getLoadAddressWithOffset(Offset);
+    uint32_t const FinalAddress = Section.getLoadAddressWithOffset(Offset);
     return (Value - FinalAddress) >> 2;
   }
   case ELF::R_MIPS_PCHI16: {
-    uint32_t FinalAddress = Section.getLoadAddressWithOffset(Offset);
+    uint32_t const FinalAddress = Section.getLoadAddressWithOffset(Offset);
     return (Value - FinalAddress + 0x8000) >> 16;
   }
   case ELF::R_MIPS_PCLO16: {
-    uint32_t FinalAddress = Section.getLoadAddressWithOffset(Offset);
+    uint32_t const FinalAddress = Section.getLoadAddressWithOffset(Offset);
     return Value - FinalAddress;
   }
   }
@@ -133,7 +133,7 @@ int64_t RuntimeDyldELFMips::evaluateMIPS64Relocation(
   case ELF::R_MIPS_26:
     return ((Value + Addend) >> 2) & 0x3ffffff;
   case ELF::R_MIPS_GPREL16: {
-    uint64_t GOTAddr = getSectionLoadAddress(SectionToGOTMap[SectionID]);
+    uint64_t const GOTAddr = getSectionLoadAddress(SectionToGOTMap[SectionID]);
     return Value + Addend - (GOTAddr + 0x7ff0);
   }
   case ELF::R_MIPS_SUB:
@@ -152,7 +152,7 @@ int64_t RuntimeDyldELFMips::evaluateMIPS64Relocation(
   case ELF::R_MIPS_GOT_PAGE: {
     uint8_t *LocalGOTAddr =
         getSectionAddress(SectionToGOTMap[SectionID]) + SymOffset;
-    uint64_t GOTEntry = readBytesUnaligned(LocalGOTAddr, getGOTEntrySize());
+    uint64_t const GOTEntry = readBytesUnaligned(LocalGOTAddr, getGOTEntrySize());
 
     Value += Addend;
     if (Type == ELF::R_MIPS_GOT_PAGE)
@@ -167,43 +167,43 @@ int64_t RuntimeDyldELFMips::evaluateMIPS64Relocation(
     return (SymOffset - 0x7ff0) & 0xffff;
   }
   case ELF::R_MIPS_GOT_OFST: {
-    int64_t page = (Value + Addend + 0x8000) & ~0xffff;
+    int64_t const page = (Value + Addend + 0x8000) & ~0xffff;
     return (Value + Addend - page) & 0xffff;
   }
   case ELF::R_MIPS_GPREL32: {
-    uint64_t GOTAddr = getSectionLoadAddress(SectionToGOTMap[SectionID]);
+    uint64_t const GOTAddr = getSectionLoadAddress(SectionToGOTMap[SectionID]);
     return Value + Addend - (GOTAddr + 0x7ff0);
   }
   case ELF::R_MIPS_PC16: {
-    uint64_t FinalAddress = Section.getLoadAddressWithOffset(Offset);
+    uint64_t const FinalAddress = Section.getLoadAddressWithOffset(Offset);
     return ((Value + Addend - FinalAddress) >> 2) & 0xffff;
   }
   case ELF::R_MIPS_PC32: {
-    uint64_t FinalAddress = Section.getLoadAddressWithOffset(Offset);
+    uint64_t const FinalAddress = Section.getLoadAddressWithOffset(Offset);
     return Value + Addend - FinalAddress;
   }
   case ELF::R_MIPS_PC18_S3: {
-    uint64_t FinalAddress = Section.getLoadAddressWithOffset(Offset);
+    uint64_t const FinalAddress = Section.getLoadAddressWithOffset(Offset);
     return ((Value + Addend - (FinalAddress & ~0x7)) >> 3) & 0x3ffff;
   }
   case ELF::R_MIPS_PC19_S2: {
-    uint64_t FinalAddress = Section.getLoadAddressWithOffset(Offset);
+    uint64_t const FinalAddress = Section.getLoadAddressWithOffset(Offset);
     return ((Value + Addend - (FinalAddress & ~0x3)) >> 2) & 0x7ffff;
   }
   case ELF::R_MIPS_PC21_S2: {
-    uint64_t FinalAddress = Section.getLoadAddressWithOffset(Offset);
+    uint64_t const FinalAddress = Section.getLoadAddressWithOffset(Offset);
     return ((Value + Addend - FinalAddress) >> 2) & 0x1fffff;
   }
   case ELF::R_MIPS_PC26_S2: {
-    uint64_t FinalAddress = Section.getLoadAddressWithOffset(Offset);
+    uint64_t const FinalAddress = Section.getLoadAddressWithOffset(Offset);
     return ((Value + Addend - FinalAddress) >> 2) & 0x3ffffff;
   }
   case ELF::R_MIPS_PCHI16: {
-    uint64_t FinalAddress = Section.getLoadAddressWithOffset(Offset);
+    uint64_t const FinalAddress = Section.getLoadAddressWithOffset(Offset);
     return ((Value + Addend - FinalAddress + 0x8000) >> 16) & 0xffff;
   }
   case ELF::R_MIPS_PCLO16: {
-    uint64_t FinalAddress = Section.getLoadAddressWithOffset(Offset);
+    uint64_t const FinalAddress = Section.getLoadAddressWithOffset(Offset);
     return (Value + Addend - FinalAddress) & 0xffff;
   }
   }
@@ -265,7 +265,7 @@ void RuntimeDyldELFMips::applyMIPSRelocation(uint8_t *TargetPtr, int64_t Value,
 void RuntimeDyldELFMips::resolveMIPSN32Relocation(
     const SectionEntry &Section, uint64_t Offset, uint64_t Value, uint32_t Type,
     int64_t Addend, uint64_t SymOffset, SID SectionID) {
-  int64_t CalculatedValue = evaluateMIPS64Relocation(
+  int64_t const CalculatedValue = evaluateMIPS64Relocation(
       Section, Offset, Value, Type, Addend, SymOffset, SectionID);
   applyMIPSRelocation(Section.getAddressWithOffset(Offset), CalculatedValue,
                       Type);
@@ -274,9 +274,9 @@ void RuntimeDyldELFMips::resolveMIPSN32Relocation(
 void RuntimeDyldELFMips::resolveMIPSN64Relocation(
     const SectionEntry &Section, uint64_t Offset, uint64_t Value, uint32_t Type,
     int64_t Addend, uint64_t SymOffset, SID SectionID) {
-  uint32_t r_type = Type & 0xff;
-  uint32_t r_type2 = (Type >> 8) & 0xff;
-  uint32_t r_type3 = (Type >> 16) & 0xff;
+  uint32_t const r_type = Type & 0xff;
+  uint32_t const r_type2 = (Type >> 8) & 0xff;
+  uint32_t const r_type3 = (Type >> 16) & 0xff;
 
   // RelType is used to keep information for which relocation type we are
   // applying relocation.

@@ -37,11 +37,11 @@ static CallInst *ReplaceCallWith(const char *NewFn, CallInst *CI,
   std::vector<Type *> ParamTys;
   for (ArgIt I = ArgBegin; I != ArgEnd; ++I)
     ParamTys.push_back((*I)->getType());
-  FunctionCallee FCache =
+  FunctionCallee const FCache =
       M->getOrInsertFunction(NewFn, FunctionType::get(RetTy, ParamTys, false));
 
   IRBuilder<> Builder(CI->getParent(), CI->getIterator());
-  SmallVector<Value *, 8> Args(ArgBegin, ArgEnd);
+  SmallVector<Value *, 8> const Args(ArgBegin, ArgEnd);
   CallInst *NewCI = Builder.CreateCall(FCache, Args);
   NewCI->setName(CI->getName());
   if (!CI->use_empty())
@@ -53,7 +53,7 @@ static CallInst *ReplaceCallWith(const char *NewFn, CallInst *CI,
 static Value *LowerBSWAP(LLVMContext &Context, Value *V, Instruction *IP) {
   assert(V->getType()->isIntOrIntVectorTy() && "Can't bswap a non-integer type!");
 
-  unsigned BitSize = V->getType()->getScalarSizeInBits();
+  unsigned const BitSize = V->getType()->getScalarSizeInBits();
 
   IRBuilder<> Builder(IP);
 
@@ -157,7 +157,7 @@ static Value *LowerCTPOP(LLVMContext &Context, Value *V, Instruction *IP) {
   IRBuilder<> Builder(IP);
 
   unsigned BitSize = V->getType()->getPrimitiveSizeInBits();
-  unsigned WordSize = (BitSize + 63) / 64;
+  unsigned const WordSize = (BitSize + 63) / 64;
   Value *Count = ConstantInt::get(V->getType(), 0);
 
   for (unsigned n = 0; n < WordSize; ++n) {
@@ -188,7 +188,7 @@ static Value *LowerCTLZ(LLVMContext &Context, Value *V, Instruction *IP) {
 
   IRBuilder<> Builder(IP);
 
-  unsigned BitSize = V->getType()->getPrimitiveSizeInBits();
+  unsigned const BitSize = V->getType()->getPrimitiveSizeInBits();
   for (unsigned i = 1; i < BitSize; i <<= 1) {
     Value *ShVal = ConstantInt::get(V->getType(), i);
     ShVal = Builder.CreateLShr(V, ShVal, "ctlz.sh");

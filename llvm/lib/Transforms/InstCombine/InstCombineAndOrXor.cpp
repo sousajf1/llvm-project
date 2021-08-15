@@ -188,9 +188,9 @@ static unsigned getMaskedICmpType(Value *A, Value *B, Value *C,
   ConstantInt *ACst = dyn_cast<ConstantInt>(A);
   ConstantInt *BCst = dyn_cast<ConstantInt>(B);
   ConstantInt *CCst = dyn_cast<ConstantInt>(C);
-  bool IsEq = (Pred == ICmpInst::ICMP_EQ);
-  bool IsAPow2 = (ACst && !ACst->isZero() && ACst->getValue().isPowerOf2());
-  bool IsBPow2 = (BCst && !BCst->isZero() && BCst->getValue().isPowerOf2());
+  bool const IsEq = (Pred == ICmpInst::ICMP_EQ);
+  bool const IsAPow2 = (ACst && !ACst->isZero() && ACst->getValue().isPowerOf2());
+  bool const IsBPow2 = (BCst && !BCst->isZero() && BCst->getValue().isPowerOf2());
   unsigned MaskVal = 0;
   if (CCst && CCst->isZero()) {
     // if C is zero, then both A and B qualify as mask
@@ -385,8 +385,8 @@ getMaskedTypeForICmpPair(Value *&A, Value *&B, Value *&C,
     C = L1;
   }
 
-  unsigned LeftType = getMaskedICmpType(A, B, C, PredL);
-  unsigned RightType = getMaskedICmpType(A, D, E, PredR);
+  unsigned const LeftType = getMaskedICmpType(A, B, C, PredL);
+  unsigned const RightType = getMaskedICmpType(A, D, E, PredR);
   return Optional<std::pair<unsigned, unsigned>>(std::make_pair(LeftType, RightType));
 }
 
@@ -413,7 +413,7 @@ static Value *foldLogOpOfMaskedICmps_NotAllZeros_BMask_Mixed(
       !match(D, m_ConstantInt(DCst)) || !match(E, m_ConstantInt(ECst)))
     return nullptr;
 
-  ICmpInst::Predicate NewCC = IsAnd ? ICmpInst::ICMP_EQ : ICmpInst::ICMP_NE;
+  ICmpInst::Predicate const NewCC = IsAnd ? ICmpInst::ICMP_EQ : ICmpInst::ICMP_NE;
 
   // Update E to the canonical form when D is a power of two and RHS is
   // canonicalized as,
@@ -452,8 +452,8 @@ static Value *foldLogOpOfMaskedICmps_NotAllZeros_BMask_Mixed(
   // (icmp ne (A & 15), 0) & (icmp eq (A & 7), 0) -> (icmp eq (A & 15), 8)
   if ((((BCst->getValue() & DCst->getValue()) & ECst->getValue()) == 0) &&
       (BCst->getValue() & (BCst->getValue() ^ DCst->getValue())).isPowerOf2()) {
-    APInt BorD = BCst->getValue() | DCst->getValue();
-    APInt BandBxorDorE = (BCst->getValue() & (BCst->getValue() ^ DCst->getValue())) |
+    APInt const BorD = BCst->getValue() | DCst->getValue();
+    APInt const BandBxorDorE = (BCst->getValue() & (BCst->getValue() ^ DCst->getValue())) |
         ECst->getValue();
     Value *NewMask = ConstantInt::get(BCst->getType(), BorD);
     Value *NewMaskedValue = ConstantInt::get(BCst->getType(), BandBxorDorE);
@@ -558,8 +558,8 @@ static Value *foldLogOpOfMaskedICmps(ICmpInst *LHS, ICmpInst *RHS, bool IsAnd,
     return nullptr;
   assert(ICmpInst::isEquality(PredL) && ICmpInst::isEquality(PredR) &&
          "Expected equality predicates for masked type of icmps.");
-  unsigned LHSMask = MaskPair->first;
-  unsigned RHSMask = MaskPair->second;
+  unsigned const LHSMask = MaskPair->first;
+  unsigned const RHSMask = MaskPair->second;
   unsigned Mask = LHSMask & RHSMask;
   if (Mask == 0) {
     // Even if the two sides don't share a common pattern, check if folding can
@@ -583,7 +583,7 @@ static Value *foldLogOpOfMaskedICmps(ICmpInst *LHS, ICmpInst *RHS, bool IsAnd,
   // input and output).
 
   // In most cases we're going to produce an EQ for the "&&" case.
-  ICmpInst::Predicate NewCC = IsAnd ? ICmpInst::ICMP_EQ : ICmpInst::ICMP_NE;
+  ICmpInst::Predicate const NewCC = IsAnd ? ICmpInst::ICMP_EQ : ICmpInst::ICMP_NE;
   if (!IsAnd) {
     // Convert the masking analysis into its equivalent with negated
     // comparisons.
@@ -629,7 +629,7 @@ static Value *foldLogOpOfMaskedICmps(ICmpInst *LHS, ICmpInst *RHS, bool IsAnd,
     //     -> (icmp ne (A & B), 0) or (icmp ne (A & D), 0)
     // Only valid if one of the masks is a superset of the other (check "B&D" is
     // the same as either B or D).
-    APInt NewMask = BCst->getValue() & DCst->getValue();
+    APInt const NewMask = BCst->getValue() & DCst->getValue();
 
     if (NewMask == BCst->getValue())
       return LHS;
@@ -642,7 +642,7 @@ static Value *foldLogOpOfMaskedICmps(ICmpInst *LHS, ICmpInst *RHS, bool IsAnd,
     //     -> (icmp ne (A & B), A) or (icmp ne (A & D), A)
     // Only valid if one of the masks is a superset of the other (check "B|D" is
     // the same as either B or D).
-    APInt NewMask = BCst->getValue() | DCst->getValue();
+    APInt const NewMask = BCst->getValue() | DCst->getValue();
 
     if (NewMask == BCst->getValue())
       return LHS;
@@ -696,7 +696,7 @@ Value *InstCombinerImpl::simplifyRangeCheck(ICmpInst *Cmp0, ICmpInst *Cmp1,
   if (!RangeStart)
     return nullptr;
 
-  ICmpInst::Predicate Pred0 = (Inverted ? Cmp0->getInversePredicate() :
+  ICmpInst::Predicate const Pred0 = (Inverted ? Cmp0->getInversePredicate() :
                                Cmp0->getPredicate());
 
   // Accept x > -1 or x >= 0 (after potentially inverting the predicate).
@@ -729,7 +729,7 @@ Value *InstCombinerImpl::simplifyRangeCheck(ICmpInst *Cmp0, ICmpInst *Cmp1,
   }
 
   // This simplification is only valid if the upper range is not negative.
-  KnownBits Known = computeKnownBits(RangeEnd, /*Depth=*/0, Cmp1);
+  KnownBits const Known = computeKnownBits(RangeEnd, /*Depth=*/0, Cmp1);
   if (!Known.isNonNegative())
     return nullptr;
 
@@ -753,7 +753,7 @@ foldAndOrOfEqualityCmpsWithConstants(ICmpInst *LHS, ICmpInst *RHS,
     return nullptr;
 
   // We only handle (X != C1 && X != C2) and (X == C1 || X == C2).
-  ICmpInst::Predicate Pred = LHS->getPredicate();
+  ICmpInst::Predicate const Pred = LHS->getPredicate();
   if (Pred !=  RHS->getPredicate())
     return nullptr;
   if (JoinedByAnd && Pred != ICmpInst::ICMP_NE)
@@ -765,7 +765,7 @@ foldAndOrOfEqualityCmpsWithConstants(ICmpInst *LHS, ICmpInst *RHS,
   if (C1->ugt(*C2))
     std::swap(C1, C2);
 
-  APInt Xor = *C1 ^ *C2;
+  APInt const Xor = *C1 ^ *C2;
   if (Xor.isPowerOf2()) {
     // If LHSC and RHSC differ by only one bit, then set that bit in X and
     // compare against the larger constant:
@@ -801,7 +801,7 @@ Value *InstCombinerImpl::foldAndOrOfICmpsOfAndWithPow2(ICmpInst *LHS,
                                                        Instruction *CxtI,
                                                        bool IsAnd,
                                                        bool IsLogical) {
-  CmpInst::Predicate Pred = IsAnd ? CmpInst::ICMP_NE : CmpInst::ICMP_EQ;
+  CmpInst::Predicate const Pred = IsAnd ? CmpInst::ICMP_NE : CmpInst::ICMP_EQ;
   if (LHS->getPredicate() != Pred || RHS->getPredicate() != Pred)
     return nullptr;
 
@@ -938,7 +938,7 @@ static Value *foldSignedTruncationCheck(ICmpInst *ICmp0, ICmpInst *ICmp1,
 
   // So which bits should be uniform as per the 'signed truncation check'?
   // (all the bits starting with (i.e. including) HighestBit)
-  APInt SignBitsMask = ~(HighestBit - 1U);
+  APInt const SignBitsMask = ~(HighestBit - 1U);
 
   // UnsetBitsMask must have some common bits with SignBitsMask,
   if (!UnsetBitsMask.intersects(SignBitsMask))
@@ -946,7 +946,7 @@ static Value *foldSignedTruncationCheck(ICmpInst *ICmp0, ICmpInst *ICmp1,
 
   // Does UnsetBitsMask contain any bits outside of SignBitsMask?
   if (!UnsetBitsMask.isSubsetOf(SignBitsMask)) {
-    APInt OtherHighestBit = (~UnsetBitsMask) + 1U;
+    APInt const OtherHighestBit = (~UnsetBitsMask) + 1U;
     if (!OtherHighestBit.isPowerOf2())
       return nullptr;
     HighestBit = APIntOps::umin(HighestBit, OtherHighestBit);
@@ -1087,8 +1087,8 @@ static Optional<IntPart> matchIntPart(Value *V) {
   if (!match(V, m_OneUse(m_Trunc(m_Value(X)))))
     return None;
 
-  unsigned NumOriginalBits = X->getType()->getScalarSizeInBits();
-  unsigned NumExtractedBits = V->getType()->getScalarSizeInBits();
+  unsigned const NumOriginalBits = X->getType()->getScalarSizeInBits();
+  unsigned const NumExtractedBits = V->getType()->getScalarSizeInBits();
   Value *Y;
   const APInt *Shift;
   // For a trunc(lshr Y, Shift) pattern, make sure we're only extracting bits
@@ -1118,7 +1118,7 @@ static Value *foldEqOfParts(ICmpInst *Cmp0, ICmpInst *Cmp1, bool IsAnd,
   if (!Cmp0->hasOneUse() || !Cmp1->hasOneUse())
     return nullptr;
 
-  CmpInst::Predicate Pred = IsAnd ? CmpInst::ICMP_EQ : CmpInst::ICMP_NE;
+  CmpInst::Predicate const Pred = IsAnd ? CmpInst::ICMP_EQ : CmpInst::ICMP_NE;
   if (Cmp0->getPredicate() != Pred || Cmp1->getPredicate() != Pred)
     return nullptr;
 
@@ -1149,8 +1149,8 @@ static Value *foldEqOfParts(ICmpInst *Cmp0, ICmpInst *Cmp1, bool IsAnd,
   }
 
   // We can simplify to a comparison of these larger parts of the integers.
-  IntPart L = {L0->From, L0->StartBit, L0->NumBits + L1->NumBits};
-  IntPart R = {R0->From, R0->StartBit, R0->NumBits + R1->NumBits};
+  IntPart const L = {L0->From, L0->StartBit, L0->NumBits + L1->NumBits};
+  IntPart const R = {R0->From, R0->StartBit, R0->NumBits + R1->NumBits};
   Value *LValue = extractIntPart(L, Builder);
   Value *RValue = extractIntPart(R, Builder);
   return Builder.CreateICmp(Pred, LValue, RValue);
@@ -1163,7 +1163,7 @@ static Value *foldAndOrOfICmpsWithConstEq(ICmpInst *Cmp0, ICmpInst *Cmp1,
                                           BinaryOperator &Logic,
                                           InstCombiner::BuilderTy &Builder,
                                           const SimplifyQuery &Q) {
-  bool IsAnd = Logic.getOpcode() == Instruction::And;
+  bool const IsAnd = Logic.getOpcode() == Instruction::And;
   assert((IsAnd || Logic.getOpcode() == Instruction::Or) && "Wrong logic op");
 
   // Match an equality compare with a non-poison constant as Cmp0.
@@ -1223,8 +1223,8 @@ Value *InstCombinerImpl::foldAndOfICmps(ICmpInst *LHS, ICmpInst *RHS,
     if (LHS->getOperand(0) == RHS->getOperand(0) &&
         LHS->getOperand(1) == RHS->getOperand(1)) {
       Value *Op0 = LHS->getOperand(0), *Op1 = LHS->getOperand(1);
-      unsigned Code = getICmpCode(LHS) & getICmpCode(RHS);
-      bool IsSigned = LHS->isSigned() || RHS->isSigned();
+      unsigned const Code = getICmpCode(LHS) & getICmpCode(RHS);
+      bool const IsSigned = LHS->isSigned() || RHS->isSigned();
       return getNewICmpValue(Code, IsSigned, Op0, Op1, Builder);
     }
   }
@@ -1305,15 +1305,15 @@ Value *InstCombinerImpl::foldAndOfICmps(ICmpInst *LHS, ICmpInst *RHS,
     }
 
     if (SmallC && BigC) {
-      unsigned BigBitSize = BigC->getType()->getBitWidth();
-      unsigned SmallBitSize = SmallC->getType()->getBitWidth();
+      unsigned const BigBitSize = BigC->getType()->getBitWidth();
+      unsigned const SmallBitSize = SmallC->getType()->getBitWidth();
 
       // Check that the low bits are zero.
-      APInt Low = APInt::getLowBitsSet(BigBitSize, SmallBitSize);
+      APInt const Low = APInt::getLowBitsSet(BigBitSize, SmallBitSize);
       if ((Low & AndC->getValue()).isNullValue() &&
           (Low & BigC->getValue()).isNullValue()) {
         Value *NewAnd = Builder.CreateAnd(V, Low | AndC->getValue());
-        APInt N = SmallC->getValue().zext(BigBitSize) | BigC->getValue();
+        APInt const N = SmallC->getValue().zext(BigBitSize) | BigC->getValue();
         Value *NewVal = ConstantInt::get(AndC->getType()->getContext(), N);
         return Builder.CreateICmp(PredL, NewAnd, NewVal);
       }
@@ -1455,9 +1455,9 @@ Value *InstCombinerImpl::foldLogicOfFCmps(FCmpInst *LHS, FCmpInst *RHS,
   //  = bool((R & CC0) | (R & CC1))
   //  = bool(R & (CC0 | CC1)) <= by reversed distribution (contribution? ;)
   if (LHS0 == RHS0 && LHS1 == RHS1) {
-    unsigned FCmpCodeL = getFCmpCode(PredL);
-    unsigned FCmpCodeR = getFCmpCode(PredR);
-    unsigned NewPred = IsAnd ? FCmpCodeL & FCmpCodeR : FCmpCodeL | FCmpCodeR;
+    unsigned const FCmpCodeL = getFCmpCode(PredL);
+    unsigned const FCmpCodeR = getFCmpCode(PredR);
+    unsigned const NewPred = IsAnd ? FCmpCodeL & FCmpCodeR : FCmpCodeL | FCmpCodeR;
     return getFCmpValue(NewPred, LHS0, LHS1, Builder);
   }
 
@@ -1484,7 +1484,7 @@ Value *InstCombinerImpl::foldLogicOfFCmps(FCmpInst *LHS, FCmpInst *RHS,
 /// an unlikely pattern for a large number of logic ops and fcmps.
 static Instruction *reassociateFCmps(BinaryOperator &BO,
                                      InstCombiner::BuilderTy &Builder) {
-  Instruction::BinaryOps Opcode = BO.getOpcode();
+  Instruction::BinaryOps const Opcode = BO.getOpcode();
   assert((Opcode == Instruction::And || Opcode == Instruction::Or) &&
          "Expecting and/or op for fcmp transform");
 
@@ -1497,7 +1497,7 @@ static Instruction *reassociateFCmps(BinaryOperator &BO,
 
   // Match inner binop and the predicate for combining 2 NAN checks into 1.
   BinaryOperator *BO1;
-  FCmpInst::Predicate NanPred = Opcode == Instruction::And ? FCmpInst::FCMP_ORD
+  FCmpInst::Predicate const NanPred = Opcode == Instruction::And ? FCmpInst::FCMP_ORD
                                                            : FCmpInst::FCMP_UNO;
   if (!match(Op0, m_FCmp(Pred, m_Value(X), m_AnyZeroFP())) || Pred != NanPred ||
       !match(Op1, m_BinOp(BO1)) || BO1->getOpcode() != Opcode)
@@ -1733,7 +1733,7 @@ static Instruction *foldOrToXor(BinaryOperator &I,
 /// Return true if a constant shift amount is always less than the specified
 /// bit-width. If not, the shift could create poison in the narrower type.
 static bool canNarrowShiftAmt(Constant *C, unsigned BitWidth) {
-  APInt Threshold(C->getType()->getScalarSizeInBits(), BitWidth);
+  APInt const Threshold(C->getType()->getScalarSizeInBits(), BitWidth);
   return match(C, m_SpecificInt_ICMP(ICmpInst::ICMP_ULT, Threshold));
 }
 
@@ -1765,7 +1765,7 @@ Instruction *InstCombinerImpl::narrowMaskedBinOp(BinaryOperator &And) {
   // If we're narrowing a shift, the shift amount must be safe (less than the
   // width) in the narrower type. If the shift amount is greater, instsimplify
   // usually handles that case, but we can't guarantee/assert it.
-  Instruction::BinaryOps Opc = cast<BinaryOperator>(Op0)->getOpcode();
+  Instruction::BinaryOps const Opc = cast<BinaryOperator>(Op0)->getOpcode();
   if (Opc == Instruction::LShr || Opc == Instruction::Shl)
     if (!canNarrowShiftAmt(C, X->getType()->getScalarSizeInBits()))
       return nullptr;
@@ -1840,7 +1840,7 @@ Instruction *InstCombinerImpl::visitAnd(BinaryOperator &I) {
       // NOTE: SimplifyDemandedBits should have already removed bits from C1
       // that aren't set in C2. Meaning we can replace (C1&C2) with C1 in
       // above, but this feels safer.
-      APInt Together = *C & *OrC;
+      APInt const Together = *C & *OrC;
       Value *And = Builder.CreateAnd(X, ConstantInt::get(Ty, Together ^ *C));
       And->takeName(Op0);
       return BinaryOperator::CreateOr(And, ConstantInt::get(Ty, Together));
@@ -1849,8 +1849,8 @@ Instruction *InstCombinerImpl::visitAnd(BinaryOperator &I) {
     // If the mask is only needed on one incoming arm, push the 'and' op up.
     if (match(Op0, m_OneUse(m_Xor(m_Value(X), m_Value(Y)))) ||
         match(Op0, m_OneUse(m_Or(m_Value(X), m_Value(Y))))) {
-      APInt NotAndMask(~(*C));
-      BinaryOperator::BinaryOps BinOp = cast<BinaryOperator>(Op0)->getOpcode();
+      APInt const NotAndMask(~(*C));
+      BinaryOperator::BinaryOps const BinOp = cast<BinaryOperator>(Op0)->getOpcode();
       if (MaskedValueIsZero(X, NotAndMask, 0, &I)) {
         // Not masking anything out for the LHS, move mask to RHS.
         // and ({x}or X, Y), C --> {x}or X, (and Y, C)
@@ -1865,7 +1865,7 @@ Instruction *InstCombinerImpl::visitAnd(BinaryOperator &I) {
       }
     }
 
-    unsigned Width = Ty->getScalarSizeInBits();
+    unsigned const Width = Ty->getScalarSizeInBits();
     const APInt *ShiftC;
     if (match(Op0, m_OneUse(m_SExt(m_AShr(m_Value(X), m_APInt(ShiftC)))))) {
       if (*C == APInt::getLowBitsSet(Width, Width - ShiftC->getZExtValue())) {
@@ -1881,8 +1881,8 @@ Instruction *InstCombinerImpl::visitAnd(BinaryOperator &I) {
     if (match(Op0, m_Add(m_Value(X), m_APInt(AddC)))) {
       // If we add zeros to every bit below a mask, the add has no effect:
       // (X + AddC) & LowMaskC --> X & LowMaskC
-      unsigned Ctlz = C->countLeadingZeros();
-      APInt LowMask(APInt::getLowBitsSet(Width, Width - Ctlz));
+      unsigned const Ctlz = C->countLeadingZeros();
+      APInt const LowMask(APInt::getLowBitsSet(Width, Width - Ctlz));
       if ((*AddC & LowMask).isNullValue())
         return BinaryOperator::CreateAnd(X, Op1);
 
@@ -2112,7 +2112,7 @@ Instruction *InstCombinerImpl::matchBSwapOrBitReverse(Instruction &I,
 static Instruction *matchFunnelShift(Instruction &Or, InstCombinerImpl &IC) {
   // TODO: Can we reduce the code duplication between this and the related
   // rotate matching code under visitSelect and visitTrunc?
-  unsigned Width = Or.getType()->getScalarSizeInBits();
+  unsigned const Width = Or.getType()->getScalarSizeInBits();
 
   // First, find an or'd pair of opposite shifts:
   // or (lshr ShVal0, ShAmt0), (shl ShVal1, ShAmt1)
@@ -2159,7 +2159,7 @@ static Instruction *matchFunnelShift(Instruction &Or, InstCombinerImpl &IC) {
     // it after this fold). This still doesn't guarantee that the final codegen
     // will match this original pattern.
     if (match(R, m_OneUse(m_Sub(m_SpecificInt(Width), m_Specific(L))))) {
-      KnownBits KnownL = IC.computeKnownBits(L, /*Depth*/ 0, &Or);
+      KnownBits const KnownL = IC.computeKnownBits(L, /*Depth*/ 0, &Or);
       return KnownL.getMaxValue().ult(Width) ? L : nullptr;
     }
 
@@ -2177,7 +2177,7 @@ static Instruction *matchFunnelShift(Instruction &Or, InstCombinerImpl &IC) {
     // The shift amount may be masked with negation:
     // (shl ShVal, (X & (Width - 1))) | (lshr ShVal, ((-X) & (Width - 1)))
     Value *X;
-    unsigned Mask = Width - 1;
+    unsigned const Mask = Width - 1;
     if (match(L, m_And(m_Value(X), m_SpecificInt(Mask))) &&
         match(R, m_And(m_Neg(m_Specific(X)), m_SpecificInt(Mask))))
       return X;
@@ -2205,7 +2205,7 @@ static Instruction *matchFunnelShift(Instruction &Or, InstCombinerImpl &IC) {
   if (!ShAmt)
     return nullptr;
 
-  Intrinsic::ID IID = IsFshl ? Intrinsic::fshl : Intrinsic::fshr;
+  Intrinsic::ID const IID = IsFshl ? Intrinsic::fshl : Intrinsic::fshr;
   Function *F = Intrinsic::getDeclaration(Or.getModule(), IID, Or.getType());
   return CallInst::Create(F, {ShVal0, ShVal1, ShAmt});
 }
@@ -2217,7 +2217,7 @@ static Instruction *matchOrConcat(Instruction &Or,
   Value *Op0 = Or.getOperand(0), *Op1 = Or.getOperand(1);
   Type *Ty = Or.getType();
 
-  unsigned Width = Ty->getScalarSizeInBits();
+  unsigned const Width = Ty->getScalarSizeInBits();
   if ((Width & 1) != 0)
     return nullptr;
   unsigned HalfWidth = Width / 2;
@@ -2265,7 +2265,7 @@ static Instruction *matchOrConcat(Instruction &Or,
 
 /// If all elements of two constant vectors are 0/-1 and inverses, return true.
 static bool areInverseVectorBitmasks(Constant *C1, Constant *C2) {
-  unsigned NumElts = cast<FixedVectorType>(C1->getType())->getNumElements();
+  unsigned const NumElts = cast<FixedVectorType>(C1->getType())->getNumElements();
   for (unsigned i = 0; i != NumElts; ++i) {
     Constant *EltC1 = C1->getAggregateElement(i);
     Constant *EltC2 = C2->getAggregateElement(i);
@@ -2399,7 +2399,7 @@ Value *InstCombinerImpl::foldOrOfICmps(ICmpInst *LHS, ICmpInst *RHS,
         LAddC->getValue().ugt(LHSC->getValue()) &&
         RAddC->getValue().ugt(LHSC->getValue())) {
 
-      APInt DiffC = LAddC->getValue() ^ RAddC->getValue();
+      APInt const DiffC = LAddC->getValue() ^ RAddC->getValue();
       if (DiffC.isPowerOf2()) {
         ConstantInt *MaxAddC = nullptr;
         if (LAddC->getValue().ult(RAddC->getValue()))
@@ -2407,13 +2407,13 @@ Value *InstCombinerImpl::foldOrOfICmps(ICmpInst *LHS, ICmpInst *RHS,
         else
           MaxAddC = LAddC;
 
-        APInt RRangeLow = -RAddC->getValue();
-        APInt RRangeHigh = RRangeLow + LHSC->getValue();
-        APInt LRangeLow = -LAddC->getValue();
-        APInt LRangeHigh = LRangeLow + LHSC->getValue();
-        APInt LowRangeDiff = RRangeLow ^ LRangeLow;
-        APInt HighRangeDiff = RRangeHigh ^ LRangeHigh;
-        APInt RangeDiff = LRangeLow.sgt(RRangeLow) ? LRangeLow - RRangeLow
+        APInt const RRangeLow = -RAddC->getValue();
+        APInt const RRangeHigh = RRangeLow + LHSC->getValue();
+        APInt const LRangeLow = -LAddC->getValue();
+        APInt const LRangeHigh = LRangeLow + LHSC->getValue();
+        APInt const LowRangeDiff = RRangeLow ^ LRangeLow;
+        APInt const HighRangeDiff = RRangeHigh ^ LRangeHigh;
+        APInt const RangeDiff = LRangeLow.sgt(RRangeLow) ? LRangeLow - RRangeLow
                                                    : RRangeLow - LRangeLow;
 
         if (LowRangeDiff.isPowerOf2() && LowRangeDiff == HighRangeDiff &&
@@ -2433,8 +2433,8 @@ Value *InstCombinerImpl::foldOrOfICmps(ICmpInst *LHS, ICmpInst *RHS,
     if (LHS0 == RHS1 && LHS1 == RHS0)
       LHS->swapOperands();
     if (LHS0 == RHS0 && LHS1 == RHS1) {
-      unsigned Code = getICmpCode(LHS) | getICmpCode(RHS);
-      bool IsSigned = LHS->isSigned() || RHS->isSigned();
+      unsigned const Code = getICmpCode(LHS) | getICmpCode(RHS);
+      bool const IsSigned = LHS->isSigned() || RHS->isSigned();
       return getNewICmpValue(Code, IsSigned, LHS0, LHS1, Builder);
     }
   }
@@ -3043,8 +3043,8 @@ Value *InstCombinerImpl::foldXorOfICmps(ICmpInst *LHS, ICmpInst *RHS,
         LHS->getOperand(1) == RHS->getOperand(1)) {
       // (icmp1 A, B) ^ (icmp2 A, B) --> (icmp3 A, B)
       Value *Op0 = LHS->getOperand(0), *Op1 = LHS->getOperand(1);
-      unsigned Code = getICmpCode(LHS) ^ getICmpCode(RHS);
-      bool IsSigned = LHS->isSigned() || RHS->isSigned();
+      unsigned const Code = getICmpCode(LHS) ^ getICmpCode(RHS);
+      bool const IsSigned = LHS->isSigned() || RHS->isSigned();
       return getNewICmpValue(Code, IsSigned, Op0, Op1, Builder);
     }
   }
@@ -3109,7 +3109,7 @@ Value *InstCombinerImpl::foldXorOfICmps(ICmpInst *LHS, ICmpInst *RHS,
           // the original value of Y before inversion. While this increases
           // immediate instruction count, we have just ensured that all the
           // users are freely-invertible, so that 'not' *will* get folded away.
-          BuilderTy::InsertPointGuard Guard(Builder);
+          BuilderTy::InsertPointGuard const Guard(Builder);
           // Set insertion point to right after the Y.
           Builder.SetInsertPoint(Y->getParent(), ++(Y->getIterator()));
           Value *NotY = Builder.CreateNot(Y, Y->getName() + ".not");
@@ -3578,12 +3578,12 @@ Instruction *InstCombinerImpl::visitXor(BinaryOperator &I) {
   auto *II = dyn_cast<IntrinsicInst>(Op0);
   if (II && match(Op1, m_AllOnes())) {
     if (match(Op0, m_MaxOrMin(m_Not(m_Value(X)), m_Not(m_Value(Y))))) {
-      Intrinsic::ID InvID = getInverseMinMaxIntrinsic(II->getIntrinsicID());
+      Intrinsic::ID const InvID = getInverseMinMaxIntrinsic(II->getIntrinsicID());
       Value *InvMaxMin = Builder.CreateBinaryIntrinsic(InvID, X, Y);
       return replaceInstUsesWith(I, InvMaxMin);
     }
     if (match(Op0, m_OneUse(m_c_MaxOrMin(m_Not(m_Value(X)), m_Value(Y))))) {
-      Intrinsic::ID InvID = getInverseMinMaxIntrinsic(II->getIntrinsicID());
+      Intrinsic::ID const InvID = getInverseMinMaxIntrinsic(II->getIntrinsicID());
       Value *NotY = Builder.CreateNot(Y);
       Value *InvMaxMin = Builder.CreateBinaryIntrinsic(InvID, X, NotY);
       return replaceInstUsesWith(I, InvMaxMin);
@@ -3605,7 +3605,7 @@ Instruction *InstCombinerImpl::visitXor(BinaryOperator &I) {
   // Same is applicable for smin/umax/umin.
   if (match(Op1, m_AllOnes()) && Op0->hasOneUse()) {
     Value *LHS, *RHS;
-    SelectPatternFlavor SPF = matchSelectPattern(Op0, LHS, RHS).Flavor;
+    SelectPatternFlavor const SPF = matchSelectPattern(Op0, LHS, RHS).Flavor;
     if (SelectPatternResult::isMinOrMax(SPF)) {
       // It's possible we get here before the not has been simplified, so make
       // sure the input to the not isn't freely invertible.
@@ -3648,8 +3648,8 @@ Instruction *InstCombinerImpl::visitXor(BinaryOperator &I) {
       Value *FV = Sel->getFalseValue();
       auto *CmpT = dyn_cast<CmpInst>(TV);
       auto *CmpF = dyn_cast<CmpInst>(FV);
-      bool InvertibleT = (CmpT && CmpT->hasOneUse()) || isa<Constant>(TV);
-      bool InvertibleF = (CmpF && CmpF->hasOneUse()) || isa<Constant>(FV);
+      bool const InvertibleT = (CmpT && CmpT->hasOneUse()) || isa<Constant>(TV);
+      bool const InvertibleF = (CmpF && CmpF->hasOneUse()) || isa<Constant>(FV);
       if (InvertibleT && InvertibleF) {
         if (CmpT)
           CmpT->setPredicate(CmpT->getInversePredicate());

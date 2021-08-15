@@ -43,7 +43,7 @@ unsigned HexagonELFObjectWriter::getRelocType(MCContext &Ctx,
                                               MCValue const &Target,
                                               MCFixup const &Fixup,
                                               bool IsPCRel) const {
-  MCSymbolRefExpr::VariantKind Variant = Target.getAccessVariant();
+  MCSymbolRefExpr::VariantKind const Variant = Target.getAccessVariant();
   switch (Fixup.getTargetKind()) {
   default:
     report_fatal_error("Unrecognized relocation type");

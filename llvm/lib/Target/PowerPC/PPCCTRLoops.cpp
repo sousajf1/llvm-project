@@ -97,7 +97,7 @@ static bool clobbersCTR(const MachineInstr &MI) {
 
 static bool verifyCTRBranch(MachineBasicBlock *MBB,
                             MachineBasicBlock::iterator I) {
-  MachineBasicBlock::iterator BI = I;
+  MachineBasicBlock::iterator const BI = I;
   SmallSet<MachineBasicBlock *, 16>   Visited;
   SmallVector<MachineBasicBlock *, 8> Preds;
   bool CheckPreds;
@@ -114,8 +114,8 @@ check_block:
     goto queue_preds;
 
   CheckPreds = true;
-  for (MachineBasicBlock::iterator IE = MBB->begin();; --I) {
-    unsigned Opc = I->getOpcode();
+  for (MachineBasicBlock::iterator const IE = MBB->begin();; --I) {
+    unsigned const Opc = I->getOpcode();
     if (Opc == PPC::MTCTRloop || Opc == PPC::MTCTR8loop) {
       CheckPreds = false;
       break;
@@ -175,7 +175,7 @@ bool PPCCTRLoopsVerify::runOnMachineFunction(MachineFunction &MF) {
 
     for (MachineBasicBlock::iterator MII = MBB->getFirstTerminator(),
       MIIE = MBB->end(); MII != MIIE; ++MII) {
-      unsigned Opc = MII->getOpcode();
+      unsigned const Opc = MII->getOpcode();
       if (Opc == PPC::BDNZ8 || Opc == PPC::BDNZ ||
           Opc == PPC::BDZ8  || Opc == PPC::BDZ)
         if (!verifyCTRBranch(MBB, MII))

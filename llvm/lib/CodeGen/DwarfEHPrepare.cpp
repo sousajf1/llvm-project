@@ -187,7 +187,7 @@ bool DwarfEHPrepare::InsertUnwindResumeCalls() {
     return false;
 
   // Check the personality, don't do anything if it's scope-based.
-  EHPersonality Pers = classifyEHPersonality(F.getPersonalityFn());
+  EHPersonality const Pers = classifyEHPersonality(F.getPersonalityFn());
   if (isScopedEHPersonality(Pers))
     return false;
 
@@ -272,7 +272,7 @@ bool DwarfEHPrepare::InsertUnwindResumeCalls() {
 }
 
 bool DwarfEHPrepare::run() {
-  bool Changed = InsertUnwindResumeCalls();
+  bool const Changed = InsertUnwindResumeCalls();
 
   return Changed;
 }

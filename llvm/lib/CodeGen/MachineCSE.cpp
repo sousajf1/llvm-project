@@ -169,14 +169,14 @@ bool MachineCSE::PerformTrivialCopyPropagation(MachineInstr *MI,
   for (MachineOperand &MO : MI->operands()) {
     if (!MO.isReg() || !MO.isUse())
       continue;
-    Register Reg = MO.getReg();
+    Register const Reg = MO.getReg();
     if (!Register::isVirtualRegister(Reg))
       continue;
-    bool OnlyOneUse = MRI->hasOneNonDBGUse(Reg);
+    bool const OnlyOneUse = MRI->hasOneNonDBGUse(Reg);
     MachineInstr *DefMI = MRI->getVRegDef(Reg);
     if (!DefMI->isCopy())
       continue;
-    Register SrcReg = DefMI->getOperand(1).getReg();
+    Register const SrcReg = DefMI->getOperand(1).getReg();
     if (!Register::isVirtualRegister(SrcReg))
       continue;
     if (DefMI->getOperand(0).getSubReg())
@@ -283,7 +283,7 @@ bool MachineCSE::hasLivePhysRegDefUses(const MachineInstr *MI,
   for (const MachineOperand &MO : MI->operands()) {
     if (!MO.isReg() || MO.isDef())
       continue;
-    Register Reg = MO.getReg();
+    Register const Reg = MO.getReg();
     if (!Reg)
       continue;
     if (Register::isVirtualRegister(Reg))
@@ -302,7 +302,7 @@ bool MachineCSE::hasLivePhysRegDefUses(const MachineInstr *MI,
     const MachineOperand &MO = MOP.value();
     if (!MO.isReg() || !MO.isDef())
       continue;
-    Register Reg = MO.getReg();
+    Register const Reg = MO.getReg();
     if (!Reg)
       continue;
     if (Register::isVirtualRegister(Reg))
@@ -351,7 +351,7 @@ bool MachineCSE::PhysRegDefsReach(MachineInstr *CSMI, MachineInstr *MI,
     CrossMBB = true;
   }
   MachineBasicBlock::const_iterator I = CSMI; I = std::next(I);
-  MachineBasicBlock::const_iterator E = MI;
+  MachineBasicBlock::const_iterator const E = MI;
   MachineBasicBlock::const_iterator EE = CSMBB->end();
   unsigned LookAheadLeft = LookAheadLimit;
   while (LookAheadLeft) {
@@ -379,7 +379,7 @@ bool MachineCSE::PhysRegDefsReach(MachineInstr *CSMI, MachineInstr *MI,
         return false;
       if (!MO.isReg() || !MO.isDef())
         continue;
-      Register MOReg = MO.getReg();
+      Register const MOReg = MO.getReg();
       if (Register::isVirtualRegister(MOReg))
         continue;
       if (PhysRefs.count(MOReg.asMCReg()))
@@ -442,7 +442,7 @@ bool MachineCSE::isProfitableToCSE(Register CSReg, Register Reg,
     for (MachineInstr &MI : MRI->use_nodbg_instructions(CSReg)) {
       CSUses.insert(&MI);
     }
-    for (MachineInstr &MI : MRI->use_nodbg_instructions(Reg)) {
+    for (MachineInstr  const&MI : MRI->use_nodbg_instructions(Reg)) {
       if (!CSUses.count(&MI)) {
         MayIncreasePressure = true;
         break;
@@ -471,7 +471,7 @@ bool MachineCSE::isProfitableToCSE(Register CSReg, Register Reg,
   }
   if (!HasVRegUse) {
     bool HasNonCopyUse = false;
-    for (MachineInstr &MI : MRI->use_nodbg_instructions(Reg)) {
+    for (MachineInstr  const&MI : MRI->use_nodbg_instructions(Reg)) {
       // Ignore copies.
       if (!MI.isCopyLike()) {
         HasNonCopyUse = true;
@@ -502,7 +502,7 @@ void MachineCSE::EnterScope(MachineBasicBlock *MBB) {
 
 void MachineCSE::ExitScope(MachineBasicBlock *MBB) {
   LLVM_DEBUG(dbgs() << "Exiting: " << MBB->getName() << '\n');
-  DenseMap<MachineBasicBlock*, ScopeType*>::iterator SI = ScopeMap.find(MBB);
+  DenseMap<MachineBasicBlock*, ScopeType*>::iterator const SI = ScopeMap.find(MBB);
   assert(SI != ScopeMap.end());
   delete SI->second;
   ScopeMap.erase(SI);
@@ -569,7 +569,7 @@ bool MachineCSE::ProcessBlockCSE(MachineBasicBlock *MBB) {
       // This can never be the case if the instruction both uses and
       // defines the same physical register, which was detected above.
       if (!PhysUseDef) {
-        unsigned CSVN = VNT.lookup(MI);
+        unsigned const CSVN = VNT.lookup(MI);
         MachineInstr *CSMI = Exps[CSVN];
         if (PhysRegDefsReach(CSMI, MI, PhysRefs, PhysDefs, CrossMBBPhysDef))
           FoundCSE = true;
@@ -583,7 +583,7 @@ bool MachineCSE::ProcessBlockCSE(MachineBasicBlock *MBB) {
     }
 
     // Found a common subexpression, eliminate it.
-    unsigned CSVN = VNT.lookup(MI);
+    unsigned const CSVN = VNT.lookup(MI);
     MachineInstr *CSMI = Exps[CSVN];
     LLVM_DEBUG(dbgs() << "Examining: " << *MI);
     LLVM_DEBUG(dbgs() << "*** Found a common subexpression: " << *CSMI);
@@ -610,11 +610,11 @@ bool MachineCSE::ProcessBlockCSE(MachineBasicBlock *MBB) {
     unsigned NumDefs = MI->getNumDefs();
 
     for (unsigned i = 0, e = MI->getNumOperands(); NumDefs && i != e; ++i) {
-      MachineOperand &MO = MI->getOperand(i);
+      MachineOperand  const&MO = MI->getOperand(i);
       if (!MO.isReg() || !MO.isDef())
         continue;
-      Register OldReg = MO.getReg();
-      Register NewReg = CSMI->getOperand(i).getReg();
+      Register const OldReg = MO.getReg();
+      Register const NewReg = CSMI->getOperand(i).getReg();
 
       // Go through implicit defs of CSMI and MI, if a def is not dead at MI,
       // we should make sure it is not dead at CSMI.
@@ -658,8 +658,8 @@ bool MachineCSE::ProcessBlockCSE(MachineBasicBlock *MBB) {
     // Actually perform the elimination.
     if (DoCSE) {
       for (const std::pair<unsigned, unsigned> &CSEPair : CSEPairs) {
-        unsigned OldReg = CSEPair.first;
-        unsigned NewReg = CSEPair.second;
+        unsigned const OldReg = CSEPair.first;
+        unsigned const NewReg = CSEPair.second;
         // OldReg may have been unused but is used now, clear the Dead flag
         MachineInstr *Def = MRI->getUniqueVRegDef(NewReg);
         assert(Def != nullptr && "CSEd register has no unique definition?");
@@ -671,7 +671,7 @@ bool MachineCSE::ProcessBlockCSE(MachineBasicBlock *MBB) {
 
       // Go through implicit defs of CSMI and MI, if a def is not dead at MI,
       // we should make sure it is not dead at CSMI.
-      for (unsigned ImplicitDefToUpdate : ImplicitDefsToUpdate)
+      for (unsigned const ImplicitDefToUpdate : ImplicitDefsToUpdate)
         CSMI->getOperand(ImplicitDefToUpdate).setIsDead(false);
       for (const auto &PhysDef : PhysDefs)
         if (!MI->getOperand(PhysDef.first).isDead())
@@ -744,7 +744,7 @@ MachineCSE::ExitScopeIfDone(MachineDomTreeNode *Node,
 
   // Now traverse upwards to pop ancestors whose offsprings are all done.
   while (MachineDomTreeNode *Parent = Node->getIDom()) {
-    unsigned Left = --OpenChildren[Parent];
+    unsigned const Left = --OpenChildren[Parent];
     if (Left != 0)
       break;
     ExitScope(Parent->getBlock());
@@ -849,8 +849,8 @@ bool MachineCSE::ProcessBlockPRE(MachineDominatorTree *DT,
 
         assert(MI->getOperand(0).isDef() &&
                "First operand of instr with one explicit def must be this def");
-        Register VReg = MI->getOperand(0).getReg();
-        Register NewReg = MRI->cloneVirtualRegister(VReg);
+        Register const VReg = MI->getOperand(0).getReg();
+        Register const NewReg = MRI->cloneVirtualRegister(VReg);
         if (!isProfitableToCSE(NewReg, VReg, CMBB, MI))
           continue;
         MachineInstr &NewMI =

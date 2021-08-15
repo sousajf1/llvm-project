@@ -124,7 +124,7 @@ unsigned StatepointOpers::getNumGCPtrIdx() {
 
 int StatepointOpers::getFirstGCPtrIdx() {
   unsigned NumGCPtrsIdx = getNumGCPtrIdx();
-  unsigned NumGCPtrs = getConstMetaVal(*MI, NumGCPtrsIdx - 1);
+  unsigned const NumGCPtrs = getConstMetaVal(*MI, NumGCPtrsIdx - 1);
   if (NumGCPtrs == 0)
     return -1;
   ++NumGCPtrsIdx; // skip <num gc ptrs>
@@ -135,11 +135,11 @@ int StatepointOpers::getFirstGCPtrIdx() {
 unsigned StatepointOpers::getGCPointerMap(
     SmallVectorImpl<std::pair<unsigned, unsigned>> &GCMap) {
   unsigned CurIdx = getNumGcMapEntriesIdx();
-  unsigned GCMapSize = getConstMetaVal(*MI, CurIdx - 1);
+  unsigned const GCMapSize = getConstMetaVal(*MI, CurIdx - 1);
   CurIdx++;
   for (unsigned N = 0; N < GCMapSize; ++N) {
-    unsigned B = MI->getOperand(CurIdx++).getImm();
-    unsigned D = MI->getOperand(CurIdx++).getImm();
+    unsigned const B = MI->getOperand(CurIdx++).getImm();
+    unsigned const D = MI->getOperand(CurIdx++).getImm();
     GCMap.push_back(std::make_pair(B, D));
   }
 
@@ -199,17 +199,17 @@ StackMaps::parseOperand(MachineInstr::const_mop_iterator MOI,
       unsigned Size = DL.getPointerSizeInBits();
       assert((Size % 8) == 0 && "Need pointer size in bytes.");
       Size /= 8;
-      Register Reg = (++MOI)->getReg();
-      int64_t Imm = (++MOI)->getImm();
+      Register const Reg = (++MOI)->getReg();
+      int64_t const Imm = (++MOI)->getImm();
       Locs.emplace_back(StackMaps::Location::Direct, Size,
                         getDwarfRegNum(Reg, TRI), Imm);
       break;
     }
     case StackMaps::IndirectMemRefOp: {
-      int64_t Size = (++MOI)->getImm();
+      int64_t const Size = (++MOI)->getImm();
       assert(Size > 0 && "Need a valid size for indirect memory locations.");
-      Register Reg = (++MOI)->getReg();
-      int64_t Imm = (++MOI)->getImm();
+      Register const Reg = (++MOI)->getReg();
+      int64_t const Imm = (++MOI)->getImm();
       Locs.emplace_back(StackMaps::Location::Indirect, Size,
                         getDwarfRegNum(Reg, TRI), Imm);
       break;
@@ -217,7 +217,7 @@ StackMaps::parseOperand(MachineInstr::const_mop_iterator MOI,
     case StackMaps::ConstantOp: {
       ++MOI;
       assert(MOI->isImm() && "Expected constant operand.");
-      int64_t Imm = MOI->getImm();
+      int64_t const Imm = MOI->getImm();
       Locs.emplace_back(Location::Constant, sizeof(int64_t), 0, Imm);
       break;
     }
@@ -246,9 +246,9 @@ StackMaps::parseOperand(MachineInstr::const_mop_iterator MOI,
     assert(!MOI->getSubReg() && "Physical subreg still around.");
 
     unsigned Offset = 0;
-    unsigned DwarfRegNum = getDwarfRegNum(MOI->getReg(), TRI);
-    unsigned LLVMRegNum = *TRI->getLLVMRegNum(DwarfRegNum, false);
-    unsigned SubRegIdx = TRI->getSubRegIndex(LLVMRegNum, MOI->getReg());
+    unsigned const DwarfRegNum = getDwarfRegNum(MOI->getReg(), TRI);
+    unsigned const LLVMRegNum = *TRI->getLLVMRegNum(DwarfRegNum, false);
+    unsigned const SubRegIdx = TRI->getSubRegIndex(LLVMRegNum, MOI->getReg());
     if (SubRegIdx)
       Offset = TRI->getSubRegIdxOffset(SubRegIdx);
 
@@ -337,8 +337,8 @@ void StackMaps::print(raw_ostream &OS) {
 /// Create a live-out register record for the given register Reg.
 StackMaps::LiveOutReg
 StackMaps::createLiveOutReg(unsigned Reg, const TargetRegisterInfo *TRI) const {
-  unsigned DwarfRegNum = getDwarfRegNum(Reg, TRI);
-  unsigned Size = TRI->getSpillSize(*TRI->getMinimalPhysRegClass(Reg));
+  unsigned const DwarfRegNum = getDwarfRegNum(Reg, TRI);
+  unsigned const Size = TRI->getSpillSize(*TRI->getMinimalPhysRegClass(Reg));
   return LiveOutReg(Reg, DwarfRegNum, Size);
 }
 
@@ -422,7 +422,7 @@ void StackMaps::parseStatepointOpers(const MachineInstr &MI,
     }
 
     SmallVector<std::pair<unsigned, unsigned>, 8> GCPairs;
-    unsigned NumGCPairs = SO.getGCPointerMap(GCPairs);
+    unsigned const NumGCPairs = SO.getGCPointerMap(GCPairs);
     (void)NumGCPairs;
     LLVM_DEBUG(dbgs() << "NumGCPairs = " << NumGCPairs << "\n");
 
@@ -431,8 +431,8 @@ void StackMaps::parseStatepointOpers(const MachineInstr &MI,
       assert(P.first < GCPtrIndices.size() && "base pointer index not found");
       assert(P.second < GCPtrIndices.size() &&
              "derived pointer index not found");
-      unsigned BaseIdx = GCPtrIndices[P.first];
-      unsigned DerivedIdx = GCPtrIndices[P.second];
+      unsigned const BaseIdx = GCPtrIndices[P.first];
+      unsigned const DerivedIdx = GCPtrIndices[P.second];
       LLVM_DEBUG(dbgs() << "Base : " << BaseIdx << " Derived : " << DerivedIdx
                         << "\n");
       (void)parseOperand(MOB + BaseIdx, MOE, Locations, LiveOuts);
@@ -510,9 +510,9 @@ void StackMaps::recordStackMapOpers(const MCSymbol &MILabel,
   // Record the stack size of the current function and update callsite count.
   const MachineFrameInfo &MFI = AP.MF->getFrameInfo();
   const TargetRegisterInfo *RegInfo = AP.MF->getSubtarget().getRegisterInfo();
-  bool HasDynamicFrameSize =
+  bool const HasDynamicFrameSize =
       MFI.hasVarSizedObjects() || RegInfo->hasStackRealignment(*(AP.MF));
-  uint64_t FrameSize = HasDynamicFrameSize ? UINT64_MAX : MFI.getStackSize();
+  uint64_t const FrameSize = HasDynamicFrameSize ? UINT64_MAX : MFI.getStackSize();
 
   auto CurrentIt = FnInfos.find(AP.CurrentFnSym);
   if (CurrentIt != FnInfos.end())
@@ -524,7 +524,7 @@ void StackMaps::recordStackMapOpers(const MCSymbol &MILabel,
 void StackMaps::recordStackMap(const MCSymbol &L, const MachineInstr &MI) {
   assert(MI.getOpcode() == TargetOpcode::STACKMAP && "expected stackmap");
 
-  StackMapOpers opers(&MI);
+  StackMapOpers const opers(&MI);
   const int64_t ID = MI.getOperand(PatchPointOpers::IDPos).getImm();
   recordStackMapOpers(L, MI, ID, std::next(MI.operands_begin(),
                                            opers.getVarIdx()),
@@ -534,7 +534,7 @@ void StackMaps::recordStackMap(const MCSymbol &L, const MachineInstr &MI) {
 void StackMaps::recordPatchPoint(const MCSymbol &L, const MachineInstr &MI) {
   assert(MI.getOpcode() == TargetOpcode::PATCHPOINT && "expected patchpoint");
 
-  PatchPointOpers opers(&MI);
+  PatchPointOpers const opers(&MI);
   const int64_t ID = opers.getID();
   auto MOI = std::next(MI.operands_begin(), opers.getStackMapStartIdx());
   recordStackMapOpers(L, MI, ID, MOI, MI.operands_end(),
@@ -544,7 +544,7 @@ void StackMaps::recordPatchPoint(const MCSymbol &L, const MachineInstr &MI) {
   // verify anyregcc
   auto &Locations = CSInfos.back().Locations;
   if (opers.isAnyReg()) {
-    unsigned NArgs = opers.getNumCallArgs();
+    unsigned const NArgs = opers.getNumCallArgs();
     for (unsigned i = 0, e = (opers.hasDef() ? NArgs + 1 : NArgs); i != e; ++i)
       assert(Locations[i].Type == Location::Register &&
              "anyreg arg must be in reg.");
@@ -555,7 +555,7 @@ void StackMaps::recordPatchPoint(const MCSymbol &L, const MachineInstr &MI) {
 void StackMaps::recordStatepoint(const MCSymbol &L, const MachineInstr &MI) {
   assert(MI.getOpcode() == TargetOpcode::STATEPOINT && "expected statepoint");
 
-  StatepointOpers opers(&MI);
+  StatepointOpers const opers(&MI);
   const unsigned StartIdx = opers.getVarIdx();
   recordStackMapOpers(L, MI, opers.getID(), MI.operands_begin() + StartIdx,
                       MI.operands_end(), false);

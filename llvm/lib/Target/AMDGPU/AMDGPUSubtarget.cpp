@@ -459,11 +459,11 @@ unsigned AMDGPUSubtarget::getMaxLocalMemSizeWithWaveCount(unsigned NWaves,
   const Function &F) const {
   if (NWaves == 1)
     return getLocalMemorySize();
-  unsigned WorkGroupSize = getFlatWorkGroupSizes(F).second;
-  unsigned WorkGroupsPerCu = getMaxWorkGroupsPerCU(WorkGroupSize);
+  unsigned const WorkGroupSize = getFlatWorkGroupSizes(F).second;
+  unsigned const WorkGroupsPerCu = getMaxWorkGroupsPerCU(WorkGroupSize);
   if (!WorkGroupsPerCu)
     return 0;
-  unsigned MaxWaves = getMaxWavesPerEU();
+  unsigned const MaxWaves = getMaxWavesPerEU();
   return getLocalMemorySize() * MaxWaves / WorkGroupsPerCu / NWaves;
 }
 
@@ -554,16 +554,16 @@ std::pair<unsigned, unsigned> AMDGPUSubtarget::getWavesPerEU(
   std::pair<unsigned, unsigned> Default(1, getMaxWavesPerEU());
 
   // Default/requested minimum/maximum flat work group sizes.
-  std::pair<unsigned, unsigned> FlatWorkGroupSizes = getFlatWorkGroupSizes(F);
+  std::pair<unsigned, unsigned> const FlatWorkGroupSizes = getFlatWorkGroupSizes(F);
 
   // If minimum/maximum flat work group sizes were explicitly requested using
   // "amdgpu-flat-work-group-size" attribute, then set default minimum/maximum
   // number of waves per execution unit to values implied by requested
   // minimum/maximum flat work group sizes.
-  unsigned MinImpliedByFlatWorkGroupSize =
+  unsigned const MinImpliedByFlatWorkGroupSize =
     getWavesPerEUForWorkGroup(FlatWorkGroupSizes.second);
   Default.first = MinImpliedByFlatWorkGroupSize;
-  bool RequestedFlatWorkGroupSize =
+  bool const RequestedFlatWorkGroupSize =
       F.hasFnAttribute("amdgpu-flat-work-group-size");
 
   // Requested minimum/maximum number of waves per execution unit.
@@ -601,7 +601,7 @@ bool AMDGPUSubtarget::isMesaKernel(const Function &F) const {
 
 unsigned AMDGPUSubtarget::getMaxWorkitemID(const Function &Kernel,
                                            unsigned Dimension) const {
-  unsigned ReqdSize = getReqdWorkGroupSize(Kernel, Dimension);
+  unsigned const ReqdSize = getReqdWorkGroupSize(Kernel, Dimension);
   if (ReqdSize != std::numeric_limits<unsigned>::max())
     return ReqdSize - 1;
   return getFlatWorkGroupSizes(Kernel).second - 1;
@@ -645,7 +645,7 @@ bool AMDGPUSubtarget::makeLIDRangeMetadata(Instruction *I) const {
       }
 
       if (Dim <= 3) {
-        unsigned ReqdSize = getReqdWorkGroupSize(*Kernel, Dim);
+        unsigned const ReqdSize = getReqdWorkGroupSize(*Kernel, Dim);
         if (ReqdSize != std::numeric_limits<unsigned>::max())
           MinSize = MaxSize = ReqdSize;
       }
@@ -691,7 +691,7 @@ uint64_t AMDGPUSubtarget::getExplicitKernArgSize(const Function &F,
     if (!Alignment)
       Alignment = DL.getABITypeAlign(ArgTy);
 
-    uint64_t AllocSize = DL.getTypeAllocSize(ArgTy);
+    uint64_t const AllocSize = DL.getTypeAllocSize(ArgTy);
     ExplicitArgBytes = alignTo(ExplicitArgBytes, Alignment) + AllocSize;
     MaxAlign = max(MaxAlign, Alignment);
   }
@@ -701,12 +701,12 @@ uint64_t AMDGPUSubtarget::getExplicitKernArgSize(const Function &F,
 
 unsigned AMDGPUSubtarget::getKernArgSegmentSize(const Function &F,
                                                 Align &MaxAlign) const {
-  uint64_t ExplicitArgBytes = getExplicitKernArgSize(F, MaxAlign);
+  uint64_t const ExplicitArgBytes = getExplicitKernArgSize(F, MaxAlign);
 
-  unsigned ExplicitOffset = getExplicitKernelArgOffset(F);
+  unsigned const ExplicitOffset = getExplicitKernelArgOffset(F);
 
   uint64_t TotalSize = ExplicitOffset + ExplicitArgBytes;
-  unsigned ImplicitBytes = getImplicitArgNumBytes(F);
+  unsigned const ImplicitBytes = getImplicitArgNumBytes(F);
   if (ImplicitBytes != 0) {
     const Align Alignment = getAlignmentForImplicitArgPtr();
     TotalSize = alignTo(ExplicitArgBytes, Alignment) + ImplicitBytes;
@@ -792,11 +792,11 @@ unsigned GCNSubtarget::getOccupancyWithNumSGPRs(unsigned SGPRs) const {
 }
 
 unsigned GCNSubtarget::getOccupancyWithNumVGPRs(unsigned VGPRs) const {
-  unsigned MaxWaves = getMaxWavesPerEU();
-  unsigned Granule = getVGPRAllocGranule();
+  unsigned const MaxWaves = getMaxWavesPerEU();
+  unsigned const Granule = getVGPRAllocGranule();
   if (VGPRs < Granule)
     return MaxWaves;
-  unsigned RoundedRegs = ((VGPRs + Granule - 1) / Granule) * Granule;
+  unsigned const RoundedRegs = ((VGPRs + Granule - 1) / Granule) * Granule;
   return std::min(std::max(getTotalNumVGPRs() / RoundedRegs, 1u), MaxWaves);
 }
 
@@ -830,7 +830,7 @@ unsigned GCNSubtarget::getReservedNumSGPRs(const Function &F) const {
   // attributes and isAmdHsaOrMesa here as it doesn't really matter.
   // TODO: Outline this derivation logic and have just
   // one common function in the backend to avoid duplication.
-  bool isEntry = AMDGPU::isEntryFunctionCC(F.getCallingConv());
+  bool const isEntry = AMDGPU::isEntryFunctionCC(F.getCallingConv());
   bool FunctionHasFlatScratchInit = false;
   if (hasFlatAddressSpace() && isEntry && !flatScratchIsArchitected() &&
       enableFlatScratch()) {
@@ -858,7 +858,7 @@ unsigned GCNSubtarget::getBaseMaxNumSGPRs(
   // Compute maximum number of SGPRs function can use using default/requested
   // minimum number of waves per execution unit.
   unsigned MaxNumSGPRs = getMaxNumSGPRs(WavesPerEU.first, false);
-  unsigned MaxAddressableNumSGPRs = getMaxNumSGPRs(WavesPerEU.first, true);
+  unsigned const MaxAddressableNumSGPRs = getMaxNumSGPRs(WavesPerEU.first, true);
 
   // Check if maximum number of SGPRs was explicitly requested using
   // "amdgpu-num-sgpr" attribute.
@@ -877,7 +877,7 @@ unsigned GCNSubtarget::getBaseMaxNumSGPRs(
     // of reserved special registers in total. Theoretically you could re-use
     // the last input registers for these special registers, but this would
     // require a lot of complexity to deal with the weird aliasing.
-    unsigned InputNumSGPRs = PreloadedSGPRs;
+    unsigned const InputNumSGPRs = PreloadedSGPRs;
     if (Requested && Requested < InputNumSGPRs)
       Requested = InputNumSGPRs;
 
@@ -908,7 +908,7 @@ unsigned GCNSubtarget::getMaxNumSGPRs(const MachineFunction &MF) const {
 
 static unsigned getMaxNumPreloadedSGPRs() {
   // Max number of user SGPRs
-  unsigned MaxUserSGPRs = 4 + // private segment buffer
+  unsigned const MaxUserSGPRs = 4 + // private segment buffer
                           2 + // Dispatch ptr
                           2 + // queue ptr
                           2 + // kernel segment ptr
@@ -916,7 +916,7 @@ static unsigned getMaxNumPreloadedSGPRs() {
                           2 + // flat scratch init
                           2;  // Implicit buffer ptr
   // Max number of system SGPRs
-  unsigned MaxSystemSGPRs = 1 + // WorkGroupIDX
+  unsigned const MaxSystemSGPRs = 1 + // WorkGroupIDX
                             1 + // WorkGroupIDY
                             1 + // WorkGroupIDZ
                             1 + // WorkGroupInfo
@@ -982,7 +982,7 @@ void GCNSubtarget::adjustSchedDependency(SUnit *Def, int DefOpIdx, SUnit *Use,
     const SIRegisterInfo *TRI = getRegisterInfo();
     auto Reg = Dep.getReg();
     MachineBasicBlock::const_instr_iterator I(DefI->getIterator());
-    MachineBasicBlock::const_instr_iterator E(DefI->getParent()->instr_end());
+    MachineBasicBlock::const_instr_iterator const E(DefI->getParent()->instr_end());
     unsigned Lat = 0;
     for (++I; I != E && I->isBundledWithPred(); ++I) {
       if (I->modifiesRegister(Reg, TRI))
@@ -995,7 +995,7 @@ void GCNSubtarget::adjustSchedDependency(SUnit *Def, int DefOpIdx, SUnit *Use,
     const SIRegisterInfo *TRI = getRegisterInfo();
     auto Reg = Dep.getReg();
     MachineBasicBlock::const_instr_iterator I(UseI->getIterator());
-    MachineBasicBlock::const_instr_iterator E(UseI->getParent()->instr_end());
+    MachineBasicBlock::const_instr_iterator const E(UseI->getParent()->instr_end());
     unsigned Lat = InstrInfo.getInstrLatency(getInstrItineraryData(), *DefI);
     for (++I; I != E && I->isBundledWithPred() && Lat; ++I) {
       if (I->readsRegister(Reg, TRI))
@@ -1070,13 +1070,13 @@ struct FillMFMAShadowMutation : ScheduleDAGMutation {
       if (SU->addPred(SDep(From, SDep::Artificial), false))
         ++Linked;
 
-      for (SDep &SI : From->Succs) {
+      for (SDep  const&SI : From->Succs) {
         SUnit *SUv = SI.getSUnit();
         if (SUv != From && isVALU(SUv) && canAddEdge(SUv, SU))
           SUv->addPred(SDep(SU, SDep::Artificial), false);
       }
 
-      for (SDep &SI : SU->Succs) {
+      for (SDep  const&SI : SU->Succs) {
         SUnit *Succ = SI.getSUnit();
         if (Succ != SU && isSALU(Succ) && canAddEdge(From, Succ))
           Worklist.push_back(Succ);
@@ -1103,7 +1103,7 @@ struct FillMFMAShadowMutation : ScheduleDAGMutation {
     auto E = DAG->SUnits.end();
     SmallPtrSet<SUnit*, 32> Visited;
     for (SUnit &SU : DAG->SUnits) {
-      MachineInstr &MAI = *SU.getInstr();
+      MachineInstr  const&MAI = *SU.getInstr();
       if (!TII->isMAI(MAI) ||
            MAI.getOpcode() == AMDGPU::V_ACCVGPR_WRITE_B32_e64 ||
            MAI.getOpcode() == AMDGPU::V_ACCVGPR_READ_B32_e64)

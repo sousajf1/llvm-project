@@ -119,7 +119,7 @@ constexpr GPUInfo AMDGCNGPUs[] = {
 };
 
 const GPUInfo *getArchEntry(AMDGPU::GPUKind AK, ArrayRef<GPUInfo> Table) {
-  GPUInfo Search = { {""}, {""}, AK, AMDGPU::FEATURE_NONE };
+  GPUInfo const Search = { {""}, {""}, AK, AMDGPU::FEATURE_NONE };
 
   auto I =
       llvm::lower_bound(Table, Search, [](const GPUInfo &A, const GPUInfo &B) {
@@ -187,7 +187,7 @@ void AMDGPU::fillValidArchListR600(SmallVectorImpl<StringRef> &Values) {
 }
 
 AMDGPU::IsaVersion AMDGPU::getIsaVersion(StringRef GPU) {
-  AMDGPU::GPUKind AK = parseArchAMDGCN(GPU);
+  AMDGPU::GPUKind const AK = parseArchAMDGCN(GPU);
   if (AK == AMDGPU::GPUKind::GK_NONE) {
     if (GPU == "generic-hsa")
       return {7, 0, 0};
@@ -295,7 +295,7 @@ CPUKind parseTuneCPUKind(StringRef TuneCPU, bool IsRV64) {
 }
 
 StringRef getMArchFromMcpu(StringRef CPU) {
-  CPUKind Kind = parseCPUKind(CPU);
+  CPUKind const Kind = parseCPUKind(CPU);
   return RISCVCPUInfo[static_cast<unsigned>(Kind)].DefaultMarch;
 }
 
@@ -318,7 +318,7 @@ void fillValidTuneCPUArchList(SmallVectorImpl<StringRef> &Values, bool IsRV64) {
 // Get all features except standard extension feature
 bool getCPUFeaturesExceptStdExt(CPUKind Kind,
                                 std::vector<StringRef> &Features) {
-  unsigned CPUFeatures = RISCVCPUInfo[static_cast<unsigned>(Kind)].Features;
+  unsigned const CPUFeatures = RISCVCPUInfo[static_cast<unsigned>(Kind)].Features;
 
   if (CPUFeatures == FK_INVALID)
     return false;

@@ -135,7 +135,7 @@ bool BPFAdjustOptImpl::serializeICMPInBB(Instruction &I) {
 
   // Now we got two icmp instructions which feed into
   // an "or" instruction.
-  PassThroughInfo Info(Icmp1, &I, 0);
+  PassThroughInfo const Info(Icmp1, &I, 0);
   PassThroughs.push_back(Info);
   return true;
 }
@@ -208,7 +208,7 @@ bool BPFAdjustOptImpl::serializeICMPCrossBB(BasicBlock &BB) {
     return false;
   }
 
-  PassThroughInfo Info(Cond, BI, 0);
+  PassThroughInfo const Info(Cond, BI, 0);
   PassThroughs.push_back(Info);
 
   return true;
@@ -284,7 +284,7 @@ bool BPFAdjustOptImpl::avoidSpeculation(Instruction &I) {
     // ZEXT/SEXT which is used for GEP.
     if (Inst->getOpcode() == Instruction::ZExt ||
         Inst->getOpcode() == Instruction::SExt) {
-      PassThroughInfo Info(&I, Inst, 0);
+      PassThroughInfo const Info(&I, Inst, 0);
       Candidates.push_back(Info);
     } else if (auto *GI = dyn_cast<GetElementPtrInst>(Inst)) {
       // traverse GEP inst to find Use operand index
@@ -297,7 +297,7 @@ bool BPFAdjustOptImpl::avoidSpeculation(Instruction &I) {
       if (i == e)
         continue;
 
-      PassThroughInfo Info(&I, GI, i);
+      PassThroughInfo const Info(&I, GI, i);
       Candidates.push_back(Info);
     }
   }

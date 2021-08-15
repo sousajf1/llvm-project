@@ -26,7 +26,7 @@ SDValue WebAssemblySelectionDAGInfo::EmitTargetCodeForMemcpy(
   if (!ST.hasBulkMemory())
     return SDValue();
 
-  SDValue MemIdx = DAG.getConstant(0, DL, MVT::i32);
+  SDValue const MemIdx = DAG.getConstant(0, DL, MVT::i32);
   auto LenMVT = ST.hasAddr64() ? MVT::i64 : MVT::i32;
   return DAG.getNode(WebAssemblyISD::MEMORY_COPY, DL, MVT::Other,
                      {Chain, MemIdx, MemIdx, Dst, Src,
@@ -50,7 +50,7 @@ SDValue WebAssemblySelectionDAGInfo::EmitTargetCodeForMemset(
   if (!ST.hasBulkMemory())
     return SDValue();
 
-  SDValue MemIdx = DAG.getConstant(0, DL, MVT::i32);
+  SDValue const MemIdx = DAG.getConstant(0, DL, MVT::i32);
   auto LenMVT = ST.hasAddr64() ? MVT::i64 : MVT::i32;
   // Only low byte matters for val argument, so anyext the i8
   return DAG.getNode(WebAssemblyISD::MEMORY_FILL, DL, MVT::Other, Chain, MemIdx,

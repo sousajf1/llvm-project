@@ -195,7 +195,7 @@ unsigned ReassociatePass::getRank(Value *V) {
     return 0;  // Otherwise it's a global or constant, rank 0.
   }
 
-  if (unsigned Rank = ValueRankMap[I])
+  if (unsigned const Rank = ValueRankMap[I])
     return Rank;    // Rank already known?
 
   // If this is an expression, return the 1+MAX(rank(LHS), rank(RHS)) so that
@@ -271,7 +271,7 @@ static BinaryOperator *LowerNegateToMultiply(Instruction *Neg) {
   assert((isa<UnaryOperator>(Neg) || isa<BinaryOperator>(Neg)) &&
          "Expected a Negate!");
   // FIXME: It's not safe to lower a unary FNeg into a FMul by -1.0.
-  unsigned OpNo = isa<BinaryOperator>(Neg) ? 1 : 0;
+  unsigned const OpNo = isa<BinaryOperator>(Neg) ? 1 : 0;
   Type *Ty = Neg->getType();
   Constant *NegOne = Ty->isIntOrIntVectorTy() ?
     ConstantInt::getAllOnesValue(Ty) : ConstantFP::get(Ty, -1.0);
@@ -341,7 +341,7 @@ static void IncorporateWeight(APInt &LHS, const APInt &RHS, unsigned Opcode) {
 
   assert((Opcode == Instruction::Mul || Opcode == Instruction::FMul) &&
          "Unknown associative operation!");
-  unsigned Bitwidth = LHS.getBitWidth();
+  unsigned const Bitwidth = LHS.getBitWidth();
   // If CM is the Carmichael number then a weight W satisfying W >= CM+Bitwidth
   // can be replaced with W-CM.  That's because x^W=x^(W-CM) for every Bitwidth
   // bit number x, since either x is odd in which case x^CM = 1, or x is even in
@@ -353,9 +353,9 @@ static void IncorporateWeight(APInt &LHS, const APInt &RHS, unsigned Opcode) {
   // the Carmichael number).
   if (Bitwidth > 3) {
     /// CM - The value of Carmichael's lambda function.
-    APInt CM = APInt::getOneBitSet(Bitwidth, CarmichaelShift(Bitwidth));
+    APInt const CM = APInt::getOneBitSet(Bitwidth, CarmichaelShift(Bitwidth));
     // Any weight W >= Threshold can be replaced with W - CM.
-    APInt Threshold = CM + Bitwidth;
+    APInt const Threshold = CM + Bitwidth;
     assert(LHS.ult(Threshold) && RHS.ult(Threshold) && "Weights not reduced!");
     // For Bitwidth 4 or more the following sum does not overflow.
     LHS += RHS;
@@ -364,8 +364,8 @@ static void IncorporateWeight(APInt &LHS, const APInt &RHS, unsigned Opcode) {
   } else {
     // To avoid problems with overflow do everything the same as above but using
     // a larger type.
-    unsigned CM = 1U << CarmichaelShift(Bitwidth);
-    unsigned Threshold = CM + Bitwidth;
+    unsigned const CM = 1U << CarmichaelShift(Bitwidth);
+    unsigned const Threshold = CM + Bitwidth;
     assert(LHS.getZExtValue() < Threshold && RHS.getZExtValue() < Threshold &&
            "Weights not reduced!");
     unsigned Total = LHS.getZExtValue() + RHS.getZExtValue();
@@ -455,8 +455,8 @@ static bool LinearizeExprTree(Instruction *I,
   assert((isa<UnaryOperator>(I) || isa<BinaryOperator>(I)) &&
          "Expected a UnaryOperator or BinaryOperator!");
   LLVM_DEBUG(dbgs() << "LINEARIZE: " << *I << '\n');
-  unsigned Bitwidth = I->getType()->getScalarType()->getPrimitiveSizeInBits();
-  unsigned Opcode = I->getOpcode();
+  unsigned const Bitwidth = I->getType()->getScalarType()->getPrimitiveSizeInBits();
+  unsigned const Opcode = I->getOpcode();
   assert(I->isAssociative() && I->isCommutative() &&
          "Expected an associative and commutative operation!");
 
@@ -497,7 +497,7 @@ static bool LinearizeExprTree(Instruction *I,
   SmallPtrSet<Value *, 8> Visited; // For sanity checking the iteration scheme.
 #endif
   while (!Worklist.empty()) {
-    std::pair<Instruction*, APInt> P = Worklist.pop_back_val();
+    std::pair<Instruction*, APInt> const P = Worklist.pop_back_val();
     I = P.first; // We examine the operands of this binary operator.
 
     for (unsigned OpIdx = 0; OpIdx < I->getNumOperands(); ++OpIdx) { // Visit operands.
@@ -516,7 +516,7 @@ static bool LinearizeExprTree(Instruction *I,
       }
 
       // Appears to be a leaf.  Is the operand already in the set of leaves?
-      LeafMap::iterator It = Leaves.find(Op);
+      LeafMap::iterator const It = Leaves.find(Op);
       if (It == Leaves.end()) {
         // Not in the leaf map.  Must be the first time we saw this operand.
         assert(Visited.insert(Op).second && "Not first visit!");
@@ -605,12 +605,12 @@ static bool LinearizeExprTree(Instruction *I,
   // form of the expression.
   for (unsigned i = 0, e = LeafOrder.size(); i != e; ++i) {
     Value *V = LeafOrder[i];
-    LeafMap::iterator It = Leaves.find(V);
+    LeafMap::iterator const It = Leaves.find(V);
     if (It == Leaves.end())
       // Node initially thought to be a leaf wasn't.
       continue;
     assert(!isReassociableOp(V, Opcode) && "Shouldn't be a leaf!");
-    APInt Weight = It->second;
+    APInt const Weight = It->second;
     if (Weight.isMinValue())
       // Leaf already output or weight reduction eliminated it.
       continue;
@@ -649,7 +649,7 @@ void ReassociatePass::RewriteExprTree(BinaryOperator *I,
   /// NodesToRewrite - Nodes from the original expression available for writing
   /// the new expression into.
   SmallVector<BinaryOperator*, 8> NodesToRewrite;
-  unsigned Opcode = I->getOpcode();
+  unsigned const Opcode = I->getOpcode();
   BinaryOperator *Op = I;
 
   /// NotRewritable - The operands being written will be the leaves of the new
@@ -784,7 +784,7 @@ void ReassociatePass::RewriteExprTree(BinaryOperator *I,
     do {
       // Preserve FastMathFlags.
       if (isa<FPMathOperator>(I)) {
-        FastMathFlags Flags = I->getFastMathFlags();
+        FastMathFlags const Flags = I->getFastMathFlags();
         ExpressionChanged->clearSubclassOptionalData();
         ExpressionChanged->setFastMathFlags(Flags);
       } else
@@ -1087,9 +1087,9 @@ static BinaryOperator *ConvertShiftToMul(Instruction *Shl) {
   // nuw nsw shl into a nuw nsw mul.  However, nsw in isolation requires special
   // handling.  It can be preserved as long as we're not left shifting by
   // bitwidth - 1.
-  bool NSW = cast<BinaryOperator>(Shl)->hasNoSignedWrap();
-  bool NUW = cast<BinaryOperator>(Shl)->hasNoUnsignedWrap();
-  unsigned BitWidth = Shl->getType()->getIntegerBitWidth();
+  bool const NSW = cast<BinaryOperator>(Shl)->hasNoSignedWrap();
+  bool const NUW = cast<BinaryOperator>(Shl)->hasNoUnsignedWrap();
+  unsigned const BitWidth = Shl->getType()->getIntegerBitWidth();
   if (NSW && (NUW || SA->getValue().ult(BitWidth - 1)))
     Mul->setHasNoSignedWrap(true);
   Mul->setHasNoUnsignedWrap(NUW);
@@ -1101,8 +1101,8 @@ static BinaryOperator *ConvertShiftToMul(Instruction *Shl) {
 /// scanning for 'x' when we see '-x' because they both get the same rank.
 static unsigned FindInOperandList(const SmallVectorImpl<ValueEntry> &Ops,
                                   unsigned i, Value *X) {
-  unsigned XRank = Ops[i].Rank;
-  unsigned e = Ops.size();
+  unsigned const XRank = Ops[i].Rank;
+  unsigned const e = Ops.size();
   for (unsigned j = i+1; j != e && Ops[j].Rank == XRank; ++j) {
     if (Ops[j].Op == X)
       return j;
@@ -1147,7 +1147,7 @@ Value *ReassociatePass::RemoveFactorFromExpression(Value *V, Value *Factor) {
   SmallVector<ValueEntry, 8> Factors;
   Factors.reserve(Tree.size());
   for (unsigned i = 0, e = Tree.size(); i != e; ++i) {
-    RepeatedValue E = Tree[i];
+    RepeatedValue const E = Tree[i];
     Factors.append(E.second.getZExtValue(),
                    ValueEntry(getRank(E.first), E.first));
   }
@@ -1189,7 +1189,7 @@ Value *ReassociatePass::RemoveFactorFromExpression(Value *V, Value *Factor) {
     return nullptr;
   }
 
-  BasicBlock::iterator InsertPt = ++BO->getIterator();
+  BasicBlock::iterator const InsertPt = ++BO->getIterator();
 
   // If this was just a single multiply, remove the multiply and return the only
   // remaining operand.
@@ -1236,7 +1236,7 @@ static Value *OptimizeAndOrXor(unsigned Opcode,
     assert(i < Ops.size());
     Value *X;
     if (match(Ops[i].Op, m_Not(m_Value(X)))) {    // Cannot occur for ^.
-      unsigned FoundX = FindInOperandList(Ops, i, X);
+      unsigned const FoundX = FindInOperandList(Ops, i, X);
       if (FoundX != i) {
         if (Opcode == Instruction::And)   // ...&X&~X = 0
           return Constant::getNullValue(X->getType());
@@ -1358,11 +1358,11 @@ bool ReassociatePass::CombineXorOpnd(Instruction *I, XorOpnd *Opnd1,
 
     const APInt &C1 = Opnd1->getConstPart();
     const APInt &C2 = Opnd2->getConstPart();
-    APInt C3((~C1) ^ C2);
+    APInt const C3((~C1) ^ C2);
 
     // Do not increase code size!
     if (!C3.isNullValue() && !C3.isAllOnesValue()) {
-      int NewInstNum = ConstOpnd.getBoolValue() ? 1 : 2;
+      int const NewInstNum = ConstOpnd.getBoolValue() ? 1 : 2;
       if (NewInstNum > DeadInstNum)
         return false;
     }
@@ -1374,11 +1374,11 @@ bool ReassociatePass::CombineXorOpnd(Instruction *I, XorOpnd *Opnd1,
     //
     const APInt &C1 = Opnd1->getConstPart();
     const APInt &C2 = Opnd2->getConstPart();
-    APInt C3 = C1 ^ C2;
+    APInt const C3 = C1 ^ C2;
 
     // Do not increase code size
     if (!C3.isNullValue() && !C3.isAllOnesValue()) {
-      int NewInstNum = ConstOpnd.getBoolValue() ? 1 : 2;
+      int const NewInstNum = ConstOpnd.getBoolValue() ? 1 : 2;
       if (NewInstNum > DeadInstNum)
         return false;
     }
@@ -1390,7 +1390,7 @@ bool ReassociatePass::CombineXorOpnd(Instruction *I, XorOpnd *Opnd1,
     //
     const APInt &C1 = Opnd1->getConstPart();
     const APInt &C2 = Opnd2->getConstPart();
-    APInt C3 = C1 ^ C2;
+    APInt const C3 = C1 ^ C2;
     Res = createAndInstr(I, X, C3);
   }
 
@@ -1504,18 +1504,18 @@ Value *ReassociatePass::OptimizeXor(Instruction *I,
   if (Changed) {
     Ops.clear();
     for (unsigned int i = 0, e = Opnds.size(); i < e; i++) {
-      XorOpnd &O = Opnds[i];
+      XorOpnd  const&O = Opnds[i];
       if (O.isInvalid())
         continue;
-      ValueEntry VE(getRank(O.getValue()), O.getValue());
+      ValueEntry const VE(getRank(O.getValue()), O.getValue());
       Ops.push_back(VE);
     }
     if (!ConstOpnd.isNullValue()) {
       Value *C = ConstantInt::get(Ty, ConstOpnd);
-      ValueEntry VE(getRank(C), C);
+      ValueEntry const VE(getRank(C), C);
       Ops.push_back(VE);
     }
-    unsigned Sz = Ops.size();
+    unsigned const Sz = Ops.size();
     if (Sz == 1)
       return Ops.back().Op;
     if (Sz == 0) {
@@ -1645,7 +1645,7 @@ Value *ReassociatePass::OptimizeAdd(Instruction *I,
       if (!Duplicates.insert(Factor).second)
         continue;
 
-      unsigned Occ = ++FactorOccurrences[Factor];
+      unsigned const Occ = ++FactorOccurrences[Factor];
       if (Occ > MaxOcc) {
         MaxOcc = Occ;
         MaxOccVal = Factor;
@@ -1659,7 +1659,7 @@ Value *ReassociatePass::OptimizeAdd(Instruction *I,
           Factor = ConstantInt::get(CI->getContext(), -CI->getValue());
           if (!Duplicates.insert(Factor).second)
             continue;
-          unsigned Occ = ++FactorOccurrences[Factor];
+          unsigned const Occ = ++FactorOccurrences[Factor];
           if (Occ > MaxOcc) {
             MaxOcc = Occ;
             MaxOccVal = Factor;
@@ -1672,7 +1672,7 @@ Value *ReassociatePass::OptimizeAdd(Instruction *I,
           Factor = ConstantFP::get(CF->getContext(), F);
           if (!Duplicates.insert(Factor).second)
             continue;
-          unsigned Occ = ++FactorOccurrences[Factor];
+          unsigned const Occ = ++FactorOccurrences[Factor];
           if (Occ > MaxOcc) {
             MaxOcc = Occ;
             MaxOccVal = Factor;
@@ -1722,7 +1722,7 @@ Value *ReassociatePass::OptimizeAdd(Instruction *I,
     // No need for extra uses anymore.
     DummyInst->deleteValue();
 
-    unsigned NumAddedValues = NewMulOps.size();
+    unsigned const NumAddedValues = NewMulOps.size();
     Value *V = EmitAddTreeOfValues(I, NewMulOps);
 
     // Now that we have inserted the add tree, optimize it. This allows us to
@@ -1924,7 +1924,7 @@ Value *ReassociatePass::OptimizeMul(BinaryOperator *I,
   if (Ops.empty())
     return V;
 
-  ValueEntry NewEntry = ValueEntry(getRank(V), V);
+  ValueEntry const NewEntry = ValueEntry(getRank(V), V);
   Ops.insert(llvm::lower_bound(Ops, NewEntry), NewEntry);
   return nullptr;
 }
@@ -1934,7 +1934,7 @@ Value *ReassociatePass::OptimizeExpression(BinaryOperator *I,
   // Now that we have the linearized expression tree, try to optimize it.
   // Start by folding any constants that we found.
   Constant *Cst = nullptr;
-  unsigned Opcode = I->getOpcode();
+  unsigned const Opcode = I->getOpcode();
   while (!Ops.empty() && isa<Constant>(Ops.back().Op)) {
     Constant *C = cast<Constant>(Ops.pop_back_val().Op);
     Cst = Cst ? ConstantExpr::get(Opcode, C, Cst) : C;
@@ -1956,7 +1956,7 @@ Value *ReassociatePass::OptimizeExpression(BinaryOperator *I,
 
   // Handle destructive annihilation due to identities between elements in the
   // argument list here.
-  unsigned NumOps = Ops.size();
+  unsigned const NumOps = Ops.size();
   switch (Opcode) {
   default: break;
   case Instruction::And:
@@ -1993,7 +1993,7 @@ Value *ReassociatePass::OptimizeExpression(BinaryOperator *I,
 void ReassociatePass::RecursivelyEraseDeadInsts(Instruction *I,
                                                 OrderedSet &Insts) {
   assert(isInstructionTriviallyDead(I) && "Trivially dead instructions only!");
-  SmallVector<Value *, 4> Ops(I->operands());
+  SmallVector<Value *, 4> const Ops(I->operands());
   ValueRankMap.erase(I);
   Insts.remove(I);
   RedoInsts.remove(I);
@@ -2022,7 +2022,7 @@ void ReassociatePass::EraseInst(Instruction *I) {
     if (Instruction *Op = dyn_cast<Instruction>(Ops[i])) {
       // If this is a node in an expression tree, climb to the expression root
       // and add that since that's where optimization actually happens.
-      unsigned Opcode = Op->getOpcode();
+      unsigned const Opcode = Op->getOpcode();
       while (Op->hasOneUse() && Op->user_back()->getOpcode() == Opcode &&
              Visited.insert(Op).second)
         Op = Op->user_back();
@@ -2104,8 +2104,8 @@ Instruction *ReassociatePass::canonicalizeNegFPConstantsForOp(Instruction *I,
   // Don't canonicalize x + (-Constant * y) -> x - (Constant * y), if the
   // resulting subtract will be broken up later.  This can get us into an
   // infinite loop during reassociation.
-  bool IsFSub = I->getOpcode() == Instruction::FSub;
-  bool NeedsSubtract = !IsFSub && Candidates.size() % 2 == 1;
+  bool const IsFSub = I->getOpcode() == Instruction::FSub;
+  bool const NeedsSubtract = !IsFSub && Candidates.size() % 2 == 1;
   if (NeedsSubtract && ShouldBreakUpSubtract(I))
     return nullptr;
 
@@ -2284,7 +2284,7 @@ void ReassociatePass::OptimizeInst(Instruction *I) {
 
   // If this is an interior node of a reassociable tree, ignore it until we
   // get to the root of the tree, to avoid N^2 analysis.
-  unsigned Opcode = BO->getOpcode();
+  unsigned const Opcode = BO->getOpcode();
   if (BO->hasOneUse() && BO->user_back()->getOpcode() == Opcode) {
     // During the initial run we will get to the root of the tree.
     // But if we get here while we are redoing instructions, there is no
@@ -2315,7 +2315,7 @@ void ReassociatePass::ReassociateExpression(BinaryOperator *I) {
   SmallVector<ValueEntry, 8> Ops;
   Ops.reserve(Tree.size());
   for (unsigned i = 0, e = Tree.size(); i != e; ++i) {
-    RepeatedValue E = Tree[i];
+    RepeatedValue const E = Tree[i];
     Ops.append(E.second.getZExtValue(),
                ValueEntry(getRank(E.first), E.first));
   }
@@ -2357,14 +2357,14 @@ void ReassociatePass::ReassociateExpression(BinaryOperator *I) {
         cast<Instruction>(I->user_back())->getOpcode() == Instruction::Add &&
         isa<ConstantInt>(Ops.back().Op) &&
         cast<ConstantInt>(Ops.back().Op)->isMinusOne()) {
-      ValueEntry Tmp = Ops.pop_back_val();
+      ValueEntry const Tmp = Ops.pop_back_val();
       Ops.insert(Ops.begin(), Tmp);
     } else if (I->getOpcode() == Instruction::FMul &&
                cast<Instruction>(I->user_back())->getOpcode() ==
                    Instruction::FAdd &&
                isa<ConstantFP>(Ops.back().Op) &&
                cast<ConstantFP>(Ops.back().Op)->isExactlyValue(-1.0)) {
-      ValueEntry Tmp = Ops.pop_back_val();
+      ValueEntry const Tmp = Ops.pop_back_val();
       Ops.insert(Ops.begin(), Tmp);
     }
   }
@@ -2395,7 +2395,7 @@ void ReassociatePass::ReassociateExpression(BinaryOperator *I) {
     unsigned Max = 1;
     unsigned BestRank = 0;
     std::pair<unsigned, unsigned> BestPair;
-    unsigned Idx = I->getOpcode() - Instruction::BinaryOpsBegin;
+    unsigned const Idx = I->getOpcode() - Instruction::BinaryOpsBegin;
     for (unsigned i = 0; i < Ops.size() - 1; ++i)
       for (unsigned j = i + 1; j < Ops.size(); ++j) {
         unsigned Score = 0;
@@ -2414,7 +2414,7 @@ void ReassociatePass::ReassociateExpression(BinaryOperator *I) {
             Score += it->second.Score;
         }
 
-        unsigned MaxRank = std::max(Ops[i].Rank, Ops[j].Rank);
+        unsigned const MaxRank = std::max(Ops[i].Rank, Ops[j].Rank);
         if (Score > Max || (Score == Max && MaxRank < BestRank)) {
           BestPair = {i, j};
           Max = Score;
@@ -2470,7 +2470,7 @@ ReassociatePass::BuildPairMap(ReversePostOrderTraversal<Function *> &RPOT) {
         continue;
 
       // Add all pairwise combinations of operands to the pair map.
-      unsigned BinaryIdx = I.getOpcode() - Instruction::BinaryOpsBegin;
+      unsigned const BinaryIdx = I.getOpcode() - Instruction::BinaryOpsBegin;
       SmallSet<std::pair<Value *, Value*>, 32> Visited;
       for (unsigned i = 0; i < Ops.size() - 1; ++i) {
         for (unsigned j = i + 1; j < Ops.size(); ++j) {

@@ -43,7 +43,7 @@ public:
 // skip allocas
 static BasicBlock::iterator getInsertPt(BasicBlock &BB) {
   BasicBlock::iterator InsPt = BB.getFirstInsertionPt();
-  for (BasicBlock::iterator E = BB.end(); InsPt != E; ++InsPt) {
+  for (BasicBlock::iterator const E = BB.end(); InsPt != E; ++InsPt) {
     AllocaInst *AI = dyn_cast<AllocaInst>(&*InsPt);
 
     // If this is a dynamic alloca, the value may depend on the loaded kernargs,
@@ -56,7 +56,7 @@ static BasicBlock::iterator getInsertPt(BasicBlock &BB) {
 }
 
 bool AMDGPULowerKernelArguments::runOnFunction(Function &F) {
-  CallingConv::ID CC = F.getCallingConv();
+  CallingConv::ID const CC = F.getCallingConv();
   if (CC != CallingConv::AMDGPU_KERNEL || F.arg_empty())
     return false;
 
@@ -86,7 +86,7 @@ bool AMDGPULowerKernelArguments::runOnFunction(Function &F) {
   KernArgSegment->addAttribute(AttributeList::ReturnIndex,
     Attribute::getWithDereferenceableBytes(Ctx, TotalKernArgSize));
 
-  unsigned AS = KernArgSegment->getType()->getPointerAddressSpace();
+  unsigned const AS = KernArgSegment->getType()->getPointerAddressSpace();
   uint64_t ExplicitArgOffset = 0;
 
   for (Argument &Arg : F.args()) {
@@ -96,10 +96,10 @@ bool AMDGPULowerKernelArguments::runOnFunction(Function &F) {
     if (!ABITypeAlign)
       ABITypeAlign = DL.getABITypeAlign(ArgTy);
 
-    uint64_t Size = DL.getTypeSizeInBits(ArgTy);
-    uint64_t AllocSize = DL.getTypeAllocSize(ArgTy);
+    uint64_t const Size = DL.getTypeSizeInBits(ArgTy);
+    uint64_t const AllocSize = DL.getTypeAllocSize(ArgTy);
 
-    uint64_t EltOffset = alignTo(ExplicitArgOffset, ABITypeAlign) + BaseOffset;
+    uint64_t const EltOffset = alignTo(ExplicitArgOffset, ABITypeAlign) + BaseOffset;
     ExplicitArgOffset = alignTo(ExplicitArgOffset, ABITypeAlign) + AllocSize;
 
     if (Arg.use_empty())
@@ -135,14 +135,14 @@ bool AMDGPULowerKernelArguments::runOnFunction(Function &F) {
     }
 
     auto *VT = dyn_cast<FixedVectorType>(ArgTy);
-    bool IsV3 = VT && VT->getNumElements() == 3;
-    bool DoShiftOpt = Size < 32 && !ArgTy->isAggregateType();
+    bool const IsV3 = VT && VT->getNumElements() == 3;
+    bool const DoShiftOpt = Size < 32 && !ArgTy->isAggregateType();
 
     VectorType *V4Ty = nullptr;
 
-    int64_t AlignDownOffset = alignDown(EltOffset, 4);
-    int64_t OffsetDiff = EltOffset - AlignDownOffset;
-    Align AdjustedAlign = commonAlignment(
+    int64_t const AlignDownOffset = alignDown(EltOffset, 4);
+    int64_t const OffsetDiff = EltOffset - AlignDownOffset;
+    Align const AdjustedAlign = commonAlignment(
         KernArgBaseAlign, DoShiftOpt ? AlignDownOffset : EltOffset);
 
     Value *ArgPtr;
@@ -183,7 +183,7 @@ bool AMDGPULowerKernelArguments::runOnFunction(Function &F) {
       if (Arg.hasNonNullAttr())
         Load->setMetadata(LLVMContext::MD_nonnull, MDNode::get(Ctx, {}));
 
-      uint64_t DerefBytes = Arg.getDereferenceableBytes();
+      uint64_t const DerefBytes = Arg.getDereferenceableBytes();
       if (DerefBytes != 0) {
         Load->setMetadata(
           LLVMContext::MD_dereferenceable,
@@ -192,7 +192,7 @@ bool AMDGPULowerKernelArguments::runOnFunction(Function &F) {
                         ConstantInt::get(Builder.getInt64Ty(), DerefBytes))));
       }
 
-      uint64_t DerefOrNullBytes = Arg.getDereferenceableOrNullBytes();
+      uint64_t const DerefOrNullBytes = Arg.getDereferenceableOrNullBytes();
       if (DerefOrNullBytes != 0) {
         Load->setMetadata(
           LLVMContext::MD_dereferenceable_or_null,
@@ -201,7 +201,7 @@ bool AMDGPULowerKernelArguments::runOnFunction(Function &F) {
                                                           DerefOrNullBytes))));
       }
 
-      unsigned ParamAlign = Arg.getParamAlignment();
+      unsigned const ParamAlign = Arg.getParamAlignment();
       if (ParamAlign != 0) {
         Load->setMetadata(
           LLVMContext::MD_align,

@@ -196,7 +196,7 @@ static bool GenerateSignBits(Value *V) {
   if (!isa<Instruction>(V))
     return false;
 
-  unsigned Opc = cast<Instruction>(V)->getOpcode();
+  unsigned const Opc = cast<Instruction>(V)->getOpcode();
   return Opc == Instruction::AShr || Opc == Instruction::SDiv ||
          Opc == Instruction::SRem || Opc == Instruction::SExt;
 }
@@ -331,7 +331,7 @@ bool TypePromotion::isSafeWrap(Instruction *I) {
   //
   // (1 < 127) != (256 < 127)
 
-  unsigned Opc = I->getOpcode();
+  unsigned const Opc = I->getOpcode();
   if (Opc != Instruction::Add && Opc != Instruction::Sub)
     return false;
 
@@ -341,8 +341,8 @@ bool TypePromotion::isSafeWrap(Instruction *I) {
     return false;
 
   ConstantInt *OverflowConst = cast<ConstantInt>(I->getOperand(1));
-  bool NegImm = OverflowConst->isNegative();
-  bool IsDecreasing = ((Opc == Instruction::Sub) && !NegImm) ||
+  bool const NegImm = OverflowConst->isNegative();
+  bool const IsDecreasing = ((Opc == Instruction::Sub) && !NegImm) ||
                        ((Opc == Instruction::Add) && NegImm);
   if (!IsDecreasing)
     return false;
@@ -367,7 +367,7 @@ bool TypePromotion::isSafeWrap(Instruction *I) {
   Total += OverflowConst->getValue().getBitWidth() < 32 ?
     OverflowConst->getValue().abs().zext(32) : OverflowConst->getValue().abs();
 
-  APInt Max = APInt::getAllOnesValue(TypePromotion::TypeSize);
+  APInt const Max = APInt::getAllOnesValue(TypePromotion::TypeSize);
 
   if (Total.getBitWidth() > Max.getBitWidth()) {
     if (Total.ugt(Max.zext(Total.getBitWidth())))
@@ -424,7 +424,7 @@ void IRPromoter::ReplaceAllUsersOfWith(Value *From, Value *To) {
   LLVM_DEBUG(dbgs() << "IR Promotion: Replacing " << *From << " with " << *To
              << "\n");
 
-  for (Use &U : From->uses()) {
+  for (Use  const&U : From->uses()) {
     auto *User = cast<Instruction>(U.getUser());
     if (InstTo && User->isIdenticalTo(InstTo)) {
       ReplacedAll = false;
@@ -515,7 +515,7 @@ void IRPromoter::ExtendSources() {
 void IRPromoter::PromoteTree() {
   LLVM_DEBUG(dbgs() << "IR Promotion: Mutating the tree..\n");
 
-  IRBuilder<> Builder{Ctx};
+  IRBuilder<> const Builder{Ctx};
 
   // Mutate the types of the instructions within the tree. Here we handle
   // constant operands.
@@ -659,7 +659,7 @@ void IRPromoter::ConvertTruncs() {
     IntegerType *SrcTy = cast<IntegerType>(Trunc->getOperand(0)->getType());
     IntegerType *DestTy = cast<IntegerType>(TruncTysMap[Trunc][0]);
 
-    unsigned NumBits = DestTy->getScalarSizeInBits();
+    unsigned const NumBits = DestTy->getScalarSizeInBits();
     ConstantInt *Mask =
       ConstantInt::get(SrcTy, APInt::getMaxValue(NumBits).getZExtValue());
     Value *Masked = Builder.CreateAnd(Trunc->getOperand(0), Mask);
@@ -884,7 +884,7 @@ bool TypePromotion::TryToPromote(Value *V, unsigned PromotedWidth) {
     // Don't visit users of a node which isn't going to be mutated unless its a
     // source.
     if (isSource(V) || shouldPromote(V)) {
-      for (Use &U : V->uses()) {
+      for (Use  const&U : V->uses()) {
         if (!AddLegalInst(U.getUser()))
           return false;
       }
@@ -969,14 +969,14 @@ bool TypePromotion::runOnFunction(Function &F) {
 
       for (auto &Op : ICmp->operands()) {
         if (auto *I = dyn_cast<Instruction>(Op)) {
-          EVT SrcVT = TLI->getValueType(DL, I->getType());
+          EVT const SrcVT = TLI->getValueType(DL, I->getType());
           if (SrcVT.isSimple() && TLI->isTypeLegal(SrcVT.getSimpleVT()))
             break;
 
           if (TLI->getTypeAction(ICmp->getContext(), SrcVT) !=
               TargetLowering::TypePromoteInteger)
             break;
-          EVT PromotedVT = TLI->getTypeToTransformTo(ICmp->getContext(), SrcVT);
+          EVT const PromotedVT = TLI->getTypeToTransformTo(ICmp->getContext(), SrcVT);
           if (RegisterBitWidth < PromotedVT.getFixedSizeInBits()) {
             LLVM_DEBUG(dbgs() << "IR Promotion: Couldn't find target register "
                        << "for promoted type\n");

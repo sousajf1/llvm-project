@@ -188,7 +188,7 @@ MachineCombiner::getDepth(SmallVectorImpl<MachineInstr *> &InsInstrs,
         continue;
       unsigned DepthOp = 0;
       unsigned LatencyOp = 0;
-      DenseMap<unsigned, unsigned>::iterator II =
+      DenseMap<unsigned, unsigned>::iterator const II =
           InstrIdxForVirtReg.find(MO.getReg());
       if (II != InstrIdxForVirtReg.end()) {
         // Operand is new virtual register not in trace
@@ -197,8 +197,8 @@ MachineCombiner::getDepth(SmallVectorImpl<MachineInstr *> &InsInstrs,
         assert(DefInstr &&
                "There must be a definition for a new virtual register");
         DepthOp = InstrDepth[II->second];
-        int DefIdx = DefInstr->findRegisterDefOperandIdx(MO.getReg());
-        int UseIdx = InstrPtr->findRegisterUseOperandIdx(MO.getReg());
+        int const DefIdx = DefInstr->findRegisterDefOperandIdx(MO.getReg());
+        int const UseIdx = InstrPtr->findRegisterUseOperandIdx(MO.getReg());
         LatencyOp = TSchedModel.computeOperandLatency(DefInstr, DefIdx,
                                                       InstrPtr, UseIdx);
       } else {
@@ -214,7 +214,7 @@ MachineCombiner::getDepth(SmallVectorImpl<MachineInstr *> &InsInstrs,
     }
     InstrDepth.push_back(IDepth);
   }
-  unsigned NewRootIdx = InsInstrs.size() - 1;
+  unsigned const NewRootIdx = InsInstrs.size() - 1;
   return InstrDepth[NewRootIdx];
 }
 
@@ -338,8 +338,8 @@ bool MachineCombiner::improvesCriticalPathLen(
   assert(TSchedModel.hasInstrSchedModelOrItineraries() &&
          "Missing machine model\n");
   // Get depth and latency of NewRoot and Root.
-  unsigned NewRootDepth = getDepth(InsInstrs, InstrIdxForVirtReg, BlockTrace);
-  unsigned RootDepth = BlockTrace.getInstrCycles(*Root).Depth;
+  unsigned const NewRootDepth = getDepth(InsInstrs, InstrIdxForVirtReg, BlockTrace);
+  unsigned const RootDepth = BlockTrace.getInstrCycles(*Root).Depth;
 
   LLVM_DEBUG(dbgs() << "  Dependence data for " << *Root << "\tNewRootDepth: "
                     << NewRootDepth << "\tRootDepth: " << RootDepth);
@@ -366,9 +366,9 @@ bool MachineCombiner::improvesCriticalPathLen(
   std::tie(NewRootLatency, RootLatency) =
       getLatenciesForInstrSequences(*Root, InsInstrs, DelInstrs, BlockTrace);
 
-  unsigned RootSlack = BlockTrace.getInstrSlack(*Root);
-  unsigned NewCycleCount = NewRootDepth + NewRootLatency;
-  unsigned OldCycleCount =
+  unsigned const RootSlack = BlockTrace.getInstrSlack(*Root);
+  unsigned const NewCycleCount = NewRootDepth + NewRootLatency;
+  unsigned const OldCycleCount =
       RootDepth + RootLatency + (SlackIsAccurate ? RootSlack : 0);
   LLVM_DEBUG(dbgs() << "\n\tNewRootLatency: " << NewRootLatency
                     << "\tRootLatency: " << RootLatency << "\n\tRootSlack: "
@@ -390,8 +390,8 @@ void MachineCombiner::instr2instrSC(
     SmallVectorImpl<MachineInstr *> &Instrs,
     SmallVectorImpl<const MCSchedClassDesc *> &InstrsSC) {
   for (auto *InstrPtr : Instrs) {
-    unsigned Opc = InstrPtr->getOpcode();
-    unsigned Idx = TII->get(Opc).getSchedClass();
+    unsigned const Opc = InstrPtr->getOpcode();
+    unsigned const Idx = TII->get(Opc).getSchedClass();
     const MCSchedClassDesc *SC = SchedModel.getSchedClassDesc(Idx);
     InstrsSC.push_back(SC);
   }
@@ -410,7 +410,7 @@ bool MachineCombiner::preservesResourceLen(
   //ArrayRef<const MachineBasicBlock *> MBBarr(MBB);
   SmallVector <const MachineBasicBlock *, 1> MBBarr;
   MBBarr.push_back(MBB);
-  unsigned ResLenBeforeCombine = BlockTrace.getResourceLength(MBBarr);
+  unsigned const ResLenBeforeCombine = BlockTrace.getResourceLength(MBBarr);
 
   // Deal with SC rather than Instructions.
   SmallVector<const MCSchedClassDesc *, 16> InsInstrsSC;
@@ -419,11 +419,11 @@ bool MachineCombiner::preservesResourceLen(
   instr2instrSC(InsInstrs, InsInstrsSC);
   instr2instrSC(DelInstrs, DelInstrsSC);
 
-  ArrayRef<const MCSchedClassDesc *> MSCInsArr = makeArrayRef(InsInstrsSC);
-  ArrayRef<const MCSchedClassDesc *> MSCDelArr = makeArrayRef(DelInstrsSC);
+  ArrayRef<const MCSchedClassDesc *> const MSCInsArr = makeArrayRef(InsInstrsSC);
+  ArrayRef<const MCSchedClassDesc *> const MSCDelArr = makeArrayRef(DelInstrsSC);
 
   // Compute new resource length.
-  unsigned ResLenAfterCombine =
+  unsigned const ResLenAfterCombine =
       BlockTrace.getResourceLength(MBBarr, MSCInsArr, MSCDelArr);
 
   LLVM_DEBUG(dbgs() << "\t\tResource length before replacement: "
@@ -526,7 +526,7 @@ void MachineCombiner::verifyPatternOrder(
     unsigned NewRootLatency, RootLatency;
     std::tie(NewRootLatency, RootLatency) = getLatenciesForInstrSequences(
         Root, InsInstrs, DelInstrs, MinInstr->getTrace(MBB));
-    long CurrentLatencyDiff = ((long)RootLatency) - ((long)NewRootLatency);
+    long const CurrentLatencyDiff = ((long)RootLatency) - ((long)NewRootLatency);
     assert(CurrentLatencyDiff <= PrevLatencyDiff &&
            "Current pattern is better than previous pattern.");
     PrevLatencyDiff = CurrentLatencyDiff;
@@ -555,9 +555,9 @@ bool MachineCombiner::combineInstructions(MachineBasicBlock *MBB) {
   SparseSet<LiveRegUnit> RegUnits;
   RegUnits.setUniverse(TRI->getNumRegUnits());
 
-  bool OptForSize = OptSize || llvm::shouldOptimizeForSize(MBB, PSI, MBFI);
+  bool const OptForSize = OptSize || llvm::shouldOptimizeForSize(MBB, PSI, MBFI);
 
-  bool DoRegPressureReduce =
+  bool const DoRegPressureReduce =
       TII->shouldReduceRegisterPressure(MBB, &RegClassInfo);
 
   while (BlockIter != MBB->end()) {
@@ -602,8 +602,8 @@ bool MachineCombiner::combineInstructions(MachineBasicBlock *MBB) {
       DenseMap<unsigned, unsigned> InstrIdxForVirtReg;
       TII->genAlternativeCodeSequence(MI, P, InsInstrs, DelInstrs,
                                       InstrIdxForVirtReg);
-      unsigned NewInstCount = InsInstrs.size();
-      unsigned OldInstCount = DelInstrs.size();
+      unsigned const NewInstCount = InsInstrs.size();
+      unsigned const OldInstCount = DelInstrs.size();
       // Found pattern, but did not generate alternative sequence.
       // This can happen e.g. when an immediate could not be materialized
       // in a single instruction.
@@ -670,7 +670,7 @@ bool MachineCombiner::combineInstructions(MachineBasicBlock *MBB) {
         // instruction depths incrementally.
         // NOTE: Only the instruction depths up to MI are accurate. All other
         // trace information is not updated.
-        MachineTraceMetrics::Trace BlockTrace = MinInstr->getTrace(MBB);
+        MachineTraceMetrics::Trace const BlockTrace = MinInstr->getTrace(MBB);
         Traces->verifyAnalysis();
         if (improvesCriticalPathLen(MBB, &MI, BlockTrace, InsInstrs, DelInstrs,
                                     InstrIdxForVirtReg, P,

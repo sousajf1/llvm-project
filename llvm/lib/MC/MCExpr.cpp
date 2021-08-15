@@ -76,7 +76,7 @@ void MCExpr::print(raw_ostream &OS, const MCAsmInfo *MAI, bool InParens) const {
     const MCSymbol &Sym = SRE.getSymbol();
     // Parenthesize names that start with $ so that they don't look like
     // absolute names.
-    bool UseParens =
+    bool const UseParens =
         !InParens && !Sym.getName().empty() && Sym.getName()[0] == '$';
     if (UseParens) {
       OS << '(';
@@ -104,7 +104,7 @@ void MCExpr::print(raw_ostream &OS, const MCAsmInfo *MAI, bool InParens) const {
     case MCUnaryExpr::Not:   OS << '~'; break;
     case MCUnaryExpr::Plus:  OS << '+'; break;
     }
-    bool Binary = UE.getSubExpr()->getKind() == MCExpr::Binary;
+    bool const Binary = UE.getSubExpr()->getKind() == MCExpr::Binary;
     if (Binary) OS << "(";
     UE.getSubExpr()->print(OS, MAI);
     if (Binary) OS << ")";
@@ -571,7 +571,7 @@ bool MCExpr::evaluateAsAbsolute(int64_t &Res, const MCAssembler *Asm,
     return true;
   }
 
-  bool IsRelocatable =
+  bool const IsRelocatable =
       evaluateAsRelocatableImpl(Value, Asm, Layout, nullptr, Addrs, InSet);
 
   // Record the current value.
@@ -699,7 +699,7 @@ EvaluateSymbolicAdd(const MCAssembler *Asm, const MCAsmLayout *Layout,
   // about dealing with modifiers. This will ultimately bite us, one day.
   const MCSymbolRefExpr *LHS_A = LHS.getSymA();
   const MCSymbolRefExpr *LHS_B = LHS.getSymB();
-  int64_t LHS_Cst = LHS.getConstant();
+  int64_t const LHS_Cst = LHS.getConstant();
 
   // Fold the result constant immediately.
   int64_t Result_Cst = LHS_Cst + RHS_Cst;
@@ -793,7 +793,7 @@ bool MCExpr::evaluateAsRelocatableImpl(MCValue &Res, const MCAssembler *Asm,
     // Evaluate recursively if this is a variable.
     if (Sym.isVariable() && (Kind == MCSymbolRefExpr::VK_None || Layout) &&
         canExpand(Sym, InSet)) {
-      bool IsMachO = SRE->hasSubsectionsViaSymbols();
+      bool const IsMachO = SRE->hasSubsectionsViaSymbols();
       if (Sym.getVariableValue()->evaluateAsRelocatableImpl(
               Res, Asm, Layout, Fixup, Addrs, InSet || IsMachO)) {
         if (Kind != MCSymbolRefExpr::VK_None) {

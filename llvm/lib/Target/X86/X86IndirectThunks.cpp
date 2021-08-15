@@ -135,13 +135,13 @@ void RetpolineThunkInserter::insertThunks(MachineModuleInfo &MMI) {
   if (MMI.getTarget().getTargetTriple().getArch() == Triple::x86_64)
     createThunkFunction(MMI, R11RetpolineName);
   else
-    for (StringRef Name : {EAXRetpolineName, ECXRetpolineName, EDXRetpolineName,
+    for (StringRef const Name : {EAXRetpolineName, ECXRetpolineName, EDXRetpolineName,
                            EDIRetpolineName})
       createThunkFunction(MMI, Name);
 }
 
 void RetpolineThunkInserter::populateThunk(MachineFunction &MF) {
-  bool Is64Bit = MF.getTarget().getTargetTriple().getArch() == Triple::x86_64;
+  bool const Is64Bit = MF.getTarget().getTargetTriple().getArch() == Triple::x86_64;
   Register ThunkReg;
   if (Is64Bit) {
     assert(MF.getName() == "__llvm_retpoline_r11" &&

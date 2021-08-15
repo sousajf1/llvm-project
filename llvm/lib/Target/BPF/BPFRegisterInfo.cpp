@@ -45,7 +45,7 @@ static void WarnSize(int Offset, MachineFunction &MF, DebugLoc& DL)
 {
   if (Offset <= -512) {
       const Function &F = MF.getFunction();
-      DiagnosticInfoUnsupported DiagStackSize(F,
+      DiagnosticInfoUnsupported const DiagStackSize(F,
           "Looks like the BPF stack limit of 512 bytes is exceeded. "
           "Please move large on stack variables into BPF per-cpu array map.\n",
           DL);
@@ -77,23 +77,23 @@ void BPFRegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
     assert(i < MI.getNumOperands() && "Instr doesn't have FrameIndex operand!");
   }
 
-  Register FrameReg = getFrameRegister(MF);
-  int FrameIndex = MI.getOperand(i).getIndex();
+  Register const FrameReg = getFrameRegister(MF);
+  int const FrameIndex = MI.getOperand(i).getIndex();
   const TargetInstrInfo &TII = *MF.getSubtarget().getInstrInfo();
 
   if (MI.getOpcode() == BPF::MOV_rr) {
-    int Offset = MF.getFrameInfo().getObjectOffset(FrameIndex);
+    int const Offset = MF.getFrameInfo().getObjectOffset(FrameIndex);
 
     WarnSize(Offset, MF, DL);
     MI.getOperand(i).ChangeToRegister(FrameReg, false);
-    Register reg = MI.getOperand(i - 1).getReg();
+    Register const reg = MI.getOperand(i - 1).getReg();
     BuildMI(MBB, ++II, DL, TII.get(BPF::ADD_ri), reg)
         .addReg(reg)
         .addImm(Offset);
     return;
   }
 
-  int Offset = MF.getFrameInfo().getObjectOffset(FrameIndex) +
+  int const Offset = MF.getFrameInfo().getObjectOffset(FrameIndex) +
                MI.getOperand(i + 1).getImm();
 
   if (!isInt<32>(Offset))
@@ -105,7 +105,7 @@ void BPFRegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
     // architecture does not really support FI_ri, replace it with
     //    MOV_rr <target_reg>, frame_reg
     //    ADD_ri <target_reg>, imm
-    Register reg = MI.getOperand(i - 1).getReg();
+    Register const reg = MI.getOperand(i - 1).getReg();
 
     BuildMI(MBB, ++II, DL, TII.get(BPF::MOV_rr), reg)
         .addReg(FrameReg);

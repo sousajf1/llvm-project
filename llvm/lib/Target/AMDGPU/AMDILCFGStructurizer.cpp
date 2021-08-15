@@ -318,7 +318,7 @@ private:
 char AMDGPUCFGStructurizer::ID = 0;
 
 int AMDGPUCFGStructurizer::getSCCNum(MachineBasicBlock *MBB) const {
-  MBBInfoMap::const_iterator It = BlockInfoMap.find(MBB);
+  MBBInfoMap::const_iterator const It = BlockInfoMap.find(MBB);
   if (It == BlockInfoMap.end())
     return INVALIDSCCNUM;
   return (*It).second->SccNum;
@@ -326,7 +326,7 @@ int AMDGPUCFGStructurizer::getSCCNum(MachineBasicBlock *MBB) const {
 
 MachineBasicBlock *AMDGPUCFGStructurizer::getLoopLandInfo(MachineLoop *LoopRep)
     const {
-  LoopLandInfoMap::const_iterator It = LLInfoMap.find(LoopRep);
+  LoopLandInfoMap::const_iterator const It = LLInfoMap.find(LoopRep);
   if (It == LLInfoMap.end())
     return nullptr;
   return (*It).second;
@@ -341,7 +341,7 @@ bool AMDGPUCFGStructurizer::hasBackEdge(MachineBasicBlock *MBB) const {
 }
 
 bool AMDGPUCFGStructurizer::isRetiredBlock(MachineBasicBlock *MBB) const {
-  MBBInfoMap::const_iterator It = BlockInfoMap.find(MBB);
+  MBBInfoMap::const_iterator const It = BlockInfoMap.find(MBB);
   if (It == BlockInfoMap.end())
     return false;
   return (*It).second->IsRetired;
@@ -390,13 +390,13 @@ int AMDGPUCFGStructurizer::countActiveBlock(MBBVector::const_iterator It,
 }
 
 bool AMDGPUCFGStructurizer::needMigrateBlock(MachineBasicBlock *MBB) const {
-  unsigned BlockSizeThreshold = 30;
-  unsigned CloneInstrThreshold = 100;
-  bool MultiplePreds = MBB && (MBB->pred_size() > 1);
+  unsigned const BlockSizeThreshold = 30;
+  unsigned const CloneInstrThreshold = 100;
+  bool const MultiplePreds = MBB && (MBB->pred_size() > 1);
 
   if(!MultiplePreds)
     return false;
-  unsigned BlkSize = MBB->size();
+  unsigned const BlkSize = MBB->size();
   return ((BlkSize > BlockSizeThreshold) &&
       (BlkSize * (MBB->pred_size() - 1) > CloneInstrThreshold));
 }
@@ -469,7 +469,7 @@ void AMDGPUCFGStructurizer::insertCondBranchBefore(
   MachineFunction *MF = MBB->getParent();
   MachineInstr *NewMI = MF->CreateMachineInstr(TII->get(NewOpcode), DL);
   MBB->insert(I, NewMI);
-  MachineInstrBuilder MIB(*MF, NewMI);
+  MachineInstrBuilder const MIB(*MF, NewMI);
   MIB.addReg(OldMI->getOperand(1).getReg(), false);
   SHOWNEWINSTR(NewMI);
   //erase later oldInstr->eraseFromParent();
@@ -540,7 +540,7 @@ AMDGPUCFGStructurizer::getFalseBranch(MachineBasicBlock *MBB,
     MachineInstr *MI) {
   assert(MBB->succ_size() == 2);
   MachineBasicBlock *TrueBranch = getTrueBranch(MI);
-  MachineBasicBlock::succ_iterator It = MBB->succ_begin();
+  MachineBasicBlock::succ_iterator const It = MBB->succ_begin();
   MachineBasicBlock::succ_iterator Next = It;
   ++Next;
   return (*It == TrueBranch) ? *Next : *It;
@@ -582,7 +582,7 @@ DebugLoc AMDGPUCFGStructurizer::getLastDebugLocInBB(MachineBasicBlock *MBB) {
 
 MachineInstr *AMDGPUCFGStructurizer::getNormalBlockBranchInstr(
     MachineBasicBlock *MBB) {
-  MachineBasicBlock::reverse_iterator It = MBB->rbegin();
+  MachineBasicBlock::reverse_iterator const It = MBB->rbegin();
   MachineInstr *MI = &*It;
   if (MI && (isCondBranch(MI) || isUncondBranch(MI)))
     return MI;
@@ -606,7 +606,7 @@ MachineInstr *AMDGPUCFGStructurizer::getLoopendBlockBranchInstr(
 }
 
 MachineInstr *AMDGPUCFGStructurizer::getReturnInstr(MachineBasicBlock *MBB) {
-  MachineBasicBlock::reverse_iterator It = MBB->rbegin();
+  MachineBasicBlock::reverse_iterator const It = MBB->rbegin();
   if (It != MBB->rend()) {
     MachineInstr *instr = &(*It);
     if (instr->getOpcode() == R600::RETURN)
@@ -617,7 +617,7 @@ MachineInstr *AMDGPUCFGStructurizer::getReturnInstr(MachineBasicBlock *MBB) {
 
 bool AMDGPUCFGStructurizer::isReturnBlock(MachineBasicBlock *MBB) {
   MachineInstr *MI = getReturnInstr(MBB);
-  bool IsReturn = (MBB->succ_size() == 0);
+  bool const IsReturn = (MBB->succ_size() == 0);
   if (MI)
     assert(IsReturn);
   else if (IsReturn)
@@ -659,7 +659,7 @@ void AMDGPUCFGStructurizer::wrapup(MachineBasicBlock *MBB) {
    //collect continue right before endloop
    SmallVector<MachineInstr *, DEFAULT_VEC_SLOTS> ContInstr;
    MachineBasicBlock::iterator Pre = MBB->begin();
-   MachineBasicBlock::iterator E = MBB->end();
+   MachineBasicBlock::iterator const E = MBB->end();
    MachineBasicBlock::iterator It = Pre;
    while (It != E) {
      if (Pre->getOpcode() == R600::CONTINUE
@@ -781,7 +781,7 @@ bool AMDGPUCFGStructurizer::run() {
           || getSCCNum(SccBeginMBB) != getSCCNum(*It)) {
         // Just finish one scc.
         ++SccNumIter;
-        int sccRemainedNumBlk = countActiveBlock(SccBeginIter, It);
+        int const sccRemainedNumBlk = countActiveBlock(SccBeginIter, It);
         if (sccRemainedNumBlk != 1 && sccRemainedNumBlk >= SccNumBlk) {
           LLVM_DEBUG(dbgs() << "Can't reduce SCC " << getSCCNum(MBB)
                             << ", sccNumIter = " << SccNumIter;
@@ -812,7 +812,7 @@ bool AMDGPUCFGStructurizer::run() {
       Finish = true;
       LLVM_DEBUG(dbgs() << "Reduce to one block\n";);
     } else {
-      int NewnumRemainedBlk
+      int const NewnumRemainedBlk
         = countActiveBlock(OrderedBlks.begin(), OrderedBlks.end());
       // consider cloned blocks ??
       if (NewnumRemainedBlk == 1 || NewnumRemainedBlk < NumRemainedBlk) {
@@ -1003,7 +1003,7 @@ int AMDGPUCFGStructurizer::loopendPatternMatch() {
     if (ExaminedLoop->getNumBlocks() == 0 || Visited[ExaminedLoop])
       continue;
     LLVM_DEBUG(dbgs() << "Processing:\n"; ExaminedLoop->dump(););
-    int NumBreak = mergeLoop(ExaminedLoop);
+    int const NumBreak = mergeLoop(ExaminedLoop);
     if (NumBreak == -1)
       break;
     Num += NumBreak;
@@ -1274,16 +1274,16 @@ int AMDGPUCFGStructurizer::improveSimpleJumpintoIf(MachineBasicBlock *HeadMBB,
     return 0;
   }
 
-  int NumNewBlk = 0;
+  int const NumNewBlk = 0;
 
-  bool LandBlkHasOtherPred = (LandBlk->pred_size() > 2);
+  bool const LandBlkHasOtherPred = (LandBlk->pred_size() > 2);
 
   //insert R600::ENDIF to avoid special case "input landBlk == NULL"
-  MachineBasicBlock::iterator I = insertInstrBefore(LandBlk, R600::ENDIF);
+  MachineBasicBlock::iterator const I = insertInstrBefore(LandBlk, R600::ENDIF);
 
   if (LandBlkHasOtherPred) {
     report_fatal_error("Extra register needed to handle CFG");
-    Register CmpResReg =
+    Register const CmpResReg =
         HeadMBB->getParent()->getRegInfo().createVirtualRegister(I32RC);
     report_fatal_error("Extra compare instruction needed to handle CFG");
     insertCondBranchBefore(LandBlk, I, R600::IF_PREDICATE_SET,
@@ -1292,7 +1292,7 @@ int AMDGPUCFGStructurizer::improveSimpleJumpintoIf(MachineBasicBlock *HeadMBB,
 
   // XXX: We are running this after RA, so creating virtual registers will
   // cause an assertion failure in the PostRA scheduling pass.
-  Register InitReg =
+  Register const InitReg =
       HeadMBB->getParent()->getRegInfo().createVirtualRegister(I32RC);
   insertCondBranchBefore(LandBlk, I, R600::IF_PREDICATE_SET, InitReg,
       DebugLoc());
@@ -1364,8 +1364,8 @@ void AMDGPUCFGStructurizer::mergeIfthenelseBlock(MachineInstr *BranchMI,
                dbgs() << "BB" << LandMBB->getNumber();
              } dbgs() << "\n";);
 
-  int OldOpcode = BranchMI->getOpcode();
-  DebugLoc BranchDL = BranchMI->getDebugLoc();
+  int const OldOpcode = BranchMI->getOpcode();
+  DebugLoc const BranchDL = BranchMI->getDebugLoc();
 
 //    transform to
 //    if cond
@@ -1375,7 +1375,7 @@ void AMDGPUCFGStructurizer::mergeIfthenelseBlock(MachineInstr *BranchMI,
 //    endif
 //    landBlk
 
-  MachineBasicBlock::iterator I = BranchMI;
+  MachineBasicBlock::iterator const I = BranchMI;
   insertCondBranchBefore(I, getBranchNzeroOpcode(OldOpcode),
       BranchDL);
 
@@ -1423,9 +1423,9 @@ void AMDGPUCFGStructurizer::mergeLoopbreakBlock(MachineBasicBlock *ExitingMBB,
                     << LandMBB->getNumber() << "\n";);
   MachineInstr *BranchMI = getLoopendBlockBranchInstr(ExitingMBB);
   assert(BranchMI && isCondBranch(BranchMI));
-  DebugLoc DL = BranchMI->getDebugLoc();
+  DebugLoc const DL = BranchMI->getDebugLoc();
   MachineBasicBlock *TrueBranch = getTrueBranch(BranchMI);
-  MachineBasicBlock::iterator I = BranchMI;
+  MachineBasicBlock::iterator const I = BranchMI;
   if (TrueBranch != LandMBB)
     reversePredicateSetter(I, *I->getParent());
   insertCondBranchBefore(ExitingMBB, I, R600::IF_PREDICATE_SET, R600::PREDICATE_BIT, DL);
@@ -1446,15 +1446,15 @@ void AMDGPUCFGStructurizer::settleLoopcontBlock(MachineBasicBlock *ContingMBB,
   MachineInstr *MI = getLoopendBlockBranchInstr(ContingMBB);
   if (MI) {
     assert(isCondBranch(MI));
-    MachineBasicBlock::iterator I = MI;
+    MachineBasicBlock::iterator const I = MI;
     MachineBasicBlock *TrueBranch = getTrueBranch(MI);
-    int OldOpcode = MI->getOpcode();
-    DebugLoc DL = MI->getDebugLoc();
+    int const OldOpcode = MI->getOpcode();
+    DebugLoc const DL = MI->getDebugLoc();
 
-    bool UseContinueLogical = ((&*ContingMBB->rbegin()) == MI);
+    bool const UseContinueLogical = ((&*ContingMBB->rbegin()) == MI);
 
     if (!UseContinueLogical) {
-      int BranchOpcode =
+      int const BranchOpcode =
           TrueBranch == ContMBB ? getBranchNzeroOpcode(OldOpcode) :
           getBranchZeroOpcode(OldOpcode);
       insertCondBranchBefore(I, BranchOpcode, DL);
@@ -1462,7 +1462,7 @@ void AMDGPUCFGStructurizer::settleLoopcontBlock(MachineBasicBlock *ContingMBB,
       insertInstrEnd(ContingMBB, R600::CONTINUE, DL);
       insertInstrEnd(ContingMBB, R600::ENDIF, DL);
     } else {
-      int BranchOpcode =
+      int const BranchOpcode =
           TrueBranch == ContMBB ? getContinueNzeroOpcode(OldOpcode) :
           getContinueZeroOpcode(OldOpcode);
       insertCondBranchBefore(I, BranchOpcode, DL);

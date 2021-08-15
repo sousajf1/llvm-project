@@ -106,7 +106,7 @@ ARMLegalizerInfo::ARMLegalizerInfo(const ARMSubtarget &ST) {
     .minScalar(0, s32)
     .clampScalar(1, s32, s32);
 
-  bool HasHWDivide = (!ST.isThumb() && ST.hasDivideInARMMode()) ||
+  bool const HasHWDivide = (!ST.isThumb() && ST.hasDivideInARMMode()) ||
                      (ST.isThumb() && ST.hasDivideInThumbMode());
   if (HasHWDivide)
     getActionDefinitionsBuilder({G_SDIV, G_UDIV})
@@ -117,7 +117,7 @@ ARMLegalizerInfo::ARMLegalizerInfo(const ARMSubtarget &ST) {
         .libcallFor({s32})
         .clampScalar(0, s32, s32);
 
-  for (unsigned Op : {G_SREM, G_UREM}) {
+  for (unsigned const Op : {G_SREM, G_UREM}) {
     LegacyInfo.setLegalizeScalarToDifferentSizeStrategy(Op, 0, widen_8_16);
     if (HasHWDivide)
       LegacyInfo.setAction({Op, s32}, LegacyLegalizeActions::Lower);
@@ -374,7 +374,7 @@ bool ARMLegalizerInfo::legalizeCustom(LegalizerHelper &Helper,
     return false;
   case G_SREM:
   case G_UREM: {
-    Register OriginalResult = MI.getOperand(0).getReg();
+    Register const OriginalResult = MI.getOperand(0).getReg();
     auto Size = MRI.getType(OriginalResult).getSizeInBits();
     if (Size != 32)
       return false;
@@ -387,7 +387,7 @@ bool ARMLegalizerInfo::legalizeCustom(LegalizerHelper &Helper,
     // destination of the original instruction for the remainder.
     Type *ArgTy = Type::getInt32Ty(Ctx);
     StructType *RetTy = StructType::get(Ctx, {ArgTy, ArgTy}, /* Packed */ true);
-    Register RetRegs[] = {MRI.createGenericVirtualRegister(LLT::scalar(32)),
+    Register const RetRegs[] = {MRI.createGenericVirtualRegister(LLT::scalar(32)),
                           OriginalResult};
     auto Status = createLibcall(MIRBuilder, Libcall, {RetRegs, RetTy, 0},
                                 {{MI.getOperand(1).getReg(), ArgTy, 0},
@@ -440,7 +440,7 @@ bool ARMLegalizerInfo::legalizeCustom(LegalizerHelper &Helper,
       // We have a result, but we need to transform it into a proper 1-bit 0 or
       // 1, taking into account the different peculiarities of the values
       // returned by the comparison functions.
-      CmpInst::Predicate ResultPred = Libcall.Predicate;
+      CmpInst::Predicate const ResultPred = Libcall.Predicate;
       if (ResultPred == CmpInst::BAD_ICMP_PREDICATE) {
         // We have a nice 0 or 1, and we just need to truncate it back to 1 bit
         // to keep the types consistent.

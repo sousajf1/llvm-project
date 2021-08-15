@@ -346,8 +346,8 @@ bool MergeFunctions::doSanityCheck(std::vector<WeakTrackingVH> &Worklist) {
            ++J, ++j) {
         Function *F1 = cast<Function>(*I);
         Function *F2 = cast<Function>(*J);
-        int Res1 = FunctionComparator(F1, F2, &GlobalNumbers).compare();
-        int Res2 = FunctionComparator(F2, F1, &GlobalNumbers).compare();
+        int const Res1 = FunctionComparator(F1, F2, &GlobalNumbers).compare();
+        int const Res2 = FunctionComparator(F2, F1, &GlobalNumbers).compare();
 
         // If F1 <= F2, then F2 >= F1, otherwise report failure.
         if (Res1 != -Res2) {
@@ -367,8 +367,8 @@ bool MergeFunctions::doSanityCheck(std::vector<WeakTrackingVH> &Worklist) {
             continue;
 
           Function *F3 = cast<Function>(*K);
-          int Res3 = FunctionComparator(F1, F3, &GlobalNumbers).compare();
-          int Res4 = FunctionComparator(F2, F3, &GlobalNumbers).compare();
+          int const Res3 = FunctionComparator(F1, F3, &GlobalNumbers).compare();
+          int const Res4 = FunctionComparator(F2, F3, &GlobalNumbers).compare();
 
           bool Transitive = true;
 
@@ -709,7 +709,7 @@ void MergeFunctions::writeThunk(Function *F, Function *G) {
 
   CallInst *CI = Builder.CreateCall(F, Args);
   ReturnInst *RI = nullptr;
-  bool isSwiftTailCall = F->getCallingConv() == CallingConv::SwiftTail &&
+  bool const isSwiftTailCall = F->getCallingConv() == CallingConv::SwiftTail &&
                          G->getCallingConv() == CallingConv::SwiftTail;
   CI->setTailCallKind(isSwiftTailCall ? llvm::CallInst::TCK_MustTail
                                       : llvm::CallInst::TCK_Tail);
@@ -724,9 +724,9 @@ void MergeFunctions::writeThunk(Function *F, Function *G) {
   if (MergeFunctionsPDI) {
     DISubprogram *DIS = G->getSubprogram();
     if (DIS) {
-      DebugLoc CIDbgLoc =
+      DebugLoc const CIDbgLoc =
           DILocation::get(DIS->getContext(), DIS->getScopeLine(), 0, DIS);
-      DebugLoc RIDbgLoc =
+      DebugLoc const RIDbgLoc =
           DILocation::get(DIS->getContext(), DIS->getScopeLine(), 0, DIS);
       CI->setDebugLoc(CIDbgLoc);
       RI->setDebugLoc(RIDbgLoc);
@@ -817,7 +817,7 @@ void MergeFunctions::mergeTwoFunctions(Function *F, Function *G) {
     removeUsers(F);
     F->replaceAllUsesWith(NewF);
 
-    MaybeAlign MaxAlignment(std::max(G->getAlignment(), NewF->getAlignment()));
+    MaybeAlign const MaxAlignment(std::max(G->getAlignment(), NewF->getAlignment()));
 
     writeThunkOrAlias(F, G);
     writeThunkOrAlias(F, NewF);
@@ -871,7 +871,7 @@ void MergeFunctions::replaceFunctionInTree(const FunctionNode &FN,
   assert(I != FNodesInTree.end() && "F should be in FNodesInTree");
   assert(FNodesInTree.count(G) == 0 && "FNodesInTree should not contain G");
 
-  FnTreeType::iterator IterToFNInFnTree = I->second;
+  FnTreeType::iterator const IterToFNInFnTree = I->second;
   assert(&(*IterToFNInFnTree) == &FN && "F should map to FN in FNodesInTree.");
   // Remove F -> FN and insert G -> FN
   FNodesInTree.erase(I);
@@ -901,7 +901,7 @@ static bool isFuncOrderCorrect(const Function *F, const Function *G) {
 // Insert a ComparableFunction into the FnTree, or merge it away if equal to one
 // that was already inserted.
 bool MergeFunctions::insert(Function *NewFunction) {
-  std::pair<FnTreeType::iterator, bool> Result =
+  std::pair<FnTreeType::iterator, bool> const Result =
       FnTree.insert(FunctionNode(NewFunction));
 
   if (Result.second) {

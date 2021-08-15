@@ -24,7 +24,7 @@ const char llvm::detail::unit<std::nano>::value[] = "ns";
 
 static inline struct tm getStructTM(TimePoint<> TP) {
   struct tm Storage;
-  std::time_t OurTime = toTimeT(TP);
+  std::time_t const OurTime = toTimeT(TP);
 
 #if defined(LLVM_ON_UNIX)
   struct tm *LT = ::localtime_r(&OurTime, &Storage);
@@ -41,7 +41,7 @@ static inline struct tm getStructTM(TimePoint<> TP) {
 }
 
 raw_ostream &operator<<(raw_ostream &OS, TimePoint<> TP) {
-  struct tm LT = getStructTM(TP);
+  struct tm const LT = getStructTM(TP);
   char Buffer[sizeof("YYYY-MM-DD HH:MM:SS")];
   strftime(Buffer, sizeof(Buffer), "%Y-%m-%d %H:%M:%S", &LT);
   return OS << Buffer << '.'
@@ -53,9 +53,9 @@ raw_ostream &operator<<(raw_ostream &OS, TimePoint<> TP) {
 void format_provider<TimePoint<>>::format(const TimePoint<> &T, raw_ostream &OS,
                                           StringRef Style) {
   using namespace std::chrono;
-  TimePoint<seconds> Truncated = time_point_cast<seconds>(T);
+  TimePoint<seconds> const Truncated = time_point_cast<seconds>(T);
   auto Fractional = T - Truncated;
-  struct tm LT = getStructTM(Truncated);
+  struct tm const LT = getStructTM(Truncated);
   // Handle extensions first. strftime mangles unknown %x on some platforms.
   if (Style.empty()) Style = "%Y-%m-%d %H:%M:%S.%N";
   std::string Format;
@@ -86,7 +86,7 @@ void format_provider<TimePoint<>>::format(const TimePoint<> &T, raw_ostream &OS,
   }
   FStream.flush();
   char Buffer[256];  // Should be enough for anywhen.
-  size_t Len = strftime(Buffer, sizeof(Buffer), Format.c_str(), &LT);
+  size_t const Len = strftime(Buffer, sizeof(Buffer), Format.c_str(), &LT);
   OS << (Len ? Buffer : "BAD-DATE-FORMAT");
 }
 

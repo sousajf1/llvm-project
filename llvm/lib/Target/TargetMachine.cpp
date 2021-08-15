@@ -94,7 +94,7 @@ static TLSModel::Model getSelectedTLSModel(const GlobalValue *GV) {
 bool TargetMachine::shouldAssumeDSOLocal(const Module &M,
                                          const GlobalValue *GV) const {
   const Triple &TT = getTargetTriple();
-  Reloc::Model RM = getRelocationModel();
+  Reloc::Model const RM = getRelocationModel();
 
   // According to the llvm language reference, we should be able to
   // just return false in here if we have a GV, as we know it is
@@ -168,10 +168,10 @@ bool TargetMachine::useEmulatedTLS() const {
 }
 
 TLSModel::Model TargetMachine::getTLSModel(const GlobalValue *GV) const {
-  bool IsPIE = GV->getParent()->getPIELevel() != PIELevel::Default;
-  Reloc::Model RM = getRelocationModel();
-  bool IsSharedLibrary = RM == Reloc::PIC_ && !IsPIE;
-  bool IsLocal = shouldAssumeDSOLocal(*GV->getParent(), GV);
+  bool const IsPIE = GV->getParent()->getPIELevel() != PIELevel::Default;
+  Reloc::Model const RM = getRelocationModel();
+  bool const IsSharedLibrary = RM == Reloc::PIC_ && !IsPIE;
+  bool const IsLocal = shouldAssumeDSOLocal(*GV->getParent(), GV);
 
   TLSModel::Model Model;
   if (IsSharedLibrary) {
@@ -187,7 +187,7 @@ TLSModel::Model TargetMachine::getTLSModel(const GlobalValue *GV) const {
   }
 
   // If the user specified a more specific model, use that.
-  TLSModel::Model SelectedModel = getSelectedTLSModel(GV);
+  TLSModel::Model const SelectedModel = getSelectedTLSModel(GV);
   if (SelectedModel > Model)
     return SelectedModel;
 

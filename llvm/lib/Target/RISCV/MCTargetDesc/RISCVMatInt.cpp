@@ -51,7 +51,7 @@ static int getInstSeqCost(RISCVMatInt::InstSeq &Res, bool HasRVC) {
 static void generateInstSeqImpl(int64_t Val,
                                 const FeatureBitset &ActiveFeatures,
                                 RISCVMatInt::InstSeq &Res) {
-  bool IsRV64 = ActiveFeatures[RISCV::Feature64Bit];
+  bool const IsRV64 = ActiveFeatures[RISCV::Feature64Bit];
 
   if (isInt<32>(Val)) {
     // Depending on the active bits in the immediate Value v, the following
@@ -61,14 +61,14 @@ static void generateInstSeqImpl(int64_t Val,
     // v[0,12) != 0 && v[12,32) == 0 : ADDI
     // v[0,12) == 0 && v[12,32) != 0 : LUI
     // v[0,32) != 0                  : LUI+ADDI(W)
-    int64_t Hi20 = ((Val + 0x800) >> 12) & 0xFFFFF;
-    int64_t Lo12 = SignExtend64<12>(Val);
+    int64_t const Hi20 = ((Val + 0x800) >> 12) & 0xFFFFF;
+    int64_t const Lo12 = SignExtend64<12>(Val);
 
     if (Hi20)
       Res.push_back(RISCVMatInt::Inst(RISCV::LUI, Hi20));
 
     if (Lo12 || Hi20 == 0) {
-      unsigned AddiOpc = (IsRV64 && Hi20) ? RISCV::ADDIW : RISCV::ADDI;
+      unsigned const AddiOpc = (IsRV64 && Hi20) ? RISCV::ADDIW : RISCV::ADDI;
       Res.push_back(RISCVMatInt::Inst(AddiOpc, Lo12));
     }
     return;
@@ -99,7 +99,7 @@ static void generateInstSeqImpl(int64_t Val,
   // fits into 32 bits. The emission of the shifts and additions is subsequently
   // performed when the recursion returns.
 
-  int64_t Lo12 = SignExtend64<12>(Val);
+  int64_t const Lo12 = SignExtend64<12>(Val);
   int64_t Hi52 = ((uint64_t)Val + 0x800ull) >> 12;
   int ShiftAmount = 12 + findFirstSet((uint64_t)Hi52);
   Hi52 = SignExtend64(Hi52 >> (ShiftAmount - 12), 64 - ShiftAmount);
@@ -130,7 +130,7 @@ InstSeq generateInstSeq(int64_t Val, const FeatureBitset &ActiveFeatures) {
   if (Val > 0 && Res.size() > 2) {
     assert(ActiveFeatures[RISCV::Feature64Bit] &&
            "Expected RV32 to only need 2 instructions");
-    unsigned LeadingZeros = countLeadingZeros((uint64_t)Val);
+    unsigned const LeadingZeros = countLeadingZeros((uint64_t)Val);
     uint64_t ShiftedVal = (uint64_t)Val << LeadingZeros;
     // Fill in the bits that will be shifted out with 1s. An example where this
     // helps is trailing one masks with 32 or more ones. This will generate
@@ -167,7 +167,7 @@ InstSeq generateInstSeq(int64_t Val, const FeatureBitset &ActiveFeatures) {
     // the end of the sequence.
     if (LeadingZeros == 32 && ActiveFeatures[RISCV::FeatureExtZba]) {
       // Try replacing upper bits with 1.
-      uint64_t LeadingOnesVal = Val | maskLeadingOnes<uint64_t>(LeadingZeros);
+      uint64_t const LeadingOnesVal = Val | maskLeadingOnes<uint64_t>(LeadingZeros);
       TmpSeq.clear();
       generateInstSeqImpl(LeadingOnesVal, ActiveFeatures, TmpSeq);
       TmpSeq.push_back(RISCVMatInt::Inst(RISCV::ADDUW, 0));
@@ -188,15 +188,15 @@ InstSeq generateInstSeq(int64_t Val, const FeatureBitset &ActiveFeatures) {
 int getIntMatCost(const APInt &Val, unsigned Size,
                   const FeatureBitset &ActiveFeatures,
                   bool CompressionCost) {
-  bool IsRV64 = ActiveFeatures[RISCV::Feature64Bit];
-  bool HasRVC = CompressionCost && ActiveFeatures[RISCV::FeatureStdExtC];
-  int PlatRegSize = IsRV64 ? 64 : 32;
+  bool const IsRV64 = ActiveFeatures[RISCV::Feature64Bit];
+  bool const HasRVC = CompressionCost && ActiveFeatures[RISCV::FeatureStdExtC];
+  int const PlatRegSize = IsRV64 ? 64 : 32;
 
   // Split the constant into platform register sized chunks, and calculate cost
   // of each chunk.
   int Cost = 0;
   for (unsigned ShiftVal = 0; ShiftVal < Size; ShiftVal += PlatRegSize) {
-    APInt Chunk = Val.ashr(ShiftVal).sextOrTrunc(PlatRegSize);
+    APInt const Chunk = Val.ashr(ShiftVal).sextOrTrunc(PlatRegSize);
     InstSeq MatSeq = generateInstSeq(Chunk.getSExtValue(), ActiveFeatures);
     Cost += getInstSeqCost(MatSeq, HasRVC);
   }

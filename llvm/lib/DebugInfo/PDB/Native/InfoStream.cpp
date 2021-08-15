@@ -42,10 +42,10 @@ Error InfoStream::reload() {
                                 "Unsupported PDB stream version.");
   }
 
-  uint32_t Offset = Reader.getOffset();
+  uint32_t const Offset = Reader.getOffset();
   if (auto EC = NamedStreams.load(Reader))
     return EC;
-  uint32_t NewOffset = Reader.getOffset();
+  uint32_t const NewOffset = Reader.getOffset();
   NamedStreamMapByteSize = NewOffset - Offset;
 
   Reader.setOffset(Offset);

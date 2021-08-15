@@ -41,7 +41,7 @@ void MSP430InstrInfo::storeRegToStackSlot(MachineBasicBlock &MBB,
   DebugLoc DL;
   if (MI != MBB.end()) DL = MI->getDebugLoc();
   MachineFunction &MF = *MBB.getParent();
-  MachineFrameInfo &MFI = MF.getFrameInfo();
+  MachineFrameInfo  const&MFI = MF.getFrameInfo();
 
   MachineMemOperand *MMO = MF.getMachineMemOperand(
       MachinePointerInfo::getFixedStack(MF, FrameIdx),
@@ -68,7 +68,7 @@ void MSP430InstrInfo::loadRegFromStackSlot(MachineBasicBlock &MBB,
   DebugLoc DL;
   if (MI != MBB.end()) DL = MI->getDebugLoc();
   MachineFunction &MF = *MBB.getParent();
-  MachineFrameInfo &MFI = MF.getFrameInfo();
+  MachineFrameInfo  const&MFI = MF.getFrameInfo();
 
   MachineMemOperand *MMO = MF.getMachineMemOperand(
       MachinePointerInfo::getFixedStack(MF, FrameIdx),
@@ -216,7 +216,7 @@ bool MSP430InstrInfo::analyzeBranch(MachineBasicBlock &MBB,
 
     // Handle conditional branches.
     assert(I->getOpcode() == MSP430::JCC && "Invalid conditional branch");
-    MSP430CC::CondCodes BranchCode =
+    MSP430CC::CondCodes const BranchCode =
       static_cast<MSP430CC::CondCodes>(I->getOperand(1).getImm());
     if (BranchCode == MSP430CC::COND_INVALID)
       return true;  // Can't handle weird stuff.
@@ -239,7 +239,7 @@ bool MSP430InstrInfo::analyzeBranch(MachineBasicBlock &MBB,
     if (TBB != I->getOperand(0).getMBB())
       return true;
 
-    MSP430CC::CondCodes OldBranchCode = (MSP430CC::CondCodes)Cond[0].getImm();
+    MSP430CC::CondCodes const OldBranchCode = (MSP430CC::CondCodes)Cond[0].getImm();
     // If the conditions are the same, we can leave them alone.
     if (OldBranchCode == BranchCode)
       continue;

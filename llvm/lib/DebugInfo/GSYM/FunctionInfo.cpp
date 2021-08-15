@@ -160,7 +160,7 @@ llvm::Expected<LookupResult> FunctionInfo::lookup(DataExtractor &Data,
   LR.FuncRange.Start = FuncAddr;
   uint64_t Offset = 0;
   LR.FuncRange.End = FuncAddr + Data.getU32(&Offset);
-  uint32_t NameOffset = Data.getU32(&Offset);
+  uint32_t const NameOffset = Data.getU32(&Offset);
   // The "lookup" functions doesn't report errors as accurately as the "decode"
   // function as it is meant to be fast. For more accurage errors we could call
   // "decode".

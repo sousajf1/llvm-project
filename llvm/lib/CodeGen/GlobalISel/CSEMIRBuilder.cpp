@@ -131,7 +131,7 @@ bool CSEMIRBuilder::checkCopyToDefsPossible(ArrayRef<DstOp> DstOps) {
     return true; // always possible to emit copy to just 1 vreg.
 
   return llvm::all_of(DstOps, [](const DstOp &Op) {
-    DstOp::DstType DT = Op.getDstOpKind();
+    DstOp::DstType const DT = Op.getDstOpKind();
     return DT == DstOp::DstType::Ty_LLT || DT == DstOp::DstType::Ty_RC;
   });
 }
@@ -214,7 +214,7 @@ MachineInstrBuilder CSEMIRBuilder::buildInstr(unsigned Opc,
     break;
   }
   }
-  bool CanCopy = checkCopyToDefsPossible(DstOps);
+  bool const CanCopy = checkCopyToDefsPossible(DstOps);
   if (!canPerformCSEForOpc(Opc))
     return MachineIRBuilder::buildInstr(Opc, DstOps, SrcOps, Flag);
   // If we can CSE this instruction, but involves generating copies to multiple
@@ -236,7 +236,7 @@ MachineInstrBuilder CSEMIRBuilder::buildInstr(unsigned Opc,
     return generateCopiesIfRequired(DstOps, MIB);
   }
   // This instruction does not exist in the CSEInfo. Build it and CSE it.
-  MachineInstrBuilder NewMIB =
+  MachineInstrBuilder const NewMIB =
       MachineIRBuilder::buildInstr(Opc, DstOps, SrcOps, Flag);
   return memoizeMI(NewMIB, InsertPos);
 }
@@ -248,7 +248,7 @@ MachineInstrBuilder CSEMIRBuilder::buildConstant(const DstOp &Res,
     return MachineIRBuilder::buildConstant(Res, Val);
 
   // For vectors, CSE the element only for now.
-  LLT Ty = Res.getLLTTy(*getMRI());
+  LLT const Ty = Res.getLLTTy(*getMRI());
   if (Ty.isVector())
     return buildSplatVector(Res, buildConstant(Ty.getElementType(), Val));
 
@@ -264,7 +264,7 @@ MachineInstrBuilder CSEMIRBuilder::buildConstant(const DstOp &Res,
     return generateCopiesIfRequired({Res}, MIB);
   }
 
-  MachineInstrBuilder NewMIB = MachineIRBuilder::buildConstant(Res, Val);
+  MachineInstrBuilder const NewMIB = MachineIRBuilder::buildConstant(Res, Val);
   return memoizeMI(NewMIB, InsertPos);
 }
 
@@ -275,7 +275,7 @@ MachineInstrBuilder CSEMIRBuilder::buildFConstant(const DstOp &Res,
     return MachineIRBuilder::buildFConstant(Res, Val);
 
   // For vectors, CSE the element only for now.
-  LLT Ty = Res.getLLTTy(*getMRI());
+  LLT const Ty = Res.getLLTTy(*getMRI());
   if (Ty.isVector())
     return buildSplatVector(Res, buildFConstant(Ty.getElementType(), Val));
 
@@ -290,6 +290,6 @@ MachineInstrBuilder CSEMIRBuilder::buildFConstant(const DstOp &Res,
     // Handle generating copies here.
     return generateCopiesIfRequired({Res}, MIB);
   }
-  MachineInstrBuilder NewMIB = MachineIRBuilder::buildFConstant(Res, Val);
+  MachineInstrBuilder const NewMIB = MachineIRBuilder::buildFConstant(Res, Val);
   return memoizeMI(NewMIB, InsertPos);
 }

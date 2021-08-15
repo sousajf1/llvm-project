@@ -64,7 +64,7 @@ bool GEPOperator::accumulateConstantOffset(
   assert(Offset.getBitWidth() ==
              DL.getIndexSizeInBits(getPointerAddressSpace()) &&
          "The offset bit width does not match DL specification.");
-  SmallVector<const Value *> Index(value_op_begin() + 1, value_op_end());
+  SmallVector<const Value *> const Index(value_op_begin() + 1, value_op_end());
   return GEPOperator::accumulateConstantOffset(getSourceElementType(), Index,
                                                DL, Offset, ExternalAnalysis);
 }
@@ -75,7 +75,7 @@ bool GEPOperator::accumulateConstantOffset(
   bool UsedExternalAnalysis = false;
   auto AccumulateOffset = [&](APInt Index, uint64_t Size) -> bool {
     Index = Index.sextOrTrunc(Offset.getBitWidth());
-    APInt IndexedSize = APInt(Offset.getBitWidth(), Size);
+    APInt const IndexedSize = APInt(Offset.getBitWidth(), Size);
     // For array or vector indices, scale the index by the size of the type.
     if (!UsedExternalAnalysis) {
       Offset += Index * IndexedSize;
@@ -83,7 +83,7 @@ bool GEPOperator::accumulateConstantOffset(
       // External Analysis can return a result higher/lower than the value
       // represents. We need to detect overflow/underflow.
       bool Overflow = false;
-      APInt OffsetPlus = Index.smul_ov(IndexedSize, Overflow);
+      APInt const OffsetPlus = Index.smul_ov(IndexedSize, Overflow);
       if (Overflow)
         return false;
       Offset = Offset.sadd_ov(OffsetPlus, Overflow);
@@ -113,7 +113,7 @@ bool GEPOperator::accumulateConstantOffset(
         return false;
       // Handle a struct index, which adds its field offset to the pointer.
       if (STy) {
-        unsigned ElementIdx = ConstOffset->getZExtValue();
+        unsigned const ElementIdx = ConstOffset->getZExtValue();
         const StructLayout *SL = DL.getStructLayout(STy);
         // Element offset is in bytes.
         if (!AccumulateOffset(
@@ -152,14 +152,14 @@ bool GEPOperator::collectOffset(
 
   auto CollectConstantOffset = [&](APInt Index, uint64_t Size) {
     Index = Index.sextOrTrunc(BitWidth);
-    APInt IndexedSize = APInt(BitWidth, Size);
+    APInt const IndexedSize = APInt(BitWidth, Size);
     ConstantOffset += Index * IndexedSize;
   };
 
   for (gep_type_iterator GTI = gep_type_begin(this), GTE = gep_type_end(this);
        GTI != GTE; ++GTI) {
     // Scalable vectors are multiplied by a runtime constant.
-    bool ScalableType = isa<ScalableVectorType>(GTI.getIndexedType());
+    bool const ScalableType = isa<ScalableVectorType>(GTI.getIndexedType());
 
     Value *V = GTI.getOperand();
     StructType *STy = GTI.getStructTypeOrNull();
@@ -176,7 +176,7 @@ bool GEPOperator::collectOffset(
         return false;
       // Handle a struct index, which adds its field offset to the pointer.
       if (STy) {
-        unsigned ElementIdx = ConstOffset->getZExtValue();
+        unsigned const ElementIdx = ConstOffset->getZExtValue();
         const StructLayout *SL = DL.getStructLayout(STy);
         // Element offset is in bytes.
         CollectConstantOffset(APInt(BitWidth, SL->getElementOffset(ElementIdx)),
@@ -193,7 +193,7 @@ bool GEPOperator::collectOffset(
     // Insert an initial offset of 0 for V iff none exists already, then
     // increment the offset by IndexedSize.
     VariableOffsets.insert({V, APInt(BitWidth, 0)});
-    APInt IndexedSize =
+    APInt const IndexedSize =
         APInt(BitWidth, DL.getTypeAllocSize(GTI.getIndexedType()));
     VariableOffsets[V] += IndexedSize;
   }

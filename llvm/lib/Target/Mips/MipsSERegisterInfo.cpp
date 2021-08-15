@@ -101,7 +101,7 @@ static inline unsigned getLoadStoreOffsetSizeInBits(const unsigned Opcode,
   case Mips::SC_MMR6:
     return 9;
   case Mips::INLINEASM: {
-    unsigned ConstraintID = InlineAsm::getMemoryConstraintID(MO.getImm());
+    unsigned const ConstraintID = InlineAsm::getMemoryConstraintID(MO.getImm());
     switch (ConstraintID) {
     case InlineAsm::Constraint_ZC: {
       const MipsSubtarget &Subtarget = MO.getParent()
@@ -151,7 +151,7 @@ void MipsSERegisterInfo::eliminateFI(MachineBasicBlock::iterator II,
   MachineFrameInfo &MFI = MF.getFrameInfo();
   MipsFunctionInfo *MipsFI = MF.getInfo<MipsFunctionInfo>();
 
-  MipsABIInfo ABI =
+  MipsABIInfo const ABI =
       static_cast<const MipsTargetMachine &>(MF.getTarget()).getABI();
   const MipsRegisterInfo *RegInfo =
     static_cast<const MipsRegisterInfo *>(MF.getSubtarget().getRegisterInfo());
@@ -165,8 +165,8 @@ void MipsSERegisterInfo::eliminateFI(MachineBasicBlock::iterator II,
     MaxCSFI = CSI[CSI.size() - 1].getFrameIdx();
   }
 
-  bool EhDataRegFI = MipsFI->isEhDataRegFI(FrameIndex);
-  bool IsISRRegFI = MipsFI->isISRRegFI(FrameIndex);
+  bool const EhDataRegFI = MipsFI->isEhDataRegFI(FrameIndex);
+  bool const IsISRRegFI = MipsFI->isISRRegFI(FrameIndex);
   // The following stack frame objects are always referenced relative to $sp:
   //  1. Outgoing arguments.
   //  2. Pointer to dynamically allocated stack space.
@@ -210,7 +210,7 @@ void MipsSERegisterInfo::eliminateFI(MachineBasicBlock::iterator II,
     // Make sure Offset fits within the field available.
     // For MSA instructions, this is a 10-bit signed immediate (scaled by
     // element size), otherwise it is a 16-bit signed immediate.
-    unsigned OffsetBitSize =
+    unsigned const OffsetBitSize =
         getLoadStoreOffsetSizeInBits(MI.getOpcode(), MI.getOperand(OpNo - 1));
     const Align OffsetAlign(getLoadStoreOffsetAlign(MI.getOpcode()));
     if (OffsetBitSize < 16 && isInt<16>(Offset) &&
@@ -218,11 +218,11 @@ void MipsSERegisterInfo::eliminateFI(MachineBasicBlock::iterator II,
       // If we have an offset that needs to fit into a signed n-bit immediate
       // (where n < 16) and doesn't, but does fit into 16-bits then use an ADDiu
       MachineBasicBlock &MBB = *MI.getParent();
-      DebugLoc DL = II->getDebugLoc();
+      DebugLoc const DL = II->getDebugLoc();
       const TargetRegisterClass *PtrRC =
           ABI.ArePtrs64bit() ? &Mips::GPR64RegClass : &Mips::GPR32RegClass;
       MachineRegisterInfo &RegInfo = MBB.getParent()->getRegInfo();
-      Register Reg = RegInfo.createVirtualRegister(PtrRC);
+      Register const Reg = RegInfo.createVirtualRegister(PtrRC);
       const MipsSEInstrInfo &TII =
           *static_cast<const MipsSEInstrInfo *>(
               MBB.getParent()->getSubtarget().getInstrInfo());
@@ -237,12 +237,12 @@ void MipsSERegisterInfo::eliminateFI(MachineBasicBlock::iterator II,
       // Otherwise split the offset into 16-bit pieces and add it in multiple
       // instructions.
       MachineBasicBlock &MBB = *MI.getParent();
-      DebugLoc DL = II->getDebugLoc();
+      DebugLoc const DL = II->getDebugLoc();
       unsigned NewImm = 0;
       const MipsSEInstrInfo &TII =
           *static_cast<const MipsSEInstrInfo *>(
               MBB.getParent()->getSubtarget().getInstrInfo());
-      unsigned Reg = TII.loadImmediate(Offset, MBB, II, DL,
+      unsigned const Reg = TII.loadImmediate(Offset, MBB, II, DL,
                                        OffsetBitSize == 16 ? &NewImm : nullptr);
       BuildMI(MBB, II, DL, TII.get(ABI.GetPtrAdduOp()), Reg).addReg(FrameReg)
         .addReg(Reg, RegState::Kill);

@@ -552,7 +552,7 @@ public:
 void SIMemOpAccess::reportUnsupported(const MachineBasicBlock::iterator &MI,
                                       const char *Msg) const {
   const Function &Func = MI->getParent()->getParent()->getFunction();
-  DiagnosticInfoUnsupported Diag(Func, Msg, MI->getDebugLoc());
+  DiagnosticInfoUnsupported const Diag(Func, Msg, MI->getDebugLoc());
   Func.getContext().diagnose(Diag);
 }
 
@@ -639,7 +639,7 @@ Optional<SIMemOpInfo> SIMemOpAccess::constructFromMIWithMMO(
     IsVolatile |= MMO->isVolatile();
     InstrAddrSpace |=
       toSIAtomicAddrSpace(MMO->getPointerInfo().getAddrSpace());
-    AtomicOrdering OpOrdering = MMO->getSuccessOrdering();
+    AtomicOrdering const OpOrdering = MMO->getSuccessOrdering();
     if (OpOrdering != AtomicOrdering::NotAtomic) {
       const auto &IsSyncScopeInclusion =
           MMI->isSyncScopeInclusion(SSID, MMO->getSyncScopeID());
@@ -716,10 +716,10 @@ Optional<SIMemOpInfo> SIMemOpAccess::getAtomicFenceInfo(
   if (MI->getOpcode() != AMDGPU::ATOMIC_FENCE)
     return None;
 
-  AtomicOrdering Ordering =
+  AtomicOrdering const Ordering =
     static_cast<AtomicOrdering>(MI->getOperand(0).getImm());
 
-  SyncScope::ID SSID = static_cast<SyncScope::ID>(MI->getOperand(1).getImm());
+  SyncScope::ID const SSID = static_cast<SyncScope::ID>(MI->getOperand(1).getImm());
   auto ScopeOrNone = toSIAtomicScope(SSID, SIAtomicAddrSpace::ATOMIC);
   if (!ScopeOrNone) {
     reportUnsupported(MI, "Unsupported atomic synchronization scope");
@@ -774,7 +774,7 @@ bool SICacheControl::enableNamedBit(const MachineBasicBlock::iterator MI,
 
 /* static */
 std::unique_ptr<SICacheControl> SICacheControl::create(const GCNSubtarget &ST) {
-  GCNSubtarget::Generation Generation = ST.getGeneration();
+  GCNSubtarget::Generation const Generation = ST.getGeneration();
   if (ST.hasGFX90AInsts())
     return std::make_unique<SIGfx90ACacheControl>(ST);
   if (Generation <= AMDGPUSubtarget::SOUTHERN_ISLANDS)
@@ -822,7 +822,7 @@ bool SIGfx6CacheControl::enableStoreCacheBypass(
     SIAtomicScope Scope,
     SIAtomicAddrSpace AddrSpace) const {
   assert(!MI->mayLoad() && MI->mayStore());
-  bool Changed = false;
+  bool const Changed = false;
 
   /// The L1 cache is write through so does not need to be bypassed. There is no
   /// bypass control for the L2 cache at the isa level.
@@ -835,7 +835,7 @@ bool SIGfx6CacheControl::enableRMWCacheBypass(
     SIAtomicScope Scope,
     SIAtomicAddrSpace AddrSpace) const {
   assert(MI->mayLoad() && MI->mayStore());
-  bool Changed = false;
+  bool const Changed = false;
 
   /// The L1 cache is write through so does not need to be bypassed. There is no
   /// bypass control for the L2 cache at the isa level.
@@ -893,7 +893,7 @@ bool SIGfx6CacheControl::insertWait(MachineBasicBlock::iterator &MI,
   bool Changed = false;
 
   MachineBasicBlock &MBB = *MI->getParent();
-  DebugLoc DL = MI->getDebugLoc();
+  DebugLoc const DL = MI->getDebugLoc();
 
   if (Pos == Position::AFTER)
     ++MI;
@@ -966,7 +966,7 @@ bool SIGfx6CacheControl::insertWait(MachineBasicBlock::iterator &MI,
   }
 
   if (VMCnt || LGKMCnt) {
-    unsigned WaitCntImmediate =
+    unsigned const WaitCntImmediate =
       AMDGPU::encodeWaitcnt(IV,
                             VMCnt ? 0 : getVmcntBitMask(IV),
                             getExpcntBitMask(IV),
@@ -991,7 +991,7 @@ bool SIGfx6CacheControl::insertAcquire(MachineBasicBlock::iterator &MI,
   bool Changed = false;
 
   MachineBasicBlock &MBB = *MI->getParent();
-  DebugLoc DL = MI->getDebugLoc();
+  DebugLoc const DL = MI->getDebugLoc();
 
   if (Pos == Position::AFTER)
     ++MI;
@@ -1045,7 +1045,7 @@ bool SIGfx7CacheControl::insertAcquire(MachineBasicBlock::iterator &MI,
   bool Changed = false;
 
   MachineBasicBlock &MBB = *MI->getParent();
-  DebugLoc DL = MI->getDebugLoc();
+  DebugLoc const DL = MI->getDebugLoc();
 
   const GCNSubtarget &STM = MBB.getParent()->getSubtarget<GCNSubtarget>();
 
@@ -1130,7 +1130,7 @@ bool SIGfx90ACacheControl::enableStoreCacheBypass(
     SIAtomicScope Scope,
     SIAtomicAddrSpace AddrSpace) const {
   assert(!MI->mayLoad() && MI->mayStore());
-  bool Changed = false;
+  bool const Changed = false;
 
   if ((AddrSpace & SIAtomicAddrSpace::GLOBAL) != SIAtomicAddrSpace::NONE) {
     switch (Scope) {
@@ -1165,7 +1165,7 @@ bool SIGfx90ACacheControl::enableRMWCacheBypass(
     SIAtomicScope Scope,
     SIAtomicAddrSpace AddrSpace) const {
   assert(MI->mayLoad() && MI->mayStore());
-  bool Changed = false;
+  bool const Changed = false;
 
   if ((AddrSpace & SIAtomicAddrSpace::GLOBAL) != SIAtomicAddrSpace::NONE) {
     switch (Scope) {
@@ -1268,7 +1268,7 @@ bool SIGfx90ACacheControl::insertAcquire(MachineBasicBlock::iterator &MI,
   bool Changed = false;
 
   MachineBasicBlock &MBB = *MI->getParent();
-  DebugLoc DL = MI->getDebugLoc();
+  DebugLoc const DL = MI->getDebugLoc();
 
   if (Pos == Position::AFTER)
     ++MI;
@@ -1332,7 +1332,7 @@ bool SIGfx90ACacheControl::insertRelease(MachineBasicBlock::iterator &MI,
   bool Changed = false;
 
   MachineBasicBlock &MBB = *MI->getParent();
-  DebugLoc DL = MI->getDebugLoc();
+  DebugLoc const DL = MI->getDebugLoc();
 
   if (Pos == Position::AFTER)
     ++MI;
@@ -1467,7 +1467,7 @@ bool SIGfx10CacheControl::insertWait(MachineBasicBlock::iterator &MI,
   bool Changed = false;
 
   MachineBasicBlock &MBB = *MI->getParent();
-  DebugLoc DL = MI->getDebugLoc();
+  DebugLoc const DL = MI->getDebugLoc();
 
   if (Pos == Position::AFTER)
     ++MI;
@@ -1556,7 +1556,7 @@ bool SIGfx10CacheControl::insertWait(MachineBasicBlock::iterator &MI,
   }
 
   if (VMCnt || LGKMCnt) {
-    unsigned WaitCntImmediate =
+    unsigned const WaitCntImmediate =
       AMDGPU::encodeWaitcnt(IV,
                             VMCnt ? 0 : getVmcntBitMask(IV),
                             getExpcntBitMask(IV),
@@ -1588,7 +1588,7 @@ bool SIGfx10CacheControl::insertAcquire(MachineBasicBlock::iterator &MI,
   bool Changed = false;
 
   MachineBasicBlock &MBB = *MI->getParent();
-  DebugLoc DL = MI->getDebugLoc();
+  DebugLoc const DL = MI->getDebugLoc();
 
   if (Pos == Position::AFTER)
     ++MI;
@@ -1814,7 +1814,7 @@ bool SIMemoryLegalizer::expandAtomicCmpxchgOrRmw(const SIMemOpInfo &MOI,
 bool SIMemoryLegalizer::runOnMachineFunction(MachineFunction &MF) {
   bool Changed = false;
 
-  SIMemOpAccess MOA(MF);
+  SIMemOpAccess const MOA(MF);
   CC = SICacheControl::create(MF.getSubtarget<GCNSubtarget>());
 
   for (auto &MBB : MF) {

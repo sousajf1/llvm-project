@@ -52,8 +52,8 @@ struct Status {
   // intersect two Status values to produce a mode and mask that is a subset
   // of both values
   Status intersect(const Status &S) const {
-    unsigned NewMask = (Mask & S.Mask) & (Mode ^ ~S.Mode);
-    unsigned NewMode = (Mode & NewMask);
+    unsigned const NewMask = (Mask & S.Mask) & (Mode ^ ~S.Mode);
+    unsigned const NewMode = (Mode & NewMask);
     return Status(NewMask, NewMode);
   }
 
@@ -185,9 +185,9 @@ Status SIModeRegister::getInstructionMode(MachineInstr &MI,
 void SIModeRegister::insertSetreg(MachineBasicBlock &MBB, MachineInstr *MI,
                                   const SIInstrInfo *TII, Status InstrMode) {
   while (InstrMode.Mask) {
-    unsigned Offset = countTrailingZeros<unsigned>(InstrMode.Mask);
-    unsigned Width = countTrailingOnes<unsigned>(InstrMode.Mask >> Offset);
-    unsigned Value = (InstrMode.Mode >> Offset) & ((1 << Width) - 1);
+    unsigned const Offset = countTrailingZeros<unsigned>(InstrMode.Mask);
+    unsigned const Width = countTrailingOnes<unsigned>(InstrMode.Mask >> Offset);
+    unsigned const Value = (InstrMode.Mode >> Offset) & ((1 << Width) - 1);
     BuildMI(MBB, MI, 0, TII->get(AMDGPU::S_SETREG_IMM32_B32))
         .addImm(Value)
         .addImm(((Width - 1) << AMDGPU::Hwreg::WIDTH_M1_SHIFT_) |
@@ -238,17 +238,17 @@ void SIModeRegister::processBlockPhase1(MachineBasicBlock &MBB,
       // We preserve any explicit mode register setreg instruction we encounter,
       // as we assume it has been inserted by a higher authority (this is
       // likely to be a very rare occurrence).
-      unsigned Dst = TII->getNamedOperand(MI, AMDGPU::OpName::simm16)->getImm();
+      unsigned const Dst = TII->getNamedOperand(MI, AMDGPU::OpName::simm16)->getImm();
       if (((Dst & AMDGPU::Hwreg::ID_MASK_) >> AMDGPU::Hwreg::ID_SHIFT_) !=
           AMDGPU::Hwreg::ID_MODE)
         continue;
 
-      unsigned Width = ((Dst & AMDGPU::Hwreg::WIDTH_M1_MASK_) >>
+      unsigned const Width = ((Dst & AMDGPU::Hwreg::WIDTH_M1_MASK_) >>
                         AMDGPU::Hwreg::WIDTH_M1_SHIFT_) +
                        1;
-      unsigned Offset =
+      unsigned const Offset =
           (Dst & AMDGPU::Hwreg::OFFSET_MASK_) >> AMDGPU::Hwreg::OFFSET_SHIFT_;
-      unsigned Mask = ((1 << Width) - 1) << Offset;
+      unsigned const Mask = ((1 << Width) - 1) << Offset;
 
       // If an InsertionPoint is set we will insert a setreg there.
       if (InsertionPoint) {
@@ -260,9 +260,9 @@ void SIModeRegister::processBlockPhase1(MachineBasicBlock &MBB,
       // as unknown.
       if (MI.getOpcode() == AMDGPU::S_SETREG_IMM32_B32 ||
           MI.getOpcode() == AMDGPU::S_SETREG_IMM32_B32_mode) {
-        unsigned Val = TII->getNamedOperand(MI, AMDGPU::OpName::imm)->getImm();
-        unsigned Mode = (Val << Offset) & Mask;
-        Status Setreg = Status(Mask, Mode);
+        unsigned const Val = TII->getNamedOperand(MI, AMDGPU::OpName::imm)->getImm();
+        unsigned const Mode = (Val << Offset) & Mask;
+        Status const Setreg = Status(Mask, Mode);
         // If we haven't already set the initial requirements for the block we
         // don't need to as the requirements start from this explicit setreg.
         RequirePending = false;
@@ -324,7 +324,7 @@ void SIModeRegister::processBlockPhase2(MachineBasicBlock &MBB,
                                         const SIInstrInfo *TII) {
   bool RevisitRequired = false;
   bool ExitSet = false;
-  unsigned ThisBlock = MBB.getNumber();
+  unsigned const ThisBlock = MBB.getNumber();
   if (MBB.pred_empty()) {
     // There are no predecessors, so use the default starting status.
     BlockInfo[ThisBlock]->Pred = DefaultStatus;
@@ -341,8 +341,8 @@ void SIModeRegister::processBlockPhase2(MachineBasicBlock &MBB,
     // block again later (unless the only predecessor without an exit value is
     // this block).
     MachineBasicBlock::pred_iterator P = MBB.pred_begin(), E = MBB.pred_end();
-    MachineBasicBlock &PB = *(*P);
-    unsigned PredBlock = PB.getNumber();
+    MachineBasicBlock  const&PB = *(*P);
+    unsigned const PredBlock = PB.getNumber();
     if ((ThisBlock == PredBlock) && (std::next(P) == E)) {
       BlockInfo[ThisBlock]->Pred = DefaultStatus;
       ExitSet = true;
@@ -354,7 +354,7 @@ void SIModeRegister::processBlockPhase2(MachineBasicBlock &MBB,
 
     for (P = std::next(P); P != E; P = std::next(P)) {
       MachineBasicBlock *Pred = *P;
-      unsigned PredBlock = Pred->getNumber();
+      unsigned const PredBlock = Pred->getNumber();
       if (BlockInfo[PredBlock]->ExitSet) {
         if (BlockInfo[ThisBlock]->ExitSet) {
           BlockInfo[ThisBlock]->Pred =
@@ -367,7 +367,7 @@ void SIModeRegister::processBlockPhase2(MachineBasicBlock &MBB,
         RevisitRequired = true;
     }
   }
-  Status TmpStatus =
+  Status const TmpStatus =
       BlockInfo[ThisBlock]->Pred.merge(BlockInfo[ThisBlock]->Change);
   if (BlockInfo[ThisBlock]->Exit != TmpStatus) {
     BlockInfo[ThisBlock]->Exit = TmpStatus;
@@ -390,9 +390,9 @@ void SIModeRegister::processBlockPhase2(MachineBasicBlock &MBB,
 // not we insert an appropriate setreg instruction to modify the Mode register.
 void SIModeRegister::processBlockPhase3(MachineBasicBlock &MBB,
                                         const SIInstrInfo *TII) {
-  unsigned ThisBlock = MBB.getNumber();
+  unsigned const ThisBlock = MBB.getNumber();
   if (!BlockInfo[ThisBlock]->Pred.isCompatible(BlockInfo[ThisBlock]->Require)) {
-    Status Delta =
+    Status const Delta =
         BlockInfo[ThisBlock]->Pred.delta(BlockInfo[ThisBlock]->Require);
     if (BlockInfo[ThisBlock]->FirstInsertionPoint)
       insertSetreg(MBB, BlockInfo[ThisBlock]->FirstInsertionPoint, TII, Delta);

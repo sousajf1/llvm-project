@@ -53,7 +53,7 @@ ThreadPool::ThreadPool(ThreadPoolStrategy S)
         bool Notify;
         {
           // Adjust `ActiveThreads`, in case someone waits on ThreadPool::wait()
-          std::lock_guard<std::mutex> LockGuard(QueueLock);
+          std::lock_guard<std::mutex> const LockGuard(QueueLock);
           --ActiveThreads;
           Notify = workCompletedUnlocked();
         }
@@ -73,7 +73,7 @@ void ThreadPool::wait() {
 }
 
 bool ThreadPool::isWorkerThread() const {
-  llvm::thread::id CurrentThreadId = llvm::this_thread::get_id();
+  llvm::thread::id const CurrentThreadId = llvm::this_thread::get_id();
   for (const llvm::thread &Thread : Threads)
     if (CurrentThreadId == Thread.get_id())
       return true;
@@ -86,7 +86,7 @@ std::shared_future<void> ThreadPool::asyncImpl(TaskTy Task) {
   auto Future = PackagedTask.get_future();
   {
     // Lock the queue and push the new task
-    std::unique_lock<std::mutex> LockGuard(QueueLock);
+    std::unique_lock<std::mutex> const LockGuard(QueueLock);
 
     // Don't allow enqueueing after disabling the pool
     assert(EnableFlag && "Queuing a thread during ThreadPool destruction");
@@ -100,7 +100,7 @@ std::shared_future<void> ThreadPool::asyncImpl(TaskTy Task) {
 // The destructor joins all threads, waiting for completion.
 ThreadPool::~ThreadPool() {
   {
-    std::unique_lock<std::mutex> LockGuard(QueueLock);
+    std::unique_lock<std::mutex> const LockGuard(QueueLock);
     EnableFlag = false;
   }
   QueueCondition.notify_all();

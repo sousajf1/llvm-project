@@ -50,12 +50,12 @@ GlobalsStream::findRecordsByName(StringRef Name,
   std::vector<std::pair<uint32_t, codeview::CVSymbol>> Result;
 
   // Hash the name to figure out which bucket this goes into.
-  size_t ExpandedBucketIndex = hashStringV1(Name) % IPHR_HASH;
-  int32_t CompressedBucketIndex = GlobalsTable.BucketMap[ExpandedBucketIndex];
+  size_t const ExpandedBucketIndex = hashStringV1(Name) % IPHR_HASH;
+  int32_t const CompressedBucketIndex = GlobalsTable.BucketMap[ExpandedBucketIndex];
   if (CompressedBucketIndex == -1)
     return Result;
 
-  uint32_t LastBucketIndex = GlobalsTable.HashBuckets.size() - 1;
+  uint32_t const LastBucketIndex = GlobalsTable.HashBuckets.size() - 1;
   uint32_t StartRecordIndex =
       GlobalsTable.HashBuckets[CompressedBucketIndex] / 12;
   uint32_t EndRecordIndex = 0;
@@ -71,8 +71,8 @@ GlobalsStream::findRecordsByName(StringRef Name,
 
   assert(EndRecordIndex <= GlobalsTable.HashRecords.size());
   while (StartRecordIndex < EndRecordIndex) {
-    PSHashRecord PSH = GlobalsTable.HashRecords[StartRecordIndex];
-    uint32_t Off = PSH.Off - 1;
+    PSHashRecord const PSH = GlobalsTable.HashRecords[StartRecordIndex];
+    uint32_t const Off = PSH.Off - 1;
     codeview::CVSymbol Record = Symbols.readRecord(Off);
     if (codeview::getSymbolName(Record) == Name)
       Result.push_back(std::make_pair(Off, std::move(Record)));
@@ -115,7 +115,7 @@ static Error readGSIHashRecords(FixedStreamArray<PSHashRecord> &HashRecords,
   if (HashHdr->HrSize % sizeof(PSHashRecord))
     return make_error<RawError>(raw_error_code::corrupt_file,
                                 "Invalid HR array size.");
-  uint32_t NumHashRecords = HashHdr->HrSize / sizeof(PSHashRecord);
+  uint32_t const NumHashRecords = HashHdr->HrSize / sizeof(PSHashRecord);
   if (auto EC = Reader.readArray(HashRecords, NumHashRecords))
     return joinErrors(std::move(EC),
                       make_error<RawError>(raw_error_code::corrupt_file,
@@ -135,8 +135,8 @@ readGSIHashBuckets(FixedStreamArray<support::ulittle32_t> &HashBuckets,
 
   // Before the actual hash buckets, there is a bitmap of length determined by
   // IPHR_HASH.
-  size_t BitmapSizeInBits = alignTo(IPHR_HASH + 1, 32);
-  uint32_t NumBitmapEntries = BitmapSizeInBits / 32;
+  size_t const BitmapSizeInBits = alignTo(IPHR_HASH + 1, 32);
+  uint32_t const NumBitmapEntries = BitmapSizeInBits / 32;
   if (auto EC = Reader.readArray(HashBitmap, NumBitmapEntries))
     return joinErrors(std::move(EC),
                       make_error<RawError>(raw_error_code::corrupt_file,
@@ -144,9 +144,9 @@ readGSIHashBuckets(FixedStreamArray<support::ulittle32_t> &HashBuckets,
   uint32_t NumBuckets1 = 0;
   uint32_t CompressedBucketIdx = 0;
   for (uint32_t I = 0; I <= IPHR_HASH; ++I) {
-    uint8_t WordIdx = I / 32;
-    uint8_t BitIdx = I % 32;
-    bool IsSet = HashBitmap[WordIdx] & (1U << BitIdx);
+    uint8_t const WordIdx = I / 32;
+    uint8_t const BitIdx = I % 32;
+    bool const IsSet = HashBitmap[WordIdx] & (1U << BitIdx);
     if (IsSet) {
       ++NumBuckets1;
       BucketMap[I] = CompressedBucketIdx++;
@@ -156,7 +156,7 @@ readGSIHashBuckets(FixedStreamArray<support::ulittle32_t> &HashBuckets,
   }
 
   uint32_t NumBuckets = 0;
-  for (uint32_t B : HashBitmap)
+  for (uint32_t const B : HashBitmap)
     NumBuckets += countPopulation(B);
 
   // Hash buckets follow.

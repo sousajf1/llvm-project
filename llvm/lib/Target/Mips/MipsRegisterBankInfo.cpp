@@ -430,7 +430,7 @@ MipsRegisterBankInfo::getInstrMapping(const MachineInstr &MI) const {
   // Reset TI internal data when MF changes.
   TI.cleanupIfNewFunction(MI.getMF()->getName());
 
-  unsigned Opc = MI.getOpcode();
+  unsigned const Opc = MI.getOpcode();
   const MachineFunction &MF = *MI.getParent()->getParent();
   const MachineRegisterInfo &MRI = MF.getRegInfo();
 
@@ -443,14 +443,14 @@ MipsRegisterBankInfo::getInstrMapping(const MachineInstr &MI) const {
 
   using namespace TargetOpcode;
 
-  unsigned NumOperands = MI.getNumOperands();
+  unsigned const NumOperands = MI.getNumOperands();
   const ValueMapping *OperandsMapping = &Mips::ValueMappings[Mips::GPRIdx];
   unsigned MappingID = DefaultMappingID;
 
   // Check if LLT sizes match sizes of available register banks.
   for (const MachineOperand &Op : MI.operands()) {
     if (Op.isReg()) {
-      LLT RegTy = MRI.getType(Op.getReg());
+      LLT const RegTy = MRI.getType(Op.getReg());
 
       if (RegTy.isScalar() &&
           (RegTy.getSizeInBits() != 32 && RegTy.getSizeInBits() != 64))
@@ -462,7 +462,7 @@ MipsRegisterBankInfo::getInstrMapping(const MachineInstr &MI) const {
   }
 
   const LLT Op0Ty = MRI.getType(MI.getOperand(0).getReg());
-  unsigned Op0Size = Op0Ty.getSizeInBits();
+  unsigned const Op0Size = Op0Ty.getSizeInBits();
   InstType InstTy = InstType::Integer;
 
   switch (Opc) {
@@ -579,7 +579,7 @@ MipsRegisterBankInfo::getInstrMapping(const MachineInstr &MI) const {
   } break;
   case G_UNMERGE_VALUES: {
     assert(MI.getNumOperands() == 3 && "Unsupported G_UNMERGE_VALUES");
-    unsigned Op3Size = MRI.getType(MI.getOperand(2).getReg()).getSizeInBits();
+    unsigned const Op3Size = MRI.getType(MI.getOperand(2).getReg()).getSizeInBits();
     InstTy = TI.determineInstType(&MI);
     assert((isAmbiguousWithMergeOrUnmerge_64(InstTy, Op3Size) ||
             isFloatingPoint_64(InstTy, Op3Size)) &&
@@ -617,7 +617,7 @@ MipsRegisterBankInfo::getInstrMapping(const MachineInstr &MI) const {
     OperandsMapping = getOperandsMapping({getFprbMapping(Op0Size), nullptr});
     break;
   case G_FCMP: {
-    unsigned Op2Size = MRI.getType(MI.getOperand(2).getReg()).getSizeInBits();
+    unsigned const Op2Size = MRI.getType(MI.getOperand(2).getReg()).getSizeInBits();
     OperandsMapping =
         getOperandsMapping({&Mips::ValueMappings[Mips::GPRIdx], nullptr,
                             getFprbMapping(Op2Size), getFprbMapping(Op2Size)});
@@ -633,7 +633,7 @@ MipsRegisterBankInfo::getInstrMapping(const MachineInstr &MI) const {
     break;
   case G_FPTOSI: {
     assert((Op0Size == 32) && "Unsupported integer size");
-    unsigned SizeFP = MRI.getType(MI.getOperand(1).getReg()).getSizeInBits();
+    unsigned const SizeFP = MRI.getType(MI.getOperand(1).getReg()).getSizeInBits();
     OperandsMapping = getOperandsMapping(
         {&Mips::ValueMappings[Mips::GPRIdx], getFprbMapping(SizeFP)});
     break;
@@ -690,7 +690,7 @@ public:
 
 void MipsRegisterBankInfo::setRegBank(MachineInstr &MI,
                                       MachineRegisterInfo &MRI) const {
-  Register Dest = MI.getOperand(0).getReg();
+  Register const Dest = MI.getOperand(0).getReg();
   switch (MI.getOpcode()) {
   case TargetOpcode::G_STORE:
     // No def operands, skip this instruction.

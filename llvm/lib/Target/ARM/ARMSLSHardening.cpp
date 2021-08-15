@@ -81,8 +81,8 @@ static void insertSpeculationBarrier(const ARMSubtarget *ST,
          "SpeculationBarrierEndBB must only follow terminators.");
   const TargetInstrInfo *TII = ST->getInstrInfo();
   assert(ST->hasDataBarrier() || ST->hasSB());
-  bool ProduceSB = ST->hasSB() && !AlwaysUseISBDSB;
-  unsigned BarrierOpc =
+  bool const ProduceSB = ST->hasSB() && !AlwaysUseISBDSB;
+  unsigned const BarrierOpc =
       ProduceSB ? (ST->isThumb() ? ARM::t2SpeculationBarrierSBEndBB
                                  : ARM::SpeculationBarrierSBEndBB)
                 : (ST->isThumb() ? ARM::t2SpeculationBarrierISBDSBEndBB
@@ -112,7 +112,7 @@ bool ARMSLSHardening::hardenReturnsAndBRs(MachineBasicBlock &MBB) const {
   MachineBasicBlock::iterator MBBI = MBB.getFirstTerminator(), E = MBB.end();
   MachineBasicBlock::iterator NextMBBI;
   for (; MBBI != E; MBBI = NextMBBI) {
-    MachineInstr &MI = *MBBI;
+    MachineInstr  const&MI = *MBBI;
     NextMBBI = std::next(MBBI);
     if (isIndirectControlFlowNotComingBack(MI)) {
       assert(MI.isTerminator());
@@ -193,8 +193,8 @@ void SLSBLRThunkInserter::populateThunk(MachineFunction &MF) {
   auto ThunkIt = llvm::find_if(
       SLSBLRThunks, [&MF](auto T) { return T.Name == MF.getName(); });
   assert(ThunkIt != std::end(SLSBLRThunks));
-  Register ThunkReg = ThunkIt->Reg;
-  bool isThumb = ThunkIt->isThumb;
+  Register const ThunkReg = ThunkIt->Reg;
+  bool const isThumb = ThunkIt->isThumb;
 
   const TargetInstrInfo *TII = MF.getSubtarget<ARMSubtarget>().getInstrInfo();
   MachineBasicBlock *Entry = &MF.front();
@@ -279,9 +279,9 @@ MachineBasicBlock &ARMSLSHardening::ConvertIndirectCallToIndirectJump(
   // Also, the transformation is incorrect if the indirect call uses LR, so
   // also have to avoid that.
   assert(Reg != ARM::R12 && Reg != ARM::LR);
-  bool RegIsKilled = IndirectCall.getOperand(RegOpIdxOnIndirectCall).isKill();
+  bool const RegIsKilled = IndirectCall.getOperand(RegOpIdxOnIndirectCall).isKill();
 
-  DebugLoc DL = IndirectCall.getDebugLoc();
+  DebugLoc const DL = IndirectCall.getDebugLoc();
 
   MachineFunction &MF = *MBBI->getMF();
   auto ThunkIt = llvm::find_if(SLSBLRThunks, [Reg, isThumb](auto T) {
@@ -310,7 +310,7 @@ MachineBasicBlock &ARMSLSHardening::ConvertIndirectCallToIndirectJump(
   int ImpSPOpIdx = -1;
   for (unsigned OpIdx = BL->getNumExplicitOperands();
        OpIdx < BL->getNumOperands(); OpIdx++) {
-    MachineOperand Op = BL->getOperand(OpIdx);
+    MachineOperand const Op = BL->getOperand(OpIdx);
     if (!Op.isReg())
       continue;
     if (Op.getReg() == ARM::LR && Op.isDef())
@@ -320,8 +320,8 @@ MachineBasicBlock &ARMSLSHardening::ConvertIndirectCallToIndirectJump(
   }
   assert(ImpLROpIdx != -1);
   assert(ImpSPOpIdx != -1);
-  int FirstOpIdxToRemove = std::max(ImpLROpIdx, ImpSPOpIdx);
-  int SecondOpIdxToRemove = std::min(ImpLROpIdx, ImpSPOpIdx);
+  int const FirstOpIdxToRemove = std::max(ImpLROpIdx, ImpSPOpIdx);
+  int const SecondOpIdxToRemove = std::min(ImpLROpIdx, ImpSPOpIdx);
   BL->RemoveOperand(FirstOpIdxToRemove);
   BL->RemoveOperand(SecondOpIdxToRemove);
   // Now copy over the implicit operands from the original IndirectCall
@@ -343,7 +343,7 @@ bool ARMSLSHardening::hardenIndirectCalls(MachineBasicBlock &MBB) const {
   MachineBasicBlock::iterator MBBI = MBB.begin(), E = MBB.end();
   MachineBasicBlock::iterator NextMBBI;
   for (; MBBI != E; MBBI = NextMBBI) {
-    MachineInstr &MI = *MBBI;
+    MachineInstr  const&MI = *MBBI;
     NextMBBI = std::next(MBBI);
     // Tail calls are both indirect calls and "returns".
     // They are also indirect jumps, so should be handled by sls-harden-retbr,

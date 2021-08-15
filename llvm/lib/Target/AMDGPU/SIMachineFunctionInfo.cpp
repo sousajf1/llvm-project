@@ -56,7 +56,7 @@ SIMachineFunctionInfo::SIMachineFunctionInfo(const MachineFunction &MF)
   WavesPerEU = ST.getWavesPerEU(F);
 
   Occupancy = ST.computeOccupancy(F, getLDSSize());
-  CallingConv::ID CC = F.getCallingConv();
+  CallingConv::ID const CC = F.getCallingConv();
 
   // FIXME: Should have analysis or something rather than attribute to detect
   // calls.
@@ -132,7 +132,7 @@ SIMachineFunctionInfo::SIMachineFunctionInfo(const MachineFunction &MF)
       WorkItemIDZ = true;
   }
 
-  bool HasStackObjects = F.hasFnAttribute("amdgpu-stack-objects");
+  bool const HasStackObjects = F.hasFnAttribute("amdgpu-stack-objects");
   if (isEntryFunction()) {
     // X, XY, and XYZ are the only supported combinations, so make sure Y is
     // enabled if Z is.
@@ -150,7 +150,7 @@ SIMachineFunctionInfo::SIMachineFunctionInfo(const MachineFunction &MF)
     }
   }
 
-  bool isAmdHsaOrMesa = ST.isAmdHsaOrMesa(F);
+  bool const isAmdHsaOrMesa = ST.isAmdHsaOrMesa(F);
   if (isAmdHsaOrMesa && !ST.enableFlatScratch())
     PrivateSegmentBuffer = true;
   else if (ST.isMesaGfxShader(F))
@@ -279,7 +279,7 @@ bool SIMachineFunctionInfo::isCalleeSavedReg(const MCPhysReg *CSRegs,
 bool SIMachineFunctionInfo::haveFreeLanesForSGPRSpill(const MachineFunction &MF,
                                                       unsigned NumNeed) const {
   const GCNSubtarget &ST = MF.getSubtarget<GCNSubtarget>();
-  unsigned WaveSize = ST.getWavefrontSize();
+  unsigned const WaveSize = ST.getWavefrontSize();
   return NumVGPRSpillLanes + NumNeed <= WaveSize * SpillVGPRs.size();
 }
 
@@ -295,12 +295,12 @@ bool SIMachineFunctionInfo::allocateSGPRSpillToVGPR(MachineFunction &MF,
   const GCNSubtarget &ST = MF.getSubtarget<GCNSubtarget>();
   const SIRegisterInfo *TRI = ST.getRegisterInfo();
   MachineFrameInfo &FrameInfo = MF.getFrameInfo();
-  MachineRegisterInfo &MRI = MF.getRegInfo();
-  unsigned WaveSize = ST.getWavefrontSize();
+  MachineRegisterInfo  const&MRI = MF.getRegInfo();
+  unsigned const WaveSize = ST.getWavefrontSize();
   SIMachineFunctionInfo *FuncInfo = MF.getInfo<SIMachineFunctionInfo>();
 
-  unsigned Size = FrameInfo.getObjectSize(FI);
-  unsigned NumLanes = Size / 4;
+  unsigned const Size = FrameInfo.getObjectSize(FI);
+  unsigned const NumLanes = Size / 4;
 
   if (NumLanes > WaveSize)
     return false;
@@ -312,7 +312,7 @@ bool SIMachineFunctionInfo::allocateSGPRSpillToVGPR(MachineFunction &MF,
   // VGPRs.
   for (unsigned I = 0; I < NumLanes; ++I, ++NumVGPRSpillLanes) {
     Register LaneVGPR;
-    unsigned VGPRIndex = (NumVGPRSpillLanes % WaveSize);
+    unsigned const VGPRIndex = (NumVGPRSpillLanes % WaveSize);
 
     // Reserve a VGPR (when NumVGPRSpillLanes = 0, WaveSize, 2*WaveSize, ..) and
     // when one of the two conditions is true:
@@ -369,7 +369,7 @@ bool SIMachineFunctionInfo::reserveVGPRforSGPRSpills(MachineFunction &MF) {
   const SIRegisterInfo *TRI = ST.getRegisterInfo();
   SIMachineFunctionInfo *FuncInfo = MF.getInfo<SIMachineFunctionInfo>();
 
-  Register LaneVGPR = TRI->findUnusedRegister(
+  Register const LaneVGPR = TRI->findUnusedRegister(
       MF.getRegInfo(), &AMDGPU::VGPR_32RegClass, MF, true);
   if (LaneVGPR == Register())
     return false;
@@ -385,7 +385,7 @@ bool SIMachineFunctionInfo::allocateVGPRSpillToAGPR(MachineFunction &MF,
                                                     int FI,
                                                     bool isAGPRtoVGPR) {
   MachineRegisterInfo &MRI = MF.getRegInfo();
-  MachineFrameInfo &FrameInfo = MF.getFrameInfo();
+  MachineFrameInfo  const&FrameInfo = MF.getFrameInfo();
   const GCNSubtarget &ST =  MF.getSubtarget<GCNSubtarget>();
 
   assert(ST.hasMAIInsts() && FrameInfo.isSpillSlotObjectIndex(FI));
@@ -396,8 +396,8 @@ bool SIMachineFunctionInfo::allocateVGPRSpillToAGPR(MachineFunction &MF,
   if (!Spill.Lanes.empty())
     return Spill.FullyAllocated;
 
-  unsigned Size = FrameInfo.getObjectSize(FI);
-  unsigned NumLanes = Size / 4;
+  unsigned const Size = FrameInfo.getObjectSize(FI);
+  unsigned const NumLanes = Size / 4;
   Spill.Lanes.resize(NumLanes, AMDGPU::NoRegister);
 
   const TargetRegisterClass &RC =
@@ -420,9 +420,9 @@ bool SIMachineFunctionInfo::allocateVGPRSpillToAGPR(MachineFunction &MF,
 
   // TODO: Should include register tuples, but doesn't matter with current
   // usage.
-  for (MCPhysReg Reg : SpillAGPR)
+  for (MCPhysReg const Reg : SpillAGPR)
     OtherUsedRegs.set(Reg);
-  for (MCPhysReg Reg : SpillVGPR)
+  for (MCPhysReg const Reg : SpillVGPR)
     OtherUsedRegs.set(Reg);
 
   SmallVectorImpl<MCPhysReg>::const_iterator NextSpillReg = Regs.begin();

@@ -22,12 +22,12 @@ Error DebugCrossModuleExportsSubsectionRef::initialize(
         cv_error_code::corrupt_record,
         "Cross Scope Exports section is an invalid size!");
 
-  uint32_t Size = Reader.bytesRemaining() / sizeof(CrossModuleExport);
+  uint32_t const Size = Reader.bytesRemaining() / sizeof(CrossModuleExport);
   return Reader.readArray(References, Size);
 }
 
 Error DebugCrossModuleExportsSubsectionRef::initialize(BinaryStreamRef Stream) {
-  BinaryStreamReader Reader(Stream);
+  BinaryStreamReader const Reader(Stream);
   return initialize(Reader);
 }
 

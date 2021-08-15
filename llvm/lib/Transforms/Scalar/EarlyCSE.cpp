@@ -428,7 +428,7 @@ static bool isEqualImpl(SimpleValue LHS, SimpleValue RHS) {
 bool DenseMapInfo<SimpleValue>::isEqual(SimpleValue LHS, SimpleValue RHS) {
   // These comparisons are nontrivial, so assert that equality implies
   // hash equality (DenseMap demands this as an invariant).
-  bool Result = isEqualImpl(LHS, RHS);
+  bool const Result = isEqualImpl(LHS, RHS);
   assert(!Result || (LHS.isSentinel() && LHS.Inst == RHS.Inst) ||
          getHashValueImpl(LHS) == getHashValueImpl(RHS));
   return Result;
@@ -910,8 +910,8 @@ private:
     if (PtrOp(Earlier) != PtrOp(Later))
       return false;
 
-    Intrinsic::ID IDE = Earlier->getIntrinsicID();
-    Intrinsic::ID IDL = Later->getIntrinsicID();
+    Intrinsic::ID const IDE = Earlier->getIntrinsicID();
+    Intrinsic::ID const IDL = Later->getIntrinsicID();
     // We could really use specific intrinsic classes for masked loads
     // and stores in IntrinsicInst.h.
     if (IDE == Intrinsic::masked_load && IDL == Intrinsic::masked_load) {
@@ -1035,7 +1035,7 @@ bool EarlyCSE::isOperatingOnInvariantMemAt(Instruction *I, unsigned GenAt) {
     // "target" intrinsic forms of loads aren't currently known to
     // MemoryLocation::get.  TODO
     return false;
-  MemoryLocation MemLoc = *MemLocOpt;
+  MemoryLocation const MemLoc = *MemLocOpt;
   if (!AvailableInvariants.count(MemLoc))
     return false;
 
@@ -1066,7 +1066,7 @@ bool EarlyCSE::handleBranchCondition(Instruction *CondInst,
   // If the condition is AND operation, we can propagate its operands into the
   // true branch. If it is OR operation, we can propagate them into the false
   // branch.
-  unsigned PropagateOpcode =
+  unsigned const PropagateOpcode =
       (BI->getSuccessor(0) == BB) ? Instruction::And : Instruction::Or;
 
   bool MadeChanges = false;
@@ -1084,7 +1084,7 @@ bool EarlyCSE::handleBranchCondition(Instruction *CondInst,
       LLVM_DEBUG(dbgs() << "Skipping due to debug counter\n");
     } else {
       // Replace all dominated uses with the known value.
-      if (unsigned Count = replaceDominatedUsesWith(Curr, TorF, DT,
+      if (unsigned const Count = replaceDominatedUsesWith(Curr, TorF, DT,
                                                     BasicBlockEdge(Pred, BB))) {
         NumCSECVP += Count;
         MadeChanges = true;
@@ -1118,7 +1118,7 @@ Value *EarlyCSE::getMatchingValue(LoadValue &InVal, ParseMemoryInst &MemInst,
   // on whether MemInst is a load or a store. If it's a load, we will replace
   // MemInst with V, if it's a store, we will check if V is the same as the
   // available value.
-  bool MemInstMatching = !MemInst.isLoad();
+  bool const MemInstMatching = !MemInst.isLoad();
   Instruction *Matching = MemInstMatching ? MemInst.get() : InVal.DefInst;
   Instruction *Other = MemInstMatching ? InVal.DefInst : MemInst.get();
 
@@ -1131,8 +1131,8 @@ Value *EarlyCSE::getMatchingValue(LoadValue &InVal, ParseMemoryInst &MemInst,
     return nullptr;
 
   // Deal with non-target memory intrinsics.
-  bool MatchingNTI = isHandledNonTargetIntrinsic(Matching);
-  bool OtherNTI = isHandledNonTargetIntrinsic(Other);
+  bool const MatchingNTI = isHandledNonTargetIntrinsic(Matching);
+  bool const OtherNTI = isHandledNonTargetIntrinsic(Other);
   if (OtherNTI != MatchingNTI)
     return nullptr;
   if (OtherNTI && MatchingNTI) {
@@ -1170,8 +1170,8 @@ bool EarlyCSE::overridingStores(const ParseMemoryInst &Earlier,
     return false;
 
   // Deal with non-target memory intrinsics.
-  bool ENTI = isHandledNonTargetIntrinsic(Earlier.get());
-  bool LNTI = isHandledNonTargetIntrinsic(Later.get());
+  bool const ENTI = isHandledNonTargetIntrinsic(Earlier.get());
+  bool const LNTI = isHandledNonTargetIntrinsic(Later.get());
   if (ENTI && LNTI)
     return isNonTargetIntrinsicMatch(cast<IntrinsicInst>(Earlier.get()),
                                      cast<IntrinsicInst>(Later.get()));
@@ -1282,7 +1282,7 @@ bool EarlyCSE::processNode(DomTreeNode *Node) {
       // If there are any uses, the scope might end.
       if (!Inst.use_empty())
         continue;
-      MemoryLocation MemLoc =
+      MemoryLocation const MemLoc =
           MemoryLocation::getForArgument(&cast<CallInst>(Inst), 1, TLI);
       // Don't start a scope if we already have a better one pushed
       if (!AvailableInvariants.count(MemLoc))
@@ -1445,7 +1445,7 @@ bool EarlyCSE::processNode(DomTreeNode *Node) {
     if (CallValue::canHandle(&Inst)) {
       // If we have an available version of this call, and if it is the right
       // generation, replace this instruction.
-      std::pair<Instruction *, unsigned> InVal = AvailableCalls.lookup(&Inst);
+      std::pair<Instruction *, unsigned> const InVal = AvailableCalls.lookup(&Inst);
       if (InVal.first != nullptr &&
           isSameMemGeneration(InVal.second, CurrentGeneration, InVal.first,
                               &Inst)) {

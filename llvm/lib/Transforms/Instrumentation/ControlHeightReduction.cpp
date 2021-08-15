@@ -75,7 +75,7 @@ static void parseCHRFilterFiles() {
       errs() << "Error: Couldn't read the chr-module-list file " << CHRModuleList << "\n";
       std::exit(1);
     }
-    StringRef Buf = FileOrErr->get()->getBuffer();
+    StringRef const Buf = FileOrErr->get()->getBuffer();
     SmallVector<StringRef, 0> Lines;
     Buf.split(Lines, '\n');
     for (StringRef Line : Lines) {
@@ -90,7 +90,7 @@ static void parseCHRFilterFiles() {
       errs() << "Error: Couldn't read the chr-function-list file " << CHRFunctionList << "\n";
       std::exit(1);
     }
-    StringRef Buf = FileOrErr->get()->getBuffer();
+    StringRef const Buf = FileOrErr->get()->getBuffer();
     SmallVector<StringRef, 0> Lines;
     Buf.split(Lines, '\n');
     for (StringRef Line : Lines) {
@@ -229,7 +229,7 @@ class CHRScope {
   void addSub(CHRScope *SubIn) {
 #ifndef NDEBUG
     bool IsChild = false;
-    for (RegInfo &RI : RegInfos)
+    for (RegInfo  const&RI : RegInfos)
       if (RI.R == SubIn->getParentRegion()) {
         IsChild = true;
         break;
@@ -249,7 +249,7 @@ class CHRScope {
         RegInfos, [&Boundary](const RegInfo &RI) { return Boundary == RI.R; });
     if (BoundaryIt == RegInfos.end())
       return nullptr;
-    ArrayRef<RegInfo> TailRegInfos(BoundaryIt, RegInfos.end());
+    ArrayRef<RegInfo> const TailRegInfos(BoundaryIt, RegInfos.end());
     DenseSet<Region *> TailRegionSet;
     for (const RegInfo &RI : TailRegInfos)
       TailRegionSet.insert(RI.R);
@@ -267,7 +267,7 @@ class CHRScope {
                  "Must be in head");
           return true;
         });
-    ArrayRef<CHRScope *> TailSubs(TailIt, Subs.end());
+    ArrayRef<CHRScope *> const TailSubs(TailIt, Subs.end());
 
     assert(HoistStopMap.empty() && "MapHoistStops must be empty");
     auto *Scope = new CHRScope(TailRegInfos, TailSubs);
@@ -452,8 +452,8 @@ static bool shouldApply(Function &F, ProfileSummaryInfo& PSI) {
 
 static void LLVM_ATTRIBUTE_UNUSED dumpIR(Function &F, const char *Label,
                                          CHRStats *Stats) {
-  StringRef FuncName = F.getName();
-  StringRef ModuleName = F.getParent()->getName();
+  StringRef const FuncName = F.getName();
+  StringRef const ModuleName = F.getParent()->getName();
   (void)(FuncName); // Unused in release build.
   (void)(ModuleName); // Unused in release build.
   CHR_DEBUG(dbgs() << "CHR IR dump " << Label << " " << ModuleName << " "
@@ -612,9 +612,9 @@ static bool checkMDProf(MDNode *MD, BranchProbability &TrueProb,
   ConstantInt *FalseWeight = mdconst::extract<ConstantInt>(MD->getOperand(2));
   if (!TrueWeight || !FalseWeight)
     return false;
-  uint64_t TrueWt = TrueWeight->getValue().getZExtValue();
-  uint64_t FalseWt = FalseWeight->getValue().getZExtValue();
-  uint64_t SumWt = TrueWt + FalseWt;
+  uint64_t const TrueWt = TrueWeight->getValue().getZExtValue();
+  uint64_t const FalseWt = FalseWeight->getValue().getZExtValue();
+  uint64_t const SumWt = TrueWt + FalseWt;
 
   assert(SumWt >= TrueWt && SumWt >= FalseWt &&
          "Overflow calculating branch probabilities.");
@@ -641,7 +641,7 @@ template <typename K, typename S, typename M>
 static bool checkBias(K *Key, BranchProbability TrueProb,
                       BranchProbability FalseProb, S &TrueSet, S &FalseSet,
                       M &BiasMap) {
-  BranchProbability Threshold = getCHRBiasThreshold();
+  BranchProbability const Threshold = getCHRBiasThreshold();
   if (TrueProb >= Threshold) {
     TrueSet.insert(Key);
     BiasMap[Key] = TrueProb;
@@ -760,7 +760,7 @@ CHRScope * CHR::findScope(Region *R) {
     CHR_DEBUG(dbgs() << "Exit null\n");
   // Exclude cases where Entry is part of a subregion (hence it doesn't belong
   // to this region).
-  bool EntryInSubregion = RI.getRegionFor(Entry) != R;
+  bool const EntryInSubregion = RI.getRegionFor(Entry) != R;
   if (EntryInSubregion)
     return nullptr;
   // Exclude loops
@@ -915,7 +915,7 @@ void CHR::checkScopeHoistable(CHRScope *Scope) {
         continue;
       }
       DenseMap<Instruction *, bool> Visited;
-      bool IsHoistable = checkHoistValue(SI->getCondition(), InsertPoint,
+      bool const IsHoistable = checkHoistValue(SI->getCondition(), InsertPoint,
                                          DT, Unhoistables, nullptr, Visited);
       if (!IsHoistable) {
         CHR_DEBUG(dbgs() << "Dropping select " << *SI << "\n");
@@ -936,7 +936,7 @@ void CHR::checkScopeHoistable(CHRScope *Scope) {
     CHR_DEBUG(dbgs() << "InsertPoint " << *InsertPoint << "\n");
     if (RI.HasBranch && InsertPoint != Branch) {
       DenseMap<Instruction *, bool> Visited;
-      bool IsHoistable = checkHoistValue(Branch->getCondition(), InsertPoint,
+      bool const IsHoistable = checkHoistValue(Branch->getCondition(), InsertPoint,
                                          DT, Unhoistables, nullptr, Visited);
       if (!IsHoistable) {
         // If the branch isn't hoistable, drop the selects in the entry
@@ -1124,7 +1124,7 @@ static bool shouldSplit(Instruction *InsertPoint,
 
 static void getSelectsInScope(CHRScope *Scope,
                               DenseSet<Instruction *> &Output) {
-  for (RegInfo &RI : Scope->RegInfos)
+  for (RegInfo  const&RI : Scope->RegInfos)
     for (SelectInst *SI : RI.Selects)
       Output.insert(SI);
   for (CHRScope *Sub : Scope->Subs)
@@ -1307,7 +1307,7 @@ void CHR::classifyBiasedScopes(SmallVectorImpl<CHRScope *> &Scopes) {
 }
 
 void CHR::classifyBiasedScopes(CHRScope *Scope, CHRScope *OutermostScope) {
-  for (RegInfo &RI : Scope->RegInfos) {
+  for (RegInfo  const&RI : Scope->RegInfos) {
     if (RI.HasBranch) {
       Region *R = RI.R;
       if (TrueBiasedRegionsGlobal.contains(R))
@@ -1332,7 +1332,7 @@ void CHR::classifyBiasedScopes(CHRScope *Scope, CHRScope *OutermostScope) {
 }
 
 static bool hasAtLeastTwoBiasedBranches(CHRScope *Scope) {
-  unsigned NumBiased = Scope->TrueBiasedRegions.size() +
+  unsigned const NumBiased = Scope->TrueBiasedRegions.size() +
                        Scope->FalseBiasedRegions.size() +
                        Scope->TrueBiasedSelects.size() +
                        Scope->FalseBiasedSelects.size();
@@ -1392,13 +1392,13 @@ void CHR::setCHRRegions(CHRScope *Scope, CHRScope *OutermostScope) {
   // Put the biased selects in Unhoistables because they should stay where they
   // are and constant-folded after CHR (in case one biased select or a branch
   // can depend on another biased select.)
-  for (RegInfo &RI : Scope->RegInfos) {
+  for (RegInfo  const&RI : Scope->RegInfos) {
     for (SelectInst *SI : RI.Selects) {
       Unhoistables.insert(SI);
     }
   }
   Instruction *InsertPoint = OutermostScope->BranchInsertPoint;
-  for (RegInfo &RI : Scope->RegInfos) {
+  for (RegInfo  const&RI : Scope->RegInfos) {
     Region *R = RI.R;
     DenseSet<Instruction *> HoistStops;
     bool IsHoisted = false;
@@ -1409,7 +1409,7 @@ void CHR::setCHRRegions(CHRScope *Scope, CHRScope *OutermostScope) {
       auto *BI = cast<BranchInst>(R->getEntry()->getTerminator());
       // Note checkHoistValue fills in HoistStops.
       DenseMap<Instruction *, bool> Visited;
-      bool IsHoistable = checkHoistValue(BI->getCondition(), InsertPoint, DT,
+      bool const IsHoistable = checkHoistValue(BI->getCondition(), InsertPoint, DT,
                                          Unhoistables, &HoistStops, Visited);
       assert(IsHoistable && "Must be hoistable");
       (void)(IsHoistable);  // Unused in release build
@@ -1421,7 +1421,7 @@ void CHR::setCHRRegions(CHRScope *Scope, CHRScope *OutermostScope) {
              "Must be true or false biased");
       // Note checkHoistValue fills in HoistStops.
       DenseMap<Instruction *, bool> Visited;
-      bool IsHoistable = checkHoistValue(SI->getCondition(), InsertPoint, DT,
+      bool const IsHoistable = checkHoistValue(SI->getCondition(), InsertPoint, DT,
                                          Unhoistables, &HoistStops, Visited);
       assert(IsHoistable && "Must be hoistable");
       (void)(IsHoistable);  // Unused in release build
@@ -1456,7 +1456,7 @@ static void hoistValue(Value *V, Instruction *HoistPoint, Region *R,
                        DominatorTree &DT) {
   auto IT = HoistStopMap.find(R);
   assert(IT != HoistStopMap.end() && "Region must be in hoist stop map");
-  DenseSet<Instruction *> &HoistStops = IT->second;
+  DenseSet<Instruction *>  const&HoistStops = IT->second;
   if (auto *I = dyn_cast<Instruction>(V)) {
     if (I == HoistPoint)
       return;
@@ -1503,16 +1503,16 @@ static void hoistScopeConditions(CHRScope *Scope, Instruction *HoistPoint,
   DenseSet<Instruction *> HoistedSet;
   for (const RegInfo &RI : Scope->CHRRegions) {
     Region *R = RI.R;
-    bool IsTrueBiased = Scope->TrueBiasedRegions.count(R);
-    bool IsFalseBiased = Scope->FalseBiasedRegions.count(R);
+    bool const IsTrueBiased = Scope->TrueBiasedRegions.count(R);
+    bool const IsFalseBiased = Scope->FalseBiasedRegions.count(R);
     if (RI.HasBranch && (IsTrueBiased || IsFalseBiased)) {
       auto *BI = cast<BranchInst>(R->getEntry()->getTerminator());
       hoistValue(BI->getCondition(), HoistPoint, R, Scope->HoistStopMap,
                  HoistedSet, TrivialPHIs, DT);
     }
     for (SelectInst *SI : RI.Selects) {
-      bool IsTrueBiased = Scope->TrueBiasedSelects.count(SI);
-      bool IsFalseBiased = Scope->FalseBiasedSelects.count(SI);
+      bool const IsTrueBiased = Scope->TrueBiasedSelects.count(SI);
+      bool const IsFalseBiased = Scope->FalseBiasedSelects.count(SI);
       if (!(IsTrueBiased || IsFalseBiased))
         continue;
       hoistValue(SI->getCondition(), HoistPoint, R, Scope->HoistStopMap,
@@ -1659,10 +1659,10 @@ assertCHRRegionsHaveBiasedBranchOrSelect(CHRScope *Scope) {
 static void LLVM_ATTRIBUTE_UNUSED assertBranchOrSelectConditionHoisted(
     CHRScope *Scope, BasicBlock *PreEntryBlock) {
   CHR_DEBUG(dbgs() << "Biased regions condition values \n");
-  for (RegInfo &RI : Scope->CHRRegions) {
+  for (RegInfo  const&RI : Scope->CHRRegions) {
     Region *R = RI.R;
-    bool IsTrueBiased = Scope->TrueBiasedRegions.count(R);
-    bool IsFalseBiased = Scope->FalseBiasedRegions.count(R);
+    bool const IsTrueBiased = Scope->TrueBiasedRegions.count(R);
+    bool const IsFalseBiased = Scope->FalseBiasedRegions.count(R);
     if (RI.HasBranch && (IsTrueBiased || IsFalseBiased)) {
       auto *BI = cast<BranchInst>(R->getEntry()->getTerminator());
       Value *V = BI->getCondition();
@@ -1675,8 +1675,8 @@ static void LLVM_ATTRIBUTE_UNUSED assertBranchOrSelectConditionHoisted(
       }
     }
     for (SelectInst *SI : RI.Selects) {
-      bool IsTrueBiased = Scope->TrueBiasedSelects.count(SI);
-      bool IsFalseBiased = Scope->FalseBiasedSelects.count(SI);
+      bool const IsTrueBiased = Scope->TrueBiasedSelects.count(SI);
+      bool const IsFalseBiased = Scope->FalseBiasedSelects.count(SI);
       if (!(IsTrueBiased || IsFalseBiased))
         continue;
       Value *V = SI->getCondition();
@@ -1845,7 +1845,7 @@ void CHR::fixupBranchesAndSelects(CHRScope *Scope,
   BranchProbability CHRBranchBias(1, 1);
   uint64_t NumCHRedBranches = 0;
   IRBuilder<> IRB(PreEntryBlock->getTerminator());
-  for (RegInfo &RI : Scope->CHRRegions) {
+  for (RegInfo  const&RI : Scope->CHRRegions) {
     Region *R = RI.R;
     if (RI.HasBranch) {
       fixupBranch(R, Scope, IRB, MergedCondition, CHRBranchBias);
@@ -1867,7 +1867,7 @@ void CHR::fixupBranchesAndSelects(CHRScope *Scope,
         << " branches or selects";
   });
   MergedBR->setCondition(MergedCondition);
-  uint32_t Weights[] = {
+  uint32_t const Weights[] = {
       static_cast<uint32_t>(CHRBranchBias.scale(1000)),
       static_cast<uint32_t>(CHRBranchBias.getCompl().scale(1000)),
   };
@@ -1883,13 +1883,13 @@ void CHR::fixupBranch(Region *R, CHRScope *Scope,
                       IRBuilder<> &IRB,
                       Value *&MergedCondition,
                       BranchProbability &CHRBranchBias) {
-  bool IsTrueBiased = Scope->TrueBiasedRegions.count(R);
+  bool const IsTrueBiased = Scope->TrueBiasedRegions.count(R);
   assert((IsTrueBiased || Scope->FalseBiasedRegions.count(R)) &&
          "Must be truthy or falsy");
   auto *BI = cast<BranchInst>(R->getEntry()->getTerminator());
   assert(BranchBiasMap.find(R) != BranchBiasMap.end() &&
          "Must be in the bias map");
-  BranchProbability Bias = BranchBiasMap[R];
+  BranchProbability const Bias = BranchBiasMap[R];
   assert(Bias >= getCHRBiasThreshold() && "Must be highly biased");
   // Take the min.
   if (CHRBranchBias > Bias)
@@ -1909,7 +1909,7 @@ void CHR::fixupBranch(Region *R, CHRScope *Scope,
             << " IfElse " << IfElse->getName() << "\n");
   Value *Cond = BI->getCondition();
   BasicBlock *HotTarget = IsTrueBiased ? IfThen : IfElse;
-  bool ConditionTrue = HotTarget == BI->getSuccessor(0);
+  bool const ConditionTrue = HotTarget == BI->getSuccessor(0);
   addToMergedCondition(ConditionTrue, Cond, BI, Scope, IRB,
                        MergedCondition);
   // Constant-fold the branch at ClonedEntryBlock.
@@ -1927,12 +1927,12 @@ void CHR::fixupSelect(SelectInst *SI, CHRScope *Scope,
                       IRBuilder<> &IRB,
                       Value *&MergedCondition,
                       BranchProbability &CHRBranchBias) {
-  bool IsTrueBiased = Scope->TrueBiasedSelects.count(SI);
+  bool const IsTrueBiased = Scope->TrueBiasedSelects.count(SI);
   assert((IsTrueBiased ||
           Scope->FalseBiasedSelects.count(SI)) && "Must be biased");
   assert(SelectBiasMap.find(SI) != SelectBiasMap.end() &&
          "Must be in the bias map");
-  BranchProbability Bias = SelectBiasMap[SI];
+  BranchProbability const Bias = SelectBiasMap[SI];
   assert(Bias >= getCHRBiasThreshold() && "Must be highly biased");
   // Take the min.
   if (CHRBranchBias > Bias)
@@ -2078,7 +2078,7 @@ bool ControlHeightReductionLegacyPass::runOnFunction(Function &F) {
   ProfileSummaryInfo &PSI =
       getAnalysis<ProfileSummaryInfoWrapperPass>().getPSI();
   RegionInfo &RI = getAnalysis<RegionInfoPass>().getRegionInfo();
-  std::unique_ptr<OptimizationRemarkEmitter> OwnedORE =
+  std::unique_ptr<OptimizationRemarkEmitter> const OwnedORE =
       std::make_unique<OptimizationRemarkEmitter>(&F);
   return CHR(F, BFI, DT, PSI, RI, *OwnedORE.get()).run();
 }
@@ -2098,7 +2098,7 @@ PreservedAnalyses ControlHeightReductionPass::run(
   auto &PSI = *MAMProxy.getCachedResult<ProfileSummaryAnalysis>(*F.getParent());
   auto &RI = FAM.getResult<RegionInfoAnalysis>(F);
   auto &ORE = FAM.getResult<OptimizationRemarkEmitterAnalysis>(F);
-  bool Changed = CHR(F, BFI, DT, PSI, RI, ORE).run();
+  bool const Changed = CHR(F, BFI, DT, PSI, RI, ORE).run();
   if (!Changed)
     return PreservedAnalyses::all();
   return PreservedAnalyses::none();

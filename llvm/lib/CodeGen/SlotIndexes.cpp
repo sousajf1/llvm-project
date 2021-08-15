@@ -80,7 +80,7 @@ bool SlotIndexes::runOnMachineFunction(MachineFunction &fn) {
   // Iterate over the function.
   for (MachineBasicBlock &MBB : *mf) {
     // Insert an index for the MBB start.
-    SlotIndex blockStartIndex(&indexList.back(), SlotIndex::Slot_Block);
+    SlotIndex const blockStartIndex(&indexList.back(), SlotIndex::Slot_Block);
 
     for (MachineInstr &MI : MBB) {
       if (MI.isDebugOrPseudoInstr())
@@ -116,11 +116,11 @@ void SlotIndexes::removeMachineInstrFromMaps(MachineInstr &MI,
                                              bool AllowBundled) {
   assert((AllowBundled || !MI.isBundledWithPred()) &&
          "Use removeSingleMachineInstrFromMaps() instead");
-  Mi2IndexMap::iterator mi2iItr = mi2iMap.find(&MI);
+  Mi2IndexMap::iterator const mi2iItr = mi2iMap.find(&MI);
   if (mi2iItr == mi2iMap.end())
     return;
 
-  SlotIndex MIIndex = mi2iItr->second;
+  SlotIndex const MIIndex = mi2iItr->second;
   IndexListEntry &MIEntry = *MIIndex.listEntry();
   assert(MIEntry.getInstr() == &MI && "Instruction indexes broken.");
   mi2iMap.erase(mi2iItr);
@@ -129,11 +129,11 @@ void SlotIndexes::removeMachineInstrFromMaps(MachineInstr &MI,
 }
 
 void SlotIndexes::removeSingleMachineInstrFromMaps(MachineInstr &MI) {
-  Mi2IndexMap::iterator mi2iItr = mi2iMap.find(&MI);
+  Mi2IndexMap::iterator const mi2iItr = mi2iMap.find(&MI);
   if (mi2iItr == mi2iMap.end())
     return;
 
-  SlotIndex MIIndex = mi2iItr->second;
+  SlotIndex const MIIndex = mi2iItr->second;
   IndexListEntry &MIEntry = *MIIndex.listEntry();
   assert(MIEntry.getInstr() == &MI && "Instruction indexes broken.");
   mi2iMap.erase(mi2iItr);
@@ -144,7 +144,7 @@ void SlotIndexes::removeSingleMachineInstrFromMaps(MachineInstr &MI) {
     // Only the first instruction of a bundle should have an index assigned.
     assert(!MI.isBundledWithPred() && "Should be first bundle instruction");
 
-    MachineBasicBlock::instr_iterator Next = std::next(MI.getIterator());
+    MachineBasicBlock::instr_iterator const Next = std::next(MI.getIterator());
     MachineInstr &NextMI = *Next;
     MIEntry.setInstr(&NextMI);
     mi2iMap.insert(std::make_pair(&NextMI, MIIndex));
@@ -162,7 +162,7 @@ void SlotIndexes::renumberIndexes(IndexList::iterator curItr) {
   const unsigned Space = SlotIndex::InstrDist/2;
   static_assert((Space & 3) == 0, "InstrDist must be a multiple of 2*NUM");
 
-  IndexList::iterator startItr = std::prev(curItr);
+  IndexList::iterator const startItr = std::prev(curItr);
   unsigned index = startItr->getIndex();
   do {
     curItr->setIndex(index += Space);
@@ -188,7 +188,7 @@ void SlotIndexes::repairIndexesInRange(MachineBasicBlock *MBB,
   while (End != MBB->end() && !hasIndex(*End))
     ++End;
 
-  bool includeStart = (Begin == MBB->begin());
+  bool const includeStart = (Begin == MBB->begin());
   SlotIndex startIdx;
   if (includeStart)
     startIdx = getMBBStartIdx(MBB);
@@ -205,7 +205,7 @@ void SlotIndexes::repairIndexesInRange(MachineBasicBlock *MBB,
   // optionally includes an additional position prior to MBB->begin(), indicated
   // by the includeStart flag. This is done so that we can iterate MIs in a MBB
   // in parallel with SlotIndexes, but there should be a better way to do this.
-  IndexList::iterator ListB = startIdx.listEntry()->getIterator();
+  IndexList::iterator const ListB = startIdx.listEntry()->getIterator();
   IndexList::iterator ListI = endIdx.listEntry()->getIterator();
   MachineBasicBlock::iterator MBBI = End;
   bool pastStart = false;
@@ -216,7 +216,7 @@ void SlotIndexes::repairIndexesInRange(MachineBasicBlock *MBB,
 
     MachineInstr *SlotMI = ListI->getInstr();
     MachineInstr *MI = (MBBI != MBB->end() && !pastStart) ? &*MBBI : nullptr;
-    bool MBBIAtBegin = MBBI == Begin && (!includeStart || pastStart);
+    bool const MBBIAtBegin = MBBI == Begin && (!includeStart || pastStart);
 
     if (SlotMI == MI && !MBBIAtBegin) {
       --ListI;

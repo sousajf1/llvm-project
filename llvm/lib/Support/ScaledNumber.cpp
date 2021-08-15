@@ -32,7 +32,7 @@ std::pair<uint64_t, int16_t> ScaledNumbers::multiply64(uint64_t LHS,
   // Sum into two 64-bit digits.
   uint64_t Upper = P1, Lower = P4;
   auto addWithCarry = [&](uint64_t N) {
-    uint64_t NewLower = Lower + (getL(N) << 32);
+    uint64_t const NewLower = Lower + (getL(N) << 32);
     Upper += getU(N) + (NewLower < Lower);
     Lower = NewLower;
   };
@@ -44,8 +44,8 @@ std::pair<uint64_t, int16_t> ScaledNumbers::multiply64(uint64_t LHS,
     return std::make_pair(Lower, 0);
 
   // Shift as little as possible to maximize precision.
-  unsigned LeadingZeros = countLeadingZeros(Upper);
-  int Shift = 64 - LeadingZeros;
+  unsigned const LeadingZeros = countLeadingZeros(Upper);
+  int const Shift = 64 - LeadingZeros;
   if (LeadingZeros)
     Upper = Upper << LeadingZeros | Lower >> Shift;
   return getRounded(Upper, Shift,
@@ -62,12 +62,12 @@ std::pair<uint32_t, int16_t> ScaledNumbers::divide32(uint32_t Dividend,
   // Use 64-bit math and canonicalize the dividend to gain precision.
   uint64_t Dividend64 = Dividend;
   int Shift = 0;
-  if (int Zeros = countLeadingZeros(Dividend64)) {
+  if (int const Zeros = countLeadingZeros(Dividend64)) {
     Shift -= Zeros;
     Dividend64 <<= Zeros;
   }
-  uint64_t Quotient = Dividend64 / Divisor;
-  uint64_t Remainder = Dividend64 % Divisor;
+  uint64_t const Quotient = Dividend64 / Divisor;
+  uint64_t const Remainder = Dividend64 % Divisor;
 
   // If Quotient needs to be shifted, leave the rounding to getAdjusted().
   if (Quotient > UINT32_MAX)
@@ -84,7 +84,7 @@ std::pair<uint64_t, int16_t> ScaledNumbers::divide64(uint64_t Dividend,
 
   // Minimize size of divisor.
   int Shift = 0;
-  if (int Zeros = countTrailingZeros(Divisor)) {
+  if (int const Zeros = countTrailingZeros(Divisor)) {
     Shift -= Zeros;
     Divisor >>= Zeros;
   }
@@ -94,7 +94,7 @@ std::pair<uint64_t, int16_t> ScaledNumbers::divide64(uint64_t Dividend,
     return std::make_pair(Dividend, Shift);
 
   // Maximize size of dividend.
-  if (int Zeros = countLeadingZeros(Dividend)) {
+  if (int const Zeros = countLeadingZeros(Dividend)) {
     Shift -= Zeros;
     Dividend <<= Zeros;
   }
@@ -106,7 +106,7 @@ std::pair<uint64_t, int16_t> ScaledNumbers::divide64(uint64_t Dividend,
   // Continue building the quotient with long division.
   while (!(Quotient >> 63) && Dividend) {
     // Shift Dividend and check for overflow.
-    bool IsOverflow = Dividend >> 63;
+    bool const IsOverflow = Dividend >> 63;
     Dividend <<= 1;
     --Shift;
 
@@ -125,7 +125,7 @@ int ScaledNumbers::compareImpl(uint64_t L, uint64_t R, int ScaleDiff) {
   assert(ScaleDiff >= 0 && "wrong argument order");
   assert(ScaleDiff < 64 && "numbers too far apart");
 
-  uint64_t L_adjusted = L >> ScaleDiff;
+  uint64_t const L_adjusted = L >> ScaleDiff;
   if (L_adjusted < R)
     return -1;
   if (L_adjusted > R)
@@ -164,9 +164,9 @@ static std::string toStringAPFloat(uint64_t D, int E, unsigned Precision) {
   assert(E <= ScaledNumbers::MaxScale);
 
   // Find a new E, but don't let it increase past MaxScale.
-  int LeadingZeros = ScaledNumberBase::countLeadingZeros64(D);
-  int NewE = std::min(ScaledNumbers::MaxScale, E + 63 - LeadingZeros);
-  int Shift = 63 - (NewE - E);
+  int const LeadingZeros = ScaledNumberBase::countLeadingZeros64(D);
+  int const NewE = std::min(ScaledNumbers::MaxScale, E + 63 - LeadingZeros);
+  int const Shift = 63 - (NewE - E);
   assert(Shift <= LeadingZeros);
   assert(Shift == LeadingZeros || NewE == ScaledNumbers::MaxScale);
   assert(Shift >= 0 && Shift < 64 && "undefined behavior");
@@ -181,8 +181,8 @@ static std::string toStringAPFloat(uint64_t D, int E, unsigned Precision) {
   }
 
   // Build the float and print it.
-  uint64_t RawBits[2] = {D, AdjustedE};
-  APFloat Float(APFloat::x87DoubleExtended(), APInt(80, RawBits));
+  uint64_t const RawBits[2] = {D, AdjustedE};
+  APFloat const Float(APFloat::x87DoubleExtended(), APInt(80, RawBits));
   SmallVector<char, 24> Chars;
   Float.toString(Chars, Precision, 0);
   return std::string(Chars.begin(), Chars.end());
@@ -211,7 +211,7 @@ std::string ScaledNumberBase::toString(uint64_t D, int16_t E, int Width,
   if (E == 0) {
     Above0 = D;
   } else if (E > 0) {
-    if (int Shift = std::min(int16_t(countLeadingZeros64(D)), E)) {
+    if (int const Shift = std::min(int16_t(countLeadingZeros64(D)), E)) {
       D <<= Shift;
       E -= Shift;
 
@@ -257,7 +257,7 @@ std::string ScaledNumberBase::toString(uint64_t D, int16_t E, int Width,
   Extra = (Below0 & 0xf) << 56 | (Extra >> 8);
   Below0 >>= 4;
   size_t SinceDot = 0;
-  size_t AfterDot = Str.size();
+  size_t const AfterDot = Str.size();
   do {
     if (ExtraShift) {
       --ExtraShift;
@@ -282,7 +282,7 @@ std::string ScaledNumberBase::toString(uint64_t D, int16_t E, int Width,
     return stripTrailingZeros(Str);
 
   // Find where to truncate.
-  size_t Truncate =
+  size_t const Truncate =
       std::max(Str.size() - (DigitsOut - Precision), AfterDot + 1);
 
   // Check if there's anything to truncate.

@@ -107,7 +107,7 @@ static ExFunc lookupFunction(const Function *F) {
     ExtName += getTypeID(T);
   ExtName += ("_" + F->getName()).str();
 
-  sys::ScopedLock Writer(*FunctionsLock);
+  sys::ScopedLock const Writer(*FunctionsLock);
   ExFunc FnPtr = (*FuncNames)[ExtName];
   if (!FnPtr)
     FnPtr = (*FuncNames)[("lle_X_" + F->getName()).str()];
@@ -264,7 +264,7 @@ GenericValue Interpreter::callExternalFunction(Function *F,
 
   // Do a lookup to see if the function is in our cache... this should just be a
   // deferred annotation!
-  std::map<const Function *, ExFunc>::iterator FI = ExportedFunctions->find(F);
+  std::map<const Function *, ExFunc>::iterator const FI = ExportedFunctions->find(F);
   if (ExFunc Fn = (FI == ExportedFunctions->end()) ? lookupFunction(F)
                                                    : FI->second) {
     Guard.unlock();
@@ -385,7 +385,7 @@ static GenericValue lle_X_sprintf(FunctionType *FT,
               sizeof(long) < sizeof(int64_t)) {
             // Make sure we use %lld with a 64 bit argument because we might be
             // compiling LLI on a 32 bit compiler.
-            unsigned Size = strlen(FmtBuf);
+            unsigned const Size = strlen(FmtBuf);
             FmtBuf[Size] = FmtBuf[Size-1];
             FmtBuf[Size+1] = 0;
             FmtBuf[Size-1] = 'l';
@@ -404,7 +404,7 @@ static GenericValue lle_X_sprintf(FunctionType *FT,
         errs() << "<unknown printf code '" << *FmtStr << "'!>";
         ArgNo++; break;
       }
-      size_t Len = strlen(Buffer);
+      size_t const Len = strlen(Buffer);
       memcpy(OutputBuffer, Buffer, Len + 1);
       OutputBuffer += Len;
       }
@@ -473,8 +473,8 @@ static GenericValue lle_X_fprintf(FunctionType *FT,
 
 static GenericValue lle_X_memset(FunctionType *FT,
                                  ArrayRef<GenericValue> Args) {
-  int val = (int)Args[1].IntVal.getSExtValue();
-  size_t len = (size_t)Args[2].IntVal.getZExtValue();
+  int const val = (int)Args[1].IntVal.getSExtValue();
+  size_t const len = (size_t)Args[2].IntVal.getZExtValue();
   memset((void *)GVTOP(Args[0]), val, len);
   // llvm.memset.* returns void, lle_X_* returns GenericValue,
   // so here we return GenericValue with IntVal set to zero
@@ -496,7 +496,7 @@ static GenericValue lle_X_memcpy(FunctionType *FT,
 }
 
 void Interpreter::initializeExternalFunctions() {
-  sys::ScopedLock Writer(*FunctionsLock);
+  sys::ScopedLock const Writer(*FunctionsLock);
   (*FuncNames)["lle_X_atexit"]       = lle_X_atexit;
   (*FuncNames)["lle_X_exit"]         = lle_X_exit;
   (*FuncNames)["lle_X_abort"]        = lle_X_abort;

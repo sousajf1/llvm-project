@@ -189,7 +189,7 @@ Expected<std::unique_ptr<MCStreamer>> LLVMTargetMachine::createMCStreamer(
       return make_error<StringError>("createMCAsmBackend failed",
                                      inconvertibleErrorCode());
 
-    Triple T(getTargetTriple().str());
+    Triple const T(getTargetTriple().str());
     AsmStreamer.reset(getTarget().createMCObjectStreamer(
         T, Context, std::unique_ptr<MCAsmBackend>(MAB),
         DwoOut ? MAB->createDwoObjectWriter(Out, *DwoOut)

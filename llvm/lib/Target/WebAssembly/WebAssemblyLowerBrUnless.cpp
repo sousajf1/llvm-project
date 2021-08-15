@@ -188,7 +188,7 @@ bool WebAssemblyLowerBrUnless::runOnMachineFunction(MachineFunction &MF) {
       // If we weren't able to invert the condition in place. Insert an
       // instruction to invert it.
       if (!Inverted) {
-        Register Tmp = MRI.createVirtualRegister(&WebAssembly::I32RegClass);
+        Register const Tmp = MRI.createVirtualRegister(&WebAssembly::I32RegClass);
         BuildMI(MBB, MI, MI->getDebugLoc(), TII.get(WebAssembly::EQZ_I32), Tmp)
             .addReg(Cond);
         MFI.stackifyVReg(MRI, Tmp);

@@ -39,12 +39,12 @@ static ManagedStatic<per_module_annot_t> annotationCache;
 static sys::Mutex Lock;
 
 void clearAnnotationCache(const Module *Mod) {
-  std::lock_guard<sys::Mutex> Guard(Lock);
+  std::lock_guard<sys::Mutex> const Guard(Lock);
   annotationCache->erase(Mod);
 }
 
 static void cacheAnnotationFromMD(const MDNode *md, key_val_pair_t &retval) {
-  std::lock_guard<sys::Mutex> Guard(Lock);
+  std::lock_guard<sys::Mutex> const Guard(Lock);
   assert(md && "Invalid mdnode for annotation");
   assert((md->getNumOperands() % 2) == 1 && "Invalid number of operands");
   // start index = 1, to skip the global variable key
@@ -58,7 +58,7 @@ static void cacheAnnotationFromMD(const MDNode *md, key_val_pair_t &retval) {
     ConstantInt *Val = mdconst::dyn_extract<ConstantInt>(md->getOperand(i + 1));
     assert(Val && "Value operand not a constant int");
 
-    std::string keyname = prop->getString().str();
+    std::string const keyname = prop->getString().str();
     if (retval.find(keyname) != retval.end())
       retval[keyname].push_back(Val->getZExtValue());
     else {
@@ -70,7 +70,7 @@ static void cacheAnnotationFromMD(const MDNode *md, key_val_pair_t &retval) {
 }
 
 static void cacheAnnotationFromMD(const Module *m, const GlobalValue *gv) {
-  std::lock_guard<sys::Mutex> Guard(Lock);
+  std::lock_guard<sys::Mutex> const Guard(Lock);
   NamedMDNode *NMD = m->getNamedMetadata("nvvm.annotations");
   if (!NMD)
     return;
@@ -104,7 +104,7 @@ static void cacheAnnotationFromMD(const Module *m, const GlobalValue *gv) {
 
 bool findOneNVVMAnnotation(const GlobalValue *gv, const std::string &prop,
                            unsigned &retval) {
-  std::lock_guard<sys::Mutex> Guard(Lock);
+  std::lock_guard<sys::Mutex> const Guard(Lock);
   const Module *m = gv->getParent();
   if ((*annotationCache).find(m) == (*annotationCache).end())
     cacheAnnotationFromMD(m, gv);
@@ -118,7 +118,7 @@ bool findOneNVVMAnnotation(const GlobalValue *gv, const std::string &prop,
 
 bool findAllNVVMAnnotation(const GlobalValue *gv, const std::string &prop,
                            std::vector<unsigned> &retval) {
-  std::lock_guard<sys::Mutex> Guard(Lock);
+  std::lock_guard<sys::Mutex> const Guard(Lock);
   const Module *m = gv->getParent();
   if ((*annotationCache).find(m) == (*annotationCache).end())
     cacheAnnotationFromMD(m, gv);
@@ -273,7 +273,7 @@ bool getMaxNReg(const Function &F, unsigned &x) {
 
 bool isKernelFunction(const Function &F) {
   unsigned x = 0;
-  bool retval = findOneNVVMAnnotation(&F, "kernel", x);
+  bool const retval = findOneNVVMAnnotation(&F, "kernel", x);
   if (!retval) {
     // There is no NVVM metadata, check the calling convention
     return F.getCallingConv() == CallingConv::PTX_Kernel;
@@ -283,11 +283,11 @@ bool isKernelFunction(const Function &F) {
 
 bool getAlign(const Function &F, unsigned index, unsigned &align) {
   std::vector<unsigned> Vs;
-  bool retval = findAllNVVMAnnotation(&F, "align", Vs);
+  bool const retval = findAllNVVMAnnotation(&F, "align", Vs);
   if (!retval)
     return false;
   for (int i = 0, e = Vs.size(); i < e; i++) {
-    unsigned v = Vs[i];
+    unsigned const v = Vs[i];
     if ((v >> 16) == index) {
       align = v & 0xFFFF;
       return true;
@@ -301,7 +301,7 @@ bool getAlign(const CallInst &I, unsigned index, unsigned &align) {
     for (int i = 0, n = alignNode->getNumOperands(); i < n; i++) {
       if (const ConstantInt *CI =
               mdconst::dyn_extract<ConstantInt>(alignNode->getOperand(i))) {
-        unsigned v = CI->getZExtValue();
+        unsigned const v = CI->getZExtValue();
         if ((v >> 16) == index) {
           align = v & 0xFFFF;
           return true;

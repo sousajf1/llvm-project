@@ -240,7 +240,7 @@ static Instruction *cloneInstForMustTail(Instruction *I, Instruction *Before,
 /// cleaned up later in `splitCallSite` below.
 static void copyMustTailReturn(BasicBlock *SplitBB, Instruction *CI,
                                Instruction *NewCI) {
-  bool IsVoid = SplitBB->getParent()->getReturnType()->isVoidTy();
+  bool const IsVoid = SplitBB->getParent()->getReturnType()->isVoidTy();
   auto II = std::next(CI->getIterator());
 
   BitCastInst* BCI = dyn_cast<BitCastInst>(&*II);
@@ -306,7 +306,7 @@ static void splitCallSite(
     const SmallVectorImpl<std::pair<BasicBlock *, ConditionsTy>> &Preds,
     DomTreeUpdater &DTU) {
   BasicBlock *TailBB = CB.getParent();
-  bool IsMustTailCall = CB.isMustTailCall();
+  bool const IsMustTailCall = CB.isMustTailCall();
 
   PHINode *CallPN = nullptr;
 
@@ -524,7 +524,7 @@ static bool doCallSiteSplitting(Function &F, TargetLibraryInfo &TLI,
 
       // Successful musttail call-site splits result in erased CI and erased BB.
       // Check if such path is possible before attempting the splitting.
-      bool IsMustTail = CB->isMustTailCall();
+      bool const IsMustTail = CB->isMustTailCall();
 
       Changed |= tryToSplitCallSite(*CB, TTI, DTU);
 

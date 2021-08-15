@@ -79,8 +79,8 @@ ErrorOr<PrefetchHints> getPrefetchHints(const FunctionSamples *TopSamples,
 // The prefetch instruction can't take memory operands involving vector
 // registers.
 bool IsMemOpCompatibleWithPrefetch(const MachineInstr &MI, int Op) {
-  Register BaseReg = MI.getOperand(Op + X86::AddrBaseReg).getReg();
-  Register IndexReg = MI.getOperand(Op + X86::AddrIndexReg).getReg();
+  Register const BaseReg = MI.getOperand(Op + X86::AddrBaseReg).getReg();
+  Register const IndexReg = MI.getOperand(Op + X86::AddrIndexReg).getReg();
   return (BaseReg == 0 ||
           X86MCRegisterClasses[X86::GR64RegClassID].contains(BaseReg) ||
           X86MCRegisterClasses[X86::GR32RegClassID].contains(BaseReg)) &&
@@ -125,7 +125,7 @@ bool X86InsertPrefetch::findPrefetchInfo(const FunctionSamples *TopSamples,
   for (const auto &S_V : *T) {
     StringRef Name = S_V.getKey();
     if (Name.consume_front(SerializedPrefetchPrefix)) {
-      int64_t D = static_cast<int64_t>(S_V.second);
+      int64_t const D = static_cast<int64_t>(S_V.second);
       unsigned IID = 0;
       for (const auto &HintType : HintTypes) {
         if (Name.startswith(HintType.first)) {
@@ -160,8 +160,8 @@ bool X86InsertPrefetch::doInitialization(Module &M) {
   LLVMContext &Ctx = M.getContext();
   ErrorOr<std::unique_ptr<SampleProfileReader>> ReaderOrErr =
       SampleProfileReader::create(Filename, Ctx);
-  if (std::error_code EC = ReaderOrErr.getError()) {
-    std::string Msg = "Could not open profile: " + EC.message();
+  if (std::error_code const EC = ReaderOrErr.getError()) {
+    std::string const Msg = "Could not open profile: " + EC.message();
     Ctx.diagnose(DiagnosticInfoSampleProfile(Filename, Msg,
                                              DiagnosticSeverity::DS_Warning));
     return false;
@@ -192,11 +192,11 @@ bool X86InsertPrefetch::runOnMachineFunction(MachineFunction &MF) {
       auto Current = MI;
       ++MI;
 
-      int Offset = X86II::getMemoryOperandNo(Current->getDesc().TSFlags);
+      int const Offset = X86II::getMemoryOperandNo(Current->getDesc().TSFlags);
       if (Offset < 0)
         continue;
-      unsigned Bias = X86II::getOperandBias(Current->getDesc());
-      int MemOpOffset = Offset + Bias;
+      unsigned const Bias = X86II::getOperandBias(Current->getDesc());
+      int const MemOpOffset = Offset + Bias;
       // FIXME(mtrofin): ORE message when the recommendation cannot be taken.
       if (!IsMemOpCompatibleWithPrefetch(*Current, MemOpOffset))
         continue;
@@ -207,12 +207,12 @@ bool X86InsertPrefetch::runOnMachineFunction(MachineFunction &MF) {
              "The Prefetches vector should contain at least a value if "
              "findPrefetchInfo returned true.");
       for (auto &PrefInfo : Prefetches) {
-        unsigned PFetchInstrID = PrefInfo.InstructionID;
-        int64_t Delta = PrefInfo.Delta;
+        unsigned const PFetchInstrID = PrefInfo.InstructionID;
+        int64_t const Delta = PrefInfo.Delta;
         const MCInstrDesc &Desc = TII->get(PFetchInstrID);
         MachineInstr *PFetch =
             MF.CreateMachineInstr(Desc, Current->getDebugLoc(), true);
-        MachineInstrBuilder MIB(MF, PFetch);
+        MachineInstrBuilder const MIB(MF, PFetch);
 
         static_assert(X86::AddrBaseReg == 0 && X86::AddrScaleAmt == 1 &&
                           X86::AddrIndexReg == 2 && X86::AddrDisp == 3 &&

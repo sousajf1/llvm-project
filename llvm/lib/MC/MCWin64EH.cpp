@@ -180,19 +180,19 @@ static void EmitUnwindInfo(MCStreamer &streamer, WinEH::FrameInfo *info) {
   else
     streamer.emitInt8(0);
 
-  uint8_t numCodes = CountOfUnwindCodes(info->Instructions);
+  uint8_t const numCodes = CountOfUnwindCodes(info->Instructions);
   streamer.emitInt8(numCodes);
 
   uint8_t frame = 0;
   if (info->LastFrameInst >= 0) {
-    WinEH::Instruction &frameInst = info->Instructions[info->LastFrameInst];
+    WinEH::Instruction  const&frameInst = info->Instructions[info->LastFrameInst];
     assert(frameInst.Operation == Win64EH::UOP_SetFPReg);
     frame = (frameInst.Register & 0x0F) | (frameInst.Offset & 0xF0);
   }
   streamer.emitInt8(frame);
 
   // Emit unwind instructions (in reverse order).
-  uint8_t numInst = info->Instructions.size();
+  uint8_t const numInst = info->Instructions.size();
   for (uint8_t c = 0; c < numInst; ++c) {
     WinEH::Instruction inst = info->Instructions.back();
     info->Instructions.pop_back();
@@ -361,7 +361,7 @@ static void ARM64EmitUnwindCode(MCStreamer &streamer, const MCSymbol *begin,
     streamer.emitInt8(b);
     break;
   case Win64EH::UOP_AllocMedium: {
-    uint16_t hw = (inst.Offset >> 4) & 0x7FF;
+    uint16_t const hw = (inst.Offset >> 4) & 0x7FF;
     b = 0xC0;
     b |= (hw >> 8);
     streamer.emitInt8(b);
@@ -628,12 +628,12 @@ static int checkPackedEpilog(MCStreamer &streamer, WinEH::FrameInfo *info,
 
   // Check that the epilog actually is at the very end of the function,
   // otherwise it can't be packed.
-  uint32_t DistanceFromEnd = (uint32_t)GetAbsDifference(
+  uint32_t const DistanceFromEnd = (uint32_t)GetAbsDifference(
       streamer, info->FuncletOrFuncEnd, info->EpilogMap.begin()->first);
   if (DistanceFromEnd / 4 != Epilog.size())
     return -1;
 
-  int Offset = Epilog.size() == info->Instructions.size()
+  int const Offset = Epilog.size() == info->Instructions.size()
                    ? 0
                    : ARM64CountOfUnwindCodes(ArrayRef<WinEH::Instruction>(
                          &info->Instructions[Epilog.size()],
@@ -841,27 +841,27 @@ static bool tryPackedUnwind(WinEH::FrameInfo *info, uint32_t FuncLength,
     return false;
   if (Nops != 0 && Nops != 4)
     return false;
-  int H = Nops == 4;
+  int const H = Nops == 4;
   int IntSZ = 8 * RegI;
   if (StandaloneLR)
     IntSZ += 8;
-  int FpSZ = 8 * RegF; // RegF not yet decremented
-  int SavSZ = (IntSZ + FpSZ + 8 * 8 * H + 0xF) & ~0xF;
+  int const FpSZ = 8 * RegF; // RegF not yet decremented
+  int const SavSZ = (IntSZ + FpSZ + 8 * 8 * H + 0xF) & ~0xF;
   if (Predecrement != SavSZ)
     return false;
   if (FPLRPair && StackOffset < 16)
     return false;
   if (StackOffset % 16)
     return false;
-  uint32_t FrameSize = (StackOffset + SavSZ) / 16;
+  uint32_t const FrameSize = (StackOffset + SavSZ) / 16;
   if (FrameSize > 0x1FF)
     return false;
   assert(RegF != 1 && "One single float reg not allowed");
   if (RegF > 0)
     RegF--; // Convert from actual number of registers, to value stored
   assert(FuncLength <= 0x7FF && "FuncLength should have been checked earlier");
-  int Flag = 0x01; // Function segments not supported yet
-  int CR = FPLRPair ? 3 : StandaloneLR ? 1 : 0;
+  int const Flag = 0x01; // Function segments not supported yet
+  int const CR = FPLRPair ? 3 : StandaloneLR ? 1 : 0;
   info->PackedInfo |= Flag << 0;
   info->PackedInfo |= (FuncLength & 0x7FF) << 2;
   info->PackedInfo |= (RegF & 0x7) << 13;
@@ -947,11 +947,11 @@ static void ARM64EmitUnwindInfo(MCStreamer &streamer, WinEH::FrameInfo *info,
   }
   if (RawFuncLength > 0xFFFFF)
     report_fatal_error("SEH unwind data splitting not yet implemented");
-  uint32_t FuncLength = (uint32_t)RawFuncLength / 4;
-  uint32_t PrologCodeBytes = ARM64CountOfUnwindCodes(info->Instructions);
+  uint32_t const FuncLength = (uint32_t)RawFuncLength / 4;
+  uint32_t const PrologCodeBytes = ARM64CountOfUnwindCodes(info->Instructions);
   uint32_t TotalCodeBytes = PrologCodeBytes;
 
-  int PackedEpilogOffset = checkPackedEpilog(streamer, info, PrologCodeBytes);
+  int const PackedEpilogOffset = checkPackedEpilog(streamer, info, PrologCodeBytes);
 
   if (PackedEpilogOffset >= 0 && !info->HandlesExceptions &&
       FuncLength <= 0x7ff && TryPacked) {
@@ -975,7 +975,7 @@ static void ARM64EmitUnwindInfo(MCStreamer &streamer, WinEH::FrameInfo *info,
   for (auto &I : info->EpilogMap) {
     MCSymbol *EpilogStart = I.first;
     auto &EpilogInstrs = I.second;
-    uint32_t CodeBytes = ARM64CountOfUnwindCodes(EpilogInstrs);
+    uint32_t const CodeBytes = ARM64CountOfUnwindCodes(EpilogInstrs);
 
     MCSymbol* MatchingEpilog =
       FindMatchingEpilog(EpilogInstrs, AddedEpilogs, info);
@@ -996,12 +996,12 @@ static void ARM64EmitUnwindInfo(MCStreamer &streamer, WinEH::FrameInfo *info,
   // Code Words, Epilog count, E, X, Vers, Function Length
   uint32_t row1 = 0x0;
   uint32_t CodeWords = TotalCodeBytes / 4;
-  uint32_t CodeWordsMod = TotalCodeBytes % 4;
+  uint32_t const CodeWordsMod = TotalCodeBytes % 4;
   if (CodeWordsMod)
     CodeWords++;
-  uint32_t EpilogCount =
+  uint32_t const EpilogCount =
       PackedEpilogOffset >= 0 ? PackedEpilogOffset : info->EpilogMap.size();
-  bool ExtensionWord = EpilogCount > 31 || TotalCodeBytes > 124;
+  bool const ExtensionWord = EpilogCount > 31 || TotalCodeBytes > 124;
   if (!ExtensionWord) {
     row1 |= (EpilogCount & 0x1F) << 22;
     row1 |= (CodeWords & 0x1F) << 27;
@@ -1029,7 +1029,7 @@ static void ARM64EmitUnwindInfo(MCStreamer &streamer, WinEH::FrameInfo *info,
   // Epilog Start Index, Epilog Start Offset
   for (auto &I : EpilogInfo) {
     MCSymbol *EpilogStart = I.first;
-    uint32_t EpilogIndex = I.second;
+    uint32_t const EpilogIndex = I.second;
     uint32_t EpilogOffset =
         (uint32_t)GetAbsDifference(streamer, EpilogStart, info->Begin);
     if (EpilogOffset)
@@ -1040,7 +1040,7 @@ static void ARM64EmitUnwindInfo(MCStreamer &streamer, WinEH::FrameInfo *info,
   }
 
   // Emit prolog unwind instructions (in reverse order).
-  uint8_t numInst = info->Instructions.size();
+  uint8_t const numInst = info->Instructions.size();
   for (uint8_t c = 0; c < numInst; ++c) {
     WinEH::Instruction inst = info->Instructions.back();
     info->Instructions.pop_back();
@@ -1056,7 +1056,7 @@ static void ARM64EmitUnwindInfo(MCStreamer &streamer, WinEH::FrameInfo *info,
     }
   }
 
-  int32_t BytesMod = CodeWords * 4 - TotalCodeBytes;
+  int32_t const BytesMod = CodeWords * 4 - TotalCodeBytes;
   assert(BytesMod >= 0);
   for (int i = 0; i < BytesMod; i++)
     streamer.emitInt8(0xE3);

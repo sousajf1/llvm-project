@@ -113,7 +113,7 @@ void AMDGPUPrintfRuntimeBindingImpl::getConversionSpecifiers(
   while ((CurFmtSpecifierIdx = Fmt.find_first_of(
               ConvSpecifiers, CurFmtSpecifierIdx)) != StringRef::npos) {
     bool ArgDump = false;
-    StringRef CurFmt = Fmt.substr(PrevFmtSpecifierIdx,
+    StringRef const CurFmt = Fmt.substr(PrevFmtSpecifierIdx,
                                   CurFmtSpecifierIdx - PrevFmtSpecifierIdx);
     size_t pTag = CurFmt.find_last_of("%");
     if (pTag != StringRef::npos) {
@@ -153,7 +153,7 @@ bool AMDGPUPrintfRuntimeBindingImpl::lowerPrintfForGpu(Module &M) {
   const char NonLiteralStr[4] = "???";
 
   for (auto CI : Printfs) {
-    unsigned NumOps = CI->getNumArgOperands();
+    unsigned const NumOps = CI->getNumArgOperands();
 
     SmallString<16> OpConvSpecifiers;
     Value *Op = CI->getArgOperand(0);
@@ -217,7 +217,7 @@ bool AMDGPUPrintfRuntimeBindingImpl::lowerPrintfForGpu(Module &M) {
         if (ArgSize % DWORD_ALIGN != 0) {
           llvm::Type *ResType = llvm::Type::getInt32Ty(Ctx);
           auto *LLVMVecType = llvm::dyn_cast<llvm::FixedVectorType>(ArgType);
-          int NumElem = LLVMVecType ? LLVMVecType->getNumElements() : 1;
+          int const NumElem = LLVMVecType ? LLVMVecType->getNumElements() : 1;
           if (LLVMVecType && NumElem > 1)
             ResType = llvm::FixedVectorType::get(ResType, NumElem);
           Builder.SetInsertPoint(CI);
@@ -250,12 +250,12 @@ bool AMDGPUPrintfRuntimeBindingImpl::lowerPrintfForGpu(Module &M) {
             auto *GV = dyn_cast<GlobalVariable>(ConstExpr->getOperand(0));
             if (GV && GV->hasInitializer()) {
               Constant *Init = GV->getInitializer();
-              bool IsZeroValue = Init->isZeroValue();
+              bool const IsZeroValue = Init->isZeroValue();
               auto *CA = dyn_cast<ConstantDataArray>(Init);
               if (IsZeroValue || (CA && CA->isString())) {
-                size_t SizeStr =
+                size_t const SizeStr =
                     IsZeroValue ? 1 : (strlen(CA->getAsCString().data()) + 1);
-                size_t Rem = SizeStr % DWORD_ALIGN;
+                size_t const Rem = SizeStr % DWORD_ALIGN;
                 size_t NSizeStr = 0;
                 LLVM_DEBUG(dbgs() << "Printf string original size = " << SizeStr
                                   << '\n');
@@ -317,20 +317,20 @@ bool AMDGPUPrintfRuntimeBindingImpl::lowerPrintfForGpu(Module &M) {
       Builder.SetInsertPoint(CI);
       Builder.SetCurrentDebugLocation(CI->getDebugLoc());
 
-      AttributeList Attr = AttributeList::get(Ctx, AttributeList::FunctionIndex,
+      AttributeList const Attr = AttributeList::get(Ctx, AttributeList::FunctionIndex,
                                               Attribute::NoUnwind);
 
       Type *SizetTy = Type::getInt32Ty(Ctx);
 
-      Type *Tys_alloc[1] = {SizetTy};
+      Type *const Tys_alloc[1] = {SizetTy};
       Type *I8Ty = Type::getInt8Ty(Ctx);
       Type *I8Ptr = PointerType::get(I8Ty, 1);
       FunctionType *FTy_alloc = FunctionType::get(I8Ptr, Tys_alloc, false);
-      FunctionCallee PrintfAllocFn =
+      FunctionCallee const PrintfAllocFn =
           M.getOrInsertFunction(StringRef("__printf_alloc"), FTy_alloc, Attr);
 
       LLVM_DEBUG(dbgs() << "Printf metadata = " << Sizes.str() << '\n');
-      std::string fmtstr = itostr(++UniqID) + ":" + Sizes.str().c_str();
+      std::string const fmtstr = itostr(++UniqID) + ":" + Sizes.str().c_str();
       MDString *fmtStrArray = MDString::get(Ctx, fmtstr);
 
       // Instead of creating global variables, the
@@ -340,7 +340,7 @@ bool AMDGPUPrintfRuntimeBindingImpl::lowerPrintfForGpu(Module &M) {
       // Metadata is going to be extracted
       // by the backend passes and inserted
       // into the OpenCL binary as appropriate.
-      StringRef amd("llvm.printf.fmts");
+      StringRef const amd("llvm.printf.fmts");
       NamedMDNode *metaD = M.getOrInsertNamedMetadata(amd);
       MDNode *myMD = MDNode::get(Ctx, fmtStrArray);
       metaD->addOperand(myMD);
@@ -422,15 +422,15 @@ bool AMDGPUPrintfRuntimeBindingImpl::lowerPrintfForGpu(Module &M) {
               auto *GV = dyn_cast<GlobalVariable>(ConstExpr->getOperand(0));
               if (GV && GV->hasInitializer()) {
                 Constant *Init = GV->getInitializer();
-                bool IsZeroValue = Init->isZeroValue();
+                bool const IsZeroValue = Init->isZeroValue();
                 auto *CA = dyn_cast<ConstantDataArray>(Init);
                 if (IsZeroValue || (CA && CA->isString())) {
                   S = IsZeroValue ? "" : CA->getAsCString().data();
                 }
               }
             }
-            size_t SizeStr = strlen(S) + 1;
-            size_t Rem = SizeStr % DWORD_ALIGN;
+            size_t const SizeStr = strlen(S) + 1;
+            size_t const Rem = SizeStr % DWORD_ALIGN;
             size_t NSizeStr = 0;
             if (Rem) {
               NSizeStr = SizeStr + (DWORD_ALIGN - Rem);
@@ -443,7 +443,7 @@ bool AMDGPUPrintfRuntimeBindingImpl::lowerPrintfForGpu(Module &M) {
               int NumInts = NSizeStr / 4;
               int CharC = 0;
               while (NumInts) {
-                int ANum = *(int *)(MyNewStr + CharC);
+                int const ANum = *(int *)(MyNewStr + CharC);
                 CharC += 4;
                 NumInts--;
                 Value *ANumV = ConstantInt::get(Int32Ty, ANum, false);
@@ -456,7 +456,7 @@ bool AMDGPUPrintfRuntimeBindingImpl::lowerPrintfForGpu(Module &M) {
               WhatToStore.push_back(ANumV);
             }
           } else {
-            uint64_t Size = TD->getTypeAllocSizeInBits(ArgType);
+            uint64_t const Size = TD->getTypeAllocSizeInBits(ArgType);
             assert((Size == 32 || Size == 64) && "unsupported size");
             Type *DstType = (Size == 32) ? Int32Ty : Int64Ty;
             Arg = new PtrToIntInst(Arg, DstType, "PrintArgPtr", Brnch);
@@ -465,7 +465,7 @@ bool AMDGPUPrintfRuntimeBindingImpl::lowerPrintfForGpu(Module &M) {
         } else if (isa<FixedVectorType>(ArgType)) {
           Type *IType = NULL;
           uint32_t EleCount = cast<FixedVectorType>(ArgType)->getNumElements();
-          uint32_t EleSize = ArgType->getScalarSizeInBits();
+          uint32_t const EleSize = ArgType->getScalarSizeInBits();
           uint32_t TotalSize = EleCount * EleSize;
           if (EleCount == 3) {
             ShuffleVectorInst *Shuffle =
@@ -512,7 +512,7 @@ bool AMDGPUPrintfRuntimeBindingImpl::lowerPrintfForGpu(Module &M) {
         }
         for (unsigned I = 0, E = WhatToStore.size(); I != E; ++I) {
           Value *TheBtCast = WhatToStore[I];
-          unsigned ArgSize =
+          unsigned const ArgSize =
               TD->getTypeAllocSizeInBits(TheBtCast->getType()) / 8;
           SmallVector<Value *, 1> BuffOffset;
           BuffOffset.push_back(ConstantInt::get(I32Ty, ArgSize));
@@ -544,7 +544,7 @@ bool AMDGPUPrintfRuntimeBindingImpl::lowerPrintfForGpu(Module &M) {
 }
 
 bool AMDGPUPrintfRuntimeBindingImpl::run(Module &M) {
-  Triple TT(M.getTargetTriple());
+  Triple const TT(M.getTargetTriple());
   if (TT.getArch() == Triple::r600)
     return false;
 
@@ -597,6 +597,6 @@ AMDGPUPrintfRuntimeBindingPass::run(Module &M, ModuleAnalysisManager &AM) {
   auto GetTLI = [&FAM](Function &F) -> TargetLibraryInfo & {
     return FAM.getResult<TargetLibraryAnalysis>(F);
   };
-  bool Changed = AMDGPUPrintfRuntimeBindingImpl(GetDT, GetTLI).run(M);
+  bool const Changed = AMDGPUPrintfRuntimeBindingImpl(GetDT, GetTLI).run(M);
   return Changed ? PreservedAnalyses::none() : PreservedAnalyses::all();
 }

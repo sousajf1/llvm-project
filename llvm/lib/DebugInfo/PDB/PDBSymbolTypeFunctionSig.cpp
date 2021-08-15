@@ -78,7 +78,7 @@ bool PDBSymbolTypeFunctionSig::isCVarArgs() const {
   auto SigArguments = getArguments();
   if (!SigArguments)
     return false;
-  uint32_t NumArgs = SigArguments->getChildCount();
+  uint32_t const NumArgs = SigArguments->getChildCount();
   if (NumArgs == 0)
     return false;
   auto Last = SigArguments->getChildAtIndex(NumArgs - 1);

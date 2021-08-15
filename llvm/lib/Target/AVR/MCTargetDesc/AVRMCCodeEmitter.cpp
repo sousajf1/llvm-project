@@ -71,14 +71,14 @@ AVRMCCodeEmitter::loadStorePostEncoder(const MCInst &MI, unsigned EncodedValue,
   assert(MI.getOperand(0).isReg() && MI.getOperand(1).isReg() &&
          "the load/store operands must be registers");
 
-  unsigned Opcode = MI.getOpcode();
+  unsigned const Opcode = MI.getOpcode();
 
   // check whether either of the registers are the X pointer register.
-  bool IsRegX = MI.getOperand(0).getReg() == AVR::R27R26 ||
+  bool const IsRegX = MI.getOperand(0).getReg() == AVR::R27R26 ||
                   MI.getOperand(1).getReg() == AVR::R27R26;
 
-  bool IsPredec = Opcode == AVR::LDRdPtrPd || Opcode == AVR::STPtrPdRr;
-  bool IsPostinc = Opcode == AVR::LDRdPtrPi || Opcode == AVR::STPtrPiRr;
+  bool const IsPredec = Opcode == AVR::LDRdPtrPd || Opcode == AVR::STPtrPdRr;
+  bool const IsPostinc = Opcode == AVR::LDRdPtrPi || Opcode == AVR::STPtrPiRr;
 
   // Check if we need to set the inconsistent bit
   if (IsRegX || IsPredec || IsPostinc) {
@@ -192,7 +192,7 @@ unsigned AVRMCCodeEmitter::encodeImm(const MCInst &MI, unsigned OpNo,
       return getExprOpValue(MO.getExpr(), Fixups, STI);
     }
 
-    MCFixupKind FixupKind = static_cast<MCFixupKind>(Fixup);
+    MCFixupKind const FixupKind = static_cast<MCFixupKind>(Fixup);
     Fixups.push_back(MCFixup::create(Offset, MO.getExpr(), FixupKind, MI.getLoc()));
 
     return 0;
@@ -208,7 +208,7 @@ unsigned AVRMCCodeEmitter::encodeCallTarget(const MCInst &MI, unsigned OpNo,
   auto MO = MI.getOperand(OpNo);
 
   if (MO.isExpr()) {
-    MCFixupKind FixupKind = static_cast<MCFixupKind>(AVR::fixup_call);
+    MCFixupKind const FixupKind = static_cast<MCFixupKind>(AVR::fixup_call);
     Fixups.push_back(MCFixup::create(0, MO.getExpr(), FixupKind, MI.getLoc()));
     return 0;
   }
@@ -238,7 +238,7 @@ unsigned AVRMCCodeEmitter::getExprOpValue(const MCExpr *Expr,
       return Result;
     }
 
-    MCFixupKind FixupKind = static_cast<MCFixupKind>(AVRExpr->getFixupKind());
+    MCFixupKind const FixupKind = static_cast<MCFixupKind>(AVRExpr->getFixupKind());
     Fixups.push_back(MCFixup::create(0, AVRExpr, FixupKind));
     return 0;
   }
@@ -266,10 +266,10 @@ unsigned AVRMCCodeEmitter::getMachineOpValue(const MCInst &MI,
 void AVRMCCodeEmitter::emitInstruction(uint64_t Val, unsigned Size,
                                        const MCSubtargetInfo &STI,
                                        raw_ostream &OS) const {
-  size_t WordCount = Size / 2;
+  size_t const WordCount = Size / 2;
 
   for (int64_t i = WordCount - 1; i >= 0; --i) {
-    uint16_t Word = (Val >> (i * 16)) & 0xFFFF;
+    uint16_t const Word = (Val >> (i * 16)) & 0xFFFF;
     support::endian::write(OS, Word, support::endianness::little);
   }
 }
@@ -280,11 +280,11 @@ void AVRMCCodeEmitter::encodeInstruction(const MCInst &MI, raw_ostream &OS,
   const MCInstrDesc &Desc = MCII.get(MI.getOpcode());
 
   // Get byte count of instruction
-  unsigned Size = Desc.getSize();
+  unsigned const Size = Desc.getSize();
 
   assert(Size > 0 && "Instruction size cannot be zero");
 
-  uint64_t BinaryOpCode = getBinaryCodeForInstr(MI, Fixups, STI);
+  uint64_t const BinaryOpCode = getBinaryCodeForInstr(MI, Fixups, STI);
   emitInstruction(BinaryOpCode, Size, STI, OS);
 }
 

@@ -72,7 +72,7 @@ bool EHContGuardCatchret::runOnMachineFunction(MachineFunction &MF) {
 
   bool Result = false;
 
-  for (MachineBasicBlock &MBB : MF) {
+  for (MachineBasicBlock  const&MBB : MF) {
     if (MBB.isEHCatchretTarget()) {
       MF.addCatchretTarget(MBB.getEHCatchretSymbol());
       EHContGuardCatchretTargets++;

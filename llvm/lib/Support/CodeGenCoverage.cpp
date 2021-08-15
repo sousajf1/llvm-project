@@ -53,12 +53,12 @@ bool CodeGenCoverage::parse(MemoryBuffer &Buffer, StringRef BackendName) {
     if (CurPtr == Buffer.getBufferEnd())
       return false; // Data is invalid, expected rule id's to follow.
 
-    bool IsForThisBackend = BackendName.equals(LexedBackendName);
+    bool const IsForThisBackend = BackendName.equals(LexedBackendName);
     while (CurPtr != Buffer.getBufferEnd()) {
       if (std::distance(CurPtr, Buffer.getBufferEnd()) < 8)
         return false; // Data is invalid. Not enough bytes for another rule id.
 
-      uint64_t RuleID = support::endian::read64(CurPtr, support::native);
+      uint64_t const RuleID = support::endian::read64(CurPtr, support::native);
       CurPtr += 8;
 
       // ~0ull terminates the rule id list.
@@ -78,17 +78,17 @@ bool CodeGenCoverage::parse(MemoryBuffer &Buffer, StringRef BackendName) {
 bool CodeGenCoverage::emit(StringRef CoveragePrefix,
                            StringRef BackendName) const {
   if (!CoveragePrefix.empty() && !RuleCoverage.empty()) {
-    sys::SmartScopedLock<true> Lock(OutputMutex);
+    sys::SmartScopedLock<true> const Lock(OutputMutex);
 
     // We can handle locking within a process easily enough but we don't want to
     // manage it between multiple processes. Use the process ID to ensure no
     // more than one process is ever writing to the same file at the same time.
-    std::string Pid = llvm::to_string(sys::Process::getProcessId());
+    std::string const Pid = llvm::to_string(sys::Process::getProcessId());
 
-    std::string CoverageFilename = (CoveragePrefix + Pid).str();
+    std::string const CoverageFilename = (CoveragePrefix + Pid).str();
 
     std::error_code EC;
-    sys::fs::OpenFlags OpenFlags = sys::fs::OF_Append;
+    sys::fs::OpenFlags const OpenFlags = sys::fs::OF_Append;
     std::unique_ptr<ToolOutputFile> CoverageFile =
         std::make_unique<ToolOutputFile>(CoverageFilename, EC, OpenFlags);
     if (EC)

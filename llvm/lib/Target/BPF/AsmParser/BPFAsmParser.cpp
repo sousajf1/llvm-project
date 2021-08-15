@@ -265,10 +265,10 @@ bool BPFAsmParser::PreMatchCheck(OperandVector &Operands) {
   if (Operands.size() == 4) {
     // check "reg1 = -reg2" and "reg1 = be16/be32/be64/le16/le32/le64 reg2",
     // reg1 must be the same as reg2
-    BPFOperand &Op0 = (BPFOperand &)*Operands[0];
-    BPFOperand &Op1 = (BPFOperand &)*Operands[1];
-    BPFOperand &Op2 = (BPFOperand &)*Operands[2];
-    BPFOperand &Op3 = (BPFOperand &)*Operands[3];
+    BPFOperand  const&Op0 = (BPFOperand &)*Operands[0];
+    BPFOperand  const&Op1 = (BPFOperand &)*Operands[1];
+    BPFOperand  const&Op2 = (BPFOperand &)*Operands[2];
+    BPFOperand  const&Op3 = (BPFOperand &)*Operands[3];
     if (Op0.isReg() && Op1.isToken() && Op2.isToken() && Op3.isReg()
         && Op1.getToken() == "="
         && (Op2.getToken() == "-" || Op2.getToken() == "be16"
@@ -336,7 +336,7 @@ OperandMatchResultTy BPFAsmParser::tryParseRegister(unsigned &RegNo,
   StartLoc = Tok.getLoc();
   EndLoc = Tok.getEndLoc();
   RegNo = 0;
-  StringRef Name = getLexer().getTok().getIdentifier();
+  StringRef const Name = getLexer().getTok().getIdentifier();
 
   if (!MatchRegisterName(Name)) {
     getParser().Lex(); // Eat identifier token.
@@ -348,10 +348,10 @@ OperandMatchResultTy BPFAsmParser::tryParseRegister(unsigned &RegNo,
 
 OperandMatchResultTy
 BPFAsmParser::parseOperandAsOperator(OperandVector &Operands) {
-  SMLoc S = getLoc();
+  SMLoc const S = getLoc();
 
   if (getLexer().getKind() == AsmToken::Identifier) {
-    StringRef Name = getLexer().getTok().getIdentifier();
+    StringRef const Name = getLexer().getTok().getIdentifier();
 
     if (BPFOperand::isValidIdInMiddle(Name)) {
       getLexer().Lex();
@@ -383,7 +383,7 @@ BPFAsmParser::parseOperandAsOperator(OperandVector &Operands) {
   case AsmToken::Amp:
   case AsmToken::Percent:
   case AsmToken::Caret: {
-    StringRef Name = getLexer().getTok().getString();
+    StringRef const Name = getLexer().getTok().getString();
     getLexer().Lex();
     Operands.push_back(BPFOperand::createToken(Name, S));
 
@@ -413,15 +413,15 @@ BPFAsmParser::parseOperandAsOperator(OperandVector &Operands) {
 }
 
 OperandMatchResultTy BPFAsmParser::parseRegister(OperandVector &Operands) {
-  SMLoc S = getLoc();
-  SMLoc E = SMLoc::getFromPointer(S.getPointer() - 1);
+  SMLoc const S = getLoc();
+  SMLoc const E = SMLoc::getFromPointer(S.getPointer() - 1);
 
   switch (getLexer().getKind()) {
   default:
     return MatchOperand_NoMatch;
   case AsmToken::Identifier:
-    StringRef Name = getLexer().getTok().getIdentifier();
-    unsigned RegNo = MatchRegisterName(Name);
+    StringRef const Name = getLexer().getTok().getIdentifier();
+    unsigned const RegNo = MatchRegisterName(Name);
 
     if (RegNo == 0)
       return MatchOperand_NoMatch;
@@ -446,12 +446,12 @@ OperandMatchResultTy BPFAsmParser::parseImmediate(OperandVector &Operands) {
   }
 
   const MCExpr *IdVal;
-  SMLoc S = getLoc();
+  SMLoc const S = getLoc();
 
   if (getParser().parseExpression(IdVal))
     return MatchOperand_ParseFail;
 
-  SMLoc E = SMLoc::getFromPointer(S.getPointer() - 1);
+  SMLoc const E = SMLoc::getFromPointer(S.getPointer() - 1);
   Operands.push_back(BPFOperand::createImm(IdVal, S, E));
 
   return MatchOperand_Success;
@@ -462,10 +462,10 @@ OperandMatchResultTy BPFAsmParser::parseImmediate(OperandVector &Operands) {
 bool BPFAsmParser::ParseInstruction(ParseInstructionInfo &Info, StringRef Name,
                                     SMLoc NameLoc, OperandVector &Operands) {
   // The first operand could be either register or actually an operator.
-  unsigned RegNo = MatchRegisterName(Name);
+  unsigned const RegNo = MatchRegisterName(Name);
 
   if (RegNo != 0) {
-    SMLoc E = SMLoc::getFromPointer(NameLoc.getPointer() - 1);
+    SMLoc const E = SMLoc::getFromPointer(NameLoc.getPointer() - 1);
     Operands.push_back(BPFOperand::createReg(RegNo, NameLoc, E));
   } else if (BPFOperand::isValidIdAtStart (Name))
     Operands.push_back(BPFOperand::createToken(Name, NameLoc));
@@ -483,13 +483,13 @@ bool BPFAsmParser::ParseInstruction(ParseInstructionInfo &Info, StringRef Name,
 
     // Attempt to parse token as an immediate
     if (parseImmediate(Operands) != MatchOperand_Success) {
-      SMLoc Loc = getLexer().getLoc();
+      SMLoc const Loc = getLexer().getLoc();
       return Error(Loc, "unexpected token");
     }
   }
 
   if (getLexer().isNot(AsmToken::EndOfStatement)) {
-    SMLoc Loc = getLexer().getLoc();
+    SMLoc const Loc = getLexer().getLoc();
 
     getParser().eatToEndOfStatement();
 
@@ -504,7 +504,7 @@ bool BPFAsmParser::ParseInstruction(ParseInstructionInfo &Info, StringRef Name,
 bool BPFAsmParser::ParseDirective(AsmToken DirectiveID) { return true; }
 
 extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializeBPFAsmParser() {
-  RegisterMCAsmParser<BPFAsmParser> X(getTheBPFTarget());
-  RegisterMCAsmParser<BPFAsmParser> Y(getTheBPFleTarget());
-  RegisterMCAsmParser<BPFAsmParser> Z(getTheBPFbeTarget());
+  RegisterMCAsmParser<BPFAsmParser> const X(getTheBPFTarget());
+  RegisterMCAsmParser<BPFAsmParser> const Y(getTheBPFleTarget());
+  RegisterMCAsmParser<BPFAsmParser> const Z(getTheBPFbeTarget());
 }

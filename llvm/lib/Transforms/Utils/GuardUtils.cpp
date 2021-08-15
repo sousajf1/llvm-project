@@ -29,8 +29,8 @@ static cl::opt<uint32_t> PredicatePassBranchWeight(
 
 void llvm::makeGuardControlFlowExplicit(Function *DeoptIntrinsic,
                                         CallInst *Guard, bool UseWC) {
-  OperandBundleDef DeoptOB(*Guard->getOperandBundle(LLVMContext::OB_deopt));
-  SmallVector<Value *, 4> Args(drop_begin(Guard->args()));
+  OperandBundleDef const DeoptOB(*Guard->getOperandBundle(LLVMContext::OB_deopt));
+  SmallVector<Value *, 4> const Args(drop_begin(Guard->args()));
 
   auto *CheckBB = Guard->getParent();
   auto *DeoptBlockTerm =

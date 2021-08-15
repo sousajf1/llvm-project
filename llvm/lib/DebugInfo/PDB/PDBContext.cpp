@@ -36,7 +36,7 @@ DILineInfo PDBContext::getLineInfoForAddress(object::SectionedAddress Address,
   Result.FunctionName = getFunctionName(Address.Address, Specifier.FNKind);
 
   uint32_t Length = 1;
-  std::unique_ptr<PDBSymbol> Symbol =
+  std::unique_ptr<PDBSymbol> const Symbol =
       Session->findSymbolByAddress(Address.Address, PDB_SymType::None);
   if (auto Func = dyn_cast_or_null<PDBSymbolFunc>(Symbol.get())) {
     Length = Func->getLength();
@@ -75,7 +75,7 @@ PDBContext::getLineInfoForAddressRange(object::SectionedAddress Address,
     return Table;
 
   while (auto LineInfo = LineNumbers->getNext()) {
-    DILineInfo LineEntry = getLineInfoForAddress(
+    DILineInfo const LineEntry = getLineInfoForAddress(
         {LineInfo->getVirtualAddress(), Address.SectionIndex}, Specifier);
     Table.push_back(std::make_pair(LineInfo->getVirtualAddress(), LineEntry));
   }
@@ -86,7 +86,7 @@ DIInliningInfo
 PDBContext::getInliningInfoForAddress(object::SectionedAddress Address,
                                       DILineInfoSpecifier Specifier) {
   DIInliningInfo InlineInfo;
-  DILineInfo CurrentLine = getLineInfoForAddress(Address, Specifier);
+  DILineInfo const CurrentLine = getLineInfoForAddress(Address, Specifier);
 
   // Find the function at this address.
   std::unique_ptr<PDBSymbol> ParentFunc =
@@ -103,7 +103,7 @@ PDBContext::getInliningInfoForAddress(object::SectionedAddress Address,
   }
 
   while (auto Frame = Frames->getNext()) {
-    uint32_t Length = 1;
+    uint32_t const Length = 1;
     auto LineNumbers = Frame->findInlineeLinesByVA(Address.Address, Length);
     if (!LineNumbers || LineNumbers->getChildCount() == 0)
       break;
@@ -136,7 +136,7 @@ std::string PDBContext::getFunctionName(uint64_t Address,
   if (NameKind == DINameKind::None)
     return std::string();
 
-  std::unique_ptr<PDBSymbol> FuncSymbol =
+  std::unique_ptr<PDBSymbol> const FuncSymbol =
       Session->findSymbolByAddress(Address, PDB_SymType::Function);
   auto *Func = dyn_cast_or_null<PDBSymbolFunc>(FuncSymbol.get());
 

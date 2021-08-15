@@ -221,7 +221,7 @@ void TypeMapTy::finishType(StructType *DTy, StructType *STy,
 
   // Steal STy's name.
   if (STy->hasName()) {
-    SmallString<16> TmpName = STy->getName();
+    SmallString<16> const TmpName = STy->getName();
     STy->setName("");
     DTy->setName(TmpName);
   }
@@ -241,7 +241,7 @@ Type *TypeMapTy::get(Type *Ty, SmallPtrSet<StructType *, 8> &Visited) {
     return *Entry;
 
   // These are types that LLVM itself will unique.
-  bool IsUniqued = !isa<StructType>(Ty) || cast<StructType>(Ty)->isLiteral();
+  bool const IsUniqued = !isa<StructType>(Ty) || cast<StructType>(Ty)->isLiteral();
 
   if (!IsUniqued) {
 #ifndef NDEBUG
@@ -311,7 +311,7 @@ Type *TypeMapTy::get(Type *Ty, SmallPtrSet<StructType *, 8> &Visited) {
                                       cast<FunctionType>(Ty)->isVarArg());
   case Type::StructTyID: {
     auto *STy = cast<StructType>(Ty);
-    bool IsPacked = STy->isPacked();
+    bool const IsPacked = STy->isPacked();
     if (IsUniqued)
       return *Entry = StructType::get(Ty->getContext(), ElementTypes, IsPacked);
 
@@ -648,7 +648,7 @@ GlobalVariable *IRLinker::copyGlobalVariableProto(const GlobalVariable *SGVar) {
 
 AttributeList IRLinker::mapAttributeTypes(LLVMContext &C, AttributeList Attrs) {
   for (unsigned i = 0; i < Attrs.getNumAttrSets(); ++i) {
-    for (Attribute::AttrKind TypedAttr :
+    for (Attribute::AttrKind const TypedAttr :
          {Attribute::ByVal, Attribute::StructRet, Attribute::ByRef,
           Attribute::InAlloca}) {
       if (Attrs.hasAttribute(i, TypedAttr)) {
@@ -743,7 +743,7 @@ GlobalValue *IRLinker::copyGlobalValueProto(const GlobalValue *SGV,
 }
 
 static StringRef getTypeNamePrefix(StringRef Name) {
-  size_t DotPos = Name.rfind('.');
+  size_t const DotPos = Name.rfind('.');
   return (DotPos == 0 || DotPos == StringRef::npos || Name.back() == '.' ||
           !isdigit(static_cast<unsigned char>(Name[DotPos + 1])))
              ? Name
@@ -755,7 +755,7 @@ static StringRef getTypeNamePrefix(StringRef Name) {
 /// types 'Foo' but one got renamed when the module was loaded into the same
 /// LLVMContext.
 void IRLinker::computeTypeMapping() {
-  for (GlobalValue &SGV : SrcM->globals()) {
+  for (GlobalValue  const&SGV : SrcM->globals()) {
     GlobalValue *DGV = getLinkedToGlobal(&SGV);
     if (!DGV)
       continue;
@@ -771,7 +771,7 @@ void IRLinker::computeTypeMapping() {
     TypeMap.addTypeMapping(DAT->getElementType(), SAT->getElementType());
   }
 
-  for (GlobalValue &SGV : *SrcM)
+  for (GlobalValue  const&SGV : *SrcM)
     if (GlobalValue *DGV = getLinkedToGlobal(&SGV)) {
       if (DGV->getType() == SGV.getType()) {
         // If the types of DGV and SGV are the same, it means that DGV is from
@@ -785,7 +785,7 @@ void IRLinker::computeTypeMapping() {
       TypeMap.addTypeMapping(DGV->getType(), SGV.getType());
     }
 
-  for (GlobalValue &SGV : SrcM->aliases())
+  for (GlobalValue  const&SGV : SrcM->aliases())
     if (GlobalValue *DGV = getLinkedToGlobal(&SGV))
       TypeMap.addTypeMapping(DGV->getType(), SGV.getType());
 
@@ -793,7 +793,7 @@ void IRLinker::computeTypeMapping() {
   // At this point, the destination module may have a type "%foo = { i32 }" for
   // example.  When the source module got loaded into the same LLVMContext, if
   // it had the same type, it would have been renamed to "%foo.42 = { i32 }".
-  std::vector<StructType *> Types = SrcM->getIdentifiedStructTypes();
+  std::vector<StructType *> const Types = SrcM->getIdentifiedStructTypes();
   for (StructType *ST : Types) {
     if (!ST->hasName())
       continue;
@@ -843,7 +843,7 @@ void IRLinker::computeTypeMapping() {
 
 static void getArrayElements(const Constant *C,
                              SmallVectorImpl<Constant *> &Dest) {
-  unsigned NumElements = cast<ArrayType>(C->getType())->getNumElements();
+  unsigned const NumElements = cast<ArrayType>(C->getType())->getNumElements();
 
   for (unsigned i = 0; i != NumElements; ++i)
     Dest.push_back(C->getAggregateElement(i));
@@ -892,7 +892,7 @@ IRLinker::linkAppendingVarProto(GlobalVariable *DstGV,
   // old form is deprecated, we should move this upgrade to
   // llvm::UpgradeGlobalVariable() and simplify the logic here and in
   // Mapper::mapAppendingVariable() in ValueMapper.cpp.
-  StringRef Name = SrcGV->getName();
+  StringRef const Name = SrcGV->getName();
   bool IsNewStructor = false;
   bool IsOldStructor = false;
   if (Name == "llvm.global_ctors" || Name == "llvm.global_dtors") {
@@ -905,7 +905,7 @@ IRLinker::linkAppendingVarProto(GlobalVariable *DstGV,
   PointerType *VoidPtrTy = Type::getInt8Ty(SrcGV->getContext())->getPointerTo();
   if (IsOldStructor) {
     auto &ST = *cast<StructType>(EltTy);
-    Type *Tys[3] = {ST.getElementType(0), ST.getElementType(1), VoidPtrTy};
+    Type *const Tys[3] = {ST.getElementType(0), ST.getElementType(1), VoidPtrTy};
     EltTy = StructType::get(SrcGV->getContext(), Tys, false);
   }
 
@@ -932,7 +932,7 @@ IRLinker::linkAppendingVarProto(GlobalVariable *DstGV,
       return !shouldLink(DGV, *Key);
     });
   }
-  uint64_t NewSize = DstNumElements + SrcElements.size();
+  uint64_t const NewSize = DstNumElements + SrcElements.size();
   ArrayType *NewType = ArrayType::get(EltTy, NewSize);
 
   // Create the new global variable.
@@ -985,7 +985,7 @@ Expected<Constant *> IRLinker::linkGlobalValueProto(GlobalValue *SGV,
                                                     bool ForIndirectSymbol) {
   GlobalValue *DGV = getLinkedToGlobal(SGV);
 
-  bool ShouldLink = shouldLink(DGV, *SGV);
+  bool const ShouldLink = shouldLink(DGV, *SGV);
 
   // just missing from map
   if (ShouldLink) {
@@ -1261,7 +1261,7 @@ Error IRLinker::linkModuleFlagsMetadata() {
     MDNode *DstOp;
     unsigned DstIndex;
     std::tie(DstOp, DstIndex) = Flags.lookup(ID);
-    unsigned SrcBehaviorValue = SrcBehavior->getZExtValue();
+    unsigned const SrcBehaviorValue = SrcBehavior->getZExtValue();
 
     // If this is a requirement, add it and continue.
     if (SrcBehaviorValue == Module::Require) {
@@ -1283,7 +1283,7 @@ Error IRLinker::linkModuleFlagsMetadata() {
     // Otherwise, perform a merge.
     ConstantInt *DstBehavior =
         mdconst::extract<ConstantInt>(DstOp->getOperand(0));
-    unsigned DstBehaviorValue = DstBehavior->getZExtValue();
+    unsigned const DstBehaviorValue = DstBehavior->getZExtValue();
 
     auto overrideDstValue = [&]() {
       DstModFlags->setOperand(DstIndex, SrcOp);
@@ -1308,7 +1308,7 @@ Error IRLinker::linkModuleFlagsMetadata() {
 
     // Diagnose inconsistent merge behavior types.
     if (SrcBehaviorValue != DstBehaviorValue) {
-      bool MaxAndWarn = (SrcBehaviorValue == Module::Max &&
+      bool const MaxAndWarn = (SrcBehaviorValue == Module::Max &&
                          DstBehaviorValue == Module::Warning) ||
                         (DstBehaviorValue == Module::Max &&
                          SrcBehaviorValue == Module::Warning);
@@ -1320,7 +1320,7 @@ Error IRLinker::linkModuleFlagsMetadata() {
     }
 
     auto replaceDstValue = [&](MDNode *New) {
-      Metadata *FlagOps[] = {DstOp->getOperand(0), ID, New};
+      Metadata *const FlagOps[] = {DstOp->getOperand(0), ID, New};
       MDNode *Flag = MDNode::get(DstM.getContext(), FlagOps);
       DstModFlags->setOperand(DstIndex, Flag);
       Flags[ID].first = Flag;
@@ -1350,7 +1350,7 @@ Error IRLinker::linkModuleFlagsMetadata() {
 
       // The resulting flag should have a Max behavior, and contain the maximum
       // value from between the source and destination values.
-      Metadata *FlagOps[] = {
+      Metadata *const FlagOps[] = {
           (DstBehaviorValue != Module::Max ? SrcOp : DstOp)->getOperand(0), ID,
           (SrcValue->getZExtValue() > DstValue->getZExtValue() ? SrcOp : DstOp)
               ->getOperand(2)};
@@ -1518,7 +1518,7 @@ Error IRLinker::run() {
   // Reorder the globals just added to the destination module to match their
   // original order in the source module.
   Module::GlobalListType &Globals = DstM.getGlobalList();
-  for (GlobalVariable &GV : SrcM->globals()) {
+  for (GlobalVariable  const&GV : SrcM->globals()) {
     if (GV.hasAppendingLinkage())
       continue;
     Value *NewValue = Mapper.mapValue(GV);
@@ -1586,7 +1586,7 @@ void IRMover::IdentifiedStructTypeSet::addNonOpaque(StructType *Ty) {
 void IRMover::IdentifiedStructTypeSet::switchToNonOpaque(StructType *Ty) {
   assert(!Ty->isOpaque());
   NonOpaqueStructTypes.insert(Ty);
-  bool Removed = OpaqueStructTypes.erase(Ty);
+  bool const Removed = OpaqueStructTypes.erase(Ty);
   (void)Removed;
   assert(Removed);
 }
@@ -1599,7 +1599,7 @@ void IRMover::IdentifiedStructTypeSet::addOpaque(StructType *Ty) {
 StructType *
 IRMover::IdentifiedStructTypeSet::findNonOpaque(ArrayRef<Type *> ETypes,
                                                 bool IsPacked) {
-  IRMover::StructTypeKeyInfo::KeyTy Key(ETypes, IsPacked);
+  IRMover::StructTypeKeyInfo::KeyTy const Key(ETypes, IsPacked);
   auto I = NonOpaqueStructTypes.find_as(Key);
   return I == NonOpaqueStructTypes.end() ? nullptr : *I;
 }

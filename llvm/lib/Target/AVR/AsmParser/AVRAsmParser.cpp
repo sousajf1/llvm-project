@@ -173,7 +173,7 @@ public:
     if (!isImm()) return false;
     const auto *CE = dyn_cast<MCConstantExpr>(getImm());
     if (!CE) return false;
-    int64_t Value = CE->getValue();
+    int64_t const Value = CE->getValue();
     return isUInt<8>(Value);
   }
 
@@ -318,7 +318,7 @@ bool AVRAsmParser::MatchAndEmitInstruction(SMLoc Loc, unsigned &Opcode,
                                            MCStreamer &Out, uint64_t &ErrorInfo,
                                            bool MatchingInlineAsm) {
   MCInst Inst;
-  unsigned MatchResult =
+  unsigned const MatchResult =
       MatchInstructionImpl(Operands, Inst, ErrorInfo, MatchingInlineAsm);
 
   switch (MatchResult) {
@@ -333,7 +333,7 @@ bool AVRAsmParser::MatchAndEmitInstruction(SMLoc Loc, unsigned &Opcode,
 /// Parses a register name using a given matching function.
 /// Checks for lowercase or uppercase if necessary.
 int AVRAsmParser::parseRegisterName(unsigned (*matchFn)(StringRef)) {
-  StringRef Name = Parser.getTok().getString();
+  StringRef const Name = Parser.getTok().getString();
 
   int RegNum = matchFn(Name);
 
@@ -366,9 +366,9 @@ int AVRAsmParser::parseRegister(bool RestoreOnFailure) {
   if (Parser.getTok().is(AsmToken::Identifier)) {
     // Check for register pair syntax
     if (Parser.getLexer().peekTok().is(AsmToken::Colon)) {
-      AsmToken HighTok = Parser.getTok();
+      AsmToken const HighTok = Parser.getTok();
       Parser.Lex();
-      AsmToken ColonTok = Parser.getTok();
+      AsmToken const ColonTok = Parser.getTok();
       Parser.Lex(); // Eat high (odd) register and colon
 
       if (Parser.getTok().is(AsmToken::Identifier)) {
@@ -387,7 +387,7 @@ int AVRAsmParser::parseRegister(bool RestoreOnFailure) {
 }
 
 bool AVRAsmParser::tryParseRegisterOperand(OperandVector &Operands) {
-  int RegNo = parseRegister();
+  int const RegNo = parseRegister();
 
   if (RegNo == AVR::NoRegister)
     return true;
@@ -400,7 +400,7 @@ bool AVRAsmParser::tryParseRegisterOperand(OperandVector &Operands) {
 }
 
 bool AVRAsmParser::tryParseExpression(OperandVector &Operands) {
-  SMLoc S = Parser.getTok().getLoc();
+  SMLoc const S = Parser.getTok().getLoc();
 
   if (!tryParseRelocExpression(Operands))
     return false;
@@ -418,7 +418,7 @@ bool AVRAsmParser::tryParseExpression(OperandVector &Operands) {
   if (getParser().parseExpression(Expression))
     return true;
 
-  SMLoc E = SMLoc::getFromPointer(Parser.getTok().getLoc().getPointer() - 1);
+  SMLoc const E = SMLoc::getFromPointer(Parser.getTok().getLoc().getPointer() - 1);
   Operands.push_back(AVROperand::CreateImm(Expression, S, E));
   return false;
 }
@@ -427,11 +427,11 @@ bool AVRAsmParser::tryParseRelocExpression(OperandVector &Operands) {
   bool isNegated = false;
   AVRMCExpr::VariantKind ModifierKind = AVRMCExpr::VK_AVR_None;
 
-  SMLoc S = Parser.getTok().getLoc();
+  SMLoc const S = Parser.getTok().getLoc();
 
   // Check for sign
   AsmToken tokens[2];
-  size_t ReadCount = Parser.getLexer().peekTokens(tokens);
+  size_t const ReadCount = Parser.getLexer().peekTokens(tokens);
 
   if (ReadCount == 2) {
     if ((tokens[0].getKind() == AsmToken::Identifier &&
@@ -439,7 +439,7 @@ bool AVRAsmParser::tryParseRelocExpression(OperandVector &Operands) {
         (tokens[0].getKind() == AsmToken::LParen &&
          tokens[1].getKind() == AsmToken::Minus)) {
 
-      AsmToken::TokenKind CurTok = Parser.getLexer().getKind();
+      AsmToken::TokenKind const CurTok = Parser.getLexer().getKind();
       if (CurTok == AsmToken::Minus ||
           tokens[1].getKind() == AsmToken::Minus) {
         isNegated = true;
@@ -460,7 +460,7 @@ bool AVRAsmParser::tryParseRelocExpression(OperandVector &Operands) {
     // Not a reloc expr
     return true;
   }
-  StringRef ModifierName = Parser.getTok().getString();
+  StringRef const ModifierName = Parser.getTok().getString();
   ModifierKind = AVRMCExpr::getKindByName(ModifierName.str().c_str());
 
   if (ModifierKind != AVRMCExpr::VK_AVR_None) {
@@ -468,7 +468,7 @@ bool AVRAsmParser::tryParseRelocExpression(OperandVector &Operands) {
     Parser.Lex(); // Eat modifier name and parenthesis
     if (Parser.getTok().getString() == GENERATE_STUBS &&
         Parser.getTok().getKind() == AsmToken::Identifier) {
-      std::string GSModName = ModifierName.str() + "_" + GENERATE_STUBS;
+      std::string const GSModName = ModifierName.str() + "_" + GENERATE_STUBS;
       ModifierKind = AVRMCExpr::getKindByName(GSModName.c_str());
       if (ModifierKind != AVRMCExpr::VK_AVR_None)
         Parser.Lex(); // Eat gs modifier name
@@ -501,7 +501,7 @@ bool AVRAsmParser::tryParseRelocExpression(OperandVector &Operands) {
   MCExpr const *Expression = AVRMCExpr::create(ModifierKind, InnerExpression,
                                                isNegated, getContext());
 
-  SMLoc E = SMLoc::getFromPointer(Parser.getTok().getLoc().getPointer() - 1);
+  SMLoc const E = SMLoc::getFromPointer(Parser.getTok().getLoc().getPointer() - 1);
   Operands.push_back(AVROperand::CreateImm(Expression, S, E));
 
   return false;
@@ -631,14 +631,14 @@ bool AVRAsmParser::ParseInstruction(ParseInstructionInfo &Info,
     }
 
     if (MatchResult == MatchOperand_ParseFail) {
-      SMLoc Loc = getLexer().getLoc();
+      SMLoc const Loc = getLexer().getLoc();
       Parser.eatToEndOfStatement();
 
       return Error(Loc, "failed to parse register and immediate pair");
     }
 
     if (parseOperand(Operands)) {
-      SMLoc Loc = getLexer().getLoc();
+      SMLoc const Loc = getLexer().getLoc();
       Parser.eatToEndOfStatement();
       return Error(Loc, "unexpected token in argument list");
     }
@@ -648,7 +648,7 @@ bool AVRAsmParser::ParseInstruction(ParseInstructionInfo &Info,
 }
 
 bool AVRAsmParser::ParseDirective(llvm::AsmToken DirectiveID) {
-  StringRef IDVal = DirectiveID.getIdentifier();
+  StringRef const IDVal = DirectiveID.getIdentifier();
   if (IDVal.lower() == ".long") {
     parseLiteralValues(SIZE_LONG, DirectiveID.getLoc());
   } else if (IDVal.lower() == ".word" || IDVal.lower() == ".short") {
@@ -664,7 +664,7 @@ bool AVRAsmParser::parseLiteralValues(unsigned SizeInBytes, SMLoc L) {
   AVRMCELFStreamer &AVRStreamer =
       static_cast<AVRMCELFStreamer &>(Parser.getStreamer());
   AsmToken Tokens[2];
-  size_t ReadCount = Parser.getLexer().peekTokens(Tokens);
+  size_t const ReadCount = Parser.getLexer().peekTokens(Tokens);
   if (ReadCount == 2 && Parser.getTok().getKind() == AsmToken::Identifier &&
       Tokens[0].getKind() == AsmToken::Minus &&
       Tokens[1].getKind() == AsmToken::Identifier) {
@@ -676,8 +676,8 @@ bool AVRAsmParser::parseLiteralValues(unsigned SizeInBytes, SMLoc L) {
 
   if (Parser.getTok().getKind() == AsmToken::Identifier &&
       Parser.getLexer().peekTok().getKind() == AsmToken::LParen) {
-    StringRef ModifierName = Parser.getTok().getString();
-    AVRMCExpr::VariantKind ModifierKind =
+    StringRef const ModifierName = Parser.getTok().getString();
+    AVRMCExpr::VariantKind const ModifierKind =
         AVRMCExpr::getKindByName(ModifierName.str().c_str());
     if (ModifierKind != AVRMCExpr::VK_AVR_None) {
       Parser.Lex();
@@ -702,7 +702,7 @@ bool AVRAsmParser::parseLiteralValues(unsigned SizeInBytes, SMLoc L) {
 }
 
 extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializeAVRAsmParser() {
-  RegisterMCAsmParser<AVRAsmParser> X(getTheAVRTarget());
+  RegisterMCAsmParser<AVRAsmParser> const X(getTheAVRTarget());
 }
 
 #define GET_REGISTER_MATCHER
@@ -713,7 +713,7 @@ extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializeAVRAsmParser() {
 unsigned AVRAsmParser::validateTargetOperandClass(MCParsedAsmOperand &AsmOp,
                                                   unsigned ExpectedKind) {
   AVROperand &Op = static_cast<AVROperand &>(AsmOp);
-  MatchClassKind Expected = static_cast<MatchClassKind>(ExpectedKind);
+  MatchClassKind const Expected = static_cast<MatchClassKind>(ExpectedKind);
 
   // If need be, GCC converts bare numbers to register names
   // It's ugly, but GCC supports it.
@@ -737,7 +737,7 @@ unsigned AVRAsmParser::validateTargetOperandClass(MCParsedAsmOperand &AsmOp,
     // If the instruction uses a register pair but we got a single, lower
     // register we perform a "class cast".
     if (isSubclass(Expected, MCK_DREGS)) {
-      unsigned correspondingDREG = toDREG(Op.getReg());
+      unsigned const correspondingDREG = toDREG(Op.getReg());
 
       if (correspondingDREG != AVR::NoRegister) {
         Op.makeReg(correspondingDREG);

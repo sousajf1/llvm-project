@@ -61,8 +61,8 @@ WebAssemblyMCInstLower::GetGlobalAddressSymbol(const MachineOperand &MO) const {
       if (VTs.size() != 1)
         report_fatal_error("Aggregate globals not yet implemented");
 
-      bool Mutable = true;
-      wasm::ValType Type = WebAssembly::toValType(VTs[0]);
+      bool const Mutable = true;
+      wasm::ValType const Type = WebAssembly::toValType(VTs[0]);
       WasmSym->setType(wasm::WASM_SYMBOL_TYPE_GLOBAL);
       WasmSym->setGlobalType(wasm::WasmGlobalType{uint8_t(Type), Mutable});
     }
@@ -98,7 +98,7 @@ MCSymbol *WebAssemblyMCInstLower::GetExternalSymbolSymbol(
 MCOperand WebAssemblyMCInstLower::lowerSymbolOperand(const MachineOperand &MO,
                                                      MCSymbol *Sym) const {
   MCSymbolRefExpr::VariantKind Kind = MCSymbolRefExpr::VK_None;
-  unsigned TargetFlags = MO.getTargetFlags();
+  unsigned const TargetFlags = MO.getTargetFlags();
 
   switch (TargetFlags) {
     case WebAssemblyII::MO_NO_FLAG:
@@ -190,7 +190,7 @@ void WebAssemblyMCInstLower::lower(const MachineInstr *MI,
   OutMI.setOpcode(MI->getOpcode());
 
   const MCInstrDesc &Desc = MI->getDesc();
-  unsigned NumVariadicDefs = MI->getNumExplicitDefs() - Desc.getNumDefs();
+  unsigned const NumVariadicDefs = MI->getNumExplicitDefs() - Desc.getNumDefs();
   for (unsigned I = 0, E = MI->getNumOperands(); I != E; ++I) {
     const MachineOperand &MO = MI->getOperand(I);
 
@@ -208,12 +208,12 @@ void WebAssemblyMCInstLower::lower(const MachineInstr *MI,
         continue;
       const WebAssemblyFunctionInfo &MFI =
           *MI->getParent()->getParent()->getInfo<WebAssemblyFunctionInfo>();
-      unsigned WAReg = MFI.getWAReg(MO.getReg());
+      unsigned const WAReg = MFI.getWAReg(MO.getReg());
       MCOp = MCOperand::createReg(WAReg);
       break;
     }
     case MachineOperand::MO_Immediate: {
-      unsigned DescIndex = I - NumVariadicDefs;
+      unsigned const DescIndex = I - NumVariadicDefs;
       if (DescIndex < Desc.NumOperands) {
         const MCOperandInfo &Info = Desc.OpInfo[DescIndex];
         if (Info.OperandType == WebAssembly::OPERAND_TYPEINDEX) {

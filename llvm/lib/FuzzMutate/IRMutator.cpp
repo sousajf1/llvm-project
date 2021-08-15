@@ -37,7 +37,7 @@ void IRMutationStrategy::mutate(Module &M, RandomIRBuilder &IB) {
     createEmptyFunction(M);
 
   auto RS = makeSampler<Function *>(IB.Rand);
-  for (Function &F : M)
+  for (Function  const&F : M)
     if (!F.isDeclaration())
       RS.sample(&F, /*Weight=*/1);
   mutate(*RS.getSelection(), IB);
@@ -111,7 +111,7 @@ void InjectorIRStrategy::mutate(BasicBlock &BB, RandomIRBuilder &IB) {
     return;
 
   // Choose an insertion point for our new instruction.
-  size_t IP = uniform<size_t>(IB.Rand, 0, Insts.size() - 1);
+  size_t const IP = uniform<size_t>(IB.Rand, 0, Insts.size() - 1);
 
   auto InstsBefore = makeArrayRef(Insts).slice(0, IP);
   auto InstsAfter = makeArrayRef(Insts).slice(IP);
@@ -143,7 +143,7 @@ uint64_t InstDeleterIRStrategy::getWeight(size_t CurrentSize, size_t MaxSize,
     return CurrentWeight ? CurrentWeight * 100 : 1;
   // Draw a line starting from when we only have 1k left and increasing linearly
   // to double the current weight.
-  int64_t Line = (-2 * static_cast<int64_t>(CurrentWeight)) *
+  int64_t const Line = (-2 * static_cast<int64_t>(CurrentWeight)) *
                  (static_cast<int64_t>(MaxSize) -
                   static_cast<int64_t>(CurrentSize) - 1000) /
                  1000;
@@ -155,7 +155,7 @@ uint64_t InstDeleterIRStrategy::getWeight(size_t CurrentSize, size_t MaxSize,
 
 void InstDeleterIRStrategy::mutate(Function &F, RandomIRBuilder &IB) {
   auto RS = makeSampler<Instruction *>(IB.Rand);
-  for (Instruction &Inst : instructions(F)) {
+  for (Instruction  const&Inst : instructions(F)) {
     // TODO: We can't handle these instructions.
     if (Inst.isTerminator() || Inst.isEHPad() ||
         Inst.isSwiftError() || isa<PHINode>(Inst))

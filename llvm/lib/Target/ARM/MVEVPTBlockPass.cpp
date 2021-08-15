@@ -163,7 +163,7 @@ static ARM::PredBlockMask
 CreateVPTBlock(MachineBasicBlock::instr_iterator &Iter,
                MachineBasicBlock::instr_iterator EndIter,
                SmallVectorImpl<MachineInstr *> &DeadInstructions) {
-  MachineBasicBlock::instr_iterator BlockBeg = Iter;
+  MachineBasicBlock::instr_iterator const BlockBeg = Iter;
   (void)BlockBeg;
   assert(getVPTInstrPredicate(*Iter) == ARMVCC::Then &&
          "Expected a Predicated Instruction");
@@ -223,7 +223,7 @@ CreateVPTBlock(MachineBasicBlock::instr_iterator &Iter,
         continue;
 
       // Find the register in which the predicate is
-      int OpIdx = findFirstVPTPredOperandIdx(*Iter);
+      int const OpIdx = findFirstVPTPredOperandIdx(*Iter);
       assert(OpIdx != -1);
 
       // Change the predicate and update the mask
@@ -242,16 +242,16 @@ CreateVPTBlock(MachineBasicBlock::instr_iterator &Iter,
 bool MVEVPTBlock::InsertVPTBlocks(MachineBasicBlock &Block) {
   bool Modified = false;
   MachineBasicBlock::instr_iterator MBIter = Block.instr_begin();
-  MachineBasicBlock::instr_iterator EndIter = Block.instr_end();
+  MachineBasicBlock::instr_iterator const EndIter = Block.instr_end();
 
   SmallVector<MachineInstr *, 4> DeadInstructions;
 
   while (MBIter != EndIter) {
     MachineInstr *MI = &*MBIter;
     Register PredReg;
-    DebugLoc DL = MI->getDebugLoc();
+    DebugLoc const DL = MI->getDebugLoc();
 
-    ARMVCC::VPTCodes Pred = getVPTInstrPredicate(*MI, PredReg);
+    ARMVCC::VPTCodes const Pred = getVPTInstrPredicate(*MI, PredReg);
 
     // The idea of the predicate is that None, Then and Else are for use when
     // handling assembly language: they correspond to the three possible
@@ -266,7 +266,7 @@ bool MVEVPTBlock::InsertVPTBlocks(MachineBasicBlock &Block) {
       continue;
     }
 
-    ARM::PredBlockMask BlockMask =
+    ARM::PredBlockMask const BlockMask =
         CreateVPTBlock(MBIter, EndIter, DeadInstructions);
 
     // Search back for a VCMP that can be folded to create a VPT, or else

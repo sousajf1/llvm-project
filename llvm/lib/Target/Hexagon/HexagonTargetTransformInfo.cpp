@@ -144,7 +144,7 @@ InstructionCost
 HexagonTTIImpl::getIntrinsicInstrCost(const IntrinsicCostAttributes &ICA,
                                       TTI::TargetCostKind CostKind) {
   if (ICA.getID() == Intrinsic::bswap) {
-    std::pair<InstructionCost, MVT> LT =
+    std::pair<InstructionCost, MVT> const LT =
         TLI.getTypeLegalizationCost(DL, ICA.getReturnType());
     return LT.first + 2;
   }
@@ -173,9 +173,9 @@ InstructionCost HexagonTTIImpl::getMemoryOpCost(unsigned Opcode, Type *Src,
 
   if (Src->isVectorTy()) {
     VectorType *VecTy = cast<VectorType>(Src);
-    unsigned VecWidth = VecTy->getPrimitiveSizeInBits().getFixedSize();
+    unsigned const VecWidth = VecTy->getPrimitiveSizeInBits().getFixedSize();
     if (useHVX() && ST.isTypeForHVX(VecTy)) {
-      unsigned RegWidth =
+      unsigned const RegWidth =
           getRegisterBitWidth(TargetTransformInfo::RGK_FixedWidthVector)
               .getFixedSize();
       assert(RegWidth && "Non-zero vector register width expected");
@@ -187,25 +187,25 @@ InstructionCost HexagonTTIImpl::getMemoryOpCost(unsigned Opcode, Type *Src,
       if (!Alignment || *Alignment > RegAlign)
         Alignment = RegAlign;
       assert(Alignment);
-      unsigned AlignWidth = 8 * Alignment->value();
-      unsigned NumLoads = alignTo(VecWidth, AlignWidth) / AlignWidth;
+      unsigned const AlignWidth = 8 * Alignment->value();
+      unsigned const NumLoads = alignTo(VecWidth, AlignWidth) / AlignWidth;
       return 3 * NumLoads;
     }
 
     // Non-HVX vectors.
     // Add extra cost for floating point types.
-    unsigned Cost =
+    unsigned const Cost =
         VecTy->getElementType()->isFloatingPointTy() ? FloatFactor : 1;
 
     // At this point unspecified alignment is considered as Align(1).
     const Align BoundAlignment = std::min(Alignment.valueOrOne(), Align(8));
-    unsigned AlignWidth = 8 * BoundAlignment.value();
-    unsigned NumLoads = alignTo(VecWidth, AlignWidth) / AlignWidth;
+    unsigned const AlignWidth = 8 * BoundAlignment.value();
+    unsigned const NumLoads = alignTo(VecWidth, AlignWidth) / AlignWidth;
     if (Alignment == Align(4) || Alignment == Align(8))
       return Cost * NumLoads;
     // Loads of less than 32 bits will need extra inserts to compose a vector.
     assert(BoundAlignment <= Align(8));
-    unsigned LogA = Log2(BoundAlignment);
+    unsigned const LogA = Log2(BoundAlignment);
     return (3 - LogA) * Cost * NumLoads;
   }
 
@@ -253,7 +253,7 @@ InstructionCost HexagonTTIImpl::getCmpSelInstrCost(unsigned Opcode, Type *ValTy,
                                                    TTI::TargetCostKind CostKind,
                                                    const Instruction *I) {
   if (ValTy->isVectorTy() && CostKind == TTI::TCK_RecipThroughput) {
-    std::pair<InstructionCost, MVT> LT = TLI.getTypeLegalizationCost(DL, ValTy);
+    std::pair<InstructionCost, MVT> const LT = TLI.getTypeLegalizationCost(DL, ValTy);
     if (Opcode == Instruction::FCmp)
       return LT.first + FloatFactor * getTypeNumElements(ValTy);
   }
@@ -273,7 +273,7 @@ InstructionCost HexagonTTIImpl::getArithmeticInstrCost(
                                          Opd2PropInfo, Args, CxtI);
 
   if (Ty->isVectorTy()) {
-    std::pair<InstructionCost, MVT> LT = TLI.getTypeLegalizationCost(DL, Ty);
+    std::pair<InstructionCost, MVT> const LT = TLI.getTypeLegalizationCost(DL, Ty);
     if (LT.second.isFloatingPoint())
       return LT.first + FloatFactor * getTypeNumElements(Ty);
   }
@@ -287,12 +287,12 @@ InstructionCost HexagonTTIImpl::getCastInstrCost(unsigned Opcode, Type *DstTy,
                                                  TTI::TargetCostKind CostKind,
                                                  const Instruction *I) {
   if (SrcTy->isFPOrFPVectorTy() || DstTy->isFPOrFPVectorTy()) {
-    unsigned SrcN = SrcTy->isFPOrFPVectorTy() ? getTypeNumElements(SrcTy) : 0;
-    unsigned DstN = DstTy->isFPOrFPVectorTy() ? getTypeNumElements(DstTy) : 0;
+    unsigned const SrcN = SrcTy->isFPOrFPVectorTy() ? getTypeNumElements(SrcTy) : 0;
+    unsigned const DstN = DstTy->isFPOrFPVectorTy() ? getTypeNumElements(DstTy) : 0;
 
-    std::pair<InstructionCost, MVT> SrcLT =
+    std::pair<InstructionCost, MVT> const SrcLT =
         TLI.getTypeLegalizationCost(DL, SrcTy);
-    std::pair<InstructionCost, MVT> DstLT =
+    std::pair<InstructionCost, MVT> const DstLT =
         TLI.getTypeLegalizationCost(DL, DstTy);
     InstructionCost Cost =
         std::max(SrcLT.first, DstLT.first) + FloatFactor * (SrcN + DstN);
@@ -310,7 +310,7 @@ InstructionCost HexagonTTIImpl::getVectorInstrCost(unsigned Opcode, Type *Val,
                                    : Val;
   if (Opcode == Instruction::InsertElement) {
     // Need two rotations for non-zero index.
-    unsigned Cost = (Index != 0) ? 2 : 0;
+    unsigned const Cost = (Index != 0) ? 2 : 0;
     if (ElemTy->isIntegerTy(32))
       return Cost;
     // If it's not a 32-bit value, there will need to be an extract.
@@ -350,8 +350,8 @@ InstructionCost HexagonTTIImpl::getUserCost(const User *U,
     // Only extensions from an integer type shorter than 32-bit to i32
     // can be folded into the load.
     const DataLayout &DL = getDataLayout();
-    unsigned SBW = DL.getTypeSizeInBits(CI->getSrcTy());
-    unsigned DBW = DL.getTypeSizeInBits(CI->getDestTy());
+    unsigned const SBW = DL.getTypeSizeInBits(CI->getSrcTy());
+    unsigned const DBW = DL.getTypeSizeInBits(CI->getDestTy());
     if (DBW != 32 || SBW >= DBW)
       return false;
 

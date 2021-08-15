@@ -109,7 +109,7 @@ bool LoopNest::arePerfectlyNested(const Loop &OuterLoop, const Loop &InnerLoop,
   //  - a phi node, a cast or a branch
   auto containsOnlySafeInstructions = [&](const BasicBlock &BB) {
     return llvm::all_of(BB, [&](const Instruction &I) {
-      bool isAllowed = isSafeToSpeculativelyExecute(&I) || isa<PHINode>(I) ||
+      bool const isAllowed = isSafeToSpeculativelyExecute(&I) || isa<PHINode>(I) ||
                        isa<BranchInst>(I);
       if (!isAllowed) {
         DEBUG_WITH_TYPE(VerboseDebug, {
@@ -289,7 +289,7 @@ static bool checkLoopsStructure(const Loop &OuterLoop, const Loop &InnerLoop,
       if (!BI || BI != InnerLoop.getLoopGuardBranch())
         return false;
 
-      bool InnerLoopExitContainsLCSSA = ContainsLCSSAPhi(*InnerLoopExit);
+      bool const InnerLoopExitContainsLCSSA = ContainsLCSSAPhi(*InnerLoopExit);
 
       // The successors of the inner loop guard should be the inner loop
       // preheader or the outer loop latch possibly through empty blocks.

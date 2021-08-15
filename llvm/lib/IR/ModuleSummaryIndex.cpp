@@ -446,7 +446,7 @@ static std::string linkageToString(GlobalValue::LinkageTypes LT) {
 
 static std::string fflagsToString(FunctionSummary::FFlags F) {
   auto FlagValue = [](unsigned V) { return V ? '1' : '0'; };
-  char FlagRep[] = {FlagValue(F.ReadNone),     FlagValue(F.ReadOnly),
+  char const FlagRep[] = {FlagValue(F.ReadNone),     FlagValue(F.ReadOnly),
                     FlagValue(F.NoRecurse),    FlagValue(F.ReturnDoesNotAlias),
                     FlagValue(F.NoInline), FlagValue(F.AlwaysInline), 0};
 
@@ -475,7 +475,7 @@ static std::string getNodeLabel(const ValueInfo &VI, GlobalValueSummary *GVS) {
   if (isa<AliasSummary>(GVS))
     return getNodeVisualName(VI);
 
-  std::string Attrs = getSummaryAttributes(GVS);
+  std::string const Attrs = getSummaryAttributes(GVS);
   std::string Label =
       getNodeVisualName(VI) + "|" + linkageToString(GVS->linkage());
   if (!Attrs.empty())
@@ -545,7 +545,7 @@ void ModuleSummaryIndex::exportToDot(
     // 3 - writeonly reference
     // Other value: (hotness - 4).
     TypeOrHotness += 4;
-    static const char *EdgeAttrs[] = {
+    static const char *const EdgeAttrs[] = {
         " [style=dotted]; // alias",
         " [style=dashed]; // ref",
         " [style=dashed,color=forestgreen]; // const-ref",

@@ -285,7 +285,7 @@ bool StraightLineStrengthReduce::isBasisFor(const Candidate &Basis,
 
 static bool isGEPFoldable(GetElementPtrInst *GEP,
                           const TargetTransformInfo *TTI) {
-  SmallVector<const Value *, 4> Indices(GEP->indices());
+  SmallVector<const Value *, 4> const Indices(GEP->indices());
   return TTI->getGEPCost(GEP->getSourceElementType(), GEP->getPointerOperand(),
                          Indices) == TargetTransformInfo::TCC_Free;
 }
@@ -417,7 +417,7 @@ void StraightLineStrengthReduce::allocateCandidatesAndFindBasisForAdd(
     allocateCandidatesAndFindBasis(Candidate::Add, SE->getSCEV(LHS), Idx, S, I);
   } else if (match(RHS, m_Shl(m_Value(S), m_ConstantInt(Idx)))) {
     // I = LHS + RHS = LHS + (S << Idx) = LHS + S * (1 << Idx)
-    APInt One(Idx->getBitWidth(), 1);
+    APInt const One(Idx->getBitWidth(), 1);
     Idx = ConstantInt::get(Idx->getContext(), One << Idx->getValue());
     allocateCandidatesAndFindBasis(Candidate::Add, SE->getSCEV(LHS), Idx, S, I);
   } else {
@@ -519,7 +519,7 @@ void StraightLineStrengthReduce::factorArrayIndex(Value *ArrayIdx,
   } else if (match(ArrayIdx, m_NSWShl(m_Value(LHS), m_ConstantInt(RHS)))) {
     // GEP = Base + sext(LHS <<nsw RHS) * ElementSize
     //     = Base + sext(LHS *nsw (1 << RHS)) * ElementSize
-    APInt One(RHS->getBitWidth(), 1);
+    APInt const One(RHS->getBitWidth(), 1);
     ConstantInt *PowerOf2 =
         ConstantInt::get(RHS->getContext(), One << RHS->getValue());
     allocateCandidatesAndFindBasisForGEP(Base, PowerOf2, LHS, ElementSize, GEP);
@@ -533,7 +533,7 @@ void StraightLineStrengthReduce::allocateCandidatesAndFindBasisForGEP(
     return;
 
   SmallVector<const SCEV *, 4> IndexExprs;
-  for (Use &Idx : GEP->indices())
+  for (Use  const&Idx : GEP->indices())
     IndexExprs.push_back(SE->getSCEV(Idx));
 
   gep_type_iterator GTI = gep_type_begin(GEP);
@@ -548,7 +548,7 @@ void StraightLineStrengthReduce::allocateCandidatesAndFindBasisForGEP(
     // indices except this current one.
     const SCEV *BaseExpr = SE->getGEPExpr(cast<GEPOperator>(GEP), IndexExprs);
     Value *ArrayIdx = GEP->getOperand(I);
-    uint64_t ElementSize = DL->getTypeAllocSize(GTI.getIndexedType());
+    uint64_t const ElementSize = DL->getTypeAllocSize(GTI.getIndexedType());
     if (ArrayIdx->getType()->getIntegerBitWidth() <=
         DL->getPointerSizeInBits(GEP->getAddressSpace())) {
       // Skip factoring if ArrayIdx is wider than the pointer size, because
@@ -590,7 +590,7 @@ Value *StraightLineStrengthReduce::emitBump(const Candidate &Basis,
 
   BumpWithUglyGEP = false;
   if (Basis.CandidateKind == Candidate::GEP) {
-    APInt ElementSize(
+    APInt const ElementSize(
         IndexOffset.getBitWidth(),
         DL->getTypeAllocSize(
             cast<GetElementPtrInst>(Basis.Ins)->getResultElementType()));
@@ -677,10 +677,10 @@ void StraightLineStrengthReduce::rewriteCandidateWithBasis(
   case Candidate::GEP:
     {
       Type *IntPtrTy = DL->getIntPtrType(C.Ins->getType());
-      bool InBounds = cast<GetElementPtrInst>(C.Ins)->isInBounds();
+      bool const InBounds = cast<GetElementPtrInst>(C.Ins)->isInBounds();
       if (BumpWithUglyGEP) {
         // C = (char *)Basis + Bump
-        unsigned AS = Basis.Ins->getType()->getPointerAddressSpace();
+        unsigned const AS = Basis.Ins->getType()->getPointerAddressSpace();
         Type *CharTy = Type::getInt8PtrTy(Basis.Ins->getContext(), AS);
         Reduced = Builder.CreateBitCast(Basis.Ins, CharTy);
         if (InBounds)
@@ -751,7 +751,7 @@ bool StraightLineStrengthReduce::runOnFunction(Function &F) {
     }
     UnlinkedInst->deleteValue();
   }
-  bool Ret = !UnlinkedInstructions.empty();
+  bool const Ret = !UnlinkedInstructions.empty();
   UnlinkedInstructions.clear();
   return Ret;
 }

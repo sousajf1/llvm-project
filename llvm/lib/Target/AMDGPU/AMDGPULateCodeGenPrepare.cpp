@@ -70,7 +70,7 @@ public:
 
   // Check if the specified value is at least DWORD aligned.
   bool isDWORDAligned(const Value *V) const {
-    KnownBits Known = computeKnownBits(V, *DL, 0, AC);
+    KnownBits const Known = computeKnownBits(V, *DL, 0, AC);
     return Known.countMinTrailingZeros() >= 2;
   }
 
@@ -104,7 +104,7 @@ bool AMDGPULateCodeGenPrepare::runOnFunction(Function &F) {
 }
 
 bool AMDGPULateCodeGenPrepare::canWidenScalarExtLoad(LoadInst &LI) const {
-  unsigned AS = LI.getPointerAddressSpace();
+  unsigned const AS = LI.getPointerAddressSpace();
   // Skip non-constant address space.
   if (AS != AMDGPUAS::CONSTANT_ADDRESS &&
       AS != AMDGPUAS::CONSTANT_ADDRESS_32BIT)
@@ -116,7 +116,7 @@ bool AMDGPULateCodeGenPrepare::canWidenScalarExtLoad(LoadInst &LI) const {
   // Skip aggregate types.
   if (Ty->isAggregateType())
     return false;
-  unsigned TySize = DL->getTypeStoreSize(Ty);
+  unsigned const TySize = DL->getTypeStoreSize(Ty);
   // Only handle sub-DWORD loads.
   if (TySize >= 4)
     return false;
@@ -147,7 +147,7 @@ bool AMDGPULateCodeGenPrepare::visitLoadInst(LoadInst &LI) {
   if (!isDWORDAligned(Base))
     return false;
 
-  int64_t Adjust = Offset & 0x3;
+  int64_t const Adjust = Offset & 0x3;
   if (Adjust == 0) {
     // With a zero adjust, the original alignment could be promoted with a
     // better one.
@@ -158,8 +158,8 @@ bool AMDGPULateCodeGenPrepare::visitLoadInst(LoadInst &LI) {
   IRBuilder<> IRB(&LI);
   IRB.SetCurrentDebugLocation(LI.getDebugLoc());
 
-  unsigned AS = LI.getPointerAddressSpace();
-  unsigned LdBits = DL->getTypeStoreSize(LI.getType()) * 8;
+  unsigned const AS = LI.getPointerAddressSpace();
+  unsigned const LdBits = DL->getTypeStoreSize(LI.getType()) * 8;
   auto IntNTy = Type::getIntNTy(LI.getContext(), LdBits);
 
   PointerType *Int32PtrTy = Type::getInt32PtrTy(LI.getContext(), AS);
@@ -174,7 +174,7 @@ bool AMDGPULateCodeGenPrepare::visitLoadInst(LoadInst &LI) {
   NewLd->copyMetadata(LI);
   NewLd->setMetadata(LLVMContext::MD_range, nullptr);
 
-  unsigned ShAmt = Adjust * 8;
+  unsigned const ShAmt = Adjust * 8;
   auto *NewVal = IRB.CreateBitCast(
       IRB.CreateTrunc(IRB.CreateLShr(NewLd, ShAmt), IntNTy), LI.getType());
   LI.replaceAllUsesWith(NewVal);

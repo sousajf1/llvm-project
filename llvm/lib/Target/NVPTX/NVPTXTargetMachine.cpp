@@ -77,8 +77,8 @@ void initializeNVPTXProxyRegErasurePass(PassRegistry &);
 
 extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializeNVPTXTarget() {
   // Register the target.
-  RegisterTargetMachine<NVPTXTargetMachine32> X(getTheNVPTXTarget32());
-  RegisterTargetMachine<NVPTXTargetMachine64> Y(getTheNVPTXTarget64());
+  RegisterTargetMachine<NVPTXTargetMachine32> const X(getTheNVPTXTarget32());
+  RegisterTargetMachine<NVPTXTargetMachine64> const Y(getTheNVPTXTarget64());
 
   // FIXME: This pass is really intended to be invoked during IR optimization,
   // but it's very NVPTX-specific.

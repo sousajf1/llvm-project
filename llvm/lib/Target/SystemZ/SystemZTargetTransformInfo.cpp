@@ -34,7 +34,7 @@ InstructionCost SystemZTTIImpl::getIntImmCost(const APInt &Imm, Type *Ty,
                                               TTI::TargetCostKind CostKind) {
   assert(Ty->isIntegerTy());
 
-  unsigned BitSize = Ty->getPrimitiveSizeInBits();
+  unsigned const BitSize = Ty->getPrimitiveSizeInBits();
   // There is no cost model for constants with a bit size of 0. Return TCC_Free
   // here, so that constant hoisting will ignore this constant.
   if (BitSize == 0)
@@ -69,7 +69,7 @@ InstructionCost SystemZTTIImpl::getIntImmCostInst(unsigned Opcode, unsigned Idx,
                                                   Instruction *Inst) {
   assert(Ty->isIntegerTy());
 
-  unsigned BitSize = Ty->getPrimitiveSizeInBits();
+  unsigned const BitSize = Ty->getPrimitiveSizeInBits();
   // There is no cost model for constants with a bit size of 0. Return TCC_Free
   // here, so that constant hoisting will ignore this constant.
   if (BitSize == 0)
@@ -189,7 +189,7 @@ SystemZTTIImpl::getIntImmCostIntrin(Intrinsic::ID IID, unsigned Idx,
                                     TTI::TargetCostKind CostKind) {
   assert(Ty->isIntegerTy());
 
-  unsigned BitSize = Ty->getPrimitiveSizeInBits();
+  unsigned const BitSize = Ty->getPrimitiveSizeInBits();
   // There is no cost model for constants with a bit size of 0. Return TCC_Free
   // here, so that constant hoisting will ignore this constant.
   if (BitSize == 0)
@@ -316,7 +316,7 @@ bool SystemZTTIImpl::isLSRCostLess(TargetTransformInfo::LSRCost &C1,
 }
 
 unsigned SystemZTTIImpl::getNumberOfRegisters(unsigned ClassID) const {
-  bool Vector = (ClassID == 1);
+  bool const Vector = (ClassID == 1);
   if (!Vector)
     // Discount the stack pointer.  Also leave out %r0, since it can't
     // be used in an address.
@@ -358,14 +358,14 @@ unsigned SystemZTTIImpl::getMinPrefetchStride(unsigned NumMemAccesses,
 }
 
 bool SystemZTTIImpl::hasDivRemOp(Type *DataType, bool IsSigned) {
-  EVT VT = TLI->getValueType(DL, DataType);
+  EVT const VT = TLI->getValueType(DL, DataType);
   return (VT.isScalarInteger() && TLI->isTypeLegal(VT));
 }
 
 // Return the bit size for the scalar type or vector element
 // type. getScalarSizeInBits() returns 0 for a pointer type.
 static unsigned getScalarSizeInBits(Type *Ty) {
-  unsigned Size =
+  unsigned const Size =
     (Ty->isPtrOrPtrVectorTy() ? 64U : Ty->getScalarSizeInBits());
   assert(Size > 0 && "Element must have non-zero size.");
   return Size;
@@ -376,7 +376,7 @@ static unsigned getScalarSizeInBits(Type *Ty) {
 // 3.
 static unsigned getNumVectorRegs(Type *Ty) {
   auto *VTy = cast<FixedVectorType>(Ty);
-  unsigned WideBits = getScalarSizeInBits(Ty) * VTy->getNumElements();
+  unsigned const WideBits = getScalarSizeInBits(Ty) * VTy->getNumElements();
   assert(WideBits > 0 && "Could not compute size of vector");
   return ((WideBits % 128U) ? ((WideBits / 128U) + 1) : (WideBits / 128U));
 }
@@ -400,7 +400,7 @@ InstructionCost SystemZTTIImpl::getArithmeticInstrCost(
   // would require a new parameter 'InLoop', but not sure if constant
   // args are common enough to motivate this.
 
-  unsigned ScalarBits = Ty->getScalarSizeInBits();
+  unsigned const ScalarBits = Ty->getScalarSizeInBits();
 
   // There are thre cases of division and remainder: Dividing with a register
   // needs a divide instruction. A divisor which is a power of two constant
@@ -410,9 +410,9 @@ InstructionCost SystemZTTIImpl::getArithmeticInstrCost(
   const unsigned DivMulSeqCost = 10;
   const unsigned SDivPow2Cost = 4;
 
-  bool SignedDivRem =
+  bool const SignedDivRem =
       Opcode == Instruction::SDiv || Opcode == Instruction::SRem;
-  bool UnsignedDivRem =
+  bool const UnsignedDivRem =
       Opcode == Instruction::UDiv || Opcode == Instruction::URem;
 
   // Check for a constant divisor.
@@ -484,8 +484,8 @@ InstructionCost SystemZTTIImpl::getArithmeticInstrCost(
   }
   else if (ST->hasVector()) {
     auto *VTy = cast<FixedVectorType>(Ty);
-    unsigned VF = VTy->getNumElements();
-    unsigned NumVectors = getNumVectorRegs(Ty);
+    unsigned const VF = VTy->getNumElements();
+    unsigned const NumVectors = getNumVectorRegs(Ty);
 
     // These vector operations are custom handled, but are still supported
     // with one instruction per vector, regardless of element size.
@@ -497,7 +497,7 @@ InstructionCost SystemZTTIImpl::getArithmeticInstrCost(
     if (DivRemConstPow2)
       return (NumVectors * (SignedDivRem ? SDivPow2Cost : 1));
     if (DivRemConst) {
-      SmallVector<Type *> Tys(Args.size(), Ty);
+      SmallVector<Type *> const Tys(Args.size(), Ty);
       return VF * DivMulSeqCost + getScalarizationOverhead(VTy, Args, Tys);
     }
     if ((SignedDivRem || UnsignedDivRem) && VF > 4)
@@ -520,9 +520,9 @@ InstructionCost SystemZTTIImpl::getArithmeticInstrCost(
           return NumVectors;
         // Return the cost of multiple scalar invocation plus the cost of
         // inserting and extracting the values.
-        InstructionCost ScalarCost =
+        InstructionCost const ScalarCost =
             getArithmeticInstrCost(Opcode, Ty->getScalarType(), CostKind);
-        SmallVector<Type *> Tys(Args.size(), Ty);
+        SmallVector<Type *> const Tys(Args.size(), Ty);
         InstructionCost Cost =
             (VF * ScalarCost) + getScalarizationOverhead(VTy, Args, Tys);
         // FIXME: VF 2 for these FP operations are currently just as
@@ -541,7 +541,7 @@ InstructionCost SystemZTTIImpl::getArithmeticInstrCost(
 
     // There is no native support for FRem.
     if (Opcode == Instruction::FRem) {
-      SmallVector<Type *> Tys(Args.size(), Ty);
+      SmallVector<Type *> const Tys(Args.size(), Ty);
       InstructionCost Cost =
           (VF * LIBCALL_COST) + getScalarizationOverhead(VTy, Args, Tys);
       // FIXME: VF 2 for float is currently just as expensive as for VF 4.
@@ -562,7 +562,7 @@ InstructionCost SystemZTTIImpl::getShuffleCost(TTI::ShuffleKind Kind,
                                                VectorType *SubTp) {
   Kind = improveShuffleKindFromMask(Kind, Mask);
   if (ST->hasVector()) {
-    unsigned NumVectors = getNumVectorRegs(Tp);
+    unsigned const NumVectors = getNumVectorRegs(Tp);
 
     // TODO: Since fp32 is expanded, the shuffle cost should always be 0.
 
@@ -598,8 +598,8 @@ InstructionCost SystemZTTIImpl::getShuffleCost(TTI::ShuffleKind Kind,
 
 // Return the log2 difference of the element sizes of the two vector types.
 static unsigned getElSizeLog2Diff(Type *Ty0, Type *Ty1) {
-  unsigned Bits0 = Ty0->getScalarSizeInBits();
-  unsigned Bits1 = Ty1->getScalarSizeInBits();
+  unsigned const Bits0 = Ty0->getScalarSizeInBits();
+  unsigned const Bits1 = Ty1->getScalarSizeInBits();
 
   if (Bits1 >  Bits0)
     return (Log2_32(Bits1) - Log2_32(Bits0));
@@ -630,8 +630,8 @@ getVectorTruncCost(Type *SrcTy, Type *DstTy) {
     return 1;
 
   unsigned Cost = 0;
-  unsigned Log2Diff = getElSizeLog2Diff(SrcTy, DstTy);
-  unsigned VF = cast<FixedVectorType>(SrcTy)->getNumElements();
+  unsigned const Log2Diff = getElSizeLog2Diff(SrcTy, DstTy);
+  unsigned const VF = cast<FixedVectorType>(SrcTy)->getNumElements();
   for (unsigned P = 0; P < Log2Diff; ++P) {
     if (NumParts > 1)
       NumParts /= 2;
@@ -656,14 +656,14 @@ getVectorBitmaskConversionCost(Type *SrcTy, Type *DstTy) {
           "Should only be called with vector types.");
 
   unsigned PackCost = 0;
-  unsigned SrcScalarBits = SrcTy->getScalarSizeInBits();
-  unsigned DstScalarBits = DstTy->getScalarSizeInBits();
-  unsigned Log2Diff = getElSizeLog2Diff(SrcTy, DstTy);
+  unsigned const SrcScalarBits = SrcTy->getScalarSizeInBits();
+  unsigned const DstScalarBits = DstTy->getScalarSizeInBits();
+  unsigned const Log2Diff = getElSizeLog2Diff(SrcTy, DstTy);
   if (SrcScalarBits > DstScalarBits)
     // The bitmask will be truncated.
     PackCost = getVectorTruncCost(SrcTy, DstTy);
   else if (SrcScalarBits < DstScalarBits) {
-    unsigned DstNumParts = getNumVectorRegs(DstTy);
+    unsigned const DstNumParts = getNumVectorRegs(DstTy);
     // Each vector select needs its part of the bitmask unpacked.
     PackCost = Log2Diff * DstNumParts;
     // Extra cost for moving part of mask before unpacking.
@@ -705,7 +705,7 @@ unsigned SystemZTTIImpl::
 getBoolVecToIntConversionCost(unsigned Opcode, Type *Dst,
                               const Instruction *I) {
   auto *DstVTy = cast<FixedVectorType>(Dst);
-  unsigned VF = DstVTy->getNumElements();
+  unsigned const VF = DstVTy->getNumElements();
   unsigned Cost = 0;
   // If we know what the widths of the compared operands, get any cost of
   // converting it to match Dst. Otherwise assume same widths.
@@ -729,8 +729,8 @@ InstructionCost SystemZTTIImpl::getCastInstrCost(unsigned Opcode, Type *Dst,
     return BaseCost == 0 ? BaseCost : 1;
   }
 
-  unsigned DstScalarBits = Dst->getScalarSizeInBits();
-  unsigned SrcScalarBits = Src->getScalarSizeInBits();
+  unsigned const DstScalarBits = Dst->getScalarSizeInBits();
+  unsigned const SrcScalarBits = Src->getScalarSizeInBits();
 
   if (!Src->isVectorTy()) {
     assert (!Dst->isVectorTy());
@@ -769,9 +769,9 @@ InstructionCost SystemZTTIImpl::getCastInstrCost(unsigned Opcode, Type *Dst,
       // TODO: tune vector-to-scalar cast.
       return BaseT::getCastInstrCost(Opcode, Dst, Src, CCH, CostKind, I);
     }
-    unsigned VF = SrcVecTy->getNumElements();
-    unsigned NumDstVectors = getNumVectorRegs(Dst);
-    unsigned NumSrcVectors = getNumVectorRegs(Src);
+    unsigned const VF = SrcVecTy->getNumElements();
+    unsigned const NumDstVectors = getNumVectorRegs(Dst);
+    unsigned const NumSrcVectors = getNumVectorRegs(Src);
 
     if (Opcode == Instruction::Trunc) {
       if (Src->getScalarSizeInBits() == Dst->getScalarSizeInBits())
@@ -782,11 +782,11 @@ InstructionCost SystemZTTIImpl::getCastInstrCost(unsigned Opcode, Type *Dst,
     if (Opcode == Instruction::ZExt || Opcode == Instruction::SExt) {
       if (SrcScalarBits >= 8) {
         // ZExt/SExt will be handled with one unpack per doubling of width.
-        unsigned NumUnpacks = getElSizeLog2Diff(Src, Dst);
+        unsigned const NumUnpacks = getElSizeLog2Diff(Src, Dst);
 
         // For types that spans multiple vector registers, some additional
         // instructions are used to setup the unpacking.
-        unsigned NumSrcVectorOps =
+        unsigned const NumSrcVectorOps =
           (NumUnpacks > 1 ? (NumDstVectors - NumSrcVectors)
                           : (NumDstVectors / 2));
 
@@ -813,7 +813,7 @@ InstructionCost SystemZTTIImpl::getCastInstrCost(unsigned Opcode, Type *Dst,
       // Return the cost of multiple scalar invocation plus the cost of
       // inserting and extracting the values. Base implementation does not
       // realize float->int gets scalarized.
-      InstructionCost ScalarCost = getCastInstrCost(
+      InstructionCost const ScalarCost = getCastInstrCost(
           Opcode, Dst->getScalarType(), Src->getScalarType(), CCH, CostKind);
       InstructionCost TotCost = VF * ScalarCost;
       bool NeedsInserts = true, NeedsExtracts = true;
@@ -883,7 +883,7 @@ InstructionCost SystemZTTIImpl::getCmpSelInstrCost(unsigned Opcode, Type *ValTy,
     case Instruction::ICmp: {
       // A loaded value compared with 0 with multiple users becomes Load and
       // Test. The load is then not foldable, so return 0 cost for the ICmp.
-      unsigned ScalarBits = ValTy->getScalarSizeInBits();
+      unsigned const ScalarBits = ValTy->getScalarSizeInBits();
       if (I != nullptr && ScalarBits >= 32)
         if (LoadInst *Ld = dyn_cast<LoadInst>(I->getOperand(0)))
           if (const ConstantInt *C = dyn_cast<ConstantInt>(I->getOperand(1)))
@@ -903,7 +903,7 @@ InstructionCost SystemZTTIImpl::getCmpSelInstrCost(unsigned Opcode, Type *ValTy,
     }
   }
   else if (ST->hasVector()) {
-    unsigned VF = cast<FixedVectorType>(ValTy)->getNumElements();
+    unsigned const VF = cast<FixedVectorType>(ValTy)->getNumElements();
 
     // Called with a compare instruction.
     if (Opcode == Instruction::ICmp || Opcode == Instruction::FCmp) {
@@ -931,10 +931,10 @@ InstructionCost SystemZTTIImpl::getCmpSelInstrCost(unsigned Opcode, Type *ValTy,
 
       // Float is handled with 2*vmr[lh]f + 2*vldeb + vfchdb for each pair of
       // floats.  FIXME: <2 x float> generates same code as <4 x float>.
-      unsigned CmpCostPerVector = (ValTy->getScalarType()->isFloatTy() ? 10 : 1);
-      unsigned NumVecs_cmp = getNumVectorRegs(ValTy);
+      unsigned const CmpCostPerVector = (ValTy->getScalarType()->isFloatTy() ? 10 : 1);
+      unsigned const NumVecs_cmp = getNumVectorRegs(ValTy);
 
-      unsigned Cost = (NumVecs_cmp * (CmpCostPerVector + PredicateExtraCost));
+      unsigned const Cost = (NumVecs_cmp * (CmpCostPerVector + PredicateExtraCost));
       return Cost;
     }
     else { // Called with a select instruction.
@@ -982,12 +982,12 @@ isFoldableLoad(const LoadInst *Ld, const Instruction *&FoldedValue) {
     return false;
   FoldedValue = Ld;
   const Instruction *UserI = cast<Instruction>(*Ld->user_begin());
-  unsigned LoadedBits = getScalarSizeInBits(Ld->getType());
+  unsigned const LoadedBits = getScalarSizeInBits(Ld->getType());
   unsigned TruncBits = 0;
   unsigned SExtBits = 0;
   unsigned ZExtBits = 0;
   if (UserI->hasOneUse()) {
-    unsigned UserBits = UserI->getType()->getScalarSizeInBits();
+    unsigned const UserBits = UserI->getType()->getScalarSizeInBits();
     if (isa<TruncInst>(UserI))
       TruncBits = UserBits;
     else if (isa<SExtInst>(UserI))
@@ -1007,7 +1007,7 @@ isFoldableLoad(const LoadInst *Ld, const Instruction *&FoldedValue) {
     return false; // Not commutative, only RHS foldable.
   // LoadOrTruncBits holds the number of effectively loaded bits, but 0 if an
   // extension was made of the load.
-  unsigned LoadOrTruncBits =
+  unsigned const LoadOrTruncBits =
       ((SExtBits || ZExtBits) ? 0 : (TruncBits ? TruncBits : LoadedBits));
   switch (UserI->getOpcode()) {
   case Instruction::Add: // SE: 16->32, 16/32->64, z14:16->64. ZE: 32->64
@@ -1146,10 +1146,10 @@ InstructionCost SystemZTTIImpl::getInterleavedMemoryOpCost(
   assert(isa<VectorType>(VecTy) &&
          "Expect a vector type for interleaved memory op");
 
-  unsigned NumElts = cast<FixedVectorType>(VecTy)->getNumElements();
+  unsigned const NumElts = cast<FixedVectorType>(VecTy)->getNumElements();
   assert(Factor > 1 && NumElts % Factor == 0 && "Invalid interleave factor");
-  unsigned VF = NumElts / Factor;
-  unsigned NumEltsPerVecReg = (128U / getScalarSizeInBits(VecTy));
+  unsigned const VF = NumElts / Factor;
+  unsigned const NumEltsPerVecReg = (128U / getScalarSizeInBits(VecTy));
   unsigned NumVectorMemOps = getNumVectorRegs(VecTy);
   unsigned NumPermutes = 0;
 
@@ -1159,20 +1159,20 @@ InstructionCost SystemZTTIImpl::getInterleavedMemoryOpCost(
     // many of them each value will be in.
     BitVector UsedInsts(NumVectorMemOps, false);
     std::vector<BitVector> ValueVecs(Factor, BitVector(NumVectorMemOps, false));
-    for (unsigned Index : Indices)
+    for (unsigned const Index : Indices)
       for (unsigned Elt = 0; Elt < VF; ++Elt) {
-        unsigned Vec = (Index + Elt * Factor) / NumEltsPerVecReg;
+        unsigned const Vec = (Index + Elt * Factor) / NumEltsPerVecReg;
         UsedInsts.set(Vec);
         ValueVecs[Index].set(Vec);
       }
     NumVectorMemOps = UsedInsts.count();
 
-    for (unsigned Index : Indices) {
+    for (unsigned const Index : Indices) {
       // Estimate that each loaded source vector containing this Index
       // requires one operation, except that vperm can handle two input
       // registers first time for each dst vector.
-      unsigned NumSrcVecs = ValueVecs[Index].count();
-      unsigned NumDstVecs = divideCeil(VF * getScalarSizeInBits(VecTy), 128U);
+      unsigned const NumSrcVecs = ValueVecs[Index].count();
+      unsigned const NumDstVecs = divideCeil(VF * getScalarSizeInBits(VecTy), 128U);
       assert (NumSrcVecs >= NumDstVecs && "Expected at least as many sources");
       NumPermutes += std::max(1U, NumSrcVecs - NumDstVecs);
     }
@@ -1180,8 +1180,8 @@ InstructionCost SystemZTTIImpl::getInterleavedMemoryOpCost(
     // Estimate the permutes for each stored vector as the smaller of the
     // number of elements and the number of source vectors. Subtract one per
     // dst vector for vperm (S.A.).
-    unsigned NumSrcVecs = std::min(NumEltsPerVecReg, Factor);
-    unsigned NumDstVecs = NumVectorMemOps;
+    unsigned const NumSrcVecs = std::min(NumEltsPerVecReg, Factor);
+    unsigned const NumDstVecs = NumVectorMemOps;
     assert (NumSrcVecs > 1 && "Expected at least two source vectors.");
     NumPermutes += (NumDstVecs * NumSrcVecs) - NumDstVecs;
   }

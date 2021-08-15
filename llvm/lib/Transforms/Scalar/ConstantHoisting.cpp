@@ -147,7 +147,7 @@ bool ConstantHoistingLegacyPass::runOnFunction(Function &Fn) {
   LLVM_DEBUG(dbgs() << "********** Begin Constant Hoisting **********\n");
   LLVM_DEBUG(dbgs() << "********** Function: " << Fn.getName() << '\n');
 
-  bool MadeChange =
+  bool const MadeChange =
       Impl.runImpl(Fn, getAnalysis<TargetTransformInfoWrapperPass>().getTTI(Fn),
                    getAnalysis<DominatorTreeWrapperPass>().getDomTree(),
                    ConstHoistWithBlockFrequency
@@ -273,9 +273,9 @@ static void findBestInsertionSet(DominatorTree &DT, BlockFrequencyInfo &BFI,
   InsertPtsMap.reserve(Orders.size() + 1);
   for (auto RIt = Orders.rbegin(); RIt != Orders.rend(); RIt++) {
     BasicBlock *Node = *RIt;
-    bool NodeInBBs = BBs.count(Node);
+    bool const NodeInBBs = BBs.count(Node);
     auto &InsertPts = InsertPtsMap[Node].first;
-    BlockFrequency &InsertPtsFreq = InsertPtsMap[Node].second;
+    BlockFrequency  const&InsertPtsFreq = InsertPtsMap[Node].second;
 
     // Return the optimal insert points in BBs.
     if (Node == Entry) {
@@ -381,7 +381,7 @@ void ConstantHoistingPass::collectConstantCandidates(
   if (Cost > TargetTransformInfo::TCC_Basic) {
     ConstCandMapType::iterator Itr;
     bool Inserted;
-    ConstPtrUnionType Cand = ConstInt;
+    ConstPtrUnionType const Cand = ConstInt;
     std::tie(Itr, Inserted) = ConstCandMap.insert(std::make_pair(Cand, 0));
     if (Inserted) {
       ConstIntCandVec.push_back(ConstantCandidate(ConstInt));
@@ -425,13 +425,13 @@ void ConstantHoistingPass::collectConstantCandidates(
   // usually lowered to a load from constant pool. Such operation is unlikely
   // to be cheaper than compute it by <Base + Offset>, which can be lowered to
   // an ADD instruction or folded into Load/Store instruction.
-  InstructionCost Cost =
+  InstructionCost const Cost =
       TTI->getIntImmCostInst(Instruction::Add, 1, Offset, PtrIntTy,
                              TargetTransformInfo::TCK_SizeAndLatency, Inst);
   ConstCandVecType &ExprCandVec = ConstGEPCandMap[BaseGV];
   ConstCandMapType::iterator Itr;
   bool Inserted;
-  ConstPtrUnionType Cand = ConstExpr;
+  ConstPtrUnionType const Cand = ConstExpr;
   std::tie(Itr, Inserted) = ConstCandMap.insert(std::make_pair(Cand, 0));
   if (Inserted) {
     ExprCandVec.push_back(ConstantCandidate(
@@ -527,15 +527,15 @@ void ConstantHoistingPass::collectConstantCandidates(Function &Fn) {
 // as the value is not in range.
 static Optional<APInt> calculateOffsetDiff(const APInt &V1, const APInt &V2) {
   Optional<APInt> Res = None;
-  unsigned BW = V1.getBitWidth() > V2.getBitWidth() ?
+  unsigned const BW = V1.getBitWidth() > V2.getBitWidth() ?
                 V1.getBitWidth() : V2.getBitWidth();
-  uint64_t LimVal1 = V1.getLimitedValue();
-  uint64_t LimVal2 = V2.getLimitedValue();
+  uint64_t const LimVal1 = V1.getLimitedValue();
+  uint64_t const LimVal2 = V2.getLimitedValue();
 
   if (LimVal1 == ~0ULL || LimVal2 == ~0ULL)
     return Res;
 
-  uint64_t Diff = LimVal1 - LimVal2;
+  uint64_t const Diff = LimVal1 - LimVal2;
   return APInt(BW, Diff, true);
 }
 
@@ -568,7 +568,7 @@ ConstantHoistingPass::maximizeConstantsInRange(ConstCandVecType::iterator S,
                                            ConstCandVecType::iterator &MaxCostItr) {
   unsigned NumUses = 0;
 
-  bool OptForSize = Entry->getParent()->hasOptSize() ||
+  bool const OptForSize = Entry->getParent()->hasOptSize() ||
                     llvm::shouldOptimizeForSize(Entry->getParent(), PSI, BFI,
                                                 PGSOQueryType::IRPass);
   if (!OptForSize || std::distance(S,E) > 100) {
@@ -591,8 +591,8 @@ ConstantHoistingPass::maximizeConstantsInRange(ConstCandVecType::iterator S,
                       << "\n");
 
     for (auto User : ConstCand->Uses) {
-      unsigned Opcode = User.Inst->getOpcode();
-      unsigned OpndIdx = User.OpndIdx;
+      unsigned const Opcode = User.Inst->getOpcode();
+      unsigned const OpndIdx = User.OpndIdx;
       Cost += TTI->getIntImmCostInst(Opcode, OpndIdx, Value, Ty,
                                      TargetTransformInfo::TCK_SizeAndLatency);
       LLVM_DEBUG(dbgs() << "Cost: " << Cost << "\n");
@@ -628,7 +628,7 @@ void ConstantHoistingPass::findAndMakeBaseConstant(
     ConstCandVecType::iterator S, ConstCandVecType::iterator E,
     SmallVectorImpl<consthoist::ConstantInfo> &ConstInfoVec) {
   auto MaxCostItr = S;
-  unsigned NumUses = maximizeConstantsInRange(S, E, MaxCostItr);
+  unsigned const NumUses = maximizeConstantsInRange(S, E, MaxCostItr);
 
   // Don't hoist constants that have only one use.
   if (NumUses <= 1)
@@ -643,7 +643,7 @@ void ConstantHoistingPass::findAndMakeBaseConstant(
 
   // Rebase the constants with respect to the base constant.
   for (auto ConstCand = S; ConstCand != E; ++ConstCand) {
-    APInt Diff = ConstCand->ConstInt->getValue() - ConstInt->getValue();
+    APInt const Diff = ConstCand->ConstInt->getValue() - ConstInt->getValue();
     Constant *Offset = Diff == 0 ? nullptr : ConstantInt::get(Ty, Diff);
     Type *ConstTy =
         ConstCand->ConstExpr ? ConstCand->ConstExpr->getType() : nullptr;
@@ -694,7 +694,7 @@ void ConstantHoistingPass::findBaseConstants(GlobalVariable *BaseGV) {
       }
 
       // Check if the constant is in range of an add with immediate.
-      APInt Diff = CC->ConstInt->getValue() - MinValItr->ConstInt->getValue();
+      APInt const Diff = CC->ConstInt->getValue() - MinValItr->ConstInt->getValue();
       if ((Diff.getBitWidth() <= 64) &&
           TTI->isLegalAddImmediate(Diff.getSExtValue()) &&
           // Check if Diff can be used as offset in addressing mode of the user
@@ -844,10 +844,10 @@ void ConstantHoistingPass::emitBaseConstants(Instruction *Base,
 /// materialization code for derived constants.
 bool ConstantHoistingPass::emitBaseConstants(GlobalVariable *BaseGV) {
   bool MadeChange = false;
-  SmallVectorImpl<consthoist::ConstantInfo> &ConstInfoVec =
+  SmallVectorImpl<consthoist::ConstantInfo>  const&ConstInfoVec =
       BaseGV ? ConstGEPInfoMap[BaseGV] : ConstIntInfoVec;
   for (auto const &ConstInfo : ConstInfoVec) {
-    SetVector<Instruction *> IPSet = findConstantInsertionPoint(ConstInfo);
+    SetVector<Instruction *> const IPSet = findConstantInsertionPoint(ConstInfo);
     // We can have an empty set if the function contains unreachable blocks.
     if (IPSet.empty())
       continue;
@@ -903,7 +903,7 @@ bool ConstantHoistingPass::emitBaseConstants(GlobalVariable *BaseGV) {
       for (auto const &R : ToBeRebased) {
         Constant *Off = std::get<0>(R);
         Type *Ty = std::get<1>(R);
-        ConstantUser U = std::get<2>(R);
+        ConstantUser const U = std::get<2>(R);
         emitBaseConstants(Base, Off, Ty, U);
         ReBasesNum++;
         // Use the same debug location as the last user of the constant.

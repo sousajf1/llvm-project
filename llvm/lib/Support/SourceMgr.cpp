@@ -76,9 +76,9 @@ static std::vector<T> &GetOrCreateOffsetCache(void *&OffsetCache,
 
   // Lazily fill in the offset cache.
   auto *Offsets = new std::vector<T>();
-  size_t Sz = Buffer->getBufferSize();
+  size_t const Sz = Buffer->getBufferSize();
   assert(Sz <= std::numeric_limits<T>::max());
-  StringRef S = Buffer->getBuffer();
+  StringRef const S = Buffer->getBuffer();
   for (size_t N = 0; N < Sz; ++N) {
     if (S[N] == '\n')
       Offsets->push_back(static_cast<T>(N));
@@ -95,7 +95,7 @@ unsigned SourceMgr::SrcBuffer::getLineNumberSpecialized(const char *Ptr) const {
 
   const char *BufStart = Buffer->getBufferStart();
   assert(Ptr >= BufStart && Ptr <= Buffer->getBufferEnd());
-  ptrdiff_t PtrDiff = Ptr - BufStart;
+  ptrdiff_t const PtrDiff = Ptr - BufStart;
   assert(PtrDiff >= 0 &&
          static_cast<size_t>(PtrDiff) <= std::numeric_limits<T>::max());
   T PtrOffset = static_cast<T>(PtrDiff);
@@ -108,7 +108,7 @@ unsigned SourceMgr::SrcBuffer::getLineNumberSpecialized(const char *Ptr) const {
 /// Look up a given \p Ptr in in the buffer, determining which line it came
 /// from.
 unsigned SourceMgr::SrcBuffer::getLineNumber(const char *Ptr) const {
-  size_t Sz = Buffer->getBufferSize();
+  size_t const Sz = Buffer->getBufferSize();
   if (Sz <= std::numeric_limits<uint8_t>::max())
     return getLineNumberSpecialized<uint8_t>(Ptr);
   else if (Sz <= std::numeric_limits<uint16_t>::max())
@@ -144,7 +144,7 @@ const char *SourceMgr::SrcBuffer::getPointerForLineNumberSpecialized(
 /// null if the line number is invalid.
 const char *
 SourceMgr::SrcBuffer::getPointerForLineNumber(unsigned LineNo) const {
-  size_t Sz = Buffer->getBufferSize();
+  size_t const Sz = Buffer->getBufferSize();
   if (Sz <= std::numeric_limits<uint8_t>::max())
     return getPointerForLineNumberSpecialized<uint8_t>(LineNo);
   else if (Sz <= std::numeric_limits<uint16_t>::max())
@@ -163,7 +163,7 @@ SourceMgr::SrcBuffer::SrcBuffer(SourceMgr::SrcBuffer &&Other)
 
 SourceMgr::SrcBuffer::~SrcBuffer() {
   if (OffsetCache) {
-    size_t Sz = Buffer->getBufferSize();
+    size_t const Sz = Buffer->getBufferSize();
     if (Sz <= std::numeric_limits<uint8_t>::max())
       delete static_cast<std::vector<uint8_t> *>(OffsetCache);
     else if (Sz <= std::numeric_limits<uint16_t>::max())
@@ -185,7 +185,7 @@ SourceMgr::getLineAndColumn(SMLoc Loc, unsigned BufferID) const {
   auto &SB = getBufferInfo(BufferID);
   const char *Ptr = Loc.getPointer();
 
-  unsigned LineNo = SB.getLineNumber(Ptr);
+  unsigned const LineNo = SB.getLineNumber(Ptr);
   const char *BufStart = SB.Buffer->getBufferStart();
   size_t NewlineOffs = StringRef(BufStart, Ptr - BufStart).find_last_of("\n\r");
   if (NewlineOffs == StringRef::npos)
@@ -250,7 +250,7 @@ void SourceMgr::PrintIncludeStack(SMLoc IncludeLoc, raw_ostream &OS) const {
   if (IncludeLoc == SMLoc())
     return; // Top of stack.
 
-  unsigned CurBuf = FindBufferContainingLoc(IncludeLoc);
+  unsigned const CurBuf = FindBufferContainingLoc(IncludeLoc);
   assert(CurBuf && "Invalid or unspecified location!");
 
   PrintIncludeStack(getBufferInfo(CurBuf).IncludeLoc, OS);
@@ -270,7 +270,7 @@ SMDiagnostic SourceMgr::GetMessage(SMLoc Loc, SourceMgr::DiagKind Kind,
   StringRef LineStr;
 
   if (Loc.isValid()) {
-    unsigned CurBuf = FindBufferContainingLoc(Loc);
+    unsigned const CurBuf = FindBufferContainingLoc(Loc);
     assert(CurBuf && "Invalid or unspecified location!");
 
     const MemoryBuffer *CurMB = getMemoryBuffer(CurBuf);
@@ -330,7 +330,7 @@ void SourceMgr::PrintMessage(raw_ostream &OS, const SMDiagnostic &Diagnostic,
   }
 
   if (Diagnostic.getLoc().isValid()) {
-    unsigned CurBuf = FindBufferContainingLoc(Diagnostic.getLoc());
+    unsigned const CurBuf = FindBufferContainingLoc(Diagnostic.getLoc());
     assert(CurBuf && "Invalid or unspecified location!");
     PrintIncludeStack(getBufferInfo(CurBuf).IncludeLoc, OS);
   }
@@ -391,7 +391,7 @@ static void buildFixItLine(std::string &CaretLine, std::string &FixItLine,
     if (Fixit.getText().find_first_of("\n\r\t") != StringRef::npos)
       continue;
 
-    SMRange R = Fixit.getRange();
+    SMRange const R = Fixit.getRange();
 
     // If the line doesn't contain any part of the range, then ignore it.
     if (R.Start.getPointer() > LineEnd || R.End.getPointer() < LineStart)
@@ -424,7 +424,7 @@ static void buildFixItLine(std::string &CaretLine, std::string &FixItLine,
            Fixit.getText().size());
 
     // This relies on one byte per column in our fixit hints.
-    unsigned LastColumnModified = HintCol + Fixit.getText().size();
+    unsigned const LastColumnModified = HintCol + Fixit.getText().size();
     if (LastColumnModified > FixItLine.size())
       FixItLine.resize(LastColumnModified, ' ');
 
@@ -447,7 +447,7 @@ static void buildFixItLine(std::string &CaretLine, std::string &FixItLine,
 static void printSourceLine(raw_ostream &S, StringRef LineContents) {
   // Print out the source line one character at a time, so we can expand tabs.
   for (unsigned i = 0, e = LineContents.size(), OutCol = 0; i != e; ++i) {
-    size_t NextTab = LineContents.find('\t', i);
+    size_t const NextTab = LineContents.find('\t', i);
     // If there were no tabs left, print the rest, we are done.
     if (NextTab == StringRef::npos) {
       S << LineContents.drop_front(i);
@@ -472,7 +472,7 @@ static bool isNonASCII(char c) { return c & 0x80; }
 
 void SMDiagnostic::print(const char *ProgName, raw_ostream &OS, bool ShowColors,
                          bool ShowKindLabel) const {
-  ColorMode Mode = ShowColors ? ColorMode::Auto : ColorMode::Disable;
+  ColorMode const Mode = ShowColors ? ColorMode::Auto : ColorMode::Disable;
 
   {
     WithColor S(OS, raw_ostream::SAVEDCOLOR, true, false, Mode);
@@ -526,7 +526,7 @@ void SMDiagnostic::print(const char *ProgName, raw_ostream &OS, bool ShowColors,
     printSourceLine(OS, LineContents);
     return;
   }
-  size_t NumColumns = LineContents.size();
+  size_t const NumColumns = LineContents.size();
 
   // Build the line with the caret and ranges.
   std::string CaretLine(NumColumns + 1, ' ');
@@ -557,7 +557,7 @@ void SMDiagnostic::print(const char *ProgName, raw_ostream &OS, bool ShowColors,
   printSourceLine(OS, LineContents);
 
   {
-    ColorMode Mode = ShowColors ? ColorMode::Auto : ColorMode::Disable;
+    ColorMode const Mode = ShowColors ? ColorMode::Auto : ColorMode::Disable;
     WithColor S(OS, raw_ostream::GREEN, true, false, Mode);
 
     // Print out the caret line, matching tabs in the source line.

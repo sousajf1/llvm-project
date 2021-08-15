@@ -62,7 +62,7 @@ static std::unique_ptr<llvm::MemoryBuffer>
     LLVM_ATTRIBUTE_UNUSED getProcCpuinfoContent() {
   llvm::ErrorOr<std::unique_ptr<llvm::MemoryBuffer>> Text =
       llvm::MemoryBuffer::getFileAsStream("/proc/cpuinfo");
-  if (std::error_code EC = Text.getError()) {
+  if (std::error_code const EC = Text.getError()) {
     llvm::errs() << "Can't read "
                  << "/proc/cpuinfo: " << EC.message() << "\n";
     return nullptr;
@@ -282,7 +282,7 @@ StringRef sys::detail::getHostCPUNameForARM(StringRef ProcCpuinfoContent) {
       if (I.consume_front("CPU part"))
         I.ltrim("\t :").getAsInteger(0, Part);
 
-    unsigned Exynos = (Variant << 12) | Part;
+    unsigned const Exynos = (Variant << 12) | Part;
     switch (Exynos) {
     default:
       // Default by falling through to Exynos M3.
@@ -345,7 +345,7 @@ StringRef sys::detail::getHostCPUNameForS390x(StringRef ProcCpuinfoContent) {
   SmallVector<StringRef, 32> CPUFeatures;
   for (unsigned I = 0, E = Lines.size(); I != E; ++I)
     if (Lines[I].startswith("features")) {
-      size_t Pos = Lines[I].find(':');
+      size_t const Pos = Lines[I].find(':');
       if (Pos != StringRef::npos) {
         Lines[I].drop_front(Pos + 1).split(CPUFeatures, ' ');
         break;
@@ -1085,7 +1085,7 @@ static void getAvailableFeatures(unsigned ECX, unsigned EDX, unsigned MaxLeaf,
   // indicates that the AVX registers will be saved and restored on context
   // switch, then we have full AVX support.
   const unsigned AVXBits = (1 << 27) | (1 << 28);
-  bool HasAVX = ((ECX & AVXBits) == AVXBits) && !getX86XCR0(&EAX, &EDX) &&
+  bool const HasAVX = ((ECX & AVXBits) == AVXBits) && !getX86XCR0(&EAX, &EDX) &&
                 ((EAX & 0x6) == 0x6);
 #if defined(__APPLE__)
   // Darwin lazily saves the AVX512 context on first use: trust that the OS will
@@ -1094,13 +1094,13 @@ static void getAvailableFeatures(unsigned ECX, unsigned EDX, unsigned MaxLeaf,
   bool HasAVX512Save = true;
 #else
   // AVX512 requires additional context to be saved by the OS.
-  bool HasAVX512Save = HasAVX && ((EAX & 0xe0) == 0xe0);
+  bool const HasAVX512Save = HasAVX && ((EAX & 0xe0) == 0xe0);
 #endif
 
   if (HasAVX)
     setFeature(X86::FEATURE_AVX);
 
-  bool HasLeaf7 =
+  bool const HasLeaf7 =
       MaxLeaf >= 0x7 && !getX86CpuIDAndInfoEx(0x7, 0x0, &EAX, &EBX, &ECX, &EDX);
 
   if (HasLeaf7 && ((EBX >> 3) & 1))
@@ -1154,7 +1154,7 @@ static void getAvailableFeatures(unsigned ECX, unsigned EDX, unsigned MaxLeaf,
   if (HasLeaf7 && ((EDX >> 8) & 1) && HasAVX512Save)
     setFeature(X86::FEATURE_AVX512VP2INTERSECT);
 
-  bool HasLeaf7Subleaf1 =
+  bool const HasLeaf7Subleaf1 =
       MaxLeaf >= 7 && !getX86CpuIDAndInfoEx(0x7, 0x1, &EAX, &EBX, &ECX, &EDX);
   if (HasLeaf7Subleaf1 && ((EAX >> 5) & 1) && HasAVX512Save)
     setFeature(X86::FEATURE_AVX512BF16);
@@ -1162,7 +1162,7 @@ static void getAvailableFeatures(unsigned ECX, unsigned EDX, unsigned MaxLeaf,
   unsigned MaxExtLevel;
   getX86CpuIDAndInfo(0x80000000, &MaxExtLevel, &EBX, &ECX, &EDX);
 
-  bool HasExtLeaf1 = MaxExtLevel >= 0x80000001 &&
+  bool const HasExtLeaf1 = MaxExtLevel >= 0x80000001 &&
                      !getX86CpuIDAndInfo(0x80000001, &EAX, &EBX, &ECX, &EDX);
   if (HasExtLeaf1 && ((ECX >> 6) & 1))
     setFeature(X86::FEATURE_SSE4_A);
@@ -1387,7 +1387,7 @@ int computeHostNumPhysicalCores() {
   // mmapped because it appears to have 0 size.
   llvm::ErrorOr<std::unique_ptr<llvm::MemoryBuffer>> Text =
       llvm::MemoryBuffer::getFileAsStream("/proc/cpuinfo");
-  if (std::error_code EC = Text.getError()) {
+  if (std::error_code const EC = Text.getError()) {
     llvm::errs() << "Can't read "
                  << "/proc/cpuinfo: " << EC.message() << "\n";
     return -1;
@@ -1399,8 +1399,8 @@ int computeHostNumPhysicalCores() {
   int CurPhysicalId = -1;
   int CurSiblings = -1;
   int CurCoreId = -1;
-  for (StringRef Line : strs) {
-    std::pair<StringRef, StringRef> Data = Line.split(':');
+  for (StringRef const Line : strs) {
+    std::pair<StringRef, StringRef> const Data = Line.split(':');
     auto Name = Data.first.trim();
     auto Val = Data.second.trim();
     // These fields are available if the kernel is configured with CONFIG_SMP.
@@ -1490,7 +1490,7 @@ static int computeHostNumPhysicalCores() { return -1; }
 #endif
 
 int sys::getHostNumPhysicalCores() {
-  static int NumCores = computeHostNumPhysicalCores();
+  static int const NumCores = computeHostNumPhysicalCores();
   return NumCores;
 }
 
@@ -1526,8 +1526,8 @@ bool sys::getHostCPUFeatures(StringMap<bool> &Features) {
   // If CPUID indicates support for XSAVE, XRESTORE and AVX, and XGETBV
   // indicates that the AVX registers will be saved and restored on context
   // switch, then we have full AVX support.
-  bool HasXSave = ((ECX >> 27) & 1) && !getX86XCR0(&EAX, &EDX);
-  bool HasAVXSave = HasXSave && ((ECX >> 28) & 1) && ((EAX & 0x6) == 0x6);
+  bool const HasXSave = ((ECX >> 27) & 1) && !getX86XCR0(&EAX, &EDX);
+  bool const HasAVXSave = HasXSave && ((ECX >> 28) & 1) && ((EAX & 0x6) == 0x6);
 #if defined(__APPLE__)
   // Darwin lazily saves the AVX512 context on first use: trust that the OS will
   // save the AVX512 context if we use AVX512 instructions, even the bit is not
@@ -1535,11 +1535,11 @@ bool sys::getHostCPUFeatures(StringMap<bool> &Features) {
   bool HasAVX512Save = true;
 #else
   // AVX512 requires additional context to be saved by the OS.
-  bool HasAVX512Save = HasAVXSave && ((EAX & 0xe0) == 0xe0);
+  bool const HasAVX512Save = HasAVXSave && ((EAX & 0xe0) == 0xe0);
 #endif
   // AMX requires additional context to be saved by the OS.
   const unsigned AMXBits = (1 << 17) | (1 << 18);
-  bool HasAMXSave = HasXSave && ((EAX & AMXBits) == AMXBits);
+  bool const HasAMXSave = HasXSave && ((EAX & AMXBits) == AMXBits);
 
   Features["avx"]   = HasAVXSave;
   Features["fma"]   = ((ECX >> 12) & 1) && HasAVXSave;
@@ -1550,7 +1550,7 @@ bool sys::getHostCPUFeatures(StringMap<bool> &Features) {
   unsigned MaxExtLevel;
   getX86CpuIDAndInfo(0x80000000, &MaxExtLevel, &EBX, &ECX, &EDX);
 
-  bool HasExtLeaf1 = MaxExtLevel >= 0x80000001 &&
+  bool const HasExtLeaf1 = MaxExtLevel >= 0x80000001 &&
                      !getX86CpuIDAndInfo(0x80000001, &EAX, &EBX, &ECX, &EDX);
   Features["sahf"]   = HasExtLeaf1 && ((ECX >>  0) & 1);
   Features["lzcnt"]  = HasExtLeaf1 && ((ECX >>  5) & 1);
@@ -1566,12 +1566,12 @@ bool sys::getHostCPUFeatures(StringMap<bool> &Features) {
 
   // Miscellaneous memory related features, detected by
   // using the 0x80000008 leaf of the CPUID instruction
-  bool HasExtLeaf8 = MaxExtLevel >= 0x80000008 &&
+  bool const HasExtLeaf8 = MaxExtLevel >= 0x80000008 &&
                      !getX86CpuIDAndInfo(0x80000008, &EAX, &EBX, &ECX, &EDX);
   Features["clzero"]   = HasExtLeaf8 && ((EBX >> 0) & 1);
   Features["wbnoinvd"] = HasExtLeaf8 && ((EBX >> 9) & 1);
 
-  bool HasLeaf7 =
+  bool const HasLeaf7 =
       MaxLevel >= 7 && !getX86CpuIDAndInfoEx(0x7, 0x0, &EAX, &EBX, &ECX, &EDX);
 
   Features["fsgsbase"]   = HasLeaf7 && ((EBX >>  0) & 1);
@@ -1636,13 +1636,13 @@ bool sys::getHostCPUFeatures(StringMap<bool> &Features) {
   Features["avx512fp16"] = HasLeaf7 && ((EDX >> 23) & 1) && HasAVX512Save;
   Features["amx-tile"]   = HasLeaf7 && ((EDX >> 24) & 1) && HasAMXSave;
   Features["amx-int8"]   = HasLeaf7 && ((EDX >> 25) & 1) && HasAMXSave;
-  bool HasLeaf7Subleaf1 =
+  bool const HasLeaf7Subleaf1 =
       MaxLevel >= 7 && !getX86CpuIDAndInfoEx(0x7, 0x1, &EAX, &EBX, &ECX, &EDX);
   Features["avxvnni"]    = HasLeaf7Subleaf1 && ((EAX >> 4) & 1) && HasAVXSave;
   Features["avx512bf16"] = HasLeaf7Subleaf1 && ((EAX >> 5) & 1) && HasAVX512Save;
   Features["hreset"]     = HasLeaf7Subleaf1 && ((EAX >> 22) & 1);
 
-  bool HasLeafD = MaxLevel >= 0xd &&
+  bool const HasLeafD = MaxLevel >= 0xd &&
                   !getX86CpuIDAndInfoEx(0xd, 0x1, &EAX, &EBX, &ECX, &EDX);
 
   // Only enable XSAVE if OS has enabled support for saving YMM state.
@@ -1650,12 +1650,12 @@ bool sys::getHostCPUFeatures(StringMap<bool> &Features) {
   Features["xsavec"]   = HasLeafD && ((EAX >> 1) & 1) && HasAVXSave;
   Features["xsaves"]   = HasLeafD && ((EAX >> 3) & 1) && HasAVXSave;
 
-  bool HasLeaf14 = MaxLevel >= 0x14 &&
+  bool const HasLeaf14 = MaxLevel >= 0x14 &&
                   !getX86CpuIDAndInfoEx(0x14, 0x0, &EAX, &EBX, &ECX, &EDX);
 
   Features["ptwrite"] = HasLeaf14 && ((EBX >> 4) & 1);
 
-  bool HasLeaf19 =
+  bool const HasLeaf19 =
       MaxLevel >= 0x19 && !getX86CpuIDAndInfo(0x19, &EAX, &EBX, &ECX, &EDX);
   Features["widekl"] = HasLeaf7 && HasLeaf19 && ((EBX >> 2) & 1);
 
@@ -1743,7 +1743,7 @@ bool sys::getHostCPUFeatures(StringMap<bool> &Features) { return false; }
 #endif
 
 std::string sys::getProcessTriple() {
-  std::string TargetTripleString = updateTripleOSVersion(LLVM_HOST_TRIPLE);
+  std::string const TargetTripleString = updateTripleOSVersion(LLVM_HOST_TRIPLE);
   Triple PT(Triple::normalize(TargetTripleString));
 
   if (sizeof(void *) == 8 && PT.isArch32Bit())

@@ -87,7 +87,7 @@ static void TrackDefUses(MachineInstr *MI, RegisterSet &Defs, RegisterSet &Uses,
   for (auto &MO : MI->operands()) {
     if (!MO.isReg())
       continue;
-    Register Reg = MO.getReg();
+    Register const Reg = MO.getReg();
     if (!Reg || Reg == ARM::ITSTATE || Reg == ARM::SP)
       continue;
     if (MO.isUse())
@@ -97,7 +97,7 @@ static void TrackDefUses(MachineInstr *MI, RegisterSet &Defs, RegisterSet &Uses,
   }
 
   auto InsertUsesDefs = [&](RegList &Regs, RegisterSet &UsesDefs) {
-    for (unsigned Reg : Regs)
+    for (unsigned const Reg : Regs)
       for (MCSubRegIterator Subreg(Reg, TRI, /*IncludeSelf=*/true);
            Subreg.isValid(); ++Subreg)
         UsesDefs.insert(*Subreg);
@@ -145,8 +145,8 @@ Thumb2ITBlock::MoveCopyOutOfITBlock(MachineInstr *MI,
          MI->getOperand(1).getSubReg() == 0 &&
          "Sub-register indices still around?");
 
-  Register DstReg = MI->getOperand(0).getReg();
-  Register SrcReg = MI->getOperand(1).getReg();
+  Register const DstReg = MI->getOperand(0).getReg();
+  Register const SrcReg = MI->getOperand(1).getReg();
 
   // First check if it's safe to move it.
   if (Uses.count(DstReg) || Defs.count(SrcReg))
@@ -177,14 +177,14 @@ Thumb2ITBlock::MoveCopyOutOfITBlock(MachineInstr *MI,
   // If not, then there is nothing to be gained by moving the copy.
   MachineBasicBlock::iterator I = MI;
   ++I;
-  MachineBasicBlock::iterator E = MI->getParent()->end();
+  MachineBasicBlock::iterator const E = MI->getParent()->end();
 
   while (I != E && I->isDebugInstr())
     ++I;
 
   if (I != E) {
     Register NPredReg;
-    ARMCC::CondCodes NCC = getITInstrPredicate(*I, NPredReg);
+    ARMCC::CondCodes const NCC = getITInstrPredicate(*I, NPredReg);
     if (NCC == CC || NCC == OCC)
       return true;
   }
@@ -198,9 +198,9 @@ bool Thumb2ITBlock::InsertITInstructions(MachineBasicBlock &MBB) {
 
   while (MBBI != E) {
     MachineInstr *MI = &*MBBI;
-    DebugLoc dl = MI->getDebugLoc();
+    DebugLoc const dl = MI->getDebugLoc();
     Register PredReg;
-    ARMCC::CondCodes CC = getITInstrPredicate(*MI, PredReg);
+    ARMCC::CondCodes const CC = getITInstrPredicate(*MI, PredReg);
     if (CC == ARMCC::AL) {
       ++MBBI;
       continue;
@@ -211,7 +211,7 @@ bool Thumb2ITBlock::InsertITInstructions(MachineBasicBlock &MBB) {
     TrackDefUses(MI, Defs, Uses, TRI);
 
     // Insert an IT instruction.
-    MachineInstrBuilder MIB = BuildMI(MBB, MBBI, dl, TII->get(ARM::t2IT))
+    MachineInstrBuilder const MIB = BuildMI(MBB, MBBI, dl, TII->get(ARM::t2IT))
       .addImm(CC);
 
     // Add implicit use of ITSTATE to IT block instructions.
@@ -219,11 +219,11 @@ bool Thumb2ITBlock::InsertITInstructions(MachineBasicBlock &MBB) {
                                              true/*isImp*/, false/*isKill*/));
 
     MachineInstr *LastITMI = MI;
-    MachineBasicBlock::iterator InsertPos = MIB.getInstr();
+    MachineBasicBlock::iterator const InsertPos = MIB.getInstr();
     ++MBBI;
 
     // Form IT block.
-    ARMCC::CondCodes OCC = ARMCC::getOppositeCondition(CC);
+    ARMCC::CondCodes const OCC = ARMCC::getOppositeCondition(CC);
     unsigned Mask = 0, Pos = 3;
 
     // v8 IT blocks are limited to one conditional op unless -arm-no-restrict-it
@@ -240,7 +240,7 @@ bool Thumb2ITBlock::InsertITInstructions(MachineBasicBlock &MBB) {
         MI = NMI;
 
         Register NPredReg;
-        ARMCC::CondCodes NCC = getITInstrPredicate(*NMI, NPredReg);
+        ARMCC::CondCodes const NCC = getITInstrPredicate(*NMI, NPredReg);
         if (NCC == CC || NCC == OCC) {
           Mask |= ((NCC ^ CC) & 1) << Pos;
           // Add implicit use of ITSTATE.

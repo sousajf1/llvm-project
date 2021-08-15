@@ -144,7 +144,7 @@ bool LTOCodeGenerator::addModule(LTOModule *Mod) {
   assert(&Mod->getModule().getContext() == &Context &&
          "Expected module in same context");
 
-  bool ret = TheLinker->linkInModule(Mod->takeModule());
+  bool const ret = TheLinker->linkInModule(Mod->takeModule());
   setAsmUndefinedRefs(Mod);
 
   // We've just changed the input, so let's make sure we verify it.
@@ -247,10 +247,10 @@ bool LTOCodeGenerator::compileOptimizedToFile(const char **Name) {
 
   auto AddStream =
       [&](size_t Task) -> std::unique_ptr<lto::NativeObjectStream> {
-    StringRef Extension(Config.CGFileType == CGFT_AssemblyFile ? "s" : "o");
+    StringRef const Extension(Config.CGFileType == CGFT_AssemblyFile ? "s" : "o");
 
     int FD;
-    std::error_code EC =
+    std::error_code const EC =
         sys::fs::createTemporaryFile("lto-llvm", Extension, FD, Filename);
     if (EC)
       emitError(EC.message());
@@ -259,7 +259,7 @@ bool LTOCodeGenerator::compileOptimizedToFile(const char **Name) {
         std::make_unique<llvm::raw_fd_ostream>(FD, true));
   };
 
-  bool genResult = compileOptimized(AddStream, 1);
+  bool const genResult = compileOptimized(AddStream, 1);
 
   if (!genResult) {
     sys::fs::remove(Twine(Filename));
@@ -287,7 +287,7 @@ LTOCodeGenerator::compileOptimized() {
   // read .o file into memory buffer
   ErrorOr<std::unique_ptr<MemoryBuffer>> BufferOrErr = MemoryBuffer::getFile(
       name, /*IsText=*/false, /*RequiresNullTerminator=*/false);
-  if (std::error_code EC = BufferOrErr.getError()) {
+  if (std::error_code const EC = BufferOrErr.getError()) {
     emitError(EC.message());
     sys::fs::remove(NativeObjectPath);
     return nullptr;
@@ -322,7 +322,7 @@ bool LTOCodeGenerator::determineTarget() {
     TripleStr = sys::getDefaultTargetTriple();
     MergedModule->setTargetTriple(TripleStr);
   }
-  llvm::Triple Triple(TripleStr);
+  llvm::Triple const Triple(TripleStr);
 
   // create target machine from info for merged modules
   std::string ErrMsg;
@@ -593,7 +593,7 @@ bool LTOCodeGenerator::compileOptimized(lto::AddStreamFn AddStream,
 }
 
 void LTOCodeGenerator::setCodeGenDebugOptions(ArrayRef<StringRef> Options) {
-  for (StringRef Option : Options)
+  for (StringRef const Option : Options)
     CodegenOptions.push_back(Option.str());
 }
 
@@ -606,7 +606,7 @@ void llvm::parseCommandLineOptions(std::vector<std::string> &Options) {
   if (!Options.empty()) {
     // ParseCommandLineOptions() expects argv[0] to be program name.
     std::vector<const char *> CodegenArgv(1, "libLLVMLTO");
-    for (std::string &Arg : Options)
+    for (std::string  const&Arg : Options)
       CodegenArgv.push_back(Arg.c_str());
     cl::ParseCommandLineOptions(CodegenArgv.size(), CodegenArgv.data());
   }

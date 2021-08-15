@@ -165,7 +165,7 @@ void LegacyLegalizerInfo::computeTables() {
         // the vector type is legal, unless there is no such type. In that case,
         // legalize towards a vector type with a smaller number of elements.
         SizeAndActionsVec NumElementsActions;
-        for (SizeAndAction BitsizeAndAction : VectorSpecifiedActions.second) {
+        for (SizeAndAction const BitsizeAndAction : VectorSpecifiedActions.second) {
           assert(BitsizeAndAction.first % ElementSize == 0);
           const uint16_t NumElements = BitsizeAndAction.first / ElementSize;
           NumElementsActions.push_back({NumElements, BitsizeAndAction.second});
@@ -249,9 +249,9 @@ LegacyLegalizerInfo::findAction(const SizeAndActionsVec &Vec, const uint32_t Siz
   auto It = partition_point(
       Vec, [=](const SizeAndAction &A) { return A.first <= Size; });
   assert(It != Vec.begin() && "Does Vec not start with size 1?");
-  int VecIdx = It - Vec.begin() - 1;
+  int const VecIdx = It - Vec.begin() - 1;
 
-  LegacyLegalizeAction Action = Vec[VecIdx].second;
+  LegacyLegalizeAction const Action = Vec[VecIdx].second;
   switch (Action) {
   case Legal:
   case Bitcast:

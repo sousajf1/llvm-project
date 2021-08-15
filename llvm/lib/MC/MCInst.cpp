@@ -57,7 +57,7 @@ bool MCOperand::isBareSymbolRef() const {
   assert(isExpr() &&
          "isBareSymbolRef expects only expressions");
   const MCExpr *Expr = getExpr();
-  MCExpr::ExprKind Kind = getExpr()->getKind();
+  MCExpr::ExprKind const Kind = getExpr()->getKind();
   return Kind == MCExpr::SymbolRef &&
     cast<MCSymbolRefExpr>(Expr)->getKind() == MCSymbolRefExpr::VK_None;
 }
@@ -81,7 +81,7 @@ void MCInst::print(raw_ostream &OS, const MCRegisterInfo *RegInfo) const {
 void MCInst::dump_pretty(raw_ostream &OS, const MCInstPrinter *Printer,
                          StringRef Separator,
                          const MCRegisterInfo *RegInfo) const {
-  StringRef InstName = Printer ? Printer->getOpcodeName(getOpcode()) : "";
+  StringRef const InstName = Printer ? Printer->getOpcodeName(getOpcode()) : "";
   dump_pretty(OS, InstName, Separator, RegInfo);
 }
 

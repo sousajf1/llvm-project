@@ -160,9 +160,9 @@ bool RISCVExpandPseudo::expandAuipcInstPair(
     unsigned SecondOpcode) {
   MachineFunction *MF = MBB.getParent();
   MachineInstr &MI = *MBBI;
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc const DL = MI.getDebugLoc();
 
-  Register DestReg = MI.getOperand(0).getReg();
+  Register const DestReg = MI.getOperand(0).getReg();
   const MachineOperand &Symbol = MI.getOperand(1);
 
   MachineBasicBlock *NewMBB = MF->CreateMachineBasicBlock(MBB.getBasicBlock());
@@ -226,7 +226,7 @@ bool RISCVExpandPseudo::expandLoadTLSIEAddress(
   MachineFunction *MF = MBB.getParent();
 
   const auto &STI = MF->getSubtarget<RISCVSubtarget>();
-  unsigned SecondOpcode = STI.is64Bit() ? RISCV::LD : RISCV::LW;
+  unsigned const SecondOpcode = STI.is64Bit() ? RISCV::LD : RISCV::LW;
   return expandAuipcInstPair(MBB, MBBI, NextMBBI, RISCVII::MO_TLS_GOT_HI,
                              SecondOpcode);
 }
@@ -243,7 +243,7 @@ bool RISCVExpandPseudo::expandVSetVL(MachineBasicBlock &MBB,
   assert(MBBI->getNumExplicitOperands() == 3 && MBBI->getNumOperands() >= 5 &&
          "Unexpected instruction format");
 
-  DebugLoc DL = MBBI->getDebugLoc();
+  DebugLoc const DL = MBBI->getDebugLoc();
 
   assert((MBBI->getOpcode() == RISCV::PseudoVSETVLI ||
           MBBI->getOpcode() == RISCV::PseudoVSETIVLI) &&
@@ -256,8 +256,8 @@ bool RISCVExpandPseudo::expandVSetVL(MachineBasicBlock &MBB,
   const MCInstrDesc &Desc = TII->get(Opcode);
   assert(Desc.getNumOperands() == 3 && "Unexpected instruction format");
 
-  Register DstReg = MBBI->getOperand(0).getReg();
-  bool DstIsDead = MBBI->getOperand(0).isDead();
+  Register const DstReg = MBBI->getOperand(0).getReg();
+  bool const DstIsDead = MBBI->getOperand(0).isDead();
   BuildMI(MBB, MBBI, DL, Desc)
       .addReg(DstReg, RegState::Define | getDeadRegState(DstIsDead))
       .add(MBBI->getOperand(1))  // VL
@@ -270,8 +270,8 @@ bool RISCVExpandPseudo::expandVSetVL(MachineBasicBlock &MBB,
 bool RISCVExpandPseudo::expandVMSET_VMCLR(MachineBasicBlock &MBB,
                                           MachineBasicBlock::iterator MBBI,
                                           unsigned Opcode) {
-  DebugLoc DL = MBBI->getDebugLoc();
-  Register DstReg = MBBI->getOperand(0).getReg();
+  DebugLoc const DL = MBBI->getDebugLoc();
+  Register const DstReg = MBBI->getOperand(0).getReg();
   const MCInstrDesc &Desc = TII->get(Opcode);
   BuildMI(MBB, MBBI, DL, Desc, DstReg)
       .addReg(DstReg, RegState::Undef)
@@ -284,15 +284,15 @@ bool RISCVExpandPseudo::expandVSPILL(MachineBasicBlock &MBB,
                                      MachineBasicBlock::iterator MBBI) {
   const TargetRegisterInfo *TRI =
       MBB.getParent()->getSubtarget().getRegisterInfo();
-  DebugLoc DL = MBBI->getDebugLoc();
-  Register SrcReg = MBBI->getOperand(0).getReg();
-  Register Base = MBBI->getOperand(1).getReg();
-  Register VL = MBBI->getOperand(2).getReg();
+  DebugLoc const DL = MBBI->getDebugLoc();
+  Register const SrcReg = MBBI->getOperand(0).getReg();
+  Register const Base = MBBI->getOperand(1).getReg();
+  Register const VL = MBBI->getOperand(2).getReg();
   auto ZvlssegInfo = TII->isRVVSpillForZvlsseg(MBBI->getOpcode());
   if (!ZvlssegInfo)
     return false;
-  unsigned NF = ZvlssegInfo->first;
-  unsigned LMUL = ZvlssegInfo->second;
+  unsigned const NF = ZvlssegInfo->first;
+  unsigned const LMUL = ZvlssegInfo->second;
   assert(NF * LMUL <= 8 && "Invalid NF/LMUL combinations.");
   unsigned Opcode = RISCV::VS1R_V;
   unsigned SubRegIdx = RISCV::sub_vrm1_0;
@@ -329,15 +329,15 @@ bool RISCVExpandPseudo::expandVRELOAD(MachineBasicBlock &MBB,
                                       MachineBasicBlock::iterator MBBI) {
   const TargetRegisterInfo *TRI =
       MBB.getParent()->getSubtarget().getRegisterInfo();
-  DebugLoc DL = MBBI->getDebugLoc();
-  Register DestReg = MBBI->getOperand(0).getReg();
-  Register Base = MBBI->getOperand(1).getReg();
-  Register VL = MBBI->getOperand(2).getReg();
+  DebugLoc const DL = MBBI->getDebugLoc();
+  Register const DestReg = MBBI->getOperand(0).getReg();
+  Register const Base = MBBI->getOperand(1).getReg();
+  Register const VL = MBBI->getOperand(2).getReg();
   auto ZvlssegInfo = TII->isRVVSpillForZvlsseg(MBBI->getOpcode());
   if (!ZvlssegInfo)
     return false;
-  unsigned NF = ZvlssegInfo->first;
-  unsigned LMUL = ZvlssegInfo->second;
+  unsigned const NF = ZvlssegInfo->first;
+  unsigned const LMUL = ZvlssegInfo->second;
   assert(NF * LMUL <= 8 && "Invalid NF/LMUL combinations.");
   unsigned Opcode = RISCV::VL1RE8_V;
   unsigned SubRegIdx = RISCV::sub_vrm1_0;

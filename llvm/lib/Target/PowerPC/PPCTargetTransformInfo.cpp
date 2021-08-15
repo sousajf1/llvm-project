@@ -66,7 +66,7 @@ PPCTTIImpl::getPopcntSupport(unsigned TyWidth) {
 
 Optional<Instruction *>
 PPCTTIImpl::instCombineIntrinsic(InstCombiner &IC, IntrinsicInst &II) const {
-  Intrinsic::ID IID = II.getIntrinsicID();
+  Intrinsic::ID const IID = II.getIntrinsicID();
   switch (IID) {
   default:
     break;
@@ -174,7 +174,7 @@ InstructionCost PPCTTIImpl::getIntImmCost(const APInt &Imm, Type *Ty,
 
   assert(Ty->isIntegerTy());
 
-  unsigned BitSize = Ty->getPrimitiveSizeInBits();
+  unsigned const BitSize = Ty->getPrimitiveSizeInBits();
   if (BitSize == 0)
     return ~0U;
 
@@ -205,7 +205,7 @@ InstructionCost PPCTTIImpl::getIntImmCostIntrin(Intrinsic::ID IID, unsigned Idx,
 
   assert(Ty->isIntegerTy());
 
-  unsigned BitSize = Ty->getPrimitiveSizeInBits();
+  unsigned const BitSize = Ty->getPrimitiveSizeInBits();
   if (BitSize == 0)
     return ~0U;
 
@@ -241,7 +241,7 @@ InstructionCost PPCTTIImpl::getIntImmCostInst(unsigned Opcode, unsigned Idx,
 
   assert(Ty->isIntegerTy());
 
-  unsigned BitSize = Ty->getPrimitiveSizeInBits();
+  unsigned const BitSize = Ty->getPrimitiveSizeInBits();
   if (BitSize == 0)
     return ~0U;
 
@@ -328,7 +328,7 @@ InstructionCost PPCTTIImpl::getUserCost(const User *U,
 
   if (U->getType()->isVectorTy()) {
     // Instructions that need to be split should cost more.
-    std::pair<InstructionCost, MVT> LT =
+    std::pair<InstructionCost, MVT> const LT =
         TLI->getTypeLegalizationCost(DL, U->getType());
     return LT.first * BaseT::getUserCost(U, Operands, CostKind);
   }
@@ -355,7 +355,7 @@ static bool memAddrUsesCTR(const Value *MemAddr, const PPCTargetMachine &TM,
 
   if (!GV->isThreadLocal())
     return false;
-  TLSModel::Model Model = TM.getTLSModel(GV);
+  TLSModel::Model const Model = TM.getTLSModel(GV);
   return Model == TLSModel::GeneralDynamic || Model == TLSModel::LocalDynamic;
 }
 
@@ -629,7 +629,7 @@ bool PPCTTIImpl::mightUseCTR(BasicBlock *BB, TargetLibraryInfo *LibInfo,
         }
 
         if (Opcode) {
-          EVT EVTy =
+          EVT const EVTy =
               TLI->getValueType(DL, CI->getArgOperand(0)->getType(), true);
 
           if (EVTy == MVT::Other)
@@ -720,7 +720,7 @@ bool PPCTTIImpl::isHardwareLoopProfitable(Loop *L, ScalarEvolution &SE,
   SchedModel.init(ST);
 
   // Do not convert small short loops to CTR loop.
-  unsigned ConstTripCount = SE.getSmallConstantTripCount(L);
+  unsigned const ConstTripCount = SE.getSmallConstantTripCount(L);
   if (ConstTripCount && ConstTripCount < SmallCTRLoopThreshold) {
     SmallPtrSet<const Value *, 32> EphValues;
     CodeMetrics::collectEphemeralValues(L, &AC, EphValues);
@@ -757,7 +757,7 @@ bool PPCTTIImpl::isHardwareLoopProfitable(Loop *L, ScalarEvolution &SE,
 
       // If the exit path is more frequent than the loop path,
       // we return here without further analysis for this loop.
-      bool TrueIsExit = !L->contains(BI->getSuccessor(0));
+      bool const TrueIsExit = !L->contains(BI->getSuccessor(0));
       if (( TrueIsExit && FalseWeight < TrueWeight) ||
           (!TrueIsExit && FalseWeight > TrueWeight))
         return false;
@@ -896,7 +896,7 @@ unsigned PPCTTIImpl::getCacheLineSize() const {
     return CacheLineSize;
 
   // Starting with P7 we have a cache line size of 128.
-  unsigned Directive = ST->getCPUDirective();
+  unsigned const Directive = ST->getCPUDirective();
   // Assume that Future CPU has the same cache line size as the others.
   if (Directive == PPC::DIR_PWR7 || Directive == PPC::DIR_PWR8 ||
       Directive == PPC::DIR_PWR9 || Directive == PPC::DIR_PWR10 ||
@@ -912,7 +912,7 @@ unsigned PPCTTIImpl::getPrefetchDistance() const {
 }
 
 unsigned PPCTTIImpl::getMaxInterleaveFactor(unsigned VF) {
-  unsigned Directive = ST->getCPUDirective();
+  unsigned const Directive = ST->getCPUDirective();
   // The 440 has no SIMD support, but floating-point instructions
   // have a 5-cycle latency, so unroll by 5x for latency hiding.
   if (Directive == PPC::DIR_440)
@@ -951,18 +951,18 @@ InstructionCost PPCTTIImpl::vectorCostAdjustment(InstructionCost Cost,
   if (!ST->vectorsUseTwoUnits() || !Ty1->isVectorTy())
     return Cost;
 
-  std::pair<InstructionCost, MVT> LT1 = TLI->getTypeLegalizationCost(DL, Ty1);
+  std::pair<InstructionCost, MVT> const LT1 = TLI->getTypeLegalizationCost(DL, Ty1);
   // If type legalization involves splitting the vector, we don't want to
   // double the cost at every step - only the last step.
   if (LT1.first != 1 || !LT1.second.isVector())
     return Cost;
 
-  int ISD = TLI->InstructionOpcodeToISD(Opcode);
+  int const ISD = TLI->InstructionOpcodeToISD(Opcode);
   if (TLI->isOperationExpand(ISD, LT1.second))
     return Cost;
 
   if (Ty2) {
-    std::pair<InstructionCost, MVT> LT2 = TLI->getTypeLegalizationCost(DL, Ty2);
+    std::pair<InstructionCost, MVT> const LT2 = TLI->getTypeLegalizationCost(DL, Ty2);
     if (LT2.first != 1 || !LT2.second.isVector())
       return Cost;
   }
@@ -984,7 +984,7 @@ InstructionCost PPCTTIImpl::getArithmeticInstrCost(
                                          Opd2PropInfo, Args, CxtI);
 
   // Fallback to the default implementation.
-  InstructionCost Cost = BaseT::getArithmeticInstrCost(
+  InstructionCost const Cost = BaseT::getArithmeticInstrCost(
       Opcode, Ty, CostKind, Op1Info, Op2Info, Opd1PropInfo, Opd2PropInfo);
   return vectorCostAdjustment(Cost, Opcode, Ty, nullptr);
 }
@@ -993,7 +993,7 @@ InstructionCost PPCTTIImpl::getShuffleCost(TTI::ShuffleKind Kind, Type *Tp,
                                            ArrayRef<int> Mask, int Index,
                                            Type *SubTp) {
   // Legalize the type.
-  std::pair<InstructionCost, MVT> LT = TLI->getTypeLegalizationCost(DL, Tp);
+  std::pair<InstructionCost, MVT> const LT = TLI->getTypeLegalizationCost(DL, Tp);
 
   // PPC, for both Altivec/VSX, support cheap arbitrary permutations
   // (at least in the sense that there need only be one non-loop-invariant
@@ -1046,7 +1046,7 @@ InstructionCost PPCTTIImpl::getVectorInstrCost(unsigned Opcode, Type *Val,
                                                unsigned Index) {
   assert(Val->isVectorTy() && "This must be a vector type");
 
-  int ISD = TLI->InstructionOpcodeToISD(Opcode);
+  int const ISD = TLI->InstructionOpcodeToISD(Opcode);
   assert(ISD && "Invalid opcode");
 
   InstructionCost Cost = BaseT::getVectorInstrCost(Opcode, Val, Index);
@@ -1068,13 +1068,13 @@ InstructionCost PPCTTIImpl::getVectorInstrCost(unsigned Opcode, Type *Val,
         return vectorCostAdjustment(2, Opcode, Val, nullptr);
 
       // It's an extract.  Maybe we can do a cheap move-from VSR.
-      unsigned EltSize = Val->getScalarSizeInBits();
+      unsigned const EltSize = Val->getScalarSizeInBits();
       if (EltSize == 64) {
-        unsigned MfvsrdIndex = ST->isLittleEndian() ? 1 : 0;
+        unsigned const MfvsrdIndex = ST->isLittleEndian() ? 1 : 0;
         if (Index == MfvsrdIndex)
           return 1;
       } else if (EltSize == 32) {
-        unsigned MfvsrwzIndex = ST->isLittleEndian() ? 2 : 1;
+        unsigned const MfvsrwzIndex = ST->isLittleEndian() ? 2 : 1;
         if (Index == MfvsrwzIndex)
           return 1;
       }
@@ -1118,7 +1118,7 @@ InstructionCost PPCTTIImpl::getMemoryOpCost(unsigned Opcode, Type *Src,
     return BaseT::getMemoryOpCost(Opcode, Src, Alignment, AddressSpace,
                                   CostKind);
   // Legalize the type.
-  std::pair<InstructionCost, MVT> LT = TLI->getTypeLegalizationCost(DL, Src);
+  std::pair<InstructionCost, MVT> const LT = TLI->getTypeLegalizationCost(DL, Src);
   assert((Opcode == Instruction::Load || Opcode == Instruction::Store) &&
          "Invalid Opcode");
 
@@ -1130,23 +1130,23 @@ InstructionCost PPCTTIImpl::getMemoryOpCost(unsigned Opcode, Type *Src,
 
   Cost = vectorCostAdjustment(Cost, Opcode, Src, nullptr);
 
-  bool IsAltivecType = ST->hasAltivec() &&
+  bool const IsAltivecType = ST->hasAltivec() &&
                        (LT.second == MVT::v16i8 || LT.second == MVT::v8i16 ||
                         LT.second == MVT::v4i32 || LT.second == MVT::v4f32);
-  bool IsVSXType = ST->hasVSX() &&
+  bool const IsVSXType = ST->hasVSX() &&
                    (LT.second == MVT::v2f64 || LT.second == MVT::v2i64);
 
   // VSX has 32b/64b load instructions. Legalization can handle loading of
   // 32b/64b to VSR correctly and cheaply. But BaseT::getMemoryOpCost and
   // PPCTargetLowering can't compute the cost appropriately. So here we
   // explicitly check this case.
-  unsigned MemBytes = Src->getPrimitiveSizeInBits();
+  unsigned const MemBytes = Src->getPrimitiveSizeInBits();
   if (Opcode == Instruction::Load && ST->hasVSX() && IsAltivecType &&
       (MemBytes == 64 || (ST->hasP8Vector() && MemBytes == 32)))
     return 1;
 
   // Aligned loads and stores are easy.
-  unsigned SrcBytes = LT.second.getStoreSize();
+  unsigned const SrcBytes = LT.second.getStoreSize();
   if (!SrcBytes || !Alignment || *Alignment >= SrcBytes)
     return Cost;
 
@@ -1203,7 +1203,7 @@ InstructionCost PPCTTIImpl::getInterleavedMemoryOpCost(
          "Expect a vector type for interleaved memory op");
 
   // Legalize the type.
-  std::pair<InstructionCost, MVT> LT = TLI->getTypeLegalizationCost(DL, VecTy);
+  std::pair<InstructionCost, MVT> const LT = TLI->getTypeLegalizationCost(DL, VecTy);
 
   // Firstly, the cost of load/store operation.
   InstructionCost Cost = getMemoryOpCost(Opcode, VecTy, MaybeAlign(Alignment),

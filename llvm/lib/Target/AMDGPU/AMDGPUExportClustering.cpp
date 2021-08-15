@@ -32,7 +32,7 @@ static bool isExport(const SUnit &SU) {
 
 static bool isPositionExport(const SIInstrInfo *TII, SUnit *SU) {
   const MachineInstr *MI = SU->getInstr();
-  unsigned Imm = TII->getNamedOperand(*MI, AMDGPU::OpName::tgt)->getImm();
+  unsigned const Imm = TII->getNamedOperand(*MI, AMDGPU::OpName::tgt)->getImm();
   return Imm >= AMDGPU::Exp::ET_POS0 && Imm <= AMDGPU::Exp::ET_POS_LAST;
 }
 
@@ -45,7 +45,7 @@ static void sortChain(const SIInstrInfo *TII, SmallVector<SUnit *, 8> &Chain,
   // for optimal performance.  This moves position exports before
   // other exports while preserving the order within different export
   // types (pos or other).
-  SmallVector<SUnit *, 8> Copy(Chain);
+  SmallVector<SUnit *, 8> const Copy(Chain);
   unsigned PosIdx = 0;
   unsigned OtherIdx = PosCount;
   for (SUnit *SU : Copy) {
@@ -99,9 +99,9 @@ static void removeExportDependencies(ScheduleDAGInstrs *DAG, SUnit &SU) {
     }
   }
 
-  for (SDep Pred : ToRemove)
+  for (SDep const Pred : ToRemove)
     SU.removePred(Pred);
-  for (SDep Pred : ToAdd)
+  for (SDep const Pred : ToAdd)
     DAG->addEdge(&SU, Pred);
 }
 
@@ -125,8 +125,8 @@ void ExportClustering::apply(ScheduleDAGInstrs *DAG) {
 
     removeExportDependencies(DAG, SU);
 
-    SmallVector<SDep, 4> Succs(SU.Succs);
-    for (SDep Succ : Succs)
+    SmallVector<SDep, 4> const Succs(SU.Succs);
+    for (SDep const Succ : Succs)
       removeExportDependencies(DAG, *Succ.getSUnit());
   }
 

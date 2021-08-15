@@ -41,10 +41,10 @@ extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializeAArch64TargetInfo() {
                                  "ARM64 (little endian ILP32)", "AArch64",
                                  [](Triple::ArchType) { return false; }, true);
 
-  RegisterTarget<Triple::aarch64, /*HasJIT=*/true> Z(
+  RegisterTarget<Triple::aarch64, /*HasJIT=*/true> const Z(
       getTheAArch64leTarget(), "aarch64", "AArch64 (little endian)", "AArch64");
-  RegisterTarget<Triple::aarch64_be, /*HasJIT=*/true> W(
+  RegisterTarget<Triple::aarch64_be, /*HasJIT=*/true> const W(
       getTheAArch64beTarget(), "aarch64_be", "AArch64 (big endian)", "AArch64");
-  RegisterTarget<Triple::aarch64_32, /*HasJIT=*/true> X(
+  RegisterTarget<Triple::aarch64_32, /*HasJIT=*/true> const X(
       getTheAArch64_32Target(), "aarch64_32", "AArch64 (little endian ILP32)", "AArch64");
 }

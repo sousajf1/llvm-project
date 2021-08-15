@@ -178,21 +178,21 @@ bool A57ChainingConstraint::addIntraChainConstraint(PBQPRAGraph &G, unsigned Rd,
   const PBQPRAGraph::NodeMetadata::AllowedRegVector *vRaAllowed =
     &G.getNodeMetadata(node2).getAllowedRegs();
 
-  PBQPRAGraph::EdgeId edge = G.findEdge(node1, node2);
+  PBQPRAGraph::EdgeId const edge = G.findEdge(node1, node2);
 
   // The edge does not exist. Create one with the appropriate interference
   // costs.
   if (edge == G.invalidEdgeId()) {
     const LiveInterval &ld = LIs.getInterval(Rd);
     const LiveInterval &la = LIs.getInterval(Ra);
-    bool livesOverlap = ld.overlaps(la);
+    bool const livesOverlap = ld.overlaps(la);
 
     PBQPRAGraph::RawMatrix costs(vRdAllowed->size() + 1,
                                  vRaAllowed->size() + 1, 0);
     for (unsigned i = 0, ie = vRdAllowed->size(); i != ie; ++i) {
-      unsigned pRd = (*vRdAllowed)[i];
+      unsigned const pRd = (*vRdAllowed)[i];
       for (unsigned j = 0, je = vRaAllowed->size(); j != je; ++j) {
-        unsigned pRa = (*vRaAllowed)[j];
+        unsigned const pRa = (*vRaAllowed)[j];
         if (livesOverlap && TRI->regsOverlap(pRd, pRa))
           costs[i + 1][j + 1] = std::numeric_limits<PBQP::PBQPNum>::infinity();
         else
@@ -211,13 +211,13 @@ bool A57ChainingConstraint::addIntraChainConstraint(PBQPRAGraph &G, unsigned Rd,
   // Enforce minCost(sameParity(RaClass)) > maxCost(otherParity(RdClass))
   PBQPRAGraph::RawMatrix costs(G.getEdgeCosts(edge));
   for (unsigned i = 0, ie = vRdAllowed->size(); i != ie; ++i) {
-    unsigned pRd = (*vRdAllowed)[i];
+    unsigned const pRd = (*vRdAllowed)[i];
 
     // Get the maximum cost (excluding unallocatable reg) for same parity
     // registers
     PBQP::PBQPNum sameParityMax = std::numeric_limits<PBQP::PBQPNum>::min();
     for (unsigned j = 0, je = vRaAllowed->size(); j != je; ++j) {
-      unsigned pRa = (*vRaAllowed)[j];
+      unsigned const pRa = (*vRaAllowed)[j];
       if (haveSameParity(pRd, pRa))
         if (costs[i + 1][j + 1] !=
                 std::numeric_limits<PBQP::PBQPNum>::infinity() &&
@@ -228,7 +228,7 @@ bool A57ChainingConstraint::addIntraChainConstraint(PBQPRAGraph &G, unsigned Rd,
     // Ensure all registers with a different parity have a higher cost
     // than sameParityMax
     for (unsigned j = 0, je = vRaAllowed->size(); j != je; ++j) {
-      unsigned pRa = (*vRaAllowed)[j];
+      unsigned const pRa = (*vRaAllowed)[j];
       if (!haveSameParity(pRd, pRa))
         if (sameParityMax > costs[i + 1][j + 1])
           costs[i + 1][j + 1] = sameParityMax + 1.0;
@@ -274,7 +274,7 @@ void A57ChainingConstraint::addInterChainConstraint(PBQPRAGraph &G, unsigned Rd,
       const PBQPRAGraph::NodeMetadata::AllowedRegVector *vRrAllowed =
         &G.getNodeMetadata(node2).getAllowedRegs();
 
-      PBQPRAGraph::EdgeId edge = G.findEdge(node1, node2);
+      PBQPRAGraph::EdgeId const edge = G.findEdge(node1, node2);
       assert(edge != G.invalidEdgeId() &&
              "PBQP error ! The edge should exist !");
 
@@ -288,13 +288,13 @@ void A57ChainingConstraint::addInterChainConstraint(PBQPRAGraph &G, unsigned Rd,
       // Enforce that cost is higher with all other Chains of the same parity
       PBQP::Matrix costs(G.getEdgeCosts(edge));
       for (unsigned i = 0, ie = vRdAllowed->size(); i != ie; ++i) {
-        unsigned pRd = (*vRdAllowed)[i];
+        unsigned const pRd = (*vRdAllowed)[i];
 
         // Get the maximum cost (excluding unallocatable reg) for all other
         // parity registers
         PBQP::PBQPNum sameParityMax = std::numeric_limits<PBQP::PBQPNum>::min();
         for (unsigned j = 0, je = vRrAllowed->size(); j != je; ++j) {
-          unsigned pRa = (*vRrAllowed)[j];
+          unsigned const pRa = (*vRrAllowed)[j];
           if (!haveSameParity(pRd, pRa))
             if (costs[i + 1][j + 1] !=
                     std::numeric_limits<PBQP::PBQPNum>::infinity() &&
@@ -305,7 +305,7 @@ void A57ChainingConstraint::addInterChainConstraint(PBQPRAGraph &G, unsigned Rd,
         // Ensure all registers with same parity have a higher cost
         // than sameParityMax
         for (unsigned j = 0, je = vRrAllowed->size(); j != je; ++j) {
-          unsigned pRa = (*vRrAllowed)[j];
+          unsigned const pRa = (*vRrAllowed)[j];
           if (haveSameParity(pRd, pRa))
             if (sameParityMax > costs[i + 1][j + 1])
               costs[i + 1][j + 1] = sameParityMax + 1.0;
@@ -319,13 +319,13 @@ void A57ChainingConstraint::addInterChainConstraint(PBQPRAGraph &G, unsigned Rd,
 static bool regJustKilledBefore(const LiveIntervals &LIs, unsigned reg,
                                 const MachineInstr &MI) {
   const LiveInterval &LI = LIs.getInterval(reg);
-  SlotIndex SI = LIs.getInstructionIndex(MI);
+  SlotIndex const SI = LIs.getInstructionIndex(MI);
   return LI.expiredAt(SI);
 }
 
 void A57ChainingConstraint::apply(PBQPRAGraph &G) {
   const MachineFunction &MF = G.getMetadata().MF;
-  LiveIntervals &LIs = G.getMetadata().LIS;
+  LiveIntervals  const&LIs = G.getMetadata().LIS;
 
   TRI = MF.getSubtarget().getRegisterInfo();
   LLVM_DEBUG(MF.dump());
@@ -359,8 +359,8 @@ void A57ChainingConstraint::apply(PBQPRAGraph &G) {
       case AArch64::FMADDDrrr:
       case AArch64::FNMSUBDrrr:
       case AArch64::FNMADDDrrr: {
-        Register Rd = MI.getOperand(0).getReg();
-        Register Ra = MI.getOperand(3).getReg();
+        Register const Rd = MI.getOperand(0).getReg();
+        Register const Ra = MI.getOperand(3).getReg();
 
         if (addIntraChainConstraint(G, Rd, Ra))
           addInterChainConstraint(G, Rd, Ra);
@@ -369,7 +369,7 @@ void A57ChainingConstraint::apply(PBQPRAGraph &G) {
 
       case AArch64::FMLAv2f32:
       case AArch64::FMLSv2f32: {
-        Register Rd = MI.getOperand(0).getReg();
+        Register const Rd = MI.getOperand(0).getReg();
         addInterChainConstraint(G, Rd, Rd);
         break;
       }

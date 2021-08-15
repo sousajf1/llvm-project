@@ -82,10 +82,10 @@ namespace llvm {
 
 extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializeARMTarget() {
   // Register the target.
-  RegisterTargetMachine<ARMLETargetMachine> X(getTheARMLETarget());
-  RegisterTargetMachine<ARMLETargetMachine> A(getTheThumbLETarget());
-  RegisterTargetMachine<ARMBETargetMachine> Y(getTheARMBETarget());
-  RegisterTargetMachine<ARMBETargetMachine> B(getTheThumbBETarget());
+  RegisterTargetMachine<ARMLETargetMachine> const X(getTheARMLETarget());
+  RegisterTargetMachine<ARMLETargetMachine> const A(getTheThumbLETarget());
+  RegisterTargetMachine<ARMBETargetMachine> const Y(getTheARMBETarget());
+  RegisterTargetMachine<ARMBETargetMachine> const B(getTheThumbBETarget());
 
   PassRegistry &Registry = *PassRegistry::getPassRegistry();
   initializeGlobalISel(Registry);
@@ -262,10 +262,10 @@ ARMBaseTargetMachine::~ARMBaseTargetMachine() = default;
 
 const ARMSubtarget *
 ARMBaseTargetMachine::getSubtargetImpl(const Function &F) const {
-  Attribute CPUAttr = F.getFnAttribute("target-cpu");
-  Attribute FSAttr = F.getFnAttribute("target-features");
+  Attribute const CPUAttr = F.getFnAttribute("target-cpu");
+  Attribute const FSAttr = F.getFnAttribute("target-features");
 
-  std::string CPU =
+  std::string const CPU =
       CPUAttr.isValid() ? CPUAttr.getValueAsString().str() : TargetCPU;
   std::string FS =
       FSAttr.isValid() ? FSAttr.getValueAsString().str() : TargetFS;
@@ -275,7 +275,7 @@ ARMBaseTargetMachine::getSubtargetImpl(const Function &F) const {
   // function before we can generate a subtarget. We also need to use
   // it as a key for the subtarget since that can be the only difference
   // between two functions.
-  bool SoftFloat = F.getFnAttribute("use-soft-float").getValueAsBool();
+  bool const SoftFloat = F.getFnAttribute("use-soft-float").getValueAsBool();
   // If the soft float attribute is set on the function turn on the soft float
   // subtarget feature.
   if (SoftFloat)
@@ -449,13 +449,13 @@ bool ARMPassConfig::addPreISel() {
     // to look into using the old value for non-thumb1 code of
     // 4095 based on the TargetMachine, but this starts to become
     // tricky when doing code gen per function.
-    bool OnlyOptimizeForSize = (TM->getOptLevel() < CodeGenOpt::Aggressive) &&
+    bool const OnlyOptimizeForSize = (TM->getOptLevel() < CodeGenOpt::Aggressive) &&
                                (EnableGlobalMerge == cl::BOU_UNSET);
     // Merging of extern globals is enabled by default on non-Mach-O as we
     // expect it to be generally either beneficial or harmless. On Mach-O it
     // is disabled as we emit the .subsections_via_symbols directive which
     // means that merging extern globals is not safe.
-    bool MergeExternalByDefault = !TM->getTargetTriple().isOSBinFormatMachO();
+    bool const MergeExternalByDefault = !TM->getTargetTriple().isOSBinFormatMachO();
     addPass(createGlobalMergePass(TM, 127, OnlyOptimizeForSize,
                                   MergeExternalByDefault));
   }

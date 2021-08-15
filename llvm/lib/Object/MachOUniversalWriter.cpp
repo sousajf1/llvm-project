@@ -36,7 +36,7 @@ static uint32_t calculateFileAlignment(const MachOObjectFile &O) {
     if (LC.C.cmd != (Is64Bit ? MachO::LC_SEGMENT_64 : MachO::LC_SEGMENT))
       continue;
     if (O.getHeader().filetype == MachO::MH_OBJECT) {
-      unsigned NumberOfSections =
+      unsigned const NumberOfSections =
           (Is64Bit ? O.getSegment64LoadCommand(LC).nsects
                    : O.getSegmentLoadCommand(LC).nsects);
       P2CurrentAlignment = NumberOfSections ? 2 : P2MinAlignment;
@@ -293,7 +293,7 @@ Error object::writeUniversalBinaryToStream(ArrayRef<Slice> Slices,
   size_t Offset =
       sizeof(MachO::fat_header) + sizeof(MachO::fat_arch) * FatArchList.size();
   for (size_t Index = 0, Size = Slices.size(); Index < Size; ++Index) {
-    MemoryBufferRef BufferRef = Slices[Index].getBinary()->getMemoryBufferRef();
+    MemoryBufferRef const BufferRef = Slices[Index].getBinary()->getMemoryBufferRef();
     assert((Offset <= FatArchList[Index].offset) && "Incorrect slice offset");
     Out.write_zeros(FatArchList[Index].offset - Offset);
     Out.write(BufferRef.getBufferStart(), BufferRef.getBufferSize());

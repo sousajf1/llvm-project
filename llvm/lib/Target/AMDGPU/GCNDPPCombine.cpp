@@ -115,7 +115,7 @@ FunctionPass *llvm::createGCNDPPCombinePass() {
 }
 
 bool GCNDPPCombine::isShrinkable(MachineInstr &MI) const {
-  unsigned Op = MI.getOpcode();
+  unsigned const Op = MI.getOpcode();
   if (!TII->isVOP3(Op)) {
     return false;
   }
@@ -419,7 +419,7 @@ bool GCNDPPCombine::combineDPPMov(MachineInstr &MovMI) const {
 
   auto *BCZOpnd = TII->getNamedOperand(MovMI, AMDGPU::OpName::bound_ctrl);
   assert(BCZOpnd && BCZOpnd->isImm());
-  bool BoundCtrlZero = BCZOpnd->getImm();
+  bool const BoundCtrlZero = BCZOpnd->getImm();
 
   auto *OldOpnd = TII->getNamedOperand(MovMI, AMDGPU::OpName::old);
   auto *SrcOpnd = TII->getNamedOperand(MovMI, AMDGPU::OpName::src0);
@@ -503,7 +503,7 @@ bool GCNDPPCombine::combineDPPMov(MachineInstr &MovMI) const {
 
     auto OrigOp = OrigMI.getOpcode();
     if (OrigOp == AMDGPU::REG_SEQUENCE) {
-      Register FwdReg = OrigMI.getOperand(0).getReg();
+      Register const FwdReg = OrigMI.getOperand(0).getReg();
       unsigned FwdSubReg = 0;
 
       if (execMayBeModifiedBeforeAnyUse(*MRI, FwdReg, OrigMI)) {
@@ -531,7 +531,7 @@ bool GCNDPPCombine::combineDPPMov(MachineInstr &MovMI) const {
       continue;
     }
 
-    bool IsShrinkable = isShrinkable(OrigMI);
+    bool const IsShrinkable = isShrinkable(OrigMI);
     if (!(IsShrinkable || TII->isVOP1(OrigOp) || TII->isVOP2(OrigOp))) {
       LLVM_DEBUG(dbgs() << "  failed: not VOP1/2/3\n");
       break;

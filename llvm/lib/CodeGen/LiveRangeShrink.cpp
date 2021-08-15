@@ -82,8 +82,8 @@ static MachineInstr *FindDominatedInstruction(MachineInstr &New,
     return Old;
   if (Old == nullptr)
     return &New;
-  unsigned OrderOld = M.find(Old)->second;
-  unsigned OrderNew = NewIter->second;
+  unsigned const OrderOld = M.find(Old)->second;
+  unsigned const OrderNew = NewIter->second;
   if (OrderOld != OrderNew)
     return OrderOld < OrderNew ? &New : Old;
   // OrderOld == OrderNew, we need to iterate down from Old to see if it
@@ -109,7 +109,7 @@ bool LiveRangeShrink::runOnMachineFunction(MachineFunction &MF) {
   if (skipFunction(MF.getFunction()))
     return false;
 
-  MachineRegisterInfo &MRI = MF.getRegInfo();
+  MachineRegisterInfo  const&MRI = MF.getRegInfo();
 
   LLVM_DEBUG(dbgs() << "**** Analysing " << MF.getName() << '\n');
 
@@ -135,7 +135,7 @@ bool LiveRangeShrink::runOnMachineFunction(MachineFunction &MF) {
       if (MI.mayStore())
         SawStore = true;
 
-      unsigned CurrentOrder = IOM[&MI];
+      unsigned const CurrentOrder = IOM[&MI];
       unsigned Barrier = 0;
       MachineInstr *BarrierMI = nullptr;
       for (const MachineOperand &MO : MI.operands()) {
@@ -174,7 +174,7 @@ bool LiveRangeShrink::runOnMachineFunction(MachineFunction &MF) {
       for (const MachineOperand &MO : MI.operands()) {
         if (!MO.isReg() || MO.isDead() || MO.isDebug())
           continue;
-        Register Reg = MO.getReg();
+        Register const Reg = MO.getReg();
         // Do not move the instruction if it def/uses a physical register,
         // unless it is a constant physical register or a noreg.
         if (!Register::isVirtualRegister(Reg)) {
@@ -227,7 +227,7 @@ bool LiveRangeShrink::runOnMachineFunction(MachineFunction &MF) {
         // Update the dominator order to be the same as the insertion point.
         // We do this to maintain a non-decreasing order without need to update
         // all instruction orders after the insertion point.
-        unsigned NewOrder = IOM[&*I];
+        unsigned const NewOrder = IOM[&*I];
         IOM[&MI] = NewOrder;
         NumInstrsHoistedToShrinkLiveRange++;
 

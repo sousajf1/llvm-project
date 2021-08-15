@@ -59,6 +59,6 @@ void yaml::BinaryRef::writeAsHex(raw_ostream &OS) const {
     OS.write((const char *)Data.data(), Data.size());
     return;
   }
-  for (uint8_t Byte : Data)
+  for (uint8_t const Byte : Data)
     OS << hexdigit(Byte >> 4) << hexdigit(Byte & 0xf);
 }

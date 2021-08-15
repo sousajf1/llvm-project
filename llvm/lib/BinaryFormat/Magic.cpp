@@ -39,7 +39,7 @@ file_magic llvm::identify_magic(StringRef Magic) {
   case 0x00: {
     // COFF bigobj, CL.exe's LTO object file, or short import library file
     if (startswith(Magic, "\0\0\xFF\xFF")) {
-      size_t MinSize =
+      size_t const MinSize =
           offsetof(COFF::BigObjHeader, UUID) + sizeof(COFF::BigObjMagic);
       if (Magic.size() < MinSize)
         return file_magic::coff_import_library;
@@ -91,9 +91,9 @@ file_magic llvm::identify_magic(StringRef Magic) {
 
   case '\177':
     if (startswith(Magic, "\177ELF") && Magic.size() >= 18) {
-      bool Data2MSB = Magic[5] == 2;
-      unsigned high = Data2MSB ? 16 : 17;
-      unsigned low = Data2MSB ? 17 : 16;
+      bool const Data2MSB = Magic[5] == 2;
+      unsigned const high = Data2MSB ? 16 : 17;
+      unsigned const low = Data2MSB ? 17 : 16;
       if (Magic[high] == 0) {
         switch (Magic[low]) {
         default:
@@ -199,7 +199,7 @@ file_magic llvm::identify_magic(StringRef Magic) {
   case 'M': // Possible MS-DOS stub on Windows PE file, MSF/PDB file or a
             // Minidump file.
     if (startswith(Magic, "MZ") && Magic.size() >= 0x3c + 4) {
-      uint32_t off = read32le(Magic.data() + 0x3c);
+      uint32_t const off = read32le(Magic.data() + 0x3c);
       // PE/COFF file, either EXE or DLL.
       if (Magic.substr(off).startswith(
               StringRef(COFF::PEMagic, sizeof(COFF::PEMagic))))

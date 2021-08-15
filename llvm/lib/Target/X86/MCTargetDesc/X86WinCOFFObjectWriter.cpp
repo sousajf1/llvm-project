@@ -58,7 +58,7 @@ unsigned X86WinCOFFObjectWriter::getRelocType(MCContext &Ctx,
     }
   }
 
-  MCSymbolRefExpr::VariantKind Modifier = Target.isAbsolute() ?
+  MCSymbolRefExpr::VariantKind const Modifier = Target.isAbsolute() ?
     MCSymbolRefExpr::VK_None : Target.getSymA()->getKind();
 
   if (Is64Bit) {

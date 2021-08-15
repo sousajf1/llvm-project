@@ -89,7 +89,7 @@ void BPFMIPeephole::initialize(MachineFunction &MFParm) {
 
 bool BPFMIPeephole::isCopyFrom32Def(MachineInstr *CopyMI)
 {
-  MachineOperand &opnd = CopyMI->getOperand(1);
+  MachineOperand  const&opnd = CopyMI->getOperand(1);
 
   if (!opnd.isReg())
     return false;
@@ -97,7 +97,7 @@ bool BPFMIPeephole::isCopyFrom32Def(MachineInstr *CopyMI)
   // Return false if getting value from a 32bit physical register.
   // Most likely, this physical register is aliased to
   // function call return value or current function parameters.
-  Register Reg = opnd.getReg();
+  Register const Reg = opnd.getReg();
   if (!Register::isVirtualRegister(Reg))
     return false;
 
@@ -114,7 +114,7 @@ bool BPFMIPeephole::isCopyFrom32Def(MachineInstr *CopyMI)
 bool BPFMIPeephole::isPhiFrom32Def(MachineInstr *PhiMI)
 {
   for (unsigned i = 1, e = PhiMI->getNumOperands(); i < e; i += 2) {
-    MachineOperand &opnd = PhiMI->getOperand(i);
+    MachineOperand  const&opnd = PhiMI->getOperand(i);
 
     if (!opnd.isReg())
       return false;
@@ -191,8 +191,8 @@ bool BPFMIPeephole::eliminateZExtSeq(void) {
       //   SRL_ri    rB, rB, 32
       if (MI.getOpcode() == BPF::SRL_ri &&
           MI.getOperand(2).getImm() == 32) {
-        Register DstReg = MI.getOperand(0).getReg();
-        Register ShfReg = MI.getOperand(1).getReg();
+        Register const DstReg = MI.getOperand(0).getReg();
+        Register const ShfReg = MI.getOperand(1).getReg();
         MachineInstr *SllMI = MRI->getVRegDef(ShfReg);
 
         LLVM_DEBUG(dbgs() << "Starting SRL found:");
@@ -216,7 +216,7 @@ bool BPFMIPeephole::eliminateZExtSeq(void) {
         LLVM_DEBUG(dbgs() << "  Type cast Mov found:");
         LLVM_DEBUG(MovMI->dump());
 
-        Register SubReg = MovMI->getOperand(1).getReg();
+        Register const SubReg = MovMI->getOperand(1).getReg();
         if (!isMovFrom32Def(MovMI)) {
           LLVM_DEBUG(dbgs()
                      << "  One ZExt elim sequence failed qualifying elim.\n");
@@ -270,8 +270,8 @@ bool BPFMIPeephole::eliminateZExt(void) {
 
       LLVM_DEBUG(dbgs() << "Removing the MOV_32_64 instruction\n");
 
-      Register dst = MI.getOperand(0).getReg();
-      Register src = MI.getOperand(1).getReg();
+      Register const dst = MI.getOperand(0).getReg();
+      Register const src = MI.getOperand(1).getReg();
 
       // Build a SUBREG_TO_REG instruction.
       BuildMI(MBB, MI, MI.getDebugLoc(), TII->get(BPF::SUBREG_TO_REG), dst)
@@ -357,10 +357,10 @@ bool BPFMIPreEmitPeephole::eliminateRedundantMov(void) {
       //   MOV_rr_32  wA, wA
       // as these two instructions having side effects, zeroing out
       // top 32 bits of rA.
-      unsigned Opcode = MI.getOpcode();
+      unsigned const Opcode = MI.getOpcode();
       if (Opcode == BPF::MOV_rr) {
-        Register dst = MI.getOperand(0).getReg();
-        Register src = MI.getOperand(1).getReg();
+        Register const dst = MI.getOperand(0).getReg();
+        Register const src = MI.getOperand(1).getReg();
 
         if (dst != src)
           continue;
@@ -500,7 +500,7 @@ bool BPFMIPeepholeTruncElim::eliminateTruncSeq(void) {
         if (!DefMI)
           continue;
 
-        int64_t imm = MI.getOperand(2).getImm();
+        int64_t const imm = MI.getOperand(2).getImm();
         if (imm == 0xff)
           TruncSize = 1;
         else if (imm == 0xffff)
@@ -515,7 +515,7 @@ bool BPFMIPeepholeTruncElim::eliminateTruncSeq(void) {
         bool CheckFail = false;
 
         for (unsigned i = 1, e = DefMI->getNumOperands(); i < e; i += 2) {
-          MachineOperand &opnd = DefMI->getOperand(i);
+          MachineOperand  const&opnd = DefMI->getOperand(i);
           if (!opnd.isReg()) {
             CheckFail = true;
             break;

@@ -191,20 +191,20 @@ static bool checkOffsetSize(Value *Offsets, unsigned TargetElemCount) {
   // looking at, or consist of constants that we can check are small enough
   // to fit into the gather type.
   // Thus we check that 0 < value < 2^TargetElemSize.
-  unsigned TargetElemSize = 128 / TargetElemCount;
-  unsigned OffsetElemSize = cast<FixedVectorType>(Offsets->getType())
+  unsigned const TargetElemSize = 128 / TargetElemCount;
+  unsigned const OffsetElemSize = cast<FixedVectorType>(Offsets->getType())
                                 ->getElementType()
                                 ->getScalarSizeInBits();
   if (OffsetElemSize != TargetElemSize || OffsetElemSize != 32) {
     Constant *ConstOff = dyn_cast<Constant>(Offsets);
     if (!ConstOff)
       return false;
-    int64_t TargetElemMaxSize = (1ULL << TargetElemSize);
+    int64_t const TargetElemMaxSize = (1ULL << TargetElemSize);
     auto CheckValueSize = [TargetElemMaxSize](Value *OffsetElem) {
       ConstantInt *OConst = dyn_cast<ConstantInt>(OffsetElem);
       if (!OConst)
         return false;
-      int SExtValue = OConst->getSExtValue();
+      int const SExtValue = OConst->getSExtValue();
       if (SExtValue >= TargetElemMaxSize || SExtValue < 0)
         return false;
       return true;
@@ -272,7 +272,7 @@ Value *MVEGatherScatterLowering::decomposeGEP(Value *&Offsets,
     return nullptr;
   }
   Offsets = GEP->getOperand(1);
-  unsigned OffsetsElemCount =
+  unsigned const OffsetsElemCount =
       cast<FixedVectorType>(Offsets->getType())->getNumElements();
   // Paranoid check whether the number of parallel lanes is the same
   assert(Ty->getNumElements() == OffsetsElemCount);
@@ -376,7 +376,7 @@ MVEGatherScatterLowering::getVarAndConst(Value *Inst, int TypeScale) {
     return ReturnFalse;
 
   // Check that the constant is small enough for an incrementing gather
-  int64_t Immediate = Const.getValue() << TypeScale;
+  int64_t const Immediate = Const.getValue() << TypeScale;
   if (Immediate > 512 || Immediate < -512 || Immediate % 4 != 0)
     return ReturnFalse;
 
@@ -393,7 +393,7 @@ Instruction *MVEGatherScatterLowering::lowerGather(IntrinsicInst *I) {
   // Potentially optimising the addressing modes as we do so.
   auto *Ty = cast<FixedVectorType>(I->getType());
   Value *Ptr = I->getArgOperand(0);
-  Align Alignment = cast<ConstantInt>(I->getArgOperand(1))->getAlignValue();
+  Align const Alignment = cast<ConstantInt>(I->getArgOperand(1))->getAlignValue();
   Value *Mask = I->getArgOperand(2);
   Value *PassThru = I->getArgOperand(3);
 
@@ -570,7 +570,7 @@ Instruction *MVEGatherScatterLowering::lowerScatter(IntrinsicInst *I) {
   // Potentially optimising the addressing modes as we do so.
   Value *Input = I->getArgOperand(0);
   Value *Ptr = I->getArgOperand(1);
-  Align Alignment = cast<ConstantInt>(I->getArgOperand(2))->getAlignValue();
+  Align const Alignment = cast<ConstantInt>(I->getArgOperand(2))->getAlignValue();
   auto *Ty = cast<FixedVectorType>(Input->getType());
 
   if (!isLegalTypeAndAlignment(Ty->getNumElements(), Ty->getScalarSizeInBits(),
@@ -737,8 +737,8 @@ Instruction *MVEGatherScatterLowering::tryCreateIncrementingGatScat(
 
   // The gep was in charge of making sure the offsets are scaled correctly
   // - calculate that factor so it can be applied by hand
-  DataLayout DT = I->getParent()->getParent()->getParent()->getDataLayout();
-  int TypeScale =
+  DataLayout const DT = I->getParent()->getParent()->getParent()->getDataLayout();
+  int const TypeScale =
       computeScale(DT.getTypeSizeInBits(GEP->getOperand(0)->getType()),
                    DT.getTypeSizeInBits(GEP->getType()) /
                        cast<FixedVectorType>(GEP->getType())->getNumElements());
@@ -757,11 +757,11 @@ Instruction *MVEGatherScatterLowering::tryCreateIncrementingGatScat(
   LLVM_DEBUG(dbgs() << "masked gathers/scatters: trying to build incrementing "
                        "non-wb gather/scatter\n");
 
-  std::pair<Value *, int64_t> Add = getVarAndConst(Offsets, TypeScale);
+  std::pair<Value *, int64_t> const Add = getVarAndConst(Offsets, TypeScale);
   if (Add.first == nullptr)
     return nullptr;
   Value *OffsetsIncoming = Add.first;
-  int64_t Immediate = Add.second;
+  int64_t const Immediate = Add.second;
 
   // Make sure the offsets are scaled correctly
   Instruction *ScaledOffsets = BinaryOperator::Create(
@@ -801,23 +801,23 @@ Instruction *MVEGatherScatterLowering::tryCreateIncrementingWBGatScat(
     // one in the gather's gep
     return nullptr;
 
-  unsigned IncrementIndex =
+  unsigned const IncrementIndex =
       Phi->getIncomingBlock(0) == L->getLoopLatch() ? 0 : 1;
   // Look through the phi to the phi increment
   Offsets = Phi->getIncomingValue(IncrementIndex);
 
-  std::pair<Value *, int64_t> Add = getVarAndConst(Offsets, TypeScale);
+  std::pair<Value *, int64_t> const Add = getVarAndConst(Offsets, TypeScale);
   if (Add.first == nullptr)
     return nullptr;
   Value *OffsetsIncoming = Add.first;
-  int64_t Immediate = Add.second;
+  int64_t const Immediate = Add.second;
   if (OffsetsIncoming != Phi)
     // Then the increment we are looking at is not an increment of the
     // induction variable, and we don't want to do a writeback
     return nullptr;
 
   Builder.SetInsertPoint(&Phi->getIncomingBlock(1 - IncrementIndex)->back());
-  unsigned NumElems =
+  unsigned const NumElems =
       cast<FixedVectorType>(OffsetsIncoming->getType())->getNumElements();
 
   // Make sure the offsets are scaled correctly
@@ -878,7 +878,7 @@ void MVEGatherScatterLowering::pushOutAdd(PHINode *&Phi,
   Instruction *NewIndex = BinaryOperator::Create(
       Instruction::Add, Phi->getIncomingValue(StartIndex), OffsSecondOperand,
       "PushedOutAdd", InsertionPoint);
-  unsigned IncrementIndex = StartIndex == 0 ? 1 : 0;
+  unsigned const IncrementIndex = StartIndex == 0 ? 1 : 0;
 
   // Order such that start index comes first (this reduces mov's)
   Phi->addIncoming(NewIndex, Phi->getIncomingBlock(StartIndex));
@@ -927,7 +927,7 @@ static bool hasAllGatScatUsers(Instruction *I) {
   if (I->hasNUses(0)) {
     return false;
   }
-  bool Gatscat = true;
+  bool const Gatscat = true;
   for (User *U : I->users()) {
     if (!isa<Instruction>(U))
       return false;
@@ -935,7 +935,7 @@ static bool hasAllGatScatUsers(Instruction *I) {
         isGatherScatter(dyn_cast<IntrinsicInst>(U))) {
       return Gatscat;
     } else {
-      unsigned OpCode = cast<Instruction>(U)->getOpcode();
+      unsigned const OpCode = cast<Instruction>(U)->getOpcode();
       if ((OpCode == Instruction::Add || OpCode == Instruction::Mul) &&
           hasAllGatScatUsers(cast<Instruction>(U))) {
         continue;
@@ -1093,8 +1093,8 @@ static Value *CheckAndCreateOffsetAdd(Value *X, Value *Y, Value *GEP,
     ConstantInt *Const;
     if ((Const = dyn_cast<ConstantInt>(NonVectorVal)) &&
         VT->getElementType() != NonVectorVal->getType()) {
-      unsigned TargetElemSize = VT->getElementType()->getPrimitiveSizeInBits();
-      uint64_t N = Const->getZExtValue();
+      unsigned const TargetElemSize = VT->getElementType()->getPrimitiveSizeInBits();
+      uint64_t const N = Const->getZExtValue();
       if (N < (unsigned)(1 << (TargetElemSize - 1))) {
         NonVectorVal = Builder.CreateVectorSplat(
             VT->getNumElements(), Builder.getIntN(TargetElemSize, N));
@@ -1130,7 +1130,7 @@ static Value *CheckAndCreateOffsetAdd(Value *X, Value *Y, Value *GEP,
     Constant *ConstY = dyn_cast<Constant>(Y);
     if (!ConstX || !ConstY)
       return nullptr;
-    unsigned TargetElemSize = 128 / XElType->getNumElements();
+    unsigned const TargetElemSize = 128 / XElType->getNumElements();
     for (unsigned i = 0; i < XElType->getNumElements(); i++) {
       ConstantInt *ConstXEl =
           dyn_cast<ConstantInt>(ConstX->getAggregateElement(i));

@@ -78,7 +78,7 @@ class ModuleLinker {
   /// Given a global in the source module, return the global in the
   /// destination module that is being linked to, if any.
   GlobalValue *getLinkedToGlobal(const GlobalValue *SrcGV) {
-    Module &DstM = Mover.getModule();
+    Module  const&DstM = Mover.getModule();
     // If the source has no name it can't link.  If it has local linkage,
     // there is no name match-up going on.
     if (!SrcGV->hasName() || GlobalValue::isLocalLinkage(SrcGV->getLinkage()))
@@ -155,9 +155,9 @@ bool ModuleLinker::computeResultingSelectionKind(StringRef ComdatName,
   Module &DstM = Mover.getModule();
   // The ability to mix Comdat::SelectionKind::Any with
   // Comdat::SelectionKind::Largest is a behavior that comes from COFF.
-  bool DstAnyOrLargest = Dst == Comdat::SelectionKind::Any ||
+  bool const DstAnyOrLargest = Dst == Comdat::SelectionKind::Any ||
                          Dst == Comdat::SelectionKind::Largest;
-  bool SrcAnyOrLargest = Src == Comdat::SelectionKind::Any ||
+  bool const SrcAnyOrLargest = Src == Comdat::SelectionKind::Any ||
                          Src == Comdat::SelectionKind::Largest;
   if (DstAnyOrLargest && SrcAnyOrLargest) {
     if (Dst == Comdat::SelectionKind::Largest ||
@@ -191,8 +191,8 @@ bool ModuleLinker::computeResultingSelectionKind(StringRef ComdatName,
 
     const DataLayout &DstDL = DstM.getDataLayout();
     const DataLayout &SrcDL = SrcM->getDataLayout();
-    uint64_t DstSize = DstDL.getTypeAllocSize(DstGV->getValueType());
-    uint64_t SrcSize = SrcDL.getTypeAllocSize(SrcGV->getValueType());
+    uint64_t const DstSize = DstDL.getTypeAllocSize(DstGV->getValueType());
+    uint64_t const SrcSize = SrcDL.getTypeAllocSize(SrcGV->getValueType());
     if (Result == Comdat::SelectionKind::ExactMatch) {
       if (SrcGV->getInitializer() != DstGV->getInitializer())
         return emitError("Linking COMDATs named '" + ComdatName +
@@ -219,8 +219,8 @@ bool ModuleLinker::getComdatResult(const Comdat *SrcC,
                                    Comdat::SelectionKind &Result,
                                    bool &LinkFromSrc) {
   Module &DstM = Mover.getModule();
-  Comdat::SelectionKind SSK = SrcC->getSelectionKind();
-  StringRef ComdatName = SrcC->getName();
+  Comdat::SelectionKind const SSK = SrcC->getSelectionKind();
+  StringRef const ComdatName = SrcC->getName();
   Module::ComdatSymTabType &ComdatSymTab = DstM.getComdatSymbolTable();
   Module::ComdatSymTabType::iterator DstCI = ComdatSymTab.find(ComdatName);
 
@@ -232,7 +232,7 @@ bool ModuleLinker::getComdatResult(const Comdat *SrcC,
   }
 
   const Comdat *DstC = &DstCI->second;
-  Comdat::SelectionKind DSK = DstC->getSelectionKind();
+  Comdat::SelectionKind const DSK = DstC->getSelectionKind();
   return computeResultingSelectionKind(ComdatName, SSK, DSK, Result,
                                        LinkFromSrc);
 }
@@ -253,8 +253,8 @@ bool ModuleLinker::shouldLinkFromSource(bool &LinkFromSrc,
     return false;
   }
 
-  bool SrcIsDeclaration = Src.isDeclarationForLinker();
-  bool DestIsDeclaration = Dest.isDeclarationForLinker();
+  bool const SrcIsDeclaration = Src.isDeclarationForLinker();
+  bool const DestIsDeclaration = Dest.isDeclarationForLinker();
 
   if (SrcIsDeclaration) {
     // If Src is external or if both Src & Dest are external..  Just link the
@@ -292,8 +292,8 @@ bool ModuleLinker::shouldLinkFromSource(bool &LinkFromSrc,
     }
 
     const DataLayout &DL = Dest.getParent()->getDataLayout();
-    uint64_t DestSize = DL.getTypeAllocSize(Dest.getValueType());
-    uint64_t SrcSize = DL.getTypeAllocSize(Src.getValueType());
+    uint64_t const DestSize = DL.getTypeAllocSize(Dest.getValueType());
+    uint64_t const SrcSize = DL.getTypeAllocSize(Src.getValueType());
     LinkFromSrc = SrcSize > DestSize;
     return false;
   }
@@ -351,19 +351,19 @@ bool ModuleLinker::linkIfNeeded(GlobalValue &GV) {
         SGVar->setConstant(false);
       }
       if (DGVar->hasCommonLinkage() && SGVar->hasCommonLinkage()) {
-        MaybeAlign Align(
+        MaybeAlign const Align(
             std::max(DGVar->getAlignment(), SGVar->getAlignment()));
         SGVar->setAlignment(Align);
         DGVar->setAlignment(Align);
       }
     }
 
-    GlobalValue::VisibilityTypes Visibility =
+    GlobalValue::VisibilityTypes const Visibility =
         getMinVisibility(DGV->getVisibility(), GV.getVisibility());
     DGV->setVisibility(Visibility);
     GV.setVisibility(Visibility);
 
-    GlobalValue::UnnamedAddr UnnamedAddr = GlobalValue::getMinUnnamedAddr(
+    GlobalValue::UnnamedAddr const UnnamedAddr = GlobalValue::getMinUnnamedAddr(
         DGV->getUnnamedAddr(), GV.getUnnamedAddr());
     DGV->setUnnamedAddr(UnnamedAddr);
     GV.setUnnamedAddr(UnnamedAddr);

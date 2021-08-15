@@ -78,7 +78,7 @@ bool WebAssemblyAddMissingPrototypes::runOnModule(Module &M) {
       report_fatal_error(
           "Functions with 'no-prototype' attribute must take varargs: " +
           F.getName());
-    unsigned NumParams = F.getFunctionType()->getNumParams();
+    unsigned const NumParams = F.getFunctionType()->getNumParams();
     if (NumParams != 0) {
       if (!(NumParams == 1 && F.arg_begin()->hasStructRetAttr()))
         report_fatal_error("Functions with 'no-prototype' attribute should "
@@ -89,7 +89,7 @@ bool WebAssemblyAddMissingPrototypes::runOnModule(Module &M) {
     // Create a function prototype based on the first call site (first bitcast)
     // that we find.
     FunctionType *NewType = nullptr;
-    for (Use &U : F.uses()) {
+    for (Use  const&U : F.uses()) {
       LLVM_DEBUG(dbgs() << "prototype-less use: " << F.getName() << "\n");
       LLVM_DEBUG(dbgs() << *U.getUser() << "\n");
       if (auto *BC = dyn_cast<BitCastOperator>(U.getUser())) {
@@ -132,7 +132,7 @@ bool WebAssemblyAddMissingPrototypes::runOnModule(Module &M) {
   for (auto &Pair : Replacements) {
     Function *OldF = Pair.first;
     Function *NewF = Pair.second;
-    std::string Name = std::string(OldF->getName());
+    std::string const Name = std::string(OldF->getName());
     M.getFunctionList().push_back(NewF);
     OldF->replaceAllUsesWith(
         ConstantExpr::getPointerBitCastOrAddrSpaceCast(NewF, OldF->getType()));

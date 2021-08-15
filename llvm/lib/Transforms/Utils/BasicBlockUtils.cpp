@@ -95,7 +95,7 @@ void llvm::DeleteDeadBlocks(ArrayRef <BasicBlock *> BBs, DomTreeUpdater *DTU,
                             bool KeepOneInputPHIs) {
 #ifndef NDEBUG
   // Make sure that all predecessors of each dead block is also dead.
-  SmallPtrSet<BasicBlock *, 4> Dead(BBs.begin(), BBs.end());
+  SmallPtrSet<BasicBlock *, 4> const Dead(BBs.begin(), BBs.end());
   assert(Dead.size() == BBs.size() && "Duplicating blocks?");
   for (auto *BB : Dead)
     for (BasicBlock *Pred : predecessors(BB))
@@ -217,7 +217,7 @@ bool llvm::MergeBlockIntoPredecessor(BasicBlock *BB, DomTreeUpdater *DTU,
   // Begin by getting rid of unneeded PHIs.
   SmallVector<AssertingVH<Value>, 4> IncomingValues;
   if (isa<PHINode>(BB->front())) {
-    for (PHINode &PN : BB->phis())
+    for (PHINode  const&PN : BB->phis())
       if (!isa<PHINode>(PN.getIncomingValue(0)) ||
           cast<PHINode>(PN.getIncomingValue(0))->getParent() != BB)
         IncomingValues.push_back(PN.getIncomingValue(0));
@@ -228,8 +228,8 @@ bool llvm::MergeBlockIntoPredecessor(BasicBlock *BB, DomTreeUpdater *DTU,
   // These dominator edges will be redirected from Pred.
   std::vector<DominatorTree::UpdateType> Updates;
   if (DTU) {
-    SmallPtrSet<BasicBlock *, 2> SuccsOfBB(succ_begin(BB), succ_end(BB));
-    SmallPtrSet<BasicBlock *, 2> SuccsOfPredBB(succ_begin(PredBB),
+    SmallPtrSet<BasicBlock *, 2> const SuccsOfBB(succ_begin(BB), succ_end(BB));
+    SmallPtrSet<BasicBlock *, 2> const SuccsOfPredBB(succ_begin(PredBB),
                                                succ_begin(PredBB));
     Updates.reserve(Updates.size() + 2 * SuccsOfBB.size() + 1);
     // Add insert edges first. Experimentally, for the particular case of two
@@ -358,7 +358,7 @@ static bool removeRedundantDbgInstrsUsingBackwardScan(BasicBlock *BB) {
   SmallDenseSet<DebugVariable> VariableSet;
   for (auto &I : reverse(*BB)) {
     if (DbgValueInst *DVI = dyn_cast<DbgValueInst>(&I)) {
-      DebugVariable Key(DVI->getVariable(),
+      DebugVariable const Key(DVI->getVariable(),
                         DVI->getExpression(),
                         DVI->getDebugLoc()->getInlinedAt());
       auto R = VariableSet.insert(Key);
@@ -406,13 +406,13 @@ static bool removeRedundantDbgInstrsUsingForwardScan(BasicBlock *BB) {
       VariableMap;
   for (auto &I : *BB) {
     if (DbgValueInst *DVI = dyn_cast<DbgValueInst>(&I)) {
-      DebugVariable Key(DVI->getVariable(),
+      DebugVariable const Key(DVI->getVariable(),
                         NoneType(),
                         DVI->getDebugLoc()->getInlinedAt());
       auto VMI = VariableMap.find(Key);
       // Update the map if we found a new value/expression describing the
       // variable, or if the variable wasn't mapped already.
-      SmallVector<Value *, 4> Values(DVI->getValues());
+      SmallVector<Value *, 4> const Values(DVI->getValues());
       if (VMI == VariableMap.end() || VMI->second.first != Values ||
           VMI->second.second != DVI->getExpression()) {
         VariableMap[Key] = {Values, DVI->getExpression()};
@@ -476,7 +476,7 @@ void llvm::ReplaceInstWithInst(BasicBlock::InstListType &BIL,
     I->setDebugLoc(BI->getDebugLoc());
 
   // Insert the new instruction into the basic block...
-  BasicBlock::iterator New = BIL.insert(BI, I);
+  BasicBlock::iterator const New = BIL.insert(BI, I);
 
   // Replace all uses of the old instruction, and delete it.
   ReplaceInstWithValue(BIL, BI, I);
@@ -493,11 +493,11 @@ void llvm::ReplaceInstWithInst(Instruction *From, Instruction *To) {
 BasicBlock *llvm::SplitEdge(BasicBlock *BB, BasicBlock *Succ, DominatorTree *DT,
                             LoopInfo *LI, MemorySSAUpdater *MSSAU,
                             const Twine &BBName) {
-  unsigned SuccNum = GetSuccessorNumber(BB, Succ);
+  unsigned const SuccNum = GetSuccessorNumber(BB, Succ);
 
   Instruction *LatchTerm = BB->getTerminator();
 
-  CriticalEdgeSplittingOptions Options =
+  CriticalEdgeSplittingOptions const Options =
       CriticalEdgeSplittingOptions(DT, LI, MSSAU).setPreserveLCSSA();
 
   if ((isCriticalEdge(LatchTerm, SuccNum, Options.MergeIdenticalEdges))) {
@@ -718,7 +718,7 @@ void llvm::createPHIsForSplitLoopExit(ArrayRef<BasicBlock *> Preds,
 
   // For each PHI in the destination block.
   for (PHINode &PN : DestBB->phis()) {
-    int Idx = PN.getBasicBlockIndex(SplitBB);
+    int const Idx = PN.getBasicBlockIndex(SplitBB);
     assert(Idx >= 0 && "Invalid Block Index");
     Value *V = PN.getIncomingValue(Idx);
 
@@ -770,7 +770,7 @@ static BasicBlock *SplitBlockImpl(BasicBlock *Old, Instruction *SplitPt,
     ++SplitIt;
     assert(SplitIt != SplitPt->getParent()->end());
   }
-  std::string Name = BBName.str();
+  std::string const Name = BBName.str();
   BasicBlock *New = Old->splitBasicBlock(
       SplitIt, Name.empty() ? Old->getName() + ".split" : Name);
 
@@ -783,7 +783,7 @@ static BasicBlock *SplitBlockImpl(BasicBlock *Old, Instruction *SplitPt,
   if (DTU) {
     SmallVector<DominatorTree::UpdateType, 8> Updates;
     // Old dominates New. New node dominates all other nodes dominated by Old.
-    SmallPtrSet<BasicBlock *, 8> UniqueSuccessorsOfOld(succ_begin(New),
+    SmallPtrSet<BasicBlock *, 8> const UniqueSuccessorsOfOld(succ_begin(New),
                                                        succ_end(New));
     Updates.push_back({DominatorTree::Insert, Old, New});
     Updates.reserve(Updates.size() + 2 * UniqueSuccessorsOfOld.size());
@@ -796,7 +796,7 @@ static BasicBlock *SplitBlockImpl(BasicBlock *Old, Instruction *SplitPt,
   } else if (DT)
     // Old dominates New. New node dominates all other nodes dominated by Old.
     if (DomTreeNode *OldNode = DT->getNode(Old)) {
-      std::vector<DomTreeNode *> Children(OldNode->begin(), OldNode->end());
+      std::vector<DomTreeNode *> const Children(OldNode->begin(), OldNode->end());
 
       DomTreeNode *NewNode = DT->addNewBlock(New, Old);
       for (DomTreeNode *I : Children)
@@ -834,7 +834,7 @@ BasicBlock *llvm::splitBlockBefore(BasicBlock *Old, Instruction *SplitPt,
   BasicBlock::iterator SplitIt = SplitPt->getIterator();
   while (isa<PHINode>(SplitIt) || SplitIt->isEHPad())
     ++SplitIt;
-  std::string Name = BBName.str();
+  std::string const Name = BBName.str();
   BasicBlock *New = Old->splitBasicBlock(
       SplitIt, Name.empty() ? Old->getName() + ".split" : Name,
       /* Before=*/true);
@@ -849,7 +849,7 @@ BasicBlock *llvm::splitBlockBefore(BasicBlock *Old, Instruction *SplitPt,
     SmallVector<DominatorTree::UpdateType, 8> DTUpdates;
     // New dominates Old. The predecessor nodes of the Old node dominate
     // New node.
-    SmallPtrSet<BasicBlock *, 8> UniquePredecessorsOfOld(pred_begin(New),
+    SmallPtrSet<BasicBlock *, 8> const UniquePredecessorsOfOld(pred_begin(New),
                                                          pred_end(New));
     DTUpdates.push_back({DominatorTree::Insert, New, Old});
     DTUpdates.reserve(DTUpdates.size() + 2 * UniquePredecessorsOfOld.size());
@@ -889,7 +889,7 @@ static void UpdateAnalysisInformation(BasicBlock *OldBB, BasicBlock *NewBB,
     } else {
       // Split block expects NewBB to have a non-empty set of predecessors.
       SmallVector<DominatorTree::UpdateType, 8> Updates;
-      SmallPtrSet<BasicBlock *, 8> UniquePreds(Preds.begin(), Preds.end());
+      SmallPtrSet<BasicBlock *, 8> const UniquePreds(Preds.begin(), Preds.end());
       Updates.push_back({DominatorTree::Insert, NewBB, OldBB});
       Updates.reserve(Updates.size() + 2 * UniquePreds.size());
       for (auto *UniquePred : UniquePreds) {
@@ -989,7 +989,7 @@ static void UpdatePHINodes(BasicBlock *OrigBB, BasicBlock *NewBB,
                            ArrayRef<BasicBlock *> Preds, BranchInst *BI,
                            bool HasLoopExit) {
   // Otherwise, create a new PHI node in NewBB for each PHI node in OrigBB.
-  SmallPtrSet<BasicBlock *, 16> PredSet(Preds.begin(), Preds.end());
+  SmallPtrSet<BasicBlock *, 16> const PredSet(Preds.begin(), Preds.end());
   for (BasicBlock::iterator I = OrigBB->begin(); isa<PHINode>(I); ) {
     PHINode *PN = cast<PHINode>(I++);
 
@@ -1070,7 +1070,7 @@ SplitBlockPredecessorsImpl(BasicBlock *BB, ArrayRef<BasicBlock *> Preds,
   // Delegate this work to the SplitLandingPadPredecessors.
   if (BB->isLandingPad()) {
     SmallVector<BasicBlock*, 2> NewBBs;
-    std::string NewName = std::string(Suffix) + ".split-lp";
+    std::string const NewName = std::string(Suffix) + ".split-lp";
 
     SplitLandingPadPredecessorsImpl(BB, Preds, Suffix, NewName.c_str(), NewBBs,
                                     DTU, DT, LI, MSSAU, PreserveLCSSA);
@@ -1355,7 +1355,7 @@ SplitBlockAndInsertIfThenImpl(Value *Cond, Instruction *SplitBefore,
   BasicBlock *Head = SplitBefore->getParent();
   BasicBlock *Tail = Head->splitBasicBlock(SplitBefore->getIterator());
   if (DTU) {
-    SmallPtrSet<BasicBlock *, 8> UniqueSuccessorsOfHead(succ_begin(Tail),
+    SmallPtrSet<BasicBlock *, 8> const UniqueSuccessorsOfHead(succ_begin(Tail),
                                                         succ_end(Tail));
     Updates.push_back({DominatorTree::Insert, Head, Tail});
     Updates.reserve(Updates.size() + 2 * UniqueSuccessorsOfHead.size());
@@ -1367,7 +1367,7 @@ SplitBlockAndInsertIfThenImpl(Value *Cond, Instruction *SplitBefore,
   Instruction *HeadOldTerm = Head->getTerminator();
   LLVMContext &C = Head->getContext();
   Instruction *CheckTerm;
-  bool CreateThenBlock = (ThenBlock == nullptr);
+  bool const CreateThenBlock = (ThenBlock == nullptr);
   if (CreateThenBlock) {
     ThenBlock = BasicBlock::Create(C, "", Head->getParent(), Tail);
     if (Unreachable)
@@ -1391,7 +1391,7 @@ SplitBlockAndInsertIfThenImpl(Value *Cond, Instruction *SplitBefore,
     DTU->applyUpdates(Updates);
   else if (DT) {
     if (DomTreeNode *OldNode = DT->getNode(Head)) {
-      std::vector<DomTreeNode *> Children(OldNode->begin(), OldNode->end());
+      std::vector<DomTreeNode *> const Children(OldNode->begin(), OldNode->end());
 
       DomTreeNode *NewNode = DT->addNewBlock(Tail, Head);
       for (DomTreeNode *Child : Children)
@@ -1769,7 +1769,7 @@ BasicBlock *llvm::CreateControlFlowHub(
   reconnectPhis(Outgoing.back(), GuardBlocks.back(), Incoming, FirstGuardBlock);
 
   if (DTU) {
-    int NumGuards = GuardBlocks.size();
+    int const NumGuards = GuardBlocks.size();
     assert((int)Outgoing.size() == NumGuards + 1);
     for (int i = 0; i != NumGuards - 1; ++i) {
       Updates.push_back({DominatorTree::Insert, GuardBlocks[i], Outgoing[i]});

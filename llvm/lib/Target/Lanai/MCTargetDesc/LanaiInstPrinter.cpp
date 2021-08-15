@@ -46,19 +46,19 @@ bool LanaiInstPrinter::printInst(const MCInst *MI, raw_ostream &OS,
 }
 
 static bool usesGivenOffset(const MCInst *MI, int AddOffset) {
-  unsigned AluCode = MI->getOperand(3).getImm();
+  unsigned const AluCode = MI->getOperand(3).getImm();
   return LPAC::encodeLanaiAluCode(AluCode) == LPAC::ADD &&
          (MI->getOperand(2).getImm() == AddOffset ||
           MI->getOperand(2).getImm() == -AddOffset);
 }
 
 static bool isPreIncrementForm(const MCInst *MI, int AddOffset) {
-  unsigned AluCode = MI->getOperand(3).getImm();
+  unsigned const AluCode = MI->getOperand(3).getImm();
   return LPAC::isPreOp(AluCode) && usesGivenOffset(MI, AddOffset);
 }
 
 static bool isPostIncrementForm(const MCInst *MI, int AddOffset) {
-  unsigned AluCode = MI->getOperand(3).getImm();
+  unsigned const AluCode = MI->getOperand(3).getImm();
   return LPAC::isPostOp(AluCode) && usesGivenOffset(MI, AddOffset);
 }
 
@@ -287,7 +287,7 @@ void LanaiInstPrinter::printMemSplsOperand(const MCInst *MI, int OpNo,
 
 void LanaiInstPrinter::printCCOperand(const MCInst *MI, int OpNo,
                                       raw_ostream &OS) {
-  LPCC::CondCode CC =
+  LPCC::CondCode const CC =
       static_cast<LPCC::CondCode>(MI->getOperand(OpNo).getImm());
   // Handle the undefined value here for printing so we don't abort().
   if (CC >= LPCC::UNKNOWN)
@@ -298,7 +298,7 @@ void LanaiInstPrinter::printCCOperand(const MCInst *MI, int OpNo,
 
 void LanaiInstPrinter::printPredicateOperand(const MCInst *MI, unsigned OpNo,
                                              raw_ostream &OS) {
-  LPCC::CondCode CC =
+  LPCC::CondCode const CC =
       static_cast<LPCC::CondCode>(MI->getOperand(OpNo).getImm());
   // Handle the undefined value here for printing so we don't abort().
   if (CC >= LPCC::UNKNOWN)

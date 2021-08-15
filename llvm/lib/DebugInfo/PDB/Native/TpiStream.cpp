@@ -87,7 +87,7 @@ Error TpiStream::reload() {
     BinaryStreamReader HSR(**HS);
 
     // There should be a hash value for every type record, or no hashes at all.
-    uint32_t NumHashValues =
+    uint32_t const NumHashValues =
         Header->HashValueBuffer.Length / sizeof(ulittle32_t);
     if (NumHashValues != getNumTypeRecords() && NumHashValues != 0)
       return make_error<RawError>(
@@ -98,7 +98,7 @@ Error TpiStream::reload() {
       return EC;
 
     HSR.setOffset(Header->IndexOffsetBuffer.Off);
-    uint32_t NumTypeIndexOffsets =
+    uint32_t const NumTypeIndexOffsets =
         Header->IndexOffsetBuffer.Length / sizeof(TypeIndexOffset);
     if (auto EC = HSR.readArray(TypeIndexOffsets, NumTypeIndexOffsets))
       return EC;
@@ -118,7 +118,7 @@ Error TpiStream::reload() {
 }
 
 PdbRaw_TpiVer TpiStream::getTpiVersion() const {
-  uint32_t Value = Header->Version;
+  uint32_t const Value = Header->Version;
   return static_cast<PdbRaw_TpiVer>(Value);
 }
 
@@ -150,9 +150,9 @@ void TpiStream::buildHashMap() {
   HashMap.resize(Header->NumHashBuckets);
 
   TypeIndex TIB{Header->TypeIndexBegin};
-  TypeIndex TIE{Header->TypeIndexEnd};
+  TypeIndex const TIE{Header->TypeIndexEnd};
   while (TIB < TIE) {
-    uint32_t HV = HashValues[TIB.toArrayIndex()];
+    uint32_t const HV = HashValues[TIB.toArrayIndex()];
     HashMap[HV].push_back(TIB++);
   }
 }
@@ -161,13 +161,13 @@ std::vector<TypeIndex> TpiStream::findRecordsByName(StringRef Name) const {
   if (!supportsTypeLookup())
     const_cast<TpiStream*>(this)->buildHashMap();
 
-  uint32_t Bucket = hashStringV1(Name) % Header->NumHashBuckets;
+  uint32_t const Bucket = hashStringV1(Name) % Header->NumHashBuckets;
   if (Bucket > HashMap.size())
     return {};
 
   std::vector<TypeIndex> Result;
-  for (TypeIndex TI : HashMap[Bucket]) {
-    std::string ThisName = computeTypeName(*Types, TI);
+  for (TypeIndex const TI : HashMap[Bucket]) {
+    std::string const ThisName = computeTypeName(*Types, TI);
     if (ThisName == Name)
       Result.push_back(TI);
   }
@@ -181,7 +181,7 @@ TpiStream::findFullDeclForForwardRef(TypeIndex ForwardRefTI) const {
   if (!supportsTypeLookup())
     const_cast<TpiStream*>(this)->buildHashMap();
 
-  CVType F = Types->getType(ForwardRefTI);
+  CVType const F = Types->getType(ForwardRefTI);
   if (!isUdtForwardRef(F))
     return ForwardRefTI;
 
@@ -189,10 +189,10 @@ TpiStream::findFullDeclForForwardRef(TypeIndex ForwardRefTI) const {
   if (!ForwardTRH)
     return ForwardTRH.takeError();
 
-  uint32_t BucketIdx = ForwardTRH->FullRecordHash % Header->NumHashBuckets;
+  uint32_t const BucketIdx = ForwardTRH->FullRecordHash % Header->NumHashBuckets;
 
   for (TypeIndex TI : HashMap[BucketIdx]) {
-    CVType CVT = Types->getType(TI);
+    CVType const CVT = Types->getType(TI);
     if (CVT.kind() != F.kind())
       continue;
 
@@ -201,8 +201,8 @@ TpiStream::findFullDeclForForwardRef(TypeIndex ForwardRefTI) const {
       return FullTRH.takeError();
     if (ForwardTRH->FullRecordHash != FullTRH->FullRecordHash)
       continue;
-    TagRecord &ForwardTR = ForwardTRH->getRecord();
-    TagRecord &FullTR = FullTRH->getRecord();
+    TagRecord  const&ForwardTR = ForwardTRH->getRecord();
+    TagRecord  const&FullTR = FullTRH->getRecord();
 
     if (!ForwardTR.hasUniqueName()) {
       if (ForwardTR.getName() == FullTR.getName())

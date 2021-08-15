@@ -94,9 +94,9 @@ static void addIncomingValuesToPHIs(MachineBasicBlock *Successor,
     // This is a really ugly-looking loop, but it was pillaged directly from
     // MachineBasicBlock::transferSuccessorsAndUpdatePHIs().
     for (unsigned i = 2, e = MI.getNumOperands() + 1; i != e; i += 2) {
-      MachineOperand &MO = MI.getOperand(i);
+      MachineOperand  const&MO = MI.getOperand(i);
       if (MO.getMBB() == OrigMBB) {
-        MachineInstrBuilder MIB(*MI.getParent()->getParent(), &MI);
+        MachineInstrBuilder const MIB(*MI.getParent()->getParent(), &MI);
         MIB.addReg(MI.getOperand(i - 1).getReg()).addMBB(NewMBB);
         break;
       }
@@ -153,14 +153,14 @@ static bool splitMBB(BlockSplitInfo &BSI) {
   }
 
   const PPCInstrInfo *TII = MF->getSubtarget<PPCSubtarget>().getInstrInfo();
-  unsigned OrigBROpcode = BSI.OrigBranch->getOpcode();
-  unsigned InvertedOpcode =
+  unsigned const OrigBROpcode = BSI.OrigBranch->getOpcode();
+  unsigned const InvertedOpcode =
       OrigBROpcode == PPC::BC
           ? PPC::BCn
           : OrigBROpcode == PPC::BCn
                 ? PPC::BC
                 : OrigBROpcode == PPC::BCLR ? PPC::BCLRn : PPC::BCLR;
-  unsigned NewBROpcode = BSI.InvertNewBranch ? InvertedOpcode : OrigBROpcode;
+  unsigned const NewBROpcode = BSI.InvertNewBranch ? InvertedOpcode : OrigBROpcode;
   MachineBasicBlock *OrigTarget = BSI.OrigBranch->getOperand(1).getMBB();
   MachineBasicBlock *OrigFallThrough = OrigTarget == *ThisMBB->succ_begin()
                                            ? *ThisMBB->succ_rbegin()
@@ -196,7 +196,7 @@ static bool splitMBB(BlockSplitInfo &BSI) {
   }
 
   // Create a new basic block.
-  MachineBasicBlock::iterator InsertPoint = BSI.SplitBefore;
+  MachineBasicBlock::iterator const InsertPoint = BSI.SplitBefore;
   const BasicBlock *LLVM_BB = ThisMBB->getBasicBlock();
   MachineFunction::iterator It = ThisMBB->getIterator();
   MachineBasicBlock *NewMBB = MF->CreateMachineBasicBlock(LLVM_BB);
@@ -388,7 +388,7 @@ private:
   bool handleCROp(unsigned Idx);
   bool splitBlockOnBinaryCROp(CRLogicalOpInfo &CRI);
   static bool isCRLogical(MachineInstr &MI) {
-    unsigned Opc = MI.getOpcode();
+    unsigned const Opc = MI.getOpcode();
     return Opc == PPC::CRAND || Opc == PPC::CRNAND || Opc == PPC::CROR ||
       Opc == PPC::CRXOR || Opc == PPC::CRNOR || Opc == PPC::CREQV ||
       Opc == PPC::CRANDC || Opc == PPC::CRORC || Opc == PPC::CRSET ||
@@ -497,7 +497,7 @@ PPCReduceCRLogicals::createCRLogicalOpInfo(MachineInstr &MIParam) {
   // Get the uses
   for (MachineInstr &UseMI :
        MRI->use_nodbg_instructions(MIParam.getOperand(0).getReg())) {
-    unsigned Opc = UseMI.getOpcode();
+    unsigned const Opc = UseMI.getOpcode();
     if (Opc == PPC::ISEL || Opc == PPC::ISEL8)
       Ret.FeedsISEL = 1;
     if (Opc == PPC::BC || Opc == PPC::BCn || Opc == PPC::BCLR ||
@@ -542,7 +542,7 @@ MachineInstr *PPCReduceCRLogicals::lookThroughCRCopy(unsigned Reg,
   CpDef = Copy;
   if (!Copy->isCopy())
     return Copy;
-  Register CopySrc = Copy->getOperand(1).getReg();
+  Register const CopySrc = Copy->getOperand(1).getReg();
   Subreg = Copy->getOperand(1).getSubReg();
   if (!Register::isVirtualRegister(CopySrc)) {
     const TargetRegisterInfo *TRI = &TII->getRegisterInfo();
@@ -636,7 +636,7 @@ bool PPCReduceCRLogicals::splitBlockOnBinaryCROp(CRLogicalOpInfo &CRI) {
     return false;
   }
   LLVM_DEBUG(dbgs() << "Splitting the following CR op:\n"; CRI.dump());
-  MachineBasicBlock::iterator Def1It = CRI.TrueDefs.first;
+  MachineBasicBlock::iterator const Def1It = CRI.TrueDefs.first;
   MachineBasicBlock::iterator Def2It = CRI.TrueDefs.second;
 
   bool UsingDef1 = false;
@@ -663,9 +663,9 @@ bool PPCReduceCRLogicals::splitBlockOnBinaryCROp(CRLogicalOpInfo &CRI) {
   // will split before the CR logical.
   MachineBasicBlock *MBB = SplitBefore->getParent();
   auto FirstTerminator = MBB->getFirstTerminator();
-  MachineBasicBlock::iterator FirstInstrToMove =
+  MachineBasicBlock::iterator const FirstInstrToMove =
     UsingDef1 ? CRI.TrueDefs.first : CRI.TrueDefs.second;
-  MachineBasicBlock::iterator SecondInstrToMove =
+  MachineBasicBlock::iterator const SecondInstrToMove =
     UsingDef1 ? CRI.CopyDefs.first : CRI.CopyDefs.second;
 
   // The instructions that need to be moved are not guaranteed to be
@@ -677,7 +677,7 @@ bool PPCReduceCRLogicals::splitBlockOnBinaryCROp(CRLogicalOpInfo &CRI) {
     MBB->splice(FirstTerminator, MBB, SecondInstrToMove);
   MBB->splice(FirstTerminator, MBB, CRI.MI);
 
-  unsigned Opc = CRI.MI->getOpcode();
+  unsigned const Opc = CRI.MI->getOpcode();
   bool InvertOrigBranch, InvertNewBranch, TargetIsFallThrough;
   computeBranchTargetAndInversion(Opc, Branch->getOpcode(), UsingDef1,
                                   InvertNewBranch, InvertOrigBranch,
@@ -692,13 +692,13 @@ bool PPCReduceCRLogicals::splitBlockOnBinaryCROp(CRLogicalOpInfo &CRI) {
   BlockSplitInfo BSI { Branch, SplitBefore, SplitCond, InvertNewBranch,
     InvertOrigBranch, TargetIsFallThrough, MBPI, CRI.MI,
     UsingDef1 ? CRI.CopyDefs.first : CRI.CopyDefs.second };
-  bool Changed = splitMBB(BSI);
+  bool const Changed = splitMBB(BSI);
   // If we've split on a CR logical that is fed by a CR logical,
   // recompute the source CR logical as it may be usable for splitting.
   if (Changed) {
-    bool Input1CRlogical =
+    bool const Input1CRlogical =
       CRI.TrueDefs.first && isCRLogical(*CRI.TrueDefs.first);
-    bool Input2CRlogical =
+    bool const Input2CRlogical =
       CRI.TrueDefs.second && isCRLogical(*CRI.TrueDefs.second);
     if (Input1CRlogical)
       AllCRLogicalOps.push_back(createCRLogicalOpInfo(*CRI.TrueDefs.first));

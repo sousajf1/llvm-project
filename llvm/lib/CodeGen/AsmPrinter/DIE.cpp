@@ -429,7 +429,7 @@ void DIEInteger::emitValue(const AsmPrinter *Asm, dwarf::Form Form) const {
 ///
 unsigned DIEInteger::SizeOf(const AsmPrinter *AP, dwarf::Form Form) const {
   assert(AP && "AsmPrinter is required to set FormParams");
-  dwarf::FormParams Params = {AP->getDwarfVersion(),
+  dwarf::FormParams const Params = {AP->getDwarfVersion(),
                               uint8_t(AP->getPointerSize()),
                               AP->OutStreamer->getContext().getDwarfFormat()};
 
@@ -492,7 +492,7 @@ void DIEExpr::print(raw_ostream &O) const { O << "Expr: " << *Expr; }
 /// EmitValue - Emit label value.
 ///
 void DIELabel::emitValue(const AsmPrinter *AP, dwarf::Form Form) const {
-  bool IsSectionRelative = Form != dwarf::DW_FORM_addr;
+  bool const IsSectionRelative = Form != dwarf::DW_FORM_addr;
   AP->emitLabelReference(Label, SizeOf(AP, Form), IsSectionRelative);
 }
 
@@ -522,7 +522,7 @@ void DIELabel::print(raw_ostream &O) const { O << "Lbl: " << Label->getName(); }
 //===----------------------------------------------------------------------===//
 
 void DIEBaseTypeRef::emitValue(const AsmPrinter *AP, dwarf::Form Form) const {
-  uint64_t Offset = CU->ExprRefedBaseTypes[Index].Die->getOffset();
+  uint64_t const Offset = CU->ExprRefedBaseTypes[Index].Die->getOffset();
   assert(Offset < (1ULL << (ULEB128PadSize * 7)) && "Offset wont fit");
   AP->emitULEB128(Offset, nullptr, ULEB128PadSize);
 }
@@ -662,7 +662,7 @@ void DIEEntry::emitValue(const AsmPrinter *AP, dwarf::Form Form) const {
 
   case dwarf::DW_FORM_ref_addr: {
     // Get the absolute offset for this DIE within the debug info/types section.
-    uint64_t Addr = Entry->getDebugSectionOffset();
+    uint64_t const Addr = Entry->getDebugSectionOffset();
     if (const MCSymbol *SectionSym =
             Entry->getUnit()->getCrossSectionRelativeBaseAddress()) {
       AP->emitLabelPlusOffset(SectionSym, Addr, SizeOf(AP, Form), true);

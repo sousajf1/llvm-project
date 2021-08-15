@@ -171,7 +171,7 @@ bool RegBankSelect::repairReg(
     // sequence.
     assert(ValMapping.partsAllUniform() && "irregular breakdowns not supported");
 
-    LLT RegTy = MRI->getType(MO.getReg());
+    LLT const RegTy = MRI->getType(MO.getReg());
     if (MO.isDef()) {
       unsigned MergeOp;
       if (RegTy.isVector()) {
@@ -194,14 +194,14 @@ bool RegBankSelect::repairReg(
         MIRBuilder.buildInstrNoInsert(MergeOp)
         .addDef(MO.getReg());
 
-      for (Register SrcReg : NewVRegs)
+      for (Register const SrcReg : NewVRegs)
         MergeBuilder.addUse(SrcReg);
 
       MI = MergeBuilder;
     } else {
-      MachineInstrBuilder UnMergeBuilder =
+      MachineInstrBuilder const UnMergeBuilder =
         MIRBuilder.buildInstrNoInsert(TargetOpcode::G_UNMERGE_VALUES);
-      for (Register DefReg : NewVRegs)
+      for (Register const DefReg : NewVRegs)
         UnMergeBuilder.addDef(DefReg);
 
       UnMergeBuilder.addUse(MO.getReg());
@@ -215,7 +215,7 @@ bool RegBankSelect::repairReg(
   // TODO:
   // Check if MI is legal. if not, we need to legalize all the
   // instructions we are going to insert.
-  std::unique_ptr<MachineInstr *[]> NewInstrs(
+  std::unique_ptr<MachineInstr *[]> const NewInstrs(
       new MachineInstr *[RepairPt.getNumInsertPoints()]);
   bool IsFirst = true;
   unsigned Idx = 0;
@@ -240,7 +240,7 @@ uint64_t RegBankSelect::getRepairCost(
   assert(MO.isReg() && "We should only repair register operand");
   assert(ValMapping.NumBreakDowns && "Nothing to map??");
 
-  bool IsSameNumOfValues = ValMapping.NumBreakDowns == 1;
+  bool const IsSameNumOfValues = ValMapping.NumBreakDowns == 1;
   const RegisterBank *CurRegBank = RBI->getRegBank(MO.getReg(), *MRI, *TRI);
   // If MO does not have a register bank, we should have just been
   // able to set one unless we have to break the value down.
@@ -276,7 +276,7 @@ uint64_t RegBankSelect::getRepairCost(
     // into a new virtual register.
     // We would also need to propagate this information in the
     // repairing placement.
-    unsigned Cost = RBI->copyCost(*DesiredRegBank, *CurRegBank,
+    unsigned const Cost = RBI->copyCost(*DesiredRegBank, *CurRegBank,
                                   RBI->getSizeInBits(MO.getReg(), *MRI, *TRI));
     // TODO: use a dedicated constant for ImpossibleCost.
     if (Cost != std::numeric_limits<unsigned>::max())
@@ -297,7 +297,7 @@ const RegisterBankInfo::InstructionMapping &RegBankSelect::findBestMapping(
   SmallVector<RepairingPlacement, 4> LocalRepairPts;
   for (const RegisterBankInfo::InstructionMapping *CurMapping :
        PossibleMappings) {
-    MappingCost CurCost =
+    MappingCost const CurCost =
         computeMapping(MI, *CurMapping, LocalRepairPts, &Cost);
     if (CurCost < Cost) {
       LLVM_DEBUG(dbgs() << "New best: " << CurCost << '\n');
@@ -398,7 +398,7 @@ void RegBankSelect::tryAvoidingSplit(
   //   repairing.
 
   // Check if this is a physical or virtual register.
-  Register Reg = MO.getReg();
+  Register const Reg = MO.getReg();
   if (Register::isPhysicalRegister(Reg)) {
     // We are going to split every outgoing edges.
     // Check that this is possible.
@@ -469,7 +469,7 @@ RegBankSelect::MappingCost RegBankSelect::computeMapping(
     const MachineOperand &MO = MI.getOperand(OpIdx);
     if (!MO.isReg())
       continue;
-    Register Reg = MO.getReg();
+    Register const Reg = MO.getReg();
     if (!Reg)
       continue;
     LLVM_DEBUG(dbgs() << "Opd" << OpIdx << '\n');
@@ -524,7 +524,7 @@ RegBankSelect::MappingCost RegBankSelect::computeMapping(
     // choice based on the next use of MO.
 
     // Sums up the repairing cost of MO at each insertion point.
-    uint64_t RepairCost = getRepairCost(MO, ValMapping);
+    uint64_t const RepairCost = getRepairCost(MO, ValMapping);
 
     // This is an impossible to repair cost.
     if (RepairCost == std::numeric_limits<unsigned>::max())
@@ -532,7 +532,7 @@ RegBankSelect::MappingCost RegBankSelect::computeMapping(
 
     // Bias used for splitting: 5%.
     const uint64_t PercentageForBias = 5;
-    uint64_t Bias = (RepairCost * PercentageForBias + 99) / 100;
+    uint64_t const Bias = (RepairCost * PercentageForBias + 99) / 100;
     // We should not need more than a couple of instructions to repair
     // an assignment. In other words, the computation should not
     // overflow because the repairing cost is free of basic block
@@ -553,7 +553,7 @@ RegBankSelect::MappingCost RegBankSelect::computeMapping(
         assert(CostForInsertPt + Bias > CostForInsertPt &&
                "Repairing + split bias overflows");
         CostForInsertPt += Bias;
-        uint64_t PtCost = InsertPt->frequency(*this) * CostForInsertPt;
+        uint64_t const PtCost = InsertPt->frequency(*this) * CostForInsertPt;
         // Check if we just overflowed.
         if ((Saturated = PtCost < CostForInsertPt))
           Cost.saturate();
@@ -591,11 +591,11 @@ bool RegBankSelect::applyMapping(
       return false;
     assert(RepairPt.getKind() != RepairingPlacement::None &&
            "This should not make its way in the list");
-    unsigned OpIdx = RepairPt.getOpIdx();
+    unsigned const OpIdx = RepairPt.getOpIdx();
     MachineOperand &MO = MI.getOperand(OpIdx);
     const RegisterBankInfo::ValueMapping &ValMapping =
         InstrMapping.getOperandMapping(OpIdx);
-    Register Reg = MO.getReg();
+    Register const Reg = MO.getReg();
 
     switch (RepairPt.getKind()) {
     case RepairingPlacement::Reassign:
@@ -623,7 +623,7 @@ bool RegBankSelect::applyMapping(
 bool RegBankSelect::assignInstr(MachineInstr &MI) {
   LLVM_DEBUG(dbgs() << "Assign: " << MI);
 
-  unsigned Opc = MI.getOpcode();
+  unsigned const Opc = MI.getOpcode();
   if (isPreISelGenericOptimizationHint(Opc)) {
     assert((Opc == TargetOpcode::G_ASSERT_ZEXT ||
             Opc == TargetOpcode::G_ASSERT_SEXT) &&
@@ -645,7 +645,7 @@ bool RegBankSelect::assignInstr(MachineInstr &MI) {
   const RegisterBankInfo::InstructionMapping *BestMapping;
   if (OptMode == RegBankSelect::Mode::Fast) {
     BestMapping = &RBI->getInstrMapping(MI);
-    MappingCost DefaultCost = computeMapping(MI, *BestMapping, RepairPts);
+    MappingCost const DefaultCost = computeMapping(MI, *BestMapping, RepairPts);
     (void)DefaultCost;
     if (DefaultCost == MappingCost::ImpossibleCost())
       return false;
@@ -674,7 +674,7 @@ bool RegBankSelect::runOnMachineFunction(MachineFunction &MF) {
 
   LLVM_DEBUG(dbgs() << "Assign register banks for: " << MF.getName() << '\n');
   const Function &F = MF.getFunction();
-  Mode SaveOptMode = OptMode;
+  Mode const SaveOptMode = OptMode;
   if (F.hasOptNone())
     OptMode = Mode::Fast;
   init(MF);
@@ -694,7 +694,7 @@ bool RegBankSelect::runOnMachineFunction(MachineFunction &MF) {
   // Walk the function and assign register banks to all operands.
   // Use a RPOT to make sure all registers are assigned before we choose
   // the best mapping of the current instruction.
-  ReversePostOrderTraversal<MachineFunction*> RPOT(&MF);
+  ReversePostOrderTraversal<MachineFunction*> const RPOT(&MF);
   for (MachineBasicBlock *MBB : RPOT) {
     // Set a sensible insertion point so that subsequent calls to
     // MIRBuilder.
@@ -763,7 +763,7 @@ RegBankSelect::RepairingPlacement::RepairingPlacement(
     return;
 
   // Repairings for definitions happen after MI, uses happen before.
-  bool Before = !MO.isDef();
+  bool const Before = !MO.isDef();
 
   // Check if we are done with MI.
   if (!MI.isPHI() && !MI.isTerminator()) {
@@ -789,7 +789,7 @@ RegBankSelect::RepairingPlacement::RepairingPlacement(
     MachineBasicBlock &Pred = *MI.getOperand(OpIdx + 1).getMBB();
     // Check if we can move the insertion point prior to the
     // terminators of the predecessor.
-    Register Reg = MO.getReg();
+    Register const Reg = MO.getReg();
     MachineBasicBlock::iterator It = Pred.getLastNonDebugInstr();
     for (auto Begin = Pred.begin(); It != Begin && It->isTerminator(); --It)
       if (It->modifiesRegister(Reg, &TRI)) {

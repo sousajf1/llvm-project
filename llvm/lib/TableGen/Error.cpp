@@ -31,7 +31,7 @@ static void PrintMessage(ArrayRef<SMLoc> Loc, SourceMgr::DiagKind Kind,
   if (Kind == SourceMgr::DK_Error)
     ++ErrorsPrinted;
 
-  SMLoc NullLoc;
+  SMLoc const NullLoc;
   if (Loc.empty())
     Loc = NullLoc;
   SrcMgr.PrintMessage(Loc.front(), Kind, Msg);

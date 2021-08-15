@@ -96,9 +96,9 @@ static unsigned getXCoreSectionFlags(SectionKind K, bool IsCPRel) {
 
 MCSection *XCoreTargetObjectFile::getExplicitSectionGlobal(
     const GlobalObject *GO, SectionKind Kind, const TargetMachine &TM) const {
-  StringRef SectionName = GO->getSection();
+  StringRef const SectionName = GO->getSection();
   // Infer section flags from the section name if we can.
-  bool IsCPRel = SectionName.startswith(".cp.");
+  bool const IsCPRel = SectionName.startswith(".cp.");
   if (IsCPRel && !Kind.isReadOnly())
     report_fatal_error("Using .cp. section for writeable object.");
   return getContext().getELFSection(SectionName, getXCoreSectionType(Kind),
@@ -108,7 +108,7 @@ MCSection *XCoreTargetObjectFile::getExplicitSectionGlobal(
 MCSection *XCoreTargetObjectFile::SelectSectionForGlobal(
     const GlobalObject *GO, SectionKind Kind, const TargetMachine &TM) const {
 
-  bool UseCPRel = GO->hasLocalLinkage();
+  bool const UseCPRel = GO->hasLocalLinkage();
 
   if (Kind.isText())                    return TextSection;
   if (UseCPRel) {

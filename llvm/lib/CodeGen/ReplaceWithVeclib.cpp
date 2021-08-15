@@ -70,7 +70,7 @@ static bool replaceWithTLIFunction(CallInst &CI, const StringRef TLIName) {
   // Replace the call to the vector intrinsic with a call
   // to the corresponding function from the vector library.
   IRBuilder<> IRBuilder(&CI);
-  SmallVector<Value *> Args(CI.arg_operands());
+  SmallVector<Value *> const Args(CI.arg_operands());
   // Preserve the operand bundles.
   SmallVector<OperandBundleDef, 1> OpBundles;
   CI.getOperandBundlesAsDefs(OpBundles);
@@ -121,7 +121,7 @@ static bool replaceWithCallToVeclib(const TargetLibraryInfo &TLI,
         // the replacement.
         return false;
       }
-      ElementCount NumElements = VectorArgTy->getElementCount();
+      ElementCount const NumElements = VectorArgTy->getElementCount();
       if (NumElements.isScalable()) {
         // The current implementation does not support
         // scalable vectors.

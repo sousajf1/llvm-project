@@ -102,7 +102,7 @@ void DetailedRecordsEmitter::printRecords(raw_ostream &OS) {
 
   for (const auto &RecPair : RecordList) {
     auto *const Rec = RecPair.second.get();
-    std::string Name = Rec->getNameInitAsString();
+    std::string const Name = Rec->getNameInitAsString();
     OS << formatv("\n{0}  |{1}|\n", Name.empty() ? "\"\"" : Name,
                   SrcMgr.getFormattedLocationNoOffset(Rec->getLoc().front()));
     printDefms(Rec, OS);
@@ -135,7 +135,7 @@ void DetailedRecordsEmitter::printDefms(Record *Rec, raw_ostream &OS) {
 // Print the template arguments of a class.
 void DetailedRecordsEmitter::printTemplateArgs(Record *Rec,
                                                raw_ostream &OS) {
-  ArrayRef<Init *> Args = Rec->getTemplateArgs();
+  ArrayRef<Init *> const Args = Rec->getTemplateArgs();
   if (Args.empty()) {
     OS << "  Template args: (none)\n";
     return;
@@ -155,7 +155,7 @@ void DetailedRecordsEmitter::printTemplateArgs(Record *Rec,
 // Print the superclasses of a class or record. Indirect superclasses
 // are enclosed in parentheses.
 void DetailedRecordsEmitter::printSuperclasses(Record *Rec, raw_ostream &OS) {
-  ArrayRef<std::pair<Record *, SMRange>> Superclasses = Rec->getSuperClasses();
+  ArrayRef<std::pair<Record *, SMRange>> const Superclasses = Rec->getSuperClasses();
   if (Superclasses.empty()) {
     OS << "  Superclasses: (none)\n";
     return;

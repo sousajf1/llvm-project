@@ -55,11 +55,11 @@ static bool fuseInstructionPair(ScheduleDAGInstrs &DAG, SUnit &FirstSU,
                                 SUnit &SecondSU) {
   // Check that neither instr is already paired with another along the edge
   // between them.
-  for (SDep &SI : FirstSU.Succs)
+  for (SDep  const&SI : FirstSU.Succs)
     if (SI.isCluster())
       return false;
 
-  for (SDep &SI : SecondSU.Preds)
+  for (SDep  const&SI : SecondSU.Preds)
     if (SI.isCluster())
       return false;
   // Though the reachability checks above could be made more generic,
@@ -175,7 +175,7 @@ bool MacroFusion::scheduleAdjacentImpl(ScheduleDAGInstrs &DAG, SUnit &AnchorSU) 
     return false;
 
   // Explorer for fusion candidates among the dependencies of the anchor instr.
-  for (SDep &Dep : AnchorSU.Preds) {
+  for (SDep  const&Dep : AnchorSU.Preds) {
     // Ignore dependencies other than data or strong ordering.
     if (Dep.isWeak() || isHazard(Dep))
       continue;

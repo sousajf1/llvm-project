@@ -150,7 +150,7 @@ void OutlinableRegion::splitCandidate() {
   //                          inst3
   //                          inst4
 
-  std::string OriginalName = PrevBB->getName().str();
+  std::string const OriginalName = PrevBB->getName().str();
 
   StartBB = PrevBB->splitBasicBlock(StartInst, OriginalName + "_to_outline");
 
@@ -261,7 +261,7 @@ InstructionCost OutlinableRegion::getBenefit(TargetTransformInfo &TTI) {
   // division instruction for targets that have a native division instruction.
   // To be overly conservative, we only add 1 to the number of instructions for
   // each division instruction.
-  for (Instruction &I : *StartBB) {
+  for (Instruction  const&I : *StartBB) {
     switch (I.getOpcode()) {
     case Instruction::FDiv:
     case Instruction::FRem:
@@ -296,7 +296,7 @@ collectRegionsConstants(OutlinableRegion &Region,
   bool ConstantsTheSame = true;
 
   IRSimilarityCandidate &C = *Region.Candidate;
-  for (IRInstructionData &ID : C) {
+  for (IRInstructionData  const&ID : C) {
 
     // Iterate over the operands in an instruction. If the global value number,
     // assigned by the IRSimilarityCandidate, has been seen before, we check if
@@ -304,7 +304,7 @@ collectRegionsConstants(OutlinableRegion &Region,
     for (Value *V : ID.OperVals) {
       Optional<unsigned> GVNOpt = C.getGVN(V);
       assert(GVNOpt.hasValue() && "Expected a GVN for operand?");
-      unsigned GVN = GVNOpt.getValue();
+      unsigned const GVN = GVNOpt.getValue();
 
       // Check if this global value has been found to not be the same already.
       if (NotSame.contains(GVN)) {
@@ -398,7 +398,7 @@ Function *IROutliner::createFunction(Module &M, OutlinableGroup &Group,
     DICompileUnit *CU = SP->getUnit();
     DIBuilder DB(M, true, CU);
     DIFile *Unit = SP->getFile();
-    Mangler Mg;
+    Mangler const Mg;
     // Get the mangled name of the function for the linkage name.
     std::string Dummy;
     llvm::raw_string_ostream MangledNameStream(Dummy);
@@ -499,7 +499,7 @@ static void findConstants(IRSimilarityCandidate &C, DenseSet<unsigned> &NotSame,
     for (Value *V : (*IDIt).OperVals) {
       // Since these are stored before any outlining, they will be in the
       // global value numbering.
-      unsigned GVN = C.getGVN(V).getValue();
+      unsigned const GVN = C.getGVN(V).getValue();
       if (isa<Constant>(V))
         if (NotSame.contains(GVN) && !Seen.contains(GVN)) {
           Inputs.push_back(GVN);
@@ -599,7 +599,7 @@ static void getCodeExtractorArguments(
   CE->findInputsOutputs(OverallInputs, DummyOutputs, SinkCands);
   assert(Region.StartBB && "Region must have a start BasicBlock!");
   Function *OrigF = Region.StartBB->getParent();
-  CodeExtractorAnalysisCache CEAC(*OrigF);
+  CodeExtractorAnalysisCache const CEAC(*OrigF);
   BasicBlock *Dummy = nullptr;
 
   // The region may be ineligible due to VarArgs in the parent function. In this
@@ -664,7 +664,7 @@ findExtractedInputToOverallInputMapping(OutlinableRegion &Region,
   // function to account for the extracted constants, we have two different
   // counters as we find extracted arguments, and as we come across overall
   // arguments.
-  for (unsigned InputVal : InputGVNs) {
+  for (unsigned const InputVal : InputGVNs) {
     Optional<Value *> InputOpt = C.fromGVN(InputVal);
     assert(InputOpt.hasValue() && "Global value number not found?");
     Value *Input = InputOpt.getValue();
@@ -743,8 +743,8 @@ findExtractedOutputToOverallOutputMapping(OutlinableRegion &Region,
     // do not have to be in same order, but are functionally the same, we will
     // have to use a different scheme, as one-to-one correspondence is not
     // guaranteed.
-    unsigned GlobalValue = C.getGVN(Output).getValue();
-    unsigned ArgumentSize = Group.ArgumentTypes.size();
+    unsigned const GlobalValue = C.getGVN(Output).getValue();
+    unsigned const ArgumentSize = Group.ArgumentTypes.size();
 
     for (unsigned Jdx = TypeIndex; Jdx < ArgumentSize; Jdx++) {
       if (Group.ArgumentTypes[Jdx] != PointerType::getUnqual(Output->getType()))
@@ -917,7 +917,7 @@ CallInst *replaceCalledFunction(Module &M, OutlinableRegion &Region) {
 /// region.
 static void replaceArgumentUses(OutlinableRegion &Region,
                                 BasicBlock *OutputBB) {
-  OutlinableGroup &Group = *Region.Parent;
+  OutlinableGroup  const&Group = *Region.Parent;
   assert(Region.ExtractedFunction && "Region has no extracted function?");
 
   for (unsigned ArgIdx = 0; ArgIdx < Region.ExtractedFunction->arg_size();
@@ -925,7 +925,7 @@ static void replaceArgumentUses(OutlinableRegion &Region,
     assert(Region.ExtractedArgToAgg.find(ArgIdx) !=
                Region.ExtractedArgToAgg.end() &&
            "No mapping from extracted to outlined?");
-    unsigned AggArgIdx = Region.ExtractedArgToAgg.find(ArgIdx)->second;
+    unsigned const AggArgIdx = Region.ExtractedArgToAgg.find(ArgIdx)->second;
     Argument *AggArg = Group.OutlinedFunction->getArg(AggArgIdx);
     Argument *Arg = Region.ExtractedFunction->getArg(ArgIdx);
     // The argument is an input, so we can simply replace it with the overall
@@ -964,10 +964,10 @@ static void replaceArgumentUses(OutlinableRegion &Region,
 ///
 /// \param Region [in] - The region of extracted code to be changed.
 void replaceConstants(OutlinableRegion &Region) {
-  OutlinableGroup &Group = *Region.Parent;
+  OutlinableGroup  const&Group = *Region.Parent;
   // Iterate over the constants that need to be elevated into arguments
-  for (std::pair<unsigned, Constant *> &Const : Region.AggArgToConstant) {
-    unsigned AggArgIdx = Const.first;
+  for (std::pair<unsigned, Constant *>  const&Const : Region.AggArgToConstant) {
+    unsigned const AggArgIdx = Const.first;
     Function *OutlinedFunction = Group.OutlinedFunction;
     assert(OutlinedFunction && "Overall Function is not defined?");
     Constant *CST = Const.second;
@@ -1041,7 +1041,7 @@ findDuplicateOutputBlock(BasicBlock *OutputBB,
 
     WrongSize = false;
     BasicBlock::iterator NIt = OutputBB->begin();
-    for (Instruction &I : *CompBB) {
+    for (Instruction  const&I : *CompBB) {
       if (isa<BranchInst>(&I))
         continue;
 
@@ -1097,7 +1097,7 @@ alignOutputBlockWithAggFunc(OutlinableGroup &OG, OutlinableRegion &Region,
   assert(ExtractedFunctionInsts.size() == OverallFunctionInsts.size() &&
          "Number of relevant instructions not equal!");
 
-  unsigned NumInstructions = ExtractedFunctionInsts.size();
+  unsigned const NumInstructions = ExtractedFunctionInsts.size();
   for (unsigned Idx = 0; Idx < NumInstructions; Idx++) {
     Value *V = ExtractedFunctionInsts[Idx];
 
@@ -1231,7 +1231,7 @@ static void fillOverallFunction(Module &M, OutlinableGroup &CurrentGroup,
                                         *CurrentGroup.OutlinedFunction);
 
   // Transfer the attributes from the function to the new function.
-  for (Attribute A : CurrentOS->ExtractedFunction->getAttributes().getFnAttrs())
+  for (Attribute const A : CurrentOS->ExtractedFunction->getAttributes().getFnAttrs())
     CurrentGroup.OutlinedFunction->addFnAttr(A);
 
   // Create an output block for the first extracted function.
@@ -1312,8 +1312,8 @@ void IROutliner::pruneIncompatibleRegions(
   unsigned CurrentEndIdx = 0;
   for (IRSimilarityCandidate &IRSC : CandidateVec) {
     PreviouslyOutlined = false;
-    unsigned StartIdx = IRSC.getStartIdx();
-    unsigned EndIdx = IRSC.getEndIdx();
+    unsigned const StartIdx = IRSC.getStartIdx();
+    unsigned const EndIdx = IRSC.getEndIdx();
 
     for (unsigned Idx = StartIdx; Idx <= EndIdx; Idx++)
       if (Outlined.contains(Idx)) {
@@ -1338,7 +1338,7 @@ void IROutliner::pruneIncompatibleRegions(
     if (CurrentEndIdx != 0 && StartIdx <= CurrentEndIdx)
       continue;
 
-    bool BadInst = any_of(IRSC, [this](IRInstructionData &ID) {
+    bool const BadInst = any_of(IRSC, [this](IRInstructionData &ID) {
       // We check if there is a discrepancy between the InstructionDataList
       // and the actual next instruction in the module.  If there is, it means
       // that an extra instruction was added, likely by the CodeExtractor.
@@ -1382,14 +1382,14 @@ InstructionCost
 IROutliner::findCostOutputReloads(OutlinableGroup &CurrentGroup) {
   InstructionCost OverallCost = 0;
   for (OutlinableRegion *Region : CurrentGroup.Regions) {
-    TargetTransformInfo &TTI = getTTI(*Region->StartBB->getParent());
+    TargetTransformInfo  const&TTI = getTTI(*Region->StartBB->getParent());
 
     // Each output incurs a load after the call, so we add that to the cost.
-    for (unsigned OutputGVN : Region->GVNStores) {
+    for (unsigned const OutputGVN : Region->GVNStores) {
       Optional<Value *> OV = Region->Candidate->fromGVN(OutputGVN);
       assert(OV.hasValue() && "Could not find value for GVN?");
       Value *V = OV.getValue();
-      InstructionCost LoadCost =
+      InstructionCost const LoadCost =
           TTI.getMemoryOpCost(Instruction::Load, V->getType(), Align(1), 0,
                               TargetTransformInfo::TCK_CodeSize);
 
@@ -1419,11 +1419,11 @@ static InstructionCost findCostForOutputBlocks(Module &M,
   for (const ArrayRef<unsigned> &OutputUse :
        CurrentGroup.OutputGVNCombinations) {
     IRSimilarityCandidate &Candidate = *CurrentGroup.Regions[0]->Candidate;
-    for (unsigned GVN : OutputUse) {
+    for (unsigned const GVN : OutputUse) {
       Optional<Value *> OV = Candidate.fromGVN(GVN);
       assert(OV.hasValue() && "Could not find value for GVN?");
       Value *V = OV.getValue();
-      InstructionCost StoreCost =
+      InstructionCost const StoreCost =
           TTI.getMemoryOpCost(Instruction::Load, V->getType(), Align(1), 0,
                               TargetTransformInfo::TCK_CodeSize);
 
@@ -1436,7 +1436,7 @@ static InstructionCost findCostForOutputBlocks(Module &M,
       OutputCost += StoreCost;
     }
 
-    InstructionCost BranchCost =
+    InstructionCost const BranchCost =
         TTI.getCFInstrCost(Instruction::Br, TargetTransformInfo::TCK_CodeSize);
     LLVM_DEBUG(dbgs() << "Adding " << BranchCost << " to the current cost for"
                       << " a branch instruction\n");
@@ -1446,15 +1446,15 @@ static InstructionCost findCostForOutputBlocks(Module &M,
   // If there is more than one output scheme, we must have a comparison and
   // branch for each different item in the switch statement.
   if (CurrentGroup.OutputGVNCombinations.size() > 1) {
-    InstructionCost ComparisonCost = TTI.getCmpSelInstrCost(
+    InstructionCost const ComparisonCost = TTI.getCmpSelInstrCost(
         Instruction::ICmp, Type::getInt32Ty(M.getContext()),
         Type::getInt32Ty(M.getContext()), CmpInst::BAD_ICMP_PREDICATE,
         TargetTransformInfo::TCK_CodeSize);
-    InstructionCost BranchCost =
+    InstructionCost const BranchCost =
         TTI.getCFInstrCost(Instruction::Br, TargetTransformInfo::TCK_CodeSize);
 
-    unsigned DifferentBlocks = CurrentGroup.OutputGVNCombinations.size();
-    InstructionCost TotalCost = ComparisonCost * BranchCost * DifferentBlocks;
+    unsigned const DifferentBlocks = CurrentGroup.OutputGVNCombinations.size();
+    InstructionCost const TotalCost = ComparisonCost * BranchCost * DifferentBlocks;
 
     LLVM_DEBUG(dbgs() << "Adding: " << TotalCost
                       << " instructions for each switch case for each different"
@@ -1466,18 +1466,18 @@ static InstructionCost findCostForOutputBlocks(Module &M,
 }
 
 void IROutliner::findCostBenefit(Module &M, OutlinableGroup &CurrentGroup) {
-  InstructionCost RegionBenefit = findBenefitFromAllRegions(CurrentGroup);
+  InstructionCost const RegionBenefit = findBenefitFromAllRegions(CurrentGroup);
   CurrentGroup.Benefit += RegionBenefit;
   LLVM_DEBUG(dbgs() << "Current Benefit: " << CurrentGroup.Benefit << "\n");
 
-  InstructionCost OutputReloadCost = findCostOutputReloads(CurrentGroup);
+  InstructionCost const OutputReloadCost = findCostOutputReloads(CurrentGroup);
   CurrentGroup.Cost += OutputReloadCost;
   LLVM_DEBUG(dbgs() << "Current Cost: " << CurrentGroup.Cost << "\n");
 
-  InstructionCost AverageRegionBenefit =
+  InstructionCost const AverageRegionBenefit =
       RegionBenefit / CurrentGroup.Regions.size();
-  unsigned OverallArgumentNum = CurrentGroup.ArgumentTypes.size();
-  unsigned NumRegions = CurrentGroup.Regions.size();
+  unsigned const OverallArgumentNum = CurrentGroup.ArgumentTypes.size();
+  unsigned const NumRegions = CurrentGroup.Regions.size();
   TargetTransformInfo &TTI =
       getTTI(*CurrentGroup.Regions[0]->Candidate->getFunction());
 
@@ -1552,7 +1552,7 @@ bool IROutliner::extractSection(OutlinableRegion &Region) {
   assert(Region.StartBB && "StartBB for the OutlinableRegion is nullptr!");
   assert(Region.FollowBB && "FollowBB for the OutlinableRegion is nullptr!");
   Function *OrigF = Region.StartBB->getParent();
-  CodeExtractorAnalysisCache CEAC(*OrigF);
+  CodeExtractorAnalysisCache const CEAC(*OrigF);
   Region.ExtractedFunction = Region.CE->extractCodeRegion(CEAC);
 
   // If the extraction was successful, find the BasicBlock, and reassign the
@@ -1653,7 +1653,7 @@ unsigned IROutliner::doOutline(Module &M) {
       // Break the outlinable region out of its parent BasicBlock into its own
       // BasicBlocks (see function implementation).
       OS->splitCandidate();
-      std::vector<BasicBlock *> BE = {OS->StartBB};
+      std::vector<BasicBlock *> const BE = {OS->StartBB};
       OS->CE = new (ExtractorAllocator.Allocate())
           CodeExtractor(BE, nullptr, false, nullptr, nullptr, nullptr, false,
                         false, "outlined");
@@ -1709,10 +1709,10 @@ unsigned IROutliner::doOutline(Module &M) {
     // Create functions out of all the sections, and mark them as outlined.
     OutlinedRegions.clear();
     for (OutlinableRegion *OS : CurrentGroup.Regions) {
-      bool FunctionOutlined = extractSection(*OS);
+      bool const FunctionOutlined = extractSection(*OS);
       if (FunctionOutlined) {
-        unsigned StartIdx = OS->Candidate->getStartIdx();
-        unsigned EndIdx = OS->Candidate->getEndIdx();
+        unsigned const StartIdx = OS->Candidate->getStartIdx();
+        unsigned const EndIdx = OS->Candidate->getEndIdx();
         for (unsigned Idx = StartIdx; Idx <= EndIdx; Idx++)
           Outlined.insert(Idx);
 

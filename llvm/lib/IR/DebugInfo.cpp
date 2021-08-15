@@ -575,7 +575,7 @@ private:
         MDS->getVirtualIndex(), MDS->getThisAdjustment(), MDS->getFlags(),
         MDS->getSPFlags(), Unit, TemplateParams, Declaration, Variables);
 
-    StringRef OldLinkageName = MDS->getLinkageName();
+    StringRef const OldLinkageName = MDS->getLinkageName();
 
     // See if we need to make a distinct one.
     auto OrigLinkage = NewToLinkageName.find(NewMDS);
@@ -1385,7 +1385,7 @@ LLVMDIBuilderCreateArtificialType(LLVMDIBuilderRef Builder,
 }
 
 const char *LLVMDITypeGetName(LLVMMetadataRef DType, size_t *Length) {
-  StringRef Str = unwrap<DIType>(DType)->getName();
+  StringRef const Str = unwrap<DIType>(DType)->getName();
   *Length = Str.size();
   return Str.data();
 }

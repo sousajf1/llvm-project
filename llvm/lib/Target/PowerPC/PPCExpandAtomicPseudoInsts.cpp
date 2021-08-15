@@ -112,11 +112,11 @@ bool PPCExpandAtomicPseudo::expandAtomicRMW128(
     MachineBasicBlock::iterator &NMBBI) {
   const MCInstrDesc &LL = TII->get(PPC::LQARX);
   const MCInstrDesc &SC = TII->get(PPC::STQCX);
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc const DL = MI.getDebugLoc();
   MachineFunction *MF = MBB.getParent();
   const BasicBlock *BB = MBB.getBasicBlock();
   // Create layout of control flow.
-  MachineFunction::iterator MFI = ++MBB.getIterator();
+  MachineFunction::iterator const MFI = ++MBB.getIterator();
   MachineBasicBlock *LoopMBB = MF->CreateMachineBasicBlock(BB);
   MachineBasicBlock *ExitMBB = MF->CreateMachineBasicBlock(BB);
   MF->insert(MFI, LoopMBB);
@@ -137,17 +137,17 @@ bool PPCExpandAtomicPseudo::expandAtomicRMW128(
   //   bne- LoopMBB
   // ExitMBB:
   //   ...
-  Register Old = MI.getOperand(0).getReg();
-  Register OldHi = TRI->getSubReg(Old, PPC::sub_gp8_x0);
-  Register OldLo = TRI->getSubReg(Old, PPC::sub_gp8_x1);
-  Register Scratch = MI.getOperand(1).getReg();
-  Register ScratchHi = TRI->getSubReg(Scratch, PPC::sub_gp8_x0);
-  Register ScratchLo = TRI->getSubReg(Scratch, PPC::sub_gp8_x1);
-  Register RA = MI.getOperand(2).getReg();
-  Register RB = MI.getOperand(3).getReg();
-  Register IncrLo = MI.getOperand(4).getReg();
-  Register IncrHi = MI.getOperand(5).getReg();
-  unsigned RMWOpcode = MI.getOpcode();
+  Register const Old = MI.getOperand(0).getReg();
+  Register const OldHi = TRI->getSubReg(Old, PPC::sub_gp8_x0);
+  Register const OldLo = TRI->getSubReg(Old, PPC::sub_gp8_x1);
+  Register const Scratch = MI.getOperand(1).getReg();
+  Register const ScratchHi = TRI->getSubReg(Scratch, PPC::sub_gp8_x0);
+  Register const ScratchLo = TRI->getSubReg(Scratch, PPC::sub_gp8_x1);
+  Register const RA = MI.getOperand(2).getReg();
+  Register const RB = MI.getOperand(3).getReg();
+  Register const IncrLo = MI.getOperand(4).getReg();
+  Register const IncrHi = MI.getOperand(5).getReg();
+  unsigned const RMWOpcode = MI.getOpcode();
 
   MachineBasicBlock *CurrentMBB = LoopMBB;
   BuildMI(CurrentMBB, DL, LL, Old).addReg(RA).addReg(RB);
@@ -211,21 +211,21 @@ bool PPCExpandAtomicPseudo::expandAtomicCmpSwap128(
     MachineBasicBlock::iterator &NMBBI) {
   const MCInstrDesc &LL = TII->get(PPC::LQARX);
   const MCInstrDesc &SC = TII->get(PPC::STQCX);
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc const DL = MI.getDebugLoc();
   MachineFunction *MF = MBB.getParent();
   const BasicBlock *BB = MBB.getBasicBlock();
-  Register Old = MI.getOperand(0).getReg();
-  Register OldHi = TRI->getSubReg(Old, PPC::sub_gp8_x0);
-  Register OldLo = TRI->getSubReg(Old, PPC::sub_gp8_x1);
-  Register Scratch = MI.getOperand(1).getReg();
-  Register ScratchHi = TRI->getSubReg(Scratch, PPC::sub_gp8_x0);
-  Register ScratchLo = TRI->getSubReg(Scratch, PPC::sub_gp8_x1);
-  Register RA = MI.getOperand(2).getReg();
-  Register RB = MI.getOperand(3).getReg();
-  Register CmpLo = MI.getOperand(4).getReg();
-  Register CmpHi = MI.getOperand(5).getReg();
-  Register NewLo = MI.getOperand(6).getReg();
-  Register NewHi = MI.getOperand(7).getReg();
+  Register const Old = MI.getOperand(0).getReg();
+  Register const OldHi = TRI->getSubReg(Old, PPC::sub_gp8_x0);
+  Register const OldLo = TRI->getSubReg(Old, PPC::sub_gp8_x1);
+  Register const Scratch = MI.getOperand(1).getReg();
+  Register const ScratchHi = TRI->getSubReg(Scratch, PPC::sub_gp8_x0);
+  Register const ScratchLo = TRI->getSubReg(Scratch, PPC::sub_gp8_x1);
+  Register const RA = MI.getOperand(2).getReg();
+  Register const RB = MI.getOperand(3).getReg();
+  Register const CmpLo = MI.getOperand(4).getReg();
+  Register const CmpHi = MI.getOperand(5).getReg();
+  Register const NewLo = MI.getOperand(6).getReg();
+  Register const NewHi = MI.getOperand(7).getReg();
   // Create layout of control flow.
   // loop:
   //   old = lqarx ptr
@@ -239,7 +239,7 @@ bool PPCExpandAtomicPseudo::expandAtomicCmpSwap128(
   //   stqcx old ptr
   // exit:
   //   ....
-  MachineFunction::iterator MFI = ++MBB.getIterator();
+  MachineFunction::iterator const MFI = ++MBB.getIterator();
   MachineBasicBlock *LoopCmpMBB = MF->CreateMachineBasicBlock(BB);
   MachineBasicBlock *CmpSuccMBB = MF->CreateMachineBasicBlock(BB);
   MachineBasicBlock *CmpFailMBB = MF->CreateMachineBasicBlock(BB);

@@ -602,7 +602,7 @@ class InlineCostCallAnalyzer final : public CallAnalyzer {
     // branch to destination.
     // Maximum valid cost increased in this function.
     if (JumpTableSize) {
-      int64_t JTCost =
+      int64_t const JTCost =
           static_cast<int64_t>(JumpTableSize) * InlineConstants::InstrCost +
           4 * InlineConstants::InstrCost;
 
@@ -616,9 +616,9 @@ class InlineCostCallAnalyzer final : public CallAnalyzer {
       return;
     }
 
-    int64_t ExpectedNumberOfCompare =
+    int64_t const ExpectedNumberOfCompare =
         getExpectedNumberOfCompare(NumCaseCluster);
-    int64_t SwitchCost =
+    int64_t const SwitchCost =
         ExpectedNumberOfCompare * 2 * InlineConstants::InstrCost;
 
     addCost(SwitchCost, static_cast<int64_t>(CostUpperBound));
@@ -827,8 +827,8 @@ class InlineCostCallAnalyzer final : public CallAnalyzer {
     // functions (and hence DT and LI will hopefully be cheap).
     auto *Caller = CandidateCall.getFunction();
     if (Caller->hasMinSize()) {
-      DominatorTree DT(F);
-      LoopInfo LI(DT);
+      DominatorTree const DT(F);
+      LoopInfo const LI(DT);
       int NumLoops = 0;
       for (Loop *L : LI) {
         // Ignore loops that will not be executed
@@ -1046,7 +1046,7 @@ private:
                         unsigned NumCaseCluster) override {
 
     if (JumpTableSize) {
-      int64_t JTCost =
+      int64_t const JTCost =
           static_cast<int64_t>(JumpTableSize) * InlineConstants::InstrCost +
           JTCostMultiplier * InlineConstants::InstrCost;
       increment(InlineCostFeatureIndex::JumpTablePenalty, JTCost);
@@ -1060,10 +1060,10 @@ private:
       return;
     }
 
-    int64_t ExpectedNumberOfCompare =
+    int64_t const ExpectedNumberOfCompare =
         getExpectedNumberOfCompare(NumCaseCluster);
 
-    int64_t SwitchCost = ExpectedNumberOfCompare * SwitchCostMultiplier *
+    int64_t const SwitchCost = ExpectedNumberOfCompare * SwitchCostMultiplier *
                          InlineConstants::InstrCost;
     increment(InlineCostFeatureIndex::SwitchPenalty, SwitchCost);
   }
@@ -1088,8 +1088,8 @@ private:
   InlineResult finalizeAnalysis() override {
     auto *Caller = CandidateCall.getFunction();
     if (Caller->hasMinSize()) {
-      DominatorTree DT(F);
-      LoopInfo LI(DT);
+      DominatorTree const DT(F);
+      LoopInfo const LI(DT);
       for (Loop *L : LI) {
         // Ignore loops that will not be executed
         if (DeadBlocks.count(L->getHeader()))
@@ -1132,8 +1132,8 @@ private:
     // FIXME: we shouldn't repeat this logic in both the Features and Cost
     // analyzer - instead, we should abstract it to a common method in the
     // CallAnalyzer
-    int SingleBBBonusPercent = 50;
-    int VectorBonusPercent = TTI.getInlinerVectorBonusPercent();
+    int const SingleBBBonusPercent = 50;
+    int const VectorBonusPercent = TTI.getInlinerVectorBonusPercent();
     Threshold += TTI.adjustInliningThreshold(&CandidateCall);
     Threshold *= TTI.getInliningThresholdMultiplier();
     SingleBBBonus = Threshold * SingleBBBonusPercent / 100;
@@ -1212,7 +1212,7 @@ void CallAnalyzer::disableLoadElimination() {
 /// Returns false if unable to compute the offset for any reason. Respects any
 /// simplified values known during the analysis of this callsite.
 bool CallAnalyzer::accumulateGEPOffset(GEPOperator &GEP, APInt &Offset) {
-  unsigned IntPtrWidth = DL.getIndexTypeSizeInBits(GEP.getType());
+  unsigned const IntPtrWidth = DL.getIndexTypeSizeInBits(GEP.getType());
   assert(IntPtrWidth == Offset.getBitWidth());
 
   for (gep_type_iterator GTI = gep_type_begin(GEP), GTE = gep_type_end(GEP);
@@ -1228,13 +1228,13 @@ bool CallAnalyzer::accumulateGEPOffset(GEPOperator &GEP, APInt &Offset) {
 
     // Handle a struct index, which adds its field offset to the pointer.
     if (StructType *STy = GTI.getStructTypeOrNull()) {
-      unsigned ElementIdx = OpC->getZExtValue();
+      unsigned const ElementIdx = OpC->getZExtValue();
       const StructLayout *SL = DL.getStructLayout(STy);
       Offset += APInt(IntPtrWidth, SL->getElementOffset(ElementIdx));
       continue;
     }
 
-    APInt TypeSize(IntPtrWidth, DL.getTypeAllocSize(GTI.getIndexedType()));
+    APInt const TypeSize(IntPtrWidth, DL.getTypeAllocSize(GTI.getIndexedType()));
     Offset += OpC->getValue().sextOrTrunc(IntPtrWidth) * TypeSize;
   }
   return true;
@@ -1310,8 +1310,8 @@ bool CallAnalyzer::visitPHI(PHINode &I) {
   // Or could we skip the getPointerSizeInBits call completely? As far as I can
   // see the ZeroOffset is used as a dummy value, so we can probably use any
   // bit width for the ZeroOffset?
-  APInt ZeroOffset = APInt::getNullValue(DL.getPointerSizeInBits(0));
-  bool CheckSROA = I.getType()->isPointerTy();
+  APInt const ZeroOffset = APInt::getNullValue(DL.getPointerSizeInBits(0));
+  bool const CheckSROA = I.getType()->isPointerTy();
 
   // Track the constant or pointer with constant offset we've seen so far.
   Constant *FirstC = nullptr;
@@ -1479,7 +1479,7 @@ bool CallAnalyzer::visitBitCast(BitCastInst &I) {
     return true;
 
   // Track base/offsets through casts
-  std::pair<Value *, APInt> BaseAndOffset =
+  std::pair<Value *, APInt> const BaseAndOffset =
       ConstantOffsetPtrs.lookup(I.getOperand(0));
   // Casts don't change the offset, just wrap it up.
   if (BaseAndOffset.first)
@@ -1502,10 +1502,10 @@ bool CallAnalyzer::visitPtrToInt(PtrToIntInst &I) {
 
   // Track base/offset pairs when converted to a plain integer provided the
   // integer is large enough to represent the pointer.
-  unsigned IntegerSize = I.getType()->getScalarSizeInBits();
-  unsigned AS = I.getOperand(0)->getType()->getPointerAddressSpace();
+  unsigned const IntegerSize = I.getType()->getScalarSizeInBits();
+  unsigned const AS = I.getOperand(0)->getType()->getPointerAddressSpace();
   if (IntegerSize == DL.getPointerSizeInBits(AS)) {
-    std::pair<Value *, APInt> BaseAndOffset =
+    std::pair<Value *, APInt> const BaseAndOffset =
         ConstantOffsetPtrs.lookup(I.getOperand(0));
     if (BaseAndOffset.first)
       ConstantOffsetPtrs[&I] = BaseAndOffset;
@@ -1535,9 +1535,9 @@ bool CallAnalyzer::visitIntToPtr(IntToPtrInst &I) {
   // Track base/offset pairs when round-tripped through a pointer without
   // modifications provided the integer is not too large.
   Value *Op = I.getOperand(0);
-  unsigned IntegerSize = Op->getType()->getScalarSizeInBits();
+  unsigned const IntegerSize = Op->getType()->getScalarSizeInBits();
   if (IntegerSize <= DL.getPointerTypeSizeInBits(I.getType())) {
-    std::pair<Value *, APInt> BaseAndOffset = ConstantOffsetPtrs.lookup(Op);
+    std::pair<Value *, APInt> const BaseAndOffset = ConstantOffsetPtrs.lookup(Op);
     if (BaseAndOffset.first)
       ConstantOffsetPtrs[&I] = BaseAndOffset;
   }
@@ -1799,7 +1799,7 @@ void InlineCostCallAnalyzer::updateThreshold(CallBase &Call, Function &Callee) {
   SingleBBBonus = Threshold * SingleBBBonusPercent / 100;
   VectorBonus = Threshold * VectorBonusPercent / 100;
 
-  bool OnlyOneCallAndLocalLinkage =
+  bool const OnlyOneCallAndLocalLinkage =
       F.hasLocalLinkage() && F.hasOneUse() && &F == Call.getCalledFunction();
   // If there is only one call of the function, and it has internal linkage,
   // the cost of inlining it drops dramatically. It may seem odd to update
@@ -1843,7 +1843,7 @@ bool CallAnalyzer::visitCmpInst(CmpInst &I) {
   // if we know the value (argument) can't be null
   if (I.isEquality() && isa<ConstantPointerNull>(I.getOperand(1)) &&
       isKnownNonNullInCallee(I.getOperand(0))) {
-    bool IsNotEqual = I.getPredicate() == CmpInst::ICMP_NE;
+    bool const IsNotEqual = I.getPredicate() == CmpInst::ICMP_NE;
     SimplifiedValues[&I] = IsNotEqual ? ConstantInt::getTrue(I.getType())
                                       : ConstantInt::getFalse(I.getType());
     return true;
@@ -2040,7 +2040,7 @@ bool CallAnalyzer::visitCallBase(CallBase &Call) {
 
   Value *Callee = Call.getCalledOperand();
   Function *F = dyn_cast_or_null<Function>(Callee);
-  bool IsIndirectCall = !F;
+  bool const IsIndirectCall = !F;
   if (IsIndirectCall) {
     // Check if this happens to be an indirect function call to a known function
     // in this inline context. If not, we've done all we can.
@@ -2112,7 +2112,7 @@ bool CallAnalyzer::visitCallBase(CallBase &Call) {
 
 bool CallAnalyzer::visitReturnInst(ReturnInst &RI) {
   // At least one return instruction will be free after inlining.
-  bool Free = !HasReturn;
+  bool const Free = !HasReturn;
   HasReturn = true;
   return Free;
 }
@@ -2128,7 +2128,7 @@ bool CallAnalyzer::visitBranchInst(BranchInst &BI) {
 }
 
 bool CallAnalyzer::visitSelectInst(SelectInst &SI) {
-  bool CheckSROA = SI.getType()->isPointerTy();
+  bool const CheckSROA = SI.getType()->isPointerTy();
   Value *TrueVal = SI.getTrueValue();
   Value *FalseVal = SI.getFalseValue();
 
@@ -2151,9 +2151,9 @@ bool CallAnalyzer::visitSelectInst(SelectInst &SI) {
     if (!CheckSROA)
       return Base::visitSelectInst(SI);
 
-    std::pair<Value *, APInt> TrueBaseAndOffset =
+    std::pair<Value *, APInt> const TrueBaseAndOffset =
         ConstantOffsetPtrs.lookup(TrueVal);
-    std::pair<Value *, APInt> FalseBaseAndOffset =
+    std::pair<Value *, APInt> const FalseBaseAndOffset =
         ConstantOffsetPtrs.lookup(FalseVal);
     if (TrueBaseAndOffset == FalseBaseAndOffset && TrueBaseAndOffset.first) {
       ConstantOffsetPtrs[&SI] = TrueBaseAndOffset;
@@ -2192,7 +2192,7 @@ bool CallAnalyzer::visitSelectInst(SelectInst &SI) {
   if (!CheckSROA)
     return true;
 
-  std::pair<Value *, APInt> BaseAndOffset =
+  std::pair<Value *, APInt> const BaseAndOffset =
       ConstantOffsetPtrs.lookup(SelectedV);
   if (BaseAndOffset.first) {
     ConstantOffsetPtrs[&SI] = BaseAndOffset;
@@ -2227,7 +2227,7 @@ bool CallAnalyzer::visitSwitchInst(SwitchInst &SI) {
 
   unsigned JumpTableSize = 0;
   BlockFrequencyInfo *BFI = GetBFI ? &(GetBFI(F)) : nullptr;
-  unsigned NumCaseCluster =
+  unsigned const NumCaseCluster =
       TTI.getEstimatedNumberOfCaseClusters(SI, JumpTableSize, PSI, BFI);
 
   onFinalizeSwitch(JumpTableSize, NumCaseCluster);
@@ -2396,8 +2396,8 @@ ConstantInt *CallAnalyzer::stripAndComputeInBoundsConstantOffsets(Value *&V) {
   if (!V->getType()->isPointerTy())
     return nullptr;
 
-  unsigned AS = V->getType()->getPointerAddressSpace();
-  unsigned IntPtrWidth = DL.getIndexSizeInBits(AS);
+  unsigned const AS = V->getType()->getPointerAddressSpace();
+  unsigned const IntPtrWidth = DL.getIndexSizeInBits(AS);
   APInt Offset = APInt::getNullValue(IntPtrWidth);
 
   // Even though we don't look through PHI nodes, we could be called on an
@@ -2601,7 +2601,7 @@ InlineResult CallAnalyzer::analyze() {
     onBlockAnalyzed(BB);
   }
 
-  bool OnlyOneCallAndLocalLinkage = F.hasLocalLinkage() && F.hasOneUse() &&
+  bool const OnlyOneCallAndLocalLinkage = F.hasLocalLinkage() && F.hasOneUse() &&
                                     &F == CandidateCall.getCalledFunction();
   // If this is a noduplicate call, we can still inline as long as
   // inlining this would cause the removal of the caller (so the instruction
@@ -2660,9 +2660,9 @@ int llvm::getCallsiteCost(CallBase &Call, const DataLayout &DL) {
       // We approximate the number of loads and stores needed by dividing the
       // size of the byval type by the target's pointer size.
       PointerType *PTy = cast<PointerType>(Call.getArgOperand(I)->getType());
-      unsigned TypeSize = DL.getTypeSizeInBits(Call.getParamByValType(I));
-      unsigned AS = PTy->getAddressSpace();
-      unsigned PointerSize = DL.getPointerSizeInBits(AS);
+      unsigned const TypeSize = DL.getTypeSizeInBits(Call.getParamByValType(I));
+      unsigned const AS = PTy->getAddressSpace();
+      unsigned const PointerSize = DL.getPointerSizeInBits(AS);
       // Ceiling division.
       unsigned NumStores = (TypeSize + PointerSize - 1) / PointerSize;
 
@@ -2754,7 +2754,7 @@ Optional<InlineResult> llvm::getAttributeBasedInliningDecision(
   // alloca, the inlined code would need to be adjusted to handle that the
   // argument is in the alloca address space (so it is a little bit complicated
   // to solve).
-  unsigned AllocaAS = Callee->getParent()->getDataLayout().getAllocaAddrSpace();
+  unsigned const AllocaAS = Callee->getParent()->getDataLayout().getAllocaAddrSpace();
   for (unsigned I = 0, E = Call.arg_size(); I != E; ++I)
     if (Call.isByValArgument(I)) {
       PointerType *PTy = cast<PointerType>(Call.getArgOperand(I)->getType());
@@ -2834,7 +2834,7 @@ InlineCost llvm::getInlineCost(
 
   InlineCostCallAnalyzer CA(*Callee, Call, Params, CalleeTTI,
                             GetAssumptionCache, GetBFI, PSI, ORE);
-  InlineResult ShouldInline = CA.analyze();
+  InlineResult const ShouldInline = CA.analyze();
 
   LLVM_DEBUG(CA.dump());
 
@@ -2859,7 +2859,7 @@ InlineCost llvm::getInlineCost(
 }
 
 InlineResult llvm::isInlineViable(Function &F) {
-  bool ReturnsTwice = F.hasFnAttribute(Attribute::ReturnsTwice);
+  bool const ReturnsTwice = F.hasFnAttribute(Attribute::ReturnsTwice);
   for (BasicBlock &BB : F) {
     // Disallow inlining of functions which contain indirect branches.
     if (isa<IndirectBrInst>(BB.getTerminator()))
@@ -3008,8 +3008,8 @@ InlineCostAnnotationPrinterPass::run(Function &F,
   };
   Module *M = F.getParent();
   ProfileSummaryInfo PSI(*M);
-  DataLayout DL(M);
-  TargetTransformInfo TTI(DL);
+  DataLayout const DL(M);
+  TargetTransformInfo const TTI(DL);
   // FIXME: Redesign the usage of InlineParams to expand the scope of this pass.
   // In the current implementation, the type of InlineParams doesn't matter as
   // the pass serves only for verification of inliner's decisions.

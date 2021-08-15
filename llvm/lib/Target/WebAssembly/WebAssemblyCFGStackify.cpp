@@ -61,7 +61,7 @@ class WebAssemblyCFGStackify final : public MachineFunctionPass {
   // over scoped regions when walking blocks.
   SmallVector<MachineBasicBlock *, 8> ScopeTops;
   void updateScopeTops(MachineBasicBlock *Begin, MachineBasicBlock *End) {
-    int EndNo = End->getNumber();
+    int const EndNo = End->getNumber();
     if (!ScopeTops[EndNo] || ScopeTops[EndNo]->getNumber() > Begin->getNumber())
       ScopeTops[EndNo] = Begin;
   }
@@ -163,7 +163,7 @@ FunctionPass *llvm::createWebAssemblyCFGStackify() {
 static bool explicitlyBranchesTo(MachineBasicBlock *Pred,
                                  MachineBasicBlock *MBB) {
   for (MachineInstr &MI : Pred->terminators())
-    for (MachineOperand &MO : MI.explicit_operands())
+    for (MachineOperand  const&MO : MI.explicit_operands())
       if (MO.isMBB() && MO.getMBB() == MBB)
         return true;
   return false;
@@ -261,7 +261,7 @@ void WebAssemblyCFGStackify::placeBlockMarker(MachineBasicBlock &MBB) {
   // which reduces overall stack height.
   MachineBasicBlock *Header = nullptr;
   bool IsBranchedTo = false;
-  int MBBNumber = MBB.getNumber();
+  int const MBBNumber = MBB.getNumber();
   for (MachineBasicBlock *Pred : MBB.predecessors()) {
     if (Pred->getNumber() < MBBNumber) {
       Header = Header ? MDT.findNearestCommonDominator(Header, Pred) : Pred;
@@ -351,7 +351,7 @@ void WebAssemblyCFGStackify::placeBlockMarker(MachineBasicBlock &MBB) {
   }
 
   // Add the BLOCK.
-  WebAssembly::BlockType ReturnType = WebAssembly::BlockType::Void;
+  WebAssembly::BlockType const ReturnType = WebAssembly::BlockType::Void;
   auto InsertPos = getLatestInsertPos(Header, BeforeSet, AfterSet);
   MachineInstr *Begin =
       BuildMI(*Header, InsertPos, Header->findDebugLoc(InsertPos),
@@ -449,7 +449,7 @@ void WebAssemblyCFGStackify::placeLoopMarker(MachineBasicBlock &MBB) {
   // Mark the end of the loop (using arbitrary debug location that branched to
   // the loop end as its location).
   InsertPos = getEarliestInsertPos(AfterLoop, BeforeSet, AfterSet);
-  DebugLoc EndDL = AfterLoop->pred_empty()
+  DebugLoc const EndDL = AfterLoop->pred_empty()
                        ? DebugLoc()
                        : (*AfterLoop->pred_rbegin())->findBranchDebugLoc();
   MachineInstr *End =
@@ -474,7 +474,7 @@ void WebAssemblyCFGStackify::placeTryMarker(MachineBasicBlock &MBB) {
 
   // Compute the nearest common dominator of all unwind predecessors
   MachineBasicBlock *Header = nullptr;
-  int MBBNumber = MBB.getNumber();
+  int const MBBNumber = MBB.getNumber();
   for (auto *Pred : MBB.predecessors()) {
     if (Pred->getNumber() < MBBNumber) {
       Header = Header ? MDT.findNearestCommonDominator(Header, Pred) : Pred;
@@ -715,7 +715,7 @@ void WebAssemblyCFGStackify::removeUnnecessaryInstrs(MachineFunction &MF) {
       Cont = EndTry->getParent();
     }
 
-    bool Analyzable = !TII.analyzeBranch(*EHPadLayoutPred, TBB, FBB, Cond);
+    bool const Analyzable = !TII.analyzeBranch(*EHPadLayoutPred, TBB, FBB, Cond);
     // This condition means either
     // 1. This BB ends with a single unconditional branch whose destinaion is
     //    Cont.
@@ -762,7 +762,7 @@ void WebAssemblyCFGStackify::removeUnnecessaryInstrs(MachineFunction &MF) {
 
       MachineBasicBlock *TryBB = Try->getParent();
       MachineBasicBlock *Cont = EndTry->getParent();
-      int64_t RetType = Try->getOperand(0).getImm();
+      int64_t const RetType = Try->getOperand(0).getImm();
       for (auto B = Try->getIterator(), E = std::next(EndTry->getIterator());
            B != TryBB->begin() && E != Cont->end() &&
            std::prev(B)->getOpcode() == WebAssembly::BLOCK &&
@@ -846,13 +846,13 @@ static void unstackifyVRegsUsedInSplitBB(MachineBasicBlock &MBB,
     MachineInstr &MI = *I++;
     if (!WebAssembly::isTee(MI.getOpcode()))
       continue;
-    Register TeeReg = MI.getOperand(0).getReg();
-    Register Reg = MI.getOperand(1).getReg();
-    Register DefReg = MI.getOperand(2).getReg();
+    Register const TeeReg = MI.getOperand(0).getReg();
+    Register const Reg = MI.getOperand(1).getReg();
+    Register const DefReg = MI.getOperand(2).getReg();
     if (!MFI.isVRegStackified(TeeReg)) {
       // Now we are not using TEE anymore, so unstackify DefReg too
       MFI.unstackifyVReg(DefReg);
-      unsigned CopyOpc = getCopyOpcode(MRI.getRegClass(DefReg));
+      unsigned const CopyOpc = getCopyOpcode(MRI.getRegClass(DefReg));
       BuildMI(MBB, &MI, MI.getDebugLoc(), TII.get(CopyOpc), TeeReg)
           .addReg(DefReg);
       BuildMI(MBB, &MI, MI.getDebugLoc(), TII.get(CopyOpc), Reg).addReg(DefReg);
@@ -1193,7 +1193,7 @@ bool WebAssemblyCFGStackify::fixCallUnwindMismatches(MachineFunction &MF) {
   for (auto &MBB : reverse(MF)) {
     bool SeenThrowableInstInBB = false;
     for (auto &MI : reverse(MBB)) {
-      bool MayThrow = WebAssembly::mayThrow(MI);
+      bool const MayThrow = WebAssembly::mayThrow(MI);
 
       // If MBB has an EH pad successor and this is the last instruction that
       // may throw, this instruction unwinds to the EH pad and not to the
@@ -1506,7 +1506,7 @@ void WebAssemblyCFGStackify::fixEndsAtEndOfFunction(MachineFunction &MF) {
   auto Process = [&](MachineBasicBlock::reverse_iterator It) {
     auto *MBB = It->getParent();
     while (It != MBB->rend()) {
-      MachineInstr &MI = *It++;
+      MachineInstr  const&MI = *It++;
       if (MI.isPosition() || MI.isDebugInstr())
         continue;
       switch (MI.getOpcode()) {
@@ -1716,7 +1716,7 @@ void WebAssemblyCFGStackify::rewriteDepthImmediates(MachineFunction &MF) {
       default:
         if (MI.isTerminator()) {
           // Rewrite MBB operands to be depth immediates.
-          SmallVector<MachineOperand, 4> Ops(MI.operands());
+          SmallVector<MachineOperand, 4> const Ops(MI.operands());
           while (MI.getNumOperands() > 0)
             MI.RemoveOperand(MI.getNumOperands() - 1);
           for (auto MO : Ops) {

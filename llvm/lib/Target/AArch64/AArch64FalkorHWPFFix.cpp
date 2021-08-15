@@ -118,7 +118,7 @@ FunctionPass *llvm::createFalkorMarkStridedAccessesPass() {
 }
 
 bool FalkorMarkStridedAccessesLegacy::runOnFunction(Function &F) {
-  TargetPassConfig &TPC = getAnalysis<TargetPassConfig>();
+  TargetPassConfig  const&TPC = getAnalysis<TargetPassConfig>();
   const AArch64Subtarget *ST =
       TPC.getTM<AArch64TargetMachine>().getSubtargetImpl(F);
   if (ST->getProcFamily() != AArch64Subtarget::Falkor)
@@ -643,7 +643,7 @@ static Optional<LoadInfo> getLoadInfo(const MachineInstr &MI) {
   }
 
   // Loads from the stack pointer don't get prefetched.
-  Register BaseReg = MI.getOperand(BaseRegIdx).getReg();
+  Register const BaseReg = MI.getOperand(BaseRegIdx).getReg();
   if (BaseReg == AArch64::SP || BaseReg == AArch64::WSP)
     return None;
 
@@ -658,8 +658,8 @@ static Optional<LoadInfo> getLoadInfo(const MachineInstr &MI) {
 
 static Optional<unsigned> getTag(const TargetRegisterInfo *TRI,
                                  const MachineInstr &MI, const LoadInfo &LI) {
-  unsigned Dest = LI.DestReg ? TRI->getEncodingValue(LI.DestReg) : 0;
-  unsigned Base = TRI->getEncodingValue(LI.BaseReg);
+  unsigned const Dest = LI.DestReg ? TRI->getEncodingValue(LI.DestReg) : 0;
+  unsigned const Base = TRI->getEncodingValue(LI.BaseReg);
   unsigned Off;
   if (LI.OffsetOpnd == nullptr)
     Off = 0;
@@ -706,7 +706,7 @@ void FalkorHWPFFix::runOnLoop(MachineLoop &L, MachineFunction &Fn) {
   if (!AnyCollisions)
     return;
 
-  MachineRegisterInfo &MRI = Fn.getRegInfo();
+  MachineRegisterInfo  const&MRI = Fn.getRegInfo();
 
   // Go through all the basic blocks in the current loop and fix any streaming
   // loads to avoid collisions with any other loads.
@@ -722,7 +722,7 @@ void FalkorHWPFFix::runOnLoop(MachineLoop &L, MachineFunction &Fn) {
       Optional<LoadInfo> OptLdI = getLoadInfo(MI);
       if (!OptLdI)
         continue;
-      LoadInfo LdI = *OptLdI;
+      LoadInfo const LdI = *OptLdI;
       Optional<unsigned> OptOldTag = getTag(TRI, MI, LdI);
       if (!OptOldTag)
         continue;
@@ -743,18 +743,18 @@ void FalkorHWPFFix::runOnLoop(MachineLoop &L, MachineFunction &Fn) {
       for (unsigned OpI = 0, OpE = MI.getNumOperands(); OpI < OpE; ++OpI) {
         if (OpI == static_cast<unsigned>(LdI.BaseRegIdx))
           continue;
-        MachineOperand &MO = MI.getOperand(OpI);
+        MachineOperand  const&MO = MI.getOperand(OpI);
         if (MO.isReg() && MO.readsReg())
           LR.addReg(MO.getReg());
       }
 
-      for (unsigned ScratchReg : AArch64::GPR64RegClass) {
+      for (unsigned const ScratchReg : AArch64::GPR64RegClass) {
         if (!LR.available(ScratchReg) || MRI.isReserved(ScratchReg))
           continue;
 
         LoadInfo NewLdI(LdI);
         NewLdI.BaseReg = ScratchReg;
-        unsigned NewTag = *getTag(TRI, MI, NewLdI);
+        unsigned const NewTag = *getTag(TRI, MI, NewLdI);
         // Scratch reg tag would collide too, so don't use it.
         if (TagMap.count(NewTag))
           continue;
@@ -767,7 +767,7 @@ void FalkorHWPFFix::runOnLoop(MachineLoop &L, MachineFunction &Fn) {
         // to:
         //   Xc = MOV Xb
         //   Xd = LOAD Xc, off
-        DebugLoc DL = MI.getDebugLoc();
+        DebugLoc const DL = MI.getDebugLoc();
         BuildMI(*MBB, &MI, DL, TII->get(AArch64::ORRXrs), ScratchReg)
             .addReg(AArch64::XZR)
             .addReg(LdI.BaseReg)
@@ -823,7 +823,7 @@ bool FalkorHWPFFix::runOnMachineFunction(MachineFunction &Fn) {
   TII = static_cast<const AArch64InstrInfo *>(ST.getInstrInfo());
   TRI = ST.getRegisterInfo();
 
-  MachineLoopInfo &LI = getAnalysis<MachineLoopInfo>();
+  MachineLoopInfo  const&LI = getAnalysis<MachineLoopInfo>();
 
   Modified = false;
 

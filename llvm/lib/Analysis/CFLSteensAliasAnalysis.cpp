@@ -104,7 +104,7 @@ static bool canSkipAddingToSets(Value *Val) {
     // TODO: Because all of these things are constant, we can determine whether
     // the data is *actually* mutable at graph building time. This will probably
     // come for free/cheap with offset awareness.
-    bool CanStoreMutableData = isa<GlobalValue>(Val) ||
+    bool const CanStoreMutableData = isa<GlobalValue>(Val) ||
                                isa<ConstantExpr>(Val) ||
                                isa<ConstantAggregate>(Val);
     return !CanStoreMutableData;
@@ -135,7 +135,7 @@ CFLSteensAAResult::FunctionInfo::FunctionInfo(
                                     StratifiedIndex SetIndex) {
     unsigned Level = 0;
     while (true) {
-      InterfaceValue CurrValue{InterfaceIndex, Level};
+      InterfaceValue const CurrValue{InterfaceIndex, Level};
 
       auto Itr = InterfaceMap.find(SetIndex);
       if (Itr != InterfaceMap.end()) {
@@ -183,7 +183,7 @@ CFLSteensAAResult::FunctionInfo::FunctionInfo(
 
 // Builds the graph + StratifiedSets for a function.
 CFLSteensAAResult::FunctionInfo CFLSteensAAResult::buildSetsFrom(Function *Fn) {
-  CFLGraphBuilder<CFLSteensAAResult> GraphBuilder(*this, GetTLI(*Fn), *Fn);
+  CFLGraphBuilder<CFLSteensAAResult> const GraphBuilder(*this, GetTLI(*Fn), *Fn);
   StratifiedSetsBuilder<InstantiatedValue> SetBuilder;
 
   // Add all CFLGraph nodes and all Dereference edges to StratifiedSets

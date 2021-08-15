@@ -126,7 +126,7 @@ bool BaseIndexOffset::computeAliasing(const SDNode *Op0,
   // can infer there is no alias.
   if (auto *A = dyn_cast<FrameIndexSDNode>(BasePtr0.getBase()))
     if (auto *B = dyn_cast<FrameIndexSDNode>(BasePtr1.getBase())) {
-      MachineFrameInfo &MFI = DAG.getMachineFunction().getFrameInfo();
+      MachineFrameInfo  const&MFI = DAG.getMachineFunction().getFrameInfo();
       // If the base are the same frame index but the we couldn't find a
       // constant offset, (indices are different) be conservative.
       if (A != B && (!MFI.isFixedObjectIndex(A->getIndex()) ||
@@ -136,12 +136,12 @@ bool BaseIndexOffset::computeAliasing(const SDNode *Op0,
       }
     }
 
-  bool IsFI0 = isa<FrameIndexSDNode>(BasePtr0.getBase());
-  bool IsFI1 = isa<FrameIndexSDNode>(BasePtr1.getBase());
-  bool IsGV0 = isa<GlobalAddressSDNode>(BasePtr0.getBase());
-  bool IsGV1 = isa<GlobalAddressSDNode>(BasePtr1.getBase());
-  bool IsCV0 = isa<ConstantPoolSDNode>(BasePtr0.getBase());
-  bool IsCV1 = isa<ConstantPoolSDNode>(BasePtr1.getBase());
+  bool const IsFI0 = isa<FrameIndexSDNode>(BasePtr0.getBase());
+  bool const IsFI1 = isa<FrameIndexSDNode>(BasePtr1.getBase());
+  bool const IsGV0 = isa<GlobalAddressSDNode>(BasePtr0.getBase());
+  bool const IsGV1 = isa<GlobalAddressSDNode>(BasePtr1.getBase());
+  bool const IsCV0 = isa<ConstantPoolSDNode>(BasePtr0.getBase());
+  bool const IsCV1 = isa<ConstantPoolSDNode>(BasePtr1.getBase());
 
   // If of mismatched base types or checkable indices we can check
   // they do not alias.
@@ -177,7 +177,7 @@ bool BaseIndexOffset::contains(const SelectionDAG &DAG, int64_t BitSize,
 /// Parses tree in Ptr for base, index, offset addresses.
 static BaseIndexOffset matchLSNode(const LSBaseSDNode *N,
                                    const SelectionDAG &DAG) {
-  SDValue Ptr = N->getBasePtr();
+  SDValue const Ptr = N->getBasePtr();
 
   // (((B + I*M) + c)) + c ...
   SDValue Base = DAG.getTargetLoweringInfo().unwrapAddress(Ptr);
@@ -220,7 +220,7 @@ static BaseIndexOffset matchLSNode(const LSBaseSDNode *N,
     case ISD::LOAD:
     case ISD::STORE: {
       auto *LSBase = cast<LSBaseSDNode>(Base.getNode());
-      unsigned int IndexResNo = (Base->getOpcode() == ISD::LOAD) ? 1 : 0;
+      unsigned int const IndexResNo = (Base->getOpcode() == ISD::LOAD) ? 1 : 0;
       if (LSBase->isIndexed() && Base.getResNo() == IndexResNo)
         if (auto *C = dyn_cast<ConstantSDNode>(LSBase->getOffset())) {
           auto Off = C->getSExtValue();
@@ -253,7 +253,7 @@ static BaseIndexOffset matchLSNode(const LSBaseSDNode *N,
 
     // Look at Base + Index + Offset cases.
     Index = Base->getOperand(1);
-    SDValue PotentialBase = Base->getOperand(0);
+    SDValue const PotentialBase = Base->getOperand(0);
 
     // Skip signextends.
     if (Index->getOpcode() == ISD::SIGN_EXTEND) {

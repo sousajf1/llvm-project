@@ -77,7 +77,7 @@ private:
 #include "RISCVGenCompressInstEmitter.inc"
 void RISCVAsmPrinter::EmitToStreamer(MCStreamer &S, const MCInst &Inst) {
   MCInst CInst;
-  bool Res = compressInst(CInst, Inst, *STI, OutStreamer->getContext());
+  bool const Res = compressInst(CInst, Inst, *STI, OutStreamer->getContext());
   if (Res)
     ++RISCVNumInstrsCompressed;
   AsmPrinter::EmitToStreamer(*OutStreamer, Res ? CInst : Inst);
@@ -198,6 +198,6 @@ void RISCVAsmPrinter::emitAttributes() {
 
 // Force static initialization.
 extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializeRISCVAsmPrinter() {
-  RegisterAsmPrinter<RISCVAsmPrinter> X(getTheRISCV32Target());
-  RegisterAsmPrinter<RISCVAsmPrinter> Y(getTheRISCV64Target());
+  RegisterAsmPrinter<RISCVAsmPrinter> const X(getTheRISCV32Target());
+  RegisterAsmPrinter<RISCVAsmPrinter> const Y(getTheRISCV64Target());
 }

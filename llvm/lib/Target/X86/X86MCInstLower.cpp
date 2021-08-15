@@ -317,7 +317,7 @@ MCOperand X86MCInstLower::LowerSymbolOperand(const MachineOperand &MO,
 /// Simplify FOO $imm, %{al,ax,eax,rax} to FOO $imm, for instruction with
 /// a short fixed-register form.
 static void SimplifyShortImmForm(MCInst &Inst, unsigned Opcode) {
-  unsigned ImmOp = Inst.getNumOperands() - 1;
+  unsigned const ImmOp = Inst.getNumOperands() - 1;
   assert(Inst.getOperand(0).isReg() &&
          (Inst.getOperand(ImmOp).isImm() || Inst.getOperand(ImmOp).isExpr()) &&
          ((Inst.getNumOperands() == 3 && Inst.getOperand(1).isReg() &&
@@ -326,12 +326,12 @@ static void SimplifyShortImmForm(MCInst &Inst, unsigned Opcode) {
          "Unexpected instruction!");
 
   // Check whether the destination register can be fixed.
-  unsigned Reg = Inst.getOperand(0).getReg();
+  unsigned const Reg = Inst.getOperand(0).getReg();
   if (Reg != X86::AL && Reg != X86::AX && Reg != X86::EAX && Reg != X86::RAX)
     return;
 
   // If so, rewrite the instruction.
-  MCOperand Saved = Inst.getOperand(ImmOp);
+  MCOperand const Saved = Inst.getOperand(ImmOp);
   Inst = MCInst();
   Inst.setOpcode(Opcode);
   Inst.addOperand(Saved);
@@ -373,10 +373,10 @@ static void SimplifyShortMoveForm(X86AsmPrinter &Printer, MCInst &Inst,
   if (Printer.getSubtarget().is64Bit())
     return;
 
-  bool IsStore = Inst.getOperand(0).isReg() && Inst.getOperand(1).isReg();
-  unsigned AddrBase = IsStore;
-  unsigned RegOp = IsStore ? 0 : 5;
-  unsigned AddrOp = AddrBase + 3;
+  bool const IsStore = Inst.getOperand(0).isReg() && Inst.getOperand(1).isReg();
+  unsigned const AddrBase = IsStore;
+  unsigned const RegOp = IsStore ? 0 : 5;
+  unsigned const AddrOp = AddrBase + 3;
   assert(
       Inst.getNumOperands() == 6 && Inst.getOperand(RegOp).isReg() &&
       Inst.getOperand(AddrBase + X86::AddrBaseReg).isReg() &&
@@ -387,7 +387,7 @@ static void SimplifyShortMoveForm(X86AsmPrinter &Printer, MCInst &Inst,
       "Unexpected instruction!");
 
   // Check whether the destination register can be fixed.
-  unsigned Reg = Inst.getOperand(RegOp).getReg();
+  unsigned const Reg = Inst.getOperand(RegOp).getReg();
   if (Reg != X86::AL && Reg != X86::AX && Reg != X86::EAX && Reg != X86::RAX)
     return;
 
@@ -409,8 +409,8 @@ static void SimplifyShortMoveForm(X86AsmPrinter &Printer, MCInst &Inst,
     return;
 
   // If so, rewrite the instruction.
-  MCOperand Saved = Inst.getOperand(AddrOp);
-  MCOperand Seg = Inst.getOperand(AddrBase + X86::AddrSegmentReg);
+  MCOperand const Saved = Inst.getOperand(AddrOp);
+  MCOperand const Seg = Inst.getOperand(AddrBase + X86::AddrSegmentReg);
   Inst = MCInst();
   Inst.setOpcode(Opcode);
   Inst.addOperand(Saved);
@@ -524,7 +524,7 @@ void X86MCInstLower::Lower(const MachineInstr *MI, MCInst &OutMI) const {
     }
     OutMI.setOpcode(NewOpc);
     // Duplicate the destination.
-    unsigned DestReg = OutMI.getOperand(0).getReg();
+    unsigned const DestReg = OutMI.getOperand(0).getReg();
     OutMI.insert(OutMI.begin(), MCOperand::createReg(DestReg));
     break;
   }
@@ -785,7 +785,7 @@ void X86MCInstLower::Lower(const MachineInstr *MI, MCInst &OutMI) const {
   case X86::CATCHRET: {
     // Replace CATCHRET with the appropriate RET.
     const X86Subtarget &Subtarget = AsmPrinter.getSubtarget();
-    unsigned ReturnReg = Subtarget.is64Bit() ? X86::RAX : X86::EAX;
+    unsigned const ReturnReg = Subtarget.is64Bit() ? X86::RAX : X86::EAX;
     OutMI = MCInst();
     OutMI.setOpcode(getRetOpcode(Subtarget));
     OutMI.addOperand(MCOperand::createReg(ReturnReg));
@@ -936,7 +936,7 @@ void X86MCInstLower::Lower(const MachineInstr *MI, MCInst &OutMI) const {
     // FIXME: Change the immediate to improve opportunities?
     if (!X86II::isX86_64ExtendedReg(OutMI.getOperand(1).getReg()) &&
         X86II::isX86_64ExtendedReg(OutMI.getOperand(2).getReg())) {
-      unsigned Imm = MI->getOperand(3).getImm() & 0x7;
+      unsigned const Imm = MI->getOperand(3).getImm() & 0x7;
       switch (Imm) {
       default: break;
       case 0x00: // EQUAL
@@ -958,7 +958,7 @@ void X86MCInstLower::Lower(const MachineInstr *MI, MCInst &OutMI) const {
   default: {
     // If the instruction is a commutable arithmetic instruction we might be
     // able to commute the operands to get a 2 byte VEX prefix.
-    uint64_t TSFlags = MI->getDesc().TSFlags;
+    uint64_t const TSFlags = MI->getDesc().TSFlags;
     if (MI->getDesc().isCommutable() &&
         (TSFlags & X86II::EncodingMask) == X86II::VEX &&
         (TSFlags & X86II::OpMapMask) == X86II::TB &&
@@ -976,10 +976,10 @@ void X86MCInstLower::Lower(const MachineInstr *MI, MCInst &OutMI) const {
 
 void X86AsmPrinter::LowerTlsAddr(X86MCInstLower &MCInstLowering,
                                  const MachineInstr &MI) {
-  NoAutoPaddingScope NoPadScope(*OutStreamer);
-  bool Is64Bits = MI.getOpcode() != X86::TLS_addr32 &&
+  NoAutoPaddingScope const NoPadScope(*OutStreamer);
+  bool const Is64Bits = MI.getOpcode() != X86::TLS_addr32 &&
                   MI.getOpcode() != X86::TLS_base_addr32;
-  bool Is64BitsLP64 = MI.getOpcode() == X86::TLS_addr64 ||
+  bool const Is64BitsLP64 = MI.getOpcode() == X86::TLS_addr64 ||
                       MI.getOpcode() == X86::TLS_base_addr64;
   MCContext &Ctx = OutStreamer->getContext();
 
@@ -1009,11 +1009,11 @@ void X86AsmPrinter::LowerTlsAddr(X86MCInstLower &MCInstLowering,
   // attempted to be relaxed to IE/LE (binutils PR24784). Work around the bug by
   // only using GOT when GOTPCRELX is enabled.
   // TODO Delete the workaround when GOTPCRELX becomes commonplace.
-  bool UseGot = MMI->getModule()->getRtLibUseGOT() &&
+  bool const UseGot = MMI->getModule()->getRtLibUseGOT() &&
                 Ctx.getAsmInfo()->canRelaxRelocations();
 
   if (Is64Bits) {
-    bool NeedsPadding = SRVK == MCSymbolRefExpr::VK_TLSGD;
+    bool const NeedsPadding = SRVK == MCSymbolRefExpr::VK_TLSGD;
     if (NeedsPadding && Is64BitsLP64)
       EmitAndCountInstruction(MCInstBuilder(X86::DATA16_PREFIX));
     EmitAndCountInstruction(MCInstBuilder(X86::LEA64r)
@@ -1172,7 +1172,7 @@ static unsigned emitNop(MCStreamer &OS, unsigned NumBytes,
     break;
   }
 
-  unsigned NumPrefixes = std::min(NumBytes - NopSize, 5U);
+  unsigned const NumPrefixes = std::min(NumBytes - NopSize, 5U);
   NopSize += NumPrefixes;
   for (unsigned i = 0; i != NumPrefixes; ++i)
     OS.emitBytes("\x66");
@@ -1204,7 +1204,7 @@ static unsigned emitNop(MCStreamer &OS, unsigned NumBytes,
 /// Emit the optimal amount of multi-byte nops on X86.
 static void emitX86Nops(MCStreamer &OS, unsigned NumBytes,
                         const X86Subtarget *Subtarget) {
-  unsigned NopsToEmit = NumBytes;
+  unsigned const NopsToEmit = NumBytes;
   (void)NopsToEmit;
   while (NumBytes) {
     NumBytes -= emitNop(OS, NumBytes, Subtarget);
@@ -1216,10 +1216,10 @@ void X86AsmPrinter::LowerSTATEPOINT(const MachineInstr &MI,
                                     X86MCInstLower &MCIL) {
   assert(Subtarget->is64Bit() && "Statepoint currently only supports X86-64");
 
-  NoAutoPaddingScope NoPadScope(*OutStreamer);
+  NoAutoPaddingScope const NoPadScope(*OutStreamer);
 
-  StatepointOpers SOpers(&MI);
-  if (unsigned PatchBytes = SOpers.getNumPatchBytes()) {
+  StatepointOpers const SOpers(&MI);
+  if (unsigned const PatchBytes = SOpers.getNumPatchBytes()) {
     emitX86Nops(*OutStreamer, PatchBytes, Subtarget);
   } else {
     // Lower call target and choose correct opcode
@@ -1278,14 +1278,14 @@ void X86AsmPrinter::LowerFAULTING_OP(const MachineInstr &FaultingMI,
   // FAULTING_LOAD_OP <def>, <faltinf type>, <MBB handler>,
   //                  <opcode>, <operands>
 
-  NoAutoPaddingScope NoPadScope(*OutStreamer);
+  NoAutoPaddingScope const NoPadScope(*OutStreamer);
 
-  Register DefRegister = FaultingMI.getOperand(0).getReg();
-  FaultMaps::FaultKind FK =
+  Register const DefRegister = FaultingMI.getOperand(0).getReg();
+  FaultMaps::FaultKind const FK =
       static_cast<FaultMaps::FaultKind>(FaultingMI.getOperand(1).getImm());
   MCSymbol *HandlerLabel = FaultingMI.getOperand(2).getMBB()->getSymbol();
-  unsigned Opcode = FaultingMI.getOperand(3).getImm();
-  unsigned OperandsBeginIdx = 4;
+  unsigned const Opcode = FaultingMI.getOperand(3).getImm();
+  unsigned const OperandsBeginIdx = 4;
 
   auto &Ctx = OutStreamer->getContext();
   MCSymbol *FaultingLabel = Ctx.createTempSymbol();
@@ -1312,7 +1312,7 @@ void X86AsmPrinter::LowerFAULTING_OP(const MachineInstr &FaultingMI,
 
 void X86AsmPrinter::LowerFENTRY_CALL(const MachineInstr &MI,
                                      X86MCInstLower &MCIL) {
-  bool Is64Bits = Subtarget->is64Bit();
+  bool const Is64Bits = Subtarget->is64Bit();
   MCContext &Ctx = OutStreamer->getContext();
   MCSymbol *fentry = Ctx.getOrCreateSymbol("__fentry__");
   const MCSymbolRefExpr *Op =
@@ -1327,10 +1327,10 @@ void X86AsmPrinter::LowerPATCHABLE_OP(const MachineInstr &MI,
                                       X86MCInstLower &MCIL) {
   // PATCHABLE_OP minsize, opcode, operands
 
-  NoAutoPaddingScope NoPadScope(*OutStreamer);
+  NoAutoPaddingScope const NoPadScope(*OutStreamer);
 
-  unsigned MinSize = MI.getOperand(0).getImm();
-  unsigned Opcode = MI.getOperand(1).getImm();
+  unsigned const MinSize = MI.getOperand(0).getImm();
+  unsigned const Opcode = MI.getOperand(1).getImm();
 
   MCInst MCI;
   MCI.setOpcode(Opcode);
@@ -1362,7 +1362,7 @@ void X86AsmPrinter::LowerPATCHABLE_OP(const MachineInstr &MI,
       // bytes too, so the check on MinSize is important.
       MCI.setOpcode(X86::PUSH64rmr);
     } else {
-      unsigned NopSize = emitNop(*OutStreamer, MinSize, Subtarget);
+      unsigned const NopSize = emitNop(*OutStreamer, MinSize, Subtarget);
       assert(NopSize == MinSize && "Could not implement MinSize!");
       (void)NopSize;
     }
@@ -1381,7 +1381,7 @@ void X86AsmPrinter::LowerSTACKMAP(const MachineInstr &MI) {
   OutStreamer->emitLabel(MILabel);
 
   SM.recordStackMap(*MILabel, MI);
-  unsigned NumShadowBytes = MI.getOperand(1).getImm();
+  unsigned const NumShadowBytes = MI.getOperand(1).getImm();
   SMShadowTracker.reset(NumShadowBytes);
 }
 
@@ -1393,15 +1393,15 @@ void X86AsmPrinter::LowerPATCHPOINT(const MachineInstr &MI,
 
   SMShadowTracker.emitShadowPadding(*OutStreamer, getSubtargetInfo());
 
-  NoAutoPaddingScope NoPadScope(*OutStreamer);
+  NoAutoPaddingScope const NoPadScope(*OutStreamer);
 
   auto &Ctx = OutStreamer->getContext();
   MCSymbol *MILabel = Ctx.createTempSymbol();
   OutStreamer->emitLabel(MILabel);
   SM.recordPatchPoint(*MILabel, MI);
 
-  PatchPointOpers opers(&MI);
-  unsigned ScratchIdx = opers.getNextScratchIdx();
+  PatchPointOpers const opers(&MI);
+  unsigned const ScratchIdx = opers.getNextScratchIdx();
   unsigned EncodedBytes = 0;
   const MachineOperand &CalleeMO = opers.getCallTarget();
 
@@ -1426,7 +1426,7 @@ void X86AsmPrinter::LowerPATCHPOINT(const MachineInstr &MI,
 
     // Emit MOV to materialize the target address and the CALL to target.
     // This is encoded with 12-13 bytes, depending on which register is used.
-    Register ScratchReg = MI.getOperand(ScratchIdx).getReg();
+    Register const ScratchReg = MI.getOperand(ScratchIdx).getReg();
     if (X86II::isX86_64ExtendedReg(ScratchReg))
       EncodedBytes = 13;
     else
@@ -1442,7 +1442,7 @@ void X86AsmPrinter::LowerPATCHPOINT(const MachineInstr &MI,
   }
 
   // Emit padding.
-  unsigned NumBytes = opers.getNumPatchBytes();
+  unsigned const NumBytes = opers.getNumPatchBytes();
   assert(NumBytes >= EncodedBytes &&
          "Patchpoint can't request size less than the length of a call.");
 
@@ -1453,7 +1453,7 @@ void X86AsmPrinter::LowerPATCHABLE_EVENT_CALL(const MachineInstr &MI,
                                               X86MCInstLower &MCIL) {
   assert(Subtarget->is64Bit() && "XRay custom events only supports X86-64");
 
-  NoAutoPaddingScope NoPadScope(*OutStreamer);
+  NoAutoPaddingScope const NoPadScope(*OutStreamer);
 
   // We want to emit the following pattern, which follows the x86 calling
   // convention to prepare for the trampoline call to be patched in.
@@ -1549,7 +1549,7 @@ void X86AsmPrinter::LowerPATCHABLE_TYPED_EVENT_CALL(const MachineInstr &MI,
                                                     X86MCInstLower &MCIL) {
   assert(Subtarget->is64Bit() && "XRay typed events only supports X86-64");
 
-  NoAutoPaddingScope NoPadScope(*OutStreamer);
+  NoAutoPaddingScope const NoPadScope(*OutStreamer);
 
   // We want to emit the following pattern, which follows the x86 calling
   // convention to prepare for the trampoline call to be patched in.
@@ -1649,7 +1649,7 @@ void X86AsmPrinter::LowerPATCHABLE_TYPED_EVENT_CALL(const MachineInstr &MI,
 void X86AsmPrinter::LowerPATCHABLE_FUNCTION_ENTER(const MachineInstr &MI,
                                                   X86MCInstLower &MCIL) {
 
-  NoAutoPaddingScope NoPadScope(*OutStreamer);
+  NoAutoPaddingScope const NoPadScope(*OutStreamer);
 
   const Function &F = MF->getFunction();
   if (F.hasFnAttribute("patchable-function-entry")) {
@@ -1688,7 +1688,7 @@ void X86AsmPrinter::LowerPATCHABLE_FUNCTION_ENTER(const MachineInstr &MI,
 
 void X86AsmPrinter::LowerPATCHABLE_RET(const MachineInstr &MI,
                                        X86MCInstLower &MCIL) {
-  NoAutoPaddingScope NoPadScope(*OutStreamer);
+  NoAutoPaddingScope const NoPadScope(*OutStreamer);
 
   // Since PATCHABLE_RET takes the opcode of the return statement as an
   // argument, we use that to emit the correct form of the RET that we want.
@@ -1707,7 +1707,7 @@ void X86AsmPrinter::LowerPATCHABLE_RET(const MachineInstr &MI,
   auto CurSled = OutContext.createTempSymbol("xray_sled_", true);
   OutStreamer->emitCodeAlignment(2);
   OutStreamer->emitLabel(CurSled);
-  unsigned OpCode = MI.getOperand(0).getImm();
+  unsigned const OpCode = MI.getOperand(0).getImm();
   MCInst Ret;
   Ret.setOpcode(OpCode);
   for (auto &MO : drop_begin(MI.operands()))
@@ -1720,7 +1720,7 @@ void X86AsmPrinter::LowerPATCHABLE_RET(const MachineInstr &MI,
 
 void X86AsmPrinter::LowerPATCHABLE_TAIL_CALL(const MachineInstr &MI,
                                              X86MCInstLower &MCIL) {
-  NoAutoPaddingScope NoPadScope(*OutStreamer);
+  NoAutoPaddingScope const NoPadScope(*OutStreamer);
 
   // Like PATCHABLE_RET, we have the actual instruction in the operands to this
   // instruction so we lower that particular instruction and its operands.
@@ -1775,7 +1775,7 @@ static const Constant *getConstantFromPool(const MachineInstr &MI,
   if (!Op.isCPI() || Op.getOffset() != 0)
     return nullptr;
 
-  ArrayRef<MachineConstantPoolEntry> Constants =
+  ArrayRef<MachineConstantPoolEntry> const Constants =
       MI.getParent()->getParent()->getConstantPool()->getConstants();
   const MachineConstantPoolEntry &ConstantEntry = Constants[Op.getIndex()];
 
@@ -1804,10 +1804,10 @@ static std::string getShuffleComment(const MachineInstr *MI, unsigned SrcOp1Idx,
   const MachineOperand &SrcOp1 = MI->getOperand(SrcOp1Idx);
   const MachineOperand &SrcOp2 = MI->getOperand(SrcOp2Idx);
 
-  StringRef DstName = DstOp.isReg() ? GetRegisterName(DstOp.getReg()) : "mem";
-  StringRef Src1Name =
+  StringRef const DstName = DstOp.isReg() ? GetRegisterName(DstOp.getReg()) : "mem";
+  StringRef const Src1Name =
       SrcOp1.isReg() ? GetRegisterName(SrcOp1.getReg()) : "mem";
-  StringRef Src2Name =
+  StringRef const Src2Name =
       SrcOp2.isReg() ? GetRegisterName(SrcOp2.getReg()) : "mem";
 
   // One source operand, fix the mask to print all elements in one span.
@@ -1848,7 +1848,7 @@ static std::string getShuffleComment(const MachineInstr *MI, unsigned SrcOp1Idx,
 
     // Otherwise, it must come from src1 or src2.  Print the span of elements
     // that comes from this src.
-    bool isSrc1 = ShuffleMask[i] < (int)e;
+    bool const isSrc1 = ShuffleMask[i] < (int)e;
     CS << (isSrc1 ? Src1Name : Src2Name) << '[';
 
     bool IsFirst = true;
@@ -2020,14 +2020,14 @@ static void addConstantComments(const MachineInstr *MI,
         ++SrcIdx;
       }
     }
-    unsigned MaskIdx = SrcIdx + 1 + X86::AddrDisp;
+    unsigned const MaskIdx = SrcIdx + 1 + X86::AddrDisp;
 
     assert(MI->getNumOperands() >= (SrcIdx + 1 + X86::AddrNumOperands) &&
            "Unexpected number of operands!");
 
     const MachineOperand &MaskOp = MI->getOperand(MaskIdx);
     if (auto *C = getConstantFromPool(*MI, MaskOp)) {
-      unsigned Width = getRegisterWidth(MI->getDesc().OpInfo[0]);
+      unsigned const Width = getRegisterWidth(MI->getDesc().OpInfo[0]);
       SmallVector<int, 64> Mask;
       DecodePSHUFBMask(C, Width, Mask);
       if (!Mask.empty())
@@ -2098,14 +2098,14 @@ static void addConstantComments(const MachineInstr *MI,
         ++SrcIdx;
       }
     }
-    unsigned MaskIdx = SrcIdx + 1 + X86::AddrDisp;
+    unsigned const MaskIdx = SrcIdx + 1 + X86::AddrDisp;
 
     assert(MI->getNumOperands() >= (SrcIdx + 1 + X86::AddrNumOperands) &&
            "Unexpected number of operands!");
 
     const MachineOperand &MaskOp = MI->getOperand(MaskIdx);
     if (auto *C = getConstantFromPool(*MI, MaskOp)) {
-      unsigned Width = getRegisterWidth(MI->getDesc().OpInfo[0]);
+      unsigned const Width = getRegisterWidth(MI->getDesc().OpInfo[0]);
       SmallVector<int, 16> Mask;
       DecodeVPERMILPMask(C, ElSize, Width, Mask);
       if (!Mask.empty())
@@ -2134,7 +2134,7 @@ static void addConstantComments(const MachineInstr *MI,
 
     const MachineOperand &MaskOp = MI->getOperand(3 + X86::AddrDisp);
     if (auto *C = getConstantFromPool(*MI, MaskOp)) {
-      unsigned Width = getRegisterWidth(MI->getDesc().OpInfo[0]);
+      unsigned const Width = getRegisterWidth(MI->getDesc().OpInfo[0]);
       SmallVector<int, 16> Mask;
       DecodeVPERMIL2PMask(C, (unsigned)CtrlOp.getImm(), ElSize, Width, Mask);
       if (!Mask.empty())
@@ -2149,7 +2149,7 @@ static void addConstantComments(const MachineInstr *MI,
 
     const MachineOperand &MaskOp = MI->getOperand(3 + X86::AddrDisp);
     if (auto *C = getConstantFromPool(*MI, MaskOp)) {
-      unsigned Width = getRegisterWidth(MI->getDesc().OpInfo[0]);
+      unsigned const Width = getRegisterWidth(MI->getDesc().OpInfo[0]);
       SmallVector<int, 16> Mask;
       DecodeVPPERMMask(C, Width, Mask);
       if (!Mask.empty())
@@ -2394,7 +2394,7 @@ void X86AsmPrinter::emitInstruction(const MachineInstr *MI) {
   case X86::EH_RETURN:
   case X86::EH_RETURN64: {
     // Lower these as normal, but add some comments.
-    Register Reg = MI->getOperand(0).getReg();
+    Register const Reg = MI->getOperand(0).getReg();
     OutStreamer->AddComment(StringRef("eh_return, addr: %") +
                             X86ATTInstPrinter::getRegisterName(Reg));
     break;
@@ -2469,13 +2469,13 @@ void X86AsmPrinter::emitInstruction(const MachineInstr *MI) {
 
     const X86FrameLowering *FrameLowering =
         MF->getSubtarget<X86Subtarget>().getFrameLowering();
-    bool hasFP = FrameLowering->hasFP(*MF);
+    bool const hasFP = FrameLowering->hasFP(*MF);
 
     // TODO: This is needed only if we require precise CFA.
-    bool HasActiveDwarfFrame = OutStreamer->getNumFrameInfos() &&
+    bool const HasActiveDwarfFrame = OutStreamer->getNumFrameInfos() &&
                                !OutStreamer->getDwarfFrameInfos().back().End;
 
-    int stackGrowth = -RI->getSlotSize();
+    int const stackGrowth = -RI->getSlotSize();
 
     if (HasActiveDwarfFrame && !hasFP) {
       OutStreamer->emitCFIAdjustCfaOffset(-stackGrowth);

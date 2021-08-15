@@ -140,11 +140,11 @@ private:
                      const SmallVector<SelectInstToUnfold, 4> &SelectInsts) {
     DomTreeUpdater DTU(DT, DomTreeUpdater::UpdateStrategy::Eager);
     SmallVector<SelectInstToUnfold, 4> Stack;
-    for (SelectInstToUnfold SIToUnfold : SelectInsts)
+    for (SelectInstToUnfold const SIToUnfold : SelectInsts)
       Stack.push_back(SIToUnfold);
 
     while (!Stack.empty()) {
-      SelectInstToUnfold SIToUnfold = Stack.back();
+      SelectInstToUnfold const SIToUnfold = Stack.back();
       Stack.pop_back();
 
       std::vector<SelectInstToUnfold> NewSIsToUnfold;
@@ -562,7 +562,7 @@ struct AllSwitchPaths {
 
   void run() {
     VisitedBlocks Visited;
-    PathsType LoopPaths = paths(SwitchBlock, Visited, /* PathDepth = */ 1);
+    PathsType const LoopPaths = paths(SwitchBlock, Visited, /* PathDepth = */ 1);
     StateDefMap StateDef = getStateDefMap();
 
     for (PathType Path : LoopPaths) {
@@ -633,8 +633,8 @@ private:
       if (Visited.contains(Succ))
         continue;
 
-      PathsType SuccPaths = paths(Succ, Visited, PathDepth + 1);
-      for (PathType Path : SuccPaths) {
+      PathsType const SuccPaths = paths(Succ, Visited, PathDepth + 1);
+      for (PathType const Path : SuccPaths) {
         PathType NewPath(Path);
         NewPath.push_front(BB);
         Res.push_back(NewPath);
@@ -719,9 +719,9 @@ private:
     // just being used to ensure (BB, State) pairs are only counted once.
     DuplicateBlockMap DuplicateMap;
 
-    for (ThreadingPath &TPath : SwitchPaths->getThreadingPaths()) {
+    for (ThreadingPath  const&TPath : SwitchPaths->getThreadingPaths()) {
       PathType PathBBs = TPath.getPath();
-      uint64_t NextState = TPath.getExitValue();
+      uint64_t const NextState = TPath.getExitValue();
       const BasicBlock *Determinator = TPath.getDeterminatorBB();
 
       // Update Metrics for the Switch block, this is always cloned
@@ -780,7 +780,7 @@ private:
       // Factor in the number of conditional branches reduced from jump
       // threading. Assume that lowering the switch block is implemented by
       // using binary search, hence the LogBase2().
-      unsigned CondBranches =
+      unsigned const CondBranches =
           APInt(32, Switch->getNumSuccessors()).ceilLogBase2();
       DuplicationCost = Metrics.NumInsts / CondBranches;
     } else {
@@ -866,7 +866,7 @@ private:
                       DuplicateBlockMap &DuplicateMap,
                       SmallSet<BasicBlock *, 16> &BlocksToClean,
                       DomTreeUpdater *DTU) {
-    uint64_t NextState = Path.getExitValue();
+    uint64_t const NextState = Path.getExitValue();
     const BasicBlock *Determinator = Path.getDeterminatorBB();
     PathType PathBBs = Path.getPath();
 
@@ -912,7 +912,7 @@ private:
     for (auto KV : NewDefs) {
       Instruction *I = KV.first;
       BasicBlock *BB = I->getParent();
-      std::vector<Instruction *> Cloned = KV.second;
+      std::vector<Instruction *> const Cloned = KV.second;
 
       // Scan all uses of this instruction to see if it is used outside of its
       // block, and if so, record them in UsesToRename.
@@ -938,7 +938,7 @@ private:
       // We found a use of I outside of BB.  Rename all uses of I that are
       // outside its block to be uses of the appropriate PHI node etc.  See
       // ValuesInBlocks with the values we know.
-      unsigned VarNum = SSAUpdate.AddVariable(I->getName(), I->getType());
+      unsigned const VarNum = SSAUpdate.AddVariable(I->getName(), I->getType());
       SSAUpdate.AddAvailableValue(VarNum, BB, I);
       for (Instruction *New : Cloned)
         SSAUpdate.AddAvailableValue(VarNum, New->getParent(), New);
@@ -1099,7 +1099,7 @@ private:
   void updateLastSuccessor(ThreadingPath &TPath,
                            DuplicateBlockMap &DuplicateMap,
                            DomTreeUpdater *DTU) {
-    uint64_t NextState = TPath.getExitValue();
+    uint64_t const NextState = TPath.getExitValue();
     BasicBlock *BB = TPath.getPath().back();
     BasicBlock *LastBlock = getClonedBB(BB, NextState, DuplicateMap);
 

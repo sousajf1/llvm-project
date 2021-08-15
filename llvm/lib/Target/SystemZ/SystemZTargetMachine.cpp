@@ -31,7 +31,7 @@ using namespace llvm;
 
 extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializeSystemZTarget() {
   // Register the target.
-  RegisterTargetMachine<SystemZTargetMachine> X(getTheSystemZTarget());
+  RegisterTargetMachine<SystemZTargetMachine> const X(getTheSystemZTarget());
 }
 
 // Determine whether we use the vector ABI.
@@ -64,7 +64,7 @@ static bool UsesVectorABI(StringRef CPU, StringRef FS) {
 
 static std::string computeDataLayout(const Triple &TT, StringRef CPU,
                                      StringRef FS) {
-  bool VectorABI = UsesVectorABI(CPU, FS);
+  bool const VectorABI = UsesVectorABI(CPU, FS);
   std::string Ret;
 
   // Big endian.
@@ -177,10 +177,10 @@ SystemZTargetMachine::~SystemZTargetMachine() = default;
 
 const SystemZSubtarget *
 SystemZTargetMachine::getSubtargetImpl(const Function &F) const {
-  Attribute CPUAttr = F.getFnAttribute("target-cpu");
-  Attribute FSAttr = F.getFnAttribute("target-features");
+  Attribute const CPUAttr = F.getFnAttribute("target-cpu");
+  Attribute const FSAttr = F.getFnAttribute("target-features");
 
-  std::string CPU =
+  std::string const CPU =
       CPUAttr.isValid() ? CPUAttr.getValueAsString().str() : TargetCPU;
   std::string FS =
       FSAttr.isValid() ? FSAttr.getValueAsString().str() : TargetFS;
@@ -188,7 +188,7 @@ SystemZTargetMachine::getSubtargetImpl(const Function &F) const {
   // FIXME: This is related to the code below to reset the target options,
   // we need to know whether or not the soft float flag is set on the
   // function, so we can enable it as a subtarget feature.
-  bool softFloat = F.getFnAttribute("use-soft-float").getValueAsBool();
+  bool const softFloat = F.getFnAttribute("use-soft-float").getValueAsBool();
 
   if (softFloat)
     FS += FS.empty() ? "+soft-float" : ",+soft-float";

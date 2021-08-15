@@ -81,13 +81,13 @@ static void insertCSRSaves(MachineBasicBlock &SaveBlock,
   const TargetFrameLowering *TFI = MF.getSubtarget().getFrameLowering();
   const TargetRegisterInfo *TRI = MF.getSubtarget().getRegisterInfo();
 
-  MachineBasicBlock::iterator I = SaveBlock.begin();
+  MachineBasicBlock::iterator const I = SaveBlock.begin();
   if (!TFI->spillCalleeSavedRegisters(SaveBlock, I, CSI, TRI)) {
     const MachineRegisterInfo &MRI = MF.getRegInfo();
 
     for (const CalleeSavedInfo &CS : CSI) {
       // Insert the spill to the stack frame.
-      MCRegister Reg = CS.getReg();
+      MCRegister const Reg = CS.getReg();
 
       MachineInstrSpan MIS(I, &SaveBlock);
       const TargetRegisterClass *RC =
@@ -116,19 +116,19 @@ static void insertCSRSaves(MachineBasicBlock &SaveBlock,
 static void insertCSRRestores(MachineBasicBlock &RestoreBlock,
                               MutableArrayRef<CalleeSavedInfo> CSI,
                               LiveIntervals *LIS) {
-  MachineFunction &MF = *RestoreBlock.getParent();
+  MachineFunction  const&MF = *RestoreBlock.getParent();
   const TargetInstrInfo &TII = *MF.getSubtarget().getInstrInfo();
   const TargetFrameLowering *TFI = MF.getSubtarget().getFrameLowering();
   const TargetRegisterInfo *TRI = MF.getSubtarget().getRegisterInfo();
 
   // Restore all registers immediately before the return and any
   // terminators that precede it.
-  MachineBasicBlock::iterator I = RestoreBlock.getFirstTerminator();
+  MachineBasicBlock::iterator const I = RestoreBlock.getFirstTerminator();
 
   // FIXME: Just emit the readlane/writelane directly
   if (!TFI->restoreCalleeSavedRegisters(RestoreBlock, I, CSI, TRI)) {
     for (const CalleeSavedInfo &CI : reverse(CSI)) {
-      unsigned Reg = CI.getReg();
+      unsigned const Reg = CI.getReg();
       const TargetRegisterClass *RC =
         TRI->getMinimalPhysRegClass(Reg, MVT::i32);
 
@@ -190,7 +190,7 @@ static void updateLiveness(MachineFunction &MF, ArrayRef<CalleeSavedInfo> CSI) {
 }
 
 bool SILowerSGPRSpills::spillCalleeSavedRegs(MachineFunction &MF) {
-  MachineRegisterInfo &MRI = MF.getRegInfo();
+  MachineRegisterInfo  const&MRI = MF.getRegInfo();
   const Function &F = MF.getFunction();
   const GCNSubtarget &ST = MF.getSubtarget<GCNSubtarget>();
   const SIFrameLowering *TFI = ST.getFrameLowering();
@@ -211,12 +211,12 @@ bool SILowerSGPRSpills::spillCalleeSavedRegs(MachineFunction &MF) {
     const MCPhysReg *CSRegs = MRI.getCalleeSavedRegs();
 
     for (unsigned I = 0; CSRegs[I]; ++I) {
-      MCRegister Reg = CSRegs[I];
+      MCRegister const Reg = CSRegs[I];
 
       if (SavedRegs.test(Reg)) {
         const TargetRegisterClass *RC =
           TRI->getMinimalPhysRegClass(Reg, MVT::i32);
-        int JunkFI = MFI.CreateStackObject(TRI->getSpillSize(*RC),
+        int const JunkFI = MFI.CreateStackObject(TRI->getSpillSize(*RC),
                                            TRI->getSpillAlign(*RC), true);
 
         CSI.push_back(CalleeSavedInfo(Reg, JunkFI));
@@ -260,7 +260,7 @@ static bool lowerShiftReservedVGPR(MachineFunction &MF,
   MachineFrameInfo &FrameInfo = MF.getFrameInfo();
   // Create a stack object for a possible spill in the function prologue.
   // Note Non-CSR VGPR also need this as we may overwrite inactive lanes.
-  Optional<int> FI = FrameInfo.CreateSpillStackObject(4, Align(4));
+  Optional<int> const FI = FrameInfo.CreateSpillStackObject(4, Align(4));
 
   // Find saved info about the pre-reserved register.
   const auto *ReservedVGPRInfoItr =
@@ -297,9 +297,9 @@ bool SILowerSGPRSpills::runOnMachineFunction(MachineFunction &MF) {
   // First, expose any CSR SGPR spills. This is mostly the same as what PEI
   // does, but somewhat simpler.
   calculateSaveRestoreBlocks(MF);
-  bool HasCSRs = spillCalleeSavedRegs(MF);
+  bool const HasCSRs = spillCalleeSavedRegs(MF);
 
-  MachineFrameInfo &MFI = MF.getFrameInfo();
+  MachineFrameInfo  const&MFI = MF.getFrameInfo();
   MachineRegisterInfo &MRI = MF.getRegInfo();
   SIMachineFunctionInfo *FuncInfo = MF.getInfo<SIMachineFunctionInfo>();
 
@@ -342,11 +342,11 @@ bool SILowerSGPRSpills::runOnMachineFunction(MachineFunction &MF) {
         if (!TII->isSGPRSpill(MI))
           continue;
 
-        int FI = TII->getNamedOperand(MI, AMDGPU::OpName::addr)->getIndex();
+        int const FI = TII->getNamedOperand(MI, AMDGPU::OpName::addr)->getIndex();
         assert(MFI.getStackID(FI) == TargetStackID::SGPRSpill);
         if (FuncInfo->allocateSGPRSpillToVGPR(MF, FI)) {
           NewReservedRegs = true;
-          bool Spilled = TRI->eliminateSGPRToVGPRSpillFrameIndex(MI, FI,
+          bool const Spilled = TRI->eliminateSGPRToVGPRSpillFrameIndex(MI, FI,
                                                                  nullptr, LIS);
           (void)Spilled;
           assert(Spilled && "failed to spill SGPR to VGPR when allocated");

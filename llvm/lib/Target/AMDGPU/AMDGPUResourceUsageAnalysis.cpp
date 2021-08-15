@@ -168,7 +168,7 @@ AMDGPUResourceUsageAnalysis::analyzeResourceUsage(
   // A tail call isn't considered a call for MachineFrameInfo's purposes.
   if (!FrameInfo.hasCalls() && !FrameInfo.hasTailCall()) {
     MCPhysReg HighestVGPRReg = AMDGPU::NoRegister;
-    for (MCPhysReg Reg : reverse(AMDGPU::VGPR_32RegClass.getRegisters())) {
+    for (MCPhysReg const Reg : reverse(AMDGPU::VGPR_32RegClass.getRegisters())) {
       if (MRI.isPhysRegUsed(Reg)) {
         HighestVGPRReg = Reg;
         break;
@@ -177,7 +177,7 @@ AMDGPUResourceUsageAnalysis::analyzeResourceUsage(
 
     if (ST.hasMAIInsts()) {
       MCPhysReg HighestAGPRReg = AMDGPU::NoRegister;
-      for (MCPhysReg Reg : reverse(AMDGPU::AGPR_32RegClass.getRegisters())) {
+      for (MCPhysReg const Reg : reverse(AMDGPU::AGPR_32RegClass.getRegisters())) {
         if (MRI.isPhysRegUsed(Reg)) {
           HighestAGPRReg = Reg;
           break;
@@ -189,7 +189,7 @@ AMDGPUResourceUsageAnalysis::analyzeResourceUsage(
     }
 
     MCPhysReg HighestSGPRReg = AMDGPU::NoRegister;
-    for (MCPhysReg Reg : reverse(AMDGPU::SGPR_32RegClass.getRegisters())) {
+    for (MCPhysReg const Reg : reverse(AMDGPU::SGPR_32RegClass.getRegisters())) {
       if (MRI.isPhysRegUsed(Reg)) {
         HighestSGPRReg = Reg;
         break;
@@ -224,7 +224,7 @@ AMDGPUResourceUsageAnalysis::analyzeResourceUsage(
         if (!MO.isReg())
           continue;
 
-        Register Reg = MO.getReg();
+        Register const Reg = MO.getReg();
         switch (Reg) {
         case AMDGPU::EXEC:
         case AMDGPU::EXEC_LO:
@@ -411,8 +411,8 @@ AMDGPUResourceUsageAnalysis::analyzeResourceUsage(
         } else {
           llvm_unreachable("Unknown register class");
         }
-        unsigned HWReg = TRI.getHWRegIndex(Reg);
-        int MaxUsed = HWReg + Width - 1;
+        unsigned const HWReg = TRI.getHWRegIndex(Reg);
+        int const MaxUsed = HWReg + Width - 1;
         if (IsSGPR) {
           MaxSGPR = MaxUsed > MaxSGPR ? MaxUsed : MaxSGPR;
         } else if (IsAGPR) {
@@ -440,7 +440,7 @@ AMDGPUResourceUsageAnalysis::analyzeResourceUsage(
         if (Callee && AMDGPU::isEntryFunctionCC(Callee->getCallingConv()))
           report_fatal_error("invalid call to entry function");
 
-        bool IsIndirect = !Callee || Callee->isDeclaration();
+        bool const IsIndirect = !Callee || Callee->isDeclaration();
         if (!IsIndirect)
           I = CallGraphResourceInfo.find(Callee);
 

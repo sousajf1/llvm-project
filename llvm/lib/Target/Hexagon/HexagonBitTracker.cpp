@@ -90,10 +90,10 @@ BT::BitMask HexagonEvaluator::mask(Register Reg, unsigned Sub) const {
   if (Sub == 0)
     return MachineEvaluator::mask(Reg, 0);
   const TargetRegisterClass &RC = *MRI.getRegClass(Reg);
-  unsigned ID = RC.getID();
-  uint16_t RW = getRegBitWidth(RegisterRef(Reg, Sub));
+  unsigned const ID = RC.getID();
+  uint16_t const RW = getRegBitWidth(RegisterRef(Reg, Sub));
   const auto &HRI = static_cast<const HexagonRegisterInfo&>(TRI);
-  bool IsSubLo = (Sub == HRI.getHexagonSubRegIndex(RC, Hexagon::ps_sub_lo));
+  bool const IsSubLo = (Sub == HRI.getHexagonSubRegIndex(RC, Hexagon::ps_sub_lo));
   switch (ID) {
     case Hexagon::DoubleRegsRegClassID:
     case Hexagon::HvxWRRegClassID:
@@ -134,8 +134,8 @@ const TargetRegisterClass &HexagonEvaluator::composeWithSubRegIndex(
 
 #ifndef NDEBUG
   const auto &HRI = static_cast<const HexagonRegisterInfo&>(TRI);
-  bool IsSubLo = (Idx == HRI.getHexagonSubRegIndex(RC, Hexagon::ps_sub_lo));
-  bool IsSubHi = (Idx == HRI.getHexagonSubRegIndex(RC, Hexagon::ps_sub_hi));
+  bool const IsSubLo = (Idx == HRI.getHexagonSubRegIndex(RC, Hexagon::ps_sub_lo));
+  bool const IsSubHi = (Idx == HRI.getHexagonSubRegIndex(RC, Hexagon::ps_sub_hi));
   assert(IsSubLo != IsSubHi && "Must refer to either low or high subreg");
 #endif
 
@@ -200,7 +200,7 @@ bool HexagonEvaluator::evaluate(const MachineInstr &MI,
   if (NumDefs == 0)
     return false;
 
-  unsigned Opc = MI.getOpcode();
+  unsigned const Opc = MI.getOpcode();
 
   if (MI.mayLoad()) {
     switch (Opc) {
@@ -280,7 +280,7 @@ bool HexagonEvaluator::evaluate(const MachineInstr &MI,
   // Extract RW high bits of the cell.
   auto hi = [this] (const BT::RegisterCell &RC, uint16_t RW)
         -> BT::RegisterCell {
-    uint16_t W = RC.width();
+    uint16_t const W = RC.width();
     assert(RW <= W);
     return eXTR(RC, W-RW, W);
   };
@@ -308,10 +308,10 @@ bool HexagonEvaluator::evaluate(const MachineInstr &MI,
   // instructions below, the 0th operand is the defined register.
   // Pre-compute the bitwidth here, because it is needed in many cases
   // cases below.
-  uint16_t W0 = (Reg[0].Reg != 0) ? getRegBitWidth(Reg[0]) : 0;
+  uint16_t const W0 = (Reg[0].Reg != 0) ? getRegBitWidth(Reg[0]) : 0;
 
   // Register id of the 0th operand. It can be 0.
-  unsigned Reg0 = Reg[0].Reg;
+  unsigned const Reg0 = Reg[0].Reg;
 
   switch (Opc) {
     // Transfer immediate:
@@ -326,10 +326,10 @@ bool HexagonEvaluator::evaluate(const MachineInstr &MI,
     case PS_true:
       return rr0(RegisterCell(W0).fill(0, W0, BT::BitValue::One), Outputs);
     case PS_fi: {
-      int FI = op(1).getIndex();
-      int Off = op(2).getImm();
-      unsigned A = MFI.getObjectAlign(FI).value() + std::abs(Off);
-      unsigned L = countTrailingZeros(A);
+      int const FI = op(1).getIndex();
+      int const Off = op(2).getImm();
+      unsigned const A = MFI.getObjectAlign(FI).value() + std::abs(Off);
+      unsigned const L = countTrailingZeros(A);
       RegisterCell RC = RegisterCell::self(Reg[0].Reg, W0);
       RC.fill(0, L, BT::BitValue::Zero);
       return rr0(RC, Outputs);
@@ -342,17 +342,17 @@ bool HexagonEvaluator::evaluate(const MachineInstr &MI,
     case C2_pxfer_map:
       return rr0(rc(1), Outputs);
     case C2_tfrpr: {
-      uint16_t RW = W0;
-      uint16_t PW = 8; // XXX Pred size: getRegBitWidth(Reg[1]);
+      uint16_t const RW = W0;
+      uint16_t const PW = 8; // XXX Pred size: getRegBitWidth(Reg[1]);
       assert(PW <= RW);
-      RegisterCell PC = eXTR(rc(1), 0, PW);
+      RegisterCell const PC = eXTR(rc(1), 0, PW);
       RegisterCell RC = RegisterCell(RW).insert(PC, BT::BitMask(0, PW-1));
       RC.fill(PW, RW, BT::BitValue::Zero);
       return rr0(RC, Outputs);
     }
     case C2_tfrrp: {
-      uint16_t RW = W0;
-      uint16_t PW = 8; // XXX Pred size: getRegBitWidth(Reg[1]);
+      uint16_t const RW = W0;
+      uint16_t const PW = 8; // XXX Pred size: getRegBitWidth(Reg[1]);
       RegisterCell RC = RegisterCell::self(Reg[0].Reg, RW);
       RC.fill(PW, RW, BT::BitValue::Zero);
       return rr0(eINS(RC, eXTR(rc(1), 0, PW), 0), Outputs);
@@ -366,10 +366,10 @@ bool HexagonEvaluator::evaluate(const MachineInstr &MI,
       break;
 
     case A2_addsp: {
-      uint16_t W1 = getRegBitWidth(Reg[1]);
+      uint16_t const W1 = getRegBitWidth(Reg[1]);
       assert(W0 == 64 && W1 == 32);
-      RegisterCell CW = RegisterCell(W0).insert(rc(1), BT::BitMask(0, W1-1));
-      RegisterCell RC = eADD(eSXT(CW, W1), rc(2));
+      RegisterCell const CW = RegisterCell(W0).insert(rc(1), BT::BitMask(0, W1-1));
+      RegisterCell const RC = eADD(eSXT(CW, W1), rc(2));
       return rr0(RC, Outputs);
     }
     case A2_add:
@@ -378,60 +378,60 @@ bool HexagonEvaluator::evaluate(const MachineInstr &MI,
     case A2_addi:
       return rr0(eADD(rc(1), eIMM(im(2), W0)), Outputs);
     case S4_addi_asl_ri: {
-      RegisterCell RC = eADD(eIMM(im(1), W0), eASL(rc(2), im(3)));
+      RegisterCell const RC = eADD(eIMM(im(1), W0), eASL(rc(2), im(3)));
       return rr0(RC, Outputs);
     }
     case S4_addi_lsr_ri: {
-      RegisterCell RC = eADD(eIMM(im(1), W0), eLSR(rc(2), im(3)));
+      RegisterCell const RC = eADD(eIMM(im(1), W0), eLSR(rc(2), im(3)));
       return rr0(RC, Outputs);
     }
     case S4_addaddi: {
-      RegisterCell RC = eADD(rc(1), eADD(rc(2), eIMM(im(3), W0)));
+      RegisterCell const RC = eADD(rc(1), eADD(rc(2), eIMM(im(3), W0)));
       return rr0(RC, Outputs);
     }
     case M4_mpyri_addi: {
-      RegisterCell M = eMLS(rc(2), eIMM(im(3), W0));
-      RegisterCell RC = eADD(eIMM(im(1), W0), lo(M, W0));
+      RegisterCell const M = eMLS(rc(2), eIMM(im(3), W0));
+      RegisterCell const RC = eADD(eIMM(im(1), W0), lo(M, W0));
       return rr0(RC, Outputs);
     }
     case M4_mpyrr_addi: {
-      RegisterCell M = eMLS(rc(2), rc(3));
-      RegisterCell RC = eADD(eIMM(im(1), W0), lo(M, W0));
+      RegisterCell const M = eMLS(rc(2), rc(3));
+      RegisterCell const RC = eADD(eIMM(im(1), W0), lo(M, W0));
       return rr0(RC, Outputs);
     }
     case M4_mpyri_addr_u2: {
-      RegisterCell M = eMLS(eIMM(im(2), W0), rc(3));
-      RegisterCell RC = eADD(rc(1), lo(M, W0));
+      RegisterCell const M = eMLS(eIMM(im(2), W0), rc(3));
+      RegisterCell const RC = eADD(rc(1), lo(M, W0));
       return rr0(RC, Outputs);
     }
     case M4_mpyri_addr: {
-      RegisterCell M = eMLS(rc(2), eIMM(im(3), W0));
-      RegisterCell RC = eADD(rc(1), lo(M, W0));
+      RegisterCell const M = eMLS(rc(2), eIMM(im(3), W0));
+      RegisterCell const RC = eADD(rc(1), lo(M, W0));
       return rr0(RC, Outputs);
     }
     case M4_mpyrr_addr: {
-      RegisterCell M = eMLS(rc(2), rc(3));
-      RegisterCell RC = eADD(rc(1), lo(M, W0));
+      RegisterCell const M = eMLS(rc(2), rc(3));
+      RegisterCell const RC = eADD(rc(1), lo(M, W0));
       return rr0(RC, Outputs);
     }
     case S4_subaddi: {
-      RegisterCell RC = eADD(rc(1), eSUB(eIMM(im(2), W0), rc(3)));
+      RegisterCell const RC = eADD(rc(1), eSUB(eIMM(im(2), W0), rc(3)));
       return rr0(RC, Outputs);
     }
     case M2_accii: {
-      RegisterCell RC = eADD(rc(1), eADD(rc(2), eIMM(im(3), W0)));
+      RegisterCell const RC = eADD(rc(1), eADD(rc(2), eIMM(im(3), W0)));
       return rr0(RC, Outputs);
     }
     case M2_acci: {
-      RegisterCell RC = eADD(rc(1), eADD(rc(2), rc(3)));
+      RegisterCell const RC = eADD(rc(1), eADD(rc(2), rc(3)));
       return rr0(RC, Outputs);
     }
     case M2_subacc: {
-      RegisterCell RC = eADD(rc(1), eSUB(rc(2), rc(3)));
+      RegisterCell const RC = eADD(rc(1), eSUB(rc(2), rc(3)));
       return rr0(RC, Outputs);
     }
     case S2_addasl_rrri: {
-      RegisterCell RC = eADD(rc(1), eASL(rc(2), im(3)));
+      RegisterCell const RC = eADD(rc(1), eASL(rc(2), im(3)));
       return rr0(RC, Outputs);
     }
     case C4_addipc: {
@@ -445,19 +445,19 @@ bool HexagonEvaluator::evaluate(const MachineInstr &MI,
     case A2_subri:
       return rr0(eSUB(eIMM(im(1), W0), rc(2)), Outputs);
     case S4_subi_asl_ri: {
-      RegisterCell RC = eSUB(eIMM(im(1), W0), eASL(rc(2), im(3)));
+      RegisterCell const RC = eSUB(eIMM(im(1), W0), eASL(rc(2), im(3)));
       return rr0(RC, Outputs);
     }
     case S4_subi_lsr_ri: {
-      RegisterCell RC = eSUB(eIMM(im(1), W0), eLSR(rc(2), im(3)));
+      RegisterCell const RC = eSUB(eIMM(im(1), W0), eLSR(rc(2), im(3)));
       return rr0(RC, Outputs);
     }
     case M2_naccii: {
-      RegisterCell RC = eSUB(rc(1), eADD(rc(2), eIMM(im(3), W0)));
+      RegisterCell const RC = eSUB(rc(1), eADD(rc(2), eIMM(im(3), W0)));
       return rr0(RC, Outputs);
     }
     case M2_nacci: {
-      RegisterCell RC = eSUB(rc(1), eADD(rc(2), rc(3)));
+      RegisterCell const RC = eSUB(rc(1), eADD(rc(2), rc(3)));
       return rr0(RC, Outputs);
     }
     // 32-bit negation is done by "Rd = A2_subri 0, Rs"
@@ -465,7 +465,7 @@ bool HexagonEvaluator::evaluate(const MachineInstr &MI,
       return rr0(eSUB(eIMM(0, W0), rc(1)), Outputs);
 
     case M2_mpy_up: {
-      RegisterCell M = eMLS(rc(1), rc(2));
+      RegisterCell const M = eMLS(rc(1), rc(2));
       return rr0(hi(M, W0), Outputs);
     }
     case M2_dpmpyss_s0:
@@ -475,38 +475,38 @@ bool HexagonEvaluator::evaluate(const MachineInstr &MI,
     case M2_dpmpyss_nac_s0:
       return rr0(eSUB(rc(1), eMLS(rc(2), rc(3))), Outputs);
     case M2_mpyi: {
-      RegisterCell M = eMLS(rc(1), rc(2));
+      RegisterCell const M = eMLS(rc(1), rc(2));
       return rr0(lo(M, W0), Outputs);
     }
     case M2_macsip: {
-      RegisterCell M = eMLS(rc(2), eIMM(im(3), W0));
-      RegisterCell RC = eADD(rc(1), lo(M, W0));
+      RegisterCell const M = eMLS(rc(2), eIMM(im(3), W0));
+      RegisterCell const RC = eADD(rc(1), lo(M, W0));
       return rr0(RC, Outputs);
     }
     case M2_macsin: {
-      RegisterCell M = eMLS(rc(2), eIMM(im(3), W0));
-      RegisterCell RC = eSUB(rc(1), lo(M, W0));
+      RegisterCell const M = eMLS(rc(2), eIMM(im(3), W0));
+      RegisterCell const RC = eSUB(rc(1), lo(M, W0));
       return rr0(RC, Outputs);
     }
     case M2_maci: {
-      RegisterCell M = eMLS(rc(2), rc(3));
-      RegisterCell RC = eADD(rc(1), lo(M, W0));
+      RegisterCell const M = eMLS(rc(2), rc(3));
+      RegisterCell const RC = eADD(rc(1), lo(M, W0));
       return rr0(RC, Outputs);
     }
     case M2_mpysmi: {
-      RegisterCell M = eMLS(rc(1), eIMM(im(2), W0));
+      RegisterCell const M = eMLS(rc(1), eIMM(im(2), W0));
       return rr0(lo(M, 32), Outputs);
     }
     case M2_mpysin: {
-      RegisterCell M = eMLS(rc(1), eIMM(-im(2), W0));
+      RegisterCell const M = eMLS(rc(1), eIMM(-im(2), W0));
       return rr0(lo(M, 32), Outputs);
     }
     case M2_mpysip: {
-      RegisterCell M = eMLS(rc(1), eIMM(im(2), W0));
+      RegisterCell const M = eMLS(rc(1), eIMM(im(2), W0));
       return rr0(lo(M, 32), Outputs);
     }
     case M2_mpyu_up: {
-      RegisterCell M = eMLU(rc(1), rc(2));
+      RegisterCell const M = eMLU(rc(1), rc(2));
       return rr0(hi(M, W0), Outputs);
     }
     case M2_dpmpyuu_s0:
@@ -528,11 +528,11 @@ bool HexagonEvaluator::evaluate(const MachineInstr &MI,
     case A4_andnp:
       return rr0(eAND(rc(1), eNOT(rc(2))), Outputs);
     case S4_andi_asl_ri: {
-      RegisterCell RC = eAND(eIMM(im(1), W0), eASL(rc(2), im(3)));
+      RegisterCell const RC = eAND(eIMM(im(1), W0), eASL(rc(2), im(3)));
       return rr0(RC, Outputs);
     }
     case S4_andi_lsr_ri: {
-      RegisterCell RC = eAND(eIMM(im(1), W0), eLSR(rc(2), im(3)));
+      RegisterCell const RC = eAND(eIMM(im(1), W0), eLSR(rc(2), im(3)));
       return rr0(RC, Outputs);
     }
     case M4_and_and:
@@ -552,11 +552,11 @@ bool HexagonEvaluator::evaluate(const MachineInstr &MI,
     case A4_ornp:
       return rr0(eORL(rc(1), eNOT(rc(2))), Outputs);
     case S4_ori_asl_ri: {
-      RegisterCell RC = eORL(eIMM(im(1), W0), eASL(rc(2), im(3)));
+      RegisterCell const RC = eORL(eIMM(im(1), W0), eASL(rc(2), im(3)));
       return rr0(RC, Outputs);
     }
     case S4_ori_lsr_ri: {
-      RegisterCell RC = eORL(eIMM(im(1), W0), eLSR(rc(2), im(3)));
+      RegisterCell const RC = eORL(eIMM(im(1), W0), eLSR(rc(2), im(3)));
       return rr0(RC, Outputs);
     }
     case M4_or_and:
@@ -565,11 +565,11 @@ bool HexagonEvaluator::evaluate(const MachineInstr &MI,
       return rr0(eORL(rc(1), eAND(rc(2), eNOT(rc(3)))), Outputs);
     case S4_or_andi:
     case S4_or_andix: {
-      RegisterCell RC = eORL(rc(1), eAND(rc(2), eIMM(im(3), W0)));
+      RegisterCell const RC = eORL(rc(1), eAND(rc(2), eIMM(im(3), W0)));
       return rr0(RC, Outputs);
     }
     case S4_or_ori: {
-      RegisterCell RC = eORL(rc(1), eORL(rc(2), eIMM(im(3), W0)));
+      RegisterCell const RC = eORL(rc(1), eORL(rc(2), eIMM(im(3), W0)));
       return rr0(RC, Outputs);
     }
     case M4_or_or:
@@ -637,17 +637,17 @@ bool HexagonEvaluator::evaluate(const MachineInstr &MI,
       // The input is first sign-extended to 64 bits, then the output
       // is truncated back to 32 bits.
       assert(W0 == 32);
-      RegisterCell XC = eSXT(rc(1).cat(eIMM(0, W0)), W0);
-      RegisterCell RC = eASR(eADD(eASR(XC, im(2)), eIMM(1, 2*W0)), 1);
+      RegisterCell const XC = eSXT(rc(1).cat(eIMM(0, W0)), W0);
+      RegisterCell const RC = eASR(eADD(eASR(XC, im(2)), eIMM(1, 2*W0)), 1);
       return rr0(eXTR(RC, 0, W0), Outputs);
     }
     case S2_asr_i_r_rnd_goodsyntax: {
-      int64_t S = im(2);
+      int64_t const S = im(2);
       if (S == 0)
         return rr0(rc(1), Outputs);
       // Result: S2_asr_i_r_rnd Rs, u5-1
-      RegisterCell XC = eSXT(rc(1).cat(eIMM(0, W0)), W0);
-      RegisterCell RC = eLSR(eADD(eASR(XC, S-1), eIMM(1, 2*W0)), 1);
+      RegisterCell const XC = eSXT(rc(1).cat(eIMM(0, W0)), W0);
+      RegisterCell const RC = eLSR(eADD(eASR(XC, S-1), eIMM(1, 2*W0)), 1);
       return rr0(eXTR(RC, 0, W0), Outputs);
     }
     case S2_asr_r_vh:
@@ -687,7 +687,7 @@ bool HexagonEvaluator::evaluate(const MachineInstr &MI,
     }
     case S2_togglebit_i: {
       RegisterCell RC = rc(1);
-      uint16_t BX = im(2);
+      uint16_t const BX = im(2);
       RC[BX] = RC[BX].is(0) ? BT::BitValue::One
                             : RC[BX].is(1) ? BT::BitValue::Zero
                                            : BT::BitValue::self();
@@ -695,14 +695,14 @@ bool HexagonEvaluator::evaluate(const MachineInstr &MI,
     }
 
     case A4_bitspliti: {
-      uint16_t W1 = getRegBitWidth(Reg[1]);
-      uint16_t BX = im(2);
+      uint16_t const W1 = getRegBitWidth(Reg[1]);
+      uint16_t const BX = im(2);
       // Res.uw[1] = Rs[bx+1:], Res.uw[0] = Rs[0:bx]
       const BT::BitValue Zero = BT::BitValue::Zero;
-      RegisterCell RZ = RegisterCell(W0).fill(BX, W1, Zero)
+      RegisterCell const RZ = RegisterCell(W0).fill(BX, W1, Zero)
                                         .fill(W1+(W1-BX), W0, Zero);
       RegisterCell BF1 = eXTR(rc(1), 0, BX), BF2 = eXTR(rc(1), BX, W1);
-      RegisterCell RC = eINS(eINS(RZ, BF1, 0), BF2, W1);
+      RegisterCell const RC = eINS(eINS(RZ, BF1, 0), BF2, W1);
       return rr0(RC, Outputs);
     }
     case S4_extract:
@@ -715,10 +715,10 @@ bool HexagonEvaluator::evaluate(const MachineInstr &MI,
         return rr0(eIMM(0, W0), Outputs);
       // If the width extends beyond the register size, pad the register
       // with 0 bits.
-      RegisterCell Pad = (Wd+Of > W0) ? rc(1).cat(eIMM(0, Wd+Of-W0)) : rc(1);
-      RegisterCell Ext = eXTR(Pad, Of, Wd+Of);
+      RegisterCell const Pad = (Wd+Of > W0) ? rc(1).cat(eIMM(0, Wd+Of-W0)) : rc(1);
+      RegisterCell const Ext = eXTR(Pad, Of, Wd+Of);
       // Ext is short, need to extend it with 0s or sign bit.
-      RegisterCell RC = RegisterCell(W0).insert(Ext, BT::BitMask(0, Wd-1));
+      RegisterCell const RC = RegisterCell(W0).insert(Ext, BT::BitMask(0, Wd-1));
       if (Opc == S2_extractu || Opc == S2_extractup)
         return rr0(eZXT(RC, Wd), Outputs);
       return rr0(eSXT(RC, Wd), Outputs);
@@ -752,48 +752,48 @@ bool HexagonEvaluator::evaluate(const MachineInstr &MI,
       assert(W0 == 32);
       assert(getRegBitWidth(Reg[1]) == 32 && getRegBitWidth(Reg[2]) == 32);
       // Low half in the output is 0 for _ll and _hl, 1 otherwise:
-      unsigned LoH = !(Opc == A2_combine_ll || Opc == A2_combine_hl);
+      unsigned const LoH = !(Opc == A2_combine_ll || Opc == A2_combine_hl);
       // High half in the output is 0 for _ll and _lh, 1 otherwise:
-      unsigned HiH = !(Opc == A2_combine_ll || Opc == A2_combine_lh);
-      RegisterCell R1 = rc(1);
-      RegisterCell R2 = rc(2);
-      RegisterCell RC = half(R2, LoH).cat(half(R1, HiH));
+      unsigned const HiH = !(Opc == A2_combine_ll || Opc == A2_combine_lh);
+      RegisterCell const R1 = rc(1);
+      RegisterCell const R2 = rc(2);
+      RegisterCell const RC = half(R2, LoH).cat(half(R1, HiH));
       return rr0(RC, Outputs);
     }
     case S2_packhl: {
       assert(W0 == 64);
       assert(getRegBitWidth(Reg[1]) == 32 && getRegBitWidth(Reg[2]) == 32);
-      RegisterCell R1 = rc(1);
-      RegisterCell R2 = rc(2);
-      RegisterCell RC = half(R2, 0).cat(half(R1, 0)).cat(half(R2, 1))
+      RegisterCell const R1 = rc(1);
+      RegisterCell const R2 = rc(2);
+      RegisterCell const RC = half(R2, 0).cat(half(R1, 0)).cat(half(R2, 1))
                                    .cat(half(R1, 1));
       return rr0(RC, Outputs);
     }
     case S2_shuffeb: {
-      RegisterCell RC = shuffle(rc(1), rc(2), 8, false);
+      RegisterCell const RC = shuffle(rc(1), rc(2), 8, false);
       return rr0(RC, Outputs);
     }
     case S2_shuffeh: {
-      RegisterCell RC = shuffle(rc(1), rc(2), 16, false);
+      RegisterCell const RC = shuffle(rc(1), rc(2), 16, false);
       return rr0(RC, Outputs);
     }
     case S2_shuffob: {
-      RegisterCell RC = shuffle(rc(1), rc(2), 8, true);
+      RegisterCell const RC = shuffle(rc(1), rc(2), 8, true);
       return rr0(RC, Outputs);
     }
     case S2_shuffoh: {
-      RegisterCell RC = shuffle(rc(1), rc(2), 16, true);
+      RegisterCell const RC = shuffle(rc(1), rc(2), 16, true);
       return rr0(RC, Outputs);
     }
     case C2_mask: {
-      uint16_t WR = W0;
-      uint16_t WP = 8; // XXX Pred size: getRegBitWidth(Reg[1]);
+      uint16_t const WR = W0;
+      uint16_t const WP = 8; // XXX Pred size: getRegBitWidth(Reg[1]);
       assert(WR == 64 && WP == 8);
       RegisterCell R1 = rc(1);
       RegisterCell RC(WR);
       for (uint16_t i = 0; i < WP; ++i) {
         const BT::BitValue &V = R1[i];
-        BT::BitValue F = (V.is(0) || V.is(1)) ? V : BT::BitValue::self();
+        BT::BitValue const F = (V.is(0) || V.is(1)) ? V : BT::BitValue::self();
         RC.fill(i*8, i*8+8, F);
       }
       return rr0(RC, Outputs);
@@ -805,9 +805,9 @@ bool HexagonEvaluator::evaluate(const MachineInstr &MI,
     case C2_muxir:
     case C2_muxri:
     case C2_mux: {
-      BT::BitValue PC0 = rc(1)[0];
+      BT::BitValue const PC0 = rc(1)[0];
       RegisterCell R2 = cop(2, W0);
-      RegisterCell R3 = cop(3, W0);
+      RegisterCell const R3 = cop(3, W0);
       if (PC0.is(0) || PC0.is(1))
         return rr0(RegisterCell::ref(PC0 ? R2 : R3), Outputs);
       R2.meet(R3, Reg[0].Reg);
@@ -824,9 +824,9 @@ bool HexagonEvaluator::evaluate(const MachineInstr &MI,
     case A2_sxth:
       return rr0(eSXT(rc(1), 16), Outputs);
     case A2_sxtw: {
-      uint16_t W1 = getRegBitWidth(Reg[1]);
+      uint16_t const W1 = getRegBitWidth(Reg[1]);
       assert(W0 == 64 && W1 == 32);
-      RegisterCell RC = eSXT(rc(1).cat(eIMM(0, W1)), W1);
+      RegisterCell const RC = eSXT(rc(1).cat(eIMM(0, W1)), W1);
       return rr0(RC, Outputs);
     }
     case A2_zxtb:
@@ -856,9 +856,9 @@ bool HexagonEvaluator::evaluate(const MachineInstr &MI,
       return rr0(eCLB(rc(1), true/*bit*/, 32), Outputs);
     case S2_clb:
     case S2_clbp: {
-      uint16_t W1 = getRegBitWidth(Reg[1]);
+      uint16_t const W1 = getRegBitWidth(Reg[1]);
       RegisterCell R1 = rc(1);
-      BT::BitValue TV = R1[W1-1];
+      BT::BitValue const TV = R1[W1-1];
       if (TV.is(0) || TV.is(1))
         return rr0(eCLB(R1, TV, 32), Outputs);
       break;
@@ -945,11 +945,11 @@ bool HexagonEvaluator::evaluate(const MachineInstr &MI,
       break;
     case S2_tstbit_i:
     case S4_ntstbit_i: {
-      BT::BitValue V = rc(1)[im(2)];
+      BT::BitValue const V = rc(1)[im(2)];
       if (V.is(0) || V.is(1)) {
         // If instruction is S2_tstbit_i, test for 1, otherwise test for 0.
-        bool TV = (Opc == S2_tstbit_i);
-        BT::BitValue F = V.is(TV) ? BT::BitValue::One : BT::BitValue::Zero;
+        bool const TV = (Opc == S2_tstbit_i);
+        BT::BitValue const F = V.is(TV) ? BT::BitValue::One : BT::BitValue::Zero;
         return rr0(RegisterCell(W0).fill(0, W0, F), Outputs);
       }
       break;
@@ -958,11 +958,11 @@ bool HexagonEvaluator::evaluate(const MachineInstr &MI,
     default:
       // For instructions that define a single predicate registers, store
       // the low 8 bits of the register only.
-      if (unsigned DefR = getUniqueDefVReg(MI)) {
+      if (unsigned const DefR = getUniqueDefVReg(MI)) {
         if (MRI.getRegClass(DefR) == &Hexagon::PredRegsRegClass) {
-          BT::RegisterRef PD(DefR, 0);
-          uint16_t RW = getRegBitWidth(PD);
-          uint16_t PW = 8; // XXX Pred size: getRegBitWidth(Reg[1]);
+          BT::RegisterRef const PD(DefR, 0);
+          uint16_t const RW = getRegBitWidth(PD);
+          uint16_t const PW = 8; // XXX Pred size: getRegBitWidth(Reg[1]);
           RegisterCell RC = RegisterCell::self(DefR, RW);
           RC.fill(PW, RW, BT::BitValue::Zero);
           putCell(PD, RC, Outputs);
@@ -983,7 +983,7 @@ bool HexagonEvaluator::evaluate(const MachineInstr &BI,
                                 bool &FallsThru) const {
   // We need to evaluate one branch at a time. TII::analyzeBranch checks
   // all the branches in a basic block at once, so we cannot use it.
-  unsigned Opc = BI.getOpcode();
+  unsigned const Opc = BI.getOpcode();
   bool SimpleBranch = false;
   bool Negated = false;
   switch (Opc) {
@@ -1015,7 +1015,7 @@ bool HexagonEvaluator::evaluate(const MachineInstr &BI,
     return false;
 
   // BI is a conditional branch if we got here.
-  RegisterRef PR = BI.getOperand(0);
+  RegisterRef const PR = BI.getOperand(0);
   RegisterCell PC = getCell(PR, Inputs);
   const BT::BitValue &Test = PC[0];
 
@@ -1040,7 +1040,7 @@ unsigned HexagonEvaluator::getUniqueDefVReg(const MachineInstr &MI) const {
   for (const MachineOperand &Op : MI.operands()) {
     if (!Op.isReg() || !Op.isDef())
       continue;
-    Register R = Op.getReg();
+    Register const R = Op.getReg();
     if (!R.isVirtual())
       continue;
     if (DefReg != 0)
@@ -1058,7 +1058,7 @@ bool HexagonEvaluator::evaluateLoad(const MachineInstr &MI,
   if (TII.isPredicated(MI))
     return false;
   assert(MI.mayLoad() && "A load that mayn't?");
-  unsigned Opc = MI.getOpcode();
+  unsigned const Opc = MI.getOpcode();
 
   uint16_t BitNum;
   bool SignEx;
@@ -1186,9 +1186,9 @@ bool HexagonEvaluator::evaluateLoad(const MachineInstr &MI,
 
   const MachineOperand &MD = MI.getOperand(0);
   assert(MD.isReg() && MD.isDef());
-  RegisterRef RD = MD;
+  RegisterRef const RD = MD;
 
-  uint16_t W = getRegBitWidth(RD);
+  uint16_t const W = getRegBitWidth(RD);
   assert(W >= BitNum && BitNum > 0);
   RegisterCell Res(W);
 
@@ -1215,16 +1215,16 @@ bool HexagonEvaluator::evaluateFormalCopy(const MachineInstr &MI,
   // in evaluateLoad), then it's not clear what to do.
   assert(MI.isCopy());
 
-  RegisterRef RD = MI.getOperand(0);
-  RegisterRef RS = MI.getOperand(1);
+  RegisterRef const RD = MI.getOperand(0);
+  RegisterRef const RS = MI.getOperand(1);
   assert(RD.Sub == 0);
   if (!Register::isPhysicalRegister(RS.Reg))
     return false;
-  RegExtMap::const_iterator F = VRX.find(RD.Reg);
+  RegExtMap::const_iterator const F = VRX.find(RD.Reg);
   if (F == VRX.end())
     return false;
 
-  uint16_t EW = F->second.Width;
+  uint16_t const EW = F->second.Width;
   // Store RD's cell into the map. This will associate the cell with a virtual
   // register, and make zero-/sign-extends possible (otherwise we would be ex-
   // tending "self" bit values, which will have no effect, since "self" values
@@ -1245,7 +1245,7 @@ bool HexagonEvaluator::evaluateFormalCopy(const MachineInstr &MI,
 unsigned HexagonEvaluator::getNextPhysReg(unsigned PReg, unsigned Width) const {
   using namespace Hexagon;
 
-  bool Is64 = DoubleRegsRegClass.contains(PReg);
+  bool const Is64 = DoubleRegsRegClass.contains(PReg);
   assert(PReg == 0 || Is64 || IntRegsRegClass.contains(PReg));
 
   static const unsigned Phys32[] = { R0, R1, R2, R3, R4, R5 };
@@ -1282,7 +1282,7 @@ unsigned HexagonEvaluator::getNextPhysReg(unsigned PReg, unsigned Width) const {
 }
 
 unsigned HexagonEvaluator::getVirtRegFor(unsigned PReg) const {
-  for (std::pair<unsigned,unsigned> P : MRI.liveins())
+  for (std::pair<unsigned,unsigned> const P : MRI.liveins())
     if (P.first == PReg)
       return P.second;
   return 0;

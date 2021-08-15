@@ -293,7 +293,7 @@ namespace {
       LLVM_DEBUG(dbgs() << "\n== Parallel DSP pass ==\n");
       LLVM_DEBUG(dbgs() << " - " << F.getName() << "\n\n");
 
-      bool Changes = MatchSMLAD(F);
+      bool const Changes = MatchSMLAD(F);
       return Changes;
     }
   };
@@ -369,7 +369,7 @@ bool ARMParallelDSP::RecordMemoryOps(BasicBlock *BB) {
   const auto Size = LocationSize::beforeOrAfterPointer();
   for (auto Write : Writes) {
     for (auto Read : Loads) {
-      MemoryLocation ReadLoc =
+      MemoryLocation const ReadLoc =
         MemoryLocation(Read->getPointerOperand(), Size);
 
       if (!isModOrRefSet(intersectModRef(AA->getModRefInfo(Write, ReadLoc),
@@ -383,12 +383,12 @@ bool ARMParallelDSP::RecordMemoryOps(BasicBlock *BB) {
   // Check whether there's not a write between the two loads which would
   // prevent them from being safely merged.
   auto SafeToPair = [&](LoadInst *Base, LoadInst *Offset) {
-    bool BaseFirst = Base->comesBefore(Offset);
+    bool const BaseFirst = Base->comesBefore(Offset);
     LoadInst *Dominator = BaseFirst ? Base : Offset;
     LoadInst *Dominated = BaseFirst ? Offset : Base;
 
     if (RAWDeps.count(Dominated)) {
-      InstSet &WritesBefore = RAWDeps[Dominated];
+      InstSet  const&WritesBefore = RAWDeps[Dominated];
 
       for (auto Before : WritesBefore) {
         // We can't move the second load backward, past a write, to merge
@@ -453,8 +453,8 @@ bool ARMParallelDSP::Search(Value *V, BasicBlock *BB, Reduction &R) {
     R.InsertAdd(I);
     Value *LHS = I->getOperand(0);
     Value *RHS = I->getOperand(1);
-    bool ValidLHS = Search(LHS, BB, R);
-    bool ValidRHS = Search(RHS, BB, R);
+    bool const ValidLHS = Search(LHS, BB, R);
+    bool const ValidRHS = Search(RHS, BB, R);
 
     if (ValidLHS && ValidRHS)
       return true;
@@ -626,7 +626,7 @@ void ARMParallelDSP::InsertParallelMACs(Reduction &R) {
                          Instruction *InsertAfter) {
     // Replace the reduction chain with an intrinsic call
 
-    Value* Args[] = { WideLd0, WideLd1, Acc };
+    Value* const Args[] = { WideLd0, WideLd1, Acc };
     Function *SMLAD = nullptr;
     if (Exchange)
       SMLAD = Acc->getType()->isIntegerTy(32) ?

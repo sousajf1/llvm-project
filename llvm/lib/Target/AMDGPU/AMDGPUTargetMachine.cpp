@@ -326,8 +326,8 @@ static cl::opt<bool> EnablePreRAOptimizations(
 
 extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializeAMDGPUTarget() {
   // Register the target
-  RegisterTargetMachine<R600TargetMachine> X(getTheAMDGPUTarget());
-  RegisterTargetMachine<GCNTargetMachine> Y(getTheGCNTarget());
+  RegisterTargetMachine<R600TargetMachine> const X(getTheAMDGPUTarget());
+  RegisterTargetMachine<GCNTargetMachine> const Y(getTheGCNTarget());
 
   PassRegistry *PR = PassRegistry::getPassRegistry();
   initializeR600ClauseMergePassPass(*PR);
@@ -529,12 +529,12 @@ bool AMDGPUTargetMachine::EnableLowerModuleLDS = true;
 AMDGPUTargetMachine::~AMDGPUTargetMachine() = default;
 
 StringRef AMDGPUTargetMachine::getGPUName(const Function &F) const {
-  Attribute GPUAttr = F.getFnAttribute("target-cpu");
+  Attribute const GPUAttr = F.getFnAttribute("target-cpu");
   return GPUAttr.isValid() ? GPUAttr.getValueAsString() : getTargetCPU();
 }
 
 StringRef AMDGPUTargetMachine::getFeatureString(const Function &F) const {
-  Attribute FSAttr = F.getFnAttribute("target-features");
+  Attribute const FSAttr = F.getFnAttribute("target-features");
 
   return FSAttr.isValid() ? FSAttr.getValueAsString()
                           : getTargetFeatureString();
@@ -552,11 +552,11 @@ static bool mustPreserveGV(const GlobalValue &GV) {
 void AMDGPUTargetMachine::adjustPassManager(PassManagerBuilder &Builder) {
   Builder.DivergentTarget = true;
 
-  bool EnableOpt = getOptLevel() > CodeGenOpt::None;
-  bool Internalize = InternalizeSymbols;
-  bool EarlyInline = EarlyInlineAll && EnableOpt && !EnableFunctionCalls;
-  bool AMDGPUAA = EnableAMDGPUAliasAnalysis && EnableOpt;
-  bool LibCallSimplify = EnableLibCallSimplify && EnableOpt;
+  bool const EnableOpt = getOptLevel() > CodeGenOpt::None;
+  bool const Internalize = InternalizeSymbols;
+  bool const EarlyInline = EarlyInlineAll && EnableOpt && !EnableFunctionCalls;
+  bool const AMDGPUAA = EnableAMDGPUAliasAnalysis && EnableOpt;
+  bool const LibCallSimplify = EnableLibCallSimplify && EnableOpt;
 
   if (EnableFunctionCalls) {
     delete Builder.Inliner;
@@ -766,8 +766,8 @@ R600TargetMachine::R600TargetMachine(const Target &T, const Triple &TT,
 
 const R600Subtarget *R600TargetMachine::getSubtargetImpl(
   const Function &F) const {
-  StringRef GPU = getGPUName(F);
-  StringRef FS = getFeatureString(F);
+  StringRef const GPU = getGPUName(F);
+  StringRef const FS = getFeatureString(F);
 
   SmallString<128> SubtargetKey(GPU);
   SubtargetKey.append(FS);
@@ -835,8 +835,8 @@ GCNTargetMachine::GCNTargetMachine(const Target &T, const Triple &TT,
     : AMDGPUTargetMachine(T, TT, CPU, FS, Options, RM, CM, OL) {}
 
 const GCNSubtarget *GCNTargetMachine::getSubtargetImpl(const Function &F) const {
-  StringRef GPU = getGPUName(F);
-  StringRef FS = getFeatureString(F);
+  StringRef const GPU = getGPUName(F);
+  StringRef const FS = getFeatureString(F);
 
   SmallString<128> SubtargetKey(GPU);
   SubtargetKey.append(FS);
@@ -1269,7 +1269,7 @@ bool GCNPassConfig::addIRTranslator() {
 }
 
 void GCNPassConfig::addPreLegalizeMachineIR() {
-  bool IsOptNone = getOptLevel() == CodeGenOpt::None;
+  bool const IsOptNone = getOptLevel() == CodeGenOpt::None;
   addPass(createAMDGPUPreLegalizeCombiner(IsOptNone));
   addPass(new Localizer());
 }
@@ -1280,7 +1280,7 @@ bool GCNPassConfig::addLegalizeMachineIR() {
 }
 
 void GCNPassConfig::addPreRegBankSelect() {
-  bool IsOptNone = getOptLevel() == CodeGenOpt::None;
+  bool const IsOptNone = getOptLevel() == CodeGenOpt::None;
   addPass(createAMDGPUPostLegalizeCombiner(IsOptNone));
 }
 
@@ -1290,7 +1290,7 @@ bool GCNPassConfig::addRegBankSelect() {
 }
 
 void GCNPassConfig::addPreGlobalInstructionSelect() {
-  bool IsOptNone = getOptLevel() == CodeGenOpt::None;
+  bool const IsOptNone = getOptLevel() == CodeGenOpt::None;
   addPass(createAMDGPURegBankCombiner(IsOptNone));
 }
 

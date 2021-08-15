@@ -290,7 +290,7 @@ static int getOutliningPenalty(ArrayRef<BasicBlock *> Region,
   // factor the cost of the outputs into the cost calculation.
   unsigned NumSplitExitPhis = 0;
   for (BasicBlock *ExitBB : SuccsOutsideRegion) {
-    for (PHINode &PN : ExitBB->phis()) {
+    for (PHINode  const&PN : ExitBB->phis()) {
       // Find all incoming values from the outlining region.
       int NumIncomingVals = 0;
       for (unsigned i = 0; i < PN.getNumIncomingValues(); ++i)
@@ -306,8 +306,8 @@ static int getOutliningPenalty(ArrayRef<BasicBlock *> Region,
 
   // Apply a penalty for calling the split function. Factor in the cost of
   // materializing all of the parameters.
-  int NumOutputsAndSplitPhis = NumOutputs + NumSplitExitPhis;
-  int NumParams = NumInputs + NumOutputsAndSplitPhis;
+  int const NumOutputsAndSplitPhis = NumOutputs + NumSplitExitPhis;
+  int const NumParams = NumInputs + NumOutputsAndSplitPhis;
   if (NumParams > MaxParametersForSplit) {
     LLVM_DEBUG(dbgs() << NumInputs << " inputs and " << NumOutputsAndSplitPhis
                       << " outputs exceeds parameter limit ("
@@ -359,8 +359,8 @@ Function *HotColdSplitting::extractColdRegion(
   // splitting.
   SetVector<Value *> Inputs, Outputs, Sinks;
   CE.findInputsOutputs(Inputs, Outputs, Sinks);
-  InstructionCost OutliningBenefit = getOutliningBenefit(Region, TTI);
-  int OutliningPenalty =
+  InstructionCost const OutliningBenefit = getOutliningBenefit(Region, TTI);
+  int const OutliningPenalty =
       getOutliningPenalty(Region, Inputs.size(), Outputs.size());
   LLVM_DEBUG(dbgs() << "Split profitability: benefit = " << OutliningBenefit
                     << ", penalty = " << OutliningPenalty << "\n");
@@ -461,7 +461,7 @@ public:
     };
 
     // The ancestor farthest-away from SinkBB, and also post-dominated by it.
-    unsigned SinkScore = getEntryPointScore(SinkBB, ScoreForSinkBlock);
+    unsigned const SinkScore = getEntryPointScore(SinkBB, ScoreForSinkBlock);
     ColdRegion->SuggestedEntryPoint = (SinkScore > 0) ? &SinkBB : nullptr;
     unsigned BestScore = SinkScore;
 
@@ -470,7 +470,7 @@ public:
     auto PredEnd = idf_end(&SinkBB);
     while (PredIt != PredEnd) {
       BasicBlock &PredBB = **PredIt;
-      bool SinkPostDom = PDT.dominates(&SinkBB, &PredBB);
+      bool const SinkPostDom = PDT.dominates(&SinkBB, &PredBB);
 
       // If the predecessor is cold and has no predecessors, the entire
       // function must be cold.
@@ -489,7 +489,7 @@ public:
       // Keep track of the post-dominated ancestor farthest away from the sink.
       // The path length is always >= 2, ensuring that predecessor blocks are
       // considered as entry points before the sink block.
-      unsigned PredScore = getEntryPointScore(PredBB, PredIt.getPathLength());
+      unsigned const PredScore = getEntryPointScore(PredBB, PredIt.getPathLength());
       if (PredScore > BestScore) {
         ColdRegion->SuggestedEntryPoint = &PredBB;
         BestScore = PredScore;
@@ -522,10 +522,10 @@ public:
     auto SuccEnd = df_end(&SinkBB);
     while (SuccIt != SuccEnd) {
       BasicBlock &SuccBB = **SuccIt;
-      bool SinkDom = DT.dominates(&SinkBB, &SuccBB);
+      bool const SinkDom = DT.dominates(&SinkBB, &SuccBB);
 
       // Don't allow the backwards & forwards DFSes to mark the same block.
-      bool DuplicateBlock = RegionBlocks.count(&SuccBB);
+      bool const DuplicateBlock = RegionBlocks.count(&SuccBB);
 
       // If SinkBB does not dominate a successor, do not mark the successor (or
       // any of its successors) cold.
@@ -534,7 +534,7 @@ public:
         continue;
       }
 
-      unsigned SuccScore = getEntryPointScore(SuccBB, ScoreForSuccBlock);
+      unsigned const SuccScore = getEntryPointScore(SuccBB, ScoreForSuccBlock);
       if (SuccScore > BestScore) {
         ColdRegion->SuggestedEntryPoint = &SuccBB;
         BestScore = SuccScore;
@@ -569,8 +569,8 @@ public:
     auto RegionEndIt = Blocks.end();
     auto RegionStartIt = remove_if(Blocks, [&](const BlockTy &Block) {
       BasicBlock *BB = Block.first;
-      unsigned Score = Block.second;
-      bool InSubRegion =
+      unsigned const Score = Block.second;
+      bool const InSubRegion =
           BB == SuggestedEntryPoint || DT.dominates(SuggestedEntryPoint, BB);
       if (!InSubRegion && Score > NextScore) {
         NextEntryPoint = BB;
@@ -602,7 +602,7 @@ bool HotColdSplitting::outlineColdRegions(Function &F, bool HasProfileSummary) {
   // Set up an RPO traversal. Experimentally, this performs better (outlines
   // more) than a PO traversal, because we prevent region overlap by keeping
   // the first region to contain a block.
-  ReversePostOrderTraversal<Function *> RPOT(&F);
+  ReversePostOrderTraversal<Function *> const RPOT(&F);
 
   // Calculate domtrees lazily. This reduces compile-time significantly.
   std::unique_ptr<DominatorTree> DT;
@@ -625,7 +625,7 @@ bool HotColdSplitting::outlineColdRegions(Function &F, bool HasProfileSummary) {
     if (ColdBlocks.count(BB))
       continue;
 
-    bool Cold = (BFI && PSI->isColdBlock(BB, BFI)) ||
+    bool const Cold = (BFI && PSI->isColdBlock(BB, BFI)) ||
                 (EnableStaticAnalysis && unlikelyExecuted(*BB));
     if (!Cold)
       continue;
@@ -655,7 +655,7 @@ bool HotColdSplitting::outlineColdRegions(Function &F, bool HasProfileSummary) {
       // TODO: It's theoretically possible to outline more by only keeping the
       // largest region which contains a block, but the extra bookkeeping to do
       // this is tricky/expensive.
-      bool RegionsOverlap = any_of(Region.blocks(), [&](const BlockTy &Block) {
+      bool const RegionsOverlap = any_of(Region.blocks(), [&](const BlockTy &Block) {
         return !ColdBlocks.insert(Block.first).second;
       });
       if (RegionsOverlap)
@@ -672,12 +672,12 @@ bool HotColdSplitting::outlineColdRegions(Function &F, bool HasProfileSummary) {
   // Outline single-entry cold regions, splitting up larger regions as needed.
   unsigned OutlinedFunctionID = 1;
   // Cache and recycle the CodeExtractor analysis to avoid O(n^2) compile-time.
-  CodeExtractorAnalysisCache CEAC(F);
+  CodeExtractorAnalysisCache const CEAC(F);
   do {
     OutliningRegion Region = OutliningWorklist.pop_back_val();
     assert(!Region.empty() && "Empty outlining region in worklist");
     do {
-      BlockSequence SubRegion = Region.takeSingleEntrySubRegion(*DT);
+      BlockSequence const SubRegion = Region.takeSingleEntrySubRegion(*DT);
       LLVM_DEBUG({
         dbgs() << "Hot/cold splitting attempting to outline these blocks:\n";
         for (BasicBlock *BB : SubRegion)
@@ -698,7 +698,7 @@ bool HotColdSplitting::outlineColdRegions(Function &F, bool HasProfileSummary) {
 
 bool HotColdSplitting::run(Module &M) {
   bool Changed = false;
-  bool HasProfileSummary = (M.getProfileSummary(/* IsCS */ false) != nullptr);
+  bool const HasProfileSummary = (M.getProfileSummary(/* IsCS */ false) != nullptr);
   for (Function &F : M) {
     // Do not touch declarations.
     if (F.isDeclaration())

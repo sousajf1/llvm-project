@@ -68,7 +68,7 @@ static UstarHeader makeUstarHeader() {
 //
 // This function create such string.
 static std::string formatPax(StringRef Key, StringRef Val) {
-  int Len = Key.size() + Val.size() + 3; // +3 for " ", "=" and "\n"
+  int const Len = Key.size() + Val.size() + 3; // +3 for " ", "=" and "\n"
 
   // We need to compute total size twice because appending
   // a length field could change total size by one.
@@ -80,7 +80,7 @@ static std::string formatPax(StringRef Key, StringRef Val) {
 // Headers in tar files must be aligned to 512 byte boundaries.
 // This function forwards the current file position to the next boundary.
 static void pad(raw_fd_ostream &OS) {
-  uint64_t Pos = OS.tell();
+  uint64_t const Pos = OS.tell();
   OS.seek(alignTo(Pos, BlockSize));
 }
 
@@ -101,7 +101,7 @@ static void computeChecksum(UstarHeader &Hdr) {
 static void writePaxHeader(raw_fd_ostream &OS, StringRef Path) {
   // A PAX header consists of a 512-byte header followed
   // by key-value strings. First, create key-value strings.
-  std::string PaxAttr = formatPax("path", Path);
+  std::string const PaxAttr = formatPax("path", Path);
 
   // Create a 512-byte header.
   UstarHeader Hdr = makeUstarHeader();
@@ -141,7 +141,7 @@ static bool splitUstar(StringRef Path, StringRef &Prefix, StringRef &Name) {
   // (tar-1.13 also doesn't support pax headers, but in practice all paths in
   // llvm's test suite are short enough for that to not matter.)
   const int MaxPrefix = 137;
-  size_t Sep = Path.rfind('/', MaxPrefix + 1);
+  size_t const Sep = Path.rfind('/', MaxPrefix + 1);
   if (Sep == StringRef::npos)
     return false;
   if (Path.size() - Sep - 1 >= sizeof(UstarHeader::Name))
@@ -170,7 +170,7 @@ Expected<std::unique_ptr<TarWriter>> TarWriter::create(StringRef OutputPath,
                                                        StringRef BaseDir) {
   using namespace sys::fs;
   int FD;
-  if (std::error_code EC =
+  if (std::error_code const EC =
           openFileForWrite(OutputPath, FD, CD_CreateAlways, OF_None))
     return make_error<StringError>("cannot open " + OutputPath, EC);
   return std::unique_ptr<TarWriter>(new TarWriter(FD, BaseDir));
@@ -183,7 +183,7 @@ TarWriter::TarWriter(int FD, StringRef BaseDir)
 // Append a given file to an archive.
 void TarWriter::append(StringRef Path, StringRef Data) {
   // Write Path and Data.
-  std::string Fullpath = BaseDir + "/" + sys::path::convert_to_slash(Path);
+  std::string const Fullpath = BaseDir + "/" + sys::path::convert_to_slash(Path);
 
   // We do not want to include the same file more than once.
   if (!Files.insert(Fullpath).second)
@@ -204,7 +204,7 @@ void TarWriter::append(StringRef Path, StringRef Data) {
   // POSIX requires tar archives end with two null blocks.
   // Here, we write the terminator and then seek back, so that
   // the file being output is terminated correctly at any moment.
-  uint64_t Pos = OS.tell();
+  uint64_t const Pos = OS.tell();
   OS << std::string(BlockSize * 2, '\0');
   OS.seek(Pos);
   OS.flush();

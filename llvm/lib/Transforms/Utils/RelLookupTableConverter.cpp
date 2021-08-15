@@ -92,7 +92,7 @@ static GlobalVariable *createRelLookupTable(Function &Func,
   Module &M = *Func.getParent();
   ConstantArray *LookupTableArr =
       cast<ConstantArray>(LookupTable.getInitializer());
-  unsigned NumElts = LookupTableArr->getType()->getNumElements();
+  unsigned const NumElts = LookupTableArr->getType()->getNumElements();
   ArrayType *IntArrayTy =
       ArrayType::get(Type::getInt32Ty(M.getContext()), NumElts);
 
@@ -167,7 +167,7 @@ static void convertToRelLookupTable(GlobalVariable &LookupTable) {
 // Convert lookup tables to relative lookup tables in the module.
 static bool convertToRelativeLookupTables(
     Module &M, function_ref<TargetTransformInfo &(Function &)> GetTTI) {
-  Module::iterator FI = M.begin();
+  Module::iterator const FI = M.begin();
   if (FI == M.end())
     return false;
 

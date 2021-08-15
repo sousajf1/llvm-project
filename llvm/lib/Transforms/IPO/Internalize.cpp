@@ -120,7 +120,7 @@ bool InternalizePass::shouldPreserveGV(const GlobalValue &GV) {
 
 bool InternalizePass::maybeInternalize(
     GlobalValue &GV, DenseMap<const Comdat *, ComdatInfo> &ComdatMap) {
-  SmallString<0> ComdatName;
+  SmallString<0> const ComdatName;
   if (Comdat *C = GV.getComdat()) {
     // For GlobalAlias, C is the aliasee object's comdat which may have been
     // redirected. So ComdatMap may not contain C.
@@ -134,7 +134,7 @@ bool InternalizePass::maybeInternalize(
       // nodeduplicate.
       // Note: nodeduplicate is not necessary for COFF. wasm doesn't support
       // nodeduplicate.
-      ComdatInfo &Info = ComdatMap.find(C)->second;
+      ComdatInfo  const&Info = ComdatMap.find(C)->second;
       if (Info.Size == 1)
         GO->setComdat(nullptr);
       else if (!IsWasm)

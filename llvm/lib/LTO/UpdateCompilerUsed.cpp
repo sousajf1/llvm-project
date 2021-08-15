@@ -57,14 +57,14 @@ private:
   // same names are added to llvm.compiler.used to prevent them from being
   // deleted by optimizations.
   void initializeLibCalls(const Module &TheModule) {
-    TargetLibraryInfoImpl TLII(Triple(TM.getTargetTriple()));
-    TargetLibraryInfo TLI(TLII);
+    TargetLibraryInfoImpl const TLII(Triple(TM.getTargetTriple()));
+    TargetLibraryInfo const TLI(TLII);
 
     // TargetLibraryInfo has info on C runtime library calls on the current
     // target.
     for (unsigned I = 0, E = static_cast<unsigned>(LibFunc::NumLibFuncs);
          I != E; ++I) {
-      LibFunc F = static_cast<LibFunc>(I);
+      LibFunc const F = static_cast<LibFunc>(I);
       if (TLI.has(F))
         Libcalls.insert(TLI.getName(F));
     }

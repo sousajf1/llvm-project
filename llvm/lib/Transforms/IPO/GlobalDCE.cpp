@@ -163,7 +163,7 @@ void GlobalDCEPass::ScanVTables(Module &M) {
 
   auto *LTOPostLinkMD =
       cast_or_null<ConstantAsMetadata>(M.getModuleFlag("LTOPostLink"));
-  bool LTOPostLink =
+  bool const LTOPostLink =
       LTOPostLinkMD &&
       (cast<ConstantInt>(LTOPostLinkMD->getValue())->getZExtValue() != 0);
 
@@ -179,7 +179,7 @@ void GlobalDCEPass::ScanVTables(Module &M) {
     for (MDNode *Type : Types) {
       Metadata *TypeID = Type->getOperand(1).get();
 
-      uint64_t Offset =
+      uint64_t const Offset =
           cast<ConstantInt>(
               cast<ConstantAsMetadata>(Type->getOperand(0))->getValue())
               ->getZExtValue();
@@ -191,7 +191,7 @@ void GlobalDCEPass::ScanVTables(Module &M) {
     // unit, we know that we can see all virtual functions which might use it,
     // so VFE is safe.
     if (auto GO = dyn_cast<GlobalObject>(&GV)) {
-      GlobalObject::VCallVisibility TypeVis = GO->getVCallVisibility();
+      GlobalObject::VCallVisibility const TypeVis = GO->getVCallVisibility();
       if (TypeVis == GlobalObject::VCallVisibilityTranslationUnit ||
           (LTOPostLink &&
            TypeVis == GlobalObject::VCallVisibilityLinkageUnit)) {
@@ -206,7 +206,7 @@ void GlobalDCEPass::ScanVTableLoad(Function *Caller, Metadata *TypeId,
                                    uint64_t CallOffset) {
   for (auto &VTableInfo : TypeIdMap[TypeId]) {
     GlobalVariable *VTable = VTableInfo.first;
-    uint64_t VTableOffset = VTableInfo.second;
+    uint64_t const VTableOffset = VTableInfo.second;
 
     Constant *Ptr =
         getPointerAtOffset(VTable->getInitializer(), VTableOffset + CallOffset,

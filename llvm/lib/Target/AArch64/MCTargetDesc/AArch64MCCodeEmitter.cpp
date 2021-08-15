@@ -226,7 +226,7 @@ AArch64MCCodeEmitter::getLdStUImm12OpValue(const MCInst &MI, unsigned OpIdx,
     ImmVal = static_cast<uint32_t>(MO.getImm());
   else {
     assert(MO.isExpr() && "unable to encode load/store imm operand");
-    MCFixupKind Kind = MCFixupKind(FixupKind);
+    MCFixupKind const Kind = MCFixupKind(FixupKind);
     Fixups.push_back(MCFixup::create(0, MO.getExpr(), Kind, MI.getLoc()));
     ++MCNumFixups;
   }
@@ -248,7 +248,7 @@ AArch64MCCodeEmitter::getAdrLabelOpValue(const MCInst &MI, unsigned OpIdx,
   assert(MO.isExpr() && "Unexpected target type!");
   const MCExpr *Expr = MO.getExpr();
 
-  MCFixupKind Kind = MI.getOpcode() == AArch64::ADR
+  MCFixupKind const Kind = MI.getOpcode() == AArch64::ADR
                          ? MCFixupKind(AArch64::fixup_aarch64_pcrel_adr_imm21)
                          : MCFixupKind(AArch64::fixup_aarch64_pcrel_adrp_imm21);
   Fixups.push_back(MCFixup::create(0, Expr, Kind, MI.getLoc()));
@@ -280,7 +280,7 @@ AArch64MCCodeEmitter::getAddSubImmOpValue(const MCInst &MI, unsigned OpIdx,
   const MCExpr *Expr = MO.getExpr();
 
   // Encode the 12 bits of the fixup.
-  MCFixupKind Kind = MCFixupKind(AArch64::fixup_aarch64_add_imm12);
+  MCFixupKind const Kind = MCFixupKind(AArch64::fixup_aarch64_add_imm12);
   Fixups.push_back(MCFixup::create(0, Expr, Kind, MI.getLoc()));
 
   ++MCNumFixups;
@@ -288,7 +288,7 @@ AArch64MCCodeEmitter::getAddSubImmOpValue(const MCInst &MI, unsigned OpIdx,
   // Set the shift bit of the add instruction for relocation types
   // R_AARCH64_TLSLE_ADD_TPREL_HI12 and R_AARCH64_TLSLD_ADD_DTPREL_HI12.
   if (const AArch64MCExpr *A64E = dyn_cast<AArch64MCExpr>(Expr)) {
-    AArch64MCExpr::VariantKind RefKind = A64E->getKind();
+    AArch64MCExpr::VariantKind const RefKind = A64E->getKind();
     if (RefKind == AArch64MCExpr::VK_TPREL_HI12 ||
         RefKind == AArch64MCExpr::VK_DTPREL_HI12 ||
         RefKind == AArch64MCExpr::VK_SECREL_HI12)
@@ -309,7 +309,7 @@ uint32_t AArch64MCCodeEmitter::getCondBranchTargetOpValue(
     return MO.getImm();
   assert(MO.isExpr() && "Unexpected target type!");
 
-  MCFixupKind Kind = MCFixupKind(AArch64::fixup_aarch64_pcrel_branch19);
+  MCFixupKind const Kind = MCFixupKind(AArch64::fixup_aarch64_pcrel_branch19);
   Fixups.push_back(MCFixup::create(0, MO.getExpr(), Kind, MI.getLoc()));
 
   ++MCNumFixups;
@@ -331,7 +331,7 @@ AArch64MCCodeEmitter::getLoadLiteralOpValue(const MCInst &MI, unsigned OpIdx,
     return MO.getImm();
   assert(MO.isExpr() && "Unexpected target type!");
 
-  MCFixupKind Kind = MCFixupKind(AArch64::fixup_aarch64_ldr_pcrel_imm19);
+  MCFixupKind const Kind = MCFixupKind(AArch64::fixup_aarch64_ldr_pcrel_imm19);
   Fixups.push_back(MCFixup::create(0, MO.getExpr(), Kind, MI.getLoc()));
 
   ++MCNumFixups;
@@ -344,8 +344,8 @@ uint32_t
 AArch64MCCodeEmitter::getMemExtendOpValue(const MCInst &MI, unsigned OpIdx,
                                           SmallVectorImpl<MCFixup> &Fixups,
                                           const MCSubtargetInfo &STI) const {
-  unsigned SignExtend = MI.getOperand(OpIdx).getImm();
-  unsigned DoShift = MI.getOperand(OpIdx + 1).getImm();
+  unsigned const SignExtend = MI.getOperand(OpIdx).getImm();
+  unsigned const DoShift = MI.getOperand(OpIdx + 1).getImm();
   return (SignExtend << 1) | DoShift;
 }
 
@@ -379,7 +379,7 @@ uint32_t AArch64MCCodeEmitter::getTestBranchTargetOpValue(
     return MO.getImm();
   assert(MO.isExpr() && "Unexpected ADR target type!");
 
-  MCFixupKind Kind = MCFixupKind(AArch64::fixup_aarch64_pcrel_branch14);
+  MCFixupKind const Kind = MCFixupKind(AArch64::fixup_aarch64_pcrel_branch14);
   Fixups.push_back(MCFixup::create(0, MO.getExpr(), Kind, MI.getLoc()));
 
   ++MCNumFixups;
@@ -401,7 +401,7 @@ AArch64MCCodeEmitter::getBranchTargetOpValue(const MCInst &MI, unsigned OpIdx,
     return MO.getImm();
   assert(MO.isExpr() && "Unexpected ADR target type!");
 
-  MCFixupKind Kind = MI.getOpcode() == AArch64::BL
+  MCFixupKind const Kind = MI.getOpcode() == AArch64::BL
                          ? MCFixupKind(AArch64::fixup_aarch64_pcrel_call26)
                          : MCFixupKind(AArch64::fixup_aarch64_pcrel_branch26);
   Fixups.push_back(MCFixup::create(0, MO.getExpr(), Kind, MI.getLoc()));
@@ -526,7 +526,7 @@ AArch64MCCodeEmitter::getVecShiftL8OpValue(const MCInst &MI, unsigned OpIdx,
 uint32_t AArch64MCCodeEmitter::EncodeMatrixTileListRegisterClass(
     const MCInst &MI, unsigned OpIdx, SmallVectorImpl<MCFixup> &Fixups,
     const MCSubtargetInfo &STI) const {
-  unsigned RegMask = MI.getOperand(OpIdx).getImm();
+  unsigned const RegMask = MI.getOperand(OpIdx).getImm();
   assert(RegMask <= 0xFF && "Invalid register mask!");
   return RegMask;
 }
@@ -550,7 +550,7 @@ AArch64MCCodeEmitter::getImm8OptLsl(const MCInst &MI, unsigned OpIdx,
   assert(AArch64_AM::getShiftType(ShiftOpnd) == AArch64_AM::LSL &&
          "Unexpected shift type for imm8_opt_lsl immediate.");
 
-  unsigned ShiftVal = AArch64_AM::getShiftValue(ShiftOpnd);
+  unsigned const ShiftVal = AArch64_AM::getShiftValue(ShiftOpnd);
   assert((ShiftVal == 0 || ShiftVal == 8) &&
          "Unexpected shift value for imm8_opt_lsl immediate.");
 
@@ -577,7 +577,7 @@ uint32_t AArch64MCCodeEmitter::getMoveVecShifterOpValue(
   const MCOperand &MO = MI.getOperand(OpIdx);
   assert(MO.isImm() &&
          "Expected an immediate value for the move shift amount!");
-  unsigned ShiftVal = AArch64_AM::getShiftValue(MO.getImm());
+  unsigned const ShiftVal = AArch64_AM::getShiftValue(MO.getImm());
   assert((ShiftVal == 8 || ShiftVal == 16) && "Invalid shift amount!");
   return ShiftVal == 8 ? 0 : 1;
 }
@@ -588,7 +588,7 @@ unsigned AArch64MCCodeEmitter::fixMOVZ(const MCInst &MI, unsigned EncodedValue,
   // eventual result could be either a MOVZ or a MOVN. It's the MCCodeEmitter's
   // job to ensure that any bits possibly affected by this are 0. This means we
   // must zero out bit 30 (essentially emitting a MOVN).
-  MCOperand UImm16MO = MI.getOperand(1);
+  MCOperand const UImm16MO = MI.getOperand(1);
 
   // Nothing to do if there's no fixup.
   if (UImm16MO.isImm())
@@ -640,7 +640,7 @@ void AArch64MCCodeEmitter::encodeInstruction(const MCInst &MI, raw_ostream &OS,
     return;
   }
 
-  uint64_t Binary = getBinaryCodeForInstr(MI, Fixups, STI);
+  uint64_t const Binary = getBinaryCodeForInstr(MI, Fixups, STI);
   support::endian::write<uint32_t>(OS, Binary, support::little);
   ++MCNumEmitted; // Keep track of the # of mi's emitted.
 }

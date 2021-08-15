@@ -289,7 +289,7 @@ bool AA::getPotentialCopiesOfStoredValue(
     Attributor &A, StoreInst &SI, SmallSetVector<Value *, 4> &PotentialCopies,
     const AbstractAttribute &QueryingAA, bool &UsedAssumedInformation) {
 
-  Value &Ptr = *SI.getPointerOperand();
+  Value  const&Ptr = *SI.getPointerOperand();
   SmallVector<Value *, 8> Objects;
   if (!AA::getAssumedUnderlyingObjects(A, Ptr, Objects, QueryingAA, &SI)) {
     LLVM_DEBUG(
@@ -381,7 +381,7 @@ static bool addIfNotExistent(LLVMContext &Ctx, const Attribute &Attr,
                              bool ForceReplace = false) {
 
   if (Attr.isEnumAttribute()) {
-    Attribute::AttrKind Kind = Attr.getKindAsEnum();
+    Attribute::AttrKind const Kind = Attr.getKindAsEnum();
     if (Attrs.hasAttribute(AttrIdx, Kind))
       if (!ForceReplace &&
           isEqualOrWorse(Attr, Attrs.getAttribute(AttrIdx, Kind)))
@@ -390,7 +390,7 @@ static bool addIfNotExistent(LLVMContext &Ctx, const Attribute &Attr,
     return true;
   }
   if (Attr.isStringAttribute()) {
-    StringRef Kind = Attr.getKindAsString();
+    StringRef const Kind = Attr.getKindAsString();
     if (Attrs.hasAttribute(AttrIdx, Kind))
       if (!ForceReplace &&
           isEqualOrWorse(Attr, Attrs.getAttribute(AttrIdx, Kind)))
@@ -399,7 +399,7 @@ static bool addIfNotExistent(LLVMContext &Ctx, const Attribute &Attr,
     return true;
   }
   if (Attr.isIntAttribute()) {
-    Attribute::AttrKind Kind = Attr.getKindAsEnum();
+    Attribute::AttrKind const Kind = Attr.getKindAsEnum();
     if (Attrs.hasAttribute(AttrIdx, Kind))
       if (!ForceReplace &&
           isEqualOrWorse(Attr, Attrs.getAttribute(AttrIdx, Kind)))
@@ -418,7 +418,7 @@ Argument *IRPosition::getAssociatedArgument() const {
 
   // Not an Argument and no argument number means this is not a call site
   // argument, thus we cannot find a callback argument to return.
-  int ArgNo = getCallSiteArgNo();
+  int const ArgNo = getCallSiteArgNo();
   if (ArgNo < 0)
     return nullptr;
 
@@ -431,7 +431,7 @@ Argument *IRPosition::getAssociatedArgument() const {
   const auto &CB = cast<CallBase>(getAnchorValue());
   AbstractCallSite::getCallbackUses(CB, CallbackUses);
   for (const Use *U : CallbackUses) {
-    AbstractCallSite ACS(U);
+    AbstractCallSite const ACS(U);
     assert(ACS && ACS.isCallbackCall());
     if (!ACS.getCalledFunction())
       continue;
@@ -486,7 +486,7 @@ IRAttributeManifest::manifestAttrs(Attributor &A, const IRPosition &IRP,
                                    const ArrayRef<Attribute> &DeducedAttrs,
                                    bool ForceReplace) {
   Function *ScopeFn = IRP.getAnchorScope();
-  IRPosition::Kind PK = IRP.getPositionKind();
+  IRPosition::Kind const PK = IRP.getPositionKind();
 
   // In the following some generic code that will manifest attributes in
   // DeducedAttrs if they improve the current IR. Due to the different
@@ -614,7 +614,7 @@ bool IRPosition::hasAttr(ArrayRef<Attribute::AttrKind> AKs,
                          bool IgnoreSubsumingPositions, Attributor *A) const {
   SmallVector<Attribute, 4> Attrs;
   for (const IRPosition &EquivIRP : SubsumingPositionIterator(*this)) {
-    for (Attribute::AttrKind AK : AKs)
+    for (Attribute::AttrKind const AK : AKs)
       if (EquivIRP.getAttrsFromIRAttr(AK, Attrs))
         return true;
     // The first position returned by the SubsumingPositionIterator is
@@ -624,7 +624,7 @@ bool IRPosition::hasAttr(ArrayRef<Attribute::AttrKind> AKs,
       break;
   }
   if (A)
-    for (Attribute::AttrKind AK : AKs)
+    for (Attribute::AttrKind const AK : AKs)
       if (getAttrsFromAssumes(AK, Attrs, *A))
         return true;
   return false;
@@ -634,7 +634,7 @@ void IRPosition::getAttrs(ArrayRef<Attribute::AttrKind> AKs,
                           SmallVectorImpl<Attribute> &Attrs,
                           bool IgnoreSubsumingPositions, Attributor *A) const {
   for (const IRPosition &EquivIRP : SubsumingPositionIterator(*this)) {
-    for (Attribute::AttrKind AK : AKs)
+    for (Attribute::AttrKind const AK : AKs)
       EquivIRP.getAttrsFromIRAttr(AK, Attrs);
     // The first position returned by the SubsumingPositionIterator is
     // always the position itself. If we ignore subsuming positions we
@@ -643,7 +643,7 @@ void IRPosition::getAttrs(ArrayRef<Attribute::AttrKind> AKs,
       break;
   }
   if (A)
-    for (Attribute::AttrKind AK : AKs)
+    for (Attribute::AttrKind const AK : AKs)
       getAttrsFromAssumes(AK, Attrs, *A);
 }
 
@@ -658,7 +658,7 @@ bool IRPosition::getAttrsFromIRAttr(Attribute::AttrKind AK,
   else
     AttrList = getAssociatedFunction()->getAttributes();
 
-  bool HasAttr = AttrList.hasAttribute(getAttrIdx(), AK);
+  bool const HasAttr = AttrList.hasAttribute(getAttrIdx(), AK);
   if (HasAttr)
     Attrs.push_back(AttrList.getAttribute(getAttrIdx(), AK));
   return HasAttr;
@@ -679,7 +679,7 @@ bool IRPosition::getAttrsFromAssumes(Attribute::AttrKind AK,
     return false;
 
   LLVMContext &Ctx = AssociatedValue.getContext();
-  unsigned AttrsSize = Attrs.size();
+  unsigned const AttrsSize = Attrs.size();
   MustBeExecutedContextExplorer &Explorer =
       A.getInfoCache().getMustBeExecutedContextExplorer();
   auto EIt = Explorer.begin(getCtxI()), EEnd = Explorer.end(getCtxI());
@@ -776,7 +776,7 @@ Attributor::getAssumedConstant(const IRPosition &IRP,
       getAAFor<AAValueSimplify>(AA, IRP, DepClassTy::NONE);
   Optional<Value *> SimplifiedV =
       ValueSimplifyAA.getAssumedSimplifiedValue(*this);
-  bool IsKnown = ValueSimplifyAA.isAtFixpoint();
+  bool const IsKnown = ValueSimplifyAA.isAtFixpoint();
   UsedAssumedInformation |= !IsKnown;
   if (!SimplifiedV.hasValue()) {
     recordDependence(ValueSimplifyAA, AA, DepClassTy::OPTIONAL);
@@ -810,7 +810,7 @@ Attributor::getAssumedSimplified(const IRPosition &IRP,
       getOrCreateAAFor<AAValueSimplify>(IRP, AA, DepClassTy::NONE);
   Optional<Value *> SimplifiedV =
       ValueSimplifyAA.getAssumedSimplifiedValue(*this);
-  bool IsKnown = ValueSimplifyAA.isAtFixpoint();
+  bool const IsKnown = ValueSimplifyAA.isAtFixpoint();
   UsedAssumedInformation |= !IsKnown;
   if (!SimplifiedV.hasValue()) {
     if (AA)
@@ -1127,7 +1127,7 @@ bool Attributor::checkForAllCallSites(function_ref<bool(AbstractCallSite)> Pred,
       }
     }
 
-    AbstractCallSite ACS(&U);
+    AbstractCallSite const ACS(&U);
     if (!ACS) {
       LLVM_DEBUG(dbgs() << "[Attributor] Function " << Fn.getName()
                         << " has non call site use " << *U.get() << " in "
@@ -1152,7 +1152,7 @@ bool Attributor::checkForAllCallSites(function_ref<bool(AbstractCallSite)> Pred,
     // callee argee on their type. It is unlikely they do not and it doesn't
     // make sense for all attributes to know/care about this.
     assert(&Fn == ACS.getCalledFunction() && "Expected known callee");
-    unsigned MinArgsParams =
+    unsigned const MinArgsParams =
         std::min(size_t(ACS.getNumArgOperands()), Fn.arg_size());
     for (unsigned u = 0; u < MinArgsParams; ++u) {
       Value *CSArgOp = ACS.getCallArgOperand(u);
@@ -1235,7 +1235,7 @@ static bool checkForAllInstructionsImpl(
     const AAIsDead *LivenessAA, const ArrayRef<unsigned> &Opcodes,
     bool &UsedAssumedInformation, bool CheckBBLivenessOnly = false,
     bool CheckPotentiallyDead = false) {
-  for (unsigned Opcode : Opcodes) {
+  for (unsigned const Opcode : Opcodes) {
     // Check if we have instructions with this opcode at all first.
     auto *Insts = OpcodeInstMap.lookup(Opcode);
     if (!Insts)
@@ -1317,7 +1317,7 @@ bool Attributor::checkForAllReadWriteInstructions(
 }
 
 void Attributor::runTillFixpoint() {
-  TimeTraceScope TimeScope("Attributor::runTillFixpoint");
+  TimeTraceScope const TimeScope("Attributor::runTillFixpoint");
   LLVM_DEBUG(dbgs() << "[Attributor] Identified and initialized "
                     << DG.SyntheticRoot.Deps.size()
                     << " abstract attributes.\n");
@@ -1338,7 +1338,7 @@ void Attributor::runTillFixpoint() {
 
   do {
     // Remember the size to determine new attributes.
-    size_t NumAAs = DG.SyntheticRoot.Deps.size();
+    size_t const NumAAs = DG.SyntheticRoot.Deps.size();
     LLVM_DEBUG(dbgs() << "\n\n[Attributor] #Iteration: " << IterationCounter
                       << ", Worklist size: " << Worklist.size() << "\n");
 
@@ -1459,8 +1459,8 @@ void Attributor::runTillFixpoint() {
 }
 
 ChangeStatus Attributor::manifestAttributes() {
-  TimeTraceScope TimeScope("Attributor::manifestAttributes");
-  size_t NumFinalAAs = DG.SyntheticRoot.Deps.size();
+  TimeTraceScope const TimeScope("Attributor::manifestAttributes");
+  size_t const NumFinalAAs = DG.SyntheticRoot.Deps.size();
 
   unsigned NumManifested = 0;
   unsigned NumAtFixpoint = 0;
@@ -1493,7 +1493,7 @@ ChangeStatus Attributor::manifestAttributes() {
     if (!DebugCounter::shouldExecute(ManifestDBGCounter))
       continue;
     // Manifest the state and record if we changed the IR.
-    ChangeStatus LocalChange = AA->manifest(*this);
+    ChangeStatus const LocalChange = AA->manifest(*this);
     if (LocalChange == ChangeStatus::CHANGED && AreStatisticsEnabled())
       AA->trackStatistics();
     LLVM_DEBUG(dbgs() << "[Attributor] Manifest " << LocalChange << " : " << *AA
@@ -1577,7 +1577,7 @@ void Attributor::identifyDeadInternalFunctions() {
 }
 
 ChangeStatus Attributor::cleanupIR() {
-  TimeTraceScope TimeScope("Attributor::cleanupIR");
+  TimeTraceScope const TimeScope("Attributor::cleanupIR");
   // Delete stuff at the end to avoid invalid references and a nice order.
   LLVM_DEBUG(dbgs() << "\n[Attributor] Delete/replace at least "
                     << ToBeDeletedFunctions.size() << " functions and "
@@ -1634,7 +1634,7 @@ ChangeStatus Attributor::cleanupIR() {
     if (isa<UndefValue>(NewV) && isa<CallBase>(U->getUser())) {
       auto *CB = cast<CallBase>(U->getUser());
       if (CB->isArgOperand(U)) {
-        unsigned Idx = CB->getArgOperandNo(U);
+        unsigned const Idx = CB->getArgOperandNo(U);
         CB->removeParamAttr(Idx, Attribute::NoUndef);
         Function *Fn = CB->getCalledFunction();
         if (Fn && Fn->arg_size() > Idx)
@@ -1674,9 +1674,9 @@ ChangeStatus Attributor::cleanupIR() {
     if (InvokeInst *II = dyn_cast_or_null<InvokeInst>(V)) {
       assert(isRunOn(*II->getFunction()) &&
              "Cannot replace an invoke outside the current SCC!");
-      bool UnwindBBIsDead = II->hasFnAttr(Attribute::NoUnwind);
-      bool NormalBBIsDead = II->hasFnAttr(Attribute::NoReturn);
-      bool Invoke2CallAllowed =
+      bool const UnwindBBIsDead = II->hasFnAttr(Attribute::NoUnwind);
+      bool const NormalBBIsDead = II->hasFnAttr(Attribute::NoReturn);
+      bool const Invoke2CallAllowed =
           !AAIsDead::mayCatchAsynchronousExceptions(*II->getFunction());
       assert((UnwindBBIsDead || NormalBBIsDead) &&
              "Invoke does not have dead successors!");
@@ -1743,7 +1743,7 @@ ChangeStatus Attributor::cleanupIR() {
 
   RecursivelyDeleteTriviallyDeadInstructions(DeadInsts);
 
-  if (unsigned NumDeadBlocks = ToBeDeletedBlocks.size()) {
+  if (unsigned const NumDeadBlocks = ToBeDeletedBlocks.size()) {
     SmallVector<BasicBlock *, 8> ToBeDeletedBBs;
     ToBeDeletedBBs.reserve(NumDeadBlocks);
     for (BasicBlock *BB : ToBeDeletedBlocks) {
@@ -1814,7 +1814,7 @@ ChangeStatus Attributor::cleanupIR() {
 }
 
 ChangeStatus Attributor::run() {
-  TimeTraceScope TimeScope("Attributor::run");
+  TimeTraceScope const TimeScope("Attributor::run");
   AttributorCallGraph ACallGraph(*this);
 
   if (PrintCallGraph)
@@ -1834,10 +1834,10 @@ ChangeStatus Attributor::run() {
     DG.print();
 
   Phase = AttributorPhase::MANIFEST;
-  ChangeStatus ManifestChange = manifestAttributes();
+  ChangeStatus const ManifestChange = manifestAttributes();
 
   Phase = AttributorPhase::CLEANUP;
-  ChangeStatus CleanupChange = cleanupIR();
+  ChangeStatus const CleanupChange = cleanupIR();
 
   if (PrintCallGraph)
     ACallGraph.print();
@@ -1846,7 +1846,7 @@ ChangeStatus Attributor::run() {
 }
 
 ChangeStatus Attributor::updateAA(AbstractAttribute &AA) {
-  TimeTraceScope TimeScope(
+  TimeTraceScope const TimeScope(
       AA.getName() + std::to_string(AA.getIRPosition().getPositionKind()) +
       "::updateAA");
   assert(Phase == AttributorPhase::UPDATE &&
@@ -2037,7 +2037,7 @@ bool Attributor::isValidFunctionSignatureRewrite(
   }
 
   // Avoid functions with complicated argument passing semantics.
-  AttributeList FnAttributeList = Fn->getAttributes();
+  AttributeList const FnAttributeList = Fn->getAttributes();
   if (FnAttributeList.hasAttrSomewhere(Attribute::Nest) ||
       FnAttributeList.hasAttrSomewhere(Attribute::StructRet) ||
       FnAttributeList.hasAttrSomewhere(Attribute::InAlloca) ||
@@ -2148,8 +2148,8 @@ ChangeStatus Attributor::rewriteFunctionSignatures(
     SmallVector<AttributeSet, 16> NewArgumentAttributes;
 
     // Collect replacement argument types and copy over existing attributes.
-    AttributeList OldFnAttributeList = OldFn->getAttributes();
-    for (Argument &Arg : OldFn->args()) {
+    AttributeList const OldFnAttributeList = OldFn->getAttributes();
+    for (Argument  const&Arg : OldFn->args()) {
       if (const std::unique_ptr<ArgumentReplacementInfo> &ARI =
               ARIs[Arg.getArgNo()]) {
         NewArgumentTypes.append(ARI->ReplacementTypes.begin(),
@@ -2220,7 +2220,7 @@ ChangeStatus Attributor::rewriteFunctionSignatures(
       SmallVector<Value *, 16> NewArgOperands;
       SmallVector<AttributeSet, 16> NewArgOperandAttributes;
       for (unsigned OldArgNum = 0; OldArgNum < ARIs.size(); ++OldArgNum) {
-        unsigned NewFirstArgNum = NewArgOperands.size();
+        unsigned const NewFirstArgNum = NewArgOperands.size();
         (void)NewFirstArgNum; // only used inside assert.
         if (const std::unique_ptr<ArgumentReplacementInfo> &ARI =
                 ARIs[OldArgNum]) {
@@ -2275,7 +2275,7 @@ ChangeStatus Attributor::rewriteFunctionSignatures(
 
     // Use the CallSiteReplacementCreator to create replacement call sites.
     bool AllCallSitesKnown;
-    bool Success = checkForAllCallSites(CallSiteReplacementCreator, *OldFn,
+    bool const Success = checkForAllCallSites(CallSiteReplacementCreator, *OldFn,
                                         true, nullptr, AllCallSitesKnown);
     (void)Success;
     assert(Success && "Assumed call site replacement to succeed!");
@@ -2421,7 +2421,7 @@ void Attributor::recordDependence(const AbstractAttribute &FromAA,
 void Attributor::rememberDependences() {
   assert(!DependenceStack.empty() && "No dependences to remember!");
 
-  for (DepInfo &DI : *DependenceStack.back()) {
+  for (DepInfo  const&DI : *DependenceStack.back()) {
     assert((DI.DepClass == DepClassTy::REQUIRED ||
             DI.DepClass == DepClassTy::OPTIONAL) &&
            "Expected required or optional dependence (1 bit)!");
@@ -2448,7 +2448,7 @@ void Attributor::identifyDefaultAbstractAttributes(Function &F) {
           FI.CalledViaMustTail = true;
   }
 
-  IRPosition FPos = IRPosition::function(F);
+  IRPosition const FPos = IRPosition::function(F);
 
   // Check for dead BasicBlocks in every function.
   // We need dead instruction detection because we do not want to deal with
@@ -2493,7 +2493,7 @@ void Attributor::identifyDefaultAbstractAttributes(Function &F) {
     // though it is an argument attribute.
     getOrCreateAAFor<AAReturnedValues>(FPos);
 
-    IRPosition RetPos = IRPosition::returned(F);
+    IRPosition const RetPos = IRPosition::returned(F);
 
     // Every returned value might be dead.
     getOrCreateAAFor<AAIsDead>(RetPos);
@@ -2521,8 +2521,8 @@ void Attributor::identifyDefaultAbstractAttributes(Function &F) {
     }
   }
 
-  for (Argument &Arg : F.args()) {
-    IRPosition ArgPos = IRPosition::argument(Arg);
+  for (Argument  const&Arg : F.args()) {
+    IRPosition const ArgPos = IRPosition::argument(Arg);
 
     // Every argument might be simplified. We have to go through the Attributor
     // interface though as outside AAs can register custom simplification
@@ -2566,7 +2566,7 @@ void Attributor::identifyDefaultAbstractAttributes(Function &F) {
 
   auto CallSitePred = [&](Instruction &I) -> bool {
     auto &CB = cast<CallBase>(I);
-    IRPosition CBRetPos = IRPosition::callsite_returned(CB);
+    IRPosition const CBRetPos = IRPosition::callsite_returned(CB);
 
     // Call sites might be dead if they do not have side effects and no live
     // users. The return value might be dead if there are no live users.
@@ -2586,13 +2586,13 @@ void Attributor::identifyDefaultAbstractAttributes(Function &F) {
 
     if (!Callee->getReturnType()->isVoidTy() && !CB.use_empty()) {
 
-      IRPosition CBRetPos = IRPosition::callsite_returned(CB);
+      IRPosition const CBRetPos = IRPosition::callsite_returned(CB);
       getOrCreateAAFor<AAValueSimplify>(CBRetPos);
     }
 
     for (int I = 0, E = CB.getNumArgOperands(); I < E; ++I) {
 
-      IRPosition CBArgPos = IRPosition::callsite_argument(CB, I);
+      IRPosition const CBArgPos = IRPosition::callsite_argument(CB, I);
 
       // Every call site argument might be dead.
       getOrCreateAAFor<AAIsDead>(CBArgPos);
@@ -2812,7 +2812,7 @@ static bool runAttributorOnFunctions(InformationCache &InfoCache,
   //       cost, we need a cost interface to determine whether internalizing
   //       a function is "benefitial"
   if (AllowDeepWrapper) {
-    unsigned FunSize = Functions.size();
+    unsigned const FunSize = Functions.size();
     for (unsigned u = 0; u < FunSize; u++) {
       Function *F = Functions[u];
       if (!F->isDeclaration() && !F->isDefinitionExact() && F->getNumUses() &&
@@ -2855,7 +2855,7 @@ static bool runAttributorOnFunctions(InformationCache &InfoCache,
     A.identifyDefaultAbstractAttributes(*F);
   }
 
-  ChangeStatus Changed = A.run();
+  ChangeStatus const Changed = A.run();
 
   LLVM_DEBUG(dbgs() << "[Attributor] Done with " << Functions.size()
                     << " functions, result: " << Changed << ".\n");
@@ -2872,7 +2872,7 @@ void AADepGraph::dumpGraph() {
     Prefix = DepGraphDotFileNamePrefix;
   else
     Prefix = "dep_graph";
-  std::string Filename =
+  std::string const Filename =
       Prefix + "_" + std::to_string(CallTimes.load()) + ".dot";
 
   outs() << "Dependency graph dump to " << Filename << ".\n";
@@ -2897,7 +2897,7 @@ PreservedAnalyses AttributorPass::run(Module &M, ModuleAnalysisManager &AM) {
   AnalysisGetter AG(FAM);
 
   SetVector<Function *> Functions;
-  for (Function &F : M)
+  for (Function  const&F : M)
     Functions.insert(&F);
 
   CallGraphUpdater CGUpdater;
@@ -2920,13 +2920,13 @@ PreservedAnalyses AttributorCGSCCPass::run(LazyCallGraph::SCC &C,
   AnalysisGetter AG(FAM);
 
   SetVector<Function *> Functions;
-  for (LazyCallGraph::Node &N : C)
+  for (LazyCallGraph::Node  const&N : C)
     Functions.insert(&N.getFunction());
 
   if (Functions.empty())
     return PreservedAnalyses::all();
 
-  Module &M = *Functions.back()->getParent();
+  Module  const&M = *Functions.back()->getParent();
   CallGraphUpdater CGUpdater;
   CGUpdater.initialize(CG, C, AM, UR);
   BumpPtrAllocator Allocator;
@@ -3001,7 +3001,7 @@ struct AttributorLegacyPass : public ModulePass {
 
     AnalysisGetter AG;
     SetVector<Function *> Functions;
-    for (Function &F : M)
+    for (Function  const&F : M)
       Functions.insert(&F);
 
     CallGraphUpdater CGUpdater;
@@ -3041,7 +3041,7 @@ struct AttributorCGSCCLegacyPass : public CallGraphSCCPass {
     CallGraph &CG = const_cast<CallGraph &>(SCC.getCallGraph());
     CallGraphUpdater CGUpdater;
     CGUpdater.initialize(CG, SCC);
-    Module &M = *Functions.back()->getParent();
+    Module  const&M = *Functions.back()->getParent();
     BumpPtrAllocator Allocator;
     InformationCache InfoCache(M, AG, Allocator, /* CGSCC */ &Functions);
     return runAttributorOnFunctions(InfoCache, Functions, AG, CGUpdater,

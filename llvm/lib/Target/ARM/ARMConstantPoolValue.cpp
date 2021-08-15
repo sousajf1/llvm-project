@@ -190,7 +190,7 @@ const BlockAddress *ARMConstantPoolConstant::getBlockAddress() const {
 
 int ARMConstantPoolConstant::getExistingMachineCPValue(MachineConstantPool *CP,
                                                        Align Alignment) {
-  int index =
+  int const index =
     getExistingMachineCPValueImpl<ARMConstantPoolConstant>(CP, Alignment);
   if (index != -1) {
     auto *CPV = static_cast<ARMConstantPoolValue*>(

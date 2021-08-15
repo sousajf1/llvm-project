@@ -94,7 +94,7 @@ StringRef PPCLowerMASSVEntries::getCPUSuffix(const PPCSubtarget *Subtarget) {
 std::string
 PPCLowerMASSVEntries::createMASSVFuncName(Function &Func,
                                           const PPCSubtarget *Subtarget) {
-  StringRef Suffix = getCPUSuffix(Subtarget);
+  StringRef const Suffix = getCPUSuffix(Subtarget);
   auto GenericName = Func.getName().str();
   std::string MASSVEntryName = GenericName + Suffix.str();
   return MASSVEntryName;
@@ -141,8 +141,8 @@ bool PPCLowerMASSVEntries::lowerMASSVCall(CallInst *CI, Function &Func,
   if (handlePowSpecialCases(CI, Func, M))
     return true;
 
-  std::string MASSVEntryName = createMASSVFuncName(Func, Subtarget);
-  FunctionCallee FCache = M.getOrInsertFunction(
+  std::string const MASSVEntryName = createMASSVFuncName(Func, Subtarget);
+  FunctionCallee const FCache = M.getOrInsertFunction(
       MASSVEntryName, Func.getFunctionType(), Func.getAttributes());
 
   CI->setCalledFunction(FCache);  
@@ -170,7 +170,7 @@ bool PPCLowerMASSVEntries::runOnModule(Module &M) {
     // Call to lowerMASSVCall() invalidates the iterator over users upon
     // replacing the users. Precomputing the current list of users allows us to
     // replace all the call sites.
-    SmallVector<User *, 4> MASSVUsers(Func.users());
+    SmallVector<User *, 4> const MASSVUsers(Func.users());
     
     for (auto *User : MASSVUsers) {
       auto *CI = dyn_cast<CallInst>(User);

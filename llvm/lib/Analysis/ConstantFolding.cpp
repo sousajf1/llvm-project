@@ -79,7 +79,7 @@ static Constant *foldConstVectorToAPInt(APInt &Result, Type *DestTy,
                                         const DataLayout &DL) {
   // Now that we know that the input value is a vector of integers, just shift
   // and insert them into our result.
-  unsigned BitShift = DL.getTypeSizeInBits(SrcEltTy);
+  unsigned const BitShift = DL.getTypeSizeInBits(SrcEltTy);
   for (unsigned i = 0; i != NumSrcElts; ++i) {
     Constant *Element;
     if (DL.isLittleEndian())
@@ -120,13 +120,13 @@ Constant *FoldBitCast(Constant *C, Type *DestTy, const DataLayout &DL) {
   if (auto *VTy = dyn_cast<VectorType>(C->getType())) {
     // Handle a vector->scalar integer/fp cast.
     if (isa<IntegerType>(DestTy) || DestTy->isFloatingPointTy()) {
-      unsigned NumSrcElts = cast<FixedVectorType>(VTy)->getNumElements();
+      unsigned const NumSrcElts = cast<FixedVectorType>(VTy)->getNumElements();
       Type *SrcEltTy = VTy->getElementType();
 
       // If the vector is a vector of floating point, convert it to vector of int
       // to simplify things.
       if (SrcEltTy->isFloatingPointTy()) {
-        unsigned FPWidth = SrcEltTy->getPrimitiveSizeInBits();
+        unsigned const FPWidth = SrcEltTy->getPrimitiveSizeInBits();
         auto *SrcIVTy = FixedVectorType::get(
             IntegerType::get(C->getContext(), FPWidth), NumSrcElts);
         // Ask IR to do the conversion now that #elts line up.
@@ -141,7 +141,7 @@ Constant *FoldBitCast(Constant *C, Type *DestTy, const DataLayout &DL) {
       if (isa<IntegerType>(DestTy))
         return ConstantInt::get(DestTy, Result);
 
-      APFloat FP(DestTy->getFltSemantics(), Result);
+      APFloat const FP(DestTy->getFltSemantics(), Result);
       return ConstantFP::get(DestTy->getContext(), FP);
     }
   }
@@ -163,8 +163,8 @@ Constant *FoldBitCast(Constant *C, Type *DestTy, const DataLayout &DL) {
     return ConstantExpr::getBitCast(C, DestTy);
 
   // If the element types match, IR can fold it.
-  unsigned NumDstElt = cast<FixedVectorType>(DestVTy)->getNumElements();
-  unsigned NumSrcElt = cast<FixedVectorType>(C->getType())->getNumElements();
+  unsigned const NumDstElt = cast<FixedVectorType>(DestVTy)->getNumElements();
+  unsigned const NumSrcElt = cast<FixedVectorType>(C->getType())->getNumElements();
   if (NumDstElt == NumSrcElt)
     return ConstantExpr::getBitCast(C, DestTy);
 
@@ -183,7 +183,7 @@ Constant *FoldBitCast(Constant *C, Type *DestTy, const DataLayout &DL) {
   // we have something in FP form, recast it as integer.
   if (DstEltTy->isFloatingPointTy()) {
     // Fold to an vector of integers with same size as our FP type.
-    unsigned FPWidth = DstEltTy->getPrimitiveSizeInBits();
+    unsigned const FPWidth = DstEltTy->getPrimitiveSizeInBits();
     auto *DestIVTy = FixedVectorType::get(
         IntegerType::get(C->getContext(), FPWidth), NumDstElt);
     // Recursively handle this integer conversion, if possible.
@@ -196,7 +196,7 @@ Constant *FoldBitCast(Constant *C, Type *DestTy, const DataLayout &DL) {
   // Okay, we know the destination is integer, if the input is FP, convert
   // it to integer first.
   if (SrcEltTy->isFloatingPointTy()) {
-    unsigned FPWidth = SrcEltTy->getPrimitiveSizeInBits();
+    unsigned const FPWidth = SrcEltTy->getPrimitiveSizeInBits();
     auto *SrcIVTy = FixedVectorType::get(
         IntegerType::get(C->getContext(), FPWidth), NumSrcElt);
     // Ask IR to do the conversion now that #elts line up.
@@ -211,14 +211,14 @@ Constant *FoldBitCast(Constant *C, Type *DestTy, const DataLayout &DL) {
   // of the same size, and that their #elements is not the same.  Do the
   // conversion here, which depends on whether the input or output has
   // more elements.
-  bool isLittleEndian = DL.isLittleEndian();
+  bool const isLittleEndian = DL.isLittleEndian();
 
   SmallVector<Constant*, 32> Result;
   if (NumDstElt < NumSrcElt) {
     // Handle: bitcast (<4 x i32> <i32 0, i32 1, i32 2, i32 3> to <2 x i64>)
     Constant *Zero = Constant::getNullValue(DstEltTy);
-    unsigned Ratio = NumSrcElt/NumDstElt;
-    unsigned SrcBitSize = SrcEltTy->getPrimitiveSizeInBits();
+    unsigned const Ratio = NumSrcElt/NumDstElt;
+    unsigned const SrcBitSize = SrcEltTy->getPrimitiveSizeInBits();
     unsigned SrcElt = 0;
     for (unsigned i = 0; i != NumDstElt; ++i) {
       // Build each element of the result.
@@ -251,8 +251,8 @@ Constant *FoldBitCast(Constant *C, Type *DestTy, const DataLayout &DL) {
   }
 
   // Handle: bitcast (<2 x i64> <i64 0, i64 1> to <4 x i32>)
-  unsigned Ratio = NumDstElt/NumSrcElt;
-  unsigned DstBitSize = DL.getTypeSizeInBits(DstEltTy);
+  unsigned const Ratio = NumDstElt/NumSrcElt;
+  unsigned const DstBitSize = DL.getTypeSizeInBits(DstEltTy);
 
   // Loop over each source value, expanding into multiple results.
   for (unsigned i = 0; i != NumSrcElt; ++i) {
@@ -308,7 +308,7 @@ bool llvm::IsConstantOffsetFromGlobal(Constant *C, GlobalValue *&GV,
 
   // Trivial case, constant is the global.
   if ((GV = dyn_cast<GlobalValue>(C))) {
-    unsigned BitWidth = DL.getIndexTypeSizeInBits(GV->getType());
+    unsigned const BitWidth = DL.getIndexTypeSizeInBits(GV->getType());
     Offset = APInt(BitWidth, 0);
     return true;
   }
@@ -317,7 +317,7 @@ bool llvm::IsConstantOffsetFromGlobal(Constant *C, GlobalValue *&GV,
     if (DSOEquiv)
       *DSOEquiv = FoundDSOEquiv;
     GV = FoundDSOEquiv->getGlobalValue();
-    unsigned BitWidth = DL.getIndexTypeSizeInBits(GV->getType());
+    unsigned const BitWidth = DL.getIndexTypeSizeInBits(GV->getType());
     Offset = APInt(BitWidth, 0);
     return true;
   }
@@ -337,7 +337,7 @@ bool llvm::IsConstantOffsetFromGlobal(Constant *C, GlobalValue *&GV,
   if (!GEP)
     return false;
 
-  unsigned BitWidth = DL.getIndexTypeSizeInBits(GEP->getType());
+  unsigned const BitWidth = DL.getIndexTypeSizeInBits(GEP->getType());
   APInt TmpOffset(BitWidth, 0);
 
   // If the base isn't a global+constant, we aren't either.
@@ -357,8 +357,8 @@ Constant *llvm::ConstantFoldLoadThroughBitcast(Constant *C, Type *DestTy,
                                          const DataLayout &DL) {
   do {
     Type *SrcTy = C->getType();
-    uint64_t DestSize = DL.getTypeSizeInBits(DestTy);
-    uint64_t SrcSize = DL.getTypeSizeInBits(SrcTy);
+    uint64_t const DestSize = DL.getTypeSizeInBits(DestTy);
+    uint64_t const SrcSize = DL.getTypeSizeInBits(SrcTy);
     if (SrcSize < DestSize)
       return nullptr;
 
@@ -440,8 +440,8 @@ bool ReadDataFromGlobal(Constant *C, uint64_t ByteOffset, unsigned char *CurPtr,
         (CI->getBitWidth() & 7) != 0)
       return false;
 
-    uint64_t Val = CI->getZExtValue();
-    unsigned IntBytes = unsigned(CI->getBitWidth()/8);
+    uint64_t const Val = CI->getZExtValue();
+    unsigned const IntBytes = unsigned(CI->getBitWidth()/8);
 
     for (unsigned i = 0; i != BytesLeft && ByteOffset != IntBytes; ++i) {
       int n = ByteOffset;
@@ -478,7 +478,7 @@ bool ReadDataFromGlobal(Constant *C, uint64_t ByteOffset, unsigned char *CurPtr,
     while (true) {
       // If the element access is to the element itself and not to tail padding,
       // read the bytes from the element.
-      uint64_t EltSize = DL.getTypeAllocSize(CS->getOperand(Index)->getType());
+      uint64_t const EltSize = DL.getTypeAllocSize(CS->getOperand(Index)->getType());
 
       if (ByteOffset < EltSize &&
           !ReadDataFromGlobal(CS->getOperand(Index), ByteOffset, CurPtr,
@@ -492,7 +492,7 @@ bool ReadDataFromGlobal(Constant *C, uint64_t ByteOffset, unsigned char *CurPtr,
         return true;
 
       // If we read all of the bytes we needed from this element we're done.
-      uint64_t NextEltOffset = SL->getElementOffset(Index);
+      uint64_t const NextEltOffset = SL->getElementOffset(Index);
 
       if (BytesLeft <= NextEltOffset - CurEltOffset - ByteOffset)
         return true;
@@ -517,7 +517,7 @@ bool ReadDataFromGlobal(Constant *C, uint64_t ByteOffset, unsigned char *CurPtr,
       NumElts = cast<FixedVectorType>(C->getType())->getNumElements();
       EltTy = cast<FixedVectorType>(C->getType())->getElementType();
     }
-    uint64_t EltSize = DL.getTypeAllocSize(EltTy);
+    uint64_t const EltSize = DL.getTypeAllocSize(EltTy);
     uint64_t Index = ByteOffset / EltSize;
     uint64_t Offset = ByteOffset - Index * EltSize;
 
@@ -526,7 +526,7 @@ bool ReadDataFromGlobal(Constant *C, uint64_t ByteOffset, unsigned char *CurPtr,
                               BytesLeft, DL))
         return false;
 
-      uint64_t BytesWritten = EltSize - Offset;
+      uint64_t const BytesWritten = EltSize - Offset;
       assert(BytesWritten <= EltSize && "Not indexing into this element?");
       if (BytesWritten >= BytesLeft)
         return true;
@@ -561,7 +561,7 @@ Constant *FoldReinterpretLoadFromConstPtr(Constant *C, Type *LoadTy,
 
   // If this isn't an integer load we can't fold it directly.
   if (!IntType) {
-    unsigned AS = PTy->getAddressSpace();
+    unsigned const AS = PTy->getAddressSpace();
 
     // If this is a float/double load, we can try folding it as an int32/64 load
     // and then bitcast the result.  This can be useful for union cases.  Note
@@ -603,7 +603,7 @@ Constant *FoldReinterpretLoadFromConstPtr(Constant *C, Type *LoadTy,
     return nullptr;
   }
 
-  unsigned BytesLoaded = (IntType->getBitWidth() + 7) / 8;
+  unsigned const BytesLoaded = (IntType->getBitWidth() + 7) / 8;
   if (BytesLoaded > 32 || BytesLoaded == 0)
     return nullptr;
 
@@ -618,7 +618,7 @@ Constant *FoldReinterpretLoadFromConstPtr(Constant *C, Type *LoadTy,
     return nullptr;
 
   int64_t Offset = OffsetAI.getSExtValue();
-  int64_t InitializerSize =
+  int64_t const InitializerSize =
       DL.getTypeAllocSize(GV->getInitializer()->getType()).getFixedSize();
 
   // If we're not accessing anything in this constant, the result is undefined.
@@ -733,8 +733,8 @@ Constant *llvm::ConstantFoldLoadFromConstPtr(Constant *C, Type *Ty,
   // directly if string length is small enough.
   StringRef Str;
   if (getConstantStringInfo(CE, Str) && !Str.empty()) {
-    size_t StrLen = Str.size();
-    unsigned NumBits = Ty->getPrimitiveSizeInBits();
+    size_t const StrLen = Str.size();
+    unsigned const NumBits = Ty->getPrimitiveSizeInBits();
     // Replace load with immediate integer if the result is an integer or fp
     // value.
     if ((NumBits >> 3) == StrLen + 1 && (NumBits & 7) == 0 &&
@@ -742,12 +742,12 @@ Constant *llvm::ConstantFoldLoadFromConstPtr(Constant *C, Type *Ty,
       APInt StrVal(NumBits, 0);
       APInt SingleChar(NumBits, 0);
       if (DL.isLittleEndian()) {
-        for (unsigned char C : reverse(Str.bytes())) {
+        for (unsigned char const C : reverse(Str.bytes())) {
           SingleChar = static_cast<uint64_t>(C);
           StrVal = (StrVal << 8) | SingleChar;
         }
       } else {
-        for (unsigned char C : Str.bytes()) {
+        for (unsigned char const C : Str.bytes()) {
           SingleChar = static_cast<uint64_t>(C);
           StrVal = (StrVal << 8) | SingleChar;
         }
@@ -794,7 +794,7 @@ Constant *SymbolicallyEvaluateBinop(unsigned Opc, Constant *Op0, Constant *Op1,
 
   if (Opc == Instruction::And) {
     KnownBits Known0 = computeKnownBits(Op0, DL);
-    KnownBits Known1 = computeKnownBits(Op1, DL);
+    KnownBits const Known1 = computeKnownBits(Op1, DL);
     if ((Known1.One | Known0.Zero).isAllOnesValue()) {
       // All the bits of Op0 that the 'and' could be masking are already zero.
       return Op0;
@@ -817,7 +817,7 @@ Constant *SymbolicallyEvaluateBinop(unsigned Opc, Constant *Op0, Constant *Op1,
 
     if (IsConstantOffsetFromGlobal(Op0, GV1, Offs1, DL))
       if (IsConstantOffsetFromGlobal(Op1, GV2, Offs2, DL) && GV1 == GV2) {
-        unsigned OpSize = DL.getTypeSizeInBits(Op0->getType());
+        unsigned const OpSize = DL.getTypeSizeInBits(Op0->getType());
 
         // (&GV+C1) - (&GV+C2) -> C1-C2, pointer arithmetic cannot overflow.
         // PtrToInt may change the bitwidth so we have convert to the right size
@@ -933,7 +933,7 @@ Constant *SymbolicallyEvaluateGEP(const GEPOperator *GEP,
     if (!isa<ConstantInt>(Ops[i]))
       return nullptr;
 
-  unsigned BitWidth = DL.getTypeSizeInBits(IntIdxTy);
+  unsigned const BitWidth = DL.getTypeSizeInBits(IntIdxTy);
   APInt Offset =
       APInt(BitWidth,
             DL.getIndexedOffsetInType(
@@ -946,7 +946,7 @@ Constant *SymbolicallyEvaluateGEP(const GEPOperator *GEP,
     InnermostGEP = GEP;
     InBounds &= GEP->isInBounds();
 
-    SmallVector<Value *, 4> NestedOps(GEP->op_begin() + 1, GEP->op_end());
+    SmallVector<Value *, 4> const NestedOps(GEP->op_begin() + 1, GEP->op_end());
 
     // Do not try the incorporate the sub-GEP if some index is not a number.
     bool AllConstantInt = true;
@@ -1009,7 +1009,7 @@ Constant *SymbolicallyEvaluateGEP(const GEPOperator *GEP,
       }
 
       // Determine which element of the array the offset points into.
-      APInt ElemSize(BitWidth, DL.getTypeAllocSize(Ty));
+      APInt const ElemSize(BitWidth, DL.getTypeAllocSize(Ty));
       if (ElemSize == 0) {
         // The element size is 0. This may be [0 x Ty]*, so just use a zero
         // index for this level and proceed to the next level to see if it can
@@ -1019,7 +1019,7 @@ Constant *SymbolicallyEvaluateGEP(const GEPOperator *GEP,
         // The element size is non-zero divide the offset by the element
         // size (rounding down), to compute the index at this level.
         bool Overflow;
-        APInt NewIdx = Offset.sdiv_ov(ElemSize, Overflow);
+        APInt const NewIdx = Offset.sdiv_ov(ElemSize, Overflow);
         if (Overflow)
           break;
         Offset -= NewIdx * ElemSize;
@@ -1038,7 +1038,7 @@ Constant *SymbolicallyEvaluateGEP(const GEPOperator *GEP,
       // Determine which field of the struct the offset points into. The
       // getZExtValue is fine as we've already ensured that the offset is
       // within the range representable by the StructLayout API.
-      unsigned ElIdx = SL.getElementContainingOffset(Offset.getZExtValue());
+      unsigned const ElIdx = SL.getElementContainingOffset(Offset.getZExtValue());
       NewIdxs.push_back(ConstantInt::get(Type::getInt32Ty(Ty->getContext()),
                                          ElIdx));
       Offset -= APInt(BitWidth, SL.getElementOffset(ElIdx));
@@ -1336,7 +1336,7 @@ Constant *llvm::ConstantFoldCompareInstOperands(unsigned Predicate,
           Predicate, CE0->getOperand(0), Ops1, DL, TLI);
       Constant *RHS = ConstantFoldCompareInstOperands(
           Predicate, CE0->getOperand(1), Ops1, DL, TLI);
-      unsigned OpC =
+      unsigned const OpC =
         Predicate == ICmpInst::ICMP_EQ ? Instruction::And : Instruction::Or;
       return ConstantFoldBinaryOpOperands(OpC, LHS, RHS, DL);
     }
@@ -1380,8 +1380,8 @@ Constant *llvm::ConstantFoldCastOperand(unsigned Opcode, Constant *C,
     if (auto *CE = dyn_cast<ConstantExpr>(C)) {
       if (CE->getOpcode() == Instruction::IntToPtr) {
         Constant *Input = CE->getOperand(0);
-        unsigned InWidth = Input->getType()->getScalarSizeInBits();
-        unsigned PtrWidth = DL.getPointerTypeSizeInBits(CE->getType());
+        unsigned const InWidth = Input->getType()->getScalarSizeInBits();
+        unsigned const PtrWidth = DL.getPointerTypeSizeInBits(CE->getType());
         if (PtrWidth < InWidth) {
           Constant *Mask =
             ConstantInt::get(CE->getContext(),
@@ -1401,11 +1401,11 @@ Constant *llvm::ConstantFoldCastOperand(unsigned Opcode, Constant *C,
     if (auto *CE = dyn_cast<ConstantExpr>(C)) {
       if (CE->getOpcode() == Instruction::PtrToInt) {
         Constant *SrcPtr = CE->getOperand(0);
-        unsigned SrcPtrSize = DL.getPointerTypeSizeInBits(SrcPtr->getType());
-        unsigned MidIntSize = CE->getType()->getScalarSizeInBits();
+        unsigned const SrcPtrSize = DL.getPointerTypeSizeInBits(SrcPtr->getType());
+        unsigned const MidIntSize = CE->getType()->getScalarSizeInBits();
 
         if (MidIntSize >= SrcPtrSize) {
-          unsigned SrcAS = SrcPtr->getType()->getPointerAddressSpace();
+          unsigned const SrcAS = SrcPtr->getType()->getPointerAddressSpace();
           if (SrcAS == DestTy->getPointerAddressSpace())
             return FoldBitCast(CE->getOperand(0), DestTy, DL);
         }
@@ -1620,7 +1620,7 @@ bool llvm::canConstantFoldCallTo(const CallBase *Call, const Function *F) {
   // In these cases, the check of the length is required.  We don't want to
   // return true for a name like "cos\0blah" which strcmp would return equal to
   // "cos", but has length 8.
-  StringRef Name = F->getName();
+  StringRef const Name = F->getName();
   switch (Name[0]) {
   default:
     return false;
@@ -1716,7 +1716,7 @@ inline void llvm_fenv_clearexcept() {
 
 /// Test if a floating-point exception was raised.
 inline bool llvm_fenv_testexcept() {
-  int errno_val = errno;
+  int const errno_val = errno;
   if (errno_val == ERANGE || errno_val == EDOM)
     return true;
 #if defined(HAVE_FENV_H) && HAVE_DECL_FE_ALL_EXCEPT && HAVE_DECL_FE_INEXACT
@@ -1729,7 +1729,7 @@ inline bool llvm_fenv_testexcept() {
 Constant *ConstantFoldFP(double (*NativeFP)(double), const APFloat &V,
                          Type *Ty) {
   llvm_fenv_clearexcept();
-  double Result = NativeFP(V.convertToDouble());
+  double const Result = NativeFP(V.convertToDouble());
   if (llvm_fenv_testexcept()) {
     llvm_fenv_clearexcept();
     return nullptr;
@@ -1741,7 +1741,7 @@ Constant *ConstantFoldFP(double (*NativeFP)(double), const APFloat &V,
 Constant *ConstantFoldBinaryFP(double (*NativeFP)(double, double),
                                const APFloat &V, const APFloat &W, Type *Ty) {
   llvm_fenv_clearexcept();
-  double Result = NativeFP(V.convertToDouble(), W.convertToDouble());
+  double const Result = NativeFP(V.convertToDouble(), W.convertToDouble());
   if (llvm_fenv_testexcept()) {
     llvm_fenv_clearexcept();
     return nullptr;
@@ -1821,15 +1821,15 @@ Constant *constantFoldVectorReduce(Intrinsic::ID IID, Constant *Op) {
 Constant *ConstantFoldSSEConvertToInt(const APFloat &Val, bool roundTowardZero,
                                       Type *Ty, bool IsSigned) {
   // All of these conversion intrinsics form an integer of at most 64bits.
-  unsigned ResultWidth = Ty->getIntegerBitWidth();
+  unsigned const ResultWidth = Ty->getIntegerBitWidth();
   assert(ResultWidth <= 64 &&
          "Can only constant fold conversions to 64 and 32 bit ints");
 
   uint64_t UIntVal;
   bool isExact = false;
-  APFloat::roundingMode mode = roundTowardZero? APFloat::rmTowardZero
+  APFloat::roundingMode const mode = roundTowardZero? APFloat::rmTowardZero
                                               : APFloat::rmNearestTiesToEven;
-  APFloat::opStatus status =
+  APFloat::opStatus const status =
       Val.convertToInteger(makeMutableArrayRef(UIntVal), ResultWidth,
                            IsSigned, mode, &isExact);
   if (status != APFloat::opOK &&
@@ -1976,15 +1976,15 @@ static Constant *ConstantFoldScalarCall1(StringRef Name,
 
     if (IntrinsicID == Intrinsic::wasm_trunc_signed ||
         IntrinsicID == Intrinsic::wasm_trunc_unsigned) {
-      bool Signed = IntrinsicID == Intrinsic::wasm_trunc_signed;
+      bool const Signed = IntrinsicID == Intrinsic::wasm_trunc_signed;
 
       if (U.isNaN())
         return nullptr;
 
-      unsigned Width = Ty->getIntegerBitWidth();
+      unsigned const Width = Ty->getIntegerBitWidth();
       APSInt Int(Width, !Signed);
       bool IsExact = false;
-      APFloat::opStatus Status =
+      APFloat::opStatus const Status =
           U.convertToInteger(Int, APFloat::rmTowardZero, &IsExact);
 
       if (Status == APFloat::opOK || Status == APFloat::opInexact)
@@ -2053,7 +2053,7 @@ static Constant *ConstantFoldScalarCall1(StringRef Name,
       //   largest positive floating-point number less than 1.0."
       APFloat FloorU(U);
       FloorU.roundToIntegral(APFloat::rmTowardNegative);
-      APFloat FractU(U - FloorU);
+      APFloat const FractU(U - FloorU);
       APFloat AlmostOne(U.getSemantics(), 1);
       AlmostOne.next(/*nextDown*/ true);
       return ConstantFP::get(Ty->getContext(), minimum(FractU, AlmostOne));
@@ -2090,7 +2090,7 @@ static Constant *ConstantFoldScalarCall1(StringRef Name,
     if (RM) {
       auto CI = cast<ConstrainedFPIntrinsic>(Call);
       if (U.isFinite()) {
-        APFloat::opStatus St = U.roundToIntegral(*RM);
+        APFloat::opStatus const St = U.roundToIntegral(*RM);
         if (IntrinsicID == Intrinsic::experimental_constrained_rint &&
             St == APFloat::opInexact) {
           Optional<fp::ExceptionBehavior> EB = CI->getExceptionBehavior();
@@ -2116,7 +2116,7 @@ static Constant *ConstantFoldScalarCall1(StringRef Name,
     /// the host native double versions.  Float versions are not called
     /// directly but for all these it is true (float)(f((double)arg)) ==
     /// f(arg).  Long double not supported yet.
-    APFloat APF = Op->getValueAPF();
+    APFloat const APF = Op->getValueAPF();
 
     switch (IntrinsicID) {
       default: break;
@@ -2147,8 +2147,8 @@ static Constant *ConstantFoldScalarCall1(StringRef Name,
           // [-256, 256] differently. This should be a rare case so bail out
           // rather than trying to handle the difference.
           return nullptr;
-        bool IsCos = IntrinsicID == Intrinsic::amdgcn_cos;
-        double V4 = V * 4.0;
+        bool const IsCos = IntrinsicID == Intrinsic::amdgcn_cos;
+        double const V4 = V * 4.0;
         if (V4 == floor(V4)) {
           // Force exact results for quarter-integer inputs.
           const double SinVals[4] = { 0.0, 1.0, 0.0, -1.0 };
@@ -2327,7 +2327,7 @@ static Constant *ConstantFoldScalarCall1(StringRef Name,
       APFloat Val(APFloat::IEEEhalf(), Op->getValue());
 
       bool lost = false;
-      APFloat::opStatus status = Val.convert(
+      APFloat::opStatus const status = Val.convert(
           Ty->getFltSemantics(), APFloat::rmNearestTiesToEven, &lost);
 
       // Conversion is always precise.
@@ -2401,8 +2401,8 @@ static Constant *ConstantFoldScalarCall2(StringRef Name,
   if (Ty->isFloatingPointTy()) {
     // TODO: We should have undef handling for all of the FP intrinsics that
     //       are attempted to be folded in this function.
-    bool IsOp0Undef = isa<UndefValue>(Operands[0]);
-    bool IsOp1Undef = isa<UndefValue>(Operands[1]);
+    bool const IsOp0Undef = isa<UndefValue>(Operands[0]);
+    bool const IsOp1Undef = isa<UndefValue>(Operands[1]);
     switch (IntrinsicID) {
     case Intrinsic::maxnum:
     case Intrinsic::minnum:
@@ -2420,15 +2420,15 @@ static Constant *ConstantFoldScalarCall2(StringRef Name,
   if (const auto *Op1 = dyn_cast<ConstantFP>(Operands[0])) {
     if (!Ty->isFloatingPointTy())
       return nullptr;
-    APFloat Op1V = Op1->getValueAPF();
+    APFloat const Op1V = Op1->getValueAPF();
 
     if (const auto *Op2 = dyn_cast<ConstantFP>(Operands[1])) {
       if (Op2->getType() != Op1->getType())
         return nullptr;
-      APFloat Op2V = Op2->getValueAPF();
+      APFloat const Op2V = Op2->getValueAPF();
 
       if (const auto *ConstrIntr = dyn_cast<ConstrainedFPIntrinsic>(Call)) {
-        RoundingMode RM = getEvaluationRoundingMode(ConstrIntr);
+        RoundingMode const RM = getEvaluationRoundingMode(ConstrIntr);
         APFloat Res = Op1V;
         APFloat::opStatus St;
         switch (IntrinsicID) {
@@ -2550,7 +2550,7 @@ static Constant *ConstantFoldScalarCall2(StringRef Name,
         // everywhere else.
 
         // scalbn is equivalent to ldexp with float radix 2
-        APFloat Result = scalbn(Op1->getValueAPF(), Op2C->getSExtValue(),
+        APFloat const Result = scalbn(Op1->getValueAPF(), Op2C->getSExtValue(),
                                 APFloat::rmNearestTiesToEven);
         return ConstantFP::get(Ty->getContext(), Result);
       }
@@ -2565,7 +2565,7 @@ static Constant *ConstantFoldScalarCall2(StringRef Name,
         !getConstIntOrUndef(Operands[1], C1))
       return nullptr;
 
-    unsigned BitWidth = Ty->getScalarSizeInBits();
+    unsigned const BitWidth = Ty->getScalarSizeInBits();
     switch (IntrinsicID) {
     default: break;
     case Intrinsic::smax:
@@ -2644,7 +2644,7 @@ static Constant *ConstantFoldScalarCall2(StringRef Name,
         Res = C0->umul_ov(*C1, Overflow);
         break;
       }
-      Constant *Ops[] = {
+      Constant *const Ops[] = {
         ConstantInt::get(Ty->getContext(), Res),
         ConstantInt::get(Type::getInt1Ty(Ty->getContext()), Overflow)
       };
@@ -2824,7 +2824,7 @@ static Constant *ConstantFoldAMDGCNPermIntrinsic(ArrayRef<Constant *> Operands,
   APInt Val(32, 0);
   unsigned NumUndefBytes = 0;
   for (unsigned I = 0; I < 32; I += 8) {
-    unsigned Sel = C2->extractBitsAsZExtValue(8, I);
+    unsigned const Sel = C2->extractBitsAsZExtValue(8, I);
     unsigned B = 0;
 
     if (Sel >= 13)
@@ -2866,7 +2866,7 @@ static Constant *ConstantFoldScalarCall3(StringRef Name,
         const APFloat &C3 = Op3->getValueAPF();
 
         if (const auto *ConstrIntr = dyn_cast<ConstrainedFPIntrinsic>(Call)) {
-          RoundingMode RM = getEvaluationRoundingMode(ConstrIntr);
+          RoundingMode const RM = getEvaluationRoundingMode(ConstrIntr);
           APFloat Res = C1;
           APFloat::opStatus St;
           switch (IntrinsicID) {
@@ -2905,7 +2905,7 @@ static Constant *ConstantFoldScalarCall3(StringRef Name,
         case Intrinsic::amdgcn_cubema:
         case Intrinsic::amdgcn_cubesc:
         case Intrinsic::amdgcn_cubetc: {
-          APFloat V = ConstantFoldAMDGCNCubeIntrinsic(IntrinsicID, C1, C2, C3);
+          APFloat const V = ConstantFoldAMDGCNCubeIntrinsic(IntrinsicID, C1, C2, C3);
           return ConstantFP::get(Ty->getContext(), V);
         }
         }
@@ -2936,15 +2936,15 @@ static Constant *ConstantFoldScalarCall3(StringRef Name,
     // should be done, and provide their own folding to be consistent with
     // rounding. This is the same approach as used by
     // DAGTypeLegalizer::ExpandIntRes_MULFIX.
-    unsigned Scale = cast<ConstantInt>(Operands[2])->getZExtValue();
-    unsigned Width = C0->getBitWidth();
+    unsigned const Scale = cast<ConstantInt>(Operands[2])->getZExtValue();
+    unsigned const Width = C0->getBitWidth();
     assert(Scale < Width && "Illegal scale.");
-    unsigned ExtendedWidth = Width * 2;
+    unsigned const ExtendedWidth = Width * 2;
     APInt Product = (C0->sextOrSelf(ExtendedWidth) *
                      C1->sextOrSelf(ExtendedWidth)).ashr(Scale);
     if (IntrinsicID == Intrinsic::smul_fix_sat) {
-      APInt Max = APInt::getSignedMaxValue(Width).sextOrSelf(ExtendedWidth);
-      APInt Min = APInt::getSignedMinValue(Width).sextOrSelf(ExtendedWidth);
+      APInt const Max = APInt::getSignedMaxValue(Width).sextOrSelf(ExtendedWidth);
+      APInt const Min = APInt::getSignedMinValue(Width).sextOrSelf(ExtendedWidth);
       Product = APIntOps::smin(Product, Max);
       Product = APIntOps::smax(Product, Min);
     }
@@ -2958,7 +2958,7 @@ static Constant *ConstantFoldScalarCall3(StringRef Name,
         !getConstIntOrUndef(Operands[2], C2))
       return nullptr;
 
-    bool IsRight = IntrinsicID == Intrinsic::fshr;
+    bool const IsRight = IntrinsicID == Intrinsic::fshr;
     if (!C2)
       return Operands[IsRight ? 1 : 0];
     if (!C0 && !C1)
@@ -2966,14 +2966,14 @@ static Constant *ConstantFoldScalarCall3(StringRef Name,
 
     // The shift amount is interpreted as modulo the bitwidth. If the shift
     // amount is effectively 0, avoid UB due to oversized inverse shift below.
-    unsigned BitWidth = C2->getBitWidth();
-    unsigned ShAmt = C2->urem(BitWidth);
+    unsigned const BitWidth = C2->getBitWidth();
+    unsigned const ShAmt = C2->urem(BitWidth);
     if (!ShAmt)
       return Operands[IsRight ? 1 : 0];
 
     // (C0 << ShlAmt) | (C1 >> LshrAmt)
-    unsigned LshrAmt = IsRight ? ShAmt : BitWidth - ShAmt;
-    unsigned ShlAmt = !IsRight ? ShAmt : BitWidth - ShAmt;
+    unsigned const LshrAmt = IsRight ? ShAmt : BitWidth - ShAmt;
+    unsigned const ShlAmt = !IsRight ? ShAmt : BitWidth - ShAmt;
     if (!C0)
       return ConstantInt::get(Ty, C1->lshr(LshrAmt));
     if (!C1)
@@ -3057,7 +3057,7 @@ static Constant *ConstantFoldFixedVectorCall(
   case Intrinsic::arm_mve_vctp32:
   case Intrinsic::arm_mve_vctp64: {
     if (auto *Op = dyn_cast<ConstantInt>(Operands[0])) {
-      unsigned Lanes = FVTy->getNumElements();
+      unsigned const Lanes = FVTy->getNumElements();
       uint64_t Limit = Op->getZExtValue();
       // vctp64 are currently modelled as returning a v4i1, not a v2i1. Make
       // sure we get the limit right in that case and set all relevant lanes.
@@ -3079,9 +3079,9 @@ static Constant *ConstantFoldFixedVectorCall(
     auto *Op0 = dyn_cast<ConstantInt>(Operands[0]);
     auto *Op1 = dyn_cast<ConstantInt>(Operands[1]);
     if (Op0 && Op1) {
-      unsigned Lanes = FVTy->getNumElements();
-      uint64_t Base = Op0->getZExtValue();
-      uint64_t Limit = Op1->getZExtValue();
+      unsigned const Lanes = FVTy->getNumElements();
+      uint64_t const Base = Op0->getZExtValue();
+      uint64_t const Limit = Op1->getZExtValue();
 
       SmallVector<Constant *, 16> NCs;
       for (unsigned i = 0; i < Lanes; i++) {
@@ -3162,7 +3162,7 @@ Constant *llvm::ConstantFoldCall(const CallBase *Call, Function *F,
       return nullptr;
   }
 
-  StringRef Name = F->getName();
+  StringRef const Name = F->getName();
   Type *Ty = F->getReturnType();
   if (auto *FVTy = dyn_cast<FixedVectorType>(Ty))
     return ConstantFoldFixedVectorCall(

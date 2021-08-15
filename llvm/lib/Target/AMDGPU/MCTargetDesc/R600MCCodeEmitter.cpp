@@ -103,7 +103,7 @@ void R600MCCodeEmitter::encodeInstruction(const MCInst &MI, raw_ostream &OS,
     MI.getOpcode() == R600::KILL) {
     return;
   } else if (IS_VTX(Desc)) {
-    uint64_t InstWord01 = getBinaryCodeForInstr(MI, Fixups, STI);
+    uint64_t const InstWord01 = getBinaryCodeForInstr(MI, Fixups, STI);
     uint32_t InstWord2 = MI.getOperand(2).getImm(); // Offset
     if (!(STI.getFeatureBits()[R600::FeatureCaymanISA])) {
       InstWord2 |= 1 << 19; // Mega-Fetch bit
@@ -113,22 +113,22 @@ void R600MCCodeEmitter::encodeInstruction(const MCInst &MI, raw_ostream &OS,
     Emit(InstWord2, OS);
     Emit((uint32_t) 0, OS);
   } else if (IS_TEX(Desc)) {
-      int64_t Sampler = MI.getOperand(14).getImm();
+      int64_t const Sampler = MI.getOperand(14).getImm();
 
-      int64_t SrcSelect[4] = {
+      int64_t const SrcSelect[4] = {
         MI.getOperand(2).getImm(),
         MI.getOperand(3).getImm(),
         MI.getOperand(4).getImm(),
         MI.getOperand(5).getImm()
       };
-      int64_t Offsets[3] = {
+      int64_t const Offsets[3] = {
         MI.getOperand(6).getImm() & 0x1F,
         MI.getOperand(7).getImm() & 0x1F,
         MI.getOperand(8).getImm() & 0x1F
       };
 
-      uint64_t Word01 = getBinaryCodeForInstr(MI, Fixups, STI);
-      uint32_t Word2 = Sampler << 15 | SrcSelect[ELEMENT_X] << 20 |
+      uint64_t const Word01 = getBinaryCodeForInstr(MI, Fixups, STI);
+      uint32_t const Word2 = Sampler << 15 | SrcSelect[ELEMENT_X] << 20 |
           SrcSelect[ELEMENT_Y] << 23 | SrcSelect[ELEMENT_Z] << 26 |
           SrcSelect[ELEMENT_W] << 29 | Offsets[0] << 0 | Offsets[1] << 5 |
           Offsets[2] << 10;
@@ -141,7 +141,7 @@ void R600MCCodeEmitter::encodeInstruction(const MCInst &MI, raw_ostream &OS,
     if ((STI.getFeatureBits()[R600::FeatureR600ALUInst]) &&
        ((Desc.TSFlags & R600_InstFlag::OP1) ||
          Desc.TSFlags & R600_InstFlag::OP2)) {
-      uint64_t ISAOpCode = Inst & (0x3FFULL << 39);
+      uint64_t const ISAOpCode = Inst & (0x3FFULL << 39);
       Inst &= ~(0x3FFULL << 39);
       Inst |= ISAOpCode << 1;
     }

@@ -336,7 +336,7 @@ bool MCObjectStreamer::changeSectionImpl(MCSection *Section,
   assert(Section && "Cannot switch to a null section!");
   getContext().clearDwarfLocSeen();
 
-  bool Created = getAssembler().registerSection(*Section);
+  bool const Created = getAssembler().registerSection(*Section);
 
   int64_t IntSubsection = 0;
   if (Subsection &&
@@ -385,8 +385,8 @@ void MCObjectStreamer::emitInstructionImpl(const MCInst &Inst,
   MCDwarfLineEntry::make(this, getCurrentSectionOnly());
 
   // If this instruction doesn't need relaxation, just emit it as data.
-  MCAssembler &Assembler = getAssembler();
-  MCAsmBackend &Backend = Assembler.getBackend();
+  MCAssembler  const&Assembler = getAssembler();
+  MCAsmBackend  const&Backend = Assembler.getBackend();
   if (!(Backend.mayNeedRelaxation(Inst, STI) ||
         Backend.allowEnhancedRelaxation())) {
     emitInstToData(Inst, STI);
@@ -461,7 +461,7 @@ void MCObjectStreamer::emitDwarfLocDirective(unsigned FileNo, unsigned Line,
 static const MCExpr *buildSymbolDiff(MCObjectStreamer &OS, const MCSymbol *A,
                                      const MCSymbol *B) {
   MCContext &Context = OS.getContext();
-  MCSymbolRefExpr::VariantKind Variant = MCSymbolRefExpr::VK_None;
+  MCSymbolRefExpr::VariantKind const Variant = MCSymbolRefExpr::VK_None;
   const MCExpr *ARef = MCSymbolRefExpr::create(A, Variant, Context);
   const MCExpr *BRef = MCSymbolRefExpr::create(B, Variant, Context);
   const MCExpr *AddrDelta =
@@ -512,7 +512,7 @@ void MCObjectStreamer::emitDwarfLineEndEntry(MCSection *Section,
 
   // Switch back the dwarf line section, in case endSection had to switch the
   // section.
-  MCContext &Ctx = getContext();
+  MCContext  const&Ctx = getContext();
   SwitchSection(Ctx.getObjectFileInfo()->getDwarfLineSection());
 
   const MCAsmInfo *AsmInfo = Ctx.getAsmInfo();
@@ -750,7 +750,7 @@ MCObjectStreamer::emitRelocDirective(const MCExpr &Offset, StringRef Name,
   if (!MaybeKind.hasValue())
     return std::make_pair(true, std::string("unknown relocation name"));
 
-  MCFixupKind Kind = *MaybeKind;
+  MCFixupKind const Kind = *MaybeKind;
 
   if (Expr == nullptr)
     Expr =
@@ -816,7 +816,7 @@ void MCObjectStreamer::emitFill(const MCExpr &NumValues, int64_t Size,
       return;
     }
     // Emit now if we can for better errors.
-    int64_t NonZeroSize = Size > 4 ? 4 : Size;
+    int64_t const NonZeroSize = Size > 4 ? 4 : Size;
     Expr &= ~0ULL >> (64 - NonZeroSize * 8);
     for (uint64_t i = 0, e = IntNumValues; i != e; ++i) {
       emitIntValue(Expr, NonZeroSize);

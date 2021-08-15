@@ -391,7 +391,7 @@ void SchedulePostRATDList::schedule() {
   buildSchedGraph(AA);
 
   if (AntiDepBreak) {
-    unsigned Broken =
+    unsigned const Broken =
       AntiDepBreak->BreakAntiDependencies(SUnits, RegionBegin, RegionEnd,
                                           EndIndex, DbgValues);
 
@@ -570,7 +570,7 @@ void SchedulePostRATDList::ListScheduleTopDown() {
     while (!AvailableQueue.empty()) {
       SUnit *CurSUnit = AvailableQueue.pop();
 
-      ScheduleHazardRecognizer::HazardType HT =
+      ScheduleHazardRecognizer::HazardType const HT =
         HazardRec->getHazardType(CurSUnit, 0/*no stalls*/);
       if (HT == ScheduleHazardRecognizer::NoHazard) {
         if (HazardRec->ShouldPreferAnother(CurSUnit)) {
@@ -618,7 +618,7 @@ void SchedulePostRATDList::ListScheduleTopDown() {
     // If we found a node to schedule...
     if (FoundSUnit) {
       // If we need to emit noops prior to this instruction, then do so.
-      unsigned NumPreNoops = HazardRec->PreEmitNoops(FoundSUnit);
+      unsigned const NumPreNoops = HazardRec->PreEmitNoops(FoundSUnit);
       for (unsigned i = 0; i != NumPreNoops; ++i)
         emitNoop(CurCycle);
 
@@ -656,7 +656,7 @@ void SchedulePostRATDList::ListScheduleTopDown() {
   }
 
 #ifndef NDEBUG
-  unsigned ScheduledNodes = VerifyScheduledDAG(/*isBottomUp=*/false);
+  unsigned const ScheduledNodes = VerifyScheduledDAG(/*isBottomUp=*/false);
   unsigned Noops = 0;
   for (unsigned i = 0, e = Sequence.size(); i != e; ++i)
     if (!Sequence[i])
@@ -691,7 +691,7 @@ void SchedulePostRATDList::EmitSchedule() {
   // Reinsert any remaining debug_values.
   for (std::vector<std::pair<MachineInstr *, MachineInstr *> >::iterator
          DI = DbgValues.end(), DE = DbgValues.begin(); DI != DE; --DI) {
-    std::pair<MachineInstr *, MachineInstr *> P = *std::prev(DI);
+    std::pair<MachineInstr *, MachineInstr *> const P = *std::prev(DI);
     MachineInstr *DbgValue = P.first;
     MachineBasicBlock::iterator OrigPrivMI = P.second;
     BB->splice(++OrigPrivMI, BB, DbgValue);

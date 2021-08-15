@@ -80,7 +80,7 @@ DisableTailPredication("arm-loloops-disable-tailpred", cl::Hidden,
     cl::init(false));
 
 static bool isVectorPredicated(MachineInstr *MI) {
-  int PIdx = llvm::findFirstVPTPredOperandIdx(*MI);
+  int const PIdx = llvm::findFirstVPTPredOperandIdx(*MI);
   return PIdx != -1 && MI->getOperand(PIdx + 1).getReg() == ARM::VPR;
 }
 
@@ -93,7 +93,7 @@ static bool hasVPRUse(MachineInstr &MI) {
 }
 
 static bool isDomainMVE(MachineInstr *MI) {
-  uint64_t Domain = MI->getDesc().TSFlags & ARMII::DomainMask;
+  uint64_t const Domain = MI->getDesc().TSFlags & ARMII::DomainMask;
   return Domain == ARMII::DomainMVE;
 }
 
@@ -240,7 +240,7 @@ namespace {
 
     // Return whether the given instruction is predicated upon a VCTP.
     static bool isPredicatedOnVCTP(MachineInstr *MI, bool Exclusive = false) {
-      SetVector<MachineInstr *> &Predicates = PredicatedInsts[MI]->Predicates;
+      SetVector<MachineInstr *>  const&Predicates = PredicatedInsts[MI]->Predicates;
       if (Exclusive && Predicates.size() != 1)
         return false;
       for (auto *PredMI : Predicates)
@@ -275,7 +275,7 @@ namespace {
       };
 
       auto IsOperandInvariant = [&](MachineInstr *MI, unsigned Idx) {
-        MachineOperand &MO = MI->getOperand(Idx);
+        MachineOperand  const&MO = MI->getOperand(Idx);
         if (!MO.isReg() || !MO.getReg())
           return true;
 
@@ -442,7 +442,7 @@ namespace {
     }
 
     unsigned getStartOpcode() const {
-      bool IsDo = isDoLoopStart(*Start);
+      bool const IsDo = isDoLoopStart(*Start);
       if (!IsTailPredicationLegal())
         return IsDo ? ARM::t2DLS : ARM::t2WLS;
 
@@ -670,7 +670,7 @@ bool LowOverheadLoop::ValidateTailPredicate() {
           // If we fail to move an instruction and the element count is provided
           // by a mov, use the mov operand if it will have the same value at the
           // insertion point
-          MachineOperand Operand = ElemDef->getOperand(1);
+          MachineOperand const Operand = ElemDef->getOperand(1);
           if (isMovRegOpcode(ElemDef->getOpcode()) &&
               RDA.getUniqueReachingMIDef(ElemDef, Operand.getReg().asMCReg()) ==
                   RDA.getUniqueReachingMIDef(&*StartInsertPt,
@@ -747,7 +747,7 @@ bool LowOverheadLoop::ValidateTailPredicate() {
           &MBB->back(), VCTP->getOperand(1).getReg().asMCReg())) {
     SmallPtrSet<MachineInstr*, 2> ElementChain;
     SmallPtrSet<MachineInstr*, 2> Ignore;
-    unsigned ExpectedVectorWidth = getTailPredVectorWidth(VCTP->getOpcode());
+    unsigned const ExpectedVectorWidth = getTailPredVectorWidth(VCTP->getOpcode());
 
     Ignore.insert(VCTPs.begin(), VCTPs.end());
 
@@ -803,7 +803,7 @@ static bool isRegInClass(const MachineOperand &MO,
 // half retains its previous value.
 static bool retainsPreviousHalfElement(const MachineInstr &MI) {
   const MCInstrDesc &MCID = MI.getDesc();
-  uint64_t Flags = MCID.TSFlags;
+  uint64_t const Flags = MCID.TSFlags;
   return (Flags & ARMII::RetainsPreviousHalfElement) != 0;
 }
 
@@ -812,13 +812,13 @@ static bool retainsPreviousHalfElement(const MachineInstr &MI) {
 // width of the input.
 static bool producesDoubleWidthResult(const MachineInstr &MI) {
   const MCInstrDesc &MCID = MI.getDesc();
-  uint64_t Flags = MCID.TSFlags;
+  uint64_t const Flags = MCID.TSFlags;
   return (Flags & ARMII::DoubleWidthResult) != 0;
 }
 
 static bool isHorizontalReduction(const MachineInstr &MI) {
   const MCInstrDesc &MCID = MI.getDesc();
-  uint64_t Flags = MCID.TSFlags;
+  uint64_t const Flags = MCID.TSFlags;
   return (Flags & ARMII::HorizontalReduction) != 0;
 }
 
@@ -862,7 +862,7 @@ static bool producesFalseLanesZero(MachineInstr &MI,
   if (canGenerateNonZeros(MI))
     return false;
 
-  bool isPredicated = isVectorPredicated(&MI);
+  bool const isPredicated = isVectorPredicated(&MI);
   // Predicated loads will write zeros to the falsely predicated bytes of the
   // destination register.
   if (MI.mayLoad())
@@ -874,7 +874,7 @@ static bool producesFalseLanesZero(MachineInstr &MI,
            Def->getOperand(1).getImm() == 0;
   };
 
-  bool AllowScalars = isHorizontalReduction(MI);
+  bool const AllowScalars = isHorizontalReduction(MI);
   for (auto &MO : MI.operands()) {
     if (!MO.isReg() || !MO.getReg())
       continue;
@@ -936,8 +936,8 @@ bool LowOverheadLoop::ValidateLiveOuts() {
     if (isVCTP(&MI) || isVPTOpcode(MI.getOpcode()))
       continue;
 
-    bool isPredicated = isVectorPredicated(&MI);
-    bool retainsOrReduces =
+    bool const isPredicated = isVectorPredicated(&MI);
+    bool const retainsOrReduces =
       retainsPreviousHalfElement(MI) || isHorizontalReduction(MI);
 
     if (isPredicated)
@@ -1137,7 +1137,7 @@ static bool ValidateMVEStore(MachineInstr *MI, MachineLoop *ML) {
   // live-out (which sp never is) to know what blocks to look in
   if (MI->memoperands().size() == 0)
     return false;
-  int FI = GetFrameIndex(MI->memoperands().front());
+  int const FI = GetFrameIndex(MI->memoperands().front());
 
   auto &FrameInfo = MI->getParent()->getParent()->getFrameInfo();
   if (FI == -1 || !FrameInfo.isSpillSlotObjectIndex(FI))
@@ -1208,7 +1208,7 @@ bool LowOverheadLoop::ValidateMVEInst(MachineInstr *MI) {
   // alter the predicate upon themselves.
   const MCInstrDesc &MCID = MI->getDesc();
   bool IsUse = false;
-  unsigned LastOpIdx = MI->getNumOperands() - 1;
+  unsigned const LastOpIdx = MI->getNumOperands() - 1;
   for (auto &Op : enumerate(reverse(MCID.operands()))) {
     const MachineOperand &MO = MI->getOperand(LastOpIdx - Op.index());
     if (!MO.isReg() || !MO.isUse() || MO.getReg() != ARM::VPR)
@@ -1226,7 +1226,7 @@ bool LowOverheadLoop::ValidateMVEInst(MachineInstr *MI) {
   // If we find an instruction that has been marked as not valid for tail
   // predication, only allow the instruction if it's contained within a valid
   // VPT block.
-  bool RequiresExplicitPredication =
+  bool const RequiresExplicitPredication =
     (MCID.TSFlags & ARMII::ValidForTailPredication) == 0;
   if (isDomainMVE(MI) && RequiresExplicitPredication) {
     LLVM_DEBUG(if (!IsUse)
@@ -1386,7 +1386,7 @@ bool ARMLowOverheadLoops::ProcessLoop(MachineLoop *ML) {
 void ARMLowOverheadLoops::RevertWhile(MachineInstr *MI) const {
   LLVM_DEBUG(dbgs() << "ARM Loops: Reverting to cmp: " << *MI);
   MachineBasicBlock *DestBB = getWhileLoopStartTargetBB(*MI);
-  unsigned BrOpc = BBUtils->isBBInRange(MI, DestBB, 254) ?
+  unsigned const BrOpc = BBUtils->isBBInRange(MI, DestBB, 254) ?
     ARM::tBcc : ARM::t2Bcc;
 
   RevertWhileLoopStartLR(MI, TII, BrOpc);
@@ -1409,7 +1409,7 @@ bool ARMLowOverheadLoops::RevertLoopDec(MachineInstr *MI) const {
   }
 
   // If nothing defines CPSR between LoopDec and LoopEnd, use a t2SUBS.
-  bool SetFlags =
+  bool const SetFlags =
       RDA->isSafeToDefRegAt(MI, MCRegister::from(ARM::CPSR), Ignore);
 
   llvm::RevertLoopDec(MI, TII, SetFlags);
@@ -1421,7 +1421,7 @@ void ARMLowOverheadLoops::RevertLoopEnd(MachineInstr *MI, bool SkipCmp) const {
   LLVM_DEBUG(dbgs() << "ARM Loops: Reverting to cmp, br: " << *MI);
 
   MachineBasicBlock *DestBB = MI->getOperand(1).getMBB();
-  unsigned BrOpc = BBUtils->isBBInRange(MI, DestBB, 254) ?
+  unsigned const BrOpc = BBUtils->isBBInRange(MI, DestBB, 254) ?
     ARM::tBcc : ARM::t2Bcc;
 
   llvm::RevertLoopEnd(MI, TII, BrOpc, SkipCmp);
@@ -1444,7 +1444,7 @@ void ARMLowOverheadLoops::RevertLoopEndDec(MachineInstr *MI) const {
   MIB->getOperand(5).setIsDef(true);
 
   MachineBasicBlock *DestBB = MI->getOperand(2).getMBB();
-  unsigned BrOpc =
+  unsigned const BrOpc =
       BBUtils->isBBInRange(MI, DestBB, 254) ? ARM::tBcc : ARM::t2Bcc;
 
   // Create bne
@@ -1505,11 +1505,11 @@ MachineInstr* ARMLowOverheadLoops::ExpandLoopStart(LowOverheadLoop &LoLoop) {
   // calculate the number of loop iterations.
   IterationCountDCE(LoLoop);
 
-  MachineBasicBlock::iterator InsertPt = LoLoop.StartInsertPt;
+  MachineBasicBlock::iterator const InsertPt = LoLoop.StartInsertPt;
   MachineInstr *Start = LoLoop.Start;
   MachineBasicBlock *MBB = LoLoop.StartInsertBB;
-  unsigned Opc = LoLoop.getStartOpcode();
-  MachineOperand &Count = LoLoop.getLoopStartOperand();
+  unsigned const Opc = LoLoop.getStartOpcode();
+  MachineOperand  const&Count = LoLoop.getLoopStartOperand();
 
   // A DLS lr, lr we needn't emit
   MachineInstr* NewStart;
@@ -1517,7 +1517,7 @@ MachineInstr* ARMLowOverheadLoops::ExpandLoopStart(LowOverheadLoop &LoLoop) {
     LLVM_DEBUG(dbgs() << "ARM Loops: Didn't insert start: DLS lr, lr");
     NewStart = nullptr;
   } else {
-    MachineInstrBuilder MIB =
+    MachineInstrBuilder const MIB =
       BuildMI(*MBB, InsertPt, Start->getDebugLoc(), TII->get(Opc));
 
     MIB.addDef(ARM::LR);
@@ -1538,7 +1538,7 @@ void ARMLowOverheadLoops::ConvertVPTBlocks(LowOverheadLoop &LoLoop) {
     if (MI->isDebugInstr())
       return;
     LLVM_DEBUG(dbgs() << "ARM Loops: Removing predicate from: " << *MI);
-    int PIdx = llvm::findFirstVPTPredOperandIdx(*MI);
+    int const PIdx = llvm::findFirstVPTPredOperandIdx(*MI);
     assert(PIdx >= 1 && "Trying to unpredicate a non-predicated instruction");
     assert(MI->getOperand(PIdx).getImm() == ARMVCC::Then &&
            "Expected Then predicate!");
@@ -1552,7 +1552,7 @@ void ARMLowOverheadLoops::ConvertVPTBlocks(LowOverheadLoop &LoLoop) {
     auto ReplaceVCMPWithVPT = [&](MachineInstr *&TheVCMP, MachineInstr *At) {
       assert(TheVCMP && "Replacing a removed or non-existent VCMP");
       // Replace the VCMP with a VPT
-      MachineInstrBuilder MIB =
+      MachineInstrBuilder const MIB =
           BuildMI(*At->getParent(), At, At->getDebugLoc(),
                   TII->get(VCMPOpcodeToVPT(TheVCMP->getOpcode())));
       MIB.addImm(ARMVCC::Then);
@@ -1592,7 +1592,7 @@ void ARMLowOverheadLoops::ConvertVPTBlocks(LowOverheadLoop &LoLoop) {
         while (DivergentNext != MBB->end() && DivergentNext->isDebugInstr())
           ++DivergentNext;
 
-        bool DivergentNextIsPredicated =
+        bool const DivergentNextIsPredicated =
             DivergentNext != MBB->end() &&
             getVPTInstrPredicate(*DivergentNext) != ARMVCC::None;
 
@@ -1612,7 +1612,7 @@ void ARMLowOverheadLoops::ConvertVPTBlocks(LowOverheadLoop &LoLoop) {
           if (!VCMP) {
             // Create a VPST (with a null mask for now, we'll recompute it
             // later)
-            MachineInstrBuilder MIB =
+            MachineInstrBuilder const MIB =
                 BuildMI(*Divergent->getParent(), Divergent,
                         Divergent->getDebugLoc(), TII->get(ARM::MVE_VPST));
             MIB.addImm(0);
@@ -1676,12 +1676,12 @@ void ARMLowOverheadLoops::Expand(LowOverheadLoop &LoLoop) {
   auto ExpandLoopEnd = [this](LowOverheadLoop &LoLoop) {
     MachineInstr *End = LoLoop.End;
     MachineBasicBlock *MBB = End->getParent();
-    unsigned Opc = LoLoop.IsTailPredicationLegal() ?
+    unsigned const Opc = LoLoop.IsTailPredicationLegal() ?
       ARM::MVE_LETP : ARM::t2LEUpdate;
-    MachineInstrBuilder MIB = BuildMI(*MBB, End, End->getDebugLoc(),
+    MachineInstrBuilder const MIB = BuildMI(*MBB, End, End->getDebugLoc(),
                                       TII->get(Opc));
     MIB.addDef(ARM::LR);
-    unsigned Off = LoLoop.Dec == LoLoop.End ? 1 : 0;
+    unsigned const Off = LoLoop.Dec == LoLoop.End ? 1 : 0;
     MIB.add(End->getOperand(Off + 0));
     MIB.add(End->getOperand(Off + 1));
     LLVM_DEBUG(dbgs() << "ARM Loops: Inserted LE: " << *MIB);

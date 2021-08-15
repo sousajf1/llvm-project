@@ -66,7 +66,7 @@ DebugHSection llvm::CodeViewYAML::fromDebugH(ArrayRef<uint8_t> DebugH) {
 
 ArrayRef<uint8_t> llvm::CodeViewYAML::toDebugH(const DebugHSection &DebugH,
                                                BumpPtrAllocator &Alloc) {
-  uint32_t Size = 8 + 8 * DebugH.Hashes.size();
+  uint32_t const Size = 8 + 8 * DebugH.Hashes.size();
   uint8_t *Data = Alloc.Allocate<uint8_t>(Size);
   MutableArrayRef<uint8_t> Buffer(Data, Size);
   BinaryStreamWriter Writer(Buffer, llvm::support::little);

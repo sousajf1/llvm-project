@@ -70,9 +70,9 @@ createPtr(MemoryBufferRef Object, bool InitContent) {
 
 Expected<std::unique_ptr<ObjectFile>>
 ObjectFile::createELFObjectFile(MemoryBufferRef Obj, bool InitContent) {
-  std::pair<unsigned char, unsigned char> Ident =
+  std::pair<unsigned char, unsigned char> const Ident =
       getElfArchType(Obj.getBuffer());
-  std::size_t MaxAlignment =
+  std::size_t const MaxAlignment =
       1ULL << countTrailingZeros(
           reinterpret_cast<uintptr_t>(Obj.getBufferStart()));
 
@@ -99,7 +99,7 @@ ObjectFile::createELFObjectFile(MemoryBufferRef Obj, bool InitContent) {
 
 SubtargetFeatures ELFObjectFileBase::getMIPSFeatures() const {
   SubtargetFeatures Features;
-  unsigned PlatformFlags = getPlatformFlags();
+  unsigned const PlatformFlags = getPlatformFlags();
 
   switch (PlatformFlags & ELF::EF_MIPS_ARCH) {
   case ELF::EF_MIPS_ARCH_1:
@@ -289,7 +289,7 @@ SubtargetFeatures ELFObjectFileBase::getARMFeatures() const {
 
 SubtargetFeatures ELFObjectFileBase::getRISCVFeatures() const {
   SubtargetFeatures Features;
-  unsigned PlatformFlags = getPlatformFlags();
+  unsigned const PlatformFlags = getPlatformFlags();
 
   if (PlatformFlags & ELF::EF_RISCV_RVC) {
     Features.AddFeature("c");
@@ -367,7 +367,7 @@ Optional<StringRef> ELFObjectFileBase::tryGetCPUName() const {
 
 StringRef ELFObjectFileBase::getAMDGPUCPUName() const {
   assert(getEMachine() == ELF::EM_AMDGPU);
-  unsigned CPU = getPlatformFlags() & ELF::EF_AMDGPU_MACH;
+  unsigned const CPU = getPlatformFlags() & ELF::EF_AMDGPU_MACH;
 
   switch (CPU) {
   // Radeon HD 2000/3000 Series (R600).
@@ -602,8 +602,8 @@ ELFObjectFileBase::getPltAddresses() const {
     default:
       return {};
   }
-  std::unique_ptr<const MCInstrInfo> MII(T->createMCInstrInfo());
-  std::unique_ptr<const MCInstrAnalysis> MIA(
+  std::unique_ptr<const MCInstrInfo> const MII(T->createMCInstrInfo());
+  std::unique_ptr<const MCInstrAnalysis> const MIA(
       T->createMCInstrAnalysis(MII.get()));
   if (!MIA)
     return {};
@@ -614,7 +614,7 @@ ELFObjectFileBase::getPltAddresses() const {
       consumeError(NameOrErr.takeError());
       continue;
     }
-    StringRef Name = *NameOrErr;
+    StringRef const Name = *NameOrErr;
 
     if (Name == ".plt")
       Plt = Section;
@@ -645,7 +645,7 @@ ELFObjectFileBase::getPltAddresses() const {
       continue;
     auto PltEntryIter = GotToPlt.find(Relocation.getOffset());
     if (PltEntryIter != GotToPlt.end()) {
-      symbol_iterator Sym = Relocation.getSymbol();
+      symbol_iterator const Sym = Relocation.getSymbol();
       if (Sym == symbol_end())
         Result.emplace_back(None, PltEntryIter->second);
       else

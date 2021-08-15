@@ -82,15 +82,15 @@ static bool splitGlobal(GlobalVariable &GV) {
                            Init->getOperand(I), GV.getName() + "." + utostr(I));
     SplitGlobals[I] = SplitGV;
 
-    unsigned SplitBegin = SL->getElementOffset(I);
-    unsigned SplitEnd = (I == Init->getNumOperands() - 1)
+    unsigned const SplitBegin = SL->getElementOffset(I);
+    unsigned const SplitEnd = (I == Init->getNumOperands() - 1)
                             ? SL->getSizeInBytes()
                             : SL->getElementOffset(I + 1);
 
     // Rebuild type metadata, adjusting by the split offset.
     // FIXME: See if we can use DW_OP_piece to preserve debug metadata here.
     for (MDNode *Type : Types) {
-      uint64_t ByteOffset = cast<ConstantInt>(
+      uint64_t const ByteOffset = cast<ConstantInt>(
               cast<ConstantAsMetadata>(Type->getOperand(0))->getValue())
               ->getZExtValue();
       // Type metadata may be attached one byte after the end of the vtable, for
@@ -101,7 +101,7 @@ static bool splitGlobal(GlobalVariable &GV) {
       // global variables that !type metadata can be attached to, and that they
       // are either Itanium ABI vtable groups or contain a single vtable (i.e.
       // Microsoft ABI vtables).
-      uint64_t AttachedTo = (ByteOffset == 0) ? ByteOffset : ByteOffset - 1;
+      uint64_t const AttachedTo = (ByteOffset == 0) ? ByteOffset : ByteOffset - 1;
       if (AttachedTo < SplitBegin || AttachedTo >= SplitEnd)
         continue;
       SplitGV->addMetadata(
@@ -118,7 +118,7 @@ static bool splitGlobal(GlobalVariable &GV) {
 
   for (User *U : GV.users()) {
     auto *GEP = cast<GEPOperator>(U);
-    unsigned I = cast<ConstantInt>(GEP->getOperand(2))->getZExtValue();
+    unsigned const I = cast<ConstantInt>(GEP->getOperand(2))->getZExtValue();
     if (I >= SplitGlobals.size())
       continue;
 

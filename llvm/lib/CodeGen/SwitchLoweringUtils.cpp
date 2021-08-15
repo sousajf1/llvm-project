@@ -38,7 +38,7 @@ SwitchCG::getJumpTableNumCases(const SmallVectorImpl<unsigned> &TotalCases,
                                unsigned First, unsigned Last) {
   assert(Last >= First);
   assert(TotalCases[Last] >= TotalCases[First]);
-  uint64_t NumCases =
+  uint64_t const NumCases =
       TotalCases[Last] - (First == 0 ? 0 : TotalCases[First - 1]);
   return NumCases;
 }
@@ -51,7 +51,7 @@ void SwitchCG::SwitchLowering::findJumpTables(CaseClusterVector &Clusters,
 #ifndef NDEBUG
   // Clusters must be non-empty, sorted, and only contain Range clusters.
   assert(!Clusters.empty());
-  for (CaseCluster &C : Clusters)
+  for (CaseCluster  const&C : Clusters)
     assert(C.Kind == CC_Range);
   for (unsigned i = 1, e = Clusters.size(); i < e; ++i)
     assert(Clusters[i - 1].High->getValue().slt(Clusters[i].Low->getValue()));
@@ -144,9 +144,9 @@ void SwitchCG::SwitchLowering::findJumpTables(CaseClusterVector &Clusters,
       assert(Range >= NumCases);
 
       if (TLI->isSuitableForJumpTable(SI, NumCases, Range, PSI, BFI)) {
-        unsigned NumPartitions = 1 + (j == N - 1 ? 0 : MinPartitions[j + 1]);
+        unsigned const NumPartitions = 1 + (j == N - 1 ? 0 : MinPartitions[j + 1]);
         unsigned Score = j == N - 1 ? 0 : PartitionsScore[j + 1];
-        int64_t NumEntries = j - i + 1;
+        int64_t const NumEntries = j - i + 1;
 
         if (NumEntries == 1)
           Score += PartitionScores::SingleCase;
@@ -173,7 +173,7 @@ void SwitchCG::SwitchLowering::findJumpTables(CaseClusterVector &Clusters,
     Last = LastElement[First];
     assert(Last >= First);
     assert(DstIndex <= First);
-    unsigned NumClusters = Last - First + 1;
+    unsigned const NumClusters = Last - First + 1;
 
     CaseCluster JTCluster;
     if (NumClusters >= MinJumpTableEntries &&
@@ -213,17 +213,17 @@ bool SwitchCG::SwitchLowering::buildJumpTable(const CaseClusterVector &Clusters,
       // Fill the gap between this and the previous cluster.
       const APInt &PreviousHigh = Clusters[I - 1].High->getValue();
       assert(PreviousHigh.slt(Low));
-      uint64_t Gap = (Low - PreviousHigh).getLimitedValue() - 1;
+      uint64_t const Gap = (Low - PreviousHigh).getLimitedValue() - 1;
       for (uint64_t J = 0; J < Gap; J++)
         Table.push_back(DefaultMBB);
     }
-    uint64_t ClusterSize = (High - Low).getLimitedValue() + 1;
+    uint64_t const ClusterSize = (High - Low).getLimitedValue() + 1;
     for (uint64_t J = 0; J < ClusterSize; ++J)
       Table.push_back(Clusters[I].MBB);
     JTProbs[Clusters[I].MBB] += Clusters[I].Prob;
   }
 
-  unsigned NumDests = JTProbs.size();
+  unsigned const NumDests = JTProbs.size();
   if (TLI->isSuitableForBitTests(NumDests, NumCmps,
                                  Clusters[First].Low->getValue(),
                                  Clusters[Last].High->getValue(), *DL)) {
@@ -247,7 +247,7 @@ bool SwitchCG::SwitchLowering::buildJumpTable(const CaseClusterVector &Clusters,
   }
   JumpTableMBB->normalizeSuccProbs();
 
-  unsigned JTI = CurMF->getOrCreateJumpTableInfo(TLI->getJumpTableEncoding())
+  unsigned const JTI = CurMF->getOrCreateJumpTableInfo(TLI->getJumpTableEncoding())
                      ->createJumpTableIndex(Table);
 
   // Set up the jump table info.
@@ -282,11 +282,11 @@ void SwitchCG::SwitchLowering::findBitTestClusters(CaseClusterVector &Clusters,
     return;
 
   // If target does not have legal shift left, do not emit bit tests at all.
-  EVT PTy = TLI->getPointerTy(*DL);
+  EVT const PTy = TLI->getPointerTy(*DL);
   if (!TLI->isOperationLegal(ISD::SHL, PTy))
     return;
 
-  int BitWidth = PTy.getSizeInBits();
+  int const BitWidth = PTy.getSizeInBits();
   const int64_t N = Clusters.size();
 
   // MinPartitions[i] is the minimum nbr of partitions of Clusters[i..N-1].
@@ -332,7 +332,7 @@ void SwitchCG::SwitchLowering::findBitTestClusters(CaseClusterVector &Clusters,
         break;
 
       // Check if it's a better partition.
-      unsigned NumPartitions = 1 + (j == N - 1 ? 0 : MinPartitions[j + 1]);
+      unsigned const NumPartitions = 1 + (j == N - 1 ? 0 : MinPartitions[j + 1]);
       if (NumPartitions < MinPartitions[i]) {
         // Found a better partition.
         MinPartitions[i] = NumPartitions;
@@ -352,7 +352,7 @@ void SwitchCG::SwitchLowering::findBitTestClusters(CaseClusterVector &Clusters,
     if (buildBitTests(Clusters, First, Last, SI, BitTestCluster)) {
       Clusters[DstIndex++] = BitTestCluster;
     } else {
-      size_t NumClusters = Last - First + 1;
+      size_t const NumClusters = Last - First + 1;
       std::memmove(&Clusters[DstIndex], &Clusters[First],
                    sizeof(Clusters[0]) * NumClusters);
       DstIndex += NumClusters;
@@ -376,10 +376,10 @@ bool SwitchCG::SwitchLowering::buildBitTests(CaseClusterVector &Clusters,
     Dests.set(Clusters[I].MBB->getNumber());
     NumCmps += (Clusters[I].Low == Clusters[I].High) ? 1 : 2;
   }
-  unsigned NumDests = Dests.count();
+  unsigned const NumDests = Dests.count();
 
-  APInt Low = Clusters[First].Low->getValue();
-  APInt High = Clusters[Last].High->getValue();
+  APInt const Low = Clusters[First].Low->getValue();
+  APInt const High = Clusters[Last].High->getValue();
   assert(Low.slt(High));
 
   if (!TLI->isSuitableForBitTests(NumDests, NumCmps, Low, High, *DL))
@@ -427,8 +427,8 @@ bool SwitchCG::SwitchLowering::buildBitTests(CaseClusterVector &Clusters,
     CaseBits *CB = &CBV[j];
 
     // Update Mask, Bits and ExtraProb.
-    uint64_t Lo = (Clusters[i].Low->getValue() - LowBound).getZExtValue();
-    uint64_t Hi = (Clusters[i].High->getValue() - LowBound).getZExtValue();
+    uint64_t const Lo = (Clusters[i].Low->getValue() - LowBound).getZExtValue();
+    uint64_t const Hi = (Clusters[i].High->getValue() - LowBound).getZExtValue();
     assert(Hi >= Lo && Hi < 64 && "Invalid bit case!");
     CB->Mask |= (-1ULL >> (63 - (Hi - Lo))) << Lo;
     CB->Bits += Hi - Lo + 1;
@@ -475,7 +475,7 @@ void SwitchCG::sortAndRangeify(CaseClusterVector &Clusters) {
   const unsigned N = Clusters.size();
   unsigned DstIndex = 0;
   for (unsigned SrcIndex = 0; SrcIndex < N; ++SrcIndex) {
-    CaseCluster &CC = Clusters[SrcIndex];
+    CaseCluster  const&CC = Clusters[SrcIndex];
     const ConstantInt *CaseVal = CC.Low;
     MachineBasicBlock *Succ = CC.MBB;
 

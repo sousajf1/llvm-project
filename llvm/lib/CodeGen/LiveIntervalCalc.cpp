@@ -42,7 +42,7 @@ static VNInfo UndefVNI(0xbad, SlotIndex());
 static void createDeadDef(SlotIndexes &Indexes, VNInfo::Allocator &Alloc,
                           LiveRange &LR, const MachineOperand &MO) {
   const MachineInstr &MI = *MO.getParent();
-  SlotIndex DefIdx =
+  SlotIndex const DefIdx =
       Indexes.getInstructionIndex(MI).getRegSlot(MO.isEarlyClobber());
 
   // Create the def in LR. This may find an existing def.
@@ -60,19 +60,19 @@ void LiveIntervalCalc::calculate(LiveInterval &LI, bool TrackSubRegs) {
   // Visit all def operands. If the same instruction has multiple defs of Reg,
   // createDeadDef() will deduplicate.
   const TargetRegisterInfo &TRI = *MRI->getTargetRegisterInfo();
-  unsigned Reg = LI.reg();
+  unsigned const Reg = LI.reg();
   for (const MachineOperand &MO : MRI->reg_nodbg_operands(Reg)) {
     if (!MO.isDef() && !MO.readsReg())
       continue;
 
-    unsigned SubReg = MO.getSubReg();
+    unsigned const SubReg = MO.getSubReg();
     if (LI.hasSubRanges() || (SubReg != 0 && TrackSubRegs)) {
-      LaneBitmask SubMask = SubReg != 0 ? TRI.getSubRegIndexLaneMask(SubReg)
+      LaneBitmask const SubMask = SubReg != 0 ? TRI.getSubRegIndexLaneMask(SubReg)
                                         : MRI->getMaxLaneMaskForVReg(Reg);
       // If this is the first time we see a subregister def, initialize
       // subranges by creating a copy of the main range.
       if (!LI.hasSubRanges() && !LI.empty()) {
-        LaneBitmask ClassMask = MRI->getMaxLaneMaskForVReg(Reg);
+        LaneBitmask const ClassMask = MRI->getMaxLaneMaskForVReg(Reg);
         LI.createSubRangeFrom(*Alloc, ClassMask, LI);
       }
 
@@ -138,7 +138,7 @@ void LiveIntervalCalc::createDeadDefs(LiveRange &LR, Register Reg) {
 
   // Visit all def operands. If the same instruction has multiple defs of Reg,
   // LR.createDeadDef() will deduplicate.
-  for (MachineOperand &MO : MRI->def_operands(Reg))
+  for (MachineOperand  const&MO : MRI->def_operands(Reg))
     createDeadDef(*Indexes, *Alloc, LR, MO);
 }
 
@@ -151,7 +151,7 @@ void LiveIntervalCalc::extendToUses(LiveRange &LR, Register Reg,
     LI->computeSubRangeUndefs(Undefs, Mask, *MRI, *Indexes);
 
   // Visit all operands that read Reg. This may include partial defs.
-  bool IsSubRange = !Mask.all();
+  bool const IsSubRange = !Mask.all();
   const TargetRegisterInfo &TRI = *MRI->getTargetRegisterInfo();
   for (MachineOperand &MO : MRI->reg_nodbg_operands(Reg)) {
     // Clear all kill flags. They will be reinserted after register allocation
@@ -165,7 +165,7 @@ void LiveIntervalCalc::extendToUses(LiveRange &LR, Register Reg,
     if (!MO.readsReg() || (IsSubRange && MO.isDef()))
       continue;
 
-    unsigned SubReg = MO.getSubReg();
+    unsigned const SubReg = MO.getSubReg();
     if (SubReg != 0) {
       LaneBitmask SLM = TRI.getSubRegIndexLaneMask(SubReg);
       if (MO.isDef())
@@ -177,7 +177,7 @@ void LiveIntervalCalc::extendToUses(LiveRange &LR, Register Reg,
 
     // Determine the actual place of the use.
     const MachineInstr *MI = MO.getParent();
-    unsigned OpNo = (&MO - &MI->getOperand(0));
+    unsigned const OpNo = (&MO - &MI->getOperand(0));
     SlotIndex UseIdx;
     if (MI->isPHI()) {
       assert(!MO.isDef() && "Cannot handle PHI def of partial register.");

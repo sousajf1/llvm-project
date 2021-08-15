@@ -484,7 +484,7 @@ optimizeExtInstr(MachineInstr &MI, MachineBasicBlock &MBB,
   // register.
   // If UseSrcSubIdx is Set, SubIdx also applies to SrcReg, and only uses of
   // SrcReg:SubIdx should be replaced.
-  bool UseSrcSubIdx =
+  bool const UseSrcSubIdx =
       TRI->getSubClassWithSubReg(MRI->getRegClass(SrcReg), SubIdx) != nullptr;
 
   // The source has other uses. See if we can replace the other uses with use of
@@ -602,7 +602,7 @@ optimizeExtInstr(MachineInstr &MI, MachineBasicBlock &MBB,
       if (UseSrcSubIdx)
         RC = MRI->getRegClass(UseMI->getOperand(0).getReg());
 
-      Register NewVR = MRI->createVirtualRegister(RC);
+      Register const NewVR = MRI->createVirtualRegister(RC);
       BuildMI(*UseMBB, UseMI, UseMI->getDebugLoc(),
               TII->get(TargetOpcode::COPY), NewVR)
         .addReg(DstReg, 0, SubIdx);
@@ -683,7 +683,7 @@ bool PeepholeOptimizer::findNextSource(RegSubRegPair RegSubReg,
   // So far we do not have any motivating example for doing that.
   // Thus, instead of maintaining untested code, we will revisit that if
   // that changes at some point.
-  Register Reg = RegSubReg.Reg;
+  Register const Reg = RegSubReg.Reg;
   if (Reg.isPhysical())
     return false;
   const TargetRegisterClass *DefRC = MRI->getRegClass(Reg);
@@ -704,13 +704,13 @@ bool PeepholeOptimizer::findNextSource(RegSubRegPair RegSubReg,
     // Follow the chain of copies until we find a more suitable source, a phi
     // or have to abort.
     while (true) {
-      ValueTrackerResult Res = ValTracker.getNextSource();
+      ValueTrackerResult const Res = ValTracker.getNextSource();
       // Abort at the end of a chain (without finding a suitable source).
       if (!Res.isValid())
         return false;
 
       // Insert the Def -> Use entry for the recently found source.
-      ValueTrackerResult CurSrcRes = RewriteMap.lookup(CurSrcPair);
+      ValueTrackerResult const CurSrcRes = RewriteMap.lookup(CurSrcPair);
       if (CurSrcRes.isValid()) {
         assert(CurSrcRes == Res && "ValueTrackerResult found must match");
         // An existent entry with multiple sources is a PHI cycle we must avoid.
@@ -726,7 +726,7 @@ bool PeepholeOptimizer::findNextSource(RegSubRegPair RegSubReg,
 
       // ValueTrackerResult usually have one source unless it's the result from
       // a PHI instruction. Add the found PHI edges to be looked up further.
-      unsigned NumSrcs = Res.getNumSources();
+      unsigned const NumSrcs = Res.getNumSources();
       if (NumSrcs > 1) {
         PHICount++;
         if (PHICount >= RewritePHILimit) {
@@ -782,9 +782,9 @@ insertPHI(MachineRegisterInfo &MRI, const TargetInstrInfo &TII,
   // NewRC is only correct if no subregisters are involved. findNextSource()
   // should have rejected those cases already.
   assert(SrcRegs[0].SubReg == 0 && "should not have subreg operand");
-  Register NewVR = MRI.createVirtualRegister(NewRC);
+  Register const NewVR = MRI.createVirtualRegister(NewRC);
   MachineBasicBlock *MBB = OrigPHI.getParent();
-  MachineInstrBuilder MIB = BuildMI(*MBB, &OrigPHI, OrigPHI.getDebugLoc(),
+  MachineInstrBuilder const MIB = BuildMI(*MBB, &OrigPHI, OrigPHI.getDebugLoc(),
                                     TII.get(TargetOpcode::PHI), NewVR);
 
   unsigned MBBOpIdx = 2;
@@ -1135,13 +1135,13 @@ getNewSource(MachineRegisterInfo *MRI, const TargetInstrInfo *TII,
              bool HandleMultipleSources = true) {
   RegSubRegPair LookupSrc(Def.Reg, Def.SubReg);
   while (true) {
-    ValueTrackerResult Res = RewriteMap.lookup(LookupSrc);
+    ValueTrackerResult const Res = RewriteMap.lookup(LookupSrc);
     // If there are no entries on the map, LookupSrc is the new source.
     if (!Res.isValid())
       return LookupSrc;
 
     // There's only one source for this definition, keep searching...
-    unsigned NumSrcs = Res.getNumSources();
+    unsigned const NumSrcs = Res.getNumSources();
     if (NumSrcs == 1) {
       LookupSrc.Reg = Res.getSrcReg(0);
       LookupSrc.SubReg = Res.getSrcSubReg(0);
@@ -1156,7 +1156,7 @@ getNewSource(MachineRegisterInfo *MRI, const TargetInstrInfo *TII,
     // for it. Then, rewrite the PHI accordingly to its new edges.
     SmallVector<RegSubRegPair, 4> NewPHISrcs;
     for (unsigned i = 0; i < NumSrcs; ++i) {
-      RegSubRegPair PHISrc(Res.getSrcReg(i), Res.getSrcSubReg(i));
+      RegSubRegPair const PHISrc(Res.getSrcReg(i), Res.getSrcSubReg(i));
       NewPHISrcs.push_back(
           getNewSource(MRI, TII, PHISrc, RewriteMap, HandleMultipleSources));
     }
@@ -1213,7 +1213,7 @@ bool PeepholeOptimizer::optimizeCoalescableCopy(MachineInstr &MI) {
 
     // Get the new source to rewrite. TODO: Only enable handling of multiple
     // sources (PHIs) once we have a motivating example and testcases for it.
-    RegSubRegPair NewSrc = getNewSource(MRI, TII, TrackPair, RewriteMap,
+    RegSubRegPair const NewSrc = getNewSource(MRI, TII, TrackPair, RewriteMap,
                                         /*HandleMultipleSources=*/false);
     if (Src.Reg == NewSrc.Reg || NewSrc.Reg == 0)
       continue;
@@ -1246,11 +1246,11 @@ PeepholeOptimizer::rewriteSource(MachineInstr &CopyLike,
          "We do not rewrite physical registers");
 
   // Find the new source to use in the COPY rewrite.
-  RegSubRegPair NewSrc = getNewSource(MRI, TII, Def, RewriteMap);
+  RegSubRegPair const NewSrc = getNewSource(MRI, TII, Def, RewriteMap);
 
   // Insert the COPY.
   const TargetRegisterClass *DefRC = MRI->getRegClass(Def.Reg);
-  Register NewVReg = MRI->createVirtualRegister(DefRC);
+  Register const NewVReg = MRI->createVirtualRegister(DefRC);
 
   MachineInstr *NewCopy =
       BuildMI(*CopyLike.getParent(), &CopyLike, CopyLike.getDebugLoc(),
@@ -1337,7 +1337,7 @@ bool PeepholeOptimizer::isLoadFoldable(
   if (MCID.getNumDefs() != 1)
     return false;
 
-  Register Reg = MI.getOperand(0).getReg();
+  Register const Reg = MI.getOperand(0).getReg();
   // To reduce compilation time, we check MRI->hasOneNonDBGUser when inserting
   // loads. It should be checked when processing uses of the load, since
   // uses can be removed during peephole.
@@ -1357,7 +1357,7 @@ bool PeepholeOptimizer::isMoveImmediate(
     return false;
   if (MCID.getNumDefs() != 1)
     return false;
-  Register Reg = MI.getOperand(0).getReg();
+  Register const Reg = MI.getOperand(0).getReg();
   if (Reg.isVirtual()) {
     ImmDefMIs.insert(std::make_pair(Reg, &MI));
     ImmDefRegs.insert(Reg);
@@ -1374,15 +1374,15 @@ bool PeepholeOptimizer::foldImmediate(
     MachineInstr &MI, SmallSet<Register, 4> &ImmDefRegs,
     DenseMap<Register, MachineInstr *> &ImmDefMIs) {
   for (unsigned i = 0, e = MI.getDesc().getNumOperands(); i != e; ++i) {
-    MachineOperand &MO = MI.getOperand(i);
+    MachineOperand  const&MO = MI.getOperand(i);
     if (!MO.isReg() || MO.isDef())
       continue;
-    Register Reg = MO.getReg();
+    Register const Reg = MO.getReg();
     if (!Reg.isVirtual())
       continue;
     if (ImmDefRegs.count(Reg) == 0)
       continue;
-    DenseMap<Register, MachineInstr *>::iterator II = ImmDefMIs.find(Reg);
+    DenseMap<Register, MachineInstr *>::iterator const II = ImmDefMIs.find(Reg);
     assert(II != ImmDefMIs.end() && "couldn't find immediate definition");
     if (TII->FoldImmediate(MI, *II->second, Reg, MRI)) {
       ++NumImmFold;
@@ -1410,16 +1410,16 @@ bool PeepholeOptimizer::foldRedundantCopy(
     MachineInstr &MI, DenseMap<RegSubRegPair, MachineInstr *> &CopyMIs) {
   assert(MI.isCopy() && "expected a COPY machine instruction");
 
-  Register SrcReg = MI.getOperand(1).getReg();
-  unsigned SrcSubReg = MI.getOperand(1).getSubReg();
+  Register const SrcReg = MI.getOperand(1).getReg();
+  unsigned const SrcSubReg = MI.getOperand(1).getSubReg();
   if (!SrcReg.isVirtual())
     return false;
 
-  Register DstReg = MI.getOperand(0).getReg();
+  Register const DstReg = MI.getOperand(0).getReg();
   if (!DstReg.isVirtual())
     return false;
 
-  RegSubRegPair SrcPair(SrcReg, SrcSubReg);
+  RegSubRegPair const SrcPair(SrcReg, SrcSubReg);
 
   if (CopyMIs.insert(std::make_pair(SrcPair, &MI)).second) {
     // First copy of this reg seen.
@@ -1431,7 +1431,7 @@ bool PeepholeOptimizer::foldRedundantCopy(
   assert(SrcSubReg == PrevCopy->getOperand(1).getSubReg() &&
          "Unexpected mismatching subreg!");
 
-  Register PrevDstReg = PrevCopy->getOperand(0).getReg();
+  Register const PrevDstReg = PrevCopy->getOperand(0).getReg();
 
   // Only replace if the copy register class is the same.
   //
@@ -1458,8 +1458,8 @@ bool PeepholeOptimizer::foldRedundantNAPhysCopy(
   if (DisableNAPhysCopyOpt)
     return false;
 
-  Register DstReg = MI.getOperand(0).getReg();
-  Register SrcReg = MI.getOperand(1).getReg();
+  Register const DstReg = MI.getOperand(0).getReg();
+  Register const SrcReg = MI.getOperand(1).getReg();
   if (isNAPhysCopy(SrcReg) && Register::isVirtualRegister(DstReg)) {
     // %vreg = COPY $physreg
     // Avoid using a datastructure which can track multiple live non-allocatable
@@ -1481,7 +1481,7 @@ bool PeepholeOptimizer::foldRedundantNAPhysCopy(
     return false;
   }
 
-  Register PrevDstReg = PrevCopy->second->getOperand(0).getReg();
+  Register const PrevDstReg = PrevCopy->second->getOperand(0).getReg();
   if (PrevDstReg == SrcReg) {
     // Remove the virt->phys copy: we saw the virtual register definition, and
     // the non-allocatable physical register's state hasn't changed since then.
@@ -1647,7 +1647,7 @@ bool PeepholeOptimizer::runOnMachineFunction(MachineFunction &MF) {
     // from.
     DenseMap<RegSubRegPair, MachineInstr *> CopySrcMIs;
 
-    bool IsLoopHeader = MLI->isLoopHeader(&MBB);
+    bool const IsLoopHeader = MLI->isLoopHeader(&MBB);
 
     for (MachineBasicBlock::iterator MII = MBB.begin(), MIE = MBB.end();
          MII != MIE; ) {
@@ -1675,7 +1675,7 @@ bool PeepholeOptimizer::runOnMachineFunction(MachineFunction &MF) {
         for (const MachineOperand &MO : MI->operands()) {
           // Visit all operands: definitions can be implicit or explicit.
           if (MO.isReg()) {
-            Register Reg = MO.getReg();
+            Register const Reg = MO.getReg();
             if (MO.isDef() && isNAPhysCopy(Reg)) {
               const auto &Def = NAPhysToVirtMIs.find(Reg);
               if (Def != NAPhysToVirtMIs.end()) {
@@ -1689,7 +1689,7 @@ bool PeepholeOptimizer::runOnMachineFunction(MachineFunction &MF) {
           } else if (MO.isRegMask()) {
             const uint32_t *RegMask = MO.getRegMask();
             for (auto &RegMI : NAPhysToVirtMIs) {
-              Register Def = RegMI.first;
+              Register const Def = RegMI.first;
               if (MachineOperand::clobbersPhysReg(RegMask, Def)) {
                 LLVM_DEBUG(dbgs()
                            << "NAPhysCopy: invalidating because of " << *MI);
@@ -1779,7 +1779,7 @@ bool PeepholeOptimizer::runOnMachineFunction(MachineFunction &MF) {
             // optimizeCmpInstr can enable folding by converting SUB to CMP.
             // Save FoldAsLoadDefReg because optimizeLoadInstr() resets it and
             // we need it for markUsesInDebugValueAsUndef().
-            Register FoldedReg = FoldAsLoadDefReg;
+            Register const FoldedReg = FoldAsLoadDefReg;
             MachineInstr *DefMI = nullptr;
             if (MachineInstr *FoldMI =
                     TII->optimizeLoadInstr(*MI, MRI, FoldAsLoadDefReg, DefMI)) {
@@ -2101,7 +2101,7 @@ ValueTrackerResult ValueTracker::getNextSource() {
     // Update definition, definition index, and subregister for the
     // next call of getNextSource.
     // Update the current register.
-    bool OneRegSrc = Res.getNumSources() == 1;
+    bool const OneRegSrc = Res.getNumSources() == 1;
     if (OneRegSrc)
       Reg = Res.getSrcReg(0);
     // Update the result before moving up in the use-def chain
@@ -2111,7 +2111,7 @@ ValueTrackerResult ValueTracker::getNextSource() {
     // If we can still move up in the use-def chain, move to the next
     // definition.
     if (!Register::isPhysicalRegister(Reg) && OneRegSrc) {
-      MachineRegisterInfo::def_iterator DI = MRI.def_begin(Reg);
+      MachineRegisterInfo::def_iterator const DI = MRI.def_begin(Reg);
       if (DI != MRI.def_end()) {
         Def = DI->getParent();
         DefIdx = DI.getOperandNo();

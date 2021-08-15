@@ -57,7 +57,7 @@ public:
 std::unique_ptr<MemoryBuffer> openFile(const Twine &Path) {
   ErrorOr<std::unique_ptr<llvm::MemoryBuffer>> MB = MemoryBuffer::getFile(Path);
 
-  if (std::error_code EC = MB.getError()) {
+  if (std::error_code const EC = MB.getError()) {
     llvm::errs() << "cannot open file " << Path << ": " << EC.message() << "\n";
     return nullptr;
   }
@@ -109,10 +109,10 @@ Optional<std::string> getPrefix(StringRef Argv0) {
 } // namespace
 
 int llvm::dlltoolDriverMain(llvm::ArrayRef<const char *> ArgsArr) {
-  DllOptTable Table;
+  DllOptTable const Table;
   unsigned MissingIndex;
   unsigned MissingCount;
-  llvm::opt::InputArgList Args =
+  llvm::opt::InputArgList const Args =
       Table.ParseArgs(ArgsArr.slice(1), MissingIndex, MissingCount);
   if (MissingCount) {
     llvm::errs() << Args.getArgString(MissingIndex) << ": missing argument\n";
@@ -149,7 +149,7 @@ int llvm::dlltoolDriverMain(llvm::ArrayRef<const char *> ArgsArr) {
 
   COFF::MachineTypes Machine = getDefaultMachine();
   if (Optional<std::string> Prefix = getPrefix(ArgsArr[0])) {
-    Triple T(*Prefix);
+    Triple const T(*Prefix);
     if (T.getArch() != Triple::UnknownArch)
       Machine = getMachine(T);
   }
@@ -179,7 +179,7 @@ int llvm::dlltoolDriverMain(llvm::ArrayRef<const char *> ArgsArr) {
     return 1;
   }
 
-  std::string Path = std::string(Args.getLastArgValue(OPT_l));
+  std::string const Path = std::string(Args.getLastArgValue(OPT_l));
 
   // If ExtName is set (if the "ExtName = Name" syntax was used), overwrite
   // Name with ExtName and clear ExtName. When only creating an import

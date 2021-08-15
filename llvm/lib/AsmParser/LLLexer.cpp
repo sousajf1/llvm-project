@@ -45,7 +45,7 @@ void LLLexer::Warning(LocTy WarningLoc, const Twine &Msg) const {
 uint64_t LLLexer::atoull(const char *Buffer, const char *End) {
   uint64_t Result = 0;
   for (; Buffer != End; Buffer++) {
-    uint64_t OldRes = Result;
+    uint64_t const OldRes = Result;
     Result *= 10;
     Result += *Buffer-'0';
     if (Result < OldRes) {  // Uh, oh, overflow detected!!!
@@ -59,7 +59,7 @@ uint64_t LLLexer::atoull(const char *Buffer, const char *End) {
 uint64_t LLLexer::HexIntToVal(const char *Buffer, const char *End) {
   uint64_t Result = 0;
   for (; Buffer != End; ++Buffer) {
-    uint64_t OldRes = Result;
+    uint64_t const OldRes = Result;
     Result *= 16;
     Result += hexDigitValue(*Buffer);
 
@@ -164,7 +164,7 @@ LLLexer::LLLexer(StringRef StartBuf, SourceMgr &SM, SMDiagnostic &Err,
 }
 
 int LLLexer::getNextChar() {
-  char CurChar = *CurPtr++;
+  char const CurChar = *CurPtr++;
   switch (CurChar) {
   default: return (unsigned char)CurChar;
   case 0:
@@ -183,7 +183,7 @@ lltok::Kind LLLexer::LexToken() {
   while (true) {
     TokStart = CurPtr;
 
-    int CurChar = getNextChar();
+    int const CurChar = getNextChar();
     switch (CurChar) {
     default:
       // Handle letters: [a-zA-Z_]
@@ -271,7 +271,7 @@ lltok::Kind LLLexer::LexDollar() {
     ++CurPtr;
 
     while (true) {
-      int CurChar = getNextChar();
+      int const CurChar = getNextChar();
 
       if (CurChar == EOF) {
         Error("end of file in COMDAT variable name");
@@ -300,7 +300,7 @@ lltok::Kind LLLexer::LexDollar() {
 lltok::Kind LLLexer::ReadString(lltok::Kind kind) {
   const char *Start = CurPtr;
   while (true) {
-    int CurChar = getNextChar();
+    int const CurChar = getNextChar();
 
     if (CurChar == EOF) {
       Error("end of file in string constant");
@@ -341,7 +341,7 @@ lltok::Kind LLLexer::LexUIntID(lltok::Kind Token) {
   for (++CurPtr; isdigit(static_cast<unsigned char>(CurPtr[0])); ++CurPtr)
     /*empty*/;
 
-  uint64_t Val = atoull(TokStart + 1, CurPtr);
+  uint64_t const Val = atoull(TokStart + 1, CurPtr);
   if ((unsigned)Val != Val)
     Error("invalid value number (too large)!");
   UIntVal = unsigned(Val);
@@ -354,7 +354,7 @@ lltok::Kind LLLexer::LexVar(lltok::Kind Var, lltok::Kind VarID) {
     ++CurPtr;
 
     while (true) {
-      int CurChar = getNextChar();
+      int const CurChar = getNextChar();
 
       if (CurChar == EOF) {
         Error("end of file in global variable name");
@@ -475,7 +475,7 @@ lltok::Kind LLLexer::LexIdentifier() {
   if (!IntEnd) IntEnd = CurPtr;
   if (IntEnd != StartChar) {
     CurPtr = IntEnd;
-    uint64_t NumBits = atoull(StartChar, CurPtr);
+    uint64_t const NumBits = atoull(StartChar, CurPtr);
     if (NumBits < IntegerType::MIN_INT_BITS ||
         NumBits > IntegerType::MAX_INT_BITS) {
       Error("bitwidth for integer type out of range!");
@@ -489,7 +489,7 @@ lltok::Kind LLLexer::LexIdentifier() {
   if (!KeywordEnd) KeywordEnd = CurPtr;
   CurPtr = KeywordEnd;
   --StartChar;
-  StringRef Keyword(StartChar, CurPtr - StartChar);
+  StringRef const Keyword(StartChar, CurPtr - StartChar);
 
 #define KEYWORD(STR)                                                           \
   do {                                                                         \
@@ -971,8 +971,8 @@ lltok::Kind LLLexer::LexIdentifier() {
   if ((TokStart[0] == 'u' || TokStart[0] == 's') &&
       TokStart[1] == '0' && TokStart[2] == 'x' &&
       isxdigit(static_cast<unsigned char>(TokStart[3]))) {
-    int len = CurPtr-TokStart-3;
-    uint32_t bits = len * 4;
+    int const len = CurPtr-TokStart-3;
+    uint32_t const bits = len * 4;
     StringRef HexStr(TokStart + 3, len);
     if (!all_of(HexStr, isxdigit)) {
       // Bad token, return it as an error.
@@ -980,7 +980,7 @@ lltok::Kind LLLexer::LexIdentifier() {
       return lltok::Error;
     }
     APInt Tmp(bits, HexStr, 16);
-    uint32_t activeBits = Tmp.getActiveBits();
+    uint32_t const activeBits = Tmp.getActiveBits();
     if (activeBits > 0 && activeBits < bits)
       Tmp = Tmp.trunc(activeBits);
     APSIntVal = APSInt(Tmp, TokStart[0] == 'u');
@@ -1096,7 +1096,7 @@ lltok::Kind LLLexer::LexDigitOrNegative() {
 
   // Check if this is a fully-numeric label:
   if (isdigit(TokStart[0]) && CurPtr[0] == ':') {
-    uint64_t Val = atoull(TokStart, CurPtr);
+    uint64_t const Val = atoull(TokStart, CurPtr);
     ++CurPtr; // Skip the colon.
     if ((unsigned)Val != Val)
       Error("invalid value number (too large)!");

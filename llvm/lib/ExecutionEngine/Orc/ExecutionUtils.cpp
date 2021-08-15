@@ -196,7 +196,7 @@ Error LocalCXXRuntimeOverrides::enable(JITDylib &JD,
 
 void ItaniumCXAAtExitSupport::registerAtExit(void (*F)(void *), void *Ctx,
                                              void *DSOHandle) {
-  std::lock_guard<std::mutex> Lock(AtExitsMutex);
+  std::lock_guard<std::mutex> const Lock(AtExitsMutex);
   AtExitRecords[DSOHandle].push_back({F, Ctx});
 }
 
@@ -204,7 +204,7 @@ void ItaniumCXAAtExitSupport::runAtExits(void *DSOHandle) {
   std::vector<AtExitRecord> AtExitsToRun;
 
   {
-    std::lock_guard<std::mutex> Lock(AtExitsMutex);
+    std::lock_guard<std::mutex> const Lock(AtExitsMutex);
     auto I = AtExitRecords.find(DSOHandle);
     if (I != AtExitRecords.end()) {
       AtExitsToRun = std::move(I->second);
@@ -239,7 +239,7 @@ Error DynamicLibrarySearchGenerator::tryToGenerate(
     JITDylibLookupFlags JDLookupFlags, const SymbolLookupSet &Symbols) {
   orc::SymbolMap NewSymbols;
 
-  bool HasGlobalPrefix = (GlobalPrefix != '\0');
+  bool const HasGlobalPrefix = (GlobalPrefix != '\0');
 
   for (auto &KV : Symbols) {
     auto &Name = KV.first;
@@ -253,7 +253,7 @@ Error DynamicLibrarySearchGenerator::tryToGenerate(
     if (HasGlobalPrefix && (*Name).front() != GlobalPrefix)
       continue;
 
-    std::string Tmp((*Name).data() + HasGlobalPrefix,
+    std::string const Tmp((*Name).data() + HasGlobalPrefix,
                     (*Name).size() - HasGlobalPrefix);
     if (void *Addr = Dylib.getAddressOfSymbol(Tmp.c_str())) {
       NewSymbols[Name] = JITEvaluatedSymbol(
@@ -368,7 +368,7 @@ Error StaticLibraryDefinitionGenerator::tryToGenerate(
   }
 
   for (auto ChildBufferInfo : ChildBufferInfos) {
-    MemoryBufferRef ChildBufferRef(ChildBufferInfo.first,
+    MemoryBufferRef const ChildBufferRef(ChildBufferInfo.first,
                                    ChildBufferInfo.second);
 
     if (auto Err = L.add(JD, MemoryBuffer::getMemBuffer(ChildBufferRef, false)))

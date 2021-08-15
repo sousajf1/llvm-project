@@ -42,7 +42,7 @@ int sys::ExecuteAndWait(StringRef Program, ArrayRef<StringRef> Args,
               AffinityMask)) {
     if (ExecutionFailed)
       *ExecutionFailed = false;
-    ProcessInfo Result =
+    ProcessInfo const Result =
         Wait(PI, SecondsToWait, /*WaitUntilTerminates=*/SecondsToWait == 0,
              ErrMsg, ProcStat);
     return Result.ReturnCode;

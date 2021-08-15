@@ -285,7 +285,7 @@ static void getVDefInterval(const MachineInstr &MI, LiveIntervals &LIS) {
 /// It is assumed that SnipLI is a virtual register with the same original as
 /// Edit->getReg().
 bool InlineSpiller::isSnippet(const LiveInterval &SnipLI) {
-  Register Reg = Edit->getReg();
+  Register const Reg = Edit->getReg();
 
   // A snippet is a tiny live range with only a single instruction using it
   // besides copies to/from Reg or spills/fills. We accept:
@@ -330,7 +330,7 @@ bool InlineSpiller::isSnippet(const LiveInterval &SnipLI) {
 /// collectRegsToSpill - Collect live range snippets that only have a single
 /// real use.
 void InlineSpiller::collectRegsToSpill() {
-  Register Reg = Edit->getReg();
+  Register const Reg = Edit->getReg();
 
   // Main register always spills.
   RegsToSpill.assign(1, Reg);
@@ -344,10 +344,10 @@ void InlineSpiller::collectRegsToSpill() {
   for (MachineRegisterInfo::reg_instr_iterator
        RI = MRI.reg_instr_begin(Reg), E = MRI.reg_instr_end(); RI != E; ) {
     MachineInstr &MI = *RI++;
-    Register SnipReg = isFullCopyOf(MI, Reg);
+    Register const SnipReg = isFullCopyOf(MI, Reg);
     if (!isSibling(SnipReg))
       continue;
-    LiveInterval &SnipLI = LIS.getInterval(SnipReg);
+    LiveInterval  const&SnipLI = LIS.getInterval(SnipReg);
     if (!isSnippet(SnipLI))
       continue;
     SnippetCopies.insert(&MI);
@@ -384,16 +384,16 @@ bool InlineSpiller::isSibling(Register Reg) {
 ///
 bool InlineSpiller::hoistSpillInsideBB(LiveInterval &SpillLI,
                                        MachineInstr &CopyMI) {
-  SlotIndex Idx = LIS.getInstructionIndex(CopyMI);
+  SlotIndex const Idx = LIS.getInstructionIndex(CopyMI);
 #ifndef NDEBUG
   VNInfo *VNI = SpillLI.getVNInfoAt(Idx.getRegSlot());
   assert(VNI && VNI->def == Idx.getRegSlot() && "Not defined by copy");
 #endif
 
-  Register SrcReg = CopyMI.getOperand(1).getReg();
+  Register const SrcReg = CopyMI.getOperand(1).getReg();
   LiveInterval &SrcLI = LIS.getInterval(SrcReg);
   VNInfo *SrcVNI = SrcLI.getVNInfoAt(Idx);
-  LiveQueryResult SrcQ = SrcLI.Query(Idx);
+  LiveQueryResult const SrcQ = SrcLI.Query(Idx);
   MachineBasicBlock *DefMBB = LIS.getMBBFromIndex(SrcVNI->def);
   if (DefMBB != CopyMI.getParent() || !SrcQ.isKill())
     return false;
@@ -402,7 +402,7 @@ bool InlineSpiller::hoistSpillInsideBB(LiveInterval &SpillLI,
   // value. We may be able to do better with stack slot coloring by being more
   // careful here.
   assert(StackInt && "No stack slot assigned yet.");
-  LiveInterval &OrigLI = LIS.getInterval(Original);
+  LiveInterval  const&OrigLI = LIS.getInterval(Original);
   VNInfo *OrigVNI = OrigLI.getVNInfoAt(Idx);
   StackInt->MergeValueInAsValue(OrigLI, OrigVNI, StackInt->getValNumInfo(0));
   LLVM_DEBUG(dbgs() << "\tmerged orig valno " << OrigVNI->id << ": "
@@ -452,7 +452,7 @@ void InlineSpiller::eliminateRedundantSpills(LiveInterval &SLI, VNInfo *VNI) {
   do {
     LiveInterval *LI;
     std::tie(LI, VNI) = WorkList.pop_back_val();
-    Register Reg = LI->reg();
+    Register const Reg = LI->reg();
     LLVM_DEBUG(dbgs() << "Checking redundant spills for " << VNI->id << '@'
                       << VNI->def << " in " << *LI << '\n');
 
@@ -471,12 +471,12 @@ void InlineSpiller::eliminateRedundantSpills(LiveInterval &SLI, VNInfo *VNI) {
       MachineInstr &MI = *UI++;
       if (!MI.isCopy() && !MI.mayStore())
         continue;
-      SlotIndex Idx = LIS.getInstructionIndex(MI);
+      SlotIndex const Idx = LIS.getInstructionIndex(MI);
       if (LI->getVNInfoAt(Idx) != VNI)
         continue;
 
       // Follow sibling copies down the dominator tree.
-      if (Register DstReg = isFullCopyOf(MI, Reg)) {
+      if (Register const DstReg = isFullCopyOf(MI, Reg)) {
         if (isSibling(DstReg)) {
            LiveInterval &DstLI = LIS.getInterval(DstReg);
            VNInfo *DstVNI = DstLI.getVNInfoAt(Idx.getRegSlot());
@@ -565,7 +565,7 @@ bool InlineSpiller::canGuaranteeAssignmentAfterRemat(Register VReg,
   for (unsigned Idx = StatepointOpers(&MI).getVarIdx(),
                 EndIdx = MI.getNumOperands();
        Idx < EndIdx; ++Idx) {
-    MachineOperand &MO = MI.getOperand(Idx);
+    MachineOperand  const&MO = MI.getOperand(Idx);
     if (MO.isReg() && MO.getReg() == VReg)
       return false;
   }
@@ -576,12 +576,12 @@ bool InlineSpiller::canGuaranteeAssignmentAfterRemat(Register VReg,
 bool InlineSpiller::reMaterializeFor(LiveInterval &VirtReg, MachineInstr &MI) {
   // Analyze instruction
   SmallVector<std::pair<MachineInstr *, unsigned>, 8> Ops;
-  VirtRegInfo RI = AnalyzeVirtRegInBundle(MI, VirtReg.reg(), &Ops);
+  VirtRegInfo const RI = AnalyzeVirtRegInBundle(MI, VirtReg.reg(), &Ops);
 
   if (!RI.Reads)
     return false;
 
-  SlotIndex UseIdx = LIS.getInstructionIndex(MI).getRegSlot(true);
+  SlotIndex const UseIdx = LIS.getInstructionIndex(MI).getRegSlot(true);
   VNInfo *ParentVNI = VirtReg.getVNInfoAt(UseIdx.getBaseIndex());
 
   if (!ParentVNI) {
@@ -598,7 +598,7 @@ bool InlineSpiller::reMaterializeFor(LiveInterval &VirtReg, MachineInstr &MI) {
   if (SnippetCopies.count(&MI))
     return false;
 
-  LiveInterval &OrigLI = LIS.getInterval(Original);
+  LiveInterval  const&OrigLI = LIS.getInterval(Original);
   VNInfo *OrigVNI = OrigLI.getVNInfoAt(UseIdx);
   LiveRangeEdit::Remat RM(ParentVNI);
   RM.OrigMI = LIS.getInstructionFromIndex(OrigVNI->def);
@@ -635,10 +635,10 @@ bool InlineSpiller::reMaterializeFor(LiveInterval &VirtReg, MachineInstr &MI) {
   }
 
   // Allocate a new register for the remat.
-  Register NewVReg = Edit->createFrom(Original);
+  Register const NewVReg = Edit->createFrom(Original);
 
   // Finally we can rematerialize OrigMI before MI.
-  SlotIndex DefIdx =
+  SlotIndex const DefIdx =
       Edit->rematerializeAt(*MI.getParent(), MI, NewVReg, RM, TRI);
 
   // We take the DebugLoc from MI, since OrigMI may be attributed to a
@@ -674,7 +674,7 @@ void InlineSpiller::reMaterializeAll() {
 
   // Try to remat before all uses of snippets.
   bool anyRemat = false;
-  for (Register Reg : RegsToSpill) {
+  for (Register const Reg : RegsToSpill) {
     LiveInterval &LI = LIS.getInterval(Reg);
     for (MachineRegisterInfo::reg_bundle_iterator
            RegI = MRI.reg_bundle_begin(Reg), E = MRI.reg_bundle_end();
@@ -695,7 +695,7 @@ void InlineSpiller::reMaterializeAll() {
     return;
 
   // Remove any values that were completely rematted.
-  for (Register Reg : RegsToSpill) {
+  for (Register const Reg : RegsToSpill) {
     LiveInterval &LI = LIS.getInterval(Reg);
     for (LiveInterval::vni_iterator I = LI.vni_begin(), E = LI.vni_end();
          I != E; ++I) {
@@ -725,7 +725,7 @@ void InlineSpiller::reMaterializeAll() {
   // So to get rid of unused reg, we need to check whether it has non-dbg
   // reference instead of whether it has non-empty interval.
   unsigned ResultPos = 0;
-  for (Register Reg : RegsToSpill) {
+  for (Register const Reg : RegsToSpill) {
     if (MRI.reg_nodbg_empty(Reg)) {
       Edit->eraseVirtReg(Reg);
       continue;
@@ -750,7 +750,7 @@ void InlineSpiller::reMaterializeAll() {
 bool InlineSpiller::coalesceStackAccess(MachineInstr *MI, Register Reg) {
   int FI = 0;
   Register InstrReg = TII.isLoadFromStackSlot(*MI, FI);
-  bool IsLoad = InstrReg;
+  bool const IsLoad = InstrReg;
   if (!IsLoad)
     InstrReg = TII.isStoreToStackSlot(*MI, FI);
 
@@ -827,7 +827,7 @@ foldMemoryOperand(ArrayRef<std::pair<MachineInstr *, unsigned>> Ops,
   if (Ops.back().first != MI || MI->isBundled())
     return false;
 
-  bool WasCopy = MI->isCopy();
+  bool const WasCopy = MI->isCopy();
   Register ImpReg;
 
   // TII::foldMemoryOperand will do what we need here for statepoint
@@ -836,11 +836,11 @@ foldMemoryOperand(ArrayRef<std::pair<MachineInstr *, unsigned>> Ops,
   // For that to work we need to untie def and use to pass it through
   // foldMemoryOperand and signal foldPatchpoint that it is allowed to
   // fold them.
-  bool UntieRegs = MI->getOpcode() == TargetOpcode::STATEPOINT;
+  bool const UntieRegs = MI->getOpcode() == TargetOpcode::STATEPOINT;
 
   // Spill subregs if the target allows it.
   // We always want to spill subregs for stackmap/patchpoint pseudos.
-  bool SpillSubRegs = TII.isSubregFoldable() ||
+  bool const SpillSubRegs = TII.isSubregFoldable() ||
                       MI->getOpcode() == TargetOpcode::STATEPOINT ||
                       MI->getOpcode() == TargetOpcode::PATCHPOINT ||
                       MI->getOpcode() == TargetOpcode::STACKMAP;
@@ -849,9 +849,9 @@ foldMemoryOperand(ArrayRef<std::pair<MachineInstr *, unsigned>> Ops,
   // operands.
   SmallVector<unsigned, 8> FoldOps;
   for (const auto &OpPair : Ops) {
-    unsigned Idx = OpPair.second;
+    unsigned const Idx = OpPair.second;
     assert(MI == OpPair.first && "Instruction conflict during operand folding");
-    MachineOperand &MO = MI->getOperand(Idx);
+    MachineOperand  const&MO = MI->getOperand(Idx);
     if (MO.isImplicit()) {
       ImpReg = MO.getReg();
       continue;
@@ -876,11 +876,11 @@ foldMemoryOperand(ArrayRef<std::pair<MachineInstr *, unsigned>> Ops,
 
   SmallVector<std::pair<unsigned, unsigned> > TiedOps;
   if (UntieRegs)
-    for (unsigned Idx : FoldOps) {
-      MachineOperand &MO = MI->getOperand(Idx);
+    for (unsigned const Idx : FoldOps) {
+      MachineOperand  const&MO = MI->getOperand(Idx);
       if (!MO.isTied())
         continue;
-      unsigned Tied = MI->findTiedOperandIdx(Idx);
+      unsigned const Tied = MI->findTiedOperandIdx(Idx);
       if (MO.isUse())
         TiedOps.emplace_back(Tied, Idx);
       else {
@@ -904,19 +904,19 @@ foldMemoryOperand(ArrayRef<std::pair<MachineInstr *, unsigned>> Ops,
   for (MIBundleOperands MO(*MI); MO.isValid(); ++MO) {
     if (!MO->isReg())
       continue;
-    Register Reg = MO->getReg();
+    Register const Reg = MO->getReg();
     if (!Reg || Register::isVirtualRegister(Reg) || MRI.isReserved(Reg)) {
       continue;
     }
     // Skip non-Defs, including undef uses and internal reads.
     if (MO->isUse())
       continue;
-    PhysRegInfo RI = AnalyzePhysRegInBundle(*FoldMI, Reg, &TRI);
+    PhysRegInfo const RI = AnalyzePhysRegInBundle(*FoldMI, Reg, &TRI);
     if (RI.FullyDefined)
       continue;
     // FoldMI does not define this physreg. Remove the LI segment.
     assert(MO->isDead() && "Cannot fold physreg def");
-    SlotIndex Idx = LIS.getInstructionIndex(*MI).getRegSlot();
+    SlotIndex const Idx = LIS.getInstructionIndex(*MI).getRegSlot();
     LIS.removePhysRegDefAt(Reg.asMCReg(), Idx);
   }
 
@@ -940,7 +940,7 @@ foldMemoryOperand(ArrayRef<std::pair<MachineInstr *, unsigned>> Ops,
   // instruction.  Strip them.
   if (ImpReg)
     for (unsigned i = FoldMI->getNumOperands(); i; --i) {
-      MachineOperand &MO = FoldMI->getOperand(i - 1);
+      MachineOperand  const&MO = FoldMI->getOperand(i - 1);
       if (!MO.isReg() || !MO.isImplicit())
         break;
       if (MO.getReg() == ImpReg)
@@ -1003,8 +1003,8 @@ void InlineSpiller::insertSpill(Register NewVReg, bool isKill,
   MachineBasicBlock &MBB = *MI->getParent();
 
   MachineInstrSpan MIS(MI, &MBB);
-  MachineBasicBlock::iterator SpillBefore = std::next(MI);
-  bool IsRealSpill = isRealSpill(*MI);
+  MachineBasicBlock::iterator const SpillBefore = std::next(MI);
+  bool const IsRealSpill = isRealSpill(*MI);
 
   if (IsRealSpill)
     TII.storeRegToStackSlot(MBB, SpillBefore, NewVReg, isKill, StackSlot,
@@ -1017,7 +1017,7 @@ void InlineSpiller::insertSpill(Register NewVReg, bool isKill,
     BuildMI(MBB, SpillBefore, MI->getDebugLoc(), TII.get(TargetOpcode::KILL))
         .addReg(NewVReg, getKillRegState(isKill));
 
-  MachineBasicBlock::iterator Spill = std::next(MI);
+  MachineBasicBlock::iterator const Spill = std::next(MI);
   LIS.InsertMachineInstrRangeInMaps(Spill, MIS.end());
   for (const MachineInstr &MI : make_range(Spill, MIS.end()))
     getVDefInterval(MI, LIS);
@@ -1066,7 +1066,7 @@ void InlineSpiller::spillAroundUses(Register Reg) {
 
     // Analyze instruction.
     SmallVector<std::pair<MachineInstr*, unsigned>, 8> Ops;
-    VirtRegInfo RI = AnalyzeVirtRegInBundle(*MI, Reg, &Ops);
+    VirtRegInfo const RI = AnalyzeVirtRegInBundle(*MI, Reg, &Ops);
 
     // Find the slot index where this instruction reads and writes OldLI.
     // This is usually the def slot, except for tied early clobbers.
@@ -1076,7 +1076,7 @@ void InlineSpiller::spillAroundUses(Register Reg) {
         Idx = VNI->def;
 
     // Check for a sibling copy.
-    Register SibReg = isFullCopyOf(*MI, Reg);
+    Register const SibReg = isFullCopyOf(*MI, Reg);
     if (SibReg && isSibling(SibReg)) {
       // This may actually be a copy between snippets.
       if (isRegToSpill(SibReg)) {
@@ -1105,7 +1105,7 @@ void InlineSpiller::spillAroundUses(Register Reg) {
 
     // Create a new virtual register for spill/fill.
     // FIXME: Infer regclass from instruction alone.
-    Register NewVReg = Edit->createFrom(Reg);
+    Register const NewVReg = Edit->createFrom(Reg);
 
     if (RI.Reads)
       insertReload(NewVReg, Idx, MI);
@@ -1146,13 +1146,13 @@ void InlineSpiller::spillAll() {
     VRM.assignVirt2StackSlot(Edit->getReg(), StackSlot);
 
   assert(StackInt->getNumValNums() == 1 && "Bad stack interval values");
-  for (Register Reg : RegsToSpill)
+  for (Register const Reg : RegsToSpill)
     StackInt->MergeSegmentsInAsValue(LIS.getInterval(Reg),
                                      StackInt->getValNumInfo(0));
   LLVM_DEBUG(dbgs() << "Merged spilled regs: " << *StackInt << '\n');
 
   // Spill around uses of all RegsToSpill.
-  for (Register Reg : RegsToSpill)
+  for (Register const Reg : RegsToSpill)
     spillAroundUses(Reg);
 
   // Hoisted spills may cause dead code.
@@ -1162,7 +1162,7 @@ void InlineSpiller::spillAll() {
   }
 
   // Finally delete the SnippetCopies.
-  for (Register Reg : RegsToSpill) {
+  for (Register const Reg : RegsToSpill) {
     for (MachineRegisterInfo::reg_instr_iterator
          RI = MRI.reg_instr_begin(Reg), E = MRI.reg_instr_end();
          RI != E; ) {
@@ -1175,7 +1175,7 @@ void InlineSpiller::spillAll() {
   }
 
   // Delete all spilled registers.
-  for (Register Reg : RegsToSpill)
+  for (Register const Reg : RegsToSpill)
     Edit->eraseVirtReg(Reg);
 }
 
@@ -1214,7 +1214,7 @@ void InlineSpiller::postOptimization() { HSpiller.hoistAllSpills(); }
 void HoistSpillHelper::addToMergeableSpills(MachineInstr &Spill, int StackSlot,
                                             unsigned Original) {
   BumpPtrAllocator &Allocator = LIS.getVNInfoAllocator();
-  LiveInterval &OrigLI = LIS.getInterval(Original);
+  LiveInterval  const&OrigLI = LIS.getInterval(Original);
   // save a copy of LiveInterval in StackSlotToOrigLI because the original
   // LiveInterval may be cleared after all its references are spilled.
   if (StackSlotToOrigLI.find(StackSlot) == StackSlotToOrigLI.end()) {
@@ -1222,9 +1222,9 @@ void HoistSpillHelper::addToMergeableSpills(MachineInstr &Spill, int StackSlot,
     LI->assign(OrigLI, Allocator);
     StackSlotToOrigLI[StackSlot] = std::move(LI);
   }
-  SlotIndex Idx = LIS.getInstructionIndex(Spill);
+  SlotIndex const Idx = LIS.getInstructionIndex(Spill);
   VNInfo *OrigVNI = StackSlotToOrigLI[StackSlot]->getVNInfoAt(Idx.getRegSlot());
-  std::pair<int, VNInfo *> MIdx = std::make_pair(StackSlot, OrigVNI);
+  std::pair<int, VNInfo *> const MIdx = std::make_pair(StackSlot, OrigVNI);
   MergeableSpills[MIdx].insert(&Spill);
 }
 
@@ -1235,9 +1235,9 @@ bool HoistSpillHelper::rmFromMergeableSpills(MachineInstr &Spill,
   auto It = StackSlotToOrigLI.find(StackSlot);
   if (It == StackSlotToOrigLI.end())
     return false;
-  SlotIndex Idx = LIS.getInstructionIndex(Spill);
+  SlotIndex const Idx = LIS.getInstructionIndex(Spill);
   VNInfo *OrigVNI = It->second->getVNInfoAt(Idx.getRegSlot());
-  std::pair<int, VNInfo *> MIdx = std::make_pair(StackSlot, OrigVNI);
+  std::pair<int, VNInfo *> const MIdx = std::make_pair(StackSlot, OrigVNI);
   return MergeableSpills[MIdx].erase(&Spill);
 }
 
@@ -1245,7 +1245,7 @@ bool HoistSpillHelper::rmFromMergeableSpills(MachineInstr &Spill,
 /// i.e., there should be a living sibling of OrigReg at the insert point.
 bool HoistSpillHelper::isSpillCandBB(LiveInterval &OrigLI, VNInfo &OrigVNI,
                                      MachineBasicBlock &BB, Register &LiveReg) {
-  SlotIndex Idx = IPA.getLastInsertPoint(OrigLI, BB);
+  SlotIndex const Idx = IPA.getLastInsertPoint(OrigLI, BB);
   // The original def could be after the last insert point in the root block,
   // we can't hoist to here.
   if (Idx < OrigVNI.def) {
@@ -1254,12 +1254,12 @@ bool HoistSpillHelper::isSpillCandBB(LiveInterval &OrigLI, VNInfo &OrigVNI,
     LLVM_DEBUG(dbgs() << "can't spill in root block - def after LIP\n");
     return false;
   }
-  Register OrigReg = OrigLI.reg();
-  SmallSetVector<Register, 16> &Siblings = Virt2SiblingsMap[OrigReg];
+  Register const OrigReg = OrigLI.reg();
+  SmallSetVector<Register, 16>  const&Siblings = Virt2SiblingsMap[OrigReg];
   assert(OrigLI.getVNInfoAt(Idx) == &OrigVNI && "Unexpected VNI");
 
   for (const Register &SibReg : Siblings) {
-    LiveInterval &LI = LIS.getInterval(SibReg);
+    LiveInterval  const&LI = LIS.getInterval(SibReg);
     VNInfo *VNI = LI.getVNInfoAt(Idx);
     if (VNI) {
       LiveReg = SibReg;
@@ -1283,8 +1283,8 @@ void HoistSpillHelper::rmRedundantSpills(
     MachineDomTreeNode *Node = MDT.getBase().getNode(Block);
     MachineInstr *PrevSpill = SpillBBToSpill[Node];
     if (PrevSpill) {
-      SlotIndex PIdx = LIS.getInstructionIndex(*PrevSpill);
-      SlotIndex CIdx = LIS.getInstructionIndex(*CurrentSpill);
+      SlotIndex const PIdx = LIS.getInstructionIndex(*PrevSpill);
+      SlotIndex const CIdx = LIS.getInstructionIndex(*CurrentSpill);
       MachineInstr *SpillToRm = (CIdx > PIdx) ? CurrentSpill : PrevSpill;
       MachineInstr *SpillToKeep = (CIdx > PIdx) ? PrevSpill : CurrentSpill;
       SpillsToRm.push_back(SpillToRm);
@@ -1467,7 +1467,7 @@ void HoistSpillHelper::runHoistSpills(
 
     // If there are multiple spills that could be merged, bias a little
     // to hoist the spill.
-    BranchProbability MarginProb = (SpillsInSubTree.size() > 1)
+    BranchProbability const MarginProb = (SpillsInSubTree.size() > 1)
                                        ? BranchProbability(9, 10)
                                        : BranchProbability(1, 1);
     if (SubTreeCost > MBFI.getBlockFreq(Block) * MarginProb) {
@@ -1527,15 +1527,15 @@ void HoistSpillHelper::hoistAllSpills() {
   LiveRangeEdit Edit(nullptr, NewVRegs, MF, LIS, &VRM, this);
 
   for (unsigned i = 0, e = MRI.getNumVirtRegs(); i != e; ++i) {
-    Register Reg = Register::index2VirtReg(i);
-    Register Original = VRM.getPreSplitReg(Reg);
+    Register const Reg = Register::index2VirtReg(i);
+    Register const Original = VRM.getPreSplitReg(Reg);
     if (!MRI.def_empty(Reg))
       Virt2SiblingsMap[Original].insert(Reg);
   }
 
   // Each entry in MergeableSpills contains a spill set with equal values.
   for (auto &Ent : MergeableSpills) {
-    int Slot = Ent.first.first;
+    int const Slot = Ent.first.first;
     LiveInterval &OrigLI = *StackSlotToOrigLI[Slot];
     VNInfo *OrigVNI = Ent.first.second;
     SmallPtrSet<MachineInstr *, 16> &EqValSpills = Ent.second;
@@ -1576,8 +1576,8 @@ void HoistSpillHelper::hoistAllSpills() {
     // Insert hoisted spills.
     for (auto const &Insert : SpillsToIns) {
       MachineBasicBlock *BB = Insert.first;
-      Register LiveReg = Insert.second;
-      MachineBasicBlock::iterator MII = IPA.getLastInsertPointIter(OrigLI, *BB);
+      Register const LiveReg = Insert.second;
+      MachineBasicBlock::iterator const MII = IPA.getLastInsertPointIter(OrigLI, *BB);
       MachineInstrSpan MIS(MII, BB);
       TII.storeRegToStackSlot(*BB, MII, LiveReg, false, Slot,
                               MRI.getRegClass(LiveReg), &TRI);
@@ -1592,7 +1592,7 @@ void HoistSpillHelper::hoistAllSpills() {
     for (auto const RMEnt : SpillsToRm) {
       RMEnt->setDesc(TII.get(TargetOpcode::KILL));
       for (unsigned i = RMEnt->getNumOperands(); i; --i) {
-        MachineOperand &MO = RMEnt->getOperand(i - 1);
+        MachineOperand  const&MO = RMEnt->getOperand(i - 1);
         if (MO.isReg() && MO.isImplicit() && MO.isDef() && !MO.isDead())
           RMEnt->RemoveOperand(i - 1);
       }

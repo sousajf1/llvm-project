@@ -30,7 +30,7 @@ bool TargetOptions::DisableFramePointerElim(const MachineFunction &MF) const {
 
   if (!F.hasFnAttribute("frame-pointer"))
     return false;
-  StringRef FP = F.getFnAttribute("frame-pointer").getValueAsString();
+  StringRef const FP = F.getFnAttribute("frame-pointer").getValueAsString();
   if (FP == "all")
     return true;
   if (FP == "non-leaf")

@@ -276,7 +276,7 @@ void ConvergingVLIWScheduler::initialize(ScheduleDAGMI *dag) {
     DAG->getRegPressure().MaxSetPressure;
   HighPressureSets.assign(MaxPressure.size(), 0);
   for (unsigned i = 0, e = MaxPressure.size(); i < e; ++i) {
-    unsigned Limit = DAG->getRegClassInfo()->getRegPressureSetLimit(i);
+    unsigned const Limit = DAG->getRegClassInfo()->getRegPressureSetLimit(i);
     HighPressureSets[i] =
       ((float) MaxPressure[i] > ((float) Limit * RPThreshold));
   }
@@ -290,8 +290,8 @@ void ConvergingVLIWScheduler::releaseTopNode(SUnit *SU) {
     return;
 
   for (const SDep &PI : SU->Preds) {
-    unsigned PredReadyCycle = PI.getSUnit()->TopReadyCycle;
-    unsigned MinLatency = PI.getLatency();
+    unsigned const PredReadyCycle = PI.getSUnit()->TopReadyCycle;
+    unsigned const MinLatency = PI.getLatency();
 #ifndef NDEBUG
     Top.MaxMinLatency = std::max(MinLatency, Top.MaxMinLatency);
 #endif
@@ -309,8 +309,8 @@ void ConvergingVLIWScheduler::releaseBottomNode(SUnit *SU) {
 
   for (SUnit::succ_iterator I = SU->Succs.begin(), E = SU->Succs.end();
        I != E; ++I) {
-    unsigned SuccReadyCycle = I->getSUnit()->BotReadyCycle;
-    unsigned MinLatency = I->getLatency();
+    unsigned const SuccReadyCycle = I->getSUnit()->BotReadyCycle;
+    unsigned const MinLatency = I->getLatency();
 #ifndef NDEBUG
     Bot.MaxMinLatency = std::max(MinLatency, Bot.MaxMinLatency);
 #endif
@@ -337,7 +337,7 @@ bool ConvergingVLIWScheduler::VLIWSchedBoundary::checkHazard(SUnit *SU) {
   if (HazardRec->isEnabled())
     return HazardRec->getHazardType(SU) != ScheduleHazardRecognizer::NoHazard;
 
-  unsigned uops = SchedModel->getNumMicroOps(SU->getInstr());
+  unsigned const uops = SchedModel->getNumMicroOps(SU->getInstr());
   if (IssueCount + uops > SchedModel->getIssueWidth())
     return true;
 
@@ -360,12 +360,12 @@ void ConvergingVLIWScheduler::VLIWSchedBoundary::releaseNode(SUnit *SU,
 
 /// Move the boundary of scheduled code by one cycle.
 void ConvergingVLIWScheduler::VLIWSchedBoundary::bumpCycle() {
-  unsigned Width = SchedModel->getIssueWidth();
+  unsigned const Width = SchedModel->getIssueWidth();
   IssueCount = (IssueCount <= Width) ? 0 : IssueCount - Width;
 
   assert(MinReadyCycle < std::numeric_limits<unsigned>::max() &&
          "MinReadyCycle uninitialized");
-  unsigned NextCycle = std::max(CurrCycle + 1, MinReadyCycle);
+  unsigned const NextCycle = std::max(CurrCycle + 1, MinReadyCycle);
 
   if (!HazardRec->isEnabled()) {
     // Bypass HazardRec virtual calls.
@@ -425,7 +425,7 @@ void ConvergingVLIWScheduler::VLIWSchedBoundary::releasePending() {
   // so, add them to the available queue.
   for (unsigned i = 0, e = Pending.size(); i != e; ++i) {
     SUnit *SU = *(Pending.begin()+i);
-    unsigned ReadyCycle = isTop() ? SU->TopReadyCycle : SU->BotReadyCycle;
+    unsigned const ReadyCycle = isTop() ? SU->TopReadyCycle : SU->BotReadyCycle;
 
     if (ReadyCycle < MinReadyCycle)
       MinReadyCycle = ReadyCycle;
@@ -551,7 +551,7 @@ static inline bool isSingleUnscheduledSucc(SUnit *SU, SUnit *SU2) {
 /// doesn't use a high pressure register or doesn't change the register
 /// pressure, then return 0.
 int ConvergingVLIWScheduler::pressureChange(const SUnit *SU, bool isBotUp) {
-  PressureDiff &PD = DAG->getPressureDiff(SU);
+  PressureDiff  const&PD = DAG->getPressureDiff(SU);
   for (auto &P : PD) {
     if (!P.isValid())
       continue;
@@ -780,7 +780,7 @@ pickNodeFromQueue(VLIWSchedBoundary &Zone, const RegPressureTracker &RPTracker,
                                     DAG->getRegionCriticalPSets(),
                                     DAG->getRegPressure().MaxSetPressure);
 
-    int CurrentCost = SchedulingCost(Q, *I, Candidate, RPDelta, false);
+    int const CurrentCost = SchedulingCost(Q, *I, Candidate, RPDelta, false);
 
     // Initialize the candidate if needed.
     if (!Candidate.SU) {
@@ -817,8 +817,8 @@ pickNodeFromQueue(VLIWSchedBoundary &Zone, const RegPressureTracker &RPTracker,
     }
 
     // Choose an instruction that does not depend on an artificial edge.
-    unsigned CurrWeak = getWeakLeft(*I, (Q.getID() == TopQID));
-    unsigned CandWeak = getWeakLeft(Candidate.SU, (Q.getID() == TopQID));
+    unsigned const CurrWeak = getWeakLeft(*I, (Q.getID() == TopQID));
+    unsigned const CandWeak = getWeakLeft(Candidate.SU, (Q.getID() == TopQID));
     if (CurrWeak != CandWeak) {
       if (CurrWeak < CandWeak) {
         LLVM_DEBUG(traceCandidate("WCAND", Q, *I, CurrentCost));
@@ -891,7 +891,7 @@ SUnit *ConvergingVLIWScheduler::pickNodeBidrectional(bool &IsTopNode) {
   }
   SchedCandidate BotCand;
   // Prefer bottom scheduling when heuristics are silent.
-  CandResult BotResult = pickNodeFromQueue(Bot,
+  CandResult const BotResult = pickNodeFromQueue(Bot,
                                            DAG->getBotRPTracker(), BotCand);
   assert(BotResult != NoCand && "failed to find the first candidate");
 
@@ -909,7 +909,7 @@ SUnit *ConvergingVLIWScheduler::pickNodeBidrectional(bool &IsTopNode) {
   }
   // Check if the top Q has a better candidate.
   SchedCandidate TopCand;
-  CandResult TopResult = pickNodeFromQueue(Top,
+  CandResult const TopResult = pickNodeFromQueue(Top,
                                            DAG->getTopRPTracker(), TopCand);
   assert(TopResult != NoCand && "failed to find the first candidate");
 
@@ -953,7 +953,7 @@ SUnit *ConvergingVLIWScheduler::pickNode(bool &IsTopNode) {
     SU = Top.pickOnlyChoice();
     if (!SU) {
       SchedCandidate TopCand;
-      CandResult TopResult =
+      CandResult const TopResult =
         pickNodeFromQueue(Top, DAG->getTopRPTracker(), TopCand);
       assert(TopResult != NoCand && "failed to find the first candidate");
       (void)TopResult;
@@ -964,7 +964,7 @@ SUnit *ConvergingVLIWScheduler::pickNode(bool &IsTopNode) {
     SU = Bot.pickOnlyChoice();
     if (!SU) {
       SchedCandidate BotCand;
-      CandResult BotResult =
+      CandResult const BotResult =
         pickNodeFromQueue(Bot, DAG->getBotRPTracker(), BotCand);
       assert(BotResult != NoCand && "failed to find the first candidate");
       (void)BotResult;

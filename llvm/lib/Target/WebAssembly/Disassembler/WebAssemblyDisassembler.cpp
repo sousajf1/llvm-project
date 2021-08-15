@@ -161,7 +161,7 @@ MCDisassembler::DecodeStatus WebAssemblyDisassembler::getInstruction(
     raw_ostream &CS) const {
   CommentStream = &CS;
   Size = 0;
-  int Opc = nextByte(Bytes, Size);
+  int const Opc = nextByte(Bytes, Size);
   if (Opc < 0)
     return MCDisassembler::Fail;
   const auto *WasmInst = &InstructionTable0[Opc];
@@ -219,7 +219,7 @@ MCDisassembler::DecodeStatus WebAssemblyDisassembler::getInstruction(
     // block_type operands:
     case WebAssembly::OPERAND_SIGNATURE: {
       int64_t Val;
-      uint64_t PrevSize = Size;
+      uint64_t const PrevSize = Size;
       if (!nextLEB(Val, Bytes, Size, true))
         return MCDisassembler::Fail;
       if (Val < 0) {
@@ -244,7 +244,7 @@ MCDisassembler::DecodeStatus WebAssemblyDisassembler::getInstruction(
     // heap_type operands, for e.g. ref.null:
     case WebAssembly::OPERAND_HEAPTYPE: {
       int64_t Val;
-      uint64_t PrevSize = Size;
+      uint64_t const PrevSize = Size;
       if (!nextLEB(Val, Bytes, Size, true))
         return MCDisassembler::Fail;
       if (Val < 0 && Size == PrevSize + 1) {

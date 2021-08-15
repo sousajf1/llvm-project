@@ -69,7 +69,7 @@ bool X86AsmPrinter::runOnMachineFunction(MachineFunction &MF) {
   SetupMachineFunction(MF);
 
   if (Subtarget->isTargetCOFF()) {
-    bool Local = MF.getFunction().hasLocalLinkage();
+    bool const Local = MF.getFunction().hasLocalLinkage();
     OutStreamer->BeginCOFFSymbolDef(CurrentFnSym);
     OutStreamer->EmitCOFFSymbolStorageClass(
         Local ? COFF::IMAGE_SYM_CLASS_STATIC : COFF::IMAGE_SYM_CLASS_EXTERNAL);
@@ -254,7 +254,7 @@ void X86AsmPrinter::PrintModifiedOperand(const MachineInstr *MI, unsigned OpNo,
     O << '%';
   Register Reg = MO.getReg();
   if (strncmp(Modifier, "subreg", strlen("subreg")) == 0) {
-    unsigned Size = (strcmp(Modifier+6,"64") == 0) ? 64 :
+    unsigned const Size = (strcmp(Modifier+6,"64") == 0) ? 64 :
         (strcmp(Modifier+6,"32") == 0) ? 32 :
         (strcmp(Modifier+6,"16") == 0) ? 16 : 8;
     Reg = getX86SubSuperRegister(Reg, Size);
@@ -296,13 +296,13 @@ void X86AsmPrinter::PrintLeaMemReference(const MachineInstr *MI, unsigned OpNo,
     HasBaseReg = false;
 
   // HasParenPart - True if we will print out the () part of the mem ref.
-  bool HasParenPart = IndexReg.getReg() || HasBaseReg;
+  bool const HasParenPart = IndexReg.getReg() || HasBaseReg;
 
   switch (DispSpec.getType()) {
   default:
     llvm_unreachable("unknown operand type!");
   case MachineOperand::MO_Immediate: {
-    int DispVal = DispSpec.getImm();
+    int const DispVal = DispSpec.getImm();
     if (DispVal || !HasParenPart)
       O << DispVal;
     break;
@@ -327,7 +327,7 @@ void X86AsmPrinter::PrintLeaMemReference(const MachineInstr *MI, unsigned OpNo,
     if (IndexReg.getReg()) {
       O << ',';
       PrintModifiedOperand(MI, OpNo + X86::AddrIndexReg, O, Modifier);
-      unsigned ScaleVal = MI->getOperand(OpNo + X86::AddrScaleAmt).getImm();
+      unsigned const ScaleVal = MI->getOperand(OpNo + X86::AddrScaleAmt).getImm();
       if (ScaleVal != 1)
         O << ',' << ScaleVal;
     }
@@ -351,7 +351,7 @@ void X86AsmPrinter::PrintIntelMemReference(const MachineInstr *MI,
                                            unsigned OpNo, raw_ostream &O,
                                            const char *Modifier) {
   const MachineOperand &BaseReg = MI->getOperand(OpNo + X86::AddrBaseReg);
-  unsigned ScaleVal = MI->getOperand(OpNo + X86::AddrScaleAmt).getImm();
+  unsigned const ScaleVal = MI->getOperand(OpNo + X86::AddrScaleAmt).getImm();
   const MachineOperand &IndexReg = MI->getOperand(OpNo + X86::AddrIndexReg);
   const MachineOperand &DispSpec = MI->getOperand(OpNo + X86::AddrDisp);
   const MachineOperand &SegReg = MI->getOperand(OpNo + X86::AddrSegmentReg);
@@ -449,7 +449,7 @@ static bool printAsmMRegister(const X86AsmPrinter &P, const MachineOperand &MO,
 static bool printAsmVRegister(const MachineOperand &MO, char Mode,
                               raw_ostream &O) {
   Register Reg = MO.getReg();
-  bool EmitPercent = MO.getParent()->getInlineAsmDialect() == InlineAsm::AD_ATT;
+  bool const EmitPercent = MO.getParent()->getInlineAsmDialect() == InlineAsm::AD_ATT;
 
   unsigned Index;
   if (X86::VR128XRegClass.contains(Reg))
@@ -699,7 +699,7 @@ void X86AsmPrinter::emitStartOfAsmFile(Module &M) {
 
   // If this is not inline asm and we're in 16-bit
   // mode prefix assembly with .code16.
-  bool is16 = TT.getEnvironment() == Triple::CODE16;
+  bool const is16 = TT.getEnvironment() == Triple::CODE16;
   if (M.getModuleInlineAsm().empty() && is16)
     OutStreamer->emitAssemblerFlag(MCAF_Code16);
 }
@@ -783,7 +783,7 @@ void X86AsmPrinter::emitEndOfAsmFile(Module &M) {
       // floating point operations in the program (including calls). A program
       // that only has: `scanf("%f", &global_float);` may fail to trigger this,
       // but oh well...that's a documented issue.
-      StringRef SymbolName =
+      StringRef const SymbolName =
           (TT.getArch() == Triple::x86) ? "__fltused" : "_fltused";
       MCSymbol *S = MMI->getContext().getOrCreateSymbol(SymbolName);
       OutStreamer->emitSymbolAttribute(S, MCSA_Global);
@@ -802,6 +802,6 @@ void X86AsmPrinter::emitEndOfAsmFile(Module &M) {
 
 // Force static initialization.
 extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializeX86AsmPrinter() {
-  RegisterAsmPrinter<X86AsmPrinter> X(getTheX86_32Target());
-  RegisterAsmPrinter<X86AsmPrinter> Y(getTheX86_64Target());
+  RegisterAsmPrinter<X86AsmPrinter> const X(getTheX86_32Target());
+  RegisterAsmPrinter<X86AsmPrinter> const Y(getTheX86_64Target());
 }

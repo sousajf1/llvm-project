@@ -109,7 +109,7 @@ bool Filler::runOnMachineBasicBlock(MachineBasicBlock &MBB) {
   const TargetInstrInfo *TII = Subtarget->getInstrInfo();
 
   for (MachineBasicBlock::iterator I = MBB.begin(); I != MBB.end(); ) {
-    MachineBasicBlock::iterator MI = I;
+    MachineBasicBlock::iterator const MI = I;
     ++I;
 
     // If MI is restore, try combining it with previous inst.
@@ -253,7 +253,7 @@ bool Filler::delayHasHazard(MachineBasicBlock::iterator candidate,
     if (!MO.isReg())
       continue; // skip
 
-    Register Reg = MO.getReg();
+    Register const Reg = MO.getReg();
 
     if (MO.isDef()) {
       // check whether Reg is defined or used before delay slot.
@@ -267,7 +267,7 @@ bool Filler::delayHasHazard(MachineBasicBlock::iterator candidate,
     }
   }
 
-  unsigned Opcode = candidate->getOpcode();
+  unsigned const Opcode = candidate->getOpcode();
   // LD and LDD may have NOPs inserted afterwards in the case of some LEON
   // processors, so we can't use the delay slot if this feature is switched-on.
   if (Subtarget->insertNOPLoad()
@@ -324,7 +324,7 @@ void Filler::insertDefsUses(MachineBasicBlock::iterator MI,
     if (!MO.isReg())
       continue;
 
-    Register Reg = MO.getReg();
+    Register const Reg = MO.getReg();
     if (Reg == 0)
       continue;
     if (MO.isDef())
@@ -380,7 +380,7 @@ static bool combineRestoreADD(MachineBasicBlock::iterator RestoreMI,
   //
   // After :  restore <op0>, <op1>, %o[0-7]
 
-  Register reg = AddMI->getOperand(0).getReg();
+  Register const reg = AddMI->getOperand(0).getReg();
   if (reg < SP::I0 || reg > SP::I7)
     return false;
 
@@ -408,7 +408,7 @@ static bool combineRestoreOR(MachineBasicBlock::iterator RestoreMI,
   //
   // After :  restore <op0>, <op1>, %o[0-7]
 
-  Register reg = OrMI->getOperand(0).getReg();
+  Register const reg = OrMI->getOperand(0).getReg();
   if (reg < SP::I0 || reg > SP::I7)
     return false;
 
@@ -446,7 +446,7 @@ static bool combineRestoreSETHIi(MachineBasicBlock::iterator RestoreMI,
   //
   // After :  restore %g0, (imm3<<10), %o[0-7]
 
-  Register reg = SetHiMI->getOperand(0).getReg();
+  Register const reg = SetHiMI->getOperand(0).getReg();
   if (reg < SP::I0 || reg > SP::I7)
     return false;
 
@@ -490,7 +490,7 @@ bool Filler::tryCombineRestoreWithPrevInst(MachineBasicBlock &MBB,
          && MBBI->getOperand(1).getReg() == SP::G0
          && MBBI->getOperand(2).getReg() == SP::G0);
 
-  MachineBasicBlock::iterator PrevInst = std::prev(MBBI);
+  MachineBasicBlock::iterator const PrevInst = std::prev(MBBI);
 
   // It cannot be combined with a bundled instruction.
   if (PrevInst->isBundledWithSucc())

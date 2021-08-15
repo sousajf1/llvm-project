@@ -86,7 +86,7 @@ bool TargetRegisterInfo::checkAllSuperRegsMarked(const BitVector &RegisterSet,
     ArrayRef<MCPhysReg> Exceptions) const {
   // Check that all super registers of reserved regs are reserved as well.
   BitVector Checked(getNumRegs());
-  for (unsigned Reg : RegisterSet.set_bits()) {
+  for (unsigned const Reg : RegisterSet.set_bits()) {
     if (Checked[Reg])
       continue;
     for (MCSuperRegIterator SR(Reg, this); SR.isValid(); ++SR) {
@@ -115,7 +115,7 @@ Printable printReg(Register Reg, const TargetRegisterInfo *TRI,
     else if (Register::isStackSlot(Reg))
       OS << "SS#" << Register::stackSlot2Index(Reg);
     else if (Register::isVirtualRegister(Reg)) {
-      StringRef Name = MRI ? MRI->getVRegName(Reg) : "";
+      StringRef const Name = MRI ? MRI->getVRegName(Reg) : "";
       if (Name != "") {
         OS << '%' << Name;
       } else {
@@ -247,7 +247,7 @@ TargetRegisterInfo::getMinimalPhysRegClassLLT(MCRegister reg, LLT Ty) const {
 static void getAllocatableSetForRC(const MachineFunction &MF,
                                    const TargetRegisterClass *RC, BitVector &R){
   assert(RC->isAllocatable() && "invalid for nonallocatable sets");
-  ArrayRef<MCPhysReg> Order = RC->getRawAllocationOrder(MF);
+  ArrayRef<MCPhysReg> const Order = RC->getRawAllocationOrder(MF);
   for (unsigned i = 0; i != Order.size(); ++i)
     R.set(Order[i]);
 }
@@ -279,7 +279,7 @@ const TargetRegisterClass *firstCommonClass(const uint32_t *A,
                                             const uint32_t *B,
                                             const TargetRegisterInfo *TRI) {
   for (unsigned I = 0, E = TRI->getNumRegClasses(); I < E; I += 32)
-    if (unsigned Common = *A++ & *B++)
+    if (unsigned const Common = *A++ & *B++)
       return TRI->getRegClass(I + countTrailingZeros(Common));
   return nullptr;
 }
@@ -343,10 +343,10 @@ getCommonSuperRegClass(const TargetRegisterClass *RCA, unsigned SubA,
 
   // Also terminate the search one we have found a register class as small as
   // RCA.
-  unsigned MinSize = getRegSizeInBits(*RCA);
+  unsigned const MinSize = getRegSizeInBits(*RCA);
 
   for (SuperRegClassIterator IA(RCA, this, true); IA.isValid(); ++IA) {
-    unsigned FinalA = composeSubRegIndices(IA.getSubReg(), SubA);
+    unsigned const FinalA = composeSubRegIndices(IA.getSubReg(), SubA);
     for (SuperRegClassIterator IB(RCB, this, true); IB.isValid(); ++IB) {
       // Check if a common super-register class exists for this index pair.
       const TargetRegisterClass *RC =
@@ -355,7 +355,7 @@ getCommonSuperRegClass(const TargetRegisterClass *RCA, unsigned SubA,
         continue;
 
       // The indexes must compose identically: PreA+SubA == PreB+SubB.
-      unsigned FinalB = composeSubRegIndices(IB.getSubReg(), SubB);
+      unsigned const FinalB = composeSubRegIndices(IB.getSubReg(), SubB);
       if (FinalA != FinalB)
         continue;
 
@@ -490,7 +490,7 @@ bool TargetRegisterInfo::shouldRealignStack(const MachineFunction &MF) const {
 
 bool TargetRegisterInfo::regmaskSubsetEqual(const uint32_t *mask0,
                                             const uint32_t *mask1) const {
-  unsigned N = (getNumRegs()+31) / 32;
+  unsigned const N = (getNumRegs()+31) / 32;
   for (unsigned I = 0; I < N; ++I)
     if ((mask0[I] & mask1[I]) != mask0[I])
       return false;
@@ -507,8 +507,8 @@ TargetRegisterInfo::getRegSizeInBits(Register Reg,
     // get the size of that register class.
     RC = getMinimalPhysRegClass(Reg);
   } else {
-    LLT Ty = MRI.getType(Reg);
-    unsigned RegSize = Ty.isValid() ? Ty.getSizeInBits() : 0;
+    LLT const Ty = MRI.getType(Reg);
+    unsigned const RegSize = Ty.isValid() ? Ty.getSizeInBits() : 0;
     // If Reg is not a generic register, query the register class to
     // get its size.
     if (RegSize)
@@ -531,7 +531,7 @@ bool TargetRegisterInfo::getCoveringSubRegIndexes(
     // Is this index even compatible with the given class?
     if (getSubClassWithSubReg(RC, Idx) != RC)
       continue;
-    LaneBitmask SubRegMask = getSubRegIndexLaneMask(Idx);
+    LaneBitmask const SubRegMask = getSubRegIndexLaneMask(Idx);
     // Early exit if we found a perfect match.
     if (SubRegMask == LaneMask) {
       BestIdx = Idx;
@@ -542,7 +542,7 @@ bool TargetRegisterInfo::getCoveringSubRegIndexes(
     if ((SubRegMask & ~LaneMask).any())
       continue;
 
-    unsigned PopCount = SubRegMask.getNumLanes();
+    unsigned const PopCount = SubRegMask.getNumLanes();
     PossibleIndexes.push_back(Idx);
     if (PopCount > BestCover) {
       BestCover = PopCount;
@@ -562,8 +562,8 @@ bool TargetRegisterInfo::getCoveringSubRegIndexes(
   while (LanesLeft.any()) {
     unsigned BestIdx = 0;
     int BestCover = std::numeric_limits<int>::min();
-    for (unsigned Idx : PossibleIndexes) {
-      LaneBitmask SubRegMask = getSubRegIndexLaneMask(Idx);
+    for (unsigned const Idx : PossibleIndexes) {
+      LaneBitmask const SubRegMask = getSubRegIndexLaneMask(Idx);
       // Early exit if we found a perfect match.
       if (SubRegMask == LanesLeft) {
         BestIdx = Idx;
@@ -572,7 +572,7 @@ bool TargetRegisterInfo::getCoveringSubRegIndexes(
 
       // Try to cover as much of the remaining lanes as possible but
       // as few of the already covered lanes as possible.
-      int Cover = (SubRegMask & LanesLeft).getNumLanes() -
+      int const Cover = (SubRegMask & LanesLeft).getNumLanes() -
                   (SubRegMask & ~LanesLeft).getNumLanes();
       if (Cover > BestCover) {
         BestCover = Cover;

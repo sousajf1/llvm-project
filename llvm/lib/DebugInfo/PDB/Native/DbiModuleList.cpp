@@ -84,7 +84,7 @@ operator-(const DbiModuleSourceFilesIterator &R) const {
   // are to compute the distance.
   uint32_t Thisi = Filei;
   if (isEnd()) {
-    uint32_t RealModi = R.Modi;
+    uint32_t const RealModi = R.Modi;
     Thisi = R.Modules->getSourceFileCount(RealModi);
   }
 
@@ -120,7 +120,7 @@ void DbiModuleSourceFilesIterator::setValue() {
     return;
   }
 
-  uint32_t Off = Modules->ModuleInitialFileIndex[Modi] + Filei;
+  uint32_t const Off = Modules->ModuleInitialFileIndex[Modi] + Filei;
   auto ExpectedValue = Modules->getFileName(Off);
   if (!ExpectedValue) {
     consumeError(ExpectedValue.takeError());
@@ -252,7 +252,7 @@ uint16_t DbiModuleList::getSourceFileCount(uint32_t Modi) const {
 
 DbiModuleDescriptor DbiModuleList::getModuleDescriptor(uint32_t Modi) const {
   assert(Modi < getModuleCount());
-  uint32_t Offset = ModuleDescriptorOffsets[Modi];
+  uint32_t const Offset = ModuleDescriptorOffsets[Modi];
   auto Iter = Descriptors.at(Offset);
   assert(Iter != Descriptors.end());
   return *Iter;
@@ -270,7 +270,7 @@ Expected<StringRef> DbiModuleList::getFileName(uint32_t Index) const {
   if (Index >= getSourceFileCount())
     return make_error<RawError>(raw_error_code::index_out_of_bounds);
 
-  uint32_t FileOffset = FileNameOffsets[Index];
+  uint32_t const FileOffset = FileNameOffsets[Index];
   Names.setOffset(FileOffset);
   StringRef Name;
   if (auto EC = Names.readCString(Name))

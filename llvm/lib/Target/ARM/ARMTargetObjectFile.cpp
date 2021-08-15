@@ -30,8 +30,8 @@ using namespace dwarf;
 void ARMElfTargetObjectFile::Initialize(MCContext &Ctx,
                                         const TargetMachine &TM) {
   const ARMBaseTargetMachine &ARM_TM = static_cast<const ARMBaseTargetMachine &>(TM);
-  bool isAAPCS_ABI = ARM_TM.TargetABI == ARMBaseTargetMachine::ARMABI::ARM_ABI_AAPCS;
-  bool genExecuteOnly =
+  bool const isAAPCS_ABI = ARM_TM.TargetABI == ARMBaseTargetMachine::ARMABI::ARM_ABI_AAPCS;
+  bool const genExecuteOnly =
       ARM_TM.getMCSubtargetInfo()->hasFeature(ARM::FeatureExecuteOnly);
 
   TargetLoweringObjectFileELF::Initialize(Ctx, TM);
@@ -43,8 +43,8 @@ void ARMElfTargetObjectFile::Initialize(MCContext &Ctx,
 
   // Make code section unreadable when in execute-only mode
   if (genExecuteOnly) {
-    unsigned Type = ELF::SHT_PROGBITS;
-    unsigned Flags =
+    unsigned const Type = ELF::SHT_PROGBITS;
+    unsigned const Flags =
         ELF::SHF_EXECINSTR | ELF::SHF_ALLOC | ELF::SHF_ARM_PURECODE;
     // Since we cannot modify flags for an existing section, we create a new
     // section with the right flags, and use 0 as the unique ID for

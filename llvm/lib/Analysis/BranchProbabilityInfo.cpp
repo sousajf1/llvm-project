@@ -353,7 +353,7 @@ bool BranchProbabilityInfo::calcMetadataWeights(const BasicBlock *BB) {
 
   // If the sum of weights does not fit in 32 bits, scale every weight down
   // accordingly.
-  uint64_t ScalingFactor =
+  uint64_t const ScalingFactor =
       (WeightSum > UINT32_MAX) ? WeightSum / UINT32_MAX + 1 : 1;
 
   if (ScalingFactor > 1) {
@@ -414,7 +414,7 @@ bool BranchProbabilityInfo::calcMetadataWeights(const BasicBlock *BB) {
   for (auto I : UnreachableIdxs)
     NewUnreachableSum += BP[I];
 
-  BranchProbability NewReachableSum =
+  BranchProbability const NewReachableSum =
       BranchProbability::getOne() - NewUnreachableSum;
 
   BranchProbability OldReachableSum = BranchProbability::getZero();
@@ -426,7 +426,7 @@ bool BranchProbabilityInfo::calcMetadataWeights(const BasicBlock *BB) {
       // If all oldBP[i] are zeroes then the proportional distribution results
       // in all zero probabilities and the error stays big. In this case we
       // evenly spread NewReachableSum over the reachable edges.
-      BranchProbability PerEdge = NewReachableSum / ReachableIdxs.size();
+      BranchProbability const PerEdge = NewReachableSum / ReachableIdxs.size();
       for (auto I : ReachableIdxs)
         BP[I] = PerEdge;
     } else {
@@ -435,9 +435,9 @@ bool BranchProbabilityInfo::calcMetadataWeights(const BasicBlock *BB) {
         // calculation: BP[i] = BP[i] * NewReachableSum / OldReachableSum
         // The formula is taken from the private constructor
         // BranchProbability(uint32_t Numerator, uint32_t Denominator)
-        uint64_t Mul = static_cast<uint64_t>(NewReachableSum.getNumerator()) *
+        uint64_t const Mul = static_cast<uint64_t>(NewReachableSum.getNumerator()) *
                        BP[I].getNumerator();
-        uint32_t Div = static_cast<uint32_t>(
+        uint32_t const Div = static_cast<uint32_t>(
             divideNearest(Mul, OldReachableSum.getNumerator()));
         BP[I] = BranchProbability::getRaw(Div);
       }
@@ -477,7 +477,7 @@ bool BranchProbabilityInfo::calcPointerHeuristics(const BasicBlock *BB) {
   // p == 0   ->   isProb = false
   // p != q   ->   isProb = true
   // p == q   ->   isProb = false;
-  bool isProb = CI->getPredicate() == ICmpInst::ICMP_NE;
+  bool const isProb = CI->getPredicate() == ICmpInst::ICMP_NE;
   if (!isProb)
     std::swap(TakenProb, UntakenProb);
 
@@ -619,7 +619,7 @@ BranchProbabilityInfo::getEstimatedEdgeWeight(const LoopEdge &Edge) const {
 template <class IterT>
 Optional<uint32_t> BranchProbabilityInfo::getMaxEstimatedEdgeWeight(
     const LoopBlock &SrcLoopBB, iterator_range<IterT> Successors) const {
-  SmallVector<uint32_t, 4> Weights;
+  SmallVector<uint32_t, 4> const Weights;
   Optional<uint32_t> MaxWeight;
   for (const BasicBlock *DstBB : Successors) {
     const LoopBlock DstLoopBB = getLoopBlock(DstBB);
@@ -655,7 +655,7 @@ bool BranchProbabilityInfo::updateEstimatedBlockWeight(
     return false;
 
   for (BasicBlock *PredBlock : predecessors(BB)) {
-    LoopBlock PredLoop = getLoopBlock(PredBlock);
+    LoopBlock const PredLoop = getLoopBlock(PredBlock);
     // Add affected block/loop to a working list.
     if (isLoopExitingEdge({PredLoop, LoopBB})) {
       if (!EstimatedLoopWeight.count(PredLoop.getLoopData()))
@@ -762,7 +762,7 @@ void BranchProbabilityInfo::computeEestimateBlockWeight(
 
   // By doing RPO we make sure that all predecessors already have weights
   // calculated before visiting theirs successors.
-  ReversePostOrderTraversal<const Function *> RPOT(&F);
+  ReversePostOrderTraversal<const Function *> const RPOT(&F);
   for (const auto *BB : RPOT)
     if (auto BBWeight = getInitialEstimatedBlockWeight(BB))
       // If we were able to find estimated weight for the block set it to this
@@ -831,7 +831,7 @@ bool BranchProbabilityInfo::calcEstimatedHeuristics(const BasicBlock *BB) {
   const LoopBlock LoopBB = getLoopBlock(BB);
 
   SmallPtrSet<const BasicBlock *, 8> UnlikelyBlocks;
-  uint32_t TC = LBH_TAKEN_WEIGHT / LBH_NONTAKEN_WEIGHT;
+  uint32_t const TC = LBH_TAKEN_WEIGHT / LBH_NONTAKEN_WEIGHT;
   if (LoopBB.getLoop())
     computeUnlikelySuccessors(BB, LoopBB.getLoop(), UnlikelyBlocks);
 
@@ -856,7 +856,7 @@ bool BranchProbabilityInfo::calcEstimatedHeuristics(const BasicBlock *BB) {
           Weight.getValueOr(static_cast<uint32_t>(BlockExecWeight::DEFAULT)) /
               TC);
     }
-    bool IsUnlikelyEdge = LoopBB.getLoop() && UnlikelyBlocks.contains(SuccBB);
+    bool const IsUnlikelyEdge = LoopBB.getLoop() && UnlikelyBlocks.contains(SuccBB);
     if (IsUnlikelyEdge &&
         // Avoid adjustment of ZERO weight since it should remain unchanged.
         Weight != static_cast<uint32_t>(BlockExecWeight::ZERO)) {
@@ -888,7 +888,7 @@ bool BranchProbabilityInfo::calcEstimatedHeuristics(const BasicBlock *BB) {
   // If the sum of weights does not fit in 32 bits, scale every weight down
   // accordingly.
   if (TotalWeight > UINT32_MAX) {
-    uint64_t ScalingFactor = TotalWeight / UINT32_MAX + 1;
+    uint64_t const ScalingFactor = TotalWeight / UINT32_MAX + 1;
     TotalWeight = 0;
     for (unsigned Idx = 0; Idx < SuccCount; ++Idx) {
       SuccWeights[Idx] /= ScalingFactor;
@@ -1177,7 +1177,7 @@ void BranchProbabilityInfo::setEdgeProbability(
 void BranchProbabilityInfo::copyEdgeProbabilities(BasicBlock *Src,
                                                   BasicBlock *Dst) {
   eraseBlock(Dst); // Erase stale data if any.
-  unsigned NumSuccessors = Src->getTerminator()->getNumSuccessors();
+  unsigned const NumSuccessors = Src->getTerminator()->getNumSuccessors();
   assert(NumSuccessors == Dst->getTerminator()->getNumSuccessors());
   if (NumSuccessors == 0)
     return; // Nothing to set.

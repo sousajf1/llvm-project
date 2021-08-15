@@ -221,7 +221,7 @@ struct DOTGraphTraits<MachineGadgetGraph *> : DefaultDOTGraphTraits {
 
   static std::string getEdgeAttributes(NodeRef, ChildIteratorType E,
                                        GraphType *) {
-    int EdgeVal = (*E.getCurrent()).getValue();
+    int const EdgeVal = (*E.getCurrent()).getValue();
     return EdgeVal >= 0 ? "label = " + std::to_string(EdgeVal)
                         : "color = red, style = \"dashed\"";
   }
@@ -330,7 +330,7 @@ X86LoadValueInjectionLoadHardeningPass::getGadgetGraph(
   using namespace rdf;
 
   // Build the Register Dataflow Graph using the RDF framework
-  TargetOperandInfo TOI{*TII};
+  TargetOperandInfo const TOI{*TII};
   DataFlowGraph DFG{MF, *TII, *TRI, MDT, MDF, TOI};
   DFG.build();
   Liveness L{MF.getRegInfo(), DFG};
@@ -367,11 +367,11 @@ X86LoadValueInjectionLoadHardeningPass::getGadgetGraph(
 
           // Use RDF to find all the uses of `Def`
           rdf::NodeSet Uses;
-          RegisterRef DefReg = Def.Addr->getRegRef(DFG);
+          RegisterRef const DefReg = Def.Addr->getRegRef(DFG);
           for (auto UseID : L.getAllReachedUses(DefReg, Def)) {
             auto Use = DFG.addr<UseNode *>(UseID);
             if (Use.Addr->getFlags() & NodeAttrs::PhiRef) { // phi node
-              NodeAddr<PhiNode *> Phi = Use.Addr->getOwner(DFG);
+              NodeAddr<PhiNode *> const Phi = Use.Addr->getOwner(DFG);
               for (const auto& I : L.getRealUses(Phi.Id)) {
                 if (DFG.getPRI().alias(RegisterRef(I.first), DefReg)) {
                   for (const auto &UA : I.second)
@@ -393,7 +393,7 @@ X86LoadValueInjectionLoadHardeningPass::getGadgetGraph(
             auto Use = DFG.addr<UseNode *>(UseID);
             assert(!(Use.Addr->getFlags() & NodeAttrs::PhiRef));
             MachineOperand &UseMO = Use.Addr->getOp();
-            MachineInstr &UseMI = *UseMO.getParent();
+            MachineInstr  const&UseMI = *UseMO.getParent();
             assert(UseMO.isReg());
 
             // We naively assume that an instruction propagates any loaded
@@ -415,8 +415,8 @@ X86LoadValueInjectionLoadHardeningPass::getGadgetGraph(
             }
 
             // Check whether the use propagates to more defs.
-            NodeAddr<InstrNode *> Owner{Use.Addr->getOwner(DFG)};
-            rdf::NodeList AnalyzedChildDefs;
+            NodeAddr<InstrNode *> const Owner{Use.Addr->getOwner(DFG)};
+            rdf::NodeList const AnalyzedChildDefs;
             for (const auto &ChildDef :
                  Owner.Addr->members_if(DataFlowGraph::IsDef, DFG)) {
               if (!DefsVisited.insert(ChildDef.Id).second)
@@ -468,15 +468,15 @@ X86LoadValueInjectionLoadHardeningPass::getGadgetGraph(
 
   LLVM_DEBUG(dbgs() << "Analyzing def-use chains to find gadgets\n");
   // Analyze function arguments
-  NodeAddr<BlockNode *> EntryBlock = DFG.getFunc().Addr->getEntryBlock(DFG);
-  for (NodeAddr<PhiNode *> ArgPhi :
+  NodeAddr<BlockNode *> const EntryBlock = DFG.getFunc().Addr->getEntryBlock(DFG);
+  for (NodeAddr<PhiNode *> const ArgPhi :
        EntryBlock.Addr->members_if(DataFlowGraph::IsPhi, DFG)) {
     NodeList Defs = ArgPhi.Addr->members_if(DataFlowGraph::IsDef, DFG);
     llvm::for_each(Defs, AnalyzeDef);
   }
   // Analyze every instruction in MF
-  for (NodeAddr<BlockNode *> BA : DFG.getFunc().Addr->members(DFG)) {
-    for (NodeAddr<StmtNode *> SA :
+  for (NodeAddr<BlockNode *> const BA : DFG.getFunc().Addr->members(DFG)) {
+    for (NodeAddr<StmtNode *> const SA :
          BA.Addr->members_if(DataFlowGraph::IsCode<NodeAttrs::Stmt>, DFG)) {
       MachineInstr *MI = SA.Addr->getCode();
       if (isFence(MI)) {
@@ -498,7 +498,7 @@ X86LoadValueInjectionLoadHardeningPass::getGadgetGraph(
   SmallSet<MachineBasicBlock *, 8> BlocksVisited;
   std::function<void(MachineBasicBlock *, GraphIter, unsigned)> TraverseCFG =
       [&](MachineBasicBlock *MBB, GraphIter GI, unsigned ParentDepth) {
-        unsigned LoopDepth = MLI.getLoopDepth(MBB);
+        unsigned const LoopDepth = MLI.getLoopDepth(MBB);
         if (!MBB->empty()) {
           // Always add the first instruction in each block
           auto NI = MBB->begin();
@@ -531,7 +531,7 @@ X86LoadValueInjectionLoadHardeningPass::getGadgetGraph(
       };
   // ArgNodeSentinel is a pseudo-instruction that represents MF args in the
   // GadgetGraph
-  GraphIter ArgNode = MaybeAddNode(MachineGadgetGraph::ArgNodeSentinel).first;
+  GraphIter const ArgNode = MaybeAddNode(MachineGadgetGraph::ArgNodeSentinel).first;
   TraverseCFG(&MF.front(), ArgNode, 0);
   std::unique_ptr<MachineGadgetGraph> G{Builder.get(FenceCount, GadgetCount)};
   LLVM_DEBUG(dbgs() << "Found " << G->nodes_size() << " nodes\n");
@@ -599,7 +599,7 @@ X86LoadValueInjectionLoadHardeningPass::trimMitigatedEdges(
     std::unique_ptr<MachineGadgetGraph> Graph) const {
   NodeSet ElimNodes{*Graph};
   EdgeSet ElimEdges{*Graph};
-  int RemainingGadgets =
+  int const RemainingGadgets =
       elimMitigatedEdgesAndNodes(*Graph, ElimEdges, ElimNodes);
   if (ElimEdges.empty() && ElimNodes.empty()) {
     Graph->NumFences = 0;
@@ -692,7 +692,7 @@ int X86LoadValueInjectionLoadHardeningPass::hardenLoadsWithHeuristic(
         continue;
 
       SmallVector<const Edge *, 2> EgressEdges;
-      SmallVector<const Edge *, 2> &IngressEdges = IngressEdgeMap[E.getDest()];
+      SmallVector<const Edge *, 2>  const&IngressEdges = IngressEdgeMap[E.getDest()];
       for (const Edge &EgressEdge : N.edges())
         if (MachineGadgetGraph::isCFGEdge(EgressEdge))
           EgressEdges.push_back(&EgressEdge);
@@ -715,7 +715,7 @@ int X86LoadValueInjectionLoadHardeningPass::hardenLoadsWithHeuristic(
   LLVM_DEBUG(dbgs() << "Cut " << CutEdges.count() << " edges\n");
 
   LLVM_DEBUG(dbgs() << "Inserting LFENCEs...\n");
-  int FencesInserted = insertFences(MF, *Graph, CutEdges);
+  int const FencesInserted = insertFences(MF, *Graph, CutEdges);
   LLVM_DEBUG(dbgs() << "Inserting LFENCEs... Done\n");
   LLVM_DEBUG(dbgs() << "Inserted " << FencesInserted << " fences\n");
 

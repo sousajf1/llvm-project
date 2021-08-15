@@ -32,7 +32,7 @@ using namespace llvm;
 /// be expanded if the user wishes
 static Value *generateSignedRemainderCode(Value *Dividend, Value *Divisor,
                                           IRBuilder<> &Builder) {
-  unsigned BitWidth = Dividend->getType()->getIntegerBitWidth();
+  unsigned const BitWidth = Dividend->getType()->getIntegerBitWidth();
   ConstantInt *Shift;
 
   if (BitWidth == 64) {
@@ -104,7 +104,7 @@ static Value *generateSignedDivisionCode(Value *Dividend, Value *Divisor,
                                          IRBuilder<> &Builder) {
   // Implementation taken from compiler-rt's __divsi3 and __divdi3
 
-  unsigned BitWidth = Dividend->getType()->getIntegerBitWidth();
+  unsigned const BitWidth = Dividend->getType()->getIntegerBitWidth();
   ConstantInt *Shift;
 
   if (BitWidth == 64) {
@@ -155,7 +155,7 @@ static Value *generateUnsignedDivisionCode(Value *Dividend, Value *Divisor,
 
   // Some helper values
   IntegerType *DivTy = cast<IntegerType>(Dividend->getType());
-  unsigned BitWidth = DivTy->getBitWidth();
+  unsigned const BitWidth = DivTy->getBitWidth();
 
   ConstantInt *Zero;
   ConstantInt *One;
@@ -390,7 +390,7 @@ bool llvm::expandRemainder(BinaryOperator *Rem) {
                                                    Rem->getOperand(1), Builder);
 
     // Check whether this is the insert point while Rem is still valid.
-    bool IsInsertPoint = Rem->getIterator() == Builder.GetInsertPoint();
+    bool const IsInsertPoint = Rem->getIterator() == Builder.GetInsertPoint();
     Rem->replaceAllUsesWith(Remainder);
     Rem->dropAllReferences();
     Rem->eraseFromParent();
@@ -449,7 +449,7 @@ bool llvm::expandDivision(BinaryOperator *Div) {
                                                  Div->getOperand(1), Builder);
 
     // Check whether this is the insert point while Div is still valid.
-    bool IsInsertPoint = Div->getIterator() == Builder.GetInsertPoint();
+    bool const IsInsertPoint = Div->getIterator() == Builder.GetInsertPoint();
     Div->replaceAllUsesWith(Quotient);
     Div->dropAllReferences();
     Div->eraseFromParent();
@@ -490,7 +490,7 @@ bool llvm::expandRemainderUpTo32Bits(BinaryOperator *Rem) {
   Type *RemTy = Rem->getType();
   assert(!RemTy->isVectorTy() && "Div over vectors not supported");
 
-  unsigned RemTyBitWidth = RemTy->getIntegerBitWidth();
+  unsigned const RemTyBitWidth = RemTy->getIntegerBitWidth();
 
   assert(RemTyBitWidth <= 32 &&
          "Div of bitwidth greater than 32 not supported");
@@ -539,7 +539,7 @@ bool llvm::expandRemainderUpTo64Bits(BinaryOperator *Rem) {
   Type *RemTy = Rem->getType();
   assert(!RemTy->isVectorTy() && "Div over vectors not supported");
 
-  unsigned RemTyBitWidth = RemTy->getIntegerBitWidth();
+  unsigned const RemTyBitWidth = RemTy->getIntegerBitWidth();
 
   assert(RemTyBitWidth <= 64 && "Div of bitwidth greater than 64 not supported");
 
@@ -588,7 +588,7 @@ bool llvm::expandDivisionUpTo32Bits(BinaryOperator *Div) {
   Type *DivTy = Div->getType();
   assert(!DivTy->isVectorTy() && "Div over vectors not supported");
 
-  unsigned DivTyBitWidth = DivTy->getIntegerBitWidth();
+  unsigned const DivTyBitWidth = DivTy->getIntegerBitWidth();
 
   assert(DivTyBitWidth <= 32 && "Div of bitwidth greater than 32 not supported");
 
@@ -636,7 +636,7 @@ bool llvm::expandDivisionUpTo64Bits(BinaryOperator *Div) {
   Type *DivTy = Div->getType();
   assert(!DivTy->isVectorTy() && "Div over vectors not supported");
 
-  unsigned DivTyBitWidth = DivTy->getIntegerBitWidth();
+  unsigned const DivTyBitWidth = DivTy->getIntegerBitWidth();
 
   assert(DivTyBitWidth <= 64 &&
          "Div of bitwidth greater than 64 not supported");

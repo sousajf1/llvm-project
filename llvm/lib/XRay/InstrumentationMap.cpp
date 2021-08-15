@@ -55,7 +55,7 @@ loadObj(StringRef Filename, object::OwningBinary<object::ObjectFile> &ObjFile,
         InstrumentationMap::SledContainer &Sleds,
         InstrumentationMap::FunctionAddressMap &FunctionAddresses,
         InstrumentationMap::FunctionAddressReverseMap &FunctionIds) {
-  InstrumentationMap Map;
+  InstrumentationMap const Map;
 
   // Find the section named "xray_instr_map".
   if ((!ObjFile.getBinary()->isELF() && !ObjFile.getBinary()->isMachO()) ||
@@ -93,7 +93,7 @@ loadObj(StringRef Filename, object::OwningBinary<object::ObjectFile> &ObjFile,
 
   RelocMap Relocs;
   if (ObjFile.getBinary()->isELF()) {
-    uint32_t RelativeRelocation = [](object::ObjectFile *ObjFile) {
+    uint32_t const RelativeRelocation = [](object::ObjectFile *ObjFile) {
       if (const auto *ELFObj = dyn_cast<object::ELF32LEObjectFile>(ObjFile))
         return ELFObj->getELFFile().getRelativeRelocationType();
       else if (const auto *ELFObj =
@@ -145,8 +145,8 @@ loadObj(StringRef Filename, object::OwningBinary<object::ObjectFile> &ObjFile,
 
   // Copy the instrumentation map data into the Sleds data structure.
   auto C = Contents.bytes_begin();
-  bool Is32Bit = ObjFile.getBinary()->makeTriple().isArch32Bit();
-  size_t ELFSledEntrySize = Is32Bit ? 16 : 32;
+  bool const Is32Bit = ObjFile.getBinary()->makeTriple().isArch32Bit();
+  size_t const ELFSledEntrySize = Is32Bit ? 16 : 32;
 
   if ((C - Contents.bytes_end()) % ELFSledEntrySize != 0)
     return make_error<StringError>(
@@ -156,8 +156,8 @@ loadObj(StringRef Filename, object::OwningBinary<object::ObjectFile> &ObjFile,
 
   auto RelocateOrElse = [&](uint64_t Offset, uint64_t Address) {
     if (!Address) {
-      uint64_t A = I->getAddress() + C - Contents.bytes_begin() + Offset;
-      RelocMap::const_iterator R = Relocs.find(A);
+      uint64_t const A = I->getAddress() + C - Contents.bytes_begin() + Offset;
+      RelocMap::const_iterator const R = Relocs.find(A);
       if (R != Relocs.end())
         return R->second;
     }
@@ -168,18 +168,18 @@ loadObj(StringRef Filename, object::OwningBinary<object::ObjectFile> &ObjFile,
   int32_t FuncId = 1;
   uint64_t CurFn = 0;
   for (; C != Contents.bytes_end(); C += ELFSledEntrySize) {
-    DataExtractor Extractor(
+    DataExtractor const Extractor(
         StringRef(reinterpret_cast<const char *>(C), ELFSledEntrySize), true,
         8);
     Sleds.push_back({});
     auto &Entry = Sleds.back();
     uint64_t OffsetPtr = 0;
-    uint64_t AddrOff = OffsetPtr;
+    uint64_t const AddrOff = OffsetPtr;
     if (Is32Bit)
       Entry.Address = RelocateOrElse(AddrOff, Extractor.getU32(&OffsetPtr));
     else
       Entry.Address = RelocateOrElse(AddrOff, Extractor.getU64(&OffsetPtr));
-    uint64_t FuncOff = OffsetPtr;
+    uint64_t const FuncOff = OffsetPtr;
     if (Is32Bit)
       Entry.Function = RelocateOrElse(FuncOff, Extractor.getU32(&OffsetPtr));
     else
@@ -225,7 +225,7 @@ loadYAML(sys::fs::file_t Fd, size_t FileSize, StringRef Filename,
          InstrumentationMap::FunctionAddressMap &FunctionAddresses,
          InstrumentationMap::FunctionAddressReverseMap &FunctionIds) {
   std::error_code EC;
-  sys::fs::mapped_file_region MappedFile(
+  sys::fs::mapped_file_region const MappedFile(
       Fd, sys::fs::mapped_file_region::mapmode::readonly, FileSize, 0, EC);
   sys::fs::closeFile(Fd);
   if (EC)

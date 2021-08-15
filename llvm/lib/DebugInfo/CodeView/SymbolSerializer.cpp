@@ -44,8 +44,8 @@ Error SymbolSerializer::visitSymbolEnd(CVSymbol &Record) {
   if (auto EC = Mapping.visitSymbolEnd(Record))
     return EC;
 
-  uint32_t RecordEnd = Writer.getOffset();
-  uint16_t Length = RecordEnd - 2;
+  uint32_t const RecordEnd = Writer.getOffset();
+  uint16_t const Length = RecordEnd - 2;
   Writer.setOffset(0);
   if (auto EC = Writer.writeInteger(Length))
     return EC;

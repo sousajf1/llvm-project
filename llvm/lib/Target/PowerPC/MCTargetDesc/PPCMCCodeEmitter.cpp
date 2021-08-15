@@ -99,7 +99,7 @@ PPCMCCodeEmitter::getVSRpEvenEncoding(const MCInst &MI, unsigned OpNo,
                                       SmallVectorImpl<MCFixup> &Fixups,
                                       const MCSubtargetInfo &STI) const {
   assert(MI.getOperand(OpNo).isReg() && "Operand should be a register");
-  unsigned RegBits = getMachineOpValue(MI, MI.getOperand(OpNo), Fixups, STI)
+  unsigned const RegBits = getMachineOpValue(MI, MI.getOperand(OpNo), Fixups, STI)
                      << 1;
   return RegBits;
 }
@@ -152,7 +152,7 @@ unsigned PPCMCCodeEmitter::getMemRIEncoding(const MCInst &MI, unsigned OpNo,
   // Encode (imm, reg) as a memri, which has the low 16-bits as the
   // displacement and the next 5 bits as the register #.
   assert(MI.getOperand(OpNo+1).isReg());
-  unsigned RegBits = getMachineOpValue(MI, MI.getOperand(OpNo+1), Fixups, STI) << 16;
+  unsigned const RegBits = getMachineOpValue(MI, MI.getOperand(OpNo+1), Fixups, STI) << 16;
 
   const MCOperand &MO = MI.getOperand(OpNo);
   if (MO.isImm())
@@ -170,7 +170,7 @@ unsigned PPCMCCodeEmitter::getMemRIXEncoding(const MCInst &MI, unsigned OpNo,
   // Encode (imm, reg) as a memrix, which has the low 14-bits as the
   // displacement and the next 5 bits as the register #.
   assert(MI.getOperand(OpNo+1).isReg());
-  unsigned RegBits = getMachineOpValue(MI, MI.getOperand(OpNo+1), Fixups, STI) << 14;
+  unsigned const RegBits = getMachineOpValue(MI, MI.getOperand(OpNo+1), Fixups, STI) << 14;
 
   const MCOperand &MO = MI.getOperand(OpNo);
   if (MO.isImm())
@@ -188,7 +188,7 @@ unsigned PPCMCCodeEmitter::getMemRIX16Encoding(const MCInst &MI, unsigned OpNo,
   // Encode (imm, reg) as a memrix16, which has the low 12-bits as the
   // displacement and the next 5 bits as the register #.
   assert(MI.getOperand(OpNo+1).isReg());
-  unsigned RegBits = getMachineOpValue(MI, MI.getOperand(OpNo+1), Fixups, STI) << 12;
+  unsigned const RegBits = getMachineOpValue(MI, MI.getOperand(OpNo+1), Fixups, STI) << 12;
 
   const MCOperand &MO = MI.getOperand(OpNo);
   if (MO.isImm()) {
@@ -216,8 +216,8 @@ PPCMCCodeEmitter::getMemRIHashEncoding(const MCInst &MI, unsigned OpNo,
   assert(MO.isImm() && "Expecting an immediate operand.");
   assert(!(MO.getImm() % 8) && "Expecting offset to be 8 byte aligned.");
 
-  unsigned RegBits = getMachineOpValue(MI, RegMO, Fixups, STI) << 6;
-  unsigned DX = (MO.getImm() >> 3) & 0x3F;
+  unsigned const RegBits = getMachineOpValue(MI, RegMO, Fixups, STI) << 6;
+  unsigned const DX = (MO.getImm() >> 3) & 0x3F;
   return RegBits | DX;
 }
 
@@ -236,7 +236,7 @@ PPCMCCodeEmitter::getMemRI34PCRelEncoding(const MCInst &MI, unsigned OpNo,
 
   // Make sure that the register is a zero as expected.
   assert(MI.getOperand(OpNo + 1).isImm() && "Expecting an immediate.");
-  uint64_t RegBits =
+  uint64_t const RegBits =
     getMachineOpValue(MI, MI.getOperand(OpNo + 1), Fixups, STI) << 34;
   assert(RegBits == 0 && "Operand must be 0.");
 
@@ -318,7 +318,7 @@ PPCMCCodeEmitter::getMemRI34Encoding(const MCInst &MI, unsigned OpNo,
   // Encode (imm, reg) as a memri34, which has the low 34-bits as the
   // displacement and the next 5 bits as the register #.
   assert(MI.getOperand(OpNo + 1).isReg() && "Expecting a register.");
-  uint64_t RegBits = getMachineOpValue(MI, MI.getOperand(OpNo + 1), Fixups, STI)
+  uint64_t const RegBits = getMachineOpValue(MI, MI.getOperand(OpNo + 1), Fixups, STI)
                      << 34;
   const MCOperand &MO = MI.getOperand(OpNo);
   return ((getMachineOpValue(MI, MO, Fixups, STI)) & 0x3FFFFFFFFUL) | RegBits;
@@ -331,11 +331,11 @@ unsigned PPCMCCodeEmitter::getSPE8DisEncoding(const MCInst &MI, unsigned OpNo,
   // Encode (imm, reg) as a spe8dis, which has the low 5-bits of (imm / 8)
   // as the displacement and the next 5 bits as the register #.
   assert(MI.getOperand(OpNo+1).isReg());
-  uint32_t RegBits = getMachineOpValue(MI, MI.getOperand(OpNo+1), Fixups, STI) << 5;
+  uint32_t const RegBits = getMachineOpValue(MI, MI.getOperand(OpNo+1), Fixups, STI) << 5;
 
   const MCOperand &MO = MI.getOperand(OpNo);
   assert(MO.isImm());
-  uint32_t Imm = getMachineOpValue(MI, MO, Fixups, STI) >> 3;
+  uint32_t const Imm = getMachineOpValue(MI, MO, Fixups, STI) >> 3;
   return reverseBits(Imm | RegBits) >> 22;
 }
 
@@ -346,11 +346,11 @@ unsigned PPCMCCodeEmitter::getSPE4DisEncoding(const MCInst &MI, unsigned OpNo,
   // Encode (imm, reg) as a spe4dis, which has the low 5-bits of (imm / 4)
   // as the displacement and the next 5 bits as the register #.
   assert(MI.getOperand(OpNo+1).isReg());
-  uint32_t RegBits = getMachineOpValue(MI, MI.getOperand(OpNo+1), Fixups, STI) << 5;
+  uint32_t const RegBits = getMachineOpValue(MI, MI.getOperand(OpNo+1), Fixups, STI) << 5;
 
   const MCOperand &MO = MI.getOperand(OpNo);
   assert(MO.isImm());
-  uint32_t Imm = getMachineOpValue(MI, MO, Fixups, STI) >> 2;
+  uint32_t const Imm = getMachineOpValue(MI, MO, Fixups, STI) >> 2;
   return reverseBits(Imm | RegBits) >> 22;
 }
 
@@ -361,11 +361,11 @@ unsigned PPCMCCodeEmitter::getSPE2DisEncoding(const MCInst &MI, unsigned OpNo,
   // Encode (imm, reg) as a spe2dis, which has the low 5-bits of (imm / 2)
   // as the displacement and the next 5 bits as the register #.
   assert(MI.getOperand(OpNo+1).isReg());
-  uint32_t RegBits = getMachineOpValue(MI, MI.getOperand(OpNo+1), Fixups, STI) << 5;
+  uint32_t const RegBits = getMachineOpValue(MI, MI.getOperand(OpNo+1), Fixups, STI) << 5;
 
   const MCOperand &MO = MI.getOperand(OpNo);
   assert(MO.isImm());
-  uint32_t Imm = getMachineOpValue(MI, MO, Fixups, STI) >> 1;
+  uint32_t const Imm = getMachineOpValue(MI, MO, Fixups, STI) >> 1;
   return reverseBits(Imm | RegBits) >> 22;
 }
 
@@ -381,11 +381,11 @@ unsigned PPCMCCodeEmitter::getTLSRegEncoding(const MCInst &MI, unsigned OpNo,
   // if using PC relative memops.
   const MCExpr *Expr = MO.getExpr();
   const MCSymbolRefExpr *SRE = cast<MCSymbolRefExpr>(Expr);
-  bool IsPCRel = SRE->getKind() == MCSymbolRefExpr::VK_PPC_TLS_PCREL;
+  bool const IsPCRel = SRE->getKind() == MCSymbolRefExpr::VK_PPC_TLS_PCREL;
   Fixups.push_back(MCFixup::create(IsPCRel ? 1 : 0, Expr,
                                    (MCFixupKind)PPC::fixup_ppc_nofixup));
   const Triple &TT = STI.getTargetTriple();
-  bool isPPC64 = TT.isPPC64();
+  bool const isPPC64 = TT.isPPC64();
   return CTX.getRegisterInfo()->getEncodingValue(isPPC64 ? PPC::X13 : PPC::R2);
 }
 
@@ -436,8 +436,8 @@ getMachineOpValue(const MCInst &MI, const MCOperand &MO,
     assert((MI.getOpcode() != PPC::MTOCRF && MI.getOpcode() != PPC::MTOCRF8 &&
             MI.getOpcode() != PPC::MFOCRF && MI.getOpcode() != PPC::MFOCRF8) ||
            MO.getReg() < PPC::CR0 || MO.getReg() > PPC::CR7);
-    unsigned OpNo = getOpIdxForMO(MI, MO);
-    unsigned Reg =
+    unsigned const OpNo = getOpIdxForMO(MI, MO);
+    unsigned const Reg =
       PPCInstrInfo::getRegNumForOperand(MCII.get(MI.getOpcode()),
                                         MO.getReg(), OpNo);
     return CTX.getRegisterInfo()->getEncodingValue(Reg);
@@ -454,11 +454,11 @@ void PPCMCCodeEmitter::encodeInstruction(
   verifyInstructionPredicates(MI,
                               computeAvailableFeatures(STI.getFeatureBits()));
 
-  uint64_t Bits = getBinaryCodeForInstr(MI, Fixups, STI);
+  uint64_t const Bits = getBinaryCodeForInstr(MI, Fixups, STI);
 
   // Output the constant in big/little endian byte order.
-  unsigned Size = getInstSizeInBytes(MI);
-  support::endianness E = IsLittleEndian ? support::little : support::big;
+  unsigned const Size = getInstSizeInBytes(MI);
+  support::endianness const E = IsLittleEndian ? support::little : support::big;
   switch (Size) {
   case 0:
     break;
@@ -480,13 +480,13 @@ void PPCMCCodeEmitter::encodeInstruction(
 
 // Get the number of bytes used to encode the given MCInst.
 unsigned PPCMCCodeEmitter::getInstSizeInBytes(const MCInst &MI) const {
-  unsigned Opcode = MI.getOpcode();
+  unsigned const Opcode = MI.getOpcode();
   const MCInstrDesc &Desc = MCII.get(Opcode);
   return Desc.getSize();
 }
 
 bool PPCMCCodeEmitter::isPrefixedInstruction(const MCInst &MI) const {
-  unsigned Opcode = MI.getOpcode();
+  unsigned const Opcode = MI.getOpcode();
   const PPCInstrInfo *InstrInfo = static_cast<const PPCInstrInfo*>(&MCII);
   return InstrInfo->isPrefixed(Opcode);
 }

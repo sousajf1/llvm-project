@@ -94,7 +94,7 @@ llvm::Optional<llvm::InlineCost> static getDefaultInlineAdvice(
   auto GetInlineCost = [&](CallBase &CB) {
     Function &Callee = *CB.getCalledFunction();
     auto &CalleeTTI = FAM.getResult<TargetIRAnalysis>(Callee);
-    bool RemarksEnabled =
+    bool const RemarksEnabled =
         Callee.getContext().getDiagHandlerPtr()->isMissedOptRemarkEnabled(
             DEBUG_TYPE);
     return getInlineCost(CB, Params, CalleeTTI, GetAssumptionCache, GetTLI,
@@ -222,7 +222,7 @@ shouldBeDeferred(Function *Caller, InlineCost IC, int &TotalSecondaryCost,
   // treating them as truly abstract units etc.
   TotalSecondaryCost = 0;
   // The candidate cost to be imposed upon the current function.
-  int CandidateCost = IC.getCost() - 1;
+  int const CandidateCost = IC.getCost() - 1;
   // If the caller has local linkage and can be inlined to all its callers, we
   // can apply a huge negative bonus to TotalSecondaryCost.
   bool ApplyLastCallBonus = Caller->hasLocalLinkage() && !Caller->hasOneUse();
@@ -240,7 +240,7 @@ shouldBeDeferred(Function *Caller, InlineCost IC, int &TotalSecondaryCost,
       continue;
     }
 
-    InlineCost IC2 = GetInlineCost(*CS2);
+    InlineCost const IC2 = GetInlineCost(*CS2);
     ++NumCallerCallersAnalyzed;
     if (!IC2) {
       ApplyLastCallBonus = false;
@@ -274,8 +274,8 @@ shouldBeDeferred(Function *Caller, InlineCost IC, int &TotalSecondaryCost,
   if (InlineDeferralScale < 0)
     return TotalSecondaryCost < IC.getCost();
 
-  int TotalCost = TotalSecondaryCost + IC.getCost() * NumCallerUsers;
-  int Allowance = IC.getCost() * InlineDeferralScale;
+  int const TotalCost = TotalSecondaryCost + IC.getCost() * NumCallerUsers;
+  int const Allowance = IC.getCost() * InlineDeferralScale;
   return TotalCost < Allowance;
 }
 
@@ -312,7 +312,7 @@ void llvm::setInlineRemark(CallBase &CB, StringRef Message) {
   if (!InlineRemarkAttribute)
     return;
 
-  Attribute Attr = Attribute::get(CB.getContext(), "inline-remark", Message);
+  Attribute const Attr = Attribute::get(CB.getContext(), "inline-remark", Message);
   CB.addAttribute(AttributeList::FunctionIndex, Attr);
 }
 
@@ -393,9 +393,9 @@ std::string llvm::getCallSiteLocation(DebugLoc DLoc) {
     // Note that negative line offset is actually possible, but we use
     // unsigned int to match line offset representation in remarks so
     // it's directly consumable by relay advisor.
-    uint32_t Offset =
+    uint32_t const Offset =
         DIL->getLine() - DIL->getScope()->getSubprogram()->getLine();
-    uint32_t Discriminator = DIL->getBaseDiscriminator();
+    uint32_t const Discriminator = DIL->getBaseDiscriminator();
     StringRef Name = DIL->getScope()->getSubprogram()->getLinkageName();
     if (Name.empty())
       Name = DIL->getScope()->getSubprogram()->getName();
@@ -421,7 +421,7 @@ void llvm::addLocationToRemarks(OptimizationRemark &Remark, DebugLoc DLoc) {
       Remark << " @ ";
     unsigned int Offset = DIL->getLine();
     Offset -= DIL->getScope()->getSubprogram()->getLine();
-    unsigned int Discriminator = DIL->getBaseDiscriminator();
+    unsigned int const Discriminator = DIL->getBaseDiscriminator();
     StringRef Name = DIL->getScope()->getSubprogram()->getLinkageName();
     if (Name.empty())
       Name = DIL->getScope()->getSubprogram()->getName();
@@ -440,8 +440,8 @@ void llvm::emitInlinedInto(OptimizationRemarkEmitter &ORE, DebugLoc DLoc,
                            const Function &Caller, const InlineCost &IC,
                            bool ForProfileContext, const char *PassName) {
   ORE.emit([&]() {
-    bool AlwaysInline = IC.isAlways();
-    StringRef RemarkName = AlwaysInline ? "AlwaysInline" : "Inlined";
+    bool const AlwaysInline = IC.isAlways();
+    StringRef const RemarkName = AlwaysInline ? "AlwaysInline" : "Inlined";
     OptimizationRemark Remark(PassName ? PassName : DEBUG_TYPE, RemarkName,
                               DLoc, Block);
     Remark << "'" << ore::NV("Callee", &Callee) << "' inlined into '"
@@ -505,7 +505,7 @@ std::unique_ptr<InlineAdvice> InlineAdvisor::getAdvice(CallBase &CB,
                                                        bool MandatoryOnly) {
   if (!MandatoryOnly)
     return getAdviceImpl(CB);
-  bool Advice = CB.getCaller() != CB.getCalledFunction() &&
+  bool const Advice = CB.getCaller() != CB.getCalledFunction() &&
                 MandatoryInliningKind::Always ==
                     getMandatoryKind(CB, FAM, getCallerORE(CB));
   return getMandatoryAdvice(CB, Advice);

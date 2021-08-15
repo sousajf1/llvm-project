@@ -167,7 +167,7 @@ public:
       // If this block has a divergent terminator and the def block is its
       // post-dominator, the wave may first visit the other successors.
       bool Divergent = false;
-      for (MachineInstr &MI : MBB->terminators()) {
+      for (MachineInstr  const&MI : MBB->terminators()) {
         if (MI.getOpcode() == AMDGPU::SI_NON_UNIFORM_BRCOND_PSEUDO ||
             MI.getOpcode() == AMDGPU::SI_IF ||
             MI.getOpcode() == AMDGPU::SI_ELSE ||
@@ -366,7 +366,7 @@ private:
       }
     }
 
-    unsigned Level = CommonDominators.size();
+    unsigned const Level = CommonDominators.size();
     while (!Stack.empty()) {
       MachineBasicBlock *MBB = Stack.pop_back_val();
       if (!PDT.dominates(VisitedPostDom, MBB))
@@ -425,7 +425,7 @@ static unsigned insertUndefLaneMask(MachineBasicBlock &MBB) {
   MachineFunction &MF = *MBB.getParent();
   const GCNSubtarget &ST = MF.getSubtarget<GCNSubtarget>();
   const SIInstrInfo *TII = ST.getInstrInfo();
-  unsigned UndefReg = createLaneMaskReg(MF);
+  unsigned const UndefReg = createLaneMaskReg(MF);
   BuildMI(MBB, MBB.getFirstTerminator(), {}, TII->get(AMDGPU::IMPLICIT_DEF),
           UndefReg);
   return UndefReg;
@@ -477,7 +477,7 @@ bool SILowerI1Copies::runOnMachineFunction(MachineFunction &TheMF) {
   lowerPhis();
   lowerCopiesToI1();
 
-  for (unsigned Reg : ConstrainRegs)
+  for (unsigned const Reg : ConstrainRegs)
     MRI->constrainRegClass(Reg, &AMDGPU::SReg_1_XEXECRegClass);
   ConstrainRegs.clear();
 
@@ -488,7 +488,7 @@ bool SILowerI1Copies::runOnMachineFunction(MachineFunction &TheMF) {
 static bool isVRegCompatibleReg(const SIRegisterInfo &TRI,
                                 const MachineRegisterInfo &MRI,
                                 Register Reg) {
-  unsigned Size = TRI.getRegSizeInBits(Reg, MRI);
+  unsigned const Size = TRI.getRegSizeInBits(Reg, MRI);
   return Size == 1 || Size == 32;
 }
 #endif
@@ -501,8 +501,8 @@ void SILowerI1Copies::lowerCopiesFromI1() {
       if (MI.getOpcode() != AMDGPU::COPY)
         continue;
 
-      Register DstReg = MI.getOperand(0).getReg();
-      Register SrcReg = MI.getOperand(1).getReg();
+      Register const DstReg = MI.getOperand(0).getReg();
+      Register const SrcReg = MI.getOperand(1).getReg();
       if (!isVreg1(SrcReg))
         continue;
 
@@ -511,7 +511,7 @@ void SILowerI1Copies::lowerCopiesFromI1() {
 
       // Copy into a 32-bit vector register.
       LLVM_DEBUG(dbgs() << "Lower copy from i1: " << MI);
-      DebugLoc DL = MI.getDebugLoc();
+      DebugLoc const DL = MI.getDebugLoc();
 
       assert(isVRegCompatibleReg(TII->getRegisterInfo(), *MRI, DstReg));
       assert(!MI.getOperand(0).getSubReg());
@@ -561,7 +561,7 @@ void SILowerI1Copies::lowerPhis() {
 
     LLVM_DEBUG(dbgs() << "Lower PHI: " << *MI);
 
-    Register DstReg = MI->getOperand(0).getReg();
+    Register const DstReg = MI->getOperand(0).getReg();
     MRI->setRegClass(DstReg, IsWave32 ? &AMDGPU::SReg_32RegClass
                                       : &AMDGPU::SReg_64RegClass);
 
@@ -603,7 +603,7 @@ void SILowerI1Copies::lowerPhis() {
     // than a constant) in a pair of blocks that end up looping back to each
     // other, it will be mishandle. Due to structurization this shouldn't occur
     // in practice.
-    unsigned FoundLoopLevel = LF.findLoop(PostDomBound);
+    unsigned const FoundLoopLevel = LF.findLoop(PostDomBound);
 
     SSAUpdater.Initialize(DstReg);
 
@@ -652,7 +652,7 @@ void SILowerI1Copies::lowerPhis() {
       }
     }
 
-    Register NewReg = SSAUpdater.GetValueInMiddleOfBlock(&MBB);
+    Register const NewReg = SSAUpdater.GetValueInMiddleOfBlock(&MBB);
     if (NewReg != DstReg) {
       MRI->replaceRegWith(NewReg, DstReg);
       MI->eraseFromParent();
@@ -677,7 +677,7 @@ void SILowerI1Copies::lowerCopiesToI1() {
           MI.getOpcode() != AMDGPU::COPY)
         continue;
 
-      Register DstReg = MI.getOperand(0).getReg();
+      Register const DstReg = MI.getOperand(0).getReg();
       if (!isVreg1(DstReg))
         continue;
 
@@ -693,13 +693,13 @@ void SILowerI1Copies::lowerCopiesToI1() {
       if (MI.getOpcode() == AMDGPU::IMPLICIT_DEF)
         continue;
 
-      DebugLoc DL = MI.getDebugLoc();
+      DebugLoc const DL = MI.getDebugLoc();
       Register SrcReg = MI.getOperand(1).getReg();
       assert(!MI.getOperand(1).getSubReg());
 
       if (!SrcReg.isVirtual() || (!isLaneMaskReg(SrcReg) && !isVreg1(SrcReg))) {
         assert(TII->getRegisterInfo().getRegSizeInBits(SrcReg, *MRI) == 32);
-        unsigned TmpReg = createLaneMaskReg(*MF);
+        unsigned const TmpReg = createLaneMaskReg(*MF);
         BuildMI(MBB, MI, DL, TII->get(AMDGPU::V_CMP_NE_U32_e64), TmpReg)
             .addReg(SrcReg)
             .addImm(0);
@@ -715,7 +715,7 @@ void SILowerI1Copies::lowerCopiesToI1() {
 
       MachineBasicBlock *PostDomBound =
           PDT->findNearestCommonDominator(DomBlocks);
-      unsigned FoundLoopLevel = LF.findLoop(PostDomBound);
+      unsigned const FoundLoopLevel = LF.findLoop(PostDomBound);
       if (FoundLoopLevel) {
         SSAUpdater.Initialize(DstReg);
         SSAUpdater.AddAvailableValue(&MBB, DstReg);
@@ -756,7 +756,7 @@ bool SILowerI1Copies::isConstantLaneMask(Register Reg, bool &Val) const {
   if (!MI->getOperand(1).isImm())
     return false;
 
-  int64_t Imm = MI->getOperand(1).getImm();
+  int64_t const Imm = MI->getOperand(1).getImm();
   if (Imm == 0) {
     Val = false;
     return true;
@@ -817,9 +817,9 @@ void SILowerI1Copies::buildMergeLaneMasks(MachineBasicBlock &MBB,
                                           const DebugLoc &DL, unsigned DstReg,
                                           unsigned PrevReg, unsigned CurReg) {
   bool PrevVal = false;
-  bool PrevConstant = isConstantLaneMask(PrevReg, PrevVal);
+  bool const PrevConstant = isConstantLaneMask(PrevReg, PrevVal);
   bool CurVal = false;
-  bool CurConstant = isConstantLaneMask(CurReg, CurVal);
+  bool const CurConstant = isConstantLaneMask(CurReg, CurVal);
 
   if (PrevConstant && CurConstant) {
     if (PrevVal == CurVal) {

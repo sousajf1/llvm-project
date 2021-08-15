@@ -495,7 +495,7 @@ codegen::InitTargetOptionsFromCodeGenFlags(const Triple &TheTriple) {
   Options.NoSignedZerosFPMath = getEnableNoSignedZerosFPMath();
   Options.NoTrappingFPMath = getEnableNoTrappingFPMath();
 
-  DenormalMode::DenormalModeKind DenormKind = getDenormalFPMath();
+  DenormalMode::DenormalModeKind const DenormKind = getDenormalFPMath();
 
   // FIXME: Should have separate input and output flags
   Options.setFPDenormalMode(DenormalMode(DenormKind, DenormKind));
@@ -608,14 +608,14 @@ void codegen::renderBoolStringAttr(AttrBuilder &B, StringRef Name, bool Val) {
 void codegen::setFunctionAttributes(StringRef CPU, StringRef Features,
                                     Function &F) {
   auto &Ctx = F.getContext();
-  AttributeList Attrs = F.getAttributes();
+  AttributeList const Attrs = F.getAttributes();
   AttrBuilder NewAttrs;
 
   if (!CPU.empty() && !F.hasFnAttribute("target-cpu"))
     NewAttrs.addAttribute("target-cpu", CPU);
   if (!Features.empty()) {
     // Append the command line features to any that are already on the function.
-    StringRef OldFeatures =
+    StringRef const OldFeatures =
         F.getFnAttribute("target-features").getValueAsString();
     if (OldFeatures.empty())
       NewAttrs.addAttribute("target-features", Features);
@@ -648,7 +648,7 @@ void codegen::setFunctionAttributes(StringRef CPU, StringRef Features,
 
   if (DenormalFPMathView->getNumOccurrences() > 0 &&
       !F.hasFnAttribute("denormal-fp-math")) {
-    DenormalMode::DenormalModeKind DenormKind = getDenormalFPMath();
+    DenormalMode::DenormalModeKind const DenormKind = getDenormalFPMath();
 
     // FIXME: Command line flag should expose separate input/output modes.
     NewAttrs.addAttribute("denormal-fp-math",
@@ -658,7 +658,7 @@ void codegen::setFunctionAttributes(StringRef CPU, StringRef Features,
   if (DenormalFP32MathView->getNumOccurrences() > 0 &&
       !F.hasFnAttribute("denormal-fp-math-f32")) {
     // FIXME: Command line flag should expose separate input/output modes.
-    DenormalMode::DenormalModeKind DenormKind = getDenormalFP32Math();
+    DenormalMode::DenormalModeKind const DenormKind = getDenormalFP32Math();
 
     NewAttrs.addAttribute(
       "denormal-fp-math-f32",

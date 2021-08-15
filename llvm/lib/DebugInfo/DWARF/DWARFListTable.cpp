@@ -26,8 +26,8 @@ Error DWARFListTableHeader::extract(DWARFDataExtractor Data,
         errc::invalid_argument, "parsing %s table at offset 0x%" PRIx64 ": %s",
         SectionName.data(), HeaderOffset, toString(std::move(Err)).c_str());
 
-  uint8_t OffsetByteSize = Format == dwarf::DWARF64 ? 8 : 4;
-  uint64_t FullLength =
+  uint8_t const OffsetByteSize = Format == dwarf::DWARF64 ? 8 : 4;
+  uint64_t const FullLength =
       HeaderData.Length + dwarf::getUnitLengthFieldByteSize(Format);
   if (FullLength < getHeaderSize(Format))
     return createStringError(errc::invalid_argument,
@@ -36,7 +36,7 @@ Error DWARFListTableHeader::extract(DWARFDataExtractor Data,
                        ") to contain a complete header",
                        SectionName.data(), HeaderOffset, FullLength);
   assert(FullLength == length() && "Inconsistent calculation of length.");
-  uint64_t End = HeaderOffset + FullLength;
+  uint64_t const End = HeaderOffset + FullLength;
   if (!Data.isValidOffsetForDataOfSize(HeaderOffset, FullLength))
     return createStringError(errc::invalid_argument,
                        "section is not large enough to contain a %s table "
@@ -79,7 +79,7 @@ void DWARFListTableHeader::dump(DataExtractor Data, raw_ostream &OS,
                                 DIDumpOptions DumpOpts) const {
   if (DumpOpts.Verbose)
     OS << format("0x%8.8" PRIx64 ": ", HeaderOffset);
-  int OffsetDumpWidth = 2 * dwarf::getDwarfOffsetByteSize(Format);
+  int const OffsetDumpWidth = 2 * dwarf::getDwarfOffsetByteSize(Format);
   OS << format("%s list header: length = 0x%0*" PRIx64, ListTypeString.data(),
                OffsetDumpWidth, HeaderData.Length)
      << ", format = " << dwarf::FormatString(Format)

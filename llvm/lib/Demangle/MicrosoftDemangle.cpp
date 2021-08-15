@@ -143,7 +143,7 @@ static bool startsWithLocalScopePattern(StringView S) {
   if (!S.consumeFront('?'))
     return false;
 
-  size_t End = S.find('?');
+  size_t const End = S.find('?');
   if (End == StringView::npos)
     return false;
   StringView Candidate = S.substr(0, End);
@@ -279,7 +279,7 @@ Demangler::demangleSpecialTableSymbolNode(StringView &MangledName,
     Error = true;
     return nullptr;
   }
-  char Front = MangledName.popFront();
+  char const Front = MangledName.popFront();
   if (Front != '6' && Front != '7') {
     Error = true;
     return nullptr;
@@ -401,7 +401,7 @@ FunctionSymbolNode *Demangler::demangleInitFiniStub(StringView &MangledName,
     // would omit the leading ? and they would only emit a single @ at the end.
     // The correct mangling is a leading ? and 2 trailing @ signs.  Handle
     // both cases.
-    int AtCount = IsKnownStaticDataMember ? 2 : 1;
+    int const AtCount = IsKnownStaticDataMember ? 2 : 1;
     for (int I = 0; I < AtCount; ++I) {
       if (MangledName.consumeFront('@'))
         continue;
@@ -428,7 +428,7 @@ FunctionSymbolNode *Demangler::demangleInitFiniStub(StringView &MangledName,
 }
 
 SymbolNode *Demangler::demangleSpecialIntrinsic(StringView &MangledName) {
-  SpecialIntrinsicKind SIK = consumeSpecialIntrinsicKind(MangledName);
+  SpecialIntrinsicKind const SIK = consumeSpecialIntrinsicKind(MangledName);
 
   switch (SIK) {
   case SpecialIntrinsicKind::None:
@@ -534,7 +534,7 @@ Demangler::translateIntrinsicFunctionCode(char CH,
   // Not all ? identifiers are intrinsics *functions*.  This function only maps
   // operator codes for the special functions, all others are handled elsewhere,
   // hence the IFK::None entries in the table.
-  static IFK Basic[36] = {
+  static IFK const Basic[36] = {
       IFK::None,             // ?0 # Foo::Foo()
       IFK::None,             // ?1 # Foo::~Foo()
       IFK::New,              // ?2 # operator new
@@ -572,7 +572,7 @@ Demangler::translateIntrinsicFunctionCode(char CH,
       IFK::PlusEqual,        // ?Y operator+=
       IFK::MinusEqual,       // ?Z operator-=
   };
-  static IFK Under[36] = {
+  static IFK const Under[36] = {
       IFK::DivEqual,           // ?_0 operator/=
       IFK::ModEqual,           // ?_1 operator%=
       IFK::RshEqual,           // ?_2 operator>>=
@@ -610,7 +610,7 @@ Demangler::translateIntrinsicFunctionCode(char CH,
       IFK::None,                    // ?_Y <unused>
       IFK::None,                    // ?_Z <unused>
   };
-  static IFK DoubleUnder[36] = {
+  static IFK const DoubleUnder[36] = {
       IFK::None,                       // ?__0 <unused>
       IFK::None,                       // ?__1 <unused>
       IFK::None,                       // ?__2 <unused>
@@ -650,7 +650,7 @@ Demangler::translateIntrinsicFunctionCode(char CH,
       IFK::None,                       // ?__Z <unused>
   };
 
-  int Index = (CH >= '0' && CH <= '9') ? (CH - '0') : (CH - 'A' + 10);
+  int const Index = (CH >= '0' && CH <= '9') ? (CH - '0') : (CH - 'A' + 10);
   switch (Group) {
   case FunctionIdentifierCodeGroup::Basic:
     return Basic[Index];
@@ -671,7 +671,7 @@ Demangler::demangleFunctionIdentifierCode(StringView &MangledName,
   }
   switch (Group) {
   case FunctionIdentifierCodeGroup::Basic:
-    switch (char CH = MangledName.popFront()) {
+    switch (char const CH = MangledName.popFront()) {
     case '0':
     case '1':
       return demangleStructorIdentifier(MangledName, CH == '1');
@@ -685,7 +685,7 @@ Demangler::demangleFunctionIdentifierCode(StringView &MangledName,
     return Arena.alloc<IntrinsicFunctionIdentifierNode>(
         translateIntrinsicFunctionCode(MangledName.popFront(), Group));
   case FunctionIdentifierCodeGroup::DoubleUnder:
-    switch (char CH = MangledName.popFront()) {
+    switch (char const CH = MangledName.popFront()) {
     case 'K':
       return demangleLiteralOperatorIdentifier(MangledName);
     default:
@@ -711,7 +711,7 @@ SymbolNode *Demangler::demangleEncodedSymbol(StringView &MangledName,
   case '2':
   case '3':
   case '4': {
-    StorageClass SC = demangleVariableStorageClass(MangledName);
+    StorageClass const SC = demangleVariableStorageClass(MangledName);
     return demangleVariableEncoding(MangledName, SC);
   }
   }
@@ -756,7 +756,7 @@ SymbolNode *Demangler::demangleMD5Name(StringView &MangledName) {
   // This is an MD5 mangled name.  We can't demangle it, just return the
   // mangled name.
   // An MD5 mangled name is ??@ followed by 32 characters and a terminating @.
-  size_t MD5Last = MangledName.find('@', strlen("??@"));
+  size_t const MD5Last = MangledName.find('@', strlen("??@"));
   if (MD5Last == StringView::npos) {
     Error = true;
     return nullptr;
@@ -776,7 +776,7 @@ SymbolNode *Demangler::demangleMD5Name(StringView &MangledName) {
   //    either.
   MangledName.consumeFront("??_R4@");
 
-  StringView MD5(Start, MangledName.begin());
+  StringView const MD5(Start, MangledName.begin());
   SymbolNode *S = Arena.alloc<SymbolNode>(NodeKind::Md5Symbol);
   S->Name = synthesizeQualifiedName(Arena, MD5);
 
@@ -891,17 +891,17 @@ VariableSymbolNode *Demangler::demangleVariableEncoding(StringView &MangledName,
 //
 // <hex-digit>            ::= [A-P]           # A = 0, B = 1, ...
 std::pair<uint64_t, bool> Demangler::demangleNumber(StringView &MangledName) {
-  bool IsNegative = MangledName.consumeFront('?');
+  bool const IsNegative = MangledName.consumeFront('?');
 
   if (startsWithDigit(MangledName)) {
-    uint64_t Ret = MangledName[0] - '0' + 1;
+    uint64_t const Ret = MangledName[0] - '0' + 1;
     MangledName = MangledName.dropFront(1);
     return {Ret, IsNegative};
   }
 
   uint64_t Ret = 0;
   for (size_t i = 0; i < MangledName.size(); ++i) {
-    char C = MangledName[i];
+    char const C = MangledName[i];
     if (C == '@') {
       MangledName = MangledName.dropFront(i + 1);
       return {Ret, IsNegative};
@@ -932,7 +932,7 @@ int64_t Demangler::demangleSigned(StringView &MangledName) {
   std::tie(Number, IsNegative) = demangleNumber(MangledName);
   if (Number > INT64_MAX)
     Error = true;
-  int64_t I = static_cast<int64_t>(Number);
+  int64_t const I = static_cast<int64_t>(Number);
   return IsNegative ? -I : I;
 }
 
@@ -952,7 +952,7 @@ void Demangler::memorizeString(StringView S) {
 NamedIdentifierNode *Demangler::demangleBackRefName(StringView &MangledName) {
   assert(startsWithDigit(MangledName));
 
-  size_t I = MangledName[0] - '0';
+  size_t const I = MangledName[0] - '0';
   if (I >= Backrefs.NamesCount) {
     Error = true;
     return nullptr;
@@ -973,7 +973,7 @@ void Demangler::memorizeIdentifier(IdentifierNode *Identifier) {
   OS << '\0';
   char *Name = OS.getBuffer();
 
-  StringView Owned = copyString(Name);
+  StringView const Owned = copyString(Name);
   memorizeString(Owned);
   std::free(Name);
 }
@@ -1014,7 +1014,7 @@ Demangler::demangleTemplateInstantiationName(StringView &MangledName,
 
 NamedIdentifierNode *Demangler::demangleSimpleName(StringView &MangledName,
                                                    bool Memorize) {
-  StringView S = demangleSimpleString(MangledName, Memorize);
+  StringView const S = demangleSimpleString(MangledName, Memorize);
   if (Error)
     return nullptr;
 
@@ -1043,39 +1043,39 @@ uint8_t Demangler::demangleCharLiteral(StringView &MangledName) {
     // Two hex digits
     if (MangledName.size() < 2)
       goto CharLiteralError;
-    StringView Nibbles = MangledName.substr(0, 2);
+    StringView const Nibbles = MangledName.substr(0, 2);
     if (!isRebasedHexDigit(Nibbles[0]) || !isRebasedHexDigit(Nibbles[1]))
       goto CharLiteralError;
     // Don't append the null terminator.
-    uint8_t C1 = rebasedHexDigitToNumber(Nibbles[0]);
-    uint8_t C2 = rebasedHexDigitToNumber(Nibbles[1]);
+    uint8_t const C1 = rebasedHexDigitToNumber(Nibbles[0]);
+    uint8_t const C2 = rebasedHexDigitToNumber(Nibbles[1]);
     MangledName = MangledName.dropFront(2);
     return (C1 << 4) | C2;
   }
 
   if (startsWithDigit(MangledName)) {
     const char *Lookup = ",/\\:. \n\t'-";
-    char C = Lookup[MangledName[0] - '0'];
+    char const C = Lookup[MangledName[0] - '0'];
     MangledName = MangledName.dropFront();
     return C;
   }
 
   if (MangledName[0] >= 'a' && MangledName[0] <= 'z') {
-    char Lookup[26] = {'\xE1', '\xE2', '\xE3', '\xE4', '\xE5', '\xE6', '\xE7',
+    char const Lookup[26] = {'\xE1', '\xE2', '\xE3', '\xE4', '\xE5', '\xE6', '\xE7',
                        '\xE8', '\xE9', '\xEA', '\xEB', '\xEC', '\xED', '\xEE',
                        '\xEF', '\xF0', '\xF1', '\xF2', '\xF3', '\xF4', '\xF5',
                        '\xF6', '\xF7', '\xF8', '\xF9', '\xFA'};
-    char C = Lookup[MangledName[0] - 'a'];
+    char const C = Lookup[MangledName[0] - 'a'];
     MangledName = MangledName.dropFront();
     return C;
   }
 
   if (MangledName[0] >= 'A' && MangledName[0] <= 'Z') {
-    char Lookup[26] = {'\xC1', '\xC2', '\xC3', '\xC4', '\xC5', '\xC6', '\xC7',
+    char const Lookup[26] = {'\xC1', '\xC2', '\xC3', '\xC4', '\xC5', '\xC6', '\xC7',
                        '\xC8', '\xC9', '\xCA', '\xCB', '\xCC', '\xCD', '\xCE',
                        '\xCF', '\xD0', '\xD1', '\xD2', '\xD3', '\xD4', '\xD5',
                        '\xD6', '\xD7', '\xD8', '\xD9', '\xDA'};
-    char C = Lookup[MangledName[0] - 'A'];
+    char const C = Lookup[MangledName[0] - 'A'];
     MangledName = MangledName.dropFront();
     return C;
   }
@@ -1217,7 +1217,7 @@ static unsigned guessCharByteSize(const uint8_t *StringBytes, unsigned NumChars,
   // then we encoded the entire string.  In this case we check for a 1-byte,
   // 2-byte, or 4-byte null terminator.
   if (NumBytes < 32) {
-    unsigned TrailingNulls = countTrailingNullBytes(StringBytes, NumChars);
+    unsigned const TrailingNulls = countTrailingNullBytes(StringBytes, NumChars);
     if (TrailingNulls >= 4 && NumBytes % 4 == 0)
       return 4;
     if (TrailingNulls >= 2)
@@ -1231,7 +1231,7 @@ static unsigned guessCharByteSize(const uint8_t *StringBytes, unsigned NumChars,
   // are null, it's a char16.  Otherwise it's a char8.  This obviously isn't
   // perfect and is biased towards languages that have ascii alphabets, but this
   // was always going to be best effort since the encoding is lossy.
-  unsigned Nulls = countEmbeddedNulls(StringBytes, NumChars);
+  unsigned const Nulls = countEmbeddedNulls(StringBytes, NumChars);
   if (Nulls >= 2 * NumChars / 3 && NumBytes % 4 == 0)
     return 4;
   if (Nulls >= NumChars / 3)
@@ -1242,11 +1242,11 @@ static unsigned guessCharByteSize(const uint8_t *StringBytes, unsigned NumChars,
 static unsigned decodeMultiByteChar(const uint8_t *StringBytes,
                                     unsigned CharIndex, unsigned CharBytes) {
   assert(CharBytes == 1 || CharBytes == 2 || CharBytes == 4);
-  unsigned Offset = CharIndex * CharBytes;
+  unsigned const Offset = CharIndex * CharBytes;
   unsigned Result = 0;
   StringBytes = StringBytes + Offset;
   for (unsigned I = 0; I < CharBytes; ++I) {
-    unsigned C = static_cast<unsigned>(StringBytes[I]);
+    unsigned const C = static_cast<unsigned>(StringBytes[I]);
     Result |= C << (8 * I);
   }
   return Result;
@@ -1327,7 +1327,7 @@ Demangler::demangleStringLiteral(StringView &MangledName) {
     while (!MangledName.consumeFront('@')) {
       if (MangledName.size() < 2)
         goto StringLiteralError;
-      wchar_t W = demangleWcharLiteral(MangledName);
+      wchar_t const W = demangleWcharLiteral(MangledName);
       if (StringByteSize != 2 || Result->IsTruncated)
         outputEscapedChar(OS, W);
       StringByteSize -= 2;
@@ -1350,7 +1350,7 @@ Demangler::demangleStringLiteral(StringView &MangledName) {
     if (StringByteSize > BytesDecoded)
       Result->IsTruncated = true;
 
-    unsigned CharBytes =
+    unsigned const CharBytes =
         guessCharByteSize(StringBytes, BytesDecoded, StringByteSize);
     assert(StringByteSize % CharBytes == 0);
     switch (CharBytes) {
@@ -1368,7 +1368,7 @@ Demangler::demangleStringLiteral(StringView &MangledName) {
     }
     const unsigned NumChars = BytesDecoded / CharBytes;
     for (unsigned CharIndex = 0; CharIndex < NumChars; ++CharIndex) {
-      unsigned NextChar =
+      unsigned const NextChar =
           decodeMultiByteChar(StringBytes, CharIndex, CharBytes);
       if (CharIndex + 1 < NumChars || Result->IsTruncated)
         outputEscapedChar(OS, NextChar);
@@ -1416,12 +1416,12 @@ Demangler::demangleAnonymousNamespaceName(StringView &MangledName) {
 
   NamedIdentifierNode *Node = Arena.alloc<NamedIdentifierNode>();
   Node->Name = "`anonymous namespace'";
-  size_t EndPos = MangledName.find('@');
+  size_t const EndPos = MangledName.find('@');
   if (EndPos == StringView::npos) {
     Error = true;
     return nullptr;
   }
-  StringView NamespaceKey = MangledName.substr(0, EndPos);
+  StringView const NamespaceKey = MangledName.substr(0, EndPos);
   memorizeString(NamespaceKey);
   MangledName = MangledName.substr(EndPos + 1);
   return Node;
@@ -1844,7 +1844,7 @@ FunctionSignatureNode *Demangler::demangleFunctionType(StringView &MangledName,
 
   // <return-type> ::= <type>
   //               ::= @ # structors (they have no declared return type)
-  bool IsStructor = MangledName.consumeFront('@');
+  bool const IsStructor = MangledName.consumeFront('@');
   if (!IsStructor)
     FTy->ReturnType = demangleType(MangledName, QualifierMangleMode::Result);
 
@@ -1890,7 +1890,7 @@ Demangler::demangleFunctionEncoding(StringView &MangledName) {
     // "C" function.
     FSN = Arena.alloc<FunctionSignatureNode>();
   } else {
-    bool HasThisQuals = !(FC & (FC_Global | FC_Static));
+    bool const HasThisQuals = !(FC & (FC_Global | FC_Static));
     FSN = demangleFunctionType(MangledName, HasThisQuals);
   }
 
@@ -2022,7 +2022,7 @@ PointerTypeNode *Demangler::demanglePointerType(StringView &MangledName) {
     return Pointer;
   }
 
-  Qualifiers ExtQuals = demanglePointerExtQualifiers(MangledName);
+  Qualifiers const ExtQuals = demanglePointerExtQualifiers(MangledName);
   Pointer->Quals = Qualifiers(Pointer->Quals | ExtQuals);
 
   Pointer->Pointee = demangleType(MangledName, QualifierMangleMode::Mangle);
@@ -2036,7 +2036,7 @@ PointerTypeNode *Demangler::demangleMemberPointerType(StringView &MangledName) {
       demanglePointerCVQualifiers(MangledName);
   assert(Pointer->Affinity == PointerAffinity::Pointer);
 
-  Qualifiers ExtQuals = demanglePointerExtQualifiers(MangledName);
+  Qualifiers const ExtQuals = demanglePointerExtQualifiers(MangledName);
   Pointer->Quals = Qualifiers(Pointer->Quals | ExtQuals);
 
   // isMemberPointer() only returns true if there is at least one character
@@ -2130,7 +2130,7 @@ NodeArrayNode *Demangler::demangleFunctionParameterList(StringView &MangledName,
     ++Count;
 
     if (startsWithDigit(MangledName)) {
-      size_t N = MangledName[0] - '0';
+      size_t const N = MangledName[0] - '0';
       if (N >= Backrefs.FunctionParamCount) {
         Error = true;
         return nullptr;
@@ -2143,7 +2143,7 @@ NodeArrayNode *Demangler::demangleFunctionParameterList(StringView &MangledName,
       continue;
     }
 
-    size_t OldSize = MangledName.size();
+    size_t const OldSize = MangledName.size();
 
     *Current = Arena.alloc<NodeList>();
     TypeNode *TN = demangleType(MangledName, QualifierMangleMode::Drop);
@@ -2152,7 +2152,7 @@ NodeArrayNode *Demangler::demangleFunctionParameterList(StringView &MangledName,
 
     (*Current)->N = TN;
 
-    size_t CharsConsumed = OldSize - MangledName.size();
+    size_t const CharsConsumed = OldSize - MangledName.size();
     assert(CharsConsumed != 0);
 
     // Single-letter types are ignored for backreferences because memorizing
@@ -2222,7 +2222,7 @@ Demangler::demangleTemplateParameterList(StringView &MangledName) {
       // H - multiple inheritance     <name> <number>
       // I - virtual inheritance      <name> <number> <number>
       // J - unspecified inheritance  <name> <number> <number> <number>
-      char InheritanceSpecifier = MangledName.popFront();
+      char const InheritanceSpecifier = MangledName.popFront();
       SymbolNode *S = nullptr;
       if (MangledName.startsWith('?')) {
         S = parse(MangledName);
@@ -2264,7 +2264,7 @@ Demangler::demangleTemplateParameterList(StringView &MangledName) {
 
       // Data member pointer.
       MangledName = MangledName.dropFront();
-      char InheritanceSpecifier = MangledName.popFront();
+      char const InheritanceSpecifier = MangledName.popFront();
 
       switch (InheritanceSpecifier) {
       case 'G':

@@ -101,7 +101,7 @@ extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializeBPFTargetMC() {
   for (Target *T :
        {&getTheBPFleTarget(), &getTheBPFbeTarget(), &getTheBPFTarget()}) {
     // Register the MC asm info.
-    RegisterMCAsmInfo<BPFMCAsmInfo> X(*T);
+    RegisterMCAsmInfo<BPFMCAsmInfo> const X(*T);
 
     // Register the MC instruction info.
     TargetRegistry::RegisterMCInstrInfo(*T, createBPFMCInstrInfo);

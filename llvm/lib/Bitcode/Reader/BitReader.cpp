@@ -36,7 +36,7 @@ LLVMBool LLVMParseBitcodeInContext(LLVMContextRef ContextRef,
                                    LLVMMemoryBufferRef MemBuf,
                                    LLVMModuleRef *OutModule,
                                    char **OutMessage) {
-  MemoryBufferRef Buf = unwrap(MemBuf)->getMemBufferRef();
+  MemoryBufferRef const Buf = unwrap(MemBuf)->getMemBufferRef();
   LLVMContext &Ctx = *unwrap(ContextRef);
 
   Expected<std::unique_ptr<Module>> ModuleOrErr = parseBitcodeFile(Buf, Ctx);
@@ -58,7 +58,7 @@ LLVMBool LLVMParseBitcodeInContext(LLVMContextRef ContextRef,
 LLVMBool LLVMParseBitcodeInContext2(LLVMContextRef ContextRef,
                                     LLVMMemoryBufferRef MemBuf,
                                     LLVMModuleRef *OutModule) {
-  MemoryBufferRef Buf = unwrap(MemBuf)->getMemBufferRef();
+  MemoryBufferRef const Buf = unwrap(MemBuf)->getMemBufferRef();
   LLVMContext &Ctx = *unwrap(ContextRef);
 
   ErrorOr<std::unique_ptr<Module>> ModuleOrErr =

@@ -156,7 +156,7 @@ void llvm::LowerARMMachineInstrToMCInst(const MachineInstr *MI, MCInst &OutMI,
     MCOperand MCOp;
     if (AP.lowerOperand(MO, MCOp)) {
       if (MCOp.isImm() && EncodeImms) {
-        int32_t Enc = ARM_AM::getSOImmVal(MCOp.getImm());
+        int32_t const Enc = ARM_AM::getSOImmVal(MCOp.getImm());
         if (Enc != -1)
           MCOp.setImm(Enc);
       }

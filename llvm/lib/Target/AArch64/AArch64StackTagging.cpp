@@ -121,7 +121,7 @@ public:
   }
 
   bool addStore(uint64_t Offset, StoreInst *SI, const DataLayout *DL) {
-    int64_t StoreSize = DL->getTypeStoreSize(SI->getOperand(0)->getType());
+    int64_t const StoreSize = DL->getTypeStoreSize(SI->getOperand(0)->getType());
     if (!addRange(Offset, Offset + StoreSize, SI))
       return false;
     IRBuilder<> IRB(SI);
@@ -130,7 +130,7 @@ public:
   }
 
   bool addMemSet(uint64_t Offset, MemSetInst *MSI) {
-    uint64_t StoreSize = cast<ConstantInt>(MSI->getLength())->getZExtValue();
+    uint64_t const StoreSize = cast<ConstantInt>(MSI->getLength())->getZExtValue();
     if (!addRange(Offset, Offset + StoreSize, MSI))
       return false;
     IRBuilder<> IRB(MSI);
@@ -148,10 +148,10 @@ public:
       return;
     for (int64_t Offset = Start - Start % 8; Offset < End; Offset += 8) {
       uint64_t Cst = 0x0101010101010101UL;
-      int LowBits = Offset < Start ? (Start - Offset) * 8 : 0;
+      int const LowBits = Offset < Start ? (Start - Offset) * 8 : 0;
       if (LowBits)
         Cst = (Cst >> LowBits) << LowBits;
-      int HighBits = End - Offset < 8 ? (8 - (End - Offset)) * 8 : 0;
+      int const HighBits = End - Offset < 8 ? (8 - (End - Offset)) * 8 : 0;
       if (HighBits)
         Cst = (Cst << HighBits) >> HighBits;
       ConstantInt *C =
@@ -270,7 +270,7 @@ public:
       LLVMContext &Ctx = IRB.getContext();
       Type *EltTy = VecTy->getElementType();
       if (EltTy->isPointerTy()) {
-        uint32_t EltSize = DL->getTypeSizeInBits(EltTy);
+        uint32_t const EltSize = DL->getTypeSizeInBits(EltTy);
         auto *NewTy = FixedVectorType::get(
             IntegerType::get(Ctx, EltSize),
             cast<FixedVectorType>(VecTy)->getNumElements());
@@ -358,7 +358,7 @@ Instruction *AArch64StackTagging::collectInitializers(Instruction *StartInst,
                                                       Value *StartPtr,
                                                       uint64_t Size,
                                                       InitializerBuilder &IB) {
-  MemoryLocation AllocaLoc{StartPtr, Size};
+  MemoryLocation const AllocaLoc{StartPtr, Size};
   Instruction *LastInst = StartInst;
   BasicBlock::iterator BI(StartInst);
 
@@ -416,7 +416,7 @@ Instruction *AArch64StackTagging::collectInitializers(Instruction *StartInst,
 
 bool AArch64StackTagging::isInterestingAlloca(const AllocaInst &AI) {
   // FIXME: support dynamic allocas
-  bool IsInteresting =
+  bool const IsInteresting =
       AI.getAllocatedType()->isSized() && AI.isStaticAlloca() &&
       // alloca() may be called with 0 size, ignore it.
       AI.getAllocationSizeInBits(*DL).getValue() > 0 &&
@@ -438,7 +438,7 @@ void AArch64StackTagging::tagAlloca(AllocaInst *AI, Instruction *InsertBefore,
       Intrinsic::getDeclaration(F->getParent(), Intrinsic::aarch64_stgp);
 
   InitializerBuilder IB(Size, DL, Ptr, SetTagFunc, SetTagZeroFunc, StgpFunc);
-  bool LittleEndian =
+  bool const LittleEndian =
       Triple(AI->getModule()->getTargetTriple()).isLittleEndian();
   // Current implementation of initializer merging assumes little endianness.
   if (MergeInit && !F->hasOptNone() && LittleEndian &&
@@ -491,8 +491,8 @@ void AArch64StackTagging::alignAndPadAlloca(AllocaInfo &Info) {
       max(MaybeAlign(Info.AI->getAlignment()), kTagGranuleSize);
   Info.AI->setAlignment(NewAlignment);
 
-  uint64_t Size = Info.AI->getAllocationSizeInBits(*DL).getValue() / 8;
-  uint64_t AlignedSize = alignTo(Size, kTagGranuleSize);
+  uint64_t const Size = Info.AI->getAllocationSizeInBits(*DL).getValue() / 8;
+  uint64_t const AlignedSize = alignTo(Size, kTagGranuleSize);
   if (Size == AlignedSize)
     return;
 
@@ -654,7 +654,7 @@ bool AArch64StackTagging::runOnFunction(Function &Fn) {
           !forAllReachableExits(*DT, *PDT, Start, End, RetVec, TagEnd))
         End->eraseFromParent();
     } else {
-      uint64_t Size = Info.AI->getAllocationSizeInBits(*DL).getValue() / 8;
+      uint64_t const Size = Info.AI->getAllocationSizeInBits(*DL).getValue() / 8;
       Value *Ptr = IRB.CreatePointerCast(TagPCall, IRB.getInt8PtrTy());
       tagAlloca(AI, &*IRB.GetInsertPoint(), Ptr, Size);
       for (auto &RI : RetVec) {

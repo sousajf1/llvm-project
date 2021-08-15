@@ -15,7 +15,7 @@ using namespace llvm;
 PreservedAnalyses
 LoopAccessInfoPrinterPass::run(Loop &L, LoopAnalysisManager &AM,
                                LoopStandardAnalysisResults &AR, LPMUpdater &) {
-  Function &F = *L.getHeader()->getParent();
+  Function  const&F = *L.getHeader()->getParent();
   auto &LAI = AM.getResult<LoopAccessAnalysis>(L, AR);
   OS << "Loop access info in function '" << F.getName() << "':\n";
   OS.indent(2) << L.getHeader()->getName() << ":\n";

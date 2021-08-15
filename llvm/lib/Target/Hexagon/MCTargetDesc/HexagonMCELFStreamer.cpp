@@ -90,7 +90,7 @@ void HexagonMCELFStreamer::HexagonMCEmitCommonSymbol(MCSymbol *Symbol,
                                                      unsigned ByteAlignment,
                                                      unsigned AccessSize) {
   getAssembler().registerSymbol(*Symbol);
-  StringRef sbss[4] = {".sbss.1", ".sbss.2", ".sbss.4", ".sbss.8"};
+  StringRef const sbss[4] = {".sbss.1", ".sbss.2", ".sbss.4", ".sbss.8"};
 
   auto ELFSymbol = cast<MCSymbolELF>(Symbol);
   if (!ELFSymbol->isBindingSet()) {
@@ -101,13 +101,13 @@ void HexagonMCELFStreamer::HexagonMCEmitCommonSymbol(MCSymbol *Symbol,
   ELFSymbol->setType(ELF::STT_OBJECT);
 
   if (ELFSymbol->getBinding() == ELF::STB_LOCAL) {
-    StringRef SectionName =
+    StringRef const SectionName =
         ((AccessSize == 0) || (Size == 0) || (Size > GPSize))
             ? ".bss"
             : sbss[(Log2_64(AccessSize))];
     MCSection &Section = *getAssembler().getContext().getELFSection(
         SectionName, ELF::SHT_NOBITS, ELF::SHF_WRITE | ELF::SHF_ALLOC);
-    MCSectionSubPair P = getCurrentSection();
+    MCSectionSubPair const P = getCurrentSection();
     SwitchSection(&Section);
 
     if (ELFSymbol->isUndefined()) {
@@ -126,7 +126,7 @@ void HexagonMCELFStreamer::HexagonMCEmitCommonSymbol(MCSymbol *Symbol,
       report_fatal_error("Symbol: " + Symbol->getName() +
                          " redeclared as different type");
     if ((AccessSize) && (Size <= GPSize)) {
-      uint64_t SectionIndex =
+      uint64_t const SectionIndex =
           (AccessSize <= GPSize)
               ? ELF::SHN_HEXAGON_SCOMMON + (Log2_64(AccessSize) + 1)
               : (unsigned)ELF::SHN_HEXAGON_SCOMMON;

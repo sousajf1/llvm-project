@@ -116,9 +116,9 @@ Expected<NewArchiveMember> NewArchiveMember::getFile(StringRef FileName,
 
 template <typename T>
 static void printWithSpacePadding(raw_ostream &OS, T Data, unsigned Size) {
-  uint64_t OldPos = OS.tell();
+  uint64_t const OldPos = OS.tell();
   OS << Data;
-  unsigned SizeSoFar = OS.tell() - OldPos;
+  unsigned const SizeSoFar = OS.tell() - OldPos;
   assert(SizeSoFar <= Size && "Data doesn't fit in Size");
   OS.indent(Size - SizeSoFar);
 }
@@ -177,10 +177,10 @@ static void
 printBSDMemberHeader(raw_ostream &Out, uint64_t Pos, StringRef Name,
                      const sys::TimePoint<std::chrono::seconds> &ModTime,
                      unsigned UID, unsigned GID, unsigned Perms, uint64_t Size) {
-  uint64_t PosAfterHeader = Pos + 60 + Name.size();
+  uint64_t const PosAfterHeader = Pos + 60 + Name.size();
   // Pad so that even 64 bit object files are aligned.
   unsigned Pad = offsetToAlignment(PosAfterHeader, Align(8));
-  unsigned NameWithPadding = Name.size() + Pad;
+  unsigned const NameWithPadding = Name.size() + Pad;
   printWithSpacePadding(Out, Twine("#1/") + Twine(NameWithPadding), 16);
   printRestOfMemberHeader(Out, ModTime, UID, GID, Perms,
                           NameWithPadding + Size);
@@ -245,8 +245,8 @@ struct MemberData {
 } // namespace
 
 static MemberData computeStringTable(StringRef Names) {
-  unsigned Size = Names.size();
-  unsigned Pad = offsetToAlignment(Size, Align(2));
+  unsigned const Size = Names.size();
+  unsigned const Pad = offsetToAlignment(Size, Align(2));
   std::string Header;
   raw_string_ostream Out(Header);
   printWithSpacePadding(Out, "//", 48);
@@ -303,7 +303,7 @@ static uint64_t computeSymbolTableSize(object::Archive::Kind Kind,
   // least 4-byte aligned for 32-bit content.  Opt for the larger encoding
   // uniformly.
   // We do this for all bsd formats because it simplifies aligning members.
-  uint32_t Pad = offsetToAlignment(Size, Align(isBSDLike(Kind) ? 8 : 2));
+  uint32_t const Pad = offsetToAlignment(Size, Align(isBSDLike(Kind) ? 8 : 2));
   Size += Pad;
   if (Padding)
     *Padding = Pad;
@@ -334,9 +334,9 @@ static void writeSymbolTable(raw_ostream &Out, object::Archive::Kind Kind,
   for (const MemberData &M : Members)
     NumSyms += M.Symbols.size();
 
-  uint64_t OffsetSize = is64BitKind(Kind) ? 8 : 4;
+  uint64_t const OffsetSize = is64BitKind(Kind) ? 8 : 4;
   uint32_t Pad;
-  uint64_t Size = computeSymbolTableSize(Kind, NumSyms, OffsetSize, StringTable, &Pad);
+  uint64_t const Size = computeSymbolTableSize(Kind, NumSyms, OffsetSize, StringTable, &Pad);
   writeSymbolTableHeader(Out, Kind, Deterministic, Size);
 
   uint64_t Pos = Out.tell() + Size;
@@ -347,7 +347,7 @@ static void writeSymbolTable(raw_ostream &Out, object::Archive::Kind Kind,
     printNBits(Out, Kind, NumSyms);
 
   for (const MemberData &M : Members) {
-    for (unsigned StringOffset : M.Symbols) {
+    for (unsigned const StringOffset : M.Symbols) {
       if (isBSDLike(Kind))
         printNBits(Out, Kind, StringOffset);
       printNBits(Out, Kind, Pos); // member offset
@@ -461,7 +461,7 @@ computeMemberData(raw_ostream &StringTable, raw_ostream &SymNames,
   // See also the functions that handle the lookup:
   // in lldb: ObjectContainerBSDArchive::Archive::FindObject()
   // in llvm/tools/dsymutil: BinaryHolder::GetArchiveMemberBuffers().
-  bool UniqueTimestamps = Deterministic && isDarwin(Kind);
+  bool const UniqueTimestamps = Deterministic && isDarwin(Kind);
   std::map<StringRef, unsigned> FilenameCount;
   if (UniqueTimestamps) {
     for (const NewArchiveMember &M : NewMembers)
@@ -474,18 +474,18 @@ computeMemberData(raw_ostream &StringTable, raw_ostream &SymNames,
     std::string Header;
     raw_string_ostream Out(Header);
 
-    MemoryBufferRef Buf = M.Buf->getMemBufferRef();
-    StringRef Data = Thin ? "" : Buf.getBuffer();
+    MemoryBufferRef const Buf = M.Buf->getMemBufferRef();
+    StringRef const Data = Thin ? "" : Buf.getBuffer();
 
     // ld64 expects the members to be 8-byte aligned for 64-bit content and at
     // least 4-byte aligned for 32-bit content.  Opt for the larger encoding
     // uniformly.  This matches the behaviour with cctools and ensures that ld64
     // is happy with archives that we generate.
-    unsigned MemberPadding =
+    unsigned const MemberPadding =
         isDarwin(Kind) ? offsetToAlignment(Data.size(), Align(8)) : 0;
-    unsigned TailPadding =
+    unsigned const TailPadding =
         offsetToAlignment(Data.size() + MemberPadding, Align(2));
-    StringRef Padding = StringRef(PaddingData, MemberPadding + TailPadding);
+    StringRef const Padding = StringRef(PaddingData, MemberPadding + TailPadding);
 
     sys::TimePoint<std::chrono::seconds> ModTime;
     if (UniqueTimestamps)
@@ -494,9 +494,9 @@ computeMemberData(raw_ostream &StringTable, raw_ostream &SymNames,
     else
       ModTime = M.ModTime;
 
-    uint64_t Size = Buf.getBufferSize() + MemberPadding;
+    uint64_t const Size = Buf.getBufferSize() + MemberPadding;
     if (Size > object::Archive::MaxMemberSize) {
-      std::string StringMsg =
+      std::string const StringMsg =
           "File " + M.MemberName.str() + " exceeds size limit";
       return make_error<object::GenericBinaryError>(
           std::move(StringMsg), object::object_error::parse_failed);
@@ -604,7 +604,7 @@ static Error writeArchiveToStream(raw_ostream &Out,
     }
 
     // We assume 32-bit offsets to see if 32-bit symbols are possible or not.
-    uint64_t SymtabSize = computeSymbolTableSize(Kind, NumSyms, 4, SymNamesBuf);
+    uint64_t const SymtabSize = computeSymbolTableSize(Kind, NumSyms, 4, SymNamesBuf);
     auto computeSymbolTableHeaderSize =
         [=] {
           SmallString<0> TmpBuf;

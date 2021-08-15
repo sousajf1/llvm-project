@@ -257,7 +257,7 @@ unsigned SparcInstrInfo::insertBranch(MachineBasicBlock &MBB,
   }
 
   // Conditional branch
-  unsigned CC = Cond[0].getImm();
+  unsigned const CC = Cond[0].getImm();
 
   if (IsIntegerCC(CC))
     BuildMI(&MBB, DL, get(SP::BCOND)).addMBB(TBB).addImm(CC);
@@ -297,7 +297,7 @@ unsigned SparcInstrInfo::removeBranch(MachineBasicBlock &MBB,
 bool SparcInstrInfo::reverseBranchCondition(
     SmallVectorImpl<MachineOperand> &Cond) const {
   assert(Cond.size() == 1);
-  SPCC::CondCodes CC = static_cast<SPCC::CondCodes>(Cond[0].getImm());
+  SPCC::CondCodes const CC = static_cast<SPCC::CondCodes>(Cond[0].getImm());
   Cond[0].setImm(GetOppositeBranchCondition(CC));
   return false;
 }
@@ -375,11 +375,11 @@ void SparcInstrInfo::copyPhysReg(MachineBasicBlock &MBB,
   MachineInstr *MovMI = nullptr;
 
   for (unsigned i = 0; i != numSubRegs; ++i) {
-    Register Dst = TRI->getSubReg(DestReg, subRegIdx[i]);
-    Register Src = TRI->getSubReg(SrcReg, subRegIdx[i]);
+    Register const Dst = TRI->getSubReg(DestReg, subRegIdx[i]);
+    Register const Src = TRI->getSubReg(SrcReg, subRegIdx[i]);
     assert(Dst && Src && "Bad sub-register");
 
-    MachineInstrBuilder MIB = BuildMI(MBB, I, DL, get(movOpc), Dst);
+    MachineInstrBuilder const MIB = BuildMI(MBB, I, DL, get(movOpc), Dst);
     if (ExtraG0)
       MIB.addReg(SP::G0);
     MIB.addReg(Src);
@@ -476,14 +476,14 @@ Register SparcInstrInfo::getGlobalBaseReg(MachineFunction *MF) const {
 
   // Insert the set of GlobalBaseReg into the first MBB of the function
   MachineBasicBlock &FirstMBB = MF->front();
-  MachineBasicBlock::iterator MBBI = FirstMBB.begin();
+  MachineBasicBlock::iterator const MBBI = FirstMBB.begin();
   MachineRegisterInfo &RegInfo = MF->getRegInfo();
 
   const TargetRegisterClass *PtrRC =
     Subtarget.is64Bit() ? &SP::I64RegsRegClass : &SP::IntRegsRegClass;
   GlobalBaseReg = RegInfo.createVirtualRegister(PtrRC);
 
-  DebugLoc dl;
+  DebugLoc const dl;
 
   BuildMI(FirstMBB, MBBI, dl, get(SP::GETPCX), GlobalBaseReg);
   SparcFI->setGlobalBaseReg(GlobalBaseReg);

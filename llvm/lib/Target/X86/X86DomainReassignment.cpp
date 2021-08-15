@@ -151,7 +151,7 @@ public:
   bool convertInstr(MachineInstr *MI, const TargetInstrInfo *TII,
                     MachineRegisterInfo *MRI) const override {
     assert(isLegal(MI, TII) && "Cannot convert instruction");
-    MachineInstrBuilder Bld =
+    MachineInstrBuilder const Bld =
         BuildMI(*MI->getParent(), MI, MI->getDebugLoc(), TII->get(DstOpcode));
     // Transfer explicit operands from original instruction. Implicit operands
     // are handled by BuildMI.
@@ -182,10 +182,10 @@ public:
     MachineBasicBlock *MBB = MI->getParent();
     const DebugLoc &DL = MI->getDebugLoc();
 
-    Register Reg = MRI->createVirtualRegister(
+    Register const Reg = MRI->createVirtualRegister(
         TII->getRegClass(TII->get(DstOpcode), 0, MRI->getTargetRegisterInfo(),
                          *MBB->getParent()));
-    MachineInstrBuilder Bld = BuildMI(*MBB, MI, DL, TII->get(DstOpcode), Reg);
+    MachineInstrBuilder const Bld = BuildMI(*MBB, MI, DL, TII->get(DstOpcode), Reg);
     for (unsigned Idx = 1, End = MI->getNumOperands(); Idx < End; ++Idx)
       Bld.add(MI->getOperand(Idx));
 
@@ -219,11 +219,11 @@ public:
 
     // Don't allow copies to/flow GR8/GR16 physical registers.
     // FIXME: Is there some better way to support this?
-    Register DstReg = MI->getOperand(0).getReg();
+    Register const DstReg = MI->getOperand(0).getReg();
     if (DstReg.isPhysical() && (X86::GR8RegClass.contains(DstReg) ||
                                 X86::GR16RegClass.contains(DstReg)))
       return false;
-    Register SrcReg = MI->getOperand(1).getReg();
+    Register const SrcReg = MI->getOperand(1).getReg();
     if (SrcReg.isPhysical() && (X86::GR8RegClass.contains(SrcReg) ||
                                 X86::GR16RegClass.contains(SrcReg)))
       return false;
@@ -242,7 +242,7 @@ public:
       if (Register::isPhysicalRegister(MO.getReg()))
         return 1;
 
-      RegDomain OpDomain = getDomain(MRI->getRegClass(MO.getReg()),
+      RegDomain const OpDomain = getDomain(MRI->getRegClass(MO.getReg()),
                                      MRI->getTargetRegisterInfo());
       // Converting a cross domain COPY to a same domain COPY should eliminate
       // an insturction
@@ -312,7 +312,7 @@ private:
 
 public:
   Closure(unsigned ID, std::initializer_list<RegDomain> LegalDstDomainList) : ID(ID) {
-    for (RegDomain D : LegalDstDomainList)
+    for (RegDomain const D : LegalDstDomainList)
       LegalDstDomains.set(D);
   }
 
@@ -348,7 +348,7 @@ public:
   LLVM_DUMP_METHOD void dump(const MachineRegisterInfo *MRI) const {
     dbgs() << "Registers: ";
     bool First = true;
-    for (Register Reg : Edges) {
+    for (Register const Reg : Edges) {
       if (!First)
         dbgs() << ", ";
       First = false;
@@ -438,7 +438,7 @@ void X86DomainReassignment::visitRegister(Closure &C, Register Reg,
   if (!MRI->hasOneDef(Reg))
     return;
 
-  RegDomain RD = getDomain(MRI->getRegClass(Reg), MRI->getTargetRegisterInfo());
+  RegDomain const RD = getDomain(MRI->getRegClass(Reg), MRI->getTargetRegisterInfo());
   // First edge in closure sets the domain.
   if (Domain == NoDomain)
     Domain = RD;
@@ -503,7 +503,7 @@ void X86DomainReassignment::reassign(const Closure &C, RegDomain Domain) const {
 
   // Iterate all registers in the closure, replace them with registers in the
   // destination domain.
-  for (Register Reg : C.edges()) {
+  for (Register const Reg : C.edges()) {
     MRI->setRegClass(Reg, getDstRC(MRI->getRegClass(Reg), Domain));
     for (auto &MO : MRI->use_operands(Reg)) {
       if (MO.isReg())
@@ -545,7 +545,7 @@ void X86DomainReassignment::buildClosure(Closure &C, Register Reg) {
   RegDomain Domain = NoDomain;
   visitRegister(C, Reg, Domain, Worklist);
   while (!Worklist.empty()) {
-    unsigned CurReg = Worklist.pop_back_val();
+    unsigned const CurReg = Worklist.pop_back_val();
 
     // Register already in this closure.
     if (!C.insertEdge(CurReg))
@@ -558,7 +558,7 @@ void X86DomainReassignment::buildClosure(Closure &C, Register Reg) {
     // Add register used by the defining MI to the worklist.
     // Do not add registers which are used in address calculation, they will be
     // added to a different closure.
-    int OpEnd = DefMI->getNumOperands();
+    int const OpEnd = DefMI->getNumOperands();
     const MCInstrDesc &Desc = DefMI->getDesc();
     int MemOp = X86II::getMemoryOperandNo(Desc.TSFlags);
     if (MemOp != -1)
@@ -589,7 +589,7 @@ void X86DomainReassignment::buildClosure(Closure &C, Register Reg) {
         if (!DefOp.isReg())
           continue;
 
-        Register DefReg = DefOp.getReg();
+        Register const DefReg = DefOp.getReg();
         if (!DefReg.isVirtual()) {
           C.setAllIllegal();
           continue;
@@ -749,7 +749,7 @@ bool X86DomainReassignment::runOnMachineFunction(MachineFunction &MF) {
   // Go over all virtual registers and calculate a closure.
   unsigned ClosureID = 0;
   for (unsigned Idx = 0; Idx < MRI->getNumVirtRegs(); ++Idx) {
-    Register Reg = Register::index2VirtReg(Idx);
+    Register const Reg = Register::index2VirtReg(Idx);
 
     // GPR only current source domain supported.
     if (!isGPR(MRI->getRegClass(Reg)))
@@ -768,7 +768,7 @@ bool X86DomainReassignment::runOnMachineFunction(MachineFunction &MF) {
       Closures.push_back(std::move(C));
   }
 
-  for (Closure &C : Closures) {
+  for (Closure  const&C : Closures) {
     LLVM_DEBUG(C.dump(MRI));
     if (isReassignmentProfitable(C, MaskDomain)) {
       reassign(C, MaskDomain);

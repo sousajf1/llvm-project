@@ -39,10 +39,10 @@ StringRef::size_type llvm::StrInStrNoCase(StringRef s1, StringRef s2) {
 std::pair<StringRef, StringRef> llvm::getToken(StringRef Source,
                                                StringRef Delimiters) {
   // Figure out where the token starts.
-  StringRef::size_type Start = Source.find_first_not_of(Delimiters);
+  StringRef::size_type const Start = Source.find_first_not_of(Delimiters);
 
   // Find the next occurrence of the delimiter.
-  StringRef::size_type End = Source.find_first_of(Delimiters, Start);
+  StringRef::size_type const End = Source.find_first_of(Delimiters, Start);
 
   return std::make_pair(Source.slice(Start, End), Source.substr(End));
 }
@@ -61,7 +61,7 @@ void llvm::SplitString(StringRef Source,
 
 void llvm::printEscapedString(StringRef Name, raw_ostream &Out) {
   for (unsigned i = 0, e = Name.size(); i != e; ++i) {
-    unsigned char C = Name[i];
+    unsigned char const C = Name[i];
     if (C == '\\')
       Out << '\\' << C;
     else if (isPrint(C) && C != '"')
@@ -72,7 +72,7 @@ void llvm::printEscapedString(StringRef Name, raw_ostream &Out) {
 }
 
 void llvm::printHTMLEscaped(StringRef String, raw_ostream &Out) {
-  for (char C : String) {
+  for (char const C : String) {
     if (C == '&')
       Out << "&amp;";
     else if (C == '<')
@@ -99,7 +99,7 @@ std::string llvm::convertToSnakeFromCamelCase(StringRef input) {
 
   std::string snakeCase;
   snakeCase.reserve(input.size());
-  for (char c : input) {
+  for (char const c : input) {
     if (!std::isupper(c)) {
       snakeCase.push_back(c);
       continue;

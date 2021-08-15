@@ -113,7 +113,7 @@ void WebAssemblyInstPrinter::printInst(const MCInst *MI, uint64_t Address,
   if (CommentStream) {
     // Observe any effects on the control flow stack, for use in annotating
     // control flow label references.
-    unsigned Opc = MI->getOpcode();
+    unsigned const Opc = MI->getOpcode();
     switch (Opc) {
     default:
       break;
@@ -217,7 +217,7 @@ void WebAssemblyInstPrinter::printInst(const MCInst *MI, uint64_t Address,
                             ": ";
         TryStack.pop_back();
         EHInstStack.pop_back();
-        uint64_t Depth = MI->getOperand(0).getImm();
+        uint64_t const Depth = MI->getOperand(0).getImm();
         if (Depth >= ControlFlowStack.size()) {
           Label += "to caller";
         } else {
@@ -234,7 +234,7 @@ void WebAssemblyInstPrinter::printInst(const MCInst *MI, uint64_t Address,
 
     // Annotate any control flow label references.
 
-    unsigned NumFixedOperands = Desc.NumOperands;
+    unsigned const NumFixedOperands = Desc.NumOperands;
     SmallSet<uint64_t, 8> Printed;
     for (unsigned I = 0, E = MI->getNumOperands(); I < E; ++I) {
       // See if this operand denotes a basic block target.
@@ -250,7 +250,7 @@ void WebAssemblyInstPrinter::printInst(const MCInst *MI, uint64_t Address,
         if (!MI->getOperand(I).isImm())
           continue;
       }
-      uint64_t Depth = MI->getOperand(I).getImm();
+      uint64_t const Depth = MI->getOperand(I).getImm();
       if (!Printed.insert(Depth).second)
         continue;
       if (Depth >= ControlFlowStack.size()) {
@@ -270,7 +270,7 @@ static std::string toString(const APFloat &FP) {
   if (FP.isNaN() && !FP.bitwiseIsEqual(APFloat::getQNaN(FP.getSemantics())) &&
       !FP.bitwiseIsEqual(
           APFloat::getQNaN(FP.getSemantics(), /*Negative=*/true))) {
-    APInt AI = FP.bitcastToAPInt();
+    APInt const AI = FP.bitcastToAPInt();
     return std::string(AI.isNegative() ? "-" : "") + "nan:0x" +
            utohexstr(AI.getZExtValue() &
                          (AI.getBitWidth() == 32 ? INT64_C(0x007fffff)
@@ -294,7 +294,7 @@ void WebAssemblyInstPrinter::printOperand(const MCInst *MI, unsigned OpNo,
   const MCOperand &Op = MI->getOperand(OpNo);
   if (Op.isReg()) {
     const MCInstrDesc &Desc = MII.get(MI->getOpcode());
-    unsigned WAReg = Op.getReg();
+    unsigned const WAReg = Op.getReg();
     if (int(WAReg) >= 0)
       printRegName(O, WAReg);
     else if (OpNo >= Desc.getNumDefs() && !IsVariadicDef)
@@ -341,7 +341,7 @@ void WebAssemblyInstPrinter::printBrList(const MCInst *MI, unsigned OpNo,
 void WebAssemblyInstPrinter::printWebAssemblyP2AlignOperand(const MCInst *MI,
                                                             unsigned OpNo,
                                                             raw_ostream &O) {
-  int64_t Imm = MI->getOperand(OpNo).getImm();
+  int64_t const Imm = MI->getOperand(OpNo).getImm();
   if (Imm == WebAssembly::GetDefaultP2Align(MI->getOpcode()))
     return;
   O << ":p2align=" << Imm;

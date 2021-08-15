@@ -98,7 +98,7 @@ static void saveTempBitcode(const Module &TheModule, StringRef TempDir,
   if (TempDir.empty())
     return;
   // User asked to save temps, let dump the bitcode file after import.
-  std::string SaveTempPath = (TempDir + llvm::Twine(count) + Suffix).str();
+  std::string const SaveTempPath = (TempDir + llvm::Twine(count) + Suffix).str();
   std::error_code EC;
   raw_fd_ostream OS(SaveTempPath, EC, sys::fs::OF_None);
   if (EC)
@@ -193,14 +193,14 @@ static std::unique_ptr<Module> loadModuleFromInput(lto::InputFile *Input,
                                                    bool Lazy,
                                                    bool IsImporting) {
   auto &Mod = Input->getSingleBitcodeModule();
-  SMDiagnostic Err;
+  SMDiagnostic const Err;
   Expected<std::unique_ptr<Module>> ModuleOrErr =
       Lazy ? Mod.getLazyModule(Context,
                                /* ShouldLazyLoadMetadata */ true, IsImporting)
            : Mod.parseModule(Context);
   if (!ModuleOrErr) {
     handleAllErrors(ModuleOrErr.takeError(), [&](ErrorInfoBase &EIB) {
-      SMDiagnostic Err = SMDiagnostic(Mod.getModuleIdentifier(),
+      SMDiagnostic const Err = SMDiagnostic(Mod.getModuleIdentifier(),
                                       SourceMgr::DK_Error, EIB.message());
       Err.print("ThinLTO", errs());
     });
@@ -226,7 +226,7 @@ crossImportIntoModule(Module &TheModule, const ModuleSummaryIndex &Index,
   Expected<bool> Result = Importer.importFunctions(TheModule, ImportList);
   if (!Result) {
     handleAllErrors(Result.takeError(), [&](ErrorInfoBase &EIB) {
-      SMDiagnostic Err = SMDiagnostic(TheModule.getModuleIdentifier(),
+      SMDiagnostic const Err = SMDiagnostic(TheModule.getModuleIdentifier(),
                                       SourceMgr::DK_Error, EIB.message());
       Err.print("ThinLTO", errs());
     });
@@ -270,7 +270,7 @@ static void optimizeModuleNewPM(Module &TheModule, TargetMachine &TM,
                                 unsigned OptLevel, bool Freestanding,
                                 bool DebugPassManager,
                                 ModuleSummaryIndex *Index) {
-  Optional<PGOOptions> PGOOpt;
+  Optional<PGOOptions> const PGOOpt;
   LoopAnalysisManager LAM;
   FunctionAnalysisManager FAM;
   CGSCCAnalysisManager CGAM;
@@ -491,11 +491,11 @@ ProcessThinLTOModule(Module &TheModule, ModuleSummaryIndex &Index,
                      bool UseNewPM, bool DebugPassManager) {
 
   // "Benchmark"-like optimization: single-source case
-  bool SingleModule = (ModuleMap.size() == 1);
+  bool const SingleModule = (ModuleMap.size() == 1);
 
   // When linking an ELF shared object, dso_local should be dropped. We
   // conservatively do this for -fpic.
-  bool ClearDSOLocalOnDeclarations =
+  bool const ClearDSOLocalOnDeclarations =
       TM.getTargetTriple().isOSBinFormatELF() &&
       TM.getRelocationModel() != Reloc::Static &&
       TheModule.getPIELevel() == PIELevel::Default;
@@ -579,7 +579,7 @@ static void resolvePrevailingInIndex(
   };
 
   // TODO Conf.VisibilityScheme can be lto::Config::ELF for ELF.
-  lto::Config Conf;
+  lto::Config const Conf;
   thinLTOResolvePrevailingInIndex(Conf, Index, isPrevailing, recordNewLinkage,
                                   GUIDPreservedSymbols);
 }
@@ -604,7 +604,7 @@ static void initTMBuilder(TargetMachineBuilder &TMBuilder,
 } // end anonymous namespace
 
 void ThinLTOCodeGenerator::addModule(StringRef Identifier, StringRef Data) {
-  MemoryBufferRef Buffer(Data, Identifier);
+  MemoryBufferRef const Buffer(Data, Identifier);
 
   auto InputOrError = lto::InputFile::create(Buffer);
   if (!InputOrError)
@@ -612,7 +612,7 @@ void ThinLTOCodeGenerator::addModule(StringRef Identifier, StringRef Data) {
                        toString(InputOrError.takeError()));
 
   auto TripleStr = (*InputOrError)->getTargetTriple();
-  Triple TheTriple(TripleStr);
+  Triple const TheTriple(TripleStr);
 
   if (Modules.empty())
     initTMBuilder(TMBuilder, Triple(TheTriple));
@@ -649,7 +649,7 @@ std::unique_ptr<TargetMachine> TargetMachineBuilder::create() const {
   // Use MAttr as the default set of features.
   SubtargetFeatures Features(MAttr);
   Features.getDefaultSubtargetFeatures(TheTriple);
-  std::string FeatureStr = Features.getString();
+  std::string const FeatureStr = Features.getString();
 
   std::unique_ptr<TargetMachine> TM(
       TheTarget->createTargetMachine(TheTriple.str(), MCpu, FeatureStr, Options,
@@ -1145,7 +1145,7 @@ void ThinLTOCodeGenerator::run() {
   ModulesVec.reserve(Modules.size());
   for (auto &Mod : Modules)
     ModulesVec.push_back(&Mod->getSingleBitcodeModule());
-  std::vector<int> ModulesOrdering = lto::generateModulesOrdering(ModulesVec);
+  std::vector<int> const ModulesOrdering = lto::generateModulesOrdering(ModulesVec);
 
   if (llvm::timeTraceProfilerEnabled())
     llvm::timeTraceProfilerEnd();

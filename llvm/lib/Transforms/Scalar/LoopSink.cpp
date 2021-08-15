@@ -207,7 +207,7 @@ static bool sinkInstruction(
     return false;
 
   // Find the set of BBs that we should insert a copy of I.
-  SmallPtrSet<BasicBlock *, 2> BBsToSinkInto =
+  SmallPtrSet<BasicBlock *, 2> const BBsToSinkInto =
       findBBsToSinkInto(L, BBs, ColdLoopBBs, DT, BFI);
   if (BBsToSinkInto.empty())
     return false;
@@ -443,7 +443,7 @@ struct LegacyLoopSinkPass : public LoopPass {
       computeAliasSet(*L, *Preheader, *CurAST.get());
     }
 
-    bool Changed = sinkLoopInvariantInstructions(
+    bool const Changed = sinkLoopInvariantInstructions(
         *L, AA, getAnalysis<LoopInfoWrapperPass>().getLoopInfo(),
         getAnalysis<DominatorTreeWrapperPass>().getDomTree(),
         getAnalysis<BlockFrequencyInfoWrapperPass>().getBFI(),

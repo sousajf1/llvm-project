@@ -25,7 +25,7 @@ Expected<JITTargetAddress> LazyCallThroughManager::getCallThroughTrampoline(
     NotifyResolvedFunction NotifyResolved) {
   assert(TP && "TrampolinePool not set");
 
-  std::lock_guard<std::mutex> Lock(LCTMMutex);
+  std::lock_guard<std::mutex> const Lock(LCTMMutex);
   auto Trampoline = TP->getTrampoline();
 
   if (!Trampoline)
@@ -43,7 +43,7 @@ JITTargetAddress LazyCallThroughManager::reportCallThroughError(Error Err) {
 
 Expected<LazyCallThroughManager::ReexportsEntry>
 LazyCallThroughManager::findReexport(JITTargetAddress TrampolineAddr) {
-  std::lock_guard<std::mutex> Lock(LCTMMutex);
+  std::lock_guard<std::mutex> const Lock(LCTMMutex);
   auto I = Reexports.find(TrampolineAddr);
   if (I == Reexports.end())
     return createStringError(inconvertibleErrorCode(),
@@ -56,7 +56,7 @@ Error LazyCallThroughManager::notifyResolved(JITTargetAddress TrampolineAddr,
                                              JITTargetAddress ResolvedAddr) {
   NotifyResolvedFunction NotifyResolved;
   {
-    std::lock_guard<std::mutex> Lock(LCTMMutex);
+    std::lock_guard<std::mutex> const Lock(LCTMMutex);
     auto I = Notifiers.find(TrampolineAddr);
     if (I != Notifiers.end()) {
       NotifyResolved = std::move(I->second);
@@ -84,7 +84,7 @@ void LazyCallThroughManager::resolveTrampolineLandingAddress(
     if (Result) {
       assert(Result->size() == 1 && "Unexpected result size");
       assert(Result->count(SymbolName) && "Unexpected result value");
-      JITTargetAddress LandingAddr = (*Result)[SymbolName].getAddress();
+      JITTargetAddress const LandingAddr = (*Result)[SymbolName].getAddress();
 
       if (auto Err = notifyResolved(TrampolineAddr, LandingAddr))
         NotifyLandingResolved(reportCallThroughError(std::move(Err)));

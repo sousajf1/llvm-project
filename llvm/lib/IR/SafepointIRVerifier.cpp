@@ -133,7 +133,7 @@ public:
         DeadBlocks.insert(&BB);
 
     // Top-down walk of the dominator tree
-    ReversePostOrderTraversal<const Function *> RPOT(&F);
+    ReversePostOrderTraversal<const Function *> const RPOT(&F);
     for (const BasicBlock *BB : RPOT) {
       const Instruction *TI = BB->getTerminator();
       assert(TI && "blocks must be well formed");
@@ -159,7 +159,7 @@ public:
 protected:
   void addDeadBlock(const BasicBlock *BB) {
     SmallVector<const BasicBlock *, 4> NewDead;
-    SmallSetVector<const BasicBlock *, 4> DF;
+    SmallSetVector<const BasicBlock *, 4> const DF;
 
     NewDead.push_back(BB);
     while (!NewDead.empty()) {
@@ -578,7 +578,7 @@ void GCPtrTracker::verifyFunction(GCPtrTracker &&Tracker,
                                   InstructionVerifier &Verifier) {
   // We need RPO here to a) report always the first error b) report errors in
   // same order from run to run.
-  ReversePostOrderTraversal<const Function *> RPOT(&Tracker.F);
+  ReversePostOrderTraversal<const Function *> const RPOT(&Tracker.F);
   for (const BasicBlock *BB : RPOT) {
     BasicBlockState *BBS = Tracker.getBasicBlockState(BB);
     if (!BBS)
@@ -617,7 +617,7 @@ void GCPtrTracker::recalculateBBsStates() {
     if (!BBS)
       continue; // Ignore dead successors.
 
-    size_t OldInCount = BBS->AvailableIn.size();
+    size_t const OldInCount = BBS->AvailableIn.size();
     for (const_pred_iterator PredIt(BB), End(BB, true); PredIt != End; ++PredIt) {
       const BasicBlock *PBB = *PredIt;
       BasicBlockState *PBBS = getBasicBlockState(PBB);
@@ -627,13 +627,13 @@ void GCPtrTracker::recalculateBBsStates() {
 
     assert(OldInCount >= BBS->AvailableIn.size() && "invariant!");
 
-    bool InputsChanged = OldInCount != BBS->AvailableIn.size();
-    bool ContributionChanged =
+    bool const InputsChanged = OldInCount != BBS->AvailableIn.size();
+    bool const ContributionChanged =
         removeValidUnrelocatedDefs(BB, BBS, BBS->Contribution);
     if (!InputsChanged && !ContributionChanged)
       continue;
 
-    size_t OldOutCount = BBS->AvailableOut.size();
+    size_t const OldOutCount = BBS->AvailableOut.size();
     transferBlock(BB, *BBS, ContributionChanged);
     if (OldOutCount != BBS->AvailableOut.size()) {
       assert(OldOutCount > BBS->AvailableOut.size() && "invariant!");

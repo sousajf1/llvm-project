@@ -75,7 +75,7 @@ void llvm::computeSyntheticCounts(ModuleSummaryIndex &Index) {
 
   auto GetProfileCount = [&](ValueInfo V, FunctionSummary::EdgeTy &Edge) {
     auto RelFreq = GetCallSiteRelFreq(Edge);
-    Scaled64 EC(GetEntryCount(V), 0);
+    Scaled64 const EC(GetEntryCount(V), 0);
     return RelFreq * EC;
   };
   // After initializing the counts in initializeCounts above, the counts have to

@@ -541,7 +541,7 @@ static int parseVecSize(StringRef& mangledName) {
 
 static AMDGPULibFunc::ENamePrefix parseNamePrefix(StringRef& mangledName) {
   std::pair<StringRef, StringRef> const P = mangledName.split('_');
-  AMDGPULibFunc::ENamePrefix Pfx =
+  AMDGPULibFunc::ENamePrefix const Pfx =
     StringSwitch<AMDGPULibFunc::ENamePrefix>(P.first)
     .Case("native", AMDGPULibFunc::NATIVE)
     .Case("half"  , AMDGPULibFunc::HALF)
@@ -829,7 +829,7 @@ public:
       os << 'P';
       if (p.PtrKind & AMDGPULibFunc::CONST) os << 'K';
       if (p.PtrKind & AMDGPULibFunc::VOLATILE) os << 'V';
-      unsigned AS = UseAddrSpace
+      unsigned const AS = UseAddrSpace
                         ? AMDGPULibFuncBase::getAddrSpaceFromEPtrKind(p.PtrKind)
                         : 0;
       if (EnableOCLManglingMismatchWA || AS != 0)
@@ -943,7 +943,7 @@ std::string AMDGPUMangledLibFunc::getName() const {
 }
 
 Function *AMDGPULibFunc::getFunction(Module *M, const AMDGPULibFunc &fInfo) {
-  std::string FuncName = fInfo.mangle();
+  std::string const FuncName = fInfo.mangle();
   Function *F = dyn_cast_or_null<Function>(
     M->getValueSymbolTable().lookup(FuncName));
 

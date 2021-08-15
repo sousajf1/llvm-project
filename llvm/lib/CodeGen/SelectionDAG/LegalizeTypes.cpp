@@ -80,7 +80,7 @@ void DAGTypeLegalizer::PerformExpensiveChecks() {
       NewNodes.push_back(&Node);
 
     for (unsigned i = 0, e = Node.getNumValues(); i != e; ++i) {
-      SDValue Res(&Node, i);
+      SDValue const Res(&Node, i);
       bool Failed = false;
       // Don't create a value in map.
       auto ResId = (ValueToIdMap.count(Res)) ? ValueToIdMap[Res] : 0;
@@ -103,7 +103,7 @@ void DAGTypeLegalizer::PerformExpensiveChecks() {
           NewValId = I->second;
           I = ReplacedValues.find(NewValId);
         }
-        SDValue NewVal = getSDValue(NewValId);
+        SDValue const NewVal = getSDValue(NewValId);
         (void)NewVal;
         assert(NewVal.getNode()->getNodeId() != NewNode &&
                "ReplacedValues maps to a new node!");
@@ -237,7 +237,7 @@ bool DAGTypeLegalizer::run() {
     // Scan the values produced by the node, checking to see if any result
     // types are illegal.
     for (unsigned i = 0, NumResults = N->getNumValues(); i < NumResults; ++i) {
-      EVT ResultVT = N->getValueType(i);
+      EVT const ResultVT = N->getValueType(i);
       LLVM_DEBUG(dbgs() << "Analyzing result type: " << ResultVT.getEVTString()
                         << "\n");
       switch (getTypeAction(ResultVT)) {
@@ -295,7 +295,7 @@ ScanOperands:
     // Scan the operand list for the node, handling any nodes with operands that
     // are illegal.
     {
-    unsigned NumOperands = N->getNumOperands();
+    unsigned const NumOperands = N->getNumOperands();
     bool NeedsReanalyzing = false;
     unsigned i;
     for (i = 0; i != NumOperands; ++i) {
@@ -304,7 +304,7 @@ ScanOperands:
 
       const auto Op = N->getOperand(i);
       LLVM_DEBUG(dbgs() << "Analyzing operand: "; Op.dump(&DAG));
-      EVT OpVT = Op.getValueType();
+      EVT const OpVT = Op.getValueType();
       switch (getTypeAction(OpVT)) {
       case TargetLowering::TypeLegal:
         LLVM_DEBUG(dbgs() << "Legal operand\n");
@@ -396,7 +396,7 @@ NodeDone:
     N->setNodeId(Processed);
 
     for (SDNode *User : N->uses()) {
-      int NodeId = User->getNodeId();
+      int const NodeId = User->getNodeId();
 
       // This node has two options: it can either be a new node or its Node ID
       // may be a count of the number of operands it has that are not ready.
@@ -510,7 +510,7 @@ SDNode *DAGTypeLegalizer::AnalyzeNewNode(SDNode *N) {
   std::vector<SDValue> NewOps;
   unsigned NumProcessed = 0;
   for (unsigned i = 0, e = N->getNumOperands(); i != e; ++i) {
-    SDValue OrigOp = N->getOperand(i);
+    SDValue const OrigOp = N->getOperand(i);
     SDValue Op = OrigOp;
 
     AnalyzeNewValue(Op); // Op may morph.
@@ -646,7 +646,7 @@ void DAGTypeLegalizer::ReplaceValueWith(SDValue From, SDValue To) {
   // Anything that used the old node should now use the new one.  Note that this
   // can potentially cause recursive merging.
   SmallSetVector<SDNode*, 16> NodesToAnalyze;
-  NodeUpdateListener NUL(*this, NodesToAnalyze);
+  NodeUpdateListener const NUL(*this, NodesToAnalyze);
   do {
 
     // The old node may be present in a map like ExpandedIntegers or
@@ -676,7 +676,7 @@ void DAGTypeLegalizer::ReplaceValueWith(SDValue From, SDValue To) {
         assert(N->getNumValues() == M->getNumValues() &&
                "Node morphing changed the number of results!");
         for (unsigned i = 0, e = N->getNumValues(); i != e; ++i) {
-          SDValue OldVal(N, i);
+          SDValue const OldVal(N, i);
           SDValue NewVal(M, i);
           if (M->getNodeId() == Processed)
             RemapValue(NewVal);
@@ -868,7 +868,7 @@ void DAGTypeLegalizer::SetWidenedVector(SDValue Op, SDValue Result) {
 
 /// Convert to an integer of the same size.
 SDValue DAGTypeLegalizer::BitConvertToInteger(SDValue Op) {
-  unsigned BitWidth = Op.getValueSizeInBits();
+  unsigned const BitWidth = Op.getValueSizeInBits();
   return DAG.getNode(ISD::BITCAST, SDLoc(Op),
                      EVT::getIntegerVT(*DAG.getContext(), BitWidth), Op);
 }
@@ -876,8 +876,8 @@ SDValue DAGTypeLegalizer::BitConvertToInteger(SDValue Op) {
 /// Convert to a vector of integers of the same size.
 SDValue DAGTypeLegalizer::BitConvertVectorToIntegerVector(SDValue Op) {
   assert(Op.getValueType().isVector() && "Only applies to vectors!");
-  unsigned EltWidth = Op.getScalarValueSizeInBits();
-  EVT EltNVT = EVT::getIntegerVT(*DAG.getContext(), EltWidth);
+  unsigned const EltWidth = Op.getScalarValueSizeInBits();
+  EVT const EltNVT = EVT::getIntegerVT(*DAG.getContext(), EltWidth);
   auto EltCnt = Op.getValueType().getVectorElementCount();
   return DAG.getNode(ISD::BITCAST, SDLoc(Op),
                      EVT::getVectorVT(*DAG.getContext(), EltNVT, EltCnt), Op);
@@ -885,19 +885,19 @@ SDValue DAGTypeLegalizer::BitConvertVectorToIntegerVector(SDValue Op) {
 
 SDValue DAGTypeLegalizer::CreateStackStoreLoad(SDValue Op,
                                                EVT DestVT) {
-  SDLoc dl(Op);
+  SDLoc const dl(Op);
   // Create the stack frame object.  Make sure it is aligned for both
   // the source and destination types.
 
   // In cases where the vector is illegal it will be broken down into parts
   // and stored in parts - we should use the alignment for the smallest part.
-  Align DestAlign = DAG.getReducedAlign(DestVT, /*UseABI=*/false);
-  Align OpAlign = DAG.getReducedAlign(Op.getValueType(), /*UseABI=*/false);
-  Align Align = std::max(DestAlign, OpAlign);
-  SDValue StackPtr =
+  Align const DestAlign = DAG.getReducedAlign(DestVT, /*UseABI=*/false);
+  Align const OpAlign = DAG.getReducedAlign(Op.getValueType(), /*UseABI=*/false);
+  Align const Align = std::max(DestAlign, OpAlign);
+  SDValue const StackPtr =
       DAG.CreateStackTemporary(Op.getValueType().getStoreSize(), Align);
   // Emit a store to the stack slot.
-  SDValue Store = DAG.getStore(DAG.getEntryNode(), dl, Op, StackPtr,
+  SDValue const Store = DAG.getStore(DAG.getEntryNode(), dl, Op, StackPtr,
                                MachinePointerInfo(), Align);
   // Result is a load from the stack slot.
   return DAG.getLoad(DestVT, dl, Store, StackPtr, MachinePointerInfo(), Align);
@@ -955,7 +955,7 @@ bool DAGTypeLegalizer::CustomWidenLowerNode(SDNode *N, EVT VT) {
          "Custom lowering returned the wrong number of results!");
   for (unsigned i = 0, e = Results.size(); i != e; ++i) {
     // If this is a chain output or already widened just replace it.
-    bool WasWidened = SDValue(N, i).getValueType() != Results[i].getValueType();
+    bool const WasWidened = SDValue(N, i).getValueType() != Results[i].getValueType();
     if (WasWidened)
       SetWidenedVector(SDValue(N, i), Results[i]);
     else
@@ -975,8 +975,8 @@ SDValue DAGTypeLegalizer::DisintegrateMERGE_VALUES(SDNode *N, unsigned ResNo) {
 /// given value.
 void DAGTypeLegalizer::GetPairElements(SDValue Pair,
                                        SDValue &Lo, SDValue &Hi) {
-  SDLoc dl(Pair);
-  EVT NVT = TLI.getTypeToTransformTo(*DAG.getContext(), Pair.getValueType());
+  SDLoc const dl(Pair);
+  EVT const NVT = TLI.getTypeToTransformTo(*DAG.getContext(), Pair.getValueType());
   Lo = DAG.getNode(ISD::EXTRACT_ELEMENT, dl, NVT, Pair,
                    DAG.getIntPtrConstant(0, dl));
   Hi = DAG.getNode(ISD::EXTRACT_ELEMENT, dl, NVT, Pair,
@@ -986,14 +986,14 @@ void DAGTypeLegalizer::GetPairElements(SDValue Pair,
 /// Build an integer with low bits Lo and high bits Hi.
 SDValue DAGTypeLegalizer::JoinIntegers(SDValue Lo, SDValue Hi) {
   // Arbitrarily use dlHi for result SDLoc
-  SDLoc dlHi(Hi);
-  SDLoc dlLo(Lo);
-  EVT LVT = Lo.getValueType();
-  EVT HVT = Hi.getValueType();
-  EVT NVT = EVT::getIntegerVT(*DAG.getContext(),
+  SDLoc const dlHi(Hi);
+  SDLoc const dlLo(Lo);
+  EVT const LVT = Lo.getValueType();
+  EVT const HVT = Hi.getValueType();
+  EVT const NVT = EVT::getIntegerVT(*DAG.getContext(),
                               LVT.getSizeInBits() + HVT.getSizeInBits());
 
-  EVT ShiftAmtVT = TLI.getShiftAmountTy(NVT, DAG.getDataLayout(), false);
+  EVT const ShiftAmtVT = TLI.getShiftAmountTy(NVT, DAG.getDataLayout(), false);
   Lo = DAG.getNode(ISD::ZERO_EXTEND, dlLo, NVT, Lo);
   Hi = DAG.getNode(ISD::ANY_EXTEND, dlHi, NVT, Hi);
   Hi = DAG.getNode(ISD::SHL, dlHi, NVT, Hi,
@@ -1007,9 +1007,9 @@ SDValue DAGTypeLegalizer::JoinIntegers(SDValue Lo, SDValue Hi) {
 ///
 /// ValVT is the type of values that produced the boolean.
 SDValue DAGTypeLegalizer::PromoteTargetBoolean(SDValue Bool, EVT ValVT) {
-  SDLoc dl(Bool);
-  EVT BoolVT = getSetCCResultType(ValVT);
-  ISD::NodeType ExtendCode =
+  SDLoc const dl(Bool);
+  EVT const BoolVT = getSetCCResultType(ValVT);
+  ISD::NodeType const ExtendCode =
       TargetLowering::getExtendForContent(TLI.getBooleanContents(ValVT));
   return DAG.getNode(ExtendCode, dl, BoolVT, Bool);
 }
@@ -1018,11 +1018,11 @@ SDValue DAGTypeLegalizer::PromoteTargetBoolean(SDValue Bool, EVT ValVT) {
 void DAGTypeLegalizer::SplitInteger(SDValue Op,
                                     EVT LoVT, EVT HiVT,
                                     SDValue &Lo, SDValue &Hi) {
-  SDLoc dl(Op);
+  SDLoc const dl(Op);
   assert(LoVT.getSizeInBits() + HiVT.getSizeInBits() ==
          Op.getValueSizeInBits() && "Invalid integer splitting!");
   Lo = DAG.getNode(ISD::TRUNCATE, dl, LoVT, Op);
-  unsigned ReqShiftAmountInBits =
+  unsigned const ReqShiftAmountInBits =
       Log2_32_Ceil(Op.getValueType().getSizeInBits());
   MVT ShiftAmountTy =
       TLI.getScalarShiftAmountTy(DAG.getDataLayout(), Op.getValueType());
@@ -1037,7 +1037,7 @@ void DAGTypeLegalizer::SplitInteger(SDValue Op,
 /// size of Op's.
 void DAGTypeLegalizer::SplitInteger(SDValue Op,
                                     SDValue &Lo, SDValue &Hi) {
-  EVT HalfVT =
+  EVT const HalfVT =
       EVT::getIntegerVT(*DAG.getContext(), Op.getValueSizeInBits() / 2);
   SplitInteger(Op, HalfVT, HalfVT, Lo, Hi);
 }

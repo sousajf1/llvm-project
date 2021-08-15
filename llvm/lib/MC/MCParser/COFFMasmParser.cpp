@@ -35,7 +35,7 @@ namespace {
 class COFFMasmParser : public MCAsmParserExtension {
   template <bool (COFFMasmParser::*HandlerMethod)(StringRef, SMLoc)>
   void addDirectiveHandler(StringRef Directive) {
-    MCAsmParser::ExtensionDirectiveHandler Handler =
+    MCAsmParser::ExtensionDirectiveHandler const Handler =
         std::make_pair(this, HandleDirective<COFFMasmParser, HandlerMethod>);
     getParser().addDirectiveHandler(Directive, Handler);
   }
@@ -272,7 +272,7 @@ bool COFFMasmParser::ParseDirectiveSegment(StringRef Directive, SMLoc Loc) {
     Flags = COFF::IMAGE_SCN_CNT_CODE | COFF::IMAGE_SCN_MEM_EXECUTE |
             COFF::IMAGE_SCN_MEM_READ;
   }
-  SectionKind Kind = computeSectionKind(Flags);
+  SectionKind const Kind = computeSectionKind(Flags);
   getStreamer().SwitchSection(getContext().getCOFFSection(
       SectionName, Flags, Kind, "", (COFF::COMDATType)(0)));
   return false;
@@ -298,8 +298,8 @@ bool COFFMasmParser::ParseDirectiveIncludelib(StringRef Directive, SMLoc Loc) {
   if (getParser().parseIdentifier(Lib))
     return TokError("expected identifier in includelib directive");
 
-  unsigned Flags = COFF::IMAGE_SCN_MEM_PRELOAD | COFF::IMAGE_SCN_MEM_16BIT;
-  SectionKind Kind = computeSectionKind(Flags);
+  unsigned const Flags = COFF::IMAGE_SCN_MEM_PRELOAD | COFF::IMAGE_SCN_MEM_16BIT;
+  SectionKind const Kind = computeSectionKind(Flags);
   getStreamer().PushSection();
   getStreamer().SwitchSection(getContext().getCOFFSection(
       ".drectve", Flags, Kind, "", (COFF::COMDATType)(0)));
@@ -353,7 +353,7 @@ bool COFFMasmParser::ParseDirectiveProc(StringRef Directive, SMLoc Loc) {
 }
 bool COFFMasmParser::ParseDirectiveEndProc(StringRef Directive, SMLoc Loc) {
   StringRef Label;
-  SMLoc LabelLoc = getTok().getLoc();
+  SMLoc const LabelLoc = getTok().getLoc();
   if (getParser().parseIdentifier(Label))
     return Error(LabelLoc, "expected identifier for procedure end");
 
@@ -393,7 +393,7 @@ bool COFFMasmParser::ParseDirectiveAlias(StringRef Directive, SMLoc Loc) {
 bool COFFMasmParser::ParseSEHDirectiveAllocStack(StringRef Directive,
                                                  SMLoc Loc) {
   int64_t Size;
-  SMLoc SizeLoc = getTok().getLoc();
+  SMLoc const SizeLoc = getTok().getLoc();
   if (getParser().parseAbsoluteExpression(Size))
     return Error(SizeLoc, "expected integer size");
   if (Size % 8 != 0)

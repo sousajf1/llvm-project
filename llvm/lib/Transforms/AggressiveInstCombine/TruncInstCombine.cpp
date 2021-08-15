@@ -47,7 +47,7 @@ STATISTIC(NumInstrsReduced,
 /// Given an instruction and a container, it fills all the relevant operands of
 /// that instruction, with respect to the Trunc expression dag optimizaton.
 static void getRelevantOperands(Instruction *I, SmallVectorImpl<Value *> &Ops) {
-  unsigned Opc = I->getOpcode();
+  unsigned const Opc = I->getOpcode();
   switch (Opc) {
   case Instruction::Trunc:
   case Instruction::ZExt:
@@ -111,7 +111,7 @@ bool TruncInstCombine::buildTruncExpressionDag() {
     // Add the instruction to the stack before start handling its operands.
     Stack.push_back(I);
 
-    unsigned Opc = I->getOpcode();
+    unsigned const Opc = I->getOpcode();
     switch (Opc) {
     case Instruction::Trunc:
     case Instruction::ZExt:
@@ -152,8 +152,8 @@ unsigned TruncInstCombine::getMinBitWidth() {
 
   Value *Src = CurrentTruncInst->getOperand(0);
   Type *DstTy = CurrentTruncInst->getType();
-  unsigned TruncBitWidth = DstTy->getScalarSizeInBits();
-  unsigned OrigBitWidth =
+  unsigned const TruncBitWidth = DstTy->getScalarSizeInBits();
+  unsigned const OrigBitWidth =
       CurrentTruncInst->getOperand(0)->getType()->getScalarSizeInBits();
 
   if (isa<Constant>(Src))
@@ -192,7 +192,7 @@ unsigned TruncInstCombine::getMinBitWidth() {
 
     // Add the instruction to the stack before start handling its operands.
     Stack.push_back(I);
-    unsigned ValidBitWidth = Info.ValidBitWidth;
+    unsigned const ValidBitWidth = Info.ValidBitWidth;
 
     // Update minimum bit-width before handling its operands. This is required
     // when the instruction is part of a loop.
@@ -203,7 +203,7 @@ unsigned TruncInstCombine::getMinBitWidth() {
         // If we already calculated the minimum bit-width for this valid
         // bit-width, or for a smaller valid bit-width, then just keep the
         // answer we already calculated.
-        unsigned IOpBitwidth = InstInfoMap.lookup(IOp).ValidBitWidth;
+        unsigned const IOpBitwidth = InstInfoMap.lookup(IOp).ValidBitWidth;
         if (IOpBitwidth >= ValidBitWidth)
           continue;
         InstInfoMap[IOp].ValidBitWidth = ValidBitWidth;
@@ -229,8 +229,8 @@ unsigned TruncInstCombine::getMinBitWidth() {
     // destination type, and trunc instruction can be omitted. However, we
     // should not perform the evaluation if the original type is a legal scalar
     // type and the target type is illegal.
-    bool FromLegal = MinBitWidth == 1 || DL.isLegalInteger(OrigBitWidth);
-    bool ToLegal = MinBitWidth == 1 || DL.isLegalInteger(MinBitWidth);
+    bool const FromLegal = MinBitWidth == 1 || DL.isLegalInteger(OrigBitWidth);
+    bool const ToLegal = MinBitWidth == 1 || DL.isLegalInteger(MinBitWidth);
     if (!DstTy->isVectorTy() && FromLegal && !ToLegal)
       return OrigBitWidth;
   }
@@ -250,7 +250,7 @@ Type *TruncInstCombine::getBestTruncatedType() {
     Instruction *I = Itr.first;
     if (I->hasOneUse())
       continue;
-    bool IsExtInst = (isa<ZExtInst>(I) || isa<SExtInst>(I));
+    bool const IsExtInst = (isa<ZExtInst>(I) || isa<SExtInst>(I));
     for (auto *U : I->users())
       if (auto *UI = dyn_cast<Instruction>(U))
         if (UI != CurrentTruncInst && !InstInfoMap.count(UI)) {
@@ -259,7 +259,7 @@ Type *TruncInstCombine::getBestTruncatedType() {
           // If this is an extension from the dest type, we can eliminate it,
           // even if it has multiple users. Thus, update the DesiredBitWidth and
           // validate all extension instructions agrees on same DesiredBitWidth.
-          unsigned ExtInstBitWidth =
+          unsigned const ExtInstBitWidth =
               I->getOperand(0)->getType()->getScalarSizeInBits();
           if (DesiredBitWidth && DesiredBitWidth != ExtInstBitWidth)
             return nullptr;
@@ -267,12 +267,12 @@ Type *TruncInstCombine::getBestTruncatedType() {
         }
   }
 
-  unsigned OrigBitWidth =
+  unsigned const OrigBitWidth =
       CurrentTruncInst->getOperand(0)->getType()->getScalarSizeInBits();
 
   // Calculate minimum allowed bit-width allowed for shrinking the currently
   // visited truncate's operand.
-  unsigned MinBitWidth = getMinBitWidth();
+  unsigned const MinBitWidth = getMinBitWidth();
 
   // Check that we can shrink to smaller bit-width than original one and that
   // it is similar to the DesiredBitWidth is such exists.
@@ -302,7 +302,7 @@ Value *TruncInstCombine::getReducedOperand(Value *V, Type *SclTy) {
   }
 
   auto *I = cast<Instruction>(V);
-  Info Entry = InstInfoMap.lookup(I);
+  Info const Entry = InstInfoMap.lookup(I);
   assert(Entry.NewValue);
   return Entry.NewValue;
 }
@@ -317,7 +317,7 @@ void TruncInstCombine::ReduceExpressionDag(Type *SclTy) {
 
     IRBuilder<> Builder(I);
     Value *Res = nullptr;
-    unsigned Opc = I->getOpcode();
+    unsigned const Opc = I->getOpcode();
     switch (Opc) {
     case Instruction::Trunc:
     case Instruction::ZExt:

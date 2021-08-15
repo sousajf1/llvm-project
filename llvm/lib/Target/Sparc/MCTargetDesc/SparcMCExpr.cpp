@@ -30,7 +30,7 @@ SparcMCExpr::create(VariantKind Kind, const MCExpr *Expr,
 
 void SparcMCExpr::printImpl(raw_ostream &OS, const MCAsmInfo *MAI) const {
 
-  bool closeParen = printVariantKind(OS, Kind);
+  bool const closeParen = printVariantKind(OS, Kind);
 
   const MCExpr *Expr = getSubExpr();
   Expr->print(OS, MAI);

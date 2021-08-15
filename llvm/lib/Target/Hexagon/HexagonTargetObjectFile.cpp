@@ -177,7 +177,7 @@ MCSection *HexagonTargetObjectFile::getExplicitSectionGlobal(
          << (Kind.isBSSLocal() ? "kind_bss_local " : "" ));
 
   if (GO->hasSection()) {
-    StringRef Section = GO->getSection();
+    StringRef const Section = GO->getSection();
     if (Section.find(".access.text.group") != StringRef::npos)
       return getContext().getELFSection(GO->getSection(), ELF::SHT_PROGBITS,
                                         ELF::SHF_ALLOC | ELF::SHF_EXECINSTR);
@@ -198,7 +198,7 @@ MCSection *HexagonTargetObjectFile::getExplicitSectionGlobal(
 /// section.
 bool HexagonTargetObjectFile::isGlobalInSmallSection(const GlobalObject *GO,
       const TargetMachine &TM) const {
-  bool HaveSData = isSmallDataEnabled(TM);
+  bool const HaveSData = isSmallDataEnabled(TM);
   if (!HaveSData)
     LLVM_DEBUG(dbgs() << "Small-data allocation is disabled, but symbols "
                          "may have explicit section assignments...\n");
@@ -215,7 +215,7 @@ bool HexagonTargetObjectFile::isGlobalInSmallSection(const GlobalObject *GO,
   // emitted to that section, regardless of whether we would put them into
   // small data or not. This is how we can support mixing -G0/-G8 in LTO.
   if (GVar->hasSection()) {
-    bool IsSmall = isSmallDataSection(GVar->getSection());
+    bool const IsSmall = isSmallDataSection(GVar->getSection());
     LLVM_DEBUG(dbgs() << (IsSmall ? "yes" : "no")
                       << ", has section: " << GVar->getSection() << '\n');
     return IsSmall;
@@ -232,7 +232,7 @@ bool HexagonTargetObjectFile::isGlobalInSmallSection(const GlobalObject *GO,
     return false;
   }
 
-  bool IsLocal = GVar->hasLocalLinkage();
+  bool const IsLocal = GVar->hasLocalLinkage();
   if (!StaticsInSData && IsLocal) {
     LLVM_DEBUG(dbgs() << "no, is static\n");
     return false;
@@ -255,7 +255,7 @@ bool HexagonTargetObjectFile::isGlobalInSmallSection(const GlobalObject *GO,
     }
   }
 
-  unsigned Size = GVar->getParent()->getDataLayout().getTypeAllocSize(GType);
+  unsigned const Size = GVar->getParent()->getDataLayout().getTypeAllocSize(GType);
   if (Size == 0) {
     LLVM_DEBUG(dbgs() << "no, has size 0\n");
     return false;
@@ -298,7 +298,7 @@ unsigned HexagonTargetObjectFile::getSmallestAddressableSize(const Type *Ty,
   case Type::StructTyID: {
     const StructType *STy = cast<const StructType>(Ty);
     for (auto &E : STy->elements()) {
-      unsigned AtomicSize = getSmallestAddressableSize(E, GV, TM);
+      unsigned const AtomicSize = getSmallestAddressableSize(E, GV, TM);
       if (AtomicSize < SmallestElement)
         SmallestElement = AtomicSize;
     }
@@ -342,11 +342,11 @@ unsigned HexagonTargetObjectFile::getSmallestAddressableSize(const Type *Ty,
 MCSection *HexagonTargetObjectFile::selectSmallSectionForGlobal(
     const GlobalObject *GO, SectionKind Kind, const TargetMachine &TM) const {
   const Type *GTy = GO->getValueType();
-  unsigned Size = getSmallestAddressableSize(GTy, GO, TM);
+  unsigned const Size = getSmallestAddressableSize(GTy, GO, TM);
 
   // If we have -ffunction-section or -fdata-section then we should emit the
   // global value to a unique section specifically for it... even for sdata.
-  bool EmitUniquedSection = TM.getDataSections();
+  bool const EmitUniquedSection = TM.getDataSections();
 
   TRACE("Small data. Size(" << Size << ")");
   // Handle Small Section classification here.
@@ -362,7 +362,7 @@ MCSection *HexagonTargetObjectFile::selectSmallSectionForGlobal(
       return SmallBSSSection;
     }
 
-    StringRef Prefix(".sbss");
+    StringRef const Prefix(".sbss");
     SmallString<128> Name(Prefix);
     Name.append(getSectionSuffixForSize(Size));
 
@@ -383,7 +383,7 @@ MCSection *HexagonTargetObjectFile::selectSmallSectionForGlobal(
     if (NoSmallDataSorting)
       return BSSSection;
 
-    Twine Name = Twine(".scommon") + getSectionSuffixForSize(Size);
+    Twine const Name = Twine(".scommon") + getSectionSuffixForSize(Size);
     TRACE(" small COMMON (" << Name << ")\n");
 
     return getContext().getELFSection(Name.str(), ELF::SHT_NOBITS,
@@ -406,7 +406,7 @@ MCSection *HexagonTargetObjectFile::selectSmallSectionForGlobal(
       return SmallDataSection;
     }
 
-    StringRef Prefix(".sdata");
+    StringRef const Prefix(".sdata");
     SmallString<128> Name(Prefix);
     Name.append(getSectionSuffixForSize(Size));
 
@@ -450,7 +450,7 @@ HexagonTargetObjectFile::getLutUsedFunction(const GlobalObject *GO) const {
 MCSection *HexagonTargetObjectFile::selectSectionForLookupTable(
     const GlobalObject *GO, const TargetMachine &TM, const Function *Fn) const {
 
-  SectionKind Kind = SectionKind::getText();
+  SectionKind const Kind = SectionKind::getText();
   // If the function has explicit section, place the lookup table in this
   // explicit section.
   if (Fn->hasSection())

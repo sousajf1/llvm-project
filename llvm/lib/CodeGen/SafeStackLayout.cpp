@@ -53,9 +53,9 @@ void StackLayout::layoutObject(StackObject &Obj) {
   if (!ClLayout) {
     // If layout is disabled, just grab the next aligned address.
     // This effectively disables stack coloring as well.
-    unsigned LastRegionEnd = Regions.empty() ? 0 : Regions.back().End;
-    unsigned Start = AdjustStackOffset(LastRegionEnd, Obj.Size, Obj.Alignment);
-    unsigned End = Start + Obj.Size;
+    unsigned const LastRegionEnd = Regions.empty() ? 0 : Regions.back().End;
+    unsigned const Start = AdjustStackOffset(LastRegionEnd, Obj.Size, Obj.Alignment);
+    unsigned const End = Start + Obj.Size;
     Regions.emplace_back(Start, End, Obj.Range);
     ObjectOffsets[Obj.Handle] = End;
     return;

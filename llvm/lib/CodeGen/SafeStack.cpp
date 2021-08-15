@@ -237,14 +237,14 @@ bool SafeStack::IsAccessSafe(Value *Addr, uint64_t AccessSize,
   AllocaOffsetRewriter Rewriter(SE, AllocaPtr);
   const SCEV *Expr = Rewriter.visit(SE.getSCEV(Addr));
 
-  uint64_t BitWidth = SE.getTypeSizeInBits(Expr->getType());
-  ConstantRange AccessStartRange = SE.getUnsignedRange(Expr);
-  ConstantRange SizeRange =
+  uint64_t const BitWidth = SE.getTypeSizeInBits(Expr->getType());
+  ConstantRange const AccessStartRange = SE.getUnsignedRange(Expr);
+  ConstantRange const SizeRange =
       ConstantRange(APInt(BitWidth, 0), APInt(BitWidth, AccessSize));
-  ConstantRange AccessRange = AccessStartRange.add(SizeRange);
-  ConstantRange AllocaRange =
+  ConstantRange const AccessRange = AccessStartRange.add(SizeRange);
+  ConstantRange const AllocaRange =
       ConstantRange(APInt(BitWidth, 0), APInt(BitWidth, AllocaSize));
-  bool Safe = AllocaRange.contains(AccessRange);
+  bool const Safe = AllocaRange.contains(AccessRange);
 
   LLVM_DEBUG(
       dbgs() << "[SafeStack] "
@@ -393,7 +393,7 @@ void SafeStack::findInsts(Function &F,
     if (auto AI = dyn_cast<AllocaInst>(&I)) {
       ++NumAllocas;
 
-      uint64_t Size = getStaticAllocaAllocationSize(AI);
+      uint64_t const Size = getStaticAllocaAllocationSize(AI);
       if (IsSafeStackAlloca(AI, Size))
         continue;
 
@@ -425,7 +425,7 @@ void SafeStack::findInsts(Function &F,
   for (Argument &Arg : F.args()) {
     if (!Arg.hasByValAttr())
       continue;
-    uint64_t Size = DL.getTypeStoreSize(Arg.getParamByValType());
+    uint64_t const Size = DL.getTypeStoreSize(Arg.getParamByValType());
     if (IsSafeStackAlloca(&Arg, Size))
       continue;
 
@@ -485,7 +485,7 @@ void SafeStack::checkStackGuard(IRBuilder<> &IRB, Function &F, Instruction &RI,
       SplitBlockAndInsertIfThen(Cmp, &RI, /* Unreachable */ true, Weights, DTU);
   IRBuilder<> IRBFail(CheckTerm);
   // FIXME: respect -fsanitize-trap / -ftrap-function here?
-  FunctionCallee StackChkFail =
+  FunctionCallee const StackChkFail =
       F.getParent()->getOrInsertFunction("__stack_chk_fail", IRB.getVoidTy());
   IRBFail.CreateCall(StackChkFail, {});
 }
@@ -519,7 +519,7 @@ Value *SafeStack::moveStaticAllocasToUnsafeStack(
   StackLayout SSL(StackAlignment);
   if (StackGuardSlot) {
     Type *Ty = StackGuardSlot->getAllocatedType();
-    unsigned Align =
+    unsigned const Align =
         std::max(DL.getPrefTypeAlignment(Ty), StackGuardSlot->getAlignment());
     SSL.addObject(StackGuardSlot, getStaticAllocaAllocationSize(StackGuardSlot),
                   Align, SSC.getFullLiveRange());
@@ -532,7 +532,7 @@ Value *SafeStack::moveStaticAllocasToUnsafeStack(
       Size = 1; // Don't create zero-sized stack objects.
 
     // Ensure the object is properly aligned.
-    unsigned Align = std::max((unsigned)DL.getPrefTypeAlignment(Ty),
+    unsigned const Align = std::max((unsigned)DL.getPrefTypeAlignment(Ty),
                               Arg->getParamAlignment());
     SSL.addObject(Arg, Size, Align, SSC.getFullLiveRange());
   }
@@ -544,7 +544,7 @@ Value *SafeStack::moveStaticAllocasToUnsafeStack(
       Size = 1; // Don't create zero-sized stack objects.
 
     // Ensure the object is properly aligned.
-    unsigned Align =
+    unsigned const Align =
         std::max((unsigned)DL.getPrefTypeAlignment(Ty), AI->getAlignment());
 
     SSL.addObject(AI, Size, Align,
@@ -552,7 +552,7 @@ Value *SafeStack::moveStaticAllocasToUnsafeStack(
   }
 
   SSL.computeLayout();
-  unsigned FrameAlignment = SSL.getFrameAlignment();
+  unsigned const FrameAlignment = SSL.getFrameAlignment();
 
   // FIXME: tell SSL that we start at a less-then-MaxAlignment aligned location
   // (AlignmentSkew).
@@ -569,7 +569,7 @@ Value *SafeStack::moveStaticAllocasToUnsafeStack(
   IRB.SetInsertPoint(BasePointer->getNextNode());
 
   if (StackGuardSlot) {
-    unsigned Offset = SSL.getObjectOffset(StackGuardSlot);
+    unsigned const Offset = SSL.getObjectOffset(StackGuardSlot);
     Value *Off = IRB.CreateGEP(Int8Ty, BasePointer, // BasePointer is i8*
                                ConstantInt::get(Int32Ty, -Offset));
     Value *NewAI =
@@ -581,8 +581,8 @@ Value *SafeStack::moveStaticAllocasToUnsafeStack(
   }
 
   for (Argument *Arg : ByValArguments) {
-    unsigned Offset = SSL.getObjectOffset(Arg);
-    MaybeAlign Align(SSL.getObjectAlignment(Arg));
+    unsigned const Offset = SSL.getObjectOffset(Arg);
+    MaybeAlign const Align(SSL.getObjectAlignment(Arg));
     Type *Ty = Arg->getParamByValType();
 
     uint64_t Size = DL.getTypeStoreSize(Ty);
@@ -605,14 +605,14 @@ Value *SafeStack::moveStaticAllocasToUnsafeStack(
   // Allocate space for every unsafe static AllocaInst on the unsafe stack.
   for (AllocaInst *AI : StaticAllocas) {
     IRB.SetInsertPoint(AI);
-    unsigned Offset = SSL.getObjectOffset(AI);
+    unsigned const Offset = SSL.getObjectOffset(AI);
 
     replaceDbgDeclare(AI, BasePointer, DIB, DIExpression::ApplyOffset, -Offset);
     replaceDbgValueForAlloca(AI, BasePointer, DIB, -Offset);
 
     // Replace uses of the alloca with the new location.
     // Insert address calculation close to each use to work around PR27844.
-    std::string Name = std::string(AI->getName()) + ".unsafe";
+    std::string const Name = std::string(AI->getName()) + ".unsafe";
     while (!AI->use_empty()) {
       Use &U = *AI->use_begin();
       Instruction *User = cast<Instruction>(U.getUser());
@@ -642,7 +642,7 @@ Value *SafeStack::moveStaticAllocasToUnsafeStack(
   // Re-align BasePointer so that our callees would see it aligned as
   // expected.
   // FIXME: no need to update BasePointer in leaf functions.
-  unsigned FrameSize = alignTo(SSL.getFrameSize(), StackAlignment);
+  unsigned const FrameSize = alignTo(SSL.getFrameSize(), StackAlignment);
 
   // Update shadow stack pointer in the function epilogue.
   IRB.SetInsertPoint(BasePointer->getNextNode());
@@ -668,7 +668,7 @@ void SafeStack::moveDynamicAllocasToUnsafeStack(
       ArraySize = IRB.CreateIntCast(ArraySize, IntPtrTy, false);
 
     Type *Ty = AI->getAllocatedType();
-    uint64_t TySize = DL.getTypeAllocSize(Ty);
+    uint64_t const TySize = DL.getTypeAllocSize(Ty);
     Value *Size = IRB.CreateMul(ArraySize, ConstantInt::get(IntPtrTy, TySize));
 
     Value *SP = IRB.CreatePtrToInt(IRB.CreateLoad(StackPtrTy, UnsafeStackPtr),
@@ -676,7 +676,7 @@ void SafeStack::moveDynamicAllocasToUnsafeStack(
     SP = IRB.CreateSub(SP, Size);
 
     // Align the SP value to satisfy the AllocaInst, type and stack alignments.
-    unsigned Align = std::max(
+    unsigned const Align = std::max(
         std::max((unsigned)DL.getPrefTypeAlignment(Ty), AI->getAlignment()),
         (unsigned)StackAlignment);
 
@@ -796,7 +796,7 @@ bool SafeStack::run() {
     IRB.SetCurrentDebugLocation(
         DILocation::get(SP->getContext(), SP->getScopeLine(), 0, SP));
   if (SafeStackUsePointerAddress) {
-    FunctionCallee Fn = F.getParent()->getOrInsertFunction(
+    FunctionCallee const Fn = F.getParent()->getOrInsertFunction(
         "__safestack_pointer_address", StackPtrTy->getPointerTo(0));
     UnsafeStackPtr = IRB.CreateCall(Fn);
   } else {

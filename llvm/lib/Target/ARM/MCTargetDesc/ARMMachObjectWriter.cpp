@@ -144,7 +144,7 @@ RecordARMScatteredHalfRelocation(MachObjectWriter *Writer,
                                  const MCFixup &Fixup,
                                  MCValue Target,
                                  uint64_t &FixedValue) {
-  uint32_t FixupOffset = Layout.getFragmentOffset(Fragment)+Fixup.getOffset();
+  uint32_t const FixupOffset = Layout.getFragmentOffset(Fragment)+Fixup.getOffset();
 
   if (FixupOffset & 0xff000000) {
     Asm.getContext().reportError(Fixup.getLoc(),
@@ -154,7 +154,7 @@ RecordARMScatteredHalfRelocation(MachObjectWriter *Writer,
     return;
   }
 
-  unsigned IsPCRel = Writer->isFixupKindPCRel(Asm, Fixup.getKind());
+  unsigned const IsPCRel = Writer->isFixupKindPCRel(Asm, Fixup.getKind());
   unsigned Type = MachO::ARM_RELOC_HALF;
 
   // See <reloc.h>.
@@ -167,9 +167,9 @@ RecordARMScatteredHalfRelocation(MachObjectWriter *Writer,
     return;
   }
 
-  uint32_t Value = Writer->getSymbolAddress(*A, Layout);
+  uint32_t const Value = Writer->getSymbolAddress(*A, Layout);
   uint32_t Value2 = 0;
-  uint64_t SecAddr = Writer->getSectionAddress(A->getFragment()->getParent());
+  uint64_t const SecAddr = Writer->getSectionAddress(A->getFragment()->getParent());
   FixedValue += SecAddr;
 
   if (const MCSymbolRefExpr *B = Target.getSymB()) {
@@ -225,7 +225,7 @@ RecordARMScatteredHalfRelocation(MachObjectWriter *Writer,
   }
 
   if (Type == MachO::ARM_RELOC_HALF_SECTDIFF) {
-    uint32_t OtherHalf = MovtBit
+    uint32_t const OtherHalf = MovtBit
       ? (FixedValue & 0xffff) : ((FixedValue & 0xffff0000) >> 16);
 
     MachO::any_relocation_info MRE;
@@ -259,7 +259,7 @@ void ARMMachObjectWriter::RecordARMScatteredRelocation(MachObjectWriter *Writer,
                                                     unsigned Type,
                                                     unsigned Log2Size,
                                                     uint64_t &FixedValue) {
-  uint32_t FixupOffset = Layout.getFragmentOffset(Fragment)+Fixup.getOffset();
+  uint32_t const FixupOffset = Layout.getFragmentOffset(Fragment)+Fixup.getOffset();
 
   if (FixupOffset & 0xff000000) {
     Asm.getContext().reportError(Fixup.getLoc(),
@@ -269,7 +269,7 @@ void ARMMachObjectWriter::RecordARMScatteredRelocation(MachObjectWriter *Writer,
     return;
   }
 
-  unsigned IsPCRel = Writer->isFixupKindPCRel(Asm, Fixup.getKind());
+  unsigned const IsPCRel = Writer->isFixupKindPCRel(Asm, Fixup.getKind());
 
   // See <reloc.h>.
   const MCSymbol *A = &Target.getSymA()->getSymbol();
@@ -281,8 +281,8 @@ void ARMMachObjectWriter::RecordARMScatteredRelocation(MachObjectWriter *Writer,
     return;
   }
 
-  uint32_t Value = Writer->getSymbolAddress(*A, Layout);
-  uint64_t SecAddr = Writer->getSectionAddress(A->getFragment()->getParent());
+  uint32_t const Value = Writer->getSymbolAddress(*A, Layout);
+  uint64_t const SecAddr = Writer->getSectionAddress(A->getFragment()->getParent());
   FixedValue += SecAddr;
   uint32_t Value2 = 0;
 
@@ -378,7 +378,7 @@ void ARMMachObjectWriter::recordRelocation(MachObjectWriter *Writer,
                                            const MCFragment *Fragment,
                                            const MCFixup &Fixup, MCValue Target,
                                            uint64_t &FixedValue) {
-  unsigned IsPCRel = Writer->isFixupKindPCRel(Asm, Fixup.getKind());
+  unsigned const IsPCRel = Writer->isFixupKindPCRel(Asm, Fixup.getKind());
   unsigned Log2Size;
   unsigned RelocType = MachO::ARM_RELOC_VANILLA;
   if (!getARMFixupKindMachOInfo(Fixup.getKind(), RelocType, Log2Size)) {
@@ -423,7 +423,7 @@ void ARMMachObjectWriter::recordRelocation(MachObjectWriter *Writer,
                                         FixedValue);
 
   // See <reloc.h>.
-  uint32_t FixupOffset = Layout.getFragmentOffset(Fragment)+Fixup.getOffset();
+  uint32_t const FixupOffset = Layout.getFragmentOffset(Fragment)+Fixup.getOffset();
   unsigned Index = 0;
   unsigned Type = 0;
   const MCSymbol *RelSymbol = nullptr;

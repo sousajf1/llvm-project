@@ -70,7 +70,7 @@ unsigned WebAssemblyWasmObjectWriter::getRelocType(
   assert(RefA);
   auto& SymA = cast<MCSymbolWasm>(RefA->getSymbol());
 
-  MCSymbolRefExpr::VariantKind Modifier = Target.getAccessVariant();
+  MCSymbolRefExpr::VariantKind const Modifier = Target.getAccessVariant();
 
   switch (Modifier) {
     case MCSymbolRefExpr::VK_GOT:

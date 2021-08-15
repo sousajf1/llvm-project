@@ -139,7 +139,7 @@ void RecordStreamer::flushSymverDirectives() {
   StringMap<const GlobalValue *> MangledNameMap;
   // The name in the assembler will be mangled, but the name in the IR
   // might not, so we first compute a mapping from mangled name to GV.
-  Mangler Mang;
+  Mangler const Mang;
   SmallString<64> MangledName;
   for (const GlobalValue &GV : M.global_values()) {
     if (!GV.hasName())
@@ -158,7 +158,7 @@ void RecordStreamer::flushSymverDirectives() {
     bool IsDefined = false;
 
     // First check if the aliasee binding was recorded in the asm.
-    RecordStreamer::State state = getSymbolState(Aliasee);
+    RecordStreamer::State const state = getSymbolState(Aliasee);
     switch (state) {
     case RecordStreamer::Global:
     case RecordStreamer::DefinedGlobal:
@@ -209,7 +209,7 @@ void RecordStreamer::flushSymverDirectives() {
 
     // Set the detected binding on each alias with this aliasee.
     for (auto AliasName : Symver.second) {
-      std::pair<StringRef, StringRef> Split = AliasName.split("@@@");
+      std::pair<StringRef, StringRef> const Split = AliasName.split("@@@");
       SmallString<128> NewName;
       if (!Split.second.empty() && !Split.second.startswith("@")) {
         // Special processing for "@@@" according

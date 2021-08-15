@@ -26,7 +26,7 @@ Expected<PassPlugin> PassPlugin::Load(const std::string &Filename) {
 
   // llvmGetPassPluginInfo should be resolved to the definition from the plugin
   // we are currently loading.
-  intptr_t getDetailsFn =
+  intptr_t const getDetailsFn =
       (intptr_t)Library.getAddressOfSymbol("llvmGetPassPluginInfo");
 
   if (!getDetailsFn)

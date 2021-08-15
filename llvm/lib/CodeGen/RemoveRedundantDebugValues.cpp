@@ -90,7 +90,7 @@ static bool reduceDbgValsForwardScan(MachineBasicBlock &MBB) {
 
   for (auto &MI : MBB) {
     if (MI.isDebugValue()) {
-      DebugVariable Var(MI.getDebugVariable(), NoneType(),
+      DebugVariable const Var(MI.getDebugVariable(), NoneType(),
                         MI.getDebugLoc()->getInlinedAt());
       auto VMI = VariableMap.find(Var);
       // Just stop tracking this variable, until we cover DBG_VALUE_LIST.
@@ -164,7 +164,7 @@ static bool reduceDbgValsBackwardScan(MachineBasicBlock &MBB) {
     MachineInstr *MI = &*I;
 
     if (MI->isDebugValue()) {
-      DebugVariable Var(MI->getDebugVariable(), MI->getDebugExpression(),
+      DebugVariable const Var(MI->getDebugVariable(), MI->getDebugExpression(),
                         MI->getDebugLoc()->getInlinedAt());
       auto R = VariableSet.insert(Var);
       // If it is a DBG_VALUE describing a constant as:
@@ -172,7 +172,7 @@ static bool reduceDbgValsBackwardScan(MachineBasicBlock &MBB) {
       // we just don't consider such instructions as candidates
       // for redundant removal.
       if (MI->isNonListDebugValue()) {
-        MachineOperand &Loc = MI->getDebugOperand(0);
+        MachineOperand  const&Loc = MI->getDebugOperand(0);
         if (!Loc.isReg()) {
           // If we have already encountered this variable, just stop
           // tracking it.
@@ -226,6 +226,6 @@ bool RemoveRedundantDebugValues::runOnMachineFunction(MachineFunction &MF) {
       DICompileUnit::NoDebug)
     return false;
 
-  bool Changed = reduceDbgValues(MF);
+  bool const Changed = reduceDbgValues(MF);
   return Changed;
 }

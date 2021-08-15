@@ -100,14 +100,14 @@ void ArgList::AddAllArgsExcept(ArgStringList &Output,
                                ArrayRef<OptSpecifier> ExcludeIds) const {
   for (const Arg *Arg : *this) {
     bool Excluded = false;
-    for (OptSpecifier Id : ExcludeIds) {
+    for (OptSpecifier const Id : ExcludeIds) {
       if (Arg->getOption().matches(Id)) {
         Excluded = true;
         break;
       }
     }
     if (!Excluded) {
-      for (OptSpecifier Id : Ids) {
+      for (OptSpecifier const Id : Ids) {
         if (Arg->getOption().matches(Id)) {
           Arg->claim();
           Arg->render(*this, Output);
@@ -121,7 +121,7 @@ void ArgList::AddAllArgsExcept(ArgStringList &Output,
 /// This is a nicer interface when you don't have a list of Ids to exclude.
 void ArgList::AddAllArgs(ArgStringList &Output,
                          ArrayRef<OptSpecifier> Ids) const {
-  ArrayRef<OptSpecifier> Exclude = None;
+  ArrayRef<OptSpecifier> const Exclude = None;
   AddAllArgsExcept(Output, Ids, Exclude);
 }
 
@@ -174,7 +174,7 @@ void ArgList::ClaimAllArgs() const {
 const char *ArgList::GetOrMakeJoinedArgString(unsigned Index,
                                               StringRef LHS,
                                               StringRef RHS) const {
-  StringRef Cur = getArgString(Index);
+  StringRef const Cur = getArgString(Index);
   if (Cur.size() == LHS.size() + RHS.size() &&
       Cur.startswith(LHS) && Cur.endswith(RHS))
     return Cur.data();
@@ -206,7 +206,7 @@ InputArgList::InputArgList(const char* const *ArgBegin,
 }
 
 unsigned InputArgList::MakeIndex(StringRef String0) const {
-  unsigned Index = ArgStrings.size();
+  unsigned const Index = ArgStrings.size();
 
   // Tuck away so we have a reliable const char *.
   SynthesizedStrings.push_back(std::string(String0));
@@ -217,8 +217,8 @@ unsigned InputArgList::MakeIndex(StringRef String0) const {
 
 unsigned InputArgList::MakeIndex(StringRef String0,
                                  StringRef String1) const {
-  unsigned Index0 = MakeIndex(String0);
-  unsigned Index1 = MakeIndex(String1);
+  unsigned const Index0 = MakeIndex(String0);
+  unsigned const Index1 = MakeIndex(String1);
   assert(Index0 + 1 == Index1 && "Unexpected non-consecutive indices!");
   (void) Index1;
   return Index0;
@@ -248,7 +248,7 @@ Arg *DerivedArgList::MakeFlagArg(const Arg *BaseArg, const Option Opt) const {
 
 Arg *DerivedArgList::MakePositionalArg(const Arg *BaseArg, const Option Opt,
                                        StringRef Value) const {
-  unsigned Index = BaseArgs.MakeIndex(Value);
+  unsigned const Index = BaseArgs.MakeIndex(Value);
   SynthesizedArgs.push_back(
       std::make_unique<Arg>(Opt, MakeArgString(Opt.getPrefix() + Opt.getName()),
                        Index, BaseArgs.getArgString(Index), BaseArg));
@@ -257,7 +257,7 @@ Arg *DerivedArgList::MakePositionalArg(const Arg *BaseArg, const Option Opt,
 
 Arg *DerivedArgList::MakeSeparateArg(const Arg *BaseArg, const Option Opt,
                                      StringRef Value) const {
-  unsigned Index = BaseArgs.MakeIndex(Opt.getName(), Value);
+  unsigned const Index = BaseArgs.MakeIndex(Opt.getName(), Value);
   SynthesizedArgs.push_back(
       std::make_unique<Arg>(Opt, MakeArgString(Opt.getPrefix() + Opt.getName()),
                        Index, BaseArgs.getArgString(Index + 1), BaseArg));
@@ -266,7 +266,7 @@ Arg *DerivedArgList::MakeSeparateArg(const Arg *BaseArg, const Option Opt,
 
 Arg *DerivedArgList::MakeJoinedArg(const Arg *BaseArg, const Option Opt,
                                    StringRef Value) const {
-  unsigned Index = BaseArgs.MakeIndex((Opt.getName() + Value).str());
+  unsigned const Index = BaseArgs.MakeIndex((Opt.getName() + Value).str());
   SynthesizedArgs.push_back(std::make_unique<Arg>(
       Opt, MakeArgString(Opt.getPrefix() + Opt.getName()), Index,
       BaseArgs.getArgString(Index) + Opt.getName().size(), BaseArg));

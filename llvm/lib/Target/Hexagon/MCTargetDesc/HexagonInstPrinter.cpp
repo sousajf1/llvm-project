@@ -50,8 +50,8 @@ void HexagonInstPrinter::printInst(const MCInst *MI, uint64_t Address,
     OS << "\n";
   }
 
-  bool IsLoop0 = HexagonMCInstrInfo::isInnerLoop(*MI);
-  bool IsLoop1 = HexagonMCInstrInfo::isOuterLoop(*MI);
+  bool const IsLoop0 = HexagonMCInstrInfo::isInnerLoop(*MI);
+  bool const IsLoop1 = HexagonMCInstrInfo::isOuterLoop(*MI);
   if (IsLoop0) {
     OS << (IsLoop1 ? " :endloop01" : " :endloop0");
   } else if (IsLoop1) {

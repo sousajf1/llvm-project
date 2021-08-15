@@ -33,8 +33,8 @@
 using namespace llvm;
 
 extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializeRISCVTarget() {
-  RegisterTargetMachine<RISCVTargetMachine> X(getTheRISCV32Target());
-  RegisterTargetMachine<RISCVTargetMachine> Y(getTheRISCV64Target());
+  RegisterTargetMachine<RISCVTargetMachine> const X(getTheRISCV32Target());
+  RegisterTargetMachine<RISCVTargetMachine> const Y(getTheRISCV64Target());
   auto *PR = PassRegistry::getPassRegistry();
   initializeGlobalISel(*PR);
   initializeRISCVMergeBaseOffsetOptPass(*PR);
@@ -74,17 +74,17 @@ RISCVTargetMachine::RISCVTargetMachine(const Target &T, const Triple &TT,
 
 const RISCVSubtarget *
 RISCVTargetMachine::getSubtargetImpl(const Function &F) const {
-  Attribute CPUAttr = F.getFnAttribute("target-cpu");
-  Attribute TuneAttr = F.getFnAttribute("tune-cpu");
-  Attribute FSAttr = F.getFnAttribute("target-features");
+  Attribute const CPUAttr = F.getFnAttribute("target-cpu");
+  Attribute const TuneAttr = F.getFnAttribute("tune-cpu");
+  Attribute const FSAttr = F.getFnAttribute("target-features");
 
-  std::string CPU =
+  std::string const CPU =
       CPUAttr.isValid() ? CPUAttr.getValueAsString().str() : TargetCPU;
-  std::string TuneCPU =
+  std::string const TuneCPU =
       TuneAttr.isValid() ? TuneAttr.getValueAsString().str() : CPU;
-  std::string FS =
+  std::string const FS =
       FSAttr.isValid() ? FSAttr.getValueAsString().str() : TargetFS;
-  std::string Key = CPU + TuneCPU + FS;
+  std::string const Key = CPU + TuneCPU + FS;
   auto &I = SubtargetMap[Key];
   if (!I) {
     // This needs to be done before we create a new subtarget since any

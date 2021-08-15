@@ -23,7 +23,7 @@ using namespace llvm;
 /// This also makes sure GV cannot be dropped so that references from
 /// the split module remain valid.
 static void makeVisible(GlobalValue &GV, bool Delete) {
-  bool Local = GV.hasLocalLinkage();
+  bool const Local = GV.hasLocalLinkage();
   if (Local || Delete) {
     GV.setLinkage(GlobalValue::ExternalLinkage);
     if (Local)
@@ -83,7 +83,7 @@ namespace {
 
       // Visit the GlobalVariables.
       for (GlobalVariable &GV : M.globals()) {
-        bool Delete = deleteStuff == (bool)Named.count(&GV) &&
+        bool const Delete = deleteStuff == (bool)Named.count(&GV) &&
                       !GV.isDeclaration() &&
                       (!GV.isConstant() || !keepConstInit);
         if (!Delete) {
@@ -104,7 +104,7 @@ namespace {
 
       // Visit the Functions.
       for (Function &F : M) {
-        bool Delete =
+        bool const Delete =
             deleteStuff == (bool)Named.count(&F) && !F.isDeclaration();
         if (!Delete) {
           if (F.hasAvailableExternallyLinkage())
@@ -123,10 +123,10 @@ namespace {
       // Visit the Aliases.
       for (Module::alias_iterator I = M.alias_begin(), E = M.alias_end();
            I != E;) {
-        Module::alias_iterator CurI = I;
+        Module::alias_iterator const CurI = I;
         ++I;
 
-        bool Delete = deleteStuff == (bool)Named.count(&*CurI);
+        bool const Delete = deleteStuff == (bool)Named.count(&*CurI);
         makeVisible(*CurI, Delete);
 
         if (Delete) {

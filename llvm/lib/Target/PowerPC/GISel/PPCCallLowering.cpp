@@ -106,13 +106,13 @@ Register PPCIncomingValueHandler::getStackAddress(uint64_t Size, int64_t Offset,
                                                   ISD::ArgFlagsTy Flags) {
   auto &MFI = MIRBuilder.getMF().getFrameInfo();
   const bool IsImmutable = !Flags.isByVal();
-  int FI = MFI.CreateFixedObject(Size, Offset, IsImmutable);
+  int const FI = MFI.CreateFixedObject(Size, Offset, IsImmutable);
   MPO = MachinePointerInfo::getFixedStack(MIRBuilder.getMF(), FI);
 
   // Build Frame Index based on whether the machine is 32-bit or 64-bit
-  llvm::LLT FramePtr = LLT::pointer(
+  llvm::LLT const FramePtr = LLT::pointer(
       0, MIRBuilder.getMF().getDataLayout().getPointerSizeInBits());
-  MachineInstrBuilder AddrReg = MIRBuilder.buildFrameIndex(FramePtr, FI);
+  MachineInstrBuilder const AddrReg = MIRBuilder.buildFrameIndex(FramePtr, FI);
   StackUsed = std::max(StackUsed, Size + Offset);
   return AddrReg.getReg(0);
 }

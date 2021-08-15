@@ -68,7 +68,7 @@ NativeEnumEnumEnumerators::NativeEnumEnumEnumerators(
 
   ContinuationIndex = ClassParent.getEnumRecord().FieldList;
   while (ContinuationIndex) {
-    CVType FieldList = Types.getType(*ContinuationIndex);
+    CVType const FieldList = Types.getType(*ContinuationIndex);
     assert(FieldList.kind() == LF_FIELDLIST);
     ContinuationIndex.reset();
     cantFail(visitMemberRecordStream(FieldList.data(), *this));
@@ -96,7 +96,7 @@ NativeEnumEnumEnumerators::getChildAtIndex(uint32_t Index) const {
   if (Index >= getChildCount())
     return nullptr;
 
-  SymIndexId Id = Session.getSymbolCache()
+  SymIndexId const Id = Session.getSymbolCache()
                       .getOrCreateFieldListMember<NativeSymbolEnumerator>(
                           ClassParent.getEnumRecord().FieldList, Index,
                           ClassParent, Enumerators[Index]);
@@ -181,7 +181,7 @@ PDB_BuiltinType NativeTypeEnum::getBuiltinType() const {
 
   Session.getSymbolCache().findSymbolByTypeIndex(Record->getUnderlyingType());
 
-  codeview::TypeIndex Underlying = Record->getUnderlyingType();
+  codeview::TypeIndex const Underlying = Record->getUnderlyingType();
 
   // This indicates a corrupt record.
   if (!Underlying.isSimple() ||

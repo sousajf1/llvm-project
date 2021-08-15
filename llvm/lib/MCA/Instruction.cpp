@@ -60,7 +60,7 @@ void WriteState::onInstructionIssued(unsigned IID) {
   // all the users.
   for (const std::pair<ReadState *, int> &User : Users) {
     ReadState *RS = User.first;
-    unsigned ReadCycles = std::max(0, CyclesLeft - User.second);
+    unsigned const ReadCycles = std::max(0, CyclesLeft - User.second);
     RS->writeStartEvent(IID, RegisterID, ReadCycles);
   }
 
@@ -74,7 +74,7 @@ void WriteState::addUser(unsigned IID, ReadState *User, int ReadAdvance) {
   // update the list of users. We can just notify the user with
   // the actual number of cycles left (which may be zero).
   if (CyclesLeft != UNKNOWN_CYCLES) {
-    unsigned ReadCycles = std::max(0, CyclesLeft - ReadAdvance);
+    unsigned const ReadCycles = std::max(0, CyclesLeft - ReadAdvance);
     User->writeStartEvent(IID, RegisterID, ReadCycles);
     return;
   }
@@ -132,7 +132,7 @@ const CriticalDependency &Instruction::computeCriticalRegDep() {
   if (CriticalRegDep.Cycles)
     return CriticalRegDep;
 
-  unsigned MaxLatency = 0;
+  unsigned const MaxLatency = 0;
   for (const WriteState &WS : getDefs()) {
     const CriticalDependency &WriteCRD = WS.getCriticalRegDep();
     if (WriteCRD.Cycles > MaxLatency)

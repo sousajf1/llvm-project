@@ -54,7 +54,7 @@ public:
 void AMDGPUAsmBackend::relaxInstruction(MCInst &Inst,
                                         const MCSubtargetInfo &STI) const {
   MCInst Res;
-  unsigned RelaxedOpcode = AMDGPU::getSOPPWithRelaxation(Inst.getOpcode());
+  unsigned const RelaxedOpcode = AMDGPU::getSOPPWithRelaxation(Inst.getOpcode());
   Res.setOpcode(RelaxedOpcode);
   Res.addOperand(Inst.getOperand(0));
   Inst = std::move(Res);
@@ -105,11 +105,11 @@ static unsigned getFixupKindNumBytes(unsigned Kind) {
 
 static uint64_t adjustFixupValue(const MCFixup &Fixup, uint64_t Value,
                                  MCContext *Ctx) {
-  int64_t SignedValue = static_cast<int64_t>(Value);
+  int64_t const SignedValue = static_cast<int64_t>(Value);
 
   switch (Fixup.getTargetKind()) {
   case AMDGPU::fixup_si_sopp_br: {
-    int64_t BrImm = (SignedValue - 4) / 4;
+    int64_t const BrImm = (SignedValue - 4) / 4;
 
     if (Ctx && !isInt<16>(BrImm))
       Ctx->reportError(Fixup.getLoc(), "branch size exceeds simm16");
@@ -137,13 +137,13 @@ void AMDGPUAsmBackend::applyFixup(const MCAssembler &Asm, const MCFixup &Fixup,
   if (!Value)
     return; // Doesn't change encoding.
 
-  MCFixupKindInfo Info = getFixupKindInfo(Fixup.getKind());
+  MCFixupKindInfo const Info = getFixupKindInfo(Fixup.getKind());
 
   // Shift the value into position.
   Value <<= Info.TargetOffset;
 
-  unsigned NumBytes = getFixupKindNumBytes(Fixup.getKind());
-  uint32_t Offset = Fixup.getOffset();
+  unsigned const NumBytes = getFixupKindNumBytes(Fixup.getKind());
+  uint32_t const Offset = Fixup.getOffset();
   assert(Offset + NumBytes <= Data.size() && "Invalid fixup offset!");
 
   // For each byte of the fragment that the fixup touches, mask in the bits from

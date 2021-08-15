@@ -105,7 +105,7 @@ void LowerIntrinsics::getAnalysisUsage(AnalysisUsage &AU) const {
 bool LowerIntrinsics::doInitialization(Module &M) {
   GCModuleInfo *MI = getAnalysisIfAvailable<GCModuleInfo>();
   assert(MI && "LowerIntrinsics didn't require GCModuleInfo!?");
-  for (Function &F : M)
+  for (Function  const&F : M)
     if (!F.isDeclaration() && F.hasGC())
       MI->getFunctionInfo(F); // Instantiate the GC strategy.
 
@@ -133,7 +133,7 @@ static bool CouldBecomeSafePoint(Instruction *I) {
   // llvm.gcroot is safe because it doesn't do anything at runtime.
   if (CallInst *CI = dyn_cast<CallInst>(I))
     if (Function *F = CI->getCalledFunction())
-      if (Intrinsic::ID IID = F->getIntrinsicID())
+      if (Intrinsic::ID const IID = F->getIntrinsicID())
         if (IID == Intrinsic::gcroot)
           return false;
 

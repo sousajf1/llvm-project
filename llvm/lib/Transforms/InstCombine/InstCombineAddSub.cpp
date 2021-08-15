@@ -271,7 +271,7 @@ void FAddendCoef::operator=(const FAddendCoef &That) {
 }
 
 void FAddendCoef::operator+=(const FAddendCoef &That) {
-  RoundingMode RndMode = RoundingMode::NearestTiesToEven;
+  RoundingMode const RndMode = RoundingMode::NearestTiesToEven;
   if (isInt() == That.isInt()) {
     if (isInt())
       IntVal += That.IntVal;
@@ -301,7 +301,7 @@ void FAddendCoef::operator*=(const FAddendCoef &That) {
   }
 
   if (isInt() && That.isInt()) {
-    int Res = IntVal * (int)That.IntVal;
+    int const Res = IntVal * (int)That.IntVal;
     assert(!insaneIntVal(Res) && "Insane int value");
     IntVal = Res;
     return;
@@ -350,7 +350,7 @@ unsigned FAddend::drillValueDownOneStep
   if (!Val || !(I = dyn_cast<Instruction>(Val)))
     return 0;
 
-  unsigned Opcode = I->getOpcode();
+  unsigned const Opcode = I->getOpcode();
 
   if (Opcode == Instruction::FAdd || Opcode == Instruction::FSub) {
     ConstantFP *C0, *C1;
@@ -412,7 +412,7 @@ unsigned FAddend::drillAddendDownOneStep
   if (isConstant())
     return 0;
 
-  unsigned BreakNum = FAddend::drillValueDownOneStep(Val, Addend0, Addend1);
+  unsigned const BreakNum = FAddend::drillValueDownOneStep(Val, Addend0, Addend1);
   if (!BreakNum || Coeff.isOne())
     return BreakNum;
 
@@ -440,7 +440,7 @@ Value *FAddCombine::simplify(Instruction *I) {
 
   FAddend Opnd0, Opnd1, Opnd0_0, Opnd0_1, Opnd1_0, Opnd1_1;
 
-  unsigned OpndNum = FAddend::drillValueDownOneStep(I, Opnd0, Opnd1);
+  unsigned const OpndNum = FAddend::drillValueDownOneStep(I, Opnd0, Opnd1);
 
   // Step 1: Expand the 1st addend into Opnd0_0 and Opnd0_1.
   unsigned Opnd0_ExpNum = 0;
@@ -512,7 +512,7 @@ Value *FAddCombine::simplify(Instruction *I) {
 }
 
 Value *FAddCombine::simplifyFAdd(AddendVect& Addends, unsigned InstrQuota) {
-  unsigned AddendNum = Addends.size();
+  unsigned const AddendNum = Addends.size();
   assert(AddendNum <= 4 && "Too many addends");
 
   // For saving intermediate results;
@@ -541,7 +541,7 @@ Value *FAddCombine::simplifyFAdd(AddendVect& Addends, unsigned InstrQuota) {
     }
 
     Value *Val = ThisAddend->getSymVal();
-    unsigned StartIdx = SimpVect.size();
+    unsigned const StartIdx = SimpVect.size();
     SimpVect.push_back(ThisAddend);
 
     // The inner loop collects addends sharing same symbolic-value, and these
@@ -604,7 +604,7 @@ Value *FAddCombine::createNaryFAdd
 
   // Step 1: Check if the # of instructions needed exceeds the quota.
 
-  unsigned InstrNeeded = calcInstrNumber(Opnds);
+  unsigned const InstrNeeded = calcInstrNumber(Opnds);
   if (InstrNeeded > InstrQuota)
     return nullptr;
 
@@ -698,7 +698,7 @@ void FAddCombine::createInstPostProc(Instruction *NewInstr, bool NoNumber) {
 // Return the number of instruction needed to emit the N-ary addition.
 // NOTE: Keep this function in sync with createAddendVal().
 unsigned FAddCombine::calcInstrNumber(const AddendVect &Opnds) {
-  unsigned OpndNum = Opnds.size();
+  unsigned const OpndNum = Opnds.size();
   unsigned InstrNeeded = OpndNum - 1;
 
   // The number of addends in the form of "(-1)*x".
@@ -938,7 +938,7 @@ Instruction *InstCombinerImpl::foldAddWithConstant(BinaryOperator &Add) {
     // If X has no high-bits set above an xor mask:
     // add (xor X, LowMaskC), C --> sub (LowMaskC + C), X
     if (C2->isMask()) {
-      KnownBits LHSKnown = computeKnownBits(X, 0, &Add);
+      KnownBits const LHSKnown = computeKnownBits(X, 0, &Add);
       if ((*C2 | LHSKnown.Zero).isAllOnesValue())
         return BinaryOperator::CreateSub(ConstantInt::get(Ty, *C2 + *C), X);
     }
@@ -948,7 +948,7 @@ Instruction *InstCombinerImpl::foldAddWithConstant(BinaryOperator &Add) {
     // add (xor X, 0x80), 0xF..F80 --> (X << ShAmtC) >>s ShAmtC
     // add (xor X, 0xF..F80), 0x80 --> (X << ShAmtC) >>s ShAmtC
     if (Op0->hasOneUse() && *C2 == -(*C)) {
-      unsigned BitWidth = Ty->getScalarSizeInBits();
+      unsigned const BitWidth = Ty->getScalarSizeInBits();
       unsigned ShAmt = 0;
       if (C->isPowerOf2())
         ShAmt = BitWidth - C->logBase2() - 1;
@@ -1169,7 +1169,7 @@ Instruction *InstCombinerImpl::
     return nullptr;
 
   Type *XTy = X->getType();
-  bool HadTrunc = I.getType() != XTy;
+  bool const HadTrunc = I.getType() != XTy;
 
   // If there was a truncation of extracted value, then we'll need to produce
   // one extra instruction, so we need to ensure one instruction will go away.
@@ -1267,9 +1267,9 @@ static Instruction *factorizeMathWithShlOps(BinaryOperator &I,
     return nullptr;
 
   // No-wrap propagates only when all ops have no-wrap.
-  bool HasNSW = I.hasNoSignedWrap() && Op0->hasNoSignedWrap() &&
+  bool const HasNSW = I.hasNoSignedWrap() && Op0->hasNoSignedWrap() &&
                 Op1->hasNoSignedWrap();
-  bool HasNUW = I.hasNoUnsignedWrap() && Op0->hasNoUnsignedWrap() &&
+  bool const HasNUW = I.hasNoUnsignedWrap() && Op0->hasNoUnsignedWrap() &&
                 Op1->hasNoUnsignedWrap();
 
   // add/sub (X << ShAmt), (Y << ShAmt) --> (add/sub X, Y) << ShAmt
@@ -1361,8 +1361,8 @@ Instruction *InstCombinerImpl::visitAdd(BinaryOperator &I) {
   // ((X s/ C1) << C2) + X => X s% -C1 where -C1 is 1 << C2
   const APInt *C1, *C2;
   if (match(LHS, m_Shl(m_SDiv(m_Specific(RHS), m_APInt(C1)), m_APInt(C2)))) {
-    APInt one(C2->getBitWidth(), 1);
-    APInt minusC1 = -(*C1);
+    APInt const one(C2->getBitWidth(), 1);
+    APInt const minusC1 = -(*C1);
     if (minusC1 == (one << *C2)) {
       Constant *NewRHS = ConstantInt::get(RHS->getType(), minusC1);
       return BinaryOperator::CreateSRem(RHS, NewRHS);
@@ -1504,7 +1504,7 @@ static Instruction *factorizeFAddFSub(BinaryOperator &I,
   // (X * Z) - (Y * Z) --> (X - Y) * Z
   // (X / Z) + (Y / Z) --> (X + Y) / Z
   // (X / Z) - (Y / Z) --> (X - Y) / Z
-  bool IsFAdd = I.getOpcode() == Instruction::FAdd;
+  bool const IsFAdd = I.getOpcode() == Instruction::FAdd;
   Value *XY = IsFAdd ? Builder.CreateFAddFMF(X, Y, &I)
                      : Builder.CreateFSubFMF(X, Y, &I);
 
@@ -1572,7 +1572,7 @@ Instruction *InstCombinerImpl::visitFAdd(BinaryOperator &I) {
 
       // Do we have enough bits in the significand to represent the result of
       // the integer addition?
-      unsigned MaxRepresentableBits =
+      unsigned const MaxRepresentableBits =
           APFloat::semanticsPrecision(FScalarTy->getFltSemantics());
       return IScalarTy->getIntegerBitWidth() <= MaxRepresentableBits;
     };
@@ -1694,8 +1694,8 @@ Value *InstCombinerImpl::OptimizePointerDifference(Value *LHS, Value *RHS,
     // users. If more than one non-constant indices combined, as long as the GEP
     // with at least one non-constant index doesn't have multiple users, there
     // is no duplication.
-    unsigned NumNonConstantIndices1 = GEP1->countNonConstantIndices();
-    unsigned NumNonConstantIndices2 = GEP2->countNonConstantIndices();
+    unsigned const NumNonConstantIndices1 = GEP1->countNonConstantIndices();
+    unsigned const NumNonConstantIndices2 = GEP2->countNonConstantIndices();
     if (NumNonConstantIndices1 + NumNonConstantIndices2 > 1 &&
         ((NumNonConstantIndices1 > 0 && !GEP1->hasOneUse()) ||
          (NumNonConstantIndices2 > 0 && !GEP2->hasOneUse()))) {
@@ -1791,7 +1791,7 @@ Instruction *InstCombinerImpl::visitSub(BinaryOperator &I) {
   // First, let's try to interpret `sub a, b` as `add a, (sub 0, b)`,
   // and let's try to sink `(sub 0, b)` into `b` itself. But only if this isn't
   // a pure negation used by a select that looks like abs/nabs.
-  bool IsNegation = match(Op0, m_ZeroInt());
+  bool const IsNegation = match(Op0, m_ZeroInt());
   if (!IsNegation || none_of(I.users(), [&I, Op1](const User *U) {
         const Instruction *UI = dyn_cast<Instruction>(U);
         if (!UI)
@@ -1891,7 +1891,7 @@ Instruction *InstCombinerImpl::visitSub(BinaryOperator &I) {
   if (match(Op0, m_APInt(Op0C)) && Op0C->isMask()) {
     // Turn this into a xor if LHS is 2^n-1 and the remaining bits are known
     // zero.
-    KnownBits RHSKnown = computeKnownBits(Op1, 0, &I);
+    KnownBits const RHSKnown = computeKnownBits(Op1, 0, &I);
     if ((*Op0C | RHSKnown.Zero).isAllOnesValue())
       return BinaryOperator::CreateXor(Op1, Op0);
   }
@@ -2007,7 +2007,7 @@ Instruction *InstCombinerImpl::visitSub(BinaryOperator &I) {
       // While it is really tempting to just create two subtractions and let
       // InstCombine fold one of those to 0, it isn't possible to do so
       // because of worklist visitation order. So ugly it is.
-      bool OtherHandOfSubIsTrueVal = OtherHandOfSub == TrueVal;
+      bool const OtherHandOfSubIsTrueVal = OtherHandOfSub == TrueVal;
       Value *NewSub = SubBuilder(OtherHandOfSubIsTrueVal ? FalseVal : TrueVal);
       Constant *Zero = Constant::getNullValue(Ty);
       SelectInst *NewSel =
@@ -2116,9 +2116,9 @@ Instruction *InstCombinerImpl::visitSub(BinaryOperator &I) {
   const APInt *AddC, *AndC;
   if (match(Op0, m_Add(m_Value(X), m_APInt(AddC))) &&
       match(Op1, m_And(m_Specific(X), m_APInt(AndC)))) {
-    unsigned BitWidth = Ty->getScalarSizeInBits();
-    unsigned Cttz = AddC->countTrailingZeros();
-    APInt HighMask(APInt::getHighBitsSet(BitWidth, BitWidth - Cttz));
+    unsigned const BitWidth = Ty->getScalarSizeInBits();
+    unsigned const Cttz = AddC->countTrailingZeros();
+    APInt const HighMask(APInt::getHighBitsSet(BitWidth, BitWidth - Cttz));
     if ((HighMask & *AndC).isNullValue())
       return BinaryOperator::CreateAnd(Op0, ConstantInt::get(Ty, ~(*AndC)));
   }
@@ -2171,8 +2171,8 @@ static Instruction *foldFNegIntoConstant(Instruction &I) {
     // Intersect 'nsz' and 'ninf' because those special value exceptions may not
     // apply to the fdiv. Everything else propagates from the fneg.
     // TODO: We could propagate nsz/ninf from fdiv alone?
-    FastMathFlags FMF = I.getFastMathFlags();
-    FastMathFlags OpFMF = FNegOp->getFastMathFlags();
+    FastMathFlags const FMF = I.getFastMathFlags();
+    FastMathFlags const OpFMF = FNegOp->getFastMathFlags();
     FDiv->setHasNoSignedZeros(FMF.noSignedZeros() & OpFMF.noSignedZeros());
     FDiv->setHasNoInfs(FMF.noInfs() & OpFMF.noInfs());
     return FDiv;

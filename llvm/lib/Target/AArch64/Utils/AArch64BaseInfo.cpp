@@ -134,7 +134,7 @@ uint32_t AArch64SysReg::parseGenericRegister(StringRef Name) {
   // Try to parse an S<op0>_<op1>_<Cn>_<Cm>_<op2> register name
   static const Regex GenericRegPattern("^S([0-3])_([0-7])_C([0-9]|1[0-5])_C([0-9]|1[0-5])_([0-7])$");
 
-  std::string UpperName = Name.upper();
+  std::string const UpperName = Name.upper();
   SmallVector<StringRef, 5> Ops;
   if (!GenericRegPattern.match(UpperName, &Ops))
     return -1;
@@ -153,11 +153,11 @@ uint32_t AArch64SysReg::parseGenericRegister(StringRef Name) {
 
 std::string AArch64SysReg::genericRegisterString(uint32_t Bits) {
   assert(Bits < 0x10000);
-  uint32_t Op0 = (Bits >> 14) & 0x3;
-  uint32_t Op1 = (Bits >> 11) & 0x7;
-  uint32_t CRn = (Bits >> 7) & 0xf;
-  uint32_t CRm = (Bits >> 3) & 0xf;
-  uint32_t Op2 = Bits & 0x7;
+  uint32_t const Op0 = (Bits >> 14) & 0x3;
+  uint32_t const Op1 = (Bits >> 11) & 0x7;
+  uint32_t const CRn = (Bits >> 7) & 0xf;
+  uint32_t const CRm = (Bits >> 3) & 0xf;
+  uint32_t const Op2 = Bits & 0x7;
 
   return "S" + utostr(Op0) + "_" + utostr(Op1) + "_C" + utostr(CRn) + "_C" +
          utostr(CRm) + "_" + utostr(Op2);

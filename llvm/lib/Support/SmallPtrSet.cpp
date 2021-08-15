@@ -27,7 +27,7 @@ void SmallPtrSetImplBase::shrink_and_clear() {
   free(CurArray);
 
   // Reduce the number of buckets.
-  unsigned Size = size();
+  unsigned const Size = size();
   CurArraySize = Size > 16 ? 1 << (Log2_32_Ceil(Size) + 1) : 32;
   NumNonEmpty = NumTombstones = 0;
 
@@ -65,7 +65,7 @@ SmallPtrSetImplBase::insert_imp_big(const void *Ptr) {
 
 const void * const *SmallPtrSetImplBase::FindBucketFor(const void *Ptr) const {
   unsigned Bucket = DenseMapInfo<void *>::getHashValue(Ptr) & (CurArraySize-1);
-  unsigned ArraySize = CurArraySize;
+  unsigned const ArraySize = CurArraySize;
   unsigned ProbeAmt = 1;
   const void *const *Array = CurArray;
   const void *const *Tombstone = nullptr;
@@ -95,7 +95,7 @@ const void * const *SmallPtrSetImplBase::FindBucketFor(const void *Ptr) const {
 void SmallPtrSetImplBase::Grow(unsigned NewSize) {
   const void **OldBuckets = CurArray;
   const void **OldEnd = EndPointer();
-  bool WasSmall = isSmall();
+  bool const WasSmall = isSmall();
 
   // Install the new array.  Clear all the buckets to empty.
   const void **NewBuckets = (const void**) safe_malloc(sizeof(void*) * NewSize);
@@ -254,7 +254,7 @@ void SmallPtrSetImplBase::swap(SmallPtrSetImplBase &RHS) {
 
   // Both a small, just swap the small elements.
   assert(this->isSmall() && RHS.isSmall());
-  unsigned MinNonEmpty = std::min(this->NumNonEmpty, RHS.NumNonEmpty);
+  unsigned const MinNonEmpty = std::min(this->NumNonEmpty, RHS.NumNonEmpty);
   std::swap_ranges(this->SmallArray, this->SmallArray + MinNonEmpty,
                    RHS.SmallArray);
   if (this->NumNonEmpty > MinNonEmpty) {

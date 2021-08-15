@@ -94,7 +94,7 @@ std::string BitsRecTy::getAsString() const {
 bool BitsRecTy::typeIsConvertibleTo(const RecTy *RHS) const {
   if (RecTy::typeIsConvertibleTo(RHS)) //argument and the sender are same type
     return cast<BitsRecTy>(RHS)->Size == Size;
-  RecTyKind kind = RHS->getRecTyKind();
+  RecTyKind const kind = RHS->getRecTyKind();
   return (kind == BitRecTyKind && Size == 1) || (kind == IntRecTyKind);
 }
 
@@ -105,7 +105,7 @@ bool BitsRecTy::typeIsA(const RecTy *RHS) const {
 }
 
 bool IntRecTy::typeIsConvertibleTo(const RecTy *RHS) const {
-  RecTyKind kind = RHS->getRecTyKind();
+  RecTyKind const kind = RHS->getRecTyKind();
   return kind==BitRecTyKind || kind==BitsRecTyKind || kind==IntRecTyKind;
 }
 
@@ -114,7 +114,7 @@ std::string StringRecTy::getAsString() const {
 }
 
 bool StringRecTy::typeIsConvertibleTo(const RecTy *RHS) const {
-  RecTyKind Kind = RHS->getRecTyKind();
+  RecTyKind const Kind = RHS->getRecTyKind();
   return Kind == StringRecTyKind;
 }
 
@@ -468,13 +468,13 @@ Init *IntInit::convertInitializerTo(RecTy *Ty) const {
     return const_cast<IntInit *>(this);
 
   if (isa<BitRecTy>(Ty)) {
-    int64_t Val = getValue();
+    int64_t const Val = getValue();
     if (Val != 0 && Val != 1) return nullptr;  // Only accept 0 or 1 for a bit!
     return BitInit::get(Val != 0);
   }
 
   if (auto *BRT = dyn_cast<BitsRecTy>(Ty)) {
-    int64_t Value = getValue();
+    int64_t const Value = getValue();
     // Make sure this bitfield is large enough to hold the integer value.
     if (!canFitInBitfield(Value, BRT->getNumBits()))
       return nullptr;
@@ -623,7 +623,7 @@ Init *ListInit::convertInitListSlice(ArrayRef<unsigned> Elements) const {
 
   SmallVector<Init*, 8> Vals;
   Vals.reserve(Elements.size());
-  for (unsigned Element : Elements) {
+  for (unsigned const Element : Elements) {
     if (Element >= size())
       return nullptr;
     Vals.push_back(getElement(Element));
@@ -1008,7 +1008,7 @@ Init *BinOpInit::Fold(Record *CurRec) const {
     TypedInit *Value = dyn_cast<TypedInit>(LHS);
     IntInit *Size = dyn_cast<IntInit>(RHS);
     if (Value && Size) {
-      SmallVector<Init *, 8> Args(Size->getValue(), Value);
+      SmallVector<Init *, 8> const Args(Size->getValue(), Value);
       return ListInit::get(Args, Value->getType());
     }
     break;
@@ -1357,15 +1357,15 @@ Init *TernOpInit::Fold(Record *CurRec) const {
   case DAG: {
     ListInit *MHSl = dyn_cast<ListInit>(MHS);
     ListInit *RHSl = dyn_cast<ListInit>(RHS);
-    bool MHSok = MHSl || isa<UnsetInit>(MHS);
-    bool RHSok = RHSl || isa<UnsetInit>(RHS);
+    bool const MHSok = MHSl || isa<UnsetInit>(MHS);
+    bool const RHSok = RHSl || isa<UnsetInit>(RHS);
 
     if (isa<UnsetInit>(MHS) && isa<UnsetInit>(RHS))
       break; // Typically prevented by the parser, but might happen with template args
 
     if (MHSok && RHSok && (!MHSl || !RHSl || MHSl->size() == RHSl->size())) {
       SmallVector<std::pair<Init *, StringInit *>, 8> Children;
-      unsigned Size = MHSl ? MHSl->size() : RHSl->size();
+      unsigned const Size = MHSl ? MHSl->size() : RHSl->size();
       for (unsigned i = 0; i != Size; ++i) {
         Init *Node = MHSl ? MHSl->getElement(i) : UnsetInit::get();
         Init *Name = RHSl ? RHSl->getElement(i) : UnsetInit::get();
@@ -1383,9 +1383,9 @@ Init *TernOpInit::Fold(Record *CurRec) const {
     IntInit *MHSi = dyn_cast<IntInit>(MHS);
     IntInit *RHSi = dyn_cast<IntInit>(RHS);
     if (LHSs && MHSi && RHSi) {
-      int64_t StringSize = LHSs->getValue().size();
-      int64_t Start = MHSi->getValue();
-      int64_t Length = RHSi->getValue();
+      int64_t const StringSize = LHSs->getValue().size();
+      int64_t const Start = MHSi->getValue();
+      int64_t const Length = RHSi->getValue();
       if (Start < 0 || Start > StringSize)
         PrintError(CurRec->getLoc(),
                    Twine("!substr start position is out of range 0...") +
@@ -1404,8 +1404,8 @@ Init *TernOpInit::Fold(Record *CurRec) const {
     StringInit *MHSs = dyn_cast<StringInit>(MHS);
     IntInit *RHSi = dyn_cast<IntInit>(RHS);
     if (LHSs && MHSs && RHSi) {
-      int64_t SourceSize = LHSs->getValue().size();
-      int64_t Start = RHSi->getValue();
+      int64_t const SourceSize = LHSs->getValue().size();
+      int64_t const Start = RHSi->getValue();
       if (Start < 0 || Start > SourceSize)
         PrintError(CurRec->getLoc(),
                    Twine("!find start position is out of range 0...") +
@@ -1627,11 +1627,11 @@ TypedInit::convertInitializerTo(RecTy *Ty) const {
 Init *TypedInit::convertInitializerBitRange(ArrayRef<unsigned> Bits) const {
   BitsRecTy *T = dyn_cast<BitsRecTy>(getType());
   if (!T) return nullptr;  // Cannot subscript a non-bits variable.
-  unsigned NumBits = T->getNumBits();
+  unsigned const NumBits = T->getNumBits();
 
   SmallVector<Init *, 16> NewBits;
   NewBits.reserve(Bits.size());
-  for (unsigned Bit : Bits) {
+  for (unsigned const Bit : Bits) {
     if (Bit >= NumBits)
       return nullptr;
 
@@ -1667,7 +1667,7 @@ Init *TypedInit::convertInitListSlice(ArrayRef<unsigned> Elements) const {
 
   SmallVector<Init*, 8> ListInits;
   ListInits.reserve(Elements.size());
-  for (unsigned Element : Elements)
+  for (unsigned const Element : Elements)
     ListInits.push_back(VarListElementInit::get(const_cast<TypedInit *>(this),
                                                 Element));
   return ListInit::get(ListInits, T->getElementType());
@@ -1683,7 +1683,7 @@ VarInit *VarInit::get(Init *VN, RecTy *T) {
   using Key = std::pair<RecTy *, Init *>;
   static DenseMap<Key, VarInit*> ThePool;
 
-  Key TheKey(std::make_pair(T, VN));
+  Key const TheKey(std::make_pair(T, VN));
 
   VarInit *&I = ThePool[TheKey];
   if (!I)
@@ -1712,7 +1712,7 @@ VarBitInit *VarBitInit::get(TypedInit *T, unsigned B) {
   using Key = std::pair<TypedInit *, unsigned>;
   static DenseMap<Key, VarBitInit*> ThePool;
 
-  Key TheKey(std::make_pair(T, B));
+  Key const TheKey(std::make_pair(T, B));
 
   VarBitInit *&I = ThePool[TheKey];
   if (!I)
@@ -1737,7 +1737,7 @@ VarListElementInit *VarListElementInit::get(TypedInit *T,
   using Key = std::pair<TypedInit *, unsigned>;
   static DenseMap<Key, VarListElementInit*> ThePool;
 
-  Key TheKey(std::make_pair(T, E));
+  Key const TheKey(std::make_pair(T, E));
 
   VarListElementInit *&I = ThePool[TheKey];
   if (!I) I = new(Allocator) VarListElementInit(T, E);
@@ -1838,7 +1838,7 @@ DefInit *VarDefInit::instantiate() {
     NewRec->appendAssertions(Class);
 
     // Substitute and resolve template arguments
-    ArrayRef<Init *> TArgs = Class->getTemplateArgs();
+    ArrayRef<Init *> const TArgs = Class->getTemplateArgs();
     MapResolver R(NewRec);
 
     for (unsigned i = 0, e = TArgs.size(); i != e; ++i) {
@@ -1853,7 +1853,7 @@ DefInit *VarDefInit::instantiate() {
     NewRec->resolveReferences(R);
 
     // Add superclasses.
-    ArrayRef<std::pair<Record *, SMRange>> SCs = Class->getSuperClasses();
+    ArrayRef<std::pair<Record *, SMRange>> const SCs = Class->getSuperClasses();
     for (const auto &SCPair : SCs)
       NewRec->addSuperClass(SCPair.first, SCPair.second);
 
@@ -1923,7 +1923,7 @@ FieldInit *FieldInit::get(Init *R, StringInit *FN) {
   using Key = std::pair<Init *, StringInit *>;
   static DenseMap<Key, FieldInit*> ThePool;
 
-  Key TheKey(std::make_pair(R, FN));
+  Key const TheKey(std::make_pair(R, FN));
 
   FieldInit *&I = ThePool[TheKey];
   if (!I) I = new(Allocator) FieldInit(R, FN);
@@ -2345,7 +2345,7 @@ void Record::setName(Init *NewName) {
 // so we can step through the direct superclasses in reverse order.
 
 bool Record::hasDirectSuperClass(const Record *Superclass) const {
-  ArrayRef<std::pair<Record *, SMRange>> SCs = getSuperClasses();
+  ArrayRef<std::pair<Record *, SMRange>> const SCs = getSuperClasses();
 
   for (int I = SCs.size() - 1; I >= 0; --I) {
     const Record *SC = SCs[I].first;
@@ -2420,7 +2420,7 @@ LLVM_DUMP_METHOD void Record::dump() const { errs() << *this; }
 raw_ostream &llvm::operator<<(raw_ostream &OS, const Record &R) {
   OS << R.getNameInitAsString();
 
-  ArrayRef<Init *> TArgs = R.getTemplateArgs();
+  ArrayRef<Init *> const TArgs = R.getTemplateArgs();
   if (!TArgs.empty()) {
     OS << "<";
     bool NeedComma = false;
@@ -2435,7 +2435,7 @@ raw_ostream &llvm::operator<<(raw_ostream &OS, const Record &R) {
   }
 
   OS << " {";
-  ArrayRef<std::pair<Record *, SMRange>> SC = R.getSuperClasses();
+  ArrayRef<std::pair<Record *, SMRange>> const SC = R.getSuperClasses();
   if (!SC.empty()) {
     OS << "\t//";
     for (const auto &SuperPair : SC)

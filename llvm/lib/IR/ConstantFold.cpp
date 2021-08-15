@@ -55,7 +55,7 @@ static Constant *BitCastConstantVector(Constant *CV, VectorType *DstTy) {
   // If this cast changes element count then we can't handle it here:
   // doing so requires endianness information.  This should be handled by
   // Analysis/ConstantFolding.cpp
-  unsigned NumElts = cast<FixedVectorType>(DstTy)->getNumElements();
+  unsigned const NumElts = cast<FixedVectorType>(DstTy)->getNumElements();
   if (NumElts != cast<FixedVectorType>(CV->getType())->getNumElements())
     return nullptr;
 
@@ -95,8 +95,8 @@ foldConstantCastPair(
   // The types and opcodes for the two Cast constant expressions
   Type *SrcTy = Op->getOperand(0)->getType();
   Type *MidTy = Op->getType();
-  Instruction::CastOps firstOp = Instruction::CastOps(Op->getOpcode());
-  Instruction::CastOps secondOp = Instruction::CastOps(opc);
+  Instruction::CastOps const firstOp = Instruction::CastOps(Op->getOpcode());
+  Instruction::CastOps const secondOp = Instruction::CastOps(opc);
 
   // Assume that pointers are never more than 64 bits wide, and only use this
   // for the middle type. Otherwise we could end up folding away illegal
@@ -217,7 +217,7 @@ static Constant *ExtractConstantBytes(Constant *C, unsigned ByteStart,
   assert(C->getType()->isIntegerTy() &&
          (cast<IntegerType>(C->getType())->getBitWidth() & 7) == 0 &&
          "Non-byte sized integer input");
-  unsigned CSize = cast<IntegerType>(C->getType())->getBitWidth()/8;
+  unsigned const CSize = cast<IntegerType>(C->getType())->getBitWidth()/8;
   assert(ByteSize && "Must be accessing some piece");
   assert(ByteStart+ByteSize <= CSize && "Extracting invalid piece from input");
   assert(ByteSize != CSize && "Should not extract everything");
@@ -314,7 +314,7 @@ static Constant *ExtractConstantBytes(Constant *C, unsigned ByteStart,
   }
 
   case Instruction::ZExt: {
-    unsigned SrcBitSize =
+    unsigned const SrcBitSize =
       cast<IntegerType>(CE->getOperand(0)->getType())->getBitWidth();
 
     // If extracting something that is completely zero, return 0.
@@ -373,7 +373,7 @@ Constant *llvm::ConstantFoldCastInstruction(unsigned opc, Constant *V,
   if (ConstantExpr *CE = dyn_cast<ConstantExpr>(V)) {
     if (CE->isCast()) {
       // Try hard to fold cast of cast because they are often eliminable.
-      if (unsigned newOpc = foldConstantCastPair(opc, CE, DestTy))
+      if (unsigned const newOpc = foldConstantCastPair(opc, CE, DestTy))
         return ConstantExpr::getCast(newOpc, CE->getOperand(0), DestTy);
     } else if (CE->getOpcode() == Instruction::GetElementPtr &&
                // Do not fold addrspacecast (gep 0, .., 0). It might make the
@@ -453,7 +453,7 @@ Constant *llvm::ConstantFoldCastInstruction(unsigned opc, Constant *V,
     if (ConstantFP *FPC = dyn_cast<ConstantFP>(V)) {
       const APFloat &V = FPC->getValueAPF();
       bool ignored;
-      uint32_t DestBitWidth = cast<IntegerType>(DestTy)->getBitWidth();
+      uint32_t const DestBitWidth = cast<IntegerType>(DestTy)->getBitWidth();
       APSInt IntVal(DestBitWidth, opc == Instruction::FPToUI);
       if (APFloat::opInvalidOp ==
           V.convertToInteger(IntVal, APFloat::rmTowardZero, &ignored)) {
@@ -487,14 +487,14 @@ Constant *llvm::ConstantFoldCastInstruction(unsigned opc, Constant *V,
     return nullptr;
   case Instruction::ZExt:
     if (ConstantInt *CI = dyn_cast<ConstantInt>(V)) {
-      uint32_t BitWidth = cast<IntegerType>(DestTy)->getBitWidth();
+      uint32_t const BitWidth = cast<IntegerType>(DestTy)->getBitWidth();
       return ConstantInt::get(V->getContext(),
                               CI->getValue().zext(BitWidth));
     }
     return nullptr;
   case Instruction::SExt:
     if (ConstantInt *CI = dyn_cast<ConstantInt>(V)) {
-      uint32_t BitWidth = cast<IntegerType>(DestTy)->getBitWidth();
+      uint32_t const BitWidth = cast<IntegerType>(DestTy)->getBitWidth();
       return ConstantInt::get(V->getContext(),
                               CI->getValue().sext(BitWidth));
     }
@@ -503,7 +503,7 @@ Constant *llvm::ConstantFoldCastInstruction(unsigned opc, Constant *V,
     if (V->getType()->isVectorTy())
       return nullptr;
 
-    uint32_t DestBitWidth = cast<IntegerType>(DestTy)->getBitWidth();
+    uint32_t const DestBitWidth = cast<IntegerType>(DestTy)->getBitWidth();
     if (ConstantInt *CI = dyn_cast<ConstantInt>(V)) {
       return ConstantInt::get(V->getContext(),
                               CI->getValue().trunc(DestBitWidth));
@@ -695,14 +695,14 @@ Constant *llvm::ConstantFoldInsertElementInstruction(Constant *Val,
 
   auto *ValTy = cast<FixedVectorType>(Val->getType());
 
-  unsigned NumElts = ValTy->getNumElements();
+  unsigned const NumElts = ValTy->getNumElements();
   if (CIdx->uge(NumElts))
     return PoisonValue::get(Val->getType());
 
   SmallVector<Constant*, 16> Result;
   Result.reserve(NumElts);
   auto *Ty = Type::getInt32Ty(Val->getContext());
-  uint64_t IdxVal = CIdx->getZExtValue();
+  uint64_t const IdxVal = CIdx->getZExtValue();
   for (unsigned i = 0; i != NumElts; ++i) {
     if (i == IdxVal) {
       Result.push_back(Elt);
@@ -719,7 +719,7 @@ Constant *llvm::ConstantFoldInsertElementInstruction(Constant *Val,
 Constant *llvm::ConstantFoldShuffleVectorInstruction(Constant *V1, Constant *V2,
                                                      ArrayRef<int> Mask) {
   auto *V1VTy = cast<VectorType>(V1->getType());
-  unsigned MaskNumElts = Mask.size();
+  unsigned const MaskNumElts = Mask.size();
   auto MaskEltCount =
       ElementCount::get(MaskNumElts, isa<ScalableVectorType>(V1VTy));
   Type *EltTy = V1VTy->getElementType();
@@ -743,12 +743,12 @@ Constant *llvm::ConstantFoldShuffleVectorInstruction(Constant *V1, Constant *V2,
   if (isa<ScalableVectorType>(V1VTy))
     return nullptr;
 
-  unsigned SrcNumElts = V1VTy->getElementCount().getKnownMinValue();
+  unsigned const SrcNumElts = V1VTy->getElementCount().getKnownMinValue();
 
   // Loop over the shuffle mask, evaluating each element.
   SmallVector<Constant*, 32> Result;
   for (unsigned i = 0; i != MaskNumElts; ++i) {
-    int Elt = Mask[i];
+    int const Elt = Mask[i];
     if (Elt == -1) {
       Result.push_back(UndefValue::get(EltTy));
       continue;
@@ -817,8 +817,8 @@ Constant *llvm::ConstantFoldUnaryInstruction(unsigned Opcode, Constant *C) {
 
   // Handle scalar UndefValue and scalable vector UndefValue. Fixed-length
   // vectors are always evaluated per element.
-  bool IsScalableVector = isa<ScalableVectorType>(C->getType());
-  bool HasScalarUndefOrScalableVectorUndef =
+  bool const IsScalableVector = isa<ScalableVectorType>(C->getType());
+  bool const HasScalarUndefOrScalableVectorUndef =
       (!C->getType()->isVectorTy() || IsScalableVector) && isa<UndefValue>(C);
 
   if (HasScalarUndefOrScalableVectorUndef) {
@@ -891,8 +891,8 @@ Constant *llvm::ConstantFoldBinaryInstruction(unsigned Opcode, Constant *C1,
 
   // Handle scalar UndefValue and scalable vector UndefValue. Fixed-length
   // vectors are always evaluated per element.
-  bool IsScalableVector = isa<ScalableVectorType>(C1->getType());
-  bool HasScalarUndefOrScalableVectorUndef =
+  bool const IsScalableVector = isa<ScalableVectorType>(C1->getType());
+  bool const HasScalarUndefOrScalableVectorUndef =
       (!C1->getType()->isVectorTy() || IsScalableVector) &&
       (isa<UndefValue>(C1) || isa<UndefValue>(C2));
   if (HasScalarUndefOrScalableVectorUndef) {
@@ -1038,10 +1038,10 @@ Constant *llvm::ConstantFoldBinaryInstruction(unsigned Opcode, Constant *C1,
       if (ConstantExpr *CE1 = dyn_cast<ConstantExpr>(C1)) {
         // (zext i32 to i64) & 4294967295 -> (zext i32 to i64)
         if (CE1->getOpcode() == Instruction::ZExt) {
-          unsigned DstWidth = CI2->getType()->getBitWidth();
-          unsigned SrcWidth =
+          unsigned const DstWidth = CI2->getType()->getBitWidth();
+          unsigned const SrcWidth =
             CE1->getOperand(0)->getType()->getPrimitiveSizeInBits();
-          APInt PossiblySetBits(APInt::getLowBitsSet(DstWidth, SrcWidth));
+          APInt const PossiblySetBits(APInt::getLowBitsSet(DstWidth, SrcWidth));
           if ((PossiblySetBits & CI2->getValue()) == PossiblySetBits)
             return C1;
         }
@@ -1077,9 +1077,9 @@ Constant *llvm::ConstantFoldBinaryInstruction(unsigned Opcode, Constant *C1,
           }
 
           if (GVAlign && *GVAlign > 1) {
-            unsigned DstWidth = CI2->getType()->getBitWidth();
-            unsigned SrcWidth = std::min(DstWidth, Log2(*GVAlign));
-            APInt BitsNotSet(APInt::getLowBitsSet(DstWidth, SrcWidth));
+            unsigned const DstWidth = CI2->getType()->getBitWidth();
+            unsigned const SrcWidth = std::min(DstWidth, Log2(*GVAlign));
+            APInt const BitsNotSet(APInt::getLowBitsSet(DstWidth, SrcWidth));
 
             // If checking bits we know are clear, return zero.
             if ((CI2->getValue() & BitsNotSet) == CI2->getValue())
@@ -1334,8 +1334,8 @@ static int IdxCompare(Constant *C1, Constant *C2, Type *ElTy) {
 
   // Ok, we have two differing integer indices.  Sign extend them to be the same
   // type.
-  int64_t C1Val = cast<ConstantInt>(C1)->getSExtValue();
-  int64_t C2Val = cast<ConstantInt>(C2)->getSExtValue();
+  int64_t const C1Val = cast<ConstantInt>(C1)->getSExtValue();
+  int64_t const C2Val = cast<ConstantInt>(C2)->getSExtValue();
 
   if (C1Val == C2Val) return 0;  // They are equal
 
@@ -1393,7 +1393,7 @@ static FCmpInst::Predicate evaluateFCmpRelation(Constant *V1, Constant *V2) {
     }
 
     // If the first operand is simple and second is ConstantExpr, swap operands.
-    FCmpInst::Predicate SwappedRelation = evaluateFCmpRelation(V2, V1);
+    FCmpInst::Predicate const SwappedRelation = evaluateFCmpRelation(V2, V1);
     if (SwappedRelation != FCmpInst::BAD_FCMP_PREDICATE)
       return FCmpInst::getSwappedPredicate(SwappedRelation);
   } else {
@@ -1483,14 +1483,14 @@ static ICmpInst::Predicate evaluateICmpRelation(Constant *V1, Constant *V2,
     }
 
     // If the first operand is simple, swap operands.
-    ICmpInst::Predicate SwappedRelation =
+    ICmpInst::Predicate const SwappedRelation =
       evaluateICmpRelation(V2, V1, isSigned);
     if (SwappedRelation != ICmpInst::BAD_ICMP_PREDICATE)
       return ICmpInst::getSwappedPredicate(SwappedRelation);
 
   } else if (const GlobalValue *GV = dyn_cast<GlobalValue>(V1)) {
     if (isa<ConstantExpr>(V2)) {  // Swap as necessary.
-      ICmpInst::Predicate SwappedRelation =
+      ICmpInst::Predicate const SwappedRelation =
         evaluateICmpRelation(V2, V1, isSigned);
       if (SwappedRelation != ICmpInst::BAD_ICMP_PREDICATE)
         return ICmpInst::getSwappedPredicate(SwappedRelation);
@@ -1518,7 +1518,7 @@ static ICmpInst::Predicate evaluateICmpRelation(Constant *V1, Constant *V2,
     }
   } else if (const BlockAddress *BA = dyn_cast<BlockAddress>(V1)) {
     if (isa<ConstantExpr>(V2)) {  // Swap as necessary.
-      ICmpInst::Predicate SwappedRelation =
+      ICmpInst::Predicate const SwappedRelation =
         evaluateICmpRelation(V2, V1, isSigned);
       if (SwappedRelation != ICmpInst::BAD_ICMP_PREDICATE)
         return ICmpInst::getSwappedPredicate(SwappedRelation);
@@ -1721,8 +1721,8 @@ Constant *llvm::ConstantFoldCompareInstruction(unsigned short pred,
     return PoisonValue::get(ResultTy);
 
   if (isa<UndefValue>(C1) || isa<UndefValue>(C2)) {
-    CmpInst::Predicate Predicate = CmpInst::Predicate(pred);
-    bool isIntegerPredicate = ICmpInst::isIntPredicate(Predicate);
+    CmpInst::Predicate const Predicate = CmpInst::Predicate(pred);
+    bool const isIntegerPredicate = ICmpInst::isIntPredicate(Predicate);
     // For EQ and NE, we can always pick a value for the undef to make the
     // predicate pass or fail, so we can return undef.
     // Also, if both operands are undef, we can return undef for int comparison.
@@ -1808,7 +1808,7 @@ Constant *llvm::ConstantFoldCompareInstruction(unsigned short pred,
   } else if (isa<ConstantFP>(C1) && isa<ConstantFP>(C2)) {
     const APFloat &C1V = cast<ConstantFP>(C1)->getValueAPF();
     const APFloat &C2V = cast<ConstantFP>(C2)->getValueAPF();
-    APFloat::cmpResult R = C1V.compare(C2V);
+    APFloat::cmpResult const R = C1V.compare(C2V);
     switch (pred) {
     default: llvm_unreachable("Invalid FCmp Predicate");
     case FCmpInst::FCMP_FALSE: return Constant::getNullValue(ResultTy);
@@ -2098,7 +2098,7 @@ static bool isIndexInRangeOfArrayType(uint64_t NumElements,
 
   // A negative index or an index past the end of our sequential type is
   // considered out-of-range.
-  int64_t IndexVal = CI->getSExtValue();
+  int64_t const IndexVal = CI->getSExtValue();
   if (IndexVal < 0 || (NumElements > 0 && (uint64_t)IndexVal >= NumElements))
     return false;
 
@@ -2357,16 +2357,16 @@ Constant *llvm::ConstantFoldGetElementPtr(Type *PointeeTy, Constant *C,
     // dimension.
     NewIdxs.resize(Idxs.size());
     // Determine the number of elements in our sequential type.
-    uint64_t NumElements = STy->getArrayNumElements();
+    uint64_t const NumElements = STy->getArrayNumElements();
 
     // Expand the current index or the previous index to a vector from a scalar
     // if necessary.
     Constant *CurrIdx = cast<Constant>(Idxs[i]);
     auto *PrevIdx =
         NewIdxs[i - 1] ? NewIdxs[i - 1] : cast<Constant>(Idxs[i - 1]);
-    bool IsCurrIdxVector = CurrIdx->getType()->isVectorTy();
-    bool IsPrevIdxVector = PrevIdx->getType()->isVectorTy();
-    bool UseVector = IsCurrIdxVector || IsPrevIdxVector;
+    bool const IsCurrIdxVector = CurrIdx->getType()->isVectorTy();
+    bool const IsPrevIdxVector = PrevIdx->getType()->isVectorTy();
+    bool const UseVector = IsCurrIdxVector || IsPrevIdxVector;
 
     if (!IsCurrIdxVector && IsPrevIdxVector)
       CurrIdx = ConstantDataVector::getSplat(

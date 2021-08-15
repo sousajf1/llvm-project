@@ -95,7 +95,7 @@ Stream::StreamKind Stream::getKind(StreamType Type) {
 }
 
 std::unique_ptr<Stream> Stream::create(StreamType Type) {
-  StreamKind Kind = getKind(Type);
+  StreamKind const Kind = getKind(Type);
   switch (Kind) {
   case StreamKind::Exception:
     return std::make_unique<ExceptionStream>();
@@ -461,7 +461,7 @@ void yaml::MappingTraits<Object>::mapping(IO &IO, Object &O) {
 
 Expected<std::unique_ptr<Stream>>
 Stream::create(const Directory &StreamDesc, const object::MinidumpFile &File) {
-  StreamKind Kind = getKind(StreamDesc.Type);
+  StreamKind const Kind = getKind(StreamDesc.Type);
   switch (Kind) {
   case StreamKind::Exception: {
     Expected<const minidump::ExceptionStream &> ExpectedExceptionStream =

@@ -108,7 +108,7 @@ unsigned SuffixTree::extend(unsigned EndIdx, unsigned SuffixesToAdd) {
     assert(Active.Idx <= EndIdx && "Start index can't be after end index!");
 
     // The first character in the current substring we're looking at.
-    unsigned FirstChar = Str[Active.Idx];
+    unsigned const FirstChar = Str[Active.Idx];
 
     // Have we inserted anything starting with FirstChar at the current node?
     if (Active.Node->Children.count(FirstChar) == 0) {
@@ -126,7 +126,7 @@ unsigned SuffixTree::extend(unsigned EndIdx, unsigned SuffixesToAdd) {
       // insert a new node.
       SuffixTreeNode *NextNode = Active.Node->Children[FirstChar];
 
-      unsigned SubstringLen = NextNode->size();
+      unsigned const SubstringLen = NextNode->size();
 
       // Is the current suffix we're trying to insert longer than the size of
       // the child we want to move to?
@@ -141,7 +141,7 @@ unsigned SuffixTree::extend(unsigned EndIdx, unsigned SuffixesToAdd) {
 
       // Otherwise, the suffix we're trying to insert must be contained in the
       // next node we want to move to.
-      unsigned LastChar = Str[EndIdx];
+      unsigned const LastChar = Str[EndIdx];
 
       // Is the string we're trying to insert a substring of the next node?
       if (Str[NextNode->StartIdx + Active.Len] == LastChar) {

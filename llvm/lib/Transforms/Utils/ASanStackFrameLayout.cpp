@@ -71,17 +71,17 @@ ComputeASanStackFrameLayout(SmallVectorImpl<ASanStackVariableDescription> &Vars,
      Vars[0].Alignment);
   assert((Offset % Granularity) == 0);
   for (size_t i = 0; i < NumVars; i++) {
-    bool IsLast = i == NumVars - 1;
-    size_t Alignment = std::max(Granularity, Vars[i].Alignment);
+    bool const IsLast = i == NumVars - 1;
+    size_t const Alignment = std::max(Granularity, Vars[i].Alignment);
     (void)Alignment;  // Used only in asserts.
-    size_t Size = Vars[i].Size;
+    size_t const Size = Vars[i].Size;
     assert((Alignment & (Alignment - 1)) == 0);
     assert(Layout.FrameAlignment >= Alignment);
     assert((Offset % Alignment) == 0);
     assert(Size > 0);
-    size_t NextAlignment = IsLast ? Granularity
+    size_t const NextAlignment = IsLast ? Granularity
                    : std::max(Granularity, Vars[i + 1].Alignment);
-    size_t SizeWithRedzone = VarAndRedzoneSize(Size, Granularity,
+    size_t const SizeWithRedzone = VarAndRedzoneSize(Size, Granularity,
                                                NextAlignment);
     Vars[i].Offset = Offset;
     Offset += SizeWithRedzone;

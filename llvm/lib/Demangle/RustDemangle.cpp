@@ -110,7 +110,7 @@ private:
   void demangleConstChar();
 
   template <typename Callable> void demangleBackref(Callable Demangler) {
-    uint64_t Backref = parseBase62Number();
+    uint64_t const Backref = parseBase62Number();
     if (Error || Backref >= Position) {
       Error = true;
       return;
@@ -119,7 +119,7 @@ private:
     if (!Print)
       return;
 
-    SwapAndRestore<size_t> SavePosition(Position, Position);
+    SwapAndRestore<size_t> const SavePosition(Position, Position);
     Position = Backref;
     Demangler();
   }
@@ -155,7 +155,7 @@ char *llvm::rustDemangle(const char *MangledName, char *Buf, size_t *N,
   }
 
   // Return early if mangled name doesn't look like a Rust symbol.
-  StringView Mangled(MangledName);
+  StringView const Mangled(MangledName);
   if (!Mangled.startsWith("_R")) {
     if (Status != nullptr)
       *Status = demangle_invalid_mangled_name;
@@ -178,7 +178,7 @@ char *llvm::rustDemangle(const char *MangledName, char *Buf, size_t *N,
 
   D.Output += '\0';
   char *Demangled = D.Output.getBuffer();
-  size_t DemangledLen = D.Output.getCurrentPosition();
+  size_t const DemangledLen = D.Output.getCurrentPosition();
 
   if (Buf != nullptr) {
     if (DemangledLen <= *N) {
@@ -233,14 +233,14 @@ bool Demangler::demangle(StringView Mangled) {
     Error = true;
     return false;
   }
-  size_t Dot = Mangled.find('.');
+  size_t const Dot = Mangled.find('.');
   Input = Mangled.substr(0, Dot);
-  StringView Suffix = Mangled.dropFront(Dot);
+  StringView const Suffix = Mangled.dropFront(Dot);
 
   demanglePath(IsInType::No);
 
   if (Position != Input.size()) {
-    SwapAndRestore<bool> SavePrint(Print, false);
+    SwapAndRestore<bool> const SavePrint(Print, false);
     demanglePath(IsInType::No);
   }
 
@@ -278,12 +278,12 @@ bool Demangler::demanglePath(IsInType InType, LeaveGenericsOpen LeaveOpen) {
     Error = true;
     return false;
   }
-  SwapAndRestore<size_t> SaveRecursionLevel(RecursionLevel, RecursionLevel + 1);
+  SwapAndRestore<size_t> const SaveRecursionLevel(RecursionLevel, RecursionLevel + 1);
 
   switch (consume()) {
   case 'C': {
     parseOptionalBase62Number('s');
-    Identifier Ident = parseIdentifier();
+    Identifier const Ident = parseIdentifier();
     print(Ident.Name);
     break;
   }
@@ -312,15 +312,15 @@ bool Demangler::demanglePath(IsInType InType, LeaveGenericsOpen LeaveOpen) {
     break;
   }
   case 'N': {
-    char NS = consume();
+    char const NS = consume();
     if (!isLower(NS) && !isUpper(NS)) {
       Error = true;
       break;
     }
     demanglePath(InType);
 
-    uint64_t Disambiguator = parseOptionalBase62Number('s');
-    Identifier Ident = parseIdentifier();
+    uint64_t const Disambiguator = parseOptionalBase62Number('s');
+    Identifier const Ident = parseIdentifier();
 
     if (isUpper(NS)) {
       // Special namespaces
@@ -380,7 +380,7 @@ bool Demangler::demanglePath(IsInType InType, LeaveGenericsOpen LeaveOpen) {
 // <impl-path> = [<disambiguator>] <path>
 // <disambiguator> = "s" <base-62-number>
 void Demangler::demangleImplPath(IsInType InType) {
-  SwapAndRestore<bool> SavePrint(Print, false);
+  SwapAndRestore<bool> const SavePrint(Print, false);
   parseOptionalBase62Number('s');
   demanglePath(InType);
 }
@@ -574,10 +574,10 @@ void Demangler::demangleType() {
     Error = true;
     return;
   }
-  SwapAndRestore<size_t> SaveRecursionLevel(RecursionLevel, RecursionLevel + 1);
+  SwapAndRestore<size_t> const SaveRecursionLevel(RecursionLevel, RecursionLevel + 1);
 
-  size_t Start = Position;
-  char C = consume();
+  size_t const Start = Position;
+  char const C = consume();
   BasicType Type;
   if (parseBasicType(C, Type))
     return printBasicType(Type);
@@ -657,7 +657,7 @@ void Demangler::demangleType() {
 // <abi> = "C"
 //       | <undisambiguated-identifier>
 void Demangler::demangleFnSig() {
-  SwapAndRestore<size_t> SaveBoundLifetimes(BoundLifetimes, BoundLifetimes);
+  SwapAndRestore<size_t> const SaveBoundLifetimes(BoundLifetimes, BoundLifetimes);
   demangleOptionalBinder();
 
   if (consumeIf('U'))
@@ -668,7 +668,7 @@ void Demangler::demangleFnSig() {
     if (consumeIf('C')) {
       print("C");
     } else {
-      Identifier Ident = parseIdentifier();
+      Identifier const Ident = parseIdentifier();
       for (char C : Ident.Name) {
         // When mangling ABI string, the "-" is replaced with "_".
         if (C == '_')
@@ -697,7 +697,7 @@ void Demangler::demangleFnSig() {
 
 // <dyn-bounds> = [<binder>] {<dyn-trait>} "E"
 void Demangler::demangleDynBounds() {
-  SwapAndRestore<size_t> SaveBoundLifetimes(BoundLifetimes, BoundLifetimes);
+  SwapAndRestore<size_t> const SaveBoundLifetimes(BoundLifetimes, BoundLifetimes);
   print("dyn ");
   demangleOptionalBinder();
   for (size_t I = 0; !Error && !consumeIf('E'); ++I) {
@@ -730,7 +730,7 @@ void Demangler::demangleDynTrait() {
 //
 // <binder> = "G" <base-62-number>
 void Demangler::demangleOptionalBinder() {
-  uint64_t Binder = parseOptionalBase62Number('G');
+  uint64_t const Binder = parseOptionalBase62Number('G');
   if (Error || Binder == 0)
     return;
 
@@ -761,9 +761,9 @@ void Demangler::demangleConst() {
     Error = true;
     return;
   }
-  SwapAndRestore<size_t> SaveRecursionLevel(RecursionLevel, RecursionLevel + 1);
+  SwapAndRestore<size_t> const SaveRecursionLevel(RecursionLevel, RecursionLevel + 1);
 
-  char C = consume();
+  char const C = consume();
   BasicType Type;
   if (parseBasicType(C, Type)) {
     switch (Type) {
@@ -807,7 +807,7 @@ void Demangler::demangleConstInt() {
     print('-');
 
   StringView HexDigits;
-  uint64_t Value = parseHexNumber(HexDigits);
+  uint64_t const Value = parseHexNumber(HexDigits);
   if (HexDigits.size() <= 16) {
     printDecimalNumber(Value);
   } else {
@@ -837,7 +837,7 @@ static bool isAsciiPrintable(uint64_t CodePoint) {
 // <const-data> = <hex-number>
 void Demangler::demangleConstChar() {
   StringView HexDigits;
-  uint64_t CodePoint = parseHexNumber(HexDigits);
+  uint64_t const CodePoint = parseHexNumber(HexDigits);
   if (Error || HexDigits.size() > 6) {
     Error = true;
     return;
@@ -865,7 +865,7 @@ void Demangler::demangleConstChar() {
     break;
   default:
     if (isAsciiPrintable(CodePoint)) {
-      char C = CodePoint;
+      char const C = CodePoint;
       print(C);
     } else {
       print(R"(\u{)");
@@ -879,8 +879,8 @@ void Demangler::demangleConstChar() {
 
 // <undisambiguated-identifier> = ["u"] <decimal-number> ["_"] <bytes>
 Identifier Demangler::parseIdentifier() {
-  bool Punycode = consumeIf('u');
-  uint64_t Bytes = parseDecimalNumber();
+  bool const Punycode = consumeIf('u');
+  uint64_t const Bytes = parseDecimalNumber();
 
   // Underscore resolves the ambiguity when identifier starts with a decimal
   // digit or another underscore.
@@ -890,7 +890,7 @@ Identifier Demangler::parseIdentifier() {
     Error = true;
     return {};
   }
-  StringView S = Input.substr(Position, Bytes);
+  StringView const S = Input.substr(Position, Bytes);
   Position += Bytes;
 
   if (!std::all_of(S.begin(), S.end(), isValid)) {
@@ -932,7 +932,7 @@ uint64_t Demangler::parseBase62Number() {
 
   while (true) {
     uint64_t Digit;
-    char C = consume();
+    char const C = consume();
 
     if (C == '_') {
       break;
@@ -965,7 +965,7 @@ uint64_t Demangler::parseBase62Number() {
 // <decimal-number> = "0"
 //                  | <1-9> {<0-9>}
 uint64_t Demangler::parseDecimalNumber() {
-  char C = look();
+  char const C = look();
   if (!isDigit(C)) {
     Error = true;
     return 0;
@@ -984,7 +984,7 @@ uint64_t Demangler::parseDecimalNumber() {
       return 0;
     }
 
-    uint64_t D = consume() - '0';
+    uint64_t const D = consume() - '0';
     if (!addAssign(Value, D))
       return 0;
   }
@@ -999,7 +999,7 @@ uint64_t Demangler::parseDecimalNumber() {
 // <hex-number> = "0_"
 //              | <1-9a-f> {<0-9a-f>} "_"
 uint64_t Demangler::parseHexNumber(StringView &HexDigits) {
-  size_t Start = Position;
+  size_t const Start = Position;
   uint64_t Value = 0;
 
   if (!isHexDigit(look()))
@@ -1010,7 +1010,7 @@ uint64_t Demangler::parseHexNumber(StringView &HexDigits) {
       Error = true;
   } else {
     while (!Error && !consumeIf('_')) {
-      char C = consume();
+      char const C = consume();
       Value *= 16;
       if (isDigit(C))
         Value += C - '0';
@@ -1026,7 +1026,7 @@ uint64_t Demangler::parseHexNumber(StringView &HexDigits) {
     return 0;
   }
 
-  size_t End = Position - 1;
+  size_t const End = Position - 1;
   assert(Start < End);
   HexDigits = Input.substr(Start, End - Start);
   return Value;
@@ -1067,10 +1067,10 @@ void Demangler::printLifetime(uint64_t Index) {
     return;
   }
 
-  uint64_t Depth = BoundLifetimes - Index;
+  uint64_t const Depth = BoundLifetimes - Index;
   print('\'');
   if (Depth < 26) {
-    char C = 'a' + Depth;
+    char const C = 'a' + Depth;
     print(C);
   } else {
     print('z');

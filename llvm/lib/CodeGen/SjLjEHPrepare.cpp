@@ -91,7 +91,7 @@ bool SjLjEHPrepare::doInitialization(Module &M) {
   // Build the function context structure.
   // builtin_setjmp uses a five word jbuf
   Type *VoidPtrTy = Type::getInt8PtrTy(M.getContext());
-  unsigned DataBits =
+  unsigned const DataBits =
       TM ? TM->getSjLjDataSize() : TargetMachine::DefaultSjLjDataSize;
   DataTy = Type::getIntNTy(M.getContext(), DataBits);
   doubleUnderDataTy = ArrayType::get(DataTy, 4);
@@ -116,7 +116,7 @@ void SjLjEHPrepare::insertCallSiteStore(Instruction *I, int Number) {
   Type *Int32Ty = Type::getInt32Ty(I->getContext());
   Value *Zero = ConstantInt::get(Int32Ty, 0);
   Value *One = ConstantInt::get(Int32Ty, 1);
-  Value *Idxs[2] = { Zero, One };
+  Value *const Idxs[2] = { Zero, One };
   Value *CallSite =
       Builder.CreateGEP(FunctionContextTy, FuncCtx, Idxs, "call_site");
 
@@ -502,6 +502,6 @@ bool SjLjEHPrepare::runOnFunction(Function &F) {
   CallSiteFn = Intrinsic::getDeclaration(&M, Intrinsic::eh_sjlj_callsite);
   FuncCtxFn = Intrinsic::getDeclaration(&M, Intrinsic::eh_sjlj_functioncontext);
 
-  bool Res = setupEntryBlockAndCallSites(F);
+  bool const Res = setupEntryBlockAndCallSites(F);
   return Res;
 }

@@ -147,7 +147,7 @@ void XCoreAsmPrinter::emitGlobalVariable(const GlobalVariable *GV) {
   if (GV->isThreadLocal()) {
     report_fatal_error("TLS is not supported by this target!");
   }
-  unsigned Size = DL.getTypeAllocSize(C->getType());
+  unsigned const Size = DL.getTypeAllocSize(C->getType());
   if (MAI->hasDotTypeDotSizeDirective()) {
     OutStreamer->emitSymbolAttribute(GVSym, MCSA_ELF_TypeObject);
     OutStreamer->emitELFSize(GVSym, MCConstantExpr::create(Size, OutContext));
@@ -184,7 +184,7 @@ void XCoreAsmPrinter::emitFunctionEntryLabel() {
 void XCoreAsmPrinter::
 printInlineJT(const MachineInstr *MI, int opNum, raw_ostream &O,
               const std::string &directive) {
-  unsigned JTI = MI->getOperand(opNum).getIndex();
+  unsigned const JTI = MI->getOperand(opNum).getIndex();
   const MachineFunction *MF = MI->getParent()->getParent();
   const MachineJumpTableInfo *MJTI = MF->getJumpTableInfo();
   const std::vector<MachineJumpTableEntry> &JT = MJTI->getJumpTables();
@@ -292,5 +292,5 @@ void XCoreAsmPrinter::emitInstruction(const MachineInstr *MI) {
 
 // Force static initialization.
 extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializeXCoreAsmPrinter() {
-  RegisterAsmPrinter<XCoreAsmPrinter> X(getTheXCoreTarget());
+  RegisterAsmPrinter<XCoreAsmPrinter> const X(getTheXCoreTarget());
 }

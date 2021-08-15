@@ -92,7 +92,7 @@ static inline ArrayRef<uint8_t> stabilize(BumpPtrAllocator &Alloc,
 }
 
 TypeIndex GlobalTypeTableBuilder::insertRecordBytes(ArrayRef<uint8_t> Record) {
-  GloballyHashedType GHT =
+  GloballyHashedType const GHT =
       GloballyHashedType::hashType(Record, SeenHashes, SeenHashes);
   return insertRecordAs(GHT, Record.size(),
                         [Record](MutableArrayRef<uint8_t> Data) {
@@ -123,7 +123,7 @@ bool GlobalTypeTableBuilder::replaceType(TypeIndex &Index, CVType Data,
          "The type record size is not a multiple of 4 bytes which will cause "
          "misalignment in the output TPI stream!");
 
-  GloballyHashedType Hash =
+  GloballyHashedType const Hash =
       GloballyHashedType::hashType(Record, SeenHashes, SeenHashes);
   auto Result = HashedRecords.try_emplace(Hash, Index.toArrayIndex());
   if (!Result.second) {

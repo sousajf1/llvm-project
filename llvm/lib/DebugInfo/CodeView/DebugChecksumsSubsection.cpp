@@ -56,7 +56,7 @@ Error DebugChecksumsSubsectionRef::initialize(BinaryStreamReader Reader) {
 }
 
 Error DebugChecksumsSubsectionRef::initialize(BinaryStreamRef Section) {
-  BinaryStreamReader Reader(Section);
+  BinaryStreamReader const Reader(Section);
   return initialize(Reader);
 }
 
@@ -83,7 +83,7 @@ void DebugChecksumsSubsection::addChecksum(StringRef FileName,
   OffsetMap[Entry.FileNameOffset] = SerializedSize;
   assert(SerializedSize % 4 == 0);
 
-  uint32_t Len = alignTo(sizeof(FileChecksumEntryHeader) + Bytes.size(), 4);
+  uint32_t const Len = alignTo(sizeof(FileChecksumEntryHeader) + Bytes.size(), 4);
   SerializedSize += Len;
 }
 
@@ -108,7 +108,7 @@ Error DebugChecksumsSubsection::commit(BinaryStreamWriter &Writer) const {
 }
 
 uint32_t DebugChecksumsSubsection::mapChecksumOffset(StringRef FileName) const {
-  uint32_t Offset = Strings.getIdForString(FileName);
+  uint32_t const Offset = Strings.getIdForString(FileName);
   auto Iter = OffsetMap.find(Offset);
   assert(Iter != OffsetMap.end());
   return Iter->second;

@@ -64,7 +64,7 @@ PassManager<LazyCallGraph::SCC, CGSCCAnalysisManager, LazyCallGraph &,
                                       LazyCallGraph &G, CGSCCUpdateResult &UR) {
   // Request PassInstrumentation from analysis manager, will use it to run
   // instrumenting callbacks for the passes later.
-  PassInstrumentation PI =
+  PassInstrumentation const PI =
       AM.getResult<PassInstrumentationAnalysis>(InitialC, G);
 
   PreservedAnalyses PA = PreservedAnalyses::all();
@@ -85,7 +85,7 @@ PassManager<LazyCallGraph::SCC, CGSCCAnalysisManager, LazyCallGraph &,
 
     PreservedAnalyses PassPA;
     {
-      TimeTraceScope TimeScope(Pass->name());
+      TimeTraceScope const TimeScope(Pass->name());
       PassPA = Pass->run(*C, AM, G, UR);
     }
 
@@ -175,7 +175,7 @@ ModuleToPostOrderCGSCCPassAdaptor::run(Module &M, ModuleAnalysisManager &AM) {
 
   // Request PassInstrumentation from analysis manager, will use it to run
   // instrumenting callbacks for the passes later.
-  PassInstrumentation PI = AM.getResult<PassInstrumentationAnalysis>(M);
+  PassInstrumentation const PI = AM.getResult<PassInstrumentationAnalysis>(M);
 
   PreservedAnalyses PA = PreservedAnalyses::all();
   CG.buildRefSCCs();
@@ -218,7 +218,7 @@ ModuleToPostOrderCGSCCPassAdaptor::run(Module &M, ModuleAnalysisManager &AM) {
 
       // Push the initial SCCs in reverse post-order as we'll pop off the
       // back and so see this in post-order.
-      for (LazyCallGraph::SCC &C : llvm::reverse(*RC))
+      for (LazyCallGraph::SCC  const&C : llvm::reverse(*RC))
         CWorklist.insert(&C);
 
       do {
@@ -284,7 +284,7 @@ ModuleToPostOrderCGSCCPassAdaptor::run(Module &M, ModuleAnalysisManager &AM) {
 
           PreservedAnalyses PassPA;
           {
-            TimeTraceScope TimeScope(Pass->name());
+            TimeTraceScope const TimeScope(Pass->name());
             PassPA = Pass->run(*C, CGAM, CG, UR);
           }
 
@@ -370,7 +370,7 @@ PreservedAnalyses DevirtSCCRepeatedPass::run(LazyCallGraph::SCC &InitialC,
                                              LazyCallGraph &CG,
                                              CGSCCUpdateResult &UR) {
   PreservedAnalyses PA = PreservedAnalyses::all();
-  PassInstrumentation PI =
+  PassInstrumentation const PI =
       AM.getResult<PassInstrumentationAnalysis>(InitialC, CG);
 
   // The SCC may be refined while we are running passes over it, so set up
@@ -391,8 +391,8 @@ PreservedAnalyses DevirtSCCRepeatedPass::run(LazyCallGraph::SCC &InitialC,
     assert(CallHandles.empty() && "Must start with a clear set of handles.");
 
     SmallDenseMap<Function *, CallCount> CallCounts;
-    CallCount CountLocal = {0, 0};
-    for (LazyCallGraph::Node &N : C) {
+    CallCount const CountLocal = {0, 0};
+    for (LazyCallGraph::Node  const&N : C) {
       CallCount &Count =
           CallCounts.insert(std::make_pair(&N.getFunction(), CountLocal))
               .first->second;
@@ -547,13 +547,13 @@ PreservedAnalyses CGSCCToFunctionPassAdaptor::run(LazyCallGraph::SCC &C,
 
     Function &F = N->getFunction();
 
-    PassInstrumentation PI = FAM.getResult<PassInstrumentationAnalysis>(F);
+    PassInstrumentation const PI = FAM.getResult<PassInstrumentationAnalysis>(F);
     if (!PI.runBeforePass<Function>(*Pass, F))
       continue;
 
     PreservedAnalyses PassPA;
     {
-      TimeTraceScope TimeScope(Pass->name());
+      TimeTraceScope const TimeScope(Pass->name());
       PassPA = Pass->run(F, FAM);
     }
 
@@ -622,7 +622,7 @@ bool CGSCCAnalysisManagerModuleProxy::Result::invalidate(
 
   // Directly check if the relevant set is preserved so we can short circuit
   // invalidating SCCs below.
-  bool AreSCCAnalysesPreserved =
+  bool const AreSCCAnalysesPreserved =
       PA.allAnalysesInSetPreserved<AllAnalysesOn<LazyCallGraph::SCC>>();
 
   // Ok, we have a graph, so we can propagate the invalidation down into it.
@@ -688,7 +688,7 @@ FunctionAnalysisManagerCGSCCProxy::run(LazyCallGraph::SCC &C,
   // it is cheap and having the assertion in place is more valuable.
   auto &MAMProxy = AM.getResult<ModuleAnalysisManagerCGSCCProxy>(C, CG);
   Module &M = *C.begin()->getFunction().getParent();
-  bool ProxyExists =
+  bool const ProxyExists =
       MAMProxy.cachedResultExists<FunctionAnalysisManagerModuleProxy>(M);
   assert(ProxyExists &&
          "The CGSCC pass manager requires that the FAM module proxy is run "
@@ -718,19 +718,19 @@ bool FunctionAnalysisManagerCGSCCProxy::Result::invalidate(
   // cached on functions *still in the module* at the end of the module pass.
   auto PAC = PA.getChecker<FunctionAnalysisManagerCGSCCProxy>();
   if (!PAC.preserved() && !PAC.preservedSet<AllAnalysesOn<LazyCallGraph::SCC>>()) {
-    for (LazyCallGraph::Node &N : C)
+    for (LazyCallGraph::Node  const&N : C)
       FAM->invalidate(N.getFunction(), PA);
 
     return false;
   }
 
   // Directly check if the relevant set is preserved.
-  bool AreFunctionAnalysesPreserved =
+  bool const AreFunctionAnalysesPreserved =
       PA.allAnalysesInSetPreserved<AllAnalysesOn<Function>>();
 
   // Now walk all the functions to see if any inner analysis invalidation is
   // necessary.
-  for (LazyCallGraph::Node &N : C) {
+  for (LazyCallGraph::Node  const&N : C) {
     Function &F = N.getFunction();
     Optional<PreservedAnalyses> FunctionPA;
 
@@ -791,7 +791,7 @@ static void updateNewSCCFunctionAnalyses(LazyCallGraph::SCC &C,
 
   // Now walk the functions in this SCC and invalidate any function analysis
   // results that might have outer dependencies on an SCC analysis.
-  for (LazyCallGraph::Node &N : C) {
+  for (LazyCallGraph::Node  const&N : C) {
     Function &F = N.getFunction();
 
     auto *OuterProxy =
@@ -927,7 +927,7 @@ static LazyCallGraph::SCC &updateCGAndAnalysisManagerForPass(
                  "No function transformations should introduce *new* "
                  "call edges! Any new calls should be modeled as "
                  "promoted existing ref edges!");
-          bool Inserted = RetainedEdges.insert(CalleeN).second;
+          bool const Inserted = RetainedEdges.insert(CalleeN).second;
           (void)Inserted;
           assert(Inserted && "We should never visit a function twice.");
           if (!E)
@@ -963,7 +963,7 @@ static LazyCallGraph::SCC &updateCGAndAnalysisManagerForPass(
            "No function transformations should introduce *new* ref "
            "edges! Any new ref edges would require IPO which "
            "function passes aren't allowed to do!");
-    bool Inserted = RetainedEdges.insert(RefereeN).second;
+    bool const Inserted = RetainedEdges.insert(RefereeN).second;
     (void)Inserted;
     assert(Inserted && "We should never visit a function twice.");
     if (!E)
@@ -975,8 +975,8 @@ static LazyCallGraph::SCC &updateCGAndAnalysisManagerForPass(
 
   // Handle new ref edges.
   for (Node *RefTarget : NewRefEdges) {
-    SCC &TargetC = *G.lookupSCC(*RefTarget);
-    RefSCC &TargetRC = TargetC.getOuterRefSCC();
+    SCC  const&TargetC = *G.lookupSCC(*RefTarget);
+    RefSCC  const&TargetRC = TargetC.getOuterRefSCC();
     (void)TargetRC;
     // TODO: This only allows trivial edges to be added for now.
 #ifdef EXPENSIVE_CHECKS
@@ -988,8 +988,8 @@ static LazyCallGraph::SCC &updateCGAndAnalysisManagerForPass(
 
   // Handle new call edges.
   for (Node *CallTarget : NewCallEdges) {
-    SCC &TargetC = *G.lookupSCC(*CallTarget);
-    RefSCC &TargetRC = TargetC.getOuterRefSCC();
+    SCC  const&TargetC = *G.lookupSCC(*CallTarget);
+    RefSCC  const&TargetRC = TargetC.getOuterRefSCC();
     (void)TargetRC;
     // TODO: This only allows trivial edges to be added for now.
 #ifdef EXPENSIVE_CHECKS
@@ -1012,7 +1012,7 @@ static LazyCallGraph::SCC &updateCGAndAnalysisManagerForPass(
   // The first step makes these edges uniformly ref edges and accumulates them
   // into a separate data structure so removal doesn't invalidate anything.
   SmallVector<Node *, 4> DeadTargets;
-  for (Edge &E : *N) {
+  for (Edge  const&E : *N) {
     if (RetainedEdges.count(&E.getNode()))
       continue;
 
@@ -1034,7 +1034,7 @@ static LazyCallGraph::SCC &updateCGAndAnalysisManagerForPass(
   }
   // Remove the easy cases quickly and actually pull them out of our list.
   llvm::erase_if(DeadTargets, [&](Node *TargetN) {
-    SCC &TargetC = *G.lookupSCC(*TargetN);
+    SCC  const&TargetC = *G.lookupSCC(*TargetN);
     RefSCC &TargetRC = TargetC.getOuterRefSCC();
 
     // We can't trivially remove internal targets, so skip
@@ -1142,7 +1142,7 @@ static LazyCallGraph::SCC &updateCGAndAnalysisManagerForPass(
     // before the current one in the post-order sequence
     bool HasFunctionAnalysisProxy = false;
     auto InitialSCCIndex = RC->find(*C) - RC->begin();
-    bool FormedCycle = RC->switchInternalEdgeToCall(
+    bool const FormedCycle = RC->switchInternalEdgeToCall(
         N, *CallTarget, [&](ArrayRef<SCC *> MergedSCCs) {
           for (SCC *MergedC : MergedSCCs) {
             assert(MergedC != &TargetC && "Cannot merge away the target SCC!");
@@ -1200,7 +1200,7 @@ static LazyCallGraph::SCC &updateCGAndAnalysisManagerForPass(
       LLVM_DEBUG(dbgs() << "Enqueuing the existing SCC in the worklist: " << *C
                         << "\n");
       // Enqueue in reverse order as we pop off the back of the worklist.
-      for (SCC &MovedC : llvm::reverse(make_range(RC->begin() + InitialSCCIndex,
+      for (SCC  const&MovedC : llvm::reverse(make_range(RC->begin() + InitialSCCIndex,
                                                   RC->begin() + NewSCCIndex))) {
         UR.CWorklist.insert(&MovedC);
         LLVM_DEBUG(dbgs() << "Enqueuing a newly earlier in post-order SCC: "

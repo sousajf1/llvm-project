@@ -62,8 +62,8 @@ static void findLoadCallsAtConstantOffset(
     } else if (auto GEP = dyn_cast<GetElementPtrInst>(User)) {
       // Take into account the GEP offset.
       if (VPtr == GEP->getPointerOperand() && GEP->hasAllConstantIndices()) {
-        SmallVector<Value *, 8> Indices(GEP->op_begin() + 1, GEP->op_end());
-        int64_t GEPOffset = M->getDataLayout().getIndexedOffsetInType(
+        SmallVector<Value *, 8> const Indices(GEP->op_begin() + 1, GEP->op_end());
+        int64_t const GEPOffset = M->getDataLayout().getIndexedOffsetInType(
             GEP->getSourceElementType(), Indices);
         findLoadCallsAtConstantOffset(M, DevirtCalls, User, Offset + GEPOffset,
                                       CI, DT);
@@ -140,15 +140,15 @@ Constant *llvm::getPointerAtOffset(Constant *I, uint64_t Offset, Module &M) {
     if (Offset >= SL->getSizeInBytes())
       return nullptr;
 
-    unsigned Op = SL->getElementContainingOffset(Offset);
+    unsigned const Op = SL->getElementContainingOffset(Offset);
     return getPointerAtOffset(cast<Constant>(I->getOperand(Op)),
                               Offset - SL->getElementOffset(Op), M);
   }
   if (auto *C = dyn_cast<ConstantArray>(I)) {
     ArrayType *VTableTy = C->getType();
-    uint64_t ElemSize = DL.getTypeAllocSize(VTableTy->getElementType());
+    uint64_t const ElemSize = DL.getTypeAllocSize(VTableTy->getElementType());
 
-    unsigned Op = Offset / ElemSize;
+    unsigned const Op = Offset / ElemSize;
     if (Op >= C->getNumOperands())
       return nullptr;
 

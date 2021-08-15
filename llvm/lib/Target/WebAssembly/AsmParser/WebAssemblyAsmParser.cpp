@@ -469,7 +469,7 @@ public:
   void addBlockTypeOperand(OperandVector &Operands, SMLoc NameLoc,
                            WebAssembly::BlockType BT) {
     if (BT != WebAssembly::BlockType::Void) {
-      wasm::WasmSignature Sig({static_cast<wasm::ValType>(BT)}, {});
+      wasm::WasmSignature const Sig({static_cast<wasm::ValType>(BT)}, {});
       TC.setLastSig(Sig);
       NestingStack.back().Sig = Sig;
     }
@@ -482,7 +482,7 @@ public:
     auto Tok = Lexer.getTok();
     if (!Tok.is(AsmToken::Integer))
       return error("Expected integer constant, instead got: ", Tok);
-    int64_t Val = Tok.getIntVal();
+    int64_t const Val = Tok.getIntVal();
     assert(Val >= 0);
     Limits->Minimum = Val;
     Parser.Lex();
@@ -492,7 +492,7 @@ public:
       auto Tok = Lexer.getTok();
       if (!Tok.is(AsmToken::Integer))
         return error("Expected integer constant, instead got: ", Tok);
-      int64_t Val = Tok.getIntVal();
+      int64_t const Val = Tok.getIntVal();
       assert(Val >= 0);
       Limits->Maximum = Val;
       Parser.Lex();
@@ -858,7 +858,7 @@ public:
       // symbol
       auto WasmSym = cast<MCSymbolWasm>(Ctx.getOrCreateSymbol(SymName));
       WasmSym->setType(wasm::WASM_SYMBOL_TYPE_TABLE);
-      wasm::WasmTableType Type = {uint8_t(ElemType.getValue()), Limits};
+      wasm::WasmTableType const Type = {uint8_t(ElemType.getValue()), Limits};
       WasmSym->setTableType(Type);
       TOut.emitTableType(WasmSym);
       return expect(AsmToken::EndOfStatement, "EOL");
@@ -1006,7 +1006,7 @@ public:
     MCInst Inst;
     Inst.setLoc(IDLoc);
     FeatureBitset MissingFeatures;
-    unsigned MatchResult = MatchInstructionImpl(
+    unsigned const MatchResult = MatchInstructionImpl(
         Operands, Inst, ErrorInfo, MissingFeatures, MatchingInlineAsm);
     switch (MatchResult) {
     case Match_Success: {
@@ -1133,8 +1133,8 @@ public:
 
 // Force static initialization.
 extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializeWebAssemblyAsmParser() {
-  RegisterMCAsmParser<WebAssemblyAsmParser> X(getTheWebAssemblyTarget32());
-  RegisterMCAsmParser<WebAssemblyAsmParser> Y(getTheWebAssemblyTarget64());
+  RegisterMCAsmParser<WebAssemblyAsmParser> const X(getTheWebAssemblyTarget32());
+  RegisterMCAsmParser<WebAssemblyAsmParser> const Y(getTheWebAssemblyTarget64());
 }
 
 #define GET_REGISTER_MATCHER

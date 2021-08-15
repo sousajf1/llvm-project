@@ -75,7 +75,7 @@ bool applyDebugifyMetadataToMachineFunction(MachineModuleInfo &MMI,
       auto *DVI = dyn_cast<DbgValueInst>(U.getUser());
       if (!DVI || DVI->getFunction() != &F)
         continue;
-      unsigned Line = DVI->getDebugLoc().getLine();
+      unsigned const Line = DVI->getDebugLoc().getLine();
       assert(Line != 0 && "debugify should not insert line 0 locations");
       Line2Var[Line] = DVI->getVariable();
       if (!EarliestDVI || Line < EarliestDVI->getDebugLoc().getLine())
@@ -93,7 +93,7 @@ bool applyDebugifyMetadataToMachineFunction(MachineModuleInfo &MMI,
   SmallSet<DILocalVariable *, 16> VarSet;
   const MCInstrDesc &DbgValDesc = TII.get(TargetOpcode::DBG_VALUE);
   for (MachineBasicBlock &MBB : MF) {
-    MachineBasicBlock::iterator FirstNonPHIIt = MBB.getFirstNonPHI();
+    MachineBasicBlock::iterator const FirstNonPHIIt = MBB.getFirstNonPHI();
     for (auto I = MBB.begin(), E = MBB.end(); I != E;) {
       MachineInstr &MI = *I;
       ++I;

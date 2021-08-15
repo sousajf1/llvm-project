@@ -68,7 +68,7 @@ void DWARFGdbIndex::dumpSymbolTable(raw_ostream &OS) const {
     OS << format("    %d: Name offset = 0x%x, CU vector offset = 0x%x\n", I,
                  E.NameOffset, E.VecOffset);
 
-    StringRef Name = ConstantPoolStrings.substr(
+    StringRef const Name = ConstantPoolStrings.substr(
         ConstantPoolOffset - StringPoolOffset + E.NameOffset);
 
     auto CuVector = llvm::find_if(
@@ -77,7 +77,7 @@ void DWARFGdbIndex::dumpSymbolTable(raw_ostream &OS) const {
           return V.first == E.VecOffset;
         });
     assert(CuVector != ConstantPoolVectors.end() && "Invalid symbol table");
-    uint32_t CuVectorId = CuVector - ConstantPoolVectors.begin();
+    uint32_t const CuVectorId = CuVector - ConstantPoolVectors.begin();
     OS << format("      String name: %s, CU vector index: %d\n", Name.data(),
                  CuVectorId);
   }
@@ -89,7 +89,7 @@ void DWARFGdbIndex::dumpConstantPool(raw_ostream &OS) const {
   uint32_t I = 0;
   for (const auto &V : ConstantPoolVectors) {
     OS << format("\n    %d(0x%x): ", I++, V.first);
-    for (uint32_t Val : V.second)
+    for (uint32_t const Val : V.second)
       OS << format("0x%x ", Val);
   }
   OS << '\n';
@@ -128,31 +128,31 @@ bool DWARFGdbIndex::parseImpl(DataExtractor Data) {
   if (Offset != CuListOffset)
     return false;
 
-  uint32_t CuListSize = (TuListOffset - CuListOffset) / 16;
+  uint32_t const CuListSize = (TuListOffset - CuListOffset) / 16;
   CuList.reserve(CuListSize);
   for (uint32_t i = 0; i < CuListSize; ++i) {
-    uint64_t CuOffset = Data.getU64(&Offset);
-    uint64_t CuLength = Data.getU64(&Offset);
+    uint64_t const CuOffset = Data.getU64(&Offset);
+    uint64_t const CuLength = Data.getU64(&Offset);
     CuList.push_back({CuOffset, CuLength});
   }
 
   // CU Types are no longer needed as DWARF skeleton type units never made it
   // into the standard.
-  uint32_t TuListSize = (AddressAreaOffset - TuListOffset) / 24;
+  uint32_t const TuListSize = (AddressAreaOffset - TuListOffset) / 24;
   TuList.resize(TuListSize);
   for (uint32_t I = 0; I < TuListSize; ++I) {
-    uint64_t CuOffset = Data.getU64(&Offset);
-    uint64_t TypeOffset = Data.getU64(&Offset);
-    uint64_t Signature = Data.getU64(&Offset);
+    uint64_t const CuOffset = Data.getU64(&Offset);
+    uint64_t const TypeOffset = Data.getU64(&Offset);
+    uint64_t const Signature = Data.getU64(&Offset);
     TuList[I] = {CuOffset, TypeOffset, Signature};
   }
 
-  uint32_t AddressAreaSize = (SymbolTableOffset - AddressAreaOffset) / 20;
+  uint32_t const AddressAreaSize = (SymbolTableOffset - AddressAreaOffset) / 20;
   AddressArea.reserve(AddressAreaSize);
   for (uint32_t i = 0; i < AddressAreaSize; ++i) {
-    uint64_t LowAddress = Data.getU64(&Offset);
-    uint64_t HighAddress = Data.getU64(&Offset);
-    uint32_t CuIndex = Data.getU32(&Offset);
+    uint64_t const LowAddress = Data.getU64(&Offset);
+    uint64_t const HighAddress = Data.getU64(&Offset);
+    uint32_t const CuIndex = Data.getU32(&Offset);
     AddressArea.push_back({LowAddress, HighAddress, CuIndex});
   }
 
@@ -164,12 +164,12 @@ bool DWARFGdbIndex::parseImpl(DataExtractor Data) {
   // If both values are 0, then this slot in the hash table is empty. This is ok
   // because while 0 is a valid constant pool index, it cannot be a valid index
   // for both a string and a CU vector.
-  uint32_t SymTableSize = (ConstantPoolOffset - SymbolTableOffset) / 8;
+  uint32_t const SymTableSize = (ConstantPoolOffset - SymbolTableOffset) / 8;
   SymbolTable.reserve(SymTableSize);
   uint32_t CuVectorsTotal = 0;
   for (uint32_t i = 0; i < SymTableSize; ++i) {
-    uint32_t NameOffset = Data.getU32(&Offset);
-    uint32_t CuVecOffset = Data.getU32(&Offset);
+    uint32_t const NameOffset = Data.getU32(&Offset);
+    uint32_t const CuVecOffset = Data.getU32(&Offset);
     SymbolTable.push_back({NameOffset, CuVecOffset});
     if (NameOffset || CuVecOffset)
       ++CuVectorsTotal;
@@ -183,7 +183,7 @@ bool DWARFGdbIndex::parseImpl(DataExtractor Data) {
     auto &Vec = ConstantPoolVectors.back();
     Vec.first = Offset - ConstantPoolOffset;
 
-    uint32_t Num = Data.getU32(&Offset);
+    uint32_t const Num = Data.getU32(&Offset);
     for (uint32_t j = 0; j < Num; ++j)
       Vec.second.push_back(Data.getU32(&Offset));
   }

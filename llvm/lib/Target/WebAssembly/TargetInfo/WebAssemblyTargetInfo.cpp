@@ -27,9 +27,9 @@ Target &llvm::getTheWebAssemblyTarget64() {
 }
 
 extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializeWebAssemblyTargetInfo() {
-  RegisterTarget<Triple::wasm32> X(getTheWebAssemblyTarget32(), "wasm32",
+  RegisterTarget<Triple::wasm32> const X(getTheWebAssemblyTarget32(), "wasm32",
                                    "WebAssembly 32-bit", "WebAssembly");
-  RegisterTarget<Triple::wasm64> Y(getTheWebAssemblyTarget64(), "wasm64",
+  RegisterTarget<Triple::wasm64> const Y(getTheWebAssemblyTarget64(), "wasm64",
                                    "WebAssembly 64-bit", "WebAssembly");
 }
 

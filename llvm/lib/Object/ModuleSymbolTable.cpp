@@ -72,7 +72,7 @@ void ModuleSymbolTable::addModule(Module *M) {
 static void
 initializeRecordStreamer(const Module &M,
                          function_ref<void(RecordStreamer &)> Init) {
-  StringRef InlineAsm = M.getModuleInlineAsm();
+  StringRef const InlineAsm = M.getModuleInlineAsm();
   if (InlineAsm.empty())
     return;
 
@@ -81,21 +81,21 @@ initializeRecordStreamer(const Module &M,
   const Target *T = TargetRegistry::lookupTarget(TT.str(), Err);
   assert(T && T->hasMCAsmParser());
 
-  std::unique_ptr<MCRegisterInfo> MRI(T->createMCRegInfo(TT.str()));
+  std::unique_ptr<MCRegisterInfo> const MRI(T->createMCRegInfo(TT.str()));
   if (!MRI)
     return;
 
-  MCTargetOptions MCOptions;
-  std::unique_ptr<MCAsmInfo> MAI(T->createMCAsmInfo(*MRI, TT.str(), MCOptions));
+  MCTargetOptions const MCOptions;
+  std::unique_ptr<MCAsmInfo> const MAI(T->createMCAsmInfo(*MRI, TT.str(), MCOptions));
   if (!MAI)
     return;
 
-  std::unique_ptr<MCSubtargetInfo> STI(
+  std::unique_ptr<MCSubtargetInfo> const STI(
       T->createMCSubtargetInfo(TT.str(), "", ""));
   if (!STI)
     return;
 
-  std::unique_ptr<MCInstrInfo> MCII(T->createMCInstrInfo());
+  std::unique_ptr<MCInstrInfo> const MCII(T->createMCInstrInfo());
   if (!MCII)
     return;
 
@@ -137,8 +137,8 @@ void ModuleSymbolTable::CollectAsmSymbols(
     Streamer.flushSymverDirectives();
 
     for (auto &KV : Streamer) {
-      StringRef Key = KV.first();
-      RecordStreamer::State Value = KV.second;
+      StringRef const Key = KV.first();
+      RecordStreamer::State const Value = KV.second;
       // FIXME: For now we just assume that all asm symbols are executable.
       uint32_t Res = BasicSymbolRef::SF_Executable;
       switch (Value) {

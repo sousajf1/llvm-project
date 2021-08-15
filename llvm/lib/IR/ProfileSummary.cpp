@@ -27,7 +27,7 @@ using namespace llvm;
 static Metadata *getKeyValMD(LLVMContext &Context, const char *Key,
                              uint64_t Val) {
   Type *Int64Ty = Type::getInt64Ty(Context);
-  Metadata *Ops[2] = {MDString::get(Context, Key),
+  Metadata *const Ops[2] = {MDString::get(Context, Key),
                       ConstantAsMetadata::get(ConstantInt::get(Int64Ty, Val))};
   return MDTuple::get(Context, Ops);
 }
@@ -35,7 +35,7 @@ static Metadata *getKeyValMD(LLVMContext &Context, const char *Key,
 static Metadata *getKeyFPValMD(LLVMContext &Context, const char *Key,
                                double Val) {
   Type *DoubleTy = Type::getDoubleTy(Context);
-  Metadata *Ops[2] = {MDString::get(Context, Key),
+  Metadata *const Ops[2] = {MDString::get(Context, Key),
                       ConstantAsMetadata::get(ConstantFP::get(DoubleTy, Val))};
   return MDTuple::get(Context, Ops);
 }
@@ -44,7 +44,7 @@ static Metadata *getKeyFPValMD(LLVMContext &Context, const char *Key,
 // the second is a string Value.
 static Metadata *getKeyValMD(LLVMContext &Context, const char *Key,
                              const char *Val) {
-  Metadata *Ops[2] = {MDString::get(Context, Key), MDString::get(Context, Val)};
+  Metadata *const Ops[2] = {MDString::get(Context, Key), MDString::get(Context, Val)};
   return MDTuple::get(Context, Ops);
 }
 
@@ -58,13 +58,13 @@ Metadata *ProfileSummary::getDetailedSummaryMD(LLVMContext &Context) {
   Type *Int32Ty = Type::getInt32Ty(Context);
   Type *Int64Ty = Type::getInt64Ty(Context);
   for (auto &Entry : DetailedSummary) {
-    Metadata *EntryMD[3] = {
+    Metadata *const EntryMD[3] = {
         ConstantAsMetadata::get(ConstantInt::get(Int32Ty, Entry.Cutoff)),
         ConstantAsMetadata::get(ConstantInt::get(Int64Ty, Entry.MinCount)),
         ConstantAsMetadata::get(ConstantInt::get(Int32Ty, Entry.NumCounts))};
     Entries.push_back(MDTuple::get(Context, EntryMD));
   }
-  Metadata *Ops[2] = {MDString::get(Context, "DetailedSummary"),
+  Metadata *const Ops[2] = {MDString::get(Context, "DetailedSummary"),
                       MDTuple::get(Context, Entries)};
   return MDTuple::get(Context, Ops);
 }
@@ -80,7 +80,7 @@ Metadata *ProfileSummary::getDetailedSummaryMD(LLVMContext &Context) {
 // will decide whether to add a field for it.
 Metadata *ProfileSummary::getMD(LLVMContext &Context, bool AddPartialField,
                                 bool AddPartialProfileRatioField) {
-  const char *KindStr[3] = {"InstrProf", "CSInstrProf", "SampleProfile"};
+  const char *const KindStr[3] = {"InstrProf", "CSInstrProf", "SampleProfile"};
   SmallVector<Metadata *, 16> Components;
   Components.push_back(getKeyValMD(Context, "ProfileFormat", KindStr[PSK]));
   Components.push_back(getKeyValMD(Context, "TotalCount", getTotalCount()));

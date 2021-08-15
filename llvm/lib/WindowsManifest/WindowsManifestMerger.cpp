@@ -75,7 +75,7 @@ static bool xmlStringsEqual(const unsigned char *A, const unsigned char *B) {
 }
 
 static bool isMergeableElement(const unsigned char *ElementName) {
-  for (StringRef S : {"application", "assembly", "assemblyIdentity",
+  for (StringRef const S : {"application", "assembly", "assemblyIdentity",
                       "compatibility", "noInherit", "requestedExecutionLevel",
                       "requestedPrivileges", "security", "trustInfo"}) {
     if (S == FROM_XML_CHAR(ElementName)) {
@@ -666,7 +666,7 @@ WindowsManifestMerger::WindowsManifestMergerImpl::getMergedManifest() {
     xmlNodePtr CombinedRoot = xmlDocGetRootElement(CombinedDoc);
     std::vector<xmlNsPtr> RequiredPrefixes;
     checkAndStripPrefixes(CombinedRoot, RequiredPrefixes);
-    std::unique_ptr<xmlDoc, XmlDeleter> OutputDoc(
+    std::unique_ptr<xmlDoc, XmlDeleter> const OutputDoc(
         xmlNewDoc((const unsigned char *)"1.0"));
     xmlDocSetRootElement(OutputDoc.get(), CombinedRoot);
     assert(0 == xmlDocGetRootElement(CombinedDoc));

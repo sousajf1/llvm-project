@@ -104,13 +104,13 @@ void X86MachObjectWriter::RecordX86_64Relocation(
     const MCFragment *Fragment, const MCFixup &Fixup, MCValue Target,
     uint64_t &FixedValue) {
   unsigned IsPCRel = Writer->isFixupKindPCRel(Asm, Fixup.getKind());
-  unsigned IsRIPRel = isFixupKindRIPRel(Fixup.getKind());
-  unsigned Log2Size = getFixupKindLog2Size(Fixup.getKind());
+  unsigned const IsRIPRel = isFixupKindRIPRel(Fixup.getKind());
+  unsigned const Log2Size = getFixupKindLog2Size(Fixup.getKind());
 
   // See <reloc.h>.
-  uint32_t FixupOffset =
+  uint32_t const FixupOffset =
     Layout.getFragmentOffset(Fragment) + Fixup.getOffset();
-  uint32_t FixupAddress =
+  uint32_t const FixupAddress =
     Writer->getFragmentAddress(Fragment, Layout) + Fixup.getOffset();
   int64_t Value = 0;
   unsigned Index = 0;
@@ -186,7 +186,7 @@ void X86MachObjectWriter::RecordX86_64Relocation(
     // A subtraction expression where either symbol is undefined is a
     // non-relocatable expression.
     if (A->isUndefined() || B->isUndefined()) {
-      StringRef Name = A->isUndefined() ? A->getName() : B->getName();
+      StringRef const Name = A->isUndefined() ? A->getName() : B->getName();
       Asm.getContext().reportError(Fixup.getLoc(),
         "unsupported relocation with subtraction expression, symbol '" +
         Name + "' can not be undefined in a subtraction expression");
@@ -251,7 +251,7 @@ void X86MachObjectWriter::RecordX86_64Relocation(
     } else if (Symbol->isVariable()) {
       const MCExpr *Value = Symbol->getVariableValue();
       int64_t Res;
-      bool isAbs = Value->evaluateAsAbsolute(Res, Layout,
+      bool const isAbs = Value->evaluateAsAbsolute(Res, Layout,
                                              Writer->getSectionAddressMap());
       if (isAbs) {
         FixedValue = Res;
@@ -269,7 +269,7 @@ void X86MachObjectWriter::RecordX86_64Relocation(
       return;
     }
 
-    MCSymbolRefExpr::VariantKind Modifier = Target.getSymA()->getKind();
+    MCSymbolRefExpr::VariantKind const Modifier = Target.getSymA()->getKind();
     if (IsPCRel) {
       if (IsRIPRel) {
         if (Modifier == MCSymbolRefExpr::VK_GOTPCREL) {
@@ -368,9 +368,9 @@ bool X86MachObjectWriter::recordScatteredRelocation(MachObjectWriter *Writer,
                                                     MCValue Target,
                                                     unsigned Log2Size,
                                                     uint64_t &FixedValue) {
-  uint64_t OriginalFixedValue = FixedValue;
-  uint32_t FixupOffset = Layout.getFragmentOffset(Fragment)+Fixup.getOffset();
-  unsigned IsPCRel = Writer->isFixupKindPCRel(Asm, Fixup.getKind());
+  uint64_t const OriginalFixedValue = FixedValue;
+  uint32_t const FixupOffset = Layout.getFragmentOffset(Fragment)+Fixup.getOffset();
+  unsigned const IsPCRel = Writer->isFixupKindPCRel(Asm, Fixup.getKind());
   unsigned Type = MachO::GENERIC_RELOC_VANILLA;
 
   // See <reloc.h>.
@@ -384,8 +384,8 @@ bool X86MachObjectWriter::recordScatteredRelocation(MachObjectWriter *Writer,
     return false;
   }
 
-  uint32_t Value = Writer->getSymbolAddress(*A, Layout);
-  uint64_t SecAddr = Writer->getSectionAddress(A->getFragment()->getParent());
+  uint32_t const Value = Writer->getSymbolAddress(*A, Layout);
+  uint64_t const SecAddr = Writer->getSectionAddress(A->getFragment()->getParent());
   FixedValue += SecAddr;
   uint32_t Value2 = 0;
 
@@ -471,8 +471,8 @@ void X86MachObjectWriter::recordTLVPRelocation(MachObjectWriter *Writer,
   assert(SymA->getKind() == MCSymbolRefExpr::VK_TLVP && !is64Bit() &&
          "Should only be called with a 32-bit TLVP relocation!");
 
-  unsigned Log2Size = getFixupKindLog2Size(Fixup.getKind());
-  uint32_t Value = Layout.getFragmentOffset(Fragment)+Fixup.getOffset();
+  unsigned const Log2Size = getFixupKindLog2Size(Fixup.getKind());
+  uint32_t const Value = Layout.getFragmentOffset(Fragment)+Fixup.getOffset();
   unsigned IsPCRel = 0;
 
   // We're only going to have a second symbol in pic mode and it'll be a
@@ -481,7 +481,7 @@ void X86MachObjectWriter::recordTLVPRelocation(MachObjectWriter *Writer,
   // zero.
   if (auto *SymB = Target.getSymB()) {
     // If this is a subtraction then we're pcrel.
-    uint32_t FixupAddress =
+    uint32_t const FixupAddress =
       Writer->getFragmentAddress(Fragment, Layout) + Fixup.getOffset();
     IsPCRel = 1;
     FixedValue = FixupAddress -
@@ -507,8 +507,8 @@ void X86MachObjectWriter::RecordX86Relocation(MachObjectWriter *Writer,
                                               const MCFixup &Fixup,
                                               MCValue Target,
                                               uint64_t &FixedValue) {
-  unsigned IsPCRel = Writer->isFixupKindPCRel(Asm, Fixup.getKind());
-  unsigned Log2Size = getFixupKindLog2Size(Fixup.getKind());
+  unsigned const IsPCRel = Writer->isFixupKindPCRel(Asm, Fixup.getKind());
+  unsigned const Log2Size = getFixupKindLog2Size(Fixup.getKind());
 
   // If this is a 32-bit TLVP reloc it's handled a bit differently.
   if (Target.getSymA() &&
@@ -547,7 +547,7 @@ void X86MachObjectWriter::RecordX86Relocation(MachObjectWriter *Writer,
     return;
 
   // See <reloc.h>.
-  uint32_t FixupOffset = Layout.getFragmentOffset(Fragment)+Fixup.getOffset();
+  uint32_t const FixupOffset = Layout.getFragmentOffset(Fragment)+Fixup.getOffset();
   unsigned Index = 0;
   unsigned Type = 0;
   const MCSymbol *RelSymbol = nullptr;

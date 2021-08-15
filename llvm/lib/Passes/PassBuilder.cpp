@@ -1043,12 +1043,12 @@ PassBuilder::buildModuleSimplificationPipeline(OptimizationLevel Level,
       Phase != ThinOrFullLTOPhase::ThinLTOPostLink)
     MPM.addPass(SampleProfileProbePass(TM));
 
-  bool HasSampleProfile = PGOOpt && (PGOOpt->Action == PGOOptions::SampleUse);
+  bool const HasSampleProfile = PGOOpt && (PGOOpt->Action == PGOOptions::SampleUse);
 
   // In ThinLTO mode, when flattened profile is used, all the available
   // profile information will be annotated in PreLink phase so there is
   // no need to load the profile again in PostLink.
-  bool LoadSampleProfile =
+  bool const LoadSampleProfile =
       HasSampleProfile &&
       !(FlattenedProfileUsed && Phase == ThinOrFullLTOPhase::ThinLTOPostLink);
 
@@ -2098,7 +2098,7 @@ Expected<LoopUnrollOptions> parseLoopUnrollOptions(StringRef Params) {
   while (!Params.empty()) {
     StringRef ParamName;
     std::tie(ParamName, Params) = Params.split(';');
-    int OptLevel = StringSwitch<int>(ParamName)
+    int const OptLevel = StringSwitch<int>(ParamName)
                        .Case("O0", 0)
                        .Case("O1", 1)
                        .Case("O2", 2)
@@ -2118,7 +2118,7 @@ Expected<LoopUnrollOptions> parseLoopUnrollOptions(StringRef Params) {
       continue;
     }
 
-    bool Enable = !ParamName.consume_front("no-");
+    bool const Enable = !ParamName.consume_front("no-");
     if (ParamName == "partial") {
       UnrollOpts.setPartial(Enable);
     } else if (ParamName == "peeling") {
@@ -2173,7 +2173,7 @@ Expected<SimplifyCFGOptions> parseSimplifyCFGOptions(StringRef Params) {
     StringRef ParamName;
     std::tie(ParamName, Params) = Params.split(';');
 
-    bool Enable = !ParamName.consume_front("no-");
+    bool const Enable = !ParamName.consume_front("no-");
     if (ParamName == "forward-switch-cond") {
       Result.forwardSwitchCondToPhi(Enable);
     } else if (ParamName == "switch-to-lookup") {
@@ -2209,7 +2209,7 @@ Expected<LoopVectorizeOptions> parseLoopVectorizeOptions(StringRef Params) {
     StringRef ParamName;
     std::tie(ParamName, Params) = Params.split(';');
 
-    bool Enable = !ParamName.consume_front("no-");
+    bool const Enable = !ParamName.consume_front("no-");
     if (ParamName == "interleave-forced-only") {
       Opts.setInterleaveOnlyWhenForced(Enable);
     } else if (ParamName == "vectorize-forced-only") {
@@ -2229,7 +2229,7 @@ Expected<std::pair<bool, bool>> parseLoopUnswitchOptions(StringRef Params) {
     StringRef ParamName;
     std::tie(ParamName, Params) = Params.split(';');
 
-    bool Enable = !ParamName.consume_front("no-");
+    bool const Enable = !ParamName.consume_front("no-");
     if (ParamName == "nontrivial") {
       Result.first = Enable;
     } else if (ParamName == "trivial") {
@@ -2250,7 +2250,7 @@ Expected<bool> parseMergedLoadStoreMotionOptions(StringRef Params) {
     StringRef ParamName;
     std::tie(ParamName, Params) = Params.split(';');
 
-    bool Enable = !ParamName.consume_front("no-");
+    bool const Enable = !ParamName.consume_front("no-");
     if (ParamName == "split-footer-bb") {
       Result = Enable;
     } else {
@@ -2270,7 +2270,7 @@ Expected<GVNOptions> parseGVNOptions(StringRef Params) {
     StringRef ParamName;
     std::tie(ParamName, Params) = Params.split(';');
 
-    bool Enable = !ParamName.consume_front("no-");
+    bool const Enable = !ParamName.consume_front("no-");
     if (ParamName == "pre") {
       Result.setPRE(Enable);
     } else if (ParamName == "load-pre") {
@@ -2448,14 +2448,14 @@ PassBuilder::parsePipelineText(StringRef Text) {
       &ResultPipeline};
   for (;;) {
     std::vector<PipelineElement> &Pipeline = *PipelineStack.back();
-    size_t Pos = Text.find_first_of(",()");
+    size_t const Pos = Text.find_first_of(",()");
     Pipeline.push_back({Text.substr(0, Pos), {}});
 
     // If we have a single terminating name, we're done.
     if (Pos == Text.npos)
       break;
 
-    char Sep = Text[Pos];
+    char const Sep = Text[Pos];
     Text = Text.substr(Pos + 1);
     if (Sep == ',')
       // Just a name ending in a comma, continue.
@@ -2554,7 +2554,7 @@ Error PassBuilder::parseModulePass(ModulePassManager &MPM,
 
     assert(Matches.size() == 3 && "Must capture two matched strings!");
 
-    OptimizationLevel L = StringSwitch<OptimizationLevel>(Matches[2])
+    OptimizationLevel const L = StringSwitch<OptimizationLevel>(Matches[2])
                               .Case("O0", OptimizationLevel::O0)
                               .Case("O1", OptimizationLevel::O1)
                               .Case("O2", OptimizationLevel::O2)
@@ -2780,8 +2780,8 @@ Error PassBuilder::parseFunctionPass(FunctionPassManager &FPM,
       if (auto Err = parseLoopPassPipeline(LPM, InnerPipeline))
         return Err;
       // Add the nested pass manager with the appropriate adaptor.
-      bool UseMemorySSA = (Name == "loop-mssa");
-      bool UseBFI = llvm::any_of(
+      bool const UseMemorySSA = (Name == "loop-mssa");
+      bool const UseBFI = llvm::any_of(
           InnerPipeline, [](auto Pipeline) { return Pipeline.Name == "licm"; });
       FPM.addPass(createFunctionToLoopPassAdaptor(std::move(LPM), UseMemorySSA,
                                                   UseBFI));

@@ -250,7 +250,7 @@ public:
       return;
 
     for (const auto &F : CurrentModule) {
-      StringRef OrigName = F.getName();
+      StringRef const OrigName = F.getName();
       CurrentGUIDToFuncNameMap.insert(
           {Function::getGUID(OrigName), OrigName});
 
@@ -261,7 +261,7 @@ public:
       // built in post-thin-link phase and var promotion has been done,
       // we need to add the substring of function name without the suffix
       // into the GUIDToFuncNameMap.
-      StringRef CanonName = FunctionSamples::getCanonicalFnName(F);
+      StringRef const CanonName = FunctionSamples::getCanonicalFnName(F);
       if (CanonName != OrigName)
         CurrentGUIDToFuncNameMap.insert(
             {Function::getGUID(CanonName), CanonName});
@@ -585,7 +585,7 @@ ErrorOr<uint64_t> SampleProfileLoader::getProbeWeight(const Instruction &Inst) {
   const ErrorOr<uint64_t> &R = FS->findSamplesAt(Probe->Id, 0);
   if (R) {
     uint64_t Samples = R.get() * Probe->Factor;
-    bool FirstMark = CoverageTracker.markSamplesUsed(FS, Probe->Id, 0, Samples);
+    bool const FirstMark = CoverageTracker.markSamplesUsed(FS, Probe->Id, 0, Samples);
     if (FirstMark) {
       ORE->emit([&]() {
         OptimizationRemarkAnalysis Remark(DEBUG_TYPE, "AppliedSamples", &Inst);
@@ -705,7 +705,7 @@ SampleProfileLoader::findIndirectCallFunctionSamples(
 const FunctionSamples *
 SampleProfileLoader::findFunctionSamples(const Instruction &Inst) const {
   if (FunctionSamples::ProfileIsProbeBased) {
-    Optional<PseudoProbe> Probe = extractProbe(Inst);
+    Optional<PseudoProbe> const Probe = extractProbe(Inst);
     if (!Probe)
       return nullptr;
   }
@@ -735,9 +735,9 @@ SampleProfileLoader::findFunctionSamples(const Instruction &Inst) const {
 static bool doesHistoryAllowICP(const Instruction &Inst, StringRef Candidate) {
   uint32_t NumVals = 0;
   uint64_t TotalCount = 0;
-  std::unique_ptr<InstrProfValueData[]> ValueData =
+  std::unique_ptr<InstrProfValueData[]> const ValueData =
       std::make_unique<InstrProfValueData[]>(MaxNumPromotions);
-  bool Valid =
+  bool const Valid =
       getValueProfDataFromInst(Inst, IPVK_IndirectCallTarget, MaxNumPromotions,
                                ValueData.get(), NumVals, TotalCount, true);
   // No valid value profile so no promoted targets have been recorded
@@ -775,9 +775,9 @@ updateIDTMetaData(Instruction &Inst,
   uint32_t NumVals = 0;
   // OldSum is the existing total count in the value profile data.
   uint64_t OldSum = 0;
-  std::unique_ptr<InstrProfValueData[]> ValueData =
+  std::unique_ptr<InstrProfValueData[]> const ValueData =
       std::make_unique<InstrProfValueData[]>(MaxNumPromotions);
-  bool Valid =
+  bool const Valid =
       getValueProfDataFromInst(Inst, IPVK_IndirectCallTarget, MaxNumPromotions,
                                ValueData.get(), NumVals, OldSum, true);
 
@@ -836,7 +836,7 @@ updateIDTMetaData(Instruction &Inst,
                return L.Value > R.Value;
              });
 
-  uint32_t MaxMDCount =
+  uint32_t const MaxMDCount =
       std::min(NewCallTargets.size(), static_cast<size_t>(MaxNumPromotions));
   annotateValueSite(*Inst.getParent()->getParent()->getParent(), Inst,
                     NewCallTargets, Sum, IPVK_IndirectCallTarget, MaxMDCount);
@@ -876,7 +876,7 @@ bool SampleProfileLoader::tryPromoteAndInlineCandidate(
       R->getValue() != &F && isLegalToPromote(CI, R->getValue(), &Reason)) {
     // For promoted target, set its value with NOMORE_ICP_MAGICNUM count
     // in the value profile metadata so the target won't be promoted again.
-    SmallVector<InstrProfValueData, 1> SortedCallTargets = {InstrProfValueData{
+    SmallVector<InstrProfValueData, 1> const SortedCallTargets = {InstrProfValueData{
         Function::getGUID(R->getValue()->getName()), NOMORE_ICP_MAGICNUM}};
     updateIDTMetaData(CI, SortedCallTargets, 0);
 
@@ -898,7 +898,7 @@ bool SampleProfileLoader::tryPromoteAndInlineCandidate(
       // the it will reflect the real callsite counts.
       Candidate.CallInstr = DI;
       if (isa<CallInst>(DI) || isa<InvokeInst>(DI)) {
-        bool Inlined = tryInlineCandidate(Candidate, InlinedCallSite);
+        bool const Inlined = tryInlineCandidate(Candidate, InlinedCallSite);
         if (!Inlined) {
           // Prorate the direct callsite distribution so that it reflects real
           // callsite counts.
@@ -924,7 +924,7 @@ bool SampleProfileLoader::shouldInlineColdCallee(CallBase &CallInst) {
   if (Callee == nullptr)
     return false;
 
-  InlineCost Cost = getInlineCost(CallInst, getInlineParams(), GetTTI(*Callee),
+  InlineCost const Cost = getInlineCost(CallInst, getInlineParams(), GetTTI(*Callee),
                                   GetAC, GetTLI);
 
   if (Cost.isNever())
@@ -978,7 +978,7 @@ void SampleProfileLoader::findExternalInlineCandidate(
     if (!CalleeSample || CalleeSample->getEntrySamples() < Threshold)
       continue;
 
-    StringRef Name = CalleeSample->getFuncName();
+    StringRef const Name = CalleeSample->getFuncName();
     Function *Func = SymbolMap.lookup(Name);
     // Add to the import list only when it's defined out of module.
     if (!Func || Func->isDeclaration())
@@ -989,7 +989,7 @@ void SampleProfileLoader::findExternalInlineCandidate(
     for (const auto &BS : CalleeSample->getBodySamples())
       for (const auto &TS : BS.second.getCallTargets())
         if (TS.getValue() > Threshold) {
-          StringRef CalleeName = CalleeSample->getFuncName(TS.getKey());
+          StringRef const CalleeName = CalleeSample->getFuncName(TS.getKey());
           const Function *Callee = SymbolMap.lookup(CalleeName);
           if (!Callee || Callee->isDeclaration())
             InlinedGUIDs.insert(FunctionSamples::getGUID(CalleeName));
@@ -1076,7 +1076,7 @@ bool SampleProfileLoader::inlineHotFunctions(
       if (I->isIndirectCall()) {
         uint64_t Sum;
         for (const auto *FS : findIndirectCallFunctionSamples(*I, Sum)) {
-          uint64_t SumOrigin = Sum;
+          uint64_t const SumOrigin = Sum;
           if (LTOPhase == ThinOrFullLTOPhase::ThinLTOPreLink) {
             findExternalInlineCandidate(FS, InlinedGUIDs, SymbolMap,
                                         PSI->getOrCompHotCountThreshold());
@@ -1163,10 +1163,10 @@ bool SampleProfileLoader::tryInlineCandidate(
   CallBase &CB = *Candidate.CallInstr;
   Function *CalledFunction = CB.getCalledFunction();
   assert(CalledFunction && "Expect a callee with definition");
-  DebugLoc DLoc = CB.getDebugLoc();
+  DebugLoc const DLoc = CB.getDebugLoc();
   BasicBlock *BB = CB.getParent();
 
-  InlineCost Cost = shouldInlineCandidate(Candidate);
+  InlineCost const Cost = shouldInlineCandidate(Candidate);
   if (Cost.isNever()) {
     ORE->emit(OptimizationRemarkAnalysis(CSINLINE_DEBUG, "InlineFail", DLoc, BB)
               << "incompatible inlining");
@@ -1351,7 +1351,7 @@ bool SampleProfileLoader::inlineHotFunctionsWithPriority(
     if (I->isIndirectCall()) {
       uint64_t Sum = 0;
       auto CalleeSamples = findIndirectCallFunctionSamples(*I, Sum);
-      uint64_t SumOrigin = Sum;
+      uint64_t const SumOrigin = Sum;
       Sum *= Candidate.CallsiteDistribution;
       unsigned ICPCount = 0;
       for (const auto *FS : CalleeSamples) {
@@ -1361,7 +1361,7 @@ bool SampleProfileLoader::inlineHotFunctionsWithPriority(
                                       PSI->getOrCompHotCountThreshold());
           continue;
         }
-        uint64_t EntryCountDistributed =
+        uint64_t const EntryCountDistributed =
             FS->getEntrySamples() * Candidate.CallsiteDistribution;
         // In addition to regular inline cost check, we also need to make sure
         // ICP isn't introducing excessive speculative checks even if individual
@@ -1469,7 +1469,7 @@ void SampleProfileLoader::generateMDProfMetadata(Function &F) {
                 T = SampleRecord::adjustCallTargets(T.get(), Probe->Factor);
             }
           }
-          SmallVector<InstrProfValueData, 2> SortedCallTargets =
+          SmallVector<InstrProfValueData, 2> const SortedCallTargets =
               GetSortedValueDataFromCallTargets(T.get());
           uint64_t Sum = 0;
           for (const auto &C : T.get())
@@ -1524,7 +1524,7 @@ void SampleProfileLoader::generateMDProfMetadata(Function &F) {
     Instruction *MaxDestInst;
     for (unsigned I = 0; I < TI->getNumSuccessors(); ++I) {
       BasicBlock *Succ = TI->getSuccessor(I);
-      Edge E = std::make_pair(BB, Succ);
+      Edge const E = std::make_pair(BB, Succ);
       uint64_t Weight = EdgeWeights[E];
       LLVM_DEBUG(dbgs() << "\t"; printEdgeWeight(dbgs(), E));
       // Use uint32_t saturated arithmetic to adjust the incoming weights,
@@ -1724,7 +1724,7 @@ SampleProfileLoader::buildFunctionOrder(Module &M, CallGraph *CG) {
     // static call edges are not so important when they don't correspond to a
     // context in the profile.
 
-    std::unique_ptr<ProfiledCallGraph> ProfiledCG = buildProfiledCallGraph(*CG);
+    std::unique_ptr<ProfiledCallGraph> const ProfiledCG = buildProfiledCallGraph(*CG);
     scc_iterator<ProfiledCallGraph *> CGI = scc_begin(ProfiledCG.get());
     while (!CGI.isAtEnd()) {
       for (ProfiledCallGraphNode *Node : *CGI) {
@@ -1763,8 +1763,8 @@ bool SampleProfileLoader::doInitialization(Module &M,
 
   auto ReaderOrErr = SampleProfileReader::create(
       Filename, Ctx, FSDiscriminatorPass::Base, RemappingFilename);
-  if (std::error_code EC = ReaderOrErr.getError()) {
-    std::string Msg = "Could not open profile: " + EC.message();
+  if (std::error_code const EC = ReaderOrErr.getError()) {
+    std::string const Msg = "Could not open profile: " + EC.message();
     Ctx.diagnose(DiagnosticInfoSampleProfile(Filename, Msg));
     return false;
   }
@@ -1773,8 +1773,8 @@ bool SampleProfileLoader::doInitialization(Module &M,
   // set module before reading the profile so reader may be able to only
   // read the function profiles which are used by the current module.
   Reader->setModule(&M);
-  if (std::error_code EC = Reader->read()) {
-    std::string Msg = "profile reading failed: " + EC.message();
+  if (std::error_code const EC = Reader->read()) {
+    std::string const Msg = "profile reading failed: " + EC.message();
     Ctx.diagnose(DiagnosticInfoSampleProfile(Filename, Msg));
     return false;
   }
@@ -1843,7 +1843,7 @@ ModulePass *llvm::createSampleProfileLoaderPass(StringRef Name) {
 
 bool SampleProfileLoader::runOnModule(Module &M, ModuleAnalysisManager *AM,
                                       ProfileSummaryInfo *_PSI, CallGraph *CG) {
-  GUIDToFuncNameMapper Mapper(M, *Reader, GUIDToFuncNameMap);
+  GUIDToFuncNameMapper const Mapper(M, *Reader, GUIDToFuncNameMap);
 
   PSI = _PSI;
   if (M.getProfileSummary(/* IsCS */ false) == nullptr) {
@@ -1863,7 +1863,7 @@ bool SampleProfileLoader::runOnModule(Module &M, ModuleAnalysisManager *AM,
     if (F == nullptr || OrigName.empty())
       continue;
     SymbolMap[OrigName] = F;
-    StringRef NewName = FunctionSamples::getCanonicalFnName(*F);
+    StringRef const NewName = FunctionSamples::getCanonicalFnName(*F);
     if (OrigName != NewName && !NewName.empty()) {
       auto r = SymbolMap.insert(std::make_pair(NewName, F));
       // Failiing to insert means there is already an entry in SymbolMap,
@@ -1949,7 +1949,7 @@ bool SampleProfileLoader::runOnFunction(Function &F, ModuleAnalysisManager *AM) 
     // imprecise debug information, or the callsites are all cold individually
     // but not cold accumulatively...), so the outline function showing up as
     // cold in sampled binary will actually not be cold after current build.
-    StringRef CanonName = FunctionSamples::getCanonicalFnName(F);
+    StringRef const CanonName = FunctionSamples::getCanonicalFnName(F);
     if (NamesInProfile.count(CanonName))
       initialEntryCount = -1;
   }

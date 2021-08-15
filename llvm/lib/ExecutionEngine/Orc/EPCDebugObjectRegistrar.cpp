@@ -23,7 +23,7 @@ createJITLoaderGDBRegistrar(ExecutionSession &ES) {
   if (!ProcessHandle)
     return ProcessHandle.takeError();
 
-  SymbolStringPtr RegisterFn =
+  SymbolStringPtr const RegisterFn =
       EPC.getTargetTriple().isOSBinFormatMachO()
           ? EPC.intern("_llvm_orc_registerJITLoaderGDBWrapper")
           : EPC.intern("llvm_orc_registerJITLoaderGDBWrapper");

@@ -82,7 +82,7 @@ bool X86ATTInstPrinter::printVecCompareInstr(const MCInst *MI,
       !MI->getOperand(MI->getNumOperands() - 1).isImm())
     return false;
 
-  int64_t Imm = MI->getOperand(MI->getNumOperands() - 1).getImm();
+  int64_t const Imm = MI->getOperand(MI->getNumOperands() - 1).getImm();
 
   const MCInstrDesc &Desc = MII.get(MI->getOpcode());
 
@@ -373,7 +373,7 @@ void X86ATTInstPrinter::printOperand(const MCInst *MI, unsigned OpNo,
     printRegName(O, Op.getReg());
   } else if (Op.isImm()) {
     // Print immediates as signed values.
-    int64_t Imm = Op.getImm();
+    int64_t const Imm = Op.getImm();
     O << markup("<imm:") << '$' << formatImm(Imm) << markup(">");
 
     // TODO: This should be in a helper function in the base class, so it can
@@ -421,7 +421,7 @@ void X86ATTInstPrinter::printMemReference(const MCInst *MI, unsigned Op,
   printOptionalSegReg(MI, Op + X86::AddrSegmentReg, O);
 
   if (DispSpec.isImm()) {
-    int64_t DispVal = DispSpec.getImm();
+    int64_t const DispVal = DispSpec.getImm();
     if (DispVal || (!IndexReg.getReg() && !BaseReg.getReg()))
       O << formatImm(DispVal);
   } else {
@@ -437,7 +437,7 @@ void X86ATTInstPrinter::printMemReference(const MCInst *MI, unsigned Op,
     if (IndexReg.getReg()) {
       O << ',';
       printOperand(MI, Op + X86::AddrIndexReg, O);
-      unsigned ScaleVal = MI->getOperand(Op + X86::AddrScaleAmt).getImm();
+      unsigned const ScaleVal = MI->getOperand(Op + X86::AddrScaleAmt).getImm();
       if (ScaleVal != 1) {
         O << ',' << markup("<imm:") << ScaleVal // never printed in hex.
           << markup(">");
@@ -505,7 +505,7 @@ void X86ATTInstPrinter::printU8Imm(const MCInst *MI, unsigned Op,
 void X86ATTInstPrinter::printSTiRegOperand(const MCInst *MI, unsigned OpNo,
                                            raw_ostream &OS) {
   const MCOperand &Op = MI->getOperand(OpNo);
-  unsigned Reg = Op.getReg();
+  unsigned const Reg = Op.getReg();
   // Override the default printing to print st(0) instead st.
   if (Reg == X86::ST0)
     OS << markup("<reg:") << "%st(0)" << markup(">");

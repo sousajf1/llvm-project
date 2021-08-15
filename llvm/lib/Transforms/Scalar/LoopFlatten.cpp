@@ -303,7 +303,7 @@ static bool checkPHIs(FlattenInfo &FI, const TargetTransformInfo *TTI) {
     FI.InnerPHIsToTransform.insert(&InnerPHI);
   }
 
-  for (PHINode &OuterPHI : FI.OuterLoop->getHeader()->phis()) {
+  for (PHINode  const&OuterPHI : FI.OuterLoop->getHeader()->phis()) {
     if (!SafeOuterPHIs.count(&OuterPHI)) {
       LLVM_DEBUG(dbgs() << "found unsafe PHI in outer loop: "; OuterPHI.dump());
       return false;
@@ -353,7 +353,7 @@ checkOuterLoopInsts(FlattenInfo &FI,
       if (match(&I, m_c_Mul(m_Specific(FI.OuterInductionPHI),
                             m_Specific(FI.InnerTripCount))))
         continue;
-      InstructionCost Cost =
+      InstructionCost const Cost =
           TTI->getUserCost(&I, TargetTransformInfo::TCK_SizeAndLatency);
       LLVM_DEBUG(dbgs() << "Cost " << Cost << ": "; I.dump());
       RepeatedInstrCost += Cost;
@@ -413,14 +413,14 @@ static bool checkIVUsers(FlattenInfo &FI) {
 
     Value *MatchedMul;
     Value *MatchedItCount;
-    bool IsAdd = match(U, m_c_Add(m_Specific(FI.InnerInductionPHI),
+    bool const IsAdd = match(U, m_c_Add(m_Specific(FI.InnerInductionPHI),
                                   m_Value(MatchedMul))) &&
                  match(MatchedMul, m_c_Mul(m_Specific(FI.OuterInductionPHI),
                                            m_Value(MatchedItCount)));
 
     // Matches the same pattern as above, except it also looks for truncs
     // on the phi, which can be the result of widening the induction variables.
-    bool IsAddTrunc = match(U, m_c_Add(m_Trunc(m_Specific(FI.InnerInductionPHI)),
+    bool const IsAddTrunc = match(U, m_c_Add(m_Trunc(m_Specific(FI.InnerInductionPHI)),
                                        m_Value(MatchedMul))) &&
                       match(MatchedMul,
                             m_c_Mul(m_Trunc(m_Specific(FI.OuterInductionPHI)),
@@ -487,7 +487,7 @@ static OverflowResult checkOverflow(FlattenInfo &FI, DominatorTree *DT,
 
   // Check if the multiply could not overflow due to known ranges of the
   // input values.
-  OverflowResult OR = computeOverflowForUnsignedMul(
+  OverflowResult const OR = computeOverflowForUnsignedMul(
       FI.InnerTripCount, FI.OuterTripCount, DL, AC,
       FI.OuterLoop->getLoopPreheader()->getTerminator(), DT);
   if (OR != OverflowResult::MayOverflow)
@@ -636,7 +636,7 @@ static bool CanWidenIV(FlattenInfo &FI, DominatorTree *DT, LoopInfo *LI,
   auto &DL = M->getDataLayout();
   auto *InnerType = FI.InnerInductionPHI->getType();
   auto *OuterType = FI.OuterInductionPHI->getType();
-  unsigned MaxLegalSize = DL.getLargestLegalIntTypeSizeInBits();
+  unsigned const MaxLegalSize = DL.getLargestLegalIntTypeSizeInBits();
   auto *MaxLegalType = DL.getLargestLegalIntType(M->getContext());
 
   // If both induction types are less than the maximum legal integer width,
@@ -693,7 +693,7 @@ static bool FlattenLoopPair(FlattenInfo &FI, DominatorTree *DT, LoopInfo *LI,
   // need to version the loop, and select the original version at runtime if
   // the iteration space is too large.
   // TODO: We currently don't version the loop.
-  OverflowResult OR = checkOverflow(FI, DT, AC);
+  OverflowResult const OR = checkOverflow(FI, DT, AC);
   if (OR == OverflowResult::AlwaysOverflowsHigh ||
       OR == OverflowResult::AlwaysOverflowsLow) {
     LLVM_DEBUG(dbgs() << "Multiply would always overflow, so not profitable\n");

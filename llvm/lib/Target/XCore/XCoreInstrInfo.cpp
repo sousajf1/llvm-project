@@ -61,7 +61,7 @@ static bool isZeroImm(const MachineOperand &op) {
 /// any side effects other than loading from the stack slot.
 unsigned XCoreInstrInfo::isLoadFromStackSlot(const MachineInstr &MI,
                                              int &FrameIndex) const {
-  int Opcode = MI.getOpcode();
+  int const Opcode = MI.getOpcode();
   if (Opcode == XCore::LDWFI)
   {
     if ((MI.getOperand(1).isFI()) &&  // is a stack slot
@@ -81,7 +81,7 @@ unsigned XCoreInstrInfo::isLoadFromStackSlot(const MachineInstr &MI,
   /// any side effects other than storing to the stack slot.
 unsigned XCoreInstrInfo::isStoreToStackSlot(const MachineInstr &MI,
                                             int &FrameIndex) const {
-  int Opcode = MI.getOpcode();
+  int const Opcode = MI.getOpcode();
   if (Opcode == XCore::STWFI)
   {
     if ((MI.getOperand(1).isFI()) &&  // is a stack slot
@@ -209,7 +209,7 @@ bool XCoreInstrInfo::analyzeBranch(MachineBasicBlock &MBB,
       return false;
     }
 
-    XCore::CondCode BranchCode = GetCondFromBranchOpc(LastInst->getOpcode());
+    XCore::CondCode const BranchCode = GetCondFromBranchOpc(LastInst->getOpcode());
     if (BranchCode == XCore::COND_INVALID)
       return true;  // Can't handle indirect branch.
 
@@ -229,8 +229,8 @@ bool XCoreInstrInfo::analyzeBranch(MachineBasicBlock &MBB,
   if (SecondLastInst && I != MBB.begin() && isUnpredicatedTerminator(*--I))
     return true;
 
-  unsigned SecondLastOpc    = SecondLastInst->getOpcode();
-  XCore::CondCode BranchCode = GetCondFromBranchOpc(SecondLastOpc);
+  unsigned const SecondLastOpc    = SecondLastInst->getOpcode();
+  XCore::CondCode const BranchCode = GetCondFromBranchOpc(SecondLastOpc);
 
   // If the block ends with conditional branch followed by unconditional,
   // handle it.
@@ -286,7 +286,7 @@ unsigned XCoreInstrInfo::insertBranch(MachineBasicBlock &MBB,
       BuildMI(&MBB, DL, get(XCore::BRFU_lu6)).addMBB(TBB);
     } else {
       // Conditional branch.
-      unsigned Opc = GetCondBranchFromCond((XCore::CondCode)Cond[0].getImm());
+      unsigned const Opc = GetCondBranchFromCond((XCore::CondCode)Cond[0].getImm());
       BuildMI(&MBB, DL, get(Opc)).addReg(Cond[1].getReg())
                              .addMBB(TBB);
     }
@@ -295,7 +295,7 @@ unsigned XCoreInstrInfo::insertBranch(MachineBasicBlock &MBB,
 
   // Two-way Conditional branch.
   assert(Cond.size() == 2 && "Unexpected number of components!");
-  unsigned Opc = GetCondBranchFromCond((XCore::CondCode)Cond[0].getImm());
+  unsigned const Opc = GetCondBranchFromCond((XCore::CondCode)Cond[0].getImm());
   BuildMI(&MBB, DL, get(Opc)).addReg(Cond[1].getReg())
                          .addMBB(TBB);
   BuildMI(&MBB, DL, get(XCore::BRFU_lu6)).addMBB(FBB);
@@ -332,8 +332,8 @@ void XCoreInstrInfo::copyPhysReg(MachineBasicBlock &MBB,
                                  MachineBasicBlock::iterator I,
                                  const DebugLoc &DL, MCRegister DestReg,
                                  MCRegister SrcReg, bool KillSrc) const {
-  bool GRDest = XCore::GRRegsRegClass.contains(DestReg);
-  bool GRSrc  = XCore::GRRegsRegClass.contains(SrcReg);
+  bool const GRDest = XCore::GRRegsRegClass.contains(DestReg);
+  bool const GRSrc  = XCore::GRRegsRegClass.contains(SrcReg);
 
   if (GRDest && GRSrc) {
     BuildMI(MBB, I, DL, get(XCore::ADD_2rus), DestReg)
@@ -419,7 +419,7 @@ static bool isImmMskBitp(unsigned val) {
   if (!isMask_32(val)) {
     return false;
   }
-  int N = Log2_32(val) + 1;
+  int const N = Log2_32(val) + 1;
   return (N >= 1 && N <= 8) || N == 16 || N == 24 || N == 32;
 }
 
@@ -431,19 +431,19 @@ MachineBasicBlock::iterator XCoreInstrInfo::loadImmediate(
   if (MI != MBB.end() && !MI->isDebugInstr())
     dl = MI->getDebugLoc();
   if (isImmMskBitp(Value)) {
-    int N = Log2_32(Value) + 1;
+    int const N = Log2_32(Value) + 1;
     return BuildMI(MBB, MI, dl, get(XCore::MKMSK_rus), Reg)
         .addImm(N)
         .getInstr();
   }
   if (isImmU16(Value)) {
-    int Opcode = isImmU6(Value) ? XCore::LDC_ru6 : XCore::LDC_lru6;
+    int const Opcode = isImmU6(Value) ? XCore::LDC_ru6 : XCore::LDC_lru6;
     return BuildMI(MBB, MI, dl, get(Opcode), Reg).addImm(Value).getInstr();
   }
   MachineConstantPool *ConstantPool = MBB.getParent()->getConstantPool();
   const Constant *C = ConstantInt::get(
         Type::getInt32Ty(MBB.getParent()->getFunction().getContext()), Value);
-  unsigned Idx = ConstantPool->getConstantPoolIndex(C, Align(4));
+  unsigned const Idx = ConstantPool->getConstantPoolIndex(C, Align(4));
   return BuildMI(MBB, MI, dl, get(XCore::LDWCP_lru6), Reg)
       .addConstantPoolIndex(Idx)
       .getInstr();

@@ -89,7 +89,7 @@ static bool foldGuardedFunnelShift(Instruction &I, const DominatorTree &DT) {
   auto matchFunnelShift = [](Value *V, Value *&ShVal0, Value *&ShVal1,
                              Value *&ShAmt) {
     Value *SubAmt;
-    unsigned Width = V->getType()->getScalarSizeInBits();
+    unsigned const Width = V->getType()->getScalarSizeInBits();
 
     // fshl(ShVal0, ShVal1, ShAmt)
     //  == (ShVal0 << ShAmt) | (ShVal1 >> (Width -ShAmt))
@@ -167,7 +167,7 @@ static bool foldGuardedFunnelShift(Instruction &I, const DominatorTree &DT) {
 
   // If this is not a rotate then the select was blocking poison from the
   // 'shift-by-zero' non-TVal, but a funnel shift won't - so freeze it.
-  bool IsFshl = IID == Intrinsic::fshl;
+  bool const IsFshl = IID == Intrinsic::fshl;
   if (ShVal0 != ShVal1) {
     if (IsFshl && !llvm::isGuaranteedNotToBePoison(ShVal1))
       ShVal1 = Builder.CreateFreeze(ShVal1);
@@ -314,16 +314,16 @@ static bool tryToRecognizePopCount(Instruction &I) {
   if (!Ty->isIntOrIntVectorTy())
     return false;
 
-  unsigned Len = Ty->getScalarSizeInBits();
+  unsigned const Len = Ty->getScalarSizeInBits();
   // FIXME: fix Len == 8 and other irregular type lengths.
   if (!(Len <= 128 && Len > 8 && Len % 8 == 0))
     return false;
 
-  APInt Mask55 = APInt::getSplat(Len, APInt(8, 0x55));
-  APInt Mask33 = APInt::getSplat(Len, APInt(8, 0x33));
-  APInt Mask0F = APInt::getSplat(Len, APInt(8, 0x0F));
-  APInt Mask01 = APInt::getSplat(Len, APInt(8, 0x01));
-  APInt MaskShift = APInt(Len, Len - 8);
+  APInt const Mask55 = APInt::getSplat(Len, APInt(8, 0x55));
+  APInt const Mask33 = APInt::getSplat(Len, APInt(8, 0x33));
+  APInt const Mask0F = APInt::getSplat(Len, APInt(8, 0x0F));
+  APInt const Mask01 = APInt::getSplat(Len, APInt(8, 0x01));
+  APInt const MaskShift = APInt(Len, Len - 8);
 
   Value *Op0 = I.getOperand(0);
   Value *Op1 = I.getOperand(1);

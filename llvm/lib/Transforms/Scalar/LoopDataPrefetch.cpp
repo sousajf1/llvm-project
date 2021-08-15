@@ -164,7 +164,7 @@ bool LoopDataPrefetch::isStrideLargeEnough(const SCEVAddRecExpr *AR,
   if (!ConstStride)
     return false;
 
-  unsigned AbsStride = std::abs(ConstStride->getAPInt().getSExtValue());
+  unsigned const AbsStride = std::abs(ConstStride->getAPInt().getSExtValue());
   return TargetMinStride <= AbsStride;
 }
 
@@ -179,7 +179,7 @@ PreservedAnalyses LoopDataPrefetchPass::run(Function &F,
   const TargetTransformInfo *TTI = &AM.getResult<TargetIRAnalysis>(F);
 
   LoopDataPrefetch LDP(AC, DT, LI, SE, TTI, ORE);
-  bool Changed = LDP.run();
+  bool const Changed = LDP.run();
 
   if (Changed) {
     PreservedAnalyses PA;
@@ -310,7 +310,7 @@ bool LoopDataPrefetch::runOnLoop(Loop *L) {
   if (ItersAhead > getMaxPrefetchIterationsAhead())
     return MadeChange;
 
-  unsigned ConstantMaxTripCount = SE->getSmallConstantMaxTripCount(L);
+  unsigned const ConstantMaxTripCount = SE->getSmallConstantMaxTripCount(L);
   if (ConstantMaxTripCount && ConstantMaxTripCount < ItersAhead + 1)
     return MadeChange;
 
@@ -331,7 +331,7 @@ bool LoopDataPrefetch::runOnLoop(Loop *L) {
         PtrValue = SMemI->getPointerOperand();
       } else continue;
 
-      unsigned PtrAddrSpace = PtrValue->getType()->getPointerAddressSpace();
+      unsigned const PtrAddrSpace = PtrValue->getType()->getPointerAddressSpace();
       if (PtrAddrSpace)
         continue;
       NumMemAccesses++;
@@ -352,7 +352,7 @@ bool LoopDataPrefetch::runOnLoop(Loop *L) {
         const SCEV *PtrDiff = SE->getMinusSCEV(LSCEVAddRec, Pref.LSCEVAddRec);
         if (const SCEVConstant *ConstPtrDiff =
             dyn_cast<SCEVConstant>(PtrDiff)) {
-          int64_t PD = std::abs(ConstPtrDiff->getValue()->getSExtValue());
+          int64_t const PD = std::abs(ConstPtrDiff->getValue()->getSExtValue());
           if (PD < (int64_t) TTI->getCacheLineSize()) {
             Pref.addInstruction(MemI, DT, PD);
             DupPref = true;
@@ -364,7 +364,7 @@ bool LoopDataPrefetch::runOnLoop(Loop *L) {
         Prefetches.push_back(Prefetch(LSCEVAddRec, MemI));
     }
 
-  unsigned TargetMinStride =
+  unsigned const TargetMinStride =
     getMinPrefetchStride(NumMemAccesses, NumStridedMemAccesses,
                          Prefetches.size(), HasCall);
 

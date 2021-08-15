@@ -119,7 +119,7 @@ static bool alwaysInlineImpl(Module &M, bool GlobalOpt) {
 
   for (GlobalVariable &GV : M.globals()) {
     // TODO: Region address
-    unsigned AS = GV.getAddressSpace();
+    unsigned const AS = GV.getAddressSpace();
     if ((AS == AMDGPUAS::REGION_ADDRESS) ||
         (AS == AMDGPUAS::LOCAL_ADDRESS &&
          !AMDGPUTargetMachine::EnableLowerModuleLDS))

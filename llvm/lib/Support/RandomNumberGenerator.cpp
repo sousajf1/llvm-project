@@ -76,10 +76,10 @@ std::error_code llvm::getRandomBytes(void *Buffer, size_t Size) {
   }
   return std::error_code(GetLastError(), std::system_category());
 #else
-  int Fd = open("/dev/urandom", O_RDONLY);
+  int const Fd = open("/dev/urandom", O_RDONLY);
   if (Fd != -1) {
     std::error_code Ret;
-    ssize_t BytesRead = read(Fd, Buffer, Size);
+    ssize_t const BytesRead = read(Fd, Buffer, Size);
     if (BytesRead == -1)
       Ret = std::error_code(errno, std::system_category());
     else if (BytesRead != static_cast<ssize_t>(Size))

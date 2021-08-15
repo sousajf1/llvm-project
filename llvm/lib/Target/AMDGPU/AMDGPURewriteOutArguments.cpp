@@ -118,7 +118,7 @@ bool AMDGPURewriteOutArguments::checkArgumentUses(Value &Arg) const {
   const int MaxUses = 10;
   int UseCount = 0;
 
-  for (Use &U : Arg.uses()) {
+  for (Use  const&U : Arg.uses()) {
     StoreInst *SI = dyn_cast<StoreInst>(U.getUser());
     if (UseCount > MaxUses)
       return false;
@@ -275,7 +275,7 @@ bool AMDGPURewriteOutArguments::runOnFunction(Function &F) {
 
       // TODO: This is an approximation. When legalized this could be more. We
       // can ask TLI for exactly how many.
-      unsigned ArgNumRegs = DL->getTypeStoreSize(ArgTy) / 4;
+      unsigned const ArgNumRegs = DL->getTypeStoreSize(ArgTy) / 4;
       if (ArgNumRegs + ReturnNumRegs > MaxNumRetRegs)
         continue;
 
@@ -284,7 +284,7 @@ bool AMDGPURewriteOutArguments::runOnFunction(Function &F) {
       for (ReturnInst *RI : Returns) {
         BasicBlock *BB = RI->getParent();
 
-        MemDepResult Q = MDA->getPointerDependencyFrom(
+        MemDepResult const Q = MDA->getPointerDependencyFrom(
             MemoryLocation::getBeforeOrAfter(OutArg), true, BB->end(), BB, RI);
         StoreInst *SI = nullptr;
         if (Q.isDef())
@@ -364,7 +364,7 @@ bool AMDGPURewriteOutArguments::runOnFunction(Function &F) {
   // this function with a stub.
   NewFunc->getBasicBlockList().splice(NewFunc->begin(), F.getBasicBlockList());
 
-  for (std::pair<ReturnInst *, ReplacementVec> &Replacement : Replacements) {
+  for (std::pair<ReturnInst *, ReplacementVec>  const&Replacement : Replacements) {
     ReturnInst *RI = Replacement.first;
     IRBuilder<> B(RI);
     B.SetCurrentDebugLocation(RI->getDebugLoc());
@@ -376,7 +376,7 @@ bool AMDGPURewriteOutArguments::runOnFunction(Function &F) {
     if (RetVal)
       NewRetVal = B.CreateInsertValue(NewRetVal, RetVal, RetIdx++);
 
-    for (std::pair<Argument *, Value *> ReturnPoint : Replacement.second) {
+    for (std::pair<Argument *, Value *> const ReturnPoint : Replacement.second) {
       Argument *Arg = ReturnPoint.first;
       Value *Val = ReturnPoint.second;
       Type *EltTy = Arg->getType()->getPointerElementType();

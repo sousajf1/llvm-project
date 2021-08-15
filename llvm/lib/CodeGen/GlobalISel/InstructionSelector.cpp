@@ -51,7 +51,7 @@ bool InstructionSelector::isBaseWithConstantOffset(
   if (RootI->getOpcode() != TargetOpcode::G_PTR_ADD)
     return false;
 
-  MachineOperand &RHS = RootI->getOperand(2);
+  MachineOperand  const&RHS = RootI->getOperand(2);
   MachineInstr *RHSI = MRI.getVRegDef(RHS.getReg());
   if (RHSI->getOpcode() != TargetOpcode::G_CONSTANT)
     return false;

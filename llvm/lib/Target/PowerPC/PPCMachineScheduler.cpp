@@ -32,8 +32,8 @@ bool PPCPreRASchedStrategy::biasAddiLoadCandidate(SchedCandidate &Cand,
   if (DisableAddiLoadHeuristic)
     return false;
 
-  SchedCandidate &FirstCand = Zone.isTop() ? TryCand : Cand;
-  SchedCandidate &SecondCand = Zone.isTop() ? Cand : TryCand;
+  SchedCandidate  const&FirstCand = Zone.isTop() ? TryCand : Cand;
+  SchedCandidate  const&SecondCand = Zone.isTop() ? Cand : TryCand;
   if (isADDIInstr(FirstCand) && SecondCand.SU->getInstr()->mayLoad()) {
     TryCand.Reason = Stall;
     return true;
@@ -79,7 +79,7 @@ bool PPCPreRASchedStrategy::tryCandidate(SchedCandidate &Cand,
   // other instances we should only override the other boundary if something
   // is a clear good pick on one boundary. Skip heuristics that are more
   // "tie-breaking" in nature.
-  bool SameBoundary = Zone != nullptr;
+  bool const SameBoundary = Zone != nullptr;
   if (SameBoundary) {
     // For loops that are acyclic path limited, aggressively schedule for
     // latency. Within an single cycle, whenever CurrMOps > 0, allow normal

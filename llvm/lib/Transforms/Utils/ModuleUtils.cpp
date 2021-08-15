@@ -34,7 +34,7 @@ static void appendToGlobalArray(const char *Array, Module &M, Function *F,
       IRB.getInt32Ty(), PointerType::getUnqual(FnTy), IRB.getInt8PtrTy());
   if (GlobalVariable *GVCtor = M.getNamedGlobal(Array)) {
     if (Constant *Init = GVCtor->getInitializer()) {
-      unsigned n = Init->getNumOperands();
+      unsigned const n = Init->getNumOperands();
       CurrentCtors.reserve(n + 1);
       for (unsigned i = 0; i != n; ++i)
         CurrentCtors.push_back(cast<Constant>(Init->getOperand(i)));
@@ -140,13 +140,13 @@ std::pair<Function *, FunctionCallee> llvm::createSanitizerCtorAndInitFunctions(
   assert(!InitName.empty() && "Expected init function name");
   assert(InitArgs.size() == InitArgTypes.size() &&
          "Sanitizer's init function expects different number of arguments");
-  FunctionCallee InitFunction =
+  FunctionCallee const InitFunction =
       declareSanitizerInitFunction(M, InitName, InitArgTypes);
   Function *Ctor = createSanitizerCtor(M, CtorName);
   IRBuilder<> IRB(Ctor->getEntryBlock().getTerminator());
   IRB.CreateCall(InitFunction, InitArgs);
   if (!VersionCheckName.empty()) {
-    FunctionCallee VersionCheckFunction = M.getOrInsertFunction(
+    FunctionCallee const VersionCheckFunction = M.getOrInsertFunction(
         VersionCheckName, FunctionType::get(IRB.getVoidTy(), {}, false),
         AttributeList());
     IRB.CreateCall(VersionCheckFunction, {});

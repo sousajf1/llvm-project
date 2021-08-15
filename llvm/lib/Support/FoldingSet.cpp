@@ -85,15 +85,15 @@ void FoldingSetNodeID::AddInteger(unsigned long long I) {
 }
 
 void FoldingSetNodeID::AddString(StringRef String) {
-  unsigned Size =  String.size();
+  unsigned const Size =  String.size();
 
-  unsigned NumInserts = 1 + divideCeil(Size, 4);
+  unsigned const NumInserts = 1 + divideCeil(Size, 4);
   Bits.reserve(Bits.size() + NumInserts);
 
   Bits.push_back(Size);
   if (!Size) return;
 
-  unsigned Units = Size / 4;
+  unsigned const Units = Size / 4;
   unsigned Pos = 0;
   const unsigned *Base = (const unsigned*) String.data();
 
@@ -109,7 +109,7 @@ void FoldingSetNodeID::AddString(StringRef String) {
                   "Unexpected host endianness");
     if (sys::IsBigEndianHost) {
       for (Pos += 4; Pos <= Size; Pos += 4) {
-        unsigned V = ((unsigned char)String[Pos - 4] << 24) |
+        unsigned const V = ((unsigned char)String[Pos - 4] << 24) |
                      ((unsigned char)String[Pos - 3] << 16) |
                      ((unsigned char)String[Pos - 2] << 8) |
                       (unsigned char)String[Pos - 1];
@@ -117,7 +117,7 @@ void FoldingSetNodeID::AddString(StringRef String) {
       }
     } else {  // Little-endian host
       for (Pos += 4; Pos <= Size; Pos += 4) {
-        unsigned V = ((unsigned char)String[Pos - 1] << 24) |
+        unsigned const V = ((unsigned char)String[Pos - 1] << 24) |
                      ((unsigned char)String[Pos - 2] << 16) |
                      ((unsigned char)String[Pos - 3] << 8) |
                       (unsigned char)String[Pos - 4];
@@ -203,7 +203,7 @@ static FoldingSetBase::Node *GetNextPtr(void *NextInBucketPtr) {
 
 /// testing.
 static void **GetBucketPtr(void *NextInBucketPtr) {
-  intptr_t Ptr = reinterpret_cast<intptr_t>(NextInBucketPtr);
+  intptr_t const Ptr = reinterpret_cast<intptr_t>(NextInBucketPtr);
   assert((Ptr & 1) && "Not a bucket pointer");
   return reinterpret_cast<void**>(Ptr & ~intptr_t(1));
 }
@@ -212,7 +212,7 @@ static void **GetBucketPtr(void *NextInBucketPtr) {
 /// the specified ID.
 static void **GetBucketFor(unsigned Hash, void **Buckets, unsigned NumBuckets) {
   // NumBuckets is always a power of 2.
-  unsigned BucketNum = Hash & (NumBuckets-1);
+  unsigned const BucketNum = Hash & (NumBuckets-1);
   return Buckets + BucketNum;
 }
 
@@ -275,7 +275,7 @@ void FoldingSetBase::GrowBucketCount(unsigned NewBucketCount,
          "Can't shrink a folding set with GrowBucketCount");
   assert(isPowerOf2_32(NewBucketCount) && "Bad bucket count!");
   void **OldBuckets = Buckets;
-  unsigned OldNumBuckets = NumBuckets;
+  unsigned const OldNumBuckets = NumBuckets;
 
   // Clear out new buckets.
   Buckets = AllocateBuckets(NewBucketCount);
@@ -325,7 +325,7 @@ void FoldingSetBase::reserve(unsigned EltCount, const FoldingSetInfo &Info) {
 /// faster.
 FoldingSetBase::Node *FoldingSetBase::FindNodeOrInsertPos(
     const FoldingSetNodeID &ID, void *&InsertPos, const FoldingSetInfo &Info) {
-  unsigned IDHash = ID.ComputeHash();
+  unsigned const IDHash = ID.ComputeHash();
   void **Bucket = GetBucketFor(IDHash, Buckets, NumBuckets);
   void *Probe = *Bucket;
 

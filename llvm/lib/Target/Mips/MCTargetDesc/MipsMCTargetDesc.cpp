@@ -85,8 +85,8 @@ static MCAsmInfo *createMipsMCAsmInfo(const MCRegisterInfo &MRI,
                                       const MCTargetOptions &Options) {
   MCAsmInfo *MAI = new MipsMCAsmInfo(TT, Options);
 
-  unsigned SP = MRI.getDwarfRegNum(Mips::SP, true);
-  MCCFIInstruction Inst = MCCFIInstruction::createDefCfaRegister(nullptr, SP);
+  unsigned const SP = MRI.getDwarfRegNum(Mips::SP, true);
+  MCCFIInstruction const Inst = MCCFIInstruction::createDefCfaRegister(nullptr, SP);
   MAI->addInitialFrameState(Inst);
 
   return MAI;
@@ -139,7 +139,7 @@ public:
 
   bool evaluateBranch(const MCInst &Inst, uint64_t Addr, uint64_t Size,
                       uint64_t &Target) const override {
-    unsigned NumOps = Inst.getNumOperands();
+    unsigned const NumOps = Inst.getNumOperands();
     if (NumOps == 0)
       return false;
     switch (Info->get(Inst.getOpcode()).OpInfo[NumOps - 1].OperandType) {
@@ -147,7 +147,7 @@ public:
     case MCOI::OPERAND_IMMEDIATE: {
       // j, jal, jalx, jals
       // Absolute branch within the current 256 MB-aligned region
-      uint64_t Region = Addr & ~uint64_t(0xfffffff);
+      uint64_t const Region = Addr & ~uint64_t(0xfffffff);
       Target = Region + Inst.getOperand(NumOps - 1).getImm();
       return true;
     }
@@ -170,7 +170,7 @@ extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializeMipsTargetMC() {
   for (Target *T : {&getTheMipsTarget(), &getTheMipselTarget(),
                     &getTheMips64Target(), &getTheMips64elTarget()}) {
     // Register the MC asm info.
-    RegisterMCAsmInfoFn X(*T, createMipsMCAsmInfo);
+    RegisterMCAsmInfoFn const X(*T, createMipsMCAsmInfo);
 
     // Register the MC instruction info.
     TargetRegistry::RegisterMCInstrInfo(*T, createMipsMCInstrInfo);

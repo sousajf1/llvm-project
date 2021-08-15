@@ -41,7 +41,7 @@ static void printExpr(const MCExpr *Expr, raw_ostream &O) {
     SRE = dyn_cast<MCSymbolRefExpr>(Expr);
   assert(SRE && "Unexpected MCExpr type.");
 
-  MCSymbolRefExpr::VariantKind Kind = SRE->getKind();
+  MCSymbolRefExpr::VariantKind const Kind = SRE->getKind();
 
   assert(Kind == MCSymbolRefExpr::VK_None);
 #endif
@@ -98,7 +98,7 @@ void BPFInstPrinter::printBrTargetOperand(const MCInst *MI, unsigned OpNo,
                                        raw_ostream &O) {
   const MCOperand &Op = MI->getOperand(OpNo);
   if (Op.isImm()) {
-    int16_t Imm = Op.getImm();
+    int16_t const Imm = Op.getImm();
     O << ((Imm >= 0) ? "+" : "") << formatImm(Imm);
   } else if (Op.isExpr()) {
     printExpr(Op.getExpr(), O);

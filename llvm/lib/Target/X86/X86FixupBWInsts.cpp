@@ -191,7 +191,7 @@ bool FixupBWInstPass::runOnMachineFunction(MachineFunction &MF) {
 bool FixupBWInstPass::getSuperRegDestIfDead(MachineInstr *OrigMI,
                                             Register &SuperDestReg) const {
   const X86RegisterInfo *TRI = &TII->getRegisterInfo();
-  Register OrigDestReg = OrigMI->getOperand(0).getReg();
+  Register const OrigDestReg = OrigMI->getOperand(0).getReg();
   SuperDestReg = getX86SubSuperRegister(OrigDestReg, 32);
 
   const auto SubRegIdx = TRI->getSubRegIndex(SuperDestReg, OrigDestReg);
@@ -250,7 +250,7 @@ bool FixupBWInstPass::getSuperRegDestIfDead(MachineInstr *OrigMI,
   //   Predecessors according to CFG: %bb.2 %bb.1
   //   %ax = KILL %ax, implicit killed %eax
   //   RET 0, %ax
-  unsigned Opc = OrigMI->getOpcode(); (void)Opc;
+  unsigned const Opc = OrigMI->getOpcode(); (void)Opc;
   // These are the opcodes currently known to work with the code below, if
   // something // else will be added we need to ensure that new opcode has the
   // same properties.
@@ -297,20 +297,20 @@ MachineInstr *FixupBWInstPass::tryReplaceLoad(unsigned New32BitOpcode,
     return nullptr;
 
   // Safe to change the instruction.
-  MachineInstrBuilder MIB =
+  MachineInstrBuilder const MIB =
       BuildMI(*MF, MI->getDebugLoc(), TII->get(New32BitOpcode), NewDestReg);
 
-  unsigned NumArgs = MI->getNumOperands();
+  unsigned const NumArgs = MI->getNumOperands();
   for (unsigned i = 1; i < NumArgs; ++i)
     MIB.add(MI->getOperand(i));
 
   MIB.setMemRefs(MI->memoperands());
 
   // If it was debug tracked, record a substitution.
-  if (unsigned OldInstrNum = MI->peekDebugInstrNum()) {
-    unsigned Subreg = TRI->getSubRegIndex(MIB->getOperand(0).getReg(),
+  if (unsigned const OldInstrNum = MI->peekDebugInstrNum()) {
+    unsigned const Subreg = TRI->getSubRegIndex(MIB->getOperand(0).getReg(),
                                           MI->getOperand(0).getReg());
-    unsigned NewInstrNum = MIB->getDebugInstrNum(*MF);
+    unsigned const NewInstrNum = MIB->getDebugInstrNum(*MF);
     MF->makeDebugValueSubstitution({OldInstrNum, 0}, {NewInstrNum, 0}, Subreg);
   }
 
@@ -326,7 +326,7 @@ MachineInstr *FixupBWInstPass::tryReplaceCopy(MachineInstr *MI) const {
   if (!getSuperRegDestIfDead(MI, NewDestReg))
     return nullptr;
 
-  Register NewSrcReg = getX86SubSuperRegister(OldSrc.getReg(), 32);
+  Register const NewSrcReg = getX86SubSuperRegister(OldSrc.getReg(), 32);
 
   // This is only correct if we access the same subregister index: otherwise,
   // we could try to replace "movb %ah, %al" with "movl %eax, %eax".
@@ -340,7 +340,7 @@ MachineInstr *FixupBWInstPass::tryReplaceCopy(MachineInstr *MI) const {
   // However, the superregister might not be defined; make it explicit that
   // we don't care about the higher bits by reading it as Undef, and adding
   // an imp-use on the original subregister.
-  MachineInstrBuilder MIB =
+  MachineInstrBuilder const MIB =
       BuildMI(*MF, MI->getDebugLoc(), TII->get(X86::MOV32rr), NewDestReg)
           .addReg(NewSrcReg, RegState::Undef)
           .addReg(OldSrc.getReg(), RegState::Implicit);
@@ -368,19 +368,19 @@ MachineInstr *FixupBWInstPass::tryReplaceExtend(unsigned New32BitOpcode,
     return nullptr;
 
   // Safe to change the instruction.
-  MachineInstrBuilder MIB =
+  MachineInstrBuilder const MIB =
       BuildMI(*MF, MI->getDebugLoc(), TII->get(New32BitOpcode), NewDestReg);
 
-  unsigned NumArgs = MI->getNumOperands();
+  unsigned const NumArgs = MI->getNumOperands();
   for (unsigned i = 1; i < NumArgs; ++i)
     MIB.add(MI->getOperand(i));
 
   MIB.setMemRefs(MI->memoperands());
 
-  if (unsigned OldInstrNum = MI->peekDebugInstrNum()) {
-    unsigned Subreg = TRI->getSubRegIndex(MIB->getOperand(0).getReg(),
+  if (unsigned const OldInstrNum = MI->peekDebugInstrNum()) {
+    unsigned const Subreg = TRI->getSubRegIndex(MIB->getOperand(0).getReg(),
                                           MI->getOperand(0).getReg());
-    unsigned NewInstrNum = MIB->getDebugInstrNum(*MF);
+    unsigned const NewInstrNum = MIB->getDebugInstrNum(*MF);
     MF->makeDebugValueSubstitution({OldInstrNum, 0}, {NewInstrNum, 0}, Subreg);
   }
 

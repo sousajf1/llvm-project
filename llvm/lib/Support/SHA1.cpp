@@ -234,7 +234,7 @@ void SHA1::update(ArrayRef<uint8_t> Data) {
   }
 
   // Finish the remainder.
-  for (uint8_t C : Data)
+  for (uint8_t const C : Data)
     addUncounted(C);
 }
 
@@ -301,7 +301,7 @@ StringRef SHA1::result() {
 std::array<uint8_t, 20> SHA1::hash(ArrayRef<uint8_t> Data) {
   SHA1 Hash;
   Hash.update(Data);
-  StringRef S = Hash.final();
+  StringRef const S = Hash.final();
 
   std::array<uint8_t, 20> Arr;
   memcpy(Arr.data(), S.data(), S.size());

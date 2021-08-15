@@ -128,7 +128,7 @@ public:
 bool X86InterleavedAccessGroup::isSupported() const {
   VectorType *ShuffleVecTy = Shuffles[0]->getType();
   Type *ShuffleEltTy = ShuffleVecTy->getElementType();
-  unsigned ShuffleElemSize = DL.getTypeSizeInBits(ShuffleEltTy);
+  unsigned const ShuffleElemSize = DL.getTypeSizeInBits(ShuffleEltTy);
   unsigned WideInstSize;
 
   // Currently, lowering is supported for the following vectors:
@@ -199,7 +199,7 @@ void X86InterleavedAccessGroup::decompose(
   // In the case of stride 3 with a vector of 32 elements load the information
   // in the following way:
   // [0,1...,VF/2-1,VF/2+VF,VF/2+VF+1,...,2VF-1]
-  unsigned VecLength = DL.getTypeSizeInBits(VecWidth);
+  unsigned const VecLength = DL.getTypeSizeInBits(VecWidth);
   if (VecLength == 768 || VecLength == 1536) {
     VecBaseTy = FixedVectorType::get(Type::getInt8Ty(LI->getContext()), 16);
     VecBasePtrTy = VecBaseTy->getPointerTo(LI->getPointerAddressSpace());
@@ -231,7 +231,7 @@ void X86InterleavedAccessGroup::decompose(
 // Changing the scale of the vector type by reducing the number of elements and
 // doubling the scalar size.
 static MVT scaleVectorType(MVT VT) {
-  unsigned ScalarSize = VT.getVectorElementType().getScalarSizeInBits() * 2;
+  unsigned const ScalarSize = VT.getVectorElementType().getScalarSizeInBits() * 2;
   return MVT::getVectorVT(MVT::getIntegerVT(ScalarSize),
                           VT.getVectorNumElements() / 2);
 }
@@ -263,7 +263,7 @@ static void genShuffleBland(MVT VT, ArrayRef<int> Mask,
                             int HighOffset) {
   assert(VT.getSizeInBits() >= 256 &&
          "This function doesn't accept width smaller then 256");
-  unsigned NumOfElm = VT.getVectorNumElements();
+  unsigned const NumOfElm = VT.getVectorNumElements();
   for (unsigned i = 0; i < Mask.size(); i++)
     Out.push_back(Mask[i] + LowOffset);
   for (unsigned i = 0; i < Mask.size(); i++)
@@ -328,7 +328,7 @@ void X86InterleavedAccessGroup::interleave8bitStride4VF8(
   // Matrix[2]= y0 y1 y2 y3 y4 ... y7
   // Matrix[3]= k0 k1 k2 k3 k4 ... k7
 
-  MVT VT = MVT::v8i16;
+  MVT const VT = MVT::v8i16;
   TransposedMatrix.resize(2);
   SmallVector<int, 16> MaskLow;
   SmallVector<int, 32> MaskLowTemp1, MaskLowWord;
@@ -368,8 +368,8 @@ void X86InterleavedAccessGroup::interleave8bitStride4(
   // Matrix[2]= y0 y1 y2 y3 y4 ... y31
   // Matrix[3]= k0 k1 k2 k3 k4 ... k31
 
-  MVT VT = MVT::getVectorVT(MVT::i8, NumOfElm);
-  MVT HalfVT = scaleVectorType(VT);
+  MVT const VT = MVT::getVectorVT(MVT::i8, NumOfElm);
+  MVT const HalfVT = scaleVectorType(VT);
 
   TransposedMatrix.resize(4);
   SmallVector<int, 32> MaskHigh;
@@ -439,9 +439,9 @@ void X86InterleavedAccessGroup::interleave8bitStride4(
 //  {<[0|3|6|1|4|7|2|5]-[8|11|14|9|12|15|10|13]>}
 static void createShuffleStride(MVT VT, int Stride,
                                 SmallVectorImpl<int> &Mask) {
-  int VectorSize = VT.getSizeInBits();
-  int VF = VT.getVectorNumElements();
-  int LaneCount = std::max(VectorSize / 128, 1);
+  int const VectorSize = VT.getSizeInBits();
+  int const VF = VT.getVectorNumElements();
+  int const LaneCount = std::max(VectorSize / 128, 1);
   for (int Lane = 0; Lane < LaneCount; Lane++)
     for (int i = 0, LaneSize = VF / LaneCount; i != LaneSize; ++i)
       Mask.push_back((i * Stride) % LaneSize + LaneSize * Lane);
@@ -452,10 +452,10 @@ static void createShuffleStride(MVT VT, int Stride,
 //  each group is a monotonically increasing sequence with stride 3.
 //  For example shuffleMask {0,3,6,1,4,7,2,5} => {3,3,2}
 static void setGroupSize(MVT VT, SmallVectorImpl<int> &SizeInfo) {
-  int VectorSize = VT.getSizeInBits();
-  int VF = VT.getVectorNumElements() / std::max(VectorSize / 128, 1);
+  int const VectorSize = VT.getSizeInBits();
+  int const VF = VT.getVectorNumElements() / std::max(VectorSize / 128, 1);
   for (int i = 0, FirstGroupElement = 0; i < 3; i++) {
-    int GroupSize = std::ceil((VF - FirstGroupElement) / 3.0);
+    int const GroupSize = std::ceil((VF - FirstGroupElement) / 3.0);
     SizeInfo.push_back(GroupSize);
     FirstGroupElement = ((GroupSize)*3 + FirstGroupElement) % VF;
   }
@@ -477,12 +477,12 @@ static void setGroupSize(MVT VT, SmallVectorImpl<int> &SizeInfo) {
 static void DecodePALIGNRMask(MVT VT, unsigned Imm,
                               SmallVectorImpl<int> &ShuffleMask,
                               bool AlignDirection = true, bool Unary = false) {
-  unsigned NumElts = VT.getVectorNumElements();
-  unsigned NumLanes = std::max((int)VT.getSizeInBits() / 128, 1);
-  unsigned NumLaneElts = NumElts / NumLanes;
+  unsigned const NumElts = VT.getVectorNumElements();
+  unsigned const NumLanes = std::max((int)VT.getSizeInBits() / 128, 1);
+  unsigned const NumLaneElts = NumElts / NumLanes;
 
   Imm = AlignDirection ? Imm : (NumLaneElts - Imm);
-  unsigned Offset = Imm * (VT.getScalarSizeInBits() / 8);
+  unsigned const Offset = Imm * (VT.getScalarSizeInBits() / 8);
 
   for (unsigned l = 0; l != NumElts; l += NumLaneElts) {
     for (unsigned i = 0; i != NumLaneElts; ++i) {
@@ -559,7 +559,7 @@ void X86InterleavedAccessGroup::deinterleave8bitStride3(
   SmallVector<int, 3> GroupSize;
   Value *Vec[6], *TempVector[3];
 
-  MVT VT = MVT::getVT(Shuffles[0]->getType());
+  MVT const VT = MVT::getVT(Shuffles[0]->getType());
 
   createShuffleStride(VT, 3, VPShuf);
   setGroupSize(VT, GroupSize);
@@ -611,10 +611,10 @@ static void group2Shuffle(MVT VT, SmallVectorImpl<int> &Mask,
                           SmallVectorImpl<int> &Output) {
   int IndexGroup[3] = {0, 0, 0};
   int Index = 0;
-  int VectorWidth = VT.getSizeInBits();
-  int VF = VT.getVectorNumElements();
+  int const VectorWidth = VT.getSizeInBits();
+  int const VF = VT.getVectorNumElements();
   // Find the index of the different groups.
-  int Lane = (VectorWidth / 128 > 0) ? VectorWidth / 128 : 1;
+  int const Lane = (VectorWidth / 128 > 0) ? VectorWidth / 128 : 1;
   for (int i = 0; i < 3; i++) {
     IndexGroup[(Index * 3) % (VF / Lane)] = Index;
     Index += Mask[i];
@@ -642,7 +642,7 @@ void X86InterleavedAccessGroup::interleave8bitStride3(
   SmallVector<int, 32> VPAlign3;
 
   Value *Vec[3], *TempVector[3];
-  MVT VT = MVT::getVectorVT(MVT::i8, VecElems);
+  MVT const VT = MVT::getVectorVT(MVT::i8, VecElems);
 
   setGroupSize(VT, GroupSize);
 
@@ -680,7 +680,7 @@ void X86InterleavedAccessGroup::interleave8bitStride3(
   // TransposedMatrix[1] = c2 a3 b3 c3 a4 b4 c4 a5
   // TransposedMatrix[2] = b5 c5 a6 b6 c6 a7 b7 c7
 
-  unsigned NumOfElm = VT.getVectorNumElements();
+  unsigned const NumOfElm = VT.getVectorNumElements();
   group2Shuffle(VT, GroupSize, VPShuf);
   reorderSubVector(VT, TransposedMatrix, Vec, VPShuf, NumOfElm, 3, Builder);
 }
@@ -725,7 +725,7 @@ bool X86InterleavedAccessGroup::lowerIntoOptimizedSequence() {
 
   if (isa<LoadInst>(Inst)) {
     auto *ShuffleEltTy = cast<FixedVectorType>(Inst->getType());
-    unsigned NumSubVecElems = ShuffleEltTy->getNumElements() / Factor;
+    unsigned const NumSubVecElems = ShuffleEltTy->getNumElements() / Factor;
     switch (NumSubVecElems) {
     default:
       return false;
@@ -761,7 +761,7 @@ bool X86InterleavedAccessGroup::lowerIntoOptimizedSequence() {
   }
 
   Type *ShuffleEltTy = ShuffleTy->getElementType();
-  unsigned NumSubVecElems = ShuffleTy->getNumElements() / Factor;
+  unsigned const NumSubVecElems = ShuffleTy->getNumElements() / Factor;
 
   // Lower the interleaved stores:
   //   1. Decompose the interleaved wide shuffle into individual shuffle
@@ -841,7 +841,7 @@ bool X86TargetLowering::lowerInterleavedStore(StoreInst *SI,
   for (unsigned i = 0; i < Factor; i++)
     Indices.push_back(Mask[i]);
 
-  ArrayRef<ShuffleVectorInst *> Shuffles = makeArrayRef(SVI);
+  ArrayRef<ShuffleVectorInst *> const Shuffles = makeArrayRef(SVI);
 
   // Create an interleaved access group.
   IRBuilder<> Builder(SI);

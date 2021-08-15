@@ -79,7 +79,7 @@ void WasmException::computeCallSiteTable(
     SmallVectorImpl<CallSiteRange> &CallSiteRanges,
     const SmallVectorImpl<const LandingPadInfo *> &LandingPads,
     const SmallVectorImpl<unsigned> &FirstActions) {
-  MachineFunction &MF = *Asm->MF;
+  MachineFunction  const&MF = *Asm->MF;
   for (unsigned I = 0, N = LandingPads.size(); I < N; ++I) {
     const LandingPadInfo *Info = LandingPads[I];
     MachineBasicBlock *LPad = Info->LandingPadBlock;
@@ -88,8 +88,8 @@ void WasmException::computeCallSiteTable(
       continue;
     // Wasm EH must maintain the EH pads in the order assigned to them by the
     // WasmEHPrepare pass.
-    unsigned LPadIndex = MF.getWasmLandingPadIndex(LPad);
-    CallSiteEntry Site = {nullptr, nullptr, Info, FirstActions[I]};
+    unsigned const LPadIndex = MF.getWasmLandingPadIndex(LPad);
+    CallSiteEntry const Site = {nullptr, nullptr, Info, FirstActions[I]};
     if (CallSites.size() < LPadIndex + 1)
       CallSites.resize(LPadIndex + 1);
     CallSites[LPadIndex] = Site;

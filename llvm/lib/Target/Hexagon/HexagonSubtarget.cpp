@@ -139,24 +139,24 @@ bool HexagonSubtarget::isHVXElementType(MVT Ty, bool IncludeBool) const {
 bool HexagonSubtarget::isHVXVectorType(MVT VecTy, bool IncludeBool) const {
   if (!VecTy.isVector() || !useHVXOps() || VecTy.isScalableVector())
     return false;
-  MVT ElemTy = VecTy.getVectorElementType();
+  MVT const ElemTy = VecTy.getVectorElementType();
   if (!IncludeBool && ElemTy == MVT::i1)
     return false;
 
-  unsigned HwLen = getVectorLength();
-  unsigned NumElems = VecTy.getVectorNumElements();
+  unsigned const HwLen = getVectorLength();
+  unsigned const NumElems = VecTy.getVectorNumElements();
   ArrayRef<MVT> ElemTypes = getHVXElementTypes();
 
   if (IncludeBool && ElemTy == MVT::i1) {
     // Boolean HVX vector types are formed from regular HVX vector types
     // by replacing the element type with i1.
-    for (MVT T : ElemTypes)
+    for (MVT const T : ElemTypes)
       if (NumElems * T.getSizeInBits() == 8 * HwLen)
         return true;
     return false;
   }
 
-  unsigned VecWidth = VecTy.getSizeInBits();
+  unsigned const VecWidth = VecTy.getSizeInBits();
   if (VecWidth != 8 * HwLen && VecWidth != 16 * HwLen)
     return false;
   return llvm::is_contained(ElemTypes, ElemTy);
@@ -170,7 +170,7 @@ bool HexagonSubtarget::isTypeForHVX(Type *VecTy, bool IncludeBool) const {
     return false;
   // The given type may be something like <17 x i32>, which is not MVT,
   // but can be represented as (non-simple) EVT.
-  EVT Ty = EVT::getEVT(VecTy, /*HandleUnknown*/false);
+  EVT const Ty = EVT::getEVT(VecTy, /*HandleUnknown*/false);
   if (Ty.getSizeInBits() <= 64 || !Ty.getVectorElementType().isSimple())
     return false;
 
@@ -183,10 +183,10 @@ bool HexagonSubtarget::isTypeForHVX(Type *VecTy, bool IncludeBool) const {
 
   // Round up EVT to have power-of-2 elements, and keep checking if it
   // qualifies for HVX, dividing it in half after each step.
-  MVT ElemTy = Ty.getVectorElementType().getSimpleVT();
+  MVT const ElemTy = Ty.getVectorElementType().getSimpleVT();
   unsigned VecLen = PowerOf2Ceil(Ty.getVectorNumElements());
   while (ElemTy.getSizeInBits() * VecLen > 64) {
-    MVT SimpleTy = MVT::getVectorVT(ElemTy, VecLen);
+    MVT const SimpleTy = MVT::getVectorVT(ElemTy, VecLen);
     if (SimpleTy.isValid() && isHvxTy(SimpleTy))
       return true;
     VecLen /= 2;
@@ -213,16 +213,16 @@ void HexagonSubtarget::HVXMemLatencyMutation::apply(ScheduleDAGInstrs *DAG) {
     // Update the latency of chain edges between v60 vector load or store
     // instructions to be 1. These instruction cannot be scheduled in the
     // same packet.
-    MachineInstr &MI1 = *SU.getInstr();
+    MachineInstr  const&MI1 = *SU.getInstr();
     auto *QII = static_cast<const HexagonInstrInfo*>(DAG->TII);
-    bool IsStoreMI1 = MI1.mayStore();
-    bool IsLoadMI1 = MI1.mayLoad();
+    bool const IsStoreMI1 = MI1.mayStore();
+    bool const IsLoadMI1 = MI1.mayLoad();
     if (!QII->isHVXVec(MI1) || !(IsStoreMI1 || IsLoadMI1))
       continue;
     for (SDep &SI : SU.Succs) {
       if (SI.getKind() != SDep::Order || SI.getLatency() != 0)
         continue;
-      MachineInstr &MI2 = *SI.getSUnit()->getInstr();
+      MachineInstr  const&MI2 = *SI.getSUnit()->getInstr();
       if (!QII->isHVXVec(MI2))
         continue;
       if ((IsStoreMI1 && MI2.mayStore()) || (IsLoadMI1 && MI2.mayLoad())) {
@@ -254,7 +254,7 @@ bool HexagonSubtarget::CallMutation::shouldTFRICallBind(
     return false;
 
   // TypeXTYPE are 64 bit operations.
-  unsigned Type = HII.getType(*Inst2.getInstr());
+  unsigned const Type = HII.getType(*Inst2.getInstr());
   return Type == HexagonII::TypeS_2op || Type == HexagonII::TypeS_3op ||
          Type == HexagonII::TypeALU64 || Type == HexagonII::TypeM;
 }
@@ -340,7 +340,7 @@ void HexagonSubtarget::BankConflictMutation::apply(ScheduleDAGInstrs *DAG) {
   // between them, we cannot rely on existing edges.
   for (unsigned i = 0, e = DAG->SUnits.size(); i != e; ++i) {
     SUnit &S0 = DAG->SUnits[i];
-    MachineInstr &L0 = *S0.getInstr();
+    MachineInstr  const&L0 = *S0.getInstr();
     if (!L0.mayLoad() || L0.mayStore() ||
         HII.getAddrMode(L0) != HexagonII::BaseImmOffset)
       continue;
@@ -353,7 +353,7 @@ void HexagonSubtarget::BankConflictMutation::apply(ScheduleDAGInstrs *DAG) {
     // Scan only up to 32 instructions ahead (to avoid n^2 complexity).
     for (unsigned j = i+1, m = std::min(i+32, e); j != m; ++j) {
       SUnit &S1 = DAG->SUnits[j];
-      MachineInstr &L1 = *S1.getInstr();
+      MachineInstr  const&L1 = *S1.getInstr();
       if (!L1.mayLoad() || L1.mayStore() ||
           HII.getAddrMode(L1) != HexagonII::BaseImmOffset)
         continue;
@@ -415,7 +415,7 @@ void HexagonSubtarget::adjustSchedDependency(SUnit *Src, int SrcOpIdx,
   // If it's a REG_SEQUENCE/COPY, use its destination instruction to determine
   // the correct latency.
   if ((DstInst->isRegSequence() || DstInst->isCopy()) && Dst->NumSuccs == 1) {
-    Register DReg = DstInst->getOperand(0).getReg();
+    Register const DReg = DstInst->getOperand(0).getReg();
     MachineInstr *DDst = Dst->Succs[0].getSUnit()->getInstr();
     unsigned UseIdx = -1;
     for (unsigned OpNum = 0; OpNum < DDst->getNumOperands(); OpNum++) {
@@ -491,13 +491,13 @@ void HexagonSubtarget::restoreLatency(SUnit *Src, SUnit *Dst) const {
   for (auto &I : Src->Succs) {
     if (!I.isAssignedRegDep() || I.getSUnit() != Dst)
       continue;
-    Register DepR = I.getReg();
+    Register const DepR = I.getReg();
     int DefIdx = -1;
     for (unsigned OpNum = 0; OpNum < SrcI->getNumOperands(); OpNum++) {
       const MachineOperand &MO = SrcI->getOperand(OpNum);
       bool IsSameOrSubReg = false;
       if (MO.isReg()) {
-        Register MOReg = MO.getReg();
+        Register const MOReg = MO.getReg();
         if (DepR.isVirtual()) {
           IsSameOrSubReg = (MOReg == DepR);
         } else {
@@ -566,8 +566,8 @@ static SUnit *getZeroLatency(SUnit *N, SmallVector<SDep, 4> &Deps) {
 bool HexagonSubtarget::isBestZeroLatency(SUnit *Src, SUnit *Dst,
       const HexagonInstrInfo *TII, SmallSet<SUnit*, 4> &ExclSrc,
       SmallSet<SUnit*, 4> &ExclDst) const {
-  MachineInstr &SrcInst = *Src->getInstr();
-  MachineInstr &DstInst = *Dst->getInstr();
+  MachineInstr  const&SrcInst = *Src->getInstr();
+  MachineInstr  const&DstInst = *Dst->getInstr();
 
   // Ignore Boundary SU nodes as these have null instructions.
   if (Dst->isBoundaryNode())

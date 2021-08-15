@@ -280,7 +280,7 @@ MachOPlatform::MachOPlatform(
     std::unique_ptr<DefinitionGenerator> OrcRuntimeGenerator, Error &Err)
     : ES(ES), ObjLinkingLayer(ObjLinkingLayer),
       MachOHeaderStartSymbol(ES.intern("___dso_handle")) {
-  ErrorAsOutParameter _(&Err);
+  ErrorAsOutParameter const _(&Err);
 
   ObjLinkingLayer.addPlugin(std::make_unique<MachOPlatformPlugin>(*this));
 
@@ -340,7 +340,7 @@ void MachOPlatform::getInitializersBuildSequencePhase(
     std::vector<JITDylibSP> DFSLinkOrder) {
   MachOJITDylibInitializerSequence FullInitSeq;
   {
-    std::lock_guard<std::mutex> Lock(PlatformMutex);
+    std::lock_guard<std::mutex> const Lock(PlatformMutex);
     for (auto &InitJD : reverse(DFSLinkOrder)) {
       LLVM_DEBUG({
         dbgs() << "MachOPlatform: Appending inits for \"" << InitJD->getName()
@@ -420,7 +420,7 @@ void MachOPlatform::rt_getDeinitializers(SendDeinitializerSequenceFn SendResult,
   JITDylib *JD = nullptr;
 
   {
-    std::lock_guard<std::mutex> Lock(PlatformMutex);
+    std::lock_guard<std::mutex> const Lock(PlatformMutex);
     auto I = HeaderAddrToJITDylib.find(Handle.getValue());
     if (I != HeaderAddrToJITDylib.end())
       JD = I->second;
@@ -451,7 +451,7 @@ void MachOPlatform::rt_lookupSymbol(SendSymbolAddressFn SendResult,
   JITDylib *JD = nullptr;
 
   {
-    std::lock_guard<std::mutex> Lock(PlatformMutex);
+    std::lock_guard<std::mutex> const Lock(PlatformMutex);
     auto I = HeaderAddrToJITDylib.find(Handle.getValue());
     if (I != HeaderAddrToJITDylib.end())
       JD = I->second;
@@ -496,7 +496,7 @@ void MachOPlatform::rt_lookupSymbol(SendSymbolAddressFn SendResult,
 
 Error MachOPlatform::bootstrapMachORuntime(JITDylib &PlatformJD) {
 
-  std::pair<const char *, ExecutorAddress *> Symbols[] = {
+  std::pair<const char *, ExecutorAddress *> const Symbols[] = {
       {"___orc_rt_macho_platform_bootstrap", &orc_rt_macho_platform_bootstrap},
       {"___orc_rt_macho_platform_shutdown", &orc_rt_macho_platform_shutdown},
       {"___orc_rt_macho_register_object_sections",
@@ -532,7 +532,7 @@ Error MachOPlatform::bootstrapMachORuntime(JITDylib &PlatformJD) {
   RuntimeBootstrapped = true;
   std::vector<MachOPerObjectSectionsToRegister> DeferredPOSRs;
   {
-    std::lock_guard<std::mutex> Lock(PlatformMutex);
+    std::lock_guard<std::mutex> const Lock(PlatformMutex);
     DeferredPOSRs = std::move(BootstrapPOSRs);
   }
 
@@ -574,7 +574,7 @@ Error MachOPlatform::registerInitInfo(
 
   for (auto *Sec : InitSections) {
     // FIXME: Avoid copy here.
-    jitlink::SectionRange R(*Sec);
+    jitlink::SectionRange const R(*Sec);
     InitSeq->InitSections[Sec->getName()].push_back(
         {ExecutorAddress(R.getStart()), ExecutorAddress(R.getEnd())});
   }
@@ -637,7 +637,7 @@ void MachOPlatform::MachOPlatformPlugin::modifyPassConfig(
 ObjectLinkingLayer::Plugin::SyntheticSymbolDependenciesMap
 MachOPlatform::MachOPlatformPlugin::getSyntheticSymbolDependencies(
     MaterializationResponsibility &MR) {
-  std::lock_guard<std::mutex> Lock(PluginMutex);
+  std::lock_guard<std::mutex> const Lock(PluginMutex);
   auto I = InitSymbolDeps.find(&MR);
   if (I != InitSymbolDeps.end()) {
     SyntheticSymbolDependenciesMap Result;
@@ -675,8 +675,8 @@ void MachOPlatform::MachOPlatformPlugin::addMachOHeaderSupportPasses(
     assert(I != G.defined_symbols().end() &&
            "Missing MachO header start symbol");
     {
-      std::lock_guard<std::mutex> Lock(MP.PlatformMutex);
-      JITTargetAddress HeaderAddr = (*I)->getAddress();
+      std::lock_guard<std::mutex> const Lock(MP.PlatformMutex);
+      JITTargetAddress const HeaderAddr = (*I)->getAddress();
       MP.HeaderAddrToJITDylib[HeaderAddr] = &JD;
       assert(!MP.InitSeqs.count(&JD) && "InitSeq entry for JD already exists");
       MP.InitSeqs.insert(
@@ -704,7 +704,7 @@ void MachOPlatform::MachOPlatformPlugin::addEHAndTLVSupportPasses(
     MachOPerObjectSectionsToRegister POSR;
 
     if (auto *EHFrameSection = G.findSectionByName(EHFrameSectionName)) {
-      jitlink::SectionRange R(*EHFrameSection);
+      jitlink::SectionRange const R(*EHFrameSection);
       if (!R.empty())
         POSR.EHFrameSection = {ExecutorAddress(R.getStart()),
                                ExecutorAddress(R.getEnd())};
@@ -729,7 +729,7 @@ void MachOPlatform::MachOPlatformPlugin::addEHAndTLVSupportPasses(
     // Having merged thread BSS (if present) and thread data (if present),
     // record the resulting section range.
     if (ThreadDataSection) {
-      jitlink::SectionRange R(*ThreadDataSection);
+      jitlink::SectionRange const R(*ThreadDataSection);
       if (!R.empty())
         POSR.ThreadDataSection = {ExecutorAddress(R.getStart()),
                                   ExecutorAddress(R.getEnd())};
@@ -741,7 +741,7 @@ void MachOPlatform::MachOPlatformPlugin::addEHAndTLVSupportPasses(
       // If we're still bootstrapping the runtime then just record this
       // frame for now.
       if (!MP.RuntimeBootstrapped) {
-        std::lock_guard<std::mutex> Lock(MP.PlatformMutex);
+        std::lock_guard<std::mutex> const Lock(MP.PlatformMutex);
         MP.BootstrapPOSRs.push_back(POSR);
         return Error::success();
       }
@@ -785,7 +785,7 @@ Error MachOPlatform::MachOPlatformPlugin::preserveInitSections(
   }
 
   if (!InitSectionSymbols.empty()) {
-    std::lock_guard<std::mutex> Lock(PluginMutex);
+    std::lock_guard<std::mutex> const Lock(PluginMutex);
     InitSymbolDeps[&MR] = std::move(InitSectionSymbols);
   }
 
@@ -841,7 +841,7 @@ Error MachOPlatform::MachOPlatformPlugin::processObjCImageInfo(
       support::endian::read32(ObjCImageInfoData + 4, G.getEndianness());
 
   // Lock the mutex while we verify / update the ObjCImageInfos map.
-  std::lock_guard<std::mutex> Lock(PluginMutex);
+  std::lock_guard<std::mutex> const Lock(PluginMutex);
 
   auto ObjCImageInfoItr = ObjCImageInfos.find(&MR.getTargetJITDylib());
   if (ObjCImageInfoItr != ObjCImageInfos.end()) {
@@ -915,7 +915,7 @@ Error MachOPlatform::MachOPlatformPlugin::fixTLVSectionsAndEdges(
   if (auto *ThreadDataSec = G.findSectionByName(ThreadVarsSectionName)) {
     Optional<uint64_t> Key;
     {
-      std::lock_guard<std::mutex> Lock(MP.PlatformMutex);
+      std::lock_guard<std::mutex> const Lock(MP.PlatformMutex);
       auto I = MP.JITDylibToPThreadKey.find(&JD);
       if (I != MP.JITDylibToPThreadKey.end())
         Key = I->second;

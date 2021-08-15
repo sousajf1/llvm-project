@@ -115,22 +115,22 @@ bool DWARFFormValue::skipValue(dwarf::Form Form, DataExtractor DebugInfoData,
     // inlined in the .debug_info.
     case DW_FORM_exprloc:
     case DW_FORM_block: {
-      uint64_t size = DebugInfoData.getULEB128(OffsetPtr);
+      uint64_t const size = DebugInfoData.getULEB128(OffsetPtr);
       *OffsetPtr += size;
       return true;
     }
     case DW_FORM_block1: {
-      uint8_t size = DebugInfoData.getU8(OffsetPtr);
+      uint8_t const size = DebugInfoData.getU8(OffsetPtr);
       *OffsetPtr += size;
       return true;
     }
     case DW_FORM_block2: {
-      uint16_t size = DebugInfoData.getU16(OffsetPtr);
+      uint16_t const size = DebugInfoData.getU16(OffsetPtr);
       *OffsetPtr += size;
       return true;
     }
     case DW_FORM_block4: {
-      uint32_t size = DebugInfoData.getU32(OffsetPtr);
+      uint32_t const size = DebugInfoData.getU32(OffsetPtr);
       *OffsetPtr += size;
       return true;
     }
@@ -261,7 +261,7 @@ bool DWARFFormValue::extractValue(const DWARFDataExtractor &Data,
     switch (Form) {
     case DW_FORM_addr:
     case DW_FORM_ref_addr: {
-      uint16_t Size =
+      uint16_t const Size =
           (Form == DW_FORM_addr) ? FP.AddrSize : FP.getRefAddrByteSize();
       Value.uval =
           Data.getRelocatedValue(Size, OffsetPtr, &Value.SectionIndex, &Err);
@@ -375,7 +375,7 @@ bool DWARFFormValue::extractValue(const DWARFDataExtractor &Data,
 
 void DWARFFormValue::dumpAddress(raw_ostream &OS, uint8_t AddressSize,
                                  uint64_t Address) {
-  uint8_t HexDigits = AddressSize * 2;
+  uint8_t const HexDigits = AddressSize * 2;
   OS << format("0x%*.*" PRIx64, HexDigits, HexDigits, Address);
 }
 
@@ -392,7 +392,7 @@ void DWARFFormValue::dumpAddressSection(const DWARFObject &Obj, raw_ostream &OS,
                                         uint64_t SectionIndex) {
   if (!DumpOpts.Verbose || SectionIndex == -1ULL)
     return;
-  ArrayRef<SectionName> SectionNames = Obj.getSectionNames();
+  ArrayRef<SectionName> const SectionNames = Obj.getSectionNames();
   const auto &SecRef = SectionNames[SectionIndex];
 
   OS << " \"" << SecRef.Name << '\"';
@@ -403,12 +403,12 @@ void DWARFFormValue::dumpAddressSection(const DWARFObject &Obj, raw_ostream &OS,
 }
 
 void DWARFFormValue::dump(raw_ostream &OS, DIDumpOptions DumpOpts) const {
-  uint64_t UValue = Value.uval;
+  uint64_t const UValue = Value.uval;
   bool CURelativeOffset = false;
   raw_ostream &AddrOS = DumpOpts.ShowAddresses
                             ? WithColor(OS, HighlightColor::Address).get()
                             : nulls();
-  int OffsetDumpWidth = 2 * dwarf::getDwarfOffsetByteSize(Format);
+  int const OffsetDumpWidth = 2 * dwarf::getDwarfOffsetByteSize(Format);
   switch (Form) {
   case DW_FORM_addr:
     dumpSectionedAddress(AddrOS, DumpOpts, {Value.uval, Value.SectionIndex});
@@ -437,8 +437,8 @@ void DWARFFormValue::dump(raw_ostream &OS, DIDumpOptions DumpOpts) const {
       OS << "<invalid dwarf unit>";
       break;
     }
-    uint32_t Index = UValue >> 32;
-    uint32_t Offset = UValue & 0xffffffff;
+    uint32_t const Index = UValue >> 32;
+    uint32_t const Offset = UValue & 0xffffffff;
     Optional<object::SectionedAddress> A = U->getAddrOffsetSectionItem(Index);
     if (!A || DumpOpts.Verbose)
       AddrOS << format("indexed (%8.8x) + 0x%x address = ", Index, Offset);
@@ -669,10 +669,10 @@ Optional<object::SectionedAddress>
 DWARFFormValue::getAsSectionedAddress() const {
   if (!isFormClass(FC_Address))
     return None;
-  bool AddrOffset = Form == dwarf::DW_FORM_LLVM_addrx_offset;
+  bool const AddrOffset = Form == dwarf::DW_FORM_LLVM_addrx_offset;
   if (Form == DW_FORM_GNU_addr_index || Form == DW_FORM_addrx || AddrOffset) {
 
-    uint32_t Index = AddrOffset ? (Value.uval >> 32) : Value.uval;
+    uint32_t const Index = AddrOffset ? (Value.uval >> 32) : Value.uval;
     if (!U)
       return None;
     Optional<object::SectionedAddress> SA = U->getAddrOffsetSectionItem(Index);

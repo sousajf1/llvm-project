@@ -26,13 +26,13 @@ SDValue BPFSelectionDAGInfo::EmitTargetCodeForMemcpy(
   if (!ConstantSize)
     return SDValue();
 
-  unsigned CopyLen = ConstantSize->getZExtValue();
-  unsigned StoresNumEstimate = alignTo(CopyLen, Alignment) >> Log2(Alignment);
+  unsigned const CopyLen = ConstantSize->getZExtValue();
+  unsigned const StoresNumEstimate = alignTo(CopyLen, Alignment) >> Log2(Alignment);
   // Impose the same copy length limit as MaxStoresPerMemcpy.
   if (StoresNumEstimate > getCommonMaxStoresPerMemFunc())
     return SDValue();
 
-  SDVTList VTs = DAG.getVTList(MVT::Other, MVT::Glue);
+  SDVTList const VTs = DAG.getVTList(MVT::Other, MVT::Glue);
 
   Dst = DAG.getNode(BPFISD::MEMCPY, dl, VTs, Chain, Dst, Src,
                     DAG.getConstant(CopyLen, dl, MVT::i64),

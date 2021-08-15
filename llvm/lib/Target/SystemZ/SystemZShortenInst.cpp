@@ -75,22 +75,22 @@ static void tieOpsIfNeeded(MachineInstr &MI) {
 // instead of IIxF.
 bool SystemZShortenInst::shortenIIF(MachineInstr &MI, unsigned LLIxL,
                                     unsigned LLIxH) {
-  Register Reg = MI.getOperand(0).getReg();
+  Register const Reg = MI.getOperand(0).getReg();
   // The new opcode will clear the other half of the GR64 reg, so
   // cancel if that is live.
-  unsigned thisSubRegIdx =
+  unsigned const thisSubRegIdx =
       (SystemZ::GRH32BitRegClass.contains(Reg) ? SystemZ::subreg_h32
                                                : SystemZ::subreg_l32);
-  unsigned otherSubRegIdx =
+  unsigned const otherSubRegIdx =
       (thisSubRegIdx == SystemZ::subreg_l32 ? SystemZ::subreg_h32
                                             : SystemZ::subreg_l32);
-  unsigned GR64BitReg =
+  unsigned const GR64BitReg =
       TRI->getMatchingSuperReg(Reg, thisSubRegIdx, &SystemZ::GR64BitRegClass);
-  Register OtherReg = TRI->getSubReg(GR64BitReg, otherSubRegIdx);
+  Register const OtherReg = TRI->getSubReg(GR64BitReg, otherSubRegIdx);
   if (LiveRegs.contains(OtherReg))
     return false;
 
-  uint64_t Imm = MI.getOperand(1).getImm();
+  uint64_t const Imm = MI.getOperand(1).getImm();
   if (SystemZ::isImmLL(Imm)) {
     MI.setDesc(TII->get(LLIxL));
     MI.getOperand(0).setReg(SystemZMC::getRegAsGR64(Reg));
@@ -157,10 +157,10 @@ bool SystemZShortenInst::shortenOn001AddCC(MachineInstr &MI, unsigned Opcode) {
 bool SystemZShortenInst::shortenFPConv(MachineInstr &MI, unsigned Opcode) {
   if (SystemZMC::getFirstReg(MI.getOperand(0).getReg()) < 16 &&
       SystemZMC::getFirstReg(MI.getOperand(1).getReg()) < 16) {
-    MachineOperand Dest(MI.getOperand(0));
-    MachineOperand Src(MI.getOperand(1));
-    MachineOperand Suppress(MI.getOperand(2));
-    MachineOperand Mode(MI.getOperand(3));
+    MachineOperand const Dest(MI.getOperand(0));
+    MachineOperand const Src(MI.getOperand(1));
+    MachineOperand const Suppress(MI.getOperand(2));
+    MachineOperand const Mode(MI.getOperand(3));
     MI.RemoveOperand(3);
     MI.RemoveOperand(2);
     MI.RemoveOperand(1);
@@ -177,18 +177,18 @@ bool SystemZShortenInst::shortenFPConv(MachineInstr &MI, unsigned Opcode) {
 }
 
 bool SystemZShortenInst::shortenFusedFPOp(MachineInstr &MI, unsigned Opcode) {
-  MachineOperand &DstMO = MI.getOperand(0);
-  MachineOperand &LHSMO = MI.getOperand(1);
-  MachineOperand &RHSMO = MI.getOperand(2);
-  MachineOperand &AccMO = MI.getOperand(3);
+  MachineOperand  const&DstMO = MI.getOperand(0);
+  MachineOperand  const&LHSMO = MI.getOperand(1);
+  MachineOperand  const&RHSMO = MI.getOperand(2);
+  MachineOperand  const&AccMO = MI.getOperand(3);
   if (SystemZMC::getFirstReg(DstMO.getReg()) < 16 &&
       SystemZMC::getFirstReg(LHSMO.getReg()) < 16 &&
       SystemZMC::getFirstReg(RHSMO.getReg()) < 16 &&
       SystemZMC::getFirstReg(AccMO.getReg()) < 16 &&
       DstMO.getReg() == AccMO.getReg()) {
-    MachineOperand Lhs(LHSMO);
-    MachineOperand Rhs(RHSMO);
-    MachineOperand Src(AccMO);
+    MachineOperand const Lhs(LHSMO);
+    MachineOperand const Rhs(RHSMO);
+    MachineOperand const Src(AccMO);
     MI.RemoveOperand(3);
     MI.RemoveOperand(2);
     MI.RemoveOperand(1);
@@ -352,7 +352,7 @@ bool SystemZShortenInst::processBlock(MachineBasicBlock &MBB) {
       break;
 
     default: {
-      int TwoOperandOpcode = SystemZ::getTwoOperandOpcode(MI.getOpcode());
+      int const TwoOperandOpcode = SystemZ::getTwoOperandOpcode(MI.getOpcode());
       if (TwoOperandOpcode == -1)
         break;
 

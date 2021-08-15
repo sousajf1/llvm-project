@@ -78,9 +78,9 @@ X86LegalizerInfo::X86LegalizerInfo(const X86Subtarget &STI,
 
   auto &LegacyInfo = getLegacyLegalizerInfo();
   LegacyInfo.setLegalizeScalarToDifferentSizeStrategy(G_PHI, 0, widen_1);
-  for (unsigned BinOp : {G_SUB, G_MUL, G_AND, G_OR, G_XOR})
+  for (unsigned const BinOp : {G_SUB, G_MUL, G_AND, G_OR, G_XOR})
     LegacyInfo.setLegalizeScalarToDifferentSizeStrategy(BinOp, 0, widen_1);
-  for (unsigned MemOp : {G_LOAD, G_STORE})
+  for (unsigned const MemOp : {G_LOAD, G_STORE})
     LegacyInfo.setLegalizeScalarToDifferentSizeStrategy(
         MemOp, 0, LegacyLegalizerInfo::narrowToSmallerAndWidenToSmallest);
   LegacyInfo.setLegalizeScalarToDifferentSizeStrategy(
@@ -119,16 +119,16 @@ void X86LegalizerInfo::setLegalizerInfo32bit() {
   for (auto Ty : {s8, s16, s32, p0})
     LegacyInfo.setAction({G_PHI, Ty}, LegacyLegalizeActions::Legal);
 
-  for (unsigned BinOp : {G_ADD, G_SUB, G_MUL, G_AND, G_OR, G_XOR})
+  for (unsigned const BinOp : {G_ADD, G_SUB, G_MUL, G_AND, G_OR, G_XOR})
     for (auto Ty : {s8, s16, s32})
       LegacyInfo.setAction({BinOp, Ty}, LegacyLegalizeActions::Legal);
 
-  for (unsigned Op : {G_UADDE}) {
+  for (unsigned const Op : {G_UADDE}) {
     LegacyInfo.setAction({Op, s32}, LegacyLegalizeActions::Legal);
     LegacyInfo.setAction({Op, 1, s1}, LegacyLegalizeActions::Legal);
   }
 
-  for (unsigned MemOp : {G_LOAD, G_STORE}) {
+  for (unsigned const MemOp : {G_LOAD, G_STORE}) {
     for (auto Ty : {s8, s16, s32, p0})
       LegacyInfo.setAction({MemOp, Ty}, LegacyLegalizeActions::Legal);
 
@@ -219,10 +219,10 @@ void X86LegalizerInfo::setLegalizerInfo64bit() {
 
   LegacyInfo.setAction({G_PHI, s64}, LegacyLegalizeActions::Legal);
 
-  for (unsigned BinOp : {G_ADD, G_SUB, G_MUL, G_AND, G_OR, G_XOR})
+  for (unsigned const BinOp : {G_ADD, G_SUB, G_MUL, G_AND, G_OR, G_XOR})
     LegacyInfo.setAction({BinOp, s64}, LegacyLegalizeActions::Legal);
 
-  for (unsigned MemOp : {G_LOAD, G_STORE})
+  for (unsigned const MemOp : {G_LOAD, G_STORE})
     LegacyInfo.setAction({MemOp, s64}, LegacyLegalizeActions::Legal);
 
   // Pointer-handling
@@ -238,7 +238,7 @@ void X86LegalizerInfo::setLegalizerInfo64bit() {
                        LegacyLegalizeActions::Legal);
 
   // Extensions
-  for (unsigned extOp : {G_ZEXT, G_SEXT, G_ANYEXT}) {
+  for (unsigned const extOp : {G_ZEXT, G_SEXT, G_ANYEXT}) {
     LegacyInfo.setAction({extOp, s64}, LegacyLegalizeActions::Legal);
   }
 
@@ -299,11 +299,11 @@ void X86LegalizerInfo::setLegalizerInfoSSE1() {
 
   auto &LegacyInfo = getLegacyLegalizerInfo();
 
-  for (unsigned BinOp : {G_FADD, G_FSUB, G_FMUL, G_FDIV})
+  for (unsigned const BinOp : {G_FADD, G_FSUB, G_FMUL, G_FDIV})
     for (auto Ty : {s32, v4s32})
       LegacyInfo.setAction({BinOp, Ty}, LegacyLegalizeActions::Legal);
 
-  for (unsigned MemOp : {G_LOAD, G_STORE})
+  for (unsigned const MemOp : {G_LOAD, G_STORE})
     for (auto Ty : {v4s32, v2s64})
       LegacyInfo.setAction({MemOp, Ty}, LegacyLegalizeActions::Legal);
 
@@ -339,11 +339,11 @@ void X86LegalizerInfo::setLegalizerInfoSSE2() {
 
   auto &LegacyInfo = getLegacyLegalizerInfo();
 
-  for (unsigned BinOp : {G_FADD, G_FSUB, G_FMUL, G_FDIV})
+  for (unsigned const BinOp : {G_FADD, G_FSUB, G_FMUL, G_FDIV})
     for (auto Ty : {s64, v2s64})
       LegacyInfo.setAction({BinOp, Ty}, LegacyLegalizeActions::Legal);
 
-  for (unsigned BinOp : {G_ADD, G_SUB})
+  for (unsigned const BinOp : {G_ADD, G_SUB})
     for (auto Ty : {v16s8, v8s16, v4s32, v2s64})
       LegacyInfo.setAction({BinOp, Ty}, LegacyLegalizeActions::Legal);
 
@@ -404,7 +404,7 @@ void X86LegalizerInfo::setLegalizerInfoAVX() {
 
   auto &LegacyInfo = getLegacyLegalizerInfo();
 
-  for (unsigned MemOp : {G_LOAD, G_STORE})
+  for (unsigned const MemOp : {G_LOAD, G_STORE})
     for (auto Ty : {v8s32, v4s64})
       LegacyInfo.setAction({MemOp, Ty}, LegacyLegalizeActions::Legal);
 
@@ -447,7 +447,7 @@ void X86LegalizerInfo::setLegalizerInfoAVX2() {
 
   auto &LegacyInfo = getLegacyLegalizerInfo();
 
-  for (unsigned BinOp : {G_ADD, G_SUB})
+  for (unsigned const BinOp : {G_ADD, G_SUB})
     for (auto Ty : {v32s8, v16s16, v8s32, v4s64})
       LegacyInfo.setAction({BinOp, Ty}, LegacyLegalizeActions::Legal);
 
@@ -488,13 +488,13 @@ void X86LegalizerInfo::setLegalizerInfoAVX512() {
 
   auto &LegacyInfo = getLegacyLegalizerInfo();
 
-  for (unsigned BinOp : {G_ADD, G_SUB})
+  for (unsigned const BinOp : {G_ADD, G_SUB})
     for (auto Ty : {v16s32, v8s64})
       LegacyInfo.setAction({BinOp, Ty}, LegacyLegalizeActions::Legal);
 
   LegacyInfo.setAction({G_MUL, v16s32}, LegacyLegalizeActions::Legal);
 
-  for (unsigned MemOp : {G_LOAD, G_STORE})
+  for (unsigned const MemOp : {G_LOAD, G_STORE})
     for (auto Ty : {v16s32, v8s64})
       LegacyInfo.setAction({MemOp, Ty}, LegacyLegalizeActions::Legal);
 
@@ -545,7 +545,7 @@ void X86LegalizerInfo::setLegalizerInfoAVX512BW() {
 
   auto &LegacyInfo = getLegacyLegalizerInfo();
 
-  for (unsigned BinOp : {G_ADD, G_SUB})
+  for (unsigned const BinOp : {G_ADD, G_SUB})
     for (auto Ty : {v64s8, v32s16})
       LegacyInfo.setAction({BinOp, Ty}, LegacyLegalizeActions::Legal);
 

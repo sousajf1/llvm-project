@@ -78,13 +78,13 @@ bool MipsExpandPseudo::expandAtomicCmpSwapSubword(
   MachineFunction *MF = BB.getParent();
 
   const bool ArePtrs64bit = STI->getABI().ArePtrs64bit();
-  DebugLoc DL = I->getDebugLoc();
+  DebugLoc const DL = I->getDebugLoc();
   unsigned LL, SC;
 
-  unsigned ZERO = Mips::ZERO;
+  unsigned const ZERO = Mips::ZERO;
   unsigned BNE = Mips::BNE;
   unsigned BEQ = Mips::BEQ;
-  unsigned SEOp =
+  unsigned const SEOp =
       I->getOpcode() == Mips::ATOMIC_CMP_SWAP_I8_POSTRA ? Mips::SEB : Mips::SEH;
 
   if (STI->inMicroMipsMode()) {
@@ -99,15 +99,15 @@ bool MipsExpandPseudo::expandAtomicCmpSwapSubword(
                             : (ArePtrs64bit ? Mips::SC64 : Mips::SC);
   }
 
-  Register Dest = I->getOperand(0).getReg();
-  Register Ptr = I->getOperand(1).getReg();
-  Register Mask = I->getOperand(2).getReg();
-  Register ShiftCmpVal = I->getOperand(3).getReg();
-  Register Mask2 = I->getOperand(4).getReg();
-  Register ShiftNewVal = I->getOperand(5).getReg();
-  Register ShiftAmnt = I->getOperand(6).getReg();
-  Register Scratch = I->getOperand(7).getReg();
-  Register Scratch2 = I->getOperand(8).getReg();
+  Register const Dest = I->getOperand(0).getReg();
+  Register const Ptr = I->getOperand(1).getReg();
+  Register const Mask = I->getOperand(2).getReg();
+  Register const ShiftCmpVal = I->getOperand(3).getReg();
+  Register const Mask2 = I->getOperand(4).getReg();
+  Register const ShiftNewVal = I->getOperand(5).getReg();
+  Register const ShiftAmnt = I->getOperand(6).getReg();
+  Register const Scratch = I->getOperand(7).getReg();
+  Register const Scratch2 = I->getOperand(8).getReg();
 
   // insert new blocks after the current block
   const BasicBlock *LLVM_BB = BB.getBasicBlock();
@@ -115,7 +115,7 @@ bool MipsExpandPseudo::expandAtomicCmpSwapSubword(
   MachineBasicBlock *loop2MBB = MF->CreateMachineBasicBlock(LLVM_BB);
   MachineBasicBlock *sinkMBB = MF->CreateMachineBasicBlock(LLVM_BB);
   MachineBasicBlock *exitMBB = MF->CreateMachineBasicBlock(LLVM_BB);
-  MachineFunction::iterator It = ++BB.getIterator();
+  MachineFunction::iterator const It = ++BB.getIterator();
   MF->insert(It, loop1MBB);
   MF->insert(It, loop2MBB);
   MF->insert(It, sinkMBB);
@@ -208,7 +208,7 @@ bool MipsExpandPseudo::expandAtomicCmpSwap(MachineBasicBlock &BB,
   MachineFunction *MF = BB.getParent();
 
   const bool ArePtrs64bit = STI->getABI().ArePtrs64bit();
-  DebugLoc DL = I->getDebugLoc();
+  DebugLoc const DL = I->getDebugLoc();
 
   unsigned LL, SC, ZERO, BNE, BEQ, MOVE;
 
@@ -240,18 +240,18 @@ bool MipsExpandPseudo::expandAtomicCmpSwap(MachineBasicBlock &BB,
     MOVE = Mips::OR64;
   }
 
-  Register Dest = I->getOperand(0).getReg();
-  Register Ptr = I->getOperand(1).getReg();
-  Register OldVal = I->getOperand(2).getReg();
-  Register NewVal = I->getOperand(3).getReg();
-  Register Scratch = I->getOperand(4).getReg();
+  Register const Dest = I->getOperand(0).getReg();
+  Register const Ptr = I->getOperand(1).getReg();
+  Register const OldVal = I->getOperand(2).getReg();
+  Register const NewVal = I->getOperand(3).getReg();
+  Register const Scratch = I->getOperand(4).getReg();
 
   // insert new blocks after the current block
   const BasicBlock *LLVM_BB = BB.getBasicBlock();
   MachineBasicBlock *loop1MBB = MF->CreateMachineBasicBlock(LLVM_BB);
   MachineBasicBlock *loop2MBB = MF->CreateMachineBasicBlock(LLVM_BB);
   MachineBasicBlock *exitMBB = MF->CreateMachineBasicBlock(LLVM_BB);
-  MachineFunction::iterator It = ++BB.getIterator();
+  MachineFunction::iterator const It = ++BB.getIterator();
   MF->insert(It, loop1MBB);
   MF->insert(It, loop2MBB);
   MF->insert(It, exitMBB);
@@ -306,7 +306,7 @@ bool MipsExpandPseudo::expandAtomicBinOpSubword(
   MachineFunction *MF = BB.getParent();
 
   const bool ArePtrs64bit = STI->getABI().ArePtrs64bit();
-  DebugLoc DL = I->getDebugLoc();
+  DebugLoc const DL = I->getDebugLoc();
 
   unsigned LL, SC, SLT, SLTu, OR, MOVN, MOVZ, SELNEZ, SELEQZ;
   unsigned BEQ = Mips::BEQ;
@@ -407,21 +407,21 @@ bool MipsExpandPseudo::expandAtomicBinOpSubword(
     llvm_unreachable("Unknown subword atomic pseudo for expansion!");
   }
 
-  Register Dest = I->getOperand(0).getReg();
-  Register Ptr = I->getOperand(1).getReg();
-  Register Incr = I->getOperand(2).getReg();
-  Register Mask = I->getOperand(3).getReg();
-  Register Mask2 = I->getOperand(4).getReg();
-  Register ShiftAmnt = I->getOperand(5).getReg();
-  Register OldVal = I->getOperand(6).getReg();
-  Register BinOpRes = I->getOperand(7).getReg();
-  Register StoreVal = I->getOperand(8).getReg();
+  Register const Dest = I->getOperand(0).getReg();
+  Register const Ptr = I->getOperand(1).getReg();
+  Register const Incr = I->getOperand(2).getReg();
+  Register const Mask = I->getOperand(3).getReg();
+  Register const Mask2 = I->getOperand(4).getReg();
+  Register const ShiftAmnt = I->getOperand(5).getReg();
+  Register const OldVal = I->getOperand(6).getReg();
+  Register const BinOpRes = I->getOperand(7).getReg();
+  Register const StoreVal = I->getOperand(8).getReg();
 
   const BasicBlock *LLVM_BB = BB.getBasicBlock();
   MachineBasicBlock *loopMBB = MF->CreateMachineBasicBlock(LLVM_BB);
   MachineBasicBlock *sinkMBB = MF->CreateMachineBasicBlock(LLVM_BB);
   MachineBasicBlock *exitMBB = MF->CreateMachineBasicBlock(LLVM_BB);
-  MachineFunction::iterator It = ++BB.getIterator();
+  MachineFunction::iterator const It = ++BB.getIterator();
   MF->insert(It, loopMBB);
   MF->insert(It, sinkMBB);
   MF->insert(It, exitMBB);
@@ -452,12 +452,12 @@ bool MipsExpandPseudo::expandAtomicBinOpSubword(
 
     assert(I->getNumOperands() == 10 &&
            "Atomics min|max|umin|umax use an additional register");
-    Register Scratch4 = I->getOperand(9).getReg();
+    Register const Scratch4 = I->getOperand(9).getReg();
 
-    unsigned SLTScratch4 = IsUnsigned ? SLTu : SLT;
-    unsigned SELIncr = IsMax ? SELNEZ : SELEQZ;
-    unsigned SELOldVal = IsMax ? SELEQZ : SELNEZ;
-    unsigned MOVIncr = IsMax ? MOVN : MOVZ;
+    unsigned const SLTScratch4 = IsUnsigned ? SLTu : SLT;
+    unsigned const SELIncr = IsMax ? SELNEZ : SELEQZ;
+    unsigned const SELOldVal = IsMax ? SELEQZ : SELNEZ;
+    unsigned const MOVIncr = IsMax ? MOVN : MOVZ;
 
     // For little endian we need to clear uninterested bits.
     if (STI->isLittle()) {
@@ -581,7 +581,7 @@ bool MipsExpandPseudo::expandAtomicBinOp(MachineBasicBlock &BB,
   MachineFunction *MF = BB.getParent();
 
   const bool ArePtrs64bit = STI->getABI().ArePtrs64bit();
-  DebugLoc DL = I->getDebugLoc();
+  DebugLoc const DL = I->getDebugLoc();
 
   unsigned LL, SC, ZERO, BEQ, SLT, SLTu, OR, MOVN, MOVZ, SELNEZ, SELEQZ;
 
@@ -629,10 +629,10 @@ bool MipsExpandPseudo::expandAtomicBinOp(MachineBasicBlock &BB,
     SELEQZ = Mips::SELEQZ64;
   }
 
-  Register OldVal = I->getOperand(0).getReg();
-  Register Ptr = I->getOperand(1).getReg();
-  Register Incr = I->getOperand(2).getReg();
-  Register Scratch = I->getOperand(3).getReg();
+  Register const OldVal = I->getOperand(0).getReg();
+  Register const Ptr = I->getOperand(1).getReg();
+  Register const Incr = I->getOperand(2).getReg();
+  Register const Scratch = I->getOperand(3).getReg();
 
   unsigned Opcode = 0;
   unsigned AND = 0;
@@ -714,7 +714,7 @@ bool MipsExpandPseudo::expandAtomicBinOp(MachineBasicBlock &BB,
   const BasicBlock *LLVM_BB = BB.getBasicBlock();
   MachineBasicBlock *loopMBB = MF->CreateMachineBasicBlock(LLVM_BB);
   MachineBasicBlock *exitMBB = MF->CreateMachineBasicBlock(LLVM_BB);
-  MachineFunction::iterator It = ++BB.getIterator();
+  MachineFunction::iterator const It = ++BB.getIterator();
   MF->insert(It, loopMBB);
   MF->insert(It, exitMBB);
 
@@ -733,17 +733,17 @@ bool MipsExpandPseudo::expandAtomicBinOp(MachineBasicBlock &BB,
 
     assert(I->getNumOperands() == 5 &&
            "Atomics min|max|umin|umax use an additional register");
-    MCRegister Scratch2 = I->getOperand(4).getReg().asMCReg();
+    MCRegister const Scratch2 = I->getOperand(4).getReg().asMCReg();
 
     // On Mips64 result of slt is GPR32.
-    MCRegister Scratch2_32 =
+    MCRegister const Scratch2_32 =
         (Size == 8) ? STI->getRegisterInfo()->getSubReg(Scratch2, Mips::sub_32)
                     : Scratch2;
 
-    unsigned SLTScratch2 = IsUnsigned ? SLTu : SLT;
-    unsigned SELIncr = IsMax ? SELNEZ : SELEQZ;
-    unsigned SELOldVal = IsMax ? SELEQZ : SELNEZ;
-    unsigned MOVIncr = IsMax ? MOVN : MOVZ;
+    unsigned const SLTScratch2 = IsUnsigned ? SLTu : SLT;
+    unsigned const SELIncr = IsMax ? SELNEZ : SELEQZ;
+    unsigned const SELOldVal = IsMax ? SELEQZ : SELNEZ;
+    unsigned const MOVIncr = IsMax ? MOVN : MOVZ;
 
     // unsigned: sltu Scratch2, oldVal, Incr
     // signed:   slt Scratch2, oldVal, Incr
@@ -817,7 +817,7 @@ bool MipsExpandPseudo::expandMI(MachineBasicBlock &MBB,
                                 MachineBasicBlock::iterator MBBI,
                                 MachineBasicBlock::iterator &NMBB) {
 
-  bool Modified = false;
+  bool const Modified = false;
 
   switch (MBBI->getOpcode()) {
   case Mips::ATOMIC_CMP_SWAP_I32_POSTRA:

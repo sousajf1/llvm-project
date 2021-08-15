@@ -352,7 +352,7 @@ bool GlobalsAAResult::AnalyzeUsesOfPointer(Value *V,
   if (!V->getType()->isPointerTy())
     return true;
 
-  for (Use &U : V->uses()) {
+  for (Use  const&U : V->uses()) {
     User *I = U.getUser();
     if (LoadInst *LI = dyn_cast<LoadInst>(I)) {
       if (Readers)
@@ -597,7 +597,7 @@ void GlobalsAAResult::AnalyzeCallGraph(CallGraph &CG, Module &M) {
                 // Don't let dbg intrinsics affect alias info.
                 continue;
 
-              FunctionModRefBehavior Behaviour =
+              FunctionModRefBehavior const Behaviour =
                   AAResultBase::getModRefBehavior(Callee);
               FI.addModRefInfo(createModRefInfo(Behaviour));
             }
@@ -623,7 +623,7 @@ void GlobalsAAResult::AnalyzeCallGraph(CallGraph &CG, Module &M) {
     // information to each function in the SCC.
     // FI is a reference into FunctionInfos, so copy it now so that it doesn't
     // get invalidated if DenseMap decides to re-hash.
-    FunctionInfo CachedFI = FI;
+    FunctionInfo const CachedFI = FI;
     for (unsigned i = 1, e = SCC.size(); i != e; ++i)
       FunctionInfos[SCC[i]->getFunction()] = CachedFI;
   }
@@ -910,7 +910,7 @@ ModRefInfo GlobalsAAResult::getModRefInfoForArgument(const CallBase *Call,
                                                      AAQueryInfo &AAQI) {
   if (Call->doesNotAccessMemory())
     return ModRefInfo::NoModRef;
-  ModRefInfo ConservativeResult =
+  ModRefInfo const ConservativeResult =
       Call->onlyReadsMemory() ? ModRefInfo::Ref : ModRefInfo::ModRef;
 
   // Iterate through all the arguments to the called function. If any argument

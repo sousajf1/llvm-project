@@ -43,11 +43,11 @@ AliasResult SCEVAAResult::alias(const MemoryLocation &LocA,
   // see if it's enough to prove a NoAlias.
   if (SE.getEffectiveSCEVType(AS->getType()) ==
       SE.getEffectiveSCEVType(BS->getType())) {
-    unsigned BitWidth = SE.getTypeSizeInBits(AS->getType());
-    APInt ASizeInt(BitWidth, LocA.Size.hasValue()
+    unsigned const BitWidth = SE.getTypeSizeInBits(AS->getType());
+    APInt const ASizeInt(BitWidth, LocA.Size.hasValue()
                                  ? LocA.Size.getValue()
                                  : MemoryLocation::UnknownSize);
-    APInt BSizeInt(BitWidth, LocB.Size.hasValue()
+    APInt const BSizeInt(BitWidth, LocB.Size.hasValue()
                                  ? LocB.Size.getValue()
                                  : MemoryLocation::UnknownSize);
 

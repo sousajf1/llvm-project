@@ -110,12 +110,12 @@ bool Type::canLosslesslyBitCastTo(Type *Ty) const {
 
 bool Type::isEmptyTy() const {
   if (auto *ATy = dyn_cast<ArrayType>(this)) {
-    unsigned NumElements = ATy->getNumElements();
+    unsigned const NumElements = ATy->getNumElements();
     return NumElements == 0 || ATy->getElementType()->isEmptyTy();
   }
 
   if (auto *STy = dyn_cast<StructType>(this)) {
-    unsigned NumElements = STy->getNumElements();
+    unsigned const NumElements = STy->getNumElements();
     for (unsigned i = 0; i < NumElements; ++i)
       if (!STy->getElementType(i)->isEmptyTy())
         return false;
@@ -141,8 +141,8 @@ TypeSize Type::getPrimitiveSizeInBits() const {
   case Type::FixedVectorTyID:
   case Type::ScalableVectorTyID: {
     const VectorType *VTy = cast<VectorType>(this);
-    ElementCount EC = VTy->getElementCount();
-    TypeSize ETS = VTy->getElementType()->getPrimitiveSizeInBits();
+    ElementCount const EC = VTy->getElementCount();
+    TypeSize const ETS = VTy->getElementType()->getPrimitiveSizeInBits();
     assert(!ETS.isScalable() && "Vector type should have fixed-width elements");
     return {ETS.getFixedSize() * EC.getKnownMinValue(), EC.isScalable()};
   }
@@ -456,7 +456,7 @@ void StructType::setName(StringRef Name) {
     SmallString<64> TempStr(Name);
     TempStr.push_back('.');
     raw_svector_ostream TmpStream(TempStr);
-    unsigned NameSize = Name.size();
+    unsigned const NameSize = Name.size();
 
     do {
       TempStr.resize(NameSize + 1);
@@ -567,7 +567,7 @@ bool StructType::isLayoutIdentical(StructType *Other) const {
 }
 
 Type *StructType::getTypeAtIndex(const Value *V) const {
-  unsigned Idx = (unsigned)cast<Constant>(V)->getUniqueInteger().getZExtValue();
+  unsigned const Idx = (unsigned)cast<Constant>(V)->getUniqueInteger().getZExtValue();
   assert(indexValid(Idx) && "Invalid structure index!");
   return getElementType(Idx);
 }

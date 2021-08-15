@@ -392,7 +392,7 @@ void StructurizeCFG::orderNodes() {
       // An SCC up to the size of 2, can be reduced to an entry (the last node),
       // and a possible additional node. Therefore, it is already in order, and
       // there is no need to add it to the work-list.
-      unsigned Size = SCC.size();
+      unsigned const Size = SCC.size();
       if (Size > 2)
         WorkList.emplace_back(I, I + Size);
 
@@ -542,7 +542,7 @@ void StructurizeCFG::collectInfos() {
 
 /// Insert the missing branch conditions
 void StructurizeCFG::insertConditions(bool Loops) {
-  BranchVector &Conds = Loops ? LoopConds : Conditions;
+  BranchVector  const&Conds = Loops ? LoopConds : Conditions;
   Value *Default = Loops ? BoolTrue : BoolFalse;
   SSAUpdater PhiInserter;
 
@@ -557,13 +557,13 @@ void StructurizeCFG::insertConditions(bool Loops) {
     PhiInserter.AddAvailableValue(&Func->getEntryBlock(), Default);
     PhiInserter.AddAvailableValue(Loops ? SuccFalse : Parent, Default);
 
-    BBPredicates &Preds = Loops ? LoopPreds[SuccFalse] : Predicates[SuccTrue];
+    BBPredicates  const&Preds = Loops ? LoopPreds[SuccFalse] : Predicates[SuccTrue];
 
     NearestCommonDominator Dominator(DT);
     Dominator.addBlock(Parent);
 
     Value *ParentValue = nullptr;
-    for (std::pair<BasicBlock *, Value *> BBAndPred : Preds) {
+    for (std::pair<BasicBlock *, Value *> const BBAndPred : Preds) {
       BasicBlock *BB = BBAndPred.first;
       Value *Pred = BBAndPred.second;
 
@@ -623,7 +623,7 @@ void StructurizeCFG::setPhiValues() {
     if (!DeletedPhis.count(To))
       continue;
 
-    PhiMap &Map = DeletedPhis[To];
+    PhiMap  const&Map = DeletedPhis[To];
     for (const auto &PI : Map) {
       PHINode *Phi = PI.first;
       Value *Undef = UndefValue::get(Phi->getType());
@@ -788,14 +788,14 @@ bool StructurizeCFG::dominatesPredicates(BasicBlock *BB, RegionNode *Node) {
 
 /// Can we predict that this node will always be called?
 bool StructurizeCFG::isPredictableTrue(RegionNode *Node) {
-  BBPredicates &Preds = Predicates[Node->getEntry()];
+  BBPredicates  const&Preds = Predicates[Node->getEntry()];
   bool Dominated = false;
 
   // Regionentry is always true
   if (!PrevNode)
     return true;
 
-  for (std::pair<BasicBlock*, Value*> Pred : Preds) {
+  for (std::pair<BasicBlock*, Value*> const Pred : Preds) {
     BasicBlock *BB = Pred.first;
     Value *V = Pred.second;
 
@@ -893,7 +893,7 @@ void StructurizeCFG::handleLoops(bool ExitUseAllowed,
 /// branches and PHI nodes only have undefined conditions.
 void StructurizeCFG::createFlow() {
   BasicBlock *Exit = ParentRegion->getExit();
-  bool EntryDominatesExit = DT->dominates(ParentRegion->getEntry(), Exit);
+  bool const EntryDominatesExit = DT->dominates(ParentRegion->getEntry(), Exit);
 
   AffectedPhis.clear();
   DeletedPhis.clear();
@@ -1025,7 +1025,7 @@ bool StructurizeCFG::makeUniformRegion(Region *R,
   // We currently rely on the fact that metadata is set by earlier invocations
   // of the pass on sub-regions, and that this metadata doesn't get lost --
   // but we shouldn't rely on metadata for correctness!
-  unsigned UniformMDKindID =
+  unsigned const UniformMDKindID =
       R->getEntry()->getContext().getMDKindID("structurizecfg.uniform");
 
   if (hasOnlyUniformBranches(R, UniformMDKindID, *DA)) {

@@ -129,8 +129,8 @@ static void verifyTables() {
 const X86InstrFMA3Group *llvm::getFMA3Group(unsigned Opcode, uint64_t TSFlags) {
 
   // FMA3 instructions have a well defined encoding pattern we can exploit.
-  uint8_t BaseOpcode = X86II::getBaseOpcodeFor(TSFlags);
-  bool IsFMA3 = ((TSFlags & X86II::EncodingMask) == X86II::VEX ||
+  uint8_t const BaseOpcode = X86II::getBaseOpcodeFor(TSFlags);
+  bool const IsFMA3 = ((TSFlags & X86II::EncodingMask) == X86II::VEX ||
                  (TSFlags & X86II::EncodingMask) == X86II::EVEX) &&
                 (TSFlags & X86II::OpMapMask) == X86II::T8 &&
                 (TSFlags & X86II::OpPrefixMask) == X86II::PD &&
@@ -153,7 +153,7 @@ const X86InstrFMA3Group *llvm::getFMA3Group(unsigned Opcode, uint64_t TSFlags) {
   // FMA 132 instructions have an opcode of 0x96-0x9F
   // FMA 213 instructions have an opcode of 0xA6-0xAF
   // FMA 231 instructions have an opcode of 0xB6-0xBF
-  unsigned FormIndex = ((BaseOpcode - 0x90) >> 4) & 0x3;
+  unsigned const FormIndex = ((BaseOpcode - 0x90) >> 4) & 0x3;
 
   auto I = partition_point(Table, [=](const X86InstrFMA3Group &Group) {
     return Group.Opcodes[FormIndex] < Opcode;

@@ -84,7 +84,7 @@ void MSP430MCCodeEmitter::encodeInstruction(const MCInst &MI, raw_ostream &OS,
                                             const MCSubtargetInfo &STI) const {
   const MCInstrDesc &Desc = MCII.get(MI.getOpcode());
   // Get byte count of instruction.
-  unsigned Size = Desc.getSize();
+  unsigned const Size = Desc.getSize();
 
   // Initialize fixup offset
   Offset = 2;
@@ -122,7 +122,7 @@ unsigned MSP430MCCodeEmitter::getMemOpValue(const MCInst &MI, unsigned Op,
                                             const MCSubtargetInfo &STI) const {
   const MCOperand &MO1 = MI.getOperand(Op);
   assert(MO1.isReg() && "Register operand expected");
-  unsigned Reg = Ctx.getRegisterInfo()->getEncodingValue(MO1.getReg());
+  unsigned const Reg = Ctx.getRegisterInfo()->getEncodingValue(MO1.getReg());
 
   const MCOperand &MO2 = MI.getOperand(Op + 1);
   if (MO2.isImm()) {
@@ -168,7 +168,7 @@ unsigned MSP430MCCodeEmitter::getCGImmOpValue(const MCInst &MI, unsigned Op,
   const MCOperand &MO = MI.getOperand(Op);
   assert(MO.isImm() && "Expr operand expected");
   
-  int64_t Imm = MO.getImm();
+  int64_t const Imm = MO.getImm();
   switch (Imm) {
   default:
     llvm_unreachable("Invalid immediate value");

@@ -48,7 +48,7 @@ bool llvm::objcarc::CanAlterRefCount(const Instruction *Inst, const Value *Ptr,
   const auto *Call = cast<CallBase>(Inst);
 
   // See if AliasAnalysis can help us with the call.
-  FunctionModRefBehavior MRB = PA.getAA()->getModRefBehavior(Call);
+  FunctionModRefBehavior const MRB = PA.getAA()->getModRefBehavior(Call);
   if (AliasAnalysis::onlyReadsMemory(MRB))
     return false;
   if (AliasAnalysis::onlyAccessesArgPointees(MRB)) {
@@ -129,7 +129,7 @@ llvm::objcarc::Depends(DependenceKind Flavor, Instruction *Inst,
 
   switch (Flavor) {
   case NeedsPositiveRetainCount: {
-    ARCInstKind Class = GetARCInstKind(Inst);
+    ARCInstKind const Class = GetARCInstKind(Inst);
     switch (Class) {
     case ARCInstKind::AutoreleasepoolPop:
     case ARCInstKind::AutoreleasepoolPush:
@@ -141,7 +141,7 @@ llvm::objcarc::Depends(DependenceKind Flavor, Instruction *Inst,
   }
 
   case AutoreleasePoolBoundary: {
-    ARCInstKind Class = GetARCInstKind(Inst);
+    ARCInstKind const Class = GetARCInstKind(Inst);
     switch (Class) {
     case ARCInstKind::AutoreleasepoolPop:
     case ARCInstKind::AutoreleasepoolPush:
@@ -154,7 +154,7 @@ llvm::objcarc::Depends(DependenceKind Flavor, Instruction *Inst,
   }
 
   case CanChangeRetainCount: {
-    ARCInstKind Class = GetARCInstKind(Inst);
+    ARCInstKind const Class = GetARCInstKind(Inst);
     switch (Class) {
     case ARCInstKind::AutoreleasepoolPop:
       // Conservatively assume this can decrement any count.
@@ -184,7 +184,7 @@ llvm::objcarc::Depends(DependenceKind Flavor, Instruction *Inst,
     }
 
   case RetainAutoreleaseRVDep: {
-    ARCInstKind Class = GetBasicARCInstKind(Inst);
+    ARCInstKind const Class = GetBasicARCInstKind(Inst);
     switch (Class) {
     case ARCInstKind::Retain:
     case ARCInstKind::RetainRV:
@@ -212,17 +212,17 @@ static bool findDependencies(DependenceKind Flavor, const Value *Arg,
                              BasicBlock *StartBB, Instruction *StartInst,
                              SmallPtrSetImpl<Instruction *> &DependingInsts,
                              ProvenanceAnalysis &PA) {
-  BasicBlock::iterator StartPos = StartInst->getIterator();
+  BasicBlock::iterator const StartPos = StartInst->getIterator();
 
   SmallPtrSet<const BasicBlock *, 4> Visited;
   SmallVector<std::pair<BasicBlock *, BasicBlock::iterator>, 4> Worklist;
   Worklist.push_back(std::make_pair(StartBB, StartPos));
   do {
-    std::pair<BasicBlock *, BasicBlock::iterator> Pair =
+    std::pair<BasicBlock *, BasicBlock::iterator> const Pair =
       Worklist.pop_back_val();
     BasicBlock *LocalStartBB = Pair.first;
     BasicBlock::iterator LocalStartPos = Pair.second;
-    BasicBlock::iterator StartBBBegin = LocalStartBB->begin();
+    BasicBlock::iterator const StartBBBegin = LocalStartBB->begin();
     for (;;) {
       if (LocalStartPos == StartBBBegin) {
         pred_iterator PI(LocalStartBB), PE(LocalStartBB, false);

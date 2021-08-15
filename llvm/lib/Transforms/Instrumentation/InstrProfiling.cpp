@@ -274,7 +274,7 @@ public:
           return false;
     }
 
-    unsigned MaxProm = getMaxNumOfPromotionsInLoop(&L);
+    unsigned const MaxProm = getMaxNumOfPromotionsInLoop(&L);
     if (MaxProm == 0)
       return false;
 
@@ -380,8 +380,8 @@ private:
       auto *TargetLoop = LI.getLoopFor(TargetBlock);
       if (!TargetLoop)
         continue;
-      unsigned MaxPromForTarget = getMaxNumOfPromotionsInLoop(TargetLoop);
-      unsigned PendingCandsInTarget = LoopToCandidates[TargetLoop].size();
+      unsigned const MaxPromForTarget = getMaxNumOfPromotionsInLoop(TargetLoop);
+      unsigned const PendingCandsInTarget = LoopToCandidates[TargetLoop].size();
       MaxProm =
           std::min(MaxProm, std::max(MaxPromForTarget, PendingCandsInTarget) -
                                 PendingCandsInTarget);
@@ -489,7 +489,7 @@ void InstrProfiling::promoteCounterLoadStores(Function *F) {
   if (!isCounterPromotionEnabled())
     return;
 
-  DominatorTree DT(*F);
+  DominatorTree const DT(*F);
   LoopInfo LI(DT);
   DenseMap<Loop *, SmallVector<LoadStorePair, 8>> LoopPromotionCandidates;
 
@@ -619,13 +619,13 @@ static FunctionCallee getOrInsertValueProfilingCall(
   assert((CallType == ValueProfilingCallType::Default ||
           CallType == ValueProfilingCallType::MemOp) &&
          "Must be Default or MemOp");
-  Type *ParamTypes[] = {
+  Type *const ParamTypes[] = {
 #define VALUE_PROF_FUNC_PARAM(ParamType, ParamName, ParamLLVMType) ParamLLVMType
 #include "llvm/ProfileData/InstrProfData.inc"
   };
   auto *ValueProfilingCallTy =
       FunctionType::get(ReturnTy, makeArrayRef(ParamTypes), false);
-  StringRef FuncName = CallType == ValueProfilingCallType::Default
+  StringRef const FuncName = CallType == ValueProfilingCallType::Default
                            ? getInstrProfValueProfFuncName()
                            : getInstrProfValueProfMemOpFuncName();
   return M.getOrInsertFunction(FuncName, ValueProfilingCallTy, AL);
@@ -633,8 +633,8 @@ static FunctionCallee getOrInsertValueProfilingCall(
 
 void InstrProfiling::computeNumValueSiteCounts(InstrProfValueProfileInst *Ind) {
   GlobalVariable *Name = Ind->getName();
-  uint64_t ValueKind = Ind->getValueKind()->getZExtValue();
-  uint64_t Index = Ind->getIndex()->getZExtValue();
+  uint64_t const ValueKind = Ind->getValueKind()->getZExtValue();
+  uint64_t const Index = Ind->getIndex()->getZExtValue();
   auto It = ProfileDataMap.find(Name);
   if (It == ProfileDataMap.end()) {
     PerFunctionProfileData PD;
@@ -651,13 +651,13 @@ void InstrProfiling::lowerValueProfileInst(InstrProfValueProfileInst *Ind) {
          "value profiling detected in function with no counter incerement");
 
   GlobalVariable *DataVar = It->second.DataVar;
-  uint64_t ValueKind = Ind->getValueKind()->getZExtValue();
+  uint64_t const ValueKind = Ind->getValueKind()->getZExtValue();
   uint64_t Index = Ind->getIndex()->getZExtValue();
   for (uint32_t Kind = IPVK_First; Kind < ValueKind; ++Kind)
     Index += It->second.NumValueSites[Kind];
 
   IRBuilder<> Builder(Ind);
-  bool IsMemOpSize = (Ind->getValueKind()->getZExtValue() ==
+  bool const IsMemOpSize = (Ind->getValueKind()->getZExtValue() ==
                       llvm::InstrProfValueKind::IPVK_MemOPSize);
   CallInst *Call = nullptr;
   auto *TLI = &GetTLI(*Ind->getFunction());
@@ -669,13 +669,13 @@ void InstrProfiling::lowerValueProfileInst(InstrProfValueProfileInst *Ind) {
   SmallVector<OperandBundleDef, 1> OpBundles;
   Ind->getOperandBundlesAsDefs(OpBundles);
   if (!IsMemOpSize) {
-    Value *Args[3] = {Ind->getTargetValue(),
+    Value *const Args[3] = {Ind->getTargetValue(),
                       Builder.CreateBitCast(DataVar, Builder.getInt8PtrTy()),
                       Builder.getInt32(Index)};
     Call = Builder.CreateCall(getOrInsertValueProfilingCall(*M, *TLI), Args,
                               OpBundles);
   } else {
-    Value *Args[3] = {Ind->getTargetValue(),
+    Value *const Args[3] = {Ind->getTargetValue(),
                       Builder.CreateBitCast(DataVar, Builder.getInt8PtrTy()),
                       Builder.getInt32(Index)};
     Call = Builder.CreateCall(
@@ -692,7 +692,7 @@ void InstrProfiling::lowerIncrement(InstrProfIncrementInst *Inc) {
   GlobalVariable *Counters = getOrCreateRegionCounters(Inc);
 
   IRBuilder<> Builder(Inc);
-  uint64_t Index = Inc->getIndex()->getZExtValue();
+  uint64_t const Index = Inc->getIndex()->getZExtValue();
   Value *Addr = Builder.CreateConstInBoundsGEP2_64(Counters->getValueType(),
                                                    Counters, 0, Index);
 
@@ -759,14 +759,14 @@ void InstrProfiling::lowerCoverageData(GlobalVariable *CoverageNamesVar) {
 
 /// Get the name of a profiling variable for a particular function.
 static std::string getVarName(InstrProfIncrementInst *Inc, StringRef Prefix) {
-  StringRef NamePrefix = getInstrProfNameVarPrefix();
-  StringRef Name = Inc->getName()->getName().substr(NamePrefix.size());
+  StringRef const NamePrefix = getInstrProfNameVarPrefix();
+  StringRef const Name = Inc->getName()->getName().substr(NamePrefix.size());
   Function *F = Inc->getParent()->getParent();
   Module *M = F->getParent();
   if (!DoHashBasedCounterSplit || !isIRPGOFlagSet(M) ||
       !canRenameComdatFunc(*F))
     return (Prefix + Name).str();
-  uint64_t FuncHash = Inc->getHash()->getZExtValue();
+  uint64_t const FuncHash = Inc->getHash()->getZExtValue();
   SmallVector<char, 24> HashPostfix;
   if (Name.endswith((Twine(".") + Twine(FuncHash)).toStringRef(HashPostfix)))
     return (Prefix + Name).str();
@@ -802,7 +802,7 @@ static inline bool shouldRecordFunctionAddr(Function *F) {
     return false;
 
   // Check the linkage
-  bool HasAvailableExternallyLinkage = F->hasAvailableExternallyLinkage();
+  bool const HasAvailableExternallyLinkage = F->hasAvailableExternallyLinkage();
   if (!F->hasLinkOnceLinkage() && !F->hasLocalLinkage() &&
       !HasAvailableExternallyLinkage)
     return true;
@@ -879,11 +879,11 @@ InstrProfiling::getOrCreateRegionCounters(InstrProfIncrementInst *Inc) {
   bool DataReferencedByCode = profDataReferencedByCode(*M);
   bool NeedComdat = needsComdatForCounter(*Fn, *M);
   std::string CntsVarName = getVarName(Inc, getInstrProfCountersVarPrefix());
-  std::string DataVarName = getVarName(Inc, getInstrProfDataVarPrefix());
+  std::string const DataVarName = getVarName(Inc, getInstrProfDataVarPrefix());
   auto MaybeSetComdat = [&](GlobalVariable *GV) {
-    bool UseComdat = (NeedComdat || TT.isOSBinFormatELF());
+    bool const UseComdat = (NeedComdat || TT.isOSBinFormatELF());
     if (UseComdat) {
-      StringRef GroupName = TT.isOSBinFormatCOFF() && DataReferencedByCode
+      StringRef const GroupName = TT.isOSBinFormatCOFF() && DataReferencedByCode
                                 ? GV->getName()
                                 : CntsVarName;
       Comdat *C = M->getOrInsertComdat(GroupName);
@@ -893,7 +893,7 @@ InstrProfiling::getOrCreateRegionCounters(InstrProfIncrementInst *Inc) {
     }
   };
 
-  uint64_t NumCounters = Inc->getNumCounters()->getZExtValue();
+  uint64_t const NumCounters = Inc->getNumCounters()->getZExtValue();
   LLVMContext &Ctx = M->getContext();
   ArrayType *CounterTy = ArrayType::get(Type::getInt64Ty(Ctx), NumCounters);
 
@@ -934,7 +934,7 @@ InstrProfiling::getOrCreateRegionCounters(InstrProfIncrementInst *Inc) {
   auto *IntPtrTy = M->getDataLayout().getIntPtrType(M->getContext());
   auto *Int16Ty = Type::getInt16Ty(Ctx);
   auto *Int16ArrayTy = ArrayType::get(Int16Ty, IPVK_Last + 1);
-  Type *DataTypes[] = {
+  Type *const DataTypes[] = {
 #define INSTR_PROF_DATA(Type, LLVMType, Name, Init) LLVMType,
 #include "llvm/ProfileData/InstrProfData.inc"
   };
@@ -968,7 +968,7 @@ InstrProfiling::getOrCreateRegionCounters(InstrProfIncrementInst *Inc) {
       ConstantExpr::getSub(ConstantExpr::getPtrToInt(CounterPtr, IntPtrTy),
                            ConstantExpr::getPtrToInt(Data, IntPtrTy));
 
-  Constant *DataVals[] = {
+  Constant *const DataVals[] = {
 #define INSTR_PROF_DATA(Type, LLVMType, Name, Init) Init,
 #include "llvm/ProfileData/InstrProfData.inc"
   };
@@ -1028,7 +1028,7 @@ void InstrProfiling::emitVNodes() {
     NumCounters = std::max(INSTR_PROF_MIN_VAL_COUNTS, (int)NumCounters * 2);
 
   auto &Ctx = M->getContext();
-  Type *VNodeTypes[] = {
+  Type *const VNodeTypes[] = {
 #define INSTR_PROF_VALUE_NODE(Type, LLVMType, Name, Init) LLVMType,
 #include "llvm/ProfileData/InstrProfData.inc"
   };
@@ -1046,7 +1046,7 @@ void InstrProfiling::emitVNodes() {
 }
 
 void InstrProfiling::emitNameData() {
-  std::string UncompressedData;
+  std::string const UncompressedData;
 
   if (ReferencedNames.empty())
     return;
@@ -1107,7 +1107,7 @@ void InstrProfiling::emitRegistration() {
       IRB.CreateCall(RuntimeRegisterF, IRB.CreateBitCast(Data, VoidPtrTy));
 
   if (NamesVar) {
-    Type *ParamTypes[] = {VoidPtrTy, Int64Ty};
+    Type *const ParamTypes[] = {VoidPtrTy, Int64Ty};
     auto *NamesRegisterTy =
         FunctionType::get(VoidTy, makeArrayRef(ParamTypes), false);
     auto *NamesRegisterF =

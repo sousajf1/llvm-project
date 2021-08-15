@@ -139,7 +139,7 @@ Value *PHINode::removeIncomingValue(unsigned Idx, bool DeletePHIIfEmpty) {
 /// times.
 ///
 void PHINode::growOperands() {
-  unsigned e = getNumOperands();
+  unsigned const e = getNumOperands();
   unsigned NumOps = e + e / 2;
   if (NumOps < 2) NumOps = 2;      // 2 op PHI nodes are VERY common.
 
@@ -234,14 +234,14 @@ void LandingPadInst::init(unsigned NumReservedValues, const Twine &NameStr) {
 /// growOperands - grow operands - This grows the operand list in response to a
 /// push_back style of operation. This grows the number of ops by 2 times.
 void LandingPadInst::growOperands(unsigned Size) {
-  unsigned e = getNumOperands();
+  unsigned const e = getNumOperands();
   if (ReservedSpace >= e + Size) return;
   ReservedSpace = (std::max(e, 1U) + Size / 2) * 2;
   growHungoffUses(ReservedSpace);
 }
 
 void LandingPadInst::addClause(Constant *Val) {
-  unsigned OpNo = getNumOperands();
+  unsigned const OpNo = getNumOperands();
   growOperands(1);
   assert(OpNo < ReservedSpace && "Growing didn't work!");
   setNumHungOffUseOperands(getNumOperands() + 1);
@@ -420,7 +420,7 @@ CallBase::BundleOpInfo &CallBase::getBundleOpInfoForOperand(unsigned OpIdx) {
   bundle_op_iterator Current = Begin;
 
   while (Begin != End) {
-    unsigned ScaledOperandPerBundle =
+    unsigned const ScaledOperandPerBundle =
         NumberScaling * (std::prev(End)->End - Begin->Begin) / (End - Begin);
     Current = Begin + (((OpIdx - Begin->Begin) * NumberScaling) /
                        ScaledOperandPerBundle);
@@ -549,7 +549,7 @@ CallInst::CallInst(const CallInst &CI)
 
 CallInst *CallInst::Create(CallInst *CI, ArrayRef<OperandBundleDef> OpB,
                            Instruction *InsertPt) {
-  std::vector<Value *> Args(CI->arg_begin(), CI->arg_end());
+  std::vector<Value *> const Args(CI->arg_begin(), CI->arg_end());
 
   auto *NewCI = CallInst::Create(CI->getFunctionType(), CI->getCalledOperand(),
                                  Args, OpB, CI->getName(), InsertPt);
@@ -601,7 +601,7 @@ void CallInst::updateProfWeight(uint64_t S, uint64_t T) {
     for (unsigned i = 1; i < ProfileData->getNumOperands(); i += 2) {
       // The first value is the key of the value profile, which will not change.
       Vals.push_back(ProfileData->getOperand(i));
-      uint64_t Count =
+      uint64_t const Count =
           mdconst::dyn_extract<ConstantInt>(ProfileData->getOperand(i + 1))
               ->getValue()
               .getZExtValue();
@@ -869,7 +869,7 @@ InvokeInst::InvokeInst(const InvokeInst &II)
 
 InvokeInst *InvokeInst::Create(InvokeInst *II, ArrayRef<OperandBundleDef> OpB,
                                Instruction *InsertPt) {
-  std::vector<Value *> Args(II->arg_begin(), II->arg_end());
+  std::vector<Value *> const Args(II->arg_begin(), II->arg_end());
 
   auto *NewII = InvokeInst::Create(
       II->getFunctionType(), II->getCalledOperand(), II->getNormalDest(),
@@ -953,7 +953,7 @@ CallBrInst::CallBrInst(const CallBrInst &CBI)
 
 CallBrInst *CallBrInst::Create(CallBrInst *CBI, ArrayRef<OperandBundleDef> OpB,
                                Instruction *InsertPt) {
-  std::vector<Value *> Args(CBI->arg_begin(), CBI->arg_end());
+  std::vector<Value *> const Args(CBI->arg_begin(), CBI->arg_end());
 
   auto *NewCBI = CallBrInst::Create(
       CBI->getFunctionType(), CBI->getCalledOperand(), CBI->getDefaultDest(),
@@ -1151,7 +1151,7 @@ void CatchSwitchInst::init(Value *ParentPad, BasicBlock *UnwindDest,
 /// growOperands - grow operands - This grows the operand list in response to a
 /// push_back style of operation. This grows the number of ops by 2 times.
 void CatchSwitchInst::growOperands(unsigned Size) {
-  unsigned NumOperands = getNumOperands();
+  unsigned const NumOperands = getNumOperands();
   assert(NumOperands >= 1);
   if (ReservedSpace >= NumOperands + Size)
     return;
@@ -1160,7 +1160,7 @@ void CatchSwitchInst::growOperands(unsigned Size) {
 }
 
 void CatchSwitchInst::addHandler(BasicBlock *Handler) {
-  unsigned OpNo = getNumOperands();
+  unsigned const OpNo = getNumOperands();
   growOperands(1);
   assert(OpNo < ReservedSpace && "Growing didn't work!");
   setNumHungOffUseOperands(getNumOperands() + 1);
@@ -1979,8 +1979,8 @@ ShuffleVectorInst::ShuffleVectorInst(Value *V1, Value *V2, ArrayRef<int> Mask,
 }
 
 void ShuffleVectorInst::commute() {
-  int NumOpElts = cast<FixedVectorType>(Op<0>()->getType())->getNumElements();
-  int NumMaskElts = ShuffleMask.size();
+  int const NumOpElts = cast<FixedVectorType>(Op<0>()->getType())->getNumElements();
+  int const NumMaskElts = ShuffleMask.size();
   SmallVector<int, 16> NewMask(NumMaskElts);
   for (int i = 0; i != NumMaskElts; ++i) {
     int MaskElt = getMaskValue(i);
@@ -2003,9 +2003,9 @@ bool ShuffleVectorInst::isValidOperands(const Value *V1, const Value *V2,
     return false;
 
   // Make sure the mask elements make sense.
-  int V1Size =
+  int const V1Size =
       cast<VectorType>(V1->getType())->getElementCount().getKnownMinValue();
-  for (int Elem : Mask)
+  for (int const Elem : Mask)
     if (Elem != UndefMaskElem && Elem >= V1Size * 2)
       return false;
 
@@ -2034,7 +2034,7 @@ bool ShuffleVectorInst::isValidOperands(const Value *V1, const Value *V2,
     return true;
 
   if (const auto *MV = dyn_cast<ConstantVector>(Mask)) {
-    unsigned V1Size = cast<FixedVectorType>(V1->getType())->getNumElements();
+    unsigned const V1Size = cast<FixedVectorType>(V1->getType())->getNumElements();
     for (Value *Op : MV->operands()) {
       if (auto *CI = dyn_cast<ConstantInt>(Op)) {
         if (CI->uge(V1Size*2))
@@ -2047,7 +2047,7 @@ bool ShuffleVectorInst::isValidOperands(const Value *V1, const Value *V2,
   }
 
   if (const auto *CDS = dyn_cast<ConstantDataSequential>(Mask)) {
-    unsigned V1Size = cast<FixedVectorType>(V1->getType())->getNumElements();
+    unsigned const V1Size = cast<FixedVectorType>(V1->getType())->getNumElements();
     for (unsigned i = 0, e = cast<FixedVectorType>(MaskTy)->getNumElements();
          i != e; ++i)
       if (CDS->getElementAsInteger(i) >= V1Size*2)
@@ -2060,7 +2060,7 @@ bool ShuffleVectorInst::isValidOperands(const Value *V1, const Value *V2,
 
 void ShuffleVectorInst::getShuffleMask(const Constant *Mask,
                                        SmallVectorImpl<int> &Result) {
-  ElementCount EC = cast<VectorType>(Mask->getType())->getElementCount();
+  ElementCount const EC = cast<VectorType>(Mask->getType())->getElementCount();
 
   if (isa<ConstantAggregateZero>(Mask)) {
     Result.resize(EC.getKnownMinValue(), 0);
@@ -2072,13 +2072,13 @@ void ShuffleVectorInst::getShuffleMask(const Constant *Mask,
   if (EC.isScalable()) {
     assert((isa<ConstantAggregateZero>(Mask) || isa<UndefValue>(Mask)) &&
            "Scalable vector shuffle mask must be undef or zeroinitializer");
-    int MaskVal = isa<UndefValue>(Mask) ? -1 : 0;
+    int const MaskVal = isa<UndefValue>(Mask) ? -1 : 0;
     for (unsigned I = 0; I < EC.getKnownMinValue(); ++I)
       Result.emplace_back(MaskVal);
     return;
   }
 
-  unsigned NumElts = EC.getKnownMinValue();
+  unsigned const NumElts = EC.getKnownMinValue();
 
   if (auto *CDS = dyn_cast<ConstantDataSequential>(Mask)) {
     for (unsigned i = 0; i != NumElts; ++i)
@@ -2108,7 +2108,7 @@ Constant *ShuffleVectorInst::convertShuffleMaskForBitcode(ArrayRef<int> Mask,
     return UndefValue::get(VecTy);
   }
   SmallVector<Constant *, 16> MaskConst;
-  for (int Elem : Mask) {
+  for (int const Elem : Mask) {
     if (Elem == UndefMaskElem)
       MaskConst.push_back(UndefValue::get(Int32Ty));
     else
@@ -2121,7 +2121,7 @@ static bool isSingleSourceMaskImpl(ArrayRef<int> Mask, int NumOpElts) {
   assert(!Mask.empty() && "Shuffle mask must contain elements");
   bool UsesLHS = false;
   bool UsesRHS = false;
-  for (int I : Mask) {
+  for (int const I : Mask) {
     if (I == -1)
       continue;
     assert(I >= 0 && I < (NumOpElts * 2) &&
@@ -2204,7 +2204,7 @@ bool ShuffleVectorInst::isTransposeMask(ArrayRef<int> Mask) {
   // trn2 = shufflevector v1, v2 <1, 5, 3, 7> = <b, f, d, h>
 
   // 1. The number of elements in the mask must be a power-of-2 and at least 2.
-  int NumElts = Mask.size();
+  int const NumElts = Mask.size();
   if (NumElts < 2 || !isPowerOf2_32(NumElts))
     return false;
 
@@ -2220,10 +2220,10 @@ bool ShuffleVectorInst::isTransposeMask(ArrayRef<int> Mask) {
   // 4. The difference between consecutive even-numbered and odd-numbered
   // elements must be equal to 2.
   for (int i = 2; i < NumElts; ++i) {
-    int MaskEltVal = Mask[i];
+    int const MaskEltVal = Mask[i];
     if (MaskEltVal == -1)
       return false;
-    int MaskEltPrevVal = Mask[i - 2];
+    int const MaskEltPrevVal = Mask[i - 2];
     if (MaskEltVal - MaskEltPrevVal != 2)
       return false;
   }
@@ -2243,10 +2243,10 @@ bool ShuffleVectorInst::isExtractSubvectorMask(ArrayRef<int> Mask,
   // Find start of extraction, accounting that we may start with an UNDEF.
   int SubIndex = -1;
   for (int i = 0, e = Mask.size(); i != e; ++i) {
-    int M = Mask[i];
+    int const M = Mask[i];
     if (M < 0)
       continue;
-    int Offset = (M % NumSrcElts) - i;
+    int const Offset = (M % NumSrcElts) - i;
     if (0 <= SubIndex && SubIndex != Offset)
       return false;
     SubIndex = Offset;
@@ -2262,7 +2262,7 @@ bool ShuffleVectorInst::isExtractSubvectorMask(ArrayRef<int> Mask,
 bool ShuffleVectorInst::isInsertSubvectorMask(ArrayRef<int> Mask,
                                               int NumSrcElts, int &NumSubElts,
                                               int &Index) {
-  int NumMaskElts = Mask.size();
+  int const NumMaskElts = Mask.size();
 
   // Don't try to match if we're shuffling to a smaller size.
   if (NumMaskElts < NumSrcElts)
@@ -2280,7 +2280,7 @@ bool ShuffleVectorInst::isInsertSubvectorMask(ArrayRef<int> Mask,
   bool Src1Identity = true;
 
   for (int i = 0; i != NumMaskElts; ++i) {
-    int M = Mask[i];
+    int const M = Mask[i];
     if (M < 0) {
       UndefElts.setBit(i);
       continue;
@@ -2301,16 +2301,16 @@ bool ShuffleVectorInst::isInsertSubvectorMask(ArrayRef<int> Mask,
 
   // Determine lo/hi span ranges.
   // TODO: How should we handle undefs at the start of subvector insertions?
-  int Src0Lo = Src0Elts.countTrailingZeros();
-  int Src1Lo = Src1Elts.countTrailingZeros();
-  int Src0Hi = NumMaskElts - Src0Elts.countLeadingZeros();
-  int Src1Hi = NumMaskElts - Src1Elts.countLeadingZeros();
+  int const Src0Lo = Src0Elts.countTrailingZeros();
+  int const Src1Lo = Src1Elts.countTrailingZeros();
+  int const Src0Hi = NumMaskElts - Src0Elts.countLeadingZeros();
+  int const Src1Hi = NumMaskElts - Src1Elts.countLeadingZeros();
 
   // If src0 is in place, see if the src1 elements is inplace within its own
   // span.
   if (Src0Identity) {
-    int NumSub1Elts = Src1Hi - Src1Lo;
-    ArrayRef<int> Sub1Mask = Mask.slice(Src1Lo, NumSub1Elts);
+    int const NumSub1Elts = Src1Hi - Src1Lo;
+    ArrayRef<int> const Sub1Mask = Mask.slice(Src1Lo, NumSub1Elts);
     if (isIdentityMaskImpl(Sub1Mask, NumSrcElts)) {
       NumSubElts = NumSub1Elts;
       Index = Src1Lo;
@@ -2321,8 +2321,8 @@ bool ShuffleVectorInst::isInsertSubvectorMask(ArrayRef<int> Mask,
   // If src1 is in place, see if the src0 elements is inplace within its own
   // span.
   if (Src1Identity) {
-    int NumSub0Elts = Src0Hi - Src0Lo;
-    ArrayRef<int> Sub0Mask = Mask.slice(Src0Lo, NumSub0Elts);
+    int const NumSub0Elts = Src0Hi - Src0Lo;
+    ArrayRef<int> const Sub0Mask = Mask.slice(Src0Lo, NumSub0Elts);
     if (isIdentityMaskImpl(Sub0Mask, NumSrcElts)) {
       NumSubElts = NumSub0Elts;
       Index = Src0Lo;
@@ -2342,13 +2342,13 @@ bool ShuffleVectorInst::isIdentityWithPadding() const {
   if (isa<ScalableVectorType>(getType()))
     return false;
 
-  int NumOpElts = cast<FixedVectorType>(Op<0>()->getType())->getNumElements();
-  int NumMaskElts = cast<FixedVectorType>(getType())->getNumElements();
+  int const NumOpElts = cast<FixedVectorType>(Op<0>()->getType())->getNumElements();
+  int const NumMaskElts = cast<FixedVectorType>(getType())->getNumElements();
   if (NumMaskElts <= NumOpElts)
     return false;
 
   // The first part of the mask must choose elements from exactly 1 source op.
-  ArrayRef<int> Mask = getShuffleMask();
+  ArrayRef<int> const Mask = getShuffleMask();
   if (!isIdentityMaskImpl(Mask, NumOpElts))
     return false;
 
@@ -2369,8 +2369,8 @@ bool ShuffleVectorInst::isIdentityWithExtract() const {
   if (isa<ScalableVectorType>(getType()))
     return false;
 
-  int NumOpElts = cast<FixedVectorType>(Op<0>()->getType())->getNumElements();
-  int NumMaskElts = cast<FixedVectorType>(getType())->getNumElements();
+  int const NumOpElts = cast<FixedVectorType>(Op<0>()->getType())->getNumElements();
+  int const NumMaskElts = cast<FixedVectorType>(getType())->getNumElements();
   if (NumMaskElts >= NumOpElts)
     return false;
 
@@ -2388,8 +2388,8 @@ bool ShuffleVectorInst::isConcat() const {
   if (isa<ScalableVectorType>(getType()))
     return false;
 
-  int NumOpElts = cast<FixedVectorType>(Op<0>()->getType())->getNumElements();
-  int NumMaskElts = cast<FixedVectorType>(getType())->getNumElements();
+  int const NumOpElts = cast<FixedVectorType>(Op<0>()->getType())->getNumElements();
+  int const NumMaskElts = cast<FixedVectorType>(getType())->getNumElements();
   if (NumMaskElts != NumOpElts * 2)
     return false;
 
@@ -2461,7 +2461,7 @@ ExtractValueInst::ExtractValueInst(const ExtractValueInst &EVI)
 //
 Type *ExtractValueInst::getIndexedType(Type *Agg,
                                        ArrayRef<unsigned> Idxs) {
-  for (unsigned Index : Idxs) {
+  for (unsigned const Index : Idxs) {
     // We can't use CompositeType::indexValid(Index) here.
     // indexValid() always returns true for arrays because getelementptr allows
     // out-of-bounds indices. Since we don't allow those for extractvalue and
@@ -2875,9 +2875,9 @@ unsigned CastInst::isEliminableCastPair(
   // switch below.
   // If either of the casts are a bitcast from scalar to vector, disallow the
   // merging. However, any pair of bitcasts are allowed.
-  bool IsFirstBitcast  = (firstOp == Instruction::BitCast);
-  bool IsSecondBitcast = (secondOp == Instruction::BitCast);
-  bool AreBothBitcasts = IsFirstBitcast && IsSecondBitcast;
+  bool const IsFirstBitcast  = (firstOp == Instruction::BitCast);
+  bool const IsSecondBitcast = (secondOp == Instruction::BitCast);
+  bool const AreBothBitcasts = IsFirstBitcast && IsSecondBitcast;
 
   // Check if any of the casts convert scalars <-> vectors.
   if ((IsFirstBitcast  && isa<VectorType>(SrcTy) != isa<VectorType>(MidTy)) ||
@@ -2885,7 +2885,7 @@ unsigned CastInst::isEliminableCastPair(
     if (!AreBothBitcasts)
       return 0;
 
-  int ElimCase = CastResults[firstOp-Instruction::CastOpsBegin]
+  int const ElimCase = CastResults[firstOp-Instruction::CastOpsBegin]
                             [secondOp-Instruction::CastOpsBegin];
   switch (ElimCase) {
     case 0:
@@ -2931,7 +2931,7 @@ unsigned CastInst::isEliminableCastPair(
       if (SrcTy->getPointerAddressSpace() != DstTy->getPointerAddressSpace())
         return 0;
 
-      unsigned MidSize = MidTy->getScalarSizeInBits();
+      unsigned const MidSize = MidTy->getScalarSizeInBits();
       // We can still fold this without knowing the actual sizes as long we
       // know that the intermediate pointer is the largest possible
       // pointer size.
@@ -2942,7 +2942,7 @@ unsigned CastInst::isEliminableCastPair(
       // ptrtoint, inttoptr -> bitcast (ptr -> ptr) if int size is >= ptr size.
       if (!SrcIntPtrTy || DstIntPtrTy != SrcIntPtrTy)
         return 0;
-      unsigned PtrSize = SrcIntPtrTy->getScalarSizeInBits();
+      unsigned const PtrSize = SrcIntPtrTy->getScalarSizeInBits();
       if (MidSize >= PtrSize)
         return Instruction::BitCast;
       return 0;
@@ -2951,8 +2951,8 @@ unsigned CastInst::isEliminableCastPair(
       // ext, trunc -> bitcast,    if the SrcTy and DstTy are same size
       // ext, trunc -> ext,        if sizeof(SrcTy) < sizeof(DstTy)
       // ext, trunc -> trunc,      if sizeof(SrcTy) > sizeof(DstTy)
-      unsigned SrcSize = SrcTy->getScalarSizeInBits();
-      unsigned DstSize = DstTy->getScalarSizeInBits();
+      unsigned const SrcSize = SrcTy->getScalarSizeInBits();
+      unsigned const DstSize = DstTy->getScalarSizeInBits();
       if (SrcSize == DstSize)
         return Instruction::BitCast;
       else if (SrcSize < DstSize)
@@ -2966,9 +2966,9 @@ unsigned CastInst::isEliminableCastPair(
       // inttoptr, ptrtoint -> bitcast if SrcSize<=PtrSize and SrcSize==DstSize
       if (!MidIntPtrTy)
         return 0;
-      unsigned PtrSize = MidIntPtrTy->getScalarSizeInBits();
-      unsigned SrcSize = SrcTy->getScalarSizeInBits();
-      unsigned DstSize = DstTy->getScalarSizeInBits();
+      unsigned const PtrSize = MidIntPtrTy->getScalarSizeInBits();
+      unsigned const SrcSize = SrcTy->getScalarSizeInBits();
+      unsigned const DstSize = DstTy->getScalarSizeInBits();
       if (SrcSize <= PtrSize && SrcSize == DstSize)
         return Instruction::BitCast;
       return 0;
@@ -3208,9 +3208,9 @@ CastInst *CastInst::CreateIntegerCast(Value *C, Type *Ty,
                                       Instruction *InsertBefore) {
   assert(C->getType()->isIntOrIntVectorTy() && Ty->isIntOrIntVectorTy() &&
          "Invalid integer cast");
-  unsigned SrcBits = C->getType()->getScalarSizeInBits();
-  unsigned DstBits = Ty->getScalarSizeInBits();
-  Instruction::CastOps opcode =
+  unsigned const SrcBits = C->getType()->getScalarSizeInBits();
+  unsigned const DstBits = Ty->getScalarSizeInBits();
+  Instruction::CastOps const opcode =
     (SrcBits == DstBits ? Instruction::BitCast :
      (SrcBits > DstBits ? Instruction::Trunc :
       (isSigned ? Instruction::SExt : Instruction::ZExt)));
@@ -3222,9 +3222,9 @@ CastInst *CastInst::CreateIntegerCast(Value *C, Type *Ty,
                                       BasicBlock *InsertAtEnd) {
   assert(C->getType()->isIntOrIntVectorTy() && Ty->isIntOrIntVectorTy() &&
          "Invalid cast");
-  unsigned SrcBits = C->getType()->getScalarSizeInBits();
-  unsigned DstBits = Ty->getScalarSizeInBits();
-  Instruction::CastOps opcode =
+  unsigned const SrcBits = C->getType()->getScalarSizeInBits();
+  unsigned const DstBits = Ty->getScalarSizeInBits();
+  Instruction::CastOps const opcode =
     (SrcBits == DstBits ? Instruction::BitCast :
      (SrcBits > DstBits ? Instruction::Trunc :
       (isSigned ? Instruction::SExt : Instruction::ZExt)));
@@ -3236,9 +3236,9 @@ CastInst *CastInst::CreateFPCast(Value *C, Type *Ty,
                                  Instruction *InsertBefore) {
   assert(C->getType()->isFPOrFPVectorTy() && Ty->isFPOrFPVectorTy() &&
          "Invalid cast");
-  unsigned SrcBits = C->getType()->getScalarSizeInBits();
-  unsigned DstBits = Ty->getScalarSizeInBits();
-  Instruction::CastOps opcode =
+  unsigned const SrcBits = C->getType()->getScalarSizeInBits();
+  unsigned const DstBits = Ty->getScalarSizeInBits();
+  Instruction::CastOps const opcode =
     (SrcBits == DstBits ? Instruction::BitCast :
      (SrcBits > DstBits ? Instruction::FPTrunc : Instruction::FPExt));
   return Create(opcode, C, Ty, Name, InsertBefore);
@@ -3249,9 +3249,9 @@ CastInst *CastInst::CreateFPCast(Value *C, Type *Ty,
                                  BasicBlock *InsertAtEnd) {
   assert(C->getType()->isFPOrFPVectorTy() && Ty->isFPOrFPVectorTy() &&
          "Invalid cast");
-  unsigned SrcBits = C->getType()->getScalarSizeInBits();
-  unsigned DstBits = Ty->getScalarSizeInBits();
-  Instruction::CastOps opcode =
+  unsigned const SrcBits = C->getType()->getScalarSizeInBits();
+  unsigned const DstBits = Ty->getScalarSizeInBits();
+  Instruction::CastOps const opcode =
     (SrcBits == DstBits ? Instruction::BitCast :
      (SrcBits > DstBits ? Instruction::FPTrunc : Instruction::FPExt));
   return Create(opcode, C, Ty, Name, InsertAtEnd);
@@ -3280,8 +3280,8 @@ bool CastInst::isBitCastable(Type *SrcTy, Type *DestTy) {
     }
   }
 
-  TypeSize SrcBits = SrcTy->getPrimitiveSizeInBits();   // 0 for ptr
-  TypeSize DestBits = DestTy->getPrimitiveSizeInBits(); // 0 for ptr
+  TypeSize const SrcBits = SrcTy->getPrimitiveSizeInBits();   // 0 for ptr
+  TypeSize const DestBits = DestTy->getPrimitiveSizeInBits(); // 0 for ptr
 
   // Could still have vectors of pointers if the number of elements doesn't
   // match
@@ -3340,8 +3340,8 @@ CastInst::getCastOpcode(
       }
 
   // Get the bit sizes, we'll need these
-  unsigned SrcBits = SrcTy->getPrimitiveSizeInBits();   // 0 for ptr
-  unsigned DestBits = DestTy->getPrimitiveSizeInBits(); // 0 for ptr
+  unsigned const SrcBits = SrcTy->getPrimitiveSizeInBits();   // 0 for ptr
+  unsigned const DestBits = DestTy->getPrimitiveSizeInBits(); // 0 for ptr
 
   // Run through the possibilities ...
   if (DestTy->isIntegerTy()) {                      // Casting to integral
@@ -3429,17 +3429,17 @@ CastInst::castIsValid(Instruction::CastOps op, Type *SrcTy, Type *DstTy) {
 
   // Get the size of the types in bits, and whether we are dealing
   // with vector types, we'll need this later.
-  bool SrcIsVec = isa<VectorType>(SrcTy);
-  bool DstIsVec = isa<VectorType>(DstTy);
-  unsigned SrcScalarBitSize = SrcTy->getScalarSizeInBits();
-  unsigned DstScalarBitSize = DstTy->getScalarSizeInBits();
+  bool const SrcIsVec = isa<VectorType>(SrcTy);
+  bool const DstIsVec = isa<VectorType>(DstTy);
+  unsigned const SrcScalarBitSize = SrcTy->getScalarSizeInBits();
+  unsigned const DstScalarBitSize = DstTy->getScalarSizeInBits();
 
   // If these are vector types, get the lengths of the vectors (using zero for
   // scalar types means that checking that vector lengths match also checks that
   // scalars are not being converted to vectors or vectors to scalars).
-  ElementCount SrcEC = SrcIsVec ? cast<VectorType>(SrcTy)->getElementCount()
+  ElementCount const SrcEC = SrcIsVec ? cast<VectorType>(SrcTy)->getElementCount()
                                 : ElementCount::getFixed(0);
-  ElementCount DstEC = DstIsVec ? cast<VectorType>(DstTy)->getElementCount()
+  ElementCount const DstEC = DstIsVec ? cast<VectorType>(DstTy)->getElementCount()
                                 : ElementCount::getFixed(0);
 
   // Switch on the opcode provided
@@ -4146,8 +4146,8 @@ SwitchInst::SwitchInst(const SwitchInst &SI)
 /// addCase - Add an entry to the switch instruction...
 ///
 void SwitchInst::addCase(ConstantInt *OnVal, BasicBlock *Dest) {
-  unsigned NewCaseIdx = getNumCases();
-  unsigned OpNo = getNumOperands();
+  unsigned const NewCaseIdx = getNumCases();
+  unsigned const OpNo = getNumOperands();
   if (OpNo+2 > ReservedSpace)
     growOperands();  // Get more space!
   // Initialize some new operands.
@@ -4161,11 +4161,11 @@ void SwitchInst::addCase(ConstantInt *OnVal, BasicBlock *Dest) {
 /// removeCase - This method removes the specified case and its successor
 /// from the switch instruction.
 SwitchInst::CaseIt SwitchInst::removeCase(CaseIt I) {
-  unsigned idx = I->getCaseIndex();
+  unsigned const idx = I->getCaseIndex();
 
   assert(2 + idx*2 < getNumOperands() && "Case index out of range!!!");
 
-  unsigned NumOps = getNumOperands();
+  unsigned const NumOps = getNumOperands();
   Use *OL = getOperandList();
 
   // Overwrite this case with the end of the list.
@@ -4186,8 +4186,8 @@ SwitchInst::CaseIt SwitchInst::removeCase(CaseIt I) {
 /// to a push_back style of operation.  This grows the number of ops by 3 times.
 ///
 void SwitchInst::growOperands() {
-  unsigned e = getNumOperands();
-  unsigned NumOps = e*3;
+  unsigned const e = getNumOperands();
+  unsigned const NumOps = e*3;
 
   ReservedSpace = NumOps;
   growHungoffUses(ReservedSpace);
@@ -4211,7 +4211,7 @@ MDNode *SwitchInstProfUpdateWrapper::buildProfBranchWeightsMD() {
   assert(SI.getNumSuccessors() == Weights->size() &&
          "num of prof branch_weights must accord with num of successors");
 
-  bool AllZeroes =
+  bool const AllZeroes =
       all_of(Weights.getValue(), [](uint32_t W) { return W == 0; });
 
   if (AllZeroes || Weights.getValue().size() < 2)
@@ -4233,7 +4233,7 @@ void SwitchInstProfUpdateWrapper::init() {
   SmallVector<uint32_t, 8> Weights;
   for (unsigned CI = 1, CE = SI.getNumSuccessors(); CI <= CE; ++CI) {
     ConstantInt *C = mdconst::extract<ConstantInt>(ProfileData->getOperand(CI));
-    uint32_t CW = C->getValue().getZExtValue();
+    uint32_t const CW = C->getValue().getZExtValue();
     Weights.push_back(CW);
   }
   this->Weights = std::move(Weights);
@@ -4336,8 +4336,8 @@ void IndirectBrInst::init(Value *Address, unsigned NumDests) {
 /// to a push_back style of operation.  This grows the number of ops by 2 times.
 ///
 void IndirectBrInst::growOperands() {
-  unsigned e = getNumOperands();
-  unsigned NumOps = e*2;
+  unsigned const e = getNumOperands();
+  unsigned const NumOps = e*2;
 
   ReservedSpace = NumOps;
   growHungoffUses(ReservedSpace);
@@ -4371,7 +4371,7 @@ IndirectBrInst::IndirectBrInst(const IndirectBrInst &IBI)
 /// addDestination - Add a destination.
 ///
 void IndirectBrInst::addDestination(BasicBlock *DestBB) {
-  unsigned OpNo = getNumOperands();
+  unsigned const OpNo = getNumOperands();
   if (OpNo+1 > ReservedSpace)
     growOperands();  // Get more space!
   // Initialize some new operands.
@@ -4385,7 +4385,7 @@ void IndirectBrInst::addDestination(BasicBlock *DestBB) {
 void IndirectBrInst::removeDestination(unsigned idx) {
   assert(idx < getNumOperands()-1 && "Successor index out of range!");
 
-  unsigned NumOps = getNumOperands();
+  unsigned const NumOps = getNumOperands();
   Use *OL = getOperandList();
 
   // Replace this value with the last one.
@@ -4541,7 +4541,7 @@ AddrSpaceCastInst *AddrSpaceCastInst::cloneImpl() const {
 
 CallInst *CallInst::cloneImpl() const {
   if (hasOperandBundles()) {
-    unsigned DescriptorBytes = getNumOperandBundles() * sizeof(BundleOpInfo);
+    unsigned const DescriptorBytes = getNumOperandBundles() * sizeof(BundleOpInfo);
     return new(getNumOperands(), DescriptorBytes) CallInst(*this);
   }
   return  new(getNumOperands()) CallInst(*this);
@@ -4589,7 +4589,7 @@ IndirectBrInst *IndirectBrInst::cloneImpl() const {
 
 InvokeInst *InvokeInst::cloneImpl() const {
   if (hasOperandBundles()) {
-    unsigned DescriptorBytes = getNumOperandBundles() * sizeof(BundleOpInfo);
+    unsigned const DescriptorBytes = getNumOperandBundles() * sizeof(BundleOpInfo);
     return new(getNumOperands(), DescriptorBytes) InvokeInst(*this);
   }
   return new(getNumOperands()) InvokeInst(*this);
@@ -4597,7 +4597,7 @@ InvokeInst *InvokeInst::cloneImpl() const {
 
 CallBrInst *CallBrInst::cloneImpl() const {
   if (hasOperandBundles()) {
-    unsigned DescriptorBytes = getNumOperandBundles() * sizeof(BundleOpInfo);
+    unsigned const DescriptorBytes = getNumOperandBundles() * sizeof(BundleOpInfo);
     return new (getNumOperands(), DescriptorBytes) CallBrInst(*this);
   }
   return new (getNumOperands()) CallBrInst(*this);

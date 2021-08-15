@@ -49,7 +49,7 @@ void AliasSet::mergeSetIn(AliasSet &AS, AliasSetTracker &AST) {
   assert(!AS.Forward && "Alias set is already forwarding!");
   assert(!Forward && "This set is a forwarding set!!");
 
-  bool WasMustAlias = (Alias == SetMustAlias);
+  bool const WasMustAlias = (Alias == SetMustAlias);
   // Update the alias and access types of this set...
   Access |= AS.Access;
   Alias  |= AS.Alias;
@@ -76,7 +76,7 @@ void AliasSet::mergeSetIn(AliasSet &AS, AliasSetTracker &AST) {
       AST.TotalMayAliasSetSize += AS.size();
   }
 
-  bool ASHadUnknownInsts = !AS.UnknownInsts.empty();
+  bool const ASHadUnknownInsts = !AS.UnknownInsts.empty();
   if (UnknownInsts.empty()) {            // Merge call sites...
     if (ASHadUnknownInsts) {
       std::swap(UnknownInsts, AS.UnknownInsts);
@@ -138,7 +138,7 @@ void AliasSet::addPointer(AliasSetTracker &AST, PointerRec &Entry,
     if (PointerRec *P = getSomePointer()) {
       if (!KnownMustAlias) {
         AliasAnalysis &AA = AST.getAliasAnalysis();
-        AliasResult Result = AA.alias(
+        AliasResult const Result = AA.alias(
             MemoryLocation(P->getValue(), P->getSize(), P->getAAInfo()),
             MemoryLocation(Entry.getValue(), Size, AAInfo));
         if (Result != AliasResult::MustAlias) {
@@ -174,7 +174,7 @@ void AliasSet::addUnknownInst(Instruction *I, AliasAnalysis &AA) {
   // Guards are marked as modifying memory for control flow modelling purposes,
   // but don't actually modify any specific memory location.
   using namespace PatternMatch;
-  bool MayWriteMemory = I->mayWriteToMemory() && !isGuard(I) &&
+  bool const MayWriteMemory = I->mayWriteToMemory() && !isGuard(I) &&
     !(I->use_empty() && match(I, m_Intrinsic<Intrinsic::invariant_start>()));
   if (!MayWriteMemory) {
     Alias = SetMayAlias;
@@ -308,7 +308,7 @@ AliasSet *AliasSetTracker::mergeAliasSetsForPointer(const Value *Ptr,
     if (AS.Forward)
       continue;
 
-    AliasResult AR = AS.aliasesPointer(Ptr, Size, AAInfo, AA);
+    AliasResult const AR = AS.aliasesPointer(Ptr, Size, AAInfo, AA);
     if (AR == AliasResult::NoAlias)
       continue;
 
@@ -491,11 +491,11 @@ void AliasSetTracker::add(Instruction *I) {
         CallMask = clearMod(CallMask);
 
       for (auto IdxArgPair : enumerate(Call->args())) {
-        int ArgIdx = IdxArgPair.index();
+        int const ArgIdx = IdxArgPair.index();
         const Value *Arg = IdxArgPair.value();
         if (!Arg->getType()->isPointerTy())
           continue;
-        MemoryLocation ArgLoc =
+        MemoryLocation const ArgLoc =
             MemoryLocation::getForArgument(Call, ArgIdx, nullptr);
         ModRefInfo ArgMask = AA.getArgModRefInfo(Call, ArgIdx);
         ArgMask = intersectModRef(CallMask, ArgMask);
@@ -544,7 +544,7 @@ void AliasSetTracker::add(const AliasSetTracker &AST) {
 //
 void AliasSetTracker::deleteValue(Value *PtrVal) {
   // First, look up the PointerRec for this pointer.
-  PointerMapType::iterator I = PointerMap.find_as(PtrVal);
+  PointerMapType::iterator const I = PointerMap.find_as(PtrVal);
   if (I == PointerMap.end()) return;  // Noop
 
   // If we found one, remove the pointer from the alias set it is in.

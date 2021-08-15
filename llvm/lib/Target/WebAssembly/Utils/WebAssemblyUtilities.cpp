@@ -32,7 +32,7 @@ bool WebAssembly::isChild(const MachineInstr &MI,
   const MachineOperand &MO = MI.getOperand(0);
   if (!MO.isReg() || MO.isImplicit() || !MO.isDef())
     return false;
-  Register Reg = MO.getReg();
+  Register const Reg = MO.getReg();
   return Register::isVirtualRegister(Reg) && MFI.isVRegStackified(Reg);
 }
 
@@ -99,7 +99,7 @@ const MachineOperand &WebAssembly::getCalleeOp(const MachineInstr &MI) {
 
 MCSymbolWasm *WebAssembly::getOrCreateFunctionTableSymbol(
     MCContext &Ctx, const WebAssemblySubtarget *Subtarget) {
-  StringRef Name = "__indirect_function_table";
+  StringRef const Name = "__indirect_function_table";
   MCSymbolWasm *Sym = cast_or_null<MCSymbolWasm>(Ctx.lookupSymbol(Name));
   if (Sym) {
     if (!Sym->isFunctionTable())
@@ -118,7 +118,7 @@ MCSymbolWasm *WebAssembly::getOrCreateFunctionTableSymbol(
 
 MCSymbolWasm *WebAssembly::getOrCreateFuncrefCallTableSymbol(
     MCContext &Ctx, const WebAssemblySubtarget *Subtarget) {
-  StringRef Name = "__funcref_call_table";
+  StringRef const Name = "__funcref_call_table";
   MCSymbolWasm *Sym = cast_or_null<MCSymbolWasm>(Ctx.lookupSymbol(Name));
   if (Sym) {
     if (!Sym->isFunctionTable())
@@ -130,8 +130,8 @@ MCSymbolWasm *WebAssembly::getOrCreateFuncrefCallTableSymbol(
     // modules define the table.
     Sym->setWeak(true);
 
-    wasm::WasmLimits Limits = {0, 1, 1};
-    wasm::WasmTableType TableType = {wasm::WASM_TYPE_FUNCREF, Limits};
+    wasm::WasmLimits const Limits = {0, 1, 1};
+    wasm::WasmTableType const TableType = {wasm::WASM_TYPE_FUNCREF, Limits};
     Sym->setType(wasm::WASM_SYMBOL_TYPE_TABLE);
     Sym->setTableType(TableType);
   }

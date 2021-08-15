@@ -68,7 +68,7 @@ GCFunctionInfo &GCModuleInfo::getFunctionInfo(const Function &F) {
   assert(!F.isDeclaration() && "Can only get GCFunctionInfo for a definition!");
   assert(F.hasGC());
 
-  finfo_map_type::iterator I = FInfoMap.find(&F);
+  finfo_map_type::iterator const I = FInfoMap.find(&F);
   if (I != FInfoMap.end())
     return *I->second;
 

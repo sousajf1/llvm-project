@@ -29,7 +29,7 @@ ReplayInlineAdvisor::ReplayInlineAdvisor(
     : InlineAdvisor(M, FAM), OriginalAdvisor(std::move(OriginalAdvisor)),
       HasReplayRemarks(false), EmitRemarks(EmitRemarks) {
   auto BufferOrErr = MemoryBuffer::getFileOrSTDIN(RemarksFile);
-  std::error_code EC = BufferOrErr.getError();
+  std::error_code const EC = BufferOrErr.getError();
   if (EC) {
     Context.emitError("Could not open remarks file: " + EC.message());
     return;
@@ -40,10 +40,10 @@ ReplayInlineAdvisor::ReplayInlineAdvisor(
   // We use the callsite string after `at callsite` to replay inlining.
   line_iterator LineIt(*BufferOrErr.get(), /*SkipBlanks=*/true);
   for (; !LineIt.is_at_eof(); ++LineIt) {
-    StringRef Line = *LineIt;
+    StringRef const Line = *LineIt;
     auto Pair = Line.split(" at callsite ");
 
-    StringRef Callee = Pair.first.split(" inlined into")
+    StringRef const Callee = Pair.first.split(" inlined into")
                            .first.rsplit(": '")
                            .second.drop_back();
     auto CallSite = Pair.second.split(";").first;
@@ -51,7 +51,7 @@ ReplayInlineAdvisor::ReplayInlineAdvisor(
     if (Callee.empty() || CallSite.empty())
       continue;
 
-    std::string Combined = (Callee + CallSite).str();
+    std::string const Combined = (Callee + CallSite).str();
     InlineSitesFromRemarks.insert(Combined);
   }
 
@@ -68,9 +68,9 @@ std::unique_ptr<InlineAdvice> ReplayInlineAdvisor::getAdviceImpl(CallBase &CB) {
     return std::make_unique<DefaultInlineAdvice>(this, CB, None, ORE,
                                                  EmitRemarks);
 
-  std::string CallSiteLoc = getCallSiteLocation(CB.getDebugLoc());
-  StringRef Callee = CB.getCalledFunction()->getName();
-  std::string Combined = (Callee + CallSiteLoc).str();
+  std::string const CallSiteLoc = getCallSiteLocation(CB.getDebugLoc());
+  StringRef const Callee = CB.getCalledFunction()->getName();
+  std::string const Combined = (Callee + CallSiteLoc).str();
   auto Iter = InlineSitesFromRemarks.find(Combined);
 
   Optional<InlineCost> InlineRecommended = None;

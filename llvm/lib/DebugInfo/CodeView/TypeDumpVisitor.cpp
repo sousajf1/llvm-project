@@ -223,9 +223,9 @@ Error TypeDumpVisitor::visitKnownRecord(CVType &CVR, StringIdRecord &String) {
 
 Error TypeDumpVisitor::visitKnownRecord(CVType &CVR, ArgListRecord &Args) {
   auto Indices = Args.getIndices();
-  uint32_t Size = Indices.size();
+  uint32_t const Size = Indices.size();
   W->printNumber("NumArgs", Size);
-  ListScope Arguments(*W, "Arguments");
+  ListScope const Arguments(*W, "Arguments");
   for (uint32_t I = 0; I < Size; ++I) {
     printTypeIndex("ArgType", Indices[I]);
   }
@@ -234,9 +234,9 @@ Error TypeDumpVisitor::visitKnownRecord(CVType &CVR, ArgListRecord &Args) {
 
 Error TypeDumpVisitor::visitKnownRecord(CVType &CVR, StringListRecord &Strs) {
   auto Indices = Strs.getIndices();
-  uint32_t Size = Indices.size();
+  uint32_t const Size = Indices.size();
   W->printNumber("NumStrings", Size);
-  ListScope Arguments(*W, "Strings");
+  ListScope const Arguments(*W, "Strings");
   for (uint32_t I = 0; I < Size; ++I) {
     printItemIndex("String", Indices[I]);
   }
@@ -244,7 +244,7 @@ Error TypeDumpVisitor::visitKnownRecord(CVType &CVR, StringListRecord &Strs) {
 }
 
 Error TypeDumpVisitor::visitKnownRecord(CVType &CVR, ClassRecord &Class) {
-  uint16_t Props = static_cast<uint16_t>(Class.getOptions());
+  uint16_t const Props = static_cast<uint16_t>(Class.getOptions());
   W->printNumber("MemberCount", Class.getMemberCount());
   W->printFlags("Properties", Props, makeArrayRef(ClassOptionNames));
   printTypeIndex("FieldList", Class.getFieldList());
@@ -258,7 +258,7 @@ Error TypeDumpVisitor::visitKnownRecord(CVType &CVR, ClassRecord &Class) {
 }
 
 Error TypeDumpVisitor::visitKnownRecord(CVType &CVR, UnionRecord &Union) {
-  uint16_t Props = static_cast<uint16_t>(Union.getOptions());
+  uint16_t const Props = static_cast<uint16_t>(Union.getOptions());
   W->printNumber("MemberCount", Union.getMemberCount());
   W->printFlags("Properties", Props, makeArrayRef(ClassOptionNames));
   printTypeIndex("FieldList", Union.getFieldList());
@@ -270,7 +270,7 @@ Error TypeDumpVisitor::visitKnownRecord(CVType &CVR, UnionRecord &Union) {
 }
 
 Error TypeDumpVisitor::visitKnownRecord(CVType &CVR, EnumRecord &Enum) {
-  uint16_t Props = static_cast<uint16_t>(Enum.getOptions());
+  uint16_t const Props = static_cast<uint16_t>(Enum.getOptions());
   W->printNumber("NumEnumerators", Enum.getMemberCount());
   W->printFlags("Properties", uint16_t(Enum.getOptions()),
                 makeArrayRef(ClassOptionNames));
@@ -335,7 +335,7 @@ Error TypeDumpVisitor::visitKnownRecord(CVType &CVR, MemberFunctionRecord &MF) {
 Error TypeDumpVisitor::visitKnownRecord(CVType &CVR,
                                         MethodOverloadListRecord &MethodList) {
   for (auto &M : MethodList.getMethods()) {
-    ListScope S(*W, "Method");
+    ListScope const S(*W, "Method");
     printMemberAttributes(M.getAccess(), M.getMethodKind(), M.getOptions());
     printTypeIndex("Type", M.getType());
     if (M.isIntroducingVirtual())
@@ -385,7 +385,7 @@ Error TypeDumpVisitor::visitKnownRecord(CVType &CVR, PointerRecord &Ptr) {
 }
 
 Error TypeDumpVisitor::visitKnownRecord(CVType &CVR, ModifierRecord &Mod) {
-  uint16_t Mods = static_cast<uint16_t>(Mod.getModifiers());
+  uint16_t const Mods = static_cast<uint16_t>(Mod.getModifiers());
   printTypeIndex("ModifiedType", Mod.getModifiedType());
   W->printFlags("Modifiers", Mods, makeArrayRef(TypeModifierNames));
 
@@ -425,7 +425,7 @@ Error TypeDumpVisitor::visitKnownRecord(CVType &CVR,
 Error TypeDumpVisitor::visitKnownRecord(CVType &CVR, BuildInfoRecord &Args) {
   W->printNumber("NumArgs", static_cast<uint32_t>(Args.getArgs().size()));
 
-  ListScope Arguments(*W, "Arguments");
+  ListScope const Arguments(*W, "Arguments");
   for (auto Arg : Args.getArgs()) {
     printItemIndex("ArgType", Arg);
   }
@@ -471,7 +471,7 @@ Error TypeDumpVisitor::visitKnownMember(CVMemberRecord &CVR,
 
 Error TypeDumpVisitor::visitKnownMember(CVMemberRecord &CVR,
                                         OneMethodRecord &Method) {
-  MethodKind K = Method.getMethodKind();
+  MethodKind const K = Method.getMethodKind();
   printMemberAttributes(Method.getAccess(), K, Method.getOptions());
   printTypeIndex("Type", Method.getType());
   // If virtual, then read the vftable offset.

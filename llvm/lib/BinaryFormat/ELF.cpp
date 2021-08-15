@@ -16,7 +16,7 @@ using namespace ELF;
 
 /// Convert an architecture name into ELF's e_machine value.
 uint16_t ELF::convertArchNameToEMachine(StringRef Arch) {
-  std::string LowerArch = Arch.lower();
+  std::string const LowerArch = Arch.lower();
   return StringSwitch<uint16_t>(LowerArch)
       .Case("none", EM_NONE)
       .Case("m32", EM_M32)

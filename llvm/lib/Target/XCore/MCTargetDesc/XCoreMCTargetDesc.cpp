@@ -60,7 +60,7 @@ static MCAsmInfo *createXCoreMCAsmInfo(const MCRegisterInfo &MRI,
   MCAsmInfo *MAI = new XCoreMCAsmInfo(TT);
 
   // Initial state of the frame pointer is SP.
-  MCCFIInstruction Inst = MCCFIInstruction::cfiDefCfa(nullptr, XCore::SP, 0);
+  MCCFIInstruction const Inst = MCCFIInstruction::cfiDefCfa(nullptr, XCore::SP, 0);
   MAI->addInitialFrameState(Inst);
 
   return MAI;
@@ -124,7 +124,7 @@ static MCTargetStreamer *createTargetAsmStreamer(MCStreamer &S,
 // Force static initialization.
 extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializeXCoreTargetMC() {
   // Register the MC asm info.
-  RegisterMCAsmInfoFn X(getTheXCoreTarget(), createXCoreMCAsmInfo);
+  RegisterMCAsmInfoFn const X(getTheXCoreTarget(), createXCoreMCAsmInfo);
 
   // Register the MC instruction info.
   TargetRegistry::RegisterMCInstrInfo(getTheXCoreTarget(),

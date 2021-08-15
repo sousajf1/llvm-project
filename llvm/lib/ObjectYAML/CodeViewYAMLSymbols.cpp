@@ -265,7 +265,7 @@ struct UnknownSymbolRecord : public SymbolRecordBase {
   CVSymbol toCodeViewSymbol(BumpPtrAllocator &Allocator,
                             CodeViewContainer Container) const override {
     RecordPrefix Prefix;
-    uint32_t TotalLen = sizeof(RecordPrefix) + Data.size();
+    uint32_t const TotalLen = sizeof(RecordPrefix) + Data.size();
     Prefix.RecordKind = Kind;
     Prefix.RecordLen = TotalLen - 2;
     uint8_t *Buffer = Allocator.Allocate<uint8_t>(TotalLen);

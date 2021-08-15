@@ -105,7 +105,7 @@ void DIEHash::addParentContext(const DIE &Parent) {
     addULEB128(Die.getTag());
 
     // ... Then the name, taken from the DW_AT_name attribute.
-    StringRef Name = getDIEStringAttr(Die, dwarf::DW_AT_name);
+    StringRef const Name = getDIEStringAttr(Die, dwarf::DW_AT_name);
     LLVM_DEBUG(dbgs() << "... adding context: " << Name << "\n");
     if (!Name.empty())
       addString(Name);
@@ -187,7 +187,7 @@ void DIEHash::hashDIEEntry(dwarf::Attribute Attribute, dwarf::Tag Tag,
       // ptr_to_member_type, but it's what DWARF says, for some reason.
       Attribute == dwarf::DW_AT_type) {
     // ... has a DW_AT_name attribute,
-    StringRef Name = getDIEStringAttr(Entry, dwarf::DW_AT_name);
+    StringRef const Name = getDIEStringAttr(Entry, dwarf::DW_AT_name);
     if (!Name.empty()) {
       hashShallowTypeReference(Attribute, Entry, Name);
       return;
@@ -218,7 +218,7 @@ void DIEHash::hashBlockData(const DIE::const_value_range &Values) {
     if (V.getType() == DIEValue::isBaseTypeRef) {
       const DIE &C =
           *CU->ExprRefedBaseTypes[V.getDIEBaseTypeRef().getIndex()].Die;
-      StringRef Name = getDIEStringAttr(C, dwarf::DW_AT_name);
+      StringRef const Name = getDIEStringAttr(C, dwarf::DW_AT_name);
       assert(!Name.empty() &&
              "Base types referenced from DW_OP_convert should have a name");
       hashNestedType(C, Name);
@@ -239,7 +239,7 @@ void DIEHash::hashLocList(const DIELocList &LocList) {
 // Hash an individual attribute \param Attr based on the type of attribute and
 // the form.
 void DIEHash::hashAttribute(const DIEValue &Value, dwarf::Tag Tag) {
-  dwarf::Attribute Attribute = Value.getAttribute();
+  dwarf::Attribute const Attribute = Value.getAttribute();
 
   // Other attribute values use the letter 'A' as the marker, and the value
   // consists of the form code (encoded as an unsigned LEB128 value) followed by
@@ -371,7 +371,7 @@ void DIEHash::computeHash(const DIE &Die) {
     // 7.27 Step 7
     // If C is a nested type entry or a member function entry, ...
     if (isType(C.getTag()) || (C.getTag() == dwarf::DW_TAG_subprogram && isType(C.getParent()->getTag()))) {
-      StringRef Name = getDIEStringAttr(C, dwarf::DW_AT_name);
+      StringRef const Name = getDIEStringAttr(C, dwarf::DW_AT_name);
       // ... and has a DW_AT_name attribute
       if (!Name.empty()) {
         hashNestedType(C, Name);

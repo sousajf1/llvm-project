@@ -118,7 +118,7 @@ bool BreakFalseDeps::pickBestRegisterForUndef(MachineInstr *MI, unsigned OpIdx,
   if (!MO.isRenamable())
     return false;
 
-  MCRegister OriginalReg = MO.getReg().asMCReg();
+  MCRegister const OriginalReg = MO.getReg().asMCReg();
 
   // Update only undef operands that have reg units that are mapped to one root.
   for (MCRegUnitIterator Unit(OriginalReg, TRI); Unit.isValid(); ++Unit) {
@@ -136,7 +136,7 @@ bool BreakFalseDeps::pickBestRegisterForUndef(MachineInstr *MI, unsigned OpIdx,
 
   // If the instruction has a true dependency, we can hide the false depdency
   // behind it.
-  for (MachineOperand &CurrMO : MI->operands()) {
+  for (MachineOperand  const&CurrMO : MI->operands()) {
     if (!CurrMO.isReg() || CurrMO.isDef() || CurrMO.isUndef() ||
       !OpRC->contains(CurrMO.getReg()))
       continue;
@@ -150,9 +150,9 @@ bool BreakFalseDeps::pickBestRegisterForUndef(MachineInstr *MI, unsigned OpIdx,
   // max clearance or clearance higher than Pref.
   unsigned MaxClearance = 0;
   unsigned MaxClearanceReg = OriginalReg;
-  ArrayRef<MCPhysReg> Order = RegClassInfo.getOrder(OpRC);
-  for (MCPhysReg Reg : Order) {
-    unsigned Clearance = RDA->getClearance(MI, Reg);
+  ArrayRef<MCPhysReg> const Order = RegClassInfo.getOrder(OpRC);
+  for (MCPhysReg const Reg : Order) {
+    unsigned const Clearance = RDA->getClearance(MI, Reg);
     if (Clearance <= MaxClearance)
       continue;
     MaxClearance = Clearance;
@@ -171,8 +171,8 @@ bool BreakFalseDeps::pickBestRegisterForUndef(MachineInstr *MI, unsigned OpIdx,
 
 bool BreakFalseDeps::shouldBreakDependence(MachineInstr *MI, unsigned OpIdx,
                                            unsigned Pref) {
-  MCRegister Reg = MI->getOperand(OpIdx).getReg().asMCReg();
-  unsigned Clearance = RDA->getClearance(MI, Reg);
+  MCRegister const Reg = MI->getOperand(OpIdx).getReg().asMCReg();
+  unsigned const Clearance = RDA->getClearance(MI, Reg);
   LLVM_DEBUG(dbgs() << "Clearance: " << Clearance << ", want " << Pref);
 
   if (Pref > Clearance) {
@@ -191,13 +191,13 @@ void BreakFalseDeps::processDefs(MachineInstr *MI) {
   // Break dependence on undef uses. Do this before updating LiveRegs below.
   // This can remove a false dependence with no additional instructions.
   for (unsigned i = MCID.getNumDefs(), e = MCID.getNumOperands(); i != e; ++i) {
-    MachineOperand &MO = MI->getOperand(i);
+    MachineOperand  const&MO = MI->getOperand(i);
     if (!MO.isReg() || !MO.getReg() || !MO.isUse() || !MO.isUndef())
       continue;
 
-    unsigned Pref = TII->getUndefRegClearance(*MI, i, TRI);
+    unsigned const Pref = TII->getUndefRegClearance(*MI, i, TRI);
     if (Pref) {
-      bool HadTrueDependency = pickBestRegisterForUndef(MI, i, Pref);
+      bool const HadTrueDependency = pickBestRegisterForUndef(MI, i, Pref);
       // We don't need to bother trying to break a dependency if this
       // instruction has a true dependency on that register through another
       // operand - we'll have to wait for it to be available regardless.
@@ -214,13 +214,13 @@ void BreakFalseDeps::processDefs(MachineInstr *MI) {
   for (unsigned i = 0,
     e = MI->isVariadic() ? MI->getNumOperands() : MCID.getNumDefs();
     i != e; ++i) {
-    MachineOperand &MO = MI->getOperand(i);
+    MachineOperand  const&MO = MI->getOperand(i);
     if (!MO.isReg() || !MO.getReg())
       continue;
     if (MO.isUse())
       continue;
     // Check clearance before partial register updates.
-    unsigned Pref = TII->getPartialRegUpdateClearance(*MI, i, TRI);
+    unsigned const Pref = TII->getPartialRegUpdateClearance(*MI, i, TRI);
     if (Pref && shouldBreakDependence(MI, i, Pref))
       TII->breakPartialRegDependency(*MI, i, TRI);
   }

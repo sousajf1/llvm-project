@@ -376,7 +376,7 @@ static bool eliminateConstraints(Function &F, DominatorTree &DT) {
         // coefficient.
         bool HasNewIndex = false;
         for (unsigned I = 0; I < NewIndices.size(); ++I) {
-          int64_t Last = R[0].Coefficients.pop_back_val();
+          int64_t const Last = R[0].Coefficients.pop_back_val();
           if (Last != 0) {
             HasNewIndex = true;
             break;

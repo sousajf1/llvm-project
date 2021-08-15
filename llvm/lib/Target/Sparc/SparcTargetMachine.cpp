@@ -22,9 +22,9 @@ using namespace llvm;
 
 extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializeSparcTarget() {
   // Register the target.
-  RegisterTargetMachine<SparcV8TargetMachine> X(getTheSparcTarget());
-  RegisterTargetMachine<SparcV9TargetMachine> Y(getTheSparcV9Target());
-  RegisterTargetMachine<SparcelTargetMachine> Z(getTheSparcelTarget());
+  RegisterTargetMachine<SparcV8TargetMachine> const X(getTheSparcTarget());
+  RegisterTargetMachine<SparcV9TargetMachine> const Y(getTheSparcV9Target());
+  RegisterTargetMachine<SparcelTargetMachine> const Z(getTheSparcelTarget());
 }
 
 static std::string computeDataLayout(const Triple &T, bool is64Bit) {
@@ -106,10 +106,10 @@ SparcTargetMachine::~SparcTargetMachine() {}
 
 const SparcSubtarget *
 SparcTargetMachine::getSubtargetImpl(const Function &F) const {
-  Attribute CPUAttr = F.getFnAttribute("target-cpu");
-  Attribute FSAttr = F.getFnAttribute("target-features");
+  Attribute const CPUAttr = F.getFnAttribute("target-cpu");
+  Attribute const FSAttr = F.getFnAttribute("target-features");
 
-  std::string CPU =
+  std::string const CPU =
       CPUAttr.isValid() ? CPUAttr.getValueAsString().str() : TargetCPU;
   std::string FS =
       FSAttr.isValid() ? FSAttr.getValueAsString().str() : TargetFS;
@@ -117,7 +117,7 @@ SparcTargetMachine::getSubtargetImpl(const Function &F) const {
   // FIXME: This is related to the code below to reset the target options,
   // we need to know whether or not the soft float flag is set on the
   // function, so we can enable it as a subtarget feature.
-  bool softFloat = F.getFnAttribute("use-soft-float").getValueAsBool();
+  bool const softFloat = F.getFnAttribute("use-soft-float").getValueAsBool();
 
   if (softFloat)
     FS += FS.empty() ? "+soft-float" : ",+soft-float";

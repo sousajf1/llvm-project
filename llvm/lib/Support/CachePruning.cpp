@@ -45,7 +45,7 @@ struct FileInfo {
 /// interval option.
 static void writeTimestampFile(StringRef TimestampFile) {
   std::error_code EC;
-  raw_fd_ostream Out(TimestampFile.str(), EC, sys::fs::OF_None);
+  raw_fd_ostream const Out(TimestampFile.str(), EC, sys::fs::OF_None);
 }
 
 static Expected<std::chrono::seconds> parseDuration(StringRef Duration) {
@@ -53,7 +53,7 @@ static Expected<std::chrono::seconds> parseDuration(StringRef Duration) {
     return make_error<StringError>("Duration must not be empty",
                                    inconvertibleErrorCode());
 
-  StringRef NumStr = Duration.slice(0, Duration.size()-1);
+  StringRef const NumStr = Duration.slice(0, Duration.size()-1);
   uint64_t Num;
   if (NumStr.getAsInteger(0, Num))
     return make_error<StringError>("'" + NumStr + "' not an integer",
@@ -96,7 +96,7 @@ llvm::parseCachePruningPolicy(StringRef PolicyStr) {
       if (Value.back() != '%')
         return make_error<StringError>("'" + Value + "' must be a percentage",
                                        inconvertibleErrorCode());
-      StringRef SizeStr = Value.drop_back();
+      StringRef const SizeStr = Value.drop_back();
       uint64_t Size;
       if (SizeStr.getAsInteger(0, Size))
         return make_error<StringError>("'" + SizeStr + "' not an integer",
@@ -215,7 +215,7 @@ bool llvm::pruneCache(StringRef Path, CachePruningPolicy Policy) {
     // includes the timestamp file as well as any files created by the user.
     // This acts as a safeguard against data loss if the user specifies the
     // wrong directory as their cache directory.
-    StringRef filename = sys::path::filename(File->path());
+    StringRef const filename = sys::path::filename(File->path());
     if (!filename.startswith("llvmcache-") && !filename.startswith("Thin-"))
       continue;
 
@@ -269,7 +269,7 @@ bool llvm::pruneCache(StringRef Path, CachePruningPolicy Policy) {
     if (!ErrOrSpaceInfo) {
       report_fatal_error("Can't get available size");
     }
-    sys::fs::space_info SpaceInfo = ErrOrSpaceInfo.get();
+    sys::fs::space_info const SpaceInfo = ErrOrSpaceInfo.get();
     auto AvailableSpace = TotalSize + SpaceInfo.free;
 
     if (Policy.MaxSizePercentageOfAvailableSpace == 0)

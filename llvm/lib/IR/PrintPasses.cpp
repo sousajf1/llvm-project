@@ -81,7 +81,7 @@ std::vector<std::string> llvm::printAfterPasses() {
 bool llvm::forcePrintModuleIR() { return PrintModuleScope; }
 
 bool llvm::isFunctionInPrintList(StringRef FunctionName) {
-  static std::unordered_set<std::string> PrintFuncNames(PrintFuncsList.begin(),
+  static std::unordered_set<std::string> const PrintFuncNames(PrintFuncsList.begin(),
                                                         PrintFuncsList.end());
   return PrintFuncNames.empty() ||
          PrintFuncNames.count(std::string(FunctionName));

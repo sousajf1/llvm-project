@@ -114,7 +114,7 @@ static bool tailMergeBlocksWithSimilarFunctionTerminators(Function &F,
     if (auto *CI =
             dyn_cast_or_null<CallInst>(Term->getPrevNonDebugInstruction())) {
       if (Function *F = CI->getCalledFunction())
-        if (Intrinsic::ID ID = F->getIntrinsicID())
+        if (Intrinsic::ID const ID = F->getIntrinsicID())
           if (ID == Intrinsic::experimental_deoptimize)
             continue;
     }
@@ -133,7 +133,7 @@ static bool tailMergeBlocksWithSimilarFunctionTerminators(Function &F,
 
   std::vector<DominatorTree::UpdateType> Updates;
 
-  for (ArrayRef<BasicBlock *> BBs : make_second_range(Structure)) {
+  for (ArrayRef<BasicBlock *> const BBs : make_second_range(Structure)) {
     SmallVector<PHINode *, 1> NewOps;
 
     // We don't want to change IR just because we can.
@@ -221,7 +221,7 @@ static bool iterativelySimplifyCFG(Function &F, const TargetTransformInfo &TTI,
   for (unsigned i = 0, e = Edges.size(); i != e; ++i)
     UniqueLoopHeaders.insert(const_cast<BasicBlock *>(Edges[i].second));
 
-  SmallVector<WeakVH, 16> LoopHeaders(UniqueLoopHeaders.begin(),
+  SmallVector<WeakVH, 16> const LoopHeaders(UniqueLoopHeaders.begin(),
                                       UniqueLoopHeaders.end());
 
   while (LocalChange) {
@@ -285,7 +285,7 @@ static bool simplifyFunctionCFG(Function &F, const TargetTransformInfo &TTI,
           (DT && DT->verify(DominatorTree::VerificationLevel::Full))) &&
          "Original domtree is invalid?");
 
-  bool Changed = simplifyFunctionCFGImpl(F, TTI, DT, Options);
+  bool const Changed = simplifyFunctionCFGImpl(F, TTI, DT, Options);
 
   assert((!RequireAndPreserveDomTree ||
           (DT && DT->verify(DominatorTree::VerificationLevel::Full))) &&

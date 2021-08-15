@@ -31,13 +31,13 @@ llvm::findPHICopyInsertPoint(MachineBasicBlock* MBB, MachineBasicBlock* SuccMBB,
   // computeLastInsertPoint, and similarly assumes that there cannot be multiple
   // instructions that are Calls with EHPad successors or INLINEASM_BR in a
   // block.
-  bool EHPadSuccessor = SuccMBB->isEHPad();
+  bool const EHPadSuccessor = SuccMBB->isEHPad();
   if (!EHPadSuccessor && !SuccMBB->isInlineAsmBrIndirectTarget())
     return MBB->getFirstTerminator();
 
   // Discover any defs in this basic block.
   SmallPtrSet<MachineInstr *, 8> DefsInMBB;
-  MachineRegisterInfo& MRI = MBB->getParent()->getRegInfo();
+  MachineRegisterInfo const& MRI = MBB->getParent()->getRegInfo();
   for (MachineInstr &RI : MRI.def_instructions(SrcReg))
     if (RI.getParent() == MBB)
       DefsInMBB.insert(&RI);

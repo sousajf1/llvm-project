@@ -81,7 +81,7 @@ bool NVPTXPrologEpilogPass::runOnMachineFunction(MachineFunction &MF) {
           } else {
 	    SmallVector<uint64_t, 3> Ops;
             TRI.getOffsetOpcodes(Offset, Ops);
-            unsigned OpIdx = MI.getDebugOperandIndex(&Op);
+            unsigned const OpIdx = MI.getDebugOperandIndex(&Op);
             DIExpr = DIExpression::appendOpsToArg(DIExpr, Ops, OpIdx);
           }
           MI.getDebugExpressionOp().setMetadata(DIExpr);
@@ -114,7 +114,7 @@ static inline void AdjustStackOffset(MachineFrameInfo &MFI, int FrameIdx,
   if (StackGrowsDown)
     Offset += MFI.getObjectSize(FrameIdx);
 
-  Align Alignment = MFI.getObjectAlign(FrameIdx);
+  Align const Alignment = MFI.getObjectAlign(FrameIdx);
 
   // If the alignment of this object is greater than that of the stack, then
   // increase the stack alignment to match.
@@ -140,7 +140,7 @@ NVPTXPrologEpilogPass::calculateFrameObjectOffsets(MachineFunction &Fn) {
   const TargetFrameLowering &TFI = *Fn.getSubtarget().getFrameLowering();
   const TargetRegisterInfo *RegInfo = Fn.getSubtarget().getRegisterInfo();
 
-  bool StackGrowsDown =
+  bool const StackGrowsDown =
     TFI.getStackGrowthDirection() == TargetFrameLowering::StackGrowsDown;
 
   // Loop over all of the stack objects, assigning sequential addresses...
@@ -187,7 +187,7 @@ NVPTXPrologEpilogPass::calculateFrameObjectOffsets(MachineFunction &Fn) {
   // frame index registers. Functions which don't want/need this optimization
   // will continue to use the existing code path.
   if (MFI.getUseLocalStackAllocationBlock()) {
-    Align Alignment = MFI.getLocalFrameMaxAlign();
+    Align const Alignment = MFI.getLocalFrameMaxAlign();
 
     // Adjust to alignment boundary.
     Offset = alignTo(Offset, Alignment);
@@ -196,8 +196,8 @@ NVPTXPrologEpilogPass::calculateFrameObjectOffsets(MachineFunction &Fn) {
 
     // Resolve offsets for objects in the local block.
     for (unsigned i = 0, e = MFI.getLocalFrameObjectCount(); i != e; ++i) {
-      std::pair<int, int64_t> Entry = MFI.getLocalFrameObjectMap(i);
-      int64_t FIOffset = (StackGrowsDown ? -Offset : Offset) + Entry.second;
+      std::pair<int, int64_t> const Entry = MFI.getLocalFrameObjectMap(i);
+      int64_t const FIOffset = (StackGrowsDown ? -Offset : Offset) + Entry.second;
       LLVM_DEBUG(dbgs() << "alloc FI(" << Entry.first << ") at SP[" << FIOffset
                         << "]\n");
       MFI.setObjectOffset(Entry.first, FIOffset);
@@ -249,6 +249,6 @@ NVPTXPrologEpilogPass::calculateFrameObjectOffsets(MachineFunction &Fn) {
   }
 
   // Update frame info to pretend that this is part of the stack...
-  int64_t StackSize = Offset - LocalAreaOffset;
+  int64_t const StackSize = Offset - LocalAreaOffset;
   MFI.setStackSize(StackSize);
 }

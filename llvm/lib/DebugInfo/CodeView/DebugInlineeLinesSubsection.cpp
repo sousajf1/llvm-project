@@ -105,7 +105,7 @@ Error DebugInlineeLinesSubsection::commit(BinaryStreamWriter &Writer) const {
 }
 
 void DebugInlineeLinesSubsection::addExtraFile(StringRef FileName) {
-  uint32_t Offset = Checksums.mapChecksumOffset(FileName);
+  uint32_t const Offset = Checksums.mapChecksumOffset(FileName);
 
   auto &Entry = Entries.back();
   Entry.ExtraFiles.push_back(ulittle32_t(Offset));
@@ -115,7 +115,7 @@ void DebugInlineeLinesSubsection::addExtraFile(StringRef FileName) {
 void DebugInlineeLinesSubsection::addInlineSite(TypeIndex FuncId,
                                                 StringRef FileName,
                                                 uint32_t SourceLine) {
-  uint32_t Offset = Checksums.mapChecksumOffset(FileName);
+  uint32_t const Offset = Checksums.mapChecksumOffset(FileName);
 
   Entries.emplace_back();
   auto &Entry = Entries.back();

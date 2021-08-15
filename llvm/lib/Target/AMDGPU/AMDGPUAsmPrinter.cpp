@@ -135,7 +135,7 @@ void AMDGPUAsmPrinter::emitStartOfAsmFile(Module &M) {
     getTargetStreamer()->EmitDirectiveHSACodeObjectVersion(2, 1);
 
   // HSA and PAL emit NT_AMD_HSA_ISA_VERSION for code objects v2.
-  IsaVersion Version = getIsaVersion(getGlobalSTI()->getCPU());
+  IsaVersion const Version = getIsaVersion(getGlobalSTI()->getCPU());
   getTargetStreamer()->EmitDirectiveHSACodeObjectISAV2(
       Version.Major, Version.Minor, Version.Stepping, "AMD", "AMDGPU");
 }
@@ -153,7 +153,7 @@ void AMDGPUAsmPrinter::emitEndOfAsmFile(Module &M) {
   // Emit HSA Metadata (NT_AMD_HSA_METADATA).
   if (TM.getTargetTriple().getOS() == Triple::AMDHSA) {
     HSAMetadataStream->end();
-    bool Success = HSAMetadataStream->emitTo(*getTargetStreamer());
+    bool const Success = HSAMetadataStream->emitTo(*getTargetStreamer());
     (void)Success;
     assert(Success && "Malformed HSA Metadata");
   }
@@ -316,8 +316,8 @@ void AMDGPUAsmPrinter::emitGlobalVariable(const GlobalVariable *GV) {
                          "' is already defined");
 
     const DataLayout &DL = GV->getParent()->getDataLayout();
-    uint64_t Size = DL.getTypeAllocSize(GV->getValueType());
-    Align Alignment = GV->getAlign().getValueOr(Align(4));
+    uint64_t const Size = DL.getTypeAllocSize(GV->getValueType());
+    Align const Alignment = GV->getAlign().getValueOr(Align(4));
 
     emitVisibility(GVSym, GV->getVisibility(), !GV->isDeclaration());
     emitLinkage(GV, GVSym);
@@ -472,7 +472,7 @@ bool AMDGPUAsmPrinter::runOnMachineFunction(MachineFunction &MF) {
   if (STM.dumpCode()) {
     // For -dumpcode, get the assembler out of the streamer, even if it does
     // not really want to let us have it. This only works with -filetype=obj.
-    bool SaveFlag = OutStreamer->getUseAssemblerInfoForParsing();
+    bool const SaveFlag = OutStreamer->getUseAssemblerInfoForParsing();
     OutStreamer->setUseAssemblerInfoForParsing(true);
     MCAssembler *Assembler = OutStreamer->getAssemblerPtr();
     OutStreamer->setUseAssemblerInfoForParsing(SaveFlag);
@@ -677,7 +677,7 @@ void AMDGPUAsmPrinter::getSIProgramInfo(SIProgramInfo &ProgInfo,
   const uint64_t MaxScratchPerWorkitem =
       GCNSubtarget::MaxWaveScratchSize / STM.getWavefrontSize();
   if (ProgInfo.ScratchSize > MaxScratchPerWorkitem) {
-    DiagnosticInfoStackSize DiagStackSize(MF.getFunction(),
+    DiagnosticInfoStackSize const DiagStackSize(MF.getFunction(),
                                           ProgInfo.ScratchSize, DS_Error);
     MF.getFunction().getContext().diagnose(DiagStackSize);
   }
@@ -687,17 +687,17 @@ void AMDGPUAsmPrinter::getSIProgramInfo(SIProgramInfo &ProgInfo,
   // The calculations related to SGPR/VGPR blocks are
   // duplicated in part in AMDGPUAsmParser::calculateGPRBlocks, and could be
   // unified.
-  unsigned ExtraSGPRs = IsaInfo::getNumExtraSGPRs(
+  unsigned const ExtraSGPRs = IsaInfo::getNumExtraSGPRs(
       &STM, ProgInfo.VCCUsed, ProgInfo.FlatUsed);
 
   // Check the addressable register limit before we add ExtraSGPRs.
   if (STM.getGeneration() >= AMDGPUSubtarget::VOLCANIC_ISLANDS &&
       !STM.hasSGPRInitBug()) {
-    unsigned MaxAddressableNumSGPRs = STM.getAddressableNumSGPRs();
+    unsigned const MaxAddressableNumSGPRs = STM.getAddressableNumSGPRs();
     if (ProgInfo.NumSGPR > MaxAddressableNumSGPRs) {
       // This can happen due to a compiler bug or when using inline asm.
       LLVMContext &Ctx = MF.getFunction().getContext();
-      DiagnosticInfoResourceLimit Diag(MF.getFunction(),
+      DiagnosticInfoResourceLimit const Diag(MF.getFunction(),
                                        "addressable scalar registers",
                                        ProgInfo.NumSGPR, DS_Error,
                                        DK_ResourceLimit,
@@ -721,7 +721,7 @@ void AMDGPUAsmPrinter::getSIProgramInfo(SIProgramInfo &ProgInfo,
     // calling convention lowering to legalize the types.
     const DataLayout &DL = F.getParent()->getDataLayout();
     for (auto &Arg : F.args()) {
-      unsigned NumRegs = (DL.getTypeSizeInBits(Arg.getType()) + 31) / 32;
+      unsigned const NumRegs = (DL.getTypeSizeInBits(Arg.getType()) + 31) / 32;
       if (Arg.hasAttribute(Attribute::InReg))
         WaveDispatchNumSGPR += NumRegs;
       else
@@ -740,12 +740,12 @@ void AMDGPUAsmPrinter::getSIProgramInfo(SIProgramInfo &ProgInfo,
 
   if (STM.getGeneration() <= AMDGPUSubtarget::SEA_ISLANDS ||
       STM.hasSGPRInitBug()) {
-    unsigned MaxAddressableNumSGPRs = STM.getAddressableNumSGPRs();
+    unsigned const MaxAddressableNumSGPRs = STM.getAddressableNumSGPRs();
     if (ProgInfo.NumSGPR > MaxAddressableNumSGPRs) {
       // This can happen due to a compiler bug or when using inline asm to use
       // the registers which are usually reserved for vcc etc.
       LLVMContext &Ctx = MF.getFunction().getContext();
-      DiagnosticInfoResourceLimit Diag(MF.getFunction(),
+      DiagnosticInfoResourceLimit const Diag(MF.getFunction(),
                                        "scalar registers",
                                        ProgInfo.NumSGPR, DS_Error,
                                        DK_ResourceLimit,
@@ -765,14 +765,14 @@ void AMDGPUAsmPrinter::getSIProgramInfo(SIProgramInfo &ProgInfo,
 
   if (MFI->getNumUserSGPRs() > STM.getMaxNumUserSGPRs()) {
     LLVMContext &Ctx = MF.getFunction().getContext();
-    DiagnosticInfoResourceLimit Diag(MF.getFunction(), "user SGPRs",
+    DiagnosticInfoResourceLimit const Diag(MF.getFunction(), "user SGPRs",
                                      MFI->getNumUserSGPRs(), DS_Error);
     Ctx.diagnose(Diag);
   }
 
   if (MFI->getLDSSize() > static_cast<unsigned>(STM.getLocalMemorySize())) {
     LLVMContext &Ctx = MF.getFunction().getContext();
-    DiagnosticInfoResourceLimit Diag(MF.getFunction(), "local memory",
+    DiagnosticInfoResourceLimit const Diag(MF.getFunction(), "local memory",
                                      MFI->getLDSSize(), DS_Error);
     Ctx.diagnose(Diag);
   }
@@ -802,7 +802,7 @@ void AMDGPUAsmPrinter::getSIProgramInfo(SIProgramInfo &ProgInfo,
     LDSAlignShift = 9;
   }
 
-  unsigned LDSSpillSize =
+  unsigned const LDSSpillSize =
     MFI->getLDSWaveSpillSize() * MFI->getMaxFlatWorkGroupSize();
 
   ProgInfo.LDSSize = MFI->getLDSSize() + LDSSpillSize;
@@ -810,7 +810,7 @@ void AMDGPUAsmPrinter::getSIProgramInfo(SIProgramInfo &ProgInfo,
       alignTo(ProgInfo.LDSSize, 1ULL << LDSAlignShift) >> LDSAlignShift;
 
   // Scratch is allocated in 256 dword blocks.
-  unsigned ScratchAlignShift = 10;
+  unsigned const ScratchAlignShift = 10;
   // We need to program the hardware with the amount of scratch memory that
   // is used by the entire wave.  ProgInfo.ScratchSize is the amount of
   // scratch memory used per thread.
@@ -876,7 +876,7 @@ static unsigned getRsrcReg(CallingConv::ID CallConv) {
 void AMDGPUAsmPrinter::EmitProgramInfoSI(const MachineFunction &MF,
                                          const SIProgramInfo &CurrentProgramInfo) {
   const SIMachineFunctionInfo *MFI = MF.getInfo<SIMachineFunctionInfo>();
-  unsigned RsrcReg = getRsrcReg(MF.getFunction().getCallingConv());
+  unsigned const RsrcReg = getRsrcReg(MF.getFunction().getCallingConv());
 
   if (AMDGPU::isCompute(MF.getFunction().getCallingConv())) {
     OutStreamer->emitInt32(R_00B848_COMPUTE_PGM_RSRC1);
@@ -1067,7 +1067,7 @@ bool AMDGPUAsmPrinter::PrintAsmOperand(const MachineInstr *MI, unsigned OpNo,
                                        *MF->getSubtarget().getRegisterInfo());
     return false;
   } else if (MO.isImm()) {
-    int64_t Val = MO.getImm();
+    int64_t const Val = MO.getImm();
     if (AMDGPU::isInlinableIntLiteral(Val)) {
       O << Val;
     } else if (isUInt<16>(Val)) {

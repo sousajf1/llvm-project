@@ -100,14 +100,14 @@ void WebAssemblyAsmBackend::applyFixup(const MCAssembler &Asm,
   const MCFixupKindInfo &Info = getFixupKindInfo(Fixup.getKind());
   assert(Info.Flags == 0 && "WebAssembly does not use MCFixupKindInfo flags");
 
-  unsigned NumBytes = alignTo(Info.TargetSize, 8) / 8;
+  unsigned const NumBytes = alignTo(Info.TargetSize, 8) / 8;
   if (Value == 0)
     return; // Doesn't change encoding.
 
   // Shift the value into position.
   Value <<= Info.TargetOffset;
 
-  unsigned Offset = Fixup.getOffset();
+  unsigned const Offset = Fixup.getOffset();
   assert(Offset + NumBytes <= Data.size() && "Invalid fixup offset!");
 
   // For each byte of the fragment that the fixup touches, mask in the

@@ -86,10 +86,10 @@ public:
   void format(raw_ostream &OS) {
     if (!PrunedSource)
       return;
-    size_t MaxLineNumberWidth = std::ceil(std::log10(LastLine));
+    size_t const MaxLineNumberWidth = std::ceil(std::log10(LastLine));
     int64_t L = FirstLine;
     for (size_t Pos = 0; Pos < PrunedSource->size(); ++L) {
-      size_t PosEnd = PrunedSource->find('\n', Pos);
+      size_t const PosEnd = PrunedSource->find('\n', Pos);
       StringRef String = PrunedSource->substr(
           Pos, (PosEnd == StringRef::npos) ? StringRef::npos : (PosEnd - Pos));
       if (String.endswith("\r"))
@@ -111,7 +111,7 @@ void PlainPrinterBase::printHeader(uint64_t Address) {
   if (Config.PrintAddress) {
     OS << "0x";
     OS.write_hex(Address);
-    StringRef Delimiter = Config.Pretty ? ": " : "\n";
+    StringRef const Delimiter = Config.Pretty ? ": " : "\n";
     OS << Delimiter;
   }
 }
@@ -125,8 +125,8 @@ void PlainPrinterBase::printFunctionName(StringRef FunctionName, bool Inlined) {
   if (Config.PrintFunctions) {
     if (FunctionName == DILineInfo::BadString)
       FunctionName = DILineInfo::Addr2LineBadString;
-    StringRef Delimiter = Config.Pretty ? " at " : "\n";
-    StringRef Prefix = (Config.Pretty && Inlined) ? " (inlined by) " : "";
+    StringRef const Delimiter = Config.Pretty ? " at " : "\n";
+    StringRef const Prefix = (Config.Pretty && Inlined) ? " (inlined by) " : "";
     OS << Prefix << FunctionName << Delimiter;
   }
 }
@@ -192,7 +192,7 @@ void PlainPrinterBase::print(const Request &Request, const DILineInfo &Info) {
 void PlainPrinterBase::print(const Request &Request,
                              const DIInliningInfo &Info) {
   printHeader(*Request.Address);
-  uint32_t FramesNum = Info.getNumberOfFrames();
+  uint32_t const FramesNum = Info.getNumberOfFrames();
   if (FramesNum == 0)
     print(DILineInfo(), false);
   else

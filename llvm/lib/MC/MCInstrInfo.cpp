@@ -14,7 +14,7 @@ using namespace llvm;
 
 bool MCInstrInfo::getDeprecatedInfo(MCInst &MI, const MCSubtargetInfo &STI,
                                     std::string &Info) const {
-  unsigned Opcode = MI.getOpcode();
+  unsigned const Opcode = MI.getOpcode();
   if (ComplexDeprecationInfos && ComplexDeprecationInfos[Opcode])
     return ComplexDeprecationInfos[Opcode](MI, STI, Info);
   if (DeprecatedFeatures && DeprecatedFeatures[Opcode] != uint8_t(-1U) &&

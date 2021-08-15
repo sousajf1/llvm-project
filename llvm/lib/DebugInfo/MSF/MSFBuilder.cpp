@@ -104,13 +104,13 @@ Error MSFBuilder::allocateBlocks(uint32_t NumBlocks,
   if (NumBlocks == 0)
     return Error::success();
 
-  uint32_t NumFreeBlocks = FreeBlocks.count();
+  uint32_t const NumFreeBlocks = FreeBlocks.count();
   if (NumFreeBlocks < NumBlocks) {
     if (!IsGrowable)
       return make_error<MSFError>(msf_error_code::insufficient_buffer,
                                   "There are no free Blocks in the file");
-    uint32_t AllocBlocks = NumBlocks - NumFreeBlocks;
-    uint32_t OldBlockCount = FreeBlocks.size();
+    uint32_t const AllocBlocks = NumBlocks - NumFreeBlocks;
+    uint32_t const OldBlockCount = FreeBlocks.size();
     uint32_t NewBlockCount = AllocBlocks + OldBlockCount;
     uint32_t NextFpmBlock = alignTo(OldBlockCount, BlockSize) + 1;
     FreeBlocks.resize(NewBlockCount, true);
@@ -134,7 +134,7 @@ Error MSFBuilder::allocateBlocks(uint32_t NumBlocks,
   do {
     assert(Block != -1 && "We ran out of Blocks!");
 
-    uint32_t NextBlock = static_cast<uint32_t>(Block);
+    uint32_t const NextBlock = static_cast<uint32_t>(Block);
     Blocks[I++] = NextBlock;
     FreeBlocks.reset(NextBlock);
     Block = FreeBlocks.find_next(Block);
@@ -157,7 +157,7 @@ Expected<uint32_t> MSFBuilder::addStream(uint32_t Size,
   // Add a new stream mapped to the specified blocks.  Verify that the specified
   // blocks are both necessary and sufficient for holding the requested number
   // of bytes, and verify that all requested blocks are free.
-  uint32_t ReqBlocks = bytesToBlocks(Size, BlockSize);
+  uint32_t const ReqBlocks = bytesToBlocks(Size, BlockSize);
   if (ReqBlocks != Blocks.size())
     return make_error<MSFError>(
         msf_error_code::invalid_format,
@@ -180,7 +180,7 @@ Expected<uint32_t> MSFBuilder::addStream(uint32_t Size,
 }
 
 Expected<uint32_t> MSFBuilder::addStream(uint32_t Size) {
-  uint32_t ReqBlocks = bytesToBlocks(Size, BlockSize);
+  uint32_t const ReqBlocks = bytesToBlocks(Size, BlockSize);
   std::vector<uint32_t> NewBlocks;
   NewBlocks.resize(ReqBlocks);
   if (auto EC = allocateBlocks(ReqBlocks, NewBlocks))
@@ -190,15 +190,15 @@ Expected<uint32_t> MSFBuilder::addStream(uint32_t Size) {
 }
 
 Error MSFBuilder::setStreamSize(uint32_t Idx, uint32_t Size) {
-  uint32_t OldSize = getStreamSize(Idx);
+  uint32_t const OldSize = getStreamSize(Idx);
   if (OldSize == Size)
     return Error::success();
 
-  uint32_t NewBlocks = bytesToBlocks(Size, BlockSize);
-  uint32_t OldBlocks = bytesToBlocks(OldSize, BlockSize);
+  uint32_t const NewBlocks = bytesToBlocks(Size, BlockSize);
+  uint32_t const OldBlocks = bytesToBlocks(OldSize, BlockSize);
 
   if (NewBlocks > OldBlocks) {
-    uint32_t AddedBlocks = NewBlocks - OldBlocks;
+    uint32_t const AddedBlocks = NewBlocks - OldBlocks;
     // If we're growing, we have to allocate new Blocks.
     std::vector<uint32_t> AddedBlockList;
     AddedBlockList.resize(AddedBlocks);
@@ -209,7 +209,7 @@ Error MSFBuilder::setStreamSize(uint32_t Idx, uint32_t Size) {
   } else if (OldBlocks > NewBlocks) {
     // For shrinking, free all the Blocks in the Block map, update the stream
     // data, then shrink the directory.
-    uint32_t RemovedBlocks = OldBlocks - NewBlocks;
+    uint32_t const RemovedBlocks = OldBlocks - NewBlocks;
     auto CurrentBlocks = ArrayRef<uint32_t>(StreamData[Idx].second);
     auto RemovedBlockList = CurrentBlocks.drop_front(NewBlocks);
     for (auto P : RemovedBlockList)
@@ -239,7 +239,7 @@ uint32_t MSFBuilder::computeDirectoryByteSize() const {
   uint32_t Size = sizeof(ulittle32_t);             // NumStreams
   Size += StreamData.size() * sizeof(ulittle32_t); // StreamSizes
   for (const auto &D : StreamData) {
-    uint32_t ExpectedNumBlocks = bytesToBlocks(D.first, BlockSize);
+    uint32_t const ExpectedNumBlocks = bytesToBlocks(D.first, BlockSize);
     assert(ExpectedNumBlocks == D.second.size() &&
            "Unexpected number of blocks");
     Size += ExpectedNumBlocks * sizeof(ulittle32_t);
@@ -259,18 +259,18 @@ Expected<MSFLayout> MSFBuilder::generateLayout() {
   SB->FreeBlockMapBlock = FreePageMap;
   SB->Unknown1 = Unknown1;
 
-  uint32_t NumDirectoryBlocks = bytesToBlocks(SB->NumDirectoryBytes, BlockSize);
+  uint32_t const NumDirectoryBlocks = bytesToBlocks(SB->NumDirectoryBytes, BlockSize);
   if (NumDirectoryBlocks > DirectoryBlocks.size()) {
     // Our hint wasn't enough to satisfy the entire directory.  Allocate
     // remaining pages.
     std::vector<uint32_t> ExtraBlocks;
-    uint32_t NumExtraBlocks = NumDirectoryBlocks - DirectoryBlocks.size();
+    uint32_t const NumExtraBlocks = NumDirectoryBlocks - DirectoryBlocks.size();
     ExtraBlocks.resize(NumExtraBlocks);
     if (auto EC = allocateBlocks(NumExtraBlocks, ExtraBlocks))
       return std::move(EC);
     llvm::append_range(DirectoryBlocks, ExtraBlocks);
   } else if (NumDirectoryBlocks < DirectoryBlocks.size()) {
-    uint32_t NumUnnecessaryBlocks = DirectoryBlocks.size() - NumDirectoryBlocks;
+    uint32_t const NumUnnecessaryBlocks = DirectoryBlocks.size() - NumDirectoryBlocks;
     for (auto B :
          ArrayRef<uint32_t>(DirectoryBlocks).drop_back(NumUnnecessaryBlocks))
       FreeBlocks[B] = true;
@@ -323,9 +323,9 @@ static void commitFpm(WritableBinaryStream &MsfBuffer, const MSFLayout &Layout,
   while (BI < Layout.SB->NumBlocks) {
     uint8_t ThisByte = 0;
     for (uint32_t I = 0; I < 8; ++I) {
-      bool IsFree =
+      bool const IsFree =
           (BI < Layout.SB->NumBlocks) ? Layout.FreePageMap.test(BI) : true;
-      uint8_t Mask = uint8_t(IsFree) << I;
+      uint8_t const Mask = uint8_t(IsFree) << I;
       ThisByte |= Mask;
       ++BI;
     }
@@ -367,7 +367,7 @@ Expected<FileBufferByteStream> MSFBuilder::commit(StringRef Path,
 
   commitFpm(Buffer, Layout, Allocator);
 
-  uint32_t BlockMapOffset =
+  uint32_t const BlockMapOffset =
       msf::blockToOffset(Layout.SB->BlockMapAddr, Layout.SB->BlockSize);
   Writer.setOffset(BlockMapOffset);
   if (auto EC = Writer.writeArray(Layout.DirectoryBlocks))

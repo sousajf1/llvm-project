@@ -36,9 +36,9 @@ opt<bool> DisableMIPeephole("disable-bpf-peephole", cl::Hidden,
 
 extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializeBPFTarget() {
   // Register the target.
-  RegisterTargetMachine<BPFTargetMachine> X(getTheBPFleTarget());
-  RegisterTargetMachine<BPFTargetMachine> Y(getTheBPFbeTarget());
-  RegisterTargetMachine<BPFTargetMachine> Z(getTheBPFTarget());
+  RegisterTargetMachine<BPFTargetMachine> const X(getTheBPFleTarget());
+  RegisterTargetMachine<BPFTargetMachine> const Y(getTheBPFbeTarget());
+  RegisterTargetMachine<BPFTargetMachine> const Z(getTheBPFTarget());
 
   PassRegistry &PR = *PassRegistry::getPassRegistry();
   initializeBPFAbstractMemberAccessLegacyPassPass(PR);

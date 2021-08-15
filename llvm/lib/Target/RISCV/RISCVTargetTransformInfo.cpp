@@ -124,7 +124,7 @@ Optional<unsigned> RISCVTTIImpl::getMaxVScale() const {
   // If users do not specify the maximum vector length, we have no way to
   // know whether the LoopVectorizer is safe to do or not.
   // We only consider to use single vector register (LMUL = 1) to vectorize.
-  unsigned MaxVectorSizeInBits = ST->getMaxRVVVectorSizeInBits();
+  unsigned const MaxVectorSizeInBits = ST->getMaxRVVVectorSizeInBits();
   if (ST->hasStdExtV() && MaxVectorSizeInBits != 0)
     return MaxVectorSizeInBits / RISCV::RVVBitsPerBlock;
   return BaseT::getMaxVScale();
@@ -150,8 +150,8 @@ InstructionCost RISCVTTIImpl::getGatherScatterOpCost(
                                          Alignment, CostKind, I);
 
   auto *VTy = cast<FixedVectorType>(DataTy);
-  unsigned NumLoads = VTy->getNumElements();
-  InstructionCost MemOpCost =
+  unsigned const NumLoads = VTy->getNumElements();
+  InstructionCost const MemOpCost =
       getMemoryOpCost(Opcode, VTy->getElementType(), Alignment, 0, CostKind, I);
   return NumLoads * MemOpCost;
 }

@@ -31,7 +31,7 @@ SDValue AArch64SelectionDAGInfo::EmitTargetCodeForMemset(
   if (bzeroName && (!SizeValue || SizeValue->getZExtValue() > 256)) {
     const AArch64TargetLowering &TLI = *STI.getTargetLowering();
 
-    EVT IntPtr = TLI.getPointerTy(DAG.getDataLayout());
+    EVT const IntPtr = TLI.getPointerTy(DAG.getDataLayout());
     Type *IntPtrTy = Type::getInt8PtrTy(*DAG.getContext());
     TargetLowering::ArgListTy Args;
     TargetLowering::ArgListEntry Entry;
@@ -47,7 +47,7 @@ SDValue AArch64SelectionDAGInfo::EmitTargetCodeForMemset(
                       DAG.getExternalSymbol(bzeroName, IntPtr),
                       std::move(Args))
         .setDiscardResult();
-    std::pair<SDValue, SDValue> CallResult = TLI.LowerCallTo(CLI);
+    std::pair<SDValue, SDValue> const CallResult = TLI.LowerCallTo(CLI);
     return CallResult.second;
   }
   return SDValue();
@@ -60,11 +60,11 @@ static SDValue EmitUnrolledSetTag(SelectionDAG &DAG, const SDLoc &dl,
                                   const MachineMemOperand *BaseMemOperand,
                                   bool ZeroData) {
   MachineFunction &MF = DAG.getMachineFunction();
-  unsigned ObjSizeScaled = ObjSize / 16;
+  unsigned const ObjSizeScaled = ObjSize / 16;
 
   SDValue TagSrc = Ptr;
   if (Ptr.getOpcode() == ISD::FrameIndex) {
-    int FI = cast<FrameIndexSDNode>(Ptr)->getIndex();
+    int const FI = cast<FrameIndexSDNode>(Ptr)->getIndex();
     Ptr = DAG.getTargetFrameIndex(FI, MVT::i64);
     // A frame index operand may end up as [SP + offset] => it is fine to use SP
     // register as the tag source.
@@ -78,9 +78,9 @@ static SDValue EmitUnrolledSetTag(SelectionDAG &DAG, const SDLoc &dl,
   unsigned OffsetScaled = 0;
   while (OffsetScaled < ObjSizeScaled) {
     if (ObjSizeScaled - OffsetScaled >= 2) {
-      SDValue AddrNode =
+      SDValue const AddrNode =
           DAG.getMemBasePlusOffset(Ptr, TypeSize::Fixed(OffsetScaled * 16), dl);
-      SDValue St = DAG.getMemIntrinsicNode(
+      SDValue const St = DAG.getMemIntrinsicNode(
           OpCode2, dl, DAG.getVTList(MVT::Other),
           {Chain, TagSrc, AddrNode},
           MVT::v4i64,
@@ -91,9 +91,9 @@ static SDValue EmitUnrolledSetTag(SelectionDAG &DAG, const SDLoc &dl,
     }
 
     if (ObjSizeScaled - OffsetScaled > 0) {
-      SDValue AddrNode =
+      SDValue const AddrNode =
           DAG.getMemBasePlusOffset(Ptr, TypeSize::Fixed(OffsetScaled * 16), dl);
-      SDValue St = DAG.getMemIntrinsicNode(
+      SDValue const St = DAG.getMemIntrinsicNode(
           OpCode1, dl, DAG.getVTList(MVT::Other),
           {Chain, TagSrc, AddrNode},
           MVT::v2i64,
@@ -110,14 +110,14 @@ static SDValue EmitUnrolledSetTag(SelectionDAG &DAG, const SDLoc &dl,
 SDValue AArch64SelectionDAGInfo::EmitTargetCodeForSetTag(
     SelectionDAG &DAG, const SDLoc &dl, SDValue Chain, SDValue Addr,
     SDValue Size, MachinePointerInfo DstPtrInfo, bool ZeroData) const {
-  uint64_t ObjSize = cast<ConstantSDNode>(Size)->getZExtValue();
+  uint64_t const ObjSize = cast<ConstantSDNode>(Size)->getZExtValue();
   assert(ObjSize % 16 == 0);
 
   MachineFunction &MF = DAG.getMachineFunction();
   MachineMemOperand *BaseMemOperand = MF.getMachineMemOperand(
       DstPtrInfo, MachineMemOperand::MOStore, ObjSize, Align(16));
 
-  bool UseSetTagRangeLoop =
+  bool const UseSetTagRangeLoop =
       kSetTagLoopThreshold >= 0 && (int)ObjSize >= kSetTagLoopThreshold;
   if (!UseSetTagRangeLoop)
     return EmitUnrolledSetTag(DAG, dl, Chain, Addr, ObjSize, BaseMemOperand,
@@ -127,13 +127,13 @@ SDValue AArch64SelectionDAGInfo::EmitTargetCodeForSetTag(
 
   unsigned Opcode;
   if (Addr.getOpcode() == ISD::FrameIndex) {
-    int FI = cast<FrameIndexSDNode>(Addr)->getIndex();
+    int const FI = cast<FrameIndexSDNode>(Addr)->getIndex();
     Addr = DAG.getTargetFrameIndex(FI, MVT::i64);
     Opcode = ZeroData ? AArch64::STZGloop : AArch64::STGloop;
   } else {
     Opcode = ZeroData ? AArch64::STZGloop_wback : AArch64::STGloop_wback;
   }
-  SDValue Ops[] = {DAG.getTargetConstant(ObjSize, dl, MVT::i64), Addr, Chain};
+  SDValue const Ops[] = {DAG.getTargetConstant(ObjSize, dl, MVT::i64), Addr, Chain};
   SDNode *St = DAG.getMachineNode(Opcode, dl, ResTys, Ops);
 
   DAG.setNodeMemRefs(cast<MachineSDNode>(St), {BaseMemOperand});

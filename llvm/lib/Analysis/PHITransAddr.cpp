@@ -148,7 +148,7 @@ Value *PHITransAddr::PHITranslateSubExpr(Value *V, BasicBlock *CurBB,
   if (!Inst) return V;
 
   // Determine whether 'Inst' is an input to our PHI translatable expression.
-  bool isInput = is_contained(InstInputs, Inst);
+  bool const isInput = is_contained(InstInputs, Inst);
 
   // Handle inputs instructions if needed.
   if (isInput) {
@@ -341,7 +341,7 @@ Value *PHITransAddr::
 PHITranslateWithInsertion(BasicBlock *CurBB, BasicBlock *PredBB,
                           const DominatorTree &DT,
                           SmallVectorImpl<Instruction*> &NewInsts) {
-  unsigned NISize = NewInsts.size();
+  unsigned const NISize = NewInsts.size();
 
   // Attempt to PHI translate with insertion.
   Addr = InsertPHITranslatedSubExpr(Addr, CurBB, PredBB, DT, NewInsts);

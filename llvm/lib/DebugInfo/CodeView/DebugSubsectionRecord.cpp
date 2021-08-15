@@ -33,7 +33,7 @@ Error DebugSubsectionRecord::initialize(BinaryStreamRef Stream,
   if (auto EC = Reader.readObject(Header))
     return EC;
 
-  DebugSubsectionKind Kind =
+  DebugSubsectionKind const Kind =
       static_cast<DebugSubsectionKind>(uint32_t(Header->Kind));
   if (auto EC = Reader.readStreamRef(Info.Data, Header->Length))
     return EC;
@@ -58,7 +58,7 @@ DebugSubsectionRecordBuilder::DebugSubsectionRecordBuilder(
     : Contents(Contents) {}
 
 uint32_t DebugSubsectionRecordBuilder::calculateSerializedLength() const {
-  uint32_t DataSize = Subsection ? Subsection->calculateSerializedSize()
+  uint32_t const DataSize = Subsection ? Subsection->calculateSerializedSize()
                                  : Contents.getRecordData().getLength();
   // The length of the entire subsection is always padded to 4 bytes,
   // regardless of the container kind.
@@ -74,7 +74,7 @@ Error DebugSubsectionRecordBuilder::commit(BinaryStreamWriter &Writer,
   Header.Kind = uint32_t(Subsection ? Subsection->kind() : Contents.kind());
   // The value written into the Header's Length field is only padded to the
   // container's alignment
-  uint32_t DataSize = Subsection ? Subsection->calculateSerializedSize()
+  uint32_t const DataSize = Subsection ? Subsection->calculateSerializedSize()
                                  : Contents.getRecordData().getLength();
   Header.Length = alignTo(DataSize, alignOf(Container));
 

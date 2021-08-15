@@ -38,7 +38,7 @@ void MSP430InstPrinter::printPCRelImmOperand(const MCInst *MI, unsigned OpNo,
                                              raw_ostream &O) {
   const MCOperand &Op = MI->getOperand(OpNo);
   if (Op.isImm()) {
-    int64_t Imm = Op.getImm() * 2 + 2;
+    int64_t const Imm = Op.getImm() * 2 + 2;
     O << "$";
     if (Imm >= 0)
       O << '+';
@@ -108,7 +108,7 @@ void MSP430InstPrinter::printPostIndRegOperand(const MCInst *MI, unsigned OpNo,
 
 void MSP430InstPrinter::printCCOperand(const MCInst *MI, unsigned OpNo,
                                        raw_ostream &O) {
-  unsigned CC = MI->getOperand(OpNo).getImm();
+  unsigned const CC = MI->getOperand(OpNo).getImm();
 
   switch (CC) {
   default:

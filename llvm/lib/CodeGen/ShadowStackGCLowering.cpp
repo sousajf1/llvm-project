@@ -121,16 +121,16 @@ Constant *ShadowStackGCLowering::GetFrameMap(Function &F) {
 
   Type *Int32Ty = Type::getInt32Ty(F.getContext());
 
-  Constant *BaseElts[] = {
+  Constant *const BaseElts[] = {
       ConstantInt::get(Int32Ty, Roots.size(), false),
       ConstantInt::get(Int32Ty, NumMeta, false),
   };
 
-  Constant *DescriptorElts[] = {
+  Constant *const DescriptorElts[] = {
       ConstantStruct::get(FrameMapTy, BaseElts),
       ConstantArray::get(ArrayType::get(VoidPtr, NumMeta), Metadata)};
 
-  Type *EltTys[] = {DescriptorElts[0]->getType(), DescriptorElts[1]->getType()};
+  Type *const EltTys[] = {DescriptorElts[0]->getType(), DescriptorElts[1]->getType()};
   StructType *STy = StructType::create(EltTys, "gc_map." + utostr(NumMeta));
 
   Constant *FrameMap = ConstantStruct::get(STy, DescriptorElts);
@@ -152,7 +152,7 @@ Constant *ShadowStackGCLowering::GetFrameMap(Function &F) {
                                     GlobalVariable::InternalLinkage, FrameMap,
                                     "__gc_" + F.getName());
 
-  Constant *GEPIndices[2] = {
+  Constant *const GEPIndices[2] = {
       ConstantInt::get(Type::getInt32Ty(F.getContext()), 0),
       ConstantInt::get(Type::getInt32Ty(F.getContext()), 0)};
   return ConstantExpr::getGetElementPtr(FrameMap->getType(), GV, GEPIndices);
@@ -172,7 +172,7 @@ Type *ShadowStackGCLowering::GetConcreteStackEntryType(Function &F) {
 /// not, exit fast.
 bool ShadowStackGCLowering::doInitialization(Module &M) {
   bool Active = false;
-  for (Function &F : M) {
+  for (Function  const&F : M) {
     if (F.hasGC() && F.getGC() == std::string("shadow-stack")) {
       Active = true;
       break;
@@ -244,7 +244,7 @@ void ShadowStackGCLowering::CollectRoots(Function &F) {
       if (IntrinsicInst *CI = dyn_cast<IntrinsicInst>(II++))
         if (Function *F = CI->getCalledFunction())
           if (F->getIntrinsicID() == Intrinsic::gcroot) {
-            std::pair<CallInst *, AllocaInst *> Pair = std::make_pair(
+            std::pair<CallInst *, AllocaInst *> const Pair = std::make_pair(
                 CI,
                 cast<AllocaInst>(CI->getArgOperand(0)->stripPointerCasts()));
             if (IsNullValue(CI->getArgOperand(1)))
@@ -263,7 +263,7 @@ GetElementPtrInst *ShadowStackGCLowering::CreateGEP(LLVMContext &Context,
                                                     Value *BasePtr, int Idx,
                                                     int Idx2,
                                                     const char *Name) {
-  Value *Indices[] = {ConstantInt::get(Type::getInt32Ty(Context), 0),
+  Value *const Indices[] = {ConstantInt::get(Type::getInt32Ty(Context), 0),
                       ConstantInt::get(Type::getInt32Ty(Context), Idx),
                       ConstantInt::get(Type::getInt32Ty(Context), Idx2)};
   Value *Val = B.CreateGEP(Ty, BasePtr, Indices, Name);
@@ -276,7 +276,7 @@ GetElementPtrInst *ShadowStackGCLowering::CreateGEP(LLVMContext &Context,
 GetElementPtrInst *ShadowStackGCLowering::CreateGEP(LLVMContext &Context,
                                             IRBuilder<> &B, Type *Ty, Value *BasePtr,
                                             int Idx, const char *Name) {
-  Value *Indices[] = {ConstantInt::get(Type::getInt32Ty(Context), 0),
+  Value *const Indices[] = {ConstantInt::get(Type::getInt32Ty(Context), 0),
                       ConstantInt::get(Type::getInt32Ty(Context), Idx)};
   Value *Val = B.CreateGEP(Ty, BasePtr, Indices, Name);
 

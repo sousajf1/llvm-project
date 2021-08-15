@@ -106,8 +106,8 @@ bool X86AvoidTrailingCallPass::runOnMachineFunction(MachineFunction &MF) {
     // insert an int3. If there is a call instruction, insert the int3 between
     // the call and any labels or other meta instructions. If the block is
     // empty, insert at block end.
-    bool IsEmpty = LastRealInstr == MBB.rend();
-    bool IsCall = !IsEmpty && isCallInstruction(*LastRealInstr);
+    bool const IsEmpty = LastRealInstr == MBB.rend();
+    bool const IsCall = !IsEmpty && isCallInstruction(*LastRealInstr);
     if (IsEmpty || IsCall) {
       LLVM_DEBUG({
         if (IsCall) {

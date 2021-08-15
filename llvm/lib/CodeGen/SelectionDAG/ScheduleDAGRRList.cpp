@@ -275,7 +275,7 @@ private:
 
   /// CreateNewSUnit - Creates a new SUnit and returns a pointer to it.
   SUnit *CreateNewSUnit(SDNode *N) {
-    unsigned NumSUnits = SUnits.size();
+    unsigned const NumSUnits = SUnits.size();
     SUnit *NewNode = newSUnit(N);
     // Update the topological ordering.
     if (NewNode->NodeNum >= NumSUnits)
@@ -285,7 +285,7 @@ private:
 
   /// CreateClone - Creates a new SUnit from an existing one.
   SUnit *CreateClone(SUnit *N) {
-    unsigned NumSUnits = SUnits.size();
+    unsigned const NumSUnits = SUnits.size();
     SUnit *NewNode = Clone(N);
     // Update the topological ordering.
     if (NewNode->NodeNum >= NumSUnits)
@@ -312,7 +312,7 @@ static void GetCostForDef(const ScheduleDAGSDNodes::RegDefIter &RegDefPos,
                           const TargetRegisterInfo *TRI,
                           unsigned &RegClass, unsigned &Cost,
                           const MachineFunction &MF) {
-  MVT VT = RegDefPos.GetValue();
+  MVT const VT = RegDefPos.GetValue();
 
   // Special handling for untyped values.  These values can only come from
   // the expansion of custom DAG-to-DAG patterns.
@@ -321,23 +321,23 @@ static void GetCostForDef(const ScheduleDAGSDNodes::RegDefIter &RegDefPos,
 
     // Special handling for CopyFromReg of untyped values.
     if (!Node->isMachineOpcode() && Node->getOpcode() == ISD::CopyFromReg) {
-      unsigned Reg = cast<RegisterSDNode>(Node->getOperand(1))->getReg();
+      unsigned const Reg = cast<RegisterSDNode>(Node->getOperand(1))->getReg();
       const TargetRegisterClass *RC = MF.getRegInfo().getRegClass(Reg);
       RegClass = RC->getID();
       Cost = 1;
       return;
     }
 
-    unsigned Opcode = Node->getMachineOpcode();
+    unsigned const Opcode = Node->getMachineOpcode();
     if (Opcode == TargetOpcode::REG_SEQUENCE) {
-      unsigned DstRCIdx = cast<ConstantSDNode>(Node->getOperand(0))->getZExtValue();
+      unsigned const DstRCIdx = cast<ConstantSDNode>(Node->getOperand(0))->getZExtValue();
       const TargetRegisterClass *RC = TRI->getRegClass(DstRCIdx);
       RegClass = RC->getID();
       Cost = 1;
       return;
     }
 
-    unsigned Idx = RegDefPos.GetIdx();
+    unsigned const Idx = RegDefPos.GetIdx();
     const MCInstrDesc Desc = TII->get(Opcode);
     const TargetRegisterClass *RC = TII->getRegClass(Desc, Idx, TRI, MF);
     RegClass = RC->getID();
@@ -419,7 +419,7 @@ void ScheduleDAGRRList::ReleasePred(SUnit *SU, const SDep *PredEdge) {
   if (PredSU->NumSuccsLeft == 0 && PredSU != &EntrySU) {
     PredSU->isAvailable = true;
 
-    unsigned Height = PredSU->getHeight();
+    unsigned const Height = PredSU->getHeight();
     if (Height < MinAvailableCycle)
       MinAvailableCycle = Height;
 
@@ -553,7 +553,7 @@ FindCallSeqStart(SDNode *N, unsigned &NestLevel, unsigned &MaxNest,
 /// interference on flags.
 void ScheduleDAGRRList::ReleasePredecessors(SUnit *SU) {
   // Bottom up: release predecessors
-  for (SDep &Pred : SU->Preds) {
+  for (SDep  const&Pred : SU->Preds) {
     ReleasePred(SU, &Pred);
     if (Pred.isAssignedRegDep()) {
       // This is a physical register dependency and it's impossible or
@@ -574,7 +574,7 @@ void ScheduleDAGRRList::ReleasePredecessors(SUnit *SU) {
   // If we're scheduling a lowered CALLSEQ_END, find the corresponding
   // CALLSEQ_BEGIN. Inject an artificial physical register dependence between
   // these nodes, to prevent other calls from being interscheduled with them.
-  unsigned CallResource = TRI->getNumRegs();
+  unsigned const CallResource = TRI->getNumRegs();
   if (!LiveRegDefs[CallResource])
     for (SDNode *Node = SU->getNode(); Node; Node = Node->getGluedNode())
       if (Node->isMachineOpcode() &&
@@ -609,7 +609,7 @@ void ScheduleDAGRRList::ReleasePending() {
   // Check to see if any of the pending instructions are ready to issue.  If
   // so, add them to the available queue.
   for (unsigned i = 0, e = PendingQueue.size(); i != e; ++i) {
-    unsigned ReadyCycle = PendingQueue[i]->getHeight();
+    unsigned const ReadyCycle = PendingQueue[i]->getHeight();
     if (ReadyCycle < MinAvailableCycle)
       MinAvailableCycle = ReadyCycle;
 
@@ -659,7 +659,7 @@ void ScheduleDAGRRList::AdvancePastStalls(SUnit *SU) {
   // currently need to treat these nodes like real instructions.
   // if (!SU->getNode() || !SU->getNode()->isMachineOpcode()) return;
 
-  unsigned ReadyCycle = SU->getHeight();
+  unsigned const ReadyCycle = SU->getHeight();
 
   // Bump CurCycle to account for latency. We assume the latency of other
   // available instructions may be hidden by the stall (not a full pipe stall).
@@ -677,7 +677,7 @@ void ScheduleDAGRRList::AdvancePastStalls(SUnit *SU) {
   // should probably skip ahead here to avoid useless scoreboard checks.
   int Stalls = 0;
   while (true) {
-    ScheduleHazardRecognizer::HazardType HT =
+    ScheduleHazardRecognizer::HazardType const HT =
       HazardRec->getHazardType(SU, -Stalls);
 
     if (HT == ScheduleHazardRecognizer::NoHazard)
@@ -767,7 +767,7 @@ void ScheduleDAGRRList::ScheduleNodeBottomUp(SUnit *SU) {
   ReleasePredecessors(SU);
 
   // Release all the implicit physical register defs that are live.
-  for (SDep &Succ : SU->Succs) {
+  for (SDep  const&Succ : SU->Succs) {
     // LiveRegDegs[Succ.getReg()] != SU when SU is a two-address node.
     if (Succ.isAssignedRegDep() && LiveRegDefs[Succ.getReg()] == SU) {
       assert(NumLiveRegs > 0 && "NumLiveRegs is already zero!");
@@ -779,7 +779,7 @@ void ScheduleDAGRRList::ScheduleNodeBottomUp(SUnit *SU) {
   }
   // Release the special call resource dependence, if this is the beginning
   // of a call.
-  unsigned CallResource = TRI->getNumRegs();
+  unsigned const CallResource = TRI->getNumRegs();
   if (LiveRegDefs[CallResource] == SU)
     for (const SDNode *SUNode = SU->getNode(); SUNode;
          SUNode = SUNode->getGluedNode()) {
@@ -851,7 +851,7 @@ void ScheduleDAGRRList::UnscheduleNodeBottomUp(SUnit *SU) {
 
   // Reclaim the special call resource dependence, if this is the beginning
   // of a call.
-  unsigned CallResource = TRI->getNumRegs();
+  unsigned const CallResource = TRI->getNumRegs();
   for (const SDNode *SUNode = SU->getNode(); SUNode;
        SUNode = SUNode->getGluedNode()) {
     if (SUNode->isMachineOpcode() &&
@@ -927,7 +927,7 @@ void ScheduleDAGRRList::UnscheduleNodeBottomUp(SUnit *SU) {
 void ScheduleDAGRRList::RestoreHazardCheckerBottomUp() {
   HazardRec->Reset();
 
-  unsigned LookAhead = std::min((unsigned)Sequence.size(),
+  unsigned const LookAhead = std::min((unsigned)Sequence.size(),
                                 HazardRec->getMaxLookAhead());
   if (LookAhead == 0)
     return;
@@ -993,8 +993,8 @@ SUnit *ScheduleDAGRRList::TryUnfoldSU(SUnit *SU) {
 
   N = NewNodes[1];
   SDNode *LoadNode = NewNodes[0];
-  unsigned NumVals = N->getNumValues();
-  unsigned OldNumVals = SU->getNode()->getNumValues();
+  unsigned const NumVals = N->getNumValues();
+  unsigned const OldNumVals = SU->getNode()->getNumValues();
 
   // LoadNode may already exist. This can happen when there is another
   // load from the same location and producing the same type of value
@@ -1059,7 +1059,7 @@ SUnit *ScheduleDAGRRList::TryUnfoldSU(SUnit *SU) {
   SmallVector<SDep, 4> LoadPreds;
   SmallVector<SDep, 4> NodePreds;
   SmallVector<SDep, 4> NodeSuccs;
-  for (SDep &Pred : SU->Preds) {
+  for (SDep  const&Pred : SU->Preds) {
     if (Pred.isCtrl())
       ChainPreds.push_back(Pred);
     else if (isOperandOf(Pred.getSUnit(), LoadNode))
@@ -1067,7 +1067,7 @@ SUnit *ScheduleDAGRRList::TryUnfoldSU(SUnit *SU) {
     else
       NodePreds.push_back(Pred);
   }
-  for (SDep &Succ : SU->Succs) {
+  for (SDep  const&Succ : SU->Succs) {
     if (Succ.isCtrl())
       ChainSuccs.push_back(Succ);
     else
@@ -1151,7 +1151,7 @@ SUnit *ScheduleDAGRRList::CopyAndMoveSuccessors(SUnit *SU) {
   SUnit *NewSU;
   bool TryUnfold = false;
   for (unsigned i = 0, e = N->getNumValues(); i != e; ++i) {
-    MVT VT = N->getSimpleValueType(i);
+    MVT const VT = N->getSimpleValueType(i);
     if (VT == MVT::Glue) {
       LLVM_DEBUG(dbgs() << "Giving up because it has outgoing glue\n");
       return nullptr;
@@ -1159,7 +1159,7 @@ SUnit *ScheduleDAGRRList::CopyAndMoveSuccessors(SUnit *SU) {
       TryUnfold = true;
   }
   for (const SDValue &Op : N->op_values()) {
-    MVT VT = Op.getNode()->getSimpleValueType(Op.getResNo());
+    MVT const VT = Op.getNode()->getSimpleValueType(Op.getResNo());
     if (VT == MVT::Glue && !TII->canCopyGluedNodeDuringSchedule(N)) {
       LLVM_DEBUG(
           dbgs() << "Giving up because it one of the operands is glue and "
@@ -1184,7 +1184,7 @@ SUnit *ScheduleDAGRRList::CopyAndMoveSuccessors(SUnit *SU) {
   NewSU = CreateClone(SU);
 
   // New SUnit has the exact same predecessors.
-  for (SDep &Pred : SU->Preds)
+  for (SDep  const&Pred : SU->Preds)
     if (!Pred.isArtificial())
       AddPredQueued(NewSU, Pred);
 
@@ -1195,7 +1195,7 @@ SUnit *ScheduleDAGRRList::CopyAndMoveSuccessors(SUnit *SU) {
   // Only copy scheduled successors. Cut them from old node's successor
   // list and move them over.
   SmallVector<std::pair<SUnit *, SDep>, 4> DelDeps;
-  for (SDep &Succ : SU->Succs) {
+  for (SDep  const&Succ : SU->Succs) {
     if (Succ.isArtificial())
       continue;
     SUnit *SuccSU = Succ.getSUnit();
@@ -1234,7 +1234,7 @@ void ScheduleDAGRRList::InsertCopiesAndMoveSuccs(SUnit *SU, unsigned Reg,
   // Only copy scheduled successors. Cut them from old node's successor
   // list and move them over.
   SmallVector<std::pair<SUnit *, SDep>, 4> DelDeps;
-  for (SDep &Succ : SU->Succs) {
+  for (SDep  const&Succ : SU->Succs) {
     if (Succ.isArtificial())
       continue;
     SUnit *SuccSU = Succ.getSUnit();
@@ -1352,7 +1352,7 @@ DelayForLiveRegsBottomUp(SUnit *SU, SmallVectorImpl<unsigned> &LRegs) {
   //
   // If SU is the currently live definition of the same register that it uses,
   // then we are free to schedule it.
-  for (SDep &Pred : SU->Preds) {
+  for (SDep  const&Pred : SU->Preds) {
     if (Pred.isAssignedRegDep() && LiveRegDefs[Pred.getReg()] != SU)
       CheckForLiveRegDef(Pred.getSUnit(), Pred.getReg(), LiveRegDefs.get(),
                          RegAdded, LRegs, TRI);
@@ -1367,7 +1367,7 @@ DelayForLiveRegsBottomUp(SUnit *SU, SmallVectorImpl<unsigned> &LRegs) {
         --NumOps;  // Ignore the glue operand.
 
       for (unsigned i = InlineAsm::Op_FirstOperand; i != NumOps;) {
-        unsigned Flags =
+        unsigned const Flags =
           cast<ConstantSDNode>(Node->getOperand(i))->getZExtValue();
         unsigned NumVals = InlineAsm::getNumOperandRegisters(Flags);
 
@@ -1377,7 +1377,7 @@ DelayForLiveRegsBottomUp(SUnit *SU, SmallVectorImpl<unsigned> &LRegs) {
             InlineAsm::isClobberKind(Flags)) {
           // Check for def of register or earlyclobber register.
           for (; NumVals; --NumVals, ++i) {
-            unsigned Reg = cast<RegisterSDNode>(Node->getOperand(i))->getReg();
+            unsigned const Reg = cast<RegisterSDNode>(Node->getOperand(i))->getReg();
             if (Register::isPhysicalRegister(Reg))
               CheckForLiveRegDef(SU, Reg, LiveRegDefs.get(), RegAdded, LRegs, TRI);
           }
@@ -1394,7 +1394,7 @@ DelayForLiveRegsBottomUp(SUnit *SU, SmallVectorImpl<unsigned> &LRegs) {
     // the call.
     if (Node->getMachineOpcode() == TII->getCallFrameDestroyOpcode()) {
       // Check the special calling-sequence resource.
-      unsigned CallResource = TRI->getNumRegs();
+      unsigned const CallResource = TRI->getNumRegs();
       if (LiveRegDefs[CallResource]) {
         SDNode *Gen = LiveRegGens[CallResource]->getNode();
         while (SDNode *Glued = Gen->getGluedNode())
@@ -1418,7 +1418,7 @@ DelayForLiveRegsBottomUp(SUnit *SU, SmallVectorImpl<unsigned> &LRegs) {
       for (unsigned i = 0; i < MCID.getNumDefs(); ++i)
         if (MCID.OpInfo[i].isOptionalDef()) {
           const SDValue &OptionalDef = Node->getOperand(i - Node->getNumValues());
-          unsigned Reg = cast<RegisterSDNode>(OptionalDef)->getReg();
+          unsigned const Reg = cast<RegisterSDNode>(OptionalDef)->getReg();
           CheckForLiveRegDef(SU, Reg, LiveRegDefs.get(), RegAdded, LRegs, TRI);
         }
     }
@@ -1435,7 +1435,7 @@ void ScheduleDAGRRList::releaseInterferences(unsigned Reg) {
   // Add the nodes that aren't ready back onto the available list.
   for (unsigned i = Interferences.size(); i > 0; --i) {
     SUnit *SU = Interferences[i-1];
-    LRegsMapT::iterator LRegsPos = LRegsMap.find(SU);
+    LRegsMapT::iterator const LRegsPos = LRegsMap.find(SU);
     if (Reg) {
       SmallVectorImpl<unsigned> &LRegs = LRegsPos->second;
       if (!is_contained(LRegs, Reg))
@@ -1471,7 +1471,7 @@ SUnit *ScheduleDAGRRList::PickNodeToScheduleBottomUp() {
                  if (LRegs[0] == TRI->getNumRegs()) dbgs() << "CallResource";
                  else dbgs() << printReg(LRegs[0], TRI);
                  dbgs() << " SU #" << CurSU->NodeNum << '\n');
-      std::pair<LRegsMapT::iterator, bool> LRegsPair =
+      std::pair<LRegsMapT::iterator, bool> const LRegsPair =
         LRegsMap.insert(std::make_pair(CurSU, LRegs));
       if (LRegsPair.second) {
         CurSU->isPending = true;  // This SU is not in AvailableQueue right now.
@@ -1498,13 +1498,13 @@ SUnit *ScheduleDAGRRList::PickNodeToScheduleBottomUp() {
   // Try backtracking, code duplication, or inserting cross class copies
   // to resolve it.
   for (SUnit *TrySU : Interferences) {
-    SmallVectorImpl<unsigned> &LRegs = LRegsMap[TrySU];
+    SmallVectorImpl<unsigned>  const&LRegs = LRegsMap[TrySU];
 
     // Try unscheduling up to the point where it's safe to schedule
     // this node.
     SUnit *BtSU = nullptr;
     unsigned LiveCycle = std::numeric_limits<unsigned>::max();
-    for (unsigned Reg : LRegs) {
+    for (unsigned const Reg : LRegs) {
       if (LiveRegGens[Reg]->getHeight() < LiveCycle) {
         BtSU = LiveRegGens[Reg];
         LiveCycle = BtSU->getHeight();
@@ -1551,9 +1551,9 @@ SUnit *ScheduleDAGRRList::PickNodeToScheduleBottomUp() {
     SUnit *TrySU = Interferences[0];
     SmallVectorImpl<unsigned> &LRegs = LRegsMap[TrySU];
     assert(LRegs.size() == 1 && "Can't handle this yet!");
-    unsigned Reg = LRegs[0];
+    unsigned const Reg = LRegs[0];
     SUnit *LRDef = LiveRegDefs[Reg];
-    MVT VT = getPhysicalRegisterVT(LRDef->getNode(), Reg, TII);
+    MVT const VT = getPhysicalRegisterVT(LRDef->getNode(), Reg, TII);
     const TargetRegisterClass *RC =
       TRI->getMinimalPhysRegClass(Reg, VT);
     const TargetRegisterClass *DestRC = TRI->getCrossCopyRegClass(RC);
@@ -1759,7 +1759,7 @@ public:
     : SchedulingPriorityQueue(hasReadyFilter), TracksRegPressure(tracksrp),
       SrcOrder(srcorder), MF(mf), TII(tii), TRI(tri), TLI(tli) {
     if (TracksRegPressure) {
-      unsigned NumRC = TRI->getNumRegClasses();
+      unsigned const NumRC = TRI->getNumRegClasses();
       RegLimit.resize(NumRC);
       RegPressure.resize(NumRC);
       std::fill(RegLimit.begin(), RegLimit.end(), 0);
@@ -1808,7 +1808,7 @@ public:
   void remove(SUnit *SU) override {
     assert(!Queue.empty() && "Queue is empty!");
     assert(SU->NodeQueueId != 0 && "Not in queue!");
-    std::vector<SUnit *>::iterator I = llvm::find(Queue, SU);
+    std::vector<SUnit *>::iterator const I = llvm::find(Queue, SU);
     if (I != std::prev(Queue.end()))
       std::swap(*I, Queue.back());
     Queue.pop_back();
@@ -1932,8 +1932,8 @@ using ILPBURRPriorityQueue = RegReductionPriorityQueue<ilp_ls_rr_sort>;
 // Return -1 to schedule right above left, 1 for left above right.
 // Return 0 if no bias exists.
 static int checkSpecialNodes(const SUnit *left, const SUnit *right) {
-  bool LSchedLow = left->isScheduleLow;
-  bool RSchedLow = right->isScheduleLow;
+  bool const LSchedLow = left->isScheduleLow;
+  bool const RSchedLow = right->isScheduleLow;
   if (LSchedLow != RSchedLow)
     return LSchedLow < RSchedLow ? 1 : -1;
   return 0;
@@ -1987,7 +1987,7 @@ CalcNodeSethiUllmanNumber(const SUnit *SU, std::vector<unsigned> &SUNumbers) {
     for (const SDep &Pred : TempSU->Preds) {
       if (Pred.isCtrl()) continue;  // ignore chain preds
       SUnit *PredSU = Pred.getSUnit();
-      unsigned PredSethiUllman = SUNumbers[PredSU->NodeNum];
+      unsigned const PredSethiUllman = SUNumbers[PredSU->NodeNum];
       assert(PredSethiUllman > 0 && "We should have evaluated this pred!");
       if (PredSethiUllman > SethiUllmanNumber) {
         SethiUllmanNumber = PredSethiUllman;
@@ -2017,7 +2017,7 @@ void RegReductionPQBase::CalculateSethiUllmanNumbers() {
 }
 
 void RegReductionPQBase::addNode(const SUnit *SU) {
-  unsigned SUSize = SethiUllmanNumbers.size();
+  unsigned const SUSize = SethiUllmanNumbers.size();
   if (SUnits->size() > SUSize)
     SethiUllmanNumbers.resize(SUSize*2, 0);
   CalcNodeSethiUllmanNumber(SU, SethiUllmanNumbers);
@@ -2032,7 +2032,7 @@ void RegReductionPQBase::updateNode(const SUnit *SU) {
 // priority SUs are scheduled before higher priority SUs.
 unsigned RegReductionPQBase::getNodePriority(const SUnit *SU) const {
   assert(SU->NodeNum < SethiUllmanNumbers.size());
-  unsigned Opc = SU->getNode() ? SU->getNode()->getOpcode() : 0;
+  unsigned const Opc = SU->getNode() ? SU->getNode()->getOpcode() : 0;
   if (Opc == ISD::TokenFactor || Opc == ISD::CopyToReg)
     // CopyToReg should be close to its uses to facilitate coalescing and
     // avoid spilling.
@@ -2074,8 +2074,8 @@ unsigned RegReductionPQBase::getNodePriority(const SUnit *SU) const {
 #if !defined(NDEBUG) || defined(LLVM_ENABLE_DUMP)
 LLVM_DUMP_METHOD void RegReductionPQBase::dumpRegPressure() const {
   for (const TargetRegisterClass *RC : TRI->regclasses()) {
-    unsigned Id = RC->getID();
-    unsigned RP = RegPressure[Id];
+    unsigned const Id = RC->getID();
+    unsigned const RP = RegPressure[Id];
     if (!RP) continue;
     LLVM_DEBUG(dbgs() << TRI->getRegClassName(RC) << ": " << RP << " / "
                       << RegLimit[Id] << '\n');
@@ -2114,12 +2114,12 @@ bool RegReductionPQBase::MayReduceRegPressure(SUnit *SU) const {
   if (!N->isMachineOpcode() || !SU->NumSuccs)
     return false;
 
-  unsigned NumDefs = TII->get(N->getMachineOpcode()).getNumDefs();
+  unsigned const NumDefs = TII->get(N->getMachineOpcode()).getNumDefs();
   for (unsigned i = 0; i != NumDefs; ++i) {
-    MVT VT = N->getSimpleValueType(i);
+    MVT const VT = N->getSimpleValueType(i);
     if (!N->hasAnyUseOfValue(i))
       continue;
-    unsigned RCId = TLI->getRepRegClassFor(VT)->getID();
+    unsigned const RCId = TLI->getRepRegClassFor(VT)->getID();
     if (RegPressure[RCId] >= RegLimit[RCId])
       return true;
   }
@@ -2149,8 +2149,8 @@ int RegReductionPQBase::RegPressureDiff(SUnit *SU, unsigned &LiveUses) const {
     }
     for (ScheduleDAGSDNodes::RegDefIter RegDefPos(PredSU, scheduleDAG);
          RegDefPos.IsValid(); RegDefPos.Advance()) {
-      MVT VT = RegDefPos.GetValue();
-      unsigned RCId = TLI->getRepRegClassFor(VT)->getID();
+      MVT const VT = RegDefPos.GetValue();
+      unsigned const RCId = TLI->getRepRegClassFor(VT)->getID();
       if (RegPressure[RCId] >= RegLimit[RCId])
         ++PDiff;
     }
@@ -2160,12 +2160,12 @@ int RegReductionPQBase::RegPressureDiff(SUnit *SU, unsigned &LiveUses) const {
   if (!N || !N->isMachineOpcode() || !SU->NumSuccs)
     return PDiff;
 
-  unsigned NumDefs = TII->get(N->getMachineOpcode()).getNumDefs();
+  unsigned const NumDefs = TII->get(N->getMachineOpcode()).getNumDefs();
   for (unsigned i = 0; i != NumDefs; ++i) {
-    MVT VT = N->getSimpleValueType(i);
+    MVT const VT = N->getSimpleValueType(i);
     if (!N->hasAnyUseOfValue(i))
       continue;
-    unsigned RCId = TLI->getRepRegClassFor(VT)->getID();
+    unsigned const RCId = TLI->getRepRegClassFor(VT)->getID();
     if (RegPressure[RCId] >= RegLimit[RCId])
       --PDiff;
   }
@@ -2252,7 +2252,7 @@ void RegReductionPQBase::unscheduledNode(SUnit *SU) {
     if (N->getOpcode() != ISD::CopyToReg)
       return;
   } else {
-    unsigned Opc = N->getMachineOpcode();
+    unsigned const Opc = N->getMachineOpcode();
     if (Opc == TargetOpcode::EXTRACT_SUBREG ||
         Opc == TargetOpcode::INSERT_SUBREG ||
         Opc == TargetOpcode::SUBREG_TO_REG ||
@@ -2272,29 +2272,29 @@ void RegReductionPQBase::unscheduledNode(SUnit *SU) {
     const SDNode *PN = PredSU->getNode();
     if (!PN->isMachineOpcode()) {
       if (PN->getOpcode() == ISD::CopyFromReg) {
-        MVT VT = PN->getSimpleValueType(0);
-        unsigned RCId = TLI->getRepRegClassFor(VT)->getID();
+        MVT const VT = PN->getSimpleValueType(0);
+        unsigned const RCId = TLI->getRepRegClassFor(VT)->getID();
         RegPressure[RCId] += TLI->getRepRegClassCostFor(VT);
       }
       continue;
     }
-    unsigned POpc = PN->getMachineOpcode();
+    unsigned const POpc = PN->getMachineOpcode();
     if (POpc == TargetOpcode::IMPLICIT_DEF)
       continue;
     if (POpc == TargetOpcode::EXTRACT_SUBREG ||
         POpc == TargetOpcode::INSERT_SUBREG ||
         POpc == TargetOpcode::SUBREG_TO_REG) {
-      MVT VT = PN->getSimpleValueType(0);
-      unsigned RCId = TLI->getRepRegClassFor(VT)->getID();
+      MVT const VT = PN->getSimpleValueType(0);
+      unsigned const RCId = TLI->getRepRegClassFor(VT)->getID();
       RegPressure[RCId] += TLI->getRepRegClassCostFor(VT);
       continue;
     }
-    unsigned NumDefs = TII->get(PN->getMachineOpcode()).getNumDefs();
+    unsigned const NumDefs = TII->get(PN->getMachineOpcode()).getNumDefs();
     for (unsigned i = 0; i != NumDefs; ++i) {
-      MVT VT = PN->getSimpleValueType(i);
+      MVT const VT = PN->getSimpleValueType(i);
       if (!PN->hasAnyUseOfValue(i))
         continue;
-      unsigned RCId = TLI->getRepRegClassFor(VT)->getID();
+      unsigned const RCId = TLI->getRepRegClassFor(VT)->getID();
       if (RegPressure[RCId] < TLI->getRepRegClassCostFor(VT))
         // Register pressure tracking is imprecise. This can happen.
         RegPressure[RCId] = 0;
@@ -2306,14 +2306,14 @@ void RegReductionPQBase::unscheduledNode(SUnit *SU) {
   // Check for isMachineOpcode() as PrescheduleNodesWithMultipleUses()
   // may transfer data dependencies to CopyToReg.
   if (SU->NumSuccs && N->isMachineOpcode()) {
-    unsigned NumDefs = TII->get(N->getMachineOpcode()).getNumDefs();
+    unsigned const NumDefs = TII->get(N->getMachineOpcode()).getNumDefs();
     for (unsigned i = NumDefs, e = N->getNumValues(); i != e; ++i) {
-      MVT VT = N->getSimpleValueType(i);
+      MVT const VT = N->getSimpleValueType(i);
       if (VT == MVT::Glue || VT == MVT::Other)
         continue;
       if (!N->hasAnyUseOfValue(i))
         continue;
-      unsigned RCId = TLI->getRepRegClassFor(VT)->getID();
+      unsigned const RCId = TLI->getRepRegClassFor(VT)->getID();
       RegPressure[RCId] += TLI->getRepRegClassCostFor(VT);
     }
   }
@@ -2363,7 +2363,7 @@ static bool hasOnlyLiveInOpers(const SUnit *SU) {
     const SUnit *PredSU = Pred.getSUnit();
     if (PredSU->getNode() &&
         PredSU->getNode()->getOpcode() == ISD::CopyFromReg) {
-      unsigned Reg =
+      unsigned const Reg =
         cast<RegisterSDNode>(PredSU->getNode()->getOperand(1))->getReg();
       if (Register::isVirtualRegister(Reg)) {
         RetVal = true;
@@ -2384,7 +2384,7 @@ static bool hasOnlyLiveOutUses(const SUnit *SU) {
     if (Succ.isCtrl()) continue;
     const SUnit *SuccSU = Succ.getSUnit();
     if (SuccSU->getNode() && SuccSU->getNode()->getOpcode() == ISD::CopyToReg) {
-      unsigned Reg =
+      unsigned const Reg =
         cast<RegisterSDNode>(SuccSU->getNode()->getOperand(1))->getReg();
       if (Register::isVirtualRegister(Reg)) {
         RetVal = true;
@@ -2475,14 +2475,14 @@ static int BUCompareLatency(SUnit *left, SUnit *right, bool checkPref,
                             RegReductionPQBase *SPQ) {
   // Scheduling an instruction that uses a VReg whose postincrement has not yet
   // been scheduled will induce a copy. Model this as an extra cycle of latency.
-  int LPenalty = hasVRegCycleUse(left) ? 1 : 0;
-  int RPenalty = hasVRegCycleUse(right) ? 1 : 0;
-  int LHeight = (int)left->getHeight() + LPenalty;
-  int RHeight = (int)right->getHeight() + RPenalty;
+  int const LPenalty = hasVRegCycleUse(left) ? 1 : 0;
+  int const RPenalty = hasVRegCycleUse(right) ? 1 : 0;
+  int const LHeight = (int)left->getHeight() + LPenalty;
+  int const RHeight = (int)right->getHeight() + RPenalty;
 
-  bool LStall = (!checkPref || left->SchedulingPref == Sched::ILP) &&
+  bool const LStall = (!checkPref || left->SchedulingPref == Sched::ILP) &&
     BUHasStall(left, LHeight, SPQ);
-  bool RStall = (!checkPref || right->SchedulingPref == Sched::ILP) &&
+  bool const RStall = (!checkPref || right->SchedulingPref == Sched::ILP) &&
     BUHasStall(right, RHeight, SPQ);
 
   // If scheduling one of the node will cause a pipeline stall, delay it.
@@ -2508,8 +2508,8 @@ static int BUCompareLatency(SUnit *left, SUnit *right, bool checkPref,
       if (LHeight != RHeight)
         return LHeight > RHeight ? 1 : -1;
     }
-    int LDepth = left->getDepth() - LPenalty;
-    int RDepth = right->getDepth() - RPenalty;
+    int const LDepth = left->getDepth() - LPenalty;
+    int const RDepth = right->getDepth() - RPenalty;
     if (LDepth != RDepth) {
       LLVM_DEBUG(dbgs() << "  Comparing latency of SU (" << left->NodeNum
                         << ") depth " << LDepth << " vs SU (" << right->NodeNum
@@ -2528,8 +2528,8 @@ static bool BURRSort(SUnit *left, SUnit *right, RegReductionPQBase *SPQ) {
   // long as shortening physreg live ranges is generally good, we can defer
   // creating a subtarget hook.
   if (!DisableSchedPhysRegJoin) {
-    bool LHasPhysReg = left->hasPhysRegDefs;
-    bool RHasPhysReg = right->hasPhysRegDefs;
+    bool const LHasPhysReg = left->hasPhysRegDefs;
+    bool const RHasPhysReg = right->hasPhysRegDefs;
     if (LHasPhysReg != RHasPhysReg) {
       #ifndef NDEBUG
       static const char *const PhysRegMsg[] = { " has no physreg",
@@ -2549,11 +2549,11 @@ static bool BURRSort(SUnit *left, SUnit *right, RegReductionPQBase *SPQ) {
   // Be really careful about hoisting call operands above previous calls.
   // Only allows it if it would reduce register pressure.
   if (left->isCall && right->isCallOp) {
-    unsigned RNumVals = right->getNode()->getNumValues();
+    unsigned const RNumVals = right->getNode()->getNumValues();
     RPriority = (RPriority > RNumVals) ? (RPriority - RNumVals) : 0;
   }
   if (right->isCall && left->isCallOp) {
-    unsigned LNumVals = left->getNode()->getNumValues();
+    unsigned const LNumVals = left->getNode()->getNumValues();
     LPriority = (LPriority > LNumVals) ? (LPriority - LNumVals) : 0;
   }
 
@@ -2563,8 +2563,8 @@ static bool BURRSort(SUnit *left, SUnit *right, RegReductionPQBase *SPQ) {
   // One or both of the nodes are calls and their sethi-ullman numbers are the
   // same, then keep source order.
   if (left->isCall || right->isCall) {
-    unsigned LOrder = SPQ->getNodeOrdering(left);
-    unsigned ROrder = SPQ->getNodeOrdering(right);
+    unsigned const LOrder = SPQ->getNodeOrdering(left);
+    unsigned const ROrder = SPQ->getNodeOrdering(right);
 
     // Prefer an ordering where the lower the non-zero order number, the higher
     // the preference.
@@ -2589,14 +2589,14 @@ static bool BURRSort(SUnit *left, SUnit *right, RegReductionPQBase *SPQ) {
   // t3 = op t4, c2
   //
   // This creates more short live intervals.
-  unsigned LDist = closestSucc(left);
-  unsigned RDist = closestSucc(right);
+  unsigned const LDist = closestSucc(left);
+  unsigned const RDist = closestSucc(right);
   if (LDist != RDist)
     return LDist < RDist;
 
   // How many registers becomes live when the node is scheduled.
-  unsigned LScratch = calcMaxScratches(left);
-  unsigned RScratch = calcMaxScratches(right);
+  unsigned const LScratch = calcMaxScratches(left);
+  unsigned const RScratch = calcMaxScratches(right);
   if (LScratch != RScratch)
     return LScratch > RScratch;
 
@@ -2608,7 +2608,7 @@ static bool BURRSort(SUnit *left, SUnit *right, RegReductionPQBase *SPQ) {
   // Do not compare latencies when one or both of the nodes are calls.
   if (!DisableSchedCycles &&
       !(left->isCall || right->isCall)) {
-    int result = BUCompareLatency(left, right, false /*checkPref*/, SPQ);
+    int const result = BUCompareLatency(left, right, false /*checkPref*/, SPQ);
     if (result != 0)
       return result > 0;
   }
@@ -2627,7 +2627,7 @@ static bool BURRSort(SUnit *left, SUnit *right, RegReductionPQBase *SPQ) {
 
 // Bottom up
 bool bu_ls_rr_sort::operator()(SUnit *left, SUnit *right) const {
-  if (int res = checkSpecialNodes(left, right))
+  if (int const res = checkSpecialNodes(left, right))
     return res > 0;
 
   return BURRSort(left, right, SPQ);
@@ -2635,11 +2635,11 @@ bool bu_ls_rr_sort::operator()(SUnit *left, SUnit *right) const {
 
 // Source order, otherwise bottom up.
 bool src_ls_rr_sort::operator()(SUnit *left, SUnit *right) const {
-  if (int res = checkSpecialNodes(left, right))
+  if (int const res = checkSpecialNodes(left, right))
     return res > 0;
 
-  unsigned LOrder = SPQ->getNodeOrdering(left);
-  unsigned ROrder = SPQ->getNodeOrdering(right);
+  unsigned const LOrder = SPQ->getNodeOrdering(left);
+  unsigned const ROrder = SPQ->getNodeOrdering(right);
 
   // Prefer an ordering where the lower the non-zero order number, the higher
   // the preference.
@@ -2669,15 +2669,15 @@ bool hybrid_ls_rr_sort::isReady(SUnit *SU, unsigned CurCycle) const {
 
 // Return true if right should be scheduled with higher priority than left.
 bool hybrid_ls_rr_sort::operator()(SUnit *left, SUnit *right) const {
-  if (int res = checkSpecialNodes(left, right))
+  if (int const res = checkSpecialNodes(left, right))
     return res > 0;
 
   if (left->isCall || right->isCall)
     // No way to compute latency of calls.
     return BURRSort(left, right, SPQ);
 
-  bool LHigh = SPQ->HighRegPressure(left);
-  bool RHigh = SPQ->HighRegPressure(right);
+  bool const LHigh = SPQ->HighRegPressure(left);
+  bool const RHigh = SPQ->HighRegPressure(right);
   // Avoid causing spills. If register pressure is high, schedule for
   // register pressure reduction.
   if (LHigh && !RHigh) {
@@ -2691,7 +2691,7 @@ bool hybrid_ls_rr_sort::operator()(SUnit *left, SUnit *right) const {
     return false;
   }
   if (!LHigh && !RHigh) {
-    int result = BUCompareLatency(left, right, true /*checkPref*/, SPQ);
+    int const result = BUCompareLatency(left, right, true /*checkPref*/, SPQ);
     if (result != 0)
       return result > 0;
   }
@@ -2711,7 +2711,7 @@ bool ilp_ls_rr_sort::isReady(SUnit *SU, unsigned CurCycle) const {
 }
 
 static bool canEnableCoalescing(SUnit *SU) {
-  unsigned Opc = SU->getNode() ? SU->getNode()->getOpcode() : 0;
+  unsigned const Opc = SU->getNode() ? SU->getNode()->getOpcode() : 0;
   if (Opc == ISD::TokenFactor || Opc == ISD::CopyToReg)
     // CopyToReg should be close to its uses to facilitate coalescing and
     // avoid spilling.
@@ -2735,7 +2735,7 @@ static bool canEnableCoalescing(SUnit *SU) {
 // list-ilp is currently an experimental scheduler that allows various
 // heuristics to be enabled prior to the normal register reduction logic.
 bool ilp_ls_rr_sort::operator()(SUnit *left, SUnit *right) const {
-  if (int res = checkSpecialNodes(left, right))
+  if (int const res = checkSpecialNodes(left, right))
     return res > 0;
 
   if (left->isCall || right->isCall)
@@ -2756,8 +2756,8 @@ bool ilp_ls_rr_sort::operator()(SUnit *left, SUnit *right) const {
   }
 
   if (!DisableSchedRegPressure && (LPDiff > 0 || RPDiff > 0)) {
-    bool LReduce = canEnableCoalescing(left);
-    bool RReduce = canEnableCoalescing(right);
+    bool const LReduce = canEnableCoalescing(left);
+    bool const RReduce = canEnableCoalescing(right);
     if (LReduce && !RReduce) return false;
     if (RReduce && !LReduce) return true;
   }
@@ -2770,14 +2770,14 @@ bool ilp_ls_rr_sort::operator()(SUnit *left, SUnit *right) const {
   }
 
   if (!DisableSchedStalls) {
-    bool LStall = BUHasStall(left, left->getHeight(), SPQ);
-    bool RStall = BUHasStall(right, right->getHeight(), SPQ);
+    bool const LStall = BUHasStall(left, left->getHeight(), SPQ);
+    bool const RStall = BUHasStall(right, right->getHeight(), SPQ);
     if (LStall != RStall)
       return left->getHeight() > right->getHeight();
   }
 
   if (!DisableSchedCriticalPath) {
-    int spread = (int)left->getDepth() - (int)right->getDepth();
+    int const spread = (int)left->getDepth() - (int)right->getDepth();
     if (std::abs(spread) > MaxReorderWindow) {
       LLVM_DEBUG(dbgs() << "Depth of SU(" << left->NodeNum << "): "
                         << left->getDepth() << " != SU(" << right->NodeNum
@@ -2787,7 +2787,7 @@ bool ilp_ls_rr_sort::operator()(SUnit *left, SUnit *right) const {
   }
 
   if (!DisableSchedHeight && left->getHeight() != right->getHeight()) {
-    int spread = (int)left->getHeight() - (int)right->getHeight();
+    int const spread = (int)left->getHeight() - (int)right->getHeight();
     if (std::abs(spread) > MaxReorderWindow)
       return left->getHeight() > right->getHeight();
   }
@@ -2818,10 +2818,10 @@ void RegReductionPQBase::initNodes(std::vector<SUnit> &sunits) {
 
 bool RegReductionPQBase::canClobber(const SUnit *SU, const SUnit *Op) {
   if (SU->isTwoAddress) {
-    unsigned Opc = SU->getNode()->getMachineOpcode();
+    unsigned const Opc = SU->getNode()->getMachineOpcode();
     const MCInstrDesc &MCID = TII->get(Opc);
-    unsigned NumRes = MCID.getNumDefs();
-    unsigned NumOps = MCID.getNumOperands() - NumRes;
+    unsigned const NumRes = MCID.getNumDefs();
+    unsigned const NumOps = MCID.getNumOperands() - NumRes;
     for (unsigned i = 0; i != NumOps; ++i) {
       if (MCID.getOperandConstraint(i+NumRes, MCOI::TIED_TO) != -1) {
         SDNode *DU = SU->getNode()->getOperand(i).getNode();
@@ -2877,7 +2877,7 @@ static bool canClobberPhysRegDefs(const SUnit *SuccSU, const SUnit *SU,
                                   const TargetInstrInfo *TII,
                                   const TargetRegisterInfo *TRI) {
   SDNode *N = SuccSU->getNode();
-  unsigned NumDefs = TII->get(N->getMachineOpcode()).getNumDefs();
+  unsigned const NumDefs = TII->get(N->getMachineOpcode()).getNumDefs();
   const MCPhysReg *ImpDefs = TII->get(N->getMachineOpcode()).getImplicitDefs();
   assert(ImpDefs && "Caller should check hasPhysRegDefs");
   for (const SDNode *SUNode = SU->getNode(); SUNode;
@@ -2890,18 +2890,18 @@ static bool canClobberPhysRegDefs(const SUnit *SuccSU, const SUnit *SU,
     if (!SUImpDefs && !SURegMask)
       continue;
     for (unsigned i = NumDefs, e = N->getNumValues(); i != e; ++i) {
-      MVT VT = N->getSimpleValueType(i);
+      MVT const VT = N->getSimpleValueType(i);
       if (VT == MVT::Glue || VT == MVT::Other)
         continue;
       if (!N->hasAnyUseOfValue(i))
         continue;
-      unsigned Reg = ImpDefs[i - NumDefs];
+      unsigned const Reg = ImpDefs[i - NumDefs];
       if (SURegMask && MachineOperand::clobbersPhysReg(SURegMask, Reg))
         return true;
       if (!SUImpDefs)
         continue;
       for (;*SUImpDefs; ++SUImpDefs) {
-        unsigned SUReg = *SUImpDefs;
+        unsigned const SUReg = *SUImpDefs;
         if (TRI->regsOverlap(Reg, SUReg))
           return true;
       }
@@ -3062,11 +3062,11 @@ void RegReductionPQBase::AddPseudoTwoAddrDeps() {
     if (!Node || !Node->isMachineOpcode() || SU.getNode()->getGluedNode())
       continue;
 
-    bool isLiveOut = hasOnlyLiveOutUses(&SU);
-    unsigned Opc = Node->getMachineOpcode();
+    bool const isLiveOut = hasOnlyLiveOutUses(&SU);
+    unsigned const Opc = Node->getMachineOpcode();
     const MCInstrDesc &MCID = TII->get(Opc);
-    unsigned NumRes = MCID.getNumDefs();
-    unsigned NumOps = MCID.getNumOperands() - NumRes;
+    unsigned const NumRes = MCID.getNumDefs();
+    unsigned const NumOps = MCID.getNumOperands() - NumRes;
     for (unsigned j = 0; j != NumOps; ++j) {
       if (MCID.getOperandConstraint(j+NumRes, MCOI::TIED_TO) == -1)
         continue;
@@ -3107,7 +3107,7 @@ void RegReductionPQBase::AddPseudoTwoAddrDeps() {
         }
         // Don't constrain EXTRACT_SUBREG, INSERT_SUBREG, and SUBREG_TO_REG;
         // these may be coalesced away. We want them close to their uses.
-        unsigned SuccOpc = SuccSU->getNode()->getMachineOpcode();
+        unsigned const SuccOpc = SuccSU->getNode()->getMachineOpcode();
         if (SuccOpc == TargetOpcode::EXTRACT_SUBREG ||
             SuccOpc == TargetOpcode::INSERT_SUBREG ||
             SuccOpc == TargetOpcode::SUBREG_TO_REG)

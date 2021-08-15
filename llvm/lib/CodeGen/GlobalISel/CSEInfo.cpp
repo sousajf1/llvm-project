@@ -100,7 +100,7 @@ bool GISelCSEInfo::isUniqueMachineInstValid(
 }
 
 void GISelCSEInfo::invalidateUniqueMachineInstr(UniqueMachineInstr *UMI) {
-  bool Removed = CSEMap.RemoveNode(UMI);
+  bool const Removed = CSEMap.RemoveNode(UMI);
   (void)Removed;
   assert(Removed && "Invalidation called on invalid UMI");
   // FIXME: Should UMI be deallocated/destroyed?
@@ -332,7 +332,7 @@ GISelInstProfileBuilder::addNodeIDOpcode(unsigned Opc) const {
 
 const GISelInstProfileBuilder &
 GISelInstProfileBuilder::addNodeIDRegType(const LLT Ty) const {
-  uint64_t Val = Ty.getUniqueRAWLLTData();
+  uint64_t const Val = Ty.getUniqueRAWLLTData();
   ID.AddInteger(Val);
   return *this;
 }
@@ -382,7 +382,7 @@ GISelInstProfileBuilder::addNodeIDFlag(unsigned Flag) const {
 
 const GISelInstProfileBuilder &
 GISelInstProfileBuilder::addNodeIDReg(Register Reg) const {
-  LLT Ty = MRI.getType(Reg);
+  LLT const Ty = MRI.getType(Reg);
   if (Ty.isValid())
     addNodeIDRegType(Ty);
 
@@ -398,7 +398,7 @@ GISelInstProfileBuilder::addNodeIDReg(Register Reg) const {
 const GISelInstProfileBuilder &GISelInstProfileBuilder::addNodeIDMachineOperand(
     const MachineOperand &MO) const {
   if (MO.isReg()) {
-    Register Reg = MO.getReg();
+    Register const Reg = MO.getReg();
     if (!MO.isDef())
       addNodeIDRegNum(Reg);
 

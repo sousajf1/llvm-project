@@ -62,7 +62,7 @@ LockFileManager::readLockFile(StringRef LockFileName) {
     sys::fs::remove(LockFileName);
     return None;
   }
-  MemoryBuffer &MB = *MBOrErr.get();
+  MemoryBuffer  const&MB = *MBOrErr.get();
 
   StringRef Hostname;
   StringRef PIDStr;
@@ -100,7 +100,7 @@ static std::error_code getHostID(SmallVectorImpl<char> &HostID) {
   HostName[255] = 0;
   HostName[0] = 0;
   gethostname(HostName, 255);
-  StringRef HostNameRef(HostName);
+  StringRef const HostNameRef(HostName);
   HostID.append(HostNameRef.begin(), HostNameRef.end());
 
 #else
@@ -161,7 +161,7 @@ public:
 LockFileManager::LockFileManager(StringRef FileName)
 {
   this->FileName = FileName;
-  if (std::error_code EC = sys::fs::make_absolute(this->FileName)) {
+  if (std::error_code const EC = sys::fs::make_absolute(this->FileName)) {
     std::string S("failed to obtain absolute path for ");
     S.append(std::string(this->FileName.str()));
     setError(EC, S);
@@ -179,7 +179,7 @@ LockFileManager::LockFileManager(StringRef FileName)
   UniqueLockFileName = LockFileName;
   UniqueLockFileName += "-%%%%%%%%";
   int UniqueLockFileID;
-  if (std::error_code EC = sys::fs::createUniqueFile(
+  if (std::error_code const EC = sys::fs::createUniqueFile(
           UniqueLockFileName, UniqueLockFileID, UniqueLockFileName)) {
     std::string S("failed to create unique file ");
     S.append(std::string(UniqueLockFileName.str()));
@@ -269,7 +269,7 @@ LockFileManager::LockFileState LockFileManager::getState() const {
 std::string LockFileManager::getErrorMessage() const {
   if (ErrorCode) {
     std::string Str(ErrorDiagMsg);
-    std::string ErrCodeMsg = ErrorCode.message();
+    std::string const ErrCodeMsg = ErrorCode.message();
     raw_string_ostream OSS(Str);
     if (!ErrCodeMsg.empty())
       OSS << ": " << ErrCodeMsg;
@@ -316,7 +316,7 @@ LockFileManager::waitForUnlock(const unsigned MaxSeconds) {
     // finish up and remove the lock file.
     std::uniform_int_distribution<unsigned long> Distribution(1,
                                                               WaitMultiplier);
-    unsigned long WaitDurationMS = MinWaitDurationMS * Distribution(Engine);
+    unsigned long const WaitDurationMS = MinWaitDurationMS * Distribution(Engine);
     std::this_thread::sleep_for(std::chrono::milliseconds(WaitDurationMS));
 
     if (sys::fs::access(LockFileName.c_str(), sys::fs::AccessMode::Exist) ==

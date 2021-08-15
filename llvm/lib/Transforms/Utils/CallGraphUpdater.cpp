@@ -78,7 +78,7 @@ bool CallGraphUpdater::finalize() {
     }
   }
 
-  bool Changed = !DeadFunctions.empty();
+  bool const Changed = !DeadFunctions.empty();
   DeadFunctionsInComdats.clear();
   DeadFunctions.clear();
   return Changed;

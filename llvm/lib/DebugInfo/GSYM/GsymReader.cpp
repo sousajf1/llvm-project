@@ -84,7 +84,7 @@ GsymReader::parse() {
                                "not a GSYM file");
   }
 
-  bool DataIsLittleEndian = HostByteOrder != support::little;
+  bool const DataIsLittleEndian = HostByteOrder != support::little;
   // Read a correctly byte swapped header if we need to.
   if (Swap) {
     DataExtractor Data(MemBuffer->getBuffer(), DataIsLittleEndian, 4);
@@ -135,7 +135,7 @@ GsymReader::parse() {
   // optimized for lookups. Here we decode the important tables into local
   // storage and then set the ArrayRef objects to point to these swapped
   // copies of the read only data so lookups can be as efficient as possible.
-  DataExtractor Data(MemBuffer->getBuffer(), DataIsLittleEndian, 4);
+  DataExtractor const Data(MemBuffer->getBuffer(), DataIsLittleEndian, 4);
 
   // Read the address offsets.
   uint64_t Offset = alignTo(sizeof(Header), Hdr->AddrOffSize);
@@ -387,8 +387,8 @@ void GsymReader::dump(raw_ostream &OS, Optional<FileEntry> FE) {
     // IF we have the file from index 0, then don't print anything
     if (FE->Dir == 0 && FE->Base == 0)
       return;
-    StringRef Dir = getString(FE->Dir);
-    StringRef Base = getString(FE->Base);
+    StringRef const Dir = getString(FE->Dir);
+    StringRef const Base = getString(FE->Base);
     if (!Dir.empty()) {
       OS << Dir;
       if (Dir.contains('\\') && !Dir.contains('/'))

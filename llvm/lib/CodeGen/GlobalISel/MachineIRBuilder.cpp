@@ -208,9 +208,9 @@ MachineIRBuilder::materializePtrAdd(Register &Res, Register Op0,
 MachineInstrBuilder MachineIRBuilder::buildMaskLowPtrBits(const DstOp &Res,
                                                           const SrcOp &Op0,
                                                           uint32_t NumBits) {
-  LLT PtrTy = Res.getLLTTy(*getMRI());
-  LLT MaskTy = LLT::scalar(PtrTy.getSizeInBits());
-  Register MaskReg = getMRI()->createGenericVirtualRegister(MaskTy);
+  LLT const PtrTy = Res.getLLTTy(*getMRI());
+  LLT const MaskTy = LLT::scalar(PtrTy.getSizeInBits());
+  Register const MaskReg = getMRI()->createGenericVirtualRegister(MaskTy);
   buildConstant(MaskReg, maskTrailingZeros<uint64_t>(NumBits));
   return buildPtrMask(Res, Op0, MaskReg);
 }
@@ -254,8 +254,8 @@ MachineInstrBuilder MachineIRBuilder::buildAssertZExt(const DstOp &Res,
 
 MachineInstrBuilder MachineIRBuilder::buildConstant(const DstOp &Res,
                                                     const ConstantInt &Val) {
-  LLT Ty = Res.getLLTTy(*getMRI());
-  LLT EltTy = Ty.getScalarType();
+  LLT const Ty = Res.getLLTTy(*getMRI());
+  LLT const EltTy = Ty.getScalarType();
   assert(EltTy.getScalarSizeInBits() == Val.getBitWidth() &&
          "creating constant with the wrong size");
 
@@ -283,8 +283,8 @@ MachineInstrBuilder MachineIRBuilder::buildConstant(const DstOp &Res,
 
 MachineInstrBuilder MachineIRBuilder::buildFConstant(const DstOp &Res,
                                                      const ConstantFP &Val) {
-  LLT Ty = Res.getLLTTy(*getMRI());
-  LLT EltTy = Ty.getScalarType();
+  LLT const Ty = Res.getLLTTy(*getMRI());
+  LLT const EltTy = Ty.getScalarType();
 
   assert(APFloat::getSizeInBits(Val.getValueAPF().getSemantics())
          == EltTy.getSizeInBits() &&
@@ -315,7 +315,7 @@ MachineInstrBuilder MachineIRBuilder::buildConstant(const DstOp &Res,
 
 MachineInstrBuilder MachineIRBuilder::buildFConstant(const DstOp &Res,
                                                      double Val) {
-  LLT DstTy = Res.getLLTTy(*getMRI());
+  LLT const DstTy = Res.getLLTTy(*getMRI());
   auto &Ctx = getMF().getFunction().getContext();
   auto *CFP =
       ConstantFP::get(Ctx, getAPFloatFromSize(Val, DstTy.getScalarSizeInBits()));
@@ -347,7 +347,7 @@ MachineIRBuilder::buildLoad(const DstOp &Dst, const SrcOp &Addr,
   MMOFlags |= MachineMemOperand::MOLoad;
   assert((MMOFlags & MachineMemOperand::MOStore) == 0);
 
-  LLT Ty = Dst.getLLTTy(*getMRI());
+  LLT const Ty = Dst.getLLTTy(*getMRI());
   MachineMemOperand *MMO =
       getMF().getMachineMemOperand(PtrInfo, MMOFlags, Ty, Alignment, AAInfo);
   return buildLoad(Dst, Addr, *MMO);
@@ -370,15 +370,15 @@ MachineInstrBuilder MachineIRBuilder::buildLoadInstr(unsigned Opcode,
 MachineInstrBuilder MachineIRBuilder::buildLoadFromOffset(
   const DstOp &Dst, const SrcOp &BasePtr,
   MachineMemOperand &BaseMMO, int64_t Offset) {
-  LLT LoadTy = Dst.getLLTTy(*getMRI());
+  LLT const LoadTy = Dst.getLLTTy(*getMRI());
   MachineMemOperand *OffsetMMO =
       getMF().getMachineMemOperand(&BaseMMO, Offset, LoadTy);
 
   if (Offset == 0) // This may be a size or type changing load.
     return buildLoad(Dst, BasePtr, *OffsetMMO);
 
-  LLT PtrTy = BasePtr.getLLTTy(*getMRI());
-  LLT OffsetTy = LLT::scalar(PtrTy.getSizeInBits());
+  LLT const PtrTy = BasePtr.getLLTTy(*getMRI());
+  LLT const OffsetTy = LLT::scalar(PtrTy.getSizeInBits());
   auto ConstOffset = buildConstant(OffsetTy, Offset);
   auto Ptr = buildPtrAdd(PtrTy, BasePtr, ConstOffset);
   return buildLoad(Dst, Ptr, *OffsetMMO);
@@ -405,7 +405,7 @@ MachineIRBuilder::buildStore(const SrcOp &Val, const SrcOp &Addr,
   MMOFlags |= MachineMemOperand::MOStore;
   assert((MMOFlags & MachineMemOperand::MOLoad) == 0);
 
-  LLT Ty = Val.getLLTTy(*getMRI());
+  LLT const Ty = Val.getLLTTy(*getMRI());
   MachineMemOperand *MMO =
       getMF().getMachineMemOperand(PtrInfo, MMOFlags, Ty, Alignment, AAInfo);
   return buildStore(Val, Addr, *MMO);
@@ -441,7 +441,7 @@ unsigned MachineIRBuilder::getBoolExtOp(bool IsVec, bool IsFP) const {
 MachineInstrBuilder MachineIRBuilder::buildBoolExt(const DstOp &Res,
                                                    const SrcOp &Op,
                                                    bool IsFP) {
-  unsigned ExtOp = getBoolExtOp(getMRI()->getType(Op.getReg()).isVector(), IsFP);
+  unsigned const ExtOp = getBoolExtOp(getMRI()->getType(Op.getReg()).isVector(), IsFP);
   return buildInstr(ExtOp, Res, Op);
 }
 
@@ -487,7 +487,7 @@ MachineInstrBuilder MachineIRBuilder::buildAnyExtOrTrunc(const DstOp &Res,
 MachineInstrBuilder MachineIRBuilder::buildZExtInReg(const DstOp &Res,
                                                      const SrcOp &Op,
                                                      int64_t ImmOp) {
-  LLT ResTy = Res.getLLTTy(*getMRI());
+  LLT const ResTy = Res.getLLTTy(*getMRI());
   auto Mask = buildConstant(
       ResTy, APInt::getLowBitsSet(ResTy.getScalarSizeInBits(), ImmOp));
   return buildAnd(Res, Op, Mask);
@@ -495,8 +495,8 @@ MachineInstrBuilder MachineIRBuilder::buildZExtInReg(const DstOp &Res,
 
 MachineInstrBuilder MachineIRBuilder::buildCast(const DstOp &Dst,
                                                 const SrcOp &Src) {
-  LLT SrcTy = Src.getLLTTy(*getMRI());
-  LLT DstTy = Dst.getLLTTy(*getMRI());
+  LLT const SrcTy = Src.getLLTTy(*getMRI());
+  LLT const DstTy = Dst.getLLTTy(*getMRI());
   if (SrcTy == DstTy)
     return buildCopy(Dst, Src);
 
@@ -516,8 +516,8 @@ MachineInstrBuilder MachineIRBuilder::buildCast(const DstOp &Dst,
 MachineInstrBuilder MachineIRBuilder::buildExtract(const DstOp &Dst,
                                                    const SrcOp &Src,
                                                    uint64_t Index) {
-  LLT SrcTy = Src.getLLTTy(*getMRI());
-  LLT DstTy = Dst.getLLTTy(*getMRI());
+  LLT const SrcTy = Src.getLLTTy(*getMRI());
+  LLT const DstTy = Dst.getLLTTy(*getMRI());
 
 #ifndef NDEBUG
   assert(SrcTy.isValid() && "invalid operand type");
@@ -551,9 +551,9 @@ void MachineIRBuilder::buildSequence(Register Res, ArrayRef<Register> Ops,
     assert(getMRI()->getType(Op).isValid() && "invalid operand type");
 #endif
 
-  LLT ResTy = getMRI()->getType(Res);
-  LLT OpTy = getMRI()->getType(Ops[0]);
-  unsigned OpSize = OpTy.getSizeInBits();
+  LLT const ResTy = getMRI()->getType(Res);
+  LLT const OpTy = getMRI()->getType(Ops[0]);
+  unsigned const OpSize = OpTy.getSizeInBits();
   bool MaybeMerge = true;
   for (unsigned i = 0; i < Ops.size(); ++i) {
     if (getMRI()->getType(Ops[i]) != OpTy || Indices[i] != i * OpSize) {
@@ -571,7 +571,7 @@ void MachineIRBuilder::buildSequence(Register Res, ArrayRef<Register> Ops,
   buildUndef(ResIn);
 
   for (unsigned i = 0; i < Ops.size(); ++i) {
-    Register ResOut = i + 1 == Ops.size()
+    Register const ResOut = i + 1 == Ops.size()
                           ? Res
                           : getMRI()->createGenericVirtualRegister(ResTy);
     buildInsert(ResOut, ResIn, Ops[i], Indices[i]);
@@ -588,7 +588,7 @@ MachineInstrBuilder MachineIRBuilder::buildMerge(const DstOp &Res,
   // Unfortunately to convert from ArrayRef<LLT> to ArrayRef<SrcOp>,
   // we need some temporary storage for the DstOp objects. Here we use a
   // sufficiently large SmallVector to not go through the heap.
-  SmallVector<SrcOp, 8> TmpVec(Ops.begin(), Ops.end());
+  SmallVector<SrcOp, 8> const TmpVec(Ops.begin(), Ops.end());
   assert(TmpVec.size() > 1);
   return buildInstr(TargetOpcode::G_MERGE_VALUES, Res, TmpVec);
 }
@@ -605,14 +605,14 @@ MachineInstrBuilder MachineIRBuilder::buildUnmerge(ArrayRef<LLT> Res,
   // Unfortunately to convert from ArrayRef<LLT> to ArrayRef<DstOp>,
   // we need some temporary storage for the DstOp objects. Here we use a
   // sufficiently large SmallVector to not go through the heap.
-  SmallVector<DstOp, 8> TmpVec(Res.begin(), Res.end());
+  SmallVector<DstOp, 8> const TmpVec(Res.begin(), Res.end());
   assert(TmpVec.size() > 1);
   return buildInstr(TargetOpcode::G_UNMERGE_VALUES, TmpVec, Op);
 }
 
 MachineInstrBuilder MachineIRBuilder::buildUnmerge(LLT Res,
                                                    const SrcOp &Op) {
-  unsigned NumReg = Op.getLLTTy(*getMRI()).getSizeInBits() / Res.getSizeInBits();
+  unsigned const NumReg = Op.getLLTTy(*getMRI()).getSizeInBits() / Res.getSizeInBits();
   SmallVector<Register, 8> TmpVec;
   for (unsigned I = 0; I != NumReg; ++I)
     TmpVec.push_back(getMRI()->createGenericVirtualRegister(Res));
@@ -624,7 +624,7 @@ MachineInstrBuilder MachineIRBuilder::buildUnmerge(ArrayRef<Register> Res,
   // Unfortunately to convert from ArrayRef<Register> to ArrayRef<DstOp>,
   // we need some temporary storage for the DstOp objects. Here we use a
   // sufficiently large SmallVector to not go through the heap.
-  SmallVector<DstOp, 8> TmpVec(Res.begin(), Res.end());
+  SmallVector<DstOp, 8> const TmpVec(Res.begin(), Res.end());
   assert(TmpVec.size() > 1);
   return buildInstr(TargetOpcode::G_UNMERGE_VALUES, TmpVec, Op);
 }
@@ -634,13 +634,13 @@ MachineInstrBuilder MachineIRBuilder::buildBuildVector(const DstOp &Res,
   // Unfortunately to convert from ArrayRef<Register> to ArrayRef<SrcOp>,
   // we need some temporary storage for the DstOp objects. Here we use a
   // sufficiently large SmallVector to not go through the heap.
-  SmallVector<SrcOp, 8> TmpVec(Ops.begin(), Ops.end());
+  SmallVector<SrcOp, 8> const TmpVec(Ops.begin(), Ops.end());
   return buildInstr(TargetOpcode::G_BUILD_VECTOR, Res, TmpVec);
 }
 
 MachineInstrBuilder MachineIRBuilder::buildSplatVector(const DstOp &Res,
                                                        const SrcOp &Src) {
-  SmallVector<SrcOp, 8> TmpVec(Res.getLLTTy(*getMRI()).getNumElements(), Src);
+  SmallVector<SrcOp, 8> const TmpVec(Res.getLLTTy(*getMRI()).getNumElements(), Src);
   return buildInstr(TargetOpcode::G_BUILD_VECTOR, Res, TmpVec);
 }
 
@@ -650,19 +650,19 @@ MachineIRBuilder::buildBuildVectorTrunc(const DstOp &Res,
   // Unfortunately to convert from ArrayRef<Register> to ArrayRef<SrcOp>,
   // we need some temporary storage for the DstOp objects. Here we use a
   // sufficiently large SmallVector to not go through the heap.
-  SmallVector<SrcOp, 8> TmpVec(Ops.begin(), Ops.end());
+  SmallVector<SrcOp, 8> const TmpVec(Ops.begin(), Ops.end());
   return buildInstr(TargetOpcode::G_BUILD_VECTOR_TRUNC, Res, TmpVec);
 }
 
 MachineInstrBuilder MachineIRBuilder::buildShuffleSplat(const DstOp &Res,
                                                         const SrcOp &Src) {
-  LLT DstTy = Res.getLLTTy(*getMRI());
+  LLT const DstTy = Res.getLLTTy(*getMRI());
   assert(Src.getLLTTy(*getMRI()) == DstTy.getElementType() &&
          "Expected Src to match Dst elt ty");
   auto UndefVec = buildUndef(DstTy);
   auto Zero = buildConstant(LLT::scalar(64), 0);
   auto InsElt = buildInsertVectorElement(DstTy, UndefVec, Src, Zero);
-  SmallVector<int, 16> ZeroMask(DstTy.getNumElements());
+  SmallVector<int, 16> const ZeroMask(DstTy.getNumElements());
   return buildShuffleVector(DstTy, InsElt, UndefVec, ZeroMask);
 }
 
@@ -670,16 +670,16 @@ MachineInstrBuilder MachineIRBuilder::buildShuffleVector(const DstOp &Res,
                                                          const SrcOp &Src1,
                                                          const SrcOp &Src2,
                                                          ArrayRef<int> Mask) {
-  LLT DstTy = Res.getLLTTy(*getMRI());
-  LLT Src1Ty = Src1.getLLTTy(*getMRI());
-  LLT Src2Ty = Src2.getLLTTy(*getMRI());
+  LLT const DstTy = Res.getLLTTy(*getMRI());
+  LLT const Src1Ty = Src1.getLLTTy(*getMRI());
+  LLT const Src2Ty = Src2.getLLTTy(*getMRI());
   assert(Src1Ty.getNumElements() + Src2Ty.getNumElements() >= Mask.size());
   assert(DstTy.getElementType() == Src1Ty.getElementType() &&
          DstTy.getElementType() == Src2Ty.getElementType());
   (void)DstTy;
   (void)Src1Ty;
   (void)Src2Ty;
-  ArrayRef<int> MaskAlloc = getMF().allocateShuffleMask(Mask);
+  ArrayRef<int> const MaskAlloc = getMF().allocateShuffleMask(Mask);
   return buildInstr(TargetOpcode::G_SHUFFLE_VECTOR, {Res}, {Src1, Src2})
       .addShuffleMask(MaskAlloc);
 }
@@ -689,7 +689,7 @@ MachineIRBuilder::buildConcatVectors(const DstOp &Res, ArrayRef<Register> Ops) {
   // Unfortunately to convert from ArrayRef<Register> to ArrayRef<SrcOp>,
   // we need some temporary storage for the DstOp objects. Here we use a
   // sufficiently large SmallVector to not go through the heap.
-  SmallVector<SrcOp, 8> TmpVec(Ops.begin(), Ops.end());
+  SmallVector<SrcOp, 8> const TmpVec(Ops.begin(), Ops.end());
   return buildInstr(TargetOpcode::G_CONCAT_VECTORS, Res, TmpVec);
 }
 
@@ -715,7 +715,7 @@ MachineInstrBuilder MachineIRBuilder::buildIntrinsic(Intrinsic::ID ID,
   auto MIB =
       buildInstr(HasSideEffects ? TargetOpcode::G_INTRINSIC_W_SIDE_EFFECTS
                                 : TargetOpcode::G_INTRINSIC);
-  for (unsigned ResultReg : ResultRegs)
+  for (unsigned const ResultReg : ResultRegs)
     MIB.addDef(ResultReg);
   MIB.addIntrinsicID(ID);
   return MIB;
@@ -727,7 +727,7 @@ MachineInstrBuilder MachineIRBuilder::buildIntrinsic(Intrinsic::ID ID,
   auto MIB =
       buildInstr(HasSideEffects ? TargetOpcode::G_INTRINSIC_W_SIDE_EFFECTS
                                 : TargetOpcode::G_INTRINSIC);
-  for (DstOp Result : Results)
+  for (DstOp const Result : Results)
     Result.addDefToMIB(*getMRI(), MIB);
   MIB.addIntrinsicID(ID);
   return MIB;
@@ -785,11 +785,11 @@ MachineInstrBuilder MachineIRBuilder::buildAtomicCmpXchgWithSuccess(
     Register OldValRes, Register SuccessRes, Register Addr, Register CmpVal,
     Register NewVal, MachineMemOperand &MMO) {
 #ifndef NDEBUG
-  LLT OldValResTy = getMRI()->getType(OldValRes);
-  LLT SuccessResTy = getMRI()->getType(SuccessRes);
-  LLT AddrTy = getMRI()->getType(Addr);
-  LLT CmpValTy = getMRI()->getType(CmpVal);
-  LLT NewValTy = getMRI()->getType(NewVal);
+  LLT const OldValResTy = getMRI()->getType(OldValRes);
+  LLT const SuccessResTy = getMRI()->getType(SuccessRes);
+  LLT const AddrTy = getMRI()->getType(Addr);
+  LLT const CmpValTy = getMRI()->getType(CmpVal);
+  LLT const NewValTy = getMRI()->getType(NewVal);
   assert(OldValResTy.isScalar() && "invalid operand type");
   assert(SuccessResTy.isScalar() && "invalid operand type");
   assert(AddrTy.isPointer() && "invalid operand type");
@@ -813,10 +813,10 @@ MachineIRBuilder::buildAtomicCmpXchg(Register OldValRes, Register Addr,
                                      Register CmpVal, Register NewVal,
                                      MachineMemOperand &MMO) {
 #ifndef NDEBUG
-  LLT OldValResTy = getMRI()->getType(OldValRes);
-  LLT AddrTy = getMRI()->getType(Addr);
-  LLT CmpValTy = getMRI()->getType(CmpVal);
-  LLT NewValTy = getMRI()->getType(NewVal);
+  LLT const OldValResTy = getMRI()->getType(OldValRes);
+  LLT const AddrTy = getMRI()->getType(Addr);
+  LLT const CmpValTy = getMRI()->getType(CmpVal);
+  LLT const NewValTy = getMRI()->getType(NewVal);
   assert(OldValResTy.isScalar() && "invalid operand type");
   assert(AddrTy.isPointer() && "invalid operand type");
   assert(CmpValTy.isValid() && "invalid operand type");
@@ -839,9 +839,9 @@ MachineInstrBuilder MachineIRBuilder::buildAtomicRMW(
   MachineMemOperand &MMO) {
 
 #ifndef NDEBUG
-  LLT OldValResTy = OldValRes.getLLTTy(*getMRI());
-  LLT AddrTy = Addr.getLLTTy(*getMRI());
-  LLT ValTy = Val.getLLTTy(*getMRI());
+  LLT const OldValResTy = OldValRes.getLLTTy(*getMRI());
+  LLT const AddrTy = Addr.getLLTTy(*getMRI());
+  LLT const ValTy = Val.getLLTTy(*getMRI());
   assert(OldValResTy.isScalar() && "invalid operand type");
   assert(AddrTy.isPointer() && "invalid operand type");
   assert(ValTy.isValid() && "invalid operand type");

@@ -278,7 +278,7 @@ void llvm::computeLTOCacheKey(
       AddUint64(WPD.second.ResByArg.size());
       for (auto &ByArg : WPD.second.ResByArg) {
         AddUint64(ByArg.first.size());
-        for (uint64_t Arg : ByArg.first)
+        for (uint64_t const Arg : ByArg.first)
           AddUint64(Arg);
         AddUnsigned(ByArg.second.TheKind);
         AddUint64(ByArg.second.Info);
@@ -289,7 +289,7 @@ void llvm::computeLTOCacheKey(
   };
 
   // Include the hash for all type identifiers used by this module.
-  for (GlobalValue::GUID TId : UsedTypeIds) {
+  for (GlobalValue::GUID const TId : UsedTypeIds) {
     auto TidIter = Index.typeIds().equal_range(TId);
     for (auto It = TidIter.first; It != TidIter.second; ++It)
       AddTypeIdSummary(It->second.first, It->second.second);
@@ -331,7 +331,7 @@ static void thinLTOResolvePrevailingGUID(
       C.VisibilityScheme == Config::ELF ? VI.getELFVisibility()
                                         : GlobalValue::DefaultVisibility;
   for (auto &S : VI.getSummaryList()) {
-    GlobalValue::LinkageTypes OriginalLinkage = S->linkage();
+    GlobalValue::LinkageTypes const OriginalLinkage = S->linkage();
     // Ignore local and appending linkage values since the linker
     // doesn't resolve them.
     if (GlobalValue::isLocalLinkage(OriginalLinkage) ||
@@ -381,7 +381,7 @@ static void thinLTOResolvePrevailingGUID(
 
   if (C.VisibilityScheme == Config::FromPrevailing) {
     for (auto &S : VI.getSummaryList()) {
-      GlobalValue::LinkageTypes OriginalLinkage = S->linkage();
+      GlobalValue::LinkageTypes const OriginalLinkage = S->linkage();
       if (GlobalValue::isLocalLinkage(OriginalLinkage) ||
           GlobalValue::isAppendingLinkage(S->linkage()))
         continue;
@@ -483,7 +483,7 @@ Expected<std::unique_ptr<InputFile>> InputFile::create(MemoryBufferRef Object) {
   File->ComdatTable = FOrErr->TheReader.getComdatTable();
 
   for (unsigned I = 0; I != FOrErr->Mods.size(); ++I) {
-    size_t Begin = File->Symbols.size();
+    size_t const Begin = File->Symbols.size();
     for (const irsymtab::Reader::SymbolRef &Sym :
          FOrErr->TheReader.module_symbols(I))
       // Skip symbols that are irrelevant to LTO. Note that this condition needs
@@ -539,10 +539,10 @@ void LTO::addModuleToGlobalRes(ArrayRef<InputFile::Symbol> Syms,
   (void)ResE;
   for (const InputFile::Symbol &Sym : Syms) {
     assert(ResI != ResE);
-    SymbolResolution Res = *ResI++;
+    SymbolResolution const Res = *ResI++;
 
     StringRef Name = Sym.getName();
-    Triple TT(RegularLTO.CombinedModule->getTargetTriple());
+    Triple const TT(RegularLTO.CombinedModule->getTargetTriple());
     // Strip the __imp_ prefix from COFF dllimport symbols (similar to the
     // way they are handled by lld), otherwise we can end up with two
     // global resolutions (one with and one for a copy of the symbol without).
@@ -588,12 +588,12 @@ void LTO::addModuleToGlobalRes(ArrayRef<InputFile::Symbol> Syms,
 
 static void writeToResolutionFile(raw_ostream &OS, InputFile *Input,
                                   ArrayRef<SymbolResolution> Res) {
-  StringRef Path = Input->getName();
+  StringRef const Path = Input->getName();
   OS << Path << '\n';
   auto ResI = Res.begin();
   for (const InputFile::Symbol &Sym : Input->symbols()) {
     assert(ResI != Res.end());
-    SymbolResolution Res = *ResI++;
+    SymbolResolution const Res = *ResI++;
 
     OS << "-r=" << Path << ',' << Sym.getName() << ',';
     if (Res.Prevailing)
@@ -759,10 +759,10 @@ LTO::addRegularLTO(BitcodeModule BM, ArrayRef<InputFile::Symbol> Syms,
   SmallSet<StringRef, 2> NonPrevailingAsmSymbols;
   for (const InputFile::Symbol &Sym : Syms) {
     assert(ResI != ResE);
-    SymbolResolution Res = *ResI++;
+    SymbolResolution const Res = *ResI++;
 
     assert(MsymI != MsymE);
-    ModuleSymbolTable::Symbol Msym = *MsymI++;
+    ModuleSymbolTable::Symbol const Msym = *MsymI++;
     Skip();
 
     if (GlobalValue *GV = Msym.dyn_cast<GlobalValue *>()) {
@@ -776,7 +776,7 @@ LTO::addRegularLTO(BitcodeModule BM, ArrayRef<InputFile::Symbol> Syms,
         if (Res.LinkerRedefined)
           GV->setLinkage(GlobalValue::WeakAnyLinkage);
 
-        GlobalValue::LinkageTypes OriginalLinkage = GV->getLinkage();
+        GlobalValue::LinkageTypes const OriginalLinkage = GV->getLinkage();
         if (GlobalValue::isLinkOnceLinkage(OriginalLinkage))
           GV->setLinkage(GlobalValue::getWeakLinkage(
               GlobalValue::isLinkOnceODRLinkage(OriginalLinkage)));
@@ -896,7 +896,7 @@ Error LTO::addThinLTO(BitcodeModule BM, ArrayRef<InputFile::Symbol> Syms,
 
   for (const InputFile::Symbol &Sym : Syms) {
     assert(ResI != ResE);
-    SymbolResolution Res = *ResI++;
+    SymbolResolution const Res = *ResI++;
 
     if (!Sym.getIRName().empty()) {
       auto GUID = GlobalValue::getGUID(GlobalValue::getGlobalIdentifier(
@@ -1003,7 +1003,7 @@ Error LTO::run(AddStreamFn AddStream, NativeObjectCache Cache) {
     if (Res.second.IRName.empty())
       continue;
 
-    GlobalValue::GUID GUID = GlobalValue::getGUID(
+    GlobalValue::GUID const GUID = GlobalValue::getGUID(
         GlobalValue::dropLLVMManglingEscape(Res.second.IRName));
 
     if (Res.second.VisibleOutsideSummary && Res.second.Prevailing)
@@ -1234,7 +1234,7 @@ public:
     computeLTOCacheKey(Key, Conf, CombinedIndex, ModuleID, ImportList,
                        ExportList, ResolvedODR, DefinedGlobals, CfiFunctionDefs,
                        CfiFunctionDecls);
-    if (AddStreamFn CacheAddStream = Cache(Task, Key))
+    if (AddStreamFn const CacheAddStream = Cache(Task, Key))
       return RunThinBackend(CacheAddStream);
 
     return Error::success();
@@ -1246,7 +1246,7 @@ public:
       const FunctionImporter::ExportSetTy &ExportList,
       const std::map<GlobalValue::GUID, GlobalValue::LinkageTypes> &ResolvedODR,
       MapVector<StringRef, BitcodeModule> &ModuleMap) override {
-    StringRef ModulePath = BM.getModuleIdentifier();
+    StringRef const ModulePath = BM.getModuleIdentifier();
     assert(ModuleToDefinedGVSummaries.count(ModulePath));
     const GVSummaryMapTy &DefinedGlobals =
         ModuleToDefinedGVSummaries.find(ModulePath)->second;
@@ -1265,7 +1265,7 @@ public:
               AddStream, Cache, Task, BM, CombinedIndex, ImportList, ExportList,
               ResolvedODR, DefinedGlobals, ModuleMap);
           if (E) {
-            std::unique_lock<std::mutex> L(ErrMu);
+            std::unique_lock<std::mutex> const L(ErrMu);
             if (Err)
               Err = joinErrors(std::move(*Err), std::move(E));
             else
@@ -1313,10 +1313,10 @@ std::string lto::getThinLTOOutputFile(const std::string &Path,
     return Path;
   SmallString<128> NewPath(Path);
   llvm::sys::path::replace_path_prefix(NewPath, OldPrefix, NewPrefix);
-  StringRef ParentPath = llvm::sys::path::parent_path(NewPath.str());
+  StringRef const ParentPath = llvm::sys::path::parent_path(NewPath.str());
   if (!ParentPath.empty()) {
     // Make sure the new directory exists, creating it if necessary.
-    if (std::error_code EC = llvm::sys::fs::create_directories(ParentPath))
+    if (std::error_code const EC = llvm::sys::fs::create_directories(ParentPath))
       llvm::errs() << "warning: could not create directory '" << ParentPath
                    << "': " << EC.message() << '\n';
   }
@@ -1347,8 +1347,8 @@ public:
       const FunctionImporter::ExportSetTy &ExportList,
       const std::map<GlobalValue::GUID, GlobalValue::LinkageTypes> &ResolvedODR,
       MapVector<StringRef, BitcodeModule> &ModuleMap) override {
-    StringRef ModulePath = BM.getModuleIdentifier();
-    std::string NewModulePath =
+    StringRef const ModulePath = BM.getModuleIdentifier();
+    std::string const NewModulePath =
         getThinLTOOutputFile(std::string(ModulePath), OldPrefix, NewPrefix);
 
     if (LinkedObjectsFile)
@@ -1557,7 +1557,7 @@ Error LTO::runThinLTO(AddStreamFn AddStream, NativeObjectCache Cache,
     ModulesVec.reserve(ModuleMap.size());
     for (auto &Mod : ModuleMap)
       ModulesVec.push_back(&Mod.second);
-    for (int I : generateModulesOrdering(ModulesVec))
+    for (int const I : generateModulesOrdering(ModulesVec))
       if (Error E = ProcessOneModule(I))
         return E;
   }

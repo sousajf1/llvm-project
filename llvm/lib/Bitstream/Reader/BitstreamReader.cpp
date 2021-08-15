@@ -47,7 +47,7 @@ Error BitstreamCursor::EnterSubBlock(unsigned BlockID, unsigned *NumWordsP) {
   Expected<word_t> MaybeNum = Read(bitc::BlockSizeWidth);
   if (!MaybeNum)
     return MaybeNum.takeError();
-  word_t NumWords = MaybeNum.get();
+  word_t const NumWords = MaybeNum.get();
   if (NumWordsP)
     *NumWordsP = NumWords;
 
@@ -94,11 +94,11 @@ Expected<unsigned> BitstreamCursor::skipRecord(unsigned AbbrevID) {
     Expected<uint32_t> MaybeCode = ReadVBR(6);
     if (!MaybeCode)
       return MaybeCode.takeError();
-    unsigned Code = MaybeCode.get();
+    unsigned const Code = MaybeCode.get();
     Expected<uint32_t> MaybeVBR = ReadVBR(6);
     if (!MaybeVBR)
       return MaybeVBR.get();
-    unsigned NumElts = MaybeVBR.get();
+    unsigned const NumElts = MaybeVBR.get();
     for (unsigned i = 0; i != NumElts; ++i)
       if (Expected<uint64_t> Res = ReadVBR64(6))
         ; // Skip!
@@ -182,7 +182,7 @@ Expected<unsigned> BitstreamCursor::skipRecord(unsigned AbbrevID) {
     Expected<uint32_t> MaybeNum = ReadVBR(6);
     if (!MaybeNum)
       return MaybeNum.takeError();
-    unsigned NumElts = MaybeNum.get();
+    unsigned const NumElts = MaybeNum.get();
     SkipToFourByteBoundary();  // 32-bit alignment
 
     // Figure out where the end of this blob will be including tail padding.
@@ -209,11 +209,11 @@ Expected<unsigned> BitstreamCursor::readRecord(unsigned AbbrevID,
     Expected<uint32_t> MaybeCode = ReadVBR(6);
     if (!MaybeCode)
       return MaybeCode.takeError();
-    uint32_t Code = MaybeCode.get();
+    uint32_t const Code = MaybeCode.get();
     Expected<uint32_t> MaybeNumElts = ReadVBR(6);
     if (!MaybeNumElts)
       return MaybeNumElts.takeError();
-    uint32_t NumElts = MaybeNumElts.get();
+    uint32_t const NumElts = MaybeNumElts.get();
     Vals.reserve(Vals.size() + NumElts);
 
     for (unsigned i = 0; i != NumElts; ++i)
@@ -309,11 +309,11 @@ Expected<unsigned> BitstreamCursor::readRecord(unsigned AbbrevID,
     Expected<uint32_t> MaybeNumElts = ReadVBR(6);
     if (!MaybeNumElts)
       return MaybeNumElts.takeError();
-    uint32_t NumElts = MaybeNumElts.get();
+    uint32_t const NumElts = MaybeNumElts.get();
     SkipToFourByteBoundary();  // 32-bit alignment
 
     // Figure out where the end of this blob will be including tail padding.
-    size_t CurBitPos = GetCurrentBitNo();
+    size_t const CurBitPos = GetCurrentBitNo();
     const size_t NewEnd = CurBitPos + alignTo(NumElts, 4) * 8;
 
     // If this would read off the end of the bitcode file, just set the
@@ -349,12 +349,12 @@ Error BitstreamCursor::ReadAbbrevRecord() {
   Expected<uint32_t> MaybeNumOpInfo = ReadVBR(5);
   if (!MaybeNumOpInfo)
     return MaybeNumOpInfo.takeError();
-  unsigned NumOpInfo = MaybeNumOpInfo.get();
+  unsigned const NumOpInfo = MaybeNumOpInfo.get();
   for (unsigned i = 0; i != NumOpInfo; ++i) {
     Expected<word_t> MaybeIsLiteral = Read(1);
     if (!MaybeIsLiteral)
       return MaybeIsLiteral.takeError();
-    bool IsLiteral = MaybeIsLiteral.get();
+    bool const IsLiteral = MaybeIsLiteral.get();
     if (IsLiteral) {
       Expected<uint64_t> MaybeOp = ReadVBR64(8);
       if (!MaybeOp)
@@ -366,13 +366,13 @@ Error BitstreamCursor::ReadAbbrevRecord() {
     Expected<word_t> MaybeEncoding = Read(3);
     if (!MaybeEncoding)
       return MaybeEncoding.takeError();
-    BitCodeAbbrevOp::Encoding E =
+    BitCodeAbbrevOp::Encoding const E =
         (BitCodeAbbrevOp::Encoding)MaybeEncoding.get();
     if (BitCodeAbbrevOp::hasEncodingData(E)) {
       Expected<uint64_t> MaybeData = ReadVBR64(5);
       if (!MaybeData)
         return MaybeData.takeError();
-      uint64_t Data = MaybeData.get();
+      uint64_t const Data = MaybeData.get();
 
       // As a special case, handle fixed(0) (i.e., a fixed field with zero bits)
       // and vbr(0) as a literal zero.  This is decoded the same way, and avoids
@@ -416,7 +416,7 @@ BitstreamCursor::ReadBlockInfoBlock(bool ReadBlockInfoNames) {
         advanceSkippingSubblocks(AF_DontAutoprocessAbbrevs);
     if (!MaybeEntry)
       return MaybeEntry.takeError();
-    BitstreamEntry Entry = MaybeEntry.get();
+    BitstreamEntry const Entry = MaybeEntry.get();
 
     switch (Entry.Kind) {
     case llvm::BitstreamEntry::SubBlock: // Handled for us already.

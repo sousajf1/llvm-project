@@ -82,7 +82,7 @@ SampleProfileWriter::write(const StringMap<FunctionSamples> &ProfileMap) {
 uint64_t
 SampleProfileWriterExtBinaryBase::markSectionStart(SecType Type,
                                                    uint32_t LayoutIdx) {
-  uint64_t SectionStart = OutputStream->tell();
+  uint64_t const SectionStart = OutputStream->tell();
   assert(LayoutIdx < SectionHdrLayout.size() && "LayoutIdx out of range");
   const auto &Entry = SectionHdrLayout[LayoutIdx];
   assert(Entry.Type == Type && "Unexpected section type");
@@ -148,8 +148,8 @@ std::error_code SampleProfileWriterExtBinaryBase::write(
 
 std::error_code
 SampleProfileWriterExtBinaryBase::writeSample(const FunctionSamples &S) {
-  uint64_t Offset = OutputStream->tell();
-  StringRef Name = S.getNameWithContext();
+  uint64_t const Offset = OutputStream->tell();
+  StringRef const Name = S.getNameWithContext();
   FuncOffsetTable[Name] = Offset - SecLBRProfileStart;
   encodeULEB128(S.getHeadSamples(), *OutputStream);
   return writeBody(S);
@@ -255,7 +255,7 @@ std::error_code SampleProfileWriterExtBinaryBase::writeOneSection(
   if (Type == SecProfSummary && FunctionSamples::ProfileIsFS)
     addSectionFlag(SecProfSummary, SecProfSummaryFlags::SecFlagFSDiscriminator);
 
-  uint64_t SectionStart = markSectionStart(Type, LayoutIdx);
+  uint64_t const SectionStart = markSectionStart(Type, LayoutIdx);
   switch (Type) {
   case SecProfSummary:
     computeSummary(ProfileMap);
@@ -397,9 +397,9 @@ std::error_code SampleProfileWriterText::writeSample(const FunctionSamples &S) {
     OS << ":" << S.getHeadSamples();
   OS << "\n";
 
-  SampleSorter<LineLocation, SampleRecord> SortedSamples(S.getBodySamples());
+  SampleSorter<LineLocation, SampleRecord> const SortedSamples(S.getBodySamples());
   for (const auto &I : SortedSamples.get()) {
-    LineLocation Loc = I->first;
+    LineLocation const Loc = I->first;
     const SampleRecord &Sample = I->second;
     OS.indent(Indent + 1);
     if (Loc.Discriminator == 0)
@@ -414,12 +414,12 @@ std::error_code SampleProfileWriterText::writeSample(const FunctionSamples &S) {
     OS << "\n";
   }
 
-  SampleSorter<LineLocation, FunctionSamplesMap> SortedCallsiteSamples(
+  SampleSorter<LineLocation, FunctionSamplesMap> const SortedCallsiteSamples(
       S.getCallsiteSamples());
   Indent += 1;
   for (const auto &I : SortedCallsiteSamples.get())
     for (const auto &FS : I->second) {
-      LineLocation Loc = I->first;
+      LineLocation const Loc = I->first;
       const FunctionSamples &CalleeSamples = FS.second;
       OS.indent(Indent);
       if (Loc.Discriminator == 0)
@@ -513,7 +513,7 @@ std::error_code SampleProfileWriterCompactBinary::writeFuncOffsetTable() {
 
   // Fill the slot remembered by TableOffset with the offset of FuncOffsetTable.
   auto &OFS = static_cast<raw_fd_ostream &>(OS);
-  uint64_t FuncOffsetTableStart = OS.tell();
+  uint64_t const FuncOffsetTableStart = OS.tell();
   if (OFS.seek(TableOffset) == (uint64_t)-1)
     return sampleprof_error::ostream_seek_unsupported;
   support::endian::Writer Writer(*OutputStream, support::little);
@@ -600,7 +600,7 @@ void SampleProfileWriterExtBinaryBase::allocSecHdrTable() {
 
 std::error_code SampleProfileWriterExtBinaryBase::writeSecHdrTable() {
   auto &OFS = static_cast<raw_fd_ostream &>(*OutputStream);
-  uint64_t Saved = OutputStream->tell();
+  uint64_t const Saved = OutputStream->tell();
 
   // Set OutputStream to the location saved in SecHdrTableOffset.
   if (OFS.seek(SecHdrTableOffset) == (uint64_t)-1)
@@ -671,7 +671,7 @@ std::error_code SampleProfileWriterBinary::writeSummary() {
   encodeULEB128(Summary->getMaxFunctionCount(), OS);
   encodeULEB128(Summary->getNumCounts(), OS);
   encodeULEB128(Summary->getNumFunctions(), OS);
-  std::vector<ProfileSummaryEntry> &Entries = Summary->getDetailedSummary();
+  std::vector<ProfileSummaryEntry>  const&Entries = Summary->getDetailedSummary();
   encodeULEB128(Entries.size(), OS);
   for (auto Entry : Entries) {
     encodeULEB128(Entry.Cutoff, OS);
@@ -692,15 +692,15 @@ std::error_code SampleProfileWriterBinary::writeBody(const FunctionSamples &S) {
   // Emit all the body samples.
   encodeULEB128(S.getBodySamples().size(), OS);
   for (const auto &I : S.getBodySamples()) {
-    LineLocation Loc = I.first;
+    LineLocation const Loc = I.first;
     const SampleRecord &Sample = I.second;
     encodeULEB128(Loc.LineOffset, OS);
     encodeULEB128(Loc.Discriminator, OS);
     encodeULEB128(Sample.getSamples(), OS);
     encodeULEB128(Sample.getCallTargets().size(), OS);
     for (const auto &J : Sample.getSortedCallTargets()) {
-      StringRef Callee = J.first;
-      uint64_t CalleeSamples = J.second;
+      StringRef const Callee = J.first;
+      uint64_t const CalleeSamples = J.second;
       if (std::error_code EC = writeNameIdx(Callee))
         return EC;
       encodeULEB128(CalleeSamples, OS);
@@ -714,7 +714,7 @@ std::error_code SampleProfileWriterBinary::writeBody(const FunctionSamples &S) {
   encodeULEB128(NumCallsites, OS);
   for (const auto &J : S.getCallsiteSamples())
     for (const auto &FS : J.second) {
-      LineLocation Loc = J.first;
+      LineLocation const Loc = J.first;
       const FunctionSamples &CalleeSamples = FS.second;
       encodeULEB128(Loc.LineOffset, OS);
       encodeULEB128(Loc.Discriminator, OS);
@@ -736,8 +736,8 @@ SampleProfileWriterBinary::writeSample(const FunctionSamples &S) {
 
 std::error_code
 SampleProfileWriterCompactBinary::writeSample(const FunctionSamples &S) {
-  uint64_t Offset = OutputStream->tell();
-  StringRef Name = S.getName();
+  uint64_t const Offset = OutputStream->tell();
+  StringRef const Name = S.getName();
   FuncOffsetTable[Name] = Offset;
   encodeULEB128(S.getHeadSamples(), *OutputStream);
   return writeBody(S);

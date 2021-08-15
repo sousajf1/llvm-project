@@ -163,7 +163,7 @@ bool ObjCARCContract::contractAutorelease(Function &F, Instruction *Autorelease,
 
   // Check that there are no instructions between the retain and the autorelease
   // (such as an autorelease_pop) which may change the count.
-  DependenceKind DK = Class == ARCInstKind::AutoreleaseRV
+  DependenceKind const DK = Class == ARCInstKind::AutoreleaseRV
                           ? RetainAutoreleaseRVDep
                           : RetainAutoreleaseDep;
   auto *Retain = dyn_cast_or_null<CallInst>(
@@ -202,7 +202,7 @@ static StoreInst *findSafeStoreForStoreStrongContraction(LoadInst *Load,
   bool SawRelease = false;
 
   // Get the location associated with Load.
-  MemoryLocation Loc = MemoryLocation::get(Load);
+  MemoryLocation const Loc = MemoryLocation::get(Load);
   auto *LocPtr = Loc.Ptr->stripPointerCasts();
 
   // Walk down to find the store and the release, which may be in either order.
@@ -224,7 +224,7 @@ static StoreInst *findSafeStoreForStoreStrongContraction(LoadInst *Load,
 
     // Otherwise, we check if Inst is a "good" store. Grab the instruction class
     // of Inst.
-    ARCInstKind Class = GetBasicARCInstKind(Inst);
+    ARCInstKind const Class = GetBasicARCInstKind(Inst);
 
     // If we have seen the store, but not the release...
     if (Store) {
@@ -289,7 +289,7 @@ findRetainForStoreStrongContraction(Value *New, StoreInst *Store,
                                     ProvenanceAnalysis &PA) {
   // Walk up from the Store to find the retain.
   BasicBlock::iterator I = Store->getIterator();
-  BasicBlock::iterator Begin = Store->getParent()->begin();
+  BasicBlock::iterator const Begin = Store->getParent()->begin();
   while (I != Begin && GetBasicARCInstKind(&*I) != ARCInstKind::Retain) {
     Instruction *Inst = &*I;
 
@@ -417,7 +417,7 @@ bool ObjCARCContract::tryToPeepholeInstruction(
     const DenseMap<BasicBlock *, ColorVector> &BlockColors) {
   // Only these library routines return their argument. In particular,
   // objc_retainBlock does not necessarily return its argument.
-  ARCInstKind Class = GetBasicARCInstKind(Inst);
+  ARCInstKind const Class = GetBasicARCInstKind(Inst);
   switch (Class) {
   case ARCInstKind::FusedRetainAutorelease:
   case ARCInstKind::FusedRetainAutoreleaseRV:
@@ -543,7 +543,7 @@ bool ObjCARCContract::run(Function &F, AAResults *A, DominatorTree *D) {
   BundledRetainClaimRVs BRV(EP, true);
   BundledInsts = &BRV;
 
-  std::pair<bool, bool> R = BundledInsts->insertAfterInvokes(F, DT);
+  std::pair<bool, bool> const R = BundledInsts->insertAfterInvokes(F, DT);
   Changed |= R.first;
   CFGChanged |= R.second;
 
@@ -599,7 +599,7 @@ bool ObjCARCContract::run(Function &F, AAResults *A, DominatorTree *D) {
            UI != UE; ) {
         // Increment UI now, because we may unlink its element.
         Use &U = *UI++;
-        unsigned OperandNo = U.getOperandNo();
+        unsigned const OperandNo = U.getOperandNo();
 
         // If the call's return value dominates a use of the call's argument
         // value, rewrite the use to use the return value. We check for
@@ -615,7 +615,7 @@ bool ObjCARCContract::run(Function &F, AAResults *A, DominatorTree *D) {
         Type *UseTy = U.get()->getType();
         if (PHINode *PHI = dyn_cast<PHINode>(U.getUser())) {
           // For PHI nodes, insert the bitcast in the predecessor block.
-          unsigned ValNo = PHINode::getIncomingValueNumForOperand(OperandNo);
+          unsigned const ValNo = PHINode::getIncomingValueNumForOperand(OperandNo);
           BasicBlock *IncomingBB = PHI->getIncomingBlock(ValNo);
           if (Replacement->getType() != UseTy) {
             // A catchswitch is both a pad and a terminator, meaning a basic
@@ -747,9 +747,9 @@ PreservedAnalyses ObjCARCContractPass::run(Function &F,
   ObjCARCContract OCAC;
   OCAC.init(*F.getParent());
 
-  bool Changed = OCAC.run(F, &AM.getResult<AAManager>(F),
+  bool const Changed = OCAC.run(F, &AM.getResult<AAManager>(F),
                           &AM.getResult<DominatorTreeAnalysis>(F));
-  bool CFGChanged = OCAC.hasCFGChanged();
+  bool const CFGChanged = OCAC.hasCFGChanged();
   if (Changed) {
     PreservedAnalyses PA;
     if (!CFGChanged)

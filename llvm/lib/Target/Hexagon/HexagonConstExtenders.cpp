@@ -42,13 +42,13 @@ namespace llvm {
 
 static int32_t adjustUp(int32_t V, uint8_t A, uint8_t O) {
   assert(isPowerOf2_32(A));
-  int32_t U = (V & -A) + O;
+  int32_t const U = (V & -A) + O;
   return U >= V ? U : U+A;
 }
 
 static int32_t adjustDown(int32_t V, uint8_t A, uint8_t O) {
   assert(isPowerOf2_32(A));
-  int32_t U = (V & -A) + O;
+  int32_t const U = (V & -A) + O;
   return U <= V ? U : U-A;
 }
 
@@ -178,7 +178,7 @@ namespace {
     }
     Node *rebalance(Node *N) {
       assert(N != nullptr);
-      int32_t Balance = height(N->Right) - height(N->Left);
+      int32_t const Balance = height(N->Right) - height(N->Left);
       if (Balance < -1)
         return rotateRight(N->Left, N);
       if (Balance > 1)
@@ -251,7 +251,7 @@ namespace {
                           /*Kill*/false, /*Dead*/false, /*Undef*/false,
                           /*EarlyClobber*/false, Sub);
         if (Reg.isStack()) {
-          int FI = llvm::Register::stackSlot2Index(Reg);
+          int const FI = llvm::Register::stackSlot2Index(Reg);
           return MachineOperand::CreateFI(FI);
         }
         llvm_unreachable("Cannot create MachineOperand");
@@ -556,7 +556,7 @@ namespace {
     OS << "{\n";
     for (const std::pair<const HCE::ExtenderInit, HCE::IndexList> &Q : P.IMap) {
       OS << "  " << PrintInit(Q.first, P.HRI) << " -> {";
-      for (unsigned I : Q.second)
+      for (unsigned const I : Q.second)
         OS << ' ' << I;
       OS << " }\n";
     }
@@ -872,8 +872,8 @@ unsigned HCE::getRegOffOpcode(unsigned ExtOpc) const {
   }
   const MCInstrDesc &D = HII->get(ExtOpc);
   if (D.mayLoad() || D.mayStore()) {
-    uint64_t F = D.TSFlags;
-    unsigned AM = (F >> HexagonII::AddrModePos) & HexagonII::AddrModeMask;
+    uint64_t const F = D.TSFlags;
+    unsigned const AM = (F >> HexagonII::AddrModePos) & HexagonII::AddrModeMask;
     switch (AM) {
       case HexagonII::Absolute:
       case HexagonII::AbsoluteSet:
@@ -1045,7 +1045,7 @@ unsigned HCE::getDirectRegReplacement(unsigned ExtOpc) const {
 // for L2_loadrub with offset 0. That means that Rb could be replaced with
 // Rc, where Rc-Rb belongs to [Min+1, Max+1].
 OffsetRange HCE::getOffsetRange(Register Rb, const MachineInstr &MI) const {
-  unsigned Opc = MI.getOpcode();
+  unsigned const Opc = MI.getOpcode();
   // Instructions that are constant-extended may be replaced with something
   // else that no longer offers the same range as the original.
   if (!isRegOffOpcode(Opc) || HII->isConstExtended(MI))
@@ -1072,17 +1072,17 @@ OffsetRange HCE::getOffsetRange(Register Rb, const MachineInstr &MI) const {
       !MI.getOperand(OffP).isImm())
     return OffsetRange::zero();
 
-  uint64_t F = (D.TSFlags >> HexagonII::MemAccessSizePos) &
+  uint64_t const F = (D.TSFlags >> HexagonII::MemAccessSizePos) &
                   HexagonII::MemAccesSizeMask;
-  uint8_t A = HexagonII::getMemAccessSizeInBytes(HexagonII::MemAccessSize(F));
-  unsigned L = Log2_32(A);
-  unsigned S = 10+L;  // sint11_L
-  int32_t Min = -alignDown((1<<S)-1, A);
+  uint8_t const A = HexagonII::getMemAccessSizeInBytes(HexagonII::MemAccessSize(F));
+  unsigned const L = Log2_32(A);
+  unsigned const S = 10+L;  // sint11_L
+  int32_t const Min = -alignDown((1<<S)-1, A);
 
   // The range will be shifted by Off. To prefer non-negative offsets,
   // adjust Max accordingly.
-  int32_t Off = MI.getOperand(OffP).getImm();
-  int32_t Max = Off >= 0 ? 0 : -Off;
+  int32_t const Off = MI.getOperand(OffP).getImm();
+  int32_t const Max = Off >= 0 ? 0 : -Off;
 
   OffsetRange R = { Min, Max, A };
   return R.shift(Off);
@@ -1099,7 +1099,7 @@ OffsetRange HCE::getOffsetRange(const ExtDesc &ED) const {
   // The only way that there can be a non-zero range available is if
   // the instruction using ED will be converted to an indexed memory
   // instruction.
-  unsigned IdxOpc = getRegOffOpcode(ED.UseMI->getOpcode());
+  unsigned const IdxOpc = getRegOffOpcode(ED.UseMI->getOpcode());
   switch (IdxOpc) {
     case 0:
       return OffsetRange::zero();
@@ -1112,13 +1112,13 @@ OffsetRange HCE::getOffsetRange(const ExtDesc &ED) const {
   if (!ED.UseMI->mayLoad() && !ED.UseMI->mayStore())
     return OffsetRange::zero();
   const MCInstrDesc &D = HII->get(IdxOpc);
-  uint64_t F = (D.TSFlags >> HexagonII::MemAccessSizePos) &
+  uint64_t const F = (D.TSFlags >> HexagonII::MemAccessSizePos) &
                   HexagonII::MemAccesSizeMask;
-  uint8_t A = HexagonII::getMemAccessSizeInBytes(HexagonII::MemAccessSize(F));
-  unsigned L = Log2_32(A);
-  unsigned S = 10+L;  // sint11_L
-  int32_t Min = -alignDown((1<<S)-1, A);
-  int32_t Max = 0;  // Force non-negative offsets.
+  uint8_t const A = HexagonII::getMemAccessSizeInBytes(HexagonII::MemAccessSize(F));
+  unsigned const L = Log2_32(A);
+  unsigned const S = 10+L;  // sint11_L
+  int32_t const Min = -alignDown((1<<S)-1, A);
+  int32_t const Max = 0;  // Force non-negative offsets.
   return { Min, Max, A };
 }
 
@@ -1138,22 +1138,22 @@ OffsetRange HCE::getOffsetRange(Register Rd) const {
 }
 
 void HCE::recordExtender(MachineInstr &MI, unsigned OpNum) {
-  unsigned Opc = MI.getOpcode();
+  unsigned const Opc = MI.getOpcode();
   ExtDesc ED;
   ED.OpNum = OpNum;
 
-  bool IsLoad = MI.mayLoad();
-  bool IsStore = MI.mayStore();
+  bool const IsLoad = MI.mayLoad();
+  bool const IsStore = MI.mayStore();
 
   // Fixed stack slots have negative indexes, and they cannot be used
   // with TRI::stackSlot2Index and TRI::index2StackSlot. This is somewhat
   // unfortunate, but should not be a frequent thing.
-  for (MachineOperand &Op : MI.operands())
+  for (MachineOperand  const&Op : MI.operands())
     if (Op.isFI() && Op.getIndex() < 0)
       return;
 
   if (IsLoad || IsStore) {
-    unsigned AM = HII->getAddrMode(MI);
+    unsigned const AM = HII->getAddrMode(MI);
     switch (AM) {
       // (Re: ##Off + Rb<<S) = Rd: ##Val
       case HexagonII::Absolute:       // (__: ## + __<<_)
@@ -1217,7 +1217,7 @@ void HCE::recordExtender(MachineInstr &MI, unsigned OpNum) {
   ED.UseMI = &MI;
 
   // Ignore unnamed globals.
-  ExtRoot ER(ED.getOp());
+  ExtRoot const ER(ED.getOp());
   if (ER.Kind == MachineOperand::MO_GlobalAddress)
     if (ER.V.GV->getName().empty())
       return;
@@ -1229,7 +1229,7 @@ void HCE::collectInstr(MachineInstr &MI) {
     return;
 
   // Skip some non-convertible instructions.
-  unsigned Opc = MI.getOpcode();
+  unsigned const Opc = MI.getOpcode();
   switch (Opc) {
     case Hexagon::M2_macsin:  // There is no Rx -= mpyi(Rs,Rt).
     case Hexagon::C4_addipc:
@@ -1273,7 +1273,7 @@ void HCE::assignInits(const ExtRoot &ER, unsigned Begin, unsigned End,
     const ExtDesc &ED = Extenders[I];
     if (!ED.IsDef)
       continue;
-    ExtValue EV(ED);
+    ExtValue const EV(ED);
     LLVM_DEBUG(dbgs() << " =" << I << ". " << EV << "  " << ED << '\n');
     assert(ED.Rd.Reg != 0);
     Ranges[I-Begin] = getOffsetRange(ED.Rd).shift(EV.Offset);
@@ -1282,7 +1282,7 @@ void HCE::assignInits(const ExtRoot &ER, unsigned Begin, unsigned End,
     // range coming from its uses, but also from the fact that its replacement
     // has a range as well.
     if (ED.UseMI->getOpcode() == Hexagon::A2_tfrsi) {
-      int32_t D = alignDown(32767, Ranges[I-Begin].Align); // XXX hardcoded
+      int32_t const D = alignDown(32767, Ranges[I-Begin].Align); // XXX hardcoded
       Ranges[I-Begin].extendBy(-D).extendBy(D);
     }
   }
@@ -1293,7 +1293,7 @@ void HCE::assignInits(const ExtRoot &ER, unsigned Begin, unsigned End,
     const ExtDesc &ED = Extenders[I];
     if (ED.IsDef)
       continue;
-    ExtValue EV(ED);
+    ExtValue const EV(ED);
     LLVM_DEBUG(dbgs() << "  " << I << ". " << EV << "  " << ED << '\n');
     OffsetRange Dev = getOffsetRange(ED);
     Ranges[I-Begin].intersect(Dev.shift(EV.Offset));
@@ -1326,7 +1326,7 @@ void HCE::assignInits(const ExtRoot &ER, unsigned Begin, unsigned End,
   // the total number of ranges containing that candidate, and the
   // vector of corresponding RangeTree nodes.
   using CandData = std::pair<unsigned, SmallVector<RangeTree::Node*,8>>;
-  std::map<int32_t, CandData> CandMap;
+  std::map<int32_t, CandData> const CandMap;
 
   RangeTree Tree;
   for (const OffsetRange &R : Ranges)
@@ -1374,7 +1374,7 @@ void HCE::assignInits(const ExtRoot &ER, unsigned Begin, unsigned End,
     CMap Counts;
     for (auto It = CandSet.begin(), Et = CandSet.end(); It != Et; ) {
       auto &&V = Tree.nodesWith(*It);
-      unsigned N = std::accumulate(V.begin(), V.end(), 0u,
+      unsigned const N = std::accumulate(V.begin(), V.end(), 0u,
                     [](unsigned Acc, const RangeTree::Node *N) {
                       return Acc + N->Count;
                     });
@@ -1391,10 +1391,10 @@ void HCE::assignInits(const ExtRoot &ER, unsigned Begin, unsigned End,
                       return A.second < B.second ||
                              (A.second == B.second && A < B);
                     });
-    int32_t Best = BestIt->first;
-    ExtValue BestV(ER, Best);
+    int32_t const Best = BestIt->first;
+    ExtValue const BestV(ER, Best);
     for (RangeTree::Node *N : Tree.nodesWith(Best)) {
-      for (unsigned I : RangeMap[N->Range])
+      for (unsigned const I : RangeMap[N->Range])
         IMap[{BestV,Extenders[I].Expr}].insert(I);
       Tree.erase(N);
     }
@@ -1416,7 +1416,7 @@ void HCE::assignInits(const ExtRoot &ER, unsigned Begin, unsigned End,
     // If the corresponding trivial initializer does not exist, skip this
     // entry.
     const ExtValue &EV = P.first.first;
-    AssignmentMap::iterator F = IMap.find({EV, ExtExpr()});
+    AssignmentMap::iterator const F = IMap.find({EV, ExtExpr()});
     if (F == IMap.end())
       continue;
 
@@ -1456,7 +1456,7 @@ void HCE::assignInits(const ExtRoot &ER, unsigned Begin, unsigned End,
     //   r0 = #267
     //   if (p0.new) memb(r0+r29<<#4) = r2
 
-    bool IsStack = any_of(F->second, [this](unsigned I) {
+    bool const IsStack = any_of(F->second, [this](unsigned I) {
                       return Extenders[I].Expr.Rs.isSlot();
                    });
     auto SameValue = [&EV,this,IsStack](unsigned I) {
@@ -1500,7 +1500,7 @@ void HCE::calculatePlacement(const ExtenderInit &ExtI, const IndexList &Refs,
 #ifndef NDEBUG
   // The block DomB should be dominated by the def of each register used
   // in the initializer.
-  Register Rs = ExtI.second.Rs;  // Only one reg allowed now.
+  Register const Rs = ExtI.second.Rs;  // Only one reg allowed now.
   const MachineInstr *DefI = Rs.isVReg() ? MRI->getVRegDef(Rs.Reg) : nullptr;
 
   // This should be guaranteed given that the entire expression is used
@@ -1511,7 +1511,7 @@ void HCE::calculatePlacement(const ExtenderInit &ExtI, const IndexList &Refs,
   MachineBasicBlock::iterator It;
   if (Blocks.count(DomB)) {
     // Try to find the latest possible location for the def.
-    MachineBasicBlock::iterator End = DomB->end();
+    MachineBasicBlock::iterator const End = DomB->end();
     for (It = DomB->begin(); It != End; ++It)
       if (RefMIs.count(&*It))
         break;
@@ -1520,17 +1520,17 @@ void HCE::calculatePlacement(const ExtenderInit &ExtI, const IndexList &Refs,
     // DomB does not contain any refs.
     It = DomB->getFirstTerminator();
   }
-  Loc DefLoc(DomB, It);
+  Loc const DefLoc(DomB, It);
   Defs.emplace_back(DefLoc, Refs);
 }
 
 HCE::Register HCE::insertInitializer(Loc DefL, const ExtenderInit &ExtI) {
-  llvm::Register DefR = MRI->createVirtualRegister(&Hexagon::IntRegsRegClass);
+  llvm::Register const DefR = MRI->createVirtualRegister(&Hexagon::IntRegsRegClass);
   MachineBasicBlock &MBB = *DefL.Block;
-  MachineBasicBlock::iterator At = DefL.At;
-  DebugLoc dl = DefL.Block->findDebugLoc(DefL.At);
+  MachineBasicBlock::iterator const At = DefL.At;
+  DebugLoc const dl = DefL.Block->findDebugLoc(DefL.At);
   const ExtValue &EV = ExtI.first;
-  MachineOperand ExtOp(EV);
+  MachineOperand const ExtOp(EV);
 
   const ExtExpr &Ex = ExtI.second;
   const MachineInstr *InitI = nullptr;
@@ -1562,7 +1562,7 @@ HCE::Register HCE::insertInitializer(Loc DefL, const ExtenderInit &ExtI) {
       }
     } else {
       if (HST->useCompound()) {
-        unsigned NewOpc = Ex.Neg ? Hexagon::S4_subi_asl_ri
+        unsigned const NewOpc = Ex.Neg ? Hexagon::S4_subi_asl_ri
                                  : Hexagon::S4_addi_asl_ri;
         // DefR = add(##EV,asl(Rb,S))
         InitI = BuildMI(MBB, At, dl, HII->get(NewOpc), DefR)
@@ -1573,7 +1573,7 @@ HCE::Register HCE::insertInitializer(Loc DefL, const ExtenderInit &ExtI) {
         // No compounds are available. It is not clear whether we should
         // even process such extenders where the initializer cannot be
         // a single instruction, but do it for now.
-        unsigned TmpR = MRI->createVirtualRegister(&Hexagon::IntRegsRegClass);
+        unsigned const TmpR = MRI->createVirtualRegister(&Hexagon::IntRegsRegClass);
         BuildMI(MBB, At, dl, HII->get(Hexagon::S2_asl_i_r), TmpR)
           .add(MachineOperand(Ex.Rs))
           .addImm(Ex.S);
@@ -1601,14 +1601,14 @@ HCE::Register HCE::insertInitializer(Loc DefL, const ExtenderInit &ExtI) {
 bool HCE::replaceInstrExact(const ExtDesc &ED, Register ExtR) {
   MachineInstr &MI = *ED.UseMI;
   MachineBasicBlock &MBB = *MI.getParent();
-  MachineBasicBlock::iterator At = MI.getIterator();
-  DebugLoc dl = MI.getDebugLoc();
-  unsigned ExtOpc = MI.getOpcode();
+  MachineBasicBlock::iterator const At = MI.getIterator();
+  DebugLoc const dl = MI.getDebugLoc();
+  unsigned const ExtOpc = MI.getOpcode();
 
   // With a few exceptions, direct replacement amounts to creating an
   // instruction with a corresponding register opcode, with all operands
   // the same, except for the register used in place of the extender.
-  unsigned RegOpc = getDirectRegReplacement(ExtOpc);
+  unsigned const RegOpc = getDirectRegReplacement(ExtOpc);
 
   if (RegOpc == TargetOpcode::REG_SEQUENCE) {
     if (ExtOpc == Hexagon::A4_combineri)
@@ -1631,7 +1631,7 @@ bool HCE::replaceInstrExact(const ExtDesc &ED, Register ExtR) {
     return true;
   }
   if (ExtOpc == Hexagon::C2_cmpgei || ExtOpc == Hexagon::C2_cmpgeui) {
-    unsigned NewOpc = ExtOpc == Hexagon::C2_cmpgei ? Hexagon::C2_cmplt
+    unsigned const NewOpc = ExtOpc == Hexagon::C2_cmpgei ? Hexagon::C2_cmplt
                                                    : Hexagon::C2_cmpltu;
     BuildMI(MBB, At, dl, HII->get(NewOpc))
       .add(MI.getOperand(0))
@@ -1642,8 +1642,8 @@ bool HCE::replaceInstrExact(const ExtDesc &ED, Register ExtR) {
   }
 
   if (RegOpc != 0) {
-    MachineInstrBuilder MIB = BuildMI(MBB, At, dl, HII->get(RegOpc));
-    unsigned RegN = ED.OpNum;
+    MachineInstrBuilder const MIB = BuildMI(MBB, At, dl, HII->get(RegOpc));
+    unsigned const RegN = ED.OpNum;
     // Copy all operands except the one that has the extender.
     for (unsigned i = 0, e = MI.getNumOperands(); i != e; ++i) {
       if (i != RegN)
@@ -1665,7 +1665,7 @@ bool HCE::replaceInstrExact(const ExtDesc &ED, Register ExtR) {
     //   BaseImmOffset (io)  -> BaseRegOffset (rr)
     //   BaseLongOffset (ur) -> BaseRegOffset (rr)
     unsigned RegOpc, Shift;
-    unsigned AM = HII->getAddrMode(MI);
+    unsigned const AM = HII->getAddrMode(MI);
     if (AM == HexagonII::BaseImmOffset) {
       RegOpc = HII->changeAddrMode_io_rr(ExtOpc);
       Shift = 0;
@@ -1688,7 +1688,7 @@ bool HCE::replaceInstrExact(const ExtDesc &ED, Register ExtR) {
     HII->getBaseAndOffsetPosition(MI, BaseP, OffP);
 
     // Build an rr instruction: (RegOff + RegBase<<0)
-    MachineInstrBuilder MIB = BuildMI(MBB, At, dl, HII->get(RegOpc));
+    MachineInstrBuilder const MIB = BuildMI(MBB, At, dl, HII->get(RegOpc));
     // First, add the def for loads.
     if (MI.mayLoad())
       MIB.add(getLoadResultOp(MI));
@@ -1719,9 +1719,9 @@ bool HCE::replaceInstrExpr(const ExtDesc &ED, const ExtenderInit &ExtI,
       Register ExtR, int32_t &Diff) {
   MachineInstr &MI = *ED.UseMI;
   MachineBasicBlock &MBB = *MI.getParent();
-  MachineBasicBlock::iterator At = MI.getIterator();
-  DebugLoc dl = MI.getDebugLoc();
-  unsigned ExtOpc = MI.getOpcode();
+  MachineBasicBlock::iterator const At = MI.getIterator();
+  DebugLoc const dl = MI.getDebugLoc();
+  unsigned const ExtOpc = MI.getOpcode();
 
   if (ExtOpc == Hexagon::A2_tfrsi) {
     // A2_tfrsi is a special case: it's replaced with A2_addi, which introduces
@@ -1732,7 +1732,7 @@ bool HCE::replaceInstrExpr(const ExtDesc &ED, const ExtenderInit &ExtI,
     // Most of the time, simply adding Diff will make the addi produce exact
     // result, but if Diff is outside of the 16-bit range, some adjustment
     // will be needed.
-    unsigned IdxOpc = getRegOffOpcode(ExtOpc);
+    unsigned const IdxOpc = getRegOffOpcode(ExtOpc);
     assert(IdxOpc == Hexagon::A2_addi);
 
     // Clamp Diff to the 16 bit range.
@@ -1741,9 +1741,9 @@ bool HCE::replaceInstrExpr(const ExtDesc &ED, const ExtenderInit &ExtI,
       // Split Diff into two values: one that is close to min/max int16,
       // and the other being the rest, and such that both have the same
       // "alignment" as Diff.
-      uint32_t UD = Diff;
-      OffsetRange R = getOffsetRange(MI.getOperand(0));
-      uint32_t A = std::min<uint32_t>(R.Align, 1u << countTrailingZeros(UD));
+      uint32_t const UD = Diff;
+      OffsetRange const R = getOffsetRange(MI.getOperand(0));
+      uint32_t const A = std::min<uint32_t>(R.Align, 1u << countTrailingZeros(UD));
       D &= ~(A-1);
     }
     BuildMI(MBB, At, dl, HII->get(IdxOpc))
@@ -1755,7 +1755,7 @@ bool HCE::replaceInstrExpr(const ExtDesc &ED, const ExtenderInit &ExtI,
     // Make sure the output is within allowable range for uses.
     // "Diff" is a difference in the "opposite direction", i.e. Ext - DefV,
     // not DefV - Ext, as the getOffsetRange would calculate.
-    OffsetRange Uses = getOffsetRange(MI.getOperand(0));
+    OffsetRange const Uses = getOffsetRange(MI.getOperand(0));
     if (!Uses.contains(-Diff))
       dbgs() << "Diff: " << -Diff << " out of range " << Uses
              << " for " << MI;
@@ -1773,7 +1773,7 @@ bool HCE::replaceInstrExpr(const ExtDesc &ED, const ExtenderInit &ExtI,
     // they amount to COPY.
     // Check that the initializer is an exact match (for simplicity).
 #ifndef NDEBUG
-    bool IsAddi = ExtOpc == Hexagon::A2_addi;
+    bool const IsAddi = ExtOpc == Hexagon::A2_addi;
     const MachineOperand &RegOp = MI.getOperand(IsAddi ? 1 : 2);
     const MachineOperand &ImmOp = MI.getOperand(IsAddi ? 2 : 1);
     assert(Ex.Rs == RegOp && EV == ImmOp && Ex.Neg != IsAddi &&
@@ -1796,12 +1796,12 @@ bool HCE::replaceInstrExpr(const ExtDesc &ED, const ExtenderInit &ExtI,
     // combination that is considered "subexpression" for V, although Rx+V
     // would also be valid.
 #ifndef NDEBUG
-    bool IsSub = ExtOpc == Hexagon::S4_subaddi;
-    Register Rs = MI.getOperand(IsSub ? 3 : 2);
-    ExtValue V = MI.getOperand(IsSub ? 2 : 3);
+    bool const IsSub = ExtOpc == Hexagon::S4_subaddi;
+    Register const Rs = MI.getOperand(IsSub ? 3 : 2);
+    ExtValue const V = MI.getOperand(IsSub ? 2 : 3);
     assert(EV == V && Rs == Ex.Rs && IsSub == Ex.Neg && "Initializer mismatch");
 #endif
-    unsigned NewOpc = ExtOpc == Hexagon::M2_naccii ? Hexagon::A2_sub
+    unsigned const NewOpc = ExtOpc == Hexagon::M2_naccii ? Hexagon::A2_sub
                                                    : Hexagon::A2_add;
     BuildMI(MBB, At, dl, HII->get(NewOpc))
       .add(MI.getOperand(0))
@@ -1812,9 +1812,9 @@ bool HCE::replaceInstrExpr(const ExtDesc &ED, const ExtenderInit &ExtI,
   }
 
   if (MI.mayLoadOrStore()) {
-    unsigned IdxOpc = getRegOffOpcode(ExtOpc);
+    unsigned const IdxOpc = getRegOffOpcode(ExtOpc);
     assert(IdxOpc && "Expecting indexed opcode");
-    MachineInstrBuilder MIB = BuildMI(MBB, At, dl, HII->get(IdxOpc));
+    MachineInstrBuilder const MIB = BuildMI(MBB, At, dl, HII->get(IdxOpc));
     // Construct the new indexed instruction.
     // First, add the def for loads.
     if (MI.mayLoad())
@@ -1852,7 +1852,7 @@ bool HCE::replaceInstr(unsigned Idx, Register ExtR, const ExtenderInit &ExtI) {
   assert(ExtRoot(ExtValue(ED)) == ExtRoot(DefV) && "Extender root mismatch");
   const ExtExpr &DefEx = ExtI.second;
 
-  ExtValue EV(ED);
+  ExtValue const EV(ED);
   int32_t Diff = EV.Offset - DefV.Offset;
   const MachineInstr &MI = *ED.UseMI;
   LLVM_DEBUG(dbgs() << __func__ << " Idx:" << Idx << " ExtR:"
@@ -1862,7 +1862,7 @@ bool HCE::replaceInstr(unsigned Idx, Register ExtR, const ExtenderInit &ExtI) {
   // regardless of what the initializer looks like.
   bool IsAbs = false, IsAbsSet = false;
   if (MI.mayLoadOrStore()) {
-    unsigned AM = HII->getAddrMode(MI);
+    unsigned const AM = HII->getAddrMode(MI);
     IsAbs = AM == HexagonII::Absolute;
     IsAbsSet = AM == HexagonII::AbsoluteSet;
   }
@@ -1889,7 +1889,7 @@ bool HCE::replaceInstr(unsigned Idx, Register ExtR, const ExtenderInit &ExtI) {
   if (Diff != 0 && Replaced && ED.IsDef) {
     // Update offsets of the def's uses.
     for (std::pair<MachineInstr*,unsigned> P : RegOps) {
-      unsigned J = P.second;
+      unsigned const J = P.second;
       assert(P.first->getNumOperands() > J+1 &&
              P.first->getOperand(J+1).isImm());
       MachineOperand &ImmOp = P.first->getOperand(J+1);
@@ -1920,9 +1920,9 @@ bool HCE::replaceExtenders(const AssignmentMap &IMap) {
     Defs.clear();
     calculatePlacement(P.first, Idxs, Defs);
     for (const std::pair<Loc,IndexList> &Q : Defs) {
-      Register DefR = insertInitializer(Q.first, P.first);
+      Register const DefR = insertInitializer(Q.first, P.first);
       NewRegs.push_back(DefR.Reg);
-      for (unsigned I : Q.second)
+      for (unsigned const I : Q.second)
         Changed |= replaceInstr(I, DefR, P.first);
     }
   }
@@ -1999,7 +1999,7 @@ bool HCE::runOnMachineFunction(MachineFunction &MF) {
   bool Changed = false;
   LLVM_DEBUG(dbgs() << "Collected " << Extenders.size() << " extenders\n");
   for (unsigned I = 0, E = Extenders.size(); I != E; ) {
-    unsigned B = I;
+    unsigned const B = I;
     const ExtRoot &T = Extenders[B].getOp();
     while (I != E && ExtRoot(Extenders[I].getOp()) == T)
       ++I;

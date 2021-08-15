@@ -30,14 +30,14 @@ IRInstructionData::IRInstructionData(Instruction &I, bool Legality,
   // find the "less than" version of the predicate for consistency for
   // comparison instructions throught the program.
   if (CmpInst *C = dyn_cast<CmpInst>(&I)) {
-    CmpInst::Predicate Predicate = predicateForConsistency(C);
+    CmpInst::Predicate const Predicate = predicateForConsistency(C);
     if (Predicate != C->getPredicate())
       RevisedPredicate = Predicate;
   }
 
   // Here we collect the operands and their types for determining whether
   // the structure of the operand use matches between two different candidates.
-  for (Use &OI : I.operands()) {
+  for (Use  const&OI : I.operands()) {
     if (isa<CmpInst>(I) && RevisedPredicate.hasValue()) {
       // If we have a CmpInst where the predicate is reversed, it means the
       // operands must be reversed as well.
@@ -160,7 +160,7 @@ void IRInstructionMapper::convertToUnsignedVec(
   CanCombineWithPrevInstr = false;
   AddedIllegalLastTime = true;
 
-  for (BasicBlock::iterator Et = BB.end(); It != Et; ++It) {
+  for (BasicBlock::iterator const Et = BB.end(); It != Et; ++It) {
     switch (InstClassifier.visit(*It)) {
     case InstrType::Legal:
       mapToLegalUnsigned(It, IntegerMappingForBB, InstrListForBB);
@@ -209,7 +209,7 @@ unsigned IRInstructionMapper::mapToLegalUnsigned(
       ResultIt;
   std::tie(ResultIt, WasInserted) =
       InstructionIntegerMap.insert(std::make_pair(ID, LegalInstrNumber));
-  unsigned INumber = ResultIt->second;
+  unsigned const INumber = ResultIt->second;
 
   // There was an insertion.
   if (WasInserted)
@@ -259,7 +259,7 @@ unsigned IRInstructionMapper::mapToIllegalUnsigned(
 
   // Remember that we added an illegal number last time.
   AddedIllegalLastTime = true;
-  unsigned INumber = IllegalInstrNumber;
+  unsigned const INumber = IllegalInstrNumber;
   IntegerMappingForBB.push_back(IllegalInstrNumber--);
 
   assert(LegalInstrNumber < IllegalInstrNumber &&
@@ -341,8 +341,8 @@ bool IRSimilarityCandidate::isSimilar(const IRSimilarityCandidate &A,
 
   return all_of(InstrDataForBoth,
                 [](std::tuple<IRInstructionData &, IRInstructionData &> R) {
-                  IRInstructionData &A = std::get<0>(R);
-                  IRInstructionData &B = std::get<1>(R);
+                  IRInstructionData  const&A = std::get<0>(R);
+                  IRInstructionData  const&B = std::get<1>(R);
                   if (!A.Legal || !B.Legal)
                     return false;
                   return isClose(A, B);
@@ -398,7 +398,7 @@ static bool checkNumberingAndReplaceCommutative(
     // IRSimilarityCandidate's Instruction to determine whether there is a valid
     // mapping of Value to Value.
     DenseSet<unsigned> NewSet;
-    for (unsigned &Curr : ValueMappingIt->second)
+    for (unsigned  const&Curr : ValueMappingIt->second)
       // If we can find the value in the mapping, we add it to the new set.
       if (TargetValueNumbers.contains(Curr))
         NewSet.insert(Curr);
@@ -417,7 +417,7 @@ static bool checkNumberingAndReplaceCommutative(
       continue;
 
 
-    unsigned ValToRemove = *ValueMappingIt->second.begin();
+    unsigned const ValToRemove = *ValueMappingIt->second.begin();
     // When there is only one item left in the mapping for and operand, remove
     // the value from the other operands.  If it results in there being no
     // mapping, return false, it means the mapping is wrong
@@ -425,7 +425,7 @@ static bool checkNumberingAndReplaceCommutative(
       if (V == InnerV)
         continue;
 
-      unsigned InnerVal = SourceValueToNumberMapping.find(InnerV)->second;
+      unsigned const InnerVal = SourceValueToNumberMapping.find(InnerV)->second;
       ValueMappingIt = CurrentSrcTgtNumberMapping.find(InnerVal);
       if (ValueMappingIt == CurrentSrcTgtNumberMapping.end())
         continue;
@@ -500,12 +500,12 @@ bool IRSimilarityCandidate::compareNonCommutativeOperandMapping(
   // Instruction.
   ArrayRef<Value *>::iterator VItA = A.OperVals.begin();
   ArrayRef<Value *>::iterator VItB = B.OperVals.begin();
-  unsigned OperandLength = A.OperVals.size();
+  unsigned const OperandLength = A.OperVals.size();
 
   // For each operand, get the value numbering and ensure it is consistent.
   for (unsigned Idx = 0; Idx < OperandLength; Idx++, VItA++, VItB++) {
-    unsigned OperValA = A.IRSC.ValueToNumber.find(*VItA)->second;
-    unsigned OperValB = B.IRSC.ValueToNumber.find(*VItB)->second;
+    unsigned const OperValA = A.IRSC.ValueToNumber.find(*VItA)->second;
+    unsigned const OperValB = B.IRSC.ValueToNumber.find(*VItB)->second;
 
     // Attempt to add a set with only the target value.  If there is no mapping
     // we can create it here.
@@ -535,7 +535,7 @@ bool IRSimilarityCandidate::compareCommutativeOperandMapping(
 
   ArrayRef<Value *>::iterator VItA = A.OperVals.begin();
   ArrayRef<Value *>::iterator VItB = B.OperVals.begin();
-  unsigned OperandLength = A.OperVals.size();
+  unsigned const OperandLength = A.OperVals.size();
 
   // Find the value number sets for the operands.
   for (unsigned Idx = 0; Idx < OperandLength;
@@ -585,7 +585,7 @@ bool IRSimilarityCandidate::compareStructure(const IRSimilarityCandidate &A,
   bool WasInserted;
 
   // Iterate over the instructions contained in each candidate
-  unsigned SectionLength = A.getStartIdx() + A.getLength();
+  unsigned const SectionLength = A.getStartIdx() + A.getLength();
   for (unsigned Loc = A.getStartIdx(); Loc < SectionLength;
        ItA++, ItB++, Loc++) {
     // Make sure the instructions are similar to one another.
@@ -602,8 +602,8 @@ bool IRSimilarityCandidate::compareStructure(const IRSimilarityCandidate &A,
     ArrayRef<Value *> OperValsA = ItA->OperVals;
     ArrayRef<Value *> OperValsB = ItB->OperVals;
 
-    unsigned InstValA = A.ValueToNumber.find(IA)->second;
-    unsigned InstValB = B.ValueToNumber.find(IB)->second;
+    unsigned const InstValA = A.ValueToNumber.find(IA)->second;
+    unsigned const InstValB = B.ValueToNumber.find(IB)->second;
 
     // Ensure that the mappings for the instructions exists.
     std::tie(ValueMappingIt, WasInserted) = ValueNumberMappingA.insert(
@@ -706,16 +706,16 @@ static void createCandidatesFromSuffixTree(
     std::vector<unsigned> &IntegerMapping, SuffixTree::RepeatedSubstring &RS,
     std::vector<IRSimilarityCandidate> &CandsForRepSubstring) {
 
-  unsigned StringLen = RS.Length;
+  unsigned const StringLen = RS.Length;
 
   // Create an IRSimilarityCandidate for instance of this subsequence \p RS.
   for (const unsigned &StartIdx : RS.StartIndices) {
-    unsigned EndIdx = StartIdx + StringLen - 1;
+    unsigned const EndIdx = StartIdx + StringLen - 1;
 
     // Check that this subsequence does not contain an illegal instruction.
     bool ContainsIllegal = false;
     for (unsigned CurrIdx = StartIdx; CurrIdx <= EndIdx; CurrIdx++) {
-      unsigned Key = IntegerMapping[CurrIdx];
+      unsigned const Key = IntegerMapping[CurrIdx];
       if (Key > Mapper.IllegalInstrNumber) {
         ContainsIllegal = true;
         break;
@@ -843,7 +843,7 @@ void IRSimilarityIdentifier::findCandidates(
       continue;
 
     findCandidateStructures(CandsForRepSubstring, StructuralGroups);
-    for (std::pair<unsigned, SimilarityGroup> &Group : StructuralGroups)
+    for (std::pair<unsigned, SimilarityGroup>  const&Group : StructuralGroups)
       // We only add the group if it contains more than one
       // IRSimilarityCandidate.  If there is only one, that means there is no
       // other repeated subsequence with the same structure.

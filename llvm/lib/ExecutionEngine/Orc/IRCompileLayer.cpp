@@ -21,7 +21,7 @@ IRCompileLayer::IRCompileLayer(ExecutionSession &ES, ObjectLayer &BaseLayer,
 }
 
 void IRCompileLayer::setNotifyCompiled(NotifyCompiledFunction NotifyCompiled) {
-  std::lock_guard<std::mutex> Lock(IRLayerMutex);
+  std::lock_guard<std::mutex> const Lock(IRLayerMutex);
   this->NotifyCompiled = std::move(NotifyCompiled);
 }
 
@@ -31,7 +31,7 @@ void IRCompileLayer::emit(std::unique_ptr<MaterializationResponsibility> R,
 
   if (auto Obj = TSM.withModuleDo(*Compile)) {
     {
-      std::lock_guard<std::mutex> Lock(IRLayerMutex);
+      std::lock_guard<std::mutex> const Lock(IRLayerMutex);
       if (NotifyCompiled)
         NotifyCompiled(*R, std::move(TSM));
       else

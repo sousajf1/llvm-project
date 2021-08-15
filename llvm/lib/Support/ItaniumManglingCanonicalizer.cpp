@@ -42,7 +42,7 @@ template<typename ...T>
 void profileCtor(llvm::FoldingSetNodeID &ID, Node::Kind K, T ...V) {
   FoldingSetNodeIDBuilder Builder = {ID};
   Builder(K);
-  int VisitInOrder[] = {
+  int const VisitInOrder[] = {
     (Builder(V), 0) ...,
     0 // Avoid empty array if there are no arguments.
   };

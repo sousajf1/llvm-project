@@ -189,7 +189,7 @@ void ScheduleDAGFast::ScheduleNodeBottomUp(SUnit *SU, unsigned CurCycle) {
   ReleasePredecessors(SU, CurCycle);
 
   // Release all the implicit physical register defs that are live.
-  for (SDep &Succ : SU->Succs) {
+  for (SDep  const&Succ : SU->Succs) {
     if (Succ.isAssignedRegDep()) {
       if (LiveRegCycles[Succ.getReg()] == Succ.getSUnit()->getHeight()) {
         assert(NumLiveRegs > 0 && "NumLiveRegs is already zero!");
@@ -218,14 +218,14 @@ SUnit *ScheduleDAGFast::CopyAndMoveSuccessors(SUnit *SU) {
   SUnit *NewSU;
   bool TryUnfold = false;
   for (unsigned i = 0, e = N->getNumValues(); i != e; ++i) {
-    MVT VT = N->getSimpleValueType(i);
+    MVT const VT = N->getSimpleValueType(i);
     if (VT == MVT::Glue)
       return nullptr;
     else if (VT == MVT::Other)
       TryUnfold = true;
   }
   for (const SDValue &Op : N->op_values()) {
-    MVT VT = Op.getNode()->getSimpleValueType(Op.getResNo());
+    MVT const VT = Op.getNode()->getSimpleValueType(Op.getResNo());
     if (VT == MVT::Glue)
       return nullptr;
   }
@@ -240,8 +240,8 @@ SUnit *ScheduleDAGFast::CopyAndMoveSuccessors(SUnit *SU) {
 
     N = NewNodes[1];
     SDNode *LoadNode = NewNodes[0];
-    unsigned NumVals = N->getNumValues();
-    unsigned OldNumVals = SU->getNode()->getNumValues();
+    unsigned const NumVals = N->getNumValues();
+    unsigned const OldNumVals = SU->getNode()->getNumValues();
     for (unsigned i = 0; i != NumVals; ++i)
       DAG->ReplaceAllUsesOfValueWith(SDValue(SU->getNode(), i), SDValue(N, i));
     DAG->ReplaceAllUsesOfValueWith(SDValue(SU->getNode(), OldNumVals-1),
@@ -279,7 +279,7 @@ SUnit *ScheduleDAGFast::CopyAndMoveSuccessors(SUnit *SU) {
     SmallVector<SDep, 4> LoadPreds;
     SmallVector<SDep, 4> NodePreds;
     SmallVector<SDep, 4> NodeSuccs;
-    for (SDep &Pred : SU->Preds) {
+    for (SDep  const&Pred : SU->Preds) {
       if (Pred.isCtrl())
         ChainPred = Pred;
       else if (Pred.getSUnit()->getNode() &&
@@ -288,7 +288,7 @@ SUnit *ScheduleDAGFast::CopyAndMoveSuccessors(SUnit *SU) {
       else
         NodePreds.push_back(Pred);
     }
-    for (SDep &Succ : SU->Succs) {
+    for (SDep  const&Succ : SU->Succs) {
       if (Succ.isCtrl())
         ChainSuccs.push_back(Succ);
       else
@@ -349,14 +349,14 @@ SUnit *ScheduleDAGFast::CopyAndMoveSuccessors(SUnit *SU) {
   NewSU = Clone(SU);
 
   // New SUnit has the exact same predecessors.
-  for (SDep &Pred : SU->Preds)
+  for (SDep  const&Pred : SU->Preds)
     if (!Pred.isArtificial())
       AddPred(NewSU, Pred);
 
   // Only copy scheduled successors. Cut them from old node's successor
   // list and move them over.
   SmallVector<std::pair<SUnit *, SDep>, 4> DelDeps;
-  for (SDep &Succ : SU->Succs) {
+  for (SDep  const&Succ : SU->Succs) {
     if (Succ.isArtificial())
       continue;
     SUnit *SuccSU = Succ.getSUnit();
@@ -392,7 +392,7 @@ void ScheduleDAGFast::InsertCopiesAndMoveSuccs(SUnit *SU, unsigned Reg,
   // Only copy scheduled successors. Cut them from old node's successor
   // list and move them over.
   SmallVector<std::pair<SUnit *, SDep>, 4> DelDeps;
-  for (SDep &Succ : SU->Succs) {
+  for (SDep  const&Succ : SU->Succs) {
     if (Succ.isArtificial())
       continue;
     SUnit *SuccSU = Succ.getSUnit();
@@ -471,7 +471,7 @@ bool ScheduleDAGFast::DelayForLiveRegsBottomUp(SUnit *SU,
 
   SmallSet<unsigned, 4> RegAdded;
   // If this node would clobber any "live" register, then it's not ready.
-  for (SDep &Pred : SU->Preds) {
+  for (SDep  const&Pred : SU->Preds) {
     if (Pred.isAssignedRegDep()) {
       CheckForLiveRegDef(Pred.getSUnit(), Pred.getReg(), LiveRegDefs,
                          RegAdded, LRegs, TRI);
@@ -487,7 +487,7 @@ bool ScheduleDAGFast::DelayForLiveRegsBottomUp(SUnit *SU,
         --NumOps;  // Ignore the glue operand.
 
       for (unsigned i = InlineAsm::Op_FirstOperand; i != NumOps;) {
-        unsigned Flags =
+        unsigned const Flags =
           cast<ConstantSDNode>(Node->getOperand(i))->getZExtValue();
         unsigned NumVals = InlineAsm::getNumOperandRegisters(Flags);
 
@@ -497,7 +497,7 @@ bool ScheduleDAGFast::DelayForLiveRegsBottomUp(SUnit *SU,
             InlineAsm::isClobberKind(Flags)) {
           // Check for def of register or earlyclobber register.
           for (; NumVals; --NumVals, ++i) {
-            unsigned Reg = cast<RegisterSDNode>(Node->getOperand(i))->getReg();
+            unsigned const Reg = cast<RegisterSDNode>(Node->getOperand(i))->getReg();
             if (Register::isPhysicalRegister(Reg))
               CheckForLiveRegDef(SU, Reg, LiveRegDefs, RegAdded, LRegs, TRI);
           }
@@ -567,9 +567,9 @@ void ScheduleDAGFast::ListScheduleBottomUp() {
         SUnit *TrySU = NotReady[0];
         SmallVectorImpl<unsigned> &LRegs = LRegsMap[TrySU];
         assert(LRegs.size() == 1 && "Can't handle this yet!");
-        unsigned Reg = LRegs[0];
+        unsigned const Reg = LRegs[0];
         SUnit *LRDef = LiveRegDefs[Reg];
-        MVT VT = getPhysicalRegisterVT(LRDef->getNode(), Reg, TII);
+        MVT const VT = getPhysicalRegisterVT(LRDef->getNode(), Reg, TII);
         const TargetRegisterClass *RC =
           TRI->getMinimalPhysRegClass(Reg, VT);
         const TargetRegisterClass *DestRC = TRI->getCrossCopyRegClass(RC);
@@ -670,7 +670,7 @@ void ScheduleDAGLinearize::ScheduleNode(SDNode *N) {
   LLVM_DEBUG(N->dump(DAG));
   Sequence.push_back(N);
 
-  unsigned NumOps = N->getNumOperands();
+  unsigned const NumOps = N->getNumOperands();
   if (unsigned NumLeft = NumOps) {
     SDNode *GluedOpN = nullptr;
     do {
@@ -690,7 +690,7 @@ void ScheduleDAGLinearize::ScheduleNode(SDNode *N) {
         // Glue operand is already scheduled.
         continue;
 
-      DenseMap<SDNode*, SDNode*>::iterator DI = GluedMap.find(OpN);
+      DenseMap<SDNode*, SDNode*>::iterator const DI = GluedMap.find(OpN);
       if (DI != GluedMap.end() && DI->second != N)
         // Users of glues are counted against the glued users.
         OpN = DI->second;
@@ -721,9 +721,9 @@ void ScheduleDAGLinearize::Schedule() {
     SDNode *N = &Node;
 
     // Use node id to record degree.
-    unsigned Degree = N->use_size();
+    unsigned const Degree = N->use_size();
     N->setNodeId(Degree);
-    unsigned NumVals = N->getNumValues();
+    unsigned const NumVals = N->getNumValues();
     if (NumVals && N->getValueType(NumVals-1) == MVT::Glue &&
         N->hasAnyUseOfValue(NumVals-1)) {
       SDNode *User = findGluedUser(N);
@@ -742,7 +742,7 @@ void ScheduleDAGLinearize::Schedule() {
     SDNode *Glue = Glues[i];
     SDNode *GUser = GluedMap[Glue];
     unsigned Degree = Glue->getNodeId();
-    unsigned UDegree = GUser->getNodeId();
+    unsigned const UDegree = GUser->getNodeId();
 
     // Glue user must be scheduled together with the glue operand. So other
     // users of the glue operand must be treated as its users.
@@ -765,7 +765,7 @@ ScheduleDAGLinearize::EmitSchedule(MachineBasicBlock::iterator &InsertPos) {
 
   LLVM_DEBUG({ dbgs() << "\n*** Final schedule ***\n"; });
 
-  unsigned NumNodes = Sequence.size();
+  unsigned const NumNodes = Sequence.size();
   MachineBasicBlock *BB = Emitter.getBlock();
   for (unsigned i = 0; i != NumNodes; ++i) {
     SDNode *N = Sequence[NumNodes-i-1];
@@ -774,7 +774,7 @@ ScheduleDAGLinearize::EmitSchedule(MachineBasicBlock::iterator &InsertPos) {
 
     // Emit any debug values associated with the node.
     if (N->getHasDebugValue()) {
-      MachineBasicBlock::iterator InsertPos = Emitter.getInsertPos();
+      MachineBasicBlock::iterator const InsertPos = Emitter.getInsertPos();
       for (auto DV : DAG->GetDbgValues(N)) {
         if (!DV->isEmitted())
           if (auto *DbgMI = Emitter.EmitDbgValue(DV, VRBaseMap))

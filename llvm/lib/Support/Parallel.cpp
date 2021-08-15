@@ -41,12 +41,12 @@ public:
 class ThreadPoolExecutor : public Executor {
 public:
   explicit ThreadPoolExecutor(ThreadPoolStrategy S = hardware_concurrency()) {
-    unsigned ThreadCount = S.compute_thread_count();
+    unsigned const ThreadCount = S.compute_thread_count();
     // Spawn all but one of the threads in another thread as spawning threads
     // can take a while.
     Threads.reserve(ThreadCount);
     Threads.resize(1);
-    std::lock_guard<std::mutex> Lock(Mutex);
+    std::lock_guard<std::mutex> const Lock(Mutex);
     Threads[0] = std::thread([this, ThreadCount, S] {
       for (unsigned I = 1; I < ThreadCount; ++I) {
         Threads.emplace_back([=] { work(S, I); });
@@ -60,7 +60,7 @@ public:
 
   void stop() {
     {
-      std::lock_guard<std::mutex> Lock(Mutex);
+      std::lock_guard<std::mutex> const Lock(Mutex);
       if (Stop)
         return;
       Stop = true;
@@ -71,7 +71,7 @@ public:
 
   ~ThreadPoolExecutor() override {
     stop();
-    std::thread::id CurrentThreadId = std::this_thread::get_id();
+    std::thread::id const CurrentThreadId = std::this_thread::get_id();
     for (std::thread &T : Threads)
       if (T.get_id() == CurrentThreadId)
         T.detach();
@@ -88,7 +88,7 @@ public:
 
   void add(std::function<void()> F) override {
     {
-      std::lock_guard<std::mutex> Lock(Mutex);
+      std::lock_guard<std::mutex> const Lock(Mutex);
       WorkStack.push(F);
     }
     Cond.notify_one();
@@ -139,7 +139,7 @@ Executor *Executor::getDefaultExecutor() {
   static ManagedStatic<ThreadPoolExecutor, ThreadPoolExecutor::Creator,
                        ThreadPoolExecutor::Deleter>
       ManagedExec;
-  static std::unique_ptr<ThreadPoolExecutor> Exec(&(*ManagedExec));
+  static std::unique_ptr<ThreadPoolExecutor> const Exec(&(*ManagedExec));
   return Exec.get();
 }
 } // namespace

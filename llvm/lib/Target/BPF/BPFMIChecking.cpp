@@ -152,8 +152,8 @@ static bool hasLiveDefs(const MachineInstr &MI, const TargetRegisterInfo *TRI) {
 }
 
 bool BPFMIPreEmitChecking::processAtomicInsts(void) {
-  for (MachineBasicBlock &MBB : *MF) {
-    for (MachineInstr &MI : MBB) {
+  for (MachineBasicBlock  const&MBB : *MF) {
+    for (MachineInstr  const&MI : MBB) {
       if (MI.getOpcode() != BPF::XADDW &&
           MI.getOpcode() != BPF::XADDD &&
           MI.getOpcode() != BPF::XADDW32)
@@ -161,7 +161,7 @@ bool BPFMIPreEmitChecking::processAtomicInsts(void) {
 
       LLVM_DEBUG(MI.dump());
       if (hasLiveDefs(MI, TRI)) {
-        DebugLoc Empty;
+        DebugLoc const Empty;
         const DebugLoc &DL = MI.getDebugLoc();
         if (DL != Empty)
           report_fatal_error("line " + std::to_string(DL.getLine()) +

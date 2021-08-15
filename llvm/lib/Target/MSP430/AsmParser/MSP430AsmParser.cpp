@@ -256,7 +256,7 @@ bool MSP430AsmParser::MatchAndEmitInstruction(SMLoc Loc, unsigned &Opcode,
                                               uint64_t &ErrorInfo,
                                               bool MatchingInlineAsm) {
   MCInst Inst;
-  unsigned MatchResult =
+  unsigned const MatchResult =
       MatchInstructionImpl(Operands, Inst, ErrorInfo, MatchingInlineAsm);
 
   switch (MatchResult) {
@@ -364,7 +364,7 @@ bool MSP430AsmParser::parseJccInstruction(ParseInstructionInfo &Info,
     getLexer().Lex(); // Eat '$'
 
   const MCExpr *Val;
-  SMLoc ExprLoc = getLexer().getLoc();
+  SMLoc const ExprLoc = getLexer().getLoc();
   if (getParser().parseExpression(Val))
     return Error(ExprLoc, "expected expression operand");
 
@@ -377,7 +377,7 @@ bool MSP430AsmParser::parseJccInstruction(ParseInstructionInfo &Info,
     getLexer().getLoc()));
 
   if (getLexer().isNot(AsmToken::EndOfStatement)) {
-    SMLoc Loc = getLexer().getLoc();
+    SMLoc const Loc = getLexer().getLoc();
     getParser().eatToEndOfStatement();
     return Error(Loc, "unexpected token");
   }
@@ -415,7 +415,7 @@ bool MSP430AsmParser::ParseInstruction(ParseInstructionInfo &Info,
   }
 
   if (getLexer().isNot(AsmToken::EndOfStatement)) {
-    SMLoc Loc = getLexer().getLoc();
+    SMLoc const Loc = getLexer().getLoc();
     getParser().eatToEndOfStatement();
     return Error(Loc, "unexpected token");
   }
@@ -435,7 +435,7 @@ bool MSP430AsmParser::ParseDirectiveRefSym(AsmToken DirectiveID) {
 }
 
 bool MSP430AsmParser::ParseDirective(AsmToken DirectiveID) {
-  StringRef IDVal = DirectiveID.getIdentifier();
+  StringRef const IDVal = DirectiveID.getIdentifier();
   if (IDVal.lower() == ".long") {
     ParseLiteralValues(4, DirectiveID.getLoc());
   } else if (IDVal.lower() == ".word" || IDVal.lower() == ".short") {
@@ -464,7 +464,7 @@ bool MSP430AsmParser::ParseOperand(OperandVector &Operands) {
     case AsmToken::Integer:
     case AsmToken::Plus:
     case AsmToken::Minus: {
-      SMLoc StartLoc = getParser().getTok().getLoc();
+      SMLoc const StartLoc = getParser().getTok().getLoc();
       const MCExpr *Val;
       // Try constexpr[(rN)]
       if (!getParser().parseExpression(Val)) {
@@ -489,11 +489,11 @@ bool MSP430AsmParser::ParseOperand(OperandVector &Operands) {
     }
     case AsmToken::Amp: {
       // Try &constexpr
-      SMLoc StartLoc = getParser().getTok().getLoc();
+      SMLoc const StartLoc = getParser().getTok().getLoc();
       getLexer().Lex(); // Eat '&'
       const MCExpr *Val;
       if (!getParser().parseExpression(Val)) {
-        SMLoc EndLoc = getParser().getTok().getLoc();
+        SMLoc const EndLoc = getParser().getTok().getLoc();
         Operands.push_back(MSP430Operand::CreateMem(MSP430::SR, Val, StartLoc,
           EndLoc));
         return false;
@@ -502,7 +502,7 @@ bool MSP430AsmParser::ParseOperand(OperandVector &Operands) {
     }
     case AsmToken::At: {
       // Try @rN[+]
-      SMLoc StartLoc = getParser().getTok().getLoc();
+      SMLoc const StartLoc = getParser().getTok().getLoc();
       getLexer().Lex(); // Eat '@'
       unsigned RegNo;
       SMLoc RegStartLoc, EndLoc;
@@ -522,11 +522,11 @@ bool MSP430AsmParser::ParseOperand(OperandVector &Operands) {
     }
     case AsmToken::Hash:
       // Try #constexpr
-      SMLoc StartLoc = getParser().getTok().getLoc();
+      SMLoc const StartLoc = getParser().getTok().getLoc();
       getLexer().Lex(); // Eat '#'
       const MCExpr *Val;
       if (!getParser().parseExpression(Val)) {
-        SMLoc EndLoc = getParser().getTok().getLoc();
+        SMLoc const EndLoc = getParser().getTok().getLoc();
         Operands.push_back(MSP430Operand::CreateImm(Val, StartLoc, EndLoc));
         return false;
       }
@@ -546,7 +546,7 @@ bool MSP430AsmParser::ParseLiteralValues(unsigned Size, SMLoc L) {
 }
 
 extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializeMSP430AsmParser() {
-  RegisterMCAsmParser<MSP430AsmParser> X(getTheMSP430Target());
+  RegisterMCAsmParser<MSP430AsmParser> const X(getTheMSP430Target());
 }
 
 #define GET_REGISTER_MATCHER
@@ -583,8 +583,8 @@ unsigned MSP430AsmParser::validateTargetOperandClass(MCParsedAsmOperand &AsmOp,
   if (!Op.isReg())
     return Match_InvalidOperand;
 
-  unsigned Reg = Op.getReg();
-  bool isGR16 =
+  unsigned const Reg = Op.getReg();
+  bool const isGR16 =
       MSP430MCRegisterClasses[MSP430::GR16RegClassID].contains(Reg);
 
   if (isGR16 && (Kind == MCK_GR8)) {

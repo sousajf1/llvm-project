@@ -62,7 +62,7 @@ bool X86IntelInstPrinter::printVecCompareInstr(const MCInst *MI, raw_ostream &OS
       !MI->getOperand(MI->getNumOperands() - 1).isImm())
     return false;
 
-  int64_t Imm = MI->getOperand(MI->getNumOperands() - 1).getImm();
+  int64_t const Imm = MI->getOperand(MI->getNumOperands() - 1).getImm();
 
   const MCInstrDesc &Desc = MII.get(MI->getOpcode());
 
@@ -353,7 +353,7 @@ void X86IntelInstPrinter::printMemReference(const MCInst *MI, unsigned Op,
       return;
   }
   const MCOperand &BaseReg  = MI->getOperand(Op+X86::AddrBaseReg);
-  unsigned ScaleVal         = MI->getOperand(Op+X86::AddrScaleAmt).getImm();
+  unsigned const ScaleVal         = MI->getOperand(Op+X86::AddrScaleAmt).getImm();
   const MCOperand &IndexReg = MI->getOperand(Op+X86::AddrIndexReg);
   const MCOperand &DispSpec = MI->getOperand(Op+X86::AddrDisp);
 
@@ -445,7 +445,7 @@ void X86IntelInstPrinter::printU8Imm(const MCInst *MI, unsigned Op,
 void X86IntelInstPrinter::printSTiRegOperand(const MCInst *MI, unsigned OpNo,
                                             raw_ostream &OS) {
   const MCOperand &Op = MI->getOperand(OpNo);
-  unsigned Reg = Op.getReg();
+  unsigned const Reg = Op.getReg();
   // Override the default printing to print st(0) instead st.
   if (Reg == X86::ST0)
     OS << "st(0)";

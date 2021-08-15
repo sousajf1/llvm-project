@@ -57,7 +57,7 @@ bool Mips16RegisterInfo::saveScavengerRegister(
     MachineBasicBlock &MBB, MachineBasicBlock::iterator I,
     MachineBasicBlock::iterator &UseMI, const TargetRegisterClass *RC,
     Register Reg) const {
-  DebugLoc DL;
+  DebugLoc const DL;
   const TargetInstrInfo &TII = *MBB.getParent()->getSubtarget().getInstrInfo();
   TII.copyPhysReg(MBB, I, DL, Mips::T0, Reg, true);
   TII.copyPhysReg(MBB, UseMI, DL, Reg, Mips::T0, true);
@@ -130,7 +130,7 @@ void Mips16RegisterInfo::eliminateFI(MachineBasicBlock::iterator II,
   if (!MI.isDebugValue() &&
       !Mips16InstrInfo::validImmediate(MI.getOpcode(), FrameReg, Offset)) {
     MachineBasicBlock &MBB = *MI.getParent();
-    DebugLoc DL = II->getDebugLoc();
+    DebugLoc const DL = II->getDebugLoc();
     unsigned NewImm;
     const Mips16InstrInfo &TII =
         *static_cast<const Mips16InstrInfo *>(MF.getSubtarget().getInstrInfo());

@@ -17,13 +17,13 @@ StringRef ELFAttrs::attrTypeAsString(unsigned attr, TagNameMap tagNameMap,
       tagNameMap, [attr](const TagNameItem item) { return item.attr == attr; });
   if (tagNameIt == tagNameMap.end())
     return "";
-  StringRef tagName = tagNameIt->tagName;
+  StringRef const tagName = tagNameIt->tagName;
   return hasTagPrefix ? tagName : tagName.drop_front(4);
 }
 
 Optional<unsigned> ELFAttrs::attrTypeFromString(StringRef tag,
                                                 TagNameMap tagNameMap) {
-  bool hasTagPrefix = tag.startswith("Tag_");
+  bool const hasTagPrefix = tag.startswith("Tag_");
   auto tagNameIt =
       find_if(tagNameMap, [tag, hasTagPrefix](const TagNameItem item) {
         return item.tagName.drop_front(hasTagPrefix ? 0 : 4) == tag;

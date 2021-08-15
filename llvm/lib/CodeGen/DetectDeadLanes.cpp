@@ -151,7 +151,7 @@ static bool isCrossCopy(const MachineRegisterInfo &MRI,
                         const TargetRegisterClass *DstRC,
                         const MachineOperand &MO) {
   assert(lowersToCopies(MI));
-  Register SrcReg = MO.getReg();
+  Register const SrcReg = MO.getReg();
   const TargetRegisterClass *SrcRC = MRI.getRegClass(SrcReg);
   if (DstRC == SrcRC)
     return false;
@@ -166,12 +166,12 @@ static bool isCrossCopy(const MachineRegisterInfo &MRI,
       DstSubIdx = MI.getOperand(3).getImm();
     break;
   case TargetOpcode::REG_SEQUENCE: {
-    unsigned OpNum = MI.getOperandNo(&MO);
+    unsigned const OpNum = MI.getOperandNo(&MO);
     DstSubIdx = MI.getOperand(OpNum+1).getImm();
     break;
   }
   case TargetOpcode::EXTRACT_SUBREG: {
-    unsigned SubReg = MI.getOperand(2).getImm();
+    unsigned const SubReg = MI.getOperand(2).getImm();
     SrcSubIdx = TRI.composeSubRegIndices(SubReg, SrcSubIdx);
   }
   }
@@ -191,18 +191,18 @@ void DetectDeadLanes::addUsedLanesOnOperand(const MachineOperand &MO,
                                             LaneBitmask UsedLanes) {
   if (!MO.readsReg())
     return;
-  Register MOReg = MO.getReg();
+  Register const MOReg = MO.getReg();
   if (!Register::isVirtualRegister(MOReg))
     return;
 
-  unsigned MOSubReg = MO.getSubReg();
+  unsigned const MOSubReg = MO.getSubReg();
   if (MOSubReg != 0)
     UsedLanes = TRI->composeSubRegIndexLaneMask(MOSubReg, UsedLanes);
   UsedLanes &= MRI->getMaxLaneMaskForVReg(MOReg);
 
-  unsigned MORegIdx = Register::virtReg2Index(MOReg);
+  unsigned const MORegIdx = Register::virtReg2Index(MOReg);
   VRegInfo &MORegInfo = VRegInfos[MORegIdx];
-  LaneBitmask PrevUsedLanes = MORegInfo.UsedLanes;
+  LaneBitmask const PrevUsedLanes = MORegInfo.UsedLanes;
   // Any change at all?
   if ((UsedLanes & ~PrevUsedLanes).none())
     return;
@@ -218,7 +218,7 @@ void DetectDeadLanes::transferUsedLanesStep(const MachineInstr &MI,
   for (const MachineOperand &MO : MI.uses()) {
     if (!MO.isReg() || !Register::isVirtualRegister(MO.getReg()))
       continue;
-    LaneBitmask UsedOnMO = transferUsedLanes(MI, UsedLanes, MO);
+    LaneBitmask const UsedOnMO = transferUsedLanes(MI, UsedLanes, MO);
     addUsedLanesOnOperand(MO, UsedOnMO);
   }
 }
@@ -226,7 +226,7 @@ void DetectDeadLanes::transferUsedLanesStep(const MachineInstr &MI,
 LaneBitmask DetectDeadLanes::transferUsedLanes(const MachineInstr &MI,
                                                LaneBitmask UsedLanes,
                                                const MachineOperand &MO) const {
-  unsigned OpNum = MI.getOperandNo(&MO);
+  unsigned const OpNum = MI.getOperandNo(&MO);
   assert(lowersToCopies(MI) &&
          DefinedByCopy[Register::virtReg2Index(MI.getOperand(0).getReg())]);
 
@@ -236,18 +236,18 @@ LaneBitmask DetectDeadLanes::transferUsedLanes(const MachineInstr &MI,
     return UsedLanes;
   case TargetOpcode::REG_SEQUENCE: {
     assert(OpNum % 2 == 1);
-    unsigned SubIdx = MI.getOperand(OpNum + 1).getImm();
+    unsigned const SubIdx = MI.getOperand(OpNum + 1).getImm();
     return TRI->reverseComposeSubRegIndexLaneMask(SubIdx, UsedLanes);
   }
   case TargetOpcode::INSERT_SUBREG: {
-    unsigned SubIdx = MI.getOperand(3).getImm();
+    unsigned const SubIdx = MI.getOperand(3).getImm();
     LaneBitmask MO2UsedLanes =
         TRI->reverseComposeSubRegIndexLaneMask(SubIdx, UsedLanes);
     if (OpNum == 2)
       return MO2UsedLanes;
 
     const MachineOperand &Def = MI.getOperand(0);
-    Register DefReg = Def.getReg();
+    Register const DefReg = Def.getReg();
     const TargetRegisterClass *RC = MRI->getRegClass(DefReg);
     LaneBitmask MO1UsedLanes;
     if (RC->CoveredBySubRegs)
@@ -260,7 +260,7 @@ LaneBitmask DetectDeadLanes::transferUsedLanes(const MachineInstr &MI,
   }
   case TargetOpcode::EXTRACT_SUBREG: {
     assert(OpNum == 1);
-    unsigned SubIdx = MI.getOperand(2).getImm();
+    unsigned const SubIdx = MI.getOperand(2).getImm();
     return TRI->composeSubRegIndexLaneMask(SubIdx, UsedLanes);
   }
   default:
@@ -282,20 +282,20 @@ void DetectDeadLanes::transferDefinedLanesStep(const MachineOperand &Use,
   if (MI.getOpcode() == TargetOpcode::PATCHPOINT)
     return;
   const MachineOperand &Def = *MI.defs().begin();
-  Register DefReg = Def.getReg();
+  Register const DefReg = Def.getReg();
   if (!Register::isVirtualRegister(DefReg))
     return;
-  unsigned DefRegIdx = Register::virtReg2Index(DefReg);
+  unsigned const DefRegIdx = Register::virtReg2Index(DefReg);
   if (!DefinedByCopy.test(DefRegIdx))
     return;
 
-  unsigned OpNum = MI.getOperandNo(&Use);
+  unsigned const OpNum = MI.getOperandNo(&Use);
   DefinedLanes =
       TRI->reverseComposeSubRegIndexLaneMask(Use.getSubReg(), DefinedLanes);
   DefinedLanes = transferDefinedLanes(Def, OpNum, DefinedLanes);
 
   VRegInfo &RegInfo = VRegInfos[DefRegIdx];
-  LaneBitmask PrevDefinedLanes = RegInfo.DefinedLanes;
+  LaneBitmask const PrevDefinedLanes = RegInfo.DefinedLanes;
   // Any change at all?
   if ((DefinedLanes & ~PrevDefinedLanes).none())
     return;
@@ -310,13 +310,13 @@ LaneBitmask DetectDeadLanes::transferDefinedLanes(const MachineOperand &Def,
   // Translate DefinedLanes if necessary.
   switch (MI.getOpcode()) {
   case TargetOpcode::REG_SEQUENCE: {
-    unsigned SubIdx = MI.getOperand(OpNum + 1).getImm();
+    unsigned const SubIdx = MI.getOperand(OpNum + 1).getImm();
     DefinedLanes = TRI->composeSubRegIndexLaneMask(SubIdx, DefinedLanes);
     DefinedLanes &= TRI->getSubRegIndexLaneMask(SubIdx);
     break;
   }
   case TargetOpcode::INSERT_SUBREG: {
-    unsigned SubIdx = MI.getOperand(3).getImm();
+    unsigned const SubIdx = MI.getOperand(3).getImm();
     if (OpNum == 2) {
       DefinedLanes = TRI->composeSubRegIndexLaneMask(SubIdx, DefinedLanes);
       DefinedLanes &= TRI->getSubRegIndexLaneMask(SubIdx);
@@ -328,7 +328,7 @@ LaneBitmask DetectDeadLanes::transferDefinedLanes(const MachineOperand &Def,
     break;
   }
   case TargetOpcode::EXTRACT_SUBREG: {
-    unsigned SubIdx = MI.getOperand(2).getImm();
+    unsigned const SubIdx = MI.getOperand(2).getImm();
     assert(OpNum == 1 && "EXTRACT_SUBREG must have one register operand only");
     DefinedLanes = TRI->reverseComposeSubRegIndexLaneMask(SubIdx, DefinedLanes);
     break;
@@ -357,7 +357,7 @@ LaneBitmask DetectDeadLanes::determineInitialDefinedLanes(unsigned Reg) {
   if (lowersToCopies(DefMI)) {
     // Start optimisatically with no used or defined lanes for copy
     // instructions. The following dataflow analysis will add more bits.
-    unsigned RegIdx = Register::virtReg2Index(Reg);
+    unsigned const RegIdx = Register::virtReg2Index(Reg);
     DefinedByCopy.set(RegIdx);
     PutInWorklist(RegIdx);
 
@@ -374,7 +374,7 @@ LaneBitmask DetectDeadLanes::determineInitialDefinedLanes(unsigned Reg) {
     for (const MachineOperand &MO : DefMI.uses()) {
       if (!MO.isReg() || !MO.readsReg())
         continue;
-      Register MOReg = MO.getReg();
+      Register const MOReg = MO.getReg();
       if (!MOReg)
         continue;
 
@@ -392,13 +392,13 @@ LaneBitmask DetectDeadLanes::determineInitialDefinedLanes(unsigned Reg) {
           if (lowersToCopies(MODefMI) || MODefMI.isImplicitDef())
             continue;
         }
-        unsigned MOSubReg = MO.getSubReg();
+        unsigned const MOSubReg = MO.getSubReg();
         MODefinedLanes = MRI->getMaxLaneMaskForVReg(MOReg);
         MODefinedLanes = TRI->reverseComposeSubRegIndexLaneMask(
             MOSubReg, MODefinedLanes);
       }
 
-      unsigned OpNum = DefMI.getOperandNo(&MO);
+      unsigned const OpNum = DefMI.getOperandNo(&MO);
       DefinedLanes |= transferDefinedLanes(Def, OpNum, MODefinedLanes);
     }
     return DefinedLanes;
@@ -421,11 +421,11 @@ LaneBitmask DetectDeadLanes::determineInitialUsedLanes(unsigned Reg) {
     if (UseMI.isKill())
       continue;
 
-    unsigned SubReg = MO.getSubReg();
+    unsigned const SubReg = MO.getSubReg();
     if (lowersToCopies(UseMI)) {
       assert(UseMI.getDesc().getNumDefs() == 1);
       const MachineOperand &Def = *UseMI.defs().begin();
-      Register DefReg = Def.getReg();
+      Register const DefReg = Def.getReg();
       // The used lanes of COPY-like instruction operands are determined by the
       // following dataflow analysis.
       if (Register::isVirtualRegister(DefReg)) {
@@ -454,8 +454,8 @@ LaneBitmask DetectDeadLanes::determineInitialUsedLanes(unsigned Reg) {
 
 bool DetectDeadLanes::isUndefRegAtInput(const MachineOperand &MO,
                                         const VRegInfo &RegInfo) const {
-  unsigned SubReg = MO.getSubReg();
-  LaneBitmask Mask = TRI->getSubRegIndexLaneMask(SubReg);
+  unsigned const SubReg = MO.getSubReg();
+  LaneBitmask const Mask = TRI->getSubRegIndexLaneMask(SubReg);
   return (RegInfo.DefinedLanes & RegInfo.UsedLanes & Mask).none();
 }
 
@@ -467,19 +467,19 @@ bool DetectDeadLanes::isUndefInput(const MachineOperand &MO,
   if (!lowersToCopies(MI))
     return false;
   const MachineOperand &Def = MI.getOperand(0);
-  Register DefReg = Def.getReg();
+  Register const DefReg = Def.getReg();
   if (!Register::isVirtualRegister(DefReg))
     return false;
-  unsigned DefRegIdx = Register::virtReg2Index(DefReg);
+  unsigned const DefRegIdx = Register::virtReg2Index(DefReg);
   if (!DefinedByCopy.test(DefRegIdx))
     return false;
 
   const VRegInfo &DefRegInfo = VRegInfos[DefRegIdx];
-  LaneBitmask UsedLanes = transferUsedLanes(MI, DefRegInfo.UsedLanes, MO);
+  LaneBitmask const UsedLanes = transferUsedLanes(MI, DefRegInfo.UsedLanes, MO);
   if (UsedLanes.any())
     return false;
 
-  Register MOReg = MO.getReg();
+  Register const MOReg = MO.getReg();
   if (Register::isVirtualRegister(MOReg)) {
     const TargetRegisterClass *DstRC = MRI->getRegClass(DefReg);
     *CrossCopy = isCrossCopy(*MRI, MI, DstRC, MO);
@@ -489,9 +489,9 @@ bool DetectDeadLanes::isUndefInput(const MachineOperand &MO,
 
 bool DetectDeadLanes::runOnce(MachineFunction &MF) {
   // First pass: Populate defs/uses of vregs with initial values
-  unsigned NumVirtRegs = MRI->getNumVirtRegs();
+  unsigned const NumVirtRegs = MRI->getNumVirtRegs();
   for (unsigned RegIdx = 0; RegIdx < NumVirtRegs; ++RegIdx) {
-    unsigned Reg = Register::index2VirtReg(RegIdx);
+    unsigned const Reg = Register::index2VirtReg(RegIdx);
 
     // Determine used/defined lanes and add copy instructions to worklist.
     VRegInfo &Info = VRegInfos[RegIdx];
@@ -501,11 +501,11 @@ bool DetectDeadLanes::runOnce(MachineFunction &MF) {
 
   // Iterate as long as defined lanes/used lanes keep changing.
   while (!Worklist.empty()) {
-    unsigned RegIdx = Worklist.front();
+    unsigned const RegIdx = Worklist.front();
     Worklist.pop_front();
     WorklistMembers.reset(RegIdx);
-    VRegInfo &Info = VRegInfos[RegIdx];
-    unsigned Reg = Register::index2VirtReg(RegIdx);
+    VRegInfo  const&Info = VRegInfos[RegIdx];
+    unsigned const Reg = Register::index2VirtReg(RegIdx);
 
     // Transfer UsedLanes to operands of DefMI (backwards dataflow).
     MachineOperand &Def = *MRI->def_begin(Reg);
@@ -535,10 +535,10 @@ bool DetectDeadLanes::runOnce(MachineFunction &MF) {
       for (MachineOperand &MO : MI.operands()) {
         if (!MO.isReg())
           continue;
-        Register Reg = MO.getReg();
+        Register const Reg = MO.getReg();
         if (!Register::isVirtualRegister(Reg))
           continue;
-        unsigned RegIdx = Register::virtReg2Index(Reg);
+        unsigned const RegIdx = Register::virtReg2Index(Reg);
         const VRegInfo &RegInfo = VRegInfos[RegIdx];
         if (MO.isDef() && !MO.isDead() && RegInfo.UsedLanes.none()) {
           LLVM_DEBUG(dbgs()
@@ -580,7 +580,7 @@ bool DetectDeadLanes::runOnMachineFunction(MachineFunction &MF) {
 
   TRI = MRI->getTargetRegisterInfo();
 
-  unsigned NumVirtRegs = MRI->getNumVirtRegs();
+  unsigned const NumVirtRegs = MRI->getNumVirtRegs();
   VRegInfos = new VRegInfo[NumVirtRegs];
   WorklistMembers.resize(NumVirtRegs);
   DefinedByCopy.resize(NumVirtRegs);

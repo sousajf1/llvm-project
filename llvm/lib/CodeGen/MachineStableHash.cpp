@@ -170,7 +170,7 @@ stable_hash llvm::stableHashValue(const MachineInstr &MI, bool HashVRegs,
       continue;
     }
 
-    stable_hash StableHash = stableHashValue(MO);
+    stable_hash const StableHash = stableHashValue(MO);
     if (!StableHash)
       return 0;
     HashComponents.push_back(StableHash);

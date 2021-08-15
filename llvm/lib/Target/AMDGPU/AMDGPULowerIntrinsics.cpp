@@ -73,7 +73,7 @@ static bool shouldExpandOperationWithSize(Value *Size) {
 }
 
 bool AMDGPULowerIntrinsics::expandMemIntrinsicUses(Function &F) {
-  Intrinsic::ID ID = F.getIntrinsicID();
+  Intrinsic::ID const ID = F.getIntrinsicID();
   bool Changed = false;
 
   for (auto I = F.user_begin(), E = F.user_end(); I != E;) {

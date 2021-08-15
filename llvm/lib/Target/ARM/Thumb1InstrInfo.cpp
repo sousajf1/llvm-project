@@ -41,7 +41,7 @@ void Thumb1InstrInfo::copyPhysReg(MachineBasicBlock &MBB,
                                   const DebugLoc &DL, MCRegister DestReg,
                                   MCRegister SrcReg, bool KillSrc) const {
   // Need to check the arch.
-  MachineFunction &MF = *MBB.getParent();
+  MachineFunction  const&MF = *MBB.getParent();
   const ARMSubtarget &st = MF.getSubtarget<ARMSubtarget>();
 
   assert(ARM::GPRRegClass.contains(DestReg, SrcReg) &&
@@ -90,7 +90,7 @@ storeRegToStackSlot(MachineBasicBlock &MBB, MachineBasicBlock::iterator I,
     if (I != MBB.end()) DL = I->getDebugLoc();
 
     MachineFunction &MF = *MBB.getParent();
-    MachineFrameInfo &MFI = MF.getFrameInfo();
+    MachineFrameInfo  const&MFI = MF.getFrameInfo();
     MachineMemOperand *MMO = MF.getMachineMemOperand(
         MachinePointerInfo::getFixedStack(MF, FI), MachineMemOperand::MOStore,
         MFI.getObjectSize(FI), MFI.getObjectAlign(FI));
@@ -119,7 +119,7 @@ loadRegFromStackSlot(MachineBasicBlock &MBB, MachineBasicBlock::iterator I,
     if (I != MBB.end()) DL = I->getDebugLoc();
 
     MachineFunction &MF = *MBB.getParent();
-    MachineFrameInfo &MFI = MF.getFrameInfo();
+    MachineFrameInfo  const&MFI = MF.getFrameInfo();
     MachineMemOperand *MMO = MF.getMachineMemOperand(
         MachinePointerInfo::getFixedStack(MF, FI), MachineMemOperand::MOLoad,
         MFI.getObjectSize(FI), MFI.getObjectAlign(FI));
@@ -133,7 +133,7 @@ loadRegFromStackSlot(MachineBasicBlock &MBB, MachineBasicBlock::iterator I,
 
 void Thumb1InstrInfo::expandLoadStackGuard(
     MachineBasicBlock::iterator MI) const {
-  MachineFunction &MF = *MI->getParent()->getParent();
+  MachineFunction  const&MF = *MI->getParent()->getParent();
   const TargetMachine &TM = MF.getTarget();
   if (TM.isPositionIndependent())
     expandLoadStackGuardBase(MI, ARM::tLDRLIT_ga_pcrel, ARM::tLDRi);
@@ -147,7 +147,7 @@ bool Thumb1InstrInfo::canCopyGluedNodeDuringSchedule(SDNode *N) const {
   // even if they have glue.
   // FIXME. Actually implement the cross-copy where it is possible (post v6)
   // because these copies entail more spilling.
-  unsigned Opcode = N->getMachineOpcode();
+  unsigned const Opcode = N->getMachineOpcode();
   if (Opcode == ARM::tADCS || Opcode == ARM::tSBCS)
     return true;
 

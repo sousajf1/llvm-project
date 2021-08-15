@@ -82,7 +82,7 @@ bool IntervalPartition::runOnFunction(Function &F) {
   ++I;  // After the first one...
 
   // Add the rest of the intervals to the partition.
-  for (function_interval_iterator E = intervals_end(&F); I != E; ++I)
+  for (function_interval_iterator const E = intervals_end(&F); I != E; ++I)
     addIntervalToPartition(*I);
 
   // Now that we know all of the successor information, propagate this to the
@@ -108,7 +108,7 @@ IntervalPartition::IntervalPartition(IntervalPartition &IP, bool)
   ++I;  // After the first one...
 
   // Add the rest of the intervals to the partition.
-  for (interval_part_interval_iterator E = intervals_end(IP); I != E; ++I)
+  for (interval_part_interval_iterator const E = intervals_end(IP); I != E; ++I)
     addIntervalToPartition(*I);
 
   // Now that we know all of the successor information, propagate this to the

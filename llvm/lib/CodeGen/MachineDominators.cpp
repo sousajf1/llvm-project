@@ -98,7 +98,7 @@ void MachineDominatorTree::applySplitCriticalEdges() const {
 
   // Collect all the dominance properties info, before invalidating
   // the underlying DT.
-  for (CriticalEdge &Edge : CriticalEdgesToSplit) {
+  for (CriticalEdge  const&Edge : CriticalEdgesToSplit) {
     // Update dominator information.
     MachineBasicBlock *Succ = Edge.ToBB;
     MachineDomTreeNode *SuccDTNode = DT->getNode(Succ);
@@ -134,7 +134,7 @@ void MachineDominatorTree::applySplitCriticalEdges() const {
 
   // Now, update DT with the collected dominance properties info.
   Idx = 0;
-  for (CriticalEdge &Edge : CriticalEdgesToSplit) {
+  for (CriticalEdge  const&Edge : CriticalEdgesToSplit) {
     // We know FromBB dominates NewBB.
     MachineDomTreeNode *NewDTNode = DT->addNewBlock(Edge.NewBB, Edge.FromBB);
 

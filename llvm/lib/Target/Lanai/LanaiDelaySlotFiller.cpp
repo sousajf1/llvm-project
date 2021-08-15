@@ -95,7 +95,7 @@ bool Filler::runOnMachineBasicBlock(MachineBasicBlock &MBB) {
   for (MachineBasicBlock::instr_iterator I = MBB.instr_begin();
        I != MBB.instr_end(); ++I) {
     if (I->getDesc().hasDelaySlot()) {
-      MachineBasicBlock::instr_iterator InstrWithSlot = I;
+      MachineBasicBlock::instr_iterator const InstrWithSlot = I;
       MachineBasicBlock::instr_iterator J = I;
 
       // Treat RET specially as it is only instruction with 2 delay slots
@@ -116,7 +116,7 @@ bool Filler::runOnMachineBasicBlock(MachineBasicBlock &MBB) {
                RI->getOperand(0).getReg() == Lanai::SP &&
                RI->getOperand(1).isReg() &&
                RI->getOperand(1).getReg() == Lanai::FP);
-        MachineBasicBlock::instr_iterator FI = RI.getReverse();
+        MachineBasicBlock::instr_iterator const FI = RI.getReverse();
         MBB.splice(std::next(I), &MBB, FI, I);
         FilledSlots += 2;
       } else {
@@ -159,7 +159,7 @@ bool Filler::findDelayInstr(MachineBasicBlock &MBB,
       continue;
 
     // Convert to forward iterator.
-    MachineBasicBlock::instr_iterator FI = I.getReverse();
+    MachineBasicBlock::instr_iterator const FI = I.getReverse();
 
     if (I->hasUnmodeledSideEffects() || I->isInlineAsm() || I->isLabel() ||
         FI == LastFiller || I->isPseudo())
@@ -226,8 +226,8 @@ void Filler::insertDefsUses(MachineBasicBlock::instr_iterator MI,
                             SmallSet<unsigned, 32> &RegDefs,
                             SmallSet<unsigned, 32> &RegUses) {
   // If MI is a call or return, just examine the explicit non-variadic operands.
-  MCInstrDesc MCID = MI->getDesc();
-  unsigned E = MI->isCall() || MI->isReturn() ? MCID.getNumOperands()
+  MCInstrDesc const MCID = MI->getDesc();
+  unsigned const E = MI->isCall() || MI->isReturn() ? MCID.getNumOperands()
                                               : MI->getNumOperands();
   for (unsigned I = 0; I != E; ++I) {
     const MachineOperand &MO = MI->getOperand(I);

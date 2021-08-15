@@ -38,7 +38,7 @@ LoopSafetyInfo::getBlockColors() const {
 
 void LoopSafetyInfo::copyColors(BasicBlock *New, BasicBlock *Old) {
   ColorVector &ColorsForNewBlock = BlockColors[New];
-  ColorVector &ColorsForOldBlock = BlockColors[Old];
+  ColorVector  const&ColorsForOldBlock = BlockColors[Old];
   ColorsForNewBlock = ColorsForOldBlock;
 }
 
@@ -366,16 +366,16 @@ bool MustBeExecutedContextPrinter::runOnModule(Module &M) {
   SmallVector<std::unique_ptr<DominatorTree>, 8> DTs;
   SmallVector<std::unique_ptr<LoopInfo>, 8> LIs;
 
-  GetterTy<LoopInfo> LIGetter = [&](const Function &F) {
+  GetterTy<LoopInfo> const LIGetter = [&](const Function &F) {
     DTs.push_back(std::make_unique<DominatorTree>(const_cast<Function &>(F)));
     LIs.push_back(std::make_unique<LoopInfo>(*DTs.back()));
     return LIs.back().get();
   };
-  GetterTy<DominatorTree> DTGetter = [&](const Function &F) {
+  GetterTy<DominatorTree> const DTGetter = [&](const Function &F) {
     DTs.push_back(std::make_unique<DominatorTree>(const_cast<Function&>(F)));
     return DTs.back().get();
   };
-  GetterTy<PostDominatorTree> PDTGetter = [&](const Function &F) {
+  GetterTy<PostDominatorTree> const PDTGetter = [&](const Function &F) {
     PDTs.push_back(
         std::make_unique<PostDominatorTree>(const_cast<Function &>(F)));
     return PDTs.back().get();
@@ -386,7 +386,7 @@ bool MustBeExecutedContextPrinter::runOnModule(Module &M) {
       /* ExploreCFGBackward */ true, LIGetter, DTGetter, PDTGetter);
 
   for (Function &F : M) {
-    for (Instruction &I : instructions(F)) {
+    for (Instruction  const&I : instructions(F)) {
       dbgs() << "-- Explore context of: " << I << "\n";
       for (const Instruction *CI : Explorer.range(&I))
         dbgs() << "  [F: " << CI->getFunction()->getName() << "] " << *CI
@@ -483,7 +483,7 @@ bool llvm::mayContainIrreducibleControl(const Function &F, const LoopInfo *LI) {
   if (!LI)
     return false;
   using RPOTraversal = ReversePostOrderTraversal<const Function *>;
-  RPOTraversal FuncRPOT(&F);
+  RPOTraversal const FuncRPOT(&F);
   return containsIrreducibleCFG<const BasicBlock *, const RPOTraversal,
                                 const LoopInfo>(FuncRPOT, *LI);
 }
@@ -510,7 +510,7 @@ MustBeExecutedContextExplorer::findForwardJoinPoint(const BasicBlock *InitBB) {
   const Function &F = *InitBB->getParent();
   const Loop *L = LI ? LI->getLoopFor(InitBB) : nullptr;
   const BasicBlock *HeaderBB = L ? L->getHeader() : InitBB;
-  bool WillReturnAndNoThrow = (F.hasFnAttribute(Attribute::WillReturn) ||
+  bool const WillReturnAndNoThrow = (F.hasFnAttribute(Attribute::WillReturn) ||
                                (L && !maybeEndlessLoop(*L))) &&
                               F.doesNotThrow();
   LLVM_DEBUG(dbgs() << (L ? " [in loop]" : "")
@@ -521,7 +521,7 @@ MustBeExecutedContextExplorer::findForwardJoinPoint(const BasicBlock *InitBB) {
   // loops under certain circumstances.
   SmallVector<const BasicBlock *, 8> Worklist;
   for (const BasicBlock *SuccBB : successors(InitBB)) {
-    bool IsLatch = SuccBB == HeaderBB;
+    bool const IsLatch = SuccBB == HeaderBB;
     // Loop latches are ignored in forward propagation if the loop cannot be
     // endless and may not throw: control has to go somewhere.
     if (!WillReturnAndNoThrow || !IsLatch)
@@ -608,7 +608,7 @@ MustBeExecutedContextExplorer::findForwardJoinPoint(const BasicBlock *InitBB) {
           if (!LI)
             return nullptr;
 
-          bool MayContainIrreducibleControl = getOrCreateCachedOptional(
+          bool const MayContainIrreducibleControl = getOrCreateCachedOptional(
               &F, IrreducibleControlMap, mayContainIrreducibleControl, F, LI);
           if (MayContainIrreducibleControl)
             return nullptr;
@@ -623,7 +623,7 @@ MustBeExecutedContextExplorer::findForwardJoinPoint(const BasicBlock *InitBB) {
 
       // Make sure the block has no instructions that could stop control
       // transfer.
-      bool TransfersExecution = getOrCreateCachedOptional(
+      bool const TransfersExecution = getOrCreateCachedOptional(
           ToBB, BlockTransferMap, BlockTransfersExecutionToSuccessor, ToBB);
       if (!TransfersExecution)
         return nullptr;
@@ -656,7 +656,7 @@ MustBeExecutedContextExplorer::findBackwardJoinPoint(const BasicBlock *InitBB) {
   // Determine the predecessor blocks but ignore backedges.
   SmallVector<const BasicBlock *, 8> Worklist;
   for (const BasicBlock *PredBB : predecessors(InitBB)) {
-    bool IsBackedge =
+    bool const IsBackedge =
         (PredBB == InitBB) || (HeaderBB == InitBB && L->contains(PredBB));
     // Loop backedges are ignored in backwards propagation: control has to come
     // from somewhere.
@@ -718,7 +718,7 @@ MustBeExecutedContextExplorer::getMustBeExecutedNextInstruction(
   // If we do not traverse the call graph we check if we can make progress in
   // the current function. First, check if the instruction is guaranteed to
   // transfer execution to the successor.
-  bool TransfersExecution = isGuaranteedToTransferExecutionToSuccessor(PP);
+  bool const TransfersExecution = isGuaranteedToTransferExecutionToSuccessor(PP);
   if (!TransfersExecution)
     return nullptr;
 
@@ -765,7 +765,7 @@ MustBeExecutedContextExplorer::getMustBeExecutedPrevInstruction(
   if (!PP)
     return PP;
 
-  bool IsFirst = !(PP->getPrevNode());
+  bool const IsFirst = !(PP->getPrevNode());
   LLVM_DEBUG(dbgs() << "Find next instruction for " << *PP
                     << (IsFirst ? " [IsFirst]" : "") << "\n");
 
@@ -850,13 +850,13 @@ PreservedAnalyses
 MustBeExecutedContextPrinterPass::run(Module &M, ModuleAnalysisManager &AM) {
   FunctionAnalysisManager &FAM =
       AM.getResult<FunctionAnalysisManagerModuleProxy>(M).getManager();
-  GetterTy<const LoopInfo> LIGetter = [&](const Function &F) {
+  GetterTy<const LoopInfo> const LIGetter = [&](const Function &F) {
     return &FAM.getResult<LoopAnalysis>(const_cast<Function &>(F));
   };
-  GetterTy<const DominatorTree> DTGetter = [&](const Function &F) {
+  GetterTy<const DominatorTree> const DTGetter = [&](const Function &F) {
     return &FAM.getResult<DominatorTreeAnalysis>(const_cast<Function &>(F));
   };
-  GetterTy<const PostDominatorTree> PDTGetter = [&](const Function &F) {
+  GetterTy<const PostDominatorTree> const PDTGetter = [&](const Function &F) {
     return &FAM.getResult<PostDominatorTreeAnalysis>(const_cast<Function &>(F));
   };
 
@@ -866,7 +866,7 @@ MustBeExecutedContextPrinterPass::run(Module &M, ModuleAnalysisManager &AM) {
       /* ExploreCFGBackward */ true, LIGetter, DTGetter, PDTGetter);
 
   for (Function &F : M) {
-    for (Instruction &I : instructions(F)) {
+    for (Instruction  const&I : instructions(F)) {
       OS << "-- Explore context of: " << I << "\n";
       for (const Instruction *CI : Explorer.range(&I))
         OS << "  [F: " << CI->getFunction()->getName() << "] " << *CI << "\n";

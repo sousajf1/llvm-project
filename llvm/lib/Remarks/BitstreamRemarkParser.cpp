@@ -247,7 +247,7 @@ Error BitstreamParserHelper::parseBlockInfoBlock() {
 
 static Expected<bool> isBlock(BitstreamCursor &Stream, unsigned BlockID) {
   bool Result = false;
-  uint64_t PreviousBitNo = Stream.GetCurrentBitNo();
+  uint64_t const PreviousBitNo = Stream.GetCurrentBitNo();
   Expected<BitstreamEntry> Next = Stream.advance();
   if (!Next)
     return Next.takeError();
@@ -425,7 +425,7 @@ Error BitstreamRemarkParser::processExternalFilePath(
   // with the one parsing the remarks.
   ErrorOr<std::unique_ptr<MemoryBuffer>> BufferOrErr =
       MemoryBuffer::getFile(FullPath);
-  if (std::error_code EC = BufferOrErr.getError())
+  if (std::error_code const EC = BufferOrErr.getError())
     return createFileError(FullPath, EC);
 
   TmpRemarkBuffer = std::move(*BufferOrErr);
@@ -447,7 +447,7 @@ Error BitstreamRemarkParser::processExternalFilePath(
   if (Error E = SeparateMetaHelper.parse())
     return E;
 
-  uint64_t PreviousContainerVersion = ContainerVersion;
+  uint64_t const PreviousContainerVersion = ContainerVersion;
   if (Error E = processCommonMeta(SeparateMetaHelper))
     return E;
 

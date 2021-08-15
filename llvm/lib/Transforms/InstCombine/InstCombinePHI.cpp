@@ -338,7 +338,7 @@ InstCombinerImpl::foldPHIArgInsertValueInstructionIntoPHI(PHINode &PN) {
 
   // For each operand of an `insertvalue`
   std::array<PHINode *, 2> NewOperands;
-  for (int OpIdx : {0, 1}) {
+  for (int const OpIdx : {0, 1}) {
     auto *&NewOperand = NewOperands[OpIdx];
     // Create a new PHI node to receive the values the operand has in each
     // incoming basic block.
@@ -404,7 +404,7 @@ InstCombinerImpl::foldPHIArgExtractValueInstructionIntoPHI(PHINode &PN) {
 Instruction *InstCombinerImpl::foldPHIArgBinOpIntoPHI(PHINode &PN) {
   Instruction *FirstInst = cast<Instruction>(PN.getIncomingValue(0));
   assert(isa<BinaryOperator>(FirstInst) || isa<CmpInst>(FirstInst));
-  unsigned Opc = FirstInst->getOpcode();
+  unsigned const Opc = FirstInst->getOpcode();
   Value *LHSVal = FirstInst->getOperand(0);
   Value *RHSVal = FirstInst->getOperand(1);
 
@@ -668,9 +668,9 @@ Instruction *InstCombinerImpl::foldPHIArgLoadIntoPHI(PHINode &PN) {
   // don't sink loads when some have their alignment specified and some don't.
   // visitLoadInst will propagate an alignment onto the load when TD is around,
   // and if TD isn't around, we can't handle the mixed case.
-  bool isVolatile = FirstLI->isVolatile();
+  bool const isVolatile = FirstLI->isVolatile();
   Align LoadAlignment = FirstLI->getAlign();
-  unsigned LoadAddrSpace = FirstLI->getPointerAddressSpace();
+  unsigned const LoadAddrSpace = FirstLI->getPointerAddressSpace();
 
   // We can't sink the load if the loaded value could be modified between the
   // load and the PHI.
@@ -720,7 +720,7 @@ Instruction *InstCombinerImpl::foldPHIArgLoadIntoPHI(PHINode &PN) {
   LoadInst *NewLI =
       new LoadInst(FirstLI->getType(), NewPN, "", isVolatile, LoadAlignment);
 
-  unsigned KnownIDs[] = {
+  unsigned const KnownIDs[] = {
     LLVMContext::MD_tbaa,
     LLVMContext::MD_range,
     LLVMContext::MD_invariant_load,
@@ -733,7 +733,7 @@ Instruction *InstCombinerImpl::foldPHIArgLoadIntoPHI(PHINode &PN) {
     LLVMContext::MD_access_group,
   };
 
-  for (unsigned ID : KnownIDs)
+  for (unsigned const ID : KnownIDs)
     NewLI->setMetadata(ID, FirstLI->getMetadata(ID));
 
   // Add all operands to the new PHI and combine TBAA metadata.
@@ -779,7 +779,7 @@ Instruction *InstCombinerImpl::foldPHIArgZextsIntoPHI(PHINode &Phi) {
   // Early exit for the common case of a phi with two operands. These are
   // handled elsewhere. See the comment below where we check the count of zexts
   // and constants for more details.
-  unsigned NumIncomingValues = Phi.getNumIncomingValues();
+  unsigned const NumIncomingValues = Phi.getNumIncomingValues();
   if (NumIncomingValues < 3)
     return nullptr;
 
@@ -1131,11 +1131,11 @@ Instruction *InstCombinerImpl::SliceUpIllegalIntegerPHI(PHINode &FirstPhi) {
         return nullptr;
 
       // Bail on out of range shifts.
-      unsigned SizeInBits = UserI->getType()->getScalarSizeInBits();
+      unsigned const SizeInBits = UserI->getType()->getScalarSizeInBits();
       if (cast<ConstantInt>(UserI->getOperand(1))->getValue().uge(SizeInBits))
         return nullptr;
 
-      unsigned Shift = cast<ConstantInt>(UserI->getOperand(1))->getZExtValue();
+      unsigned const Shift = cast<ConstantInt>(UserI->getOperand(1))->getZExtValue();
       PHIUsers.push_back(PHIUsageRecord(PHIId, Shift, UserI->user_back()));
     }
   }
@@ -1161,9 +1161,9 @@ Instruction *InstCombinerImpl::SliceUpIllegalIntegerPHI(PHINode &FirstPhi) {
   DenseMap<LoweredPHIRecord, PHINode*> ExtractedVals;
 
   for (unsigned UserI = 0, UserE = PHIUsers.size(); UserI != UserE; ++UserI) {
-    unsigned PHIId = PHIUsers[UserI].PHIId;
+    unsigned const PHIId = PHIUsers[UserI].PHIId;
     PHINode *PN = PHIsToSlice[PHIId];
-    unsigned Offset = PHIUsers[UserI].Shift;
+    unsigned const Offset = PHIUsers[UserI].Shift;
     Type *Ty = PHIUsers[UserI].Inst->getType();
 
     PHINode *EltPHI;
@@ -1222,7 +1222,7 @@ Instruction *InstCombinerImpl::SliceUpIllegalIntegerPHI(PHINode &FirstPhi) {
         // needed piece.
         if (PHINode *OldInVal = dyn_cast<PHINode>(PN->getIncomingValue(i)))
           if (PHIsInspected.count(OldInVal)) {
-            unsigned RefPHIId =
+            unsigned const RefPHIId =
                 find(PHIsToSlice, OldInVal) - PHIsToSlice.begin();
             PHIUsers.push_back(PHIUsageRecord(RefPHIId, Offset,
                                               cast<Instruction>(Res)));
@@ -1294,11 +1294,11 @@ static Value *SimplifyUsingControlFlow(InstCombiner &Self, PHINode &PN,
 
   // Check that edges outgoing from the idom's terminators dominate respective
   // inputs of the Phi.
-  BasicBlockEdge TrueOutEdge(IDom, BI->getSuccessor(0));
-  BasicBlockEdge FalseOutEdge(IDom, BI->getSuccessor(1));
+  BasicBlockEdge const TrueOutEdge(IDom, BI->getSuccessor(0));
+  BasicBlockEdge const FalseOutEdge(IDom, BI->getSuccessor(1));
 
-  BasicBlockEdge TrueIncEdge(TruePred, BB);
-  BasicBlockEdge FalseIncEdge(FalsePred, BB);
+  BasicBlockEdge const TrueIncEdge(TruePred, BB);
+  BasicBlockEdge const FalseIncEdge(FalsePred, BB);
 
   auto *Cond = BI->getCondition();
   if (DT.dominates(TrueOutEdge, TrueIncEdge) &&
@@ -1465,7 +1465,7 @@ Instruction *InstCombinerImpl::visitPHINode(PHINode &PN) {
       BasicBlock *BBB = FirstPN->getIncomingBlock(i);
       if (BBA != BBB) {
         Value *VA = PN.getIncomingValue(i);
-        unsigned j = PN.getBasicBlockIndex(BBB);
+        unsigned const j = PN.getBasicBlockIndex(BBB);
         Value *VB = PN.getIncomingValue(j);
         PN.setIncomingBlock(i, BBB);
         PN.setIncomingValue(i, VB);

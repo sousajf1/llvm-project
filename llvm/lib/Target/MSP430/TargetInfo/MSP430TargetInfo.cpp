@@ -16,6 +16,6 @@ Target &llvm::getTheMSP430Target() {
 }
 
 extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializeMSP430TargetInfo() {
-  RegisterTarget<Triple::msp430> X(getTheMSP430Target(), "msp430",
+  RegisterTarget<Triple::msp430> const X(getTheMSP430Target(), "msp430",
                                    "MSP430 [experimental]", "MSP430");
 }

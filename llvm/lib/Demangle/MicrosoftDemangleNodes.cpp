@@ -29,7 +29,7 @@ static void outputSpaceIfNecessary(OutputStream &OS) {
   if (OS.empty())
     return;
 
-  char C = OS.back();
+  char const C = OS.back();
   if (std::isalnum(C) || C == '>')
     OS << " ";
 }
@@ -67,11 +67,11 @@ static void outputQualifiers(OutputStream &OS, Qualifiers Q, bool SpaceBefore,
   if (Q == Q_None)
     return;
 
-  size_t Pos1 = OS.getCurrentPosition();
+  size_t const Pos1 = OS.getCurrentPosition();
   SpaceBefore = outputQualifierIfPresent(OS, Q, Q_Const, SpaceBefore);
   SpaceBefore = outputQualifierIfPresent(OS, Q, Q_Volatile, SpaceBefore);
   SpaceBefore = outputQualifierIfPresent(OS, Q, Q_Restrict, SpaceBefore);
-  size_t Pos2 = OS.getCurrentPosition();
+  size_t const Pos2 = OS.getCurrentPosition();
   if (SpaceAfter && Pos2 > Pos1)
     OS << " ";
 }

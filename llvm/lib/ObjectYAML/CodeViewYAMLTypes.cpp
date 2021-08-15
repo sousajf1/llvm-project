@@ -476,7 +476,7 @@ public:
 #include "llvm/DebugInfo/CodeView/CodeViewTypes.def"
 private:
   template <typename T> Error visitKnownMemberImpl(T &Record) {
-    TypeLeafKind K = static_cast<TypeLeafKind>(Record.getKind());
+    TypeLeafKind const K = static_cast<TypeLeafKind>(Record.getKind());
     auto Impl = std::make_shared<MemberRecordImpl<T>>(K);
     Impl->Record = Record;
     Records.push_back(MemberRecord{Impl});
@@ -780,7 +780,7 @@ void MappingTraits<MemberRecord>::mapping(IO &IO, MemberRecord &Obj) {
 std::vector<LeafRecord>
 llvm::CodeViewYAML::fromDebugT(ArrayRef<uint8_t> DebugTorP,
                                StringRef SectionName) {
-  ExitOnError Err("Invalid " + std::string(SectionName) + " section!");
+  ExitOnError const Err("Invalid " + std::string(SectionName) + " section!");
   BinaryStreamReader Reader(DebugTorP, support::little);
   CVTypeArray Types;
   uint32_t Magic;
@@ -804,14 +804,14 @@ ArrayRef<uint8_t> llvm::CodeViewYAML::toDebugT(ArrayRef<LeafRecord> Leafs,
   AppendingTypeTableBuilder TS(Alloc);
   uint32_t Size = sizeof(uint32_t);
   for (const auto &Leaf : Leafs) {
-    CVType T = Leaf.Leaf->toCodeViewRecord(TS);
+    CVType const T = Leaf.Leaf->toCodeViewRecord(TS);
     Size += T.length();
     assert(T.length() % 4 == 0 && "Improper type record alignment!");
   }
   uint8_t *ResultBuffer = Alloc.Allocate<uint8_t>(Size);
   MutableArrayRef<uint8_t> Output(ResultBuffer, Size);
   BinaryStreamWriter Writer(Output, support::little);
-  ExitOnError Err("Error writing type record to " + std::string(SectionName) +
+  ExitOnError const Err("Error writing type record to " + std::string(SectionName) +
                   " section");
   Err(Writer.writeInteger<uint32_t>(COFF::DEBUG_SECTION_MAGIC));
   for (const auto &R : TS.records()) {

@@ -38,10 +38,10 @@ static BasicBlock *getUserBB(Use *U) {
 /// Add a new variable to the SSA rewriter. This needs to be called before
 /// AddAvailableValue or AddUse calls.
 unsigned SSAUpdaterBulk::AddVariable(StringRef Name, Type *Ty) {
-  unsigned Var = Rewrites.size();
+  unsigned const Var = Rewrites.size();
   LLVM_DEBUG(dbgs() << "SSAUpdater: Var=" << Var << ": initialized with Ty = "
                     << *Ty << ", Name = " << Name << "\n");
-  RewriteInfo RI(Name, Ty);
+  RewriteInfo const RI(Name, Ty);
   Rewrites.push_back(RI);
   return Var;
 }

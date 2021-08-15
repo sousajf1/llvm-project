@@ -643,9 +643,9 @@ private:
   /// Flow Equivalent sets, sorted by dominance.
   void collectFusionCandidates(const LoopVector &LV) {
     for (Loop *L : LV) {
-      TTI::PeelingPreferences PP =
+      TTI::PeelingPreferences const PP =
           gatherPeelingPreferences(L, SE, TTI, None, None);
-      FusionCandidate CurrCand(L, &DT, &PDT, ORE, PP);
+      FusionCandidate const CurrCand(L, &DT, &PDT, ORE, PP);
       if (!CurrCand.isEligibleForFusion(SE))
         continue;
 
@@ -860,7 +860,7 @@ private:
           // the loops (second value of pair). The difference is not equal to
           // None iff the loops iterate a constant number of times, and have a
           // single exit.
-          std::pair<bool, Optional<unsigned>> IdenticalTripCountRes =
+          std::pair<bool, Optional<unsigned>> const IdenticalTripCountRes =
               haveIdenticalTripCounts(*FC0, *FC1);
           bool SameTripCount = IdenticalTripCountRes.first;
           Optional<unsigned> TCDifference = IdenticalTripCountRes.second;
@@ -959,7 +959,7 @@ private:
             continue;
           }
 
-          bool BeneficialToFuse = isBeneficialFusion(*FC0, *FC1);
+          bool const BeneficialToFuse = isBeneficialFusion(*FC0, *FC1);
           LLVM_DEBUG(dbgs()
                      << "\tFusion appears to be "
                      << (BeneficialToFuse ? "" : "un") << "profitable!\n");
@@ -978,7 +978,7 @@ private:
           FusionCandidate FC0Copy = *FC0;
           // Peel the loop after determining that fusion is legal. The Loops
           // will still be safe to fuse after the peeling is performed.
-          bool Peel = TCDifference && *TCDifference > 0;
+          bool const Peel = TCDifference && *TCDifference > 0;
           if (Peel)
             peelFusionCandidate(FC0Copy, *FC1, *TCDifference);
 
@@ -989,7 +989,7 @@ private:
           reportLoopFusion<OptimizationRemark>((Peel ? FC0Copy : *FC0), *FC1,
                                                FuseCounter);
 
-          FusionCandidate FusedCand(
+          FusionCandidate const FusedCand(
               performFusion((Peel ? FC0Copy : *FC0), *FC1), &DT, &PDT, ORE,
               FC0Copy.PP);
           FusedCand.verify();
@@ -1039,7 +1039,7 @@ private:
       }
 
       if (OldL.contains(ExprL)) {
-        bool Pos = SE.isKnownPositive(Expr->getStepRecurrence(SE));
+        bool const Pos = SE.isKnownPositive(Expr->getStepRecurrence(SE));
         if (!UseMax || !Pos || !Expr->isAffine()) {
           Valid = false;
           return Expr;
@@ -1100,9 +1100,9 @@ private:
     if (SCEVExprContains(SCEVPtr1, HasNonLinearDominanceRelation))
       return false;
 
-    ICmpInst::Predicate Pred =
+    ICmpInst::Predicate const Pred =
         EqualIsInvalid ? ICmpInst::ICMP_SGT : ICmpInst::ICMP_SGE;
-    bool IsAlwaysGE = SE.isKnownPredicate(Pred, SCEVPtr0, SCEVPtr1);
+    bool const IsAlwaysGE = SE.isKnownPredicate(Pred, SCEVPtr0, SCEVPtr1);
 #ifndef NDEBUG
     if (VerboseFusionDebugging)
       LLVM_DEBUG(dbgs() << "    Relation: " << *SCEVPtr0
@@ -1426,7 +1426,7 @@ private:
     // comment above.
     Instruction *L1HeaderIP = &FC1.Header->front();
     for (PHINode *LCPHI : OriginalFC0PHIs) {
-      int L1LatchBBIdx = LCPHI->getBasicBlockIndex(FC1.Latch);
+      int const L1LatchBBIdx = LCPHI->getBasicBlockIndex(FC1.Latch);
       assert(L1LatchBBIdx >= 0 &&
              "Expected loop carried value to be rewired at this point!");
 
@@ -1486,7 +1486,7 @@ private:
     mergeLatch(FC0, FC1);
 
     // Merge the loops.
-    SmallVector<BasicBlock *, 8> Blocks(FC1.L->blocks());
+    SmallVector<BasicBlock *, 8> const Blocks(FC1.L->blocks());
     for (BasicBlock *BB : Blocks) {
       FC0.L->addBlockEntry(BB);
       FC1.L->removeBlockFromLoop(BB);
@@ -1707,7 +1707,7 @@ private:
     // comment above.
     Instruction *L1HeaderIP = &FC1.Header->front();
     for (PHINode *LCPHI : OriginalFC0PHIs) {
-      int L1LatchBBIdx = LCPHI->getBasicBlockIndex(FC1.Latch);
+      int const L1LatchBBIdx = LCPHI->getBasicBlockIndex(FC1.Latch);
       assert(L1LatchBBIdx >= 0 &&
              "Expected loop carried value to be rewired at this point!");
 
@@ -1778,7 +1778,7 @@ private:
     mergeLatch(FC0, FC1);
 
     // Merge the loops.
-    SmallVector<BasicBlock *, 8> Blocks(FC1.L->blocks());
+    SmallVector<BasicBlock *, 8> const Blocks(FC1.L->blocks());
     for (BasicBlock *BB : Blocks) {
       FC0.L->addBlockEntry(BB);
       FC1.L->removeBlockFromLoop(BB);
@@ -1867,7 +1867,7 @@ PreservedAnalyses LoopFusePass::run(Function &F, FunctionAnalysisManager &AM) {
   const DataLayout &DL = F.getParent()->getDataLayout();
 
   LoopFuser LF(LI, DT, DI, SE, PDT, ORE, DL, AC, TTI);
-  bool Changed = LF.fuseLoops(F);
+  bool const Changed = LF.fuseLoops(F);
   if (!Changed)
     return PreservedAnalyses::all();
 

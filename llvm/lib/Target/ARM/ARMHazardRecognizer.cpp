@@ -27,10 +27,10 @@ static bool hasRAWHazard(MachineInstr *DefMI, MachineInstr *MI,
                          const TargetRegisterInfo &TRI) {
   // FIXME: Detect integer instructions properly.
   const MCInstrDesc &MCID = MI->getDesc();
-  unsigned Domain = MCID.TSFlags & ARMII::DomainMask;
+  unsigned const Domain = MCID.TSFlags & ARMII::DomainMask;
   if (MI->mayStore())
     return false;
-  unsigned Opcode = MCID.getOpcode();
+  unsigned const Opcode = MCID.getOpcode();
   if (Opcode == ARM::VMOVRS || Opcode == ARM::VMOVRRD)
     return false;
   if ((Domain & ARMII::DomainVFP) || (Domain & ARMII::DomainNEON))
@@ -107,9 +107,9 @@ void ARMHazardRecognizerFPMLx::RecedeCycle() {
 static bool getBaseOffset(const MachineInstr &MI, const MachineOperand *&BaseOp,
                           int64_t &Offset) {
 
-  uint64_t TSFlags = MI.getDesc().TSFlags;
-  unsigned AddrMode = (TSFlags & ARMII::AddrModeMask);
-  unsigned IndexMode =
+  uint64_t const TSFlags = MI.getDesc().TSFlags;
+  unsigned const AddrMode = (TSFlags & ARMII::AddrModeMask);
+  unsigned const IndexMode =
       (TSFlags & ARMII::IndexModeMask) >> ARMII::IndexModeShift;
 
   // Address mode tells us what we want to know about operands for T2
@@ -180,7 +180,7 @@ ARMBankConflictHazardRecognizer::CheckOffsets(unsigned O0, unsigned O1) {
 
 ScheduleHazardRecognizer::HazardType
 ARMBankConflictHazardRecognizer::getHazardType(SUnit *SU, int Stalls) {
-  MachineInstr &L0 = *SU->getInstr();
+  MachineInstr  const&L0 = *SU->getInstr();
   if (!L0.mayLoad() || L0.mayStore() || L0.getNumMemOperands() != 1)
     return NoHazard;
 
@@ -257,7 +257,7 @@ void ARMBankConflictHazardRecognizer::EmitInstruction(SUnit *SU) {
     return;
 
   auto MO = *MI.memoperands().begin();
-  uint64_t Size1 = MO->getSize();
+  uint64_t const Size1 = MO->getSize();
   if (Size1 > 4)
     return;
   Accesses.push_back(&MI);

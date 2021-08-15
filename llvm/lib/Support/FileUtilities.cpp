@@ -184,20 +184,20 @@ int llvm::DiffFilesWithTolerance(StringRef NameA,
   // Now its safe to mmap the files into memory because both files
   // have a non-zero size.
   ErrorOr<std::unique_ptr<MemoryBuffer>> F1OrErr = MemoryBuffer::getFile(NameA);
-  if (std::error_code EC = F1OrErr.getError()) {
+  if (std::error_code const EC = F1OrErr.getError()) {
     if (Error)
       *Error = EC.message();
     return 2;
   }
-  MemoryBuffer &F1 = *F1OrErr.get();
+  MemoryBuffer  const&F1 = *F1OrErr.get();
 
   ErrorOr<std::unique_ptr<MemoryBuffer>> F2OrErr = MemoryBuffer::getFile(NameB);
-  if (std::error_code EC = F2OrErr.getError()) {
+  if (std::error_code const EC = F2OrErr.getError()) {
     if (Error)
       *Error = EC.message();
     return 2;
   }
-  MemoryBuffer &F2 = *F2OrErr.get();
+  MemoryBuffer  const&F2 = *F2OrErr.get();
 
   // Okay, now that we opened the files, scan them for the first difference.
   const char *File1Start = F1.getBufferStart();
@@ -206,8 +206,8 @@ int llvm::DiffFilesWithTolerance(StringRef NameA,
   const char *File2End = F2.getBufferEnd();
   const char *F1P = File1Start;
   const char *F2P = File2Start;
-  uint64_t A_size = F1.getBufferSize();
-  uint64_t B_size = F2.getBufferSize();
+  uint64_t const A_size = F1.getBufferSize();
+  uint64_t const B_size = F2.getBufferSize();
 
   // Are the buffers identical?  Common case: Handle this efficiently.
   if (A_size == B_size &&
@@ -247,8 +247,8 @@ int llvm::DiffFilesWithTolerance(StringRef NameA,
 
   // Okay, we reached the end of file.  If both files are at the end, we
   // succeeded.
-  bool F1AtEnd = F1P >= File1End;
-  bool F2AtEnd = F2P >= File2End;
+  bool const F1AtEnd = F1P >= File1End;
+  bool const F2AtEnd = F2P >= File2End;
   if (!CompareFailed && (!F1AtEnd || !F2AtEnd)) {
     // Else, we might have run off the end due to a number: backup and retry.
     if (F1AtEnd && isNumberChar(F1P[-1])) --F1P;

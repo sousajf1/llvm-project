@@ -71,7 +71,7 @@ private:
   }
 
   bool isCall(const MCInst &MI, bool *IsIndirectCall) {
-    unsigned Opcode = MI.getOpcode();
+    unsigned const Opcode = MI.getOpcode();
 
     *IsIndirectCall = false;
 
@@ -111,7 +111,7 @@ private:
   // Sandbox indirect branch or return instruction by inserting mask operation
   // before it.
   void sandboxIndirectJump(const MCInst &MI, const MCSubtargetInfo &STI) {
-    unsigned AddrReg = MI.getOperand(0).getReg();
+    unsigned const AddrReg = MI.getOperand(0).getReg();
 
     emitBundleLock(false);
     emitMask(AddrReg, IndirectBranchMaskReg, STI);
@@ -127,13 +127,13 @@ private:
     emitBundleLock(false);
     if (MaskBefore) {
       // Sandbox memory access.
-      unsigned BaseReg = MI.getOperand(AddrIdx).getReg();
+      unsigned const BaseReg = MI.getOperand(AddrIdx).getReg();
       emitMask(BaseReg, LoadStoreStackMaskReg, STI);
     }
     MipsELFStreamer::emitInstruction(MI, STI);
     if (MaskAfter) {
       // Sandbox SP change.
-      unsigned SPReg = MI.getOperand(0).getReg();
+      unsigned const SPReg = MI.getOperand(0).getReg();
       assert((Mips::SP == SPReg) && "Unexpected stack-pointer register.");
       emitMask(SPReg, LoadStoreStackMaskReg, STI);
     }
@@ -156,14 +156,14 @@ public:
     // Sandbox loads, stores and SP changes.
     unsigned AddrIdx = 0;
     bool IsStore = false;
-    bool IsMemAccess = isBasePlusOffsetMemoryAccess(Inst.getOpcode(), &AddrIdx,
+    bool const IsMemAccess = isBasePlusOffsetMemoryAccess(Inst.getOpcode(), &AddrIdx,
                                                     &IsStore);
-    bool IsSPFirstOperand = isStackPointerFirstOperand(Inst);
+    bool const IsSPFirstOperand = isStackPointerFirstOperand(Inst);
     if (IsMemAccess || IsSPFirstOperand) {
-      bool MaskBefore = (IsMemAccess
+      bool const MaskBefore = (IsMemAccess
                          && baseRegNeedsLoadStoreMask(Inst.getOperand(AddrIdx)
                                                           .getReg()));
-      bool MaskAfter = IsSPFirstOperand && !IsStore;
+      bool const MaskAfter = IsSPFirstOperand && !IsStore;
       if (MaskBefore || MaskAfter) {
         if (PendingCall)
           report_fatal_error("Dangerous instruction in branch delay slot!");
@@ -183,7 +183,7 @@ public:
       // Start the sandboxing sequence by emitting call.
       emitBundleLock(true);
       if (IsIndirectCall) {
-        unsigned TargetReg = Inst.getOperand(1).getReg();
+        unsigned const TargetReg = Inst.getOperand(1).getReg();
         emitMask(TargetReg, IndirectBranchMaskReg, STI);
       }
       MipsELFStreamer::emitInstruction(Inst, STI);

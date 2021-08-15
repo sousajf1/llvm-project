@@ -88,7 +88,7 @@ IRObjectFile::findBitcodeInObject(const ObjectFile &Obj) {
 
 Expected<MemoryBufferRef>
 IRObjectFile::findBitcodeInMemBuffer(MemoryBufferRef Object) {
-  file_magic Type = identify_magic(Object.getBuffer());
+  file_magic const Type = identify_magic(Object.getBuffer());
   switch (Type) {
   case file_magic::bitcode:
     return Object;

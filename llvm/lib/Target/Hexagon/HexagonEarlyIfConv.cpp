@@ -244,20 +244,20 @@ bool HexagonEarlyIfConversion::matchFlowPattern(MachineBasicBlock *B,
   // Check the terminators directly, it's easier than handling all responses
   // from analyzeBranch.
   MachineBasicBlock *TB = nullptr, *FB = nullptr;
-  MachineBasicBlock::const_iterator T1I = B->getFirstTerminator();
+  MachineBasicBlock::const_iterator const T1I = B->getFirstTerminator();
   if (T1I == B->end())
     return false;
-  unsigned Opc = T1I->getOpcode();
+  unsigned const Opc = T1I->getOpcode();
   if (Opc != Hexagon::J2_jumpt && Opc != Hexagon::J2_jumpf)
     return false;
-  Register PredR = T1I->getOperand(0).getReg();
+  Register const PredR = T1I->getOperand(0).getReg();
 
   // Get the layout successor, or 0 if B does not have one.
-  MachineFunction::iterator NextBI = std::next(MachineFunction::iterator(B));
+  MachineFunction::iterator const NextBI = std::next(MachineFunction::iterator(B));
   MachineBasicBlock *NextB = (NextBI != MFN->end()) ? &*NextBI : nullptr;
 
   MachineBasicBlock *T1B = T1I->getOperand(1).getMBB();
-  MachineBasicBlock::const_iterator T2I = std::next(T1I);
+  MachineBasicBlock::const_iterator const T2I = std::next(T1I);
   // The second terminator should be an unconditional branch.
   assert(T2I == B->end() || T2I->getOpcode() == Hexagon::J2_jump);
   MachineBasicBlock *T2B = (T2I == B->end()) ? NextB
@@ -291,8 +291,8 @@ bool HexagonEarlyIfConversion::matchFlowPattern(MachineBasicBlock *B,
   // an unconditional branch (which can be predicated), or with a fall-
   // through.
   // Also, skip blocks that do not belong to the same loop.
-  bool TOk = (TNP == 1 && TNS == 1 && MLI->getLoopFor(TB) == L);
-  bool FOk = (FNP == 1 && FNS == 1 && MLI->getLoopFor(FB) == L);
+  bool const TOk = (TNP == 1 && TNS == 1 && MLI->getLoopFor(TB) == L);
+  bool const FOk = (FNP == 1 && FNS == 1 && MLI->getLoopFor(FB) == L);
 
   // If requested (via an option), do not consider branches where the
   // true and false targets do not belong to the same loop.
@@ -372,8 +372,8 @@ bool HexagonEarlyIfConversion::isValidCandidate(const MachineBasicBlock *B)
       continue;
     if (MI.isConditionalBranch())
       return false;
-    unsigned Opc = MI.getOpcode();
-    bool IsJMP = (Opc == Hexagon::J2_jump);
+    unsigned const Opc = MI.getOpcode();
+    bool const IsJMP = (Opc == Hexagon::J2_jump);
     if (!isPredicableStore(&MI) && !IsJMP && !isSafeToSpeculate(&MI))
       return false;
     // Look for predicate registers defined by this instruction. It's ok
@@ -385,7 +385,7 @@ bool HexagonEarlyIfConversion::isValidCandidate(const MachineBasicBlock *B)
     for (const MachineOperand &MO : MI.operands()) {
       if (!MO.isReg() || !MO.isDef())
         continue;
-      Register R = MO.getReg();
+      Register const R = MO.getReg();
       if (!R.isVirtual())
         continue;
       if (!isPredicate(R))
@@ -402,7 +402,7 @@ bool HexagonEarlyIfConversion::usesUndefVReg(const MachineInstr *MI) const {
   for (const MachineOperand &MO : MI->operands()) {
     if (!MO.isReg() || !MO.isUse())
       continue;
-    Register R = MO.getReg();
+    Register const R = MO.getReg();
     if (!R.isVirtual())
       continue;
     const MachineInstr *DefI = MRI->getVRegDef(R);
@@ -438,7 +438,7 @@ bool HexagonEarlyIfConversion::isValid(const FlowPattern &FP) const {
         break;
       if (usesUndefVReg(&MI))
         return false;
-      Register DefR = MI.getOperand(0).getReg();
+      Register const DefR = MI.getOperand(0).getReg();
       if (isPredicate(DefR))
         return false;
     }
@@ -492,7 +492,7 @@ unsigned HexagonEarlyIfConversion::countPredicateDefs(
     for (const MachineOperand &MO : MI.operands()) {
       if (!MO.isReg() || !MO.isDef())
         continue;
-      Register R = MO.getReg();
+      Register const R = MO.getReg();
       if (!R.isVirtual())
         continue;
       if (isPredicate(R))
@@ -503,8 +503,8 @@ unsigned HexagonEarlyIfConversion::countPredicateDefs(
 }
 
 bool HexagonEarlyIfConversion::isProfitable(const FlowPattern &FP) const {
-  BranchProbability JumpProb(1, 10);
-  BranchProbability Prob(9, 10);
+  BranchProbability const JumpProb(1, 10);
+  BranchProbability const Prob(9, 10);
   if (MBPI && FP.TrueB && !FP.FalseB &&
       (MBPI->getEdgeProbability(FP.SplitB, FP.TrueB) < JumpProb ||
        MBPI->getEdgeProbability(FP.SplitB, FP.TrueB) > Prob))
@@ -542,7 +542,7 @@ bool HexagonEarlyIfConversion::isProfitable(const FlowPattern &FP) const {
   auto TotalCount = [] (const MachineBasicBlock *B, unsigned &Spare) {
     if (!B)
       return 0u;
-    unsigned T = std::count_if(B->begin(), B->getFirstTerminator(),
+    unsigned const T = std::count_if(B->begin(), B->getFirstTerminator(),
                                [](const MachineInstr &MI) {
                                  return !MI.isMetaInstruction();
                                });
@@ -551,7 +551,7 @@ bool HexagonEarlyIfConversion::isProfitable(const FlowPattern &FP) const {
     return T;
   };
   unsigned Spare = 0;
-  unsigned TotalIn = TotalCount(FP.TrueB, Spare) + TotalCount(FP.FalseB, Spare);
+  unsigned const TotalIn = TotalCount(FP.TrueB, Spare) + TotalCount(FP.FalseB, Spare);
   LLVM_DEBUG(
       dbgs() << "Total number of instructions to be predicated/speculated: "
              << TotalIn << ", spare room: " << Spare << "\n");
@@ -662,7 +662,7 @@ bool HexagonEarlyIfConversion::isPredicableStore(const MachineInstr *MI)
   // HexagonInstrInfo::isPredicable will consider these stores are non-
   // -predicable if the offset would become constant-extended after
   // predication.
-  unsigned Opc = MI->getOpcode();
+  unsigned const Opc = MI->getOpcode();
   switch (Opc) {
     case Hexagon::S2_storerb_io:
     case Hexagon::S2_storerbnew_io:
@@ -715,12 +715,12 @@ void HexagonEarlyIfConversion::predicateInstr(MachineBasicBlock *ToB,
   else if (!ToB->empty())
     DL = ToB->back().getDebugLoc();
 
-  unsigned Opc = MI->getOpcode();
+  unsigned const Opc = MI->getOpcode();
 
   if (isPredicableStore(MI)) {
-    unsigned COpc = getCondStoreOpcode(Opc, IfTrue);
+    unsigned const COpc = getCondStoreOpcode(Opc, IfTrue);
     assert(COpc);
-    MachineInstrBuilder MIB = BuildMI(*ToB, At, DL, HII->get(COpc));
+    MachineInstrBuilder const MIB = BuildMI(*ToB, At, DL, HII->get(COpc));
     MachineInstr::mop_iterator MOI = MI->operands_begin();
     if (HII->isPostIncrement(*MI)) {
       MIB.add(*MOI);
@@ -761,7 +761,7 @@ void HexagonEarlyIfConversion::predicateBlockNB(MachineBasicBlock *ToB,
       MachineBasicBlock::iterator At, MachineBasicBlock *FromB,
       unsigned PredR, bool IfTrue) {
   LLVM_DEBUG(dbgs() << "Predicating block " << PrintMB(FromB) << "\n");
-  MachineBasicBlock::iterator End = FromB->getFirstTerminator();
+  MachineBasicBlock::iterator const End = FromB->getFirstTerminator();
   MachineBasicBlock::iterator I, NextI;
 
   for (I = FromB->begin(); I != End; I = NextI) {
@@ -798,8 +798,8 @@ unsigned HexagonEarlyIfConversion::buildMux(MachineBasicBlock *B,
   }
   const MCInstrDesc &D = HII->get(Opc);
 
-  DebugLoc DL = B->findBranchDebugLoc();
-  Register MuxR = MRI->createVirtualRegister(DRC);
+  DebugLoc const DL = B->findBranchDebugLoc();
+  Register const MuxR = MRI->createVirtualRegister(DRC);
   BuildMI(*B, At, DL, D, MuxR)
     .addReg(PredR)
     .addReg(TR, 0, TSR)
@@ -838,7 +838,7 @@ void HexagonEarlyIfConversion::updatePhiNodes(MachineBasicBlock *WhereB,
     unsigned MuxR = 0, MuxSR = 0;
 
     if (TR && FR) {
-      Register DR = PN->getOperand(0).getReg();
+      Register const DR = PN->getOperand(0).getReg();
       const TargetRegisterClass *RC = MRI->getRegClass(DR);
       MuxR = buildMux(FP.SplitB, FP.SplitB->getFirstTerminator(), RC,
                       FP.PredR, TR, TSR, FR, FSR);
@@ -858,9 +858,9 @@ void HexagonEarlyIfConversion::updatePhiNodes(MachineBasicBlock *WhereB,
 
 void HexagonEarlyIfConversion::convert(const FlowPattern &FP) {
   MachineBasicBlock *TSB = nullptr, *FSB = nullptr;
-  MachineBasicBlock::iterator OldTI = FP.SplitB->getFirstTerminator();
+  MachineBasicBlock::iterator const OldTI = FP.SplitB->getFirstTerminator();
   assert(OldTI != FP.SplitB->end());
-  DebugLoc DL = OldTI->getDebugLoc();
+  DebugLoc const DL = OldTI->getDebugLoc();
 
   if (FP.TrueB) {
     TSB = *FP.TrueB->succ_begin();
@@ -868,7 +868,7 @@ void HexagonEarlyIfConversion::convert(const FlowPattern &FP) {
   }
   if (FP.FalseB) {
     FSB = *FP.FalseB->succ_begin();
-    MachineBasicBlock::iterator At = FP.SplitB->getFirstTerminator();
+    MachineBasicBlock::iterator const At = FP.SplitB->getFirstTerminator();
     predicateBlockNB(FP.SplitB, At, FP.FalseB, FP.PredR, false);
   }
 
@@ -921,7 +921,7 @@ void HexagonEarlyIfConversion::convert(const FlowPattern &FP) {
     if (FSB) {
       const MCInstrDesc &D = HasBranch ? HII->get(Hexagon::J2_jump)
                                        : HII->get(Hexagon::J2_jumpf);
-      MachineInstrBuilder MIB = BuildMI(*FP.SplitB, FP.SplitB->end(), DL, D);
+      MachineInstrBuilder const MIB = BuildMI(*FP.SplitB, FP.SplitB->end(), DL, D);
       if (!HasBranch)
         MIB.addReg(FP.PredR);
       MIB.addMBB(FSB);
@@ -988,9 +988,9 @@ void HexagonEarlyIfConversion::eliminatePhis(MachineBasicBlock *B) {
     NextI = std::next(I);
     MachineInstr *PN = &*I;
     assert(PN->getNumOperands() == 3 && "Invalid phi node");
-    MachineOperand &UO = PN->getOperand(1);
+    MachineOperand  const&UO = PN->getOperand(1);
     Register UseR = UO.getReg(), UseSR = UO.getSubReg();
-    Register DefR = PN->getOperand(0).getReg();
+    Register const DefR = PN->getOperand(0).getReg();
     unsigned NewR = UseR;
     if (UseSR) {
       // MRI.replaceVregUsesWith does not allow to update the subregister,
@@ -1011,7 +1011,7 @@ void HexagonEarlyIfConversion::mergeBlocks(MachineBasicBlock *PredB,
       MachineBasicBlock *SuccB) {
   LLVM_DEBUG(dbgs() << "Merging blocks " << PrintMB(PredB) << " and "
                     << PrintMB(SuccB) << "\n");
-  bool TermOk = hasUncondBranch(SuccB);
+  bool const TermOk = hasUncondBranch(SuccB);
   eliminatePhis(SuccB);
   HII->removeBranch(*PredB);
   PredB->removeSuccessor(SuccB);

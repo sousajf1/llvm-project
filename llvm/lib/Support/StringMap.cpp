@@ -51,7 +51,7 @@ void StringMapImpl::init(unsigned InitSize) {
   assert((InitSize & (InitSize - 1)) == 0 &&
          "Init Size must be a power of 2 or zero!");
 
-  unsigned NewNumBuckets = InitSize ? InitSize : 16;
+  unsigned const NewNumBuckets = InitSize ? InitSize : 16;
   NumItems = 0;
   NumTombstones = 0;
 
@@ -77,7 +77,7 @@ unsigned StringMapImpl::LookupBucketFor(StringRef Name) {
     init(16);
     HTSize = NumBuckets;
   }
-  unsigned FullHashValue = djbHash(Name, 0);
+  unsigned const FullHashValue = djbHash(Name, 0);
   unsigned BucketNo = FullHashValue & (HTSize - 1);
   unsigned *HashTable = (unsigned *)(TheTable + NumBuckets + 1);
 
@@ -130,10 +130,10 @@ unsigned StringMapImpl::LookupBucketFor(StringRef Name) {
 /// in the map, return the bucket number of the key.  Otherwise return -1.
 /// This does not modify the map.
 int StringMapImpl::FindKey(StringRef Key) const {
-  unsigned HTSize = NumBuckets;
+  unsigned const HTSize = NumBuckets;
   if (HTSize == 0)
     return -1; // Really empty table?
-  unsigned FullHashValue = djbHash(Key, 0);
+  unsigned const FullHashValue = djbHash(Key, 0);
   unsigned BucketNo = FullHashValue & (HTSize - 1);
   unsigned *HashTable = (unsigned *)(TheTable + NumBuckets + 1);
 
@@ -182,7 +182,7 @@ void StringMapImpl::RemoveKey(StringMapEntryBase *V) {
 /// RemoveKey - Remove the StringMapEntry for the specified key from the
 /// table, returning it.  If the key is not in the table, this returns null.
 StringMapEntryBase *StringMapImpl::RemoveKey(StringRef Key) {
-  int Bucket = FindKey(Key);
+  int const Bucket = FindKey(Key);
   if (Bucket == -1)
     return nullptr;
 
@@ -228,7 +228,7 @@ unsigned StringMapImpl::RehashTable(unsigned BucketNo) {
     StringMapEntryBase *Bucket = TheTable[I];
     if (Bucket && Bucket != getTombstoneVal()) {
       // Fast case, bucket available.
-      unsigned FullHash = HashTable[I];
+      unsigned const FullHash = HashTable[I];
       unsigned NewBucket = FullHash & (NewSize - 1);
       if (!NewTableArray[NewBucket]) {
         NewTableArray[FullHash & (NewSize - 1)] = Bucket;

@@ -38,13 +38,13 @@ static unsigned CpCount = 0;
 #endif
 
 bool CopyPropagation::interpretAsCopy(const MachineInstr *MI, EqualityMap &EM) {
-  unsigned Opc = MI->getOpcode();
+  unsigned const Opc = MI->getOpcode();
   switch (Opc) {
     case TargetOpcode::COPY: {
       const MachineOperand &Dst = MI->getOperand(0);
       const MachineOperand &Src = MI->getOperand(1);
-      RegisterRef DstR = DFG.makeRegRef(Dst.getReg(), Dst.getSubReg());
-      RegisterRef SrcR = DFG.makeRegRef(Src.getReg(), Src.getSubReg());
+      RegisterRef const DstR = DFG.makeRegRef(Dst.getReg(), Dst.getSubReg());
+      RegisterRef const SrcR = DFG.makeRegRef(Src.getReg(), Src.getSubReg());
       assert(Register::isPhysicalRegister(DstR.Reg));
       assert(Register::isPhysicalRegister(SrcR.Reg));
       const TargetRegisterInfo &TRI = DFG.getTRI();
@@ -67,11 +67,11 @@ void CopyPropagation::recordCopy(NodeAddr<StmtNode*> SA, EqualityMap &EM) {
 
 bool CopyPropagation::scanBlock(MachineBasicBlock *B) {
   bool Changed = false;
-  NodeAddr<BlockNode*> BA = DFG.findBlock(B);
+  NodeAddr<BlockNode*> const BA = DFG.findBlock(B);
 
-  for (NodeAddr<InstrNode*> IA : BA.Addr->members(DFG)) {
+  for (NodeAddr<InstrNode*> const IA : BA.Addr->members(DFG)) {
     if (DFG.IsCode<NodeAttrs::Stmt>(IA)) {
-      NodeAddr<StmtNode*> SA = IA;
+      NodeAddr<StmtNode*> const SA = IA;
       EqualityMap EM;
       if (interpretAsCopy(SA.Addr->getCode(), EM))
         recordCopy(SA, EM);
@@ -87,12 +87,12 @@ bool CopyPropagation::scanBlock(MachineBasicBlock *B) {
 
 NodeId CopyPropagation::getLocalReachingDef(RegisterRef RefRR,
       NodeAddr<InstrNode*> IA) {
-  NodeAddr<RefNode*> RA = L.getNearestAliasedRef(RefRR, IA);
+  NodeAddr<RefNode*> const RA = L.getNearestAliasedRef(RefRR, IA);
   if (RA.Id != 0) {
     if (RA.Addr->getKind() == NodeAttrs::Def)
       return RA.Id;
     assert(RA.Addr->getKind() == NodeAttrs::Use);
-    if (NodeId RD = RA.Addr->getReachingDef())
+    if (NodeId const RD = RA.Addr->getReachingDef())
       return RD;
   }
   return 0;
@@ -103,7 +103,7 @@ bool CopyPropagation::run() {
 
   if (trace()) {
     dbgs() << "Copies:\n";
-    for (NodeId I : Copies) {
+    for (NodeId const I : Copies) {
       dbgs() << "Instr: " << *DFG.addr<StmtNode*>(I).Addr->getCode();
       dbgs() << "   eq: {";
       for (auto J : CopyMap[I])
@@ -115,7 +115,7 @@ bool CopyPropagation::run() {
 
   bool Changed = false;
 #ifndef NDEBUG
-  bool HasLimit = CpLimit.getNumOccurrences() > 0;
+  bool const HasLimit = CpLimit.getNumOccurrences() > 0;
 #endif
 
   auto MinPhysReg = [this] (RegisterRef RR) -> unsigned {
@@ -130,7 +130,7 @@ bool CopyPropagation::run() {
     return 0;
   };
 
-  for (NodeId C : Copies) {
+  for (NodeId const C : Copies) {
 #ifndef NDEBUG
     if (HasLimit && CpCount >= CpLimit)
       break;
@@ -141,29 +141,29 @@ bool CopyPropagation::run() {
       continue;
 
     EqualityMap &EM = FS->second;
-    for (NodeAddr<DefNode*> DA : SA.Addr->members_if(DFG.IsDef, DFG)) {
-      RegisterRef DR = DA.Addr->getRegRef(DFG);
+    for (NodeAddr<DefNode*> const DA : SA.Addr->members_if(DFG.IsDef, DFG)) {
+      RegisterRef const DR = DA.Addr->getRegRef(DFG);
       auto FR = EM.find(DR);
       if (FR == EM.end())
         continue;
-      RegisterRef SR = FR->second;
+      RegisterRef const SR = FR->second;
       if (DR == SR)
         continue;
 
-      NodeId AtCopy = getLocalReachingDef(SR, SA);
+      NodeId const AtCopy = getLocalReachingDef(SR, SA);
 
       for (NodeId N = DA.Addr->getReachedUse(), NextN; N; N = NextN) {
         auto UA = DFG.addr<UseNode*>(N);
         NextN = UA.Addr->getSibling();
-        uint16_t F = UA.Addr->getFlags();
+        uint16_t const F = UA.Addr->getFlags();
         if ((F & NodeAttrs::PhiRef) || (F & NodeAttrs::Fixed))
           continue;
         if (UA.Addr->getRegRef(DFG) != DR)
           continue;
 
-        NodeAddr<InstrNode*> IA = UA.Addr->getOwner(DFG);
+        NodeAddr<InstrNode*> const IA = UA.Addr->getOwner(DFG);
         assert(DFG.IsCode<NodeAttrs::Stmt>(IA));
-        NodeId AtUse = getLocalReachingDef(SR, IA);
+        NodeId const AtUse = getLocalReachingDef(SR, IA);
         if (AtCopy != AtUse)
           continue;
 
@@ -176,7 +176,7 @@ bool CopyPropagation::run() {
                  << *NodeAddr<StmtNode*>(IA).Addr->getCode();
         }
 
-        unsigned NewReg = MinPhysReg(SR);
+        unsigned const NewReg = MinPhysReg(SR);
         Op.setReg(NewReg);
         Op.setSubReg(0);
         DFG.unlinkUse(UA, false);

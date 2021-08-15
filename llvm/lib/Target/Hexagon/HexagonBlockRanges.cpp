@@ -36,8 +36,8 @@ bool HexagonBlockRanges::IndexRange::overlaps(const IndexRange &A) const {
   IndexType S = start(), E = end(), AS = A.start(), AE = A.end();
   if (AS == S)
     return true;
-  bool SbAE = (S < AE) || (S == AE && A.TiedEnd);  // S-before-AE.
-  bool ASbE = (AS < E) || (AS == E && TiedEnd);    // AS-before-E.
+  bool const SbAE = (S < AE) || (S == AE && A.TiedEnd);  // S-before-AE.
+  bool const ASbE = (AS < E) || (AS == E && TiedEnd);    // AS-before-E.
   if ((AS < S && SbAE) || (S < AS && ASbE))
     return true;
   // Otherwise no overlap.
@@ -47,8 +47,8 @@ bool HexagonBlockRanges::IndexRange::overlaps(const IndexRange &A) const {
 bool HexagonBlockRanges::IndexRange::contains(const IndexRange &A) const {
   if (start() <= A.start()) {
     // Treat "None" in the range end as equal to the range start.
-    IndexType E = (end() != IndexType::None) ? end() : start();
-    IndexType AE = (A.end() != IndexType::None) ? A.end() : A.start();
+    IndexType const E = (end() != IndexType::None) ? end() : start();
+    IndexType const AE = (A.end() != IndexType::None) ? A.end() : A.start();
     if (AE <= E)
       return true;
   }
@@ -88,10 +88,10 @@ void HexagonBlockRanges::RangeList::unionize(bool MergeAdjacent) {
   iterator Iter = begin();
 
   while (Iter != end()-1) {
-    iterator Next = std::next(Iter);
+    iterator const Next = std::next(Iter);
     // If MergeAdjacent is true, merge ranges A and B, where A.end == B.start.
     // This allows merging dead ranges, but is not valid for live ranges.
-    bool Merge = MergeAdjacent && (Iter->end() == Next->start());
+    bool const Merge = MergeAdjacent && (Iter->end() == Next->start());
     if (Merge || Iter->overlaps(*Next)) {
       Iter->merge(*Next);
       erase(Next);
@@ -143,7 +143,7 @@ void HexagonBlockRanges::RangeList::subtract(const IndexRange &Range) {
   // overlapping ranges.
   RangeList T;
   for (iterator Next, I = begin(); I != end(); I = Next) {
-    IndexRange &Rg = *I;
+    IndexRange  const&Rg = *I;
     if (Rg.overlaps(Range)) {
       T.addsub(Rg, Range);
       Next = this->erase(I);
@@ -224,7 +224,7 @@ HexagonBlockRanges::HexagonBlockRanges(MachineFunction &mf)
   for (const TargetRegisterClass *RC : TRI.regclasses()) {
     if (RC->isAllocatable())
       continue;
-    for (unsigned R : *RC)
+    for (unsigned const R : *RC)
       Reserved[R] = true;
   }
 }
@@ -242,7 +242,7 @@ HexagonBlockRanges::RegisterSet HexagonBlockRanges::getLiveIns(
       continue;
     }
     for (; S.isValid(); ++S) {
-      unsigned SI = S.getSubRegIndex();
+      unsigned const SI = S.getSubRegIndex();
       if ((I.LaneMask & TRI.getSubRegIndexLaneMask(SI)).any())
         Tmp.insert({S.getSubReg(), 0});
     }
@@ -277,7 +277,7 @@ HexagonBlockRanges::RegisterSet HexagonBlockRanges::expandToSubRegs(
   } else {
     assert(R.Reg.isVirtual());
     auto &RC = *MRI.getRegClass(R.Reg);
-    unsigned PReg = *RC.begin();
+    unsigned const PReg = *RC.begin();
     MCSubRegIndexIterator I(PReg, &TRI);
     if (!I.isValid())
       SRs.insert({R.Reg, 0});
@@ -292,7 +292,7 @@ void HexagonBlockRanges::computeInitialLiveRanges(InstrIndexMap &IndexMap,
   std::map<RegisterRef,IndexType> LastDef, LastUse;
   RegisterSet LiveOnEntry;
   MachineBasicBlock &B = IndexMap.getBlock();
-  MachineRegisterInfo &MRI = B.getParent()->getRegInfo();
+  MachineRegisterInfo  const&MRI = B.getParent()->getRegInfo();
 
   for (auto R : getLiveIns(B, MRI, TRI))
     LiveOnEntry.insert(R);
@@ -315,15 +315,15 @@ void HexagonBlockRanges::computeInitialLiveRanges(InstrIndexMap &IndexMap,
   for (auto &In : B) {
     if (In.isDebugInstr())
       continue;
-    IndexType Index = IndexMap.getIndex(&In);
+    IndexType const Index = IndexMap.getIndex(&In);
     // Process uses first.
     for (auto &Op : In.operands()) {
       if (!Op.isReg() || !Op.isUse() || Op.isUndef())
         continue;
-      RegisterRef R = { Op.getReg(), Op.getSubReg() };
+      RegisterRef const R = { Op.getReg(), Op.getSubReg() };
       if (Register::isPhysicalRegister(R.Reg) && Reserved[R.Reg])
         continue;
-      bool IsKill = Op.isKill();
+      bool const IsKill = Op.isKill();
       for (auto S : expandToSubRegs(R, MRI, TRI)) {
         LastUse[S] = Index;
         if (IsKill)
@@ -336,7 +336,7 @@ void HexagonBlockRanges::computeInitialLiveRanges(InstrIndexMap &IndexMap,
     for (auto &Op : In.operands()) {
       if (!Op.isReg() || !Op.isDef() || Op.isUndef())
         continue;
-      RegisterRef R = { Op.getReg(), Op.getSubReg() };
+      RegisterRef const R = { Op.getReg(), Op.getSubReg() };
       for (auto S : expandToSubRegs(R, MRI, TRI)) {
         if (Register::isPhysicalRegister(S.Reg) && Reserved[S.Reg])
           continue;
@@ -361,18 +361,18 @@ void HexagonBlockRanges::computeInitialLiveRanges(InstrIndexMap &IndexMap,
           continue;
         if (BM[PR/32] & (1u << (PR%32)))
           continue;
-        RegisterRef R = { PR, 0 };
+        RegisterRef const R = { PR, 0 };
         if (!Defs.count(R))
           Clobbers.insert(R);
       }
     }
     // Defs and clobbers can overlap, e.g.
     // dead %d0 = COPY %5, implicit-def %r0, implicit-def %r1
-    for (RegisterRef R : Defs)
+    for (RegisterRef const R : Defs)
       Clobbers.erase(R);
 
     // Update maps for defs.
-    for (RegisterRef S : Defs) {
+    for (RegisterRef const S : Defs) {
       // Defs should already be expanded into subregs.
       assert(!Register::isPhysicalRegister(S.Reg) ||
              !MCSubRegIterator(S.Reg, &TRI, false).isValid());
@@ -381,7 +381,7 @@ void HexagonBlockRanges::computeInitialLiveRanges(InstrIndexMap &IndexMap,
       LastDef[S] = Index;
     }
     // Update maps for clobbers.
-    for (RegisterRef S : Clobbers) {
+    for (RegisterRef const S : Clobbers) {
       // Clobbers should already be expanded into subregs.
       assert(!Register::isPhysicalRegister(S.Reg) ||
              !MCSubRegIterator(S.Reg, &TRI, false).isValid());
@@ -444,7 +444,7 @@ HexagonBlockRanges::RegToRangeMap HexagonBlockRanges::computeDeadMap(
 
     // Try to create the initial range.
     if (A->start() != IndexType::Entry) {
-      IndexType DE = IndexMap.getPrevIndex(A->start());
+      IndexType const DE = IndexMap.getPrevIndex(A->start());
       if (DE != IndexType::Entry)
         DeadMap[R].add(IndexType::Entry, DE, false, false);
     }
@@ -452,18 +452,18 @@ HexagonBlockRanges::RegToRangeMap HexagonBlockRanges::computeDeadMap(
     while (A != Z) {
       // Creating a dead range that follows A.  Pay attention to empty
       // ranges (i.e. those ending with "None").
-      IndexType AE = (A->end() == IndexType::None) ? A->start() : A->end();
-      IndexType DS = IndexMap.getNextIndex(AE);
+      IndexType const AE = (A->end() == IndexType::None) ? A->start() : A->end();
+      IndexType const DS = IndexMap.getNextIndex(AE);
       ++A;
-      IndexType DE = IndexMap.getPrevIndex(A->start());
+      IndexType const DE = IndexMap.getPrevIndex(A->start());
       if (DS < DE)
         DeadMap[R].add(DS, DE, false, false);
     }
 
     // Try to create the final range.
     if (Z->end() != IndexType::Exit) {
-      IndexType ZE = (Z->end() == IndexType::None) ? Z->start() : Z->end();
-      IndexType DS = IndexMap.getNextIndex(ZE);
+      IndexType const ZE = (Z->end() == IndexType::None) ? Z->start() : Z->end();
+      IndexType const DS = IndexMap.getNextIndex(ZE);
       if (DS < IndexType::Exit)
         DeadMap[R].add(DS, IndexType::Exit, false, false);
     }
@@ -471,7 +471,7 @@ HexagonBlockRanges::RegToRangeMap HexagonBlockRanges::computeDeadMap(
 
   MachineFunction &MF = *IndexMap.getBlock().getParent();
   auto &MRI = MF.getRegInfo();
-  unsigned NumRegs = TRI.getNumRegs();
+  unsigned const NumRegs = TRI.getNumRegs();
   BitVector Visited(NumRegs);
   for (unsigned R = 1; R < NumRegs; ++R) {
     for (auto S : expandToSubRegs({R,0}, MRI, TRI)) {
@@ -520,7 +520,7 @@ raw_ostream &llvm::operator<<(raw_ostream &OS,
 raw_ostream &llvm::operator<<(raw_ostream &OS,
                               const HexagonBlockRanges::InstrIndexMap &M) {
   for (auto &In : M.Block) {
-    HexagonBlockRanges::IndexType Idx = M.getIndex(&In);
+    HexagonBlockRanges::IndexType const Idx = M.getIndex(&In);
     OS << Idx << (Idx == M.Last ? ". " : "  ") << In;
   }
   return OS;

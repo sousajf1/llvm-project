@@ -188,17 +188,17 @@ bool X86PreAMXConfig::addTileConfig(Instruction *ModelStart,
   Module *M = F.getParent();
   IRBuilder<> Builder(ModelStart);
   const DataLayout &DL = M->getDataLayout();
-  unsigned AddrSpace = DL.getAllocaAddrSpace();
+  unsigned const AddrSpace = DL.getAllocaAddrSpace();
   LLVMContext &Ctx = Builder.getContext();
   Type *V512Ty = VectorType::get(Builder.getInt32Ty(), 16, false);
-  Align Alignment = DL.getPrefTypeAlign(Type::getInt32Ty(Ctx));
+  Align const Alignment = DL.getPrefTypeAlign(Type::getInt32Ty(Ctx));
 
   AllocaInst *Addr =
       new AllocaInst(V512Ty, AddrSpace, "", &F.getEntryBlock().front());
   Addr->setAlignment(Alignment);
   Value *I8Ptr = Builder.CreateBitCast(Addr, Builder.getInt8PtrTy());
 
-  std::array<Value *, 1> Args = {I8Ptr};
+  std::array<Value *, 1> const Args = {I8Ptr};
   Instruction *Cfg =
       Builder.CreateIntrinsic(Intrinsic::x86_ldtilecfg_internal, None, Args);
 
@@ -366,7 +366,7 @@ bool X86PreAMXConfig::findConfigShapes(
 // --------------------------------------------------------------------------
 bool X86PreAMXConfig::preTileConfig() {
   DenseMap<Instruction *, SmallVector<Value *, 8>> PosAndShapes;
-  bool NeedCfg = findConfigShapes(PosAndShapes);
+  bool const NeedCfg = findConfigShapes(PosAndShapes);
   if (!NeedCfg)
     return false;
   for (auto &IPAndShapes : PosAndShapes)

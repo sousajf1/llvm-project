@@ -38,9 +38,9 @@ static bool encodeSpecial(int64_t MinLineDelta, int64_t MaxLineDelta,
     return false;
   if (LineDelta > MaxLineDelta)
     return false;
-  int64_t LineRange = MaxLineDelta - MinLineDelta + 1;
-  int64_t AdjustedOp = ((LineDelta - MinLineDelta) + AddrDelta * LineRange);
-  int64_t Op = AdjustedOp + FirstSpecial;
+  int64_t const LineRange = MaxLineDelta - MinLineDelta + 1;
+  int64_t const AdjustedOp = ((LineDelta - MinLineDelta) + AddrDelta * LineRange);
+  int64_t const Op = AdjustedOp + FirstSpecial;
   if (Op < 0)
     return false;
   if (Op > 255)
@@ -57,12 +57,12 @@ static llvm::Error parse(DataExtractor &Data, uint64_t BaseAddr,
   if (!Data.isValidOffset(Offset))
     return createStringError(std::errc::io_error,
         "0x%8.8" PRIx64 ": missing LineTable MinDelta", Offset);
-  int64_t MinDelta = Data.getSLEB128(&Offset);
+  int64_t const MinDelta = Data.getSLEB128(&Offset);
   if (!Data.isValidOffset(Offset))
     return createStringError(std::errc::io_error,
         "0x%8.8" PRIx64 ": missing LineTable MaxDelta", Offset);
-  int64_t MaxDelta = Data.getSLEB128(&Offset);
-  int64_t LineRange = MaxDelta - MinDelta + 1;
+  int64_t const MaxDelta = Data.getSLEB128(&Offset);
+  int64_t const LineRange = MaxDelta - MinDelta + 1;
   if (!Data.isValidOffset(Offset))
     return createStringError(std::errc::io_error,
         "0x%8.8" PRIx64 ": missing LineTable FirstLine", Offset);
@@ -73,7 +73,7 @@ static llvm::Error parse(DataExtractor &Data, uint64_t BaseAddr,
     if (!Data.isValidOffset(Offset))
       return createStringError(std::errc::io_error,
           "0x%8.8" PRIx64 ": EOF found before EndSequence", Offset);
-    uint8_t Op = Data.getU8(&Offset);
+    uint8_t const Op = Data.getU8(&Offset);
     switch (Op) {
     case EndSequence:
       Done = true;
@@ -104,9 +104,9 @@ static llvm::Error parse(DataExtractor &Data, uint64_t BaseAddr,
       break;
     default: {
         // A byte that contains both address and line increment.
-        uint8_t AdjustedOp = Op - FirstSpecial;
-        int64_t LineDelta = MinDelta + (AdjustedOp % LineRange);
-        uint64_t AddrDelta = (AdjustedOp / LineRange);
+        uint8_t const AdjustedOp = Op - FirstSpecial;
+        int64_t const LineDelta = MinDelta + (AdjustedOp % LineRange);
+        uint64_t const AddrDelta = (AdjustedOp / LineRange);
         Row.Line += LineDelta;
         Row.Addr += AddrDelta;
         // If the function callback returns false, we stop parsing.
@@ -140,7 +140,7 @@ llvm::Error LineTable::encode(FileWriter &Out, uint64_t BaseAddr) const {
       if (First)
         First = false;
       else {
-        int64_t LineDelta = (int64_t)line_entry.Line - PrevLine;
+        int64_t const LineDelta = (int64_t)line_entry.Line - PrevLine;
         auto End = DeltaInfos.end();
         auto Pos = std::lower_bound(DeltaInfos.begin(), End, LineDelta);
         if (Pos != End && Pos->Delta == LineDelta)

@@ -28,7 +28,7 @@ void formatted_raw_ostream::UpdatePosition(const char *Ptr, size_t Size) {
   unsigned &Line = Position.second;
 
   auto ProcessUTF8CodePoint = [&Line, &Column](StringRef CP) {
-    int Width = sys::unicode::columnWidthUTF8(CP);
+    int const Width = sys::unicode::columnWidthUTF8(CP);
     if (Width != sys::unicode::ErrorNonPrintableCharacter)
       Column += Width;
 
@@ -53,7 +53,7 @@ void formatted_raw_ostream::UpdatePosition(const char *Ptr, size_t Size) {
   // If we have a partial UTF-8 sequence from the previous buffer, check that
   // first.
   if (PartialUTF8Char.size()) {
-    size_t BytesFromBuffer =
+    size_t const BytesFromBuffer =
         getNumBytesForUTF8(PartialUTF8Char[0]) - PartialUTF8Char.size();
     if (Size < BytesFromBuffer) {
       // If we still don't have enough bytes for a complete code point, just

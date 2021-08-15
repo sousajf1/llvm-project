@@ -28,7 +28,7 @@ R600FrameLowering::getFrameIndexReference(const MachineFunction &MF, int FI,
   // FIXME: We should only do this when the shader actually uses this
   // information.
   unsigned OffsetBytes = 2 * (getStackWidth(MF) * 4);
-  int UpperBound = FI == -1 ? MFI.getNumObjects() : FI;
+  int const UpperBound = FI == -1 ? MFI.getNumObjects() : FI;
 
   for (int i = MFI.getObjectIndexBegin(); i < UpperBound; ++i) {
     OffsetBytes = alignTo(OffsetBytes, MFI.getObjectAlign(i));

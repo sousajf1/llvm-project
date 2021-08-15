@@ -310,20 +310,20 @@ void MIRPrinter::convert(yaml::MachineFunction &MF,
 
   // Print the virtual register definitions.
   for (unsigned I = 0, E = RegInfo.getNumVirtRegs(); I < E; ++I) {
-    unsigned Reg = Register::index2VirtReg(I);
+    unsigned const Reg = Register::index2VirtReg(I);
     yaml::VirtualRegisterDefinition VReg;
     VReg.ID = I;
     if (RegInfo.getVRegName(Reg) != "")
       continue;
     ::printRegClassOrBank(Reg, VReg.Class, RegInfo, TRI);
-    unsigned PreferredReg = RegInfo.getSimpleHint(Reg);
+    unsigned const PreferredReg = RegInfo.getSimpleHint(Reg);
     if (PreferredReg)
       printRegMIR(PreferredReg, VReg.PreferredRegister, TRI);
     MF.VirtualRegisters.push_back(VReg);
   }
 
   // Print the live ins.
-  for (std::pair<unsigned, unsigned> LI : RegInfo.liveins()) {
+  for (std::pair<unsigned, unsigned> const LI : RegInfo.liveins()) {
     yaml::MachineFunctionLiveIn LiveIn;
     printRegMIR(LI.first, LiveIn.Register, TRI);
     if (LI.second)
@@ -512,7 +512,7 @@ void MIRPrinter::convertCallSiteObjects(yaml::MachineFunction &YMF,
     yaml::CallSiteInfo::MachineInstrLoc CallLocation;
 
     // Prepare instruction position.
-    MachineBasicBlock::const_instr_iterator CallI = CSInfo.first->getIterator();
+    MachineBasicBlock::const_instr_iterator const CallI = CSInfo.first->getIterator();
     CallLocation.BlockNum = CallI->getParent()->getNumber();
     // Get call instruction offset from the beginning of block.
     CallLocation.Offset =
@@ -615,7 +615,7 @@ void llvm::guessSuccessors(const MachineBasicBlock &MBB,
         Result.push_back(Succ);
     }
   }
-  MachineBasicBlock::const_iterator I = MBB.getLastNonDebugInstr();
+  MachineBasicBlock::const_iterator const I = MBB.getLastNonDebugInstr();
   IsFallthrough = I == MBB.end() || !I->isBarrier();
 }
 
@@ -642,7 +642,7 @@ bool MIPrinter::canPredictSuccessors(const MachineBasicBlock &MBB) const {
   guessSuccessors(MBB, GuessedSuccs, GuessedFallthrough);
   if (GuessedFallthrough) {
     const MachineFunction &MF = *MBB.getParent();
-    MachineFunction::const_iterator NextI = std::next(MBB.getIterator());
+    MachineFunction::const_iterator const NextI = std::next(MBB.getIterator());
     if (NextI != MF.end()) {
       MachineBasicBlock *Next = const_cast<MachineBasicBlock*>(&*NextI);
       if (!is_contained(GuessedSuccs, Next))
@@ -664,7 +664,7 @@ void MIPrinter::print(const MachineBasicBlock &MBB) {
 
   bool HasLineAttributes = false;
   // Print the successors
-  bool canPredictProbs = canPredictBranchProbabilities(MBB);
+  bool const canPredictProbs = canPredictBranchProbabilities(MBB);
   // Even if the list of successors is empty, if we cannot guess it,
   // we need to print it to tell the parser that the list is empty.
   // This is needed, because MI model unreachable as empty blocks
@@ -738,7 +738,7 @@ void MIPrinter::print(const MachineInstr &MI) {
     assert(MI.getNumOperands() == 1 && "Expected 1 operand in CFI instruction");
 
   SmallBitVector PrintedTypes(8);
-  bool ShouldPrintRegisterTies = MI.hasComplexRegisterTies();
+  bool const ShouldPrintRegisterTies = MI.hasComplexRegisterTies();
   unsigned I = 0, E = MI.getNumOperands();
   for (; I < E && MI.getOperand(I).isReg() && MI.getOperand(I).isDef() &&
          !MI.getOperand(I).isImplicit();
@@ -869,7 +869,7 @@ void MIPrinter::print(const MachineInstr &MI, unsigned OpIdx,
                       bool ShouldPrintRegisterTies, LLT TypeToPrint,
                       bool PrintDef) {
   const MachineOperand &Op = MI.getOperand(OpIdx);
-  std::string MOComment = TII->createMIROperandComment(MI, Op, OpIdx, TRI);
+  std::string const MOComment = TII->createMIROperandComment(MI, Op, OpIdx, TRI);
 
   switch (Op.getType()) {
   case MachineOperand::MO_Immediate:
@@ -937,7 +937,7 @@ void MIRFormatter::printIRValue(raw_ostream &OS, const Value &V,
     printLLVMNameWithoutPrefix(OS, V.getName());
     return;
   }
-  int Slot = MST.getCurrentFunction() ? MST.getLocalSlot(&V) : -1;
+  int const Slot = MST.getCurrentFunction() ? MST.getLocalSlot(&V) : -1;
   MachineOperand::printIRSlotNumber(OS, Slot);
 }
 

@@ -73,7 +73,7 @@ struct DumpVisitor {
   static constexpr bool wantsNewline(...) { return false; }
 
   template<typename ...Ts> static bool anyWantNewline(Ts ...Vs) {
-    for (bool B : {wantsNewline(Vs)...})
+    for (bool const B : {wantsNewline(Vs)...})
       if (B)
         return true;
     return false;
@@ -140,7 +140,7 @@ struct DumpVisitor {
       {QualVolatile, "QualVolatile"},
       {QualRestrict, "QualRestrict"},
     };
-    for (QualName Name : Names) {
+    for (QualName const Name : Names) {
       if (Qs & Name.Q) {
         printStr(Name.Name);
         Qs = Qualifiers(Qs & ~Name.Q);
@@ -206,7 +206,7 @@ struct DumpVisitor {
       if (Visitor.anyWantNewline(V, Vs...))
         Visitor.newLine();
       Visitor.printWithPendingNewline(V);
-      int PrintInOrder[] = { (Visitor.printWithComma(Vs), 0)..., 0 };
+      int const PrintInOrder[] = { (Visitor.printWithComma(Vs), 0)..., 0 };
       (void)PrintInOrder;
     }
   };
@@ -378,7 +378,7 @@ operator=(ItaniumPartialDemangler &&Other) {
 // Demangle MangledName into an AST, storing it into this->RootNode.
 bool ItaniumPartialDemangler::partialDemangle(const char *MangledName) {
   Demangler *Parser = static_cast<Demangler *>(Context);
-  size_t Len = std::strlen(MangledName);
+  size_t const Len = std::strlen(MangledName);
   Parser->reset(MangledName, MangledName + Len);
   RootNode = Parser->parse();
   return RootNode == nullptr;
@@ -481,7 +481,7 @@ char *ItaniumPartialDemangler::getFunctionParameters(char *Buf,
                                                      size_t *N) const {
   if (!isFunction())
     return nullptr;
-  NodeArray Params = static_cast<FunctionEncoding *>(RootNode)->getParams();
+  NodeArray const Params = static_cast<FunctionEncoding *>(RootNode)->getParams();
 
   OutputStream S;
   if (!initializeOutputStream(Buf, N, S, 128))

@@ -34,7 +34,7 @@ NVPTXInstPrinter::NVPTXInstPrinter(const MCAsmInfo &MAI, const MCInstrInfo &MII,
 void NVPTXInstPrinter::printRegName(raw_ostream &OS, unsigned RegNo) const {
   // Decode the virtual register
   // Must be kept in sync with NVPTXAsmPrinter::encodeVirtualRegister
-  unsigned RCId = (RegNo >> 28);
+  unsigned const RCId = (RegNo >> 28);
   switch (RCId) {
   default: report_fatal_error("Bad virtual register encoding");
   case 0:
@@ -68,7 +68,7 @@ void NVPTXInstPrinter::printRegName(raw_ostream &OS, unsigned RegNo) const {
     break;
   }
 
-  unsigned VReg = RegNo & 0x0FFFFFFF;
+  unsigned const VReg = RegNo & 0x0FFFFFFF;
   OS << VReg;
 }
 
@@ -85,7 +85,7 @@ void NVPTXInstPrinter::printOperand(const MCInst *MI, unsigned OpNo,
                                     raw_ostream &O) {
   const MCOperand &Op = MI->getOperand(OpNo);
   if (Op.isReg()) {
-    unsigned Reg = Op.getReg();
+    unsigned const Reg = Op.getReg();
     printRegName(O, Reg);
   } else if (Op.isImm()) {
     O << markup("<imm:") << formatImm(Op.getImm()) << markup(">");
@@ -98,7 +98,7 @@ void NVPTXInstPrinter::printOperand(const MCInst *MI, unsigned OpNo,
 void NVPTXInstPrinter::printCvtMode(const MCInst *MI, int OpNum, raw_ostream &O,
                                     const char *Modifier) {
   const MCOperand &MO = MI->getOperand(OpNum);
-  int64_t Imm = MO.getImm();
+  int64_t const Imm = MO.getImm();
 
   if (strcmp(Modifier, "ftz") == 0) {
     // FTZ flag
@@ -148,7 +148,7 @@ void NVPTXInstPrinter::printCvtMode(const MCInst *MI, int OpNum, raw_ostream &O,
 void NVPTXInstPrinter::printCmpMode(const MCInst *MI, int OpNum, raw_ostream &O,
                                     const char *Modifier) {
   const MCOperand &MO = MI->getOperand(OpNum);
-  int64_t Imm = MO.getImm();
+  int64_t const Imm = MO.getImm();
 
   if (strcmp(Modifier, "ftz") == 0) {
     // FTZ flag
@@ -222,7 +222,7 @@ void NVPTXInstPrinter::printLdStCode(const MCInst *MI, int OpNum,
                                      raw_ostream &O, const char *Modifier) {
   if (Modifier) {
     const MCOperand &MO = MI->getOperand(OpNum);
-    int Imm = (int) MO.getImm();
+    int const Imm = (int) MO.getImm();
     if (!strcmp(Modifier, "volatile")) {
       if (Imm)
         O << ".volatile";
@@ -273,7 +273,7 @@ void NVPTXInstPrinter::printLdStCode(const MCInst *MI, int OpNum,
 void NVPTXInstPrinter::printMmaCode(const MCInst *MI, int OpNum, raw_ostream &O,
                                     const char *Modifier) {
   const MCOperand &MO = MI->getOperand(OpNum);
-  int Imm = (int)MO.getImm();
+  int const Imm = (int)MO.getImm();
   if (Modifier == nullptr || strcmp(Modifier, "version") == 0) {
     O << Imm; // Just print out PTX version
   } else if (strcmp(Modifier, "aligned") == 0) {

@@ -59,7 +59,7 @@ static bool isValidRegDefOf(const MachineOperand &MO, MCRegister PhysReg,
 }
 
 void ReachingDefAnalysis::enterBasicBlock(MachineBasicBlock *MBB) {
-  unsigned MBBNumber = MBB->getNumber();
+  unsigned const MBBNumber = MBB->getNumber();
   assert(MBBNumber < MBBReachingDefs.size() &&
          "Unexpected basic block number.");
   MBBReachingDefs[MBBNumber].resize(NumRegUnits);
@@ -112,7 +112,7 @@ void ReachingDefAnalysis::enterBasicBlock(MachineBasicBlock *MBB) {
 
 void ReachingDefAnalysis::leaveBasicBlock(MachineBasicBlock *MBB) {
   assert(!LiveRegs.empty() && "Must enter basic block first.");
-  unsigned MBBNumber = MBB->getNumber();
+  unsigned const MBBNumber = MBB->getNumber();
   assert(MBBNumber < MBBOutRegsInfos.size() &&
          "Unexpected basic block number.");
   // Save register clearances at end of MBB - used by enterBasicBlock().
@@ -131,7 +131,7 @@ void ReachingDefAnalysis::leaveBasicBlock(MachineBasicBlock *MBB) {
 void ReachingDefAnalysis::processDefs(MachineInstr *MI) {
   assert(!MI->isDebugInstr() && "Won't process debug instructions");
 
-  unsigned MBBNumber = MI->getParent()->getNumber();
+  unsigned const MBBNumber = MI->getParent()->getNumber();
   assert(MBBNumber < MBBReachingDefs.size() &&
          "Unexpected basic block number.");
 
@@ -156,14 +156,14 @@ void ReachingDefAnalysis::processDefs(MachineInstr *MI) {
 }
 
 void ReachingDefAnalysis::reprocessBasicBlock(MachineBasicBlock *MBB) {
-  unsigned MBBNumber = MBB->getNumber();
+  unsigned const MBBNumber = MBB->getNumber();
   assert(MBBNumber < MBBReachingDefs.size() &&
          "Unexpected basic block number.");
 
   // Count number of non-debug instructions for end of block adjustment.
   auto NonDbgInsts =
     instructionsWithoutDebug(MBB->instr_begin(), MBB->instr_end());
-  int NumInsts = std::distance(NonDbgInsts.begin(), NonDbgInsts.end());
+  int const NumInsts = std::distance(NonDbgInsts.begin(), NonDbgInsts.end());
 
   // When reprocessing a block, the only thing we need to do is check whether
   // there is now a more recent incoming reaching definition from a predecessor.
@@ -176,7 +176,7 @@ void ReachingDefAnalysis::reprocessBasicBlock(MachineBasicBlock *MBB) {
       continue;
 
     for (unsigned Unit = 0; Unit != NumRegUnits; ++Unit) {
-      int Def = Incoming[Unit];
+      int const Def = Incoming[Unit];
       if (Def == ReachingDefDefaultVal)
         continue;
 
@@ -254,14 +254,14 @@ void ReachingDefAnalysis::init() {
 
 void ReachingDefAnalysis::traverse() {
   // Traverse the basic blocks.
-  for (LoopTraversal::TraversedMBBInfo TraversedMBB : TraversedMBBOrder)
+  for (LoopTraversal::TraversedMBBInfo const TraversedMBB : TraversedMBBOrder)
     processBasicBlock(TraversedMBB);
 #ifndef NDEBUG
   // Make sure reaching defs are sorted and unique.
-  for (MBBDefsInfo &MBBDefs : MBBReachingDefs) {
-    for (MBBRegUnitDefs &RegUnitDefs : MBBDefs) {
+  for (MBBDefsInfo  const&MBBDefs : MBBReachingDefs) {
+    for (MBBRegUnitDefs  const&RegUnitDefs : MBBDefs) {
       int LastDef = ReachingDefDefaultVal;
-      for (int Def : RegUnitDefs) {
+      for (int const Def : RegUnitDefs) {
         assert(Def > LastDef && "Defs must be sorted and unique");
         LastDef = Def;
       }
@@ -273,14 +273,14 @@ void ReachingDefAnalysis::traverse() {
 int ReachingDefAnalysis::getReachingDef(MachineInstr *MI,
                                         MCRegister PhysReg) const {
   assert(InstIds.count(MI) && "Unexpected machine instuction.");
-  int InstId = InstIds.lookup(MI);
+  int const InstId = InstIds.lookup(MI);
   int DefRes = ReachingDefDefaultVal;
-  unsigned MBBNumber = MI->getParent()->getNumber();
+  unsigned const MBBNumber = MI->getParent()->getNumber();
   assert(MBBNumber < MBBReachingDefs.size() &&
          "Unexpected basic block number.");
   int LatestDef = ReachingDefDefaultVal;
   for (MCRegUnitIterator Unit(PhysReg, TRI); Unit.isValid(); ++Unit) {
-    for (int Def : MBBReachingDefs[MBBNumber][*Unit]) {
+    for (int const Def : MBBReachingDefs[MBBNumber][*Unit]) {
       if (Def >= InstId)
         break;
       DefRes = Def;
@@ -490,7 +490,7 @@ bool ReachingDefAnalysis::isRegUsedAfter(MachineInstr *MI,
 
   // Walk backwards through the block to see if the register is live at some
   // point.
-  for (MachineInstr &Last :
+  for (MachineInstr  const&Last :
        instructionsWithoutDebug(MBB->instr_rbegin(), MBB->instr_rend())) {
     LiveRegs.stepBackward(Last);
     if (!LiveRegs.available(MBB->getParent()->getRegInfo(), PhysReg))
@@ -522,7 +522,7 @@ bool ReachingDefAnalysis::isReachingDefLiveOut(MachineInstr *MI,
     return false;
 
   auto Last = MBB->getLastNonDebugInstr();
-  int Def = getReachingDef(MI, PhysReg);
+  int const Def = getReachingDef(MI, PhysReg);
   if (Last != MBB->end() && getReachingDef(&*Last, PhysReg) != Def)
     return false;
 
@@ -546,7 +546,7 @@ ReachingDefAnalysis::getLocalLiveOutMIDef(MachineBasicBlock *MBB,
   if (Last == MBB->end())
     return nullptr;
 
-  int Def = getReachingDef(&*Last, PhysReg);
+  int const Def = getReachingDef(&*Last, PhysReg);
   for (auto &MO : Last->operands())
     if (isValidRegDefOf(MO, PhysReg, TRI))
       return &*Last;

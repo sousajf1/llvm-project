@@ -253,26 +253,26 @@ static void calculateCXXStateNumbers(WinEHFuncInfo &FuncInfo,
       auto *CatchPad = cast<CatchPadInst>(CatchPadBB->getFirstNonPHI());
       Handlers.push_back(CatchPad);
     }
-    int TryLow = addUnwindMapEntry(FuncInfo, ParentState, nullptr);
+    int const TryLow = addUnwindMapEntry(FuncInfo, ParentState, nullptr);
     FuncInfo.EHPadStateMap[CatchSwitch] = TryLow;
     for (const BasicBlock *PredBlock : predecessors(BB))
       if ((PredBlock = getEHPadFromPredecessor(PredBlock,
                                                CatchSwitch->getParentPad())))
         calculateCXXStateNumbers(FuncInfo, PredBlock->getFirstNonPHI(),
                                  TryLow);
-    int CatchLow = addUnwindMapEntry(FuncInfo, ParentState, nullptr);
+    int const CatchLow = addUnwindMapEntry(FuncInfo, ParentState, nullptr);
 
     // catchpads are separate funclets in C++ EH due to the way rethrow works.
-    int TryHigh = CatchLow - 1;
+    int const TryHigh = CatchLow - 1;
 
     // MSVC FrameHandler3/4 on x64&Arm64 expect Catch Handlers in $tryMap$
     //  stored in pre-order (outer first, inner next), not post-order
     //  Add to map here.  Fix the CatchHigh after children are processed
     const Module *Mod = BB->getParent()->getParent();
-    bool IsPreOrder = Triple(Mod->getTargetTriple()).isArch64Bit();
+    bool const IsPreOrder = Triple(Mod->getTargetTriple()).isArch64Bit();
     if (IsPreOrder)
       addTryBlockMapEntry(FuncInfo, TryLow, TryHigh, CatchLow, Handlers);
-    unsigned TBMEIdx = FuncInfo.TryBlockMap.size() - 1;
+    unsigned const TBMEIdx = FuncInfo.TryBlockMap.size() - 1;
 
     for (const auto *CatchPad : Handlers) {
       FuncInfo.FuncletBaseStateMap[CatchPad] = CatchLow;
@@ -293,7 +293,7 @@ static void calculateCXXStateNumbers(WinEHFuncInfo &FuncInfo,
         }
       }
     }
-    int CatchHigh = FuncInfo.getLastStateNumber();
+    int const CatchHigh = FuncInfo.getLastStateNumber();
     // Now child Catches are processed, update CatchHigh
     if (IsPreOrder)
       FuncInfo.TryBlockMap[TBMEIdx].CatchHigh = CatchHigh;
@@ -313,7 +313,7 @@ static void calculateCXXStateNumbers(WinEHFuncInfo &FuncInfo,
     if (FuncInfo.EHPadStateMap.count(CleanupPad))
       return;
 
-    int CleanupState = addUnwindMapEntry(FuncInfo, ParentState, BB);
+    int const CleanupState = addUnwindMapEntry(FuncInfo, ParentState, BB);
     FuncInfo.EHPadStateMap[CleanupPad] = CleanupState;
     LLVM_DEBUG(dbgs() << "Assigning state #" << CleanupState << " to BB "
                       << BB->getName() << '\n');
@@ -380,7 +380,7 @@ static void calculateSEHStateNumbers(WinEHFuncInfo &FuncInfo,
     const Function *Filter = dyn_cast<Function>(FilterOrNull);
     assert((Filter || FilterOrNull->isNullValue()) &&
            "unexpected filter value");
-    int TryState = addSEHExcept(FuncInfo, ParentState, Filter, CatchPadBB);
+    int const TryState = addSEHExcept(FuncInfo, ParentState, Filter, CatchPadBB);
 
     // Everything in the __try block uses TryState as its parent state.
     FuncInfo.EHPadStateMap[CatchSwitch] = TryState;
@@ -418,7 +418,7 @@ static void calculateSEHStateNumbers(WinEHFuncInfo &FuncInfo,
     if (FuncInfo.EHPadStateMap.count(CleanupPad))
       return;
 
-    int CleanupState = addSEHFinally(FuncInfo, ParentState, BB);
+    int const CleanupState = addSEHFinally(FuncInfo, ParentState, BB);
     FuncInfo.EHPadStateMap[CleanupPad] = CleanupState;
     LLVM_DEBUG(dbgs() << "Assigning state #" << CleanupState << " to BB "
                       << BB->getName() << '\n');
@@ -555,10 +555,10 @@ void llvm::calculateClrEHStateNumbers(const Function *Fn,
     if (const auto *Cleanup = dyn_cast<CleanupPadInst>(Pad)) {
       // Create the entry for this cleanup with the appropriate handler
       // properties.  Finally and fault handlers are distinguished by arity.
-      ClrHandlerType HandlerType =
+      ClrHandlerType const HandlerType =
           (Cleanup->getNumArgOperands() ? ClrHandlerType::Fault
                                         : ClrHandlerType::Finally);
-      int CleanupState = addClrEHHandler(FuncInfo, HandlerParentState, -1,
+      int const CleanupState = addClrEHHandler(FuncInfo, HandlerParentState, -1,
                                          HandlerType, 0, Pad->getParent());
       // Queue any child EH pads on the worklist.
       for (const User *U : Cleanup->users())
@@ -579,7 +579,7 @@ void llvm::calculateClrEHStateNumbers(const Function *Fn,
         // Create the entry for this catch with the appropriate handler
         // properties.
         const auto *Catch = cast<CatchPadInst>(CatchBlock->getFirstNonPHI());
-        uint32_t TypeToken = static_cast<uint32_t>(
+        uint32_t const TypeToken = static_cast<uint32_t>(
             cast<ConstantInt>(Catch->getArgOperand(0))->getZExtValue());
         CatchState =
             addClrEHHandler(FuncInfo, HandlerParentState, FollowerState,
@@ -637,8 +637,8 @@ void llvm::calculateClrEHStateNumbers(const Function *Fn,
         } else if (auto *CatchSwitch = dyn_cast<CatchSwitchInst>(U)) {
           UserUnwindDest = CatchSwitch->getUnwindDest();
         } else if (auto *ChildCleanup = dyn_cast<CleanupPadInst>(U)) {
-          int UserState = FuncInfo.EHPadStateMap[ChildCleanup];
-          int UserUnwindState =
+          int const UserState = FuncInfo.EHPadStateMap[ChildCleanup];
+          int const UserUnwindState =
               FuncInfo.ClrEHUnwindMap[UserState].TryParentState;
           if (UserUnwindState != -1)
             UserUnwindDest = FuncInfo.ClrEHUnwindMap[UserUnwindState]
@@ -704,7 +704,7 @@ void WinEHPrepare::colorFunclets(Function &F) {
 
   // Invert the map from BB to colors to color to BBs.
   for (BasicBlock &BB : F) {
-    ColorVector &Colors = BlockColors[&BB];
+    ColorVector  const&Colors = BlockColors[&BB];
     for (BasicBlock *Color : Colors)
       FuncletBlocks[Color].push_back(&BB);
   }
@@ -757,9 +757,9 @@ void WinEHPrepare::cloneCommonBlocks(Function &F) {
     std::vector<std::pair<BasicBlock *, BasicBlock *>> Orig2Clone;
     ValueToValueMapTy VMap;
     for (BasicBlock *BB : BlocksInFunclet) {
-      ColorVector &ColorsForBB = BlockColors[BB];
+      ColorVector  const&ColorsForBB = BlockColors[BB];
       // We don't need to do anything if the block is monochromatic.
-      size_t NumColorsForBB = ColorsForBB.size();
+      size_t const NumColorsForBB = ColorsForBB.size();
       if (NumColorsForBB == 1)
         continue;
 
@@ -838,7 +838,7 @@ void WinEHPrepare::cloneCommonBlocks(Function &F) {
     }
 
     auto UpdatePHIOnClonedBlock = [&](PHINode *PN, bool IsForOldBlock) {
-      unsigned NumPreds = PN->getNumIncomingValues();
+      unsigned const NumPreds = PN->getNumIncomingValues();
       for (unsigned PredIdx = 0, PredEnd = NumPreds; PredIdx != PredEnd;
            ++PredIdx) {
         BasicBlock *IncomingBlock = PN->getIncomingBlock(PredIdx);
@@ -886,14 +886,14 @@ void WinEHPrepare::cloneCommonBlocks(Function &F) {
         for (PHINode &SuccPN : SuccBB->phis()) {
           // Ok, we have a PHI node.  Figure out what the incoming value was for
           // the OldBlock.
-          int OldBlockIdx = SuccPN.getBasicBlockIndex(OldBlock);
+          int const OldBlockIdx = SuccPN.getBasicBlockIndex(OldBlock);
           if (OldBlockIdx == -1)
             break;
           Value *IV = SuccPN.getIncomingValue(OldBlockIdx);
 
           // Remap the value if necessary.
           if (auto *Inst = dyn_cast<Instruction>(IV)) {
-            ValueToValueMapTy::iterator I = VMap.find(Inst);
+            ValueToValueMapTy::iterator const I = VMap.find(Inst);
             if (I != VMap.end())
               IV = I->second;
           }
@@ -950,7 +950,7 @@ void WinEHPrepare::removeImplausibleInstructions(Function &F) {
   // Remove implausible terminators and replace them with UnreachableInst.
   for (auto &Funclet : FuncletBlocks) {
     BasicBlock *FuncletPadBB = Funclet.first;
-    std::vector<BasicBlock *> &BlocksInFunclet = Funclet.second;
+    std::vector<BasicBlock *>  const&BlocksInFunclet = Funclet.second;
     Instruction *FirstNonPHI = FuncletPadBB->getFirstNonPHI();
     auto *FuncletPad = dyn_cast<FuncletPadInst>(FirstNonPHI);
     auto *CatchPad = dyn_cast_or_null<CatchPadInst>(FuncletPad);
@@ -981,7 +981,7 @@ void WinEHPrepare::removeImplausibleInstructions(Function &F) {
           // Remove the unwind edge if it was an invoke.
           removeUnwindEdge(BB);
           // Get a pointer to the new call.
-          BasicBlock::iterator CallI =
+          BasicBlock::iterator const CallI =
               std::prev(BB->getTerminator()->getIterator());
           auto *CI = cast<CallInst>(&*CallI);
           changeToUnreachable(CI);
@@ -996,7 +996,7 @@ void WinEHPrepare::removeImplausibleInstructions(Function &F) {
 
       Instruction *TI = BB->getTerminator();
       // CatchPadInst and CleanupPadInst can't transfer control to a ReturnInst.
-      bool IsUnreachableRet = isa<ReturnInst>(TI) && FuncletPad;
+      bool const IsUnreachableRet = isa<ReturnInst>(TI) && FuncletPad;
       // The token consumed by a CatchReturnInst must match the funclet token.
       bool IsUnreachableCatchret = false;
       if (auto *CRI = dyn_cast<CatchReturnInst>(TI))
@@ -1037,7 +1037,7 @@ void WinEHPrepare::cleanupPreparedFunclets(Function &F) {
 #ifndef NDEBUG
 void WinEHPrepare::verifyPreparedFunclets(Function &F) {
   for (BasicBlock &BB : F) {
-    size_t NumColors = BlockColors[&BB].size();
+    size_t const NumColors = BlockColors[&BB].size();
     assert(NumColors == 1 && "Expected monochromatic BB!");
     if (NumColors == 0)
       report_fatal_error("Uncolored BB!");
@@ -1227,7 +1227,7 @@ void WinEHPrepare::replaceUseWithLoad(Value *V, Use &U, AllocaInst *&SpillSlot,
       // reference to the vector we are copying because inserting the new
       // element in BlockColors might cause the map to be reallocated.
       ColorVector &ColorsForNewBlock = BlockColors[NewBlock];
-      ColorVector &ColorsForPHIBlock = BlockColors[PHIBlock];
+      ColorVector  const&ColorsForPHIBlock = BlockColors[PHIBlock];
       ColorsForNewBlock = ColorsForPHIBlock;
       for (BasicBlock *FuncletPad : ColorsForPHIBlock)
         FuncletBlocks[FuncletPad].push_back(NewBlock);

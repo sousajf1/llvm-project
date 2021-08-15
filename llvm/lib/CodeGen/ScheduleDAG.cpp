@@ -221,7 +221,7 @@ void SUnit::setDepthDirty() {
   do {
     SUnit *SU = WorkList.pop_back_val();
     SU->isDepthCurrent = false;
-    for (SDep &SuccDep : SU->Succs) {
+    for (SDep  const&SuccDep : SU->Succs) {
       SUnit *SuccSU = SuccDep.getSUnit();
       if (SuccSU->isDepthCurrent)
         WorkList.push_back(SuccSU);
@@ -236,7 +236,7 @@ void SUnit::setHeightDirty() {
   do {
     SUnit *SU = WorkList.pop_back_val();
     SU->isHeightCurrent = false;
-    for (SDep &PredDep : SU->Preds) {
+    for (SDep  const&PredDep : SU->Preds) {
       SUnit *PredSU = PredDep.getSUnit();
       if (PredSU->isHeightCurrent)
         WorkList.push_back(PredSU);
@@ -327,7 +327,7 @@ void SUnit::biasCriticalPath() {
     return;
 
   SUnit::pred_iterator BestI = Preds.begin();
-  unsigned MaxDepth = BestI->getSUnit()->getDepth();
+  unsigned const MaxDepth = BestI->getSUnit()->getDepth();
   for (SUnit::pred_iterator I = std::next(BestI), E = Preds.end(); I != E;
        ++I) {
     if (I->getKind() == SDep::Data && I->getSUnit()->getDepth() > MaxDepth)
@@ -467,7 +467,7 @@ void ScheduleDAGTopologicalSort::InitDAGTopologicalSorting() {
   Dirty = false;
   Updates.clear();
 
-  unsigned DAGSize = SUnits.size();
+  unsigned const DAGSize = SUnits.size();
   std::vector<SUnit*> WorkList;
   WorkList.reserve(DAGSize);
 
@@ -478,8 +478,8 @@ void ScheduleDAGTopologicalSort::InitDAGTopologicalSorting() {
   if (ExitSU)
     WorkList.push_back(ExitSU);
   for (SUnit &SU : SUnits) {
-    int NodeNum = SU.NodeNum;
-    unsigned Degree = SU.Succs.size();
+    int const NodeNum = SU.NodeNum;
+    unsigned const Degree = SU.Succs.size();
     // Temporarily use the Node2Index array as scratch space for degree counts.
     Node2Index[NodeNum] = Degree;
 
@@ -511,7 +511,7 @@ void ScheduleDAGTopologicalSort::InitDAGTopologicalSorting() {
 
 #ifndef NDEBUG
   // Check correctness of the ordering
-  for (SUnit &SU : SUnits)  {
+  for (SUnit  const&SU : SUnits)  {
     for (const SDep &PD : SU.Preds) {
       assert(Node2Index[SU.NodeNum] > Node2Index[PD.getSUnit()->NodeNum] &&
       "Wrong topological sorting");
@@ -579,7 +579,7 @@ void ScheduleDAGTopologicalSort::DFS(const SUnit *SU, int UpperBound,
     Visited.set(SU->NodeNum);
     for (const SDep &SuccDep
          : make_range(SU->Succs.rbegin(), SU->Succs.rend())) {
-      unsigned s = SuccDep.getSUnit()->NodeNum;
+      unsigned const s = SuccDep.getSUnit()->NodeNum;
       // Edges to non-SUnits are allowed but ignored (e.g. ExitSU).
       if (s >= Node2Index.size())
         continue;
@@ -599,8 +599,8 @@ std::vector<int> ScheduleDAGTopologicalSort::GetSubGraph(const SUnit &StartSU,
                                                          const SUnit &TargetSU,
                                                          bool &Success) {
   std::vector<const SUnit*> WorkList;
-  int LowerBound = Node2Index[StartSU.NodeNum];
-  int UpperBound = Node2Index[TargetSU.NodeNum];
+  int const LowerBound = Node2Index[StartSU.NodeNum];
+  int const UpperBound = Node2Index[TargetSU.NodeNum];
   bool Found = false;
   BitVector VisitedBack;
   std::vector<int> Nodes;
@@ -621,7 +621,7 @@ std::vector<int> ScheduleDAGTopologicalSort::GetSubGraph(const SUnit &StartSU,
     WorkList.pop_back();
     for (int I = SU->Succs.size()-1; I >= 0; --I) {
       const SUnit *Succ = SU->Succs[I].getSUnit();
-      unsigned s = Succ->NodeNum;
+      unsigned const s = Succ->NodeNum;
       // Edges to non-SUnits are allowed but ignored (e.g. ExitSU).
       if (Succ->isBoundaryNode())
         continue;
@@ -684,7 +684,7 @@ void ScheduleDAGTopologicalSort::Shift(BitVector& Visited, int LowerBound,
 
   for (i = LowerBound; i <= UpperBound; ++i) {
     // w is node at topological index i.
-    int w = Index2Node[i];
+    int const w = Index2Node[i];
     if (Visited.test(w)) {
       // Unmark.
       Visited.reset(w);
@@ -695,7 +695,7 @@ void ScheduleDAGTopologicalSort::Shift(BitVector& Visited, int LowerBound,
     }
   }
 
-  for (unsigned LI : L) {
+  for (unsigned const LI : L) {
     Allocate(LI, i - shift);
     i = i + 1;
   }

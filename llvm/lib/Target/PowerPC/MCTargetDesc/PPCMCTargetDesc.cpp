@@ -67,10 +67,10 @@ static MCInstrInfo *createPPCMCInstrInfo() {
 }
 
 static MCRegisterInfo *createPPCMCRegisterInfo(const Triple &TT) {
-  bool isPPC64 =
+  bool const isPPC64 =
       (TT.getArch() == Triple::ppc64 || TT.getArch() == Triple::ppc64le);
-  unsigned Flavour = isPPC64 ? 0 : 1;
-  unsigned RA = isPPC64 ? PPC::LR8 : PPC::LR;
+  unsigned const Flavour = isPPC64 ? 0 : 1;
+  unsigned const RA = isPPC64 ? PPC::LR8 : PPC::LR;
 
   MCRegisterInfo *X = new MCRegisterInfo();
   InitPPCMCRegisterInfo(X, RA, Flavour, Flavour);
@@ -95,7 +95,7 @@ static MCSubtargetInfo *createPPCMCSubtargetInfo(const Triple &TT,
 static MCAsmInfo *createPPCMCAsmInfo(const MCRegisterInfo &MRI,
                                      const Triple &TheTriple,
                                      const MCTargetOptions &Options) {
-  bool isPPC64 = (TheTriple.getArch() == Triple::ppc64 ||
+  bool const isPPC64 = (TheTriple.getArch() == Triple::ppc64 ||
                   TheTriple.getArch() == Triple::ppc64le);
 
   MCAsmInfo *MAI;
@@ -105,8 +105,8 @@ static MCAsmInfo *createPPCMCAsmInfo(const MCRegisterInfo &MRI,
     MAI = new PPCELFMCAsmInfo(isPPC64, TheTriple);
 
   // Initial state of the frame pointer is R1.
-  unsigned Reg = isPPC64 ? PPC::X1 : PPC::R1;
-  MCCFIInstruction Inst =
+  unsigned const Reg = isPPC64 ? PPC::X1 : PPC::R1;
+  MCCFIInstruction const Inst =
       MCCFIInstruction::cfiDefCfa(nullptr, MRI.getDwarfRegNum(Reg, true), 0);
   MAI->addInitialFrameState(Inst);
 
@@ -216,7 +216,7 @@ public:
 
     // encodePPC64LocalEntryOffset will report an error if it cannot
     // encode LocalOffset.
-    unsigned Encoded = encodePPC64LocalEntryOffset(LocalOffset);
+    unsigned const Encoded = encodePPC64LocalEntryOffset(LocalOffset);
 
     unsigned Other = S->getOther();
     Other &= ~ELF::STO_PPC64_LOCAL_MASK;
@@ -225,7 +225,7 @@ public:
 
     // For GAS compatibility, unless we already saw a .abiversion directive,
     // set e_flags to indicate ELFv2 ABI.
-    unsigned Flags = MCA.getELFHeaderEFlags();
+    unsigned const Flags = MCA.getELFHeaderEFlags();
     if ((Flags & ELF::EF_PPC64_ABI) == 0)
       MCA.setELFHeaderEFlags(Flags | 2);
   }
@@ -267,7 +267,7 @@ private:
   }
 
   unsigned encodePPC64LocalEntryOffset(const MCExpr *LocalOffset) {
-    MCAssembler &MCA = getStreamer().getAssembler();
+    MCAssembler  const&MCA = getStreamer().getAssembler();
     int64_t Offset;
     if (!LocalOffset->evaluateAsAbsolute(Offset, MCA))
       MCA.getContext().reportFatalError(
@@ -372,7 +372,7 @@ extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializePowerPCTargetMC() {
   for (Target *T : {&getThePPC32Target(), &getThePPC32LETarget(),
                     &getThePPC64Target(), &getThePPC64LETarget()}) {
     // Register the MC asm info.
-    RegisterMCAsmInfoFn C(*T, createPPCMCAsmInfo);
+    RegisterMCAsmInfoFn const C(*T, createPPCMCAsmInfo);
 
     // Register the MC instruction info.
     TargetRegistry::RegisterMCInstrInfo(*T, createPPCMCInstrInfo);

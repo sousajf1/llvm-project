@@ -52,11 +52,11 @@ bool AVRFrameLowering::hasReservedCallFrame(const MachineFunction &MF) const {
 void AVRFrameLowering::emitPrologue(MachineFunction &MF,
                                     MachineBasicBlock &MBB) const {
   MachineBasicBlock::iterator MBBI = MBB.begin();
-  DebugLoc DL = (MBBI != MBB.end()) ? MBBI->getDebugLoc() : DebugLoc();
+  DebugLoc const DL = (MBBI != MBB.end()) ? MBBI->getDebugLoc() : DebugLoc();
   const AVRSubtarget &STI = MF.getSubtarget<AVRSubtarget>();
   const AVRInstrInfo &TII = *STI.getInstrInfo();
   const AVRMachineFunctionInfo *AFI = MF.getInfo<AVRMachineFunctionInfo>();
-  bool HasFP = hasFP(MF);
+  bool const HasFP = hasFP(MF);
 
   // Interrupt handlers re-enable interrupts in function entry.
   if (AFI->isInterruptHandler()) {
@@ -96,7 +96,7 @@ void AVRFrameLowering::emitPrologue(MachineFunction &MF,
   }
 
   const MachineFrameInfo &MFI = MF.getFrameInfo();
-  unsigned FrameSize = MFI.getStackSize() - AFI->getCalleeSavedFrameSize();
+  unsigned const FrameSize = MFI.getStackSize() - AFI->getCalleeSavedFrameSize();
 
   // Skip the callee-saved push instructions.
   while (
@@ -121,7 +121,7 @@ void AVRFrameLowering::emitPrologue(MachineFunction &MF,
   }
 
   // Reserve the necessary frame memory by doing FP -= <size>.
-  unsigned Opcode = (isUInt<6>(FrameSize)) ? AVR::SBIWRdK : AVR::SUBIWRdK;
+  unsigned const Opcode = (isUInt<6>(FrameSize)) ? AVR::SBIWRdK : AVR::SUBIWRdK;
 
   MachineInstr *MI = BuildMI(MBB, MBBI, DL, TII.get(Opcode), AVR::R29R28)
                          .addReg(AVR::R29R28, RegState::Kill)
@@ -139,9 +139,9 @@ void AVRFrameLowering::emitPrologue(MachineFunction &MF,
 static void restoreStatusRegister(MachineFunction &MF, MachineBasicBlock &MBB) {
   const AVRMachineFunctionInfo *AFI = MF.getInfo<AVRMachineFunctionInfo>();
 
-  MachineBasicBlock::iterator MBBI = MBB.getLastNonDebugInstr();
+  MachineBasicBlock::iterator const MBBI = MBB.getLastNonDebugInstr();
 
-  DebugLoc DL = MBBI->getDebugLoc();
+  DebugLoc const DL = MBBI->getDebugLoc();
   const AVRSubtarget &STI = MF.getSubtarget<AVRSubtarget>();
   const AVRInstrInfo &TII = *STI.getInstrInfo();
 
@@ -170,7 +170,7 @@ void AVRFrameLowering::emitEpilogue(MachineFunction &MF,
   assert(MBBI->getDesc().isReturn() &&
          "Can only insert epilog into returning blocks");
 
-  DebugLoc DL = MBBI->getDebugLoc();
+  DebugLoc const DL = MBBI->getDebugLoc();
   const MachineFrameInfo &MFI = MF.getFrameInfo();
   unsigned FrameSize = MFI.getStackSize() - AFI->getCalleeSavedFrameSize();
   const AVRSubtarget &STI = MF.getSubtarget<AVRSubtarget>();
@@ -184,8 +184,8 @@ void AVRFrameLowering::emitEpilogue(MachineFunction &MF,
 
   // Skip the callee-saved pop instructions.
   while (MBBI != MBB.begin()) {
-    MachineBasicBlock::iterator PI = std::prev(MBBI);
-    int Opc = PI->getOpcode();
+    MachineBasicBlock::iterator const PI = std::prev(MBBI);
+    int const Opc = PI->getOpcode();
 
     if (Opc != AVR::POPRd && Opc != AVR::POPWRd && !PI->isTerminator()) {
       break;
@@ -242,15 +242,15 @@ bool AVRFrameLowering::spillCalleeSavedRegisters(
   }
 
   unsigned CalleeFrameSize = 0;
-  DebugLoc DL = MBB.findDebugLoc(MI);
+  DebugLoc const DL = MBB.findDebugLoc(MI);
   MachineFunction &MF = *MBB.getParent();
   const AVRSubtarget &STI = MF.getSubtarget<AVRSubtarget>();
   const TargetInstrInfo &TII = *STI.getInstrInfo();
   AVRMachineFunctionInfo *AVRFI = MF.getInfo<AVRMachineFunctionInfo>();
 
   for (unsigned i = CSI.size(); i != 0; --i) {
-    unsigned Reg = CSI[i - 1].getReg();
-    bool IsNotLiveIn = !MBB.isLiveIn(Reg);
+    unsigned const Reg = CSI[i - 1].getReg();
+    bool const IsNotLiveIn = !MBB.isLiveIn(Reg);
 
     assert(TRI->getRegSizeInBits(*TRI->getMinimalPhysRegClass(Reg)) == 8 &&
            "Invalid register size");
@@ -281,13 +281,13 @@ bool AVRFrameLowering::restoreCalleeSavedRegisters(
     return false;
   }
 
-  DebugLoc DL = MBB.findDebugLoc(MI);
+  DebugLoc const DL = MBB.findDebugLoc(MI);
   const MachineFunction &MF = *MBB.getParent();
   const AVRSubtarget &STI = MF.getSubtarget<AVRSubtarget>();
   const TargetInstrInfo &TII = *STI.getInstrInfo();
 
   for (const CalleeSavedInfo &CCSI : CSI) {
-    unsigned Reg = CCSI.getReg();
+    unsigned const Reg = CCSI.getReg();
 
     assert(TRI->getRegSizeInBits(*TRI->getMinimalPhysRegClass(Reg)) == 8 &&
            "Invalid register size");
@@ -305,9 +305,9 @@ static void fixStackStores(MachineBasicBlock &MBB,
                            const TargetInstrInfo &TII, Register FP) {
   // Iterate through the BB until we hit a call instruction or we reach the end.
   for (auto I = MI, E = MBB.end(); I != E && !I->isCall();) {
-    MachineBasicBlock::iterator NextMI = std::next(I);
+    MachineBasicBlock::iterator const NextMI = std::next(I);
     MachineInstr &MI = *I;
-    unsigned Opcode = I->getOpcode();
+    unsigned const Opcode = I->getOpcode();
 
     // Only care of pseudo store instructions where SP is the base pointer.
     if (Opcode != AVR::STDSPQRr && Opcode != AVR::STDWSPQRr) {
@@ -320,7 +320,7 @@ static void fixStackStores(MachineBasicBlock &MBB,
 
     // Replace this instruction with a regular store. Use Y as the base
     // pointer since it is guaranteed to contain a copy of SP.
-    unsigned STOpc =
+    unsigned const STOpc =
         (Opcode == AVR::STDWSPQRr) ? AVR::STDWPtrQRr : AVR::STDPtrQRr;
 
     MI.setDesc(TII.get(STOpc));
@@ -344,8 +344,8 @@ MachineBasicBlock::iterator AVRFrameLowering::eliminateCallFramePseudoInstr(
     return MBB.erase(MI);
   }
 
-  DebugLoc DL = MI->getDebugLoc();
-  unsigned int Opcode = MI->getOpcode();
+  DebugLoc const DL = MI->getDebugLoc();
+  unsigned int const Opcode = MI->getOpcode();
   int Amount = TII.getFrameSize(*MI);
 
   // ADJCALLSTACKUP and ADJCALLSTACKDOWN are converted to adiw/subi
@@ -452,7 +452,7 @@ struct AVRFrameAnalyzer : public MachineFunctionPass {
     // are really being used, otherwise we can ignore them.
     for (const MachineBasicBlock &BB : MF) {
       for (const MachineInstr &MI : BB) {
-        int Opcode = MI.getOpcode();
+        int const Opcode = MI.getOpcode();
 
         if ((Opcode != AVR::LDDRdPtrQ) && (Opcode != AVR::LDDWRdPtrQ) &&
             (Opcode != AVR::STDPtrQRr) && (Opcode != AVR::STDWPtrQRr)) {
@@ -503,7 +503,7 @@ struct AVRDynAllocaSR : public MachineFunctionPass {
     MachineBasicBlock::iterator MBBI = EntryMBB.begin();
     DebugLoc DL = EntryMBB.findDebugLoc(MBBI);
 
-    Register SPCopy =
+    Register const SPCopy =
         MF.getRegInfo().createVirtualRegister(&AVR::DREGSRegClass);
 
     // Create a copy of SP in function entry before any dynallocas are

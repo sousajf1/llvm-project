@@ -61,7 +61,7 @@ namespace {
 /// Utility to convert a regex error code into a human-readable string.
 void RegexErrorToString(int error, struct llvm_regex *preg,
                         std::string &Error) {
-  size_t len = llvm_regerror(error, preg, nullptr, 0);
+  size_t const len = llvm_regerror(error, preg, nullptr, 0);
 
   Error.resize(len - 1);
   llvm_regerror(error, preg, &Error[0], len);
@@ -93,7 +93,7 @@ bool Regex::match(StringRef String, SmallVectorImpl<StringRef> *Matches,
   if (Error ? !isValid(*Error) : !isValid())
     return false;
 
-  unsigned nmatch = Matches ? preg->re_nsub+1 : 0;
+  unsigned const nmatch = Matches ? preg->re_nsub+1 : 0;
 
   // pmatch needs to have at least one element.
   SmallVector<llvm_regmatch_t, 8> pm;
@@ -101,7 +101,7 @@ bool Regex::match(StringRef String, SmallVectorImpl<StringRef> *Matches,
   pm[0].rm_so = 0;
   pm[0].rm_eo = String.size();
 
-  int rc = llvm_regexec(preg, String.data(), nmatch, pm.data(), REG_STARTEND);
+  int const rc = llvm_regexec(preg, String.data(), nmatch, pm.data(), REG_STARTEND);
 
   // Failure to match is not an error, it's just a normal return value.
   // Any other error code is considered abnormal, and is logged in the Error.
@@ -148,7 +148,7 @@ std::string Regex::sub(StringRef Repl, StringRef String,
   // Then the replacement string, honoring possible substitutions.
   while (!Repl.empty()) {
     // Skip to the next escape.
-    std::pair<StringRef, StringRef> Split = Repl.split('\\');
+    std::pair<StringRef, StringRef> const Split = Repl.split('\\');
 
     // Add the skipped substring.
     Res += Split.first;
@@ -186,7 +186,7 @@ std::string Regex::sub(StringRef Repl, StringRef String,
     case '0': case '1': case '2': case '3': case '4':
     case '5': case '6': case '7': case '8': case '9': {
       // Extract the backreference number.
-      StringRef Ref = Repl.slice(0, Repl.find_first_not_of("0123456789"));
+      StringRef const Ref = Repl.slice(0, Repl.find_first_not_of("0123456789"));
       Repl = Repl.substr(Ref.size());
 
       unsigned RefValue;

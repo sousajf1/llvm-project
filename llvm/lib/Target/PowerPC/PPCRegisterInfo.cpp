@@ -185,7 +185,7 @@ PPCRegisterInfo::getCalleeSavedRegs(const MachineFunction *MF) const {
   // will use the @notoc relocation which will cause this function to set the
   // st_other bit to 1, thereby communicating to its caller that it arbitrarily
   // clobbers the TOC.
-  bool SaveR2 = MF->getRegInfo().isAllocatable(PPC::X2) &&
+  bool const SaveR2 = MF->getRegInfo().isAllocatable(PPC::X2) &&
                 !Subtarget.isUsingPCRelativeCalls();
 
   // Cold calling convention CSRs.
@@ -280,7 +280,7 @@ PPCRegisterInfo::getNoPreservedMask() const {
 }
 
 void PPCRegisterInfo::adjustStackMapLiveOutMask(uint32_t *Mask) const {
-  for (unsigned PseudoReg : {PPC::ZERO, PPC::ZERO8, PPC::RM})
+  for (unsigned const PseudoReg : {PPC::ZERO, PPC::ZERO8, PPC::RM})
     Mask[PseudoReg / 32] &= ~(1u << (PseudoReg % 32));
 }
 
@@ -338,7 +338,7 @@ BitVector PPCRegisterInfo::getReservedRegs(const MachineFunction &MF) const {
   if (TFI->needsFP(MF))
     markSuperRegs(Reserved, PPC::R31);
 
-  bool IsPositionIndependent = TM.isPositionIndependent();
+  bool const IsPositionIndependent = TM.isPositionIndependent();
   if (hasBasePointer(MF)) {
     if (Subtarget.is32BitELFABI() && IsPositionIndependent)
       markSuperRegs(Reserved, PPC::R29);
@@ -390,7 +390,7 @@ bool PPCRegisterInfo::requiresFrameIndexScavenging(const MachineFunction &MF) co
   // We will require the use of X-Forms because the frame is larger than what
   // can be represented in signed 16 bits that fit in the immediate of a D-Form.
   // If we need an X-Form then we need a register to store the address offset.
-  unsigned FrameSize = MFI.getStackSize();
+  unsigned const FrameSize = MFI.getStackSize();
   // Signed 16 bits means that the FrameSize cannot be more than 15 bits.
   if (FrameSize & ~0x7FFF) {
     LLVM_DEBUG(dbgs() << "TRUE - Frame size is too large for D-Form.\n");
@@ -405,11 +405,11 @@ bool PPCRegisterInfo::requiresFrameIndexScavenging(const MachineFunction &MF) co
     if (Info[i].isSpilledToReg())
       continue;
 
-    int FrIdx = Info[i].getFrameIdx();
-    unsigned Reg = Info[i].getReg();
+    int const FrIdx = Info[i].getFrameIdx();
+    unsigned const Reg = Info[i].getReg();
 
     const TargetRegisterClass *RC = getMinimalPhysRegClass(Reg);
-    unsigned Opcode = InstrInfo->getStoreOpcodeForSpill(RC);
+    unsigned const Opcode = InstrInfo->getStoreOpcodeForSpill(RC);
     if (!MFI.isFixedObjectIndex(FrIdx)) {
       // This is not a fixed object. If it requires alignment then we may still
       // need to use the XForm.
@@ -487,7 +487,7 @@ bool PPCRegisterInfo::getRegAllocationHints(Register VirtReg,
   // will leave it as such. On the other hand if the base implementation
   // decides to return false the following code will not force the allocation
   // as we are just looking to provide a hint.
-  bool BaseImplRetVal = TargetRegisterInfo::getRegAllocationHints(
+  bool const BaseImplRetVal = TargetRegisterInfo::getRegAllocationHints(
       VirtReg, Order, Hints, MF, VRM, Matrix);
   // We are interested in instructions that copy values to ACC/UACC.
   // The copy into UACC will be simply a COPY to a subreg so we
@@ -504,8 +504,8 @@ bool PPCRegisterInfo::getRegAllocationHints(Register VirtReg,
       if (Register::isVirtualRegister(ResultReg) &&
           MRI->getRegClass(ResultReg)->contains(PPC::UACC0) &&
           VRM->hasPhys(ResultReg)) {
-        Register UACCPhys = VRM->getPhys(ResultReg);
-        Register HintReg = getSubReg(UACCPhys, ResultOp->getSubReg());
+        Register const UACCPhys = VRM->getPhys(ResultReg);
+        Register const HintReg = getSubReg(UACCPhys, ResultOp->getSubReg());
         // Ensure that the hint is a VSRp register.
         if (HintReg >= PPC::VSRp0 && HintReg <= PPC::VSRp31)
           Hints.push_back(HintReg);
@@ -517,10 +517,10 @@ bool PPCRegisterInfo::getRegAllocationHints(Register VirtReg,
       ResultReg = ResultOp->getReg();
       if (MRI->getRegClass(ResultReg)->contains(PPC::ACC0) &&
           VRM->hasPhys(ResultReg)) {
-        Register ACCPhys = VRM->getPhys(ResultReg);
+        Register const ACCPhys = VRM->getPhys(ResultReg);
         assert((ACCPhys >= PPC::ACC0 && ACCPhys <= PPC::ACC7) &&
                "Expecting an ACC register for BUILD_UACC.");
-        Register HintReg = PPC::UACC0 + (ACCPhys - PPC::ACC0);
+        Register const HintReg = PPC::UACC0 + (ACCPhys - PPC::ACC0);
         Hints.push_back(HintReg);
       }
       break;
@@ -543,7 +543,7 @@ unsigned PPCRegisterInfo::getRegPressureLimit(const TargetRegisterClass *RC,
   case PPC::SPERCRegClassID:
   case PPC::G8RCRegClassID:
   case PPC::GPRCRegClassID: {
-    unsigned FP = TFI->hasFP(MF) ? 1 : 0;
+    unsigned const FP = TFI->hasFP(MF) ? 1 : 0;
     return 32 - FP - DefaultSafety;
   }
   case PPC::F4RCRegClassID:
@@ -638,17 +638,17 @@ void PPCRegisterInfo::lowerDynamicAlloc(MachineBasicBlock::iterator II) const {
   // Get the basic block's function.
   MachineFunction &MF = *MBB.getParent();
   // Get the frame info.
-  MachineFrameInfo &MFI = MF.getFrameInfo();
+  MachineFrameInfo  const&MFI = MF.getFrameInfo();
   const PPCSubtarget &Subtarget = MF.getSubtarget<PPCSubtarget>();
   // Get the instruction info.
   const TargetInstrInfo &TII = *Subtarget.getInstrInfo();
   // Determine whether 64-bit pointers are used.
-  bool LP64 = TM.isPPC64();
-  DebugLoc dl = MI.getDebugLoc();
+  bool const LP64 = TM.isPPC64();
+  DebugLoc const dl = MI.getDebugLoc();
 
   // Get the maximum call stack size.
-  unsigned maxCallFrameSize = MFI.getMaxCallFrameSize();
-  Align MaxAlign = MFI.getMaxAlign();
+  unsigned const maxCallFrameSize = MFI.getMaxCallFrameSize();
+  Align const MaxAlign = MFI.getMaxAlign();
   assert(isAligned(MaxAlign, maxCallFrameSize) &&
          "Maximum call-frame size not sufficiently aligned");
   (void)MaxAlign;
@@ -698,20 +698,20 @@ void PPCRegisterInfo::prepareDynamicAlloca(MachineBasicBlock::iterator II,
   // Get the basic block's function.
   MachineFunction &MF = *MBB.getParent();
   // Get the frame info.
-  MachineFrameInfo &MFI = MF.getFrameInfo();
+  MachineFrameInfo  const&MFI = MF.getFrameInfo();
   const PPCSubtarget &Subtarget = MF.getSubtarget<PPCSubtarget>();
   // Get the instruction info.
   const TargetInstrInfo &TII = *Subtarget.getInstrInfo();
   // Determine whether 64-bit pointers are used.
-  bool LP64 = TM.isPPC64();
-  DebugLoc dl = MI.getDebugLoc();
+  bool const LP64 = TM.isPPC64();
+  DebugLoc const dl = MI.getDebugLoc();
   // Get the total frame size.
-  unsigned FrameSize = MFI.getStackSize();
+  unsigned const FrameSize = MFI.getStackSize();
 
   // Get stack alignments.
   const PPCFrameLowering *TFI = getFrameLowering(MF);
-  Align TargetAlign = TFI->getStackAlign();
-  Align MaxAlign = MFI.getMaxAlign();
+  Align const TargetAlign = TFI->getStackAlign();
+  Align const MaxAlign = MFI.getMaxAlign();
 
   // Determine the previous frame's address.  If FrameSize can't be
   // represented as 16 bits or we need special alignment, then we load the
@@ -743,7 +743,7 @@ void PPCRegisterInfo::prepareDynamicAlloca(MachineBasicBlock::iterator II,
   // Determine the actual NegSizeReg according to alignment info.
   if (LP64) {
     if (MaxAlign > TargetAlign) {
-      unsigned UnalNegSizeReg = NegSizeReg;
+      unsigned const UnalNegSizeReg = NegSizeReg;
       NegSizeReg = MF.getRegInfo().createVirtualRegister(G8RC);
 
       // Unfortunately, there is no andi, only andi., and we can't insert that
@@ -751,7 +751,7 @@ void PPCRegisterInfo::prepareDynamicAlloca(MachineBasicBlock::iterator II,
       BuildMI(MBB, II, dl, TII.get(PPC::LI8), NegSizeReg)
           .addImm(~(MaxAlign.value() - 1));
 
-      unsigned NegSizeReg1 = NegSizeReg;
+      unsigned const NegSizeReg1 = NegSizeReg;
       NegSizeReg = MF.getRegInfo().createVirtualRegister(G8RC);
       BuildMI(MBB, II, dl, TII.get(PPC::AND8), NegSizeReg)
           .addReg(UnalNegSizeReg, getKillRegState(KillNegSizeReg))
@@ -760,7 +760,7 @@ void PPCRegisterInfo::prepareDynamicAlloca(MachineBasicBlock::iterator II,
     }
   } else {
     if (MaxAlign > TargetAlign) {
-      unsigned UnalNegSizeReg = NegSizeReg;
+      unsigned const UnalNegSizeReg = NegSizeReg;
       NegSizeReg = MF.getRegInfo().createVirtualRegister(GPRC);
 
       // Unfortunately, there is no andi, only andi., and we can't insert that
@@ -768,7 +768,7 @@ void PPCRegisterInfo::prepareDynamicAlloca(MachineBasicBlock::iterator II,
       BuildMI(MBB, II, dl, TII.get(PPC::LI), NegSizeReg)
           .addImm(~(MaxAlign.value() - 1));
 
-      unsigned NegSizeReg1 = NegSizeReg;
+      unsigned const NegSizeReg1 = NegSizeReg;
       NegSizeReg = MF.getRegInfo().createVirtualRegister(GPRC);
       BuildMI(MBB, II, dl, TII.get(PPC::AND), NegSizeReg)
           .addReg(UnalNegSizeReg, getKillRegState(KillNegSizeReg))
@@ -784,13 +784,13 @@ void PPCRegisterInfo::lowerPrepareProbedAlloca(
   // Get the instruction's basic block.
   MachineBasicBlock &MBB = *MI.getParent();
   // Get the basic block's function.
-  MachineFunction &MF = *MBB.getParent();
+  MachineFunction  const&MF = *MBB.getParent();
   const PPCSubtarget &Subtarget = MF.getSubtarget<PPCSubtarget>();
   // Get the instruction info.
   const TargetInstrInfo &TII = *Subtarget.getInstrInfo();
   // Determine whether 64-bit pointers are used.
-  bool LP64 = TM.isPPC64();
-  DebugLoc dl = MI.getDebugLoc();
+  bool const LP64 = TM.isPPC64();
+  DebugLoc const dl = MI.getDebugLoc();
   Register FramePointer = MI.getOperand(0).getReg();
   const Register ActualNegSizeReg = MI.getOperand(1).getReg();
   bool KillNegSizeReg = MI.getOperand(2).isKill();
@@ -828,14 +828,14 @@ void PPCRegisterInfo::lowerDynamicAreaOffset(
   // Get the basic block's function.
   MachineFunction &MF = *MBB.getParent();
   // Get the frame info.
-  MachineFrameInfo &MFI = MF.getFrameInfo();
+  MachineFrameInfo  const&MFI = MF.getFrameInfo();
   const PPCSubtarget &Subtarget = MF.getSubtarget<PPCSubtarget>();
   // Get the instruction info.
   const TargetInstrInfo &TII = *Subtarget.getInstrInfo();
 
-  unsigned maxCallFrameSize = MFI.getMaxCallFrameSize();
-  bool is64Bit = TM.isPPC64();
-  DebugLoc dl = MI.getDebugLoc();
+  unsigned const maxCallFrameSize = MFI.getMaxCallFrameSize();
+  bool const is64Bit = TM.isPPC64();
+  DebugLoc const dl = MI.getDebugLoc();
   BuildMI(MBB, II, dl, TII.get(is64Bit ? PPC::LI8 : PPC::LI),
           MI.getOperand(0).getReg())
       .addImm(maxCallFrameSize);
@@ -859,14 +859,14 @@ void PPCRegisterInfo::lowerCRSpilling(MachineBasicBlock::iterator II,
   MachineFunction &MF = *MBB.getParent();
   const PPCSubtarget &Subtarget = MF.getSubtarget<PPCSubtarget>();
   const TargetInstrInfo &TII = *Subtarget.getInstrInfo();
-  DebugLoc dl = MI.getDebugLoc();
+  DebugLoc const dl = MI.getDebugLoc();
 
-  bool LP64 = TM.isPPC64();
+  bool const LP64 = TM.isPPC64();
   const TargetRegisterClass *G8RC = &PPC::G8RCRegClass;
   const TargetRegisterClass *GPRC = &PPC::GPRCRegClass;
 
   Register Reg = MF.getRegInfo().createVirtualRegister(LP64 ? G8RC : GPRC);
-  Register SrcReg = MI.getOperand(0).getReg();
+  Register const SrcReg = MI.getOperand(0).getReg();
 
   // We need to store the CR in the low 4-bits of the saved value. First, issue
   // an MFOCRF to save all of the CRBits and, if needed, kill the SrcReg.
@@ -876,7 +876,7 @@ void PPCRegisterInfo::lowerCRSpilling(MachineBasicBlock::iterator II,
   // If the saved register wasn't CR0, shift the bits left so that they are in
   // CR0's slot.
   if (SrcReg != PPC::CR0) {
-    Register Reg1 = Reg;
+    Register const Reg1 = Reg;
     Reg = MF.getRegInfo().createVirtualRegister(LP64 ? G8RC : GPRC);
 
     // rlwinm rA, rA, ShiftBits, 0, 31.
@@ -904,14 +904,14 @@ void PPCRegisterInfo::lowerCRRestore(MachineBasicBlock::iterator II,
   MachineFunction &MF = *MBB.getParent();
   const PPCSubtarget &Subtarget = MF.getSubtarget<PPCSubtarget>();
   const TargetInstrInfo &TII = *Subtarget.getInstrInfo();
-  DebugLoc dl = MI.getDebugLoc();
+  DebugLoc const dl = MI.getDebugLoc();
 
-  bool LP64 = TM.isPPC64();
+  bool const LP64 = TM.isPPC64();
   const TargetRegisterClass *G8RC = &PPC::G8RCRegClass;
   const TargetRegisterClass *GPRC = &PPC::GPRCRegClass;
 
   Register Reg = MF.getRegInfo().createVirtualRegister(LP64 ? G8RC : GPRC);
-  Register DestReg = MI.getOperand(0).getReg();
+  Register const DestReg = MI.getOperand(0).getReg();
   assert(MI.definesRegister(DestReg) &&
     "RESTORE_CR does not define its destination");
 
@@ -921,10 +921,10 @@ void PPCRegisterInfo::lowerCRRestore(MachineBasicBlock::iterator II,
   // If the reloaded register isn't CR0, shift the bits right so that they are
   // in the right CR's slot.
   if (DestReg != PPC::CR0) {
-    Register Reg1 = Reg;
+    Register const Reg1 = Reg;
     Reg = MF.getRegInfo().createVirtualRegister(LP64 ? G8RC : GPRC);
 
-    unsigned ShiftBits = getEncodingValue(DestReg)*4;
+    unsigned const ShiftBits = getEncodingValue(DestReg)*4;
     // rlwinm r11, r11, 32-ShiftBits, 0, 31.
     BuildMI(MBB, II, dl, TII.get(LP64 ? PPC::RLWINM8 : PPC::RLWINM), Reg)
              .addReg(Reg1, RegState::Kill).addImm(32-ShiftBits).addImm(0)
@@ -948,18 +948,18 @@ void PPCRegisterInfo::lowerCRBitSpilling(MachineBasicBlock::iterator II,
   const PPCSubtarget &Subtarget = MF.getSubtarget<PPCSubtarget>();
   const TargetInstrInfo &TII = *Subtarget.getInstrInfo();
   const TargetRegisterInfo* TRI = Subtarget.getRegisterInfo();
-  DebugLoc dl = MI.getDebugLoc();
+  DebugLoc const dl = MI.getDebugLoc();
 
-  bool LP64 = TM.isPPC64();
+  bool const LP64 = TM.isPPC64();
   const TargetRegisterClass *G8RC = &PPC::G8RCRegClass;
   const TargetRegisterClass *GPRC = &PPC::GPRCRegClass;
 
   Register Reg = MF.getRegInfo().createVirtualRegister(LP64 ? G8RC : GPRC);
-  Register SrcReg = MI.getOperand(0).getReg();
+  Register const SrcReg = MI.getOperand(0).getReg();
 
   // Search up the BB to find the definition of the CR bit.
   MachineBasicBlock::reverse_iterator Ins = MI;
-  MachineBasicBlock::reverse_iterator Rend = MBB.rend();
+  MachineBasicBlock::reverse_iterator const Rend = MBB.rend();
   ++Ins;
   unsigned CRBitSpillDistance = 0;
   bool SeenUse = false;
@@ -1035,7 +1035,7 @@ void PPCRegisterInfo::lowerCRBitSpilling(MachineBasicBlock::iterator II,
 
     // If the saved register wasn't CR0LT, shift the bits left so that the bit
     // to store is the first one. Mask all but that bit.
-    Register Reg1 = Reg;
+    Register const Reg1 = Reg;
     Reg = MF.getRegInfo().createVirtualRegister(LP64 ? G8RC : GPRC);
 
     // rlwinm rA, rA, ShiftBits, 0, 0.
@@ -1048,7 +1048,7 @@ void PPCRegisterInfo::lowerCRBitSpilling(MachineBasicBlock::iterator II,
                     .addReg(Reg, RegState::Kill),
                     FrameIndex);
 
-  bool KillsCRBit = MI.killsRegister(SrcReg, TRI);
+  bool const KillsCRBit = MI.killsRegister(SrcReg, TRI);
   // Discard the pseudo instruction.
   MBB.erase(II);
   if (SpillsKnownBit && KillsCRBit && !SeenUse) {
@@ -1066,14 +1066,14 @@ void PPCRegisterInfo::lowerCRBitRestore(MachineBasicBlock::iterator II,
   MachineFunction &MF = *MBB.getParent();
   const PPCSubtarget &Subtarget = MF.getSubtarget<PPCSubtarget>();
   const TargetInstrInfo &TII = *Subtarget.getInstrInfo();
-  DebugLoc dl = MI.getDebugLoc();
+  DebugLoc const dl = MI.getDebugLoc();
 
-  bool LP64 = TM.isPPC64();
+  bool const LP64 = TM.isPPC64();
   const TargetRegisterClass *G8RC = &PPC::G8RCRegClass;
   const TargetRegisterClass *GPRC = &PPC::GPRCRegClass;
 
-  Register Reg = MF.getRegInfo().createVirtualRegister(LP64 ? G8RC : GPRC);
-  Register DestReg = MI.getOperand(0).getReg();
+  Register const Reg = MF.getRegInfo().createVirtualRegister(LP64 ? G8RC : GPRC);
+  Register const DestReg = MI.getOperand(0).getReg();
   assert(MI.definesRegister(DestReg) &&
     "RESTORE_CRBIT does not define its destination");
 
@@ -1082,11 +1082,11 @@ void PPCRegisterInfo::lowerCRBitRestore(MachineBasicBlock::iterator II,
 
   BuildMI(MBB, II, dl, TII.get(TargetOpcode::IMPLICIT_DEF), DestReg);
 
-  Register RegO = MF.getRegInfo().createVirtualRegister(LP64 ? G8RC : GPRC);
+  Register const RegO = MF.getRegInfo().createVirtualRegister(LP64 ? G8RC : GPRC);
   BuildMI(MBB, II, dl, TII.get(LP64 ? PPC::MFOCRF8 : PPC::MFOCRF), RegO)
           .addReg(getCRFromCRBit(DestReg));
 
-  unsigned ShiftBits = getEncodingValue(DestReg);
+  unsigned const ShiftBits = getEncodingValue(DestReg);
   // rlwimi r11, r10, 32-ShiftBits, ..., ...
   BuildMI(MBB, II, dl, TII.get(LP64 ? PPC::RLWIMI8 : PPC::RLWIMI), RegO)
       .addReg(RegO, RegState::Kill)
@@ -1113,8 +1113,8 @@ void PPCRegisterInfo::emitAccCopyInfo(MachineBasicBlock &MBB,
   return;
 #else
   if (ReportAccMoves) {
-    std::string Dest = PPC::ACCRCRegClass.contains(DestReg) ? "acc" : "uacc";
-    std::string Src = PPC::ACCRCRegClass.contains(SrcReg) ? "acc" : "uacc";
+    std::string const Dest = PPC::ACCRCRegClass.contains(DestReg) ? "acc" : "uacc";
+    std::string const Src = PPC::ACCRCRegClass.contains(SrcReg) ? "acc" : "uacc";
     dbgs() << "Emitting copy from " << Src << " to " << Dest << ":\n";
     MBB.dump();
   }
@@ -1143,17 +1143,17 @@ void PPCRegisterInfo::lowerACCSpilling(MachineBasicBlock::iterator II,
                                        unsigned FrameIndex) const {
   MachineInstr &MI = *II; // SPILL_ACC <SrcReg>, <offset>
   MachineBasicBlock &MBB = *MI.getParent();
-  MachineFunction &MF = *MBB.getParent();
+  MachineFunction  const&MF = *MBB.getParent();
   const PPCSubtarget &Subtarget = MF.getSubtarget<PPCSubtarget>();
   const TargetInstrInfo &TII = *Subtarget.getInstrInfo();
-  DebugLoc DL = MI.getDebugLoc();
-  Register SrcReg = MI.getOperand(0).getReg();
-  bool IsKilled = MI.getOperand(0).isKill();
+  DebugLoc const DL = MI.getDebugLoc();
+  Register const SrcReg = MI.getOperand(0).getReg();
+  bool const IsKilled = MI.getOperand(0).isKill();
 
-  bool IsPrimed = PPC::ACCRCRegClass.contains(SrcReg);
-  Register Reg =
+  bool const IsPrimed = PPC::ACCRCRegClass.contains(SrcReg);
+  Register const Reg =
       PPC::VSRp0 + (SrcReg - (IsPrimed ? PPC::ACC0 : PPC::UACC0)) * 2;
-  bool IsLittleEndian = Subtarget.isLittleEndian();
+  bool const IsLittleEndian = Subtarget.isLittleEndian();
 
   emitAccSpillRestoreInfo(MBB, IsPrimed, false);
 
@@ -1181,19 +1181,19 @@ void PPCRegisterInfo::lowerACCRestore(MachineBasicBlock::iterator II,
                                       unsigned FrameIndex) const {
   MachineInstr &MI = *II; // <DestReg> = RESTORE_ACC <offset>
   MachineBasicBlock &MBB = *MI.getParent();
-  MachineFunction &MF = *MBB.getParent();
+  MachineFunction  const&MF = *MBB.getParent();
   const PPCSubtarget &Subtarget = MF.getSubtarget<PPCSubtarget>();
   const TargetInstrInfo &TII = *Subtarget.getInstrInfo();
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc const DL = MI.getDebugLoc();
 
-  Register DestReg = MI.getOperand(0).getReg();
+  Register const DestReg = MI.getOperand(0).getReg();
   assert(MI.definesRegister(DestReg) &&
          "RESTORE_ACC does not define its destination");
 
-  bool IsPrimed = PPC::ACCRCRegClass.contains(DestReg);
-  Register Reg =
+  bool const IsPrimed = PPC::ACCRCRegClass.contains(DestReg);
+  Register const Reg =
       PPC::VSRp0 + (DestReg - (IsPrimed ? PPC::ACC0 : PPC::UACC0)) * 2;
-  bool IsLittleEndian = Subtarget.isLittleEndian();
+  bool const IsLittleEndian = Subtarget.isLittleEndian();
 
   emitAccSpillRestoreInfo(MBB, IsPrimed, true);
 
@@ -1215,16 +1215,16 @@ void PPCRegisterInfo::lowerQuadwordSpilling(MachineBasicBlock::iterator II,
                                             unsigned FrameIndex) const {
   MachineInstr &MI = *II;
   MachineBasicBlock &MBB = *MI.getParent();
-  MachineFunction &MF = *MBB.getParent();
+  MachineFunction  const&MF = *MBB.getParent();
   const PPCSubtarget &Subtarget = MF.getSubtarget<PPCSubtarget>();
   const TargetInstrInfo &TII = *Subtarget.getInstrInfo();
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc const DL = MI.getDebugLoc();
 
-  Register SrcReg = MI.getOperand(0).getReg();
-  bool IsKilled = MI.getOperand(0).isKill();
+  Register const SrcReg = MI.getOperand(0).getReg();
+  bool const IsKilled = MI.getOperand(0).isKill();
 
-  Register Reg = PPC::X0 + (SrcReg - PPC::G8p0) * 2;
-  bool IsLittleEndian = Subtarget.isLittleEndian();
+  Register const Reg = PPC::X0 + (SrcReg - PPC::G8p0) * 2;
+  bool const IsLittleEndian = Subtarget.isLittleEndian();
 
   addFrameReference(BuildMI(MBB, II, DL, TII.get(PPC::STD))
                         .addReg(Reg, getKillRegState(IsKilled)),
@@ -1242,17 +1242,17 @@ void PPCRegisterInfo::lowerQuadwordRestore(MachineBasicBlock::iterator II,
                                            unsigned FrameIndex) const {
   MachineInstr &MI = *II;
   MachineBasicBlock &MBB = *MI.getParent();
-  MachineFunction &MF = *MBB.getParent();
+  MachineFunction  const&MF = *MBB.getParent();
   const PPCSubtarget &Subtarget = MF.getSubtarget<PPCSubtarget>();
   const TargetInstrInfo &TII = *Subtarget.getInstrInfo();
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc const DL = MI.getDebugLoc();
 
-  Register DestReg = MI.getOperand(0).getReg();
+  Register const DestReg = MI.getOperand(0).getReg();
   assert(MI.definesRegister(DestReg) &&
          "RESTORE_QUADWORD does not define its destination");
 
-  Register Reg = PPC::X0 + (DestReg - PPC::G8p0) * 2;
-  bool IsLittleEndian = Subtarget.isLittleEndian();
+  Register const Reg = PPC::X0 + (DestReg - PPC::G8p0) * 2;
+  bool const IsLittleEndian = Subtarget.isLittleEndian();
 
   addFrameReference(BuildMI(MBB, II, DL, TII.get(PPC::LD), Reg), FrameIndex,
                     IsLittleEndian ? 8 : 0);
@@ -1315,7 +1315,7 @@ static unsigned offsetMinAlignForOpcode(unsigned OpC) {
 
 // If the offset must be a multiple of some value, return what that value is.
 static unsigned offsetMinAlign(const MachineInstr &MI) {
-  unsigned OpC = MI.getOpcode();
+  unsigned const OpC = MI.getOpcode();
   return offsetMinAlignForOpcode(OpC);
 }
 
@@ -1349,18 +1349,18 @@ PPCRegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
   // Get the instruction info.
   const TargetInstrInfo &TII = *Subtarget.getInstrInfo();
   // Get the frame info.
-  MachineFrameInfo &MFI = MF.getFrameInfo();
-  DebugLoc dl = MI.getDebugLoc();
+  MachineFrameInfo  const&MFI = MF.getFrameInfo();
+  DebugLoc const dl = MI.getDebugLoc();
 
-  unsigned OffsetOperandNo = getOffsetONFromFION(MI, FIOperandNum);
+  unsigned const OffsetOperandNo = getOffsetONFromFION(MI, FIOperandNum);
 
   // Get the frame index.
-  int FrameIndex = MI.getOperand(FIOperandNum).getIndex();
+  int const FrameIndex = MI.getOperand(FIOperandNum).getIndex();
 
   // Get the frame pointer save index.  Users of this index are primarily
   // DYNALLOC instructions.
   PPCFunctionInfo *FI = MF.getInfo<PPCFunctionInfo>();
-  int FPSI = FI->getFramePointerSaveIndex();
+  int const FPSI = FI->getFramePointerSaveIndex();
   // Get the instruction opcode.
   unsigned OpC = MI.getOpcode();
 
@@ -1418,7 +1418,7 @@ PPCRegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
 
   // If the instruction is not present in ImmToIdxMap, then it has no immediate
   // form (and must be r+r).
-  bool noImmForm = !MI.isInlineAsm() && OpC != TargetOpcode::STACKMAP &&
+  bool const noImmForm = !MI.isInlineAsm() && OpC != TargetOpcode::STACKMAP &&
                    OpC != TargetOpcode::PATCHPOINT && !ImmToIdxMap.count(OpC);
 
   // Now add the frame object offset to the offset from r1.
@@ -1441,7 +1441,7 @@ PPCRegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
   if ((OpC == PPC::LXVP || OpC == PPC::STXVP) &&
       (!isInt<16>(Offset) || (Offset % offsetMinAlign(MI)) != 0) &&
       Subtarget.hasPrefixInstrs()) {
-    unsigned NewOpc = OpC == PPC::LXVP ? PPC::PLXVP : PPC::PSTXVP;
+    unsigned const NewOpc = OpC == PPC::LXVP ? PPC::PLXVP : PPC::PSTXVP;
     MI.setDesc(TII.get(NewOpc));
     OpC = NewOpc;
   }
@@ -1472,7 +1472,7 @@ PPCRegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
   // The offset doesn't fit into a single register, scavenge one to build the
   // offset in.
 
-  bool is64Bit = TM.isPPC64();
+  bool const is64Bit = TM.isPPC64();
   const TargetRegisterClass *G8RC = &PPC::G8RCRegClass;
   const TargetRegisterClass *GPRC = &PPC::GPRCRegClass;
   const TargetRegisterClass *RC = is64Bit ? G8RC : GPRC;
@@ -1503,14 +1503,14 @@ PPCRegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
            OpC != TargetOpcode::INLINEASM_BR) {
     assert(ImmToIdxMap.count(OpC) &&
            "No indexed form of load or store available!");
-    unsigned NewOpcode = ImmToIdxMap.find(OpC)->second;
+    unsigned const NewOpcode = ImmToIdxMap.find(OpC)->second;
     MI.setDesc(TII.get(NewOpcode));
     OperandBase = 1;
   } else {
     OperandBase = OffsetOperandNo;
   }
 
-  Register StackReg = MI.getOperand(FIOperandNum).getReg();
+  Register const StackReg = MI.getOperand(FIOperandNum).getReg();
   MI.getOperand(OperandBase).ChangeToRegister(StackReg, false);
   MI.getOperand(OperandBase + 1).ChangeToRegister(SReg, false, false, true);
 }
@@ -1567,7 +1567,7 @@ needsFrameBaseReg(MachineInstr *MI, int64_t Offset) const {
 
   // We only generate virtual base registers for loads and stores that have
   // an r+i form. Return false for everything else.
-  unsigned OpC = MI->getOpcode();
+  unsigned const OpC = MI->getOpcode();
   if (!ImmToIdxMap.count(OpC))
     return false;
 
@@ -1577,9 +1577,9 @@ needsFrameBaseReg(MachineInstr *MI, int64_t Offset) const {
     return false;
 
   MachineBasicBlock &MBB = *MI->getParent();
-  MachineFunction &MF = *MBB.getParent();
+  MachineFunction  const&MF = *MBB.getParent();
   const PPCFrameLowering *TFI = getFrameLowering(MF);
-  unsigned StackEst = TFI->determineFrameLayout(MF, true);
+  unsigned const StackEst = TFI->determineFrameLayout(MF, true);
 
   // If we likely don't need a stack frame, then we probably don't need a
   // virtual base register either.
@@ -1602,9 +1602,9 @@ needsFrameBaseReg(MachineInstr *MI, int64_t Offset) const {
 Register PPCRegisterInfo::materializeFrameBaseRegister(MachineBasicBlock *MBB,
                                                        int FrameIdx,
                                                        int64_t Offset) const {
-  unsigned ADDriOpc = TM.isPPC64() ? PPC::ADDI8 : PPC::ADDI;
+  unsigned const ADDriOpc = TM.isPPC64() ? PPC::ADDI8 : PPC::ADDI;
 
-  MachineBasicBlock::iterator Ins = MBB->begin();
+  MachineBasicBlock::iterator const Ins = MBB->begin();
   DebugLoc DL;                  // Defaults to "unknown"
   if (Ins != MBB->end())
     DL = Ins->getDebugLoc();
@@ -1634,7 +1634,7 @@ void PPCRegisterInfo::resolveFrameIndex(MachineInstr &MI, Register BaseReg,
   }
 
   MI.getOperand(FIOperandNum).ChangeToRegister(BaseReg, false);
-  unsigned OffsetOperandNo = getOffsetONFromFION(MI, FIOperandNum);
+  unsigned const OffsetOperandNo = getOffsetONFromFION(MI, FIOperandNum);
   Offset += MI.getOperand(OffsetOperandNo).getImm();
   MI.getOperand(OffsetOperandNo).ChangeToImmediate(Offset);
 
@@ -1658,7 +1658,7 @@ bool PPCRegisterInfo::isFrameOffsetLegal(const MachineInstr *MI,
            "Instr doesn't have FrameIndex operand!");
   }
 
-  unsigned OffsetOperandNo = getOffsetONFromFION(*MI, FIOperandNum);
+  unsigned const OffsetOperandNo = getOffsetONFromFION(*MI, FIOperandNum);
   Offset += MI->getOperand(OffsetOperandNo).getImm();
 
   return MI->getOpcode() == PPC::DBG_VALUE || // DBG_VALUE is always Reg+Imm

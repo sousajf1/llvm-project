@@ -111,7 +111,7 @@ class X86PreTileConfig : public MachineFunctionPass {
   bool isAMXInstruction(MachineInstr &MI) {
     if (MI.isPHI() || MI.isDebugInstr() || MI.getNumOperands() < 3)
       return false;
-    MachineOperand &MO = MI.getOperand(0);
+    MachineOperand  const&MO = MI.getOperand(0);
     // We can simply check if it is AMX instruction by its def.
     // But we should exclude old API which uses physical registers.
     if (MO.isReg() && MO.getReg().isVirtual() &&
@@ -203,7 +203,7 @@ INITIALIZE_PASS_END(X86PreTileConfig, "tilepreconfig",
 
 void X86PreTileConfig::collectShapeInfo(MachineInstr &MI) {
   auto RecordShape = [&](MachineInstr *MI, MachineBasicBlock *MBB) {
-    MIRef MIR(MI, MBB);
+    MIRef const MIR(MI, MBB);
     auto I = llvm::lower_bound(ShapeBBs[MBB], MIR);
     if (I == ShapeBBs[MBB].end() || *I != MIR)
       ShapeBBs[MBB].insert(I, MIR);
@@ -212,7 +212,7 @@ void X86PreTileConfig::collectShapeInfo(MachineInstr &MI) {
   SmallVector<Register, 8> WorkList(
       {MI.getOperand(1).getReg(), MI.getOperand(2).getReg()});
   while (!WorkList.empty()) {
-    Register R = WorkList.pop_back_val();
+    Register const R = WorkList.pop_back_val();
     MachineInstr *DefMI = MRI->getVRegDef(R);
     assert(DefMI && "R must has one define instruction");
     MachineBasicBlock *DefMBB = DefMI->getParent();
@@ -317,9 +317,9 @@ bool X86PreTileConfig::runOnMachineFunction(MachineFunction &MF) {
     }
   }
 
-  DebugLoc DL;
+  DebugLoc const DL;
   SmallSet<MIRef, 8> VisitedOrInserted;
-  int SS = MF.getFrameInfo().CreateStackObject(
+  int const SS = MF.getFrameInfo().CreateStackObject(
       ST.getTileConfigSize(), ST.getTileConfigAlignment(), false);
 
   // Try to insert for the tile config live in points.
@@ -363,14 +363,14 @@ bool X86PreTileConfig::runOnMachineFunction(MachineFunction &MF) {
   MachineBasicBlock &MBB = MF.front();
   MachineInstr *MI = &*MBB.begin();
   if (ST.hasAVX512()) {
-    Register Zmm = MRI->createVirtualRegister(&X86::VR512RegClass);
+    Register const Zmm = MRI->createVirtualRegister(&X86::VR512RegClass);
     BuildMI(MBB, MI, DL, TII->get(X86::VPXORDZrr), Zmm)
         .addReg(Zmm, RegState::Undef)
         .addReg(Zmm, RegState::Undef);
     addFrameReference(BuildMI(MBB, MI, DL, TII->get(X86::VMOVUPSZmr)), SS)
         .addReg(Zmm);
   } else if (ST.hasAVX2()) {
-    Register Ymm = MRI->createVirtualRegister(&X86::VR256RegClass);
+    Register const Ymm = MRI->createVirtualRegister(&X86::VR256RegClass);
     BuildMI(MBB, MI, DL, TII->get(X86::VPXORYrr), Ymm)
         .addReg(Ymm, RegState::Undef)
         .addReg(Ymm, RegState::Undef);
@@ -380,7 +380,7 @@ bool X86PreTileConfig::runOnMachineFunction(MachineFunction &MF) {
         .addReg(Ymm);
   } else {
     assert(ST.hasSSE2() && "AMX should assume SSE2 enabled");
-    Register Xmm = MRI->createVirtualRegister(&X86::VR128RegClass);
+    Register const Xmm = MRI->createVirtualRegister(&X86::VR128RegClass);
     BuildMI(MBB, MI, DL, TII->get(X86::PXORrr), Xmm)
         .addReg(Xmm, RegState::Undef)
         .addReg(Xmm, RegState::Undef);

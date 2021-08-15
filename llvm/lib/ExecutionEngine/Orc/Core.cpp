@@ -206,7 +206,7 @@ void AsynchronousSymbolQuery::handleFailed(Error Err) {
 
 void AsynchronousSymbolQuery::addQueryDependence(JITDylib &JD,
                                                  SymbolStringPtr Name) {
-  bool Added = QueryRegistrations[&JD].insert(std::move(Name)).second;
+  bool const Added = QueryRegistrations[&JD].insert(std::move(Name)).second;
   (void)Added;
   assert(Added && "Duplicate dependence notification?");
 }
@@ -464,7 +464,7 @@ ReExportsMaterializationUnit::extractFlags(const SymbolAliasMap &Aliases) {
 
 Expected<SymbolAliasMap> buildSimpleReexportsAliasMap(JITDylib &SourceJD,
                                                       SymbolNameSet Symbols) {
-  SymbolLookupSet LookupSet(Symbols);
+  SymbolLookupSet const LookupSet(Symbols);
   auto Flags = SourceJD.getExecutionSession().lookupFlags(
       LookupKind::Static, {{&SourceJD, JITDylibLookupFlags::MatchAllSymbols}},
       SymbolLookupSet(std::move(Symbols)));
@@ -639,7 +639,7 @@ ResourceTrackerSP JITDylib::createResourceTracker() {
 }
 
 void JITDylib::removeGenerator(DefinitionGenerator &G) {
-  std::lock_guard<std::mutex> Lock(GeneratorsMutex);
+  std::lock_guard<std::mutex> const Lock(GeneratorsMutex);
   auto I = llvm::find_if(DefGenerators,
                          [&](const std::shared_ptr<DefinitionGenerator> &H) {
                            return H.get() == &G;
@@ -961,7 +961,7 @@ Error JITDylib::resolve(MaterializationResponsibility &MR,
           auto &Name = SymI->first;
 
           // Resolved symbols can not be weak: discard the weak flag.
-          JITSymbolFlags ResolvedFlags = ResolvedSym.getFlags();
+          JITSymbolFlags const ResolvedFlags = ResolvedSym.getFlags();
           SymI->second.setAddress(ResolvedSym.getAddress());
           SymI->second.setFlags(ResolvedFlags);
           SymI->second.setState(SymbolState::Resolved);
@@ -1496,7 +1496,7 @@ JITDylib::removeTracker(ResourceTracker &RT) {
       SymbolsToFail.push_back({this, Sym});
   }
 
-  AsynchronousSymbolQuerySet QueriesToFail;
+  AsynchronousSymbolQuerySet const QueriesToFail;
   auto Result = failSymbols(std::move(SymbolsToFail));
 
   // Removed symbols should be taken out of the table altogether.
@@ -1726,7 +1726,7 @@ Expected<DenseMap<JITDylib *, SymbolMap>> Platform::lookupInitSymbols(
         std::move(Names), SymbolState::Ready,
         [&, JD](Expected<SymbolMap> Result) {
           {
-            std::lock_guard<std::mutex> Lock(LookupMutex);
+            std::lock_guard<std::mutex> const Lock(LookupMutex);
             --Count;
             if (Result) {
               assert(!CompoundResult.count(JD) &&
@@ -1761,7 +1761,7 @@ void Platform::lookupInitSymbolsAsync(
         : OnComplete(std::move(OnComplete)) {}
     ~TriggerOnComplete() { OnComplete(std::move(LookupResult)); }
     void reportResult(Error Err) {
-      std::lock_guard<std::mutex> Lock(ResultMutex);
+      std::lock_guard<std::mutex> const Lock(ResultMutex);
       LookupResult = joinErrors(std::move(LookupResult), std::move(Err));
     }
 
@@ -1811,7 +1811,7 @@ ExecutionSession::ExecutionSession(std::unique_ptr<ExecutorProcessControl> EPC)
 Error ExecutionSession::endSession() {
   LLVM_DEBUG(dbgs() << "Ending ExecutionSession " << this << "\n");
 
-  std::vector<JITDylibSP> JITDylibsToClose = runSessionLocked([&] {
+  std::vector<JITDylibSP> const JITDylibsToClose = runSessionLocked([&] {
     SessionOpen = false;
     return std::move(JDs);
   });
@@ -1988,7 +1988,7 @@ ExecutionSession::lookup(const JITDylibSearchOrder &SearchOrder,
     if (R)
       PromisedResult.set_value(std::move(*R));
     else {
-      ErrorAsOutParameter _(&ResolutionError);
+      ErrorAsOutParameter const _(&ResolutionError);
       ResolutionError = R.takeError();
       PromisedResult.set_value(SymbolMap());
     }
@@ -2031,7 +2031,7 @@ ExecutionSession::lookup(const JITDylibSearchOrder &SearchOrder,
 Expected<JITEvaluatedSymbol>
 ExecutionSession::lookup(const JITDylibSearchOrder &SearchOrder,
                          SymbolStringPtr Name, SymbolState RequiredState) {
-  SymbolLookupSet Names({Name});
+  SymbolLookupSet const Names({Name});
 
   if (auto ResultMap = lookup(SearchOrder, std::move(Names), LookupKind::Static,
                               RequiredState, NoDependenciesToRegister)) {
@@ -2064,7 +2064,7 @@ Error ExecutionSession::registerJITDispatchHandlers(
     return TagAddrs.takeError();
 
   // Associate tag addresses with implementations.
-  std::lock_guard<std::mutex> Lock(JITDispatchHandlersMutex);
+  std::lock_guard<std::mutex> const Lock(JITDispatchHandlersMutex);
   for (auto &KV : *TagAddrs) {
     auto TagAddr = KV.second.getAddress();
     if (JITDispatchHandlers.count(TagAddr))
@@ -2091,7 +2091,7 @@ void ExecutionSession::runJITDispatchHandler(
 
   std::shared_ptr<JITDispatchHandlerFunction> F;
   {
-    std::lock_guard<std::mutex> Lock(JITDispatchHandlersMutex);
+    std::lock_guard<std::mutex> const Lock(JITDispatchHandlersMutex);
     auto I = JITDispatchHandlers.find(HandlerFnTagAddr);
     if (I != JITDispatchHandlers.end())
       F = I->second;
@@ -2121,7 +2121,7 @@ void ExecutionSession::dispatchOutstandingMUs() {
         JMU;
 
     {
-      std::lock_guard<std::recursive_mutex> Lock(OutstandingMUsMutex);
+      std::lock_guard<std::recursive_mutex> const Lock(OutstandingMUsMutex);
       if (!OutstandingMUs.empty()) {
         JMU.emplace(std::move(OutstandingMUs.back()));
         OutstandingMUs.pop_back();
@@ -2619,7 +2619,7 @@ void ExecutionSession::OL_completeLookup(
 
     // Move the collected MUs to the OutstandingMUs list.
     if (!CollectedUMIs.empty()) {
-      std::lock_guard<std::recursive_mutex> Lock(OutstandingMUsMutex);
+      std::lock_guard<std::recursive_mutex> const Lock(OutstandingMUsMutex);
 
       LLVM_DEBUG(dbgs() << "Adding MUs to dispatch:\n");
       for (auto &KV : CollectedUMIs) {

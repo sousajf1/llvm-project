@@ -67,11 +67,11 @@ unsigned MCRegisterInfo::getSubRegIdxOffset(unsigned Idx) const {
 
 int MCRegisterInfo::getDwarfRegNum(MCRegister RegNum, bool isEH) const {
   const DwarfLLVMRegPair *M = isEH ? EHL2DwarfRegs : L2DwarfRegs;
-  unsigned Size = isEH ? EHL2DwarfRegsSize : L2DwarfRegsSize;
+  unsigned const Size = isEH ? EHL2DwarfRegsSize : L2DwarfRegsSize;
 
   if (!M)
     return -1;
-  DwarfLLVMRegPair Key = { RegNum, 0 };
+  DwarfLLVMRegPair const Key = { RegNum, 0 };
   const DwarfLLVMRegPair *I = std::lower_bound(M, M+Size, Key);
   if (I == M+Size || I->FromReg != RegNum)
     return -1;
@@ -81,11 +81,11 @@ int MCRegisterInfo::getDwarfRegNum(MCRegister RegNum, bool isEH) const {
 Optional<unsigned> MCRegisterInfo::getLLVMRegNum(unsigned RegNum,
                                                  bool isEH) const {
   const DwarfLLVMRegPair *M = isEH ? EHDwarf2LRegs : Dwarf2LRegs;
-  unsigned Size = isEH ? EHDwarf2LRegsSize : Dwarf2LRegsSize;
+  unsigned const Size = isEH ? EHDwarf2LRegsSize : Dwarf2LRegsSize;
 
   if (!M)
     return None;
-  DwarfLLVMRegPair Key = { RegNum, 0 };
+  DwarfLLVMRegPair const Key = { RegNum, 0 };
   const DwarfLLVMRegPair *I = std::lower_bound(M, M+Size, Key);
   if (I != M + Size && I->FromReg == RegNum)
     return I->ToReg;

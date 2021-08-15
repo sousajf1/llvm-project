@@ -248,8 +248,8 @@ bool BCECmpBlock::canSinkBCECmpInst(const Instruction *Inst,
     if (!isSimpleLoadOrStore(Inst))
       return false;
     // Disallow stores that might alias the BCE operands
-    MemoryLocation LLoc = MemoryLocation::get(Cmp.Lhs.LoadI);
-    MemoryLocation RLoc = MemoryLocation::get(Cmp.Rhs.LoadI);
+    MemoryLocation const LLoc = MemoryLocation::get(Cmp.Lhs.LoadI);
+    MemoryLocation const RLoc = MemoryLocation::get(Cmp.Rhs.LoadI);
     if (isModSet(AA.getModRefInfo(Inst, LLoc)) ||
         isModSet(AA.getModRefInfo(Inst, RLoc)))
       return false;
@@ -280,7 +280,7 @@ void BCECmpBlock::split(BasicBlock *NewParent, AliasAnalysis &AA) const {
 }
 
 bool BCECmpBlock::canSplit(AliasAnalysis &AA) const {
-  for (Instruction &Inst : *BB) {
+  for (Instruction  const&Inst : *BB) {
     if (!BlockInsts.count(&Inst)) {
       if (!canSinkBCECmpInst(&Inst, AA))
         return false;
@@ -371,7 +371,7 @@ Optional<BCECmpBlock> visitCmpBlock(Value *const Val, BasicBlock *const Block,
   if (!Result)
     return None;
 
-  BCECmpBlock::InstructionSet BlockInsts(
+  BCECmpBlock::InstructionSet const BlockInsts(
       {Result->Lhs.GEP, Result->Rhs.GEP, Result->Lhs.LoadI, Result->Rhs.LoadI,
        Result->CmpI, BranchI});
   return BCECmpBlock(std::move(*Result), Block, BlockInsts);

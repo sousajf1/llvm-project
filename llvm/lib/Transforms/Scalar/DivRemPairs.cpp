@@ -193,7 +193,7 @@ static bool optimizeDivRem(Function &F, const TargetTransformInfo &TTI,
     if (!DebugCounter::shouldExecute(DRPCounter))
       continue;
 
-    bool HasDivRemOp = TTI.hasDivRemOp(E.getType(), E.isSigned());
+    bool const HasDivRemOp = TTI.hasDivRemOp(E.getType(), E.isSigned());
 
     auto &DivInst = E.DivInst;
     auto &RemInst = E.RemInst;
@@ -432,8 +432,8 @@ FunctionPass *llvm::createDivRemPairsPass() {
 
 PreservedAnalyses DivRemPairsPass::run(Function &F,
                                        FunctionAnalysisManager &FAM) {
-  TargetTransformInfo &TTI = FAM.getResult<TargetIRAnalysis>(F);
-  DominatorTree &DT = FAM.getResult<DominatorTreeAnalysis>(F);
+  TargetTransformInfo  const&TTI = FAM.getResult<TargetIRAnalysis>(F);
+  DominatorTree  const&DT = FAM.getResult<DominatorTreeAnalysis>(F);
   if (!optimizeDivRem(F, TTI, DT))
     return PreservedAnalyses::all();
   // TODO: This pass just hoists/replaces math ops - all analyses are preserved?

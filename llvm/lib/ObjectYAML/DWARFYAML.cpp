@@ -61,7 +61,7 @@ DWARFYAML::Data::getAbbrevTableInfoByID(uint64_t ID) const {
     uint64_t AbbrevTableOffset = 0;
     for (auto &AbbrevTable : enumerate(DebugAbbrev)) {
       // If the abbrev table's ID isn't specified, we use the index as its ID.
-      uint64_t AbbrevTableID =
+      uint64_t const AbbrevTableID =
           AbbrevTable.value().ID.getValueOr(AbbrevTable.index());
       auto It = AbbrevTableInfoMap.insert(
           {AbbrevTableID, AbbrevTableInfo{/*Index=*/AbbrevTable.index(),

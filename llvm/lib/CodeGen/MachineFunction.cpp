@@ -164,7 +164,7 @@ void MachineFunction::init() {
   MFInfo = nullptr;
   // We can realign the stack if the target supports it and the user hasn't
   // explicitly asked us not to.
-  bool CanRealignSP = STI->getFrameLowering()->isStackRealignable() &&
+  bool const CanRealignSP = STI->getFrameLowering()->isStackRealignable() &&
                       !F.hasFnAttribute("no-realign-stack");
   FrameInfo = new (Allocator) MachineFrameInfo(
       getFnStackAlignment(STI, F), /*StackRealignable=*/CanRealignSP,
@@ -470,7 +470,7 @@ MachineFunction::getMachineMemOperand(const MachineMemOperand *MMO,
 
   // If there is no pointer value, the offset isn't tracked so we need to adjust
   // the base alignment.
-  Align Alignment = PtrInfo.V.isNull()
+  Align const Alignment = PtrInfo.V.isNull()
                         ? commonAlignment(MMO->getBaseAlign(), Offset)
                         : MMO->getBaseAlign();
 
@@ -485,7 +485,7 @@ MachineFunction::getMachineMemOperand(const MachineMemOperand *MMO,
 MachineMemOperand *
 MachineFunction::getMachineMemOperand(const MachineMemOperand *MMO,
                                       const AAMDNodes &AAInfo) {
-  MachinePointerInfo MPI = MMO->getValue() ?
+  MachinePointerInfo const MPI = MMO->getValue() ?
              MachinePointerInfo(MMO->getValue(), MMO->getOffset()) :
              MachinePointerInfo(MMO->getPseudoValue(), MMO->getOffset());
 
@@ -519,8 +519,8 @@ const char *MachineFunction::createExternalSymbolName(StringRef Name) {
 }
 
 uint32_t *MachineFunction::allocateRegMask() {
-  unsigned NumRegs = getSubtarget().getRegisterInfo()->getNumRegs();
-  unsigned Size = MachineOperand::getRegMaskSize(NumRegs);
+  unsigned const NumRegs = getSubtarget().getRegisterInfo()->getNumRegs();
+  unsigned const Size = MachineOperand::getRegMaskSize(NumRegs);
   uint32_t *Mask = Allocator.Allocate<uint32_t>(Size);
   memset(Mask, 0, Size * sizeof(Mask[0]));
   return Mask;
@@ -681,7 +681,7 @@ MCSymbol *MachineFunction::getJTISymbol(unsigned JTI, MCContext &Ctx,
   assert(JumpTableInfo && "No jump tables");
   assert(JTI < JumpTableInfo->getJumpTables().size() && "Invalid JTI!");
 
-  StringRef Prefix = isLinkerPrivate ? DL.getLinkerPrivateGlobalPrefix()
+  StringRef const Prefix = isLinkerPrivate ? DL.getLinkerPrivateGlobalPrefix()
                                      : DL.getPrivateGlobalPrefix();
   SmallString<60> Name;
   raw_svector_ostream(Name)
@@ -701,7 +701,7 @@ MCSymbol *MachineFunction::getPICBaseSymbol() const {
 
 LandingPadInfo &
 MachineFunction::getOrCreateLandingPadInfo(MachineBasicBlock *LandingPad) {
-  unsigned N = LandingPads.size();
+  unsigned const N = LandingPads.size();
   for (unsigned i = 0; i < N; ++i) {
     LandingPadInfo &LP = LandingPads[i];
     if (LP.LandingPadBlock == LandingPad)
@@ -884,7 +884,7 @@ try_next:;
   }
 
   // Add the new filter.
-  int FilterID = -(1 + FilterIds.size());
+  int const FilterID = -(1 + FilterIds.size());
   FilterIds.reserve(FilterIds.size() + TyIds.size() + 1);
   llvm::append_range(FilterIds, TyIds);
   FilterEnds.push_back(FilterIds.size());
@@ -921,7 +921,7 @@ void MachineFunction::eraseCallSiteInfo(const MachineInstr *MI) {
          "candidates inside bundles");
 
   const MachineInstr *CallMI = getCallInstr(MI);
-  CallSiteInfoMap::iterator CSIt = getCallSiteInfo(CallMI);
+  CallSiteInfoMap::iterator const CSIt = getCallSiteInfo(CallMI);
   if (CSIt == CallSitesInfo.end())
     return;
   CallSitesInfo.erase(CSIt);
@@ -937,11 +937,11 @@ void MachineFunction::copyCallSiteInfo(const MachineInstr *Old,
     return eraseCallSiteInfo(Old);
 
   const MachineInstr *OldCallMI = getCallInstr(Old);
-  CallSiteInfoMap::iterator CSIt = getCallSiteInfo(OldCallMI);
+  CallSiteInfoMap::iterator const CSIt = getCallSiteInfo(OldCallMI);
   if (CSIt == CallSitesInfo.end())
     return;
 
-  CallSiteInfo CSInfo = CSIt->second;
+  CallSiteInfo const CSInfo = CSIt->second;
   CallSitesInfo[New] = CSInfo;
 }
 
@@ -955,11 +955,11 @@ void MachineFunction::moveCallSiteInfo(const MachineInstr *Old,
     return eraseCallSiteInfo(Old);
 
   const MachineInstr *OldCallMI = getCallInstr(Old);
-  CallSiteInfoMap::iterator CSIt = getCallSiteInfo(OldCallMI);
+  CallSiteInfoMap::iterator const CSIt = getCallSiteInfo(OldCallMI);
   if (CSIt == CallSitesInfo.end())
     return;
 
-  CallSiteInfo CSInfo = std::move(CSIt->second);
+  CallSiteInfo const CSInfo = std::move(CSIt->second);
   CallSitesInfo.erase(CSIt);
   CallSitesInfo[New] = CSInfo;
 }
@@ -980,7 +980,7 @@ void MachineFunction::substituteDebugValuesForInst(const MachineInstr &Old,
                                                    MachineInstr &New,
                                                    unsigned MaxOperand) {
   // If the Old instruction wasn't tracked at all, there is no work to do.
-  unsigned OldInstrNum = Old.peekDebugInstrNum();
+  unsigned const OldInstrNum = Old.peekDebugInstrNum();
   if (!OldInstrNum)
     return;
 
@@ -999,7 +999,7 @@ void MachineFunction::substituteDebugValuesForInst(const MachineInstr &Old,
       continue;
     assert(NewMO.isDef());
 
-    unsigned NewInstrNum = New.getDebugInstrNum();
+    unsigned const NewInstrNum = New.getDebugInstrNum();
     makeDebugValueSubstitution(std::make_pair(OldInstrNum, I),
                                std::make_pair(NewInstrNum, I));
   }
@@ -1007,7 +1007,7 @@ void MachineFunction::substituteDebugValuesForInst(const MachineInstr &Old,
 
 auto MachineFunction::salvageCopySSA(MachineInstr &MI)
     -> DebugInstrOperandPair {
-  MachineRegisterInfo &MRI = getRegInfo();
+  MachineRegisterInfo  const&MRI = getRegInfo();
   const TargetRegisterInfo &TRI = *MRI.getTargetRegisterInfo();
   const TargetInstrInfo &TII = *getSubtarget().getInstrInfo();
 
@@ -1083,9 +1083,9 @@ auto MachineFunction::salvageCopySSA(MachineInstr &MI)
   // values are tracked back through the same copies; cache something later.
   auto ApplySubregisters =
       [&](DebugInstrOperandPair P) -> DebugInstrOperandPair {
-    for (unsigned Subreg : reverse(SubregsSeen)) {
+    for (unsigned const Subreg : reverse(SubregsSeen)) {
       // Fetch a new instruction number, not attached to an actual instruction.
-      unsigned NewInstrNumber = getNewDebugInstrNum();
+      unsigned const NewInstrNumber = getNewDebugInstrNum();
       // Add a substitution from the "new" number to the known one, with a
       // qualifying subreg.
       makeDebugValueSubstitution({NewInstrNumber, 0}, P, Subreg);
@@ -1115,7 +1115,7 @@ auto MachineFunction::salvageCopySSA(MachineInstr &MI)
   // looking for whatever defines the physreg.
   assert(CurInst->isCopyLike() || TII.isCopyInstr(*CurInst));
   State = GetRegAndSubreg(*CurInst);
-  Register RegToSeek = State.first;
+  Register const RegToSeek = State.first;
 
   auto RMII = CurInst->getReverseIterator();
   auto PrevInstrs = make_range(RMII, CurInst->getParent()->instr_rend());
@@ -1159,7 +1159,7 @@ auto MachineFunction::salvageCopySSA(MachineInstr &MI)
   auto Builder = BuildMI(InsertBB, InsertBB.getFirstNonPHI(), DebugLoc(),
                          TII.get(TargetOpcode::DBG_PHI));
   Builder.addReg(State.first, RegState::Debug);
-  unsigned NewNum = getNewDebugInstrNum();
+  unsigned const NewNum = getNewDebugInstrNum();
   Builder.addImm(NewNum);
   return ApplySubregisters({NewNum, 0u});
 }
@@ -1182,7 +1182,7 @@ void MachineFunction::finalizeDebugInstrRefs() {
       if (!MI.isDebugRef() || !MI.getOperand(0).isReg())
         continue;
 
-      Register Reg = MI.getOperand(0).getReg();
+      Register const Reg = MI.getOperand(0).getReg();
 
       // Some vregs can be deleted as redundant in the meantime. Mark those
       // as DBG_VALUE $noreg.
@@ -1213,7 +1213,7 @@ void MachineFunction::finalizeDebugInstrRefs() {
         assert(OperandIdx < DefMI.getNumOperands());
 
         // Morph this instr ref to point at the given instruction and operand.
-        unsigned ID = DefMI.getDebugInstrNum();
+        unsigned const ID = DefMI.getDebugInstrNum();
         MI.getOperand(0).ChangeToImmediate(ID);
         MI.getOperand(1).setImm(OperandIdx);
       }
@@ -1279,7 +1279,7 @@ unsigned MachineJumpTableInfo::createJumpTableIndex(
 bool MachineJumpTableInfo::ReplaceMBBInJumpTables(MachineBasicBlock *Old,
                                                   MachineBasicBlock *New) {
   assert(Old != New && "Not making a change?");
-  bool MadeChange = false;
+  bool const MadeChange = false;
   for (size_t i = 0, e = JumpTables.size(); i != e; ++i)
     ReplaceMBBInJumpTable(i, Old, New);
   return MadeChange;
@@ -1408,7 +1408,7 @@ static bool CanShareConstantPoolEntry(const Constant *A, const Constant *B,
     return false;
 
   // For now, only support constants with the same size.
-  uint64_t StoreSize = DL.getTypeStoreSize(A->getType());
+  uint64_t const StoreSize = DL.getTypeStoreSize(A->getType());
   if (StoreSize != DL.getTypeStoreSize(B->getType()) || StoreSize > 128)
     return false;
 
@@ -1462,7 +1462,7 @@ unsigned MachineConstantPool::getConstantPoolIndex(MachineConstantPoolValue *V,
   // Check to see if we already have this constant.
   //
   // FIXME, this could be made much more efficient for large constant pools.
-  int Idx = V->getExistingMachineCPValue(this, Alignment);
+  int const Idx = V->getExistingMachineCPValue(this, Alignment);
   if (Idx != -1) {
     MachineCPVsSharingEntries.insert(V);
     return (unsigned)Idx;

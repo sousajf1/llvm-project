@@ -389,7 +389,7 @@ void RegDefsUses::setCallerSaved(const MachineInstr &MI) {
 void RegDefsUses::setUnallocatableRegs(const MachineFunction &MF) {
   BitVector AllocSet = TRI.getAllocatableSet(MF);
 
-  for (unsigned R : AllocSet.set_bits())
+  for (unsigned const R : AllocSet.set_bits())
     for (MCRegAliasIterator AI(R, &TRI, false); AI.isValid(); ++AI)
       AllocSet.set(*AI);
 
@@ -500,7 +500,7 @@ bool MemDefsUses::hasHazard_(const MachineInstr &MI) {
   // Check underlying object list.
   SmallVector<ValueType, 4> Objs;
   if (getUnderlyingObjects(MI, Objs)) {
-    for (ValueType VT : Objs)
+    for (ValueType const VT : Objs)
       HasHazard |= updateDefsUses(VT, MI.mayStore());
     return HasHazard;
   }
@@ -562,7 +562,7 @@ Iter MipsDelaySlotFiller::replaceWithCompactBranch(MachineBasicBlock &MBB,
   const MipsSubtarget &STI = MBB.getParent()->getSubtarget<MipsSubtarget>();
   const MipsInstrInfo *TII = STI.getInstrInfo();
 
-  unsigned NewOpcode = TII->getEquivalentCompactForm(Branch);
+  unsigned const NewOpcode = TII->getEquivalentCompactForm(Branch);
   Branch = TII->genInstrWithNewOpc(NewOpcode, Branch);
 
   auto *ToErase = cast<MachineInstr>(&*std::next(Branch));
@@ -605,7 +605,7 @@ static int getEquivalentCallShort(int Opcode) {
 bool MipsDelaySlotFiller::runOnMachineBasicBlock(MachineBasicBlock &MBB) {
   bool Changed = false;
   const MipsSubtarget &STI = MBB.getParent()->getSubtarget<MipsSubtarget>();
-  bool InMicroMipsMode = STI.inMicroMipsMode();
+  bool const InMicroMipsMode = STI.inMicroMipsMode();
   const MipsInstrInfo *TII = STI.getInstrInfo();
 
   for (Iter I = MBB.begin(); I != MBB.end(); ++I) {
@@ -639,7 +639,7 @@ bool MipsDelaySlotFiller::runOnMachineBasicBlock(MachineBasicBlock &MBB) {
 
       if (Filled) {
         // Get instruction with delay slot.
-        MachineBasicBlock::instr_iterator DSI = I.getInstrIterator();
+        MachineBasicBlock::instr_iterator const DSI = I.getInstrIterator();
 
         if (InMicroMipsMode && TII->getInstSizeInBytes(*std::next(DSI)) == 2 &&
             DSI->isCall()) {
@@ -742,9 +742,9 @@ bool MipsDelaySlotFiller::searchRange(MachineBasicBlock &MBB, IterTy Begin,
         continue;
     }
 
-    bool InMicroMipsMode = STI.inMicroMipsMode();
+    bool const InMicroMipsMode = STI.inMicroMipsMode();
     const MipsInstrInfo *TII = STI.getInstrInfo();
-    unsigned Opcode = (*Slot).getOpcode();
+    unsigned const Opcode = (*Slot).getOpcode();
     // This is complicated by the tail call optimization. For non-PIC code
     // there is only a 32bit sized unconditional branch which can be assumed
     // to be able to reach the target. b16 only has a range of +/- 1 KB.
@@ -783,7 +783,7 @@ bool MipsDelaySlotFiller::searchBackward(MachineBasicBlock &MBB,
 
   RegDU.init(Slot);
 
-  MachineBasicBlock::iterator SlotI = Slot;
+  MachineBasicBlock::iterator const SlotI = Slot;
   if (!searchRange(MBB, ++SlotI.getReverse(), MBB.rend(), RegDU, MemDU, Slot,
                    Filler)) {
     LLVM_DEBUG(dbgs() << DEBUG_TYPE ": could not find instruction for delay "
@@ -893,7 +893,7 @@ MipsDelaySlotFiller::getBranch(MachineBasicBlock &MBB,
   SmallVector<MachineInstr*, 2> BranchInstrs;
   SmallVector<MachineOperand, 2> Cond;
 
-  MipsInstrInfo::BranchType R =
+  MipsInstrInfo::BranchType const R =
       TII->analyzeBranch(MBB, TrueBB, FalseBB, Cond, false, BranchInstrs);
 
   if ((R == MipsInstrInfo::BT_None) || (R == MipsInstrInfo::BT_NoBranch))
@@ -926,7 +926,7 @@ bool MipsDelaySlotFiller::examinePred(MachineBasicBlock &Pred,
                                       RegDefsUses &RegDU,
                                       bool &HasMultipleSuccs,
                                       BB2BrMap &BrMap) const {
-  std::pair<MipsInstrInfo::BranchType, MachineInstr *> P =
+  std::pair<MipsInstrInfo::BranchType, MachineInstr *> const P =
       getBranch(Pred, Succ);
 
   // Return if either getBranch wasn't able to analyze the branches or there

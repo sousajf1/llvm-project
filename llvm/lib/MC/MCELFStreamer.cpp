@@ -52,15 +52,15 @@ bool MCELFStreamer::isBundleLocked() const {
 
 void MCELFStreamer::mergeFragment(MCDataFragment *DF,
                                   MCDataFragment *EF) {
-  MCAssembler &Assembler = getAssembler();
+  MCAssembler  const&Assembler = getAssembler();
 
   if (Assembler.isBundlingEnabled() && Assembler.getRelaxAll()) {
-    uint64_t FSize = EF->getContents().size();
+    uint64_t const FSize = EF->getContents().size();
 
     if (FSize > Assembler.getBundleAlignSize())
       report_fatal_error("Fragment can't be larger than a bundle size");
 
-    uint64_t RequiredBundlePadding = computeBundlePadding(
+    uint64_t const RequiredBundlePadding = computeBundlePadding(
         Assembler, EF, DF->getContents().size(), FSize);
 
     if (RequiredBundlePadding > UINT8_MAX)
@@ -179,7 +179,7 @@ void MCELFStreamer::emitWeakReference(MCSymbol *Alias, const MCSymbol *Symbol) {
 // If neither T1 < T2 nor T2 < T1 according to this ordering, use T2 (the user
 // provided type).
 static unsigned CombineSymbolTypes(unsigned T1, unsigned T2) {
-  for (unsigned Type : {ELF::STT_NOTYPE, ELF::STT_OBJECT, ELF::STT_FUNC,
+  for (unsigned const Type : {ELF::STT_NOTYPE, ELF::STT_OBJECT, ELF::STT_FUNC,
                         ELF::STT_GNU_IFUNC, ELF::STT_TLS}) {
     if (T1 == Type)
       return T2;
@@ -315,7 +315,7 @@ void MCELFStreamer::emitCommonSymbol(MCSymbol *S, uint64_t Size,
   if (Symbol->getBinding() == ELF::STB_LOCAL) {
     MCSection &Section = *getAssembler().getContext().getELFSection(
         ".bss", ELF::SHT_NOBITS, ELF::SHF_WRITE | ELF::SHF_ALLOC);
-    MCSectionSubPair P = getCurrentSection();
+    MCSectionSubPair const P = getCurrentSection();
     SwitchSection(&Section);
 
     emitValueToAlignment(ByteAlignment, 0, 1, 0);
@@ -542,7 +542,7 @@ static void CheckBundleSubtargets(const MCSubtargetInfo *OldSTI,
 
 void MCELFStreamer::emitInstToData(const MCInst &Inst,
                                    const MCSubtargetInfo &STI) {
-  MCAssembler &Assembler = getAssembler();
+  MCAssembler  const&Assembler = getAssembler();
   SmallVector<MCFixup, 4> Fixups;
   SmallString<256> Code;
   raw_svector_ostream VecOS(Code);
@@ -746,7 +746,7 @@ void MCELFStreamer::setAttributeItem(unsigned Attribute, unsigned Value,
   }
 
   // Create new attribute item
-  AttributeItem Item = {AttributeItem::NumericAttribute, Attribute, Value,
+  AttributeItem const Item = {AttributeItem::NumericAttribute, Attribute, Value,
                         std::string(StringRef(""))};
   Contents.push_back(Item);
 }
@@ -763,7 +763,7 @@ void MCELFStreamer::setAttributeItem(unsigned Attribute, StringRef Value,
   }
 
   // Create new attribute item
-  AttributeItem Item = {AttributeItem::TextAttribute, Attribute, 0,
+  AttributeItem const Item = {AttributeItem::TextAttribute, Attribute, 0,
                         std::string(Value)};
   Contents.push_back(Item);
 }
@@ -782,7 +782,7 @@ void MCELFStreamer::setAttributeItems(unsigned Attribute, unsigned IntValue,
   }
 
   // Create new attribute item
-  AttributeItem Item = {AttributeItem::NumericAndTextAttributes, Attribute,
+  AttributeItem const Item = {AttributeItem::NumericAndTextAttributes, Attribute,
                         IntValue, std::string(StringValue)};
   Contents.push_back(Item);
 }
@@ -799,7 +799,7 @@ size_t
 MCELFStreamer::calculateContentSize(SmallVector<AttributeItem, 64> &AttrsVec) {
   size_t Result = 0;
   for (size_t I = 0; I < AttrsVec.size(); ++I) {
-    AttributeItem Item = AttrsVec[I];
+    AttributeItem const Item = AttrsVec[I];
     switch (Item.Type) {
     case AttributeItem::HiddenAttribute:
       break;
@@ -861,7 +861,7 @@ void MCELFStreamer::createAttributesSection(
   // Size should have been accounted for already, now
   // emit each field as its type (ULEB or String)
   for (size_t I = 0; I < AttrsVec.size(); ++I) {
-    AttributeItem Item = AttrsVec[I];
+    AttributeItem const Item = AttrsVec[I];
     emitULEB128IntValue(Item.Tag);
     switch (Item.Type) {
     default:

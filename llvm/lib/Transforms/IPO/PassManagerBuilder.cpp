@@ -654,7 +654,7 @@ void PassManagerBuilder::populateModulePassManager(
     legacy::PassManagerBase &MPM) {
   // Whether this is a default or *LTO pre-link pipeline. The FullLTO post-link
   // is handled separately, so just check this is not the ThinLTO post-link.
-  bool DefaultOrPreLinkPipeline = !PerformThinLTO;
+  bool const DefaultOrPreLinkPipeline = !PerformThinLTO;
 
   MPM.add(createAnnotation2MetadataLegacyPass());
 
@@ -735,7 +735,7 @@ void PassManagerBuilder::populateModulePassManager(
   // For SamplePGO in ThinLTO compile phase, we do not want to unroll loops
   // as it will change the CFG too much to make the 2nd profile annotation
   // in backend more difficult.
-  bool PrepareForThinLTOUsingPGOSampleProfile =
+  bool const PrepareForThinLTOUsingPGOSampleProfile =
       PrepareForThinLTO && !PGOSampleUse.empty();
   if (PrepareForThinLTOUsingPGOSampleProfile)
     DisableUnrollLoops = true;
@@ -1068,7 +1068,7 @@ void PassManagerBuilder::addLTOOptimizationPasses(legacy::PassManagerBase &PM) {
   addExtensionsToPM(EP_Peephole, PM);
 
   // Inline small functions
-  bool RunInliner = Inliner;
+  bool const RunInliner = Inliner;
   if (RunInliner) {
     PM.add(Inliner);
     Inliner = nullptr;

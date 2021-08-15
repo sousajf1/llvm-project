@@ -28,7 +28,7 @@ DwarfStringPoolEntryRef NonRelocatableStringpool::getEntry(StringRef S) {
 }
 
 StringRef NonRelocatableStringpool::internString(StringRef S) {
-  DwarfStringPoolEntry Entry{nullptr, 0, DwarfStringPoolEntry::NotIndexed};
+  DwarfStringPoolEntry const Entry{nullptr, 0, DwarfStringPoolEntry::NotIndexed};
 
   if (Translator)
     S = Translator(S);

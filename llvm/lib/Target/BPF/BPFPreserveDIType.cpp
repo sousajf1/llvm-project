@@ -67,12 +67,12 @@ static bool BPFPreserveDITypeImpl(Function &F) {
   if (PreserveDITypeCalls.empty())
     return false;
 
-  std::string BaseName = "llvm.btf_type_id.";
+  std::string const BaseName = "llvm.btf_type_id.";
   static int Count = 0;
   for (auto Call : PreserveDITypeCalls) {
     const ConstantInt *Flag = dyn_cast<ConstantInt>(Call->getArgOperand(1));
     assert(Flag);
-    uint64_t FlagValue = Flag->getValue().getZExtValue();
+    uint64_t const FlagValue = Flag->getValue().getZExtValue();
 
     if (FlagValue >= BPFCoreSharedInfo::MAX_BTF_TYPE_ID_FLAG)
       report_fatal_error("Incorrect flag for llvm.bpf.btf.type.id intrinsic");
@@ -86,7 +86,7 @@ static bool BPFPreserveDITypeImpl(Function &F) {
       Reloc = BPFCoreSharedInfo::BTF_TYPE_ID_REMOTE;
       DIType *Ty = cast<DIType>(MD);
       while (auto *DTy = dyn_cast<DIDerivedType>(Ty)) {
-        unsigned Tag = DTy->getTag();
+        unsigned const Tag = DTy->getTag();
         if (Tag != dwarf::DW_TAG_const_type &&
             Tag != dwarf::DW_TAG_volatile_type)
           break;
@@ -100,7 +100,7 @@ static bool BPFPreserveDITypeImpl(Function &F) {
 
     BasicBlock *BB = Call->getParent();
     IntegerType *VarType = Type::getInt64Ty(BB->getContext());
-    std::string GVName = BaseName + std::to_string(Count) + "$" +
+    std::string const GVName = BaseName + std::to_string(Count) + "$" +
         std::to_string(Reloc);
     GlobalVariable *GV = new GlobalVariable(
         *M, VarType, false, GlobalVariable::ExternalLinkage, NULL, GVName);

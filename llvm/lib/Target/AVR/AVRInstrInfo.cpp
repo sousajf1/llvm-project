@@ -349,8 +349,8 @@ bool AVRInstrInfo::analyzeBranch(MachineBasicBlock &MBB,
         // Which is a bit more efficient.
         // We conditionally jump to the fall-through block.
         BranchCode = getOppositeCondition(BranchCode);
-        unsigned JNCC = getBrCond(BranchCode).getOpcode();
-        MachineBasicBlock::iterator OldInst = I;
+        unsigned const JNCC = getBrCond(BranchCode).getOpcode();
+        MachineBasicBlock::iterator const OldInst = I;
 
         BuildMI(MBB, UnCondBrIter, MBB.findDebugLoc(I), get(JNCC))
             .addMBB(UnCondBrIter->getOperand(0).getMBB());
@@ -383,7 +383,7 @@ bool AVRInstrInfo::analyzeBranch(MachineBasicBlock &MBB,
       return true;
     }
 
-    AVRCC::CondCodes OldBranchCode = (AVRCC::CondCodes)Cond[0].getImm();
+    AVRCC::CondCodes const OldBranchCode = (AVRCC::CondCodes)Cond[0].getImm();
     // If the conditions are the same, we can leave them alone.
     if (OldBranchCode == BranchCode) {
       continue;
@@ -418,7 +418,7 @@ unsigned AVRInstrInfo::insertBranch(MachineBasicBlock &MBB,
 
   // Conditional branch.
   unsigned Count = 0;
-  AVRCC::CondCodes CC = (AVRCC::CondCodes)Cond[0].getImm();
+  AVRCC::CondCodes const CC = (AVRCC::CondCodes)Cond[0].getImm();
   auto &CondMI = *BuildMI(&MBB, DL, getBrCond(CC)).addMBB(TBB);
 
   if (BytesAdded) *BytesAdded += getInstSizeInBytes(CondMI);
@@ -467,14 +467,14 @@ bool AVRInstrInfo::reverseBranchCondition(
     SmallVectorImpl<MachineOperand> &Cond) const {
   assert(Cond.size() == 1 && "Invalid AVR branch condition!");
 
-  AVRCC::CondCodes CC = static_cast<AVRCC::CondCodes>(Cond[0].getImm());
+  AVRCC::CondCodes const CC = static_cast<AVRCC::CondCodes>(Cond[0].getImm());
   Cond[0].setImm(getOppositeCondition(CC));
 
   return false;
 }
 
 unsigned AVRInstrInfo::getInstSizeInBytes(const MachineInstr &MI) const {
-  unsigned Opcode = MI.getOpcode();
+  unsigned const Opcode = MI.getOpcode();
 
   switch (Opcode) {
   // A regular instruction

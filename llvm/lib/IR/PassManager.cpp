@@ -48,7 +48,7 @@ bool FunctionAnalysisManagerModuleProxy::Result::invalidate(
   }
 
   // Directly check if the relevant set is preserved.
-  bool AreFunctionAnalysesPreserved =
+  bool const AreFunctionAnalysesPreserved =
       PA.allAnalysesInSetPreserved<AllAnalysesOn<Function>>();
 
   // Now walk all the functions to see if any inner analysis invalidation is
@@ -98,7 +98,7 @@ PreservedAnalyses ModuleToFunctionPassAdaptor::run(Module &M,
 
   // Request PassInstrumentation from analysis manager, will use it to run
   // instrumenting callbacks for the passes later.
-  PassInstrumentation PI = AM.getResult<PassInstrumentationAnalysis>(M);
+  PassInstrumentation const PI = AM.getResult<PassInstrumentationAnalysis>(M);
 
   PreservedAnalyses PA = PreservedAnalyses::all();
   for (Function &F : M) {
@@ -113,7 +113,7 @@ PreservedAnalyses ModuleToFunctionPassAdaptor::run(Module &M,
 
     PreservedAnalyses PassPA;
     {
-      TimeTraceScope TimeScope(Pass->name(), F.getName());
+      TimeTraceScope const TimeScope(Pass->name(), F.getName());
       PassPA = Pass->run(F, FAM);
     }
 

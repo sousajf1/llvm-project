@@ -93,7 +93,7 @@ bool NVPTXReplaceImageHandles::processInstr(MachineInstr &MI) {
 
     return true;
   } else if (MCID.TSFlags & NVPTXII::IsSuldMask) {
-    unsigned VecSize =
+    unsigned const VecSize =
       1 << (((MCID.TSFlags & NVPTXII::IsSuldMask) >> NVPTXII::IsSuldShift) - 1);
 
     // For a surface load of vector size N, the Nth operand will be the surfref
@@ -151,11 +151,11 @@ findIndexForHandle(MachineOperand &Op, MachineFunction &MF, unsigned &Idx) {
     }
 
     assert(TexHandleDef.getOperand(6).isSymbol() && "Load is not a symbol!");
-    StringRef Sym = TexHandleDef.getOperand(6).getSymbolName();
+    StringRef const Sym = TexHandleDef.getOperand(6).getSymbolName();
     std::string ParamBaseName = std::string(MF.getName());
     ParamBaseName += "_param_";
     assert(Sym.startswith(ParamBaseName) && "Invalid symbol reference");
-    unsigned Param = atoi(Sym.data()+ParamBaseName.size());
+    unsigned const Param = atoi(Sym.data()+ParamBaseName.size());
     std::string NewSym;
     raw_string_ostream NewSymStr(NewSym);
     NewSymStr << MF.getName() << "_param_" << Param;
@@ -175,7 +175,7 @@ findIndexForHandle(MachineOperand &Op, MachineFunction &MF, unsigned &Idx) {
   }
   case NVPTX::nvvm_move_i64:
   case TargetOpcode::COPY: {
-    bool Res = findIndexForHandle(TexHandleDef.getOperand(1), MF, Idx);
+    bool const Res = findIndexForHandle(TexHandleDef.getOperand(1), MF, Idx);
     if (Res) {
       InstrsToRemove.insert(&TexHandleDef);
     }

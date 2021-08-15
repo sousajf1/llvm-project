@@ -89,7 +89,7 @@ static std::vector<StringRef> getSearchPaths(opt::InputArgList *Args,
 }
 
 static std::string findInputFile(StringRef File, ArrayRef<StringRef> Paths) {
-  for (StringRef Dir : Paths) {
+  for (StringRef const Dir : Paths) {
     SmallString<128> Path = Dir;
     sys::path::append(Path, File);
     if (sys::fs::exists(Path))
@@ -127,25 +127,25 @@ static void doList(opt::InputArgList& Args) {
     return;
 
   Error Err = Error::success();
-  object::Archive Archive(B.get()->getMemBufferRef(), Err);
+  object::Archive const Archive(B.get()->getMemBufferRef(), Err);
   fatalOpenError(std::move(Err), B->getBufferIdentifier());
 
   for (auto &C : Archive.children(Err)) {
     Expected<StringRef> NameOrErr = C.getName();
     fatalOpenError(NameOrErr.takeError(), B->getBufferIdentifier());
-    StringRef Name = NameOrErr.get();
+    StringRef const Name = NameOrErr.get();
     llvm::outs() << Name << '\n';
   }
   fatalOpenError(std::move(Err), B->getBufferIdentifier());
 }
 
 static Expected<COFF::MachineTypes> getCOFFFileMachine(MemoryBufferRef MB) {
-  std::error_code EC;
+  std::error_code const EC;
   auto Obj = object::COFFObjectFile::create(MB);
   if (!Obj)
     return Obj.takeError();
 
-  uint16_t Machine = (*Obj)->getMachine();
+  uint16_t const Machine = (*Obj)->getMachine();
   if (Machine != COFF::IMAGE_FILE_MACHINE_I386 &&
       Machine != COFF::IMAGE_FILE_MACHINE_AMD64 &&
       Machine != COFF::IMAGE_FILE_MACHINE_ARMNT &&
@@ -180,7 +180,7 @@ static Expected<COFF::MachineTypes> getBitcodeFileMachine(MemoryBufferRef MB) {
 static void appendFile(std::vector<NewArchiveMember> &Members,
                        COFF::MachineTypes &LibMachine,
                        std::string &LibMachineSource, MemoryBufferRef MB) {
-  file_magic Magic = identify_magic(MB.getBuffer());
+  file_magic const Magic = identify_magic(MB.getBuffer());
 
   if (Magic != file_magic::coff_object && Magic != file_magic::bitcode &&
       Magic != file_magic::archive && Magic != file_magic::windows_resource &&
@@ -197,7 +197,7 @@ static void appendFile(std::vector<NewArchiveMember> &Members,
   // is for compatibility with Microsoft's lib command.
   if (Magic == file_magic::archive) {
     Error Err = Error::success();
-    object::Archive Archive(MB, Err);
+    object::Archive const Archive(MB, Err);
     fatalOpenError(std::move(Err), MB.getBufferIdentifier());
 
     for (auto &C : Archive.children(Err)) {
@@ -235,7 +235,7 @@ static void appendFile(std::vector<NewArchiveMember> &Members,
       });
       exit(1);
     }
-    COFF::MachineTypes FileMachine = *MaybeFileMachine;
+    COFF::MachineTypes const FileMachine = *MaybeFileMachine;
 
     // FIXME: Once lld-link rejects multiple resource .obj files:
     // Call convertResToCOFF() on .res files and add the resulting
@@ -269,7 +269,7 @@ int llvm::libDriverMain(ArrayRef<const char *> ArgsArr) {
   cl::ExpandResponseFiles(Saver, cl::TokenizeWindowsCommandLine, NewArgs);
   ArgsArr = NewArgs;
 
-  LibOptTable Table;
+  LibOptTable const Table;
   unsigned MissingIndex;
   unsigned MissingCount;
   opt::InputArgList Args =
@@ -301,7 +301,7 @@ int llvm::libDriverMain(ArrayRef<const char *> ArgsArr) {
     return 0;
   }
 
-  std::vector<StringRef> SearchPaths = getSearchPaths(&Args, Saver);
+  std::vector<StringRef> const SearchPaths = getSearchPaths(&Args, Saver);
 
   COFF::MachineTypes LibMachine = COFF::IMAGE_FILE_MACHINE_UNKNOWN;
   std::string LibMachineSource;
@@ -322,7 +322,7 @@ int llvm::libDriverMain(ArrayRef<const char *> ArgsArr) {
   // Create a NewArchiveMember for each input file.
   for (auto *Arg : Args.filtered(OPT_INPUT)) {
     // Find a file
-    std::string Path = findInputFile(Arg->getValue(), SearchPaths);
+    std::string const Path = findInputFile(Arg->getValue(), SearchPaths);
     if (Path.empty()) {
       llvm::errs() << Arg->getValue() << ": no such file or directory\n";
       return 1;
@@ -342,7 +342,7 @@ int llvm::libDriverMain(ArrayRef<const char *> ArgsArr) {
     ErrorOr<std::unique_ptr<MemoryBuffer>> MOrErr = MemoryBuffer::getFile(
         Path, /*IsText=*/false, /*RequiresNullTerminator=*/false);
     fatalOpenError(errorCodeToError(MOrErr.getError()), Path);
-    MemoryBufferRef MBRef = (*MOrErr)->getMemBufferRef();
+    MemoryBufferRef const MBRef = (*MOrErr)->getMemBufferRef();
 
     // Append a file.
     appendFile(Members, LibMachine, LibMachineSource, MBRef);

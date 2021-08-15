@@ -187,7 +187,7 @@ private:
 
     for (auto &S : Obj.sections()) {
 
-      JITTargetAddress SectionAddress = S.getAddress();
+      JITTargetAddress const SectionAddress = S.getAddress();
 
       // Skip relocations virtual sections.
       if (S.isVirtual()) {
@@ -281,7 +281,7 @@ private:
           });
 
           // Find the address of the value to fix up.
-          JITTargetAddress PairedFixupAddress =
+          JITTargetAddress const PairedFixupAddress =
               SectionAddress + (uint32_t)RI.r_address;
           if (PairedFixupAddress != FixupAddress)
             return make_error<JITLinkError>("Paired relocation points at "
@@ -294,7 +294,7 @@ private:
             TargetSymbol = TargetSymbolOrErr->GraphSymbol;
           else
             return TargetSymbolOrErr.takeError();
-          uint32_t Instr = *(const ulittle32_t *)FixupContent;
+          uint32_t const Instr = *(const ulittle32_t *)FixupContent;
           if ((Instr & 0x7fffffff) != 0x14000000)
             return make_error<JITLinkError>("BRANCH26 target is not a B or BL "
                                             "instruction with a zero addend");
@@ -315,7 +315,7 @@ private:
           Addend = *(const ulittle64_t *)FixupContent;
           break;
         case Pointer64Anon: {
-          JITTargetAddress TargetAddress = *(const ulittle64_t *)FixupContent;
+          JITTargetAddress const TargetAddress = *(const ulittle64_t *)FixupContent;
           if (auto TargetSymbolOrErr = findSymbolByAddress(TargetAddress))
             TargetSymbol = &*TargetSymbolOrErr;
           else
@@ -329,7 +329,7 @@ private:
             TargetSymbol = TargetSymbolOrErr->GraphSymbol;
           else
             return TargetSymbolOrErr.takeError();
-          uint32_t Instr = *(const ulittle32_t *)FixupContent;
+          uint32_t const Instr = *(const ulittle32_t *)FixupContent;
           if ((Instr & 0xffffffe0) != 0x90000000)
             return make_error<JITLinkError>("PAGE21/GOTPAGE21 target is not an "
                                             "ADRP instruction with a zero "
@@ -341,8 +341,8 @@ private:
             TargetSymbol = TargetSymbolOrErr->GraphSymbol;
           else
             return TargetSymbolOrErr.takeError();
-          uint32_t Instr = *(const ulittle32_t *)FixupContent;
-          uint32_t EncodedAddend = (Instr & 0x003FFC00) >> 10;
+          uint32_t const Instr = *(const ulittle32_t *)FixupContent;
+          uint32_t const EncodedAddend = (Instr & 0x003FFC00) >> 10;
           if (EncodedAddend != 0)
             return make_error<JITLinkError>("GOTPAGEOFF12 target has non-zero "
                                             "encoded addend");
@@ -353,7 +353,7 @@ private:
             TargetSymbol = TargetSymbolOrErr->GraphSymbol;
           else
             return TargetSymbolOrErr.takeError();
-          uint32_t Instr = *(const ulittle32_t *)FixupContent;
+          uint32_t const Instr = *(const ulittle32_t *)FixupContent;
           if ((Instr & 0xfffffc00) != 0xf9400000)
             return make_error<JITLinkError>("GOTPAGEOFF12 target is not an LDR "
                                             "immediate instruction with a zero "
@@ -530,13 +530,13 @@ private:
 
     char *BlockWorkingMem = B.getAlreadyMutableContent().data();
     char *FixupPtr = BlockWorkingMem + E.getOffset();
-    JITTargetAddress FixupAddress = B.getAddress() + E.getOffset();
+    JITTargetAddress const FixupAddress = B.getAddress() + E.getOffset();
 
     switch (E.getKind()) {
     case Branch26: {
       assert((FixupAddress & 0x3) == 0 && "Branch-inst is not 32-bit aligned");
 
-      int64_t Value = E.getTarget().getAddress() - FixupAddress + E.getAddend();
+      int64_t const Value = E.getTarget().getAddress() - FixupAddress + E.getAddend();
 
       if (static_cast<uint64_t>(Value) & 0x3)
         return make_error<JITLinkError>("Branch26 target is not 32-bit "
@@ -545,16 +545,16 @@ private:
       if (Value < -(1 << 27) || Value > ((1 << 27) - 1))
         return makeTargetOutOfRangeError(G, B, E);
 
-      uint32_t RawInstr = *(little32_t *)FixupPtr;
+      uint32_t const RawInstr = *(little32_t *)FixupPtr;
       assert((RawInstr & 0x7fffffff) == 0x14000000 &&
              "RawInstr isn't a B or BR immediate instruction");
-      uint32_t Imm = (static_cast<uint32_t>(Value) & ((1 << 28) - 1)) >> 2;
-      uint32_t FixedInstr = RawInstr | Imm;
+      uint32_t const Imm = (static_cast<uint32_t>(Value) & ((1 << 28) - 1)) >> 2;
+      uint32_t const FixedInstr = RawInstr | Imm;
       *(little32_t *)FixupPtr = FixedInstr;
       break;
     }
     case Pointer32: {
-      uint64_t Value = E.getTarget().getAddress() + E.getAddend();
+      uint64_t const Value = E.getTarget().getAddress() + E.getAddend();
       if (Value > std::numeric_limits<uint32_t>::max())
         return makeTargetOutOfRangeError(G, B, E);
       *(ulittle32_t *)FixupPtr = Value;
@@ -562,7 +562,7 @@ private:
     }
     case Pointer64:
     case Pointer64Anon: {
-      uint64_t Value = E.getTarget().getAddress() + E.getAddend();
+      uint64_t const Value = E.getTarget().getAddress() + E.getAddend();
       *(ulittle64_t *)FixupPtr = Value;
       break;
     }
@@ -570,67 +570,67 @@ private:
     case GOTPage21: {
       assert((E.getKind() != GOTPage21 || E.getAddend() == 0) &&
              "GOTPAGE21 with non-zero addend");
-      uint64_t TargetPage =
+      uint64_t const TargetPage =
           (E.getTarget().getAddress() + E.getAddend()) &
             ~static_cast<uint64_t>(4096 - 1);
-      uint64_t PCPage = FixupAddress & ~static_cast<uint64_t>(4096 - 1);
+      uint64_t const PCPage = FixupAddress & ~static_cast<uint64_t>(4096 - 1);
 
-      int64_t PageDelta = TargetPage - PCPage;
+      int64_t const PageDelta = TargetPage - PCPage;
       if (PageDelta < -(1 << 30) || PageDelta > ((1 << 30) - 1))
         return makeTargetOutOfRangeError(G, B, E);
 
-      uint32_t RawInstr = *(ulittle32_t *)FixupPtr;
+      uint32_t const RawInstr = *(ulittle32_t *)FixupPtr;
       assert((RawInstr & 0xffffffe0) == 0x90000000 &&
              "RawInstr isn't an ADRP instruction");
-      uint32_t ImmLo = (static_cast<uint64_t>(PageDelta) >> 12) & 0x3;
-      uint32_t ImmHi = (static_cast<uint64_t>(PageDelta) >> 14) & 0x7ffff;
-      uint32_t FixedInstr = RawInstr | (ImmLo << 29) | (ImmHi << 5);
+      uint32_t const ImmLo = (static_cast<uint64_t>(PageDelta) >> 12) & 0x3;
+      uint32_t const ImmHi = (static_cast<uint64_t>(PageDelta) >> 14) & 0x7ffff;
+      uint32_t const FixedInstr = RawInstr | (ImmLo << 29) | (ImmHi << 5);
       *(ulittle32_t *)FixupPtr = FixedInstr;
       break;
     }
     case PageOffset12: {
-      uint64_t TargetOffset =
+      uint64_t const TargetOffset =
         (E.getTarget().getAddress() + E.getAddend()) & 0xfff;
 
-      uint32_t RawInstr = *(ulittle32_t *)FixupPtr;
-      unsigned ImmShift = getPageOffset12Shift(RawInstr);
+      uint32_t const RawInstr = *(ulittle32_t *)FixupPtr;
+      unsigned const ImmShift = getPageOffset12Shift(RawInstr);
 
       if (TargetOffset & ((1 << ImmShift) - 1))
         return make_error<JITLinkError>("PAGEOFF12 target is not aligned");
 
-      uint32_t EncodedImm = (TargetOffset >> ImmShift) << 10;
-      uint32_t FixedInstr = RawInstr | EncodedImm;
+      uint32_t const EncodedImm = (TargetOffset >> ImmShift) << 10;
+      uint32_t const FixedInstr = RawInstr | EncodedImm;
       *(ulittle32_t *)FixupPtr = FixedInstr;
       break;
     }
     case GOTPageOffset12: {
       assert(E.getAddend() == 0 && "GOTPAGEOF12 with non-zero addend");
 
-      uint32_t RawInstr = *(ulittle32_t *)FixupPtr;
+      uint32_t const RawInstr = *(ulittle32_t *)FixupPtr;
       assert((RawInstr & 0xfffffc00) == 0xf9400000 &&
              "RawInstr isn't a 64-bit LDR immediate");
 
-      uint32_t TargetOffset = E.getTarget().getAddress() & 0xfff;
+      uint32_t const TargetOffset = E.getTarget().getAddress() & 0xfff;
       assert((TargetOffset & 0x7) == 0 && "GOT entry is not 8-byte aligned");
-      uint32_t EncodedImm = (TargetOffset >> 3) << 10;
-      uint32_t FixedInstr = RawInstr | EncodedImm;
+      uint32_t const EncodedImm = (TargetOffset >> 3) << 10;
+      uint32_t const FixedInstr = RawInstr | EncodedImm;
       *(ulittle32_t *)FixupPtr = FixedInstr;
       break;
     }
     case LDRLiteral19: {
       assert((FixupAddress & 0x3) == 0 && "LDR is not 32-bit aligned");
       assert(E.getAddend() == 0 && "LDRLiteral19 with non-zero addend");
-      uint32_t RawInstr = *(ulittle32_t *)FixupPtr;
+      uint32_t const RawInstr = *(ulittle32_t *)FixupPtr;
       assert(RawInstr == 0x58000010 && "RawInstr isn't a 64-bit LDR literal");
-      int64_t Delta = E.getTarget().getAddress() - FixupAddress;
+      int64_t const Delta = E.getTarget().getAddress() - FixupAddress;
       if (Delta & 0x3)
         return make_error<JITLinkError>("LDR literal target is not 32-bit "
                                         "aligned");
       if (Delta < -(1 << 20) || Delta > ((1 << 20) - 1))
         return makeTargetOutOfRangeError(G, B, E);
 
-      uint32_t EncodedImm = (static_cast<uint32_t>(Delta) >> 2) << 5;
-      uint32_t FixedInstr = RawInstr | EncodedImm;
+      uint32_t const EncodedImm = (static_cast<uint32_t>(Delta) >> 2) << 5;
+      uint32_t const FixedInstr = RawInstr | EncodedImm;
       *(ulittle32_t *)FixupPtr = FixedInstr;
       break;
     }

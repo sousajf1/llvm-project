@@ -232,7 +232,7 @@ struct LegacyLICMPass : public LoopPass {
     MemorySSA *MSSA = EnableMSSALoopDependency
                           ? (&getAnalysis<MemorySSAWrapperPass>().getMSSA())
                           : nullptr;
-    bool hasProfileData = L->getHeader()->getParent()->hasProfileData();
+    bool const hasProfileData = L->getHeader()->getParent()->hasProfileData();
     BlockFrequencyInfo *BFI =
         hasProfileData ? &getAnalysis<LazyBlockFrequencyInfoPass>().getBFI()
                        : nullptr;
@@ -307,7 +307,7 @@ PreservedAnalyses LNICMPass::run(LoopNest &LN, LoopAnalysisManager &AM,
   LoopInvariantCodeMotion LICM(LicmMssaOptCap, LicmMssaNoAccForPromotionCap);
 
   Loop &OutermostLoop = LN.getOutermostLoop();
-  bool Changed = LICM.runOnLoop(&OutermostLoop, &AR.AA, &AR.LI, &AR.DT, AR.BFI,
+  bool const Changed = LICM.runOnLoop(&OutermostLoop, &AR.AA, &AR.LI, &AR.DT, AR.BFI,
                                 &AR.TLI, &AR.TTI, &AR.SE, AR.MSSA, &ORE, true);
 
   if (!Changed)
@@ -400,7 +400,7 @@ bool LoopInvariantCodeMotion::runOnLoop(
   // there is currently no general solution for this. Similar issues could also
   // potentially happen in other passes where instructions are being moved
   // across that edge.
-  bool HasCoroSuspendInst = llvm::any_of(L->getBlocks(), [](BasicBlock *BB) {
+  bool const HasCoroSuspendInst = llvm::any_of(L->getBlocks(), [](BasicBlock *BB) {
     return llvm::any_of(*BB, [](Instruction &I) {
       IntrinsicInst *II = dyn_cast<IntrinsicInst>(&I);
       return II && II->getIntrinsicID() == Intrinsic::coro_suspend;
@@ -464,7 +464,7 @@ bool LoopInvariantCodeMotion::runOnLoop(
     L->getUniqueExitBlocks(ExitBlocks);
 
     // We can't insert into a catchswitch.
-    bool HasCatchSwitch = llvm::any_of(ExitBlocks, [](BasicBlock *Exit) {
+    bool const HasCatchSwitch = llvm::any_of(ExitBlocks, [](BasicBlock *Exit) {
       return isa<CatchSwitchInst>(Exit->getTerminator());
     });
 
@@ -485,7 +485,7 @@ bool LoopInvariantCodeMotion::runOnLoop(
       bool Promoted = false;
       if (CurAST.get()) {
         // Loop over all of the alias sets in the tracker object.
-        for (AliasSet &AS : *CurAST) {
+        for (AliasSet  const&AS : *CurAST) {
           // We can promote this alias set if it has a store, if it is a "Must"
           // alias set, if the pointer is loop invariant, and if we are not
           // eliminating any volatile loads or stores.
@@ -604,7 +604,7 @@ bool llvm::sinkRegion(DomTreeNode *N, AAResults *AA, LoopInfo *LI,
       // operands of the instruction are loop invariant.
       //
       bool FreeInLoop = false;
-      bool LoopNestMode = OutermostLoop != nullptr;
+      bool const LoopNestMode = OutermostLoop != nullptr;
       if (!I.mayHaveSideEffects() &&
           isNotUsedOrFreeInLoop(I, LoopNestMode ? OutermostLoop : CurLoop,
                                 SafetyInfo, TTI, FreeInLoop, LoopNestMode) &&
@@ -1148,7 +1148,7 @@ static bool isLoadInvariantInLoop(LoadInst *LI, DominatorTree *DT,
     // so we should check for that here.
     if (InvariantSize->isNegative())
       continue;
-    uint64_t InvariantSizeInBits = InvariantSize->getSExtValue() * 8;
+    uint64_t const InvariantSizeInBits = InvariantSize->getSExtValue() * 8;
     // Confirm the invariant.start location size contains the load operand size
     // in bits. Also, the invariant.start should dominate the load, and we
     // should not hoist the load out of a loop that contains this dominating
@@ -1180,7 +1180,7 @@ bool isHoistableAndSinkableInst(Instruction &I) {
 bool isReadOnly(AliasSetTracker *CurAST, const MemorySSAUpdater *MSSAU,
                 const Loop *L) {
   if (CurAST) {
-    for (AliasSet &AS : *CurAST) {
+    for (AliasSet  const&AS : *CurAST) {
       if (!AS.isForwardingAliasSet() && AS.isMod()) {
         return false;
       }
@@ -1292,7 +1292,7 @@ bool llvm::canSinkOrHoistInst(Instruction &I, AAResults *AA, DominatorTree *DT,
       return true;
 
     // Handle simple cases by querying alias analysis.
-    FunctionModRefBehavior Behavior = AA->getModRefBehavior(CI);
+    FunctionModRefBehavior const Behavior = AA->getModRefBehavior(CI);
     if (Behavior == FMRB_DoesNotAccessMemory)
       return true;
     if (AAResults::onlyReadsMemory(Behavior)) {
@@ -1404,7 +1404,7 @@ bool llvm::canSinkOrHoistInst(Instruction &I, AAResults *AA, DominatorTree *DT,
                 // Check if the call may read from the memory location written
                 // to by SI. Check CI's attributes and arguments; the number of
                 // such checks performed is limited above by NoOfMemAccTooLarge.
-                ModRefInfo MRI = AA->getModRefInfo(CI, MemoryLocation::get(SI));
+                ModRefInfo const MRI = AA->getModRefInfo(CI, MemoryLocation::get(SI));
                 if (isModOrRefSet(MRI))
                   return false;
               }
@@ -1474,7 +1474,7 @@ static bool isNotUsedOrFreeInLoop(const Instruction &I, const Loop *CurLoop,
                                   TargetTransformInfo *TTI, bool &FreeInLoop,
                                   bool LoopNestMode) {
   const auto &BlockColors = SafetyInfo->getBlockColors();
-  bool IsFree = isFreeInLoop(I, CurLoop, TTI);
+  bool const IsFree = isFreeInLoop(I, CurLoop, TTI);
   for (const User *U : I.users()) {
     const Instruction *UI = cast<Instruction>(U);
     if (const PHINode *PN = dyn_cast<PHINode>(UI)) {
@@ -1524,7 +1524,7 @@ static Instruction *cloneInstructionInExitBlock(
     SmallVector<OperandBundleDef, 1> OpBundles;
     for (unsigned BundleIdx = 0, BundleEnd = CI->getNumOperandBundles();
          BundleIdx != BundleEnd; ++BundleIdx) {
-      OperandBundleUse Bundle = CI->getOperandBundleAt(BundleIdx);
+      OperandBundleUse const Bundle = CI->getOperandBundleAt(BundleIdx);
       if (Bundle.getTagID() == LLVMContext::OB_funclet)
         continue;
 
@@ -1653,7 +1653,7 @@ static void splitPredecessorsOfLoopExit(PHINode *PN, DominatorTree *DT,
 #ifndef NDEBUG
   SmallVector<BasicBlock *, 32> ExitBlocks;
   CurLoop->getUniqueExitBlocks(ExitBlocks);
-  SmallPtrSet<BasicBlock *, 32> ExitBlockSet(ExitBlocks.begin(),
+  SmallPtrSet<BasicBlock *, 32> const ExitBlockSet(ExitBlocks.begin(),
                                              ExitBlocks.end());
 #endif
   BasicBlock *ExitBB = PN->getParent();
@@ -1788,7 +1788,7 @@ static bool sink(Instruction &I, LoopInfo *LI, DominatorTree *DT,
 #ifndef NDEBUG
   SmallVector<BasicBlock *, 32> ExitBlocks;
   CurLoop->getUniqueExitBlocks(ExitBlocks);
-  SmallPtrSet<BasicBlock *, 32> ExitBlockSet(ExitBlocks.begin(),
+  SmallPtrSet<BasicBlock *, 32> const ExitBlockSet(ExitBlocks.begin(),
                                              ExitBlocks.end());
 #endif
 
@@ -1800,7 +1800,7 @@ static bool sink(Instruction &I, LoopInfo *LI, DominatorTree *DT,
   // the instruction.
   // First check if I is worth sinking for all uses. Sink only when it is worth
   // across all uses.
-  SmallSetVector<User*, 8> Users(I.user_begin(), I.user_end());
+  SmallSetVector<User*, 8> const Users(I.user_begin(), I.user_end());
   SmallVector<PHINode *, 8> ExitPNs;
   for (auto *UI : Users) {
     auto *User = cast<Instruction>(UI);
@@ -1888,7 +1888,7 @@ static bool isSafeToExecuteUnconditionally(Instruction &Inst,
   if (isSafeToSpeculativelyExecute(&Inst, CtxI, DT, TLI))
     return true;
 
-  bool GuaranteedToExecute =
+  bool const GuaranteedToExecute =
       SafetyInfo->isGuaranteedToExecute(Inst, DT, CurLoop);
 
   if (!GuaranteedToExecute) {
@@ -2163,7 +2163,7 @@ bool llvm::promoteLoopAccessesToScalars(
         SawUnorderedAtomic |= Load->isAtomic();
         SawNotAtomic |= !Load->isAtomic();
 
-        Align InstAlignment = Load->getAlign();
+        Align const InstAlignment = Load->getAlign();
 
         // Note that proving a load safe to speculate requires proving
         // sufficient alignment at the target location.  Proving it guaranteed
@@ -2192,7 +2192,7 @@ bool llvm::promoteLoopAccessesToScalars(
         // already know that promotion is safe, since it may have higher
         // alignment than any other guaranteed stores, in which case we can
         // raise the alignment on the promoted store.
-        Align InstAlignment = Store->getAlign();
+        Align const InstAlignment = Store->getAlign();
 
         if (!DereferenceableInPH || !SafeToInsertStore ||
             (InstAlignment > Alignment)) {
@@ -2366,7 +2366,7 @@ collectPromotionCandidates(MemorySSA *MSSA, AliasAnalysis *AA, Loop *L) {
 
   // We're only interested in must-alias sets that contain a mod.
   SmallVector<const AliasSet *, 8> Sets;
-  for (AliasSet &AS : AST)
+  for (AliasSet  const&AS : AST)
     if (!AS.isForwardingAliasSet() && AS.isMod() && AS.isMustAlias())
       Sets.push_back(&AS);
 
@@ -2418,7 +2418,7 @@ static bool pointerInvalidatedByLoop(MemoryLocation MemLoc,
                                      AliasSetTracker *CurAST, Loop *CurLoop,
                                      AAResults *AA) {
   // First check to see if any of the basic blocks in CurLoop invalidate *V.
-  bool isInvalidatedAccordingToAST = CurAST->getAliasSetFor(MemLoc).isMod();
+  bool const isInvalidatedAccordingToAST = CurAST->getAliasSetFor(MemLoc).isMod();
 
   if (!isInvalidatedAccordingToAST || !LICMN2Theshold)
     return isInvalidatedAccordingToAST;
@@ -2443,7 +2443,7 @@ static bool pointerInvalidatedByLoop(MemoryLocation MemLoc,
 
   int N = 0;
   for (BasicBlock *BB : CurLoop->getBlocks())
-    for (Instruction &I : *BB) {
+    for (Instruction  const&I : *BB) {
       if (N >= LICMN2Theshold) {
         LLVM_DEBUG(dbgs() << "Alasing N2 threshold exhausted for "
                           << *(MemLoc.Ptr) << "\n");

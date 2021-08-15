@@ -13,7 +13,7 @@ using namespace llvm;
 
 std::pair<uint64_t, dwarf::DwarfFormat>
 DWARFDataExtractor::getInitialLength(uint64_t *Off, Error *Err) const {
-  ErrorAsOutParameter ErrAsOut(Err);
+  ErrorAsOutParameter const ErrAsOut(Err);
   if (Err && *Err)
     return {0, dwarf::DWARF32};
 
@@ -51,9 +51,9 @@ uint64_t DWARFDataExtractor::getRelocatedValue(uint32_t Size, uint64_t *Off,
   if (!Section)
     return getUnsigned(Off, Size, Err);
 
-  ErrorAsOutParameter ErrAsOut(Err);
+  ErrorAsOutParameter const ErrAsOut(Err);
   Optional<RelocAddrEntry> E = Obj->find(*Section, *Off);
-  uint64_t LocData = getUnsigned(Off, Size, Err);
+  uint64_t const LocData = getUnsigned(Off, Size, Err);
   if (!E || (Err && *Err))
     return LocData;
   if (SecNdx)
@@ -73,7 +73,7 @@ DWARFDataExtractor::getEncodedPointer(uint64_t *Offset, uint8_t Encoding,
     return None;
 
   uint64_t Result = 0;
-  uint64_t OldOffset = *Offset;
+  uint64_t const OldOffset = *Offset;
   // First get value
   switch (Encoding & 0x0F) {
   case dwarf::DW_EH_PE_absptr:

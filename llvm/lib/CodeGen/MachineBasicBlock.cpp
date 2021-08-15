@@ -210,7 +210,7 @@ MachineBasicBlock::iterator
 MachineBasicBlock::SkipPHIsAndLabels(MachineBasicBlock::iterator I) {
   const TargetInstrInfo *TII = getParent()->getSubtarget().getInstrInfo();
 
-  iterator E = end();
+  iterator const E = end();
   while (I != E && (I->isPHI() || I->isPosition() ||
                     TII->isBasicBlockPrologue(*I)))
     ++I;
@@ -226,7 +226,7 @@ MachineBasicBlock::SkipPHIsLabelsAndDebug(MachineBasicBlock::iterator I,
                                           bool SkipPseudoOp) {
   const TargetInstrInfo *TII = getParent()->getSubtarget().getInstrInfo();
 
-  iterator E = end();
+  iterator const E = end();
   while (I != E && (I->isPHI() || I->isPosition() || I->isDebugInstr() ||
                     (SkipPseudoOp && I->isPseudoProbe()) ||
                     TII->isBasicBlockPrologue(*I)))
@@ -555,7 +555,7 @@ void MachineBasicBlock::printAsOperand(raw_ostream &OS,
 }
 
 void MachineBasicBlock::removeLiveIn(MCPhysReg Reg, LaneBitmask LaneMask) {
-  LiveInVector::iterator I = find_if(
+  LiveInVector::iterator const I = find_if(
       LiveIns, [Reg](const RegisterMaskPair &LI) { return LI.PhysReg == Reg; });
   if (I == LiveIns.end())
     return;
@@ -568,12 +568,12 @@ void MachineBasicBlock::removeLiveIn(MCPhysReg Reg, LaneBitmask LaneMask) {
 MachineBasicBlock::livein_iterator
 MachineBasicBlock::removeLiveIn(MachineBasicBlock::livein_iterator I) {
   // Get non-const version of iterator.
-  LiveInVector::iterator LI = LiveIns.begin() + (I - LiveIns.begin());
+  LiveInVector::iterator const LI = LiveIns.begin() + (I - LiveIns.begin());
   return LiveIns.erase(LI);
 }
 
 bool MachineBasicBlock::isLiveIn(MCPhysReg Reg, LaneBitmask LaneMask) const {
-  livein_iterator I = find_if(
+  livein_iterator const I = find_if(
       LiveIns, [Reg](const RegisterMaskPair &LI) { return LI.PhysReg == Reg; });
   return I != livein_end() && (I->LaneMask & LaneMask).any();
 }
@@ -588,7 +588,7 @@ void MachineBasicBlock::sortUniqueLiveIns() {
   LiveInVector::const_iterator J;
   LiveInVector::iterator Out = LiveIns.begin();
   for (; I != LiveIns.end(); ++Out, I = J) {
-    MCRegister PhysReg = I->PhysReg;
+    MCRegister const PhysReg = I->PhysReg;
     LaneBitmask LaneMask = I->LaneMask;
     for (J = std::next(I); J != LiveIns.end() && J->PhysReg == PhysReg; ++J)
       LaneMask |= J->LaneMask;
@@ -606,7 +606,7 @@ MachineBasicBlock::addLiveIn(MCRegister PhysReg, const TargetRegisterClass *RC) 
   assert((isEHPad() || this == &getParent()->front()) &&
          "Only the entry block and landing pads can have physreg live ins");
 
-  bool LiveIn = isLiveIn(PhysReg);
+  bool const LiveIn = isLiveIn(PhysReg);
   iterator I = SkipPHIsAndLabels(begin()), E = end();
   MachineRegisterInfo &MRI = getParent()->getRegInfo();
   const TargetInstrInfo &TII = *getParent()->getSubtarget().getInstrInfo();
@@ -650,8 +650,8 @@ void MachineBasicBlock::updateTerminator(
 
   MachineBasicBlock *TBB = nullptr, *FBB = nullptr;
   SmallVector<MachineOperand, 4> Cond;
-  DebugLoc DL = findBranchDebugLoc();
-  bool B = TII->analyzeBranch(*this, TBB, FBB, Cond);
+  DebugLoc const DL = findBranchDebugLoc();
+  bool const B = TII->analyzeBranch(*this, TBB, FBB, Cond);
   (void) B;
   assert(!B && "UpdateTerminators requires analyzable predecessors!");
   if (Cond.empty()) {
@@ -765,7 +765,7 @@ void MachineBasicBlock::addSuccessorWithoutProb(MachineBasicBlock *Succ) {
 void MachineBasicBlock::splitSuccessor(MachineBasicBlock *Old,
                                        MachineBasicBlock *New,
                                        bool NormalizeSuccProbs) {
-  succ_iterator OldI = llvm::find(successors(), Old);
+  succ_iterator const OldI = llvm::find(successors(), Old);
   assert(OldI != succ_end() && "Old is not a successor of this block!");
   assert(!llvm::is_contained(successors(), New) &&
          "New is already a successor of this block!");
@@ -783,7 +783,7 @@ void MachineBasicBlock::splitSuccessor(MachineBasicBlock *Old,
 
 void MachineBasicBlock::removeSuccessor(MachineBasicBlock *Succ,
                                         bool NormalizeSuccProbs) {
-  succ_iterator I = find(Successors, Succ);
+  succ_iterator const I = find(Successors, Succ);
   removeSuccessor(I, NormalizeSuccProbs);
 }
 
@@ -794,7 +794,7 @@ MachineBasicBlock::removeSuccessor(succ_iterator I, bool NormalizeSuccProbs) {
   // If probability list is empty it means we don't use it (disabled
   // optimization).
   if (!Probs.empty()) {
-    probability_iterator WI = getProbabilityIterator(I);
+    probability_iterator const WI = getProbabilityIterator(I);
     Probs.erase(WI);
     if (NormalizeSuccProbs)
       normalizeSuccProbs();
@@ -809,7 +809,7 @@ void MachineBasicBlock::replaceSuccessor(MachineBasicBlock *Old,
   if (Old == New)
     return;
 
-  succ_iterator E = succ_end();
+  succ_iterator const E = succ_end();
   succ_iterator NewI = E;
   succ_iterator OldI = E;
   for (succ_iterator I = succ_begin(); I != E; ++I) {
@@ -857,7 +857,7 @@ void MachineBasicBlock::addPredecessor(MachineBasicBlock *Pred) {
 }
 
 void MachineBasicBlock::removePredecessor(MachineBasicBlock *Pred) {
-  pred_iterator I = find(Predecessors, Pred);
+  pred_iterator const I = find(Predecessors, Pred);
   assert(I != Predecessors.end() && "Pred is not a predecessor of this block!");
   Predecessors.erase(I);
 }
@@ -910,7 +910,7 @@ bool MachineBasicBlock::isSuccessor(const MachineBasicBlock *MBB) const {
 }
 
 bool MachineBasicBlock::isLayoutSuccessor(const MachineBasicBlock *MBB) const {
-  MachineFunction::const_iterator I(this);
+  MachineFunction::const_iterator const I(this);
   return std::next(I) == MachineFunction::const_iterator(MBB);
 }
 
@@ -979,7 +979,7 @@ MachineBasicBlock *MachineBasicBlock::splitAt(MachineInstr &MI,
   if (UpdateLiveIns) {
     // Make sure we add any physregs we define in the block as liveins to the
     // new block.
-    MachineBasicBlock::iterator Prev(&MI);
+    MachineBasicBlock::iterator const Prev(&MI);
     LiveRegs.init(*MF->getSubtarget().getRegisterInfo());
     LiveRegs.addLiveOuts(*this);
     for (auto I = rbegin(), E = Prev.getReverse(); I != E; ++I)
@@ -1011,7 +1011,7 @@ MachineBasicBlock *MachineBasicBlock::SplitCriticalEdge(
 
   MachineFunction *MF = getParent();
   MachineBasicBlock *PrevFallthrough = getNextNode();
-  DebugLoc DL;  // FIXME: this is nowhere
+  DebugLoc const DL;  // FIXME: this is nowhere
 
   MachineBasicBlock *NMBB = MF->CreateMachineBasicBlock();
   MF->insert(std::next(MachineFunction::iterator(this)), NMBB);
@@ -1042,7 +1042,7 @@ MachineBasicBlock *MachineBasicBlock::SplitCriticalEdge(
         if (!OI->isReg() || OI->getReg() == 0 ||
             !OI->isUse() || !OI->isKill() || OI->isUndef())
           continue;
-        Register Reg = OI->getReg();
+        Register const Reg = OI->getReg();
         if (Register::isPhysicalRegister(Reg) ||
             LV->getVarInfo(Reg).removeKill(*MI)) {
           KilledRegs.push_back(Reg);
@@ -1063,7 +1063,7 @@ MachineBasicBlock *MachineBasicBlock::SplitCriticalEdge(
         if (!OI->isReg() || OI->getReg() == 0)
           continue;
 
-        Register Reg = OI->getReg();
+        Register const Reg = OI->getReg();
         if (!is_contained(UsedRegs, Reg))
           UsedRegs.push_back(Reg);
       }
@@ -1102,7 +1102,7 @@ MachineBasicBlock *MachineBasicBlock::SplitCriticalEdge(
   // Insert unconditional "jump Succ" instruction in NMBB if necessary.
   NMBB->addSuccessor(Succ);
   if (!NMBB->isLayoutSuccessor(Succ)) {
-    SmallVector<MachineOperand, 4> Cond;
+    SmallVector<MachineOperand, 4> const Cond;
     const TargetInstrInfo *TII = getParent()->getSubtarget().getInstrInfo();
     TII->insertBranch(*NMBB, Succ, nullptr, Cond, DL);
 
@@ -1129,7 +1129,7 @@ MachineBasicBlock *MachineBasicBlock::SplitCriticalEdge(
   if (LV) {
     // Restore kills of virtual registers that were killed by the terminators.
     while (!KilledRegs.empty()) {
-      Register Reg = KilledRegs.pop_back_val();
+      Register const Reg = KilledRegs.pop_back_val();
       for (instr_iterator I = instr_end(), E = instr_begin(); I != E;) {
         if (!(--I)->addRegisterKilled(Reg, TRI, /* AddIfNotFound= */ false))
           continue;
@@ -1154,12 +1154,12 @@ MachineBasicBlock *MachineBasicBlock::SplitCriticalEdge(
     // the original block was not at the end of the function, all live intervals
     // will extend to the end of the new split block.
 
-    bool isLastMBB =
+    bool const isLastMBB =
       std::next(MachineFunction::iterator(NMBB)) == getParent()->end();
 
-    SlotIndex StartIndex = Indexes->getMBBEndIdx(this);
-    SlotIndex PrevIndex = StartIndex.getPrevSlot();
-    SlotIndex EndIndex = Indexes->getMBBEndIdx(NMBB);
+    SlotIndex const StartIndex = Indexes->getMBBEndIdx(this);
+    SlotIndex const PrevIndex = StartIndex.getPrevSlot();
+    SlotIndex const EndIndex = Indexes->getMBBEndIdx(NMBB);
 
     // Find the registers used from NMBB in PHIs in Succ.
     SmallSet<Register, 8> PHISrcRegs;
@@ -1168,8 +1168,8 @@ MachineBasicBlock *MachineBasicBlock::SplitCriticalEdge(
          I != E && I->isPHI(); ++I) {
       for (unsigned ni = 1, ne = I->getNumOperands(); ni != ne; ni += 2) {
         if (I->getOperand(ni+1).getMBB() == NMBB) {
-          MachineOperand &MO = I->getOperand(ni);
-          Register Reg = MO.getReg();
+          MachineOperand  const&MO = I->getOperand(ni);
+          Register const Reg = MO.getReg();
           PHISrcRegs.insert(Reg);
           if (MO.isUndef())
             continue;
@@ -1185,7 +1185,7 @@ MachineBasicBlock *MachineBasicBlock::SplitCriticalEdge(
 
     MachineRegisterInfo *MRI = &getParent()->getRegInfo();
     for (unsigned i = 0, e = MRI->getNumVirtRegs(); i != e; ++i) {
-      Register Reg = Register::index2VirtReg(i);
+      Register const Reg = Register::index2VirtReg(i);
       if (PHISrcRegs.count(Reg) || !LIS->hasInterval(Reg))
         continue;
 
@@ -1193,7 +1193,7 @@ MachineBasicBlock *MachineBasicBlock::SplitCriticalEdge(
       if (!LI.liveAt(PrevIndex))
         continue;
 
-      bool isLiveOut = LI.liveAt(LIS->getMBBStartIdx(Succ));
+      bool const isLiveOut = LI.liveAt(LIS->getMBBStartIdx(Succ));
       if (isLiveOut && isLastMBB) {
         VNInfo *VNI = LI.getVNInfoAt(PrevIndex);
         assert(VNI && "LiveInterval should have VNInfo where it is live.");
@@ -1495,7 +1495,7 @@ MachineBasicBlock::computeRegisterLiveness(const TargetRegisterInfo *TRI,
 
     --N;
 
-    PhysRegInfo Info = AnalyzePhysRegInBundle(*I, Reg, TRI);
+    PhysRegInfo const Info = AnalyzePhysRegInBundle(*I, Reg, TRI);
 
     // Register is live when we read it here.
     if (Info.Read)
@@ -1533,7 +1533,7 @@ MachineBasicBlock::computeRegisterLiveness(const TargetRegisterInfo *TRI,
 
       --N;
 
-      PhysRegInfo Info = AnalyzePhysRegInBundle(*I, Reg, TRI);
+      PhysRegInfo const Info = AnalyzePhysRegInBundle(*I, Reg, TRI);
 
       // Defs happen after uses so they take precedence if both are present.
 

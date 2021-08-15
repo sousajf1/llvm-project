@@ -96,7 +96,7 @@ public:
 
     using namespace sys::fs;
     int FD;
-    std::error_code EC;
+    std::error_code const EC;
     if (auto EC =
             openFileForWrite(FinalPath, FD, CD_CreateAlways, OF_None, Mode))
       return errorCodeToError(EC);
@@ -116,7 +116,7 @@ private:
 static Expected<std::unique_ptr<InMemoryBuffer>>
 createInMemoryBuffer(StringRef Path, size_t Size, unsigned Mode) {
   std::error_code EC;
-  MemoryBlock MB = Memory::allocateMappedMemory(
+  MemoryBlock const MB = Memory::allocateMappedMemory(
       Size, nullptr, sys::Memory::MF_READ | sys::Memory::MF_WRITE, EC);
   if (EC)
     return errorCodeToError(EC);

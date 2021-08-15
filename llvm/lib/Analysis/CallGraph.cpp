@@ -246,7 +246,7 @@ void CallGraphNode::removeAnyCallEdgeTo(CallGraphNode *Callee) {
 void CallGraphNode::removeOneAbstractEdgeTo(CallGraphNode *Callee) {
   for (CalledFunctionsVector::iterator I = CalledFunctions.begin(); ; ++I) {
     assert(I != CalledFunctions.end() && "Cannot find callee to remove!");
-    CallRecord &CR = *I;
+    CallRecord  const&CR = *I;
     if (CR.second == Callee && !CR.first) {
       Callee->DropRef();
       *I = CalledFunctions.back();

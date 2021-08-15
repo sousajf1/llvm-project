@@ -175,12 +175,12 @@ static unsigned getSaveExecOp(unsigned Opc) {
 static bool removeTerminatorBit(const SIInstrInfo &TII, MachineInstr &MI) {
   switch (MI.getOpcode()) {
   case AMDGPU::S_MOV_B32_term: {
-    bool RegSrc = MI.getOperand(1).isReg();
+    bool const RegSrc = MI.getOperand(1).isReg();
     MI.setDesc(TII.get(RegSrc ? AMDGPU::COPY : AMDGPU::S_MOV_B32));
     return true;
   }
   case AMDGPU::S_MOV_B64_term: {
-    bool RegSrc = MI.getOperand(1).isReg();
+    bool const RegSrc = MI.getOperand(1).isReg();
     MI.setDesc(TII.get(RegSrc ? AMDGPU::COPY : AMDGPU::S_MOV_B64));
     return true;
   }
@@ -272,7 +272,7 @@ static MachineBasicBlock::reverse_iterator findExecCopy(
 
   auto E = MBB.rend();
   for (unsigned N = 0; N <= InstLimit && I != E; ++I, ++N) {
-    Register CopyFromExec = isCopyFromExec(*I, ST);
+    Register const CopyFromExec = isCopyFromExec(*I, ST);
     if (CopyFromExec.isValid())
       return I;
   }
@@ -299,7 +299,7 @@ bool SIOptimizeExecMasking::runOnMachineFunction(MachineFunction &MF) {
   const GCNSubtarget &ST = MF.getSubtarget<GCNSubtarget>();
   const SIRegisterInfo *TRI = ST.getRegisterInfo();
   const SIInstrInfo *TII = ST.getInstrInfo();
-  MCRegister Exec = ST.isWave32() ? AMDGPU::EXEC_LO : AMDGPU::EXEC;
+  MCRegister const Exec = ST.isWave32() ? AMDGPU::EXEC_LO : AMDGPU::EXEC;
 
   // Optimize sequences emitted for control flow lowering. They are originally
   // emitted as the separate operations because spill code may need to be
@@ -314,7 +314,7 @@ bool SIOptimizeExecMasking::runOnMachineFunction(MachineFunction &MF) {
 
   for (MachineBasicBlock &MBB : MF) {
     MachineBasicBlock::reverse_iterator I = fixTerminators(*TII, MBB);
-    MachineBasicBlock::reverse_iterator E = MBB.rend();
+    MachineBasicBlock::reverse_iterator const E = MBB.rend();
     if (I == E)
       continue;
 
@@ -362,7 +362,7 @@ bool SIOptimizeExecMasking::runOnMachineFunction(MachineFunction &MF) {
       continue;
     }
 
-    Register CopyFromExec = CopyFromExecInst->getOperand(0).getReg();
+    Register const CopyFromExec = CopyFromExecInst->getOperand(0).getReg();
     MachineInstr *SaveExecInst = nullptr;
     SmallVector<MachineInstr *, 4> OtherUseInsts;
 
@@ -377,7 +377,7 @@ bool SIOptimizeExecMasking::runOnMachineFunction(MachineFunction &MF) {
         break;
       }
 
-      bool ReadsCopyFromExec = J->readsRegister(CopyFromExec, TRI);
+      bool const ReadsCopyFromExec = J->readsRegister(CopyFromExec, TRI);
 
       if (J->modifiesRegister(CopyToExec, TRI)) {
         if (SaveExecInst) {
@@ -387,7 +387,7 @@ bool SIOptimizeExecMasking::runOnMachineFunction(MachineFunction &MF) {
           break;
         }
 
-        unsigned SaveExecOp = getSaveExecOp(J->getOpcode());
+        unsigned const SaveExecOp = getSaveExecOp(J->getOpcode());
         if (SaveExecOp == AMDGPU::INSTRUCTION_LIST_END)
           break;
 

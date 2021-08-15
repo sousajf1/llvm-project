@@ -84,7 +84,7 @@ bool WebAssemblySetP2AlignOperands::runOnMachineFunction(MachineFunction &MF) {
 
   for (auto &MBB : MF) {
     for (auto &MI : MBB) {
-      int16_t P2AlignOpNum = WebAssembly::getNamedOperandIdx(
+      int16_t const P2AlignOpNum = WebAssembly::getNamedOperandIdx(
           MI.getOpcode(), WebAssembly::OpName::p2align);
       if (P2AlignOpNum != -1) {
         rewriteP2Align(MI, P2AlignOpNum);

@@ -72,7 +72,7 @@ static bool isInRage(int DistanceInBytes) {
   assert((DistanceInBytes % WordSize == 0) &&
          "Branch offset should be word aligned!");
 
-  int Words = DistanceInBytes / WordSize;
+  int const Words = DistanceInBytes / WordSize;
   return isInt<10>(Words);
 }
 
@@ -95,7 +95,7 @@ unsigned MSP430BSel::measureFunction(OffsetVector &BlockOffsets,
   unsigned TotalSize = BlockOffsets[Begin->getNumber()];
   for (auto &MBB : make_range(Begin, MF->end())) {
     BlockOffsets[MBB.getNumber()] = TotalSize;
-    for (MachineInstr &MI : MBB) {
+    for (MachineInstr  const&MI : MBB) {
       TotalSize += TII->getInstSizeInBytes(MI);
     }
   }
@@ -129,9 +129,9 @@ bool MSP430BSel::expandBranches(OffsetVector &BlockOffsets) {
       // Determine the distance from the current branch to the destination
       // block. MBBStartOffset already includes the size of the current branch
       // instruction.
-      int BlockDistance =
+      int const BlockDistance =
           BlockOffsets[DestBB->getNumber()] - BlockOffsets[MBB->getNumber()];
-      int BranchDistance = BlockDistance - MBBStartOffset;
+      int const BranchDistance = BlockDistance - MBBStartOffset;
 
       // If this branch is in range, ignore it.
       if (isInRage(BranchDistance)) {
@@ -177,7 +177,7 @@ bool MSP430BSel::expandBranches(OffsetVector &BlockOffsets) {
       }
 
       MachineInstr &OldBranch = *MI;
-      DebugLoc dl = OldBranch.getDebugLoc();
+      DebugLoc const dl = OldBranch.getDebugLoc();
       int InstrSizeDiff = -TII->getInstSizeInBytes(OldBranch);
 
       if (MI->getOpcode() == MSP430::JCC) {
@@ -235,7 +235,7 @@ bool MSP430BSel::runOnMachineFunction(MachineFunction &mf) {
   // the beginning of each basic block.
   OffsetVector BlockOffsets;
 
-  unsigned FunctionSize = measureFunction(BlockOffsets);
+  unsigned const FunctionSize = measureFunction(BlockOffsets);
   // If the entire function is smaller than the displacement of a branch field,
   // we know we don't need to expand any branches in this
   // function. This is a common case.

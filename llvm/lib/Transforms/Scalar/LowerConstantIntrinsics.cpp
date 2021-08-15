@@ -100,7 +100,7 @@ static bool lowerConstantIntrinsics(Function &F, const TargetLibraryInfo *TLI,
   const auto &DL = F.getParent()->getDataLayout();
   SmallVector<WeakTrackingVH, 8> Worklist;
 
-  ReversePostOrderTraversal<Function *> RPOT(&F);
+  ReversePostOrderTraversal<Function *> const RPOT(&F);
   for (BasicBlock *BB : RPOT) {
     for (Instruction &I: *BB) {
       IntrinsicInst *II = dyn_cast<IntrinsicInst>(&I);
@@ -116,7 +116,7 @@ static bool lowerConstantIntrinsics(Function &F, const TargetLibraryInfo *TLI,
       }
     }
   }
-  for (WeakTrackingVH &VH: Worklist) {
+  for (WeakTrackingVH  const&VH: Worklist) {
     // Items on the worklist can be mutated by earlier recursive replaces.
     // This can remove the intrinsic as dead (VH == null), but also replace
     // the intrinsic in place.

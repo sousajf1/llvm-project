@@ -68,10 +68,10 @@ uint64_t FileWriter::tell() {
 }
 
 void FileWriter::alignTo(size_t Align) {
-  off_t Offset = OS.tell();
-  off_t AlignedOffset = (Offset + Align - 1) / Align * Align;
+  off_t const Offset = OS.tell();
+  off_t const AlignedOffset = (Offset + Align - 1) / Align * Align;
   if (AlignedOffset == Offset)
     return;
-  off_t PadCount = AlignedOffset - Offset;
+  off_t const PadCount = AlignedOffset - Offset;
   OS.write_zeros(PadCount);
 }

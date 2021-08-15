@@ -171,7 +171,7 @@ public:
   // Inserts I and its value number in VNtoScalars.
   void insert(Instruction *I, GVN::ValueTable &VN) {
     // Scalar instruction.
-    unsigned V = VN.lookupOrAdd(I);
+    unsigned const V = VN.lookupOrAdd(I);
     VNtoScalars[{V, InvalidVN}].push_back(I);
   }
 
@@ -186,7 +186,7 @@ public:
   // Insert Load and the value number of its memory address in VNtoLoads.
   void insert(LoadInst *Load, GVN::ValueTable &VN) {
     if (Load->isSimple()) {
-      unsigned V = VN.lookupOrAdd(Load->getPointerOperand());
+      unsigned const V = VN.lookupOrAdd(Load->getPointerOperand());
       VNtoLoads[{V, InvalidVN}].push_back(Load);
     }
   }
@@ -225,7 +225,7 @@ public:
     // A call that doesNotAccessMemory is handled as a Scalar,
     // onlyReadsMemory will be handled as a Load instruction,
     // all other calls will be handled as stores.
-    unsigned V = VN.lookupOrAdd(Call);
+    unsigned const V = VN.lookupOrAdd(Call);
     auto Entry = std::make_pair(V, InvalidVN);
 
     if (Call->doesNotAccessMemory())
@@ -296,8 +296,8 @@ private:
   // Return true when I1 appears before I2 in the instructions of BB.
   bool firstInBB(const Instruction *I1, const Instruction *I2) {
     assert(I1->getParent() == I2->getParent());
-    unsigned I1DFS = DFSNumber.lookup(I1);
-    unsigned I2DFS = DFSNumber.lookup(I2);
+    unsigned const I1DFS = DFSNumber.lookup(I1);
+    unsigned const I2DFS = DFSNumber.lookup(I2);
     assert(I1DFS && I2DFS);
     return I1DFS < I2DFS;
   }
@@ -454,7 +454,7 @@ private:
       }
       // Insert empty CHI node for this VN. This is used to factor out
       // basic blocks where the ANTIC can potentially change.
-      CHIArg EmptyChi = {VN, nullptr, nullptr};
+      CHIArg const EmptyChi = {VN, nullptr, nullptr};
       for (auto *IDFBB : IDFBlocks) {
         for (unsigned i = 0; i < V.size(); ++i) {
           // Ignore spurious PDFs.
@@ -827,7 +827,7 @@ void GVNHoist::fillRenameStack(BasicBlock *BB, InValuesType &ValueBBs,
   auto it1 = ValueBBs.find(BB);
   if (it1 != ValueBBs.end()) {
     // Iterate in reverse order to keep lower ranked values on the top.
-    for (std::pair<VNType, Instruction *> &VI : reverse(it1->second)) {
+    for (std::pair<VNType, Instruction *>  const&VI : reverse(it1->second)) {
       // Get the value of instruction I
       LLVM_DEBUG(dbgs() << "\nPushing on stack: " << *VI.second);
       RenameStack[VI.first].push_back(VI.second);
@@ -1052,7 +1052,7 @@ unsigned GVNHoist::removeAndReplace(const SmallVecInsn &Candidates,
   }
 
   // Replace all other instructions with Repl with memory access NewMemAcc.
-  unsigned NR = rauw(Candidates, Repl, NewMemAcc);
+  unsigned const NR = rauw(Candidates, Repl, NewMemAcc);
 
   // Remove MemorySSA phi nodes with the same arguments.
   if (NewMemAcc)

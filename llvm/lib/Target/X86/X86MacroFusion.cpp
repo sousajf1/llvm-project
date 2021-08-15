@@ -24,7 +24,7 @@ static X86::FirstMacroFusionInstKind classifyFirst(const MachineInstr &MI) {
 }
 
 static X86::SecondMacroFusionInstKind classifySecond(const MachineInstr &MI) {
-  X86::CondCode CC = X86::getCondFromBranch(MI);
+  X86::CondCode const CC = X86::getCondFromBranch(MI);
   return X86::classifySecondCondCodeInMacroFusion(CC);
 }
 

@@ -139,7 +139,7 @@ bool Argument::hasPreallocatedAttr() const {
 
 bool Argument::hasPassPointeeByValueCopyAttr() const {
   if (!getType()->isPointerTy()) return false;
-  AttributeList Attrs = getParent()->getAttributes();
+  AttributeList const Attrs = getParent()->getAttributes();
   return Attrs.hasParamAttr(getArgNo(), Attribute::ByVal) ||
          Attrs.hasParamAttr(getArgNo(), Attribute::InAlloca) ||
          Attrs.hasParamAttr(getArgNo(), Attribute::Preallocated);
@@ -148,7 +148,7 @@ bool Argument::hasPassPointeeByValueCopyAttr() const {
 bool Argument::hasPointeeInMemoryValueAttr() const {
   if (!getType()->isPointerTy())
     return false;
-  AttributeList Attrs = getParent()->getAttributes();
+  AttributeList const Attrs = getParent()->getAttributes();
   return Attrs.hasParamAttr(getArgNo(), Attribute::ByVal) ||
          Attrs.hasParamAttr(getArgNo(), Attribute::StructRet) ||
          Attrs.hasParamAttr(getArgNo(), Attribute::InAlloca) ||
@@ -176,7 +176,7 @@ static Type *getMemoryParamAllocType(AttributeSet ParamAttrs, Type *ArgTy) {
 }
 
 uint64_t Argument::getPassPointeeByValueCopySize(const DataLayout &DL) const {
-  AttributeSet ParamAttrs =
+  AttributeSet const ParamAttrs =
       getParent()->getAttributes().getParamAttrs(getArgNo());
   if (Type *MemTy = getMemoryParamAllocType(ParamAttrs, getType()))
     return DL.getTypeAllocSize(MemTy);
@@ -184,7 +184,7 @@ uint64_t Argument::getPassPointeeByValueCopySize(const DataLayout &DL) const {
 }
 
 Type *Argument::getPointeeInMemoryValueType() const {
-  AttributeSet ParamAttrs =
+  AttributeSet const ParamAttrs =
       getParent()->getAttributes().getParamAttrs(getArgNo());
   return getMemoryParamAllocType(ParamAttrs, getType());
 }
@@ -277,7 +277,7 @@ bool Argument::hasSExtAttr() const {
 }
 
 bool Argument::onlyReadsMemory() const {
-  AttributeList Attrs = getParent()->getAttributes();
+  AttributeList const Attrs = getParent()->getAttributes();
   return Attrs.hasParamAttr(getArgNo(), Attribute::ReadOnly) ||
          Attrs.hasParamAttr(getArgNo(), Attribute::ReadNone);
 }
@@ -628,8 +628,8 @@ void Function::addDereferenceableOrNullParamAttr(unsigned ArgNo,
 
 DenormalMode Function::getDenormalMode(const fltSemantics &FPType) const {
   if (&FPType == &APFloat::IEEEsingle()) {
-    Attribute Attr = getFnAttribute("denormal-fp-math-f32");
-    StringRef Val = Attr.getValueAsString();
+    Attribute const Attr = getFnAttribute("denormal-fp-math-f32");
+    StringRef const Val = Attr.getValueAsString();
     if (!Val.empty())
       return parseDenormalFPAttribute(Val);
 
@@ -637,7 +637,7 @@ DenormalMode Function::getDenormalMode(const fltSemantics &FPType) const {
     // generic one.
   }
 
-  Attribute Attr = getFnAttribute("denormal-fp-math");
+  Attribute const Attr = getFnAttribute("denormal-fp-math");
   return parseDenormalFPAttribute(Attr.getValueAsString());
 }
 
@@ -713,7 +713,7 @@ static ArrayRef<const char *> findTargetSubtable(StringRef Name) {
   ArrayRef<IntrinsicTargetInfo> Targets(TargetInfos);
   // Drop "llvm." and take the first dotted component. That will be the target
   // if this is target specific.
-  StringRef Target = Name.drop_front(5).split('.').first;
+  StringRef const Target = Name.drop_front(5).split('.').first;
   auto It = partition_point(
       Targets, [=](const IntrinsicTargetInfo &TI) { return TI.Name < Target; });
   // We've either found the target or just fall back to the generic set, which
@@ -725,27 +725,27 @@ static ArrayRef<const char *> findTargetSubtable(StringRef Name) {
 /// This does the actual lookup of an intrinsic ID which
 /// matches the given function name.
 Intrinsic::ID Function::lookupIntrinsicID(StringRef Name) {
-  ArrayRef<const char *> NameTable = findTargetSubtable(Name);
-  int Idx = Intrinsic::lookupLLVMIntrinsicByName(NameTable, Name);
+  ArrayRef<const char *> const NameTable = findTargetSubtable(Name);
+  int const Idx = Intrinsic::lookupLLVMIntrinsicByName(NameTable, Name);
   if (Idx == -1)
     return Intrinsic::not_intrinsic;
 
   // Intrinsic IDs correspond to the location in IntrinsicNameTable, but we have
   // an index into a sub-table.
-  int Adjust = NameTable.data() - IntrinsicNameTable;
-  Intrinsic::ID ID = static_cast<Intrinsic::ID>(Idx + Adjust);
+  int const Adjust = NameTable.data() - IntrinsicNameTable;
+  Intrinsic::ID const ID = static_cast<Intrinsic::ID>(Idx + Adjust);
 
   // If the intrinsic is not overloaded, require an exact match. If it is
   // overloaded, require either exact or prefix match.
   const auto MatchSize = strlen(NameTable[Idx]);
   assert(Name.size() >= MatchSize && "Expected either exact or prefix match");
-  bool IsExactMatch = Name.size() == MatchSize;
+  bool const IsExactMatch = Name.size() == MatchSize;
   return IsExactMatch || Intrinsic::isOverloaded(ID) ? ID
                                                      : Intrinsic::not_intrinsic;
 }
 
 void Function::recalculateIntrinsicID() {
-  StringRef Name = getName();
+  StringRef const Name = getName();
   if (!Name.startswith("llvm.")) {
     HasLLVMReservedName = false;
     IntID = Intrinsic::not_intrinsic;
@@ -801,7 +801,7 @@ static std::string getMangledTypeStr(Type *Ty, bool &HasUnnamedType) {
     // Ensure nested function types are distinguishable.
     Result += "f";
   } else if (VectorType *VTy = dyn_cast<VectorType>(Ty)) {
-    ElementCount EC = VTy->getElementCount();
+    ElementCount const EC = VTy->getElementCount();
     if (EC.isScalable())
       Result += "nx";
     Result += "v" + utostr(EC.getKnownMinValue()) +
@@ -944,9 +944,9 @@ static void DecodeIITType(unsigned &NextElt, ArrayRef<unsigned char> Infos,
                       SmallVectorImpl<Intrinsic::IITDescriptor> &OutputTable) {
   using namespace Intrinsic;
 
-  bool IsScalableVector = (LastInfo == IIT_SCALABLE_VEC);
+  bool const IsScalableVector = (LastInfo == IIT_SCALABLE_VEC);
 
-  IIT_Info Info = IIT_Info(Infos[NextElt++]);
+  IIT_Info const Info = IIT_Info(Infos[NextElt++]);
   unsigned StructElts = 2;
 
   switch (Info) {
@@ -1056,48 +1056,48 @@ static void DecodeIITType(unsigned &NextElt, ArrayRef<unsigned char> Infos,
     return;
   }
   case IIT_ARG: {
-    unsigned ArgInfo = (NextElt == Infos.size() ? 0 : Infos[NextElt++]);
+    unsigned const ArgInfo = (NextElt == Infos.size() ? 0 : Infos[NextElt++]);
     OutputTable.push_back(IITDescriptor::get(IITDescriptor::Argument, ArgInfo));
     return;
   }
   case IIT_EXTEND_ARG: {
-    unsigned ArgInfo = (NextElt == Infos.size() ? 0 : Infos[NextElt++]);
+    unsigned const ArgInfo = (NextElt == Infos.size() ? 0 : Infos[NextElt++]);
     OutputTable.push_back(IITDescriptor::get(IITDescriptor::ExtendArgument,
                                              ArgInfo));
     return;
   }
   case IIT_TRUNC_ARG: {
-    unsigned ArgInfo = (NextElt == Infos.size() ? 0 : Infos[NextElt++]);
+    unsigned const ArgInfo = (NextElt == Infos.size() ? 0 : Infos[NextElt++]);
     OutputTable.push_back(IITDescriptor::get(IITDescriptor::TruncArgument,
                                              ArgInfo));
     return;
   }
   case IIT_HALF_VEC_ARG: {
-    unsigned ArgInfo = (NextElt == Infos.size() ? 0 : Infos[NextElt++]);
+    unsigned const ArgInfo = (NextElt == Infos.size() ? 0 : Infos[NextElt++]);
     OutputTable.push_back(IITDescriptor::get(IITDescriptor::HalfVecArgument,
                                              ArgInfo));
     return;
   }
   case IIT_SAME_VEC_WIDTH_ARG: {
-    unsigned ArgInfo = (NextElt == Infos.size() ? 0 : Infos[NextElt++]);
+    unsigned const ArgInfo = (NextElt == Infos.size() ? 0 : Infos[NextElt++]);
     OutputTable.push_back(IITDescriptor::get(IITDescriptor::SameVecWidthArgument,
                                              ArgInfo));
     return;
   }
   case IIT_PTR_TO_ARG: {
-    unsigned ArgInfo = (NextElt == Infos.size() ? 0 : Infos[NextElt++]);
+    unsigned const ArgInfo = (NextElt == Infos.size() ? 0 : Infos[NextElt++]);
     OutputTable.push_back(IITDescriptor::get(IITDescriptor::PtrToArgument,
                                              ArgInfo));
     return;
   }
   case IIT_PTR_TO_ELT: {
-    unsigned ArgInfo = (NextElt == Infos.size() ? 0 : Infos[NextElt++]);
+    unsigned const ArgInfo = (NextElt == Infos.size() ? 0 : Infos[NextElt++]);
     OutputTable.push_back(IITDescriptor::get(IITDescriptor::PtrToElt, ArgInfo));
     return;
   }
   case IIT_VEC_OF_ANYPTRS_TO_ELT: {
-    unsigned short ArgNo = (NextElt == Infos.size() ? 0 : Infos[NextElt++]);
-    unsigned short RefNo = (NextElt == Infos.size() ? 0 : Infos[NextElt++]);
+    unsigned short const ArgNo = (NextElt == Infos.size() ? 0 : Infos[NextElt++]);
+    unsigned short const RefNo = (NextElt == Infos.size() ? 0 : Infos[NextElt++]);
     OutputTable.push_back(
         IITDescriptor::get(IITDescriptor::VecOfAnyPtrsToElt, ArgNo, RefNo));
     return;
@@ -1120,19 +1120,19 @@ static void DecodeIITType(unsigned &NextElt, ArrayRef<unsigned char> Infos,
     return;
   }
   case IIT_SUBDIVIDE2_ARG: {
-    unsigned ArgInfo = (NextElt == Infos.size() ? 0 : Infos[NextElt++]);
+    unsigned const ArgInfo = (NextElt == Infos.size() ? 0 : Infos[NextElt++]);
     OutputTable.push_back(IITDescriptor::get(IITDescriptor::Subdivide2Argument,
                                              ArgInfo));
     return;
   }
   case IIT_SUBDIVIDE4_ARG: {
-    unsigned ArgInfo = (NextElt == Infos.size() ? 0 : Infos[NextElt++]);
+    unsigned const ArgInfo = (NextElt == Infos.size() ? 0 : Infos[NextElt++]);
     OutputTable.push_back(IITDescriptor::get(IITDescriptor::Subdivide4Argument,
                                              ArgInfo));
     return;
   }
   case IIT_VEC_ELEMENT: {
-    unsigned ArgInfo = (NextElt == Infos.size() ? 0 : Infos[NextElt++]);
+    unsigned const ArgInfo = (NextElt == Infos.size() ? 0 : Infos[NextElt++]);
     OutputTable.push_back(IITDescriptor::get(IITDescriptor::VecElementArgument,
                                              ArgInfo));
     return;
@@ -1142,7 +1142,7 @@ static void DecodeIITType(unsigned &NextElt, ArrayRef<unsigned char> Infos,
     return;
   }
   case IIT_VEC_OF_BITCASTS_TO_INT: {
-    unsigned ArgInfo = (NextElt == Infos.size() ? 0 : Infos[NextElt++]);
+    unsigned const ArgInfo = (NextElt == Infos.size() ? 0 : Infos[NextElt++]);
     OutputTable.push_back(IITDescriptor::get(IITDescriptor::VecOfBitcastsToInt,
                                              ArgInfo));
     return;
@@ -1192,7 +1192,7 @@ static Type *DecodeFixedType(ArrayRef<Intrinsic::IITDescriptor> &Infos,
                              ArrayRef<Type*> Tys, LLVMContext &Context) {
   using namespace Intrinsic;
 
-  IITDescriptor D = Infos.front();
+  IITDescriptor const D = Infos.front();
   Infos = Infos.slice(1);
 
   switch (D.Kind) {
@@ -1245,7 +1245,7 @@ static Type *DecodeFixedType(ArrayRef<Intrinsic::IITDescriptor> &Infos,
     Type *Ty = Tys[D.getArgumentNumber()];
     VectorType *VTy = dyn_cast<VectorType>(Ty);
     assert(VTy && "Expected an argument of Vector Type");
-    int SubDivs = D.Kind == IITDescriptor::Subdivide2Argument ? 1 : 2;
+    int const SubDivs = D.Kind == IITDescriptor::Subdivide2Argument ? 1 : 2;
     return VectorType::getSubdividedVectorType(VTy, SubDivs);
   }
   case IITDescriptor::HalfVecArgument:
@@ -1374,7 +1374,7 @@ static bool matchIntrinsicType(
     return false;
   };
 
-  IITDescriptor D = Infos.front();
+  IITDescriptor const D = Infos.front();
   Infos = Infos.slice(1);
 
   switch (D.Kind) {
@@ -1532,7 +1532,7 @@ static bool matchIntrinsicType(
       return Ty->getContext().supportsTypedPointers();
     }
     case IITDescriptor::VecOfAnyPtrsToElt: {
-      unsigned RefArgNumber = D.getRefArgNumber();
+      unsigned const RefArgNumber = D.getRefArgNumber();
       if (RefArgNumber >= ArgTys.size()) {
         if (IsDeferredCheck)
           return true;
@@ -1577,7 +1577,7 @@ static bool matchIntrinsicType(
 
       Type *NewTy = ArgTys[D.getArgumentNumber()];
       if (auto *VTy = dyn_cast<VectorType>(NewTy)) {
-        int SubDivs = D.Kind == IITDescriptor::Subdivide2Argument ? 1 : 2;
+        int const SubDivs = D.Kind == IITDescriptor::Subdivide2Argument ? 1 : 2;
         NewTy = VectorType::getSubdividedVectorType(VTy, SubDivs);
         return Ty != NewTy;
       }
@@ -1605,7 +1605,7 @@ Intrinsic::matchIntrinsicSignature(FunctionType *FTy,
                          false))
     return MatchIntrinsicTypes_NoMatchRet;
 
-  unsigned NumDeferredReturnChecks = DeferredChecks.size();
+  unsigned const NumDeferredReturnChecks = DeferredChecks.size();
 
   for (auto Ty : FTy->params())
     if (matchIntrinsicType(Ty, Infos, ArgTys, DeferredChecks, false))
@@ -1634,7 +1634,7 @@ Intrinsic::matchIntrinsicVarArg(bool isVarArg,
     return true;
 
   // Check and verify the descriptor.
-  IITDescriptor D = Infos.front();
+  IITDescriptor const D = Infos.front();
   Infos = Infos.slice(1);
   if (D.Kind == IITDescriptor::VarArg)
     return !isVarArg;
@@ -1644,7 +1644,7 @@ Intrinsic::matchIntrinsicVarArg(bool isVarArg,
 
 bool Intrinsic::getIntrinsicSignature(Function *F,
                                       SmallVectorImpl<Type *> &ArgTys) {
-  Intrinsic::ID ID = F->getIntrinsicID();
+  Intrinsic::ID const ID = F->getIntrinsicID();
   if (!ID)
     return false;
 
@@ -1669,7 +1669,7 @@ Optional<Function *> Intrinsic::remangleIntrinsicFunction(Function *F) {
     return None;
 
   Intrinsic::ID ID = F->getIntrinsicID();
-  StringRef Name = F->getName();
+  StringRef const Name = F->getName();
   std::string WantedName =
       Intrinsic::getName(ID, ArgTys, F->getParent(), F->getFunctionType());
   if (Name == WantedName)
@@ -1710,7 +1710,7 @@ bool Function::hasAddressTaken(const User **PutOffender,
       continue;
 
     if (IgnoreCallbackUses) {
-      AbstractCallSite ACS(&U);
+      AbstractCallSite const ACS(&U);
       if (ACS && ACS.isCallbackCall())
         continue;
     }
@@ -1873,7 +1873,7 @@ ProfileCount Function::getEntryCount(bool AllowSynthetic) const {
     if (MDString *MDS = dyn_cast<MDString>(MD->getOperand(0))) {
       if (MDS->getString().equals("function_entry_count")) {
         ConstantInt *CI = mdconst::extract<ConstantInt>(MD->getOperand(1));
-        uint64_t Count = CI->getValue().getZExtValue();
+        uint64_t const Count = CI->getValue().getZExtValue();
         // A value of -1 is used for SamplePGO when there were no samples.
         // Treat this the same as unknown.
         if (Count == (uint64_t)-1)
@@ -1882,7 +1882,7 @@ ProfileCount Function::getEntryCount(bool AllowSynthetic) const {
       } else if (AllowSynthetic &&
                  MDS->getString().equals("synthetic_function_entry_count")) {
         ConstantInt *CI = mdconst::extract<ConstantInt>(MD->getOperand(1));
-        uint64_t Count = CI->getValue().getZExtValue();
+        uint64_t const Count = CI->getValue().getZExtValue();
         return ProfileCount(Count, PCT_Synthetic);
       }
     }

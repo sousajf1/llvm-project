@@ -79,7 +79,7 @@ WebAssemblyFrameLowering::getLocalForStackObject(MachineFunction &MF,
   MFI.setObjectOffset(FrameIndex, Local);
   // Allocate WebAssembly locals for each non-aggregate component of the
   // allocation.
-  for (EVT ValueVT : ValueVTs)
+  for (EVT const ValueVT : ValueVTs)
     FuncInfo->addLocal(ValueVT.getSimpleVT());
   // Abuse object size to record number of WebAssembly locals allocated to
   // this object.
@@ -108,8 +108,8 @@ bool WebAssemblyFrameLowering::hasFP(const MachineFunction &MF) const {
   // If we already need a base pointer, we use that to fix up the stack pointer.
   // If there are no fixed-size objects, we would have no use of a frame
   // pointer, and thus should not emit one.
-  bool HasFixedSizedObjects = MFI.getStackSize() > 0;
-  bool NeedsFixedReference = !hasBP(MF) || HasFixedSizedObjects;
+  bool const HasFixedSizedObjects = MFI.getStackSize() > 0;
+  bool const NeedsFixedReference = !hasBP(MF) || HasFixedSizedObjects;
 
   return MFI.isFrameAddressTaken() ||
          (MFI.hasVarSizedObjects() && NeedsFixedReference) ||
@@ -166,7 +166,7 @@ bool WebAssemblyFrameLowering::needsSPWriteback(
   // 1. We need SP not only for EH support but also because we actually use
   // stack or we have a frame address taken.
   // 2. We cannot use the red zone.
-  bool CanUseRedZone = MFI.getStackSize() <= RedZoneSize && !MFI.hasCalls() &&
+  bool const CanUseRedZone = MFI.getStackSize() <= RedZoneSize && !MFI.hasCalls() &&
                        !MF.getFunction().hasFnAttribute(Attribute::NoRedZone);
   return needsSPForLocalFrame(MF) && !CanUseRedZone;
 }
@@ -245,7 +245,7 @@ WebAssemblyFrameLowering::eliminateCallFramePseudoInstr(
   const auto *TII = ST.getInstrInfo();
   if (I->getOpcode() == TII->getCallFrameDestroyOpcode() &&
       needsSPWriteback(MF)) {
-    DebugLoc DL = I->getDebugLoc();
+    DebugLoc const DL = I->getDebugLoc();
     writeSPToGlobal(getSPReg(MF), MF, MBB, I, DL);
   }
   return MBB.erase(I);
@@ -260,7 +260,7 @@ void WebAssemblyFrameLowering::emitPrologue(MachineFunction &MF,
 
   if (!needsSP(MF))
     return;
-  uint64_t StackSize = MFI.getStackSize();
+  uint64_t const StackSize = MFI.getStackSize();
 
   auto &ST = MF.getSubtarget<WebAssemblySubtarget>();
   const auto *TII = ST.getInstrInfo();
@@ -270,7 +270,7 @@ void WebAssemblyFrameLowering::emitPrologue(MachineFunction &MF,
   while (InsertPt != MBB.end() &&
          WebAssembly::isArgument(InsertPt->getOpcode()))
     ++InsertPt;
-  DebugLoc DL;
+  DebugLoc const DL;
 
   const TargetRegisterClass *PtrRC =
       MRI.getTargetRegisterInfo()->getPointerRegClass(MF);
@@ -283,17 +283,17 @@ void WebAssemblyFrameLowering::emitPrologue(MachineFunction &MF,
   BuildMI(MBB, InsertPt, DL, TII->get(getOpcGlobGet(MF)), SPReg)
       .addExternalSymbol(SPSymbol);
 
-  bool HasBP = hasBP(MF);
+  bool const HasBP = hasBP(MF);
   if (HasBP) {
     auto FI = MF.getInfo<WebAssemblyFunctionInfo>();
-    Register BasePtr = MRI.createVirtualRegister(PtrRC);
+    Register const BasePtr = MRI.createVirtualRegister(PtrRC);
     FI->setBasePointerVreg(BasePtr);
     BuildMI(MBB, InsertPt, DL, TII->get(WebAssembly::COPY), BasePtr)
         .addReg(SPReg);
   }
   if (StackSize) {
     // Subtract the frame size
-    Register OffsetReg = MRI.createVirtualRegister(PtrRC);
+    Register const OffsetReg = MRI.createVirtualRegister(PtrRC);
     BuildMI(MBB, InsertPt, DL, TII->get(getOpcConst(MF)), OffsetReg)
         .addImm(StackSize);
     BuildMI(MBB, InsertPt, DL, TII->get(getOpcSub(MF)), getSPReg(MF))
@@ -301,8 +301,8 @@ void WebAssemblyFrameLowering::emitPrologue(MachineFunction &MF,
         .addReg(OffsetReg);
   }
   if (HasBP) {
-    Register BitmaskReg = MRI.createVirtualRegister(PtrRC);
-    Align Alignment = MFI.getMaxAlign();
+    Register const BitmaskReg = MRI.createVirtualRegister(PtrRC);
+    Align const Alignment = MFI.getMaxAlign();
     BuildMI(MBB, InsertPt, DL, TII->get(getOpcConst(MF)), BitmaskReg)
         .addImm((int64_t) ~(Alignment.value() - 1));
     BuildMI(MBB, InsertPt, DL, TII->get(getOpcAnd(MF)), getSPReg(MF))
@@ -323,7 +323,7 @@ void WebAssemblyFrameLowering::emitPrologue(MachineFunction &MF,
 
 void WebAssemblyFrameLowering::emitEpilogue(MachineFunction &MF,
                                             MachineBasicBlock &MBB) const {
-  uint64_t StackSize = MF.getFrameInfo().getStackSize();
+  uint64_t const StackSize = MF.getFrameInfo().getStackSize();
   if (!needsSP(MF) || !needsSPWriteback(MF))
     return;
   auto &ST = MF.getSubtarget<WebAssemblySubtarget>();
@@ -338,14 +338,14 @@ void WebAssemblyFrameLowering::emitEpilogue(MachineFunction &MF,
   // Restore the stack pointer. If we had fixed-size locals, add the offset
   // subtracted in the prolog.
   unsigned SPReg = 0;
-  unsigned SPFPReg = hasFP(MF) ? getFPReg(MF) : getSPReg(MF);
+  unsigned const SPFPReg = hasFP(MF) ? getFPReg(MF) : getSPReg(MF);
   if (hasBP(MF)) {
     auto FI = MF.getInfo<WebAssemblyFunctionInfo>();
     SPReg = FI->getBasePointerVreg();
   } else if (StackSize) {
     const TargetRegisterClass *PtrRC =
         MRI.getTargetRegisterInfo()->getPointerRegClass(MF);
-    Register OffsetReg = MRI.createVirtualRegister(PtrRC);
+    Register const OffsetReg = MRI.createVirtualRegister(PtrRC);
     BuildMI(MBB, InsertPt, DL, TII->get(getOpcConst(MF)), OffsetReg)
         .addImm(StackSize);
     // In the epilog we don't need to write the result back to the SP32/64
@@ -378,7 +378,7 @@ WebAssemblyFrameLowering::getDwarfFrameBase(const MachineFunction &MF) const {
   Loc.Kind = DwarfFrameBase::WasmFrameBase;
   const WebAssemblyFunctionInfo &MFI = *MF.getInfo<WebAssemblyFunctionInfo>();
   if (needsSP(MF) && MFI.isFrameBaseVirtual()) {
-    unsigned LocalNum = MFI.getFrameBaseLocal();
+    unsigned const LocalNum = MFI.getFrameBaseLocal();
     Loc.Location.WasmLoc = {WebAssembly::TI_LOCAL, LocalNum};
   } else {
     // TODO: This should work on a breakpoint at a function with no frame,

@@ -78,7 +78,7 @@ static bool skip(DataExtractor &Data, uint64_t &Offset, bool SkippedRanges) {
     if (AddressRanges::skip(Data, Offset) == 0)
       return false;
   }
-  bool HasChildren = Data.getU8(&Offset) != 0;
+  bool const HasChildren = Data.getU8(&Offset) != 0;
   Data.getU32(&Offset); // Skip Inline.Name.
   Data.getULEB128(&Offset); // Skip Inline.CallFile.
   Data.getULEB128(&Offset); // Skip Inline.CallLine.
@@ -121,7 +121,7 @@ static bool lookup(const GsymReader &GR, DataExtractor &Data, uint64_t &Offset,
 
   // The address range is contained within this InlineInfo, add the source
   // location for this InlineInfo and any children that contain the address.
-  bool HasChildren = Data.getU8(&Offset) != 0;
+  bool const HasChildren = Data.getU8(&Offset) != 0;
   Inline.Name = Data.getU32(&Offset);
   Inline.CallFile = (uint32_t)Data.getULEB128(&Offset);
   Inline.CallLine = (uint32_t)Data.getULEB128(&Offset);
@@ -189,7 +189,7 @@ static llvm::Expected<InlineInfo> decode(DataExtractor &Data, uint64_t &Offset,
     return createStringError(std::errc::io_error,
         "0x%8.8" PRIx64 ": missing InlineInfo uint8_t indicating children",
         Offset);
-  bool HasChildren = Data.getU8(&Offset) != 0;
+  bool const HasChildren = Data.getU8(&Offset) != 0;
   if (!Data.isValidOffsetForDataOfSize(Offset, 4))
     return createStringError(std::errc::io_error,
         "0x%8.8" PRIx64 ": missing InlineInfo uint32_t for name", Offset);
@@ -233,7 +233,7 @@ llvm::Error InlineInfo::encode(FileWriter &O, uint64_t BaseAddr) const {
     return createStringError(std::errc::invalid_argument,
                              "attempted to encode invalid InlineInfo object");
   Ranges.encode(O, BaseAddr);
-  bool HasChildren = !Children.empty();
+  bool const HasChildren = !Children.empty();
   O.writeU8(HasChildren);
   O.writeU32(Name);
   O.writeULEB(CallFile);

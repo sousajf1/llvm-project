@@ -71,7 +71,7 @@ Thumb2InstrInfo::ReplaceTailWithBranchTo(MachineBasicBlock::iterator Tail,
   // If the first instruction of Tail is predicated, we may have to update
   // the IT instruction.
   Register PredReg;
-  ARMCC::CondCodes CC = getInstrPredicate(*Tail, PredReg);
+  ARMCC::CondCodes const CC = getInstrPredicate(*Tail, PredReg);
   MachineBasicBlock::iterator MBBI = Tail;
   if (CC != ARMCC::AL)
     // Expecting at least the t2IT instruction before it.
@@ -82,7 +82,7 @@ Thumb2InstrInfo::ReplaceTailWithBranchTo(MachineBasicBlock::iterator Tail,
 
   // Fix up IT.
   if (CC != ARMCC::AL) {
-    MachineBasicBlock::iterator E = MBB->begin();
+    MachineBasicBlock::iterator const E = MBB->begin();
     unsigned Count = 4; // At most 4 instructions in an IT block.
     while (Count && MBBI != E) {
       if (MBBI->isDebugInstr()) {
@@ -90,12 +90,12 @@ Thumb2InstrInfo::ReplaceTailWithBranchTo(MachineBasicBlock::iterator Tail,
         continue;
       }
       if (MBBI->getOpcode() == ARM::t2IT) {
-        unsigned Mask = MBBI->getOperand(1).getImm();
+        unsigned const Mask = MBBI->getOperand(1).getImm();
         if (Count == 4)
           MBBI->eraseFromParent();
         else {
-          unsigned MaskOn = 1 << Count;
-          unsigned MaskOff = ~(MaskOn - 1);
+          unsigned const MaskOn = 1 << Count;
+          unsigned const MaskOff = ~(MaskOn - 1);
           MBBI->getOperand(1).setImm((Mask & MaskOff) | MaskOn);
         }
         return;
@@ -131,12 +131,12 @@ Thumb2InstrInfo::optimizeSelect(MachineInstr &MI,
   // CSEL.
   MachineInstr *RV = ARMBaseInstrInfo::optimizeSelect(MI, SeenMIs, PreferFalse);
   if (!RV && getSubtarget().hasV8_1MMainlineOps() && !PreferNoCSEL) {
-    Register DestReg = MI.getOperand(0).getReg();
+    Register const DestReg = MI.getOperand(0).getReg();
 
     if (!DestReg.isVirtual())
       return nullptr;
 
-    MachineInstrBuilder NewMI = BuildMI(*MI.getParent(), MI, MI.getDebugLoc(),
+    MachineInstrBuilder const NewMI = BuildMI(*MI.getParent(), MI, MI.getDebugLoc(),
                                         get(ARM::t2CSEL), DestReg)
                                     .add(MI.getOperand(2))
                                     .add(MI.getOperand(1))
@@ -169,7 +169,7 @@ storeRegToStackSlot(MachineBasicBlock &MBB, MachineBasicBlock::iterator I,
   if (I != MBB.end()) DL = I->getDebugLoc();
 
   MachineFunction &MF = *MBB.getParent();
-  MachineFrameInfo &MFI = MF.getFrameInfo();
+  MachineFrameInfo  const&MFI = MF.getFrameInfo();
   MachineMemOperand *MMO = MF.getMachineMemOperand(
       MachinePointerInfo::getFixedStack(MF, FI), MachineMemOperand::MOStore,
       MFI.getObjectSize(FI), MFI.getObjectAlign(FI));
@@ -209,7 +209,7 @@ loadRegFromStackSlot(MachineBasicBlock &MBB, MachineBasicBlock::iterator I,
                      const TargetRegisterClass *RC,
                      const TargetRegisterInfo *TRI) const {
   MachineFunction &MF = *MBB.getParent();
-  MachineFrameInfo &MFI = MF.getFrameInfo();
+  MachineFrameInfo  const&MFI = MF.getFrameInfo();
   MachineMemOperand *MMO = MF.getMachineMemOperand(
       MachinePointerInfo::getFixedStack(MF, FI), MachineMemOperand::MOLoad,
       MFI.getObjectSize(FI), MFI.getObjectAlign(FI));
@@ -249,7 +249,7 @@ loadRegFromStackSlot(MachineBasicBlock &MBB, MachineBasicBlock::iterator I,
 
 void Thumb2InstrInfo::expandLoadStackGuard(
     MachineBasicBlock::iterator MI) const {
-  MachineFunction &MF = *MI->getParent()->getParent();
+  MachineFunction  const&MF = *MI->getParent()->getParent();
   if (MF.getTarget().isPositionIndependent())
     expandLoadStackGuardBase(MI, ARM::t2MOV_ga_pcrel, ARM::t2LDRi12);
   else
@@ -286,7 +286,7 @@ void llvm::emitT2RegPlusImmediate(MachineBasicBlock &MBB,
     return;
   }
 
-  bool isSub = NumBytes < 0;
+  bool const isSub = NumBytes < 0;
   if (isSub) NumBytes = -NumBytes;
 
   // If profitable, use a movw or movt to materialize the offset.
@@ -363,12 +363,12 @@ void llvm::emitT2RegPlusImmediate(MachineBasicBlock &MBB,
       break;
     }
     bool HasCCOut = true;
-    int ImmIsT2SO = ARM_AM::getT2SOImmVal(ThisVal);
-    bool ToSP = DestReg == ARM::SP;
-    unsigned t2SUB = ToSP ? ARM::t2SUBspImm : ARM::t2SUBri;
-    unsigned t2ADD = ToSP ? ARM::t2ADDspImm : ARM::t2ADDri;
-    unsigned t2SUBi12 = ToSP ? ARM::t2SUBspImm12 : ARM::t2SUBri12;
-    unsigned t2ADDi12 = ToSP ? ARM::t2ADDspImm12 : ARM::t2ADDri12;
+    int const ImmIsT2SO = ARM_AM::getT2SOImmVal(ThisVal);
+    bool const ToSP = DestReg == ARM::SP;
+    unsigned const t2SUB = ToSP ? ARM::t2SUBspImm : ARM::t2SUBri;
+    unsigned const t2ADD = ToSP ? ARM::t2ADDspImm : ARM::t2ADDri;
+    unsigned const t2SUBi12 = ToSP ? ARM::t2SUBspImm12 : ARM::t2SUBri12;
+    unsigned const t2ADDi12 = ToSP ? ARM::t2ADDspImm12 : ARM::t2ADDri12;
     Opc = isSub ? t2SUB : t2ADD;
     // Prefer T2: sub rd, rn, so_imm | sub sp, sp, so_imm
     if (ImmIsT2SO != -1) {
@@ -382,7 +382,7 @@ void llvm::emitT2RegPlusImmediate(MachineBasicBlock &MBB,
     } else {
       // Use one T2 instruction to reduce NumBytes
       // FIXME: Move this to ARMAddressingModes.h?
-      unsigned RotAmt = countLeadingZeros(ThisVal);
+      unsigned const RotAmt = countLeadingZeros(ThisVal);
       ThisVal = ThisVal & ARM_AM::rotr32(0xff000000U, RotAmt);
       NumBytes &= ~ThisVal;
       assert(ARM_AM::getT2SOImmVal(ThisVal) != -1 &&
@@ -390,7 +390,7 @@ void llvm::emitT2RegPlusImmediate(MachineBasicBlock &MBB,
     }
 
     // Build the new ADD / SUB.
-    MachineInstrBuilder MIB = BuildMI(MBB, MBBI, dl, TII.get(Opc), DestReg)
+    MachineInstrBuilder const MIB = BuildMI(MBB, MBBI, dl, TII.get(Opc), DestReg)
                                   .addReg(BaseReg, RegState::Kill)
                                   .addImm(ThisVal)
                                   .add(predOps(ARMCC::AL))
@@ -519,7 +519,7 @@ bool llvm::rewriteT2FrameIndex(MachineInstr &MI, unsigned FrameRegIdx,
                                Register FrameReg, int &Offset,
                                const ARMBaseInstrInfo &TII,
                                const TargetRegisterInfo *TRI) {
-  unsigned Opcode = MI.getOpcode();
+  unsigned const Opcode = MI.getOpcode();
   const MCInstrDesc &Desc = MI.getDesc();
   unsigned AddrMode = (Desc.TSFlags & ARMII::AddrModeMask);
   bool isSub = false;
@@ -545,12 +545,12 @@ bool llvm::rewriteT2FrameIndex(MachineInstr &MI, unsigned FrameRegIdx,
       // Remove offset and remaining explicit predicate operands.
       do MI.RemoveOperand(FrameRegIdx+1);
       while (MI.getNumOperands() > FrameRegIdx+1);
-      MachineInstrBuilder MIB(*MI.getParent()->getParent(), &MI);
+      MachineInstrBuilder const MIB(*MI.getParent()->getParent(), &MI);
       MIB.add(predOps(ARMCC::AL));
       return true;
     }
 
-    bool HasCCOut = (Opcode != ARM::t2ADDspImm12 && Opcode != ARM::t2ADDri12);
+    bool const HasCCOut = (Opcode != ARM::t2ADDspImm12 && Opcode != ARM::t2ADDri12);
 
     if (Offset < 0) {
       Offset = -Offset;
@@ -573,7 +573,7 @@ bool llvm::rewriteT2FrameIndex(MachineInstr &MI, unsigned FrameRegIdx,
     // Another common case: imm12.
     if (Offset < 4096 &&
         (!HasCCOut || MI.getOperand(MI.getNumOperands()-1).getReg() == 0)) {
-      unsigned NewOpc = isSub ? IsSP ? ARM::t2SUBspImm12 : ARM::t2SUBri12
+      unsigned const NewOpc = isSub ? IsSP ? ARM::t2SUBspImm12 : ARM::t2SUBri12
                               : IsSP ? ARM::t2ADDspImm12 : ARM::t2ADDri12;
       MI.setDesc(TII.get(NewOpc));
       MI.getOperand(FrameRegIdx).ChangeToRegister(FrameReg, false);
@@ -587,8 +587,8 @@ bool llvm::rewriteT2FrameIndex(MachineInstr &MI, unsigned FrameRegIdx,
 
     // Otherwise, extract 8 adjacent bits from the immediate into this
     // t2ADDri/t2SUBri.
-    unsigned RotAmt = countLeadingZeros<unsigned>(Offset);
-    unsigned ThisImmVal = Offset & ARM_AM::rotr32(0xff000000U, RotAmt);
+    unsigned const RotAmt = countLeadingZeros<unsigned>(Offset);
+    unsigned const ThisImmVal = Offset & ARM_AM::rotr32(0xff000000U, RotAmt);
 
     // We will handle these bits from offset, clear them.
     Offset &= ~ThisImmVal;
@@ -608,7 +608,7 @@ bool llvm::rewriteT2FrameIndex(MachineInstr &MI, unsigned FrameRegIdx,
     // register then we change to an immediate version.
     unsigned NewOpc = Opcode;
     if (AddrMode == ARMII::AddrModeT2_so) {
-      Register OffsetReg = MI.getOperand(FrameRegIdx + 1).getReg();
+      Register const OffsetReg = MI.getOperand(FrameRegIdx + 1).getReg();
       if (OffsetReg != 0) {
         MI.getOperand(FrameRegIdx).ChangeToRegister(FrameReg, false);
         return Offset == 0;
@@ -703,7 +703,7 @@ bool llvm::rewriteT2FrameIndex(MachineInstr &MI, unsigned FrameRegIdx,
     // the register class is correct too, for instructions like the MVE
     // VLDRH.32, which only accepts low tGPR registers.
     int ImmedOffset = Offset / Scale;
-    unsigned Mask = (1 << NumBits) - 1;
+    unsigned const Mask = (1 << NumBits) - 1;
     if ((unsigned)Offset <= Mask * Scale &&
         (Register::isVirtualRegister(FrameReg) ||
          RegClass->contains(FrameReg))) {
@@ -752,7 +752,7 @@ bool llvm::rewriteT2FrameIndex(MachineInstr &MI, unsigned FrameRegIdx,
 
 ARMCC::CondCodes llvm::getITInstrPredicate(const MachineInstr &MI,
                                            Register &PredReg) {
-  unsigned Opc = MI.getOpcode();
+  unsigned const Opc = MI.getOpcode();
   if (Opc == ARM::tBcc || Opc == ARM::t2Bcc)
     return ARMCC::AL;
   return getInstrPredicate(MI, PredReg);
@@ -773,7 +773,7 @@ int llvm::findFirstVPTPredOperandIdx(const MachineInstr &MI) {
 
 ARMVCC::VPTCodes llvm::getVPTInstrPredicate(const MachineInstr &MI,
                                             Register &PredReg) {
-  int PIdx = findFirstVPTPredOperandIdx(MI);
+  int const PIdx = findFirstVPTPredOperandIdx(MI);
   if (PIdx == -1) {
     PredReg = 0;
     return ARMVCC::None;
@@ -802,7 +802,7 @@ void llvm::recomputeVPTBlockMask(MachineInstr &Instr) {
   // Iterate over the predicated instructions, updating the BlockMask as we go.
   ARM::PredBlockMask BlockMask = ARM::PredBlockMask::T;
   while (Iter != End) {
-    ARMVCC::VPTCodes Pred = getVPTInstrPredicate(*Iter);
+    ARMVCC::VPTCodes const Pred = getVPTInstrPredicate(*Iter);
     if (Pred == ARMVCC::None)
       break;
     BlockMask = expandPredBlockMask(BlockMask, Pred);

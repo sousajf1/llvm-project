@@ -225,9 +225,9 @@ wholeprogramdevirt::findLowestOffset(ArrayRef<VirtualCallTarget> Targets,
   // at MinByte.
   std::vector<ArrayRef<uint8_t>> Used;
   for (const VirtualCallTarget &Target : Targets) {
-    ArrayRef<uint8_t> VTUsed = IsAfter ? Target.TM->Bits->After.BytesUsed
+    ArrayRef<uint8_t> const VTUsed = IsAfter ? Target.TM->Bits->After.BytesUsed
                                        : Target.TM->Bits->Before.BytesUsed;
-    uint64_t Offset = IsAfter ? MinByte - Target.minAfterBytes()
+    uint64_t const Offset = IsAfter ? MinByte - Target.minAfterBytes()
                               : MinByte - Target.minBeforeBytes();
 
     // Disregard used regions that are smaller than Offset. These are
@@ -374,7 +374,7 @@ struct VirtualCallSite {
   emitRemark(const StringRef OptName, const StringRef TargetName,
              function_ref<OptimizationRemarkEmitter &(Function *)> OREGetter) {
     Function *F = CB.getCaller();
-    DebugLoc DLoc = CB.getDebugLoc();
+    DebugLoc const DLoc = CB.getDebugLoc();
     BasicBlock *Block = CB.getParent();
 
     using namespace ore;
@@ -889,7 +889,7 @@ bool DevirtModule::runForTesting(
   // Handle the command-line summary arguments. This code is for testing
   // purposes only, so we handle errors directly.
   if (!ClReadSummary.empty()) {
-    ExitOnError ExitOnErr("-wholeprogramdevirt-read-summary: " + ClReadSummary +
+    ExitOnError const ExitOnErr("-wholeprogramdevirt-read-summary: " + ClReadSummary +
                           ": ");
     auto ReadSummaryFile =
         ExitOnErr(errorOrToExpected(MemoryBuffer::getFile(ClReadSummary)));
@@ -906,7 +906,7 @@ bool DevirtModule::runForTesting(
     }
   }
 
-  bool Changed =
+  bool const Changed =
       DevirtModule(M, AARGetter, OREGetter, LookupDomTree,
                    ClSummaryAction == PassSummaryAction::Export ? Summary.get()
                                                                 : nullptr,
@@ -915,7 +915,7 @@ bool DevirtModule::runForTesting(
           .run();
 
   if (!ClWriteSummary.empty()) {
-    ExitOnError ExitOnErr(
+    ExitOnError const ExitOnErr(
         "-wholeprogramdevirt-write-summary: " + ClWriteSummary + ": ");
     std::error_code EC;
     if (StringRef(ClWriteSummary).endswith(".bc")) {
@@ -957,7 +957,7 @@ void DevirtModule::buildTypeIdentifierMap(
     for (MDNode *Type : Types) {
       auto TypeID = Type->getOperand(1).get();
 
-      uint64_t Offset =
+      uint64_t const Offset =
           cast<ConstantInt>(
               cast<ConstantAsMetadata>(Type->getOperand(0))->getValue())
               ->getZExtValue();
@@ -1162,7 +1162,7 @@ bool DevirtModule::trySingleImplDevirt(
   // to make it visible to thin LTO objects. We can only get here during the
   // ThinLTO export phase.
   if (TheFn->hasLocalLinkage()) {
-    std::string NewName = (TheFn->getName() + ".llvm.merged").str();
+    std::string const NewName = (TheFn->getName() + ".llvm.merged").str();
 
     // Since we are renaming the function, any comdats with the same name must
     // also be renamed. This is required when targeting COFF, as the comdat name
@@ -1181,7 +1181,7 @@ bool DevirtModule::trySingleImplDevirt(
     TheFn->setVisibility(GlobalValue::HiddenVisibility);
     TheFn->setName(NewName);
   }
-  if (ValueInfo TheFnVI = ExportSummary->getValueInfo(TheFn->getGUID()))
+  if (ValueInfo const TheFnVI = ExportSummary->getValueInfo(TheFn->getGUID()))
     // Any needed promotion of 'TheFn' has already been done during
     // LTO unit split, so we can ignore return value of AddCalls.
     AddCalls(SlotInfo, TheFnVI);
@@ -1225,7 +1225,7 @@ bool DevirtIndex::trySingleImplDevirt(MutableArrayRef<ValueInfo> TargetsForSlot,
     DevirtTargets.insert(TheFn);
 
   auto &S = TheFn.getSummaryList()[0];
-  bool IsExported = AddCalls(SlotInfo, TheFn);
+  bool const IsExported = AddCalls(SlotInfo, TheFn);
   if (IsExported)
     ExportedGUIDs.insert(TheFn.getGUID());
 
@@ -1257,7 +1257,7 @@ bool DevirtIndex::trySingleImplDevirt(MutableArrayRef<ValueInfo> TargetsForSlot,
 void DevirtModule::tryICallBranchFunnel(
     MutableArrayRef<VirtualCallTarget> TargetsForSlot, VTableSlotInfo &SlotInfo,
     WholeProgramDevirtResolution *Res, VTableSlot Slot) {
-  Triple T(M.getTargetTriple());
+  Triple const T(M.getTargetTriple());
   if (T.getArch() != Triple::x86_64)
     return;
 
@@ -1322,7 +1322,7 @@ void DevirtModule::applyICallBranchFunnel(VTableSlotInfo &SlotInfo,
       CallBase &CB = VCallSite.CB;
 
       // Jump tables are only profitable if the retpoline mitigation is enabled.
-      Attribute FSAttr = CB.getCaller()->getFnAttribute("target-features");
+      Attribute const FSAttr = CB.getCaller()->getFnAttribute("target-features");
       if (!FSAttr.isValid() ||
           !FSAttr.getValueAsString().contains("+retpoline"))
         continue;
@@ -1355,7 +1355,7 @@ void DevirtModule::applyICallBranchFunnel(VTableSlotInfo &SlotInfo,
                                  cast<InvokeInst>(CB).getUnwindDest(), Args);
       NewCS->setCallingConv(CB.getCallingConv());
 
-      AttributeList Attrs = CB.getAttributes();
+      AttributeList const Attrs = CB.getAttributes();
       std::vector<AttributeSet> NewArgAttrs;
       NewArgAttrs.push_back(AttributeSet::get(
           M.getContext(), ArrayRef<Attribute>{Attribute::get(
@@ -1430,7 +1430,7 @@ bool DevirtModule::tryUniformRetValOpt(
     WholeProgramDevirtResolution::ByArg *Res) {
   // Uniform return value optimization. If all functions return the same
   // constant, replace all calls with that constant.
-  uint64_t TheRetVal = TargetsForSlot[0].RetVal;
+  uint64_t const TheRetVal = TargetsForSlot[0].RetVal;
   for (const VirtualCallTarget &Target : TargetsForSlot)
     if (Target.RetVal != TheRetVal)
       return false;
@@ -1453,14 +1453,14 @@ std::string DevirtModule::getGlobalName(VTableSlot Slot,
   std::string FullName = "__typeid_";
   raw_string_ostream OS(FullName);
   OS << cast<MDString>(Slot.TypeID)->getString() << '_' << Slot.ByteOffset;
-  for (uint64_t Arg : Args)
+  for (uint64_t const Arg : Args)
     OS << '_' << Arg;
   OS << '_' << Name;
   return OS.str();
 }
 
 bool DevirtModule::shouldExportConstantsAsAbsoluteSymbols() {
-  Triple T(M.getTargetTriple());
+  Triple const T(M.getTargetTriple());
   return T.isX86() && T.getObjectFormat() == Triple::ELF;
 }
 
@@ -1515,7 +1515,7 @@ Constant *DevirtModule::importConstant(VTableSlot Slot, ArrayRef<uint64_t> Args,
     GV->setMetadata(LLVMContext::MD_absolute_symbol,
                     MDNode::get(M.getContext(), {MinC, MaxC}));
   };
-  unsigned AbsWidth = IntTy->getBitWidth();
+  unsigned const AbsWidth = IntTy->getBitWidth();
   if (AbsWidth == IntPtrTy->getBitWidth())
     SetAbsRange(~0ull, ~0ull); // Full set.
   else
@@ -1626,7 +1626,7 @@ bool DevirtModule::tryVirtualConstProp(
   auto RetType = dyn_cast<IntegerType>(TargetsForSlot[0].Fn->getReturnType());
   if (!RetType)
     return false;
-  unsigned BitWidth = RetType->getBitWidth();
+  unsigned const BitWidth = RetType->getBitWidth();
   if (BitWidth > 64)
     return false;
 
@@ -1666,9 +1666,9 @@ bool DevirtModule::tryVirtualConstProp(
 
     // Find an allocation offset in bits in all vtables associated with the
     // type.
-    uint64_t AllocBefore =
+    uint64_t const AllocBefore =
         findLowestOffset(TargetsForSlot, /*IsAfter=*/false, BitWidth);
-    uint64_t AllocAfter =
+    uint64_t const AllocAfter =
         findLowestOffset(TargetsForSlot, /*IsAfter=*/true, BitWidth);
 
     // Calculate the total amount of padding needed to store a value at both
@@ -1725,7 +1725,7 @@ void DevirtModule::rebuildGlobal(VTableBits &B) {
 
   // Align the before byte array to the global's minimum alignment so that we
   // don't break any alignment requirements on the global.
-  Align Alignment = M.getDataLayout().getValueOrABITypeAlignment(
+  Align const Alignment = M.getDataLayout().getValueOrABITypeAlignment(
       B.GV->getAlign(), B.GV->getValueType());
   B.Before.Bytes.resize(alignTo(B.Before.Bytes.size(), Alignment));
 
@@ -2089,12 +2089,12 @@ bool DevirtModule::run() {
         if (!FS)
           continue;
         // FIXME: Only add live functions.
-        for (FunctionSummary::VFuncId VF : FS->type_test_assume_vcalls()) {
+        for (FunctionSummary::VFuncId const VF : FS->type_test_assume_vcalls()) {
           for (Metadata *MD : MetadataByGUID[VF.GUID]) {
             CallSlots[{MD, VF.Offset}].CSInfo.addSummaryTypeTestAssumeUser(FS);
           }
         }
-        for (FunctionSummary::VFuncId VF : FS->type_checked_load_vcalls()) {
+        for (FunctionSummary::VFuncId const VF : FS->type_checked_load_vcalls()) {
           for (Metadata *MD : MetadataByGUID[VF.GUID]) {
             CallSlots[{MD, VF.Offset}].CSInfo.addSummaryTypeCheckedLoadUser(FS);
           }
@@ -2218,19 +2218,19 @@ void DevirtIndex::run() {
       if (!FS)
         continue;
       // FIXME: Only add live functions.
-      for (FunctionSummary::VFuncId VF : FS->type_test_assume_vcalls()) {
-        for (StringRef Name : NameByGUID[VF.GUID]) {
+      for (FunctionSummary::VFuncId const VF : FS->type_test_assume_vcalls()) {
+        for (StringRef const Name : NameByGUID[VF.GUID]) {
           CallSlots[{Name, VF.Offset}].CSInfo.addSummaryTypeTestAssumeUser(FS);
         }
       }
-      for (FunctionSummary::VFuncId VF : FS->type_checked_load_vcalls()) {
-        for (StringRef Name : NameByGUID[VF.GUID]) {
+      for (FunctionSummary::VFuncId const VF : FS->type_checked_load_vcalls()) {
+        for (StringRef const Name : NameByGUID[VF.GUID]) {
           CallSlots[{Name, VF.Offset}].CSInfo.addSummaryTypeCheckedLoadUser(FS);
         }
       }
       for (const FunctionSummary::ConstVCall &VC :
            FS->type_test_assume_const_vcalls()) {
-        for (StringRef Name : NameByGUID[VC.VFunc.GUID]) {
+        for (StringRef const Name : NameByGUID[VC.VFunc.GUID]) {
           CallSlots[{Name, VC.VFunc.Offset}]
               .ConstCSInfo[VC.Args]
               .addSummaryTypeTestAssumeUser(FS);
@@ -2238,7 +2238,7 @@ void DevirtIndex::run() {
       }
       for (const FunctionSummary::ConstVCall &VC :
            FS->type_checked_load_const_vcalls()) {
-        for (StringRef Name : NameByGUID[VC.VFunc.GUID]) {
+        for (StringRef const Name : NameByGUID[VC.VFunc.GUID]) {
           CallSlots[{Name, VC.VFunc.Offset}]
               .ConstCSInfo[VC.Args]
               .addSummaryTypeCheckedLoadUser(FS);

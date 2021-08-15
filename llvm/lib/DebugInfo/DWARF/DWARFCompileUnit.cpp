@@ -15,7 +15,7 @@
 using namespace llvm;
 
 void DWARFCompileUnit::dump(raw_ostream &OS, DIDumpOptions DumpOpts) {
-  int OffsetDumpWidth = 2 * dwarf::getDwarfOffsetByteSize(getFormat());
+  int const OffsetDumpWidth = 2 * dwarf::getDwarfOffsetByteSize(getFormat());
   OS << format("0x%08" PRIx64, getOffset()) << ": Compile Unit:"
      << " length = " << format("0x%0*" PRIx64, OffsetDumpWidth, getLength())
      << ", format = " << dwarf::FormatString(getFormat())
@@ -32,7 +32,7 @@ void DWARFCompileUnit::dump(raw_ostream &OS, DIDumpOptions DumpOpts) {
   OS << " (next unit at " << format("0x%08" PRIx64, getNextUnitOffset())
      << ")\n";
 
-  if (DWARFDie CUDie = getUnitDIE(false))
+  if (DWARFDie const CUDie = getUnitDIE(false))
     CUDie.dump(OS, 0, DumpOpts);
   else
     OS << "<compile unit can't be parsed!>\n\n";

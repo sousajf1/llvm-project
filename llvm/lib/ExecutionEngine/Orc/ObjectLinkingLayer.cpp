@@ -203,7 +203,7 @@ public:
     auto &ES = Layer.getExecutionSession();
 
     SymbolFlagsMap ExtraSymbolsToClaim;
-    bool AutoClaim = Layer.AutoClaimObjectSymbols;
+    bool const AutoClaim = Layer.AutoClaimObjectSymbols;
 
     SymbolMap InternedResult;
     for (auto *Sym : G.defined_symbols())
@@ -480,7 +480,7 @@ private:
       if (SynthDeps.empty())
         continue;
 
-      DenseSet<Block *> BlockVisited;
+      DenseSet<Block *> const BlockVisited;
       for (auto &KV : SynthDeps) {
         auto &Name = KV.first;
         auto &DepsForName = KV.second;
@@ -639,7 +639,7 @@ Error ObjectLinkingLayer::add(ResourceTrackerSP RT,
 void ObjectLinkingLayer::emit(std::unique_ptr<MaterializationResponsibility> R,
                               std::unique_ptr<MemoryBuffer> O) {
   assert(O && "Object must not be null");
-  MemoryBufferRef ObjBuffer = O->getMemBufferRef();
+  MemoryBufferRef const ObjBuffer = O->getMemBufferRef();
 
   auto Ctx = std::make_unique<ObjectLinkingLayerJITLinkContext>(
       *this, std::move(R), std::move(O));
@@ -738,7 +738,7 @@ void EHFrameRegistrationPlugin::modifyPassConfig(
   PassConfig.PostFixupPasses.push_back(createEHFrameRecorderPass(
       G.getTargetTriple(), [this, &MR](JITTargetAddress Addr, size_t Size) {
         if (Addr) {
-          std::lock_guard<std::mutex> Lock(EHFramePluginMutex);
+          std::lock_guard<std::mutex> const Lock(EHFramePluginMutex);
           assert(!InProcessLinks.count(&MR) &&
                  "Link for MR already being tracked?");
           InProcessLinks[&MR] = {Addr, Size};
@@ -751,7 +751,7 @@ Error EHFrameRegistrationPlugin::notifyEmitted(
 
   EHFrameRange EmittedRange;
   {
-    std::lock_guard<std::mutex> Lock(EHFramePluginMutex);
+    std::lock_guard<std::mutex> const Lock(EHFramePluginMutex);
 
     auto EHFrameRangeItr = InProcessLinks.find(&MR);
     if (EHFrameRangeItr == InProcessLinks.end())
@@ -771,7 +771,7 @@ Error EHFrameRegistrationPlugin::notifyEmitted(
 
 Error EHFrameRegistrationPlugin::notifyFailed(
     MaterializationResponsibility &MR) {
-  std::lock_guard<std::mutex> Lock(EHFramePluginMutex);
+  std::lock_guard<std::mutex> const Lock(EHFramePluginMutex);
   InProcessLinks.erase(&MR);
   return Error::success();
 }

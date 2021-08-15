@@ -38,7 +38,7 @@ static Error loadSectionContribs(FixedStreamArray<ContribType> &Output,
         raw_error_code::corrupt_file,
         "Invalid number of bytes of section contributions");
 
-  uint32_t Count = Reader.bytesRemaining() / sizeof(ContribType);
+  uint32_t const Count = Reader.bytesRemaining() / sizeof(ContribType);
   if (auto EC = Reader.readArray(Output, Count))
     return EC;
   return Error::success();
@@ -145,7 +145,7 @@ Error DbiStream::reload(PDBFile *Pdb) {
 }
 
 PdbRaw_DbiVer DbiStream::getDbiVersion() const {
-  uint32_t Value = Header->VersionHeader;
+  uint32_t const Value = Header->VersionHeader;
   return static_cast<PdbRaw_DbiVer>(Value);
 }
 
@@ -194,7 +194,7 @@ uint32_t DbiStream::getSymRecordStreamIndex() const {
 }
 
 PDB_Machine DbiStream::getMachineType() const {
-  uint16_t Machine = Header->MachineType;
+  uint16_t const Machine = Header->MachineType;
   return static_cast<PDB_Machine>(Machine);
 }
 
@@ -265,12 +265,12 @@ Error DbiStream::initializeSectionHeadersData(PDBFile *Pdb) {
   if (!SHS)
     return Error::success();
 
-  size_t StreamLen = SHS->getLength();
+  size_t const StreamLen = SHS->getLength();
   if (StreamLen % sizeof(object::coff_section))
     return make_error<RawError>(raw_error_code::corrupt_file,
                                 "Corrupted section header stream.");
 
-  size_t NumSections = StreamLen / sizeof(object::coff_section);
+  size_t const NumSections = StreamLen / sizeof(object::coff_section);
   BinaryStreamReader Reader(*SHS);
   if (auto EC = Reader.readArray(SectionHeaders, NumSections))
     return make_error<RawError>(raw_error_code::corrupt_file,
@@ -291,12 +291,12 @@ Error DbiStream::initializeOldFpoRecords(PDBFile *Pdb) {
   if (!FS)
     return Error::success();
 
-  size_t StreamLen = FS->getLength();
+  size_t const StreamLen = FS->getLength();
   if (StreamLen % sizeof(object::FpoData))
     return make_error<RawError>(raw_error_code::corrupt_file,
                                 "Corrupted Old FPO stream.");
 
-  size_t NumRecords = StreamLen / sizeof(object::FpoData);
+  size_t const NumRecords = StreamLen / sizeof(object::FpoData);
   BinaryStreamReader Reader(*FS);
   if (auto EC = Reader.readArray(OldFpoRecords, NumRecords))
     return make_error<RawError>(raw_error_code::corrupt_file,
@@ -331,7 +331,7 @@ DbiStream::createIndexedStreamForHeaderType(PDBFile *Pdb,
   if (DbgStreams.empty())
     return nullptr;
 
-  uint32_t StreamNum = getDebugStreamIndex(Type);
+  uint32_t const StreamNum = getDebugStreamIndex(Type);
 
   // This means there is no such stream.
   if (StreamNum == kInvalidStreamIndex)
@@ -376,7 +376,7 @@ Error DbiStream::initializeSectionMapData() {
 }
 
 uint32_t DbiStream::getDebugStreamIndex(DbgHeaderType Type) const {
-  uint16_t T = static_cast<uint16_t>(Type);
+  uint16_t const T = static_cast<uint16_t>(Type);
   if (T >= DbgStreams.size())
     return kInvalidStreamIndex;
   return DbgStreams[T];

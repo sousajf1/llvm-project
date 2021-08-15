@@ -84,7 +84,7 @@ bool AMDGPUPALMetadata::setFromLegacyBlob(StringRef Blob) {
 
 // Set PAL metadata from msgpack blob.
 bool AMDGPUPALMetadata::setFromMsgPackBlob(StringRef Blob) {
-  msgpack::Reader Reader(Blob);
+  msgpack::Reader const Reader(Blob);
   return MsgPackDoc.readFromBlob(Blob, /*Multi=*/false);
 }
 
@@ -199,7 +199,7 @@ void AMDGPUPALMetadata::setEntryPoint(unsigned CC, StringRef Name) {
 void AMDGPUPALMetadata::setNumUsedVgprs(CallingConv::ID CC, unsigned Val) {
   if (isLegacy()) {
     // Old non-msgpack format.
-    unsigned NumUsedVgprsKey = getScratchSizeKey(CC) +
+    unsigned const NumUsedVgprsKey = getScratchSizeKey(CC) +
                                PALMD::Key::VS_NUM_USED_VGPRS -
                                PALMD::Key::VS_SCRATCH_SIZE;
     setRegister(NumUsedVgprsKey, Val);
@@ -215,7 +215,7 @@ void AMDGPUPALMetadata::setNumUsedVgprs(CallingConv::ID CC, unsigned Val) {
 void AMDGPUPALMetadata::setNumUsedSgprs(CallingConv::ID CC, unsigned Val) {
   if (isLegacy()) {
     // Old non-msgpack format.
-    unsigned NumUsedSgprsKey = getScratchSizeKey(CC) +
+    unsigned const NumUsedSgprsKey = getScratchSizeKey(CC) +
                                PALMD::Key::VS_NUM_USED_SGPRS -
                                PALMD::Key::VS_SCRATCH_SIZE;
     setRegister(NumUsedSgprsKey, Val);
@@ -670,8 +670,8 @@ void AMDGPUPALMetadata::toString(std::string &String) {
     for (auto I = Regs.begin(), E = Regs.end(); I != E; ++I) {
       if (I != Regs.begin())
         Stream << ',';
-      unsigned Reg = I->first.getUInt();
-      unsigned Val = I->second.getUInt();
+      unsigned const Reg = I->first.getUInt();
+      unsigned const Val = I->second.getUInt();
       Stream << "0x" << Twine::utohexstr(Reg) << ",0x" << Twine::utohexstr(Val);
     }
     Stream << '\n';

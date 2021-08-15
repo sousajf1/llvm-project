@@ -21,7 +21,7 @@ const size_t MAX_LINE_LEN = 80U;
 
 static void printLine(raw_ostream &OS, const Twine &Prefix, char Fill,
                       StringRef Suffix) {
-  size_t Pos = (size_t)OS.tell();
+  size_t const Pos = (size_t)OS.tell();
   assert((Prefix.str().size() + Suffix.size() <= MAX_LINE_LEN) &&
          "header line exceeds max limit");
   OS << Prefix;
@@ -33,14 +33,14 @@ static void printLine(raw_ostream &OS, const Twine &Prefix, char Fill,
 
 void llvm::emitSourceFileHeader(StringRef Desc, raw_ostream &OS) {
   printLine(OS, "/*===- TableGen'erated file ", '-', "*- C++ -*-===*\\");
-  StringRef Prefix("|* ");
-  StringRef Suffix(" *|");
+  StringRef const Prefix("|* ");
+  StringRef const Suffix(" *|");
   printLine(OS, Prefix, ' ', Suffix);
-  size_t PSLen = Prefix.size() + Suffix.size();
+  size_t const PSLen = Prefix.size() + Suffix.size();
   assert(PSLen < MAX_LINE_LEN);
   size_t Pos = 0U;
   do {
-    size_t Length = std::min(Desc.size() - Pos, MAX_LINE_LEN - PSLen);
+    size_t const Length = std::min(Desc.size() - Pos, MAX_LINE_LEN - PSLen);
     printLine(OS, Prefix + Desc.substr(Pos, Length), ' ', Suffix);
     Pos += Length;
   } while (Pos < Desc.size());

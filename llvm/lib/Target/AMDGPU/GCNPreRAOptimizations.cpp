@@ -149,7 +149,7 @@ bool GCNPreRAOptimizations::runOnMachineFunction(MachineFunction &MF) {
   bool Changed = false;
 
   for (unsigned I = 0, E = MRI->getNumVirtRegs(); I != E; ++I) {
-    Register Reg = Register::index2VirtReg(I);
+    Register const Reg = Register::index2VirtReg(I);
     if (!LIS->hasInterval(Reg))
       continue;
     const TargetRegisterClass *RC = MRI->getRegClass(Reg);

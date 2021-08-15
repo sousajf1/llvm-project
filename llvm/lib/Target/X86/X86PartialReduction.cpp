@@ -137,7 +137,7 @@ bool X86PartialReduction::tryMAddReplacement(Instruction *Op) {
   IRBuilder<> Builder(Mul);
 
   auto *MulTy = cast<FixedVectorType>(Op->getType());
-  unsigned NumElts = MulTy->getNumElements();
+  unsigned const NumElts = MulTy->getNumElements();
 
   // Extract even elements and odd elements and add them together. This will
   // be pattern matched by SelectionDAG to pmaddwd. This instruction will be
@@ -248,7 +248,7 @@ bool X86PartialReduction::trySADReplacement(Instruction *Op) {
       FixedVectorType::get(Builder.getInt32Ty(), IntrinsicNumElts / 4);
 
   assert(NumElts % IntrinsicNumElts == 0 && "Unexpected number of elements!");
-  unsigned NumSplits = NumElts / IntrinsicNumElts;
+  unsigned const NumSplits = NumElts / IntrinsicNumElts;
 
   // First collect the pieces we need.
   SmallVector<Value *, 4> Ops(NumSplits);
@@ -262,9 +262,9 @@ bool X86PartialReduction::trySADReplacement(Instruction *Op) {
   }
 
   assert(isPowerOf2_32(NumSplits) && "Expected power of 2 splits");
-  unsigned Stages = Log2_32(NumSplits);
+  unsigned const Stages = Log2_32(NumSplits);
   for (unsigned s = Stages; s > 0; --s) {
-    unsigned NumConcatElts =
+    unsigned const NumConcatElts =
         cast<FixedVectorType>(Ops[0]->getType())->getNumElements() * 2;
     for (unsigned i = 0; i != 1U << (s - 1); ++i) {
       SmallVector<int, 64> ConcatMask(NumConcatElts);
@@ -281,7 +281,7 @@ bool X86PartialReduction::trySADReplacement(Instruction *Op) {
     Ops[0] = Builder.CreateShuffleVector(Ops[0], Ops[0], ArrayRef<int>{0, 1});
   } else if (NumElts >= 8) {
     SmallVector<int, 32> ConcatMask(NumElts);
-    unsigned SubElts =
+    unsigned const SubElts =
         cast<FixedVectorType>(Ops[0]->getType())->getNumElements();
     for (unsigned i = 0; i != SubElts; ++i)
       ConcatMask[i] = i;
@@ -310,13 +310,13 @@ static Value *matchAddReduction(const ExtractElementInst &EE) {
   if (!BO || BO->getOpcode() != Instruction::Add || !BO->hasOneUse())
     return nullptr;
 
-  unsigned NumElems = cast<FixedVectorType>(BO->getType())->getNumElements();
+  unsigned const NumElems = cast<FixedVectorType>(BO->getType())->getNumElements();
   // Ensure the reduction size is a power of 2.
   if (!isPowerOf2_32(NumElems))
     return nullptr;
 
   const Value *Op = BO;
-  unsigned Stages = Log2_32(NumElems);
+  unsigned const Stages = Log2_32(NumElems);
   for (unsigned i = 0; i != Stages; ++i) {
     const auto *BO = dyn_cast<BinaryOperator>(Op);
     if (!BO || BO->getOpcode() != Instruction::Add)
@@ -344,7 +344,7 @@ static Value *matchAddReduction(const ExtractElementInst &EE) {
       return nullptr;
 
     // Verify the shuffle has the expected (at this stage of the pyramid) mask.
-    unsigned MaskEnd = 1 << i;
+    unsigned const MaskEnd = 1 << i;
     for (unsigned Index = 0; Index < MaskEnd; ++Index)
       if (Shuffle->getMaskValue(Index) != (int)(MaskEnd + Index))
         return nullptr;

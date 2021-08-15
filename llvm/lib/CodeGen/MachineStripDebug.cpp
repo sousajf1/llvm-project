@@ -40,11 +40,11 @@ struct StripDebugMachineModule : public ModulePass {
       }
     }
 
-    MachineModuleInfo &MMI =
+    MachineModuleInfo  const&MMI =
         getAnalysis<MachineModuleInfoWrapperPass>().getMMI();
 
     bool Changed = false;
-    for (Function &F : M.functions()) {
+    for (Function  const&F : M.functions()) {
       MachineFunction *MaybeMF = MMI.getMachineFunction(F);
       if (!MaybeMF)
         continue;

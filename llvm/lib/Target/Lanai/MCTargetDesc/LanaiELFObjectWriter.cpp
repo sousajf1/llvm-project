@@ -41,7 +41,7 @@ unsigned LanaiELFObjectWriter::getRelocType(MCContext & /*Ctx*/,
                                             const MCFixup &Fixup,
                                             bool /*IsPCRel*/) const {
   unsigned Type;
-  unsigned Kind = static_cast<unsigned>(Fixup.getKind());
+  unsigned const Kind = static_cast<unsigned>(Fixup.getKind());
   switch (Kind) {
   case Lanai::FIXUP_LANAI_21:
     Type = ELF::R_LANAI_21;

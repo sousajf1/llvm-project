@@ -83,7 +83,7 @@ bool LoopAnalysisManagerFunctionProxy::Result::invalidate(
 
   // Directly check if the relevant set is preserved so we can short circuit
   // invalidating loops.
-  bool AreLoopAnalysesPreserved =
+  bool const AreLoopAnalysesPreserved =
       PA.allAnalysesInSetPreserved<AllAnalysesOn<Loop>>();
 
   // Since we have a valid LoopInfo we can actually leave the cached results in

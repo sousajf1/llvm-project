@@ -193,8 +193,8 @@ StoreInst *MergedLoadStoreMotion::canSinkFromBlock(BasicBlock *BB1,
     if (!Store1)
       continue;
 
-    MemoryLocation Loc0 = MemoryLocation::get(Store0);
-    MemoryLocation Loc1 = MemoryLocation::get(Store1);
+    MemoryLocation const Loc0 = MemoryLocation::get(Store0);
+    MemoryLocation const Loc1 = MemoryLocation::get(Store1);
     if (AA->isMustAlias(Loc0, Loc1) && Store0->isSameOperationAs(Store1) &&
         !isStoreSinkBarrierInRange(*Store1->getNextNode(), BB1->back(), Loc1) &&
         !isStoreSinkBarrierInRange(*Store0->getNextNode(), BB0->back(), Loc0)) {
@@ -249,7 +249,7 @@ void MergedLoadStoreMotion::sinkStoresAndGEPs(BasicBlock *BB, StoreInst *S0,
              dbgs() << "Instruction Left\n"; S0->dump(); dbgs() << "\n";
              dbgs() << "Instruction Right\n"; S1->dump(); dbgs() << "\n");
   // Hoist the instruction.
-  BasicBlock::iterator InsertPt = BB->getFirstInsertionPt();
+  BasicBlock::iterator const InsertPt = BB->getFirstInsertionPt();
   // Intersect optional metadata.
   S0->andIRFlags(S1);
   S0->dropUnknownNonDebugMetadata();
@@ -301,7 +301,7 @@ bool MergedLoadStoreMotion::mergeStores(BasicBlock *HeadBB) {
     return false;
   // #Instructions in Pred1 for Compile Time Control
   auto InstsNoDbg = Pred1->instructionsWithoutDebug();
-  int Size1 = std::distance(InstsNoDbg.begin(), InstsNoDbg.end());
+  int const Size1 = std::distance(InstsNoDbg.begin(), InstsNoDbg.end());
   int NStores = 0;
 
   for (BasicBlock::reverse_iterator RBI = Pred0->rbegin(), RBE = Pred0->rend();

@@ -33,7 +33,7 @@ Error llvm::msf::validateSuperBlock(const SuperBlock &SB) {
 
   // The number of blocks which comprise the directory is a simple function of
   // the number of bytes it contains.
-  uint64_t NumDirectoryBlocks =
+  uint64_t const NumDirectoryBlocks =
       bytesToBlocks(SB.NumDirectoryBytes, SB.BlockSize);
 
   // The directory, as we understand it, is a block which consists of a list of
@@ -63,7 +63,7 @@ MSFStreamLayout llvm::msf::getFpmStreamLayout(const MSFLayout &Msf,
                                               bool IncludeUnusedFpmData,
                                               bool AltFpm) {
   MSFStreamLayout FL;
-  uint32_t NumFpmIntervals =
+  uint32_t const NumFpmIntervals =
       getNumFpmIntervals(Msf, IncludeUnusedFpmData, AltFpm);
 
   uint32_t FpmBlock = AltFpm ? Msf.alternateFpmBlock() : Msf.mainFpmBlock();

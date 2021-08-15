@@ -48,7 +48,7 @@ ThreadSafeModule cloneToNewContext(const ThreadSafeModule &TSM,
       BCWriter.writeStrtab();
     }
 
-    MemoryBufferRef ClonedModuleBufferRef(
+    MemoryBufferRef const ClonedModuleBufferRef(
         StringRef(ClonedModuleBuffer.data(), ClonedModuleBuffer.size()),
         "cloned module buffer");
     ThreadSafeContext NewTSCtx(std::make_unique<LLVMContext>());

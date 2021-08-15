@@ -273,7 +273,7 @@ static Triple::ArchType parseBPFArch(StringRef ArchName) {
 }
 
 Triple::ArchType Triple::getArchTypeForLLVMName(StringRef Name) {
-  Triple::ArchType BPFArch(parseBPFArch(Name));
+  Triple::ArchType const BPFArch(parseBPFArch(Name));
   return StringSwitch<Triple::ArchType>(Name)
     .Case("aarch64", aarch64)
     .Case("aarch64_be", aarch64_be)
@@ -336,8 +336,8 @@ Triple::ArchType Triple::getArchTypeForLLVMName(StringRef Name) {
 }
 
 static Triple::ArchType parseARMArch(StringRef ArchName) {
-  ARM::ISAKind ISA = ARM::parseArchISA(ArchName);
-  ARM::EndianKind ENDIAN = ARM::parseArchEndian(ArchName);
+  ARM::ISAKind const ISA = ARM::parseArchISA(ArchName);
+  ARM::EndianKind const ENDIAN = ARM::parseArchEndian(ArchName);
 
   Triple::ArchType arch = Triple::UnknownArch;
   switch (ENDIAN) {
@@ -388,8 +388,8 @@ static Triple::ArchType parseARMArch(StringRef ArchName) {
     return Triple::UnknownArch;
 
   // Thumb only for v6m
-  ARM::ProfileKind Profile = ARM::parseArchProfile(ArchName);
-  unsigned Version = ARM::parseArchVersion(ArchName);
+  ARM::ProfileKind const Profile = ARM::parseArchProfile(ArchName);
+  unsigned const Version = ARM::parseArchVersion(ArchName);
   if (Profile == ARM::ProfileKind::M && Version == 6) {
     if (ENDIAN == ARM::EndianKind::BIG)
       return Triple::thumbeb;
@@ -591,7 +591,7 @@ static Triple::SubArchType parseSubArch(StringRef SubArchName) {
   if (SubArchName == "arm64e")
     return Triple::AArch64SubArch_arm64e;
 
-  StringRef ARMSubArch = ARM::getCanonicalArchName(SubArchName);
+  StringRef const ARMSubArch = ARM::getCanonicalArchName(SubArchName);
 
   // For now, this is the small part. Early return.
   if (ARMSubArch.empty())
@@ -884,7 +884,7 @@ std::string Triple::normalize(StringRef Str) {
 
       // Does this component parse as valid for the target position?
       bool Valid = false;
-      StringRef Comp = Components[Idx];
+      StringRef const Comp = Components[Idx];
       switch (Pos) {
       default: llvm_unreachable("unexpected component type!");
       case 0:
@@ -977,7 +977,7 @@ std::string Triple::normalize(StringRef Str) {
   // correct values for the computed components.
   std::string NormalizedEnvironment;
   if (Environment == Triple::Android && Components[3].startswith("androideabi")) {
-    StringRef AndroidVersion = Components[3].drop_front(strlen("androideabi"));
+    StringRef const AndroidVersion = Components[3].drop_front(strlen("androideabi"));
     if (AndroidVersion.empty()) {
       Components[3] = "android";
     } else {
@@ -1025,7 +1025,7 @@ StringRef Triple::getArchName() const {
 }
 
 StringRef Triple::getVendorName() const {
-  StringRef Tmp = StringRef(Data).split('-').second; // Strip first component
+  StringRef const Tmp = StringRef(Data).split('-').second; // Strip first component
   return Tmp.split('-').first;                       // Isolate second component
 }
 
@@ -1042,7 +1042,7 @@ StringRef Triple::getEnvironmentName() const {
 }
 
 StringRef Triple::getOSAndEnvironmentName() const {
-  StringRef Tmp = StringRef(Data).split('-').second; // Strip first component
+  StringRef const Tmp = StringRef(Data).split('-').second; // Strip first component
   return Tmp.split('-').second;                      // Strip second component
 }
 
@@ -1067,7 +1067,7 @@ static void parseVersionFromName(StringRef Name, unsigned &Major,
   Major = Minor = Micro = 0;
 
   // Parse up to three components.
-  unsigned *Components[3] = {&Major, &Minor, &Micro};
+  unsigned *const Components[3] = {&Major, &Minor, &Micro};
   for (unsigned i = 0; i != 3; ++i) {
     if (Name.empty() || Name[0] < '0' || Name[0] > '9')
       break;
@@ -1084,7 +1084,7 @@ static void parseVersionFromName(StringRef Name, unsigned &Major,
 void Triple::getEnvironmentVersion(unsigned &Major, unsigned &Minor,
                                    unsigned &Micro) const {
   StringRef EnvironmentName = getEnvironmentName();
-  StringRef EnvironmentTypeName = getEnvironmentTypeName(getEnvironment());
+  StringRef const EnvironmentTypeName = getEnvironmentTypeName(getEnvironment());
   if (EnvironmentName.startswith(EnvironmentTypeName))
     EnvironmentName = EnvironmentName.substr(EnvironmentTypeName.size());
 
@@ -1095,7 +1095,7 @@ void Triple::getOSVersion(unsigned &Major, unsigned &Minor,
                           unsigned &Micro) const {
   StringRef OSName = getOSName();
   // Assume that the OS portion of the triple starts with the canonical name.
-  StringRef OSTypeName = getOSTypeName(getOS());
+  StringRef const OSTypeName = getOSTypeName(getOS());
   if (OSName.startswith(OSTypeName))
     OSName = OSName.substr(OSTypeName.size());
   else if (getOS() == MacOSX)

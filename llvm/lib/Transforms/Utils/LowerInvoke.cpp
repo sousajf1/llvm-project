@@ -48,7 +48,7 @@ static bool runImpl(Function &F) {
   bool Changed = false;
   for (BasicBlock &BB : F)
     if (InvokeInst *II = dyn_cast<InvokeInst>(BB.getTerminator())) {
-      SmallVector<Value *, 16> CallArgs(II->args());
+      SmallVector<Value *, 16> const CallArgs(II->args());
       SmallVector<OperandBundleDef, 1> OpBundles;
       II->getOperandBundlesAsDefs(OpBundles);
       // Insert a normal call instruction...
@@ -88,7 +88,7 @@ FunctionPass *createLowerInvokePass() { return new LowerInvokeLegacyPass(); }
 
 PreservedAnalyses LowerInvokePass::run(Function &F,
                                        FunctionAnalysisManager &AM) {
-  bool Changed = runImpl(F);
+  bool const Changed = runImpl(F);
   if (!Changed)
     return PreservedAnalyses::all();
 

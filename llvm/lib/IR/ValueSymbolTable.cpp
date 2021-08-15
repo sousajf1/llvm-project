@@ -42,7 +42,7 @@ ValueSymbolTable::~ValueSymbolTable() {
 
 ValueName *ValueSymbolTable::makeUniqueName(Value *V,
                                             SmallString<256> &UniqueName) {
-  unsigned BaseSize = UniqueName.size();
+  unsigned const BaseSize = UniqueName.size();
   while (true) {
     // Trim any suffix off and append the next number.
     UniqueName.resize(BaseSize);

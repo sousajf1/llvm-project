@@ -163,7 +163,7 @@ StringRef AArch64::getArchExtName(unsigned ArchExtKind) {
 
 StringRef AArch64::getArchExtFeature(StringRef ArchExt) {
   if (ArchExt.startswith("no")) {
-    StringRef ArchExtBase(ArchExt.substr(2));
+    StringRef const ArchExtBase(ArchExt.substr(2));
     for (const auto &AE : AArch64ARCHExtNames) {
       if (AE.NegFeature && ArchExtBase == AE.getName())
         return StringRef(AE.NegFeature);
@@ -177,7 +177,7 @@ StringRef AArch64::getArchExtFeature(StringRef ArchExt) {
 }
 
 StringRef AArch64::getDefaultCPU(StringRef Arch) {
-  ArchKind AK = parseArch(Arch);
+  ArchKind const AK = parseArch(Arch);
   if (AK == ArchKind::INVALID)
     return StringRef();
 
@@ -208,7 +208,7 @@ AArch64::ArchKind AArch64::parseArch(StringRef Arch) {
   if (checkArchVersion(Arch) < 8)
     return ArchKind::INVALID;
 
-  StringRef Syn = ARM::getArchSynonym(Arch);
+  StringRef const Syn = ARM::getArchSynonym(Arch);
   for (const auto &A : AArch64ARCHNames) {
     if (A.getName().endswith(Syn))
       return A.ID;
@@ -252,7 +252,7 @@ bool AArch64::parseBranchProtection(StringRef Spec, ParsedBranchProtection &PBP,
   SmallVector<StringRef, 4> Opts;
   Spec.split(Opts, "+");
   for (int I = 0, E = Opts.size(); I != E; ++I) {
-    StringRef Opt = Opts[I].trim();
+    StringRef const Opt = Opts[I].trim();
     if (Opt == "bti") {
       PBP.BranchTargetEnforcement = true;
       continue;
@@ -260,7 +260,7 @@ bool AArch64::parseBranchProtection(StringRef Spec, ParsedBranchProtection &PBP,
     if (Opt == "pac-ret") {
       PBP.Scope = "non-leaf";
       for (; I + 1 != E; ++I) {
-        StringRef PACOpt = Opts[I + 1].trim();
+        StringRef const PACOpt = Opts[I + 1].trim();
         if (PACOpt == "leaf")
           PBP.Scope = "all";
         else if (PACOpt == "b-key")

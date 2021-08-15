@@ -112,7 +112,7 @@ void DebugLoc::print(raw_ostream &OS) const {
   if (getCol() != 0)
     OS << ':' << getCol();
 
-  if (DebugLoc InlinedAtDL = getInlinedAt()) {
+  if (DebugLoc const InlinedAtDL = getInlinedAt()) {
     OS << " @[ ";
     InlinedAtDL.print(OS);
     OS << " ]";

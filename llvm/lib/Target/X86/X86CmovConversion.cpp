@@ -291,7 +291,7 @@ bool X86CmovConverterPass::collectCmovCandidates(
       // Skip debug instructions.
       if (I.isDebugInstr())
         continue;
-      X86::CondCode CC = X86::getCondFromCMov(I);
+      X86::CondCode const CC = X86::getCondFromCMov(I);
       // Check if we found a X86::CMOVrr instruction.
       if (CC != X86::COND_INVALID && (IncludeLoads || !I.mayLoad())) {
         if (Group.empty()) {
@@ -434,16 +434,16 @@ bool X86CmovConverterPass::checkForProfitableCmovCandidates(
           continue;
         unsigned MIDepth = 0;
         unsigned MIDepthOpt = 0;
-        bool IsCMOV = CmovInstructions.count(&MI);
+        bool const IsCMOV = CmovInstructions.count(&MI);
         for (auto &MO : MI.uses()) {
           // Checks for "isUse()" as "uses()" returns also implicit definitions.
           if (!MO.isReg() || !MO.isUse())
             continue;
-          Register Reg = MO.getReg();
+          Register const Reg = MO.getReg();
           auto &RDM = RegDefMaps[Reg.isVirtual()];
           if (MachineInstr *DefMI = RDM.lookup(Reg)) {
             OperandToDefMap[&MO] = DefMI;
-            DepthInfo Info = DepthMap.lookup(DefMI);
+            DepthInfo const Info = DepthMap.lookup(DefMI);
             MIDepth = std::max(MIDepth, Info.Depth);
             if (!IsCMOV)
               MIDepthOpt = std::max(MIDepthOpt, Info.OptDepth);
@@ -459,11 +459,11 @@ bool X86CmovConverterPass::checkForProfitableCmovCandidates(
         for (auto &MO : MI.operands()) {
           if (!MO.isReg() || !MO.isDef())
             continue;
-          Register Reg = MO.getReg();
+          Register const Reg = MO.getReg();
           RegDefMaps[Reg.isVirtual()][Reg] = &MI;
         }
 
-        unsigned Latency = TSchedModel.computeInstrLatency(&MI);
+        unsigned const Latency = TSchedModel.computeInstrLatency(&MI);
         DepthMap[&MI] = {MIDepth += Latency, MIDepthOpt += Latency};
         MaxDepth.Depth = std::max(MaxDepth.Depth, MIDepth);
         MaxDepth.OptDepth = std::max(MaxDepth.OptDepth, MIDepthOpt);
@@ -471,7 +471,7 @@ bool X86CmovConverterPass::checkForProfitableCmovCandidates(
     }
   }
 
-  unsigned Diff[LoopIterations] = {LoopDepth[0].Depth - LoopDepth[0].OptDepth,
+  unsigned const Diff[LoopIterations] = {LoopDepth[0].Depth - LoopDepth[0].OptDepth,
                                    LoopDepth[1].Depth - LoopDepth[1].OptDepth};
 
   //===--------------------------------------------------------------------===//
@@ -528,7 +528,7 @@ bool X86CmovConverterPass::checkForProfitableCmovCandidates(
   //   To be conservative, the gain of such CMOV transformation should cover at
   //   at least 25% of branch-misprediction-penalty.
   //===--------------------------------------------------------------------===//
-  unsigned MispredictPenalty = TSchedModel.getMCSchedModel()->MispredictPenalty;
+  unsigned const MispredictPenalty = TSchedModel.getMCSchedModel()->MispredictPenalty;
   CmovGroups TempGroups;
   std::swap(TempGroups, CmovInstGroups);
   for (auto &Group : TempGroups) {
@@ -539,16 +539,16 @@ bool X86CmovConverterPass::checkForProfitableCmovCandidates(
       // used with tree-search like algorithm, where the branch is unpredicted.
       auto UIs = MRI->use_instructions(MI->defs().begin()->getReg());
       if (!UIs.empty() && ++UIs.begin() == UIs.end()) {
-        unsigned Op = UIs.begin()->getOpcode();
+        unsigned const Op = UIs.begin()->getOpcode();
         if (Op == X86::MOV64rm || Op == X86::MOV32rm) {
           WorthOpGroup = false;
           break;
         }
       }
 
-      unsigned CondCost =
+      unsigned const CondCost =
           DepthMap[OperandToDefMap.lookup(&MI->getOperand(4))].Depth;
-      unsigned ValCost = getDepthOfOptCmov(
+      unsigned const ValCost = getDepthOfOptCmov(
           DepthMap[OperandToDefMap.lookup(&MI->getOperand(1))].Depth,
           DepthMap[OperandToDefMap.lookup(&MI->getOperand(2))].Depth);
       if (ValCost > CondCost || (CondCost - ValCost) * 4 < MispredictPenalty) {
@@ -571,7 +571,7 @@ static bool checkEFLAGSLive(MachineInstr *MI) {
   // The EFLAGS operand of MI might be missing a kill marker.
   // Figure out whether EFLAGS operand should LIVE after MI instruction.
   MachineBasicBlock *BB = MI->getParent();
-  MachineBasicBlock::iterator ItrMI = MI;
+  MachineBasicBlock::iterator const ItrMI = MI;
 
   // Scan forward through BB for a use/def of EFLAGS.
   for (auto I = std::next(ItrMI), E = BB->end(); I != E; ++I) {
@@ -651,7 +651,7 @@ void X86CmovConverterPass::convertCmovInstsToBranches(
 
   MachineInstr &MI = *Group.front();
   MachineInstr *LastCMOV = Group.back();
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc const DL = MI.getDebugLoc();
 
   X86::CondCode CC = X86::CondCode(X86::getCondFromCMov(MI));
   X86::CondCode OppCC = X86::GetOppositeBranchCondition(CC);
@@ -665,7 +665,7 @@ void X86CmovConverterPass::convertCmovInstsToBranches(
     std::swap(CC, OppCC);
 
   MachineBasicBlock *MBB = MI.getParent();
-  MachineFunction::iterator It = ++MBB->getIterator();
+  MachineFunction::iterator const It = ++MBB->getIterator();
   MachineFunction *F = MBB->getParent();
   const BasicBlock *BB = MBB->getBasicBlock();
 
@@ -698,10 +698,10 @@ void X86CmovConverterPass::convertCmovInstsToBranches(
 
   MachineInstrBuilder MIB;
   MachineBasicBlock::iterator MIItBegin = MachineBasicBlock::iterator(MI);
-  MachineBasicBlock::iterator MIItEnd =
+  MachineBasicBlock::iterator const MIItEnd =
       std::next(MachineBasicBlock::iterator(LastCMOV));
-  MachineBasicBlock::iterator FalseInsertionPoint = FalseMBB->begin();
-  MachineBasicBlock::iterator SinkInsertionPoint = SinkMBB->begin();
+  MachineBasicBlock::iterator const FalseInsertionPoint = FalseMBB->begin();
+  MachineBasicBlock::iterator const SinkInsertionPoint = SinkMBB->begin();
 
   // First we need to insert an explicit load on the false path for any memory
   // operand. We also need to potentially do register rewriting here, but it is
@@ -756,10 +756,10 @@ void X86CmovConverterPass::convertCmovInstsToBranches(
 
     // Get a fresh register to use as the destination of the MOV.
     const TargetRegisterClass *RC = MRI->getRegClass(MI.getOperand(0).getReg());
-    Register TmpReg = MRI->createVirtualRegister(RC);
+    Register const TmpReg = MRI->createVirtualRegister(RC);
 
     SmallVector<MachineInstr *, 4> NewMIs;
-    bool Unfolded = TII->unfoldMemoryOperand(*MBB->getParent(), MI, TmpReg,
+    bool const Unfolded = TII->unfoldMemoryOperand(*MBB->getParent(), MI, TmpReg,
                                              /*UnfoldLoad*/ true,
                                              /*UnfoldStore*/ false, NewMIs);
     (void)Unfolded;
@@ -813,7 +813,7 @@ void X86CmovConverterPass::convertCmovInstsToBranches(
   DenseMap<unsigned, std::pair<unsigned, unsigned>> RegRewriteTable;
 
   for (MachineBasicBlock::iterator MIIt = MIItBegin; MIIt != MIItEnd; ++MIIt) {
-    Register DestReg = MIIt->getOperand(0).getReg();
+    Register const DestReg = MIIt->getOperand(0).getReg();
     Register Op1Reg = MIIt->getOperand(1).getReg();
     Register Op2Reg = MIIt->getOperand(2).getReg();
 

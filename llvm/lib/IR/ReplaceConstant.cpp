@@ -88,7 +88,7 @@ void collectConstantExprPaths(
     std::vector<std::vector<ConstantExpr *>> Paths;
 
     // Collect all reachable paths from CE2 to CE.
-    std::vector<ConstantExpr *> Path{CE2};
+    std::vector<ConstantExpr *> const Path{CE2};
     std::vector<std::vector<ConstantExpr *>> Stack{Path};
     while (!Stack.empty()) {
       std::vector<ConstantExpr *> TPath = Stack.back();

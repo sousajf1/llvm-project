@@ -181,7 +181,7 @@ BasicBlock *LandingPadInliningInfo::getInnerResumeDest() {
   if (InnerResumeDest) return InnerResumeDest;
 
   // Split the landing pad.
-  BasicBlock::iterator SplitPoint = ++CallerLPad->getIterator();
+  BasicBlock::iterator const SplitPoint = ++CallerLPad->getIterator();
   InnerResumeDest =
     OuterResumeDest->splitBasicBlock(SplitPoint,
                                      OuterResumeDest->getName() + ".body");
@@ -626,7 +626,7 @@ static void HandleInlinedLandingPad(InvokeInst *II, BasicBlock *FirstNewBlock,
   // landing pad instructions.
   LandingPadInst *OuterLPad = Invoke.getLandingPadInst();
   for (LandingPadInst *InlinedLPad : InlinedLPads) {
-    unsigned OuterNum = OuterLPad->getNumClauses();
+    unsigned const OuterNum = OuterLPad->getNumClauses();
     InlinedLPad->reserveClauses(OuterNum);
     for (unsigned OuterIdx = 0; OuterIdx != OuterNum; ++OuterIdx)
       InlinedLPad->addClause(OuterLPad->getClause(OuterIdx));
@@ -1035,7 +1035,7 @@ static void AddAliasScopeMetadata(CallBase &CB, ValueToValueMapTy &VMap,
 
         IsFuncCall = true;
         if (CalleeAAR) {
-          FunctionModRefBehavior MRB = CalleeAAR->getModRefBehavior(Call);
+          FunctionModRefBehavior const MRB = CalleeAAR->getModRefBehavior(Call);
 
           // We'll retain this knowledge without additional metadata.
           if (AAResults::onlyAccessesInaccessibleMem(MRB))
@@ -1071,7 +1071,7 @@ static void AddAliasScopeMetadata(CallBase &CB, ValueToValueMapTy &VMap,
       SmallPtrSet<const Value *, 4> ObjSet;
       SmallVector<Metadata *, 4> Scopes, NoAliases;
 
-      SmallSetVector<const Argument *, 4> NAPtrArgs;
+      SmallSetVector<const Argument *, 4> const NAPtrArgs;
       for (const Value *V : PtrArgs) {
         SmallVector<const Value *, 4> Objects;
         getUnderlyingObjects(V, Objects, /* LI = */ nullptr);
@@ -1087,7 +1087,7 @@ static void AddAliasScopeMetadata(CallBase &CB, ValueToValueMapTy &VMap,
         // Is this value a constant that cannot be derived from any pointer
         // value (we need to exclude constant expressions, for example, that
         // are formed from arithmetic on global symbols).
-        bool IsNonPtrConst = isa<ConstantInt>(V) || isa<ConstantFP>(V) ||
+        bool const IsNonPtrConst = isa<ConstantInt>(V) || isa<ConstantFP>(V) ||
                              isa<ConstantPointerNull>(V) ||
                              isa<ConstantDataVector>(V) || isa<UndefValue>(V);
         if (IsNonPtrConst)
@@ -1213,7 +1213,7 @@ static void AddReturnAttributes(CallBase &CB, ValueToValueMapTy &VMap) {
   if (!UpdateReturnAttributes)
     return;
 
-  AttrBuilder Valid = IdentifyValidAttributes(CB);
+  AttrBuilder const Valid = IdentifyValidAttributes(CB);
   if (Valid.empty())
     return;
   auto *CalledFunction = CB.getCalledFunction();
@@ -1258,8 +1258,8 @@ static void AddReturnAttributes(CallBase &CB, ValueToValueMapTy &VMap) {
     // with a differing value, the AttributeList's merge API honours the already
     // existing attribute value (i.e. attributes such as dereferenceable,
     // dereferenceable_or_null etc). See AttrBuilder::merge for more details.
-    AttributeList AL = NewRetVal->getAttributes();
-    AttributeList NewAL =
+    AttributeList const AL = NewRetVal->getAttributes();
+    AttributeList const NewAL =
         AL.addAttributes(Context, AttributeList::ReturnIndex, Valid);
     NewRetVal->setAttributes(NewAL);
   }
@@ -1280,8 +1280,8 @@ static void AddAlignmentAssumptions(CallBase &CB, InlineFunctionInfo &IFI) {
   bool DTCalculated = false;
 
   Function *CalledFunc = CB.getCalledFunction();
-  for (Argument &Arg : CalledFunc->args()) {
-    unsigned Align = Arg.getType()->isPointerTy() ? Arg.getParamAlignment() : 0;
+  for (Argument  const&Arg : CalledFunc->args()) {
+    unsigned const Align = Arg.getType()->isPointerTy() ? Arg.getParamAlignment() : 0;
     if (Align && !Arg.hasPassPointeeByValueCopyAttr() && !Arg.hasNUses(0)) {
       if (!DTCalculated) {
         DT.recalculate(*CB.getCaller());
@@ -1334,7 +1334,7 @@ static void UpdateCallGraphAfterInlining(CallBase &CB,
 
     const Value *OrigCall = *I->first;
 
-    ValueToValueMapTy::iterator VMI = VMap.find(OrigCall);
+    ValueToValueMapTy::iterator const VMI = VMap.find(OrigCall);
     // Only copy the edge if the call was inlined!
     if (VMI == VMap.end() || VMI->second == nullptr)
       continue;
@@ -1513,7 +1513,7 @@ static void fixupLineNumbers(Function *Fn, Function::iterator FI,
 
   // Check if we are not generating inline line tables and want to use
   // the call site location instead.
-  bool NoInlineLineTables = Fn->hasFnAttribute("no-inline-line-tables");
+  bool const NoInlineLineTables = Fn->hasFnAttribute("no-inline-line-tables");
 
   for (; FI != Fn->end(); ++FI) {
     for (BasicBlock::iterator BI = FI->begin(), BE = FI->end();
@@ -1529,8 +1529,8 @@ static void fixupLineNumbers(Function *Fn, Function::iterator FI,
       updateLoopMetadataDebugLocations(*BI, updateLoopInfoLoc);
 
       if (!NoInlineLineTables)
-        if (DebugLoc DL = BI->getDebugLoc()) {
-          DebugLoc IDL =
+        if (DebugLoc const DL = BI->getDebugLoc()) {
+          DebugLoc const IDL =
               inlineDebugLoc(DL, InlinedAtNode, BI->getContext(), IANodes);
           BI->setDebugLoc(IDL);
           continue;
@@ -1590,7 +1590,7 @@ static void updateCallerBFI(BasicBlock *CallSiteBlock,
       // Multiple blocks in the callee might get mapped to one cloned block in
       // the caller since we prune the callee as we clone it. When that happens,
       // we want to use the maximum among the original blocks' frequencies.
-      uint64_t NewFreq = CallerBFI->getBlockFreq(ClonedBB).getFrequency();
+      uint64_t const NewFreq = CallerBFI->getBlockFreq(ClonedBB).getFrequency();
       if (NewFreq > Freq)
         Freq = NewFreq;
     }
@@ -1611,7 +1611,7 @@ static void updateCallProfile(Function *Callee, const ValueToValueMapTy &VMap,
       CalleeEntryCount.getCount() < 1)
     return;
   auto CallSiteCount = PSI ? PSI->getProfileCount(TheCall, CallerBFI) : None;
-  int64_t CallCount =
+  int64_t const CallCount =
       std::min(CallSiteCount.getValueOr(0), CalleeEntryCount.getCount());
   updateProfileCallee(Callee, -CallCount, &VMap);
 }
@@ -1623,7 +1623,7 @@ void llvm::updateProfileCallee(
   if (!CalleeCount.hasValue())
     return;
 
-  uint64_t priorEntryCount = CalleeCount.getCount();
+  uint64_t const priorEntryCount = CalleeCount.getCount();
   uint64_t newEntryCount;
 
   // Since CallSiteCount is an estimate, it could exceed the original callee
@@ -1635,7 +1635,7 @@ void llvm::updateProfileCallee(
 
   // During inlining ?
   if (VMap) {
-    uint64_t cloneEntryCount = priorEntryCount - newEntryCount;
+    uint64_t const cloneEntryCount = priorEntryCount - newEntryCount;
     for (auto Entry : *VMap)
       if (isa<CallInst>(Entry.first))
         if (auto *CI = dyn_cast_or_null<CallInst>(Entry.second))
@@ -1681,7 +1681,7 @@ inlineRetainOrClaimRVCalls(CallBase &CB,
   for (auto *RI : Returns) {
     Value *RetOpnd = objcarc::GetRCIdentityRoot(RI->getOperand(0));
     BasicBlock::reverse_iterator I = ++(RI->getIterator().getReverse());
-    BasicBlock::reverse_iterator EI = RI->getParent()->rend();
+    BasicBlock::reverse_iterator const EI = RI->getParent()->rend();
     bool InsertRetainCall = IsRetainRV;
     IRBuilder<> Builder(RI->getContext());
 
@@ -1719,10 +1719,10 @@ inlineRetainOrClaimRVCalls(CallBase &CB,
             !objcarc::hasAttachedCallOpBundle(CI)) {
           // If we've found an unannotated call that defines RetOpnd, add a
           // "clang.arc.attachedcall" operand bundle.
-          Value *BundleArgs[] = {ConstantInt::get(
+          Value *const BundleArgs[] = {ConstantInt::get(
               Builder.getInt64Ty(),
               objcarc::getAttachedCallOperandBundleEnum(IsRetainRV))};
-          OperandBundleDef OB("clang.arc.attachedcall", BundleArgs);
+          OperandBundleDef const OB("clang.arc.attachedcall", BundleArgs);
           auto *NewCall = CallBase::addOperandBundle(
               CI, LLVMContext::OB_clang_arc_attachedcall, OB, CI);
           NewCall->copyMetadata(*CI);
@@ -1777,7 +1777,7 @@ llvm::InlineResult llvm::InlineFunction(CallBase &CB, InlineFunctionInfo &IFI,
   // in general ...
   if (CB.hasOperandBundles()) {
     for (int i = 0, e = CB.getNumOperandBundles(); i != e; ++i) {
-      uint32_t Tag = CB.getOperandBundleAt(i).getTagID();
+      uint32_t const Tag = CB.getOperandBundleAt(i).getTagID();
       // ... but it knows how to inline through "deopt" operand bundles ...
       if (Tag == LLVMContext::OB_deopt)
         continue;
@@ -1793,7 +1793,7 @@ llvm::InlineResult llvm::InlineFunction(CallBase &CB, InlineFunctionInfo &IFI,
 
   // If the call to the callee cannot throw, set the 'nounwind' flag on any
   // calls that we inline.
-  bool MarkNoUnwind = CB.doesNotThrow();
+  bool const MarkNoUnwind = CB.doesNotThrow();
 
   BasicBlock *OrigBB = CB.getParent();
   Function *Caller = OrigBB->getParent();
@@ -1837,7 +1837,7 @@ llvm::InlineResult llvm::InlineFunction(CallBase &CB, InlineFunctionInfo &IFI,
   // properly nest the callee.
   Instruction *CallSiteEHPad = nullptr;
   if (CallerPersonality) {
-    EHPersonality Personality = classifyEHPersonality(CallerPersonality);
+    EHPersonality const Personality = classifyEHPersonality(CallerPersonality);
     if (isScopedEHPersonality(Personality)) {
       Optional<OperandBundleUse> ParentFunclet =
           CB.getOperandBundle(LLVMContext::OB_funclet);
@@ -1885,7 +1885,7 @@ llvm::InlineResult llvm::InlineFunction(CallBase &CB, InlineFunctionInfo &IFI,
 
   // Get an iterator to the last basic block in the function, which will have
   // the new function inlined after it.
-  Function::iterator LastBlock = --Caller->end();
+  Function::iterator const LastBlock = --Caller->end();
 
   // Make sure to capture all of the return instructions from the cloned
   // function.
@@ -1971,7 +1971,7 @@ llvm::InlineResult llvm::InlineFunction(CallBase &CB, InlineFunctionInfo &IFI,
     }
 
     // Inject byval arguments initialization.
-    for (std::pair<Value*, Value*> &Init : ByValInit)
+    for (std::pair<Value*, Value*>  const&Init : ByValInit)
       HandleByValArgumentInit(Init.first, Init.second, Caller->getParent(),
                               &*FirstNewBlock, IFI);
 
@@ -2061,7 +2061,7 @@ llvm::InlineResult llvm::InlineFunction(CallBase &CB, InlineFunctionInfo &IFI,
   // calculate which instruction they should be inserted before.  We insert the
   // instructions at the end of the current alloca list.
   {
-    BasicBlock::iterator InsertPoint = Caller->begin()->begin();
+    BasicBlock::iterator const InsertPoint = Caller->begin()->begin();
     for (BasicBlock::iterator I = FirstNewBlock->begin(),
          E = FirstNewBlock->end(); I != E; ) {
       AllocaInst *AI = dyn_cast<AllocaInst>(I++);
@@ -2213,8 +2213,8 @@ llvm::InlineResult llvm::InlineFunction(CallBase &CB, InlineFunctionInfo &IFI,
           dyn_cast<ConstantInt>(AI->getArraySize())) {
         auto &DL = Caller->getParent()->getDataLayout();
         Type *AllocaType = AI->getAllocatedType();
-        TypeSize AllocaTypeSize = DL.getTypeAllocSize(AllocaType);
-        uint64_t AllocaArraySize = AIArraySize->getLimitedValue();
+        TypeSize const AllocaTypeSize = DL.getTypeAllocSize(AllocaType);
+        uint64_t const AllocaArraySize = AIArraySize->getLimitedValue();
 
         // Don't add markers for zero-sized allocas.
         if (AllocaArraySize == 0)
@@ -2377,7 +2377,7 @@ llvm::InlineResult llvm::InlineFunction(CallBase &CB, InlineFunctionInfo &IFI,
         auto *CurBB = RI->getParent();
         RI->eraseFromParent();
 
-        SmallVector<Value *, 4> CallArgs(DeoptCall->args());
+        SmallVector<Value *, 4> const CallArgs(DeoptCall->args());
 
         SmallVector<OperandBundleDef, 1> OpBundles;
         DeoptCall->getOperandBundlesAsDefs(OpBundles);
@@ -2409,7 +2409,7 @@ llvm::InlineResult llvm::InlineFunction(CallBase &CB, InlineFunctionInfo &IFI,
   if (InlinedMustTailCalls) {
     // Check if we need to bitcast the result of any musttail calls.
     Type *NewRetTy = Caller->getReturnType();
-    bool NeedBitCast = !CB.use_empty() && CB.getType() != NewRetTy;
+    bool const NeedBitCast = !CB.use_empty() && CB.getType() != NewRetTy;
 
     // Handle the returns preceded by musttail calls separately.
     SmallVector<ReturnInst *, 8> NormalReturns;

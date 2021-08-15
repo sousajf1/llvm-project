@@ -66,7 +66,7 @@ void fixBrTableIndex(MachineInstr &MI, MachineBasicBlock *MBB,
     ExtMI->eraseFromParent();
   } else {
     // Incoming 64-bit value that needs to be truncated.
-    Register Reg32 =
+    Register const Reg32 =
         MF.getRegInfo().createVirtualRegister(&WebAssembly::I32RegClass);
     BuildMI(*MBB, MI.getIterator(), MI.getDebugLoc(),
             WST.getInstrInfo()->get(WebAssembly::I32_WRAP_I64), Reg32)
@@ -96,7 +96,7 @@ MachineBasicBlock *fixBrTableDefault(MachineInstr &MI, MachineBasicBlock *MBB,
   MachineBasicBlock *TBB = nullptr, *FBB = nullptr;
   SmallVector<MachineOperand, 2> Cond;
   const auto &TII = *MF.getSubtarget<WebAssemblySubtarget>().getInstrInfo();
-  bool Analyzed = !TII.analyzeBranch(*HeaderMBB, TBB, FBB, Cond);
+  bool const Analyzed = !TII.analyzeBranch(*HeaderMBB, TBB, FBB, Cond);
   assert(Analyzed && "Could not analyze jump header branches");
   (void)Analyzed;
 
@@ -119,7 +119,7 @@ MachineBasicBlock *fixBrTableDefault(MachineInstr &MI, MachineBasicBlock *MBB,
     // cases that can arise in practice that we don't want to reason about, so
     // conservatively only perform the optimization if the range check is the
     // normal case of an i32.gt_u.
-    MachineRegisterInfo &MRI = MF.getRegInfo();
+    MachineRegisterInfo  const&MRI = MF.getRegInfo();
     auto *RangeCheck = MRI.getVRegDef(Cond[1].getReg());
     assert(RangeCheck != nullptr);
     if (RangeCheck->getOpcode() != WebAssembly::GT_U_I32)

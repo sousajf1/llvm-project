@@ -23,7 +23,7 @@ EVT EVT::changeExtendedTypeToInteger() const {
 EVT EVT::changeExtendedVectorElementTypeToInteger() const {
   assert(isExtended() && "Type is not extended!");
   LLVMContext &Context = LLVMTy->getContext();
-  EVT IntTy = getIntegerVT(Context, getScalarSizeInBits());
+  EVT const IntTy = getIntegerVT(Context, getScalarSizeInBits());
   return getVectorVT(Context, IntTy, getVectorElementCount());
 }
 
@@ -123,7 +123,7 @@ EVT EVT::getExtendedVectorElementType() const {
 
 unsigned EVT::getExtendedVectorNumElements() const {
   assert(isExtended() && "Type is not extended!");
-  ElementCount EC = cast<VectorType>(LLVMTy)->getElementCount();
+  ElementCount const EC = cast<VectorType>(LLVMTy)->getElementCount();
   if (EC.isScalable()) {
     WithColor::warning()
         << "The code that requested the fixed number of elements has made the "

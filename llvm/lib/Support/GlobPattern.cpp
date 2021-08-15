@@ -32,8 +32,8 @@ static Expected<BitVector> expand(StringRef S, StringRef Original) {
     if (S.size() < 3)
       break;
 
-    uint8_t Start = S[0];
-    uint8_t End = S[2];
+    uint8_t const Start = S[0];
+    uint8_t const End = S[2];
 
     // If it doesn't start with something like X-Y,
     // consume the first character and proceed.
@@ -54,7 +54,7 @@ static Expected<BitVector> expand(StringRef S, StringRef Original) {
     S = S.substr(3);
   }
 
-  for (char C : S)
+  for (char const C : S)
     BV[(uint8_t)C] = true;
   return BV;
 }
@@ -77,12 +77,12 @@ static Expected<BitVector> scan(StringRef &S, StringRef Original) {
   case '[': {
     // ']' is allowed as the first character of a character class. '[]' is
     // invalid. So, just skip the first character.
-    size_t End = S.find(']', 2);
+    size_t const End = S.find(']', 2);
     if (End == StringRef::npos)
       return make_error<StringError>("invalid glob pattern: " + Original,
                                      errc::invalid_argument);
 
-    StringRef Chars = S.substr(1, End - 1);
+    StringRef const Chars = S.substr(1, End - 1);
     S = S.substr(End + 1);
     if (Chars.startswith("^") || Chars.startswith("!")) {
       Expected<BitVector> BV = expand(Chars.substr(1), Original);
@@ -130,7 +130,7 @@ Expected<GlobPattern> GlobPattern::create(StringRef S) {
 
   // Otherwise, we need to do real glob pattern matching.
   // Parse the pattern now.
-  StringRef Original = S;
+  StringRef const Original = S;
   while (!S.empty()) {
     Expected<BitVector> BV = scan(S, Original);
     if (!BV)

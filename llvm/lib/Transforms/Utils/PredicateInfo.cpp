@@ -139,7 +139,7 @@ struct ValueDFS_Compare {
 
     assert((A.DFSIn != B.DFSIn || A.DFSOut == B.DFSOut) &&
            "Equal DFS-in numbers imply equal out numbers");
-    bool SameBlock = A.DFSIn == B.DFSIn;
+    bool const SameBlock = A.DFSIn == B.DFSIn;
 
     // We want to put the def that will get used for a given set of phi uses,
     // before those phi uses.
@@ -442,7 +442,7 @@ void PredicateInfoBuilder::processBranch(
   BasicBlock *SecondBB = BI->getSuccessor(1);
 
   for (BasicBlock *Succ : {FirstBB, SecondBB}) {
-    bool TakenEdge = Succ == FirstBB;
+    bool const TakenEdge = Succ == FirstBB;
     // Don't try to insert on a self-edge. This is mainly because we will
     // eliminate during renaming anyway.
     if (Succ == BranchBB)
@@ -550,7 +550,7 @@ Value *PredicateInfoBuilder::materializeStack(unsigned int &Counter,
     if (RevIter->Def)
       break;
 
-  size_t Start = RevIter - RenameStack.rbegin();
+  size_t const Start = RevIter - RenameStack.rbegin();
   // The maximum number of things we should be trying to materialize at once
   // right now is 4, depending on if we had an assume, a branch, and both used
   // and of conditions.
@@ -624,7 +624,7 @@ Value *PredicateInfoBuilder::materializeStack(unsigned int &Counter,
 // TODO: Use this algorithm to perform fast single-variable renaming in
 // promotememtoreg and memoryssa.
 void PredicateInfoBuilder::renameUses(SmallVectorImpl<Value *> &OpsToRename) {
-  ValueDFS_Compare Compare(DT);
+  ValueDFS_Compare const Compare(DT);
   // Compute liveness, and rename in O(uses) per Op.
   for (auto *Op : OpsToRename) {
     LLVM_DEBUG(dbgs() << "Visiting " << *Op << "\n");
@@ -694,7 +694,7 @@ void PredicateInfoBuilder::renameUses(SmallVectorImpl<Value *> &OpsToRename) {
     for (auto &VD : OrderedUses) {
       // We currently do not materialize copy over copy, but we should decide if
       // we want to.
-      bool PossibleCopy = VD.PInfo != nullptr;
+      bool const PossibleCopy = VD.PInfo != nullptr;
       if (RenameStack.empty()) {
         LLVM_DEBUG(dbgs() << "Rename Stack is empty\n");
       } else {
@@ -706,8 +706,8 @@ void PredicateInfoBuilder::renameUses(SmallVectorImpl<Value *> &OpsToRename) {
       LLVM_DEBUG(dbgs() << "Current DFS numbers are (" << VD.DFSIn << ","
                         << VD.DFSOut << ")\n");
 
-      bool ShouldPush = (VD.Def || PossibleCopy);
-      bool OutOfScope = !stackIsInScope(RenameStack, VD);
+      bool const ShouldPush = (VD.Def || PossibleCopy);
+      bool const OutOfScope = !stackIsInScope(RenameStack, VD);
       if (OutOfScope || ShouldPush) {
         // Sync to our current scope.
         popStackUntilDFSScope(RenameStack, VD);

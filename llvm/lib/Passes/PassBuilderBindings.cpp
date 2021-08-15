@@ -48,8 +48,8 @@ LLVMErrorRef LLVMRunPasses(LLVMModuleRef M, const char *Passes,
                            LLVMPassBuilderOptionsRef Options) {
   TargetMachine *Machine = unwrap(TM);
   LLVMPassBuilderOptions *PassOpts = unwrap(Options);
-  bool Debug = PassOpts->DebugLogging;
-  bool VerifyEach = PassOpts->VerifyEach;
+  bool const Debug = PassOpts->DebugLogging;
+  bool const VerifyEach = PassOpts->VerifyEach;
 
   Module *Mod = unwrap(M);
   PassInstrumentationCallbacks PIC;

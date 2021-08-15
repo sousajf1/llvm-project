@@ -124,7 +124,7 @@ void CodeMetrics::analyzeBasicBlock(
   // because the IR should not contain any nodes that cannot be costed. If that
   // happens the cost-model is broken.
   InstructionCost NumInstsProxy = NumInsts;
-  InstructionCost NumInstsBeforeThisBB = NumInsts;
+  InstructionCost const NumInstsBeforeThisBB = NumInsts;
   for (const Instruction &I : *BB) {
     // Skip ephemeral values.
     if (EphValues.count(&I))
@@ -133,7 +133,7 @@ void CodeMetrics::analyzeBasicBlock(
     // Special handling for calls.
     if (const auto *Call = dyn_cast<CallBase>(&I)) {
       if (const Function *F = Call->getCalledFunction()) {
-        bool IsLoweredToCall = TTI.isLoweredToCall(F);
+        bool const IsLoweredToCall = TTI.isLoweredToCall(F);
         // If a function is both internal and has a single use, then it is
         // extremely likely to get inlined in the future (it was probably
         // exposed by an interleaved devirtualization pass).
@@ -204,6 +204,6 @@ void CodeMetrics::analyzeBasicBlock(
   notDuplicatable |= isa<IndirectBrInst>(BB->getTerminator());
 
   // Remember NumInsts for this BB.
-  InstructionCost NumInstsThisBB = NumInstsProxy - NumInstsBeforeThisBB;
+  InstructionCost const NumInstsThisBB = NumInstsProxy - NumInstsBeforeThisBB;
   NumBBInsts[BB] = *NumInstsThisBB.getValue();
 }

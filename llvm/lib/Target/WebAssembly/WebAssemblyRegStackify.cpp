@@ -364,7 +364,7 @@ static bool isSafeToMove(const MachineOperand *Def, const MachineOperand *Use,
   for (const MachineOperand &MO : DefI->operands()) {
     if (!MO.isReg() || MO.isUndef())
       continue;
-    Register Reg = MO.getReg();
+    Register const Reg = MO.getReg();
 
     // If the register is dead here and at Insert, ignore it.
     if (MO.isDead() && Insert->definesRegister(Reg) &&
@@ -395,7 +395,7 @@ static bool isSafeToMove(const MachineOperand *Def, const MachineOperand *Use,
 
   // If the instruction does not access memory and has no side effects, it has
   // no additional dependencies.
-  bool HasMutableRegisters = !MutableRegisters.empty();
+  bool const HasMutableRegisters = !MutableRegisters.empty();
   if (!Read && !Write && !Effects && !StackPointer && !HasMutableRegisters)
     return true;
 
@@ -417,7 +417,7 @@ static bool isSafeToMove(const MachineOperand *Def, const MachineOperand *Use,
     if (StackPointer && InterveningStackPointer)
       return false;
 
-    for (unsigned Reg : MutableRegisters)
+    for (unsigned const Reg : MutableRegisters)
       for (const MachineOperand &MO : I->operands())
         if (MO.isReg() && MO.isDef() && MO.getReg() == Reg)
           return false;
@@ -466,7 +466,7 @@ static bool oneUseDominatesOtherUses(unsigned Reg, const MachineOperand &OneUse,
         const MachineOperand &MO = UseInst->getOperand(0);
         if (!MO.isReg())
           return false;
-        Register DefReg = MO.getReg();
+        Register const DefReg = MO.getReg();
         if (!Register::isVirtualRegister(DefReg) ||
             !MFI.isVRegStackified(DefReg))
           return false;
@@ -529,7 +529,7 @@ static MachineInstr *moveForSingleUse(unsigned Reg, MachineOperand &Op,
   } else {
     // The register may have unrelated uses or defs; create a new register for
     // just our one def and use so that we can stackify it.
-    Register NewReg = MRI.createVirtualRegister(MRI.getRegClass(Reg));
+    Register const NewReg = MRI.createVirtualRegister(MRI.getRegClass(Reg));
     Def->getOperand(0).setReg(NewReg);
     Op.setReg(NewReg);
 
@@ -565,7 +565,7 @@ static MachineInstr *rematerializeCheapDef(
 
   WebAssemblyDebugValueManager DefDIs(&Def);
 
-  Register NewReg = MRI.createVirtualRegister(MRI.getRegClass(Reg));
+  Register const NewReg = MRI.createVirtualRegister(MRI.getRegClass(Reg));
   TII->reMaterialize(MBB, Insert, NewReg, 0, Def, *TRI);
   Op.setReg(NewReg);
   MachineInstr *Clone = &*std::prev(Insert);
@@ -588,7 +588,7 @@ static MachineInstr *rematerializeCheapDef(
   // Move or clone corresponding DBG_VALUEs to the 'Insert' location.
   if (IsDead) {
     LLVM_DEBUG(dbgs() << " - Deleting original\n");
-    SlotIndex Idx = LIS.getInstructionIndex(Def).getRegSlot();
+    SlotIndex const Idx = LIS.getInstructionIndex(Def).getRegSlot();
     LIS.removePhysRegDefAt(MCRegister::from(WebAssembly::ARGUMENTS), Idx);
     LIS.removeInterval(Reg);
     LIS.RemoveMachineInstrFromMaps(Def);
@@ -637,8 +637,8 @@ static MachineInstr *moveAndTeeForMultiUse(
 
   // Create the Tee and attach the registers.
   const auto *RegClass = MRI.getRegClass(Reg);
-  Register TeeReg = MRI.createVirtualRegister(RegClass);
-  Register DefReg = MRI.createVirtualRegister(RegClass);
+  Register const TeeReg = MRI.createVirtualRegister(RegClass);
+  Register const DefReg = MRI.createVirtualRegister(RegClass);
   MachineOperand &DefMO = Def->getOperand(0);
   MachineInstr *Tee = BuildMI(MBB, Insert, Insert->getDebugLoc(),
                               TII->get(getTeeOpcode(RegClass)), TeeReg)
@@ -646,8 +646,8 @@ static MachineInstr *moveAndTeeForMultiUse(
                           .addReg(DefReg, getUndefRegState(DefMO.isDead()));
   Op.setReg(TeeReg);
   DefMO.setReg(DefReg);
-  SlotIndex TeeIdx = LIS.InsertMachineInstrInMaps(*Tee).getRegSlot();
-  SlotIndex DefIdx = LIS.getInstructionIndex(*Def).getRegSlot();
+  SlotIndex const TeeIdx = LIS.InsertMachineInstrInMaps(*Tee).getRegSlot();
+  SlotIndex const DefIdx = LIS.getInstructionIndex(*Def).getRegSlot();
 
   DefDIs.move(Insert);
 
@@ -836,7 +836,7 @@ bool WebAssemblyRegStackify::runOnMachineFunction(MachineFunction &MF) {
         if (!Use.isReg())
           continue;
 
-        Register Reg = Use.getReg();
+        Register const Reg = Use.getReg();
         assert(Use.isUse() && "explicit_uses() should only iterate over uses");
         assert(!Use.isImplicit() &&
                "explicit_uses() should only iterate over explicit operands");
@@ -867,8 +867,8 @@ bool WebAssemblyRegStackify::runOnMachineFunction(MachineFunction &MF) {
         // this makes things simpler (LiveIntervals' handleMove function only
         // supports intra-block moves) and it's MachineSink's job to catch all
         // the sinking opportunities anyway.
-        bool SameBlock = DefI->getParent() == &MBB;
-        bool CanMove = SameBlock &&
+        bool const SameBlock = DefI->getParent() == &MBB;
+        bool const CanMove = SameBlock &&
                        isSafeToMove(Def, &Use, Insert, AA, MFI, MRI) &&
                        !TreeWalker.isOnStack(Reg);
         if (CanMove && hasOneUse(Reg, DefI, MRI, MDT, LIS)) {
@@ -905,8 +905,8 @@ bool WebAssemblyRegStackify::runOnMachineFunction(MachineFunction &MF) {
                SubsequentUse != Use.getParent()->uses().end()) {
           if (!SubsequentDef->isReg() || !SubsequentUse->isReg())
             break;
-          unsigned DefReg = SubsequentDef->getReg();
-          unsigned UseReg = SubsequentUse->getReg();
+          unsigned const DefReg = SubsequentDef->getReg();
+          unsigned const UseReg = SubsequentUse->getReg();
           // TODO: This single-use restriction could be relaxed by using tees
           if (DefReg != UseReg || !MRI.hasOneUse(DefReg))
             break;
@@ -952,18 +952,18 @@ bool WebAssemblyRegStackify::runOnMachineFunction(MachineFunction &MF) {
     for (MachineInstr &MI : MBB) {
       if (MI.isDebugInstr())
         continue;
-      for (MachineOperand &MO : reverse(MI.explicit_uses())) {
+      for (MachineOperand  const&MO : reverse(MI.explicit_uses())) {
         if (!MO.isReg())
           continue;
-        Register Reg = MO.getReg();
+        Register const Reg = MO.getReg();
         if (MFI.isVRegStackified(Reg))
           assert(Stack.pop_back_val() == Reg &&
                  "Register stack pop should be paired with a push");
       }
-      for (MachineOperand &MO : MI.defs()) {
+      for (MachineOperand  const&MO : MI.defs()) {
         if (!MO.isReg())
           continue;
-        Register Reg = MO.getReg();
+        Register const Reg = MO.getReg();
         if (MFI.isVRegStackified(Reg))
           Stack.push_back(MO.getReg());
       }

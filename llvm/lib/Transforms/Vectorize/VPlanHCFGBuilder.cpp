@@ -281,7 +281,7 @@ VPRegionBlock *PlainCFGBuilder::buildPlainCFG() {
     // during the RPO traversal.
     Instruction *TI = BB->getTerminator();
     assert(TI && "Terminator expected.");
-    unsigned NumSuccs = TI->getNumSuccessors();
+    unsigned const NumSuccs = TI->getNumSuccessors();
 
     if (NumSuccs == 1) {
       VPBasicBlock *SuccVPBB = getOrCreateVPBB(TI->getSuccessor(0));

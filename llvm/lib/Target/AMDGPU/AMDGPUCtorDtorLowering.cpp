@@ -60,7 +60,7 @@ public:
     for (Value *V : GA->operands()) {
       auto *CS = cast<ConstantStruct>(V);
       if (Function *F = dyn_cast<Function>(CS->getOperand(1))) {
-        FunctionCallee Ctor =
+        FunctionCallee const Ctor =
             M.getOrInsertFunction(F->getName(), IRB.getVoidTy());
         IRB.CreateCall(Ctor);
       }

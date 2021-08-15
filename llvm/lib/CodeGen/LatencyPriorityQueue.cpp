@@ -29,19 +29,19 @@ bool latency_sort::operator()(const SUnit *LHS, const SUnit *RHS) const {
   if (!LHS->isScheduleHigh && RHS->isScheduleHigh)
     return true;
 
-  unsigned LHSNum = LHS->NodeNum;
-  unsigned RHSNum = RHS->NodeNum;
+  unsigned const LHSNum = LHS->NodeNum;
+  unsigned const RHSNum = RHS->NodeNum;
 
   // The most important heuristic is scheduling the critical path.
-  unsigned LHSLatency = PQ->getLatency(LHSNum);
-  unsigned RHSLatency = PQ->getLatency(RHSNum);
+  unsigned const LHSLatency = PQ->getLatency(LHSNum);
+  unsigned const RHSLatency = PQ->getLatency(RHSNum);
   if (LHSLatency < RHSLatency) return true;
   if (LHSLatency > RHSLatency) return false;
 
   // After that, if two nodes have identical latencies, look to see if one will
   // unblock more other nodes than the other.
-  unsigned LHSBlocked = PQ->getNumSolelyBlockNodes(LHSNum);
-  unsigned RHSBlocked = PQ->getNumSolelyBlockNodes(RHSNum);
+  unsigned const LHSBlocked = PQ->getNumSolelyBlockNodes(LHSNum);
+  unsigned const RHSBlocked = PQ->getNumSolelyBlockNodes(RHSNum);
   if (LHSBlocked < RHSBlocked) return true;
   if (LHSBlocked > RHSBlocked) return false;
 
@@ -130,7 +130,7 @@ SUnit *LatencyPriorityQueue::pop() {
 
 void LatencyPriorityQueue::remove(SUnit *SU) {
   assert(!Queue.empty() && "Queue is empty!");
-  std::vector<SUnit *>::iterator I = find(Queue, SU);
+  std::vector<SUnit *>::iterator const I = find(Queue, SU);
   assert(I != Queue.end() && "Queue doesn't contain the SU being removed!");
   if (I != std::prev(Queue.end()))
     std::swap(*I, Queue.back());

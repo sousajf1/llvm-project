@@ -202,7 +202,7 @@ static void generateCreationChecks(Instruction &I,
     if (!VecVTy)
       break;
     Value *Idx = I.getOperand(1);
-    unsigned NumElts = VecVTy->getNumElements();
+    unsigned const NumElts = VecVTy->getNumElements();
     Value *Check =
       B.CreateICmp(ICmpInst::ICMP_UGE, Idx,
                    ConstantInt::get(Idx->getType(), NumElts));
@@ -215,7 +215,7 @@ static void generateCreationChecks(Instruction &I,
     if (!VecVTy)
       break;
     Value *Idx = I.getOperand(2);
-    unsigned NumElts = VecVTy->getNumElements();
+    unsigned const NumElts = VecVTy->getNumElements();
     Value *Check =
       B.CreateICmp(ICmpInst::ICMP_UGE, Idx,
                    ConstantInt::get(Idx->getType(), NumElts));

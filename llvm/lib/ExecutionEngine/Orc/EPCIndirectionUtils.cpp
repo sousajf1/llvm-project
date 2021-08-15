@@ -114,7 +114,7 @@ Error EPCTrampolinePool::grow() {
   if (!Alloc)
     return Alloc.takeError();
 
-  unsigned NumTrampolines = TrampolinesPerPage;
+  unsigned const NumTrampolines = TrampolinesPerPage;
 
   auto WorkingMemory = (*Alloc)->getWorkingMemory(TrampolinePagePermissions);
   auto TargetAddress = (*Alloc)->getTargetMemory(TrampolinePagePermissions);
@@ -148,7 +148,7 @@ Error EPCIndirectStubsManager::createStubs(const StubInitsMap &StubInits) {
     return AvailableStubInfos.takeError();
 
   {
-    std::lock_guard<std::mutex> Lock(ISMMutex);
+    std::lock_guard<std::mutex> const Lock(ISMMutex);
     unsigned ASIdx = 0;
     for (auto &SI : StubInits) {
       auto &A = (*AvailableStubInfos)[ASIdx++];
@@ -182,7 +182,7 @@ Error EPCIndirectStubsManager::createStubs(const StubInitsMap &StubInits) {
 
 JITEvaluatedSymbol EPCIndirectStubsManager::findStub(StringRef Name,
                                                      bool ExportedStubsOnly) {
-  std::lock_guard<std::mutex> Lock(ISMMutex);
+  std::lock_guard<std::mutex> const Lock(ISMMutex);
   auto I = StubInfos.find(Name);
   if (I == StubInfos.end())
     return nullptr;
@@ -190,7 +190,7 @@ JITEvaluatedSymbol EPCIndirectStubsManager::findStub(StringRef Name,
 }
 
 JITEvaluatedSymbol EPCIndirectStubsManager::findPointer(StringRef Name) {
-  std::lock_guard<std::mutex> Lock(ISMMutex);
+  std::lock_guard<std::mutex> const Lock(ISMMutex);
   auto I = StubInfos.find(Name);
   if (I == StubInfos.end())
     return nullptr;
@@ -202,7 +202,7 @@ Error EPCIndirectStubsManager::updatePointer(StringRef Name,
 
   JITTargetAddress PtrAddr = 0;
   {
-    std::lock_guard<std::mutex> Lock(ISMMutex);
+    std::lock_guard<std::mutex> const Lock(ISMMutex);
     auto I = StubInfos.find(Name);
     if (I == StubInfos.end())
       return make_error<StringError>("Unknown stub name",
@@ -213,11 +213,11 @@ Error EPCIndirectStubsManager::updatePointer(StringRef Name,
   auto &MemAccess = EPCIU.getExecutorProcessControl().getMemoryAccess();
   switch (EPCIU.getABISupport().getPointerSize()) {
   case 4: {
-    tpctypes::UInt32Write PUpdate(PtrAddr, NewAddr);
+    tpctypes::UInt32Write const PUpdate(PtrAddr, NewAddr);
     return MemAccess.writeUInt32s(PUpdate);
   }
   case 8: {
-    tpctypes::UInt64Write PUpdate(PtrAddr, NewAddr);
+    tpctypes::UInt64Write const PUpdate(PtrAddr, NewAddr);
     return MemAccess.writeUInt64s(PUpdate);
   }
   default:
@@ -342,7 +342,7 @@ EPCIndirectionUtils::EPCIndirectionUtils(ExecutorProcessControl &EPC,
 Expected<EPCIndirectionUtils::IndirectStubInfoVector>
 EPCIndirectionUtils::getIndirectStubs(unsigned NumStubs) {
 
-  std::lock_guard<std::mutex> Lock(EPCUIMutex);
+  std::lock_guard<std::mutex> const Lock(EPCUIMutex);
 
   // If there aren't enough stubs available then allocate some more.
   if (NumStubs > AvailableIndirectStubs.size()) {

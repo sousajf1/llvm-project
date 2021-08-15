@@ -346,7 +346,7 @@ bool llvm::isSafeToMoveBefore(Instruction &I, Instruction &InsertPoint,
   DT.updateDFSNumbers();
   const bool MoveForward = domTreeLevelBefore(&DT, &I, &InsertPoint);
   Instruction &StartInst = (MoveForward ? I : InsertPoint);
-  Instruction &EndInst = (MoveForward ? InsertPoint : I);
+  Instruction  const&EndInst = (MoveForward ? InsertPoint : I);
   SmallPtrSet<Instruction *, 10> InstsToCheck;
   collectInstructionsInBetween(StartInst, EndInst, InstsToCheck);
   if (!MoveForward)

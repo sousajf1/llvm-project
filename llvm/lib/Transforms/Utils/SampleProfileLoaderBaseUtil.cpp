@@ -59,7 +59,7 @@ bool callsiteIsHot(const FunctionSamples *CallsiteFS, ProfileSummaryInfo *PSI,
     return false; // The callsite was not inlined in the original binary.
 
   assert(PSI && "PSI is expected to be non null");
-  uint64_t CallsiteTotalSamples = CallsiteFS->getTotalSamples();
+  uint64_t const CallsiteTotalSamples = CallsiteFS->getTotalSamples();
   if (ProfAccForSymsInList)
     return !PSI->isColdCount(CallsiteTotalSamples);
   else
@@ -74,9 +74,9 @@ bool SampleCoverageTracker::markSamplesUsed(const FunctionSamples *FS,
                                             uint32_t LineOffset,
                                             uint32_t Discriminator,
                                             uint64_t Samples) {
-  LineLocation Loc(LineOffset, Discriminator);
+  LineLocation const Loc(LineOffset, Discriminator);
   unsigned &Count = SampleCoverage[FS][Loc];
-  bool FirstTime = (++Count == 1);
+  bool const FirstTime = (++Count == 1);
   if (FirstTime)
     TotalUsedSamples += Samples;
   return FirstTime;

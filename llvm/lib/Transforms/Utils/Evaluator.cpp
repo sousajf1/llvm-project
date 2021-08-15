@@ -440,7 +440,7 @@ bool Evaluator::EvaluateBlock(BasicBlock::iterator CurInst, BasicBlock *&NextBB,
     } else if (GetElementPtrInst *GEP = dyn_cast<GetElementPtrInst>(CurInst)) {
       Constant *P = getVal(GEP->getOperand(0));
       SmallVector<Constant*, 8> GEPOps;
-      for (Use &Op : llvm::drop_begin(GEP->operands()))
+      for (Use  const&Op : llvm::drop_begin(GEP->operands()))
         GEPOps.push_back(getVal(Op));
       InstResult =
           ConstantExpr::getGetElementPtr(GEP->getSourceElementType(), P, GEPOps,

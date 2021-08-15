@@ -69,8 +69,8 @@ static uint64_t mergeRound(uint64_t Acc, uint64_t Val) {
 }
 
 uint64_t llvm::xxHash64(StringRef Data) {
-  size_t Len = Data.size();
-  uint64_t Seed = 0;
+  size_t const Len = Data.size();
+  uint64_t const Seed = 0;
   const unsigned char *P = Data.bytes_begin();
   const unsigned char *const BEnd = Data.bytes_end();
   uint64_t H64;

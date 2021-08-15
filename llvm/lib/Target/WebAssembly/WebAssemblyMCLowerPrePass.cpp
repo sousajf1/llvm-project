@@ -74,7 +74,7 @@ bool WebAssemblyMCLowerPrePass::runOnMachineFunction(MachineFunction &MF) {
       // FIXME: what should all be filtered out beyond these?
       if (MI.isDebugInstr() || MI.isInlineAsm())
         continue;
-      for (MachineOperand &MO : MI.uses()) {
+      for (MachineOperand  const&MO : MI.uses()) {
         if (MO.isSymbol()) {
           MMIW.MachineSymbolsUsed.insert(MO.getSymbolName());
         }

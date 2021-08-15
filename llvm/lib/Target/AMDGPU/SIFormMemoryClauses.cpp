@@ -118,7 +118,7 @@ static bool isValidClauseInst(const MachineInstr &MI, bool IsVMEMClause) {
     return false;
   // If this is a load instruction where the result has been coalesced with an operand, then we cannot clause it.
   for (const MachineOperand &ResMO : MI.defs()) {
-    Register ResReg = ResMO.getReg();
+    Register const ResReg = ResMO.getReg();
     for (const MachineOperand &MO : MI.uses()) {
       if (!MO.isReg() || MO.isDef())
         continue;
@@ -161,7 +161,7 @@ bool SIFormMemoryClauses::canBundle(const MachineInstr &MI, const RegUse &Defs,
     if (!MO.isReg())
       continue;
 
-    Register Reg = MO.getReg();
+    Register const Reg = MO.getReg();
 
     // If it is tied we will need to write same register as we read.
     if (MO.isTied())
@@ -175,7 +175,7 @@ bool SIFormMemoryClauses::canBundle(const MachineInstr &MI, const RegUse &Defs,
     if (Reg.isPhysical())
       return false;
 
-    LaneBitmask Mask = TRI->getSubRegIndexLaneMask(MO.getSubReg());
+    LaneBitmask const Mask = TRI->getSubRegIndexLaneMask(MO.getSubReg());
     if ((Conflict->second.second & Mask).any())
       return false;
   }
@@ -193,8 +193,8 @@ bool SIFormMemoryClauses::checkPressure(const MachineInstr &MI,
   // clause. Therefor we should not decrease pressure even if load
   // pointer becomes dead and could otherwise be reused for destination.
   RPT.advanceToNext();
-  GCNRegPressure MaxPressure = RPT.moveMaxPressure();
-  unsigned Occupancy = MaxPressure.getOccupancy(*ST);
+  GCNRegPressure const MaxPressure = RPT.moveMaxPressure();
+  unsigned const Occupancy = MaxPressure.getOccupancy(*ST);
 
   // Don't push over half the register budget. We don't want to introduce
   // spilling just to form a soft clause.
@@ -220,17 +220,17 @@ void SIFormMemoryClauses::collectRegUses(const MachineInstr &MI,
   for (const MachineOperand &MO : MI.operands()) {
     if (!MO.isReg())
       continue;
-    Register Reg = MO.getReg();
+    Register const Reg = MO.getReg();
     if (!Reg)
       continue;
 
-    LaneBitmask Mask = Reg.isVirtual()
+    LaneBitmask const Mask = Reg.isVirtual()
                            ? TRI->getSubRegIndexLaneMask(MO.getSubReg())
                            : LaneBitmask::getAll();
     RegUse &Map = MO.isDef() ? Defs : Uses;
 
     auto Loc = Map.find(Reg);
-    unsigned State = getMopState(MO);
+    unsigned const State = getMopState(MO);
     if (Loc == Map.end()) {
       Map[Reg] = std::make_pair(State, Mask);
     } else {
@@ -274,7 +274,7 @@ bool SIFormMemoryClauses::runOnMachineFunction(MachineFunction &MF) {
 
   MaxVGPRs = TRI->getAllocatableSet(MF, &AMDGPU::VGPR_32RegClass).count();
   MaxSGPRs = TRI->getAllocatableSet(MF, &AMDGPU::SGPR_32RegClass).count();
-  unsigned FuncMaxClause = AMDGPU::getIntegerAttribute(
+  unsigned const FuncMaxClause = AMDGPU::getIntegerAttribute(
       MF.getFunction(), "amdgpu-max-memory-clause", MaxClause);
 
   for (MachineBasicBlock &MBB : MF) {
@@ -287,7 +287,7 @@ bool SIFormMemoryClauses::runOnMachineFunction(MachineFunction &MF) {
       if (MI.isMetaInstruction())
         continue;
 
-      bool IsVMEM = isVMEMClauseInst(MI);
+      bool const IsVMEM = isVMEMClauseInst(MI);
 
       if (!isValidClauseInst(MI, IsVMEM))
         continue;
@@ -335,8 +335,8 @@ bool SIFormMemoryClauses::runOnMachineFunction(MachineFunction &MF) {
 
       assert(!LastClauseInst->isMetaInstruction());
 
-      SlotIndex ClauseLiveInIdx = LIS->getInstructionIndex(MI);
-      SlotIndex ClauseLiveOutIdx =
+      SlotIndex const ClauseLiveInIdx = LIS->getInstructionIndex(MI);
+      SlotIndex const ClauseLiveOutIdx =
           LIS->getInstructionIndex(*LastClauseInst).getNextIndex();
 
       // Track the last inserted kill.
@@ -345,7 +345,7 @@ bool SIFormMemoryClauses::runOnMachineFunction(MachineFunction &MF) {
       // Insert one kill per register, with operands covering all necessary
       // subregisters.
       for (auto &&R : Uses) {
-        Register Reg = R.first;
+        Register const Reg = R.first;
         if (Reg.isPhysical())
           continue;
 
@@ -369,11 +369,11 @@ bool SIFormMemoryClauses::runOnMachineFunction(MachineFunction &MF) {
             continue;
 
           SmallVector<unsigned> KilledIndexes;
-          bool Success = TRI->getCoveringSubRegIndexes(
+          bool const Success = TRI->getCoveringSubRegIndexes(
               *MRI, MRI->getRegClass(Reg), KilledMask, KilledIndexes);
           (void)Success;
           assert(Success && "Failed to find subregister mask to cover lanes");
-          for (unsigned SubReg : KilledIndexes) {
+          for (unsigned const SubReg : KilledIndexes) {
             KillOps.emplace_back(R.second.first | RegState::Kill, SubReg);
           }
         }
@@ -402,7 +402,7 @@ bool SIFormMemoryClauses::runOnMachineFunction(MachineFunction &MF) {
       RPT.reset(*Kill, &LiveRegsCopy);
 
       for (auto &&R : Defs) {
-        Register Reg = R.first;
+        Register const Reg = R.first;
         Uses.erase(Reg);
         if (Reg.isPhysical())
           continue;
@@ -411,7 +411,7 @@ bool SIFormMemoryClauses::runOnMachineFunction(MachineFunction &MF) {
       }
 
       for (auto &&R : Uses) {
-        Register Reg = R.first;
+        Register const Reg = R.first;
         if (Reg.isPhysical())
           continue;
         LIS->removeInterval(Reg);

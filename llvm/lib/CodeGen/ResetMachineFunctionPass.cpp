@@ -68,7 +68,7 @@ namespace {
         MF.reset();
         if (EmitFallbackDiag) {
           const Function &F = MF.getFunction();
-          DiagnosticInfoISelFallback DiagFallback(F);
+          DiagnosticInfoISelFallback const DiagFallback(F);
           F.getContext().diagnose(DiagFallback);
         }
         return true;

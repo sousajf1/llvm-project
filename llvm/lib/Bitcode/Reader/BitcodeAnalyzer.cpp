@@ -468,7 +468,7 @@ static Expected<CurStreamTypeType> ReadSignature(BitstreamCursor &Stream) {
 
 static Expected<CurStreamTypeType> analyzeHeader(Optional<BCDumpOptions> O,
                                                  BitstreamCursor &Stream) {
-  ArrayRef<uint8_t> Bytes = Stream.getBitcodeBytes();
+  ArrayRef<uint8_t> const Bytes = Stream.getBitcodeBytes();
   const unsigned char *BufPtr = (const unsigned char *)Bytes.data();
   const unsigned char *EndBufPtr = BufPtr + Bytes.size();
 
@@ -479,11 +479,11 @@ static Expected<CurStreamTypeType> analyzeHeader(Optional<BCDumpOptions> O,
       return reportError("Invalid bitcode wrapper header");
 
     if (O) {
-      unsigned Magic = support::endian::read32le(&BufPtr[BWH_MagicField]);
-      unsigned Version = support::endian::read32le(&BufPtr[BWH_VersionField]);
-      unsigned Offset = support::endian::read32le(&BufPtr[BWH_OffsetField]);
-      unsigned Size = support::endian::read32le(&BufPtr[BWH_SizeField]);
-      unsigned CPUType = support::endian::read32le(&BufPtr[BWH_CPUTypeField]);
+      unsigned const Magic = support::endian::read32le(&BufPtr[BWH_MagicField]);
+      unsigned const Version = support::endian::read32le(&BufPtr[BWH_VersionField]);
+      unsigned const Offset = support::endian::read32le(&BufPtr[BWH_OffsetField]);
+      unsigned const Size = support::endian::read32le(&BufPtr[BWH_SizeField]);
+      unsigned const CPUType = support::endian::read32le(&BufPtr[BWH_CPUTypeField]);
 
       O->OS << "<BITCODE_WRAPPER_HEADER"
             << " Magic=" << format_hex(Magic, 10)
@@ -519,10 +519,10 @@ Error BitcodeAnalyzer::decodeMetadataStringsBlob(StringRef Indent,
         "Decoding metadata strings blob needs two record entries.");
 
   unsigned NumStrings = Record[0];
-  unsigned StringsOffset = Record[1];
+  unsigned const StringsOffset = Record[1];
   OS << " num-strings = " << NumStrings << " {\n";
 
-  StringRef Lengths = Blob.slice(0, StringsOffset);
+  StringRef const Lengths = Blob.slice(0, StringsOffset);
   SimpleBitstreamCursor R(Lengths);
   StringRef Strings = Blob.drop_front(StringsOffset);
   do {
@@ -532,7 +532,7 @@ Error BitcodeAnalyzer::decodeMetadataStringsBlob(StringRef Indent,
     Expected<uint32_t> MaybeSize = R.ReadVBR(6);
     if (!MaybeSize)
       return MaybeSize.takeError();
-    uint32_t Size = MaybeSize.get();
+    uint32_t const Size = MaybeSize.get();
     if (Strings.size() < Size)
       return reportError("truncated chars");
 
@@ -621,7 +621,7 @@ Error BitcodeAnalyzer::analyze(Optional<BCDumpOptions> O,
 
 void BitcodeAnalyzer::printStats(BCDumpOptions O,
                                  Optional<StringRef> Filename) {
-  uint64_t BufferSizeBits = Stream.getBitcodeBytes().size() * CHAR_BIT;
+  uint64_t const BufferSizeBits = Stream.getBitcodeBytes().size() * CHAR_BIT;
   // Print a summary of the read file.
   O.OS << "Summary ";
   if (Filename)
@@ -666,7 +666,7 @@ void BitcodeAnalyzer::printStats(BCDumpOptions O,
     O.OS << "         Total Size: ";
     printSize(O.OS, Stats.NumBits);
     O.OS << "\n";
-    double pct = (Stats.NumBits * 100.0) / BufferSizeBits;
+    double const pct = (Stats.NumBits * 100.0) / BufferSizeBits;
     O.OS << "    Percent of file: " << format("%2.4f%%", pct) << "\n";
     if (Stats.NumInstances > 1) {
       O.OS << "       Average Size: ";
@@ -684,7 +684,7 @@ void BitcodeAnalyzer::printStats(BCDumpOptions O,
       O.OS << "        Num Records: " << Stats.NumRecords << "\n";
     }
     if (Stats.NumRecords) {
-      double pct = (Stats.NumAbbreviatedRecords * 100.0) / Stats.NumRecords;
+      double const pct = (Stats.NumAbbreviatedRecords * 100.0) / Stats.NumRecords;
       O.OS << "    Percent Abbrevs: " << format("%2.4f%%", pct) << "\n";
     }
     O.OS << "\n";
@@ -693,7 +693,7 @@ void BitcodeAnalyzer::printStats(BCDumpOptions O,
     if (O.Histogram && !Stats.CodeFreq.empty()) {
       std::vector<std::pair<unsigned, unsigned>> FreqPairs; // <freq,code>
       for (unsigned i = 0, e = Stats.CodeFreq.size(); i != e; ++i)
-        if (unsigned Freq = Stats.CodeFreq[i].NumInstances)
+        if (unsigned const Freq = Stats.CodeFreq[i].NumInstances)
           FreqPairs.push_back(std::make_pair(Freq, i));
       llvm::stable_sort(FreqPairs);
       std::reverse(FreqPairs.begin(), FreqPairs.end());
@@ -733,7 +733,7 @@ void BitcodeAnalyzer::printStats(BCDumpOptions O,
 Error BitcodeAnalyzer::parseBlock(unsigned BlockID, unsigned IndentLevel,
                                   Optional<BCDumpOptions> O,
                                   Optional<StringRef> CheckHash) {
-  std::string Indent(IndentLevel * 2, ' ');
+  std::string const Indent(IndentLevel * 2, ' ');
   uint64_t BlockBitStart = Stream.GetCurrentBitNo();
 
   // Get the statistics for this BlockID.
@@ -767,7 +767,7 @@ Error BitcodeAnalyzer::parseBlock(unsigned BlockID, unsigned IndentLevel,
     return Err;
 
   // Keep it for later, when we see a MODULE_HASH record
-  uint64_t BlockEntryPos = Stream.getCurrentByteNo();
+  uint64_t const BlockEntryPos = Stream.getCurrentByteNo();
 
   Optional<const char *> BlockName = None;
   if (DumpRecords) {
@@ -794,19 +794,19 @@ Error BitcodeAnalyzer::parseBlock(unsigned BlockID, unsigned IndentLevel,
     if (Stream.AtEndOfStream())
       return reportError("Premature end of bitstream");
 
-    uint64_t RecordStartBit = Stream.GetCurrentBitNo();
+    uint64_t const RecordStartBit = Stream.GetCurrentBitNo();
 
     Expected<BitstreamEntry> MaybeEntry =
         Stream.advance(BitstreamCursor::AF_DontAutoprocessAbbrevs);
     if (!MaybeEntry)
       return MaybeEntry.takeError();
-    BitstreamEntry Entry = MaybeEntry.get();
+    BitstreamEntry const Entry = MaybeEntry.get();
 
     switch (Entry.Kind) {
     case BitstreamEntry::Error:
       return reportError("malformed bitcode file");
     case BitstreamEntry::EndBlock: {
-      uint64_t BlockBitEnd = Stream.GetCurrentBitNo();
+      uint64_t const BlockBitEnd = Stream.GetCurrentBitNo();
       BlockStats.NumBits += BlockBitEnd - BlockBitStart;
       if (DumpRecords) {
         O->OS << Indent << "</";
@@ -819,11 +819,11 @@ Error BitcodeAnalyzer::parseBlock(unsigned BlockID, unsigned IndentLevel,
     }
 
     case BitstreamEntry::SubBlock: {
-      uint64_t SubBlockBitStart = Stream.GetCurrentBitNo();
+      uint64_t const SubBlockBitStart = Stream.GetCurrentBitNo();
       if (Error E = parseBlock(Entry.ID, IndentLevel + 1, O, CheckHash))
         return E;
       ++BlockStats.NumSubBlocks;
-      uint64_t SubBlockBitEnd = Stream.GetCurrentBitNo();
+      uint64_t const SubBlockBitEnd = Stream.GetCurrentBitNo();
 
       // Don't include subblock sizes in the size of this block.
       BlockBitStart += SubBlockBitEnd - SubBlockBitStart;
@@ -846,11 +846,11 @@ Error BitcodeAnalyzer::parseBlock(unsigned BlockID, unsigned IndentLevel,
     ++BlockStats.NumRecords;
 
     StringRef Blob;
-    uint64_t CurrentRecordPos = Stream.GetCurrentBitNo();
+    uint64_t const CurrentRecordPos = Stream.GetCurrentBitNo();
     Expected<unsigned> MaybeCode = Stream.readRecord(Entry.ID, Record, &Blob);
     if (!MaybeCode)
       return MaybeCode.takeError();
-    unsigned Code = MaybeCode.get();
+    unsigned const Code = MaybeCode.get();
 
     // Increment the # occurrences of this code.
     if (BlockStats.CodeFreq.size() <= Code)
@@ -914,7 +914,7 @@ Error BitcodeAnalyzer::parseBlock(unsigned BlockID, unsigned IndentLevel,
           StringRef Hash;
           Hasher.update(*CheckHash);
           {
-            int BlockSize = (CurrentRecordPos / 8) - BlockEntryPos;
+            int const BlockSize = (CurrentRecordPos / 8) - BlockEntryPos;
             auto Ptr = Stream.getPointerToByte(BlockEntryPos, BlockSize);
             Hasher.update(ArrayRef<uint8_t>(Ptr, BlockSize));
             Hash = Hasher.result();

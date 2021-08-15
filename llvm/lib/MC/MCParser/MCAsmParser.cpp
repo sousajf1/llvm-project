@@ -76,7 +76,7 @@ bool MCAsmParser::parseIntToken(int64_t &V, const Twine &Msg) {
 }
 
 bool MCAsmParser::parseOptionalToken(AsmToken::TokenKind T) {
-  bool Present = (getTok().getKind() == T);
+  bool const Present = (getTok().getKind() == T);
   if (Present)
     parseToken(T);
   return Present;
@@ -143,7 +143,7 @@ bool MCAsmParser::parseExpression(const MCExpr *&Res) {
 bool MCAsmParser::parseGNUAttribute(SMLoc L, int64_t &Tag,
                                     int64_t &IntegerValue) {
   // Parse a .gnu_attribute with numerical tag and value.
-  StringRef S(L.getPointer());
+  StringRef const S(L.getPointer());
   SMLoc TagLoc;
   TagLoc = getTok().getLoc();
   const AsmToken &Tok = getTok();

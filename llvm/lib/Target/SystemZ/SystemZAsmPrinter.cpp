@@ -69,14 +69,14 @@ static MCInst lowerRIEfLow(const MachineInstr *MI, unsigned Opcode) {
 }
 
 static const MCSymbolRefExpr *getTLSGetOffset(MCContext &Context) {
-  StringRef Name = "__tls_get_offset";
+  StringRef const Name = "__tls_get_offset";
   return MCSymbolRefExpr::create(Context.getOrCreateSymbol(Name),
                                  MCSymbolRefExpr::VK_PLT,
                                  Context);
 }
 
 static const MCSymbolRefExpr *getGlobalOffsetTable(MCContext &Context) {
-  StringRef Name = "_GLOBAL_OFFSET_TABLE_";
+  StringRef const Name = "_GLOBAL_OFFSET_TABLE_";
   return MCSymbolRefExpr::create(Context.getOrCreateSymbol(Name),
                                  MCSymbolRefExpr::VK_None,
                                  Context);
@@ -542,18 +542,18 @@ void SystemZAsmPrinter::emitInstruction(const MachineInstr *MI) {
     return;
 
   case SystemZ::EXRL_Pseudo: {
-    unsigned TargetInsOpc = MI->getOperand(0).getImm();
-    Register LenMinus1Reg = MI->getOperand(1).getReg();
-    Register DestReg = MI->getOperand(2).getReg();
-    int64_t DestDisp = MI->getOperand(3).getImm();
-    Register SrcReg = MI->getOperand(4).getReg();
-    int64_t SrcDisp = MI->getOperand(5).getImm();
+    unsigned const TargetInsOpc = MI->getOperand(0).getImm();
+    Register const LenMinus1Reg = MI->getOperand(1).getReg();
+    Register const DestReg = MI->getOperand(2).getReg();
+    int64_t const DestDisp = MI->getOperand(3).getImm();
+    Register const SrcReg = MI->getOperand(4).getReg();
+    int64_t const SrcDisp = MI->getOperand(5).getImm();
 
     MCSymbol *DotSym = nullptr;
-    MCInst ET = MCInstBuilder(TargetInsOpc).addReg(DestReg)
+    MCInst const ET = MCInstBuilder(TargetInsOpc).addReg(DestReg)
       .addImm(DestDisp).addImm(1).addReg(SrcReg).addImm(SrcDisp);
-    MCInstSTIPair ET_STI(ET, &MF->getSubtarget());
-    EXRLT2SymMap::iterator I = EXRLTargets2Sym.find(ET_STI);
+    MCInstSTIPair const ET_STI(ET, &MF->getSubtarget());
+    EXRLT2SymMap::iterator const I = EXRLTargets2Sym.find(ET_STI);
     if (I != EXRLTargets2Sym.end())
       DotSym = I->second;
     else
@@ -631,7 +631,7 @@ void SystemZAsmPrinter::LowerSTACKMAP(const MachineInstr &MI) {
   const SystemZInstrInfo *TII =
     static_cast<const SystemZInstrInfo *>(MF->getSubtarget().getInstrInfo());
 
-  unsigned NumNOPBytes = MI.getOperand(1).getImm();
+  unsigned const NumNOPBytes = MI.getOperand(1).getImm();
 
   auto &Ctx = OutStreamer->getContext();
   MCSymbol *MILabel = Ctx.createTempSymbol();
@@ -671,13 +671,13 @@ void SystemZAsmPrinter::LowerPATCHPOINT(const MachineInstr &MI,
   OutStreamer->emitLabel(MILabel);
 
   SM.recordPatchPoint(*MILabel, MI);
-  PatchPointOpers Opers(&MI);
+  PatchPointOpers const Opers(&MI);
 
   unsigned EncodedBytes = 0;
   const MachineOperand &CalleeMO = Opers.getCallTarget();
 
   if (CalleeMO.isImm()) {
-    uint64_t CallTarget = CalleeMO.getImm();
+    uint64_t const CallTarget = CalleeMO.getImm();
     if (CallTarget) {
       unsigned ScratchIdx = -1;
       unsigned ScratchReg = 0;
@@ -712,7 +712,7 @@ void SystemZAsmPrinter::LowerPATCHPOINT(const MachineInstr &MI,
   }
 
   // Emit padding.
-  unsigned NumBytes = Opers.getNumPatchBytes();
+  unsigned const NumBytes = Opers.getNumPatchBytes();
   assert(NumBytes >= EncodedBytes &&
          "Patchpoint can't request size less than the length of a call.");
   assert((NumBytes - EncodedBytes) % 2 == 0 &&
@@ -756,7 +756,7 @@ void SystemZAsmPrinter::emitMachineConstantPoolValue(
     MCSymbolRefExpr::create(getSymbol(ZCPV->getGlobalValue()),
                             getModifierVariantKind(ZCPV->getModifier()),
                             OutContext);
-  uint64_t Size = getDataLayout().getTypeAllocSize(ZCPV->getType());
+  uint64_t const Size = getDataLayout().getTypeAllocSize(ZCPV->getType());
 
   OutStreamer->emitValue(Expr, Size);
 }
@@ -775,7 +775,7 @@ bool SystemZAsmPrinter::PrintAsmOperand(const MachineInstr *MI, unsigned OpNo,
     else
       return AsmPrinter::PrintAsmOperand(MI, OpNo, ExtraCode, OS);
   } else {
-    SystemZMCInstLower Lower(MF->getContext(), *this);
+    SystemZMCInstLower const Lower(MF->getContext(), *this);
     MCOp = Lower.lowerOperand(MO);
   }
   SystemZInstPrinter::printOperand(MCOp, MAI, OS);
@@ -799,5 +799,5 @@ void SystemZAsmPrinter::emitEndOfAsmFile(Module &M) {
 
 // Force static initialization.
 extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializeSystemZAsmPrinter() {
-  RegisterAsmPrinter<SystemZAsmPrinter> X(getTheSystemZTarget());
+  RegisterAsmPrinter<SystemZAsmPrinter> const X(getTheSystemZTarget());
 }

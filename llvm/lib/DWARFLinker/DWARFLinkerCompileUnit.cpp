@@ -23,7 +23,7 @@ static bool inFunctionScope(CompileUnit &U, unsigned Idx) {
 
 uint16_t CompileUnit::getLanguage() {
   if (!Language) {
-    DWARFDie CU = getOrigUnit().getUnitDIE();
+    DWARFDie const CU = getOrigUnit().getUnitDIE();
     Language = dwarf::toUnsigned(CU.find(dwarf::DW_AT_language), 0);
   }
   return Language;
@@ -31,7 +31,7 @@ uint16_t CompileUnit::getLanguage() {
 
 StringRef CompileUnit::getSysRoot() {
   if (SysRoot.empty()) {
-    DWARFDie CU = getOrigUnit().getUnitDIE();
+    DWARFDie const CU = getOrigUnit().getUnitDIE();
     SysRoot = dwarf::toStringRef(CU.find(dwarf::DW_AT_LLVM_sysroot)).str();
   }
   return SysRoot;

@@ -250,7 +250,7 @@ void ScalarEnumerationTraits<FileChecksumKind>::enumeration(
 
 void ScalarTraits<HexFormattedString>::output(const HexFormattedString &Value,
                                               void *ctx, raw_ostream &Out) {
-  StringRef Bytes(reinterpret_cast<const char *>(Value.Bytes.data()),
+  StringRef const Bytes(reinterpret_cast<const char *>(Value.Bytes.data()),
                   Value.Bytes.size());
   Out << toHex(Bytes);
 }
@@ -424,14 +424,14 @@ std::shared_ptr<DebugSubsection> YAMLLinesSubsection::toCodeViewSubsection(
       for (auto Item : zip(LC.Lines, LC.Columns)) {
         auto &L = std::get<0>(Item);
         auto &C = std::get<1>(Item);
-        uint32_t LE = L.LineStart + L.EndDelta;
+        uint32_t const LE = L.LineStart + L.EndDelta;
         Result->addLineAndColumnInfo(L.Offset,
                                      LineInfo(L.LineStart, LE, L.IsStatement),
                                      C.StartColumn, C.EndColumn);
       }
     } else {
       for (const auto &L : LC.Lines) {
-        uint32_t LE = L.LineStart + L.EndDelta;
+        uint32_t const LE = L.LineStart + L.EndDelta;
         Result->addLineInfo(L.Offset, LineInfo(L.LineStart, LE, L.IsStatement));
       }
     }
@@ -557,7 +557,7 @@ getFileName(const DebugStringTableSubsectionRef &Strings,
   auto Iter = Checksums.getArray().at(FileID);
   if (Iter == Checksums.getArray().end())
     return make_error<CodeViewError>(cv_error_code::no_records);
-  uint32_t Offset = Iter->FileNameOffset;
+  uint32_t const Offset = Iter->FileNameOffset;
   return Strings.getString(Offset);
 }
 
@@ -602,7 +602,7 @@ YAMLLinesSubsection::fromCodeViewSubsection(
     }
     for (const auto &LN : L.LineNumbers) {
       SourceLineEntry SLE;
-      LineInfo LI(LN.Flags);
+      LineInfo const LI(LN.Flags);
       SLE.Offset = LN.Offset;
       SLE.LineStart = LI.getStartLine();
       SLE.EndDelta = LI.getLineDelta();
@@ -903,7 +903,7 @@ llvm::CodeViewYAML::fromDebugS(ArrayRef<uint8_t> Data,
   BinaryStreamReader Reader(Data, support::little);
   uint32_t Magic;
 
-  ExitOnError Err("Invalid .debug$S section!");
+  ExitOnError const Err("Invalid .debug$S section!");
   Err(Reader.readInteger(Magic));
   assert(Magic == COFF::DEBUG_SECTION_MAGIC && "Invalid .debug$S section!");
 

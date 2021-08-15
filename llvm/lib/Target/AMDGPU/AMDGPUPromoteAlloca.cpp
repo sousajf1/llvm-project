@@ -152,7 +152,7 @@ bool AMDGPUPromoteAlloca::runOnFunction(Function &F) {
 
 PreservedAnalyses AMDGPUPromoteAllocaPass::run(Function &F,
                                                FunctionAnalysisManager &AM) {
-  bool Changed = AMDGPUPromoteAllocaImpl(TM).run(F);
+  bool const Changed = AMDGPUPromoteAllocaImpl(TM).run(F);
   if (Changed) {
     PreservedAnalyses PA;
     PA.preserveSet<CFGAnalyses>();
@@ -180,7 +180,7 @@ bool AMDGPUPromoteAllocaImpl::run(Function &F) {
     MaxVGPRs = 128;
   }
 
-  bool SufficientLDS = hasSufficientLocalMem(F);
+  bool const SufficientLDS = hasSufficientLocalMem(F);
   bool Changed = false;
   BasicBlock &EntryBB = *F.begin();
 
@@ -421,7 +421,7 @@ static bool tryPromoteAllocaToVector(AllocaInst *Alloca, const DataLayout &DL,
   }
 
   // Use up to 1/4 of available register budget for vectorization.
-  unsigned Limit = PromoteAllocaToVectorLimit ? PromoteAllocaToVectorLimit * 8
+  unsigned const Limit = PromoteAllocaToVectorLimit ? PromoteAllocaToVectorLimit * 8
                                               : (MaxVGPRs * 32);
 
   if (DL.getTypeSizeInBits(AllocaTy) * 4 > Limit) {
@@ -775,9 +775,9 @@ bool AMDGPUPromoteAllocaImpl::hasSufficientLocalMem(const Function &F) {
   AllocatedSizes.reserve(UsedLDS.size());
 
   for (const GlobalVariable *GV : UsedLDS) {
-    Align Alignment =
+    Align const Alignment =
         DL.getValueOrABITypeAlignment(GV->getAlign(), GV->getValueType());
-    uint64_t AllocSize = DL.getTypeAllocSize(GV->getValueType());
+    uint64_t const AllocSize = DL.getTypeAllocSize(GV->getValueType());
     AllocatedSizes.emplace_back(AllocSize, Alignment);
   }
 
@@ -823,7 +823,7 @@ bool AMDGPUPromoteAllocaImpl::hasSufficientLocalMem(const Function &F) {
 
 
   // Round up to the next tier of usage.
-  unsigned MaxSizeWithWaveCount
+  unsigned const MaxSizeWithWaveCount
     = ST.getMaxLocalMemSizeWithWaveCount(MaxOccupancy, F);
 
   // Program is possibly broken by using more local mem than available.
@@ -864,7 +864,7 @@ bool AMDGPUPromoteAllocaImpl::handleAlloca(AllocaInst &I, bool SufficientLDS) {
     return false;
 
   const Function &ContainingFunction = *I.getParent()->getParent();
-  CallingConv::ID CC = ContainingFunction.getCallingConv();
+  CallingConv::ID const CC = ContainingFunction.getCallingConv();
 
   // Don't promote the alloca to LDS for shader calling conventions as the work
   // item ID intrinsics are not supported for these calling conventions.
@@ -885,9 +885,9 @@ bool AMDGPUPromoteAllocaImpl::handleAlloca(AllocaInst &I, bool SufficientLDS) {
     return false;
 
   const AMDGPUSubtarget &ST = AMDGPUSubtarget::get(TM, ContainingFunction);
-  unsigned WorkGroupSize = ST.getFlatWorkGroupSizes(ContainingFunction).second;
+  unsigned const WorkGroupSize = ST.getFlatWorkGroupSizes(ContainingFunction).second;
 
-  Align Alignment =
+  Align const Alignment =
       DL.getValueOrABITypeAlignment(I.getAlign(), I.getAllocatedType());
 
   // FIXME: This computed padding is likely wrong since it depends on inverse
@@ -897,7 +897,7 @@ bool AMDGPUPromoteAllocaImpl::handleAlloca(AllocaInst &I, bool SufficientLDS) {
   // could could end up using more than the maximum due to alignment padding.
 
   uint32_t NewSize = alignTo(CurrentLocalMemUsage, Alignment);
-  uint32_t AllocSize = WorkGroupSize * DL.getTypeAllocSize(AllocaTy);
+  uint32_t const AllocSize = WorkGroupSize * DL.getTypeAllocSize(AllocaTy);
   NewSize += AllocSize;
 
   if (NewSize > LocalMemLimit) {
@@ -943,7 +943,7 @@ bool AMDGPUPromoteAllocaImpl::handleAlloca(AllocaInst &I, bool SufficientLDS) {
   Value *TID = Builder.CreateAdd(Tmp0, Tmp1);
   TID = Builder.CreateAdd(TID, TIdZ);
 
-  Value *Indices[] = {
+  Value *const Indices[] = {
     Constant::getNullValue(Type::getInt32Ty(Mod->getContext())),
     TID
   };
@@ -1056,7 +1056,7 @@ bool AMDGPUPromoteAllocaImpl::handleAlloca(AllocaInst &I, bool SufficientLDS) {
 
   for (IntrinsicInst *Intr : DeferredIntrs) {
     Builder.SetInsertPoint(Intr);
-    Intrinsic::ID ID = Intr->getIntrinsicID();
+    Intrinsic::ID const ID = Intr->getIntrinsicID();
     assert(ID == Intrinsic::memcpy || ID == Intrinsic::memmove);
 
     MemTransferInst *MI = cast<MemTransferInst>(Intr);
@@ -1066,7 +1066,7 @@ bool AMDGPUPromoteAllocaImpl::handleAlloca(AllocaInst &I, bool SufficientLDS) {
                                     MI->getLength(), MI->isVolatile());
 
     for (unsigned I = 1; I != 3; ++I) {
-      if (uint64_t Bytes = Intr->getDereferenceableBytes(I)) {
+      if (uint64_t const Bytes = Intr->getDereferenceableBytes(I)) {
         B->addDereferenceableAttr(I, Bytes);
       }
     }
@@ -1133,7 +1133,7 @@ bool AMDGPUPromoteAllocaToVector::runOnFunction(Function &F) {
 
 PreservedAnalyses
 AMDGPUPromoteAllocaToVectorPass::run(Function &F, FunctionAnalysisManager &AM) {
-  bool Changed = promoteAllocasToVector(F, TM);
+  bool const Changed = promoteAllocasToVector(F, TM);
   if (Changed) {
     PreservedAnalyses PA;
     PA.preserveSet<CFGAnalyses>();

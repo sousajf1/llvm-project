@@ -166,7 +166,7 @@ bool LPPassManager::runOnFunction(Function &F) {
   // Walk Loops
   unsigned InstrCount, FunctionSize = 0;
   StringMap<std::pair<unsigned, unsigned>> FunctionToInstrCount;
-  bool EmitICRemark = M.shouldEmitInstrCountChangedRemark();
+  bool const EmitICRemark = M.shouldEmitInstrCountChangedRemark();
   // Collect the initial size of the module and the function we're looking at.
   if (EmitICRemark) {
     InstrCount = initSizeRemarkInfo(M, FunctionToInstrCount);
@@ -180,7 +180,7 @@ bool LPPassManager::runOnFunction(Function &F) {
     for (unsigned Index = 0; Index < getNumContainedPasses(); ++Index) {
       LoopPass *P = getContainedPass(Index);
 
-      llvm::TimeTraceScope LoopPassScope("RunLoopPass", P->getPassName());
+      llvm::TimeTraceScope const LoopPassScope("RunLoopPass", P->getPassName());
 
       dumpPassInfo(P, EXECUTION_MSG, ON_LOOP_MSG,
                    CurrentLoop->getHeader()->getName());
@@ -190,8 +190,8 @@ bool LPPassManager::runOnFunction(Function &F) {
 
       bool LocalChanged = false;
       {
-        PassManagerPrettyStackEntry X(P, *CurrentLoop->getHeader());
-        TimeRegion PassTimer(getPassTimer(P));
+        PassManagerPrettyStackEntry const X(P, *CurrentLoop->getHeader());
+        TimeRegion const PassTimer(getPassTimer(P));
 #ifdef EXPENSIVE_CHECKS
         uint64_t RefHash = StructuralHash(F);
 #endif
@@ -207,11 +207,11 @@ bool LPPassManager::runOnFunction(Function &F) {
 
         Changed |= LocalChanged;
         if (EmitICRemark) {
-          unsigned NewSize = F.getInstructionCount();
+          unsigned const NewSize = F.getInstructionCount();
           // Update the size of the function, emit a remark, and update the
           // size of the module.
           if (NewSize != FunctionSize) {
-            int64_t Delta = static_cast<int64_t>(NewSize) -
+            int64_t const Delta = static_cast<int64_t>(NewSize) -
                             static_cast<int64_t>(FunctionSize);
             emitInstrCountChangedRemark(P, M, Delta, InstrCount,
                                         FunctionToInstrCount, &F);
@@ -234,7 +234,7 @@ bool LPPassManager::runOnFunction(Function &F) {
         // loop in the function every time. That level of checking can be
         // enabled with the -verify-loop-info option.
         {
-          TimeRegion PassTimer(getPassTimer(&LIWP));
+          TimeRegion const PassTimer(getPassTimer(&LIWP));
           CurrentLoop->verifyLoop();
         }
         // Here we apply same reasoning as in the above case. Only difference

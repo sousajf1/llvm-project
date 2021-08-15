@@ -153,13 +153,13 @@ void RISCVMCCodeEmitter::expandFunctionCall(const MCInst &MI, raw_ostream &OS,
 void RISCVMCCodeEmitter::expandAddTPRel(const MCInst &MI, raw_ostream &OS,
                                         SmallVectorImpl<MCFixup> &Fixups,
                                         const MCSubtargetInfo &STI) const {
-  MCOperand DestReg = MI.getOperand(0);
-  MCOperand SrcReg = MI.getOperand(1);
-  MCOperand TPReg = MI.getOperand(2);
+  MCOperand const DestReg = MI.getOperand(0);
+  MCOperand const SrcReg = MI.getOperand(1);
+  MCOperand const TPReg = MI.getOperand(2);
   assert(TPReg.isReg() && TPReg.getReg() == RISCV::X4 &&
          "Expected thread pointer as second input to TP-relative add");
 
-  MCOperand SrcSymbol = MI.getOperand(3);
+  MCOperand const SrcSymbol = MI.getOperand(3);
   assert(SrcSymbol.isExpr() &&
          "Expected expression as third input to TP-relative add");
 
@@ -179,11 +179,11 @@ void RISCVMCCodeEmitter::expandAddTPRel(const MCInst &MI, raw_ostream &OS,
   }
 
   // Emit a normal ADD instruction with the given operands.
-  MCInst TmpInst = MCInstBuilder(RISCV::ADD)
+  MCInst const TmpInst = MCInstBuilder(RISCV::ADD)
                        .addOperand(DestReg)
                        .addOperand(SrcReg)
                        .addOperand(TPReg);
-  uint32_t Binary = getBinaryCodeForInstr(TmpInst, Fixups, STI);
+  uint32_t const Binary = getBinaryCodeForInstr(TmpInst, Fixups, STI);
   support::endian::write(OS, Binary, support::little);
 }
 
@@ -195,7 +195,7 @@ void RISCVMCCodeEmitter::encodeInstruction(const MCInst &MI, raw_ostream &OS,
 
   const MCInstrDesc &Desc = MCII.get(MI.getOpcode());
   // Get byte count of instruction.
-  unsigned Size = Desc.getSize();
+  unsigned const Size = Desc.getSize();
 
   // RISCVInstrInfo::getInstSizeInBytes hard-codes the number of expanded
   // instructions for each pseudo, and must be updated when adding new pseudos
@@ -219,12 +219,12 @@ void RISCVMCCodeEmitter::encodeInstruction(const MCInst &MI, raw_ostream &OS,
   default:
     llvm_unreachable("Unhandled encodeInstruction length!");
   case 2: {
-    uint16_t Bits = getBinaryCodeForInstr(MI, Fixups, STI);
+    uint16_t const Bits = getBinaryCodeForInstr(MI, Fixups, STI);
     support::endian::write<uint16_t>(OS, Bits, support::little);
     break;
   }
   case 4: {
-    uint32_t Bits = getBinaryCodeForInstr(MI, Fixups, STI);
+    uint32_t const Bits = getBinaryCodeForInstr(MI, Fixups, STI);
     support::endian::write(OS, Bits, support::little);
     break;
   }
@@ -255,7 +255,7 @@ RISCVMCCodeEmitter::getImmOpValueAsr1(const MCInst &MI, unsigned OpNo,
   const MCOperand &MO = MI.getOperand(OpNo);
 
   if (MO.isImm()) {
-    unsigned Res = MO.getImm();
+    unsigned const Res = MO.getImm();
     assert((Res & 1) == 0 && "LSB is non-zero");
     return Res >> 1;
   }
@@ -266,11 +266,11 @@ RISCVMCCodeEmitter::getImmOpValueAsr1(const MCInst &MI, unsigned OpNo,
 unsigned RISCVMCCodeEmitter::getImmOpValue(const MCInst &MI, unsigned OpNo,
                                            SmallVectorImpl<MCFixup> &Fixups,
                                            const MCSubtargetInfo &STI) const {
-  bool EnableRelax = STI.getFeatureBits()[RISCV::FeatureRelax];
+  bool const EnableRelax = STI.getFeatureBits()[RISCV::FeatureRelax];
   const MCOperand &MO = MI.getOperand(OpNo);
 
   MCInstrDesc const &Desc = MCII.get(MI.getOpcode());
-  unsigned MIFrm = RISCVII::getFormat(Desc.TSFlags);
+  unsigned const MIFrm = RISCVII::getFormat(Desc.TSFlags);
 
   // If the destination is an immediate, there is nothing to do.
   if (MO.isImm())
@@ -279,7 +279,7 @@ unsigned RISCVMCCodeEmitter::getImmOpValue(const MCInst &MI, unsigned OpNo,
   assert(MO.isExpr() &&
          "getImmOpValue expects only expressions or immediates");
   const MCExpr *Expr = MO.getExpr();
-  MCExpr::ExprKind Kind = Expr->getKind();
+  MCExpr::ExprKind const Kind = Expr->getKind();
   RISCV::Fixups FixupKind = RISCV::fixup_riscv_invalid;
   bool RelaxCandidate = false;
   if (Kind == MCExpr::Target) {
@@ -392,7 +392,7 @@ unsigned RISCVMCCodeEmitter::getImmOpValue(const MCInst &MI, unsigned OpNo,
 unsigned RISCVMCCodeEmitter::getVMaskReg(const MCInst &MI, unsigned OpNo,
                                          SmallVectorImpl<MCFixup> &Fixups,
                                          const MCSubtargetInfo &STI) const {
-  MCOperand MO = MI.getOperand(OpNo);
+  MCOperand const MO = MI.getOperand(OpNo);
   assert(MO.isReg() && "Expected a register.");
 
   switch (MO.getReg()) {

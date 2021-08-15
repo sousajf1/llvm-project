@@ -425,7 +425,7 @@ private:
     SmallPtrSet<const Value *, 32> EphValues;
     CodeMetrics::collectEphemeralValues(F, &(GetAC)(*F), EphValues);
     CodeMetrics Metrics;
-    for (BasicBlock &BB : *F)
+    for (BasicBlock  const&BB : *F)
       Metrics.analyzeBasicBlock(&BB, (GetTTI)(*F), EphValues);
 
     // If the code metrics reveal that we shouldn't duplicate the function, we
@@ -438,7 +438,7 @@ private:
 
     // Otherwise, set the specialization cost to be the cost of all the
     // instructions in the function and penalty for specializing more functions.
-    unsigned Penalty = NbFunctionsSpecialized + 1;
+    unsigned const Penalty = NbFunctionsSpecialized + 1;
     return Metrics.NumInsts * InlineConstants::InstrCost * Penalty;
   }
 
@@ -468,7 +468,7 @@ private:
   /// Compute a bonus for replacing argument \p A with constant \p C.
   InstructionCost getSpecializationBonus(Argument *A, Constant *C) {
     Function *F = A->getParent();
-    DominatorTree DT(*F);
+    DominatorTree const DT(*F);
     LoopInfo LI(DT);
     auto &TTI = (GetTTI)(*F);
     LLVM_DEBUG(dbgs() << "FnSpecialization: Analysing bonus for: " << *A
@@ -526,7 +526,7 @@ private:
       // the default threshold by the threshold for indirect calls.
       auto Params = getInlineParams();
       Params.DefaultThreshold += InlineConstants::IndirectCallThreshold;
-      InlineCost IC =
+      InlineCost const IC =
           getInlineCost(*CS, CalledFunction, Params, CalleeTTI, GetAC, GetTLI);
 
       // We clamp the bonus for this call to be between zero and the default
@@ -585,7 +585,7 @@ private:
     // TODO 2: this currently does not support constants, i.e. integer ranges.
     //
     SmallVector<Constant *, 4> PossibleConstants;
-    bool AllConstant = getPossibleConstants(A, PossibleConstants);
+    bool const AllConstant = getPossibleConstants(A, PossibleConstants);
     if (PossibleConstants.empty()) {
       LLVM_DEBUG(dbgs() << "FnSpecialization: no possible constants found\n");
       return false;
@@ -672,7 +672,7 @@ private:
   /// \p Clone instead.
   void rewriteCallSites(Function *F, Function *Clone, Argument &Arg,
                         Constant *C) {
-    unsigned ArgNo = Arg.getArgNo();
+    unsigned const ArgNo = Arg.getArgNo();
     SmallVector<CallBase *, 4> CallSitesToRewrite;
     for (auto *U : F->users()) {
       if (!isa<CallInst>(U) && !isa<InvokeInst>(U))

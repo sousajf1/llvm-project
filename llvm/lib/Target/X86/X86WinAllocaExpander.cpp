@@ -82,7 +82,7 @@ static int64_t getWinAllocaAmount(MachineInstr *MI, MachineRegisterInfo *MRI) {
          MI->getOpcode() == X86::WIN_ALLOCA_64);
   assert(MI->getOperand(0).isReg());
 
-  Register AmountReg = MI->getOperand(0).getReg();
+  Register const AmountReg = MI->getOperand(0).getReg();
   MachineInstr *Def = MRI->getUniqueVRegDef(AmountReg);
 
   if (!Def ||
@@ -144,7 +144,7 @@ void X86WinAllocaExpander::computeLowerings(MachineFunction &MF,
   // pointer depends on register spills, which have not been computed yet.
 
   // Compute the reverse post-order.
-  ReversePostOrderTraversal<MachineFunction*> RPO(&MF);
+  ReversePostOrderTraversal<MachineFunction*> const RPO(&MF);
 
   for (MachineBasicBlock *MBB : RPO) {
     int64_t Offset = -1;
@@ -156,8 +156,8 @@ void X86WinAllocaExpander::computeLowerings(MachineFunction &MF,
       if (MI.getOpcode() == X86::WIN_ALLOCA_32 ||
           MI.getOpcode() == X86::WIN_ALLOCA_64) {
         // A WinAlloca moves StackPtr, and potentially touches it.
-        int64_t Amount = getWinAllocaAmount(&MI, MRI);
-        Lowering L = getLowering(Offset, Amount);
+        int64_t const Amount = getWinAllocaAmount(&MI, MRI);
+        Lowering const L = getLowering(Offset, Amount);
         Lowerings[&MI] = L;
         switch (L) {
         case Sub:
@@ -198,7 +198,7 @@ static unsigned getSubOpcode(bool Is64Bit, int64_t Amount) {
 void X86WinAllocaExpander::lower(MachineInstr* MI, Lowering L) {
   const DebugLoc &DL = MI->getDebugLoc();
   MachineBasicBlock *MBB = MI->getParent();
-  MachineBasicBlock::iterator I = *MI;
+  MachineBasicBlock::iterator const I = *MI;
 
   int64_t Amount = getWinAllocaAmount(MI, MRI);
   if (Amount == 0) {
@@ -208,8 +208,8 @@ void X86WinAllocaExpander::lower(MachineInstr* MI, Lowering L) {
 
   // These two variables differ on x32, which is a 64-bit target with a
   // 32-bit alloca.
-  bool Is64Bit = STI->is64Bit();
-  bool Is64BitAlloca = MI->getOpcode() == X86::WIN_ALLOCA_64;
+  bool const Is64Bit = STI->is64Bit();
+  bool const Is64BitAlloca = MI->getOpcode() == X86::WIN_ALLOCA_64;
   assert(SlotSize == 4 || SlotSize == 8);
 
   switch (L) {
@@ -217,7 +217,7 @@ void X86WinAllocaExpander::lower(MachineInstr* MI, Lowering L) {
     assert(Amount >= SlotSize);
 
     // Use a push to touch the top of the stack.
-    unsigned RegA = Is64Bit ? X86::RAX : X86::EAX;
+    unsigned const RegA = Is64Bit ? X86::RAX : X86::EAX;
     BuildMI(*MBB, I, DL, TII->get(Is64Bit ? X86::PUSH64r : X86::PUSH32r))
         .addReg(RegA, RegState::Undef);
     Amount -= SlotSize;
@@ -231,7 +231,7 @@ void X86WinAllocaExpander::lower(MachineInstr* MI, Lowering L) {
     assert(Amount > 0);
     if (Amount == SlotSize) {
       // Use push to save size.
-      unsigned RegA = Is64Bit ? X86::RAX : X86::EAX;
+      unsigned const RegA = Is64Bit ? X86::RAX : X86::EAX;
       BuildMI(*MBB, I, DL, TII->get(Is64Bit ? X86::PUSH64r : X86::PUSH32r))
           .addReg(RegA, RegState::Undef);
     } else {
@@ -245,7 +245,7 @@ void X86WinAllocaExpander::lower(MachineInstr* MI, Lowering L) {
   case Probe:
     if (!NoStackArgProbe) {
       // The probe lowering expects the amount in RAX/EAX.
-      unsigned RegA = Is64BitAlloca ? X86::RAX : X86::EAX;
+      unsigned const RegA = Is64BitAlloca ? X86::RAX : X86::EAX;
       BuildMI(*MBB, MI, DL, TII->get(TargetOpcode::COPY), RegA)
           .addReg(MI->getOperand(0).getReg());
 
@@ -262,7 +262,7 @@ void X86WinAllocaExpander::lower(MachineInstr* MI, Lowering L) {
     break;
   }
 
-  Register AmountReg = MI->getOperand(0).getReg();
+  Register const AmountReg = MI->getOperand(0).getReg();
   MI->eraseFromParent();
 
   // Delete the definition of AmountReg.

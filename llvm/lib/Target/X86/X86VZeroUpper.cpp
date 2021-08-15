@@ -136,7 +136,7 @@ static bool isYmmOrZmmReg(unsigned Reg) {
 }
 
 static bool checkFnHasLiveInYmmOrZmm(MachineRegisterInfo &MRI) {
-  for (std::pair<unsigned, unsigned> LI : MRI.liveins())
+  for (std::pair<unsigned, unsigned> const LI : MRI.liveins())
     if (isYmmOrZmmReg(LI.first))
       return true;
 
@@ -204,9 +204,9 @@ void VZeroUpperInserter::processBasicBlock(MachineBasicBlock &MBB) {
   BlockStates[MBB.getNumber()].FirstUnguardedCall = MBB.end();
 
   for (MachineInstr &MI : MBB) {
-    bool IsCall = MI.isCall();
-    bool IsReturn = MI.isReturn();
-    bool IsControlFlow = IsCall || IsReturn;
+    bool const IsCall = MI.isCall();
+    bool const IsReturn = MI.isReturn();
+    bool const IsControlFlow = IsCall || IsReturn;
 
     // No need for vzeroupper before iret in interrupt handler function,
     // epilogue will restore YMM/ZMM registers if needed.
@@ -293,7 +293,7 @@ bool VZeroUpperInserter::runOnMachineFunction(MachineFunction &MF) {
   EverMadeChange = false;
   IsX86INTR = MF.getFunction().getCallingConv() == CallingConv::X86_INTR;
 
-  bool FnHasLiveInYmmOrZmm = checkFnHasLiveInYmmOrZmm(MRI);
+  bool const FnHasLiveInYmmOrZmm = checkFnHasLiveInYmmOrZmm(MRI);
 
   // Fast check: if the function doesn't use any ymm/zmm registers, we don't
   // need to insert any VZEROUPPER instructions.  This is constant-time, so it
@@ -334,7 +334,7 @@ bool VZeroUpperInserter::runOnMachineFunction(MachineFunction &MF) {
   while (!DirtySuccessors.empty()) {
     MachineBasicBlock &MBB = *DirtySuccessors.back();
     DirtySuccessors.pop_back();
-    BlockState &BBState = BlockStates[MBB.getNumber()];
+    BlockState  const&BBState = BlockStates[MBB.getNumber()];
 
     // MBB is a successor of a dirty block, so its first call needs to be
     // guarded.

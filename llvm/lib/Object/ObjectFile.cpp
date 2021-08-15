@@ -132,7 +132,7 @@ Triple ObjectFile::makeTriple() const {
 Expected<std::unique_ptr<ObjectFile>>
 ObjectFile::createObjectFile(MemoryBufferRef Object, file_magic Type,
                              bool InitContent) {
-  StringRef Data = Object.getBuffer();
+  StringRef const Data = Object.getBuffer();
   if (Type == file_magic::unknown)
     Type = identify_magic(Data);
 
@@ -185,7 +185,7 @@ Expected<OwningBinary<ObjectFile>>
 ObjectFile::createObjectFile(StringRef ObjectPath) {
   ErrorOr<std::unique_ptr<MemoryBuffer>> FileOrErr =
       MemoryBuffer::getFile(ObjectPath);
-  if (std::error_code EC = FileOrErr.getError())
+  if (std::error_code const EC = FileOrErr.getError())
     return errorCodeToError(EC);
   std::unique_ptr<MemoryBuffer> Buffer = std::move(FileOrErr.get());
 

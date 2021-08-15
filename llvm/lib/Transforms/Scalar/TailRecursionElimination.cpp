@@ -138,7 +138,7 @@ struct AllocaDerivedValueTracker {
         // beyond the lifetime of the current frame.
         if (CB.isArgOperand(U) && CB.isByValArgument(CB.getArgOperandNo(U)))
           continue;
-        bool IsNocapture =
+        bool const IsNocapture =
             CB.isDataOperand(U) && CB.doesNotCapture(CB.getDataOperandNo(U));
         callUsesLocalStack(CB, IsNocapture);
         if (IsNocapture) {
@@ -249,7 +249,7 @@ static bool markTails(Function &F, OptimizationRemarkEmitter *ORE) {
         continue;
 
       // Special-case operand bundle "clang.arc.attachedcall".
-      bool IsNoTail =
+      bool const IsNoTail =
           CI->isNoTailCall() || CI->hasOperandBundlesOtherThan(
                                     LLVMContext::OB_clang_arc_attachedcall);
 
@@ -589,7 +589,7 @@ void TailRecursionEliminator::copyByValueOperandIntoLocalTemp(CallInst *CI,
   const DataLayout &DL = F.getParent()->getDataLayout();
 
   // Get alignment of byVal operand.
-  Align Alignment(CI->getParamAlign(OpndIdx).valueOrOne());
+  Align const Alignment(CI->getParamAlign(OpndIdx).valueOrOne());
 
   // Create alloca for temporarily byval operands.
   // Put alloca into the entry block.
@@ -616,7 +616,7 @@ void TailRecursionEliminator::copyLocalTempOfByValueOperandIntoArguments(
   const DataLayout &DL = F.getParent()->getDataLayout();
 
   // Get alignment of byVal operand.
-  Align Alignment(CI->getParamAlign(OpndIdx).valueOrOne());
+  Align const Alignment(CI->getParamAlign(OpndIdx).valueOrOne());
 
   IRBuilder<> Builder(CI);
   Value *Size = Builder.getInt64(DL.getTypeAllocSize(AggTy));
@@ -924,7 +924,7 @@ FunctionPass *llvm::createTailCallEliminationPass() {
 PreservedAnalyses TailCallElimPass::run(Function &F,
                                         FunctionAnalysisManager &AM) {
 
-  TargetTransformInfo &TTI = AM.getResult<TargetIRAnalysis>(F);
+  TargetTransformInfo  const&TTI = AM.getResult<TargetIRAnalysis>(F);
   AliasAnalysis &AA = AM.getResult<AAManager>(F);
   auto &ORE = AM.getResult<OptimizationRemarkEmitterAnalysis>(F);
   auto *DT = AM.getCachedResult<DominatorTreeAnalysis>(F);
@@ -933,7 +933,7 @@ PreservedAnalyses TailCallElimPass::run(Function &F,
   // UpdateStrategy based on some test results. It is feasible to switch the
   // UpdateStrategy to Lazy if we find it profitable later.
   DomTreeUpdater DTU(DT, PDT, DomTreeUpdater::UpdateStrategy::Eager);
-  bool Changed = TailRecursionEliminator::eliminate(F, &TTI, &AA, &ORE, DTU);
+  bool const Changed = TailRecursionEliminator::eliminate(F, &TTI, &AA, &ORE, DTU);
 
   if (!Changed)
     return PreservedAnalyses::all();

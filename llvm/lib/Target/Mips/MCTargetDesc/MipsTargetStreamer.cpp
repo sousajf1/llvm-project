@@ -310,11 +310,11 @@ void MipsTargetStreamer::emitStoreWithImmOffset(
   //                      add $at, $at, $8
   //                      sw $8, %lo(offset)($at)
 
-  unsigned ATReg = GetATReg();
+  unsigned const ATReg = GetATReg();
   if (!ATReg)
     return;
 
-  unsigned LoOffset = Offset & 0x0000ffff;
+  unsigned const LoOffset = Offset & 0x0000ffff;
   unsigned HiOffset = (Offset & 0xffff0000) >> 16;
 
   // If msb of LoOffset is 1(negative number) we must increment HiOffset
@@ -350,7 +350,7 @@ void MipsTargetStreamer::emitLoadWithImmOffset(unsigned Opcode, unsigned DstReg,
   //                         add $at, $at, $8
   //                         lw $8, %lo(offset)($at)
 
-  unsigned LoOffset = Offset & 0x0000ffff;
+  unsigned const LoOffset = Offset & 0x0000ffff;
   unsigned HiOffset = (Offset & 0xffff0000) >> 16;
 
   // If msb of LoOffset is 1(negative number) we must increment HiOffset
@@ -715,7 +715,7 @@ void MipsTargetAsmStreamer::emitDirectiveCpreturn(unsigned SaveLocation,
 }
 
 void MipsTargetAsmStreamer::emitDirectiveModuleFP() {
-  MipsABIFlagsSection::FpABIKind FpABI = ABIFlagsSection.getFpABI();
+  MipsABIFlagsSection::FpABIKind const FpABI = ABIFlagsSection.getFpABI();
   if (FpABI == MipsABIFlagsSection::FpABIKind::SOFT)
     OS << "\t.module\tsoftfloat\n";
   else
@@ -865,7 +865,7 @@ MipsTargetELFStreamer::MipsTargetELFStreamer(MCStreamer &S,
 void MipsTargetELFStreamer::emitLabel(MCSymbol *S) {
   auto *Symbol = cast<MCSymbolELF>(S);
   getStreamer().getAssembler().registerSymbol(*Symbol);
-  uint8_t Type = Symbol->getType();
+  uint8_t const Type = Symbol->getType();
   if (Type != ELF::STT_FUNC)
     return;
 
@@ -898,7 +898,7 @@ void MipsTargetELFStreamer::finish() {
     for (MCSection &S : MCA) {
       MCSectionELF &Section = static_cast<MCSectionELF &>(S);
 
-      unsigned Alignment = Section.getAlignment();
+      unsigned const Alignment = Section.getAlignment();
       if (Alignment) {
         OS.SwitchSection(&Section);
         if (Section.UseCodeAlign())
@@ -1104,7 +1104,7 @@ void MipsTargetELFStreamer::emitDirectiveInsn() {
 
 void MipsTargetELFStreamer::emitFrame(unsigned StackReg, unsigned StackSize,
                                       unsigned ReturnReg_) {
-  MCContext &Context = getStreamer().getAssembler().getContext();
+  MCContext  const&Context = getStreamer().getAssembler().getContext();
   const MCRegisterInfo *RegInfo = Context.getRegisterInfo();
 
   FrameInfoSet = true;
@@ -1155,7 +1155,7 @@ void MipsTargetELFStreamer::emitDirectiveCpLoad(unsigned RegNo) {
   //   lui     $gp, %hi(__gnu_local_gp)
   //   addiu   $gp, $gp, %lo(__gnu_local_gp)
 
-  StringRef SymName("_gp_disp");
+  StringRef const SymName("_gp_disp");
   MCAssembler &MCA = getStreamer().getAssembler();
   MCSymbol *GP_Disp = MCA.getContext().getOrCreateSymbol(SymName);
   MCA.registerSymbol(*GP_Disp);
@@ -1231,8 +1231,8 @@ void MipsTargetELFStreamer::emitDirectiveCpsetup(unsigned RegNo,
 
   forbidModuleDirective();
 
-  MCAssembler &MCA = getStreamer().getAssembler();
-  MCInst Inst;
+  MCAssembler  const&MCA = getStreamer().getAssembler();
+  MCInst const Inst;
 
   // Either store the old $gp in a register or on the stack
   if (IsReg) {

@@ -161,13 +161,13 @@ bool X86CallFrameOptimization::isLegal(MachineFunction &MF) {
   // probe size, don't do this optimization. Otherwise, this pass
   // would need to synthesize additional stack probe calls to allocate
   // memory for arguments.
-  unsigned FrameSetupOpcode = TII->getCallFrameSetupOpcode();
-  unsigned FrameDestroyOpcode = TII->getCallFrameDestroyOpcode();
-  bool EmitStackProbeCall = STI->getTargetLowering()->hasStackProbeSymbol(MF);
-  unsigned StackProbeSize = STI->getTargetLowering()->getStackProbeSize(MF);
-  for (MachineBasicBlock &BB : MF) {
+  unsigned const FrameSetupOpcode = TII->getCallFrameSetupOpcode();
+  unsigned const FrameDestroyOpcode = TII->getCallFrameDestroyOpcode();
+  bool const EmitStackProbeCall = STI->getTargetLowering()->hasStackProbeSymbol(MF);
+  unsigned const StackProbeSize = STI->getTargetLowering()->getStackProbeSize(MF);
+  for (MachineBasicBlock  const&BB : MF) {
     bool InsideFrameSequence = false;
-    for (MachineInstr &MI : BB) {
+    for (MachineInstr  const&MI : BB) {
       if (MI.getOpcode() == FrameSetupOpcode) {
         if (TII->getFrameSize(MI) >= StackProbeSize && EmitStackProbeCall)
           return false;
@@ -195,11 +195,11 @@ bool X86CallFrameOptimization::isProfitable(MachineFunction &MF,
   // This transformation is always a win when we do not expect to have
   // a reserved call frame. Under other circumstances, it may be either
   // a win or a loss, and requires a heuristic.
-  bool CannotReserveFrame = MF.getFrameInfo().hasVarSizedObjects();
+  bool const CannotReserveFrame = MF.getFrameInfo().hasVarSizedObjects();
   if (CannotReserveFrame)
     return true;
 
-  Align StackAlign = TFL->getStackAlign();
+  Align const StackAlign = TFL->getStackAlign();
 
   int64_t Advantage = 0;
   for (const auto &CC : CallSeqVector) {
@@ -248,7 +248,7 @@ bool X86CallFrameOptimization::runOnMachineFunction(MachineFunction &MF) {
   if (skipFunction(MF.getFunction()) || !isLegal(MF))
     return false;
 
-  unsigned FrameSetupOpcode = TII->getCallFrameSetupOpcode();
+  unsigned const FrameSetupOpcode = TII->getCallFrameSetupOpcode();
 
   bool Changed = false;
 
@@ -335,13 +335,13 @@ X86CallFrameOptimization::classifyInstruction(
   for (const MachineOperand &MO : MI->operands()) {
     if (!MO.isReg())
       continue;
-    Register Reg = MO.getReg();
+    Register const Reg = MO.getReg();
     if (!Reg.isPhysical())
       continue;
     if (RegInfo.regsOverlap(Reg, RegInfo.getStackRegister()))
       return Exit;
     if (MO.isDef()) {
-      for (unsigned int U : UsedRegs)
+      for (unsigned int const U : UsedRegs)
         if (RegInfo.regsOverlap(Reg, U))
           return Exit;
     }
@@ -361,12 +361,12 @@ void X86CallFrameOptimization::collectCallInfo(MachineFunction &MF,
 
   // We expect to enter this at the beginning of a call sequence
   assert(I->getOpcode() == TII->getCallFrameSetupOpcode());
-  MachineBasicBlock::iterator FrameSetup = I++;
+  MachineBasicBlock::iterator const FrameSetup = I++;
   Context.FrameSetup = FrameSetup;
 
   // How much do we adjust the stack? This puts an upper bound on
   // the number of parameters actually passed on it.
-  unsigned int MaxAdjust = TII->getFrameSize(*FrameSetup) >> Log2SlotSize;
+  unsigned int const MaxAdjust = TII->getFrameSize(*FrameSetup) >> Log2SlotSize;
 
   // A zero adjustment means no stack parameters
   if (!MaxAdjust) {
@@ -453,7 +453,7 @@ void X86CallFrameOptimization::collectCallInfo(MachineFunction &MF,
     for (const MachineOperand &MO : I->uses()) {
       if (!MO.isReg())
         continue;
-      Register Reg = MO.getReg();
+      Register const Reg = MO.getReg();
       if (Reg.isPhysical())
         UsedRegs.insert(Reg);
     }
@@ -495,17 +495,17 @@ void X86CallFrameOptimization::adjustCallSequence(MachineFunction &MF,
   // Ok, we can in fact do the transformation for this call.
   // Do not remove the FrameSetup instruction, but adjust the parameters.
   // PEI will end up finalizing the handling of this.
-  MachineBasicBlock::iterator FrameSetup = Context.FrameSetup;
+  MachineBasicBlock::iterator const FrameSetup = Context.FrameSetup;
   MachineBasicBlock &MBB = *(FrameSetup->getParent());
   TII->setFrameAdjustment(*FrameSetup, Context.ExpectedDist);
 
   const DebugLoc &DL = FrameSetup->getDebugLoc();
-  bool Is64Bit = STI->is64Bit();
+  bool const Is64Bit = STI->is64Bit();
   // Now, iterate through the vector in reverse order, and replace the store to
   // stack with pushes. MOVmi/MOVmr doesn't have any defs, so no need to
   // replace uses.
   for (int Idx = (Context.ExpectedDist >> Log2SlotSize) - 1; Idx >= 0; --Idx) {
-    MachineBasicBlock::iterator Store = *Context.ArgStoreVector[Idx];
+    MachineBasicBlock::iterator const Store = *Context.ArgStoreVector[Idx];
     const MachineOperand &PushOp = Store->getOperand(X86::AddrNumOperands);
     MachineBasicBlock::iterator Push = nullptr;
     unsigned PushOpcode;
@@ -526,7 +526,7 @@ void X86CallFrameOptimization::adjustCallSequence(MachineFunction &MF,
       // Note that isImm() may fail even though this is a MOVmi, because
       // the operand can also be a symbol.
       if (PushOp.isImm()) {
-        int64_t Val = PushOp.getImm();
+        int64_t const Val = PushOp.getImm();
         if (isInt<8>(Val))
           PushOpcode = Is64Bit ? X86::PUSH64i8 : X86::PUSH32i8;
       }
@@ -540,7 +540,7 @@ void X86CallFrameOptimization::adjustCallSequence(MachineFunction &MF,
       // If storing a 32-bit vreg on 64-bit targets, extend to a 64-bit vreg
       // in preparation for the PUSH64. The upper 32 bits can be undef.
       if (Is64Bit && Store->getOpcode() == X86::MOV32mr) {
-        Register UndefReg = MRI->createVirtualRegister(&X86::GR64RegClass);
+        Register const UndefReg = MRI->createVirtualRegister(&X86::GR64RegClass);
         Reg = MRI->createVirtualRegister(&X86::GR64RegClass);
         BuildMI(MBB, Context.Call, DL, TII->get(X86::IMPLICIT_DEF), UndefReg);
         BuildMI(MBB, Context.Call, DL, TII->get(X86::INSERT_SUBREG), Reg)
@@ -551,7 +551,7 @@ void X86CallFrameOptimization::adjustCallSequence(MachineFunction &MF,
 
       // If PUSHrmm is not slow on this target, try to fold the source of the
       // push into the instruction.
-      bool SlowPUSHrmm = STI->slowTwoMemOps();
+      bool const SlowPUSHrmm = STI->slowTwoMemOps();
 
       // Check that this is legal to fold. Right now, we're extremely
       // conservative about that.
@@ -560,7 +560,7 @@ void X86CallFrameOptimization::adjustCallSequence(MachineFunction &MF,
         PushOpcode = Is64Bit ? X86::PUSH64rmm : X86::PUSH32rmm;
         Push = BuildMI(MBB, Context.Call, DL, TII->get(PushOpcode));
 
-        unsigned NumOps = DefMov->getDesc().getNumOperands();
+        unsigned const NumOps = DefMov->getDesc().getNumOperands();
         for (unsigned i = NumOps - X86::AddrNumOperands; i != NumOps; ++i)
           Push->addOperand(DefMov->getOperand(i));
         Push->cloneMergedMemRefs(MF, {DefMov, &*Store});

@@ -69,14 +69,14 @@ static void generateEndPgm(MachineBasicBlock &MBB,
                            MachineBasicBlock::iterator I, DebugLoc DL,
                            const SIInstrInfo *TII, MachineFunction &MF) {
   const Function &F = MF.getFunction();
-  bool IsPS = F.getCallingConv() == CallingConv::AMDGPU_PS;
+  bool const IsPS = F.getCallingConv() == CallingConv::AMDGPU_PS;
 
   // Check if hardware has been configured to expect color or depth exports.
-  bool HasExports =
+  bool const HasExports =
       AMDGPU::getHasColorExport(F) || AMDGPU::getHasDepthExport(F);
 
   // Prior to GFX10, hardware always expects at least one export for PS.
-  bool MustExport = !AMDGPU::isGFX10Plus(TII->getSubtarget());
+  bool const MustExport = !AMDGPU::isGFX10Plus(TII->getSubtarget());
 
   if (IsPS && (HasExports || MustExport)) {
     // Generate "null export" if hardware is expecting PS to export.
@@ -173,7 +173,7 @@ bool SILateBranchLowering::runOnMachineFunction(MachineFunction &MF) {
   // Lower any early exit branches first
   if (!EarlyTermInstrs.empty()) {
     MachineBasicBlock *EarlyExitBlock = MF.CreateMachineBasicBlock();
-    DebugLoc DL;
+    DebugLoc const DL;
 
     MF.insert(MF.end(), EarlyExitBlock);
     BuildMI(*EarlyExitBlock, EarlyExitBlock->end(), DL, TII->get(MovOpc),

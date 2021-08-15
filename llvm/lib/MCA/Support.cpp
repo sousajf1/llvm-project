@@ -26,10 +26,10 @@ ResourceCycles &ResourceCycles::operator+=(const ResourceCycles &RHS) {
   else {
     // Create a common denominator for LHS and RHS by calculating the least
     // common multiple from the GCD.
-    unsigned GCD = GreatestCommonDivisor64(Denominator, RHS.Denominator);
-    unsigned LCM = (Denominator * RHS.Denominator) / GCD;
-    unsigned LHSNumerator = Numerator * (LCM / Denominator);
-    unsigned RHSNumerator = RHS.Numerator * (LCM / RHS.Denominator);
+    unsigned const GCD = GreatestCommonDivisor64(Denominator, RHS.Denominator);
+    unsigned const LCM = (Denominator * RHS.Denominator) / GCD;
+    unsigned const LHSNumerator = Numerator * (LCM / Denominator);
+    unsigned const RHSNumerator = RHS.Numerator * (LCM / RHS.Denominator);
     Numerator = LHSNumerator + RHSNumerator;
     Denominator = LCM;
   }
@@ -61,7 +61,7 @@ void computeProcResourceMasks(const MCSchedModel &SM,
       continue;
     Masks[I] = 1ULL << ProcResourceID;
     for (unsigned U = 0; U < Desc.NumUnits; ++U) {
-      uint64_t OtherMask = Masks[Desc.SubUnitsIdxBegin[U]];
+      uint64_t const OtherMask = Masks[Desc.SubUnitsIdxBegin[U]];
       Masks[I] |= OtherMask;
     }
     ProcResourceID++;
@@ -91,12 +91,12 @@ double computeBlockRThroughput(const MCSchedModel &SM, unsigned DispatchWidth,
   // The number of available resource units affects the resource pressure
   // distribution, as well as how many blocks can be executed every cycle.
   for (unsigned I = 0, E = SM.getNumProcResourceKinds(); I < E; ++I) {
-    unsigned ResourceCycles = ProcResourceUsage[I];
+    unsigned const ResourceCycles = ProcResourceUsage[I];
     if (!ResourceCycles)
       continue;
 
     const MCProcResourceDesc &MCDesc = *SM.getProcResource(I);
-    double Throughput = static_cast<double>(ResourceCycles) / MCDesc.NumUnits;
+    double const Throughput = static_cast<double>(ResourceCycles) / MCDesc.NumUnits;
     Max = std::max(Max, Throughput);
   }
 

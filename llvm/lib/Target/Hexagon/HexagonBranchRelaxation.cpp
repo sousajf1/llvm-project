@@ -208,7 +208,7 @@ bool HexagonBranchRelaxation::reGenerateBranch(MachineFunction &MF,
         LLVM_DEBUG(dbgs() << "\tUnderimplemented relax branch instruction.\n");
       } else {
         // Find which operand is expandable.
-        int ExtOpNum = HII->getCExtOpNum(MI);
+        int const ExtOpNum = HII->getCExtOpNum(MI);
         MachineOperand &MO = MI.getOperand(ExtOpNum);
         // This need to be something we understand. So far we assume all
         // branches have only MBB address as expandable field.

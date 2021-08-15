@@ -58,11 +58,11 @@ class CFIInstrInserter : public MachineFunctionPass {
     calculateCFAInfo(MF);
 
     if (VerifyCFI) {
-      if (unsigned ErrorNum = verify(MF))
+      if (unsigned const ErrorNum = verify(MF))
         report_fatal_error("Found " + Twine(ErrorNum) +
                            " in/out CFI information errors.");
     }
-    bool insertedCFI = insertCFIInstrs(MF);
+    bool const insertedCFI = insertCFIInstrs(MF);
     MBBVector.clear();
     return insertedCFI;
   }
@@ -146,14 +146,14 @@ FunctionPass *llvm::createCFIInstrInserter() { return new CFIInstrInserter(); }
 void CFIInstrInserter::calculateCFAInfo(MachineFunction &MF) {
   // Initial CFA offset value i.e. the one valid at the beginning of the
   // function.
-  int InitialOffset =
+  int const InitialOffset =
       MF.getSubtarget().getFrameLowering()->getInitialCFAOffset(MF);
   // Initial CFA register value i.e. the one valid at the beginning of the
   // function.
-  unsigned InitialRegister =
+  unsigned const InitialRegister =
       MF.getSubtarget().getFrameLowering()->getInitialCFARegister(MF);
   const TargetRegisterInfo &TRI = *MF.getSubtarget().getRegisterInfo();
-  unsigned NumRegs = TRI.getNumRegs();
+  unsigned const NumRegs = TRI.getNumRegs();
 
   // Initialize MBBMap.
   for (MachineBasicBlock &MBB : MF) {
@@ -183,7 +183,7 @@ void CFIInstrInserter::calculateOutgoingCFAInfo(MBBCFAInfo &MBBInfo) {
   MachineFunction *MF = MBBInfo.MBB->getParent();
   const std::vector<MCCFIInstruction> &Instrs = MF->getFrameInstructions();
   const TargetRegisterInfo &TRI = *MF->getSubtarget().getRegisterInfo();
-  unsigned NumRegs = TRI.getNumRegs();
+  unsigned const NumRegs = TRI.getNumRegs();
   BitVector CSRSaved(NumRegs), CSRRestored(NumRegs);
 
   // Determine cfa offset and register set by the block.
@@ -191,7 +191,7 @@ void CFIInstrInserter::calculateOutgoingCFAInfo(MBBCFAInfo &MBBInfo) {
     if (MI.isCFIInstruction()) {
       Optional<unsigned> CSRReg;
       Optional<int> CSROffset;
-      unsigned CFIIndex = MI.getOperand(0).getCFIIndex();
+      unsigned const CFIIndex = MI.getOperand(0).getCFIIndex();
       const MCCFIInstruction &CFI = Instrs[CFIIndex];
       switch (CFI.getOperation()) {
       case MCCFIInstruction::OpDefCfaRegister:
@@ -309,7 +309,7 @@ bool CFIInstrInserter::insertCFIInstrs(MachineFunction &MF) {
 
     const MBBCFAInfo &MBBInfo = MBBVector[MBB.getNumber()];
     auto MBBI = MBBInfo.MBB->begin();
-    DebugLoc DL = MBBInfo.MBB->findDebugLoc(MBBI);
+    DebugLoc const DL = MBBInfo.MBB->findDebugLoc(MBBI);
 
     // If the current MBB will be placed in a unique section, a full DefCfa
     // must be emitted.
@@ -322,7 +322,7 @@ bool CFIInstrInserter::insertCFIInstrs(MachineFunction &MF) {
       // incoming offset and register of this block, or if this block begins a
       // section, add a def_cfa instruction with the correct offset and
       // register for this block.
-      unsigned CFIIndex = MF.addFrameInst(MCCFIInstruction::cfiDefCfa(
+      unsigned const CFIIndex = MF.addFrameInst(MCCFIInstruction::cfiDefCfa(
           nullptr, MBBInfo.IncomingCFARegister, getCorrectCFAOffset(&MBB)));
       BuildMI(*MBBInfo.MBB, MBBI, DL, TII->get(TargetOpcode::CFI_INSTRUCTION))
           .addCFIIndex(CFIIndex);
@@ -331,14 +331,14 @@ bool CFIInstrInserter::insertCFIInstrs(MachineFunction &MF) {
       // If outgoing offset of a previous block doesn't match incoming offset
       // of this block, add a def_cfa_offset instruction with the correct
       // offset for this block.
-      unsigned CFIIndex = MF.addFrameInst(MCCFIInstruction::cfiDefCfaOffset(
+      unsigned const CFIIndex = MF.addFrameInst(MCCFIInstruction::cfiDefCfaOffset(
           nullptr, getCorrectCFAOffset(&MBB)));
       BuildMI(*MBBInfo.MBB, MBBI, DL, TII->get(TargetOpcode::CFI_INSTRUCTION))
           .addCFIIndex(CFIIndex);
       InsertedCFIInstr = true;
     } else if (PrevMBBInfo->OutgoingCFARegister !=
                MBBInfo.IncomingCFARegister) {
-      unsigned CFIIndex =
+      unsigned const CFIIndex =
           MF.addFrameInst(MCCFIInstruction::createDefCfaRegister(
               nullptr, MBBInfo.IncomingCFARegister));
       BuildMI(*MBBInfo.MBB, MBBI, DL, TII->get(TargetOpcode::CFI_INSTRUCTION))
@@ -356,8 +356,8 @@ bool CFIInstrInserter::insertCFIInstrs(MachineFunction &MF) {
 
     BitVector::apply([](auto x, auto y) { return x & ~y; }, SetDifference,
                      PrevMBBInfo->OutgoingCSRSaved, MBBInfo.IncomingCSRSaved);
-    for (int Reg : SetDifference.set_bits()) {
-      unsigned CFIIndex =
+    for (int const Reg : SetDifference.set_bits()) {
+      unsigned const CFIIndex =
           MF.addFrameInst(MCCFIInstruction::createRestore(nullptr, Reg));
       BuildMI(*MBBInfo.MBB, MBBI, DL, TII->get(TargetOpcode::CFI_INSTRUCTION))
           .addCFIIndex(CFIIndex);
@@ -366,7 +366,7 @@ bool CFIInstrInserter::insertCFIInstrs(MachineFunction &MF) {
 
     BitVector::apply([](auto x, auto y) { return x & ~y; }, SetDifference,
                      MBBInfo.IncomingCSRSaved, PrevMBBInfo->OutgoingCSRSaved);
-    for (int Reg : SetDifference.set_bits()) {
+    for (int const Reg : SetDifference.set_bits()) {
       auto it = CSRLocMap.find(Reg);
       assert(it != CSRLocMap.end() && "Reg should have an entry in CSRLocMap");
       unsigned CFIIndex;
@@ -412,12 +412,12 @@ void CFIInstrInserter::reportCSRError(const MBBCFAInfo &Pred,
          << Pred.MBB->getParent()->getName() << " ***\n";
   errs() << "Pred: " << Pred.MBB->getName() << " #" << Pred.MBB->getNumber()
          << " outgoing CSR Saved: ";
-  for (int Reg : Pred.OutgoingCSRSaved.set_bits())
+  for (int const Reg : Pred.OutgoingCSRSaved.set_bits())
     errs() << Reg << " ";
   errs() << "\n";
   errs() << "Succ: " << Succ.MBB->getName() << " #" << Succ.MBB->getNumber()
          << " incoming CSR Saved: ";
-  for (int Reg : Succ.IncomingCSRSaved.set_bits())
+  for (int const Reg : Succ.IncomingCSRSaved.set_bits())
     errs() << Reg << " ";
   errs() << "\n";
 }

@@ -89,8 +89,8 @@ bool VPlanSlp::areVectorizable(ArrayRef<VPValue *> Operands) const {
   // FIXME: Deal with non-primitive types.
   const Instruction *OriginalInstr =
       cast<VPInstruction>(Operands[0])->getUnderlyingInstr();
-  unsigned Opcode = OriginalInstr->getOpcode();
-  unsigned Width = OriginalInstr->getType()->getPrimitiveSizeInBits();
+  unsigned const Opcode = OriginalInstr->getOpcode();
+  unsigned const Width = OriginalInstr->getType()->getPrimitiveSizeInBits();
   if (!all_of(Operands, [Opcode, Width](VPValue *Op) {
         const Instruction *I = cast<VPInstruction>(Op)->getUnderlyingInstr();
         return I->getOpcode() == Opcode &&
@@ -197,7 +197,7 @@ getOperands(ArrayRef<VPValue *> Values) {
 
 /// Returns the opcode of Values or ~0 if they do not all agree.
 static Optional<unsigned> getOpcode(ArrayRef<VPValue *> Values) {
-  unsigned Opcode = cast<VPInstruction>(Values[0])->getOpcode();
+  unsigned const Opcode = cast<VPInstruction>(Values[0])->getOpcode();
   if (any_of(Values, [Opcode](VPValue *V) {
         return cast<VPInstruction>(V)->getOpcode() != Opcode;
       }))
@@ -278,7 +278,7 @@ VPlanSlp::getBest(OpMode Mode, VPValue *Last,
 
     // FIXME: Avoid visiting the same operands multiple times.
     for (auto *Candidate : BestCandidates) {
-      unsigned Score = getLAScore(Last, Candidate, Depth, IAI);
+      unsigned const Score = getLAScore(Last, Candidate, Depth, IAI);
       if (PrevScore == ~0u)
         PrevScore = Score;
       if (PrevScore != Score)
@@ -336,7 +336,7 @@ SmallVector<VPlanSlp::MultiNodeOpTy, 4> VPlanSlp::reorderMultiNodeOps() {
         continue;
 
       VPValue *Last = FinalOrder[Op].second[Lane - 1];
-      std::pair<OpMode, VPValue *> Res =
+      std::pair<OpMode, VPValue *> const Res =
           getBest(Mode[Op], Last, Candidates, IAI);
       if (Res.second)
         FinalOrder[Op].second.push_back(Res.second);
@@ -396,11 +396,11 @@ VPInstruction *VPlanSlp::buildGraph(ArrayRef<VPValue *> Values) {
     return markFailed();
 
   assert(getOpcode(Values) && "Opcodes for all values must match");
-  unsigned ValuesOpcode = getOpcode(Values).getValue();
+  unsigned const ValuesOpcode = getOpcode(Values).getValue();
 
   SmallVector<VPValue *, 4> CombinedOperands;
   if (areCommutative(Values)) {
-    bool MultiNodeRoot = !MultiNodeActive;
+    bool const MultiNodeRoot = !MultiNodeActive;
     MultiNodeActive = true;
     for (auto &Operands : getOperands(Values)) {
       LLVM_DEBUG({

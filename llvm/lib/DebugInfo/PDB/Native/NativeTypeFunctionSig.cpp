@@ -158,10 +158,10 @@ uint32_t NativeTypeFunctionSig::getCount() const {
 }
 
 SymIndexId NativeTypeFunctionSig::getTypeId() const {
-  TypeIndex ReturnTI =
+  TypeIndex const ReturnTI =
       IsMemberFunction ? MemberFunc.getReturnType() : Proc.getReturnType();
 
-  SymIndexId Result = Session.getSymbolCache().findSymbolByTypeIndex(ReturnTI);
+  SymIndexId const Result = Session.getSymbolCache().findSymbolByTypeIndex(ReturnTI);
   return Result;
 }
 
@@ -189,7 +189,7 @@ bool NativeTypeFunctionSig::isConstructorVirtualBase() const {
 }
 
 bool NativeTypeFunctionSig::isCxxReturnUdt() const {
-  FunctionOptions Options =
+  FunctionOptions const Options =
       IsMemberFunction ? MemberFunc.getOptions() : Proc.getOptions();
   return (Options & FunctionOptions::CxxReturnUdt) != FunctionOptions::None;
 }

@@ -59,9 +59,9 @@ MCCodeEmitter *llvm::createWebAssemblyMCCodeEmitter(const MCInstrInfo &MCII) {
 void WebAssemblyMCCodeEmitter::encodeInstruction(
     const MCInst &MI, raw_ostream &OS, SmallVectorImpl<MCFixup> &Fixups,
     const MCSubtargetInfo &STI) const {
-  uint64_t Start = OS.tell();
+  uint64_t const Start = OS.tell();
 
-  uint64_t Binary = getBinaryCodeForInstr(MI, Fixups, STI);
+  uint64_t const Binary = getBinaryCodeForInstr(MI, Fixups, STI);
   if (Binary < (1 << 8)) {
     OS << uint8_t(Binary);
   } else if (Binary < (1 << 16)) {
@@ -131,10 +131,10 @@ void WebAssemblyMCCodeEmitter::encodeInstruction(
       }
 
     } else if (MO.isSFPImm()) {
-      uint32_t F = MO.getSFPImm();
+      uint32_t const F = MO.getSFPImm();
       support::endian::write<uint32_t>(OS, F, support::little);
     } else if (MO.isDFPImm()) {
-      uint64_t D = MO.getDFPImm();
+      uint64_t const D = MO.getDFPImm();
       support::endian::write<uint64_t>(OS, D, support::little);
     } else if (MO.isExpr()) {
       const MCOperandInfo &Info = Desc.OpInfo[I];

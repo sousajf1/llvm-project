@@ -52,7 +52,7 @@ Thumb1FrameLowering::Thumb1FrameLowering(const ARMSubtarget &sti)
 
 bool Thumb1FrameLowering::hasReservedCallFrame(const MachineFunction &MF) const{
   const MachineFrameInfo &MFI = MF.getFrameInfo();
-  unsigned CFSize = MFI.getMaxCallFrameSize();
+  unsigned const CFSize = MFI.getMaxCallFrameSize();
   // It's not always a good idea to include the call frame as part of the
   // stack frame. ARM (especially Thumb) has small immediate offset to
   // address the stack frame. So a large call frame can cause poor codegen
@@ -78,7 +78,7 @@ emitPrologueEpilogueSPUpdate(MachineBasicBlock &MBB,
     // before we've actually finished setting up the stack.)
     if (ScratchReg == ARM::NoRegister)
       report_fatal_error("Failed to emit Thumb1 stack adjustment");
-    MachineFunction &MF = *MBB.getParent();
+    MachineFunction  const&MF = *MBB.getParent();
     const ARMSubtarget &ST = MF.getSubtarget<ARMSubtarget>();
     if (ST.genExecuteOnly()) {
       BuildMI(MBB, MBBI, dl, TII.get(ARM::t2MOVi32imm), ScratchReg)
@@ -122,8 +122,8 @@ eliminateCallFramePseudoInstr(MachineFunction &MF, MachineBasicBlock &MBB,
     // If we have alloca, convert as follows:
     // ADJCALLSTACKDOWN -> sub, sp, sp, amount
     // ADJCALLSTACKUP   -> add, sp, sp, amount
-    MachineInstr &Old = *I;
-    DebugLoc dl = Old.getDebugLoc();
+    MachineInstr  const&Old = *I;
+    DebugLoc const dl = Old.getDebugLoc();
     unsigned Amount = TII.getFrameSize(Old);
     if (Amount != 0) {
       // We need to keep the stack aligned properly.  To do this, we round the
@@ -132,7 +132,7 @@ eliminateCallFramePseudoInstr(MachineFunction &MF, MachineBasicBlock &MBB,
       Amount = alignTo(Amount, getStackAlign());
 
       // Replace the pseudo instruction with a new instruction...
-      unsigned Opc = Old.getOpcode();
+      unsigned const Opc = Old.getOpcode();
       if (Opc == ARM::ADJCALLSTACKDOWN || Opc == ARM::tADJCALLSTACKDOWN) {
         emitCallSPUpdate(MBB, I, TII, dl, *RegInfo, -Amount);
       } else {
@@ -156,7 +156,7 @@ void Thumb1FrameLowering::emitPrologue(MachineFunction &MF,
   const Thumb1InstrInfo &TII =
       *static_cast<const Thumb1InstrInfo *>(STI.getInstrInfo());
 
-  unsigned ArgRegsSaveSize = AFI->getArgRegsSaveSize();
+  unsigned const ArgRegsSaveSize = AFI->getArgRegsSaveSize();
   unsigned NumBytes = MFI.getStackSize();
   assert(NumBytes >= ArgRegsSaveSize &&
          "ArgRegsSaveSize is included in NumBytes");
@@ -164,10 +164,10 @@ void Thumb1FrameLowering::emitPrologue(MachineFunction &MF,
 
   // Debug location must be unknown since the first debug location is used
   // to determine the end of the prologue.
-  DebugLoc dl;
+  DebugLoc const dl;
 
-  Register FramePtr = RegInfo->getFrameRegister(MF);
-  unsigned BasePtr = RegInfo->getBaseRegister();
+  Register const FramePtr = RegInfo->getFrameRegister(MF);
+  unsigned const BasePtr = RegInfo->getBaseRegister();
   int CFAOffset = 0;
 
   // Thumb add/sub sp, imm8 instructions implicitly multiply the offset by 4.
@@ -183,7 +183,7 @@ void Thumb1FrameLowering::emitPrologue(MachineFunction &MF,
     emitPrologueEpilogueSPUpdate(MBB, MBBI, TII, dl, *RegInfo, -ArgRegsSaveSize,
                                  ARM::NoRegister, MachineInstr::FrameSetup);
     CFAOffset += ArgRegsSaveSize;
-    unsigned CFIIndex =
+    unsigned const CFIIndex =
         MF.addFrameInst(MCCFIInstruction::cfiDefCfaOffset(nullptr, CFAOffset));
     BuildMI(MBB, MBBI, dl, TII.get(TargetOpcode::CFI_INSTRUCTION))
         .addCFIIndex(CFIIndex)
@@ -196,7 +196,7 @@ void Thumb1FrameLowering::emitPrologue(MachineFunction &MF,
                                    -(NumBytes - ArgRegsSaveSize),
                                    ARM::NoRegister, MachineInstr::FrameSetup);
       CFAOffset += NumBytes - ArgRegsSaveSize;
-      unsigned CFIIndex = MF.addFrameInst(
+      unsigned const CFIIndex = MF.addFrameInst(
           MCCFIInstruction::cfiDefCfaOffset(nullptr, CFAOffset));
       BuildMI(MBB, MBBI, dl, TII.get(TargetOpcode::CFI_INSTRUCTION))
           .addCFIIndex(CFIIndex)
@@ -206,8 +206,8 @@ void Thumb1FrameLowering::emitPrologue(MachineFunction &MF,
   }
 
   for (unsigned i = 0, e = CSI.size(); i != e; ++i) {
-    unsigned Reg = CSI[i].getReg();
-    int FI = CSI[i].getFrameIdx();
+    unsigned const Reg = CSI[i].getReg();
+    int const FI = CSI[i].getFrameIdx();
     switch (Reg) {
     case ARM::R8:
     case ARM::R9:
@@ -237,10 +237,10 @@ void Thumb1FrameLowering::emitPrologue(MachineFunction &MF,
   }
 
   // Determine starting offsets of spill areas.
-  unsigned DPRCSOffset  = NumBytes - ArgRegsSaveSize - (GPRCS1Size + GPRCS2Size + DPRCSSize);
-  unsigned GPRCS2Offset = DPRCSOffset + DPRCSSize;
-  unsigned GPRCS1Offset = GPRCS2Offset + GPRCS2Size;
-  bool HasFP = hasFP(MF);
+  unsigned const DPRCSOffset  = NumBytes - ArgRegsSaveSize - (GPRCS1Size + GPRCS2Size + DPRCSSize);
+  unsigned const GPRCS2Offset = DPRCSOffset + DPRCSSize;
+  unsigned const GPRCS1Offset = GPRCS2Offset + GPRCS2Size;
+  bool const HasFP = hasFP(MF);
   if (HasFP)
     AFI->setFramePtrSpillOffset(MFI.getObjectOffset(FramePtrSpillFI) +
                                 NumBytes);
@@ -260,7 +260,7 @@ void Thumb1FrameLowering::emitPrologue(MachineFunction &MF,
 
   if (adjustedGPRCS1Size) {
     CFAOffset += adjustedGPRCS1Size;
-    unsigned CFIIndex =
+    unsigned const CFIIndex =
         MF.addFrameInst(MCCFIInstruction::cfiDefCfaOffset(nullptr, CFAOffset));
     BuildMI(MBB, MBBI, dl, TII.get(TargetOpcode::CFI_INSTRUCTION))
         .addCFIIndex(CFIIndex)
@@ -268,8 +268,8 @@ void Thumb1FrameLowering::emitPrologue(MachineFunction &MF,
   }
   for (std::vector<CalleeSavedInfo>::const_iterator I = CSI.begin(),
          E = CSI.end(); I != E; ++I) {
-    unsigned Reg = I->getReg();
-    int FI = I->getFrameIdx();
+    unsigned const Reg = I->getReg();
+    int const FI = I->getFrameIdx();
     switch (Reg) {
     case ARM::R8:
     case ARM::R9:
@@ -288,7 +288,7 @@ void Thumb1FrameLowering::emitPrologue(MachineFunction &MF,
     case ARM::R6:
     case ARM::R7:
     case ARM::LR:
-      unsigned CFIIndex = MF.addFrameInst(MCCFIInstruction::createOffset(
+      unsigned const CFIIndex = MF.addFrameInst(MCCFIInstruction::createOffset(
           nullptr, MRI->getDwarfRegNum(Reg, true), MFI.getObjectOffset(FI)));
       BuildMI(MBB, MBBI, dl, TII.get(TargetOpcode::CFI_INSTRUCTION))
           .addCFIIndex(CFIIndex)
@@ -308,13 +308,13 @@ void Thumb1FrameLowering::emitPrologue(MachineFunction &MF,
         .add(predOps(ARMCC::AL));
     if(FramePtrOffsetInBlock) {
       CFAOffset -= FramePtrOffsetInBlock;
-      unsigned CFIIndex = MF.addFrameInst(MCCFIInstruction::cfiDefCfa(
+      unsigned const CFIIndex = MF.addFrameInst(MCCFIInstruction::cfiDefCfa(
           nullptr, MRI->getDwarfRegNum(FramePtr, true), CFAOffset));
       BuildMI(MBB, MBBI, dl, TII.get(TargetOpcode::CFI_INSTRUCTION))
           .addCFIIndex(CFIIndex)
           .setMIFlags(MachineInstr::FrameSetup);
     } else {
-      unsigned CFIIndex =
+      unsigned const CFIIndex =
           MF.addFrameInst(MCCFIInstruction::createDefCfaRegister(
               nullptr, MRI->getDwarfRegNum(FramePtr, true)));
       BuildMI(MBB, MBBI, dl, TII.get(TargetOpcode::CFI_INSTRUCTION))
@@ -332,7 +332,7 @@ void Thumb1FrameLowering::emitPrologue(MachineFunction &MF,
   // in-between these instructions, because they do not modify the high
   // registers.
   while (true) {
-    MachineBasicBlock::iterator OldMBBI = MBBI;
+    MachineBasicBlock::iterator const OldMBBI = MBBI;
     // Skip a run of tMOVr instructions
     while (MBBI != MBB.end() && MBBI->getOpcode() == ARM::tMOVr)
       MBBI++;
@@ -349,15 +349,15 @@ void Thumb1FrameLowering::emitPrologue(MachineFunction &MF,
 
   // Emit call frame information for the callee-saved high registers.
   for (auto &I : CSI) {
-    unsigned Reg = I.getReg();
-    int FI = I.getFrameIdx();
+    unsigned const Reg = I.getReg();
+    int const FI = I.getFrameIdx();
     switch (Reg) {
     case ARM::R8:
     case ARM::R9:
     case ARM::R10:
     case ARM::R11:
     case ARM::R12: {
-      unsigned CFIIndex = MF.addFrameInst(MCCFIInstruction::createOffset(
+      unsigned const CFIIndex = MF.addFrameInst(MCCFIInstruction::createOffset(
           nullptr, MRI->getDwarfRegNum(Reg, true), MFI.getObjectOffset(FI)));
       BuildMI(MBB, MBBI, dl, TII.get(TargetOpcode::CFI_INSTRUCTION))
           .addCFIIndex(CFIIndex)
@@ -377,7 +377,7 @@ void Thumb1FrameLowering::emitPrologue(MachineFunction &MF,
     // at this point in the prologue, so pick one.
     unsigned ScratchRegister = ARM::NoRegister;
     for (auto &I : CSI) {
-      unsigned Reg = I.getReg();
+      unsigned const Reg = I.getReg();
       if (isARMLowRegister(Reg) && !(HasFP && Reg == FramePtr)) {
         ScratchRegister = Reg;
         break;
@@ -387,7 +387,7 @@ void Thumb1FrameLowering::emitPrologue(MachineFunction &MF,
                                  ScratchRegister, MachineInstr::FrameSetup);
     if (!HasFP) {
       CFAOffset += NumBytes;
-      unsigned CFIIndex = MF.addFrameInst(
+      unsigned const CFIIndex = MF.addFrameInst(
           MCCFIInstruction::cfiDefCfaOffset(nullptr, CFAOffset));
       BuildMI(MBB, MBBI, dl, TII.get(TargetOpcode::CFI_INSTRUCTION))
           .addCFIIndex(CFIIndex)
@@ -461,8 +461,8 @@ static bool isCSRestore(MachineInstr &MI, const MCPhysReg *CSRegs) {
   else if (MI.getOpcode() == ARM::tPOP) {
     return true;
   } else if (MI.getOpcode() == ARM::tMOVr) {
-    Register Dst = MI.getOperand(0).getReg();
-    Register Src = MI.getOperand(1).getReg();
+    Register const Dst = MI.getOperand(0).getReg();
+    Register const Src = MI.getOperand(1).getReg();
     return ((ARM::tGPRRegClass.contains(Src) || Src == ARM::LR) &&
             ARM::hGPRRegClass.contains(Dst));
   }
@@ -472,7 +472,7 @@ static bool isCSRestore(MachineInstr &MI, const MCPhysReg *CSRegs) {
 void Thumb1FrameLowering::emitEpilogue(MachineFunction &MF,
                                    MachineBasicBlock &MBB) const {
   MachineBasicBlock::iterator MBBI = MBB.getFirstTerminator();
-  DebugLoc dl = MBBI != MBB.end() ? MBBI->getDebugLoc() : DebugLoc();
+  DebugLoc const dl = MBBI != MBB.end() ? MBBI->getDebugLoc() : DebugLoc();
   MachineFrameInfo &MFI = MF.getFrameInfo();
   ARMFunctionInfo *AFI = MF.getInfo<ARMFunctionInfo>();
   const ThumbRegisterInfo *RegInfo =
@@ -480,12 +480,12 @@ void Thumb1FrameLowering::emitEpilogue(MachineFunction &MF,
   const Thumb1InstrInfo &TII =
       *static_cast<const Thumb1InstrInfo *>(STI.getInstrInfo());
 
-  unsigned ArgRegsSaveSize = AFI->getArgRegsSaveSize();
+  unsigned const ArgRegsSaveSize = AFI->getArgRegsSaveSize();
   int NumBytes = (int)MFI.getStackSize();
   assert((unsigned)NumBytes >= ArgRegsSaveSize &&
          "ArgRegsSaveSize is included in NumBytes");
   const MCPhysReg *CSRegs = RegInfo->getCalleeSavedRegs(&MF);
-  Register FramePtr = RegInfo->getFrameRegister(MF);
+  Register const FramePtr = RegInfo->getFrameRegister(MF);
 
   if (!AFI->hasStackFrame()) {
     if (NumBytes - ArgRegsSaveSize != 0)
@@ -530,9 +530,9 @@ void Thumb1FrameLowering::emitEpilogue(MachineFunction &MF,
       // the size of the frame.  We know all callee-save registers are free
       // at this point in the epilogue, so pick one.
       unsigned ScratchRegister = ARM::NoRegister;
-      bool HasFP = hasFP(MF);
+      bool const HasFP = hasFP(MF);
       for (auto &I : MFI.getCalleeSavedInfo()) {
-        unsigned Reg = I.getReg();
+        unsigned const Reg = I.getReg();
         if (isARMLowRegister(Reg) && !(HasFP && Reg == FramePtr)) {
           ScratchRegister = Reg;
           break;
@@ -551,7 +551,7 @@ void Thumb1FrameLowering::emitEpilogue(MachineFunction &MF,
   }
 
   if (needPopSpecialFixUp(MF)) {
-    bool Done = emitPopSpecialFixUp(MBB, /* DoIt */ true);
+    bool const Done = emitPopSpecialFixUp(MBB, /* DoIt */ true);
     (void)Done;
     assert(Done && "Emission of the special fixup failed!?");
   }
@@ -603,7 +603,7 @@ bool Thumb1FrameLowering::emitPopSpecialFixUp(MachineBasicBlock &MBB,
                                               bool DoIt) const {
   MachineFunction &MF = *MBB.getParent();
   ARMFunctionInfo *AFI = MF.getInfo<ARMFunctionInfo>();
-  unsigned ArgRegsSaveSize = AFI->getArgRegsSaveSize();
+  unsigned const ArgRegsSaveSize = AFI->getArgRegsSaveSize();
   const TargetInstrInfo &TII = *STI.getInstrInfo();
   const ThumbRegisterInfo *RegInfo =
       static_cast<const ThumbRegisterInfo *>(STI.getRegisterInfo());
@@ -636,7 +636,7 @@ bool Thumb1FrameLowering::emitPopSpecialFixUp(MachineBasicBlock &MBB,
   if (CanRestoreDirectly) {
     if (!DoIt || MBBI->getOpcode() == ARM::tPOP_RET)
       return true;
-    MachineInstrBuilder MIB =
+    MachineInstrBuilder const MIB =
         BuildMI(MBB, MBBI, MBBI->getDebugLoc(), TII.get(ARM::tPOP_RET))
             .add(predOps(ARMCC::AL));
     // Copy implicit ops and popped registers, if any.
@@ -753,7 +753,7 @@ bool Thumb1FrameLowering::emitPopSpecialFixUp(MachineBasicBlock &MBB,
   if (MBBI != MBB.end() && MBBI->getOpcode() == ARM::tPOP_RET) {
     // We couldn't use the direct restoration above, so
     // perform the opposite conversion: tPOP_RET to tPOP.
-    MachineInstrBuilder MIB =
+    MachineInstrBuilder const MIB =
         BuildMI(MBB, MBBI, MBBI->getDebugLoc(), TII.get(ARM::tPOP))
             .add(predOps(ARMCC::AL));
     bool Popped = false;
@@ -814,7 +814,7 @@ bool Thumb1FrameLowering::spillCalleeSavedRegisters(
   if (CSI.empty())
     return false;
 
-  DebugLoc DL;
+  DebugLoc const DL;
   const TargetInstrInfo &TII = *STI.getInstrInfo();
   MachineFunction &MF = *MBB.getParent();
   const ARMBaseRegisterInfo *RegInfo = static_cast<const ARMBaseRegisterInfo *>(
@@ -826,7 +826,7 @@ bool Thumb1FrameLowering::spillCalleeSavedRegisters(
                           // LoRegs for saving HiRegs.
 
   for (unsigned i = CSI.size(); i != 0; --i) {
-    unsigned Reg = CSI[i-1].getReg();
+    unsigned const Reg = CSI[i-1].getReg();
 
     if (ARM::tGPRRegClass.contains(Reg) || Reg == ARM::LR) {
       LoRegsToSave[Reg] = true;
@@ -843,18 +843,18 @@ bool Thumb1FrameLowering::spillCalleeSavedRegisters(
   }
 
   // Unused argument registers can be used for the high register saving.
-  for (unsigned ArgReg : {ARM::R0, ARM::R1, ARM::R2, ARM::R3})
+  for (unsigned const ArgReg : {ARM::R0, ARM::R1, ARM::R2, ARM::R3})
     if (!MF.getRegInfo().isLiveIn(ArgReg))
       CopyRegs[ArgReg] = true;
 
   // Push the low registers and lr
   const MachineRegisterInfo &MRI = MF.getRegInfo();
   if (!LoRegsToSave.none()) {
-    MachineInstrBuilder MIB =
+    MachineInstrBuilder const MIB =
         BuildMI(MBB, MI, DL, TII.get(ARM::tPUSH)).add(predOps(ARMCC::AL));
-    for (unsigned Reg : {ARM::R4, ARM::R5, ARM::R6, ARM::R7, ARM::LR}) {
+    for (unsigned const Reg : {ARM::R4, ARM::R5, ARM::R6, ARM::R7, ARM::LR}) {
       if (LoRegsToSave[Reg]) {
-        bool isKill = !MRI.isLiveIn(Reg);
+        bool const isKill = !MRI.isLiveIn(Reg);
         if (isKill && !MRI.isReserved(Reg))
           MBB.addLiveIn(Reg);
 
@@ -891,14 +891,14 @@ bool Thumb1FrameLowering::spillCalleeSavedRegisters(
         findNextOrderedReg(std::begin(AllCopyRegs), CopyRegs, AllCopyRegsEnd);
 
     // Create the PUSH, but don't insert it yet (the MOVs need to come first).
-    MachineInstrBuilder PushMIB = BuildMI(MF, DL, TII.get(ARM::tPUSH))
+    MachineInstrBuilder const PushMIB = BuildMI(MF, DL, TII.get(ARM::tPUSH))
                                       .add(predOps(ARMCC::AL))
                                       .setMIFlags(MachineInstr::FrameSetup);
 
     SmallVector<unsigned, 4> RegsToPush;
     while (HiRegToSave != AllHighRegsEnd && CopyReg != AllCopyRegsEnd) {
       if (HiRegsToSave[*HiRegToSave]) {
-        bool isKill = !MRI.isLiveIn(*HiRegToSave);
+        bool const isKill = !MRI.isLiveIn(*HiRegToSave);
         if (isKill && !MRI.isReserved(*HiRegToSave))
           MBB.addLiveIn(*HiRegToSave);
 
@@ -919,7 +919,7 @@ bool Thumb1FrameLowering::spillCalleeSavedRegisters(
     }
 
     // Add the low registers to the PUSH, in ascending order.
-    for (unsigned Reg : llvm::reverse(RegsToPush))
+    for (unsigned const Reg : llvm::reverse(RegsToPush))
       PushMIB.addReg(Reg, RegState::Kill);
 
     // Insert the PUSH instruction after the MOVs.
@@ -941,16 +941,16 @@ bool Thumb1FrameLowering::restoreCalleeSavedRegisters(
   const ARMBaseRegisterInfo *RegInfo = static_cast<const ARMBaseRegisterInfo *>(
       MF.getSubtarget().getRegisterInfo());
 
-  bool isVarArg = AFI->getArgRegsSaveSize() > 0;
-  DebugLoc DL = MI != MBB.end() ? MI->getDebugLoc() : DebugLoc();
+  bool const isVarArg = AFI->getArgRegsSaveSize() > 0;
+  DebugLoc const DL = MI != MBB.end() ? MI->getDebugLoc() : DebugLoc();
 
   ARMRegSet LoRegsToRestore;
   ARMRegSet HiRegsToRestore;
   // Low registers (r0-r7) which can be used to restore the high registers.
   ARMRegSet CopyRegs;
 
-  for (CalleeSavedInfo I : CSI) {
-    unsigned Reg = I.getReg();
+  for (CalleeSavedInfo const I : CSI) {
+    unsigned const Reg = I.getReg();
 
     if (ARM::tGPRRegClass.contains(Reg) || Reg == ARM::LR) {
       LoRegsToRestore[Reg] = true;
@@ -999,7 +999,7 @@ bool Thumb1FrameLowering::restoreCalleeSavedRegisters(
         findNextOrderedReg(std::begin(AllCopyRegs), CopyRegs, AllCopyRegsEnd);
 
     // Create the POP instruction.
-    MachineInstrBuilder PopMIB =
+    MachineInstrBuilder const PopMIB =
         BuildMI(MBB, MI, DL, TII.get(ARM::tPOP)).add(predOps(ARMCC::AL));
 
     while (HiRegToRestore != AllHighRegsEnd && CopyReg != AllCopyRegsEnd) {
@@ -1018,7 +1018,7 @@ bool Thumb1FrameLowering::restoreCalleeSavedRegisters(
     }
   }
 
-  MachineInstrBuilder MIB =
+  MachineInstrBuilder const MIB =
       BuildMI(MF, DL, TII.get(ARM::tPOP)).add(predOps(ARMCC::AL));
 
   bool NeedsPop = false;

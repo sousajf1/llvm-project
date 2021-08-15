@@ -182,7 +182,7 @@ static InstrUID decode(OpcodeType type, InstructionContext insnContext,
 }
 
 static bool peek(struct InternalInstruction *insn, uint8_t &byte) {
-  uint64_t offset = insn->readerCursor - insn->startLocation;
+  uint64_t const offset = insn->readerCursor - insn->startLocation;
   if (offset >= insn->bytes.size())
     return true;
   byte = insn->bytes[offset];
@@ -191,7 +191,7 @@ static bool peek(struct InternalInstruction *insn, uint8_t &byte) {
 
 template <typename T> static bool consume(InternalInstruction *insn, T &ptr) {
   auto r = insn->bytes;
-  uint64_t offset = insn->readerCursor - insn->startLocation;
+  uint64_t const offset = insn->readerCursor - insn->startLocation;
   if (offset + sizeof(T) > r.size())
     return true;
   T ret = 0;
@@ -650,7 +650,7 @@ static int readModRM(struct InternalInstruction *insn) {
 
   switch (insn->addressSize) {
   case 2: {
-    EABase eaBaseBase = EA_BASE_BX_SI;
+    EABase const eaBaseBase = EA_BASE_BX_SI;
 
     switch (mod) {
     case 0x0:
@@ -687,7 +687,7 @@ static int readModRM(struct InternalInstruction *insn) {
   }
   case 4:
   case 8: {
-    EABase eaBaseBase = (insn->addressSize == 4 ? EA_BASE_EAX : EA_BASE_RAX);
+    EABase const eaBaseBase = (insn->addressSize == 4 ? EA_BASE_EAX : EA_BASE_RAX);
 
     switch (mod) {
     case 0x0:
@@ -1765,7 +1765,7 @@ MCDisassembler::DecodeStatus X86GenericDisassembler::getInstruction(
   if (Size > 15)
     LLVM_DEBUG(dbgs() << "Instruction exceeds 15-byte limit");
 
-  bool Ret = translateInstruction(Instr, Insn, this);
+  bool const Ret = translateInstruction(Instr, Insn, this);
   if (!Ret) {
     unsigned Flags = X86::IP_NO_PREFIX;
     if (Insn.hasAdSize)
@@ -1801,7 +1801,7 @@ static void translateRegister(MCInst &mcInst, Reg reg) {
   static constexpr MCPhysReg llvmRegnums[] = {ALL_REGS};
 #undef ENTRY
 
-  MCPhysReg llvmRegnum = llvmRegnums[reg];
+  MCPhysReg const llvmRegnum = llvmRegnums[reg];
   mcInst.addOperand(MCOperand::createReg(llvmRegnum));
 }
 
@@ -1870,7 +1870,7 @@ static bool translateSrcIndex(MCInst &mcInst, InternalInstruction &insn) {
     assert(insn.mode == MODE_16BIT);
     baseRegNo = insn.hasAdSize ? X86::ESI : X86::SI;
   }
-  MCOperand baseReg = MCOperand::createReg(baseRegNo);
+  MCOperand const baseReg = MCOperand::createReg(baseRegNo);
   mcInst.addOperand(baseReg);
 
   MCOperand segmentReg;
@@ -1895,7 +1895,7 @@ static bool translateDstIndex(MCInst &mcInst, InternalInstruction &insn) {
     assert(insn.mode == MODE_16BIT);
     baseRegNo = insn.hasAdSize ? X86::EDI : X86::DI;
   }
-  MCOperand baseReg = MCOperand::createReg(baseRegNo);
+  MCOperand const baseReg = MCOperand::createReg(baseRegNo);
   mcInst.addOperand(baseReg);
   return false;
 }
@@ -1912,7 +1912,7 @@ static void translateImmediate(MCInst &mcInst, uint64_t immediate,
                                const MCDisassembler *Dis) {
   // Sign-extend the immediate if necessary.
 
-  OperandType type = (OperandType)operand.type;
+  OperandType const type = (OperandType)operand.type;
 
   bool isBranch = false;
   uint64_t pcrel = 0;

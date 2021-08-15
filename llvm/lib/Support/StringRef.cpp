@@ -26,8 +26,8 @@ constexpr size_t StringRef::npos;
 // alternative function here.
 static int ascii_strncasecmp(const char *LHS, const char *RHS, size_t Length) {
   for (size_t I = 0; I < Length; ++I) {
-    unsigned char LHC = toLower(LHS[I]);
-    unsigned char RHC = toLower(RHS[I]);
+    unsigned char const LHC = toLower(LHS[I]);
+    unsigned char const RHC = toLower(RHS[I]);
     if (LHC != RHC)
       return LHC < RHC ? -1 : 1;
   }
@@ -35,7 +35,7 @@ static int ascii_strncasecmp(const char *LHS, const char *RHS, size_t Length) {
 }
 
 int StringRef::compare_insensitive(StringRef RHS) const {
-  if (int Res = ascii_strncasecmp(Data, RHS.Data, std::min(Length, RHS.Length)))
+  if (int const Res = ascii_strncasecmp(Data, RHS.Data, std::min(Length, RHS.Length)))
     return Res;
   if (Length == RHS.Length)
     return 0;
@@ -53,7 +53,7 @@ bool StringRef::endswith_insensitive(StringRef Suffix) const {
 }
 
 size_t StringRef::find_insensitive(char C, size_t From) const {
-  char L = toLower(C);
+  char const L = toLower(C);
   return find_if([L](char D) { return toLower(D) == L; }, From);
 }
 
@@ -66,15 +66,15 @@ int StringRef::compare_numeric(StringRef RHS) const {
       // This doesn't really handle prefixed zeros well.
       size_t J;
       for (J = I + 1; J != E + 1; ++J) {
-        bool ld = J < Length && isDigit(Data[J]);
-        bool rd = J < RHS.Length && isDigit(RHS.Data[J]);
+        bool const ld = J < Length && isDigit(Data[J]);
+        bool const rd = J < RHS.Length && isDigit(RHS.Data[J]);
         if (ld != rd)
           return rd ? -1 : 1;
         if (!rd)
           break;
       }
       // The two number sequences have the same length (J-I), just memcmp them.
-      if (int Res = compareMemory(Data + I, RHS.Data + I, J - I))
+      if (int const Res = compareMemory(Data + I, RHS.Data + I, J - I))
         return Res < 0 ? -1 : 1;
       // Identical number sequences, continue search after the numbers.
       I = J - 1;
@@ -126,10 +126,10 @@ size_t StringRef::find(StringRef Str, size_t From) const {
     return npos;
 
   const char *Start = Data + From;
-  size_t Size = Length - From;
+  size_t const Size = Length - From;
 
   const char *Needle = Str.data();
-  size_t N = Str.size();
+  size_t const N = Str.size();
   if (N == 0)
     return From;
   if (Size < N)
@@ -158,7 +158,7 @@ size_t StringRef::find(StringRef Str, size_t From) const {
     BadCharSkip[(uint8_t)Str[i]] = N-1-i;
 
   do {
-    uint8_t Last = Start[N - 1];
+    uint8_t const Last = Start[N - 1];
     if (LLVM_UNLIKELY(Last == (uint8_t)Needle[N - 1]))
       if (std::memcmp(Start, Needle, N - 1) == 0)
         return Start - Data;
@@ -197,7 +197,7 @@ size_t StringRef::rfind_insensitive(char C, size_t From) const {
 /// \return - The index of the last occurrence of \arg Str, or npos if not
 /// found.
 size_t StringRef::rfind(StringRef Str) const {
-  size_t N = Str.size();
+  size_t const N = Str.size();
   if (N > Length)
     return npos;
   for (size_t i = Length - N + 1, e = 0; i != e;) {
@@ -209,7 +209,7 @@ size_t StringRef::rfind(StringRef Str) const {
 }
 
 size_t StringRef::rfind_insensitive(StringRef Str) const {
-  size_t N = Str.size();
+  size_t const N = Str.size();
   if (N > Length)
     return npos;
   for (size_t i = Length - N + 1, e = 0; i != e;) {
@@ -312,7 +312,7 @@ void StringRef::split(SmallVectorImpl<StringRef> &A,
   // intentionally; if we ever want that we can make MaxSplit a 64-bit integer
   // but that seems unlikely to be useful.
   while (MaxSplit-- != 0) {
-    size_t Idx = S.find(Separator);
+    size_t const Idx = S.find(Separator);
     if (Idx == npos)
       break;
 
@@ -338,7 +338,7 @@ void StringRef::split(SmallVectorImpl<StringRef> &A, char Separator,
   // intentionally; if we ever want that we can make MaxSplit a 64-bit integer
   // but that seems unlikely to be useful.
   while (MaxSplit-- != 0) {
-    size_t Idx = S.find(Separator);
+    size_t const Idx = S.find(Separator);
     if (Idx == npos)
       break;
 
@@ -363,7 +363,7 @@ void StringRef::split(SmallVectorImpl<StringRef> &A, char Separator,
 /// the string.
 size_t StringRef::count(StringRef Str) const {
   size_t Count = 0;
-  size_t N = Str.size();
+  size_t const N = Str.size();
   if (!N || N > Length)
     return 0;
   for (size_t i = 0, e = Length - N + 1; i < e;) {
@@ -433,7 +433,7 @@ bool llvm::consumeUnsignedInteger(StringRef &Str, unsigned Radix,
       break;
 
     // Add in this character.
-    unsigned long long PrevResult = Result;
+    unsigned long long const PrevResult = Result;
     Result = Result * Radix + CharVal;
 
     // Check for overflow by shifting back and seeing if bits were lost.
@@ -528,7 +528,7 @@ bool StringRef::getAsInteger(unsigned Radix, APInt &Result) const {
   // (Over-)estimate the required number of bits.
   unsigned Log2Radix = 0;
   while ((1U << Log2Radix) < Radix) Log2Radix++;
-  bool IsPowerOf2Radix = ((1U << Log2Radix) == Radix);
+  bool const IsPowerOf2Radix = ((1U << Log2Radix) == Radix);
 
   unsigned BitWidth = Log2Radix * Str.size();
   if (BitWidth < Result.getBitWidth())
@@ -583,7 +583,7 @@ bool StringRef::getAsDouble(double &Result, bool AllowInexact) const {
   if (errorToBool(StatusOrErr.takeError()))
     return true;
 
-  APFloat::opStatus Status = *StatusOrErr;
+  APFloat::opStatus const Status = *StatusOrErr;
   if (Status != APFloat::opOK) {
     if (!AllowInexact || !(Status & APFloat::opInexact))
       return true;

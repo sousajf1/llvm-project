@@ -90,7 +90,7 @@ void RegisterFile::initialize(const MCSchedModel &SM, unsigned NumRegs) {
 
     // The cost of a register definition is equivalent to the number of
     // physical registers that are allocated at register renaming stage.
-    unsigned Length = RF.NumRegisterCostEntries;
+    unsigned const Length = RF.NumRegisterCostEntries;
     const MCRegisterCostEntry *FirstElt =
         &Info.RegisterCostTable[RF.RegisterCostEntryIdx];
     addRegisterFile(RF, ArrayRef<MCRegisterCostEntry>(FirstElt, Length));
@@ -119,7 +119,7 @@ void RegisterFile::onInstructionExecuted(Instruction *IS) {
            "The number of cycles should be known at this point!");
     assert(WS.getCyclesLeft() <= 0 && "Invalid cycles left for this write!");
 
-    MCPhysReg RenameAs = RegisterMappings[RegID].second.RenameAs;
+    MCPhysReg const RenameAs = RegisterMappings[RegID].second.RenameAs;
     if (RenameAs && RenameAs != RegID)
       RegID = RenameAs;
 
@@ -151,7 +151,7 @@ void RegisterFile::addRegisterFile(const MCRegisterFileDesc &RF,
   // register files at runtime. Users can limit the number of available physical
   // registers in register file #0 through the command line flag
   // `-register-file-size`.
-  unsigned RegisterFileIndex = RegisterFiles.size();
+  unsigned const RegisterFileIndex = RegisterFiles.size();
   RegisterFiles.emplace_back(RF.NumPhysRegs, RF.MaxMovesEliminatedPerCycle,
                              RF.AllowZeroMoveEliminationOnly);
 
@@ -197,8 +197,8 @@ void RegisterFile::addRegisterFile(const MCRegisterFileDesc &RF,
 
 void RegisterFile::allocatePhysRegs(const RegisterRenamingInfo &Entry,
                                     MutableArrayRef<unsigned> UsedPhysRegs) {
-  unsigned RegisterFileIndex = Entry.IndexPlusCost.first;
-  unsigned Cost = Entry.IndexPlusCost.second;
+  unsigned const RegisterFileIndex = Entry.IndexPlusCost.first;
+  unsigned const Cost = Entry.IndexPlusCost.second;
   if (RegisterFileIndex) {
     RegisterMappingTracker &RMT = RegisterFiles[RegisterFileIndex];
     RMT.NumUsedPhysRegs += Cost;
@@ -212,8 +212,8 @@ void RegisterFile::allocatePhysRegs(const RegisterRenamingInfo &Entry,
 
 void RegisterFile::freePhysRegs(const RegisterRenamingInfo &Entry,
                                 MutableArrayRef<unsigned> FreedPhysRegs) {
-  unsigned RegisterFileIndex = Entry.IndexPlusCost.first;
-  unsigned Cost = Entry.IndexPlusCost.second;
+  unsigned const RegisterFileIndex = Entry.IndexPlusCost.first;
+  unsigned const Cost = Entry.IndexPlusCost.second;
   if (RegisterFileIndex) {
     RegisterMappingTracker &RMT = RegisterFiles[RegisterFileIndex];
     RMT.NumUsedPhysRegs -= Cost;
@@ -253,8 +253,8 @@ void RegisterFile::addRegisterWrite(WriteRef Write,
   // a false dependency on RenameAs. The only exception is for when the write
   // implicitly clears the upper portion of the underlying register.
   // If a write clears its super-registers, then it is renamed as `RenameAs`.
-  bool IsWriteZero = WS.isWriteZero();
-  bool IsEliminated = WS.isEliminated();
+  bool const IsWriteZero = WS.isWriteZero();
+  bool const IsEliminated = WS.isEliminated();
   bool ShouldAllocatePhysRegs = !IsWriteZero && !IsEliminated;
   const RegisterRenamingInfo &RRI = RegisterMappings[RegID].second;
   WS.setPRF(RRI.IndexPlusCost.first);
@@ -279,7 +279,7 @@ void RegisterFile::addRegisterWrite(WriteRef Write,
   }
 
   // Update zero registers.
-  MCPhysReg ZeroRegisterID =
+  MCPhysReg const ZeroRegisterID =
       WS.clearsSuperRegisters() ? RegID : WS.getRegisterID();
   ZeroRegisters.setBitVal(ZeroRegisterID, IsWriteZero);
   for (MCSubRegIterator I(ZeroRegisterID, &MRI); I.isValid(); ++I)
@@ -335,7 +335,7 @@ void RegisterFile::removeRegisterWrite(
   assert(WS.getCyclesLeft() <= 0 && "Invalid cycles left for this write!");
 
   bool ShouldFreePhysRegs = !WS.isWriteZero();
-  MCPhysReg RenameAs = RegisterMappings[RegID].second.RenameAs;
+  MCPhysReg const RenameAs = RegisterMappings[RegID].second.RenameAs;
   if (RenameAs && RenameAs != RegID) {
     RegID = RenameAs;
 
@@ -406,7 +406,7 @@ bool RegisterFile::canEliminateMove(const WriteState &WS, const ReadState &RS,
     if (!WS.clearsSuperRegisters())
       return false;
 
-  bool IsZeroMove = ZeroRegisters[RS.getRegisterID()];
+  bool const IsZeroMove = ZeroRegisters[RS.getRegisterID()];
   return (!RMT.AllowZeroMoveEliminationOnly || IsZeroMove);
 }
 
@@ -425,7 +425,7 @@ bool RegisterFile::tryEliminateMoveOrSwap(MutableArrayRef<WriteState> Writes,
   // All registers must be owned by the same PRF.
   const RegisterRenamingInfo &RRInfo =
       RegisterMappings[Writes[0].getRegisterID()].second;
-  unsigned RegisterFileIndex = RRInfo.IndexPlusCost.first;
+  unsigned const RegisterFileIndex = RRInfo.IndexPlusCost.first;
   RegisterMappingTracker &RMT = RegisterFiles[RegisterFileIndex];
 
   // Early exit if the PRF cannot eliminate more moves/xchg in this cycle.
@@ -452,7 +452,7 @@ bool RegisterFile::tryEliminateMoveOrSwap(MutableArrayRef<WriteState> Writes,
     // Construct an alias.
     MCPhysReg AliasedReg =
         RRIFrom.RenameAs ? RRIFrom.RenameAs : RS.getRegisterID();
-    MCPhysReg AliasReg = RRITo.RenameAs ? RRITo.RenameAs : WS.getRegisterID();
+    MCPhysReg const AliasReg = RRITo.RenameAs ? RRITo.RenameAs : WS.getRegisterID();
 
     const RegisterRenamingInfo &RMAlias = RegisterMappings[AliasedReg].second;
     if (RMAlias.AliasRegID)
@@ -507,10 +507,10 @@ void RegisterFile::collectWrites(
   if (WR.getWriteState()) {
     Writes.push_back(WR);
   } else if (WR.hasKnownWriteBackCycle()) {
-    unsigned WriteResID = WR.getWriteResourceID();
-    int ReadAdvance = STI.getReadAdvanceCycles(SC, RD.UseIndex, WriteResID);
+    unsigned const WriteResID = WR.getWriteResourceID();
+    int const ReadAdvance = STI.getReadAdvanceCycles(SC, RD.UseIndex, WriteResID);
     if (ReadAdvance < 0) {
-      unsigned Elapsed = getElapsedCyclesFromWriteBack(WR);
+      unsigned const Elapsed = getElapsedCyclesFromWriteBack(WR);
       if (Elapsed < static_cast<unsigned>(-ReadAdvance))
         CommittedWrites.push_back(WR);
     }
@@ -522,10 +522,10 @@ void RegisterFile::collectWrites(
     if (WR.getWriteState()) {
       Writes.push_back(WR);
     } else if (WR.hasKnownWriteBackCycle()) {
-      unsigned WriteResID = WR.getWriteResourceID();
-      int ReadAdvance = STI.getReadAdvanceCycles(SC, RD.UseIndex, WriteResID);
+      unsigned const WriteResID = WR.getWriteResourceID();
+      int const ReadAdvance = STI.getReadAdvanceCycles(SC, RD.UseIndex, WriteResID);
       if (ReadAdvance < 0) {
-        unsigned Elapsed = getElapsedCyclesFromWriteBack(WR);
+        unsigned const Elapsed = getElapsedCyclesFromWriteBack(WR);
         if (Elapsed < static_cast<unsigned>(-ReadAdvance))
           CommittedWrites.push_back(WR);
       }
@@ -565,8 +565,8 @@ RegisterFile::checkRAWHazards(const MCSubtargetInfo &STI,
   collectWrites(STI, RS, Writes, CommittedWrites);
   for (const WriteRef &WR : Writes) {
     const WriteState *WS = WR.getWriteState();
-    unsigned WriteResID = WS->getWriteResourceID();
-    int ReadAdvance = STI.getReadAdvanceCycles(SC, RD.UseIndex, WriteResID);
+    unsigned const WriteResID = WS->getWriteResourceID();
+    int const ReadAdvance = STI.getReadAdvanceCycles(SC, RD.UseIndex, WriteResID);
 
     if (WS->getCyclesLeft() == UNKNOWN_CYCLES) {
       if (Hazard.isValid())
@@ -577,7 +577,7 @@ RegisterFile::checkRAWHazards(const MCSubtargetInfo &STI,
       continue;
     }
 
-    int CyclesLeft = WS->getCyclesLeft() - ReadAdvance;
+    int const CyclesLeft = WS->getCyclesLeft() - ReadAdvance;
     if (CyclesLeft > 0) {
       if (Hazard.CyclesLeft < CyclesLeft) {
         Hazard.RegisterID = WR.getRegisterID();
@@ -588,10 +588,10 @@ RegisterFile::checkRAWHazards(const MCSubtargetInfo &STI,
   Writes.clear();
 
   for (const WriteRef &WR : CommittedWrites) {
-    unsigned WriteResID = WR.getWriteResourceID();
-    int NegReadAdvance = -STI.getReadAdvanceCycles(SC, RD.UseIndex, WriteResID);
-    int Elapsed = static_cast<int>(getElapsedCyclesFromWriteBack(WR));
-    int CyclesLeft = NegReadAdvance - Elapsed;
+    unsigned const WriteResID = WR.getWriteResourceID();
+    int const NegReadAdvance = -STI.getReadAdvanceCycles(SC, RD.UseIndex, WriteResID);
+    int const Elapsed = static_cast<int>(getElapsedCyclesFromWriteBack(WR));
+    int const CyclesLeft = NegReadAdvance - Elapsed;
     assert(CyclesLeft > 0 && "Write should not be in the CommottedWrites set!");
     if (Hazard.CyclesLeft < CyclesLeft) {
       Hazard.RegisterID = WR.getRegisterID();
@@ -604,7 +604,7 @@ RegisterFile::checkRAWHazards(const MCSubtargetInfo &STI,
 
 void RegisterFile::addRegisterRead(ReadState &RS,
                                    const MCSubtargetInfo &STI) const {
-  MCPhysReg RegID = RS.getRegisterID();
+  MCPhysReg const RegID = RS.getRegisterID();
   const RegisterRenamingInfo &RRI = RegisterMappings[RegID].second;
   RS.setPRF(RRI.IndexPlusCost.first);
   if (RS.isIndependentFromDef())
@@ -625,19 +625,19 @@ void RegisterFile::addRegisterRead(ReadState &RS,
   const MCSchedModel &SM = STI.getSchedModel();
   const MCSchedClassDesc *SC = SM.getSchedClassDesc(RD.SchedClassID);
   for (WriteRef &WR : DependentWrites) {
-    unsigned WriteResID = WR.getWriteResourceID();
+    unsigned const WriteResID = WR.getWriteResourceID();
     WriteState &WS = *WR.getWriteState();
-    int ReadAdvance = STI.getReadAdvanceCycles(SC, RD.UseIndex, WriteResID);
+    int const ReadAdvance = STI.getReadAdvanceCycles(SC, RD.UseIndex, WriteResID);
     WS.addUser(WR.getSourceIndex(), &RS, ReadAdvance);
   }
 
-  for (WriteRef &WR : CompletedWrites) {
-    unsigned WriteResID = WR.getWriteResourceID();
+  for (WriteRef  const&WR : CompletedWrites) {
+    unsigned const WriteResID = WR.getWriteResourceID();
     assert(WR.hasKnownWriteBackCycle() && "Invalid write!");
     assert(STI.getReadAdvanceCycles(SC, RD.UseIndex, WriteResID) < 0);
-    unsigned ReadAdvance = static_cast<unsigned>(
+    unsigned const ReadAdvance = static_cast<unsigned>(
         -STI.getReadAdvanceCycles(SC, RD.UseIndex, WriteResID));
-    unsigned Elapsed = getElapsedCyclesFromWriteBack(WR);
+    unsigned const Elapsed = getElapsedCyclesFromWriteBack(WR);
     assert(Elapsed < ReadAdvance && "Should not have been added to the set!");
     RS.writeStartEvent(WR.getSourceIndex(), WR.getRegisterID(),
                        ReadAdvance - Elapsed);

@@ -39,7 +39,7 @@ void ARMException::beginFunction(const MachineFunction *MF) {
   if (Asm->MAI->getExceptionHandlingType() == ExceptionHandling::ARM)
     getTargetStreamer().emitFnStart();
   // See if we need call frame info.
-  AsmPrinter::CFISection CFISecType = Asm->getFunctionCFISectionType(*MF);
+  AsmPrinter::CFISection const CFISecType = Asm->getFunctionCFISectionType(*MF);
   assert(CFISecType != AsmPrinter::CFISection::EH &&
          "non-EH CFI not yet supported in prologue with EHABI lowering");
 
@@ -63,10 +63,10 @@ void ARMException::endFunction(const MachineFunction *MF) {
   const Function *Per = nullptr;
   if (F.hasPersonalityFn())
     Per = dyn_cast<Function>(F.getPersonalityFn()->stripPointerCasts());
-  bool forceEmitPersonality =
+  bool const forceEmitPersonality =
     F.hasPersonalityFn() && !isNoOpWithoutInvoke(classifyEHPersonality(Per)) &&
     F.needsUnwindTableEntry();
-  bool shouldEmitPersonality = forceEmitPersonality ||
+  bool const shouldEmitPersonality = forceEmitPersonality ||
     !MF->getLandingPads().empty();
   if (!Asm->MF->getFunction().needsUnwindTableEntry() &&
       !shouldEmitPersonality)
@@ -96,7 +96,7 @@ void ARMException::emitTypeInfos(unsigned TTypeEncoding,
   const std::vector<const GlobalValue *> &TypeInfos = MF->getTypeInfos();
   const std::vector<unsigned> &FilterIds = MF->getFilterIds();
 
-  bool VerboseAsm = Asm->OutStreamer->isVerboseAsm();
+  bool const VerboseAsm = Asm->OutStreamer->isVerboseAsm();
 
   int Entry = 0;
   // Emit the Catch TypeInfos.
@@ -122,7 +122,7 @@ void ARMException::emitTypeInfos(unsigned TTypeEncoding,
   }
   for (std::vector<unsigned>::const_iterator
          I = FilterIds.begin(), E = FilterIds.end(); I < E; ++I) {
-    unsigned TypeID = *I;
+    unsigned const TypeID = *I;
     if (VerboseAsm) {
       --Entry;
       if (TypeID != 0)

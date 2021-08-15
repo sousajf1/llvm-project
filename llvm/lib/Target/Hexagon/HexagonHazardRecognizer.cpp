@@ -47,7 +47,7 @@ HexagonHazardRecognizer::getHazardType(SUnit *SU, int stalls) {
     if (TII->mayBeNewStore(*MI)) {
       // Make sure the register to be stored is defined by an instruction in the
       // packet.
-      MachineOperand &MO = MI->getOperand(MI->getNumOperands() - 1);
+      MachineOperand  const&MO = MI->getOperand(MI->getNumOperands() - 1);
       if (!MO.isReg() || RegDefs.count(MO.getReg()) == 0)
         return Hazard;
       // The .new store version uses different resources so check if it

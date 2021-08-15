@@ -38,14 +38,14 @@ Error CodeViewRecordIO::endRecord() {
   if (isStreaming()) {
     // For streaming mode, add padding to align with 4 byte boundaries for each
     // record
-    uint32_t Align = getStreamedLen() % 4;
+    uint32_t const Align = getStreamedLen() % 4;
     if (Align == 0)
       return Error::success();
 
     int PaddingBytes = 4 - Align;
     while (PaddingBytes > 0) {
-      char Pad = static_cast<uint8_t>(LF_PAD0 + PaddingBytes);
-      StringRef BytesSR = StringRef(&Pad, sizeof(Pad));
+      char const Pad = static_cast<uint8_t>(LF_PAD0 + PaddingBytes);
+      StringRef const BytesSR = StringRef(&Pad, sizeof(Pad));
       Streamer->emitBytes(BytesSR);
       --PaddingBytes;
     }
@@ -64,7 +64,7 @@ uint32_t CodeViewRecordIO::maxFieldLength() const {
   // be allowed by any of the sub-records we're in.  In practice, we can only
   // ever be at most 1 sub-record deep (in a FieldList), but this works for
   // the general case.
-  uint32_t Offset = getCurrentOffset();
+  uint32_t const Offset = getCurrentOffset();
   Optional<uint32_t> Min = Limits.front().bytesRemaining(Offset);
   for (auto X : makeArrayRef(Limits).drop_front()) {
     Optional<uint32_t> ThisMin = X.bytesRemaining(Offset);
@@ -88,12 +88,12 @@ Error CodeViewRecordIO::skipPadding() {
   if (Reader->bytesRemaining() == 0)
     return Error::success();
 
-  uint8_t Leaf = Reader->peek();
+  uint8_t const Leaf = Reader->peek();
   if (Leaf < LF_PAD0)
     return Error::success();
   // Leaf is greater than 0xf0. We should advance by the number of bytes in
   // the low 4 bits.
-  unsigned BytesToAdvance = Leaf & 0x0F;
+  unsigned const BytesToAdvance = Leaf & 0x0F;
   return Reader->skip(BytesToAdvance);
 }
 
@@ -126,7 +126,7 @@ Error CodeViewRecordIO::mapByteVectorTail(std::vector<uint8_t> &Bytes,
 
 Error CodeViewRecordIO::mapInteger(TypeIndex &TypeInd, const Twine &Comment) {
   if (isStreaming()) {
-    std::string TypeNameStr = Streamer->getTypeName(TypeInd);
+    std::string const TypeNameStr = Streamer->getTypeName(TypeInd);
     if (!TypeNameStr.empty())
       emitComment(Comment + ": " + TypeNameStr);
     else
@@ -212,7 +212,7 @@ Error CodeViewRecordIO::mapStringZ(StringRef &Value, const Twine &Comment) {
     incrStreamedLen(NullTerminatedString.size());
   } else if (isWriting()) {
     // Truncate if we attempt to write too much.
-    StringRef S = Value.take_front(maxFieldLength() - 1);
+    StringRef const S = Value.take_front(maxFieldLength() - 1);
     if (auto EC = Writer->writeCString(S))
       return EC;
   } else {
@@ -226,7 +226,7 @@ Error CodeViewRecordIO::mapGuid(GUID &Guid, const Twine &Comment) {
   constexpr uint32_t GuidSize = 16;
 
   if (isStreaming()) {
-    StringRef GuidSR =
+    StringRef const GuidSR =
         StringRef((reinterpret_cast<const char *>(&Guid)), GuidSize);
     emitComment(Comment);
     Streamer->emitBytes(GuidSR);

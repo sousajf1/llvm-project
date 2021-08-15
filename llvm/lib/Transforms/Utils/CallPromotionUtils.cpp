@@ -50,7 +50,7 @@ using namespace llvm;
 static void fixupPHINodeForNormalDest(InvokeInst *Invoke, BasicBlock *OrigBlock,
                                       BasicBlock *MergeBlock) {
   for (PHINode &Phi : Invoke->getNormalDest()->phis()) {
-    int Idx = Phi.getBasicBlockIndex(OrigBlock);
+    int const Idx = Phi.getBasicBlockIndex(OrigBlock);
     if (Idx == -1)
       continue;
     Phi.setIncomingBlock(Idx, MergeBlock);
@@ -82,7 +82,7 @@ static void fixupPHINodeForUnwindDest(InvokeInst *Invoke, BasicBlock *OrigBlock,
                                       BasicBlock *ThenBlock,
                                       BasicBlock *ElseBlock) {
   for (PHINode &Phi : Invoke->getUnwindDest()->phis()) {
-    int Idx = Phi.getBasicBlockIndex(OrigBlock);
+    int const Idx = Phi.getBasicBlockIndex(OrigBlock);
     if (Idx == -1)
       continue;
     auto *V = Phi.getIncomingValue(Idx);
@@ -112,7 +112,7 @@ static void createRetPHINode(Instruction *OrigInst, Instruction *NewInst,
 
   Builder.SetInsertPoint(&MergeBlock->front());
   PHINode *Phi = Builder.CreatePHI(OrigInst->getType(), 0);
-  SmallVector<User *, 16> UsersToUpdate(OrigInst->users());
+  SmallVector<User *, 16> const UsersToUpdate(OrigInst->users());
   for (User *U : UsersToUpdate)
     U->replaceUsesOfWith(OrigInst, Phi);
   Phi->addIncoming(OrigInst, OrigInst->getParent());
@@ -163,7 +163,7 @@ static void createRetBitCast(CallBase &CB, Type *RetTy, CastInst **RetBitCast) {
 
   // Save the users of the calling instruction. These uses will be changed to
   // use the bitcast after we create it.
-  SmallVector<User *, 16> UsersToUpdate(CB.users());
+  SmallVector<User *, 16> const UsersToUpdate(CB.users());
 
   // Determine an appropriate location to create the bitcast for the return
   // value. The location depends on if we have a call or invoke instruction.
@@ -397,10 +397,10 @@ bool llvm::isLegalToPromote(const CallBase &CB, Function *Callee,
     }
 
   // The number of formal arguments of the callee.
-  unsigned NumParams = Callee->getFunctionType()->getNumParams();
+  unsigned const NumParams = Callee->getFunctionType()->getNumParams();
 
   // The number of actual arguments in the call.
-  unsigned NumArgs = CB.arg_size();
+  unsigned const NumArgs = CB.arg_size();
 
   // Check the number of arguments. The callee and call site must agree on the
   // number of arguments.
@@ -585,7 +585,7 @@ bool llvm::tryPromoteCall(CallBase &CB) {
     return false;
 
   Constant *VTableGVInitializer = GV->getInitializer();
-  APInt VTableGVOffset = VTableOffsetGVBase + VTableOffset;
+  APInt const VTableGVOffset = VTableOffsetGVBase + VTableOffset;
   if (!(VTableGVOffset.getActiveBits() <= 64))
     return false; // Out of range.
   Constant *Ptr = getPointerAtOffset(VTableGVInitializer,

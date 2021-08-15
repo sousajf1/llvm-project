@@ -56,7 +56,7 @@ SUnit* R600SchedStrategy::pickNode(bool &IsTopNode) {
   IsTopNode = false;
 
   // check if we might want to switch current clause type
-  bool AllowSwitchToAlu = (CurEmitted >= InstKindLimit[CurInstKind]) ||
+  bool const AllowSwitchToAlu = (CurEmitted >= InstKindLimit[CurInstKind]) ||
       (Available[CurInstKind].empty());
   bool AllowSwitchFromAlu = (CurEmitted >= InstKindLimit[CurInstKind]) &&
       (!Available[IDFetch].empty() || !Available[IDOther].empty());
@@ -66,13 +66,13 @@ SUnit* R600SchedStrategy::pickNode(bool &IsTopNode) {
     // OpenCL Programming Guide :
     // The approx. number of WF that allows TEX inst to hide ALU inst is :
     // 500 (cycles for TEX) / (AluFetchRatio * 8 (cycles for ALU))
-    float ALUFetchRationEstimate =
+    float const ALUFetchRationEstimate =
         (AluInstCount + AvailablesAluCount() + Pending[IDAlu].size()) /
         (FetchInstCount + Available[IDFetch].size());
     if (ALUFetchRationEstimate == 0) {
       AllowSwitchFromAlu = true;
     } else {
-      unsigned NeededWF = 62.5f / ALUFetchRationEstimate;
+      unsigned const NeededWF = 62.5f / ALUFetchRationEstimate;
       LLVM_DEBUG(dbgs() << NeededWF << " approx. Wavefronts Required\n");
       // We assume the local GPR requirements to be "dominated" by the requirement
       // of the TEX clause (which consumes 128 bits regs) ; ALU inst before and
@@ -84,7 +84,7 @@ SUnit* R600SchedStrategy::pickNode(bool &IsTopNode) {
       // (TODO : use RegisterPressure)
       // If we are going too use too many GPR, we flush Fetch instruction to lower
       // register pressure on 128 bits regs.
-      unsigned NearRegisterRequirement = 2 * Available[IDFetch].size();
+      unsigned const NearRegisterRequirement = 2 * Available[IDFetch].size();
       if (NeededWF > getWFCountLimitedByGPR(NearRegisterRequirement))
         AllowSwitchFromAlu = true;
     }
@@ -155,7 +155,7 @@ void R600SchedStrategy::schedNode(SUnit *SU, bool IsTopNode) {
       ++CurEmitted;
       for (MachineInstr::mop_iterator It = SU->getInstr()->operands_begin(),
           E = SU->getInstr()->operands_end(); It != E; ++It) {
-        MachineOperand &MO = *It;
+        MachineOperand  const&MO = *It;
         if (MO.isReg() && MO.getReg() == R600::ALU_LITERAL_X)
           ++CurEmitted;
       }
@@ -192,7 +192,7 @@ void R600SchedStrategy::releaseBottomNode(SUnit *SU) {
     return;
   }
 
-  int IK = getInstKind(SU);
+  int const IK = getInstKind(SU);
 
   // There is no export clause, we can schedule one as soon as its ready
   if (IK == IDOther)
@@ -250,7 +250,7 @@ R600SchedStrategy::AluKind R600SchedStrategy::getAluKind(SUnit *SU) const {
   }
 
   // Is the result already assigned to a channel ?
-  unsigned DestSubReg = MI->getOperand(0).getSubReg();
+  unsigned const DestSubReg = MI->getOperand(0).getSubReg();
   switch (DestSubReg) {
   case R600::sub0:
     return AluT_X;
@@ -265,7 +265,7 @@ R600SchedStrategy::AluKind R600SchedStrategy::getAluKind(SUnit *SU) const {
   }
 
   // Is the result already member of a X/Y/Z/W class ?
-  Register DestReg = MI->getOperand(0).getReg();
+  Register const DestReg = MI->getOperand(0).getReg();
   if (regBelongsToClass(DestReg, &R600::R600_TReg32_XRegClass) ||
       regBelongsToClass(DestReg, &R600::R600_AddrRegClass))
     return AluT_X;
@@ -286,7 +286,7 @@ R600SchedStrategy::AluKind R600SchedStrategy::getAluKind(SUnit *SU) const {
 }
 
 int R600SchedStrategy::getInstKind(SUnit* SU) {
-  int Opcode = SU->getInstr()->getOpcode();
+  int const Opcode = SU->getInstr()->getOpcode();
 
   if (TII->usesTextureCache(Opcode) || TII->usesVertexCache(Opcode))
     return IDFetch;
@@ -331,7 +331,7 @@ SUnit *R600SchedStrategy::PopInst(std::vector<SUnit *> &Q, bool AnyALU) {
 void R600SchedStrategy::LoadAlu() {
   std::vector<SUnit *> &QSrc = Pending[IDAlu];
   for (unsigned i = 0, e = QSrc.size(); i < e; ++i) {
-    AluKind AK = getAluKind(QSrc[i]);
+    AluKind const AK = getAluKind(QSrc[i]);
     AvailableAlus[AK].push_back(QSrc[i]);
   }
   QSrc.clear();
@@ -348,16 +348,16 @@ void R600SchedStrategy::PrepareNextSlot() {
 }
 
 void R600SchedStrategy::AssignSlot(MachineInstr* MI, unsigned Slot) {
-  int DstIndex = TII->getOperandIdx(MI->getOpcode(), R600::OpName::dst);
+  int const DstIndex = TII->getOperandIdx(MI->getOpcode(), R600::OpName::dst);
   if (DstIndex == -1) {
     return;
   }
-  Register DestReg = MI->getOperand(DstIndex).getReg();
+  Register const DestReg = MI->getOperand(DstIndex).getReg();
   // PressureRegister crashes if an operand is def and used in the same inst
   // and we try to constraint its regclass
   for (MachineInstr::mop_iterator It = MI->operands_begin(),
       E = MI->operands_end(); It != E; ++It) {
-    MachineOperand &MO = *It;
+    MachineOperand  const&MO = *It;
     if (MO.isReg() && !MO.isDef() &&
         MO.getReg() == DestReg)
       return;
@@ -417,7 +417,7 @@ SUnit* R600SchedStrategy::pickAlu() {
         return PopInst(AvailableAlus[AluT_XYZW], false);
       }
     }
-    bool TransSlotOccuped = OccupedSlotsMask & 16;
+    bool const TransSlotOccuped = OccupedSlotsMask & 16;
     if (!TransSlotOccuped && VLIW5) {
       if (!AvailableAlus[AluTrans].empty()) {
         OccupedSlotsMask |= 16;
@@ -430,7 +430,7 @@ SUnit* R600SchedStrategy::pickAlu() {
       }
     }
     for (int Chan = 3; Chan > -1; --Chan) {
-      bool isOccupied = OccupedSlotsMask & (1 << Chan);
+      bool const isOccupied = OccupedSlotsMask & (1 << Chan);
       if (!isOccupied) {
         SUnit *SU = AttemptFillSlot(Chan, false);
         if (SU) {

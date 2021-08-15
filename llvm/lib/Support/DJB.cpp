@@ -40,7 +40,7 @@ static StringRef toUTF8(UTF32 C, MutableArrayRef<UTF8> Storage) {
 
   // The case-folded output should always be a valid unicode character, so use
   // strict mode here.
-  ConversionResult CR = ConvertUTF32toUTF8(&Begin32, &C + 1, &Begin8,
+  ConversionResult const CR = ConvertUTF32toUTF8(&Begin32, &C + 1, &Begin8,
                                            Storage.end(), strictConversion);
   assert(CR == conversionOK && "Case folding produced invalid char?");
   (void)CR;
@@ -59,7 +59,7 @@ static UTF32 foldCharDwarf(UTF32 C) {
 
 static Optional<uint32_t> fastCaseFoldingDjbHash(StringRef Buffer, uint32_t H) {
   bool AllASCII = true;
-  for (unsigned char C : Buffer) {
+  for (unsigned char const C : Buffer) {
     H = H * 33 + ('A' <= C && C <= 'Z' ? C - 'A' + 'a' : C);
     AllASCII &= C <= 0x7f;
   }
@@ -74,8 +74,8 @@ uint32_t llvm::caseFoldingDjbHash(StringRef Buffer, uint32_t H) {
 
   std::array<UTF8, UNI_MAX_UTF8_BYTES_PER_CODE_POINT> Storage;
   while (!Buffer.empty()) {
-    UTF32 C = foldCharDwarf(chopOneUTF32(Buffer));
-    StringRef Folded = toUTF8(C, Storage);
+    UTF32 const C = foldCharDwarf(chopOneUTF32(Buffer));
+    StringRef const Folded = toUTF8(C, Storage);
     H = djbHash(Folded, H);
   }
   return H;

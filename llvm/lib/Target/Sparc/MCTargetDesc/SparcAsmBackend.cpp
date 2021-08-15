@@ -279,7 +279,7 @@ namespace {
       if (Count % 4 != 0)
         return false;
 
-      uint64_t NumNops = Count / 4;
+      uint64_t const NumNops = Count / 4;
       for (uint64_t i = 0; i != NumNops; ++i)
         support::endian::write<uint32_t>(OS, 0x01000000, Endian);
 
@@ -301,20 +301,20 @@ namespace {
       Value = adjustFixupValue(Fixup.getKind(), Value);
       if (!Value) return;           // Doesn't change encoding.
 
-      unsigned NumBytes = getFixupKindNumBytes(Fixup.getKind());
-      unsigned Offset = Fixup.getOffset();
+      unsigned const NumBytes = getFixupKindNumBytes(Fixup.getKind());
+      unsigned const Offset = Fixup.getOffset();
       // For each byte of the fragment that the fixup touches, mask in the bits
       // from the fixup value. The Value has been "split up" into the
       // appropriate bitfields above.
       for (unsigned i = 0; i != NumBytes; ++i) {
-        unsigned Idx = Endian == support::little ? i : (NumBytes - 1) - i;
+        unsigned const Idx = Endian == support::little ? i : (NumBytes - 1) - i;
         Data[Offset + Idx] |= uint8_t((Value >> (i * 8)) & 0xff);
       }
     }
 
     std::unique_ptr<MCObjectTargetWriter>
     createObjectTargetWriter() const override {
-      uint8_t OSABI = MCELFObjectTargetWriter::getOSABI(OSType);
+      uint8_t const OSABI = MCELFObjectTargetWriter::getOSABI(OSType);
       return createSparcELFObjectWriter(Is64Bit, OSABI);
     }
   };

@@ -81,7 +81,7 @@ void WebAssemblyDAGToDAGISel::PreprocessISelDAG() {
   // locals when they are first used.  However for those without uses, we hoist
   // them here.  It would be nice if there were some hook to do this when they
   // are added to the MachineFrameInfo, but that's not the case right now.
-  MachineFrameInfo &FrameInfo = MF->getFrameInfo();
+  MachineFrameInfo  const&FrameInfo = MF->getFrameInfo();
   for (int Idx = 0; Idx < FrameInfo.getObjectIndexEnd(); Idx++)
     WebAssemblyFrameLowering::getLocalForStackObject(*MF, Idx);
 
@@ -92,7 +92,7 @@ static SDValue getTagSymNode(int Tag, SelectionDAG *DAG) {
   assert(Tag == WebAssembly::CPP_EXCEPTION);
   auto &MF = DAG->getMachineFunction();
   const auto &TLI = DAG->getTargetLoweringInfo();
-  MVT PtrVT = TLI.getPointerTy(DAG->getDataLayout());
+  MVT const PtrVT = TLI.getPointerTy(DAG->getDataLayout());
   const char *SymName = MF.createExternalSymbolName("__cpp_exception");
   return DAG->getTargetExternalSymbol(SymName, PtrVT);
 }
@@ -105,19 +105,19 @@ void WebAssemblyDAGToDAGISel::Select(SDNode *Node) {
     return;
   }
 
-  MVT PtrVT = TLI->getPointerTy(CurDAG->getDataLayout());
+  MVT const PtrVT = TLI->getPointerTy(CurDAG->getDataLayout());
   auto GlobalGetIns = PtrVT == MVT::i64 ? WebAssembly::GLOBAL_GET_I64
                                         : WebAssembly::GLOBAL_GET_I32;
 
   // Few custom selection stuff.
-  SDLoc DL(Node);
-  MachineFunction &MF = CurDAG->getMachineFunction();
+  SDLoc const DL(Node);
+  MachineFunction  const&MF = CurDAG->getMachineFunction();
   switch (Node->getOpcode()) {
   case ISD::ATOMIC_FENCE: {
     if (!MF.getSubtarget<WebAssemblySubtarget>().hasAtomics())
       break;
 
-    uint64_t SyncScopeID = Node->getConstantOperandVal(2);
+    uint64_t const SyncScopeID = Node->getConstantOperandVal(2);
     MachineSDNode *Fence = nullptr;
     switch (SyncScopeID) {
     case SyncScope::SingleThread:
@@ -151,7 +151,7 @@ void WebAssemblyDAGToDAGISel::Select(SDNode *Node) {
   }
 
   case ISD::INTRINSIC_WO_CHAIN: {
-    unsigned IntNo = Node->getConstantOperandVal(0);
+    unsigned const IntNo = Node->getConstantOperandVal(0);
     switch (IntNo) {
     case Intrinsic::wasm_tls_size: {
       MachineSDNode *TLSSize = CurDAG->getMachineNode(
@@ -173,9 +173,9 @@ void WebAssemblyDAGToDAGISel::Select(SDNode *Node) {
   }
 
   case ISD::INTRINSIC_W_CHAIN: {
-    unsigned IntNo = Node->getConstantOperandVal(1);
+    unsigned const IntNo = Node->getConstantOperandVal(1);
     const auto &TLI = CurDAG->getTargetLoweringInfo();
-    MVT PtrVT = TLI.getPointerTy(CurDAG->getDataLayout());
+    MVT const PtrVT = TLI.getPointerTy(CurDAG->getDataLayout());
     switch (IntNo) {
     case Intrinsic::wasm_tls_base: {
       MachineSDNode *TLSBase = CurDAG->getMachineNode(
@@ -187,8 +187,8 @@ void WebAssemblyDAGToDAGISel::Select(SDNode *Node) {
     }
 
     case Intrinsic::wasm_catch_exn: {
-      int Tag = Node->getConstantOperandVal(2);
-      SDValue SymNode = getTagSymNode(Tag, CurDAG);
+      int const Tag = Node->getConstantOperandVal(2);
+      SDValue const SymNode = getTagSymNode(Tag, CurDAG);
       MachineSDNode *Catch =
           CurDAG->getMachineNode(WebAssembly::CATCH, DL,
                                  {
@@ -207,11 +207,11 @@ void WebAssemblyDAGToDAGISel::Select(SDNode *Node) {
   }
 
   case ISD::INTRINSIC_VOID: {
-    unsigned IntNo = Node->getConstantOperandVal(1);
+    unsigned const IntNo = Node->getConstantOperandVal(1);
     switch (IntNo) {
     case Intrinsic::wasm_throw: {
-      int Tag = Node->getConstantOperandVal(2);
-      SDValue SymNode = getTagSymNode(Tag, CurDAG);
+      int const Tag = Node->getConstantOperandVal(2);
+      SDValue const SymNode = getTagSymNode(Tag, CurDAG);
       MachineSDNode *Throw =
           CurDAG->getMachineNode(WebAssembly::THROW, DL,
                                  MVT::Other, // outchain type
@@ -246,11 +246,11 @@ void WebAssemblyDAGToDAGISel::Select(SDNode *Node) {
     MachineSDNode *CallParams =
         CurDAG->getMachineNode(WebAssembly::CALL_PARAMS, DL, MVT::Glue, Ops);
 
-    unsigned Results = Node->getOpcode() == WebAssemblyISD::CALL
+    unsigned const Results = Node->getOpcode() == WebAssemblyISD::CALL
                            ? WebAssembly::CALL_RESULTS
                            : WebAssembly::RET_CALL_RESULTS;
 
-    SDValue Link(CallParams, 0);
+    SDValue const Link(CallParams, 0);
     MachineSDNode *CallResults =
         CurDAG->getMachineNode(Results, DL, Node->getVTList(), Link);
     ReplaceNode(Node, CallResults);

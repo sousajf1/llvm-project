@@ -69,10 +69,10 @@ void RegAllocBase::init(VirtRegMap &vrm, LiveIntervals &lis,
 // register, unify them with the corresponding LiveIntervalUnion, otherwise push
 // them on the priority queue for later assignment.
 void RegAllocBase::seedLiveRegs() {
-  NamedRegionTimer T("seed", "Seed Live Regs", TimerGroupName,
+  NamedRegionTimer const T("seed", "Seed Live Regs", TimerGroupName,
                      TimerGroupDescription, TimePassesIsEnabled);
   for (unsigned i = 0, e = MRI->getNumVirtRegs(); i != e; ++i) {
-    Register Reg = Register::index2VirtReg(i);
+    Register const Reg = Register::index2VirtReg(i);
     if (MRI->reg_nodbg_empty(Reg))
       continue;
     enqueue(&LIS->getInterval(Reg));
@@ -109,7 +109,7 @@ void RegAllocBase::allocatePhysRegs() {
     using VirtRegVec = SmallVector<Register, 4>;
 
     VirtRegVec SplitVRegs;
-    MCRegister AvailablePhysReg = selectOrSplit(*VirtReg, SplitVRegs);
+    MCRegister const AvailablePhysReg = selectOrSplit(*VirtReg, SplitVRegs);
 
     if (AvailablePhysReg == ~0u) {
       // selectOrSplit failed to find a register!
@@ -125,7 +125,7 @@ void RegAllocBase::allocatePhysRegs() {
       }
 
       const TargetRegisterClass *RC = MRI->getRegClass(VirtReg->reg());
-      ArrayRef<MCPhysReg> AllocOrder = RegClassInfo.getOrder(RC);
+      ArrayRef<MCPhysReg> const AllocOrder = RegClassInfo.getOrder(RC);
       if (AllocOrder.empty())
         report_fatal_error("no registers from class available to allocate");
       else if (MI && MI->isInlineAsm()) {
@@ -146,7 +146,7 @@ void RegAllocBase::allocatePhysRegs() {
     if (AvailablePhysReg)
       Matrix->assign(*VirtReg, AvailablePhysReg);
 
-    for (Register Reg : SplitVRegs) {
+    for (Register const Reg : SplitVRegs) {
       assert(LIS->hasInterval(Reg));
 
       LiveInterval *SplitVirtReg = &LIS->getInterval(Reg);

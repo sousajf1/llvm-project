@@ -63,9 +63,9 @@ bool AVRDAGToDAGISel::runOnMachineFunction(MachineFunction &MF) {
 
 bool AVRDAGToDAGISel::SelectAddr(SDNode *Op, SDValue N, SDValue &Base,
                                  SDValue &Disp) {
-  SDLoc dl(Op);
+  SDLoc const dl(Op);
   auto DL = CurDAG->getDataLayout();
-  MVT PtrVT = getTargetLowering()->getPointerTy(DL);
+  MVT const PtrVT = getTargetLowering()->getPointerTy(DL);
 
   // if the address is a frame index get the TargetFrameIndex.
   if (const FrameIndexSDNode *FIN = dyn_cast<FrameIndexSDNode>(N)) {
@@ -94,7 +94,7 @@ bool AVRDAGToDAGISel::SelectAddr(SDNode *Op, SDValue N, SDValue &Base,
     // directly instead of copying it around by adjusting and restoring it for
     // each access.
     if (N.getOperand(0).getOpcode() == ISD::FrameIndex) {
-      int FI = cast<FrameIndexSDNode>(N.getOperand(0))->getIndex();
+      int const FI = cast<FrameIndexSDNode>(N.getOperand(0))->getIndex();
 
       Base = CurDAG->getTargetFrameIndex(FI, PtrVT);
       Disp = CurDAG->getTargetConstant(RHSC, dl, MVT::i16);
@@ -104,7 +104,7 @@ bool AVRDAGToDAGISel::SelectAddr(SDNode *Op, SDValue N, SDValue &Base,
 
     // The value type of the memory instruction determines what is the maximum
     // offset allowed.
-    MVT VT = cast<MemSDNode>(Op)->getMemoryVT().getSimpleVT();
+    MVT const VT = cast<MemSDNode>(Op)->getMemoryVT().getSimpleVT();
 
     // We only accept offsets that fit in 6 bits (unsigned).
     if (isUInt<6>(RHSC) && (VT == MVT::i8 || VT == MVT::i16)) {
@@ -120,8 +120,8 @@ bool AVRDAGToDAGISel::SelectAddr(SDNode *Op, SDValue N, SDValue &Base,
 
 bool AVRDAGToDAGISel::selectIndexedLoad(SDNode *N) {
   const LoadSDNode *LD = cast<LoadSDNode>(N);
-  ISD::MemIndexedMode AM = LD->getAddressingMode();
-  MVT VT = LD->getMemoryVT().getSimpleVT();
+  ISD::MemIndexedMode const AM = LD->getAddressingMode();
+  MVT const VT = LD->getMemoryVT().getSimpleVT();
   auto PtrVT = getTargetLowering()->getPointerTy(CurDAG->getDataLayout());
 
   // We only care if this load uses a POSTINC or PREDEC mode.
@@ -132,8 +132,8 @@ bool AVRDAGToDAGISel::selectIndexedLoad(SDNode *N) {
   }
 
   unsigned Opcode = 0;
-  bool isPre = (AM == ISD::PRE_DEC);
-  int Offs = cast<ConstantSDNode>(LD->getOffset())->getSExtValue();
+  bool const isPre = (AM == ISD::PRE_DEC);
+  int const Offs = cast<ConstantSDNode>(LD->getOffset())->getSExtValue();
 
   switch (VT.SimpleTy) {
   case MVT::i8: {
@@ -167,7 +167,7 @@ bool AVRDAGToDAGISel::selectIndexedLoad(SDNode *N) {
 
 unsigned AVRDAGToDAGISel::selectIndexedProgMemLoad(const LoadSDNode *LD,
                                                    MVT VT) {
-  ISD::MemIndexedMode AM = LD->getAddressingMode();
+  ISD::MemIndexedMode const AM = LD->getAddressingMode();
 
   // Progmem indexed loads only work in POSTINC mode.
   if (LD->getExtensionType() != ISD::NON_EXTLOAD || AM != ISD::POST_INC) {
@@ -175,7 +175,7 @@ unsigned AVRDAGToDAGISel::selectIndexedProgMemLoad(const LoadSDNode *LD,
   }
 
   unsigned Opcode = 0;
-  int Offs = cast<ConstantSDNode>(LD->getOffset())->getSExtValue();
+  int const Offs = cast<ConstantSDNode>(LD->getOffset())->getSExtValue();
 
   switch (VT.SimpleTy) {
   case MVT::i8: {
@@ -209,7 +209,7 @@ bool AVRDAGToDAGISel::SelectInlineAsmMemoryOperand(const SDValue &Op,
   MachineRegisterInfo &RI = MF->getRegInfo();
   const AVRSubtarget &STI = MF->getSubtarget<AVRSubtarget>();
   const TargetLowering &TL = *STI.getTargetLowering();
-  SDLoc dl(Op);
+  SDLoc const dl(Op);
   auto DL = CurDAG->getDataLayout();
 
   const RegisterSDNode *RegNode = dyn_cast<RegisterSDNode>(Op);
@@ -237,7 +237,7 @@ bool AVRDAGToDAGISel::SelectInlineAsmMemoryOperand(const SDValue &Op,
   // If Op is add 'register, immediate' and
   // register is either virtual register or register of PTRDISPREGSRegClass
   if (Op->getOpcode() == ISD::ADD || Op->getOpcode() == ISD::SUB) {
-    SDValue CopyFromRegOp = Op->getOperand(0);
+    SDValue const CopyFromRegOp = Op->getOperand(0);
     SDValue ImmOp = Op->getOperand(1);
     ConstantSDNode *ImmNode = dyn_cast<ConstantSDNode>(ImmOp);
 
@@ -260,14 +260,14 @@ bool AVRDAGToDAGISel::SelectInlineAsmMemoryOperand(const SDValue &Op,
       SDValue Base, Disp;
 
       if (RI.getRegClass(Reg) != &AVR::PTRDISPREGSRegClass) {
-        SDLoc dl(CopyFromRegOp);
+        SDLoc const dl(CopyFromRegOp);
 
-        Register VReg = RI.createVirtualRegister(&AVR::PTRDISPREGSRegClass);
+        Register const VReg = RI.createVirtualRegister(&AVR::PTRDISPREGSRegClass);
 
-        SDValue CopyToReg =
+        SDValue const CopyToReg =
             CurDAG->getCopyToReg(CopyFromRegOp, dl, VReg, CopyFromRegOp);
 
-        SDValue NewCopyFromRegOp =
+        SDValue const NewCopyFromRegOp =
             CurDAG->getCopyFromReg(CopyToReg, dl, VReg, TL.getPointerTy(DL));
 
         Base = NewCopyFromRegOp;
@@ -291,10 +291,10 @@ bool AVRDAGToDAGISel::SelectInlineAsmMemoryOperand(const SDValue &Op,
   // More generic case.
   // Create chain that puts Op into pointer register
   // and return that register.
-  Register VReg = RI.createVirtualRegister(&AVR::PTRDISPREGSRegClass);
+  Register const VReg = RI.createVirtualRegister(&AVR::PTRDISPREGSRegClass);
 
-  SDValue CopyToReg = CurDAG->getCopyToReg(Op, dl, VReg, Op);
-  SDValue CopyFromReg =
+  SDValue const CopyToReg = CurDAG->getCopyToReg(Op, dl, VReg, Op);
+  SDValue const CopyFromReg =
       CurDAG->getCopyFromReg(CopyToReg, dl, VReg, TL.getPointerTy(DL));
 
   OutOps.push_back(CopyFromReg);
@@ -307,8 +307,8 @@ template <> bool AVRDAGToDAGISel::select<ISD::FrameIndex>(SDNode *N) {
 
   // Convert the frameindex into a temp instruction that will hold the
   // effective address of the final stack slot.
-  int FI = cast<FrameIndexSDNode>(N)->getIndex();
-  SDValue TFI =
+  int const FI = cast<FrameIndexSDNode>(N)->getIndex();
+  SDValue const TFI =
     CurDAG->getTargetFrameIndex(FI, getTargetLowering()->getPointerTy(DL));
 
   CurDAG->SelectNodeTo(N, AVR::FRMIDX,
@@ -321,7 +321,7 @@ template <> bool AVRDAGToDAGISel::select<ISD::STORE>(SDNode *N) {
   // Use the STD{W}SPQRr pseudo instruction when passing arguments through
   // the stack on function calls for further expansion during the PEI phase.
   const StoreSDNode *ST = cast<StoreSDNode>(N);
-  SDValue BasePtr = ST->getBasePtr();
+  SDValue const BasePtr = ST->getBasePtr();
 
   // Early exit when the base pointer is a frame index node or a constant.
   if (isa<FrameIndexSDNode>(BasePtr) || isa<ConstantSDNode>(BasePtr) ||
@@ -335,13 +335,13 @@ template <> bool AVRDAGToDAGISel::select<ISD::STORE>(SDNode *N) {
     return false;
   }
 
-  int CST = (int)cast<ConstantSDNode>(BasePtr.getOperand(1))->getZExtValue();
-  SDValue Chain = ST->getChain();
-  EVT VT = ST->getValue().getValueType();
-  SDLoc DL(N);
-  SDValue Offset = CurDAG->getTargetConstant(CST, DL, MVT::i16);
-  SDValue Ops[] = {BasePtr.getOperand(0), Offset, ST->getValue(), Chain};
-  unsigned Opc = (VT == MVT::i16) ? AVR::STDWSPQRr : AVR::STDSPQRr;
+  int const CST = (int)cast<ConstantSDNode>(BasePtr.getOperand(1))->getZExtValue();
+  SDValue const Chain = ST->getChain();
+  EVT const VT = ST->getValue().getValueType();
+  SDLoc const DL(N);
+  SDValue const Offset = CurDAG->getTargetConstant(CST, DL, MVT::i16);
+  SDValue const Ops[] = {BasePtr.getOperand(0), Offset, ST->getValue(), Chain};
+  unsigned const Opc = (VT == MVT::i16) ? AVR::STDWSPQRr : AVR::STDSPQRr;
 
   SDNode *ResNode = CurDAG->getMachineNode(Opc, DL, MVT::Other, Ops);
 
@@ -365,20 +365,20 @@ template <> bool AVRDAGToDAGISel::select<ISD::LOAD>(SDNode *N) {
 
   // This is a flash memory load, move the pointer into R31R30 and emit
   // the lpm instruction.
-  MVT VT = LD->getMemoryVT().getSimpleVT();
+  MVT const VT = LD->getMemoryVT().getSimpleVT();
   SDValue Chain = LD->getChain();
   SDValue Ptr = LD->getBasePtr();
   SDNode *ResNode;
-  SDLoc DL(N);
+  SDLoc const DL(N);
 
   Chain = CurDAG->getCopyToReg(Chain, DL, AVR::R31R30, Ptr, SDValue());
   Ptr = CurDAG->getCopyFromReg(Chain, DL, AVR::R31R30, MVT::i16,
                                Chain.getValue(1));
 
-  SDValue RegZ = CurDAG->getRegister(AVR::R31R30, MVT::i16);
+  SDValue const RegZ = CurDAG->getRegister(AVR::R31R30, MVT::i16);
 
   // Check if the opcode can be converted into an indexed load.
-  if (unsigned LPMOpc = selectIndexedProgMemLoad(LD, VT)) {
+  if (unsigned const LPMOpc = selectIndexedProgMemLoad(LD, VT)) {
     // It is legal to fold the load into an indexed load.
     ResNode = CurDAG->getMachineNode(LPMOpc, DL, VT, MVT::i16, MVT::Other, Ptr,
                                      RegZ);
@@ -411,13 +411,13 @@ template <> bool AVRDAGToDAGISel::select<ISD::LOAD>(SDNode *N) {
 }
 
 template <> bool AVRDAGToDAGISel::select<AVRISD::CALL>(SDNode *N) {
-  SDValue InFlag;
+  SDValue const InFlag;
   SDValue Chain = N->getOperand(0);
-  SDValue Callee = N->getOperand(1);
+  SDValue const Callee = N->getOperand(1);
   unsigned LastOpNum = N->getNumOperands() - 1;
 
   // Direct calls are autogenerated.
-  unsigned Op = Callee.getOpcode();
+  unsigned const Op = Callee.getOpcode();
   if (Op == ISD::TargetGlobalAddress || Op == ISD::TargetExternalSymbol) {
     return false;
   }
@@ -427,7 +427,7 @@ template <> bool AVRDAGToDAGISel::select<AVRISD::CALL>(SDNode *N) {
     --LastOpNum;
   }
 
-  SDLoc DL(N);
+  SDLoc const DL(N);
   Chain = CurDAG->getCopyToReg(Chain, DL, AVR::R31R30, Callee, InFlag);
   SmallVector<SDValue, 8> Ops;
   Ops.push_back(CurDAG->getRegister(AVR::R31R30, MVT::i16));
@@ -452,9 +452,9 @@ template <> bool AVRDAGToDAGISel::select<AVRISD::CALL>(SDNode *N) {
 
 template <> bool AVRDAGToDAGISel::select<ISD::BRIND>(SDNode *N) {
   SDValue Chain = N->getOperand(0);
-  SDValue JmpAddr = N->getOperand(1);
+  SDValue const JmpAddr = N->getOperand(1);
 
-  SDLoc DL(N);
+  SDLoc const DL(N);
   // Move the destination address of the indirect branch into R31R30.
   Chain = CurDAG->getCopyToReg(Chain, DL, AVR::R31R30, JmpAddr);
   SDNode *ResNode = CurDAG->getMachineNode(AVR::IJMP, DL, MVT::Other, Chain);
@@ -466,23 +466,23 @@ template <> bool AVRDAGToDAGISel::select<ISD::BRIND>(SDNode *N) {
 }
 
 bool AVRDAGToDAGISel::selectMultiplication(llvm::SDNode *N) {
-  SDLoc DL(N);
-  MVT Type = N->getSimpleValueType(0);
+  SDLoc const DL(N);
+  MVT const Type = N->getSimpleValueType(0);
 
   assert(Type == MVT::i8 && "unexpected value type");
 
-  bool isSigned = N->getOpcode() == ISD::SMUL_LOHI;
-  unsigned MachineOp = isSigned ? AVR::MULSRdRr : AVR::MULRdRr;
+  bool const isSigned = N->getOpcode() == ISD::SMUL_LOHI;
+  unsigned const MachineOp = isSigned ? AVR::MULSRdRr : AVR::MULRdRr;
 
-  SDValue Lhs = N->getOperand(0);
-  SDValue Rhs = N->getOperand(1);
+  SDValue const Lhs = N->getOperand(0);
+  SDValue const Rhs = N->getOperand(1);
   SDNode *Mul = CurDAG->getMachineNode(MachineOp, DL, MVT::Glue, Lhs, Rhs);
   SDValue InChain = CurDAG->getEntryNode();
   SDValue InGlue = SDValue(Mul, 0);
 
   // Copy the low half of the result, if it is needed.
   if (N->hasAnyUseOfValue(0)) {
-    SDValue CopyFromLo =
+    SDValue const CopyFromLo =
         CurDAG->getCopyFromReg(InChain, DL, AVR::R0, Type, InGlue);
 
     ReplaceUses(SDValue(N, 0), CopyFromLo);
@@ -493,7 +493,7 @@ bool AVRDAGToDAGISel::selectMultiplication(llvm::SDNode *N) {
 
   // Copy the high half of the result, if it is needed.
   if (N->hasAnyUseOfValue(1)) {
-    SDValue CopyFromHi =
+    SDValue const CopyFromHi =
         CurDAG->getCopyFromReg(InChain, DL, AVR::R1, Type, InGlue);
 
     ReplaceUses(SDValue(N, 1), CopyFromHi);
@@ -527,8 +527,8 @@ void AVRDAGToDAGISel::Select(SDNode *N) {
 }
 
 bool AVRDAGToDAGISel::trySelect(SDNode *N) {
-  unsigned Opcode = N->getOpcode();
-  SDLoc DL(N);
+  unsigned const Opcode = N->getOpcode();
+  SDLoc const DL(N);
 
   switch (Opcode) {
   // Nodes we fully handle.

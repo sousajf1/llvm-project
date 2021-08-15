@@ -509,9 +509,9 @@ bool GuardWideningImpl::widenCondCommon(Value *Cond0, Value *Cond1,
       if (InvertCondition)
         Pred1 = ICmpInst::getInversePredicate(Pred1);
 
-      ConstantRange CR0 =
+      ConstantRange const CR0 =
           ConstantRange::makeExactICmpRegion(Pred0, RHS0->getValue());
-      ConstantRange CR1 =
+      ConstantRange const CR1 =
           ConstantRange::makeExactICmpRegion(Pred1, RHS1->getValue());
 
       // SubsetIntersect is a subset of the actual mathematical intersection of
@@ -629,15 +629,15 @@ bool GuardWideningImpl::parseRangeChecks(
 
     if (match(Check.getBase(), m_Add(m_Value(OpLHS), m_ConstantInt(OpRHS)))) {
       Check.setBase(OpLHS);
-      APInt NewOffset = Check.getOffsetValue() + OpRHS->getValue();
+      APInt const NewOffset = Check.getOffsetValue() + OpRHS->getValue();
       Check.setOffset(ConstantInt::get(Ctx, NewOffset));
       Changed = true;
     } else if (match(Check.getBase(),
                      m_Or(m_Value(OpLHS), m_ConstantInt(OpRHS)))) {
-      KnownBits Known = computeKnownBits(OpLHS, DL);
+      KnownBits const Known = computeKnownBits(OpLHS, DL);
       if ((OpRHS->getValue() & Known.Zero) == OpRHS->getValue()) {
         Check.setBase(OpLHS);
-        APInt NewOffset = Check.getOffsetValue() + OpRHS->getValue();
+        APInt const NewOffset = Check.getOffsetValue() + OpRHS->getValue();
         Check.setOffset(ConstantInt::get(Ctx, NewOffset));
         Changed = true;
       }
@@ -651,7 +651,7 @@ bool GuardWideningImpl::parseRangeChecks(
 bool GuardWideningImpl::combineRangeChecks(
     SmallVectorImpl<GuardWideningImpl::RangeCheck> &Checks,
     SmallVectorImpl<GuardWideningImpl::RangeCheck> &RangeChecksOut) const {
-  unsigned OldCount = Checks.size();
+  unsigned const OldCount = Checks.size();
   while (!Checks.empty()) {
     // Pick all of the range checks with a specific base and length, and try to
     // merge them.
@@ -687,7 +687,7 @@ bool GuardWideningImpl::combineRangeChecks(
     const ConstantInt *MinOffset = CurrentChecks.front().getOffset();
     const ConstantInt *MaxOffset = CurrentChecks.back().getOffset();
 
-    unsigned BitWidth = MaxOffset->getValue().getBitWidth();
+    unsigned const BitWidth = MaxOffset->getValue().getBitWidth();
     if ((MaxOffset->getValue() - MinOffset->getValue())
             .ugt(APInt::getSignedMinValue(BitWidth)))
       return false;

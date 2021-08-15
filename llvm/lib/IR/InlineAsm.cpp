@@ -43,7 +43,7 @@ InlineAsm *InlineAsm::get(FunctionType *FTy, StringRef AsmString,
                           StringRef Constraints, bool hasSideEffects,
                           bool isAlignStack, AsmDialect asmDialect,
                           bool canThrow) {
-  InlineAsmKeyType Key(AsmString, Constraints, FTy, hasSideEffects,
+  InlineAsmKeyType const Key(AsmString, Constraints, FTy, hasSideEffects,
                        isAlignStack, asmDialect, canThrow);
   LLVMContextImpl *pImpl = FTy->getContext().pImpl;
   return pImpl->InlineAsms.getOrCreate(PointerType::getUnqual(FTy), Key);
@@ -64,7 +64,7 @@ FunctionType *InlineAsm::getFunctionType() const {
 bool InlineAsm::ConstraintInfo::Parse(StringRef Str,
                      InlineAsm::ConstraintInfoVector &ConstraintsSoFar) {
   StringRef::iterator I = Str.begin(), E = Str.end();
-  unsigned multipleAlternativeCount = Str.count('|') + 1;
+  unsigned const multipleAlternativeCount = Str.count('|') + 1;
   unsigned multipleAlternativeIndex = 0;
   ConstraintCodeVector *pCodes = &Codes;
 
@@ -145,7 +145,7 @@ bool InlineAsm::ConstraintInfo::Parse(StringRef Str,
       while (I != E && isdigit(static_cast<unsigned char>(*I)))
         ++I;
       pCodes->push_back(std::string(StringRef(NumStart, I - NumStart)));
-      unsigned N = atoi(pCodes->back().c_str());
+      unsigned const N = atoi(pCodes->back().c_str());
       // Check that this is a valid matching constraint!
       if (N >= ConstraintsSoFar.size() || ConstraintsSoFar[N].Type != isOutput||
           Type != isInput)
@@ -185,9 +185,9 @@ bool InlineAsm::ConstraintInfo::Parse(StringRef Str,
     } else if (*I == '@') {
       // Multi-letter constraint
       ++I;
-      unsigned char C = static_cast<unsigned char>(*I);
+      unsigned char const C = static_cast<unsigned char>(*I);
       assert(isdigit(C) && "Expected a digit!");
-      int N = C - '0';
+      int const N = C - '0';
       assert(N > 0 && "Found a zero letter constraint!");
       ++I;
       pCodes->push_back(std::string(StringRef(I, N)));
@@ -207,7 +207,7 @@ bool InlineAsm::ConstraintInfo::Parse(StringRef Str,
 void InlineAsm::ConstraintInfo::selectAlternative(unsigned index) {
   if (index < multipleAlternatives.size()) {
     currentAlternativeIndex = index;
-    InlineAsm::SubConstraintInfo &scInfo =
+    InlineAsm::SubConstraintInfo  const&scInfo =
       multipleAlternatives[currentAlternativeIndex];
     MatchingInput = scInfo.MatchingInput;
     Codes = scInfo.Codes;

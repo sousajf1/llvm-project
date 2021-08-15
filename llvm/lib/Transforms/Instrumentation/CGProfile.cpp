@@ -35,7 +35,7 @@ addModuleFlags(Module &M,
   std::vector<Metadata *> Nodes;
 
   for (auto E : Counts) {
-    Metadata *Vals[] = {ValueAsMetadata::get(E.first.first),
+    Metadata *const Vals[] = {ValueAsMetadata::get(E.first.first),
                         ValueAsMetadata::get(E.first.second),
                         MDB.createConstant(ConstantInt::get(
                             Type::getInt64Ty(Context), E.second))};

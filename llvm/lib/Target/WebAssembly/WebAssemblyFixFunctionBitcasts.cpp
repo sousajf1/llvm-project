@@ -256,14 +256,14 @@ bool FixFunctionBitcasts::runOnModule(Module &M) {
     if (F.getName() == "main") {
       Main = &F;
       LLVMContext &C = M.getContext();
-      Type *MainArgTys[] = {Type::getInt32Ty(C),
+      Type *const MainArgTys[] = {Type::getInt32Ty(C),
                             PointerType::get(Type::getInt8PtrTy(C), 0)};
       FunctionType *MainTy = FunctionType::get(Type::getInt32Ty(C), MainArgTys,
                                                /*isVarArg=*/false);
       if (shouldFixMainFunction(F.getFunctionType(), MainTy)) {
         LLVM_DEBUG(dbgs() << "Found `main` function with incorrect type: "
                           << *F.getFunctionType() << "\n");
-        Value *Args[] = {UndefValue::get(MainArgTys[0]),
+        Value *const Args[] = {UndefValue::get(MainArgTys[0]),
                          UndefValue::get(MainArgTys[1])};
         Value *Casted =
             ConstantExpr::getBitCast(Main, PointerType::get(MainTy, 0));

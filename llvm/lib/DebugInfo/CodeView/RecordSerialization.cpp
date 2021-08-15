@@ -35,7 +35,7 @@ StringRef llvm::codeview::getBytesAsCString(ArrayRef<uint8_t> LeafData) {
 
 Error llvm::codeview::consume(BinaryStreamReader &Reader, APSInt &Num) {
   // Used to avoid overload ambiguity on APInt constructor.
-  bool FalseVal = false;
+  bool const FalseVal = false;
   uint16_t Short;
   if (auto EC = Reader.readInteger(Short))
     return EC;
@@ -102,7 +102,7 @@ Error llvm::codeview::consume(BinaryStreamReader &Reader, APSInt &Num) {
 }
 
 Error llvm::codeview::consume(StringRef &Data, APSInt &Num) {
-  ArrayRef<uint8_t> Bytes(Data.bytes_begin(), Data.bytes_end());
+  ArrayRef<uint8_t> const Bytes(Data.bytes_begin(), Data.bytes_end());
   BinaryByteStream S(Bytes, llvm::support::little);
   BinaryStreamReader SR(S);
   auto EC = consume(SR, Num);
@@ -128,7 +128,7 @@ Error llvm::codeview::consume(BinaryStreamReader &Reader, uint32_t &Item) {
 }
 
 Error llvm::codeview::consume(StringRef &Data, uint32_t &Item) {
-  ArrayRef<uint8_t> Bytes(Data.bytes_begin(), Data.bytes_end());
+  ArrayRef<uint8_t> const Bytes(Data.bytes_begin(), Data.bytes_end());
   BinaryByteStream S(Bytes, llvm::support::little);
   BinaryStreamReader SR(S);
   auto EC = consume(SR, Item);

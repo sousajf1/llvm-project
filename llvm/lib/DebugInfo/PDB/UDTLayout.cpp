@@ -33,7 +33,7 @@ using namespace llvm::pdb;
 static std::unique_ptr<PDBSymbol> getSymbolType(const PDBSymbol &Symbol) {
   const IPDBSession &Session = Symbol.getSession();
   const IPDBRawSymbol &RawSymbol = Symbol.getRawSymbol();
-  uint32_t TypeId = RawSymbol.getTypeId();
+  uint32_t const TypeId = RawSymbol.getTypeId();
   return Session.getSymbolById(TypeId);
 }
 
@@ -59,7 +59,7 @@ uint32_t LayoutItemBase::deepPaddingSize() const {
 }
 
 uint32_t LayoutItemBase::tailPadding() const {
-  int Last = UsedBytes.find_last();
+  int const Last = UsedBytes.find_last();
 
   return UsedBytes.size() - (Last + 1);
 }
@@ -118,7 +118,7 @@ uint32_t UDTLayoutBase::tailPadding() const {
   uint32_t Abs = LayoutItemBase::tailPadding();
   if (!LayoutItems.empty()) {
     const LayoutItemBase *Back = LayoutItems.back();
-    uint32_t ChildPadding = Back->LayoutItemBase::tailPadding();
+    uint32_t const ChildPadding = Back->LayoutItemBase::tailPadding();
     if (Abs < ChildPadding)
       Abs = 0;
     else
@@ -132,7 +132,7 @@ ClassLayout::ClassLayout(const PDBSymbolTypeUDT &UDT)
       UDT(UDT) {
   ImmediateUsedBytes.resize(SizeOf, false);
   for (auto &LI : LayoutItems) {
-    uint32_t Begin = LI->getOffsetInParent();
+    uint32_t const Begin = LI->getOffsetInParent();
     uint32_t End = Begin + LI->getLayoutSize();
     End = std::min(SizeOf, End);
     ImmediateUsedBytes.set(Begin, End);
@@ -203,7 +203,7 @@ void UDTLayoutBase::initializeChildren(const PDBSymbol &Sym) {
   // add virtual bases.  This way the offsets are correctly aligned when we go
   // to lay out virtual bases.
   for (auto &Base : Bases) {
-    uint32_t Offset = Base->getOffset();
+    uint32_t const Offset = Base->getOffset();
     // Non-virtual bases never get elided.
     auto BL = std::make_unique<BaseClassLayout>(*this, Offset, false,
                                                  std::move(Base));
@@ -233,7 +233,7 @@ void UDTLayoutBase::initializeChildren(const PDBSymbol &Sym) {
   // overrides of virtual functions declared in a virtual base, so the VTables
   // and virtual intros need to be correctly initialized.
   for (auto &VB : VirtualBaseSyms) {
-    int VBPO = VB->getVirtualBasePointerOffset();
+    int const VBPO = VB->getVirtualBasePointerOffset();
     if (!hasVBPtrAtOffset(VBPO)) {
       if (auto VBP = VB->getRawSymbol().getVirtualBaseTableType()) {
         auto VBPL = std::make_unique<VBPtrLayoutItem>(*this, std::move(VBP),
@@ -247,8 +247,8 @@ void UDTLayoutBase::initializeChildren(const PDBSymbol &Sym) {
     // ended when writing something, and put our virtual base there.
     // Note that virtual bases get elided unless this is a top-most derived
     // class.
-    uint32_t Offset = UsedBytes.find_last() + 1;
-    bool Elide = (Parent != nullptr);
+    uint32_t const Offset = UsedBytes.find_last() + 1;
+    bool const Elide = (Parent != nullptr);
     auto BL =
         std::make_unique<BaseClassLayout>(*this, Offset, Elide, std::move(VB));
     AllBases.push_back(BL.get());
@@ -275,7 +275,7 @@ bool UDTLayoutBase::hasVBPtrAtOffset(uint32_t Off) const {
 }
 
 void UDTLayoutBase::addChildToLayout(std::unique_ptr<LayoutItemBase> Child) {
-  uint32_t Begin = Child->getOffsetInParent();
+  uint32_t const Begin = Child->getOffsetInParent();
 
   if (!Child->isElided()) {
     BitVector ChildBytes = Child->usedBytes();

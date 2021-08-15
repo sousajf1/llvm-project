@@ -32,10 +32,10 @@ void DWARFDebugAranges::extract(
       RecoverableErrorHandler(std::move(E));
       return;
     }
-    uint64_t CUOffset = Set.getCompileUnitDIEOffset();
+    uint64_t const CUOffset = Set.getCompileUnitDIEOffset();
     for (const auto &Desc : Set.descriptors()) {
-      uint64_t LowPC = Desc.Address;
-      uint64_t HighPC = Desc.getEndAddress();
+      uint64_t const LowPC = Desc.Address;
+      uint64_t const HighPC = Desc.getEndAddress();
       appendRange(CUOffset, LowPC, HighPC);
     }
     ParsedCUOffsets.insert(CUOffset);
@@ -48,7 +48,7 @@ void DWARFDebugAranges::generate(DWARFContext *CTX) {
     return;
 
   // Extract aranges from .debug_aranges section.
-  DWARFDataExtractor ArangesData(CTX->getDWARFObj().getArangesSection(),
+  DWARFDataExtractor const ArangesData(CTX->getDWARFObj().getArangesSection(),
                                  CTX->isLittleEndian(), 0);
   extract(ArangesData, CTX->getRecoverableErrorHandler());
 
@@ -56,7 +56,7 @@ void DWARFDebugAranges::generate(DWARFContext *CTX) {
   // it may describe only a small subset of compilation units, so we need to
   // manually build aranges for the rest of them.
   for (const auto &CU : CTX->compile_units()) {
-    uint64_t CUOffset = CU->getOffset();
+    uint64_t const CUOffset = CU->getOffset();
     if (ParsedCUOffsets.insert(CUOffset).second) {
       Expected<DWARFAddressRangesVector> CURanges = CU->collectAddressRanges();
       if (!CURanges)
@@ -119,7 +119,7 @@ void DWARFDebugAranges::construct() {
 }
 
 uint64_t DWARFDebugAranges::findAddress(uint64_t Address) const {
-  RangeCollIterator It =
+  RangeCollIterator const It =
       partition_point(Aranges, [=](Range R) { return R.HighPC() <= Address; });
   if (It != Aranges.end() && It->LowPC <= Address)
     return It->CUOffset;

@@ -130,7 +130,7 @@ AArch64A53Fix835769::runOnMachineFunction(MachineFunction &F) {
 static MachineBasicBlock *getBBFallenThrough(MachineBasicBlock *MBB,
                                              const TargetInstrInfo *TII) {
   // Get the previous machine basic block in the function.
-  MachineFunction::iterator MBBI(MBB);
+  MachineFunction::iterator const MBBI(MBB);
 
   // Can't go off top of function.
   if (MBBI == MBB->getParent()->begin())
@@ -175,11 +175,11 @@ static void insertNopBeforeInstruction(MachineBasicBlock &MBB, MachineInstr* MI,
   if (MI == &MBB.front()) {
     MachineInstr *I = getLastNonPseudo(MBB, TII);
     assert(I && "Expected instruction");
-    DebugLoc DL = I->getDebugLoc();
+    DebugLoc const DL = I->getDebugLoc();
     BuildMI(I->getParent(), DL, TII->get(AArch64::HINT)).addImm(0);
   }
   else {
-    DebugLoc DL = MI->getDebugLoc();
+    DebugLoc const DL = MI->getDebugLoc();
     BuildMI(MBB, MI, DL, TII->get(AArch64::HINT)).addImm(0);
   }
 

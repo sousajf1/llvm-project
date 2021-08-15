@@ -20,8 +20,8 @@ Target &llvm::getTheNVPTXTarget64() {
 }
 
 extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializeNVPTXTargetInfo() {
-  RegisterTarget<Triple::nvptx> X(getTheNVPTXTarget32(), "nvptx",
+  RegisterTarget<Triple::nvptx> const X(getTheNVPTXTarget32(), "nvptx",
                                   "NVIDIA PTX 32-bit", "NVPTX");
-  RegisterTarget<Triple::nvptx64> Y(getTheNVPTXTarget64(), "nvptx64",
+  RegisterTarget<Triple::nvptx64> const Y(getTheNVPTXTarget64(), "nvptx64",
                                     "NVIDIA PTX 64-bit", "NVPTX");
 }

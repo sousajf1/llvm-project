@@ -88,7 +88,7 @@ void AVRPassConfig::addIRPasses() {
 
 extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializeAVRTarget() {
   // Register the target.
-  RegisterTargetMachine<AVRTargetMachine> X(getTheAVRTarget());
+  RegisterTargetMachine<AVRTargetMachine> const X(getTheAVRTarget());
 
   auto &PR = *PassRegistry::getPassRegistry();
   initializeAVRExpandPseudoPass(PR);

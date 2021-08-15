@@ -147,7 +147,7 @@ static bool lowerRISCVVMachineInstrToMCInst(const MachineInstr *MI,
       MF->getSubtarget<RISCVSubtarget>().getRegisterInfo();
   assert(TRI && "TargetRegisterInfo expected");
 
-  uint64_t TSFlags = MI->getDesc().TSFlags;
+  uint64_t const TSFlags = MI->getDesc().TSFlags;
   unsigned NumOps = MI->getNumExplicitOperands();
 
   // Skip policy, VL and SEW operands which are the last operands if present.

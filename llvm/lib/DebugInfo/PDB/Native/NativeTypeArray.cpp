@@ -53,7 +53,7 @@ bool NativeTypeArray::isUnalignedType() const { return false; }
 bool NativeTypeArray::isVolatileType() const { return false; }
 
 uint32_t NativeTypeArray::getCount() const {
-  NativeRawSymbol &Element =
+  NativeRawSymbol  const&Element =
       Session.getSymbolCache().getNativeSymbolById(getTypeId());
   return getLength() / Element.getLength();
 }

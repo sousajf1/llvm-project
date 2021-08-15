@@ -426,7 +426,7 @@ void MCAsmStreamer::EmitCommentsAndEOL() {
   do {
     // Emit a line of comments.
     OS.PadToColumn(MAI->getCommentColumn());
-    size_t Position = Comments.find('\n');
+    size_t const Position = Comments.find('\n');
     OS << MAI->getCommentString() << ' ' << Comments.substr(0, Position) <<'\n';
 
     Comments = Comments.substr(Position+1);
@@ -448,7 +448,7 @@ void MCAsmStreamer::emitRawComment(const Twine &T, bool TabPrefix) {
 }
 
 void MCAsmStreamer::addExplicitComment(const Twine &T) {
-  StringRef c = T.getSingleStringRef();
+  StringRef const c = T.getSingleStringRef();
   if (c.equals(StringRef(MAI->getSeparatorString())))
     return;
   if (c.startswith(StringRef("//"))) {
@@ -460,7 +460,7 @@ void MCAsmStreamer::addExplicitComment(const Twine &T) {
     size_t p = 2, len = c.size() - 2;
     // emit each line in comment as separate newline.
     do {
-      size_t newp = std::min(len, c.find_first_of("\r\n", p));
+      size_t const newp = std::min(len, c.find_first_of("\r\n", p));
       ExplicitCommentToEmit.append("\t");
       ExplicitCommentToEmit.append(MAI->getCommentString());
       ExplicitCommentToEmit.append(c.slice(p, newp).str());
@@ -485,7 +485,7 @@ void MCAsmStreamer::addExplicitComment(const Twine &T) {
 }
 
 void MCAsmStreamer::emitExplicitComments() {
-  StringRef Comments = ExplicitCommentToEmit;
+  StringRef const Comments = ExplicitCommentToEmit;
   if (!Comments.empty())
     OS << Comments;
   ExplicitCommentToEmit.clear();
@@ -523,10 +523,10 @@ void MCAsmStreamer::emitLabel(MCSymbol *Symbol, SMLoc Loc) {
 }
 
 void MCAsmStreamer::emitLOHDirective(MCLOHType Kind, const MCLOHArgs &Args) {
-  StringRef str = MCLOHIdToName(Kind);
+  StringRef const str = MCLOHIdToName(Kind);
 
 #ifndef NDEBUG
-  int NbArgs = MCLOHIdToNbArgs(Kind);
+  int const NbArgs = MCLOHIdToNbArgs(Kind);
   assert(NbArgs != -1 && ((size_t)NbArgs) == Args.size() && "Malformed LOH!");
   assert(str != "" && "Invalid LOH name");
 #endif
@@ -899,7 +899,7 @@ void MCAsmStreamer::emitXCOFFRenameDirective(const MCSymbol *Name,
   Name->print(OS, MAI);
   const char DQ = '"';
   OS << ',' << DQ;
-  for (char C : Rename) {
+  for (char const C : Rename) {
     // To escape a double quote character, the character should be doubled.
     if (C == DQ)
       OS << DQ;
@@ -1070,7 +1070,7 @@ void MCAsmStreamer::PrintQuotedString(StringRef Data, raw_ostream &OS) const {
 
   if (MAI->hasPairedDoubleQuoteStringConstants()) {
     for (unsigned i = 0, e = Data.size(); i != e; ++i) {
-      unsigned char C = Data[i];
+      unsigned char const C = Data[i];
       if (C == '"')
         OS << "\"\"";
       else
@@ -1078,7 +1078,7 @@ void MCAsmStreamer::PrintQuotedString(StringRef Data, raw_ostream &OS) const {
     }
   } else {
     for (unsigned i = 0, e = Data.size(); i != e; ++i) {
-      unsigned char C = Data[i];
+      unsigned char const C = Data[i];
       if (C == '"' || C == '\\') {
         OS << '\\' << (char)C;
         continue;
@@ -1227,21 +1227,21 @@ void MCAsmStreamer::emitValueImpl(const MCExpr *Value, unsigned Size,
     // the request down into several, smaller, integers.
     // Since sizes greater or equal to "Size" are invalid, we use the greatest
     // power of 2 that is less than "Size" as our largest piece of granularity.
-    bool IsLittleEndian = MAI->isLittleEndian();
+    bool const IsLittleEndian = MAI->isLittleEndian();
     for (unsigned Emitted = 0; Emitted != Size;) {
-      unsigned Remaining = Size - Emitted;
+      unsigned const Remaining = Size - Emitted;
       // The size of our partial emission must be a power of two less than
       // Size.
-      unsigned EmissionSize = PowerOf2Floor(std::min(Remaining, Size - 1));
+      unsigned const EmissionSize = PowerOf2Floor(std::min(Remaining, Size - 1));
       // Calculate the byte offset of our partial emission taking into account
       // the endianness of the target.
-      unsigned ByteOffset =
+      unsigned const ByteOffset =
           IsLittleEndian ? Emitted : (Remaining - EmissionSize);
       uint64_t ValueToEmit = IntValue >> (ByteOffset * 8);
       // We truncate our partial emission to fit within the bounds of the
       // emission domain.  This produces nicer output and silences potential
       // truncation warnings when round tripping through another assembler.
-      uint64_t Shift = 64 - EmissionSize * 8;
+      uint64_t const Shift = 64 - EmissionSize * 8;
       assert(Shift < static_cast<uint64_t>(
                          std::numeric_limits<unsigned long long>::digits) &&
              "undefined behavior");
@@ -1511,7 +1511,7 @@ Expected<unsigned> MCAsmStreamer::tryEmitDwarfFileDirective(
   assert(CUID == 0 && "multiple CUs not supported by MCAsmStreamer");
 
   MCDwarfLineTable &Table = getContext().getMCDwarfLineTable(CUID);
-  unsigned NumFiles = Table.getMCDwarfFiles().size();
+  unsigned const NumFiles = Table.getMCDwarfFiles().size();
   Expected<unsigned> FileNoOrErr =
       Table.tryGetFile(Directory, Filename, Checksum, Source,
                        getContext().getDwarfVersion(), FileNo);
@@ -1590,7 +1590,7 @@ void MCAsmStreamer::emitDwarfLocDirective(unsigned FileNo, unsigned Line,
     if (Flags & DWARF2_FLAG_EPILOGUE_BEGIN)
       OS << " epilogue_begin";
 
-    unsigned OldFlags = getContext().getCurrentDwarfLoc().getFlags();
+    unsigned const OldFlags = getContext().getCurrentDwarfLoc().getFlags();
     if ((Flags & DWARF2_FLAG_IS_STMT) != (OldFlags & DWARF2_FLAG_IS_STMT)) {
       OS << " is_stmt ";
 
@@ -1714,7 +1714,7 @@ void MCAsmStreamer::emitCVInlineLinetableDirective(unsigned PrimaryFunctionId,
 void MCAsmStreamer::PrintCVDefRangePrefix(
     ArrayRef<std::pair<const MCSymbol *, const MCSymbol *>> Ranges) {
   OS << "\t.cv_def_range\t";
-  for (std::pair<const MCSymbol *, const MCSymbol *> Range : Ranges) {
+  for (std::pair<const MCSymbol *, const MCSymbol *> const Range : Ranges) {
     OS << ' ';
     Range.first->print(OS, MAI);
     OS << ' ';
@@ -1855,7 +1855,7 @@ void MCAsmStreamer::emitCFILLVMDefAspaceCfa(int64_t Register, int64_t Offset,
 static void PrintCFIEscape(llvm::formatted_raw_ostream &OS, StringRef Values) {
   OS << "\t.cfi_escape ";
   if (!Values.empty()) {
-    size_t e = Values.size() - 1;
+    size_t const e = Values.size() - 1;
     for (size_t i = 0; i < e; ++i)
       OS << format("0x%02x", uint8_t(Values[i])) << ", ";
     OS << format("0x%02x", uint8_t(Values[e]));
@@ -1872,7 +1872,7 @@ void MCAsmStreamer::emitCFIGnuArgsSize(int64_t Size) {
   MCStreamer::emitCFIGnuArgsSize(Size);
 
   uint8_t Buffer[16] = { dwarf::DW_CFA_GNU_args_size };
-  unsigned Len = encodeULEB128(Size, Buffer + 1) + 1;
+  unsigned const Len = encodeULEB128(Size, Buffer + 1) + 1;
 
   PrintCFIEscape(OS, StringRef((const char *)&Buffer[0], Len));
   EmitEOL();
@@ -2160,11 +2160,11 @@ void MCAsmStreamer::AddEncodingComment(const MCInst &Inst,
     FixupMap[i] = 0;
 
   for (unsigned i = 0, e = Fixups.size(); i != e; ++i) {
-    MCFixup &F = Fixups[i];
+    MCFixup  const&F = Fixups[i];
     const MCFixupKindInfo &Info =
         getAssembler().getBackend().getFixupKindInfo(F.getKind());
     for (unsigned j = 0; j != Info.TargetSize; ++j) {
-      unsigned Index = F.getOffset() * 8 + Info.TargetOffset + j;
+      unsigned const Index = F.getOffset() * 8 + Info.TargetOffset + j;
       assert(Index < Code.size() * 8 && "Invalid offset in fixup!");
       FixupMap[Index] = 1 + i;
     }
@@ -2202,7 +2202,7 @@ void MCAsmStreamer::AddEncodingComment(const MCInst &Inst,
       // Otherwise, write out in binary.
       OS << "0b";
       for (unsigned j = 8; j--;) {
-        unsigned Bit = (Code[i] >> j) & 1;
+        unsigned const Bit = (Code[i] >> j) & 1;
 
         unsigned FixupBit;
         if (MAI->isLittleEndian())
@@ -2210,7 +2210,7 @@ void MCAsmStreamer::AddEncodingComment(const MCInst &Inst,
         else
           FixupBit = i * 8 + (7-j);
 
-        if (uint8_t MapEntry = FixupMap[FixupBit]) {
+        if (uint8_t const MapEntry = FixupMap[FixupBit]) {
           assert(Bit == 0 && "Encoder wrote into fixed up bit!");
           OS << char('A' + MapEntry - 1);
         } else
@@ -2221,7 +2221,7 @@ void MCAsmStreamer::AddEncodingComment(const MCInst &Inst,
   OS << "]\n";
 
   for (unsigned i = 0, e = Fixups.size(); i != e; ++i) {
-    MCFixup &F = Fixups[i];
+    MCFixup  const&F = Fixups[i];
     const MCFixupKindInfo &Info =
         getAssembler().getBackend().getFixupKindInfo(F.getKind());
     OS << "  fixup " << char('A' + i) << " - " << "offset: " << F.getOffset()
@@ -2253,7 +2253,7 @@ void MCAsmStreamer::emitInstruction(const MCInst &Inst,
   else
     InstPrinter->printInst(&Inst, 0, "", STI, OS);
 
-  StringRef Comments = CommentToEmit;
+  StringRef const Comments = CommentToEmit;
   if (Comments.size() && Comments.back() != '\n')
     GetCommentOS() << "\n";
 
@@ -2390,7 +2390,7 @@ void MCAsmStreamer::emitDwarfLineStartLabel(MCSymbol *StartSym) {
 
     // Adjust the outer reference to account for the offset introduced by the
     // inserted length field.
-    unsigned LengthFieldSize =
+    unsigned const LengthFieldSize =
         dwarf::getUnitLengthFieldByteSize(Ctx.getDwarfFormat());
     const MCExpr *EntrySize = MCConstantExpr::create(LengthFieldSize, Ctx);
     const MCExpr *OuterSym = MCBinaryExpr::createSub(

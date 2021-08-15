@@ -109,7 +109,7 @@ PPCMCExpr::evaluateAsRelocatableImpl(MCValue &Res,
     return false;
 
   if (Value.isAbsolute()) {
-    int64_t Result = evaluateAsInt64(Value.getConstant());
+    int64_t const Result = evaluateAsInt64(Value.getConstant());
     if ((Fixup == nullptr || (unsigned)Fixup->getKind() != PPC::fixup_ppc_half16) &&
         (Result >= 0x8000))
       return false;

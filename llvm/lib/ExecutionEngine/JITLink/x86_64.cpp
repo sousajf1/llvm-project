@@ -90,10 +90,10 @@ Error optimize_x86_64_GOTAndStubs(LinkGraph &G) {
                "GOT entry should only have one outgoing edge");
 
         auto &GOTTarget = GOTBlock.edges().begin()->getTarget();
-        JITTargetAddress EdgeAddr = B->getAddress() + E.getOffset();
-        JITTargetAddress TargetAddr = GOTTarget.getAddress();
+        JITTargetAddress const EdgeAddr = B->getAddress() + E.getOffset();
+        JITTargetAddress const TargetAddr = GOTTarget.getAddress();
 
-        int64_t Displacement = TargetAddr - EdgeAddr + 4;
+        int64_t const Displacement = TargetAddr - EdgeAddr + 4;
         if (isInRangeForImmS32(Displacement)) {
           // Change the edge kind as we don't go through GOT anymore. This is
           // for formal correctness only. Technically, the two relocation kinds
@@ -124,10 +124,10 @@ Error optimize_x86_64_GOTAndStubs(LinkGraph &G) {
                "GOT block should only have one outgoing edge");
 
         auto &GOTTarget = GOTBlock.edges().begin()->getTarget();
-        JITTargetAddress EdgeAddr = B->getAddress() + E.getOffset();
-        JITTargetAddress TargetAddr = GOTTarget.getAddress();
+        JITTargetAddress const EdgeAddr = B->getAddress() + E.getOffset();
+        JITTargetAddress const TargetAddr = GOTTarget.getAddress();
 
-        int64_t Displacement = TargetAddr - EdgeAddr + 4;
+        int64_t const Displacement = TargetAddr - EdgeAddr + 4;
         if (isInRangeForImmS32(Displacement)) {
           E.setKind(x86_64::BranchPCRel32);
           E.setTarget(GOTTarget);

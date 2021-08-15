@@ -176,7 +176,7 @@ void ARMTargetAsmStreamer::switchVendor(StringRef Vendor) {}
 void ARMTargetAsmStreamer::emitAttribute(unsigned Attribute, unsigned Value) {
   OS << "\t.eabi_attribute\t" << Attribute << ", " << Twine(Value);
   if (IsVerboseAsm) {
-    StringRef Name = ELFAttrs::attrTypeAsString(
+    StringRef const Name = ELFAttrs::attrTypeAsString(
         Attribute, ARMBuildAttrs::getARMAttributeTags());
     if (!Name.empty())
       OS << "\t@ " << Name;
@@ -193,7 +193,7 @@ void ARMTargetAsmStreamer::emitTextAttribute(unsigned Attribute,
   default:
     OS << "\t.eabi_attribute\t" << Attribute << ", \"" << String << "\"";
     if (IsVerboseAsm) {
-      StringRef Name = ELFAttrs::attrTypeAsString(
+      StringRef const Name = ELFAttrs::attrTypeAsString(
           Attribute, ARMBuildAttrs::getARMAttributeTags());
       if (!Name.empty())
         OS << "\t@ " << Name;
@@ -494,12 +494,12 @@ public:
   /// is not expected to occur in practice and handling it would require the
   /// backend to track IsThumb for every label.
   bool emitSymbolAttribute(MCSymbol *Symbol, MCSymbolAttr Attribute) override {
-    bool Val = MCELFStreamer::emitSymbolAttribute(Symbol, Attribute);
+    bool const Val = MCELFStreamer::emitSymbolAttribute(Symbol, Attribute);
 
     if (!IsThumb)
       return Val;
 
-    unsigned Type = cast<MCSymbolELF>(Symbol)->getType();
+    unsigned const Type = cast<MCSymbolELF>(Symbol)->getType();
     if ((Type == ELF::STT_FUNC || Type == ELF::STT_GNU_IFUNC) &&
         Symbol->isDefined())
       getAssembler().setIsThumbFunc(Symbol);
@@ -977,7 +977,7 @@ void ARMTargetELFStreamer::emitLabel(MCSymbol *Symbol) {
     return;
 
   Streamer.getAssembler().registerSymbol(*Symbol);
-  unsigned Type = cast<MCSymbolELF>(Symbol)->getType();
+  unsigned const Type = cast<MCSymbolELF>(Symbol)->getType();
   if (Type == ELF::STT_FUNC || Type == ELF::STT_GNU_IFUNC)
     Streamer.emitThumbFunc(Symbol);
 }
@@ -1037,7 +1037,7 @@ inline void ARMELFStreamer::SwitchToEHSection(StringRef Prefix,
     static_cast<const MCSectionELF &>(Fn.getSection());
 
   // Create the name for new section
-  StringRef FnSecName(FnSection.getName());
+  StringRef const FnSecName(FnSection.getName());
   SmallString<128> EHSecName(Prefix);
   if (FnSecName != ".text") {
     EHSecName += FnSecName;
@@ -1140,7 +1140,7 @@ void ARMELFStreamer::emitFnEnd() {
            "Compact model must use __aeabi_unwind_cpp_pr0 as personality");
     assert(Opcodes.size() == 4u &&
            "Unwind opcode size for __aeabi_unwind_cpp_pr0 must be equal to 4");
-    uint64_t Intval = Opcodes[0] |
+    uint64_t const Intval = Opcodes[0] |
                       Opcodes[1] << 8 |
                       Opcodes[2] << 16 |
                       Opcodes[3] << 24;
@@ -1181,7 +1181,7 @@ void ARMELFStreamer::FlushUnwindOpcodes(bool NoHandlerData) {
   // Emit the unwind opcode to restore $sp.
   if (UsedFP) {
     const MCRegisterInfo *MRI = getContext().getRegisterInfo();
-    int64_t LastRegSaveSPOffset = SPOffset - PendingOffset;
+    int64_t const LastRegSaveSPOffset = SPOffset - PendingOffset;
     UnwindOpAsm.EmitSPOffset(LastRegSaveSPOffset - FPOffset);
     UnwindOpAsm.EmitSetSP(MRI->getEncodingValue(FPReg));
   } else {
@@ -1219,7 +1219,7 @@ void ARMELFStreamer::FlushUnwindOpcodes(bool NoHandlerData) {
   assert((Opcodes.size() % 4) == 0 &&
          "Unwind opcode size for __aeabi_cpp_unwind_pr0 must be multiple of 4");
   for (unsigned I = 0; I != Opcodes.size(); I += 4) {
-    uint64_t Intval = Opcodes[I] |
+    uint64_t const Intval = Opcodes[I] |
                       Opcodes[I + 1] << 8 |
                       Opcodes[I + 2] << 16 |
                       Opcodes[I + 3] << 24;
@@ -1293,9 +1293,9 @@ void ARMELFStreamer::emitRegSave(const SmallVectorImpl<unsigned> &RegList,
   uint32_t Mask = 0;
   const MCRegisterInfo *MRI = getContext().getRegisterInfo();
   for (size_t i = 0; i < RegList.size(); ++i) {
-    unsigned Reg = MRI->getEncodingValue(RegList[i]);
+    unsigned const Reg = MRI->getEncodingValue(RegList[i]);
     assert(Reg < (IsVector ? 32U : 16U) && "Register out of range");
-    unsigned Bit = (1u << Reg);
+    unsigned const Bit = (1u << Reg);
     if ((Mask & Bit) == 0) {
       Mask |= Bit;
       ++Count;

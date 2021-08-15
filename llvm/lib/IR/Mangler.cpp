@@ -34,7 +34,7 @@ static void getNameWithPrefixImpl(raw_ostream &OS, const Twine &GVName,
                                   ManglerPrefixTy PrefixTy,
                                   const DataLayout &DL, char Prefix) {
   SmallString<256> TmpData;
-  StringRef Name = GVName.toStringRef(TmpData);
+  StringRef const Name = GVName.toStringRef(TmpData);
   assert(!Name.empty() && "getNameWithPrefix requires non-empty name");
 
   // No need to do anything special if the global has the special "do not
@@ -62,7 +62,7 @@ static void getNameWithPrefixImpl(raw_ostream &OS, const Twine &GVName,
 static void getNameWithPrefixImpl(raw_ostream &OS, const Twine &GVName,
                                   const DataLayout &DL,
                                   ManglerPrefixTy PrefixTy) {
-  char Prefix = DL.getGlobalPrefix();
+  char const Prefix = DL.getGlobalPrefix();
   return getNameWithPrefixImpl(OS, GVName, PrefixTy, DL, Prefix);
 }
 
@@ -74,7 +74,7 @@ void Mangler::getNameWithPrefix(raw_ostream &OS, const Twine &GVName,
 void Mangler::getNameWithPrefix(SmallVectorImpl<char> &OutName,
                                 const Twine &GVName, const DataLayout &DL) {
   raw_svector_ostream OS(OutName);
-  char Prefix = DL.getGlobalPrefix();
+  char const Prefix = DL.getGlobalPrefix();
   return getNameWithPrefixImpl(OS, GVName, Default, DL, Prefix);
 }
 
@@ -100,7 +100,7 @@ static void addByteCountSuffix(raw_ostream &OS, const Function *F,
 
   for (const Argument &A : F->args()) {
     // 'Dereference' type in case of byval or inalloca parameter attribute.
-    uint64_t AllocSize = A.hasPassPointeeByValueCopyAttr() ?
+    uint64_t const AllocSize = A.hasPassPointeeByValueCopyAttr() ?
       A.getPassPointeeByValueCopySize(DL) :
       DL.getTypeAllocSize(A.getType());
 
@@ -134,7 +134,7 @@ void Mangler::getNameWithPrefix(raw_ostream &OS, const GlobalValue *GV,
     return;
   }
 
-  StringRef Name = GV->getName();
+  StringRef const Name = GV->getName();
   char Prefix = DL.getGlobalPrefix();
 
   // Mangle functions with Microsoft calling conventions specially.  Only do
@@ -147,7 +147,7 @@ void Mangler::getNameWithPrefix(raw_ostream &OS, const GlobalValue *GV,
       (DL.doNotMangleLeadingQuestionMark() && Name.startswith("?")))
     MSFunc = nullptr;
 
-  CallingConv::ID CC =
+  CallingConv::ID const CC =
       MSFunc ? MSFunc->getCallingConv() : (unsigned)CallingConv::C;
   if (!DL.hasMicrosoftFastStdCallMangling() &&
       CC != CallingConv::X86_VectorCall)
@@ -195,7 +195,7 @@ static bool canBeUnquotedInDirective(StringRef Name) {
 
   // If any of the characters in the string is an unacceptable character, force
   // quotes.
-  for (char C : Name) {
+  for (char const C : Name) {
     if (!canBeUnquotedInDirective(C))
       return false;
   }
@@ -213,7 +213,7 @@ void llvm::emitLinkerFlagsForGlobalCOFF(raw_ostream &OS, const GlobalValue *GV,
   else
     OS << " -export:";
 
-  bool NeedQuotes = GV->hasName() && !canBeUnquotedInDirective(GV->getName());
+  bool const NeedQuotes = GV->hasName() && !canBeUnquotedInDirective(GV->getName());
   if (NeedQuotes)
     OS << "\"";
   if (TT.isWindowsGNUEnvironment() || TT.isWindowsCygwinEnvironment()) {
@@ -245,7 +245,7 @@ void llvm::emitLinkerFlagsForUsedCOFF(raw_ostream &OS, const GlobalValue *GV,
     return;
 
   OS << " /INCLUDE:";
-  bool NeedQuotes = GV->hasName() && !canBeUnquotedInDirective(GV->getName());
+  bool const NeedQuotes = GV->hasName() && !canBeUnquotedInDirective(GV->getName());
   if (NeedQuotes)
     OS << "\"";
   M.getNameWithPrefix(OS, GV, false);

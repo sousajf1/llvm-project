@@ -523,7 +523,7 @@ void MemCmpExpansion::emitMemCmpResultBlock() {
   // Special case: if memcmp result is used in a zero equality, result does not
   // need to be calculated and can simply return 1.
   if (IsUsedForZeroCmp) {
-    BasicBlock::iterator InsertPt = ResBlock.BB->getFirstInsertionPt();
+    BasicBlock::iterator const InsertPt = ResBlock.BB->getFirstInsertionPt();
     Builder.SetInsertPoint(ResBlock.BB, InsertPt);
     Value *Res = ConstantInt::get(Type::getInt32Ty(CI->getContext()), 1);
     PhiRes->addIncoming(Res, ResBlock.BB);
@@ -533,7 +533,7 @@ void MemCmpExpansion::emitMemCmpResultBlock() {
       DTU->applyUpdates({{DominatorTree::Insert, ResBlock.BB, EndBlock}});
     return;
   }
-  BasicBlock::iterator InsertPt = ResBlock.BB->getFirstInsertionPt();
+  BasicBlock::iterator const InsertPt = ResBlock.BB->getFirstInsertionPt();
   Builder.SetInsertPoint(ResBlock.BB, InsertPt);
 
   Value *Cmp = Builder.CreateICmp(ICmpInst::ICMP_ULT, ResBlock.PhiSrc1,
@@ -591,7 +591,7 @@ Value *MemCmpExpansion::getMemCmpEqZeroOneBlock() {
 /// the compare, branch, and phi IR that is required in the general case.
 Value *MemCmpExpansion::getMemCmpOneBlock() {
   Type *LoadSizeType = IntegerType::get(CI->getContext(), Size * 8);
-  bool NeedsBSwap = DL.isLittleEndian() && Size != 1;
+  bool const NeedsBSwap = DL.isLittleEndian() && Size != 1;
 
   // The i8 and i16 cases don't need compares. We zext the loaded values and
   // subtract them to get the suitable negative, zero, or positive i32 result.
@@ -759,7 +759,7 @@ static bool expandMemCmp(CallInst *CI, const TargetTransformInfo *TTI,
   // TTI call to check if target would like to expand memcmp. Also, get the
   // available load sizes.
   const bool IsUsedForZeroCmp = isOnlyUsedInZeroEqualityComparison(CI);
-  bool OptForSize = CI->getFunction()->hasOptSize() ||
+  bool const OptForSize = CI->getFunction()->hasOptSize() ||
                     llvm::shouldOptimizeForSize(CI->getParent(), PSI, BFI);
   auto Options = TTI->enableMemCmpExpansion(OptForSize,
                                             IsUsedForZeroCmp);

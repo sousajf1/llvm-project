@@ -85,7 +85,7 @@ void DeadCodeElimination::scanInstr(NodeAddr<InstrNode*> IA,
     return;
   if (!isLiveInstr(NodeAddr<StmtNode*>(IA).Addr->getCode()))
     return;
-  for (NodeAddr<RefNode*> RA : IA.Addr->members(DFG)) {
+  for (NodeAddr<RefNode*> const RA : IA.Addr->members(DFG)) {
     if (!LiveNodes.count(RA.Id))
       WorkQ.push_back(RA.Id);
   }
@@ -93,18 +93,18 @@ void DeadCodeElimination::scanInstr(NodeAddr<InstrNode*> IA,
 
 void DeadCodeElimination::processDef(NodeAddr<DefNode*> DA,
       SetQueue<NodeId> &WorkQ) {
-  NodeAddr<InstrNode*> IA = DA.Addr->getOwner(DFG);
-  for (NodeAddr<UseNode*> UA : IA.Addr->members_if(DFG.IsUse, DFG)) {
+  NodeAddr<InstrNode*> const IA = DA.Addr->getOwner(DFG);
+  for (NodeAddr<UseNode*> const UA : IA.Addr->members_if(DFG.IsUse, DFG)) {
     if (!LiveNodes.count(UA.Id))
       WorkQ.push_back(UA.Id);
   }
-  for (NodeAddr<DefNode*> TA : DFG.getRelatedRefs(IA, DA))
+  for (NodeAddr<DefNode*> const TA : DFG.getRelatedRefs(IA, DA))
     LiveNodes.insert(TA.Id);
 }
 
 void DeadCodeElimination::processUse(NodeAddr<UseNode*> UA,
       SetQueue<NodeId> &WorkQ) {
-  for (NodeAddr<DefNode*> DA : LV.getAllReachingDefs(UA)) {
+  for (NodeAddr<DefNode*> const DA : LV.getAllReachingDefs(UA)) {
     if (!LiveNodes.count(DA.Id))
       WorkQ.push_back(DA.Id);
   }
@@ -125,12 +125,12 @@ bool DeadCodeElimination::collect() {
   // defs are considered live.
   LiveNodes.clear();
   SetQueue<NodeId> WorkQ;
-  for (NodeAddr<BlockNode*> BA : DFG.getFunc().Addr->members(DFG))
-    for (NodeAddr<InstrNode*> IA : BA.Addr->members(DFG))
+  for (NodeAddr<BlockNode*> const BA : DFG.getFunc().Addr->members(DFG))
+    for (NodeAddr<InstrNode*> const IA : BA.Addr->members(DFG))
       scanInstr(IA, WorkQ);
 
   while (!WorkQ.empty()) {
-    NodeId N = WorkQ.pop_front();
+    NodeId const N = WorkQ.pop_front();
     LiveNodes.insert(N);
     auto RA = DFG.addr<RefNode*>(N);
     if (DFG.IsDef(RA))
@@ -141,22 +141,22 @@ bool DeadCodeElimination::collect() {
 
   if (trace()) {
     dbgs() << "Live nodes:\n";
-    for (NodeId N : LiveNodes) {
+    for (NodeId const N : LiveNodes) {
       auto RA = DFG.addr<RefNode*>(N);
       dbgs() << PrintNode<RefNode*>(RA, DFG) << "\n";
     }
   }
 
   auto IsDead = [this] (NodeAddr<InstrNode*> IA) -> bool {
-    for (NodeAddr<DefNode*> DA : IA.Addr->members_if(DFG.IsDef, DFG))
+    for (NodeAddr<DefNode*> const DA : IA.Addr->members_if(DFG.IsDef, DFG))
       if (LiveNodes.count(DA.Id))
         return false;
     return true;
   };
 
-  for (NodeAddr<BlockNode*> BA : DFG.getFunc().Addr->members(DFG)) {
-    for (NodeAddr<InstrNode*> IA : BA.Addr->members(DFG)) {
-      for (NodeAddr<RefNode*> RA : IA.Addr->members(DFG))
+  for (NodeAddr<BlockNode*> const BA : DFG.getFunc().Addr->members(DFG)) {
+    for (NodeAddr<InstrNode*> const IA : BA.Addr->members(DFG)) {
+      for (NodeAddr<RefNode*> const RA : IA.Addr->members(DFG))
         if (!LiveNodes.count(RA.Id))
           DeadNodes.insert(RA.Id);
       if (DFG.IsCode<NodeAttrs::Stmt>(IA))
@@ -186,14 +186,14 @@ bool DeadCodeElimination::erase(const SetVector<NodeId> &Nodes) {
   NodeList DRNs, DINs;
   for (auto I : Nodes) {
     auto BA = DFG.addr<NodeBase*>(I);
-    uint16_t Type = BA.Addr->getType();
+    uint16_t const Type = BA.Addr->getType();
     if (Type == NodeAttrs::Ref) {
       DRNs.push_back(DFG.addr<RefNode*>(I));
       continue;
     }
 
     // If it's a code node, add all ref nodes from it.
-    uint16_t Kind = BA.Addr->getKind();
+    uint16_t const Kind = BA.Addr->getKind();
     if (Kind == NodeAttrs::Stmt || Kind == NodeAttrs::Phi) {
       append_range(DRNs, NodeAddr<CodeNode*>(BA).Addr->members(DFG));
       DINs.push_back(DFG.addr<InstrNode*>(I));
@@ -217,7 +217,7 @@ bool DeadCodeElimination::erase(const SetVector<NodeId> &Nodes) {
 
   if (trace())
     dbgs() << "Removing dead ref nodes:\n";
-  for (NodeAddr<RefNode*> RA : DRNs) {
+  for (NodeAddr<RefNode*> const RA : DRNs) {
     if (trace())
       dbgs() << "  " << PrintNode<RefNode*>(RA, DFG) << '\n';
     if (DFG.IsUse(RA))

@@ -273,7 +273,7 @@ void DwarfUnit::addString(DIE &Die, dwarf::Attribute Attribute,
   // For DWARF v5 and beyond, use the smallest strx? form possible.
   if (useSegmentedStringOffsetsTable()) {
     IxForm = dwarf::DW_FORM_strx1;
-    unsigned Index = StringPoolEntry.getIndex();
+    unsigned const Index = StringPoolEntry.getIndex();
     if (Index > 0xffffff)
       IxForm = dwarf::DW_FORM_strx4;
     else if (Index > 0xffff)
@@ -312,14 +312,14 @@ unsigned DwarfTypeUnit::getOrCreateSourceID(const DIFile *File) {
 }
 
 void DwarfUnit::addPoolOpAddress(DIEValueList &Die, const MCSymbol *Label) {
-  bool UseAddrOffsetFormOrExpressions =
+  bool const UseAddrOffsetFormOrExpressions =
       DD->useAddrOffsetForm() || DD->useAddrOffsetExpressions();
 
   const MCSymbol *Base = nullptr;
   if (Label->isInSection() && UseAddrOffsetFormOrExpressions)
     Base = DD->getSectionLabel(&Label->getSection());
 
-  uint32_t Index = DD->getAddressPool().getIndex(Base ? Base : Label);
+  uint32_t const Index = DD->getAddressPool().getIndex(Base ? Base : Label);
 
   if (DD->getDwarfVersion() >= 5) {
     addUInt(Die, dwarf::DW_FORM_data1, dwarf::DW_OP_addrx);
@@ -415,7 +415,7 @@ void DwarfUnit::addSourceLine(DIE &Die, unsigned Line, const DIFile *File) {
   if (Line == 0)
     return;
 
-  unsigned FileID = getOrCreateSourceID(File);
+  unsigned const FileID = getOrCreateSourceID(File);
   addUInt(Die, dwarf::DW_AT_decl_file, None, FileID);
   addUInt(Die, dwarf::DW_AT_decl_line, None, Line);
 }
@@ -482,7 +482,7 @@ void DwarfUnit::addConstantValue(DIE &Die, const APInt &Val, const DIType *Ty) {
 }
 
 void DwarfUnit::addConstantValue(DIE &Die, const APInt &Val, bool Unsigned) {
-  unsigned CIBitWidth = Val.getBitWidth();
+  unsigned const CIBitWidth = Val.getBitWidth();
   if (CIBitWidth <= 64) {
     addConstantValue(Die, Unsigned,
                      Unsigned ? Val.getZExtValue() : Val.getSExtValue());
@@ -494,8 +494,8 @@ void DwarfUnit::addConstantValue(DIE &Die, const APInt &Val, bool Unsigned) {
   // Get the raw data form of the large APInt.
   const uint64_t *Ptr64 = Val.getRawData();
 
-  int NumBytes = Val.getBitWidth() / 8; // 8 bits per byte.
-  bool LittleEndian = Asm->getDataLayout().isLittleEndian();
+  int const NumBytes = Val.getBitWidth() / 8; // 8 bits per byte.
+  bool const LittleEndian = Asm->getDataLayout().isLittleEndian();
 
   // Output the constant to DWARF one byte at a time.
   for (int i = 0; i < NumBytes; i++) {
@@ -635,7 +635,7 @@ void DwarfUnit::updateAcceleratorTables(const DIScope *Context,
       // non-negative value is some version of Objective-C/C++.
       IsImplementation = CT->getRuntimeLang() == 0 || CT->isObjcClassComplete();
     }
-    unsigned Flags = IsImplementation ? dwarf::DW_FLAG_type_implementation : 0;
+    unsigned const Flags = IsImplementation ? dwarf::DW_FLAG_type_implementation : 0;
     DD->addAccelType(*CUNode, Ty->getName(), TyDIE, Flags);
 
     if (!Context || isa<DICompileUnit>(Context) || isa<DIFile>(Context) ||
@@ -686,7 +686,7 @@ std::string DwarfUnit::getParentContextString(const DIScope *Context) const {
 
 void DwarfUnit::constructTypeDIE(DIE &Buffer, const DIBasicType *BTy) {
   // Get core information.
-  StringRef Name = BTy->getName();
+  StringRef const Name = BTy->getName();
   // Add name if not anonymous or intermediate type.
   if (!Name.empty())
     addString(Buffer, dwarf::DW_AT_name, Name);
@@ -699,7 +699,7 @@ void DwarfUnit::constructTypeDIE(DIE &Buffer, const DIBasicType *BTy) {
     addUInt(Buffer, dwarf::DW_AT_encoding, dwarf::DW_FORM_data1,
             BTy->getEncoding());
 
-  uint64_t Size = BTy->getSizeInBits() >> 3;
+  uint64_t const Size = BTy->getSizeInBits() >> 3;
   addUInt(Buffer, dwarf::DW_AT_byte_size, None, Size);
 
   if (BTy->isBigEndian())
@@ -710,7 +710,7 @@ void DwarfUnit::constructTypeDIE(DIE &Buffer, const DIBasicType *BTy) {
 
 void DwarfUnit::constructTypeDIE(DIE &Buffer, const DIStringType *STy) {
   // Get core information.
-  StringRef Name = STy->getName();
+  StringRef const Name = STy->getName();
   // Add name if not anonymous or intermediate type.
   if (!Name.empty())
     addString(Buffer, dwarf::DW_AT_name, Name);
@@ -728,7 +728,7 @@ void DwarfUnit::constructTypeDIE(DIE &Buffer, const DIStringType *STy) {
     DwarfExpr.addExpression(Expr);
     addBlock(Buffer, dwarf::DW_AT_string_length, DwarfExpr.finalize());
   } else {
-    uint64_t Size = STy->getSizeInBits() >> 3;
+    uint64_t const Size = STy->getSizeInBits() >> 3;
     addUInt(Buffer, dwarf::DW_AT_byte_size, None, Size);
   }
 
@@ -741,9 +741,9 @@ void DwarfUnit::constructTypeDIE(DIE &Buffer, const DIStringType *STy) {
 
 void DwarfUnit::constructTypeDIE(DIE &Buffer, const DIDerivedType *DTy) {
   // Get core information.
-  StringRef Name = DTy->getName();
-  uint64_t Size = DTy->getSizeInBits() >> 3;
-  uint16_t Tag = Buffer.getTag();
+  StringRef const Name = DTy->getName();
+  uint64_t const Size = DTy->getSizeInBits() >> 3;
+  uint16_t const Tag = Buffer.getTag();
 
   // Map to main type, void will not have a type.
   const DIType *FromTy = DTy->getBaseType();
@@ -757,7 +757,7 @@ void DwarfUnit::constructTypeDIE(DIE &Buffer, const DIDerivedType *DTy) {
   // If alignment is specified for a typedef , create and insert DW_AT_alignment
   // attribute in DW_TAG_typedef DIE.
   if (Tag == dwarf::DW_TAG_typedef && DD->getDwarfVersion() >= 5) {
-    uint32_t AlignInBytes = DTy->getAlignInBytes();
+    uint32_t const AlignInBytes = DTy->getAlignInBytes();
     if (AlignInBytes > 0)
       addUInt(Buffer, dwarf::DW_AT_alignment, dwarf::DW_FORM_udata,
               AlignInBytes);
@@ -815,7 +815,7 @@ void DwarfUnit::constructTypeDIE(DIE &Buffer, const DISubroutineType *CTy) {
 
   // Add prototype flag if we're dealing with a C language and the function has
   // been prototyped.
-  uint16_t Language = getLanguage();
+  uint16_t const Language = getLanguage();
   if (isPrototyped &&
       (Language == dwarf::DW_LANG_C89 || Language == dwarf::DW_LANG_C99 ||
        Language == dwarf::DW_LANG_ObjC))
@@ -835,10 +835,10 @@ void DwarfUnit::constructTypeDIE(DIE &Buffer, const DISubroutineType *CTy) {
 
 void DwarfUnit::constructTypeDIE(DIE &Buffer, const DICompositeType *CTy) {
   // Add name if not anonymous or intermediate type.
-  StringRef Name = CTy->getName();
+  StringRef const Name = CTy->getName();
 
-  uint64_t Size = CTy->getSizeInBits() >> 3;
-  uint16_t Tag = Buffer.getTag();
+  uint64_t const Size = CTy->getSizeInBits() >> 3;
+  uint16_t const Tag = Buffer.getTag();
 
   switch (Tag) {
   case dwarf::DW_TAG_array_type:
@@ -871,7 +871,7 @@ void DwarfUnit::constructTypeDIE(DIE &Buffer, const DICompositeType *CTy) {
       addTemplateParams(Buffer, CTy->getTemplateParams());
 
     // Add elements to structure type.
-    DINodeArray Elements = CTy->getElements();
+    DINodeArray const Elements = CTy->getElements();
     for (const auto *Element : Elements) {
       if (!Element)
         continue;
@@ -900,18 +900,18 @@ void DwarfUnit::constructTypeDIE(DIE &Buffer, const DICompositeType *CTy) {
         }
       } else if (auto *Property = dyn_cast<DIObjCProperty>(Element)) {
         DIE &ElemDie = createAndAddDIE(Property->getTag(), Buffer);
-        StringRef PropertyName = Property->getName();
+        StringRef const PropertyName = Property->getName();
         addString(ElemDie, dwarf::DW_AT_APPLE_property_name, PropertyName);
         if (Property->getType())
           addType(ElemDie, Property->getType());
         addSourceLine(ElemDie, Property);
-        StringRef GetterName = Property->getGetterName();
+        StringRef const GetterName = Property->getGetterName();
         if (!GetterName.empty())
           addString(ElemDie, dwarf::DW_AT_APPLE_property_getter, GetterName);
-        StringRef SetterName = Property->getSetterName();
+        StringRef const SetterName = Property->getSetterName();
         if (!SetterName.empty())
           addString(ElemDie, dwarf::DW_AT_APPLE_property_setter, SetterName);
-        if (unsigned PropertyAttributes = Property->getAttributes())
+        if (unsigned const PropertyAttributes = Property->getAttributes())
           addUInt(ElemDie, dwarf::DW_AT_APPLE_property_attribute, None,
                   PropertyAttributes);
       } else if (auto *Composite = dyn_cast<DICompositeType>(Element)) {
@@ -983,13 +983,13 @@ void DwarfUnit::constructTypeDIE(DIE &Buffer, const DICompositeType *CTy) {
       addSourceLine(Buffer, CTy);
 
     // No harm in adding the runtime language to the declaration.
-    unsigned RLang = CTy->getRuntimeLang();
+    unsigned const RLang = CTy->getRuntimeLang();
     if (RLang)
       addUInt(Buffer, dwarf::DW_AT_APPLE_runtime_class, dwarf::DW_FORM_data1,
               RLang);
 
     // Add align info if available.
-    if (uint32_t AlignInBytes = CTy->getAlignInBytes())
+    if (uint32_t const AlignInBytes = CTy->getAlignInBytes())
       addUInt(Buffer, dwarf::DW_AT_alignment, dwarf::DW_FORM_udata,
               AlignInBytes);
   }
@@ -1151,8 +1151,8 @@ bool DwarfUnit::applySubprogramDefinitionAttributes(const DISubprogram *SP,
       // Look at the Decl's linkage name only if we emitted it.
       if (DD->useAllLinkageNames())
         DeclLinkageName = SPDecl->getLinkageName();
-      unsigned DeclID = getOrCreateSourceID(SPDecl->getFile());
-      unsigned DefID = getOrCreateSourceID(SP->getFile());
+      unsigned const DeclID = getOrCreateSourceID(SPDecl->getFile());
+      unsigned const DefID = getOrCreateSourceID(SP->getFile());
       if (DeclID != DefID)
         addUInt(SPDie, dwarf::DW_AT_decl_file, None, DefID);
 
@@ -1165,7 +1165,7 @@ bool DwarfUnit::applySubprogramDefinitionAttributes(const DISubprogram *SP,
   addTemplateParams(SPDie, SP->getTemplateParams());
 
   // Add the linkage name if we have one and it isn't in the Decl.
-  StringRef LinkageName = SP->getLinkageName();
+  StringRef const LinkageName = SP->getLinkageName();
   assert(((LinkageName.empty() || DeclLinkageName.empty()) ||
           LinkageName == DeclLinkageName) &&
          "decl has a linkage name and it is different");
@@ -1187,7 +1187,7 @@ void DwarfUnit::applySubprogramAttributes(const DISubprogram *SP, DIE &SPDie,
                                           bool SkipSPAttributes) {
   // If -fdebug-info-for-profiling is enabled, need to emit the subprogram
   // and its source location.
-  bool SkipSPSourceLocation = SkipSPAttributes &&
+  bool const SkipSPSourceLocation = SkipSPAttributes &&
                               !CUNode->getDebugInfoForProfiling();
   if (!SkipSPSourceLocation)
     if (applySubprogramDefinitionAttributes(SP, SPDie, SkipSPAttributes))
@@ -1206,7 +1206,7 @@ void DwarfUnit::applySubprogramAttributes(const DISubprogram *SP, DIE &SPDie,
 
   // Add the prototype if we have a prototype and we have a C like
   // language.
-  uint16_t Language = getLanguage();
+  uint16_t const Language = getLanguage();
   if (SP->isPrototyped() &&
       (Language == dwarf::DW_LANG_C89 || Language == dwarf::DW_LANG_C99 ||
        Language == dwarf::DW_LANG_ObjC))
@@ -1232,7 +1232,7 @@ void DwarfUnit::applySubprogramAttributes(const DISubprogram *SP, DIE &SPDie,
     if (auto Ty = Args[0])
       addType(SPDie, Ty);
 
-  unsigned VK = SP->getVirtuality();
+  unsigned const VK = SP->getVirtuality();
   if (VK) {
     addUInt(SPDie, dwarf::DW_AT_virtuality, dwarf::DW_FORM_data1, VK);
     if (SP->getVirtualIndex() != -1u) {
@@ -1264,7 +1264,7 @@ void DwarfUnit::applySubprogramAttributes(const DISubprogram *SP, DIE &SPDie,
     if (SP->isOptimized())
       addFlag(SPDie, dwarf::DW_AT_APPLE_optimized);
 
-    if (unsigned isa = Asm->getISAEncoding())
+    if (unsigned const isa = Asm->getISAEncoding())
       addUInt(SPDie, dwarf::DW_AT_APPLE_isa, dwarf::DW_FORM_flag, isa);
   }
 
@@ -1387,7 +1387,7 @@ DIE *DwarfUnit::getIndexTyDie() {
     return IndexTyDie;
   // Construct an integer type to use for indexes.
   IndexTyDie = &createAndAddDIE(dwarf::DW_TAG_base_type, getUnitDie());
-  StringRef Name = "__ARRAY_SIZE_TYPE__";
+  StringRef const Name = "__ARRAY_SIZE_TYPE__";
   addString(*IndexTyDie, dwarf::DW_AT_name, Name);
   addUInt(*IndexTyDie, dwarf::DW_AT_byte_size, None, sizeof(int64_t));
   addUInt(*IndexTyDie, dwarf::DW_AT_encoding, dwarf::DW_FORM_data1,
@@ -1486,7 +1486,7 @@ void DwarfUnit::constructArrayTypeDIE(DIE &Buffer, const DICompositeType *CTy) {
   DIE *IdxTy = getIndexTyDie();
 
   // Add subranges to array type.
-  DINodeArray Elements = CTy->getElements();
+  DINodeArray const Elements = CTy->getElements();
   for (DINode *E : Elements) {
     // FIXME: Should this really be such a loose cast?
     if (auto *Element = dyn_cast_or_null<DINode>(E)) {
@@ -1501,7 +1501,7 @@ void DwarfUnit::constructArrayTypeDIE(DIE &Buffer, const DICompositeType *CTy) {
 
 void DwarfUnit::constructEnumTypeDIE(DIE &Buffer, const DICompositeType *CTy) {
   const DIType *DTy = CTy->getBaseType();
-  bool IsUnsigned = DTy && DD->isUnsignedDIType(DTy);
+  bool const IsUnsigned = DTy && DD->isUnsignedDIType(DTy);
   if (DTy) {
     if (DD->getDwarfVersion() >= 3)
       addType(Buffer, DTy);
@@ -1510,16 +1510,16 @@ void DwarfUnit::constructEnumTypeDIE(DIE &Buffer, const DICompositeType *CTy) {
   }
 
   auto *Context = CTy->getScope();
-  bool IndexEnumerators = !Context || isa<DICompileUnit>(Context) || isa<DIFile>(Context) ||
+  bool const IndexEnumerators = !Context || isa<DICompileUnit>(Context) || isa<DIFile>(Context) ||
       isa<DINamespace>(Context) || isa<DICommonBlock>(Context);
-  DINodeArray Elements = CTy->getElements();
+  DINodeArray const Elements = CTy->getElements();
 
   // Add enumerators to enumeration type.
   for (const DINode *E : Elements) {
     auto *Enum = dyn_cast_or_null<DIEnumerator>(E);
     if (Enum) {
       DIE &Enumerator = createAndAddDIE(dwarf::DW_TAG_enumerator, Buffer);
-      StringRef Name = Enum->getName();
+      StringRef const Name = Enum->getName();
       addString(Enumerator, dwarf::DW_AT_name, Name);
       addConstantValue(Enumerator, Enum->getValue(), IsUnsigned);
       if (IndexEnumerators)
@@ -1543,7 +1543,7 @@ void DwarfUnit::constructContainingTypeDIEs() {
 
 DIE &DwarfUnit::constructMemberDIE(DIE &Buffer, const DIDerivedType *DT) {
   DIE &MemberDie = createAndAddDIE(DT->getTag(), Buffer);
-  StringRef Name = DT->getName();
+  StringRef const Name = DT->getName();
   if (!Name.empty())
     addString(MemberDie, dwarf::DW_AT_name, Name);
 
@@ -1569,12 +1569,12 @@ DIE &DwarfUnit::constructMemberDIE(DIE &Buffer, const DIDerivedType *DT) {
 
     addBlock(MemberDie, dwarf::DW_AT_data_member_location, VBaseLocationDie);
   } else {
-    uint64_t Size = DT->getSizeInBits();
-    uint64_t FieldSize = DD->getBaseTypeSize(DT);
-    uint32_t AlignInBytes = DT->getAlignInBytes();
+    uint64_t const Size = DT->getSizeInBits();
+    uint64_t const FieldSize = DD->getBaseTypeSize(DT);
+    uint32_t const AlignInBytes = DT->getAlignInBytes();
     uint64_t OffsetInBytes;
 
-    bool IsBitfield = FieldSize && Size != FieldSize;
+    bool const IsBitfield = FieldSize && Size != FieldSize;
     if (IsBitfield) {
       // Handle bitfield, assume bytes are 8 bits.
       if (DD->useDWARF2Bitfields())
@@ -1585,16 +1585,16 @@ DIE &DwarfUnit::constructMemberDIE(DIE &Buffer, const DIDerivedType *DT) {
       // We can't use DT->getAlignInBits() here: AlignInBits for member type
       // is non-zero if and only if alignment was forced (e.g. _Alignas()),
       // which can't be done with bitfields. Thus we use FieldSize here.
-      uint32_t AlignInBits = FieldSize;
-      uint32_t AlignMask = ~(AlignInBits - 1);
+      uint32_t const AlignInBits = FieldSize;
+      uint32_t const AlignMask = ~(AlignInBits - 1);
       // The bits from the start of the storage unit to the start of the field.
-      uint64_t StartBitOffset = Offset - (Offset & AlignMask);
+      uint64_t const StartBitOffset = Offset - (Offset & AlignMask);
       // The byte offset of the field's aligned storage unit inside the struct.
       OffsetInBytes = (Offset - StartBitOffset) / 8;
 
       if (DD->useDWARF2Bitfields()) {
-        uint64_t HiMark = (Offset + FieldSize) & AlignMask;
-        uint64_t FieldOffset = (HiMark - FieldSize);
+        uint64_t const HiMark = (Offset + FieldSize) & AlignMask;
+        uint64_t const FieldOffset = (HiMark - FieldSize);
         Offset -= FieldOffset;
 
         // Maybe we need to work from the other end.
@@ -1699,7 +1699,7 @@ DIE *DwarfUnit::getOrCreateStaticMemberDIE(const DIDerivedType *DT) {
   if (const ConstantFP *CFP = dyn_cast_or_null<ConstantFP>(DT->getConstant()))
     addConstantFPValue(StaticMemberDIE, CFP);
 
-  if (uint32_t AlignInBytes = DT->getAlignInBytes())
+  if (uint32_t const AlignInBytes = DT->getAlignInBytes())
     addUInt(StaticMemberDIE, dwarf::DW_AT_alignment, dwarf::DW_FORM_udata,
             AlignInBytes);
 
@@ -1716,7 +1716,7 @@ void DwarfUnit::emitCommonHeader(bool UseOffsets, dwarf::UnitType UT) {
                              "Length of Unit");
 
   Asm->OutStreamer->AddComment("DWARF version number");
-  unsigned Version = DD->getDwarfVersion();
+  unsigned const Version = DD->getDwarfVersion();
   Asm->emitInt16(Version);
 
   // DWARF v5 reorders the address size and adds a unit type.
@@ -1811,7 +1811,7 @@ void DwarfUnit::addRnglistsBase() {
 
 void DwarfTypeUnit::finishNonUnitTypeDIE(DIE& D, const DICompositeType *CTy) {
   addFlag(D, dwarf::DW_AT_declaration);
-  StringRef Name = CTy->getName();
+  StringRef const Name = CTy->getName();
   if (!Name.empty())
     addString(D, dwarf::DW_AT_name, Name);
   getCU().createTypeDIE(CTy);

@@ -30,7 +30,7 @@ int MCPseudoProbeTable::DdgPrintIndent = 0;
 static const MCExpr *buildSymbolDiff(MCObjectStreamer *MCOS, const MCSymbol *A,
                                      const MCSymbol *B) {
   MCContext &Context = MCOS->getContext();
-  MCSymbolRefExpr::VariantKind Variant = MCSymbolRefExpr::VK_None;
+  MCSymbolRefExpr::VariantKind const Variant = MCSymbolRefExpr::VK_None;
   const MCExpr *ARef = MCSymbolRefExpr::create(A, Variant, Context);
   const MCExpr *BRef = MCSymbolRefExpr::create(B, Variant, Context);
   const MCExpr *AddrDelta =
@@ -49,8 +49,8 @@ void MCPseudoProbe::emit(MCObjectStreamer *MCOS,
   assert(Type <= 0xF && "Probe type too big to encode, exceeding 15");
   assert(Attributes <= 0x7 &&
          "Probe attributes too big to encode, exceeding 7");
-  uint8_t PackedType = Type | (Attributes << 4);
-  uint8_t Flag = LastProbe ? ((int8_t)MCPseudoProbeFlag::AddressDelta << 7) : 0;
+  uint8_t const PackedType = Type | (Attributes << 4);
+  uint8_t const Flag = LastProbe ? ((int8_t)MCPseudoProbeFlag::AddressDelta << 7) : 0;
   MCOS->emitInt8(Flag | PackedType);
 
   if (LastProbe) {
@@ -174,7 +174,7 @@ void MCPseudoProbeInlineTree::emit(MCObjectStreamer *MCOS,
 }
 
 void MCPseudoProbeSection::emit(MCObjectStreamer *MCOS) {
-  MCContext &Ctx = MCOS->getContext();
+  MCContext  const&Ctx = MCOS->getContext();
 
   for (auto &ProbeSec : MCProbeDivisions) {
     const MCPseudoProbe *LastProbe = nullptr;
@@ -223,14 +223,14 @@ void MCPseudoProbeFuncDesc::print(raw_ostream &OS) {
 void MCDecodedPseudoProbe::getInlineContext(
     SmallVectorImpl<std::string> &ContextStack,
     const GUIDProbeFunctionMap &GUID2FuncMAP, bool ShowName) const {
-  uint32_t Begin = ContextStack.size();
+  uint32_t const Begin = ContextStack.size();
   MCDecodedPseudoProbeInlineTree *Cur = InlineTree;
   // It will add the string of each node's inline site during iteration.
   // Note that it won't include the probe's belonging function(leaf location)
   while (Cur->hasInlineSite()) {
     std::string ContextStr;
     if (ShowName) {
-      StringRef FuncName =
+      StringRef const FuncName =
           getProbeFNameForGUID(GUID2FuncMAP, std::get<0>(Cur->ISite));
       ContextStr += FuncName.str();
     } else {
@@ -266,14 +266,14 @@ void MCDecodedPseudoProbe::print(raw_ostream &OS,
                                  bool ShowName) const {
   OS << "FUNC: ";
   if (ShowName) {
-    StringRef FuncName = getProbeFNameForGUID(GUID2FuncMAP, Guid);
+    StringRef const FuncName = getProbeFNameForGUID(GUID2FuncMAP, Guid);
     OS << FuncName.str() << " ";
   } else {
     OS << Guid << " ";
   }
   OS << "Index: " << Index << "  ";
   OS << "Type: " << PseudoProbeTypeStr[static_cast<uint8_t>(Type)] << "  ";
-  std::string InlineContextStr = getInlineContextStr(GUID2FuncMAP, ShowName);
+  std::string const InlineContextStr = getInlineContextStr(GUID2FuncMAP, ShowName);
   if (InlineContextStr.size()) {
     OS << "Inlined: @ ";
     OS << InlineContextStr;
@@ -291,7 +291,7 @@ template <typename T> ErrorOr<T> MCPseudoProbeDecoder::readUnencodedNumber() {
 
 template <typename T> ErrorOr<T> MCPseudoProbeDecoder::readUnsignedNumber() {
   unsigned NumBytesRead = 0;
-  uint64_t Val = decodeULEB128(Data, &NumBytesRead);
+  uint64_t const Val = decodeULEB128(Data, &NumBytesRead);
   if (Val > std::numeric_limits<T>::max() || (Data + NumBytesRead > End)) {
     return std::error_code();
   }
@@ -301,7 +301,7 @@ template <typename T> ErrorOr<T> MCPseudoProbeDecoder::readUnsignedNumber() {
 
 template <typename T> ErrorOr<T> MCPseudoProbeDecoder::readSignedNumber() {
   unsigned NumBytesRead = 0;
-  int64_t Val = decodeSLEB128(Data, &NumBytesRead);
+  int64_t const Val = decodeSLEB128(Data, &NumBytesRead);
   if (Val > std::numeric_limits<T>::max() || (Data + NumBytesRead > End)) {
     return std::error_code();
   }
@@ -310,7 +310,7 @@ template <typename T> ErrorOr<T> MCPseudoProbeDecoder::readSignedNumber() {
 }
 
 ErrorOr<StringRef> MCPseudoProbeDecoder::readString(uint32_t Size) {
-  StringRef Str(reinterpret_cast<const char *>(Data), Size);
+  StringRef const Str(reinterpret_cast<const char *>(Data), Size);
   if (Data + Size > End) {
     return std::error_code();
   }
@@ -346,15 +346,15 @@ bool MCPseudoProbeDecoder::buildGUID2FuncDescMap(const uint8_t *Start,
     auto ErrorOrNameSize = readUnsignedNumber<uint32_t>();
     if (!ErrorOrNameSize)
       return false;
-    uint32_t NameSize = std::move(*ErrorOrNameSize);
+    uint32_t const NameSize = std::move(*ErrorOrNameSize);
 
     auto ErrorOrName = readString(NameSize);
     if (!ErrorOrName)
       return false;
 
-    uint64_t GUID = std::move(*ErrorOrGUID);
-    uint64_t Hash = std::move(*ErrorOrHash);
-    StringRef Name = std::move(*ErrorOrName);
+    uint64_t const GUID = std::move(*ErrorOrGUID);
+    uint64_t const Hash = std::move(*ErrorOrHash);
+    StringRef const Name = std::move(*ErrorOrName);
 
     // Initialize PseudoProbeFuncDesc and populate it into GUID2FuncDescMap
     GUID2FuncDescMap.emplace(GUID, MCPseudoProbeFuncDesc(GUID, Hash, Name));
@@ -425,7 +425,7 @@ bool MCPseudoProbeDecoder::buildAddress2ProbeMap(const uint8_t *Start,
     auto ErrorOrNodeCount = readUnsignedNumber<uint32_t>();
     if (!ErrorOrNodeCount)
       return false;
-    uint32_t NodeCount = std::move(*ErrorOrNodeCount);
+    uint32_t const NodeCount = std::move(*ErrorOrNodeCount);
     // Read number of direct inlinees
     auto ErrorOrCurChildrenToProcess = readUnsignedNumber<uint32_t>();
     if (!ErrorOrCurChildrenToProcess)
@@ -437,21 +437,21 @@ bool MCPseudoProbeDecoder::buildAddress2ProbeMap(const uint8_t *Start,
       auto ErrorOrIndex = readUnsignedNumber<uint32_t>();
       if (!ErrorOrIndex)
         return false;
-      uint32_t Index = std::move(*ErrorOrIndex);
+      uint32_t const Index = std::move(*ErrorOrIndex);
       // Read type | flag.
       auto ErrorOrValue = readUnencodedNumber<uint8_t>();
       if (!ErrorOrValue)
         return false;
-      uint8_t Value = std::move(*ErrorOrValue);
-      uint8_t Kind = Value & 0xf;
-      uint8_t Attr = (Value & 0x70) >> 4;
+      uint8_t const Value = std::move(*ErrorOrValue);
+      uint8_t const Kind = Value & 0xf;
+      uint8_t const Attr = (Value & 0x70) >> 4;
       // Read address
       uint64_t Addr = 0;
       if (Value & 0x80) {
         auto ErrorOrOffset = readSignedNumber<int64_t>();
         if (!ErrorOrOffset)
           return false;
-        int64_t Offset = std::move(*ErrorOrOffset);
+        int64_t const Offset = std::move(*ErrorOrOffset);
         Addr = LastAddr + Offset;
       } else {
         auto ErrorOrAddr = readUnencodedNumber<int64_t>();

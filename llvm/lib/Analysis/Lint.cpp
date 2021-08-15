@@ -200,7 +200,7 @@ void Lint::visitCallBase(CallBase &I) {
            &I);
 
     FunctionType *FT = F->getFunctionType();
-    unsigned NumActualArgs = I.arg_size();
+    unsigned const NumActualArgs = I.arg_size();
 
     Assert(FT->isVarArg() ? FT->getNumParams() <= NumActualArgs
                           : FT->getNumParams() == NumActualArgs,
@@ -230,7 +230,7 @@ void Lint::visitCallBase(CallBase &I) {
         // not fully precise because we don't know the sizes of the dereferenced
         // memory regions.
         if (Formal->hasNoAliasAttr() && Actual->getType()->isPointerTy()) {
-          AttributeList PAL = I.getAttributes();
+          AttributeList const PAL = I.getAttributes();
           unsigned ArgNo = 0;
           for (auto BI = I.arg_begin(); BI != AE; ++BI, ++ArgNo) {
             // Skip ByVal arguments since they will be memcpy'd to the callee's
@@ -241,7 +241,7 @@ void Lint::visitCallBase(CallBase &I) {
             if (Formal->onlyReadsMemory() && I.onlyReadsMemory(ArgNo))
               continue;
             if (AI != BI && (*BI)->getType()->isPointerTy()) {
-              AliasResult Result = AA->alias(*AI, *BI);
+              AliasResult const Result = AA->alias(*AI, *BI);
               Assert(Result != AliasResult::MustAlias &&
                          Result != AliasResult::PartialAlias,
                      "Unusual: noalias argument aliases another argument", &I);
@@ -252,7 +252,7 @@ void Lint::visitCallBase(CallBase &I) {
         // Check that an sret argument points to valid memory.
         if (Formal->hasStructRetAttr() && Actual->getType()->isPointerTy()) {
           Type *Ty = Formal->getParamStructRetType();
-          MemoryLocation Loc(
+          MemoryLocation const Loc(
               Actual, LocationSize::precise(DL->getTypeStoreSize(Ty)));
           visitMemoryReference(I, Loc, DL->getABITypeAlign(Ty), Ty,
                                MemRef::Read | MemRef::Write);
@@ -524,7 +524,7 @@ static bool isZero(Value *V, const DataLayout &DL, DominatorTree *DT,
 
   VectorType *VecTy = dyn_cast<VectorType>(V->getType());
   if (!VecTy) {
-    KnownBits Known =
+    KnownBits const Known =
         computeKnownBits(V, DL, 0, AC, dyn_cast<Instruction>(V), DT);
     return Known.isZero();
   }
@@ -545,7 +545,7 @@ static bool isZero(Value *V, const DataLayout &DL, DominatorTree *DT,
     if (isa<UndefValue>(Elem))
       return true;
 
-    KnownBits Known = computeKnownBits(Elem, DL);
+    KnownBits const Known = computeKnownBits(Elem, DL);
     if (Known.isZero())
       return true;
   }
@@ -682,7 +682,7 @@ Value *Lint::findValueImpl(Value *V, bool OffsetOk,
                                *DL))
         return findValueImpl(CE->getOperand(0), OffsetOk, Visited);
     } else if (CE->getOpcode() == Instruction::ExtractValue) {
-      ArrayRef<unsigned> Indices = CE->getIndices();
+      ArrayRef<unsigned> const Indices = CE->getIndices();
       if (Value *W = FindInsertedValue(CE->getOperand(0), Indices))
         if (W != V)
           return findValueImpl(W, OffsetOk, Visited);

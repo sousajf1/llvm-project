@@ -56,7 +56,7 @@ AArch64LegalizerInfo::AArch64LegalizerInfo(const AArch64Subtarget &ST)
   const LLT v2s64 = LLT::fixed_vector(2, 64);
   const LLT v2p0 = LLT::fixed_vector(2, p0);
 
-  std::initializer_list<LLT> PackedVectorAllTypeList = {/* Begin 128bit types */
+  std::initializer_list<LLT> const PackedVectorAllTypeList = {/* Begin 128bit types */
                                                         v16s8, v8s16, v4s32,
                                                         v2s64, v2p0,
                                                         /* End 128bit types */
@@ -88,7 +88,7 @@ AArch64LegalizerInfo::AArch64LegalizerInfo(const AArch64Subtarget &ST)
                     Query.Types[0].getNumElements() != 2);
           },
           [=](const LegalityQuery &Query) {
-            LLT EltTy = Query.Types[0].getElementType();
+            LLT const EltTy = Query.Types[0].getElementType();
             if (EltTy == s64)
               return std::make_pair(0, LLT::fixed_vector(2, 64));
             return std::make_pair(0, EltTy);
@@ -393,7 +393,7 @@ AArch64LegalizerInfo::AArch64LegalizerInfo(const AArch64Subtarget &ST)
 
   // Extensions
   auto ExtLegalFunc = [=](const LegalityQuery &Query) {
-    unsigned DstSize = Query.Types[0].getSizeInBits();
+    unsigned const DstSize = Query.Types[0].getSizeInBits();
 
     if (DstSize == 128 && !Query.Types[0].isVector())
       return false; // Extending to a scalar s128 needs narrowing.
@@ -412,7 +412,7 @@ AArch64LegalizerInfo::AArch64LegalizerInfo(const AArch64Subtarget &ST)
     // Make sure we fit in a register otherwise. Don't bother checking that
     // the source type is below 128 bits. We shouldn't be allowing anything
     // through which is wider than the destination in the first place.
-    unsigned SrcSize = SrcTy.getSizeInBits();
+    unsigned const SrcSize = SrcTy.getSizeInBits();
     if (SrcSize < 8 || !isPowerOf2_32(SrcSize))
       return false;
 
@@ -427,8 +427,8 @@ AArch64LegalizerInfo::AArch64LegalizerInfo(const AArch64Subtarget &ST)
           [=](const LegalityQuery &Query) { return Query.Types[0].isVector(); },
           0, s8)
       .customIf([=](const LegalityQuery &Query) {
-        LLT DstTy = Query.Types[0];
-        LLT SrcTy = Query.Types[1];
+        LLT const DstTy = Query.Types[0];
+        LLT const SrcTy = Query.Types[1];
         return DstTy == v8s8 && SrcTy.getSizeInBits() > 128;
       })
       .alwaysLegal();
@@ -530,9 +530,9 @@ AArch64LegalizerInfo::AArch64LegalizerInfo(const AArch64Subtarget &ST)
   getActionDefinitionsBuilder(G_BLOCK_ADDR).legalFor({p0});
 
   // Merge/Unmerge
-  for (unsigned Op : {G_MERGE_VALUES, G_UNMERGE_VALUES}) {
-    unsigned BigTyIdx = Op == G_MERGE_VALUES ? 0 : 1;
-    unsigned LitTyIdx = Op == G_MERGE_VALUES ? 1 : 0;
+  for (unsigned const Op : {G_MERGE_VALUES, G_UNMERGE_VALUES}) {
+    unsigned const BigTyIdx = Op == G_MERGE_VALUES ? 0 : 1;
+    unsigned const LitTyIdx = Op == G_MERGE_VALUES ? 1 : 0;
     getActionDefinitionsBuilder(Op)
         .widenScalarToNextPow2(LitTyIdx, 8)
         .widenScalarToNextPow2(BigTyIdx, 32)
@@ -776,8 +776,8 @@ bool AArch64LegalizerInfo::legalizeRotate(MachineInstr &MI,
                                           LegalizerHelper &Helper) const {
   // To allow for imported patterns to match, we ensure that the rotate amount
   // is 64b with an extension.
-  Register AmtReg = MI.getOperand(2).getReg();
-  LLT AmtTy = MRI.getType(AmtReg);
+  Register const AmtReg = MI.getOperand(2).getReg();
+  LLT const AmtTy = MRI.getType(AmtReg);
   (void)AmtTy;
   assert(AmtTy.isScalar() && "Expected a scalar rotate");
   assert(AmtTy.getSizeInBits() < 64 && "Expected this rotate to be legal");
@@ -808,22 +808,22 @@ bool AArch64LegalizerInfo::legalizeVectorTrunc(
   //   %in16(<8 x s16>) = G_CONCAT_VECTORS %lo16, %hi16
   //   %res(<8 x s8>) = G_TRUNC %in16
 
-  Register DstReg = MI.getOperand(0).getReg();
-  Register SrcReg = MI.getOperand(1).getReg();
-  LLT DstTy = MRI.getType(DstReg);
-  LLT SrcTy = MRI.getType(SrcReg);
+  Register const DstReg = MI.getOperand(0).getReg();
+  Register const SrcReg = MI.getOperand(1).getReg();
+  LLT const DstTy = MRI.getType(DstReg);
+  LLT const SrcTy = MRI.getType(SrcReg);
   assert(isPowerOf2_32(DstTy.getSizeInBits()) &&
          isPowerOf2_32(SrcTy.getSizeInBits()));
 
   // Split input type.
-  LLT SplitSrcTy =
+  LLT const SplitSrcTy =
       SrcTy.changeElementCount(SrcTy.getElementCount().divideCoefficientBy(2));
   // First, split the source into two smaller vectors.
   SmallVector<Register, 2> SplitSrcs;
   extractParts(SrcReg, MRI, MIRBuilder, SplitSrcTy, 2, SplitSrcs);
 
   // Truncate the splits into intermediate narrower elements.
-  LLT InterTy = SplitSrcTy.changeElementSize(DstTy.getScalarSizeInBits() * 2);
+  LLT const InterTy = SplitSrcTy.changeElementSize(DstTy.getScalarSizeInBits() * 2);
   for (unsigned I = 0; I < SplitSrcs.size(); ++I)
     SplitSrcs[I] = MIRBuilder.buildTrunc(InterTy, SplitSrcs[I]).getReg(0);
 
@@ -850,13 +850,13 @@ bool AArch64LegalizerInfo::legalizeSmallCMGlobalValue(
     return true; // Don't want to modify TLS vars.
 
   auto &TM = ST->getTargetLowering()->getTargetMachine();
-  unsigned OpFlags = ST->ClassifyGlobalReference(GV, TM);
+  unsigned const OpFlags = ST->ClassifyGlobalReference(GV, TM);
 
   if (OpFlags & AArch64II::MO_GOT)
     return true;
 
   auto Offset = GlobalOp.getOffset();
-  Register DstReg = MI.getOperand(0).getReg();
+  Register const DstReg = MI.getOperand(0).getReg();
   auto ADRP = MIRBuilder.buildInstr(AArch64::ADRP, {LLT::pointer(0, 64)}, {})
                   .addGlobalAddress(GV, Offset, OpFlags | AArch64II::MO_PAGE);
   // Set the regclass on the dest reg too.
@@ -905,8 +905,8 @@ bool AArch64LegalizerInfo::legalizeIntrinsic(LegalizerHelper &Helper,
                                              MachineInstr &MI) const {
   switch (findIntrinsicID(MI)) {
   case Intrinsic::vacopy: {
-    unsigned PtrSize = ST->isTargetILP32() ? 4 : 8;
-    unsigned VaListSize =
+    unsigned const PtrSize = ST->isTargetILP32() ? 4 : 8;
+    unsigned const VaListSize =
       (ST->isTargetDarwin() || ST->isTargetWindows())
           ? PtrSize
           : ST->isTargetILP32() ? 20 : 32;
@@ -939,12 +939,12 @@ bool AArch64LegalizerInfo::legalizeShlAshrLshr(
          MI.getOpcode() == TargetOpcode::G_SHL);
   // If the shift amount is a G_CONSTANT, promote it to a 64 bit type so the
   // imported patterns can select it later. Either way, it will be legal.
-  Register AmtReg = MI.getOperand(2).getReg();
+  Register const AmtReg = MI.getOperand(2).getReg();
   auto VRegAndVal = getConstantVRegValWithLookThrough(AmtReg, MRI);
   if (!VRegAndVal)
     return true;
   // Check the shift amount is in range for an immediate form.
-  int64_t Amount = VRegAndVal->Value.getSExtValue();
+  int64_t const Amount = VRegAndVal->Value.getSExtValue();
   if (Amount > 31)
     return true; // This will have to remain a register variant.
   auto ExtCst = MIRBuilder.buildConstant(LLT::scalar(64), Amount);
@@ -970,7 +970,7 @@ bool AArch64LegalizerInfo::legalizeLoadStore(
   // legalized. In order to allow further legalization of the inst, we create
   // a new instruction and erase the existing one.
 
-  Register ValReg = MI.getOperand(0).getReg();
+  Register const ValReg = MI.getOperand(0).getReg();
   const LLT ValTy = MRI.getType(ValReg);
 
   if (!ValTy.isVector() || !ValTy.getElementType().isPointer() ||
@@ -979,7 +979,7 @@ bool AArch64LegalizerInfo::legalizeLoadStore(
     return false;
   }
 
-  unsigned PtrSize = ValTy.getElementType().getSizeInBits();
+  unsigned const PtrSize = ValTy.getElementType().getSizeInBits();
   const LLT NewTy = LLT::vector(ValTy.getElementCount(), PtrSize);
   auto &MMO = **MI.memoperands_begin();
   MMO.setType(NewTy);
@@ -1012,7 +1012,7 @@ bool AArch64LegalizerInfo::legalizeBSwap(MachineInstr &MI,
   // generic as possible through legalization, and avoid committing layering
   // violations by legalizing & selecting here at the same time.
 
-  Register ValReg = MI.getOperand(1).getReg();
+  Register const ValReg = MI.getOperand(1).getReg();
   assert(LLT::fixed_vector(2, 16) == MRI.getType(ValReg));
   const LLT v2s32 = LLT::fixed_vector(2, 32);
   const LLT v8s8 = LLT::fixed_vector(8, 8);
@@ -1039,12 +1039,12 @@ bool AArch64LegalizerInfo::legalizeVaArg(MachineInstr &MI,
                                          MachineRegisterInfo &MRI,
                                          MachineIRBuilder &MIRBuilder) const {
   MachineFunction &MF = MIRBuilder.getMF();
-  Align Alignment(MI.getOperand(2).getImm());
-  Register Dst = MI.getOperand(0).getReg();
-  Register ListPtr = MI.getOperand(1).getReg();
+  Align const Alignment(MI.getOperand(2).getImm());
+  Register const Dst = MI.getOperand(0).getReg();
+  Register const ListPtr = MI.getOperand(1).getReg();
 
-  LLT PtrTy = MRI.getType(ListPtr);
-  LLT IntPtrTy = LLT::scalar(PtrTy.getSizeInBits());
+  LLT const PtrTy = MRI.getType(ListPtr);
+  LLT const IntPtrTy = LLT::scalar(PtrTy.getSizeInBits());
 
   const unsigned PtrSize = PtrTy.getSizeInBits() / 8;
   const Align PtrAlign = Align(PtrSize);
@@ -1063,8 +1063,8 @@ bool AArch64LegalizerInfo::legalizeVaArg(MachineInstr &MI,
   } else
     DstPtr = List;
 
-  LLT ValTy = MRI.getType(Dst);
-  uint64_t ValSize = ValTy.getSizeInBits() / 8;
+  LLT const ValTy = MRI.getType(Dst);
+  uint64_t const ValSize = ValTy.getSizeInBits() / 8;
   MIRBuilder.buildLoad(
       Dst, DstPtr,
       *MF.getMachineMemOperand(MachinePointerInfo(), MachineMemOperand::MOLoad,
@@ -1118,18 +1118,18 @@ bool AArch64LegalizerInfo::legalizeCTPOP(MachineInstr &MI,
       MI.getMF()->getFunction().hasFnAttribute(Attribute::NoImplicitFloat))
     return false;
   MachineIRBuilder &MIRBuilder = Helper.MIRBuilder;
-  Register Dst = MI.getOperand(0).getReg();
+  Register const Dst = MI.getOperand(0).getReg();
   Register Val = MI.getOperand(1).getReg();
-  LLT Ty = MRI.getType(Val);
+  LLT const Ty = MRI.getType(Val);
 
   assert(Ty == MRI.getType(Dst) &&
          "Expected src and dst to have the same type!");
-  unsigned Size = Ty.getSizeInBits();
+  unsigned const Size = Ty.getSizeInBits();
 
   // Pre-conditioning: widen Val up to the nearest vector type.
   // s32,s64,v4s16,v2s32 -> v8i8
   // v8s16,v4s32,v2s64 -> v16i8
-  LLT VTy = Size == 128 ? LLT::fixed_vector(16, 8) : LLT::fixed_vector(8, 8);
+  LLT const VTy = Size == 128 ? LLT::fixed_vector(16, 8) : LLT::fixed_vector(8, 8);
   if (Ty.isScalar()) {
     assert((Size == 32 || Size == 64 || Size == 128) && "Expected only 32, 64, or 128 bit scalars!");
     if (Size == 32) {
@@ -1170,7 +1170,7 @@ bool AArch64LegalizerInfo::legalizeCTPOP(MachineInstr &MI,
   } else
     llvm_unreachable("unexpected vector shape");
   MachineInstrBuilder UADD;
-  for (LLT HTy : HAddTys) {
+  for (LLT const HTy : HAddTys) {
     UADD = MIRBuilder.buildIntrinsic(Opc, {HTy}, /*HasSideEffects =*/false)
                      .addUse(HSum);
     HSum = UADD.getReg(0);
@@ -1188,7 +1188,7 @@ bool AArch64LegalizerInfo::legalizeCTPOP(MachineInstr &MI,
 bool AArch64LegalizerInfo::legalizeAtomicCmpxchg128(
     MachineInstr &MI, MachineRegisterInfo &MRI, LegalizerHelper &Helper) const {
   MachineIRBuilder &MIRBuilder = Helper.MIRBuilder;
-  LLT s64 = LLT::scalar(64);
+  LLT const s64 = LLT::scalar(64);
   auto Addr = MI.getOperand(1).getReg();
   auto DesiredI = MIRBuilder.buildUnmerge({s64, s64}, MI.getOperand(2));
   auto NewI = MIRBuilder.buildUnmerge({s64, s64}, MI.getOperand(3));
@@ -1224,7 +1224,7 @@ bool AArch64LegalizerInfo::legalizeAtomicCmpxchg128(
       break;
     }
 
-    LLT s128 = LLT::scalar(128);
+    LLT const s128 = LLT::scalar(128);
     auto CASDst = MRI.createGenericVirtualRegister(s128);
     auto CASDesired = MRI.createGenericVirtualRegister(s128);
     auto CASNew = MRI.createGenericVirtualRegister(s128);
@@ -1285,8 +1285,8 @@ bool AArch64LegalizerInfo::legalizeAtomicCmpxchg128(
 bool AArch64LegalizerInfo::legalizeCTTZ(MachineInstr &MI,
                                         LegalizerHelper &Helper) const {
   MachineIRBuilder &MIRBuilder = Helper.MIRBuilder;
-  MachineRegisterInfo &MRI = *MIRBuilder.getMRI();
-  LLT Ty = MRI.getType(MI.getOperand(1).getReg());
+  MachineRegisterInfo  const&MRI = *MIRBuilder.getMRI();
+  LLT const Ty = MRI.getType(MI.getOperand(1).getReg());
   auto BitReverse = MIRBuilder.buildBitReverse(Ty, MI.getOperand(1));
   MIRBuilder.buildCTLZ(MI.getOperand(0).getReg(), BitReverse);
   MI.eraseFromParent();

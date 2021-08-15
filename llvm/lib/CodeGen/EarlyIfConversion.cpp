@@ -261,7 +261,7 @@ bool SSAIfConv::InstrDependenciesAllowIfConv(MachineInstr *I) {
     }
     if (!MO.isReg())
       continue;
-    Register Reg = MO.getReg();
+    Register const Reg = MO.getReg();
 
     // Remember clobbered regunits.
     if (MO.isDef() && Register::isPhysicalRegister(Reg))
@@ -366,9 +366,9 @@ bool SSAIfConv::findInsertionPoint() {
   // Only track RegUnits that are also in ClobberedRegUnits.
   LiveRegUnits.clear();
   SmallVector<MCRegister, 8> Reads;
-  MachineBasicBlock::iterator FirstTerm = Head->getFirstTerminator();
+  MachineBasicBlock::iterator const FirstTerm = Head->getFirstTerminator();
   MachineBasicBlock::iterator I = Head->end();
-  MachineBasicBlock::iterator B = Head->begin();
+  MachineBasicBlock::iterator const B = Head->begin();
   while (I != B) {
     --I;
     // Some of the conditional code depends in I.
@@ -382,7 +382,7 @@ bool SSAIfConv::findInsertionPoint() {
       // We're ignoring regmask operands. That is conservatively correct.
       if (!MO.isReg())
         continue;
-      Register Reg = MO.getReg();
+      Register const Reg = MO.getReg();
       if (!Register::isPhysicalRegister(Reg))
         continue;
       // I clobbers Reg, so it isn't live before I.
@@ -595,8 +595,8 @@ static bool hasSameValue(const MachineRegisterInfo &MRI,
     return false;
 
   // Further, check that the two defs come from corresponding operands.
-  int TIdx = TDef->findRegisterDefOperandIdx(TReg);
-  int FIdx = FDef->findRegisterDefOperandIdx(FReg);
+  int const TIdx = TDef->findRegisterDefOperandIdx(TReg);
+  int const FIdx = FDef->findRegisterDefOperandIdx(FReg);
   if (TIdx == -1 || FIdx == -1)
     return false;
 
@@ -608,15 +608,15 @@ static bool hasSameValue(const MachineRegisterInfo &MRI,
 /// blocks.
 void SSAIfConv::replacePHIInstrs() {
   assert(Tail->pred_size() == 2 && "Cannot replace PHIs");
-  MachineBasicBlock::iterator FirstTerm = Head->getFirstTerminator();
+  MachineBasicBlock::iterator const FirstTerm = Head->getFirstTerminator();
   assert(FirstTerm != Head->end() && "No terminators");
-  DebugLoc HeadDL = FirstTerm->getDebugLoc();
+  DebugLoc const HeadDL = FirstTerm->getDebugLoc();
 
   // Convert all PHIs to select instructions inserted before FirstTerm.
   for (unsigned i = 0, e = PHIs.size(); i != e; ++i) {
     PHIInfo &PI = PHIs[i];
     LLVM_DEBUG(dbgs() << "If-converting " << *PI.PHI);
-    Register DstReg = PI.PHI->getOperand(0).getReg();
+    Register const DstReg = PI.PHI->getOperand(0).getReg();
     if (hasSameValue(*MRI, TII, PI.TReg, PI.FReg)) {
       // We do not need the select instruction if both incoming values are
       // equal, but we do need a COPY.
@@ -636,9 +636,9 @@ void SSAIfConv::replacePHIInstrs() {
 /// select instructions in Head and rewrite PHI operands to use the selects.
 /// Keep the PHI instructions in Tail to handle the other predecessors.
 void SSAIfConv::rewritePHIOperands() {
-  MachineBasicBlock::iterator FirstTerm = Head->getFirstTerminator();
+  MachineBasicBlock::iterator const FirstTerm = Head->getFirstTerminator();
   assert(FirstTerm != Head->end() && "No terminators");
-  DebugLoc HeadDL = FirstTerm->getDebugLoc();
+  DebugLoc const HeadDL = FirstTerm->getDebugLoc();
 
   // Convert all PHIs to select instructions inserted before FirstTerm.
   for (unsigned i = 0, e = PHIs.size(); i != e; ++i) {
@@ -651,7 +651,7 @@ void SSAIfConv::rewritePHIOperands() {
       // equal.
       DstReg = PI.TReg;
     } else {
-      Register PHIDst = PI.PHI->getOperand(0).getReg();
+      Register const PHIDst = PI.PHI->getOperand(0).getReg();
       DstReg = MRI->createVirtualRegister(MRI->getRegClass(PHIDst));
       TII->insertSelect(*Head, FirstTerm, HeadDL,
                          DstReg, Cond, PI.TReg, PI.FReg);
@@ -700,7 +700,7 @@ void SSAIfConv::convertIf(SmallVectorImpl<MachineBasicBlock *> &RemovedBlocks,
     Head->splice(InsertionPoint, FBB, FBB->begin(), FBB->getFirstTerminator());
   }
   // Are there extra Tail predecessors?
-  bool ExtraPreds = Tail->pred_size() != 2;
+  bool const ExtraPreds = Tail->pred_size() != 2;
   if (ExtraPreds)
     rewritePHIOperands();
   else
@@ -716,7 +716,7 @@ void SSAIfConv::convertIf(SmallVectorImpl<MachineBasicBlock *> &RemovedBlocks,
 
   // Fix up Head's terminators.
   // It should become a single branch or a fallthrough.
-  DebugLoc HeadDL = Head->getFirstTerminator()->getDebugLoc();
+  DebugLoc const HeadDL = Head->getFirstTerminator()->getDebugLoc();
   TII->removeBranch(*Head);
 
   // Erase the now empty conditional blocks. It is likely that Head can fall
@@ -743,7 +743,7 @@ void SSAIfConv::convertIf(SmallVectorImpl<MachineBasicBlock *> &RemovedBlocks,
   } else {
     // We need a branch to Tail, let code placement work it out later.
     LLVM_DEBUG(dbgs() << "Converting to unconditional branch.\n");
-    SmallVector<MachineOperand, 0> EmptyCond;
+    SmallVector<MachineOperand, 0> const EmptyCond;
     TII->insertBranch(*Head, Tail, nullptr, EmptyCond, HeadDL);
     Head->addSuccessor(Tail);
   }
@@ -872,8 +872,8 @@ bool EarlyIfConverter::shouldConvertIf() {
   if (!MinInstr)
     MinInstr = Traces->getEnsemble(MachineTraceMetrics::TS_MinInstrCount);
 
-  MachineTraceMetrics::Trace TBBTrace = MinInstr->getTrace(IfConv.getTPred());
-  MachineTraceMetrics::Trace FBBTrace = MinInstr->getTrace(IfConv.getFPred());
+  MachineTraceMetrics::Trace const TBBTrace = MinInstr->getTrace(IfConv.getTPred());
+  MachineTraceMetrics::Trace const FBBTrace = MinInstr->getTrace(IfConv.getFPred());
   LLVM_DEBUG(dbgs() << "TBB: " << TBBTrace << "FBB: " << FBBTrace);
   unsigned MinCrit = std::min(TBBTrace.getCriticalPath(),
                               FBBTrace.getCriticalPath());
@@ -912,14 +912,14 @@ bool EarlyIfConverter::shouldConvertIf() {
   // Assume that the depth of the first head terminator will also be the depth
   // of the select instruction inserted, as determined by the flag dependency.
   // TBB / FBB data dependencies may delay the select even more.
-  MachineTraceMetrics::Trace HeadTrace = MinInstr->getTrace(IfConv.Head);
-  unsigned BranchDepth =
+  MachineTraceMetrics::Trace const HeadTrace = MinInstr->getTrace(IfConv.Head);
+  unsigned const BranchDepth =
       HeadTrace.getInstrCycles(*IfConv.Head->getFirstTerminator()).Depth;
   LLVM_DEBUG(dbgs() << "Branch depth: " << BranchDepth << '\n');
 
   // Look at all the tail phis, and compute the critical path extension caused
   // by inserting select instructions.
-  MachineTraceMetrics::Trace TailTrace = MinInstr->getTrace(IfConv.Tail);
+  MachineTraceMetrics::Trace const TailTrace = MinInstr->getTrace(IfConv.Tail);
   struct CriticalPathInfo {
     unsigned Extra; // Count of extra cycles that the component adds.
     unsigned Depth; // Absolute depth of the component in cycles.
@@ -929,15 +929,15 @@ bool EarlyIfConverter::shouldConvertIf() {
   CriticalPathInfo FBlock{};
   bool ShouldConvert = true;
   for (unsigned i = 0, e = IfConv.PHIs.size(); i != e; ++i) {
-    SSAIfConv::PHIInfo &PI = IfConv.PHIs[i];
-    unsigned Slack = TailTrace.getInstrSlack(*PI.PHI);
-    unsigned MaxDepth = Slack + TailTrace.getInstrCycles(*PI.PHI).Depth;
+    SSAIfConv::PHIInfo  const&PI = IfConv.PHIs[i];
+    unsigned const Slack = TailTrace.getInstrSlack(*PI.PHI);
+    unsigned const MaxDepth = Slack + TailTrace.getInstrCycles(*PI.PHI).Depth;
     LLVM_DEBUG(dbgs() << "Slack " << Slack << ":\t" << *PI.PHI);
 
     // The condition is pulled into the critical path.
-    unsigned CondDepth = adjCycles(BranchDepth, PI.CondCycles);
+    unsigned const CondDepth = adjCycles(BranchDepth, PI.CondCycles);
     if (CondDepth > MaxDepth) {
-      unsigned Extra = CondDepth - MaxDepth;
+      unsigned const Extra = CondDepth - MaxDepth;
       LLVM_DEBUG(dbgs() << "Condition adds " << Extra << " cycles.\n");
       if (Extra > Cond.Extra)
         Cond = {Extra, CondDepth};
@@ -948,9 +948,9 @@ bool EarlyIfConverter::shouldConvertIf() {
     }
 
     // The TBB value is pulled into the critical path.
-    unsigned TDepth = adjCycles(TBBTrace.getPHIDepth(*PI.PHI), PI.TCycles);
+    unsigned const TDepth = adjCycles(TBBTrace.getPHIDepth(*PI.PHI), PI.TCycles);
     if (TDepth > MaxDepth) {
-      unsigned Extra = TDepth - MaxDepth;
+      unsigned const Extra = TDepth - MaxDepth;
       LLVM_DEBUG(dbgs() << "TBB data adds " << Extra << " cycles.\n");
       if (Extra > TBlock.Extra)
         TBlock = {Extra, TDepth};
@@ -961,9 +961,9 @@ bool EarlyIfConverter::shouldConvertIf() {
     }
 
     // The FBB value is pulled into the critical path.
-    unsigned FDepth = adjCycles(FBBTrace.getPHIDepth(*PI.PHI), PI.FCycles);
+    unsigned const FDepth = adjCycles(FBBTrace.getPHIDepth(*PI.PHI), PI.FCycles);
     if (FDepth > MaxDepth) {
-      unsigned Extra = FDepth - MaxDepth;
+      unsigned const Extra = FDepth - MaxDepth;
       LLVM_DEBUG(dbgs() << "FBB data adds " << Extra << " cycles.\n");
       if (Extra > FBlock.Extra)
         FBlock = {Extra, FDepth};
@@ -1133,8 +1133,8 @@ bool EarlyIfPredicator::shouldConvertIf() {
 
     unsigned ExtraPredCost = 0;
     unsigned Cycles = 0;
-    for (MachineInstr &I : IfBlock) {
-      unsigned NumCycles = SchedModel.computeInstrLatency(&I, false);
+    for (MachineInstr  const&I : IfBlock) {
+      unsigned const NumCycles = SchedModel.computeInstrLatency(&I, false);
       if (NumCycles > 1)
         Cycles += NumCycles - 1;
       ExtraPredCost += TII->getPredicationCost(I);
@@ -1147,14 +1147,14 @@ bool EarlyIfPredicator::shouldConvertIf() {
   unsigned FExtra = 0;
   unsigned TCycle = 0;
   unsigned FCycle = 0;
-  for (MachineInstr &I : *IfConv.TBB) {
-    unsigned NumCycles = SchedModel.computeInstrLatency(&I, false);
+  for (MachineInstr  const&I : *IfConv.TBB) {
+    unsigned const NumCycles = SchedModel.computeInstrLatency(&I, false);
     if (NumCycles > 1)
       TCycle += NumCycles - 1;
     TExtra += TII->getPredicationCost(I);
   }
-  for (MachineInstr &I : *IfConv.FBB) {
-    unsigned NumCycles = SchedModel.computeInstrLatency(&I, false);
+  for (MachineInstr  const&I : *IfConv.FBB) {
+    unsigned const NumCycles = SchedModel.computeInstrLatency(&I, false);
     if (NumCycles > 1)
       FCycle += NumCycles - 1;
     FExtra += TII->getPredicationCost(I);

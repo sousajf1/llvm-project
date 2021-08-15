@@ -131,7 +131,7 @@ bool WaitInsert::runOnMachineFunction(MachineFunction &MF) {
         continue;
       // If the following instruction is an X87 instruction and isn't an X87
       // non-waiting control instruction, we can omit insert wait instruction.
-      MachineBasicBlock::iterator AfterMI = std::next(MI);
+      MachineBasicBlock::iterator const AfterMI = std::next(MI);
       if (AfterMI != MBB.end() && isX87Instruction(*AfterMI) &&
           !isX87NonWaitingControlInstruction(*AfterMI))
         continue;

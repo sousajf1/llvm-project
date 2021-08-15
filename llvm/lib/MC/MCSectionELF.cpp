@@ -106,7 +106,7 @@ void MCSectionELF::PrintSwitchToSection(const MCAsmInfo &MAI, const Triple &T,
     OS << 'R';
 
   // If there are target-specific flags, print them.
-  Triple::ArchType Arch = T.getArch();
+  Triple::ArchType const Arch = T.getArch();
   if (Arch == Triple::xcore) {
     if (Flags & ELF::XCORE_SHF_CP_SECTION)
       OS << 'c';

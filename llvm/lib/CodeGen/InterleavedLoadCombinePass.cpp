@@ -468,7 +468,7 @@ public:
       return *this;
 
     // Test if the result will be zero
-    unsigned shiftAmt = C.getZExtValue();
+    unsigned const shiftAmt = C.getZExtValue();
     if (shiftAmt >= C.getBitWidth())
       return mul(APInt(C.getBitWidth(), 0));
 
@@ -570,7 +570,7 @@ public:
   /// Returns true if it can be proven that two Polynomials are equal.
   bool isProvenEqualTo(const Polynomial &o) {
     // Subtract both polynomials and test if it is fully defined and zero.
-    Polynomial r = *this - o;
+    Polynomial const r = *this - o;
     return (r.ErrorMSBs == 0) && (!r.isFirstOrder()) && (r.A.isNullValue());
   }
 
@@ -693,7 +693,7 @@ public:
   ///
   /// \returns true if this is possible and false if not
   bool isInterleaved(unsigned Factor, const DataLayout &DL) const {
-    unsigned Size = DL.getTypeAllocSize(VTy->getElementType());
+    unsigned const Size = DL.getTypeAllocSize(VTy->getElementType());
     for (unsigned i = 1; i < getDimension(); i++) {
       if (!EI[i].Ofs.isProvenEqualTo(EI[0].Ofs + i * Factor * Size)) {
         return false;
@@ -744,9 +744,9 @@ public:
     if (Result.VTy->getNumElements() % VTy->getNumElements())
       return false;
 
-    unsigned Factor = Result.VTy->getNumElements() / VTy->getNumElements();
-    unsigned NewSize = DL.getTypeAllocSize(Result.VTy->getElementType());
-    unsigned OldSize = DL.getTypeAllocSize(VTy->getElementType());
+    unsigned const Factor = Result.VTy->getNumElements() / VTy->getNumElements();
+    unsigned const NewSize = DL.getTypeAllocSize(Result.VTy->getElementType());
+    unsigned const OldSize = DL.getTypeAllocSize(VTy->getElementType());
 
     if (NewSize * Factor != OldSize)
       return false;
@@ -835,7 +835,7 @@ public:
     Result.SVI = SVI;
 
     int j = 0;
-    for (int i : SVI->getShuffleMask()) {
+    for (int const i : SVI->getShuffleMask()) {
       assert((i < 2 * (signed)ArgTy->getNumElements()) &&
              "Invalid ShuffleVectorInst (index out of bounds)");
 
@@ -890,7 +890,7 @@ public:
           ConstantInt::get(Type::getInt32Ty(LI->getContext()), 0),
           ConstantInt::get(Type::getInt32Ty(LI->getContext()), i),
       };
-      int64_t Ofs = DL.getIndexedOffsetInType(Result.VTy, makeArrayRef(Idx, 2));
+      int64_t const Ofs = DL.getIndexedOffsetInType(Result.VTy, makeArrayRef(Idx, 2));
       Result.EI[i] = ElementInfo(Offset + Ofs, i == 0 ? LI : nullptr);
     }
 
@@ -964,12 +964,12 @@ public:
       BasePtr = nullptr;
       return;
     }
-    unsigned PointerBits =
+    unsigned const PointerBits =
         DL.getIndexSizeInBits(PtrTy->getPointerAddressSpace());
 
     /// Skip pointer casts. Return Zero polynomial otherwise
     if (isa<CastInst>(&Ptr)) {
-      CastInst &CI = *cast<CastInst>(&Ptr);
+      CastInst  const&CI = *cast<CastInst>(&Ptr);
       switch (CI.getOpcode()) {
       case Instruction::BitCast:
         computePolynomialFromPointer(*CI.getOperand(0), Result, BasePtr, DL);
@@ -1020,7 +1020,7 @@ public:
             DL.getIndexedOffsetInType(GEP.getSourceElementType(), Indices);
 
         // Apply the operations of GEP to the polynomial.
-        unsigned ResultSize = DL.getTypeAllocSize(GEP.getResultElementType());
+        unsigned const ResultSize = DL.getTypeAllocSize(GEP.getResultElementType());
         Result.sextOrTrunc(PointerBits);
         Result.mul(APInt(PointerBits, ResultSize));
         Result.add(BaseOffset);
@@ -1057,7 +1057,7 @@ bool InterleavedLoadCombineImpl::findPattern(
   for (auto C0 = Candidates.begin(), E0 = Candidates.end(); C0 != E0; ++C0) {
     unsigned i;
     // Try to find an interleaved load using the front of Worklist as first line
-    unsigned Size = DL.getTypeAllocSize(C0->VTy->getElementType());
+    unsigned const Size = DL.getTypeAllocSize(C0->VTy->getElementType());
 
     // List containing iterators pointing to the VectorInfos of the candidates
     std::vector<std::list<VectorInfo>::iterator> Res(Factor, Candidates.end());
@@ -1202,7 +1202,7 @@ bool InterleavedLoadCombineImpl::combine(std::list<VectorInfo> &InterleavedLoad,
   // The old instruction will are left dead.
   IRBuilder<> Builder(InsertionPoint);
   Type *ETy = InterleavedLoad.front().SVI->getType()->getElementType();
-  unsigned ElementsPerSVI =
+  unsigned const ElementsPerSVI =
       cast<FixedVectorType>(InterleavedLoad.front().SVI->getType())
           ->getNumElements();
   FixedVectorType *ILTy = FixedVectorType::get(ETy, Factor * ElementsPerSVI);
@@ -1257,7 +1257,7 @@ bool InterleavedLoadCombineImpl::combine(std::list<VectorInfo> &InterleavedLoad,
 bool InterleavedLoadCombineImpl::run() {
   OptimizationRemarkEmitter ORE(&F);
   bool changed = false;
-  unsigned MaxFactor = TLI.getMaxSupportedInterleaveFactor();
+  unsigned const MaxFactor = TLI.getMaxSupportedInterleaveFactor();
 
   auto &DL = F.getParent()->getDataLayout();
 

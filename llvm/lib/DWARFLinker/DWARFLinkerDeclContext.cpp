@@ -30,7 +30,7 @@ namespace llvm {
 bool DeclContext::setLastSeenDIE(CompileUnit &U, const DWARFDie &Die) {
   if (LastSeenCompileUnitID == U.getUniqueID()) {
     DWARFUnit &OrigUnit = U.getOrigUnit();
-    uint32_t FirstIdx = OrigUnit.getDIEIndex(LastSeenDIE);
+    uint32_t const FirstIdx = OrigUnit.getDIEIndex(LastSeenDIE);
     U.getInfo(FirstIdx).Ctxt = nullptr;
     return false;
   }
@@ -43,7 +43,7 @@ bool DeclContext::setLastSeenDIE(CompileUnit &U, const DWARFDie &Die) {
 PointerIntPair<DeclContext *, 1>
 DeclContextTree::getChildDeclContext(DeclContext &Context, const DWARFDie &DIE,
                                      CompileUnit &U, bool InClangModule) {
-  unsigned Tag = DIE.getTag();
+  unsigned const Tag = DIE.getTag();
 
   // FIXME: dsymutil-classic compat: We should bail out here if we
   // have a specification or an abstract_origin. We will get the
@@ -88,7 +88,7 @@ DeclContextTree::getChildDeclContext(DeclContext &Context, const DWARFDie &DIE,
   else if (const char *ShortName = DIE.getShortName())
     NameRef = StringPool.internString(ShortName);
 
-  bool IsAnonymousNamespace = NameRef.empty() && Tag == dwarf::DW_TAG_namespace;
+  bool const IsAnonymousNamespace = NameRef.empty() && Tag == dwarf::DW_TAG_namespace;
   if (IsAnonymousNamespace) {
     // FIXME: For dsymutil-classic compatibility. I think uniquing within
     // anonymous namespaces is wrong. There is no ODR guarantee there.
@@ -157,7 +157,7 @@ DeclContextTree::getChildDeclContext(DeclContext &Context, const DWARFDie &DIE,
     Hash = hash_combine(Hash, FileRef);
 
   // Now look if this context already exists.
-  DeclContext Key(Hash, Line, ByteSize, Tag, NameRef, FileRef, Context);
+  DeclContext const Key(Hash, Line, ByteSize, Tag, NameRef, FileRef, Context);
   auto ContextIter = Contexts.find(&Key);
 
   if (ContextIter == Contexts.end()) {
@@ -191,12 +191,12 @@ DeclContextTree::getChildDeclContext(DeclContext &Context, const DWARFDie &DIE,
 StringRef
 DeclContextTree::getResolvedPath(CompileUnit &CU, unsigned FileNum,
                                  const DWARFDebugLine::LineTable &LineTable) {
-  std::pair<unsigned, unsigned> Key = {CU.getUniqueID(), FileNum};
+  std::pair<unsigned, unsigned> const Key = {CU.getUniqueID(), FileNum};
 
   ResolvedPathsMap::const_iterator It = ResolvedPaths.find(Key);
   if (It == ResolvedPaths.end()) {
     std::string FileName;
-    bool FoundFileName = LineTable.getFileNameByIndex(
+    bool const FoundFileName = LineTable.getFileNameByIndex(
         FileNum, CU.getOrigUnit().getCompilationDir(),
         DILineInfoSpecifier::FileLineInfoKind::AbsoluteFilePath, FileName);
     (void)FoundFileName;
@@ -204,7 +204,7 @@ DeclContextTree::getResolvedPath(CompileUnit &CU, unsigned FileNum,
 
     // Second level of caching, this time based on the file's parent
     // path.
-    StringRef ResolvedPath = PathResolver.resolve(FileName, StringPool);
+    StringRef const ResolvedPath = PathResolver.resolve(FileName, StringPool);
 
     It = ResolvedPaths.insert(std::make_pair(Key, ResolvedPath)).first;
   }

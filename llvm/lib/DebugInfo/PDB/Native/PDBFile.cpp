@@ -104,7 +104,7 @@ uint32_t PDBFile::getFileSize() const { return Buffer->getLength(); }
 
 Expected<ArrayRef<uint8_t>> PDBFile::getBlockData(uint32_t BlockIndex,
                                                   uint32_t NumBytes) const {
-  uint64_t StreamBlockOffset = msf::blockToOffset(BlockIndex, getBlockSize());
+  uint64_t const StreamBlockOffset = msf::blockToOffset(BlockIndex, getBlockSize());
 
   ArrayRef<uint8_t> Result;
   if (auto EC = Buffer->readBytes(StreamBlockOffset, NumBytes, Result))
@@ -161,7 +161,7 @@ Error PDBFile::parseFileHeaders() {
   uint32_t BlocksRemaining = getBlockCount();
   uint32_t BI = 0;
   for (auto Byte : FpmBytes) {
-    uint32_t BlocksThisByte = std::min(BlocksRemaining, 8U);
+    uint32_t const BlocksThisByte = std::min(BlocksRemaining, 8U);
     for (uint32_t I = 0; I < BlocksThisByte; ++I) {
       if (Byte & (1 << I))
         ContainerLayout.FreePageMap[BI] = true;
@@ -199,9 +199,9 @@ Error PDBFile::parseStreamData() {
   if (auto EC = Reader.readArray(ContainerLayout.StreamSizes, NumStreams))
     return EC;
   for (uint32_t I = 0; I < NumStreams; ++I) {
-    uint32_t StreamSize = getStreamByteSize(I);
+    uint32_t const StreamSize = getStreamByteSize(I);
     // FIXME: What does StreamSize ~0U mean?
-    uint64_t NumExpectedStreamBlocks =
+    uint64_t const NumExpectedStreamBlocks =
         StreamSize == UINT32_MAX
             ? 0
             : msf::bytesToBlocks(StreamSize, ContainerLayout.SB->BlockSize);
@@ -215,8 +215,8 @@ Error PDBFile::parseStreamData() {
     ArrayRef<support::ulittle32_t> Blocks;
     if (auto EC = Reader.readArray(Blocks, NumExpectedStreamBlocks))
       return EC;
-    for (uint32_t Block : Blocks) {
-      uint64_t BlockEndOffset =
+    for (uint32_t const Block : Blocks) {
+      uint64_t const BlockEndOffset =
           (uint64_t)(Block + 1) * ContainerLayout.SB->BlockSize;
       if (BlockEndOffset > getFileSize())
         return make_error<RawError>(raw_error_code::corrupt_file,
@@ -352,7 +352,7 @@ Expected<SymbolStream &> PDBFile::getPDBSymbolStream() {
     if (!DbiS)
       return DbiS.takeError();
 
-    uint32_t SymbolStreamNum = DbiS->getSymRecordStreamIndex();
+    uint32_t const SymbolStreamNum = DbiS->getSymRecordStreamIndex();
     auto SymbolS = safelyCreateIndexedStream(SymbolStreamNum);
     if (!SymbolS)
       return SymbolS.takeError();
@@ -404,7 +404,7 @@ uint32_t PDBFile::getPointerSize() {
   auto DbiS = getPDBDbiStream();
   if (!DbiS)
     return 0;
-  PDB_Machine Machine = DbiS->getMachineType();
+  PDB_Machine const Machine = DbiS->getMachineType();
   if (Machine == PDB_Machine::Amd64)
     return 8;
   return 4;
@@ -502,7 +502,7 @@ PDBFile::safelyCreateNamedStream(StringRef Name) {
   Expected<uint32_t> ExpectedNSI = IS->getNamedStreamIndex(Name);
   if (!ExpectedNSI)
     return ExpectedNSI.takeError();
-  uint32_t NameStreamIndex = *ExpectedNSI;
+  uint32_t const NameStreamIndex = *ExpectedNSI;
 
   return safelyCreateIndexedStream(NameStreamIndex);
 }

@@ -67,11 +67,11 @@ INITIALIZE_PASS(HexagonVExtract, "hexagon-vextract",
 unsigned HexagonVExtract::genElemLoad(MachineInstr *ExtI, unsigned BaseR,
                                       MachineRegisterInfo &MRI) {
   MachineBasicBlock &ExtB = *ExtI->getParent();
-  DebugLoc DL = ExtI->getDebugLoc();
-  Register ElemR = MRI.createVirtualRegister(&Hexagon::IntRegsRegClass);
+  DebugLoc const DL = ExtI->getDebugLoc();
+  Register const ElemR = MRI.createVirtualRegister(&Hexagon::IntRegsRegClass);
 
-  Register ExtIdxR = ExtI->getOperand(2).getReg();
-  unsigned ExtIdxS = ExtI->getOperand(2).getSubReg();
+  Register const ExtIdxR = ExtI->getOperand(2).getReg();
+  unsigned const ExtIdxS = ExtI->getOperand(2).getSubReg();
 
   // Simplified check for a compile-time constant value of ExtIdxR.
   if (ExtIdxS == 0) {
@@ -87,7 +87,7 @@ unsigned HexagonVExtract::genElemLoad(MachineInstr *ExtI, unsigned BaseR,
     }
   }
 
-  Register IdxR = MRI.createVirtualRegister(&Hexagon::IntRegsRegClass);
+  Register const IdxR = MRI.createVirtualRegister(&Hexagon::IntRegsRegClass);
   BuildMI(ExtB, ExtI, DL, HII->get(Hexagon::A2_andir), IdxR)
     .add(ExtI->getOperand(2))
     .addImm(-4);
@@ -112,10 +112,10 @@ bool HexagonVExtract::runOnMachineFunction(MachineFunction &MF) {
 
   for (MachineBasicBlock &MBB : MF) {
     for (MachineInstr &MI : MBB) {
-      unsigned Opc = MI.getOpcode();
+      unsigned const Opc = MI.getOpcode();
       if (Opc != Hexagon::V6_extractw)
         continue;
-      Register VecR = MI.getOperand(1).getReg();
+      Register const VecR = MI.getOperand(1).getReg();
       VExtractMap[VecR].push_back(&MI);
     }
   }
@@ -123,7 +123,7 @@ bool HexagonVExtract::runOnMachineFunction(MachineFunction &MF) {
   auto EmitAddr = [&] (MachineBasicBlock &BB, MachineBasicBlock::iterator At,
                        DebugLoc dl, int FI, unsigned Offset) {
     Register AddrR = MRI.createVirtualRegister(&Hexagon::IntRegsRegClass);
-    unsigned FiOpc = AR != 0 ? Hexagon::PS_fia : Hexagon::PS_fi;
+    unsigned const FiOpc = AR != 0 ? Hexagon::PS_fia : Hexagon::PS_fi;
     auto MIB = BuildMI(BB, At, dl, HII->get(FiOpc), AddrR);
     if (AR)
       MIB.addReg(AR);
@@ -132,46 +132,46 @@ bool HexagonVExtract::runOnMachineFunction(MachineFunction &MF) {
   };
 
   for (auto &P : VExtractMap) {
-    unsigned VecR = P.first;
+    unsigned const VecR = P.first;
     if (P.second.size() <= VExtractThreshold)
       continue;
 
     const auto &VecRC = *MRI.getRegClass(VecR);
-    Align Alignment = HRI.getSpillAlign(VecRC);
+    Align const Alignment = HRI.getSpillAlign(VecRC);
     MaxAlign = max(MaxAlign, Alignment);
     // Make sure this is not a spill slot: spill slots cannot be aligned
     // if there are variable-sized objects on the stack. They must be
     // accessible via FP (which is not aligned), because SP is unknown,
     // and AP may not be available at the location of the load/store.
-    int FI = MFI.CreateStackObject(HRI.getSpillSize(VecRC), Alignment,
+    int const FI = MFI.CreateStackObject(HRI.getSpillSize(VecRC), Alignment,
                                    /*isSpillSlot*/ false);
 
     MachineInstr *DefI = MRI.getVRegDef(VecR);
-    MachineBasicBlock::iterator At = std::next(DefI->getIterator());
+    MachineBasicBlock::iterator const At = std::next(DefI->getIterator());
     MachineBasicBlock &DefB = *DefI->getParent();
-    unsigned StoreOpc = VecRC.getID() == Hexagon::HvxVRRegClassID
+    unsigned const StoreOpc = VecRC.getID() == Hexagon::HvxVRRegClassID
                           ? Hexagon::V6_vS32b_ai
                           : Hexagon::PS_vstorerw_ai;
-    Register AddrR = EmitAddr(DefB, At, DefI->getDebugLoc(), FI, 0);
+    Register const AddrR = EmitAddr(DefB, At, DefI->getDebugLoc(), FI, 0);
     BuildMI(DefB, At, DefI->getDebugLoc(), HII->get(StoreOpc))
       .addReg(AddrR)
       .addImm(0)
       .addReg(VecR);
 
-    unsigned VecSize = HRI.getRegSizeInBits(VecRC) / 8;
+    unsigned const VecSize = HRI.getRegSizeInBits(VecRC) / 8;
 
     for (MachineInstr *ExtI : P.second) {
       assert(ExtI->getOpcode() == Hexagon::V6_extractw);
-      unsigned SR = ExtI->getOperand(1).getSubReg();
+      unsigned const SR = ExtI->getOperand(1).getSubReg();
       assert(ExtI->getOperand(1).getReg() == VecR);
 
       MachineBasicBlock &ExtB = *ExtI->getParent();
-      DebugLoc DL = ExtI->getDebugLoc();
-      Register BaseR = EmitAddr(ExtB, ExtI, ExtI->getDebugLoc(), FI,
+      DebugLoc const DL = ExtI->getDebugLoc();
+      Register const BaseR = EmitAddr(ExtB, ExtI, ExtI->getDebugLoc(), FI,
                                 SR == 0 ? 0 : VecSize/2);
 
-      unsigned ElemR = genElemLoad(ExtI, BaseR, MRI);
-      Register ExtR = ExtI->getOperand(0).getReg();
+      unsigned const ElemR = genElemLoad(ExtI, BaseR, MRI);
+      Register const ExtR = ExtI->getOperand(0).getReg();
       MRI.replaceRegWith(ExtR, ElemR);
       ExtB.erase(ExtI);
       Changed = true;

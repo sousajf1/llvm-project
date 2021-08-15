@@ -339,7 +339,7 @@ static const std::map<unsigned, std::vector<unsigned>> StdFixups = {
 
 uint32_t HexagonMCCodeEmitter::parseBits(size_t Last, MCInst const &MCB,
                                          MCInst const &MCI) const {
-  bool Duplex = HexagonMCInstrInfo::isDuplex(MCII, MCI);
+  bool const Duplex = HexagonMCInstrInfo::isDuplex(MCII, MCI);
   if (State.Index == 0) {
     if (HexagonMCInstrInfo::isInnerLoop(MCB)) {
       assert(!Duplex);
@@ -367,7 +367,7 @@ uint32_t HexagonMCCodeEmitter::parseBits(size_t Last, MCInst const &MCB,
 void HexagonMCCodeEmitter::encodeInstruction(const MCInst &MI, raw_ostream &OS,
                                              SmallVectorImpl<MCFixup> &Fixups,
                                              const MCSubtargetInfo &STI) const {
-  MCInst &HMB = const_cast<MCInst &>(MI);
+  MCInst  const&HMB = const_cast<MCInst &>(MI);
 
   assert(HexagonMCInstrInfo::isBundle(HMB));
   LLVM_DEBUG(dbgs() << "Encoding bundle\n";);
@@ -375,11 +375,11 @@ void HexagonMCCodeEmitter::encodeInstruction(const MCInst &MI, raw_ostream &OS,
   State.Extended = false;
   State.Bundle = &MI;
   State.Index = 0;
-  size_t Last = HexagonMCInstrInfo::bundleSize(HMB) - 1;
-  FeatureBitset Features = computeAvailableFeatures(STI.getFeatureBits());
+  size_t const Last = HexagonMCInstrInfo::bundleSize(HMB) - 1;
+  FeatureBitset const Features = computeAvailableFeatures(STI.getFeatureBits());
 
   for (auto &I : HexagonMCInstrInfo::bundleInstructions(HMB)) {
-    MCInst &HMI = const_cast<MCInst &>(*I.getInst());
+    MCInst  const&HMI = const_cast<MCInst &>(*I.getInst());
     verifyInstructionPredicates(HMI, Features);
 
     EncodeSingleInstruction(HMI, OS, Fixups, STI, parseBits(Last, HMB, HMI));
@@ -411,7 +411,7 @@ void HexagonMCCodeEmitter::EncodeSingleInstruction(const MCInst &MI,
                     << HexagonMCInstrInfo::getName(MCII, MI) << "'\n");
 
   Binary = getBinaryCodeForInstr(MI, Fixups, STI);
-  unsigned Opc = MI.getOpcode();
+  unsigned const Opc = MI.getOpcode();
 
   // Check for unimplemented instructions. Immediate extenders
   // are encoded as zero, so they need to be accounted for.
@@ -426,7 +426,7 @@ void HexagonMCCodeEmitter::EncodeSingleInstruction(const MCInst &MI,
   if (Opc >= Hexagon::DuplexIClass0 && Opc <= Hexagon::DuplexIClassF) {
     assert(Parse == HexagonII::INST_PARSE_DUPLEX &&
            "Emitting duplex without duplex parse bits");
-    unsigned DupIClass = MI.getOpcode() - Hexagon::DuplexIClass0;
+    unsigned const DupIClass = MI.getOpcode() - Hexagon::DuplexIClass0;
     // 29 is the bit position.
     // 0b1110 =0xE bits are masked off and down shifted by 1 bit.
     // Last bit is moved to bit position 13
@@ -436,10 +436,10 @@ void HexagonMCCodeEmitter::EncodeSingleInstruction(const MCInst &MI,
     const MCInst *Sub1 = MI.getOperand(1).getInst();
 
     // Get subinstruction slot 0.
-    unsigned SubBits0 = getBinaryCodeForInstr(*Sub0, Fixups, STI);
+    unsigned const SubBits0 = getBinaryCodeForInstr(*Sub0, Fixups, STI);
     // Get subinstruction slot 1.
     State.SubInst1 = true;
-    unsigned SubBits1 = getBinaryCodeForInstr(*Sub1, Fixups, STI);
+    unsigned const SubBits1 = getBinaryCodeForInstr(*Sub1, Fixups, STI);
     State.SubInst1 = false;
 
     Binary |= SubBits0 | (SubBits1 << 16);
@@ -462,7 +462,7 @@ Hexagon::Fixups HexagonMCCodeEmitter::getFixupNoBits(
       MCInstrInfo const &MCII, const MCInst &MI, const MCOperand &MO,
       const MCSymbolRefExpr::VariantKind VarKind) const {
   const MCInstrDesc &MCID = HexagonMCInstrInfo::getDesc(MCII, MI);
-  unsigned InsnType = HexagonMCInstrInfo::getType(MCII, MI);
+  unsigned const InsnType = HexagonMCInstrInfo::getType(MCII, MI);
   using namespace Hexagon;
 
   if (InsnType == HexagonII::TypeEXTENDER) {
@@ -581,12 +581,12 @@ unsigned HexagonMCCodeEmitter::getExprOpValue(const MCInst &MI,
     ME = &HexagonMCInstrInfo::getExpr(*ME);
   int64_t Value;
   if (ME->evaluateAsAbsolute(Value)) {
-    bool InstExtendable = HexagonMCInstrInfo::isExtendable(MCII, MI) ||
+    bool const InstExtendable = HexagonMCInstrInfo::isExtendable(MCII, MI) ||
                           HexagonMCInstrInfo::isExtended(MCII, MI);
     // Only sub-instruction #1 can be extended in a duplex. If MI is a
     // sub-instruction #0, it is not extended even if Extended is true
     // (it can be true for the duplex as a whole).
-    bool IsSub0 = HexagonMCInstrInfo::isSubInstruction(MI) && !State.SubInst1;
+    bool const IsSub0 = HexagonMCInstrInfo::isSubInstruction(MI) && !State.SubInst1;
     if (State.Extended && InstExtendable && !IsSub0) {
       unsigned OpIdx = ~0u;
       for (unsigned I = 0, E = MI.getNumOperands(); I != E; ++I) {
@@ -597,7 +597,7 @@ unsigned HexagonMCCodeEmitter::getExprOpValue(const MCInst &MI,
       }
       assert(OpIdx != ~0u);
       if (OpIdx == HexagonMCInstrInfo::getExtendableOp(MCII, MI)) {
-        unsigned Shift = HexagonMCInstrInfo::getExtentAlignment(MCII, MI);
+        unsigned const Shift = HexagonMCInstrInfo::getExtentAlignment(MCII, MI);
         Value = (Value & 0x3f) << Shift;
       }
     }
@@ -615,11 +615,11 @@ unsigned HexagonMCCodeEmitter::getExprOpValue(const MCInst &MI,
   unsigned FixupKind = fixup_Invalid;
   const MCSymbolRefExpr *MCSRE = static_cast<const MCSymbolRefExpr *>(ME);
   const MCInstrDesc &MCID = HexagonMCInstrInfo::getDesc(MCII, MI);
-  unsigned FixupWidth = HexagonMCInstrInfo::getExtentBits(MCII, MI) -
+  unsigned const FixupWidth = HexagonMCInstrInfo::getExtentBits(MCII, MI) -
                         HexagonMCInstrInfo::getExtentAlignment(MCII, MI);
-  MCSymbolRefExpr::VariantKind VarKind = MCSRE->getKind();
-  unsigned Opc = MCID.getOpcode();
-  unsigned IType = HexagonMCInstrInfo::getType(MCII, MI);
+  MCSymbolRefExpr::VariantKind const VarKind = MCSRE->getKind();
+  unsigned const Opc = MCID.getOpcode();
+  unsigned const IType = HexagonMCInstrInfo::getType(MCII, MI);
 
   LLVM_DEBUG(dbgs() << "----------------------------------------\n"
                     << "Opcode Name: " << HexagonMCInstrInfo::getName(MCII, MI)
@@ -638,7 +638,7 @@ unsigned HexagonMCCodeEmitter::getExprOpValue(const MCInst &MI,
         FixupKind = Hexagon::fixup_Hexagon_27_REG;
       } else {
         // Look for GP-relative fixups.
-        unsigned Shift = HexagonMCInstrInfo::getExtentAlignment(MCII, MI);
+        unsigned const Shift = HexagonMCInstrInfo::getExtentAlignment(MCII, MI);
         static const Hexagon::Fixups GPRelFixups[] = {
           Hexagon::fixup_Hexagon_GPREL16_0, Hexagon::fixup_Hexagon_GPREL16_1,
           Hexagon::fixup_Hexagon_GPREL16_2, Hexagon::fixup_Hexagon_GPREL16_3
@@ -661,7 +661,7 @@ unsigned HexagonMCCodeEmitter::getExprOpValue(const MCInst &MI,
         FixupKind = Hexagon::fixup_Hexagon_GOTREL_HI16;
     }
   } else {
-    bool BranchOrCR = MCID.isBranch() || IType == HexagonII::TypeCR;
+    bool const BranchOrCR = MCID.isBranch() || IType == HexagonII::TypeCR;
     switch (FixupWidth) {
       case 9:
         if (BranchOrCR)
@@ -701,7 +701,7 @@ unsigned HexagonMCCodeEmitter::getExprOpValue(const MCInst &MI,
     FixupExpr = MCBinaryExpr::createAdd(FixupExpr, C, MCT);
   }
 
-  MCFixup Fixup = MCFixup::create(State.Addend, FixupExpr,
+  MCFixup const Fixup = MCFixup::create(State.Addend, FixupExpr,
                                   MCFixupKind(FixupKind), MI.getLoc());
   Fixups.push_back(Fixup);
   // All of the information is in the fixup.
@@ -727,7 +727,7 @@ HexagonMCCodeEmitter::getMachineOpValue(MCInst const &MI, MCOperand const &MO,
     // Calculate the new value distance to the associated producer
     unsigned SOffset = 0;
     unsigned VOffset = 0;
-    unsigned UseReg = MO.getReg();
+    unsigned const UseReg = MO.getReg();
     unsigned DefReg1 = Hexagon::NoRegister;
     unsigned DefReg2 = Hexagon::NoRegister;
 
@@ -776,7 +776,7 @@ HexagonMCCodeEmitter::getMachineOpValue(MCInst const &MI, MCOperand const &MO,
 
   assert(!MO.isImm());
   if (MO.isReg()) {
-    unsigned Reg = MO.getReg();
+    unsigned const Reg = MO.getReg();
     if (HexagonMCInstrInfo::isSubInstruction(MI) ||
         HexagonMCInstrInfo::getType(MCII, MI) == HexagonII::TypeCJ)
       return HexagonMCInstrInfo::getDuplexRegisterNumbering(Reg);

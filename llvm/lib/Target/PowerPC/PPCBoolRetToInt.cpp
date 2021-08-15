@@ -197,7 +197,7 @@ class PPCBoolRetToInt : public FunctionPass {
     auto &TM = TPC->getTM<PPCTargetMachine>();
     ST = TM.getSubtargetImpl(F);
 
-    PHINodeSet PromotablePHINodes = getPromotablePHINodes(F);
+    PHINodeSet const PromotablePHINodes = getPromotablePHINodes(F);
     B2IMap Bool2IntMap;
     bool Changed = false;
     for (auto &BB : F) {

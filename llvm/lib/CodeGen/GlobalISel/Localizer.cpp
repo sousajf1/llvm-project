@@ -62,7 +62,7 @@ bool Localizer::isNonUniquePhiValue(MachineOperand &Op) const {
   if (!MI->isPHI())
     return false;
 
-  Register SrcReg = Op.getReg();
+  Register const SrcReg = Op.getReg();
   for (unsigned Idx = 1; Idx < MI->getNumOperands(); Idx += 2) {
     auto &MO = MI->getOperand(Idx);
     if (&MO != &Op && MO.isReg() && MO.getReg() == SrcReg)
@@ -88,7 +88,7 @@ bool Localizer::localizeInterBlock(MachineFunction &MF,
     LLVM_DEBUG(dbgs() << "Should localize: " << MI);
     assert(MI.getDesc().getNumDefs() == 1 &&
            "More than one definition not supported yet");
-    Register Reg = MI.getOperand(0).getReg();
+    Register const Reg = MI.getOperand(0).getReg();
     // Check if all the users of MI are local.
     // We are going to invalidation the list of use operands, so we
     // can't use range iterator.
@@ -131,7 +131,7 @@ bool Localizer::localizeInterBlock(MachineFunction &MF,
                             LocalizedMI);
 
         // Set a new register for the definition.
-        Register NewReg = MRI->createGenericVirtualRegister(MRI->getType(Reg));
+        Register const NewReg = MRI->createGenericVirtualRegister(MRI->getType(Reg));
         MRI->setRegClassOrRegBank(NewReg, MRI->getRegClassOrRegBank(Reg));
         LocalizedMI->getOperand(0).setReg(NewReg);
         NewVRegIt =
@@ -157,7 +157,7 @@ bool Localizer::localizeIntraBlock(LocalizedSetVecT &LocalizedInstrs) {
   // many users, but this case may be better served by regalloc improvements.
 
   for (MachineInstr *MI : LocalizedInstrs) {
-    Register Reg = MI->getOperand(0).getReg();
+    Register const Reg = MI->getOperand(0).getReg();
     MachineBasicBlock &MBB = *MI->getParent();
     // All of the user MIs of this reg.
     SmallPtrSet<MachineInstr *, 32> Users;

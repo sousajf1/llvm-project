@@ -192,7 +192,7 @@ MemoryAccess *MemorySSAUpdater::getPreviousDefFromEnd(
 MemoryAccess *MemorySSAUpdater::recursePhi(MemoryAccess *Phi) {
   if (!Phi)
     return nullptr;
-  TrackingVH<MemoryAccess> Res(Phi);
+  TrackingVH<MemoryAccess> const Res(Phi);
   SmallVector<TrackingVH<Value>, 8> Uses;
   std::copy(Phi->user_begin(), Phi->user_end(), std::back_inserter(Uses));
   for (auto &U : Uses)
@@ -413,10 +413,10 @@ void MemorySSAUpdater::insertDef(MemoryDef *MD, bool RenameUses) {
 
   // Remember the index where we stopped inserting new phis above, since the
   // fixupDefs call in the loop below may insert more, that are already minimal.
-  unsigned NewPhiIndexEnd = InsertedPHIs.size();
+  unsigned const NewPhiIndexEnd = InsertedPHIs.size();
 
   while (!FixupList.empty()) {
-    unsigned StartingPHISize = InsertedPHIs.size();
+    unsigned const StartingPHISize = InsertedPHIs.size();
     fixupDefs(FixupList);
     FixupList.clear();
     // Put any new phis on the fixup list, and process them
@@ -424,7 +424,7 @@ void MemorySSAUpdater::insertDef(MemoryDef *MD, bool RenameUses) {
   }
 
   // Optimize potentially non-minimal phis added in this method.
-  unsigned NewPhiSize = NewPhiIndexEnd - NewPhiIndex;
+  unsigned const NewPhiSize = NewPhiIndexEnd - NewPhiIndex;
   if (NewPhiSize)
     tryRemoveTrivialPhis(ArrayRef<WeakVH>(&InsertedPHIs[NewPhiIndex], NewPhiSize));
 
@@ -683,7 +683,7 @@ void MemorySSAUpdater::updateForClonedLoop(const LoopBlocksRPO &LoopBlocks,
   auto FixPhiIncomingValues = [&](MemoryPhi *Phi, MemoryPhi *NewPhi) {
     assert(Phi && NewPhi && "Invalid Phi nodes.");
     BasicBlock *NewPhiBB = NewPhi->getBlock();
-    SmallPtrSet<BasicBlock *, 4> NewPhiBBPreds(pred_begin(NewPhiBB),
+    SmallPtrSet<BasicBlock *, 4> const NewPhiBBPreds(pred_begin(NewPhiBB),
                                                pred_end(NewPhiBB));
     for (unsigned It = 0, E = Phi->getNumIncomingValues(); It < E; ++It) {
       MemoryAccess *IncomingAccess = Phi->getIncomingValue(It);
@@ -823,7 +823,7 @@ void MemorySSAUpdater::applyUpdates(ArrayRef<CFGUpdate> Updates,
 
   if (!DeleteUpdates.empty()) {
     if (!UpdateDT) {
-      SmallVector<CFGUpdate, 0> Empty;
+      SmallVector<CFGUpdate, 0> const Empty;
       // Deletes are reversed applied, because this CFGView is pretending the
       // deletes did not happen yet, hence the edges still exist.
       DT.applyUpdates(Empty, RevDeleteUpdates);
@@ -836,7 +836,7 @@ void MemorySSAUpdater::applyUpdates(ArrayRef<CFGUpdate> Updates,
     // (RevDelete,false) and (Delete, true), but this matters for the DT
     // updates above; for "children" purposes they are equivalent; but the
     // updates themselves convey the desired update, used inside DT only.
-    GraphDiff<BasicBlock *> GD(RevDeleteUpdates);
+    GraphDiff<BasicBlock *> const GD(RevDeleteUpdates);
     applyInsertUpdates(InsertUpdates, DT, &GD);
     // Update DT to redelete edges; this matches the real CFG so we can perform
     // the standard update without a postview of the CFG.
@@ -844,7 +844,7 @@ void MemorySSAUpdater::applyUpdates(ArrayRef<CFGUpdate> Updates,
   } else {
     if (UpdateDT)
       DT.applyUpdates(Updates);
-    GraphDiff<BasicBlock *> GD;
+    GraphDiff<BasicBlock *> const GD;
     applyInsertUpdates(InsertUpdates, DT, &GD);
   }
 
@@ -855,7 +855,7 @@ void MemorySSAUpdater::applyUpdates(ArrayRef<CFGUpdate> Updates,
 
 void MemorySSAUpdater::applyInsertUpdates(ArrayRef<CFGUpdate> Updates,
                                           DominatorTree &DT) {
-  GraphDiff<BasicBlock *> GD;
+  GraphDiff<BasicBlock *> const GD;
   applyInsertUpdates(Updates, DT, &GD);
 }
 
@@ -1095,7 +1095,7 @@ void MemorySSAUpdater::applyInsertUpdates(ArrayRef<CFGUpdate> Updates,
   SmallVector<BasicBlock *, 32> IDFBlocks;
   if (!BlocksToProcess.empty()) {
     ForwardIDFCalculator IDFs(DT, GD);
-    SmallPtrSet<BasicBlock *, 16> DefiningBlocks(BlocksToProcess.begin(),
+    SmallPtrSet<BasicBlock *, 16> const DefiningBlocks(BlocksToProcess.begin(),
                                                  BlocksToProcess.end());
     IDFs.setDefiningBlocks(DefiningBlocks);
     IDFs.calculate(IDFBlocks);
@@ -1218,7 +1218,7 @@ void MemorySSAUpdater::moveAllAccesses(BasicBlock *From, BasicBlock *To,
 
   assert(Start->getParent() == To && "Incorrect Start instruction");
   MemoryAccess *FirstInNew = nullptr;
-  for (Instruction &I : make_range(Start->getIterator(), To->end()))
+  for (Instruction  const&I : make_range(Start->getIterator(), To->end()))
     if ((FirstInNew = MSSA->getMemoryAccess(&I)))
       break;
   if (FirstInNew) {

@@ -128,8 +128,8 @@ bool DWARFExpression::Operation::extract(DataExtractor Data,
     return false;
 
   for (unsigned Operand = 0; Operand < 2; ++Operand) {
-    unsigned Size = Desc.Op[Operand];
-    unsigned Signed = Size & Operation::SignBit;
+    unsigned const Size = Desc.Op[Operand];
+    unsigned const Signed = Size & Operation::SignBit;
 
     if (Size == Operation::SizeNA)
       break;
@@ -268,7 +268,7 @@ bool DWARFExpression::Operation::print(raw_ostream &OS, DIDumpOptions DumpOpts,
     return false;
   }
 
-  StringRef Name = OperationEncodingString(Opcode);
+  StringRef const Name = OperationEncodingString(Opcode);
   assert(!Name.empty() && "DW_OP has no name!");
   OS << Name;
 
@@ -280,8 +280,8 @@ bool DWARFExpression::Operation::print(raw_ostream &OS, DIDumpOptions DumpOpts,
       return true;
 
   for (unsigned Operand = 0; Operand < 2; ++Operand) {
-    unsigned Size = Desc.Op[Operand];
-    unsigned Signed = Size & Operation::SignBit;
+    unsigned const Size = Desc.Op[Operand];
+    unsigned const Signed = Size & Operation::SignBit;
 
     if (Size == Operation::SizeNA)
       break;
@@ -359,7 +359,7 @@ void DWARFExpression::print(raw_ostream &OS, DIDumpOptions DumpOpts,
 bool DWARFExpression::Operation::verify(DWARFUnit *U) {
 
   for (unsigned Operand = 0; Operand < 2; ++Operand) {
-    unsigned Size = Desc.Op[Operand];
+    unsigned const Size = Desc.Op[Operand];
 
     if (Size == Operation::SizeNA)
       break;
@@ -411,12 +411,12 @@ static bool printCompactDWARFExpr(raw_ostream &OS, DWARFExpression::iterator I,
 
   while (I != E) {
     DWARFExpression::Operation &Op = *I;
-    uint8_t Opcode = Op.getCode();
+    uint8_t const Opcode = Op.getCode();
     switch (Opcode) {
     case dwarf::DW_OP_regx: {
       // DW_OP_regx: A register, with the register num given as an operand.
       // Printed as the plain register name.
-      uint64_t DwarfRegNum = Op.getRawOperand(0);
+      uint64_t const DwarfRegNum = Op.getRawOperand(0);
       Optional<unsigned> LLVMRegNum = MRI.getLLVMRegNum(DwarfRegNum, false);
       if (!LLVMRegNum) {
         OS << "<unknown register " << DwarfRegNum << ">";
@@ -427,8 +427,8 @@ static bool printCompactDWARFExpr(raw_ostream &OS, DWARFExpression::iterator I,
       break;
     }
     case dwarf::DW_OP_bregx: {
-      int DwarfRegNum = Op.getRawOperand(0);
-      int64_t Offset = Op.getRawOperand(1);
+      int const DwarfRegNum = Op.getRawOperand(0);
+      int64_t const Offset = Op.getRawOperand(1);
       Optional<unsigned> LLVMRegNum = MRI.getLLVMRegNum(DwarfRegNum, false);
       if (!LLVMRegNum) {
         OS << "<unknown register " << DwarfRegNum << ">";
@@ -444,8 +444,8 @@ static bool printCompactDWARFExpr(raw_ostream &OS, DWARFExpression::iterator I,
     case dwarf::DW_OP_GNU_entry_value: {
       // DW_OP_entry_value contains a sub-expression which must be rendered
       // separately.
-      uint64_t SubExprLength = Op.getRawOperand(0);
-      DWARFExpression::iterator SubExprEnd = I.skipBytes(SubExprLength);
+      uint64_t const SubExprLength = Op.getRawOperand(0);
+      DWARFExpression::iterator const SubExprEnd = I.skipBytes(SubExprLength);
       ++I;
       raw_svector_ostream S(Stack.emplace_back().String);
       S << "entry(";
@@ -465,7 +465,7 @@ static bool printCompactDWARFExpr(raw_ostream &OS, DWARFExpression::iterator I,
       if (Opcode >= dwarf::DW_OP_reg0 && Opcode <= dwarf::DW_OP_reg31) {
         // DW_OP_reg<N>: A register, with the register num implied by the
         // opcode. Printed as the plain register name.
-        uint64_t DwarfRegNum = Opcode - dwarf::DW_OP_reg0;
+        uint64_t const DwarfRegNum = Opcode - dwarf::DW_OP_reg0;
         Optional<unsigned> LLVMRegNum = MRI.getLLVMRegNum(DwarfRegNum, false);
         if (!LLVMRegNum) {
           OS << "<unknown register " << DwarfRegNum << ">";
@@ -475,8 +475,8 @@ static bool printCompactDWARFExpr(raw_ostream &OS, DWARFExpression::iterator I,
         S << MRI.getName(*LLVMRegNum);
       } else if (Opcode >= dwarf::DW_OP_breg0 &&
                  Opcode <= dwarf::DW_OP_breg31) {
-        int DwarfRegNum = Opcode - dwarf::DW_OP_breg0;
-        int64_t Offset = Op.getRawOperand(0);
+        int const DwarfRegNum = Opcode - dwarf::DW_OP_breg0;
+        int64_t const Offset = Op.getRawOperand(0);
         Optional<unsigned> LLVMRegNum = MRI.getLLVMRegNum(DwarfRegNum, false);
         if (!LLVMRegNum) {
           OS << "<unknown register " << DwarfRegNum << ">";

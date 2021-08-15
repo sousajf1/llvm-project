@@ -238,7 +238,7 @@ class ReplaceLDSUseImpl {
   // within all relevent kernels. Now replace all the uses of LDS within
   // non-kernel functions by LDS pointer.
   void replaceLDSUseByPointer(GlobalVariable *GV, GlobalVariable *LDSPointer) {
-    SmallVector<User *, 8> LDSUsers(GV->users());
+    SmallVector<User *, 8> const LDSUsers(GV->users());
     for (auto *U : LDSUsers) {
       // When `U` is a constant expression, it is possible that same constant
       // expression exists within multiple instructions, and within multiple
@@ -336,7 +336,7 @@ private:
 // scope uses by pointer.
 bool ReplaceLDSUseImpl::replaceLDSUse(GlobalVariable *GV) {
   // Holds all those non-kernel functions within which LDS is being accessed.
-  SmallPtrSet<Function *, 8> &LDSAccessors = LDSToNonKernels[GV];
+  SmallPtrSet<Function *, 8>  const&LDSAccessors = LDSToNonKernels[GV];
 
   // The LDS pointer which points to LDS and replaces all the uses of LDS.
   GlobalVariable *LDSPointer = nullptr;
@@ -384,7 +384,7 @@ bool ReplaceLDSUseImpl::replaceLDSUse(GlobalVariable *GV) {
 // class.
 bool ReplaceLDSUseImpl::replaceLDSUse() {
   // Collect LDS which requires their uses to be replaced by pointer.
-  std::vector<GlobalVariable *> LDSGlobals =
+  std::vector<GlobalVariable *> const LDSGlobals =
       collectLDSRequiringPointerReplace();
 
   // No LDS to pointer-replace. Nothing to do.

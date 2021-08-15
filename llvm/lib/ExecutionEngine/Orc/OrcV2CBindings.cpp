@@ -259,7 +259,7 @@ static LLVMJITSymbolFlags fromJITSymbolFlags(JITSymbolFlags JSF) {
 static SymbolMap toSymbolMap(LLVMOrcCSymbolMapPairs Syms, size_t NumPairs) {
   SymbolMap SM;
   for (size_t I = 0; I != NumPairs; ++I) {
-    JITSymbolFlags Flags = toJITSymbolFlags(Syms[I].Sym.Flags);
+    JITSymbolFlags const Flags = toJITSymbolFlags(Syms[I].Sym.Flags);
     SM[OrcV2CAPIHelper::moveToSymbolStringPtr(unwrap(Syms[I].Name))] =
         JITEvaluatedSymbol(Syms[I].Sym.Address, Flags);
   }
@@ -335,27 +335,27 @@ LLVMOrcJITDylibGetDefaultResourceTracker(LLVMOrcJITDylibRef JD) {
 }
 
 void LLVMOrcReleaseResourceTracker(LLVMOrcResourceTrackerRef RT) {
-  ResourceTrackerSP TmpRT(unwrap(RT));
+  ResourceTrackerSP const TmpRT(unwrap(RT));
   TmpRT->Release();
 }
 
 void LLVMOrcResourceTrackerTransferTo(LLVMOrcResourceTrackerRef SrcRT,
                                       LLVMOrcResourceTrackerRef DstRT) {
-  ResourceTrackerSP TmpRT(unwrap(SrcRT));
+  ResourceTrackerSP const TmpRT(unwrap(SrcRT));
   TmpRT->transferTo(*unwrap(DstRT));
 }
 
 LLVMErrorRef LLVMOrcResourceTrackerRemove(LLVMOrcResourceTrackerRef RT) {
-  ResourceTrackerSP TmpRT(unwrap(RT));
+  ResourceTrackerSP const TmpRT(unwrap(RT));
   return wrap(TmpRT->remove());
 }
 
 void LLVMOrcDisposeDefinitionGenerator(LLVMOrcDefinitionGeneratorRef DG) {
-  std::unique_ptr<DefinitionGenerator> TmpDG(unwrap(DG));
+  std::unique_ptr<DefinitionGenerator> const TmpDG(unwrap(DG));
 }
 
 void LLVMOrcDisposeMaterializationUnit(LLVMOrcMaterializationUnitRef MU) {
-  std::unique_ptr<MaterializationUnit> TmpMU(unwrap(MU));
+  std::unique_ptr<MaterializationUnit> const TmpMU(unwrap(MU));
 }
 
 LLVMOrcMaterializationUnitRef LLVMOrcCreateCustomMaterializationUnit(
@@ -389,8 +389,8 @@ LLVMOrcMaterializationUnitRef LLVMOrcLazyReexports(
   SymbolAliasMap SAM;
   for (size_t I = 0; I != NumPairs; ++I) {
     auto pair = CallableAliases[I];
-    JITSymbolFlags Flags = toJITSymbolFlags(pair.Entry.Flags);
-    SymbolStringPtr Name =
+    JITSymbolFlags const Flags = toJITSymbolFlags(pair.Entry.Flags);
+    SymbolStringPtr const Name =
         OrcV2CAPIHelper::moveToSymbolStringPtr(unwrap(pair.Entry.Name));
     SAM[OrcV2CAPIHelper::moveToSymbolStringPtr(unwrap(pair.Name))] =
         SymbolAliasMapEntry(Name, Flags);
@@ -403,7 +403,7 @@ LLVMOrcMaterializationUnitRef LLVMOrcLazyReexports(
 
 void LLVMOrcDisposeMaterializationResponsibility(
     LLVMOrcMaterializationResponsibilityRef MR) {
-  std::unique_ptr<MaterializationResponsibility> TmpMR(unwrap(MR));
+  std::unique_ptr<MaterializationResponsibility> const TmpMR(unwrap(MR));
 }
 
 LLVMOrcJITDylibRef LLVMOrcMaterializationResponsibilityGetTargetDylib(
@@ -469,7 +469,7 @@ void LLVMOrcDisposeSymbols(LLVMOrcSymbolStringPoolEntryRef *Symbols) {
 LLVMErrorRef LLVMOrcMaterializationResponsibilityNotifyResolved(
     LLVMOrcMaterializationResponsibilityRef MR, LLVMOrcCSymbolMapPairs Symbols,
     size_t NumPairs) {
-  SymbolMap SM = toSymbolMap(Symbols, NumPairs);
+  SymbolMap const SM = toSymbolMap(Symbols, NumPairs);
   return wrap(unwrap(MR)->notifyResolved(std::move(SM)));
 }
 
@@ -518,7 +518,7 @@ void LLVMOrcMaterializationResponsibilityAddDependencies(
     LLVMOrcSymbolStringPoolEntryRef Name,
     LLVMOrcCDependenceMapPairs Dependencies, size_t NumPairs) {
 
-  SymbolDependenceMap SDM = toSymbolDependenceMap(Dependencies, NumPairs);
+  SymbolDependenceMap const SDM = toSymbolDependenceMap(Dependencies, NumPairs);
   auto Sym = OrcV2CAPIHelper::moveToSymbolStringPtr(unwrap(Name));
   unwrap(MR)->addDependencies(Sym, SDM);
 }
@@ -527,7 +527,7 @@ void LLVMOrcMaterializationResponsibilityAddDependenciesForAll(
     LLVMOrcMaterializationResponsibilityRef MR,
     LLVMOrcCDependenceMapPairs Dependencies, size_t NumPairs) {
 
-  SymbolDependenceMap SDM = toSymbolDependenceMap(Dependencies, NumPairs);
+  SymbolDependenceMap const SDM = toSymbolDependenceMap(Dependencies, NumPairs);
   unwrap(MR)->addDependenciesForAll(SDM);
 }
 
@@ -941,7 +941,7 @@ LLVMOrcCreateLocalIndirectStubsManager(const char *TargetTriple) {
 }
 
 void LLVMOrcDisposeIndirectStubsManager(LLVMOrcIndirectStubsManagerRef ISM) {
-  std::unique_ptr<IndirectStubsManager> TmpISM(unwrap(ISM));
+  std::unique_ptr<IndirectStubsManager> const TmpISM(unwrap(ISM));
 }
 
 LLVMErrorRef LLVMOrcCreateLocalLazyCallThroughManager(
@@ -959,5 +959,5 @@ LLVMErrorRef LLVMOrcCreateLocalLazyCallThroughManager(
 
 void LLVMOrcDisposeLazyCallThroughManager(
     LLVMOrcLazyCallThroughManagerRef LCM) {
-  std::unique_ptr<LazyCallThroughManager> TmpLCM(unwrap(LCM));
+  std::unique_ptr<LazyCallThroughManager> const TmpLCM(unwrap(LCM));
 }

@@ -89,7 +89,7 @@ void setProbeDistributionFactor(Instruction &Inst, float Factor) {
             PseudoProbeDwarfDiscriminator::FullDistributionFactor;
         if (Factor < 1)
           IntFactor *= Factor;
-        uint32_t V = PseudoProbeDwarfDiscriminator::packProbeData(
+        uint32_t const V = PseudoProbeDwarfDiscriminator::packProbeData(
             Index, Type, Attr, IntFactor);
         DIL = DIL->cloneWithDiscriminator(V);
         Inst.setDebugLoc(DIL);
@@ -101,8 +101,8 @@ void setProbeDistributionFactor(Instruction &Inst, float Factor) {
 void addPseudoProbeAttribute(PseudoProbeInst &Inst,
                              PseudoProbeAttributes Attr) {
   IRBuilder<> Builder(&Inst);
-  uint32_t OldAttr = Inst.getAttributes()->getZExtValue();
-  uint32_t NewAttr = OldAttr | (uint32_t)Attr;
+  uint32_t const OldAttr = Inst.getAttributes()->getZExtValue();
+  uint32_t const NewAttr = OldAttr | (uint32_t)Attr;
   if (OldAttr != NewAttr)
     Inst.replaceUsesOfWith(Inst.getAttributes(), Builder.getInt32(NewAttr));
 }

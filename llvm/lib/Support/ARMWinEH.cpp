@@ -13,10 +13,10 @@ namespace llvm {
 namespace ARM {
 namespace WinEH {
 std::pair<uint16_t, uint32_t> SavedRegisterMask(const RuntimeFunction &RF) {
-  uint8_t NumRegisters = RF.Reg();
-  uint8_t RegistersVFP = RF.R();
-  uint8_t LinkRegister = RF.L();
-  uint8_t ChainedFrame = RF.C();
+  uint8_t const NumRegisters = RF.Reg();
+  uint8_t const RegistersVFP = RF.R();
+  uint8_t const LinkRegister = RF.L();
+  uint8_t const ChainedFrame = RF.C();
 
   uint16_t GPRMask = (ChainedFrame << 11) | (LinkRegister << 14);
   uint32_t VFPMask = 0;

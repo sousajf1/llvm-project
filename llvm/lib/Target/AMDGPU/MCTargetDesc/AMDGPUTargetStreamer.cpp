@@ -305,7 +305,7 @@ void AMDGPUTargetAsmStreamer::EmitAmdhsaKernelDescriptor(
     const MCSubtargetInfo &STI, StringRef KernelName,
     const amdhsa::kernel_descriptor_t &KD, uint64_t NextVGPR, uint64_t NextSGPR,
     bool ReserveVCC, bool ReserveFlatScr) {
-  IsaVersion IVersion = getIsaVersion(STI.getCPU());
+  IsaVersion const IVersion = getIsaVersion(STI.getCPU());
 
   OS << "\t.amdhsa_kernel " << KernelName << '\n';
 
@@ -484,7 +484,7 @@ void AMDGPUTargetELFStreamer::finish() {
 
   std::string Blob;
   const char *Vendor = getPALMetadata()->getVendor();
-  unsigned Type = getPALMetadata()->getType();
+  unsigned const Type = getPALMetadata()->getType();
   getPALMetadata()->toBlob(Type, Blob);
   if (Blob.empty())
     return;
@@ -670,7 +670,7 @@ AMDGPUTargetELFStreamer::EmitDirectiveHSACodeObjectISAV2(uint32_t Major,
   uint16_t VendorNameSize = VendorName.size() + 1;
   uint16_t ArchNameSize = ArchName.size() + 1;
 
-  unsigned DescSZ = sizeof(VendorNameSize) + sizeof(ArchNameSize) +
+  unsigned const DescSZ = sizeof(VendorNameSize) + sizeof(ArchNameSize) +
     sizeof(Major) + sizeof(Minor) + sizeof(Stepping) +
     VendorNameSize + ArchNameSize;
 
@@ -852,7 +852,7 @@ void AMDGPUTargetELFStreamer::EmitAmdhsaKernelDescriptor(
   Streamer.emitInt32(KernelDescriptor.private_segment_fixed_size);
   Streamer.emitInt32(KernelDescriptor.kernarg_size);
 
-  for (uint8_t Res : KernelDescriptor.reserved0)
+  for (uint8_t const Res : KernelDescriptor.reserved0)
     Streamer.emitInt8(Res);
 
   // FIXME: Remove the use of VK_AMDGPU_REL64 in the expression below. The
@@ -866,12 +866,12 @@ void AMDGPUTargetELFStreamer::EmitAmdhsaKernelDescriptor(
           KernelDescriptorSymbol, MCSymbolRefExpr::VK_None, Context),
       Context),
       sizeof(KernelDescriptor.kernel_code_entry_byte_offset));
-  for (uint8_t Res : KernelDescriptor.reserved1)
+  for (uint8_t const Res : KernelDescriptor.reserved1)
     Streamer.emitInt8(Res);
   Streamer.emitInt32(KernelDescriptor.compute_pgm_rsrc3);
   Streamer.emitInt32(KernelDescriptor.compute_pgm_rsrc1);
   Streamer.emitInt32(KernelDescriptor.compute_pgm_rsrc2);
   Streamer.emitInt16(KernelDescriptor.kernel_code_properties);
-  for (uint8_t Res : KernelDescriptor.reserved2)
+  for (uint8_t const Res : KernelDescriptor.reserved2)
     Streamer.emitInt8(Res);
 }

@@ -126,7 +126,7 @@ const unsigned SystemZMC::CR64Regs[16] = {
 
 unsigned SystemZMC::getFirstReg(unsigned Reg) {
   static unsigned Map[SystemZ::NUM_TARGET_REGS];
-  static bool Initialized = false;
+  static bool const Initialized = false;
   if (!Initialized) {
     for (unsigned I = 0; I < 16; ++I) {
       Map[GR32Regs[I]] = I;
@@ -150,7 +150,7 @@ static MCAsmInfo *createSystemZMCAsmInfo(const MCRegisterInfo &MRI,
                                          const Triple &TT,
                                          const MCTargetOptions &Options) {
   MCAsmInfo *MAI = new SystemZMCAsmInfo(TT);
-  MCCFIInstruction Inst = MCCFIInstruction::cfiDefCfa(
+  MCCFIInstruction const Inst = MCCFIInstruction::cfiDefCfa(
       nullptr, MRI.getDwarfRegNum(SystemZ::R15D, true),
       SystemZMC::ELFCFAOffsetFromInitialSP);
   MAI->addInitialFrameState(Inst);

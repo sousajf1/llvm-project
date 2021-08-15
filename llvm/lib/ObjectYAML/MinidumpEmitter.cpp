@@ -32,7 +32,7 @@ public:
 
   size_t allocateCallback(size_t Size,
                           std::function<void(raw_ostream &)> Callback) {
-    size_t Offset = NextOffset;
+    size_t const Offset = NextOffset;
     NextOffset += Size;
     Callbacks.push_back(std::move(Callback));
     return Offset;
@@ -83,29 +83,29 @@ private:
 template <typename T, typename RangeType>
 std::pair<size_t, MutableArrayRef<T>>
 BlobAllocator::allocateNewArray(const iterator_range<RangeType> &Range) {
-  size_t Num = std::distance(Range.begin(), Range.end());
-  MutableArrayRef<T> Array(Temporaries.Allocate<T>(Num), Num);
+  size_t const Num = std::distance(Range.begin(), Range.end());
+  MutableArrayRef<T> const Array(Temporaries.Allocate<T>(Num), Num);
   std::uninitialized_copy(Range.begin(), Range.end(), Array.begin());
   return {allocateArray(Array), Array};
 }
 
 size_t BlobAllocator::allocateString(StringRef Str) {
   SmallVector<UTF16, 32> WStr;
-  bool OK = convertUTF8ToUTF16String(Str, WStr);
+  bool const OK = convertUTF8ToUTF16String(Str, WStr);
   assert(OK && "Invalid UTF8 in Str?");
   (void)OK;
 
   // The utf16 string is null-terminated, but the terminator is not counted in
   // the string size.
   WStr.push_back(0);
-  size_t Result =
+  size_t const Result =
       allocateNewObject<support::ulittle32_t>(2 * (WStr.size() - 1)).first;
   allocateNewArray<support::ulittle16_t>(make_range(WStr.begin(), WStr.end()));
   return Result;
 }
 
 void BlobAllocator::writeTo(raw_ostream &OS) const {
-  size_t BeginOffset = OS.tell();
+  size_t const BeginOffset = OS.tell();
   for (const auto &Callback : Callbacks)
     Callback(OS);
   assert(OS.tell() == BeginOffset + NextOffset &&
@@ -121,7 +121,7 @@ static LocationDescriptor layout(BlobAllocator &File, yaml::BinaryRef Data) {
 static size_t layout(BlobAllocator &File, MinidumpYAML::ExceptionStream &S) {
   File.allocateObject(S.MDExceptionStream);
 
-  size_t DataEnd = File.tell();
+  size_t const DataEnd = File.tell();
 
   // Lay out the thread context data, (which is not a part of the stream).
   // TODO: This usually (always?) matches the thread context of the
@@ -179,7 +179,7 @@ static Directory layout(BlobAllocator &File, Stream &S) {
     DataEnd = layout(File, cast<MinidumpYAML::ExceptionStream>(S));
     break;
   case Stream::StreamKind::MemoryInfoList: {
-    MemoryInfoListStream &InfoList = cast<MemoryInfoListStream>(S);
+    MemoryInfoListStream  const&InfoList = cast<MemoryInfoListStream>(S);
     File.allocateNewObject<minidump::MemoryInfoListHeader>(
         sizeof(minidump::MemoryInfoListHeader), sizeof(minidump::MemoryInfo),
         InfoList.Infos.size());

@@ -88,7 +88,7 @@ bool R600ClauseMergePass::isCFAluEnabled(const MachineInstr &MI) const {
 
 void R600ClauseMergePass::cleanPotentialDisabledCFAlu(
     MachineInstr &CFAlu) const {
-  int CntIdx = TII->getOperandIdx(R600::CF_ALU, R600::OpName::COUNT);
+  int const CntIdx = TII->getOperandIdx(R600::CF_ALU, R600::OpName::COUNT);
   MachineBasicBlock::iterator I = CFAlu, E = CFAlu.getParent()->end();
   I++;
   do {
@@ -107,10 +107,10 @@ void R600ClauseMergePass::cleanPotentialDisabledCFAlu(
 bool R600ClauseMergePass::mergeIfPossible(MachineInstr &RootCFAlu,
                                           const MachineInstr &LatrCFAlu) const {
   assert(isCFAlu(RootCFAlu) && isCFAlu(LatrCFAlu));
-  int CntIdx = TII->getOperandIdx(R600::CF_ALU, R600::OpName::COUNT);
+  int const CntIdx = TII->getOperandIdx(R600::CF_ALU, R600::OpName::COUNT);
   unsigned RootInstCount = getCFAluSize(RootCFAlu),
       LaterInstCount = getCFAluSize(LatrCFAlu);
-  unsigned CumuledInsts = RootInstCount + LaterInstCount;
+  unsigned const CumuledInsts = RootInstCount + LaterInstCount;
   if (CumuledInsts >= TII->getMaxAlusPerClause()) {
     LLVM_DEBUG(dbgs() << "Excess inst counts\n");
     return false;
@@ -118,11 +118,11 @@ bool R600ClauseMergePass::mergeIfPossible(MachineInstr &RootCFAlu,
   if (RootCFAlu.getOpcode() == R600::CF_ALU_PUSH_BEFORE)
     return false;
   // Is KCache Bank 0 compatible ?
-  int Mode0Idx =
+  int const Mode0Idx =
       TII->getOperandIdx(R600::CF_ALU, R600::OpName::KCACHE_MODE0);
-  int KBank0Idx =
+  int const KBank0Idx =
       TII->getOperandIdx(R600::CF_ALU, R600::OpName::KCACHE_BANK0);
-  int KBank0LineIdx =
+  int const KBank0LineIdx =
       TII->getOperandIdx(R600::CF_ALU, R600::OpName::KCACHE_ADDR0);
   if (LatrCFAlu.getOperand(Mode0Idx).getImm() &&
       RootCFAlu.getOperand(Mode0Idx).getImm() &&
@@ -134,11 +134,11 @@ bool R600ClauseMergePass::mergeIfPossible(MachineInstr &RootCFAlu,
     return false;
   }
   // Is KCache Bank 1 compatible ?
-  int Mode1Idx =
+  int const Mode1Idx =
       TII->getOperandIdx(R600::CF_ALU, R600::OpName::KCACHE_MODE1);
-  int KBank1Idx =
+  int const KBank1Idx =
       TII->getOperandIdx(R600::CF_ALU, R600::OpName::KCACHE_BANK1);
-  int KBank1LineIdx =
+  int const KBank1LineIdx =
       TII->getOperandIdx(R600::CF_ALU, R600::OpName::KCACHE_ADDR1);
   if (LatrCFAlu.getOperand(Mode1Idx).getImm() &&
       RootCFAlu.getOperand(Mode1Idx).getImm() &&

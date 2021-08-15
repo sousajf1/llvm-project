@@ -413,7 +413,7 @@ void MappingTraits<COFFYAML::Relocation>::mapping(IO &IO,
   IO.mapOptional("SymbolName", Rel.SymbolName, StringRef());
   IO.mapOptional("SymbolTableIndex", Rel.SymbolTableIndex);
 
-  COFF::header &H = *static_cast<COFF::header *>(IO.getContext());
+  COFF::header  const&H = *static_cast<COFF::header *>(IO.getContext());
   if (H.Machine == COFF::IMAGE_FILE_MACHINE_I386) {
     MappingNormalization<NType<COFF::RelocationTypeI386>, uint16_t> NT(
         IO, Rel.Type);

@@ -291,7 +291,7 @@ void AsmPrinter::emitDwarfDIE(const DIE &Die) const {
 
   // Emit the DIE attribute values.
   for (const auto &V : Die.values()) {
-    dwarf::Attribute Attr = V.getAttribute();
+    dwarf::Attribute const Attr = V.getAttribute();
     assert(V.getForm() && "Too many attributes for DIE (check abbreviation)");
 
     if (isVerbose()) {

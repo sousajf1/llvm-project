@@ -227,7 +227,7 @@ static Error split(StringRef Str, char Separator,
 
 /// Get an unsigned integer, including error checks.
 template <typename IntTy> static Error getInt(StringRef R, IntTy &Result) {
-  bool error = R.getAsInteger(10, Result); (void)error;
+  bool const error = R.getAsInteger(10, Result); (void)error;
   if (error)
     return reportError("not a number, or does not fit in an unsigned int");
   return Error::success();
@@ -286,7 +286,7 @@ Error DataLayout::parseSpecifier(StringRef Desc) {
       continue;
     }
 
-    char Specifier = Tok.front();
+    char const Specifier = Tok.front();
     Tok = Tok.substr(1);
 
     switch (Specifier) {
@@ -533,7 +533,7 @@ DataLayout::DataLayout(const Module *M) {
 void DataLayout::init(const Module *M) { *this = M->getDataLayout(); }
 
 bool DataLayout::operator==(const DataLayout &Other) const {
-  bool Ret = BigEndian == Other.BigEndian &&
+  bool const Ret = BigEndian == Other.BigEndian &&
              AllocaAddrSpace == Other.AllocaAddrSpace &&
              StackNaturalAlign == Other.StackNaturalAlign &&
              ProgramAddrSpace == Other.ProgramAddrSpace &&
@@ -743,7 +743,7 @@ Align DataLayout::getAlignment(Type *Ty, bool abi_or_pref) const {
   case Type::LabelTyID:
     return abi_or_pref ? getPointerABIAlignment(0) : getPointerPrefAlignment(0);
   case Type::PointerTyID: {
-    unsigned AS = cast<PointerType>(Ty)->getAddressSpace();
+    unsigned const AS = cast<PointerType>(Ty)->getAddressSpace();
     return abi_or_pref ? getPointerABIAlignment(AS)
                        : getPointerPrefAlignment(AS);
     }
@@ -775,7 +775,7 @@ Align DataLayout::getAlignment(Type *Ty, bool abi_or_pref) const {
   case Type::PPC_FP128TyID:
   case Type::FP128TyID:
   case Type::X86_FP80TyID: {
-    unsigned BitWidth = getTypeSizeInBits(Ty).getFixedSize();
+    unsigned const BitWidth = getTypeSizeInBits(Ty).getFixedSize();
     auto I = findAlignmentLowerBound(FLOAT_ALIGN, BitWidth);
     if (I != Alignments.end() && I->AlignType == FLOAT_ALIGN &&
         I->TypeBitWidth == BitWidth)
@@ -792,7 +792,7 @@ Align DataLayout::getAlignment(Type *Ty, bool abi_or_pref) const {
   case Type::X86_MMXTyID:
   case Type::FixedVectorTyID:
   case Type::ScalableVectorTyID: {
-    unsigned BitWidth = getTypeSizeInBits(Ty).getKnownMinSize();
+    unsigned const BitWidth = getTypeSizeInBits(Ty).getKnownMinSize();
     auto I = findAlignmentLowerBound(VECTOR_ALIGN, BitWidth);
     if (I != Alignments.end() && I->AlignType == VECTOR_ALIGN &&
         I->TypeBitWidth == BitWidth)
@@ -839,7 +839,7 @@ IntegerType *DataLayout::getIntPtrType(LLVMContext &C,
 Type *DataLayout::getIntPtrType(Type *Ty) const {
   assert(Ty->isPtrOrPtrVectorTy() &&
          "Expected a pointer or pointer vector type.");
-  unsigned NumBits = getPointerTypeSizeInBits(Ty);
+  unsigned const NumBits = getPointerTypeSizeInBits(Ty);
   IntegerType *IntTy = IntegerType::get(Ty->getContext(), NumBits);
   if (VectorType *VecTy = dyn_cast<VectorType>(Ty))
     return VectorType::get(IntTy, VecTy);
@@ -847,7 +847,7 @@ Type *DataLayout::getIntPtrType(Type *Ty) const {
 }
 
 Type *DataLayout::getSmallestLegalIntType(LLVMContext &C, unsigned Width) const {
-  for (unsigned LegalIntWidth : LegalIntWidths)
+  for (unsigned const LegalIntWidth : LegalIntWidths)
     if (Width <= LegalIntWidth)
       return Type::getIntNTy(C, LegalIntWidth);
   return nullptr;
@@ -861,7 +861,7 @@ unsigned DataLayout::getLargestLegalIntTypeSizeInBits() const {
 Type *DataLayout::getIndexType(Type *Ty) const {
   assert(Ty->isPtrOrPtrVectorTy() &&
          "Expected a pointer or pointer vector type.");
-  unsigned NumBits = getIndexTypeSizeInBits(Ty);
+  unsigned const NumBits = getIndexTypeSizeInBits(Ty);
   IntegerType *IntTy = IntegerType::get(Ty->getContext(), NumBits);
   if (VectorType *VecTy = dyn_cast<VectorType>(Ty))
     return VectorType::get(IntTy, VecTy);
@@ -879,7 +879,7 @@ int64_t DataLayout::getIndexedOffsetInType(Type *ElemTy,
     Value *Idx = GTI.getOperand();
     if (StructType *STy = GTI.getStructTypeOrNull()) {
       assert(Idx->getType()->isIntegerTy(32) && "Illegal struct idx");
-      unsigned FieldNo = cast<ConstantInt>(Idx)->getZExtValue();
+      unsigned const FieldNo = cast<ConstantInt>(Idx)->getZExtValue();
 
       // Get structure layout information...
       const StructLayout *Layout = getStructLayout(STy);
@@ -888,7 +888,7 @@ int64_t DataLayout::getIndexedOffsetInType(Type *ElemTy,
       Result += Layout->getElementOffset(FieldNo);
     } else {
       // Get the array index and the size of each array element.
-      if (int64_t arrayIdx = cast<ConstantInt>(Idx)->getSExtValue())
+      if (int64_t const arrayIdx = cast<ConstantInt>(Idx)->getSExtValue())
         Result += arrayIdx * getTypeAllocSize(GTI.getIndexedType());
     }
   }

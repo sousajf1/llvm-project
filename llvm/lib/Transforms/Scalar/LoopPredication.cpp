@@ -715,7 +715,7 @@ Optional<Value *> LoopPredication::widenICmpRangeCheck(ICmpInst *ICI,
     return None;
   }
 
-  LoopICmp CurrLatchCheck = *CurrLatchCheckOpt;
+  LoopICmp const CurrLatchCheck = *CurrLatchCheckOpt;
   // At this point, the range and latch step should have the same type, but need
   // not have the same value (we support both 1 and -1 steps).
   assert(Step->getType() ==
@@ -797,7 +797,7 @@ bool LoopPredication::widenGuardConditions(IntrinsicInst *Guard,
 
   TotalConsidered++;
   SmallVector<Value *, 4> Checks;
-  unsigned NumWidened = collectChecks(Checks, Guard->getOperand(0), Expander,
+  unsigned const NumWidened = collectChecks(Checks, Guard->getOperand(0), Expander,
                                       Guard);
   if (NumWidened == 0)
     return false;
@@ -823,7 +823,7 @@ bool LoopPredication::widenWidenableBranchGuardConditions(
 
   TotalConsidered++;
   SmallVector<Value *, 4> Checks;
-  unsigned NumWidened = collectChecks(Checks, BI->getCondition(),
+  unsigned const NumWidened = collectChecks(Checks, BI->getCondition(),
                                       Expander, BI);
   if (NumWidened == 0)
     return false;
@@ -932,9 +932,9 @@ bool LoopPredication::isLoopProfitableToPredicate() {
   auto *LatchTerm = LatchBlock->getTerminator();
   assert(LatchTerm->getNumSuccessors() == 2 &&
          "expected to be an exiting block with 2 succs!");
-  unsigned LatchBrExitIdx =
+  unsigned const LatchBrExitIdx =
       LatchTerm->getSuccessor(0) == L->getHeader() ? 1 : 0;
-  BranchProbability LatchExitProbability =
+  BranchProbability const LatchExitProbability =
       BPI->getEdgeProbability(LatchBlock, LatchBrExitIdx);
 
   // Protect against degenerate inputs provided by the user. Providing a value
@@ -952,7 +952,7 @@ bool LoopPredication::isLoopProfitableToPredicate() {
       LatchExitProbability * ScaleFactor;
 
   for (const auto &ExitEdge : ExitEdges) {
-    BranchProbability ExitingBlockProbability =
+    BranchProbability const ExitingBlockProbability =
         BPI->getEdgeProbability(ExitEdge.first, ExitEdge.second);
     // Some exiting edge has higher probability than the latch exiting edge.
     // No longer profitable to predicate.
@@ -1195,10 +1195,10 @@ bool LoopPredication::runOnLoop(Loop *Loop) {
   // There is nothing to do if the module doesn't use guards
   auto *GuardDecl =
       M->getFunction(Intrinsic::getName(Intrinsic::experimental_guard));
-  bool HasIntrinsicGuards = GuardDecl && !GuardDecl->use_empty();
+  bool const HasIntrinsicGuards = GuardDecl && !GuardDecl->use_empty();
   auto *WCDecl = M->getFunction(
       Intrinsic::getName(Intrinsic::experimental_widenable_condition));
-  bool HasWidenableConditions =
+  bool const HasWidenableConditions =
       PredicateWidenableBranchGuards && WCDecl && !WCDecl->use_empty();
   if (!HasIntrinsicGuards && !HasWidenableConditions)
     return false;

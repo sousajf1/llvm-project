@@ -50,7 +50,7 @@ bool formatv_object_base::consumeFieldLayout(StringRef &Spec, AlignStyle &Where,
     }
   }
 
-  bool Failed = Spec.consumeInteger(0, Align);
+  bool const Failed = Spec.consumeInteger(0, Align);
   return !Failed;
 }
 
@@ -94,23 +94,23 @@ formatv_object_base::splitLiteralAndReplacement(StringRef Fmt) {
   while (!Fmt.empty()) {
     // Everything up until the first brace is a literal.
     if (Fmt.front() != '{') {
-      std::size_t BO = Fmt.find_first_of('{');
+      std::size_t const BO = Fmt.find_first_of('{');
       return std::make_pair(ReplacementItem{Fmt.substr(0, BO)}, Fmt.substr(BO));
     }
 
-    StringRef Braces = Fmt.take_while([](char C) { return C == '{'; });
+    StringRef const Braces = Fmt.take_while([](char C) { return C == '{'; });
     // If there is more than one brace, then some of them are escaped.  Treat
     // these as replacements.
     if (Braces.size() > 1) {
-      size_t NumEscapedBraces = Braces.size() / 2;
-      StringRef Middle = Fmt.take_front(NumEscapedBraces);
-      StringRef Right = Fmt.drop_front(NumEscapedBraces * 2);
+      size_t const NumEscapedBraces = Braces.size() / 2;
+      StringRef const Middle = Fmt.take_front(NumEscapedBraces);
+      StringRef const Right = Fmt.drop_front(NumEscapedBraces * 2);
       return std::make_pair(ReplacementItem{Middle}, Right);
     }
     // An unterminated open brace is undefined.  We treat the rest of the string
     // as a literal replacement, but we assert to indicate that this is
     // undefined and that we consider it an error.
-    std::size_t BC = Fmt.find_first_of('}');
+    std::size_t const BC = Fmt.find_first_of('}');
     if (BC == StringRef::npos) {
       assert(
           false &&
@@ -121,13 +121,13 @@ formatv_object_base::splitLiteralAndReplacement(StringRef Fmt) {
     // Even if there is a closing brace, if there is another open brace before
     // this closing brace, treat this portion as literal, and try again with the
     // next one.
-    std::size_t BO2 = Fmt.find_first_of('{', 1);
+    std::size_t const BO2 = Fmt.find_first_of('{', 1);
     if (BO2 < BC)
       return std::make_pair(ReplacementItem{Fmt.substr(0, BO2)},
                             Fmt.substr(BO2));
 
-    StringRef Spec = Fmt.slice(1, BC);
-    StringRef Right = Fmt.substr(BC + 1);
+    StringRef const Spec = Fmt.slice(1, BC);
+    StringRef const Right = Fmt.substr(BC + 1);
 
     auto RI = parseReplacementItem(Spec);
     if (RI.hasValue())

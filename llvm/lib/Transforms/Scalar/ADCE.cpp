@@ -506,7 +506,7 @@ void AggressiveDeadCodeElimination::markLiveBranchesFromControlDependences() {
 //===----------------------------------------------------------------------===//
 bool AggressiveDeadCodeElimination::removeDeadInstructions() {
   // Updates control and dataflow around dead blocks
-  bool RegionsUpdated = updateDeadRegions();
+  bool const RegionsUpdated = updateDeadRegions();
 
   LLVM_DEBUG({
     for (Instruction &I : instructions(F)) {

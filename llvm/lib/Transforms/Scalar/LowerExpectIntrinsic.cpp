@@ -65,12 +65,12 @@ getBranchWeight(Intrinsic::ID IntrinsicID, CallInst *CI, int BranchCount) {
     assert(CI->getNumOperands() >= 3 &&
            "expect with probability must have 3 arguments");
     ConstantFP *Confidence = dyn_cast<ConstantFP>(CI->getArgOperand(2));
-    double TrueProb = Confidence->getValueAPF().convertToDouble();
+    double const TrueProb = Confidence->getValueAPF().convertToDouble();
     assert((TrueProb >= 0.0 && TrueProb <= 1.0) &&
            "probability value must be in the range [0.0, 1.0]");
-    double FalseProb = (1.0 - TrueProb) / (BranchCount - 1);
-    uint32_t LikelyBW = ceil((TrueProb * (double)(INT32_MAX - 1)) + 1.0);
-    uint32_t UnlikelyBW = ceil((FalseProb * (double)(INT32_MAX - 1)) + 1.0);
+    double const FalseProb = (1.0 - TrueProb) / (BranchCount - 1);
+    uint32_t const LikelyBW = ceil((TrueProb * (double)(INT32_MAX - 1)) + 1.0);
+    uint32_t const UnlikelyBW = ceil((FalseProb * (double)(INT32_MAX - 1)) + 1.0);
     return std::make_tuple(LikelyBW, UnlikelyBW);
   }
 }
@@ -90,15 +90,15 @@ static bool handleSwitchExpect(SwitchInst &SI) {
   if (!ExpectedValue)
     return false;
 
-  SwitchInst::CaseHandle Case = *SI.findCaseValue(ExpectedValue);
-  unsigned n = SI.getNumCases(); // +1 for default case.
+  SwitchInst::CaseHandle const Case = *SI.findCaseValue(ExpectedValue);
+  unsigned const n = SI.getNumCases(); // +1 for default case.
   uint32_t LikelyBranchWeightVal, UnlikelyBranchWeightVal;
   std::tie(LikelyBranchWeightVal, UnlikelyBranchWeightVal) =
       getBranchWeight(Fn->getIntrinsicID(), CI, n + 1);
 
   SmallVector<uint32_t, 16> Weights(n + 1, UnlikelyBranchWeightVal);
 
-  uint64_t Index = (Case == *SI.case_default()) ? 0 : Case.getCaseIndex() + 1;
+  uint64_t const Index = (Case == *SI.case_default()) ? 0 : Case.getCaseIndex() + 1;
   Weights[Index] = LikelyBranchWeightVal;
 
   SI.setCondition(ArgValue);

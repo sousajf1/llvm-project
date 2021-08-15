@@ -213,7 +213,7 @@ void SHA256::update(ArrayRef<uint8_t> Data) {
   }
 
   // Finish the remainder.
-  for (uint8_t C : Data)
+  for (uint8_t const C : Data)
     addUncounted(C);
 }
 
@@ -230,7 +230,7 @@ void SHA256::pad() {
   while (InternalState.BufferOffset != 56)
     addUncounted(0x00);
 
-  uint64_t len = InternalState.ByteCount << 3; // bit size
+  uint64_t const len = InternalState.ByteCount << 3; // bit size
 
   // Append length in the last 8 bytes big edian encoded
   addUncounted(len >> 56);
@@ -281,7 +281,7 @@ StringRef SHA256::result() {
 std::array<uint8_t, 32> SHA256::hash(ArrayRef<uint8_t> Data) {
   SHA256 Hash;
   Hash.update(Data);
-  StringRef S = Hash.final();
+  StringRef const S = Hash.final();
 
   std::array<uint8_t, 32> Arr;
   memcpy(Arr.data(), S.data(), S.size());

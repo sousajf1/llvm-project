@@ -158,7 +158,7 @@ void HexagonGenMux::expandReg(unsigned Reg, BitVector &Set) const {
 void HexagonGenMux::getDefsUses(const MachineInstr *MI, BitVector &Defs,
       BitVector &Uses) const {
   // First, get the implicit defs and uses for this instruction.
-  unsigned Opc = MI->getOpcode();
+  unsigned const Opc = MI->getOpcode();
   const MCInstrDesc &D = HII->get(Opc);
   if (const MCPhysReg *R = D.ImplicitDefs)
     while (*R)
@@ -171,7 +171,7 @@ void HexagonGenMux::getDefsUses(const MachineInstr *MI, BitVector &Defs,
   for (const MachineOperand &MO : MI->operands()) {
     if (!MO.isReg() || MO.isImplicit())
       continue;
-    Register R = MO.getReg();
+    Register const R = MO.getReg();
     BitVector &Set = MO.isDef() ? Defs : Uses;
     expandReg(R, Set);
   }
@@ -180,7 +180,7 @@ void HexagonGenMux::getDefsUses(const MachineInstr *MI, BitVector &Defs,
 void HexagonGenMux::buildMaps(MachineBasicBlock &B, InstrIndexMap &I2X,
       DefUseInfoMap &DUM) {
   unsigned Index = 0;
-  unsigned NR = HRI->getNumRegs();
+  unsigned const NR = HRI->getNumRegs();
   BitVector Defs(NR), Uses(NR);
 
   for (MachineBasicBlock::iterator I = B.begin(), E = B.end(); I != E; ++I) {
@@ -236,20 +236,20 @@ bool HexagonGenMux::genMuxInBlock(MachineBasicBlock &B) {
   for (MachineBasicBlock::iterator I = B.begin(); I != End; I = NextI) {
     MachineInstr *MI = &*I;
     NextI = std::next(I);
-    unsigned Opc = MI->getOpcode();
+    unsigned const Opc = MI->getOpcode();
     if (!isCondTransfer(Opc))
       continue;
-    Register DR = MI->getOperand(0).getReg();
+    Register const DR = MI->getOperand(0).getReg();
     if (isRegPair(DR))
       continue;
-    MachineOperand &PredOp = MI->getOperand(1);
+    MachineOperand  const&PredOp = MI->getOperand(1);
     if (PredOp.isUndef())
       continue;
 
-    Register PR = PredOp.getReg();
-    unsigned Idx = I2X.lookup(MI);
+    Register const PR = PredOp.getReg();
+    unsigned const Idx = I2X.lookup(MI);
     CondsetMap::iterator F = CM.find(DR);
-    bool IfTrue = HII->isPredicatedTrue(Opc);
+    bool const IfTrue = HII->isPredicatedTrue(Opc);
 
     // If there is no record of a conditional transfer for this register,
     // or the predicate register differs, create a new record for it.
@@ -276,11 +276,11 @@ bool HexagonGenMux::genMuxInBlock(MachineBasicBlock &B) {
 
     // First, check if the definitions are far enough from the definition
     // of the predicate register.
-    unsigned MinX = std::min(CI.TrueX, CI.FalseX);
-    unsigned MaxX = std::max(CI.TrueX, CI.FalseX);
+    unsigned const MinX = std::min(CI.TrueX, CI.FalseX);
+    unsigned const MaxX = std::max(CI.TrueX, CI.FalseX);
     // Specifically, check if the predicate definition is within a prescribed
     // distance from the farther of the two predicated instructions.
-    unsigned SearchX = (MaxX >= MinPredDist) ? MaxX-MinPredDist : 0;
+    unsigned const SearchX = (MaxX >= MinPredDist) ? MaxX-MinPredDist : 0;
     bool NearDef = false;
     for (unsigned X = SearchX; X < MaxX; ++X) {
       const DefUseInfo &DU = DUM.lookup(X);
@@ -303,8 +303,8 @@ bool HexagonGenMux::genMuxInBlock(MachineBasicBlock &B) {
     std::advance(It2, MaxX);
     MachineInstr &Def1 = *It1, &Def2 = *It2;
     MachineOperand *Src1 = &Def1.getOperand(2), *Src2 = &Def2.getOperand(2);
-    Register SR1 = Src1->isReg() ? Src1->getReg() : Register();
-    Register SR2 = Src2->isReg() ? Src2->getReg() : Register();
+    Register const SR1 = Src1->isReg() ? Src1->getReg() : Register();
+    Register const SR2 = Src2->isReg() ? Src2->getReg() : Register();
     bool Failure = false, CanUp = true, CanDown = true;
     for (unsigned X = MinX+1; X < MaxX; X++) {
       const DefUseInfo &DU = DUM.lookup(X);
@@ -324,12 +324,12 @@ bool HexagonGenMux::genMuxInBlock(MachineBasicBlock &B) {
     MachineOperand *SrcF = (MinX == CI.FalseX) ? Src1 : Src2;
     // Prefer "down", since this will move the MUX farther away from the
     // predicate definition.
-    MachineBasicBlock::iterator At = CanDown ? Def2 : Def1;
+    MachineBasicBlock::iterator const At = CanDown ? Def2 : Def1;
     ML.push_back(MuxInfo(At, DR, PR, SrcT, SrcF, Def1, Def2));
   }
 
   for (MuxInfo &MX : ML) {
-    unsigned MxOpc = getMuxOpcode(*MX.SrcT, *MX.SrcF);
+    unsigned const MxOpc = getMuxOpcode(*MX.SrcT, *MX.SrcF);
     if (!MxOpc)
       continue;
     // Basic sanity check: since we are deleting instructions, validate the
@@ -371,7 +371,7 @@ bool HexagonGenMux::genMuxInBlock(MachineBasicBlock &B) {
       if (!Op.isReg() || !Op.isUse())
         continue;
       assert(Op.getSubReg() == 0 && "Should have physical registers only");
-      bool Live = IsLive(Op.getReg());
+      bool const Live = IsLive(Op.getReg());
       Op.setIsKill(!Live);
     }
     LPR.stepBackward(*I);

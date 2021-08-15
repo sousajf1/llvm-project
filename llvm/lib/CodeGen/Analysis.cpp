@@ -55,9 +55,9 @@ unsigned llvm::ComputeLinearIndex(Type *Ty,
   // Given an array type, recursively traverse the elements.
   else if (ArrayType *ATy = dyn_cast<ArrayType>(Ty)) {
     Type *EltTy = ATy->getElementType();
-    unsigned NumElts = ATy->getNumElements();
+    unsigned const NumElts = ATy->getNumElements();
     // Compute the Linear offset when jumping one element of the array
-    unsigned EltLinearOffset = ComputeLinearIndex(EltTy, nullptr, nullptr, 0);
+    unsigned const EltLinearOffset = ComputeLinearIndex(EltTy, nullptr, nullptr, 0);
     if (Indices) {
       assert(*Indices < NumElts && "Unexpected out of bound");
       // If the indice is inside the array, compute the index to the requested
@@ -95,7 +95,7 @@ void llvm::ComputeValueVTs(const TargetLowering &TLI, const DataLayout &DL,
                                       EE = STy->element_end();
          EI != EE; ++EI) {
       // Don't compute the element offset if we didn't get a StructLayout above.
-      uint64_t EltOffset = SL ? SL->getElementOffset(EI - EB) : 0;
+      uint64_t const EltOffset = SL ? SL->getElementOffset(EI - EB) : 0;
       ComputeValueVTs(TLI, DL, *EI, ValueVTs, MemVTs, Offsets,
                       StartingOffset + EltOffset);
     }
@@ -104,7 +104,7 @@ void llvm::ComputeValueVTs(const TargetLowering &TLI, const DataLayout &DL,
   // Given an array type, recursively traverse the elements.
   if (ArrayType *ATy = dyn_cast<ArrayType>(Ty)) {
     Type *EltTy = ATy->getElementType();
-    uint64_t EltSize = DL.getTypeAllocSize(EltTy).getFixedValue();
+    uint64_t const EltSize = DL.getTypeAllocSize(EltTy).getFixedValue();
     for (unsigned i = 0, e = ATy->getNumElements(); i != e; ++i)
       ComputeValueVTs(TLI, DL, EltTy, ValueVTs, MemVTs, Offsets,
                       StartingOffset + i * EltSize);
@@ -140,7 +140,7 @@ void llvm::computeValueLLTs(const DataLayout &DL, Type &Ty,
     // need offsets.
     const StructLayout *SL = Offsets ? DL.getStructLayout(STy) : nullptr;
     for (unsigned I = 0, E = STy->getNumElements(); I != E; ++I) {
-      uint64_t EltOffset = SL ? SL->getElementOffset(I) : 0;
+      uint64_t const EltOffset = SL ? SL->getElementOffset(I) : 0;
       computeValueLLTs(DL, *STy->getElementType(I), ValueTys, Offsets,
                        StartingOffset + EltOffset);
     }
@@ -149,7 +149,7 @@ void llvm::computeValueLLTs(const DataLayout &DL, Type &Ty,
   // Given an array type, recursively traverse the elements.
   if (ArrayType *ATy = dyn_cast<ArrayType>(&Ty)) {
     Type *EltTy = ATy->getElementType();
-    uint64_t EltSize = DL.getTypeAllocSize(EltTy).getFixedValue();
+    uint64_t const EltSize = DL.getTypeAllocSize(EltTy).getFixedValue();
     for (unsigned i = 0, e = ATy->getNumElements(); i != e; ++i)
       computeValueLLTs(DL, *EltTy, ValueTys, Offsets,
                        StartingOffset + i * EltSize);
@@ -307,7 +307,7 @@ static const Value *getNoopInput(const Value *V,
         NoopInput = ReturnedOp;
     } else if (const InsertValueInst *IVI = dyn_cast<InsertValueInst>(V)) {
       // Value may come from either the aggregate or the scalar
-      ArrayRef<unsigned> InsertLoc = IVI->getIndices();
+      ArrayRef<unsigned> const InsertLoc = IVI->getIndices();
       if (ValLoc.size() >= InsertLoc.size() &&
           std::equal(InsertLoc.begin(), InsertLoc.end(), ValLoc.rbegin())) {
         // The type being inserted is a nested sub-type of the aggregate; we
@@ -324,7 +324,7 @@ static const Value *getNoopInput(const Value *V,
       // The part we're interested in will inevitably be some sub-section of the
       // previous aggregate. Combine the two paths to obtain the true address of
       // our element.
-      ArrayRef<unsigned> ExtractLoc = EVI->getIndices();
+      ArrayRef<unsigned> const ExtractLoc = EVI->getIndices();
       ValLoc.append(ExtractLoc.rbegin(), ExtractLoc.rend());
       NoopInput = Op;
     }
@@ -646,7 +646,7 @@ bool llvm::returnTypeIsEligibleForTailCall(const Function *F,
   // expanded as library call without return value, like __aeabi_memcpy.
   const CallInst *Call = cast<CallInst>(I);
   if (Function *F = Call->getCalledFunction()) {
-    Intrinsic::ID IID = F->getIntrinsicID();
+    Intrinsic::ID const IID = F->getIntrinsicID();
     if (((IID == Intrinsic::memcpy &&
           TLI.getLibcallName(RTLIB::MEMCPY) == StringRef("memcpy")) ||
          (IID == Intrinsic::memmove &&
@@ -661,7 +661,7 @@ bool llvm::returnTypeIsEligibleForTailCall(const Function *F,
   SmallVector<unsigned, 4> RetPath, CallPath;
   SmallVector<Type *, 4> RetSubTypes, CallSubTypes;
 
-  bool RetEmpty = !firstRealType(RetVal->getType(), RetSubTypes, RetPath);
+  bool const RetEmpty = !firstRealType(RetVal->getType(), RetSubTypes, RetPath);
   bool CallEmpty = !firstRealType(CallVal->getType(), CallSubTypes, CallPath);
 
   // Nothing's actually returned, it doesn't matter what the callee put there
@@ -742,8 +742,8 @@ llvm::getEHScopeMembership(const MachineFunction &MF) {
   if (!MF.hasEHScopes())
     return EHScopeMembership;
 
-  int EntryBBNumber = MF.front().getNumber();
-  bool IsSEH = isAsynchronousEHPersonality(
+  int const EntryBBNumber = MF.front().getNumber();
+  bool const IsSEH = isAsynchronousEHPersonality(
       classifyEHPersonality(MF.getFunction().getPersonalityFn()));
 
   const TargetInstrInfo *TII = MF.getSubtarget().getInstrInfo();
@@ -760,7 +760,7 @@ llvm::getEHScopeMembership(const MachineFunction &MF) {
       UnreachableBlocks.push_back(&MBB);
     }
 
-    MachineBasicBlock::const_iterator MBBI = MBB.getFirstTerminator();
+    MachineBasicBlock::const_iterator const MBBI = MBB.getFirstTerminator();
 
     // CatchPads are not scopes for SEH so do not consider CatchRet to
     // transfer control to another scope.
@@ -791,7 +791,7 @@ llvm::getEHScopeMembership(const MachineFunction &MF) {
   for (const MachineBasicBlock *MBB : SEHCatchPads)
     collectEHScopeMembers(EHScopeMembership, EntryBBNumber, MBB);
   // Finally, identify all the targets of a catchret.
-  for (std::pair<const MachineBasicBlock *, int> CatchRetPair :
+  for (std::pair<const MachineBasicBlock *, int> const CatchRetPair :
        CatchRetSuccessors)
     collectEHScopeMembers(EHScopeMembership, CatchRetPair.second,
                           CatchRetPair.first);

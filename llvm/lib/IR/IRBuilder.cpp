@@ -99,7 +99,7 @@ Value *IRBuilderBase::CreateStepVector(Type *DstType, const Twine &Name) {
                            nullptr, Name);
 
   Type *STy = DstType->getScalarType();
-  unsigned NumEls = cast<FixedVectorType>(DstType)->getNumElements();
+  unsigned const NumEls = cast<FixedVectorType>(DstType)->getNumElements();
 
   // Create a vector of consecutive numbers from zero to VF.
   SmallVector<Constant *, 8> Indices;
@@ -115,8 +115,8 @@ CallInst *IRBuilderBase::CreateMemSet(Value *Ptr, Value *Val, Value *Size,
                                       MDNode *TBAATag, MDNode *ScopeTag,
                                       MDNode *NoAliasTag) {
   Ptr = getCastedInt8PtrValue(Ptr);
-  Value *Ops[] = {Ptr, Val, Size, getInt1(isVolatile)};
-  Type *Tys[] = { Ptr->getType(), Size->getType() };
+  Value *const Ops[] = {Ptr, Val, Size, getInt1(isVolatile)};
+  Type *const Tys[] = { Ptr->getType(), Size->getType() };
   Module *M = BB->getParent()->getParent();
   Function *TheFn = Intrinsic::getDeclaration(M, Intrinsic::memset, Tys);
 
@@ -143,8 +143,8 @@ CallInst *IRBuilderBase::CreateElementUnorderedAtomicMemSet(
     MDNode *TBAATag, MDNode *ScopeTag, MDNode *NoAliasTag) {
 
   Ptr = getCastedInt8PtrValue(Ptr);
-  Value *Ops[] = {Ptr, Val, Size, getInt32(ElementSize)};
-  Type *Tys[] = {Ptr->getType(), Size->getType()};
+  Value *const Ops[] = {Ptr, Val, Size, getInt32(ElementSize)};
+  Type *const Tys[] = {Ptr->getType(), Size->getType()};
   Module *M = BB->getParent()->getParent();
   Function *TheFn = Intrinsic::getDeclaration(
       M, Intrinsic::memset_element_unordered_atomic, Tys);
@@ -173,8 +173,8 @@ CallInst *IRBuilderBase::CreateMemTransferInst(
   Dst = getCastedInt8PtrValue(Dst);
   Src = getCastedInt8PtrValue(Src);
 
-  Value *Ops[] = {Dst, Src, Size, getInt1(isVolatile)};
-  Type *Tys[] = { Dst->getType(), Src->getType(), Size->getType() };
+  Value *const Ops[] = {Dst, Src, Size, getInt1(isVolatile)};
+  Type *const Tys[] = { Dst->getType(), Src->getType(), Size->getType() };
   Module *M = BB->getParent()->getParent();
   Function *TheFn = Intrinsic::getDeclaration(M, IntrID, Tys);
 
@@ -210,8 +210,8 @@ CallInst *IRBuilderBase::CreateMemCpyInline(
   Dst = getCastedInt8PtrValue(Dst);
   Src = getCastedInt8PtrValue(Src);
 
-  Value *Ops[] = {Dst, Src, Size, getInt1(IsVolatile)};
-  Type *Tys[] = {Dst->getType(), Src->getType(), Size->getType()};
+  Value *const Ops[] = {Dst, Src, Size, getInt1(IsVolatile)};
+  Type *const Tys[] = {Dst->getType(), Src->getType(), Size->getType()};
   Function *F = BB->getParent();
   Module *M = F->getParent();
   Function *TheFn = Intrinsic::getDeclaration(M, Intrinsic::memcpy_inline, Tys);
@@ -252,8 +252,8 @@ CallInst *IRBuilderBase::CreateElementUnorderedAtomicMemCpy(
   Dst = getCastedInt8PtrValue(Dst);
   Src = getCastedInt8PtrValue(Src);
 
-  Value *Ops[] = {Dst, Src, Size, getInt32(ElementSize)};
-  Type *Tys[] = {Dst->getType(), Src->getType(), Size->getType()};
+  Value *const Ops[] = {Dst, Src, Size, getInt32(ElementSize)};
+  Type *const Tys[] = {Dst->getType(), Src->getType(), Size->getType()};
   Module *M = BB->getParent()->getParent();
   Function *TheFn = Intrinsic::getDeclaration(
       M, Intrinsic::memcpy_element_unordered_atomic, Tys);
@@ -290,8 +290,8 @@ CallInst *IRBuilderBase::CreateMemMove(Value *Dst, MaybeAlign DstAlign,
   Dst = getCastedInt8PtrValue(Dst);
   Src = getCastedInt8PtrValue(Src);
 
-  Value *Ops[] = {Dst, Src, Size, getInt1(isVolatile)};
-  Type *Tys[] = { Dst->getType(), Src->getType(), Size->getType() };
+  Value *const Ops[] = {Dst, Src, Size, getInt1(isVolatile)};
+  Type *const Tys[] = { Dst->getType(), Src->getType(), Size->getType() };
   Module *M = BB->getParent()->getParent();
   Function *TheFn = Intrinsic::getDeclaration(M, Intrinsic::memmove, Tys);
 
@@ -327,8 +327,8 @@ CallInst *IRBuilderBase::CreateElementUnorderedAtomicMemMove(
   Dst = getCastedInt8PtrValue(Dst);
   Src = getCastedInt8PtrValue(Src);
 
-  Value *Ops[] = {Dst, Src, Size, getInt32(ElementSize)};
-  Type *Tys[] = {Dst->getType(), Src->getType(), Size->getType()};
+  Value *const Ops[] = {Dst, Src, Size, getInt32(ElementSize)};
+  Type *const Tys[] = {Dst->getType(), Src->getType(), Size->getType()};
   Module *M = BB->getParent()->getParent();
   Function *TheFn = Intrinsic::getDeclaration(
       M, Intrinsic::memmove_element_unordered_atomic, Tys);
@@ -359,15 +359,15 @@ CallInst *IRBuilderBase::CreateElementUnorderedAtomicMemMove(
 static CallInst *getReductionIntrinsic(IRBuilderBase *Builder, Intrinsic::ID ID,
                                     Value *Src) {
   Module *M = Builder->GetInsertBlock()->getParent()->getParent();
-  Value *Ops[] = {Src};
-  Type *Tys[] = { Src->getType() };
+  Value *const Ops[] = {Src};
+  Type *const Tys[] = { Src->getType() };
   auto Decl = Intrinsic::getDeclaration(M, ID, Tys);
   return createCallHelper(Decl, Ops, Builder);
 }
 
 CallInst *IRBuilderBase::CreateFAddReduce(Value *Acc, Value *Src) {
   Module *M = GetInsertBlock()->getParent()->getParent();
-  Value *Ops[] = {Acc, Src};
+  Value *const Ops[] = {Acc, Src};
   auto Decl = Intrinsic::getDeclaration(M, Intrinsic::vector_reduce_fadd,
                                         {Src->getType()});
   return createCallHelper(Decl, Ops, this);
@@ -375,7 +375,7 @@ CallInst *IRBuilderBase::CreateFAddReduce(Value *Acc, Value *Src) {
 
 CallInst *IRBuilderBase::CreateFMulReduce(Value *Acc, Value *Src) {
   Module *M = GetInsertBlock()->getParent()->getParent();
-  Value *Ops[] = {Acc, Src};
+  Value *const Ops[] = {Acc, Src};
   auto Decl = Intrinsic::getDeclaration(M, Intrinsic::vector_reduce_fmul,
                                         {Src->getType()});
   return createCallHelper(Decl, Ops, this);
@@ -430,7 +430,7 @@ CallInst *IRBuilderBase::CreateLifetimeStart(Value *Ptr, ConstantInt *Size) {
   else
     assert(Size->getType() == getInt64Ty() &&
            "lifetime.start requires the size to be an i64");
-  Value *Ops[] = { Size, Ptr };
+  Value *const Ops[] = { Size, Ptr };
   Module *M = BB->getParent()->getParent();
   Function *TheFn =
       Intrinsic::getDeclaration(M, Intrinsic::lifetime_start, {Ptr->getType()});
@@ -446,7 +446,7 @@ CallInst *IRBuilderBase::CreateLifetimeEnd(Value *Ptr, ConstantInt *Size) {
   else
     assert(Size->getType() == getInt64Ty() &&
            "lifetime.end requires the size to be an i64");
-  Value *Ops[] = { Size, Ptr };
+  Value *const Ops[] = { Size, Ptr };
   Module *M = BB->getParent()->getParent();
   Function *TheFn =
       Intrinsic::getDeclaration(M, Intrinsic::lifetime_end, {Ptr->getType()});
@@ -464,9 +464,9 @@ CallInst *IRBuilderBase::CreateInvariantStart(Value *Ptr, ConstantInt *Size) {
     assert(Size->getType() == getInt64Ty() &&
            "invariant.start requires the size to be an i64");
 
-  Value *Ops[] = {Size, Ptr};
+  Value *const Ops[] = {Size, Ptr};
   // Fill in the single overloaded type: memory object type.
-  Type *ObjectPtr[1] = {Ptr->getType()};
+  Type *const ObjectPtr[1] = {Ptr->getType()};
   Module *M = BB->getParent()->getParent();
   Function *TheFn =
       Intrinsic::getDeclaration(M, Intrinsic::invariant_start, ObjectPtr);
@@ -479,7 +479,7 @@ IRBuilderBase::CreateAssumption(Value *Cond,
   assert(Cond->getType() == getInt1Ty() &&
          "an assumption condition must be of type i1");
 
-  Value *Ops[] = { Cond };
+  Value *const Ops[] = { Cond };
   Module *M = BB->getParent()->getParent();
   Function *FnAssume = Intrinsic::getDeclaration(M, Intrinsic::assume);
   return createCallHelper(FnAssume, Ops, this, "", nullptr, OpBundles);
@@ -510,8 +510,8 @@ CallInst *IRBuilderBase::CreateMaskedLoad(Type *Ty, Value *Ptr, Align Alignment,
   assert(Mask && "Mask should not be all-ones (null)");
   if (!PassThru)
     PassThru = UndefValue::get(Ty);
-  Type *OverloadedTypes[] = { Ty, PtrTy };
-  Value *Ops[] = {Ptr, getInt32(Alignment.value()), Mask, PassThru};
+  Type *const OverloadedTypes[] = { Ty, PtrTy };
+  Value *const Ops[] = {Ptr, getInt32(Alignment.value()), Mask, PassThru};
   return CreateMaskedIntrinsic(Intrinsic::masked_load, Ops,
                                OverloadedTypes, Name);
 }
@@ -529,8 +529,8 @@ CallInst *IRBuilderBase::CreateMaskedStore(Value *Val, Value *Ptr,
   assert(DataTy->isVectorTy() && "Val should be a vector");
   assert(PtrTy->isOpaqueOrPointeeTypeMatches(DataTy) && "Wrong element type");
   assert(Mask && "Mask should not be all-ones (null)");
-  Type *OverloadedTypes[] = { DataTy, PtrTy };
-  Value *Ops[] = {Val, Ptr, getInt32(Alignment.value()), Mask};
+  Type *const OverloadedTypes[] = { DataTy, PtrTy };
+  Value *const Ops[] = {Val, Ptr, getInt32(Alignment.value()), Mask};
   return CreateMaskedIntrinsic(Intrinsic::masked_store, Ops, OverloadedTypes);
 }
 
@@ -560,7 +560,7 @@ CallInst *IRBuilderBase::CreateMaskedGather(Type *Ty, Value *Ptrs,
                                             Value *PassThru,
                                             const Twine &Name) {
   auto *VecTy = cast<VectorType>(Ty);
-  ElementCount NumElts = VecTy->getElementCount();
+  ElementCount const NumElts = VecTy->getElementCount();
   auto *PtrsTy = cast<VectorType>(Ptrs->getType());
   assert(cast<PointerType>(PtrsTy->getElementType())
              ->isOpaqueOrPointeeTypeMatches(
@@ -575,8 +575,8 @@ CallInst *IRBuilderBase::CreateMaskedGather(Type *Ty, Value *Ptrs,
   if (!PassThru)
     PassThru = UndefValue::get(Ty);
 
-  Type *OverloadedTypes[] = {Ty, PtrsTy};
-  Value *Ops[] = {Ptrs, getInt32(Alignment.value()), Mask, PassThru};
+  Type *const OverloadedTypes[] = {Ty, PtrsTy};
+  Value *const Ops[] = {Ptrs, getInt32(Alignment.value()), Mask, PassThru};
 
   // We specify only one type when we create this intrinsic. Types of other
   // arguments are derived from this type.
@@ -595,7 +595,7 @@ CallInst *IRBuilderBase::CreateMaskedScatter(Value *Data, Value *Ptrs,
                                              Align Alignment, Value *Mask) {
   auto *PtrsTy = cast<VectorType>(Ptrs->getType());
   auto *DataTy = cast<VectorType>(Data->getType());
-  ElementCount NumElts = PtrsTy->getElementCount();
+  ElementCount const NumElts = PtrsTy->getElementCount();
 
 #ifndef NDEBUG
   auto *PtrTy = cast<PointerType>(PtrsTy->getElementType());
@@ -608,8 +608,8 @@ CallInst *IRBuilderBase::CreateMaskedScatter(Value *Data, Value *Ptrs,
     Mask = Constant::getAllOnesValue(
         VectorType::get(Type::getInt1Ty(Context), NumElts));
 
-  Type *OverloadedTypes[] = {DataTy, PtrsTy};
-  Value *Ops[] = {Data, Ptrs, getInt32(Alignment.value()), Mask};
+  Type *const OverloadedTypes[] = {DataTy, PtrsTy};
+  Value *const Ops[] = {Data, Ptrs, getInt32(Alignment.value()), Mask};
 
   // We specify only one type when we create this intrinsic. Types of other
   // arguments are derived from this type.
@@ -673,12 +673,12 @@ static CallInst *CreateGCStatepointCallCommon(
 
   Module *M = Builder->GetInsertBlock()->getParent()->getParent();
   // Fill in the one generic type'd argument (the function is also vararg)
-  Type *ArgTypes[] = { FuncPtrType };
+  Type *const ArgTypes[] = { FuncPtrType };
   Function *FnStatepoint =
     Intrinsic::getDeclaration(M, Intrinsic::experimental_gc_statepoint,
                               ArgTypes);
 
-  std::vector<Value *> Args =
+  std::vector<Value *> const Args =
       getStatepointArgs(*Builder, ID, NumPatchBytes, ActualCallee, Flags,
                         CallArgs);
 
@@ -733,7 +733,7 @@ static InvokeInst *CreateGCStatepointInvokeCommon(
   Function *FnStatepoint = Intrinsic::getDeclaration(
       M, Intrinsic::experimental_gc_statepoint, {FuncPtrType});
 
-  std::vector<Value *> Args =
+  std::vector<Value *> const Args =
       getStatepointArgs(*Builder, ID, NumPatchBytes, ActualInvokee, Flags,
                         InvokeArgs);
 
@@ -777,12 +777,12 @@ InvokeInst *IRBuilderBase::CreateGCStatepointInvoke(
 CallInst *IRBuilderBase::CreateGCResult(Instruction *Statepoint,
                                        Type *ResultType,
                                        const Twine &Name) {
- Intrinsic::ID ID = Intrinsic::experimental_gc_result;
+ Intrinsic::ID const ID = Intrinsic::experimental_gc_result;
  Module *M = BB->getParent()->getParent();
- Type *Types[] = {ResultType};
+ Type *const Types[] = {ResultType};
  Function *FnGCResult = Intrinsic::getDeclaration(M, ID, Types);
 
- Value *Args[] = {Statepoint};
+ Value *const Args[] = {Statepoint};
  return createCallHelper(FnGCResult, Args, this, Name);
 }
 
@@ -792,11 +792,11 @@ CallInst *IRBuilderBase::CreateGCRelocate(Instruction *Statepoint,
                                          Type *ResultType,
                                          const Twine &Name) {
  Module *M = BB->getParent()->getParent();
- Type *Types[] = {ResultType};
+ Type *const Types[] = {ResultType};
  Function *FnGCRelocate =
      Intrinsic::getDeclaration(M, Intrinsic::experimental_gc_relocate, Types);
 
- Value *Args[] = {Statepoint,
+ Value *const Args[] = {Statepoint,
                   getInt32(BaseOffset),
                   getInt32(DerivedOffset)};
  return createCallHelper(FnGCRelocate, Args, this, Name);
@@ -1061,7 +1061,7 @@ Value *IRBuilderBase::CreateVectorReverse(Value *V, const Twine &Name) {
   }
   // Keep the original behaviour for fixed vector
   SmallVector<int, 8> ShuffleMask;
-  int NumElts = Ty->getElementCount().getKnownMinValue();
+  int const NumElts = Ty->getElementCount().getKnownMinValue();
   for (int i = 0; i < NumElts; ++i)
     ShuffleMask.push_back(NumElts - i - 1);
   return CreateShuffleVector(V, ShuffleMask, Name);
@@ -1078,16 +1078,16 @@ Value *IRBuilderBase::CreateVectorSplice(Value *V1, Value *V2, int64_t Imm,
     Function *F = Intrinsic::getDeclaration(
         M, Intrinsic::experimental_vector_splice, VTy);
 
-    Value *Ops[] = {V1, V2, getInt32(Imm)};
+    Value *const Ops[] = {V1, V2, getInt32(Imm)};
     return Insert(CallInst::Create(F, Ops), Name);
   }
 
-  unsigned NumElts = cast<FixedVectorType>(V1->getType())->getNumElements();
+  unsigned const NumElts = cast<FixedVectorType>(V1->getType())->getNumElements();
   assert(((-Imm <= NumElts) || (Imm < NumElts)) &&
          "Invalid immediate for vector splice!");
 
   // Keep the original behaviour for fixed vector
-  unsigned Idx = (NumElts + Imm) % NumElts;
+  unsigned const Idx = (NumElts + Imm) % NumElts;
   SmallVector<int, 8> Mask;
   for (unsigned I = 0; I < NumElts; ++I)
     Mask.push_back(Idx + I);
@@ -1227,7 +1227,7 @@ CallInst *IRBuilderBase::CreateAlignmentAssumptionHelper(const DataLayout &DL,
   SmallVector<Value *, 4> Vals({PtrValue, AlignValue});
   if (OffsetValue)
     Vals.push_back(OffsetValue);
-  OperandBundleDefT<Value *> AlignOpB("align", Vals);
+  OperandBundleDefT<Value *> const AlignOpB("align", Vals);
   return CreateAssumption(ConstantInt::getTrue(getContext()), {AlignOpB});
 }
 

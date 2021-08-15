@@ -26,7 +26,7 @@ WebAssemblyFunctionInfo::~WebAssemblyFunctionInfo() = default; // anchor.
 
 void WebAssemblyFunctionInfo::initWARegs(MachineRegisterInfo &MRI) {
   assert(WARegs.empty());
-  unsigned Reg = UnusedReg;
+  unsigned const Reg = UnusedReg;
   WARegs.resize(MRI.getNumVirtRegs(), Reg);
 }
 
@@ -38,9 +38,9 @@ void llvm::computeLegalValueVTs(const Function &F, const TargetMachine &TM,
   SmallVector<EVT, 4> VTs;
   ComputeValueVTs(TLI, DL, Ty, VTs);
 
-  for (EVT VT : VTs) {
-    unsigned NumRegs = TLI.getNumRegisters(F.getContext(), VT);
-    MVT RegisterVT = TLI.getRegisterType(F.getContext(), VT);
+  for (EVT const VT : VTs) {
+    unsigned const NumRegs = TLI.getNumRegisters(F.getContext(), VT);
+    MVT const RegisterVT = TLI.getRegisterType(F.getContext(), VT);
     for (unsigned I = 0; I != NumRegs; ++I)
       ValueVTs.push_back(RegisterVT);
   }
@@ -54,7 +54,7 @@ void llvm::computeSignatureVTs(const FunctionType *Ty,
                                SmallVectorImpl<MVT> &Results) {
   computeLegalValueVTs(ContextFunc, TM, Ty->getReturnType(), Results);
 
-  MVT PtrVT = MVT::getIntegerVT(TM.createDataLayout().getPointerSizeInBits());
+  MVT const PtrVT = MVT::getIntegerVT(TM.createDataLayout().getPointerSizeInBits());
   if (Results.size() > 1 &&
       !TM.getSubtarget<WebAssemblySubtarget>(ContextFunc).hasMultivalue()) {
     // WebAssembly can't lower returns of multiple values without demoting to
@@ -76,7 +76,7 @@ void llvm::computeSignatureVTs(const FunctionType *Ty,
   // call.
 
   if (TargetFunc && TargetFunc->getCallingConv() == CallingConv::Swift) {
-    MVT PtrVT = MVT::getIntegerVT(TM.createDataLayout().getPointerSizeInBits());
+    MVT const PtrVT = MVT::getIntegerVT(TM.createDataLayout().getPointerSizeInBits());
     bool HasSwiftErrorArg = false;
     bool HasSwiftSelfArg = false;
     for (const auto &Arg : TargetFunc->args()) {
@@ -92,7 +92,7 @@ void llvm::computeSignatureVTs(const FunctionType *Ty,
 
 void llvm::valTypesFromMVTs(const ArrayRef<MVT> &In,
                             SmallVectorImpl<wasm::ValType> &Out) {
-  for (MVT Ty : In)
+  for (MVT const Ty : In)
     Out.push_back(WebAssembly::toValType(Ty));
 }
 

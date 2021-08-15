@@ -32,7 +32,7 @@ void initializeLanaiMemAluCombinerPass(PassRegistry &);
 
 extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializeLanaiTarget() {
   // Register the target.
-  RegisterTargetMachine<LanaiTargetMachine> registered_target(
+  RegisterTargetMachine<LanaiTargetMachine> const registered_target(
       getTheLanaiTarget());
 }
 

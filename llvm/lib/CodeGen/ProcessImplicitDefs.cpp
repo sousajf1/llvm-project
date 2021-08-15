@@ -74,7 +74,7 @@ bool ProcessImplicitDefs::canTurnIntoImplicitDef(MachineInstr *MI) {
 
 void ProcessImplicitDefs::processImplicitDef(MachineInstr *MI) {
   LLVM_DEBUG(dbgs() << "Processing " << *MI);
-  Register Reg = MI->getOperand(0).getReg();
+  Register const Reg = MI->getOperand(0).getReg();
 
   if (Register::isVirtualRegister(Reg)) {
     // For virtual registers, mark all uses as <undef>, and convert users to
@@ -95,13 +95,13 @@ void ProcessImplicitDefs::processImplicitDef(MachineInstr *MI) {
   // This is a physreg implicit-def.
   // Look for the first instruction to use or define an alias.
   MachineBasicBlock::instr_iterator UserMI = MI->getIterator();
-  MachineBasicBlock::instr_iterator UserE = MI->getParent()->instr_end();
+  MachineBasicBlock::instr_iterator const UserE = MI->getParent()->instr_end();
   bool Found = false;
   for (++UserMI; UserMI != UserE; ++UserMI) {
     for (MachineOperand &MO : UserMI->operands()) {
       if (!MO.isReg())
         continue;
-      Register UserReg = MO.getReg();
+      Register const UserReg = MO.getReg();
       if (!Register::isPhysicalRegister(UserReg) ||
           !TRI->regsOverlap(Reg, UserReg))
         continue;
@@ -143,9 +143,9 @@ bool ProcessImplicitDefs::runOnMachineFunction(MachineFunction &MF) {
   assert(MRI->isSSA() && "ProcessImplicitDefs only works on SSA form.");
   assert(WorkList.empty() && "Inconsistent worklist state");
 
-  for (MachineBasicBlock &MBB : MF) {
+  for (MachineBasicBlock  const&MBB : MF) {
     // Scan the basic block for implicit defs.
-    for (MachineInstr &MI : MBB)
+    for (MachineInstr  const&MI : MBB)
       if (MI.isImplicitDef())
         WorkList.insert(&MI);
 

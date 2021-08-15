@@ -505,10 +505,10 @@ static void registerPartialPipelineCallback(PassInstrumentationCallbacks &PIC,
        EnableNext = Optional<bool>(), StartBeforeCount = 0u,
        StartAfterCount = 0u, StopBeforeCount = 0u,
        StopAfterCount = 0u](StringRef P, Any) mutable {
-        bool StartBeforePass = !StartBefore.empty() && P.contains(StartBefore);
-        bool StartAfterPass = !StartAfter.empty() && P.contains(StartAfter);
-        bool StopBeforePass = !StopBefore.empty() && P.contains(StopBefore);
-        bool StopAfterPass = !StopAfter.empty() && P.contains(StopAfter);
+        bool const StartBeforePass = !StartBefore.empty() && P.contains(StartBefore);
+        bool const StartAfterPass = !StartAfter.empty() && P.contains(StartAfter);
+        bool const StopBeforePass = !StopBefore.empty() && P.contains(StopBefore);
+        bool const StopAfterPass = !StopAfter.empty() && P.contains(StopAfter);
 
         // Implement -start-after/-stop-after
         if (EnableNext) {
@@ -640,9 +640,9 @@ TargetPassConfig::getLimitedCodeGenPipelineReason(const char *Separator) {
   if (!hasLimitedCodeGenPipeline())
     return std::string();
   std::string Res;
-  static cl::opt<std::string> *PassNames[] = {&StartAfterOpt, &StartBeforeOpt,
+  static cl::opt<std::string> *const PassNames[] = {&StartAfterOpt, &StartBeforeOpt,
                                               &StopAfterOpt, &StopBeforeOpt};
-  static const char *OptNames[] = {StartAfterOptName, StartBeforeOptName,
+  static const char *const OptNames[] = {StartAfterOptName, StartBeforeOptName,
                                    StopAfterOptName, StopBeforeOptName};
   bool IsFirst = true;
   for (int Idx = 0; Idx < 4; ++Idx)
@@ -668,15 +668,15 @@ void TargetPassConfig::substitutePass(AnalysisID StandardID,
 
 IdentifyingPassPtr TargetPassConfig::getPassSubstitution(AnalysisID ID) const {
   DenseMap<AnalysisID, IdentifyingPassPtr>::const_iterator
-    I = Impl->TargetPasses.find(ID);
+    const I = Impl->TargetPasses.find(ID);
   if (I == Impl->TargetPasses.end())
     return ID;
   return I->second;
 }
 
 bool TargetPassConfig::isPassSubstitutedOrOverridden(AnalysisID ID) const {
-  IdentifyingPassPtr TargetID = getPassSubstitution(ID);
-  IdentifyingPassPtr FinalPtr = overridePass(ID, TargetID);
+  IdentifyingPassPtr const TargetID = getPassSubstitution(ID);
+  IdentifyingPassPtr const FinalPtr = overridePass(ID, TargetID);
   return !FinalPtr.isValid() || FinalPtr.isInstance() ||
       FinalPtr.getID() != ID;
 }
@@ -734,8 +734,8 @@ void TargetPassConfig::addPass(Pass *P, bool verifyAfter) {
 /// addPass cannot return a pointer to the pass instance because is internal the
 /// PassManager and the instance we create here may already be freed.
 AnalysisID TargetPassConfig::addPass(AnalysisID PassID, bool verifyAfter) {
-  IdentifyingPassPtr TargetID = getPassSubstitution(PassID);
-  IdentifyingPassPtr FinalPtr = overridePass(PassID, TargetID);
+  IdentifyingPassPtr const TargetID = getPassSubstitution(PassID);
+  IdentifyingPassPtr const FinalPtr = overridePass(PassID, TargetID);
   if (!FinalPtr.isValid())
     return nullptr;
 
@@ -764,7 +764,7 @@ void TargetPassConfig::addPrintPass(const std::string &Banner) {
 }
 
 void TargetPassConfig::addVerifyPass(const std::string &Banner) {
-  bool Verify = VerifyMachineCode == cl::BOU_TRUE;
+  bool const Verify = VerifyMachineCode == cl::BOU_TRUE;
 #ifdef EXPENSIVE_CHECKS
   if (VerifyMachineCode == cl::BOU_UNSET)
     Verify = TM->isMachineVerifierClean();
@@ -1002,13 +1002,13 @@ bool TargetPassConfig::addCoreISelPasses() {
   //        pass manager into two. GlobalISel with the fallback path disabled
   //        and -run-pass seem to be unaffected. The majority of GlobalISel
   //        testing uses -run-pass so this probably isn't too bad.
-  SaveAndRestore<bool> SavedDebugifyIsSafe(DebugifyIsSafe);
+  SaveAndRestore<bool> const SavedDebugifyIsSafe(DebugifyIsSafe);
   if (Selector != SelectorType::GlobalISel || !isGlobalISelAbortEnabled())
     DebugifyIsSafe = false;
 
   // Add instruction selector passes.
   if (Selector == SelectorType::GlobalISel) {
-    SaveAndRestore<bool> SavedAddingMachinePasses(AddingMachinePasses, true);
+    SaveAndRestore<bool> const SavedAddingMachinePasses(AddingMachinePasses, true);
     if (addIRTranslator())
       return true;
 
@@ -1208,9 +1208,9 @@ void TargetPassConfig::addMachinePasses() {
 
   if (TM->Options.EnableMachineOutliner && getOptLevel() != CodeGenOpt::None &&
       EnableMachineOutliner != RunOutliner::NeverOutline) {
-    bool RunOnAllFunctions =
+    bool const RunOnAllFunctions =
         (EnableMachineOutliner == RunOutliner::AlwaysOutline);
-    bool AddOutliner =
+    bool const AddOutliner =
         RunOnAllFunctions || TM->Options.SupportsDefaultOutlining;
     if (AddOutliner)
       addPass(createMachineOutlinerPass(RunOnAllFunctions));

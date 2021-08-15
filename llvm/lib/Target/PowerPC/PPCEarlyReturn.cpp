@@ -80,7 +80,7 @@ protected:
               MachineInstr *MI = ReturnMBB.getParent()->CloneMachineInstr(&*I);
               (*PI)->insert(J, MI);
 
-              MachineBasicBlock::iterator K = J--;
+              MachineBasicBlock::iterator const K = J--;
               K->eraseFromParent();
               BlockChanged = true;
               ++NumBLR;
@@ -97,7 +97,7 @@ protected:
                   .add(J->getOperand(1));
               (*PI)->insert(J, MI);
 
-              MachineBasicBlock::iterator K = J--;
+              MachineBasicBlock::iterator const K = J--;
               K->eraseFromParent();
               BlockChanged = true;
               ++NumBCLR;
@@ -114,7 +114,7 @@ protected:
                   .add(J->getOperand(0));
               (*PI)->insert(J, MI);
 
-              MachineBasicBlock::iterator K = J--;
+              MachineBasicBlock::iterator const K = J--;
               K->eraseFromParent();
               BlockChanged = true;
               ++NumBCLR;

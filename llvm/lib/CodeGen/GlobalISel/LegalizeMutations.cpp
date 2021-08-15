@@ -57,7 +57,7 @@ LegalizeMutation LegalizeMutations::widenScalarOrEltToNextPow2(unsigned TypeIdx,
                                                                unsigned Min) {
   return [=](const LegalityQuery &Query) {
     const LLT Ty = Query.Types[TypeIdx];
-    unsigned NewEltSizeInBits =
+    unsigned const NewEltSizeInBits =
         std::max(1u << Log2_32_Ceil(Ty.getScalarSizeInBits()), Min);
     return std::make_pair(TypeIdx, Ty.changeElementSize(NewEltSizeInBits));
   };
@@ -67,7 +67,7 @@ LegalizeMutation LegalizeMutations::moreElementsToNextPow2(unsigned TypeIdx,
                                                            unsigned Min) {
   return [=](const LegalityQuery &Query) {
     const LLT VecTy = Query.Types[TypeIdx];
-    unsigned NewNumElements =
+    unsigned const NewNumElements =
         std::max(1u << Log2_32_Ceil(VecTy.getNumElements()), Min);
     return std::make_pair(
         TypeIdx, LLT::fixed_vector(NewNumElements, VecTy.getElementType()));

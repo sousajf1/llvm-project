@@ -64,7 +64,7 @@ CalcNodeSethiUllmanNumber(const SUnit *SU, std::vector<unsigned> &SUNumbers) {
   for (const SDep &Pred : SU->Preds) {
     if (Pred.isCtrl()) continue;  // ignore chain preds
     SUnit *PredSU = Pred.getSUnit();
-    unsigned PredSethiUllman = CalcNodeSethiUllmanNumber(PredSU, SUNumbers);
+    unsigned const PredSethiUllman = CalcNodeSethiUllmanNumber(PredSU, SUNumbers);
     if (PredSethiUllman > SethiUllmanNumber) {
       SethiUllmanNumber = PredSethiUllman;
       Extra = 0;
@@ -107,7 +107,7 @@ static unsigned closestSucc(const SUnit *SU) {
   unsigned MaxHeight = 0;
   for (const SDep &Succ : SU->Succs) {
     if (Succ.isCtrl()) continue;  // ignore chain succs
-    unsigned Height = Succ.getSUnit()->getHeight();
+    unsigned const Height = Succ.getSUnit()->getHeight();
     // If there are bunch of CopyToRegs stacked up, they should be considered
     // to be at the same position.
     if (Height > MaxHeight)
@@ -132,8 +132,8 @@ static unsigned calcMaxScratches(const SUnit *SU) {
 static int BUCompareLatency(const SUnit *left, const SUnit *right) {
   // Scheduling an instruction that uses a VReg whose postincrement has not yet
   // been scheduled will induce a copy. Model this as an extra cycle of latency.
-  int LHeight = (int)left->getHeight();
-  int RHeight = (int)right->getHeight();
+  int const LHeight = (int)left->getHeight();
+  int const RHeight = (int)right->getHeight();
 
   // If either node is scheduling for latency, sort them by height/depth
   // and latency.
@@ -145,8 +145,8 @@ static int BUCompareLatency(const SUnit *left, const SUnit *right) {
   if (LHeight != RHeight)
     return LHeight > RHeight ? 1 : -1;
 
-  int LDepth = left->getDepth();
-  int RDepth = right->getDepth();
+  int const LDepth = left->getDepth();
+  int const RDepth = right->getDepth();
   if (LDepth != RDepth) {
     LLVM_DEBUG(dbgs() << "  Comparing latency of SU (" << left->NodeNum
                       << ") depth " << LDepth << " vs SU (" << right->NodeNum
@@ -164,9 +164,9 @@ const SUnit *GCNILPScheduler::pickBest(const SUnit *left, const SUnit *right)
   // TODO: add register pressure lowering checks
 
   bool const DisableSchedCriticalPath = false;
-  int MaxReorderWindow = 6;
+  int const MaxReorderWindow = 6;
   if (!DisableSchedCriticalPath) {
-    int spread = (int)left->getDepth() - (int)right->getDepth();
+    int const spread = (int)left->getDepth() - (int)right->getDepth();
     if (std::abs(spread) > MaxReorderWindow) {
       LLVM_DEBUG(dbgs() << "Depth of SU(" << left->NodeNum << "): "
                         << left->getDepth() << " != SU(" << right->NodeNum
@@ -177,14 +177,14 @@ const SUnit *GCNILPScheduler::pickBest(const SUnit *left, const SUnit *right)
 
   bool const DisableSchedHeight = false;
   if (!DisableSchedHeight && left->getHeight() != right->getHeight()) {
-    int spread = (int)left->getHeight() - (int)right->getHeight();
+    int const spread = (int)left->getHeight() - (int)right->getHeight();
     if (std::abs(spread) > MaxReorderWindow)
       return left->getHeight() > right->getHeight() ? right : left;
   }
 
   // Prioritize by Sethi-Ulmann number and push CopyToReg nodes down.
-  unsigned LPriority = getNodePriority(left);
-  unsigned RPriority = getNodePriority(right);
+  unsigned const LPriority = getNodePriority(left);
+  unsigned const RPriority = getNodePriority(right);
 
   if (LPriority != RPriority)
     return LPriority > RPriority ? right : left;
@@ -206,20 +206,20 @@ const SUnit *GCNILPScheduler::pickBest(const SUnit *left, const SUnit *right)
   // t3 = op t4, c2
   //
   // This creates more short live intervals.
-  unsigned LDist = closestSucc(left);
-  unsigned RDist = closestSucc(right);
+  unsigned const LDist = closestSucc(left);
+  unsigned const RDist = closestSucc(right);
   if (LDist != RDist)
     return LDist < RDist ? right : left;
 
   // How many registers becomes live when the node is scheduled.
-  unsigned LScratch = calcMaxScratches(left);
-  unsigned RScratch = calcMaxScratches(right);
+  unsigned const LScratch = calcMaxScratches(left);
+  unsigned const RScratch = calcMaxScratches(right);
   if (LScratch != RScratch)
     return LScratch > RScratch ? right : left;
 
   bool const DisableSchedCycles = false;
   if (!DisableSchedCycles) {
-    int result = BUCompareLatency(left, right);
+    int const result = BUCompareLatency(left, right);
     if (result != 0)
       return result > 0 ? right : left;
     return left;

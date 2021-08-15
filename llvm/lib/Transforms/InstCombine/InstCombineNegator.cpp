@@ -161,11 +161,11 @@ LLVM_NODISCARD Value *Negator::visitImpl(Value *V, unsigned Depth) {
     return nullptr;
 
   auto *I = cast<Instruction>(V);
-  unsigned BitWidth = I->getType()->getScalarSizeInBits();
+  unsigned const BitWidth = I->getType()->getScalarSizeInBits();
 
   // We must preserve the insertion point and debug info that is set in the
   // builder at the time this function is called.
-  InstCombiner::BuilderTy::InsertPointGuard Guard(Builder);
+  InstCombiner::BuilderTy::InsertPointGuard const Guard(Builder);
   // And since we are trying to negate instruction I, that tells us about the
   // insertion point and the debug info that we need to keep.
   Builder.SetInsertPoint(I);
@@ -511,7 +511,7 @@ LLVM_NODISCARD Value *Negator::Negate(bool LHSIsZero, Value *Root,
   // We must temporarily unset the 'current' insertion point and DebugLoc of the
   // InstCombine's IRBuilder so that it won't interfere with the ones we have
   // already specified when producing negated instructions.
-  InstCombiner::BuilderTy::InsertPointGuard Guard(IC.Builder);
+  InstCombiner::BuilderTy::InsertPointGuard const Guard(IC.Builder);
   IC.Builder.ClearInsertionPoint();
   IC.Builder.SetCurrentDebugLocation(DebugLoc());
 

@@ -552,7 +552,7 @@ void LoopVersioningLICM::setNoAliasToLoop(Loop *VerLoop) {
   // Create alias scope domain.
   MDBuilder MDB(I->getContext());
   MDNode *NewDomain = MDB.createAnonymousAliasScopeDomain("LVDomain");
-  StringRef Name = "LVAliasScope";
+  StringRef const Name = "LVAliasScope";
   MDNode *NewScope = MDB.createAnonymousAliasScope(NewDomain, Name);
   SmallVector<Metadata *, 4> Scopes{NewScope}, NoAliases{NewScope};
   // Iterate over each instruction of loop.
@@ -597,7 +597,7 @@ bool LoopVersioningLICMLegacyPass::runOnLoop(Loop *L, LPPassManager &LPM) {
 bool LoopVersioningLICM::runOnLoop(Loop *L, LoopInfo *LI, DominatorTree *DT) {
   // This will automatically release all resources hold by the current
   // LoopVersioningLICM object.
-  AutoResetter Resetter(*this);
+  AutoResetter const Resetter(*this);
 
   // Do not do the transformation if disabled by metadata.
   if (hasLICMVersioningTransformation(L) & TM_Disable)

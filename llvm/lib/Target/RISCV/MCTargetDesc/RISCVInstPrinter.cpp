@@ -123,7 +123,7 @@ void RISCVInstPrinter::printBranchOperand(const MCInst *MI, uint64_t Address,
 void RISCVInstPrinter::printCSRSystemRegister(const MCInst *MI, unsigned OpNo,
                                               const MCSubtargetInfo &STI,
                                               raw_ostream &O) {
-  unsigned Imm = MI->getOperand(OpNo).getImm();
+  unsigned const Imm = MI->getOperand(OpNo).getImm();
   auto SysReg = RISCVSysReg::lookupSysRegByEncoding(Imm);
   if (SysReg && SysReg->haveRequiredFeatures(STI.getFeatureBits()))
     O << SysReg->Name;
@@ -134,7 +134,7 @@ void RISCVInstPrinter::printCSRSystemRegister(const MCInst *MI, unsigned OpNo,
 void RISCVInstPrinter::printFenceArg(const MCInst *MI, unsigned OpNo,
                                      const MCSubtargetInfo &STI,
                                      raw_ostream &O) {
-  unsigned FenceArg = MI->getOperand(OpNo).getImm();
+  unsigned const FenceArg = MI->getOperand(OpNo).getImm();
   assert (((FenceArg >> 4) == 0) && "Invalid immediate in printFenceArg");
 
   if ((FenceArg & RISCVFenceField::I) != 0)
@@ -169,7 +169,7 @@ void RISCVInstPrinter::printAtomicMemOp(const MCInst *MI, unsigned OpNo,
 
 void RISCVInstPrinter::printVTypeI(const MCInst *MI, unsigned OpNo,
                                    const MCSubtargetInfo &STI, raw_ostream &O) {
-  unsigned Imm = MI->getOperand(OpNo).getImm();
+  unsigned const Imm = MI->getOperand(OpNo).getImm();
   RISCVVType::printVType(Imm, O);
 }
 

@@ -44,7 +44,7 @@ bool EdgeBundles::runOnMachineFunction(MachineFunction &mf) {
   EC.grow(2 * MF->getNumBlockIDs());
 
   for (const auto &MBB : *MF) {
-    unsigned OutE = 2 * MBB.getNumber() + 1;
+    unsigned const OutE = 2 * MBB.getNumber() + 1;
     // Join the outgoing bundle with the ingoing bundles of all successors.
     for (const MachineBasicBlock *Succ : MBB.successors())
       EC.join(OutE, 2 * Succ->getNumber());
@@ -58,8 +58,8 @@ bool EdgeBundles::runOnMachineFunction(MachineFunction &mf) {
   Blocks.resize(getNumBundles());
 
   for (unsigned i = 0, e = MF->getNumBlockIDs(); i != e; ++i) {
-    unsigned b0 = getBundle(i, false);
-    unsigned b1 = getBundle(i, true);
+    unsigned const b0 = getBundle(i, false);
+    unsigned const b1 = getBundle(i, true);
     Blocks[b0].push_back(i);
     if (b1 != b0)
       Blocks[b1].push_back(i);
@@ -79,7 +79,7 @@ raw_ostream &WriteGraph<>(raw_ostream &O, const EdgeBundles &G,
 
   O << "digraph {\n";
   for (const auto &MBB : *MF) {
-    unsigned BB = MBB.getNumber();
+    unsigned const BB = MBB.getNumber();
     O << "\t\"" << printMBBReference(MBB) << "\" [ shape=box ]\n"
       << '\t' << G.getBundle(BB, false) << " -> \"" << printMBBReference(MBB)
       << "\"\n"

@@ -33,9 +33,9 @@ void VirtRegAuxInfo::calculateSpillWeightsAndHints() {
   LLVM_DEBUG(dbgs() << "********** Compute Spill Weights **********\n"
                     << "********** Function: " << MF.getName() << '\n');
 
-  MachineRegisterInfo &MRI = MF.getRegInfo();
+  MachineRegisterInfo  const&MRI = MF.getRegInfo();
   for (unsigned I = 0, E = MRI.getNumVirtRegs(); I != E; ++I) {
-    unsigned Reg = Register::index2VirtReg(I);
+    unsigned const Reg = Register::index2VirtReg(I);
     if (MRI.reg_nodbg_empty(Reg))
       continue;
     calculateSpillWeightAndHint(LIS.getInterval(Reg));
@@ -81,7 +81,7 @@ static bool isRematerializable(const LiveInterval &LI, const LiveIntervals &LIS,
                                const VirtRegMap &VRM,
                                const TargetInstrInfo &TII) {
   unsigned Reg = LI.reg();
-  unsigned Original = VRM.getOriginal(Reg);
+  unsigned const Original = VRM.getOriginal(Reg);
   for (LiveInterval::const_vni_iterator I = LI.vni_begin(), E = LI.vni_end();
        I != E; ++I) {
     const VNInfo *VNI = *I;
@@ -111,7 +111,7 @@ static bool isRematerializable(const LiveInterval &LI, const LiveIntervals &LIS,
 
       // Follow the copy live-in value.
       const LiveInterval &SrcLI = LIS.getInterval(Reg);
-      LiveQueryResult SrcQ = SrcLI.Query(VNI->def);
+      LiveQueryResult const SrcQ = SrcLI.Query(VNI->def);
       VNI = SrcQ.valueIn();
       assert(VNI && "Copy from non-existing value");
       if (VNI->isPHIDef())
@@ -137,7 +137,7 @@ bool VirtRegAuxInfo::isLiveAtStatepointVarArg(LiveInterval &LI) {
 }
 
 void VirtRegAuxInfo::calculateSpillWeightAndHint(LiveInterval &LI) {
-  float Weight = weightCalcHelper(LI);
+  float const Weight = weightCalcHelper(LI);
   // Check if unspillable.
   if (Weight < 0)
     return;
@@ -161,11 +161,11 @@ float VirtRegAuxInfo::weightCalcHelper(LiveInterval &LI, SlotIndex *Start,
   unsigned NumInstr = 0; // Number of instructions using LI
   SmallPtrSet<MachineInstr *, 8> Visited;
 
-  std::pair<Register, Register> TargetHint = MRI.getRegAllocationHint(LI.reg());
+  std::pair<Register, Register> const TargetHint = MRI.getRegAllocationHint(LI.reg());
 
   if (LI.isSpillable()) {
-    Register Reg = LI.reg();
-    Register Original = VRM.getOriginal(Reg);
+    Register const Reg = LI.reg();
+    Register const Original = VRM.getOriginal(Reg);
     const LiveInterval &OrigInt = LIS.getInterval(Original);
     // li comes from a split of OrigInt. If OrigInt was marked
     // as not spillable, make sure the new interval is marked
@@ -175,12 +175,12 @@ float VirtRegAuxInfo::weightCalcHelper(LiveInterval &LI, SlotIndex *Start,
   }
 
   // Don't recompute spill weight for an unspillable register.
-  bool IsSpillable = LI.isSpillable();
+  bool const IsSpillable = LI.isSpillable();
 
-  bool IsLocalSplitArtifact = Start && End;
+  bool const IsLocalSplitArtifact = Start && End;
 
   // Do not update future local split artifacts.
-  bool ShouldUpdateLI = !IsLocalSplitArtifact;
+  bool const ShouldUpdateLI = !IsLocalSplitArtifact;
 
   if (IsLocalSplitArtifact) {
     MachineBasicBlock *localMBB = LIS.getMBBFromIndex(*End);
@@ -223,7 +223,7 @@ float VirtRegAuxInfo::weightCalcHelper(LiveInterval &LI, SlotIndex *Start,
 
     // For local split artifacts, we are interested only in instructions between
     // the expected start and end of the range.
-    SlotIndex SI = LIS.getInstructionIndex(*MI);
+    SlotIndex const SI = LIS.getInstructionIndex(*MI);
     if (IsLocalSplitArtifact && ((SI < *Start) || (SI > *End)))
       continue;
 
@@ -264,14 +264,14 @@ float VirtRegAuxInfo::weightCalcHelper(LiveInterval &LI, SlotIndex *Start,
     // Get allocation hints from copies.
     if (!MI->isCopy())
       continue;
-    Register HintReg = copyHint(MI, LI.reg(), TRI, MRI);
+    Register const HintReg = copyHint(MI, LI.reg(), TRI, MRI);
     if (!HintReg)
       continue;
     // Force hweight onto the stack so that x86 doesn't add hidden precision,
     // making the comparison incorrectly pass (i.e., 1 > 1 == true??).
     //
     // FIXME: we probably shouldn't use floats at all.
-    volatile float HWeight = Hint[HintReg] += Weight;
+    volatile float const HWeight = Hint[HintReg] += Weight;
     if (HintReg.isVirtual() || MRI.isAllocatable(HintReg))
       CopyHints.insert(CopyHint(HintReg, HWeight));
   }

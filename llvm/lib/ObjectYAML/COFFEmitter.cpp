@@ -71,13 +71,13 @@ struct COFFParser {
 
       // If the name is less than 8 bytes, store it in place, otherwise
       // store it in the string table.
-      StringRef Name = Sec.Name;
+      StringRef const Name = Sec.Name;
 
       if (Name.size() <= COFF::NameSize) {
         std::copy(Name.begin(), Name.end(), Sec.Header.Name);
       } else {
         // Add string to the string table and format the index for output.
-        unsigned Index = getStringIndex(Name);
+        unsigned const Index = getStringIndex(Name);
         std::string str = utostr(Index);
         if (str.size() > 7) {
           ErrHandler("string table got too large");
@@ -110,12 +110,12 @@ struct COFFParser {
 
       // If the name is less than 8 bytes, store it in place, otherwise
       // store it in the string table.
-      StringRef Name = Sym.Name;
+      StringRef const Name = Sym.Name;
       if (Name.size() <= COFF::NameSize) {
         std::copy(Name.begin(), Name.end(), Sym.Header.Name);
       } else {
         // Add string to the string table and format the index for output.
-        unsigned Index = getStringIndex(Name);
+        unsigned const Index = getStringIndex(Name);
         *reinterpret_cast<support::aligned_ulittle32_t *>(Sym.Header.Name + 4) =
             Index;
       }
@@ -137,7 +137,7 @@ struct COFFParser {
   unsigned getStringIndex(StringRef Str) {
     StringMap<unsigned>::iterator i = StringTableMap.find(Str);
     if (i == StringTableMap.end()) {
-      unsigned Index = StringTable.size();
+      unsigned const Index = StringTable.size();
       StringTable.append(Str.begin(), Str.end());
       StringTable.push_back(0);
       StringTableMap[Str] = Index;
@@ -167,7 +167,7 @@ enum { DOSStubSize = 128 };
 static bool layoutOptionalHeader(COFFParser &CP) {
   if (!CP.isPE())
     return true;
-  unsigned PEHeaderSize = CP.is64Bit() ? sizeof(object::pe32plus_header)
+  unsigned const PEHeaderSize = CP.is64Bit() ? sizeof(object::pe32plus_header)
                                        : sizeof(object::pe32_header);
   CP.Obj.Header.SizeOfOptionalHeader =
       PEHeaderSize +
@@ -179,7 +179,7 @@ static yaml::BinaryRef
 toDebugS(ArrayRef<CodeViewYAML::YAMLDebugSubsection> Subsections,
          const codeview::StringsAndChecksums &SC, BumpPtrAllocator &Allocator) {
   using namespace codeview;
-  ExitOnError Err("Error occurred writing .debug$S section");
+  ExitOnError const Err("Error occurred writing .debug$S section");
   auto CVSS =
       Err(CodeViewYAML::toCodeViewSubsectionList(Allocator, Subsections, SC));
 
@@ -191,7 +191,7 @@ toDebugS(ArrayRef<CodeViewYAML::YAMLDebugSubsection> Subsections,
     Builders.push_back(std::move(B));
   }
   uint8_t *Buffer = Allocator.Allocate<uint8_t>(Size);
-  MutableArrayRef<uint8_t> Output(Buffer, Size);
+  MutableArrayRef<uint8_t> const Output(Buffer, Size);
   BinaryStreamWriter Writer(Output, support::little);
 
   Err(Writer.writeInteger<uint32_t>(COFF::DEBUG_SECTION_MAGIC));
@@ -215,7 +215,7 @@ static bool layoutCOFF(COFFParser &CP) {
   uint32_t CurrentSectionDataOffset =
       CP.SectionTableStart + CP.SectionTableSize;
 
-  for (COFFYAML::Section &S : CP.Obj.Sections) {
+  for (COFFYAML::Section  const&S : CP.Obj.Sections) {
     // We support specifying exactly one of SectionData or Subsections.  So if
     // there is already some SectionData, then we don't need to do any of this.
     if (S.Name == ".debug$S" && S.SectionData.binary_size() == 0) {
@@ -273,7 +273,7 @@ static bool layoutCOFF(COFFParser &CP) {
     }
   }
 
-  uint32_t SymbolTableStart = CurrentSectionDataOffset;
+  uint32_t const SymbolTableStart = CurrentSectionDataOffset;
 
   // Calculate number of symbols.
   uint32_t NumberOfSymbols = 0;
@@ -355,7 +355,7 @@ static uint32_t initializeOptionalHeader(COFFParser &CP, uint16_t Magic,
   Header->FileAlignment = CP.Obj.OptionalHeader->Header.FileAlignment;
   uint32_t SizeOfCode = 0, SizeOfInitializedData = 0,
            SizeOfUninitializedData = 0;
-  uint32_t SizeOfHeaders = alignTo(CP.SectionTableStart + CP.SectionTableSize,
+  uint32_t const SizeOfHeaders = alignTo(CP.SectionTableStart + CP.SectionTableSize,
                                    Header->FileAlignment);
   uint32_t SizeOfImage = alignTo(SizeOfHeaders, Header->SectionAlignment);
   uint32_t BaseOfData = 0;
@@ -453,7 +453,7 @@ static bool writeCOFF(COFFParser &CP, raw_ostream &OS) {
       OS.write(reinterpret_cast<char *>(&PEH), sizeof(PEH));
     } else {
       object::pe32_header PEH;
-      uint32_t BaseOfData =
+      uint32_t const BaseOfData =
           initializeOptionalHeader(CP, COFF::PE32Header::PE32, &PEH);
       PEH.BaseOfData = BaseOfData;
       OS.write(reinterpret_cast<char *>(&PEH), sizeof(PEH));
@@ -564,11 +564,11 @@ static bool writeCOFF(COFFParser &CP, raw_ostream &OS) {
       OS.write_zeros(CP.getSymbolSize() - COFF::Symbol16Size);
     }
     if (!i->File.empty()) {
-      unsigned SymbolSize = CP.getSymbolSize();
-      uint32_t NumberOfAuxRecords =
+      unsigned const SymbolSize = CP.getSymbolSize();
+      uint32_t const NumberOfAuxRecords =
           (i->File.size() + SymbolSize - 1) / SymbolSize;
-      uint32_t NumberOfAuxBytes = NumberOfAuxRecords * SymbolSize;
-      uint32_t NumZeros = NumberOfAuxBytes - i->File.size();
+      uint32_t const NumberOfAuxBytes = NumberOfAuxRecords * SymbolSize;
+      uint32_t const NumZeros = NumberOfAuxBytes - i->File.size();
       OS.write(i->File.data(), i->File.size());
       OS.write_zeros(NumZeros);
     }

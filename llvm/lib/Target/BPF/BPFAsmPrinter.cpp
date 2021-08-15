@@ -124,7 +124,7 @@ bool BPFAsmPrinter::PrintAsmMemoryOperand(const MachineInstr *MI,
   const MachineOperand &OffsetMO = MI->getOperand(OpNum + 1);
   assert(BaseMO.isReg() && "Unexpected base pointer for inline asm memory operand.");
   assert(OffsetMO.isImm() && "Unexpected offset for inline asm memory operand.");
-  int Offset = OffsetMO.getImm();
+  int const Offset = OffsetMO.getImm();
 
   if (ExtraCode)
     return true; // Unknown modifier.
@@ -141,7 +141,7 @@ void BPFAsmPrinter::emitInstruction(const MachineInstr *MI) {
   MCInst TmpInst;
 
   if (!BTF || !BTF->InstLower(MI, TmpInst)) {
-    BPFMCInstLower MCInstLowering(OutContext, *this);
+    BPFMCInstLower const MCInstLowering(OutContext, *this);
     MCInstLowering.Lower(MI, TmpInst);
   }
   EmitToStreamer(*OutStreamer, TmpInst);
@@ -149,7 +149,7 @@ void BPFAsmPrinter::emitInstruction(const MachineInstr *MI) {
 
 // Force static initialization.
 extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializeBPFAsmPrinter() {
-  RegisterAsmPrinter<BPFAsmPrinter> X(getTheBPFleTarget());
-  RegisterAsmPrinter<BPFAsmPrinter> Y(getTheBPFbeTarget());
-  RegisterAsmPrinter<BPFAsmPrinter> Z(getTheBPFTarget());
+  RegisterAsmPrinter<BPFAsmPrinter> const X(getTheBPFleTarget());
+  RegisterAsmPrinter<BPFAsmPrinter> const Y(getTheBPFbeTarget());
+  RegisterAsmPrinter<BPFAsmPrinter> const Z(getTheBPFTarget());
 }

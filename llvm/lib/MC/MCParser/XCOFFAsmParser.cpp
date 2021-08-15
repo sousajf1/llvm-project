@@ -28,7 +28,7 @@ class XCOFFAsmParser : public MCAsmParserExtension {
 
   template <bool (XCOFFAsmParser::*HandlerMethod)(StringRef, SMLoc)>
   void addDirectiveHandler(StringRef Directive) {
-    MCAsmParser::ExtensionDirectiveHandler Handler =
+    MCAsmParser::ExtensionDirectiveHandler const Handler =
         std::make_pair(this, HandleDirective<XCOFFAsmParser, HandlerMethod>);
 
     getParser().addDirectiveHandler(Directive, Handler);

@@ -172,18 +172,18 @@ Error PDBStringTableBuilder::writeStrings(BinaryStreamWriter &Writer) const {
 
 Error PDBStringTableBuilder::writeHashTable(BinaryStreamWriter &Writer) const {
   // Write a hash table.
-  uint32_t BucketCount = computeBucketCount(Strings.size());
+  uint32_t const BucketCount = computeBucketCount(Strings.size());
   if (auto EC = Writer.writeInteger(BucketCount))
     return EC;
   std::vector<ulittle32_t> Buckets(BucketCount);
 
   for (auto &Pair : Strings) {
-    StringRef S = Pair.getKey();
-    uint32_t Offset = Pair.getValue();
-    uint32_t Hash = hashStringV1(S);
+    StringRef const S = Pair.getKey();
+    uint32_t const Offset = Pair.getValue();
+    uint32_t const Hash = hashStringV1(S);
 
     for (uint32_t I = 0; I != BucketCount; ++I) {
-      uint32_t Slot = (Hash + I) % BucketCount;
+      uint32_t const Slot = (Hash + I) % BucketCount;
       if (Buckets[Slot] != 0)
         continue;
       Buckets[Slot] = Offset;

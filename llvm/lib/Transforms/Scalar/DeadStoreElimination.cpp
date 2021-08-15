@@ -226,7 +226,7 @@ static MemoryLocation getLocForWrite(Instruction *Inst,
     case Intrinsic::masked_store:
       return MemoryLocation::getForArgument(II, 1, TLI);
     case Intrinsic::lifetime_end: {
-      uint64_t Len = cast<ConstantInt>(II->getArgOperand(0))->getZExtValue();
+      uint64_t const Len = cast<ConstantInt>(II->getArgOperand(0))->getZExtValue();
       return MemoryLocation(II->getArgOperand(1), Len);
     }
     }
@@ -504,7 +504,7 @@ memoryIsNotModifiedBetween(Instruction *FirstI, Instruction *SecondI,
 
   BasicBlock::iterator FirstBBI(FirstI);
   ++FirstBBI;
-  BasicBlock::iterator SecondBBI(SecondI);
+  BasicBlock::iterator const SecondBBI(SecondI);
   BasicBlock *FirstBB = FirstI->getParent();
   BasicBlock *SecondBB = SecondI->getParent();
   MemoryLocation MemLoc;
@@ -522,9 +522,9 @@ memoryIsNotModifiedBetween(Instruction *FirstI, Instruction *SecondI,
 
   // Check all blocks going backward until we reach the FirstBB.
   while (!WorkList.empty()) {
-    BlockAddressPair Current = WorkList.pop_back_val();
+    BlockAddressPair const Current = WorkList.pop_back_val();
     BasicBlock *B = Current.first;
-    PHITransAddr &Addr = Current.second;
+    PHITransAddr  const&Addr = Current.second;
     Value *Ptr = Addr.getAddr();
 
     // Ignore instructions before FirstI if this is the FirstBB.
@@ -579,7 +579,7 @@ static bool tryToShorten(Instruction *EarlierWrite, int64_t &EarlierStart,
                          uint64_t &EarlierSize, int64_t LaterStart,
                          uint64_t LaterSize, bool IsOverwriteEnd) {
   auto *EarlierIntrinsic = cast<AnyMemIntrinsic>(EarlierWrite);
-  Align PrefAlign = EarlierIntrinsic->getDestAlign().valueOrOne();
+  Align const PrefAlign = EarlierIntrinsic->getDestAlign().valueOrOne();
 
   // We assume that memet/memcpy operates in chunks of the "largest" native
   // type size and aligned on the same value. That means optimal start and size
@@ -602,7 +602,7 @@ static bool tryToShorten(Instruction *EarlierWrite, int64_t &EarlierStart,
   if (IsOverwriteEnd) {
     // Calculate required adjustment for 'LaterStart'in order to keep remaining
     // store size aligned on 'PerfAlign'.
-    uint64_t Off =
+    uint64_t const Off =
         offsetToAlignment(uint64_t(LaterStart - EarlierStart), PrefAlign);
     ToRemoveStart = LaterStart + Off;
     if (EarlierSize <= uint64_t(ToRemoveStart - EarlierStart))
@@ -615,7 +615,7 @@ static bool tryToShorten(Instruction *EarlierWrite, int64_t &EarlierStart,
     ToRemoveSize = LaterSize - uint64_t(EarlierStart - LaterStart);
     // Calculate required adjustment for 'ToRemoveSize'in order to keep
     // start of the remaining store aligned on 'PerfAlign'.
-    uint64_t Off = offsetToAlignment(ToRemoveSize, PrefAlign);
+    uint64_t const Off = offsetToAlignment(ToRemoveSize, PrefAlign);
     if (Off != 0) {
       if (ToRemoveSize <= (PrefAlign.value() - Off))
         return false;
@@ -628,7 +628,7 @@ static bool tryToShorten(Instruction *EarlierWrite, int64_t &EarlierStart,
   assert(ToRemoveSize > 0 && "Shouldn't reach here if nothing to remove");
   assert(EarlierSize > ToRemoveSize && "Can't remove more than original size");
 
-  uint64_t NewSize = EarlierSize - ToRemoveSize;
+  uint64_t const NewSize = EarlierSize - ToRemoveSize;
   if (auto *AMI = dyn_cast<AtomicMemIntrinsic>(EarlierWrite)) {
     // When shortening an atomic memory intrinsic, the newly shortened
     // length must remain an integer multiple of the element size.
@@ -656,7 +656,7 @@ static bool tryToShorten(Instruction *EarlierWrite, int64_t &EarlierStart,
     Value *Dest = OrigDest;
     if (OrigDest->getType() != Int8PtrTy)
       Dest = CastInst::CreatePointerCast(OrigDest, Int8PtrTy, "", EarlierWrite);
-    Value *Indices[1] = {
+    Value *const Indices[1] = {
         ConstantInt::get(EarlierWriteLength->getType(), ToRemoveSize)};
     Instruction *NewDestGEP = GetElementPtrInst::CreateInBounds(
         Type::getInt8Ty(EarlierIntrinsic->getContext()),
@@ -682,9 +682,9 @@ static bool tryToShortenEnd(Instruction *EarlierWrite,
   if (IntervalMap.empty() || !isShortenableAtTheEnd(EarlierWrite))
     return false;
 
-  OverlapIntervalsTy::iterator OII = --IntervalMap.end();
-  int64_t LaterStart = OII->second;
-  uint64_t LaterSize = OII->first - LaterStart;
+  OverlapIntervalsTy::iterator const OII = --IntervalMap.end();
+  int64_t const LaterStart = OII->second;
+  uint64_t const LaterSize = OII->first - LaterStart;
 
   assert(OII->first - LaterStart >= 0 && "Size expected to be positive");
 
@@ -710,9 +710,9 @@ static bool tryToShortenBegin(Instruction *EarlierWrite,
   if (IntervalMap.empty() || !isShortenableAtTheBeginning(EarlierWrite))
     return false;
 
-  OverlapIntervalsTy::iterator OII = IntervalMap.begin();
-  int64_t LaterStart = OII->second;
-  uint64_t LaterSize = OII->first - LaterStart;
+  OverlapIntervalsTy::iterator const OII = IntervalMap.begin();
+  int64_t const LaterStart = OII->second;
+  uint64_t const LaterSize = OII->first - LaterStart;
 
   assert(OII->first - LaterStart >= 0 && "Size expected to be positive");
 
@@ -739,7 +739,7 @@ static bool removePartiallyOverlappedStores(const DataLayout &DL,
   bool Changed = false;
   for (auto OI : IOL) {
     Instruction *EarlierWrite = OI.first;
-    MemoryLocation Loc = getLocForWrite(EarlierWrite, TLI);
+    MemoryLocation const Loc = getLocForWrite(EarlierWrite, TLI);
     assert(isRemovable(EarlierWrite) && "Expect only removable instruction");
 
     const Value *Ptr = Loc.Ptr->stripPointerCasts();
@@ -777,23 +777,23 @@ static Constant *tryToMergePartialOverlappingStores(
     // TODO: Deal with other constant types (vectors, etc), and probably
     // some mem intrinsics (if needed)
 
-    APInt EarlierValue =
+    APInt const EarlierValue =
         cast<ConstantInt>(Earlier->getValueOperand())->getValue();
     APInt LaterValue = cast<ConstantInt>(Later->getValueOperand())->getValue();
-    unsigned LaterBits = LaterValue.getBitWidth();
+    unsigned const LaterBits = LaterValue.getBitWidth();
     assert(EarlierValue.getBitWidth() > LaterValue.getBitWidth());
     LaterValue = LaterValue.zext(EarlierValue.getBitWidth());
 
     // Offset of the smaller store inside the larger store
-    unsigned BitOffsetDiff = (InstWriteOffset - DepWriteOffset) * 8;
-    unsigned LShiftAmount = DL.isBigEndian() ? EarlierValue.getBitWidth() -
+    unsigned const BitOffsetDiff = (InstWriteOffset - DepWriteOffset) * 8;
+    unsigned const LShiftAmount = DL.isBigEndian() ? EarlierValue.getBitWidth() -
                                                    BitOffsetDiff - LaterBits
                                              : BitOffsetDiff;
-    APInt Mask = APInt::getBitsSet(EarlierValue.getBitWidth(), LShiftAmount,
+    APInt const Mask = APInt::getBitsSet(EarlierValue.getBitWidth(), LShiftAmount,
                                    LShiftAmount + LaterBits);
     // Clear the bits we'll be replacing, then OR with the smaller
     // store, shifted appropriately.
-    APInt Merged = (EarlierValue & ~Mask) | (LaterValue << LShiftAmount);
+    APInt const Merged = (EarlierValue & ~Mask) | (LaterValue << LShiftAmount);
     LLVM_DEBUG(dbgs() << "DSE: Merge Stores:\n  Earlier: " << *Earlier
                       << "\n  Later: " << *Later
                       << "\n  Merged Value: " << Merged << '\n');
@@ -985,7 +985,7 @@ struct DSEState {
     const uint64_t EarlierSize = Earlier.Size.getValue();
 
     // Query the alias information
-    AliasResult AAR = BatchAA.alias(Later, Earlier);
+    AliasResult const AAR = BatchAA.alias(Later, Earlier);
 
     // If the start pointers are the same, we just have to compare sizes to see if
     // the later store was larger than the earlier store.
@@ -997,7 +997,7 @@ struct DSEState {
 
     // If we hit a partial alias we may have a full overwrite
     if (AAR == AliasResult::PartialAlias && AAR.hasOffset()) {
-      int32_t Off = AAR.getOffset();
+      int32_t const Off = AAR.getOffset();
       if (Off >= 0 && (uint64_t)Off + EarlierSize <= LaterSize)
         return OW_Complete;
     }
@@ -1015,7 +1015,7 @@ struct DSEState {
       return OW_Unknown;
 
     // If the "Later" store is to a recognizable object, get its size.
-    uint64_t ObjectSize = getPointerSize(UO2, DL, TLI, &F);
+    uint64_t const ObjectSize = getPointerSize(UO2, DL, TLI, &F);
     if (ObjectSize != MemoryLocation::UnknownSize)
       if (ObjectSize == LaterSize && ObjectSize >= EarlierSize)
         return OW_Complete;
@@ -1177,7 +1177,7 @@ struct DSEState {
     auto PushMemUses = [&WorkList, &Visited](MemoryAccess *Acc) {
       if (!Visited.insert(Acc).second)
         return;
-      for (Use &U : Acc->uses())
+      for (Use  const&U : Acc->uses())
         WorkList.push_back(cast<MemoryAccess>(U.getUser()));
     };
     PushMemUses(Def);
@@ -1378,7 +1378,7 @@ struct DSEState {
 
       // Cost of a step. Accesses in the same block are more likely to be valid
       // candidates for elimination, hence consider them cheaper.
-      unsigned StepCost = KillingDef->getBlock() == Current->getBlock()
+      unsigned const StepCost = KillingDef->getBlock() == Current->getBlock()
                               ? MemorySSASameBBStepCost
                               : MemorySSAOtherBBStepCost;
       if (WalkerStepLimit <= StepCost) {
@@ -1496,7 +1496,7 @@ struct DSEState {
 
     SmallSetVector<MemoryAccess *, 32> WorkList;
     auto PushMemUses = [&WorkList](MemoryAccess *Acc) {
-      for (Use &U : Acc->uses())
+      for (Use  const&U : Acc->uses())
         WorkList.insert(cast<MemoryAccess>(U.getUser()));
     };
     PushMemUses(EarlierAccess);
@@ -1949,7 +1949,7 @@ static bool eliminateDeadStores(Function &F, AliasAnalysis &AA, MemorySSA &MSSA,
                         << *SI << "\n");
       continue;
     }
-    MemoryLocation SILoc = *MaybeSILoc;
+    MemoryLocation const SILoc = *MaybeSILoc;
     assert(SILoc.Ptr && "SILoc should not be null");
     const Value *SILocUnd = getUnderlyingObject(SILoc.Ptr);
 
@@ -1967,7 +1967,7 @@ static bool eliminateDeadStores(Function &F, AliasAnalysis &AA, MemorySSA &MSSA,
       ToCheck.insert(KillingDef->getDefiningAccess());
 
     bool Shortend = false;
-    bool IsMemTerm = State.isMemTerminatorInst(SI);
+    bool const IsMemTerm = State.isMemTerminatorInst(SI);
     // Check if MemoryAccesses in the worklist are killed by KillingDef.
     for (unsigned I = 0; I < ToCheck.size(); I++) {
       Current = ToCheck[I];
@@ -2010,7 +2010,7 @@ static bool eliminateDeadStores(Function &F, AliasAnalysis &AA, MemorySSA &MSSA,
       if (!DebugCounter::shouldExecute(MemorySSACounter))
         continue;
 
-      MemoryLocation NILoc = *State.getLocForWriteEx(NI);
+      MemoryLocation const NILoc = *State.getLocForWriteEx(NI);
 
       if (IsMemTerm) {
         const Value *NIUnd = getUnderlyingObject(NILoc.Ptr);
@@ -2102,9 +2102,9 @@ PreservedAnalyses DSEPass::run(Function &F, FunctionAnalysisManager &AM) {
   DominatorTree &DT = AM.getResult<DominatorTreeAnalysis>(F);
   MemorySSA &MSSA = AM.getResult<MemorySSAAnalysis>(F).getMSSA();
   PostDominatorTree &PDT = AM.getResult<PostDominatorTreeAnalysis>(F);
-  LoopInfo &LI = AM.getResult<LoopAnalysis>(F);
+  LoopInfo  const&LI = AM.getResult<LoopAnalysis>(F);
 
-  bool Changed = eliminateDeadStores(F, AA, MSSA, DT, PDT, TLI, LI);
+  bool const Changed = eliminateDeadStores(F, AA, MSSA, DT, PDT, TLI, LI);
 
 #ifdef LLVM_ENABLE_STATS
   if (AreStatisticsEnabled())
@@ -2144,9 +2144,9 @@ public:
     MemorySSA &MSSA = getAnalysis<MemorySSAWrapperPass>().getMSSA();
     PostDominatorTree &PDT =
         getAnalysis<PostDominatorTreeWrapperPass>().getPostDomTree();
-    LoopInfo &LI = getAnalysis<LoopInfoWrapperPass>().getLoopInfo();
+    LoopInfo  const&LI = getAnalysis<LoopInfoWrapperPass>().getLoopInfo();
 
-    bool Changed = eliminateDeadStores(F, AA, MSSA, DT, PDT, TLI, LI);
+    bool const Changed = eliminateDeadStores(F, AA, MSSA, DT, PDT, TLI, LI);
 
 #ifdef LLVM_ENABLE_STATS
     if (AreStatisticsEnabled())

@@ -140,7 +140,7 @@ MipsSubtarget::MipsSubtarget(const Triple &TT, StringRef CPU, StringRef FS,
   }
 
   if (hasMips32r6()) {
-    StringRef ISA = hasMips64r6() ? "MIPS64r6" : "MIPS32r6";
+    StringRef const ISA = hasMips64r6() ? "MIPS64r6" : "MIPS32r6";
 
     assert(isFP64bit());
     assert(isNaN2008());
@@ -185,7 +185,7 @@ MipsSubtarget::MipsSubtarget(const Triple &TT, StringRef CPU, StringRef FS,
     }
   }
 
-  StringRef ArchName = hasMips64() ? "MIPS64" : "MIPS32";
+  StringRef const ArchName = hasMips64() ? "MIPS64" : "MIPS32";
 
   if (!hasMips32r5() && hasMSA() && !MSAWarningPrinted) {
     errs() << "warning: the 'msa' ASE requires " << ArchName
@@ -237,7 +237,7 @@ CodeGenOpt::Level MipsSubtarget::getOptLevelToEnablePostRAScheduler() const {
 MipsSubtarget &
 MipsSubtarget::initializeSubtargetDependencies(StringRef CPU, StringRef FS,
                                                const TargetMachine &TM) {
-  StringRef CPUName = MIPS_MC::selectMipsCPU(TM.getTargetTriple(), CPU);
+  StringRef const CPUName = MIPS_MC::selectMipsCPU(TM.getTargetTriple(), CPU);
 
   // Parse features string.
   ParseSubtargetFeatures(CPUName, /*TuneCPU*/ CPUName, FS);

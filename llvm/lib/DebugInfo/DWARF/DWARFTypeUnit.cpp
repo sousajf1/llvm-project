@@ -18,9 +18,9 @@
 using namespace llvm;
 
 void DWARFTypeUnit::dump(raw_ostream &OS, DIDumpOptions DumpOpts) {
-  DWARFDie TD = getDIEForOffset(getTypeOffset() + getOffset());
+  DWARFDie const TD = getDIEForOffset(getTypeOffset() + getOffset());
   const char *Name = TD.getName(DINameKind::ShortName);
-  int OffsetDumpWidth = 2 * dwarf::getDwarfOffsetByteSize(getFormat());
+  int const OffsetDumpWidth = 2 * dwarf::getDwarfOffsetByteSize(getFormat());
 
   if (DumpOpts.SummarizeTypes) {
     OS << "name = '" << Name << "'"
@@ -46,7 +46,7 @@ void DWARFTypeUnit::dump(raw_ostream &OS, DIDumpOptions DumpOpts) {
      << " (next unit at " << format("0x%08" PRIx64, getNextUnitOffset())
      << ")\n";
 
-  if (DWARFDie TU = getUnitDIE(false))
+  if (DWARFDie const TU = getUnitDIE(false))
     TU.dump(OS, 0, DumpOpts);
   else
     OS << "<type unit can't be parsed!>\n\n";

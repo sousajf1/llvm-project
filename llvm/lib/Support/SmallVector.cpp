@@ -49,7 +49,7 @@ static_assert(sizeof(SmallVector<char, 0>) ==
 /// std::length_error or calls report_fatal_error.
 [[noreturn]] static void report_size_overflow(size_t MinSize, size_t MaxSize);
 static void report_size_overflow(size_t MinSize, size_t MaxSize) {
-  std::string Reason = "SmallVector unable to grow. Requested capacity (" +
+  std::string const Reason = "SmallVector unable to grow. Requested capacity (" +
                        std::to_string(MinSize) +
                        ") is larger than maximum value for size type (" +
                        std::to_string(MaxSize) + ")";
@@ -64,7 +64,7 @@ static void report_size_overflow(size_t MinSize, size_t MaxSize) {
 /// std::length_error or calls report_fatal_error.
 [[noreturn]] static void report_at_maximum_capacity(size_t MaxSize);
 static void report_at_maximum_capacity(size_t MaxSize) {
-  std::string Reason =
+  std::string const Reason =
       "SmallVector capacity unable to grow. Already at maximum size " +
       std::to_string(MaxSize);
 #ifdef LLVM_ENABLE_EXCEPTIONS
@@ -93,7 +93,7 @@ static size_t getNewCapacity(size_t MinSize, size_t TSize, size_t OldCapacity) {
 
   // In theory 2*capacity can overflow if the capacity is 64 bit, but the
   // original capacity would never be large enough for this to be a problem.
-  size_t NewCapacity = 2 * OldCapacity + 1; // Always grow.
+  size_t const NewCapacity = 2 * OldCapacity + 1; // Always grow.
   return std::min(std::max(NewCapacity, MinSize), MaxSize);
 }
 
@@ -109,7 +109,7 @@ void *SmallVectorBase<Size_T>::mallocForGrow(size_t MinSize, size_t TSize,
 template <class Size_T>
 void SmallVectorBase<Size_T>::grow_pod(void *FirstEl, size_t MinSize,
                                        size_t TSize) {
-  size_t NewCapacity = getNewCapacity<Size_T>(MinSize, TSize, this->capacity());
+  size_t const NewCapacity = getNewCapacity<Size_T>(MinSize, TSize, this->capacity());
   void *NewElts;
   if (BeginX == FirstEl) {
     NewElts = safe_malloc(NewCapacity * TSize);

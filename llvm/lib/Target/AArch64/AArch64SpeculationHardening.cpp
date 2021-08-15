@@ -304,7 +304,7 @@ bool AArch64SpeculationHardening::instrumentControlFlow(
     // sure if that would actually result in a big performance difference
     // though. Maybe RegisterScavenger::findSurvivorBackwards has some logic
     // already to do this - but it's unclear if that could easily be used here.
-    unsigned TmpReg = RS.FindUnusedReg(&AArch64::GPR64commonRegClass);
+    unsigned const TmpReg = RS.FindUnusedReg(&AArch64::GPR64commonRegClass);
     LLVM_DEBUG(dbgs() << "RS finds "
                       << ((TmpReg == 0) ? "no register " : "register ");
                if (TmpReg != 0) dbgs() << printReg(TmpReg, TRI) << " ";
@@ -410,8 +410,8 @@ void AArch64SpeculationHardening::insertRegToSPTaintPropagation(
 
 bool AArch64SpeculationHardening::functionUsesHardeningRegister(
     MachineFunction &MF) const {
-  for (MachineBasicBlock &MBB : MF) {
-    for (MachineInstr &MI : MBB) {
+  for (MachineBasicBlock  const&MBB : MF) {
+    for (MachineInstr  const&MI : MBB) {
       // treat function calls specially, as the hardening register does not
       // need to remain live across function calls.
       if (MI.isCall())
@@ -481,7 +481,7 @@ bool AArch64SpeculationHardening::slhLoads(MachineBasicBlock &MBB) {
     // when the address loaded from gets masked. However, masking is only
     // easy to do efficiently on GPR registers, so for loads into non-GPR
     // registers (e.g. floating point loads), mask the address loaded from.
-    bool AllDefsAreGPR = llvm::all_of(MI.defs(), [&](MachineOperand &Op) {
+    bool const AllDefsAreGPR = llvm::all_of(MI.defs(), [&](MachineOperand &Op) {
       return Op.isReg() && (AArch64::GPR32allRegClass.contains(Op.getReg()) ||
                             AArch64::GPR64allRegClass.contains(Op.getReg()));
     });
@@ -489,13 +489,13 @@ bool AArch64SpeculationHardening::slhLoads(MachineBasicBlock &MBB) {
     // values if all the registers involved in address calculation are already
     // hardened, leading to this load not able to execute on a miss-speculated
     // path.
-    bool HardenLoadedData = AllDefsAreGPR;
-    bool HardenAddressLoadedFrom = !HardenLoadedData;
+    bool const HardenLoadedData = AllDefsAreGPR;
+    bool const HardenAddressLoadedFrom = !HardenLoadedData;
 
     // First remove registers from AlreadyMaskedRegisters if their value is
     // updated by this instruction - it makes them contain a new value that is
     // not guaranteed to already have been masked.
-    for (MachineOperand Op : MI.defs())
+    for (MachineOperand const Op : MI.defs())
       for (MCRegAliasIterator AI(Op.getReg(), TRI, true); AI.isValid(); ++AI)
         RegsAlreadyMasked.reset(*AI);
 
@@ -522,7 +522,7 @@ bool AArch64SpeculationHardening::slhLoads(MachineBasicBlock &MBB) {
       for (auto Use : MI.uses()) {
         if (!Use.isReg())
           continue;
-        Register Reg = Use.getReg();
+        Register const Reg = Use.getReg();
         // Some loads of floating point data have implicit defs/uses on a
         // super register of that floating point data. Some examples:
         // $s0 = LDRSui $sp, 22, implicit-def $q0
@@ -548,7 +548,7 @@ bool AArch64SpeculationHardening::expandSpeculationSafeValue(
     MachineBasicBlock &MBB, MachineBasicBlock::iterator MBBI,
     bool UsesFullSpeculationBarrier) {
   MachineInstr &MI = *MBBI;
-  unsigned Opcode = MI.getOpcode();
+  unsigned const Opcode = MI.getOpcode();
   bool Is64Bit = true;
 
   switch (Opcode) {
@@ -562,12 +562,12 @@ bool AArch64SpeculationHardening::expandSpeculationSafeValue(
     // miss-speculation isn't happening because we're already inserting barriers
     // to guarantee that.
     if (!UseControlFlowSpeculationBarrier && !UsesFullSpeculationBarrier) {
-      Register DstReg = MI.getOperand(0).getReg();
-      Register SrcReg = MI.getOperand(1).getReg();
+      Register const DstReg = MI.getOperand(0).getReg();
+      Register const SrcReg = MI.getOperand(1).getReg();
       // Mark this register and all its aliasing registers as needing to be
       // value speculation hardened before its next use, by using a CSDB
       // barrier instruction.
-      for (MachineOperand Op : MI.defs())
+      for (MachineOperand const Op : MI.defs())
         for (MCRegAliasIterator AI(Op.getReg(), TRI, true); AI.isValid(); ++AI)
           RegsNeedingCSDBBeforeUse.set(*AI);
 
@@ -619,7 +619,7 @@ bool AArch64SpeculationHardening::lowerSpeculationSafeValuePseudos(
   while (MBBI != E) {
     MachineInstr &MI = *MBBI;
     DL = MI.getDebugLoc();
-    MachineBasicBlock::iterator NMBBI = std::next(MBBI);
+    MachineBasicBlock::iterator const NMBBI = std::next(MBBI);
 
     // First check if a CSDB needs to be inserted due to earlier registers
     // that were masked and that are used by the next instruction.
@@ -628,7 +628,7 @@ bool AArch64SpeculationHardening::lowerSpeculationSafeValuePseudos(
     if (RegsNeedingCSDBBeforeUse.any() && (MI.isCall() || MI.isTerminator()))
       NeedToEmitBarrier = true;
     if (!NeedToEmitBarrier)
-      for (MachineOperand Op : MI.uses())
+      for (MachineOperand const Op : MI.uses())
         if (Op.isReg() && RegsNeedingCSDBBeforeUse[Op.getReg()]) {
           NeedToEmitBarrier = true;
           break;

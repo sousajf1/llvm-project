@@ -72,7 +72,7 @@ static DecodeStatus decodeCondBrTarget(MCInst &Inst, unsigned Imm,
 static DecodeStatus decodeDirectBrTarget(MCInst &Inst, unsigned Imm,
                                          uint64_t /*Address*/,
                                          const void * /*Decoder*/) {
-  int32_t Offset = SignExtend32<24>(Imm);
+  int32_t const Offset = SignExtend32<24>(Imm);
   Inst.addOperand(MCOperand::createImm(Offset));
   return MCDisassembler::Success;
 }
@@ -234,8 +234,8 @@ static DecodeStatus decodeMemRIOperands(MCInst &Inst, uint64_t Imm,
   // Decode the memri field (imm, reg), which has the low 16-bits as the
   // displacement and the next 5 bits as the register #.
 
-  uint64_t Base = Imm >> 16;
-  uint64_t Disp = Imm & 0xFFFF;
+  uint64_t const Base = Imm >> 16;
+  uint64_t const Disp = Imm & 0xFFFF;
 
   assert(Base < 32 && "Invalid base register");
 
@@ -269,8 +269,8 @@ static DecodeStatus decodeMemRIXOperands(MCInst &Inst, uint64_t Imm,
   // Decode the memrix field (imm, reg), which has the low 14-bits as the
   // displacement and the next 5 bits as the register #.
 
-  uint64_t Base = Imm >> 14;
-  uint64_t Disp = Imm & 0x3FFF;
+  uint64_t const Base = Imm >> 14;
+  uint64_t const Disp = Imm & 0x3FFF;
 
   assert(Base < 32 && "Invalid base register");
 
@@ -307,8 +307,8 @@ static DecodeStatus decodeMemRIX16Operands(MCInst &Inst, uint64_t Imm,
   // Decode the memrix16 field (imm, reg), which has the low 12-bits as the
   // displacement with 16-byte aligned, and the next 5 bits as the register #.
 
-  uint64_t Base = Imm >> 12;
-  uint64_t Disp = Imm & 0xFFF;
+  uint64_t const Base = Imm >> 12;
+  uint64_t const Disp = Imm & 0xFFF;
 
   assert(Base < 32 && "Invalid base register");
 
@@ -322,8 +322,8 @@ static DecodeStatus decodeMemRI34PCRelOperands(MCInst &Inst, uint64_t Imm,
                                                const void *Decoder) {
   // Decode the memri34_pcrel field (imm, reg), which has the low 34-bits as the
   // displacement, and the next 5 bits as an immediate 0.
-  uint64_t Base = Imm >> 34;
-  uint64_t Disp = Imm & 0x3FFFFFFFFUL;
+  uint64_t const Base = Imm >> 34;
+  uint64_t const Disp = Imm & 0x3FFFFFFFFUL;
 
   assert(Base < 32 && "Invalid base register");
 
@@ -336,8 +336,8 @@ static DecodeStatus decodeMemRI34Operands(MCInst &Inst, uint64_t Imm,
                                           const void *Decoder) {
   // Decode the memri34 field (imm, reg), which has the low 34-bits as the
   // displacement, and the next 5 bits as the register #.
-  uint64_t Base = Imm >> 34;
-  uint64_t Disp = Imm & 0x3FFFFFFFFUL;
+  uint64_t const Base = Imm >> 34;
+  uint64_t const Disp = Imm & 0x3FFFFFFFFUL;
 
   assert(Base < 32 && "Invalid base register");
 
@@ -351,8 +351,8 @@ static DecodeStatus decodeSPE8Operands(MCInst &Inst, uint64_t Imm,
   // Decode the spe8disp field (imm, reg), which has the low 5-bits as the
   // displacement with 8-byte aligned, and the next 5 bits as the register #.
 
-  uint64_t Base = Imm >> 5;
-  uint64_t Disp = Imm & 0x1F;
+  uint64_t const Base = Imm >> 5;
+  uint64_t const Disp = Imm & 0x1F;
 
   assert(Base < 32 && "Invalid base register");
 
@@ -366,8 +366,8 @@ static DecodeStatus decodeSPE4Operands(MCInst &Inst, uint64_t Imm,
   // Decode the spe4disp field (imm, reg), which has the low 5-bits as the
   // displacement with 4-byte aligned, and the next 5 bits as the register #.
 
-  uint64_t Base = Imm >> 5;
-  uint64_t Disp = Imm & 0x1F;
+  uint64_t const Base = Imm >> 5;
+  uint64_t const Disp = Imm & 0x1F;
 
   assert(Base < 32 && "Invalid base register");
 
@@ -381,8 +381,8 @@ static DecodeStatus decodeSPE2Operands(MCInst &Inst, uint64_t Imm,
   // Decode the spe2disp field (imm, reg), which has the low 5-bits as the
   // displacement with 2-byte aligned, and the next 5 bits as the register #.
 
-  uint64_t Base = Imm >> 5;
-  uint64_t Disp = Imm & 0x1F;
+  uint64_t const Base = Imm >> 5;
+  uint64_t const Disp = Imm & 0x1F;
 
   assert(Base < 32 && "Invalid base register");
 
@@ -395,7 +395,7 @@ static DecodeStatus decodeCRBitMOperand(MCInst &Inst, uint64_t Imm,
                                         int64_t Address, const void *Decoder) {
   // The cr bit encoding is 0x80 >> cr_reg_num.
 
-  unsigned Zeros = countTrailingZeros(Imm);
+  unsigned const Zeros = countTrailingZeros(Imm);
   assert(Zeros < 8 && "Invalid CR bit value");
 
   Inst.addOperand(MCOperand::createReg(CRRegs[7 - Zeros]));
@@ -420,10 +420,10 @@ DecodeStatus PPCDisassembler::getInstruction(MCInst &MI, uint64_t &Size,
   //       different decoder tables. It may be possible to only call once by
   //       looking at the top 6 bits of the instruction.
   if (STI.getFeatureBits()[PPC::FeaturePrefixInstrs] && Bytes.size() >= 8) {
-    uint32_t Prefix = ReadFunc(Bytes.data());
-    uint32_t BaseInst = ReadFunc(Bytes.data() + 4);
-    uint64_t Inst = BaseInst | (uint64_t)Prefix << 32;
-    DecodeStatus result = decodeInstruction(DecoderTable64, MI, Inst, Address,
+    uint32_t const Prefix = ReadFunc(Bytes.data());
+    uint32_t const BaseInst = ReadFunc(Bytes.data() + 4);
+    uint64_t const Inst = BaseInst | (uint64_t)Prefix << 32;
+    DecodeStatus const result = decodeInstruction(DecoderTable64, MI, Inst, Address,
                                             this, STI);
     if (result != MCDisassembler::Fail) {
       Size = 8;
@@ -439,10 +439,10 @@ DecodeStatus PPCDisassembler::getInstruction(MCInst &MI, uint64_t &Size,
   }
 
   // Read the instruction in the proper endianness.
-  uint64_t Inst = ReadFunc(Bytes.data());
+  uint64_t const Inst = ReadFunc(Bytes.data());
 
   if (STI.getFeatureBits()[PPC::FeatureSPE]) {
-    DecodeStatus result =
+    DecodeStatus const result =
         decodeInstruction(DecoderTableSPE32, MI, Inst, Address, this, STI);
     if (result != MCDisassembler::Fail)
       return result;

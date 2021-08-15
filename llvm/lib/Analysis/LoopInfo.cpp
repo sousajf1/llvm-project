@@ -259,7 +259,7 @@ ICmpInst::Predicate Loop::LoopBounds::getCanonicalPredicate() const {
   if (Pred != ICmpInst::ICMP_NE && Pred != ICmpInst::ICMP_EQ)
     return ICmpInst::getFlippedStrictnessPredicate(Pred);
 
-  Direction D = getDirection();
+  Direction const D = getDirection();
   if (D == Direction::Increasing)
     return ICmpInst::ICMP_SLT;
 
@@ -588,7 +588,7 @@ bool Loop::isAnnotatedParallel() const {
   // that all the memory instructions in the loop belong to an access group that
   // is parallel to this loop.
   for (BasicBlock *BB : this->blocks()) {
-    for (Instruction &I : *BB) {
+    for (Instruction  const&I : *BB) {
       if (!I.mayReadOrWriteMemory())
         continue;
 
@@ -654,7 +654,7 @@ Loop::LocRange Loop::getLocRange() const {
 
   // Try the pre-header first.
   if (BasicBlock *PHeadBB = getLoopPreheader())
-    if (DebugLoc DL = PHeadBB->getTerminator()->getDebugLoc())
+    if (DebugLoc const DL = PHeadBB->getTerminator()->getDebugLoc())
       return LocRange(DL);
 
   // If we have no pre-header or there are no instructions with debug
@@ -1199,7 +1199,7 @@ void LoopInfoWrapperPass::print(raw_ostream &OS, const Module *) const {
 
 PreservedAnalyses LoopVerifierPass::run(Function &F,
                                         FunctionAnalysisManager &AM) {
-  LoopInfo &LI = AM.getResult<LoopAnalysis>(F);
+  LoopInfo  const&LI = AM.getResult<LoopAnalysis>(F);
   auto &DT = AM.getResult<DominatorTreeAnalysis>(F);
   LI.verify(DT);
   return PreservedAnalyses::all();

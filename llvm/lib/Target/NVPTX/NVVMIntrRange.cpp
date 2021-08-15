@@ -65,7 +65,7 @@ static bool addRangeMetadata(uint64_t Low, uint64_t High, CallInst *C) {
 
   LLVMContext &Context = C->getParent()->getContext();
   IntegerType *Int32Ty = Type::getInt32Ty(Context);
-  Metadata *LowAndHigh[] = {
+  Metadata *const LowAndHigh[] = {
       ConstantAsMetadata::get(ConstantInt::get(Int32Ty, Low)),
       ConstantAsMetadata::get(ConstantInt::get(Int32Ty, High))};
   C->setMetadata(LLVMContext::MD_range, MDNode::get(Context, LowAndHigh));

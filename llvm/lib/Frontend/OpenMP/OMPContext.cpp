@@ -134,7 +134,7 @@ static bool isStrictSubset(const VariantMatchInfo &VMI0,
   // relation is not required to be strict.
   if (VMI0.RequiredTraits.count() >= VMI1.RequiredTraits.count())
     return false;
-  for (unsigned Bit : VMI0.RequiredTraits.set_bits())
+  for (unsigned const Bit : VMI0.RequiredTraits.set_bits())
     if (!VMI1.RequiredTraits.test(Bit))
       return false;
   if (!isSubset<TraitProperty>(VMI0.ConstructTraits, VMI1.ConstructTraits))
@@ -192,8 +192,8 @@ static int isVariantApplicableInContextHelper(
     return false;
   };
 
-  for (unsigned Bit : VMI.RequiredTraits.set_bits()) {
-    TraitProperty Property = TraitProperty(Bit);
+  for (unsigned const Bit : VMI.RequiredTraits.set_bits()) {
+    TraitProperty const Property = TraitProperty(Bit);
     if (DeviceSetOnly &&
         getOpenMPContextTraitSetForProperty(Property) != TraitSet::device)
       continue;
@@ -222,7 +222,7 @@ static int isVariantApplicableInContextHelper(
     // We could use isSubset here but we also want to record the match
     // locations.
     unsigned ConstructIdx = 0, NoConstructTraits = Ctx.ConstructTraits.size();
-    for (TraitProperty Property : VMI.ConstructTraits) {
+    for (TraitProperty const Property : VMI.ConstructTraits) {
       assert(getOpenMPContextTraitSetForProperty(Property) ==
                  TraitSet::construct &&
              "Variant context is ill-formed!");
@@ -274,9 +274,9 @@ static APInt getVariantMatchScore(const VariantMatchInfo &VMI,
                                   SmallVectorImpl<unsigned> &ConstructMatches) {
   APInt Score(64, 1);
 
-  unsigned NoConstructTraits = VMI.ConstructTraits.size();
-  for (unsigned Bit : VMI.RequiredTraits.set_bits()) {
-    TraitProperty Property = TraitProperty(Bit);
+  unsigned const NoConstructTraits = VMI.ConstructTraits.size();
+  for (unsigned const Bit : VMI.RequiredTraits.set_bits()) {
+    TraitProperty const Property = TraitProperty(Bit);
     // If there is a user score attached, use it.
     if (VMI.ScoreMap.count(Property)) {
       const APInt &UserScore = VMI.ScoreMap.lookup(Property);
@@ -325,7 +325,7 @@ static APInt getVariantMatchScore(const VariantMatchInfo &VMI,
   unsigned ConstructIdx = 0;
   assert(NoConstructTraits == ConstructMatches.size() &&
          "Mismatch in the construct traits!");
-  for (TraitProperty Property : VMI.ConstructTraits) {
+  for (TraitProperty const Property : VMI.ConstructTraits) {
     assert(getOpenMPContextTraitSetForProperty(Property) ==
                TraitSet::construct &&
            "Ill-formed variant match info!");
@@ -355,7 +355,7 @@ int llvm::omp::getBestVariantMatchForContext(
                                             /* DeviceSetOnly */ false))
       continue;
     // Check if its clearly not the best.
-    APInt Score = getVariantMatchScore(VMI, Ctx, ConstructMatches);
+    APInt const Score = getVariantMatchScore(VMI, Ctx, ConstructMatches);
     if (Score.ult(BestScore))
       continue;
     // Equal score need subset checks.

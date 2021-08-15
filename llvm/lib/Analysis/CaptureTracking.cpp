@@ -333,8 +333,8 @@ void llvm::PointerMayBeCaptured(const Value *V, CaptureTracker *Tracker,
         return;
       break;
     case Instruction::ICmp: {
-      unsigned Idx = U->getOperandNo();
-      unsigned OtherIdx = 1 - Idx;
+      unsigned const Idx = U->getOperandNo();
+      unsigned const OtherIdx = 1 - Idx;
       if (auto *CPN = dyn_cast<ConstantPointerNull>(I->getOperand(OtherIdx))) {
         // Don't count comparisons of a no-alias return value against null as
         // captures. This allows us to ignore comparisons of malloc results

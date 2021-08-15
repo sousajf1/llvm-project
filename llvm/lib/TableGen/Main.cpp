@@ -94,7 +94,7 @@ int llvm::TableGenMain(const char *argv0, TableGenMainFn *MainFn) {
   Records.startTimer("Parse, build records");
   ErrorOr<std::unique_ptr<MemoryBuffer>> FileOrErr =
       MemoryBuffer::getFileOrSTDIN(InputFilename, /*IsText=*/true);
-  if (std::error_code EC = FileOrErr.getError())
+  if (std::error_code const EC = FileOrErr.getError())
     return reportError(argv0, "Could not open input file '" + InputFilename +
                                   "': " + EC.message() + "\n");
 
@@ -117,7 +117,7 @@ int llvm::TableGenMain(const char *argv0, TableGenMainFn *MainFn) {
   Records.startBackendTimer("Backend overall");
   std::string OutString;
   raw_string_ostream Out(OutString);
-  unsigned status = MainFn(Out, Records);
+  unsigned const status = MainFn(Out, Records);
   Records.stopBackendTimer();
   if (status)
     return 1;
@@ -127,7 +127,7 @@ int llvm::TableGenMain(const char *argv0, TableGenMainFn *MainFn) {
   // the early exit below and someone deleted the .inc.d file but not the .inc
   // file, tablegen would never write the depfile.
   if (!DependFilename.empty()) {
-    if (int Ret = createDependencyFile(Parser, argv0))
+    if (int const Ret = createDependencyFile(Parser, argv0))
       return Ret;
   }
 

@@ -24,7 +24,7 @@ namespace orc {
 // ImplSymbolMap methods
 void ImplSymbolMap::trackImpls(SymbolAliasMap ImplMaps, JITDylib *SrcJD) {
   assert(SrcJD && "Tracking on Null Source .impl dylib");
-  std::lock_guard<std::mutex> Lockit(ConcurrentAccess);
+  std::lock_guard<std::mutex> const Lockit(ConcurrentAccess);
   for (auto &I : ImplMaps) {
     auto It = Maps.insert({I.first, {I.second.Aliasee, SrcJD}});
     // check rationale when independent dylibs have same symbol name?

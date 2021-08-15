@@ -32,7 +32,7 @@ bool MetadataVerifier::verifyScalar(
     // and attempt to coerce them to the expected type here.
     if (Node.getKind() != msgpack::Type::String)
       return false;
-    StringRef StringValue = Node.getString();
+    StringRef const StringValue = Node.getString();
     Node.fromString(StringValue);
     if (Node.getKind() != SKind)
       return false;

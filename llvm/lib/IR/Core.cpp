@@ -370,14 +370,14 @@ void LLVMDisposeModuleFlagsMetadata(LLVMModuleFlagEntry *Entries) {
 LLVMModuleFlagBehavior
 LLVMModuleFlagEntriesGetFlagBehavior(LLVMModuleFlagEntry *Entries,
                                      unsigned Index) {
-  LLVMOpaqueModuleFlagEntry MFE =
+  LLVMOpaqueModuleFlagEntry const MFE =
       static_cast<LLVMOpaqueModuleFlagEntry>(Entries[Index]);
   return MFE.Behavior;
 }
 
 const char *LLVMModuleFlagEntriesGetKey(LLVMModuleFlagEntry *Entries,
                                         unsigned Index, size_t *Len) {
-  LLVMOpaqueModuleFlagEntry MFE =
+  LLVMOpaqueModuleFlagEntry const MFE =
       static_cast<LLVMOpaqueModuleFlagEntry>(Entries[Index]);
   *Len = MFE.KeyLen;
   return MFE.Key;
@@ -385,7 +385,7 @@ const char *LLVMModuleFlagEntriesGetKey(LLVMModuleFlagEntry *Entries,
 
 LLVMMetadataRef LLVMModuleFlagEntriesGetMetadata(LLVMModuleFlagEntry *Entries,
                                                  unsigned Index) {
-  LLVMOpaqueModuleFlagEntry MFE =
+  LLVMOpaqueModuleFlagEntry const MFE =
       static_cast<LLVMOpaqueModuleFlagEntry>(Entries[Index]);
   return MFE.Metadata;
 }
@@ -423,7 +423,7 @@ LLVMBool LLVMPrintModuleToFile(LLVMModuleRef M, const char *Filename,
   dest.close();
 
   if (dest.has_error()) {
-    std::string E = "Error printing to file: " + dest.error().message();
+    std::string const E = "Error printing to file: " + dest.error().message();
     *ErrorMessage = strdup(E.c_str());
     return true;
   }
@@ -676,7 +676,7 @@ LLVMTypeRef LLVMX86AMXType(void) {
 LLVMTypeRef LLVMFunctionType(LLVMTypeRef ReturnType,
                              LLVMTypeRef *ParamTypes, unsigned ParamCount,
                              LLVMBool IsVarArg) {
-  ArrayRef<Type*> Tys(unwrap(ParamTypes), ParamCount);
+  ArrayRef<Type*> const Tys(unwrap(ParamTypes), ParamCount);
   return wrap(FunctionType::get(unwrap(ReturnType), Tys, IsVarArg != 0));
 }
 
@@ -702,7 +702,7 @@ void LLVMGetParamTypes(LLVMTypeRef FunctionTy, LLVMTypeRef *Dest) {
 
 LLVMTypeRef LLVMStructTypeInContext(LLVMContextRef C, LLVMTypeRef *ElementTypes,
                            unsigned ElementCount, LLVMBool Packed) {
-  ArrayRef<Type*> Tys(unwrap(ElementTypes), ElementCount);
+  ArrayRef<Type*> const Tys(unwrap(ElementTypes), ElementCount);
   return wrap(StructType::get(*unwrap(C), Tys, Packed != 0));
 }
 
@@ -727,7 +727,7 @@ const char *LLVMGetStructName(LLVMTypeRef Ty)
 
 void LLVMStructSetBody(LLVMTypeRef StructTy, LLVMTypeRef *ElementTypes,
                        unsigned ElementCount, LLVMBool Packed) {
-  ArrayRef<Type*> Tys(unwrap(ElementTypes), ElementCount);
+  ArrayRef<Type*> const Tys(unwrap(ElementTypes), ElementCount);
   unwrap<StructType>(StructTy)->setBody(Tys, Packed != 0);
 }
 
@@ -992,7 +992,7 @@ LLVMValueRef LLVMIsAMDString(LLVMValueRef Val) {
 /*--.. Operations on Uses ..................................................--*/
 LLVMUseRef LLVMGetFirstUse(LLVMValueRef Val) {
   Value *V = unwrap(Val);
-  Value::use_iterator I = V->use_begin();
+  Value::use_iterator const I = V->use_begin();
   if (I == V->use_end())
     return nullptr;
   return wrap(&*I);
@@ -1182,7 +1182,7 @@ unsigned LLVMGetMDNodeNumOperands(LLVMValueRef V) {
 
 LLVMNamedMDNodeRef LLVMGetFirstNamedMetadata(LLVMModuleRef M) {
   Module *Mod = unwrap(M);
-  Module::named_metadata_iterator I = Mod->named_metadata_begin();
+  Module::named_metadata_iterator const I = Mod->named_metadata_begin();
   if (I == Mod->named_metadata_end())
     return nullptr;
   return wrap(&*I);
@@ -1438,14 +1438,14 @@ LLVMBool LLVMIsConstantString(LLVMValueRef C) {
 }
 
 const char *LLVMGetAsString(LLVMValueRef C, size_t *Length) {
-  StringRef Str = unwrap<ConstantDataSequential>(C)->getAsString();
+  StringRef const Str = unwrap<ConstantDataSequential>(C)->getAsString();
   *Length = Str.size();
   return Str.data();
 }
 
 LLVMValueRef LLVMConstArray(LLVMTypeRef ElementTy,
                             LLVMValueRef *ConstantVals, unsigned Length) {
-  ArrayRef<Constant*> V(unwrap<Constant>(ConstantVals, Length), Length);
+  ArrayRef<Constant*> const V(unwrap<Constant>(ConstantVals, Length), Length);
   return wrap(ConstantArray::get(ArrayType::get(unwrap(ElementTy), Length), V));
 }
 
@@ -1688,7 +1688,7 @@ LLVMValueRef LLVMConstAShr(LLVMValueRef LHSConstant, LLVMValueRef RHSConstant) {
 
 LLVMValueRef LLVMConstGEP(LLVMValueRef ConstantVal,
                           LLVMValueRef *ConstantIndices, unsigned NumIndices) {
-  ArrayRef<Constant *> IdxList(unwrap<Constant>(ConstantIndices, NumIndices),
+  ArrayRef<Constant *> const IdxList(unwrap<Constant>(ConstantIndices, NumIndices),
                                NumIndices);
   Constant *Val = unwrap<Constant>(ConstantVal);
   Type *Ty =
@@ -1699,7 +1699,7 @@ LLVMValueRef LLVMConstGEP(LLVMValueRef ConstantVal,
 LLVMValueRef LLVMConstInBoundsGEP(LLVMValueRef ConstantVal,
                                   LLVMValueRef *ConstantIndices,
                                   unsigned NumIndices) {
-  ArrayRef<Constant *> IdxList(unwrap<Constant>(ConstantIndices, NumIndices),
+  ArrayRef<Constant *> const IdxList(unwrap<Constant>(ConstantIndices, NumIndices),
                                NumIndices);
   Constant *Val = unwrap<Constant>(ConstantVal);
   Type *Ty =
@@ -2095,7 +2095,7 @@ LLVMValueMetadataEntry *LLVMGlobalCopyAllMetadata(LLVMValueRef Value,
 
 unsigned LLVMValueMetadataEntriesGetKind(LLVMValueMetadataEntry *Entries,
                                          unsigned Index) {
-  LLVMOpaqueValueMetadataEntry MVE =
+  LLVMOpaqueValueMetadataEntry const MVE =
       static_cast<LLVMOpaqueValueMetadataEntry>(Entries[Index]);
   return MVE.Kind;
 }
@@ -2103,7 +2103,7 @@ unsigned LLVMValueMetadataEntriesGetKind(LLVMValueMetadataEntry *Entries,
 LLVMMetadataRef
 LLVMValueMetadataEntriesGetMetadata(LLVMValueMetadataEntry *Entries,
                                     unsigned Index) {
-  LLVMOpaqueValueMetadataEntry MVE =
+  LLVMOpaqueValueMetadataEntry const MVE =
       static_cast<LLVMOpaqueValueMetadataEntry>(Entries[Index]);
   return MVE.Metadata;
 }
@@ -2147,7 +2147,7 @@ LLVMValueRef LLVMGetNamedGlobal(LLVMModuleRef M, const char *Name) {
 
 LLVMValueRef LLVMGetFirstGlobal(LLVMModuleRef M) {
   Module *Mod = unwrap(M);
-  Module::global_iterator I = Mod->global_begin();
+  Module::global_iterator const I = Mod->global_begin();
   if (I == Mod->global_end())
     return nullptr;
   return wrap(&*I);
@@ -2273,7 +2273,7 @@ LLVMValueRef LLVMGetNamedGlobalAlias(LLVMModuleRef M,
 
 LLVMValueRef LLVMGetFirstGlobalAlias(LLVMModuleRef M) {
   Module *Mod = unwrap(M);
-  Module::alias_iterator I = Mod->alias_begin();
+  Module::alias_iterator const I = Mod->alias_begin();
   if (I == Mod->alias_end())
     return nullptr;
   return wrap(&*I);
@@ -2325,7 +2325,7 @@ LLVMValueRef LLVMGetNamedFunction(LLVMModuleRef M, const char *Name) {
 
 LLVMValueRef LLVMGetFirstFunction(LLVMModuleRef M) {
   Module *Mod = unwrap(M);
-  Module::iterator I = Mod->begin();
+  Module::iterator const I = Mod->begin();
   if (I == Mod->end())
     return nullptr;
   return wrap(&*I);
@@ -2386,7 +2386,7 @@ LLVMValueRef LLVMGetIntrinsicDeclaration(LLVMModuleRef Mod,
                                          unsigned ID,
                                          LLVMTypeRef *ParamTypes,
                                          size_t ParamCount) {
-  ArrayRef<Type*> Tys(unwrap(ParamTypes), ParamCount);
+  ArrayRef<Type*> const Tys(unwrap(ParamTypes), ParamCount);
   auto IID = llvm_map_to_intrinsic_id(ID);
   return wrap(llvm::Intrinsic::getDeclaration(unwrap(Mod), IID, Tys));
 }
@@ -2401,7 +2401,7 @@ const char *LLVMIntrinsicGetName(unsigned ID, size_t *NameLength) {
 LLVMTypeRef LLVMIntrinsicGetType(LLVMContextRef Ctx, unsigned ID,
                                  LLVMTypeRef *ParamTypes, size_t ParamCount) {
   auto IID = llvm_map_to_intrinsic_id(ID);
-  ArrayRef<Type*> Tys(unwrap(ParamTypes), ParamCount);
+  ArrayRef<Type*> const Tys(unwrap(ParamTypes), ParamCount);
   return wrap(llvm::Intrinsic::getType(*unwrap(Ctx), IID, Tys));
 }
 
@@ -2410,7 +2410,7 @@ const char *LLVMIntrinsicCopyOverloadedName(unsigned ID,
                                             size_t ParamCount,
                                             size_t *NameLength) {
   auto IID = llvm_map_to_intrinsic_id(ID);
-  ArrayRef<Type*> Tys(unwrap(ParamTypes), ParamCount);
+  ArrayRef<Type*> const Tys(unwrap(ParamTypes), ParamCount);
   auto Str = llvm::Intrinsic::getNameNoUnnamedTypes(IID, Tys);
   *NameLength = Str.length();
   return strdup(Str.c_str());
@@ -2421,7 +2421,7 @@ const char *LLVMIntrinsicCopyOverloadedName2(LLVMModuleRef Mod, unsigned ID,
                                              size_t ParamCount,
                                              size_t *NameLength) {
   auto IID = llvm_map_to_intrinsic_id(ID);
-  ArrayRef<Type *> Tys(unwrap(ParamTypes), ParamCount);
+  ArrayRef<Type *> const Tys(unwrap(ParamTypes), ParamCount);
   auto Str = llvm::Intrinsic::getName(IID, Tys, unwrap(Mod));
   *NameLength = Str.length();
   return strdup(Str.c_str());
@@ -2501,7 +2501,7 @@ void LLVMRemoveStringAttributeAtIndex(LLVMValueRef F, LLVMAttributeIndex Idx,
 void LLVMAddTargetDependentFunctionAttr(LLVMValueRef Fn, const char *A,
                                         const char *V) {
   Function *Func = unwrap<Function>(Fn);
-  Attribute Attr = Attribute::get(Func->getContext(), A, V);
+  Attribute const Attr = Attribute::get(Func->getContext(), A, V);
   Func->addAttribute(AttributeList::FunctionIndex, Attr);
 }
 
@@ -2583,7 +2583,7 @@ LLVMValueRef LLVMGetNamedGlobalIFunc(LLVMModuleRef M,
 
 LLVMValueRef LLVMGetFirstGlobalIFunc(LLVMModuleRef M) {
   Module *Mod = unwrap(M);
-  Module::ifunc_iterator I = Mod->ifunc_begin();
+  Module::ifunc_iterator const I = Mod->ifunc_begin();
   if (I == Mod->ifunc_end())
     return nullptr;
   return wrap(&*I);
@@ -2661,7 +2661,7 @@ unsigned LLVMCountBasicBlocks(LLVMValueRef FnRef) {
 
 void LLVMGetBasicBlocks(LLVMValueRef FnRef, LLVMBasicBlockRef *BasicBlocksRefs){
   Function *Fn = unwrap<Function>(FnRef);
-  for (BasicBlock &BB : *Fn)
+  for (BasicBlock  const&BB : *Fn)
     *BasicBlocksRefs++ = wrap(&BB);
 }
 
@@ -2671,7 +2671,7 @@ LLVMBasicBlockRef LLVMGetEntryBasicBlock(LLVMValueRef Fn) {
 
 LLVMBasicBlockRef LLVMGetFirstBasicBlock(LLVMValueRef Fn) {
   Function *Func = unwrap<Function>(Fn);
-  Function::iterator I = Func->begin();
+  Function::iterator const I = Func->begin();
   if (I == Func->end())
     return nullptr;
   return wrap(&*I);
@@ -2766,7 +2766,7 @@ LLVMBasicBlockRef LLVMGetInstructionParent(LLVMValueRef Inst) {
 
 LLVMValueRef LLVMGetFirstInstruction(LLVMBasicBlockRef BB) {
   BasicBlock *Block = unwrap(BB);
-  BasicBlock::iterator I = Block->begin();
+  BasicBlock::iterator const I = Block->begin();
   if (I == Block->end())
     return nullptr;
   return wrap(&*I);
@@ -2860,7 +2860,7 @@ void LLVMSetInstructionCallConv(LLVMValueRef Instr, unsigned CC) {
 void LLVMSetInstrParamAlignment(LLVMValueRef Instr, unsigned index,
                                 unsigned align) {
   auto *Call = unwrap<CallBase>(Instr);
-  Attribute AlignAttr =
+  Attribute const AlignAttr =
       Attribute::getWithAlignment(Call->getContext(), Align(align));
   Call->addAttribute(index, AlignAttr);
 }
@@ -3655,7 +3655,7 @@ LLVMValueRef LLVMBuildFence(LLVMBuilderRef B, LLVMAtomicOrdering Ordering,
 LLVMValueRef LLVMBuildGEP(LLVMBuilderRef B, LLVMValueRef Pointer,
                           LLVMValueRef *Indices, unsigned NumIndices,
                           const char *Name) {
-  ArrayRef<Value *> IdxList(unwrap(Indices), NumIndices);
+  ArrayRef<Value *> const IdxList(unwrap(Indices), NumIndices);
   Value *Val = unwrap(Pointer);
   Type *Ty =
       cast<PointerType>(Val->getType()->getScalarType())->getElementType();
@@ -3665,14 +3665,14 @@ LLVMValueRef LLVMBuildGEP(LLVMBuilderRef B, LLVMValueRef Pointer,
 LLVMValueRef LLVMBuildGEP2(LLVMBuilderRef B, LLVMTypeRef Ty,
                            LLVMValueRef Pointer, LLVMValueRef *Indices,
                            unsigned NumIndices, const char *Name) {
-  ArrayRef<Value *> IdxList(unwrap(Indices), NumIndices);
+  ArrayRef<Value *> const IdxList(unwrap(Indices), NumIndices);
   return wrap(unwrap(B)->CreateGEP(unwrap(Ty), unwrap(Pointer), IdxList, Name));
 }
 
 LLVMValueRef LLVMBuildInBoundsGEP(LLVMBuilderRef B, LLVMValueRef Pointer,
                                   LLVMValueRef *Indices, unsigned NumIndices,
                                   const char *Name) {
-  ArrayRef<Value *> IdxList(unwrap(Indices), NumIndices);
+  ArrayRef<Value *> const IdxList(unwrap(Indices), NumIndices);
   Value *Val = unwrap(Pointer);
   Type *Ty =
       cast<PointerType>(Val->getType()->getScalarType())->getElementType();
@@ -3682,7 +3682,7 @@ LLVMValueRef LLVMBuildInBoundsGEP(LLVMBuilderRef B, LLVMValueRef Pointer,
 LLVMValueRef LLVMBuildInBoundsGEP2(LLVMBuilderRef B, LLVMTypeRef Ty,
                                    LLVMValueRef Pointer, LLVMValueRef *Indices,
                                    unsigned NumIndices, const char *Name) {
-  ArrayRef<Value *> IdxList(unwrap(Indices), NumIndices);
+  ArrayRef<Value *> const IdxList(unwrap(Indices), NumIndices);
   return wrap(
       unwrap(B)->CreateInBoundsGEP(unwrap(Ty), unwrap(Pointer), IdxList, Name));
 }
@@ -3756,7 +3756,7 @@ LLVMAtomicOrdering LLVMGetOrdering(LLVMValueRef MemAccessInst) {
 
 void LLVMSetOrdering(LLVMValueRef MemAccessInst, LLVMAtomicOrdering Ordering) {
   Value *P = unwrap<Value>(MemAccessInst);
-  AtomicOrdering O = mapFromLLVMOrdering(Ordering);
+  AtomicOrdering const O = mapFromLLVMOrdering(Ordering);
 
   if (LoadInst *LI = dyn_cast<LoadInst>(P))
     return LI->setOrdering(O);
@@ -3994,7 +3994,7 @@ LLVMValueRef LLVMBuildAtomicRMW(LLVMBuilderRef B,LLVMAtomicRMWBinOp op,
                                LLVMValueRef PTR, LLVMValueRef Val,
                                LLVMAtomicOrdering ordering,
                                LLVMBool singleThread) {
-  AtomicRMWInst::BinOp intop = mapFromLLVMRMWBinOp(op);
+  AtomicRMWInst::BinOp const intop = mapFromLLVMRMWBinOp(op);
   return wrap(unwrap(B)->CreateAtomicRMW(
       intop, unwrap(PTR), unwrap(Val), MaybeAlign(),
       mapFromLLVMOrdering(ordering),
@@ -4039,7 +4039,7 @@ LLVMBool LLVMIsAtomicSingleThread(LLVMValueRef AtomicInst) {
 
 void LLVMSetAtomicSingleThread(LLVMValueRef AtomicInst, LLVMBool NewValue) {
   Value *P = unwrap<Value>(AtomicInst);
-  SyncScope::ID SSID = NewValue ? SyncScope::SingleThread : SyncScope::System;
+  SyncScope::ID const SSID = NewValue ? SyncScope::SingleThread : SyncScope::System;
 
   if (AtomicRMWInst *I = dyn_cast<AtomicRMWInst>(P))
     return I->setSyncScopeID(SSID);
@@ -4054,7 +4054,7 @@ LLVMAtomicOrdering LLVMGetCmpXchgSuccessOrdering(LLVMValueRef CmpXchgInst)  {
 void LLVMSetCmpXchgSuccessOrdering(LLVMValueRef CmpXchgInst,
                                    LLVMAtomicOrdering Ordering) {
   Value *P = unwrap<Value>(CmpXchgInst);
-  AtomicOrdering O = mapFromLLVMOrdering(Ordering);
+  AtomicOrdering const O = mapFromLLVMOrdering(Ordering);
 
   return cast<AtomicCmpXchgInst>(P)->setSuccessOrdering(O);
 }
@@ -4067,7 +4067,7 @@ LLVMAtomicOrdering LLVMGetCmpXchgFailureOrdering(LLVMValueRef CmpXchgInst)  {
 void LLVMSetCmpXchgFailureOrdering(LLVMValueRef CmpXchgInst,
                                    LLVMAtomicOrdering Ordering) {
   Value *P = unwrap<Value>(CmpXchgInst);
-  AtomicOrdering O = mapFromLLVMOrdering(Ordering);
+  AtomicOrdering const O = mapFromLLVMOrdering(Ordering);
 
   return cast<AtomicCmpXchgInst>(P)->setFailureOrdering(O);
 }
@@ -4092,7 +4092,7 @@ LLVMBool LLVMCreateMemoryBufferWithContentsOfFile(
     char **OutMessage) {
 
   ErrorOr<std::unique_ptr<MemoryBuffer>> MBOrErr = MemoryBuffer::getFile(Path);
-  if (std::error_code EC = MBOrErr.getError()) {
+  if (std::error_code const EC = MBOrErr.getError()) {
     *OutMessage = strdup(EC.message().c_str());
     return 1;
   }
@@ -4103,7 +4103,7 @@ LLVMBool LLVMCreateMemoryBufferWithContentsOfFile(
 LLVMBool LLVMCreateMemoryBufferWithSTDIN(LLVMMemoryBufferRef *OutMemBuf,
                                          char **OutMessage) {
   ErrorOr<std::unique_ptr<MemoryBuffer>> MBOrErr = MemoryBuffer::getSTDIN();
-  if (std::error_code EC = MBOrErr.getError()) {
+  if (std::error_code const EC = MBOrErr.getError()) {
     *OutMessage = strdup(EC.message().c_str());
     return 1;
   }

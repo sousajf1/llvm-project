@@ -162,7 +162,7 @@ void WasmWriter::writeSectionContent(raw_ostream &OS,
   encodeULEB128(Section.TableSize, OS);
   encodeULEB128(Section.TableAlignment, OS);
   encodeULEB128(Section.Needed.size(), OS);
-  for (StringRef Needed : Section.Needed)
+  for (StringRef const Needed : Section.Needed)
     writeStringRef(Needed, OS);
 }
 
@@ -301,7 +301,7 @@ void WasmWriter::writeSectionContent(raw_ostream &OS,
 void WasmWriter::writeSectionContent(raw_ostream &OS,
                                      WasmYAML::ProducersSection &Section) {
   writeStringRef(Section.Name, OS);
-  int Fields = int(!Section.Languages.empty()) + int(!Section.Tools.empty()) +
+  int const Fields = int(!Section.Languages.empty()) + int(!Section.Tools.empty()) +
                int(!Section.SDKs.empty());
   if (Fields == 0)
     return;
@@ -408,7 +408,7 @@ void WasmWriter::writeSectionContent(raw_ostream &OS,
 void WasmWriter::writeSectionContent(raw_ostream &OS,
                                      WasmYAML::FunctionSection &Section) {
   encodeULEB128(Section.FunctionTypes.size(), OS);
-  for (uint32_t FuncType : Section.FunctionTypes)
+  for (uint32_t const FuncType : Section.FunctionTypes)
     encodeULEB128(FuncType, OS);
 }
 

@@ -138,7 +138,7 @@ void AMDGPUTTIImpl::getUnrollingPreferences(Loop *L, ScalarEvolution &SE,
     }
   }
 
-  unsigned MaxBoost = std::max(ThresholdPrivate, ThresholdLocal);
+  unsigned const MaxBoost = std::max(ThresholdPrivate, ThresholdLocal);
   for (const BasicBlock *BB : L->getBlocks()) {
     const DataLayout &DL = BB->getModule()->getDataLayout();
     unsigned LocalGEPsSeen = 0;
@@ -176,7 +176,7 @@ void AMDGPUTTIImpl::getUnrollingPreferences(Loop *L, ScalarEvolution &SE,
       if (!GEP)
         continue;
 
-      unsigned AS = GEP->getAddressSpace();
+      unsigned const AS = GEP->getAddressSpace();
       unsigned Threshold = 0;
       if (AS == AMDGPUAS::PRIVATE_ADDRESS)
         Threshold = ThresholdPrivate;
@@ -195,7 +195,7 @@ void AMDGPUTTIImpl::getUnrollingPreferences(Loop *L, ScalarEvolution &SE,
         if (!Alloca || !Alloca->isStaticAlloca())
           continue;
         Type *Ty = Alloca->getAllocatedType();
-        unsigned AllocaSize = Ty->isSized() ? DL.getTypeAllocSize(Ty) : 0;
+        unsigned const AllocaSize = Ty->isSized() ? DL.getTypeAllocSize(Ty) : 0;
         if (AllocaSize > MaxAlloca)
           continue;
       } else if (AS == AMDGPUAS::LOCAL_ADDRESS ||
@@ -292,7 +292,7 @@ GCNTTIImpl::GCNTTIImpl(const AMDGPUTargetMachine *TM, const Function &F)
           std::max(ST->getWavesPerEU(F).first,
                    ST->getWavesPerEUForWorkGroup(
                        ST->getFlatWorkGroupSizes(F).second)))) {
-  AMDGPU::SIModeRegisterDefaults Mode(F);
+  AMDGPU::SIModeRegisterDefaults const Mode(F);
   HasFP32Denormals = Mode.allFP32Denormals();
   HasFP64FP16Denormals = Mode.allFP64FP16Denormals();
 }
@@ -312,7 +312,7 @@ unsigned GCNTTIImpl::getNumberOfRegisters(bool Vec) const {
 unsigned GCNTTIImpl::getNumberOfRegisters(unsigned RCID) const {
   const SIRegisterInfo *TRI = ST->getRegisterInfo();
   const TargetRegisterClass *RC = TRI->getRegClass(RCID);
-  unsigned NumVGPRs = (TRI->getRegSizeInBits(*RC) + 31) / 32;
+  unsigned const NumVGPRs = (TRI->getRegSizeInBits(*RC) + 31) / 32;
   return getHardwareNumberOfRegisters(false) / NumVGPRs;
 }
 
@@ -344,7 +344,7 @@ unsigned GCNTTIImpl::getMaximumVF(unsigned ElemWidth, unsigned Opcode) const {
 unsigned GCNTTIImpl::getLoadVectorFactor(unsigned VF, unsigned LoadSize,
                                          unsigned ChainSizeInBytes,
                                          VectorType *VecTy) const {
-  unsigned VecRegBitWidth = VF * LoadSize;
+  unsigned const VecRegBitWidth = VF * LoadSize;
   if (VecRegBitWidth > 128 && VecTy->getScalarSizeInBits() < 32)
     // TODO: Support element-size less than 32bit?
     return 128 / LoadSize;
@@ -355,7 +355,7 @@ unsigned GCNTTIImpl::getLoadVectorFactor(unsigned VF, unsigned LoadSize,
 unsigned GCNTTIImpl::getStoreVectorFactor(unsigned VF, unsigned StoreSize,
                                              unsigned ChainSizeInBytes,
                                              VectorType *VecTy) const {
-  unsigned VecRegBitWidth = VF * StoreSize;
+  unsigned const VecRegBitWidth = VF * StoreSize;
   if (VecRegBitWidth > 128)
     return 128 / StoreSize;
 
@@ -414,7 +414,7 @@ Type *GCNTTIImpl::getMemcpyLoopLoweringType(LLVMContext &Context, Value *Length,
                                             unsigned DestAddrSpace,
                                             unsigned SrcAlign,
                                             unsigned DestAlign) const {
-  unsigned MinAlign = std::min(SrcAlign, DestAlign);
+  unsigned const MinAlign = std::min(SrcAlign, DestAlign);
 
   // A (multi-)dword access at an address == 2 (mod 4) will be decomposed by the
   // hardware into byte accesses. If you assume all alignments are equally
@@ -443,7 +443,7 @@ void GCNTTIImpl::getMemcpyLoopResidualLoweringType(
   unsigned SrcAlign, unsigned DestAlign) const {
   assert(RemainingBytes < 16);
 
-  unsigned MinAlign = std::min(SrcAlign, DestAlign);
+  unsigned const MinAlign = std::min(SrcAlign, DestAlign);
 
   if (MinAlign != 2) {
     Type *I64Ty = Type::getInt64Ty(Context);
@@ -496,7 +496,7 @@ bool GCNTTIImpl::getTgtMemIntrinsic(IntrinsicInst *Inst,
     if (!Ordering || !Volatile)
       return false; // Invalid.
 
-    unsigned OrderingVal = Ordering->getZExtValue();
+    unsigned const OrderingVal = Ordering->getZExtValue();
     if (OrderingVal > static_cast<unsigned>(AtomicOrdering::SequentiallyConsistent))
       return false;
 
@@ -518,7 +518,7 @@ InstructionCost GCNTTIImpl::getArithmeticInstrCost(
     TTI::OperandValueProperties Opd1PropInfo,
     TTI::OperandValueProperties Opd2PropInfo, ArrayRef<const Value *> Args,
     const Instruction *CxtI) {
-  EVT OrigTy = TLI->getValueType(DL, Ty);
+  EVT const OrigTy = TLI->getValueType(DL, Ty);
   if (!OrigTy.isSimple()) {
     // FIXME: We're having to query the throughput cost so that the basic
     // implementation tries to generate legalize and scalarization costs. Maybe
@@ -530,15 +530,15 @@ InstructionCost GCNTTIImpl::getArithmeticInstrCost(
     // Scalarization
 
     // Check if any of the operands are vector operands.
-    int ISD = TLI->InstructionOpcodeToISD(Opcode);
+    int const ISD = TLI->InstructionOpcodeToISD(Opcode);
     assert(ISD && "Invalid opcode");
 
-    std::pair<InstructionCost, MVT> LT = TLI->getTypeLegalizationCost(DL, Ty);
+    std::pair<InstructionCost, MVT> const LT = TLI->getTypeLegalizationCost(DL, Ty);
 
-    bool IsFloat = Ty->isFPOrFPVectorTy();
+    bool const IsFloat = Ty->isFPOrFPVectorTy();
     // Assume that floating point arithmetic operations cost twice as much as
     // integer operations.
-    unsigned OpCost = (IsFloat ? 2 : 1);
+    unsigned const OpCost = (IsFloat ? 2 : 1);
 
     if (TLI->isOperationLegalOrPromote(ISD, LT.second)) {
       // The operation is legal. Assume it costs 1.
@@ -556,13 +556,13 @@ InstructionCost GCNTTIImpl::getArithmeticInstrCost(
     // TODO: If one of the types get legalized by splitting, handle this
     // similarly to what getCastInstrCost() does.
     if (auto *VTy = dyn_cast<VectorType>(Ty)) {
-      unsigned Num = cast<FixedVectorType>(VTy)->getNumElements();
-      InstructionCost Cost = getArithmeticInstrCost(
+      unsigned const Num = cast<FixedVectorType>(VTy)->getNumElements();
+      InstructionCost const Cost = getArithmeticInstrCost(
           Opcode, VTy->getScalarType(), CostKind, Opd1Info, Opd2Info,
           Opd1PropInfo, Opd2PropInfo, Args, CxtI);
       // Return the cost of multiple scalar invocation plus the cost of
       // inserting and extracting the values.
-      SmallVector<Type *> Tys(Args.size(), Ty);
+      SmallVector<Type *> const Tys(Args.size(), Ty);
       return getScalarizationOverhead(VTy, Args, Tys) + Num * Cost;
     }
 
@@ -571,15 +571,15 @@ InstructionCost GCNTTIImpl::getArithmeticInstrCost(
   }
 
   // Legalize the type.
-  std::pair<InstructionCost, MVT> LT = TLI->getTypeLegalizationCost(DL, Ty);
-  int ISD = TLI->InstructionOpcodeToISD(Opcode);
+  std::pair<InstructionCost, MVT> const LT = TLI->getTypeLegalizationCost(DL, Ty);
+  int const ISD = TLI->InstructionOpcodeToISD(Opcode);
 
   // Because we don't have any legal vector operations, but the legal types, we
   // need to account for split vectors.
   unsigned NElts = LT.second.isVector() ?
     LT.second.getVectorNumElements() : 1;
 
-  MVT::SimpleValueType SLT = LT.second.getScalarType().SimpleTy;
+  MVT::SimpleValueType const SLT = LT.second.getScalarType().SimpleTy;
 
   switch (ISD) {
   case ISD::SHL:
@@ -684,7 +684,7 @@ InstructionCost GCNTTIImpl::getArithmeticInstrCost(
       // f32 fmul
       // v_cvt_f16_f32
       // f16 div_fixup
-      int Cost =
+      int const Cost =
           4 * getFullRateInstrCost() + 2 * getQuarterRateInstrCost(CostKind);
       return LT.first * Cost * NElts;
     }
@@ -741,7 +741,7 @@ GCNTTIImpl::getIntrinsicInstrCost(const IntrinsicCostAttributes &ICA,
     return BaseT::getIntrinsicInstrCost(ICA, CostKind);
 
   Type *RetTy = ICA.getReturnType();
-  EVT OrigTy = TLI->getValueType(DL, RetTy);
+  EVT const OrigTy = TLI->getValueType(DL, RetTy);
   if (!OrigTy.isSimple()) {
     if (CostKind != TTI::TCK_CodeSize)
       return BaseT::getIntrinsicInstrCost(ICA, CostKind);
@@ -750,12 +750,12 @@ GCNTTIImpl::getIntrinsicInstrCost(const IntrinsicCostAttributes &ICA,
     if (ICA.isTypeBasedOnly())
       return getTypeBasedIntrinsicInstrCost(ICA, CostKind);
 
-    unsigned RetVF =
+    unsigned const RetVF =
         (RetTy->isVectorTy() ? cast<FixedVectorType>(RetTy)->getNumElements()
                              : 1);
     const IntrinsicInst *I = ICA.getInst();
     const SmallVectorImpl<const Value *> &Args = ICA.getArgs();
-    FastMathFlags FMF = ICA.getFlags();
+    FastMathFlags const FMF = ICA.getFlags();
     // Assume that we need to scalarize this intrinsic.
 
     // Compute the scalarization overhead based on Args for a vector
@@ -771,7 +771,7 @@ GCNTTIImpl::getIntrinsicInstrCost(const IntrinsicCostAttributes &ICA,
           getOperandsScalarizationOverhead(Args, ICA.getArgTypes());
     }
 
-    IntrinsicCostAttributes Attrs(ICA.getID(), RetTy, ICA.getArgTypes(), FMF, I,
+    IntrinsicCostAttributes const Attrs(ICA.getID(), RetTy, ICA.getArgTypes(), FMF, I,
                                   ScalarizationCost);
     return getIntrinsicInstrCost(Attrs, CostKind);
   }
@@ -782,7 +782,7 @@ GCNTTIImpl::getIntrinsicInstrCost(const IntrinsicCostAttributes &ICA,
   unsigned NElts = LT.second.isVector() ?
     LT.second.getVectorNumElements() : 1;
 
-  MVT::SimpleValueType SLT = LT.second.getScalarType().SimpleTy;
+  MVT::SimpleValueType const SLT = LT.second.getScalarType().SimpleTy;
 
   if (SLT == MVT::f64)
     return LT.first * NElts * get64BitInstrCost(CostKind);
@@ -849,14 +849,14 @@ GCNTTIImpl::getArithmeticReductionCost(unsigned Opcode, VectorType *Ty,
   if (TTI::requiresOrderedReduction(FMF))
     return BaseT::getArithmeticReductionCost(Opcode, Ty, FMF, CostKind);
 
-  EVT OrigTy = TLI->getValueType(DL, Ty);
+  EVT const OrigTy = TLI->getValueType(DL, Ty);
 
   // Computes cost on targets that have packed math instructions(which support
   // 16-bit types only).
   if (!ST->hasVOP3PInsts() || OrigTy.getScalarSizeInBits() != 16)
     return BaseT::getArithmeticReductionCost(Opcode, Ty, FMF, CostKind);
 
-  std::pair<InstructionCost, MVT> LT = TLI->getTypeLegalizationCost(DL, Ty);
+  std::pair<InstructionCost, MVT> const LT = TLI->getTypeLegalizationCost(DL, Ty);
   return LT.first * getFullRateInstrCost();
 }
 
@@ -864,14 +864,14 @@ InstructionCost
 GCNTTIImpl::getMinMaxReductionCost(VectorType *Ty, VectorType *CondTy,
                                    bool IsUnsigned,
                                    TTI::TargetCostKind CostKind) {
-  EVT OrigTy = TLI->getValueType(DL, Ty);
+  EVT const OrigTy = TLI->getValueType(DL, Ty);
 
   // Computes cost on targets that have packed math instructions(which support
   // 16-bit types only).
   if (!ST->hasVOP3PInsts() || OrigTy.getScalarSizeInBits() != 16)
     return BaseT::getMinMaxReductionCost(Ty, CondTy, IsUnsigned, CostKind);
 
-  std::pair<InstructionCost, MVT> LT = TLI->getTypeLegalizationCost(DL, Ty);
+  std::pair<InstructionCost, MVT> const LT = TLI->getTypeLegalizationCost(DL, Ty);
   return LT.first * getHalfRateInstrCost(CostKind);
 }
 
@@ -880,7 +880,7 @@ InstructionCost GCNTTIImpl::getVectorInstrCost(unsigned Opcode, Type *ValTy,
   switch (Opcode) {
   case Instruction::ExtractElement:
   case Instruction::InsertElement: {
-    unsigned EltSize
+    unsigned const EltSize
       = DL.getTypeSizeInBits(cast<VectorType>(ValTy)->getElementType());
     if (EltSize < 32) {
       if (EltSize == 16 && Index == 0 && ST->has16BitInsts())
@@ -1027,7 +1027,7 @@ bool GCNTTIImpl::isAlwaysUniform(const Value *V) const {
       return false;
     case Intrinsic::amdgcn_if:
     case Intrinsic::amdgcn_else: {
-      ArrayRef<unsigned> Indices = ExtValue->getIndices();
+      ArrayRef<unsigned> const Indices = ExtValue->getIndices();
       return Indices.size() == 1 && Indices[0] == 1;
     }
     }
@@ -1083,17 +1083,17 @@ Value *GCNTTIImpl::rewriteIntrinsicWithAddressSpace(IntrinsicInst *II,
   }
   case Intrinsic::amdgcn_is_shared:
   case Intrinsic::amdgcn_is_private: {
-    unsigned TrueAS = IntrID == Intrinsic::amdgcn_is_shared ?
+    unsigned const TrueAS = IntrID == Intrinsic::amdgcn_is_shared ?
       AMDGPUAS::LOCAL_ADDRESS : AMDGPUAS::PRIVATE_ADDRESS;
-    unsigned NewAS = NewV->getType()->getPointerAddressSpace();
+    unsigned const NewAS = NewV->getType()->getPointerAddressSpace();
     LLVMContext &Ctx = NewV->getType()->getContext();
     ConstantInt *NewVal = (TrueAS == NewAS) ?
       ConstantInt::getTrue(Ctx) : ConstantInt::getFalse(Ctx);
     return NewVal;
   }
   case Intrinsic::ptrmask: {
-    unsigned OldAS = OldV->getType()->getPointerAddressSpace();
-    unsigned NewAS = NewV->getType()->getPointerAddressSpace();
+    unsigned const OldAS = OldV->getType()->getPointerAddressSpace();
+    unsigned const NewAS = NewV->getType()->getPointerAddressSpace();
     Value *MaskOp = II->getArgOperand(1);
     Type *MaskTy = MaskOp->getType();
 
@@ -1110,7 +1110,7 @@ Value *GCNTTIImpl::rewriteIntrinsicWithAddressSpace(IntrinsicInst *II,
         return nullptr;
 
       // TODO: Do we need to thread more context in here?
-      KnownBits Known = computeKnownBits(MaskOp, DL, 0, nullptr, II);
+      KnownBits const Known = computeKnownBits(MaskOp, DL, 0, nullptr, II);
       if (Known.countMinLeadingOnes() < 32)
         return nullptr;
 
@@ -1166,15 +1166,15 @@ bool GCNTTIImpl::areInlineCompatible(const Function *Caller,
   const FeatureBitset &CallerBits = CallerST->getFeatureBits();
   const FeatureBitset &CalleeBits = CalleeST->getFeatureBits();
 
-  FeatureBitset RealCallerBits = CallerBits & ~InlineFeatureIgnoreList;
-  FeatureBitset RealCalleeBits = CalleeBits & ~InlineFeatureIgnoreList;
+  FeatureBitset const RealCallerBits = CallerBits & ~InlineFeatureIgnoreList;
+  FeatureBitset const RealCalleeBits = CalleeBits & ~InlineFeatureIgnoreList;
   if ((RealCallerBits & RealCalleeBits) != RealCalleeBits)
     return false;
 
   // FIXME: dx10_clamp can just take the caller setting, but there seems to be
   // no way to support merge for backend defined attributes.
-  AMDGPU::SIModeRegisterDefaults CallerMode(*Caller);
-  AMDGPU::SIModeRegisterDefaults CalleeMode(*Callee);
+  AMDGPU::SIModeRegisterDefaults const CallerMode(*Caller);
+  AMDGPU::SIModeRegisterDefaults const CalleeMode(*Callee);
   if (!CallerMode.isInlineCompatible(CalleeMode))
     return false;
 
@@ -1187,7 +1187,7 @@ bool GCNTTIImpl::areInlineCompatible(const Function *Caller,
     // Single BB does not increase total BB amount.
     if (Callee->size() == 1)
       return true;
-    size_t BBSize = Caller->size() + Callee->size() - 1;
+    size_t const BBSize = Caller->size() + Callee->size() - 1;
     return BBSize <= InlineMaxBB;
   }
 
@@ -1333,7 +1333,7 @@ InstructionCost R600TTIImpl::getVectorInstrCost(unsigned Opcode, Type *ValTy,
   switch (Opcode) {
   case Instruction::ExtractElement:
   case Instruction::InsertElement: {
-    unsigned EltSize
+    unsigned const EltSize
       = DL.getTypeSizeInBits(cast<VectorType>(ValTy)->getElementType());
     if (EltSize < 32) {
       return BaseT::getVectorInstrCost(Opcode, ValTy, Index);

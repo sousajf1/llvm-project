@@ -21,12 +21,12 @@ IPDBSourceFile::~IPDBSourceFile() = default;
 
 void IPDBSourceFile::dump(raw_ostream &OS, int Indent) const {
   OS.indent(Indent);
-  PDB_Checksum ChecksumType = getChecksumType();
+  PDB_Checksum const ChecksumType = getChecksumType();
   OS << "[";
   if (ChecksumType != PDB_Checksum::None) {
     OS << ChecksumType << ": ";
-    std::string Checksum = getChecksum();
-    for (uint8_t c : Checksum)
+    std::string const Checksum = getChecksum();
+    for (uint8_t const c : Checksum)
       OS << format_hex_no_prefix(c, 2, true);
   } else
     OS << "No checksum";

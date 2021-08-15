@@ -124,7 +124,7 @@ INITIALIZE_PASS(AArch64RedundantCopyElimination, "aarch64-copyelim",
 bool AArch64RedundantCopyElimination::knownRegValInBlock(
     MachineInstr &CondBr, MachineBasicBlock *MBB,
     SmallVectorImpl<RegImm> &KnownRegs, MachineBasicBlock::iterator &FirstUse) {
-  unsigned Opc = CondBr.getOpcode();
+  unsigned const Opc = CondBr.getOpcode();
 
   // Check if the current basic block is the target block to which the
   // CBZ/CBNZ instruction jumps when its Wt/Xt is zero.
@@ -142,7 +142,7 @@ bool AArch64RedundantCopyElimination::knownRegValInBlock(
     return false;
 
   // Must be an equality check (i.e., == or !=).
-  AArch64CC::CondCode CC = (AArch64CC::CondCode)CondBr.getOperand(0).getImm();
+  AArch64CC::CondCode const CC = (AArch64CC::CondCode)CondBr.getOperand(0).getImm();
   if (CC != AArch64CC::EQ && CC != AArch64CC::NE)
     return false;
 
@@ -164,7 +164,7 @@ bool AArch64RedundantCopyElimination::knownRegValInBlock(
   DomBBUsedRegs.clear();
 
   // Find compare instruction that sets NZCV used by CondBr.
-  MachineBasicBlock::reverse_iterator RIt = CondBr.getReverseIterator();
+  MachineBasicBlock::reverse_iterator const RIt = CondBr.getReverseIterator();
   for (MachineInstr &PredI : make_range(std::next(RIt), PredMBB->rend())) {
 
     bool IsCMN = false;
@@ -183,8 +183,8 @@ bool AArch64RedundantCopyElimination::knownRegValInBlock(
       // Sometimes the first operand is a FrameIndex. Bail if tht happens.
       if (!PredI.getOperand(1).isReg())
         return false;
-      MCPhysReg DstReg = PredI.getOperand(0).getReg();
-      MCPhysReg SrcReg = PredI.getOperand(1).getReg();
+      MCPhysReg const DstReg = PredI.getOperand(0).getReg();
+      MCPhysReg const SrcReg = PredI.getOperand(1).getReg();
 
       bool Res = false;
       // If we're comparing against a non-symbolic immediate and the source
@@ -195,7 +195,7 @@ bool AArch64RedundantCopyElimination::knownRegValInBlock(
           SrcReg != DstReg) {
         // We've found the instruction that sets NZCV.
         int32_t KnownImm = PredI.getOperand(2).getImm();
-        int32_t Shift = PredI.getOperand(3).getImm();
+        int32_t const Shift = PredI.getOperand(3).getImm();
         KnownImm <<= Shift;
         if (IsCMN)
           KnownImm = -KnownImm;
@@ -249,7 +249,7 @@ bool AArch64RedundantCopyElimination::knownRegValInBlock(
     case AArch64::SUBSXrs:
     case AArch64::SUBSXrx:
     case AArch64::SUBSXrx64: {
-      MCPhysReg DstReg = PredI.getOperand(0).getReg();
+      MCPhysReg const DstReg = PredI.getOperand(0).getReg();
       if (DstReg == AArch64::WZR || DstReg == AArch64::XZR)
         return false;
 
@@ -287,7 +287,7 @@ bool AArch64RedundantCopyElimination::optimizeBlock(MachineBasicBlock *MBB) {
   if (PredMBB->succ_size() != 2)
     return false;
 
-  MachineBasicBlock::iterator CondBr = PredMBB->getLastNonDebugInstr();
+  MachineBasicBlock::iterator const CondBr = PredMBB->getLastNonDebugInstr();
   if (CondBr == PredMBB->end())
     return false;
 
@@ -321,8 +321,8 @@ bool AArch64RedundantCopyElimination::optimizeBlock(MachineBasicBlock *MBB) {
         SeenFirstUse = true;
 
       if (PredI->isCopy()) {
-        MCPhysReg CopyDstReg = PredI->getOperand(0).getReg();
-        MCPhysReg CopySrcReg = PredI->getOperand(1).getReg();
+        MCPhysReg const CopyDstReg = PredI->getOperand(0).getReg();
+        MCPhysReg const CopySrcReg = PredI->getOperand(1).getReg();
         for (auto &KnownReg : KnownRegs) {
           if (!OptBBClobberedRegs.available(KnownReg.Reg))
             continue;
@@ -376,16 +376,16 @@ bool AArch64RedundantCopyElimination::optimizeBlock(MachineBasicBlock *MBB) {
     MachineInstr *MI = &*I;
     ++I;
     bool RemovedMI = false;
-    bool IsCopy = MI->isCopy();
-    bool IsMoveImm = MI->isMoveImmediate();
+    bool const IsCopy = MI->isCopy();
+    bool const IsMoveImm = MI->isMoveImmediate();
     if (IsCopy || IsMoveImm) {
-      Register DefReg = MI->getOperand(0).getReg();
-      Register SrcReg = IsCopy ? MI->getOperand(1).getReg() : Register();
-      int64_t SrcImm = IsMoveImm ? MI->getOperand(1).getImm() : 0;
+      Register const DefReg = MI->getOperand(0).getReg();
+      Register const SrcReg = IsCopy ? MI->getOperand(1).getReg() : Register();
+      int64_t const SrcImm = IsMoveImm ? MI->getOperand(1).getImm() : 0;
       if (!MRI->isReserved(DefReg) &&
           ((IsCopy && (SrcReg == AArch64::XZR || SrcReg == AArch64::WZR)) ||
            IsMoveImm)) {
-        for (RegImm &KnownReg : KnownRegs) {
+        for (RegImm  const&KnownReg : KnownRegs) {
           if (KnownReg.Reg != DefReg &&
               !TRI->isSuperRegister(DefReg, KnownReg.Reg))
             continue;
@@ -402,7 +402,7 @@ bool AArch64RedundantCopyElimination::optimizeBlock(MachineBasicBlock *MBB) {
 
             // Don't remove a move immediate that implicitly defines the upper
             // bits when only the lower 32 bits are known.
-            MCPhysReg CmpReg = KnownReg.Reg;
+            MCPhysReg const CmpReg = KnownReg.Reg;
             if (any_of(MI->implicit_operands(), [CmpReg](MachineOperand &O) {
                   return !O.isDead() && O.isReg() && O.isDef() &&
                          O.getReg() != CmpReg;
@@ -456,7 +456,7 @@ bool AArch64RedundantCopyElimination::optimizeBlock(MachineBasicBlock *MBB) {
 
   // Add newly used regs to the block's live-in list if they aren't there
   // already.
-  for (MCPhysReg KnownReg : UsedKnownRegs)
+  for (MCPhysReg const KnownReg : UsedKnownRegs)
     if (!MBB->isLiveIn(KnownReg))
       MBB->addLiveIn(KnownReg);
 

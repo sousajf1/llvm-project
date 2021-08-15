@@ -52,12 +52,12 @@ void R600AsmPrinter::EmitProgramInfoR600(const MachineFunction &MF) {
     for (const MachineInstr &MI : MBB) {
       if (MI.getOpcode() == R600::KILLGT)
         killPixel = true;
-      unsigned numOperands = MI.getNumOperands();
+      unsigned const numOperands = MI.getNumOperands();
       for (unsigned op_idx = 0; op_idx < numOperands; op_idx++) {
         const MachineOperand &MO = MI.getOperand(op_idx);
         if (!MO.isReg())
           continue;
-        unsigned HWReg = RI->getHWRegIndex(MO.getReg());
+        unsigned const HWReg = RI->getHWRegIndex(MO.getReg());
 
         // Register with value > 127 aren't GPR
         if (HWReg > 127)

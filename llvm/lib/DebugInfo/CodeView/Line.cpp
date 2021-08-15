@@ -13,7 +13,7 @@ using namespace codeview;
 
 LineInfo::LineInfo(uint32_t StartLine, uint32_t EndLine, bool IsStatement) {
   LineData = StartLine & StartLineMask;
-  uint32_t LineDelta = EndLine - StartLine;
+  uint32_t const LineDelta = EndLine - StartLine;
   LineData |= (LineDelta << EndLineDeltaShift) & EndLineDeltaMask;
   if (IsStatement) {
     LineData |= StatementFlag;

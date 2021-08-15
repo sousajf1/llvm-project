@@ -28,7 +28,7 @@ raw_ostream &BranchProbability::print(raw_ostream &OS) const {
 
   // Get a percentage rounded to two decimal digits. This avoids
   // implementation-defined rounding inside printf.
-  double Percent = rint(((double)N / D) * 100.0 * 100.0) / 100.0;
+  double const Percent = rint(((double)N / D) * 100.0 * 100.0) / 100.0;
   return OS << format("0x%08" PRIx32 " / 0x%08" PRIx32 " = %.2f%%", N, D,
                       Percent);
 }
@@ -43,7 +43,7 @@ BranchProbability::BranchProbability(uint32_t Numerator, uint32_t Denominator) {
   if (Denominator == D)
     N = Numerator;
   else {
-    uint64_t Prob64 =
+    uint64_t const Prob64 =
         (Numerator * static_cast<uint64_t>(D) + Denominator / 2) / Denominator;
     N = static_cast<uint32_t>(Prob64);
   }
@@ -77,28 +77,28 @@ static uint64_t scale(uint64_t Num, uint32_t N, uint32_t D) {
     return Num;
 
   // Split Num into upper and lower parts to multiply, then recombine.
-  uint64_t ProductHigh = (Num >> 32) * N;
-  uint64_t ProductLow = (Num & UINT32_MAX) * N;
+  uint64_t const ProductHigh = (Num >> 32) * N;
+  uint64_t const ProductLow = (Num & UINT32_MAX) * N;
 
   // Split into 32-bit digits.
   uint32_t Upper32 = ProductHigh >> 32;
-  uint32_t Lower32 = ProductLow & UINT32_MAX;
-  uint32_t Mid32Partial = ProductHigh & UINT32_MAX;
-  uint32_t Mid32 = Mid32Partial + (ProductLow >> 32);
+  uint32_t const Lower32 = ProductLow & UINT32_MAX;
+  uint32_t const Mid32Partial = ProductHigh & UINT32_MAX;
+  uint32_t const Mid32 = Mid32Partial + (ProductLow >> 32);
 
   // Carry.
   Upper32 += Mid32 < Mid32Partial;
 
   uint64_t Rem = (uint64_t(Upper32) << 32) | Mid32;
-  uint64_t UpperQ = Rem / D;
+  uint64_t const UpperQ = Rem / D;
 
   // Check for overflow.
   if (UpperQ > UINT32_MAX)
     return UINT64_MAX;
 
   Rem = ((Rem % D) << 32) | Lower32;
-  uint64_t LowerQ = Rem / D;
-  uint64_t Q = (UpperQ << 32) + LowerQ;
+  uint64_t const LowerQ = Rem / D;
+  uint64_t const Q = (UpperQ << 32) + LowerQ;
 
   // Check for overflow.
   return Q < LowerQ ? UINT64_MAX : Q;

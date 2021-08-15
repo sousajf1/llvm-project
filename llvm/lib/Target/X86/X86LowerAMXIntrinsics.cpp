@@ -148,7 +148,7 @@ template <bool IsTileLoad>
 Value *X86LowerAMXIntrinsics::createTileLoadStoreLoops(
     BasicBlock *Start, BasicBlock *End, IRBuilderBase &B, Value *Row,
     Value *Col, Value *Ptr, Value *Stride, Value *Tile) {
-  std::string IntrinName = IsTileLoad ? "tileload" : "tilestore";
+  std::string const IntrinName = IsTileLoad ? "tileload" : "tilestore";
   Loop *RowLoop = nullptr;
   Loop *ColLoop = nullptr;
   if (LI) {
@@ -184,7 +184,7 @@ Value *X86LowerAMXIntrinsics::createTileLoadStoreLoops(
   Value *CurrentColZExt = B.CreateZExt(CurrentCol, Stride->getType());
   Value *Offset =
       B.CreateAdd(B.CreateMul(CurrentRowZExt, Stride), CurrentColZExt);
-  unsigned AS = cast<PointerType>(Ptr->getType())->getAddressSpace();
+  unsigned const AS = cast<PointerType>(Ptr->getType())->getAddressSpace();
   Value *EltBasePtr = B.CreatePointerCast(Ptr, PointerType::get(EltTy, AS));
   Value *EltPtr = B.CreateGEP(EltTy, EltBasePtr, Offset);
   Value *Idx = B.CreateAdd(B.CreateMul(CurrentRow, B.getInt16(16)), CurrentCol);
@@ -439,7 +439,7 @@ X86LowerAMXIntrinsics::createTileDPLoops(BasicBlock *Start, BasicBlock *End,
     Value *EltB = B.CreateExtractElement(VecB, IdxB);
     Value *SubVecB = B.CreateBitCast(EltB, V2I16Ty);
     Value *ZeroV2I16 = Constant::getNullValue(V2I16Ty);
-    int ShuffleMask[4] = {2, 0, 3, 1};
+    int const ShuffleMask[4] = {2, 0, 3, 1};
     auto ShuffleArray = makeArrayRef(ShuffleMask);
     Value *AV2F32 = B.CreateBitCast(
         B.CreateShuffleVector(SubVecA, ZeroV2I16, ShuffleArray), V2F32Ty);

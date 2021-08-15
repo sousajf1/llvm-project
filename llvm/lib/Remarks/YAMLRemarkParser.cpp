@@ -72,7 +72,7 @@ static Expected<uint64_t> parseVersion(StringRef &Buf) {
     return createStringError(std::errc::illegal_byte_sequence,
                              "Expecting version number.");
 
-  uint64_t Version =
+  uint64_t const Version =
       support::endian::read<uint64_t, support::little, support::unaligned>(
           Buf.data());
   if (Version != remarks::CurrentRemarkVersion)
@@ -88,7 +88,7 @@ static Expected<uint64_t> parseStrTabSize(StringRef &Buf) {
   if (Buf.size() < sizeof(uint64_t))
     return createStringError(std::errc::illegal_byte_sequence,
                              "Expecting string table size.");
-  uint64_t StrTabSize =
+  uint64_t const StrTabSize =
       support::endian::read<uint64_t, support::little, support::unaligned>(
           Buf.data());
   Buf = Buf.drop_front(sizeof(uint64_t));
@@ -139,7 +139,7 @@ remarks::createYAMLParserFromMeta(StringRef Buf,
     // If it starts with "---", there is no external file.
     if (!Buf.startswith("---")) {
       // At this point, we expect Buf to contain the external file path.
-      StringRef ExternalFilePath = Buf;
+      StringRef const ExternalFilePath = Buf;
       SmallString<80> FullPath;
       if (ExternalFilePrependPath)
         FullPath = *ExternalFilePrependPath;
@@ -148,7 +148,7 @@ remarks::createYAMLParserFromMeta(StringRef Buf,
       // Try to open the file and start parsing from there.
       ErrorOr<std::unique_ptr<MemoryBuffer>> BufferOrErr =
           MemoryBuffer::getFile(FullPath);
-      if (std::error_code EC = BufferOrErr.getError())
+      if (std::error_code const EC = BufferOrErr.getError())
         return createFileError(FullPath, EC);
 
       // Keep the buffer alive.
@@ -217,7 +217,7 @@ YAMLRemarkParser::parseRemark(yaml::Document &RemarkEntry) {
     Expected<StringRef> MaybeKey = parseKey(RemarkField);
     if (!MaybeKey)
       return MaybeKey.takeError();
-    StringRef KeyName = *MaybeKey;
+    StringRef const KeyName = *MaybeKey;
 
     if (KeyName == "Pass") {
       if (Expected<StringRef> MaybeStr = parseStr(RemarkField))
@@ -330,7 +330,7 @@ YAMLRemarkParser::parseDebugLoc(yaml::KeyValueNode &Node) {
     Expected<StringRef> MaybeKey = parseKey(DLNode);
     if (!MaybeKey)
       return MaybeKey.takeError();
-    StringRef KeyName = *MaybeKey;
+    StringRef const KeyName = *MaybeKey;
 
     if (KeyName == "File") {
       if (Expected<StringRef> MaybeStr = parseStr(DLNode))
@@ -372,7 +372,7 @@ Expected<Argument> YAMLRemarkParser::parseArg(yaml::Node &Node) {
     Expected<StringRef> MaybeKey = parseKey(ArgEntry);
     if (!MaybeKey)
       return MaybeKey.takeError();
-    StringRef KeyName = *MaybeKey;
+    StringRef const KeyName = *MaybeKey;
 
     // Try to parse debug locs.
     if (KeyName == "DebugLoc") {

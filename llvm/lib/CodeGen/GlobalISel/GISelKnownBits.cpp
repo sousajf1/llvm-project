@@ -38,7 +38,7 @@ Align GISelKnownBits::computeKnownAlignment(Register R, unsigned Depth) {
   case TargetOpcode::COPY:
     return computeKnownAlignment(MI->getOperand(1).getReg(), Depth);
   case TargetOpcode::G_FRAME_INDEX: {
-    int FrameIdx = MI->getOperand(1).getIndex();
+    int const FrameIdx = MI->getOperand(1).getIndex();
     return MF.getFrameInfo().getObjectAlign(FrameIdx);
   }
   case TargetOpcode::G_INTRINSIC:
@@ -56,7 +56,7 @@ KnownBits GISelKnownBits::getKnownBits(MachineInstr &MI) {
 
 KnownBits GISelKnownBits::getKnownBits(Register R) {
   const LLT Ty = MRI.getType(R);
-  APInt DemandedElts =
+  APInt const DemandedElts =
       Ty.isVector() ? APInt::getAllOnesValue(Ty.getNumElements()) : APInt(1, 1);
   return getKnownBits(R, DemandedElts);
 }
@@ -73,8 +73,8 @@ KnownBits GISelKnownBits::getKnownBits(Register R, const APInt &DemandedElts,
 }
 
 bool GISelKnownBits::signBitIsZero(Register R) {
-  LLT Ty = MRI.getType(R);
-  unsigned BitWidth = Ty.getScalarSizeInBits();
+  LLT const Ty = MRI.getType(R);
+  unsigned const BitWidth = Ty.getScalarSizeInBits();
   return maskedValueIsZero(R, APInt::getSignMask(BitWidth));
 }
 
@@ -132,8 +132,8 @@ void GISelKnownBits::computeKnownBitsImpl(Register R, KnownBits &Known,
                                           const APInt &DemandedElts,
                                           unsigned Depth) {
   MachineInstr &MI = *MRI.getVRegDef(R);
-  unsigned Opcode = MI.getOpcode();
-  LLT DstTy = MRI.getType(R);
+  unsigned const Opcode = MI.getOpcode();
+  LLT const DstTy = MRI.getType(R);
 
   // Handle the case where this is called on a register that does not have a
   // type constraint (i.e. it has a register class constraint instead). This is
@@ -144,7 +144,7 @@ void GISelKnownBits::computeKnownBitsImpl(Register R, KnownBits &Known,
     return;
   }
 
-  unsigned BitWidth = DstTy.getScalarSizeInBits();
+  unsigned const BitWidth = DstTy.getScalarSizeInBits();
   auto CacheEntry = ComputeKnownBitsCache.find(R);
   if (CacheEntry != ComputeKnownBitsCache.end()) {
     Known = CacheEntry->second;
@@ -218,7 +218,7 @@ void GISelKnownBits::computeKnownBitsImpl(Register R, KnownBits &Known,
     // We only care about the register ones.
     for (unsigned Idx = 1; Idx < MI.getNumOperands(); Idx += 2) {
       const MachineOperand &Src = MI.getOperand(Idx);
-      Register SrcReg = Src.getReg();
+      Register const SrcReg = Src.getReg();
       // Look through trivial copies and phis but don't look through trivial
       // copies or phis of the form `%1:(s32) = OP %0:gpr32`, known-bits
       // analysis is currently unable to determine the bit width of a
@@ -252,7 +252,7 @@ void GISelKnownBits::computeKnownBitsImpl(Register R, KnownBits &Known,
     break;
   }
   case TargetOpcode::G_FRAME_INDEX: {
-    int FrameIdx = MI.getOperand(1).getIndex();
+    int const FrameIdx = MI.getOperand(1).getIndex();
     TL.computeKnownBitsForFrameIndex(FrameIdx, Known, MF);
     break;
   }
@@ -278,7 +278,7 @@ void GISelKnownBits::computeKnownBitsImpl(Register R, KnownBits &Known,
     if (DstTy.isVector())
       break;
     // G_PTR_ADD is like G_ADD. FIXME: Is this true for all targets?
-    LLT Ty = MRI.getType(MI.getOperand(1).getReg());
+    LLT const Ty = MRI.getType(MI.getOperand(1).getReg());
     if (DL.isNonIntegralAddressSpace(Ty.getAddressSpace()))
       break;
     LLVM_FALLTHROUGH;
@@ -446,8 +446,8 @@ void GISelKnownBits::computeKnownBitsImpl(Register R, KnownBits &Known,
   case TargetOpcode::G_ASSERT_ZEXT:
   case TargetOpcode::G_ZEXT:
   case TargetOpcode::G_TRUNC: {
-    Register SrcReg = MI.getOperand(1).getReg();
-    LLT SrcTy = MRI.getType(SrcReg);
+    Register const SrcReg = MI.getOperand(1).getReg();
+    LLT const SrcTy = MRI.getType(SrcReg);
     unsigned SrcBitWidth;
 
     // G_ASSERT_ZEXT stores the original bitwidth in the immediate operand.
@@ -467,8 +467,8 @@ void GISelKnownBits::computeKnownBitsImpl(Register R, KnownBits &Known,
     break;
   }
   case TargetOpcode::G_MERGE_VALUES: {
-    unsigned NumOps = MI.getNumOperands();
-    unsigned OpSize = MRI.getType(MI.getOperand(1).getReg()).getSizeInBits();
+    unsigned const NumOps = MI.getNumOperands();
+    unsigned const OpSize = MRI.getType(MI.getOperand(1).getReg()).getSizeInBits();
 
     for (unsigned I = 0; I != NumOps - 1; ++I) {
       KnownBits SrcOpKnown;
@@ -481,8 +481,8 @@ void GISelKnownBits::computeKnownBitsImpl(Register R, KnownBits &Known,
   case TargetOpcode::G_UNMERGE_VALUES: {
     if (DstTy.isVector())
       break;
-    unsigned NumOps = MI.getNumOperands();
-    Register SrcReg = MI.getOperand(NumOps - 1).getReg();
+    unsigned const NumOps = MI.getNumOperands();
+    Register const SrcReg = MI.getOperand(NumOps - 1).getReg();
     if (MRI.getType(SrcReg).isVector())
       return; // TODO: Handle vectors.
 
@@ -499,13 +499,13 @@ void GISelKnownBits::computeKnownBitsImpl(Register R, KnownBits &Known,
     break;
   }
   case TargetOpcode::G_BSWAP: {
-    Register SrcReg = MI.getOperand(1).getReg();
+    Register const SrcReg = MI.getOperand(1).getReg();
     computeKnownBitsImpl(SrcReg, Known, DemandedElts, Depth + 1);
     Known = Known.byteSwap();
     break;
   }
   case TargetOpcode::G_BITREVERSE: {
-    Register SrcReg = MI.getOperand(1).getReg();
+    Register const SrcReg = MI.getOperand(1).getReg();
     computeKnownBitsImpl(SrcReg, Known, DemandedElts, Depth + 1);
     Known = Known.reverseBits();
     break;
@@ -515,8 +515,8 @@ void GISelKnownBits::computeKnownBitsImpl(Register R, KnownBits &Known,
                          Depth + 1);
     // We can bound the space the count needs.  Also, bits known to be zero can't
     // contribute to the population.
-    unsigned BitsPossiblySet = Known2.countMaxPopulation();
-    unsigned LowBits = Log2_32(BitsPossiblySet)+1;
+    unsigned const BitsPossiblySet = Known2.countMaxPopulation();
+    unsigned const LowBits = Log2_32(BitsPossiblySet)+1;
     Known.Zero.setBitsFrom(LowBits);
     // TODO: we could bound Known.One using the lower bound on the number of
     // bits which might be set provided by popcnt KnownOne2.
@@ -544,8 +544,8 @@ void GISelKnownBits::computeKnownBitsImpl(Register R, KnownBits &Known,
     Known = extractBits(BitWidth, SrcOpKnown, OffsetKnown, WidthKnown);
     // Sign extend the extracted value using shift left and arithmetic shift
     // right.
-    KnownBits ExtKnown = KnownBits::makeConstant(APInt(BitWidth, BitWidth));
-    KnownBits ShiftKnown = KnownBits::computeForAddSub(
+    KnownBits const ExtKnown = KnownBits::makeConstant(APInt(BitWidth, BitWidth));
+    KnownBits const ShiftKnown = KnownBits::computeForAddSub(
         /*Add*/ false, /*NSW*/ false, ExtKnown, WidthKnown);
     Known = KnownBits::ashr(KnownBits::shl(Known, ShiftKnown), ShiftKnown);
     break;
@@ -564,7 +564,7 @@ unsigned GISelKnownBits::computeNumSignBitsMin(Register Src0, Register Src1,
                                                const APInt &DemandedElts,
                                                unsigned Depth) {
   // Test src1 first, since we canonicalize simpler expressions to the RHS.
-  unsigned Src1SignBits = computeNumSignBits(Src1, DemandedElts, Depth);
+  unsigned const Src1SignBits = computeNumSignBits(Src1, DemandedElts, Depth);
   if (Src1SignBits == 1)
     return 1;
   return std::min(computeNumSignBits(Src0, DemandedElts, Depth), Src1SignBits);
@@ -574,7 +574,7 @@ unsigned GISelKnownBits::computeNumSignBits(Register R,
                                             const APInt &DemandedElts,
                                             unsigned Depth) {
   MachineInstr &MI = *MRI.getVRegDef(R);
-  unsigned Opcode = MI.getOpcode();
+  unsigned const Opcode = MI.getOpcode();
 
   if (Opcode == TargetOpcode::G_CONSTANT)
     return MI.getOperand(1).getCImm()->getValue().getNumSignBits();
@@ -585,7 +585,7 @@ unsigned GISelKnownBits::computeNumSignBits(Register R,
   if (!DemandedElts)
     return 1; // No demanded elts, better to assume we don't know anything.
 
-  LLT DstTy = MRI.getType(R);
+  LLT const DstTy = MRI.getType(R);
   const unsigned TyBits = DstTy.getScalarSizeInBits();
 
   // Handle the case where this is called on a register that does not have a
@@ -598,7 +598,7 @@ unsigned GISelKnownBits::computeNumSignBits(Register R,
   unsigned FirstAnswer = 1;
   switch (Opcode) {
   case TargetOpcode::COPY: {
-    MachineOperand &Src = MI.getOperand(1);
+    MachineOperand  const&Src = MI.getOperand(1);
     if (Src.getReg().isVirtual() && Src.getSubReg() == 0 &&
         MRI.getType(Src.getReg()).isValid()) {
       // Don't increment Depth for this one since we didn't do any work.
@@ -608,17 +608,17 @@ unsigned GISelKnownBits::computeNumSignBits(Register R,
     return 1;
   }
   case TargetOpcode::G_SEXT: {
-    Register Src = MI.getOperand(1).getReg();
-    LLT SrcTy = MRI.getType(Src);
-    unsigned Tmp = DstTy.getScalarSizeInBits() - SrcTy.getScalarSizeInBits();
+    Register const Src = MI.getOperand(1).getReg();
+    LLT const SrcTy = MRI.getType(Src);
+    unsigned const Tmp = DstTy.getScalarSizeInBits() - SrcTy.getScalarSizeInBits();
     return computeNumSignBits(Src, DemandedElts, Depth + 1) + Tmp;
   }
   case TargetOpcode::G_ASSERT_SEXT:
   case TargetOpcode::G_SEXT_INREG: {
     // Max of the input and what this extends.
-    Register Src = MI.getOperand(1).getReg();
-    unsigned SrcBits = MI.getOperand(2).getImm();
-    unsigned InRegBits = TyBits - SrcBits + 1;
+    Register const Src = MI.getOperand(1).getReg();
+    unsigned const SrcBits = MI.getOperand(2).getImm();
+    unsigned const InRegBits = TyBits - SrcBits + 1;
     return std::max(computeNumSignBits(Src, DemandedElts, Depth + 1), InRegBits);
   }
   case TargetOpcode::G_SEXTLOAD: {
@@ -640,13 +640,13 @@ unsigned GISelKnownBits::computeNumSignBits(Register R,
     return TyBits - MMO->getSizeInBits();
   }
   case TargetOpcode::G_TRUNC: {
-    Register Src = MI.getOperand(1).getReg();
-    LLT SrcTy = MRI.getType(Src);
+    Register const Src = MI.getOperand(1).getReg();
+    LLT const SrcTy = MRI.getType(Src);
 
     // Check if the sign bits of source go down as far as the truncated value.
-    unsigned DstTyBits = DstTy.getScalarSizeInBits();
-    unsigned NumSrcBits = SrcTy.getScalarSizeInBits();
-    unsigned NumSrcSignBits = computeNumSignBits(Src, DemandedElts, Depth + 1);
+    unsigned const DstTyBits = DstTy.getScalarSizeInBits();
+    unsigned const NumSrcBits = SrcTy.getScalarSizeInBits();
+    unsigned const NumSrcSignBits = computeNumSignBits(Src, DemandedElts, Depth + 1);
     if (NumSrcSignBits > (NumSrcBits - DstTyBits))
       return NumSrcSignBits - (NumSrcBits - DstTyBits);
     break;
@@ -659,7 +659,7 @@ unsigned GISelKnownBits::computeNumSignBits(Register R,
   case TargetOpcode::G_INTRINSIC:
   case TargetOpcode::G_INTRINSIC_W_SIDE_EFFECTS:
   default: {
-    unsigned NumBits =
+    unsigned const NumBits =
       TL.computeNumSignBitsForTargetInstr(*this, R, DemandedElts, MRI, Depth);
     if (NumBits > 1)
       FirstAnswer = std::max(FirstAnswer, NumBits);
@@ -669,7 +669,7 @@ unsigned GISelKnownBits::computeNumSignBits(Register R,
 
   // Finally, if we can prove that the top bits of the result are 0's or 1's,
   // use this information.
-  KnownBits Known = getKnownBits(R, DemandedElts, Depth);
+  KnownBits const Known = getKnownBits(R, DemandedElts, Depth);
   APInt Mask;
   if (Known.isNonNegative()) {        // sign bit is 0
     Mask = Known.Zero;
@@ -687,8 +687,8 @@ unsigned GISelKnownBits::computeNumSignBits(Register R,
 }
 
 unsigned GISelKnownBits::computeNumSignBits(Register R, unsigned Depth) {
-  LLT Ty = MRI.getType(R);
-  APInt DemandedElts = Ty.isVector()
+  LLT const Ty = MRI.getType(R);
+  APInt const DemandedElts = Ty.isVector()
                            ? APInt::getAllOnesValue(Ty.getNumElements())
                            : APInt(1, 1);
   return computeNumSignBits(R, DemandedElts, Depth);

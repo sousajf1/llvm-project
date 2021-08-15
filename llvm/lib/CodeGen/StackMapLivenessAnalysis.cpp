@@ -152,7 +152,7 @@ bool StackMapLiveness::calculateLiveness(MachineFunction &MF) {
 void StackMapLiveness::addLiveOutSetToMI(MachineFunction &MF,
                                          MachineInstr &MI) {
   uint32_t *Mask = createRegisterMask(MF);
-  MachineOperand MO = MachineOperand::CreateRegLiveOut(Mask);
+  MachineOperand const MO = MachineOperand::CreateRegLiveOut(Mask);
   MI.addOperand(MF, MO);
 }
 

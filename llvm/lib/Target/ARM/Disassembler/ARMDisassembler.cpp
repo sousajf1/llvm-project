@@ -70,12 +70,12 @@ namespace {
       // is in the MCOperand format in which 1 means 'else' and 0 'then'.
       void setITState(char Firstcond, char Mask) {
         // (3 - the number of trailing zeros) is the number of then / else.
-        unsigned NumTZ = countTrailingZeros<uint8_t>(Mask);
-        unsigned char CCBits = static_cast<unsigned char>(Firstcond & 0xf);
+        unsigned const NumTZ = countTrailingZeros<uint8_t>(Mask);
+        unsigned char const CCBits = static_cast<unsigned char>(Firstcond & 0xf);
         assert(NumTZ <= 3 && "Invalid IT mask!");
         // push condition codes onto the stack the correct order for the pops
         for (unsigned Pos = NumTZ+1; Pos <= 3; ++Pos) {
-          unsigned Else = (Mask >> Pos) & 1;
+          unsigned const Else = (Mask >> Pos) & 1;
           ITStates.push_back(CCBits ^ Else);
         }
         ITStates.push_back(CCBits);
@@ -109,11 +109,11 @@ namespace {
 
       void setVPTState(char Mask) {
         // (3 - the number of trailing zeros) is the number of then / else.
-        unsigned NumTZ = countTrailingZeros<uint8_t>(Mask);
+        unsigned const NumTZ = countTrailingZeros<uint8_t>(Mask);
         assert(NumTZ <= 3 && "Invalid VPT mask!");
         // push predicates onto the stack the correct order for the pops
         for (unsigned Pos = NumTZ+1; Pos <= 3; ++Pos) {
-          bool T = ((Mask >> Pos) & 1) == 0;
+          bool const T = ((Mask >> Pos) & 1) == 0;
           if (T)
             VPTStates.push_back(ARMVCC::Then);
           else
@@ -587,7 +587,7 @@ static DecodeStatus checkDecodedInstruction(MCInst &MI, uint64_t &Size,
     case ARM::HVC: {
       // HVC is undefined if condition = 0xf otherwise upredictable
       // if condition != 0xe
-      uint32_t Cond = (Insn >> 28) & 0xF;
+      uint32_t const Cond = (Insn >> 28) & 0xF;
       if (Cond == 0xF)
         return MCDisassembler::Fail;
       if (Cond != 0xE)
@@ -636,7 +636,7 @@ DecodeStatus ARMDisassembler::getARMInstruction(MCInst &MI, uint64_t &Size,
   }
 
   // Encoded as a small-endian 32-bit word in the stream.
-  uint32_t Insn =
+  uint32_t const Insn =
       (Bytes[3] << 24) | (Bytes[2] << 16) | (Bytes[1] << 8) | (Bytes[0] << 0);
 
   // Calling the auto-generated decoder function.
@@ -730,7 +730,7 @@ static void tryAddingPcLoadReferenceComment(uint64_t Address, int Value,
 // that as a post-pass.
 static void AddThumb1SBit(MCInst &MI, bool InITBlock) {
   const MCOperandInfo *OpInfo = ARMInsts[MI.getOpcode()].OpInfo;
-  unsigned short NumOps = ARMInsts[MI.getOpcode()].NumOperands;
+  unsigned short const NumOps = ARMInsts[MI.getOpcode()].NumOperands;
   MCInst::iterator I = MI.begin();
   for (unsigned i = 0; i < NumOps; ++i, ++I) {
     if (I == MI.end()) break;
@@ -746,7 +746,7 @@ static void AddThumb1SBit(MCInst &MI, bool InITBlock) {
 
 static bool isVectorPredicable(unsigned Opcode) {
   const MCOperandInfo *OpInfo = ARMInsts[Opcode].OpInfo;
-  unsigned short NumOps = ARMInsts[Opcode].NumOperands;
+  unsigned short const NumOps = ARMInsts[Opcode].NumOperands;
   for (unsigned i = 0; i < NumOps; ++i) {
     if (ARM::isVpred(OpInfo[i].OperandType))
       return true;
@@ -824,7 +824,7 @@ ARMDisassembler::AddThumbPredicate(MCInst &MI) const {
   }
 
   const MCOperandInfo *OpInfo = ARMInsts[MI.getOpcode()].OpInfo;
-  unsigned short NumOps = ARMInsts[MI.getOpcode()].NumOperands;
+  unsigned short const NumOps = ARMInsts[MI.getOpcode()].NumOperands;
 
   MCInst::iterator CCI = MI.begin();
   for (unsigned i = 0; i < NumOps; ++i, ++CCI) {
@@ -856,7 +856,7 @@ ARMDisassembler::AddThumbPredicate(MCInst &MI) const {
     else
       MI.insert(VCCI, MCOperand::createReg(ARM::P0));
     if (OpInfo[VCCPos].OperandType == ARM::OPERAND_VPRED_R) {
-      int TiedOp = ARMInsts[MI.getOpcode()].getOperandConstraint(
+      int const TiedOp = ARMInsts[MI.getOpcode()].getOperandConstraint(
         VCCPos + 2, MCOI::TIED_TO);
       assert(TiedOp >= 0 &&
              "Inactive register in vpred_r is not tied to an output!");
@@ -890,7 +890,7 @@ void ARMDisassembler::UpdateThumbVFPPredicate(
 
   const MCOperandInfo *OpInfo = ARMInsts[MI.getOpcode()].OpInfo;
   MCInst::iterator I = MI.begin();
-  unsigned short NumOps = ARMInsts[MI.getOpcode()].NumOperands;
+  unsigned short const NumOps = ARMInsts[MI.getOpcode()].NumOperands;
   for (unsigned i = 0; i < NumOps; ++i, ++I) {
     if (OpInfo[i].isPredicate() ) {
       if (CC != ARMCC::AL && !ARMInsts[MI.getOpcode()].isPredicable())
@@ -921,7 +921,7 @@ DecodeStatus ARMDisassembler::getThumbInstruction(MCInst &MI, uint64_t &Size,
     return MCDisassembler::Fail;
   }
 
-  uint16_t Insn16 = (Bytes[1] << 8) | Bytes[0];
+  uint16_t const Insn16 = (Bytes[1] << 8) | Bytes[0];
   DecodeStatus Result =
       decodeInstruction(DecoderTableThumb16, MI, Insn16, Address, this, STI);
   if (Result != MCDisassembler::Fail) {
@@ -934,7 +934,7 @@ DecodeStatus ARMDisassembler::getThumbInstruction(MCInst &MI, uint64_t &Size,
                              STI);
   if (Result) {
     Size = 2;
-    bool InITBlock = ITBlock.instrInITBlock();
+    bool const InITBlock = ITBlock.instrInITBlock();
     Check(Result, AddThumbPredicate(MI));
     AddThumb1SBit(MI, InITBlock);
     return Result;
@@ -956,8 +956,8 @@ DecodeStatus ARMDisassembler::getThumbInstruction(MCInst &MI, uint64_t &Size,
     // code and mask operands so that we can apply them correctly
     // to the subsequent instructions.
     if (MI.getOpcode() == ARM::t2IT) {
-      unsigned Firstcond = MI.getOperand(0).getImm();
-      unsigned Mask = MI.getOperand(1).getImm();
+      unsigned const Firstcond = MI.getOperand(0).getImm();
+      unsigned const Mask = MI.getOperand(1).getImm();
       ITBlock.setITState(Firstcond, Mask);
 
       // An IT instruction that would give a 'NV' predicate is unpredictable.
@@ -974,7 +974,7 @@ DecodeStatus ARMDisassembler::getThumbInstruction(MCInst &MI, uint64_t &Size,
     return MCDisassembler::Fail;
   }
 
-  uint32_t Insn32 =
+  uint32_t const Insn32 =
       (Bytes[3] << 8) | (Bytes[2] << 0) | (Bytes[1] << 24) | (Bytes[0] << 16);
 
   Result =
@@ -990,7 +990,7 @@ DecodeStatus ARMDisassembler::getThumbInstruction(MCInst &MI, uint64_t &Size,
     Check(Result, AddThumbPredicate(MI));
 
     if (isVPTOpcode(MI.getOpcode())) {
-      unsigned Mask = MI.getOperand(0).getImm();
+      unsigned const Mask = MI.getOperand(0).getImm();
       VPTBlock.setVPTState(Mask);
     }
 
@@ -1001,7 +1001,7 @@ DecodeStatus ARMDisassembler::getThumbInstruction(MCInst &MI, uint64_t &Size,
       decodeInstruction(DecoderTableThumb32, MI, Insn32, Address, this, STI);
   if (Result != MCDisassembler::Fail) {
     Size = 4;
-    bool InITBlock = ITBlock.instrInITBlock();
+    bool const InITBlock = ITBlock.instrInITBlock();
     Check(Result, AddThumbPredicate(MI));
     AddThumb1SBit(MI, InITBlock);
     return Result;
@@ -1089,7 +1089,7 @@ DecodeStatus ARMDisassembler::getThumbInstruction(MCInst &MI, uint64_t &Size,
     }
   }
 
-  uint32_t Coproc = fieldFromInstruction(Insn32, 8, 4);
+  uint32_t const Coproc = fieldFromInstruction(Insn32, 8, 4);
   const uint8_t *DecoderTable = ARM::isCDECoproc(Coproc, STI)
                                     ? DecoderTableThumb2CDE32
                                     : DecoderTableThumb2CoProc32;
@@ -1135,7 +1135,7 @@ static DecodeStatus DecodeGPRRegisterClass(MCInst &Inst, unsigned RegNo,
   if (RegNo > 15)
     return MCDisassembler::Fail;
 
-  unsigned Register = GPRDecoderTable[RegNo];
+  unsigned const Register = GPRDecoderTable[RegNo];
   Inst.addOperand(MCOperand::createReg(Register));
   return MCDisassembler::Success;
 }
@@ -1146,7 +1146,7 @@ static DecodeStatus DecodeCLRMGPRRegisterClass(MCInst &Inst, unsigned RegNo,
   if (RegNo > 15)
     return MCDisassembler::Fail;
 
-  unsigned Register = CLRMGPRDecoderTable[RegNo];
+  unsigned const Register = CLRMGPRDecoderTable[RegNo];
   if (Register == 0)
     return MCDisassembler::Fail;
 
@@ -1234,7 +1234,7 @@ static DecodeStatus DecodeGPRPairRegisterClass(MCInst &Inst, unsigned RegNo,
   if (RegNo & 1)
      S = MCDisassembler::SoftFail;
 
-  unsigned RegisterPair = GPRPairDecoderTable[RegNo/2];
+  unsigned const RegisterPair = GPRPairDecoderTable[RegNo/2];
   Inst.addOperand(MCOperand::createReg(RegisterPair));
   return S;
 }
@@ -1244,7 +1244,7 @@ static DecodeStatus DecodeGPRPairnospRegisterClass(MCInst &Inst, unsigned RegNo,
   if (RegNo > 13)
     return MCDisassembler::Fail;
 
-  unsigned RegisterPair = GPRPairDecoderTable[RegNo/2];
+  unsigned const RegisterPair = GPRPairDecoderTable[RegNo/2];
   Inst.addOperand(MCOperand::createReg(RegisterPair));
 
   if ((RegNo & 1) || RegNo > 10)
@@ -1258,7 +1258,7 @@ static DecodeStatus DecodeGPRspRegisterClass(MCInst &Inst, unsigned RegNo,
   if (RegNo != 13)
     return MCDisassembler::Fail;
 
-  unsigned Register = GPRDecoderTable[RegNo];
+  unsigned const Register = GPRDecoderTable[RegNo];
   Inst.addOperand(MCOperand::createReg(Register));
   return MCDisassembler::Success;
 }
@@ -1323,7 +1323,7 @@ static DecodeStatus DecodeSPRRegisterClass(MCInst &Inst, unsigned RegNo,
   if (RegNo > 31)
     return MCDisassembler::Fail;
 
-  unsigned Register = SPRDecoderTable[RegNo];
+  unsigned const Register = SPRDecoderTable[RegNo];
   Inst.addOperand(MCOperand::createReg(Register));
   return MCDisassembler::Success;
 }
@@ -1349,12 +1349,12 @@ static DecodeStatus DecodeDPRRegisterClass(MCInst &Inst, unsigned RegNo,
   const FeatureBitset &featureBits =
     ((const MCDisassembler*)Decoder)->getSubtargetInfo().getFeatureBits();
 
-  bool hasD32 = featureBits[ARM::FeatureD32];
+  bool const hasD32 = featureBits[ARM::FeatureD32];
 
   if (RegNo > 31 || (!hasD32 && RegNo > 15))
     return MCDisassembler::Fail;
 
-  unsigned Register = DPRDecoderTable[RegNo];
+  unsigned const Register = DPRDecoderTable[RegNo];
   Inst.addOperand(MCOperand::createReg(Register));
   return MCDisassembler::Success;
 }
@@ -1394,7 +1394,7 @@ static DecodeStatus DecodeQPRRegisterClass(MCInst &Inst, unsigned RegNo,
     return MCDisassembler::Fail;
   RegNo >>= 1;
 
-  unsigned Register = QPRDecoderTable[RegNo];
+  unsigned const Register = QPRDecoderTable[RegNo];
   Inst.addOperand(MCOperand::createReg(Register));
   return MCDisassembler::Success;
 }
@@ -1413,7 +1413,7 @@ static DecodeStatus DecodeDPairRegisterClass(MCInst &Inst, unsigned RegNo,
   if (RegNo > 30)
     return MCDisassembler::Fail;
 
-  unsigned Register = DPairDecoderTable[RegNo];
+  unsigned const Register = DPairDecoderTable[RegNo];
   Inst.addOperand(MCOperand::createReg(Register));
   return MCDisassembler::Success;
 }
@@ -1436,7 +1436,7 @@ static DecodeStatus DecodeDPairSpacedRegisterClass(MCInst &Inst,
   if (RegNo > 29)
     return MCDisassembler::Fail;
 
-  unsigned Register = DPairSpacedDecoderTable[RegNo];
+  unsigned const Register = DPairSpacedDecoderTable[RegNo];
   Inst.addOperand(MCOperand::createReg(Register));
   return MCDisassembler::Success;
 }
@@ -1471,9 +1471,9 @@ static DecodeStatus DecodeSORegImmOperand(MCInst &Inst, unsigned Val,
                                uint64_t Address, const void *Decoder) {
   DecodeStatus S = MCDisassembler::Success;
 
-  unsigned Rm = fieldFromInstruction(Val, 0, 4);
-  unsigned type = fieldFromInstruction(Val, 5, 2);
-  unsigned imm = fieldFromInstruction(Val, 7, 5);
+  unsigned const Rm = fieldFromInstruction(Val, 0, 4);
+  unsigned const type = fieldFromInstruction(Val, 5, 2);
+  unsigned const imm = fieldFromInstruction(Val, 7, 5);
 
   // Register-immediate
   if (!Check(S, DecoderGPRRegisterClass(Inst, Rm, Address, Decoder)))
@@ -1498,7 +1498,7 @@ static DecodeStatus DecodeSORegImmOperand(MCInst &Inst, unsigned Val,
   if (Shift == ARM_AM::ror && imm == 0)
     Shift = ARM_AM::rrx;
 
-  unsigned Op = Shift | (imm << 3);
+  unsigned const Op = Shift | (imm << 3);
   Inst.addOperand(MCOperand::createImm(Op));
 
   return S;
@@ -1508,9 +1508,9 @@ static DecodeStatus DecodeSORegRegOperand(MCInst &Inst, unsigned Val,
                                uint64_t Address, const void *Decoder) {
   DecodeStatus S = MCDisassembler::Success;
 
-  unsigned Rm = fieldFromInstruction(Val, 0, 4);
-  unsigned type = fieldFromInstruction(Val, 5, 2);
-  unsigned Rs = fieldFromInstruction(Val, 8, 4);
+  unsigned const Rm = fieldFromInstruction(Val, 0, 4);
+  unsigned const type = fieldFromInstruction(Val, 5, 2);
+  unsigned const Rs = fieldFromInstruction(Val, 8, 4);
 
   // Register-register
   if (!Check(S, DecodeGPRnopcRegisterClass(Inst, Rm, Address, Decoder)))
@@ -1642,7 +1642,7 @@ static DecodeStatus DecodeBitfieldMaskOperand(MCInst &Inst, unsigned Val,
   // the mask of all bits LSB-and-lower, and then xor them to create
   // the mask of that's all ones on [msb, lsb].  Finally we not it to
   // create the final mask.
-  unsigned msb = fieldFromInstruction(Val, 5, 5);
+  unsigned const msb = fieldFromInstruction(Val, 5, 5);
   unsigned lsb = fieldFromInstruction(Val, 0, 5);
 
   DecodeStatus S = MCDisassembler::Success;
@@ -1656,7 +1656,7 @@ static DecodeStatus DecodeBitfieldMaskOperand(MCInst &Inst, unsigned Val,
 
   uint32_t msb_mask = 0xFFFFFFFF;
   if (msb != 31) msb_mask = (1U << (msb+1)) - 1;
-  uint32_t lsb_mask = (1U << lsb) - 1;
+  uint32_t const lsb_mask = (1U << lsb) - 1;
 
   Inst.addOperand(MCOperand::createImm(~(msb_mask ^ lsb_mask)));
   return S;
@@ -1666,12 +1666,12 @@ static DecodeStatus DecodeCopMemInstruction(MCInst &Inst, unsigned Insn,
                                   uint64_t Address, const void *Decoder) {
   DecodeStatus S = MCDisassembler::Success;
 
-  unsigned pred = fieldFromInstruction(Insn, 28, 4);
-  unsigned CRd = fieldFromInstruction(Insn, 12, 4);
-  unsigned coproc = fieldFromInstruction(Insn, 8, 4);
+  unsigned const pred = fieldFromInstruction(Insn, 28, 4);
+  unsigned const CRd = fieldFromInstruction(Insn, 12, 4);
+  unsigned const coproc = fieldFromInstruction(Insn, 8, 4);
   unsigned imm = fieldFromInstruction(Insn, 0, 8);
-  unsigned Rn = fieldFromInstruction(Insn, 16, 4);
-  unsigned U = fieldFromInstruction(Insn, 23, 1);
+  unsigned const Rn = fieldFromInstruction(Insn, 16, 4);
+  unsigned const U = fieldFromInstruction(Insn, 23, 1);
   const FeatureBitset &featureBits =
     ((const MCDisassembler*)Decoder)->getSubtargetInfo().getFeatureBits();
 
@@ -1845,14 +1845,14 @@ DecodeAddrMode2IdxInstruction(MCInst &Inst, unsigned Insn,
                               uint64_t Address, const void *Decoder) {
   DecodeStatus S = MCDisassembler::Success;
 
-  unsigned Rn = fieldFromInstruction(Insn, 16, 4);
-  unsigned Rt = fieldFromInstruction(Insn, 12, 4);
-  unsigned Rm = fieldFromInstruction(Insn, 0, 4);
-  unsigned imm = fieldFromInstruction(Insn, 0, 12);
-  unsigned pred = fieldFromInstruction(Insn, 28, 4);
-  unsigned reg = fieldFromInstruction(Insn, 25, 1);
-  unsigned P = fieldFromInstruction(Insn, 24, 1);
-  unsigned W = fieldFromInstruction(Insn, 21, 1);
+  unsigned const Rn = fieldFromInstruction(Insn, 16, 4);
+  unsigned const Rt = fieldFromInstruction(Insn, 12, 4);
+  unsigned const Rm = fieldFromInstruction(Insn, 0, 4);
+  unsigned const imm = fieldFromInstruction(Insn, 0, 12);
+  unsigned const pred = fieldFromInstruction(Insn, 28, 4);
+  unsigned const reg = fieldFromInstruction(Insn, 25, 1);
+  unsigned const P = fieldFromInstruction(Insn, 24, 1);
+  unsigned const W = fieldFromInstruction(Insn, 21, 1);
 
   // On stores, the writeback operand precedes Rt.
   switch (Inst.getOpcode()) {
@@ -1898,7 +1898,7 @@ DecodeAddrMode2IdxInstruction(MCInst &Inst, unsigned Insn,
   if (!fieldFromInstruction(Insn, 23, 1))
     Op = ARM_AM::sub;
 
-  bool writeback = (P == 0) || (W == 1);
+  bool const writeback = (P == 0) || (W == 1);
   unsigned idx_mode = 0;
   if (P && writeback)
     idx_mode = ARMII::IndexModePre;
@@ -1928,15 +1928,15 @@ DecodeAddrMode2IdxInstruction(MCInst &Inst, unsigned Insn,
       default:
         return MCDisassembler::Fail;
     }
-    unsigned amt = fieldFromInstruction(Insn, 7, 5);
+    unsigned const amt = fieldFromInstruction(Insn, 7, 5);
     if (Opc == ARM_AM::ror && amt == 0)
       Opc = ARM_AM::rrx;
-    unsigned imm = ARM_AM::getAM2Opc(Op, amt, Opc, idx_mode);
+    unsigned const imm = ARM_AM::getAM2Opc(Op, amt, Opc, idx_mode);
 
     Inst.addOperand(MCOperand::createImm(imm));
   } else {
     Inst.addOperand(MCOperand::createReg(0));
-    unsigned tmp = ARM_AM::getAM2Opc(Op, imm, ARM_AM::lsl, idx_mode);
+    unsigned const tmp = ARM_AM::getAM2Opc(Op, imm, ARM_AM::lsl, idx_mode);
     Inst.addOperand(MCOperand::createImm(tmp));
   }
 
@@ -1950,11 +1950,11 @@ static DecodeStatus DecodeSORegMemOperand(MCInst &Inst, unsigned Val,
                                   uint64_t Address, const void *Decoder) {
   DecodeStatus S = MCDisassembler::Success;
 
-  unsigned Rn = fieldFromInstruction(Val, 13, 4);
-  unsigned Rm = fieldFromInstruction(Val,  0, 4);
-  unsigned type = fieldFromInstruction(Val, 5, 2);
-  unsigned imm = fieldFromInstruction(Val, 7, 5);
-  unsigned U = fieldFromInstruction(Val, 12, 1);
+  unsigned const Rn = fieldFromInstruction(Val, 13, 4);
+  unsigned const Rm = fieldFromInstruction(Val,  0, 4);
+  unsigned const type = fieldFromInstruction(Val, 5, 2);
+  unsigned const imm = fieldFromInstruction(Val, 7, 5);
+  unsigned const U = fieldFromInstruction(Val, 12, 1);
 
   ARM_AM::ShiftOpc ShOp = ARM_AM::lsl;
   switch (type) {
@@ -1994,18 +1994,18 @@ DecodeAddrMode3Instruction(MCInst &Inst, unsigned Insn,
                            uint64_t Address, const void *Decoder) {
   DecodeStatus S = MCDisassembler::Success;
 
-  unsigned Rt = fieldFromInstruction(Insn, 12, 4);
-  unsigned Rn = fieldFromInstruction(Insn, 16, 4);
-  unsigned Rm = fieldFromInstruction(Insn, 0, 4);
-  unsigned type = fieldFromInstruction(Insn, 22, 1);
-  unsigned imm = fieldFromInstruction(Insn, 8, 4);
+  unsigned const Rt = fieldFromInstruction(Insn, 12, 4);
+  unsigned const Rn = fieldFromInstruction(Insn, 16, 4);
+  unsigned const Rm = fieldFromInstruction(Insn, 0, 4);
+  unsigned const type = fieldFromInstruction(Insn, 22, 1);
+  unsigned const imm = fieldFromInstruction(Insn, 8, 4);
   unsigned U = ((~fieldFromInstruction(Insn, 23, 1)) & 1) << 8;
-  unsigned pred = fieldFromInstruction(Insn, 28, 4);
-  unsigned W = fieldFromInstruction(Insn, 21, 1);
-  unsigned P = fieldFromInstruction(Insn, 24, 1);
-  unsigned Rt2 = Rt + 1;
+  unsigned const pred = fieldFromInstruction(Insn, 28, 4);
+  unsigned const W = fieldFromInstruction(Insn, 21, 1);
+  unsigned const P = fieldFromInstruction(Insn, 24, 1);
+  unsigned const Rt2 = Rt + 1;
 
-  bool writeback = (W == 1) | (P == 0);
+  bool const writeback = (W == 1) | (P == 0);
 
   // For {LD,ST}RD, Rt must be even, else undefined.
   switch (Inst.getOpcode()) {
@@ -2185,7 +2185,7 @@ static DecodeStatus DecodeRFEInstruction(MCInst &Inst, unsigned Insn,
                                  uint64_t Address, const void *Decoder) {
   DecodeStatus S = MCDisassembler::Success;
 
-  unsigned Rn = fieldFromInstruction(Insn, 16, 4);
+  unsigned const Rn = fieldFromInstruction(Insn, 16, 4);
   unsigned mode = fieldFromInstruction(Insn, 23, 2);
 
   switch (mode) {
@@ -2214,10 +2214,10 @@ static DecodeStatus DecodeQADDInstruction(MCInst &Inst, unsigned Insn,
                                uint64_t Address, const void *Decoder) {
   DecodeStatus S = MCDisassembler::Success;
 
-  unsigned Rd = fieldFromInstruction(Insn, 12, 4);
-  unsigned Rm = fieldFromInstruction(Insn, 0, 4);
-  unsigned Rn = fieldFromInstruction(Insn, 16, 4);
-  unsigned pred = fieldFromInstruction(Insn, 28, 4);
+  unsigned const Rd = fieldFromInstruction(Insn, 12, 4);
+  unsigned const Rm = fieldFromInstruction(Insn, 0, 4);
+  unsigned const Rn = fieldFromInstruction(Insn, 16, 4);
+  unsigned const pred = fieldFromInstruction(Insn, 28, 4);
 
   if (pred == 0xF)
     return DecodeCPSInstruction(Inst, Insn, Address, Decoder);
@@ -2238,9 +2238,9 @@ static DecodeStatus DecodeMemMultipleWritebackInstruction(MCInst &Inst,
                                   uint64_t Address, const void *Decoder) {
   DecodeStatus S = MCDisassembler::Success;
 
-  unsigned Rn = fieldFromInstruction(Insn, 16, 4);
-  unsigned pred = fieldFromInstruction(Insn, 28, 4);
-  unsigned reglist = fieldFromInstruction(Insn, 0, 16);
+  unsigned const Rn = fieldFromInstruction(Insn, 16, 4);
+  unsigned const pred = fieldFromInstruction(Insn, 28, 4);
+  unsigned const reglist = fieldFromInstruction(Insn, 0, 16);
 
   if (pred == 0xF) {
     // Ambiguous with RFE and SRS
@@ -2327,8 +2327,8 @@ static DecodeStatus DecodeMemMultipleWritebackInstruction(MCInst &Inst,
 // Check for UNPREDICTABLE predicated ESB instruction
 static DecodeStatus DecodeHINTInstruction(MCInst &Inst, unsigned Insn,
                                  uint64_t Address, const void *Decoder) {
-  unsigned pred = fieldFromInstruction(Insn, 28, 4);
-  unsigned imm8 = fieldFromInstruction(Insn, 0, 8);
+  unsigned const pred = fieldFromInstruction(Insn, 28, 4);
+  unsigned const imm8 = fieldFromInstruction(Insn, 0, 8);
   const MCDisassembler *Dis = static_cast<const MCDisassembler*>(Decoder);
   const FeatureBitset &FeatureBits = Dis->getSubtargetInfo().getFeatureBits();
 
@@ -2349,10 +2349,10 @@ static DecodeStatus DecodeHINTInstruction(MCInst &Inst, unsigned Insn,
 
 static DecodeStatus DecodeCPSInstruction(MCInst &Inst, unsigned Insn,
                                  uint64_t Address, const void *Decoder) {
-  unsigned imod = fieldFromInstruction(Insn, 18, 2);
-  unsigned M = fieldFromInstruction(Insn, 17, 1);
-  unsigned iflags = fieldFromInstruction(Insn, 6, 3);
-  unsigned mode = fieldFromInstruction(Insn, 0, 5);
+  unsigned const imod = fieldFromInstruction(Insn, 18, 2);
+  unsigned const M = fieldFromInstruction(Insn, 17, 1);
+  unsigned const iflags = fieldFromInstruction(Insn, 6, 3);
+  unsigned const mode = fieldFromInstruction(Insn, 0, 5);
 
   DecodeStatus S = MCDisassembler::Success;
 
@@ -2396,10 +2396,10 @@ static DecodeStatus DecodeCPSInstruction(MCInst &Inst, unsigned Insn,
 
 static DecodeStatus DecodeT2CPSInstruction(MCInst &Inst, unsigned Insn,
                                  uint64_t Address, const void *Decoder) {
-  unsigned imod = fieldFromInstruction(Insn, 9, 2);
-  unsigned M = fieldFromInstruction(Insn, 8, 1);
-  unsigned iflags = fieldFromInstruction(Insn, 5, 3);
-  unsigned mode = fieldFromInstruction(Insn, 0, 5);
+  unsigned const imod = fieldFromInstruction(Insn, 9, 2);
+  unsigned const M = fieldFromInstruction(Insn, 8, 1);
+  unsigned const iflags = fieldFromInstruction(Insn, 5, 3);
+  unsigned const mode = fieldFromInstruction(Insn, 0, 5);
 
   DecodeStatus S = MCDisassembler::Success;
 
@@ -2426,7 +2426,7 @@ static DecodeStatus DecodeT2CPSInstruction(MCInst &Inst, unsigned Insn,
     if (iflags) S = MCDisassembler::SoftFail;
   } else {
     // imod == '00' && M == '0' --> this is a HINT instruction
-    int imm = fieldFromInstruction(Insn, 0, 8);
+    int const imm = fieldFromInstruction(Insn, 0, 8);
     // HINT are defined only for immediate in [0..4]
     if(imm > 4) return MCDisassembler::Fail;
     Inst.setOpcode(ARM::t2HINT);
@@ -2440,7 +2440,7 @@ static DecodeStatus DecodeT2MOVTWInstruction(MCInst &Inst, unsigned Insn,
                                  uint64_t Address, const void *Decoder) {
   DecodeStatus S = MCDisassembler::Success;
 
-  unsigned Rd = fieldFromInstruction(Insn, 8, 4);
+  unsigned const Rd = fieldFromInstruction(Insn, 8, 4);
   unsigned imm = 0;
 
   imm |= (fieldFromInstruction(Insn, 0, 8) << 0);
@@ -2464,8 +2464,8 @@ static DecodeStatus DecodeArmMOVTWInstruction(MCInst &Inst, unsigned Insn,
                                  uint64_t Address, const void *Decoder) {
   DecodeStatus S = MCDisassembler::Success;
 
-  unsigned Rd = fieldFromInstruction(Insn, 12, 4);
-  unsigned pred = fieldFromInstruction(Insn, 28, 4);
+  unsigned const Rd = fieldFromInstruction(Insn, 12, 4);
+  unsigned const pred = fieldFromInstruction(Insn, 28, 4);
   unsigned imm = 0;
 
   imm |= (fieldFromInstruction(Insn, 0, 12) << 0);
@@ -2491,11 +2491,11 @@ static DecodeStatus DecodeSMLAInstruction(MCInst &Inst, unsigned Insn,
                                  uint64_t Address, const void *Decoder) {
   DecodeStatus S = MCDisassembler::Success;
 
-  unsigned Rd = fieldFromInstruction(Insn, 16, 4);
-  unsigned Rn = fieldFromInstruction(Insn, 0, 4);
-  unsigned Rm = fieldFromInstruction(Insn, 8, 4);
-  unsigned Ra = fieldFromInstruction(Insn, 12, 4);
-  unsigned pred = fieldFromInstruction(Insn, 28, 4);
+  unsigned const Rd = fieldFromInstruction(Insn, 16, 4);
+  unsigned const Rn = fieldFromInstruction(Insn, 0, 4);
+  unsigned const Rm = fieldFromInstruction(Insn, 8, 4);
+  unsigned const Ra = fieldFromInstruction(Insn, 12, 4);
+  unsigned const pred = fieldFromInstruction(Insn, 28, 4);
 
   if (pred == 0xF)
     return DecodeCPSInstruction(Inst, Insn, Address, Decoder);
@@ -2519,9 +2519,9 @@ static DecodeStatus DecodeTSTInstruction(MCInst &Inst, unsigned Insn,
                                   uint64_t Address, const void *Decoder) {
   DecodeStatus S = MCDisassembler::Success;
 
-  unsigned Pred = fieldFromInstruction(Insn, 28, 4);
-  unsigned Rn = fieldFromInstruction(Insn, 16, 4);
-  unsigned Rm = fieldFromInstruction(Insn, 0, 4);
+  unsigned const Pred = fieldFromInstruction(Insn, 28, 4);
+  unsigned const Rn = fieldFromInstruction(Insn, 16, 4);
+  unsigned const Rm = fieldFromInstruction(Insn, 0, 4);
 
   if (Pred == 0xF)
     return DecodeSETPANInstruction(Inst, Insn, Address, Decoder);
@@ -2540,7 +2540,7 @@ static DecodeStatus DecodeSETPANInstruction(MCInst &Inst, unsigned Insn,
                                   uint64_t Address, const void *Decoder) {
   DecodeStatus S = MCDisassembler::Success;
 
-  unsigned Imm = fieldFromInstruction(Insn, 9, 1);
+  unsigned const Imm = fieldFromInstruction(Insn, 9, 1);
 
   const MCDisassembler *Dis = static_cast<const MCDisassembler*>(Decoder);
   const FeatureBitset &FeatureBits = Dis->getSubtargetInfo().getFeatureBits();
@@ -2568,9 +2568,9 @@ static DecodeStatus DecodeAddrModeImm12Operand(MCInst &Inst, unsigned Val,
                            uint64_t Address, const void *Decoder) {
   DecodeStatus S = MCDisassembler::Success;
 
-  unsigned add = fieldFromInstruction(Val, 12, 1);
+  unsigned const add = fieldFromInstruction(Val, 12, 1);
   unsigned imm = fieldFromInstruction(Val, 0, 12);
-  unsigned Rn = fieldFromInstruction(Val, 13, 4);
+  unsigned const Rn = fieldFromInstruction(Val, 13, 4);
 
   if (!Check(S, DecodeGPRRegisterClass(Inst, Rn, Address, Decoder)))
     return MCDisassembler::Fail;
@@ -2588,10 +2588,10 @@ static DecodeStatus DecodeAddrMode5Operand(MCInst &Inst, unsigned Val,
                                    uint64_t Address, const void *Decoder) {
   DecodeStatus S = MCDisassembler::Success;
 
-  unsigned Rn = fieldFromInstruction(Val, 9, 4);
+  unsigned const Rn = fieldFromInstruction(Val, 9, 4);
   // U == 1 to add imm, 0 to subtract it.
-  unsigned U = fieldFromInstruction(Val, 8, 1);
-  unsigned imm = fieldFromInstruction(Val, 0, 8);
+  unsigned const U = fieldFromInstruction(Val, 8, 1);
+  unsigned const imm = fieldFromInstruction(Val, 0, 8);
 
   if (!Check(S, DecodeGPRRegisterClass(Inst, Rn, Address, Decoder)))
     return MCDisassembler::Fail;
@@ -2608,10 +2608,10 @@ static DecodeStatus DecodeAddrMode5FP16Operand(MCInst &Inst, unsigned Val,
                                    uint64_t Address, const void *Decoder) {
   DecodeStatus S = MCDisassembler::Success;
 
-  unsigned Rn = fieldFromInstruction(Val, 9, 4);
+  unsigned const Rn = fieldFromInstruction(Val, 9, 4);
   // U == 1 to add imm, 0 to subtract it.
-  unsigned U = fieldFromInstruction(Val, 8, 1);
-  unsigned imm = fieldFromInstruction(Val, 0, 8);
+  unsigned const U = fieldFromInstruction(Val, 8, 1);
+  unsigned const imm = fieldFromInstruction(Val, 0, 8);
 
   if (!Check(S, DecodeGPRRegisterClass(Inst, Rn, Address, Decoder)))
     return MCDisassembler::Fail;
@@ -2632,7 +2632,7 @@ static DecodeStatus DecodeAddrMode7Operand(MCInst &Inst, unsigned Val,
 static DecodeStatus
 DecodeT2BInstruction(MCInst &Inst, unsigned Insn,
                      uint64_t Address, const void *Decoder) {
-  DecodeStatus Status = MCDisassembler::Success;
+  DecodeStatus const Status = MCDisassembler::Success;
 
   // Note the J1 and J2 values are from the encoded instruction.  So here
   // change them to I1 and I2 values via as documented:
@@ -2640,15 +2640,15 @@ DecodeT2BInstruction(MCInst &Inst, unsigned Insn,
   // I2 = NOT(J2 EOR S);
   // and build the imm32 with one trailing zero as documented:
   // imm32 = SignExtend(S:I1:I2:imm10:imm11:'0', 32);
-  unsigned S = fieldFromInstruction(Insn, 26, 1);
-  unsigned J1 = fieldFromInstruction(Insn, 13, 1);
-  unsigned J2 = fieldFromInstruction(Insn, 11, 1);
-  unsigned I1 = !(J1 ^ S);
-  unsigned I2 = !(J2 ^ S);
-  unsigned imm10 = fieldFromInstruction(Insn, 16, 10);
-  unsigned imm11 = fieldFromInstruction(Insn, 0, 11);
-  unsigned tmp = (S << 23) | (I1 << 22) | (I2 << 21) | (imm10 << 11) | imm11;
-  int imm32 = SignExtend32<25>(tmp << 1);
+  unsigned const S = fieldFromInstruction(Insn, 26, 1);
+  unsigned const J1 = fieldFromInstruction(Insn, 13, 1);
+  unsigned const J2 = fieldFromInstruction(Insn, 11, 1);
+  unsigned const I1 = !(J1 ^ S);
+  unsigned const I2 = !(J2 ^ S);
+  unsigned const imm10 = fieldFromInstruction(Insn, 16, 10);
+  unsigned const imm11 = fieldFromInstruction(Insn, 0, 11);
+  unsigned const tmp = (S << 23) | (I1 << 22) | (I2 << 21) | (imm10 << 11) | imm11;
+  int const imm32 = SignExtend32<25>(tmp << 1);
   if (!tryAddingSymbolicOperand(Address, Address + imm32 + 4,
                                 true, 4, Inst, Decoder))
     Inst.addOperand(MCOperand::createImm(imm32));
@@ -2661,7 +2661,7 @@ DecodeBranchImmInstruction(MCInst &Inst, unsigned Insn,
                            uint64_t Address, const void *Decoder) {
   DecodeStatus S = MCDisassembler::Success;
 
-  unsigned pred = fieldFromInstruction(Insn, 28, 4);
+  unsigned const pred = fieldFromInstruction(Insn, 28, 4);
   unsigned imm = fieldFromInstruction(Insn, 0, 24) << 2;
 
   if (pred == 0xF) {
@@ -2690,8 +2690,8 @@ static DecodeStatus DecodeAddrMode6Operand(MCInst &Inst, unsigned Val,
                                    uint64_t Address, const void *Decoder) {
   DecodeStatus S = MCDisassembler::Success;
 
-  unsigned Rm = fieldFromInstruction(Val, 0, 4);
-  unsigned align = fieldFromInstruction(Val, 4, 2);
+  unsigned const Rm = fieldFromInstruction(Val, 0, 4);
+  unsigned const align = fieldFromInstruction(Val, 4, 2);
 
   if (!Check(S, DecodeGPRRegisterClass(Inst, Rm, Address, Decoder)))
     return MCDisassembler::Fail;
@@ -2709,10 +2709,10 @@ static DecodeStatus DecodeVLDInstruction(MCInst &Inst, unsigned Insn,
 
   unsigned Rd = fieldFromInstruction(Insn, 12, 4);
   Rd |= fieldFromInstruction(Insn, 22, 1) << 4;
-  unsigned wb = fieldFromInstruction(Insn, 16, 4);
+  unsigned const wb = fieldFromInstruction(Insn, 16, 4);
   unsigned Rn = fieldFromInstruction(Insn, 16, 4);
   Rn |= fieldFromInstruction(Insn, 4, 2) << 4;
-  unsigned Rm = fieldFromInstruction(Insn, 0, 4);
+  unsigned const Rm = fieldFromInstruction(Insn, 0, 4);
 
   // First output register
   switch (Inst.getOpcode()) {
@@ -2981,51 +2981,51 @@ static DecodeStatus DecodeVLDInstruction(MCInst &Inst, unsigned Insn,
 
 static DecodeStatus DecodeVLDST1Instruction(MCInst &Inst, unsigned Insn,
                                    uint64_t Address, const void *Decoder) {
-  unsigned type = fieldFromInstruction(Insn, 8, 4);
-  unsigned align = fieldFromInstruction(Insn, 4, 2);
+  unsigned const type = fieldFromInstruction(Insn, 8, 4);
+  unsigned const align = fieldFromInstruction(Insn, 4, 2);
   if (type == 6 && (align & 2)) return MCDisassembler::Fail;
   if (type == 7 && (align & 2)) return MCDisassembler::Fail;
   if (type == 10 && align == 3) return MCDisassembler::Fail;
 
-  unsigned load = fieldFromInstruction(Insn, 21, 1);
+  unsigned const load = fieldFromInstruction(Insn, 21, 1);
   return load ? DecodeVLDInstruction(Inst, Insn, Address, Decoder)
               : DecodeVSTInstruction(Inst, Insn, Address, Decoder);
 }
 
 static DecodeStatus DecodeVLDST2Instruction(MCInst &Inst, unsigned Insn,
                                    uint64_t Address, const void *Decoder) {
-  unsigned size = fieldFromInstruction(Insn, 6, 2);
+  unsigned const size = fieldFromInstruction(Insn, 6, 2);
   if (size == 3) return MCDisassembler::Fail;
 
-  unsigned type = fieldFromInstruction(Insn, 8, 4);
-  unsigned align = fieldFromInstruction(Insn, 4, 2);
+  unsigned const type = fieldFromInstruction(Insn, 8, 4);
+  unsigned const align = fieldFromInstruction(Insn, 4, 2);
   if (type == 8 && align == 3) return MCDisassembler::Fail;
   if (type == 9 && align == 3) return MCDisassembler::Fail;
 
-  unsigned load = fieldFromInstruction(Insn, 21, 1);
+  unsigned const load = fieldFromInstruction(Insn, 21, 1);
   return load ? DecodeVLDInstruction(Inst, Insn, Address, Decoder)
               : DecodeVSTInstruction(Inst, Insn, Address, Decoder);
 }
 
 static DecodeStatus DecodeVLDST3Instruction(MCInst &Inst, unsigned Insn,
                                    uint64_t Address, const void *Decoder) {
-  unsigned size = fieldFromInstruction(Insn, 6, 2);
+  unsigned const size = fieldFromInstruction(Insn, 6, 2);
   if (size == 3) return MCDisassembler::Fail;
 
-  unsigned align = fieldFromInstruction(Insn, 4, 2);
+  unsigned const align = fieldFromInstruction(Insn, 4, 2);
   if (align & 2) return MCDisassembler::Fail;
 
-  unsigned load = fieldFromInstruction(Insn, 21, 1);
+  unsigned const load = fieldFromInstruction(Insn, 21, 1);
   return load ? DecodeVLDInstruction(Inst, Insn, Address, Decoder)
               : DecodeVSTInstruction(Inst, Insn, Address, Decoder);
 }
 
 static DecodeStatus DecodeVLDST4Instruction(MCInst &Inst, unsigned Insn,
                                    uint64_t Address, const void *Decoder) {
-  unsigned size = fieldFromInstruction(Insn, 6, 2);
+  unsigned const size = fieldFromInstruction(Insn, 6, 2);
   if (size == 3) return MCDisassembler::Fail;
 
-  unsigned load = fieldFromInstruction(Insn, 21, 1);
+  unsigned const load = fieldFromInstruction(Insn, 21, 1);
   return load ? DecodeVLDInstruction(Inst, Insn, Address, Decoder)
               : DecodeVSTInstruction(Inst, Insn, Address, Decoder);
 }
@@ -3036,10 +3036,10 @@ static DecodeStatus DecodeVSTInstruction(MCInst &Inst, unsigned Insn,
 
   unsigned Rd = fieldFromInstruction(Insn, 12, 4);
   Rd |= fieldFromInstruction(Insn, 22, 1) << 4;
-  unsigned wb = fieldFromInstruction(Insn, 16, 4);
+  unsigned const wb = fieldFromInstruction(Insn, 16, 4);
   unsigned Rn = fieldFromInstruction(Insn, 16, 4);
   Rn |= fieldFromInstruction(Insn, 4, 2) << 4;
-  unsigned Rm = fieldFromInstruction(Insn, 0, 4);
+  unsigned const Rm = fieldFromInstruction(Insn, 0, 4);
 
   // Writeback Operand
   switch (Inst.getOpcode()) {
@@ -3306,10 +3306,10 @@ static DecodeStatus DecodeVLD1DupInstruction(MCInst &Inst, unsigned Insn,
 
   unsigned Rd = fieldFromInstruction(Insn, 12, 4);
   Rd |= fieldFromInstruction(Insn, 22, 1) << 4;
-  unsigned Rn = fieldFromInstruction(Insn, 16, 4);
-  unsigned Rm = fieldFromInstruction(Insn, 0, 4);
+  unsigned const Rn = fieldFromInstruction(Insn, 16, 4);
+  unsigned const Rm = fieldFromInstruction(Insn, 0, 4);
   unsigned align = fieldFromInstruction(Insn, 4, 1);
-  unsigned size = fieldFromInstruction(Insn, 6, 2);
+  unsigned const size = fieldFromInstruction(Insn, 6, 2);
 
   if (size == 0 && align == 1)
     return MCDisassembler::Fail;
@@ -3353,10 +3353,10 @@ static DecodeStatus DecodeVLD2DupInstruction(MCInst &Inst, unsigned Insn,
 
   unsigned Rd = fieldFromInstruction(Insn, 12, 4);
   Rd |= fieldFromInstruction(Insn, 22, 1) << 4;
-  unsigned Rn = fieldFromInstruction(Insn, 16, 4);
-  unsigned Rm = fieldFromInstruction(Insn, 0, 4);
+  unsigned const Rn = fieldFromInstruction(Insn, 16, 4);
+  unsigned const Rm = fieldFromInstruction(Insn, 0, 4);
   unsigned align = fieldFromInstruction(Insn, 4, 1);
-  unsigned size = 1 << fieldFromInstruction(Insn, 6, 2);
+  unsigned const size = 1 << fieldFromInstruction(Insn, 6, 2);
   align *= 2*size;
 
   switch (Inst.getOpcode()) {
@@ -3401,9 +3401,9 @@ static DecodeStatus DecodeVLD3DupInstruction(MCInst &Inst, unsigned Insn,
 
   unsigned Rd = fieldFromInstruction(Insn, 12, 4);
   Rd |= fieldFromInstruction(Insn, 22, 1) << 4;
-  unsigned Rn = fieldFromInstruction(Insn, 16, 4);
-  unsigned Rm = fieldFromInstruction(Insn, 0, 4);
-  unsigned inc = fieldFromInstruction(Insn, 5, 1) + 1;
+  unsigned const Rn = fieldFromInstruction(Insn, 16, 4);
+  unsigned const Rm = fieldFromInstruction(Insn, 0, 4);
+  unsigned const inc = fieldFromInstruction(Insn, 5, 1) + 1;
 
   if (!Check(S, DecodeDPRRegisterClass(Inst, Rd, Address, Decoder)))
     return MCDisassembler::Fail;
@@ -3436,10 +3436,10 @@ static DecodeStatus DecodeVLD4DupInstruction(MCInst &Inst, unsigned Insn,
 
   unsigned Rd = fieldFromInstruction(Insn, 12, 4);
   Rd |= fieldFromInstruction(Insn, 22, 1) << 4;
-  unsigned Rn = fieldFromInstruction(Insn, 16, 4);
-  unsigned Rm = fieldFromInstruction(Insn, 0, 4);
+  unsigned const Rn = fieldFromInstruction(Insn, 16, 4);
+  unsigned const Rm = fieldFromInstruction(Insn, 0, 4);
   unsigned size = fieldFromInstruction(Insn, 6, 2);
-  unsigned inc = fieldFromInstruction(Insn, 5, 1) + 1;
+  unsigned const inc = fieldFromInstruction(Insn, 5, 1) + 1;
   unsigned align = fieldFromInstruction(Insn, 4, 1);
 
   if (size == 0x3) {
@@ -3494,7 +3494,7 @@ DecodeVMOVModImmInstruction(MCInst &Inst, unsigned Insn,
   imm |= fieldFromInstruction(Insn, 24, 1) << 7;
   imm |= fieldFromInstruction(Insn, 8, 4) << 8;
   imm |= fieldFromInstruction(Insn, 5, 1) << 12;
-  unsigned Q = fieldFromInstruction(Insn, 6, 1);
+  unsigned const Q = fieldFromInstruction(Insn, 6, 1);
 
   if (Q) {
     if (!Check(S, DecodeQPRRegisterClass(Inst, Rd, Address, Decoder)))
@@ -3533,9 +3533,9 @@ DecodeMVEModImmInstruction(MCInst &Inst, unsigned Insn,
                            uint64_t Address, const void *Decoder) {
   DecodeStatus S = MCDisassembler::Success;
 
-  unsigned Qd = ((fieldFromInstruction(Insn, 22, 1) << 3) |
+  unsigned const Qd = ((fieldFromInstruction(Insn, 22, 1) << 3) |
                  fieldFromInstruction(Insn, 13, 3));
-  unsigned cmode = fieldFromInstruction(Insn, 8, 4);
+  unsigned const cmode = fieldFromInstruction(Insn, 8, 4);
   unsigned imm = fieldFromInstruction(Insn, 0, 4);
   imm |= fieldFromInstruction(Insn, 16, 3) << 4;
   imm |= fieldFromInstruction(Insn, 28, 1) << 7;
@@ -3590,7 +3590,7 @@ static DecodeStatus DecodeVSHLMaxInstruction(MCInst &Inst, unsigned Insn,
   Rd |= fieldFromInstruction(Insn, 22, 1) << 4;
   unsigned Rm = fieldFromInstruction(Insn, 0, 4);
   Rm |= fieldFromInstruction(Insn, 5, 1) << 4;
-  unsigned size = fieldFromInstruction(Insn, 18, 2);
+  unsigned const size = fieldFromInstruction(Insn, 18, 2);
 
   if (!Check(S, DecodeQPRRegisterClass(Inst, Rd, Address, Decoder)))
     return MCDisassembler::Fail;
@@ -3635,7 +3635,7 @@ static DecodeStatus DecodeTBLInstruction(MCInst &Inst, unsigned Insn,
   Rn |= fieldFromInstruction(Insn, 7, 1) << 4;
   unsigned Rm = fieldFromInstruction(Insn, 0, 4);
   Rm |= fieldFromInstruction(Insn, 5, 1) << 4;
-  unsigned op = fieldFromInstruction(Insn, 6, 1);
+  unsigned const op = fieldFromInstruction(Insn, 6, 1);
 
   if (!Check(S, DecodeDPRRegisterClass(Inst, Rd, Address, Decoder)))
     return MCDisassembler::Fail;
@@ -3665,8 +3665,8 @@ static DecodeStatus DecodeThumbAddSpecialReg(MCInst &Inst, uint16_t Insn,
                                      uint64_t Address, const void *Decoder) {
   DecodeStatus S = MCDisassembler::Success;
 
-  unsigned dst = fieldFromInstruction(Insn, 8, 3);
-  unsigned imm = fieldFromInstruction(Insn, 0, 8);
+  unsigned const dst = fieldFromInstruction(Insn, 8, 3);
+  unsigned const imm = fieldFromInstruction(Insn, 0, 8);
 
   if (!Check(S, DecodetGPRRegisterClass(Inst, dst, Address, Decoder)))
     return MCDisassembler::Fail;
@@ -3713,8 +3713,8 @@ static DecodeStatus DecodeThumbAddrModeRR(MCInst &Inst, unsigned Val,
                                  uint64_t Address, const void *Decoder) {
   DecodeStatus S = MCDisassembler::Success;
 
-  unsigned Rn = fieldFromInstruction(Val, 0, 3);
-  unsigned Rm = fieldFromInstruction(Val, 3, 3);
+  unsigned const Rn = fieldFromInstruction(Val, 0, 3);
+  unsigned const Rm = fieldFromInstruction(Val, 3, 3);
 
   if (!Check(S, DecodetGPRRegisterClass(Inst, Rn, Address, Decoder)))
     return MCDisassembler::Fail;
@@ -3728,8 +3728,8 @@ static DecodeStatus DecodeThumbAddrModeIS(MCInst &Inst, unsigned Val,
                                   uint64_t Address, const void *Decoder) {
   DecodeStatus S = MCDisassembler::Success;
 
-  unsigned Rn = fieldFromInstruction(Val, 0, 3);
-  unsigned imm = fieldFromInstruction(Val, 3, 5);
+  unsigned const Rn = fieldFromInstruction(Val, 0, 3);
+  unsigned const imm = fieldFromInstruction(Val, 3, 5);
 
   if (!Check(S, DecodetGPRRegisterClass(Inst, Rn, Address, Decoder)))
     return MCDisassembler::Fail;
@@ -3740,7 +3740,7 @@ static DecodeStatus DecodeThumbAddrModeIS(MCInst &Inst, unsigned Val,
 
 static DecodeStatus DecodeThumbAddrModePC(MCInst &Inst, unsigned Val,
                                   uint64_t Address, const void *Decoder) {
-  unsigned imm = Val << 2;
+  unsigned const imm = Val << 2;
 
   Inst.addOperand(MCOperand::createImm(imm));
   tryAddingPcLoadReferenceComment(Address, (Address & ~2u) + imm + 4, Decoder);
@@ -3760,9 +3760,9 @@ static DecodeStatus DecodeT2AddrModeSOReg(MCInst &Inst, unsigned Val,
                                   uint64_t Address, const void *Decoder) {
   DecodeStatus S = MCDisassembler::Success;
 
-  unsigned Rn = fieldFromInstruction(Val, 6, 4);
-  unsigned Rm = fieldFromInstruction(Val, 2, 4);
-  unsigned imm = fieldFromInstruction(Val, 0, 2);
+  unsigned const Rn = fieldFromInstruction(Val, 6, 4);
+  unsigned const Rm = fieldFromInstruction(Val, 2, 4);
+  unsigned const imm = fieldFromInstruction(Val, 0, 2);
 
   // Thumb stores cannot use PC as dest register.
   switch (Inst.getOpcode()) {
@@ -3789,14 +3789,14 @@ static DecodeStatus DecodeT2LoadShift(MCInst &Inst, unsigned Insn,
                               uint64_t Address, const void *Decoder) {
   DecodeStatus S = MCDisassembler::Success;
 
-  unsigned Rt = fieldFromInstruction(Insn, 12, 4);
-  unsigned Rn = fieldFromInstruction(Insn, 16, 4);
+  unsigned const Rt = fieldFromInstruction(Insn, 12, 4);
+  unsigned const Rn = fieldFromInstruction(Insn, 16, 4);
 
   const FeatureBitset &featureBits =
     ((const MCDisassembler*)Decoder)->getSubtargetInfo().getFeatureBits();
 
-  bool hasMP = featureBits[ARM::FeatureMP];
-  bool hasV7Ops = featureBits[ARM::HasV7Ops];
+  bool const hasMP = featureBits[ARM::FeatureMP];
+  bool const hasV7Ops = featureBits[ARM::HasV7Ops];
 
   if (Rn == 15) {
     switch (Inst.getOpcode()) {
@@ -3872,19 +3872,19 @@ static DecodeStatus DecodeT2LoadImm8(MCInst &Inst, unsigned Insn,
                                 uint64_t Address, const void* Decoder) {
   DecodeStatus S = MCDisassembler::Success;
 
-  unsigned Rn = fieldFromInstruction(Insn, 16, 4);
-  unsigned Rt = fieldFromInstruction(Insn, 12, 4);
-  unsigned U = fieldFromInstruction(Insn, 9, 1);
+  unsigned const Rn = fieldFromInstruction(Insn, 16, 4);
+  unsigned const Rt = fieldFromInstruction(Insn, 12, 4);
+  unsigned const U = fieldFromInstruction(Insn, 9, 1);
   unsigned imm = fieldFromInstruction(Insn, 0, 8);
   imm |= (U << 8);
   imm |= (Rn << 9);
-  unsigned add = fieldFromInstruction(Insn, 9, 1);
+  unsigned const add = fieldFromInstruction(Insn, 9, 1);
 
   const FeatureBitset &featureBits =
     ((const MCDisassembler*)Decoder)->getSubtargetInfo().getFeatureBits();
 
-  bool hasMP = featureBits[ARM::FeatureMP];
-  bool hasV7Ops = featureBits[ARM::HasV7Ops];
+  bool const hasMP = featureBits[ARM::FeatureMP];
+  bool const hasV7Ops = featureBits[ARM::HasV7Ops];
 
   if (Rn == 15) {
     switch (Inst.getOpcode()) {
@@ -3956,16 +3956,16 @@ static DecodeStatus DecodeT2LoadImm12(MCInst &Inst, unsigned Insn,
                                 uint64_t Address, const void* Decoder) {
   DecodeStatus S = MCDisassembler::Success;
 
-  unsigned Rn = fieldFromInstruction(Insn, 16, 4);
-  unsigned Rt = fieldFromInstruction(Insn, 12, 4);
+  unsigned const Rn = fieldFromInstruction(Insn, 16, 4);
+  unsigned const Rt = fieldFromInstruction(Insn, 12, 4);
   unsigned imm = fieldFromInstruction(Insn, 0, 12);
   imm |= (Rn << 13);
 
   const FeatureBitset &featureBits =
     ((const MCDisassembler*)Decoder)->getSubtargetInfo().getFeatureBits();
 
-  bool hasMP = featureBits[ARM::FeatureMP];
-  bool hasV7Ops = featureBits[ARM::HasV7Ops];
+  bool const hasMP = featureBits[ARM::FeatureMP];
+  bool const hasV7Ops = featureBits[ARM::HasV7Ops];
 
   if (Rn == 15) {
     switch (Inst.getOpcode()) {
@@ -4036,8 +4036,8 @@ static DecodeStatus DecodeT2LoadT(MCInst &Inst, unsigned Insn,
                                 uint64_t Address, const void* Decoder) {
   DecodeStatus S = MCDisassembler::Success;
 
-  unsigned Rn = fieldFromInstruction(Insn, 16, 4);
-  unsigned Rt = fieldFromInstruction(Insn, 12, 4);
+  unsigned const Rn = fieldFromInstruction(Insn, 16, 4);
+  unsigned const Rt = fieldFromInstruction(Insn, 12, 4);
   unsigned imm = fieldFromInstruction(Insn, 0, 8);
   imm |= (Rn << 9);
 
@@ -4075,14 +4075,14 @@ static DecodeStatus DecodeT2LoadLabel(MCInst &Inst, unsigned Insn,
                                 uint64_t Address, const void* Decoder) {
   DecodeStatus S = MCDisassembler::Success;
 
-  unsigned Rt = fieldFromInstruction(Insn, 12, 4);
-  unsigned U = fieldFromInstruction(Insn, 23, 1);
+  unsigned const Rt = fieldFromInstruction(Insn, 12, 4);
+  unsigned const U = fieldFromInstruction(Insn, 23, 1);
   int imm = fieldFromInstruction(Insn, 0, 12);
 
   const FeatureBitset &featureBits =
     ((const MCDisassembler*)Decoder)->getSubtargetInfo().getFeatureBits();
 
-  bool hasV7Ops = featureBits[ARM::HasV7Ops];
+  bool const hasV7Ops = featureBits[ARM::HasV7Ops];
 
   if (Rt == 15) {
     switch (Inst.getOpcode()) {
@@ -4157,8 +4157,8 @@ static DecodeStatus DecodeT2AddrModeImm8s4(MCInst &Inst, unsigned Val,
                                    uint64_t Address, const void *Decoder) {
   DecodeStatus S = MCDisassembler::Success;
 
-  unsigned Rn = fieldFromInstruction(Val, 9, 4);
-  unsigned imm = fieldFromInstruction(Val, 0, 9);
+  unsigned const Rn = fieldFromInstruction(Val, 9, 4);
+  unsigned const imm = fieldFromInstruction(Val, 0, 9);
 
   if (!Check(S, DecodeGPRRegisterClass(Inst, Rn, Address, Decoder)))
     return MCDisassembler::Fail;
@@ -4173,8 +4173,8 @@ static DecodeStatus DecodeT2AddrModeImm7s4(MCInst &Inst, unsigned Val,
                                            const void *Decoder) {
   DecodeStatus S = MCDisassembler::Success;
 
-  unsigned Rn = fieldFromInstruction(Val, 8, 4);
-  unsigned imm = fieldFromInstruction(Val, 0, 8);
+  unsigned const Rn = fieldFromInstruction(Val, 8, 4);
+  unsigned const imm = fieldFromInstruction(Val, 0, 8);
 
   if (!Check(S, DecodeGPRnopcRegisterClass(Inst, Rn, Address, Decoder)))
     return MCDisassembler::Fail;
@@ -4188,8 +4188,8 @@ static DecodeStatus DecodeT2AddrModeImm0_1020s4(MCInst &Inst,unsigned Val,
                                    uint64_t Address, const void *Decoder) {
   DecodeStatus S = MCDisassembler::Success;
 
-  unsigned Rn = fieldFromInstruction(Val, 8, 4);
-  unsigned imm = fieldFromInstruction(Val, 0, 8);
+  unsigned const Rn = fieldFromInstruction(Val, 8, 4);
+  unsigned const imm = fieldFromInstruction(Val, 0, 8);
 
   if (!Check(S, DecodeGPRnopcRegisterClass(Inst, Rn, Address, Decoder)))
     return MCDisassembler::Fail;
@@ -4230,7 +4230,7 @@ static DecodeStatus DecodeT2AddrModeImm8(MCInst &Inst, unsigned Val,
                                  uint64_t Address, const void *Decoder) {
   DecodeStatus S = MCDisassembler::Success;
 
-  unsigned Rn = fieldFromInstruction(Val, 9, 4);
+  unsigned const Rn = fieldFromInstruction(Val, 9, 4);
   unsigned imm = fieldFromInstruction(Val, 0, 9);
 
   // Thumb stores cannot use PC as dest register.
@@ -4278,8 +4278,8 @@ static DecodeStatus DecodeTAddrModeImm7(MCInst &Inst, unsigned Val,
                                          const void *Decoder) {
   DecodeStatus S = MCDisassembler::Success;
 
-  unsigned Rn = fieldFromInstruction(Val, 8, 3);
-  unsigned imm = fieldFromInstruction(Val, 0, 8);
+  unsigned const Rn = fieldFromInstruction(Val, 8, 3);
+  unsigned const imm = fieldFromInstruction(Val, 0, 8);
 
   if (!Check(S, DecodetGPRRegisterClass(Inst, Rn, Address, Decoder)))
     return MCDisassembler::Fail;
@@ -4295,8 +4295,8 @@ static DecodeStatus DecodeT2AddrModeImm7(MCInst &Inst, unsigned Val,
                                          const void *Decoder) {
   DecodeStatus S = MCDisassembler::Success;
 
-  unsigned Rn = fieldFromInstruction(Val, 8, 4);
-  unsigned imm = fieldFromInstruction(Val, 0, 8);
+  unsigned const Rn = fieldFromInstruction(Val, 8, 4);
+  unsigned const imm = fieldFromInstruction(Val, 0, 8);
   if (WriteBack) {
     if (!Check(S, DecoderGPRRegisterClass(Inst, Rn, Address, Decoder)))
       return MCDisassembler::Fail;
@@ -4312,12 +4312,12 @@ static DecodeStatus DecodeT2LdStPre(MCInst &Inst, unsigned Insn,
                                     uint64_t Address, const void *Decoder) {
   DecodeStatus S = MCDisassembler::Success;
 
-  unsigned Rt = fieldFromInstruction(Insn, 12, 4);
-  unsigned Rn = fieldFromInstruction(Insn, 16, 4);
+  unsigned const Rt = fieldFromInstruction(Insn, 12, 4);
+  unsigned const Rn = fieldFromInstruction(Insn, 16, 4);
   unsigned addr = fieldFromInstruction(Insn, 0, 8);
   addr |= fieldFromInstruction(Insn, 9, 1) << 8;
   addr |= Rn << 9;
-  unsigned load = fieldFromInstruction(Insn, 20, 1);
+  unsigned const load = fieldFromInstruction(Insn, 20, 1);
 
   if (Rn == 15) {
     switch (Inst.getOpcode()) {
@@ -4373,8 +4373,8 @@ static DecodeStatus DecodeT2AddrModeImm12(MCInst &Inst, unsigned Val,
                                   uint64_t Address, const void *Decoder) {
   DecodeStatus S = MCDisassembler::Success;
 
-  unsigned Rn = fieldFromInstruction(Val, 13, 4);
-  unsigned imm = fieldFromInstruction(Val, 0, 12);
+  unsigned const Rn = fieldFromInstruction(Val, 13, 4);
+  unsigned const imm = fieldFromInstruction(Val, 0, 12);
 
   // Thumb stores cannot use PC as dest register.
   switch (Inst.getOpcode()) {
@@ -4397,7 +4397,7 @@ static DecodeStatus DecodeT2AddrModeImm12(MCInst &Inst, unsigned Val,
 
 static DecodeStatus DecodeThumbAddSPImm(MCInst &Inst, uint16_t Insn,
                                 uint64_t Address, const void *Decoder) {
-  unsigned imm = fieldFromInstruction(Insn, 0, 7);
+  unsigned const imm = fieldFromInstruction(Insn, 0, 7);
 
   Inst.addOperand(MCOperand::createReg(ARM::SP));
   Inst.addOperand(MCOperand::createReg(ARM::SP));
@@ -4420,7 +4420,7 @@ static DecodeStatus DecodeThumbAddSPReg(MCInst &Inst, uint16_t Insn,
     if (!Check(S, DecodeGPRRegisterClass(Inst, Rdm, Address, Decoder)))
     return MCDisassembler::Fail;
   } else if (Inst.getOpcode() == ARM::tADDspr) {
-    unsigned Rm = fieldFromInstruction(Insn, 3, 4);
+    unsigned const Rm = fieldFromInstruction(Insn, 3, 4);
 
     Inst.addOperand(MCOperand::createReg(ARM::SP));
     Inst.addOperand(MCOperand::createReg(ARM::SP));
@@ -4433,8 +4433,8 @@ static DecodeStatus DecodeThumbAddSPReg(MCInst &Inst, uint16_t Insn,
 
 static DecodeStatus DecodeThumbCPS(MCInst &Inst, uint16_t Insn,
                            uint64_t Address, const void *Decoder) {
-  unsigned imod = fieldFromInstruction(Insn, 4, 1) | 0x2;
-  unsigned flags = fieldFromInstruction(Insn, 0, 3);
+  unsigned const imod = fieldFromInstruction(Insn, 4, 1) | 0x2;
+  unsigned const flags = fieldFromInstruction(Insn, 0, 3);
 
   Inst.addOperand(MCOperand::createImm(imod));
   Inst.addOperand(MCOperand::createImm(flags));
@@ -4445,8 +4445,8 @@ static DecodeStatus DecodeThumbCPS(MCInst &Inst, uint16_t Insn,
 static DecodeStatus DecodePostIdxReg(MCInst &Inst, unsigned Insn,
                              uint64_t Address, const void *Decoder) {
   DecodeStatus S = MCDisassembler::Success;
-  unsigned Rm = fieldFromInstruction(Insn, 0, 4);
-  unsigned add = fieldFromInstruction(Insn, 4, 1);
+  unsigned const Rm = fieldFromInstruction(Insn, 0, 4);
+  unsigned const add = fieldFromInstruction(Insn, 4, 1);
 
   if (!Check(S, DecodeGPRnopcRegisterClass(Inst, Rm, Address, Decoder)))
     return MCDisassembler::Fail;
@@ -4458,8 +4458,8 @@ static DecodeStatus DecodePostIdxReg(MCInst &Inst, unsigned Insn,
 static DecodeStatus DecodeMveAddrModeRQ(MCInst &Inst, unsigned Insn,
                              uint64_t Address, const void *Decoder) {
   DecodeStatus S = MCDisassembler::Success;
-  unsigned Rn = fieldFromInstruction(Insn, 3, 4);
-  unsigned Qm = fieldFromInstruction(Insn, 0, 3);
+  unsigned const Rn = fieldFromInstruction(Insn, 3, 4);
+  unsigned const Qm = fieldFromInstruction(Insn, 0, 3);
 
   if (!Check(S, DecodeGPRnopcRegisterClass(Inst, Rn, Address, Decoder)))
     return MCDisassembler::Fail;
@@ -4473,7 +4473,7 @@ template<int shift>
 static DecodeStatus DecodeMveAddrModeQ(MCInst &Inst, unsigned Insn,
                              uint64_t Address, const void *Decoder) {
   DecodeStatus S = MCDisassembler::Success;
-  unsigned Qm = fieldFromInstruction(Insn, 8, 3);
+  unsigned const Qm = fieldFromInstruction(Insn, 8, 3);
   int imm = fieldFromInstruction(Insn, 0, 7);
 
   if (!Check(S, DecodeMQPRRegisterClass(Inst, Qm, Address, Decoder)))
@@ -4501,13 +4501,13 @@ static DecodeStatus DecodeThumbBLXOffset(MCInst &Inst, unsigned Val,
   // I2 = NOT(J2 EOR S);
   // and build the imm32 with two trailing zeros as documented:
   // imm32 = SignExtend(S:I1:I2:imm10H:imm10L:'00', 32);
-  unsigned S = (Val >> 23) & 1;
-  unsigned J1 = (Val >> 22) & 1;
-  unsigned J2 = (Val >> 21) & 1;
-  unsigned I1 = !(J1 ^ S);
-  unsigned I2 = !(J2 ^ S);
-  unsigned tmp = (Val & ~0x600000) | (I1 << 22) | (I2 << 21);
-  int imm32 = SignExtend32<25>(tmp << 1);
+  unsigned const S = (Val >> 23) & 1;
+  unsigned const J1 = (Val >> 22) & 1;
+  unsigned const J2 = (Val >> 21) & 1;
+  unsigned const I1 = !(J1 ^ S);
+  unsigned const I2 = !(J2 ^ S);
+  unsigned const tmp = (Val & ~0x600000) | (I1 << 22) | (I2 << 21);
+  int const imm32 = SignExtend32<25>(tmp << 1);
 
   if (!tryAddingSymbolicOperand(Address,
                                 (Address & ~2u) + imm32 + 4,
@@ -4538,8 +4538,8 @@ DecodeThumbTableBranch(MCInst &Inst, unsigned Insn,
     ((const MCDisassembler*)Decoder)->getSubtargetInfo().getFeatureBits();
   DecodeStatus S = MCDisassembler::Success;
 
-  unsigned Rn = fieldFromInstruction(Insn, 16, 4);
-  unsigned Rm = fieldFromInstruction(Insn, 0, 4);
+  unsigned const Rn = fieldFromInstruction(Insn, 16, 4);
+  unsigned const Rm = fieldFromInstruction(Insn, 0, 4);
 
   if (Rn == 13 && !FeatureBits[ARM::HasV8Ops]) S = MCDisassembler::SoftFail;
   if (!Check(S, DecodeGPRRegisterClass(Inst, Rn, Address, Decoder)))
@@ -4554,9 +4554,9 @@ DecodeThumb2BCCInstruction(MCInst &Inst, unsigned Insn,
                            uint64_t Address, const void *Decoder) {
   DecodeStatus S = MCDisassembler::Success;
 
-  unsigned pred = fieldFromInstruction(Insn, 22, 4);
+  unsigned const pred = fieldFromInstruction(Insn, 22, 4);
   if (pred == 0xE || pred == 0xF) {
-    unsigned opc = fieldFromInstruction(Insn, 4, 28);
+    unsigned const opc = fieldFromInstruction(Insn, 4, 28);
     switch (opc) {
       default:
         return MCDisassembler::Fail;
@@ -4571,7 +4571,7 @@ DecodeThumb2BCCInstruction(MCInst &Inst, unsigned Insn,
         break;
     }
 
-    unsigned imm = fieldFromInstruction(Insn, 0, 4);
+    unsigned const imm = fieldFromInstruction(Insn, 0, 4);
     return DecodeMemBarrierOption(Inst, imm, Address, Decoder);
   }
 
@@ -4594,10 +4594,10 @@ DecodeThumb2BCCInstruction(MCInst &Inst, unsigned Insn,
 // a splat operation or a rotation.
 static DecodeStatus DecodeT2SOImm(MCInst &Inst, unsigned Val,
                           uint64_t Address, const void *Decoder) {
-  unsigned ctrl = fieldFromInstruction(Val, 10, 2);
+  unsigned const ctrl = fieldFromInstruction(Val, 10, 2);
   if (ctrl == 0) {
-    unsigned byte = fieldFromInstruction(Val, 8, 2);
-    unsigned imm = fieldFromInstruction(Val, 0, 8);
+    unsigned const byte = fieldFromInstruction(Val, 8, 2);
+    unsigned const imm = fieldFromInstruction(Val, 0, 8);
     switch (byte) {
       case 0:
         Inst.addOperand(MCOperand::createImm(imm));
@@ -4614,9 +4614,9 @@ static DecodeStatus DecodeT2SOImm(MCInst &Inst, unsigned Val,
         break;
     }
   } else {
-    unsigned unrot = fieldFromInstruction(Val, 0, 7) | 0x80;
-    unsigned rot = fieldFromInstruction(Val, 7, 5);
-    unsigned imm = (unrot >> rot) | (unrot << ((32-rot)&31));
+    unsigned const unrot = fieldFromInstruction(Val, 0, 7) | 0x80;
+    unsigned const rot = fieldFromInstruction(Val, 7, 5);
+    unsigned const imm = (unrot >> rot) | (unrot << ((32-rot)&31));
     Inst.addOperand(MCOperand::createImm(imm));
   }
 
@@ -4642,13 +4642,13 @@ static DecodeStatus DecodeThumbBLTargetOperand(MCInst &Inst, unsigned Val,
   // I2 = NOT(J2 EOR S);
   // and build the imm32 with one trailing zero as documented:
   // imm32 = SignExtend(S:I1:I2:imm10:imm11:'0', 32);
-  unsigned S = (Val >> 23) & 1;
-  unsigned J1 = (Val >> 22) & 1;
-  unsigned J2 = (Val >> 21) & 1;
-  unsigned I1 = !(J1 ^ S);
-  unsigned I2 = !(J2 ^ S);
-  unsigned tmp = (Val & ~0x600000) | (I1 << 22) | (I2 << 21);
-  int imm32 = SignExtend32<25>(tmp << 1);
+  unsigned const S = (Val >> 23) & 1;
+  unsigned const J1 = (Val >> 22) & 1;
+  unsigned const J2 = (Val >> 21) & 1;
+  unsigned const I1 = !(J1 ^ S);
+  unsigned const I2 = !(J2 ^ S);
+  unsigned const tmp = (Val & ~0x600000) | (I1 << 22) | (I2 << 21);
+  int const imm32 = SignExtend32<25>(tmp << 1);
 
   if (!tryAddingSymbolicOperand(Address, Address + imm32 + 4,
                                 true, 4, Inst, Decoder))
@@ -4681,7 +4681,7 @@ static DecodeStatus DecodeMSRMask(MCInst &Inst, unsigned Val,
     ((const MCDisassembler*)Decoder)->getSubtargetInfo().getFeatureBits();
 
   if (FeatureBits[ARM::FeatureMClass]) {
-    unsigned ValLow = Val & 0xff;
+    unsigned const ValLow = Val & 0xff;
 
     // Validate the SYSm value first.
     switch (ValLow) {
@@ -4728,7 +4728,7 @@ static DecodeStatus DecodeMSRMask(MCInst &Inst, unsigned Val,
     }
 
     if (Inst.getOpcode() == ARM::t2MSR_M) {
-      unsigned Mask = fieldFromInstruction(Val, 10, 2);
+      unsigned const Mask = fieldFromInstruction(Val, 10, 2);
       if (!(FeatureBits[ARM::HasV7Ops])) {
         // The ARMv6-M MSR bits {11-10} can be only 0b10, other values are
         // unpredictable.
@@ -4758,8 +4758,8 @@ static DecodeStatus DecodeMSRMask(MCInst &Inst, unsigned Val,
 
 static DecodeStatus DecodeBankedReg(MCInst &Inst, unsigned Val,
                                     uint64_t Address, const void *Decoder) {
-  unsigned R = fieldFromInstruction(Val, 5, 1);
-  unsigned SysM = fieldFromInstruction(Val, 0, 5);
+  unsigned const R = fieldFromInstruction(Val, 5, 1);
+  unsigned const SysM = fieldFromInstruction(Val, 0, 5);
 
   // The table of encodings for these banked registers comes from B9.2.3 of the
   // ARM ARM. There are patterns, but nothing regular enough to make this logic
@@ -4775,9 +4775,9 @@ static DecodeStatus DecodeDoubleRegLoad(MCInst &Inst, unsigned Insn,
                                         uint64_t Address, const void *Decoder) {
   DecodeStatus S = MCDisassembler::Success;
 
-  unsigned Rt = fieldFromInstruction(Insn, 12, 4);
-  unsigned Rn = fieldFromInstruction(Insn, 16, 4);
-  unsigned pred = fieldFromInstruction(Insn, 28, 4);
+  unsigned const Rt = fieldFromInstruction(Insn, 12, 4);
+  unsigned const Rn = fieldFromInstruction(Insn, 16, 4);
+  unsigned const pred = fieldFromInstruction(Insn, 28, 4);
 
   if (Rn == 0xF)
     S = MCDisassembler::SoftFail;
@@ -4797,10 +4797,10 @@ static DecodeStatus DecodeDoubleRegStore(MCInst &Inst, unsigned Insn,
                                          const void *Decoder) {
   DecodeStatus S = MCDisassembler::Success;
 
-  unsigned Rd = fieldFromInstruction(Insn, 12, 4);
-  unsigned Rt = fieldFromInstruction(Insn, 0, 4);
-  unsigned Rn = fieldFromInstruction(Insn, 16, 4);
-  unsigned pred = fieldFromInstruction(Insn, 28, 4);
+  unsigned const Rd = fieldFromInstruction(Insn, 12, 4);
+  unsigned const Rt = fieldFromInstruction(Insn, 0, 4);
+  unsigned const Rn = fieldFromInstruction(Insn, 16, 4);
+  unsigned const pred = fieldFromInstruction(Insn, 28, 4);
 
   if (!Check(S, DecodeGPRnopcRegisterClass(Inst, Rd, Address, Decoder)))
     return MCDisassembler::Fail;
@@ -4822,12 +4822,12 @@ static DecodeStatus DecodeLDRPreImm(MCInst &Inst, unsigned Insn,
                             uint64_t Address, const void *Decoder) {
   DecodeStatus S = MCDisassembler::Success;
 
-  unsigned Rn = fieldFromInstruction(Insn, 16, 4);
-  unsigned Rt = fieldFromInstruction(Insn, 12, 4);
+  unsigned const Rn = fieldFromInstruction(Insn, 16, 4);
+  unsigned const Rt = fieldFromInstruction(Insn, 12, 4);
   unsigned imm = fieldFromInstruction(Insn, 0, 12);
   imm |= fieldFromInstruction(Insn, 16, 4) << 13;
   imm |= fieldFromInstruction(Insn, 23, 1) << 12;
-  unsigned pred = fieldFromInstruction(Insn, 28, 4);
+  unsigned const pred = fieldFromInstruction(Insn, 28, 4);
 
   if (Rn == 0xF || Rn == Rt) S = MCDisassembler::SoftFail;
 
@@ -4847,13 +4847,13 @@ static DecodeStatus DecodeLDRPreReg(MCInst &Inst, unsigned Insn,
                             uint64_t Address, const void *Decoder) {
   DecodeStatus S = MCDisassembler::Success;
 
-  unsigned Rn = fieldFromInstruction(Insn, 16, 4);
-  unsigned Rt = fieldFromInstruction(Insn, 12, 4);
+  unsigned const Rn = fieldFromInstruction(Insn, 16, 4);
+  unsigned const Rt = fieldFromInstruction(Insn, 12, 4);
   unsigned imm = fieldFromInstruction(Insn, 0, 12);
   imm |= fieldFromInstruction(Insn, 16, 4) << 13;
   imm |= fieldFromInstruction(Insn, 23, 1) << 12;
-  unsigned pred = fieldFromInstruction(Insn, 28, 4);
-  unsigned Rm = fieldFromInstruction(Insn, 0, 4);
+  unsigned const pred = fieldFromInstruction(Insn, 28, 4);
+  unsigned const Rm = fieldFromInstruction(Insn, 0, 4);
 
   if (Rn == 0xF || Rn == Rt) S = MCDisassembler::SoftFail;
   if (Rm == 0xF) S = MCDisassembler::SoftFail;
@@ -4874,12 +4874,12 @@ static DecodeStatus DecodeSTRPreImm(MCInst &Inst, unsigned Insn,
                             uint64_t Address, const void *Decoder) {
   DecodeStatus S = MCDisassembler::Success;
 
-  unsigned Rn = fieldFromInstruction(Insn, 16, 4);
-  unsigned Rt = fieldFromInstruction(Insn, 12, 4);
+  unsigned const Rn = fieldFromInstruction(Insn, 16, 4);
+  unsigned const Rt = fieldFromInstruction(Insn, 12, 4);
   unsigned imm = fieldFromInstruction(Insn, 0, 12);
   imm |= fieldFromInstruction(Insn, 16, 4) << 13;
   imm |= fieldFromInstruction(Insn, 23, 1) << 12;
-  unsigned pred = fieldFromInstruction(Insn, 28, 4);
+  unsigned const pred = fieldFromInstruction(Insn, 28, 4);
 
   if (Rn == 0xF || Rn == Rt) S = MCDisassembler::SoftFail;
 
@@ -4899,12 +4899,12 @@ static DecodeStatus DecodeSTRPreReg(MCInst &Inst, unsigned Insn,
                             uint64_t Address, const void *Decoder) {
   DecodeStatus S = MCDisassembler::Success;
 
-  unsigned Rn = fieldFromInstruction(Insn, 16, 4);
-  unsigned Rt = fieldFromInstruction(Insn, 12, 4);
+  unsigned const Rn = fieldFromInstruction(Insn, 16, 4);
+  unsigned const Rt = fieldFromInstruction(Insn, 12, 4);
   unsigned imm = fieldFromInstruction(Insn, 0, 12);
   imm |= fieldFromInstruction(Insn, 16, 4) << 13;
   imm |= fieldFromInstruction(Insn, 23, 1) << 12;
-  unsigned pred = fieldFromInstruction(Insn, 28, 4);
+  unsigned const pred = fieldFromInstruction(Insn, 28, 4);
 
   if (Rn == 0xF || Rn == Rt) S = MCDisassembler::SoftFail;
 
@@ -4924,11 +4924,11 @@ static DecodeStatus DecodeVLD1LN(MCInst &Inst, unsigned Insn,
                          uint64_t Address, const void *Decoder) {
   DecodeStatus S = MCDisassembler::Success;
 
-  unsigned Rn = fieldFromInstruction(Insn, 16, 4);
-  unsigned Rm = fieldFromInstruction(Insn, 0, 4);
+  unsigned const Rn = fieldFromInstruction(Insn, 16, 4);
+  unsigned const Rm = fieldFromInstruction(Insn, 0, 4);
   unsigned Rd = fieldFromInstruction(Insn, 12, 4);
   Rd |= fieldFromInstruction(Insn, 22, 1) << 4;
-  unsigned size = fieldFromInstruction(Insn, 10, 2);
+  unsigned const size = fieldFromInstruction(Insn, 10, 2);
 
   unsigned align = 0;
   unsigned index = 0;
@@ -4991,11 +4991,11 @@ static DecodeStatus DecodeVST1LN(MCInst &Inst, unsigned Insn,
                          uint64_t Address, const void *Decoder) {
   DecodeStatus S = MCDisassembler::Success;
 
-  unsigned Rn = fieldFromInstruction(Insn, 16, 4);
-  unsigned Rm = fieldFromInstruction(Insn, 0, 4);
+  unsigned const Rn = fieldFromInstruction(Insn, 16, 4);
+  unsigned const Rm = fieldFromInstruction(Insn, 0, 4);
   unsigned Rd = fieldFromInstruction(Insn, 12, 4);
   Rd |= fieldFromInstruction(Insn, 22, 1) << 4;
-  unsigned size = fieldFromInstruction(Insn, 10, 2);
+  unsigned const size = fieldFromInstruction(Insn, 10, 2);
 
   unsigned align = 0;
   unsigned index = 0;
@@ -5056,11 +5056,11 @@ static DecodeStatus DecodeVLD2LN(MCInst &Inst, unsigned Insn,
                          uint64_t Address, const void *Decoder) {
   DecodeStatus S = MCDisassembler::Success;
 
-  unsigned Rn = fieldFromInstruction(Insn, 16, 4);
-  unsigned Rm = fieldFromInstruction(Insn, 0, 4);
+  unsigned const Rn = fieldFromInstruction(Insn, 16, 4);
+  unsigned const Rm = fieldFromInstruction(Insn, 0, 4);
   unsigned Rd = fieldFromInstruction(Insn, 12, 4);
   Rd |= fieldFromInstruction(Insn, 22, 1) << 4;
-  unsigned size = fieldFromInstruction(Insn, 10, 2);
+  unsigned const size = fieldFromInstruction(Insn, 10, 2);
 
   unsigned align = 0;
   unsigned index = 0;
@@ -5123,11 +5123,11 @@ static DecodeStatus DecodeVST2LN(MCInst &Inst, unsigned Insn,
                          uint64_t Address, const void *Decoder) {
   DecodeStatus S = MCDisassembler::Success;
 
-  unsigned Rn = fieldFromInstruction(Insn, 16, 4);
-  unsigned Rm = fieldFromInstruction(Insn, 0, 4);
+  unsigned const Rn = fieldFromInstruction(Insn, 16, 4);
+  unsigned const Rm = fieldFromInstruction(Insn, 0, 4);
   unsigned Rd = fieldFromInstruction(Insn, 12, 4);
   Rd |= fieldFromInstruction(Insn, 22, 1) << 4;
-  unsigned size = fieldFromInstruction(Insn, 10, 2);
+  unsigned const size = fieldFromInstruction(Insn, 10, 2);
 
   unsigned align = 0;
   unsigned index = 0;
@@ -5186,13 +5186,13 @@ static DecodeStatus DecodeVLD3LN(MCInst &Inst, unsigned Insn,
                          uint64_t Address, const void *Decoder) {
   DecodeStatus S = MCDisassembler::Success;
 
-  unsigned Rn = fieldFromInstruction(Insn, 16, 4);
-  unsigned Rm = fieldFromInstruction(Insn, 0, 4);
+  unsigned const Rn = fieldFromInstruction(Insn, 16, 4);
+  unsigned const Rm = fieldFromInstruction(Insn, 0, 4);
   unsigned Rd = fieldFromInstruction(Insn, 12, 4);
   Rd |= fieldFromInstruction(Insn, 22, 1) << 4;
-  unsigned size = fieldFromInstruction(Insn, 10, 2);
+  unsigned const size = fieldFromInstruction(Insn, 10, 2);
 
-  unsigned align = 0;
+  unsigned const align = 0;
   unsigned index = 0;
   unsigned inc = 1;
   switch (size) {
@@ -5256,13 +5256,13 @@ static DecodeStatus DecodeVST3LN(MCInst &Inst, unsigned Insn,
                          uint64_t Address, const void *Decoder) {
   DecodeStatus S = MCDisassembler::Success;
 
-  unsigned Rn = fieldFromInstruction(Insn, 16, 4);
-  unsigned Rm = fieldFromInstruction(Insn, 0, 4);
+  unsigned const Rn = fieldFromInstruction(Insn, 16, 4);
+  unsigned const Rm = fieldFromInstruction(Insn, 0, 4);
   unsigned Rd = fieldFromInstruction(Insn, 12, 4);
   Rd |= fieldFromInstruction(Insn, 22, 1) << 4;
-  unsigned size = fieldFromInstruction(Insn, 10, 2);
+  unsigned const size = fieldFromInstruction(Insn, 10, 2);
 
-  unsigned align = 0;
+  unsigned const align = 0;
   unsigned index = 0;
   unsigned inc = 1;
   switch (size) {
@@ -5319,11 +5319,11 @@ static DecodeStatus DecodeVLD4LN(MCInst &Inst, unsigned Insn,
                          uint64_t Address, const void *Decoder) {
   DecodeStatus S = MCDisassembler::Success;
 
-  unsigned Rn = fieldFromInstruction(Insn, 16, 4);
-  unsigned Rm = fieldFromInstruction(Insn, 0, 4);
+  unsigned const Rn = fieldFromInstruction(Insn, 16, 4);
+  unsigned const Rm = fieldFromInstruction(Insn, 0, 4);
   unsigned Rd = fieldFromInstruction(Insn, 12, 4);
   Rd |= fieldFromInstruction(Insn, 22, 1) << 4;
-  unsigned size = fieldFromInstruction(Insn, 10, 2);
+  unsigned const size = fieldFromInstruction(Insn, 10, 2);
 
   unsigned align = 0;
   unsigned index = 0;
@@ -5400,11 +5400,11 @@ static DecodeStatus DecodeVST4LN(MCInst &Inst, unsigned Insn,
                          uint64_t Address, const void *Decoder) {
   DecodeStatus S = MCDisassembler::Success;
 
-  unsigned Rn = fieldFromInstruction(Insn, 16, 4);
-  unsigned Rm = fieldFromInstruction(Insn, 0, 4);
+  unsigned const Rn = fieldFromInstruction(Insn, 16, 4);
+  unsigned const Rm = fieldFromInstruction(Insn, 0, 4);
   unsigned Rd = fieldFromInstruction(Insn, 12, 4);
   Rd |= fieldFromInstruction(Insn, 22, 1) << 4;
-  unsigned size = fieldFromInstruction(Insn, 10, 2);
+  unsigned const size = fieldFromInstruction(Insn, 10, 2);
 
   unsigned align = 0;
   unsigned index = 0;
@@ -5471,10 +5471,10 @@ static DecodeStatus DecodeVST4LN(MCInst &Inst, unsigned Insn,
 static DecodeStatus DecodeVMOVSRR(MCInst &Inst, unsigned Insn,
                                   uint64_t Address, const void *Decoder) {
   DecodeStatus S = MCDisassembler::Success;
-  unsigned Rt  = fieldFromInstruction(Insn, 12, 4);
-  unsigned Rt2 = fieldFromInstruction(Insn, 16, 4);
+  unsigned const Rt  = fieldFromInstruction(Insn, 12, 4);
+  unsigned const Rt2 = fieldFromInstruction(Insn, 16, 4);
   unsigned Rm  = fieldFromInstruction(Insn,  5, 1);
-  unsigned pred = fieldFromInstruction(Insn, 28, 4);
+  unsigned const pred = fieldFromInstruction(Insn, 28, 4);
   Rm |= fieldFromInstruction(Insn, 0, 4) << 1;
 
   if (Rt == 0xF || Rt2 == 0xF || Rm == 0x1F)
@@ -5497,10 +5497,10 @@ static DecodeStatus DecodeVMOVSRR(MCInst &Inst, unsigned Insn,
 static DecodeStatus DecodeVMOVRRS(MCInst &Inst, unsigned Insn,
                                   uint64_t Address, const void *Decoder) {
   DecodeStatus S = MCDisassembler::Success;
-  unsigned Rt  = fieldFromInstruction(Insn, 12, 4);
-  unsigned Rt2 = fieldFromInstruction(Insn, 16, 4);
+  unsigned const Rt  = fieldFromInstruction(Insn, 12, 4);
+  unsigned const Rt2 = fieldFromInstruction(Insn, 16, 4);
   unsigned Rm  = fieldFromInstruction(Insn,  5, 1);
-  unsigned pred = fieldFromInstruction(Insn, 28, 4);
+  unsigned const pred = fieldFromInstruction(Insn, 28, 4);
   Rm |= fieldFromInstruction(Insn, 0, 4) << 1;
 
   if (Rt == 0xF || Rt2 == 0xF || Rm == 0x1F)
@@ -5539,8 +5539,8 @@ static DecodeStatus DecodeIT(MCInst &Inst, unsigned Insn,
   // condition code is 1, then we have to flip all the bits above the
   // terminating bit (which is the lowest 1 bit).
   if (pred & 1) {
-    unsigned LowBit = mask & -mask;
-    unsigned BitsAboveLowBit = 0xF & (-LowBit << 1);
+    unsigned const LowBit = mask & -mask;
+    unsigned const BitsAboveLowBit = 0xF & (-LowBit << 1);
     mask ^= BitsAboveLowBit;
   }
 
@@ -5554,14 +5554,14 @@ DecodeT2LDRDPreInstruction(MCInst &Inst, unsigned Insn,
                            uint64_t Address, const void *Decoder) {
   DecodeStatus S = MCDisassembler::Success;
 
-  unsigned Rt = fieldFromInstruction(Insn, 12, 4);
-  unsigned Rt2 = fieldFromInstruction(Insn, 8, 4);
-  unsigned Rn = fieldFromInstruction(Insn, 16, 4);
+  unsigned const Rt = fieldFromInstruction(Insn, 12, 4);
+  unsigned const Rt2 = fieldFromInstruction(Insn, 8, 4);
+  unsigned const Rn = fieldFromInstruction(Insn, 16, 4);
   unsigned addr = fieldFromInstruction(Insn, 0, 8);
-  unsigned W = fieldFromInstruction(Insn, 21, 1);
-  unsigned U = fieldFromInstruction(Insn, 23, 1);
-  unsigned P = fieldFromInstruction(Insn, 24, 1);
-  bool writeback = (W == 1) | (P == 0);
+  unsigned const W = fieldFromInstruction(Insn, 21, 1);
+  unsigned const U = fieldFromInstruction(Insn, 23, 1);
+  unsigned const P = fieldFromInstruction(Insn, 24, 1);
+  bool const writeback = (W == 1) | (P == 0);
 
   addr |= (U << 8) | (Rn << 9);
 
@@ -5591,14 +5591,14 @@ DecodeT2STRDPreInstruction(MCInst &Inst, unsigned Insn,
                            uint64_t Address, const void *Decoder) {
   DecodeStatus S = MCDisassembler::Success;
 
-  unsigned Rt = fieldFromInstruction(Insn, 12, 4);
-  unsigned Rt2 = fieldFromInstruction(Insn, 8, 4);
-  unsigned Rn = fieldFromInstruction(Insn, 16, 4);
+  unsigned const Rt = fieldFromInstruction(Insn, 12, 4);
+  unsigned const Rt2 = fieldFromInstruction(Insn, 8, 4);
+  unsigned const Rn = fieldFromInstruction(Insn, 16, 4);
   unsigned addr = fieldFromInstruction(Insn, 0, 8);
-  unsigned W = fieldFromInstruction(Insn, 21, 1);
-  unsigned U = fieldFromInstruction(Insn, 23, 1);
-  unsigned P = fieldFromInstruction(Insn, 24, 1);
-  bool writeback = (W == 1) | (P == 0);
+  unsigned const W = fieldFromInstruction(Insn, 21, 1);
+  unsigned const U = fieldFromInstruction(Insn, 23, 1);
+  unsigned const P = fieldFromInstruction(Insn, 24, 1);
+  bool const writeback = (W == 1) | (P == 0);
 
   addr |= (U << 8) | (Rn << 9);
 
@@ -5623,12 +5623,12 @@ DecodeT2STRDPreInstruction(MCInst &Inst, unsigned Insn,
 
 static DecodeStatus DecodeT2Adr(MCInst &Inst, uint32_t Insn,
                                 uint64_t Address, const void *Decoder) {
-  unsigned sign1 = fieldFromInstruction(Insn, 21, 1);
-  unsigned sign2 = fieldFromInstruction(Insn, 23, 1);
+  unsigned const sign1 = fieldFromInstruction(Insn, 21, 1);
+  unsigned const sign2 = fieldFromInstruction(Insn, 23, 1);
   if (sign1 != sign2) return MCDisassembler::Fail;
   const unsigned Rd = fieldFromInstruction(Insn, 8, 4);
   assert(Inst.getNumOperands() == 0 && "We should receive an empty Inst");
-  DecodeStatus S = DecoderGPRRegisterClass(Inst, Rd, Address, Decoder);
+  DecodeStatus const S = DecoderGPRRegisterClass(Inst, Rd, Address, Decoder);
 
   unsigned Val = fieldFromInstruction(Insn, 0, 8);
   Val |= fieldFromInstruction(Insn, 12, 3) << 8;
@@ -5660,10 +5660,10 @@ static DecodeStatus DecodeT2ShifterImmOperand(MCInst &Inst, uint32_t Val,
 
 static DecodeStatus DecodeSwap(MCInst &Inst, unsigned Insn,
                                uint64_t Address, const void *Decoder) {
-  unsigned Rt   = fieldFromInstruction(Insn, 12, 4);
-  unsigned Rt2  = fieldFromInstruction(Insn, 0,  4);
-  unsigned Rn   = fieldFromInstruction(Insn, 16, 4);
-  unsigned pred = fieldFromInstruction(Insn, 28, 4);
+  unsigned const Rt   = fieldFromInstruction(Insn, 12, 4);
+  unsigned const Rt2  = fieldFromInstruction(Insn, 0,  4);
+  unsigned const Rn   = fieldFromInstruction(Insn, 16, 4);
+  unsigned const pred = fieldFromInstruction(Insn, 28, 4);
 
   if (pred == 0xF)
     return DecodeCPSInstruction(Inst, Insn, Address, Decoder);
@@ -5689,15 +5689,15 @@ static DecodeStatus DecodeVCVTD(MCInst &Inst, unsigned Insn,
                                 uint64_t Address, const void *Decoder) {
   const FeatureBitset &featureBits =
       ((const MCDisassembler *)Decoder)->getSubtargetInfo().getFeatureBits();
-  bool hasFullFP16 = featureBits[ARM::FeatureFullFP16];
+  bool const hasFullFP16 = featureBits[ARM::FeatureFullFP16];
 
   unsigned Vd = (fieldFromInstruction(Insn, 12, 4) << 0);
   Vd |= (fieldFromInstruction(Insn, 22, 1) << 4);
   unsigned Vm = (fieldFromInstruction(Insn, 0, 4) << 0);
   Vm |= (fieldFromInstruction(Insn, 5, 1) << 4);
-  unsigned imm = fieldFromInstruction(Insn, 16, 6);
-  unsigned cmode = fieldFromInstruction(Insn, 8, 4);
-  unsigned op = fieldFromInstruction(Insn, 5, 1);
+  unsigned const imm = fieldFromInstruction(Insn, 16, 6);
+  unsigned const cmode = fieldFromInstruction(Insn, 8, 4);
+  unsigned const op = fieldFromInstruction(Insn, 5, 1);
 
   DecodeStatus S = MCDisassembler::Success;
 
@@ -5748,15 +5748,15 @@ static DecodeStatus DecodeVCVTQ(MCInst &Inst, unsigned Insn,
                                 uint64_t Address, const void *Decoder) {
   const FeatureBitset &featureBits =
       ((const MCDisassembler *)Decoder)->getSubtargetInfo().getFeatureBits();
-  bool hasFullFP16 = featureBits[ARM::FeatureFullFP16];
+  bool const hasFullFP16 = featureBits[ARM::FeatureFullFP16];
 
   unsigned Vd = (fieldFromInstruction(Insn, 12, 4) << 0);
   Vd |= (fieldFromInstruction(Insn, 22, 1) << 4);
   unsigned Vm = (fieldFromInstruction(Insn, 0, 4) << 0);
   Vm |= (fieldFromInstruction(Insn, 5, 1) << 4);
-  unsigned imm = fieldFromInstruction(Insn, 16, 6);
-  unsigned cmode = fieldFromInstruction(Insn, 8, 4);
-  unsigned op = fieldFromInstruction(Insn, 5, 1);
+  unsigned const imm = fieldFromInstruction(Insn, 16, 6);
+  unsigned const cmode = fieldFromInstruction(Insn, 8, 4);
+  unsigned const op = fieldFromInstruction(Insn, 5, 1);
 
   DecodeStatus S = MCDisassembler::Success;
 
@@ -5813,8 +5813,8 @@ static DecodeStatus DecodeNEONComplexLane64Instruction(MCInst &Inst,
   Vn |= (fieldFromInstruction(Insn, 7, 1) << 4);
   unsigned Vm = (fieldFromInstruction(Insn, 0, 4) << 0);
   Vm |= (fieldFromInstruction(Insn, 5, 1) << 4);
-  unsigned q = (fieldFromInstruction(Insn, 6, 1) << 0);
-  unsigned rotate = (fieldFromInstruction(Insn, 20, 2) << 0);
+  unsigned const q = (fieldFromInstruction(Insn, 6, 1) << 0);
+  unsigned const rotate = (fieldFromInstruction(Insn, 20, 2) << 0);
 
   DecodeStatus S = MCDisassembler::Success;
 
@@ -5840,11 +5840,11 @@ static DecodeStatus DecodeLDR(MCInst &Inst, unsigned Val,
                                 uint64_t Address, const void *Decoder) {
   DecodeStatus S = MCDisassembler::Success;
 
-  unsigned Rn = fieldFromInstruction(Val, 16, 4);
-  unsigned Rt = fieldFromInstruction(Val, 12, 4);
+  unsigned const Rn = fieldFromInstruction(Val, 16, 4);
+  unsigned const Rt = fieldFromInstruction(Val, 12, 4);
   unsigned Rm = fieldFromInstruction(Val, 0, 4);
   Rm |= (fieldFromInstruction(Val, 23, 1) << 4);
-  unsigned Cond = fieldFromInstruction(Val, 28, 4);
+  unsigned const Cond = fieldFromInstruction(Val, 28, 4);
 
   if (fieldFromInstruction(Val, 8, 4) != 0 || Rn == Rt)
     S = MCDisassembler::SoftFail;
@@ -5867,11 +5867,11 @@ static DecodeStatus DecoderForMRRC2AndMCRR2(MCInst &Inst, unsigned Val,
                                             uint64_t Address, const void *Decoder) {
   DecodeStatus S = MCDisassembler::Success;
 
-  unsigned CRm = fieldFromInstruction(Val, 0, 4);
-  unsigned opc1 = fieldFromInstruction(Val, 4, 4);
-  unsigned cop = fieldFromInstruction(Val, 8, 4);
-  unsigned Rt = fieldFromInstruction(Val, 12, 4);
-  unsigned Rt2 = fieldFromInstruction(Val, 16, 4);
+  unsigned const CRm = fieldFromInstruction(Val, 0, 4);
+  unsigned const opc1 = fieldFromInstruction(Val, 4, 4);
+  unsigned const cop = fieldFromInstruction(Val, 8, 4);
+  unsigned const Rt = fieldFromInstruction(Val, 12, 4);
+  unsigned const Rt2 = fieldFromInstruction(Val, 16, 4);
 
   if ((cop & ~0x1) == 0xa)
     return MCDisassembler::Fail;
@@ -5927,7 +5927,7 @@ static DecodeStatus DecodeForVMRSandVMSR(MCInst &Inst, unsigned Val,
   }
 
   if (Inst.getOpcode() != ARM::FMSTAT) {
-    unsigned Rt = fieldFromInstruction(Val, 12, 4);
+    unsigned const Rt = fieldFromInstruction(Val, 12, 4);
 
     if (featureBits[ARM::ModeThumb] && !featureBits[ARM::HasV8Ops]) {
       if (Rt == 13 || Rt == 15)
@@ -5951,7 +5951,7 @@ static DecodeStatus DecodeForVMRSandVMSR(MCInst &Inst, unsigned Val,
     Inst.addOperand(MCOperand::createImm(ARMCC::AL));
     Inst.addOperand(MCOperand::createReg(0));
   } else {
-    unsigned pred = fieldFromInstruction(Val, 28, 4);
+    unsigned const pred = fieldFromInstruction(Val, 28, 4);
     if (!Check(S, DecodePredicateOperand(Inst, pred, Address, Decoder)))
       return MCDisassembler::Fail;
   }
@@ -5983,7 +5983,7 @@ static DecodeStatus DecodeBFAfterTargetOperand(MCInst &Inst, unsigned Val,
                                                uint64_t Address,
                                                const void *Decoder) {
 
-  uint64_t LocImm = Inst.getOperand(0).getImm();
+  uint64_t const LocImm = Inst.getOperand(0).getImm();
   Val = LocImm + (2 << Val);
   if (!tryAddingSymbolicOperand(Address, Address + Val + 4, true, 4, Inst,
                                 Decoder))
@@ -6007,7 +6007,7 @@ static DecodeStatus DecodeLOLoop(MCInst &Inst, unsigned Insn, uint64_t Address,
   if (Inst.getOpcode() == ARM::MVE_LCTP)
     return S;
 
-  unsigned Imm = fieldFromInstruction(Insn, 11, 1) |
+  unsigned const Imm = fieldFromInstruction(Insn, 11, 1) |
                  fieldFromInstruction(Insn, 1, 10) << 1;
   switch (Inst.getOpcode()) {
   case ARM::t2LEUpdate:
@@ -6038,7 +6038,7 @@ static DecodeStatus DecodeLOLoop(MCInst &Inst, unsigned Insn, uint64_t Address,
   case ARM::MVE_DLSTP_16:
   case ARM::MVE_DLSTP_32:
   case ARM::MVE_DLSTP_64:
-    unsigned Rn = fieldFromInstruction(Insn, 16, 4);
+    unsigned const Rn = fieldFromInstruction(Insn, 16, 4);
     if (Rn == 0xF) {
       // Enforce all the rest of the instruction bits in LCTP, which
       // won't have been reliably checked based on LCTP's own tablegen
@@ -6065,7 +6065,7 @@ static DecodeStatus DecodeLOLoop(MCInst &Inst, unsigned Insn, uint64_t Address,
 static DecodeStatus DecodeLongShiftOperand(MCInst &Inst, unsigned Val,
                                            uint64_t Address,
                                            const void *Decoder) {
-  DecodeStatus S = MCDisassembler::Success;
+  DecodeStatus const S = MCDisassembler::Success;
 
   if (Val == 0)
     Val = 32;
@@ -6080,7 +6080,7 @@ static DecodeStatus DecodetGPROddRegisterClass(MCInst &Inst, unsigned RegNo,
   if ((RegNo) + 1 > 11)
     return MCDisassembler::Fail;
 
-  unsigned Register = GPRDecoderTable[(RegNo) + 1];
+  unsigned const Register = GPRDecoderTable[(RegNo) + 1];
   Inst.addOperand(MCOperand::createReg(Register));
   return MCDisassembler::Success;
 }
@@ -6090,7 +6090,7 @@ static DecodeStatus DecodetGPREvenRegisterClass(MCInst &Inst, unsigned RegNo,
   if ((RegNo) > 14)
     return MCDisassembler::Fail;
 
-  unsigned Register = GPRDecoderTable[(RegNo)];
+  unsigned const Register = GPRDecoderTable[(RegNo)];
   Inst.addOperand(MCOperand::createReg(Register));
   return MCDisassembler::Success;
 }
@@ -6103,7 +6103,7 @@ DecodeGPRwithAPSR_NZCVnospRegisterClass(MCInst &Inst, unsigned RegNo,
     return MCDisassembler::Success;
   }
 
-  unsigned Register = GPRDecoderTable[RegNo];
+  unsigned const Register = GPRDecoderTable[RegNo];
   Inst.addOperand(MCOperand::createReg(Register));
 
   if (RegNo == 13)
@@ -6119,14 +6119,14 @@ static DecodeStatus DecodeVSCCLRM(MCInst &Inst, unsigned Insn, uint64_t Address,
   Inst.addOperand(MCOperand::createImm(ARMCC::AL));
   Inst.addOperand(MCOperand::createReg(0));
   if (Inst.getOpcode() == ARM::VSCCLRMD) {
-    unsigned reglist = (fieldFromInstruction(Insn, 1, 7) << 1) |
+    unsigned const reglist = (fieldFromInstruction(Insn, 1, 7) << 1) |
                        (fieldFromInstruction(Insn, 12, 4) << 8) |
                        (fieldFromInstruction(Insn, 22, 1) << 12);
     if (!Check(S, DecodeDPRRegListOperand(Inst, reglist, Address, Decoder))) {
       return MCDisassembler::Fail;
     }
   } else {
-    unsigned reglist = fieldFromInstruction(Insn, 0, 8) |
+    unsigned const reglist = fieldFromInstruction(Insn, 0, 8) |
                        (fieldFromInstruction(Insn, 22, 1) << 8) |
                        (fieldFromInstruction(Insn, 12, 4) << 9);
     if (!Check(S, DecodeSPRRegListOperand(Inst, reglist, Address, Decoder))) {
@@ -6144,7 +6144,7 @@ static DecodeStatus DecodeMQPRRegisterClass(MCInst &Inst, unsigned RegNo,
   if (RegNo > 7)
     return MCDisassembler::Fail;
 
-  unsigned Register = QPRDecoderTable[RegNo];
+  unsigned const Register = QPRDecoderTable[RegNo];
   Inst.addOperand(MCOperand::createReg(Register));
   return MCDisassembler::Success;
 }
@@ -6160,7 +6160,7 @@ static DecodeStatus DecodeQQPRRegisterClass(MCInst &Inst, unsigned RegNo,
   if (RegNo > 6)
     return MCDisassembler::Fail;
 
-  unsigned Register = QQPRDecoderTable[RegNo];
+  unsigned const Register = QQPRDecoderTable[RegNo];
   Inst.addOperand(MCOperand::createReg(Register));
   return MCDisassembler::Success;
 }
@@ -6176,7 +6176,7 @@ static DecodeStatus DecodeQQQQPRRegisterClass(MCInst &Inst, unsigned RegNo,
   if (RegNo > 4)
     return MCDisassembler::Fail;
 
-  unsigned Register = QQQQPRDecoderTable[RegNo];
+  unsigned const Register = QQQQPRDecoderTable[RegNo];
   Inst.addOperand(MCOperand::createReg(Register));
   return MCDisassembler::Success;
 }
@@ -6184,7 +6184,7 @@ static DecodeStatus DecodeQQQQPRRegisterClass(MCInst &Inst, unsigned RegNo,
 static DecodeStatus DecodeVPTMaskOperand(MCInst &Inst, unsigned Val,
                                          uint64_t Address,
                                          const void *Decoder) {
-  DecodeStatus S = MCDisassembler::Success;
+  DecodeStatus const S = MCDisassembler::Success;
 
   // Parse VPT mask and encode it in the MCInst as an immediate with the same
   // format as the it_mask.  That is, from the second 'e|t' encode 'e' as 1 and
@@ -6296,9 +6296,9 @@ static DecodeStatus DecodeRestrictedFPPredicateOperand(MCInst &Inst, unsigned Va
 
 static DecodeStatus DecodeVCVTImmOperand(MCInst &Inst, unsigned Val,
                                          uint64_t Address, const void *Decoder) {
-  DecodeStatus S = MCDisassembler::Success;
+  DecodeStatus const S = MCDisassembler::Success;
 
-  unsigned DecodedVal = 64 - Val;
+  unsigned const DecodedVal = 64 - Val;
 
   switch (Inst.getOpcode()) {
   case ARM::MVE_VCVTf16s16_fix:
@@ -6361,10 +6361,10 @@ static DecodeStatus DecodeVSTRVLDR_SYSREG(MCInst &Inst, unsigned Val,
   }
 
   DecodeStatus S = MCDisassembler::Success;
-  if (unsigned Sysreg = FixedRegForVSTRVLDR_SYSREG(Inst.getOpcode()))
+  if (unsigned const Sysreg = FixedRegForVSTRVLDR_SYSREG(Inst.getOpcode()))
     Inst.addOperand(MCOperand::createReg(Sysreg));
-  unsigned Rn = fieldFromInstruction(Val, 16, 4);
-  unsigned addr = fieldFromInstruction(Val, 0, 7) |
+  unsigned const Rn = fieldFromInstruction(Val, 16, 4);
+  unsigned const addr = fieldFromInstruction(Val, 0, 7) |
                   (fieldFromInstruction(Val, 23, 1) << 7) | (Rn << 8);
 
   if (Writeback) {
@@ -6385,8 +6385,8 @@ static inline DecodeStatus DecodeMVE_MEM_pre(
   unsigned Rn, OperandDecoder RnDecoder, OperandDecoder AddrDecoder) {
   DecodeStatus S = MCDisassembler::Success;
 
-  unsigned Qd = fieldFromInstruction(Val, 13, 3);
-  unsigned addr = fieldFromInstruction(Val, 0, 7) |
+  unsigned const Qd = fieldFromInstruction(Val, 13, 3);
+  unsigned const addr = fieldFromInstruction(Val, 0, 7) |
                   (fieldFromInstruction(Val, 23, 1) << 7) | (Rn << 8);
 
   if (!Check(S, RnDecoder(Inst, Rn, Address, Decoder)))
@@ -6430,7 +6430,7 @@ template<unsigned MinLog, unsigned MaxLog>
 static DecodeStatus DecodePowerTwoOperand(MCInst &Inst, unsigned Val,
                                           uint64_t Address,
                                           const void *Decoder) {
-  DecodeStatus S = MCDisassembler::Success;
+  DecodeStatus const S = MCDisassembler::Success;
 
   if (Val < MinLog || Val > MaxLog)
     return MCDisassembler::Fail;
@@ -6443,7 +6443,7 @@ template<unsigned start>
 static DecodeStatus DecodeMVEPairVectorIndexOperand(MCInst &Inst, unsigned Val,
                                                     uint64_t Address,
                                                     const void *Decoder) {
-  DecodeStatus S = MCDisassembler::Success;
+  DecodeStatus const S = MCDisassembler::Success;
 
   Inst.addOperand(MCOperand::createImm(start + Val));
 
@@ -6453,11 +6453,11 @@ static DecodeStatus DecodeMVEPairVectorIndexOperand(MCInst &Inst, unsigned Val,
 static DecodeStatus DecodeMVEVMOVQtoDReg(MCInst &Inst, unsigned Insn,
                                          uint64_t Address, const void *Decoder) {
   DecodeStatus S = MCDisassembler::Success;
-  unsigned Rt = fieldFromInstruction(Insn, 0, 4);
-  unsigned Rt2 = fieldFromInstruction(Insn, 16, 4);
-  unsigned Qd = ((fieldFromInstruction(Insn, 22, 1) << 3) |
+  unsigned const Rt = fieldFromInstruction(Insn, 0, 4);
+  unsigned const Rt2 = fieldFromInstruction(Insn, 16, 4);
+  unsigned const Qd = ((fieldFromInstruction(Insn, 22, 1) << 3) |
                  fieldFromInstruction(Insn, 13, 3));
-  unsigned index = fieldFromInstruction(Insn, 4, 1);
+  unsigned const index = fieldFromInstruction(Insn, 4, 1);
 
   if (!Check(S, DecodeGPRRegisterClass(Inst, Rt, Address, Decoder)))
     return MCDisassembler::Fail;
@@ -6476,11 +6476,11 @@ static DecodeStatus DecodeMVEVMOVQtoDReg(MCInst &Inst, unsigned Insn,
 static DecodeStatus DecodeMVEVMOVDRegtoQ(MCInst &Inst, unsigned Insn,
                                          uint64_t Address, const void *Decoder) {
   DecodeStatus S = MCDisassembler::Success;
-  unsigned Rt = fieldFromInstruction(Insn, 0, 4);
-  unsigned Rt2 = fieldFromInstruction(Insn, 16, 4);
-  unsigned Qd = ((fieldFromInstruction(Insn, 22, 1) << 3) |
+  unsigned const Rt = fieldFromInstruction(Insn, 0, 4);
+  unsigned const Rt2 = fieldFromInstruction(Insn, 16, 4);
+  unsigned const Qd = ((fieldFromInstruction(Insn, 22, 1) << 3) |
                  fieldFromInstruction(Insn, 13, 3));
-  unsigned index = fieldFromInstruction(Insn, 4, 1);
+  unsigned const index = fieldFromInstruction(Insn, 4, 1);
 
   if (!Check(S, DecodeMQPRRegisterClass(Inst, Qd, Address, Decoder)))
     return MCDisassembler::Fail;
@@ -6502,9 +6502,9 @@ static DecodeStatus DecodeMVEOverlappingLongShift(
   MCInst &Inst, unsigned Insn, uint64_t Address, const void *Decoder) {
   DecodeStatus S = MCDisassembler::Success;
 
-  unsigned RdaLo = fieldFromInstruction(Insn, 17, 3) << 1;
-  unsigned RdaHi = fieldFromInstruction(Insn, 9, 3) << 1;
-  unsigned Rm = fieldFromInstruction(Insn, 12, 4);
+  unsigned const RdaLo = fieldFromInstruction(Insn, 17, 3) << 1;
+  unsigned const RdaHi = fieldFromInstruction(Insn, 9, 3) << 1;
+  unsigned const Rm = fieldFromInstruction(Insn, 12, 4);
 
   if (RdaHi == 14) {
     // This value of RdaHi (really indicating pc, because RdaHi has to
@@ -6512,7 +6512,7 @@ static DecodeStatus DecodeMVEOverlappingLongShift(
     // decode function below) indicates that we must decode as SQRSHR
     // or UQRSHL, which both have a single Rda register field with all
     // four bits.
-    unsigned Rda = fieldFromInstruction(Insn, 16, 4);
+    unsigned const Rda = fieldFromInstruction(Insn, 16, 4);
 
     switch (Inst.getOpcode()) {
       case ARM::MVE_ASRLr:
@@ -6569,7 +6569,7 @@ static DecodeStatus DecodeMVEOverlappingLongShift(
 
   if (Inst.getOpcode() == ARM::MVE_SQRSHRL ||
       Inst.getOpcode() == ARM::MVE_UQRSHLL) {
-    unsigned Saturate = fieldFromInstruction(Insn, 7, 1);
+    unsigned const Saturate = fieldFromInstruction(Insn, 7, 1);
     // Saturate, the bit position for saturation
     Inst.addOperand(MCOperand::createImm(Saturate));
   }
@@ -6580,11 +6580,11 @@ static DecodeStatus DecodeMVEOverlappingLongShift(
 static DecodeStatus DecodeMVEVCVTt1fp(MCInst &Inst, unsigned Insn, uint64_t Address,
                                       const void *Decoder) {
   DecodeStatus S = MCDisassembler::Success;
-  unsigned Qd = ((fieldFromInstruction(Insn, 22, 1) << 3) |
+  unsigned const Qd = ((fieldFromInstruction(Insn, 22, 1) << 3) |
                  fieldFromInstruction(Insn, 13, 3));
-  unsigned Qm = ((fieldFromInstruction(Insn, 5, 1) << 3) |
+  unsigned const Qm = ((fieldFromInstruction(Insn, 5, 1) << 3) |
                  fieldFromInstruction(Insn, 1, 3));
-  unsigned imm6 = fieldFromInstruction(Insn, 16, 6);
+  unsigned const imm6 = fieldFromInstruction(Insn, 16, 6);
 
   if (!Check(S, DecodeMQPRRegisterClass(Inst, Qd, Address, Decoder)))
     return MCDisassembler::Fail;
@@ -6601,7 +6601,7 @@ static DecodeStatus DecodeMVEVCMP(MCInst &Inst, unsigned Insn, uint64_t Address,
                                   const void *Decoder) {
   DecodeStatus S = MCDisassembler::Success;
   Inst.addOperand(MCOperand::createReg(ARM::VPR));
-  unsigned Qn = fieldFromInstruction(Insn, 17, 3);
+  unsigned const Qn = fieldFromInstruction(Insn, 17, 3);
   if (!Check(S, DecodeMQPRRegisterClass(Inst, Qn, Address, Decoder)))
     return MCDisassembler::Fail;
 
@@ -6611,14 +6611,14 @@ static DecodeStatus DecodeMVEVCMP(MCInst &Inst, unsigned Insn, uint64_t Address,
     fc = fieldFromInstruction(Insn, 12, 1) << 2 |
          fieldFromInstruction(Insn, 7, 1) |
          fieldFromInstruction(Insn, 5, 1) << 1;
-    unsigned Rm = fieldFromInstruction(Insn, 0, 4);
+    unsigned const Rm = fieldFromInstruction(Insn, 0, 4);
     if (!Check(S, DecodeGPRwithZRRegisterClass(Inst, Rm, Address, Decoder)))
       return MCDisassembler::Fail;
   } else {
     fc = fieldFromInstruction(Insn, 12, 1) << 2 |
          fieldFromInstruction(Insn, 7, 1) |
          fieldFromInstruction(Insn, 0, 1) << 1;
-    unsigned Qm = fieldFromInstruction(Insn, 5, 1) << 4 |
+    unsigned const Qm = fieldFromInstruction(Insn, 5, 1) << 4 |
                   fieldFromInstruction(Insn, 1, 3);
     if (!Check(S, DecodeMQPRRegisterClass(Inst, Qm, Address, Decoder)))
       return MCDisassembler::Fail;
@@ -6638,7 +6638,7 @@ static DecodeStatus DecodeMveVCTP(MCInst &Inst, unsigned Insn, uint64_t Address,
                                   const void *Decoder) {
   DecodeStatus S = MCDisassembler::Success;
   Inst.addOperand(MCOperand::createReg(ARM::VPR));
-  unsigned Rn = fieldFromInstruction(Insn, 16, 4);
+  unsigned const Rn = fieldFromInstruction(Insn, 16, 4);
   if (!Check(S, DecoderGPRRegisterClass(Inst, Rn, Address, Decoder)))
     return MCDisassembler::Fail;
   return S;
@@ -6646,7 +6646,7 @@ static DecodeStatus DecodeMveVCTP(MCInst &Inst, unsigned Insn, uint64_t Address,
 
 static DecodeStatus DecodeMVEVPNOT(MCInst &Inst, unsigned Insn, uint64_t Address,
                                    const void *Decoder) {
-  DecodeStatus S = MCDisassembler::Success;
+  DecodeStatus const S = MCDisassembler::Success;
   Inst.addOperand(MCOperand::createReg(ARM::VPR));
   Inst.addOperand(MCOperand::createReg(ARM::VPR));
   return S;
@@ -6660,9 +6660,9 @@ static DecodeStatus DecodeT2AddSubSPImm(MCInst &Inst, unsigned Insn,
                          fieldFromInstruction(Insn, 12, 3) << 8 |
                          fieldFromInstruction(Insn, 0, 8);
   const unsigned TypeT3 = fieldFromInstruction(Insn, 25, 1);
-  unsigned sign1 = fieldFromInstruction(Insn, 21, 1);
-  unsigned sign2 = fieldFromInstruction(Insn, 23, 1);
-  unsigned S = fieldFromInstruction(Insn, 20, 1);
+  unsigned const sign1 = fieldFromInstruction(Insn, 21, 1);
+  unsigned const sign2 = fieldFromInstruction(Insn, 23, 1);
+  unsigned const S = fieldFromInstruction(Insn, 20, 1);
   if (sign1 != sign2)
     return MCDisassembler::Fail;
 

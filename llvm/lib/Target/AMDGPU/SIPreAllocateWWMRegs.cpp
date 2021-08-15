@@ -88,7 +88,7 @@ bool SIPreAllocateWWMRegs::processDef(MachineOperand &MO) {
   if (!MO.isReg())
     return false;
 
-  Register Reg = MO.getReg();
+  Register const Reg = MO.getReg();
   if (Reg.isPhysical())
     return false;
 
@@ -100,7 +100,7 @@ bool SIPreAllocateWWMRegs::processDef(MachineOperand &MO) {
 
   LiveInterval &LI = LIS->getInterval(Reg);
 
-  for (MCRegister PhysReg : RegClassInfo.getOrder(MRI->getRegClass(Reg))) {
+  for (MCRegister const PhysReg : RegClassInfo.getOrder(MRI->getRegClass(Reg))) {
     if (!MRI->isPhysRegUsed(PhysReg) &&
         Matrix->checkInterference(LI, PhysReg) == LiveRegMatrix::IK_Free) {
       Matrix->assign(LI, PhysReg);
@@ -144,7 +144,7 @@ void SIPreAllocateWWMRegs::rewriteRegs(MachineFunction &MF) {
   SIMachineFunctionInfo *MFI = MF.getInfo<SIMachineFunctionInfo>();
   MachineFrameInfo &FrameInfo = MF.getFrameInfo();
 
-  for (unsigned Reg : RegsToRewrite) {
+  for (unsigned const Reg : RegsToRewrite) {
     LIS->removeInterval(Reg);
 
     const Register PhysReg = VRM->getPhys(Reg);
@@ -174,7 +174,7 @@ void SIPreAllocateWWMRegs::rewriteRegs(MachineFunction &MF) {
 LLVM_DUMP_METHOD void
 SIPreAllocateWWMRegs::printWWMInfo(const MachineInstr &MI) {
 
-  unsigned Opc = MI.getOpcode();
+  unsigned const Opc = MI.getOpcode();
 
   if (Opc == AMDGPU::ENTER_STRICT_WWM || Opc == AMDGPU::ENTER_STRICT_WQM) {
     dbgs() << "Entering ";
@@ -217,7 +217,7 @@ bool SIPreAllocateWWMRegs::runOnMachineFunction(MachineFunction &MF) {
   // expressions are guaranteed to never involve phi nodes, and we can only
   // escape WWM through the special WWM instruction, this means that this is a
   // perfect elimination order, so we can never do any better.
-  ReversePostOrderTraversal<MachineFunction*> RPOT(&MF);
+  ReversePostOrderTraversal<MachineFunction*> const RPOT(&MF);
 
   for (MachineBasicBlock *MBB : RPOT) {
     bool InWWM = false;

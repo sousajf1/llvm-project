@@ -104,7 +104,7 @@ static MaybeAlign getNewAlignmentDiff(const SCEV *DiffSCEV,
 
   if (const SCEVConstant *ConstDUSCEV =
       dyn_cast<SCEVConstant>(DiffUnitsSCEV)) {
-    int64_t DiffUnits = ConstDUSCEV->getValue()->getSExtValue();
+    int64_t const DiffUnits = ConstDUSCEV->getValue()->getSExtValue();
 
     // If the displacement is an exact multiple of the alignment, then the
     // displaced pointer has the same alignment as the aligned pointer, so
@@ -114,7 +114,7 @@ static MaybeAlign getNewAlignmentDiff(const SCEV *DiffSCEV,
 
     // If the displacement is not an exact multiple, but the remainder is a
     // constant, then return this remainder (but only if it is a power of 2).
-    uint64_t DiffUnitsAbs = std::abs(DiffUnits);
+    uint64_t const DiffUnitsAbs = std::abs(DiffUnits);
     if (isPowerOf2_64(DiffUnitsAbs))
       return Align(DiffUnitsAbs);
   }
@@ -212,7 +212,7 @@ bool AlignmentFromAssumptionsPass::extractAlignmentInfo(CallInst *I,
                                                         const SCEV *&AlignSCEV,
                                                         const SCEV *&OffSCEV) {
   Type *Int64Ty = Type::getInt64Ty(I->getContext());
-  OperandBundleUse AlignOB = I->getOperandBundleAt(Idx);
+  OperandBundleUse const AlignOB = I->getOperandBundleAt(Idx);
   if (AlignOB.getTagName() != "align")
     return false;
   assert(AlignOB.Inputs.size() >= 2);
@@ -259,7 +259,7 @@ bool AlignmentFromAssumptionsPass::processAssumption(CallInst *ACall,
     if (LoadInst *LI = dyn_cast<LoadInst>(J)) {
       if (!isValidAssumeForContext(ACall, J, DT))
         continue;
-      Align NewAlignment = getNewAlignment(AASCEV, AlignSCEV, OffSCEV,
+      Align const NewAlignment = getNewAlignment(AASCEV, AlignSCEV, OffSCEV,
                                            LI->getPointerOperand(), SE);
       if (NewAlignment > LI->getAlign()) {
         LI->setAlignment(NewAlignment);
@@ -268,7 +268,7 @@ bool AlignmentFromAssumptionsPass::processAssumption(CallInst *ACall,
     } else if (StoreInst *SI = dyn_cast<StoreInst>(J)) {
       if (!isValidAssumeForContext(ACall, J, DT))
         continue;
-      Align NewAlignment = getNewAlignment(AASCEV, AlignSCEV, OffSCEV,
+      Align const NewAlignment = getNewAlignment(AASCEV, AlignSCEV, OffSCEV,
                                            SI->getPointerOperand(), SE);
       if (NewAlignment > SI->getAlign()) {
         SI->setAlignment(NewAlignment);
@@ -277,7 +277,7 @@ bool AlignmentFromAssumptionsPass::processAssumption(CallInst *ACall,
     } else if (MemIntrinsic *MI = dyn_cast<MemIntrinsic>(J)) {
       if (!isValidAssumeForContext(ACall, J, DT))
         continue;
-      Align NewDestAlignment =
+      Align const NewDestAlignment =
           getNewAlignment(AASCEV, AlignSCEV, OffSCEV, MI->getDest(), SE);
 
       LLVM_DEBUG(dbgs() << "\tmem inst: " << DebugStr(NewDestAlignment)
@@ -290,7 +290,7 @@ bool AlignmentFromAssumptionsPass::processAssumption(CallInst *ACall,
       // For memory transfers, there is also a source alignment that
       // can be set.
       if (MemTransferInst *MTI = dyn_cast<MemTransferInst>(MI)) {
-        Align NewSrcAlignment =
+        Align const NewSrcAlignment =
             getNewAlignment(AASCEV, AlignSCEV, OffSCEV, MTI->getSource(), SE);
 
         LLVM_DEBUG(dbgs() << "\tmem trans: " << DebugStr(NewSrcAlignment)

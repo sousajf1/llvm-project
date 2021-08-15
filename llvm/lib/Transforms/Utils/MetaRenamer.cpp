@@ -93,7 +93,7 @@ void MetaRename(Module &M,
 
   // Rename all aliases
   for (auto AI = M.alias_begin(), AE = M.alias_end(); AI != AE; ++AI) {
-    StringRef Name = AI->getName();
+    StringRef const Name = AI->getName();
     if (Name.startswith("llvm.") || (!Name.empty() && Name[0] == 1))
       continue;
 
@@ -102,7 +102,7 @@ void MetaRename(Module &M,
 
   // Rename all global variables
   for (GlobalVariable &GV : M.globals()) {
-    StringRef Name = GV.getName();
+    StringRef const Name = GV.getName();
     if (Name.startswith("llvm.") || (!Name.empty() && Name[0] == 1))
       continue;
 
@@ -123,7 +123,7 @@ void MetaRename(Module &M,
 
   // Rename all functions
   for (auto &F : M) {
-    StringRef Name = F.getName();
+    StringRef const Name = F.getName();
     LibFunc Tmp;
     // Leave library functions alone because their presence or absence could
     // affect the behavior of other passes.

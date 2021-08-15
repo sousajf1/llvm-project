@@ -79,7 +79,7 @@ static StringRef getSymbolKindName(SymbolKind Kind) {
 
 void CVSymbolDumperImpl::printLocalVariableAddrRange(
     const LocalVariableAddrRange &Range, uint32_t RelocationOffset) {
-  DictScope S(W, "LocalVariableAddrRange");
+  DictScope const S(W, "LocalVariableAddrRange");
   if (ObjDelegate)
     ObjDelegate->printRelocatedField("OffsetStart", RelocationOffset,
                                      Range.OffsetStart);
@@ -90,7 +90,7 @@ void CVSymbolDumperImpl::printLocalVariableAddrRange(
 void CVSymbolDumperImpl::printLocalVariableAddrGap(
     ArrayRef<LocalVariableAddrGap> Gaps) {
   for (auto &Gap : Gaps) {
-    ListScope S(W, "LocalVariableAddrGap");
+    ListScope const S(W, "LocalVariableAddrGap");
     W.printHex("GapStartOffset", Gap.GapStartOffset);
     W.printHex("Range", Gap.Range);
   }
@@ -211,7 +211,7 @@ Error CVSymbolDumperImpl::visitKnownRecord(CVSymbol &CVR,
 
 Error CVSymbolDumperImpl::visitKnownRecord(CVSymbol &CVR,
                                            EnvBlockSym &EnvBlock) {
-  ListScope L(W, "Entries");
+  ListScope const L(W, "Entries");
   for (auto Entry : EnvBlock.Fields) {
     W.printString(Entry);
   }
@@ -362,7 +362,7 @@ Error CVSymbolDumperImpl::visitKnownRecord(
 Error CVSymbolDumperImpl::visitKnownRecord(
     CVSymbol &CVR, DefRangeSubfieldSym &DefRangeSubfield) {
   if (ObjDelegate) {
-    DebugStringTableSubsectionRef Strings = ObjDelegate->getStringTable();
+    DebugStringTableSubsectionRef const Strings = ObjDelegate->getStringTable();
     auto ExpectedProgram = Strings.getString(DefRangeSubfield.Program);
     if (!ExpectedProgram) {
       consumeError(ExpectedProgram.takeError());
@@ -381,7 +381,7 @@ Error CVSymbolDumperImpl::visitKnownRecord(
 Error CVSymbolDumperImpl::visitKnownRecord(CVSymbol &CVR,
                                            DefRangeSym &DefRange) {
   if (ObjDelegate) {
-    DebugStringTableSubsectionRef Strings = ObjDelegate->getStringTable();
+    DebugStringTableSubsectionRef const Strings = ObjDelegate->getStringTable();
     auto ExpectedProgram = Strings.getString(DefRange.Program);
     if (!ExpectedProgram) {
       consumeError(ExpectedProgram.takeError());
@@ -454,7 +454,7 @@ Error CVSymbolDumperImpl::visitKnownRecord(CVSymbol &CVR,
   W.printHex("PtrEnd", InlineSite.End);
   printTypeIndex("Inlinee", InlineSite.Inlinee);
 
-  ListScope BinaryAnnotations(W, "BinaryAnnotations");
+  ListScope const BinaryAnnotations(W, "BinaryAnnotations");
   for (auto &Annotation : InlineSite.annotations()) {
     switch (Annotation.OpCode) {
     case BinaryAnnotationsOpCode::Invalid:
@@ -591,7 +591,7 @@ Error CVSymbolDumperImpl::visitKnownRecord(CVSymbol &CVR,
 }
 
 Error CVSymbolDumperImpl::visitKnownRecord(CVSymbol &CVR, CallerSym &Caller) {
-  ListScope S(W, CVR.kind() == S_CALLEES ? "Callees" : "Callers");
+  ListScope const S(W, CVR.kind() == S_CALLEES ? "Callees" : "Callers");
   for (auto FuncID : Caller.Indices)
     printTypeIndex("FuncID", FuncID);
   return Error::success();
@@ -638,8 +638,8 @@ Error CVSymbolDumperImpl::visitKnownRecord(CVSymbol &CVR,
   W.printHex("Offset", Annot.CodeOffset);
   W.printHex("Segment", Annot.Segment);
 
-  ListScope S(W, "Strings");
-  for (StringRef Str : Annot.Strings)
+  ListScope const S(W, "Strings");
+  for (StringRef const Str : Annot.Strings)
     W.printString(Str);
 
   return Error::success();

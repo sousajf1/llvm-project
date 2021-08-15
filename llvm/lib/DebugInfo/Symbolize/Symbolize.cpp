@@ -292,7 +292,7 @@ bool getGNUDebuglinkContents(const ObjectFile *Obj, std::string &DebugName,
         consumeError(ContentsOrErr.takeError());
         return false;
       }
-      DataExtractor DE(*ContentsOrErr, Obj->isLittleEndian(), 0);
+      DataExtractor const DE(*ContentsOrErr, Obj->isLittleEndian(), 0);
       uint64_t Offset = 0;
       if (const char *DebugNameStr = DE.getCStr(&Offset)) {
         // 4-byte align the offset.
@@ -311,8 +311,8 @@ bool getGNUDebuglinkContents(const ObjectFile *Obj, std::string &DebugName,
 
 bool darwinDsymMatchesBinary(const MachOObjectFile *DbgObj,
                              const MachOObjectFile *Obj) {
-  ArrayRef<uint8_t> dbg_uuid = DbgObj->getUuid();
-  ArrayRef<uint8_t> bin_uuid = Obj->getUuid();
+  ArrayRef<uint8_t> const dbg_uuid = DbgObj->getUuid();
+  ArrayRef<uint8_t> const bin_uuid = Obj->getUuid();
   if (dbg_uuid.empty() || bin_uuid.empty())
     return false;
   return !memcmp(dbg_uuid.data(), bin_uuid.data(), dbg_uuid.size());
@@ -364,7 +364,7 @@ bool findDebugBinary(const std::vector<std::string> &DebugFileDirectory,
     return Path;
   };
   if (DebugFileDirectory.empty()) {
-    SmallString<128> Path = getDebugPath(
+    SmallString<128> const Path = getDebugPath(
 #if defined(__NetBSD__)
         // Try /usr/libdata/debug/.build-id/../...
         "/usr/libdata/debug"
@@ -380,7 +380,7 @@ bool findDebugBinary(const std::vector<std::string> &DebugFileDirectory,
   } else {
     for (const auto &Directory : DebugFileDirectory) {
       // Try <debug-file-directory>/.build-id/../...
-      SmallString<128> Path = getDebugPath(Directory);
+      SmallString<128> const Path = getDebugPath(Directory);
       if (llvm::sys::fs::exists(Path)) {
         Result = std::string(Path.str());
         return true;
@@ -398,7 +398,7 @@ ObjectFile *LLVMSymbolizer::lookUpDsymFile(const std::string &ExePath,
   // On Darwin we may find DWARF in separate object file in
   // resource directory.
   std::vector<std::string> DsymPaths;
-  StringRef Filename = sys::path::filename(ExePath);
+  StringRef const Filename = sys::path::filename(ExePath);
   DsymPaths.push_back(
       getDarwinDWARFResourceForPath(ExePath, std::string(Filename)));
   for (const auto &Path : Opts.DsymHints) {
@@ -560,10 +560,10 @@ LLVMSymbolizer::getOrCreateModuleInfo(const std::string &ModuleName) {
 
   std::string BinaryName = ModuleName;
   std::string ArchName = Opts.DefaultArch;
-  size_t ColonPos = ModuleName.find_last_of(':');
+  size_t const ColonPos = ModuleName.find_last_of(':');
   // Verify that substring after colon form a valid arch name.
   if (ColonPos != std::string::npos) {
-    std::string ArchStr = ModuleName.substr(ColonPos + 1);
+    std::string const ArchStr = ModuleName.substr(ColonPos + 1);
     if (Triple(ArchStr).getArch() != Triple::UnknownArch) {
       BinaryName = ModuleName.substr(0, ColonPos);
       ArchName = ArchStr;
@@ -575,7 +575,7 @@ LLVMSymbolizer::getOrCreateModuleInfo(const std::string &ModuleName) {
     Modules.emplace(ModuleName, std::unique_ptr<SymbolizableModule>());
     return ObjectsOrErr.takeError();
   }
-  ObjectPair Objects = ObjectsOrErr.get();
+  ObjectPair const Objects = ObjectsOrErr.get();
 
   std::unique_ptr<DIContext> Context;
   // If this is a COFF object containing PDB info, use a PDBContext to
@@ -588,7 +588,7 @@ LLVMSymbolizer::getOrCreateModuleInfo(const std::string &ModuleName) {
       using namespace pdb;
       std::unique_ptr<IPDBSession> Session;
 
-      PDB_ReaderType ReaderType =
+      PDB_ReaderType const ReaderType =
           Opts.UseDIA ? PDB_ReaderType::DIA : PDB_ReaderType::Native;
       if (auto Err = loadDataForEXE(ReaderType, Objects.first->getFileName(),
                                     Session)) {
@@ -608,7 +608,7 @@ LLVMSymbolizer::getOrCreateModuleInfo(const std::string &ModuleName) {
 
 Expected<SymbolizableModule *>
 LLVMSymbolizer::getOrCreateModuleInfo(const ObjectFile &Obj) {
-  StringRef ObjName = Obj.getFileName();
+  StringRef const ObjName = Obj.getFileName();
   auto I = Modules.find(ObjName);
   if (I != Modules.end())
     return I->second.get();
@@ -628,13 +628,13 @@ namespace {
 // These are all different linkage names for 'foo'.
 StringRef demanglePE32ExternCFunc(StringRef SymbolName) {
   // Remove any '_' or '@' prefix.
-  char Front = SymbolName.empty() ? '\0' : SymbolName[0];
+  char const Front = SymbolName.empty() ? '\0' : SymbolName[0];
   if (Front == '_' || Front == '@')
     SymbolName = SymbolName.drop_front();
 
   // Remove any '@[0-9]+' suffix.
   if (Front != '?') {
-    size_t AtPos = SymbolName.rfind('@');
+    size_t const AtPos = SymbolName.rfind('@');
     if (AtPos != StringRef::npos &&
         all_of(drop_begin(SymbolName, AtPos + 1), isDigit))
       SymbolName = SymbolName.substr(0, AtPos);

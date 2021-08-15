@@ -127,7 +127,7 @@ unsigned PPCBSel::ComputeBlockSizes(MachineFunction &Fn) {
     // The end of the previous block may have extra nops if this block has an
     // alignment requirement.
     if (MBB->getNumber() > 0) {
-      unsigned AlignExtra = GetAlignmentAdjustment(*MBB, FuncSize);
+      unsigned const AlignExtra = GetAlignmentAdjustment(*MBB, FuncSize);
 
       auto &BS = BlockSizes[MBB->getNumber()-1];
       BS.first += AlignExtra;
@@ -138,8 +138,8 @@ unsigned PPCBSel::ComputeBlockSizes(MachineFunction &Fn) {
 
     unsigned BlockSize = 0;
     unsigned UnalignedBytesRemaining = 0;
-    for (MachineInstr &MI : *MBB) {
-      unsigned MINumBytes = TII->getInstSizeInBytes(MI);
+    for (MachineInstr  const&MI : *MBB) {
+      unsigned const MINumBytes = TII->getInstSizeInBytes(MI);
       if (MI.isInlineAsm() && (FirstImpreciseBlock < 0))
         FirstImpreciseBlock = MBB->getNumber();
       if (TII->isPrefixed(MI.getOpcode())) {
@@ -190,7 +190,7 @@ void PPCBSel::modifyAdjustment(MachineFunction &Fn) {
       BS.first -= BS.second;
       Offset -= BS.second;
 
-      unsigned AlignExtra = GetAlignmentAdjustment(*MBB, Offset);
+      unsigned const AlignExtra = GetAlignmentAdjustment(*MBB, Offset);
 
       BS.first += AlignExtra;
       BS.second = AlignExtra;
@@ -218,7 +218,7 @@ int PPCBSel::computeBranchSize(MachineFunction &Fn,
     BranchSize = BrOffset;
     MaxAlign = std::max(MaxAlign, Src->getAlignment());
 
-    int DestBlock = Dest->getNumber();
+    int const DestBlock = Dest->getNumber();
     BranchSize += BlockSizes[DestBlock].first;
     for (unsigned i = DestBlock+1, e = Src->getNumber(); i < e; ++i) {
       BranchSize += BlockSizes[i].first;
@@ -230,7 +230,7 @@ int PPCBSel::computeBranchSize(MachineFunction &Fn,
   } else {
     // Otherwise, add the size of the blocks between this block and the
     // dest to the number of bytes left in this block.
-    unsigned StartBlock = Src->getNumber();
+    unsigned const StartBlock = Src->getNumber();
     BranchSize = BlockSizes[StartBlock].first - BrOffset;
 
     MaxAlign = std::max(MaxAlign, Dest->getAlignment());
@@ -300,7 +300,7 @@ bool PPCBSel::runOnMachineFunction(MachineFunction &Fn) {
   FirstImpreciseBlock = -1;
 
   // Measure each MBB and compute a size for the entire function.
-  unsigned FuncSize = ComputeBlockSizes(Fn);
+  unsigned const FuncSize = ComputeBlockSizes(Fn);
 
   // If the entire function is smaller than the displacement of a branch field,
   // we know we don't need to shrink any branches in this function.  This is a
@@ -349,7 +349,7 @@ bool PPCBSel::runOnMachineFunction(MachineFunction &Fn) {
 
         // Determine the offset from the current branch to the destination
         // block.
-        int BranchSize = computeBranchSize(Fn, &MBB, Dest, MBBStartOffset);
+        int const BranchSize = computeBranchSize(Fn, &MBB, Dest, MBBStartOffset);
 
         // If this branch is in range, ignore it.
         if (isInt<16>(BranchSize)) {
@@ -359,24 +359,24 @@ bool PPCBSel::runOnMachineFunction(MachineFunction &Fn) {
 
         // Otherwise, we have to expand it to a long branch.
         MachineInstr &OldBranch = *I;
-        DebugLoc dl = OldBranch.getDebugLoc();
+        DebugLoc const dl = OldBranch.getDebugLoc();
 
         if (I->getOpcode() == PPC::BCC) {
           // The BCC operands are:
           // 0. PPC branch predicate
           // 1. CR register
           // 2. Target MBB
-          PPC::Predicate Pred = (PPC::Predicate)I->getOperand(0).getImm();
-          Register CRReg = I->getOperand(1).getReg();
+          PPC::Predicate const Pred = (PPC::Predicate)I->getOperand(0).getImm();
+          Register const CRReg = I->getOperand(1).getReg();
 
           // Jump over the uncond branch inst (i.e. $PC+8) on opposite condition.
           BuildMI(MBB, I, dl, TII->get(PPC::BCC))
             .addImm(PPC::InvertPredicate(Pred)).addReg(CRReg).addImm(2);
         } else if (I->getOpcode() == PPC::BC) {
-          Register CRBit = I->getOperand(0).getReg();
+          Register const CRBit = I->getOperand(0).getReg();
           BuildMI(MBB, I, dl, TII->get(PPC::BCn)).addReg(CRBit).addImm(2);
         } else if (I->getOpcode() == PPC::BCn) {
-          Register CRBit = I->getOperand(0).getReg();
+          Register const CRBit = I->getOperand(0).getReg();
           BuildMI(MBB, I, dl, TII->get(PPC::BC)).addReg(CRBit).addImm(2);
         } else if (I->getOpcode() == PPC::BDNZ) {
           BuildMI(MBB, I, dl, TII->get(PPC::BDZ)).addImm(2);

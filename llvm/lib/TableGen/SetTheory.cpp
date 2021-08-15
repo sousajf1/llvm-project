@@ -210,7 +210,7 @@ struct SequenceOp : public SetTheory::Operator {
     if (To < 0 || To >= (1 << 30))
       PrintFatalError(Loc, "To out of range");
 
-    RecordKeeper &Records =
+    RecordKeeper  const&Records =
       cast<DefInit>(Expr->getOperator())->getDef()->getRecords();
 
     Step *= From <= To ? 1 : -1;
@@ -307,12 +307,12 @@ void SetTheory::evaluate(Init *Expr, RecSet &Elts, ArrayRef<SMLoc> Loc) {
 
 const RecVec *SetTheory::expand(Record *Set) {
   // Check existing entries for Set and return early.
-  ExpandMap::iterator I = Expansions.find(Set);
+  ExpandMap::iterator const I = Expansions.find(Set);
   if (I != Expansions.end())
     return &I->second;
 
   // This is the first time we see Set. Find a suitable expander.
-  ArrayRef<std::pair<Record *, SMRange>> SC = Set->getSuperClasses();
+  ArrayRef<std::pair<Record *, SMRange>> const SC = Set->getSuperClasses();
   for (const auto &SCPair : SC) {
     // Skip unnamed superclasses.
     if (!isa<StringInit>(SCPair.first->getNameInit()))

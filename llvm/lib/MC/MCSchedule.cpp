@@ -72,7 +72,7 @@ int MCSchedModel::computeInstrLatency(const MCSubtargetInfo &STI,
   if (!SCDesc->isValid())
     return 0;
 
-  unsigned CPUID = getProcessorID();
+  unsigned const CPUID = getProcessorID();
   while (SCDesc->isVariant()) {
     SchedClass = STI.resolveVariantSchedClass(SchedClass, &Inst, &MCII, CPUID);
     SCDesc = getSchedClassDesc(SchedClass);
@@ -94,8 +94,8 @@ MCSchedModel::getReciprocalThroughput(const MCSubtargetInfo &STI,
   for (; I != E; ++I) {
     if (!I->Cycles)
       continue;
-    unsigned NumUnits = SM.getProcResource(I->ProcResourceIdx)->NumUnits;
-    double Temp = NumUnits * 1.0 / I->Cycles;
+    unsigned const NumUnits = SM.getProcResource(I->ProcResourceIdx)->NumUnits;
+    double const Temp = NumUnits * 1.0 / I->Cycles;
     Throughput = Throughput ? std::min(Throughput.getValue(), Temp) : Temp;
   }
   if (Throughput.hasValue())
@@ -118,7 +118,7 @@ MCSchedModel::getReciprocalThroughput(const MCSubtargetInfo &STI,
   if (!SCDesc->isValid())
     return 1.0 / IssueWidth;
 
-  unsigned CPUID = getProcessorID();
+  unsigned const CPUID = getProcessorID();
   while (SCDesc->isVariant()) {
     SchedClass = STI.resolveVariantSchedClass(SchedClass, &Inst, &MCII, CPUID);
     SCDesc = getSchedClassDesc(SchedClass);
@@ -139,7 +139,7 @@ MCSchedModel::getReciprocalThroughput(unsigned SchedClass,
   for (; I != E; ++I) {
     if (!I->getCycles())
       continue;
-    double Temp = countPopulation(I->getUnits()) * 1.0 / I->getCycles();
+    double const Temp = countPopulation(I->getUnits()) * 1.0 / I->getCycles();
     Throughput = Throughput ? std::min(Throughput.getValue(), Temp) : Temp;
   }
   if (Throughput.hasValue())

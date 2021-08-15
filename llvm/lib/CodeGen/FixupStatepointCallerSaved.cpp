@@ -115,7 +115,7 @@ static Register performCopyPropagation(Register Reg,
                                        bool &IsKill, const TargetInstrInfo &TII,
                                        const TargetRegisterInfo &TRI) {
   // First check if statepoint itself uses Reg in non-meta operands.
-  int Idx = RI->findRegisterUseOperandIdx(Reg, false, &TRI);
+  int const Idx = RI->findRegisterUseOperandIdx(Reg, false, &TRI);
   if (Idx >= 0 && (unsigned)Idx < StatepointOpers(&*RI).getNumDeoptArgsIdx()) {
     IsKill = false;
     return Reg;
@@ -125,7 +125,7 @@ static Register performCopyPropagation(Register Reg,
     return Reg;
 
   MachineBasicBlock *MBB = RI->getParent();
-  MachineBasicBlock::reverse_iterator E = MBB->rend();
+  MachineBasicBlock::reverse_iterator const E = MBB->rend();
   MachineInstr *Def = nullptr, *Use = nullptr;
   for (auto It = ++(RI.getReverse()); It != E; ++It) {
     if (It->readsRegister(Reg, &TRI) && !Use)
@@ -179,7 +179,7 @@ public:
 
   // Record reload of Reg from FI in block MBB
   void recordReload(Register Reg, int FI, const MachineBasicBlock *MBB) {
-    RegSlotPair RSP(Reg, FI);
+    RegSlotPair const RSP(Reg, FI);
     auto Res = Reloads[MBB].insert(RSP);
     (void)Res;
     assert(Res.second && "reload already exists");
@@ -187,7 +187,7 @@ public:
 
   // Does basic block MBB contains reload of Reg from FI?
   bool hasReload(Register Reg, int FI, const MachineBasicBlock *MBB) {
-    RegSlotPair RSP(Reg, FI);
+    RegSlotPair const RSP(Reg, FI);
     return Reloads.count(MBB) && Reloads[MBB].count(RSP);
   }
 };
@@ -254,7 +254,7 @@ public:
       auto Idx = llvm::find_if(
           Vec, [Reg](RegSlotPair &RSP) { return Reg == RSP.first; });
       if (Idx != Vec.end()) {
-        int FI = Idx->second;
+        int const FI = Idx->second;
         LLVM_DEBUG(dbgs() << "Found global FI " << FI << " for register "
                           << printReg(Reg, &TRI) << " at "
                           << printMBBReference(*EHPad) << "\n");
@@ -263,10 +263,10 @@ public:
       }
     }
 
-    unsigned Size = getRegisterSize(TRI, Reg);
+    unsigned const Size = getRegisterSize(TRI, Reg);
     FrameIndexesPerSize &Line = getCacheBucket(Size);
     while (Line.Index < Line.Slots.size()) {
-      int FI = Line.Slots[Line.Index++];
+      int const FI = Line.Slots[Line.Index++];
       if (ReservedSlots.count(FI))
         continue;
       // If all sizes are kept together we probably need to extend the
@@ -278,7 +278,7 @@ public:
       }
       return FI;
     }
-    int FI = MFI.CreateSpillStackObject(Size, Align(Size));
+    int const FI = MFI.CreateSpillStackObject(Size, Align(Size));
     NumSpillSlotsAllocated++;
     Line.Slots.push_back(FI);
     ++Line.Index;
@@ -342,7 +342,7 @@ public:
     EHPad = nullptr;
     MachineBasicBlock *MBB = MI.getParent();
     // Invoke statepoint must be last one in block.
-    bool Last = std::none_of(++MI.getIterator(), MBB->end().getInstrIterator(),
+    bool const Last = std::none_of(++MI.getIterator(), MBB->end().getInstrIterator(),
                              [](MachineInstr &I) {
                                return I.getOpcode() == TargetOpcode::STATEPOINT;
                              });
@@ -378,12 +378,12 @@ public:
     for (unsigned Idx = StatepointOpers(&MI).getVarIdx(),
                   EndIdx = MI.getNumOperands();
          Idx < EndIdx; ++Idx) {
-      MachineOperand &MO = MI.getOperand(Idx);
+      MachineOperand  const&MO = MI.getOperand(Idx);
       // Leave `undef` operands as is, StackMaps will rewrite them
       // into a constant.
       if (!MO.isReg() || MO.isImplicit() || MO.isUndef())
         continue;
-      Register Reg = MO.getReg();
+      Register const Reg = MO.getReg();
       assert(Reg.isPhysical() && "Only physical regs are expected");
 
       if (isCalleeSaved(Reg) && (AllowGCPtrInCSR || !is_contained(GCRegs, Reg)))
@@ -404,7 +404,7 @@ public:
   // Remember frame index where register is spilled.
   void spillRegisters() {
     for (Register Reg : RegsToSpill) {
-      int FI = CacheFI.getFrameIndex(Reg, EHPad);
+      int const FI = CacheFI.getFrameIndex(Reg, EHPad);
       const TargetRegisterClass *RC = TRI.getMinimalPhysRegClass(Reg);
 
       NumSpilledRegisters++;
@@ -427,7 +427,7 @@ public:
   void insertReloadBefore(unsigned Reg, MachineBasicBlock::iterator It,
                           MachineBasicBlock *MBB) {
     const TargetRegisterClass *RC = TRI.getMinimalPhysRegClass(Reg);
-    int FI = RegToSlotIdx[Reg];
+    int const FI = RegToSlotIdx[Reg];
     if (It != MBB->end()) {
       TII.loadRegFromStackSlot(*MBB, It, Reg, FI, RC, &TRI);
       return;
@@ -472,17 +472,17 @@ public:
   MachineInstr *rewriteStatepoint() {
     MachineInstr *NewMI =
         MF.CreateMachineInstr(TII.get(MI.getOpcode()), MI.getDebugLoc(), true);
-    MachineInstrBuilder MIB(MF, NewMI);
+    MachineInstrBuilder const MIB(MF, NewMI);
 
-    unsigned NumOps = MI.getNumOperands();
+    unsigned const NumOps = MI.getNumOperands();
 
     // New indices for the remaining defs.
     SmallVector<unsigned, 8> NewIndices;
-    unsigned NumDefs = MI.getNumDefs();
+    unsigned const NumDefs = MI.getNumDefs();
     for (unsigned I = 0; I < NumDefs; ++I) {
-      MachineOperand &DefMO = MI.getOperand(I);
+      MachineOperand  const&DefMO = MI.getOperand(I);
       assert(DefMO.isReg() && DefMO.isDef() && "Expected Reg Def operand");
-      Register Reg = DefMO.getReg();
+      Register const Reg = DefMO.getReg();
       assert(DefMO.isTied() && "Def is expected to be tied");
       // We skipped undef uses and did not spill them, so we should not
       // proceed with defs here.
@@ -512,9 +512,9 @@ public:
     unsigned CurOpIdx = 0;
 
     for (unsigned I = NumDefs; I < MI.getNumOperands(); ++I) {
-      MachineOperand &MO = MI.getOperand(I);
+      MachineOperand  const&MO = MI.getOperand(I);
       if (I == OpsToSpill[CurOpIdx]) {
-        int FI = RegToSlotIdx[MO.getReg()];
+        int const FI = RegToSlotIdx[MO.getReg()];
         MIB.addImm(StackMaps::IndirectMemRefOp);
         MIB.addImm(getRegisterSize(TRI, MO.getReg()));
         assert(MO.isReg() && "Should be register");
@@ -536,8 +536,8 @@ public:
     // Add mem operands.
     NewMI->setMemRefs(MF, MI.memoperands());
     for (auto It : RegToSlotIdx) {
-      Register R = It.first;
-      int FrameIndex = It.second;
+      Register const R = It.first;
+      int const FrameIndex = It.second;
       auto PtrInfo = MachinePointerInfo::getFixedStack(MF, FrameIndex);
       MachineMemOperand::Flags Flags = MachineMemOperand::MOLoad;
       if (is_contained(RegsToReload, R))
@@ -570,15 +570,15 @@ public:
         CacheFI(MF.getFrameInfo(), TRI) {}
 
   bool process(MachineInstr &MI, bool AllowGCPtrInCSR) {
-    StatepointOpers SO(&MI);
-    uint64_t Flags = SO.getFlags();
+    StatepointOpers const SO(&MI);
+    uint64_t const Flags = SO.getFlags();
     // Do nothing for LiveIn, it supports all registers.
     if (Flags & (uint64_t)StatepointFlags::DeoptLiveIn)
       return false;
     LLVM_DEBUG(dbgs() << "\nMBB " << MI.getParent()->getNumber() << " "
                       << MI.getParent()->getName() << " : process statepoint "
                       << MI);
-    CallingConv::ID CC = SO.getCallingConv();
+    CallingConv::ID const CC = SO.getCallingConv();
     const uint32_t *Mask = TRI.getCallPreservedMask(MF, CC);
     StatepointState SS(MI, Mask, CacheFI, AllowGCPtrInCSR);
     CacheFI.reset(SS.getEHPad());

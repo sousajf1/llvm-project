@@ -210,9 +210,9 @@ void MachineBlockFrequencyInfo::calculate(
 }
 
 bool MachineBlockFrequencyInfo::runOnMachineFunction(MachineFunction &F) {
-  MachineBranchProbabilityInfo &MBPI =
+  MachineBranchProbabilityInfo  const&MBPI =
       getAnalysis<MachineBranchProbabilityInfo>();
-  MachineLoopInfo &MLI = getAnalysis<MachineLoopInfo>();
+  MachineLoopInfo  const&MLI = getAnalysis<MachineLoopInfo>();
   calculate(F, MBPI, MLI);
   return false;
 }

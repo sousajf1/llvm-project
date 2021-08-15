@@ -98,7 +98,7 @@ void llvm::CloneFunctionInto(Function *NewFunc, const Function *OldFunc,
 
   // Copy all attributes other than those stored in the AttributeList.  We need
   // to remap the parameter indices of the AttributeList.
-  AttributeList NewAttrs = NewFunc->getAttributes();
+  AttributeList const NewAttrs = NewFunc->getAttributes();
   NewFunc->copyAttributesFrom(OldFunc);
   NewFunc->setAttributes(NewAttrs);
 
@@ -110,7 +110,7 @@ void llvm::CloneFunctionInto(Function *NewFunc, const Function *OldFunc,
                  TypeMapper, Materializer));
 
   SmallVector<AttributeSet, 4> NewArgAttrs(NewFunc->arg_size());
-  AttributeList OldAttrs = OldFunc->getAttributes();
+  AttributeList const OldAttrs = OldFunc->getAttributes();
 
   // Clone any argument attributes that are present in the VMap.
   for (const Argument &OldArg : OldFunc->args()) {
@@ -456,7 +456,7 @@ void PruningFunctionCloner::CloneBlock(
       Cond = dyn_cast_or_null<ConstantInt>(V);
     }
     if (Cond) { // Constant fold to uncond branch!
-      SwitchInst::ConstCaseHandle Case = *SI->findCaseValue(Cond);
+      SwitchInst::ConstCaseHandle const Case = *SI->findCaseValue(Cond);
       BasicBlock *Dest = const_cast<BasicBlock *>(Case.getCaseSuccessor());
       VMap[OldTI] = BranchInst::Create(Dest, NewBB);
       ToClone.push_back(Dest);
@@ -698,7 +698,7 @@ void llvm::CloneAndPruneIntoFromInst(Function *NewFunc, const Function *OldFunc,
   // and zap unconditional fall-through branches. This happens all the time when
   // specializing code: code specialization turns conditional branches into
   // uncond branches, and this code folds them.
-  Function::iterator Begin = cast<BasicBlock>(VMap[StartingBB])->getIterator();
+  Function::iterator const Begin = cast<BasicBlock>(VMap[StartingBB])->getIterator();
   Function::iterator I = Begin;
   while (I != NewFunc->end()) {
     // We need to simplify conditional branches and switches with a constant
@@ -937,7 +937,7 @@ void llvm::cloneNoAliasScopes(ArrayRef<MDNode *> NoAliasDeclScopes,
   for (auto *ScopeList : NoAliasDeclScopes) {
     for (auto &MDOperand : ScopeList->operands()) {
       if (MDNode *MD = dyn_cast<MDNode>(MDOperand)) {
-        AliasScopeNode SNANode(MD);
+        AliasScopeNode const SNANode(MD);
 
         std::string Name;
         auto ScopeName = SNANode.getName();

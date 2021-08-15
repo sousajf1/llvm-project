@@ -36,12 +36,12 @@ public:
   bool evaluate(StringRef Expr) const {
     // Expect equality expression of the form 'LHS = RHS'.
     Expr = Expr.trim();
-    size_t EQIdx = Expr.find('=');
+    size_t const EQIdx = Expr.find('=');
 
-    ParseContext OutsideLoad(false);
+    ParseContext const OutsideLoad(false);
 
     // Evaluate LHS.
-    StringRef LHSExpr = Expr.substr(0, EQIdx).rtrim();
+    StringRef const LHSExpr = Expr.substr(0, EQIdx).rtrim();
     StringRef RemainingExpr;
     EvalResult LHSResult;
     std::tie(LHSResult, RemainingExpr) =
@@ -52,7 +52,7 @@ public:
       return handleError(Expr, unexpectedToken(RemainingExpr, LHSExpr, ""));
 
     // Evaluate RHS.
-    StringRef RHSExpr = Expr.substr(EQIdx + 1).ltrim();
+    StringRef const RHSExpr = Expr.substr(EQIdx + 1).ltrim();
     EvalResult RHSResult;
     std::tie(RHSResult, RemainingExpr) =
         evalComplexExpr(evalSimpleExpr(RHSExpr, OutsideLoad), OutsideLoad);
@@ -206,7 +206,7 @@ private:
   // Parse a symbol and return a (string, string) pair representing the symbol
   // name and expression remaining to be parsed.
   std::pair<StringRef, StringRef> parseSymbol(StringRef Expr) const {
-    size_t FirstNonSymbol = Expr.find_first_not_of("0123456789"
+    size_t const FirstNonSymbol = Expr.find_first_not_of("0123456789"
                                                    "abcdefghijklmnopqrstuvwxyz"
                                                    "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
                                                    ":_.$");
@@ -274,7 +274,7 @@ private:
           EvalResult(("Couldn't decode instruction at '" + Symbol + "'").str()),
           "");
 
-    unsigned OpIdx = OpIdxExpr.getValue();
+    unsigned const OpIdx = OpIdxExpr.getValue();
     if (OpIdx >= Inst.getNumOperands()) {
       std::string ErrMsg;
       raw_string_ostream ErrMsgStream(ErrMsg);
@@ -332,10 +332,10 @@ private:
           EvalResult(("Couldn't decode instruction at '" + Symbol + "'").str()),
           "");
 
-    uint64_t SymbolAddr = PCtx.IsInsideLoad
+    uint64_t const SymbolAddr = PCtx.IsInsideLoad
                               ? Checker.getSymbolLocalAddr(Symbol)
                               : Checker.getSymbolRemoteAddr(Symbol);
-    uint64_t NextPC = SymbolAddr + InstSize;
+    uint64_t const NextPC = SymbolAddr + InstSize;
 
     return std::make_pair(EvalResult(NextPC), RemainingExpr);
   }
@@ -354,7 +354,7 @@ private:
     // Handle file-name specially, as it may contain characters that aren't
     // legal for symbols.
     StringRef StubContainerName;
-    size_t ComaIdx = RemainingExpr.find(',');
+    size_t const ComaIdx = RemainingExpr.find(',');
     StubContainerName = RemainingExpr.substr(0, ComaIdx).rtrim();
     RemainingExpr = RemainingExpr.substr(ComaIdx).ltrim();
 
@@ -391,7 +391,7 @@ private:
     // Handle file-name specially, as it may contain characters that aren't
     // legal for symbols.
     StringRef FileName;
-    size_t ComaIdx = RemainingExpr.find(',');
+    size_t const ComaIdx = RemainingExpr.find(',');
     FileName = RemainingExpr.substr(0, ComaIdx).rtrim();
     RemainingExpr = RemainingExpr.substr(ComaIdx).ltrim();
 
@@ -401,7 +401,7 @@ private:
     RemainingExpr = RemainingExpr.substr(1).ltrim();
 
     StringRef SectionName;
-    size_t CloseParensIdx = RemainingExpr.find(')');
+    size_t const CloseParensIdx = RemainingExpr.find(')');
     SectionName = RemainingExpr.substr(0, CloseParensIdx).rtrim();
     RemainingExpr = RemainingExpr.substr(CloseParensIdx).ltrim();
 
@@ -456,7 +456,7 @@ private:
     // The value for the symbol depends on the context we're evaluating in:
     // Inside a load this is the address in the linker's memory, outside a
     // load it's the address in the target processes memory.
-    uint64_t Value = PCtx.IsInsideLoad ? Checker.getSymbolLocalAddr(Symbol)
+    uint64_t const Value = PCtx.IsInsideLoad ? Checker.getSymbolLocalAddr(Symbol)
                                        : Checker.getSymbolRemoteAddr(Symbol);
 
     // Looks like a plain symbol reference.
@@ -531,7 +531,7 @@ private:
     std::tie(ReadSizeExpr, RemainingExpr) = evalNumberExpr(RemainingExpr);
     if (ReadSizeExpr.hasError())
       return std::make_pair(ReadSizeExpr, RemainingExpr);
-    uint64_t ReadSize = ReadSizeExpr.getValue();
+    uint64_t const ReadSize = ReadSizeExpr.getValue();
     if (ReadSize < 1 || ReadSize > 8)
       return std::make_pair(EvalResult("Invalid size for dereference."), "");
     if (!RemainingExpr.startswith("}"))
@@ -539,7 +539,7 @@ private:
     RemainingExpr = RemainingExpr.substr(1).ltrim();
 
     // Evaluate the expression representing the load address.
-    ParseContext LoadCtx(true);
+    ParseContext const LoadCtx(true);
     EvalResult LoadAddrExprResult;
     std::tie(LoadAddrExprResult, RemainingExpr) =
         evalComplexExpr(evalSimpleExpr(RemainingExpr, LoadCtx), LoadCtx);
@@ -547,7 +547,7 @@ private:
     if (LoadAddrExprResult.hasError())
       return std::make_pair(LoadAddrExprResult, "");
 
-    uint64_t LoadAddr = LoadAddrExprResult.getValue();
+    uint64_t const LoadAddr = LoadAddrExprResult.getValue();
 
     // If there is no error but the content pointer is null then this is a
     // zero-fill symbol/section.
@@ -636,10 +636,10 @@ private:
           unexpectedToken(RemainingExpr, RemainingExpr, "expected ']'"), "");
     RemainingExpr = RemainingExpr.substr(1).ltrim();
 
-    unsigned HighBit = HighBitExpr.getValue();
-    unsigned LowBit = LowBitExpr.getValue();
-    uint64_t Mask = ((uint64_t)1 << (HighBit - LowBit + 1)) - 1;
-    uint64_t SlicedValue = (SubExprResult.getValue() >> LowBit) & Mask;
+    unsigned const HighBit = HighBitExpr.getValue();
+    unsigned const LowBit = LowBitExpr.getValue();
+    uint64_t const Mask = ((uint64_t)1 << (HighBit - LowBit + 1)) - 1;
+    uint64_t const SlicedValue = (SubExprResult.getValue() >> LowBit) & Mask;
     return std::make_pair(EvalResult(SlicedValue), RemainingExpr);
   }
 
@@ -679,7 +679,7 @@ private:
 
     // This is a binary expression - evaluate and try to continue as a
     // complex expr.
-    EvalResult ThisResult(computeBinOpResult(BinOp, LHSResult, RHSResult));
+    EvalResult const ThisResult(computeBinOpResult(BinOp, LHSResult, RHSResult));
 
     return evalComplexExpr(std::make_pair(ThisResult, RemainingExpr), PCtx);
   }
@@ -687,11 +687,11 @@ private:
   bool decodeInst(StringRef Symbol, MCInst &Inst, uint64_t &Size,
                   int64_t Offset) const {
     MCDisassembler *Dis = Checker.Disassembler;
-    StringRef SymbolMem = Checker.getSymbolContent(Symbol);
-    ArrayRef<uint8_t> SymbolBytes(SymbolMem.bytes_begin() + Offset,
+    StringRef const SymbolMem = Checker.getSymbolContent(Symbol);
+    ArrayRef<uint8_t> const SymbolBytes(SymbolMem.bytes_begin() + Offset,
                                   SymbolMem.size() - Offset);
 
-    MCDisassembler::DecodeStatus S =
+    MCDisassembler::DecodeStatus const S =
         Dis->getInstruction(Inst, Size, SymbolBytes, 0, nulls());
 
     return (S == MCDisassembler::Success);
@@ -716,8 +716,8 @@ bool RuntimeDyldCheckerImpl::check(StringRef CheckExpr) const {
   CheckExpr = CheckExpr.trim();
   LLVM_DEBUG(dbgs() << "RuntimeDyldChecker: Checking '" << CheckExpr
                     << "'...\n");
-  RuntimeDyldCheckerExprEval P(*this, ErrStream);
-  bool Result = P.evaluate(CheckExpr);
+  RuntimeDyldCheckerExprEval const P(*this, ErrStream);
+  bool const Result = P.evaluate(CheckExpr);
   (void)Result;
   LLVM_DEBUG(dbgs() << "RuntimeDyldChecker: '" << CheckExpr << "' "
                     << (Result ? "passed" : "FAILED") << ".\n");
@@ -742,7 +742,7 @@ bool RuntimeDyldCheckerImpl::checkAllRulesInBuffer(StringRef RulePrefix,
            *LineEnd != '\n')
       ++LineEnd;
 
-    StringRef Line(LineStart, LineEnd - LineStart);
+    StringRef const Line(LineStart, LineEnd - LineStart);
     if (Line.startswith(RulePrefix))
       CheckExpr += Line.substr(RulePrefix.size()).str();
 
@@ -795,7 +795,7 @@ uint64_t RuntimeDyldCheckerImpl::getSymbolRemoteAddr(StringRef Symbol) const {
 
 uint64_t RuntimeDyldCheckerImpl::readMemoryAtAddr(uint64_t SrcAddr,
                                                   unsigned Size) const {
-  uintptr_t PtrSizedAddr = static_cast<uintptr_t>(SrcAddr);
+  uintptr_t const PtrSizedAddr = static_cast<uintptr_t>(SrcAddr);
   assert(PtrSizedAddr == SrcAddr && "Linker memory pointer out-of-range.");
   void *Ptr = reinterpret_cast<void*>(PtrSizedAddr);
 

@@ -583,7 +583,7 @@ bool HexagonMCInstrInfo::isOrderedDuplexPair(MCInstrInfo const &MCII,
     return false;
   // Only A2_addi and A2_tfrsi can be extended in duplex form PRM 10.5
   if (ExtendedB) {
-    unsigned Opcode = MIb.getOpcode();
+    unsigned const Opcode = MIb.getOpcode();
     if ((Opcode != Hexagon::A2_addi) && (Opcode != Hexagon::A2_tfrsi))
       return false;
   }
@@ -596,12 +596,12 @@ bool HexagonMCInstrInfo::isOrderedDuplexPair(MCInstrInfo const &MCII,
   // If a duplex contains 2 insns in the same group, the insns must be
   // ordered such that the numerically smaller opcode is in slot 1.
   if ((MIaG != HexagonII::HSIG_None) && (MIaG == MIbG) && bisReversable) {
-    MCInst SubInst0 = HexagonMCInstrInfo::deriveSubInst(MIa);
-    MCInst SubInst1 = HexagonMCInstrInfo::deriveSubInst(MIb);
+    MCInst const SubInst0 = HexagonMCInstrInfo::deriveSubInst(MIa);
+    MCInst const SubInst1 = HexagonMCInstrInfo::deriveSubInst(MIb);
 
-    unsigned zeroedSubInstS0 =
+    unsigned const zeroedSubInstS0 =
         subinstOpcodeMap.find(SubInst0.getOpcode())->second;
-    unsigned zeroedSubInstS1 =
+    unsigned const zeroedSubInstS1 =
         subinstOpcodeMap.find(SubInst1.getOpcode())->second;
 
     if (zeroedSubInstS0 < zeroedSubInstS1)
@@ -1036,7 +1036,7 @@ HexagonMCInstrInfo::getDuplexPossibilties(MCInstrInfo const &MCII,
   assert(isBundle(MCB));
   SmallVector<DuplexCandidate, 8> duplexToTry;
   // Use an "order matters" version of isDuplexPair.
-  unsigned numInstrInPacket = MCB.getNumOperands();
+  unsigned const numInstrInPacket = MCB.getNumOperands();
 
   for (unsigned distance = 1; distance < numInstrInPacket; ++distance) {
     for (unsigned j = HexagonMCInstrInfo::bundleInstructionsOffset,
@@ -1062,7 +1062,7 @@ HexagonMCInstrInfo::getDuplexPossibilties(MCInstrInfo const &MCII,
               HexagonMCInstrInfo::hasExtenderForIndex(MCB, j - 1),
               bisReversable, STI)) {
         // Get iClass.
-        unsigned iClass = iClassOfDuplexPair(
+        unsigned const iClass = iClassOfDuplexPair(
             getDuplexCandidateGroup(*MCB.getOperand(k).getInst()),
             getDuplexCandidateGroup(*MCB.getOperand(j).getInst()));
 
@@ -1087,7 +1087,7 @@ HexagonMCInstrInfo::getDuplexPossibilties(MCInstrInfo const &MCII,
                 HexagonMCInstrInfo::hasExtenderForIndex(MCB, k - 1),
                 bisReversable, STI)) {
           // Get iClass.
-          unsigned iClass = iClassOfDuplexPair(
+          unsigned const iClass = iClassOfDuplexPair(
               getDuplexCandidateGroup(*MCB.getOperand(j).getInst()),
               getDuplexCandidateGroup(*MCB.getOperand(k).getInst()));
 

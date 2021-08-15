@@ -113,8 +113,8 @@ void MCSection::flushPendingLabels() {
   // Make sure all remaining pending labels point to data fragments, by
   // creating new empty data fragments for each Subsection with labels pending.
   while (!PendingLabels.empty()) {
-    PendingLabel& Label = PendingLabels[0];
-    iterator CurInsertionPoint =
+    PendingLabel const& Label = PendingLabels[0];
+    iterator const CurInsertionPoint =
       this->getSubsectionInsertionPoint(Label.Subsection);
     MCFragment *F = new MCDataFragment();
     getFragmentList().insert(CurInsertionPoint, F);

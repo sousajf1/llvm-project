@@ -42,15 +42,15 @@ GloballyHashedType::hashType(ArrayRef<uint8_t> RecordData,
   RecordData = RecordData.drop_front(sizeof(RecordPrefix));
   for (const auto &Ref : Refs) {
     // Hash any data that comes before this TiRef.
-    uint32_t PreLen = Ref.Offset - Off;
-    ArrayRef<uint8_t> PreData = RecordData.slice(Off, PreLen);
+    uint32_t const PreLen = Ref.Offset - Off;
+    ArrayRef<uint8_t> const PreData = RecordData.slice(Off, PreLen);
     S.update(PreData);
     auto Prev = (Ref.Kind == TiRefKind::IndexRef) ? PreviousIds : PreviousTypes;
 
     auto RefData = RecordData.slice(Ref.Offset, Ref.Count * sizeof(TypeIndex));
     // For each type index referenced, add in the previously computed hash
     // value of that type.
-    ArrayRef<TypeIndex> Indices(
+    ArrayRef<TypeIndex> const Indices(
         reinterpret_cast<const TypeIndex *>(RefData.data()), Ref.Count);
     for (TypeIndex TI : Indices) {
       ArrayRef<uint8_t> BytesToHash;

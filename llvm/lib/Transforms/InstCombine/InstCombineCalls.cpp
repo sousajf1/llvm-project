@@ -109,14 +109,14 @@ static Type *getPromotedType(Type *Ty) {
 }
 
 Instruction *InstCombinerImpl::SimplifyAnyMemTransfer(AnyMemTransferInst *MI) {
-  Align DstAlign = getKnownAlignment(MI->getRawDest(), DL, MI, &AC, &DT);
+  Align const DstAlign = getKnownAlignment(MI->getRawDest(), DL, MI, &AC, &DT);
   MaybeAlign CopyDstAlign = MI->getDestAlign();
   if (!CopyDstAlign || *CopyDstAlign < DstAlign) {
     MI->setDestAlignment(DstAlign);
     return MI;
   }
 
-  Align SrcAlign = getKnownAlignment(MI->getRawSource(), DL, MI, &AC, &DT);
+  Align const SrcAlign = getKnownAlignment(MI->getRawSource(), DL, MI, &AC, &DT);
   MaybeAlign CopySrcAlign = MI->getSourceAlign();
   if (!CopySrcAlign || *CopySrcAlign < SrcAlign) {
     MI->setSourceAlignment(SrcAlign);
@@ -141,7 +141,7 @@ Instruction *InstCombinerImpl::SimplifyAnyMemTransfer(AnyMemTransferInst *MI) {
   // if the size is something we can handle with a single primitive load/store.
   // A single load+store correctly handles overlapping memory in the memmove
   // case.
-  uint64_t Size = MemOpLength->getLimitedValue();
+  uint64_t const Size = MemOpLength->getLimitedValue();
   assert(Size && "0-sized memory transferring should be removed already.");
 
   if (Size > 8 || (Size&(Size-1)))
@@ -156,9 +156,9 @@ Instruction *InstCombinerImpl::SimplifyAnyMemTransfer(AnyMemTransferInst *MI) {
       return nullptr;
 
   // Use an integer load+store unless we can find something better.
-  unsigned SrcAddrSp =
+  unsigned const SrcAddrSp =
     cast<PointerType>(MI->getArgOperand(1)->getType())->getAddressSpace();
-  unsigned DstAddrSp =
+  unsigned const DstAddrSp =
     cast<PointerType>(MI->getArgOperand(0)->getType())->getAddressSpace();
 
   IntegerType* IntType = IntegerType::get(MI->getContext(), Size<<3);
@@ -263,12 +263,12 @@ Instruction *InstCombinerImpl::SimplifyAnyMemSet(AnyMemSetInst *MI) {
     Type *ITy = IntegerType::get(MI->getContext(), Len*8);  // n=1 -> i8.
 
     Value *Dest = MI->getDest();
-    unsigned DstAddrSp = cast<PointerType>(Dest->getType())->getAddressSpace();
+    unsigned const DstAddrSp = cast<PointerType>(Dest->getType())->getAddressSpace();
     Type *NewDstPtrTy = PointerType::get(ITy, DstAddrSp);
     Dest = Builder.CreateBitCast(Dest, NewDstPtrTy);
 
     // Extract the fill value and store.
-    uint64_t Fill = FillC->getZExtValue()*0x0101010101010101ULL;
+    uint64_t const Fill = FillC->getZExtValue()*0x0101010101010101ULL;
     StoreInst *S = Builder.CreateStore(ConstantInt::get(ITy, Fill), Dest,
                                        MI->isVolatile());
     S->setAlignment(Alignment);
@@ -327,7 +327,7 @@ Instruction *InstCombinerImpl::simplifyMaskedStore(IntrinsicInst &II) {
   // If the mask is all ones, this is a plain vector store of the 1st argument.
   if (ConstMask->isAllOnesValue()) {
     Value *StorePtr = II.getArgOperand(1);
-    Align Alignment = cast<ConstantInt>(II.getArgOperand(2))->getAlignValue();
+    Align const Alignment = cast<ConstantInt>(II.getArgOperand(2))->getAlignValue();
     StoreInst *S =
         new StoreInst(II.getArgOperand(0), StorePtr, false, Alignment);
     S->copyMetadata(II);
@@ -338,7 +338,7 @@ Instruction *InstCombinerImpl::simplifyMaskedStore(IntrinsicInst &II) {
     return nullptr;
 
   // Use masked off lanes to simplify operands via SimplifyDemandedVectorElts
-  APInt DemandedElts = possiblyDemandedEltsInMask(ConstMask);
+  APInt const DemandedElts = possiblyDemandedEltsInMask(ConstMask);
   APInt UndefElts(DemandedElts.getBitWidth(), 0);
   if (Value *V =
           SimplifyDemandedVectorElts(II.getOperand(0), DemandedElts, UndefElts))
@@ -377,7 +377,7 @@ Instruction *InstCombinerImpl::simplifyMaskedScatter(IntrinsicInst &II) {
     return nullptr;
 
   // Use masked off lanes to simplify operands via SimplifyDemandedVectorElts
-  APInt DemandedElts = possiblyDemandedEltsInMask(ConstMask);
+  APInt const DemandedElts = possiblyDemandedEltsInMask(ConstMask);
   APInt UndefElts(DemandedElts.getBitWidth(), 0);
   if (Value *V =
           SimplifyDemandedVectorElts(II.getOperand(0), DemandedElts, UndefElts))
@@ -433,14 +433,14 @@ static Instruction *foldCttzCtlz(IntrinsicInst &II, InstCombinerImpl &IC) {
   assert((II.getIntrinsicID() == Intrinsic::cttz ||
           II.getIntrinsicID() == Intrinsic::ctlz) &&
          "Expected cttz or ctlz intrinsic");
-  bool IsTZ = II.getIntrinsicID() == Intrinsic::cttz;
+  bool const IsTZ = II.getIntrinsicID() == Intrinsic::cttz;
   Value *Op0 = II.getArgOperand(0);
   Value *Op1 = II.getArgOperand(1);
   Value *X;
   // ctlz(bitreverse(x)) -> cttz(x)
   // cttz(bitreverse(x)) -> ctlz(x)
   if (match(Op0, m_BitReverse(m_Value(X)))) {
-    Intrinsic::ID ID = IsTZ ? Intrinsic::ctlz : Intrinsic::cttz;
+    Intrinsic::ID const ID = IsTZ ? Intrinsic::ctlz : Intrinsic::cttz;
     Function *F = Intrinsic::getDeclaration(II.getModule(), ID, II.getType());
     return CallInst::Create(F, {X, II.getArgOperand(1)});
   }
@@ -485,7 +485,7 @@ static Instruction *foldCttzCtlz(IntrinsicInst &II, InstCombinerImpl &IC) {
     // cttz(abs(x)) -> cttz(x)
     // cttz(nabs(x)) -> cttz(x)
     Value *Y;
-    SelectPatternFlavor SPF = matchSelectPattern(Op0, X, Y).Flavor;
+    SelectPatternFlavor const SPF = matchSelectPattern(Op0, X, Y).Flavor;
     if (SPF == SPF_ABS || SPF == SPF_NABS)
       return IC.replaceOperand(II, 0, X);
 
@@ -493,12 +493,12 @@ static Instruction *foldCttzCtlz(IntrinsicInst &II, InstCombinerImpl &IC) {
       return IC.replaceOperand(II, 0, X);
   }
 
-  KnownBits Known = IC.computeKnownBits(Op0, 0, &II);
+  KnownBits const Known = IC.computeKnownBits(Op0, 0, &II);
 
   // Create a mask for bits above (ctlz) or below (cttz) the first known one.
-  unsigned PossibleZeros = IsTZ ? Known.countMaxTrailingZeros()
+  unsigned const PossibleZeros = IsTZ ? Known.countMaxTrailingZeros()
                                 : Known.countMaxLeadingZeros();
-  unsigned DefiniteZeros = IsTZ ? Known.countMinTrailingZeros()
+  unsigned const DefiniteZeros = IsTZ ? Known.countMinTrailingZeros()
                                 : Known.countMinLeadingZeros();
 
   // If all bits above (ctlz) or below (cttz) the first known one are known
@@ -524,7 +524,7 @@ static Instruction *foldCttzCtlz(IntrinsicInst &II, InstCombinerImpl &IC) {
   // TODO: Handle splat vectors.
   auto *IT = dyn_cast<IntegerType>(Op0->getType());
   if (IT && IT->getBitWidth() != 1 && !II.getMetadata(LLVMContext::MD_range)) {
-    Metadata *LowAndHigh[] = {
+    Metadata *const LowAndHigh[] = {
         ConstantAsMetadata::get(ConstantInt::get(IT, DefiniteZeros)),
         ConstantAsMetadata::get(ConstantInt::get(IT, PossibleZeros + 1))};
     II.setMetadata(LLVMContext::MD_range,
@@ -539,7 +539,7 @@ static Instruction *foldCtpop(IntrinsicInst &II, InstCombinerImpl &IC) {
   assert(II.getIntrinsicID() == Intrinsic::ctpop &&
          "Expected ctpop intrinsic");
   Type *Ty = II.getType();
-  unsigned BitWidth = Ty->getScalarSizeInBits();
+  unsigned const BitWidth = Ty->getScalarSizeInBits();
   Value *Op0 = II.getArgOperand(0);
   Value *X, *Y;
 
@@ -600,10 +600,10 @@ static Instruction *foldCtpop(IntrinsicInst &II, InstCombinerImpl &IC) {
     return nullptr;
 
   // Add range metadata since known bits can't completely reflect what we know.
-  unsigned MinCount = Known.countMinPopulation();
-  unsigned MaxCount = Known.countMaxPopulation();
+  unsigned const MinCount = Known.countMinPopulation();
+  unsigned const MaxCount = Known.countMaxPopulation();
   if (IT->getBitWidth() != 1 && !II.getMetadata(LLVMContext::MD_range)) {
-    Metadata *LowAndHigh[] = {
+    Metadata *const LowAndHigh[] = {
         ConstantAsMetadata::get(ConstantInt::get(IT, MinCount)),
         ConstantAsMetadata::get(ConstantInt::get(IT, MaxCount + 1))};
     II.setMetadata(LLVMContext::MD_range,
@@ -626,7 +626,7 @@ static Value *simplifyNeonTbl1(const IntrinsicInst &II,
     return nullptr;
 
   auto *VecTy = cast<FixedVectorType>(II.getType());
-  unsigned NumElts = VecTy->getNumElements();
+  unsigned const NumElts = VecTy->getNumElements();
 
   // Only perform this transformation for <8 x i8> vector types.
   if (!VecTy->getElementType()->isIntegerTy(8) || NumElts != 8)
@@ -724,7 +724,7 @@ static CallInst *canonicalizeConstantArg0ToArg1(CallInst &Call) {
 /// \p Result and a constant \p Overflow value.
 static Instruction *createOverflowTuple(IntrinsicInst *II, Value *Result,
                                         Constant *Overflow) {
-  Constant *V[] = {UndefValue::get(Result->getType()), Overflow};
+  Constant *const V[] = {UndefValue::get(Result->getType()), Overflow};
   StructType *ST = cast<StructType>(II->getType());
   Constant *Struct = ConstantStruct::get(ST, V);
   return InsertValueInst::Create(Struct, Result, 0);
@@ -744,7 +744,7 @@ InstCombinerImpl::foldIntrinsicWithOverflowCommon(IntrinsicInst *II) {
 static Optional<bool> getKnownSign(Value *Op, Instruction *CxtI,
                                    const DataLayout &DL, AssumptionCache *AC,
                                    DominatorTree *DT) {
-  KnownBits Known = computeKnownBits(Op, DL, 0, AC, CxtI, DT);
+  KnownBits const Known = computeKnownBits(Op, DL, 0, AC, CxtI, DT);
   if (Known.isNonNegative())
     return false;
   if (Known.isNegative())
@@ -801,7 +801,7 @@ static Instruction *factorizeMinMaxTree(IntrinsicInst *II,
   // Match 3 of the same min/max ops. Example: umin(umin(), umin()).
   auto *LHS = dyn_cast<IntrinsicInst>(II->getArgOperand(0));
   auto *RHS = dyn_cast<IntrinsicInst>(II->getArgOperand(1));
-  Intrinsic::ID MinMaxID = II->getIntrinsicID();
+  Intrinsic::ID const MinMaxID = II->getIntrinsicID();
   if (!LHS || !RHS || LHS->getIntrinsicID() !=  MinMaxID ||
       RHS->getIntrinsicID() != MinMaxID ||
       (!LHS->hasOneUse() && !RHS->hasOneUse()))
@@ -918,11 +918,11 @@ Instruction *InstCombinerImpl::visitCallInst(CallInst &CI) {
       if (GlobalVariable *GVSrc = dyn_cast<GlobalVariable>(MMI->getSource()))
         if (GVSrc->isConstant()) {
           Module *M = CI.getModule();
-          Intrinsic::ID MemCpyID =
+          Intrinsic::ID const MemCpyID =
               isa<AtomicMemMoveInst>(MMI)
                   ? Intrinsic::memcpy_element_unordered_atomic
                   : Intrinsic::memcpy;
-          Type *Tys[3] = { CI.getArgOperand(0)->getType(),
+          Type *const Tys[3] = { CI.getArgOperand(0)->getType(),
                            CI.getArgOperand(1)->getType(),
                            CI.getArgOperand(2)->getType() };
           CI.setCalledFunction(Intrinsic::getDeclaration(M, MemCpyID, Tys));
@@ -954,7 +954,7 @@ Instruction *InstCombinerImpl::visitCallInst(CallInst &CI) {
   if (auto *IIFVTy = dyn_cast<FixedVectorType>(II->getType())) {
     auto VWidth = IIFVTy->getNumElements();
     APInt UndefElts(VWidth, 0);
-    APInt AllOnesEltMask(APInt::getAllOnesValue(VWidth));
+    APInt const AllOnesEltMask(APInt::getAllOnesValue(VWidth));
     if (Value *V = SimplifyDemandedVectorElts(II, AllOnesEltMask, UndefElts)) {
       if (V != II)
         return replaceInstUsesWith(*II, V);
@@ -967,7 +967,7 @@ Instruction *InstCombinerImpl::visitCallInst(CallInst &CI) {
       return NewCall;
   }
 
-  Intrinsic::ID IID = II->getIntrinsicID();
+  Intrinsic::ID const IID = II->getIntrinsicID();
   switch (IID) {
   case Intrinsic::objectsize:
     if (Value *V = lowerObjectSizeCall(II, DL, &TLI, /*MustSucceed=*/false))
@@ -975,7 +975,7 @@ Instruction *InstCombinerImpl::visitCallInst(CallInst &CI) {
     return nullptr;
   case Intrinsic::abs: {
     Value *IIOperand = II->getArgOperand(0);
-    bool IntMinIsPoison = cast<Constant>(II->getArgOperand(1))->isOneValue();
+    bool const IntMinIsPoison = cast<Constant>(II->getArgOperand(1))->isOneValue();
 
     // abs(-x) -> abs(x)
     // TODO: Copy nsw if it was present on the neg?
@@ -1067,7 +1067,7 @@ Instruction *InstCombinerImpl::visitCallInst(CallInst &CI) {
 
     if (match(I0, m_Not(m_Value(X)))) {
       // max (not X), (not Y) --> not (min X, Y)
-      Intrinsic::ID InvID = getInverseMinMaxIntrinsic(IID);
+      Intrinsic::ID const InvID = getInverseMinMaxIntrinsic(IID);
       if (match(I1, m_Not(m_Value(Y))) &&
           (I0->hasOneUse() || I1->hasOneUse())) {
         Value *InvMaxMin = Builder.CreateBinaryIntrinsic(InvID, X, Y);
@@ -1094,7 +1094,7 @@ Instruction *InstCombinerImpl::visitCallInst(CallInst &CI) {
 
       // This is some variant of abs(). See if we can propagate 'nsw' to the abs
       // operation and potentially its negation.
-      bool IntMinIsPoison = isKnownNegation(I0, I1, /* NeedNSW */ true);
+      bool const IntMinIsPoison = isKnownNegation(I0, I1, /* NeedNSW */ true);
       Value *Abs = Builder.CreateBinaryIntrinsic(
           Intrinsic::abs, I0,
           ConstantInt::getBool(II->getContext(), IntMinIsPoison));
@@ -1125,7 +1125,7 @@ Instruction *InstCombinerImpl::visitCallInst(CallInst &CI) {
 
     // bswap(trunc(bswap(x))) -> trunc(lshr(x, c))
     if (match(IIOperand, m_Trunc(m_BSwap(m_Value(X))))) {
-      unsigned C = X->getType()->getScalarSizeInBits() -
+      unsigned const C = X->getType()->getScalarSizeInBits() -
                    IIOperand->getType()->getScalarSizeInBits();
       Value *CV = ConstantInt::get(X->getType(), C);
       Value *V = Builder.CreateLShr(X, CV);
@@ -1177,7 +1177,7 @@ Instruction *InstCombinerImpl::visitCallInst(CallInst &CI) {
   case Intrinsic::fshr: {
     Value *Op0 = II->getArgOperand(0), *Op1 = II->getArgOperand(1);
     Type *Ty = II->getType();
-    unsigned BitWidth = Ty->getScalarSizeInBits();
+    unsigned const BitWidth = Ty->getScalarSizeInBits();
     Constant *ShAmtC;
     if (match(II->getArgOperand(2), m_ImmConstant(ShAmtC)) &&
         !ShAmtC->containsConstantExpression()) {
@@ -1232,7 +1232,7 @@ Instruction *InstCombinerImpl::visitCallInst(CallInst &CI) {
     // a power-of-2.
     if (!isPowerOf2_32(BitWidth))
       break;
-    APInt Op2Demanded = APInt::getLowBitsSet(BitWidth, Log2_32_Ceil(BitWidth));
+    APInt const Op2Demanded = APInt::getLowBitsSet(BitWidth, Log2_32_Ceil(BitWidth));
     KnownBits Op2Known(BitWidth);
     if (SimplifyDemandedBits(II, 2, Op2Demanded, Op2Known))
       return &CI;
@@ -1250,12 +1250,12 @@ Instruction *InstCombinerImpl::visitCallInst(CallInst &CI) {
     const APInt *C0, *C1;
     Value *Arg0 = II->getArgOperand(0);
     Value *Arg1 = II->getArgOperand(1);
-    bool IsSigned = IID == Intrinsic::sadd_with_overflow;
-    bool HasNWAdd = IsSigned ? match(Arg0, m_NSWAdd(m_Value(X), m_APInt(C0)))
+    bool const IsSigned = IID == Intrinsic::sadd_with_overflow;
+    bool const HasNWAdd = IsSigned ? match(Arg0, m_NSWAdd(m_Value(X), m_APInt(C0)))
                              : match(Arg0, m_NUWAdd(m_Value(X), m_APInt(C0)));
     if (HasNWAdd && match(Arg1, m_APInt(C1))) {
       bool Overflow;
-      APInt NewC =
+      APInt const NewC =
           IsSigned ? C1->sadd_ov(*C0, Overflow) : C1->uadd_ov(*C0, Overflow);
       if (!Overflow)
         return replaceInstUsesWith(
@@ -1305,7 +1305,7 @@ Instruction *InstCombinerImpl::visitCallInst(CallInst &CI) {
     Value *Arg1 = SI->getRHS();
 
     // Make use of known overflow information.
-    OverflowResult OR = computeOverflow(SI->getBinaryOp(), SI->isSigned(),
+    OverflowResult const OR = computeOverflow(SI->getBinaryOp(), SI->isSigned(),
                                         Arg0, Arg1, SI);
     switch (OR) {
       case OverflowResult::MayOverflow:
@@ -1316,13 +1316,13 @@ Instruction *InstCombinerImpl::visitCallInst(CallInst &CI) {
         else
           return BinaryOperator::CreateNUW(SI->getBinaryOp(), Arg0, Arg1);
       case OverflowResult::AlwaysOverflowsLow: {
-        unsigned BitWidth = Ty->getScalarSizeInBits();
-        APInt Min = APSInt::getMinValue(BitWidth, !SI->isSigned());
+        unsigned const BitWidth = Ty->getScalarSizeInBits();
+        APInt const Min = APSInt::getMinValue(BitWidth, !SI->isSigned());
         return replaceInstUsesWith(*SI, ConstantInt::get(Ty, Min));
       }
       case OverflowResult::AlwaysOverflowsHigh: {
-        unsigned BitWidth = Ty->getScalarSizeInBits();
-        APInt Max = APSInt::getMaxValue(BitWidth, !SI->isSigned());
+        unsigned const BitWidth = Ty->getScalarSizeInBits();
+        APInt const Max = APSInt::getMaxValue(BitWidth, !SI->isSigned());
         return replaceInstUsesWith(*SI, ConstantInt::get(Ty, Max));
       }
     }
@@ -1344,7 +1344,7 @@ Instruction *InstCombinerImpl::visitCallInst(CallInst &CI) {
       Value *X;
       const APInt *Val, *Val2;
       APInt NewVal;
-      bool IsUnsigned =
+      bool const IsUnsigned =
           IID == Intrinsic::uadd_sat || IID == Intrinsic::usub_sat;
       if (Other->getIntrinsicID() == IID &&
           match(Arg1, m_APInt(Val)) &&
@@ -1470,7 +1470,7 @@ Instruction *InstCombinerImpl::visitCallInst(CallInst &CI) {
   case Intrinsic::fmuladd: {
     // Canonicalize fast fmuladd to the separate fmul + fadd.
     if (II->isFast()) {
-      BuilderTy::FastMathFlagGuard Guard(Builder);
+      BuilderTy::FastMathFlagGuard const Guard(Builder);
       Builder.setFastMathFlags(II->getFastMathFlags());
       Value *Mul = Builder.CreateFMul(II->getArgOperand(0),
                                       II->getArgOperand(1));
@@ -1649,7 +1649,7 @@ Instruction *InstCombinerImpl::visitCallInst(CallInst &CI) {
     }
 
     // Check for constant LHS & RHS - in this case we just simplify.
-    bool Zext = (IID == Intrinsic::arm_neon_vmullu ||
+    bool const Zext = (IID == Intrinsic::arm_neon_vmullu ||
                  IID == Intrinsic::aarch64_neon_umull);
     VectorType *NewVT = cast<VectorType>(II->getType());
     if (Constant *CV0 = dyn_cast<Constant>(Arg0)) {
@@ -1695,15 +1695,15 @@ Instruction *InstCombinerImpl::visitCallInst(CallInst &CI) {
   case Intrinsic::hexagon_V6_vandvrt_128B: {
     // Simplify Q -> V -> Q conversion.
     if (auto Op0 = dyn_cast<IntrinsicInst>(II->getArgOperand(0))) {
-      Intrinsic::ID ID0 = Op0->getIntrinsicID();
+      Intrinsic::ID const ID0 = Op0->getIntrinsicID();
       if (ID0 != Intrinsic::hexagon_V6_vandqrt &&
           ID0 != Intrinsic::hexagon_V6_vandqrt_128B)
         break;
       Value *Bytes = Op0->getArgOperand(1), *Mask = II->getArgOperand(1);
-      uint64_t Bytes1 = computeKnownBits(Bytes, 0, Op0).One.getZExtValue();
-      uint64_t Mask1 = computeKnownBits(Mask, 0, II).One.getZExtValue();
+      uint64_t const Bytes1 = computeKnownBits(Bytes, 0, Op0).One.getZExtValue();
+      uint64_t const Mask1 = computeKnownBits(Mask, 0, II).One.getZExtValue();
       // Check if every byte has common bits in Bytes and Mask.
-      uint64_t C = Bytes1 & Mask1;
+      uint64_t const C = Bytes1 & Mask1;
       if ((C & 0xFF) && (C & 0xFF00) && (C & 0xFF0000) && (C & 0xFF000000))
         return replaceInstUsesWith(*II, Op0->getArgOperand(0));
     }
@@ -1869,7 +1869,7 @@ Instruction *InstCombinerImpl::visitCallInst(CallInst &CI) {
           /// offset and alignment.
           /// TODO: we can generate a GEP instead of merging the alignment with
           /// the offset.
-          RetainedKnowledge RK{Attribute::Alignment,
+          RetainedKnowledge const RK{Attribute::Alignment,
                                (unsigned)MinAlign(Offset, AlignMask + 1), A};
           if (auto *Replacement =
                   buildAssumeFromKnowledge(RK, Next, &AC, &DT)) {
@@ -1886,13 +1886,13 @@ Instruction *InstCombinerImpl::visitCallInst(CallInst &CI) {
     if (EnableKnowledgeRetention && II->hasOperandBundles()) {
       for (unsigned Idx = 0; Idx < II->getNumOperandBundles(); Idx++) {
         auto &BOI = II->bundle_op_info_begin()[Idx];
-        RetainedKnowledge RK =
+        RetainedKnowledge const RK =
           llvm::getKnowledgeFromBundle(cast<AssumeInst>(*II), BOI);
         if (BOI.End - BOI.Begin > 2)
           continue; // Prevent reducing knowledge in an align with offset since
                     // extracting a RetainedKnowledge form them looses offset
                     // information
-        RetainedKnowledge CanonRK =
+        RetainedKnowledge const CanonRK =
           llvm::simplifyRetainedKnowledge(cast<AssumeInst>(II), RK,
                                           &getAssumptionCache(),
                                           &getDominatorTree());
@@ -1972,10 +1972,10 @@ Instruction *InstCombinerImpl::visitCallInst(CallInst &CI) {
     // Only canonicalize if the destination vector, Vec, and SubVec are all
     // fixed vectors.
     if (DstTy && VecTy && SubVecTy) {
-      unsigned DstNumElts = DstTy->getNumElements();
-      unsigned VecNumElts = VecTy->getNumElements();
-      unsigned SubVecNumElts = SubVecTy->getNumElements();
-      unsigned IdxN = cast<ConstantInt>(Idx)->getZExtValue();
+      unsigned const DstNumElts = DstTy->getNumElements();
+      unsigned const VecNumElts = VecTy->getNumElements();
+      unsigned const SubVecNumElts = SubVecTy->getNumElements();
+      unsigned const IdxN = cast<ConstantInt>(Idx)->getZExtValue();
 
       // An insert that entirely overwrites Vec with SubVec is a nop.
       if (VecNumElts == SubVecNumElts)
@@ -2017,9 +2017,9 @@ Instruction *InstCombinerImpl::visitCallInst(CallInst &CI) {
     // Only canonicalize if the the destination vector and Vec are fixed
     // vectors.
     if (DstTy && VecTy) {
-      unsigned DstNumElts = DstTy->getNumElements();
-      unsigned VecNumElts = VecTy->getNumElements();
-      unsigned IdxN = cast<ConstantInt>(Idx)->getZExtValue();
+      unsigned const DstNumElts = DstTy->getNumElements();
+      unsigned const VecNumElts = VecTy->getNumElements();
+      unsigned const IdxN = cast<ConstantInt>(Idx)->getZExtValue();
 
       // Extracting the entirety of Vec is a nop.
       if (VecNumElts == DstNumElts) {
@@ -2210,7 +2210,7 @@ Instruction *InstCombinerImpl::visitCallInst(CallInst &CI) {
   case Intrinsic::vector_reduce_fmin:
   case Intrinsic::vector_reduce_fadd:
   case Intrinsic::vector_reduce_fmul: {
-    bool CanBeReassociated = (IID != Intrinsic::vector_reduce_fadd &&
+    bool const CanBeReassociated = (IID != Intrinsic::vector_reduce_fadd &&
                               IID != Intrinsic::vector_reduce_fmul) ||
                              II->hasAllowReassoc();
     const unsigned ArgIdx = (IID == Intrinsic::vector_reduce_fadd ||
@@ -2224,9 +2224,9 @@ Instruction *InstCombinerImpl::visitCallInst(CallInst &CI) {
         !match(Arg, m_Shuffle(m_Value(V), m_Undef(), m_Mask(Mask))) ||
         !cast<ShuffleVectorInst>(Arg)->isSingleSource())
       break;
-    int Sz = Mask.size();
+    int const Sz = Mask.size();
     SmallBitVector UsedIndices(Sz);
-    for (int Idx : Mask) {
+    for (int const Idx : Mask) {
       if (Idx == UndefMaskElem || UsedIndices.test(Idx))
         break;
       UsedIndices.set(Idx);
@@ -2411,7 +2411,7 @@ static IntrinsicInst *findInitTrampoline(Value *Callee) {
 }
 
 void InstCombinerImpl::annotateAnyAllocSite(CallBase &Call, const TargetLibraryInfo *TLI) {
-  unsigned NumArgs = Call.getNumArgOperands();
+  unsigned const NumArgs = Call.getNumArgOperands();
   ConstantInt *Op0C = dyn_cast<ConstantInt>(Call.getOperand(0));
   ConstantInt *Op1C =
       (NumArgs == 1) ? nullptr : dyn_cast<ConstantInt>(Call.getOperand(1));
@@ -2437,7 +2437,7 @@ void InstCombinerImpl::annotateAnyAllocSite(CallBase &Call, const TargetLibraryI
     // Add alignment attribute if alignment is a power of two constant.
     if (Op0C && Op0C->getValue().ult(llvm::Value::MaximumAlignment) &&
         isKnownNonZero(Call.getOperand(1), DL, 0, &AC, &Call, &DT)) {
-      uint64_t AlignmentVal = Op0C->getZExtValue();
+      uint64_t const AlignmentVal = Op0C->getZExtValue();
       if (llvm::isPowerOf2_64(AlignmentVal)) {
         Call.removeAttribute(AttributeList::ReturnIndex, Attribute::Alignment);
         Call.addAttribute(AttributeList::ReturnIndex,
@@ -2452,13 +2452,13 @@ void InstCombinerImpl::annotateAnyAllocSite(CallBase &Call, const TargetLibraryI
   } else if (isCallocLikeFn(&Call, TLI) && Op0C && Op1C) {
     bool Overflow;
     const APInt &N = Op0C->getValue();
-    APInt Size = N.umul_ov(Op1C->getValue(), Overflow);
+    APInt const Size = N.umul_ov(Op1C->getValue(), Overflow);
     if (!Overflow)
       Call.addAttribute(AttributeList::ReturnIndex,
                         Attribute::getWithDereferenceableOrNullBytes(
                             Call.getContext(), Size.getZExtValue()));
   } else if (isStrdupLikeFn(&Call, TLI)) {
-    uint64_t Len = GetStringLength(Call.getOperand(0));
+    uint64_t const Len = GetStringLength(Call.getOperand(0));
     if (Len) {
       // strdup
       if (NumArgs == 1)
@@ -2637,7 +2637,7 @@ Instruction *InstCombinerImpl::visitCallBase(CallBase &Call) {
   // Handle intrinsics which can be used in both call and invoke context.
   switch (Call.getIntrinsicID()) {
   case Intrinsic::experimental_gc_statepoint: {
-    GCStatepointInst &GCSP = *cast<GCStatepointInst>(&Call);
+    GCStatepointInst  const&GCSP = *cast<GCStatepointInst>(&Call);
     SmallPtrSet<Value *, 32> LiveGcValues;
     for (const GCRelocateInst *Reloc : GCSP.getGCRelocates()) {
       GCRelocateInst &GCR = *const_cast<GCRelocateInst *>(Reloc);
@@ -2695,7 +2695,7 @@ Instruction *InstCombinerImpl::visitCallBase(CallBase &Call) {
     }
     Optional<OperandBundleUse> Bundle =
         GCSP.getOperandBundle(LLVMContext::OB_gc_live);
-    unsigned NumOfGCLives = LiveGcValues.size();
+    unsigned const NumOfGCLives = LiveGcValues.size();
     if (!Bundle.hasValue() || NumOfGCLives == Bundle->Inputs.size())
       break;
     // We can reduce the size of gc live bundle.
@@ -2726,7 +2726,7 @@ Instruction *InstCombinerImpl::visitCallBase(CallBase &Call) {
       GCR.setOperand(2, ConstantInt::get(OpIntTy2, Val2Idx[DerivedPtr]));
     }
     // Create new statepoint instruction.
-    OperandBundleDef NewBundle("gc-live", NewLiveGc);
+    OperandBundleDef const NewBundle("gc-live", NewLiveGc);
     return CallBase::Create(&Call, NewBundle);
   }
   default: { break; }
@@ -2783,7 +2783,7 @@ bool InstCombinerImpl::transformConstExprCastCall(CallBase &Call) {
     }
 
     if (!CallerPAL.isEmpty() && !Caller->use_empty()) {
-      AttrBuilder RAttrs(CallerPAL, AttributeList::ReturnIndex);
+      AttrBuilder const RAttrs(CallerPAL, AttributeList::ReturnIndex);
       if (RAttrs.overlaps(AttributeFuncs::typeIncompatible(NewRetTy)))
         return false;   // Attribute not compatible with transformed value.
     }
@@ -2805,8 +2805,8 @@ bool InstCombinerImpl::transformConstExprCastCall(CallBase &Call) {
     }
   }
 
-  unsigned NumActualArgs = Call.arg_size();
-  unsigned NumCommonArgs = std::min(FT->getNumParams(), NumActualArgs);
+  unsigned const NumActualArgs = Call.arg_size();
+  unsigned const NumCommonArgs = std::min(FT->getNumParams(), NumActualArgs);
 
   // Prevent us turning:
   // declare void @takes_i32_inalloca(i32* inalloca)
@@ -2936,7 +2936,7 @@ bool InstCombinerImpl::transformConstExprCastCall(CallBase &Call) {
         Value *NewArg = *AI;
         if (PTy != (*AI)->getType()) {
           // Must promote to pass through va_arg area!
-          Instruction::CastOps opcode =
+          Instruction::CastOps const opcode =
             CastInst::getCastOpcode(*AI, false, PTy, false);
           NewArg = Builder.CreateCast(opcode, *AI, PTy);
         }
@@ -2948,14 +2948,14 @@ bool InstCombinerImpl::transformConstExprCastCall(CallBase &Call) {
     }
   }
 
-  AttributeSet FnAttrs = CallerPAL.getFnAttrs();
+  AttributeSet const FnAttrs = CallerPAL.getFnAttrs();
 
   if (NewRetTy->isVoidTy())
     Caller->setName("");   // Void type should not have a name.
 
   assert((ArgAttrs.size() == FT->getNumParams() || FT->isVarArg()) &&
          "missing argument attributes");
-  AttributeList NewCallerPAL = AttributeList::get(
+  AttributeList const NewCallerPAL = AttributeList::get(
       Ctx, FnAttrs, AttributeSet::get(Ctx, RAttrs), ArgAttrs);
 
   SmallVector<OperandBundleDef, 1> OpBundles;
@@ -2991,10 +2991,10 @@ bool InstCombinerImpl::transformConstExprCastCall(CallBase &Call) {
       // If this is an invoke/callbr instruction, we should insert it after the
       // first non-phi instruction in the normal successor block.
       if (InvokeInst *II = dyn_cast<InvokeInst>(Caller)) {
-        BasicBlock::iterator I = II->getNormalDest()->getFirstInsertionPt();
+        BasicBlock::iterator const I = II->getNormalDest()->getFirstInsertionPt();
         InsertNewInstBefore(NC, *I);
       } else if (CallBrInst *CBI = dyn_cast<CallBrInst>(Caller)) {
-        BasicBlock::iterator I = CBI->getDefaultDest()->getFirstInsertionPt();
+        BasicBlock::iterator const I = CBI->getDefaultDest()->getFirstInsertionPt();
         InsertNewInstBefore(NC, *I);
       } else {
         // Otherwise, it's a call, just insert cast right after the call.
@@ -3029,7 +3029,7 @@ InstCombinerImpl::transformCallThroughTrampoline(CallBase &Call,
   Value *Callee = Call.getCalledOperand();
   Type *CalleeTy = Callee->getType();
   FunctionType *FTy = Call.getFunctionType();
-  AttributeList Attrs = Call.getAttributes();
+  AttributeList const Attrs = Call.getAttributes();
 
   // If the call already has the 'nest' attribute somewhere then give up -
   // otherwise 'nest' would occur twice after splicing in the chain.
@@ -3039,7 +3039,7 @@ InstCombinerImpl::transformCallThroughTrampoline(CallBase &Call,
   Function *NestF = cast<Function>(Tramp.getArgOperand(1)->stripPointerCasts());
   FunctionType *NestFTy = NestF->getFunctionType();
 
-  AttributeList NestAttrs = NestF->getAttributes();
+  AttributeList const NestAttrs = NestF->getAttributes();
   if (!NestAttrs.isEmpty()) {
     unsigned NestArgNo = 0;
     Type *NestTy = nullptr;
@@ -3049,7 +3049,7 @@ InstCombinerImpl::transformCallThroughTrampoline(CallBase &Call,
     for (FunctionType::param_iterator I = NestFTy->param_begin(),
                                       E = NestFTy->param_end();
          I != E; ++NestArgNo, ++I) {
-      AttributeSet AS = NestAttrs.getParamAttrs(NestArgNo);
+      AttributeSet const AS = NestAttrs.getParamAttrs(NestArgNo);
       if (AS.hasAttribute(Attribute::Nest)) {
         // Record the parameter type and any other attributes.
         NestTy = *I;
@@ -3130,7 +3130,7 @@ InstCombinerImpl::transformCallThroughTrampoline(CallBase &Call,
         NestF->getType() == PointerType::getUnqual(NewFTy) ?
         NestF : ConstantExpr::getBitCast(NestF,
                                          PointerType::getUnqual(NewFTy));
-      AttributeList NewPAL =
+      AttributeList const NewPAL =
           AttributeList::get(FTy->getContext(), Attrs.getFnAttrs(),
                              Attrs.getRetAttrs(), NewArgAttrs);
 

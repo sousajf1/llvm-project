@@ -112,7 +112,7 @@ void SampleProfileSummaryBuilder::addRecord(
       MaxFunctionCount = FS.getHeadSamples();
   }
   for (const auto &I : FS.getBodySamples()) {
-    uint64_t Count = I.second.getSamples();
+    uint64_t const Count = I.second.getSamples();
       addCount(Count);
   }
   for (const auto &I : FS.getCallsiteSamples())
@@ -135,21 +135,21 @@ void ProfileSummaryBuilder::computeDetailedSummary() {
   for (const uint32_t Cutoff : DetailedSummaryCutoffs) {
     assert(Cutoff <= 999999);
     APInt Temp(128, TotalCount);
-    APInt N(128, Cutoff);
-    APInt D(128, ProfileSummary::Scale);
+    APInt const N(128, Cutoff);
+    APInt const D(128, ProfileSummary::Scale);
     Temp *= N;
     Temp = Temp.sdiv(D);
-    uint64_t DesiredCount = Temp.getZExtValue();
+    uint64_t const DesiredCount = Temp.getZExtValue();
     assert(DesiredCount <= TotalCount);
     while (CurrSum < DesiredCount && Iter != End) {
       Count = Iter->first;
-      uint32_t Freq = Iter->second;
+      uint32_t const Freq = Iter->second;
       CurrSum += (Count * Freq);
       CountsSeen += Freq;
       Iter++;
     }
     assert(CurrSum >= DesiredCount);
-    ProfileSummaryEntry PSE = {Cutoff, Count, CountsSeen};
+    ProfileSummaryEntry const PSE = {Cutoff, Count, CountsSeen};
     DetailedSummary.push_back(PSE);
   }
 }

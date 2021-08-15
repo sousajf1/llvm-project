@@ -24,7 +24,7 @@ void MCAsmParserExtension::Initialize(MCAsmParser &Parser) {
 ///  ::= .cg_profile identifier, identifier, <number>
 bool MCAsmParserExtension::ParseDirectiveCGProfile(StringRef, SMLoc) {
   StringRef From;
-  SMLoc FromLoc = getLexer().getLoc();
+  SMLoc const FromLoc = getLexer().getLoc();
   if (getParser().parseIdentifier(From))
     return TokError("expected identifier in directive");
 
@@ -33,7 +33,7 @@ bool MCAsmParserExtension::ParseDirectiveCGProfile(StringRef, SMLoc) {
   Lex();
 
   StringRef To;
-  SMLoc ToLoc = getLexer().getLoc();
+  SMLoc const ToLoc = getLexer().getLoc();
   if (getParser().parseIdentifier(To))
     return TokError("expected identifier in directive");
 

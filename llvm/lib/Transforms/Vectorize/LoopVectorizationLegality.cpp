@@ -221,7 +221,7 @@ const char *LoopVectorizeHints::vectorizeAnalysisPassName() const {
 bool LoopVectorizeHints::allowReordering() const {
   // Allow the vectorizer to change the order of operations if enabling
   // loop hints are provided
-  ElementCount EC = getWidth();
+  ElementCount const EC = getWidth();
   return HintsAllowReordering &&
          (getForce() == LoopVectorizeHints::FK_Enabled ||
           EC.getKnownMinValue() > 1);
@@ -257,7 +257,7 @@ void LoopVectorizeHints::getHintsFromMetadata() {
       continue;
 
     // Check if the hint starts with the loop metadata prefix.
-    StringRef Name = S->getString();
+    StringRef const Name = S->getString();
     if (Args.size() == 1)
       setHint(Name, Args[0]);
   }
@@ -271,9 +271,9 @@ void LoopVectorizeHints::setHint(StringRef Name, Metadata *Arg) {
   const ConstantInt *C = mdconst::dyn_extract<ConstantInt>(Arg);
   if (!C)
     return;
-  unsigned Val = C->getZExtValue();
+  unsigned const Val = C->getZExtValue();
 
-  Hint *Hints[] = {&Width,        &Interleave, &Force,
+  Hint *const Hints[] = {&Width,        &Interleave, &Force,
                    &IsVectorized, &Predicate,  &Scalable};
   for (auto H : Hints) {
     if (Name == H->Name) {
@@ -424,11 +424,11 @@ int LoopVectorizationLegality::isConsecutivePtr(Value *Ptr) const {
       getSymbolicStrides() ? *getSymbolicStrides() : ValueToValueMap();
 
   Function *F = TheLoop->getHeader()->getParent();
-  bool OptForSize = F->hasOptSize() ||
+  bool const OptForSize = F->hasOptSize() ||
                     llvm::shouldOptimizeForSize(TheLoop->getHeader(), PSI, BFI,
                                                 PGSOQueryType::IRPass);
-  bool CanAddPredicate = !OptForSize;
-  int Stride = getPtrStride(PSE, Ptr, TheLoop, Strides, CanAddPredicate, false);
+  bool const CanAddPredicate = !OptForSize;
+  int const Stride = getPtrStride(PSE, Ptr, TheLoop, Strides, CanAddPredicate, false);
   if (Stride == 1 || Stride == -1)
     return Stride;
   return 0;
@@ -443,7 +443,7 @@ bool LoopVectorizationLegality::canVectorizeOuterLoop() {
   // Store the result and return it at the end instead of exiting early, in case
   // allowExtraAnalysis is used to report multiple reasons for not vectorizing.
   bool Result = true;
-  bool DoExtraAnalysis = ORE->allowExtraAnalysis(DEBUG_TYPE);
+  bool const DoExtraAnalysis = ORE->allowExtraAnalysis(DEBUG_TYPE);
 
   for (BasicBlock *BB : TheLoop->blocks()) {
     // Check whether the BB terminator is a BranchInst. Any other terminator is
@@ -717,7 +717,7 @@ bool LoopVectorizationLegality::canVectorizeInstrs() {
         // If the call is a recognized math libary call, it is likely that
         // we can vectorize it given loosened floating-point constraints.
         LibFunc Func;
-        bool IsMathLibCall =
+        bool const IsMathLibCall =
             TLI && CI->getCalledFunction() &&
             CI->getType()->isFloatingPointTy() &&
             TLI->getLibFunc(CI->getCalledFunction()->getName(), Func) &&
@@ -746,7 +746,7 @@ bool LoopVectorizationLegality::canVectorizeInstrs() {
       // them to be vectorized (i.e. loop invariant).
       if (CI) {
         auto *SE = PSE.getSE();
-        Intrinsic::ID IntrinID = getVectorIntrinsicIDForCall(CI, TLI);
+        Intrinsic::ID const IntrinID = getVectorIntrinsicIDForCall(CI, TLI);
         for (unsigned i = 0, e = CI->getNumArgOperands(); i != e; ++i)
           if (hasVectorInstrinsicScalarOpd(IntrinID, i)) {
             if (!SE->isLoopInvariant(PSE.getSCEV(CI->getOperand(i)), TheLoop)) {
@@ -1100,7 +1100,7 @@ bool LoopVectorizationLegality::canVectorizeLoopCFG(Loop *Lp,
   // Store the result and return it at the end instead of exiting early, in case
   // allowExtraAnalysis is used to report multiple reasons for not vectorizing.
   bool Result = true;
-  bool DoExtraAnalysis = ORE->allowExtraAnalysis(DEBUG_TYPE);
+  bool const DoExtraAnalysis = ORE->allowExtraAnalysis(DEBUG_TYPE);
 
   // We must have a loop in canonical form. Loops with indirectbr in them cannot
   // be canonicalized.
@@ -1133,7 +1133,7 @@ bool LoopVectorizationLegality::canVectorizeLoopNestCFG(
   // Store the result and return it at the end instead of exiting early, in case
   // allowExtraAnalysis is used to report multiple reasons for not vectorizing.
   bool Result = true;
-  bool DoExtraAnalysis = ORE->allowExtraAnalysis(DEBUG_TYPE);
+  bool const DoExtraAnalysis = ORE->allowExtraAnalysis(DEBUG_TYPE);
   if (!canVectorizeLoopCFG(Lp, UseVPlanNativePath)) {
     if (DoExtraAnalysis)
       Result = false;
@@ -1159,7 +1159,7 @@ bool LoopVectorizationLegality::canVectorize(bool UseVPlanNativePath) {
   // allowExtraAnalysis is used to report multiple reasons for not vectorizing.
   bool Result = true;
 
-  bool DoExtraAnalysis = ORE->allowExtraAnalysis(DEBUG_TYPE);
+  bool const DoExtraAnalysis = ORE->allowExtraAnalysis(DEBUG_TYPE);
   // Check whether the loop-related control flow in the loop nest is expected by
   // vectorizer.
   if (!canVectorizeLoopNestCFG(TheLoop, UseVPlanNativePath)) {
@@ -1194,7 +1194,7 @@ bool LoopVectorizationLegality::canVectorize(bool UseVPlanNativePath) {
 
   assert(TheLoop->isInnermost() && "Inner loop expected.");
   // Check if we can if-convert non-single-bb loops.
-  unsigned NumBlocks = TheLoop->getNumBlocks();
+  unsigned const NumBlocks = TheLoop->getNumBlocks();
   if (NumBlocks != 1 && !canVectorizeWithIfConvert()) {
     LLVM_DEBUG(dbgs() << "LV: Can't if-convert the loop.\n");
     if (DoExtraAnalysis)

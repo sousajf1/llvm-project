@@ -74,12 +74,12 @@ bool AArch64O0PreLegalizerCombinerInfo::combine(GISelChangeObserver &Observer,
                                                 MachineInstr &MI,
                                                 MachineIRBuilder &B) const {
   CombinerHelper Helper(Observer, B, KB, MDT);
-  AArch64GenO0PreLegalizerCombinerHelper Generated(GeneratedRuleCfg, Helper);
+  AArch64GenO0PreLegalizerCombinerHelper const Generated(GeneratedRuleCfg, Helper);
 
   if (Generated.tryCombineAll(Observer, MI, B))
     return true;
 
-  unsigned Opc = MI.getOpcode();
+  unsigned const Opc = MI.getOpcode();
   switch (Opc) {
   case TargetOpcode::G_CONCAT_VECTORS:
     return Helper.tryCombineConcatVectors(MI);
@@ -91,7 +91,7 @@ bool AArch64O0PreLegalizerCombinerInfo::combine(GISelChangeObserver &Observer,
   case TargetOpcode::G_MEMMOVE:
   case TargetOpcode::G_MEMSET: {
     // At -O0 set a maxlen of 32 to inline;
-    unsigned MaxLen = 32;
+    unsigned const MaxLen = 32;
     // Try to inline memcpy type calls if optimizations are enabled.
     if (Helper.tryCombineMemCpyFamily(MI, MaxLen))
       return true;

@@ -98,7 +98,7 @@ bool OptimizePHIs::IsSingleValuePHICycle(MachineInstr *MI,
                                          unsigned &SingleValReg,
                                          InstrSet &PHIsInCycle) {
   assert(MI->isPHI() && "IsSingleValuePHICycle expects a PHI instruction");
-  Register DstReg = MI->getOperand(0).getReg();
+  Register const DstReg = MI->getOperand(0).getReg();
 
   // See if we already saw this register.
   if (!PHIsInCycle.insert(MI).second)
@@ -142,7 +142,7 @@ bool OptimizePHIs::IsSingleValuePHICycle(MachineInstr *MI,
 /// other PHIs in a cycle.
 bool OptimizePHIs::IsDeadPHICycle(MachineInstr *MI, InstrSet &PHIsInCycle) {
   assert(MI->isPHI() && "IsDeadPHICycle expects a PHI instruction");
-  Register DstReg = MI->getOperand(0).getReg();
+  Register const DstReg = MI->getOperand(0).getReg();
   assert(Register::isVirtualRegister(DstReg) &&
          "PHI destination is not a virtual register");
 
@@ -177,7 +177,7 @@ bool OptimizePHIs::OptimizeBB(MachineBasicBlock &MBB) {
     InstrSet PHIsInCycle;
     if (IsSingleValuePHICycle(MI, SingleValReg, PHIsInCycle) &&
         SingleValReg != 0) {
-      Register OldReg = MI->getOperand(0).getReg();
+      Register const OldReg = MI->getOperand(0).getReg();
       if (!MRI->constrainRegClass(SingleValReg, MRI->getRegClass(OldReg)))
         continue;
 

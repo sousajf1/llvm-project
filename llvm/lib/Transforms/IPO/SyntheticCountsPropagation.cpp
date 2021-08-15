@@ -117,14 +117,14 @@ PreservedAnalyses SyntheticCountsPropagation::run(Module &M,
     // Now compute the callsite count from relative frequency and
     // entry count:
     BasicBlock *CSBB = CB.getParent();
-    Scaled64 EntryFreq(BFI.getEntryFreq(), 0);
+    Scaled64 const EntryFreq(BFI.getEntryFreq(), 0);
     Scaled64 BBCount(BFI.getBlockFreq(CSBB).getFrequency(), 0);
     BBCount /= EntryFreq;
     BBCount *= Counts[Caller];
     return Optional<Scaled64>(BBCount);
   };
 
-  CallGraph CG(M);
+  CallGraph const CG(M);
   // Propgate the entry counts on the callgraph.
   SyntheticCountsUtils<const CallGraph *>::propagate(
       &CG, GetCallSiteProfCount, [&](const CallGraphNode *N, Scaled64 New) {

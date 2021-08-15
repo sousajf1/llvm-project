@@ -78,8 +78,8 @@ void GCNMaxOccupancySchedStrategy::initCandidate(SchedCandidate &Cand, SUnit *SU
     TempTracker.getUpwardPressure(SU->getInstr(), Pressure, MaxPressure);
   }
 
-  unsigned NewSGPRPressure = Pressure[AMDGPU::RegisterPressureSets::SReg_32];
-  unsigned NewVGPRPressure = Pressure[AMDGPU::RegisterPressureSets::VGPR_32];
+  unsigned const NewSGPRPressure = Pressure[AMDGPU::RegisterPressureSets::SReg_32];
+  unsigned const NewVGPRPressure = Pressure[AMDGPU::RegisterPressureSets::VGPR_32];
 
   // If two instructions increase the pressure of different register sets
   // by the same amount, the generic scheduler will prefer to schedule the
@@ -90,8 +90,8 @@ void GCNMaxOccupancySchedStrategy::initCandidate(SchedCandidate &Cand, SUnit *SU
 
   // FIXME: Better heuristics to determine whether to prefer SGPRs or VGPRs.
   const unsigned MaxVGPRPressureInc = 16;
-  bool ShouldTrackVGPRs = VGPRPressure + MaxVGPRPressureInc >= VGPRExcessLimit;
-  bool ShouldTrackSGPRs = !ShouldTrackVGPRs && SGPRPressure >= SGPRExcessLimit;
+  bool const ShouldTrackVGPRs = VGPRPressure + MaxVGPRPressureInc >= VGPRExcessLimit;
+  bool const ShouldTrackSGPRs = !ShouldTrackVGPRs && SGPRPressure >= SGPRExcessLimit;
 
 
   // FIXME: We have to enter REG-EXCESS before we reach the actual threshold
@@ -120,8 +120,8 @@ void GCNMaxOccupancySchedStrategy::initCandidate(SchedCandidate &Cand, SUnit *SU
   // register pressure is 'CRITICAL', increading SGPR and VGPR pressure both
   // has the same cost, so we don't need to prefer one over the other.
 
-  int SGPRDelta = NewSGPRPressure - SGPRCriticalLimit;
-  int VGPRDelta = NewVGPRPressure - VGPRCriticalLimit;
+  int const SGPRDelta = NewSGPRPressure - SGPRCriticalLimit;
+  int const VGPRDelta = NewVGPRPressure - VGPRCriticalLimit;
 
   if (SGPRDelta >= 0 || VGPRDelta >= 0) {
     HasExcessPressure = true;
@@ -144,9 +144,9 @@ void GCNMaxOccupancySchedStrategy::pickNodeFromQueue(SchedBoundary &Zone,
                                          const RegPressureTracker &RPTracker,
                                          SchedCandidate &Cand) {
   const SIRegisterInfo *SRI = static_cast<const SIRegisterInfo*>(TRI);
-  ArrayRef<unsigned> Pressure = RPTracker.getRegSetPressureAtPos();
-  unsigned SGPRPressure = Pressure[AMDGPU::RegisterPressureSets::SReg_32];
-  unsigned VGPRPressure = Pressure[AMDGPU::RegisterPressureSets::VGPR_32];
+  ArrayRef<unsigned> const Pressure = RPTracker.getRegSetPressureAtPos();
+  unsigned const SGPRPressure = Pressure[AMDGPU::RegisterPressureSets::SReg_32];
+  unsigned const VGPRPressure = Pressure[AMDGPU::RegisterPressureSets::VGPR_32];
   ReadyQueue &Q = Zone.Available;
   for (SUnit *SU : Q) {
 
@@ -256,7 +256,7 @@ SUnit *GCNMaxOccupancySchedStrategy::pickNode(bool &IsTopNode) {
     if (RegionPolicy.OnlyTopDown) {
       SU = Top.pickOnlyChoice();
       if (!SU) {
-        CandPolicy NoPolicy;
+        CandPolicy const NoPolicy;
         TopCand.reset(NoPolicy);
         pickNodeFromQueue(Top, NoPolicy, DAG->getTopRPTracker(), TopCand);
         assert(TopCand.Reason != NoCand && "failed to find a candidate");
@@ -266,7 +266,7 @@ SUnit *GCNMaxOccupancySchedStrategy::pickNode(bool &IsTopNode) {
     } else if (RegionPolicy.OnlyBottomUp) {
       SU = Bot.pickOnlyChoice();
       if (!SU) {
-        CandPolicy NoPolicy;
+        CandPolicy const NoPolicy;
         BotCand.reset(NoPolicy);
         pickNodeFromQueue(Bot, NoPolicy, DAG->getBotRPTracker(), BotCand);
         assert(BotCand.Reason != NoCand && "failed to find a candidate");
@@ -284,7 +284,7 @@ SUnit *GCNMaxOccupancySchedStrategy::pickNode(bool &IsTopNode) {
     Bot.removeReady(SU);
 
   if (!HasClusteredNodes && SU->getInstr()->mayLoadOrStore()) {
-    for (SDep &Dep : SU->Preds) {
+    for (SDep  const&Dep : SU->Preds) {
       if (Dep.isCluster()) {
         HasClusteredNodes = true;
         break;
@@ -361,9 +361,9 @@ void GCNScheduleDAGMILive::schedule() {
     LLVM_DEBUG(dbgs() << "Pressure in desired limits, done.\n");
     return;
   }
-  unsigned Occ = MFI.getOccupancy();
-  unsigned WavesAfter = std::min(Occ, PressureAfter.getOccupancy(ST));
-  unsigned WavesBefore = std::min(Occ, PressureBefore.getOccupancy(ST));
+  unsigned const Occ = MFI.getOccupancy();
+  unsigned const WavesAfter = std::min(Occ, PressureAfter.getOccupancy(ST));
+  unsigned const WavesBefore = std::min(Occ, PressureBefore.getOccupancy(ST));
   LLVM_DEBUG(dbgs() << "Occupancy before scheduling: " << WavesBefore
                     << ", after " << WavesAfter << ".\n");
 
@@ -385,8 +385,8 @@ void GCNScheduleDAGMILive::schedule() {
                       << MinOccupancy << ".\n");
   }
 
-  unsigned MaxVGPRs = ST.getMaxNumVGPRs(MF);
-  unsigned MaxSGPRs = ST.getMaxNumSGPRs(MF);
+  unsigned const MaxVGPRs = ST.getMaxNumVGPRs(MF);
+  unsigned const MaxSGPRs = ST.getMaxNumSGPRs(MF);
   if (PressureAfter.getVGPRNum(false) > MaxVGPRs ||
       PressureAfter.getAGPRNum() > MaxVGPRs ||
       PressureAfter.getSGPRNum() > MaxSGPRs) {
@@ -434,7 +434,7 @@ void GCNScheduleDAGMILive::schedule() {
     if (!MI->isDebugInstr()) {
       if (ShouldTrackLaneMasks) {
         // Adjust liveness and add missing dead+read-undef flags.
-        SlotIndex SlotIdx = LIS->getInstructionIndex(*MI).getRegSlot();
+        SlotIndex const SlotIdx = LIS->getInstructionIndex(*MI).getRegSlot();
         RegOpers.adjustLaneLiveness(*LIS, MRI, SlotIdx, MI);
       } else {
         // Adjust for missing dead-def flags.
@@ -472,7 +472,7 @@ void GCNScheduleDAGMILive::computeBlockPressure(const MachineBasicBlock *MBB) {
 
   // Scheduler sends regions from the end of the block upwards.
   size_t CurRegion = RegionIdx;
-  for (size_t E = Regions.size(); CurRegion != E; ++CurRegion)
+  for (size_t const E = Regions.size(); CurRegion != E; ++CurRegion)
     if (Regions[CurRegion].first->getParent() != MBB)
       break;
   --CurRegion;
@@ -614,7 +614,7 @@ void GCNScheduleDAGMILive::finalizeSchedule() {
           computeBlockPressure(MBB);
       }
 
-      unsigned NumRegionInstrs = std::distance(begin(), end());
+      unsigned const NumRegionInstrs = std::distance(begin(), end());
       enterRegion(MBB, begin(), end(), NumRegionInstrs);
 
       // Skip empty scheduling regions (0 or 1 schedulable instructions).

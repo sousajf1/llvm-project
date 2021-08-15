@@ -47,7 +47,7 @@ LLVM_DUMP_METHOD void Symbol::dump(raw_ostream &OS) const {
 
 Symbol::const_filtered_target_range
 Symbol::targets(ArchitectureSet Architectures) const {
-  std::function<bool(const Target &)> FN =
+  std::function<bool(const Target &)> const FN =
       [Architectures](const Target &Target) {
         return Architectures.has(Target.Arch);
       };

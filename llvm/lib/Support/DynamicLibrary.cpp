@@ -139,7 +139,7 @@ void *SearchForAddressOfSpecialSymbol(const char *SymbolName) {
 } // namespace llvm
 
 void DynamicLibrary::AddSymbol(StringRef SymbolName, void *SymbolValue) {
-  SmartScopedLock<true> Lock(*SymbolsMutex);
+  SmartScopedLock<true> const Lock(*SymbolsMutex);
   (*ExplicitSymbols)[SymbolName] = SymbolValue;
 }
 
@@ -151,7 +151,7 @@ DynamicLibrary DynamicLibrary::getPermanentLibrary(const char *FileName,
 
   void *Handle = HandleSet::DLOpen(FileName, Err);
   if (Handle != &Invalid) {
-    SmartScopedLock<true> Lock(*SymbolsMutex);
+    SmartScopedLock<true> const Lock(*SymbolsMutex);
     HS.AddLibrary(Handle, /*IsProcess*/ FileName == nullptr);
   }
 
@@ -160,7 +160,7 @@ DynamicLibrary DynamicLibrary::getPermanentLibrary(const char *FileName,
 
 DynamicLibrary DynamicLibrary::addPermanentLibrary(void *Handle,
                                                    std::string *Err) {
-  SmartScopedLock<true> Lock(*SymbolsMutex);
+  SmartScopedLock<true> const Lock(*SymbolsMutex);
   // If we've already loaded this library, tell the caller.
   if (!OpenedHandles->AddLibrary(Handle, /*IsProcess*/false, /*CanClose*/false))
     *Err = "Library already loaded";
@@ -176,7 +176,7 @@ void *DynamicLibrary::getAddressOfSymbol(const char *SymbolName) {
 
 void *DynamicLibrary::SearchForAddressOfSymbol(const char *SymbolName) {
   {
-    SmartScopedLock<true> Lock(*SymbolsMutex);
+    SmartScopedLock<true> const Lock(*SymbolsMutex);
 
     // First check symbols added via AddSymbol().
     if (ExplicitSymbols.isConstructed()) {

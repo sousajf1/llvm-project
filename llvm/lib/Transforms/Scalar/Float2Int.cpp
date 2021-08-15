@@ -204,7 +204,7 @@ void Float2IntPass::walkBackwards() {
     case Instruction::SIToFP: {
       // Path terminated cleanly - use the type of the integer input to seed
       // the analysis.
-      unsigned BW = I->getOperand(0)->getType()->getPrimitiveSizeInBits();
+      unsigned const BW = I->getOperand(0)->getType()->getPrimitiveSizeInBits();
       auto Input = ConstantRange::getFull(BW);
       auto CastOp = (Instruction::CastOps)I->getOpcode();
       seen(I, validateRange(Input.castOp(CastOp, MaxIntegerBW+1)));
@@ -255,7 +255,7 @@ void Float2IntPass::walkForwards() {
     case Instruction::FNeg:
       Op = [](ArrayRef<ConstantRange> Ops) {
         assert(Ops.size() == 1 && "FNeg is a unary operator!");
-        unsigned Size = Ops[0].getBitWidth();
+        unsigned const Size = Ops[0].getBitWidth();
         auto Zero = ConstantRange(APInt::getNullValue(Size));
         return Zero.sub(Ops[0]);
       };
@@ -398,7 +398,7 @@ bool Float2IntPass::validateAndTransform() {
 
     // The number of bits required is the maximum of the upper and
     // lower limits, plus one so it can be signed.
-    unsigned MinBW = std::max(R.getLower().getMinSignedBits(),
+    unsigned const MinBW = std::max(R.getLower().getMinSignedBits(),
                               R.getUpper().getMinSignedBits()) + 1;
     LLVM_DEBUG(dbgs() << "F2I: MinBitwidth=" << MinBW << ", R: " << R << "\n");
 
@@ -408,7 +408,7 @@ bool Float2IntPass::validateAndTransform() {
     // Do we need more bits than are in the mantissa of the type we converted
     // to? semanticsPrecision returns the number of mantissa bits plus one
     // for the sign bit.
-    unsigned MaxRepresentableBits
+    unsigned const MaxRepresentableBits
       = APFloat::semanticsPrecision(ConvertedToTy->getFltSemantics()) - 1;
     if (MinBW > MaxRepresentableBits) {
       LLVM_DEBUG(dbgs() << "F2I: Value not guaranteed to be representable!\n");
@@ -473,7 +473,7 @@ Value *Float2IntPass::convert(Instruction *I, Type *ToTy) {
     break;
 
   case Instruction::FCmp: {
-    CmpInst::Predicate P = mapFCmpPred(cast<CmpInst>(I)->getPredicate());
+    CmpInst::Predicate const P = mapFCmpPred(cast<CmpInst>(I)->getPredicate());
     assert(P != CmpInst::BAD_ICMP_PREDICATE && "Unhandled predicate!");
     NewV = IRB.CreateICmp(P, NewOperands[0], NewOperands[1], I->getName());
     break;
@@ -529,7 +529,7 @@ bool Float2IntPass::runImpl(Function &F, const DominatorTree &DT) {
   walkBackwards();
   walkForwards();
 
-  bool Modified = validateAndTransform();
+  bool const Modified = validateAndTransform();
   if (Modified)
     cleanup();
   return Modified;

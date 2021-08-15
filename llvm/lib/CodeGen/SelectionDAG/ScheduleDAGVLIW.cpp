@@ -136,7 +136,7 @@ void ScheduleDAGVLIW::releaseSucc(SUnit *SU, const SDep &D) {
 
 void ScheduleDAGVLIW::releaseSuccessors(SUnit *SU) {
   // Top down: release successors.
-  for (SDep &Succ : SU->Succs) {
+  for (SDep  const&Succ : SU->Succs) {
     assert(!Succ.isAssignedRegDep() &&
            "The list-td scheduler doesn't yet support physreg dependencies!");
 
@@ -212,7 +212,7 @@ void ScheduleDAGVLIW::listScheduleTopDown() {
     while (!AvailableQueue->empty()) {
       SUnit *CurSUnit = AvailableQueue->pop();
 
-      ScheduleHazardRecognizer::HazardType HT =
+      ScheduleHazardRecognizer::HazardType const HT =
         HazardRec->getHazardType(CurSUnit, 0/*no stalls*/);
       if (HT == ScheduleHazardRecognizer::NoHazard) {
         FoundSUnit = CurSUnit;

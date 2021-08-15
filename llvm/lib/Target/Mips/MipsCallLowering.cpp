@@ -141,7 +141,7 @@ Register MipsIncomingValueHandler::getStackAddress(uint64_t Size,
   MachineFrameInfo &MFI = MF.getFrameInfo();
 
   // FIXME: This should only be immutable for non-byval memory arguments.
-  int FI = MFI.CreateFixedObject(Size, Offset, true);
+  int const FI = MFI.CreateFixedObject(Size, Offset, true);
   MPO = MachinePointerInfo::getFixedStack(MIRBuilder.getMF(), FI);
 
   return MIRBuilder.buildFrameIndex(LLT::pointer(0, 32), FI).getReg(0);
@@ -215,7 +215,7 @@ private:
 void MipsOutgoingValueHandler::assignValueToReg(Register ValVReg,
                                                 Register PhysReg,
                                                 CCValAssign &VA) {
-  Register ExtReg = extendRegister(ValVReg, VA);
+  Register const ExtReg = extendRegister(ValVReg, VA);
   MIRBuilder.buildCopy(PhysReg, ExtReg);
   MIB.addUse(PhysReg, RegState::Implicit);
 }
@@ -227,8 +227,8 @@ Register MipsOutgoingValueHandler::getStackAddress(uint64_t Size,
   MachineFunction &MF = MIRBuilder.getMF();
   MPO = MachinePointerInfo::getStack(MF, Offset);
 
-  LLT p0 = LLT::pointer(0, 32);
-  LLT s32 = LLT::scalar(32);
+  LLT const p0 = LLT::pointer(0, 32);
+  LLT const s32 = LLT::scalar(32);
   auto SPReg = MIRBuilder.buildCopy(p0, Register(Mips::SP));
 
   auto OffsetReg = MIRBuilder.buildConstant(s32, Offset);
@@ -241,13 +241,13 @@ void MipsOutgoingValueHandler::assignValueToAddress(Register ValVReg,
                                                     MachinePointerInfo &MPO,
                                                     CCValAssign &VA) {
   MachineFunction &MF = MIRBuilder.getMF();
-  uint64_t LocMemOffset = VA.getLocMemOffset();
+  uint64_t const LocMemOffset = VA.getLocMemOffset();
 
   auto MMO = MF.getMachineMemOperand(
       MPO, MachineMemOperand::MOStore, MemTy,
       commonAlignment(STI.getStackAlignment(), LocMemOffset));
 
-  Register ExtReg = extendRegister(ValVReg, VA);
+  Register const ExtReg = extendRegister(ValVReg, VA);
   MIRBuilder.buildStore(ExtReg, Addr, *MMO);
 }
 
@@ -320,13 +320,13 @@ bool MipsCallLowering::lowerReturn(MachineIRBuilder &MIRBuilder,
     splitToValueTypes(ArgRetInfo, RetInfos, DL, F.getCallingConv());
 
     SmallVector<CCValAssign, 16> ArgLocs;
-    SmallVector<ISD::OutputArg, 8> Outs;
+    SmallVector<ISD::OutputArg, 8> const Outs;
 
     MipsCCState CCInfo(F.getCallingConv(), F.isVarArg(), MF, ArgLocs,
                        F.getContext());
 
     MipsOutgoingValueHandler RetHandler(MIRBuilder, MF.getRegInfo(), Ret);
-    std::string FuncName = F.getName().str();
+    std::string const FuncName = F.getName().str();
     MipsOutgoingValueAssigner Assigner(TLI.CCAssignFnForReturn(),
                                        FuncName.c_str(), /*IsReturn*/ true);
 
@@ -369,7 +369,7 @@ bool MipsCallLowering::lowerFormalArguments(MachineIRBuilder &MIRBuilder,
     ++i;
   }
 
-  SmallVector<ISD::InputArg, 8> Ins;
+  SmallVector<ISD::InputArg, 8> const Ins;
 
   SmallVector<CCValAssign, 16> ArgLocs;
   MipsCCState CCInfo(F.getCallingConv(), F.isVarArg(), MF, ArgLocs,
@@ -392,11 +392,11 @@ bool MipsCallLowering::lowerFormalArguments(MachineIRBuilder &MIRBuilder,
     return false;
 
   if (F.isVarArg()) {
-    ArrayRef<MCPhysReg> ArgRegs = ABI.GetVarArgRegs();
-    unsigned Idx = CCInfo.getFirstUnallocated(ArgRegs);
+    ArrayRef<MCPhysReg> const ArgRegs = ABI.GetVarArgRegs();
+    unsigned const Idx = CCInfo.getFirstUnallocated(ArgRegs);
 
     int VaArgOffset;
-    unsigned RegSize = 4;
+    unsigned const RegSize = 4;
     if (ArgRegs.size() == Idx)
       VaArgOffset = alignTo(CCInfo.getNextStackOffset(), RegSize);
     else {
@@ -411,11 +411,11 @@ bool MipsCallLowering::lowerFormalArguments(MachineIRBuilder &MIRBuilder,
 
     for (unsigned I = Idx; I < ArgRegs.size(); ++I, VaArgOffset += RegSize) {
       MIRBuilder.getMBB().addLiveIn(ArgRegs[I]);
-      LLT RegTy = LLT::scalar(RegSize * 8);
-      MachineInstrBuilder Copy =
+      LLT const RegTy = LLT::scalar(RegSize * 8);
+      MachineInstrBuilder const Copy =
           MIRBuilder.buildCopy(RegTy, Register(ArgRegs[I]));
       FI = MFI.CreateFixedObject(RegSize, VaArgOffset, true);
-      MachinePointerInfo MPO = MachinePointerInfo::getFixedStack(MF, FI);
+      MachinePointerInfo const MPO = MachinePointerInfo::getFixedStack(MF, FI);
 
       const LLT PtrTy = LLT::pointer(MPO.getAddrSpace(), 32);
       auto FrameIndex = MIRBuilder.buildFrameIndex(PtrTy, FI);
@@ -454,7 +454,7 @@ bool MipsCallLowering::lowerCall(MachineIRBuilder &MIRBuilder,
       static_cast<const MipsTargetMachine &>(MF.getTarget());
   const MipsABIInfo &ABI = TM.getABI();
 
-  MachineInstrBuilder CallSeqStart =
+  MachineInstrBuilder const CallSeqStart =
       MIRBuilder.buildInstr(Mips::ADJCALLSTACKDOWN);
 
   const bool IsCalleeGlobalPIC =
@@ -464,7 +464,7 @@ bool MipsCallLowering::lowerCall(MachineIRBuilder &MIRBuilder,
       Info.Callee.isReg() || IsCalleeGlobalPIC ? Mips::JALRPseudo : Mips::JAL);
   MIB.addDef(Mips::SP, RegState::Implicit);
   if (IsCalleeGlobalPIC) {
-    Register CalleeReg =
+    Register const CalleeReg =
         MF.getRegInfo().createGenericVirtualRegister(LLT::pointer(0, 32));
     MachineInstr *CalleeGlobalValue =
         MIRBuilder.buildGlobalValue(CalleeReg, Info.Callee.getGlobal());
@@ -540,7 +540,7 @@ bool MipsCallLowering::lowerCall(MachineIRBuilder &MIRBuilder,
                                     F.getCallingConv());
 
     const std::string FuncName = F.getName().str();
-    SmallVector<ISD::InputArg, 8> Ins;
+    SmallVector<ISD::InputArg, 8> const Ins;
     SmallVector<CCValAssign, 8> ArgLocs;
     MipsIncomingValueAssigner Assigner(TLI.CCAssignFnForReturn(),
                                        FuncName.c_str(),

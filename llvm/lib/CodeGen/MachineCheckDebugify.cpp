@@ -27,7 +27,7 @@ namespace {
 
 struct CheckDebugMachineModule : public ModulePass {
   bool runOnModule(Module &M) override {
-    MachineModuleInfo &MMI =
+    MachineModuleInfo  const&MMI =
         getAnalysis<MachineModuleInfoWrapperPass>().getMMI();
 
     NamedMDNode *NMD = M.getNamedMetadata("llvm.mir.debugify");
@@ -43,19 +43,19 @@ struct CheckDebugMachineModule : public ModulePass {
     };
     assert(NMD->getNumOperands() == 2 &&
            "llvm.mir.debugify should have exactly 2 operands!");
-    unsigned NumLines = getDebugifyOperand(0);
-    unsigned NumVars = getDebugifyOperand(1);
+    unsigned const NumLines = getDebugifyOperand(0);
+    unsigned const NumVars = getDebugifyOperand(1);
     BitVector MissingLines{NumLines, true};
     BitVector MissingVars{NumVars, true};
 
-    for (Function &F : M.functions()) {
+    for (Function  const&F : M.functions()) {
       MachineFunction *MF = MMI.getMachineFunction(F);
       if (!MF)
         continue;
-      for (MachineBasicBlock &MBB : *MF) {
+      for (MachineBasicBlock  const&MBB : *MF) {
         // Find missing lines.
         // TODO: Avoid meta instructions other than dbg_val.
-        for (MachineInstr &MI : MBB) {
+        for (MachineInstr  const&MI : MBB) {
           if (MI.isDebugValue())
             continue;
           const DebugLoc DL = MI.getDebugLoc();
@@ -73,7 +73,7 @@ struct CheckDebugMachineModule : public ModulePass {
 
         // Find missing variables.
         // TODO: Handle DBG_INSTR_REF which is under an experimental option now.
-        for (MachineInstr &MI : MBB) {
+        for (MachineInstr  const&MI : MBB) {
           if (!MI.isDebugValue())
             continue;
           const DILocalVariable *LocalVar = MI.getDebugVariable();
@@ -87,12 +87,12 @@ struct CheckDebugMachineModule : public ModulePass {
     }
 
     bool Fail = false;
-    for (unsigned Idx : MissingLines.set_bits()) {
+    for (unsigned const Idx : MissingLines.set_bits()) {
       errs() << "WARNING: Missing line " << Idx + 1 << "\n";
       Fail = true;
     }
 
-    for (unsigned Idx : MissingVars.set_bits()) {
+    for (unsigned const Idx : MissingVars.set_bits()) {
       errs() << "WARNING: Missing variable " << Idx + 1 << "\n";
       Fail = true;
     }

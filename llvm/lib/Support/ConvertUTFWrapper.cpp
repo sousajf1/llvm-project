@@ -35,7 +35,7 @@ bool ConvertUTF8toWide(unsigned WideCharWidth, llvm::StringRef Source,
     // FIXME: Make the type of the result buffer correct instead of
     // using reinterpret_cast.
     UTF16 *targetStart = reinterpret_cast<UTF16*>(ResultPtr);
-    ConversionFlags flags = strictConversion;
+    ConversionFlags const flags = strictConversion;
     result = ConvertUTF8toUTF16(
         &sourceStart, sourceStart + Source.size(),
         &targetStart, targetStart + Source.size(), flags);
@@ -48,7 +48,7 @@ bool ConvertUTF8toWide(unsigned WideCharWidth, llvm::StringRef Source,
     // FIXME: Make the type of the result buffer correct instead of
     // using reinterpret_cast.
     UTF32 *targetStart = reinterpret_cast<UTF32*>(ResultPtr);
-    ConversionFlags flags = strictConversion;
+    ConversionFlags const flags = strictConversion;
     result = ConvertUTF8toUTF32(
         &sourceStart, sourceStart + Source.size(),
         &targetStart, targetStart + Source.size(), flags);
@@ -67,7 +67,7 @@ bool ConvertCodePointToUTF8(unsigned Source, char *&ResultPtr) {
   const UTF32 *SourceEnd = SourceStart + 1;
   UTF8 *TargetStart = reinterpret_cast<UTF8 *>(ResultPtr);
   UTF8 *TargetEnd = TargetStart + 4;
-  ConversionResult CR = ConvertUTF32toUTF8(&SourceStart, SourceEnd,
+  ConversionResult const CR = ConvertUTF32toUTF8(&SourceStart, SourceEnd,
                                            &TargetStart, TargetEnd,
                                            strictConversion);
   if (CR != conversionOK)
@@ -119,7 +119,7 @@ bool convertUTF16ToUTF8String(ArrayRef<char> SrcBytes, std::string &Out) {
   UTF8 *Dst = reinterpret_cast<UTF8 *>(&Out[0]);
   UTF8 *DstEnd = Dst + Out.size();
 
-  ConversionResult CR =
+  ConversionResult const CR =
       ConvertUTF16toUTF8(&Src, SrcEnd, &Dst, DstEnd, strictConversion);
   assert(CR != targetExhausted);
 
@@ -164,7 +164,7 @@ bool convertUTF8ToUTF16String(StringRef SrcUTF8,
   UTF16 *Dst = &DstUTF16[0];
   UTF16 *DstEnd = Dst + DstUTF16.size();
 
-  ConversionResult CR =
+  ConversionResult const CR =
       ConvertUTF8toUTF16(&Src, SrcEnd, &Dst, DstEnd, strictConversion);
   assert(CR != targetExhausted);
 

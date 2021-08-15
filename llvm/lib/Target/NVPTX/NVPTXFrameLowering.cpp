@@ -34,21 +34,21 @@ void NVPTXFrameLowering::emitPrologue(MachineFunction &MF,
   if (MF.getFrameInfo().hasStackObjects()) {
     assert(&MF.front() == &MBB && "Shrink-wrapping not yet supported");
     MachineInstr *MI = &MBB.front();
-    MachineRegisterInfo &MR = MF.getRegInfo();
+    MachineRegisterInfo  const&MR = MF.getRegInfo();
 
     // This instruction really occurs before first instruction
     // in the BB, so giving it no debug location.
-    DebugLoc dl = DebugLoc();
+    DebugLoc const dl = DebugLoc();
 
     // Emits
     //   mov %SPL, %depot;
     //   cvta.local %SP, %SPL;
     // for local address accesses in MF.
-    bool Is64Bit =
+    bool const Is64Bit =
         static_cast<const NVPTXTargetMachine &>(MF.getTarget()).is64Bit();
-    unsigned CvtaLocalOpcode =
+    unsigned const CvtaLocalOpcode =
         (Is64Bit ? NVPTX::cvta_local_yes_64 : NVPTX::cvta_local_yes);
-    unsigned MovDepotOpcode =
+    unsigned const MovDepotOpcode =
         (Is64Bit ? NVPTX::MOV_DEPOT_ADDR_64 : NVPTX::MOV_DEPOT_ADDR);
     if (!MR.use_empty(NVPTX::VRFrame)) {
       // If %SP is not used, do not bother emitting "cvta.local %SP, %SPL".

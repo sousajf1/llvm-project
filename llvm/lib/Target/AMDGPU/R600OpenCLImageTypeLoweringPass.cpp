@@ -78,7 +78,7 @@ GetFunctionFromMDNode(MDNode *Node) {
   if (!Node)
     return nullptr;
 
-  size_t NumOps = Node->getNumOperands();
+  size_t const NumOps = Node->getNumOperands();
   if (NumOps != NumKernelArgMDNodes + 1)
     return nullptr;
 
@@ -87,7 +87,7 @@ GetFunctionFromMDNode(MDNode *Node) {
     return nullptr;
 
   // Sanity checks.
-  size_t ExpectNumArgNodeOps = F->arg_size() + 1;
+  size_t const ExpectNumArgNodeOps = F->arg_size() + 1;
   for (size_t i = 0; i < NumKernelArgMDNodes; ++i) {
     MDNode *ArgNode = dyn_cast_or_null<MDNode>(Node->getOperand(i + 1));
     if (ArgNode->getNumOperands() != ExpectNumArgNodeOps)
@@ -162,7 +162,7 @@ class R600OpenCLImageTypeLoweringPass : public ModulePass {
         continue;
 
       Value *Replacement = nullptr;
-      StringRef Name = F->getName();
+      StringRef const Name = F->getName();
       if (Name.startswith(GetImageResourceIDFunc)) {
         Replacement = ConstantInt::get(Int32Type, ResourceID);
       } else if (Name.startswith(GetImageSizeFunc)) {
@@ -195,7 +195,7 @@ class R600OpenCLImageTypeLoweringPass : public ModulePass {
         continue;
 
       Value *Replacement = nullptr;
-      StringRef Name = F->getName();
+      StringRef const Name = F->getName();
       if (Name == GetSamplerResourceIDFunc) {
         Replacement = ConstantInt::get(Int32Type, ResourceID);
       } else {
@@ -219,11 +219,11 @@ class R600OpenCLImageTypeLoweringPass : public ModulePass {
     InstsToErase.clear();
     for (auto ArgI = F->arg_begin(); ArgI != F->arg_end(); ++ArgI) {
       Argument &Arg = *ArgI;
-      StringRef Type = ArgTypeFromMD(KernelMDNode, Arg.getArgNo());
+      StringRef const Type = ArgTypeFromMD(KernelMDNode, Arg.getArgNo());
 
       // Handle image types.
       if (IsImageType(Type)) {
-        StringRef AccessQual = AccessQualFromMD(KernelMDNode, Arg.getArgNo());
+        StringRef const AccessQual = AccessQualFromMD(KernelMDNode, Arg.getArgNo());
         uint32_t ResourceID;
         if (AccessQual == "read_only") {
           ResourceID = NumReadOnlyImageArgs++;
@@ -239,7 +239,7 @@ class R600OpenCLImageTypeLoweringPass : public ModulePass {
 
       // Handle sampler type.
       } else if (IsSamplerType(Type)) {
-        uint32_t ResourceID = NumSamplerArgs++;
+        uint32_t const ResourceID = NumSamplerArgs++;
         Modified |= replaceSamplerUses(Arg, ResourceID);
       }
     }

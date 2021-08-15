@@ -174,10 +174,10 @@ void Instruction::dropUndefImplyingAttrsAndUnknownMetadata(
   // For call instructions, we also need to drop parameter and return attributes
   // that are can cause UB if the call is moved to a location where the
   // attribute is not valid.
-  AttributeList AL = CB->getAttributes();
+  AttributeList const AL = CB->getAttributes();
   if (AL.isEmpty())
     return;
-  AttrBuilder UBImplyingAttributes = AttributeFuncs::getUBImplyingAttributes();
+  AttrBuilder const UBImplyingAttributes = AttributeFuncs::getUBImplyingAttributes();
   for (unsigned ArgNo = 0; ArgNo < CB->getNumArgOperands(); ArgNo++)
     CB->removeParamAttrs(ArgNo, UBImplyingAttributes);
   CB->removeAttributes(AttributeList::ReturnIndex, UBImplyingAttributes);
@@ -521,8 +521,8 @@ bool Instruction::isIdenticalToWhenDefined(const Instruction *I) const {
 // lib/Transforms/IPO/MergeFunctions.cpp.
 bool Instruction::isSameOperationAs(const Instruction *I,
                                     unsigned flags) const {
-  bool IgnoreAlignment = flags & CompareIgnoringAlignment;
-  bool UseScalarTypes  = flags & CompareUsingScalarTypes;
+  bool const IgnoreAlignment = flags & CompareIgnoringAlignment;
+  bool const UseScalarTypes  = flags & CompareUsingScalarTypes;
 
   if (getOpcode() != I->getOpcode() ||
       getNumOperands() != I->getNumOperands() ||
@@ -707,7 +707,7 @@ bool Instruction::isLifetimeStartOrEnd() const {
   auto *II = dyn_cast<IntrinsicInst>(this);
   if (!II)
     return false;
-  Intrinsic::ID ID = II->getIntrinsicID();
+  Intrinsic::ID const ID = II->getIntrinsicID();
   return ID == Intrinsic::lifetime_start || ID == Intrinsic::lifetime_end;
 }
 
@@ -715,7 +715,7 @@ bool Instruction::isLaunderOrStripInvariantGroup() const {
   auto *II = dyn_cast<IntrinsicInst>(this);
   if (!II)
     return false;
-  Intrinsic::ID ID = II->getIntrinsicID();
+  Intrinsic::ID const ID = II->getIntrinsicID();
   return ID == Intrinsic::launder_invariant_group ||
          ID == Intrinsic::strip_invariant_group;
 }
@@ -741,7 +741,7 @@ Instruction::getPrevNonDebugInstruction(bool SkipPseudoOp) const {
 }
 
 bool Instruction::isAssociative() const {
-  unsigned Opcode = getOpcode();
+  unsigned const Opcode = getOpcode();
   if (isAssociative(Opcode))
     return true;
 
@@ -820,7 +820,7 @@ void Instruction::swapProfMetadata() {
     return;
 
   // The first operand is the name. Fetch them backwards and build a new one.
-  Metadata *Ops[] = {ProfileData->getOperand(0), ProfileData->getOperand(2),
+  Metadata *const Ops[] = {ProfileData->getOperand(0), ProfileData->getOperand(2),
                      ProfileData->getOperand(1)};
   setMetadata(LLVMContext::MD_prof,
               MDNode::get(ProfileData->getContext(), Ops));
@@ -832,7 +832,7 @@ void Instruction::copyMetadata(const Instruction &SrcInst,
     return;
 
   DenseSet<unsigned> WLS;
-  for (unsigned M : WL)
+  for (unsigned const M : WL)
     WLS.insert(M);
 
   // Otherwise, enumerate and copy over metadata from the old instruction to the

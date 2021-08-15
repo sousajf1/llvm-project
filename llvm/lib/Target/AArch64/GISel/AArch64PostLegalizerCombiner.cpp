@@ -51,9 +51,9 @@ using namespace MIPatternMatch;
 bool matchExtractVecEltPairwiseAdd(
     MachineInstr &MI, MachineRegisterInfo &MRI,
     std::tuple<unsigned, LLT, Register> &MatchInfo) {
-  Register Src1 = MI.getOperand(1).getReg();
-  Register Src2 = MI.getOperand(2).getReg();
-  LLT DstTy = MRI.getType(MI.getOperand(0).getReg());
+  Register const Src1 = MI.getOperand(1).getReg();
+  Register const Src2 = MI.getOperand(2).getReg();
+  LLT const DstTy = MRI.getType(MI.getOperand(0).getReg());
 
   auto Cst = getConstantVRegValWithLookThrough(Src2, MRI);
   if (!Cst || Cst->Value != 0)
@@ -66,12 +66,12 @@ bool matchExtractVecEltPairwiseAdd(
     return false;
 
   // If we add support for integer add, must restrict these types to just s64.
-  unsigned DstSize = DstTy.getSizeInBits();
+  unsigned const DstSize = DstTy.getSizeInBits();
   if (DstSize != 16 && DstSize != 32 && DstSize != 64)
     return false;
 
-  Register Src1Op1 = FAddMI->getOperand(1).getReg();
-  Register Src1Op2 = FAddMI->getOperand(2).getReg();
+  Register const Src1Op1 = FAddMI->getOperand(1).getReg();
+  Register const Src1Op2 = FAddMI->getOperand(2).getReg();
   MachineInstr *Shuffle =
       getOpcodeDef(TargetOpcode::G_SHUFFLE_VECTOR, Src1Op2, MRI);
   MachineInstr *Other = MRI.getVRegDef(Src1Op1);
@@ -94,12 +94,12 @@ bool matchExtractVecEltPairwiseAdd(
 bool applyExtractVecEltPairwiseAdd(
     MachineInstr &MI, MachineRegisterInfo &MRI, MachineIRBuilder &B,
     std::tuple<unsigned, LLT, Register> &MatchInfo) {
-  unsigned Opc = std::get<0>(MatchInfo);
+  unsigned const Opc = std::get<0>(MatchInfo);
   assert(Opc == TargetOpcode::G_FADD && "Unexpected opcode!");
   // We want to generate two extracts of elements 0 and 1, and add them.
-  LLT Ty = std::get<1>(MatchInfo);
-  Register Src = std::get<2>(MatchInfo);
-  LLT s64 = LLT::scalar(64);
+  LLT const Ty = std::get<1>(MatchInfo);
+  Register const Src = std::get<2>(MatchInfo);
+  LLT const s64 = LLT::scalar(64);
   B.setInstrAndDebugLoc(MI);
   auto Elt0 = B.buildExtractVectorElement(Ty, Src, B.buildConstant(s64, 0));
   auto Elt1 = B.buildExtractVectorElement(Ty, Src, B.buildConstant(s64, 1));
@@ -110,7 +110,7 @@ bool applyExtractVecEltPairwiseAdd(
 
 static bool isSignExtended(Register R, MachineRegisterInfo &MRI) {
   // TODO: check if extended build vector as well.
-  unsigned Opc = MRI.getVRegDef(R)->getOpcode();
+  unsigned const Opc = MRI.getVRegDef(R)->getOpcode();
   return Opc == TargetOpcode::G_SEXT || Opc == TargetOpcode::G_SEXT_INREG;
 }
 
@@ -123,9 +123,9 @@ bool matchAArch64MulConstCombine(
     MachineInstr &MI, MachineRegisterInfo &MRI,
     std::function<void(MachineIRBuilder &B, Register DstReg)> &ApplyFn) {
   assert(MI.getOpcode() == TargetOpcode::G_MUL);
-  Register LHS = MI.getOperand(1).getReg();
-  Register RHS = MI.getOperand(2).getReg();
-  Register Dst = MI.getOperand(0).getReg();
+  Register const LHS = MI.getOperand(1).getReg();
+  Register const RHS = MI.getOperand(2).getReg();
+  Register const Dst = MI.getOperand(0).getReg();
   const LLT Ty = MRI.getType(LHS);
 
   // The below optimizations require a constant RHS.
@@ -147,7 +147,7 @@ bool matchAArch64MulConstCombine(
   // which equals to (1+2)*16-(1+2).
   // TrailingZeroes is used to test if the mul can be lowered to
   // shift+add+shift.
-  unsigned TrailingZeroes = ConstValue.countTrailingZeros();
+  unsigned const TrailingZeroes = ConstValue.countTrailingZeros();
   if (TrailingZeroes) {
     // Conservatively do not lower to shift+add+shift if the mul might be
     // folded into smul or umul.
@@ -157,8 +157,8 @@ bool matchAArch64MulConstCombine(
     // Conservatively do not lower to shift+add+shift if the mul might be
     // folded into madd or msub.
     if (MRI.hasOneNonDBGUse(Dst)) {
-      MachineInstr &UseMI = *MRI.use_instr_begin(Dst);
-      unsigned UseOpc = UseMI.getOpcode();
+      MachineInstr  const&UseMI = *MRI.use_instr_begin(Dst);
+      unsigned const UseOpc = UseMI.getOpcode();
       if (UseOpc == TargetOpcode::G_ADD || UseOpc == TargetOpcode::G_PTR_ADD ||
           UseOpc == TargetOpcode::G_SUB)
         return false;
@@ -166,7 +166,7 @@ bool matchAArch64MulConstCombine(
   }
   // Use ShiftedConstValue instead of ConstValue to support both shift+add/sub
   // and shift+add+shift.
-  APInt ShiftedConstValue = ConstValue.ashr(TrailingZeroes);
+  APInt const ShiftedConstValue = ConstValue.ashr(TrailingZeroes);
 
   unsigned ShiftAmt, AddSubOpc;
   // Is the shifted value the LHS operand of the add/sub?
@@ -178,8 +178,8 @@ bool matchAArch64MulConstCombine(
     // (mul x, 2^N + 1) => (add (shl x, N), x)
     // (mul x, 2^N - 1) => (sub (shl x, N), x)
     // (mul x, (2^N + 1) * 2^M) => (shl (add (shl x, N), x), M)
-    APInt SCVMinus1 = ShiftedConstValue - 1;
-    APInt CVPlus1 = ConstValue + 1;
+    APInt const SCVMinus1 = ShiftedConstValue - 1;
+    APInt const CVPlus1 = ConstValue + 1;
     if (SCVMinus1.isPowerOf2()) {
       ShiftAmt = SCVMinus1.logBase2();
       AddSubOpc = TargetOpcode::G_ADD;
@@ -191,8 +191,8 @@ bool matchAArch64MulConstCombine(
   } else {
     // (mul x, -(2^N - 1)) => (sub x, (shl x, N))
     // (mul x, -(2^N + 1)) => - (add (shl x, N), x)
-    APInt CVNegPlus1 = -ConstValue + 1;
-    APInt CVNegMinus1 = -ConstValue - 1;
+    APInt const CVNegPlus1 = -ConstValue + 1;
+    APInt const CVNegMinus1 = -ConstValue - 1;
     if (CVNegPlus1.isPowerOf2()) {
       ShiftAmt = CVNegPlus1.logBase2();
       AddSubOpc = TargetOpcode::G_SUB;
@@ -212,8 +212,8 @@ bool matchAArch64MulConstCombine(
     auto Shift = B.buildConstant(LLT::scalar(64), ShiftAmt);
     auto ShiftedVal = B.buildShl(Ty, LHS, Shift);
 
-    Register AddSubLHS = ShiftValUseIsLHS ? ShiftedVal.getReg(0) : LHS;
-    Register AddSubRHS = ShiftValUseIsLHS ? LHS : ShiftedVal.getReg(0);
+    Register const AddSubLHS = ShiftValUseIsLHS ? ShiftedVal.getReg(0) : LHS;
+    Register const AddSubRHS = ShiftValUseIsLHS ? LHS : ShiftedVal.getReg(0);
     auto Res = B.buildInstr(AddSubOpc, {Ty}, {AddSubLHS, AddSubRHS});
     assert(!(NegateResult && TrailingZeroes) &&
            "NegateResult and TrailingZeroes cannot both be true for now.");
@@ -245,7 +245,7 @@ bool applyAArch64MulConstCombine(
 /// is a zero, into a G_ZEXT of the first.
 bool matchFoldMergeToZext(MachineInstr &MI, MachineRegisterInfo &MRI) {
   auto &Merge = cast<GMerge>(MI);
-  LLT SrcTy = MRI.getType(Merge.getSourceReg(0));
+  LLT const SrcTy = MRI.getType(Merge.getSourceReg(0));
   if (SrcTy != LLT::scalar(32) || Merge.getNumSources() != 2)
     return false;
   return mi_match(Merge.getSourceReg(1), MRI, m_SpecificICst(0));
@@ -298,7 +298,7 @@ bool AArch64PostLegalizerCombinerInfo::combine(GISelChangeObserver &Observer,
   const auto *LI =
       MI.getParent()->getParent()->getSubtarget().getLegalizerInfo();
   CombinerHelper Helper(Observer, B, KB, MDT, LI);
-  AArch64GenPostLegalizerCombinerHelper Generated(GeneratedRuleCfg);
+  AArch64GenPostLegalizerCombinerHelper const Generated(GeneratedRuleCfg);
   return Generated.tryCombineAll(Observer, MI, B, Helper);
 }
 
@@ -353,7 +353,7 @@ bool AArch64PostLegalizerCombiner::runOnMachineFunction(MachineFunction &MF) {
          "Expected a legalized function?");
   auto *TPC = &getAnalysis<TargetPassConfig>();
   const Function &F = MF.getFunction();
-  bool EnableOpt =
+  bool const EnableOpt =
       MF.getTarget().getOptLevel() != CodeGenOpt::None && !skipFunction(F);
   GISelKnownBits *KB = &getAnalysis<GISelKnownBitsAnalysis>().get(MF);
   MachineDominatorTree *MDT =

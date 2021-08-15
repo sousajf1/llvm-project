@@ -80,10 +80,10 @@ bool X86LowerTileCopy::runOnMachineFunction(MachineFunction &MF) {
       MachineInstr &MI = *MII++;
       if (!MI.isCopy())
         continue;
-      MachineOperand &DstMO = MI.getOperand(0);
-      MachineOperand &SrcMO = MI.getOperand(1);
-      Register SrcReg = SrcMO.getReg();
-      Register DstReg = DstMO.getReg();
+      MachineOperand  const&DstMO = MI.getOperand(0);
+      MachineOperand  const&SrcMO = MI.getOperand(1);
+      Register const SrcReg = SrcMO.getReg();
+      Register const DstReg = DstMO.getReg();
       if (!X86::TILERegClass.contains(DstReg, SrcReg))
         continue;
 
@@ -91,15 +91,15 @@ bool X86LowerTileCopy::runOnMachineFunction(MachineFunction &MF) {
       // Allocate stack slot for tile register
       unsigned Size = TRI->getSpillSize(X86::TILERegClass);
       Align Alignment = TRI->getSpillAlign(X86::TILERegClass);
-      int TileSS = MF.getFrameInfo().CreateSpillStackObject(Size, Alignment);
+      int const TileSS = MF.getFrameInfo().CreateSpillStackObject(Size, Alignment);
       // Allocate stack slot for stride register
       Size = TRI->getSpillSize(X86::GR64RegClass);
       Alignment = TRI->getSpillAlign(X86::GR64RegClass);
-      int StrideSS = MF.getFrameInfo().CreateSpillStackObject(Size, Alignment);
+      int const StrideSS = MF.getFrameInfo().CreateSpillStackObject(Size, Alignment);
 
       // TODO: Pick a killed regiter to avoid save/reload. There is problem
       // to get live interval in this stage.
-      Register GR64Cand = X86::RAX;
+      Register const GR64Cand = X86::RAX;
 
       const DebugLoc &DL = MI.getDebugLoc();
       // mov %rax (%sp)

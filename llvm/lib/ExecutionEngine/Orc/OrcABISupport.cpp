@@ -20,10 +20,10 @@ bool stubAndPointerRangesOk(JITTargetAddress StubBlockAddr,
                             JITTargetAddress PointerBlockAddr,
                             unsigned NumStubs) {
   constexpr unsigned MaxDisp = ORCABI::StubToPointerMaxDisplacement;
-  JITTargetAddress FirstStub = StubBlockAddr;
-  JITTargetAddress LastStub = FirstStub + ((NumStubs - 1) * ORCABI::StubSize);
-  JITTargetAddress FirstPointer = PointerBlockAddr;
-  JITTargetAddress LastPointer =
+  JITTargetAddress const FirstStub = StubBlockAddr;
+  JITTargetAddress const LastStub = FirstStub + ((NumStubs - 1) * ORCABI::StubSize);
+  JITTargetAddress const FirstPointer = PointerBlockAddr;
+  JITTargetAddress const LastPointer =
       FirstPointer + ((NumStubs - 1) * ORCABI::StubSize);
 
   if (FirstStub < FirstPointer) {
@@ -186,10 +186,10 @@ void OrcAArch64::writeIndirectStubsBlock(
   assert(stubAndPointerRangesOk<OrcAArch64>(
              StubsBlockTargetAddress, PointersBlockTargetAddress, NumStubs) &&
          "PointersBlock is out of range");
-  uint64_t PtrDisplacement =
+  uint64_t const PtrDisplacement =
       PointersBlockTargetAddress - StubsBlockTargetAddress;
   uint64_t *Stub = reinterpret_cast<uint64_t *>(StubsBlockWorkingMem);
-  uint64_t PtrOffsetField = PtrDisplacement << 3;
+  uint64_t const PtrOffsetField = PtrDisplacement << 3;
 
   for (unsigned I = 0; I < NumStubs; ++I)
     Stub[I] = 0xd61f020058000010 | PtrOffsetField;
@@ -207,7 +207,7 @@ void OrcX86_64_Base::writeTrampolines(
 
   uint64_t *Trampolines =
       reinterpret_cast<uint64_t *>(TrampolineBlockWorkingMem);
-  uint64_t CallIndirPCRel = 0xf1c40000000015ff;
+  uint64_t const CallIndirPCRel = 0xf1c40000000015ff;
 
   for (unsigned I = 0; I < NumTrampolines; ++I, OffsetToPtr -= TrampolineSize)
     Trampolines[I] = CallIndirPCRel | ((OffsetToPtr - 6) << 16);
@@ -243,7 +243,7 @@ void OrcX86_64_Base::writeIndirectStubsBlock(
              StubsBlockTargetAddress, PointersBlockTargetAddress, NumStubs) &&
          "PointersBlock is out of range");
   uint64_t *Stub = reinterpret_cast<uint64_t *>(StubsBlockWorkingMem);
-  uint64_t PtrOffsetField =
+  uint64_t const PtrOffsetField =
       (PointersBlockTargetAddress - StubsBlockTargetAddress - 6) << 16;
   for (unsigned I = 0; I < NumStubs; ++I)
     Stub[I] = 0xF1C40000000025ff | PtrOffsetField;
@@ -460,7 +460,7 @@ void OrcI386::writeTrampolines(char *TrampolineWorkingMem,
                                unsigned NumTrampolines) {
   assert((ResolverAddr >> 32) == 0 && "ResolverAddr out of range");
 
-  uint64_t CallRelImm = 0xF1C4C400000000e8;
+  uint64_t const CallRelImm = 0xF1C4C400000000e8;
   uint64_t ResolverRel = ResolverAddr - TrampolineBlockTargetAddress - 5;
 
   uint64_t *Trampolines = reinterpret_cast<uint64_t *>(TrampolineWorkingMem);
@@ -621,7 +621,7 @@ void OrcMips32_Base::writeTrampolines(
 
   uint32_t *Trampolines =
       reinterpret_cast<uint32_t *>(TrampolineBlockWorkingMem);
-  uint32_t RHiAddr = ((ResolverAddr + 0x8000) >> 16);
+  uint32_t const RHiAddr = ((ResolverAddr + 0x8000) >> 16);
 
   for (unsigned I = 0; I < NumTrampolines; ++I) {
     // move $t8,$ra
@@ -674,7 +674,7 @@ void OrcMips32_Base::writeIndirectStubsBlock(
   uint64_t PtrAddr = PointersBlockTargetAddress;
 
   for (unsigned I = 0; I < NumStubs; ++I) {
-    uint32_t HiAddr = ((PtrAddr + 0x8000) >> 16);
+    uint32_t const HiAddr = ((PtrAddr + 0x8000) >> 16);
     Stub[4 * I + 0] = 0x3c190000 | (HiAddr & 0xFFFF);  // lui $t9,ptr1
     Stub[4 * I + 1] = 0x8f390000 | (PtrAddr & 0xFFFF); // lw $t9,%lo(ptr1)($t9)
     Stub[4 * I + 2] = 0x03200008;                      // jr $t9
@@ -834,9 +834,9 @@ void OrcMips64::writeTrampolines(char *TrampolineBlockWorkingMem,
   uint32_t *Trampolines =
       reinterpret_cast<uint32_t *>(TrampolineBlockWorkingMem);
 
-  uint64_t HeighestAddr = ((ResolverAddr + 0x800080008000) >> 48);
-  uint64_t HeigherAddr = ((ResolverAddr + 0x80008000) >> 32);
-  uint64_t HiAddr = ((ResolverAddr + 0x8000) >> 16);
+  uint64_t const HeighestAddr = ((ResolverAddr + 0x800080008000) >> 48);
+  uint64_t const HeigherAddr = ((ResolverAddr + 0x80008000) >> 32);
+  uint64_t const HiAddr = ((ResolverAddr + 0x8000) >> 16);
 
   for (unsigned I = 0; I < NumTrampolines; ++I) {
     Trampolines[10 * I + 0] = 0x03e0c025;                            // move $t8,$ra
@@ -893,9 +893,9 @@ void OrcMips64::writeIndirectStubsBlock(
   uint64_t PtrAddr = PointersBlockTargetAddress;
 
   for (unsigned I = 0; I < NumStubs; ++I, PtrAddr += 8) {
-    uint64_t HeighestAddr = ((PtrAddr + 0x800080008000) >> 48);
-    uint64_t HeigherAddr = ((PtrAddr + 0x80008000) >> 32);
-    uint64_t HiAddr = ((PtrAddr + 0x8000) >> 16);
+    uint64_t const HeighestAddr = ((PtrAddr + 0x800080008000) >> 48);
+    uint64_t const HeigherAddr = ((PtrAddr + 0x80008000) >> 32);
+    uint64_t const HiAddr = ((PtrAddr + 0x8000) >> 16);
     Stub[8 * I + 0] = 0x3c190000 | (HeighestAddr & 0xFFFF);  // lui $t9,ptr1
     Stub[8 * I + 1] = 0x67390000 | (HeigherAddr & 0xFFFF);   // daddiu $t9,$t9,%higher(ptr)
     Stub[8 * I + 2] = 0x0019cc38;                            // dsll $t9,$t9,16

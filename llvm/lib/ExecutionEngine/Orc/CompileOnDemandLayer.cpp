@@ -39,7 +39,7 @@ static ThreadSafeModule extractSubModule(ThreadSafeModule &TSM,
       Constant *Aliasee = A.getAliasee();
       assert(A.hasName() && "Anonymous alias?");
       assert(Aliasee->hasName() && "Anonymous aliasee");
-      std::string AliasName = std::string(A.getName());
+      std::string const AliasName = std::string(A.getName());
 
       if (isa<Function>(Aliasee)) {
         auto *F = cloneFunctionDecl(*A.getParent(), *cast<Function>(Aliasee));
@@ -317,7 +317,7 @@ void CompileOnDemandLayer::emitPartition(
         auto PromotedGlobals = PromoteSymbols(M);
         if (!PromotedGlobals.empty()) {
 
-          MangleAndInterner Mangle(ES, M.getDataLayout());
+          MangleAndInterner const Mangle(ES, M.getDataLayout());
           SymbolFlagsMap SymbolFlags;
           IRSymbolMapper::add(ES, *getManglingOptions(),
                               PromotedGlobals, SymbolFlags);

@@ -33,7 +33,7 @@ static void writeWithCommas(raw_ostream &S, ArrayRef<char> Buffer) {
   assert(!Buffer.empty());
 
   ArrayRef<char> ThisGroup;
-  int InitialDigits = ((Buffer.size() - 1) % 3) + 1;
+  int const InitialDigits = ((Buffer.size() - 1) % 3) + 1;
   ThisGroup = Buffer.take_front(InitialDigits);
   S.write(ThisGroup.data(), ThisGroup.size());
 
@@ -96,7 +96,7 @@ static void write_signed(raw_ostream &S, T N, size_t MinDigits,
     return;
   }
 
-  UnsignedT UN = -(UnsignedT)N;
+  UnsignedT const UN = -(UnsignedT)N;
   write_unsigned(S, UN, MinDigits, Style, true);
 }
 
@@ -134,15 +134,15 @@ void llvm::write_hex(raw_ostream &S, uint64_t N, HexPrintStyle Style,
                      Optional<size_t> Width) {
   const size_t kMaxWidth = 128u;
 
-  size_t W = std::min(kMaxWidth, Width.getValueOr(0u));
+  size_t const W = std::min(kMaxWidth, Width.getValueOr(0u));
 
-  unsigned Nibbles = (64 - countLeadingZeros(N) + 3) / 4;
-  bool Prefix = (Style == HexPrintStyle::PrefixLower ||
+  unsigned const Nibbles = (64 - countLeadingZeros(N) + 3) / 4;
+  bool const Prefix = (Style == HexPrintStyle::PrefixLower ||
                  Style == HexPrintStyle::PrefixUpper);
-  bool Upper =
+  bool const Upper =
       (Style == HexPrintStyle::Upper || Style == HexPrintStyle::PrefixUpper);
-  unsigned PrefixChars = Prefix ? 2 : 0;
-  unsigned NumChars =
+  unsigned const PrefixChars = Prefix ? 2 : 0;
+  unsigned const NumChars =
       std::max(static_cast<unsigned>(W), std::max(1u, Nibbles) + PrefixChars);
 
   char NumberBuffer[kMaxWidth];
@@ -152,7 +152,7 @@ void llvm::write_hex(raw_ostream &S, uint64_t N, HexPrintStyle Style,
   char *EndPtr = NumberBuffer + NumChars;
   char *CurPtr = EndPtr;
   while (N) {
-    unsigned char x = static_cast<unsigned char>(N) % 16;
+    unsigned char const x = static_cast<unsigned char>(N) % 16;
     *--CurPtr = hexdigit(x, !Upper);
     N /= 16;
   }
@@ -162,7 +162,7 @@ void llvm::write_hex(raw_ostream &S, uint64_t N, HexPrintStyle Style,
 
 void llvm::write_double(raw_ostream &S, double N, FloatStyle Style,
                         Optional<size_t> Precision) {
-  size_t Prec = Precision.getValueOr(getDefaultPrecision(Style));
+  size_t const Prec = Precision.getValueOr(getDefaultPrecision(Style));
 
   if (std::isnan(N)) {
     S << "nan";

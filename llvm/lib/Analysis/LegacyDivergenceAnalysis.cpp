@@ -216,7 +216,7 @@ void DivergencePropagator::exploreSyncDependency(Instruction *TI) {
 
 void DivergencePropagator::findUsersOutsideInfluenceRegion(
     Instruction &I, const DenseSet<BasicBlock *> &InfluenceRegion) {
-  for (Use &Use : I.uses()) {
+  for (Use  const&Use : I.uses()) {
     Instruction *UserInst = cast<Instruction>(Use.getUser());
     if (!InfluenceRegion.count(UserInst->getParent())) {
       DU.insert(&Use);
@@ -313,7 +313,7 @@ bool LegacyDivergenceAnalysis::shouldUseGPUDivergenceAnalysis(
   // GPUDivergenceAnalysis requires a reducible CFG.
   auto &LI = getAnalysis<LoopInfoWrapperPass>().getLoopInfo();
   using RPOTraversal = ReversePostOrderTraversal<const Function *>;
-  RPOTraversal FuncRPOT(&F);
+  RPOTraversal const FuncRPOT(&F);
   return !containsIrreducibleCFG<const BasicBlock *, const RPOTraversal,
                                  const LoopInfo>(FuncRPOT, LI);
 }

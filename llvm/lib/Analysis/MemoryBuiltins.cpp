@@ -159,8 +159,8 @@ getAllocationDataForFunction(const Function *Callee, AllocType AllocTy,
     return None;
 
   // Check function prototype.
-  int FstParam = FnData->FstParam;
-  int SndParam = FnData->SndParam;
+  int const FstParam = FnData->FstParam;
+  int const SndParam = FnData->SndParam;
   FunctionType *FTy = Callee->getFunctionType();
 
   if (FTy->getReturnType() == Type::getInt8PtrTy(FTy->getContext()) &&
@@ -214,11 +214,11 @@ static Optional<AllocFnsTy> getAllocationSize(const Value *V,
             getAllocationDataForFunction(Callee, AnyAlloc, TLI))
       return Data;
 
-  Attribute Attr = Callee->getFnAttribute(Attribute::AllocSize);
+  Attribute const Attr = Callee->getFnAttribute(Attribute::AllocSize);
   if (Attr == Attribute())
     return None;
 
-  std::pair<unsigned, Optional<unsigned>> Args = Attr.getAllocSizeArgs();
+  std::pair<unsigned, Optional<unsigned>> const Args = Attr.getAllocSizeArgs();
 
   AllocFnsTy Result;
   // Because allocsize only tells us how many bytes are allocated, we're not
@@ -515,7 +515,7 @@ static APInt getSizeWithOverflow(const SizeOffsetType &Data) {
 bool llvm::getObjectSize(const Value *Ptr, uint64_t &Size, const DataLayout &DL,
                          const TargetLibraryInfo *TLI, ObjectSizeOpts Opts) {
   ObjectSizeOffsetVisitor Visitor(DL, TLI, Ptr->getContext(), Opts);
-  SizeOffsetType Data = Visitor.compute(const_cast<Value*>(Ptr));
+  SizeOffsetType const Data = Visitor.compute(const_cast<Value*>(Ptr));
   if (!Visitor.bothKnown(Data))
     return false;
 
@@ -530,7 +530,7 @@ Value *llvm::lowerObjectSizeCall(IntrinsicInst *ObjectSize,
   assert(ObjectSize->getIntrinsicID() == Intrinsic::objectsize &&
          "ObjectSize must be a call to llvm.objectsize!");
 
-  bool MaxVal = cast<ConstantInt>(ObjectSize->getArgOperand(1))->isZero();
+  bool const MaxVal = cast<ConstantInt>(ObjectSize->getArgOperand(1))->isZero();
   ObjectSizeOpts EvalOptions;
   // Unless we have to fold this to something, try to be as accurate as
   // possible.
@@ -544,7 +544,7 @@ Value *llvm::lowerObjectSizeCall(IntrinsicInst *ObjectSize,
       cast<ConstantInt>(ObjectSize->getArgOperand(2))->isOne();
 
   auto *ResultType = cast<IntegerType>(ObjectSize->getType());
-  bool StaticOnly = cast<ConstantInt>(ObjectSize->getArgOperand(3))->isZero();
+  bool const StaticOnly = cast<ConstantInt>(ObjectSize->getArgOperand(3))->isZero();
   if (StaticOnly) {
     // FIXME: Does it make sense to just return a failure value if the size won't
     // fit in the output and `!MustSucceed`?
@@ -555,7 +555,7 @@ Value *llvm::lowerObjectSizeCall(IntrinsicInst *ObjectSize,
   } else {
     LLVMContext &Ctx = ObjectSize->getFunction()->getContext();
     ObjectSizeOffsetEvaluator Eval(DL, TLI, Ctx, EvalOptions);
-    SizeOffsetEvalType SizeOffsetPair =
+    SizeOffsetEvalType const SizeOffsetPair =
         Eval.compute(ObjectSize->getArgOperand(0));
 
     if (SizeOffsetPair != ObjectSizeOffsetEvaluator::unknown()) {
@@ -694,7 +694,7 @@ SizeOffsetType ObjectSizeOffsetVisitor::visitArgument(Argument &A) {
     return unknown();
   }
 
-  APInt Size(IntTyBits, DL.getTypeAllocSize(MemoryTy));
+  APInt const Size(IntTyBits, DL.getTypeAllocSize(MemoryTy));
   return std::make_pair(align(Size, A.getParamAlignment()), Zero);
 }
 
@@ -716,7 +716,7 @@ SizeOffsetType ObjectSizeOffsetVisitor::visitCallBase(CallBase &CB) {
       if (!Arg)
         return unknown();
 
-      APInt MaxSize = Arg->getValue().zextOrSelf(IntTyBits);
+      APInt const MaxSize = Arg->getValue().zextOrSelf(IntTyBits);
       if (Size.ugt(MaxSize))
         Size = MaxSize + 1;
     }
@@ -782,7 +782,7 @@ ObjectSizeOffsetVisitor::visitExtractValueInst(ExtractValueInst&) {
 }
 
 SizeOffsetType ObjectSizeOffsetVisitor::visitGEPOperator(GEPOperator &GEP) {
-  SizeOffsetType PtrData = compute(GEP.getPointerOperand());
+  SizeOffsetType const PtrData = compute(GEP.getPointerOperand());
   APInt Offset(DL.getIndexTypeSizeInBits(GEP.getPointerOperand()->getType()), 0);
   if (!bothKnown(PtrData) || !GEP.accumulateConstantOffset(DL, Offset))
     return unknown();
@@ -800,7 +800,7 @@ SizeOffsetType ObjectSizeOffsetVisitor::visitGlobalVariable(GlobalVariable &GV){
   if (!GV.hasDefinitiveInitializer())
     return unknown();
 
-  APInt Size(IntTyBits, DL.getTypeAllocSize(GV.getValueType()));
+  APInt const Size(IntTyBits, DL.getTypeAllocSize(GV.getValueType()));
   return std::make_pair(align(Size, GV.getAlignment()), Zero);
 }
 
@@ -827,8 +827,8 @@ SizeOffsetType ObjectSizeOffsetVisitor::visitSelectInst(SelectInst &I) {
         return TrueSide;
     }
 
-    APInt TrueResult = getSizeWithOverflow(TrueSide);
-    APInt FalseResult = getSizeWithOverflow(FalseSide);
+    APInt const TrueResult = getSizeWithOverflow(TrueSide);
+    APInt const FalseResult = getSizeWithOverflow(FalseSide);
 
     if (TrueResult == FalseResult) {
       return TrueSide;
@@ -881,7 +881,7 @@ SizeOffsetEvalType ObjectSizeOffsetEvaluator::compute(Value *V) {
     // that no dangling references are left behind. We could be a bit smarter if
     // we kept a dependency graph. It's probably not worth the complexity.
     for (const Value *SeenVal : SeenVals) {
-      CacheMapTy::iterator CacheIt = CacheMap.find(SeenVal);
+      CacheMapTy::iterator const CacheIt = CacheMap.find(SeenVal);
       // non-computable results can be safely cached
       if (CacheIt != CacheMap.end() && anyKnown(CacheIt->second))
         CacheMap.erase(CacheIt);
@@ -901,7 +901,7 @@ SizeOffsetEvalType ObjectSizeOffsetEvaluator::compute(Value *V) {
 
 SizeOffsetEvalType ObjectSizeOffsetEvaluator::compute_(Value *V) {
   ObjectSizeOffsetVisitor Visitor(DL, TLI, Context, EvalOpts);
-  SizeOffsetType Const = Visitor.compute(V);
+  SizeOffsetType const Const = Visitor.compute(V);
   if (Visitor.bothKnown(Const))
     return std::make_pair(ConstantInt::get(Context, Const.first),
                           ConstantInt::get(Context, Const.second));
@@ -909,13 +909,13 @@ SizeOffsetEvalType ObjectSizeOffsetEvaluator::compute_(Value *V) {
   V = V->stripPointerCasts();
 
   // Check cache.
-  CacheMapTy::iterator CacheIt = CacheMap.find(V);
+  CacheMapTy::iterator const CacheIt = CacheMap.find(V);
   if (CacheIt != CacheMap.end())
     return CacheIt->second;
 
   // Always generate code immediately before the instruction being
   // processed, so that the generated code dominates the same BBs.
-  BuilderTy::InsertPointGuard Guard(Builder);
+  BuilderTy::InsertPointGuard const Guard(Builder);
   if (Instruction *I = dyn_cast<Instruction>(V))
     Builder.SetInsertPoint(I);
 
@@ -1012,7 +1012,7 @@ ObjectSizeOffsetEvaluator::visitExtractValueInst(ExtractValueInst&) {
 
 SizeOffsetEvalType
 ObjectSizeOffsetEvaluator::visitGEPOperator(GEPOperator &GEP) {
-  SizeOffsetEvalType PtrData = compute_(GEP.getPointerOperand());
+  SizeOffsetEvalType const PtrData = compute_(GEP.getPointerOperand());
   if (!bothKnown(PtrData))
     return unknown();
 
@@ -1041,7 +1041,7 @@ SizeOffsetEvalType ObjectSizeOffsetEvaluator::visitPHINode(PHINode &PHI) {
   // Compute offset/size for each PHI incoming pointer.
   for (unsigned i = 0, e = PHI.getNumIncomingValues(); i != e; ++i) {
     Builder.SetInsertPoint(&*PHI.getIncomingBlock(i)->getFirstInsertionPt());
-    SizeOffsetEvalType EdgeData = compute_(PHI.getIncomingValue(i));
+    SizeOffsetEvalType const EdgeData = compute_(PHI.getIncomingValue(i));
 
     if (!bothKnown(EdgeData)) {
       OffsetPHI->replaceAllUsesWith(UndefValue::get(IntTy));
@@ -1074,7 +1074,7 @@ SizeOffsetEvalType ObjectSizeOffsetEvaluator::visitPHINode(PHINode &PHI) {
 
 SizeOffsetEvalType ObjectSizeOffsetEvaluator::visitSelectInst(SelectInst &I) {
   SizeOffsetEvalType TrueSide  = compute_(I.getTrueValue());
-  SizeOffsetEvalType FalseSide = compute_(I.getFalseValue());
+  SizeOffsetEvalType const FalseSide = compute_(I.getFalseValue());
 
   if (!bothKnown(TrueSide) || !bothKnown(FalseSide))
     return unknown();

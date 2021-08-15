@@ -145,10 +145,10 @@ BlockMass DitheringDistributer::takeMass(uint32_t Weight) {
 void Distribution::add(const BlockNode &Node, uint64_t Amount,
                        Weight::DistType Type) {
   assert(Amount && "invalid weight of 0");
-  uint64_t NewTotal = Total + Amount;
+  uint64_t const NewTotal = Total + Amount;
 
   // Check for overflow.  It should be impossible to overflow twice.
-  bool IsOverflow = NewTotal < Total;
+  bool const IsOverflow = NewTotal < Total;
   assert(!(DidOverflow && IsOverflow) && "unexpected repeated overflow");
   DidOverflow |= IsOverflow;
 
@@ -404,7 +404,7 @@ void BlockFrequencyInfoImplBase::computeLoopScale(LoopData &Loop) {
   BlockMass TotalBackedgeMass;
   for (auto &Mass : Loop.BackedgeMass)
     TotalBackedgeMass += Mass;
-  BlockMass ExitMass = BlockMass::getFull() - TotalBackedgeMass;
+  BlockMass const ExitMass = BlockMass::getFull() - TotalBackedgeMass;
 
   // Block scale stores the inverse of the scale. If this is an infinite loop,
   // its exit mass will be zero. In this case, use an arbitrary scale for the
@@ -447,7 +447,7 @@ static void debugAssign(const BlockFrequencyInfoImplBase &BFI,
 void BlockFrequencyInfoImplBase::distributeMass(const BlockNode &Source,
                                                 LoopData *OuterLoop,
                                                 Distribution &Dist) {
-  BlockMass Mass = Working[Source.Index].getMass();
+  BlockMass const Mass = Working[Source.Index].getMass();
   LLVM_DEBUG(dbgs() << "  => mass:  " << Mass << "\n");
 
   // Distribute mass to successors as laid out in Dist.
@@ -455,7 +455,7 @@ void BlockFrequencyInfoImplBase::distributeMass(const BlockNode &Source,
 
   for (const Weight &W : Dist.Weights) {
     // Check for a local edge (non-backedge and non-exit).
-    BlockMass Taken = D.takeMass(W.Amount);
+    BlockMass const Taken = D.takeMass(W.Amount);
     if (W.Type == Weight::Local) {
       Working[W.TargetNode.Index].getMass() += Taken;
       LLVM_DEBUG(debugAssign(*this, D, W.TargetNode, Taken, nullptr));
@@ -506,7 +506,7 @@ static void convertFloatingToInteger(BlockFrequencyInfoImplBase &BFI,
   LLVM_DEBUG(dbgs() << "float-to-int: min = " << Min << ", max = " << Max
                     << ", factor = " << ScalingFactor << "\n");
   for (size_t Index = 0; Index < BFI.Freqs.size(); ++Index) {
-    Scaled64 Scaled = BFI.Freqs[Index].Scaled * ScalingFactor;
+    Scaled64 const Scaled = BFI.Freqs[Index].Scaled * ScalingFactor;
     BFI.Freqs[Index].Integer = std::max(UINT64_C(1), Scaled.toInt<uint64_t>());
     LLVM_DEBUG(dbgs() << " - " << BFI.getBlockName(Index) << ": float = "
                       << BFI.Freqs[Index].Scaled << ", scaled = " << Scaled
@@ -533,7 +533,7 @@ static void unwrapLoop(BlockFrequencyInfoImplBase &BFI, LoopData &Loop) {
     const auto &Working = BFI.Working[N.Index];
     Scaled64 &F = Working.isAPackage() ? Working.getPackagedLoop()->Scale
                                        : BFI.Freqs[N.Index].Scaled;
-    Scaled64 New = Loop.Scale * F;
+    Scaled64 const New = Loop.Scale * F;
     LLVM_DEBUG(dbgs() << " - " << BFI.getBlockName(N) << ": " << F << " => "
                       << New << "\n");
     F = New;
@@ -603,8 +603,8 @@ BlockFrequencyInfoImplBase::getProfileCountFromFreq(const Function &F,
     return None;
   // Use 128 bit APInt to do the arithmetic to avoid overflow.
   APInt BlockCount(128, EntryCount.getCount());
-  APInt BlockFreq(128, Freq);
-  APInt EntryFreq(128, getEntryFreq());
+  APInt const BlockFreq(128, Freq);
+  APInt const EntryFreq(128, getEntryFreq());
   BlockCount *= BlockFreq;
   // Rounded division of BlockCount by EntryFreq. Since EntryFreq is unsigned
   // lshr by 1 gives EntryFreq/2.
@@ -652,8 +652,8 @@ BlockFrequencyInfoImplBase::printBlockFreq(raw_ostream &OS,
 raw_ostream &
 BlockFrequencyInfoImplBase::printBlockFreq(raw_ostream &OS,
                                            const BlockFrequency &Freq) const {
-  Scaled64 Block(Freq.getFrequency(), 0);
-  Scaled64 Entry(getEntryFreq(), 0);
+  Scaled64 const Block(Freq.getFrequency(), 0);
+  Scaled64 const Entry(getEntryFreq(), 0);
 
   return OS << Block / Entry;
 }
@@ -842,7 +842,7 @@ void BlockFrequencyInfoImplBase::adjustLoopHeaderMass(LoopData &Loop) {
   //
   // To do this, we distribute the initial mass using the backedge masses
   // as weights for the distribution.
-  BlockMass LoopMass = BlockMass::getFull();
+  BlockMass const LoopMass = BlockMass::getFull();
   Distribution Dist;
 
   LLVM_DEBUG(dbgs() << "adjust-loop-header-mass:\n");
@@ -863,7 +863,7 @@ void BlockFrequencyInfoImplBase::adjustLoopHeaderMass(LoopData &Loop) {
   LLVM_DEBUG(dbgs() << " Distribute loop mass " << LoopMass
                     << " to headers using above weights\n");
   for (const Weight &W : Dist.Weights) {
-    BlockMass Taken = D.takeMass(W.Amount);
+    BlockMass const Taken = D.takeMass(W.Amount);
     assert(W.Type == Weight::Local && "all weights should be local");
     Working[W.TargetNode.Index].getMass() = Taken;
     LLVM_DEBUG(debugAssign(*this, D, W.TargetNode, Taken, nullptr));
@@ -871,10 +871,10 @@ void BlockFrequencyInfoImplBase::adjustLoopHeaderMass(LoopData &Loop) {
 }
 
 void BlockFrequencyInfoImplBase::distributeIrrLoopHeaderMass(Distribution &Dist) {
-  BlockMass LoopMass = BlockMass::getFull();
+  BlockMass const LoopMass = BlockMass::getFull();
   DitheringDistributer D(Dist, LoopMass);
   for (const Weight &W : Dist.Weights) {
-    BlockMass Taken = D.takeMass(W.Amount);
+    BlockMass const Taken = D.takeMass(W.Amount);
     assert(W.Type == Weight::Local && "all weights should be local");
     Working[W.TargetNode.Index].getMass() = Taken;
     LLVM_DEBUG(debugAssign(*this, D, W.TargetNode, Taken, nullptr));

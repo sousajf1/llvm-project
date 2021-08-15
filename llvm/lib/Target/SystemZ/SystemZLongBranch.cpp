@@ -267,7 +267,7 @@ TerminatorInfo SystemZLongBranch::describeTerminator(MachineInstr &MI) {
 // this assumption.
 uint64_t SystemZLongBranch::initMBBInfo() {
   MF->RenumberBlocks();
-  unsigned NumBlocks = MF->size();
+  unsigned const NumBlocks = MF->size();
 
   MBBs.clear();
   MBBs.resize(NumBlocks);
@@ -285,7 +285,7 @@ uint64_t SystemZLongBranch::initMBBInfo() {
 
     // Calculate the size of the fixed part of the block.
     MachineBasicBlock::iterator MI = MBB->begin();
-    MachineBasicBlock::iterator End = MBB->end();
+    MachineBasicBlock::iterator const End = MBB->end();
     while (MI != End && !MI->isTerminator()) {
       Block.Size += TII->getInstSizeInBytes(*MI);
       ++MI;
@@ -354,7 +354,7 @@ void SystemZLongBranch::setWorstCaseAddresses() {
 void SystemZLongBranch::splitBranchOnCount(MachineInstr *MI,
                                            unsigned AddOpcode) {
   MachineBasicBlock *MBB = MI->getParent();
-  DebugLoc DL = MI->getDebugLoc();
+  DebugLoc const DL = MI->getDebugLoc();
   BuildMI(*MBB, MI, DL, TII->get(AddOpcode))
       .add(MI->getOperand(0))
       .add(MI->getOperand(1))
@@ -373,7 +373,7 @@ void SystemZLongBranch::splitBranchOnCount(MachineInstr *MI,
 void SystemZLongBranch::splitCompareBranch(MachineInstr *MI,
                                            unsigned CompareOpcode) {
   MachineBasicBlock *MBB = MI->getParent();
-  DebugLoc DL = MI->getDebugLoc();
+  DebugLoc const DL = MI->getDebugLoc();
   BuildMI(*MBB, MI, DL, TII->get(CompareOpcode))
       .add(MI->getOperand(0))
       .add(MI->getOperand(1));
@@ -457,7 +457,7 @@ void SystemZLongBranch::relaxBranches() {
 bool SystemZLongBranch::runOnMachineFunction(MachineFunction &F) {
   TII = static_cast<const SystemZInstrInfo *>(F.getSubtarget().getInstrInfo());
   MF = &F;
-  uint64_t Size = initMBBInfo();
+  uint64_t const Size = initMBBInfo();
   if (Size <= MaxForwardRange || !mustRelaxABranch())
     return false;
 

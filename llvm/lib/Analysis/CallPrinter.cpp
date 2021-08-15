@@ -183,8 +183,8 @@ struct DOTGraphTraits<CallGraphDOTInfo *> : public DefaultDOTGraphTraits {
     if (Callee == nullptr)
       return "";
 
-    uint64_t Counter = getNumOfCalls(*Caller, *Callee);
-    double Width =
+    uint64_t const Counter = getNumOfCalls(*Caller, *Callee);
+    double const Width =
         1 + 2 * (double(Counter) / CGInfo->getMaxFreq());
     std::string Attrs = "label=\"" + std::to_string(Counter) +
                         "\" penwidth=" + std::to_string(Width);
@@ -198,9 +198,9 @@ struct DOTGraphTraits<CallGraphDOTInfo *> : public DefaultDOTGraphTraits {
       return "";
     std::string attrs;
     if (ShowHeatColors) {
-      uint64_t freq = CGInfo->getFreq(F);
-      std::string color = getHeatColor(freq, CGInfo->getMaxFreq());
-      std::string edgeColor = (freq <= (CGInfo->getMaxFreq() / 2))
+      uint64_t const freq = CGInfo->getFreq(F);
+      std::string const color = getHeatColor(freq, CGInfo->getMaxFreq());
+      std::string const edgeColor = (freq <= (CGInfo->getMaxFreq() / 2))
                                   ? getHeatColor(0)
                                   : getHeatColor(1);
       attrs = "color=\"" + edgeColor + "ff\", style=filled, fillcolor=\"" +
@@ -237,7 +237,7 @@ bool CallGraphViewer::runOnModule(Module &M) {
   CallGraph CG(M);
   CallGraphDOTInfo CFGInfo(&M, &CG, LookupBFI);
 
-  std::string Title =
+  std::string const Title =
       DOTGraphTraits<CallGraphDOTInfo *>::getGraphName(&CFGInfo);
   ViewGraph(&CFGInfo, "callgraph", true, Title);
 
@@ -277,7 +277,7 @@ bool CallGraphDOTPrinter::runOnModule(Module &M) {
   raw_fd_ostream File(Filename, EC, sys::fs::OF_Text);
 
   CallGraph CG(M);
-  CallGraphDOTInfo CFGInfo(&M, &CG, LookupBFI);
+  CallGraphDOTInfo const CFGInfo(&M, &CG, LookupBFI);
 
   if (!EC)
     WriteGraph(File, &CFGInfo);

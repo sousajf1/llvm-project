@@ -147,8 +147,8 @@ ErrorOr<std::unique_ptr<LTOModule>>
 LTOModule::createFromBuffer(LLVMContext &Context, const void *mem,
                             size_t length, const TargetOptions &options,
                             StringRef path) {
-  StringRef Data((const char *)mem, length);
-  MemoryBufferRef Buffer(Data, path);
+  StringRef const Data((const char *)mem, length);
+  MemoryBufferRef const Buffer(Data, path);
   return makeLTOModule(Buffer, options, Context, /* ShouldBeLazy */ false);
 }
 
@@ -156,8 +156,8 @@ ErrorOr<std::unique_ptr<LTOModule>>
 LTOModule::createInLocalContext(std::unique_ptr<LLVMContext> Context,
                                 const void *mem, size_t length,
                                 const TargetOptions &options, StringRef path) {
-  StringRef Data((const char *)mem, length);
-  MemoryBufferRef Buffer(Data, path);
+  StringRef const Data((const char *)mem, length);
+  MemoryBufferRef const Buffer(Data, path);
   // If we own a context, we know this is being used only for symbol extraction,
   // not linking.  Be lazy in that case.
   ErrorOr<std::unique_ptr<LTOModule>> Ret =
@@ -203,7 +203,7 @@ LTOModule::makeLTOModule(MemoryBufferRef Buffer, const TargetOptions &options,
   std::string TripleStr = M->getTargetTriple();
   if (TripleStr.empty())
     TripleStr = sys::getDefaultTargetTriple();
-  llvm::Triple Triple(TripleStr);
+  llvm::Triple const Triple(TripleStr);
 
   // find machine architecture for this module
   std::string errMsg;
@@ -214,7 +214,7 @@ LTOModule::makeLTOModule(MemoryBufferRef Buffer, const TargetOptions &options,
   // construct LTOModule, hand over ownership of module and target
   SubtargetFeatures Features;
   Features.getDefaultSubtargetFeatures(Triple);
-  std::string FeatureStr = Features.getString();
+  std::string const FeatureStr = Features.getString();
   // Set a default CPU for Darwin triples.
   std::string CPU;
   if (Triple.isOSDarwin()) {
@@ -381,7 +381,7 @@ void LTOModule::addDefinedDataSymbol(StringRef Name, const GlobalValue *v) {
 
   // special case if this data blob is an ObjC class definition
   if (const GlobalVariable *GV = dyn_cast<GlobalVariable>(v)) {
-    StringRef Section = GV->getSection();
+    StringRef const Section = GV->getSection();
     if (Section.startswith("__OBJC,__class,")) {
       addObjCClass(GV);
     }
@@ -462,7 +462,7 @@ void LTOModule::addDefinedSymbol(StringRef Name, const GlobalValue *def,
 
   // fill information structure
   NameAndAttributes info;
-  StringRef NameRef = Iter->first();
+  StringRef const NameRef = Iter->first();
   info.name = NameRef;
   assert(NameRef.data()[NameRef.size()] == '\0');
   info.attributes = attr;
@@ -570,11 +570,11 @@ void LTOModule::addPotentialUndefinedSymbol(ModuleSymbolTable::Symbol Sym,
 void LTOModule::parseSymbols() {
   for (auto Sym : SymTab.symbols()) {
     auto *GV = Sym.dyn_cast<GlobalValue *>();
-    uint32_t Flags = SymTab.getSymbolFlags(Sym);
+    uint32_t const Flags = SymTab.getSymbolFlags(Sym);
     if (Flags & object::BasicSymbolRef::SF_FormatSpecific)
       continue;
 
-    bool IsUndefined = Flags & object::BasicSymbolRef::SF_Undefined;
+    bool const IsUndefined = Flags & object::BasicSymbolRef::SF_Undefined;
 
     if (!GV) {
       SmallString<64> Buffer;
@@ -583,7 +583,7 @@ void LTOModule::parseSymbols() {
         SymTab.printSymbolName(OS, Sym);
         Buffer.c_str();
       }
-      StringRef Name = Buffer;
+      StringRef const Name = Buffer;
 
       if (IsUndefined)
         addAsmGlobalSymbolUndef(Name);
@@ -620,7 +620,7 @@ void LTOModule::parseSymbols() {
     // If this symbol also has a definition, then don't make an undefine because
     // it is a tentative definition.
     if (_defines.count(u->getKey())) continue;
-    NameAndAttributes info = u->getValue();
+    NameAndAttributes const info = u->getValue();
     _symbols.push_back(info);
   }
 }
@@ -656,8 +656,8 @@ void LTOModule::parseMetadata() {
 lto::InputFile *LTOModule::createInputFile(const void *buffer,
                                            size_t buffer_size, const char *path,
                                            std::string &outErr) {
-  StringRef Data((const char *)buffer, buffer_size);
-  MemoryBufferRef BufferRef(Data, path);
+  StringRef const Data((const char *)buffer, buffer_size);
+  MemoryBufferRef const BufferRef(Data, path);
 
   Expected<std::unique_ptr<lto::InputFile>> ObjOrErr =
       lto::InputFile::create(BufferRef);
@@ -676,7 +676,7 @@ size_t LTOModule::getDependentLibraryCount(lto::InputFile *input) {
 
 const char *LTOModule::getDependentLibrary(lto::InputFile *input, size_t index,
                                            size_t *size) {
-  StringRef S = input->getDependentLibraries()[index];
+  StringRef const S = input->getDependentLibraries()[index];
   *size = S.size();
   return S.data();
 }

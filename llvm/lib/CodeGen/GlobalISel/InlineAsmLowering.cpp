@@ -133,7 +133,7 @@ static void getRegistersForValue(MachineFunction &MF,
   // registers with the provided register class
   for (; NumRegs; --NumRegs, ++I) {
     assert(I != RC->end() && "Ran out of registers to allocate!");
-    Register R = AssignedReg ? Register(*I) : RegInfo.createVirtualRegister(RC);
+    Register const R = AssignedReg ? Register(*I) : RegInfo.createVirtualRegister(RC);
     OpInfo.Regs.push_back(R);
   }
 }
@@ -164,7 +164,7 @@ static void chooseConstraint(TargetLowering::AsmOperandInfo &OpInfo,
 
   // Loop over the options, keeping track of the most general one.
   for (unsigned i = 0, e = OpInfo.Codes.size(); i != e; ++i) {
-    TargetLowering::ConstraintType CType =
+    TargetLowering::ConstraintType const CType =
         TLI->getConstraintType(OpInfo.Codes[i]);
 
     // Indirect 'other' or 'immediate' constraints are not allowed.
@@ -190,7 +190,7 @@ static void chooseConstraint(TargetLowering::AsmOperandInfo &OpInfo,
       continue;
 
     // This constraint letter is more general than the previous one, use it.
-    int Generality = getConstraintGenerality(CType);
+    int const Generality = getConstraintGenerality(CType);
     if (Generality > BestGenerality) {
       BestType = CType;
       BestIdx = i;
@@ -233,7 +233,7 @@ static void computeConstraintToUse(const TargetLowering *TLI,
 }
 
 static unsigned getNumOpRegs(const MachineInstr &I, unsigned OpIdx) {
-  unsigned Flag = I.getOperand(OpIdx).getImm();
+  unsigned const Flag = I.getOperand(OpIdx).getImm();
   return InlineAsm::getNumOperandRegisters(Flag);
 }
 
@@ -248,8 +248,8 @@ static bool buildAnyextOrCopy(Register Dst, Register Src,
     LLVM_DEBUG(dbgs() << "Source type for copy is not valid\n");
     return false;
   }
-  unsigned SrcSize = TRI->getRegSizeInBits(Src, *MRI);
-  unsigned DstSize = TRI->getRegSizeInBits(Dst, *MRI);
+  unsigned const SrcSize = TRI->getRegSizeInBits(Src, *MRI);
+  unsigned const DstSize = TRI->getRegSizeInBits(Dst, *MRI);
 
   if (DstSize < SrcSize) {
     LLVM_DEBUG(dbgs() << "Input can't fit in destination reg class\n");
@@ -286,7 +286,7 @@ bool InlineAsmLowering::lowerInlineAsm(
 
   MachineRegisterInfo *MRI = MIRBuilder.getMRI();
 
-  TargetLowering::AsmOperandInfoVector TargetConstraints =
+  TargetLowering::AsmOperandInfoVector const TargetConstraints =
       TLI->ParseConstraints(DL, TRI, Call);
 
   ExtraFlags ExtraInfo(Call);
@@ -362,7 +362,7 @@ bool InlineAsmLowering::lowerInlineAsm(
 
   // Starting from this operand: flag followed by register(s) will be added as
   // operands to Inst for each constraint. Used for matching input constraints.
-  unsigned StartIdx = Inst->getNumOperands();
+  unsigned const StartIdx = Inst->getNumOperands();
 
   // Collects the output operands for later processing
   GISelAsmOperandInfoVector OutputOperands;
@@ -379,7 +379,7 @@ bool InlineAsmLowering::lowerInlineAsm(
     switch (OpInfo.Type) {
     case InlineAsm::isOutput:
       if (OpInfo.ConstraintType == TargetLowering::C_Memory) {
-        unsigned ConstraintID =
+        unsigned const ConstraintID =
             TLI->getInlineAsmMemConstraint(OpInfo.ConstraintCode);
         assert(ConstraintID != InlineAsm::Constraint_Unknown &&
                "Failed to convert memory constraint code to constraint id.");
@@ -389,7 +389,7 @@ bool InlineAsmLowering::lowerInlineAsm(
         unsigned OpFlags = InlineAsm::getFlagWord(InlineAsm::Kind_Mem, 1);
         OpFlags = InlineAsm::getFlagWordForMem(OpFlags, ConstraintID);
         Inst.addImm(OpFlags);
-        ArrayRef<Register> SourceRegs =
+        ArrayRef<Register> const SourceRegs =
             GetOrCreateVRegs(*OpInfo.CallOperandVal);
         assert(
             SourceRegs.size() == 1 &&
@@ -424,7 +424,7 @@ bool InlineAsmLowering::lowerInlineAsm(
 
         Inst.addImm(Flag);
 
-        for (Register Reg : OpInfo.Regs) {
+        for (Register const Reg : OpInfo.Regs) {
           Inst.addReg(Reg,
                       RegState::Define | getImplRegState(Reg.isPhysical()) |
                           (OpInfo.isEarlyClobber ? RegState::EarlyClobber : 0));
@@ -437,14 +437,14 @@ bool InlineAsmLowering::lowerInlineAsm(
       break;
     case InlineAsm::isInput: {
       if (OpInfo.isMatchingInputConstraint()) {
-        unsigned DefIdx = OpInfo.getMatchedOperand();
+        unsigned const DefIdx = OpInfo.getMatchedOperand();
         // Find operand with register def that corresponds to DefIdx.
         unsigned InstFlagIdx = StartIdx;
         for (unsigned i = 0; i < DefIdx; ++i)
           InstFlagIdx += getNumOpRegs(*Inst, InstFlagIdx) + 1;
         assert(getNumOpRegs(*Inst, InstFlagIdx) == 1 && "Wrong flag");
 
-        unsigned MatchedOperandFlag = Inst->getOperand(InstFlagIdx).getImm();
+        unsigned const MatchedOperandFlag = Inst->getOperand(InstFlagIdx).getImm();
         if (InlineAsm::isMemKind(MatchedOperandFlag)) {
           LLVM_DEBUG(dbgs() << "Matching input constraint to mem operand not "
                                "supported. This should be target specific.\n");
@@ -457,10 +457,10 @@ bool InlineAsmLowering::lowerInlineAsm(
         }
 
         // We want to tie input to register in next operand.
-        unsigned DefRegIdx = InstFlagIdx + 1;
-        Register Def = Inst->getOperand(DefRegIdx).getReg();
+        unsigned const DefRegIdx = InstFlagIdx + 1;
+        Register const Def = Inst->getOperand(DefRegIdx).getReg();
 
-        ArrayRef<Register> SrcRegs = GetOrCreateVRegs(*OpInfo.CallOperandVal);
+        ArrayRef<Register> const SrcRegs = GetOrCreateVRegs(*OpInfo.CallOperandVal);
         assert(SrcRegs.size() == 1 && "Single register is expected here");
 
         // When Def is physreg: use given input.
@@ -473,8 +473,8 @@ bool InlineAsmLowering::lowerInlineAsm(
         }
 
         // Add Flag and input register operand (In) to Inst. Tie In to Def.
-        unsigned UseFlag = InlineAsm::getFlagWord(InlineAsm::Kind_RegUse, 1);
-        unsigned Flag = InlineAsm::getFlagWordForMatchingOp(UseFlag, DefIdx);
+        unsigned const UseFlag = InlineAsm::getFlagWord(InlineAsm::Kind_RegUse, 1);
+        unsigned const Flag = InlineAsm::getFlagWordForMatchingOp(UseFlag, DefIdx);
         Inst.addImm(Flag);
         Inst.addReg(In);
         Inst->tieOperands(DefRegIdx, Inst->getNumOperands() - 1);
@@ -504,7 +504,7 @@ bool InlineAsmLowering::lowerInlineAsm(
                "Expected constraint to be lowered to at least one operand");
 
         // Add information to the INLINEASM node to know about this input.
-        unsigned OpFlags =
+        unsigned const OpFlags =
             InlineAsm::getFlagWord(InlineAsm::Kind_Imm, Ops.size());
         Inst.addImm(OpFlags);
         Inst.add(Ops);
@@ -521,12 +521,12 @@ bool InlineAsmLowering::lowerInlineAsm(
 
         assert(OpInfo.isIndirect && "Operand must be indirect to be a mem!");
 
-        unsigned ConstraintID =
+        unsigned const ConstraintID =
             TLI->getInlineAsmMemConstraint(OpInfo.ConstraintCode);
         unsigned OpFlags = InlineAsm::getFlagWord(InlineAsm::Kind_Mem, 1);
         OpFlags = InlineAsm::getFlagWordForMem(OpFlags, ConstraintID);
         Inst.addImm(OpFlags);
-        ArrayRef<Register> SourceRegs =
+        ArrayRef<Register> const SourceRegs =
             GetOrCreateVRegs(*OpInfo.CallOperandVal);
         assert(
             SourceRegs.size() == 1 &&
@@ -554,8 +554,8 @@ bool InlineAsmLowering::lowerInlineAsm(
         return false;
       }
 
-      unsigned NumRegs = OpInfo.Regs.size();
-      ArrayRef<Register> SourceRegs = GetOrCreateVRegs(*OpInfo.CallOperandVal);
+      unsigned const NumRegs = OpInfo.Regs.size();
+      ArrayRef<Register> const SourceRegs = GetOrCreateVRegs(*OpInfo.CallOperandVal);
       assert(NumRegs == SourceRegs.size() &&
              "Expected the number of input registers to match the number of "
              "source registers");
@@ -581,13 +581,13 @@ bool InlineAsmLowering::lowerInlineAsm(
 
     case InlineAsm::isClobber: {
 
-      unsigned NumRegs = OpInfo.Regs.size();
+      unsigned const NumRegs = OpInfo.Regs.size();
       if (NumRegs > 0) {
-        unsigned Flag =
+        unsigned const Flag =
             InlineAsm::getFlagWord(InlineAsm::Kind_Clobber, NumRegs);
         Inst.addImm(Flag);
 
-        for (Register Reg : OpInfo.Regs) {
+        for (Register const Reg : OpInfo.Regs) {
           Inst.addReg(Reg, RegState::Define | RegState::EarlyClobber |
                                getImplRegState(Reg.isPhysical()));
         }
@@ -604,7 +604,7 @@ bool InlineAsmLowering::lowerInlineAsm(
   MIRBuilder.insertInstr(Inst);
 
   // Finally, copy the output operands into the output registers
-  ArrayRef<Register> ResRegs = GetOrCreateVRegs(Call);
+  ArrayRef<Register> const ResRegs = GetOrCreateVRegs(Call);
   if (ResRegs.size() != OutputOperands.size()) {
     LLVM_DEBUG(dbgs() << "Expected the number of output registers to match the "
                          "number of destination registers\n");
@@ -625,12 +625,12 @@ bool InlineAsmLowering::lowerInlineAsm(
         return false;
       }
 
-      Register SrcReg = OpInfo.Regs[0];
-      unsigned SrcSize = TRI->getRegSizeInBits(SrcReg, *MRI);
+      Register const SrcReg = OpInfo.Regs[0];
+      unsigned const SrcSize = TRI->getRegSizeInBits(SrcReg, *MRI);
       if (MRI->getType(ResRegs[i]).getSizeInBits() < SrcSize) {
         // First copy the non-typed virtual register into a generic virtual
         // register
-        Register Tmp1Reg =
+        Register const Tmp1Reg =
             MRI->createGenericVirtualRegister(LLT::scalar(SrcSize));
         MIRBuilder.buildCopy(Tmp1Reg, SrcReg);
         // Need to truncate the result of the register
@@ -662,7 +662,7 @@ bool InlineAsmLowering::lowerAsmOperandForConstraint(
   if (Constraint.size() > 1)
     return false;
 
-  char ConstraintLetter = Constraint[0];
+  char const ConstraintLetter = Constraint[0];
   switch (ConstraintLetter) {
   default:
     return false;
@@ -672,8 +672,8 @@ bool InlineAsmLowering::lowerAsmOperandForConstraint(
       assert(CI->getBitWidth() <= 64 &&
              "expected immediate to fit into 64-bits");
       // Boolean constants should be zero-extended, others are sign-extended
-      bool IsBool = CI->getBitWidth() == 1;
-      int64_t ExtVal = IsBool ? CI->getZExtValue() : CI->getSExtValue();
+      bool const IsBool = CI->getBitWidth() == 1;
+      int64_t const ExtVal = IsBool ? CI->getZExtValue() : CI->getSExtValue();
       Ops.push_back(MachineOperand::CreateImm(ExtVal));
       return true;
     }

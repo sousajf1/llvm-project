@@ -80,7 +80,7 @@ Error DWARFDebugArangeSet::extract(DWARFDataExtractor data,
   }
 
   // Perform basic validation of the header fields.
-  uint64_t full_length =
+  uint64_t const full_length =
       dwarf::getUnitLengthFieldByteSize(HeaderData.Format) + HeaderData.Length;
   if (!data.isValidOffsetForDataOfSize(Offset, full_length))
     return createStringError(errc::invalid_argument,
@@ -134,9 +134,9 @@ Error DWARFDebugArangeSet::extract(DWARFDataExtractor data,
                 "Different datatypes for addresses and sizes!");
   assert(sizeof(arangeDescriptor.Address) >= HeaderData.AddrSize);
 
-  uint64_t end_offset = Offset + full_length;
+  uint64_t const end_offset = Offset + full_length;
   while (*offset_ptr < end_offset) {
-    uint64_t EntryOffset = *offset_ptr;
+    uint64_t const EntryOffset = *offset_ptr;
     arangeDescriptor.Address = data.getUnsigned(offset_ptr, HeaderData.AddrSize);
     arangeDescriptor.Length = data.getUnsigned(offset_ptr, HeaderData.AddrSize);
 
@@ -162,7 +162,7 @@ Error DWARFDebugArangeSet::extract(DWARFDataExtractor data,
 }
 
 void DWARFDebugArangeSet::dump(raw_ostream &OS) const {
-  int OffsetDumpWidth = 2 * dwarf::getDwarfOffsetByteSize(HeaderData.Format);
+  int const OffsetDumpWidth = 2 * dwarf::getDwarfOffsetByteSize(HeaderData.Format);
   OS << "Address Range Header: "
      << format("length = 0x%0*" PRIx64 ", ", OffsetDumpWidth, HeaderData.Length)
      << "format = " << dwarf::FormatString(HeaderData.Format) << ", "

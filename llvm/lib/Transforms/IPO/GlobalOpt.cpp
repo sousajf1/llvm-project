@@ -507,12 +507,12 @@ static GlobalVariable *SRAGlobal(GlobalVariable *GV, const DataLayout &DL) {
   assert(GV->hasLocalLinkage());
   Constant *Init = GV->getInitializer();
   Type *Ty = Init->getType();
-  uint64_t VarSize = DL.getTypeSizeInBits(Ty);
+  uint64_t const VarSize = DL.getTypeSizeInBits(Ty);
 
   std::map<unsigned, GlobalVariable *> NewGlobals;
 
   // Get the alignment of the global, either explicit or target-specific.
-  Align StartAlignment =
+  Align const StartAlignment =
       DL.getValueOrABITypeAlignment(GV->getAlign(), GV->getType());
 
   // Loop over all users and create replacement variables for used aggregate
@@ -526,7 +526,7 @@ static GlobalVariable *SRAGlobal(GlobalVariable *GV, const DataLayout &DL) {
     // Ignore the 1th operand, which has to be zero or else the program is quite
     // broken (undefined).  Get the 2nd operand, which is the structure or array
     // index.
-    unsigned ElementIdx = cast<ConstantInt>(GEP->getOperand(2))->getZExtValue();
+    unsigned const ElementIdx = cast<ConstantInt>(GEP->getOperand(2))->getZExtValue();
     if (NewGlobals.count(ElementIdx) == 1)
       continue; // we`ve already created replacement variable
     assert(NewGlobals.count(ElementIdx) == 0);
@@ -555,24 +555,24 @@ static GlobalVariable *SRAGlobal(GlobalVariable *GV, const DataLayout &DL) {
       // Calculate the known alignment of the field.  If the original aggregate
       // had 256 byte alignment for example, something might depend on that:
       // propagate info to each field.
-      uint64_t FieldOffset = Layout.getElementOffset(ElementIdx);
-      Align NewAlign = commonAlignment(StartAlignment, FieldOffset);
+      uint64_t const FieldOffset = Layout.getElementOffset(ElementIdx);
+      Align const NewAlign = commonAlignment(StartAlignment, FieldOffset);
       if (NewAlign > DL.getABITypeAlign(STy->getElementType(ElementIdx)))
         NGV->setAlignment(NewAlign);
 
       // Copy over the debug info for the variable.
-      uint64_t Size = DL.getTypeAllocSizeInBits(NGV->getValueType());
-      uint64_t FragmentOffsetInBits = Layout.getElementOffsetInBits(ElementIdx);
+      uint64_t const Size = DL.getTypeAllocSizeInBits(NGV->getValueType());
+      uint64_t const FragmentOffsetInBits = Layout.getElementOffsetInBits(ElementIdx);
       transferSRADebugInfo(GV, NGV, FragmentOffsetInBits, Size, VarSize);
     } else {
-      uint64_t EltSize = DL.getTypeAllocSize(ElTy);
-      Align EltAlign = DL.getABITypeAlign(ElTy);
-      uint64_t FragmentSizeInBits = DL.getTypeAllocSizeInBits(ElTy);
+      uint64_t const EltSize = DL.getTypeAllocSize(ElTy);
+      Align const EltAlign = DL.getABITypeAlign(ElTy);
+      uint64_t const FragmentSizeInBits = DL.getTypeAllocSizeInBits(ElTy);
 
       // Calculate the known alignment of the field.  If the original aggregate
       // had 256 byte alignment for example, something might depend on that:
       // propagate info to each field.
-      Align NewAlign = commonAlignment(StartAlignment, EltSize * ElementIdx);
+      Align const NewAlign = commonAlignment(StartAlignment, EltSize * ElementIdx);
       if (NewAlign > EltAlign)
         NGV->setAlignment(NewAlign);
       transferSRADebugInfo(GV, NGV, FragmentSizeInBits * ElementIdx,
@@ -602,7 +602,7 @@ static GlobalVariable *SRAGlobal(GlobalVariable *GV, const DataLayout &DL) {
     // Ignore the 1th operand, which has to be zero or else the program is quite
     // broken (undefined).  Get the 2nd operand, which is the structure or array
     // index.
-    unsigned ElementIdx = cast<ConstantInt>(GEP->getOperand(2))->getZExtValue();
+    unsigned const ElementIdx = cast<ConstantInt>(GEP->getOperand(2))->getZExtValue();
     assert(NewGlobals.count(ElementIdx) == 1);
 
     Value *NewPtr = NewGlobals[ElementIdx];
@@ -633,15 +633,15 @@ static GlobalVariable *SRAGlobal(GlobalVariable *GV, const DataLayout &DL) {
     // We changed the pointer of any memory access user. Recalculate alignments.
     for (User *U : NewPtr->users()) {
       if (auto *Load = dyn_cast<LoadInst>(U)) {
-        Align PrefAlign = DL.getPrefTypeAlign(Load->getType());
-        Align NewAlign = getOrEnforceKnownAlignment(Load->getPointerOperand(),
+        Align const PrefAlign = DL.getPrefTypeAlign(Load->getType());
+        Align const NewAlign = getOrEnforceKnownAlignment(Load->getPointerOperand(),
                                                     PrefAlign, DL, Load);
         Load->setAlignment(NewAlign);
       }
       if (auto *Store = dyn_cast<StoreInst>(U)) {
-        Align PrefAlign =
+        Align const PrefAlign =
             DL.getPrefTypeAlign(Store->getValueOperand()->getType());
-        Align NewAlign = getOrEnforceKnownAlignment(Store->getPointerOperand(),
+        Align const NewAlign = getOrEnforceKnownAlignment(Store->getPointerOperand(),
                                                     PrefAlign, DL, Store);
         Store->setAlignment(NewAlign);
       }
@@ -1237,15 +1237,15 @@ static bool TryToShrinkGlobalToBoolean(GlobalVariable *GV, Constant *OtherVal) {
 
     auto *CIInit = dyn_cast<ConstantInt>(GV->getInitializer());
     if (CIInit && CIInit->getValue().getActiveBits() <= 64) {
-      uint64_t ValInit = CIInit->getZExtValue();
-      uint64_t ValOther = CI->getZExtValue();
-      uint64_t ValMinus = ValOther - ValInit;
+      uint64_t const ValInit = CIInit->getZExtValue();
+      uint64_t const ValOther = CI->getZExtValue();
+      uint64_t const ValMinus = ValOther - ValInit;
 
       for(auto *GVe : GVs){
         DIGlobalVariable *DGV = GVe->getVariable();
         DIExpression *E = GVe->getExpression();
         const DataLayout &DL = GV->getParent()->getDataLayout();
-        unsigned SizeInOctets =
+        unsigned const SizeInOctets =
             DL.getTypeAllocSizeInBits(NewGV->getValueType()) / 8;
 
         // It is expected that the address of global optimized variable is on
@@ -1261,7 +1261,7 @@ static bool TryToShrinkGlobalToBoolean(GlobalVariable *GV, Constant *OtherVal) {
             dwarf::DW_OP_constu, ValMinus,
             dwarf::DW_OP_mul, dwarf::DW_OP_constu, ValInit,
             dwarf::DW_OP_plus};
-        bool WithStackValue = true;
+        bool const WithStackValue = true;
         E = DIExpression::prependOpcodes(E, Ops, WithStackValue);
         DIGlobalVariableExpression *DGVE =
           DIGlobalVariableExpression::get(NewGV->getContext(), DGV, E);
@@ -1282,7 +1282,7 @@ static bool TryToShrinkGlobalToBoolean(GlobalVariable *GV, Constant *OtherVal) {
     Instruction *UI = cast<Instruction>(GV->user_back());
     if (StoreInst *SI = dyn_cast<StoreInst>(UI)) {
       // Change the store into a boolean store.
-      bool StoringOther = SI->getOperand(0) == OtherVal;
+      bool const StoringOther = SI->getOperand(0) == OtherVal;
       // Only do this if we weren't storing a loaded value.
       Value *StoreVal;
       if (StoringOther || SI->getOperand(0) == InitVal) {
@@ -1720,7 +1720,7 @@ static void RemoveAttribute(Function *F, Attribute::AttrKind A) {
 /// explicitly requested something with performance implications like coldcc,
 /// GHC, or anyregcc.
 static bool hasChangeableCC(Function *F) {
-  CallingConv::ID CC = F->getCallingConv();
+  CallingConv::ID const CC = F->getCallingConv();
 
   // FIXME: Is it worth transforming x86_stdcallcc and x86_fastcallcc?
   if (CC != CallingConv::C && CC != CallingConv::X86_ThisCall)
@@ -1856,7 +1856,7 @@ static void RemovePreallocated(Function *F) {
   IRBuilder<> Builder(M->getContext());
 
   // Cannot modify users() while iterating over it, so make a copy.
-  SmallVector<User *, 4> PreallocatedCalls(F->users());
+  SmallVector<User *, 4> const PreallocatedCalls(F->users());
   for (User *U : PreallocatedCalls) {
     CallBase *CB = dyn_cast<CallBase>(U);
     if (!CB)
@@ -1877,7 +1877,7 @@ static void RemovePreallocated(Function *F) {
       }
     }
     assert(PreallocatedSetup && "Did not find preallocated bundle");
-    uint64_t ArgCount =
+    uint64_t const ArgCount =
         cast<ConstantInt>(PreallocatedSetup->getArgOperand(0))->getZExtValue();
 
     assert((isa<CallInst>(CB) || isa<InvokeInst>(CB)) &&
@@ -1903,13 +1903,13 @@ static void RemovePreallocated(Function *F) {
     // bitcast right after the @llvm.call.preallocated.setup() so that it
     // dominates all uses.
     SmallVector<Value *, 2> ArgAllocas(ArgCount);
-    SmallVector<User *, 2> PreallocatedArgs(PreallocatedSetup->users());
+    SmallVector<User *, 2> const PreallocatedArgs(PreallocatedSetup->users());
     for (auto *User : PreallocatedArgs) {
       auto *UseCall = cast<CallBase>(User);
       assert(UseCall->getCalledFunction()->getIntrinsicID() ==
                  Intrinsic::call_preallocated_arg &&
              "preallocated token use was not a llvm.call.preallocated.arg");
-      uint64_t AllocArgIndex =
+      uint64_t const AllocArgIndex =
           cast<ConstantInt>(UseCall->getArgOperand(1))->getZExtValue();
       Value *AllocaReplacement = ArgAllocas[AllocArgIndex];
       if (!AllocaReplacement) {
@@ -2018,7 +2018,7 @@ OptimizeFunctions(Module &M,
 
     if (hasChangeableCC(F) && !F->isVarArg() && !F->hasAddressTaken()) {
       NumInternalFunc++;
-      TargetTransformInfo &TTI = GetTTI(*F);
+      TargetTransformInfo  const&TTI = GetTTI(*F);
       // Change the calling convention to coldcc if either stress testing is
       // enabled or the target would like to use coldcc on functions which are
       // cold at all call sites and the callers contain no other non coldcc
@@ -2110,7 +2110,7 @@ static Constant *EvaluateStoreInto(Constant *Init, Constant *Val,
 
     // Replace the element that we are supposed to.
     ConstantInt *CU = cast<ConstantInt>(Addr->getOperand(OpNo));
-    unsigned Idx = CU->getZExtValue();
+    unsigned const Idx = CU->getZExtValue();
     assert(Idx < STy->getNumElements() && "Struct index out of range!");
     Elts[Idx] = EvaluateStoreInto(Elts[Idx], Val, Addr, OpNo+1);
 
@@ -2286,7 +2286,7 @@ static bool EvaluateStaticConstructor(Function *F, const DataLayout &DL,
   // Call the function.
   Evaluator Eval(DL, TLI);
   Constant *RetValDummy;
-  bool EvalSuccess = Eval.EvaluateFunction(F, RetValDummy,
+  bool const EvalSuccess = Eval.EvaluateFunction(F, RetValDummy,
                                            SmallVector<Constant*, 0>());
 
   if (EvalSuccess) {

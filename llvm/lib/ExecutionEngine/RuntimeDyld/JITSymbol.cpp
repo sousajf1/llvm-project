@@ -40,7 +40,7 @@ JITSymbolFlags llvm::JITSymbolFlags::fromGlobalValue(const GlobalValue &GV) {
   // case it must be marked as non-exported.
   if (auto *M = GV.getParent()) {
     const auto &DL = M->getDataLayout();
-    StringRef LPGP = DL.getLinkerPrivateGlobalPrefix();
+    StringRef const LPGP = DL.getLinkerPrivateGlobalPrefix();
     if (!LPGP.empty() && GV.getName().front() == '\01' &&
         GV.getName().substr(1).startswith(LPGP))
       Flags &= ~JITSymbolFlags::Exported;
@@ -109,7 +109,7 @@ void LegacyJITSymbolResolver::lookup(const LookupSet &Symbols,
                                      OnResolvedFunction OnResolved) {
   JITSymbolResolver::LookupResult Result;
   for (auto &Symbol : Symbols) {
-    std::string SymName = Symbol.str();
+    std::string const SymName = Symbol.str();
     if (auto Sym = findSymbolInLogicalDylib(SymName)) {
       if (auto AddrOrErr = Sym.getAddress())
         Result[Symbol] = JITEvaluatedSymbol(*AddrOrErr, Sym.getFlags());
@@ -150,7 +150,7 @@ LegacyJITSymbolResolver::getResponsibilitySet(const LookupSet &Symbols) {
   JITSymbolResolver::LookupSet Result;
 
   for (auto &Symbol : Symbols) {
-    std::string SymName = Symbol.str();
+    std::string const SymName = Symbol.str();
     if (auto Sym = findSymbolInLogicalDylib(SymName)) {
       // If there's an existing def but it is not strong, then the caller is
       // responsible for it.

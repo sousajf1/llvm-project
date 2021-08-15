@@ -51,7 +51,7 @@ getNumOfCalls(Function &callerFunction, Function &calledFunction) {
 uint64_t getMaxFreq(const Function &F, const BlockFrequencyInfo *BFI) {
   uint64_t maxFreq = 0;
   for (const BasicBlock &BB : F) {
-    uint64_t freqVal = BFI->getBlockFreq(&BB).getFrequency();
+    uint64_t const freqVal = BFI->getBlockFreq(&BB).getFrequency();
     if (freqVal >= maxFreq)
       maxFreq = freqVal;
   }
@@ -61,7 +61,7 @@ uint64_t getMaxFreq(const Function &F, const BlockFrequencyInfo *BFI) {
 std::string getHeatColor(uint64_t freq, uint64_t maxFreq) {
   if (freq > maxFreq)
     freq = maxFreq;
-  double percent = (freq > 0) ? log2(double(freq)) / log2(maxFreq) : 0;
+  double const percent = (freq > 0) ? log2(double(freq)) / log2(maxFreq) : 0;
   return getHeatColor(percent);
 }
 
@@ -70,7 +70,7 @@ std::string getHeatColor(double percent) {
     percent = 1.0;
   if (percent < 0.0)
     percent = 0.0;
-  unsigned colorId = unsigned(round(percent * (heatSize - 1.0)));
+  unsigned const colorId = unsigned(round(percent * (heatSize - 1.0)));
   return heatPalette[colorId];
 }
 

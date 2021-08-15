@@ -137,7 +137,7 @@ static unsigned unrollAndJamCountPragmaValue(const Loop *L) {
   if (MD) {
     assert(MD->getNumOperands() == 2 &&
            "Unroll count hint metadata should have two operands.");
-    unsigned Count =
+    unsigned const Count =
         mdconst::extract<ConstantInt>(MD->getOperand(1))->getZExtValue();
     assert(Count >= 1 && "Unroll count must be positive.");
     return Count;
@@ -168,9 +168,9 @@ static bool computeUnrollAndJamCount(
   // unrolling we leave to the unroller. This uses UP.Threshold /
   // UP.PartialThreshold / UP.MaxCount to come up with sensible loop values.
   // We have already checked that the loop has no unroll.* pragmas.
-  unsigned MaxTripCount = 0;
+  unsigned const MaxTripCount = 0;
   bool UseUpperBound = false;
-  bool ExplicitUnroll = computeUnrollCount(
+  bool const ExplicitUnroll = computeUnrollCount(
       L, TTI, DT, LI, SE, EphValues, ORE, OuterTripCount, MaxTripCount,
       /*MaxOrZero*/ false, OuterTripMultiple, OuterLoopSize, UP, PP,
       UseUpperBound);
@@ -184,7 +184,7 @@ static bool computeUnrollAndJamCount(
   }
 
   // Override with any explicit Count from the "unroll-and-jam-count" option.
-  bool UserUnrollCount = UnrollAndJamCount.getNumOccurrences() > 0;
+  bool const UserUnrollCount = UnrollAndJamCount.getNumOccurrences() > 0;
   if (UserUnrollCount) {
     UP.Count = UnrollAndJamCount;
     UP.Force = true;
@@ -196,7 +196,7 @@ static bool computeUnrollAndJamCount(
   }
 
   // Check for unroll_and_jam pragmas
-  unsigned PragmaCount = unrollAndJamCountPragmaValue(L);
+  unsigned const PragmaCount = unrollAndJamCountPragmaValue(L);
   if (PragmaCount > 0) {
     UP.Count = PragmaCount;
     UP.Runtime = true;
@@ -208,9 +208,9 @@ static bool computeUnrollAndJamCount(
       return true;
   }
 
-  bool PragmaEnableUnroll = hasUnrollAndJamEnablePragma(L);
-  bool ExplicitUnrollAndJamCount = PragmaCount > 0 || UserUnrollCount;
-  bool ExplicitUnrollAndJam = PragmaEnableUnroll || ExplicitUnrollAndJamCount;
+  bool const PragmaEnableUnroll = hasUnrollAndJamEnablePragma(L);
+  bool const ExplicitUnrollAndJamCount = PragmaCount > 0 || UserUnrollCount;
+  bool const ExplicitUnrollAndJam = PragmaEnableUnroll || ExplicitUnrollAndJamCount;
 
   // If the loop has an unrolling pragma, we want to be more aggressive with
   // unrolling limits.
@@ -291,7 +291,7 @@ tryToUnrollAndJamLoop(Loop *L, DominatorTree &DT, LoopInfo *LI,
   TargetTransformInfo::PeelingPreferences PP =
       gatherPeelingPreferences(L, SE, TTI, None, None);
 
-  TransformationMode EnableMode = hasUnrollAndJamTransformation(L);
+  TransformationMode const EnableMode = hasUnrollAndJamTransformation(L);
   if (EnableMode & TM_Disable)
     return LoopUnrollResult::Unmodified;
   if (EnableMode & TM_ForcedByUser)
@@ -331,10 +331,10 @@ tryToUnrollAndJamLoop(Loop *L, DominatorTree &DT, LoopInfo *LI,
   SmallPtrSet<const Value *, 32> EphValues;
   CodeMetrics::collectEphemeralValues(L, &AC, EphValues);
   Loop *SubLoop = L->getSubLoops()[0];
-  unsigned InnerLoopSize =
+  unsigned const InnerLoopSize =
       ApproximateLoopSize(SubLoop, NumInlineCandidates, NotDuplicatable,
                           Convergent, TTI, EphValues, UP.BEInsns);
-  unsigned OuterLoopSize =
+  unsigned const OuterLoopSize =
       ApproximateLoopSize(L, NumInlineCandidates, NotDuplicatable, Convergent,
                           TTI, EphValues, UP.BEInsns);
   LLVM_DEBUG(dbgs() << "  Outer Loop Size: " << OuterLoopSize << "\n");
@@ -370,12 +370,12 @@ tryToUnrollAndJamLoop(Loop *L, DominatorTree &DT, LoopInfo *LI,
   // Find trip count and trip multiple
   BasicBlock *Latch = L->getLoopLatch();
   BasicBlock *SubLoopLatch = SubLoop->getLoopLatch();
-  unsigned OuterTripCount = SE.getSmallConstantTripCount(L, Latch);
-  unsigned OuterTripMultiple = SE.getSmallConstantTripMultiple(L, Latch);
-  unsigned InnerTripCount = SE.getSmallConstantTripCount(SubLoop, SubLoopLatch);
+  unsigned const OuterTripCount = SE.getSmallConstantTripCount(L, Latch);
+  unsigned const OuterTripMultiple = SE.getSmallConstantTripMultiple(L, Latch);
+  unsigned const InnerTripCount = SE.getSmallConstantTripCount(SubLoop, SubLoopLatch);
 
   // Decide if, and by how much, to unroll
-  bool IsCountSetExplicitly = computeUnrollAndJamCount(
+  bool const IsCountSetExplicitly = computeUnrollAndJamCount(
       L, SubLoop, TTI, DT, LI, SE, EphValues, &ORE, OuterTripCount,
       OuterTripMultiple, OuterLoopSize, InnerTripCount, InnerLoopSize, UP, PP);
   if (UP.Count <= 1)
@@ -385,7 +385,7 @@ tryToUnrollAndJamLoop(Loop *L, DominatorTree &DT, LoopInfo *LI,
     UP.Count = OuterTripCount;
 
   Loop *EpilogueOuterLoop = nullptr;
-  LoopUnrollResult UnrollResult = UnrollAndJamLoop(
+  LoopUnrollResult const UnrollResult = UnrollAndJamLoop(
       L, UP.Count, OuterTripCount, OuterTripMultiple, UP.UnrollRemainder, LI,
       &SE, &DT, &AC, &TTI, &ORE, &EpilogueOuterLoop);
 
@@ -442,8 +442,8 @@ static bool tryToUnrollAndJamLoop(LoopNest &LN, DominatorTree &DT, LoopInfo &LI,
   appendLoopsToWorklist(Loops, Worklist);
   while (!Worklist.empty()) {
     Loop *L = Worklist.pop_back_val();
-    std::string LoopName = std::string(L->getName());
-    LoopUnrollResult Result =
+    std::string const LoopName = std::string(L->getName());
+    LoopUnrollResult const Result =
         tryToUnrollAndJamLoop(L, DT, &LI, SE, TTI, AC, DI, ORE, OptLevel);
     if (Result != LoopUnrollResult::Unmodified)
       DidSomething = true;
@@ -478,7 +478,7 @@ public:
     auto &ORE = getAnalysis<OptimizationRemarkEmitterWrapperPass>().getORE();
     auto &AC = getAnalysis<AssumptionCacheTracker>().getAssumptionCache(*F);
 
-    LoopUnrollResult Result =
+    LoopUnrollResult const Result =
         tryToUnrollAndJamLoop(L, DT, LI, SE, TTI, AC, DI, ORE, OptLevel);
 
     if (Result == LoopUnrollResult::FullyUnrolled)

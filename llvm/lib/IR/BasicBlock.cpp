@@ -98,7 +98,7 @@ void BasicBlock::setParent(Function *parent) {
 iterator_range<filter_iterator<BasicBlock::const_iterator,
                                std::function<bool(const Instruction &)>>>
 BasicBlock::instructionsWithoutDebug(bool SkipPseudoOp) const {
-  std::function<bool(const Instruction &)> Fn = [=](const Instruction &I) {
+  std::function<bool(const Instruction &)> const Fn = [=](const Instruction &I) {
     return !isa<DbgInfoIntrinsic>(I) &&
            !(SkipPseudoOp && isa<PseudoProbeInst>(I));
   };
@@ -108,7 +108,7 @@ BasicBlock::instructionsWithoutDebug(bool SkipPseudoOp) const {
 iterator_range<
     filter_iterator<BasicBlock::iterator, std::function<bool(Instruction &)>>>
 BasicBlock::instructionsWithoutDebug(bool SkipPseudoOp) {
-  std::function<bool(Instruction &)> Fn = [=](Instruction &I) {
+  std::function<bool(Instruction &)> const Fn = [=](Instruction &I) {
     return !isa<DbgInfoIntrinsic>(I) &&
            !(SkipPseudoOp && isa<PseudoProbeInst>(I));
   };
@@ -328,7 +328,7 @@ void BasicBlock::removePredecessor(BasicBlock *Pred,
   if (empty() || !isa<PHINode>(begin()))
     return;
 
-  unsigned NumPreds = cast<PHINode>(front()).getNumIncomingValues();
+  unsigned const NumPreds = cast<PHINode>(front()).getNumIncomingValues();
   for (PHINode &Phi : make_early_inc_range(phis())) {
     Phi.removeIncomingValue(Pred, !KeepOneInputPHIs);
     if (KeepOneInputPHIs)
@@ -391,7 +391,7 @@ BasicBlock *BasicBlock::splitBasicBlock(iterator I, const Twine &BBName,
                                        this->getNextNode());
 
   // Save DebugLoc of split point before invalidating iterator.
-  DebugLoc Loc = I->getDebugLoc();
+  DebugLoc const Loc = I->getDebugLoc();
   // Move all of the specified instructions from the original basic block into
   // the new basic block.
   New->getInstList().splice(New->end(), this->getInstList(), I, end());
@@ -420,7 +420,7 @@ BasicBlock *BasicBlock::splitBasicBlockBefore(iterator I, const Twine &BBName) {
 
   BasicBlock *New = BasicBlock::Create(getContext(), BBName, getParent(), this);
   // Save DebugLoc of split point before invalidating iterator.
-  DebugLoc Loc = I->getDebugLoc();
+  DebugLoc const Loc = I->getDebugLoc();
   // Move all of the specified instructions from the original basic block into
   // the new basic block.
   New->getInstList().splice(New->end(), this->getInstList(), begin(), I);

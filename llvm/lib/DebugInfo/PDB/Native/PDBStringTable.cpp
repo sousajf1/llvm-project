@@ -111,18 +111,18 @@ Expected<StringRef> PDBStringTable::getStringForID(uint32_t ID) const {
 }
 
 Expected<uint32_t> PDBStringTable::getIDForString(StringRef Str) const {
-  uint32_t Hash =
+  uint32_t const Hash =
       (Header->HashVersion == 1) ? hashStringV1(Str) : hashStringV2(Str);
-  size_t Count = IDs.size();
-  uint32_t Start = Hash % Count;
+  size_t const Count = IDs.size();
+  uint32_t const Start = Hash % Count;
   for (size_t I = 0; I < Count; ++I) {
     // The hash is just a starting point for the search, but if it
     // doesn't work we should find the string no matter what, because
     // we iterate the entire array.
-    uint32_t Index = (Start + I) % Count;
+    uint32_t const Index = (Start + I) % Count;
 
     // If we find 0, it means the item isn't in the hash table.
-    uint32_t ID = IDs[Index];
+    uint32_t const ID = IDs[Index];
     if (ID == 0)
       return make_error<RawError>(raw_error_code::no_entry);
     auto ExpectedStr = getStringForID(ID);

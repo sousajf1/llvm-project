@@ -102,7 +102,7 @@ bool SpecialCaseList::createInternal(const std::vector<std::string> &Paths,
   for (const auto &Path : Paths) {
     ErrorOr<std::unique_ptr<MemoryBuffer>> FileOrErr =
         VFS.getBufferForFile(Path);
-    if (std::error_code EC = FileOrErr.getError()) {
+    if (std::error_code const EC = FileOrErr.getError()) {
       Error = (Twine("can't open file '") + Path + "': " + EC.message()).str();
       return false;
     }
@@ -150,7 +150,7 @@ bool SpecialCaseList::parse(const MemoryBuffer *MB,
       Section = I->slice(1, I->size() - 1);
 
       std::string REError;
-      Regex CheckRE(Section);
+      Regex const CheckRE(Section);
       if (!CheckRE.isValid(REError)) {
         Error =
             (Twine("malformed regex for section ") + Section + ": '" + REError)
@@ -162,8 +162,8 @@ bool SpecialCaseList::parse(const MemoryBuffer *MB,
     }
 
     // Get our prefix and unparsed regexp.
-    std::pair<StringRef, StringRef> SplitLine = I->split(":");
-    StringRef Prefix = SplitLine.first;
+    std::pair<StringRef, StringRef> const SplitLine = I->split(":");
+    StringRef const Prefix = SplitLine.first;
     if (SplitLine.second.empty()) {
       // Missing ':' in the line.
       Error = (Twine("malformed line ") + Twine(LineNo) + ": '" +
@@ -171,9 +171,9 @@ bool SpecialCaseList::parse(const MemoryBuffer *MB,
       return false;
     }
 
-    std::pair<StringRef, StringRef> SplitRegexp = SplitLine.second.split("=");
+    std::pair<StringRef, StringRef> const SplitRegexp = SplitLine.second.split("=");
     std::string Regexp = std::string(SplitRegexp.first);
-    StringRef Category = SplitRegexp.second;
+    StringRef const Category = SplitRegexp.second;
 
     // Create this section if it has not been seen before.
     if (SectionsMap.find(Section) == SectionsMap.end()) {
@@ -211,7 +211,7 @@ unsigned SpecialCaseList::inSectionBlame(StringRef Section, StringRef Prefix,
                                          StringRef Category) const {
   for (auto &SectionIter : Sections)
     if (SectionIter.SectionMatcher->match(Section)) {
-      unsigned Blame =
+      unsigned const Blame =
           inSectionBlame(SectionIter.Entries, Prefix, Query, Category);
       if (Blame)
         return Blame;

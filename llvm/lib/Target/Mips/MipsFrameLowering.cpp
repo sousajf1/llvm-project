@@ -124,7 +124,7 @@ uint64_t MipsFrameLowering::estimateStackSize(const MachineFunction &MF) const {
 
   // Conservatively assume all callee-saved registers will be saved.
   for (const MCPhysReg *R = TRI.getCalleeSavedRegs(&MF); *R; ++R) {
-    unsigned RegSize = TRI.getSpillSize(*TRI.getMinimalPhysRegClass(*R));
+    unsigned const RegSize = TRI.getSpillSize(*TRI.getMinimalPhysRegClass(*R));
     Size = alignTo(Size + RegSize, RegSize);
   }
 
@@ -137,7 +137,7 @@ uint64_t MipsFrameLowering::estimateStackSize(const MachineFunction &MF) const {
 MachineBasicBlock::iterator MipsFrameLowering::
 eliminateCallFramePseudoInstr(MachineFunction &MF, MachineBasicBlock &MBB,
                               MachineBasicBlock::iterator I) const {
-  unsigned SP = STI.getABI().IsN64() ? Mips::SP_64 : Mips::SP;
+  unsigned const SP = STI.getABI().IsN64() ? Mips::SP_64 : Mips::SP;
 
   if (!hasReservedCallFrame(MF)) {
     int64_t Amount = I->getOperand(0).getImm();

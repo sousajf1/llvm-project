@@ -130,7 +130,7 @@ bool SwiftErrorValueTracking::createEntriesInEntryBlock(DebugLoc DbgLoc) {
     // least by the 'return' of the swifterror.
     if (SwiftErrorArg && SwiftErrorArg == SwiftErrorVal)
       continue;
-    Register VReg = MF->getRegInfo().createVirtualRegister(RC);
+    Register const VReg = MF->getRegInfo().createVirtualRegister(RC);
     // Assign Undef to Vreg. We construct MI directly to make sure it works
     // with FastISel.
     BuildMI(*MBB, MBB->getFirstNonPHI(), DbgLoc,
@@ -154,7 +154,7 @@ void SwiftErrorValueTracking::propagateVRegs() {
     return;
 
   // For each machine basic block in reverse post order.
-  ReversePostOrderTraversal<MachineFunction *> RPOT(MF);
+  ReversePostOrderTraversal<MachineFunction *> const RPOT(MF);
   for (MachineBasicBlock *MBB : RPOT) {
     // For each swifterror value in the function.
     for (const auto *SwiftErrorVal : SwiftErrorVals) {
@@ -163,7 +163,7 @@ void SwiftErrorValueTracking::propagateVRegs() {
       auto VRegDefIt = VRegDefMap.find(Key);
       bool UpwardsUse = UUseIt != VRegUpwardsUse.end();
       Register UUseVReg = UpwardsUse ? UUseIt->second : Register();
-      bool DownwardDef = VRegDefIt != VRegDefMap.end();
+      bool const DownwardDef = VRegDefIt != VRegDefMap.end();
       assert(!(UpwardsUse && !DownwardDef) &&
              "We can't have an upwards use but no downwards def");
 
@@ -200,7 +200,7 @@ void SwiftErrorValueTracking::propagateVRegs() {
 
       // We need a phi node if we have more than one predecessor with different
       // downward defs.
-      bool needPHI =
+      bool const needPHI =
           VRegs.size() >= 1 &&
           llvm::find_if(
               VRegs,
@@ -228,7 +228,7 @@ void SwiftErrorValueTracking::propagateVRegs() {
         assert(UpwardsUse);
         assert(!VRegs.empty() &&
                "No predecessors?  Is the Calling Convention correct?");
-        Register DestReg = UUseVReg;
+        Register const DestReg = UUseVReg;
         BuildMI(*MBB, MBB->getFirstNonPHI(), DLoc, TII->get(TargetOpcode::COPY),
                 DestReg)
             .addReg(VRegs[0].second);
@@ -239,9 +239,9 @@ void SwiftErrorValueTracking::propagateVRegs() {
       // destination virtual register number otherwise we generate a new one.
       auto &DL = MF->getDataLayout();
       auto const *RC = TLI->getRegClassFor(TLI->getPointerTy(DL));
-      Register PHIVReg =
+      Register const PHIVReg =
           UpwardsUse ? UUseVReg : MF->getRegInfo().createVirtualRegister(RC);
-      MachineInstrBuilder PHI =
+      MachineInstrBuilder const PHI =
           BuildMI(*MBB, MBB->getFirstNonPHI(), DLoc,
                   TII->get(TargetOpcode::PHI), PHIVReg);
       for (auto BBRegPair : VRegs) {

@@ -34,7 +34,7 @@ namespace {
 class COFFAsmParser : public MCAsmParserExtension {
   template<bool (COFFAsmParser::*HandlerMethod)(StringRef, SMLoc)>
   void addDirectiveHandler(StringRef Directive) {
-    MCAsmParser::ExtensionDirectiveHandler Handler = std::make_pair(
+    MCAsmParser::ExtensionDirectiveHandler const Handler = std::make_pair(
         this, HandleDirective<COFFAsmParser, HandlerMethod>);
     getParser().addDirectiveHandler(Directive, Handler);
   }
@@ -177,7 +177,7 @@ bool COFFAsmParser::ParseSectionFlags(StringRef SectionName,
   bool ReadOnlyRemoved = false;
   unsigned SecFlags = None;
 
-  for (char FlagChar : FlagsString) {
+  for (char const FlagChar : FlagsString) {
     switch (FlagChar) {
     case 'a':
       // Ignored.
@@ -275,7 +275,7 @@ bool COFFAsmParser::ParseSectionFlags(StringRef SectionName,
 /// ParseDirectiveSymbolAttribute
 ///  ::= { ".weak", ... } [ identifier ( , identifier )* ]
 bool COFFAsmParser::ParseDirectiveSymbolAttribute(StringRef Directive, SMLoc) {
-  MCSymbolAttr Attr = StringSwitch<MCSymbolAttr>(Directive)
+  MCSymbolAttr const Attr = StringSwitch<MCSymbolAttr>(Directive)
     .Case(".weak", MCSA_Weak)
     .Default(MCSA_Invalid);
   assert(Attr != MCSA_Invalid && "unexpected symbol attribute directive!");
@@ -368,7 +368,7 @@ bool COFFAsmParser::ParseDirectiveSection(StringRef, SMLoc) {
     if (getLexer().isNot(AsmToken::String))
       return TokError("expected string in directive");
 
-    StringRef FlagsStr = getTok().getStringContents();
+    StringRef const FlagsStr = getTok().getStringContents();
     Lex();
 
     if (ParseSectionFlags(SectionName, FlagsStr, &Flags))
@@ -401,7 +401,7 @@ bool COFFAsmParser::ParseDirectiveSection(StringRef, SMLoc) {
   if (getLexer().isNot(AsmToken::EndOfStatement))
     return TokError("unexpected token in directive");
 
-  SectionKind Kind = computeSectionKind(Flags);
+  SectionKind const Kind = computeSectionKind(Flags);
   if (Kind.isText()) {
     const Triple &T = getContext().getTargetTriple();
     if (T.getArch() == Triple::arm || T.getArch() == Triple::thumb)
@@ -564,7 +564,7 @@ bool COFFAsmParser::ParseDirectiveSymIdx(StringRef, SMLoc) {
 
 /// ::= [ identifier ]
 bool COFFAsmParser::parseCOMDATType(COFF::COMDATType &Type) {
-  StringRef TypeId = getTok().getIdentifier();
+  StringRef const TypeId = getTok().getIdentifier();
 
   Type = StringSwitch<COFF::COMDATType>(TypeId)
     .Case("one_only", COFF::IMAGE_COMDAT_SELECT_NODUPLICATES)
@@ -704,7 +704,7 @@ bool COFFAsmParser::ParseAtUnwindOrAtExcept(bool &unwind, bool &except) {
   StringRef identifier;
   if (getLexer().isNot(AsmToken::At))
     return TokError("a handler attribute must begin with '@'");
-  SMLoc startLoc = getLexer().getLoc();
+  SMLoc const startLoc = getLexer().getLoc();
   Lex();
   if (getParser().parseIdentifier(identifier))
     return Error(startLoc, "expected @unwind or @except");

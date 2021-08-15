@@ -80,9 +80,9 @@ bool X86TileConfig::runOnMachineFunction(MachineFunction &MF) {
   const X86Subtarget &ST = MF.getSubtarget<X86Subtarget>();
   const TargetRegisterInfo *TRI = ST.getRegisterInfo();
   const TargetInstrInfo *TII = ST.getInstrInfo();
-  MachineRegisterInfo &MRI = MF.getRegInfo();
+  MachineRegisterInfo  const&MRI = MF.getRegInfo();
   LiveIntervals &LIS = getAnalysis<LiveIntervals>();
-  VirtRegMap &VRM = getAnalysis<VirtRegMap>();
+  VirtRegMap  const&VRM = getAnalysis<VirtRegMap>();
 
   if (VRM.isShapeMapEmpty())
     return false;
@@ -112,15 +112,15 @@ bool X86TileConfig::runOnMachineFunction(MachineFunction &MF) {
   }
   assert(ConstMI && "Cannot find an insertion point");
 
-  unsigned AMXRegNum = TRI->getRegClass(X86::TILERegClassID)->getNumRegs();
+  unsigned const AMXRegNum = TRI->getRegClass(X86::TILERegClassID)->getNumRegs();
   SmallVector<Register, 8> Phys2Virt(AMXRegNum, 0);
   for (unsigned I = 0, E = MRI.getNumVirtRegs(); I != E; ++I) {
-    Register VirtReg = Register::index2VirtReg(I);
+    Register const VirtReg = Register::index2VirtReg(I);
     if (MRI.reg_nodbg_empty(VirtReg))
       continue;
     if (MRI.getRegClass(VirtReg)->getID() != X86::TILERegClassID)
       continue;
-    unsigned Index = VRM.getPhys(VirtReg) - X86::TMM0;
+    unsigned const Index = VRM.getPhys(VirtReg) - X86::TMM0;
     if (!Phys2Virt[Index])
       Phys2Virt[Index] = VirtReg;
   }
@@ -129,10 +129,10 @@ bool X86TileConfig::runOnMachineFunction(MachineFunction &MF) {
   for (unsigned I = 0; I < AMXRegNum; ++I) {
     if (!Phys2Virt[I])
       continue;
-    DebugLoc DL;
+    DebugLoc const DL;
     bool IsRow = true;
     MachineInstr *NewMI = nullptr;
-    ShapeT Shape = VRM.getShape(Phys2Virt[I]);
+    ShapeT const Shape = VRM.getShape(Phys2Virt[I]);
     for (auto &R : {Shape.getRow()->getReg(), Shape.getCol()->getReg()}) {
       // Here is the data format for the tile config.
       // 0      palette
@@ -151,7 +151,7 @@ bool X86TileConfig::runOnMachineFunction(MachineFunction &MF) {
       // 55     tile7.rows Tile 7 rows.
       // 56-63  reserved, must be zero
       int64_t Imm = INT64_MAX;
-      int Offset = IsRow ? 48 + I : 16 + I * 2;
+      int const Offset = IsRow ? 48 + I : 16 + I * 2;
       for (auto &DefMI : MRI.def_instructions(R)) {
         MachineBasicBlock &MBB = *DefMI.getParent();
         if (DefMI.isMoveImmediate()) {
@@ -171,7 +171,7 @@ bool X86TileConfig::runOnMachineFunction(MachineFunction &MF) {
           LIS.InsertMachineInstrInMaps(*NewMI);
         } else {
           unsigned SubIdx = IsRow ? X86::sub_8bit : X86::sub_16bit;
-          unsigned RegSize = TRI->getRegSizeInBits(*MRI.getRegClass(R));
+          unsigned const RegSize = TRI->getRegSizeInBits(*MRI.getRegClass(R));
           if ((IsRow && RegSize == 8) || (!IsRow && RegSize == 16))
             SubIdx = 0;
           auto Iter = DefMI.getIterator();
@@ -183,7 +183,7 @@ bool X86TileConfig::runOnMachineFunction(MachineFunction &MF) {
                               TII->get(IsRow ? X86::MOV8mr : X86::MOV16mr)),
                       SS, Offset)
                       .addReg(R, 0, SubIdx);
-          SlotIndex SIdx = LIS.InsertMachineInstrInMaps(*NewMI);
+          SlotIndex const SIdx = LIS.InsertMachineInstrInMaps(*NewMI);
           LIS.extendToIndices(LIS.getInterval(R), {SIdx.getRegSlot()});
         }
       }

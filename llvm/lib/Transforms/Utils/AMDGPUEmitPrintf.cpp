@@ -234,8 +234,8 @@ Value *llvm::emitAMDGPUPrintfCall(IRBuilder<> &Builder,
   // seven scalar printf arguments in a single hostcall. See the signature of
   // callAppendArgs().
   for (unsigned int i = 1; i != NumOps; ++i) {
-    bool IsLast = i == NumOps - 1;
-    bool IsCString = SpecIsCString.test(i);
+    bool const IsLast = i == NumOps - 1;
+    bool const IsCString = SpecIsCString.test(i);
     Desc = processArg(Builder, Desc, Args[i], IsCString, IsLast);
   }
 

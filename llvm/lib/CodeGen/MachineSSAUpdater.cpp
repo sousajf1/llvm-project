@@ -98,7 +98,7 @@ Register LookForIdenticalPHI(MachineBasicBlock *BB,
   while (I != BB->end() && I->isPHI()) {
     bool Same = true;
     for (unsigned i = 1, e = I->getNumOperands(); i != e; i += 2) {
-      Register SrcReg = I->getOperand(i).getReg();
+      Register const SrcReg = I->getOperand(i).getReg();
       MachineBasicBlock *SrcBB = I->getOperand(i+1).getMBB();
       if (AVals[SrcBB] != SrcReg) {
         Same = false;
@@ -121,7 +121,7 @@ MachineInstrBuilder InsertNewDef(unsigned Opcode,
                            const TargetRegisterClass *RC,
                            MachineRegisterInfo *MRI,
                            const TargetInstrInfo *TII) {
-  Register NewVR = MRI->createVirtualRegister(RC);
+  Register const NewVR = MRI->createVirtualRegister(RC);
   return BuildMI(*BB, I, DebugLoc(), TII->get(Opcode), NewVR);
 }
 
@@ -165,7 +165,7 @@ Register MachineSSAUpdater::GetValueInMiddleOfBlock(MachineBasicBlock *BB) {
 
   bool isFirstPred = true;
   for (MachineBasicBlock *PredBB : BB->predecessors()) {
-    Register PredVal = GetValueAtEndOfBlockInternal(PredBB);
+    Register const PredVal = GetValueAtEndOfBlockInternal(PredBB);
     PredValues.push_back(std::make_pair(PredBB, PredVal));
 
     // Compute SingularValue.
@@ -186,8 +186,8 @@ Register MachineSSAUpdater::GetValueInMiddleOfBlock(MachineBasicBlock *BB) {
     return DupPHI;
 
   // Otherwise, we do need a PHI: insert one now.
-  MachineBasicBlock::iterator Loc = BB->empty() ? BB->end() : BB->begin();
-  MachineInstrBuilder InsertedPHI = InsertNewDef(TargetOpcode::PHI, BB,
+  MachineBasicBlock::iterator const Loc = BB->empty() ? BB->end() : BB->begin();
+  MachineInstrBuilder const InsertedPHI = InsertNewDef(TargetOpcode::PHI, BB,
                                                  Loc, VRC, MRI, TII);
 
   // Fill in all the predecessors of the PHI.
@@ -196,7 +196,7 @@ Register MachineSSAUpdater::GetValueInMiddleOfBlock(MachineBasicBlock *BB) {
 
   // See if the PHI node can be merged to a single value.  This can happen in
   // loop cases when we get a PHI of itself and one other value.
-  if (unsigned ConstVal = InsertedPHI->isConstantValuePHI()) {
+  if (unsigned const ConstVal = InsertedPHI->isConstantValuePHI()) {
     InsertedPHI->eraseFromParent();
     return ConstVal;
   }
@@ -301,7 +301,7 @@ public:
   /// Add it into the specified block and return the register.
   static Register CreateEmptyPHI(MachineBasicBlock *BB, unsigned NumPreds,
                                  MachineSSAUpdater *Updater) {
-    MachineBasicBlock::iterator Loc = BB->empty() ? BB->end() : BB->begin();
+    MachineBasicBlock::iterator const Loc = BB->empty() ? BB->end() : BB->begin();
     MachineInstr *PHI = InsertNewDef(TargetOpcode::PHI, BB, Loc,
                                      Updater->VRC, Updater->MRI,
                                      Updater->TII);

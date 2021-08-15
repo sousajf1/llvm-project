@@ -61,7 +61,7 @@ TargetMachine *EngineBuilder::selectTarget(const Triple &TargetTriple,
 
     // Adjust the triple to match (if known), otherwise stick with the
     // requested/host triple.
-    Triple::ArchType Type = Triple::getArchTypeForLLVMName(MArch);
+    Triple::ArchType const Type = Triple::getArchTypeForLLVMName(MArch);
     if (Type != Triple::UnknownArch)
       TheTriple.setArch(Type);
   } else {

@@ -187,7 +187,7 @@ LLVMBool LLVMCreateMCJITCompilerForModule(
     // NoFramePointerElim.
     for (auto &F : *Mod) {
       auto Attrs = F.getAttributes();
-      StringRef Value = options.NoFramePointerElim ? "all" : "none";
+      StringRef const Value = options.NoFramePointerElim ? "all" : "none";
       Attrs = Attrs.addAttribute(F.getContext(), AttributeList::FunctionIndex,
                                  "frame-pointer", Value);
       F.setAttributes(Attrs);
@@ -232,7 +232,7 @@ int LLVMRunFunctionAsMain(LLVMExecutionEngineRef EE, LLVMValueRef F,
                           const char * const *EnvP) {
   unwrap(EE)->finalizeObject();
 
-  std::vector<std::string> ArgVec(ArgV, ArgV + ArgC);
+  std::vector<std::string> const ArgVec(ArgV, ArgV + ArgC);
   return unwrap(EE)->runFunctionAsMain(unwrap<Function>(F), ArgVec, EnvP);
 }
 
@@ -387,7 +387,7 @@ uint8_t *SimpleBindingMemoryManager::allocateDataSection(
 
 bool SimpleBindingMemoryManager::finalizeMemory(std::string *ErrMsg) {
   char *errMsgCString = nullptr;
-  bool result = Functions.FinalizeMemory(Opaque, &errMsgCString);
+  bool const result = Functions.FinalizeMemory(Opaque, &errMsgCString);
   assert((result || !errMsgCString) &&
          "Did not expect an error message if FinalizeMemory succeeded");
   if (errMsgCString) {

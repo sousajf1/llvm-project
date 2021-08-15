@@ -46,8 +46,8 @@ unsigned MipsRegisterInfo::getPICCallReg() { return Mips::T9; }
 const TargetRegisterClass *
 MipsRegisterInfo::getPointerRegClass(const MachineFunction &MF,
                                      unsigned Kind) const {
-  MipsABIInfo ABI = MF.getSubtarget<MipsSubtarget>().getABI();
-  MipsPtrClass PtrClassKind = static_cast<MipsPtrClass>(Kind);
+  MipsABIInfo const ABI = MF.getSubtarget<MipsSubtarget>().getABI();
+  MipsPtrClass const PtrClassKind = static_cast<MipsPtrClass>(Kind);
 
   switch (PtrClassKind) {
   case MipsPtrClass::Default:
@@ -180,11 +180,11 @@ getReservedRegs(const MachineFunction &MF) const {
 
   if (Subtarget.isFP64bit()) {
     // Reserve all registers in AFGR64.
-    for (MCPhysReg Reg : Mips::AFGR64RegClass)
+    for (MCPhysReg const Reg : Mips::AFGR64RegClass)
       Reserved.set(Reg);
   } else {
     // Reserve all registers in FGR64.
-    for (MCPhysReg Reg : Mips::FGR64RegClass)
+    for (MCPhysReg const Reg : Mips::FGR64RegClass)
       Reserved.set(Reg);
   }
   // Reserve FP if this function should have a dedicated frame pointer register.
@@ -216,7 +216,7 @@ getReservedRegs(const MachineFunction &MF) const {
   Reserved.set(Mips::DSPOutFlag);
 
   // Reserve MSA control registers.
-  for (MCPhysReg Reg : Mips::MSACtrlRegClass)
+  for (MCPhysReg const Reg : Mips::MSACtrlRegClass)
     Reserved.set(Reg);
 
   // Reserve RA if in mips16 mode.
@@ -257,9 +257,9 @@ eliminateFrameIndex(MachineBasicBlock::iterator II, int SPAdj,
              errs() << "<--------->\n"
                     << MI);
 
-  int FrameIndex = MI.getOperand(FIOperandNum).getIndex();
-  uint64_t stackSize = MF.getFrameInfo().getStackSize();
-  int64_t spOffset = MF.getFrameInfo().getObjectOffset(FrameIndex);
+  int const FrameIndex = MI.getOperand(FIOperandNum).getIndex();
+  uint64_t const stackSize = MF.getFrameInfo().getStackSize();
+  int64_t const spOffset = MF.getFrameInfo().getObjectOffset(FrameIndex);
 
   LLVM_DEBUG(errs() << "FrameIndex : " << FrameIndex << "\n"
                     << "spOffset   : " << spOffset << "\n"
@@ -275,7 +275,7 @@ Register MipsRegisterInfo::
 getFrameRegister(const MachineFunction &MF) const {
   const MipsSubtarget &Subtarget = MF.getSubtarget<MipsSubtarget>();
   const TargetFrameLowering *TFI = Subtarget.getFrameLowering();
-  bool IsN64 =
+  bool const IsN64 =
       static_cast<const MipsTargetMachine &>(MF.getTarget()).getABI().IsN64();
 
   if (Subtarget.inMips16Mode())
@@ -297,8 +297,8 @@ bool MipsRegisterInfo::canRealignStack(const MachineFunction &MF) const {
     return false;
 
   const MipsSubtarget &Subtarget = MF.getSubtarget<MipsSubtarget>();
-  unsigned FP = Subtarget.isGP32bit() ? Mips::FP : Mips::FP_64;
-  unsigned BP = Subtarget.isGP32bit() ? Mips::S7 : Mips::S7_64;
+  unsigned const FP = Subtarget.isGP32bit() ? Mips::FP : Mips::FP_64;
+  unsigned const BP = Subtarget.isGP32bit() ? Mips::S7 : Mips::S7_64;
 
   // Support dynamic stack realignment for all targets except Mips16.
   if (Subtarget.inMips16Mode())

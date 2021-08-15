@@ -52,7 +52,7 @@ Expected<uint16_t> readTargetMachineArch(StringRef Buffer) {
 
 Expected<std::unique_ptr<LinkGraph>>
 createLinkGraphFromELFObject(MemoryBufferRef ObjectBuffer) {
-  StringRef Buffer = ObjectBuffer.getBuffer();
+  StringRef const Buffer = ObjectBuffer.getBuffer();
   if (Buffer.size() < ELF::EI_MAG3 + 1)
     return make_error<JITLinkError>("Truncated ELF buffer");
 

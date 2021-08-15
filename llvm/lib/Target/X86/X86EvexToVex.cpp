@@ -133,7 +133,7 @@ static bool usesExtendedRegister(const MachineInstr &MI) {
     if (!MO.isReg())
       continue;
 
-    Register Reg = MO.getReg();
+    Register const Reg = MO.getReg();
 
     assert(!(Reg >= X86::ZMM0 && Reg <= X86::ZMM31) &&
            "ZMM instructions should not be in the EVEX->VEX tables");
@@ -149,7 +149,7 @@ static bool usesExtendedRegister(const MachineInstr &MI) {
 static bool performCustomAdjustments(MachineInstr &MI, unsigned NewOpc,
                                      const X86Subtarget *ST) {
   (void)NewOpc;
-  unsigned Opc = MI.getOpcode();
+  unsigned const Opc = MI.getOpcode();
   switch (Opc) {
   case X86::VALIGNDZ128rri:
   case X86::VALIGNDZ128rmi:
@@ -157,7 +157,7 @@ static bool performCustomAdjustments(MachineInstr &MI, unsigned NewOpc,
   case X86::VALIGNQZ128rmi: {
     assert((NewOpc == X86::VPALIGNRrri || NewOpc == X86::VPALIGNRrmi) &&
            "Unexpected new opcode!");
-    unsigned Scale = (Opc == X86::VALIGNQZ128rri ||
+    unsigned const Scale = (Opc == X86::VALIGNQZ128rri ||
                       Opc == X86::VALIGNQZ128rmi) ? 8 : 4;
     MachineOperand &Imm = MI.getOperand(MI.getNumExplicitOperands()-1);
     Imm.setImm(Imm.getImm() * Scale);
@@ -175,7 +175,7 @@ static bool performCustomAdjustments(MachineInstr &MI, unsigned NewOpc,
             NewOpc == X86::VPERM2F128rm || NewOpc == X86::VPERM2I128rm) &&
            "Unexpected new opcode!");
     MachineOperand &Imm = MI.getOperand(MI.getNumExplicitOperands()-1);
-    int64_t ImmVal = Imm.getImm();
+    int64_t const ImmVal = Imm.getImm();
     // Set bit 5, move bit 1 to bit 4, copy bit 0.
     Imm.setImm(0x20 | ((ImmVal & 2) << 3) | (ImmVal & 1));
     break;
@@ -197,7 +197,7 @@ static bool performCustomAdjustments(MachineInstr &MI, unsigned NewOpc,
   case X86::VRNDSCALESSZr_Int:
   case X86::VRNDSCALESSZm_Int:
     const MachineOperand &Imm = MI.getOperand(MI.getNumExplicitOperands()-1);
-    int64_t ImmVal = Imm.getImm();
+    int64_t const ImmVal = Imm.getImm();
     // Ensure that only bits 3:0 of the immediate are used.
     if ((ImmVal & 0xf) != ImmVal)
       return false;
@@ -257,7 +257,7 @@ bool EvexToVexInstPass::CompressEvexToVexImpl(MachineInstr &MI) const {
   if (I == Table.end() || I->EvexOpcode != MI.getOpcode())
     return false;
 
-  unsigned NewOpc = I->VexOpcode;
+  unsigned const NewOpc = I->VexOpcode;
 
   if (usesExtendedRegister(MI))
     return false;

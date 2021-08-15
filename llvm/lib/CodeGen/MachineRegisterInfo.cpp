@@ -45,7 +45,7 @@ MachineRegisterInfo::MachineRegisterInfo(MachineFunction *MF)
     : MF(MF), TracksSubRegLiveness(MF->getSubtarget().enableSubRegLiveness() &&
                                    EnableSubRegLiveness),
       IsUpdatedCSRsInitialized(false) {
-  unsigned NumRegs = getTargetRegisterInfo()->getNumRegs();
+  unsigned const NumRegs = getTargetRegisterInfo()->getNumRegs();
   VRegInfo.reserve(256);
   RegAllocHints.reserve(256);
   UsedPhysRegMask.resize(NumRegs);
@@ -133,7 +133,7 @@ MachineRegisterInfo::recomputeRegClass(Register Reg) {
   for (MachineOperand &MO : reg_nodbg_operands(Reg)) {
     // Apply the effect of the given operand to NewRC.
     MachineInstr *MI = MO.getParent();
-    unsigned OpNo = &MO - &MI->getOperand(0);
+    unsigned const OpNo = &MO - &MI->getOperand(0);
     NewRC = MI->getRegClassConstraintEffect(OpNo, NewRC, TII,
                                             getTargetRegisterInfo());
     if (!NewRC || NewRC == OldRC)
@@ -202,7 +202,7 @@ void MachineRegisterInfo::clearVirtRegTypes() { VRegToType.clear(); }
 void MachineRegisterInfo::clearVirtRegs() {
 #ifndef NDEBUG
   for (unsigned i = 0, e = getNumVirtRegs(); i != e; ++i) {
-    Register Reg = Register::index2VirtReg(i);
+    Register const Reg = Register::index2VirtReg(i);
     if (!VRegInfo[Reg].second)
       continue;
     verifyUseList(Reg);
@@ -228,7 +228,7 @@ void MachineRegisterInfo::verifyUseList(Register Reg) const {
       continue;
     }
     MachineOperand *MO0 = &MI->getOperand(0);
-    unsigned NumOps = MI->getNumOperands();
+    unsigned const NumOps = MI->getNumOperands();
     if (!(MO >= MO0 && MO < MO0+NumOps)) {
       errs() << printReg(Reg, getTargetRegisterInfo())
              << " use list MachineOperand " << MO
@@ -399,7 +399,7 @@ void MachineRegisterInfo::replaceRegWith(Register FromReg, Register ToReg) {
 /// form, so there should only be one definition.
 MachineInstr *MachineRegisterInfo::getVRegDef(Register Reg) const {
   // Since we are in SSA form, we can use the first definition.
-  def_instr_iterator I = def_instr_begin(Reg);
+  def_instr_iterator const I = def_instr_begin(Reg);
   assert((I.atEnd() || std::next(I) == def_instr_end()) &&
          "getVRegDef assumes a single definition or no definition");
   return !I.atEnd() ? &*I : nullptr;
@@ -410,7 +410,7 @@ MachineInstr *MachineRegisterInfo::getVRegDef(Register Reg) const {
 /// multiple definitions or no definition, return null.
 MachineInstr *MachineRegisterInfo::getUniqueVRegDef(Register Reg) const {
   if (def_empty(Reg)) return nullptr;
-  def_instr_iterator I = def_instr_begin(Reg);
+  def_instr_iterator const I = def_instr_begin(Reg);
   if (std::next(I) != def_instr_end())
     return nullptr;
   return &*I;
@@ -499,7 +499,7 @@ LaneBitmask MachineRegisterInfo::getMaxLaneMaskForVReg(Register Reg) const {
 
 #if !defined(NDEBUG) || defined(LLVM_ENABLE_DUMP)
 LLVM_DUMP_METHOD void MachineRegisterInfo::dumpUses(Register Reg) const {
-  for (MachineInstr &I : use_instructions(Reg))
+  for (MachineInstr  const&I : use_instructions(Reg))
     I.dump();
 }
 #endif
@@ -643,7 +643,7 @@ bool MachineRegisterInfo::isReservedRegUnit(unsigned Unit) const {
     bool IsRootReserved = true;
     for (MCSuperRegIterator Super(*Root, TRI, /*IncludeSelf=*/true);
          Super.isValid(); ++Super) {
-      MCRegister Reg = *Super;
+      MCRegister const Reg = *Super;
       if (!isReserved(Reg)) {
         IsRootReserved = false;
         break;

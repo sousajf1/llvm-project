@@ -296,7 +296,7 @@ LoopUnrollResult llvm::UnrollLoop(Loop *L, UnrollLoopOptions ULO, LoopInfo *LI,
   BasicBlock *LatchBlock = L->getLoopLatch();
   SmallVector<BasicBlock *, 4> ExitBlocks;
   L->getExitBlocks(ExitBlocks);
-  std::vector<BasicBlock *> OriginalLoopBlocks = L->getBlocks();
+  std::vector<BasicBlock *> const OriginalLoopBlocks = L->getBlocks();
 
   const unsigned MaxTripCount = SE->getSmallConstantMaxTripCount(L);
   const bool MaxOrZero = SE->isBackedgeTakenCountMaxOrZero(L);
@@ -374,7 +374,7 @@ LoopUnrollResult llvm::UnrollLoop(Loop *L, UnrollLoopOptions ULO, LoopInfo *LI,
 
   // A conditional branch which exits the loop, which can be optimized to an
   // unconditional branch in the unrolled loop in some cases.
-  bool LatchIsExiting = L->isLoopExiting(LatchBlock);
+  bool const LatchIsExiting = L->isLoopExiting(LatchBlock);
   if (!LatchBI || (LatchBI->isConditional() && !LatchIsExiting)) {
     LLVM_DEBUG(
         dbgs() << "Can't unroll; a conditional latch must exit the loop");
@@ -395,7 +395,7 @@ LoopUnrollResult llvm::UnrollLoop(Loop *L, UnrollLoopOptions ULO, LoopInfo *LI,
                "Can't runtime unroll if loop contains a convergent operation.");
       });
 
-  bool EpilogProfitability =
+  bool const EpilogProfitability =
       UnrollRuntimeEpilog.getNumOccurrences() ? UnrollRuntimeEpilog
                                               : isEpilogProfitable(L);
 
@@ -481,8 +481,8 @@ LoopUnrollResult llvm::UnrollLoop(Loop *L, UnrollLoopOptions ULO, LoopInfo *LI,
   DFS.perform(LI);
 
   // Stash the DFS iterators before adding blocks to the loop.
-  LoopBlocksDFS::RPOIterator BlockBegin = DFS.beginRPO();
-  LoopBlocksDFS::RPOIterator BlockEnd = DFS.endRPO();
+  LoopBlocksDFS::RPOIterator const BlockBegin = DFS.beginRPO();
+  LoopBlocksDFS::RPOIterator const BlockEnd = DFS.endRPO();
 
   std::vector<BasicBlock*> UnrolledLoopBlocks = L->getBlocks();
 
@@ -557,7 +557,7 @@ LoopUnrollResult llvm::UnrollLoop(Loop *L, UnrollLoopOptions ULO, LoopInfo *LI,
           continue;
         for (PHINode &PHI : Succ->phis()) {
           Value *Incoming = PHI.getIncomingValueForBlock(*BB);
-          ValueToValueMapTy::iterator It = LastValueMap.find(Incoming);
+          ValueToValueMapTy::iterator const It = LastValueMap.find(Incoming);
           if (It != LastValueMap.end())
             Incoming = It->second;
           PHI.addIncoming(Incoming, New);
@@ -605,7 +605,7 @@ LoopUnrollResult llvm::UnrollLoop(Loop *L, UnrollLoopOptions ULO, LoopInfo *LI,
       // Identify what other metadata depends on the cloned version. After
       // cloning, replace the metadata with the corrected version for both
       // memory instructions and noalias intrinsics.
-      std::string ext = (Twine("It") + Twine(It)).str();
+      std::string const ext = (Twine("It") + Twine(It)).str();
       cloneAndAdaptNoAliasScopes(LoopLocalNoAliasDeclScopes, NewBlocks,
                                  Header->getContext(), ext);
     }
@@ -632,7 +632,7 @@ LoopUnrollResult llvm::UnrollLoop(Loop *L, UnrollLoopOptions ULO, LoopInfo *LI,
   // Connect latches of the unrolled iterations to the headers of the next
   // iteration. Currently they point to the header of the same iteration.
   for (unsigned i = 0, e = Latches.size(); i != e; ++i) {
-    unsigned j = (i + 1) % e;
+    unsigned const j = (i + 1) % e;
     Latches[i]->getTerminator()->replaceSuccessorWith(Headers[i], Headers[j]);
   }
 
@@ -719,8 +719,8 @@ LoopUnrollResult llvm::UnrollLoop(Loop *L, UnrollLoopOptions ULO, LoopInfo *LI,
     const ExitInfo &Info = Pair.second;
     for (unsigned i = 0, e = Info.ExitingBlocks.size(); i != e; ++i) {
       // The branch destination.
-      unsigned j = (i + 1) % e;
-      bool IsLatch = Pair.first == LatchBlock;
+      unsigned const j = (i + 1) % e;
+      bool const IsLatch = Pair.first == LatchBlock;
       Optional<bool> KnownWillExit = WillExit(Info, i, j, IsLatch);
       if (!KnownWillExit)
         continue;

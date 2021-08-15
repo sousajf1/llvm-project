@@ -89,9 +89,9 @@ bool RGPassManager::runOnFunction(Function &F) {
 
       bool LocalChanged = false;
       {
-        PassManagerPrettyStackEntry X(P, *CurrentRegion->getEntry());
+        PassManagerPrettyStackEntry const X(P, *CurrentRegion->getEntry());
 
-        TimeRegion PassTimer(getPassTimer(P));
+        TimeRegion const PassTimer(getPassTimer(P));
 #ifdef EXPENSIVE_CHECKS
         uint64_t RefHash = StructuralHash(F);
 #endif
@@ -121,7 +121,7 @@ bool RGPassManager::runOnFunction(Function &F) {
       // Region in the function every time. That level of checking can be
       // enabled with the -verify-region-info option.
       {
-        TimeRegion PassTimer(getPassTimer(P));
+        TimeRegion const PassTimer(getPassTimer(P));
         CurrentRegion->verifyRegion();
       }
 

@@ -100,12 +100,12 @@ NativeFunctionSymbol::findInlineFramesByVA(uint64_t VA) const {
     consumeError(ModS.takeError());
     return nullptr;
   }
-  CVSymbolArray Syms = ModS->getSymbolArray();
+  CVSymbolArray const Syms = ModS->getSymbolArray();
 
   // Search for inline sites. There should be one matching top level inline
   // site. Then search in its nested inline sites.
   std::vector<SymIndexId> Frames;
-  uint32_t CodeOffset = VA - getVirtualAddress();
+  uint32_t const CodeOffset = VA - getVirtualAddress();
   auto Start = Syms.at(RecordOffset);
   auto End = Syms.at(Sym.End);
   while (Start != End) {
@@ -119,7 +119,7 @@ NativeFunctionSymbol::findInlineFramesByVA(uint64_t VA) const {
           cantFail(SymbolDeserializer::deserializeAs<InlineSiteSym>(*Start));
       if (inlineSiteContainsAddress(IS, CodeOffset)) {
         // Insert frames in reverse order.
-        SymIndexId Id = Session.getSymbolCache().getOrCreateInlineSymbol(
+        SymIndexId const Id = Session.getSymbolCache().getOrCreateInlineSymbol(
             IS, getVirtualAddress(), Modi, Start.offset());
         Frames.insert(Frames.begin(), Id);
 

@@ -132,10 +132,10 @@ bool PadShortFunc::runOnMachineFunction(MachineFunction &MF) {
   for (DenseMap<MachineBasicBlock*, unsigned int>::iterator I = ReturnBBs.begin();
        I != ReturnBBs.end(); ++I) {
     MachineBasicBlock *MBB = I->first;
-    unsigned Cycles = I->second;
+    unsigned const Cycles = I->second;
 
     // Function::hasOptSize is already checked above.
-    bool OptForSize = llvm::shouldOptimizeForSize(MBB, PSI, MBFI);
+    bool const OptForSize = llvm::shouldOptimizeForSize(MBB, PSI, MBFI);
     if (OptForSize)
       continue;
 
@@ -164,7 +164,7 @@ bool PadShortFunc::runOnMachineFunction(MachineFunction &MF) {
 /// basic blocks that contain a return to ReturnBBs.
 void PadShortFunc::findReturns(MachineBasicBlock *MBB, unsigned int Cycles) {
   // If this BB has a return, note how many cycles it takes to get there.
-  bool hasReturn = cyclesUntilReturn(MBB, Cycles);
+  bool const hasReturn = cyclesUntilReturn(MBB, Cycles);
   if (Cycles >= Threshold)
     return;
 
@@ -189,17 +189,17 @@ void PadShortFunc::findReturns(MachineBasicBlock *MBB, unsigned int Cycles) {
 bool PadShortFunc::cyclesUntilReturn(MachineBasicBlock *MBB,
                                      unsigned int &Cycles) {
   // Return cached result if BB was previously visited
-  DenseMap<MachineBasicBlock*, VisitedBBInfo>::iterator it
+  DenseMap<MachineBasicBlock*, VisitedBBInfo>::iterator const it
     = VisitedBBs.find(MBB);
   if (it != VisitedBBs.end()) {
-    VisitedBBInfo BBInfo = it->second;
+    VisitedBBInfo const BBInfo = it->second;
     Cycles += BBInfo.Cycles;
     return BBInfo.HasReturn;
   }
 
   unsigned int CyclesToEnd = 0;
 
-  for (MachineInstr &MI : *MBB) {
+  for (MachineInstr  const&MI : *MBB) {
     // Mark basic blocks with a return instruction. Calls to other
     // functions do not count because the called function will be padded,
     // if necessary.
@@ -223,7 +223,7 @@ void PadShortFunc::addPadding(MachineBasicBlock *MBB,
                               MachineBasicBlock::iterator &MBBI,
                               unsigned int NOOPsToAdd) {
   const DebugLoc &DL = MBBI->getDebugLoc();
-  unsigned IssueWidth = TSM.getIssueWidth();
+  unsigned const IssueWidth = TSM.getIssueWidth();
 
   for (unsigned i = 0, e = IssueWidth * NOOPsToAdd; i != e; ++i)
     BuildMI(*MBB, MBBI, DL, TSM.getInstrInfo()->get(X86::NOOP));

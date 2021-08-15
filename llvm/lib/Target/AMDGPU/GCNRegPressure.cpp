@@ -359,7 +359,7 @@ bool GCNDownwardRPTracker::advanceBeforeNext() {
   if (NextMI == MBBEnd)
     return false;
 
-  SlotIndex SI = LIS.getInstructionIndex(*NextMI).getBaseIndex();
+  SlotIndex const SI = LIS.getInstructionIndex(*NextMI).getBaseIndex();
   assert(SI.isValid());
 
   // Remove dead registers or mask bits.
@@ -395,7 +395,7 @@ void GCNDownwardRPTracker::advanceToNext() {
   for (const auto &MO : LastTrackedMI->operands()) {
     if (!MO.isReg() || !MO.isDef())
       continue;
-    Register Reg = MO.getReg();
+    Register const Reg = MO.getReg();
     if (!Reg.isVirtual())
       continue;
     auto &LiveMask = LiveRegs[Reg];
@@ -487,7 +487,7 @@ void GCNRPTracker::printLiveRegs(raw_ostream &OS, const LiveRegSet& LiveRegs,
                                  const MachineRegisterInfo &MRI) {
   const TargetRegisterInfo *TRI = MRI.getTargetRegisterInfo();
   for (unsigned I = 0, E = MRI.getNumVirtRegs(); I != E; ++I) {
-    unsigned Reg = Register::index2VirtReg(I);
+    unsigned const Reg = Register::index2VirtReg(I);
     auto It = LiveRegs.find(Reg);
     if (It != LiveRegs.end() && It->second.any())
       OS << ' ' << printVRegOrUnit(Reg, TRI) << ':'

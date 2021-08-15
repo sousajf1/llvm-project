@@ -129,7 +129,7 @@ bool llvm::hasVectorInstrinsicOverloadedScalarOpd(Intrinsic::ID ID,
 /// its ID, in case it does not found it return not_intrinsic.
 Intrinsic::ID llvm::getVectorIntrinsicIDForCall(const CallInst *CI,
                                                 const TargetLibraryInfo *TLI) {
-  Intrinsic::ID ID = getIntrinsicForCallSite(*CI, TLI);
+  Intrinsic::ID const ID = getIntrinsicForCallSite(*CI, TLI);
   if (ID == Intrinsic::not_intrinsic)
     return Intrinsic::not_intrinsic;
 
@@ -147,7 +147,7 @@ Intrinsic::ID llvm::getVectorIntrinsicIDForCall(const CallInst *CI,
 unsigned llvm::getGEPInductionOperand(const GetElementPtrInst *Gep) {
   const DataLayout &DL = Gep->getModule()->getDataLayout();
   unsigned LastOperand = Gep->getNumOperands() - 1;
-  TypeSize GEPAllocSize = DL.getTypeAllocSize(Gep->getResultElementType());
+  TypeSize const GEPAllocSize = DL.getTypeAllocSize(Gep->getResultElementType());
 
   // Walk backwards and try to peel off zeros.
   while (LastOperand > 1 && match(Gep->getOperand(LastOperand), m_Zero())) {
@@ -173,7 +173,7 @@ Value *llvm::stripGetElementPtr(Value *Ptr, ScalarEvolution *SE, Loop *Lp) {
   if (!GEP)
     return Ptr;
 
-  unsigned InductionOperand = getGEPInductionOperand(GEP);
+  unsigned const InductionOperand = getGEPInductionOperand(GEP);
 
   // Check that all of the gep indices are uniform except for our induction
   // operand.
@@ -212,7 +212,7 @@ Value *llvm::getStrideFromPointer(Value *Ptr, ScalarEvolution *SE, Loop *Lp) {
   Value *OrigPtr = Ptr;
 
   // The size of the pointer access.
-  int64_t PtrAccessSize = 1;
+  int64_t const PtrAccessSize = 1;
 
   Ptr = stripGetElementPtr(Ptr, SE, Lp);
   const SCEV *V = SE->getSCEV(Ptr);
@@ -243,7 +243,7 @@ Value *llvm::getStrideFromPointer(Value *Ptr, ScalarEvolution *SE, Loop *Lp) {
       if (APStepVal.getBitWidth() > 64)
         return nullptr;
 
-      int64_t StepVal = APStepVal.getSExtValue();
+      int64_t const StepVal = APStepVal.getSExtValue();
       if (PtrAccessSize != StepVal)
         return nullptr;
       V = M->getOperand(1);
@@ -282,7 +282,7 @@ Value *llvm::findScalarElement(Value *V, unsigned EltNo) {
   VectorType *VTy = cast<VectorType>(V->getType());
   // For fixed-length vector, return undef for out of range access.
   if (auto *FVTy = dyn_cast<FixedVectorType>(VTy)) {
-    unsigned Width = FVTy->getNumElements();
+    unsigned const Width = FVTy->getNumElements();
     if (EltNo >= Width)
       return UndefValue::get(FVTy->getElementType());
   }
@@ -294,7 +294,7 @@ Value *llvm::findScalarElement(Value *V, unsigned EltNo) {
     // If this is an insert to a variable element, we don't know what it is.
     if (!isa<ConstantInt>(III->getOperand(2)))
       return nullptr;
-    unsigned IIElt = cast<ConstantInt>(III->getOperand(2))->getZExtValue();
+    unsigned const IIElt = cast<ConstantInt>(III->getOperand(2))->getZExtValue();
 
     // If this is an insert to the element we are looking for, return the
     // inserted value.
@@ -313,9 +313,9 @@ Value *llvm::findScalarElement(Value *V, unsigned EltNo) {
   ShuffleVectorInst *SVI = dyn_cast<ShuffleVectorInst>(V);
   // Restrict the following transformation to fixed-length vector.
   if (SVI && isa<FixedVectorType>(SVI->getType())) {
-    unsigned LHSWidth =
+    unsigned const LHSWidth =
         cast<FixedVectorType>(SVI->getOperand(0)->getType())->getNumElements();
-    int InEl = SVI->getMaskValue(EltNo);
+    int const InEl = SVI->getMaskValue(EltNo);
     if (InEl < 0)
       return UndefValue::get(VTy->getElementType());
     if (InEl < (int)LHSWidth)
@@ -337,7 +337,7 @@ Value *llvm::findScalarElement(Value *V, unsigned EltNo) {
 
 int llvm::getSplatIndex(ArrayRef<int> Mask) {
   int SplatIndex = -1;
-  for (int M : Mask) {
+  for (int const M : Mask) {
     // Ignore invalid (undefined) mask elements.
     if (M < 0)
       continue;
@@ -429,7 +429,7 @@ void llvm::narrowShuffleMaskElts(int Scale, ArrayRef<int> Mask,
   }
 
   ScaledMask.clear();
-  for (int MaskElt : Mask) {
+  for (int const MaskElt : Mask) {
     if (MaskElt >= 0) {
       assert(((uint64_t)Scale * MaskElt + (Scale - 1)) <= INT32_MAX &&
              "Overflowed 32-bits");
@@ -450,7 +450,7 @@ bool llvm::widenShuffleMaskElts(int Scale, ArrayRef<int> Mask,
   }
 
   // We must map the original elements down evenly to a type with less elements.
-  int NumElts = Mask.size();
+  int const NumElts = Mask.size();
   if (NumElts % Scale != 0)
     return false;
 
@@ -463,7 +463,7 @@ bool llvm::widenShuffleMaskElts(int Scale, ArrayRef<int> Mask,
     assert((int)MaskSlice.size() == Scale && "Expected Scale-sized slice.");
 
     // The first element of the slice determines how we evaluate this slice.
-    int SliceFront = MaskSlice.front();
+    int const SliceFront = MaskSlice.front();
     if (SliceFront < 0) {
       // Negative values (undef or other "sentinel" values) must be equal across
       // the entire slice.
@@ -551,7 +551,7 @@ llvm::computeMinimumValueSizes(ArrayRef<BasicBlock *> Blocks, DemandedBits &DB,
     if (DB.getDemandedBits(I).getBitWidth() > 64)
       return MapVector<Instruction *, uint64_t>();
 
-    uint64_t V = DB.getDemandedBits(I).getZExtValue();
+    uint64_t const V = DB.getDemandedBits(I).getZExtValue();
     DBits[Leader] |= V;
     DBits[I] = V;
 
@@ -672,8 +672,8 @@ MDNode *llvm::uniteAccessGroups(MDNode *AccGroups1, MDNode *AccGroups2) {
 
 MDNode *llvm::intersectAccessGroups(const Instruction *Inst1,
                                     const Instruction *Inst2) {
-  bool MayAccessMem1 = Inst1->mayReadOrWriteMemory();
-  bool MayAccessMem2 = Inst2->mayReadOrWriteMemory();
+  bool const MayAccessMem1 = Inst1->mayReadOrWriteMemory();
+  bool const MayAccessMem2 = Inst2->mayReadOrWriteMemory();
 
   if (!MayAccessMem1 && !MayAccessMem2)
     return nullptr;
@@ -775,7 +775,7 @@ llvm::createBitMaskForGaps(IRBuilderBase &Builder, unsigned VF,
   SmallVector<Constant *, 16> Mask;
   for (unsigned i = 0; i < VF; i++)
     for (unsigned j = 0; j < Group.getFactor(); ++j) {
-      unsigned HasMember = Group.getMember(j) ? 1 : 0;
+      unsigned const HasMember = Group.getMember(j) ? 1 : 0;
       Mask.push_back(Builder.getInt1(HasMember));
     }
 
@@ -835,8 +835,8 @@ static Value *concatenateTwoVectors(IRBuilderBase &Builder, Value *V1,
          VecTy1->getScalarType() == VecTy2->getScalarType() &&
          "Expect two vectors with the same element type");
 
-  unsigned NumElts1 = cast<FixedVectorType>(VecTy1)->getNumElements();
-  unsigned NumElts2 = cast<FixedVectorType>(VecTy2)->getNumElements();
+  unsigned const NumElts1 = cast<FixedVectorType>(VecTy1)->getNumElements();
+  unsigned const NumElts2 = cast<FixedVectorType>(VecTy2)->getNumElements();
   assert(NumElts1 >= NumElts2 && "Unexpect the first vector has less elements");
 
   if (NumElts1 > NumElts2) {
@@ -949,7 +949,7 @@ APInt llvm::possiblyDemandedEltsInMask(Value *Mask) {
 }
 
 bool InterleavedAccessInfo::isStrided(int Stride) {
-  unsigned Factor = std::abs(Stride);
+  unsigned const Factor = std::abs(Stride);
   return Factor >= 2 && Factor <= MaxInterleaveGroupFactor;
 }
 
@@ -980,11 +980,11 @@ void InterleavedAccessInfo::collectConstStrideAccesses(
       // wrap around the address space we would do a memory access at nullptr
       // even without the transformation. The wrapping checks are therefore
       // deferred until after we've formed the interleaved groups.
-      int64_t Stride = getPtrStride(PSE, Ptr, TheLoop, Strides,
+      int64_t const Stride = getPtrStride(PSE, Ptr, TheLoop, Strides,
                                     /*Assume=*/true, /*ShouldCheckWrap=*/false);
 
       const SCEV *Scev = replaceSymbolicStrideSCEV(PSE, Strides, Ptr);
-      uint64_t Size = DL.getTypeAllocSize(ElementTy);
+      uint64_t const Size = DL.getTypeAllocSize(ElementTy);
       AccessStrideInfo[&I] = StrideDescriptor(Stride, Scev, Size,
                                               getLoadStoreAlignment(&I));
     }
@@ -1061,7 +1061,7 @@ void InterleavedAccessInfo::analyzeInterleaving(
   for (auto BI = AccessStrideInfo.rbegin(), E = AccessStrideInfo.rend();
        BI != E; ++BI) {
     Instruction *B = BI->first;
-    StrideDescriptor DesB = BI->second;
+    StrideDescriptor const DesB = BI->second;
 
     // Initialize a group for B if it has an allowable stride. Even if we don't
     // create a group for B, we continue with the bottom-up algorithm to ensure
@@ -1083,7 +1083,7 @@ void InterleavedAccessInfo::analyzeInterleaving(
 
     for (auto AI = std::next(BI); AI != E; ++AI) {
       Instruction *A = AI->first;
-      StrideDescriptor DesA = AI->second;
+      StrideDescriptor const DesA = AI->second;
 
       // Our code motion strategy implies that we can't have dependences
       // between accesses in an interleaved group and other accesses located
@@ -1159,7 +1159,7 @@ void InterleavedAccessInfo::analyzeInterleaving(
           PSE.getSE()->getMinusSCEV(DesA.Scev, DesB.Scev));
       if (!DistToB)
         continue;
-      int64_t DistanceToB = DistToB->getAPInt().getSExtValue();
+      int64_t const DistanceToB = DistToB->getAPInt().getSExtValue();
 
       // Check rule 3. Ignore A if its distance to B is not a multiple of the
       // size.
@@ -1176,7 +1176,7 @@ void InterleavedAccessInfo::analyzeInterleaving(
 
       // The index of A is the index of B plus A's distance to B in multiples
       // of the size.
-      int IndexA =
+      int const IndexA =
           Group->getIndex(B) + DistanceToB / static_cast<int64_t>(DesB.Size);
 
       // Try to insert A into B's group.

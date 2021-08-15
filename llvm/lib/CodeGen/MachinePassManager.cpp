@@ -44,7 +44,7 @@ Error MachineFunctionPassManager::run(Module &M,
       assert(any_isa<const MachineFunction *>(IR));
       const MachineFunction *MF = any_cast<const MachineFunction *>(IR);
       assert(MF && "Machine function should be valid for printing");
-      std::string Banner = std::string("After ") + std::string(PassID);
+      std::string const Banner = std::string("After ") + std::string(PassID);
       verifyMachineFunction(&MFAM, Banner, *MF);
     });
   }
@@ -55,7 +55,7 @@ Error MachineFunctionPassManager::run(Module &M,
   }
 
   unsigned Idx = 0;
-  size_t Size = Passes.size();
+  size_t const Size = Passes.size();
   do {
     // Run machine module passes
     for (; MachineModulePasses.count(Idx) && Idx != Size; ++Idx) {
@@ -70,7 +70,7 @@ Error MachineFunctionPassManager::run(Module &M,
     // Run machine function passes
 
     // Get index range of machine function passes.
-    unsigned Begin = Idx;
+    unsigned const Begin = Idx;
     for (; !MachineModulePasses.count(Idx) && Idx != Size; ++Idx)
       ;
 
@@ -81,7 +81,7 @@ Error MachineFunctionPassManager::run(Module &M,
         continue;
 
       MachineFunction &MF = MMI.getOrCreateMachineFunction(F);
-      PassInstrumentation PI = MFAM.getResult<PassInstrumentationAnalysis>(MF);
+      PassInstrumentation const PI = MFAM.getResult<PassInstrumentationAnalysis>(MF);
 
       for (unsigned I = Begin, E = Idx; I != E; ++I) {
         auto *P = Passes[I].get();
@@ -90,7 +90,7 @@ Error MachineFunctionPassManager::run(Module &M,
           continue;
 
         // TODO: EmitSizeRemarks
-        PreservedAnalyses PassPA = P->run(MF, MFAM);
+        PreservedAnalyses const PassPA = P->run(MF, MFAM);
         PI.runAfterPass(*P, MF, PassPA);
         MFAM.invalidate(MF, PassPA);
       }

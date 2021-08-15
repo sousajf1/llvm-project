@@ -153,7 +153,7 @@ static bool getARMLoadDeprecationInfo(MCInst &MI, const MCSubtargetInfo &STI,
 std::string ARM_MC::ParseARMTriple(const Triple &TT, StringRef CPU) {
   std::string ARMArchFeature;
 
-  ARM::ArchKind ArchID = ARM::parseArch(TT.getArchName());
+  ARM::ArchKind const ArchID = ARM::parseArch(TT.getArchName());
   if (ArchID != ARM::ArchKind::INVALID &&  (CPU.empty() || CPU == "generic"))
     ARMArchFeature = (ARMArchFeature + "+" + ARM::getArchName(ArchID)).str();
 
@@ -180,7 +180,7 @@ std::string ARM_MC::ParseARMTriple(const Triple &TT, StringRef CPU) {
 
 bool ARM_MC::isPredicated(const MCInst &MI, const MCInstrInfo *MCII) {
   const MCInstrDesc &Desc = MCII->get(MI.getOpcode());
-  int PredOpIdx = Desc.findFirstPredOperandIdx();
+  int const PredOpIdx = Desc.findFirstPredOperandIdx();
   return PredOpIdx != -1 && MI.getOperand(PredOpIdx).getImm() != ARMCC::AL;
 }
 
@@ -199,7 +199,7 @@ uint64_t ARM_MC::evaluateBranchTarget(const MCInstrDesc &InstDesc,
                                       uint64_t Addr, int64_t Imm) {
   // For ARM instructions the PC offset is 8 bytes, for Thumb instructions it
   // is 4 bytes.
-  uint64_t Offset =
+  uint64_t const Offset =
       ((InstDesc.TSFlags & ARMII::FormMask) == ARMII::ThumbFrm) ? 4 : 8;
 
   // A Thumb instruction BLX(i) can be 16-bit aligned while targets Arm code
@@ -362,7 +362,7 @@ static MCAsmInfo *createARMMCAsmInfo(const MCRegisterInfo &MRI,
   else
     MAI = new ARMELFMCAsmInfo(TheTriple);
 
-  unsigned Reg = MRI.getDwarfRegNum(ARM::SP, true);
+  unsigned const Reg = MRI.getDwarfRegNum(ARM::SP, true);
   MAI->addInitialFrameState(MCCFIInstruction::cfiDefCfa(nullptr, Reg, 0));
 
   return MAI;
@@ -434,7 +434,7 @@ public:
     for (unsigned OpNum = 0; OpNum < Desc.getNumOperands(); ++OpNum) {
       if (Inst.getOperand(OpNum).isImm() &&
           Desc.OpInfo[OpNum].OperandType == MCOI::OPERAND_PCREL) {
-        int64_t Imm = Inst.getOperand(OpNum).getImm();
+        int64_t const Imm = Inst.getOperand(OpNum).getImm();
         Target = ARM_MC::evaluateBranchTarget(Desc, Addr, Imm);
         return true;
       }
@@ -482,8 +482,8 @@ static Optional<uint64_t> evaluateMemOpAddrForAddrMode3(const MCInst &Inst,
   if (!MO1.isReg() || MO1.getReg() != ARM::PC || MO2.getReg() || !MO3.isImm())
     return None;
 
-  unsigned ImmOffs = ARM_AM::getAM3Offset(MO3.getImm());
-  ARM_AM::AddrOpc Op = ARM_AM::getAM3Op(MO3.getImm());
+  unsigned const ImmOffs = ARM_AM::getAM3Offset(MO3.getImm());
+  ARM_AM::AddrOpc const Op = ARM_AM::getAM3Op(MO3.getImm());
 
   if (Op == ARM_AM::sub)
     return Addr - ImmOffs;
@@ -502,8 +502,8 @@ static Optional<uint64_t> evaluateMemOpAddrForAddrMode5(const MCInst &Inst,
   if (!MO1.isReg() || MO1.getReg() != ARM::PC || !MO2.isImm())
     return None;
 
-  unsigned ImmOffs = ARM_AM::getAM5Offset(MO2.getImm());
-  ARM_AM::AddrOpc Op = ARM_AM::getAM5Op(MO2.getImm());
+  unsigned const ImmOffs = ARM_AM::getAM5Offset(MO2.getImm());
+  ARM_AM::AddrOpc const Op = ARM_AM::getAM5Op(MO2.getImm());
 
   if (Op == ARM_AM::sub)
     return Addr - ImmOffs * 4;
@@ -521,8 +521,8 @@ evaluateMemOpAddrForAddrMode5FP16(const MCInst &Inst, const MCInstrDesc &Desc,
   if (!MO1.isReg() || MO1.getReg() != ARM::PC || !MO2.isImm())
     return None;
 
-  unsigned ImmOffs = ARM_AM::getAM5FP16Offset(MO2.getImm());
-  ARM_AM::AddrOpc Op = ARM_AM::getAM5FP16Op(MO2.getImm());
+  unsigned const ImmOffs = ARM_AM::getAM5FP16Offset(MO2.getImm());
+  ARM_AM::AddrOpc const Op = ARM_AM::getAM5FP16Op(MO2.getImm());
 
   if (Op == ARM_AM::sub)
     return Addr - ImmOffs * 2;
@@ -583,8 +583,8 @@ Optional<uint64_t> ARMMCInstrAnalysis::evaluateMemoryOperandAddress(
     return None;
 
   // PC-relative addressing does not update the base register.
-  uint64_t TSFlags = Desc.TSFlags;
-  unsigned IndexMode =
+  uint64_t const TSFlags = Desc.TSFlags;
+  unsigned const IndexMode =
       (TSFlags & ARMII::IndexModeMask) >> ARMII::IndexModeShift;
   if (IndexMode != ARMII::IndexModeNone)
     return None;
@@ -617,7 +617,7 @@ Optional<uint64_t> ARMMCInstrAnalysis::evaluateMemoryOperandAddress(
   }
 
   // Eveluate the address depending on the addressing mode
-  unsigned AddrMode = (TSFlags & ARMII::AddrModeMask);
+  unsigned const AddrMode = (TSFlags & ARMII::AddrModeMask);
   switch (AddrMode) {
   default:
     return None;
@@ -655,7 +655,7 @@ extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializeARMTargetMC() {
   for (Target *T : {&getTheARMLETarget(), &getTheARMBETarget(),
                     &getTheThumbLETarget(), &getTheThumbBETarget()}) {
     // Register the MC asm info.
-    RegisterMCAsmInfoFn X(*T, createARMMCAsmInfo);
+    RegisterMCAsmInfoFn const X(*T, createARMMCAsmInfo);
 
     // Register the MC instruction info.
     TargetRegistry::RegisterMCInstrInfo(*T, createARMMCInstrInfo);

@@ -72,7 +72,7 @@ public:
 } // end anonymous namespace
 
 Optional<MCFixupKind> SystemZMCAsmBackend::getFixupKind(StringRef Name) const {
-  unsigned Type = llvm::StringSwitch<unsigned>(Name)
+  unsigned const Type = llvm::StringSwitch<unsigned>(Name)
 #define ELF_RELOC(X, Y) .Case(#X, Y)
 #include "llvm/BinaryFormat/ELFRelocs/SystemZ.def"
 #undef ELF_RELOC
@@ -122,12 +122,12 @@ void SystemZMCAsmBackend::applyFixup(const MCAssembler &Asm,
                                      MutableArrayRef<char> Data, uint64_t Value,
                                      bool IsResolved,
                                      const MCSubtargetInfo *STI) const {
-  MCFixupKind Kind = Fixup.getKind();
+  MCFixupKind const Kind = Fixup.getKind();
   if (Kind >= FirstLiteralRelocationKind)
     return;
-  unsigned Offset = Fixup.getOffset();
-  unsigned BitSize = getFixupKindInfo(Kind).TargetSize;
-  unsigned Size = (BitSize + 7) / 8;
+  unsigned const Offset = Fixup.getOffset();
+  unsigned const BitSize = getFixupKindInfo(Kind).TargetSize;
+  unsigned const Size = (BitSize + 7) / 8;
 
   assert(Offset + Size <= Data.size() && "Invalid fixup offset!");
 
@@ -152,7 +152,7 @@ MCAsmBackend *llvm::createSystemZMCAsmBackend(const Target &T,
                                               const MCSubtargetInfo &STI,
                                               const MCRegisterInfo &MRI,
                                               const MCTargetOptions &Options) {
-  uint8_t OSABI =
+  uint8_t const OSABI =
       MCELFObjectTargetWriter::getOSABI(STI.getTargetTriple().getOS());
   return new SystemZMCAsmBackend(OSABI);
 }

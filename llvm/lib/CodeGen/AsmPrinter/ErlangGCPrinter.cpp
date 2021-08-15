@@ -43,7 +43,7 @@ static GCMetadataPrinterRegistry::Add<ErlangGCPrinter>
 void ErlangGCPrinter::finishAssembly(Module &M, GCModuleInfo &Info,
                                      AsmPrinter &AP) {
   MCStreamer &OS = *AP.OutStreamer;
-  unsigned IntPtrSize = M.getDataLayout().getPointerSize();
+  unsigned const IntPtrSize = M.getDataLayout().getPointerSize();
 
   // Put this in a custom .note section.
   OS.SwitchSection(
@@ -87,15 +87,15 @@ void ErlangGCPrinter::finishAssembly(Module &M, GCModuleInfo &Info,
 
     // Stack information never change in safe points! Only print info from the
     // first call-site.
-    GCFunctionInfo::iterator PI = MD.begin();
+    GCFunctionInfo::iterator const PI = MD.begin();
 
     // Emit the stack frame size.
     OS.AddComment("stack frame size (in words)");
     AP.emitInt16(MD.getFrameSize() / IntPtrSize);
 
     // Emit stack arity, i.e. the number of stacked arguments.
-    unsigned RegisteredArgs = IntPtrSize == 4 ? 5 : 6;
-    unsigned StackArity = MD.getFunction().arg_size() > RegisteredArgs
+    unsigned const RegisteredArgs = IntPtrSize == 4 ? 5 : 6;
+    unsigned const StackArity = MD.getFunction().arg_size() > RegisteredArgs
                               ? MD.getFunction().arg_size() - RegisteredArgs
                               : 0;
     OS.AddComment("stack arity");

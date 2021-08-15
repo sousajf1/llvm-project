@@ -89,7 +89,7 @@ void PPCFunctionInfo::appendParameterType(ParamType Type) {
 uint32_t PPCFunctionInfo::getVecExtParmsType() const {
 
   uint32_t VectExtParamInfo = 0;
-  unsigned ShiftBits = 32 - XCOFF::TracebackTable::WidthOfParamType;
+  unsigned const ShiftBits = 32 - XCOFF::TracebackTable::WidthOfParamType;
   int Bits = 0;
 
   if (!hasVectorParms())
@@ -134,7 +134,7 @@ uint32_t PPCFunctionInfo::getVecExtParmsType() const {
 
 uint32_t PPCFunctionInfo::getParmsType() const {
   uint32_t ParamsTypeInfo = 0;
-  unsigned ShiftBits = 32 - XCOFF::TracebackTable::WidthOfParamType;
+  unsigned const ShiftBits = 32 - XCOFF::TracebackTable::WidthOfParamType;
 
   int Bits = 0;
   for (const auto &Elt : ParamtersType) {

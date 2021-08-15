@@ -187,7 +187,7 @@ static void findPartitions(Module &M, ClusterIDMapType &ClusterIDMap,
   });
 
   for (auto &I : Sets) {
-    unsigned CurrentClusterID = BalancinQueue.top().first;
+    unsigned const CurrentClusterID = BalancinQueue.top().first;
     unsigned CurrentClusterSize = BalancinQueue.top().second;
     BalancinQueue.pop();
 

@@ -145,8 +145,8 @@ raw_ostream &operator<<(raw_ostream &OS, const UseInfo<CalleeTy> &U) {
 // in case of confution.
 ConstantRange getStaticAllocaSizeRange(const AllocaInst &AI) {
   const DataLayout &DL = AI.getModule()->getDataLayout();
-  TypeSize TS = DL.getTypeAllocSize(AI.getAllocatedType());
-  unsigned PointerSize = DL.getMaxPointerSizeInBits();
+  TypeSize const TS = DL.getTypeAllocSize(AI.getAllocatedType());
+  unsigned const PointerSize = DL.getMaxPointerSizeInBits();
   // Fallback to empty range for alloca size.
   ConstantRange R = ConstantRange::getEmpty(PointerSize);
   if (TS.isScalable())
@@ -266,7 +266,7 @@ ConstantRange StackSafetyLocalAnalysis::offsetFrom(Value *Addr, Value *Base) {
   if (isa<SCEVCouldNotCompute>(Diff))
     return UnknownRange;
 
-  ConstantRange Offset = SE.getSignedRange(Diff);
+  ConstantRange const Offset = SE.getSignedRange(Diff);
   if (isUnsafe(Offset))
     return UnknownRange;
   return Offset.sextOrTrunc(PointerSize);
@@ -294,7 +294,7 @@ ConstantRange StackSafetyLocalAnalysis::getAccessRange(Value *Addr, Value *Base,
                                                        TypeSize Size) {
   if (Size.isScalable())
     return UnknownRange;
-  APInt APSize(PointerSize, Size.getFixedSize(), true);
+  APInt const APSize(PointerSize, Size.getFixedSize(), true);
   if (APSize.isNegative())
     return UnknownRange;
   return getAccessRange(
@@ -321,7 +321,7 @@ ConstantRange StackSafetyLocalAnalysis::getMemIntrinsicAccessRange(
   if (Sizes.getUpper().isNegative() || isUnsafe(Sizes))
     return UnknownRange;
   Sizes = Sizes.sextOrTrunc(PointerSize);
-  ConstantRange SizeRange(APInt::getNullValue(PointerSize),
+  ConstantRange const SizeRange(APInt::getNullValue(PointerSize),
                           Sizes.getUpper() - 1);
   return getAccessRange(U, Base, SizeRange);
 }
@@ -403,7 +403,7 @@ bool StackSafetyLocalAnalysis::analyzeAllUses(Value *Ptr,
           return false;
         }
 
-        unsigned ArgNo = CB.getArgOperandNo(&UI);
+        unsigned const ArgNo = CB.getArgOperandNo(&UI);
         if (CB.isByValArgument(ArgNo)) {
           US.updateRange(getAccessRange(
               UI, Ptr, DL.getTypeStoreSize(CB.getParamByValType(ArgNo))));
@@ -421,7 +421,7 @@ bool StackSafetyLocalAnalysis::analyzeAllUses(Value *Ptr,
         }
 
         assert(isa<Function>(Callee) || isa<GlobalAlias>(Callee));
-        ConstantRange Offsets = offsetFrom(UI, Ptr);
+        ConstantRange const Offsets = offsetFrom(UI, Ptr);
         auto Insert =
             US.Calls.emplace(CallInfo<GlobalValue>(Callee, ArgNo), Offsets);
         if (!Insert.second)
@@ -535,7 +535,7 @@ bool StackSafetyDataFlowAnalysis<CalleeTy>::updateOneUse(UseInfo<CalleeTy> &US,
     assert(!KV.second.isEmptySet() &&
            "Param range can't be empty-set, invalid offset range");
 
-    ConstantRange CalleeRange =
+    ConstantRange const CalleeRange =
         getArgumentAccessRange(KV.first.Callee, KV.first.ParamNo, KV.second);
     if (!US.Range.contains(CalleeRange)) {
       Changed = true;
@@ -551,7 +551,7 @@ bool StackSafetyDataFlowAnalysis<CalleeTy>::updateOneUse(UseInfo<CalleeTy> &US,
 template <typename CalleeTy>
 void StackSafetyDataFlowAnalysis<CalleeTy>::updateOneNode(
     const CalleeTy *Callee, FunctionInfo<CalleeTy> &FS) {
-  bool UpdateToFullSet = FS.UpdateCount > StackSafetyMaxIterations;
+  bool const UpdateToFullSet = FS.UpdateCount > StackSafetyMaxIterations;
   bool Changed = false;
   for (auto &KV : FS.Params)
     Changed |= updateOneUse(KV.second, UpdateToFullSet);
@@ -693,7 +693,7 @@ const ConstantRange *findParamAccess(const FunctionSummary &FS,
 
 void resolveAllCalls(UseInfo<GlobalValue> &Use,
                      const ModuleSummaryIndex *Index) {
-  ConstantRange FullSet(Use.Range.getBitWidth(), true);
+  ConstantRange const FullSet(Use.Range.getBitWidth(), true);
   // Move Use.Calls to a temp storage and repopulate - don't use std::move as it
   // leaves Use.Calls in an undefined state.
   UseInfo<GlobalValue>::CallsTy TmpCalls;
@@ -718,7 +718,7 @@ void resolveAllCalls(UseInfo<GlobalValue> &Use,
     const ConstantRange *Found = findParamAccess(*FS, C.first.ParamNo);
     if (!Found || Found->isFullSet())
       return Use.updateRange(FullSet);
-    ConstantRange Access = Found->sextOrTrunc(Use.Range.getBitWidth());
+    ConstantRange const Access = Found->sextOrTrunc(Use.Range.getBitWidth());
     if (!Access.isEmptySet())
       Use.updateRange(addOverflowNever(Access, C.second));
   }
@@ -741,7 +741,7 @@ GVToSSI createGlobalStackSafetyInfo(
         KV.second.Calls.clear();
     }
 
-  uint32_t PointerSize = Copy.begin()
+  uint32_t const PointerSize = Copy.begin()
                              ->first->getParent()
                              ->getDataLayout()
                              .getMaxPointerSizeInBits();

@@ -91,7 +91,7 @@ static bool IsCallReturnTwice(llvm::MachineOperand &MOp) {
   auto *CalleeFn = dyn_cast<Function>(MOp.getGlobal());
   if (!CalleeFn)
     return false;
-  AttributeList Attrs = CalleeFn->getAttributes();
+  AttributeList const Attrs = CalleeFn->getAttributes();
   return Attrs.hasFnAttr(Attribute::ReturnsTwice);
 }
 
@@ -108,7 +108,7 @@ bool X86IndirectBranchTrackingPass::runOnMachineFunction(MachineFunction &MF) {
 #ifdef __CET__
   bool isJITwithCET = TM->isJIT();
 #else
-  bool isJITwithCET = false;
+  bool const isJITwithCET = false;
 #endif
   if (!isCFProtectionSupported && !IndirectBranchTracking && !isJITwithCET)
     return false;

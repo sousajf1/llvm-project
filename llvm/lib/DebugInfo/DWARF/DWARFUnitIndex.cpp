@@ -116,7 +116,7 @@ void DWARFUnitIndex::Header::dump(raw_ostream &OS) const {
 }
 
 bool DWARFUnitIndex::parse(DataExtractor IndexData) {
-  bool b = parseImpl(IndexData);
+  bool const b = parseImpl(IndexData);
   if (!b) {
     // Make sure we don't try to dump anything
     Header.NumBuckets = 0;
@@ -218,8 +218,8 @@ void DWARFUnitIndex::dump(raw_ostream &OS) const {
   Header.dump(OS);
   OS << "Index Signature         ";
   for (unsigned i = 0; i != Header.NumColumns; ++i) {
-    DWARFSectionKind Kind = ColumnKinds[i];
-    StringRef Name = getColumnHeader(Kind);
+    DWARFSectionKind const Kind = ColumnKinds[i];
+    StringRef const Name = getColumnHeader(Kind);
     if (!Name.empty())
       OS << ' ' << left_justify(Name, 24);
     else
@@ -282,7 +282,7 @@ DWARFUnitIndex::getFromOffset(uint32_t Offset) const {
 }
 
 const DWARFUnitIndex::Entry *DWARFUnitIndex::getFromHash(uint64_t S) const {
-  uint64_t Mask = Header.NumBuckets - 1;
+  uint64_t const Mask = Header.NumBuckets - 1;
 
   auto H = S & Mask;
   auto HP = ((S >> 32) & Mask) | 1;

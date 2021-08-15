@@ -52,7 +52,7 @@ RISCVSubtarget::initializeSubtargetDependencies(const Triple &TT, StringRef CPU,
                                                 StringRef TuneCPU, StringRef FS,
                                                 StringRef ABIName) {
   // Determine default and user-specified characteristics
-  bool Is64Bit = TT.isArch64Bit();
+  bool const Is64Bit = TT.isArch64Bit();
   if (CPU.empty())
     CPU = Is64Bit ? "generic-rv64" : "generic-rv32";
   if (CPU == "generic")
@@ -116,7 +116,7 @@ unsigned RISCVSubtarget::getMaxRVVVectorSizeInBits() const {
   assert(RVVVectorBitsMax >= RVVVectorBitsMin &&
          "Minimum V extension vector length should not be larger than its "
          "maximum!");
-  unsigned Max = std::max(RVVVectorBitsMin, RVVVectorBitsMax);
+  unsigned const Max = std::max(RVVVectorBitsMin, RVVVectorBitsMax);
   return PowerOf2Floor((Max < 128 || Max > 65536) ? 0 : Max);
 }
 

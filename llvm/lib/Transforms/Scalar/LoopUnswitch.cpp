@@ -335,10 +335,10 @@ bool LUAnalysisCache::countLoop(const Loop *L, const TargetTransformInfo &TTI,
 
 // Clean all data related to given loop.
 void LUAnalysisCache::forgetLoop(const Loop *L) {
-  LoopPropsMapIt LIt = LoopsProperties.find(L);
+  LoopPropsMapIt const LIt = LoopsProperties.find(L);
 
   if (LIt != LoopsProperties.end()) {
-    LoopProperties &Props = LIt->second;
+    LoopProperties  const&Props = LIt->second;
     MaxSize += (Props.CanBeUnswitchedCount + Props.WasUnswitchedCount) *
                Props.SizeEstimation;
     LoopsProperties.erase(LIt);
@@ -371,14 +371,14 @@ void LUAnalysisCache::cloneData(const Loop *NewLoop, const Loop *OldLoop,
                                 const ValueToValueMapTy &VMap) {
   LoopProperties &NewLoopProps = LoopsProperties[NewLoop];
   LoopProperties &OldLoopProps = *CurrentLoopProperties;
-  UnswitchedValsMap &Insts = OldLoopProps.UnswitchedVals;
+  UnswitchedValsMap  const&Insts = OldLoopProps.UnswitchedVals;
 
   // Reallocate "can-be-unswitched quota"
 
   --OldLoopProps.CanBeUnswitchedCount;
   ++OldLoopProps.WasUnswitchedCount;
   NewLoopProps.WasUnswitchedCount = 0;
-  unsigned Quota = OldLoopProps.CanBeUnswitchedCount;
+  unsigned const Quota = OldLoopProps.CanBeUnswitchedCount;
   NewLoopProps.CanBeUnswitchedCount = Quota / 2;
   OldLoopProps.CanBeUnswitchedCount = Quota - Quota / 2;
 
@@ -771,7 +771,7 @@ bool LoopUnswitch::processCurrentLoop() {
       std::tie(LoopCond, OpChain) =
           findLIVLoopCondition(SC, CurrentLoop, Changed, MSSAU.get());
 
-      unsigned NumCases = SI->getNumCases();
+      unsigned const NumCases = SI->getNumCases();
       if (LoopCond && NumCases) {
         // Find a value to unswitch on:
         // FIXME: this should chose the most expensive case!
@@ -935,7 +935,7 @@ static bool isTrivialLoopExitBlockHelper(Loop *L, BasicBlock *BB,
 
   // Okay, everything after this looks good, check to make sure that this block
   // doesn't include any side effects.
-  for (Instruction &I : *BB)
+  for (Instruction  const&I : *BB)
     if (I.mayHaveSideEffects())
       return false;
 
@@ -1181,7 +1181,7 @@ bool LoopUnswitch::tryTrivialLoopUnswitch(bool &Changed) {
     // Check if this loop will execute any side-effecting instructions (e.g.
     // stores, calls, volatile loads) in the part of the loop that the code
     // *would* execute. Check the header first.
-    for (Instruction &I : *CurrentBB)
+    for (Instruction  const&I : *CurrentBB)
       if (I.mayHaveSideEffects())
         return false;
 
@@ -1312,7 +1312,7 @@ void LoopUnswitch::splitExitEdges(
 
   for (unsigned I = 0, E = ExitBlocks.size(); I != E; ++I) {
     BasicBlock *ExitBlock = ExitBlocks[I];
-    SmallVector<BasicBlock *, 4> Preds(pred_begin(ExitBlock),
+    SmallVector<BasicBlock *, 4> const Preds(pred_begin(ExitBlock),
                                        pred_end(ExitBlock));
 
     // Although SplitBlockPredecessors doesn't preserve loop-simplify in
@@ -1414,7 +1414,7 @@ void LoopUnswitch::unswitchNontrivialCondition(
     // NewExit.
     for (PHINode &PN : ExitSucc->phis()) {
       Value *V = PN.getIncomingValueForBlock(ExitBlocks[EBI]);
-      ValueToValueMapTy::iterator It = VMap.find(V);
+      ValueToValueMapTy::iterator const It = VMap.find(V);
       if (It != VMap.end()) V = It->second;
       PN.addIncoming(V, NewExit);
     }
@@ -1476,7 +1476,7 @@ void LoopUnswitch::unswitchNontrivialCondition(
   // deletes the instruction (for example by simplifying a PHI that feeds into
   // the condition that we're unswitching on), we don't rewrite the second
   // iteration.
-  WeakTrackingVH LICHandle(LIC);
+  WeakTrackingVH const LICHandle(LIC);
 
   if (ToDuplicate.empty()) {
     // Now we rewrite the original code to know that the condition is true and
@@ -1626,7 +1626,7 @@ void LoopUnswitch::rewriteLoopBodyWithConditionConstant(Loop *L, Value *LIC,
     // NOTE: if a case value for the switch is unswitched out, we record it
     // after the unswitch finishes. We can not record it here as the switch
     // is not a direct user of the partial LIV.
-    SwitchInst::CaseHandle DeadCase =
+    SwitchInst::CaseHandle const DeadCase =
         *SI->findCaseValue(cast<ConstantInt>(Val));
     // Default case is live for multiple values.
     if (DeadCase == *SI->case_default())

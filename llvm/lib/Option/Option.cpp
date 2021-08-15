@@ -108,7 +108,7 @@ bool Option::matches(OptSpecifier Opt) const {
 
 Arg *Option::acceptInternal(const ArgList &Args, StringRef Spelling,
                             unsigned &Index) const {
-  size_t ArgSize = Spelling.size();
+  size_t const ArgSize = Spelling.size();
   switch (getKind()) {
   case FlagClass: {
     if (ArgSize != strlen(Args.getArgString(Index)))
@@ -127,7 +127,7 @@ Arg *Option::acceptInternal(const ArgList &Args, StringRef Spelling,
     // Parse out the comma separated values.
     const char *Prev = Str;
     for (;; ++Str) {
-      char c = *Str;
+      char const c = *Str;
 
       if (!c || c == ',') {
         if (Prev != Str) {
@@ -251,7 +251,7 @@ Arg *Option::accept(const ArgList &Args, StringRef CurArg,
   // Values (due to AliasArgs<>).
 
   // Get the spelling from the unaliased option.
-  StringRef UnaliasedSpelling = Args.MakeArgString(
+  StringRef const UnaliasedSpelling = Args.MakeArgString(
       Twine(UnaliasedOption.getPrefix()) + Twine(UnaliasedOption.getName()));
 
   // It's a bit weird that aliased and unaliased arg share one index, but

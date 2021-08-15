@@ -100,7 +100,7 @@ extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializeWebAssemblyTargetMC() {
   for (Target *T :
        {&getTheWebAssemblyTarget32(), &getTheWebAssemblyTarget64()}) {
     // Register the MC asm info.
-    RegisterMCAsmInfoFn X(*T, createMCAsmInfo);
+    RegisterMCAsmInfoFn const X(*T, createMCAsmInfo);
 
     // Register the MC instruction info.
     TargetRegistry::RegisterMCInstrInfo(*T, createMCInstrInfo);

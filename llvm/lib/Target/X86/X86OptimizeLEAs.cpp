@@ -230,7 +230,7 @@ static bool isSimilarDispOp(const MachineOperand &MO1,
 }
 
 static inline bool isLEA(const MachineInstr &MI) {
-  unsigned Opcode = MI.getOpcode();
+  unsigned const Opcode = MI.getOpcode();
   return Opcode == X86::LEA16r || Opcode == X86::LEA32r ||
          Opcode == X86::LEA64r || Opcode == X86::LEA64_32r;
 }
@@ -343,7 +343,7 @@ bool X86OptimizeLEAPass::chooseBestLEA(
     MachineInstr *&BestLEA, int64_t &AddrDispShift, int &Dist) {
   const MachineFunction *MF = MI.getParent()->getParent();
   const MCInstrDesc &Desc = MI.getDesc();
-  int MemOpNo = X86II::getMemoryOperandNo(Desc.TSFlags) +
+  int const MemOpNo = X86II::getMemoryOperandNo(Desc.TSFlags) +
                 X86II::getOperandBias(Desc);
 
   BestLEA = nullptr;
@@ -351,7 +351,7 @@ bool X86OptimizeLEAPass::chooseBestLEA(
   // Loop over all LEA instructions.
   for (auto DefMI : List) {
     // Get new address displacement.
-    int64_t AddrDispShiftTemp = getAddrDispShift(MI, MemOpNo, *DefMI, 1);
+    int64_t const AddrDispShiftTemp = getAddrDispShift(MI, MemOpNo, *DefMI, 1);
 
     // Make sure address displacement fits 4 bytes.
     if (!isInt<32>(AddrDispShiftTemp))
@@ -370,7 +370,7 @@ bool X86OptimizeLEAPass::chooseBestLEA(
     // possible. Note that we took into account resulting address displacement
     // as well. Also note that the list is sorted by the order in which the LEAs
     // occur, so the break condition is pretty simple.
-    int DistTemp = calcInstrDist(*DefMI, MI);
+    int const DistTemp = calcInstrDist(*DefMI, MI);
     assert(DistTemp != 0 &&
            "The distance between two different instructions cannot be zero");
     if (DistTemp > 0 || BestLEA == nullptr) {
@@ -589,8 +589,8 @@ MachineInstr *X86OptimizeLEAPass::replaceDebugValue(MachineInstr &MI,
       // Op corresponding to `OldReg`.
       SmallVector<uint64_t, 3> Ops;
       DIExpression::appendOffset(Ops, AddrDispShift);
-      for (MachineOperand &Op : MI.getDebugOperandsForReg(OldReg)) {
-        unsigned OpIdx = MI.getDebugOperandIndex(&Op);
+      for (MachineOperand  const&Op : MI.getDebugOperandsForReg(OldReg)) {
+        unsigned const OpIdx = MI.getDebugOperandIndex(&Op);
         Expr = DIExpression::appendOpsToArg(Expr, Ops, OpIdx);
       }
     }
@@ -598,10 +598,10 @@ MachineInstr *X86OptimizeLEAPass::replaceDebugValue(MachineInstr &MI,
 
   // Replace DBG_VALUE instruction with modified version.
   MachineBasicBlock *MBB = MI.getParent();
-  DebugLoc DL = MI.getDebugLoc();
-  bool IsIndirect = MI.isIndirectDebugValue();
+  DebugLoc const DL = MI.getDebugLoc();
+  bool const IsIndirect = MI.isIndirectDebugValue();
   const MDNode *Var = MI.getDebugVariable();
-  unsigned Opcode = MI.isNonListDebugValue() ? TargetOpcode::DBG_VALUE
+  unsigned const Opcode = MI.isNonListDebugValue() ? TargetOpcode::DBG_VALUE
                                              : TargetOpcode::DBG_VALUE_LIST;
   if (IsIndirect)
     assert(MI.getDebugOffset().getImm() == 0 &&
@@ -653,8 +653,8 @@ bool X86OptimizeLEAPass::removeRedundantLEAs(MemOpMap &LEAs) {
         // Loop over all uses of the Last LEA and update their operands. Note
         // that the correctness of this has already been checked in the
         // isReplaceable function.
-        Register FirstVReg = First.getOperand(0).getReg();
-        Register LastVReg = Last.getOperand(0).getReg();
+        Register const FirstVReg = First.getOperand(0).getReg();
+        Register const LastVReg = Last.getOperand(0).getReg();
         for (auto UI = MRI->use_begin(LastVReg), UE = MRI->use_end();
              UI != UE;) {
           MachineOperand &MO = *UI++;
@@ -670,7 +670,7 @@ bool X86OptimizeLEAPass::removeRedundantLEAs(MemOpMap &LEAs) {
 
           // Get the number of the first memory operand.
           const MCInstrDesc &Desc = MI.getDesc();
-          int MemOpNo =
+          int const MemOpNo =
               X86II::getMemoryOperandNo(Desc.TSFlags) +
               X86II::getOperandBias(Desc);
 
@@ -742,7 +742,7 @@ bool X86OptimizeLEAPass::runOnMachineFunction(MachineFunction &MF) {
 
     // Remove redundant address calculations. Do it only for -Os/-Oz since only
     // a code size gain is expected from this part of the pass.
-    bool OptForSize = MF.getFunction().hasOptSize() ||
+    bool const OptForSize = MF.getFunction().hasOptSize() ||
                       llvm::shouldOptimizeForSize(&MBB, PSI, MBFI);
     if (OptForSize)
       Changed |= removeRedundantAddrCalc(LEAs);

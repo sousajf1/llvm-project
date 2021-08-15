@@ -130,7 +130,7 @@ template <class G> void AbstractDependenceGraphBuilder<G>::createPiBlocks() {
 
     // Build a set to speed up the lookup for edges whose targets
     // are inside the SCC.
-    SmallPtrSet<NodeType *, 4> NodesInSCC(NL.begin(), NL.end());
+    SmallPtrSet<NodeType *, 4> const NodesInSCC(NL.begin(), NL.end());
 
     // We have the set of nodes in the SCC. We go through the set of nodes
     // that are outside of the SCC and look for edges that cross the two sets.
@@ -190,7 +190,7 @@ template <class G> void AbstractDependenceGraphBuilder<G>::createPiBlocks() {
         SmallVector<EdgeType *, 10> EL;
         Src->findEdgesTo(*Dst, EL);
         for (EdgeType *OldEdge : EL) {
-          EdgeKind Kind = OldEdge->getKind();
+          EdgeKind const Kind = OldEdge->getKind();
           if (!EdgeAlreadyCreated[Dir][Kind]) {
             if (Dir == Direction::Incoming) {
               createEdgeOfKind(*Src, *New, Kind);
@@ -496,7 +496,7 @@ void AbstractDependenceGraphBuilder<G>::sortNodesTopologically() {
     NodesInPO.push_back(N);
   }
 
-  size_t OldSize = Graph.Nodes.size();
+  size_t const OldSize = Graph.Nodes.size();
   Graph.Nodes.clear();
   append_range(Graph.Nodes, reverse(NodesInPO));
   if (Graph.Nodes.size() != OldSize)

@@ -80,13 +80,13 @@ bool ExpandPostRA::LowerSubregToReg(MachineInstr *MI) {
          (MI->getOperand(2).isReg() && MI->getOperand(2).isUse()) &&
           MI->getOperand(3).isImm() && "Invalid subreg_to_reg");
 
-  Register DstReg = MI->getOperand(0).getReg();
-  Register InsReg = MI->getOperand(2).getReg();
+  Register const DstReg = MI->getOperand(0).getReg();
+  Register const InsReg = MI->getOperand(2).getReg();
   assert(!MI->getOperand(2).getSubReg() && "SubIdx on physreg?");
-  unsigned SubIdx  = MI->getOperand(3).getImm();
+  unsigned const SubIdx  = MI->getOperand(3).getImm();
 
   assert(SubIdx != 0 && "Invalid index for insert_subreg");
-  Register DstSubReg = TRI->getSubReg(DstReg, SubIdx);
+  Register const DstSubReg = TRI->getSubReg(DstReg, SubIdx);
 
   assert(Register::isPhysicalRegister(DstReg) &&
          "Insert destination must be in a physical register");
@@ -141,10 +141,10 @@ bool ExpandPostRA::LowerCopy(MachineInstr *MI) {
     return true;
   }
 
-  MachineOperand &DstMO = MI->getOperand(0);
-  MachineOperand &SrcMO = MI->getOperand(1);
+  MachineOperand  const&DstMO = MI->getOperand(0);
+  MachineOperand  const&SrcMO = MI->getOperand(1);
 
-  bool IdentityCopy = (SrcMO.getReg() == DstMO.getReg());
+  bool const IdentityCopy = (SrcMO.getReg() == DstMO.getReg());
   if (IdentityCopy || SrcMO.isUndef()) {
     LLVM_DEBUG(dbgs() << (IdentityCopy ? "identity copy: " : "undef copy:    ")
                       << *MI);

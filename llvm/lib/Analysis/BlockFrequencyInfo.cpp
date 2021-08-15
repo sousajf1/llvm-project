@@ -236,8 +236,8 @@ void BlockFrequencyInfo::setBlockFreqAndScale(
     SmallPtrSetImpl<BasicBlock *> &BlocksToScale) {
   assert(BFI && "Expected analysis to be available");
   // Use 128 bits APInt to avoid overflow.
-  APInt NewFreq(128, Freq);
-  APInt OldFreq(128, BFI->getBlockFreq(ReferenceBB).getFrequency());
+  APInt const NewFreq(128, Freq);
+  APInt const OldFreq(128, BFI->getBlockFreq(ReferenceBB).getFrequency());
   APInt BBFreq(128, 0);
   for (auto *BB : BlocksToScale) {
     BBFreq = BFI->getBlockFreq(BB).getFrequency();
@@ -324,9 +324,9 @@ void BlockFrequencyInfoWrapperPass::getAnalysisUsage(AnalysisUsage &AU) const {
 void BlockFrequencyInfoWrapperPass::releaseMemory() { BFI.releaseMemory(); }
 
 bool BlockFrequencyInfoWrapperPass::runOnFunction(Function &F) {
-  BranchProbabilityInfo &BPI =
+  BranchProbabilityInfo  const&BPI =
       getAnalysis<BranchProbabilityInfoWrapperPass>().getBPI();
-  LoopInfo &LI = getAnalysis<LoopInfoWrapperPass>().getLoopInfo();
+  LoopInfo  const&LI = getAnalysis<LoopInfoWrapperPass>().getLoopInfo();
   BFI.calculate(F, BPI, LI);
   return false;
 }

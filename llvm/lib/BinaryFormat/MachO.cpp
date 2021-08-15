@@ -25,8 +25,8 @@ static MachO::CPUSubTypeX86 getX86SubType(const Triple &T) {
 
 static MachO::CPUSubTypeARM getARMSubType(const Triple &T) {
   assert(T.isARM() || T.isThumb());
-  StringRef Arch = T.getArchName();
-  ARM::ArchKind AK = ARM::parseArch(Arch);
+  StringRef const Arch = T.getArchName();
+  ARM::ArchKind const AK = ARM::parseArch(Arch);
   switch (AK) {
   default:
     return MachO::CPU_SUBTYPE_ARM_V7;

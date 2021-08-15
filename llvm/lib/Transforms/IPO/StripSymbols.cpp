@@ -314,7 +314,7 @@ static bool stripDeadDebugInfoImpl(Module &M) {
   DenseSet<DIGlobalVariableExpression *> VisitedSet;
 
   std::set<DIGlobalVariableExpression *> LiveGVs;
-  for (GlobalVariable &GV : M.globals()) {
+  for (GlobalVariable  const&GV : M.globals()) {
     SmallVector<DIGlobalVariableExpression *, 1> GVEs;
     GV.getDebugInfo(GVEs);
     for (auto *GVE : GVEs)

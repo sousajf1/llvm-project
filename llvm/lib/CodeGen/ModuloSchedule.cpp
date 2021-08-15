@@ -72,13 +72,13 @@ void ModuloScheduleExpander::expand() {
   // Iterate over the definitions in each instruction, and compute the
   // stage difference for each use.  Keep the maximum value.
   for (MachineInstr *MI : Schedule.getInstructions()) {
-    int DefStage = Schedule.getStage(MI);
+    int const DefStage = Schedule.getStage(MI);
     for (unsigned i = 0, e = MI->getNumOperands(); i < e; ++i) {
-      MachineOperand &Op = MI->getOperand(i);
+      MachineOperand  const&Op = MI->getOperand(i);
       if (!Op.isReg() || !Op.isDef())
         continue;
 
-      Register Reg = Op.getReg();
+      Register const Reg = Op.getReg();
       unsigned MaxDiff = 0;
       bool PhiIsSwapped = false;
       for (MachineRegisterInfo::use_iterator UI = MRI.use_begin(Reg),
@@ -86,7 +86,7 @@ void ModuloScheduleExpander::expand() {
            UI != EI; ++UI) {
         MachineOperand &UseOp = *UI;
         MachineInstr *UseMI = UseOp.getParent();
-        int UseStage = Schedule.getStage(UseMI);
+        int const UseStage = Schedule.getStage(UseMI);
         unsigned Diff = 0;
         if (UseStage != -1 && UseStage >= DefStage)
           Diff = UseStage - DefStage;
@@ -112,7 +112,7 @@ void ModuloScheduleExpander::generatePipelinedLoop() {
   // Create a new basic block for the kernel and add it to the CFG.
   MachineBasicBlock *KernelBB = MF.CreateMachineBasicBlock(BB->getBasicBlock());
 
-  unsigned MaxStageCount = Schedule.getNumStages() - 1;
+  unsigned const MaxStageCount = Schedule.getNumStages() - 1;
 
   // Remember the registers that are used in different stages. The index is
   // the iteration, or stage, that the instruction is scheduled in.  This is
@@ -132,7 +132,7 @@ void ModuloScheduleExpander::generatePipelinedLoop() {
   for (MachineInstr *CI : Schedule.getInstructions()) {
     if (CI->isPHI())
       continue;
-    unsigned StageNum = Schedule.getStage(CI);
+    unsigned const StageNum = Schedule.getStage(CI);
     MachineInstr *NewMI = cloneInstr(CI, MaxStageCount, StageNum);
     updateInstruction(NewMI, false, MaxStageCount, StageNum, VRMap);
     KernelBB->push_back(NewMI);
@@ -235,9 +235,9 @@ void ModuloScheduleExpander::generateProlog(unsigned LastStage,
 
   // Check if we need to remove the branch from the preheader to the original
   // loop, and replace it with a branch to the new loop.
-  unsigned numBranches = TII->removeBranch(*Preheader);
+  unsigned const numBranches = TII->removeBranch(*Preheader);
   if (numBranches) {
-    SmallVector<MachineOperand, 0> Cond;
+    SmallVector<MachineOperand, 0> const Cond;
     TII->insertBranch(*Preheader, PrologBBs[0], nullptr, Cond, DebugLoc());
   }
 }
@@ -254,7 +254,7 @@ void ModuloScheduleExpander::generateEpilog(unsigned LastStage,
   // this call to analyze branch uses the kernel rather than the original BB.
   MachineBasicBlock *TBB = nullptr, *FBB = nullptr;
   SmallVector<MachineOperand, 4> Cond;
-  bool checkBranch = TII->analyzeBranch(*KernelBB, TBB, FBB, Cond);
+  bool const checkBranch = TII->analyzeBranch(*KernelBB, TBB, FBB, Cond);
   assert(!checkBranch && "generateEpilog must be able to analyze the branch");
   if (checkBranch)
     return;
@@ -323,7 +323,7 @@ void ModuloScheduleExpander::generateEpilog(unsigned LastStage,
   // Add a branch to the loop exit.
   if (EpilogBBs.size() > 0) {
     MachineBasicBlock *LastEpilogBB = EpilogBBs.back();
-    SmallVector<MachineOperand, 4> Cond1;
+    SmallVector<MachineOperand, 4> const Cond1;
     TII->insertBranch(*LastEpilogBB, LoopExitBB, nullptr, Cond1, DebugLoc());
   }
 }
@@ -370,7 +370,7 @@ void ModuloScheduleExpander::generateExistingPhis(
   // epilog that we're adding the Phi.
   unsigned PrologStage = 0;
   unsigned PrevStage = 0;
-  bool InKernel = (LastStageNum == CurStageNum);
+  bool const InKernel = (LastStageNum == CurStageNum);
   if (InKernel) {
     PrologStage = LastStageNum - 1;
     PrevStage = CurStageNum;
@@ -382,7 +382,7 @@ void ModuloScheduleExpander::generateExistingPhis(
   for (MachineBasicBlock::iterator BBI = BB->instr_begin(),
                                    BBE = BB->getFirstNonPHI();
        BBI != BBE; ++BBI) {
-    Register Def = BBI->getOperand(0).getReg();
+    Register const Def = BBI->getOperand(0).getReg();
 
     unsigned InitVal = 0;
     unsigned LoopVal = 0;
@@ -395,13 +395,13 @@ void ModuloScheduleExpander::generateExistingPhis(
     if (VRMap[LastStageNum].count(LoopVal))
       PhiOp2 = VRMap[LastStageNum][LoopVal];
 
-    int StageScheduled = Schedule.getStage(&*BBI);
-    int LoopValStage = Schedule.getStage(MRI.getVRegDef(LoopVal));
-    unsigned NumStages = getStagesForReg(Def, CurStageNum);
+    int const StageScheduled = Schedule.getStage(&*BBI);
+    int const LoopValStage = Schedule.getStage(MRI.getVRegDef(LoopVal));
+    unsigned const NumStages = getStagesForReg(Def, CurStageNum);
     if (NumStages == 0) {
       // We don't need to generate a Phi anymore, but we need to rename any uses
       // of the Phi value.
-      unsigned NewReg = VRMap[PrevStage][LoopVal];
+      unsigned const NewReg = VRMap[PrevStage][LoopVal];
       rewriteScheduledInstr(NewBB, InstrMap, CurStageNum, 0, &*BBI, Def,
                             InitVal, NewReg);
       if (VRMap[CurStageNum].count(LoopVal))
@@ -417,7 +417,7 @@ void ModuloScheduleExpander::generateExistingPhis(
     unsigned NumPhis = std::min(NumStages, MaxPhis);
 
     unsigned NewReg = 0;
-    unsigned AccessStage = (LoopValStage != -1) ? LoopValStage : StageScheduled;
+    unsigned const AccessStage = (LoopValStage != -1) ? LoopValStage : StageScheduled;
     // In the epilog, we may need to look back one stage to get the correct
     // Phi name, because the epilog and prolog blocks execute the same stage.
     // The correct name is from the previous block only when the Phi has
@@ -450,14 +450,14 @@ void ModuloScheduleExpander::generateExistingPhis(
         MachineInstr *InstOp1 = MRI.getVRegDef(PhiOp1);
         int Indirects = 1;
         while (InstOp1 && InstOp1->isPHI() && InstOp1->getParent() == BB) {
-          int PhiStage = Schedule.getStage(InstOp1);
+          int const PhiStage = Schedule.getStage(InstOp1);
           if ((int)(PrologStage - StageDiff - np) < PhiStage + Indirects)
             PhiOp1 = getInitPhiReg(*InstOp1, BB);
           else
             PhiOp1 = getLoopPhiReg(*InstOp1, BB);
           InstOp1 = MRI.getVRegDef(PhiOp1);
-          int PhiOpStage = Schedule.getStage(InstOp1);
-          int StageAdj = (PhiOpStage != -1 ? PhiStage - PhiOpStage : 0);
+          int const PhiOpStage = Schedule.getStage(InstOp1);
+          int const StageAdj = (PhiOpStage != -1 ? PhiStage - PhiOpStage : 0);
           if (PhiOpStage != -1 && PrologStage - StageAdj >= Indirects + np &&
               VRMap[PrologStage - StageAdj - Indirects - np].count(PhiOp1)) {
             PhiOp1 = VRMap[PrologStage - StageAdj - Indirects - np][PhiOp1];
@@ -474,7 +474,7 @@ void ModuloScheduleExpander::generateExistingPhis(
           PhiOp1 = getInitPhiReg(*InstOp1, KernelBB);
 
       MachineInstr *PhiInst = MRI.getVRegDef(LoopVal);
-      bool LoopDefIsPhi = PhiInst && PhiInst->isPHI();
+      bool const LoopDefIsPhi = PhiInst && PhiInst->isPHI();
       // In the epilog, a map lookup is needed to get the value from the kernel,
       // or previous epilog block. How is does this depends on if the
       // instruction is scheduled in the previous block.
@@ -512,7 +512,7 @@ void ModuloScheduleExpander::generateExistingPhis(
       if (LoopDefIsPhi) {
         if (static_cast<int>(PrologStage - np) >= StageScheduled) {
           int LVNumStages = getStagesForPhi(LoopVal);
-          int StageDiff = (StageScheduled - LoopValStage);
+          int const StageDiff = (StageScheduled - LoopValStage);
           LVNumStages -= StageDiff;
           // Make sure the loop value Phi has been processed already.
           if (LVNumStages > (int)np && VRMap[CurStageNum].count(LoopVal)) {
@@ -547,7 +547,7 @@ void ModuloScheduleExpander::generateExistingPhis(
       const TargetRegisterClass *RC = MRI.getRegClass(Def);
       NewReg = MRI.createVirtualRegister(RC);
 
-      MachineInstrBuilder NewPhi =
+      MachineInstrBuilder const NewPhi =
           BuildMI(*NewBB, NewBB->getFirstNonPHI(), DebugLoc(),
                   TII->get(TargetOpcode::PHI), NewReg);
       NewPhi.addReg(PhiOp1).addMBB(BB1);
@@ -565,7 +565,7 @@ void ModuloScheduleExpander::generateExistingPhis(
                             NewReg, PrevReg);
       // If the Phi has been scheduled, use the new name for rewriting.
       if (VRMap[CurStageNum - np].count(Def)) {
-        unsigned R = VRMap[CurStageNum - np][Def];
+        unsigned const R = VRMap[CurStageNum - np][Def];
         rewriteScheduledInstr(NewBB, InstrMap, CurStageNum, np, &*BBI, R,
                               NewReg);
       }
@@ -607,8 +607,8 @@ void ModuloScheduleExpander::generatePhis(
   // the Phi from the previous stage.
   unsigned PrologStage = 0;
   unsigned PrevStage = 0;
-  unsigned StageDiff = CurStageNum - LastStageNum;
-  bool InKernel = (StageDiff == 0);
+  unsigned const StageDiff = CurStageNum - LastStageNum;
+  bool const InKernel = (StageDiff == 0);
   if (InKernel) {
     PrologStage = LastStageNum - 1;
     PrevStage = CurStageNum;
@@ -621,14 +621,14 @@ void ModuloScheduleExpander::generatePhis(
                                    BBE = BB->instr_end();
        BBI != BBE; ++BBI) {
     for (unsigned i = 0, e = BBI->getNumOperands(); i != e; ++i) {
-      MachineOperand &MO = BBI->getOperand(i);
+      MachineOperand  const&MO = BBI->getOperand(i);
       if (!MO.isReg() || !MO.isDef() ||
           !Register::isVirtualRegister(MO.getReg()))
         continue;
 
-      int StageScheduled = Schedule.getStage(&*BBI);
+      int const StageScheduled = Schedule.getStage(&*BBI);
       assert(StageScheduled != -1 && "Expecting scheduled instruction.");
-      Register Def = MO.getReg();
+      Register const Def = MO.getReg();
       unsigned NumPhis = getStagesForReg(Def, CurStageNum);
       // An instruction scheduled in stage 0 and is used after the loop
       // requires a phi in the epilog for the last definition from either
@@ -661,9 +661,9 @@ void ModuloScheduleExpander::generatePhis(
           PhiOp2 = VRMap[PrevStage - np][Def];
 
         const TargetRegisterClass *RC = MRI.getRegClass(Def);
-        Register NewReg = MRI.createVirtualRegister(RC);
+        Register const NewReg = MRI.createVirtualRegister(RC);
 
-        MachineInstrBuilder NewPhi =
+        MachineInstrBuilder const NewPhi =
             BuildMI(*NewBB, NewBB->getFirstNonPHI(), DebugLoc(),
                     TII->get(TargetOpcode::PHI), NewReg);
         NewPhi.addReg(PhiOp1).addMBB(BB1);
@@ -726,7 +726,7 @@ void ModuloScheduleExpander::removeDeadInstructions(MachineBasicBlock *KernelBB,
            MOI != MOE; ++MOI) {
         if (!MOI->isReg() || !MOI->isDef())
           continue;
-        Register reg = MOI->getReg();
+        Register const reg = MOI->getReg();
         // Assume physical registers are used, unless they are marked dead.
         if (Register::isPhysicalRegister(reg)) {
           used = !MOI->isDead();
@@ -764,7 +764,7 @@ void ModuloScheduleExpander::removeDeadInstructions(MachineBasicBlock *KernelBB,
        BBI != BBE;) {
     MachineInstr *MI = &*BBI;
     ++BBI;
-    Register reg = MI->getOperand(0).getReg();
+    Register const reg = MI->getOperand(0).getReg();
     if (MRI.use_begin(reg) == MRI.use_end()) {
       LIS.RemoveMachineInstrFromMaps(*MI);
       MI->eraseFromParent();
@@ -786,7 +786,7 @@ void ModuloScheduleExpander::splitLifetimes(MachineBasicBlock *KernelBB,
                                             MBBVectorTy &EpilogBBs) {
   const TargetRegisterInfo *TRI = MF.getSubtarget().getRegisterInfo();
   for (auto &PHI : KernelBB->phis()) {
-    Register Def = PHI.getOperand(0).getReg();
+    Register const Def = PHI.getOperand(0).getReg();
     // Check for any Phi definition that used as an operand of another Phi
     // in the same block.
     for (MachineRegisterInfo::use_instr_iterator I = MRI.use_instr_begin(Def),
@@ -794,7 +794,7 @@ void ModuloScheduleExpander::splitLifetimes(MachineBasicBlock *KernelBB,
          I != E; ++I) {
       if (I->isPHI() && I->getParent() == KernelBB) {
         // Get the loop carried definition.
-        unsigned LCDef = getLoopPhiReg(PHI, KernelBB);
+        unsigned const LCDef = getLoopPhiReg(PHI, KernelBB);
         if (!LCDef)
           continue;
         MachineInstr *MI = MRI.getVRegDef(LCDef);
@@ -856,8 +856,8 @@ void ModuloScheduleExpander::addBranches(MachineBasicBlock &PreheaderBB,
 
   // Start from the blocks connected to the kernel and work "out"
   // to the first prolog and the last epilog blocks.
-  SmallVector<MachineInstr *, 4> PrevInsts;
-  unsigned MaxIter = PrologBBs.size() - 1;
+  SmallVector<MachineInstr *, 4> const PrevInsts;
+  unsigned const MaxIter = PrologBBs.size() - 1;
   for (unsigned i = 0, j = MaxIter; i <= MaxIter; ++i, --j) {
     // Add branches to the prolog that go to the corresponding
     // epilog, and the fall-thru prolog/kernel block.
@@ -925,7 +925,7 @@ bool ModuloScheduleExpander::computeDelta(MachineInstr &MI, unsigned &Delta) {
 
   Register BaseReg = BaseOp->getReg();
 
-  MachineRegisterInfo &MRI = MF.getRegInfo();
+  MachineRegisterInfo  const&MRI = MF.getRegInfo();
   // Check if there is a Phi. If so, get the definition in the loop.
   MachineInstr *BaseDef = MRI.getVRegDef(BaseReg);
   if (BaseDef && BaseDef->isPHI()) {
@@ -966,7 +966,7 @@ void ModuloScheduleExpander::updateMemOperands(MachineInstr &NewMI,
     }
     unsigned Delta;
     if (Num != UINT_MAX && computeDelta(OldMI, Delta)) {
-      int64_t AdjOffset = Delta * Num;
+      int64_t const AdjOffset = Delta * Num;
       NewMMOs.push_back(
           MF.getMachineMemOperand(MMO, AdjOffset, MMO->getSize()));
     } else {
@@ -1006,7 +1006,7 @@ MachineInstr *ModuloScheduleExpander::cloneAndChangeInstr(
   MachineInstr *NewMI = MF.CloneMachineInstr(OldMI);
   auto It = InstrChanges.find(OldMI);
   if (It != InstrChanges.end()) {
-    std::pair<unsigned, int64_t> RegAndOffset = It->second;
+    std::pair<unsigned, int64_t> const RegAndOffset = It->second;
     unsigned BasePos, OffsetPos;
     if (!TII->getBaseAndOffsetPosition(*OldMI, BasePos, OffsetPos))
       return nullptr;
@@ -1031,11 +1031,11 @@ void ModuloScheduleExpander::updateInstruction(MachineInstr *NewMI,
     MachineOperand &MO = NewMI->getOperand(i);
     if (!MO.isReg() || !Register::isVirtualRegister(MO.getReg()))
       continue;
-    Register reg = MO.getReg();
+    Register const reg = MO.getReg();
     if (MO.isDef()) {
       // Create a new virtual register for the definition.
       const TargetRegisterClass *RC = MRI.getRegClass(reg);
-      Register NewReg = MRI.createVirtualRegister(RC);
+      Register const NewReg = MRI.createVirtualRegister(RC);
       MO.setReg(NewReg);
       VRMap[CurStageNum][reg] = NewReg;
       if (LastDef)
@@ -1043,11 +1043,11 @@ void ModuloScheduleExpander::updateInstruction(MachineInstr *NewMI,
     } else if (MO.isUse()) {
       MachineInstr *Def = MRI.getVRegDef(reg);
       // Compute the stage that contains the last definition for instruction.
-      int DefStageNum = Schedule.getStage(Def);
+      int const DefStageNum = Schedule.getStage(Def);
       unsigned StageNum = CurStageNum;
       if (DefStageNum != -1 && (int)InstrStageNum > DefStageNum) {
         // Compute the difference in stages between the defintion and the use.
-        unsigned StageDiff = (InstrStageNum - DefStageNum);
+        unsigned const StageDiff = (InstrStageNum - DefStageNum);
         // Make an adjustment to get the last definition.
         StageNum -= StageDiff;
       }
@@ -1116,10 +1116,10 @@ void ModuloScheduleExpander::rewritePhiValues(MachineBasicBlock *NewBB,
     unsigned InitVal = 0;
     unsigned LoopVal = 0;
     getPhiRegs(PHI, BB, InitVal, LoopVal);
-    Register PhiDef = PHI.getOperand(0).getReg();
+    Register const PhiDef = PHI.getOperand(0).getReg();
 
-    unsigned PhiStage = (unsigned)Schedule.getStage(MRI.getVRegDef(PhiDef));
-    unsigned LoopStage = (unsigned)Schedule.getStage(MRI.getVRegDef(LoopVal));
+    unsigned const PhiStage = (unsigned)Schedule.getStage(MRI.getVRegDef(PhiDef));
+    unsigned const LoopStage = (unsigned)Schedule.getStage(MRI.getVRegDef(LoopVal));
     unsigned NumPhis = getStagesForPhi(PhiDef);
     if (NumPhis > StageNum)
       NumPhis = StageNum;
@@ -1141,8 +1141,8 @@ void ModuloScheduleExpander::rewriteScheduledInstr(
     MachineBasicBlock *BB, InstrMapTy &InstrMap, unsigned CurStageNum,
     unsigned PhiNum, MachineInstr *Phi, unsigned OldReg, unsigned NewReg,
     unsigned PrevReg) {
-  bool InProlog = (CurStageNum < (unsigned)Schedule.getNumStages() - 1);
-  int StagePhi = Schedule.getStage(Phi) + PhiNum;
+  bool const InProlog = (CurStageNum < (unsigned)Schedule.getNumStages() - 1);
+  int const StagePhi = Schedule.getStage(Phi) + PhiNum;
   // Rewrite uses that have been scheduled already to use the new
   // Phi register.
   for (MachineRegisterInfo::use_iterator UI = MRI.use_begin(OldReg),
@@ -1159,15 +1159,15 @@ void ModuloScheduleExpander::rewriteScheduledInstr(
       if (getLoopPhiReg(*UseMI, BB) != OldReg)
         continue;
     }
-    InstrMapTy::iterator OrigInstr = InstrMap.find(UseMI);
+    InstrMapTy::iterator const OrigInstr = InstrMap.find(UseMI);
     assert(OrigInstr != InstrMap.end() && "Instruction not scheduled.");
     MachineInstr *OrigMI = OrigInstr->second;
-    int StageSched = Schedule.getStage(OrigMI);
-    int CycleSched = Schedule.getCycle(OrigMI);
+    int const StageSched = Schedule.getStage(OrigMI);
+    int const CycleSched = Schedule.getCycle(OrigMI);
     unsigned ReplaceReg = 0;
     // This is the stage for the scheduled instruction.
     if (StagePhi == StageSched && Phi->isPHI()) {
-      int CyclePhi = Schedule.getCycle(Phi);
+      int const CyclePhi = Schedule.getCycle(Phi);
       if (PrevReg && InProlog)
         ReplaceReg = PrevReg;
       else if (PrevReg && !isLoopCarried(*Phi) &&
@@ -1194,8 +1194,8 @@ void ModuloScheduleExpander::rewriteScheduledInstr(
 bool ModuloScheduleExpander::isLoopCarried(MachineInstr &Phi) {
   if (!Phi.isPHI())
     return false;
-  int DefCycle = Schedule.getCycle(&Phi);
-  int DefStage = Schedule.getStage(&Phi);
+  int const DefCycle = Schedule.getCycle(&Phi);
+  int const DefStage = Schedule.getStage(&Phi);
 
   unsigned InitVal = 0;
   unsigned LoopVal = 0;
@@ -1203,8 +1203,8 @@ bool ModuloScheduleExpander::isLoopCarried(MachineInstr &Phi) {
   MachineInstr *Use = MRI.getVRegDef(LoopVal);
   if (!Use || Use->isPHI())
     return true;
-  int LoopCycle = Schedule.getCycle(Use);
-  int LoopStage = Schedule.getStage(Use);
+  int const LoopCycle = Schedule.getCycle(Use);
+  int const LoopStage = Schedule.getStage(Use);
   return (LoopCycle > DefCycle) || (LoopStage <= DefStage);
 }
 
@@ -1324,7 +1324,7 @@ void KernelRewriter::rewrite() {
     for (MachineOperand &MO : MI.uses()) {
       if (!MO.isReg() || MO.getReg().isPhysical() || MO.isImplicit())
         continue;
-      Register Reg = remapUse(MO.getReg(), MI);
+      Register const Reg = remapUse(MO.getReg(), MI);
       MO.setReg(Reg);
     }
   }
@@ -1336,12 +1336,12 @@ void KernelRewriter::rewrite() {
   // loop-carried phis.
   for (auto MI = BB->getFirstNonPHI(); MI != BB->end(); ++MI) {
     if (MI->isPHI()) {
-      Register R = MI->getOperand(0).getReg();
+      Register const R = MI->getOperand(0).getReg();
       phi(R);
       continue;
     }
 
-    for (MachineOperand &Def : MI->defs()) {
+    for (MachineOperand  const&Def : MI->defs()) {
       for (MachineInstr &MI : MRI.use_instructions(Def.getReg())) {
         if (MI.getParent() != BB) {
           phi(Def.getReg());
@@ -1357,18 +1357,18 @@ Register KernelRewriter::remapUse(Register Reg, MachineInstr &MI) {
   if (!Producer)
     return Reg;
 
-  int ConsumerStage = S.getStage(&MI);
+  int const ConsumerStage = S.getStage(&MI);
   if (!Producer->isPHI()) {
     // Non-phi producers are simple to remap. Insert as many phis as the
     // difference between the consumer and producer stages.
     if (Producer->getParent() != BB)
       // Producer was not inside the loop. Use the register as-is.
       return Reg;
-    int ProducerStage = S.getStage(Producer);
+    int const ProducerStage = S.getStage(Producer);
     assert(ConsumerStage != -1 &&
            "In-loop consumer should always be scheduled!");
     assert(ConsumerStage >= ProducerStage);
-    unsigned StageDiff = ConsumerStage - ProducerStage;
+    unsigned const StageDiff = ConsumerStage - ProducerStage;
 
     for (unsigned I = 0; I < StageDiff; ++I)
       Reg = phi(Reg);
@@ -1386,7 +1386,7 @@ Register KernelRewriter::remapUse(Register Reg, MachineInstr &MI) {
     LoopProducer = MRI.getUniqueVRegDef(LoopReg);
     assert(LoopProducer);
   }
-  int LoopProducerStage = S.getStage(LoopProducer);
+  int const LoopProducerStage = S.getStage(LoopProducer);
 
   Optional<Register> IllegalPhiDefault;
 
@@ -1398,8 +1398,8 @@ Register KernelRewriter::remapUse(Register Reg, MachineInstr &MI) {
     // rescheduled loop. This is enforced by the pipeliner's ASAP and ALAP
     // functions.
 #ifndef NDEBUG // Silence unused variables in non-asserts mode.
-    int LoopProducerCycle = S.getCycle(LoopProducer);
-    int ConsumerCycle = S.getCycle(&MI);
+    int const LoopProducerCycle = S.getCycle(LoopProducer);
+    int const ConsumerCycle = S.getCycle(&MI);
 #endif
     assert(LoopProducerCycle <= ConsumerCycle);
     assert(LoopProducerStage == ConsumerStage + 1);
@@ -1413,7 +1413,7 @@ Register KernelRewriter::remapUse(Register Reg, MachineInstr &MI) {
     Defaults.erase(Defaults.begin());
   } else {
     assert(ConsumerStage >= LoopProducerStage);
-    int StageDiff = ConsumerStage - LoopProducerStage;
+    int const StageDiff = ConsumerStage - LoopProducerStage;
     if (StageDiff > 0) {
       LLVM_DEBUG(dbgs() << " -- padding defaults array from " << Defaults.size()
                         << " to " << (Defaults.size() + StageDiff) << "\n");
@@ -1549,7 +1549,7 @@ public:
         continue;
       }
 
-      Register Default = getInitPhiReg(*MI, BB);
+      Register const Default = getInitPhiReg(*MI, BB);
       MO = MI->getOperand(2).getMBB() == BB ? &MI->getOperand(1)
                                             : &MI->getOperand(3);
       PhiDefaults.push_back(Default);
@@ -1596,17 +1596,17 @@ void PeelingModuloScheduleExpander::filterInstructions(MachineBasicBlock *MB,
   for (auto I = MB->getFirstInstrTerminator()->getReverseIterator();
        I != std::next(MB->getFirstNonPHI()->getReverseIterator());) {
     MachineInstr *MI = &*I++;
-    int Stage = getStage(MI);
+    int const Stage = getStage(MI);
     if (Stage == -1 || Stage >= MinStage)
       continue;
 
-    for (MachineOperand &DefMO : MI->defs()) {
+    for (MachineOperand  const&DefMO : MI->defs()) {
       SmallVector<std::pair<MachineInstr *, Register>, 4> Subs;
       for (MachineInstr &UseMI : MRI.use_instructions(DefMO.getReg())) {
         // Only PHIs can use values from this block by construction.
         // Match with the equivalent PHI in B.
         assert(UseMI.isPHI());
-        Register Reg = getEquivalentRegisterIn(UseMI.getOperand(0).getReg(),
+        Register const Reg = getEquivalentRegisterIn(UseMI.getOperand(0).getReg(),
                                                MI->getParent());
         Subs.emplace_back(&UseMI, Reg);
       }
@@ -1632,9 +1632,9 @@ void PeelingModuloScheduleExpander::moveStageBetweenBlocks(
       if (getStage(MI) != Stage) {
         // The legal Phi is not necessary if the illegal phi's stage
         // is being moved.
-        Register PhiR = MI->getOperand(0).getReg();
+        Register const PhiR = MI->getOperand(0).getReg();
         auto RC = MRI.getRegClass(PhiR);
-        Register NR = MRI.createVirtualRegister(RC);
+        Register const NR = MRI.createVirtualRegister(RC);
         MachineInstr *NI = BuildMI(*DestBB, DestBB->getFirstNonPHI(),
                                    DebugLoc(), TII->get(TargetOpcode::PHI), NR)
                                .addReg(PhiR)
@@ -1659,7 +1659,7 @@ void PeelingModuloScheduleExpander::moveStageBetweenBlocks(
     // If the instruction referenced by the phi is moved inside the block
     // we don't need the phi anymore.
     if (getStage(Def) == Stage) {
-      Register PhiReg = MI.getOperand(0).getReg();
+      Register const PhiReg = MI.getOperand(0).getReg();
       assert(Def->findRegisterDefOperandIdx(MI.getOperand(1).getReg()) != -1);
       MRI.replaceRegWith(MI.getOperand(0).getReg(), MI.getOperand(1).getReg());
       MI.getOperand(0).setReg(PhiReg);
@@ -1674,7 +1674,7 @@ void PeelingModuloScheduleExpander::moveStageBetweenBlocks(
   auto clonePhi = [&](MachineInstr *Phi) {
     MachineInstr *NewMI = MF.CloneMachineInstr(Phi);
     DestBB->insert(InsertPt, NewMI);
-    Register OrigR = Phi->getOperand(0).getReg();
+    Register const OrigR = Phi->getOperand(0).getReg();
     Register R = MRI.createVirtualRegister(MRI.getRegClass(OrigR));
     NewMI->getOperand(0).setReg(R);
     NewMI->getOperand(1).setReg(OrigR);
@@ -1696,7 +1696,7 @@ void PeelingModuloScheduleExpander::moveStageBetweenBlocks(
         // pointing to the old one.
         MachineInstr *Use = MRI.getUniqueVRegDef(MO.getReg());
         if (Use && Use->isPHI() && Use->getParent() == SourceBB) {
-          Register R = clonePhi(Use);
+          Register const R = clonePhi(Use);
           MO.setReg(R);
         }
       }
@@ -1707,7 +1707,7 @@ void PeelingModuloScheduleExpander::moveStageBetweenBlocks(
 Register
 PeelingModuloScheduleExpander::getPhiCanonicalReg(MachineInstr *CanonicalPhi,
                                                   MachineInstr *Phi) {
-  unsigned distance = PhiNodeLoopIteration[Phi];
+  unsigned const distance = PhiNodeLoopIteration[Phi];
   MachineInstr *CanonicalUse = CanonicalPhi;
   Register CanonicalUseReg = CanonicalUse->getOperand(0).getReg();
   for (unsigned I = 0; I < distance; ++I) {
@@ -1724,7 +1724,7 @@ PeelingModuloScheduleExpander::getPhiCanonicalReg(MachineInstr *CanonicalPhi,
 
 void PeelingModuloScheduleExpander::peelPrologAndEpilogs() {
   BitVector LS(Schedule.getNumStages(), true);
-  BitVector AS(Schedule.getNumStages(), true);
+  BitVector const AS(Schedule.getNumStages(), true);
   LiveStages[BB] = LS;
   AvailableStages[BB] = AS;
 
@@ -1774,8 +1774,8 @@ void PeelingModuloScheduleExpander::peelPrologAndEpilogs() {
   for (size_t I = 0; I < Epilogs.size(); I++) {
     LS.reset();
     for (size_t J = I; J < Epilogs.size(); J++) {
-      int Iteration = J;
-      unsigned Stage = Schedule.getNumStages() - 1 + I - J;
+      int const Iteration = J;
+      unsigned const Stage = Schedule.getNumStages() - 1 + I - J;
       // Move stage one block at a time so that Phi nodes are updated correctly.
       for (size_t K = Iteration; K > I; K--)
         moveStageBetweenBlocks(Epilogs[K - 1], Epilogs[K], Stage);
@@ -1851,8 +1851,8 @@ MachineBasicBlock *PeelingModuloScheduleExpander::CreateLCSSAExitingBlock() {
   // Clone all phis in BB into NewBB and rewrite.
   for (MachineInstr &MI : BB->phis()) {
     auto RC = MRI.getRegClass(MI.getOperand(0).getReg());
-    Register OldR = MI.getOperand(3).getReg();
-    Register R = MRI.createVirtualRegister(RC);
+    Register const OldR = MI.getOperand(3).getReg();
+    Register const R = MRI.createVirtualRegister(RC);
     SmallVector<MachineInstr *, 4> Uses;
     for (MachineInstr &Use : MRI.use_instructions(OldR))
       if (Use.getParent() != BB)
@@ -1872,7 +1872,7 @@ MachineBasicBlock *PeelingModuloScheduleExpander::CreateLCSSAExitingBlock() {
 
   MachineBasicBlock *TBB = nullptr, *FBB = nullptr;
   SmallVector<MachineOperand, 4> Cond;
-  bool CanAnalyzeBr = !TII->analyzeBranch(*BB, TBB, FBB, Cond);
+  bool const CanAnalyzeBr = !TII->analyzeBranch(*BB, TBB, FBB, Cond);
   (void)CanAnalyzeBr;
   assert(CanAnalyzeBr && "Must be able to analyze the loop branch!");
   TII->removeBranch(*BB);
@@ -1886,7 +1886,7 @@ Register
 PeelingModuloScheduleExpander::getEquivalentRegisterIn(Register Reg,
                                                        MachineBasicBlock *BB) {
   MachineInstr *MI = MRI.getUniqueVRegDef(Reg);
-  unsigned OpIdx = MI->findRegisterDefOperandIdx(Reg);
+  unsigned const OpIdx = MI->findRegisterDefOperandIdx(Reg);
   return BlockMIs[{BB, CanonicalMIs[MI]}]->getOperand(OpIdx).getReg();
 }
 
@@ -1894,9 +1894,9 @@ void PeelingModuloScheduleExpander::rewriteUsesOf(MachineInstr *MI) {
   if (MI->isPHI()) {
     // This is an illegal PHI. The loop-carried (desired) value is operand 3,
     // and it is produced by this block.
-    Register PhiR = MI->getOperand(0).getReg();
+    Register const PhiR = MI->getOperand(0).getReg();
     Register R = MI->getOperand(3).getReg();
-    int RMIStage = getStage(MRI.getUniqueVRegDef(R));
+    int const RMIStage = getStage(MRI.getUniqueVRegDef(R));
     if (RMIStage != -1 && !AvailableStages[MI->getParent()].test(RMIStage))
       R = MI->getOperand(1).getReg();
     MRI.setRegClass(R, MRI.getRegClass(PhiR));
@@ -1908,19 +1908,19 @@ void PeelingModuloScheduleExpander::rewriteUsesOf(MachineInstr *MI) {
     return;
   }
 
-  int Stage = getStage(MI);
+  int const Stage = getStage(MI);
   if (Stage == -1 || LiveStages.count(MI->getParent()) == 0 ||
       LiveStages[MI->getParent()].test(Stage))
     // Instruction is live, no rewriting to do.
     return;
 
-  for (MachineOperand &DefMO : MI->defs()) {
+  for (MachineOperand  const&DefMO : MI->defs()) {
     SmallVector<std::pair<MachineInstr *, Register>, 4> Subs;
     for (MachineInstr &UseMI : MRI.use_instructions(DefMO.getReg())) {
       // Only PHIs can use values from this block by construction.
       // Match with the equivalent PHI in B.
       assert(UseMI.isPHI());
-      Register Reg = getEquivalentRegisterIn(UseMI.getOperand(0).getReg(),
+      Register const Reg = getEquivalentRegisterIn(UseMI.getOperand(0).getReg(),
                                              MI->getParent());
       Subs.emplace_back(&UseMI, Reg);
     }
@@ -2126,7 +2126,7 @@ INITIALIZE_PASS_END(ModuloScheduleTest, "modulo-schedule-test",
                     "Modulo Schedule test pass", false, false)
 
 bool ModuloScheduleTest::runOnMachineFunction(MachineFunction &MF) {
-  MachineLoopInfo &MLI = getAnalysis<MachineLoopInfo>();
+  MachineLoopInfo  const&MLI = getAnalysis<MachineLoopInfo>();
   for (auto *L : MLI) {
     if (L->getTopBlock() != L->getBottomBlock())
       continue;
@@ -2137,10 +2137,10 @@ bool ModuloScheduleTest::runOnMachineFunction(MachineFunction &MF) {
 }
 
 static void parseSymbolString(StringRef S, int &Cycle, int &Stage) {
-  std::pair<StringRef, StringRef> StageAndCycle = getToken(S, "_");
-  std::pair<StringRef, StringRef> StageTokenAndValue =
+  std::pair<StringRef, StringRef> const StageAndCycle = getToken(S, "_");
+  std::pair<StringRef, StringRef> const StageTokenAndValue =
       getToken(StageAndCycle.first, "-");
-  std::pair<StringRef, StringRef> CycleTokenAndValue =
+  std::pair<StringRef, StringRef> const CycleTokenAndValue =
       getToken(StageAndCycle.second, "-");
   if (StageTokenAndValue.first != "Stage" ||
       CycleTokenAndValue.first != "_Cycle") {

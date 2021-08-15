@@ -57,7 +57,7 @@ bool LiveRegMatrix::runOnMachineFunction(MachineFunction &MF) {
   LIS = &getAnalysis<LiveIntervals>();
   VRM = &getAnalysis<VirtRegMap>();
 
-  unsigned NumRegUnits = TRI->getNumRegUnits();
+  unsigned const NumRegUnits = TRI->getNumRegUnits();
   if (NumRegUnits != Matrix.size())
     Queries.reset(new LiveIntervalUnion::Query[NumRegUnits]);
   Matrix.init(LIUAlloc, NumRegUnits);
@@ -82,9 +82,9 @@ static bool foreachUnit(const TargetRegisterInfo *TRI,
                         Callable Func) {
   if (VRegInterval.hasSubRanges()) {
     for (MCRegUnitMaskIterator Units(PhysReg, TRI); Units.isValid(); ++Units) {
-      unsigned Unit = (*Units).first;
-      LaneBitmask Mask = (*Units).second;
-      for (LiveInterval::SubRange &S : VRegInterval.subranges()) {
+      unsigned const Unit = (*Units).first;
+      LaneBitmask const Mask = (*Units).second;
+      for (LiveInterval::SubRange  const&S : VRegInterval.subranges()) {
         if ((S.LaneMask & Mask).any()) {
           if (Func(Unit, S))
             return true;
@@ -119,7 +119,7 @@ void LiveRegMatrix::assign(LiveInterval &VirtReg, MCRegister PhysReg) {
 }
 
 void LiveRegMatrix::unassign(LiveInterval &VirtReg) {
-  Register PhysReg = VRM->getPhys(VirtReg.reg());
+  Register const PhysReg = VRM->getPhys(VirtReg.reg());
   LLVM_DEBUG(dbgs() << "unassigning " << printReg(VirtReg.reg(), TRI)
                     << " from " << printReg(PhysReg, TRI) << ':');
   VRM->clearVirt(VirtReg.reg());
@@ -167,7 +167,7 @@ bool LiveRegMatrix::checkRegUnitInterference(LiveInterval &VirtReg,
     return false;
   CoalescerPair CP(VirtReg.reg(), PhysReg, *TRI);
 
-  bool Result = foreachUnit(TRI, VirtReg, PhysReg, [&](unsigned Unit,
+  bool const Result = foreachUnit(TRI, VirtReg, PhysReg, [&](unsigned Unit,
                                                        const LiveRange &Range) {
     const LiveRange &UnitRange = LIS->getRegUnit(Unit);
     return Range.overlaps(UnitRange, CP, *LIS->getSlotIndexes());
@@ -196,7 +196,7 @@ LiveRegMatrix::checkInterference(LiveInterval &VirtReg, MCRegister PhysReg) {
     return IK_RegUnit;
 
   // Check the matrix for virtual register interference.
-  bool Interference = foreachUnit(TRI, VirtReg, PhysReg,
+  bool const Interference = foreachUnit(TRI, VirtReg, PhysReg,
                                   [&](MCRegister Unit, const LiveRange &LR) {
                                     return query(LR, Unit).checkInterference();
                                   });
@@ -210,7 +210,7 @@ bool LiveRegMatrix::checkInterference(SlotIndex Start, SlotIndex End,
                                       MCRegister PhysReg) {
   // Construct artificial live range containing only one segment [Start, End).
   VNInfo valno(0, Start);
-  LiveRange::Segment Seg(Start, End, &valno);
+  LiveRange::Segment const Seg(Start, End, &valno);
   LiveRange LR;
   LR.addSegment(Seg);
 

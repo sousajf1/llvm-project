@@ -150,7 +150,7 @@ bool RISCVAsmBackend::fixupNeedsRelaxationAdvanced(const MCFixup &Fixup,
   if (!Resolved && !WasForced)
     return true;
 
-  int64_t Offset = int64_t(Value);
+  int64_t const Offset = int64_t(Value);
   switch (Fixup.getTargetKind()) {
   default:
     return false;
@@ -205,16 +205,16 @@ void RISCVAsmBackend::relaxInstruction(MCInst &Inst,
 bool RISCVAsmBackend::relaxDwarfLineAddr(MCDwarfLineAddrFragment &DF,
                                          MCAsmLayout &Layout,
                                          bool &WasRelaxed) const {
-  MCContext &C = Layout.getAssembler().getContext();
+  MCContext  const&C = Layout.getAssembler().getContext();
 
-  int64_t LineDelta = DF.getLineDelta();
+  int64_t const LineDelta = DF.getLineDelta();
   const MCExpr &AddrDelta = DF.getAddrDelta();
   SmallVectorImpl<char> &Data = DF.getContents();
   SmallVectorImpl<MCFixup> &Fixups = DF.getFixups();
-  size_t OldSize = Data.size();
+  size_t const OldSize = Data.size();
 
   int64_t Value;
-  bool IsAbsolute = AddrDelta.evaluateKnownAbsolute(Value, Layout);
+  bool const IsAbsolute = AddrDelta.evaluateKnownAbsolute(Value, Layout);
   assert(IsAbsolute && "CFA with invalid expression");
   (void)IsAbsolute;
 
@@ -235,7 +235,7 @@ bool RISCVAsmBackend::relaxDwarfLineAddr(MCDwarfLineAddrFragment &DF,
   // takes a single unsigned half (unencoded) operand. The maximum encodable
   // value is therefore 65535.  Set a conservative upper bound for relaxation.
   if (Value > 60000) {
-    unsigned PtrSize = C.getAsmInfo()->getCodePointerSize();
+    unsigned const PtrSize = C.getAsmInfo()->getCodePointerSize();
 
     OS << uint8_t(dwarf::DW_LNS_extended_op);
     encodeULEB128(PtrSize + 1, OS);
@@ -279,10 +279,10 @@ bool RISCVAsmBackend::relaxDwarfCFA(MCDwarfCallFrameFragment &DF,
   const MCExpr &AddrDelta = DF.getAddrDelta();
   SmallVectorImpl<char> &Data = DF.getContents();
   SmallVectorImpl<MCFixup> &Fixups = DF.getFixups();
-  size_t OldSize = Data.size();
+  size_t const OldSize = Data.size();
 
   int64_t Value;
-  bool IsAbsolute = AddrDelta.evaluateKnownAbsolute(Value, Layout);
+  bool const IsAbsolute = AddrDelta.evaluateKnownAbsolute(Value, Layout);
   assert(IsAbsolute && "CFA with invalid expression");
   (void)IsAbsolute;
 
@@ -353,8 +353,8 @@ bool RISCVAsmBackend::mayNeedRelaxation(const MCInst &Inst,
 }
 
 bool RISCVAsmBackend::writeNopData(raw_ostream &OS, uint64_t Count) const {
-  bool HasStdExtC = STI.getFeatureBits()[RISCV::FeatureStdExtC];
-  unsigned MinNopLen = HasStdExtC ? 2 : 4;
+  bool const HasStdExtC = STI.getFeatureBits()[RISCV::FeatureStdExtC];
+  unsigned const MinNopLen = HasStdExtC ? 2 : 4;
 
   if ((Count % MinNopLen) != 0)
     return false;
@@ -417,10 +417,10 @@ static uint64_t adjustFixupValue(const MCFixup &Fixup, uint64_t Value,
     if (Value & 0x1)
       Ctx.reportError(Fixup.getLoc(), "fixup value must be 2-byte aligned");
     // Need to produce imm[19|10:1|11|19:12] from the 21-bit Value.
-    unsigned Sbit = (Value >> 20) & 0x1;
-    unsigned Hi8 = (Value >> 12) & 0xff;
-    unsigned Mid1 = (Value >> 11) & 0x1;
-    unsigned Lo10 = (Value >> 1) & 0x3ff;
+    unsigned const Sbit = (Value >> 20) & 0x1;
+    unsigned const Hi8 = (Value >> 12) & 0xff;
+    unsigned const Mid1 = (Value >> 11) & 0x1;
+    unsigned const Lo10 = (Value >> 1) & 0x3ff;
     // Inst{31} = Sbit;
     // Inst{30-21} = Lo10;
     // Inst{20} = Mid1;
@@ -435,10 +435,10 @@ static uint64_t adjustFixupValue(const MCFixup &Fixup, uint64_t Value,
       Ctx.reportError(Fixup.getLoc(), "fixup value must be 2-byte aligned");
     // Need to extract imm[12], imm[10:5], imm[4:1], imm[11] from the 13-bit
     // Value.
-    unsigned Sbit = (Value >> 12) & 0x1;
-    unsigned Hi1 = (Value >> 11) & 0x1;
-    unsigned Mid6 = (Value >> 5) & 0x3f;
-    unsigned Lo4 = (Value >> 1) & 0xf;
+    unsigned const Sbit = (Value >> 12) & 0x1;
+    unsigned const Hi1 = (Value >> 11) & 0x1;
+    unsigned const Mid6 = (Value >> 5) & 0x3f;
+    unsigned const Lo4 = (Value >> 1) & 0xf;
     // Inst{31} = Sbit;
     // Inst{30-25} = Mid6;
     // Inst{11-8} = Lo4;
@@ -451,31 +451,31 @@ static uint64_t adjustFixupValue(const MCFixup &Fixup, uint64_t Value,
     // Jalr will add UpperImm with the sign-extended 12-bit LowerImm,
     // we need to add 0x800ULL before extract upper bits to reflect the
     // effect of the sign extension.
-    uint64_t UpperImm = (Value + 0x800ULL) & 0xfffff000ULL;
-    uint64_t LowerImm = Value & 0xfffULL;
+    uint64_t const UpperImm = (Value + 0x800ULL) & 0xfffff000ULL;
+    uint64_t const LowerImm = Value & 0xfffULL;
     return UpperImm | ((LowerImm << 20) << 32);
   }
   case RISCV::fixup_riscv_rvc_jump: {
     // Need to produce offset[11|4|9:8|10|6|7|3:1|5] from the 11-bit Value.
-    unsigned Bit11  = (Value >> 11) & 0x1;
-    unsigned Bit4   = (Value >> 4) & 0x1;
-    unsigned Bit9_8 = (Value >> 8) & 0x3;
-    unsigned Bit10  = (Value >> 10) & 0x1;
-    unsigned Bit6   = (Value >> 6) & 0x1;
-    unsigned Bit7   = (Value >> 7) & 0x1;
-    unsigned Bit3_1 = (Value >> 1) & 0x7;
-    unsigned Bit5   = (Value >> 5) & 0x1;
+    unsigned const Bit11  = (Value >> 11) & 0x1;
+    unsigned const Bit4   = (Value >> 4) & 0x1;
+    unsigned const Bit9_8 = (Value >> 8) & 0x3;
+    unsigned const Bit10  = (Value >> 10) & 0x1;
+    unsigned const Bit6   = (Value >> 6) & 0x1;
+    unsigned const Bit7   = (Value >> 7) & 0x1;
+    unsigned const Bit3_1 = (Value >> 1) & 0x7;
+    unsigned const Bit5   = (Value >> 5) & 0x1;
     Value = (Bit11 << 10) | (Bit4 << 9) | (Bit9_8 << 7) | (Bit10 << 6) |
             (Bit6 << 5) | (Bit7 << 4) | (Bit3_1 << 1) | Bit5;
     return Value;
   }
   case RISCV::fixup_riscv_rvc_branch: {
     // Need to produce offset[8|4:3], [reg 3 bit], offset[7:6|2:1|5]
-    unsigned Bit8   = (Value >> 8) & 0x1;
-    unsigned Bit7_6 = (Value >> 6) & 0x3;
-    unsigned Bit5   = (Value >> 5) & 0x1;
-    unsigned Bit4_3 = (Value >> 3) & 0x3;
-    unsigned Bit2_1 = (Value >> 1) & 0x3;
+    unsigned const Bit8   = (Value >> 8) & 0x1;
+    unsigned const Bit7_6 = (Value >> 6) & 0x3;
+    unsigned const Bit5   = (Value >> 5) & 0x1;
+    unsigned const Bit4_3 = (Value >> 3) & 0x3;
+    unsigned const Bit2_1 = (Value >> 1) & 0x3;
     Value = (Bit8 << 12) | (Bit4_3 << 10) | (Bit7_6 << 5) | (Bit2_1 << 3) |
             (Bit5 << 2);
     return Value;
@@ -529,7 +529,7 @@ bool RISCVAsmBackend::evaluateTargetFixup(
   if (!Writer)
     return false;
 
-  bool IsResolved = Writer->isSymbolRefDifferenceFullyResolvedImpl(
+  bool const IsResolved = Writer->isSymbolRefDifferenceFullyResolvedImpl(
       Asm, SA, *AUIPCDF, false, true);
   if (!IsResolved)
     return false;
@@ -550,11 +550,11 @@ void RISCVAsmBackend::applyFixup(const MCAssembler &Asm, const MCFixup &Fixup,
                                  MutableArrayRef<char> Data, uint64_t Value,
                                  bool IsResolved,
                                  const MCSubtargetInfo *STI) const {
-  MCFixupKind Kind = Fixup.getKind();
+  MCFixupKind const Kind = Fixup.getKind();
   if (Kind >= FirstLiteralRelocationKind)
     return;
   MCContext &Ctx = Asm.getContext();
-  MCFixupKindInfo Info = getFixupKindInfo(Kind);
+  MCFixupKindInfo const Info = getFixupKindInfo(Kind);
   if (!Value)
     return; // Doesn't change encoding.
   // Apply any target-specific value adjustments.
@@ -563,8 +563,8 @@ void RISCVAsmBackend::applyFixup(const MCAssembler &Asm, const MCFixup &Fixup,
   // Shift the value into position.
   Value <<= Info.TargetOffset;
 
-  unsigned Offset = Fixup.getOffset();
-  unsigned NumBytes = alignTo(Info.TargetSize + Info.TargetOffset, 8) / 8;
+  unsigned const Offset = Fixup.getOffset();
+  unsigned const NumBytes = alignTo(Info.TargetSize + Info.TargetOffset, 8) / 8;
 
   assert(Offset + NumBytes <= Data.size() && "Invalid fixup offset!");
 
@@ -585,8 +585,8 @@ bool RISCVAsmBackend::shouldInsertExtraNopBytesForCodeAlign(
   if (!STI.getFeatureBits()[RISCV::FeatureRelax])
     return false;
 
-  bool HasStdExtC = STI.getFeatureBits()[RISCV::FeatureStdExtC];
-  unsigned MinNopLen = HasStdExtC ? 2 : 4;
+  bool const HasStdExtC = STI.getFeatureBits()[RISCV::FeatureStdExtC];
+  unsigned const MinNopLen = HasStdExtC ? 2 : 4;
 
   if (AF.getAlignment() <= MinNopLen) {
     return false;
@@ -617,11 +617,11 @@ bool RISCVAsmBackend::shouldInsertFixupForCodeAlign(MCAssembler &Asm,
   MCContext &Ctx = Asm.getContext();
   const MCExpr *Dummy = MCConstantExpr::create(0, Ctx);
   // Create fixup_riscv_align fixup.
-  MCFixup Fixup =
+  MCFixup const Fixup =
       MCFixup::create(0, Dummy, MCFixupKind(RISCV::fixup_riscv_align), SMLoc());
 
   uint64_t FixedValue = 0;
-  MCValue NopBytes = MCValue::get(Count);
+  MCValue const NopBytes = MCValue::get(Count);
 
   Asm.getWriter().recordRelocation(Asm, Layout, &AF, Fixup, NopBytes,
                                    FixedValue);
@@ -639,6 +639,6 @@ MCAsmBackend *llvm::createRISCVAsmBackend(const Target &T,
                                           const MCRegisterInfo &MRI,
                                           const MCTargetOptions &Options) {
   const Triple &TT = STI.getTargetTriple();
-  uint8_t OSABI = MCELFObjectTargetWriter::getOSABI(TT.getOS());
+  uint8_t const OSABI = MCELFObjectTargetWriter::getOSABI(TT.getOS());
   return new RISCVAsmBackend(STI, OSABI, TT.isArch64Bit(), Options);
 }

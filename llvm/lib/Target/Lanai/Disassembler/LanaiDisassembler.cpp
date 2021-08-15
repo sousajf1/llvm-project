@@ -106,7 +106,7 @@ static void PostOperandDecodeAdjust(MCInst &Instr, uint32_t Insn) {
   }
 
   if (PqShift != -1) {
-    unsigned PQ = (Insn >> PqShift) & 0x3;
+    unsigned const PQ = (Insn >> PqShift) & 0x3;
     switch (PQ) {
     case 0x0:
       if (Instr.getOperand(2).isReg()) {
@@ -166,7 +166,7 @@ DecodeStatus DecodeGPRRegisterClass(MCInst &Inst, unsigned RegNo,
   if (RegNo > 31)
     return MCDisassembler::Fail;
 
-  unsigned Reg = GPRDecoderTable[RegNo];
+  unsigned const Reg = GPRDecoderTable[RegNo];
   Inst.addOperand(MCOperand::createReg(Reg));
   return MCDisassembler::Success;
 }
@@ -175,9 +175,9 @@ static DecodeStatus decodeRiMemoryValue(MCInst &Inst, unsigned Insn,
                                         uint64_t Address, const void *Decoder) {
   // RI memory values encoded using 23 bits:
   //   5 bit register, 16 bit constant
-  unsigned Register = (Insn >> 18) & 0x1f;
+  unsigned const Register = (Insn >> 18) & 0x1f;
   Inst.addOperand(MCOperand::createReg(GPRDecoderTable[Register]));
-  unsigned Offset = (Insn & 0xffff);
+  unsigned const Offset = (Insn & 0xffff);
   Inst.addOperand(MCOperand::createImm(SignExtend32<16>(Offset)));
 
   return MCDisassembler::Success;
@@ -199,9 +199,9 @@ static DecodeStatus decodeSplsValue(MCInst &Inst, unsigned Insn,
                                     uint64_t Address, const void *Decoder) {
   // RI memory values encoded using 17 bits:
   //   5 bit register, 10 bit constant
-  unsigned Register = (Insn >> 12) & 0x1f;
+  unsigned const Register = (Insn >> 12) & 0x1f;
   Inst.addOperand(MCOperand::createReg(GPRDecoderTable[Register]));
-  unsigned Offset = (Insn & 0x3ff);
+  unsigned const Offset = (Insn & 0x3ff);
   Inst.addOperand(MCOperand::createImm(SignExtend32<10>(Offset)));
 
   return MCDisassembler::Success;
@@ -226,7 +226,7 @@ static DecodeStatus decodeBranch(MCInst &MI, unsigned Insn, uint64_t Address,
 
 static DecodeStatus decodeShiftImm(MCInst &Inst, unsigned Insn,
                                    uint64_t Address, const void *Decoder) {
-  unsigned Offset = (Insn & 0xffff);
+  unsigned const Offset = (Insn & 0xffff);
   Inst.addOperand(MCOperand::createImm(SignExtend32<16>(Offset)));
 
   return MCDisassembler::Success;

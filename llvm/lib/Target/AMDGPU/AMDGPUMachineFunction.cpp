@@ -27,13 +27,13 @@ AMDGPUMachineFunction::AMDGPUMachineFunction(const MachineFunction &MF)
   // except reserved size is not correctly aligned.
   const Function &F = MF.getFunction();
 
-  Attribute MemBoundAttr = F.getFnAttribute("amdgpu-memory-bound");
+  Attribute const MemBoundAttr = F.getFnAttribute("amdgpu-memory-bound");
   MemoryBound = MemBoundAttr.getValueAsBool();
 
-  Attribute WaveLimitAttr = F.getFnAttribute("amdgpu-wave-limiter");
+  Attribute const WaveLimitAttr = F.getFnAttribute("amdgpu-wave-limiter");
   WaveLimiter = WaveLimitAttr.getValueAsBool();
 
-  CallingConv::ID CC = F.getCallingConv();
+  CallingConv::ID const CC = F.getCallingConv();
   if (CC == CallingConv::AMDGPU_KERNEL || CC == CallingConv::SPIR_KERNEL)
     ExplicitKernArgSize = ST.getExplicitKernArgSize(F, MaxKernArgAlign);
 }
@@ -44,13 +44,13 @@ unsigned AMDGPUMachineFunction::allocateLDSGlobal(const DataLayout &DL,
   if (!Entry.second)
     return Entry.first->second;
 
-  Align Alignment =
+  Align const Alignment =
       DL.getValueOrABITypeAlignment(GV.getAlign(), GV.getValueType());
 
   /// TODO: We should sort these to minimize wasted space due to alignment
   /// padding. Currently the padding is decided by the first encountered use
   /// during lowering.
-  unsigned Offset = StaticLDSSize = alignTo(StaticLDSSize, Alignment);
+  unsigned const Offset = StaticLDSSize = alignTo(StaticLDSSize, Alignment);
 
   Entry.first->second = Offset;
   StaticLDSSize += DL.getTypeAllocSize(GV.getValueType());
@@ -66,7 +66,7 @@ void AMDGPUMachineFunction::allocateModuleLDSGlobal(const Module *M) {
   if (isModuleEntryFunction()) {
     const GlobalVariable *GV = M->getNamedGlobal("llvm.amdgcn.module.lds");
     if (GV) {
-      unsigned Offset = allocateLDSGlobal(M->getDataLayout(), *GV);
+      unsigned const Offset = allocateLDSGlobal(M->getDataLayout(), *GV);
       (void)Offset;
       assert(Offset == 0 &&
              "Module LDS expected to be allocated before other LDS");
@@ -78,7 +78,7 @@ void AMDGPUMachineFunction::setDynLDSAlign(const DataLayout &DL,
                                            const GlobalVariable &GV) {
   assert(DL.getTypeAllocSize(GV.getValueType()).isZero());
 
-  Align Alignment =
+  Align const Alignment =
       DL.getValueOrABITypeAlignment(GV.getAlign(), GV.getValueType());
   if (Alignment <= DynLDSAlign)
     return;

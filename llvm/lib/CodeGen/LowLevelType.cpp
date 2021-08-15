@@ -28,7 +28,7 @@ LLT llvm::getLLTForType(Type &Ty, const DataLayout &DL) {
   }
 
   if (auto PTy = dyn_cast<PointerType>(&Ty)) {
-    unsigned AddrSpace = PTy->getAddressSpace();
+    unsigned const AddrSpace = PTy->getAddressSpace();
     return LLT::pointer(AddrSpace, DL.getPointerSizeInBits(AddrSpace));
   }
 
@@ -55,7 +55,7 @@ MVT llvm::getMVTForLLT(LLT Ty) {
 EVT llvm::getApproximateEVTForLLT(LLT Ty, const DataLayout &DL,
                                   LLVMContext &Ctx) {
   if (Ty.isVector()) {
-    EVT EltVT = getApproximateEVTForLLT(Ty.getElementType(), DL, Ctx);
+    EVT const EltVT = getApproximateEVTForLLT(Ty.getElementType(), DL, Ctx);
     return EVT::getVectorVT(Ctx, EltVT, Ty.getElementCount());
   }
 

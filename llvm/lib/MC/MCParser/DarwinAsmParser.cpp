@@ -45,7 +45,7 @@ namespace {
 class DarwinAsmParser : public MCAsmParserExtension {
   template<bool (DarwinAsmParser::*HandlerMethod)(StringRef, SMLoc)>
   void addDirectiveHandler(StringRef Directive) {
-    MCAsmParser::ExtensionDirectiveHandler Handler = std::make_pair(
+    MCAsmParser::ExtensionDirectiveHandler const Handler = std::make_pair(
         this, HandleDirective<DarwinAsmParser, HandlerMethod>);
     getParser().addDirectiveHandler(Directive, Handler);
   }
@@ -479,7 +479,7 @@ bool DarwinAsmParser::parseSectionSwitch(StringRef Segment, StringRef Section,
   Lex();
 
   // FIXME: Arch specific.
-  bool isText = TAA & MachO::S_ATTR_PURE_INSTRUCTIONS;
+  bool const isText = TAA & MachO::S_ATTR_PURE_INSTRUCTIONS;
   getStreamer().SwitchSection(getContext().getMachOSection(
       Segment, Section, TAA, StubSize,
       isText ? SectionKind::getText() : SectionKind::getData()));
@@ -552,7 +552,7 @@ bool DarwinAsmParser::parseDirectiveDesc(StringRef, SMLoc) {
 bool DarwinAsmParser::parseDirectiveIndirectSymbol(StringRef, SMLoc Loc) {
   const MCSectionMachO *Current = static_cast<const MCSectionMachO *>(
       getStreamer().getCurrentSectionOnly());
-  MachO::SectionType SectionType = Current->getType();
+  MachO::SectionType const SectionType = Current->getType();
   if (SectionType != MachO::S_NON_LAZY_SYMBOL_POINTERS &&
       SectionType != MachO::S_LAZY_SYMBOL_POINTERS &&
       SectionType != MachO::S_THREAD_LOCAL_VARIABLE_POINTERS &&
@@ -585,7 +585,7 @@ bool DarwinAsmParser::parseDirectiveIndirectSymbol(StringRef, SMLoc Loc) {
 ///  ::= ( .dump | .load ) "filename"
 bool DarwinAsmParser::parseDirectiveDumpOrLoad(StringRef Directive,
                                                SMLoc IDLoc) {
-  bool IsDump = Directive == ".dump";
+  bool const IsDump = Directive == ".dump";
   if (getLexer().isNot(AsmToken::String))
     return TokError("expected string in '.dump' or '.load' directive");
 
@@ -663,7 +663,7 @@ bool DarwinAsmParser::parseDirectiveLsym(StringRef, SMLoc) {
 /// parseDirectiveSection:
 ///   ::= .section identifier (',' identifier)*
 bool DarwinAsmParser::parseDirectiveSection(StringRef, SMLoc) {
-  SMLoc Loc = getLexer().getLoc();
+  SMLoc const Loc = getLexer().getLoc();
 
   StringRef SectionName;
   if (getParser().parseIdentifier(SectionName))
@@ -678,7 +678,7 @@ bool DarwinAsmParser::parseDirectiveSection(StringRef, SMLoc) {
 
   // Add all the tokens until the end of the line, ParseSectionSpecifier will
   // handle this.
-  StringRef EOL = getLexer().LexUntilEndOfStatement();
+  StringRef const EOL = getLexer().LexUntilEndOfStatement();
   SectionSpec.append(EOL.begin(), EOL.end());
 
   Lex();
@@ -695,21 +695,21 @@ bool DarwinAsmParser::parseDirectiveSection(StringRef, SMLoc) {
     return Error(Loc, toString(std::move(E)));
 
   // Issue a warning if the target is not powerpc and Section is a *coal* section.
-  Triple TT = getParser().getContext().getTargetTriple();
-  Triple::ArchType ArchTy = TT.getArch();
+  Triple const TT = getParser().getContext().getTargetTriple();
+  Triple::ArchType const ArchTy = TT.getArch();
 
   if (ArchTy != Triple::ppc && ArchTy != Triple::ppc64) {
-    StringRef NonCoalSection = StringSwitch<StringRef>(Section)
+    StringRef const NonCoalSection = StringSwitch<StringRef>(Section)
                                    .Case("__textcoal_nt", "__text")
                                    .Case("__const_coal", "__const")
                                    .Case("__datacoal_nt", "__data")
                                    .Default(Section);
 
     if (!Section.equals(NonCoalSection)) {
-      StringRef SectionVal(Loc.getPointer());
+      StringRef const SectionVal(Loc.getPointer());
       size_t B = SectionVal.find(',') + 1, E = SectionVal.find(',', B);
-      SMLoc BLoc = SMLoc::getFromPointer(SectionVal.data() + B);
-      SMLoc ELoc = SMLoc::getFromPointer(SectionVal.data() + E);
+      SMLoc const BLoc = SMLoc::getFromPointer(SectionVal.data() + B);
+      SMLoc const ELoc = SMLoc::getFromPointer(SectionVal.data() + E);
       getParser().Warning(Loc, "section \"" + Section + "\" is deprecated",
                           SMRange(BLoc, ELoc));
       getParser().Note(Loc, "change section name to \"" + NonCoalSection +
@@ -718,7 +718,7 @@ bool DarwinAsmParser::parseDirectiveSection(StringRef, SMLoc) {
   }
 
   // FIXME: Arch specific.
-  bool isText = Segment == "__TEXT";  // FIXME: Hack.
+  bool const isText = Segment == "__TEXT";  // FIXME: Hack.
   getStreamer().SwitchSection(getContext().getMachOSection(
       Segment, Section, TAA, StubSize,
       isText ? SectionKind::getText() : SectionKind::getData()));
@@ -749,7 +749,7 @@ bool DarwinAsmParser::parseDirectivePopSection(StringRef, SMLoc) {
 /// ParseDirectivePrevious:
 ///   ::= .previous
 bool DarwinAsmParser::parseDirectivePrevious(StringRef DirName, SMLoc) {
-  MCSectionSubPair PreviousSection = getStreamer().getPreviousSection();
+  MCSectionSubPair const PreviousSection = getStreamer().getPreviousSection();
   if (!PreviousSection.first)
     return TokError(".previous without corresponding .section");
   getStreamer().SwitchSection(PreviousSection.first, PreviousSection.second);
@@ -759,7 +759,7 @@ bool DarwinAsmParser::parseDirectivePrevious(StringRef DirName, SMLoc) {
 /// ParseDirectiveSecureLogUnique
 ///  ::= .secure_log_unique ... message ...
 bool DarwinAsmParser::parseDirectiveSecureLogUnique(StringRef, SMLoc IDLoc) {
-  StringRef LogMessage = getParser().parseStringToEndOfStatement();
+  StringRef const LogMessage = getParser().parseStringToEndOfStatement();
   if (getLexer().isNot(AsmToken::EndOfStatement))
     return TokError("unexpected token in '.secure_log_unique' directive");
 
@@ -787,7 +787,7 @@ bool DarwinAsmParser::parseDirectiveSecureLogUnique(StringRef, SMLoc IDLoc) {
   }
 
   // Write the message.
-  unsigned CurBuf = getSourceManager().FindBufferContainingLoc(IDLoc);
+  unsigned const CurBuf = getSourceManager().FindBufferContainingLoc(IDLoc);
   *OS << getSourceManager().getBufferInfo(CurBuf).Buffer->getBufferIdentifier()
       << ":" << getSourceManager().FindLineNumber(IDLoc, CurBuf) << ":"
       << LogMessage + "\n";
@@ -826,7 +826,7 @@ bool DarwinAsmParser::parseDirectiveSubsectionsViaSymbols(StringRef, SMLoc) {
 /// ParseDirectiveTBSS
 ///  ::= .tbss identifier, size, align
 bool DarwinAsmParser::parseDirectiveTBSS(StringRef, SMLoc) {
-  SMLoc IDLoc = getLexer().getLoc();
+  SMLoc const IDLoc = getLexer().getLoc();
   StringRef Name;
   if (getParser().parseIdentifier(Name))
     return TokError("expected identifier in directive");
@@ -839,7 +839,7 @@ bool DarwinAsmParser::parseDirectiveTBSS(StringRef, SMLoc) {
   Lex();
 
   int64_t Size;
-  SMLoc SizeLoc = getLexer().getLoc();
+  SMLoc const SizeLoc = getLexer().getLoc();
   if (getParser().parseAbsoluteExpression(Size))
     return true;
 
@@ -891,7 +891,7 @@ bool DarwinAsmParser::parseDirectiveZerofill(StringRef, SMLoc) {
   Lex();
 
   StringRef Section;
-  SMLoc SectionLoc = getLexer().getLoc();
+  SMLoc const SectionLoc = getLexer().getLoc();
   if (getParser().parseIdentifier(Section))
     return TokError("expected section name after comma in '.zerofill' "
                     "directive");
@@ -911,7 +911,7 @@ bool DarwinAsmParser::parseDirectiveZerofill(StringRef, SMLoc) {
     return TokError("unexpected token in directive");
   Lex();
 
-  SMLoc IDLoc = getLexer().getLoc();
+  SMLoc const IDLoc = getLexer().getLoc();
   StringRef IDStr;
   if (getParser().parseIdentifier(IDStr))
     return TokError("expected identifier in directive");
@@ -924,7 +924,7 @@ bool DarwinAsmParser::parseDirectiveZerofill(StringRef, SMLoc) {
   Lex();
 
   int64_t Size;
-  SMLoc SizeLoc = getLexer().getLoc();
+  SMLoc const SizeLoc = getLexer().getLoc();
   if (getParser().parseAbsoluteExpression(Size))
     return true;
 
@@ -976,10 +976,10 @@ bool DarwinAsmParser::parseDirectiveDataRegion(StringRef, SMLoc) {
     return false;
   }
   StringRef RegionType;
-  SMLoc Loc = getParser().getTok().getLoc();
+  SMLoc const Loc = getParser().getTok().getLoc();
   if (getParser().parseIdentifier(RegionType))
     return TokError("expected region type after '.data_region' directive");
-  int Kind = StringSwitch<int>(RegionType)
+  int const Kind = StringSwitch<int>(RegionType)
     .Case("jt8", MCDR_DataRegionJT8)
     .Case("jt16", MCDR_DataRegionJT16)
     .Case("jt32", MCDR_DataRegionJT32)
@@ -1015,7 +1015,7 @@ bool DarwinAsmParser::parseMajorMinorVersionComponent(unsigned *Major,
   if (getLexer().isNot(AsmToken::Integer))
     return TokError(Twine("invalid ") + VersionName +
                     " major version number, integer expected");
-  int64_t MajorVal = getLexer().getTok().getIntVal();
+  int64_t const MajorVal = getLexer().getTok().getIntVal();
   if (MajorVal > 65535 || MajorVal <= 0)
     return TokError(Twine("invalid ") + VersionName + " major version number");
   *Major = (unsigned)MajorVal;
@@ -1028,7 +1028,7 @@ bool DarwinAsmParser::parseMajorMinorVersionComponent(unsigned *Major,
   if (getLexer().isNot(AsmToken::Integer))
     return TokError(Twine("invalid ") + VersionName +
                     " minor version number, integer expected");
-  int64_t MinorVal = getLexer().getTok().getIntVal();
+  int64_t const MinorVal = getLexer().getTok().getIntVal();
   if (MinorVal > 255 || MinorVal < 0)
     return TokError(Twine("invalid ") + VersionName + " minor version number");
   *Minor = MinorVal;
@@ -1044,7 +1044,7 @@ bool DarwinAsmParser::parseOptionalTrailingVersionComponent(
   if (getLexer().isNot(AsmToken::Integer))
     return TokError(Twine("invalid ") + ComponentName +
                     " version number, integer expected");
-  int64_t Val = getLexer().getTok().getIntVal();
+  int64_t const Val = getLexer().getTok().getIntVal();
   if (Val > 255 || Val < 0)
     return TokError(Twine("invalid ") + ComponentName + " version number");
   *Component = Val;
@@ -1134,7 +1134,7 @@ bool DarwinAsmParser::parseVersionMin(StringRef Directive, SMLoc Loc,
   if (parseToken(AsmToken::EndOfStatement))
     return addErrorSuffix(Twine(" in '") + Directive + "' directive");
 
-  Triple::OSType ExpectedOS = getOSTypeFromMCVM(Type);
+  Triple::OSType const ExpectedOS = getOSTypeFromMCVM(Type);
   checkVersion(Directive, StringRef(), Loc, ExpectedOS);
   getStreamer().emitVersionMin(Type, Major, Minor, Update, SDKVersion);
   return false;
@@ -1160,11 +1160,11 @@ static Triple::OSType getOSTypeFromPlatform(MachO::PlatformType Type) {
 ///   ::= .build_version (macos|ios|tvos|watchos), parseVersion parseSDKVersion
 bool DarwinAsmParser::parseBuildVersion(StringRef Directive, SMLoc Loc) {
   StringRef PlatformName;
-  SMLoc PlatformLoc = getTok().getLoc();
+  SMLoc const PlatformLoc = getTok().getLoc();
   if (getParser().parseIdentifier(PlatformName))
     return TokError("platform name expected");
 
-  unsigned Platform = StringSwitch<unsigned>(PlatformName)
+  unsigned const Platform = StringSwitch<unsigned>(PlatformName)
     .Case("macos", MachO::PLATFORM_MACOS)
     .Case("ios", MachO::PLATFORM_IOS)
     .Case("tvos", MachO::PLATFORM_TVOS)
@@ -1191,7 +1191,7 @@ bool DarwinAsmParser::parseBuildVersion(StringRef Directive, SMLoc Loc) {
   if (parseToken(AsmToken::EndOfStatement))
     return addErrorSuffix(" in '.build_version' directive");
 
-  Triple::OSType ExpectedOS
+  Triple::OSType const ExpectedOS
     = getOSTypeFromPlatform((MachO::PlatformType)Platform);
   checkVersion(Directive, PlatformName, Loc, ExpectedOS);
   getStreamer().emitBuildVersion(Platform, Major, Minor, Update, SDKVersion);

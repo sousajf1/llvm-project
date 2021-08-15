@@ -111,8 +111,8 @@ void SCEVDivision::visitConstant(const SCEVConstant *Numerator) {
   if (const SCEVConstant *D = dyn_cast<SCEVConstant>(Denominator)) {
     APInt NumeratorVal = Numerator->getAPInt();
     APInt DenominatorVal = D->getAPInt();
-    uint32_t NumeratorBW = NumeratorVal.getBitWidth();
-    uint32_t DenominatorBW = DenominatorVal.getBitWidth();
+    uint32_t const NumeratorBW = NumeratorVal.getBitWidth();
+    uint32_t const DenominatorBW = DenominatorVal.getBitWidth();
 
     if (NumeratorBW > DenominatorBW)
       DenominatorVal = DenominatorVal.sext(NumeratorBW);

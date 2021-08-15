@@ -41,7 +41,7 @@ Error EPCDynamicLibrarySearchGenerator::tryToGenerate(
 
   SymbolMap NewSymbols;
 
-  ExecutorProcessControl::LookupRequest Request(H, LookupSymbols);
+  ExecutorProcessControl::LookupRequest const Request(H, LookupSymbols);
   auto Result = EPC.lookupSymbols(Request);
   if (!Result)
     return Result.takeError();

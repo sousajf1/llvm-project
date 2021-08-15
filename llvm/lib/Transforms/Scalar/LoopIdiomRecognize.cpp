@@ -364,7 +364,7 @@ bool LoopIdiomRecognize::runOnLoop(Loop *L) {
     return false;
 
   // Disable loop idiom recognition if the function's name is a common idiom.
-  StringRef Name = L->getHeader()->getParent()->getName();
+  StringRef const Name = L->getHeader()->getParent()->getName();
   if (Name == "memset" || Name == "memcpy")
     return false;
 
@@ -467,7 +467,7 @@ static Constant *getMemSetPatternValue(Value *V, const DataLayout *DL) {
     return C;
 
   // Otherwise, we'll use an array of the constants.
-  unsigned ArraySize = 16 / Size;
+  unsigned const ArraySize = 16 / Size;
   ArrayType *AT = ArrayType::get(V->getType(), ArraySize);
   return ConstantArray::get(AT, std::vector<Constant *>(ArraySize, C));
 }
@@ -496,7 +496,7 @@ LoopIdiomRecognize::isLegalStore(StoreInst *SI) {
   // Reject stores that are so large that they overflow an unsigned.
   // When storing out scalable vectors we bail out for now, since the code
   // below currently only works for constant strides.
-  TypeSize SizeInBits = DL->getTypeSizeInBits(StoredVal->getType());
+  TypeSize const SizeInBits = DL->getTypeSizeInBits(StoredVal->getType());
   if (SizeInBits.isScalable() || (SizeInBits.getFixedSize() & 7) ||
       (SizeInBits.getFixedSize() >> 32) != 0)
     return LegalStoreKind::None;
@@ -545,8 +545,8 @@ LoopIdiomRecognize::isLegalStore(StoreInst *SI) {
   if (HasMemcpy && !DisableLIRP::Memcpy) {
     // Check to see if the stride matches the size of the store.  If so, then we
     // know that every byte is touched in the loop.
-    APInt Stride = getStoreStride(StoreEv);
-    unsigned StoreSize = DL->getTypeStoreSize(SI->getValueOperand()->getType());
+    APInt const Stride = getStoreStride(StoreEv);
+    unsigned const StoreSize = DL->getTypeStoreSize(SI->getValueOperand()->getType());
     if (StoreSize != Stride && StoreSize != -Stride)
       return LegalStoreKind::None;
 
@@ -671,8 +671,8 @@ bool LoopIdiomRecognize::processLoopStores(SmallVectorImpl<StoreInst *> &SL,
     Value *FirstStorePtr = SL[i]->getPointerOperand();
     const SCEVAddRecExpr *FirstStoreEv =
         cast<SCEVAddRecExpr>(SE->getSCEV(FirstStorePtr));
-    APInt FirstStride = getStoreStride(FirstStoreEv);
-    unsigned FirstStoreSize = DL->getTypeStoreSize(SL[i]->getValueOperand()->getType());
+    APInt const FirstStride = getStoreStride(FirstStoreEv);
+    unsigned const FirstStoreSize = DL->getTypeStoreSize(SL[i]->getValueOperand()->getType());
 
     // See if we can optimize just this store in isolation.
     if (FirstStride == FirstStoreSize || -FirstStride == FirstStoreSize) {
@@ -707,7 +707,7 @@ bool LoopIdiomRecognize::processLoopStores(SmallVectorImpl<StoreInst *> &SL,
       Value *SecondStorePtr = SL[k]->getPointerOperand();
       const SCEVAddRecExpr *SecondStoreEv =
           cast<SCEVAddRecExpr>(SE->getSCEV(SecondStorePtr));
-      APInt SecondStride = getStoreStride(SecondStoreEv);
+      APInt const SecondStride = getStoreStride(SecondStoreEv);
 
       if (FirstStride != SecondStride)
         continue;
@@ -777,14 +777,14 @@ bool LoopIdiomRecognize::processLoopStores(SmallVectorImpl<StoreInst *> &SL,
     Value *StoredVal = HeadStore->getValueOperand();
     Value *StorePtr = HeadStore->getPointerOperand();
     const SCEVAddRecExpr *StoreEv = cast<SCEVAddRecExpr>(SE->getSCEV(StorePtr));
-    APInt Stride = getStoreStride(StoreEv);
+    APInt const Stride = getStoreStride(StoreEv);
 
     // Check to see if the stride matches the size of the stores.  If so, then
     // we know that every byte is touched in the loop.
     if (StoreSize != Stride && StoreSize != -Stride)
       continue;
 
-    bool IsNegStride = StoreSize == -Stride;
+    bool const IsNegStride = StoreSize == -Stride;
 
     const SCEV *StoreSizeSCEV = SE->getConstant(BECount->getType(), StoreSize);
     if (processLoopStridedStore(StorePtr, StoreSizeSCEV,
@@ -811,7 +811,7 @@ bool LoopIdiomRecognize::processLoopMemIntrinsic(
     Instruction *Inst = &*I++;
     // Look for memory instructions, which may be optimized to a larger one.
     if (MemInst *MI = dyn_cast<MemInst>(Inst)) {
-      WeakTrackingVH InstPtr(&*I);
+      WeakTrackingVH const InstPtr(&*I);
       if (!(this->*Processor)(MI, BECount))
         continue;
       MadeChange = true;
@@ -852,7 +852,7 @@ bool LoopIdiomRecognize::processLoopMemCpy(MemCpyInst *MCI,
     return false;
 
   // Reject memcpys that are so large that they overflow an unsigned.
-  uint64_t SizeInBytes = cast<ConstantInt>(MCI->getLength())->getZExtValue();
+  uint64_t const SizeInBytes = cast<ConstantInt>(MCI->getLength())->getZExtValue();
   if ((SizeInBytes >> 32) != 0)
     return false;
 
@@ -865,8 +865,8 @@ bool LoopIdiomRecognize::processLoopMemCpy(MemCpyInst *MCI,
   if (!StoreStride || !LoadStride)
     return false;
 
-  APInt StoreStrideValue = StoreStride->getAPInt();
-  APInt LoadStrideValue = LoadStride->getAPInt();
+  APInt const StoreStrideValue = StoreStride->getAPInt();
+  APInt const LoadStrideValue = LoadStride->getAPInt();
   // Huge stride value - give up
   if (StoreStrideValue.getBitWidth() > 64 || LoadStrideValue.getBitWidth() > 64)
     return false;
@@ -882,8 +882,8 @@ bool LoopIdiomRecognize::processLoopMemCpy(MemCpyInst *MCI,
     return false;
   }
 
-  int64_t StoreStrideInt = StoreStrideValue.getSExtValue();
-  int64_t LoadStrideInt = LoadStrideValue.getSExtValue();
+  int64_t const StoreStrideInt = StoreStrideValue.getSExtValue();
+  int64_t const LoadStrideInt = LoadStrideValue.getSExtValue();
   // Check if the load stride matches the store stride.
   if (StoreStrideInt != LoadStrideInt)
     return false;
@@ -930,12 +930,12 @@ bool LoopIdiomRecognize::processLoopMemSet(MemSetInst *MSI,
     // Check if the pointer stride matches the memset size. If so, then
     // we know that every byte is touched in the loop.
     LLVM_DEBUG(dbgs() << "  memset size is constant\n");
-    uint64_t SizeInBytes = cast<ConstantInt>(MSI->getLength())->getZExtValue();
+    uint64_t const SizeInBytes = cast<ConstantInt>(MSI->getLength())->getZExtValue();
     const SCEVConstant *ConstStride = dyn_cast<SCEVConstant>(Ev->getOperand(1));
     if (!ConstStride)
       return false;
 
-    APInt Stride = ConstStride->getAPInt();
+    APInt const Stride = ConstStride->getAPInt();
     if (SizeInBytes != Stride && SizeInBytes != -Stride)
       return false;
 
@@ -1016,11 +1016,11 @@ mayLoopAccessLocation(Value *Ptr, ModRefInfo Access, Loop *L,
   // operand in the store.  Store to &A[i] of 100 will always return may alias
   // with store of &A[100], we need to StoreLoc to be "A" with size of 100,
   // which will then no-alias a store to &A[100].
-  MemoryLocation StoreLoc(Ptr, AccessSize);
+  MemoryLocation const StoreLoc(Ptr, AccessSize);
 
   for (Loop::block_iterator BI = L->block_begin(), E = L->block_end(); BI != E;
        ++BI)
-    for (Instruction &I : **BI)
+    for (Instruction  const&I : **BI)
       if (IgnoredStores.count(&I) == 0 &&
           isModOrRefSet(
               intersectModRef(AA.getModRefInfo(&I, StoreLoc), Access)))
@@ -1105,7 +1105,7 @@ bool LoopIdiomRecognize::processLoopStridedStore(
   // The trip count of the loop and the base pointer of the addrec SCEV is
   // guaranteed to be loop invariant, which means that it should dominate the
   // header.  This allows us to insert code for it in the preheader.
-  unsigned DestAS = DestPtr->getType()->getPointerAddressSpace();
+  unsigned const DestAS = DestPtr->getType()->getPointerAddressSpace();
   BasicBlock *Preheader = CurLoop->getLoopPreheader();
   IRBuilder<> Builder(Preheader->getTerminator());
   SCEVExpander Expander(*SE, *DL, "loop-idiom");
@@ -1171,8 +1171,8 @@ bool LoopIdiomRecognize::processLoopStridedStore(
     Type *Int8PtrTy = DestInt8PtrTy;
 
     Module *M = TheStore->getModule();
-    StringRef FuncName = "memset_pattern16";
-    FunctionCallee MSP = M->getOrInsertFunction(FuncName, Builder.getVoidTy(),
+    StringRef const FuncName = "memset_pattern16";
+    FunctionCallee const MSP = M->getOrInsertFunction(FuncName, Builder.getVoidTy(),
                                                 Int8PtrTy, Int8PtrTy, IntIdxTy);
     inferLibFuncAttributes(M, FuncName, *TLI);
 
@@ -1231,7 +1231,7 @@ bool LoopIdiomRecognize::processLoopStoreOfLoopLoad(StoreInst *SI,
 
   Value *StorePtr = SI->getPointerOperand();
   const SCEVAddRecExpr *StoreEv = cast<SCEVAddRecExpr>(SE->getSCEV(StorePtr));
-  unsigned StoreSize = DL->getTypeStoreSize(SI->getValueOperand()->getType());
+  unsigned const StoreSize = DL->getTypeStoreSize(SI->getValueOperand()->getType());
 
   // The store must be feeding a non-volatile load.
   LoadInst *LI = cast<LoadInst>(SI->getValueOperand());
@@ -1270,11 +1270,11 @@ bool LoopIdiomRecognize::processLoopStoreOfLoopLoad(
 
   bool Changed = false;
   const SCEV *StrStart = StoreEv->getStart();
-  unsigned StrAS = DestPtr->getType()->getPointerAddressSpace();
+  unsigned const StrAS = DestPtr->getType()->getPointerAddressSpace();
   Type *IntIdxTy = Builder.getIntNTy(DL->getIndexSizeInBits(StrAS));
 
-  APInt Stride = getStoreStride(StoreEv);
-  bool IsNegStride = StoreSize == -Stride;
+  APInt const Stride = getStoreStride(StoreEv);
+  bool const IsNegStride = StoreSize == -Stride;
 
   const SCEV *StoreSizeSCEV = SE->getConstant(BECount->getType(), StoreSize);
   // Handle negative strided loops.
@@ -1303,10 +1303,10 @@ bool LoopIdiomRecognize::processLoopStoreOfLoopLoad(
   SmallPtrSet<Instruction *, 2> Stores;
   Stores.insert(TheStore);
 
-  bool IsMemCpy = isa<MemCpyInst>(TheStore);
+  bool const IsMemCpy = isa<MemCpyInst>(TheStore);
   const StringRef InstRemark = IsMemCpy ? "memcpy" : "load and store";
 
-  bool UseMemMove =
+  bool const UseMemMove =
       mayLoopAccessLocation(StoreBasePtr, ModRefInfo::ModRef, CurLoop, BECount,
                             StoreSizeSCEV, *AA, Stores);
   if (UseMemMove) {
@@ -1327,7 +1327,7 @@ bool LoopIdiomRecognize::processLoopStoreOfLoopLoad(
   }
 
   const SCEV *LdStart = LoadEv->getStart();
-  unsigned LdAS = SourcePtr->getType()->getPointerAddressSpace();
+  unsigned const LdAS = SourcePtr->getType()->getPointerAddressSpace();
 
   // Handle negative strided loops.
   if (IsNegStride)
@@ -1362,7 +1362,7 @@ bool LoopIdiomRecognize::processLoopStoreOfLoopLoad(
         LoadBasePtr->stripPointerCasts(), LoadOff, *DL);
     const Value *BP2 = llvm::GetPointerBaseWithConstantOffset(
         StoreBasePtr->stripPointerCasts(), StoreOff, *DL);
-    int64_t LoadSize =
+    int64_t const LoadSize =
         DL->getTypeSizeInBits(TheLoad->getType()).getFixedSize() / 8;
     if (BP1 != BP2 || LoadSize != int64_t(StoreSize))
       return Changed;
@@ -1508,7 +1508,7 @@ static Value *matchCondition(BranchInst *BI, BasicBlock *LoopEntry,
   if (JmpOnZero)
     std::swap(TrueSucc, FalseSucc);
 
-  ICmpInst::Predicate Pred = Cond->getPredicate();
+  ICmpInst::Predicate const Pred = Cond->getPredicate();
   if ((Pred == ICmpInst::ICMP_NE && TrueSucc == LoopEntry) ||
       (Pred == ICmpInst::ICMP_EQ && FalseSucc == LoopEntry))
     return Cond->getOperand(0);
@@ -1774,7 +1774,7 @@ bool LoopIdiomRecognize::recognizeAndInsertFFS() {
   Instruction *CntInst = nullptr;
   // Help decide if transformation is profitable. For ShiftUntilZero idiom,
   // this is always 6.
-  size_t IdiomCanonicalSize = 6;
+  size_t const IdiomCanonicalSize = 6;
 
   if (!detectShiftUntilZeroIdiom(CurLoop, *DL, IntrinID, InitX,
                                  CntInst, CntPhi, DefX))
@@ -1832,16 +1832,16 @@ bool LoopIdiomRecognize::recognizeAndInsertFFS() {
   //  %inc = add nsw %i.0, 1
   //  br i1 %tobool
 
-  const Value *Args[] = {InitX,
+  const Value *const Args[] = {InitX,
                          ConstantInt::getBool(InitX->getContext(), ZeroCheck)};
 
   // @llvm.dbg doesn't count as they have no semantic effect.
   auto InstWithoutDebugIt = CurLoop->getHeader()->instructionsWithoutDebug();
-  uint32_t HeaderSize =
+  uint32_t const HeaderSize =
       std::distance(InstWithoutDebugIt.begin(), InstWithoutDebugIt.end());
 
-  IntrinsicCostAttributes Attrs(IntrinID, InitX->getType(), Args);
-  InstructionCost Cost =
+  IntrinsicCostAttributes const Attrs(IntrinID, InitX->getType(), Args);
+  InstructionCost const Cost =
     TTI->getIntrinsicInstrCost(Attrs, TargetTransformInfo::TCK_SizeAndLatency);
   if (HeaderSize != IdiomCanonicalSize &&
       Cost > TargetTransformInfo::TCC_Basic)
@@ -1905,8 +1905,8 @@ bool LoopIdiomRecognize::recognizePopcount() {
 
 static CallInst *createPopcntIntrinsic(IRBuilder<> &IRBuilder, Value *Val,
                                        const DebugLoc &DL) {
-  Value *Ops[] = {Val};
-  Type *Tys[] = {Val->getType()};
+  Value *const Ops[] = {Val};
+  Type *const Tys[] = {Val->getType()};
 
   Module *M = IRBuilder.GetInsertBlock()->getParent()->getParent();
   Function *Func = Intrinsic::getDeclaration(M, Intrinsic::ctpop, Tys);
@@ -1919,8 +1919,8 @@ static CallInst *createPopcntIntrinsic(IRBuilder<> &IRBuilder, Value *Val,
 static CallInst *createFFSIntrinsic(IRBuilder<> &IRBuilder, Value *Val,
                                     const DebugLoc &DL, bool ZeroCheck,
                                     Intrinsic::ID IID) {
-  Value *Ops[] = {Val, IRBuilder.getInt1(ZeroCheck)};
-  Type *Tys[] = {Val->getType()};
+  Value *const Ops[] = {Val, IRBuilder.getInt1(ZeroCheck)};
+  Type *const Tys[] = {Val->getType()};
 
   Module *M = IRBuilder.GetInsertBlock()->getParent()->getParent();
   Function *Func = Intrinsic::getDeclaration(M, IID, Tys);
@@ -2034,7 +2034,7 @@ void LoopIdiomRecognize::transformLoopToCountable(
   TcPhi->addIncoming(Count, Preheader);
   TcPhi->addIncoming(TcDec, Body);
 
-  CmpInst::Predicate Pred =
+  CmpInst::Predicate const Pred =
       (LbBr->getSuccessor(0) == Body) ? CmpInst::ICMP_NE : CmpInst::ICMP_EQ;
   LbCond->setPredicate(Pred);
   LbCond->setOperand(0, TcDec);
@@ -2141,7 +2141,7 @@ void LoopIdiomRecognize::transformLoopToPopcount(BasicBlock *PreCondBB,
     TcPhi->addIncoming(TripCnt, PreHead);
     TcPhi->addIncoming(TcDec, Body);
 
-    CmpInst::Predicate Pred =
+    CmpInst::Predicate const Pred =
         (LbBr->getSuccessor(0) == Body) ? CmpInst::ICMP_UGT : CmpInst::ICMP_SLE;
     LbCond->setPredicate(Pred);
     LbCond->setOperand(0, TcDec);
@@ -2378,19 +2378,19 @@ bool LoopIdiomRecognize::recognizeShiftUntilBitTest() {
   IRBuilder<> Builder(LoopPreheaderBB->getTerminator());
   Builder.SetCurrentDebugLocation(cast<Instruction>(XCurr)->getDebugLoc());
 
-  Intrinsic::ID IntrID = Intrinsic::ctlz;
+  Intrinsic::ID const IntrID = Intrinsic::ctlz;
   Type *Ty = X->getType();
-  unsigned Bitwidth = Ty->getScalarSizeInBits();
+  unsigned const Bitwidth = Ty->getScalarSizeInBits();
 
-  TargetTransformInfo::TargetCostKind CostKind =
+  TargetTransformInfo::TargetCostKind const CostKind =
       TargetTransformInfo::TCK_SizeAndLatency;
 
   // The rewrite is considered to be unprofitable iff and only iff the
   // intrinsic/shift we'll use are not cheap. Note that we are okay with *just*
   // making the loop countable, even if nothing else changes.
-  IntrinsicCostAttributes Attrs(
+  IntrinsicCostAttributes const Attrs(
       IntrID, Ty, {UndefValue::get(Ty), /*is_zero_undef=*/Builder.getTrue()});
-  InstructionCost Cost = TTI->getIntrinsicInstrCost(Attrs, CostKind);
+  InstructionCost const Cost = TTI->getIntrinsicInstrCost(Attrs, CostKind);
   if (Cost > TargetTransformInfo::TCC_Basic) {
     LLVM_DEBUG(dbgs() << DEBUG_TYPE
                " Intrinsic is too costly, not beneficial\n");
@@ -2734,17 +2734,17 @@ bool LoopIdiomRecognize::recognizeShiftUntilZero() {
   Builder.SetCurrentDebugLocation(IV->getDebugLoc());
 
   Type *Ty = Val->getType();
-  unsigned Bitwidth = Ty->getScalarSizeInBits();
+  unsigned const Bitwidth = Ty->getScalarSizeInBits();
 
-  TargetTransformInfo::TargetCostKind CostKind =
+  TargetTransformInfo::TargetCostKind const CostKind =
       TargetTransformInfo::TCK_SizeAndLatency;
 
   // The rewrite is considered to be unprofitable iff and only iff the
   // intrinsic we'll use are not cheap. Note that we are okay with *just*
   // making the loop countable, even if nothing else changes.
-  IntrinsicCostAttributes Attrs(
+  IntrinsicCostAttributes const Attrs(
       IntrID, Ty, {UndefValue::get(Ty), /*is_zero_undef=*/Builder.getFalse()});
-  InstructionCost Cost = TTI->getIntrinsicInstrCost(Attrs, CostKind);
+  InstructionCost const Cost = TTI->getIntrinsicInstrCost(Attrs, CostKind);
   if (Cost > TargetTransformInfo::TCC_Basic) {
     LLVM_DEBUG(dbgs() << DEBUG_TYPE
                " Intrinsic is too costly, not beneficial\n");

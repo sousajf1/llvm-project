@@ -186,7 +186,7 @@ bool IVUsers::AddUsersImpl(Instruction *I,
   // LSR is not APInt clean, do not touch integers bigger than 64-bits.
   // Also avoid creating IVs of non-native types. For example, we don't want a
   // 64-bit IV in 32-bit code just because the loop has one 64-bit cast.
-  uint64_t Width = SE->getTypeSizeInBits(I->getType());
+  uint64_t const Width = SE->getTypeSizeInBits(I->getType());
   if (Width > 64 || !DL.isLegalInteger(Width))
     return false;
 
@@ -204,7 +204,7 @@ bool IVUsers::AddUsersImpl(Instruction *I,
     return false;
 
   SmallPtrSet<Instruction *, 4> UniqueUsers;
-  for (Use &U : I->uses()) {
+  for (Use  const&U : I->uses()) {
     Instruction *User = cast<Instruction>(U.getUser());
     if (!UniqueUsers.insert(User).second)
       continue;
@@ -218,8 +218,8 @@ bool IVUsers::AddUsersImpl(Instruction *I,
     BasicBlock *UseBB = User->getParent();
     // A phi's use is live out of its predecessor block.
     if (PHINode *PHI = dyn_cast<PHINode>(User)) {
-      unsigned OperandNo = U.getOperandNo();
-      unsigned ValNo = PHINode::getIncomingValueNumForOperand(OperandNo);
+      unsigned const OperandNo = U.getOperandNo();
+      unsigned const ValNo = PHINode::getIncomingValueNumForOperand(OperandNo);
       UseBB = PHI->getIncomingBlock(ValNo);
     }
     if (!isSimplifiedLoopNest(UseBB, DT, LI, SimpleLoopNests))
@@ -255,7 +255,7 @@ bool IVUsers::AddUsersImpl(Instruction *I,
 
       auto NormalizePred = [&](const SCEVAddRecExpr *AR) {
         auto *L = AR->getLoop();
-        bool Result = IVUseShouldUsePostIncValue(User, I, L, DT);
+        bool const Result = IVUseShouldUsePostIncValue(User, I, L, DT);
         if (Result)
           NewUse.PostIncLoops.insert(L);
         return Result;

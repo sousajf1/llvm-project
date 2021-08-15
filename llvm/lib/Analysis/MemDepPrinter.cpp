@@ -101,7 +101,7 @@ bool MemDepPrinter::runOnFunction(Function &F) {
     if (!Inst->mayReadFromMemory() && !Inst->mayWriteToMemory())
       continue;
 
-    MemDepResult Res = MDA.getDependency(Inst);
+    MemDepResult const Res = MDA.getDependency(Inst);
     if (!Res.isNonLocal()) {
       Deps[Inst].insert(std::make_pair(getInstTypePair(Res),
                                        static_cast<BasicBlock *>(nullptr)));
@@ -135,7 +135,7 @@ void MemDepPrinter::print(raw_ostream &OS, const Module *M) const {
   for (const auto &I : instructions(*F)) {
     const Instruction *Inst = &I;
 
-    DepSetMap::const_iterator DI = Deps.find(Inst);
+    DepSetMap::const_iterator const DI = Deps.find(Inst);
     if (DI == Deps.end())
       continue;
 
@@ -143,7 +143,7 @@ void MemDepPrinter::print(raw_ostream &OS, const Module *M) const {
 
     for (const auto &I : InstDeps) {
       const Instruction *DepInst = I.first.getPointer();
-      DepType type = I.first.getInt();
+      DepType const type = I.first.getInt();
       const BasicBlock *DepBB = I.second;
 
       OS << "    ";

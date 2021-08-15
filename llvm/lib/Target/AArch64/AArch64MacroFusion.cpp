@@ -387,7 +387,7 @@ static bool shouldScheduleAdjacent(const TargetInstrInfo &TII,
   // All checking functions assume that the 1st instr is a wildcard if it is
   // unspecified.
   if (ST.hasCmpBccFusion() || ST.hasArithmeticBccFusion()) {
-    bool CmpOnly = !ST.hasArithmeticBccFusion();
+    bool const CmpOnly = !ST.hasArithmeticBccFusion();
     if (isArithmeticBccPair(FirstMI, SecondMI, CmpOnly))
       return true;
   }

@@ -156,7 +156,7 @@ Value *FastDivInsertionTask::getReplacement(DivCacheTy &Cache) {
   // Then, look for a value in Cache.
   Value *Dividend = SlowDivOrRem->getOperand(0);
   Value *Divisor = SlowDivOrRem->getOperand(1);
-  DivRemMapKey Key(isSignedOp(), Dividend, Divisor);
+  DivRemMapKey const Key(isSignedOp(), Dividend, Divisor);
   auto CacheI = Cache.find(Key);
 
   if (CacheI == Cache.end()) {
@@ -168,7 +168,7 @@ Value *FastDivInsertionTask::getReplacement(DivCacheTy &Cache) {
     CacheI = Cache.insert({Key, *OptResult}).first;
   }
 
-  QuotRemPair &Value = CacheI->second;
+  QuotRemPair  const&Value = CacheI->second;
   return isDivisionOp() ? Value.Quotient : Value.Remainder;
 }
 
@@ -229,11 +229,11 @@ bool FastDivInsertionTask::isHashLikeValue(Value *V, VisitedSetTy &Visited) {
 /// Check if an integer value fits into our bypass type.
 ValueRange FastDivInsertionTask::getValueRange(Value *V,
                                                VisitedSetTy &Visited) {
-  unsigned ShortLen = BypassType->getBitWidth();
-  unsigned LongLen = V->getType()->getIntegerBitWidth();
+  unsigned const ShortLen = BypassType->getBitWidth();
+  unsigned const LongLen = V->getType()->getIntegerBitWidth();
 
   assert(LongLen > ShortLen && "Value type must be wider than BypassType");
-  unsigned HiBits = LongLen - ShortLen;
+  unsigned const HiBits = LongLen - ShortLen;
 
   const DataLayout &DL = SlowDivOrRem->getModule()->getDataLayout();
   KnownBits Known(LongLen);
@@ -340,7 +340,7 @@ Value *FastDivInsertionTask::insertOperandRuntimeCheck(Value *Op1, Value *Op2) {
 
   // BitMask is inverted to check if the operands are
   // larger than the bypass type
-  uint64_t BitMask = ~BypassType->getBitMask();
+  uint64_t const BitMask = ~BypassType->getBitMask();
   Value *AndV = Builder.CreateAnd(OrV, BitMask);
 
   // Compare operand values
@@ -355,17 +355,17 @@ Optional<QuotRemPair> FastDivInsertionTask::insertFastDivAndRem() {
   Value *Divisor = SlowDivOrRem->getOperand(1);
 
   VisitedSetTy SetL;
-  ValueRange DividendRange = getValueRange(Dividend, SetL);
+  ValueRange const DividendRange = getValueRange(Dividend, SetL);
   if (DividendRange == VALRNG_LIKELY_LONG)
     return None;
 
   VisitedSetTy SetR;
-  ValueRange DivisorRange = getValueRange(Divisor, SetR);
+  ValueRange const DivisorRange = getValueRange(Divisor, SetR);
   if (DivisorRange == VALRNG_LIKELY_LONG)
     return None;
 
-  bool DividendShort = (DividendRange == VALRNG_KNOWN_SHORT);
-  bool DivisorShort = (DivisorRange == VALRNG_KNOWN_SHORT);
+  bool const DividendShort = (DividendRange == VALRNG_KNOWN_SHORT);
+  bool const DivisorShort = (DivisorRange == VALRNG_KNOWN_SHORT);
 
   if (DividendShort && DivisorShort) {
     // If both operands are known to be short then just replace the long

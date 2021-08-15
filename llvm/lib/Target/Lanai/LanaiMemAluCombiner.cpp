@@ -238,24 +238,24 @@ void LanaiMemAluCombiner::insertMergedInstruction(MachineBasicBlock *BB,
                                                   const MbbIterator &AluInstr,
                                                   bool Before) {
   // Insert new combined load/store + alu operation
-  MachineOperand Dest = MemInstr->getOperand(0);
-  MachineOperand Base = MemInstr->getOperand(1);
-  MachineOperand MemOffset = MemInstr->getOperand(2);
-  MachineOperand AluOffset = AluInstr->getOperand(2);
+  MachineOperand const Dest = MemInstr->getOperand(0);
+  MachineOperand const Base = MemInstr->getOperand(1);
+  MachineOperand const MemOffset = MemInstr->getOperand(2);
+  MachineOperand const AluOffset = AluInstr->getOperand(2);
 
   // Abort if ALU offset is not a register or immediate
   assert((AluOffset.isReg() || AluOffset.isImm()) &&
          "Unsupported operand type in merge");
 
   // Determined merged instructions opcode and ALU code
-  LPAC::AluCode AluOpcode = mergedAluCode(AluInstr->getOpcode());
-  unsigned NewOpc = mergedOpcode(MemInstr->getOpcode(), AluOffset.isImm());
+  LPAC::AluCode const AluOpcode = mergedAluCode(AluInstr->getOpcode());
+  unsigned const NewOpc = mergedOpcode(MemInstr->getOpcode(), AluOffset.isImm());
 
   assert(AluOpcode != LPAC::UNKNOWN && "Unknown ALU code in merging");
   assert(NewOpc != 0 && "Unknown merged node opcode");
 
   // Build and insert new machine instruction
-  MachineInstrBuilder InstrBuilder =
+  MachineInstrBuilder const InstrBuilder =
       BuildMI(*BB, MemInstr, MemInstr->getDebugLoc(), TII->get(NewOpc));
   InstrBuilder.addReg(Dest.getReg(), getDefRegState(true));
   InstrBuilder.addReg(Base.getReg(), getKillRegState(true));
@@ -289,9 +289,9 @@ bool isSuitableAluInstr(bool IsSpls, const MbbIterator &AluIter,
   if (AluIter->getNumOperands() != 3)
     return false;
 
-  MachineOperand &Dest = AluIter->getOperand(0);
-  MachineOperand &Op1 = AluIter->getOperand(1);
-  MachineOperand &Op2 = AluIter->getOperand(2);
+  MachineOperand  const&Dest = AluIter->getOperand(0);
+  MachineOperand  const&Op1 = AluIter->getOperand(1);
+  MachineOperand  const&Op2 = AluIter->getOperand(2);
 
   // Only match instructions using the base register as destination and with the
   // base and first operand equal
@@ -330,10 +330,10 @@ MbbIterator LanaiMemAluCombiner::findClosestSuitableAluInstr(
     MachineBasicBlock *BB, const MbbIterator &MemInstr, const bool Decrement) {
   MachineOperand *Base = &MemInstr->getOperand(1);
   MachineOperand *Offset = &MemInstr->getOperand(2);
-  bool IsSpls = isSpls(MemInstr->getOpcode());
+  bool const IsSpls = isSpls(MemInstr->getOpcode());
 
   MbbIterator First = MemInstr;
-  MbbIterator Last = Decrement ? BB->begin() : BB->end();
+  MbbIterator const Last = Decrement ? BB->begin() : BB->end();
 
   while (First != Last) {
     Decrement ? --First : ++First;
@@ -366,20 +366,20 @@ bool LanaiMemAluCombiner::combineMemAluInBasicBlock(MachineBasicBlock *BB) {
 
   MbbIterator MBBIter = BB->begin(), End = BB->end();
   while (MBBIter != End) {
-    bool IsMemOp = isNonVolatileMemoryOp(*MBBIter);
+    bool const IsMemOp = isNonVolatileMemoryOp(*MBBIter);
 
     if (IsMemOp) {
-      MachineOperand AluOperand = MBBIter->getOperand(3);
+      MachineOperand const AluOperand = MBBIter->getOperand(3);
       unsigned int DestReg = MBBIter->getOperand(0).getReg(),
                    BaseReg = MBBIter->getOperand(1).getReg();
       assert(AluOperand.isImm() && "Unexpected memory operator type");
-      LPAC::AluCode AluOpcode = static_cast<LPAC::AluCode>(AluOperand.getImm());
+      LPAC::AluCode const AluOpcode = static_cast<LPAC::AluCode>(AluOperand.getImm());
 
       // Skip memory operations that already modify the base register or if
       // the destination and base register are the same
       if (!LPAC::modifiesOp(AluOpcode) && DestReg != BaseReg) {
         for (int Inc = 0; Inc <= 1; ++Inc) {
-          MbbIterator AluIter =
+          MbbIterator const AluIter =
               findClosestSuitableAluInstr(BB, MBBIter, Inc == 0);
           if (AluIter != MBBIter) {
             insertMergedInstruction(BB, MBBIter, AluIter, Inc == 0);

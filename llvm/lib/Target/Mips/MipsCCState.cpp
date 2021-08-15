@@ -73,7 +73,7 @@ MipsCCState::getSpecialCallingConvForCallee(const SDNode *Callee,
   if (Subtarget.inMips16HardFloat()) {
     if (const GlobalAddressSDNode *G =
             dyn_cast<const GlobalAddressSDNode>(Callee)) {
-      llvm::StringRef Sym = G->getGlobal()->getName();
+      llvm::StringRef const Sym = G->getGlobal()->getName();
       Function *F = G->getGlobal()->getParent()->getFunction(Sym);
       if (F && F->hasFnAttribute("__Mips16RetHelper")) {
         SpecialCallingConv = Mips16RetHelperConv;
@@ -120,7 +120,7 @@ void MipsCCState::PreAnalyzeCallResultForVectorFloat(
 void MipsCCState::PreAnalyzeReturnForVectorFloat(
     const SmallVectorImpl<ISD::OutputArg> &Outs) {
   for (unsigned i = 0; i < Outs.size(); ++i) {
-    ISD::OutputArg Out = Outs[i];
+    ISD::OutputArg const Out = Outs[i];
     OriginalRetWasFloatVector.push_back(
         originalEVTTypeIsVectorFloat(Out.ArgVT));
   }
@@ -145,7 +145,7 @@ void MipsCCState::PreAnalyzeCallOperands(
     std::vector<TargetLowering::ArgListEntry> &FuncArgs,
     const char *Func) {
   for (unsigned i = 0; i < Outs.size(); ++i) {
-    TargetLowering::ArgListEntry FuncArg = FuncArgs[Outs[i].OrigArgIndex];
+    TargetLowering::ArgListEntry const FuncArg = FuncArgs[Outs[i].OrigArgIndex];
 
     OriginalArgWasF128.push_back(originalTypeIsF128(FuncArg.Ty, Func));
     OriginalArgWasFloat.push_back(FuncArg.Ty->isFloatingPointTy());

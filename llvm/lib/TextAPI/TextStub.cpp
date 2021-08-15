@@ -1097,7 +1097,7 @@ static void DiagHandler(const SMDiagnostic &Diag, void *Context) {
   SmallString<1024> Message;
   raw_svector_ostream S(Message);
 
-  SMDiagnostic NewDiag(*Diag.getSourceMgr(), Diag.getLoc(), File->Path,
+  SMDiagnostic const NewDiag(*Diag.getSourceMgr(), Diag.getLoc(), File->Path,
                        Diag.getLineNo(), Diag.getColumnNo(), Diag.getKind(),
                        Diag.getMessage(), Diag.getLineContents(),
                        Diag.getRanges(), Diag.getFixIts());

@@ -49,8 +49,8 @@ protected:
     bool processBlock(MachineBasicBlock &MBB) {
       bool Changed = false;
       bool NeedFence = true;
-      bool Is64Bit = MBB.getParent()->getSubtarget<PPCSubtarget>().isPPC64();
-      bool IsAIX = MBB.getParent()->getSubtarget<PPCSubtarget>().isAIXABI();
+      bool const Is64Bit = MBB.getParent()->getSubtarget<PPCSubtarget>().isPPC64();
+      bool const IsAIX = MBB.getParent()->getSubtarget<PPCSubtarget>().isAIXABI();
       bool IsPCREL = false;
 
       for (MachineBasicBlock::iterator I = MBB.begin(), IE = MBB.end();
@@ -79,16 +79,16 @@ protected:
 
         LLVM_DEBUG(dbgs() << "TLS Dynamic Call Fixup:\n    " << MI);
 
-        Register OutReg = MI.getOperand(0).getReg();
+        Register const OutReg = MI.getOperand(0).getReg();
         Register InReg = PPC::NoRegister;
-        Register GPR3 = Is64Bit ? PPC::X3 : PPC::R3;
-        Register GPR4 = Is64Bit ? PPC::X4 : PPC::R4;
+        Register const GPR3 = Is64Bit ? PPC::X3 : PPC::R3;
+        Register const GPR4 = Is64Bit ? PPC::X4 : PPC::R4;
         SmallVector<Register, 3> OrigRegs = {OutReg, GPR3};
         if (!IsPCREL) {
           InReg = MI.getOperand(1).getReg();
           OrigRegs.push_back(InReg);
         }
-        DebugLoc DL = MI.getDebugLoc();
+        DebugLoc const DL = MI.getDebugLoc();
 
         unsigned Opc1, Opc2;
         switch (MI.getOpcode()) {

@@ -55,7 +55,7 @@ void MipsDAGToDAGISel::getAnalysisUsage(AnalysisUsage &AU) const {
 
 bool MipsDAGToDAGISel::runOnMachineFunction(MachineFunction &MF) {
   Subtarget = &static_cast<const MipsSubtarget &>(MF.getSubtarget());
-  bool Ret = SelectionDAGISel::runOnMachineFunction(MF);
+  bool const Ret = SelectionDAGISel::runOnMachineFunction(MF);
 
   processFunctionAfterISel(MF);
 
@@ -65,7 +65,7 @@ bool MipsDAGToDAGISel::runOnMachineFunction(MachineFunction &MF) {
 /// getGlobalBaseReg - Output the instructions required to put the
 /// GOT address into a register.
 SDNode *MipsDAGToDAGISel::getGlobalBaseReg() {
-  Register GlobalBaseReg = MF->getInfo<MipsFunctionInfo>()->getGlobalBaseReg(*MF);
+  Register const GlobalBaseReg = MF->getInfo<MipsFunctionInfo>()->getGlobalBaseReg(*MF);
   return CurDAG->getRegister(GlobalBaseReg, getTargetLowering()->getPointerTy(
                                                 CurDAG->getDataLayout()))
       .getNode();
@@ -223,10 +223,10 @@ bool MipsDAGToDAGISel::selectVSplatMaskR(SDValue N, SDValue &Imm) const {
 bool MipsDAGToDAGISel::selectVecAddAsVecSubIfProfitable(SDNode *Node) {
   assert(Node->getOpcode() == ISD::ADD && "Should only get 'add' here.");
 
-  EVT VT = Node->getValueType(0);
+  EVT const VT = Node->getValueType(0);
   assert(VT.isVector() && "Should only be called for vectors.");
 
-  SDValue X = Node->getOperand(0);
+  SDValue const X = Node->getOperand(0);
   SDValue C = Node->getOperand(1);
 
   auto *BVN = dyn_cast<BuildVectorSDNode>(C);
@@ -246,16 +246,16 @@ bool MipsDAGToDAGISel::selectVecAddAsVecSubIfProfitable(SDNode *Node) {
   if (IsInlineConstant(SplatValue))
     return false; // Can already be encoded as an immediate.
 
-  APInt NegSplatValue = 0 - SplatValue;
+  APInt const NegSplatValue = 0 - SplatValue;
   if (!IsInlineConstant(NegSplatValue))
     return false; // Even if we negate it it won't help.
 
-  SDLoc DL(Node);
+  SDLoc const DL(Node);
 
-  SDValue NegC = CurDAG->FoldConstantArithmetic(
+  SDValue const NegC = CurDAG->FoldConstantArithmetic(
       ISD::SUB, DL, VT, {CurDAG->getConstant(0, DL, VT), C});
   assert(NegC && "Constant-folding failed!");
-  SDValue NewNode = CurDAG->getNode(ISD::SUB, DL, VT, X, NegC);
+  SDValue const NewNode = CurDAG->getNode(ISD::SUB, DL, VT, X, NegC);
 
   ReplaceNode(Node, NewNode.getNode());
   SelectCode(NewNode.getNode());
@@ -265,7 +265,7 @@ bool MipsDAGToDAGISel::selectVecAddAsVecSubIfProfitable(SDNode *Node) {
 /// Select instructions not customized! Used for
 /// expanded, promoted and normal instructions
 void MipsDAGToDAGISel::Select(SDNode *Node) {
-  unsigned Opcode = Node->getOpcode();
+  unsigned const Opcode = Node->getOpcode();
 
   // If we have a custom node, we already have selected!
   if (Node->isMachineOpcode()) {

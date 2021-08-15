@@ -88,7 +88,7 @@ protected:
         if (!MI.isFullCopy())
           continue;
 
-        MachineOperand &DstMO = MI.getOperand(0);
+        MachineOperand  const&DstMO = MI.getOperand(0);
         MachineOperand &SrcMO = MI.getOperand(1);
 
         if ( IsVSReg(DstMO.getReg(), MRI) &&
@@ -102,7 +102,7 @@ protected:
                   IsVSFReg(SrcMO.getReg(), MRI)) &&
                  "Unknown source for a VSX copy");
 
-          Register NewVReg = MRI.createVirtualRegister(SrcRC);
+          Register const NewVReg = MRI.createVirtualRegister(SrcRC);
           BuildMI(MBB, MI, MI.getDebugLoc(),
                   TII->get(TargetOpcode::SUBREG_TO_REG), NewVReg)
               .addImm(1) // add 1, not 0, because there is no implicit clearing
@@ -124,7 +124,7 @@ protected:
                  "Unknown destination for a VSX copy");
 
           // Copy the VSX value into a new VSX register of the correct subclass.
-          Register NewVReg = MRI.createVirtualRegister(DstRC);
+          Register const NewVReg = MRI.createVirtualRegister(DstRC);
           BuildMI(MBB, MI, MI.getDebugLoc(), TII->get(TargetOpcode::COPY),
                   NewVReg)
               .add(SrcMO);

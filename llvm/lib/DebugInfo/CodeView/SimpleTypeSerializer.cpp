@@ -15,13 +15,13 @@ using namespace llvm;
 using namespace llvm::codeview;
 
 static void addPadding(BinaryStreamWriter &Writer) {
-  uint32_t Align = Writer.getOffset() % 4;
+  uint32_t const Align = Writer.getOffset() % 4;
   if (Align == 0)
     return;
 
   int PaddingBytes = 4 - Align;
   while (PaddingBytes > 0) {
-    uint8_t Pad = static_cast<uint8_t>(LF_PAD0 + PaddingBytes);
+    uint8_t const Pad = static_cast<uint8_t>(LF_PAD0 + PaddingBytes);
     cantFail(Writer.writeInteger(Pad));
     --PaddingBytes;
   }
@@ -37,7 +37,7 @@ ArrayRef<uint8_t> SimpleTypeSerializer::serialize(T &Record) {
   TypeRecordMapping Mapping(Writer);
 
   // Write the record prefix first with a dummy length but real kind.
-  RecordPrefix DummyPrefix(uint16_t(Record.getKind()));
+  RecordPrefix const DummyPrefix(uint16_t(Record.getKind()));
   cantFail(Writer.writeObject(DummyPrefix));
 
   RecordPrefix *Prefix = reinterpret_cast<RecordPrefix *>(ScratchBuffer.data());

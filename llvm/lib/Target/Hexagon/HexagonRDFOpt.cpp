@@ -114,8 +114,8 @@ bool HexagonCP::interpretAsCopy(const MachineInstr *MI, EqualityMap &EM) {
     EM.insert(std::make_pair(DstR, SrcR));
   };
 
-  DataFlowGraph &DFG = getDFG();
-  unsigned Opc = MI->getOpcode();
+  DataFlowGraph  const&DFG = getDFG();
+  unsigned const Opc = MI->getOpcode();
   switch (Opc) {
     case Hexagon::A2_combinew: {
       const MachineOperand &DstOp = MI->getOperand(0);
@@ -147,7 +147,7 @@ bool HexagonCP::interpretAsCopy(const MachineInstr *MI, EqualityMap &EM) {
 }
 
 bool HexagonDCE::run() {
-  bool Collected = collect();
+  bool const Collected = collect();
   if (!Collected)
     return false;
 
@@ -158,12 +158,12 @@ bool HexagonDCE::run() {
 
   RefToInstrMap R2I;
   SetVector<NodeId> PartlyDead;
-  DataFlowGraph &DFG = getDFG();
+  DataFlowGraph  const&DFG = getDFG();
 
-  for (NodeAddr<BlockNode*> BA : DFG.getFunc().Addr->members(DFG)) {
+  for (NodeAddr<BlockNode*> const BA : DFG.getFunc().Addr->members(DFG)) {
     for (auto TA : BA.Addr->members_if(DFG.IsCode<NodeAttrs::Stmt>, DFG)) {
-      NodeAddr<StmtNode*> SA = TA;
-      for (NodeAddr<RefNode*> RA : SA.Addr->members(DFG)) {
+      NodeAddr<StmtNode*> const SA = TA;
+      for (NodeAddr<RefNode*> const RA : SA.Addr->members(DFG)) {
         R2I.insert(std::make_pair(RA.Id, SA.Id));
         if (DFG.IsDef(RA) && DeadNodes.count(RA.Id))
           if (!DeadInstrs.count(SA.Id))
@@ -176,7 +176,7 @@ bool HexagonDCE::run() {
   SetVector<NodeId> Remove = DeadInstrs;
 
   bool Changed = false;
-  for (NodeId N : PartlyDead) {
+  for (NodeId const N : PartlyDead) {
     auto SA = DFG.addr<StmtNode*>(N);
     if (trace())
       dbgs() << "Partly dead: " << *SA.Addr->getCode();
@@ -197,14 +197,14 @@ void HexagonDCE::removeOperand(NodeAddr<InstrNode*> IA, unsigned OpNum) {
   };
   DenseMap<NodeId,unsigned> OpMap;
   DataFlowGraph &DFG = getDFG();
-  NodeList Refs = IA.Addr->members(DFG);
+  NodeList const Refs = IA.Addr->members(DFG);
   for (NodeAddr<RefNode*> RA : Refs)
     OpMap.insert(std::make_pair(RA.Id, getOpNum(RA.Addr->getOp())));
 
   MI->RemoveOperand(OpNum);
 
   for (NodeAddr<RefNode*> RA : Refs) {
-    unsigned N = OpMap[RA.Id];
+    unsigned const N = OpMap[RA.Id];
     if (N < OpNum)
       RA.Addr->setRegRef(&MI->getOperand(N), DFG);
     else if (N > OpNum)
@@ -215,12 +215,12 @@ void HexagonDCE::removeOperand(NodeAddr<InstrNode*> IA, unsigned OpNum) {
 bool HexagonDCE::rewrite(NodeAddr<InstrNode*> IA, SetVector<NodeId> &Remove) {
   if (!getDFG().IsCode<NodeAttrs::Stmt>(IA))
     return false;
-  DataFlowGraph &DFG = getDFG();
+  DataFlowGraph  const&DFG = getDFG();
   MachineInstr &MI = *NodeAddr<StmtNode*>(IA).Addr->getCode();
   auto &HII = static_cast<const HexagonInstrInfo&>(DFG.getTII());
   if (HII.getAddrMode(MI) != HexagonII::PostInc)
     return false;
-  unsigned Opc = MI.getOpcode();
+  unsigned const Opc = MI.getOpcode();
   unsigned OpNum, NewOpc;
   switch (Opc) {
     case Hexagon::L2_loadri_pi:
@@ -299,7 +299,7 @@ bool HexagonRDFOpt::runOnMachineFunction(MachineFunction &MF) {
   if (RDFDump)
     MF.print(dbgs() << "Before " << getPassName() << "\n", nullptr);
 
-  TargetOperandInfo TOI(HII);
+  TargetOperandInfo const TOI(HII);
   DataFlowGraph G(MF, HII, HRI, *MDT, MDF, TOI);
   // Dead phi nodes are necessary for copy propagation: we can add a use
   // of a register in a block where it would need a phi node, but which

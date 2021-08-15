@@ -182,7 +182,7 @@ static unsigned getTransformOpcode(unsigned Opc) {
 }
 
 static bool isTransformable(const MachineInstr &MI) {
-  unsigned Opc = MI.getOpcode();
+  unsigned const Opc = MI.getOpcode();
   return Opc != getTransformOpcode(Opc);
 }
 
@@ -201,12 +201,12 @@ bool AArch64AdvSIMDScalar::isProfitableToTransform(
   unsigned NumNewCopies = 3;
   unsigned NumRemovableCopies = 0;
 
-  Register OrigSrc0 = MI.getOperand(1).getReg();
-  Register OrigSrc1 = MI.getOperand(2).getReg();
+  Register const OrigSrc0 = MI.getOperand(1).getReg();
+  Register const OrigSrc1 = MI.getOperand(2).getReg();
   unsigned SubReg0;
   unsigned SubReg1;
   if (!MRI->def_empty(OrigSrc0)) {
-    MachineRegisterInfo::def_instr_iterator Def =
+    MachineRegisterInfo::def_instr_iterator const Def =
         MRI->def_instr_begin(OrigSrc0);
     assert(std::next(Def) == MRI->def_instr_end() && "Multiple def in SSA!");
     MachineOperand *MOSrc0 = getSrcFromCopy(&*Def, MRI, SubReg0);
@@ -219,7 +219,7 @@ bool AArch64AdvSIMDScalar::isProfitableToTransform(
       ++NumRemovableCopies;
   }
   if (!MRI->def_empty(OrigSrc1)) {
-    MachineRegisterInfo::def_instr_iterator Def =
+    MachineRegisterInfo::def_instr_iterator const Def =
         MRI->def_instr_begin(OrigSrc1);
     assert(std::next(Def) == MRI->def_instr_end() && "Multiple def in SSA!");
     MachineOperand *MOSrc1 = getSrcFromCopy(&*Def, MRI, SubReg1);
@@ -236,7 +236,7 @@ bool AArch64AdvSIMDScalar::isProfitableToTransform(
   // any of the uses is a transformable instruction, it's likely the tranforms
   // will chain, enabling us to save a copy there, too. This is an aggressive
   // heuristic that approximates the graph based cost analysis described above.
-  Register Dst = MI.getOperand(0).getReg();
+  Register const Dst = MI.getOperand(0).getReg();
   bool AllUsesAreCopies = true;
   for (MachineRegisterInfo::use_instr_nodbg_iterator
            Use = MRI->use_instr_nodbg_begin(Dst),
@@ -273,7 +273,7 @@ bool AArch64AdvSIMDScalar::isProfitableToTransform(
 
 static MachineInstr *insertCopy(const TargetInstrInfo *TII, MachineInstr &MI,
                                 unsigned Dst, unsigned Src, bool IsKill) {
-  MachineInstrBuilder MIB = BuildMI(*MI.getParent(), MI, MI.getDebugLoc(),
+  MachineInstrBuilder const MIB = BuildMI(*MI.getParent(), MI, MI.getDebugLoc(),
                                     TII->get(AArch64::COPY), Dst)
                                 .addReg(Src, getKillRegState(IsKill));
   LLVM_DEBUG(dbgs() << "    adding copy: " << *MIB);
@@ -288,18 +288,18 @@ void AArch64AdvSIMDScalar::transformInstruction(MachineInstr &MI) {
   LLVM_DEBUG(dbgs() << "Scalar transform: " << MI);
 
   MachineBasicBlock *MBB = MI.getParent();
-  unsigned OldOpc = MI.getOpcode();
-  unsigned NewOpc = getTransformOpcode(OldOpc);
+  unsigned const OldOpc = MI.getOpcode();
+  unsigned const NewOpc = getTransformOpcode(OldOpc);
   assert(OldOpc != NewOpc && "transform an instruction to itself?!");
 
   // Check if we need a copy for the source registers.
-  Register OrigSrc0 = MI.getOperand(1).getReg();
-  Register OrigSrc1 = MI.getOperand(2).getReg();
+  Register const OrigSrc0 = MI.getOperand(1).getReg();
+  Register const OrigSrc1 = MI.getOperand(2).getReg();
   unsigned Src0 = 0, SubReg0;
   unsigned Src1 = 0, SubReg1;
   bool KillSrc0 = false, KillSrc1 = false;
   if (!MRI->def_empty(OrigSrc0)) {
-    MachineRegisterInfo::def_instr_iterator Def =
+    MachineRegisterInfo::def_instr_iterator const Def =
         MRI->def_instr_begin(OrigSrc0);
     assert(std::next(Def) == MRI->def_instr_end() && "Multiple def in SSA!");
     MachineOperand *MOSrc0 = getSrcFromCopy(&*Def, MRI, SubReg0);
@@ -318,7 +318,7 @@ void AArch64AdvSIMDScalar::transformInstruction(MachineInstr &MI) {
     }
   }
   if (!MRI->def_empty(OrigSrc1)) {
-    MachineRegisterInfo::def_instr_iterator Def =
+    MachineRegisterInfo::def_instr_iterator const Def =
         MRI->def_instr_begin(OrigSrc1);
     assert(std::next(Def) == MRI->def_instr_end() && "Multiple def in SSA!");
     MachineOperand *MOSrc1 = getSrcFromCopy(&*Def, MRI, SubReg1);
@@ -354,7 +354,7 @@ void AArch64AdvSIMDScalar::transformInstruction(MachineInstr &MI) {
   // Create a vreg for the destination.
   // FIXME: No need to do this if the ultimate user expects an FPR64.
   // Check for that and avoid the copy if possible.
-  Register Dst = MRI->createVirtualRegister(&AArch64::FPR64RegClass);
+  Register const Dst = MRI->createVirtualRegister(&AArch64::FPR64RegClass);
 
   // For now, all of the new instructions have the same simple three-register
   // form, so no need to special case based on what instruction we're

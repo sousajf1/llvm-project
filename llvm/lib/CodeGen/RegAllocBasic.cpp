@@ -288,7 +288,7 @@ MCRegister RABasic::selectOrSplit(LiveInterval &VirtReg,
   }
 
   // Try to spill another interfering reg with less spill weight.
-  for (MCRegister &PhysReg : PhysRegSpillCands) {
+  for (MCRegister  const&PhysReg : PhysRegSpillCands) {
     if (!spillInterferences(VirtReg, PhysReg, SplitVRegs))
       continue;
 

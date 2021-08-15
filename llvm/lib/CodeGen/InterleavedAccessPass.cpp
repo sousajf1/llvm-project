@@ -204,7 +204,7 @@ static bool isDeInterleaveMask(ArrayRef<int> Mask, unsigned &Factor,
 /// E.g. For a Factor of 2 (LaneLen=4): <0, 4, 1, 5, 2, 6, 3, 7>
 static bool isReInterleaveMask(ArrayRef<int> Mask, unsigned &Factor,
                                unsigned MaxFactor, unsigned OpNumElts) {
-  unsigned NumElts = Mask.size();
+  unsigned const NumElts = Mask.size();
   if (NumElts < 4)
     return false;
 
@@ -213,7 +213,7 @@ static bool isReInterleaveMask(ArrayRef<int> Mask, unsigned &Factor,
     if (NumElts % Factor)
       continue;
 
-    unsigned LaneLen = NumElts / Factor;
+    unsigned const LaneLen = NumElts / Factor;
     if (!isPowerOf2_32(LaneLen))
       continue;
 
@@ -228,10 +228,10 @@ static bool isReInterleaveMask(ArrayRef<int> Mask, unsigned &Factor,
       // Inner loop processes consecutive accesses (x, x+1... in the example)
       for (J = 0; J < LaneLen - 1; J++) {
         // Lane computes x's position in the Mask
-        unsigned Lane = J * Factor + I;
-        unsigned NextLane = Lane + Factor;
-        int LaneValue = Mask[Lane];
-        int NextLaneValue = Mask[NextLane];
+        unsigned const Lane = J * Factor + I;
+        unsigned const NextLane = Lane + Factor;
+        int const LaneValue = Mask[Lane];
+        int const NextLaneValue = Mask[NextLane];
 
         // If both are defined, values must be sequential
         if (LaneValue >= 0 && NextLaneValue >= 0 &&
@@ -329,7 +329,7 @@ bool InterleavedAccess::lowerInterleavedLoad(
 
   unsigned Factor, Index;
 
-  unsigned NumLoadElements =
+  unsigned const NumLoadElements =
       cast<FixedVectorType>(LI->getType())->getNumElements();
   auto *FirstSVI = Shuffles.size() > 0 ? Shuffles[0] : BinOpShuffles[0];
   // Check if the first shufflevector is DE-interleave shuffle.
@@ -374,7 +374,7 @@ bool InterleavedAccess::lowerInterleavedLoad(
   if (!tryReplaceExtracts(Extracts, Shuffles))
     return false;
 
-  bool BinOpShuffleChanged =
+  bool const BinOpShuffleChanged =
       replaceBinOpShuffles(BinOpShuffles.getArrayRef(), Shuffles, LI);
 
   LLVM_DEBUG(dbgs() << "IA: Found an interleaved load: " << *LI << "\n");
@@ -499,7 +499,7 @@ bool InterleavedAccess::lowerInterleavedStore(
 
   // Check if the shufflevector is RE-interleave shuffle.
   unsigned Factor;
-  unsigned OpNumElts =
+  unsigned const OpNumElts =
       cast<FixedVectorType>(SVI->getOperand(0)->getType())->getNumElements();
   if (!isReInterleaveMask(SVI->getShuffleMask(), Factor, MaxFactor, OpNumElts))
     return false;

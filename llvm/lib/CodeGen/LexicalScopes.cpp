@@ -97,7 +97,7 @@ void LexicalScopes::extractLexicalScopes(
         // If we have already seen a beginning of an instruction range and
         // current instruction scope does not match scope of first instruction
         // in this range then create a new instruction range.
-        InsnRange R(RangeBeginMI, PrevMI);
+        InsnRange const R(RangeBeginMI, PrevMI);
         MI2ScopeMap[RangeBeginMI] = getOrCreateLexicalScope(PrevDL);
         MIRanges.push_back(R);
       }
@@ -112,7 +112,7 @@ void LexicalScopes::extractLexicalScopes(
 
     // Create last instruction range.
     if (RangeBeginMI && PrevMI && PrevDL) {
-      InsnRange R(RangeBeginMI, PrevMI);
+      InsnRange const R(RangeBeginMI, PrevMI);
       MIRanges.push_back(R);
       MI2ScopeMap[RangeBeginMI] = getOrCreateLexicalScope(PrevDL);
     }
@@ -241,7 +241,7 @@ void LexicalScopes::constructScopeNest(LexicalScope *Scope) {
   while (!WorkStack.empty()) {
     auto &ScopePosition = WorkStack.back();
     LexicalScope *WS = ScopePosition.first;
-    size_t ChildNum = ScopePosition.second++;
+    size_t const ChildNum = ScopePosition.second++;
     const SmallVectorImpl<LexicalScope *> &Children = WS->getChildren();
     if (ChildNum < Children.size()) {
       auto &ChildScope = Children[ChildNum];
@@ -295,7 +295,7 @@ void LexicalScopes::getMachineBasicBlocks(
   // The scope ranges can cover multiple basic blocks in each span. Iterate over
   // all blocks (in the order they are in the function) until we reach the one
   // containing the end of the span.
-  SmallVectorImpl<InsnRange> &InsnRanges = Scope->getRanges();
+  SmallVectorImpl<InsnRange>  const&InsnRanges = Scope->getRanges();
   for (auto &R : InsnRanges)
     for (auto CurMBBIt = R.first->getParent()->getIterator(),
               EndBBIt = std::next(R.second->getParent()->getIterator());

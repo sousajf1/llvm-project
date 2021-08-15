@@ -215,7 +215,7 @@ public:
     const MCConstantExpr *MCE = dyn_cast<MCConstantExpr>(Imm.Value);
     if (!MCE)
       return true;
-    int64_t Value = MCE->getValue();
+    int64_t const Value = MCE->getValue();
     // Check if value fits in 25 bits with 2 least significant bits 0.
     return isShiftedUInt<23, 2>(static_cast<int32_t>(Value));
   }
@@ -230,7 +230,7 @@ public:
 
     // Constant case
     if (const MCConstantExpr *ConstExpr = dyn_cast<MCConstantExpr>(Imm.Value)) {
-      int64_t Value = ConstExpr->getValue();
+      int64_t const Value = ConstExpr->getValue();
       return Value != 0 && isShiftedUInt<16, 16>(Value);
     }
 
@@ -253,7 +253,7 @@ public:
 
     const MCConstantExpr *ConstExpr = dyn_cast<MCConstantExpr>(Imm.Value);
     if (ConstExpr) {
-      int64_t Value = ConstExpr->getValue();
+      int64_t const Value = ConstExpr->getValue();
       // Check if in the form 0xXYZWffff
       return (Value != 0) && ((Value & ~0xffff0000) == 0xffff);
     }
@@ -266,7 +266,7 @@ public:
 
     // Constant case
     if (const MCConstantExpr *ConstExpr = dyn_cast<MCConstantExpr>(Imm.Value)) {
-      int64_t Value = ConstExpr->getValue();
+      int64_t const Value = ConstExpr->getValue();
       // Check if value fits in 16 bits
       return isUInt<16>(static_cast<int32_t>(Value));
     }
@@ -290,7 +290,7 @@ public:
 
     // Constant case
     if (const MCConstantExpr *ConstExpr = dyn_cast<MCConstantExpr>(Imm.Value)) {
-      int64_t Value = ConstExpr->getValue();
+      int64_t const Value = ConstExpr->getValue();
       // Check if value fits in 16 bits or value of the form 0xffffxyzw
       return isInt<16>(static_cast<int32_t>(Value));
     }
@@ -314,7 +314,7 @@ public:
 
     const MCConstantExpr *ConstExpr = dyn_cast<MCConstantExpr>(Imm.Value);
     if (ConstExpr) {
-      int64_t Value = ConstExpr->getValue();
+      int64_t const Value = ConstExpr->getValue();
       // Check if in the form 0xffffXYZW
       return ((Value & ~0xffff) == 0xffff0000);
     }
@@ -328,7 +328,7 @@ public:
     const MCConstantExpr *ConstExpr = dyn_cast<MCConstantExpr>(Imm.Value);
     if (!ConstExpr)
       return false;
-    int64_t Value = ConstExpr->getValue();
+    int64_t const Value = ConstExpr->getValue();
     return (Value >= -31) && (Value <= 31);
   }
 
@@ -338,7 +338,7 @@ public:
 
     // Constant case
     if (const MCConstantExpr *ConstExpr = dyn_cast<MCConstantExpr>(Imm.Value)) {
-      int64_t Value = ConstExpr->getValue();
+      int64_t const Value = ConstExpr->getValue();
       return isUInt<21>(Value);
     }
 
@@ -370,7 +370,7 @@ public:
     const MCConstantExpr *ConstExpr = dyn_cast<MCConstantExpr>(Imm.Value);
     if (!ConstExpr)
       return false;
-    int64_t Value = ConstExpr->getValue();
+    int64_t const Value = ConstExpr->getValue();
     return isInt<10>(Value);
   }
 
@@ -381,7 +381,7 @@ public:
     const MCConstantExpr *ConstExpr = dyn_cast<MCConstantExpr>(Imm.Value);
     if (!ConstExpr)
       return false;
-    uint64_t Value = ConstExpr->getValue();
+    uint64_t const Value = ConstExpr->getValue();
     // The condition codes are between 0 (ICC_T) and 15 (ICC_LE). If the
     // unsigned value of the immediate is less than LPCC::UNKNOWN (16) then
     // value corresponds to a valid condition code.
@@ -623,7 +623,7 @@ public:
   static std::unique_ptr<LanaiOperand>
   MorphToMemRegReg(unsigned BaseReg, std::unique_ptr<LanaiOperand> Op,
                    unsigned AluOp) {
-    unsigned OffsetReg = Op->getReg();
+    unsigned const OffsetReg = Op->getReg();
     Op->Kind = MEMORY_REG_REG;
     Op->Mem.BaseReg = BaseReg;
     Op->Mem.AluOp = AluOp;
@@ -691,8 +691,8 @@ bool LanaiAsmParser::MatchAndEmitInstruction(SMLoc IdLoc, unsigned &Opcode,
 // TODO: see if there isn't a better way to do this.
 std::unique_ptr<LanaiOperand>
 LanaiAsmParser::parseRegister(bool RestoreOnFailure) {
-  SMLoc Start = Parser.getTok().getLoc();
-  SMLoc End = SMLoc::getFromPointer(Parser.getTok().getLoc().getPointer() - 1);
+  SMLoc const Start = Parser.getTok().getLoc();
+  SMLoc const End = SMLoc::getFromPointer(Parser.getTok().getLoc().getPointer() - 1);
   Optional<AsmToken> PercentTok;
 
   unsigned RegNum;
@@ -741,7 +741,7 @@ OperandMatchResultTy LanaiAsmParser::tryParseRegister(unsigned &RegNum,
 }
 
 std::unique_ptr<LanaiOperand> LanaiAsmParser::parseIdentifier() {
-  SMLoc Start = Parser.getTok().getLoc();
+  SMLoc const Start = Parser.getTok().getLoc();
   SMLoc End = SMLoc::getFromPointer(Parser.getTok().getLoc().getPointer() - 1);
   const MCExpr *Res, *RHS = nullptr;
   LanaiMCExpr::VariantKind Kind = LanaiMCExpr::VK_Lanai_None;
@@ -799,8 +799,8 @@ std::unique_ptr<LanaiOperand> LanaiAsmParser::parseIdentifier() {
 }
 
 std::unique_ptr<LanaiOperand> LanaiAsmParser::parseImmediate() {
-  SMLoc Start = Parser.getTok().getLoc();
-  SMLoc End = SMLoc::getFromPointer(Parser.getTok().getLoc().getPointer() - 1);
+  SMLoc const Start = Parser.getTok().getLoc();
+  SMLoc const End = SMLoc::getFromPointer(Parser.getTok().getLoc().getPointer() - 1);
 
   const MCExpr *ExprVal;
   switch (Lexer.getKind()) {
@@ -829,7 +829,7 @@ static unsigned AluWithPrePost(unsigned AluCode, bool PreOp, bool PostOp) {
 unsigned LanaiAsmParser::parseAluOperator(bool PreOp, bool PostOp) {
   StringRef IdString;
   Parser.parseIdentifier(IdString);
-  unsigned AluCode = LPAC::stringToLanaiAluCode(IdString);
+  unsigned const AluCode = LPAC::stringToLanaiAluCode(IdString);
   if (AluCode == LPAC::UNKNOWN) {
     Error(Parser.getTok().getLoc(), "Can't parse ALU operator");
     return 0;
@@ -867,7 +867,7 @@ bool shouldBeSls(const LanaiOperand &Op) {
   // The instruction should be encoded as an SLS if the constant is word
   // aligned and will fit in 21 bits
   if (const MCConstantExpr *ConstExpr = dyn_cast<MCConstantExpr>(Op.getImm())) {
-    int64_t Value = ConstExpr->getValue();
+    int64_t const Value = ConstExpr->getValue();
     return (Value % 4 == 0) && (Value >= 0) && (Value <= 0x1fffff);
   }
   // The instruction should be encoded as an SLS if the operand is a symbolic
@@ -973,8 +973,8 @@ LanaiAsmParser::parseMemoryOperand(OperandVector &Operands) {
   if (Lexer.is(AsmToken::RBrac)) {
     Parser.Lex(); // Eat the ']'.
     if (!Offset) {
-      SMLoc Start = Parser.getTok().getLoc();
-      SMLoc End =
+      SMLoc const Start = Parser.getTok().getLoc();
+      SMLoc const End =
           SMLoc::getFromPointer(Parser.getTok().getLoc().getPointer() - 1);
       const MCConstantExpr *OffsetConstExpr =
           MCConstantExpr::create(OffsetValue, getContext());
@@ -1025,7 +1025,7 @@ OperandMatchResultTy
 LanaiAsmParser::parseOperand(OperandVector *Operands, StringRef Mnemonic) {
   // Check if the current operand has a custom associated parser, if so, try to
   // custom parse the operand, or fallback to the general approach.
-  OperandMatchResultTy Result = MatchOperandParserImpl(*Operands, Mnemonic);
+  OperandMatchResultTy const Result = MatchOperandParserImpl(*Operands, Mnemonic);
 
   if (Result == MatchOperand_Success)
     return Result;
@@ -1058,7 +1058,7 @@ LanaiAsmParser::parseOperand(OperandVector *Operands, StringRef Mnemonic) {
 // qualifier (half-word, byte).
 StringRef LanaiAsmParser::splitMnemonic(StringRef Name, SMLoc NameLoc,
                                         OperandVector *Operands) {
-  size_t Next = Name.find('.');
+  size_t const Next = Name.find('.');
 
   StringRef Mnemonic = Name;
 
@@ -1074,7 +1074,7 @@ StringRef LanaiAsmParser::splitMnemonic(StringRef Name, SMLoc NameLoc,
        !Mnemonic.startswith("st"))) {
     // Parse instructions with a conditional code. For example, 'bne' is
     // converted into two operands 'b' and 'ne'.
-    LPCC::CondCode CondCode =
+    LPCC::CondCode const CondCode =
         LPCC::suffixToLanaiCondCode(Mnemonic.substr(1, Next));
     if (CondCode != LPCC::UNKNOWN) {
       Mnemonic = Mnemonic.slice(0, 1);
@@ -1094,9 +1094,9 @@ StringRef LanaiAsmParser::splitMnemonic(StringRef Name, SMLoc NameLoc,
   // variants are not yet implemented).
   if (Mnemonic.startswith("sel") ||
       (!Mnemonic.endswith(".f") && !Mnemonic.startswith("st"))) {
-    LPCC::CondCode CondCode = LPCC::suffixToLanaiCondCode(Mnemonic);
+    LPCC::CondCode const CondCode = LPCC::suffixToLanaiCondCode(Mnemonic);
     if (CondCode != LPCC::UNKNOWN) {
-      size_t Next = Mnemonic.rfind('.', Name.size());
+      size_t const Next = Mnemonic.rfind('.', Name.size());
       // 'sel' doesn't use a predicate operand whose printer adds the period,
       // but instead has the period as part of the identifier (i.e., 'sel.' is
       // expected by the generated matcher). If the mnemonic starts with 'sel'
@@ -1144,9 +1144,9 @@ static bool IsMemoryAssignmentError(const OperandVector &Operands) {
   else
     return false;
 
-  int PossibleAluOpIdx = Offset + 3;
-  int PossibleBaseIdx = Offset + 1;
-  int PossibleDestIdx = Offset + 4;
+  int const PossibleAluOpIdx = Offset + 3;
+  int const PossibleBaseIdx = Offset + 1;
+  int const PossibleDestIdx = Offset + 4;
   if (LanaiOperand *PossibleAluOp =
           static_cast<LanaiOperand *>(Operands[PossibleAluOpIdx].get()))
     if (PossibleAluOp->isImm())
@@ -1184,7 +1184,7 @@ bool LanaiAsmParser::ParseInstruction(ParseInstructionInfo & /*Info*/,
                                       StringRef Name, SMLoc NameLoc,
                                       OperandVector &Operands) {
   // First operand is token for instruction
-  StringRef Mnemonic = splitMnemonic(Name, NameLoc, &Operands);
+  StringRef const Mnemonic = splitMnemonic(Name, NameLoc, &Operands);
 
   // If there are no more operands, then finish
   if (Lexer.is(AsmToken::EndOfStatement))
@@ -1249,5 +1249,5 @@ bool LanaiAsmParser::ParseInstruction(ParseInstructionInfo & /*Info*/,
 #include "LanaiGenAsmMatcher.inc"
 
 extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializeLanaiAsmParser() {
-  RegisterMCAsmParser<LanaiAsmParser> x(getTheLanaiTarget());
+  RegisterMCAsmParser<LanaiAsmParser> const x(getTheLanaiTarget());
 }

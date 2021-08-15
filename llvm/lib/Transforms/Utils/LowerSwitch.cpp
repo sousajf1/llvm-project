@@ -144,7 +144,7 @@ void FixPhis(
       }
     // Remove incoming values in the reverse order to prevent invalidating
     // *successive* index.
-    for (unsigned III : llvm::reverse(Indices))
+    for (unsigned const III : llvm::reverse(Indices))
       PN->removeIncomingValue(III);
   }
 }
@@ -200,12 +200,12 @@ BasicBlock *NewLeafBlock(CaseRange &Leaf, Value *Val, ConstantInt *LowerBound,
   for (BasicBlock::iterator I = Succ->begin(); isa<PHINode>(I); ++I) {
     PHINode *PN = cast<PHINode>(I);
     // Remove all but one incoming entries from the cluster
-    uint64_t Range = Leaf.High->getSExtValue() - Leaf.Low->getSExtValue();
+    uint64_t const Range = Leaf.High->getSExtValue() - Leaf.Low->getSExtValue();
     for (uint64_t j = 0; j < Range; ++j) {
       PN->removeIncomingValue(OrigBlock);
     }
 
-    int BlockIdx = PN->getBasicBlockIndex(OrigBlock);
+    int const BlockIdx = PN->getBasicBlockIndex(OrigBlock);
     assert(BlockIdx != -1 && "Switch didn't go to this successor??");
     PN->setIncomingBlock((unsigned)BlockIdx, NewLeaf);
   }
@@ -224,7 +224,7 @@ BasicBlock *SwitchConvert(CaseItr Begin, CaseItr End, ConstantInt *LowerBound,
                           BasicBlock *Default,
                           const std::vector<IntRange> &UnreachableRanges) {
   assert(LowerBound && UpperBound && "Bounds must be initialized");
-  unsigned Size = End - Begin;
+  unsigned const Size = End - Begin;
 
   if (Size == 1) {
     // Check if the Case Range is perfectly squeezed in between
@@ -241,13 +241,13 @@ BasicBlock *SwitchConvert(CaseItr Begin, CaseItr End, ConstantInt *LowerBound,
                         Default);
   }
 
-  unsigned Mid = Size / 2;
+  unsigned const Mid = Size / 2;
   std::vector<CaseRange> LHS(Begin, Begin + Mid);
   LLVM_DEBUG(dbgs() << "LHS: " << LHS << "\n");
   std::vector<CaseRange> RHS(Begin + Mid, End);
   LLVM_DEBUG(dbgs() << "RHS: " << RHS << "\n");
 
-  CaseRange &Pivot = *(Begin + Mid);
+  CaseRange  const&Pivot = *(Begin + Mid);
   LLVM_DEBUG(dbgs() << "Pivot ==> [" << Pivot.Low->getValue() << ", "
                     << Pivot.High->getValue() << "]\n");
 
@@ -264,9 +264,9 @@ BasicBlock *SwitchConvert(CaseItr Begin, CaseItr End, ConstantInt *LowerBound,
 
   if (!UnreachableRanges.empty()) {
     // Check if the gap between LHS's highest and NewLowerBound is unreachable.
-    int64_t GapLow = LHS.back().High->getSExtValue() + 1;
-    int64_t GapHigh = NewLowerBound->getSExtValue() - 1;
-    IntRange Gap = { GapLow, GapHigh };
+    int64_t const GapLow = LHS.back().High->getSExtValue() + 1;
+    int64_t const GapHigh = NewLowerBound->getSExtValue() - 1;
+    IntRange const Gap = { GapLow, GapHigh };
     if (GapHigh >= GapLow && IsInRanges(Gap, UnreachableRanges))
       NewUpperBound = LHS.back().High;
   }
@@ -319,8 +319,8 @@ unsigned Clusterify(CaseVector &Cases, SwitchInst *SI) {
   if (Cases.size() >= 2) {
     CaseItr I = Cases.begin();
     for (CaseItr J = std::next(I), E = Cases.end(); J != E; ++J) {
-      int64_t nextValue = J->Low->getSExtValue();
-      int64_t currentValue = I->High->getSExtValue();
+      int64_t const nextValue = J->Low->getSExtValue();
+      int64_t const currentValue = I->High->getSExtValue();
       BasicBlock* nextBB = J->BB;
       BasicBlock* currentBB = I->BB;
 
@@ -396,20 +396,20 @@ void ProcessSwitchInst(SwitchInst *SI,
     //    roughly C icmp's per switch, where C is the number of cases in the
     //    switch, while LowerSwitch only needs to call LVI once per switch.
     const DataLayout &DL = F->getParent()->getDataLayout();
-    KnownBits Known = computeKnownBits(Val, DL, /*Depth=*/0, AC, SI);
+    KnownBits const Known = computeKnownBits(Val, DL, /*Depth=*/0, AC, SI);
     // TODO Shouldn't this create a signed range?
-    ConstantRange KnownBitsRange =
+    ConstantRange const KnownBitsRange =
         ConstantRange::fromKnownBits(Known, /*IsSigned=*/false);
     const ConstantRange LVIRange = LVI->getConstantRange(Val, SI);
-    ConstantRange ValRange = KnownBitsRange.intersectWith(LVIRange);
+    ConstantRange const ValRange = KnownBitsRange.intersectWith(LVIRange);
     // We delegate removal of unreachable non-default cases to other passes. In
     // the unlikely event that some of them survived, we just conservatively
     // maintain the invariant that all the cases lie between the bounds. This
     // may, however, still render the default case effectively unreachable.
-    APInt Low = Cases.front().Low->getValue();
-    APInt High = Cases.back().High->getValue();
-    APInt Min = APIntOps::smin(ValRange.getSignedMin(), Low);
-    APInt Max = APIntOps::smax(ValRange.getSignedMax(), High);
+    APInt const Low = Cases.front().Low->getValue();
+    APInt const High = Cases.back().High->getValue();
+    APInt const Min = APIntOps::smin(ValRange.getSignedMin(), Low);
+    APInt const Max = APIntOps::smax(ValRange.getSignedMax(), High);
 
     LowerBound = ConstantInt::get(SI->getContext(), Min);
     UpperBound = ConstantInt::get(SI->getContext(), Max);
@@ -423,12 +423,12 @@ void ProcessSwitchInst(SwitchInst *SI,
     unsigned MaxPop = 0;
     BasicBlock *PopSucc = nullptr;
 
-    IntRange R = {std::numeric_limits<int64_t>::min(),
+    IntRange const R = {std::numeric_limits<int64_t>::min(),
                   std::numeric_limits<int64_t>::max()};
     UnreachableRanges.push_back(R);
     for (const auto &I : Cases) {
-      int64_t Low = I.Low->getSExtValue();
-      int64_t High = I.High->getSExtValue();
+      int64_t const Low = I.Low->getSExtValue();
+      int64_t const High = I.High->getSExtValue();
 
       IntRange &LastRange = UnreachableRanges.back();
       if (LastRange.Low == Low) {
@@ -440,12 +440,12 @@ void ProcessSwitchInst(SwitchInst *SI,
         LastRange.High = Low - 1;
       }
       if (High != std::numeric_limits<int64_t>::max()) {
-        IntRange R = { High + 1, std::numeric_limits<int64_t>::max() };
+        IntRange const R = { High + 1, std::numeric_limits<int64_t>::max() };
         UnreachableRanges.push_back(R);
       }
 
       // Count popularity.
-      int64_t N = High - Low + 1;
+      int64_t const N = High - Low + 1;
       unsigned &Pop = Popularity[I.BB];
       if ((Pop += N) > MaxPop) {
         MaxPop = Pop;

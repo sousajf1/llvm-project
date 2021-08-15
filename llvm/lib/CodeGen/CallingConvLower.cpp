@@ -53,7 +53,7 @@ void CCState::HandleByVal(unsigned ValNo, MVT ValVT, MVT LocVT,
   ensureMaxAlignment(Alignment);
   MF.getSubtarget().getTargetLowering()->HandleByVal(this, Size, Alignment);
   Size = unsigned(alignTo(Size, MinAlign));
-  unsigned Offset = AllocateStack(Size, Alignment);
+  unsigned const Offset = AllocateStack(Size, Alignment);
   addLoc(CCValAssign::getMem(ValNo, ValVT, Offset, LocVT, LocInfo));
 }
 
@@ -89,11 +89,11 @@ bool CCState::IsShadowAllocatedReg(MCRegister Reg) const {
 void
 CCState::AnalyzeFormalArguments(const SmallVectorImpl<ISD::InputArg> &Ins,
                                 CCAssignFn Fn) {
-  unsigned NumArgs = Ins.size();
+  unsigned const NumArgs = Ins.size();
 
   for (unsigned i = 0; i != NumArgs; ++i) {
-    MVT ArgVT = Ins[i].VT;
-    ISD::ArgFlagsTy ArgFlags = Ins[i].Flags;
+    MVT const ArgVT = Ins[i].VT;
+    ISD::ArgFlagsTy const ArgFlags = Ins[i].Flags;
     if (Fn(i, ArgVT, ArgVT, CCValAssign::Full, ArgFlags, *this))
       report_fatal_error("unable to allocate function argument #" + Twine(i));
   }
@@ -105,8 +105,8 @@ bool CCState::CheckReturn(const SmallVectorImpl<ISD::OutputArg> &Outs,
                           CCAssignFn Fn) {
   // Determine which register each value should be copied into.
   for (unsigned i = 0, e = Outs.size(); i != e; ++i) {
-    MVT VT = Outs[i].VT;
-    ISD::ArgFlagsTy ArgFlags = Outs[i].Flags;
+    MVT const VT = Outs[i].VT;
+    ISD::ArgFlagsTy const ArgFlags = Outs[i].Flags;
     if (Fn(i, VT, VT, CCValAssign::Full, ArgFlags, *this))
       return false;
   }
@@ -119,8 +119,8 @@ void CCState::AnalyzeReturn(const SmallVectorImpl<ISD::OutputArg> &Outs,
                             CCAssignFn Fn) {
   // Determine which register each value should be copied into.
   for (unsigned i = 0, e = Outs.size(); i != e; ++i) {
-    MVT VT = Outs[i].VT;
-    ISD::ArgFlagsTy ArgFlags = Outs[i].Flags;
+    MVT const VT = Outs[i].VT;
+    ISD::ArgFlagsTy const ArgFlags = Outs[i].Flags;
     if (Fn(i, VT, VT, CCValAssign::Full, ArgFlags, *this))
       report_fatal_error("unable to allocate function return #" + Twine(i));
   }
@@ -130,10 +130,10 @@ void CCState::AnalyzeReturn(const SmallVectorImpl<ISD::OutputArg> &Outs,
 /// incorporating info about the passed values into this state.
 void CCState::AnalyzeCallOperands(const SmallVectorImpl<ISD::OutputArg> &Outs,
                                   CCAssignFn Fn) {
-  unsigned NumOps = Outs.size();
+  unsigned const NumOps = Outs.size();
   for (unsigned i = 0; i != NumOps; ++i) {
-    MVT ArgVT = Outs[i].VT;
-    ISD::ArgFlagsTy ArgFlags = Outs[i].Flags;
+    MVT const ArgVT = Outs[i].VT;
+    ISD::ArgFlagsTy const ArgFlags = Outs[i].Flags;
     if (Fn(i, ArgVT, ArgVT, CCValAssign::Full, ArgFlags, *this)) {
 #ifndef NDEBUG
       dbgs() << "Call operand #" << i << " has unhandled type "
@@ -148,10 +148,10 @@ void CCState::AnalyzeCallOperands(const SmallVectorImpl<ISD::OutputArg> &Outs,
 void CCState::AnalyzeCallOperands(SmallVectorImpl<MVT> &ArgVTs,
                                   SmallVectorImpl<ISD::ArgFlagsTy> &Flags,
                                   CCAssignFn Fn) {
-  unsigned NumOps = ArgVTs.size();
+  unsigned const NumOps = ArgVTs.size();
   for (unsigned i = 0; i != NumOps; ++i) {
-    MVT ArgVT = ArgVTs[i];
-    ISD::ArgFlagsTy ArgFlags = Flags[i];
+    MVT const ArgVT = ArgVTs[i];
+    ISD::ArgFlagsTy const ArgFlags = Flags[i];
     if (Fn(i, ArgVT, ArgVT, CCValAssign::Full, ArgFlags, *this)) {
 #ifndef NDEBUG
       dbgs() << "Call operand #" << i << " has unhandled type "
@@ -167,8 +167,8 @@ void CCState::AnalyzeCallOperands(SmallVectorImpl<MVT> &ArgVTs,
 void CCState::AnalyzeCallResult(const SmallVectorImpl<ISD::InputArg> &Ins,
                                 CCAssignFn Fn) {
   for (unsigned i = 0, e = Ins.size(); i != e; ++i) {
-    MVT VT = Ins[i].VT;
-    ISD::ArgFlagsTy Flags = Ins[i].Flags;
+    MVT const VT = Ins[i].VT;
+    ISD::ArgFlagsTy const Flags = Ins[i].Flags;
     if (Fn(i, VT, VT, CCValAssign::Full, Flags, *this)) {
 #ifndef NDEBUG
       dbgs() << "Call result #" << i << " has unhandled type "
@@ -205,9 +205,9 @@ static bool isValueTypeInRegForCC(CallingConv::ID CC, MVT VT) {
 
 void CCState::getRemainingRegParmsForType(SmallVectorImpl<MCPhysReg> &Regs,
                                           MVT VT, CCAssignFn Fn) {
-  unsigned SavedStackOffset = StackOffset;
-  Align SavedMaxStackArgAlign = MaxStackArgAlign;
-  unsigned NumLocs = Locs.size();
+  unsigned const SavedStackOffset = StackOffset;
+  Align const SavedMaxStackArgAlign = MaxStackArgAlign;
+  unsigned const NumLocs = Locs.size();
 
   // Set the 'inreg' flag if it is used for this calling convention.
   ISD::ArgFlagsTy Flags;
@@ -248,16 +248,16 @@ void CCState::analyzeMustTailForwardedRegisters(
   // Oftentimes calling conventions will not user register parameters for
   // variadic functions, so we need to assume we're not variadic so that we get
   // all the registers that might be used in a non-variadic call.
-  SaveAndRestore<bool> SavedVarArg(IsVarArg, false);
-  SaveAndRestore<bool> SavedMustTail(AnalyzingMustTailForwardedRegs, true);
+  SaveAndRestore<bool> const SavedVarArg(IsVarArg, false);
+  SaveAndRestore<bool> const SavedMustTail(AnalyzingMustTailForwardedRegs, true);
 
-  for (MVT RegVT : RegParmTypes) {
+  for (MVT const RegVT : RegParmTypes) {
     SmallVector<MCPhysReg, 8> RemainingRegs;
     getRemainingRegParmsForType(RemainingRegs, RegVT, Fn);
     const TargetLowering *TL = MF.getSubtarget().getTargetLowering();
     const TargetRegisterClass *RC = TL->getRegClassFor(RegVT);
-    for (MCPhysReg PReg : RemainingRegs) {
-      Register VReg = MF.addLiveIn(PReg, RC);
+    for (MCPhysReg const PReg : RemainingRegs) {
+      Register const VReg = MF.addLiveIn(PReg, RC);
       Forwards.push_back(ForwardedRegister(VReg, PReg, RegVT));
     }
   }

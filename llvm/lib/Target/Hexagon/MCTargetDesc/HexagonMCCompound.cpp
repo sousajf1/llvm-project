@@ -174,7 +174,7 @@ static unsigned getCompoundCandidateGroup(MCInst const &MI, bool IsExtended) {
 /// getCompoundOp - Return the index from 0-7 into the above opcode lists.
 static unsigned getCompoundOp(MCInst const &HMCI) {
   const MCOperand &Predicate = HMCI.getOperand(0);
-  unsigned PredReg = Predicate.getReg();
+  unsigned const PredReg = Predicate.getReg();
 
   assert((PredReg == Hexagon::P0) || (PredReg == Hexagon::P1) ||
          (PredReg == Hexagon::P2) || (PredReg == Hexagon::P3));
@@ -334,11 +334,11 @@ static MCInst *getCompoundInsn(MCContext &Context, MCInst const &L,
 /// Non-Symmetrical. See if these two instructions are fit for compound pair.
 static bool isOrderedCompoundPair(MCInst const &MIa, bool IsExtendedA,
                                   MCInst const &MIb, bool IsExtendedB) {
-  unsigned MIaG = getCompoundCandidateGroup(MIa, IsExtendedA);
-  unsigned MIbG = getCompoundCandidateGroup(MIb, IsExtendedB);
+  unsigned const MIaG = getCompoundCandidateGroup(MIa, IsExtendedA);
+  unsigned const MIbG = getCompoundCandidateGroup(MIb, IsExtendedB);
   // We have two candidates - check that this is the same register
   // we are talking about.
-  unsigned Opca = MIa.getOpcode();
+  unsigned const Opca = MIa.getOpcode();
   if (MIaG == HexagonII::HCG_A && MIbG == HexagonII::HCG_C &&
       (Opca == Hexagon::A2_tfr || Opca == Hexagon::A2_tfrsi))
     return true;
@@ -405,7 +405,7 @@ void HexagonMCInstrInfo::tryCompound(MCInstrInfo const &MCII, MCSubtargetInfo co
   if (MCI.size() < 2)
     return;
 
-  bool StartedValid = llvm::HexagonMCShuffle(Context, false, MCII, STI, MCI);
+  bool const StartedValid = llvm::HexagonMCShuffle(Context, false, MCII, STI, MCI);
 
   // Create a vector, needed to keep the order of jump instructions.
   MCInst CheckList(MCI);
@@ -414,7 +414,7 @@ void HexagonMCInstrInfo::tryCompound(MCInstrInfo const &MCII, MCSubtargetInfo co
   // a compound is found.
   while (lookForCompound(MCII, Context, CheckList)) {
     // Keep the original bundle around in case the shuffle fails.
-    MCInst OriginalBundle(MCI);
+    MCInst const OriginalBundle(MCI);
 
     // Need to update the bundle.
     MCI = CheckList;

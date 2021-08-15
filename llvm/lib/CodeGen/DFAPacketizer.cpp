@@ -55,7 +55,7 @@ static unsigned InstrCount = 0;
 // Check if the resources occupied by a MCInstrDesc are available in the
 // current state.
 bool DFAPacketizer::canReserveResources(const MCInstrDesc *MID) {
-  unsigned Action = ItinActions[MID->getSchedClass()];
+  unsigned const Action = ItinActions[MID->getSchedClass()];
   if (MID->getSchedClass() == 0 || Action == 0)
     return false;
   return A.canAdd(Action);
@@ -64,7 +64,7 @@ bool DFAPacketizer::canReserveResources(const MCInstrDesc *MID) {
 // Reserve the resources occupied by a MCInstrDesc and change the current
 // state to reflect that change.
 void DFAPacketizer::reserveResources(const MCInstrDesc *MID) {
-  unsigned Action = ItinActions[MID->getSchedClass()];
+  unsigned const Action = ItinActions[MID->getSchedClass()];
   if (MID->getSchedClass() == 0 || Action == 0)
     return;
   A.add(Action);
@@ -85,7 +85,7 @@ void DFAPacketizer::reserveResources(MachineInstr &MI) {
 }
 
 unsigned DFAPacketizer::getUsedResources(unsigned InstIdx) {
-  ArrayRef<NfaPath> NfaPaths = A.getNfaPaths();
+  ArrayRef<NfaPath> const NfaPaths = A.getNfaPaths();
   assert(!NfaPaths.empty() && "Invalid bundle!");
   const NfaPath &RS = NfaPaths.front();
 
@@ -200,7 +200,7 @@ void VLIWPacketizerList::PacketizeMIs(MachineBasicBlock *MBB,
   for (SUnit &SU : VLIWScheduler->SUnits)
     MIToSUnit[SU.getInstr()] = &SU;
 
-  bool LimitPresent = InstrLimit.getPosition();
+  bool const LimitPresent = InstrLimit.getPosition();
 
   // The main packetizer loop.
   for (; BeginItr != EndItr; ++BeginItr) {
@@ -230,7 +230,7 @@ void VLIWPacketizerList::PacketizeMIs(MachineBasicBlock *MBB,
     // Ask DFA if machine resource is available for MI.
     LLVM_DEBUG(dbgs() << "Checking resources for adding MI to packet " << MI);
 
-    bool ResourceAvail = ResourceTracker->canReserveResources(MI);
+    bool const ResourceAvail = ResourceTracker->canReserveResources(MI);
     LLVM_DEBUG({
       if (ResourceAvail)
         dbgs() << "  Resources are available for adding MI to packet\n";
@@ -285,11 +285,11 @@ bool VLIWPacketizerList::alias(const MachineMemOperand &Op1,
   if (!Op1.getValue() || !Op2.getValue())
     return true;
 
-  int64_t MinOffset = std::min(Op1.getOffset(), Op2.getOffset());
-  int64_t Overlapa = Op1.getSize() + Op1.getOffset() - MinOffset;
-  int64_t Overlapb = Op2.getSize() + Op2.getOffset() - MinOffset;
+  int64_t const MinOffset = std::min(Op1.getOffset(), Op2.getOffset());
+  int64_t const Overlapa = Op1.getSize() + Op1.getOffset() - MinOffset;
+  int64_t const Overlapb = Op2.getSize() + Op2.getOffset() - MinOffset;
 
-  AliasResult AAResult =
+  AliasResult const AAResult =
       AA->alias(MemoryLocation(Op1.getValue(), Overlapa,
                                UseTBAA ? Op1.getAAInfo() : AAMDNodes()),
                 MemoryLocation(Op2.getValue(), Overlapb,

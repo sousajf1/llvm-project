@@ -69,8 +69,8 @@ static uint64_t packAllocSizeArgs(unsigned ElemSizeArg,
 
 static std::pair<unsigned, Optional<unsigned>>
 unpackAllocSizeArgs(uint64_t Num) {
-  unsigned NumElems = Num & std::numeric_limits<unsigned>::max();
-  unsigned ElemSizeArg = Num >> 32;
+  unsigned const NumElems = Num & std::numeric_limits<unsigned>::max();
+  unsigned const ElemSizeArg = Num >> 32;
 
   Optional<unsigned> NumElemsArg;
   if (NumElems != AllocSizeNumElemsNotPresent)
@@ -83,8 +83,8 @@ static uint64_t packVScaleRangeArgs(unsigned MinValue, unsigned MaxValue) {
 }
 
 static std::pair<unsigned, unsigned> unpackVScaleRangeArgs(uint64_t Value) {
-  unsigned MaxValue = Value & std::numeric_limits<unsigned>::max();
-  unsigned MinValue = Value >> 32;
+  unsigned const MaxValue = Value & std::numeric_limits<unsigned>::max();
+  unsigned const MinValue = Value >> 32;
 
   return std::make_pair(MinValue, MaxValue);
 }
@@ -496,7 +496,7 @@ enum AttributeProperty {
 
 static bool hasAttributeProperty(Attribute::AttrKind Kind,
                                  AttributeProperty Prop) {
-  unsigned Index = Kind - 1;
+  unsigned const Index = Kind - 1;
   assert(Index < sizeof(AttrPropTable) / sizeof(AttrPropTable[0]) &&
          "Invalid attribute kind");
   return AttrPropTable[Index] & Prop;
@@ -1060,7 +1060,7 @@ AttributeList::get(LLVMContext &C,
   SmallVector<std::pair<unsigned, AttributeSet>, 8> AttrPairVec;
   for (ArrayRef<std::pair<unsigned, Attribute>>::iterator I = Attrs.begin(),
          E = Attrs.end(); I != E; ) {
-    unsigned Index = I->first;
+    unsigned const Index = I->first;
     SmallVector<Attribute, 4> AttrVec;
     while (I != E && I->first == Index) {
       AttrVec.push_back(I->second);
@@ -1212,7 +1212,7 @@ AttributeList AttributeList::get(LLVMContext &C,
 AttributeList AttributeList::addAttribute(LLVMContext &C, unsigned Index,
                                           Attribute::AttrKind Kind) const {
   if (hasAttribute(Index, Kind)) return *this;
-  AttributeSet Attrs = getAttributes(Index);
+  AttributeSet const Attrs = getAttributes(Index);
   // TODO: Insert at correct position and avoid sort.
   SmallVector<Attribute, 8> NewAttrs(Attrs.begin(), Attrs.end());
   NewAttrs.push_back(Attribute::get(C, Kind));
@@ -1272,12 +1272,12 @@ AttributeList AttributeList::addParamAttribute(LLVMContext &C,
   assert(llvm::is_sorted(ArgNos));
 
   SmallVector<AttributeSet, 4> AttrSets(this->begin(), this->end());
-  unsigned MaxIndex = attrIdxToArrayIdx(ArgNos.back() + FirstArgIndex);
+  unsigned const MaxIndex = attrIdxToArrayIdx(ArgNos.back() + FirstArgIndex);
   if (MaxIndex >= AttrSets.size())
     AttrSets.resize(MaxIndex + 1);
 
-  for (unsigned ArgNo : ArgNos) {
-    unsigned Index = attrIdxToArrayIdx(ArgNo + FirstArgIndex);
+  for (unsigned const ArgNo : ArgNos) {
+    unsigned const Index = attrIdxToArrayIdx(ArgNo + FirstArgIndex);
     AttrBuilder B(AttrSets[Index]);
     B.addAttribute(A);
     AttrSets[Index] = AttributeSet::get(C, B);
@@ -1315,8 +1315,8 @@ AttributeList AttributeList::removeAttribute(LLVMContext &C, unsigned Index,
 AttributeList
 AttributeList::removeAttributes(LLVMContext &C, unsigned Index,
                                 const AttrBuilder &AttrsToRemove) const {
-  AttributeSet Attrs = getAttributes(Index);
-  AttributeSet NewAttrs = Attrs.removeAttributes(C, AttrsToRemove);
+  AttributeSet const Attrs = getAttributes(Index);
+  AttributeSet const NewAttrs = Attrs.removeAttributes(C, AttrsToRemove);
   // If nothing was removed, return the original list.
   if (Attrs == NewAttrs)
     return *this;
@@ -1545,7 +1545,7 @@ LLVM_DUMP_METHOD void AttributeList::dump() const { print(dbgs()); }
 
 // FIXME: Remove this ctor, use AttributeSet.
 AttrBuilder::AttrBuilder(AttributeList AL, unsigned Index) {
-  AttributeSet AS = AL.getAttributes(Index);
+  AttributeSet const AS = AL.getAttributes(Index);
   for (const auto &A : AS)
     addAttribute(A);
 }
@@ -1579,7 +1579,7 @@ AttrBuilder &AttrBuilder::addAttribute(Attribute Attr) {
     return *this;
   }
 
-  Attribute::AttrKind Kind = Attr.getKindAsEnum();
+  Attribute::AttrKind const Kind = Attr.getKindAsEnum();
   Attrs[Kind] = true;
 
   if (Optional<unsigned> TypeIndex = kindToTypeIndex(Kind))
@@ -1840,7 +1840,7 @@ bool AttrBuilder::hasAttributes() const {
 }
 
 bool AttrBuilder::hasAttributes(AttributeList AL, uint64_t Index) const {
-  AttributeSet AS = AL.getAttributes(Index);
+  AttributeSet const AS = AL.getAttributes(Index);
 
   for (const auto &Attr : AS) {
     if (Attr.isEnumAttribute() || Attr.isIntAttribute()) {
@@ -1987,9 +1987,9 @@ static void adjustCallerStackProbes(Function &Caller, const Function &Callee) {
 /// that is no larger.
 static void
 adjustCallerStackProbeSize(Function &Caller, const Function &Callee) {
-  Attribute CalleeAttr = Callee.getFnAttribute("stack-probe-size");
+  Attribute const CalleeAttr = Callee.getFnAttribute("stack-probe-size");
   if (CalleeAttr.isValid()) {
-    Attribute CallerAttr = Caller.getFnAttribute("stack-probe-size");
+    Attribute const CallerAttr = Caller.getFnAttribute("stack-probe-size");
     if (CallerAttr.isValid()) {
       uint64_t CallerStackProbeSize, CalleeStackProbeSize;
       CallerAttr.getValueAsString().getAsInteger(0, CallerStackProbeSize);
@@ -2015,9 +2015,9 @@ adjustCallerStackProbeSize(Function &Caller, const Function &Callee) {
 /// handled as part of inline cost analysis.
 static void
 adjustMinLegalVectorWidth(Function &Caller, const Function &Callee) {
-  Attribute CallerAttr = Caller.getFnAttribute("min-legal-vector-width");
+  Attribute const CallerAttr = Caller.getFnAttribute("min-legal-vector-width");
   if (CallerAttr.isValid()) {
-    Attribute CalleeAttr = Callee.getFnAttribute("min-legal-vector-width");
+    Attribute const CalleeAttr = Callee.getFnAttribute("min-legal-vector-width");
     if (CalleeAttr.isValid()) {
       uint64_t CallerVectorWidth, CalleeVectorWidth;
       CallerAttr.getValueAsString().getAsInteger(0, CallerVectorWidth);

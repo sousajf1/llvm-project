@@ -152,7 +152,7 @@ outer_continue:
     if (DefMI->isPHI()) {
       for (unsigned i = 1, e = DefMI->getNumOperands(); i < e; i += 2) {
         if (DefMI->getOperand(i + 1).getMBB() == MBB) {
-          Register SrcReg = DefMI->getOperand(i).getReg();
+          Register const SrcReg = DefMI->getOperand(i).getReg();
           if (Register::isVirtualRegister(SrcReg)) {
             DefMI = MRI->getVRegDef(SrcReg);
             goto outer_continue;
@@ -182,10 +182,10 @@ outer_continue:
 bool MLxExpansion::hasRAWHazard(unsigned Reg, MachineInstr *MI) const {
   // FIXME: Detect integer instructions properly.
   const MCInstrDesc &MCID = MI->getDesc();
-  unsigned Domain = MCID.TSFlags & ARMII::DomainMask;
+  unsigned const Domain = MCID.TSFlags & ARMII::DomainMask;
   if (MI->mayStore())
     return false;
-  unsigned Opcode = MCID.getOpcode();
+  unsigned const Opcode = MCID.getOpcode();
   if (Opcode == ARM::VMOVRS || Opcode == ARM::VMOVRRD)
     return false;
   if ((Domain & ARMII::DomainVFP) || (Domain & ARMII::DomainNEON))
@@ -242,10 +242,10 @@ bool MLxExpansion::FindMLxHazard(MachineInstr *MI) {
   // preserves the in-order retirement of the instructions.
   // Look at the next few instructions, if *most* of them can cause hazards,
   // then the scheduler can't *fix* this, we'd better break up the VMLA.
-  unsigned Limit1 = isLikeA9 ? 1 : 4;
-  unsigned Limit2 = isLikeA9 ? 1 : 4;
+  unsigned const Limit1 = isLikeA9 ? 1 : 4;
+  unsigned const Limit2 = isLikeA9 ? 1 : 4;
   for (unsigned i = 1; i <= 4; ++i) {
-    int Idx = ((int)MIIdx - i + 4) % 4;
+    int const Idx = ((int)MIIdx - i + 4) % 4;
     MachineInstr *NextMI = LastMIs[Idx];
     if (!NextMI)
       continue;
@@ -269,22 +269,22 @@ void
 MLxExpansion::ExpandFPMLxInstruction(MachineBasicBlock &MBB, MachineInstr *MI,
                                      unsigned MulOpc, unsigned AddSubOpc,
                                      bool NegAcc, bool HasLane) {
-  Register DstReg = MI->getOperand(0).getReg();
-  bool DstDead = MI->getOperand(0).isDead();
-  Register AccReg = MI->getOperand(1).getReg();
-  Register Src1Reg = MI->getOperand(2).getReg();
-  Register Src2Reg = MI->getOperand(3).getReg();
-  bool Src1Kill = MI->getOperand(2).isKill();
-  bool Src2Kill = MI->getOperand(3).isKill();
-  unsigned LaneImm = HasLane ? MI->getOperand(4).getImm() : 0;
+  Register const DstReg = MI->getOperand(0).getReg();
+  bool const DstDead = MI->getOperand(0).isDead();
+  Register const AccReg = MI->getOperand(1).getReg();
+  Register const Src1Reg = MI->getOperand(2).getReg();
+  Register const Src2Reg = MI->getOperand(3).getReg();
+  bool const Src1Kill = MI->getOperand(2).isKill();
+  bool const Src2Kill = MI->getOperand(3).isKill();
+  unsigned const LaneImm = HasLane ? MI->getOperand(4).getImm() : 0;
   unsigned NextOp = HasLane ? 5 : 4;
-  ARMCC::CondCodes Pred = (ARMCC::CondCodes)MI->getOperand(NextOp).getImm();
-  Register PredReg = MI->getOperand(++NextOp).getReg();
+  ARMCC::CondCodes const Pred = (ARMCC::CondCodes)MI->getOperand(NextOp).getImm();
+  Register const PredReg = MI->getOperand(++NextOp).getReg();
 
   const MCInstrDesc &MCID1 = TII->get(MulOpc);
   const MCInstrDesc &MCID2 = TII->get(AddSubOpc);
   const MachineFunction &MF = *MI->getParent()->getParent();
-  Register TmpReg =
+  Register const TmpReg =
       MRI->createVirtualRegister(TII->getRegClass(MCID1, 0, TRI, MF));
 
   MachineInstrBuilder MIB = BuildMI(MBB, MI, MI->getDebugLoc(), MCID1, TmpReg)
@@ -298,7 +298,7 @@ MLxExpansion::ExpandFPMLxInstruction(MachineBasicBlock &MBB, MachineInstr *MI,
     .addReg(DstReg, getDefRegState(true) | getDeadRegState(DstDead));
 
   if (NegAcc) {
-    bool AccKill = MRI->hasOneNonDBGUse(AccReg);
+    bool const AccKill = MRI->hasOneNonDBGUse(AccReg);
     MIB.addReg(TmpReg, getKillRegState(true))
        .addReg(AccReg, getKillRegState(AccKill));
   } else {
@@ -343,7 +343,7 @@ bool MLxExpansion::ExpandFPMLxInstructions(MachineBasicBlock &MBB) {
       continue;
     }
 
-    unsigned Domain = MCID.TSFlags & ARMII::DomainMask;
+    unsigned const Domain = MCID.TSFlags & ARMII::DomainMask;
     if (Domain == ARMII::DomainGeneral) {
       if (++Skip == 2)
         // Assume dual issues of non-VFP / NEON instructions.

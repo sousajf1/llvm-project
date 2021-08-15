@@ -781,7 +781,7 @@ Optional<uint8_t> llvm::dwarf::getFixedFormByteSize(dwarf::Form Form,
 bool llvm::dwarf::isValidFormForVersion(Form F, unsigned Version,
                                         bool ExtensionsOk) {
   if (FormVendor(F) == DWARF_VENDOR_DWARF) {
-    unsigned FV = FormVersion(F);
+    unsigned const FV = FormVersion(F);
     return FV > 0 && FV <= Version;
   }
   return ExtensionsOk;

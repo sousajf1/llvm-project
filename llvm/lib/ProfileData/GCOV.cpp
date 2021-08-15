@@ -151,12 +151,12 @@ bool GCOVFile::readGCNO(GCOVBuffer &buf) {
           fn->blocks.push_back(std::make_unique<GCOVBlock>(i));
         }
       } else {
-        uint32_t num = buf.getWord();
+        uint32_t const num = buf.getWord();
         for (uint32_t i = 0; i != num; ++i)
           fn->blocks.push_back(std::make_unique<GCOVBlock>(i));
       }
     } else if (tag == GCOV_TAG_ARCS && fn) {
-      uint32_t srcNo = buf.getWord();
+      uint32_t const srcNo = buf.getWord();
       if (srcNo >= fn->blocks.size()) {
         errs() << "unexpected block number: " << srcNo << " (in "
                << fn->blocks.size() << ")\n";
@@ -177,7 +177,7 @@ bool GCOVFile::readGCNO(GCOVBuffer &buf) {
           fn->arcs.push_back(std::move(arc));
       }
     } else if (tag == GCOV_TAG_LINES && fn) {
-      uint32_t srcNo = buf.getWord();
+      uint32_t const srcNo = buf.getWord();
       if (srcNo >= fn->blocks.size()) {
         errs() << "unexpected block number: " << srcNo << " (in "
                << fn->blocks.size() << ")\n";
@@ -185,7 +185,7 @@ bool GCOVFile::readGCNO(GCOVBuffer &buf) {
       }
       GCOVBlock &Block = *fn->blocks[srcNo];
       for (;;) {
-        uint32_t line = buf.getWord();
+        uint32_t const line = buf.getWord();
         if (line)
           Block.addLine(line);
         else {
@@ -300,7 +300,7 @@ bool GCOVFile::readGCDA(GCOVBuffer &buf) {
         src.addSrcEdge(arc.get());
         fn->treeArcs.push_back(std::move(arc));
 
-        for (GCOVBlock &block : fn->blocksRange())
+        for (GCOVBlock  const&block : fn->blocksRange())
           fn->propagateCounts(block, nullptr);
         for (size_t i = fn->treeArcs.size() - 1; i; --i)
           fn->treeArcs[i - 1]->src.count += fn->treeArcs[i - 1]->count;
@@ -423,7 +423,7 @@ void GCOVBlock::print(raw_ostream &OS) const {
   }
   if (!lines.empty()) {
     OS << "\tLines : ";
-    for (uint32_t N : lines)
+    for (uint32_t const N : lines)
       OS << (N) << ",";
     OS << "\n";
   }
@@ -535,7 +535,7 @@ static uint32_t branchDiv(uint64_t Numerator, uint64_t Divisor) {
   if (Numerator == Divisor)
     return 100;
 
-  uint8_t Res = (Numerator * 100 + Divisor / 2) / Divisor;
+  uint8_t const Res = (Numerator * 100 + Divisor / 2) / Divisor;
   if (Res == 0)
     return 1;
   if (Res == 100)
@@ -579,7 +579,7 @@ public:
     ErrorOr<std::unique_ptr<MemoryBuffer>> BufferOrErr =
         MemoryBuffer::getFileOrSTDIN(Filename, /*IsText=*/false,
                                      /*RequiresNullTerminator=*/false);
-    if (std::error_code EC = BufferOrErr.getError()) {
+    if (std::error_code const EC = BufferOrErr.getError()) {
       errs() << Filename << ": " << EC.message() << "\n";
       Remaining = "";
     } else {
@@ -666,10 +666,10 @@ void Context::collectFunction(GCOVFunction &f, Summary &summary) {
   for (const GCOVBlock &b : f.blocksRange()) {
     if (b.lines.empty())
       continue;
-    uint32_t maxLineNum = *std::max_element(b.lines.begin(), b.lines.end());
+    uint32_t const maxLineNum = *std::max_element(b.lines.begin(), b.lines.end());
     if (maxLineNum >= si.lines.size())
       si.lines.resize(maxLineNum + 1);
-    for (uint32_t lineNum : b.lines) {
+    for (uint32_t const lineNum : b.lines) {
       LineInfo &line = si.lines[lineNum];
       if (!line.exists)
         ++summary.lines;
@@ -783,11 +783,11 @@ void Context::annotateSource(SourceInfo &si, const GCOVFile &file,
         os << format("%5u-block %2u\n", lineNum, blockIdx++);
       }
       if (options.BranchInfo) {
-        size_t NumEdges = b->succ.size();
+        size_t const NumEdges = b->succ.size();
         if (NumEdges > 1)
           printBranchInfo(*b, edgeIdx, os);
         else if (options.UncondBranch && NumEdges == 1) {
-          uint64_t count = b->succ[0]->count;
+          uint64_t const count = b->succ[0]->count;
           os << format("unconditional %2u ", edgeIdx++)
              << formatBranchInfo(options, count, count) << '\n';
         }
@@ -828,7 +828,7 @@ void Context::printSourceToIntermediate(const SourceInfo &si,
 
 void Context::print(StringRef filename, StringRef gcno, StringRef gcda,
                     GCOVFile &file) {
-  for (StringRef filename : file.filenames) {
+  for (StringRef const filename : file.filenames) {
     sources.emplace_back(filename);
     SourceInfo &si = sources.back();
     si.displayName = si.filename;
@@ -865,7 +865,7 @@ void Context::print(StringRef filename, StringRef gcno, StringRef gcda,
     collectSource(si, summary);
 
     // Print file summary unless -t is specified.
-    std::string gcovName = getCoveragePath(si.filename, filename);
+    std::string const gcovName = getCoveragePath(si.filename, filename);
     if (!options.UseStdout) {
       os << "File '" << summary.Name << "'\n";
       printSummary(summary, os);
@@ -892,7 +892,7 @@ void Context::print(StringRef filename, StringRef gcno, StringRef gcda,
   if (options.Intermediate && !options.NoOutput) {
     // gcov 7.* unexpectedly create multiple .gcov files, which was fixed in 8.0
     // (PR GCC/82702). We create just one file.
-    std::string outputPath(sys::path::filename(filename));
+    std::string const outputPath(sys::path::filename(filename));
     std::error_code ec;
     raw_fd_ostream os(outputPath + ".gcov", ec, sys::fs::OF_TextWithCRLF);
     if (ec) {

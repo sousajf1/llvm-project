@@ -176,7 +176,7 @@ struct AssumeBuilderState {
 
     if (tryToPreserveWithoutAddingAssume(RK))
       return;
-    MapKey Key{RK.WasOn, RK.AttrKind};
+    MapKey const Key{RK.WasOn, RK.AttrKind};
     auto Lookup = AssumedKnowledgeMap.find(Key);
     if (Lookup == AssumedKnowledgeMap.end()) {
       AssumedKnowledgeMap[Key] = RK.ArgValue;
@@ -205,13 +205,13 @@ struct AssumeBuilderState {
   void addCall(const CallBase *Call) {
     auto addAttrList = [&](AttributeList AttrList, unsigned NumArgs) {
       for (unsigned Idx = 0; Idx < NumArgs; Idx++)
-        for (Attribute Attr : AttrList.getParamAttrs(Idx)) {
-          bool IsPoisonAttr = Attr.hasAttribute(Attribute::NonNull) ||
+        for (Attribute const Attr : AttrList.getParamAttrs(Idx)) {
+          bool const IsPoisonAttr = Attr.hasAttribute(Attribute::NonNull) ||
                               Attr.hasAttribute(Attribute::Alignment);
           if (!IsPoisonAttr || Call->isPassingUndefUB(Idx))
             addAttribute(Attr, Call->getArgOperand(Idx));
         }
-      for (Attribute Attr : AttrList.getFnAttrs())
+      for (Attribute const Attr : AttrList.getFnAttrs())
         addAttribute(Attr, nullptr);
     };
     addAttrList(Call->getAttributes(), Call->arg_size());
@@ -249,7 +249,7 @@ struct AssumeBuilderState {
 
   void addAccessedPtr(Instruction *MemInst, Value *Pointer, Type *AccType,
                       MaybeAlign MA) {
-    unsigned DerefSize = MemInst->getModule()
+    unsigned const DerefSize = MemInst->getModule()
                              ->getDataLayout()
                              .getTypeStoreSize(AccType)
                              .getKnownMinSize();
@@ -416,10 +416,10 @@ struct AssumeSimplify {
             CleanupToDo.insert(Assume);
             continue;
           }
-          RetainedKnowledge RK =
+          RetainedKnowledge const RK =
             getKnowledgeFromBundle(cast<AssumeInst>(*Assume), BOI);
           if (auto *Arg = dyn_cast_or_null<Argument>(RK.WasOn)) {
-            bool HasSameKindAttr = Arg->hasAttribute(RK.AttrKind);
+            bool const HasSameKindAttr = Arg->hasAttribute(RK.AttrKind);
             if (HasSameKindAttr)
               if (!Attribute::isIntAttrKind(RK.AttrKind) ||
                   Arg->getAttribute(RK.AttrKind).getValueAsInt() >=
@@ -475,8 +475,8 @@ struct AssumeSimplify {
       InsertPt = InsertPt->getNextNode();
     for (IntrinsicInst *I : make_range(Begin, End)) {
       CleanupToDo.insert(I);
-      for (CallInst::BundleOpInfo &BOI : I->bundle_op_infos()) {
-        RetainedKnowledge RK =
+      for (CallInst::BundleOpInfo  const&BOI : I->bundle_op_infos()) {
+        RetainedKnowledge const RK =
           getKnowledgeFromBundle(cast<AssumeInst>(*I), BOI);
         if (!RK)
           continue;
@@ -518,7 +518,7 @@ struct AssumeSimplify {
       /// AssumesInBB is already sorted by order in the block.
 
       BasicBlock::iterator It = AssumesInBB.front()->getIterator();
-      BasicBlock::iterator E = AssumesInBB.back()->getIterator();
+      BasicBlock::iterator const E = AssumesInBB.back()->getIterator();
       SplitPoints.push_back(AssumesInBB.begin());
       MergeIterator LastSplit = AssumesInBB.begin();
       for (; It != E; ++It)

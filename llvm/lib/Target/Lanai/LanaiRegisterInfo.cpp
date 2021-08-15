@@ -137,10 +137,10 @@ void LanaiRegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
   MachineFunction &MF = *MI.getParent()->getParent();
   const TargetInstrInfo *TII = MF.getSubtarget().getInstrInfo();
   const TargetFrameLowering *TFI = MF.getSubtarget().getFrameLowering();
-  bool HasFP = TFI->hasFP(MF);
-  DebugLoc DL = MI.getDebugLoc();
+  bool const HasFP = TFI->hasFP(MF);
+  DebugLoc const DL = MI.getDebugLoc();
 
-  int FrameIndex = MI.getOperand(FIOperandNum).getIndex();
+  int const FrameIndex = MI.getOperand(FIOperandNum).getIndex();
 
   int Offset = MF.getFrameInfo().getObjectOffset(FrameIndex) +
                MI.getOperand(FIOperandNum + 1).getImm();
@@ -225,7 +225,7 @@ void LanaiRegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
   // we replace the instruction with one that inverts the opcode and negates
   // the immediate.
   if ((Offset < 0) && isALUArithLoOpcode(MI.getOpcode())) {
-    unsigned NewOpcode = getOppositeALULoOpcode(MI.getOpcode());
+    unsigned const NewOpcode = getOppositeALULoOpcode(MI.getOpcode());
     // We know this is an ALU op, so we know the operands are as follows:
     // 0: destination register
     // 1: source register (frame register)

@@ -320,7 +320,7 @@ CodeExtractorAnalysisCache::CodeExtractorAnalysisCache(Function &F) {
 
 void CodeExtractorAnalysisCache::findSideEffectInfoForBlock(BasicBlock &BB) {
   for (Instruction &II : BB.instructionsWithoutDebug()) {
-    unsigned Opcode = II.getOpcode();
+    unsigned const Opcode = II.getOpcode();
     Value *MemAddr = nullptr;
     switch (Opcode) {
     case Instruction::Store:
@@ -526,8 +526,8 @@ void CodeExtractor::findAllocas(const CodeExtractorAnalysisCache &CEAC,
     if (AIFunc != Func)
       continue;
 
-    LifetimeMarkerInfo MarkerInfo = getLifetimeMarkers(CEAC, AI, ExitBlock);
-    bool Moved = moveOrIgnoreLifetimeMarkers(MarkerInfo);
+    LifetimeMarkerInfo const MarkerInfo = getLifetimeMarkers(CEAC, AI, ExitBlock);
+    bool const Moved = moveOrIgnoreLifetimeMarkers(MarkerInfo);
     if (Moved) {
       LLVM_DEBUG(dbgs() << "Sinking alloca: " << *AI << "\n");
       SinkCands.insert(AI);
@@ -580,7 +580,7 @@ void CodeExtractor::findAllocas(const CodeExtractorAnalysisCache &CEAC,
     for (User *U : AI->users()) {
       if (U->stripInBoundsConstantOffsets() == AI) {
         Instruction *Bitcast = cast<Instruction>(U);
-        LifetimeMarkerInfo LMI = getLifetimeMarkers(CEAC, Bitcast, ExitBlock);
+        LifetimeMarkerInfo const LMI = getLifetimeMarkers(CEAC, Bitcast, ExitBlock);
         if (LMI.LifeStart) {
           Bitcasts.push_back(Bitcast);
           BitcastLifetimeInfo.push_back(LMI);
@@ -767,7 +767,7 @@ void CodeExtractor::severSplitPHINodesOfExits(
         NewBB = BasicBlock::Create(ExitBB->getContext(),
                                    ExitBB->getName() + ".split",
                                    ExitBB->getParent(), ExitBB);
-        SmallVector<BasicBlock *, 4> Preds(predecessors(ExitBB));
+        SmallVector<BasicBlock *, 4> const Preds(predecessors(ExitBB));
         for (BasicBlock *PredBB : Preds)
           if (Blocks.count(PredBB))
             PredBB->getTerminator()->replaceUsesOfWith(ExitBB, NewBB);
@@ -779,9 +779,9 @@ void CodeExtractor::severSplitPHINodesOfExits(
       PHINode *NewPN =
           PHINode::Create(PN.getType(), IncomingVals.size(),
                           PN.getName() + ".ce", NewBB->getFirstNonPHI());
-      for (unsigned i : IncomingVals)
+      for (unsigned const i : IncomingVals)
         NewPN->addIncoming(PN.getIncomingValue(i), PN.getIncomingBlock(i));
-      for (unsigned i : reverse(IncomingVals))
+      for (unsigned const i : reverse(IncomingVals))
         PN.removeIncomingValue(i, false);
       PN.addIncoming(NewPN, NewBB);
     }
@@ -797,7 +797,7 @@ void CodeExtractor::splitReturnBlocks() {
         // Old dominates New. New node dominates all other nodes dominated
         // by Old.
         DomTreeNode *OldNode = DT->getNode(Block);
-        SmallVector<DomTreeNode *, 8> Children(OldNode->begin(),
+        SmallVector<DomTreeNode *, 8> const Children(OldNode->begin(),
                                                OldNode->end());
 
         DomTreeNode *NewNode = DT->addNewBlock(New, Block);
@@ -862,7 +862,7 @@ Function *CodeExtractor::constructFunction(const ValueSet &inputs,
                   FunctionType::get(RetTy, paramTy,
                                     AllowVarArgs && oldFunction->isVarArg());
 
-  std::string SuffixToUse =
+  std::string const SuffixToUse =
       Suffix.empty()
           ? (header->getName().empty() ? "extracted" : header->getName().str())
           : Suffix;
@@ -1003,7 +1003,7 @@ Function *CodeExtractor::constructFunction(const ValueSet &inputs,
     } else
       RewriteVal = &*AI++;
 
-    std::vector<User *> Users(inputs[i]->user_begin(), inputs[i]->user_end());
+    std::vector<User *> const Users(inputs[i]->user_begin(), inputs[i]->user_end());
     for (User *use : Users)
       if (Instruction *inst = dyn_cast<Instruction>(use))
         if (Blocks.count(inst->getParent()))
@@ -1022,7 +1022,7 @@ Function *CodeExtractor::constructFunction(const ValueSet &inputs,
   // Rewrite branches to basic blocks outside of the loop to new dummy blocks
   // within the new function. This must be done before we lose track of which
   // blocks were originally in the code region.
-  std::vector<User *> Users(header->user_begin(), header->user_end());
+  std::vector<User *> const Users(header->user_begin(), header->user_end());
   for (auto &U : Users)
     // The BasicBlock which contains the branch is not in the region
     // modify the branch target to a new block
@@ -1199,13 +1199,13 @@ CallInst *CodeExtractor::emitCallAndSwitchStatement(Function *newFunction,
   codeReplacer->getInstList().push_back(call);
 
   // Set swifterror parameter attributes.
-  for (unsigned SwiftErrArgNo : SwiftErrorArgs) {
+  for (unsigned const SwiftErrArgNo : SwiftErrorArgs) {
     call->addParamAttr(SwiftErrArgNo, Attribute::SwiftError);
     newFunction->addParamAttr(SwiftErrArgNo, Attribute::SwiftError);
   }
 
   Function::arg_iterator OutputArgBegin = newFunction->arg_begin();
-  unsigned FirstOut = inputs.size();
+  unsigned const FirstOut = inputs.size();
   if (!AggregateArgs)
     std::advance(OutputArgBegin, inputs.size());
 
@@ -1261,7 +1261,7 @@ CallInst *CodeExtractor::emitCallAndSwitchStatement(Function *newFunction,
           NewTarget = BasicBlock::Create(Context,
                                          OldTarget->getName() + ".exitStub",
                                          newFunction);
-          unsigned SuccNum = switchVal++;
+          unsigned const SuccNum = switchVal++;
 
           Value *brVal = nullptr;
           switch (NumExitBlocks) {
@@ -1416,8 +1416,8 @@ void CodeExtractor::calculateNewCallTerminatorWeights(
 
   // Add each of the frequencies of the successors.
   for (unsigned i = 0, e = TI->getNumSuccessors(); i < e; ++i) {
-    BlockNode ExitNode(i);
-    uint64_t ExitFreq = ExitWeights[TI->getSuccessor(i)].getFrequency();
+    BlockNode const ExitNode(i);
+    uint64_t const ExitFreq = ExitWeights[TI->getSuccessor(i)].getFrequency();
     if (ExitFreq != 0)
       BranchDist.addExit(ExitNode, ExitFreq);
     else
@@ -1439,7 +1439,7 @@ void CodeExtractor::calculateNewCallTerminatorWeights(
 
     // Get the weight and update the current BFI.
     BranchWeights[Weight.TargetNode.Index] = Weight.Amount;
-    BranchProbability BP(Weight.Amount, BranchDist.Total);
+    BranchProbability const BP(Weight.Amount, BranchDist.Total);
     EdgeProbabilities[Weight.TargetNode.Index] = BP;
   }
   BPI->setEdgeProbability(CodeReplacer, EdgeProbabilities);
@@ -1483,7 +1483,7 @@ static void fixupDebugInfoPostExtraction(Function &OldFunc, Function &NewFunc,
   DIBuilder DIB(*OldFunc.getParent(), /*AllowUnresolved=*/false,
                 OldSP->getUnit());
   auto SPType = DIB.createSubroutineType(DIB.getOrCreateTypeArray(None));
-  DISubprogram::DISPFlags SPFlags = DISubprogram::SPFlagDefinition |
+  DISubprogram::DISPFlags const SPFlags = DISubprogram::SPFlagDefinition |
                                     DISubprogram::SPFlagOptimized |
                                     DISubprogram::SPFlagLocalToUnit;
   auto NewSP = DIB.createFunction(
@@ -1762,7 +1762,7 @@ CodeExtractor::extractCodeRegion(const CodeExtractorAnalysisCache &CEAC) {
   // Mark the new function `noreturn` if applicable. Terminators which resume
   // exception propagation are treated as returning instructions. This is to
   // avoid inserting traps after calls to outlined functions which unwind.
-  bool doesNotReturn = none_of(*newFunction, [](const BasicBlock &BB) {
+  bool const doesNotReturn = none_of(*newFunction, [](const BasicBlock &BB) {
     const Instruction *Term = BB.getTerminator();
     return isa<ReturnInst>(Term) || isa<ResumeInst>(Term);
   });

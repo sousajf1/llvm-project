@@ -210,7 +210,7 @@ void llvm::initializeLoopPassPass(PassRegistry &Registry) {
 /// Create MDNode for input string.
 static MDNode *createStringMetadata(Loop *TheLoop, StringRef Name, unsigned V) {
   LLVMContext &Context = TheLoop->getHeader()->getContext();
-  Metadata *MDs[] = {
+  Metadata *const MDs[] = {
       MDString::get(Context, Name),
       ConstantAsMetadata::get(ConstantInt::get(Type::getInt32Ty(Context), V))};
   return MDNode::get(Context, MDs);
@@ -260,7 +260,7 @@ llvm::getOptionalElementCountLoopAttribute(const Loop *TheLoop) {
       getOptionalIntLoopAttribute(TheLoop, "llvm.loop.vectorize.width");
 
   if (Width.hasValue()) {
-    Optional<int> IsScalable = getOptionalIntLoopAttribute(
+    Optional<int> const IsScalable = getOptionalIntLoopAttribute(
         TheLoop, "llvm.loop.vectorize.scalable.enable");
     return ElementCount::get(*Width, IsScalable.getValueOr(false));
   }
@@ -279,8 +279,8 @@ Optional<MDNode *> llvm::makeFollowupLoopID(
 
   assert(OrigLoopID->getOperand(0) == OrigLoopID);
 
-  bool InheritAllAttrs = !InheritOptionsExceptPrefix;
-  bool InheritSomeAttrs =
+  bool const InheritAllAttrs = !InheritOptionsExceptPrefix;
+  bool const InheritSomeAttrs =
       InheritOptionsExceptPrefix && InheritOptionsExceptPrefix[0] != '\0';
   SmallVector<Metadata *, 8> MDs;
   MDs.push_back(nullptr);
@@ -301,7 +301,7 @@ Optional<MDNode *> llvm::makeFollowupLoopID(
         Metadata *NameMD = Op->getOperand(0).get();
         if (!isa<MDString>(NameMD))
           return true;
-        StringRef AttrName = cast<MDString>(NameMD)->getString();
+        StringRef const AttrName = cast<MDString>(NameMD)->getString();
 
         // Do not inherit excluded attributes.
         return !AttrName.startswith(InheritOptionsExceptPrefix);
@@ -318,7 +318,7 @@ Optional<MDNode *> llvm::makeFollowupLoopID(
   }
 
   bool HasAnyFollowup = false;
-  for (StringRef OptionName : FollowupOptions) {
+  for (StringRef const OptionName : FollowupOptions) {
     MDNode *FollowupNode = findOptionMDForLoopID(OrigLoopID, OptionName);
     if (!FollowupNode)
       continue;
@@ -397,7 +397,7 @@ TransformationMode llvm::hasUnrollAndJamTransformation(const Loop *L) {
 }
 
 TransformationMode llvm::hasVectorizeTransformation(const Loop *L) {
-  Optional<bool> Enable =
+  Optional<bool> const Enable =
       getOptionalBoolLoopAttribute(L, "llvm.loop.vectorize.enable");
 
   if (Enable == false)
@@ -405,7 +405,7 @@ TransformationMode llvm::hasVectorizeTransformation(const Loop *L) {
 
   Optional<ElementCount> VectorizeWidth =
       getOptionalElementCountLoopAttribute(L);
-  Optional<int> InterleaveCount =
+  Optional<int> const InterleaveCount =
       getOptionalIntLoopAttribute(L, "llvm.loop.interleave.count");
 
   // 'Forcing' vector width and interleave count to one effectively disables
@@ -542,7 +542,7 @@ void llvm::deleteDeadLoop(Loop *L, DominatorTree *DT, ScalarEvolution *SE,
       // Set the zero'th element of Phi to be from the preheader and remove all
       // other incoming values. Given the loop has dedicated exits, all other
       // incoming values must be from the exiting blocks.
-      int PredIndex = 0;
+      int const PredIndex = 0;
       P.setIncomingBlock(PredIndex, Preheader);
       // Removes all incoming values from all other exiting blocks (including
       // duplicate values from an exiting block).
@@ -588,7 +588,7 @@ void llvm::deleteDeadLoop(Loop *L, DominatorTree *DT, ScalarEvolution *SE,
     if (MSSA) {
       MSSAU->applyUpdates({{DominatorTree::Delete, Preheader, L->getHeader()}},
                           *DT);
-      SmallSetVector<BasicBlock *, 8> DeadBlockSet(L->block_begin(),
+      SmallSetVector<BasicBlock *, 8> const DeadBlockSet(L->block_begin(),
                                                    L->block_end());
       MSSAU->removeBlocks(DeadBlockSet);
       if (VerifyMemorySSA)
@@ -683,11 +683,11 @@ void llvm::deleteDeadLoop(Loop *L, DominatorTree *DT, ScalarEvolution *SE,
     // its parent. While removeLoop/removeChildLoop remove the given loop but
     // not relink its subloops, which is what we want.
     if (Loop *ParentLoop = L->getParentLoop()) {
-      Loop::iterator I = find(*ParentLoop, L);
+      Loop::iterator const I = find(*ParentLoop, L);
       assert(I != ParentLoop->end() && "Couldn't find loop");
       ParentLoop->removeChildLoop(I);
     } else {
-      Loop::iterator I = find(*LI, L);
+      Loop::iterator const I = find(*LI, L);
       assert(I != LI->end() && "Couldn't find loop");
       LI->removeLoop(I);
     }
@@ -793,7 +793,7 @@ llvm::getLoopEstimatedTripCount(Loop *L,
 
   // Estimated backedge taken count is a ratio of the backedge taken weight by
   // the weight of the edge exiting the loop, rounded to nearest.
-  uint64_t BackedgeTakenCount =
+  uint64_t const BackedgeTakenCount =
       llvm::divideNearest(BackedgeTakenWeight, LatchExitWeight);
   // Estimated trip count is one plus estimated backedge taken count.
   return BackedgeTakenCount + 1;
@@ -844,7 +844,7 @@ bool llvm::hasIterationCountInvariantInParent(Loop *InnerLoop,
     return false;
 
   // Get whether count is invariant to the outer loop
-  ScalarEvolution::LoopDisposition LD =
+  ScalarEvolution::LoopDisposition const LD =
       SE.getLoopDisposition(InnerLoopBECountSC, OuterL);
   if (LD != ScalarEvolution::LoopInvariant)
     return false;
@@ -887,7 +887,7 @@ Value *llvm::createMinMaxOp(IRBuilderBase &Builder, RecurKind RK, Value *Left,
 Value *llvm::getOrderedReduction(IRBuilderBase &Builder, Value *Acc, Value *Src,
                                  unsigned Op, RecurKind RdxKind,
                                  ArrayRef<Value *> RedOps) {
-  unsigned VF = cast<FixedVectorType>(Src->getType())->getNumElements();
+  unsigned const VF = cast<FixedVectorType>(Src->getType())->getNumElements();
 
   // Extract and apply reduction ops in ascending order:
   // e.g. ((((Acc + Scl[0]) + Scl[1]) + Scl[2]) + ) ... + Scl[VF-1]
@@ -916,7 +916,7 @@ Value *llvm::getOrderedReduction(IRBuilderBase &Builder, Value *Acc, Value *Src,
 Value *llvm::getShuffleReduction(IRBuilderBase &Builder, Value *Src,
                                  unsigned Op, RecurKind RdxKind,
                                  ArrayRef<Value *> RedOps) {
-  unsigned VF = cast<FixedVectorType>(Src->getType())->getNumElements();
+  unsigned const VF = cast<FixedVectorType>(Src->getType())->getNumElements();
   // VF is a power of 2 so we can emit the reduction using log2(VF) shuffles
   // and vector ops, reducing the set of values being computed by half each
   // round.
@@ -1005,7 +1005,7 @@ Value *llvm::createTargetReduction(IRBuilderBase &B,
   // TODO: Support in-order reductions based on the recurrence descriptor.
   // All ops in the reduction inherit fast-math-flags from the recurrence
   // descriptor.
-  IRBuilderBase::FastMathFlagGuard FMFGuard(B);
+  IRBuilderBase::FastMathFlagGuard const FMFGuard(B);
   B.setFastMathFlags(Desc.getFastMathFlags());
   return createSimpleTargetReduction(B, TTI, Src, Desc.getRecurrenceKind());
 }
@@ -1056,8 +1056,8 @@ bool llvm::isKnownNonNegativeInLoop(const SCEV *S, const Loop *L,
 
 bool llvm::cannotBeMinInLoop(const SCEV *S, const Loop *L, ScalarEvolution &SE,
                              bool Signed) {
-  unsigned BitWidth = cast<IntegerType>(S->getType())->getBitWidth();
-  APInt Min = Signed ? APInt::getSignedMinValue(BitWidth) :
+  unsigned const BitWidth = cast<IntegerType>(S->getType())->getBitWidth();
+  APInt const Min = Signed ? APInt::getSignedMinValue(BitWidth) :
     APInt::getMinValue(BitWidth);
   auto Predicate = Signed ? ICmpInst::ICMP_SGT : ICmpInst::ICMP_UGT;
   return SE.isAvailableAtLoopEntry(S, L) &&
@@ -1067,8 +1067,8 @@ bool llvm::cannotBeMinInLoop(const SCEV *S, const Loop *L, ScalarEvolution &SE,
 
 bool llvm::cannotBeMaxInLoop(const SCEV *S, const Loop *L, ScalarEvolution &SE,
                              bool Signed) {
-  unsigned BitWidth = cast<IntegerType>(S->getType())->getBitWidth();
-  APInt Max = Signed ? APInt::getSignedMaxValue(BitWidth) :
+  unsigned const BitWidth = cast<IntegerType>(S->getType())->getBitWidth();
+  APInt const Max = Signed ? APInt::getSignedMaxValue(BitWidth) :
     APInt::getMaxValue(BitWidth);
   auto Predicate = Signed ? ICmpInst::ICMP_SLT : ICmpInst::ICMP_ULT;
   return SE.isAvailableAtLoopEntry(S, L) &&
@@ -1206,7 +1206,7 @@ static bool canLoopBeDeleted(Loop *L, SmallVector<RewritePhi, 8> &RewritePhiSet)
     for (const RewritePhi &Phi : RewritePhiSet) {
       if (!Phi.ValidRewrite)
         continue;
-      unsigned i = Phi.Ith;
+      unsigned const i = Phi.Ith;
       if (Phi.PN == P && (Phi.PN)->getIncomingValue(i) == Incoming) {
         found = true;
         break;
@@ -1253,7 +1253,7 @@ int llvm::rewriteLoopExitValues(Loop *L, LoopInfo *LI, TargetLibraryInfo *TLI,
     PHINode *PN = dyn_cast<PHINode>(ExitBB->begin());
     if (!PN) continue;
 
-    unsigned NumPreds = PN->getNumIncomingValues();
+    unsigned const NumPreds = PN->getNumIncomingValues();
 
     // Iterate over all of the PHI nodes.
     BasicBlock::iterator BBI = ExitBB->begin();
@@ -1324,7 +1324,7 @@ int llvm::rewriteLoopExitValues(Loop *L, LoopInfo *LI, TargetLibraryInfo *TLI,
           continue;
 
         // Check if expansions of this SCEV would count as being high cost.
-        bool HighCost = Rewriter.isHighCostExpansion(
+        bool const HighCost = Rewriter.isHighCostExpansion(
             ExitValue, L, SCEVCheapExpansionBudget, TTI, Inst);
 
         // Note that we must not perform expansions until after
@@ -1373,7 +1373,7 @@ int llvm::rewriteLoopExitValues(Loop *L, LoopInfo *LI, TargetLibraryInfo *TLI,
   // the cost of other SCEV's after expanding SCEV 'A',
   // thus potentially giving cost bonus to those other SCEV's?
 
-  bool LoopCanBeDel = canLoopBeDeleted(L, RewritePhiSet);
+  bool const LoopCanBeDel = canLoopBeDeleted(L, RewritePhiSet);
   int NumReplaced = 0;
 
   // Transformation.
@@ -1430,9 +1430,9 @@ void llvm::setProfileInfoAfterUnrolling(Loop *OrigLoop, Loop *UnrolledLoop,
     return;
 
   // Calculate number of iterations in unrolled loop.
-  unsigned UnrolledAverageTripCount = *OrigAverageTripCount / UF;
+  unsigned const UnrolledAverageTripCount = *OrigAverageTripCount / UF;
   // Calculate number of iterations for remainder loop.
-  unsigned RemainderAverageTripCount = *OrigAverageTripCount % UF;
+  unsigned const RemainderAverageTripCount = *OrigAverageTripCount % UF;
 
   setLoopEstimatedTripCount(UnrolledLoop, UnrolledAverageTripCount,
                             OrigLoopInvocationWeight);
@@ -1583,8 +1583,8 @@ std::pair<Instruction *, Instruction *> llvm::addRuntimeChecks(
     const PointerBounds &A = Check.first, &B = Check.second;
     // Check if two pointers (A and B) conflict where conflict is computed as:
     // start(A) <= end(B) && start(B) <= end(A)
-    unsigned AS0 = A.Start->getType()->getPointerAddressSpace();
-    unsigned AS1 = B.Start->getType()->getPointerAddressSpace();
+    unsigned const AS0 = A.Start->getType()->getPointerAddressSpace();
+    unsigned const AS1 = B.Start->getType()->getPointerAddressSpace();
 
     assert((AS0 == B.End->getType()->getPointerAddressSpace()) &&
            (AS1 == A.End->getType()->getPointerAddressSpace()) &&
@@ -1752,7 +1752,7 @@ Optional<IVConditionInfo> llvm::hasPartialIVCondition(Loop &L,
           return {};
       }
 
-      for (Use &U : Current->uses())
+      for (Use  const&U : Current->uses())
         AccessesToCheck.push_back(cast<MemoryAccess>(U.getUser()));
     }
 

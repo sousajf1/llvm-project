@@ -209,12 +209,12 @@ uint64_t MCAsmLayout::getSectionFileSize(const MCSection *Sec) const {
 uint64_t llvm::computeBundlePadding(const MCAssembler &Assembler,
                                     const MCEncodedFragment *F,
                                     uint64_t FOffset, uint64_t FSize) {
-  uint64_t BundleSize = Assembler.getBundleAlignSize();
+  uint64_t const BundleSize = Assembler.getBundleAlignSize();
   assert(BundleSize > 0 &&
          "computeBundlePadding should only be called if bundling is enabled");
-  uint64_t BundleMask = BundleSize - 1;
-  uint64_t OffsetInBundle = FOffset & BundleMask;
-  uint64_t EndOfFragment = OffsetInBundle + FSize;
+  uint64_t const BundleMask = BundleSize - 1;
+  uint64_t const OffsetInBundle = FOffset & BundleMask;
+  uint64_t const EndOfFragment = OffsetInBundle + FSize;
 
   // There are two kinds of bundling restrictions:
   //
@@ -483,7 +483,7 @@ LLVM_DUMP_METHOD void MCFragment::dump() const {
   case MCFragment::FT_CVDefRange: {
     const auto *F = cast<MCCVDefRangeFragment>(this);
     OS << "\n       ";
-    for (std::pair<const MCSymbol *, const MCSymbol *> RangeStartEnd :
+    for (std::pair<const MCSymbol *, const MCSymbol *> const RangeStartEnd :
          F->getRanges()) {
       OS << " RangeStart:" << RangeStartEnd.first;
       OS << " RangeEnd:" << RangeStartEnd.second;

@@ -63,7 +63,7 @@ std::unique_ptr<Module> llvm::parseAssemblyFile(StringRef Filename,
                                                 SlotMapping *Slots) {
   ErrorOr<std::unique_ptr<MemoryBuffer>> FileOrErr =
       MemoryBuffer::getFileOrSTDIN(Filename);
-  if (std::error_code EC = FileOrErr.getError()) {
+  if (std::error_code const EC = FileOrErr.getError()) {
     Err = SMDiagnostic(Filename, SourceMgr::DK_Error,
                        "Could not open input file: " + EC.message());
     return nullptr;
@@ -105,7 +105,7 @@ parseAssemblyFileWithIndex(StringRef Filename, SMDiagnostic &Err,
                            DataLayoutCallbackTy DataLayoutCallback) {
   ErrorOr<std::unique_ptr<MemoryBuffer>> FileOrErr =
       MemoryBuffer::getFileOrSTDIN(Filename, /*IsText=*/true);
-  if (std::error_code EC = FileOrErr.getError()) {
+  if (std::error_code const EC = FileOrErr.getError()) {
     Err = SMDiagnostic(Filename, SourceMgr::DK_Error,
                        "Could not open input file: " + EC.message());
     return {nullptr, nullptr};
@@ -137,7 +137,7 @@ std::unique_ptr<Module> llvm::parseAssemblyString(StringRef AsmString,
                                                   SMDiagnostic &Err,
                                                   LLVMContext &Context,
                                                   SlotMapping *Slots) {
-  MemoryBufferRef F(AsmString, "<string>");
+  MemoryBufferRef const F(AsmString, "<string>");
   return parseAssembly(F, Err, Context, Slots);
 }
 
@@ -170,7 +170,7 @@ std::unique_ptr<ModuleSummaryIndex>
 llvm::parseSummaryIndexAssemblyFile(StringRef Filename, SMDiagnostic &Err) {
   ErrorOr<std::unique_ptr<MemoryBuffer>> FileOrErr =
       MemoryBuffer::getFileOrSTDIN(Filename);
-  if (std::error_code EC = FileOrErr.getError()) {
+  if (std::error_code const EC = FileOrErr.getError()) {
     Err = SMDiagnostic(Filename, SourceMgr::DK_Error,
                        "Could not open input file: " + EC.message());
     return nullptr;

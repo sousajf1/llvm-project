@@ -83,7 +83,7 @@ void EHStreamer::computeActionsTable(
   FilterOffsets.reserve(FilterIds.size());
   int Offset = -1;
 
-  for (unsigned FilterId : FilterIds) {
+  for (unsigned const FilterId : FilterIds) {
     FilterOffsets.push_back(Offset);
     Offset -= getULEB128Size(FilterId);
   }
@@ -96,7 +96,7 @@ void EHStreamer::computeActionsTable(
 
   for (const LandingPadInfo *LPI : LandingPads) {
     const std::vector<int> &TypeIds = LPI->TypeIds;
-    unsigned NumShared = PrevLPI ? sharedTypeIDs(LPI, PrevLPI) : 0;
+    unsigned const NumShared = PrevLPI ? sharedTypeIDs(LPI, PrevLPI) : 0;
     unsigned SizeSiteActions = 0; // Total size of all entries for a landingpad
 
     if (NumShared < TypeIds.size()) {
@@ -105,7 +105,7 @@ void EHStreamer::computeActionsTable(
       unsigned PrevAction = (unsigned)-1;
 
       if (NumShared) {
-        unsigned SizePrevIds = PrevLPI->TypeIds.size();
+        unsigned const SizePrevIds = PrevLPI->TypeIds.size();
         assert(Actions.size());
         PrevAction = Actions.size() - 1;
         SizeActionEntry = getSLEB128Size(Actions[PrevAction].NextAction) +
@@ -121,17 +121,17 @@ void EHStreamer::computeActionsTable(
 
       // Compute the actions.
       for (unsigned J = NumShared, M = TypeIds.size(); J != M; ++J) {
-        int TypeID = TypeIds[J];
+        int const TypeID = TypeIds[J];
         assert(-1 - TypeID < (int)FilterOffsets.size() && "Unknown filter id!");
-        int ValueForTypeID =
+        int const ValueForTypeID =
             isFilterEHSelector(TypeID) ? FilterOffsets[-1 - TypeID] : TypeID;
-        unsigned SizeTypeID = getSLEB128Size(ValueForTypeID);
+        unsigned const SizeTypeID = getSLEB128Size(ValueForTypeID);
 
-        int NextAction = SizeActionEntry ? -(SizeActionEntry + SizeTypeID) : 0;
+        int const NextAction = SizeActionEntry ? -(SizeActionEntry + SizeTypeID) : 0;
         SizeActionEntry = SizeTypeID + getSLEB128Size(NextAction);
         SizeSiteActions += SizeActionEntry;
 
-        ActionEntry Action = { ValueForTypeID, NextAction, PrevAction };
+        ActionEntry const Action = { ValueForTypeID, NextAction, PrevAction };
         Actions.push_back(Action);
         PrevAction = Actions.size() - 1;
       }
@@ -199,7 +199,7 @@ void EHStreamer::computePadMap(
     for (unsigned j = 0, E = LandingPad->BeginLabels.size(); j != E; ++j) {
       MCSymbol *BeginLabel = LandingPad->BeginLabels[j];
       assert(!PadMap.count(BeginLabel) && "Duplicate landing pad labels!");
-      PadRange P = { i, j };
+      PadRange const P = { i, j };
       PadMap[BeginLabel] = P;
     }
   }
@@ -243,7 +243,7 @@ void EHStreamer::computeCallSiteTable(
   // Whether the last CallSite entry was for an invoke.
   bool PreviousIsInvoke = false;
 
-  bool IsSJLJ = Asm->MAI->getExceptionHandlingType() == ExceptionHandling::SjLj;
+  bool const IsSJLJ = Asm->MAI->getExceptionHandlingType() == ExceptionHandling::SjLj;
 
   // Visit all instructions in order of address.
   for (const auto &MBB : *Asm->MF) {
@@ -275,7 +275,7 @@ void EHStreamer::computeCallSiteTable(
         SawPotentiallyThrowing = false;
 
       // Beginning of a new try-range?
-      RangeMapType::const_iterator L = PadMap.find(BeginLabel);
+      RangeMapType::const_iterator const L = PadMap.find(BeginLabel);
       if (L == PadMap.end())
         // Nope, it was just some random label.
         continue;
@@ -304,7 +304,7 @@ void EHStreamer::computeCallSiteTable(
         PreviousIsInvoke = false;
       } else {
         // This try-range is for an invoke.
-        CallSiteEntry Site = {
+        CallSiteEntry const Site = {
           BeginLabel,
           LastLabel,
           LandingPad,
@@ -327,7 +327,7 @@ void EHStreamer::computeCallSiteTable(
         else {
           // SjLj EH must maintain the call sites in the order assigned
           // to them by the SjLjPrepare pass.
-          unsigned SiteNo = Asm->MF->getCallSiteBeginLabel(BeginLabel);
+          unsigned const SiteNo = Asm->MF->getCallSiteBeginLabel(BeginLabel);
           if (CallSites.size() < SiteNo)
             CallSites.resize(SiteNo);
           CallSites[SiteNo - 1] = Site;
@@ -343,7 +343,7 @@ void EHStreamer::computeCallSiteTable(
       // function may throw, create a call-site entry with no landing pad for
       // the region following the try-range.
       if (SawPotentiallyThrowing && !IsSJLJ) {
-        CallSiteEntry Site = {LastLabel, CallSiteRanges.back().FragmentEndLabel,
+        CallSiteEntry const Site = {LastLabel, CallSiteRanges.back().FragmentEndLabel,
                               nullptr, 0};
         CallSites.push_back(Site);
         SawPotentiallyThrowing = false;
@@ -408,8 +408,8 @@ MCSymbol *EHStreamer::emitExceptionTable() {
   SmallVector<CallSiteRange, 4> CallSiteRanges;
   computeCallSiteTable(CallSites, CallSiteRanges, LandingPads, FirstActions);
 
-  bool IsSJLJ = Asm->MAI->getExceptionHandlingType() == ExceptionHandling::SjLj;
-  bool IsWasm = Asm->MAI->getExceptionHandlingType() == ExceptionHandling::Wasm;
+  bool const IsSJLJ = Asm->MAI->getExceptionHandlingType() == ExceptionHandling::SjLj;
+  bool const IsWasm = Asm->MAI->getExceptionHandlingType() == ExceptionHandling::Wasm;
   bool HasLEB128Directives = Asm->MAI->hasLEB128Directives();
   unsigned CallSiteEncoding =
       IsSJLJ ? static_cast<unsigned>(dwarf::DW_EH_PE_udata4) :
@@ -829,7 +829,7 @@ void EHStreamer::emitTypeInfos(unsigned TTypeEncoding, MCSymbol *TTBaseLabel) {
   }
   for (std::vector<unsigned>::const_iterator
          I = FilterIds.begin(), E = FilterIds.end(); I < E; ++I) {
-    unsigned TypeID = *I;
+    unsigned const TypeID = *I;
     if (VerboseAsm) {
       --Entry;
       if (isFilterEHSelector(TypeID))

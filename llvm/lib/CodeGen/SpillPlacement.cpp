@@ -153,7 +153,7 @@ struct SpillPlacement::Node {
     // Compute the weighted sum of inputs.
     BlockFrequency SumN = BiasN;
     BlockFrequency SumP = BiasP;
-    for (std::pair<BlockFrequency, unsigned> &L : Links) {
+    for (std::pair<BlockFrequency, unsigned>  const&L : Links) {
       if (nodes[L.second].Value == -1)
         SumN += L.first;
       else if (nodes[L.second].Value == 1)
@@ -168,7 +168,7 @@ struct SpillPlacement::Node {
     //     initial iterations.
     //  2. It helps tame rounding errors when the links nominally sum to 0.
     //
-    bool Before = preferReg();
+    bool const Before = preferReg();
     if (SumN >= SumP + Threshold)
       Value = -1;
     else if (SumP >= SumN + Threshold)
@@ -181,7 +181,7 @@ struct SpillPlacement::Node {
   void getDissentingNeighbors(SparseSet<unsigned> &List,
                               const Node nodes[]) const {
     for (const auto &Elt : Links) {
-      unsigned n = Elt.second;
+      unsigned const n = Elt.second;
       // Neighbors that already have the same value are not going to
       // change because of this node changing.
       if (Value != nodes[n].Value)
@@ -205,7 +205,7 @@ bool SpillPlacement::runOnMachineFunction(MachineFunction &mf) {
   MBFI = &getAnalysis<MachineBlockFrequencyInfo>();
   setThreshold(MBFI->getEntryFreq());
   for (auto &I : mf) {
-    unsigned Num = I.getNumber();
+    unsigned const Num = I.getNumber();
     BlockFrequencies[Num] = MBFI->getBlockFreq(&I);
   }
 
@@ -250,8 +250,8 @@ void SpillPlacement::activate(unsigned n) {
 void SpillPlacement::setThreshold(const BlockFrequency &Entry) {
   // Apparently 2 is a good threshold when Entry==2^14, but we need to scale
   // it.  Divide by 2^13, rounding as appropriate.
-  uint64_t Freq = Entry.getFrequency();
-  uint64_t Scaled = (Freq >> 13) + bool(Freq & (1 << 12));
+  uint64_t const Freq = Entry.getFrequency();
+  uint64_t const Scaled = (Freq >> 13) + bool(Freq & (1 << 12));
   Threshold = std::max(UINT64_C(1), Scaled);
 }
 
@@ -259,18 +259,18 @@ void SpillPlacement::setThreshold(const BlockFrequency &Entry) {
 /// Set a bit in NodeMask for each active node.
 void SpillPlacement::addConstraints(ArrayRef<BlockConstraint> LiveBlocks) {
   for (const BlockConstraint &LB : LiveBlocks) {
-    BlockFrequency Freq = BlockFrequencies[LB.Number];
+    BlockFrequency const Freq = BlockFrequencies[LB.Number];
 
     // Live-in to block?
     if (LB.Entry != DontCare) {
-      unsigned ib = bundles->getBundle(LB.Number, false);
+      unsigned const ib = bundles->getBundle(LB.Number, false);
       activate(ib);
       nodes[ib].addBias(Freq, LB.Entry);
     }
 
     // Live-out from block?
     if (LB.Exit != DontCare) {
-      unsigned ob = bundles->getBundle(LB.Number, true);
+      unsigned const ob = bundles->getBundle(LB.Number, true);
       activate(ob);
       nodes[ob].addBias(Freq, LB.Exit);
     }
@@ -279,12 +279,12 @@ void SpillPlacement::addConstraints(ArrayRef<BlockConstraint> LiveBlocks) {
 
 /// addPrefSpill - Same as addConstraints(PrefSpill)
 void SpillPlacement::addPrefSpill(ArrayRef<unsigned> Blocks, bool Strong) {
-  for (unsigned B : Blocks) {
+  for (unsigned const B : Blocks) {
     BlockFrequency Freq = BlockFrequencies[B];
     if (Strong)
       Freq += Freq;
-    unsigned ib = bundles->getBundle(B, false);
-    unsigned ob = bundles->getBundle(B, true);
+    unsigned const ib = bundles->getBundle(B, false);
+    unsigned const ob = bundles->getBundle(B, true);
     activate(ib);
     activate(ob);
     nodes[ib].addBias(Freq, PrefSpill);
@@ -293,16 +293,16 @@ void SpillPlacement::addPrefSpill(ArrayRef<unsigned> Blocks, bool Strong) {
 }
 
 void SpillPlacement::addLinks(ArrayRef<unsigned> Links) {
-  for (unsigned Number : Links) {
-    unsigned ib = bundles->getBundle(Number, false);
-    unsigned ob = bundles->getBundle(Number, true);
+  for (unsigned const Number : Links) {
+    unsigned const ib = bundles->getBundle(Number, false);
+    unsigned const ob = bundles->getBundle(Number, true);
 
     // Ignore self-loops.
     if (ib == ob)
       continue;
     activate(ib);
     activate(ob);
-    BlockFrequency Freq = BlockFrequencies[Number];
+    BlockFrequency const Freq = BlockFrequencies[Number];
     nodes[ib].addLink(ob, Freq);
     nodes[ob].addLink(ib, Freq);
   }
@@ -310,7 +310,7 @@ void SpillPlacement::addLinks(ArrayRef<unsigned> Links) {
 
 bool SpillPlacement::scanActiveBundles() {
   RecentPositive.clear();
-  for (unsigned n : ActiveNodes->set_bits()) {
+  for (unsigned const n : ActiveNodes->set_bits()) {
     update(n);
     // A node that must spill, or a node without any links is not going to
     // change its value ever again, so exclude it from iterations.
@@ -342,7 +342,7 @@ void SpillPlacement::iterate() {
   // The call to ::update will add the nodes that changed into the todolist.
   unsigned Limit = bundles->getNumBundles() * 10;
   while(Limit-- > 0 && !TodoList.empty()) {
-    unsigned n = TodoList.pop_back_val();
+    unsigned const n = TodoList.pop_back_val();
     if (!update(n))
       continue;
     if (nodes[n].preferReg())
@@ -365,7 +365,7 @@ SpillPlacement::finish() {
 
   // Write preferences back to ActiveNodes.
   bool Perfect = true;
-  for (unsigned n : ActiveNodes->set_bits())
+  for (unsigned const n : ActiveNodes->set_bits())
     if (!nodes[n].preferReg()) {
       ActiveNodes->reset(n);
       Perfect = false;

@@ -115,7 +115,7 @@ Expected<SmallString<32>> XCOFF::parseParmsType(uint32_t Value,
   unsigned ParsedFixedNum = 0;
   unsigned ParsedFloatingNum = 0;
   unsigned ParsedNum = 0;
-  unsigned ParmsNum = FixedParmsNum + FloatingParmsNum;
+  unsigned const ParmsNum = FixedParmsNum + FloatingParmsNum;
 
   // In the function PPCFunctionInfo::getParmsType(), when there are no vector
   // parameters, the 31st bit of ParmsType is always zero even if it indicates a
@@ -194,7 +194,7 @@ XCOFF::parseParmsTypeWithVecInfo(uint32_t Value, unsigned FixedParmsNum,
   unsigned ParsedFloatingNum = 0;
   unsigned ParsedVectorNum = 0;
   unsigned ParsedNum = 0;
-  unsigned ParmsNum = FixedParmsNum + FloatingParmsNum + VectorParmsNum;
+  unsigned const ParmsNum = FixedParmsNum + FloatingParmsNum + VectorParmsNum;
 
   for (int Bits = 0; Bits < 32 && ParsedNum < ParmsNum; Bits += 2) {
     if (++ParsedNum > 1)

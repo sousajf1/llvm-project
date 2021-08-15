@@ -84,7 +84,7 @@ raw_ostream &llvm::objcarc::operator<<(raw_ostream &OS,
 
 ARCInstKind llvm::objcarc::GetFunctionClass(const Function *F) {
 
-  Intrinsic::ID ID = F->getIntrinsicID();
+  Intrinsic::ID const ID = F->getIntrinsicID();
   switch (ID) {
   default:
     return ARCInstKind::CallOrUser;
@@ -223,10 +223,10 @@ ARCInstKind llvm::objcarc::GetARCInstKind(const Value *V) {
       const CallInst *CI = cast<CallInst>(I);
       // See if we have a function that we know something about.
       if (const Function *F = CI->getCalledFunction()) {
-        ARCInstKind Class = GetFunctionClass(F);
+        ARCInstKind const Class = GetFunctionClass(F);
         if (Class != ARCInstKind::CallOrUser)
           return Class;
-        Intrinsic::ID ID = F->getIntrinsicID();
+        Intrinsic::ID const ID = F->getIntrinsicID();
         if (isInertIntrinsic(ID))
           return ARCInstKind::None;
         if (isUseOnlyIntrinsic(ID))

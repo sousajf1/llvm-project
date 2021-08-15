@@ -46,7 +46,7 @@ MemoryBufferRef Binary::getMemoryBufferRef() const { return Data; }
 Expected<std::unique_ptr<Binary>> object::createBinary(MemoryBufferRef Buffer,
                                                        LLVMContext *Context,
                                                        bool InitContent) {
-  file_magic Type = identify_magic(Buffer.getBuffer());
+  file_magic const Type = identify_magic(Buffer.getBuffer());
 
   switch (Type) {
   case file_magic::archive:
@@ -100,7 +100,7 @@ object::createBinary(StringRef Path, LLVMContext *Context, bool InitContent) {
   ErrorOr<std::unique_ptr<MemoryBuffer>> FileOrErr =
       MemoryBuffer::getFileOrSTDIN(Path, /*IsText=*/false,
                                    /*RequiresNullTerminator=*/false);
-  if (std::error_code EC = FileOrErr.getError())
+  if (std::error_code const EC = FileOrErr.getError())
     return errorCodeToError(EC);
   std::unique_ptr<MemoryBuffer> &Buffer = FileOrErr.get();
 

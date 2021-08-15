@@ -99,7 +99,7 @@ struct llvm::TimeTraceProfiler {
            "TimeProfiler scope ended earlier than previous scope");
 
     // Calculate duration at full precision for overall counts.
-    DurationType Duration = E.End - E.Start;
+    DurationType const Duration = E.End - E.Start;
 
     // Only include sections longer or equal to TimeTraceGranularity msec.
     if (duration_cast<microseconds>(Duration).count() >= TimeTraceGranularity)
@@ -125,7 +125,7 @@ struct llvm::TimeTraceProfiler {
   // ThreadTimeTraceProfilerInstances.
   void write(raw_pwrite_stream &OS) {
     // Acquire Mutex as reading ThreadTimeTraceProfilerInstances.
-    std::lock_guard<std::mutex> Lock(Mu);
+    std::lock_guard<std::mutex> const Lock(Mu);
     assert(Stack.empty() &&
            "All profiler sections should be ended when calling write");
     assert(llvm::all_of(*ThreadTimeTraceProfilerInstances,
@@ -170,7 +170,7 @@ struct llvm::TimeTraceProfiler {
     // Combine all CountAndTotalPerName from threads into one.
     StringMap<CountAndDurationType> AllCountAndTotalPerName;
     auto combineStat = [&](const auto &Stat) {
-      StringRef Key = Stat.getKey();
+      StringRef const Key = Stat.getKey();
       auto Value = Stat.getValue();
       auto &CountAndTotal = AllCountAndTotalPerName[Key];
       CountAndTotal.first += Value.first;
@@ -272,7 +272,7 @@ void llvm::timeTraceProfilerInitialize(unsigned TimeTraceGranularity,
 // Called from main thread.
 void llvm::timeTraceProfilerCleanup() {
   delete TimeTraceProfilerInstance;
-  std::lock_guard<std::mutex> Lock(Mu);
+  std::lock_guard<std::mutex> const Lock(Mu);
   for (auto TTP : *ThreadTimeTraceProfilerInstances)
     delete TTP;
   ThreadTimeTraceProfilerInstances->clear();
@@ -281,7 +281,7 @@ void llvm::timeTraceProfilerCleanup() {
 // Finish TimeTraceProfilerInstance on a worker thread.
 // This doesn't remove the instance, just moves the pointer to global vector.
 void llvm::timeTraceProfilerFinishThread() {
-  std::lock_guard<std::mutex> Lock(Mu);
+  std::lock_guard<std::mutex> const Lock(Mu);
   ThreadTimeTraceProfilerInstances->push_back(TimeTraceProfilerInstance);
   TimeTraceProfilerInstance = nullptr;
 }

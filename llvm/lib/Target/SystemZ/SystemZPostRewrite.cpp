@@ -86,10 +86,10 @@ void SystemZPostRewrite::selectLOCRMux(MachineBasicBlock &MBB,
                                        MachineBasicBlock::iterator &NextMBBI,
                                        unsigned LowOpcode,
                                        unsigned HighOpcode) {
-  Register DestReg = MBBI->getOperand(0).getReg();
-  Register SrcReg = MBBI->getOperand(2).getReg();
-  bool DestIsHigh = SystemZ::isHighReg(DestReg);
-  bool SrcIsHigh = SystemZ::isHighReg(SrcReg);
+  Register const DestReg = MBBI->getOperand(0).getReg();
+  Register const SrcReg = MBBI->getOperand(2).getReg();
+  bool const DestIsHigh = SystemZ::isHighReg(DestReg);
+  bool const SrcIsHigh = SystemZ::isHighReg(SrcReg);
 
   if (!DestIsHigh && !SrcIsHigh)
     MBBI->setDesc(TII->get(LowOpcode));
@@ -107,10 +107,10 @@ void SystemZPostRewrite::selectSELRMux(MachineBasicBlock &MBB,
                                        MachineBasicBlock::iterator &NextMBBI,
                                        unsigned LowOpcode,
                                        unsigned HighOpcode) {
-  Register DestReg = MBBI->getOperand(0).getReg();
+  Register const DestReg = MBBI->getOperand(0).getReg();
   Register Src1Reg = MBBI->getOperand(1).getReg();
   Register Src2Reg = MBBI->getOperand(2).getReg();
-  bool DestIsHigh = SystemZ::isHighReg(DestReg);
+  bool const DestIsHigh = SystemZ::isHighReg(DestReg);
   bool Src1IsHigh = SystemZ::isHighReg(Src1Reg);
   bool Src2IsHigh = SystemZ::isHighReg(Src2Reg);
 
@@ -160,11 +160,11 @@ bool SystemZPostRewrite::expandCondMove(MachineBasicBlock &MBB,
   MachineFunction &MF = *MBB.getParent();
   const BasicBlock *BB = MBB.getBasicBlock();
   MachineInstr &MI = *MBBI;
-  DebugLoc DL = MI.getDebugLoc();
-  Register DestReg = MI.getOperand(0).getReg();
-  Register SrcReg = MI.getOperand(2).getReg();
-  unsigned CCValid = MI.getOperand(3).getImm();
-  unsigned CCMask = MI.getOperand(4).getImm();
+  DebugLoc const DL = MI.getDebugLoc();
+  Register const DestReg = MI.getOperand(0).getReg();
+  Register const SrcReg = MI.getOperand(2).getReg();
+  unsigned const CCValid = MI.getOperand(3).getImm();
+  unsigned const CCMask = MI.getOperand(4).getImm();
   assert(DestReg == MI.getOperand(1).getReg() &&
          "Expected destination and first source operand to be the same.");
 
@@ -213,16 +213,16 @@ bool SystemZPostRewrite::selectMI(MachineBasicBlock &MBB,
                                   MachineBasicBlock::iterator MBBI,
                                   MachineBasicBlock::iterator &NextMBBI) {
   MachineInstr &MI = *MBBI;
-  unsigned Opcode = MI.getOpcode();
+  unsigned const Opcode = MI.getOpcode();
 
   // Note: If this could be done during regalloc in foldMemoryOperandImpl()
   // while also updating the LiveIntervals, there would be no need for the
   // MemFoldPseudo to begin with.
-  int TargetMemOpcode = SystemZ::getTargetMemOpcode(Opcode);
+  int const TargetMemOpcode = SystemZ::getTargetMemOpcode(Opcode);
   if (TargetMemOpcode != -1) {
     MI.setDesc(TII->get(TargetMemOpcode));
     MI.tieOperands(0, 1);
-    Register DstReg = MI.getOperand(0).getReg();
+    Register const DstReg = MI.getOperand(0).getReg();
     MachineOperand &SrcMO = MI.getOperand(1);
     if (DstReg != SrcMO.getReg()) {
       BuildMI(MBB, &MI, MI.getDebugLoc(), TII->get(SystemZ::COPY), DstReg)

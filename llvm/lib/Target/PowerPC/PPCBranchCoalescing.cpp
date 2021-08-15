@@ -394,8 +394,8 @@ bool PPCBranchCoalescing::identicalOperands(
 void PPCBranchCoalescing::moveAndUpdatePHIs(MachineBasicBlock *SourceMBB,
                                          MachineBasicBlock *TargetMBB) {
 
-  MachineBasicBlock::iterator MI = SourceMBB->begin();
-  MachineBasicBlock::iterator ME = SourceMBB->getFirstNonPHI();
+  MachineBasicBlock::iterator const MI = SourceMBB->begin();
+  MachineBasicBlock::iterator const ME = SourceMBB->getFirstNonPHI();
 
   if (MI == ME) {
     LLVM_DEBUG(dbgs() << "SourceMBB contains no PHI instructions.\n");
@@ -655,16 +655,16 @@ bool PPCBranchCoalescing::mergeCandidates(CoalescingCandidateInfo &SourceRegion,
 
   // Move remaining instructions in SourceRegion.BranchBlock into
   // TargetRegion.BranchBlock
-  MachineBasicBlock::iterator firstInstr =
+  MachineBasicBlock::iterator const firstInstr =
       SourceRegion.BranchBlock->getFirstNonPHI();
-  MachineBasicBlock::iterator lastInstr =
+  MachineBasicBlock::iterator const lastInstr =
       SourceRegion.BranchBlock->getFirstTerminator();
 
   MachineBasicBlock *Source = SourceRegion.MustMoveDown
                                   ? SourceRegion.BranchTargetBlock
                                   : TargetRegion.BranchBlock;
 
-  MachineBasicBlock::iterator Target =
+  MachineBasicBlock::iterator const Target =
       SourceRegion.MustMoveDown
           ? SourceRegion.BranchTargetBlock->getFirstNonPHI()
           : TargetRegion.BranchBlock->getFirstTerminator();

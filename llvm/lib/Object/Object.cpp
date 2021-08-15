@@ -179,7 +179,7 @@ LLVMObjectFileRef LLVMCreateObjectFile(LLVMMemoryBufferRef MemBuf) {
   std::unique_ptr<MemoryBuffer> Buf(unwrap(MemBuf));
   Expected<std::unique_ptr<ObjectFile>> ObjOrErr(
       ObjectFile::createObjectFile(Buf->getMemBufferRef()));
-  std::unique_ptr<ObjectFile> Obj;
+  std::unique_ptr<ObjectFile> const Obj;
   if (!ObjOrErr) {
     // TODO: Actually report errors helpfully.
     consumeError(ObjOrErr.takeError());
@@ -197,7 +197,7 @@ void LLVMDisposeObjectFile(LLVMObjectFileRef ObjectFile) {
 // ObjectFile Section iterators
 LLVMSectionIteratorRef LLVMGetSections(LLVMObjectFileRef OF) {
   OwningBinary<ObjectFile> *OB = unwrap(OF);
-  section_iterator SI = OB->getBinary()->section_begin();
+  section_iterator const SI = OB->getBinary()->section_begin();
   return wrap(new section_iterator(SI));
 }
 
@@ -231,7 +231,7 @@ void LLVMMoveToContainingSection(LLVMSectionIteratorRef Sect,
 // ObjectFile Symbol iterators
 LLVMSymbolIteratorRef LLVMGetSymbols(LLVMObjectFileRef OF) {
   OwningBinary<ObjectFile> *OB = unwrap(OF);
-  symbol_iterator SI = OB->getBinary()->symbol_begin();
+  symbol_iterator const SI = OB->getBinary()->symbol_begin();
   return wrap(new symbol_iterator(SI));
 }
 
@@ -279,7 +279,7 @@ LLVMBool LLVMGetSectionContainsSymbol(LLVMSectionIteratorRef SI,
 
 // Section Relocation iterators
 LLVMRelocationIteratorRef LLVMGetRelocations(LLVMSectionIteratorRef Section) {
-  relocation_iterator SI = (*unwrap(Section))->relocation_begin();
+  relocation_iterator const SI = (*unwrap(Section))->relocation_begin();
   return wrap(new relocation_iterator(SI));
 }
 
@@ -332,7 +332,7 @@ uint64_t LLVMGetRelocationOffset(LLVMRelocationIteratorRef RI) {
 }
 
 LLVMSymbolIteratorRef LLVMGetRelocationSymbol(LLVMRelocationIteratorRef RI) {
-  symbol_iterator ret = (*unwrap(RI))->getSymbol();
+  symbol_iterator const ret = (*unwrap(RI))->getSymbol();
   return wrap(new symbol_iterator(ret));
 }
 

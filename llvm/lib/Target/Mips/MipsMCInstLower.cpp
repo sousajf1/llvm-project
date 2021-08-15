@@ -35,7 +35,7 @@ void MipsMCInstLower::Initialize(MCContext *C) {
 MCOperand MipsMCInstLower::LowerSymbolOperand(const MachineOperand &MO,
                                               MachineOperandType MOTy,
                                               int64_t Offset) const {
-  MCSymbolRefExpr::VariantKind Kind = MCSymbolRefExpr::VK_None;
+  MCSymbolRefExpr::VariantKind const Kind = MCSymbolRefExpr::VK_None;
   MipsMCExpr::MipsExprKind TargetKind = MipsMCExpr::MEK_None;
   bool IsGpOff = false;
   const MCSymbol *Symbol;
@@ -176,7 +176,7 @@ MCOperand MipsMCInstLower::LowerSymbolOperand(const MachineOperand &MO,
 
 MCOperand MipsMCInstLower::LowerOperand(const MachineOperand &MO,
                                         int64_t offset) const {
-  MachineOperandType MOTy = MO.getType();
+  MachineOperandType const MOTy = MO.getType();
 
   switch (MOTy) {
   default: llvm_unreachable("unknown operand type");
@@ -219,7 +219,7 @@ lowerLongBranchLUi(const MachineInstr *MI, MCInst &OutMI) const {
   OutMI.addOperand(LowerOperand(MI->getOperand(0)));
 
   MipsMCExpr::MipsExprKind Kind;
-  unsigned TargetFlags = MI->getOperand(1).getTargetFlags();
+  unsigned const TargetFlags = MI->getOperand(1).getTargetFlags();
   switch (TargetFlags) {
   case MipsII::MO_HIGHEST:
     Kind = MipsMCExpr::MEK_HIGHEST;
@@ -254,7 +254,7 @@ void MipsMCInstLower::lowerLongBranchADDiu(const MachineInstr *MI,
   OutMI.setOpcode(Opcode);
 
   MipsMCExpr::MipsExprKind Kind;
-  unsigned TargetFlags = MI->getOperand(2).getTargetFlags();
+  unsigned const TargetFlags = MI->getOperand(2).getTargetFlags();
   switch (TargetFlags) {
   case MipsII::MO_HIGHEST:
     Kind = MipsMCExpr::MEK_HIGHEST;
@@ -320,7 +320,7 @@ void MipsMCInstLower::Lower(const MachineInstr *MI, MCInst &OutMI) const {
 
   for (unsigned i = 0, e = MI->getNumOperands(); i != e; ++i) {
     const MachineOperand &MO = MI->getOperand(i);
-    MCOperand MCOp = LowerOperand(MO);
+    MCOperand const MCOp = LowerOperand(MO);
 
     if (MCOp.isValid())
       OutMI.addOperand(MCOp);

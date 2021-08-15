@@ -89,10 +89,10 @@ bool llvm::applyDebugifyMetadata(
   // Get a DIType which corresponds to Ty.
   DenseMap<uint64_t, DIType *> TypeCache;
   auto getCachedDIType = [&](Type *Ty) -> DIType * {
-    uint64_t Size = getAllocSizeInBits(M, Ty);
+    uint64_t const Size = getAllocSizeInBits(M, Ty);
     DIType *&DTy = TypeCache[Size];
     if (!DTy) {
-      std::string Name = "ty" + utostr(Size);
+      std::string const Name = "ty" + utostr(Size);
       DTy = DIB.createBasicType(Name, Size, dwarf::DW_ATE_unsigned);
     }
     return DTy;
@@ -123,7 +123,7 @@ bool llvm::applyDebugifyMetadata(
     // location (and possibly the type, if it's non-void) from \p TemplateInst.
     auto insertDbgVal = [&](Instruction &TemplateInst,
                             Instruction *InsertBefore) {
-      std::string Name = utostr(NextVar++);
+      std::string const Name = utostr(NextVar++);
       Value *V = &TemplateInst;
       if (TemplateInst.getType()->isVoidTy())
         V = ConstantInt::get(Int32Ty, 0);
@@ -154,7 +154,7 @@ bool llvm::applyDebugifyMetadata(
 
       // Maintain an insertion point which can't be invalidated when updates
       // are made.
-      BasicBlock::iterator InsertPt = BB.getFirstInsertionPt();
+      BasicBlock::iterator const InsertPt = BB.getFirstInsertionPt();
       assert(InsertPt != BB.end() && "Expected to find an insertion point");
       Instruction *InsertBefore = &*InsertPt;
 
@@ -200,7 +200,7 @@ bool llvm::applyDebugifyMetadata(
          "llvm.debugify should have exactly 2 operands!");
 
   // Claim that this synthetic debug info is valid.
-  StringRef DIVersionKey = "Debug Info Version";
+  StringRef const DIVersionKey = "Debug Info Version";
   if (!M.getModuleFlag(DIVersionKey))
     M.addModuleFlag(Module::Warning, DIVersionKey, DEBUG_METADATA_VERSION);
 
@@ -264,7 +264,7 @@ bool llvm::stripDebugifyMetadata(Module &M) {
   NamedMDNode *NMD = M.getModuleFlagsMetadata();
   if (!NMD)
     return Changed;
-  SmallVector<MDNode *, 4> Flags(NMD->operands());
+  SmallVector<MDNode *, 4> const Flags(NMD->operands());
   NMD->clearOperands();
   for (MDNode *Flag : Flags) {
     MDString *Key = dyn_cast_or_null<MDString>(Flag->getOperand(1));
@@ -344,7 +344,7 @@ bool llvm::collectDebugInfoMetadata(Module &M,
         DIPreservationMap[NameOfWrappedPass].InstToDelete.insert({&I, &I});
 
         const DILocation *Loc = I.getDebugLoc().get();
-        bool HasLoc = Loc != nullptr;
+        bool const HasLoc = Loc != nullptr;
         DIPreservationMap[NameOfWrappedPass].DILocations.insert({&I, HasLoc});
       }
     }
@@ -467,7 +467,7 @@ static bool checkVars(const DebugVarMap &DIFunctionsBefore,
     if (VarIt == DIFunctionsAfter.end())
       continue;
 
-    unsigned NumOfDbgValsAfter = VarIt->second;
+    unsigned const NumOfDbgValsAfter = VarIt->second;
 
     if (V.second > NumOfDbgValsAfter) {
       if (ShouldWriteIntoJSON)
@@ -504,10 +504,10 @@ static void writeJSON(StringRef OrigDIVerifyBugsReportFilePath,
 
   OS_FILE << "{\"file\":\"" << FileNameFromCU << "\", ";
 
-  StringRef PassName = NameOfWrappedPass != "" ? NameOfWrappedPass : "no-name";
+  StringRef const PassName = NameOfWrappedPass != "" ? NameOfWrappedPass : "no-name";
   OS_FILE << "\"pass\":\"" << PassName << "\", ";
 
-  llvm::json::Value BugsToPrint{std::move(Bugs)};
+  llvm::json::Value const BugsToPrint{std::move(Bugs)};
   OS_FILE << "\"bugs\": " << BugsToPrint;
 
   OS_FILE << "}\n";
@@ -578,7 +578,7 @@ bool llvm::checkDebugInfoMetadata(Module &M,
         LLVM_DEBUG(dbgs() << "  Collecting info for inst: " << I << '\n');
 
         const DILocation *Loc = I.getDebugLoc().get();
-        bool HasLoc = Loc != nullptr;
+        bool const HasLoc = Loc != nullptr;
 
         DIPreservationAfter[NameOfWrappedPass].DILocations.insert({&I, HasLoc});
       }
@@ -586,7 +586,7 @@ bool llvm::checkDebugInfoMetadata(Module &M,
   }
 
   // TODO: The name of the module could be read better?
-  StringRef FileNameFromCU =
+  StringRef const FileNameFromCU =
       (cast<DICompileUnit>(M.getNamedMetadata("llvm.dbg.cu")->getOperand(0)))
           ->getFilename();
 
@@ -601,22 +601,22 @@ bool llvm::checkDebugInfoMetadata(Module &M,
   auto DIVarsBefore = DIPreservationMap[NameOfWrappedPass].DIVariables;
   auto DIVarsAfter = DIPreservationAfter[NameOfWrappedPass].DIVariables;
 
-  bool ShouldWriteIntoJSON = !OrigDIVerifyBugsReportFilePath.empty();
+  bool const ShouldWriteIntoJSON = !OrigDIVerifyBugsReportFilePath.empty();
   llvm::json::Array Bugs;
 
-  bool ResultForFunc =
+  bool const ResultForFunc =
       checkFunctions(DIFunctionsBefore, DIFunctionsAfter, NameOfWrappedPass,
                      FileNameFromCU, ShouldWriteIntoJSON, Bugs);
-  bool ResultForInsts = checkInstructions(
+  bool const ResultForInsts = checkInstructions(
       DILocsBefore, DILocsAfter, InstToDelete, NameOfWrappedPass,
       FileNameFromCU, ShouldWriteIntoJSON, Bugs);
 
-  bool ResultForVars = checkVars(DIVarsBefore, DIVarsAfter, NameOfWrappedPass,
+  bool const ResultForVars = checkVars(DIVarsBefore, DIVarsAfter, NameOfWrappedPass,
                                  FileNameFromCU, ShouldWriteIntoJSON, Bugs);
 
-  bool Result = ResultForFunc && ResultForInsts && ResultForVars;
+  bool const Result = ResultForFunc && ResultForInsts && ResultForVars;
 
-  StringRef ResultBanner = NameOfWrappedPass != "" ? NameOfWrappedPass : Banner;
+  StringRef const ResultBanner = NameOfWrappedPass != "" ? NameOfWrappedPass : Banner;
   if (ShouldWriteIntoJSON && !Bugs.empty())
     writeJSON(OrigDIVerifyBugsReportFilePath, FileNameFromCU, NameOfWrappedPass,
               Bugs);
@@ -649,7 +649,7 @@ bool diagnoseMisSizedDbgValue(Module &M, DbgValueInst *DVI) {
     return false;
 
   Type *Ty = V->getType();
-  uint64_t ValueOperandSize = getAllocSizeInBits(M, Ty);
+  uint64_t const ValueOperandSize = getAllocSizeInBits(M, Ty);
   Optional<uint64_t> DbgVarSize = DVI->getFragmentSizeInBits();
   if (!ValueOperandSize || !DbgVarSize)
     return false;
@@ -689,8 +689,8 @@ bool checkDebugifyMetadata(Module &M,
   };
   assert(NMD->getNumOperands() == 2 &&
          "llvm.debugify should have exactly 2 operands!");
-  unsigned OriginalNumLines = getDebugifyOperand(0);
-  unsigned OriginalNumVars = getDebugifyOperand(1);
+  unsigned const OriginalNumLines = getDebugifyOperand(0);
+  unsigned const OriginalNumVars = getDebugifyOperand(1);
   bool HasErrors = false;
 
   // Track debug info loss statistics if able.
@@ -705,7 +705,7 @@ bool checkDebugifyMetadata(Module &M,
       continue;
 
     // Find missing lines.
-    for (Instruction &I : instructions(F)) {
+    for (Instruction  const&I : instructions(F)) {
       if (isa<DbgValueInst>(&I))
         continue;
 
@@ -732,7 +732,7 @@ bool checkDebugifyMetadata(Module &M,
       unsigned Var = ~0U;
       (void)to_integer(DVI->getVariable()->getName(), Var, 10);
       assert(Var <= OriginalNumVars && "Unexpected name for DILocalVariable");
-      bool HasBadSize = diagnoseMisSizedDbgValue(M, DVI);
+      bool const HasBadSize = diagnoseMisSizedDbgValue(M, DVI);
       if (!HasBadSize)
         MissingVars.reset(Var - 1);
       HasErrors |= HasBadSize;
@@ -740,10 +740,10 @@ bool checkDebugifyMetadata(Module &M,
   }
 
   // Print the results.
-  for (unsigned Idx : MissingLines.set_bits())
+  for (unsigned const Idx : MissingLines.set_bits())
     dbg() << "WARNING: Missing line " << Idx + 1 << "\n";
 
-  for (unsigned Idx : MissingVars.set_bits())
+  for (unsigned const Idx : MissingVars.set_bits())
     dbg() << "WARNING: Missing variable " << Idx + 1 << "\n";
 
   // Update DI loss statistics.
@@ -912,8 +912,8 @@ void llvm::exportDebugifyStats(StringRef Path, const DebugifyStatsMap &Map) {
      << "# of missing locations" << ',' << "Missing/Expected value ratio" << ','
      << "Missing/Expected location ratio" << '\n';
   for (const auto &Entry : Map) {
-    StringRef Pass = Entry.first;
-    DebugifyStatistics Stats = Entry.second;
+    StringRef const Pass = Entry.first;
+    DebugifyStatistics const Stats = Entry.second;
 
     OS << Pass << ',' << Stats.NumDbgValuesMissing << ','
        << Stats.NumDbgLocsMissing << ',' << Stats.getMissingValueRatio() << ','

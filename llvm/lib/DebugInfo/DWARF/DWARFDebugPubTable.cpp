@@ -26,7 +26,7 @@ void DWARFDebugPubTable::extract(
   Sets.clear();
   uint64_t Offset = 0;
   while (Data.isValidOffset(Offset)) {
-    uint64_t SetOffset = Offset;
+    uint64_t const SetOffset = Offset;
     Sets.push_back({});
     Set &NewSet = Sets.back();
 
@@ -44,7 +44,7 @@ void DWARFDebugPubTable::extract(
     }
 
     Offset = C.tell() + NewSet.Length;
-    DWARFDataExtractor SetData(Data, Offset);
+    DWARFDataExtractor const SetData(Data, Offset);
     const unsigned OffsetSize = dwarf::getDwarfOffsetByteSize(NewSet.Format);
 
     NewSet.Version = SetData.getU16(C);
@@ -63,11 +63,11 @@ void DWARFDebugPubTable::extract(
     }
 
     while (C) {
-      uint64_t DieRef = SetData.getUnsigned(C, OffsetSize);
+      uint64_t const DieRef = SetData.getUnsigned(C, OffsetSize);
       if (DieRef == 0)
         break;
-      uint8_t IndexEntryValue = GnuStyle ? SetData.getU8(C) : 0;
-      StringRef Name = SetData.getCStrRef(C);
+      uint8_t const IndexEntryValue = GnuStyle ? SetData.getU8(C) : 0;
+      StringRef const Name = SetData.getCStrRef(C);
       if (C)
         NewSet.Entries.push_back(
             {DieRef, PubIndexEntryDescriptor(IndexEntryValue), Name});
@@ -92,7 +92,7 @@ void DWARFDebugPubTable::extract(
 
 void DWARFDebugPubTable::dump(raw_ostream &OS) const {
   for (const Set &S : Sets) {
-    int OffsetDumpWidth = 2 * dwarf::getDwarfOffsetByteSize(S.Format);
+    int const OffsetDumpWidth = 2 * dwarf::getDwarfOffsetByteSize(S.Format);
     OS << "length = " << format("0x%0*" PRIx64, OffsetDumpWidth, S.Length);
     OS << ", format = " << dwarf::FormatString(S.Format);
     OS << ", version = " << format("0x%04x", S.Version);
@@ -106,9 +106,9 @@ void DWARFDebugPubTable::dump(raw_ostream &OS) const {
     for (const Entry &E : S.Entries) {
       OS << format("0x%0*" PRIx64 " ", OffsetDumpWidth, E.SecOffset);
       if (GnuStyle) {
-        StringRef EntryLinkage =
+        StringRef const EntryLinkage =
             GDBIndexEntryLinkageString(E.Descriptor.Linkage);
-        StringRef EntryKind = dwarf::GDBIndexEntryKindString(E.Descriptor.Kind);
+        StringRef const EntryKind = dwarf::GDBIndexEntryKindString(E.Descriptor.Kind);
         OS << format("%-8s", EntryLinkage.data()) << ' '
            << format("%-8s", EntryKind.data()) << ' ';
       }

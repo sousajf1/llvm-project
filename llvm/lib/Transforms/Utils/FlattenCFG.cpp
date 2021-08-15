@@ -144,7 +144,7 @@ bool FlattenCFGOpt::FlattenParallelAndOr(BasicBlock *BB, IRBuilder<> &Builder) {
   int Idx = -1;
 
   // Check predecessors of \param BB.
-  SmallPtrSet<BasicBlock *, 16> Preds(pred_begin(BB), pred_end(BB));
+  SmallPtrSet<BasicBlock *, 16> const Preds(pred_begin(BB), pred_end(BB));
   for (SmallPtrSetIterator<BasicBlock *> PI = Preds.begin(), PE = Preds.end();
        PI != PE; ++PI) {
     BasicBlock *Pred = *PI;
@@ -206,7 +206,7 @@ bool FlattenCFGOpt::FlattenParallelAndOr(BasicBlock *BB, IRBuilder<> &Builder) {
     BasicBlock *PS1 = PBI->getSuccessor(0);
     BasicBlock *PS2 = PBI->getSuccessor(1);
     BasicBlock *PS = (PS1 == BB) ? PS2 : PS1;
-    int CIdx = (PS1 == BB) ? 0 : 1;
+    int const CIdx = (PS1 == BB) ? 0 : 1;
 
     if (Idx == -1)
       Idx = CIdx;
@@ -256,7 +256,7 @@ bool FlattenCFGOpt::FlattenParallelAndOr(BasicBlock *BB, IRBuilder<> &Builder) {
       if (!CI)
         continue;
 
-      CmpInst::Predicate Predicate = CI->getPredicate();
+      CmpInst::Predicate const Predicate = CI->getPredicate();
       // Canonicalize icmp_ne -> icmp_eq, fcmp_one -> fcmp_oeq
       if ((Predicate == CmpInst::ICMP_NE) || (Predicate == CmpInst::FCMP_ONE)) {
         CI->setPredicate(ICmpInst::getInversePredicate(Predicate));
@@ -280,7 +280,7 @@ bool FlattenCFGOpt::FlattenParallelAndOr(BasicBlock *BB, IRBuilder<> &Builder) {
   BasicBlock *CB;
   BranchInst *PBI = cast<BranchInst>(FirstCondBlock->getTerminator());
   bool Iteration = true;
-  IRBuilder<>::InsertPointGuard Guard(Builder);
+  IRBuilder<>::InsertPointGuard const Guard(Builder);
   Value *PC = PBI->getCondition();
 
   do {
@@ -328,9 +328,9 @@ bool FlattenCFGOpt::CompareIfRegionBlock(BasicBlock *Block1, BasicBlock *Block2,
   // Check whether instructions in Block1 and Block2 are identical
   // and do not alias with instructions in Head2.
   BasicBlock::iterator iter1 = Block1->begin();
-  BasicBlock::iterator end1 = Block1->getTerminator()->getIterator();
+  BasicBlock::iterator const end1 = Block1->getTerminator()->getIterator();
   BasicBlock::iterator iter2 = Block2->begin();
-  BasicBlock::iterator end2 = Block2->getTerminator()->getIterator();
+  BasicBlock::iterator const end2 = Block2->getTerminator()->getIterator();
 
   while (true) {
     if (iter1 == end1) {
@@ -485,7 +485,7 @@ bool FlattenCFGOpt::MergeIfRegion(BasicBlock *BB, IRBuilder<> &Builder) {
   BranchInst *PBI = cast<BranchInst>(FirstEntryBlock->getTerminator());
   assert(PBI->getCondition() == CInst2);
   BasicBlock *SaveInsertBB = Builder.GetInsertBlock();
-  BasicBlock::iterator SaveInsertPt = Builder.GetInsertPoint();
+  BasicBlock::iterator const SaveInsertPt = Builder.GetInsertPoint();
   Builder.SetInsertPoint(PBI);
   if (InvertCond2) {
     // If this is a "cmp" instruction, only used for branching (and nowhere

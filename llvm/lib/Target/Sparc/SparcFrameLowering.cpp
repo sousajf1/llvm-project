@@ -44,7 +44,7 @@ void SparcFrameLowering::emitSPAdjustment(MachineFunction &MF,
                                           unsigned ADDrr,
                                           unsigned ADDri) const {
 
-  DebugLoc dl;
+  DebugLoc const dl;
   const SparcInstrInfo &TII =
       *static_cast<const SparcInstrInfo *>(MF.getSubtarget().getInstrInfo());
 
@@ -93,11 +93,11 @@ void SparcFrameLowering::emitPrologue(MachineFunction &MF,
       *static_cast<const SparcInstrInfo *>(Subtarget.getInstrInfo());
   const SparcRegisterInfo &RegInfo =
       *static_cast<const SparcRegisterInfo *>(Subtarget.getRegisterInfo());
-  MachineBasicBlock::iterator MBBI = MBB.begin();
+  MachineBasicBlock::iterator const MBBI = MBB.begin();
   // Debug location must be unknown since the first debug location is used
   // to determine the end of the prologue.
-  DebugLoc dl;
-  bool NeedsStackRealignment = RegInfo.shouldRealignStack(MF);
+  DebugLoc const dl;
+  bool const NeedsStackRealignment = RegInfo.shouldRealignStack(MF);
 
   if (NeedsStackRealignment && !RegInfo.canRealignStack(MF))
     report_fatal_error("Function \"" + Twine(MF.getName()) + "\" required "
@@ -148,7 +148,7 @@ void SparcFrameLowering::emitPrologue(MachineFunction &MF,
 
   emitSPAdjustment(MF, MBB, MBBI, -NumBytes, SAVErr, SAVEri);
 
-  unsigned regFP = RegInfo.getDwarfRegNum(SP::I6, true);
+  unsigned const regFP = RegInfo.getDwarfRegNum(SP::I6, true);
 
   // Emit ".cfi_def_cfa_register 30".
   unsigned CFIIndex =
@@ -161,8 +161,8 @@ void SparcFrameLowering::emitPrologue(MachineFunction &MF,
   BuildMI(MBB, MBBI, dl, TII.get(TargetOpcode::CFI_INSTRUCTION))
       .addCFIIndex(CFIIndex);
 
-  unsigned regInRA = RegInfo.getDwarfRegNum(SP::I7, true);
-  unsigned regOutRA = RegInfo.getDwarfRegNum(SP::O7, true);
+  unsigned const regInRA = RegInfo.getDwarfRegNum(SP::I7, true);
+  unsigned const regOutRA = RegInfo.getDwarfRegNum(SP::O7, true);
   // Emit ".cfi_register 15, 31".
   CFIIndex = MF.addFrameInst(
       MCCFIInstruction::createRegister(nullptr, regOutRA, regInRA));
@@ -170,7 +170,7 @@ void SparcFrameLowering::emitPrologue(MachineFunction &MF,
       .addCFIIndex(CFIIndex);
 
   if (NeedsStackRealignment) {
-    int64_t Bias = Subtarget.getStackPointerBias();
+    int64_t const Bias = Subtarget.getStackPointerBias();
     unsigned regUnbiased;
     if (Bias) {
       // This clobbers G1 which we always know is available here.
@@ -182,7 +182,7 @@ void SparcFrameLowering::emitPrologue(MachineFunction &MF,
       regUnbiased = SP::O6;
 
     // andn %regUnbiased, MaxAlign-1, %regUnbiased
-    Align MaxAlign = MFI.getMaxAlign();
+    Align const MaxAlign = MFI.getMaxAlign();
     BuildMI(MBB, MBBI, dl, TII.get(SP::ANDNri), regUnbiased)
         .addReg(regUnbiased)
         .addImm(MaxAlign.value() - 1U);
@@ -214,10 +214,10 @@ eliminateCallFramePseudoInstr(MachineFunction &MF, MachineBasicBlock &MBB,
 void SparcFrameLowering::emitEpilogue(MachineFunction &MF,
                                   MachineBasicBlock &MBB) const {
   SparcMachineFunctionInfo *FuncInfo = MF.getInfo<SparcMachineFunctionInfo>();
-  MachineBasicBlock::iterator MBBI = MBB.getLastNonDebugInstr();
+  MachineBasicBlock::iterator const MBBI = MBB.getLastNonDebugInstr();
   const SparcInstrInfo &TII =
       *static_cast<const SparcInstrInfo *>(MF.getSubtarget().getInstrInfo());
-  DebugLoc dl = MBBI->getDebugLoc();
+  DebugLoc const dl = MBBI->getDebugLoc();
   assert(MBBI->getOpcode() == SP::RETL &&
          "Can only put epilog before 'retl' instruction!");
   if (!FuncInfo->isLeafProc()) {
@@ -225,9 +225,9 @@ void SparcFrameLowering::emitEpilogue(MachineFunction &MF,
       .addReg(SP::G0);
     return;
   }
-  MachineFrameInfo &MFI = MF.getFrameInfo();
+  MachineFrameInfo  const&MFI = MF.getFrameInfo();
 
-  int NumBytes = (int) MFI.getStackSize();
+  int const NumBytes = (int) MFI.getStackSize();
   if (NumBytes == 0)
     return;
 
@@ -258,7 +258,7 @@ SparcFrameLowering::getFrameIndexReference(const MachineFunction &MF, int FI,
   const MachineFrameInfo &MFI = MF.getFrameInfo();
   const SparcRegisterInfo *RegInfo = Subtarget.getRegisterInfo();
   const SparcMachineFunctionInfo *FuncInfo = MF.getInfo<SparcMachineFunctionInfo>();
-  bool isFixed = MFI.isFixedObjectIndex(FI);
+  bool const isFixed = MFI.isFixedObjectIndex(FI);
 
   // Addressable stack objects are accessed using neg. offsets from
   // %fp, or positive offsets from %sp.
@@ -284,7 +284,7 @@ SparcFrameLowering::getFrameIndexReference(const MachineFunction &MF, int FI,
     UseFP = true;
   }
 
-  int64_t FrameOffset = MF.getFrameInfo().getObjectOffset(FI) +
+  int64_t const FrameOffset = MF.getFrameInfo().getObjectOffset(FI) +
       Subtarget.getStackPointerBias();
 
   if (UseFP) {
@@ -313,8 +313,8 @@ static bool LLVM_ATTRIBUTE_UNUSED verifyLeafProcRegUse(MachineRegisterInfo *MRI)
 bool SparcFrameLowering::isLeafProc(MachineFunction &MF) const
 {
 
-  MachineRegisterInfo &MRI = MF.getRegInfo();
-  MachineFrameInfo    &MFI = MF.getFrameInfo();
+  MachineRegisterInfo  const&MRI = MF.getRegInfo();
+  MachineFrameInfo     const&MFI = MF.getFrameInfo();
 
   return !(MFI.hasCalls()                  // has calls
            || MRI.isPhysRegUsed(SP::L0)    // Too many registers needed
@@ -329,15 +329,15 @@ void SparcFrameLowering::remapRegsForLeafProc(MachineFunction &MF) const {
     if (!MRI.isPhysRegUsed(reg))
       continue;
 
-    unsigned mapped_reg = reg - SP::I0 + SP::O0;
+    unsigned const mapped_reg = reg - SP::I0 + SP::O0;
 
     // Replace I register with O register.
     MRI.replaceRegWith(reg, mapped_reg);
 
     // Also replace register pair super-registers.
     if ((reg - SP::I0) % 2 == 0) {
-      unsigned preg = (reg - SP::I0) / 2 + SP::I0_I1;
-      unsigned mapped_preg = preg - SP::I0_I1 + SP::O0_O1;
+      unsigned const preg = (reg - SP::I0) / 2 + SP::I0_I1;
+      unsigned const mapped_preg = preg - SP::I0_I1 + SP::O0_O1;
       MRI.replaceRegWith(preg, mapped_preg);
     }
   }

@@ -38,7 +38,7 @@ BlockFrequency BlockFrequency::operator/(BranchProbability Prob) const {
 }
 
 BlockFrequency &BlockFrequency::operator+=(BlockFrequency Freq) {
-  uint64_t Before = Freq.Frequency;
+  uint64_t const Before = Freq.Frequency;
   Frequency += Freq.Frequency;
 
   // If overflow, set frequency to the maximum value.

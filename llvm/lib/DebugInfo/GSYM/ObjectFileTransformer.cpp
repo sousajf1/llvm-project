@@ -37,7 +37,7 @@ static std::vector<uint8_t> getUUID(const object::ObjectFile &Obj) {
         consumeError(SectNameOrErr.takeError());
         continue;
       }
-      StringRef SectName(*SectNameOrErr);
+      StringRef const SectName(*SectNameOrErr);
       if (SectName != GNUBuildID)
         continue;
       StringRef BuildIDData;
@@ -48,15 +48,15 @@ static std::vector<uint8_t> getUUID(const object::ObjectFile &Obj) {
         consumeError(E.takeError());
         continue;
       }
-      DataExtractor Decoder(BuildIDData, Obj.makeTriple().isLittleEndian(), 8);
+      DataExtractor const Decoder(BuildIDData, Obj.makeTriple().isLittleEndian(), 8);
       uint64_t Offset = 0;
       const uint32_t NameSize = Decoder.getU32(&Offset);
       const uint32_t PayloadSize = Decoder.getU32(&Offset);
       const uint32_t PayloadType = Decoder.getU32(&Offset);
-      StringRef Name(Decoder.getFixedLengthString(&Offset, NameSize));
+      StringRef const Name(Decoder.getFixedLengthString(&Offset, NameSize));
       if (Name == "GNU" && PayloadType == NT_GNU_BUILD_ID_TAG) {
         Offset = alignTo(Offset, 4);
-        StringRef UUIDBytes(Decoder.getBytes(&Offset, PayloadSize));
+        StringRef const UUIDBytes(Decoder.getBytes(&Offset, PayloadSize));
         if (!UUIDBytes.empty()) {
           auto Ptr = reinterpret_cast<const uint8_t *>(UUIDBytes.data());
           UUID.assign(Ptr, Ptr + UUIDBytes.size());
@@ -79,7 +79,7 @@ llvm::Error ObjectFileTransformer::convert(const object::ObjectFile &Obj,
   Gsym.setUUID(getUUID(Obj));
 
   // Parse the symbol table.
-  size_t NumBefore = Gsym.getNumFunctionInfos();
+  size_t const NumBefore = Gsym.getNumFunctionInfos();
   for (const object::SymbolRef &Sym : Obj.symbols()) {
     Expected<SymbolRef::Type> SymType = Sym.getType();
     if (!SymType) {
@@ -110,7 +110,7 @@ llvm::Error ObjectFileTransformer::convert(const object::ObjectFile &Obj,
     Gsym.addFunctionInfo(
         FunctionInfo(*AddrOrErr, size, Gsym.insertString(*Name, NoCopy)));
   }
-  size_t FunctionsAddedCount = Gsym.getNumFunctionInfos() - NumBefore;
+  size_t const FunctionsAddedCount = Gsym.getNumFunctionInfos() - NumBefore;
   Log << "Loaded " << FunctionsAddedCount << " functions from symbol table.\n";
   return Error::success();
 }

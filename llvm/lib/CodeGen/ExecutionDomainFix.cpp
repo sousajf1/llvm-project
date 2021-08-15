@@ -130,7 +130,7 @@ bool ExecutionDomainFix::merge(DomainValue *A, DomainValue *B) {
   if (A == B)
     return true;
   // Restrict to the domains that A and B have in common.
-  unsigned common = A->getCommonDomains(B->AvailableDomains);
+  unsigned const common = A->getCommonDomains(B->AvailableDomains);
   if (!common)
     return false;
   A->AvailableDomains = common;
@@ -187,7 +187,7 @@ void ExecutionDomainFix::enterBasicBlock(
       // We have a live DomainValue from more than one predecessor.
       if (LiveRegs[rx]->isCollapsed()) {
         // We are already collapsed, but predecessor is not. Force it.
-        unsigned Domain = LiveRegs[rx]->getFirstDomain();
+        unsigned const Domain = LiveRegs[rx]->getFirstDomain();
         if (!pdv->isCollapsed() && pdv->hasDomain(Domain))
           collapse(pdv, Domain);
         continue;
@@ -208,7 +208,7 @@ void ExecutionDomainFix::enterBasicBlock(
 void ExecutionDomainFix::leaveBasicBlock(
     const LoopTraversal::TraversedMBBInfo &TraversedMBB) {
   assert(!LiveRegs.empty() && "Must enter basic block first.");
-  unsigned MBBNumber = TraversedMBB.MBB->getNumber();
+  unsigned const MBBNumber = TraversedMBB.MBB->getNumber();
   assert(MBBNumber < MBBOutRegsInfos.size() &&
          "Unexpected basic block number.");
   // Save register clearances at end of MBB - used by enterBasicBlock().
@@ -221,7 +221,7 @@ void ExecutionDomainFix::leaveBasicBlock(
 
 bool ExecutionDomainFix::visitInstr(MachineInstr *MI) {
   // Update instructions with explicit execution domains.
-  std::pair<uint16_t, uint16_t> DomP = TII->getExecutionDomain(*MI);
+  std::pair<uint16_t, uint16_t> const DomP = TII->getExecutionDomain(*MI);
   if (DomP.first) {
     if (DomP.second)
       visitSoftInstr(MI, DomP.second);
@@ -238,12 +238,12 @@ void ExecutionDomainFix::processDefs(MachineInstr *MI, bool Kill) {
   for (unsigned i = 0,
                 e = MI->isVariadic() ? MI->getNumOperands() : MCID.getNumDefs();
        i != e; ++i) {
-    MachineOperand &MO = MI->getOperand(i);
+    MachineOperand  const&MO = MI->getOperand(i);
     if (!MO.isReg())
       continue;
     if (MO.isUse())
       continue;
-    for (int rx : regIndices(MO.getReg())) {
+    for (int const rx : regIndices(MO.getReg())) {
       // This instruction explicitly defines rx.
       LLVM_DEBUG(dbgs() << printReg(RC->getRegister(rx), TRI) << ":\t" << *MI);
 
@@ -259,20 +259,20 @@ void ExecutionDomainFix::visitHardInstr(MachineInstr *mi, unsigned domain) {
   for (unsigned i = mi->getDesc().getNumDefs(),
                 e = mi->getDesc().getNumOperands();
        i != e; ++i) {
-    MachineOperand &mo = mi->getOperand(i);
+    MachineOperand  const&mo = mi->getOperand(i);
     if (!mo.isReg())
       continue;
-    for (int rx : regIndices(mo.getReg())) {
+    for (int const rx : regIndices(mo.getReg())) {
       force(rx, domain);
     }
   }
 
   // Kill all defs and force them.
   for (unsigned i = 0, e = mi->getDesc().getNumDefs(); i != e; ++i) {
-    MachineOperand &mo = mi->getOperand(i);
+    MachineOperand  const&mo = mi->getOperand(i);
     if (!mo.isReg())
       continue;
-    for (int rx : regIndices(mo.getReg())) {
+    for (int const rx : regIndices(mo.getReg())) {
       kill(rx);
       force(rx, domain);
     }
@@ -290,15 +290,15 @@ void ExecutionDomainFix::visitSoftInstr(MachineInstr *mi, unsigned mask) {
     for (unsigned i = mi->getDesc().getNumDefs(),
                   e = mi->getDesc().getNumOperands();
          i != e; ++i) {
-      MachineOperand &mo = mi->getOperand(i);
+      MachineOperand  const&mo = mi->getOperand(i);
       if (!mo.isReg())
         continue;
-      for (int rx : regIndices(mo.getReg())) {
+      for (int const rx : regIndices(mo.getReg())) {
         DomainValue *dv = LiveRegs[rx];
         if (dv == nullptr)
           continue;
         // Bitmask of domains that dv and available have in common.
-        unsigned common = dv->getCommonDomains(available);
+        unsigned const common = dv->getCommonDomains(available);
         // Is it possible to use this collapsed register for free?
         if (dv->isCollapsed()) {
           // Restrict available domains to the ones in common with the operand.
@@ -318,7 +318,7 @@ void ExecutionDomainFix::visitSoftInstr(MachineInstr *mi, unsigned mask) {
 
   // If the collapsed operands force a single domain, propagate the collapse.
   if (isPowerOf2_32(available)) {
-    unsigned domain = countTrailingZeros(available);
+    unsigned const domain = countTrailingZeros(available);
     TII->setExecutionDomain(*mi, domain);
     visitHardInstr(mi, domain);
     return;
@@ -327,7 +327,7 @@ void ExecutionDomainFix::visitSoftInstr(MachineInstr *mi, unsigned mask) {
   // Kill off any remaining uses that don't match available, and build a list of
   // incoming DomainValues that we want to merge.
   SmallVector<int, 4> Regs;
-  for (int rx : used) {
+  for (int const rx : used) {
     assert(!LiveRegs.empty() && "no space allocated for live registers");
     DomainValue *&LR = LiveRegs[rx];
     // This useless DomainValue could have been missed above.
@@ -364,7 +364,7 @@ void ExecutionDomainFix::visitSoftInstr(MachineInstr *mi, unsigned mask) {
       continue;
 
     // If latest didn't merge, it is useless now. Kill all registers using it.
-    for (int i : used) {
+    for (int const i : used) {
       assert(!LiveRegs.empty() && "no space allocated for live registers");
       if (LiveRegs[i] == Latest)
         kill(i);
@@ -383,7 +383,7 @@ void ExecutionDomainFix::visitSoftInstr(MachineInstr *mi, unsigned mask) {
   for (const MachineOperand &mo : mi->operands()) {
     if (!mo.isReg())
       continue;
-    for (int rx : regIndices(mo.getReg())) {
+    for (int const rx : regIndices(mo.getReg())) {
       if (!LiveRegs[rx] || (mo.isDef() && LiveRegs[rx] != dv)) {
         kill(rx);
         setLiveReg(rx, dv);
@@ -426,7 +426,7 @@ bool ExecutionDomainFix::runOnMachineFunction(MachineFunction &mf) {
   // completely.
   bool anyregs = false;
   const MachineRegisterInfo &MRI = mf.getRegInfo();
-  for (unsigned Reg : *RC) {
+  for (unsigned const Reg : *RC) {
     if (MRI.isPhysRegUsed(Reg)) {
       anyregs = true;
       break;
@@ -453,7 +453,7 @@ bool ExecutionDomainFix::runOnMachineFunction(MachineFunction &mf) {
 
   // Traverse the basic blocks.
   LoopTraversal Traversal;
-  LoopTraversal::TraversalOrder TraversedMBBOrder = Traversal.traverse(mf);
+  LoopTraversal::TraversalOrder const TraversedMBBOrder = Traversal.traverse(mf);
   for (const LoopTraversal::TraversedMBBInfo &TraversedMBB : TraversedMBBOrder)
     processBasicBlock(TraversedMBB);
 

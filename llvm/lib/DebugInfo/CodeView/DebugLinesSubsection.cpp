@@ -26,14 +26,14 @@ Error LineColumnExtractor::operator()(BinaryStreamRef Stream, uint32_t &Len,
   BinaryStreamReader Reader(Stream);
   if (auto EC = Reader.readObject(BlockHeader))
     return EC;
-  bool HasColumn = Header->Flags & uint16_t(LF_HaveColumns);
-  uint32_t LineInfoSize =
+  bool const HasColumn = Header->Flags & uint16_t(LF_HaveColumns);
+  uint32_t const LineInfoSize =
       BlockHeader->NumLines *
       (sizeof(LineNumberEntry) + (HasColumn ? sizeof(ColumnNumberEntry) : 0));
   if (BlockHeader->BlockSize < sizeof(LineBlockFragmentHeader))
     return make_error<CodeViewError>(cv_error_code::corrupt_record,
                                      "Invalid line block record size");
-  uint32_t Size = BlockHeader->BlockSize - sizeof(LineBlockFragmentHeader);
+  uint32_t const Size = BlockHeader->BlockSize - sizeof(LineBlockFragmentHeader);
   if (LineInfoSize > Size)
     return make_error<CodeViewError>(cv_error_code::corrupt_record,
                                      "Invalid line block record size");
@@ -73,7 +73,7 @@ DebugLinesSubsection::DebugLinesSubsection(DebugChecksumsSubsection &Checksums,
     : DebugSubsection(DebugSubsectionKind::Lines), Checksums(Checksums) {}
 
 void DebugLinesSubsection::createBlock(StringRef FileName) {
-  uint32_t Offset = Checksums.mapChecksumOffset(FileName);
+  uint32_t const Offset = Checksums.mapChecksumOffset(FileName);
 
   Blocks.emplace_back(Offset);
 }

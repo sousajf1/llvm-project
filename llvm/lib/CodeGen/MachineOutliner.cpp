@@ -171,7 +171,7 @@ struct InstructionMapper {
         ResultIt;
     std::tie(ResultIt, WasInserted) =
         InstructionIntegerMap.insert(std::make_pair(&MI, LegalInstrNumber));
-    unsigned MINumber = ResultIt->second;
+    unsigned const MINumber = ResultIt->second;
 
     // There was an insertion.
     if (WasInserted)
@@ -210,7 +210,7 @@ struct InstructionMapper {
 
     // Remember that we added an illegal number last time.
     AddedIllegalLastTime = true;
-    unsigned MINumber = IllegalInstrNumber;
+    unsigned const MINumber = IllegalInstrNumber;
 
     InstrListForMBB.push_back(It);
     UnsignedVecForMBB.push_back(IllegalInstrNumber);
@@ -268,7 +268,7 @@ struct InstructionMapper {
     std::vector<unsigned> UnsignedVecForMBB;
     std::vector<MachineBasicBlock::iterator> InstrListForMBB;
 
-    for (MachineBasicBlock::iterator Et = MBB.end(); It != Et; ++It) {
+    for (MachineBasicBlock::iterator const Et = MBB.end(); It != Et; ++It) {
       // Keep track of where this instruction is in the module.
       switch (TII.getOutliningType(It, Flags)) {
       case InstrType::Illegal:
@@ -520,7 +520,7 @@ void MachineOutliner::findCandidates(
   std::vector<Candidate> CandidatesForRepeatedSeq;
   for (const SuffixTree::RepeatedSubstring &RS : ST) {
     CandidatesForRepeatedSeq.clear();
-    unsigned StringLen = RS.Length;
+    unsigned const StringLen = RS.Length;
     for (const unsigned &StartIdx : RS.StartIndices) {
       unsigned EndIdx = StartIdx + StringLen - 1;
       // Trick: Discard some candidates that would be incompatible with the
@@ -654,8 +654,8 @@ MachineFunction *MachineOutliner::createOutlinedFunction(
       continue;
     MachineInstr *NewMI = MF.CloneMachineInstr(&*I);
     if (I->isCFIInstruction()) {
-      unsigned CFIIndex = NewMI->getOperand(0).getCFIIndex();
-      MCCFIInstruction CFI = Instrs[CFIIndex];
+      unsigned const CFIIndex = NewMI->getOperand(0).getCFIIndex();
+      MCCFIInstruction const CFI = Instrs[CFIIndex];
       (void)MF.addFrameInst(CFI);
     }
     NewMI->dropMemRefs(MF);
@@ -687,7 +687,7 @@ MachineFunction *MachineOutliner::createOutlinedFunction(
 
     // The live-in set for the outlined function is the union of the live-ins
     // from all the outlining points.
-    for (MCPhysReg Reg : CandLiveIns)
+    for (MCPhysReg const Reg : CandLiveIns)
       LiveIns.addReg(Reg);
   }
   addLiveIns(MBB, LiveIns);
@@ -701,7 +701,7 @@ MachineFunction *MachineOutliner::createOutlinedFunction(
     DICompileUnit *CU = SP->getUnit();
     DIBuilder DB(M, true, CU);
     DIFile *Unit = SP->getFile();
-    Mangler Mg;
+    Mangler const Mg;
     // Get the mangled name of the function for the linkage name.
     std::string Dummy;
     llvm::raw_string_ostream MangledNameStream(Dummy);
@@ -772,7 +772,7 @@ bool MachineOutliner::outline(Module &M,
     for (Candidate &C : OF.Candidates) {
       MachineBasicBlock &MBB = *C.getMBB();
       MachineBasicBlock::iterator StartIt = C.front();
-      MachineBasicBlock::iterator EndIt = C.back();
+      MachineBasicBlock::iterator const EndIt = C.back();
 
       // Insert the call.
       auto CallInst = TII.insertOutlinedCall(M, MBB, StartIt, *MF, C);
@@ -798,7 +798,7 @@ bool MachineOutliner::outline(Module &M,
                  Last = std::next(CallInst.getReverse());
              Iter != Last; Iter++) {
           MachineInstr *MI = &*Iter;
-          for (MachineOperand &MOP : MI->operands()) {
+          for (MachineOperand  const&MOP : MI->operands()) {
             // Skip over anything that isn't a register.
             if (!MOP.isReg())
               continue;
@@ -857,7 +857,7 @@ void MachineOutliner::populateMapper(InstructionMapper &Mapper, Module &M,
                                      MachineModuleInfo &MMI) {
   // Build instruction mappings for each function in the module. Start by
   // iterating over each Function in M.
-  for (Function &F : M) {
+  for (Function  const&F : M) {
 
     // If there's nothing in F, then there's no reason to try and outline from
     // it.
@@ -937,7 +937,7 @@ void MachineOutliner::emitInstrCountChangedRemark(
     if (!MF)
       continue;
 
-    std::string Fname = std::string(F.getName());
+    std::string const Fname = std::string(F.getName());
     unsigned FnCountAfter = MF->getInstructionCount();
     unsigned FnCountBefore = 0;
 
@@ -1041,13 +1041,13 @@ bool MachineOutliner::doOutline(Module &M, unsigned &OutlinedFunctionNum) {
   // instead.
 
   // Check if we want size remarks.
-  bool ShouldEmitSizeRemarks = M.shouldEmitInstrCountChangedRemark();
+  bool const ShouldEmitSizeRemarks = M.shouldEmitInstrCountChangedRemark();
   StringMap<unsigned> FunctionToInstrCount;
   if (ShouldEmitSizeRemarks)
     initSizeRemarkInfo(M, MMI, FunctionToInstrCount);
 
   // Outline each of the candidates and return true if something was outlined.
-  bool OutlinedSomething =
+  bool const OutlinedSomething =
       outline(M, FunctionList, Mapper, OutlinedFunctionNum);
 
   // If we outlined something, we definitely changed the MI count of the

@@ -184,7 +184,7 @@ static MVT typeForRegClass(const TargetRegisterClass *RC) {
 static MachineInstr *findStartOfTree(MachineOperand &MO,
                                      MachineRegisterInfo &MRI,
                                      const WebAssemblyFunctionInfo &MFI) {
-  Register Reg = MO.getReg();
+  Register const Reg = MO.getReg();
   assert(MFI.isVRegStackified(Reg));
   MachineInstr *Def = MRI.getVRegDef(Reg);
 
@@ -226,7 +226,7 @@ bool WebAssemblyExplicitLocals::runOnMachineFunction(MachineFunction &MF) {
     MachineInstr &MI = *I++;
     if (!WebAssembly::isArgument(MI.getOpcode()))
       break;
-    Register Reg = MI.getOperand(0).getReg();
+    Register const Reg = MI.getOperand(0).getReg();
     assert(!MFI.isVRegStackified(Reg));
     auto Local = static_cast<unsigned>(MI.getOperand(1).getImm());
     Reg2Local[Reg] = Local;
@@ -271,14 +271,14 @@ bool WebAssemblyExplicitLocals::runOnMachineFunction(MachineFunction &MF) {
       if (WebAssembly::isTee(MI.getOpcode())) {
         assert(MFI.isVRegStackified(MI.getOperand(0).getReg()));
         assert(!MFI.isVRegStackified(MI.getOperand(1).getReg()));
-        Register OldReg = MI.getOperand(2).getReg();
+        Register const OldReg = MI.getOperand(2).getReg();
         const TargetRegisterClass *RC = MRI.getRegClass(OldReg);
 
         // Stackify the input if it isn't stackified yet.
         if (!MFI.isVRegStackified(OldReg)) {
-          unsigned LocalId = getLocalId(Reg2Local, MFI, CurLocal, OldReg);
-          Register NewReg = MRI.createVirtualRegister(RC);
-          unsigned Opc = getLocalGetOpcode(RC);
+          unsigned const LocalId = getLocalId(Reg2Local, MFI, CurLocal, OldReg);
+          Register const NewReg = MRI.createVirtualRegister(RC);
+          unsigned const Opc = getLocalGetOpcode(RC);
           BuildMI(MBB, &MI, MI.getDebugLoc(), TII->get(Opc), NewReg)
               .addImm(LocalId);
           MI.getOperand(2).setReg(NewReg);
@@ -286,9 +286,9 @@ bool WebAssemblyExplicitLocals::runOnMachineFunction(MachineFunction &MF) {
         }
 
         // Replace the TEE with a LOCAL_TEE.
-        unsigned LocalId =
+        unsigned const LocalId =
             getLocalId(Reg2Local, MFI, CurLocal, MI.getOperand(1).getReg());
-        unsigned Opc = getLocalTeeOpcode(RC);
+        unsigned const Opc = getLocalTeeOpcode(RC);
         BuildMI(MBB, &MI, MI.getDebugLoc(), TII->get(Opc),
                 MI.getOperand(0).getReg())
             .addImm(LocalId)
@@ -303,13 +303,13 @@ bool WebAssemblyExplicitLocals::runOnMachineFunction(MachineFunction &MF) {
 
       // Insert local.sets for any defs that aren't stackified yet.
       for (auto &Def : MI.defs()) {
-        Register OldReg = Def.getReg();
+        Register const OldReg = Def.getReg();
         if (!MFI.isVRegStackified(OldReg)) {
           const TargetRegisterClass *RC = MRI.getRegClass(OldReg);
-          Register NewReg = MRI.createVirtualRegister(RC);
+          Register const NewReg = MRI.createVirtualRegister(RC);
           auto InsertPt = std::next(MI.getIterator());
           if (UseEmpty[Register::virtReg2Index(OldReg)]) {
-            unsigned Opc = getDropOpcode(RC);
+            unsigned const Opc = getDropOpcode(RC);
             MachineInstr *Drop =
                 BuildMI(MBB, InsertPt, MI.getDebugLoc(), TII->get(Opc))
                     .addReg(NewReg);
@@ -318,8 +318,8 @@ bool WebAssemblyExplicitLocals::runOnMachineFunction(MachineFunction &MF) {
             if (MFI.isFrameBaseVirtual() && OldReg == MFI.getFrameBaseVreg())
               MFI.clearFrameBaseVreg();
           } else {
-            unsigned LocalId = getLocalId(Reg2Local, MFI, CurLocal, OldReg);
-            unsigned Opc = getLocalSetOpcode(RC);
+            unsigned const LocalId = getLocalId(Reg2Local, MFI, CurLocal, OldReg);
+            unsigned const Opc = getLocalSetOpcode(RC);
 
             WebAssemblyDebugValueManager(&MI).replaceWithLocal(LocalId);
 
@@ -343,14 +343,14 @@ bool WebAssemblyExplicitLocals::runOnMachineFunction(MachineFunction &MF) {
         if (!MO.isReg())
           continue;
 
-        Register OldReg = MO.getReg();
+        Register const OldReg = MO.getReg();
 
         // Inline asm may have a def in the middle of the operands. Our contract
         // with inline asm register operands is to provide local indices as
         // immediates.
         if (MO.isDef()) {
           assert(MI.isInlineAsm());
-          unsigned LocalId = getLocalId(Reg2Local, MFI, CurLocal, OldReg);
+          unsigned const LocalId = getLocalId(Reg2Local, MFI, CurLocal, OldReg);
           // If this register operand is tied to another operand, we can't
           // change it to an immediate. Untie it first.
           MI.untieRegOperand(MI.getOperandNo(&MO));
@@ -368,7 +368,7 @@ bool WebAssemblyExplicitLocals::runOnMachineFunction(MachineFunction &MF) {
         // Our contract with inline asm register operands is to provide local
         // indices as immediates.
         if (MI.isInlineAsm()) {
-          unsigned LocalId = getLocalId(Reg2Local, MFI, CurLocal, OldReg);
+          unsigned const LocalId = getLocalId(Reg2Local, MFI, CurLocal, OldReg);
           // Untie it first if this reg operand is tied to another operand.
           MI.untieRegOperand(MI.getOperandNo(&MO));
           MO.ChangeToImmediate(LocalId);
@@ -376,10 +376,10 @@ bool WebAssemblyExplicitLocals::runOnMachineFunction(MachineFunction &MF) {
         }
 
         // Insert a local.get.
-        unsigned LocalId = getLocalId(Reg2Local, MFI, CurLocal, OldReg);
+        unsigned const LocalId = getLocalId(Reg2Local, MFI, CurLocal, OldReg);
         const TargetRegisterClass *RC = MRI.getRegClass(OldReg);
-        Register NewReg = MRI.createVirtualRegister(RC);
-        unsigned Opc = getLocalGetOpcode(RC);
+        Register const NewReg = MRI.createVirtualRegister(RC);
+        unsigned const Opc = getLocalGetOpcode(RC);
         InsertPt =
             BuildMI(MBB, InsertPt, MI.getDebugLoc(), TII->get(Opc), NewReg)
                 .addImm(LocalId);
@@ -402,7 +402,7 @@ bool WebAssemblyExplicitLocals::runOnMachineFunction(MachineFunction &MF) {
   // TODO: Sort the locals for better compression.
   MFI.setNumLocals(CurLocal - MFI.getParams().size());
   for (unsigned I = 0, E = MRI.getNumVirtRegs(); I < E; ++I) {
-    unsigned Reg = Register::index2VirtReg(I);
+    unsigned const Reg = Register::index2VirtReg(I);
     auto RL = Reg2Local.find(Reg);
     if (RL == Reg2Local.end() || RL->second < MFI.getParams().size())
       continue;

@@ -39,16 +39,16 @@ InsertNOPLoad::InsertNOPLoad() : LEONMachineFunctionPass(ID) {}
 bool InsertNOPLoad::runOnMachineFunction(MachineFunction &MF) {
   Subtarget = &MF.getSubtarget<SparcSubtarget>();
   const TargetInstrInfo &TII = *Subtarget->getInstrInfo();
-  DebugLoc DL = DebugLoc();
+  DebugLoc const DL = DebugLoc();
 
   bool Modified = false;
   for (auto MFI = MF.begin(), E = MF.end(); MFI != E; ++MFI) {
     MachineBasicBlock &MBB = *MFI;
     for (auto MBBI = MBB.begin(), E = MBB.end(); MBBI != E; ++MBBI) {
-      MachineInstr &MI = *MBBI;
-      unsigned Opcode = MI.getOpcode();
+      MachineInstr  const&MI = *MBBI;
+      unsigned const Opcode = MI.getOpcode();
       if (Opcode >= SP::LDDArr && Opcode <= SP::LDrr) {
-        MachineBasicBlock::iterator NMBBI = std::next(MBBI);
+        MachineBasicBlock::iterator const NMBBI = std::next(MBBI);
         BuildMI(MBB, NMBBI, DL, TII.get(SP::NOP));
         Modified = true;
       }
@@ -76,17 +76,17 @@ DetectRoundChange::DetectRoundChange() : LEONMachineFunctionPass(ID) {}
 bool DetectRoundChange::runOnMachineFunction(MachineFunction &MF) {
   Subtarget = &MF.getSubtarget<SparcSubtarget>();
 
-  bool Modified = false;
+  bool const Modified = false;
   for (auto MFI = MF.begin(), E = MF.end(); MFI != E; ++MFI) {
     MachineBasicBlock &MBB = *MFI;
     for (auto MBBI = MBB.begin(), E = MBB.end(); MBBI != E; ++MBBI) {
       MachineInstr &MI = *MBBI;
-      unsigned Opcode = MI.getOpcode();
+      unsigned const Opcode = MI.getOpcode();
       if (Opcode == SP::CALL && MI.getNumOperands() > 0) {
-        MachineOperand &MO = MI.getOperand(0);
+        MachineOperand  const&MO = MI.getOperand(0);
 
         if (MO.isGlobal()) {
-          StringRef FuncName = MO.getGlobal()->getName();
+          StringRef const FuncName = MO.getGlobal()->getName();
           if (FuncName.compare_insensitive("fesetround") == 0) {
             errs() << "Error: You are using the detectroundchange "
                       "option to detect rounding changes that will "
@@ -126,14 +126,14 @@ FixAllFDIVSQRT::FixAllFDIVSQRT() : LEONMachineFunctionPass(ID) {}
 bool FixAllFDIVSQRT::runOnMachineFunction(MachineFunction &MF) {
   Subtarget = &MF.getSubtarget<SparcSubtarget>();
   const TargetInstrInfo &TII = *Subtarget->getInstrInfo();
-  DebugLoc DL = DebugLoc();
+  DebugLoc const DL = DebugLoc();
 
   bool Modified = false;
   for (auto MFI = MF.begin(), E = MF.end(); MFI != E; ++MFI) {
     MachineBasicBlock &MBB = *MFI;
     for (auto MBBI = MBB.begin(), E = MBB.end(); MBBI != E; ++MBBI) {
-      MachineInstr &MI = *MBBI;
-      unsigned Opcode = MI.getOpcode();
+      MachineInstr  const&MI = *MBBI;
+      unsigned const Opcode = MI.getOpcode();
 
       // Note: FDIVS and FSQRTS cannot be generated when this erratum fix is
       // switched on so we don't need to check for them here. They will
@@ -143,7 +143,7 @@ bool FixAllFDIVSQRT::runOnMachineFunction(MachineFunction &MF) {
         for (int InsertedCount = 0; InsertedCount < 5; InsertedCount++)
           BuildMI(MBB, MBBI, DL, TII.get(SP::NOP));
 
-        MachineBasicBlock::iterator NMBBI = std::next(MBBI);
+        MachineBasicBlock::iterator const NMBBI = std::next(MBBI);
         for (int InsertedCount = 0; InsertedCount < 28; InsertedCount++)
           BuildMI(MBB, NMBBI, DL, TII.get(SP::NOP));
 

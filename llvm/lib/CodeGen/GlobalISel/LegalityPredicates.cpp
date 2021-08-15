@@ -33,7 +33,7 @@ LegalityPredicate LegalityPredicates::typeIs(unsigned TypeIdx, LLT Type) {
 LegalityPredicate
 LegalityPredicates::typeInSet(unsigned TypeIdx,
                               std::initializer_list<LLT> TypesInit) {
-  SmallVector<LLT, 4> Types = TypesInit;
+  SmallVector<LLT, 4> const Types = TypesInit;
   return [=](const LegalityQuery &Query) {
     return llvm::is_contained(Types, Query.Types[TypeIdx]);
   };
@@ -42,9 +42,9 @@ LegalityPredicates::typeInSet(unsigned TypeIdx,
 LegalityPredicate LegalityPredicates::typePairInSet(
     unsigned TypeIdx0, unsigned TypeIdx1,
     std::initializer_list<std::pair<LLT, LLT>> TypesInit) {
-  SmallVector<std::pair<LLT, LLT>, 4> Types = TypesInit;
+  SmallVector<std::pair<LLT, LLT>, 4> const Types = TypesInit;
   return [=](const LegalityQuery &Query) {
-    std::pair<LLT, LLT> Match = {Query.Types[TypeIdx0], Query.Types[TypeIdx1]};
+    std::pair<LLT, LLT> const Match = {Query.Types[TypeIdx0], Query.Types[TypeIdx1]};
     return llvm::is_contained(Types, Match);
   };
 }
@@ -52,9 +52,9 @@ LegalityPredicate LegalityPredicates::typePairInSet(
 LegalityPredicate LegalityPredicates::typePairAndMemDescInSet(
     unsigned TypeIdx0, unsigned TypeIdx1, unsigned MMOIdx,
     std::initializer_list<TypePairAndMemDesc> TypesAndMemDescInit) {
-  SmallVector<TypePairAndMemDesc, 4> TypesAndMemDesc = TypesAndMemDescInit;
+  SmallVector<TypePairAndMemDesc, 4> const TypesAndMemDesc = TypesAndMemDescInit;
   return [=](const LegalityQuery &Query) {
-    TypePairAndMemDesc Match = {Query.Types[TypeIdx0], Query.Types[TypeIdx1],
+    TypePairAndMemDesc const Match = {Query.Types[TypeIdx0], Query.Types[TypeIdx1],
                                 Query.MMODescrs[MMOIdx].MemoryTy,
                                 Query.MMODescrs[MMOIdx].AlignInBits};
     return llvm::any_of(TypesAndMemDesc,
@@ -85,7 +85,7 @@ LegalityPredicate LegalityPredicates::isPointer(unsigned TypeIdx) {
 LegalityPredicate LegalityPredicates::isPointer(unsigned TypeIdx,
                                                 unsigned AddrSpace) {
   return [=](const LegalityQuery &Query) {
-    LLT Ty = Query.Types[TypeIdx];
+    LLT const Ty = Query.Types[TypeIdx];
     return Ty.isPointer() && Ty.getAddressSpace() == AddrSpace;
   };
 }

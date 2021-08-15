@@ -82,7 +82,7 @@ FunctionPass *llvm::createSIOptimizeExecMaskingPreRAPass() {
 // beyond \p AndIdx.
 static bool isDefBetween(const LiveRange &LR, SlotIndex AndIdx,
                          SlotIndex SelIdx) {
-  LiveQueryResult AndLRQ = LR.Query(AndIdx);
+  LiveQueryResult const AndLRQ = LR.Query(AndIdx);
   return (!AndLRQ.isKill() && AndLRQ.valueIn() != LR.Query(SelIdx).valueOut());
 }
 
@@ -90,8 +90,8 @@ static bool isDefBetween(const LiveRange &LR, SlotIndex AndIdx,
 static bool isDefBetween(const SIRegisterInfo &TRI,
                          LiveIntervals *LIS, Register Reg,
                          const MachineInstr &Sel, const MachineInstr &And) {
-  SlotIndex AndIdx = LIS->getInstructionIndex(And);
-  SlotIndex SelIdx = LIS->getInstructionIndex(Sel);
+  SlotIndex const AndIdx = LIS->getInstructionIndex(And);
+  SlotIndex const SelIdx = LIS->getInstructionIndex(Sel);
 
   if (Reg.isVirtual())
     return isDefBetween(LIS->getInterval(Reg), AndIdx, SelIdx);
@@ -123,7 +123,7 @@ static bool isDefBetween(const SIRegisterInfo &TRI,
 Register
 SIOptimizeExecMaskingPreRA::optimizeVcndVcmpPair(MachineBasicBlock &MBB) {
   auto I = llvm::find_if(MBB.terminators(), [](const MachineInstr &MI) {
-                           unsigned Opc = MI.getOpcode();
+                           unsigned const Opc = MI.getOpcode();
                            return Opc == AMDGPU::S_CBRANCH_VCCZ ||
                                   Opc == AMDGPU::S_CBRANCH_VCCNZ; });
   if (I == MBB.terminators().end())
@@ -159,7 +159,7 @@ SIOptimizeExecMaskingPreRA::optimizeVcndVcmpPair(MachineBasicBlock &MBB) {
   if (!Op1->isReg() || !Op2->isImm() || Op2->getImm() != 1)
     return Register();
 
-  Register SelReg = Op1->getReg();
+  Register const SelReg = Op1->getReg();
   auto *Sel = TRI->findReachingDef(SelReg, Op1->getSubReg(), *Cmp, *MRI, LIS);
   if (!Sel || Sel->getOpcode() != AMDGPU::V_CNDMASK_B32_e64)
     return Register();
@@ -191,7 +191,7 @@ SIOptimizeExecMaskingPreRA::optimizeVcndVcmpPair(MachineBasicBlock &MBB) {
               And->getOperand(0).getReg())
           .addReg(ExecReg)
           .addReg(CCReg, getUndefRegState(CC->isUndef()), CC->getSubReg());
-  MachineOperand &AndSCC = And->getOperand(3);
+  MachineOperand  const&AndSCC = And->getOperand(3);
   assert(AndSCC.getReg() == AMDGPU::SCC);
   MachineOperand &Andn2SCC = Andn2->getOperand(3);
   assert(Andn2SCC.getReg() == AMDGPU::SCC);
@@ -260,8 +260,8 @@ bool SIOptimizeExecMaskingPreRA::optimizeElseBranch(MachineBasicBlock &MBB) {
   if (XorTermMI.getOperand(1).getReg() != Register(ExecReg))
     return false;
 
-  Register SavedExecReg = SaveExecMI.getOperand(0).getReg();
-  Register DstReg = XorTermMI.getOperand(2).getReg();
+  Register const SavedExecReg = SaveExecMI.getOperand(0).getReg();
+  Register const DstReg = XorTermMI.getOperand(2).getReg();
 
   // Find potentially unnecessary S_AND
   MachineInstr *AndExecMI = nullptr;
@@ -279,8 +279,8 @@ bool SIOptimizeExecMaskingPreRA::optimizeElseBranch(MachineBasicBlock &MBB) {
   // Note: exec defs do not create live ranges beyond the
   // instruction so isDefBetween cannot be used.
   // Instead just check that the def segments are adjacent.
-  SlotIndex StartIdx = LIS->getInstructionIndex(SaveExecMI);
-  SlotIndex EndIdx = LIS->getInstructionIndex(*AndExecMI);
+  SlotIndex const StartIdx = LIS->getInstructionIndex(SaveExecMI);
+  SlotIndex const EndIdx = LIS->getInstructionIndex(*AndExecMI);
   for (MCRegUnitIterator UI(ExecReg, TRI); UI.isValid(); ++UI) {
     LiveRange &RegUnit = LIS->getRegUnit(*UI);
     if (RegUnit.find(StartIdx) != std::prev(RegUnit.find(EndIdx)))
@@ -330,7 +330,7 @@ bool SIOptimizeExecMaskingPreRA::runOnMachineFunction(MachineFunction &MF) {
       Changed = true;
     }
 
-    if (Register Reg = optimizeVcndVcmpPair(MBB)) {
+    if (Register const Reg = optimizeVcndVcmpPair(MBB)) {
       RecalcRegs.insert(Reg);
       RecalcRegs.insert(AMDGPU::VCC_LO);
       RecalcRegs.insert(AMDGPU::VCC_HI);
@@ -347,7 +347,7 @@ bool SIOptimizeExecMaskingPreRA::runOnMachineFunction(MachineFunction &MF) {
       // to be careful to update / remove them.
       // S_ENDPGM always has a single imm operand that is not used other than to
       // end up in the encoding
-      MachineInstr &Term = MBB.back();
+      MachineInstr  const&Term = MBB.back();
       if (Term.getOpcode() != AMDGPU::S_ENDPGM || Term.getNumOperands() != 1)
         continue;
 
@@ -415,10 +415,10 @@ bool SIOptimizeExecMaskingPreRA::runOnMachineFunction(MachineFunction &MF) {
       if (!(I->isFullCopy() && I->getOperand(1).getReg() == Register(ExecReg)))
         continue;
 
-      Register SavedExec = I->getOperand(0).getReg();
+      Register const SavedExec = I->getOperand(0).getReg();
       if (SavedExec.isVirtual() && MRI->hasOneNonDBGUse(SavedExec)) {
         MachineInstr *SingleExecUser = &*MRI->use_instr_nodbg_begin(SavedExec);
-        int Idx = SingleExecUser->findRegisterUseOperandIdx(SavedExec);
+        int const Idx = SingleExecUser->findRegisterUseOperandIdx(SavedExec);
         assert(Idx != -1);
         if (SingleExecUser->getParent() == I->getParent() &&
             !SingleExecUser->getOperand(Idx).isImplicit() &&

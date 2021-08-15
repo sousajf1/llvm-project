@@ -45,7 +45,7 @@ void llvm::handleExecNameEncodedBEOpts(StringRef ExecName) {
 
   SmallVector<StringRef, 4> Opts;
   NameAndArgs.second.split(Opts, '-');
-  for (StringRef Opt : Opts) {
+  for (StringRef const Opt : Opts) {
     if (Opt.equals("gisel")) {
       Args.push_back("-global-isel");
       // For now we default GlobalISel to -O0
@@ -66,7 +66,7 @@ void llvm::handleExecNameEncodedBEOpts(StringRef ExecName) {
 
   std::vector<const char *> CLArgs;
   CLArgs.reserve(Args.size());
-  for (std::string &S : Args)
+  for (std::string  const&S : Args)
     CLArgs.push_back(S.c_str());
 
   cl::ParseCommandLineOptions(CLArgs.size(), CLArgs.data());
@@ -82,7 +82,7 @@ void llvm::handleExecNameEncodedOptimizerOpts(StringRef ExecName) {
 
   SmallVector<StringRef, 4> Opts;
   NameAndArgs.second.split(Opts, '-');
-  for (StringRef Opt : Opts) {
+  for (StringRef const Opt : Opts) {
     if (Opt == "instcombine") {
       Args.push_back("-passes=instcombine");
     } else if (Opt == "earlycse") {
@@ -130,7 +130,7 @@ void llvm::handleExecNameEncodedOptimizerOpts(StringRef ExecName) {
 
   std::vector<const char *> CLArgs;
   CLArgs.reserve(Args.size());
-  for (std::string &S : Args)
+  for (std::string  const&S : Args)
     CLArgs.push_back(S.c_str());
 
   cl::ParseCommandLineOptions(CLArgs.size(), CLArgs.data());
@@ -140,13 +140,13 @@ int llvm::runFuzzerOnInputs(int ArgC, char *ArgV[], FuzzerTestFun TestOne,
                             FuzzerInitFun Init) {
   errs() << "*** This tool was not linked to libFuzzer.\n"
          << "*** No fuzzing will be performed.\n";
-  if (int RC = Init(&ArgC, &ArgV)) {
+  if (int const RC = Init(&ArgC, &ArgV)) {
     errs() << "Initialization failed\n";
     return RC;
   }
 
   for (int I = 1; I < ArgC; ++I) {
-    StringRef Arg(ArgV[I]);
+    StringRef const Arg(ArgV[I]);
     if (Arg.startswith("-")) {
       if (Arg.equals("-ignore_remaining_args=1"))
         break;
@@ -155,7 +155,7 @@ int llvm::runFuzzerOnInputs(int ArgC, char *ArgV[], FuzzerTestFun TestOne,
 
     auto BufOrErr = MemoryBuffer::getFile(Arg, /*IsText=*/false,
                                           /*RequiresNullTerminator=*/false);
-    if (std::error_code EC = BufOrErr.getError()) {
+    if (std::error_code const EC = BufOrErr.getError()) {
       errs() << "Error reading file: " << Arg << ": " << EC.message() << "\n";
       return 1;
     }
@@ -178,7 +178,7 @@ std::unique_ptr<Module> llvm::parseModule(
       StringRef(reinterpret_cast<const char *>(Data), Size), "Fuzzer input",
       /*RequiresNullTerminator=*/false);
 
-  SMDiagnostic Err;
+  SMDiagnostic const Err;
   auto M = parseBitcodeFile(Buffer->getMemBufferRef(), Context);
   if (Error E = M.takeError()) {
     errs() << toString(std::move(E)) << "\n";

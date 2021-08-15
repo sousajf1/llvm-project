@@ -87,7 +87,7 @@ void LanaiAsmBackend::applyFixup(const MCAssembler &Asm, const MCFixup &Fixup,
                                  MutableArrayRef<char> Data, uint64_t Value,
                                  bool /*IsResolved*/,
                                  const MCSubtargetInfo * /*STI*/) const {
-  MCFixupKind Kind = Fixup.getKind();
+  MCFixupKind const Kind = Fixup.getKind();
   Value = adjustFixupValue(static_cast<unsigned>(Kind), Value);
 
   if (!Value)
@@ -95,27 +95,27 @@ void LanaiAsmBackend::applyFixup(const MCAssembler &Asm, const MCFixup &Fixup,
 
   // Where in the object and where the number of bytes that need
   // fixing up
-  unsigned Offset = Fixup.getOffset();
-  unsigned NumBytes = (getFixupKindInfo(Kind).TargetSize + 7) / 8;
-  unsigned FullSize = 4;
+  unsigned const Offset = Fixup.getOffset();
+  unsigned const NumBytes = (getFixupKindInfo(Kind).TargetSize + 7) / 8;
+  unsigned const FullSize = 4;
 
   // Grab current value, if any, from bits.
   uint64_t CurVal = 0;
 
   // Load instruction and apply value
   for (unsigned i = 0; i != NumBytes; ++i) {
-    unsigned Idx = (FullSize - 1 - i);
+    unsigned const Idx = (FullSize - 1 - i);
     CurVal |= static_cast<uint64_t>(static_cast<uint8_t>(Data[Offset + Idx]))
               << (i * 8);
   }
 
-  uint64_t Mask =
+  uint64_t const Mask =
       (static_cast<uint64_t>(-1) >> (64 - getFixupKindInfo(Kind).TargetSize));
   CurVal |= Value & Mask;
 
   // Write out the fixed up bytes back to the code/data bits.
   for (unsigned i = 0; i != NumBytes; ++i) {
-    unsigned Idx = (FullSize - 1 - i);
+    unsigned const Idx = (FullSize - 1 - i);
     Data[Offset + Idx] = static_cast<uint8_t>((CurVal >> (i * 8)) & 0xff);
   }
 }

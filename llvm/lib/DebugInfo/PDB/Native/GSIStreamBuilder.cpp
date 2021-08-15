@@ -66,11 +66,11 @@ struct llvm::pdb::GSIHashStreamBuilder {
 // DenseMapInfo implementation for deduplicating symbol records.
 struct llvm::pdb::SymbolDenseMapInfo {
   static inline CVSymbol getEmptyKey() {
-    static CVSymbol Empty;
+    static CVSymbol const Empty;
     return Empty;
   }
   static inline CVSymbol getTombstoneKey() {
-    static CVSymbol Tombstone(
+    static CVSymbol const Tombstone(
         DenseMapInfo<ArrayRef<uint8_t>>::getTombstoneKey());
     return Tombstone;
   }
@@ -102,9 +102,9 @@ static uint32_t sizeOfPublic(const BulkPublic &Pub) {
 
 static CVSymbol serializePublic(uint8_t *Mem, const BulkPublic &Pub) {
   // Assume the caller has allocated sizeOfPublic bytes.
-  uint32_t NameLen = std::min(
+  uint32_t const NameLen = std::min(
       Pub.NameLen, uint32_t(MaxRecordLength - sizeof(PublicSym32Layout) - 1));
-  size_t Size = alignTo(sizeof(PublicSym32Layout) + NameLen + 1, 4);
+  size_t const Size = alignTo(sizeof(PublicSym32Layout) + NameLen + 1, 4);
   assert(Size == sizeOfPublic(Pub));
   auto *FixedMem = reinterpret_cast<PublicSym32Layout *>(Mem);
   FixedMem->Prefix.RecordKind = static_cast<uint16_t>(codeview::S_PUB32);
@@ -152,8 +152,8 @@ static bool isAsciiString(StringRef S) {
 
 // See `caseInsensitiveComparePchPchCchCch` in gsi.cpp
 static int gsiRecordCmp(StringRef S1, StringRef S2) {
-  size_t LS = S1.size();
-  size_t RS = S2.size();
+  size_t const LS = S1.size();
+  size_t const RS = S2.size();
   // Shorter strings always compare less than longer strings.
   if (LS != RS)
     return (LS > RS) - (LS < RS);
@@ -183,7 +183,7 @@ void GSIStreamBuilder::finalizeGlobalBuckets(uint32_t RecordZeroOffset) {
   Records.resize(Globals.size());
   uint32_t SymOffset = RecordZeroOffset;
   for (size_t I = 0, E = Globals.size(); I < E; ++I) {
-    StringRef Name = getSymbolName(Globals[I]);
+    StringRef const Name = getSymbolName(Globals[I]);
     Records[I].Name = Name.data();
     Records[I].NameLen = Name.size();
     Records[I].SymOffset = SymOffset;
@@ -208,7 +208,7 @@ void GSIHashStreamBuilder::finalizeBuckets(
     ++BucketStarts[P.BucketIdx];
   uint32_t Sum = 0;
   for (uint32_t &B : BucketStarts) {
-    uint32_t Size = B;
+    uint32_t const Size = B;
     B = Sum;
     Sum += Size;
   }
@@ -220,7 +220,7 @@ void GSIHashStreamBuilder::finalizeBuckets(
   uint32_t BucketCursors[IPHR_HASH];
   memcpy(BucketCursors, BucketStarts, sizeof(BucketCursors));
   for (int I = 0, E = Records.size(); I < E; ++I) {
-    uint32_t HashIdx = BucketCursors[Records[I].BucketIdx]++;
+    uint32_t const HashIdx = BucketCursors[Records[I].BucketIdx]++;
     HashRecords[HashIdx].Off = I;
     HashRecords[HashIdx].CRef = 1;
   }
@@ -241,7 +241,7 @@ void GSIHashStreamBuilder::finalizeBuckets(
       const BulkPublic &L = Records[uint32_t(LHash.Off)];
       const BulkPublic &R = Records[uint32_t(RHash.Off)];
       assert(L.BucketIdx == R.BucketIdx);
-      int Cmp = gsiRecordCmp(L.getName(), R.getName());
+      int const Cmp = gsiRecordCmp(L.getName(), R.getName());
       if (Cmp != 0)
         return Cmp < 0;
       // This comparison is necessary to make the sorting stable in the presence
@@ -264,7 +264,7 @@ void GSIHashStreamBuilder::finalizeBuckets(
     uint32_t Word = 0;
     for (uint32_t J = 0; J < 32; ++J) {
       // Skip empty buckets.
-      uint32_t BucketIdx = I * 32 + J;
+      uint32_t const BucketIdx = I * 32 + J;
       if (BucketIdx >= IPHR_HASH ||
           BucketStarts[BucketIdx] == BucketCursors[BucketIdx])
         continue;
@@ -274,7 +274,7 @@ void GSIHashStreamBuilder::finalizeBuckets(
       // be if it were inflated to contain 32-bit pointers. On a 32-bit system,
       // each record would be 12 bytes. See HROffsetCalc in gsi.h.
       const int SizeOfHROffsetCalc = 12;
-      ulittle32_t ChainStartOff =
+      ulittle32_t const ChainStartOff =
           ulittle32_t(BucketStarts[BucketIdx] * SizeOfHROffsetCalc);
       HashBuckets.push_back(ChainStartOff);
     }
@@ -317,7 +317,7 @@ Error GSIStreamBuilder::finalizeMsfLayout() {
     return Idx.takeError();
   PublicsStreamIndex = *Idx;
 
-  uint32_t RecordBytes = PSH->RecordByteSize + GSH->RecordByteSize;
+  uint32_t const RecordBytes = PSH->RecordByteSize + GSH->RecordByteSize;
 
   Idx = Msf.addStream(RecordBytes);
   if (!Idx)
@@ -394,7 +394,7 @@ static Error writeRecords(BinaryStreamWriter &Writer,
                           ArrayRef<CVSymbol> Records) {
   BinaryItemStream<CVSymbol> ItemStream(support::endianness::little);
   ItemStream.setItems(Records);
-  BinaryStreamRef RecordsRef(ItemStream);
+  BinaryStreamRef const RecordsRef(ItemStream);
   return Writer.writeStreamRef(RecordsRef);
 }
 
@@ -461,7 +461,7 @@ Error GSIStreamBuilder::commitPublicsHashStream(
   if (auto EC = PSH->commit(Writer))
     return EC;
 
-  std::vector<support::ulittle32_t> PubAddrMap = computeAddrMap(Publics);
+  std::vector<support::ulittle32_t> const PubAddrMap = computeAddrMap(Publics);
   assert(PubAddrMap.size() == Publics.size());
   if (auto EC = Writer.writeArray(makeArrayRef(PubAddrMap)))
     return EC;

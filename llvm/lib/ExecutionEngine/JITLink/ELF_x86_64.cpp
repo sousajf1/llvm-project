@@ -278,7 +278,7 @@ private:
               llvm::inconvertibleErrorCode());
         }
         int64_t Addend = Rela.r_addend;
-        JITTargetAddress FixupAddress =
+        JITTargetAddress const FixupAddress =
             (*UpdateSection)->sh_addr + Rela.r_offset;
 
         LLVM_DEBUG({
@@ -398,7 +398,7 @@ private:
         }
 
       // If there's no defined symbol then create one.
-      SectionRange SR(*GOTSection);
+      SectionRange const SR(*GOTSection);
       if (SR.empty())
         GOTSymbol = &G.addAbsoluteSymbol(ELFGOTSymbolName, 0, 0,
                                          Linkage::Strong, Scope::Local, true);

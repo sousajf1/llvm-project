@@ -44,13 +44,13 @@ void Mips16FrameLowering::emitPrologue(MachineFunction &MF,
   MachineFrameInfo &MFI = MF.getFrameInfo();
   const Mips16InstrInfo &TII =
       *static_cast<const Mips16InstrInfo *>(STI.getInstrInfo());
-  MachineBasicBlock::iterator MBBI = MBB.begin();
+  MachineBasicBlock::iterator const MBBI = MBB.begin();
 
   // Debug location must be unknown since the first debug location is used
   // to determine the end of the prologue.
-  DebugLoc dl;
+  DebugLoc const dl;
 
-  uint64_t StackSize = MFI.getStackSize();
+  uint64_t const StackSize = MFI.getStackSize();
 
   // No need to allocate space on the stack.
   if (StackSize == 0 && !MFI.adjustsStack()) return;
@@ -62,7 +62,7 @@ void Mips16FrameLowering::emitPrologue(MachineFunction &MF,
   TII.makeFrame(Mips::SP, StackSize, MBB, MBBI);
 
   // emit ".cfi_def_cfa_offset StackSize"
-  unsigned CFIIndex =
+  unsigned const CFIIndex =
       MF.addFrameInst(MCCFIInstruction::cfiDefCfaOffset(nullptr, StackSize));
   BuildMI(MBB, MBBI, dl, TII.get(TargetOpcode::CFI_INSTRUCTION))
       .addCFIIndex(CFIIndex);
@@ -74,10 +74,10 @@ void Mips16FrameLowering::emitPrologue(MachineFunction &MF,
 
     for (std::vector<CalleeSavedInfo>::const_iterator I = CSI.begin(),
          E = CSI.end(); I != E; ++I) {
-      int64_t Offset = MFI.getObjectOffset(I->getFrameIdx());
-      unsigned Reg = I->getReg();
-      unsigned DReg = MRI->getDwarfRegNum(Reg, true);
-      unsigned CFIIndex = MF.addFrameInst(
+      int64_t const Offset = MFI.getObjectOffset(I->getFrameIdx());
+      unsigned const Reg = I->getReg();
+      unsigned const DReg = MRI->getDwarfRegNum(Reg, true);
+      unsigned const CFIIndex = MF.addFrameInst(
           MCCFIInstruction::createOffset(nullptr, DReg, Offset));
       BuildMI(MBB, MBBI, dl, TII.get(TargetOpcode::CFI_INSTRUCTION))
           .addCFIIndex(CFIIndex);
@@ -90,12 +90,12 @@ void Mips16FrameLowering::emitPrologue(MachineFunction &MF,
 
 void Mips16FrameLowering::emitEpilogue(MachineFunction &MF,
                                  MachineBasicBlock &MBB) const {
-  MachineBasicBlock::iterator MBBI = MBB.getFirstTerminator();
-  MachineFrameInfo &MFI = MF.getFrameInfo();
+  MachineBasicBlock::iterator const MBBI = MBB.getFirstTerminator();
+  MachineFrameInfo  const&MFI = MF.getFrameInfo();
   const Mips16InstrInfo &TII =
       *static_cast<const Mips16InstrInfo *>(STI.getInstrInfo());
-  DebugLoc dl = MBBI != MBB.end() ? MBBI->getDebugLoc() : DebugLoc();
-  uint64_t StackSize = MFI.getStackSize();
+  DebugLoc const dl = MBBI != MBB.end() ? MBBI->getDebugLoc() : DebugLoc();
+  uint64_t const StackSize = MFI.getStackSize();
 
   if (!StackSize)
     return;
@@ -125,8 +125,8 @@ bool Mips16FrameLowering::spillCalleeSavedRegisters(
     // method MipsTargetLowering::lowerRETURNADDR.
     // It's killed at the spill, unless the register is RA and return address
     // is taken.
-    unsigned Reg = CSI[i].getReg();
-    bool IsRAAndRetAddrIsTaken = (Reg == Mips::RA)
+    unsigned const Reg = CSI[i].getReg();
+    bool const IsRAAndRetAddrIsTaken = (Reg == Mips::RA)
       && MF->getFrameInfo().isReturnAddressTaken();
     if (!IsRAAndRetAddrIsTaken)
       MBB.addLiveIn(Reg);
@@ -164,7 +164,7 @@ void Mips16FrameLowering::determineCalleeSaves(MachineFunction &MF,
       *static_cast<const Mips16InstrInfo *>(STI.getInstrInfo());
   const MipsRegisterInfo &RI = TII.getRegisterInfo();
   const BitVector Reserved = RI.getReservedRegs(MF);
-  bool SaveS2 = Reserved[Mips::S2];
+  bool const SaveS2 = Reserved[Mips::S2];
   if (SaveS2)
     SavedRegs.set(Mips::S2);
   if (hasFP(MF))

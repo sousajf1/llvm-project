@@ -59,7 +59,7 @@ void Lowerer::lowerResumeOrDestroy(CallBase &CB,
 // TODO: Handle the case when coroutine promise alloca has align override.
 void Lowerer::lowerCoroPromise(CoroPromiseInst *Intrin) {
   Value *Operand = Intrin->getArgOperand(0);
-  Align Alignment = Intrin->getAlignment();
+  Align const Alignment = Intrin->getAlignment();
   Type *Int8Ty = Builder.getInt8Ty();
 
   auto *SampleStruct =
@@ -122,7 +122,7 @@ void Lowerer::lowerCoroNoop(IntrinsicInst *II) {
     ReturnInst::Create(C, Entry);
 
     // Create a constant struct for the frame.
-    Constant* Values[] = {NoopFn, NoopFn};
+    Constant* const Values[] = {NoopFn, NoopFn};
     Constant* NoopCoroConst = ConstantStruct::get(FrameTy, Values);
     NoopCoro = new GlobalVariable(M, NoopCoroConst->getType(), /*isConstant=*/true,
                                 GlobalVariable::PrivateLinkage, NoopCoroConst,

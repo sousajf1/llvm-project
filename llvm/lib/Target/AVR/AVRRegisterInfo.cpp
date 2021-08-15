@@ -101,7 +101,7 @@ AVRRegisterInfo::getLargestLegalSuperClass(const TargetRegisterClass *RC,
 static void foldFrameOffset(MachineBasicBlock::iterator &II, int &Offset,
                             Register DstReg) {
   MachineInstr &MI = *II;
-  int Opcode = MI.getOpcode();
+  int const Opcode = MI.getOpcode();
 
   // Don't bother trying if the next instruction is not an add or a sub.
   if ((Opcode != AVR::SUBIWRdK) && (Opcode != AVR::ADIWRdK)) {
@@ -135,14 +135,14 @@ void AVRRegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
   assert(SPAdj == 0 && "Unexpected SPAdj value");
 
   MachineInstr &MI = *II;
-  DebugLoc dl = MI.getDebugLoc();
+  DebugLoc const dl = MI.getDebugLoc();
   MachineBasicBlock &MBB = *MI.getParent();
   const MachineFunction &MF = *MBB.getParent();
   const AVRTargetMachine &TM = (const AVRTargetMachine &)MF.getTarget();
   const TargetInstrInfo &TII = *TM.getSubtargetImpl()->getInstrInfo();
   const MachineFrameInfo &MFI = MF.getFrameInfo();
   const TargetFrameLowering *TFI = TM.getSubtargetImpl()->getFrameLowering();
-  int FrameIndex = MI.getOperand(FIOperandNum).getIndex();
+  int const FrameIndex = MI.getOperand(FIOperandNum).getIndex();
   int Offset = MFI.getObjectOffset(FrameIndex);
 
   // Add one to the offset because SP points to an empty slot.
@@ -162,7 +162,7 @@ void AVRRegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
 
     // We need to materialize the offset via an add instruction.
     unsigned Opcode;
-    Register DstReg = MI.getOperand(0).getReg();
+    Register const DstReg = MI.getOperand(0).getReg();
     assert(DstReg != AVR::R29R28 && "Dest reg cannot be the frame pointer");
 
     II++; // Skip over the FRMIDX (and now MOVW) instruction.

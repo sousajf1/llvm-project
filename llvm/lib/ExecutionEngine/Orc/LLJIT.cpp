@@ -699,7 +699,7 @@ LLJIT::createCompileFunction(LLJITBuilderState &S,
 LLJIT::LLJIT(LLJITBuilderState &S, Error &Err)
     : DL(""), TT(S.JTMB->getTargetTriple()) {
 
-  ErrorAsOutParameter _(&Err);
+  ErrorAsOutParameter const _(&Err);
 
   assert(!(S.EPC && S.ES) && "EPC and ES should not both be set");
 
@@ -835,7 +835,7 @@ LLLazyJIT::LLLazyJIT(LLLazyJITBuilderState &S, Error &Err) : LLJIT(S, Err) {
   if (Err)
     return;
 
-  ErrorAsOutParameter _(&Err);
+  ErrorAsOutParameter const _(&Err);
 
   /// Take/Create the lazy-compile callthrough manager.
   if (S.LCTMgr)

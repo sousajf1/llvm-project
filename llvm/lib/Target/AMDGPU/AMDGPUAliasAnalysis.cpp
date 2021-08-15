@@ -154,7 +154,7 @@ bool AMDGPUAAResult::pointsToConstantMemory(const MemoryLocation &Loc,
       break;
     }
 
-    unsigned ArgNo = Arg->getArgNo();
+    unsigned const ArgNo = Arg->getArgNo();
     /* On an argument, ReadOnly attribute indicates that the function does
        not write through this pointer argument, even though it may write
        to the memory that the pointer points to.

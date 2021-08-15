@@ -38,7 +38,7 @@ void Scheduler::dump() const {
 #endif
 
 Scheduler::Status Scheduler::isAvailable(const InstRef &IR) {
-  ResourceStateEvent RSE =
+  ResourceStateEvent const RSE =
       Resources->canBeDispatched(IR.getInstruction()->getUsedBuffers());
   HadTokenStall = RSE != RS_BUFFER_AVAILABLE;
 
@@ -52,7 +52,7 @@ Scheduler::Status Scheduler::isAvailable(const InstRef &IR) {
   }
 
   // Give lower priority to LSUnit stall events.
-  LSUnit::Status LSS = LSU.isAvailable(IR);
+  LSUnit::Status const LSS = LSU.isAvailable(IR);
   HadTokenStall = LSS != LSUnit::LSU_AVAILABLE;
 
   switch (LSS) {
@@ -196,7 +196,7 @@ InstRef Scheduler::select() {
     if (QueueIndex == ReadySet.size() ||
         Strategy->compare(IR, ReadySet[QueueIndex])) {
       Instruction &IS = *IR.getInstruction();
-      uint64_t BusyResourceMask = Resources->checkAvailability(IS.getDesc());
+      uint64_t const BusyResourceMask = Resources->checkAvailability(IS.getDesc());
       if (BusyResourceMask)
         IS.setCriticalResourceMask(BusyResourceMask);
       BusyResourceUnits |= BusyResourceMask;
@@ -221,7 +221,7 @@ void Scheduler::updateIssuedSet(SmallVectorImpl<InstRef> &Executed) {
     InstRef &IR = *I;
     if (!IR)
       break;
-    Instruction &IS = *IR.getInstruction();
+    Instruction  const&IS = *IR.getInstruction();
     if (!IS.isExecuted()) {
       LLVM_DEBUG(dbgs() << "[SCHEDULER]: Instruction #" << IR
                         << " is still executing.\n");

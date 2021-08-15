@@ -107,7 +107,7 @@ static bool tryToReplaceWithConstant(SCCPSolver &Solver, Value *V) {
     std::vector<Constant *> ConstVals;
     auto *ST = cast<StructType>(V->getType());
     for (unsigned i = 0, e = ST->getNumElements(); i != e; ++i) {
-      ValueLatticeElement V = IVs[i];
+      ValueLatticeElement const V = IVs[i];
       ConstVals.push_back(isConstant(V)
                               ? Solver.getConstant(V)
                               : UndefValue::get(ST->getElementType(i)));
@@ -599,7 +599,7 @@ bool llvm::runIPSCCP(
           continue;
 
         LLVMContext &Context = CB->getParent()->getContext();
-        Metadata *RangeMD[] = {
+        Metadata *const RangeMD[] = {
             ConstantAsMetadata::get(ConstantInt::get(Context, CR.getLower())),
             ConstantAsMetadata::get(ConstantInt::get(Context, CR.getUpper()))};
         CB->setMetadata(LLVMContext::MD_range, MDNode::get(Context, RangeMD));
@@ -632,14 +632,14 @@ bool llvm::runIPSCCP(
   // Remove the returned attribute for zapped functions and the
   // corresponding call sites.
   for (Function *F : FuncZappedReturn) {
-    for (Argument &A : F->args())
+    for (Argument  const&A : F->args())
       F->removeParamAttr(A.getArgNo(), Attribute::Returned);
-    for (Use &U : F->uses()) {
+    for (Use  const&U : F->uses()) {
       // Skip over blockaddr users.
       if (isa<BlockAddress>(U.getUser()))
         continue;
       CallBase *CB = cast<CallBase>(U.getUser());
-      for (Use &Arg : CB->args())
+      for (Use  const&Arg : CB->args())
         CB->removeParamAttr(CB->getArgOperandNo(&Arg), Attribute::Returned);
     }
   }

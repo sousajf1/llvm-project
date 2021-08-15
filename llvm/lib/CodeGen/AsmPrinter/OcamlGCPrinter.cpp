@@ -53,7 +53,7 @@ static void EmitCamlGlobal(const Module &M, AsmPrinter &AP, const char *Id) {
 
   std::string SymName;
   SymName += "caml";
-  size_t Letter = SymName.size();
+  size_t const Letter = SymName.size();
   SymName.append(MId.begin(), llvm::find(MId, '.'));
   SymName += "__";
   SymName += Id;
@@ -97,7 +97,7 @@ void OcamlGCMetadataPrinter::beginAssembly(Module &M, GCModuleInfo &Info,
 ///
 void OcamlGCMetadataPrinter::finishAssembly(Module &M, GCModuleInfo &Info,
                                             AsmPrinter &AP) {
-  unsigned IntPtrSize = M.getDataLayout().getPointerSize();
+  unsigned const IntPtrSize = M.getDataLayout().getPointerSize();
 
   AP.OutStreamer->SwitchSection(AP.getObjFileLowering().getTextSection());
   EmitCamlGlobal(M, AP, "code_end");
@@ -139,7 +139,7 @@ void OcamlGCMetadataPrinter::finishAssembly(Module &M, GCModuleInfo &Info,
       // this function is managed by some other GC
       continue;
 
-    uint64_t FrameSize = FI.getFrameSize();
+    uint64_t const FrameSize = FI.getFrameSize();
     if (FrameSize >= 1 << 16) {
       // Very rude!
       report_fatal_error("Function '" + FI.getFunction().getName() +
@@ -156,7 +156,7 @@ void OcamlGCMetadataPrinter::finishAssembly(Module &M, GCModuleInfo &Info,
     AP.OutStreamer->AddBlankLine();
 
     for (GCFunctionInfo::iterator J = FI.begin(), JE = FI.end(); J != JE; ++J) {
-      size_t LiveCount = FI.live_size(J);
+      size_t const LiveCount = FI.live_size(J);
       if (LiveCount >= 1 << 16) {
         // Very rude!
         report_fatal_error("Function '" + FI.getFunction().getName() +

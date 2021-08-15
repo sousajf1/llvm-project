@@ -121,7 +121,7 @@ Error DispatchStage::dispatch(InstRef IR) {
     PRF.addRegisterWrite(WriteRef(IR.getSourceIndex(), &WS), RegisterFiles);
 
   // Reserve entries in the reorder buffer.
-  unsigned RCUTokenID = RCU.dispatch(IR);
+  unsigned const RCUTokenID = RCU.dispatch(IR);
   // Notify the instruction that it has been dispatched.
   IS.dispatch(RCUTokenID);
 
@@ -141,11 +141,11 @@ Error DispatchStage::cycleStart() {
   }
 
   AvailableEntries = CarryOver >= DispatchWidth ? 0 : DispatchWidth - CarryOver;
-  unsigned DispatchedOpcodes = DispatchWidth - AvailableEntries;
+  unsigned const DispatchedOpcodes = DispatchWidth - AvailableEntries;
   CarryOver -= DispatchedOpcodes;
   assert(CarriedOver && "Invalid dispatched instruction");
 
-  SmallVector<unsigned, 8> RegisterFiles(PRF.getNumRegisterFiles(), 0U);
+  SmallVector<unsigned, 8> const RegisterFiles(PRF.getNumRegisterFiles(), 0U);
   notifyInstructionDispatched(CarriedOver, RegisterFiles, DispatchedOpcodes);
   if (!CarryOver)
     CarriedOver = InstRef();
@@ -158,9 +158,9 @@ bool DispatchStage::isAvailable(const InstRef &IR) const {
     return false;
 
   const Instruction &Inst = *IR.getInstruction();
-  unsigned NumMicroOps = Inst.getNumMicroOps();
+  unsigned const NumMicroOps = Inst.getNumMicroOps();
   const InstrDesc &Desc = Inst.getDesc();
-  unsigned Required = std::min(NumMicroOps, DispatchWidth);
+  unsigned const Required = std::min(NumMicroOps, DispatchWidth);
   if (Required > AvailableEntries)
     return false;
 

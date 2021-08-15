@@ -129,7 +129,7 @@ StringRef DiagnosticLocation::getRelativePath() const {
 }
 
 std::string DiagnosticLocation::getAbsolutePath() const {
-  StringRef Name = File->getFilename();
+  StringRef const Name = File->getFilename();
   if (sys::path::is_absolute(Name))
     return std::string(Name);
 
@@ -270,7 +270,7 @@ OptimizationRemark::OptimizationRemark(const char *PassName,
 
 bool OptimizationRemark::isEnabled() const {
   const Function &Fn = getFunction();
-  LLVMContext &Ctx = Fn.getContext();
+  LLVMContext  const&Ctx = Fn.getContext();
   return Ctx.getDiagHandlerPtr()->isPassedOptRemarkEnabled(getPassName());
 }
 
@@ -298,7 +298,7 @@ OptimizationRemarkMissed::OptimizationRemarkMissed(const char *PassName,
 
 bool OptimizationRemarkMissed::isEnabled() const {
   const Function &Fn = getFunction();
-  LLVMContext &Ctx = Fn.getContext();
+  LLVMContext  const&Ctx = Fn.getContext();
   return Ctx.getDiagHandlerPtr()->isMissedOptRemarkEnabled(getPassName());
 }
 
@@ -333,7 +333,7 @@ OptimizationRemarkAnalysis::OptimizationRemarkAnalysis(const char *PassName,
 
 bool OptimizationRemarkAnalysis::isEnabled() const {
   const Function &Fn = getFunction();
-  LLVMContext &Ctx = Fn.getContext();
+  LLVMContext  const&Ctx = Fn.getContext();
   return Ctx.getDiagHandlerPtr()->isAnalysisRemarkEnabled(getPassName()) ||
          shouldAlwaysPrint();
 }

@@ -91,7 +91,7 @@ bool LowerGlobalDtors::runOnModule(Module &M) {
     auto *Priority = dyn_cast<ConstantInt>(CS->getOperand(0));
     if (!Priority)
       continue; // Malformed.
-    uint16_t PriorityValue = Priority->getLimitedValue(UINT16_MAX);
+    uint16_t const PriorityValue = Priority->getLimitedValue(UINT16_MAX);
 
     Constant *DtorFunc = CS->getOperand(1);
     if (DtorFunc->isNullValue())
@@ -115,12 +115,12 @@ bool LowerGlobalDtors::runOnModule(Module &M) {
   // extern "C" int __cxa_atexit(void (*f)(void *), void *p, void *d);
   LLVMContext &C = M.getContext();
   PointerType *VoidStar = Type::getInt8PtrTy(C);
-  Type *AtExitFuncArgs[] = {VoidStar};
+  Type *const AtExitFuncArgs[] = {VoidStar};
   FunctionType *AtExitFuncTy =
       FunctionType::get(Type::getVoidTy(C), AtExitFuncArgs,
                         /*isVarArg=*/false);
 
-  FunctionCallee AtExit = M.getOrInsertFunction(
+  FunctionCallee const AtExit = M.getOrInsertFunction(
       "__cxa_atexit",
       FunctionType::get(Type::getInt32Ty(C),
                         {PointerType::get(AtExitFuncTy, 0), VoidStar, VoidStar},
@@ -141,7 +141,7 @@ bool LowerGlobalDtors::runOnModule(Module &M) {
   // to call all the destructors at that level, and a function to register the
   // first function with __cxa_atexit.
   for (auto &PriorityAndMore : DtorFuncs) {
-    uint16_t Priority = PriorityAndMore.first;
+    uint16_t const Priority = PriorityAndMore.first;
     uint64_t Id = 0;
     auto &AtThisPriority = PriorityAndMore.second;
     for (auto &AssociatedAndMore : AtThisPriority) {
@@ -181,7 +181,7 @@ bool LowerGlobalDtors::runOnModule(Module &M) {
       BasicBlock *RetBB = BasicBlock::Create(C, "return", RegisterCallDtors);
 
       Value *Null = ConstantPointerNull::get(VoidStar);
-      Value *Args[] = {CallDtors, Null, DsoHandle};
+      Value *const Args[] = {CallDtors, Null, DsoHandle};
       Value *Res = CallInst::Create(AtExit, Args, "call", EntryBB);
       Value *Cmp = new ICmpInst(*EntryBB, ICmpInst::ICMP_NE, Res,
                                 Constant::getNullValue(Res->getType()));

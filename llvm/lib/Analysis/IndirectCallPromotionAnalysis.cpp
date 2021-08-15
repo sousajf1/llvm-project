@@ -66,7 +66,7 @@ bool ICallPromotionAnalysis::isPromotionProfitable(uint64_t Count,
 // number of candidates deemed profitable.
 uint32_t ICallPromotionAnalysis::getProfitablePromotionCandidates(
     const Instruction *Inst, uint32_t NumVals, uint64_t TotalCount) {
-  ArrayRef<InstrProfValueData> ValueDataRef(ValueDataArray.get(), NumVals);
+  ArrayRef<InstrProfValueData> const ValueDataRef(ValueDataArray.get(), NumVals);
 
   LLVM_DEBUG(dbgs() << " \nWork on callsite " << *Inst
                     << " Num_targets: " << NumVals << "\n");
@@ -74,7 +74,7 @@ uint32_t ICallPromotionAnalysis::getProfitablePromotionCandidates(
   uint32_t I = 0;
   uint64_t RemainingCount = TotalCount;
   for (; I < MaxNumPromotions && I < NumVals; I++) {
-    uint64_t Count = ValueDataRef[I].Count;
+    uint64_t const Count = ValueDataRef[I].Count;
     assert(Count <= RemainingCount);
     LLVM_DEBUG(dbgs() << " Candidate " << I << " Count=" << Count
                       << "  Target_func: " << ValueDataRef[I].Value << "\n");
@@ -92,7 +92,7 @@ ArrayRef<InstrProfValueData>
 ICallPromotionAnalysis::getPromotionCandidatesForInstruction(
     const Instruction *I, uint32_t &NumVals, uint64_t &TotalCount,
     uint32_t &NumCandidates) {
-  bool Res =
+  bool const Res =
       getValueProfDataFromInst(*I, IPVK_IndirectCallTarget, MaxNumPromotions,
                                ValueDataArray.get(), NumVals, TotalCount);
   if (!Res) {

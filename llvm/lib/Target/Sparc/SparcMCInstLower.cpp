@@ -30,7 +30,7 @@ static MCOperand LowerSymbolOperand(const MachineInstr *MI,
                                     const MachineOperand &MO,
                                     AsmPrinter &AP) {
 
-  SparcMCExpr::VariantKind Kind =
+  SparcMCExpr::VariantKind const Kind =
     (SparcMCExpr::VariantKind)MO.getTargetFlags();
   const MCSymbol *Symbol = nullptr;
 
@@ -99,7 +99,7 @@ void llvm::LowerSparcMachineInstrToMCInst(const MachineInstr *MI,
 
   for (unsigned i = 0, e = MI->getNumOperands(); i != e; ++i) {
     const MachineOperand &MO = MI->getOperand(i);
-    MCOperand MCOp = LowerOperand(MI, MO, AP);
+    MCOperand const MCOp = LowerOperand(MI, MO, AP);
 
     if (MCOp.isValid())
       OutMI.addOperand(MCOp);

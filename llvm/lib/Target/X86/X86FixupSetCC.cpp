@@ -111,7 +111,7 @@ bool X86FixupSetCCPass::runOnMachineFunction(MachineFunction &MF) {
       Changed = true;
 
       // Initialize a register with 0. This must go before the eflags def
-      Register ZeroReg = MRI->createVirtualRegister(RC);
+      Register const ZeroReg = MRI->createVirtualRegister(RC);
       BuildMI(MBB, FlagsDefMI, MI.getDebugLoc(), TII->get(X86::MOV32r0),
               ZeroReg);
 

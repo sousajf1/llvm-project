@@ -63,7 +63,7 @@ static void InsertFPImmInst(MachineBasicBlock::iterator II,
                             unsigned Reg, unsigned FrameReg, int Offset ) {
   MachineInstr &MI = *II;
   MachineBasicBlock &MBB = *MI.getParent();
-  DebugLoc dl = MI.getDebugLoc();
+  DebugLoc const dl = MI.getDebugLoc();
 
   switch (MI.getOpcode()) {
   case XCore::LDWFI:
@@ -96,8 +96,8 @@ static void InsertFPConstInst(MachineBasicBlock::iterator II,
   assert(RS && "requiresRegisterScavenging failed");
   MachineInstr &MI = *II;
   MachineBasicBlock &MBB = *MI.getParent();
-  DebugLoc dl = MI.getDebugLoc();
-  unsigned ScratchOffset = RS->scavengeRegister(&XCore::GRRegsRegClass, II, 0);
+  DebugLoc const dl = MI.getDebugLoc();
+  unsigned const ScratchOffset = RS->scavengeRegister(&XCore::GRRegsRegClass, II, 0);
   RS->setRegUsed(ScratchOffset);
   TII.loadImmediate(MBB, II, ScratchOffset, Offset);
 
@@ -130,8 +130,8 @@ static void InsertSPImmInst(MachineBasicBlock::iterator II,
                             unsigned Reg, int Offset) {
   MachineInstr &MI = *II;
   MachineBasicBlock &MBB = *MI.getParent();
-  DebugLoc dl = MI.getDebugLoc();
-  bool isU6 = isImmU6(Offset);
+  DebugLoc const dl = MI.getDebugLoc();
+  bool const isU6 = isImmU6(Offset);
 
   switch (MI.getOpcode()) {
   int NewOpcode;
@@ -164,8 +164,8 @@ static void InsertSPConstInst(MachineBasicBlock::iterator II,
   assert(RS && "requiresRegisterScavenging failed");
   MachineInstr &MI = *II;
   MachineBasicBlock &MBB = *MI.getParent();
-  DebugLoc dl = MI.getDebugLoc();
-  unsigned OpCode = MI.getOpcode();
+  DebugLoc const dl = MI.getDebugLoc();
+  unsigned const OpCode = MI.getOpcode();
 
   unsigned ScratchBase;
   if (OpCode==XCore::STWFI) {
@@ -174,7 +174,7 @@ static void InsertSPConstInst(MachineBasicBlock::iterator II,
   } else
     ScratchBase = Reg;
   BuildMI(MBB, II, dl, TII.get(XCore::LDAWSP_ru6), ScratchBase).addImm(0);
-  unsigned ScratchOffset = RS->scavengeRegister(&XCore::GRRegsRegClass, II, 0);
+  unsigned const ScratchOffset = RS->scavengeRegister(&XCore::GRRegsRegClass, II, 0);
   RS->setRegUsed(ScratchOffset);
   TII.loadImmediate(MBB, II, ScratchOffset, Offset);
 
@@ -256,8 +256,8 @@ XCoreRegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
                                        RegScavenger *RS) const {
   assert(SPAdj == 0 && "Unexpected");
   MachineInstr &MI = *II;
-  MachineOperand &FrameOp = MI.getOperand(FIOperandNum);
-  int FrameIndex = FrameOp.getIndex();
+  MachineOperand  const&FrameOp = MI.getOperand(FIOperandNum);
+  int const FrameIndex = FrameOp.getIndex();
 
   MachineFunction &MF = *MI.getParent()->getParent();
   const XCoreInstrInfo &TII =
@@ -265,7 +265,7 @@ XCoreRegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
 
   const XCoreFrameLowering *TFI = getFrameLowering(MF);
   int Offset = MF.getFrameInfo().getObjectOffset(FrameIndex);
-  int StackSize = MF.getFrameInfo().getStackSize();
+  int const StackSize = MF.getFrameInfo().getStackSize();
 
   #ifndef NDEBUG
   LLVM_DEBUG(errs() << "\nFunction         : " << MF.getName() << "\n");
@@ -278,7 +278,7 @@ XCoreRegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
 
   Offset += StackSize;
 
-  Register FrameReg = getFrameRegister(MF);
+  Register const FrameReg = getFrameRegister(MF);
 
   // Special handling of DBG_VALUE instructions.
   if (MI.isDebugValue()) {
@@ -296,7 +296,7 @@ XCoreRegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
                     << "<--------->\n");
   Offset/=4;
 
-  Register Reg = MI.getOperand(0).getReg();
+  Register const Reg = MI.getOperand(0).getReg();
   assert(XCore::GRRegsRegClass.contains(Reg) && "Unexpected register operand");
 
   if (TFI->hasFP(MF)) {

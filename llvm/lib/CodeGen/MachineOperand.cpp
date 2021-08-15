@@ -246,7 +246,7 @@ void MachineOperand::ChangeToRegister(Register Reg, bool isDef, bool isImp,
     RegInfo = &MF->getRegInfo();
   // If this operand is already a register operand, remove it from the
   // register's use/def lists.
-  bool WasReg = isReg();
+  bool const WasReg = isReg();
   if (RegInfo && WasReg)
     RegInfo->removeRegOperandFromUseList(this);
 
@@ -322,7 +322,7 @@ bool MachineOperand::isIdenticalTo(const MachineOperand &Other) const {
     if (const MachineFunction *MF = getMFIfAvailable(*this)) {
       // Calculate the size of the RegMask
       const TargetRegisterInfo *TRI = MF->getSubtarget().getRegisterInfo();
-      unsigned RegMaskSize = (TRI->getNumRegs() + 31) / 32;
+      unsigned const RegMaskSize = (TRI->getNumRegs() + 31) / 32;
 
       // Deep compare of the two RegMasks
       return std::equal(RegMask, RegMask + RegMaskSize, OtherRegMask);
@@ -685,7 +685,7 @@ static void printCFI(raw_ostream &OS, const MCCFIInstruction &CFI,
     if (MCSymbol *Label = CFI.getLabel())
       MachineOperand::printSymbol(OS, *Label);
     if (!CFI.getValues().empty()) {
-      size_t e = CFI.getValues().size() - 1;
+      size_t const e = CFI.getValues().size() - 1;
       for (size_t i = 0; i < e; ++i)
         OS << format("0x%02x", uint8_t(CFI.getValues()[i])) << ", ";
       OS << format("0x%02x", uint8_t(CFI.getValues()[e]));
@@ -748,7 +748,7 @@ void MachineOperand::print(raw_ostream &OS, ModuleSlotTracker &MST,
   printTargetFlags(OS, *this);
   switch (getType()) {
   case MachineOperand::MO_Register: {
-    Register Reg = getReg();
+    Register const Reg = getReg();
     if (isImplicit())
       OS << (isDef() ? "implicit-def " : "implicit ");
     else if (PrintDef && isDef())
@@ -778,7 +778,7 @@ void MachineOperand::print(raw_ostream &OS, ModuleSlotTracker &MST,
 
     OS << printReg(Reg, TRI, 0, MRI);
     // Print the sub register.
-    if (unsigned SubReg = getSubReg()) {
+    if (unsigned const SubReg = getSubReg()) {
       if (TRI)
         OS << '.' << TRI->getSubRegIndexName(SubReg);
       else
@@ -825,8 +825,8 @@ void MachineOperand::print(raw_ostream &OS, ModuleSlotTracker &MST,
     OS << printMBBReference(*getMBB());
     break;
   case MachineOperand::MO_FrameIndex: {
-    int FrameIndex = getIndex();
-    bool IsFixed = false;
+    int const FrameIndex = getIndex();
+    bool const IsFixed = false;
     const MachineFrameInfo *MFI = nullptr;
     if (const MachineFunction *MF = getMFIfAvailable(*this))
       MFI = &MF->getFrameInfo();
@@ -855,7 +855,7 @@ void MachineOperand::print(raw_ostream &OS, ModuleSlotTracker &MST,
     printOperandOffset(OS, getOffset());
     break;
   case MachineOperand::MO_ExternalSymbol: {
-    StringRef Name = getSymbolName();
+    StringRef const Name = getSymbolName();
     OS << '&';
     if (Name.empty()) {
       OS << "\"\"";
@@ -881,8 +881,8 @@ void MachineOperand::print(raw_ostream &OS, ModuleSlotTracker &MST,
       unsigned NumRegsInMask = 0;
       unsigned NumRegsEmitted = 0;
       for (unsigned i = 0; i < TRI->getNumRegs(); ++i) {
-        unsigned MaskWord = i / 32;
-        unsigned MaskBit = i % 32;
+        unsigned const MaskWord = i / 32;
+        unsigned const MaskBit = i % 32;
         if (getRegMask()[MaskWord] & (1 << MaskBit)) {
           if (PrintRegMaskNumRegs < 0 ||
               NumRegsEmitted <= static_cast<unsigned>(PrintRegMaskNumRegs)) {
@@ -933,7 +933,7 @@ void MachineOperand::print(raw_ostream &OS, ModuleSlotTracker &MST,
     break;
   }
   case MachineOperand::MO_IntrinsicID: {
-    Intrinsic::ID ID = getIntrinsicID();
+    Intrinsic::ID const ID = getIntrinsicID();
     if (ID < Intrinsic::num_intrinsics)
       OS << "intrinsic(@" << Intrinsic::getBaseName(ID) << ')';
     else if (IntrinsicInfo)
@@ -950,9 +950,9 @@ void MachineOperand::print(raw_ostream &OS, ModuleSlotTracker &MST,
   }
   case MachineOperand::MO_ShuffleMask:
     OS << "shufflemask(";
-    ArrayRef<int> Mask = getShuffleMask();
+    ArrayRef<int> const Mask = getShuffleMask();
     StringRef Separator;
-    for (int Elt : Mask) {
+    for (int const Elt : Mask) {
       if (Elt == -1)
         OS << Separator << "undef";
       else
@@ -1146,8 +1146,8 @@ void MachineMemOperand::print(raw_ostream &OS, ModuleSlotTracker &MST,
       OS << "constant-pool";
       break;
     case PseudoSourceValue::FixedStack: {
-      int FrameIndex = cast<FixedStackPseudoSourceValue>(PVal)->getFrameIndex();
-      bool IsFixed = true;
+      int const FrameIndex = cast<FixedStackPseudoSourceValue>(PVal)->getFrameIndex();
+      bool const IsFixed = true;
       printFrameIndex(OS, FrameIndex, IsFixed, MFI);
       break;
     }
@@ -1203,7 +1203,7 @@ void MachineMemOperand::print(raw_ostream &OS, ModuleSlotTracker &MST,
   }
   // FIXME: Implement addrspace printing/parsing in MIR.
   // For now, print this even though parsing it is not available in MIR.
-  if (unsigned AS = getAddrSpace())
+  if (unsigned const AS = getAddrSpace())
     OS << ", addrspace " << AS;
 
   OS << ')';

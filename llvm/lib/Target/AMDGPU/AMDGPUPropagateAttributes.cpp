@@ -203,7 +203,7 @@ Function *
 AMDGPUPropagateAttributes::findFunction(const FnProperties &PropsNeeded,
                                         Function *OrigF) {
   // TODO: search for clone's clones.
-  for (Clone &C : Clones)
+  for (Clone  const&C : Clones)
     if (C.OrigF == OrigF && PropsNeeded == C.Properties)
       return C.NewF;
 
@@ -328,7 +328,7 @@ AMDGPUPropagateAttributes::cloneWithProperties(Function &F,
   // Swap names. If that is the only clone it will retain the name of now
   // dead value. Preserve original name for externally visible functions.
   if (F.hasName() && F.hasLocalLinkage()) {
-    std::string NewName = std::string(NewF->getName());
+    std::string const NewName = std::string(NewF->getName());
     NewF->takeName(&F);
     F.setName(NewName);
   }
@@ -338,7 +338,7 @@ AMDGPUPropagateAttributes::cloneWithProperties(Function &F,
 
 void AMDGPUPropagateAttributes::setFeatures(Function &F,
                                             const FeatureBitset &NewFeatures) {
-  std::string NewFeatureStr = getFeatureString(NewFeatures);
+  std::string const NewFeatureStr = getFeatureString(NewFeatures);
 
   LLVM_DEBUG(dbgs() << "Set features "
                     << getFeatureString(NewFeatures & TargetFeatures)

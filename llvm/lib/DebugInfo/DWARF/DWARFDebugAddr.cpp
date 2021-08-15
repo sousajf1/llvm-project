@@ -16,7 +16,7 @@ Error DWARFDebugAddrTable::extractAddresses(const DWARFDataExtractor &Data,
                                             uint64_t *OffsetPtr,
                                             uint64_t EndOffset) {
   assert(EndOffset >= *OffsetPtr);
-  uint64_t DataSize = EndOffset - *OffsetPtr;
+  uint64_t const DataSize = EndOffset - *OffsetPtr;
   assert(Data.isValidOffsetForDataOfSize(*OffsetPtr, DataSize));
   if (AddrSize != 4 && AddrSize != 8)
     return createStringError(errc::not_supported,
@@ -55,7 +55,7 @@ Error DWARFDebugAddrTable::extractV5(const DWARFDataExtractor &Data,
   }
 
   if (!Data.isValidOffsetForDataOfSize(*OffsetPtr, Length)) {
-    uint64_t DiagnosticLength = Length;
+    uint64_t const DiagnosticLength = Length;
     invalidateLength();
     return createStringError(
         errc::invalid_argument,
@@ -63,10 +63,10 @@ Error DWARFDebugAddrTable::extractV5(const DWARFDataExtractor &Data,
         "at offset 0x%" PRIx64 " with a unit_length value of 0x%" PRIx64,
         Offset, DiagnosticLength);
   }
-  uint64_t EndOffset = *OffsetPtr + Length;
+  uint64_t const EndOffset = *OffsetPtr + Length;
   // Ensure that we can read the remaining header fields.
   if (Length < 4) {
-    uint64_t DiagnosticLength = Length;
+    uint64_t const DiagnosticLength = Length;
     invalidateLength();
     return createStringError(
         errc::invalid_argument,
@@ -138,7 +138,7 @@ void DWARFDebugAddrTable::dump(raw_ostream &OS, DIDumpOptions DumpOpts) const {
   if (DumpOpts.Verbose)
     OS << format("0x%8.8" PRIx64 ": ", Offset);
   if (Length) {
-    int OffsetDumpWidth = 2 * dwarf::getDwarfOffsetByteSize(Format);
+    int const OffsetDumpWidth = 2 * dwarf::getDwarfOffsetByteSize(Format);
     OS << "Address table header: "
        << format("length = 0x%0*" PRIx64, OffsetDumpWidth, Length)
        << ", format = " << dwarf::FormatString(Format)
@@ -151,7 +151,7 @@ void DWARFDebugAddrTable::dump(raw_ostream &OS, DIDumpOptions DumpOpts) const {
     const char *AddrFmt =
         (AddrSize == 4) ? "0x%8.8" PRIx64 "\n" : "0x%16.16" PRIx64 "\n";
     OS << "Addrs: [\n";
-    for (uint64_t Addr : Addrs)
+    for (uint64_t const Addr : Addrs)
       OS << format(AddrFmt, Addr);
     OS << "]\n";
   }

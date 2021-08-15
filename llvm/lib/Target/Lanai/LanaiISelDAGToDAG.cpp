@@ -102,10 +102,10 @@ bool canBeRepresentedAsSls(const ConstantSDNode &CN) {
 // Used on Lanai Load/Store instructions.
 bool LanaiDAGToDAGISel::selectAddrSls(SDValue Addr, SDValue &Offset) {
   if (ConstantSDNode *CN = dyn_cast<ConstantSDNode>(Addr)) {
-    SDLoc DL(Addr);
+    SDLoc const DL(Addr);
     // Loading from a constant address.
     if (canBeRepresentedAsSls(*CN)) {
-      int32_t Imm = CN->getSExtValue();
+      int32_t const Imm = CN->getSExtValue();
       Offset = CurDAG->getTargetConstant(Imm, DL, CN->getValueType(0));
       return true;
     }
@@ -121,13 +121,13 @@ bool LanaiDAGToDAGISel::selectAddrSls(SDValue Addr, SDValue &Offset) {
 bool LanaiDAGToDAGISel::selectAddrRiSpls(SDValue Addr, SDValue &Base,
                                          SDValue &Offset, SDValue &AluOp,
                                          bool RiMode) {
-  SDLoc DL(Addr);
+  SDLoc const DL(Addr);
 
   if (ConstantSDNode *CN = dyn_cast<ConstantSDNode>(Addr)) {
     if (RiMode) {
       // Fits in 16-bit signed immediate.
       if (isInt<16>(CN->getSExtValue())) {
-        int16_t Imm = CN->getSExtValue();
+        int16_t const Imm = CN->getSExtValue();
         Offset = CurDAG->getTargetConstant(Imm, DL, CN->getValueType(0));
         Base = CurDAG->getRegister(Lanai::R0, CN->getValueType(0));
         AluOp = CurDAG->getTargetConstant(LPAC::ADD, DL, MVT::i32);
@@ -140,7 +140,7 @@ bool LanaiDAGToDAGISel::selectAddrRiSpls(SDValue Addr, SDValue &Base,
     } else {
       // Fits in 10-bit signed immediate.
       if (isInt<10>(CN->getSExtValue())) {
-        int16_t Imm = CN->getSExtValue();
+        int16_t const Imm = CN->getSExtValue();
         Offset = CurDAG->getTargetConstant(Imm, DL, CN->getValueType(0));
         Base = CurDAG->getRegister(Lanai::R0, CN->getValueType(0));
         AluOp = CurDAG->getTargetConstant(LPAC::ADD, DL, MVT::i32);
@@ -165,7 +165,7 @@ bool LanaiDAGToDAGISel::selectAddrRiSpls(SDValue Addr, SDValue &Base,
     return false;
 
   // Address of the form imm + reg
-  ISD::NodeType AluOperator = static_cast<ISD::NodeType>(Addr.getOpcode());
+  ISD::NodeType const AluOperator = static_cast<ISD::NodeType>(Addr.getOpcode());
   if (AluOperator == ISD::ADD) {
     AluOp = CurDAG->getTargetConstant(LPAC::ADD, DL, MVT::i32);
     // Addresses of the form FI+const
@@ -220,8 +220,8 @@ bool LanaiDAGToDAGISel::selectAddrRr(SDValue Addr, SDValue &R1, SDValue &R2,
     return false;
 
   // Address of the form OP + OP
-  ISD::NodeType AluOperator = static_cast<ISD::NodeType>(Addr.getOpcode());
-  LPAC::AluCode AluCode = LPAC::isdToLanaiAluCode(AluOperator);
+  ISD::NodeType const AluOperator = static_cast<ISD::NodeType>(Addr.getOpcode());
+  LPAC::AluCode const AluCode = LPAC::isdToLanaiAluCode(AluOperator);
   if (AluCode != LPAC::UNKNOWN) {
     // Skip addresses of the form FI OP const
     if (ConstantSDNode *CN = dyn_cast<ConstantSDNode>(Addr.getOperand(1)))
@@ -270,7 +270,7 @@ bool LanaiDAGToDAGISel::SelectInlineAsmMemoryOperand(
 // Select instructions not customized! Used for
 // expanded, promoted and normal instructions
 void LanaiDAGToDAGISel::Select(SDNode *Node) {
-  unsigned Opcode = Node->getOpcode();
+  unsigned const Opcode = Node->getOpcode();
 
   // If we have a custom node, we already have selected!
   if (Node->isMachineOpcode()) {
@@ -280,7 +280,7 @@ void LanaiDAGToDAGISel::Select(SDNode *Node) {
 
   // Instruction Selection not handled by the auto-generated tablegen selection
   // should be handled here.
-  EVT VT = Node->getValueType(0);
+  EVT const VT = Node->getValueType(0);
   switch (Opcode) {
   case ISD::Constant:
     if (VT == MVT::i32) {
@@ -288,14 +288,14 @@ void LanaiDAGToDAGISel::Select(SDNode *Node) {
       // Materialize zero constants as copies from R0. This allows the coalescer
       // to propagate these into other instructions.
       if (ConstNode->isNullValue()) {
-        SDValue New = CurDAG->getCopyFromReg(CurDAG->getEntryNode(),
+        SDValue const New = CurDAG->getCopyFromReg(CurDAG->getEntryNode(),
                                              SDLoc(Node), Lanai::R0, MVT::i32);
         return ReplaceNode(Node, New.getNode());
       }
       // Materialize all ones constants as copies from R1. This allows the
       // coalescer to propagate these into other instructions.
       if (ConstNode->isAllOnesValue()) {
-        SDValue New = CurDAG->getCopyFromReg(CurDAG->getEntryNode(),
+        SDValue const New = CurDAG->getCopyFromReg(CurDAG->getEntryNode(),
                                              SDLoc(Node), Lanai::R1, MVT::i32);
         return ReplaceNode(Node, New.getNode());
       }
@@ -313,12 +313,12 @@ void LanaiDAGToDAGISel::Select(SDNode *Node) {
 }
 
 void LanaiDAGToDAGISel::selectFrameIndex(SDNode *Node) {
-  SDLoc DL(Node);
-  SDValue Imm = CurDAG->getTargetConstant(0, DL, MVT::i32);
-  int FI = cast<FrameIndexSDNode>(Node)->getIndex();
-  EVT VT = Node->getValueType(0);
-  SDValue TFI = CurDAG->getTargetFrameIndex(FI, VT);
-  unsigned Opc = Lanai::ADD_I_LO;
+  SDLoc const DL(Node);
+  SDValue const Imm = CurDAG->getTargetConstant(0, DL, MVT::i32);
+  int const FI = cast<FrameIndexSDNode>(Node)->getIndex();
+  EVT const VT = Node->getValueType(0);
+  SDValue const TFI = CurDAG->getTargetFrameIndex(FI, VT);
+  unsigned const Opc = Lanai::ADD_I_LO;
   if (Node->hasOneUse()) {
     CurDAG->SelectNodeTo(Node, Opc, VT, TFI, Imm);
     return;

@@ -44,7 +44,7 @@ const MipsRegisterInfo &MipsSEInstrInfo::getRegisterInfo() const {
 /// any side effects other than loading from the stack slot.
 unsigned MipsSEInstrInfo::isLoadFromStackSlot(const MachineInstr &MI,
                                               int &FrameIndex) const {
-  unsigned Opc = MI.getOpcode();
+  unsigned const Opc = MI.getOpcode();
 
   if ((Opc == Mips::LW)   || (Opc == Mips::LD)   ||
       (Opc == Mips::LWC1) || (Opc == Mips::LDC1) || (Opc == Mips::LDC164)) {
@@ -66,7 +66,7 @@ unsigned MipsSEInstrInfo::isLoadFromStackSlot(const MachineInstr &MI,
 /// any side effects other than storing to the stack slot.
 unsigned MipsSEInstrInfo::isStoreToStackSlot(const MachineInstr &MI,
                                              int &FrameIndex) const {
-  unsigned Opc = MI.getOpcode();
+  unsigned const Opc = MI.getOpcode();
 
   if ((Opc == Mips::SW)   || (Opc == Mips::SD)   ||
       (Opc == Mips::SWC1) || (Opc == Mips::SDC1) || (Opc == Mips::SDC164)) {
@@ -85,7 +85,7 @@ void MipsSEInstrInfo::copyPhysReg(MachineBasicBlock &MBB,
                                   const DebugLoc &DL, MCRegister DestReg,
                                   MCRegister SrcReg, bool KillSrc) const {
   unsigned Opc = 0, ZeroReg = 0;
-  bool isMicroMips = Subtarget.inMicroMipsMode();
+  bool const isMicroMips = Subtarget.inMicroMipsMode();
 
   if (Mips::GPR32RegClass.contains(DestReg)) { // Copy to CPU Reg.
     if (Mips::GPR32RegClass.contains(SrcReg)) {
@@ -171,7 +171,7 @@ void MipsSEInstrInfo::copyPhysReg(MachineBasicBlock &MBB,
 
   assert(Opc && "Cannot copy registers");
 
-  MachineInstrBuilder MIB = BuildMI(MBB, I, DL, get(Opc));
+  MachineInstrBuilder const MIB = BuildMI(MBB, I, DL, get(Opc));
 
   if (DestReg)
     MIB.addReg(DestReg, RegState::Define);
@@ -246,7 +246,7 @@ storeRegToStack(MachineBasicBlock &MBB, MachineBasicBlock::iterator I,
                 Register SrcReg, bool isKill, int FI,
                 const TargetRegisterClass *RC, const TargetRegisterInfo *TRI,
                 int64_t Offset) const {
-  DebugLoc DL;
+  DebugLoc const DL;
   MachineMemOperand *MMO = GetMemOperand(MBB, FI, MachineMemOperand::MOStore);
 
   unsigned Opc = 0;
@@ -325,7 +325,7 @@ loadRegFromStack(MachineBasicBlock &MBB, MachineBasicBlock::iterator I,
   unsigned Opc = 0;
 
   const Function &Func = MBB.getParent()->getFunction();
-  bool ReqIndirectLoad = Func.hasFnAttribute("interrupt") &&
+  bool const ReqIndirectLoad = Func.hasFnAttribute("interrupt") &&
                          (DestReg == Mips::LO0 || DestReg == Mips::LO0_64 ||
                           DestReg == Mips::HI0 || DestReg == Mips::HI0_64);
 
@@ -402,7 +402,7 @@ loadRegFromStack(MachineBasicBlock &MBB, MachineBasicBlock::iterator I,
 
 bool MipsSEInstrInfo::expandPostRAPseudo(MachineInstr &MI) const {
   MachineBasicBlock &MBB = *MI.getParent();
-  bool isMicroMips = Subtarget.inMicroMipsMode();
+  bool const isMicroMips = Subtarget.inMicroMipsMode();
   unsigned Opc;
 
   switch (MI.getDesc().getOpcode()) {
@@ -589,9 +589,9 @@ unsigned MipsSEInstrInfo::getOppositeBranchOpc(unsigned Opc) const {
 void MipsSEInstrInfo::adjustStackPtr(unsigned SP, int64_t Amount,
                                      MachineBasicBlock &MBB,
                                      MachineBasicBlock::iterator I) const {
-  MipsABIInfo ABI = Subtarget.getABI();
-  DebugLoc DL;
-  unsigned ADDiu = ABI.GetPtrAddiuOp();
+  MipsABIInfo const ABI = Subtarget.getABI();
+  DebugLoc const DL;
+  unsigned const ADDiu = ABI.GetPtrAddiuOp();
 
   if (Amount == 0)
     return;
@@ -607,7 +607,7 @@ void MipsSEInstrInfo::adjustStackPtr(unsigned SP, int64_t Amount,
       Opc = ABI.GetPtrSubuOp();
       Amount = -Amount;
     }
-    unsigned Reg = loadImmediate(Amount, MBB, I, DL, nullptr);
+    unsigned const Reg = loadImmediate(Amount, MBB, I, DL, nullptr);
     BuildMI(MBB, I, DL, get(Opc), SP).addReg(SP).addReg(Reg, RegState::Kill);
   }
 }
@@ -621,12 +621,12 @@ unsigned MipsSEInstrInfo::loadImmediate(int64_t Imm, MachineBasicBlock &MBB,
   MipsAnalyzeImmediate AnalyzeImm;
   const MipsSubtarget &STI = Subtarget;
   MachineRegisterInfo &RegInfo = MBB.getParent()->getRegInfo();
-  unsigned Size = STI.isABI_N64() ? 64 : 32;
-  unsigned LUi = STI.isABI_N64() ? Mips::LUi64 : Mips::LUi;
-  unsigned ZEROReg = STI.isABI_N64() ? Mips::ZERO_64 : Mips::ZERO;
+  unsigned const Size = STI.isABI_N64() ? 64 : 32;
+  unsigned const LUi = STI.isABI_N64() ? Mips::LUi64 : Mips::LUi;
+  unsigned const ZEROReg = STI.isABI_N64() ? Mips::ZERO_64 : Mips::ZERO;
   const TargetRegisterClass *RC = STI.isABI_N64() ?
     &Mips::GPR64RegClass : &Mips::GPR32RegClass;
-  bool LastInstrIsADDiu = NewImm;
+  bool const LastInstrIsADDiu = NewImm;
 
   const MipsAnalyzeImmediate::InstSeq &Seq =
     AnalyzeImm.Analyze(Imm, Size, LastInstrIsADDiu);
@@ -637,7 +637,7 @@ unsigned MipsSEInstrInfo::loadImmediate(int64_t Imm, MachineBasicBlock &MBB,
   // The first instruction can be a LUi, which is different from other
   // instructions (ADDiu, ORI and SLL) in that it does not have a register
   // operand.
-  Register Reg = RegInfo.createVirtualRegister(RC);
+  Register const Reg = RegInfo.createVirtualRegister(RC);
 
   if (Inst->Opc == LUi)
     BuildMI(MBB, II, DL, get(LUi), Reg).addImm(SignExtend64<16>(Inst->ImmOpnd));
@@ -712,8 +712,8 @@ MipsSEInstrInfo::compareOpndSize(unsigned Opc,
   const MCInstrDesc &Desc = get(Opc);
   assert(Desc.NumOperands == 2 && "Unary instruction expected.");
   const MipsRegisterInfo *RI = &getRegisterInfo();
-  unsigned DstRegSize = RI->getRegSizeInBits(*getRegClass(Desc, 0, RI, MF));
-  unsigned SrcRegSize = RI->getRegSizeInBits(*getRegClass(Desc, 1, RI, MF));
+  unsigned const DstRegSize = RI->getRegSizeInBits(*getRegClass(Desc, 0, RI, MF));
+  unsigned const SrcRegSize = RI->getRegSizeInBits(*getRegClass(Desc, 1, RI, MF));
 
   return std::make_pair(DstRegSize > SrcRegSize, DstRegSize < SrcRegSize);
 }
@@ -735,17 +735,17 @@ void MipsSEInstrInfo::expandPseudoMTLoHi(MachineBasicBlock &MBB,
   //  mtlo $gpr0
   //  mthi $gpr1
 
-  DebugLoc DL = I->getDebugLoc();
+  DebugLoc const DL = I->getDebugLoc();
   const MachineOperand &SrcLo = I->getOperand(1), &SrcHi = I->getOperand(2);
-  MachineInstrBuilder LoInst = BuildMI(MBB, I, DL, get(LoOpc));
-  MachineInstrBuilder HiInst = BuildMI(MBB, I, DL, get(HiOpc));
+  MachineInstrBuilder const LoInst = BuildMI(MBB, I, DL, get(LoOpc));
+  MachineInstrBuilder const HiInst = BuildMI(MBB, I, DL, get(HiOpc));
 
   // Add lo/hi registers if the mtlo/hi instructions created have explicit
   // def registers.
   if (HasExplicitDef) {
-    Register DstReg = I->getOperand(0).getReg();
-    Register DstLo = getRegisterInfo().getSubReg(DstReg, Mips::sub_lo);
-    Register DstHi = getRegisterInfo().getSubReg(DstReg, Mips::sub_hi);
+    Register const DstReg = I->getOperand(0).getReg();
+    Register const DstLo = getRegisterInfo().getSubReg(DstReg, Mips::sub_lo);
+    Register const DstHi = getRegisterInfo().getSubReg(DstReg, Mips::sub_hi);
     LoInst.addReg(DstLo, RegState::Define);
     HiInst.addReg(DstHi, RegState::Define);
   }
@@ -761,8 +761,8 @@ void MipsSEInstrInfo::expandCvtFPInt(MachineBasicBlock &MBB,
   const MCInstrDesc &CvtDesc = get(CvtOpc), &MovDesc = get(MovOpc);
   const MachineOperand &Dst = I->getOperand(0), &Src = I->getOperand(1);
   unsigned DstReg = Dst.getReg(), SrcReg = Src.getReg(), TmpReg = DstReg;
-  unsigned KillSrc =  getKillRegState(Src.isKill());
-  DebugLoc DL = I->getDebugLoc();
+  unsigned const KillSrc =  getKillRegState(Src.isKill());
+  DebugLoc const DL = I->getDebugLoc();
   bool DstIsLarger, SrcIsLarger;
 
   std::tie(DstIsLarger, SrcIsLarger) =
@@ -782,14 +782,14 @@ void MipsSEInstrInfo::expandExtractElementF64(MachineBasicBlock &MBB,
                                               MachineBasicBlock::iterator I,
                                               bool isMicroMips,
                                               bool FP64) const {
-  Register DstReg = I->getOperand(0).getReg();
-  Register SrcReg = I->getOperand(1).getReg();
-  unsigned N = I->getOperand(2).getImm();
-  DebugLoc dl = I->getDebugLoc();
+  Register const DstReg = I->getOperand(0).getReg();
+  Register const SrcReg = I->getOperand(1).getReg();
+  unsigned const N = I->getOperand(2).getImm();
+  DebugLoc const dl = I->getDebugLoc();
 
   assert(N < 2 && "Invalid immediate");
-  unsigned SubIdx = N ? Mips::sub_hi : Mips::sub_lo;
-  Register SubReg = getRegisterInfo().getSubReg(SrcReg, SubIdx);
+  unsigned const SubIdx = N ? Mips::sub_hi : Mips::sub_lo;
+  Register const SubReg = getRegisterInfo().getSubReg(SrcReg, SubIdx);
 
   // FPXX on MIPS-II or MIPS32r1 should have been handled with a spill/reload
   // in MipsSEFrameLowering.cpp.
@@ -824,10 +824,10 @@ void MipsSEInstrInfo::expandExtractElementF64(MachineBasicBlock &MBB,
 void MipsSEInstrInfo::expandBuildPairF64(MachineBasicBlock &MBB,
                                          MachineBasicBlock::iterator I,
                                          bool isMicroMips, bool FP64) const {
-  Register DstReg = I->getOperand(0).getReg();
+  Register const DstReg = I->getOperand(0).getReg();
   unsigned LoReg = I->getOperand(1).getReg(), HiReg = I->getOperand(2).getReg();
   const MCInstrDesc& Mtc1Tdd = get(Mips::MTC1);
-  DebugLoc dl = I->getDebugLoc();
+  DebugLoc const dl = I->getDebugLoc();
   const TargetRegisterInfo &TRI = getRegisterInfo();
 
   // When mthc1 is available, use:
@@ -886,14 +886,14 @@ void MipsSEInstrInfo::expandEhReturn(MachineBasicBlock &MBB,
   // This pseudo instruction is generated as part of the lowering of
   // ISD::EH_RETURN. We convert it to a stack increment by OffsetReg, and
   // indirect jump to TargetReg
-  MipsABIInfo ABI = Subtarget.getABI();
-  unsigned ADDU = ABI.GetPtrAdduOp();
-  unsigned SP = Subtarget.isGP64bit() ? Mips::SP_64 : Mips::SP;
-  unsigned RA = Subtarget.isGP64bit() ? Mips::RA_64 : Mips::RA;
-  unsigned T9 = Subtarget.isGP64bit() ? Mips::T9_64 : Mips::T9;
-  unsigned ZERO = Subtarget.isGP64bit() ? Mips::ZERO_64 : Mips::ZERO;
-  Register OffsetReg = I->getOperand(0).getReg();
-  Register TargetReg = I->getOperand(1).getReg();
+  MipsABIInfo const ABI = Subtarget.getABI();
+  unsigned const ADDU = ABI.GetPtrAdduOp();
+  unsigned const SP = Subtarget.isGP64bit() ? Mips::SP_64 : Mips::SP;
+  unsigned const RA = Subtarget.isGP64bit() ? Mips::RA_64 : Mips::RA;
+  unsigned const T9 = Subtarget.isGP64bit() ? Mips::T9_64 : Mips::T9;
+  unsigned const ZERO = Subtarget.isGP64bit() ? Mips::ZERO_64 : Mips::ZERO;
+  Register const OffsetReg = I->getOperand(0).getReg();
+  Register const TargetReg = I->getOperand(1).getReg();
 
   // addu $ra, $v0, $zero
   // addu $sp, $sp, $v1

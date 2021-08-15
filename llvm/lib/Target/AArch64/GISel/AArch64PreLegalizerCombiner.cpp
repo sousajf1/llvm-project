@@ -37,7 +37,7 @@ using namespace MIPatternMatch;
 static bool matchFConstantToConstant(MachineInstr &MI,
                                      MachineRegisterInfo &MRI) {
   assert(MI.getOpcode() == TargetOpcode::G_FCONSTANT);
-  Register DstReg = MI.getOperand(0).getReg();
+  Register const DstReg = MI.getOperand(0).getReg();
   const unsigned DstSize = MRI.getType(DstReg).getSizeInBits();
   if (DstSize != 32 && DstSize != 64)
     return false;
@@ -69,19 +69,19 @@ static bool matchICmpRedundantTrunc(MachineInstr &MI, MachineRegisterInfo &MRI,
   if (!ICmpInst::isEquality(Pred))
     return false;
 
-  Register LHS = MI.getOperand(2).getReg();
-  LLT LHSTy = MRI.getType(LHS);
+  Register const LHS = MI.getOperand(2).getReg();
+  LLT const LHSTy = MRI.getType(LHS);
   if (!LHSTy.isScalar())
     return false;
 
-  Register RHS = MI.getOperand(3).getReg();
+  Register const RHS = MI.getOperand(3).getReg();
   Register WideReg;
 
   if (!mi_match(LHS, MRI, m_GTrunc(m_Reg(WideReg))) ||
       !mi_match(RHS, MRI, m_SpecificICst(0)))
     return false;
 
-  LLT WideTy = MRI.getType(WideReg);
+  LLT const WideTy = MRI.getType(WideReg);
   if (KB->computeNumSignBits(WideReg) <=
       WideTy.getSizeInBits() - LHSTy.getSizeInBits())
     return false;
@@ -96,7 +96,7 @@ static bool applyICmpRedundantTrunc(MachineInstr &MI, MachineRegisterInfo &MRI,
                                     Register &WideReg) {
   assert(MI.getOpcode() == TargetOpcode::G_ICMP);
 
-  LLT WideTy = MRI.getType(WideReg);
+  LLT const WideTy = MRI.getType(WideReg);
   // We're going to directly use the wide register as the LHS, and then use an
   // equivalent size zero for RHS.
   Builder.setInstrAndDebugLoc(MI);
@@ -116,7 +116,7 @@ static bool applyICmpRedundantTrunc(MachineInstr &MI, MachineRegisterInfo &MRI,
 static bool matchFoldGlobalOffset(MachineInstr &MI, MachineRegisterInfo &MRI,
                                   std::pair<uint64_t, uint64_t> &MatchInfo) {
   assert(MI.getOpcode() == TargetOpcode::G_GLOBAL_VALUE);
-  MachineFunction &MF = *MI.getMF();
+  MachineFunction  const&MF = *MI.getMF();
   auto &GlobalOp = MI.getOperand(1);
   auto *GV = GlobalOp.getGlobal();
   if (GV->isThreadLocal())
@@ -141,7 +141,7 @@ static bool matchFoldGlobalOffset(MachineInstr &MI, MachineRegisterInfo &MRI,
   //  %g = G_PTR_ADD %offset_g, -min_cst
   //  %ptr1 = G_PTR_ADD %g, cst1
   //  ...
-  Register Dst = MI.getOperand(0).getReg();
+  Register const Dst = MI.getOperand(0).getReg();
   uint64_t MinOffset = -1ull;
   for (auto &UseInstr : MRI.use_nodbg_instructions(Dst)) {
     if (UseInstr.getOpcode() != TargetOpcode::G_PTR_ADD)
@@ -155,8 +155,8 @@ static bool matchFoldGlobalOffset(MachineInstr &MI, MachineRegisterInfo &MRI,
 
   // Require that the new offset is larger than the existing one to avoid
   // infinite loops.
-  uint64_t CurrOffset = GlobalOp.getOffset();
-  uint64_t NewOffset = MinOffset + CurrOffset;
+  uint64_t const CurrOffset = GlobalOp.getOffset();
+  uint64_t const NewOffset = MinOffset + CurrOffset;
   if (NewOffset <= CurrOffset)
     return false;
 
@@ -210,8 +210,8 @@ static bool applyFoldGlobalOffset(MachineInstr &MI, MachineRegisterInfo &MRI,
   auto &GlobalOp = MI.getOperand(1);
   auto *GV = GlobalOp.getGlobal();
   GlobalOp.ChangeToGA(GV, Offset, GlobalOp.getTargetFlags());
-  Register Dst = MI.getOperand(0).getReg();
-  Register NewGVDst = MRI.cloneVirtualRegister(Dst);
+  Register const Dst = MI.getOperand(0).getReg();
+  Register const NewGVDst = MRI.cloneVirtualRegister(Dst);
   MI.getOperand(0).setReg(NewGVDst);
   Observer.changedInstr(MI);
   B.buildPtrAdd(
@@ -261,12 +261,12 @@ bool AArch64PreLegalizerCombinerInfo::combine(GISelChangeObserver &Observer,
                                               MachineInstr &MI,
                                               MachineIRBuilder &B) const {
   CombinerHelper Helper(Observer, B, KB, MDT);
-  AArch64GenPreLegalizerCombinerHelper Generated(GeneratedRuleCfg, Helper);
+  AArch64GenPreLegalizerCombinerHelper const Generated(GeneratedRuleCfg, Helper);
 
   if (Generated.tryCombineAll(Observer, MI, B))
     return true;
 
-  unsigned Opc = MI.getOpcode();
+  unsigned const Opc = MI.getOpcode();
   switch (Opc) {
   case TargetOpcode::G_CONCAT_VECTORS:
     return Helper.tryCombineConcatVectors(MI);
@@ -279,7 +279,7 @@ bool AArch64PreLegalizerCombinerInfo::combine(GISelChangeObserver &Observer,
   case TargetOpcode::G_MEMSET: {
     // If we're at -O0 set a maxlen of 32 to inline, otherwise let the other
     // heuristics decide.
-    unsigned MaxLen = EnableOpt ? 0 : 32;
+    unsigned const MaxLen = EnableOpt ? 0 : 32;
     // Try to inline memcpy type calls if optimizations are enabled.
     if (Helper.tryCombineMemCpyFamily(MI, MaxLen))
       return true;
@@ -343,7 +343,7 @@ bool AArch64PreLegalizerCombiner::runOnMachineFunction(MachineFunction &MF) {
   auto *CSEInfo = &Wrapper.get(TPC.getCSEConfig());
 
   const Function &F = MF.getFunction();
-  bool EnableOpt =
+  bool const EnableOpt =
       MF.getTarget().getOptLevel() != CodeGenOpt::None && !skipFunction(F);
   GISelKnownBits *KB = &getAnalysis<GISelKnownBitsAnalysis>().get(MF);
   MachineDominatorTree *MDT = &getAnalysis<MachineDominatorTree>();

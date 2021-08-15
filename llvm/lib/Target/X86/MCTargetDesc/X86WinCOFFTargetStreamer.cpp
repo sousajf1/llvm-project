@@ -320,7 +320,7 @@ void FPOStateMachine::emitFrameDataRecord(MCStreamer &OS, MCSymbol *Label) {
   const MCRegisterInfo *MRI = OS.getContext().getRegisterInfo();
   assert((StackAlign == 0 || FrameReg != 0) &&
          "cannot align stack without frame reg");
-  StringRef CFAVar = StackAlign == 0 ? "$T0" : "$T1";
+  StringRef const CFAVar = StackAlign == 0 ? "$T0" : "$T1";
 
   if (FrameReg) {
     // CFA is FrameReg + FrameRegOff.
@@ -348,16 +348,16 @@ void FPOStateMachine::emitFrameDataRecord(MCStreamer &OS, MCSymbol *Label) {
   FuncOS << "$esp " << CFAVar << " 4 + = ";
 
   // Each saved register is stored at an unchanging negative CFA offset.
-  for (RegSaveOffset RO : RegSaveOffsets)
+  for (RegSaveOffset const RO : RegSaveOffsets)
     FuncOS << printFPOReg(MRI, RO.Reg) << ' ' << CFAVar << ' ' << RO.Offset
            << " - ^ = ";
 
   // Add it to the CV string table.
   CodeViewContext &CVCtx = OS.getContext().getCVContext();
-  unsigned FrameFuncStrTabOff = CVCtx.addToStringTable(FuncOS.str()).second;
+  unsigned const FrameFuncStrTabOff = CVCtx.addToStringTable(FuncOS.str()).second;
 
   // MSVC has only ever been observed to emit a MaxStackSize of zero.
-  unsigned MaxStackSize = 0;
+  unsigned const MaxStackSize = 0;
 
   // The FrameData record format is:
   //   ulittle32_t RvaStart;

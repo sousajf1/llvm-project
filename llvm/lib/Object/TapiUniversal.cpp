@@ -23,7 +23,7 @@ using namespace object;
 TapiUniversal::TapiUniversal(MemoryBufferRef Source, Error &Err)
     : Binary(ID_TapiUniversal, Source) {
   Expected<std::unique_ptr<InterfaceFile>> Result = TextAPIReader::get(Source);
-  ErrorAsOutParameter ErrAsOuParam(&Err);
+  ErrorAsOutParameter const ErrAsOuParam(&Err);
   if (!Result) {
     Err = Result.takeError();
     return;
@@ -31,7 +31,7 @@ TapiUniversal::TapiUniversal(MemoryBufferRef Source, Error &Err)
   ParsedFile = std::move(Result.get());
 
   auto FlattenObjectInfo = [this](const auto &File) {
-    StringRef Name = File->getInstallName();
+    StringRef const Name = File->getInstallName();
     for (const Architecture Arch : File->getArchitectures())
       Libraries.emplace_back(Library({Name, Arch}));
   };

@@ -192,7 +192,7 @@ LegalizeActionStep LegalizeRuleSet::apply(const LegalityQuery &Query) const {
   for (const LegalizeRule &Rule : Rules) {
     if (Rule.match(Query)) {
       LLVM_DEBUG(dbgs() << ".. match\n");
-      std::pair<unsigned, LLT> Mutation = Rule.determineMutation(Query);
+      std::pair<unsigned, LLT> const Mutation = Rule.determineMutation(Query);
       LLVM_DEBUG(dbgs() << ".. .. " << Rule.getAction() << ", "
                         << Mutation.first << ", " << Mutation.second << "\n");
       assert(mutationIsSane(Rule, Query, Mutation) &&
@@ -271,7 +271,7 @@ unsigned LegalizerInfo::getOpcodeIdxForOpcode(unsigned Opcode) const {
 
 unsigned LegalizerInfo::getActionDefinitionsIdx(unsigned Opcode) const {
   unsigned OpcodeIdx = getOpcodeIdxForOpcode(Opcode);
-  if (unsigned Alias = RulesForOpcode[OpcodeIdx].getAlias()) {
+  if (unsigned const Alias = RulesForOpcode[OpcodeIdx].getAlias()) {
     LLVM_DEBUG(dbgs() << ".. opcode " << Opcode << " is aliased to " << Alias
                       << "\n");
     OpcodeIdx = getOpcodeIdxForOpcode(Alias);
@@ -283,12 +283,12 @@ unsigned LegalizerInfo::getActionDefinitionsIdx(unsigned Opcode) const {
 
 const LegalizeRuleSet &
 LegalizerInfo::getActionDefinitions(unsigned Opcode) const {
-  unsigned OpcodeIdx = getActionDefinitionsIdx(Opcode);
+  unsigned const OpcodeIdx = getActionDefinitionsIdx(Opcode);
   return RulesForOpcode[OpcodeIdx];
 }
 
 LegalizeRuleSet &LegalizerInfo::getActionDefinitionsBuilder(unsigned Opcode) {
-  unsigned OpcodeIdx = getActionDefinitionsIdx(Opcode);
+  unsigned const OpcodeIdx = getActionDefinitionsIdx(Opcode);
   auto &Result = RulesForOpcode[OpcodeIdx];
   assert(!Result.isAliasedByAnother() && "Modifying this opcode will modify aliases");
   return Result;
@@ -296,12 +296,12 @@ LegalizeRuleSet &LegalizerInfo::getActionDefinitionsBuilder(unsigned Opcode) {
 
 LegalizeRuleSet &LegalizerInfo::getActionDefinitionsBuilder(
     std::initializer_list<unsigned> Opcodes) {
-  unsigned Representative = *Opcodes.begin();
+  unsigned const Representative = *Opcodes.begin();
 
   assert(!llvm::empty(Opcodes) && Opcodes.begin() + 1 != Opcodes.end() &&
          "Initializer list must have at least two opcodes");
 
-  for (unsigned Op : llvm::drop_begin(Opcodes))
+  for (unsigned const Op : llvm::drop_begin(Opcodes))
     aliasActionDefinitions(Representative, Op);
 
   auto &Return = getActionDefinitionsBuilder(Representative);
@@ -340,13 +340,13 @@ LegalizerInfo::getAction(const MachineInstr &MI,
 
     // We must only record actions once for each TypeIdx; otherwise we'd
     // try to legalize operands multiple times down the line.
-    unsigned TypeIdx = OpInfo[i].getGenericTypeIndex();
+    unsigned const TypeIdx = OpInfo[i].getGenericTypeIndex();
     if (SeenTypes[TypeIdx])
       continue;
 
     SeenTypes.set(TypeIdx);
 
-    LLT Ty = getTypeFromTypeIdx(MI, MRI, i, TypeIdx);
+    LLT const Ty = getTypeFromTypeIdx(MI, MRI, i, TypeIdx);
     Types.push_back(Ty);
   }
 
@@ -408,7 +408,7 @@ void LegalizerInfo::verify(const MCInstrInfo &MII) const {
   }
   if (!FailedOpcodes.empty()) {
     errs() << "The following opcodes have ill-defined legalization rules:";
-    for (unsigned Opcode : FailedOpcodes)
+    for (unsigned const Opcode : FailedOpcodes)
       errs() << " " << MII.getName(Opcode);
     errs() << "\n";
 

@@ -120,7 +120,7 @@ static void orderValue(const Value *V, OrderMap &OM) {
 
   // Note: we cannot cache this lookup above, since inserting into the map
   // changes the map's size, and thus affects the other IDs.
-  unsigned ID = OM.size() + 1;
+  unsigned const ID = OM.size() + 1;
   OM[V] = ID;
 }
 
@@ -236,7 +236,7 @@ predictValueUseListOrder(const Value *V, unsigned ID, const OrderMap &OM) {
 }
 
 static UseListOrderMap predictUseListOrder(const Module *M) {
-  OrderMap OM = orderModule(M);
+  OrderMap const OM = orderModule(M);
   UseListOrderMap ULOM;
   for (const auto &Pair : OM) {
     const Value *V = Pair.first;
@@ -357,7 +357,7 @@ void llvm::printLLVMNameWithoutPrefix(raw_ostream &OS, StringRef Name) {
       // in the range 0-255.  This is important when building with MSVC because
       // its implementation will assert.  This situation can arise when dealing
       // with UTF-8 multibyte characters.
-      unsigned char C = Name[i];
+      unsigned char const C = Name[i];
       if (!isalnum(static_cast<unsigned char>(C)) && C != '-' && C != '.' &&
           C != '_') {
         NeedsQuotes = true;
@@ -421,7 +421,7 @@ static void PrintShuffleMask(raw_ostream &Out, Type *Ty, ArrayRef<int> Mask) {
     Out << "undef";
   } else {
     Out << "<";
-    for (int Elt : Mask) {
+    for (int const Elt : Mask) {
       if (FirstElt)
         FirstElt = false;
       else
@@ -588,12 +588,12 @@ void TypePrinting::print(Type *Ty, raw_ostream &OS) {
     PointerType *PTy = cast<PointerType>(Ty);
     if (PTy->isOpaque()) {
       OS << "ptr";
-      if (unsigned AddressSpace = PTy->getAddressSpace())
+      if (unsigned const AddressSpace = PTy->getAddressSpace())
         OS << " addrspace(" << AddressSpace << ')';
       return;
     }
     print(PTy->getElementType(), OS);
-    if (unsigned AddressSpace = PTy->getAddressSpace())
+    if (unsigned const AddressSpace = PTy->getAddressSpace())
       OS << " addrspace(" << AddressSpace << ')';
     OS << '*';
     return;
@@ -608,7 +608,7 @@ void TypePrinting::print(Type *Ty, raw_ostream &OS) {
   case Type::FixedVectorTyID:
   case Type::ScalableVectorTyID: {
     VectorType *PTy = cast<VectorType>(Ty);
-    ElementCount EC = PTy->getElementCount();
+    ElementCount const EC = PTy->getElementCount();
     OS << "<";
     if (EC.isScalable())
       OS << "vscale x ";
@@ -942,7 +942,7 @@ inline void SlotTracker::initializeIfNeeded() {
 int SlotTracker::initializeIndexIfNeeded() {
   if (!TheIndex)
     return 0;
-  int NumSlots = processIndex();
+  int const NumSlots = processIndex();
   TheIndex = nullptr; ///< Prevent re-processing next time we're called.
   return NumSlots;
 }
@@ -988,7 +988,7 @@ void SlotTracker::processModule() {
 
     // Add all the function attributes to the table.
     // FIXME: Add attributes of other objects?
-    AttributeSet FnAttrs = F.getAttributes().getFnAttrs();
+    AttributeSet const FnAttrs = F.getAttributes().getFnAttrs();
     if (FnAttrs.hasAttributes())
       CreateAttributeSetSlot(FnAttrs);
   }
@@ -1029,7 +1029,7 @@ void SlotTracker::processFunction() {
       // target may not be linked into the optimizer.
       if (const auto *Call = dyn_cast<CallBase>(&I)) {
         // Add all the call attributes to the table.
-        AttributeSet Attrs = Call->getAttributes().getFnAttrs();
+        AttributeSet const Attrs = Call->getAttributes().getFnAttrs();
         if (Attrs.hasAttributes())
           CreateAttributeSetSlot(Attrs);
       }
@@ -1125,7 +1125,7 @@ int SlotTracker::getGlobalSlot(const GlobalValue *V) {
   initializeIfNeeded();
 
   // Find the value in the module map
-  ValueMap::iterator MI = mMap.find(V);
+  ValueMap::iterator const MI = mMap.find(V);
   return MI == mMap.end() ? -1 : (int)MI->second;
 }
 
@@ -1150,7 +1150,7 @@ int SlotTracker::getMetadataSlot(const MDNode *N) {
   initializeIfNeeded();
 
   // Find the MDNode in the module map
-  mdn_iterator MI = mdnMap.find(N);
+  mdn_iterator const MI = mdnMap.find(N);
   return MI == mdnMap.end() ? -1 : (int)MI->second;
 }
 
@@ -1161,7 +1161,7 @@ int SlotTracker::getLocalSlot(const Value *V) {
   // Check for uninitialized state and do lazy initialization.
   initializeIfNeeded();
 
-  ValueMap::iterator FI = fMap.find(V);
+  ValueMap::iterator const FI = fMap.find(V);
   return FI == fMap.end() ? -1 : (int)FI->second;
 }
 
@@ -1170,7 +1170,7 @@ int SlotTracker::getAttributeGroupSlot(AttributeSet AS) {
   initializeIfNeeded();
 
   // Find the AttributeSet in the module map.
-  as_iterator AI = asMap.find(AS);
+  as_iterator const AI = asMap.find(AS);
   return AI == asMap.end() ? -1 : (int)AI->second;
 }
 
@@ -1188,7 +1188,7 @@ int SlotTracker::getGUIDSlot(GlobalValue::GUID GUID) {
   initializeIndexIfNeeded();
 
   // Find the GUID in the map
-  guid_iterator I = GUIDMap.find(GUID);
+  guid_iterator const I = GUIDMap.find(GUID);
   return I == GUIDMap.end() ? -1 : (int)I->second;
 }
 
@@ -1207,7 +1207,7 @@ void SlotTracker::CreateModuleSlot(const GlobalValue *V) {
   assert(!V->getType()->isVoidTy() && "Doesn't need a slot!");
   assert(!V->hasName() && "Doesn't need a slot!");
 
-  unsigned DestSlot = mNext++;
+  unsigned const DestSlot = mNext++;
   mMap[V] = DestSlot;
 
   ST_DEBUG("  Inserting value [" << V->getType() << "] = " << V << " slot=" <<
@@ -1223,7 +1223,7 @@ void SlotTracker::CreateModuleSlot(const GlobalValue *V) {
 void SlotTracker::CreateFunctionSlot(const Value *V) {
   assert(!V->getType()->isVoidTy() && !V->hasName() && "Doesn't need a slot!");
 
-  unsigned DestSlot = fNext++;
+  unsigned const DestSlot = fNext++;
   fMap[V] = DestSlot;
 
   // G = Global, F = Function, o = other
@@ -1240,7 +1240,7 @@ void SlotTracker::CreateMetadataSlot(const MDNode *N) {
   if (isa<DIExpression>(N) || isa<DIArgList>(N))
     return;
 
-  unsigned DestSlot = mdnNext;
+  unsigned const DestSlot = mdnNext;
   if (!mdnMap.insert(std::make_pair(N, DestSlot)).second)
     return;
   ++mdnNext;
@@ -1254,11 +1254,11 @@ void SlotTracker::CreateMetadataSlot(const MDNode *N) {
 void SlotTracker::CreateAttributeSetSlot(AttributeSet AS) {
   assert(AS.hasAttributes() && "Doesn't need a slot!");
 
-  as_iterator I = asMap.find(AS);
+  as_iterator const I = asMap.find(AS);
   if (I != asMap.end())
     return;
 
-  unsigned DestSlot = asNext++;
+  unsigned const DestSlot = asNext++;
   asMap[AS] = DestSlot;
 }
 
@@ -1353,11 +1353,11 @@ static void WriteConstantInternal(raw_ostream &Out, const Constant *CV,
       // the value back and get the same value.
       //
       bool ignored;
-      bool isDouble = &APF.getSemantics() == &APFloat::IEEEdouble();
-      bool isInf = APF.isInfinity();
-      bool isNaN = APF.isNaN();
+      bool const isDouble = &APF.getSemantics() == &APFloat::IEEEdouble();
+      bool const isInf = APF.isInfinity();
+      bool const isNaN = APF.isNaN();
       if (!isInf && !isNaN) {
-        double Val = APF.convertToDouble();
+        double const Val = APF.convertToDouble();
         SmallString<128> StrVal;
         APF.toString(StrVal, 6, 0, false);
         // Check to make sure that the stringized number is not some string like
@@ -1385,11 +1385,11 @@ static void WriteConstantInternal(raw_ostream &Out, const Constant *CV,
       if (!isDouble) {
         // A signaling NaN is quieted on conversion, so we need to recreate the
         // expected value after convert (quiet bit of the payload is clear).
-        bool IsSNAN = apf.isSignaling();
+        bool const IsSNAN = apf.isSignaling();
         apf.convert(APFloat::IEEEdouble(), APFloat::rmNearestTiesToEven,
                     &ignored);
         if (IsSNAN) {
-          APInt Payload = apf.bitcastToAPInt();
+          APInt const Payload = apf.bitcastToAPInt();
           apf = APFloat::getSNaN(APFloat::IEEEdouble(), apf.isNegative(),
                                  &Payload);
         }
@@ -1402,7 +1402,7 @@ static void WriteConstantInternal(raw_ostream &Out, const Constant *CV,
     // These appear as a magic letter identifying the type, then a
     // fixed number of hex digits.
     Out << "0x";
-    APInt API = APF.bitcastToAPInt();
+    APInt const API = APF.bitcastToAPInt();
     if (&APF.getSemantics() == &APFloat::x87DoubleExtended()) {
       Out << 'K';
       Out << format_hex_no_prefix(API.getHiBits(16).getZExtValue(), 4,
@@ -1509,7 +1509,7 @@ static void WriteConstantInternal(raw_ostream &Out, const Constant *CV,
     if (CS->getType()->isPacked())
       Out << '<';
     Out << '{';
-    unsigned N = CS->getNumOperands();
+    unsigned const N = CS->getNumOperands();
     if (N) {
       Out << ' ';
       TypePrinter.print(CS->getOperand(0)->getType(), Out);
@@ -1602,7 +1602,7 @@ static void WriteConstantInternal(raw_ostream &Out, const Constant *CV,
     }
 
     if (CE->hasIndices()) {
-      ArrayRef<unsigned> Indices = CE->getIndices();
+      ArrayRef<unsigned> const Indices = CE->getIndices();
       for (unsigned i = 0, e = Indices.size(); i != e; ++i)
         Out << ", " << Indices[i];
     }
@@ -2360,7 +2360,7 @@ static void writeDIArgList(raw_ostream &Out, const DIArgList *N,
          "Unexpected DIArgList metadata outside of value argument");
   Out << "!DIArgList(";
   FieldSeparator FS;
-  MDFieldPrinter Printer(Out, TypePrinter, Machine, Context);
+  MDFieldPrinter const Printer(Out, TypePrinter, Machine, Context);
   for (Metadata *Arg : N->getArgs()) {
     Out << FS;
     WriteAsOperandInternal(Out, Arg, TypePrinter, Machine, Context, true);
@@ -2532,7 +2532,7 @@ static void WriteAsOperandInternal(raw_ostream &Out, const Metadata *MD,
       MachineStorage = std::make_unique<SlotTracker>(Context);
       Machine = MachineStorage.get();
     }
-    int Slot = Machine->getMetadataSlot(N);
+    int const Slot = Machine->getMetadataSlot(N);
     if (Slot == -1) {
       if (const DILocation *Loc = dyn_cast<DILocation>(N)) {
         writeDILocation(Out, Loc, TypePrinter, Machine, Context);
@@ -2762,7 +2762,7 @@ void AssemblyWriter::writeOperandBundles(const CallBase *Call) {
 
   bool FirstBundle = true;
   for (unsigned i = 0, e = Call->getNumOperandBundles(); i != e; ++i) {
-    OperandBundleUse BU = Call->getOperandBundleAt(i);
+    OperandBundleUse const BU = Call->getOperandBundleAt(i);
 
     if (!FirstBundle)
       Out << ", ";
@@ -2896,7 +2896,7 @@ void AssemblyWriter::printModuleSummaryIndex() {
   // Print module path entries. To print in order, add paths to a vector
   // indexed by module slot.
   std::vector<std::pair<std::string, ModuleHash>> moduleVec;
-  std::string RegularLTOModuleName =
+  std::string const RegularLTOModuleName =
       ModuleSummaryIndex::getRegularLTOModuleName();
   moduleVec.resize(TheIndex->modulePaths().size());
   for (auto &ModPath : TheIndex->modulePaths())
@@ -3198,7 +3198,7 @@ static const char *getVisibilityName(GlobalValue::VisibilityTypes Vis) {
 void AssemblyWriter::printFunctionSummary(const FunctionSummary *FS) {
   Out << ", insts: " << FS->instCount();
 
-  FunctionSummary::FFlags FFlags = FS->fflags();
+  FunctionSummary::FFlags const FFlags = FS->fflags();
   if (FFlags.ReadNone | FFlags.ReadOnly | FFlags.NoRecurse |
       FFlags.ReturnDoesNotAlias | FFlags.NoInline | FFlags.AlwaysInline) {
     Out << ", funcFlags: (";
@@ -3357,8 +3357,8 @@ void AssemblyWriter::printConstVCalls(
 }
 
 void AssemblyWriter::printSummary(const GlobalValueSummary &Summary) {
-  GlobalValueSummary::GVFlags GVFlags = Summary.flags();
-  GlobalValue::LinkageTypes LT = (GlobalValue::LinkageTypes)GVFlags.Linkage;
+  GlobalValueSummary::GVFlags const GVFlags = Summary.flags();
+  GlobalValue::LinkageTypes const LT = (GlobalValue::LinkageTypes)GVFlags.Linkage;
   Out << getSummaryKindName(Summary.getSummaryKind()) << ": ";
   Out << "(module: ^" << Machine.getModulePathSlot(Summary.modulePath())
       << ", flags: (";
@@ -3428,7 +3428,7 @@ static void printMetadataIdentifier(StringRef Name,
     else
       Out << '\\' << hexdigit(Name[0] >> 4) << hexdigit(Name[0] & 0x0F);
     for (unsigned i = 1, e = Name.size(); i != e; ++i) {
-      unsigned char C = Name[i];
+      unsigned char const C = Name[i];
       if (isalnum(static_cast<unsigned char>(C)) || C == '-' || C == '$' ||
           C == '.' || C == '_')
         Out << C;
@@ -3456,7 +3456,7 @@ void AssemblyWriter::printNamedMDNode(const NamedMDNode *NMD) {
       continue;
     }
 
-    int Slot = Machine.getMetadataSlot(Op);
+    int const Slot = Machine.getMetadataSlot(Op);
     if (Slot == -1)
       Out << "<badref>";
     else
@@ -3554,11 +3554,11 @@ void AssemblyWriter::printGlobal(const GlobalVariable *GV) {
   PrintVisibility(GV->getVisibility(), Out);
   PrintDLLStorageClass(GV->getDLLStorageClass(), Out);
   PrintThreadLocalModel(GV->getThreadLocalMode(), Out);
-  StringRef UA = getUnnamedAddrEncoding(GV->getUnnamedAddr());
+  StringRef const UA = getUnnamedAddrEncoding(GV->getUnnamedAddr());
   if (!UA.empty())
       Out << UA << ' ';
 
-  if (unsigned AddressSpace = GV->getType()->getAddressSpace())
+  if (unsigned const AddressSpace = GV->getType()->getAddressSpace())
     Out << "addrspace(" << AddressSpace << ") ";
   if (GV->isExternallyInitialized()) Out << "externally_initialized ";
   Out << (GV->isConstant() ? "constant " : "global ");
@@ -3607,7 +3607,7 @@ void AssemblyWriter::printIndirectSymbol(const GlobalIndirectSymbol *GIS) {
   PrintVisibility(GIS->getVisibility(), Out);
   PrintDLLStorageClass(GIS->getDLLStorageClass(), Out);
   PrintThreadLocalModel(GIS->getThreadLocalMode(), Out);
-  StringRef UA = getUnnamedAddrEncoding(GIS->getUnnamedAddr());
+  StringRef const UA = getUnnamedAddrEncoding(GIS->getUnnamedAddr());
   if (!UA.empty())
       Out << UA << ' ';
 
@@ -3683,7 +3683,7 @@ void AssemblyWriter::printFunction(const Function *F) {
 
   const AttributeList &Attrs = F->getAttributes();
   if (Attrs.hasFnAttrs()) {
-    AttributeSet AS = Attrs.getFnAttrs();
+    AttributeSet const AS = Attrs.getFnAttrs();
     std::string AttrStr;
 
     for (const Attribute &Attr : AS) {
@@ -3737,7 +3737,7 @@ void AssemblyWriter::printFunction(const Function *F) {
       // Output type...
       TypePrinter.print(FT->getParamType(I), Out);
 
-      AttributeSet ArgAttrs = Attrs.getParamAttrs(I);
+      AttributeSet const ArgAttrs = Attrs.getParamAttrs(I);
       if (ArgAttrs.hasAttributes()) {
         Out << ' ';
         writeAttributeSet(ArgAttrs);
@@ -3759,7 +3759,7 @@ void AssemblyWriter::printFunction(const Function *F) {
     Out << "...";  // Output varargs portion of signature!
   }
   Out << ')';
-  StringRef UA = getUnnamedAddrEncoding(F->getUnnamedAddr());
+  StringRef const UA = getUnnamedAddrEncoding(F->getUnnamedAddr());
   if (!UA.empty())
     Out << ' ' << UA;
   // We print the function address space if it is non-zero or if we are writing
@@ -3837,7 +3837,7 @@ void AssemblyWriter::printArgument(const Argument *Arg, AttributeSet Attrs) {
     Out << ' ';
     PrintLLVMName(Out, Arg);
   } else {
-    int Slot = Machine.getLocalSlot(Arg);
+    int const Slot = Machine.getLocalSlot(Arg);
     assert(Slot != -1 && "expect argument in function here");
     Out << " %" << Slot;
   }
@@ -3845,14 +3845,14 @@ void AssemblyWriter::printArgument(const Argument *Arg, AttributeSet Attrs) {
 
 /// printBasicBlock - This member is called for each basic block in a method.
 void AssemblyWriter::printBasicBlock(const BasicBlock *BB) {
-  bool IsEntryBlock = BB->getParent() && BB->isEntryBlock();
+  bool const IsEntryBlock = BB->getParent() && BB->isEntryBlock();
   if (BB->hasName()) {              // Print out the label if it exists...
     Out << "\n";
     PrintLLVMName(Out, BB->getName(), LabelPrefix);
     Out << ':';
   } else if (!IsEntryBlock) {
     Out << "\n";
-    int Slot = Machine.getLocalSlot(BB);
+    int const Slot = Machine.getLocalSlot(BB);
     if (Slot != -1)
       Out << Slot << ":";
     else
@@ -3918,7 +3918,7 @@ void AssemblyWriter::printInfoComment(const Value &V) {
 static void maybePrintCallAddrSpace(const Value *Operand, const Instruction *I,
                                     raw_ostream &Out) {
   // We print the address space of the call if it is non-zero.
-  unsigned CallAddrSpace = Operand->getType()->getPointerAddressSpace();
+  unsigned const CallAddrSpace = Operand->getType()->getPointerAddressSpace();
   bool PrintAddrSpace = CallAddrSpace != 0;
   if (!PrintAddrSpace) {
     const Module *Mod = getModuleFromVal(I);
@@ -3945,7 +3945,7 @@ void AssemblyWriter::printInstruction(const Instruction &I) {
     Out << " = ";
   } else if (!I.getType()->isVoidTy()) {
     // Print out the def slot taken.
-    int SlotNum = Machine.getLocalSlot(&I);
+    int const SlotNum = Machine.getLocalSlot(&I);
     if (SlotNum == -1)
       Out << "<badref> = ";
     else
@@ -4044,13 +4044,13 @@ void AssemblyWriter::printInstruction(const Instruction &I) {
   } else if (const ExtractValueInst *EVI = dyn_cast<ExtractValueInst>(&I)) {
     Out << ' ';
     writeOperand(I.getOperand(0), true);
-    for (unsigned i : EVI->indices())
+    for (unsigned const i : EVI->indices())
       Out << ", " << i;
   } else if (const InsertValueInst *IVI = dyn_cast<InsertValueInst>(&I)) {
     Out << ' ';
     writeOperand(I.getOperand(0), true); Out << ", ";
     writeOperand(I.getOperand(1), true);
-    for (unsigned i : IVI->indices())
+    for (unsigned const i : IVI->indices())
       Out << ", " << i;
   } else if (const LandingPadInst *LPI = dyn_cast<LandingPadInst>(&I)) {
     Out << ' ';
@@ -4268,7 +4268,7 @@ void AssemblyWriter::printInstruction(const Instruction &I) {
       Out << ", align " << AI->getAlignment();
     }
 
-    unsigned AddrSpace = AI->getType()->getAddressSpace();
+    unsigned const AddrSpace = AI->getType()->getAddressSpace();
     if (AddrSpace != 0) {
       Out << ", addrspace(" << AddrSpace << ')';
     }
@@ -4375,7 +4375,7 @@ void AssemblyWriter::printMetadataAttachments(
     MDs[0].second->getContext().getMDKindNames(MDNames);
 
   for (const auto &I : MDs) {
-    unsigned Kind = I.first;
+    unsigned const Kind = I.first;
     Out << Separator;
     if (Kind < MDNames.size()) {
       Out << "!";
@@ -4447,7 +4447,7 @@ void AssemblyWriter::writeAllAttributeGroups() {
 
 void AssemblyWriter::printUseListOrder(const Value *V,
                                        const std::vector<unsigned> &Shuffle) {
-  bool IsInFunction = Machine.getFunction();
+  bool const IsInFunction = Machine.getFunction();
   if (IsInFunction)
     Out << "  ";
 

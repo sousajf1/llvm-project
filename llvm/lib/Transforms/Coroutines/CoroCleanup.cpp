@@ -39,7 +39,7 @@ static void simplifyCFG(Function &F) {
 static void lowerSubFn(IRBuilder<> &Builder, CoroSubFnInst *SubFn) {
   Builder.SetInsertPoint(SubFn);
   Value *FrameRaw = SubFn->getFrame();
-  int Index = SubFn->getIndex();
+  int const Index = SubFn->getIndex();
 
   auto *FrameTy = StructType::get(
       SubFn->getContext(), {Builder.getInt8PtrTy(), Builder.getInt8PtrTy()});

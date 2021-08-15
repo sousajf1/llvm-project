@@ -176,7 +176,7 @@ void AArch64TargetWinCOFFStreamer::emitARM64WinCFIPrologEnd() {
 
   MCSymbol *Label = S.emitCFILabel();
   CurFrame->PrologEnd = Label;
-  WinEH::Instruction Inst = WinEH::Instruction(Win64EH::UOP_End, Label, -1, 0);
+  WinEH::Instruction const Inst = WinEH::Instruction(Win64EH::UOP_End, Label, -1, 0);
   auto it = CurFrame->Instructions.begin();
   CurFrame->Instructions.insert(it, Inst);
 }
@@ -199,7 +199,7 @@ void AArch64TargetWinCOFFStreamer::emitARM64WinCFIEpilogEnd() {
 
   InEpilogCFI = false;
   MCSymbol *Label = S.emitCFILabel();
-  WinEH::Instruction Inst = WinEH::Instruction(Win64EH::UOP_End, Label, -1, 0);
+  WinEH::Instruction const Inst = WinEH::Instruction(Win64EH::UOP_End, Label, -1, 0);
   CurFrame->EpilogMap[CurrentEpilog].push_back(Inst);
   CurrentEpilog = nullptr;
 }

@@ -420,22 +420,22 @@ public:
     // is nothing for us to do.
     if (!FixupValue) return;
 
-    MCFixupKind Kind = Fixup.getKind();
+    MCFixupKind const Kind = Fixup.getKind();
     uint64_t Value;
     uint32_t InstMask;
     uint32_t Reloc;
 
     // LLVM gives us an encoded value, we have to convert it back
     // to a real offset before we can use it.
-    uint32_t Offset = Fixup.getOffset();
-    unsigned NumBytes = getFixupKindNumBytes(Kind);
+    uint32_t const Offset = Fixup.getOffset();
+    unsigned const NumBytes = getFixupKindNumBytes(Kind);
     assert(Offset + NumBytes <= Data.size() && "Invalid fixup offset!");
     char *InstAddr = Data.data() + Offset;
 
     Value = adjustFixupValue(Kind, FixupValue);
     if(!Value)
       return;
-    int sValue = (int)Value;
+    int const sValue = (int)Value;
 
     switch((unsigned)Kind) {
       default:
@@ -579,7 +579,7 @@ public:
     *RelaxTarget = nullptr;
     MCInst &MCI = const_cast<MCInst &>(HexagonMCInstrInfo::instruction(
         MCB, Fixup.getOffset() / HEXAGON_INSTR_SIZE));
-    bool Relaxable = isInstRelaxable(MCI);
+    bool const Relaxable = isInstRelaxable(MCI);
     if (Relaxable == false)
       return false;
     // If we cannot resolve the fixup value, it requires relaxation.
@@ -608,8 +608,8 @@ public:
       }
     }
 
-    MCFixupKind Kind = Fixup.getKind();
-    int64_t sValue = Value;
+    MCFixupKind const Kind = Fixup.getKind();
+    int64_t const sValue = Value;
     int64_t maxValue;
 
     switch ((unsigned)Kind) {
@@ -630,7 +630,7 @@ public:
       break;
     }
 
-    bool isFarAway = -maxValue > sValue || sValue > maxValue - 1;
+    bool const isFarAway = -maxValue > sValue || sValue > maxValue - 1;
 
     if (isFarAway) {
       if (HexagonMCInstrInfo::bundleSize(MCB) < HEXAGON_PACKET_SIZE) {
@@ -702,7 +702,7 @@ public:
     while (Count) {
       Count -= HEXAGON_INSTR_SIZE;
       // Close the packet whenever a multiple of the maximum packet size remains
-      uint32_t ParseBits = (Count % (MaxPacketSize * HEXAGON_INSTR_SIZE)) ?
+      uint32_t const ParseBits = (Count % (MaxPacketSize * HEXAGON_INSTR_SIZE)) ?
                            ParseIn : ParseEnd;
       support::endian::write<uint32_t>(OS, Nopcode | ParseBits, Endian);
     }
@@ -748,7 +748,7 @@ public:
                   Size = 0;
                 }
               }
-              bool Error = HexagonMCShuffle(Context, true, *MCII,
+              bool const Error = HexagonMCShuffle(Context, true, *MCII,
                                             *RF.getSubtargetInfo(), Inst);
               //assert(!Error);
               (void)Error;
@@ -774,8 +774,8 @@ MCAsmBackend *llvm::createHexagonAsmBackend(Target const &T,
                                             MCRegisterInfo const & /*MRI*/,
                                             const MCTargetOptions &Options) {
   const Triple &TT = STI.getTargetTriple();
-  uint8_t OSABI = MCELFObjectTargetWriter::getOSABI(TT.getOS());
+  uint8_t const OSABI = MCELFObjectTargetWriter::getOSABI(TT.getOS());
 
-  StringRef CPUString = Hexagon_MC::selectHexagonCPU(STI.getCPU());
+  StringRef const CPUString = Hexagon_MC::selectHexagonCPU(STI.getCPU());
   return new HexagonAsmBackend(T, TT, OSABI, CPUString);
 }

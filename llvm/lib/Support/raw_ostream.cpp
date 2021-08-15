@@ -91,7 +91,7 @@ size_t raw_ostream::preferred_buffer_size() const {
 
 void raw_ostream::SetBuffered() {
   // Ask the subclass to determine an appropriate buffer size.
-  if (size_t Size = preferred_buffer_size())
+  if (size_t const Size = preferred_buffer_size())
     SetBufferSize(Size);
   else
     // It may return 0, meaning this stream should be unbuffered.
@@ -162,7 +162,7 @@ raw_ostream &raw_ostream::write_uuid(const uuid_t UUID) {
 
 raw_ostream &raw_ostream::write_escaped(StringRef Str,
                                         bool UseHexEscapes) {
-  for (unsigned char c : Str) {
+  for (unsigned char const c : Str) {
     switch (c) {
     case '\\':
       *this << '\\' << '\\';
@@ -212,7 +212,7 @@ raw_ostream &raw_ostream::operator<<(double N) {
 
 void raw_ostream::flush_nonempty() {
   assert(OutBufCur > OutBufStart && "Invalid call to flush_nonempty.");
-  size_t Length = OutBufCur - OutBufStart;
+  size_t const Length = OutBufCur - OutBufStart;
   OutBufCur = OutBufStart;
   flush_tied_then_write(OutBufStart, Length);
 }
@@ -250,16 +250,16 @@ raw_ostream &raw_ostream::write(const char *Ptr, size_t Size) {
       return write(Ptr, Size);
     }
 
-    size_t NumBytes = OutBufEnd - OutBufCur;
+    size_t const NumBytes = OutBufEnd - OutBufCur;
 
     // If the buffer is empty at this point we have a string that is larger
     // than the buffer. Directly write the chunk that is a multiple of the
     // preferred buffer size and put the remainder in the buffer.
     if (LLVM_UNLIKELY(OutBufCur == OutBufStart)) {
       assert(NumBytes != 0 && "undefined behavior");
-      size_t BytesToWrite = Size - (Size % NumBytes);
+      size_t const BytesToWrite = Size - (Size % NumBytes);
       flush_tied_then_write(Ptr, BytesToWrite);
-      size_t BytesRemaining = Size - BytesToWrite;
+      size_t const BytesRemaining = Size - BytesToWrite;
       if (BytesRemaining > size_t(OutBufEnd - OutBufCur)) {
         // Too much left over to copy into our buffer.
         return write(Ptr + BytesToWrite, BytesRemaining);
@@ -310,9 +310,9 @@ raw_ostream &raw_ostream::operator<<(const format_object_base &Fmt) {
   // If we have more than a few bytes left in our output buffer, try
   // formatting directly onto its end.
   size_t NextBufferSize = 127;
-  size_t BufferBytesLeft = OutBufEnd - OutBufCur;
+  size_t const BufferBytesLeft = OutBufEnd - OutBufCur;
   if (BufferBytesLeft > 3) {
-    size_t BytesUsed = Fmt.print(OutBufCur, BufferBytesLeft);
+    size_t const BytesUsed = Fmt.print(OutBufCur, BufferBytesLeft);
 
     // Common case is that we have plenty of space.
     if (BytesUsed <= BufferBytesLeft) {
@@ -334,7 +334,7 @@ raw_ostream &raw_ostream::operator<<(const format_object_base &Fmt) {
     V.resize(NextBufferSize);
 
     // Try formatting into the SmallVector.
-    size_t BytesUsed = Fmt.print(V.data(), NextBufferSize);
+    size_t const BytesUsed = Fmt.print(V.data(), NextBufferSize);
 
     // If BytesUsed fit into the vector, we win.
     if (BytesUsed <= NextBufferSize)
@@ -407,14 +407,14 @@ raw_ostream &raw_ostream::operator<<(const FormattedBytes &FB) {
   size_t LineIndex = 0;
   auto Bytes = FB.Bytes;
   const size_t Size = Bytes.size();
-  HexPrintStyle HPS = FB.Upper ? HexPrintStyle::Upper : HexPrintStyle::Lower;
+  HexPrintStyle const HPS = FB.Upper ? HexPrintStyle::Upper : HexPrintStyle::Lower;
   uint64_t OffsetWidth = 0;
   if (FB.FirstByteOffset.hasValue()) {
     // Figure out how many nibbles are needed to print the largest offset
     // represented by this data set, so that we can align the offset field
     // to the right width.
-    size_t Lines = Size / FB.NumPerLine;
-    uint64_t MaxOffset = *FB.FirstByteOffset + Lines * FB.NumPerLine;
+    size_t const Lines = Size / FB.NumPerLine;
+    uint64_t const MaxOffset = *FB.FirstByteOffset + Lines * FB.NumPerLine;
     unsigned Power = 0;
     if (MaxOffset > 0)
       Power = llvm::Log2_64_Ceil(MaxOffset);
@@ -422,15 +422,15 @@ raw_ostream &raw_ostream::operator<<(const FormattedBytes &FB) {
   }
 
   // The width of a block of data including all spaces for group separators.
-  unsigned NumByteGroups =
+  unsigned const NumByteGroups =
       alignTo(FB.NumPerLine, FB.ByteGroupSize) / FB.ByteGroupSize;
-  unsigned BlockCharWidth = FB.NumPerLine * 2 + NumByteGroups - 1;
+  unsigned const BlockCharWidth = FB.NumPerLine * 2 + NumByteGroups - 1;
 
   while (!Bytes.empty()) {
     indent(FB.IndentLevel);
 
     if (FB.FirstByteOffset.hasValue()) {
-      uint64_t Offset = FB.FirstByteOffset.getValue();
+      uint64_t const Offset = FB.FirstByteOffset.getValue();
       llvm::write_hex(*this, Offset + LineIndex, HPS, OffsetWidth);
       *this << ": ";
     }
@@ -455,7 +455,7 @@ raw_ostream &raw_ostream::operator<<(const FormattedBytes &FB) {
       *this << "|";
 
       // Print the ASCII char values for each byte on this line
-      for (uint8_t Byte : Line) {
+      for (uint8_t const Byte : Line) {
         if (isPrint(Byte))
           *this << static_cast<char>(Byte);
         else
@@ -485,7 +485,7 @@ static raw_ostream &write_padding(raw_ostream &OS, unsigned NumChars) {
     return OS.write(Chars, NumChars);
 
   while (NumChars) {
-    unsigned NumToWrite = std::min(NumChars,
+    unsigned const NumToWrite = std::min(NumChars,
                                    (unsigned)array_lengthof(Chars)-1);
     OS.write(Chars, NumToWrite);
     NumChars -= NumToWrite;
@@ -642,7 +642,7 @@ raw_fd_ostream::raw_fd_ostream(int fd, bool shouldClose, bool unbuffered,
 #endif
 
   // Get the starting position.
-  off_t loc = ::lseek(FD, 0, SEEK_CUR);
+  off_t const loc = ::lseek(FD, 0, SEEK_CUR);
 #ifdef _WIN32
   // MSVCRT's _lseek(SEEK_CUR) doesn't return -1 for pipes.
   sys::fs::file_status Status;
@@ -757,8 +757,8 @@ void raw_fd_ostream::write_impl(const char *Ptr, size_t Size) {
 #endif
 
   do {
-    size_t ChunkSize = std::min(Size, MaxWriteSize);
-    ssize_t ret = ::write(FD, Ptr, ChunkSize);
+    size_t const ChunkSize = std::min(Size, MaxWriteSize);
+    ssize_t const ret = ::write(FD, Ptr, ChunkSize);
 
     if (ret < 0) {
       // If it's a recoverable error, swallow it and retry the write.
@@ -815,7 +815,7 @@ uint64_t raw_fd_ostream::seek(uint64_t off) {
 
 void raw_fd_ostream::pwrite_impl(const char *Ptr, size_t Size,
                                  uint64_t Offset) {
-  uint64_t Pos = tell();
+  uint64_t const Pos = tell();
   seek(Offset);
   write(Ptr, Size);
   seek(Pos);
@@ -861,7 +861,7 @@ bool raw_fd_ostream::has_colors() const {
 }
 
 Expected<sys::fs::FileLocker> raw_fd_ostream::lock() {
-  std::error_code EC = sys::fs::lockFile(FD);
+  std::error_code const EC = sys::fs::lockFile(FD);
   if (!EC)
     return sys::fs::FileLocker(FD);
   return errorCodeToError(EC);
@@ -869,7 +869,7 @@ Expected<sys::fs::FileLocker> raw_fd_ostream::lock() {
 
 Expected<sys::fs::FileLocker>
 raw_fd_ostream::tryLockFor(std::chrono::milliseconds Timeout) {
-  std::error_code EC = sys::fs::tryLockFile(FD, Timeout);
+  std::error_code const EC = sys::fs::tryLockFile(FD, Timeout);
   if (!EC)
     return sys::fs::FileLocker(FD);
   return errorCodeToError(EC);
@@ -920,7 +920,7 @@ raw_fd_stream::raw_fd_stream(StringRef Filename, std::error_code &EC)
 
 ssize_t raw_fd_stream::read(char *Ptr, size_t Size) {
   assert(get_fd() >= 0 && "File already closed.");
-  ssize_t Ret = ::read(get_fd(), (void *)Ptr, Size);
+  ssize_t const Ret = ::read(get_fd(), (void *)Ptr, Size);
   if (Ret >= 0)
     inc_pos(Ret);
   else
@@ -998,7 +998,7 @@ Error llvm::writeToOutput(StringRef OutputFileName,
     return Write(Out);
   }
 
-  unsigned Mode = sys::fs::all_read | sys::fs::all_write | sys::fs::all_exe;
+  unsigned const Mode = sys::fs::all_read | sys::fs::all_write | sys::fs::all_exe;
   Expected<sys::fs::TempFile> Temp =
       sys::fs::TempFile::create(OutputFileName + ".temp-stream-%%%%%%", Mode);
   if (!Temp)

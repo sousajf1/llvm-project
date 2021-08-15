@@ -57,7 +57,7 @@ LLVMCreateDisasmCPUFeatures(const char *TT, const char *CPU,
   if (!MRI)
     return nullptr;
 
-  MCTargetOptions MCOptions;
+  MCTargetOptions const MCOptions;
   // Get the assembler info needed to setup the MCContext.
   std::unique_ptr<const MCAsmInfo> MAI(
       TheTarget->createMCAsmInfo(*MRI, TT, MCOptions));
@@ -95,7 +95,7 @@ LLVMCreateDisasmCPUFeatures(const char *TT, const char *CPU,
   DisAsm->setSymbolizer(std::move(Symbolizer));
 
   // Set up the instruction printer.
-  int AsmPrinterVariant = MAI->getAssemblerDialect();
+  int const AsmPrinterVariant = MAI->getAssemblerDialect();
   std::unique_ptr<MCInstPrinter> IP(TheTarget->createMCInstPrinter(
       Triple(TT), AsmPrinterVariant, *MAI, *MII, *MRI));
   if (!IP)
@@ -143,15 +143,15 @@ static void emitComments(LLVMDisasmContext *DC,
   StringRef Comments = DC->CommentsToEmit.str();
   // Get the default information for printing a comment.
   const MCAsmInfo *MAI = DC->getAsmInfo();
-  StringRef CommentBegin = MAI->getCommentString();
-  unsigned CommentColumn = MAI->getCommentColumn();
+  StringRef const CommentBegin = MAI->getCommentString();
+  unsigned const CommentColumn = MAI->getCommentColumn();
   bool IsFirst = true;
   while (!Comments.empty()) {
     if (!IsFirst)
       FormattedOS << '\n';
     // Emit a line of comments.
     FormattedOS.PadToColumn(CommentColumn);
-    size_t Position = Comments.find('\n');
+    size_t const Position = Comments.find('\n');
     FormattedOS << CommentBegin << ' ' << Comments.substr(0, Position);
     // Move after the newline character.
     Comments = Comments.substr(Position+1);
@@ -176,10 +176,10 @@ static int getItineraryLatency(LLVMDisasmContext *DC, const MCInst &Inst) {
 
   // Get itinerary information.
   const MCSubtargetInfo *STI = DC->getSubtargetInfo();
-  InstrItineraryData IID = STI->getInstrItineraryForCPU(DC->getCPU());
+  InstrItineraryData const IID = STI->getInstrItineraryForCPU(DC->getCPU());
   // Get the scheduling class of the requested instruction.
   const MCInstrDesc& Desc = DC->getInstrInfo()->get(Inst.getOpcode());
-  unsigned SCClass = Desc.getSchedClass();
+  unsigned const SCClass = Desc.getSchedClass();
 
   int Latency = 0;
   for (unsigned OpIdx = 0, OpIdxEnd = Inst.getNumOperands(); OpIdx != OpIdxEnd;
@@ -206,7 +206,7 @@ static int getLatency(LLVMDisasmContext *DC, const MCInst &Inst) {
 
   // Get the scheduling class of the requested instruction.
   const MCInstrDesc& Desc = DC->getInstrInfo()->get(Inst.getOpcode());
-  unsigned SCClass = Desc.getSchedClass();
+  unsigned const SCClass = Desc.getSchedClass();
   const MCSchedClassDesc *SCDesc = SCModel.getSchedClassDesc(SCClass);
   // Resolving the variant SchedClass requires an MI to pass to
   // SubTargetInfo::resolveSchedClass.
@@ -229,7 +229,7 @@ static int getLatency(LLVMDisasmContext *DC, const MCInst &Inst) {
 /// Emits latency information in DC->CommentStream for \p Inst, based
 /// on the information available in \p DC.
 static void emitLatency(LLVMDisasmContext *DC, const MCInst &Inst) {
-  int Latency = getLatency(DC, Inst);
+  int const Latency = getLatency(DC, Inst);
 
   // Report only interesting latencies.
   if (Latency < 2)
@@ -255,7 +255,7 @@ size_t LLVMDisasmInstruction(LLVMDisasmContextRef DCR, uint8_t *Bytes,
                              size_t OutStringSize){
   LLVMDisasmContext *DC = static_cast<LLVMDisasmContext *>(DCR);
   // Wrap the pointer to the Bytes, BytesSize and PC in a MemoryObject.
-  ArrayRef<uint8_t> Data(Bytes, BytesSize);
+  ArrayRef<uint8_t> const Data(Bytes, BytesSize);
 
   uint64_t Size;
   MCInst Inst;
@@ -272,7 +272,7 @@ size_t LLVMDisasmInstruction(LLVMDisasmContextRef DCR, uint8_t *Bytes,
     return 0;
 
   case MCDisassembler::Success: {
-    StringRef AnnotationsStr = Annotations.str();
+    StringRef const AnnotationsStr = Annotations.str();
 
     SmallVector<char, 64> InsnStr;
     raw_svector_ostream OS(InsnStr);
@@ -286,7 +286,7 @@ size_t LLVMDisasmInstruction(LLVMDisasmContextRef DCR, uint8_t *Bytes,
     emitComments(DC, FormattedOS);
 
     assert(OutStringSize != 0 && "Output buffer cannot be zero size");
-    size_t OutputSize = std::min(OutStringSize-1, InsnStr.size());
+    size_t const OutputSize = std::min(OutStringSize-1, InsnStr.size());
     std::memcpy(OutString, InsnStr.data(), OutputSize);
     OutString[OutputSize] = '\0'; // Terminate string.
 

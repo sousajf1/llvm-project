@@ -196,7 +196,7 @@ static SourcePred validExtractValueIndex() {
   auto Make = [](ArrayRef<Value *> Cur, ArrayRef<Type *> Ts) {
     std::vector<Constant *> Result;
     auto *Int32Ty = Type::getInt32Ty(Cur[0]->getContext());
-    uint64_t N = getAggregateNumElements(Cur[0]->getType());
+    uint64_t const N = getAggregateNumElements(Cur[0]->getType());
     // Create indices at the start, end, and middle, but avoid dups.
     Result.push_back(ConstantInt::get(Int32Ty, 0));
     if (N > 1)
@@ -211,7 +211,7 @@ static SourcePred validExtractValueIndex() {
 OpDescriptor llvm::fuzzerop::extractValueDescriptor(unsigned Weight) {
   auto buildExtract = [](ArrayRef<Value *> Srcs, Instruction *Inst) {
     // TODO: It's pretty inefficient to shuffle this all through constants.
-    unsigned Idx = cast<ConstantInt>(Srcs[1])->getZExtValue();
+    unsigned const Idx = cast<ConstantInt>(Srcs[1])->getZExtValue();
     return ExtractValueInst::Create(Srcs[0], {Idx}, "E", Inst);
   };
   // TODO: Should we handle multiple indices?
@@ -270,7 +270,7 @@ static SourcePred validInsertValueIndex() {
 OpDescriptor llvm::fuzzerop::insertValueDescriptor(unsigned Weight) {
   auto buildInsert = [](ArrayRef<Value *> Srcs, Instruction *Inst) {
     // TODO: It's pretty inefficient to shuffle this all through constants.
-    unsigned Idx = cast<ConstantInt>(Srcs[2])->getZExtValue();
+    unsigned const Idx = cast<ConstantInt>(Srcs[2])->getZExtValue();
     return InsertValueInst::Create(Srcs[0], Srcs[1], {Idx}, "I", Inst);
   };
   return {

@@ -79,7 +79,7 @@ std::string DWARFAbbreviationDeclarationSet::getCodeRange() const {
   // Each iteration through this loop represents a single contiguous range in
   // the set of codes.
   for (auto Current = Codes.begin(), End = Codes.end(); Current != End;) {
-    uint32_t RangeStart = *Current;
+    uint32_t const RangeStart = *Current;
     // Add the current range start.
     Stream << *Current;
     uint32_t RangeEnd = RangeStart;
@@ -116,7 +116,7 @@ void DWARFDebugAbbrev::parse() const {
   while (Data->isValidOffset(Offset)) {
     while (I != AbbrDeclSets.end() && I->first < Offset)
       ++I;
-    uint64_t CUAbbrOffset = Offset;
+    uint64_t const CUAbbrOffset = Offset;
     DWARFAbbreviationDeclarationSet AbbrDecls;
     if (!AbbrDecls.extract(*Data, &Offset))
       break;

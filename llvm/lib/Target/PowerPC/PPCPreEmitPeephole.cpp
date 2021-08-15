@@ -124,7 +124,7 @@ static bool hasPCRelativeForm(MachineInstr &Use) {
         if (InstrsToErase.contains(&*BBI))
           continue;
         // Skip non-load immediate.
-        unsigned Opc = BBI->getOpcode();
+        unsigned const Opc = BBI->getOpcode();
         if (Opc != PPC::LI && Opc != PPC::LI8 && Opc != PPC::LIS &&
             Opc != PPC::LIS8)
           continue;
@@ -137,8 +137,8 @@ static bool hasPCRelativeForm(MachineInstr &Use) {
 
         LLVM_DEBUG(dbgs() << "Scanning after load immediate: "; BBI->dump(););
 
-        Register Reg = BBI->getOperand(0).getReg();
-        int64_t Imm = BBI->getOperand(1).getImm();
+        Register const Reg = BBI->getOperand(0).getReg();
+        int64_t const Imm = BBI->getOperand(1).getImm();
         MachineOperand *DeadOrKillToUnset = nullptr;
         if (BBI->getOperand(0).isDead()) {
           DeadOrKillToUnset = &BBI->getOperand(0);
@@ -152,7 +152,7 @@ static bool hasPCRelativeForm(MachineInstr &Use) {
              ++AfterBBI) {
           // Track the operand that kill Reg. We would unset the kill flag of
           // the operand if there is a following redundant load immediate.
-          int KillIdx = AfterBBI->findRegisterUseOperandIdx(Reg, true, TRI);
+          int const KillIdx = AfterBBI->findRegisterUseOperandIdx(Reg, true, TRI);
 
           // We can't just clear implicit kills, so if we encounter one, stop
           // looking further.
@@ -264,7 +264,7 @@ static bool hasPCRelativeForm(MachineInstr &Use) {
       for (auto BBI = MBB.instr_begin(); BBI != MBB.instr_end(); ++BBI) {
         // Look for the initial GOT indirect load.
         if (isGOTPLDpc(*BBI)) {
-          GOTDefUsePair CurrentPair{BBI, MachineBasicBlock::iterator(),
+          GOTDefUsePair const CurrentPair{BBI, MachineBasicBlock::iterator(),
                                     BBI->getOperand(0).getReg(),
                                     PPC::NoRegister, true};
           CandPairs.push_back(CurrentPair);
@@ -329,9 +329,9 @@ static bool hasPCRelativeForm(MachineInstr &Use) {
         // and as an implicit use on the second memory op. This is a precaution
         // to prevent future passes from using that register between the two
         // instructions.
-        MachineOperand ImplDef =
+        MachineOperand const ImplDef =
             MachineOperand::CreateReg(Pair->UseReg, true, true);
-        MachineOperand ImplUse =
+        MachineOperand const ImplUse =
             MachineOperand::CreateReg(Pair->UseReg, false, true);
         Pair->DefInst->addOperand(ImplDef);
         Pair->UseInst->addOperand(ImplUse);
@@ -339,7 +339,7 @@ static bool hasPCRelativeForm(MachineInstr &Use) {
         // Create the symbol.
         MCContext &Context = MF->getContext();
         MCSymbol *Symbol = Context.createNamedTempSymbol("pcrel");
-        MachineOperand PCRelLabel =
+        MachineOperand const PCRelLabel =
             MachineOperand::CreateMCSymbol(Symbol, PPCII::MO_PCREL_OPT_FLAG);
         Pair->DefInst->addOperand(*MF, PCRelLabel);
         Pair->UseInst->addOperand(*MF, PCRelLabel);
@@ -367,11 +367,11 @@ static bool hasPCRelativeForm(MachineInstr &Use) {
           PPC::UACCRCRegClass.getNumRegs(), nullptr);
 
       for (MachineInstr &BBI : MBB.instrs()) {
-        unsigned Opc = BBI.getOpcode();
+        unsigned const Opc = BBI.getOpcode();
         // If we are visiting a xxmtacc instruction, we add it and its operand
         // register to the candidate set.
         if (Opc == PPC::XXMTACC) {
-          Register Acc = BBI.getOperand(0).getReg();
+          Register const Acc = BBI.getOperand(0).getReg();
           assert(PPC::ACCRCRegClass.contains(Acc) &&
                  "Unexpected register for XXMTACC");
           Candidates[Acc - PPC::ACC0] = &BBI;
@@ -379,7 +379,7 @@ static bool hasPCRelativeForm(MachineInstr &Use) {
         // If we are visiting a xxmfacc instruction and its operand register is
         // in the candidate set, we mark the two instructions for removal.
         else if (Opc == PPC::XXMFACC) {
-          Register Acc = BBI.getOperand(0).getReg();
+          Register const Acc = BBI.getOperand(0).getReg();
           assert(PPC::ACCRCRegClass.contains(Acc) &&
                  "Unexpected register for XXMFACC");
           if (!Candidates[Acc - PPC::ACC0])
@@ -390,10 +390,10 @@ static bool hasPCRelativeForm(MachineInstr &Use) {
         // If we are visiting an instruction using an accumulator register
         // as operand, we remove it from the candidate set.
         else {
-          for (MachineOperand &Operand : BBI.operands()) {
+          for (MachineOperand  const&Operand : BBI.operands()) {
             if (!Operand.isReg())
               continue;
-            Register Reg = Operand.getReg();
+            Register const Reg = Operand.getReg();
             if (PPC::ACCRCRegClass.contains(Reg))
               Candidates[Reg - PPC::ACC0] = nullptr;
           }
@@ -429,7 +429,7 @@ static bool hasPCRelativeForm(MachineInstr &Use) {
         Changed |= addLinkerOpt(MBB, TRI);
         Changed |= removeAccPrimeUnprime(MBB);
         for (MachineInstr &MI : MBB) {
-          unsigned Opc = MI.getOpcode();
+          unsigned const Opc = MI.getOpcode();
           if (Opc == PPC::UNENCODED_NOP) {
             InstrsToErase.push_back(&MI);
             continue;
@@ -484,8 +484,8 @@ static bool hasPCRelativeForm(MachineInstr &Use) {
         if (Br->getOpcode() != PPC::BC && Br->getOpcode() != PPC::BCn)
           continue;
         MachineInstr *CRSetMI = nullptr;
-        Register CRBit = Br->getOperand(0).getReg();
-        unsigned CRReg = getCRFromCRBit(CRBit);
+        Register const CRBit = Br->getOperand(0).getReg();
+        unsigned const CRReg = getCRFromCRBit(CRBit);
         bool SeenUse = false;
         MachineBasicBlock::reverse_iterator It = Br, Er = MBB.rend();
         for (It++; It != Er; It++) {
@@ -501,7 +501,7 @@ static bool hasPCRelativeForm(MachineInstr &Use) {
         }
         if (!CRSetMI) continue;
 
-        unsigned CRSetOp = CRSetMI->getOpcode();
+        unsigned const CRSetOp = CRSetMI->getOpcode();
         if ((Br->getOpcode() == PPC::BCn && CRSetOp == PPC::CRSET) ||
             (Br->getOpcode() == PPC::BC  && CRSetOp == PPC::CRUNSET)) {
           // Remove this branch since it cannot be taken.
@@ -518,7 +518,7 @@ static bool hasPCRelativeForm(MachineInstr &Use) {
             InstrsToErase.push_back(&*It);
           }
           if (!MBB.isLayoutSuccessor(Br->getOperand(1).getMBB())) {
-            ArrayRef<MachineOperand> NoCond;
+            ArrayRef<MachineOperand> const NoCond;
             TII->insertBranch(MBB, Br->getOperand(1).getMBB(), nullptr,
                               NoCond, Br->getDebugLoc());
           }

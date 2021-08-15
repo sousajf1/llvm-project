@@ -113,7 +113,7 @@ unsigned GCNMinRegScheduler::findMax(unsigned Num, Calc C) {
   T Max = std::numeric_limits<T>::min();
   unsigned NumMax = 0;
   for (auto I = RQ.begin(); Num; --Num) {
-    T Cur = C(*I);
+    T const Cur = C(*I);
     if (Cur >= Max) {
       if (Cur > Max) {
         Max = Cur;
@@ -144,7 +144,7 @@ GCNMinRegScheduler::Candidate* GCNMinRegScheduler::pickCandidate() {
                       << Num << '\n');
     Num = findMax(Num, [=](const Candidate &C) {
       auto SU = C.SU;
-      int Res = getNotReadySuccessors(SU);
+      int const Res = getNotReadySuccessors(SU);
       LLVM_DEBUG(dbgs() << "SU(" << SU->NodeNum << ") would left non-ready "
                         << Res << " successors, metric = " << -Res << '\n');
       return -Res;

@@ -34,16 +34,16 @@ static void insertCall(Function &CurFn, StringRef Func,
       Func == "__mcount" ||
       Func == "_mcount" ||
       Func == "__cyg_profile_func_enter_bare") {
-    FunctionCallee Fn = M.getOrInsertFunction(Func, Type::getVoidTy(C));
+    FunctionCallee const Fn = M.getOrInsertFunction(Func, Type::getVoidTy(C));
     CallInst *Call = CallInst::Create(Fn, "", InsertionPt);
     Call->setDebugLoc(DL);
     return;
   }
 
   if (Func == "__cyg_profile_func_enter" || Func == "__cyg_profile_func_exit") {
-    Type *ArgTypes[] = {Type::getInt8PtrTy(C), Type::getInt8PtrTy(C)};
+    Type *const ArgTypes[] = {Type::getInt8PtrTy(C), Type::getInt8PtrTy(C)};
 
-    FunctionCallee Fn = M.getOrInsertFunction(
+    FunctionCallee const Fn = M.getOrInsertFunction(
         Func, FunctionType::get(Type::getVoidTy(C), ArgTypes, false));
 
     Instruction *RetAddr = CallInst::Create(
@@ -52,7 +52,7 @@ static void insertCall(Function &CurFn, StringRef Func,
         InsertionPt);
     RetAddr->setDebugLoc(DL);
 
-    Value *Args[] = {ConstantExpr::getBitCast(&CurFn, Type::getInt8PtrTy(C)),
+    Value *const Args[] = {ConstantExpr::getBitCast(&CurFn, Type::getInt8PtrTy(C)),
                      RetAddr};
 
     CallInst *Call =
@@ -67,14 +67,14 @@ static void insertCall(Function &CurFn, StringRef Func,
 }
 
 static bool runOnFunction(Function &F, bool PostInlining) {
-  StringRef EntryAttr = PostInlining ? "instrument-function-entry-inlined"
+  StringRef const EntryAttr = PostInlining ? "instrument-function-entry-inlined"
                                      : "instrument-function-entry";
 
-  StringRef ExitAttr = PostInlining ? "instrument-function-exit-inlined"
+  StringRef const ExitAttr = PostInlining ? "instrument-function-exit-inlined"
                                     : "instrument-function-exit";
 
-  StringRef EntryFunc = F.getFnAttribute(EntryAttr).getValueAsString();
-  StringRef ExitFunc = F.getFnAttribute(ExitAttr).getValueAsString();
+  StringRef const EntryFunc = F.getFnAttribute(EntryAttr).getValueAsString();
+  StringRef const ExitFunc = F.getFnAttribute(ExitAttr).getValueAsString();
 
   bool Changed = false;
 
@@ -103,7 +103,7 @@ static bool runOnFunction(Function &F, bool PostInlining) {
         T = CI;
 
       DebugLoc DL;
-      if (DebugLoc TerminatorDL = T->getDebugLoc())
+      if (DebugLoc const TerminatorDL = T->getDebugLoc())
         DL = TerminatorDL;
       else if (auto SP = F.getSubprogram())
         DL = DILocation::get(SP->getContext(), 0, 0, SP);

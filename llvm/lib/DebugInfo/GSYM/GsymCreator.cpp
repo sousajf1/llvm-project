@@ -26,17 +26,17 @@ GsymCreator::GsymCreator(bool Quiet)
 }
 
 uint32_t GsymCreator::insertFile(StringRef Path, llvm::sys::path::Style Style) {
-  llvm::StringRef directory = llvm::sys::path::parent_path(Path, Style);
-  llvm::StringRef filename = llvm::sys::path::filename(Path, Style);
+  llvm::StringRef const directory = llvm::sys::path::parent_path(Path, Style);
+  llvm::StringRef const filename = llvm::sys::path::filename(Path, Style);
   // We must insert the strings first, then call the FileEntry constructor.
   // If we inline the insertString() function call into the constructor, the
   // call order is undefined due to parameter lists not having any ordering
   // requirements.
   const uint32_t Dir = insertString(directory);
   const uint32_t Base = insertString(filename);
-  FileEntry FE(Dir, Base);
+  FileEntry const FE(Dir, Base);
 
-  std::lock_guard<std::mutex> Guard(Mutex);
+  std::lock_guard<std::mutex> const Guard(Mutex);
   const auto NextIndex = Files.size();
   // Find FE in hash map and insert if not present.
   auto R = FileEntryToIndex.insert(std::make_pair(FE, NextIndex));
@@ -56,7 +56,7 @@ llvm::Error GsymCreator::save(StringRef Path,
 }
 
 llvm::Error GsymCreator::encode(FileWriter &O) const {
-  std::lock_guard<std::mutex> Guard(Mutex);
+  std::lock_guard<std::mutex> const Guard(Mutex);
   if (Funcs.empty())
     return createStringError(std::errc::invalid_argument,
                              "no functions to encode");
@@ -105,7 +105,7 @@ llvm::Error GsymCreator::encode(FileWriter &O) const {
   // Write out the address offsets.
   O.alignTo(Hdr.AddrOffSize);
   for (const auto &FuncInfo : Funcs) {
-    uint64_t AddrOffset = FuncInfo.startAddress() - Hdr.BaseAddress;
+    uint64_t const AddrOffset = FuncInfo.startAddress() - Hdr.BaseAddress;
     switch (Hdr.AddrOffSize) {
     case 1:
       O.writeU8(static_cast<uint8_t>(AddrOffset));
@@ -133,7 +133,7 @@ llvm::Error GsymCreator::encode(FileWriter &O) const {
   assert(!Files.empty());
   assert(Files[0].Dir == 0);
   assert(Files[0].Base == 0);
-  size_t NumFiles = Files.size();
+  size_t const NumFiles = Files.size();
   if (NumFiles > UINT32_MAX)
     return createStringError(std::errc::invalid_argument, "too many files");
   O.writeU32(static_cast<uint32_t>(NumFiles));
@@ -189,7 +189,7 @@ static ForwardIt removeIfBinary(ForwardIt FirstIt, ForwardIt LastIt,
 }
 
 llvm::Error GsymCreator::finalize(llvm::raw_ostream &OS) {
-  std::lock_guard<std::mutex> Guard(Mutex);
+  std::lock_guard<std::mutex> const Guard(Mutex);
   if (Finalized)
     return createStringError(std::errc::invalid_argument, "already finalized");
   Finalized = true;
@@ -306,7 +306,7 @@ uint32_t GsymCreator::insertString(StringRef S, bool Copy) {
 
   // The hash can be calculated outside the lock.
   CachedHashStringRef CHStr(S);
-  std::lock_guard<std::mutex> Guard(Mutex);
+  std::lock_guard<std::mutex> const Guard(Mutex);
   if (Copy) {
     // We need to provide backing storage for the string if requested
     // since StringTableBuilder stores references to strings. Any string
@@ -322,14 +322,14 @@ uint32_t GsymCreator::insertString(StringRef S, bool Copy) {
 }
 
 void GsymCreator::addFunctionInfo(FunctionInfo &&FI) {
-  std::lock_guard<std::mutex> Guard(Mutex);
+  std::lock_guard<std::mutex> const Guard(Mutex);
   Ranges.insert(FI.Range);
   Funcs.emplace_back(std::move(FI));
 }
 
 void GsymCreator::forEachFunctionInfo(
     std::function<bool(FunctionInfo &)> const &Callback) {
-  std::lock_guard<std::mutex> Guard(Mutex);
+  std::lock_guard<std::mutex> const Guard(Mutex);
   for (auto &FI : Funcs) {
     if (!Callback(FI))
       break;
@@ -338,7 +338,7 @@ void GsymCreator::forEachFunctionInfo(
 
 void GsymCreator::forEachFunctionInfo(
     std::function<bool(const FunctionInfo &)> const &Callback) const {
-  std::lock_guard<std::mutex> Guard(Mutex);
+  std::lock_guard<std::mutex> const Guard(Mutex);
   for (const auto &FI : Funcs) {
     if (!Callback(FI))
       break;
@@ -346,7 +346,7 @@ void GsymCreator::forEachFunctionInfo(
 }
 
 size_t GsymCreator::getNumFunctionInfos() const {
-  std::lock_guard<std::mutex> Guard(Mutex);
+  std::lock_guard<std::mutex> const Guard(Mutex);
   return Funcs.size();
 }
 
@@ -357,6 +357,6 @@ bool GsymCreator::IsValidTextAddress(uint64_t Addr) const {
 }
 
 bool GsymCreator::hasFunctionInfoForAddress(uint64_t Addr) const {
-  std::lock_guard<std::mutex> Guard(Mutex);
+  std::lock_guard<std::mutex> const Guard(Mutex);
   return Ranges.contains(Addr);
 }

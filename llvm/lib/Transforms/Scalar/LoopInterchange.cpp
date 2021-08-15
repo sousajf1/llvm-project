@@ -133,7 +133,7 @@ static bool populateDependencyMatrix(CharMatrix &DepMatrix, unsigned Level,
                    dbgs() << "Found " << DepType
                           << " dependency between Src and Dst\n"
                           << " Src:" << *Src << "\n Dst:" << *Dst << '\n');
-        unsigned Levels = D->getLevels();
+        unsigned const Levels = D->getLevels();
         char Direction;
         for (unsigned II = 1; II <= Levels; ++II) {
           const SCEV *Distance = D->getDistance(II);
@@ -152,7 +152,7 @@ static bool populateDependencyMatrix(CharMatrix &DepMatrix, unsigned Level,
             Direction = 'S';
             Dep.push_back(Direction);
           } else {
-            unsigned Dir = D->getDirection(II);
+            unsigned const Dir = D->getDirection(II);
             if (Dir == Dependence::DVEntry::LT ||
                 Dir == Dependence::DVEntry::LE)
               Direction = '<';
@@ -257,11 +257,11 @@ static bool validDepInterchange(CharMatrix &DepMatrix, unsigned Row,
 static bool isLegalToInterChangeLoops(CharMatrix &DepMatrix,
                                       unsigned InnerLoopId,
                                       unsigned OuterLoopId) {
-  unsigned NumRows = DepMatrix.size();
+  unsigned const NumRows = DepMatrix.size();
   // For each row check if it is valid to interchange.
   for (unsigned Row = 0; Row < NumRows; ++Row) {
-    char InnerDep = DepMatrix[Row][InnerLoopId];
-    char OuterDep = DepMatrix[Row][OuterLoopId];
+    char const InnerDep = DepMatrix[Row][InnerLoopId];
+    char const OuterDep = DepMatrix[Row][OuterLoopId];
     if (InnerDep == '*' || OuterDep == '*')
       return false;
     if (!validDepInterchange(DepMatrix, Row, OuterLoopId, InnerDep, OuterDep))
@@ -478,7 +478,7 @@ struct LoopInterchange {
 
   bool processLoopList(ArrayRef<Loop *> LoopList) {
     bool Changed = false;
-    unsigned LoopNestDepth = LoopList.size();
+    unsigned const LoopNestDepth = LoopList.size();
     if (LoopNestDepth < 2) {
       LLVM_DEBUG(dbgs() << "Loop doesn't contain minimum nesting level.\n");
       return false;
@@ -515,11 +515,11 @@ struct LoopInterchange {
       return false;
     }
 
-    unsigned SelecLoopId = selectLoopForInterchange(LoopList);
+    unsigned const SelecLoopId = selectLoopForInterchange(LoopList);
     // Move the selected loop outwards to the best possible position.
     Loop *LoopToBeInterchanged = LoopList[SelecLoopId];
     for (unsigned i = SelecLoopId; i > 0; i--) {
-      bool Interchanged = processLoop(LoopToBeInterchanged, LoopList[i - 1], i,
+      bool const Interchanged = processLoop(LoopToBeInterchanged, LoopList[i - 1], i,
                                       i - 1, DependencyMatrix);
       if (!Interchanged)
         return Changed;
@@ -637,7 +637,7 @@ bool LoopInterchangeLegality::tightlyNested(Loop *OuterLoop, Loop *InnerLoop) {
 
 bool LoopInterchangeLegality::isLoopStructureUnderstood(
     PHINode *InnerInduction) {
-  unsigned Num = InnerInduction->getNumOperands();
+  unsigned const Num = InnerInduction->getNumOperands();
   BasicBlock *InnerLoopPreheader = InnerLoop->getLoopPreheader();
   for (unsigned i = 0; i < Num; ++i) {
     Value *Val = InnerInduction->getOperand(i);
@@ -649,7 +649,7 @@ bool LoopInterchangeLegality::isLoopStructureUnderstood(
     // TODO: Handle triangular loops.
     // e.g. for(int i=0;i<N;i++)
     //        for(int j=i;j<N;j++)
-    unsigned IncomBlockIndx = PHINode::getIncomingValueNumForOperand(i);
+    unsigned const IncomBlockIndx = PHINode::getIncomingValueNumForOperand(i);
     if (InnerInduction->getIncomingBlock(IncomBlockIndx) ==
             InnerLoopPreheader &&
         !OuterLoop->isLoopInvariant(I)) {
@@ -755,7 +755,7 @@ bool LoopInterchangeLegality::findInductionAndReductions(
   if (!L->getLoopLatch() || !L->getLoopPredecessor())
     return false;
   for (PHINode &PHI : L->getHeader()->phis()) {
-    RecurrenceDescriptor RD;
+    RecurrenceDescriptor const RD;
     InductionDescriptor ID;
     if (InductionDescriptor::isInductionPHI(&PHI, L, SE, ID))
       Inductions.push_back(&PHI);
@@ -994,7 +994,7 @@ areInnerLoopExitPHIsSupported(Loop *InnerL, Loop *OuterL,
 // if the inner loop is not executed.
 static bool areOuterLoopExitPHIsSupported(Loop *OuterLoop, Loop *InnerLoop) {
   BasicBlock *LoopNestExit = OuterLoop->getUniqueExitBlock();
-  for (PHINode &PHI : LoopNestExit->phis()) {
+  for (PHINode  const&PHI : LoopNestExit->phis()) {
     //  FIXME: We currently are not able to detect floating point reductions
     //         and have to use floating point PHIs as a proxy to prevent
     //         interchanging in the presence of floating point reductions.
@@ -1155,7 +1155,7 @@ int LoopInterchangeProfitability::getInstrOrderCost() {
   for (BasicBlock *BB : InnerLoop->blocks()) {
     for (Instruction &Ins : *BB) {
       if (const GetElementPtrInst *GEP = dyn_cast<GetElementPtrInst>(&Ins)) {
-        unsigned NumOp = GEP->getNumOperands();
+        unsigned const NumOp = GEP->getNumOperands();
         bool FoundInnerInduction = false;
         bool FoundOuterInduction = false;
         for (unsigned i = 0; i < NumOp; ++i) {
@@ -1312,7 +1312,7 @@ void LoopInterchangeTransform::restructureLoops(
   NewOuter->addChildLoop(NewInner);
 
   // BBs from the original inner loop.
-  SmallVector<BasicBlock *, 8> OrigInnerBBs(NewOuter->blocks());
+  SmallVector<BasicBlock *, 8> const OrigInnerBBs(NewOuter->blocks());
 
   // Add BBs from the original outer loop to the original inner loop (excluding
   // BBs already in inner loop)
@@ -1429,7 +1429,7 @@ bool LoopInterchangeTransform::transform() {
   BasicBlock *InnerLoopPreHeader = InnerLoop->getLoopPreheader();
   BasicBlock *OuterLoopHeader = OuterLoop->getHeader();
   if (InnerLoopPreHeader != OuterLoopHeader) {
-    SmallPtrSet<Instruction *, 4> NeedsMoving;
+    SmallPtrSet<Instruction *, 4> const NeedsMoving;
     for (Instruction &I :
          make_early_inc_range(make_range(InnerLoopPreHeader->begin(),
                                          std::prev(InnerLoopPreHeader->end()))))
@@ -1460,7 +1460,7 @@ static void swapBBContents(BasicBlock *BB1, BasicBlock *BB2) {
   // Save all non-terminator instructions of BB1 into TempInstrs and unlink them
   // from BB1 afterwards.
   auto Iter = map_range(*BB1, [](Instruction &I) { return &I; });
-  SmallVector<Instruction *, 4> TempInstrs(Iter.begin(), std::prev(Iter.end()));
+  SmallVector<Instruction *, 4> const TempInstrs(Iter.begin(), std::prev(Iter.end()));
   for (Instruction *I : TempInstrs)
     I->removeFromParent();
 
@@ -1755,7 +1755,7 @@ bool LoopInterchangeTransform::adjustLoopBranches() {
 
 bool LoopInterchangeTransform::adjustLoopLinks() {
   // Adjust all branches in the inner and outer loop.
-  bool Changed = adjustLoopBranches();
+  bool const Changed = adjustLoopBranches();
   if (Changed) {
     // We have interchanged the preheaders so we need to interchange the data in
     // the preheaders as well. This is because the content of the inner

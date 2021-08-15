@@ -94,7 +94,7 @@ bool AVRAsmPrinter::PrintAsmOperand(const MachineInstr *MI, unsigned OpNum,
                                     const char *ExtraCode, raw_ostream &O) {
   // Default asm printer can only deal with some extra codes,
   // so try it first.
-  bool Error = AsmPrinter::PrintAsmOperand(MI, OpNum, ExtraCode, O);
+  bool const Error = AsmPrinter::PrintAsmOperand(MI, OpNum, ExtraCode, O);
 
   if (Error && ExtraCode && ExtraCode[0]) {
     if (ExtraCode[1] != 0)
@@ -107,20 +107,20 @@ bool AVRAsmPrinter::PrintAsmOperand(const MachineInstr *MI, unsigned OpNum,
                               "using 'A'..'Z' operand extracodes.");
       Register Reg = RegOp.getReg();
 
-      unsigned ByteNumber = ExtraCode[0] - 'A';
+      unsigned const ByteNumber = ExtraCode[0] - 'A';
 
-      unsigned OpFlags = MI->getOperand(OpNum - 1).getImm();
-      unsigned NumOpRegs = InlineAsm::getNumOperandRegisters(OpFlags);
+      unsigned const OpFlags = MI->getOperand(OpNum - 1).getImm();
+      unsigned const NumOpRegs = InlineAsm::getNumOperandRegisters(OpFlags);
       (void)NumOpRegs;
 
       const AVRSubtarget &STI = MF->getSubtarget<AVRSubtarget>();
       const TargetRegisterInfo &TRI = *STI.getRegisterInfo();
 
       const TargetRegisterClass *RC = TRI.getMinimalPhysRegClass(Reg);
-      unsigned BytesPerReg = TRI.getRegSizeInBits(*RC) / 8;
+      unsigned const BytesPerReg = TRI.getRegSizeInBits(*RC) / 8;
       assert(BytesPerReg <= 2 && "Only 8 and 16 bit regs are supported.");
 
-      unsigned RegIdx = ByteNumber / BytesPerReg;
+      unsigned const RegIdx = ByteNumber / BytesPerReg;
       assert(RegIdx < NumOpRegs && "Multibyte index out of range.");
 
       Reg = MI->getOperand(OpNum + RegIdx).getReg();
@@ -166,8 +166,8 @@ bool AVRAsmPrinter::PrintAsmMemoryOperand(const MachineInstr *MI,
 
   // If NumOpRegs == 2, then we assume it is product of a FrameIndex expansion
   // and the second operand is an Imm.
-  unsigned OpFlags = MI->getOperand(OpNum - 1).getImm();
-  unsigned NumOpRegs = InlineAsm::getNumOperandRegisters(OpFlags);
+  unsigned const OpFlags = MI->getOperand(OpNum - 1).getImm();
+  unsigned const NumOpRegs = InlineAsm::getNumOperandRegisters(OpFlags);
 
   if (NumOpRegs == 2) {
     O << '+' << MI->getOperand(OpNum + 1).getImm();
@@ -177,7 +177,7 @@ bool AVRAsmPrinter::PrintAsmMemoryOperand(const MachineInstr *MI,
 }
 
 void AVRAsmPrinter::emitInstruction(const MachineInstr *MI) {
-  AVRMCInstLower MCInstLowering(OutContext, *this);
+  AVRMCInstLower const MCInstLowering(OutContext, *this);
 
   MCInst I;
   MCInstLowering.lowerInstruction(*MI, I);
@@ -188,7 +188,7 @@ const MCExpr *AVRAsmPrinter::lowerConstant(const Constant *CV) {
   MCContext &Ctx = OutContext;
 
   if (const GlobalValue *GV = dyn_cast<GlobalValue>(CV)) {
-    bool IsProgMem = GV->getAddressSpace() == AVR::ProgramMemory;
+    bool const IsProgMem = GV->getAddressSpace() == AVR::ProgramMemory;
     if (IsProgMem) {
       const MCExpr *Expr = MCSymbolRefExpr::create(getSymbol(GV), Ctx);
       return AVRMCExpr::create(AVRMCExpr::VK_AVR_PM, Expr, false, Ctx);
@@ -240,5 +240,5 @@ bool AVRAsmPrinter::doFinalization(Module &M) {
 } // end of namespace llvm
 
 extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializeAVRAsmPrinter() {
-  llvm::RegisterAsmPrinter<llvm::AVRAsmPrinter> X(llvm::getTheAVRTarget());
+  llvm::RegisterAsmPrinter<llvm::AVRAsmPrinter> const X(llvm::getTheAVRTarget());
 }

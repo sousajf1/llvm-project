@@ -56,7 +56,7 @@ void DwarfStringPool::emitStringOffsetsTableHeader(AsmPrinter &Asm,
   if (getNumIndexedStrings() == 0)
     return;
   Asm.OutStreamer->SwitchSection(Section);
-  unsigned EntrySize = Asm.getDwarfOffsetByteSize();
+  unsigned const EntrySize = Asm.getDwarfOffsetByteSize();
   // We are emitting the header for a contribution to the string offsets
   // table. The header consists of an entry with the contribution's
   // size (not including the size of the length field), the DWARF version and
@@ -118,7 +118,7 @@ void DwarfStringPool::emit(AsmPrinter &Asm, MCSection *StrSection,
     }
 
     Asm.OutStreamer->SwitchSection(OffsetSection);
-    unsigned size = Asm.getDwarfOffsetByteSize();
+    unsigned const size = Asm.getDwarfOffsetByteSize();
     for (const auto &Entry : Entries)
       if (UseRelativeOffsets)
         Asm.emitDwarfStringOffset(Entry->getValue());

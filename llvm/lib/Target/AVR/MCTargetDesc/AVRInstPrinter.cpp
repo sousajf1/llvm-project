@@ -35,7 +35,7 @@ namespace llvm {
 void AVRInstPrinter::printInst(const MCInst *MI, uint64_t Address,
                                StringRef Annot, const MCSubtargetInfo &STI,
                                raw_ostream &O) {
-  unsigned Opcode = MI->getOpcode();
+  unsigned const Opcode = MI->getOpcode();
 
   // First handle load and store instructions with postinc or predec
   // of the form "ld reg, X+".
@@ -91,7 +91,7 @@ const char *AVRInstPrinter::getPrettyRegisterName(unsigned RegNum,
   // GCC prints register pairs by just printing the lower register
   // If the register contains a subregister, print it instead
   if (MRI.getNumSubRegIndices() > 0) {
-    unsigned RegLoNum = MRI.getSubReg(RegNum, AVR::sub_lo);
+    unsigned const RegLoNum = MRI.getSubReg(RegNum, AVR::sub_lo);
     RegNum = (RegLoNum != AVR::NoRegister) ? RegLoNum : RegNum;
   }
 
@@ -121,7 +121,7 @@ void AVRInstPrinter::printOperand(const MCInst *MI, unsigned OpNo,
   const MCOperand &Op = MI->getOperand(OpNo);
 
   if (Op.isReg()) {
-    bool isPtrReg = (MOI.RegClass == AVR::PTRREGSRegClassID) ||
+    bool const isPtrReg = (MOI.RegClass == AVR::PTRREGSRegClassID) ||
                     (MOI.RegClass == AVR::PTRDISPREGSRegClassID) ||
                     (MOI.RegClass == AVR::ZREGRegClassID);
 
@@ -155,7 +155,7 @@ void AVRInstPrinter::printPCRelImm(const MCInst *MI, unsigned OpNo,
   const MCOperand &Op = MI->getOperand(OpNo);
 
   if (Op.isImm()) {
-    int64_t Imm = Op.getImm();
+    int64_t const Imm = Op.getImm();
     O << '.';
 
     // Print a position sign if needed.
@@ -181,7 +181,7 @@ void AVRInstPrinter::printMemri(const MCInst *MI, unsigned OpNo,
 
   // Print the {+,-}offset.
   if (OffsetOp.isImm()) {
-    int64_t Offset = OffsetOp.getImm();
+    int64_t const Offset = OffsetOp.getImm();
 
     if (Offset >= 0)
       O << '+';

@@ -665,7 +665,7 @@ void FuncPGOInstrumentation<Edge, BBInfo>::computeCFGHash() {
       auto BI = findBBInfo(Succ);
       if (BI == nullptr)
         continue;
-      uint32_t Index = BI->Index;
+      uint32_t const Index = BI->Index;
       for (int J = 0; J < 4; J++)
         Indexes.push_back((uint8_t)(Index >> (J * 8)));
     }
@@ -742,8 +742,8 @@ template <class Edge, class BBInfo>
 void FuncPGOInstrumentation<Edge, BBInfo>::renameComdatFunction() {
   if (!canRenameComdat(F, ComdatMembers))
     return;
-  std::string OrigName = F.getName().str();
-  std::string NewFuncName =
+  std::string const OrigName = F.getName().str();
+  std::string const NewFuncName =
       Twine(F.getName() + "." + Twine(FunctionHash)).str();
   F.setName(Twine(NewFuncName));
   GlobalAlias::create(GlobalValue::WeakAnyLinkage, OrigName, &F);
@@ -763,7 +763,7 @@ void FuncPGOInstrumentation<Edge, BBInfo>::renameComdatFunction() {
 
   // This function belongs to a single function Comdat group.
   Comdat *OrigComdat = F.getComdat();
-  std::string NewComdatName =
+  std::string const NewComdatName =
       Twine(OrigComdat->getName() + "." + Twine(FunctionHash)).str();
   NewComdat = M->getOrInsertComdat(StringRef(NewComdatName));
   NewComdat->setSelectionKind(OrigComdat->getSelectionKind());
@@ -837,7 +837,7 @@ BasicBlock *FuncPGOInstrumentation<Edge, BBInfo>::getInstrBB(Edge *E) {
 
   // Some IndirectBr critical edges cannot be split by the previous
   // SplitIndirectBrCriticalEdges call. Bail out.
-  unsigned SuccNum = GetSuccessorNumber(SrcBB, DestBB);
+  unsigned const SuccNum = GetSuccessorNumber(SrcBB, DestBB);
   BasicBlock *InstrBB =
       isa<IndirectBrInst>(TI) ? nullptr : SplitCriticalEdge(TI, SuccNum);
   if (!InstrBB) {
@@ -906,7 +906,7 @@ static void instrumentOneFunc(
       F, TLI, ComdatMembers, true, BPI, BFI, IsCS, PGOInstrumentEntry);
   std::vector<BasicBlock *> InstrumentBBs;
   FuncInfo.getInstrumentBBs(InstrumentBBs);
-  unsigned NumCounters =
+  unsigned const NumCounters =
       InstrumentBBs.size() + FuncInfo.SIVisitor.getNumOfSelectInsts();
 
   uint32_t I = 0;
@@ -1173,7 +1173,7 @@ bool PGOUseFunc::setInstrumentedCounts(
 
   std::vector<BasicBlock *> InstrumentBBs;
   FuncInfo.getInstrumentBBs(InstrumentBBs);
-  unsigned NumCounters =
+  unsigned const NumCounters =
       InstrumentBBs.size() + FuncInfo.SIVisitor.getNumOfSelectInsts();
   // The number of counters here should match the number of counters
   // in profile. Return if they mismatch.
@@ -1211,7 +1211,7 @@ bool PGOUseFunc::setInstrumentedCounts(
     if (E->Removed || E->InMST)
       continue;
     const BasicBlock *SrcBB = E->SrcBB;
-    UseBBInfo &SrcInfo = getBBInfo(SrcBB);
+    UseBBInfo  const&SrcInfo = getBBInfo(SrcBB);
 
     // If only one out-edge, the edge profile count should be the same as BB
     // profile count.
@@ -1219,7 +1219,7 @@ bool PGOUseFunc::setInstrumentedCounts(
       setEdgeCount(E.get(), SrcInfo.CountValue);
     else {
       const BasicBlock *DestBB = E->DestBB;
-      UseBBInfo &DestInfo = getBBInfo(DestBB);
+      UseBBInfo  const&DestInfo = getBBInfo(DestBB);
       // If only one in-edge, the edge profile count should be the same as BB
       // profile count.
       if (DestInfo.CountValid && DestInfo.InEdges.size() == 1)
@@ -1306,7 +1306,7 @@ bool PGOUseFunc::readCounters(IndexedInstrProfReader *PGOReader, bool &AllZeros,
       if (SkipWarning)
         return;
 
-      std::string Msg = IPE.message() + std::string(" ") + F.getName().str() +
+      std::string const Msg = IPE.message() + std::string(" ") + F.getName().str() +
                         std::string(" Hash = ") +
                         std::to_string(FuncInfo.FunctionHash);
 
@@ -1378,7 +1378,7 @@ void PGOUseFunc::populateCounters() {
       if (Count->CountValid) {
         if (Count->UnknownCountOutEdge == 1) {
           uint64_t Total = 0;
-          uint64_t OutSum = sumEdgeCount(Count->OutEdges);
+          uint64_t const OutSum = sumEdgeCount(Count->OutEdges);
           // If the one of the successor block can early terminate (no-return),
           // we can end up with situation where out edge sum count is larger as
           // the source BB's count is collected by a post-dominated block.
@@ -1389,7 +1389,7 @@ void PGOUseFunc::populateCounters() {
         }
         if (Count->UnknownCountInEdge == 1) {
           uint64_t Total = 0;
-          uint64_t InSum = sumEdgeCount(Count->InEdges);
+          uint64_t const InSum = sumEdgeCount(Count->InEdges);
           if (Count->CountValue > InSum)
             Total = Count->CountValue - InSum;
           setEdgeCount(Count->InEdges, Total);
@@ -1449,7 +1449,7 @@ void PGOUseFunc::setBranchWeights() {
 
     // We have a non-zero Branch BB.
     const UseBBInfo &BBCountInfo = getBBInfo(&BB);
-    unsigned Size = BBCountInfo.OutEdges.size();
+    unsigned const Size = BBCountInfo.OutEdges.size();
     SmallVector<uint64_t, 2> EdgeCounts(Size, 0);
     uint64_t MaxCount = 0;
     for (unsigned s = 0; s < Size; s++) {
@@ -1458,8 +1458,8 @@ void PGOUseFunc::setBranchWeights() {
       const BasicBlock *DestBB = E->DestBB;
       if (DestBB == nullptr)
         continue;
-      unsigned SuccNum = GetSuccessorNumber(SrcBB, DestBB);
-      uint64_t EdgeCount = E->CountValue;
+      unsigned const SuccNum = GetSuccessorNumber(SrcBB, DestBB);
+      uint64_t const EdgeCount = E->CountValue;
       if (EdgeCount > MaxCount)
         MaxCount = EdgeCount;
       EdgeCounts[SuccNum] = EdgeCount;
@@ -1518,7 +1518,7 @@ void SelectInstVisitor::annotateOneSelectInst(SelectInst &SI) {
     TotalCount = BI->CountValue;
   // False Count
   SCounts[1] = (TotalCount > SCounts[0] ? TotalCount - SCounts[0] : 0);
-  uint64_t MaxCount = std::max(SCounts[0], SCounts[1]);
+  uint64_t const MaxCount = std::max(SCounts[0], SCounts[1]);
   if (MaxCount)
     setProfMetadata(F.getParent(), &SI, SCounts, MaxCount);
 }
@@ -1562,7 +1562,7 @@ void PGOUseFunc::annotateValueSites(uint32_t Kind) {
   assert(Kind <= IPVK_Last);
   unsigned ValueSiteIndex = 0;
   auto &ValueSites = FuncInfo.ValueSites[Kind];
-  unsigned NumValueSites = ProfileRecord.getNumValueSites(Kind);
+  unsigned const NumValueSites = ProfileRecord.getNumValueSites(Kind);
   if (NumValueSites != ValueSites.size()) {
     auto &Ctx = M->getContext();
     Ctx.diagnose(DiagnosticInfoPGOProfile(
@@ -1575,7 +1575,7 @@ void PGOUseFunc::annotateValueSites(uint32_t Kind) {
     return;
   }
 
-  for (VPCandidateInfo &I : ValueSites) {
+  for (VPCandidateInfo  const&I : ValueSites) {
     LLVM_DEBUG(dbgs() << "Read one value site profile (kind = " << Kind
                       << "): Index = " << ValueSiteIndex << " out of "
                       << NumValueSites << "\n");
@@ -1676,7 +1676,7 @@ PreservedAnalyses PGOInstrumentationGen::run(Module &M,
 static void fixFuncEntryCount(PGOUseFunc &Func, LoopInfo &LI,
                               BranchProbabilityInfo &NBPI) {
   Function &F = Func.getFunc();
-  BlockFrequencyInfo NBFI(F, NBPI, LI);
+  BlockFrequencyInfo const NBFI(F, NBPI, LI);
 #ifndef NDEBUG
   auto BFIEntryCount = F.getEntryCount();
   assert(BFIEntryCount.hasValue() && (BFIEntryCount.getCount() > 0) &&
@@ -1702,11 +1702,11 @@ static void fixFuncEntryCount(PGOUseFunc &Func, LoopInfo &LI,
          "Incorrect sum of BFI counts");
   if (SumBFICount.compare(SumCount) == APFloat::cmpEqual)
     return;
-  double Scale = (SumCount / SumBFICount).convertToDouble();
+  double const Scale = (SumCount / SumBFICount).convertToDouble();
   if (Scale < 1.001 && Scale > 0.999)
     return;
 
-  uint64_t FuncEntryCount = Func.getBBInfo(&*F.begin()).CountValue;
+  uint64_t const FuncEntryCount = Func.getBBInfo(&*F.begin()).CountValue;
   uint64_t NewEntryCount = 0.5 + FuncEntryCount * Scale;
   if (NewEntryCount == 0)
     NewEntryCount = 1;
@@ -1725,9 +1725,9 @@ static void verifyFuncBFI(PGOUseFunc &Func, LoopInfo &LI,
                           uint64_t HotCountThreshold,
                           uint64_t ColdCountThreshold) {
   Function &F = Func.getFunc();
-  BlockFrequencyInfo NBFI(F, NBPI, LI);
+  BlockFrequencyInfo const NBFI(F, NBPI, LI);
   //  bool PrintFunc = false;
-  bool HotBBOnly = PGOVerifyHotBFI;
+  bool const HotBBOnly = PGOVerifyHotBFI;
   std::string Msg;
   OptimizationRemarkEmitter ORE(&F);
 
@@ -1747,9 +1747,9 @@ static void verifyFuncBFI(PGOUseFunc &Func, LoopInfo &LI,
       BFICountValue = BFICount.getValue();
 
     if (HotBBOnly) {
-      bool rawIsHot = CountValue >= HotCountThreshold;
-      bool BFIIsHot = BFICountValue >= HotCountThreshold;
-      bool rawIsCold = CountValue <= ColdCountThreshold;
+      bool const rawIsHot = CountValue >= HotCountThreshold;
+      bool const BFIIsHot = BFICountValue >= HotCountThreshold;
+      bool const rawIsCold = CountValue <= ColdCountThreshold;
       bool ShowCount = false;
       if (rawIsHot && !BFIIsHot) {
         Msg = "raw-Hot to BFI-nonHot";
@@ -1764,7 +1764,7 @@ static void verifyFuncBFI(PGOUseFunc &Func, LoopInfo &LI,
       if ((CountValue < PGOVerifyBFICutoff) &&
           (BFICountValue < PGOVerifyBFICutoff))
         continue;
-      uint64_t Diff = (BFICountValue >= CountValue)
+      uint64_t const Diff = (BFICountValue >= CountValue)
                           ? BFICountValue - CountValue
                           : CountValue - BFICountValue;
       if (Diff < CountValue / 100 * PGOVerifyBFIRatio)
@@ -1875,7 +1875,7 @@ static bool annotateAllFunctions(
     }
     const unsigned MultiplyFactor = 3;
     if (AllMinusOnes) {
-      uint64_t HotThreshold = PSI->getHotCountThreshold();
+      uint64_t const HotThreshold = PSI->getHotCountThreshold();
       if (HotThreshold)
         F.setEntryCount(
             ProfileCount(HotThreshold * MultiplyFactor, Function::PCT_Real));
@@ -1886,7 +1886,7 @@ static bool annotateAllFunctions(
     Func.setBranchWeights();
     Func.annotateValueSites();
     Func.annotateIrrLoopHeaderWeights();
-    PGOUseFunc::FuncFreqAttr FreqAttr = Func.getFuncFreqAttr();
+    PGOUseFunc::FuncFreqAttr const FreqAttr = Func.getFuncFreqAttr();
     if (FreqAttr == PGOUseFunc::FFA_Cold)
       ColdFunctions.push_back(&F);
     else if (FreqAttr == PGOUseFunc::FFA_Hot)
@@ -1894,8 +1894,8 @@ static bool annotateAllFunctions(
     if (PGOViewCounts != PGOVCT_None &&
         (ViewBlockFreqFuncName.empty() ||
          F.getName().equals(ViewBlockFreqFuncName))) {
-      LoopInfo LI{DominatorTree(F)};
-      std::unique_ptr<BranchProbabilityInfo> NewBPI =
+      LoopInfo const LI{DominatorTree(F)};
+      std::unique_ptr<BranchProbabilityInfo> const NewBPI =
           std::make_unique<BranchProbabilityInfo>(F, LI);
       std::unique_ptr<BlockFrequencyInfo> NewBFI =
           std::make_unique<BlockFrequencyInfo>(F, *NewBPI, LI);
@@ -1952,7 +1952,7 @@ static bool annotateAllFunctions(
     // attribute, user's annotation has the precedence over the profile.
     if (F->hasFnAttribute(Attribute::Hot)) {
       auto &Ctx = M.getContext();
-      std::string Msg = std::string("Function ") + F->getName().str() +
+      std::string const Msg = std::string("Function ") + F->getName().str() +
                         std::string(" is annotated as a hot function but"
                                     " the profile is cold");
       Ctx.diagnose(
@@ -2050,14 +2050,14 @@ void llvm::setProfMetadata(Module *M, Instruction *TI,
     if (BrCondStr.empty())
       return;
 
-    uint64_t WSum =
+    uint64_t const WSum =
         std::accumulate(Weights.begin(), Weights.end(), (uint64_t)0,
                         [](uint64_t w1, uint64_t w2) { return w1 + w2; });
-    uint64_t TotalCount =
+    uint64_t const TotalCount =
         std::accumulate(EdgeCounts.begin(), EdgeCounts.end(), (uint64_t)0,
                         [](uint64_t c1, uint64_t c2) { return c1 + c2; });
     Scale = calculateCountScale(WSum);
-    BranchProbability BP(scaleBranchCount(Weights[0], Scale),
+    BranchProbability const BP(scaleBranchCount(Weights[0], Scale),
                          scaleBranchCount(WSum, Scale));
     std::string BranchProbStr;
     raw_string_ostream OS(BranchProbStr);
@@ -2134,7 +2134,7 @@ template <> struct DOTGraphTraits<PGOUseFunc *> : DefaultDOTGraphTraits {
       // Display scaled counts for SELECT instruction:
       OS << "SELECT : { T = ";
       uint64_t TC, FC;
-      bool HasProf = I.extractProfMetadata(TC, FC);
+      bool const HasProf = I.extractProfMetadata(TC, FC);
       if (!HasProf)
         OS << "Unknown, F = Unknown }\\l";
       else

@@ -25,7 +25,7 @@ namespace llvm {
 
 MCOperand AVRMCInstLower::lowerSymbolOperand(const MachineOperand &MO,
                                              MCSymbol *Sym) const {
-  unsigned char TF = MO.getTargetFlags();
+  unsigned char const TF = MO.getTargetFlags();
   const MCExpr *Expr = MCSymbolRefExpr::create(Sym, Ctx);
 
   bool IsNegated = false;
@@ -36,7 +36,7 @@ MCOperand AVRMCInstLower::lowerSymbolOperand(const MachineOperand &MO,
         Expr, MCConstantExpr::create(MO.getOffset(), Ctx), Ctx);
   }
 
-  bool IsFunction = MO.isGlobal() && isa<Function>(MO.getGlobal());
+  bool const IsFunction = MO.isGlobal() && isa<Function>(MO.getGlobal());
 
   if (TF & AVRII::MO_LO) {
     if (IsFunction) {

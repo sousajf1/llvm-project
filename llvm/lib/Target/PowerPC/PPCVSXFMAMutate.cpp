@@ -83,7 +83,7 @@ protected:
         // used for the product, then we can use the M-form instruction (which
         // will take that value from the to-be-defined register).
 
-        int AltOpc = PPC::getAltVSXFMAOpcode(MI.getOpcode());
+        int const AltOpc = PPC::getAltVSXFMAOpcode(MI.getOpcode());
         if (AltOpc == -1)
           continue;
 
@@ -106,7 +106,7 @@ protected:
         //                         implicit %rm; VSLRC:%16,%18,%9
         // and we remove: %5 = COPY %9; VSLRC:%5,%9
 
-        SlotIndex FMAIdx = LIS->getInstructionIndex(MI);
+        SlotIndex const FMAIdx = LIS->getInstructionIndex(MI);
 
         VNInfo *AddendValNo =
             LIS->getInterval(MI.getOperand(1).getReg()).Query(FMAIdx).valueIn();
@@ -127,7 +127,7 @@ protected:
         if (!AddendMI->isFullCopy())
           continue;
 
-        Register AddendSrcReg = AddendMI->getOperand(1).getReg();
+        Register const AddendSrcReg = AddendMI->getOperand(1).getReg();
         if (Register::isVirtualRegister(AddendSrcReg)) {
           if (MRI.getRegClass(AddendMI->getOperand(0).getReg()) !=
               MRI.getRegClass(AddendSrcReg))
@@ -183,12 +183,12 @@ protected:
         //   %5 = A-form-op %5, %5, %11;
         // where %5 and %11 are both kills. This case would be skipped
         // otherwise.
-        Register OldFMAReg = MI.getOperand(0).getReg();
+        Register const OldFMAReg = MI.getOperand(0).getReg();
 
         // Find one of the product operands that is killed by this instruction.
         unsigned KilledProdOp = 0, OtherProdOp = 0;
-        Register Reg2 = MI.getOperand(2).getReg();
-        Register Reg3 = MI.getOperand(3).getReg();
+        Register const Reg2 = MI.getOperand(2).getReg();
+        Register const Reg3 = MI.getOperand(3).getReg();
         if (LIS->getInterval(Reg2).Query(FMAIdx).isKill()
             && Reg2 != OldFMAReg) {
           KilledProdOp = 2;
@@ -215,20 +215,20 @@ protected:
 
         // Transform: (O2 * O3) + O1 -> (O2 * O1) + O3.
 
-        Register KilledProdReg = MI.getOperand(KilledProdOp).getReg();
-        Register OtherProdReg = MI.getOperand(OtherProdOp).getReg();
+        Register const KilledProdReg = MI.getOperand(KilledProdOp).getReg();
+        Register const OtherProdReg = MI.getOperand(OtherProdOp).getReg();
 
-        unsigned AddSubReg = AddendMI->getOperand(1).getSubReg();
-        unsigned KilledProdSubReg = MI.getOperand(KilledProdOp).getSubReg();
-        unsigned OtherProdSubReg = MI.getOperand(OtherProdOp).getSubReg();
+        unsigned const AddSubReg = AddendMI->getOperand(1).getSubReg();
+        unsigned const KilledProdSubReg = MI.getOperand(KilledProdOp).getSubReg();
+        unsigned const OtherProdSubReg = MI.getOperand(OtherProdOp).getSubReg();
 
-        bool AddRegKill = AddendMI->getOperand(1).isKill();
-        bool KilledProdRegKill = MI.getOperand(KilledProdOp).isKill();
-        bool OtherProdRegKill = MI.getOperand(OtherProdOp).isKill();
+        bool const AddRegKill = AddendMI->getOperand(1).isKill();
+        bool const KilledProdRegKill = MI.getOperand(KilledProdOp).isKill();
+        bool const OtherProdRegKill = MI.getOperand(OtherProdOp).isKill();
 
-        bool AddRegUndef = AddendMI->getOperand(1).isUndef();
-        bool KilledProdRegUndef = MI.getOperand(KilledProdOp).isUndef();
-        bool OtherProdRegUndef = MI.getOperand(OtherProdOp).isUndef();
+        bool const AddRegUndef = AddendMI->getOperand(1).isUndef();
+        bool const KilledProdRegUndef = MI.getOperand(KilledProdOp).isUndef();
+        bool const OtherProdRegUndef = MI.getOperand(OtherProdOp).isUndef();
 
         // If there isn't a class that fits, we can't perform the transform.
         // This is needed for correctness with a mixture of VSX and Altivec
@@ -318,7 +318,7 @@ protected:
         if (!AddendSrcReg.isVirtual())
           for (MCRegUnitIterator Units(AddendSrcReg.asMCReg(), TRI);
                Units.isValid(); ++Units) {
-            unsigned Unit = *Units;
+            unsigned const Unit = *Units;
 
             LiveRange &AddendSrcRange = LIS->getRegUnit(Unit);
             AddendSrcRange.extendInBlock(LIS->getMBBStartIdx(&MBB),

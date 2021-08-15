@@ -83,7 +83,7 @@ llvm::mc::RegisterMCTargetOptionsFlags::RegisterMCTargetOptionsFlags() {
   MCBINDOPT(FatalWarnings);
 
   static cl::opt<bool> NoWarn("no-warn", cl::desc("Suppress all warnings"));
-  static cl::alias NoWarnW("W", cl::desc("Alias for --no-warn"),
+  static cl::alias const NoWarnW("W", cl::desc("Alias for --no-warn"),
                            cl::aliasopt(NoWarn));
   MCBINDOPT(NoWarn);
 

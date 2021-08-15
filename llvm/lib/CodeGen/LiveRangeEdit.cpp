@@ -32,7 +32,7 @@ void LiveRangeEdit::Delegate::anchor() { }
 
 LiveInterval &LiveRangeEdit::createEmptyIntervalFrom(Register OldReg,
                                                      bool createSubRanges) {
-  Register VReg = MRI.createVirtualRegister(MRI.getRegClass(OldReg));
+  Register const VReg = MRI.createVirtualRegister(MRI.getRegClass(OldReg));
   if (VRM)
     VRM->setIsSplitFromReg(VReg, VRM->getOriginal(OldReg));
 
@@ -45,7 +45,7 @@ LiveInterval &LiveRangeEdit::createEmptyIntervalFrom(Register OldReg,
     // have been finalized.
     LiveInterval &OldLI = LIS.getInterval(OldReg);
     VNInfo::Allocator &Alloc = LIS.getVNInfoAllocator();
-    for (LiveInterval::SubRange &S : OldLI.subranges())
+    for (LiveInterval::SubRange  const&S : OldLI.subranges())
       LI.createSubRange(Alloc, S.LaneMask);
   }
   return LI;
@@ -82,8 +82,8 @@ void LiveRangeEdit::scanRemattable(AAResults *aa) {
   for (VNInfo *VNI : getParent().valnos) {
     if (VNI->isUnused())
       continue;
-    unsigned Original = VRM->getOriginal(getReg());
-    LiveInterval &OrigLI = LIS.getInterval(Original);
+    unsigned const Original = VRM->getOriginal(getReg());
+    LiveInterval  const&OrigLI = LIS.getInterval(Original);
     VNInfo *OrigVNI = OrigLI.getVNInfoAt(VNI->def);
     if (!OrigVNI)
       continue;
@@ -121,7 +121,7 @@ bool LiveRangeEdit::allUsesAvailableAt(const MachineInstr *OrigMI,
       return false;
     }
 
-    LiveInterval &li = LIS.getInterval(MO.getReg());
+    LiveInterval  const&li = LIS.getInterval(MO.getReg());
     const VNInfo *OVNI = li.getVNInfoAt(OrigIdx);
     if (!OVNI)
       continue;
@@ -245,12 +245,12 @@ bool LiveRangeEdit::foldAsLoad(LiveInterval *LI,
 bool LiveRangeEdit::useIsKill(const LiveInterval &LI,
                               const MachineOperand &MO) const {
   const MachineInstr &MI = *MO.getParent();
-  SlotIndex Idx = LIS.getInstructionIndex(MI).getRegSlot();
+  SlotIndex const Idx = LIS.getInstructionIndex(MI).getRegSlot();
   if (LI.Query(Idx).isKill())
     return true;
   const TargetRegisterInfo &TRI = *MRI.getTargetRegisterInfo();
-  unsigned SubReg = MO.getSubReg();
-  LaneBitmask LaneMask = TRI.getSubRegIndexLaneMask(SubReg);
+  unsigned const SubReg = MO.getSubReg();
+  LaneBitmask const LaneMask = TRI.getSubRegIndexLaneMask(SubReg);
   for (const LiveInterval::SubRange &S : LI.subranges()) {
     if ((S.LaneMask & LaneMask).any() && S.Query(Idx).isKill())
       return true;
@@ -262,7 +262,7 @@ bool LiveRangeEdit::useIsKill(const LiveInterval &LI,
 void LiveRangeEdit::eliminateDeadDef(MachineInstr *MI, ToShrinkSet &ToShrink,
                                      AAResults *AA) {
   assert(MI->allDefsAreDead() && "Def isn't really dead");
-  SlotIndex Idx = LIS.getInstructionIndex(*MI).getRegSlot();
+  SlotIndex const Idx = LIS.getInstructionIndex(*MI).getRegSlot();
 
   // Never delete a bundled instruction.
   if (MI->isBundled()) {
@@ -294,8 +294,8 @@ void LiveRangeEdit::eliminateDeadDef(MachineInstr *MI, ToShrinkSet &ToShrink,
   if (VRM && MI->getOperand(0).isReg() && MI->getOperand(0).isDef() &&
       MI->getDesc().getNumDefs() == 1) {
     Dest = MI->getOperand(0).getReg();
-    unsigned Original = VRM->getOriginal(Dest);
-    LiveInterval &OrigLI = LIS.getInterval(Original);
+    unsigned const Original = VRM->getOriginal(Dest);
+    LiveInterval  const&OrigLI = LIS.getInterval(Original);
     VNInfo *OrigVNI = OrigLI.getVNInfoAt(Idx);
     // The original live-range may have been shrunk to
     // an empty live-range. It happens when it is dead, but
@@ -310,7 +310,7 @@ void LiveRangeEdit::eliminateDeadDef(MachineInstr *MI, ToShrinkSet &ToShrink,
          MOE = MI->operands_end(); MOI != MOE; ++MOI) {
     if (!MOI->isReg())
       continue;
-    Register Reg = MOI->getReg();
+    Register const Reg = MOI->getReg();
     if (!Register::isVirtualRegister(Reg)) {
       // Check if MI reads any unreserved physregs.
       if (Reg && MOI->readsReg() && !MRI.isReserved(Reg))
@@ -383,7 +383,7 @@ void LiveRangeEdit::eliminateDeadDef(MachineInstr *MI, ToShrinkSet &ToShrink,
   // Erase any virtregs that are now empty and unused. There may be <undef>
   // uses around. Keep the empty live range in that case.
   for (unsigned i = 0, e = RegsToErase.size(); i != e; ++i) {
-    Register Reg = RegsToErase[i];
+    Register const Reg = RegsToErase[i];
     if (LIS.hasInterval(Reg) && MRI.reg_nodbg_empty(Reg)) {
       ToShrink.remove(&LIS.getInterval(Reg));
       eraseVirtReg(Reg);
@@ -409,7 +409,7 @@ void LiveRangeEdit::eliminateDeadDefs(SmallVectorImpl<MachineInstr *> &Dead,
     ToShrink.pop_back();
     if (foldAsLoad(LI, Dead))
       continue;
-    unsigned VReg = LI->reg();
+    unsigned const VReg = LI->reg();
     if (TheDelegate)
       TheDelegate->LRE_WillShrinkVirtReg(VReg);
     if (!LIS.shrinkToUses(LI, &Dead))
@@ -436,7 +436,7 @@ void LiveRangeEdit::eliminateDeadDefs(SmallVectorImpl<MachineInstr *> &Dead,
     if (!SplitLIs.empty())
       ++NumFracRanges;
 
-    Register Original = VRM ? VRM->getOriginal(VReg) : Register();
+    Register const Original = VRM ? VRM->getOriginal(VReg) : Register();
     for (const LiveInterval *SplitLI : SplitLIs) {
       // If LI is an original interval that hasn't been split yet, make the new
       // intervals their own originals instead of referring to LI. The original

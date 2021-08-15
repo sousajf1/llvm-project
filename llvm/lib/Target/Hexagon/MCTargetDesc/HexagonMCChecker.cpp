@@ -101,7 +101,7 @@ void HexagonMCChecker::init(MCInst const &MCI) {
   // Get implicit register definitions.
   if (const MCPhysReg *ImpDef = MCID.getImplicitDefs())
     for (; *ImpDef; ++ImpDef) {
-      unsigned R = *ImpDef;
+      unsigned const R = *ImpDef;
 
       if (Hexagon::R31 != R && MCID.isCall())
         // Any register other than the LR and the PC are actually volatile ones
@@ -187,7 +187,7 @@ void HexagonMCChecker::init(MCInst const &MCI) {
   if (HexagonMCInstrInfo::isPredicatedNew(MCII, MCI))
     for (unsigned i = MCID.getNumDefs(); i < MCID.getNumOperands(); ++i)
       if (MCI.getOperand(i).isReg()) {
-        unsigned P = MCI.getOperand(i).getReg();
+        unsigned const P = MCI.getOperand(i).getReg();
 
         if (isPredicateRegister(P))
           NewPreds.insert(P);
@@ -212,23 +212,23 @@ HexagonMCChecker::HexagonMCChecker(HexagonMCChecker const &Other,
 }
 
 bool HexagonMCChecker::check(bool FullCheck) {
-  bool chkP = checkPredicates();
-  bool chkNV = checkNewValues();
-  bool chkR = checkRegisters();
-  bool chkRRO = checkRegistersReadOnly();
+  bool const chkP = checkPredicates();
+  bool const chkNV = checkNewValues();
+  bool const chkR = checkRegisters();
+  bool const chkRRO = checkRegistersReadOnly();
   checkRegisterCurDefs();
-  bool chkS = checkSolo();
+  bool const chkS = checkSolo();
   bool chkSh = true;
   if (FullCheck)
     chkSh = checkShuffle();
   bool chkSl = true;
   if (FullCheck)
     chkSl = checkSlots();
-  bool chkAXOK = checkAXOK();
-  bool chkCofMax1 = checkCOFMax1();
-  bool chkHWLoop = checkHWLoop();
-  bool chkLegalVecRegPair = checkLegalVecRegPair();
-  bool chk = chkP && chkNV && chkR && chkRRO && chkS && chkSh && chkSl &&
+  bool const chkAXOK = checkAXOK();
+  bool const chkCofMax1 = checkCOFMax1();
+  bool const chkHWLoop = checkHWLoop();
+  bool const chkLegalVecRegPair = checkLegalVecRegPair();
+  bool const chk = chkP && chkNV && chkR && chkRRO && chkS && chkSh && chkSl &&
              chkAXOK && chkCofMax1 && chkHWLoop && chkLegalVecRegPair;
 
   return chk;
@@ -269,10 +269,10 @@ static bool isDuplexAGroup(unsigned Opcode) {
 
 static bool isNeitherAnorX(MCInstrInfo const &MCII, MCInst const &ID) {
   unsigned Result = 0;
-  unsigned Type = HexagonMCInstrInfo::getType(MCII, ID);
+  unsigned const Type = HexagonMCInstrInfo::getType(MCII, ID);
   if (Type == HexagonII::TypeDUPLEX) {
-    unsigned subInst0Opcode = ID.getOperand(0).getInst()->getOpcode();
-    unsigned subInst1Opcode = ID.getOperand(1).getInst()->getOpcode();
+    unsigned const subInst0Opcode = ID.getOperand(0).getInst()->getOpcode();
+    unsigned const subInst1Opcode = ID.getOperand(1).getInst()->getOpcode();
     Result += !isDuplexAGroup(subInst0Opcode);
     Result += !isDuplexAGroup(subInst1Opcode);
   } else
@@ -341,8 +341,8 @@ bool HexagonMCChecker::checkCOFMax1() {
   for (unsigned J = 0, N = BranchLocations.size(); J < N; ++J) {
     MCInst const &I = *BranchLocations[J];
     if (HexagonMCInstrInfo::isCofMax1(MCII, I)) {
-      bool Relax1 = HexagonMCInstrInfo::isCofRelax1(MCII, I);
-      bool Relax2 = HexagonMCInstrInfo::isCofRelax2(MCII, I);
+      bool const Relax1 = HexagonMCInstrInfo::isCofRelax1(MCII, I);
+      bool const Relax2 = HexagonMCInstrInfo::isCofRelax2(MCII, I);
       if (N > 1 && !Relax1 && !Relax2) {
         reportError(I.getLoc(),
                     "Instruction may not be in a packet with other branches");
@@ -389,7 +389,7 @@ bool HexagonMCChecker::checkSlots() {
 bool HexagonMCChecker::checkPredicates() {
   // Check for proper use of new predicate registers.
   for (const auto &I : NewPreds) {
-    unsigned P = I;
+    unsigned const P = I;
 
     if (!Defs.count(P) || LatePreds.count(P) || Defs.count(Hexagon::P3_0)) {
       // Error out if the new predicate register is not defined,
@@ -402,7 +402,7 @@ bool HexagonMCChecker::checkPredicates() {
 
   // Check for proper use of auto-anded of predicate registers.
   for (const auto &I : LatePreds) {
-    unsigned P = I;
+    unsigned const P = I;
 
     if (LatePreds.count(P) > 1 || Defs.count(P)) {
       // Error out if predicate register defined "late" multiple times or
@@ -422,7 +422,7 @@ bool HexagonMCChecker::checkNewValues() {
     if (!HexagonMCInstrInfo::isNewValue(MCII, I))
       continue;
     auto Consumer = HexagonMCInstrInfo::predicateInfo(MCII, I);
-    bool Branch = HexagonMCInstrInfo::getDesc(MCII, I).isBranch();
+    bool const Branch = HexagonMCInstrInfo::getDesc(MCII, I).isBranch();
     MCOperand const &Op = HexagonMCInstrInfo::getNewValueOperand(MCII, I);
     assert(Op.isReg());
     auto Producer = registerProducer(Op.getReg(), Consumer);
@@ -473,7 +473,7 @@ bool HexagonMCChecker::checkNewValues() {
     }
     if ((Desc.mayLoad() && std::get<1>(Producer) == 1) ||
         (Desc.mayStore() && std::get<1>(Producer) == 0)) {
-      unsigned Mode =
+      unsigned const Mode =
           HexagonMCInstrInfo::getAddrMode(MCII, *std::get<0>(Producer));
       StringRef ModeError;
       if (Mode == HexagonII::AbsoluteSet)
@@ -503,11 +503,11 @@ bool HexagonMCChecker::checkNewValues() {
 bool HexagonMCChecker::checkRegistersReadOnly() {
   for (auto I : HexagonMCInstrInfo::bundleInstructions(MCB)) {
     MCInst const &Inst = *I.getInst();
-    unsigned Defs = HexagonMCInstrInfo::getDesc(MCII, Inst).getNumDefs();
+    unsigned const Defs = HexagonMCInstrInfo::getDesc(MCII, Inst).getNumDefs();
     for (unsigned j = 0; j < Defs; ++j) {
       MCOperand const &Operand = Inst.getOperand(j);
       assert(Operand.isReg() && "Def is not a register");
-      unsigned Register = Operand.getReg();
+      unsigned const Register = Operand.getReg();
       if (ReadOnly.find(Register) != ReadOnly.end()) {
         reportError(Inst.getLoc(), "Cannot write to read-only register `" +
                                        Twine(RI.getName(Register)) + "'");
@@ -562,7 +562,7 @@ void HexagonMCChecker::checkRegisterCurDefs() {
   for (auto const &I : HexagonMCInstrInfo::bundleInstructions(MCII, MCB)) {
     if (HexagonMCInstrInfo::isCVINew(MCII, I) &&
         HexagonMCInstrInfo::getDesc(MCII, I).mayLoad()) {
-      unsigned Register = I.getOperand(0).getReg();
+      unsigned const Register = I.getOperand(0).getReg();
       if (!registerUsed(Register))
         reportWarning("Register `" + Twine(RI.getName(Register)) +
                       "' used with `.cur' "
@@ -575,7 +575,7 @@ void HexagonMCChecker::checkRegisterCurDefs() {
 bool HexagonMCChecker::checkRegisters() {
   // Check for proper register definitions.
   for (const auto &I : Defs) {
-    unsigned R = I.first;
+    unsigned const R = I.first;
 
     if (isLoopRegister(R) && Defs.count(R) > 1 &&
         (HexagonMCInstrInfo::isInnerLoop(MCB) ||
@@ -588,21 +588,21 @@ bool HexagonMCChecker::checkRegisters() {
     if (SoftDefs.count(R)) {
       // Error out for explicit changes to registers also weakly defined
       // (e.g., "{ usr = r0; r0 = sfadd(...) }").
-      unsigned UsrR = Hexagon::USR; // Silence warning about mixed types in ?:.
-      unsigned BadR = RI.isSubRegister(Hexagon::USR, R) ? UsrR : R;
+      unsigned const UsrR = Hexagon::USR; // Silence warning about mixed types in ?:.
+      unsigned const BadR = RI.isSubRegister(Hexagon::USR, R) ? UsrR : R;
       reportErrorRegisters(BadR);
       return false;
     }
     if (!isPredicateRegister(R) && Defs[R].size() > 1) {
       // Check for multiple register definitions.
-      PredSet &PM = Defs[R];
+      PredSet  const&PM = Defs[R];
 
       // Check for multiple unconditional register definitions.
       if (PM.count(Unconditional)) {
         // Error out on an unconditional change when there are any other
         // changes, conditional or not.
-        unsigned UsrR = Hexagon::USR;
-        unsigned BadR = RI.isSubRegister(Hexagon::USR, R) ? UsrR : R;
+        unsigned const UsrR = Hexagon::USR;
+        unsigned const BadR = RI.isSubRegister(Hexagon::USR, R) ? UsrR : R;
         reportErrorRegisters(BadR);
         return false;
       }
@@ -632,7 +632,7 @@ bool HexagonMCChecker::checkRegisters() {
 
   // Check for use of temporary definitions.
   for (const auto &I : TmpDefs) {
-    unsigned R = I;
+    unsigned const R = I;
 
     if (!Uses.count(R)) {
       // special case for vhist

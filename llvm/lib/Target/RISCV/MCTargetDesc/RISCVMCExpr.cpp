@@ -33,8 +33,8 @@ const RISCVMCExpr *RISCVMCExpr::create(const MCExpr *Expr, VariantKind Kind,
 }
 
 void RISCVMCExpr::printImpl(raw_ostream &OS, const MCAsmInfo *MAI) const {
-  VariantKind Kind = getKind();
-  bool HasVariant = ((Kind != VK_RISCV_None) && (Kind != VK_RISCV_CALL) &&
+  VariantKind const Kind = getKind();
+  bool const HasVariant = ((Kind != VK_RISCV_None) && (Kind != VK_RISCV_CALL) &&
                      (Kind != VK_RISCV_CALL_PLT));
 
   if (HasVariant)

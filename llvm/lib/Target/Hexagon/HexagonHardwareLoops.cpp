@@ -436,17 +436,17 @@ bool HexagonHardwareLoops::findInductionRegister(MachineLoop *L,
       if (Phi->getOperand(i+1).getMBB() != Latch)
         continue;
 
-      Register PhiOpReg = Phi->getOperand(i).getReg();
+      Register const PhiOpReg = Phi->getOperand(i).getReg();
       MachineInstr *DI = MRI->getVRegDef(PhiOpReg);
 
       if (DI->getDesc().isAdd()) {
         // If the register operand to the add is the PHI we're looking at, this
         // meets the induction pattern.
-        Register IndReg = DI->getOperand(1).getReg();
-        MachineOperand &Opnd2 = DI->getOperand(2);
+        Register const IndReg = DI->getOperand(1).getReg();
+        MachineOperand  const&Opnd2 = DI->getOperand(2);
         int64_t V;
         if (MRI->getVRegDef(IndReg) == Phi && checkForImmediate(Opnd2, V)) {
-          Register UpdReg = DI->getOperand(0).getReg();
+          Register const UpdReg = DI->getOperand(0).getReg();
           IndMap.insert(std::make_pair(UpdReg, std::make_pair(IndReg, V)));
         }
       }
@@ -455,7 +455,7 @@ bool HexagonHardwareLoops::findInductionRegister(MachineLoop *L,
 
   SmallVector<MachineOperand,2> Cond;
   MachineBasicBlock *TB = nullptr, *FB = nullptr;
-  bool NotAnalyzed = TII->analyzeBranch(*ExitingBlock, TB, FB, Cond, false);
+  bool const NotAnalyzed = TII->analyzeBranch(*ExitingBlock, TB, FB, Cond, false);
   if (NotAnalyzed)
     return false;
 
@@ -469,7 +469,7 @@ bool HexagonHardwareLoops::findInductionRegister(MachineLoop *L,
 
   Register CmpReg1, CmpReg2;
   int CmpImm = 0, CmpMask = 0;
-  bool CmpAnalyzed =
+  bool const CmpAnalyzed =
       TII->analyzeCompare(*PredI, CmpReg1, CmpReg2, CmpMask, CmpImm);
   // Fail if the compare was not analyzed, or it's not comparing a register
   // with an immediate value.  Not checking the mask here, since we handle
@@ -479,15 +479,15 @@ bool HexagonHardwareLoops::findInductionRegister(MachineLoop *L,
 
   // Exactly one of the input registers to the comparison should be among
   // the induction registers.
-  InductionMap::iterator IndMapEnd = IndMap.end();
+  InductionMap::iterator const IndMapEnd = IndMap.end();
   InductionMap::iterator F = IndMapEnd;
   if (CmpReg1 != 0) {
-    InductionMap::iterator F1 = IndMap.find(CmpReg1);
+    InductionMap::iterator const F1 = IndMap.find(CmpReg1);
     if (F1 != IndMapEnd)
       F = F1;
   }
   if (CmpReg2 != 0) {
-    InductionMap::iterator F2 = IndMap.find(CmpReg2);
+    InductionMap::iterator const F2 = IndMap.find(CmpReg2);
     if (F2 != IndMapEnd) {
       if (F != IndMapEnd)
         return false;
@@ -595,7 +595,7 @@ CountValue *HexagonHardwareLoops::getLoopTripCount(MachineLoop *L,
   unsigned IVReg = 0;
   int64_t IVBump = 0;
   MachineInstr *IVOp;
-  bool FoundIV = findInductionRegister(L, IVReg, IVBump, IVOp);
+  bool const FoundIV = findInductionRegister(L, IVReg, IVBump, IVOp);
   if (!FoundIV)
     return nullptr;
 
@@ -616,7 +616,7 @@ CountValue *HexagonHardwareLoops::getLoopTripCount(MachineLoop *L,
 
   SmallVector<MachineOperand,2> Cond;
   MachineBasicBlock *TB = nullptr, *FB = nullptr;
-  bool NotAnalyzed = TII->analyzeBranch(*ExitingBlock, TB, FB, Cond, false);
+  bool const NotAnalyzed = TII->analyzeBranch(*ExitingBlock, TB, FB, Cond, false);
   if (NotAnalyzed)
     return nullptr;
 
@@ -628,7 +628,7 @@ CountValue *HexagonHardwareLoops::getLoopTripCount(MachineLoop *L,
   if (ExitingBlock != Latch && (TB == Latch || FB == Latch)) {
     MachineBasicBlock *LTB = nullptr, *LFB = nullptr;
     SmallVector<MachineOperand,2> LCond;
-    bool NotAnalyzed = TII->analyzeBranch(*Latch, LTB, LFB, LCond, false);
+    bool const NotAnalyzed = TII->analyzeBranch(*Latch, LTB, LFB, LCond, false);
     if (NotAnalyzed)
       return nullptr;
     if (TB == Latch)
@@ -644,16 +644,16 @@ CountValue *HexagonHardwareLoops::getLoopTripCount(MachineLoop *L,
   // to put imm(0), followed by P in the vector Cond.
   // If TB is not the header, it means that the "not-taken" path must lead
   // to the header.
-  bool Negated = TII->predOpcodeHasNot(Cond) ^ (TB != Header);
+  bool const Negated = TII->predOpcodeHasNot(Cond) ^ (TB != Header);
   unsigned PredReg, PredPos, PredRegFlags;
   if (!TII->getPredReg(Cond, PredReg, PredPos, PredRegFlags))
     return nullptr;
   MachineInstr *CondI = MRI->getVRegDef(PredReg);
-  unsigned CondOpc = CondI->getOpcode();
+  unsigned const CondOpc = CondI->getOpcode();
 
   Register CmpReg1, CmpReg2;
   int Mask = 0, ImmValue = 0;
-  bool AnalyzedCmp =
+  bool const AnalyzedCmp =
       TII->analyzeCompare(*CondI, CmpReg1, CmpReg2, Mask, ImmValue);
   if (!AnalyzedCmp)
     return nullptr;
@@ -695,7 +695,7 @@ CountValue *HexagonHardwareLoops::getLoopTripCount(MachineLoop *L,
     Cmp = Comparison::getSwappedComparison(Cmp);
 
   if (InitialValue->isReg()) {
-    Register R = InitialValue->getReg();
+    Register const R = InitialValue->getReg();
     MachineBasicBlock *DefBB = MRI->getVRegDef(R)->getParent();
     if (!MDT->properlyDominates(DefBB, Header)) {
       int64_t V;
@@ -705,7 +705,7 @@ CountValue *HexagonHardwareLoops::getLoopTripCount(MachineLoop *L,
     OldInsts.push_back(MRI->getVRegDef(R));
   }
   if (EndValue->isReg()) {
-    Register R = EndValue->getReg();
+    Register const R = EndValue->getReg();
     MachineBasicBlock *DefBB = MRI->getVRegDef(R)->getParent();
     if (!MDT->properlyDominates(DefBB, Header)) {
       int64_t V;
@@ -752,9 +752,9 @@ CountValue *HexagonHardwareLoops::computeCount(MachineLoop *Loop,
   if (!End->isReg() && !End->isImm())
     return nullptr;
 
-  bool CmpLess =     Cmp & Comparison::L;
-  bool CmpGreater =  Cmp & Comparison::G;
-  bool CmpHasEqual = Cmp & Comparison::EQ;
+  bool const CmpLess =     Cmp & Comparison::L;
+  bool const CmpGreater =  Cmp & Comparison::G;
+  bool const CmpHasEqual = Cmp & Comparison::EQ;
 
   // Avoid certain wrap-arounds.  This doesn't detect all wrap-arounds.
   if (CmpLess && IVBump < 0)
@@ -777,13 +777,13 @@ CountValue *HexagonHardwareLoops::computeCount(MachineLoop *Loop,
 
   if (Start->isImm() && End->isImm()) {
     // Both, start and end are immediates.
-    int64_t StartV = Start->getImm();
-    int64_t EndV = End->getImm();
+    int64_t const StartV = Start->getImm();
+    int64_t const EndV = End->getImm();
     int64_t Dist = EndV - StartV;
     if (Dist == 0)
       return nullptr;
 
-    bool Exact = (Dist % IVBump) == 0;
+    bool const Exact = (Dist % IVBump) == 0;
 
     if (Cmp == Comparison::NE) {
       if (!Exact)
@@ -805,11 +805,11 @@ CountValue *HexagonHardwareLoops::computeCount(MachineLoop *Loop,
       return nullptr;
 
     // "Normalized" distance, i.e. with the bump set to +-1.
-    int64_t Dist1 = (IVBump > 0) ? (Dist +  (IVBump - 1)) / IVBump
+    int64_t const Dist1 = (IVBump > 0) ? (Dist +  (IVBump - 1)) / IVBump
                                  : (-Dist + (-IVBump - 1)) / (-IVBump);
     assert (Dist1 > 0 && "Fishy thing.  Both operands have the same sign.");
 
-    uint64_t Count = Dist1;
+    uint64_t const Count = Dist1;
 
     if (Count > 0xFFFFFFFFULL)
       return nullptr;
@@ -828,7 +828,7 @@ CountValue *HexagonHardwareLoops::computeCount(MachineLoop *Loop,
 
   MachineBasicBlock *PH = MLI->findLoopPreheader(Loop, SpecPreheader);
   assert (PH && "Should have a preheader by now");
-  MachineBasicBlock::iterator InsertPos = PH->getFirstTerminator();
+  MachineBasicBlock::iterator const InsertPos = PH->getFirstTerminator();
   DebugLoc DL;
   if (InsertPos != PH->end())
     DL = InsertPos->getDebugLoc();
@@ -847,8 +847,8 @@ CountValue *HexagonHardwareLoops::computeCount(MachineLoop *Loop,
   // Cmp may now have a wrong direction, e.g.  LEs may now be GEs.
   // Signedness, and "including equality" are preserved.
 
-  bool RegToImm = Start->isReg() && End->isImm(); // for (reg..imm)
-  bool RegToReg = Start->isReg() && End->isReg(); // for (reg..reg)
+  bool const RegToImm = Start->isReg() && End->isImm(); // for (reg..imm)
+  bool const RegToReg = Start->isReg() && End->isReg(); // for (reg..reg)
 
   int64_t StartV = 0, EndV = 0;
   if (Start->isImm())
@@ -911,8 +911,8 @@ CountValue *HexagonHardwareLoops::computeCount(MachineLoop *Loop,
                               (RegToImm ? TII->get(Hexagon::A2_subri) :
                                           TII->get(Hexagon::A2_addi));
     if (RegToReg || RegToImm) {
-      Register SubR = MRI->createVirtualRegister(IntRC);
-      MachineInstrBuilder SubIB =
+      Register const SubR = MRI->createVirtualRegister(IntRC);
+      MachineInstrBuilder const SubIB =
         BuildMI(*PH, InsertPos, DL, SubD, SubR);
 
       if (RegToReg)
@@ -932,8 +932,8 @@ CountValue *HexagonHardwareLoops::computeCount(MachineLoop *Loop,
           EndValInstr->getOperand(2).getImm() == StartV) {
         DistR = EndValInstr->getOperand(1).getReg();
       } else {
-        Register SubR = MRI->createVirtualRegister(IntRC);
-        MachineInstrBuilder SubIB =
+        Register const SubR = MRI->createVirtualRegister(IntRC);
+        MachineInstrBuilder const SubIB =
           BuildMI(*PH, InsertPos, DL, SubD, SubR);
         SubIB.addReg(End->getReg(), 0, End->getSubReg())
              .addImm(-StartV);
@@ -951,7 +951,7 @@ CountValue *HexagonHardwareLoops::computeCount(MachineLoop *Loop,
     AdjSR = DistSR;
   } else {
     // Generate CountR = ADD DistR, AdjVal
-    Register AddR = MRI->createVirtualRegister(IntRC);
+    Register const AddR = MRI->createVirtualRegister(IntRC);
     MCInstrDesc const &AddD = TII->get(Hexagon::A2_addi);
     BuildMI(*PH, InsertPos, DL, AddD, AddR)
       .addReg(DistR, 0, DistSR)
@@ -969,10 +969,10 @@ CountValue *HexagonHardwareLoops::computeCount(MachineLoop *Loop,
     CountSR = AdjSR;
   } else {
     // The IV bump is a power of two. Log_2(IV bump) is the shift amount.
-    unsigned Shift = Log2_32(IVBump);
+    unsigned const Shift = Log2_32(IVBump);
 
     // Generate NormR = LSR DistR, Shift.
-    Register LsrR = MRI->createVirtualRegister(IntRC);
+    Register const LsrR = MRI->createVirtualRegister(IntRC);
     const MCInstrDesc &LsrD = TII->get(Hexagon::S2_lsr_i_r);
     BuildMI(*PH, InsertPos, DL, LsrD, LsrR)
       .addReg(AdjR, 0, AdjSR)
@@ -1000,7 +1000,7 @@ bool HexagonHardwareLoops::isInvalidLoopOperation(const MachineInstr *MI,
   static const unsigned Regs1[]  = { LC1, SA1 };
   auto CheckRegs = IsInnerHWLoop ? makeArrayRef(Regs01, array_lengthof(Regs01))
                                  : makeArrayRef(Regs1, array_lengthof(Regs1));
-  for (unsigned R : CheckRegs)
+  for (unsigned const R : CheckRegs)
     if (MI->modifiesRegister(R, TRI))
       return true;
 
@@ -1039,7 +1039,7 @@ bool HexagonHardwareLoops::isDead(const MachineInstr *MI,
     if (!MO.isReg() || !MO.isDef())
       continue;
 
-    Register Reg = MO.getReg();
+    Register const Reg = MO.getReg();
     if (MRI->use_nodbg_empty(Reg))
       continue;
 
@@ -1048,8 +1048,8 @@ bool HexagonHardwareLoops::isDead(const MachineInstr *MI,
     // This instruction has users, but if the only user is the phi node for the
     // parent block, and the only use of that phi node is this instruction, then
     // this instruction is dead: both it (and the phi node) can be removed.
-    use_nodbg_iterator I = MRI->use_nodbg_begin(Reg);
-    use_nodbg_iterator End = MRI->use_nodbg_end();
+    use_nodbg_iterator const I = MRI->use_nodbg_begin(Reg);
+    use_nodbg_iterator const End = MRI->use_nodbg_end();
     if (std::next(I) != End || !I->getParent()->isPHI())
       return false;
 
@@ -1059,7 +1059,7 @@ bool HexagonHardwareLoops::isDead(const MachineInstr *MI,
       if (!OPO.isReg() || !OPO.isDef())
         continue;
 
-      Register OPReg = OPO.getReg();
+      Register const OPReg = OPO.getReg();
       use_nodbg_iterator nextJ;
       for (use_nodbg_iterator J = MRI->use_nodbg_begin(OPReg);
            J != End; J = nextJ) {
@@ -1093,7 +1093,7 @@ void HexagonHardwareLoops::removeIfDead(MachineInstr *MI) {
       const MachineOperand &MO = MI->getOperand(i);
       if (!MO.isReg() || !MO.isDef())
         continue;
-      Register Reg = MO.getReg();
+      Register const Reg = MO.getReg();
       MachineRegisterInfo::use_iterator nextI;
       for (MachineRegisterInfo::use_iterator I = MRI->use_begin(Reg),
            E = MRI->use_end(); I != E; I = nextI) {
@@ -1163,7 +1163,7 @@ bool HexagonHardwareLoops::convertToHardwareLoop(MachineLoop *L,
 
 #ifndef NDEBUG
   // Stop trying after reaching the limit (if any).
-  int Limit = HWLoopLimit;
+  int const Limit = HWLoopLimit;
   if (Limit >= 0) {
     if (Counter >= HWLoopLimit)
       return false;
@@ -1197,7 +1197,7 @@ bool HexagonHardwareLoops::convertToHardwareLoop(MachineLoop *L,
       return false;
   }
 
-  MachineBasicBlock::iterator InsertPos = Preheader->getFirstTerminator();
+  MachineBasicBlock::iterator const InsertPos = Preheader->getFirstTerminator();
 
   SmallVector<MachineInstr*, 2> OldInsts;
   // Are we able to determine the trip count for the loop?
@@ -1244,7 +1244,7 @@ bool HexagonHardwareLoops::convertToHardwareLoop(MachineLoop *L,
 
   if (TripCount->isReg()) {
     // Create a copy of the loop count register.
-    Register CountReg = MRI->createVirtualRegister(&Hexagon::IntRegsRegClass);
+    Register const CountReg = MRI->createVirtualRegister(&Hexagon::IntRegsRegClass);
     BuildMI(*Preheader, InsertPos, DL, TII->get(TargetOpcode::COPY), CountReg)
       .addReg(TripCount->getReg(), 0, TripCount->getSubReg());
     // Add the Loop instruction to the beginning of the loop.
@@ -1255,9 +1255,9 @@ bool HexagonHardwareLoops::convertToHardwareLoop(MachineLoop *L,
     // Add the Loop immediate instruction to the beginning of the loop,
     // if the immediate fits in the instructions.  Otherwise, we need to
     // create a new virtual register.
-    int64_t CountImm = TripCount->getImm();
+    int64_t const CountImm = TripCount->getImm();
     if (!TII->isValidOffset(LOOP_i, CountImm, TRI)) {
-      Register CountReg = MRI->createVirtualRegister(&Hexagon::IntRegsRegClass);
+      Register const CountReg = MRI->createVirtualRegister(&Hexagon::IntRegsRegClass);
       BuildMI(*Preheader, InsertPos, DL, TII->get(Hexagon::A2_tfrsi), CountReg)
         .addImm(CountImm);
       BuildMI(*Preheader, InsertPos, DL, TII->get(LOOP_r))
@@ -1276,7 +1276,7 @@ bool HexagonHardwareLoops::convertToHardwareLoop(MachineLoop *L,
   BlockAddress::get(const_cast<BasicBlock *>(LoopStart->getBasicBlock()));
 
   // Replace the loop branch with an endloop instruction.
-  DebugLoc LastIDL = LastI->getDebugLoc();
+  DebugLoc const LastIDL = LastI->getDebugLoc();
   BuildMI(*LastMBB, LastI, LastIDL, TII->get(ENDLOOP)).addMBB(LoopStart);
 
   // The loop ends with either:
@@ -1290,7 +1290,7 @@ bool HexagonHardwareLoops::convertToHardwareLoop(MachineLoop *L,
     if (!L->contains(BranchTarget)) {
       if (LastI != LastMBB->end())
         LastI = LastMBB->erase(LastI);
-      SmallVector<MachineOperand, 0> Cond;
+      SmallVector<MachineOperand, 0> const Cond;
       TII->insertBranch(*LastMBB, BranchTarget, nullptr, Cond, LastIDL);
     }
   } else {
@@ -1333,13 +1333,13 @@ bool HexagonHardwareLoops::orderBumpCompare(MachineInstr *BumpI,
       return true;
 
   // Out of order.
-  Register PredR = CmpI->getOperand(0).getReg();
+  Register const PredR = CmpI->getOperand(0).getReg();
   bool FoundBump = false;
   instr_iterator CmpIt = CmpI->getIterator(), NextIt = std::next(CmpIt);
   for (instr_iterator I = NextIt, E = BB->instr_end(); I != E; ++I) {
     MachineInstr *In = &*I;
     for (unsigned i = 0, n = In->getNumOperands(); i < n; ++i) {
-      MachineOperand &MO = In->getOperand(i);
+      MachineOperand  const&MO = In->getOperand(i);
       if (MO.isReg() && MO.isUse()) {
         if (MO.getReg() == PredR)  // Found an intervening use of PredR.
           return false;
@@ -1426,7 +1426,7 @@ bool HexagonHardwareLoops::loopCountMayWrapOrUnderFlow(
   if (checkForImmediate(*InitVal, Imm))
     return (EndVal->getImm() == Imm);
 
-  Register Reg = InitVal->getReg();
+  Register const Reg = InitVal->getReg();
 
   // We don't know the value of a physical register.
   if (!Reg.isVirtual())
@@ -1506,11 +1506,11 @@ bool HexagonHardwareLoops::checkForImmediate(const MachineOperand &MO,
   // processed to handle potential subregisters in MO.
   int64_t TV;
 
-  Register R = MO.getReg();
+  Register const R = MO.getReg();
   if (!R.isVirtual())
     return false;
   MachineInstr *DI = MRI->getVRegDef(R);
-  unsigned DOpc = DI->getOpcode();
+  unsigned const DOpc = DI->getOpcode();
   switch (DOpc) {
     case TargetOpcode::COPY:
     case Hexagon::A2_tfrsi:
@@ -1542,8 +1542,8 @@ bool HexagonHardwareLoops::checkForImmediate(const MachineOperand &MO,
       int64_t V1, V3;
       if (!checkForImmediate(S1, V1) || !checkForImmediate(S3, V3))
         return false;
-      unsigned Sub2 = DI->getOperand(2).getImm();
-      unsigned Sub4 = DI->getOperand(4).getImm();
+      unsigned const Sub2 = DI->getOperand(2).getImm();
+      unsigned const Sub4 = DI->getOperand(4).getImm();
       if (Sub2 == Hexagon::isub_lo && Sub4 == Hexagon::isub_hi)
         TV = V1 | (V3 << 32);
       else if (Sub2 == Hexagon::isub_hi && Sub4 == Hexagon::isub_lo)
@@ -1580,13 +1580,13 @@ void HexagonHardwareLoops::setImmediate(MachineOperand &MO, int64_t Val) {
   }
 
   assert(MO.isReg());
-  Register R = MO.getReg();
+  Register const R = MO.getReg();
   MachineInstr *DI = MRI->getVRegDef(R);
 
   const TargetRegisterClass *RC = MRI->getRegClass(R);
-  Register NewR = MRI->createVirtualRegister(RC);
+  Register const NewR = MRI->createVirtualRegister(RC);
   MachineBasicBlock &B = *DI->getParent();
-  DebugLoc DL = DI->getDebugLoc();
+  DebugLoc const DL = DI->getDebugLoc();
   BuildMI(B, DI, DL, TII->get(DI->getOpcode()), NewR).addImm(Val);
   MO.setReg(NewR);
 }
@@ -1632,17 +1632,17 @@ bool HexagonHardwareLoops::fixupInductionVariable(MachineLoop *L) {
       if (Phi->getOperand(i+1).getMBB() != Latch)
         continue;
 
-      Register PhiReg = Phi->getOperand(i).getReg();
+      Register const PhiReg = Phi->getOperand(i).getReg();
       MachineInstr *DI = MRI->getVRegDef(PhiReg);
 
       if (DI->getDesc().isAdd()) {
         // If the register operand to the add/sub is the PHI we are looking
         // at, this meets the induction pattern.
-        Register IndReg = DI->getOperand(1).getReg();
-        MachineOperand &Opnd2 = DI->getOperand(2);
+        Register const IndReg = DI->getOperand(1).getReg();
+        MachineOperand  const&Opnd2 = DI->getOperand(2);
         int64_t V;
         if (MRI->getVRegDef(IndReg) == Phi && checkForImmediate(Opnd2, V)) {
-          Register UpdReg = DI->getOperand(0).getReg();
+          Register const UpdReg = DI->getOperand(0).getReg();
           IndRegs.insert(std::make_pair(UpdReg, std::make_pair(IndReg, V)));
         }
       }
@@ -1655,14 +1655,14 @@ bool HexagonHardwareLoops::fixupInductionVariable(MachineLoop *L) {
   MachineBasicBlock *TB = nullptr, *FB = nullptr;
   SmallVector<MachineOperand,2> Cond;
   // analyzeBranch returns true if it fails to analyze branch.
-  bool NotAnalyzed = TII->analyzeBranch(*ExitingBlock, TB, FB, Cond, false);
+  bool const NotAnalyzed = TII->analyzeBranch(*ExitingBlock, TB, FB, Cond, false);
   if (NotAnalyzed || Cond.empty())
     return false;
 
   if (ExitingBlock != Latch && (TB == Latch || FB == Latch)) {
     MachineBasicBlock *LTB = nullptr, *LFB = nullptr;
     SmallVector<MachineOperand,2> LCond;
-    bool NotAnalyzed = TII->analyzeBranch(*Latch, LTB, LFB, LCond, false);
+    bool const NotAnalyzed = TII->analyzeBranch(*Latch, LTB, LFB, LCond, false);
     if (NotAnalyzed)
       return false;
 
@@ -1693,14 +1693,14 @@ bool HexagonHardwareLoops::fixupInductionVariable(MachineLoop *L) {
   // HexagonInstrInfo::analyzeBranch for negated branches inserts imm(0)
   // into Cond, followed by the predicate register.  For non-negated branches
   // it's just the register.
-  unsigned CSz = Cond.size();
+  unsigned const CSz = Cond.size();
   if (CSz != 1 && CSz != 2)
     return false;
 
   if (!Cond[CSz-1].isReg())
     return false;
 
-  Register P = Cond[CSz - 1].getReg();
+  Register const P = Cond[CSz - 1].getReg();
   MachineInstr *PredDef = MRI->getVRegDef(P);
 
   if (!PredDef->isCompare())
@@ -1786,7 +1786,7 @@ bool HexagonHardwareLoops::fixupInductionVariable(MachineLoop *L) {
             nonIndI->getOpcode() == Hexagon::A2_addi &&
             nonIndI->getOperand(2).isImm() &&
             nonIndI->getOperand(2).getImm() == - RB.second) {
-          bool Order = orderBumpCompare(IndI, PredDef);
+          bool const Order = orderBumpCompare(IndI, PredDef);
           if (Order) {
             IndMO->setReg(I->first);
             nonIndMO->setReg(nonIndI->getOperand(1).getReg());
@@ -1798,7 +1798,7 @@ bool HexagonHardwareLoops::fixupInductionVariable(MachineLoop *L) {
 
       // It is not valid to do this transformation on an unsigned comparison
       // because it may underflow.
-      Comparison::Kind Cmp =
+      Comparison::Kind const Cmp =
           getComparisonKind(PredDef->getOpcode(), nullptr, nullptr, 0);
       if (!Cmp || Comparison::isUnsigned(Cmp))
         return false;
@@ -1807,7 +1807,7 @@ bool HexagonHardwareLoops::fixupInductionVariable(MachineLoop *L) {
       // the compare instruction to use induction register and adjust the
       // immediate operand.
       int64_t CmpImm = getImmediate(*CmpImmOp);
-      int64_t V = RB.second;
+      int64_t const V = RB.second;
       // Handle Overflow (64-bit).
       if (((V > 0) && (CmpImm > INT64_MAX - V)) ||
           ((V < 0) && (CmpImm < INT64_MIN - V)))
@@ -1823,7 +1823,7 @@ bool HexagonHardwareLoops::fixupInductionVariable(MachineLoop *L) {
       // Make sure that the compare happens after the bump.  Otherwise,
       // after the fixup, the compare would use a yet-undefined register.
       MachineInstr *BumpI = MRI->getVRegDef(I->first);
-      bool Order = orderBumpCompare(BumpI, PredDef);
+      bool const Order = orderBumpCompare(BumpI, PredDef);
       if (!Order)
         return false;
 
@@ -1854,7 +1854,7 @@ MachineBasicBlock *HexagonHardwareLoops::createPreheaderForLoop(
   MachineBasicBlock *Latch = L->getLoopLatch();
   MachineBasicBlock *ExitingBlock = L->findLoopControlBlock();
   MachineFunction *MF = Header->getParent();
-  DebugLoc DL;
+  DebugLoc const DL;
 
 #ifndef NDEBUG
   if ((!PHFn.empty()) && (PHFn != MF->getName()))
@@ -1879,7 +1879,7 @@ MachineBasicBlock *HexagonHardwareLoops::createPreheaderForLoop(
 
   for (MBBVector::iterator I = Preds.begin(), E = Preds.end(); I != E; ++I) {
     MachineBasicBlock *PB = *I;
-    bool NotAnalyzed = TII->analyzeBranch(*PB, TB, FB, Tmp1, false);
+    bool const NotAnalyzed = TII->analyzeBranch(*PB, TB, FB, Tmp1, false);
     if (NotAnalyzed)
       return nullptr;
   }
@@ -1901,16 +1901,16 @@ MachineBasicBlock *HexagonHardwareLoops::createPreheaderForLoop(
       MachineInstr *NewPN = MF->CreateMachineInstr(PD, DL);
       NewPH->insert(NewPH->end(), NewPN);
 
-      Register PR = PN->getOperand(0).getReg();
+      Register const PR = PN->getOperand(0).getReg();
       const TargetRegisterClass *RC = MRI->getRegClass(PR);
-      Register NewPR = MRI->createVirtualRegister(RC);
+      Register const NewPR = MRI->createVirtualRegister(RC);
       NewPN->addOperand(MachineOperand::CreateReg(NewPR, true));
 
       // Copy all non-latch operands of a header's PHI node to the newly
       // created PHI node in the preheader.
       for (unsigned i = 1, n = PN->getNumOperands(); i < n; i += 2) {
-        Register PredR = PN->getOperand(i).getReg();
-        unsigned PredRSub = PN->getOperand(i).getSubReg();
+        Register const PredR = PN->getOperand(i).getReg();
+        unsigned const PredRSub = PN->getOperand(i).getSubReg();
         MachineBasicBlock *PredB = PN->getOperand(i+1).getMBB();
         if (PredB == Latch)
           continue;
@@ -1956,7 +1956,7 @@ MachineBasicBlock *HexagonHardwareLoops::createPreheaderForLoop(
   // If any of the predecessors falls through to the header, insert a branch
   // to the new preheader in that place.
   SmallVector<MachineOperand,1> Tmp2;
-  SmallVector<MachineOperand,1> EmptyCond;
+  SmallVector<MachineOperand,1> const EmptyCond;
 
   TB = FB = nullptr;
 
@@ -1964,7 +1964,7 @@ MachineBasicBlock *HexagonHardwareLoops::createPreheaderForLoop(
     MachineBasicBlock *PB = *I;
     if (PB != Latch) {
       Tmp2.clear();
-      bool NotAnalyzed = TII->analyzeBranch(*PB, TB, FB, Tmp2, false);
+      bool const NotAnalyzed = TII->analyzeBranch(*PB, TB, FB, Tmp2, false);
       (void)NotAnalyzed; // suppress compiler warning
       assert (!NotAnalyzed && "Should be analyzable!");
       if (TB != Header && (Tmp2.empty() || FB != Header))
@@ -1976,7 +1976,7 @@ MachineBasicBlock *HexagonHardwareLoops::createPreheaderForLoop(
   // It can happen that the latch block will fall through into the header.
   // Insert an unconditional branch to the header.
   TB = FB = nullptr;
-  bool LatchNotAnalyzed = TII->analyzeBranch(*Latch, TB, FB, Tmp2, false);
+  bool const LatchNotAnalyzed = TII->analyzeBranch(*Latch, TB, FB, Tmp2, false);
   (void)LatchNotAnalyzed; // suppress compiler warning
   assert (!LatchNotAnalyzed && "Should be analyzable!");
   if (!TB && !FB)

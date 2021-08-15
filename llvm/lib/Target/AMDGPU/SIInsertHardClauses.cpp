@@ -121,7 +121,7 @@ public:
   bool emitClause(const ClauseInfo &CI, const SIInstrInfo *SII) {
     // Get the size of the clause excluding any internal instructions at the
     // end.
-    unsigned Size =
+    unsigned const Size =
         std::distance(CI.First->getIterator(), CI.Last->getIterator()) + 1;
     if (Size < 2)
       return false;

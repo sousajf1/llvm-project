@@ -80,7 +80,7 @@ bool CFGuardLongjmp::runOnMachineFunction(MachineFunction &MF) {
         continue;
 
       // Iterate over operands to find calls to global functions.
-      for (MachineOperand &MO : MI.operands()) {
+      for (MachineOperand  const&MO : MI.operands()) {
         if (!MO.isGlobal())
           continue;
 

@@ -100,7 +100,7 @@ static void eraseDeadBBsAndChildren(const Container &MBBs) {
     MachineBasicBlock *MBB = WL.pop_back_val();
     if (Deleted.count(MBB) || !MBB->pred_empty())
       continue;
-    SmallVector<MachineBasicBlock *, 4> Succs(MBB->successors());
+    SmallVector<MachineBasicBlock *, 4> const Succs(MBB->successors());
     WL.append(MBB->succ_begin(), MBB->succ_end());
     for (auto *Succ : Succs)
       MBB->removeSuccessor(Succ);
@@ -275,7 +275,7 @@ bool WebAssemblyLateEHPrepare::removeUnnecessaryUnreachables(
       // because throw itself is a terminator, and also delete successors if
       // any.
       MBB.erase(std::next(MI.getIterator()), MBB.end());
-      SmallVector<MachineBasicBlock *, 8> Succs(MBB.successors());
+      SmallVector<MachineBasicBlock *, 8> const Succs(MBB.successors());
       for (auto *Succ : Succs)
         if (!Succ->isEHPad())
           MBB.removeSuccessor(Succ);

@@ -79,8 +79,8 @@ bool SIPostRABundler::isDependentLoad(const MachineInstr &MI) const {
   for (const MachineOperand &Op : MI.explicit_operands()) {
     if (!Op.isReg())
       continue;
-    Register Reg = Op.getReg();
-    for (Register Def : Defs)
+    Register const Reg = Op.getReg();
+    for (Register const Def : Defs)
       if (TRI->regsOverlap(Reg, Def))
         return true;
   }
@@ -94,7 +94,7 @@ void SIPostRABundler::collectUsedRegUnits(const MachineInstr &MI,
     if (!Op.isReg() || !Op.readsReg())
       continue;
 
-    Register Reg = Op.getReg();
+    Register const Reg = Op.getReg();
     assert(!Op.getSubReg() &&
            "subregister indexes should not be present after RA");
 
@@ -129,8 +129,8 @@ bool SIPostRABundler::runOnMachineFunction(MachineFunction &MF) {
   bool Changed = false;
   for (MachineBasicBlock &MBB : MF) {
     MachineBasicBlock::instr_iterator Next;
-    MachineBasicBlock::instr_iterator B = MBB.instr_begin();
-    MachineBasicBlock::instr_iterator E = MBB.instr_end();
+    MachineBasicBlock::instr_iterator const B = MBB.instr_begin();
+    MachineBasicBlock::instr_iterator const E = MBB.instr_end();
 
     for (auto I = B; I != E; I = Next) {
       Next = std::next(I);
@@ -142,7 +142,7 @@ bool SIPostRABundler::runOnMachineFunction(MachineFunction &MF) {
       if (I->getNumExplicitDefs() != 0)
         Defs.insert(I->defs().begin()->getReg());
 
-      MachineBasicBlock::instr_iterator BundleStart = I;
+      MachineBasicBlock::instr_iterator const BundleStart = I;
       MachineBasicBlock::instr_iterator BundleEnd = I;
       unsigned ClauseLength = 1;
       for (I = Next; I != E; I = Next) {

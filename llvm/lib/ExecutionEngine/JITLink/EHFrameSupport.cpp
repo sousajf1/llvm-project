@@ -85,7 +85,7 @@ Error EHFrameSplitter::processBlock(LinkGraph &G, Block &B,
       G.getEndianness());
 
   while (true) {
-    uint64_t RecordStartOffset = BlockReader.getOffset();
+    uint64_t const RecordStartOffset = BlockReader.getOffset();
 
     LLVM_DEBUG({
       dbgs() << "    Processing CFI record at "
@@ -112,7 +112,7 @@ Error EHFrameSplitter::processBlock(LinkGraph &G, Block &B,
       return Error::success();
     }
 
-    uint64_t BlockSize = BlockReader.getOffset() - RecordStartOffset;
+    uint64_t const BlockSize = BlockReader.getOffset() - RecordStartOffset;
     auto &NewBlock = G.splitBlock(B, BlockSize);
     (void)NewBlock;
     LLVM_DEBUG(dbgs() << "      Extracted " << NewBlock << "\n");
@@ -203,12 +203,12 @@ Error EHFrameEdgeFixer::processBlock(ParseContext &PC, Block &B) {
       BlockEdges[E.getOffset()] = EdgeTarget(E);
     }
 
-  CIEInfosMap CIEInfos;
+  CIEInfosMap const CIEInfos;
   BinaryStreamReader BlockReader(
       StringRef(B.getContent().data(), B.getContent().size()),
       PC.G.getEndianness());
   while (!BlockReader.empty()) {
-    size_t RecordStartOffset = BlockReader.getOffset();
+    size_t const RecordStartOffset = BlockReader.getOffset();
 
     LLVM_DEBUG({
       dbgs() << "    Processing CFI record at "
@@ -239,7 +239,7 @@ Error EHFrameEdgeFixer::processBlock(ParseContext &PC, Block &B) {
           formatv("{0:x16}", B.getAddress() + RecordStartOffset));
 
     // Read the CIE delta for this record.
-    uint64_t CIEDeltaFieldOffset = BlockReader.getOffset() - RecordStartOffset;
+    uint64_t const CIEDeltaFieldOffset = BlockReader.getOffset() - RecordStartOffset;
     uint32_t CIEDelta;
     if (auto Err = BlockReader.readInteger(CIEDelta))
       return Err;
@@ -329,10 +329,10 @@ Error EHFrameEdgeFixer::processCIE(ParseContext &PC, Block &B,
   if (auto Err = RecordReader.readULEB128(AugmentationDataLength))
     return Err;
 
-  uint32_t AugmentationDataStartOffset = RecordReader.getOffset();
+  uint32_t const AugmentationDataStartOffset = RecordReader.getOffset();
 
   uint8_t *NextField = &AugInfo->Fields[0];
-  while (uint8_t Field = *NextField++) {
+  while (uint8_t const Field = *NextField++) {
     switch (Field) {
     case 'L': {
       CIEInfo.FDEsHaveLSDAField = true;
@@ -456,7 +456,7 @@ Error EHFrameEdgeFixer::processFDE(ParseContext &PC, Block &B,
   {
     // Process the PC-Begin field.
     Block *PCBeginBlock = nullptr;
-    JITTargetAddress PCBeginFieldOffset = RecordReader.getOffset();
+    JITTargetAddress const PCBeginFieldOffset = RecordReader.getOffset();
     auto PCEdgeItr = BlockEdges.find(RecordOffset + PCBeginFieldOffset);
     if (PCEdgeItr == BlockEdges.end()) {
       auto PCBeginPtrInfo =
@@ -465,7 +465,7 @@ Error EHFrameEdgeFixer::processFDE(ParseContext &PC, Block &B,
       if (!PCBeginPtrInfo)
         return PCBeginPtrInfo.takeError();
       JITTargetAddress PCBegin = PCBeginPtrInfo->first;
-      Edge::Kind PCBeginEdgeKind = PCBeginPtrInfo->second;
+      Edge::Kind const PCBeginEdgeKind = PCBeginPtrInfo->second;
       LLVM_DEBUG({
         dbgs() << "        Adding edge at "
                << formatv("{0:x16}", RecordAddress + PCBeginFieldOffset)
@@ -522,7 +522,7 @@ Error EHFrameEdgeFixer::processFDE(ParseContext &PC, Block &B,
     if (auto Err = RecordReader.readULEB128(AugmentationDataSize))
       return Err;
 
-    JITTargetAddress LSDAFieldOffset = RecordReader.getOffset();
+    JITTargetAddress const LSDAFieldOffset = RecordReader.getOffset();
     auto LSDAEdgeItr = BlockEdges.find(RecordOffset + LSDAFieldOffset);
     if (LSDAEdgeItr == BlockEdges.end()) {
       auto LSDAPointerInfo =
@@ -531,7 +531,7 @@ Error EHFrameEdgeFixer::processFDE(ParseContext &PC, Block &B,
       if (!LSDAPointerInfo)
         return LSDAPointerInfo.takeError();
       JITTargetAddress LSDA = LSDAPointerInfo->first;
-      Edge::Kind LSDAEdgeKind = LSDAPointerInfo->second;
+      Edge::Kind const LSDAEdgeKind = LSDAPointerInfo->second;
       auto LSDASym = getOrCreateSymbol(PC, LSDA);
       if (!LSDASym)
         return LSDASym.takeError();

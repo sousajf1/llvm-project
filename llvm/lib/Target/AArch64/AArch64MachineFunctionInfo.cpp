@@ -52,7 +52,7 @@ static std::pair<bool, bool> GetSignReturnAddress(const Function &F) {
     return {false, false};
   }
 
-  StringRef Scope = F.getFnAttribute("sign-return-address").getValueAsString();
+  StringRef const Scope = F.getFnAttribute("sign-return-address").getValueAsString();
   if (Scope.equals("none"))
     return {false, false};
 

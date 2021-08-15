@@ -183,14 +183,14 @@ bool DominatorTree::dominates(const Instruction *Def,
   // exceptional destination.
   if (const auto *II = dyn_cast<InvokeInst>(Def)) {
     BasicBlock *NormalDest = II->getNormalDest();
-    BasicBlockEdge E(DefBB, NormalDest);
+    BasicBlockEdge const E(DefBB, NormalDest);
     return dominates(E, UseBB);
   }
 
   // Callbr results are similarly only usable in the default destination.
   if (const auto *CBI = dyn_cast<CallBrInst>(Def)) {
     BasicBlock *NormalDest = CBI->getDefaultDest();
-    BasicBlockEdge E(DefBB, NormalDest);
+    BasicBlockEdge const E(DefBB, NormalDest);
     return dominates(E, UseBB);
   }
 
@@ -300,14 +300,14 @@ bool DominatorTree::dominates(const Value *DefV, const Use &U) const {
   // walk the block in any case.
   if (const InvokeInst *II = dyn_cast<InvokeInst>(Def)) {
     BasicBlock *NormalDest = II->getNormalDest();
-    BasicBlockEdge E(DefBB, NormalDest);
+    BasicBlockEdge const E(DefBB, NormalDest);
     return dominates(E, U);
   }
 
   // Callbr results are similarly only usable in the default destination.
   if (const auto *CBI = dyn_cast<CallBrInst>(Def)) {
     BasicBlock *NormalDest = CBI->getDefaultDest();
-    BasicBlockEdge E(DefBB, NormalDest);
+    BasicBlockEdge const E(DefBB, NormalDest);
     return dominates(E, U);
   }
 

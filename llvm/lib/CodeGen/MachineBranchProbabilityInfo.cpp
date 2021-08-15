@@ -64,7 +64,7 @@ BranchProbability MachineBranchProbabilityInfo::getEdgeProbability(
 
 bool MachineBranchProbabilityInfo::isEdgeHot(
     const MachineBasicBlock *Src, const MachineBasicBlock *Dst) const {
-  BranchProbability HotProb(StaticLikelyProb, 100);
+  BranchProbability const HotProb(StaticLikelyProb, 100);
   return getEdgeProbability(Src, Dst) > HotProb;
 }
 

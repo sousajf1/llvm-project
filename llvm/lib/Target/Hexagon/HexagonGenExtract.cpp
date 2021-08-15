@@ -158,12 +158,12 @@ bool HexagonGenExtract::convert(Instruction *In) {
   Type *Ty = BF->getType();
   if (!Ty->isIntegerTy())
     return false;
-  unsigned BW = Ty->getPrimitiveSizeInBits();
+  unsigned const BW = Ty->getPrimitiveSizeInBits();
   if (BW != 32 && BW != 64)
     return false;
 
-  uint32_t SR = CSR->getZExtValue();
-  uint32_t SL = CSL->getZExtValue();
+  uint32_t const SR = CSR->getZExtValue();
+  uint32_t const SL = CSL->getZExtValue();
 
   if (!CM) {
     // If there was no and, and the shift left did not remove all potential
@@ -171,21 +171,21 @@ bool HexagonGenExtract::convert(Instruction *In) {
     // this value.
     if (!LogicalSR && (SR > SL))
       return false;
-    APInt A = APInt(BW, ~0ULL).lshr(SR).shl(SL);
+    APInt const A = APInt(BW, ~0ULL).lshr(SR).shl(SL);
     CM = ConstantInt::get(Ctx, A);
   }
 
   // CM is the shifted-left mask. Shift it back right to remove the zero
   // bits on least-significant positions.
-  APInt M = CM->getValue().lshr(SL);
-  uint32_t T = M.countTrailingOnes();
+  APInt const M = CM->getValue().lshr(SL);
+  uint32_t const T = M.countTrailingOnes();
 
   // During the shifts some of the bits will be lost. Calculate how many
   // of the original value will remain after shift right and then left.
-  uint32_t U = BW - std::max(SL, SR);
+  uint32_t const U = BW - std::max(SL, SR);
   // The width of the extracted field is the minimum of the original bits
   // that remain after the shifts and the number of contiguous 1s in the mask.
-  uint32_t W = std::min(U, T);
+  uint32_t const W = std::min(U, T);
   if (W == 0 || W == 1)
     return false;
 
@@ -197,7 +197,7 @@ bool HexagonGenExtract::convert(Instruction *In) {
     // If the shift right was arithmetic, it could have included some 1 bits.
     // It is still ok to generate extract, but only if the mask eliminates
     // those bits (i.e. M does not have any bits set beyond U).
-    APInt C = APInt::getHighBitsSet(BW, BW-U);
+    APInt const C = APInt::getHighBitsSet(BW, BW-U);
     if (M.intersects(C) || !M.isMask(W))
       return false;
   } else {
@@ -209,7 +209,7 @@ bool HexagonGenExtract::convert(Instruction *In) {
   }
 
   IRBuilder<> IRB(In);
-  Intrinsic::ID IntId = (BW == 32) ? Intrinsic::hexagon_S2_extractu
+  Intrinsic::ID const IntId = (BW == 32) ? Intrinsic::hexagon_S2_extractu
                                    : Intrinsic::hexagon_S2_extractup;
   Module *Mod = BB->getParent()->getParent();
   Function *ExtF = Intrinsic::getDeclaration(Mod, IntId);
@@ -228,18 +228,18 @@ bool HexagonGenExtract::visitBlock(BasicBlock *B) {
     Changed |= visitBlock(DTN->getBlock());
 
   // Allow limiting the number of generated extracts for debugging purposes.
-  bool HasCutoff = ExtractCutoff.getPosition();
-  unsigned Cutoff = ExtractCutoff;
+  bool const HasCutoff = ExtractCutoff.getPosition();
+  unsigned const Cutoff = ExtractCutoff;
 
   BasicBlock::iterator I = std::prev(B->end()), NextI, Begin = B->begin();
   while (true) {
     if (HasCutoff && (ExtractCount >= Cutoff))
       return Changed;
-    bool Last = (I == Begin);
+    bool const Last = (I == Begin);
     if (!Last)
       NextI = std::prev(I);
     Instruction *In = &*I;
-    bool Done = convert(In);
+    bool const Done = convert(In);
     if (HasCutoff && Done)
       ExtractCount++;
     Changed |= Done;

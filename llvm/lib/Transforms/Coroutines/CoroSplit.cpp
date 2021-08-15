@@ -242,7 +242,7 @@ static void replaceFallthroughCoroEnd(AnyCoroEndInst *End,
 
   // In async lowering this returns.
   case coro::ABI::Async: {
-    bool CoroEndBlockNeedsCleanup = replaceCoroEndAsync(End);
+    bool const CoroEndBlockNeedsCleanup = replaceCoroEndAsync(End);
     if (!CoroEndBlockNeedsCleanup)
       return;
     break;
@@ -505,7 +505,7 @@ void CoroCloner::replaceRetconOrAsyncSuspendUses() {
   // an easily-indexed data structure for convenience.
   SmallVector<Value*, 8> Args;
   // The async ABI includes all arguments -- including the first argument.
-  bool IsAsyncABI = Shape.ABI == coro::ABI::Async;
+  bool const IsAsyncABI = Shape.ABI == coro::ABI::Async;
   for (auto I = IsAsyncABI ? NewF->arg_begin() : std::next(NewF->arg_begin()),
             E = NewF->arg_end();
        I != E; ++I)
@@ -737,7 +737,7 @@ void CoroCloner::replaceEntryBlock() {
   // Any static alloca that's still being used but not reachable from the new
   // entry needs to be moved to the new entry.
   Function *F = OldEntry->getParent();
-  DominatorTree DT{*F};
+  DominatorTree const DT{*F};
   for (auto IT = inst_begin(F), End = inst_end(F); IT != End;) {
     Instruction &I = *IT++;
     auto *Alloca = dyn_cast<AllocaInst>(&I);
@@ -916,7 +916,7 @@ void CoroCloner::create() {
     auto *ActiveAsyncSuspend = cast<CoroSuspendAsyncInst>(ActiveSuspend);
     if (OrigF.hasParamAttribute(Shape.AsyncLowering.ContextArgNo,
                                 Attribute::SwiftAsync)) {
-      uint32_t ArgAttributeIndices =
+      uint32_t const ArgAttributeIndices =
           ActiveAsyncSuspend->getStorageArgumentIndex();
       auto ContextArgIndex = ArgAttributeIndices & 0xff;
       addAsyncContextAttrs(NewAttrs, Context, ContextArgIndex);
@@ -1098,7 +1098,7 @@ static void setCoroInfo(Function &F, coro::Shape &Shape,
   // only works on the switch-lowering ABI.
   assert(Shape.ABI == coro::ABI::Switch);
 
-  SmallVector<Constant *, 4> Args(Fns.begin(), Fns.end());
+  SmallVector<Constant *, 4> const Args(Fns.begin(), Fns.end());
   assert(!Args.empty());
   Function *Part = *Fns.begin();
   Module *M = Part->getParent();
@@ -1260,7 +1260,7 @@ static bool shouldBeMustTail(const CallInst &CI, const Function &F) {
       Attribute::StructRet,    Attribute::ByVal,     Attribute::InAlloca,
       Attribute::Preallocated, Attribute::InReg,     Attribute::Returned,
       Attribute::SwiftSelf,    Attribute::SwiftError};
-  AttributeList Attrs = CI.getAttributes();
+  AttributeList const Attrs = CI.getAttributes();
   for (auto AK : ABIAttrs)
     if (Attrs.hasParamAttr(0, AK))
       return false;
@@ -1586,7 +1586,7 @@ static void splitAsyncCoroutine(Function &F, coro::Shape &Shape,
   // Map all uses of llvm.coro.begin to the allocated frame pointer.
   {
     // Make sure we don't invalidate Shape.FramePtr.
-    TrackingVH<Instruction> Handle(Shape.FramePtr);
+    TrackingVH<Instruction> const Handle(Shape.FramePtr);
     Shape.CoroBegin->replaceAllUsesWith(FramePtr);
     Shape.FramePtr = Handle.getValPtr();
   }
@@ -1634,7 +1634,7 @@ static void splitAsyncCoroutine(Function &F, coro::Shape &Shape,
 
     // Insert the call to the tail call function and inline it.
     auto *Fn = Suspend->getMustTailCallFunction();
-    SmallVector<Value *, 8> Args(Suspend->args());
+    SmallVector<Value *, 8> const Args(Suspend->args());
     auto FnArgs = ArrayRef<Value *>(Args).drop_front(
         CoroSuspendAsyncInst::MustTailCallFuncArg + 1);
     auto *TailCall =
@@ -1698,7 +1698,7 @@ static void splitRetconCoroutine(Function &F, coro::Shape &Shape,
   // Map all uses of llvm.coro.begin to the allocated frame pointer.
   {
     // Make sure we don't invalidate Shape.FramePtr.
-    TrackingVH<Instruction> Handle(Shape.FramePtr);
+    TrackingVH<Instruction> const Handle(Shape.FramePtr);
     Shape.CoroBegin->replaceAllUsesWith(RawFramePtr);
     Shape.FramePtr = Handle.getValPtr();
   }
@@ -1805,7 +1805,7 @@ namespace {
 static coro::Shape splitCoroutine(Function &F,
                                   SmallVectorImpl<Function *> &Clones,
                                   bool ReuseFrameSlot) {
-  PrettyStackTraceFunction prettyStackTrace(F);
+  PrettyStackTraceFunction const prettyStackTrace(F);
 
   // The suspend-crossing algorithm in buildCoroutineFrame get tripped
   // up by uses in unreachable blocks, so remove them as a first pass.
@@ -2108,7 +2108,7 @@ PreservedAnalyses CoroSplitPass::run(LazyCallGraph::SCC &C,
   // NB: One invariant of a valid LazyCallGraph::SCC is that it must contain a
   //     non-zero number of nodes, so we assume that here and grab the first
   //     node's function's module.
-  Module &M = *C.begin()->getFunction().getParent();
+  Module  const&M = *C.begin()->getFunction().getParent();
   auto &FAM =
       AM.getResult<FunctionAnalysisManagerCGSCCProxy>(C, CG).getManager();
 
@@ -2226,8 +2226,8 @@ struct CoroSplitLegacy : public CallGraphSCCPass {
 
     // Split all the coroutines.
     for (Function *F : Coroutines) {
-      Attribute Attr = F->getFnAttribute(CORO_PRESPLIT_ATTR);
-      StringRef Value = Attr.getValueAsString();
+      Attribute const Attr = F->getFnAttribute(CORO_PRESPLIT_ATTR);
+      StringRef const Value = Attr.getValueAsString();
       LLVM_DEBUG(dbgs() << "CoroSplit: Processing coroutine '" << F->getName()
                         << "' state: " << Value << "\n");
       // Async lowering marks coroutines to trigger a restart of the pipeline

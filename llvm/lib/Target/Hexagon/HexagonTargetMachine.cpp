@@ -192,7 +192,7 @@ static Reloc::Model getEffectiveRelocModel(Optional<Reloc::Model> RM) {
 
 extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializeHexagonTarget() {
   // Register the target.
-  RegisterTargetMachine<HexagonTargetMachine> X(getTheHexagonTarget());
+  RegisterTargetMachine<HexagonTargetMachine> const X(getTheHexagonTarget());
 
   PassRegistry &PR = *PassRegistry::getPassRegistry();
   initializeHexagonBitSimplifyPass(PR);
@@ -236,13 +236,13 @@ HexagonTargetMachine::HexagonTargetMachine(const Target &T, const Triple &TT,
 
 const HexagonSubtarget *
 HexagonTargetMachine::getSubtargetImpl(const Function &F) const {
-  AttributeList FnAttrs = F.getAttributes();
-  Attribute CPUAttr =
+  AttributeList const FnAttrs = F.getAttributes();
+  Attribute const CPUAttr =
       FnAttrs.getFnAttr("target-cpu");
-  Attribute FSAttr =
+  Attribute const FSAttr =
       FnAttrs.getFnAttr("target-features");
 
-  std::string CPU =
+  std::string const CPU =
       CPUAttr.isValid() ? CPUAttr.getValueAsString().str() : TargetCPU;
   std::string FS =
       FSAttr.isValid() ? FSAttr.getValueAsString().str() : TargetFS;
@@ -328,7 +328,7 @@ TargetPassConfig *HexagonTargetMachine::createPassConfig(PassManagerBase &PM) {
 
 void HexagonPassConfig::addIRPasses() {
   TargetPassConfig::addIRPasses();
-  bool NoOpt = (getOptLevel() == CodeGenOpt::None);
+  bool const NoOpt = (getOptLevel() == CodeGenOpt::None);
 
   if (!NoOpt) {
     if (EnableInstSimplify)
@@ -360,7 +360,7 @@ void HexagonPassConfig::addIRPasses() {
 
 bool HexagonPassConfig::addInstSelector() {
   HexagonTargetMachine &TM = getHexagonTargetMachine();
-  bool NoOpt = (getOptLevel() == CodeGenOpt::None);
+  bool const NoOpt = (getOptLevel() == CodeGenOpt::None);
 
   if (!NoOpt)
     addPass(createHexagonOptimizeSZextends());
@@ -431,7 +431,7 @@ void HexagonPassConfig::addPreSched2() {
 }
 
 void HexagonPassConfig::addPreEmitPass() {
-  bool NoOpt = (getOptLevel() == CodeGenOpt::None);
+  bool const NoOpt = (getOptLevel() == CodeGenOpt::None);
 
   if (!NoOpt)
     addPass(createHexagonNewValueJump());

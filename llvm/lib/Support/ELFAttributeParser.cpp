@@ -24,7 +24,7 @@ static constexpr EnumEntry<unsigned> tagNames[] = {
 
 Error ELFAttributeParser::parseStringAttribute(const char *name, unsigned tag,
                                                ArrayRef<const char *> strings) {
-  uint64_t value = de.getULEB128(cursor);
+  uint64_t const value = de.getULEB128(cursor);
   if (value >= strings.size()) {
     printAttribute(tag, value, "");
     return createStringError(errc::invalid_argument,
@@ -36,13 +36,13 @@ Error ELFAttributeParser::parseStringAttribute(const char *name, unsigned tag,
 }
 
 Error ELFAttributeParser::integerAttribute(unsigned tag) {
-  StringRef tagName =
+  StringRef const tagName =
       ELFAttrs::attrTypeAsString(tag, tagToStringMap, /*hasTagPrefix=*/false);
-  uint64_t value = de.getULEB128(cursor);
+  uint64_t const value = de.getULEB128(cursor);
   attributes.insert(std::make_pair(tag, value));
 
   if (sw) {
-    DictScope scope(*sw, "Attribute");
+    DictScope const scope(*sw, "Attribute");
     sw->printNumber("Tag", tag);
     if (!tagName.empty())
       sw->printString("TagName", tagName);
@@ -52,13 +52,13 @@ Error ELFAttributeParser::integerAttribute(unsigned tag) {
 }
 
 Error ELFAttributeParser::stringAttribute(unsigned tag) {
-  StringRef tagName =
+  StringRef const tagName =
       ELFAttrs::attrTypeAsString(tag, tagToStringMap, /*hasTagPrefix=*/false);
-  StringRef desc = de.getCStrRef(cursor);
+  StringRef const desc = de.getCStrRef(cursor);
   attributesStr.insert(std::make_pair(tag, desc));
 
   if (sw) {
-    DictScope scope(*sw, "Attribute");
+    DictScope const scope(*sw, "Attribute");
     sw->printNumber("Tag", tag);
     if (!tagName.empty())
       sw->printString("TagName", tagName);
@@ -72,9 +72,9 @@ void ELFAttributeParser::printAttribute(unsigned tag, unsigned value,
   attributes.insert(std::make_pair(tag, value));
 
   if (sw) {
-    StringRef tagName = ELFAttrs::attrTypeAsString(tag, tagToStringMap,
+    StringRef const tagName = ELFAttrs::attrTypeAsString(tag, tagToStringMap,
                                                    /*hasTagPrefix=*/false);
-    DictScope as(*sw, "Attribute");
+    DictScope const as(*sw, "Attribute");
     sw->printNumber("Tag", tag);
     sw->printNumber("Value", value);
     if (!tagName.empty())
@@ -86,7 +86,7 @@ void ELFAttributeParser::printAttribute(unsigned tag, unsigned value,
 
 void ELFAttributeParser::parseIndexList(SmallVectorImpl<uint8_t> &indexList) {
   for (;;) {
-    uint64_t value = de.getULEB128(cursor);
+    uint64_t const value = de.getULEB128(cursor);
     if (!cursor || !value)
       break;
     indexList.push_back(value);
@@ -95,9 +95,9 @@ void ELFAttributeParser::parseIndexList(SmallVectorImpl<uint8_t> &indexList) {
 
 Error ELFAttributeParser::parseAttributeList(uint32_t length) {
   uint64_t pos;
-  uint64_t end = cursor.tell() + length;
+  uint64_t const end = cursor.tell() + length;
   while ((pos = cursor.tell()) < end) {
-    uint64_t tag = de.getULEB128(cursor);
+    uint64_t const tag = de.getULEB128(cursor);
     bool handled;
     if (Error e = handler(tag, handled))
       return e;
@@ -122,8 +122,8 @@ Error ELFAttributeParser::parseAttributeList(uint32_t length) {
 }
 
 Error ELFAttributeParser::parseSubsection(uint32_t length) {
-  uint64_t end = cursor.tell() - sizeof(length) + length;
-  StringRef vendorName = de.getCStrRef(cursor);
+  uint64_t const end = cursor.tell() - sizeof(length) + length;
+  StringRef const vendorName = de.getCStrRef(cursor);
   if (sw) {
     sw->printNumber("SectionLength", length);
     sw->printString("Vendor", vendorName);
@@ -136,8 +136,8 @@ Error ELFAttributeParser::parseSubsection(uint32_t length) {
 
   while (cursor.tell() < end) {
     /// Tag_File | Tag_Section | Tag_Symbol   uleb128:byte-size
-    uint8_t tag = de.getU8(cursor);
-    uint32_t size = de.getU32(cursor);
+    uint8_t const tag = de.getU8(cursor);
+    uint32_t const size = de.getU32(cursor);
     if (!cursor)
       return cursor.takeError();
 
@@ -175,7 +175,7 @@ Error ELFAttributeParser::parseSubsection(uint32_t length) {
     }
 
     if (sw) {
-      DictScope scope(*sw, scopeName);
+      DictScope const scope(*sw, scopeName);
       if (!indicies.empty())
         sw->printList(indexName, indicies);
       if (Error e = parseAttributeList(size - 5))
@@ -199,14 +199,14 @@ Error ELFAttributeParser::parse(ArrayRef<uint8_t> section,
   } clear{cursor};
 
   // Unrecognized format-version.
-  uint8_t formatVersion = de.getU8(cursor);
+  uint8_t const formatVersion = de.getU8(cursor);
   if (formatVersion != ELFAttrs::Format_Version)
     return createStringError(errc::invalid_argument,
                              "unrecognized format-version: 0x" +
                                  utohexstr(formatVersion));
 
   while (!de.eof(cursor)) {
-    uint32_t sectionLength = de.getU32(cursor);
+    uint32_t const sectionLength = de.getU32(cursor);
     if (!cursor)
       return cursor.takeError();
 

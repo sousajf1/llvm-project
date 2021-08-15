@@ -205,7 +205,7 @@ void Value::dropDroppableUsesIn(User &Usr) {
 void Value::dropDroppableUse(Use &U) {
   U.removeFromList();
   if (auto *Assume = dyn_cast<AssumeInst>(U.getUser())) {
-    unsigned OpNo = U.getOperandNo();
+    unsigned const OpNo = U.getOperandNo();
     if (OpNo == 0)
       U.set(ConstantInt::getTrue(Assume->getContext()));
     else {
@@ -269,7 +269,7 @@ static bool getSymTab(Value *V, ValueSymbolTable *&ST) {
 ValueName *Value::getValueName() const {
   if (!HasName) return nullptr;
 
-  LLVMContext &Ctx = getContext();
+  LLVMContext  const&Ctx = getContext();
   auto I = Ctx.pImpl->ValueNames.find(this);
   assert(I != Ctx.pImpl->ValueNames.end() &&
          "No name entry found!");
@@ -278,7 +278,7 @@ ValueName *Value::getValueName() const {
 }
 
 void Value::setValueName(ValueName *VN) {
-  LLVMContext &Ctx = getContext();
+  LLVMContext  const&Ctx = getContext();
 
   assert(HasName == Ctx.pImpl->ValueNames.count(this) &&
          "HasName bit out of sync!");
@@ -313,7 +313,7 @@ void Value::setNameImpl(const Twine &NewName) {
     return;
 
   SmallString<256> NameData;
-  StringRef NameRef = NewName.toStringRef(NameData);
+  StringRef const NameRef = NewName.toStringRef(NameData);
   assert(NameRef.find_first_of(0) == StringRef::npos &&
          "Null bytes are not allowed in names");
 
@@ -401,7 +401,7 @@ void Value::takeName(Value *V) {
 
   // Get V's ST, this should always succed, because V has a name.
   ValueSymbolTable *VST;
-  bool Failure = getSymTab(V, VST);
+  bool const Failure = getSymTab(V, VST);
   assert(!Failure && "V has a name, so it should have a ST!"); (void)Failure;
 
   // If these values are both in the same symtab, we can do this very fast.
@@ -698,7 +698,7 @@ const Value *Value::stripAndAccumulateConstantOffsets(
   if (!getType()->isPtrOrPtrVectorTy())
     return this;
 
-  unsigned BitWidth = Offset.getBitWidth();
+  unsigned const BitWidth = Offset.getBitWidth();
   assert(BitWidth == DL.getIndexTypeSizeInBits(getType()) &&
          "The offset bit width does not match the DL specification.");
 
@@ -731,12 +731,12 @@ const Value *Value::stripAndAccumulateConstantOffsets(
 
       // External Analysis can return a result higher/lower than the value
       // represents. We need to detect overflow/underflow.
-      APInt GEPOffsetST = GEPOffset.sextOrTrunc(BitWidth);
+      APInt const GEPOffsetST = GEPOffset.sextOrTrunc(BitWidth);
       if (!ExternalAnalysis) {
         Offset += GEPOffsetST;
       } else {
         bool Overflow = false;
-        APInt OldOffset = Offset;
+        APInt const OldOffset = Offset;
         Offset = Offset.sadd_ov(GEPOffsetST, Overflow);
         if (Overflow) {
           Offset = OldOffset;
@@ -957,7 +957,7 @@ Align Value::getPointerAlignment(const DataLayout &DL) const {
     if (auto *CstInt = dyn_cast_or_null<ConstantInt>(ConstantExpr::getPtrToInt(
             const_cast<Constant *>(CstPtr), DL.getIntPtrType(getType()),
             /*OnlyIfReduced=*/true))) {
-      size_t TrailingZeros = CstInt->getValue().countTrailingZeros();
+      size_t const TrailingZeros = CstInt->getValue().countTrailingZeros();
       // While the actual alignment may be large, elsewhere we have
       // an arbitrary upper alignmet limit, so let's clamp to it.
       return Align(TrailingZeros < Value::MaxAlignmentExponent

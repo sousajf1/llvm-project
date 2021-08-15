@@ -128,7 +128,7 @@ LLVMTargetMachineRef LLVMCreateTargetMachine(LLVMTargetRef T,
   }
 
   bool JIT;
-  Optional<CodeModel::Model> CM = unwrap(CodeModel, JIT);
+  Optional<CodeModel::Model> const CM = unwrap(CodeModel, JIT);
 
   CodeGenOpt::Level OL;
   switch (Level) {
@@ -146,7 +146,7 @@ LLVMTargetMachineRef LLVMCreateTargetMachine(LLVMTargetRef T,
       break;
   }
 
-  TargetOptions opt;
+  TargetOptions const opt;
   return wrap(unwrap(T)->createTargetMachine(Triple, CPU, Features, opt, RM, CM,
                                              OL, JIT));
 }
@@ -159,17 +159,17 @@ LLVMTargetRef LLVMGetTargetMachineTarget(LLVMTargetMachineRef T) {
 }
 
 char* LLVMGetTargetMachineTriple(LLVMTargetMachineRef T) {
-  std::string StringRep = unwrap(T)->getTargetTriple().str();
+  std::string const StringRep = unwrap(T)->getTargetTriple().str();
   return strdup(StringRep.c_str());
 }
 
 char* LLVMGetTargetMachineCPU(LLVMTargetMachineRef T) {
-  std::string StringRep = std::string(unwrap(T)->getTargetCPU());
+  std::string const StringRep = std::string(unwrap(T)->getTargetCPU());
   return strdup(StringRep.c_str());
 }
 
 char* LLVMGetTargetMachineFeatureString(LLVMTargetMachineRef T) {
-  std::string StringRep = std::string(unwrap(T)->getTargetFeatureString());
+  std::string const StringRep = std::string(unwrap(T)->getTargetFeatureString());
   return strdup(StringRep.c_str());
 }
 
@@ -224,7 +224,7 @@ LLVMBool LLVMTargetMachineEmitToFile(LLVMTargetMachineRef T, LLVMModuleRef M,
     *ErrorMessage = strdup(EC.message().c_str());
     return true;
   }
-  bool Result = LLVMTargetMachineEmit(T, M, dest, codegen, ErrorMessage);
+  bool const Result = LLVMTargetMachineEmit(T, M, dest, codegen, ErrorMessage);
   dest.flush();
   return Result;
 }
@@ -234,9 +234,9 @@ LLVMBool LLVMTargetMachineEmitToMemoryBuffer(LLVMTargetMachineRef T,
   LLVMMemoryBufferRef *OutMemBuf) {
   SmallString<0> CodeString;
   raw_svector_ostream OStream(CodeString);
-  bool Result = LLVMTargetMachineEmit(T, M, OStream, codegen, ErrorMessage);
+  bool const Result = LLVMTargetMachineEmit(T, M, OStream, codegen, ErrorMessage);
 
-  StringRef Data = OStream.str();
+  StringRef const Data = OStream.str();
   *OutMemBuf =
       LLVMCreateMemoryBufferWithMemoryRangeCopy(Data.data(), Data.size(), "");
   return Result;

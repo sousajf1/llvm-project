@@ -119,7 +119,7 @@ SDValue ARMSelectionDAGInfo::EmitSpecializedLibcall(
     Args.push_back(Entry);
   }
 
-  char const *FunctionNames[4][3] = {
+  char const *const FunctionNames[4][3] = {
     { "__aeabi_memcpy",  "__aeabi_memcpy4",  "__aeabi_memcpy8"  },
     { "__aeabi_memmove", "__aeabi_memmove4", "__aeabi_memmove8" },
     { "__aeabi_memset",  "__aeabi_memset4",  "__aeabi_memset8"  },
@@ -134,7 +134,7 @@ SDValue ARMSelectionDAGInfo::EmitSpecializedLibcall(
                                 TLI->getPointerTy(DAG.getDataLayout())),
           std::move(Args))
       .setDiscardResult();
-  std::pair<SDValue,SDValue> CallResult = TLI->LowerCallTo(CLI);
+  std::pair<SDValue,SDValue> const CallResult = TLI->LowerCallTo(CLI);
 
   return CallResult.second;
 }
@@ -188,13 +188,13 @@ SDValue ARMSelectionDAGInfo::EmitTargetCodeForMemcpy(
   if (!ConstantSize)
     return EmitSpecializedLibcall(DAG, dl, Chain, Dst, Src, Size,
                                   Alignment.value(), RTLIB::MEMCPY);
-  uint64_t SizeVal = ConstantSize->getZExtValue();
+  uint64_t const SizeVal = ConstantSize->getZExtValue();
   if (!AlwaysInline && SizeVal > Subtarget.getMaxInlineSizeThreshold())
     return EmitSpecializedLibcall(DAG, dl, Chain, Dst, Src, Size,
                                   Alignment.value(), RTLIB::MEMCPY);
 
   unsigned BytesLeft = SizeVal & 3;
-  unsigned NumMemOps = SizeVal >> 2;
+  unsigned const NumMemOps = SizeVal >> 2;
   unsigned EmittedNumMemOps = 0;
   EVT VT = MVT::i32;
   unsigned VTSize = 4;
@@ -214,7 +214,7 @@ SDValue ARMSelectionDAGInfo::EmitTargetCodeForMemcpy(
   // MaxLoadsInLDM registers per mcopy, which will get lowered into ldm/stm
   // later on. This is a lower bound on the number of MEMCPY operations we must
   // emit.
-  unsigned NumMEMCPYs = (NumMemOps + MaxLoadsInLDM - 1) / MaxLoadsInLDM;
+  unsigned const NumMEMCPYs = (NumMemOps + MaxLoadsInLDM - 1) / MaxLoadsInLDM;
 
   // Code size optimisation: do not inline memcpy if expansion results in
   // more instructions than the libary call.
@@ -222,13 +222,13 @@ SDValue ARMSelectionDAGInfo::EmitTargetCodeForMemcpy(
     return SDValue();
   }
 
-  SDVTList VTs = DAG.getVTList(MVT::i32, MVT::i32, MVT::Other, MVT::Glue);
+  SDVTList const VTs = DAG.getVTList(MVT::i32, MVT::i32, MVT::Other, MVT::Glue);
 
   for (unsigned I = 0; I != NumMEMCPYs; ++I) {
     // Evenly distribute registers among MEMCPY operations to reduce register
     // pressure.
-    unsigned NextEmittedNumMemOps = NumMemOps * (I + 1) / NumMEMCPYs;
-    unsigned NumRegs = NextEmittedNumMemOps - EmittedNumMemOps;
+    unsigned const NextEmittedNumMemOps = NumMemOps * (I + 1) / NumMEMCPYs;
+    unsigned const NumRegs = NextEmittedNumMemOps - EmittedNumMemOps;
 
     Dst = DAG.getNode(ARMISD::MEMCPY, dl, VTs, Chain, Dst, Src,
                       DAG.getConstant(NumRegs, dl, MVT::i32));
@@ -252,7 +252,7 @@ SDValue ARMSelectionDAGInfo::EmitTargetCodeForMemcpy(
     return (BytesLeft >= 2) ? 2 : 1;
   };
 
-  unsigned BytesLeftSave = BytesLeft;
+  unsigned const BytesLeftSave = BytesLeft;
   i = 0;
   while (BytesLeft) {
     VT = getRemainingValueType(BytesLeft);

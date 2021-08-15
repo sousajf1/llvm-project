@@ -29,7 +29,7 @@ StringTable::StringTable(const ParsedStringTable &Other) : StrTab() {
 }
 
 std::pair<unsigned, StringRef> StringTable::add(StringRef Str) {
-  size_t NextID = StrTab.size();
+  size_t const NextID = StrTab.size();
   auto KV = StrTab.insert({Str, NextID});
   // If it's a new string, add it to the final size.
   if (KV.second)
@@ -55,7 +55,7 @@ void StringTable::internalize(Remark &R) {
 
 void StringTable::serialize(raw_ostream &OS) const {
   // Emit the sequence of strings.
-  for (StringRef Str : serialize()) {
+  for (StringRef const Str : serialize()) {
     OS << Str;
     // Explicitly emit a '\0'.
     OS.write('\0');

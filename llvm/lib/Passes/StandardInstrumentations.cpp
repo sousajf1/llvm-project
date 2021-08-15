@@ -128,7 +128,7 @@ namespace {
 std::string doSystemDiff(StringRef Before, StringRef After,
                          StringRef OldLineFormat, StringRef NewLineFormat,
                          StringRef UnchangedLineFormat) {
-  StringRef SR[2]{Before, After};
+  StringRef const SR[2]{Before, After};
   // Store the 2 bodies into temporary files and call diff on them
   // to get the body of the node.
   const unsigned NumFiles = 3;
@@ -137,7 +137,7 @@ std::string doSystemDiff(StringRef Before, StringRef After,
   for (unsigned I = 0; I < NumFiles; ++I) {
     if (FD[I] == -1) {
       SmallVector<char, 200> SV;
-      std::error_code EC =
+      std::error_code const EC =
           sys::fs::createTemporaryFile("tmpdiff", "txt", FD[I], SV);
       if (EC)
         return "Unable to create temporary file.";
@@ -147,7 +147,7 @@ std::string doSystemDiff(StringRef Before, StringRef After,
     if (I == NumFiles - 1)
       break;
 
-    std::error_code EC = sys::fs::openFileForWrite(FileName[I], FD[I]);
+    std::error_code const EC = sys::fs::openFileForWrite(FileName[I], FD[I]);
     if (EC)
       return "Unable to open temporary file for writing.";
 
@@ -161,14 +161,14 @@ std::string doSystemDiff(StringRef Before, StringRef After,
   if (!DiffExe)
     return "Unable to find diff executable.";
 
-  SmallString<128> OLF = formatv("--old-line-format={0}", OldLineFormat);
-  SmallString<128> NLF = formatv("--new-line-format={0}", NewLineFormat);
-  SmallString<128> ULF =
+  SmallString<128> const OLF = formatv("--old-line-format={0}", OldLineFormat);
+  SmallString<128> const NLF = formatv("--new-line-format={0}", NewLineFormat);
+  SmallString<128> const ULF =
       formatv("--unchanged-line-format={0}", UnchangedLineFormat);
 
-  StringRef Args[] = {"-w", "-d", OLF, NLF, ULF, FileName[0], FileName[1]};
-  Optional<StringRef> Redirects[] = {None, StringRef(FileName[2]), None};
-  int Result = sys::ExecuteAndWait(*DiffExe, Args, None, Redirects);
+  StringRef const Args[] = {"-w", "-d", OLF, NLF, ULF, FileName[0], FileName[1]};
+  Optional<StringRef> const Redirects[] = {None, StringRef(FileName[2]), None};
+  int const Result = sys::ExecuteAndWait(*DiffExe, Args, None, Redirects);
   if (Result < 0)
     return "Error executing system diff.";
   std::string Diff;
@@ -180,7 +180,7 @@ std::string doSystemDiff(StringRef Before, StringRef After,
 
   // Clean up.
   for (unsigned I = 0; I < NumFiles; ++I) {
-    std::error_code EC = sys::fs::remove(FileName[I]);
+    std::error_code const EC = sys::fs::remove(FileName[I]);
     if (EC)
       return "Unable to remove temporary file.";
   }
@@ -385,7 +385,7 @@ bool ChangeReporter<IRUnitT>::isInterestingPass(StringRef PassID) {
   if (isIgnored(PassID))
     return false;
 
-  static std::unordered_set<std::string> PrintPassNames(PrintPassesList.begin(),
+  static std::unordered_set<std::string> const PrintPassNames(PrintPassesList.begin(),
                                                         PrintPassesList.end());
   return PrintPassNames.empty() || PrintPassNames.count(PassID.str());
 }
@@ -516,7 +516,7 @@ void TextChangeReporter<IRUnitT>::handleInvalidated(StringRef PassID) {
 template <typename IRUnitT>
 void TextChangeReporter<IRUnitT>::handleFiltered(StringRef PassID,
                                                  std::string &Name) {
-  SmallString<20> Banner =
+  SmallString<20> const Banner =
       formatv("*** IR Dump After {0} on {1} filtered out ***\n", PassID, Name);
   Out << Banner;
 }
@@ -572,9 +572,9 @@ void OrderedChangedData<IRData>::report(
   const auto &BFD = Before.getData();
   const auto &AFD = After.getData();
   std::vector<std::string>::const_iterator BI = Before.getOrder().begin();
-  std::vector<std::string>::const_iterator BE = Before.getOrder().end();
+  std::vector<std::string>::const_iterator const BE = Before.getOrder().end();
   std::vector<std::string>::const_iterator AI = After.getOrder().begin();
-  std::vector<std::string>::const_iterator AE = After.getOrder().end();
+  std::vector<std::string>::const_iterator const AE = After.getOrder().end();
 
   auto handlePotentiallyRemovedIRData = [&](std::string S) {
     // The order in LLVM may have changed so check if still exists.
@@ -648,7 +648,7 @@ void ChangedIRComparer::compare(Any IR, StringRef Prefix, StringRef PassID,
   ChangedIRData::report(
       Before, After, [&](const ChangedFuncData *B, const ChangedFuncData *A) {
         assert((B || A) && "Both functions cannot be missing.");
-        ChangedFuncData Missing;
+        ChangedFuncData const Missing;
         if (!B)
           B = &Missing;
         else if (!A)
@@ -763,7 +763,7 @@ void PrintIRInstrumentation::printAfterPass(StringRef PassID, Any IR) {
 }
 
 void PrintIRInstrumentation::printAfterPassInvalidated(StringRef PassID) {
-  StringRef PassName = PIC->getPassNameForClassName(PassID);
+  StringRef const PassName = PIC->getPassNameForClassName(PassID);
   if (!shouldPrintAfterPass(PassName))
     return;
 
@@ -780,7 +780,7 @@ void PrintIRInstrumentation::printAfterPassInvalidated(StringRef PassID) {
   if (!M)
     return;
 
-  SmallString<20> Banner =
+  SmallString<20> const Banner =
       formatv("*** IR Dump After {0} on {1} (invalidated) ***", PassID, IRName);
   dbgs() << Banner << "\n";
   printIR(dbgs(), M);
@@ -790,7 +790,7 @@ bool PrintIRInstrumentation::shouldPrintBeforePass(StringRef PassID) {
   if (shouldPrintBeforeAll())
     return true;
 
-  StringRef PassName = PIC->getPassNameForClassName(PassID);
+  StringRef const PassName = PIC->getPassNameForClassName(PassID);
   return llvm::is_contained(printBeforePasses(), PassName);
 }
 
@@ -798,7 +798,7 @@ bool PrintIRInstrumentation::shouldPrintAfterPass(StringRef PassID) {
   if (shouldPrintAfterAll())
     return true;
 
-  StringRef PassName = PIC->getPassNameForClassName(PassID);
+  StringRef const PassName = PIC->getPassNameForClassName(PassID);
   return llvm::is_contained(printAfterPasses(), PassName);
 }
 
@@ -837,7 +837,7 @@ bool OptNoneInstrumentation::shouldRun(StringRef PassID, Any IR) {
   } else if (any_isa<const Loop *>(IR)) {
     F = any_cast<const Loop *>(IR)->getHeader()->getParent();
   }
-  bool ShouldRun = !(F && F->hasOptNone());
+  bool const ShouldRun = !(F && F->hasOptNone());
   if (!ShouldRun && DebugLogging) {
     errs() << "Skipping pass " << PassID << " on " << F->getName()
            << " due to optnone attribute\n";
@@ -1171,7 +1171,7 @@ void InLineChangePrinter::generateIRRepresentation(Any IR, StringRef PassID,
 void InLineChangePrinter::handleAfter(StringRef PassID, std::string &Name,
                                       const ChangedIRData &Before,
                                       const ChangedIRData &After, Any IR) {
-  SmallString<20> Banner =
+  SmallString<20> const Banner =
       formatv("*** IR Dump After {0} on {1} ***\n", PassID, Name);
   Out << Banner;
   ChangedIRComparer(Out, Before, After, UseColour)
@@ -1194,8 +1194,8 @@ void ChangedIRComparer::handleFunctionCompare(StringRef Name, StringRef Prefix,
 
   ChangedFuncData::report(
       Before, After, [&](const ChangedBlockData *B, const ChangedBlockData *A) {
-        StringRef BStr = B ? B->getBody() : "\n";
-        StringRef AStr = A ? A->getBody() : "\n";
+        StringRef const BStr = B ? B->getBody() : "\n";
+        StringRef const AStr = A ? A->getBody() : "\n";
         const std::string Removed =
             UseColour ? "\033[31m-%l\033[0m\n" : "-%l\n";
         const std::string Added = UseColour ? "\033[32m+%l\033[0m\n" : "+%l\n";

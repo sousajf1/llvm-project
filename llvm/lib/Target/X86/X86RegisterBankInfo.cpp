@@ -112,7 +112,7 @@ void X86RegisterBankInfo::getInstrPartialMappingIdxs(
     const MachineInstr &MI, const MachineRegisterInfo &MRI, const bool isFP,
     SmallVectorImpl<PartialMappingIdx> &OpRegBankIdx) {
 
-  unsigned NumOperands = MI.getNumOperands();
+  unsigned const NumOperands = MI.getNumOperands();
   for (unsigned Idx = 0; Idx < NumOperands; ++Idx) {
     auto &MO = MI.getOperand(Idx);
     if (!MO.isReg())
@@ -127,7 +127,7 @@ bool X86RegisterBankInfo::getInstrValueMapping(
     const SmallVectorImpl<PartialMappingIdx> &OpRegBankIdx,
     SmallVectorImpl<const ValueMapping *> &OpdsMapping) {
 
-  unsigned NumOperands = MI.getNumOperands();
+  unsigned const NumOperands = MI.getNumOperands();
   for (unsigned Idx = 0; Idx < NumOperands; ++Idx) {
     if (!MI.getOperand(Idx).isReg())
       continue;
@@ -147,8 +147,8 @@ X86RegisterBankInfo::getSameOperandsMapping(const MachineInstr &MI,
   const MachineFunction &MF = *MI.getParent()->getParent();
   const MachineRegisterInfo &MRI = MF.getRegInfo();
 
-  unsigned NumOperands = MI.getNumOperands();
-  LLT Ty = MRI.getType(MI.getOperand(0).getReg());
+  unsigned const NumOperands = MI.getNumOperands();
+  LLT const Ty = MRI.getType(MI.getOperand(0).getReg());
 
   if (NumOperands != 3 || (Ty != MRI.getType(MI.getOperand(1).getReg())) ||
       (Ty != MRI.getType(MI.getOperand(2).getReg())))
@@ -162,7 +162,7 @@ const RegisterBankInfo::InstructionMapping &
 X86RegisterBankInfo::getInstrMapping(const MachineInstr &MI) const {
   const MachineFunction &MF = *MI.getParent()->getParent();
   const MachineRegisterInfo &MRI = MF.getRegInfo();
-  unsigned Opc = MI.getOpcode();
+  unsigned const Opc = MI.getOpcode();
 
   // Try the default logic for non-generic instructions that are either copies
   // or already have some operands assigned to banks.
@@ -185,8 +185,8 @@ X86RegisterBankInfo::getInstrMapping(const MachineInstr &MI) const {
   case TargetOpcode::G_SHL:
   case TargetOpcode::G_LSHR:
   case TargetOpcode::G_ASHR: {
-    unsigned NumOperands = MI.getNumOperands();
-    LLT Ty = MRI.getType(MI.getOperand(0).getReg());
+    unsigned const NumOperands = MI.getNumOperands();
+    LLT const Ty = MRI.getType(MI.getOperand(0).getReg());
 
     auto Mapping = getValueMapping(getPartialMappingIdx(Ty, false), 3);
     return getInstructionMapping(DefaultMappingID, 1, Mapping, NumOperands);
@@ -196,7 +196,7 @@ X86RegisterBankInfo::getInstrMapping(const MachineInstr &MI) const {
     break;
   }
 
-  unsigned NumOperands = MI.getNumOperands();
+  unsigned const NumOperands = MI.getNumOperands();
   SmallVector<PartialMappingIdx, 4> OpRegBankIdx(NumOperands);
 
   switch (Opc) {
@@ -215,20 +215,20 @@ X86RegisterBankInfo::getInstrMapping(const MachineInstr &MI) const {
     const LLT Ty0 = MRI.getType(Op0.getReg());
     const LLT Ty1 = MRI.getType(Op1.getReg());
 
-    bool FirstArgIsFP = Opc == TargetOpcode::G_SITOFP;
-    bool SecondArgIsFP = Opc == TargetOpcode::G_FPTOSI;
+    bool const FirstArgIsFP = Opc == TargetOpcode::G_SITOFP;
+    bool const SecondArgIsFP = Opc == TargetOpcode::G_FPTOSI;
     OpRegBankIdx[0] = getPartialMappingIdx(Ty0, /* isFP */ FirstArgIsFP);
     OpRegBankIdx[1] = getPartialMappingIdx(Ty1, /* isFP */ SecondArgIsFP);
     break;
   }
   case TargetOpcode::G_FCMP: {
-    LLT Ty1 = MRI.getType(MI.getOperand(2).getReg());
-    LLT Ty2 = MRI.getType(MI.getOperand(3).getReg());
+    LLT const Ty1 = MRI.getType(MI.getOperand(2).getReg());
+    LLT const Ty2 = MRI.getType(MI.getOperand(3).getReg());
     (void)Ty2;
     assert(Ty1.getSizeInBits() == Ty2.getSizeInBits() &&
            "Mismatched operand sizes for G_FCMP");
 
-    unsigned Size = Ty1.getSizeInBits();
+    unsigned const Size = Ty1.getSizeInBits();
     (void)Size;
     assert((Size == 32 || Size == 64) && "Unsupported size for G_FCMP");
 
@@ -244,9 +244,9 @@ X86RegisterBankInfo::getInstrMapping(const MachineInstr &MI) const {
     const LLT Ty0 = MRI.getType(Op0.getReg());
     const LLT Ty1 = MRI.getType(Op1.getReg());
 
-    bool isFPTrunc = (Ty0.getSizeInBits() == 32 || Ty0.getSizeInBits() == 64) &&
+    bool const isFPTrunc = (Ty0.getSizeInBits() == 32 || Ty0.getSizeInBits() == 64) &&
                      Ty1.getSizeInBits() == 128 && Opc == TargetOpcode::G_TRUNC;
-    bool isFPAnyExt =
+    bool const isFPAnyExt =
         Ty0.getSizeInBits() == 128 &&
         (Ty1.getSizeInBits() == 32 || Ty1.getSizeInBits() == 64) &&
         Opc == TargetOpcode::G_ANYEXT;
@@ -287,11 +287,11 @@ X86RegisterBankInfo::getInstrAlternativeMappings(const MachineInstr &MI) const {
   case TargetOpcode::G_STORE:
   case TargetOpcode::G_IMPLICIT_DEF: {
     // we going to try to map 32/64 bit to PMI_FP32/PMI_FP64
-    unsigned Size = getSizeInBits(MI.getOperand(0).getReg(), MRI, TRI);
+    unsigned const Size = getSizeInBits(MI.getOperand(0).getReg(), MRI, TRI);
     if (Size != 32 && Size != 64)
       break;
 
-    unsigned NumOperands = MI.getNumOperands();
+    unsigned const NumOperands = MI.getNumOperands();
 
     // Track the bank of each register, use FP mapping (all scalars in VEC)
     SmallVector<PartialMappingIdx, 4> OpRegBankIdx(NumOperands);

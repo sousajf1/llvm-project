@@ -146,7 +146,7 @@ static void computeStackPO(BlockStack &Stack, const LoopInfo &LI, Loop *Loop,
     const auto *NextBB = Stack.back();
 
     auto *NestedLoop = LI.getLoopFor(NextBB);
-    bool IsNestedLoop = NestedLoop != Loop;
+    bool const IsNestedLoop = NestedLoop != Loop;
 
     // Treat the loop as a node
     if (IsNestedLoop) {
@@ -375,7 +375,7 @@ struct DivergencePropagator {
       LLVM_DEBUG(dbgs() << "SDA::joins. visiting " << Block->getName() << "\n");
 
       auto *BlockLoop = LI.getLoopFor(Block);
-      bool IsLoopHeader = BlockLoop && BlockLoop->getHeader() == Block;
+      bool const IsLoopHeader = BlockLoop && BlockLoop->getHeader() == Block;
       bool CausedJoin = false;
       int LoweredFloorIdx = FloorIdx;
       if (IsLoopHeader) {
@@ -384,7 +384,7 @@ struct DivergencePropagator {
         SmallVector<BasicBlock *, 4> BlockLoopExits;
         BlockLoop->getExitBlocks(BlockLoopExits);
 
-        bool IsParentLoop = BlockLoop->contains(&DivTermBlock);
+        bool const IsParentLoop = BlockLoop->contains(&DivTermBlock);
         for (const auto *BlockLoopExit : BlockLoopExits) {
           CausedJoin |= visitLoopExitEdge(*BlockLoopExit, *Label, IsParentLoop);
           LoweredFloorIdx = std::min<int>(LoweredFloorIdx,

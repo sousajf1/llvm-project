@@ -138,7 +138,7 @@ class AMDGPULowerModuleLDS : public ModulePass {
     Function *Decl =
         Intrinsic::getDeclaration(Func->getParent(), Intrinsic::donothing, {});
 
-    Value *UseInstance[1] = {Builder.CreateInBoundsGEP(
+    Value *const UseInstance[1] = {Builder.CreateInBoundsGEP(
         SGV->getValueType(), SGV, ConstantInt::get(Type::getInt32Ty(Ctx), 0))};
 
     Builder.CreateCall(FTy, Decl, {},
@@ -178,7 +178,7 @@ private:
     const DataLayout &DL = M.getDataLayout();
 
     // Find variables to move into new struct instance
-    std::vector<GlobalVariable *> FoundLocalVars =
+    std::vector<GlobalVariable *> const FoundLocalVars =
         AMDGPU::findVariablesToLower(M, F);
 
     if (FoundLocalVars.empty()) {
@@ -191,7 +191,7 @@ private:
     if (SuperAlignLDSGlobals) {
       for (auto *GV : FoundLocalVars) {
         Align Alignment = AMDGPU::getAlign(DL, GV);
-        TypeSize GVSize = DL.getTypeAllocSize(GV->getValueType());
+        TypeSize const GVSize = DL.getTypeAllocSize(GV->getValueType());
 
         if (GVSize > 8) {
           // We might want to use a b96 or b128 load/store
@@ -214,7 +214,7 @@ private:
     SmallVector<OptimizedStructLayoutField, 8> LayoutFields;
     LayoutFields.reserve(FoundLocalVars.size());
     for (GlobalVariable *GV : FoundLocalVars) {
-      OptimizedStructLayoutField F(GV, DL.getTypeAllocSize(GV->getValueType()),
+      OptimizedStructLayoutField const F(GV, DL.getTypeAllocSize(GV->getValueType()),
                                    AMDGPU::getAlign(DL, GV));
       LayoutFields.emplace_back(F);
     }
@@ -229,11 +229,11 @@ private:
       for (size_t I = 0; I < LayoutFields.size(); I++) {
         GlobalVariable *FGV = static_cast<GlobalVariable *>(
             const_cast<void *>(LayoutFields[I].Id));
-        Align DataAlign = LayoutFields[I].Alignment;
+        Align const DataAlign = LayoutFields[I].Alignment;
 
-        uint64_t DataAlignV = DataAlign.value();
-        if (uint64_t Rem = CurrentOffset % DataAlignV) {
-          uint64_t Padding = DataAlignV - Rem;
+        uint64_t const DataAlignV = DataAlign.value();
+        if (uint64_t const Rem = CurrentOffset % DataAlignV) {
+          uint64_t const Padding = DataAlignV - Rem;
 
           // Append an array of padding bytes to meet alignment requested
           // Note (o +      (a - (o % a)) ) % a == 0
@@ -258,12 +258,12 @@ private:
         LocalVars.cbegin(), LocalVars.cend(), std::back_inserter(LocalVarTypes),
         [](const GlobalVariable *V) -> Type * { return V->getValueType(); });
 
-    std::string VarName(
+    std::string const VarName(
         F ? (Twine("llvm.amdgcn.kernel.") + F->getName() + ".lds").str()
           : "llvm.amdgcn.module.lds");
     StructType *LDSTy = StructType::create(Ctx, LocalVarTypes, VarName + ".t");
 
-    Align StructAlign =
+    Align const StructAlign =
         AMDGPU::getAlign(DL, LocalVars[0]);
 
     GlobalVariable *SGV = new GlobalVariable(
@@ -287,7 +287,7 @@ private:
     Type *I32 = Type::getInt32Ty(Ctx);
     for (size_t I = 0; I < LocalVars.size(); I++) {
       GlobalVariable *GV = LocalVars[I];
-      Constant *GEPIdx[] = {ConstantInt::get(I32, 0), ConstantInt::get(I32, I)};
+      Constant *const GEPIdx[] = {ConstantInt::get(I32, 0), ConstantInt::get(I32, I)};
       Constant *GEP = ConstantExpr::getGetElementPtr(LDSTy, SGV, GEPIdx);
       if (F) {
         // Replace all constant uses with instructions if they belong to the
@@ -311,8 +311,8 @@ private:
         GV->eraseFromParent();
       }
 
-      uint64_t Off = DL.getStructLayout(LDSTy)->getElementOffset(I);
-      Align A = commonAlignment(StructAlign, Off);
+      uint64_t const Off = DL.getStructLayout(LDSTy)->getElementOffset(I);
+      Align const A = commonAlignment(StructAlign, Off);
       refineUsesAlignment(GEP, A, DL);
     }
 
@@ -362,11 +362,11 @@ private:
         continue;
       }
       if (auto *GEP = dyn_cast<GetElementPtrInst>(U)) {
-        unsigned BitWidth = DL.getIndexTypeSizeInBits(GEP->getType());
+        unsigned const BitWidth = DL.getIndexTypeSizeInBits(GEP->getType());
         APInt Off(BitWidth, 0);
         if (GEP->getPointerOperand() == Ptr &&
             GEP->accumulateConstantOffset(DL, Off)) {
-          Align GA = commonAlignment(A, Off.getLimitedValue());
+          Align const GA = commonAlignment(A, Off.getLimitedValue());
           refineUsesAlignment(GEP, GA, DL, MaxDepth - 1);
         }
         continue;

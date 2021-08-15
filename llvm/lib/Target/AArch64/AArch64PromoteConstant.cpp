@@ -381,7 +381,7 @@ Instruction *AArch64PromoteConstant::findInsertionPoint(Instruction &User,
 bool AArch64PromoteConstant::isDominated(Instruction *NewPt, Instruction *User,
                                          unsigned OpNo,
                                          InsertionPoints &InsertPts) {
-  DominatorTree &DT = getAnalysis<DominatorTreeWrapperPass>(
+  DominatorTree  const&DT = getAnalysis<DominatorTreeWrapperPass>(
       *NewPt->getParent()->getParent()).getDomTree();
 
   // Traverse all the existing insertion points and check if one is dominating
@@ -407,7 +407,7 @@ bool AArch64PromoteConstant::isDominated(Instruction *NewPt, Instruction *User,
 bool AArch64PromoteConstant::tryAndMerge(Instruction *NewPt, Instruction *User,
                                          unsigned OpNo,
                                          InsertionPoints &InsertPts) {
-  DominatorTree &DT = getAnalysis<DominatorTreeWrapperPass>(
+  DominatorTree  const&DT = getAnalysis<DominatorTreeWrapperPass>(
       *NewPt->getParent()->getParent()).getDomTree();
   BasicBlock *NewBB = NewPt->getParent();
 
@@ -501,7 +501,7 @@ void AArch64PromoteConstant::insertDefinitions(Function &F,
                                                InsertionPoints &InsertPts) {
 #ifndef NDEBUG
   // Do more checking for debug purposes.
-  DominatorTree &DT = getAnalysis<DominatorTreeWrapperPass>(F).getDomTree();
+  DominatorTree  const&DT = getAnalysis<DominatorTreeWrapperPass>(F).getDomTree();
 #endif
   assert(!InsertPts.empty() && "Empty uses does not need a definition");
 
@@ -575,7 +575,7 @@ bool AArch64PromoteConstant::runOnFunction(Function &F,
         continue;
 
       // Check if this use should be promoted.
-      unsigned OpNo = &U - I.op_begin();
+      unsigned const OpNo = &U - I.op_begin();
       if (!shouldConvertUse(Cst, &I, OpNo))
         continue;
 

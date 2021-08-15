@@ -41,7 +41,7 @@ static bool isSafeToMove(Instruction *Inst, AliasAnalysis &AA,
   }
 
   if (LoadInst *L = dyn_cast<LoadInst>(Inst)) {
-    MemoryLocation Loc = MemoryLocation::get(L);
+    MemoryLocation const Loc = MemoryLocation::get(L);
     for (Instruction *S : Stores)
       if (isModSet(AA.getModRefInfo(S, Loc)))
         return false;
@@ -132,7 +132,7 @@ static bool SinkInstruction(Instruction *Inst,
 
   // Find the nearest common dominator of all users as the candidate.
   BasicBlock *BB = Inst->getParent();
-  for (Use &U : Inst->uses()) {
+  for (Use  const&U : Inst->uses()) {
     Instruction *UseInst = cast<Instruction>(U.getUser());
     BasicBlock *UseBlock = UseInst->getParent();
     // Don't worry about dead users.
@@ -141,7 +141,7 @@ static bool SinkInstruction(Instruction *Inst,
     if (PHINode *PN = dyn_cast<PHINode>(UseInst)) {
       // PHI nodes use the operand in the predecessor block, not the block with
       // the PHI.
-      unsigned Num = PHINode::getIncomingValueNumForOperand(U.getOperandNo());
+      unsigned const Num = PHINode::getIncomingValueNumForOperand(U.getOperandNo());
       UseBlock = PN->getIncomingBlock(Num);
     }
     if (SuccToSinkTo)

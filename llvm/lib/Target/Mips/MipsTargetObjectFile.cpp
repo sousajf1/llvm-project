@@ -108,7 +108,7 @@ IsGlobalInSmallSectionImpl(const GlobalObject *GO,
   // If the variable has an explicit section, it is placed in that section but
   // it's addressing mode may change.
   if (GVA->hasSection()) {
-    StringRef Section = GVA->getSection();
+    StringRef const Section = GVA->getSection();
 
     // Explicitly placing any variable in the small data section overrides
     // the global -G value.

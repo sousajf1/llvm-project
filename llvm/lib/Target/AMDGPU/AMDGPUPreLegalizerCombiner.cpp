@@ -118,7 +118,7 @@ bool AMDGPUPreLegalizerCombinerHelper::matchClampI64ToI16(
 void AMDGPUPreLegalizerCombinerHelper::applyClampI64ToI16(
     MachineInstr &MI, const ClampI64ToI16MatchInfo &MatchInfo) {
 
-  Register Src = MatchInfo.Origin;
+  Register const Src = MatchInfo.Origin;
   assert(MI.getParent()->getParent()->getRegInfo().getType(Src) ==
          LLT::scalar(64));
   const LLT S32 = LLT::scalar(32);
@@ -198,7 +198,7 @@ bool AMDGPUPreLegalizerCombinerInfo::combine(GISelChangeObserver &Observer,
                                               MachineIRBuilder &B) const {
   CombinerHelper Helper(Observer, B, KB, MDT);
   AMDGPUPreLegalizerCombinerHelper PreLegalizerHelper(B, Helper);
-  AMDGPUGenPreLegalizerCombinerHelper Generated(GeneratedRuleCfg, Helper,
+  AMDGPUGenPreLegalizerCombinerHelper const Generated(GeneratedRuleCfg, Helper,
                                                 PreLegalizerHelper);
 
   if (Generated.tryCombineAll(Observer, MI, B, Helper))
@@ -268,7 +268,7 @@ bool AMDGPUPreLegalizerCombiner::runOnMachineFunction(MachineFunction &MF) {
     return false;
   auto *TPC = &getAnalysis<TargetPassConfig>();
   const Function &F = MF.getFunction();
-  bool EnableOpt =
+  bool const EnableOpt =
       MF.getTarget().getOptLevel() != CodeGenOpt::None && !skipFunction(F);
   GISelKnownBits *KB = &getAnalysis<GISelKnownBitsAnalysis>().get(MF);
   MachineDominatorTree *MDT =

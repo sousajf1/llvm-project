@@ -55,7 +55,7 @@ std::unique_ptr<Module> llvm::getLazyIRFileModule(StringRef Filename,
                                                   bool ShouldLazyLoadMetadata) {
   ErrorOr<std::unique_ptr<MemoryBuffer>> FileOrErr =
       MemoryBuffer::getFileOrSTDIN(Filename);
-  if (std::error_code EC = FileOrErr.getError()) {
+  if (std::error_code const EC = FileOrErr.getError()) {
     Err = SMDiagnostic(Filename, SourceMgr::DK_Error,
                        "Could not open input file: " + EC.message());
     return nullptr;
@@ -68,7 +68,7 @@ std::unique_ptr<Module> llvm::getLazyIRFileModule(StringRef Filename,
 std::unique_ptr<Module> llvm::parseIR(MemoryBufferRef Buffer, SMDiagnostic &Err,
                                       LLVMContext &Context,
                                       DataLayoutCallbackTy DataLayoutCallback) {
-  NamedRegionTimer T(TimeIRParsingName, TimeIRParsingDescription,
+  NamedRegionTimer const T(TimeIRParsingName, TimeIRParsingDescription,
                      TimeIRParsingGroupName, TimeIRParsingGroupDescription,
                      TimePassesIsEnabled);
   if (isBitcode((const unsigned char *)Buffer.getBufferStart(),
@@ -93,7 +93,7 @@ llvm::parseIRFile(StringRef Filename, SMDiagnostic &Err, LLVMContext &Context,
                   DataLayoutCallbackTy DataLayoutCallback) {
   ErrorOr<std::unique_ptr<MemoryBuffer>> FileOrErr =
       MemoryBuffer::getFileOrSTDIN(Filename, /*IsText=*/true);
-  if (std::error_code EC = FileOrErr.getError()) {
+  if (std::error_code const EC = FileOrErr.getError()) {
     Err = SMDiagnostic(Filename, SourceMgr::DK_Error,
                        "Could not open input file: " + EC.message());
     return nullptr;

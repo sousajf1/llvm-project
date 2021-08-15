@@ -61,7 +61,7 @@ static bool lowerLoadRelative(Function &F) {
 // ObjCARC has knowledge about whether an obj-c runtime function needs to be
 // always tail-called or never tail-called.
 static CallInst::TailCallKind getOverridingTailCallKind(const Function &F) {
-  objcarc::ARCInstKind Kind = objcarc::GetFunctionClass(&F);
+  objcarc::ARCInstKind const Kind = objcarc::GetFunctionClass(&F);
   if (objcarc::IsAlwaysTail(Kind))
     return CallInst::TCK_Tail;
   else if (objcarc::IsNeverTail(Kind))
@@ -88,7 +88,7 @@ static bool lowerObjCCall(Function &F, const char *NewFn,
     }
   }
 
-  CallInst::TailCallKind OverridingTCK = getOverridingTailCallKind(F);
+  CallInst::TailCallKind const OverridingTCK = getOverridingTailCallKind(F);
 
   for (auto I = F.use_begin(), E = F.use_end(); I != E;) {
     auto *CI = cast<CallInst>(I->getUser());
@@ -96,7 +96,7 @@ static bool lowerObjCCall(Function &F, const char *NewFn,
     ++I;
 
     IRBuilder<> Builder(CI->getParent(), CI->getIterator());
-    SmallVector<Value *, 8> Args(CI->args());
+    SmallVector<Value *, 8> const Args(CI->args());
     CallInst *NewCI = Builder.CreateCall(FCache, Args);
     NewCI->setName(CI->getName());
 
@@ -107,7 +107,7 @@ static bool lowerObjCCall(Function &F, const char *NewFn,
     // std::max respects both requirements of notail and tail here:
     // * notail on either the call or from ObjCARC becomes notail
     // * tail on either side is stronger than none, but not notail
-    CallInst::TailCallKind TCK = CI->getTailCallKind();
+    CallInst::TailCallKind const TCK = CI->getTailCallKind();
     NewCI->setTailCallKind(std::max(TCK, OverridingTCK));
 
     if (!CI->use_empty())

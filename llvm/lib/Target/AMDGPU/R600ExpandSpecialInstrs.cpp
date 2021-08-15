@@ -60,9 +60,9 @@ FunctionPass *llvm::createR600ExpandSpecialInstrsPass() {
 
 void R600ExpandSpecialInstrsPass::SetFlagInNewMI(MachineInstr *NewMI,
     const MachineInstr *OldMI, unsigned Op) {
-  int OpIdx = TII->getOperandIdx(*OldMI, Op);
+  int const OpIdx = TII->getOperandIdx(*OldMI, Op);
   if (OpIdx > -1) {
-    uint64_t Val = OldMI->getOperand(OpIdx).getImm();
+    uint64_t const Val = OldMI->getOperand(OpIdx).getImm();
     TII->setImmOperand(*NewMI, Op, Val);
   }
 }
@@ -83,15 +83,15 @@ bool R600ExpandSpecialInstrsPass::runOnMachineFunction(MachineFunction &MF) {
 
       // Expand LDS_*_RET instructions
       if (TII->isLDSRetInstr(MI.getOpcode())) {
-        int DstIdx = TII->getOperandIdx(MI.getOpcode(), R600::OpName::dst);
+        int const DstIdx = TII->getOperandIdx(MI.getOpcode(), R600::OpName::dst);
         assert(DstIdx != -1);
         MachineOperand &DstOp = MI.getOperand(DstIdx);
         MachineInstr *Mov = TII->buildMovInstr(&MBB, I,
                                                DstOp.getReg(), R600::OQAP);
         DstOp.setReg(R600::OQAP);
-        int LDSPredSelIdx = TII->getOperandIdx(MI.getOpcode(),
+        int const LDSPredSelIdx = TII->getOperandIdx(MI.getOpcode(),
                                            R600::OpName::pred_sel);
-        int MovPredSelIdx = TII->getOperandIdx(Mov->getOpcode(),
+        int const MovPredSelIdx = TII->getOperandIdx(Mov->getOpcode(),
                                            R600::OpName::pred_sel);
         // Copy the pred_sel bit
         Mov->getOperand(MovPredSelIdx).setReg(
@@ -102,7 +102,7 @@ bool R600ExpandSpecialInstrsPass::runOnMachineFunction(MachineFunction &MF) {
       default: break;
       // Expand PRED_X to one of the PRED_SET instructions.
       case R600::PRED_X: {
-        uint64_t Flags = MI.getOperand(3).getImm();
+        uint64_t const Flags = MI.getOperand(3).getImm();
         // The native opcode used by PRED_X is stored as an immediate in the
         // third operand.
         MachineInstr *PredSet = TII->buildDefaultInstruction(MBB, I,
@@ -123,12 +123,12 @@ bool R600ExpandSpecialInstrsPass::runOnMachineFunction(MachineFunction &MF) {
 
         const R600RegisterInfo &TRI = TII->getRegisterInfo();
 
-        Register DstReg = MI.getOperand(0).getReg();
-        unsigned DstBase = TRI.getEncodingValue(DstReg) & HW_REG_MASK;
+        Register const DstReg = MI.getOperand(0).getReg();
+        unsigned const DstBase = TRI.getEncodingValue(DstReg) & HW_REG_MASK;
 
         for (unsigned Chan = 0; Chan < 4; ++Chan) {
-          bool Mask = (Chan != TRI.getHWRegChan(DstReg));
-          unsigned SubDstReg =
+          bool const Mask = (Chan != TRI.getHWRegChan(DstReg));
+          unsigned const SubDstReg =
               R600::R600_TReg32RegClass.getRegister((DstBase * 4) + Chan);
           MachineInstr *BMI =
               TII->buildSlotOfVectorInstruction(MBB, &MI, Chan, SubDstReg);
@@ -140,13 +140,13 @@ bool R600ExpandSpecialInstrsPass::runOnMachineFunction(MachineFunction &MF) {
           }
           if (Chan != 3)
             TII->addFlag(*BMI, 0, MO_FLAG_NOT_LAST);
-          unsigned Opcode = BMI->getOpcode();
+          unsigned const Opcode = BMI->getOpcode();
           // While not strictly necessary from hw point of view, we force
           // all src operands of a dot4 inst to belong to the same slot.
-          Register Src0 =
+          Register const Src0 =
               BMI->getOperand(TII->getOperandIdx(Opcode, R600::OpName::src0))
                   .getReg();
-          Register Src1 =
+          Register const Src1 =
               BMI->getOperand(TII->getOperandIdx(Opcode, R600::OpName::src1))
                   .getReg();
           (void) Src0;
@@ -160,9 +160,9 @@ bool R600ExpandSpecialInstrsPass::runOnMachineFunction(MachineFunction &MF) {
       }
       }
 
-      bool IsReduction = TII->isReductionOp(MI.getOpcode());
-      bool IsVector = TII->isVector(MI);
-      bool IsCube = TII->isCubeOp(MI.getOpcode());
+      bool const IsReduction = TII->isReductionOp(MI.getOpcode());
+      bool const IsVector = TII->isVector(MI);
+      bool const IsCube = TII->isCubeOp(MI.getOpcode());
       if (!IsReduction && !IsVector && !IsCube) {
         continue;
       }
@@ -201,19 +201,19 @@ bool R600ExpandSpecialInstrsPass::runOnMachineFunction(MachineFunction &MF) {
 
         // Determine the correct source registers
         if (!IsCube) {
-          int Src1Idx = TII->getOperandIdx(MI, R600::OpName::src1);
+          int const Src1Idx = TII->getOperandIdx(MI, R600::OpName::src1);
           if (Src1Idx != -1) {
             Src1 = MI.getOperand(Src1Idx).getReg();
           }
         }
         if (IsReduction) {
-          unsigned SubRegIndex = R600RegisterInfo::getSubRegFromChannel(Chan);
+          unsigned const SubRegIndex = R600RegisterInfo::getSubRegFromChannel(Chan);
           Src0 = TRI.getSubReg(Src0, SubRegIndex);
           Src1 = TRI.getSubReg(Src1, SubRegIndex);
         } else if (IsCube) {
           static const int CubeSrcSwz[] = {2, 2, 0, 1};
-          unsigned SubRegIndex0 = R600RegisterInfo::getSubRegFromChannel(CubeSrcSwz[Chan]);
-          unsigned SubRegIndex1 = R600RegisterInfo::getSubRegFromChannel(CubeSrcSwz[3 - Chan]);
+          unsigned const SubRegIndex0 = R600RegisterInfo::getSubRegFromChannel(CubeSrcSwz[Chan]);
+          unsigned const SubRegIndex1 = R600RegisterInfo::getSubRegFromChannel(CubeSrcSwz[3 - Chan]);
           Src1 = TRI.getSubReg(Src0, SubRegIndex1);
           Src0 = TRI.getSubReg(Src0, SubRegIndex0);
         }
@@ -222,13 +222,13 @@ bool R600ExpandSpecialInstrsPass::runOnMachineFunction(MachineFunction &MF) {
         bool Mask = false;
         bool NotLast = true;
         if (IsCube) {
-          unsigned SubRegIndex = R600RegisterInfo::getSubRegFromChannel(Chan);
+          unsigned const SubRegIndex = R600RegisterInfo::getSubRegFromChannel(Chan);
           DstReg = TRI.getSubReg(DstReg, SubRegIndex);
         } else {
           // Mask the write if the original instruction does not write to
           // the current Channel.
           Mask = (Chan != TRI.getHWRegChan(DstReg));
-          unsigned DstBase = TRI.getEncodingValue(DstReg) & HW_REG_MASK;
+          unsigned const DstBase = TRI.getEncodingValue(DstReg) & HW_REG_MASK;
           DstReg = R600::R600_TReg32RegClass.getRegister((DstBase * 4) + Chan);
         }
 

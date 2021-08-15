@@ -99,7 +99,7 @@ uint64_t NativeTypePointer::getLength() const {
 
 SymIndexId NativeTypePointer::getTypeId() const {
   // This is the pointee SymIndexId.
-  TypeIndex Referent = Record ? Record->ReferentType : TI.makeDirect();
+  TypeIndex const Referent = Record ? Record->ReferentType : TI.makeDirect();
 
   return Session.getSymbolCache().findSymbolByTypeIndex(Referent);
 }

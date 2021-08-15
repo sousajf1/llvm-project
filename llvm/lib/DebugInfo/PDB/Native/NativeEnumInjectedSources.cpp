@@ -46,19 +46,19 @@ public:
   uint64_t getCodeByteSize() const override { return Entry.FileSize; }
 
   std::string getFileName() const override {
-    StringRef Ret = cantFail(Strings.getStringForID(Entry.FileNI),
+    StringRef const Ret = cantFail(Strings.getStringForID(Entry.FileNI),
                              "InjectedSourceStream should have rejected this");
     return std::string(Ret);
   }
 
   std::string getObjectFileName() const override {
-    StringRef Ret = cantFail(Strings.getStringForID(Entry.ObjNI),
+    StringRef const Ret = cantFail(Strings.getStringForID(Entry.ObjNI),
                              "InjectedSourceStream should have rejected this");
     return std::string(Ret);
   }
 
   std::string getVirtualFileName() const override {
-    StringRef Ret = cantFail(Strings.getStringForID(Entry.VFileNI),
+    StringRef const Ret = cantFail(Strings.getStringForID(Entry.VFileNI),
                              "InjectedSourceStream should have rejected this");
     return std::string(Ret);
   }
@@ -67,10 +67,10 @@ public:
 
   std::string getCode() const override {
     // Get name of stream storing the data.
-    StringRef VName =
+    StringRef const VName =
         cantFail(Strings.getStringForID(Entry.VFileNI),
                  "InjectedSourceStream should have rejected this");
-    std::string StreamName = ("/src/files/" + VName).str();
+    std::string const StreamName = ("/src/files/" + VName).str();
 
     // Find stream with that name and read its data.
     // FIXME: Consider validating (or even loading) all this in

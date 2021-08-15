@@ -109,7 +109,7 @@ uint32_t DbiStreamBuilder::calculateSerializedLength() const {
 
 Expected<DbiModuleDescriptorBuilder &>
 DbiStreamBuilder::addModuleInfo(StringRef ModuleName) {
-  uint32_t Index = ModiList.size();
+  uint32_t const Index = ModiList.size();
   ModiList.push_back(
       std::make_unique<DbiModuleDescriptorBuilder>(ModuleName, Index, Msf));
   return *ModiList.back();
@@ -117,7 +117,7 @@ DbiStreamBuilder::addModuleInfo(StringRef ModuleName) {
 
 Error DbiStreamBuilder::addModuleSourceFile(DbiModuleDescriptorBuilder &Module,
                                             StringRef File) {
-  uint32_t Index = SourceFileNames.size();
+  uint32_t const Index = SourceFileNames.size();
   SourceFileNames.insert(std::make_pair(File, Index));
   Module.addSourceFile(File);
   return Error::success();
@@ -183,18 +183,18 @@ uint32_t DbiStreamBuilder::calculateDbgStreamsSize() const {
 }
 
 Error DbiStreamBuilder::generateFileInfoSubstream() {
-  uint32_t Size = calculateFileInfoSubstreamSize();
+  uint32_t const Size = calculateFileInfoSubstreamSize();
   auto Data = Allocator.Allocate<uint8_t>(Size);
-  uint32_t NamesOffset = calculateNamesOffset();
+  uint32_t const NamesOffset = calculateNamesOffset();
 
   FileInfoBuffer = MutableBinaryByteStream(MutableArrayRef<uint8_t>(Data, Size),
                                            llvm::support::little);
 
-  WritableBinaryStreamRef MetadataBuffer =
+  WritableBinaryStreamRef const MetadataBuffer =
       WritableBinaryStreamRef(FileInfoBuffer).keep_front(NamesOffset);
   BinaryStreamWriter MetadataWriter(MetadataBuffer);
 
-  uint16_t ModiCount = std::min<uint32_t>(UINT16_MAX, ModiList.size());
+  uint16_t const ModiCount = std::min<uint32_t>(UINT16_MAX, ModiList.size());
   uint16_t FileCount = std::min<uint32_t>(UINT16_MAX, SourceFileNames.size());
   if (auto EC = MetadataWriter.writeInteger(ModiCount)) // NumModules
     return EC;
@@ -223,7 +223,7 @@ Error DbiStreamBuilder::generateFileInfoSubstream() {
   }
 
   for (const auto &MI : ModiList) {
-    for (StringRef Name : MI->source_files()) {
+    for (StringRef const Name : MI->source_files()) {
       auto Result = SourceFileNames.find(Name);
       if (Result == SourceFileNames.end())
         return make_error<RawError>(raw_error_code::no_entry,
@@ -320,7 +320,7 @@ Error DbiStreamBuilder::finalizeMsfLayout() {
       return EC;
   }
 
-  uint32_t Length = calculateSerializedLength();
+  uint32_t const Length = calculateSerializedLength();
   if (auto EC = Msf.setStreamSize(StreamDBI, Length))
     return EC;
   return Error::success();
@@ -414,8 +414,8 @@ Error DbiStreamBuilder::commit(const msf::MSFLayout &Layout,
   }
 
   if (!SectionMap.empty()) {
-    ulittle16_t Size = static_cast<ulittle16_t>(SectionMap.size());
-    SecMapHeader SMHeader = {Size, Size};
+    ulittle16_t const Size = static_cast<ulittle16_t>(SectionMap.size());
+    SecMapHeader const SMHeader = {Size, Size};
     if (auto EC = Writer.writeObject(SMHeader))
       return EC;
     if (auto EC = Writer.writeArray(makeArrayRef(SectionMap)))

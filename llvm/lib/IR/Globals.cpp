@@ -117,8 +117,8 @@ unsigned GlobalValue::getAddressSpace() const {
 void GlobalObject::setAlignment(MaybeAlign Align) {
   assert((!Align || *Align <= MaximumAlignment) &&
          "Alignment is greater than MaximumAlignment!");
-  unsigned AlignmentData = encode(Align);
-  unsigned OldData = getGlobalValueSubClassData();
+  unsigned const AlignmentData = encode(Align);
+  unsigned const OldData = getGlobalValueSubClassData();
   setGlobalValueSubClassData((OldData & ~AlignmentMask) | AlignmentData);
   assert(MaybeAlign(getAlignment()) == Align &&
          "Alignment representation error!");
@@ -272,7 +272,7 @@ bool GlobalObject::canIncreaseAlignment() const {
   // alignment will be incorrect.
 
   // Conservatively assume ELF if there's no parent pointer.
-  bool isELF =
+  bool const isELF =
       (!Parent || Triple(Parent->getTargetTriple()).isOSBinFormatELF());
   if (isELF && !isDSOLocal())
     return false;

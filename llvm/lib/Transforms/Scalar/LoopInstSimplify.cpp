@@ -52,7 +52,7 @@ static bool simplifyLoopInst(Loop &L, DominatorTree &DT, LoopInfo &LI,
                              AssumptionCache &AC, const TargetLibraryInfo &TLI,
                              MemorySSAUpdater *MSSAU) {
   const DataLayout &DL = L.getHeader()->getModule()->getDataLayout();
-  SimplifyQuery SQ(DL, &TLI, &DT, &AC);
+  SimplifyQuery const SQ(DL, &TLI, &DT, &AC);
 
   // On the first pass over the loop body we try to simplify every instruction.
   // On subsequent passes, we can restrict this to only simplifying instructions
@@ -96,7 +96,7 @@ static bool simplifyLoopInst(Loop &L, DominatorTree &DT, LoopInfo &LI,
 
         // We special case the first iteration which we can detect due to the
         // empty `ToSimplify` set.
-        bool IsFirstIteration = ToSimplify->empty();
+        bool const IsFirstIteration = ToSimplify->empty();
 
         if (!IsFirstIteration && !ToSimplify->count(&I))
           continue;

@@ -291,7 +291,7 @@ static bool canThrow(const Value *V) {
     // Intrinsics cannot throw
     if (F->isIntrinsic())
       return false;
-    StringRef Name = F->getName();
+    StringRef const Name = F->getName();
     // leave setjmp and longjmp (mostly) alone, we process them properly later
     if (Name == "setjmp" || Name == "longjmp" || Name == "emscripten_longjmp")
       return false;
@@ -395,7 +395,7 @@ WebAssemblyLowerEmscriptenEHSjLj::getFindMatchingCatch(Module &M,
   if (FindMatchingCatches.count(NumClauses))
     return FindMatchingCatches[NumClauses];
   PointerType *Int8PtrTy = Type::getInt8PtrTy(M.getContext());
-  SmallVector<Type *, 16> Args(NumClauses, Int8PtrTy);
+  SmallVector<Type *, 16> const Args(NumClauses, Int8PtrTy);
   FunctionType *FTy = FunctionType::get(Int8PtrTy, Args, false);
   Function *F = getEmscriptenFunction(
       FTy, "__cxa_find_matching_catch_" + Twine(NumClauses + 2), &M);
@@ -466,7 +466,7 @@ Value *WebAssemblyLowerEmscriptenEHSjLj::wrapInvoke(CallBase *CI) {
   }
 
   // Reconstruct the AttributesList based on the vector we constructed.
-  AttributeList NewCallAL = AttributeList::get(
+  AttributeList const NewCallAL = AttributeList::get(
       C, AttributeSet::get(C, FnAttrs), InvokeAL.getRetAttrs(), ArgAttributes);
   NewCall->setAttributes(NewCallAL);
 
@@ -486,7 +486,7 @@ Function *WebAssemblyLowerEmscriptenEHSjLj::getInvokeWrapper(CallBase *CI) {
   SmallVector<Type *, 16> ArgTys;
   FunctionType *CalleeFTy = CI->getFunctionType();
 
-  std::string Sig = getSignature(CalleeFTy);
+  std::string const Sig = getSignature(CalleeFTy);
   if (InvokeWrappers.find(Sig) != InvokeWrappers.end())
     return InvokeWrappers[Sig];
 
@@ -513,7 +513,7 @@ static bool canLongjmp(const Value *Callee) {
   // and can't be passed by pointer. The result is a crash with illegal IR.
   if (isa<InlineAsm>(Callee))
     return false;
-  StringRef CalleeName = Callee->getName();
+  StringRef const CalleeName = Callee->getName();
 
   // The reason we include malloc/free here is to exclude the malloc/free
   // calls generated in setjmp prep / cleanup routines.
@@ -541,7 +541,7 @@ static bool canLongjmp(const Value *Callee) {
 }
 
 static bool isEmAsmCall(const Value *Callee) {
-  StringRef CalleeName = Callee->getName();
+  StringRef const CalleeName = Callee->getName();
   // This is an exhaustive list from Emscripten's <emscripten/em_asm.h>.
   return CalleeName == "emscripten_asm_const_int" ||
          CalleeName == "emscripten_asm_const_double" ||
@@ -752,8 +752,8 @@ bool WebAssemblyLowerEmscriptenEHSjLj::runOnModule(Module &M) {
     }
   }
 
-  bool SetjmpUsed = SetjmpF && !SetjmpUsers.empty();
-  bool LongjmpUsed = LongjmpF && !LongjmpF->use_empty();
+  bool const SetjmpUsed = SetjmpF && !SetjmpUsers.empty();
+  bool const LongjmpUsed = LongjmpF && !LongjmpF->use_empty();
   DoSjLj = EnableEmSjLj && (SetjmpUsed || LongjmpUsed);
 
   // Function registration and data pre-gathering for setjmp/longjmp handling
@@ -837,7 +837,7 @@ bool WebAssemblyLowerEmscriptenEHSjLj::runEHOnFunction(Function &F) {
     IRB.SetInsertPoint(II);
 
     const Value *Callee = II->getCalledOperand();
-    bool NeedInvoke = supportsException(&F) && canThrow(Callee);
+    bool const NeedInvoke = supportsException(&F) && canThrow(Callee);
     if (NeedInvoke) {
       // Wrap invoke with invoke wrapper and generate preamble/postamble
       Value *Threw = wrapInvoke(II);
@@ -888,7 +888,7 @@ bool WebAssemblyLowerEmscriptenEHSjLj::runEHOnFunction(Function &F) {
     } else {
       // This can't throw, and we don't need this invoke, just replace it with a
       // call+branch
-      SmallVector<Value *, 16> Args(II->args());
+      SmallVector<Value *, 16> const Args(II->args());
       CallInst *NewCall =
           IRB.CreateCall(II->getFunctionType(), II->getCalledOperand(), Args);
       NewCall->takeName(II);
@@ -1025,7 +1025,7 @@ bool WebAssemblyLowerEmscriptenEHSjLj::runSjLjOnFunction(Function &F) {
   // this instruction to a constant 4, because this value will be used in
   // SSAUpdater.AddAvailableValue(...) later.
   BasicBlock *Entry = &F.getEntryBlock();
-  DebugLoc FirstDL = getOrCreateDebugLoc(&*Entry->begin(), F.getSubprogram());
+  DebugLoc const FirstDL = getOrCreateDebugLoc(&*Entry->begin(), F.getSubprogram());
   BinaryOperator *SetjmpTableSize =
       BinaryOperator::Create(Instruction::Add, IRB.getInt32(4), IRB.getInt32(0),
                              "setjmpTableSize", &*Entry->getFirstInsertionPt());
@@ -1079,7 +1079,7 @@ bool WebAssemblyLowerEmscriptenEHSjLj::runSjLjOnFunction(Function &F) {
     // Our index in the function is our place in the array + 1 to avoid index
     // 0, because index 0 means the longjmp is not ours to handle.
     IRB.SetInsertPoint(CI);
-    Value *Args[] = {CI->getArgOperand(0), IRB.getInt32(SetjmpRetPHIs.size()),
+    Value *const Args[] = {CI->getArgOperand(0), IRB.getInt32(SetjmpRetPHIs.size()),
                      SetjmpTable, SetjmpTableSize};
     Instruction *NewSetjmpTable =
         IRB.CreateCall(SaveSetjmpF, Args, "setjmpTable");
@@ -1252,7 +1252,7 @@ bool WebAssemblyLowerEmscriptenEHSjLj::runSjLjOnFunction(Function &F) {
       ExitingInsts.push_back(TI);
     for (auto &I : BB) {
       if (auto *CB = dyn_cast<CallBase>(&I)) {
-        StringRef CalleeName = CB->getCalledOperand()->getName();
+        StringRef const CalleeName = CB->getCalledOperand()->getName();
         if (CalleeName == "__resumeException" ||
             CalleeName == "emscripten_longjmp" || CalleeName == "__cxa_throw")
           ExitingInsts.push_back(&I);
@@ -1260,7 +1260,7 @@ bool WebAssemblyLowerEmscriptenEHSjLj::runSjLjOnFunction(Function &F) {
     }
   }
   for (auto *I : ExitingInsts) {
-    DebugLoc DL = getOrCreateDebugLoc(I, F.getSubprogram());
+    DebugLoc const DL = getOrCreateDebugLoc(I, F.getSubprogram());
     auto *Free = CallInst::CreateFree(SetjmpTable, I);
     Free->setDebugLoc(DL);
     // CallInst::CreateFree may create a bitcast instruction if its argument

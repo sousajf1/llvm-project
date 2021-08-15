@@ -90,7 +90,7 @@ bool RISCVMergeBaseOffsetOpt::detectLuiAddiGlobal(MachineInstr &HiLUI,
       HiLUI.getOperand(1).getOffset() != 0 ||
       !MRI->hasOneUse(HiLUI.getOperand(0).getReg()))
     return false;
-  Register HiLuiDestReg = HiLUI.getOperand(0).getReg();
+  Register const HiLuiDestReg = HiLUI.getOperand(0).getReg();
   LoADDI = MRI->use_begin(HiLuiDestReg)->getParent();
   if (LoADDI->getOpcode() != RISCV::ADDI ||
       LoADDI->getOperand(2).getTargetFlags() != RISCVII::MO_LO ||
@@ -140,9 +140,9 @@ bool RISCVMergeBaseOffsetOpt::matchLargeOffset(MachineInstr &TailAdd,
                                                Register GAReg,
                                                int64_t &Offset) {
   assert((TailAdd.getOpcode() == RISCV::ADD) && "Expected ADD instruction!");
-  Register Rs = TailAdd.getOperand(1).getReg();
-  Register Rt = TailAdd.getOperand(2).getReg();
-  Register Reg = Rs == GAReg ? Rt : Rs;
+  Register const Rs = TailAdd.getOperand(1).getReg();
+  Register const Rt = TailAdd.getOperand(2).getReg();
+  Register const Reg = Rs == GAReg ? Rt : Rs;
 
   // Can't fold if the register has more than one use.
   if (!MRI->hasOneUse(Reg))
@@ -152,18 +152,18 @@ bool RISCVMergeBaseOffsetOpt::matchLargeOffset(MachineInstr &TailAdd,
   if (OffsetTail.getOpcode() == RISCV::ADDI) {
     // The offset value has non zero bits in both %hi and %lo parts.
     // Detect an ADDI that feeds from a LUI instruction.
-    MachineOperand &AddiImmOp = OffsetTail.getOperand(2);
+    MachineOperand  const&AddiImmOp = OffsetTail.getOperand(2);
     if (AddiImmOp.getTargetFlags() != RISCVII::MO_None)
       return false;
-    int64_t OffLo = AddiImmOp.getImm();
+    int64_t const OffLo = AddiImmOp.getImm();
     MachineInstr &OffsetLui =
         *MRI->getVRegDef(OffsetTail.getOperand(1).getReg());
-    MachineOperand &LuiImmOp = OffsetLui.getOperand(1);
+    MachineOperand  const&LuiImmOp = OffsetLui.getOperand(1);
     if (OffsetLui.getOpcode() != RISCV::LUI ||
         LuiImmOp.getTargetFlags() != RISCVII::MO_None ||
         !MRI->hasOneUse(OffsetLui.getOperand(0).getReg()))
       return false;
-    int64_t OffHi = OffsetLui.getOperand(1).getImm();
+    int64_t const OffHi = OffsetLui.getOperand(1).getImm();
     Offset = (OffHi << 12) + OffLo;
     LLVM_DEBUG(dbgs() << "  Offset Instrs: " << OffsetTail
                       << "                 " << OffsetLui);
@@ -183,7 +183,7 @@ bool RISCVMergeBaseOffsetOpt::matchLargeOffset(MachineInstr &TailAdd,
 
 bool RISCVMergeBaseOffsetOpt::detectAndFoldOffset(MachineInstr &HiLUI,
                                                   MachineInstr &LoADDI) {
-  Register DestReg = LoADDI.getOperand(0).getReg();
+  Register const DestReg = LoADDI.getOperand(0).getReg();
   assert(MRI->hasOneUse(DestReg) && "expected one use for LoADDI");
   // LoADDI has only one use.
   MachineInstr &Tail = *MRI->use_begin(DestReg)->getParent();
@@ -194,7 +194,7 @@ bool RISCVMergeBaseOffsetOpt::detectAndFoldOffset(MachineInstr &HiLUI,
     return false;
   case RISCV::ADDI: {
     // Offset is simply an immediate operand.
-    int64_t Offset = Tail.getOperand(2).getImm();
+    int64_t const Offset = Tail.getOperand(2).getImm();
     LLVM_DEBUG(dbgs() << "  Offset Instr: " << Tail);
     foldOffset(HiLUI, LoADDI, Tail, Offset);
     return true;
@@ -239,11 +239,11 @@ bool RISCVMergeBaseOffsetOpt::detectAndFoldOffset(MachineInstr &HiLUI,
       return false;
     // Register defined by LoADDI should be used in the base part of the
     // load\store instruction. Otherwise, no folding possible.
-    Register BaseAddrReg = Tail.getOperand(1).getReg();
+    Register const BaseAddrReg = Tail.getOperand(1).getReg();
     if (DestReg != BaseAddrReg)
       return false;
-    MachineOperand &TailImmOp = Tail.getOperand(2);
-    int64_t Offset = TailImmOp.getImm();
+    MachineOperand  const&TailImmOp = Tail.getOperand(2);
+    int64_t const Offset = TailImmOp.getImm();
     // Update the offsets in global address lowering.
     HiLUI.getOperand(1).setOffset(Offset);
     // Update the immediate in the Tail instruction to add the offset.

@@ -141,8 +141,8 @@ static unsigned getFixupKindNumBytes(unsigned Kind) {
 }
 
 static unsigned AdrImmBits(unsigned Value) {
-  unsigned lo2 = Value & 0x3;
-  unsigned hi19 = (Value & 0x1ffffc) >> 2;
+  unsigned const lo2 = Value & 0x3;
+  unsigned const hi19 = (Value & 0x1ffffc) >> 2;
   return (hi19 << 5) | (lo2 << 29);
 }
 
@@ -216,7 +216,7 @@ static uint64_t adjustFixupValue(const MCFixup &Fixup, const MCValue &Target,
       Ctx.reportError(Fixup.getLoc(), "fixup must be 16-byte aligned");
     return Value >> 4;
   case AArch64::fixup_aarch64_movw: {
-    AArch64MCExpr::VariantKind RefKind =
+    AArch64MCExpr::VariantKind const RefKind =
         static_cast<AArch64MCExpr::VariantKind>(Target.getRefKind());
     if (AArch64MCExpr::getSymbolLoc(RefKind) != AArch64MCExpr::VK_ABS &&
         AArch64MCExpr::getSymbolLoc(RefKind) != AArch64MCExpr::VK_SABS) {
@@ -330,7 +330,7 @@ Optional<MCFixupKind> AArch64AsmBackend::getFixupKind(StringRef Name) const {
   if (!TheTriple.isOSBinFormatELF())
     return None;
 
-  unsigned Type = llvm::StringSwitch<unsigned>(Name)
+  unsigned const Type = llvm::StringSwitch<unsigned>(Name)
 #define ELF_RELOC(X, Y)  .Case(#X, Y)
 #include "llvm/BinaryFormat/ELFRelocs/AArch64.def"
 #undef ELF_RELOC
@@ -389,24 +389,24 @@ void AArch64AsmBackend::applyFixup(const MCAssembler &Asm, const MCFixup &Fixup,
                                    const MCSubtargetInfo *STI) const {
   if (!Value)
     return; // Doesn't change encoding.
-  unsigned Kind = Fixup.getKind();
+  unsigned const Kind = Fixup.getKind();
   if (Kind >= FirstLiteralRelocationKind)
     return;
-  unsigned NumBytes = getFixupKindNumBytes(Kind);
-  MCFixupKindInfo Info = getFixupKindInfo(Fixup.getKind());
+  unsigned const NumBytes = getFixupKindNumBytes(Kind);
+  MCFixupKindInfo const Info = getFixupKindInfo(Fixup.getKind());
   MCContext &Ctx = Asm.getContext();
-  int64_t SignedValue = static_cast<int64_t>(Value);
+  int64_t const SignedValue = static_cast<int64_t>(Value);
   // Apply any target-specific value adjustments.
   Value = adjustFixupValue(Fixup, Target, Value, Ctx, TheTriple, IsResolved);
 
   // Shift the value into position.
   Value <<= Info.TargetOffset;
 
-  unsigned Offset = Fixup.getOffset();
+  unsigned const Offset = Fixup.getOffset();
   assert(Offset + NumBytes <= Data.size() && "Invalid fixup offset!");
 
   // Used to point to big endian bytes.
-  unsigned FulleSizeInBytes = getFixupKindContainereSizeInBytes(Fixup.getKind());
+  unsigned const FulleSizeInBytes = getFixupKindContainereSizeInBytes(Fixup.getKind());
 
   // For each byte of the fragment that the fixup touches, mask in the
   // bits from the fixup value.
@@ -420,14 +420,14 @@ void AArch64AsmBackend::applyFixup(const MCAssembler &Asm, const MCFixup &Fixup,
     assert((Offset + FulleSizeInBytes) <= Data.size() && "Invalid fixup size!");
     assert(NumBytes <= FulleSizeInBytes && "Invalid fixup size!");
     for (unsigned i = 0; i != NumBytes; ++i) {
-      unsigned Idx = FulleSizeInBytes - 1 - i;
+      unsigned const Idx = FulleSizeInBytes - 1 - i;
       Data[Offset + Idx] |= uint8_t((Value >> (i * 8)) & 0xff);
     }
   }
 
   // FIXME: getFixupKindInfo() and getFixupKindNumBytes() could be fixed to
   // handle this more cleanly. This may affect the output of -show-mc-encoding.
-  AArch64MCExpr::VariantKind RefKind =
+  AArch64MCExpr::VariantKind const RefKind =
       static_cast<AArch64MCExpr::VariantKind>(Target.getRefKind());
   if (AArch64MCExpr::getSymbolLoc(RefKind) == AArch64MCExpr::VK_SABS ||
       (!RefKind && Fixup.getTargetKind() == AArch64::fixup_aarch64_movw)) {
@@ -472,7 +472,7 @@ bool AArch64AsmBackend::writeNopData(raw_ostream &OS, uint64_t Count) const {
 bool AArch64AsmBackend::shouldForceRelocation(const MCAssembler &Asm,
                                               const MCFixup &Fixup,
                                               const MCValue &Target) {
-  unsigned Kind = Fixup.getKind();
+  unsigned const Kind = Fixup.getKind();
   if (Kind >= FirstLiteralRelocationKind)
     return true;
 
@@ -551,8 +551,8 @@ public:
 
   std::unique_ptr<MCObjectTargetWriter>
   createObjectTargetWriter() const override {
-    uint32_t CPUType = cantFail(MachO::getCPUType(TheTriple));
-    uint32_t CPUSubType = cantFail(MachO::getCPUSubType(TheTriple));
+    uint32_t const CPUType = cantFail(MachO::getCPUType(TheTriple));
+    uint32_t const CPUSubType = cantFail(MachO::getCPUSubType(TheTriple));
     return createAArch64MachObjectWriter(CPUType, CPUSubType,
                                          TheTriple.isArch32Bit());
   }
@@ -577,7 +577,7 @@ public:
         return CU::UNWIND_ARM64_MODE_DWARF;
       case MCCFIInstruction::OpDefCfa: {
         // Defines a frame pointer.
-        unsigned XReg =
+        unsigned const XReg =
             getXRegFromWReg(*MRI.getLLVMRegNum(Inst.getRegister(), true));
 
         // Other CFA registers than FP are not supported by compact unwind.
@@ -757,8 +757,8 @@ MCAsmBackend *llvm::createAArch64leAsmBackend(const Target &T,
 
   assert(TheTriple.isOSBinFormatELF() && "Invalid target");
 
-  uint8_t OSABI = MCELFObjectTargetWriter::getOSABI(TheTriple.getOS());
-  bool IsILP32 = STI.getTargetTriple().getEnvironment() == Triple::GNUILP32;
+  uint8_t const OSABI = MCELFObjectTargetWriter::getOSABI(TheTriple.getOS());
+  bool const IsILP32 = STI.getTargetTriple().getEnvironment() == Triple::GNUILP32;
   return new ELFAArch64AsmBackend(T, TheTriple, OSABI, /*IsLittleEndian=*/true,
                                   IsILP32);
 }
@@ -770,8 +770,8 @@ MCAsmBackend *llvm::createAArch64beAsmBackend(const Target &T,
   const Triple &TheTriple = STI.getTargetTriple();
   assert(TheTriple.isOSBinFormatELF() &&
          "Big endian is only supported for ELF targets!");
-  uint8_t OSABI = MCELFObjectTargetWriter::getOSABI(TheTriple.getOS());
-  bool IsILP32 = STI.getTargetTriple().getEnvironment() == Triple::GNUILP32;
+  uint8_t const OSABI = MCELFObjectTargetWriter::getOSABI(TheTriple.getOS());
+  bool const IsILP32 = STI.getTargetTriple().getEnvironment() == Triple::GNUILP32;
   return new ELFAArch64AsmBackend(T, TheTriple, OSABI, /*IsLittleEndian=*/false,
                                   IsILP32);
 }

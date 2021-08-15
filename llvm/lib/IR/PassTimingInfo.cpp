@@ -123,7 +123,7 @@ Timer *PassTimingInfo::newPassTimer(StringRef PassID, StringRef PassDesc) {
   unsigned &num = PassIDCountMap[PassID];
   num++;
   // Appending description with a pass-instance number for all but the first one
-  std::string PassDescNumbered =
+  std::string const PassDescNumbered =
       num <= 1 ? PassDesc.str() : formatv("{0} #{1}", PassDesc, num).str();
   return new Timer(PassID, PassDescNumbered, TG);
 }
@@ -133,11 +133,11 @@ Timer *PassTimingInfo::getPassTimer(Pass *P, PassInstanceID Pass) {
     return nullptr;
 
   init();
-  sys::SmartScopedLock<true> Lock(*TimingInfoMutex);
+  sys::SmartScopedLock<true> const Lock(*TimingInfoMutex);
   std::unique_ptr<Timer> &T = TimingData[Pass];
 
   if (!T) {
-    StringRef PassName = P->getPassName();
+    StringRef const PassName = P->getPassName();
     StringRef PassArgument;
     if (const PassInfo *PI = Pass::lookupPassInfo(P->getPassID()))
       PassArgument = PI->getPassArgument();
@@ -183,7 +183,7 @@ Timer &TimePassesHandler::getPassTimer(StringRef PassID) {
   TimerVector &Timers = TimingData[PassID];
   unsigned Count = Timers.size() + 1;
 
-  std::string FullDesc = formatv("{0} #{1}", PassID, Count).str();
+  std::string const FullDesc = formatv("{0} #{1}", PassID, Count).str();
 
   Timer *T = new Timer(PassID, FullDesc, TG);
   Timers.emplace_back(T);
@@ -213,7 +213,7 @@ LLVM_DUMP_METHOD void TimePassesHandler::dump() const {
   dbgs() << "Dumping timers for " << getTypeName<TimePassesHandler>()
          << ":\n\tRunning:\n";
   for (auto &I : TimingData) {
-    StringRef PassID = I.getKey();
+    StringRef const PassID = I.getKey();
     const TimerVector& MyTimers = I.getValue();
     for (unsigned idx = 0; idx < MyTimers.size(); idx++) {
       const Timer* MyTimer = MyTimers[idx].get();
@@ -223,7 +223,7 @@ LLVM_DUMP_METHOD void TimePassesHandler::dump() const {
   }
   dbgs() << "\tTriggered:\n";
   for (auto &I : TimingData) {
-    StringRef PassID = I.getKey();
+    StringRef const PassID = I.getKey();
     const TimerVector& MyTimers = I.getValue();
     for (unsigned idx = 0; idx < MyTimers.size(); idx++) {
       const Timer* MyTimer = MyTimers[idx].get();

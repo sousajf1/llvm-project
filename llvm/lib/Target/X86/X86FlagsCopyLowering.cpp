@@ -265,7 +265,7 @@ static MachineBasicBlock &splitBlock(MachineBasicBlock &MBB,
   // Analyze the original block to see if we are actually splitting an edge
   // into two edges. This can happen when we have multiple conditional jumps to
   // the same successor.
-  bool IsEdgeSplit =
+  bool const IsEdgeSplit =
       std::any_of(SplitI.getIterator(), MBB.instr_end(),
                   [&](MachineInstr &MI) {
                     assert(MI.isTerminator() &&
@@ -313,7 +313,7 @@ static MachineBasicBlock &splitBlock(MachineBasicBlock &MBB,
 
       for (int OpIdx = 1, NumOps = MI.getNumOperands(); OpIdx < NumOps;
            OpIdx += 2) {
-        MachineOperand &OpV = MI.getOperand(OpIdx);
+        MachineOperand  const&OpV = MI.getOperand(OpIdx);
         MachineOperand &OpMBB = MI.getOperand(OpIdx + 1);
         assert(OpMBB.isMBB() && "Block operand to a PHI is not a block!");
         if (OpMBB.getMBB() != &MBB)
@@ -381,7 +381,7 @@ bool X86FlagsCopyLoweringPass::runOnMachineFunction(MachineFunction &MF) {
   // viable locations for testing the original EFLAGS that dominate all the
   // uses across complex CFGs.
   SmallVector<MachineInstr *, 4> Copies;
-  ReversePostOrderTraversal<MachineFunction *> RPOT(&MF);
+  ReversePostOrderTraversal<MachineFunction *> const RPOT(&MF);
   for (MachineBasicBlock *MBB : RPOT)
     for (MachineInstr &MI : *MBB)
       if (MI.getOpcode() == TargetOpcode::COPY &&
@@ -391,7 +391,7 @@ bool X86FlagsCopyLoweringPass::runOnMachineFunction(MachineFunction &MF) {
   for (MachineInstr *CopyI : Copies) {
     MachineBasicBlock &MBB = *CopyI->getParent();
 
-    MachineOperand &VOp = CopyI->getOperand(1);
+    MachineOperand  const&VOp = CopyI->getOperand(1);
     assert(VOp.isReg() &&
            "The input to the copy for EFLAGS should always be a register!");
     MachineInstr &CopyDefI = *MRI->getVRegDef(VOp.getReg());
@@ -426,7 +426,7 @@ bool X86FlagsCopyLoweringPass::runOnMachineFunction(MachineFunction &MF) {
       ++NumCopiesEliminated;
     });
 
-    MachineOperand &DOp = CopyI->getOperand(0);
+    MachineOperand  const&DOp = CopyI->getOperand(0);
     assert(DOp.isDef() && "Expected register def!");
     assert(DOp.getReg() == X86::EFLAGS && "Unexpected copy def register!");
     if (DOp.isDead())
@@ -737,7 +737,7 @@ CondRegArray X86FlagsCopyLoweringPass::collectCondsInRegs(
   // Scan backwards across the range of instructions with live EFLAGS.
   for (MachineInstr &MI :
        llvm::reverse(llvm::make_range(MBB.begin(), TestPos))) {
-    X86::CondCode Cond = X86::getCondFromSETCC(MI);
+    X86::CondCode const Cond = X86::getCondFromSETCC(MI);
     if (Cond != X86::COND_INVALID && !MI.mayStore() &&
         MI.getOperand(0).isReg() && MI.getOperand(0).getReg().isVirtual()) {
       assert(MI.getOperand(0).isDef() &&
@@ -769,7 +769,7 @@ std::pair<unsigned, bool> X86FlagsCopyLoweringPass::getCondOrInverseInReg(
     MachineBasicBlock &TestMBB, MachineBasicBlock::iterator TestPos,
     const DebugLoc &TestLoc, X86::CondCode Cond, CondRegArray &CondRegs) {
   unsigned &CondReg = CondRegs[Cond];
-  unsigned &InvCondReg = CondRegs[X86::GetOppositeBranchCondition(Cond)];
+  unsigned  const&InvCondReg = CondRegs[X86::GetOppositeBranchCondition(Cond)];
   if (!CondReg && !InvCondReg)
     CondReg = promoteCondToReg(TestMBB, TestPos, TestLoc, Cond);
 
@@ -831,7 +831,7 @@ void X86FlagsCopyLoweringPass::rewriteArithmetic(
   MachineBasicBlock &MBB = *MI.getParent();
 
   // Insert an instruction that will set the flag back to the desired value.
-  Register TmpReg = MRI->createVirtualRegister(PromoteRC);
+  Register const TmpReg = MRI->createVirtualRegister(PromoteRC);
   auto AddI =
       BuildMI(MBB, MI.getIterator(), MI.getDebugLoc(), TII->get(X86::ADD8ri))
           .addDef(TmpReg, RegState::Dead)
@@ -850,7 +850,7 @@ void X86FlagsCopyLoweringPass::rewriteCMov(MachineBasicBlock &TestMBB,
                                            MachineOperand &FlagUse,
                                            CondRegArray &CondRegs) {
   // First get the register containing this specific condition.
-  X86::CondCode Cond = X86::getCondFromCMov(CMovI);
+  X86::CondCode const Cond = X86::getCondFromCMov(CMovI);
   unsigned CondReg;
   bool Inverted;
   std::tie(CondReg, Inverted) =
@@ -876,7 +876,7 @@ void X86FlagsCopyLoweringPass::rewriteFCMov(MachineBasicBlock &TestMBB,
                                             MachineOperand &FlagUse,
                                             CondRegArray &CondRegs) {
   // First get the register containing this specific condition.
-  X86::CondCode Cond = getCondFromFCMOV(CMovI.getOpcode());
+  X86::CondCode const Cond = getCondFromFCMOV(CMovI.getOpcode());
   unsigned CondReg;
   bool Inverted;
   std::tie(CondReg, Inverted) =
@@ -918,7 +918,7 @@ void X86FlagsCopyLoweringPass::rewriteCondJmp(
     MachineBasicBlock &TestMBB, MachineBasicBlock::iterator TestPos,
     const DebugLoc &TestLoc, MachineInstr &JmpI, CondRegArray &CondRegs) {
   // First get the register containing this specific condition.
-  X86::CondCode Cond = X86::getCondFromBranch(JmpI);
+  X86::CondCode const Cond = X86::getCondFromBranch(JmpI);
   unsigned CondReg;
   bool Inverted;
   std::tie(CondReg, Inverted) =
@@ -951,7 +951,7 @@ void X86FlagsCopyLoweringPass::rewriteSetCC(MachineBasicBlock &TestMBB,
                                             MachineInstr &SetCCI,
                                             MachineOperand &FlagUse,
                                             CondRegArray &CondRegs) {
-  X86::CondCode Cond = X86::getCondFromSETCC(SetCCI);
+  X86::CondCode const Cond = X86::getCondFromSETCC(SetCCI);
   // Note that we can't usefully rewrite this to the inverse without complex
   // analysis of the users of the setCC. Largely we rely on duplicates which
   // could have been avoided already being avoided here.

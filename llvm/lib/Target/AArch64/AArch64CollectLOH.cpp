@@ -400,9 +400,9 @@ static void handleADRP(const MachineInstr &MI, AArch64FunctionInfo &AFI,
       // this case can cause the linker to rewrite the ADRP to write to that
       // register, clobbering the use.
       const MachineInstr *AddMI = Info.MI0;
-      int DefIdx = mapRegToGPRIndex(MI.getOperand(0).getReg());
-      int OpIdx = mapRegToGPRIndex(AddMI->getOperand(0).getReg());
-      LOHInfo DefInfo = LOHInfos[OpIdx];
+      int const DefIdx = mapRegToGPRIndex(MI.getOperand(0).getReg());
+      int const OpIdx = mapRegToGPRIndex(AddMI->getOperand(0).getReg());
+      LOHInfo const DefInfo = LOHInfos[OpIdx];
       if (DefIdx != OpIdx && (DefInfo.OneUser || DefInfo.MultiUsers))
         break;
       LLVM_DEBUG(dbgs() << "Adding MCLOH_AdrpAdd:\n"
@@ -491,7 +491,7 @@ static void handleRegMaskClobber(const uint32_t *RegMask, MCPhysReg Reg,
                                  LOHInfo *LOHInfos) {
   if (!MachineOperand::clobbersPhysReg(RegMask, Reg))
     return;
-  int Idx = mapRegToGPRIndex(Reg);
+  int const Idx = mapRegToGPRIndex(Reg);
   if (Idx >= 0)
     handleClobber(LOHInfos[Idx]);
 }
@@ -501,15 +501,15 @@ static void handleNormalInst(const MachineInstr &MI, LOHInfo *LOHInfos) {
   for (const MachineOperand &MO : MI.operands()) {
     if (MO.isRegMask()) {
       const uint32_t *RegMask = MO.getRegMask();
-      for (MCPhysReg Reg : AArch64::GPR32RegClass)
+      for (MCPhysReg const Reg : AArch64::GPR32RegClass)
         handleRegMaskClobber(RegMask, Reg, LOHInfos);
-      for (MCPhysReg Reg : AArch64::GPR64RegClass)
+      for (MCPhysReg const Reg : AArch64::GPR64RegClass)
         handleRegMaskClobber(RegMask, Reg, LOHInfos);
       continue;
     }
     if (!MO.isReg() || !MO.isDef())
       continue;
-    int Idx = mapRegToGPRIndex(MO.getReg());
+    int const Idx = mapRegToGPRIndex(MO.getReg());
     if (Idx < 0)
       continue;
     handleClobber(LOHInfos[Idx]);
@@ -520,7 +520,7 @@ static void handleNormalInst(const MachineInstr &MI, LOHInfo *LOHInfos) {
   for (const MachineOperand &MO : MI.uses()) {
     if (!MO.isReg() || !MO.readsReg())
       continue;
-    int Idx = mapRegToGPRIndex(MO.getReg());
+    int const Idx = mapRegToGPRIndex(MO.getReg());
     if (Idx < 0)
       continue;
 
@@ -550,7 +550,7 @@ bool AArch64CollectLOH::runOnMachineFunction(MachineFunction &MF) {
     // Live-out registers are used.
     for (const MachineBasicBlock *Succ : MBB.successors()) {
       for (const auto &LI : Succ->liveins()) {
-        int RegIdx = mapRegToGPRIndex(LI.PhysReg);
+        int const RegIdx = mapRegToGPRIndex(LI.PhysReg);
         if (RegIdx >= 0)
           LOHInfos[RegIdx].OneUser = true;
       }
@@ -560,7 +560,7 @@ bool AArch64CollectLOH::runOnMachineFunction(MachineFunction &MF) {
     // in the process.
     for (const MachineInstr &MI :
          instructionsWithoutDebug(MBB.rbegin(), MBB.rend())) {
-      unsigned Opcode = MI.getOpcode();
+      unsigned const Opcode = MI.getOpcode();
       switch (Opcode) {
       case AArch64::ADDXri:
       case AArch64::LDRXui:
@@ -570,8 +570,8 @@ bool AArch64CollectLOH::runOnMachineFunction(MachineFunction &MF) {
           const MachineOperand &Op = MI.getOperand(1);
           assert(Def.isReg() && Def.isDef() && "Expected reg def");
           assert(Op.isReg() && Op.isUse() && "Expected reg use");
-          int DefIdx = mapRegToGPRIndex(Def.getReg());
-          int OpIdx = mapRegToGPRIndex(Op.getReg());
+          int const DefIdx = mapRegToGPRIndex(Def.getReg());
+          int const OpIdx = mapRegToGPRIndex(Op.getReg());
           if (DefIdx >= 0 && OpIdx >= 0 &&
               handleMiddleInst(MI, LOHInfos[DefIdx], LOHInfos[OpIdx]))
             continue;
@@ -579,7 +579,7 @@ bool AArch64CollectLOH::runOnMachineFunction(MachineFunction &MF) {
         break;
       case AArch64::ADRP:
         const MachineOperand &Op0 = MI.getOperand(0);
-        int Idx = mapRegToGPRIndex(Op0.getReg());
+        int const Idx = mapRegToGPRIndex(Op0.getReg());
         if (Idx >= 0) {
           handleADRP(MI, AFI, LOHInfos[Idx], LOHInfos);
           continue;

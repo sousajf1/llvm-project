@@ -125,7 +125,7 @@ bool RegUsageInfoCollector::runOnMachineFunction(MachineFunction &MF) {
   // Compute the size of the bit vector to represent all the registers.
   // The bit vector is broken into 32-bit chunks, thus takes the ceil of
   // the number of registers divided by 32 for the size.
-  unsigned RegMaskSize = MachineOperand::getRegMaskSize(TRI->getNumRegs());
+  unsigned const RegMaskSize = MachineOperand::getRegMaskSize(TRI->getNumRegs());
   RegMask.resize(RegMaskSize, ~((uint32_t)0));
 
   const Function &F = MF.getFunction();
@@ -206,7 +206,7 @@ computeCalleeSavedRegs(BitVector &SavedRegs, MachineFunction &MF) {
   // Insert subregs.
   const MCPhysReg *CSRegs = TRI.getCalleeSavedRegs(&MF);
   for (unsigned i = 0; CSRegs[i]; ++i) {
-    MCPhysReg Reg = CSRegs[i];
+    MCPhysReg const Reg = CSRegs[i];
     if (SavedRegs.test(Reg)) {
       // Save subregisters
       for (MCSubRegIterator SR(Reg, &TRI); SR.isValid(); ++SR)

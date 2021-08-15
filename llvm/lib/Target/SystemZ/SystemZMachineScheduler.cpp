@@ -59,7 +59,7 @@ static MachineBasicBlock *getSingleSchedPred(MachineBasicBlock *MBB,
 
 void SystemZPostRASchedStrategy::
 advanceTo(MachineBasicBlock::iterator NextBegin) {
-  MachineBasicBlock::iterator LastEmittedMI = HazardRec->getLastEmittedMI();
+  MachineBasicBlock::iterator const LastEmittedMI = HazardRec->getLastEmittedMI();
   MachineBasicBlock::iterator I =
     ((LastEmittedMI != nullptr && LastEmittedMI->getParent() == MBB) ?
      std::next(LastEmittedMI) : MBB->begin());
@@ -109,7 +109,7 @@ void SystemZPostRASchedStrategy::enterMBB(MachineBasicBlock *NextMBB) {
   for (MachineBasicBlock::iterator I = SinglePredMBB->getFirstTerminator();
        I != SinglePredMBB->end(); I++) {
     LLVM_DEBUG(dbgs() << "** Emitting incoming branch: "; I->dump(););
-    bool TakenBranch = (I->isBranch() &&
+    bool const TakenBranch = (I->isBranch() &&
                         (TII->getBranchInfo(*I).isIndirect() ||
                          TII->getBranchInfo(*I).getMBBTarget() == MBB));
     HazardRec->emitInstruction(&*I, TakenBranch);
@@ -253,7 +253,7 @@ void SystemZPostRASchedStrategy::releaseTopNode(SUnit *SU) {
   // Set isScheduleHigh flag on all SUs that we want to consider first in
   // pickNode().
   const MCSchedClassDesc *SC = HazardRec->getSchedClass(SU);
-  bool AffectsGrouping = (SC->isValid() && (SC->BeginGroup || SC->EndGroup));
+  bool const AffectsGrouping = (SC->isValid() && (SC->BeginGroup || SC->EndGroup));
   SU->isScheduleHigh = (AffectsGrouping || SU->isUnbuffered);
 
   // Put all released SUs in the Available set.

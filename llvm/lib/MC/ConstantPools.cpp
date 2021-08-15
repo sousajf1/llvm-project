@@ -64,7 +64,7 @@ void ConstantPool::clearCache() {
 // AssemblerConstantPools implementation
 //
 ConstantPool *AssemblerConstantPools::getConstantPool(MCSection *Section) {
-  ConstantPoolMapTy::iterator CP = ConstantPools.find(Section);
+  ConstantPoolMapTy::iterator const CP = ConstantPools.find(Section);
   if (CP == ConstantPools.end())
     return nullptr;
 

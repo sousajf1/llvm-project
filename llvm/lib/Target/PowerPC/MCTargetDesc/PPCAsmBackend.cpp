@@ -138,27 +138,27 @@ public:
                   const MCValue &Target, MutableArrayRef<char> Data,
                   uint64_t Value, bool IsResolved,
                   const MCSubtargetInfo *STI) const override {
-    MCFixupKind Kind = Fixup.getKind();
+    MCFixupKind const Kind = Fixup.getKind();
     if (Kind >= FirstLiteralRelocationKind)
       return;
     Value = adjustFixupValue(Kind, Value);
     if (!Value) return;           // Doesn't change encoding.
 
-    unsigned Offset = Fixup.getOffset();
-    unsigned NumBytes = getFixupKindNumBytes(Kind);
+    unsigned const Offset = Fixup.getOffset();
+    unsigned const NumBytes = getFixupKindNumBytes(Kind);
 
     // For each byte of the fragment that the fixup touches, mask in the bits
     // from the fixup value. The Value has been "split up" into the appropriate
     // bitfields above.
     for (unsigned i = 0; i != NumBytes; ++i) {
-      unsigned Idx = Endian == support::little ? i : (NumBytes - 1 - i);
+      unsigned const Idx = Endian == support::little ? i : (NumBytes - 1 - i);
       Data[Offset + i] |= uint8_t((Value >> (Idx * 8)) & 0xff);
     }
   }
 
   bool shouldForceRelocation(const MCAssembler &Asm, const MCFixup &Fixup,
                              const MCValue &Target) override {
-    MCFixupKind Kind = Fixup.getKind();
+    MCFixupKind const Kind = Fixup.getKind();
     switch ((unsigned)Kind) {
     default:
       return Kind >= FirstLiteralRelocationKind;
@@ -173,7 +173,7 @@ public:
           // The "other" values are stored in the last 6 bits of the second
           // byte. The traditional defines for STO values assume the full byte
           // and thus the shift to pack it.
-          unsigned Other = S->getOther() << 2;
+          unsigned const Other = S->getOther() << 2;
           if ((Other & ELF::STO_PPC64_LOCAL_MASK) != 0)
             return true;
         }
@@ -197,7 +197,7 @@ public:
   }
 
   bool writeNopData(raw_ostream &OS, uint64_t Count) const override {
-    uint64_t NumNops = Count / 4;
+    uint64_t const NumNops = Count / 4;
     for (uint64_t i = 0; i != NumNops; ++i)
       support::endian::write<uint32_t>(OS, 0x60000000, Endian);
 
@@ -218,8 +218,8 @@ public:
 
   std::unique_ptr<MCObjectTargetWriter>
   createObjectTargetWriter() const override {
-    uint8_t OSABI = MCELFObjectTargetWriter::getOSABI(TT.getOS());
-    bool Is64 = TT.isPPC64();
+    uint8_t const OSABI = MCELFObjectTargetWriter::getOSABI(TT.getOS());
+    bool const Is64 = TT.isPPC64();
     return createPPCELFObjectWriter(Is64, OSABI);
   }
 

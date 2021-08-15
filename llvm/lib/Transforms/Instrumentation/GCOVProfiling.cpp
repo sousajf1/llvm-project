@@ -265,7 +265,7 @@ static StringRef getFunctionName(const DISubprogram *SP) {
 /// the relative path doesn't exist, reconstruct the absolute path.
 static SmallString<128> getFilename(const DISubprogram *SP) {
   SmallString<128> Path;
-  StringRef RelPath = SP->getFilename();
+  StringRef const RelPath = SP->getFilename();
   if (sys::fs::exists(RelPath))
     Path = RelPath;
   else
@@ -383,7 +383,7 @@ namespace {
         : GCOVRecord(P), SP(SP), EndLine(EndLine), Ident(Ident),
           Version(Version), EntryBlock(P, 0), ReturnBlock(P, 1) {
       LLVM_DEBUG(dbgs() << "Function: " << getFunctionName(SP) << "\n");
-      bool ExitBlockBeforeBody = Version >= 48;
+      bool const ExitBlockBeforeBody = Version >= 48;
       uint32_t i = ExitBlockBeforeBody ? 2 : 1;
       for (BasicBlock &BB : *F)
         Blocks.insert(std::make_pair(&BB, GCOVBlock(P, i++)));
@@ -412,7 +412,7 @@ namespace {
 
     void writeOut(uint32_t CfgChecksum) {
       write(GCOV_TAG_FUNCTION);
-      SmallString<128> Filename = getFilename(SP);
+      SmallString<128> const Filename = getFilename(SP);
       uint32_t BlockLen =
           2 + (Version >= 47) + wordsOfString(getFunctionName(SP));
       if (Version < 80)
@@ -499,7 +499,7 @@ namespace {
 std::vector<Regex> GCOVProfiler::createRegexesFromString(StringRef RegexesStr) {
   std::vector<Regex> Regexes;
   while (!RegexesStr.empty()) {
-    std::pair<StringRef, StringRef> HeadTail = RegexesStr.split(';');
+    std::pair<StringRef, StringRef> const HeadTail = RegexesStr.split(';');
     if (!HeadTail.first.empty()) {
       Regex Re(HeadTail.first);
       std::string Err;
@@ -516,7 +516,7 @@ std::vector<Regex> GCOVProfiler::createRegexesFromString(StringRef RegexesStr) {
 
 bool GCOVProfiler::doesFilenameMatchARegex(StringRef Filename,
                                            std::vector<Regex> &Regexes) {
-  for (Regex &Re : Regexes)
+  for (Regex  const&Re : Regexes)
     if (Re.match(Filename))
       return true;
   return false;
@@ -526,7 +526,7 @@ bool GCOVProfiler::isFunctionInstrumented(const Function &F) {
   if (FilterRe.empty() && ExcludeRe.empty()) {
     return true;
   }
-  SmallString<128> Filename = getFilename(F.getSubprogram());
+  SmallString<128> const Filename = getFilename(F.getSubprogram());
   auto It = InstrumentedFiles.find(Filename);
   if (It != InstrumentedFiles.end()) {
     return It->second;
@@ -560,12 +560,12 @@ bool GCOVProfiler::isFunctionInstrumented(const Function &F) {
 
 std::string GCOVProfiler::mangleName(const DICompileUnit *CU,
                                      GCovFileType OutputType) {
-  bool Notes = OutputType == GCovFileType::GCNO;
+  bool const Notes = OutputType == GCovFileType::GCNO;
 
   if (NamedMDNode *GCov = M->getNamedMetadata("llvm.gcov")) {
     for (int i = 0, e = GCov->getNumOperands(); i != e; ++i) {
       MDNode *N = GCov->getOperand(i);
-      bool ThreeElement = N->getNumOperands() == 3;
+      bool const ThreeElement = N->getNumOperands() == 3;
       if (!ThreeElement && N->getNumOperands() != 2)
         continue;
       if (dyn_cast<MDNode>(N->getOperand(ThreeElement ? 2 : 1)) != CU)
@@ -594,7 +594,7 @@ std::string GCOVProfiler::mangleName(const DICompileUnit *CU,
 
   SmallString<128> Filename = CU->getFilename();
   sys::path::replace_extension(Filename, Notes ? "gcno" : "gcda");
-  StringRef FName = sys::path::filename(Filename);
+  StringRef const FName = sys::path::filename(Filename);
   SmallString<128> CurPath;
   if (sys::fs::current_path(CurPath))
     return std::string(FName);
@@ -614,7 +614,7 @@ bool GCOVProfiler::runOnModule(
   if (!CUNode || (!Options.EmitNotes && !Options.EmitData))
     return false;
 
-  bool HasExecOrFork = AddFlushBeforeForkAndExec();
+  bool const HasExecOrFork = AddFlushBeforeForkAndExec();
 
   FilterRe = createRegexesFromString(Options.Filter);
   ExcludeRe = createRegexesFromString(Options.Exclude);
@@ -672,7 +672,7 @@ static bool functionHasLines(const Function &F, unsigned &EndLine) {
 static bool isUsingScopeBasedEH(Function &F) {
   if (!F.hasPersonalityFn()) return false;
 
-  EHPersonality Personality = classifyEHPersonality(F.getPersonalityFn());
+  EHPersonality const Personality = classifyEHPersonality(F.getPersonalityFn());
   return isScopedEHPersonality(Personality);
 }
 
@@ -709,7 +709,7 @@ bool GCOVProfiler::AddFlushBeforeForkAndExec() {
 
     // We've a fork so just reset the counters in the child process
     FunctionType *FTy = FunctionType::get(Builder.getInt32Ty(), {}, false);
-    FunctionCallee GCOVFork = M->getOrInsertFunction("__gcov_fork", FTy);
+    FunctionCallee const GCOVFork = M->getOrInsertFunction("__gcov_fork", FTy);
     F->setCalledFunction(GCOVFork);
 
     // We split just after the fork to have a counter for the lines after
@@ -723,7 +723,7 @@ bool GCOVProfiler::AddFlushBeforeForkAndExec() {
     // back() is a br instruction with a debug location
     // equals to the one from NextAfterFork
     // So to avoid to have two debug locs on two blocks just change it
-    DebugLoc Loc = F->getDebugLoc();
+    DebugLoc const Loc = F->getDebugLoc();
     Parent->back().setDebugLoc(Loc);
   }
 
@@ -735,15 +735,15 @@ bool GCOVProfiler::AddFlushBeforeForkAndExec() {
     // Since the process is replaced by a new one we need to write out gcdas
     // No need to reset the counters since they'll be lost after the exec**
     FunctionType *FTy = FunctionType::get(Builder.getVoidTy(), {}, false);
-    FunctionCallee WriteoutF =
+    FunctionCallee const WriteoutF =
         M->getOrInsertFunction("llvm_writeout_files", FTy);
     Builder.CreateCall(WriteoutF);
 
-    DebugLoc Loc = E->getDebugLoc();
+    DebugLoc const Loc = E->getDebugLoc();
     Builder.SetInsertPoint(&*NextInst);
     // If the exec** fails we must reset the counters since they've been
     // dumped
-    FunctionCallee ResetF = M->getOrInsertFunction("llvm_reset_counters", FTy);
+    FunctionCallee const ResetF = M->getOrInsertFunction("llvm_reset_counters", FTy);
     Builder.CreateCall(ResetF)->setDebugLoc(Loc);
     ExecBlocks.insert(Parent);
     Parent->splitBasicBlock(NextInst);
@@ -801,8 +801,8 @@ static BasicBlock *getInstrBB(CFGMST<Edge, BBInfo> &MST, Edge &E,
 static void dumpEdges(CFGMST<Edge, BBInfo> &MST, GCOVFunction &GF) {
   size_t ID = 0;
   for (auto &E : make_pointee_range(MST.AllEdges)) {
-    GCOVBlock &Src = E.SrcBB ? GF.getBlock(E.SrcBB) : GF.getEntryBlock();
-    GCOVBlock &Dst = E.DestBB ? GF.getBlock(E.DestBB) : GF.getReturnBlock();
+    GCOVBlock  const&Src = E.SrcBB ? GF.getBlock(E.SrcBB) : GF.getEntryBlock();
+    GCOVBlock  const&Dst = E.DestBB ? GF.getBlock(E.DestBB) : GF.getReturnBlock();
     dbgs() << "  Edge " << ID++ << ": " << Src.Number << "->" << Dst.Number
            << E.infoString() << "\n";
   }
@@ -816,9 +816,9 @@ bool GCOVProfiler::emitProfileNotes(
     function_ref<const TargetLibraryInfo &(Function &F)> GetTLI) {
   int Version;
   {
-    uint8_t c3 = Options.Version[0];
-    uint8_t c2 = Options.Version[1];
-    uint8_t c1 = Options.Version[2];
+    uint8_t const c3 = Options.Version[0];
+    uint8_t const c2 = Options.Version[1];
+    uint8_t const c1 = Options.Version[2];
     Version = c3 >= 'A' ? (c3 - 'A') * 100 + (c2 - '0') * 10 + c1 - '0'
                         : (c3 - '0') * 10 + c1 - '0';
   }
@@ -867,7 +867,7 @@ bool GCOVProfiler::emitProfileNotes(
       CFGMST<Edge, BBInfo> MST(F, /*InstrumentFuncEntry_=*/false, BPI, BFI);
 
       // getInstrBB can split basic blocks and push elements to AllEdges.
-      for (size_t I : llvm::seq<size_t>(0, MST.AllEdges.size())) {
+      for (size_t const I : llvm::seq<size_t>(0, MST.AllEdges.size())) {
         auto &E = *MST.AllEdges[I];
         // For now, disable spanning tree optimization when fork or exec* is
         // used.
@@ -876,7 +876,7 @@ bool GCOVProfiler::emitProfileNotes(
         E.Place = getInstrBB(MST, E, ExecBlocks);
       }
       // Basic blocks in F are finalized at this point.
-      BasicBlock &EntryBlock = F.getEntryBlock();
+      BasicBlock  const&EntryBlock = F.getEntryBlock();
       Funcs.push_back(std::make_unique<GCOVFunction>(this, &F, SP, EndLine,
                                                      FunctionIdent++, Version));
       GCOVFunction &Func = *Funcs.back();
@@ -891,11 +891,11 @@ bool GCOVProfiler::emitProfileNotes(
               MST.AllEdges.begin(), MST.AllEdges.end(),
               [](std::unique_ptr<Edge> &E) { return E->Place; }) -
           MST.AllEdges.begin();
-      for (size_t I : llvm::seq<size_t>(0, Measured)) {
+      for (size_t const I : llvm::seq<size_t>(0, Measured)) {
         Edge &E = *MST.AllEdges[I];
-        GCOVBlock &Src =
+        GCOVBlock  const&Src =
             E.SrcBB ? Func.getBlock(E.SrcBB) : Func.getEntryBlock();
-        GCOVBlock &Dst =
+        GCOVBlock  const&Dst =
             E.DestBB ? Func.getBlock(E.DestBB) : Func.getReturnBlock();
         E.SrcNumber = Src.Number;
         E.DstNumber = Dst.Number;
@@ -961,7 +961,7 @@ bool GCOVProfiler::emitProfileNotes(
             Constant::getNullValue(CounterTy), "__llvm_gcov_ctr");
         CountersBySP.emplace_back(Counters, SP);
 
-        for (size_t I : llvm::seq<size_t>(0, Measured)) {
+        for (size_t const I : llvm::seq<size_t>(0, Measured)) {
           const Edge &E = *MST.AllEdges[I];
           IRBuilder<> Builder(E.Place, E.Place->getFirstInsertionPt());
           Value *V = Builder.CreateConstInBoundsGEP2_64(
@@ -982,7 +982,7 @@ bool GCOVProfiler::emitProfileNotes(
     char Tmp[4];
     JamCRC JC;
     JC.update(EdgeDestinations);
-    uint32_t Stamp = JC.getCRC();
+    uint32_t const Stamp = JC.getCRC();
     FileChecksums.push_back(Stamp);
 
     if (Options.EmitNotes) {
@@ -1058,7 +1058,7 @@ void GCOVProfiler::emitGlobalConstructor(
 
   // Initialize the environment and register the local writeout, flush and
   // reset functions.
-  FunctionCallee GCOVInit = M->getOrInsertFunction("llvm_gcov_init", FTy);
+  FunctionCallee const GCOVInit = M->getOrInsertFunction("llvm_gcov_init", FTy);
   Builder.CreateCall(GCOVInit, {WriteoutF, ResetF});
   Builder.CreateRetVoid();
 
@@ -1066,7 +1066,7 @@ void GCOVProfiler::emitGlobalConstructor(
 }
 
 FunctionCallee GCOVProfiler::getStartFileFunc(const TargetLibraryInfo *TLI) {
-  Type *Args[] = {
+  Type *const Args[] = {
       Type::getInt8PtrTy(*Ctx), // const char *orig_filename
       Type::getInt32Ty(*Ctx),   // uint32_t version
       Type::getInt32Ty(*Ctx),   // uint32_t checksum
@@ -1080,7 +1080,7 @@ FunctionCallee GCOVProfiler::getStartFileFunc(const TargetLibraryInfo *TLI) {
 }
 
 FunctionCallee GCOVProfiler::getEmitFunctionFunc(const TargetLibraryInfo *TLI) {
-  Type *Args[] = {
+  Type *const Args[] = {
     Type::getInt32Ty(*Ctx),    // uint32_t ident
     Type::getInt32Ty(*Ctx),    // uint32_t func_checksum
     Type::getInt32Ty(*Ctx),    // uint32_t cfg_checksum
@@ -1096,7 +1096,7 @@ FunctionCallee GCOVProfiler::getEmitFunctionFunc(const TargetLibraryInfo *TLI) {
 }
 
 FunctionCallee GCOVProfiler::getEmitArcsFunc(const TargetLibraryInfo *TLI) {
-  Type *Args[] = {
+  Type *const Args[] = {
     Type::getInt32Ty(*Ctx),     // uint32_t num_counters
     Type::getInt64PtrTy(*Ctx),  // uint64_t *counters
   };
@@ -1130,11 +1130,11 @@ Function *GCOVProfiler::insertCounterWriteout(
 
   auto *TLI = &GetTLI(*WriteoutF);
 
-  FunctionCallee StartFile = getStartFileFunc(TLI);
-  FunctionCallee EmitFunction = getEmitFunctionFunc(TLI);
-  FunctionCallee EmitArcs = getEmitArcsFunc(TLI);
-  FunctionCallee SummaryInfo = getSummaryInfoFunc();
-  FunctionCallee EndFile = getEndFileFunc();
+  FunctionCallee const StartFile = getStartFileFunc(TLI);
+  FunctionCallee const EmitFunction = getEmitFunctionFunc(TLI);
+  FunctionCallee const EmitArcs = getEmitArcsFunc(TLI);
+  FunctionCallee const SummaryInfo = getSummaryInfoFunc();
+  FunctionCallee const EndFile = getEndFileFunc();
 
   NamedMDNode *CUNodes = M->getNamedMetadata("llvm.dbg.cu");
   if (!CUNodes) {
@@ -1161,18 +1161,18 @@ Function *GCOVProfiler::insertCounterWriteout(
 
   Constant *Zero32 = Builder.getInt32(0);
   // Build an explicit array of two zeros for use in ConstantExpr GEP building.
-  Constant *TwoZero32s[] = {Zero32, Zero32};
+  Constant *const TwoZero32s[] = {Zero32, Zero32};
 
   SmallVector<Constant *, 8> FileInfos;
-  for (int i : llvm::seq<int>(0, CUNodes->getNumOperands())) {
+  for (int const i : llvm::seq<int>(0, CUNodes->getNumOperands())) {
     auto *CU = cast<DICompileUnit>(CUNodes->getOperand(i));
 
     // Skip module skeleton (and module) CUs.
     if (CU->getDWOId())
       continue;
 
-    std::string FilenameGcda = mangleName(CU, GCovFileType::GCDA);
-    uint32_t CfgChecksum = FileChecksums.empty() ? 0 : FileChecksums[i];
+    std::string const FilenameGcda = mangleName(CU, GCovFileType::GCDA);
+    uint32_t const CfgChecksum = FileChecksums.empty() ? 0 : FileChecksums[i];
     auto *StartFileCallArgs = ConstantStruct::get(
         StartFileCallArgsTy,
         {Builder.CreateGlobalStringPtr(FilenameGcda),
@@ -1181,8 +1181,8 @@ Function *GCOVProfiler::insertCounterWriteout(
 
     SmallVector<Constant *, 8> EmitFunctionCallArgsArray;
     SmallVector<Constant *, 8> EmitArcsCallArgsArray;
-    for (int j : llvm::seq<int>(0, CountersBySP.size())) {
-      uint32_t FuncChecksum = Funcs.empty() ? 0 : Funcs[j]->getFuncChecksum();
+    for (int const j : llvm::seq<int>(0, CountersBySP.size())) {
+      uint32_t const FuncChecksum = Funcs.empty() ? 0 : Funcs[j]->getFuncChecksum();
       EmitFunctionCallArgsArray.push_back(ConstantStruct::get(
           EmitFunctionCallArgsTy,
           {Builder.getInt32(j),
@@ -1190,14 +1190,14 @@ Function *GCOVProfiler::insertCounterWriteout(
            Builder.getInt32(CfgChecksum)}));
 
       GlobalVariable *GV = CountersBySP[j].first;
-      unsigned Arcs = cast<ArrayType>(GV->getValueType())->getNumElements();
+      unsigned const Arcs = cast<ArrayType>(GV->getValueType())->getNumElements();
       EmitArcsCallArgsArray.push_back(ConstantStruct::get(
           EmitArcsCallArgsTy,
           {Builder.getInt32(Arcs), ConstantExpr::getInBoundsGetElementPtr(
                                        GV->getValueType(), GV, TwoZero32s)}));
     }
     // Create global arrays for the two emit calls.
-    int CountersSize = CountersBySP.size();
+    int const CountersSize = CountersBySP.size();
     assert(CountersSize == (int)EmitFunctionCallArgsArray.size() &&
            "Mismatched array size!");
     assert(CountersSize == (int)EmitArcsCallArgsArray.size() &&

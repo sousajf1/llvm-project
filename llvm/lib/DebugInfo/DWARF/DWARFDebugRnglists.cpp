@@ -24,7 +24,7 @@ Error RangeListEntry::extract(DWARFDataExtractor Data, uint64_t *OffsetPtr) {
   // we just assert instead of revalidate.
   assert(*OffsetPtr < Data.size() &&
          "not enough space to extract a rangelist encoding");
-  uint8_t Encoding = Data.getU8(OffsetPtr);
+  uint8_t const Encoding = Data.getU8(OffsetPtr);
 
   DataExtractor::Cursor C(*OffsetPtr);
   switch (Encoding) {
@@ -97,7 +97,7 @@ DWARFAddressRangesVector DWARFDebugRnglist::getAbsoluteRanges(
     function_ref<Optional<object::SectionedAddress>(uint32_t)>
         LookupPooledAddress) const {
   DWARFAddressRangesVector Res;
-  uint64_t Tombstone = dwarf::computeTombstoneAddress(AddressByteSize);
+  uint64_t const Tombstone = dwarf::computeTombstoneAddress(AddressByteSize);
   for (const RangeListEntry &RLE : Entries) {
     if (RLE.EntryKind == dwarf::DW_RLE_end_of_list)
       break;
@@ -199,7 +199,7 @@ void RangeListEntry::dump(
       OS << ": ";
   }
 
-  uint64_t Tombstone = dwarf::computeTombstoneAddress(AddrSize);
+  uint64_t const Tombstone = dwarf::computeTombstoneAddress(AddrSize);
 
   switch (EntryKind) {
   case dwarf::DW_RLE_end_of_list:

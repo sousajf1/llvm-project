@@ -194,7 +194,7 @@ void LoopVersioning::prepareNoAliasMetadata() {
   for (const auto &Group : RtPtrChecking->CheckingGroups) {
     GroupToScope[&Group] = MDB.createAnonymousAliasScope(Domain);
 
-    for (unsigned PtrIdx : Group.Members)
+    for (unsigned const PtrIdx : Group.Members)
       PtrToGroup[RtPtrChecking->getPointerInfo(PtrIdx).PointerValue] = &Group;
   }
 

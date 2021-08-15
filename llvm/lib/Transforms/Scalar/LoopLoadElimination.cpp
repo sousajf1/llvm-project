@@ -114,7 +114,7 @@ struct StoreToLoadForwardingCandidate {
       return false;
 
     auto &DL = Load->getParent()->getModule()->getDataLayout();
-    unsigned TypeByteSize = DL.getTypeAllocSize(const_cast<Type *>(LoadType));
+    unsigned const TypeByteSize = DL.getTypeAllocSize(const_cast<Type *>(LoadType));
 
     auto *LoadPtrSCEV = cast<SCEVAddRecExpr>(PSE.getSCEV(LoadPtr));
     auto *StorePtrSCEV = cast<SCEVAddRecExpr>(PSE.getSCEV(StorePtr));
@@ -521,7 +521,7 @@ public:
 
     // Check intervening may-alias stores.  These need runtime checks for alias
     // disambiguation.
-    SmallVector<RuntimePointerCheck, 4> Checks = collectMemchecks(Candidates);
+    SmallVector<RuntimePointerCheck, 4> const Checks = collectMemchecks(Candidates);
 
     // Too many checks are likely to outweigh the benefits of forwarding.
     if (Checks.size() > Candidates.size() * CheckPerElim) {
@@ -549,7 +549,7 @@ public:
 
       auto *HeaderBB = L->getHeader();
       auto *F = HeaderBB->getParent();
-      bool OptForSize = F->hasOptSize() ||
+      bool const OptForSize = F->hasOptSize() ||
                         llvm::shouldOptimizeForSize(HeaderBB, PSI, BFI,
                                                     PGSOQueryType::IRPass);
       if (OptForSize) {
@@ -723,7 +723,7 @@ PreservedAnalyses LoopLoadEliminationPass::run(Function &F,
                         : nullptr;
 
   auto &LAM = AM.getResult<LoopAnalysisManagerFunctionProxy>(F).getManager();
-  bool Changed = eliminateLoadsAcrossLoops(
+  bool const Changed = eliminateLoadsAcrossLoops(
       F, LI, DT, BFI, PSI, &SE, &AC, [&](Loop &L) -> const LoopAccessInfo & {
         LoopStandardAnalysisResults AR = {AA,  AC,  DT,      LI,  SE,
                                           TLI, TTI, nullptr, MSSA};

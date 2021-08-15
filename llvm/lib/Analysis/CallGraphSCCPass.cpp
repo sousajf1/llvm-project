@@ -136,8 +136,8 @@ bool CGPassManager::RunPassOnSCC(Pass *P, CallGraphSCC &CurSCC,
     {
       unsigned InstrCount, SCCCount = 0;
       StringMap<std::pair<unsigned, unsigned>> FunctionToInstrCount;
-      bool EmitICRemark = M.shouldEmitInstrCountChangedRemark();
-      TimeRegion PassTimer(getPassTimer(CGSP));
+      bool const EmitICRemark = M.shouldEmitInstrCountChangedRemark();
+      TimeRegion const PassTimer(getPassTimer(CGSP));
       if (EmitICRemark)
         InstrCount = initSizeRemarkInfo(M, FunctionToInstrCount);
       Changed = CGSP->runOnSCC(CurSCC);
@@ -148,7 +148,7 @@ bool CGPassManager::RunPassOnSCC(Pass *P, CallGraphSCC &CurSCC,
         // Is there a difference in the number of instructions in the module?
         if (SCCCount != InstrCount) {
           // Yep. Emit a remark and update InstrCount.
-          int64_t Delta =
+          int64_t const Delta =
               static_cast<int64_t>(SCCCount) - static_cast<int64_t>(InstrCount);
           emitInstrCountChangedRemark(P, M, Delta, InstrCount,
                                       FunctionToInstrCount);
@@ -176,7 +176,7 @@ bool CGPassManager::RunPassOnSCC(Pass *P, CallGraphSCC &CurSCC,
     if (Function *F = CGN->getFunction()) {
       dumpPassInfo(P, EXECUTION_MSG, ON_FUNCTION_MSG, F->getName());
       {
-        TimeRegion PassTimer(getPassTimer(FPP));
+        TimeRegion const PassTimer(getPassTimer(FPP));
         Changed |= FPP->runOnFunction(*F);
       }
       F->getContext().yield();
@@ -234,7 +234,7 @@ bool CGPassManager::RefreshCallGraph(const CallGraphSCC &CurSCC, CallGraph &CG,
     auto RemoveAndCheckForDone = [&](CallGraphNode::iterator I) {
       // Just remove the edge from the set of callees, keep track of whether
       // I points to the last element of the vector.
-      bool WasLast = I + 1 == CGNEnd;
+      bool const WasLast = I + 1 == CGNEnd;
       CGN->removeCallEdge(I);
 
       // If I pointed to the last element of the vector, we have to bail out:
@@ -326,7 +326,7 @@ bool CGPassManager::RefreshCallGraph(const CallGraphSCC &CurSCC, CallGraph &CG,
 
         // If this call site already existed in the callgraph, just verify it
         // matches up to expectations and remove it from Calls.
-        DenseMap<Value *, CallGraphNode *>::iterator ExistingIt =
+        DenseMap<Value *, CallGraphNode *>::iterator const ExistingIt =
             Calls.find(Call);
         if (ExistingIt != Calls.end()) {
           CallGraphNode *ExistingNode = ExistingIt->second;
@@ -474,7 +474,7 @@ bool CGPassManager::RunAllPassesOnSCC(CallGraphSCC &CurSCC, CallGraph &CG,
 #endif
 
     // Actually run this pass on the current SCC.
-    bool LocalChanged =
+    bool const LocalChanged =
         RunPassOnSCC(P, CurSCC, CG, CallGraphUpToDate, DevirtualizedCall);
 
     Changed |= LocalChanged;
@@ -692,7 +692,7 @@ namespace {
         BannerPrinted = true;
       };
 
-      bool NeedModule = llvm::forcePrintModuleIR();
+      bool const NeedModule = llvm::forcePrintModuleIR();
       if (isFunctionInPrintList("*") && NeedModule) {
         PrintBannerOnce();
         OS << "\n";

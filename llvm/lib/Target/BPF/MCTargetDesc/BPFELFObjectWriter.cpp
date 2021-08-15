@@ -59,7 +59,7 @@ unsigned BPFELFObjectWriter::getRelocType(MCContext &Ctx, const MCValue &Target,
         const MCSectionELF *SectionELF = dyn_cast<MCSectionELF>(&Section);
         assert(SectionELF && "Null section for reloc symbol");
 
-        unsigned Flags = SectionELF->getFlags();
+        unsigned const Flags = SectionELF->getFlags();
 
         if (Sym.isTemporary()) {
           // .BTF.ext generates FK_Data_4 relocations for

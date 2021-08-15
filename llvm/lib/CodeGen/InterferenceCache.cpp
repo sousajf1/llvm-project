@@ -162,10 +162,10 @@ void InterferenceCache::Entry::update(unsigned MBBNum) {
 
     // Check for first interference from virtregs.
     for (unsigned i = 0, e = RegUnits.size(); i != e; ++i) {
-      LiveIntervalUnion::SegmentIter &I = RegUnits[i].VirtI;
+      LiveIntervalUnion::SegmentIter  const&I = RegUnits[i].VirtI;
       if (!I.valid())
         continue;
-      SlotIndex StartI = I.start();
+      SlotIndex const StartI = I.start();
       if (StartI >= Stop)
         continue;
       if (!BI->First.isValid() || StartI < BI->First)
@@ -178,7 +178,7 @@ void InterferenceCache::Entry::update(unsigned MBBNum) {
       LiveInterval::const_iterator E = RegUnits[i].Fixed->end();
       if (I == E)
         continue;
-      SlotIndex StartI = I->start;
+      SlotIndex const StartI = I->start;
       if (StartI >= Stop)
         continue;
       if (!BI->First.isValid() || StartI < BI->First)
@@ -188,7 +188,7 @@ void InterferenceCache::Entry::update(unsigned MBBNum) {
     // Also check for register mask interference.
     RegMaskSlots = LIS->getRegMaskSlotsInBlock(MBBNum);
     RegMaskBits = LIS->getRegMaskBitsInBlock(MBBNum);
-    SlotIndex Limit = BI->First.isValid() ? BI->First : Stop;
+    SlotIndex const Limit = BI->First.isValid() ? BI->First : Stop;
     for (unsigned i = 0, e = RegMaskSlots.size();
          i != e && RegMaskSlots[i] < Limit; ++i)
       if (MachineOperand::clobbersPhysReg(RegMaskBits[i], PhysReg)) {
@@ -217,10 +217,10 @@ void InterferenceCache::Entry::update(unsigned MBBNum) {
     if (!I.valid() || I.start() >= Stop)
       continue;
     I.advanceTo(Stop);
-    bool Backup = !I.valid() || I.start() >= Stop;
+    bool const Backup = !I.valid() || I.start() >= Stop;
     if (Backup)
       --I;
-    SlotIndex StopI = I.stop();
+    SlotIndex const StopI = I.stop();
     if (!BI->Last.isValid() || StopI > BI->Last)
       BI->Last = StopI;
     if (Backup)
@@ -234,10 +234,10 @@ void InterferenceCache::Entry::update(unsigned MBBNum) {
     if (I == LR->end() || I->start >= Stop)
       continue;
     I = LR->advanceTo(I, Stop);
-    bool Backup = I == LR->end() || I->start >= Stop;
+    bool const Backup = I == LR->end() || I->start >= Stop;
     if (Backup)
       --I;
-    SlotIndex StopI = I->end;
+    SlotIndex const StopI = I->end;
     if (!BI->Last.isValid() || StopI > BI->Last)
       BI->Last = StopI;
     if (Backup)
@@ -245,7 +245,7 @@ void InterferenceCache::Entry::update(unsigned MBBNum) {
   }
 
   // Also check for register mask interference.
-  SlotIndex Limit = BI->Last.isValid() ? BI->Last : Start;
+  SlotIndex const Limit = BI->Last.isValid() ? BI->Last : Start;
   for (unsigned i = RegMaskSlots.size();
        i && RegMaskSlots[i-1].getDeadSlot() > Limit; --i)
     if (MachineOperand::clobbersPhysReg(RegMaskBits[i-1], PhysReg)) {

@@ -30,7 +30,7 @@ struct Atom {
 };
 
 static raw_ostream &operator<<(raw_ostream &OS, const Atom &A) {
-  StringRef Str = dwarf::AtomTypeString(A.Value);
+  StringRef const Str = dwarf::AtomTypeString(A.Value);
   if (!Str.empty())
     return OS << Str;
   return OS << "DW_ATOM_unknown_" << format("%x", A.Value);
@@ -67,10 +67,10 @@ Error AppleAcceleratorTable::extract() {
         "Section too small: cannot read buckets and hashes.");
 
   HdrData.DIEOffsetBase = AccelSection.getU32(&Offset);
-  uint32_t NumAtoms = AccelSection.getU32(&Offset);
+  uint32_t const NumAtoms = AccelSection.getU32(&Offset);
 
   for (unsigned i = 0; i < NumAtoms; ++i) {
-    uint16_t AtomType = AccelSection.getU16(&Offset);
+    uint16_t const AtomType = AccelSection.getU16(&Offset);
     auto AtomForm = static_cast<dwarf::Form>(AccelSection.getU16(&Offset));
     HdrData.Atoms.push_back(std::make_pair(AtomType, AtomForm));
   }
@@ -94,7 +94,7 @@ AppleAcceleratorTable::getAtomsDesc() {
 
 bool AppleAcceleratorTable::validateForms() {
   for (auto Atom : getAtomsDesc()) {
-    DWARFFormValue FormValue(Atom.second);
+    DWARFFormValue const FormValue(Atom.second);
     switch (Atom.first) {
     case dwarf::DW_ATOM_die_offset:
     case dwarf::DW_ATOM_die_tag:
@@ -115,7 +115,7 @@ std::pair<uint64_t, dwarf::Tag>
 AppleAcceleratorTable::readAtoms(uint64_t *HashDataOffset) {
   uint64_t DieOffset = dwarf::DW_INVALID_OFFSET;
   dwarf::Tag DieTag = dwarf::DW_TAG_null;
-  dwarf::FormParams FormParams = {Hdr.Version, 0, dwarf::DwarfFormat::DWARF32};
+  dwarf::FormParams const FormParams = {Hdr.Version, 0, dwarf::DwarfFormat::DWARF32};
 
   for (auto Atom : getAtomsDesc()) {
     DWARFFormValue FormValue(Atom.second);
@@ -135,7 +135,7 @@ AppleAcceleratorTable::readAtoms(uint64_t *HashDataOffset) {
 }
 
 void AppleAcceleratorTable::Header::dump(ScopedPrinter &W) const {
-  DictScope HeaderScope(W, "Header");
+  DictScope const HeaderScope(W, "Header");
   W.printHex("Magic", Magic);
   W.printHex("Version", Version);
   W.printHex("Hash function", HashFunction);
@@ -164,8 +164,8 @@ Optional<uint64_t> AppleAcceleratorTable::HeaderData::extractOffset(
 bool AppleAcceleratorTable::dumpName(ScopedPrinter &W,
                                      SmallVectorImpl<DWARFFormValue> &AtomForms,
                                      uint64_t *DataOffset) const {
-  dwarf::FormParams FormParams = {Hdr.Version, 0, dwarf::DwarfFormat::DWARF32};
-  uint64_t NameOffset = *DataOffset;
+  dwarf::FormParams const FormParams = {Hdr.Version, 0, dwarf::DwarfFormat::DWARF32};
+  uint64_t const NameOffset = *DataOffset;
   if (!AccelSection.isValidOffsetForDataOfSize(*DataOffset, 4)) {
     W.printString("Incorrectly terminated list.");
     return false;
@@ -174,20 +174,20 @@ bool AppleAcceleratorTable::dumpName(ScopedPrinter &W,
   if (!StringOffset)
     return false; // End of list
 
-  DictScope NameScope(W, ("Name@0x" + Twine::utohexstr(NameOffset)).str());
+  DictScope const NameScope(W, ("Name@0x" + Twine::utohexstr(NameOffset)).str());
   W.startLine() << format("String: 0x%08" PRIx64, StringOffset);
   W.getOStream() << " \"" << StringSection.getCStr(&StringOffset) << "\"\n";
 
-  unsigned NumData = AccelSection.getU32(DataOffset);
+  unsigned const NumData = AccelSection.getU32(DataOffset);
   for (unsigned Data = 0; Data < NumData; ++Data) {
-    ListScope DataScope(W, ("Data " + Twine(Data)).str());
+    ListScope const DataScope(W, ("Data " + Twine(Data)).str());
     unsigned i = 0;
     for (auto &Atom : AtomForms) {
       W.startLine() << format("Atom[%d]: ", i);
       if (Atom.extractValue(AccelSection, DataOffset, FormParams)) {
         Atom.dump(W.getOStream());
         if (Optional<uint64_t> Val = Atom.getAsUnsignedConstant()) {
-          StringRef Str = dwarf::AtomValueString(HdrData.Atoms[i].first, *Val);
+          StringRef const Str = dwarf::AtomValueString(HdrData.Atoms[i].first, *Val);
           if (!Str.empty())
             W.getOStream() << " (" << Str << ")";
         }
@@ -212,10 +212,10 @@ LLVM_DUMP_METHOD void AppleAcceleratorTable::dump(raw_ostream &OS) const {
   W.printNumber("Number of atoms", uint64_t(HdrData.Atoms.size()));
   SmallVector<DWARFFormValue, 3> AtomForms;
   {
-    ListScope AtomsScope(W, "Atoms");
+    ListScope const AtomsScope(W, "Atoms");
     unsigned i = 0;
     for (const auto &Atom : HdrData.Atoms) {
-      DictScope AtomScope(W, ("Atom " + Twine(i++)).str());
+      DictScope const AtomScope(W, ("Atom " + Twine(i++)).str());
       W.startLine() << "Type: " << formatAtom(Atom.first) << '\n';
       W.startLine() << "Form: " << formatv("{0}", Atom.second) << '\n';
       AtomForms.push_back(DWARFFormValue(Atom.second));
@@ -224,13 +224,13 @@ LLVM_DUMP_METHOD void AppleAcceleratorTable::dump(raw_ostream &OS) const {
 
   // Now go through the actual tables and dump them.
   uint64_t Offset = sizeof(Hdr) + Hdr.HeaderDataLength;
-  uint64_t HashesBase = Offset + Hdr.BucketCount * 4;
-  uint64_t OffsetsBase = HashesBase + Hdr.HashCount * 4;
+  uint64_t const HashesBase = Offset + Hdr.BucketCount * 4;
+  uint64_t const OffsetsBase = HashesBase + Hdr.HashCount * 4;
 
   for (unsigned Bucket = 0; Bucket < Hdr.BucketCount; ++Bucket) {
-    unsigned Index = AccelSection.getU32(&Offset);
+    unsigned const Index = AccelSection.getU32(&Offset);
 
-    ListScope BucketScope(W, ("Bucket " + Twine(Bucket)).str());
+    ListScope const BucketScope(W, ("Bucket " + Twine(Bucket)).str());
     if (Index == UINT32_MAX) {
       W.printString("EMPTY");
       continue;
@@ -239,13 +239,13 @@ LLVM_DUMP_METHOD void AppleAcceleratorTable::dump(raw_ostream &OS) const {
     for (unsigned HashIdx = Index; HashIdx < Hdr.HashCount; ++HashIdx) {
       uint64_t HashOffset = HashesBase + HashIdx*4;
       uint64_t OffsetsOffset = OffsetsBase + HashIdx*4;
-      uint32_t Hash = AccelSection.getU32(&HashOffset);
+      uint32_t const Hash = AccelSection.getU32(&HashOffset);
 
       if (Hash % Hdr.BucketCount != Bucket)
         break;
 
       uint64_t DataOffset = AccelSection.getU32(&OffsetsOffset);
-      ListScope HashScope(W, ("Hash 0x" + Twine::utohexstr(Hash)).str());
+      ListScope const HashScope(W, ("Hash 0x" + Twine::utohexstr(Hash)).str());
       if (!AccelSection.isValidOffset(DataOffset)) {
         W.printString("Invalid section offset");
         continue;
@@ -267,7 +267,7 @@ AppleAcceleratorTable::Entry::Entry(
 void AppleAcceleratorTable::Entry::extract(
     const AppleAcceleratorTable &AccelTable, uint64_t *Offset) {
 
-  dwarf::FormParams FormParams = {AccelTable.Hdr.Version, 0,
+  dwarf::FormParams const FormParams = {AccelTable.Hdr.Version, 0,
                                   dwarf::DwarfFormat::DWARF32};
   for (auto &Atom : Values)
     Atom.extractValue(AccelTable.AccelSection, Offset, FormParams);
@@ -331,20 +331,20 @@ AppleAcceleratorTable::equal_range(StringRef Key) const {
     return make_range(ValueIterator(), ValueIterator());
 
   // Find the bucket.
-  unsigned HashValue = djbHash(Key);
-  unsigned Bucket = HashValue % Hdr.BucketCount;
-  uint64_t BucketBase = sizeof(Hdr) + Hdr.HeaderDataLength;
-  uint64_t HashesBase = BucketBase + Hdr.BucketCount * 4;
-  uint64_t OffsetsBase = HashesBase + Hdr.HashCount * 4;
+  unsigned const HashValue = djbHash(Key);
+  unsigned const Bucket = HashValue % Hdr.BucketCount;
+  uint64_t const BucketBase = sizeof(Hdr) + Hdr.HeaderDataLength;
+  uint64_t const HashesBase = BucketBase + Hdr.BucketCount * 4;
+  uint64_t const OffsetsBase = HashesBase + Hdr.HashCount * 4;
 
   uint64_t BucketOffset = BucketBase + Bucket * 4;
-  unsigned Index = AccelSection.getU32(&BucketOffset);
+  unsigned const Index = AccelSection.getU32(&BucketOffset);
 
   // Search through all hashes in the bucket.
   for (unsigned HashIdx = Index; HashIdx < Hdr.HashCount; ++HashIdx) {
     uint64_t HashOffset = HashesBase + HashIdx * 4;
     uint64_t OffsetsOffset = OffsetsBase + HashIdx * 4;
-    uint32_t Hash = AccelSection.getU32(&HashOffset);
+    uint32_t const Hash = AccelSection.getU32(&HashOffset);
 
     if (Hash % Hdr.BucketCount != Bucket)
       // We are already in the next bucket.
@@ -363,7 +363,7 @@ AppleAcceleratorTable::equal_range(StringRef Key) const {
 }
 
 void DWARFDebugNames::Header::dump(ScopedPrinter &W) const {
-  DictScope HeaderScope(W, "Header");
+  DictScope const HeaderScope(W, "Header");
   W.printHex("Length", UnitLength);
   W.printString("Format", dwarf::FormatString(Format));
   W.printNumber("Version", Version);
@@ -411,7 +411,7 @@ Error DWARFDebugNames::Header::extract(const DWARFDataExtractor &AS,
 }
 
 void DWARFDebugNames::Abbrev::dump(ScopedPrinter &W) const {
-  DictScope AbbrevScope(W, ("Abbreviation 0x" + Twine::utohexstr(Code)).str());
+  DictScope const AbbrevScope(W, ("Abbreviation 0x" + Twine::utohexstr(Code)).str());
   W.startLine() << formatv("Tag: {0}\n", Tag);
 
   for (const auto &Attr : Attributes)
@@ -449,8 +449,8 @@ DWARFDebugNames::NameIndex::extractAttributeEncoding(uint64_t *Offset) {
                              "Incorrectly terminated abbreviation table.");
   }
 
-  uint32_t Index = Section.AccelSection.getULEB128(Offset);
-  uint32_t Form = Section.AccelSection.getULEB128(Offset);
+  uint32_t const Index = Section.AccelSection.getULEB128(Offset);
+  uint32_t const Form = Section.AccelSection.getULEB128(Offset);
   return AttributeEncoding(dwarf::Index(Index), dwarf::Form(Form));
 }
 
@@ -475,11 +475,11 @@ DWARFDebugNames::NameIndex::extractAbbrev(uint64_t *Offset) {
                              "Incorrectly terminated abbreviation table.");
   }
 
-  uint32_t Code = Section.AccelSection.getULEB128(Offset);
+  uint32_t const Code = Section.AccelSection.getULEB128(Offset);
   if (Code == 0)
     return sentinelAbbrev();
 
-  uint32_t Tag = Section.AccelSection.getULEB128(Offset);
+  uint32_t const Tag = Section.AccelSection.getULEB128(Offset);
   auto AttrEncOr = extractAttributeEncodings(Offset);
   if (!AttrEncOr)
     return AttrEncOr.takeError();
@@ -614,7 +614,7 @@ DWARFDebugNames::NameIndex::getEntry(uint64_t *Offset) const {
     return createStringError(errc::illegal_byte_sequence,
                              "Incorrectly terminated entry list.");
 
-  uint32_t AbbrevCode = AS.getULEB128(Offset);
+  uint32_t const AbbrevCode = AS.getULEB128(Offset);
   if (AbbrevCode == 0)
     return make_error<SentinelError>();
 
@@ -624,7 +624,7 @@ DWARFDebugNames::NameIndex::getEntry(uint64_t *Offset) const {
 
   Entry E(*this, *AbbrevIt);
 
-  dwarf::FormParams FormParams = {Hdr.Version, 0, Hdr.Format};
+  dwarf::FormParams const FormParams = {Hdr.Version, 0, Hdr.Format};
   for (auto &Value : E.Values) {
     if (!Value.extractValue(AS, Offset, FormParams))
       return createStringError(errc::io_error,
@@ -643,7 +643,7 @@ DWARFDebugNames::NameIndex::getNameTableEntry(uint32_t Index) const {
       EntryOffsetsBase + SectionOffsetSize * (Index - 1);
   const DWARFDataExtractor &AS = Section.AccelSection;
 
-  uint64_t StringOffset =
+  uint64_t const StringOffset =
       AS.getRelocatedValue(SectionOffsetSize, &StringOffsetOffset);
   uint64_t EntryOffset = AS.getUnsigned(&EntryOffsetOffset, SectionOffsetSize);
   EntryOffset += EntriesBase;
@@ -669,7 +669,7 @@ uint32_t DWARFDebugNames::NameIndex::getHashArrayEntry(uint32_t Index) const {
 // parse OK).
 bool DWARFDebugNames::NameIndex::dumpEntry(ScopedPrinter &W,
                                            uint64_t *Offset) const {
-  uint64_t EntryId = *Offset;
+  uint64_t const EntryId = *Offset;
   auto EntryOr = getEntry(Offset);
   if (!EntryOr) {
     handleAllErrors(EntryOr.takeError(), [](const SentinelError &) {},
@@ -677,7 +677,7 @@ bool DWARFDebugNames::NameIndex::dumpEntry(ScopedPrinter &W,
     return false;
   }
 
-  DictScope EntryScope(W, ("Entry @ 0x" + Twine::utohexstr(EntryId)).str());
+  DictScope const EntryScope(W, ("Entry @ 0x" + Twine::utohexstr(EntryId)).str());
   EntryOr->dump(W);
   return true;
 }
@@ -685,7 +685,7 @@ bool DWARFDebugNames::NameIndex::dumpEntry(ScopedPrinter &W,
 void DWARFDebugNames::NameIndex::dumpName(ScopedPrinter &W,
                                           const NameTableEntry &NTE,
                                           Optional<uint32_t> Hash) const {
-  DictScope NameScope(W, ("Name " + Twine(NTE.getIndex())).str());
+  DictScope const NameScope(W, ("Name " + Twine(NTE.getIndex())).str());
   if (Hash)
     W.printHex("Hash", *Hash);
 
@@ -698,7 +698,7 @@ void DWARFDebugNames::NameIndex::dumpName(ScopedPrinter &W,
 }
 
 void DWARFDebugNames::NameIndex::dumpCUs(ScopedPrinter &W) const {
-  ListScope CUScope(W, "Compilation Unit offsets");
+  ListScope const CUScope(W, "Compilation Unit offsets");
   for (uint32_t CU = 0; CU < Hdr.CompUnitCount; ++CU)
     W.startLine() << format("CU[%u]: 0x%08" PRIx64 "\n", CU, getCUOffset(CU));
 }
@@ -707,7 +707,7 @@ void DWARFDebugNames::NameIndex::dumpLocalTUs(ScopedPrinter &W) const {
   if (Hdr.LocalTypeUnitCount == 0)
     return;
 
-  ListScope TUScope(W, "Local Type Unit offsets");
+  ListScope const TUScope(W, "Local Type Unit offsets");
   for (uint32_t TU = 0; TU < Hdr.LocalTypeUnitCount; ++TU)
     W.startLine() << format("LocalTU[%u]: 0x%08" PRIx64 "\n", TU,
                             getLocalTUOffset(TU));
@@ -717,7 +717,7 @@ void DWARFDebugNames::NameIndex::dumpForeignTUs(ScopedPrinter &W) const {
   if (Hdr.ForeignTypeUnitCount == 0)
     return;
 
-  ListScope TUScope(W, "Foreign Type Unit signatures");
+  ListScope const TUScope(W, "Foreign Type Unit signatures");
   for (uint32_t TU = 0; TU < Hdr.ForeignTypeUnitCount; ++TU) {
     W.startLine() << format("ForeignTU[%u]: 0x%016" PRIx64 "\n", TU,
                             getForeignTUSignature(TU));
@@ -725,14 +725,14 @@ void DWARFDebugNames::NameIndex::dumpForeignTUs(ScopedPrinter &W) const {
 }
 
 void DWARFDebugNames::NameIndex::dumpAbbreviations(ScopedPrinter &W) const {
-  ListScope AbbrevsScope(W, "Abbreviations");
+  ListScope const AbbrevsScope(W, "Abbreviations");
   for (const auto &Abbr : Abbrevs)
     Abbr.dump(W);
 }
 
 void DWARFDebugNames::NameIndex::dumpBucket(ScopedPrinter &W,
                                             uint32_t Bucket) const {
-  ListScope BucketScope(W, ("Bucket " + Twine(Bucket)).str());
+  ListScope const BucketScope(W, ("Bucket " + Twine(Bucket)).str());
   uint32_t Index = getBucketArrayEntry(Bucket);
   if (Index == 0) {
     W.printString("EMPTY");
@@ -744,7 +744,7 @@ void DWARFDebugNames::NameIndex::dumpBucket(ScopedPrinter &W,
   }
 
   for (; Index <= Hdr.NameCount; ++Index) {
-    uint32_t Hash = getHashArrayEntry(Index);
+    uint32_t const Hash = getHashArrayEntry(Index);
     if (Hash % Hdr.BucketCount != Bucket)
       break;
 
@@ -753,7 +753,7 @@ void DWARFDebugNames::NameIndex::dumpBucket(ScopedPrinter &W,
 }
 
 LLVM_DUMP_METHOD void DWARFDebugNames::NameIndex::dump(ScopedPrinter &W) const {
-  DictScope UnitScope(W, ("Name Index @ 0x" + Twine::utohexstr(Base)).str());
+  DictScope const UnitScope(W, ("Name Index @ 0x" + Twine::utohexstr(Base)).str());
   Hdr.dump(W);
   dumpCUs(W);
   dumpLocalTUs(W);
@@ -767,7 +767,7 @@ LLVM_DUMP_METHOD void DWARFDebugNames::NameIndex::dump(ScopedPrinter &W) const {
   }
 
   W.startLine() << "Hash table not present\n";
-  for (NameTableEntry NTE : *this)
+  for (NameTableEntry const NTE : *this)
     dumpName(W, NTE, None);
 }
 
@@ -799,7 +799,7 @@ DWARFDebugNames::ValueIterator::findEntryOffsetInCurrentIndex() {
   const Header &Hdr = CurrentIndex->Hdr;
   if (Hdr.BucketCount == 0) {
     // No Hash Table, We need to search through all names in the Name Index.
-    for (NameTableEntry NTE : *CurrentIndex) {
+    for (NameTableEntry const NTE : *CurrentIndex) {
       if (NTE.getString() == Key)
         return NTE.getEntryOffset();
     }
@@ -810,17 +810,17 @@ DWARFDebugNames::ValueIterator::findEntryOffsetInCurrentIndex() {
   // Compute the Key Hash, if it has not been done already.
   if (!Hash)
     Hash = caseFoldingDjbHash(Key);
-  uint32_t Bucket = *Hash % Hdr.BucketCount;
+  uint32_t const Bucket = *Hash % Hdr.BucketCount;
   uint32_t Index = CurrentIndex->getBucketArrayEntry(Bucket);
   if (Index == 0)
     return None; // Empty bucket
 
   for (; Index <= Hdr.NameCount; ++Index) {
-    uint32_t Hash = CurrentIndex->getHashArrayEntry(Index);
+    uint32_t const Hash = CurrentIndex->getHashArrayEntry(Index);
     if (Hash % Hdr.BucketCount != Bucket)
       return None; // End of bucket
 
-    NameTableEntry NTE = CurrentIndex->getNameTableEntry(Index);
+    NameTableEntry const NTE = CurrentIndex->getNameTableEntry(Index);
     if (NTE.getString() == Key)
       return NTE.getEntryOffset();
   }

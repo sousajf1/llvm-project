@@ -66,7 +66,7 @@ public:
   void createOrderFileData(Module &M) {
     LLVMContext &Ctx = M.getContext();
     int NumFunctions = 0;
-    for (Function &F : M) {
+    for (Function  const&F : M) {
       if (!F.isDeclaration())
         NumFunctions++;
     }
@@ -77,18 +77,18 @@ public:
     MapTy = ArrayType::get(Type::getInt8Ty(Ctx), NumFunctions);
 
     // Create the global variables.
-    std::string SymbolName = INSTR_PROF_ORDERFILE_BUFFER_NAME_STR;
+    std::string const SymbolName = INSTR_PROF_ORDERFILE_BUFFER_NAME_STR;
     OrderFileBuffer = new GlobalVariable(M, BufferTy, false, GlobalValue::LinkOnceODRLinkage,
                            Constant::getNullValue(BufferTy), SymbolName);
-    Triple TT = Triple(M.getTargetTriple());
+    Triple const TT = Triple(M.getTargetTriple());
     OrderFileBuffer->setSection(
         getInstrProfSectionName(IPSK_orderfile, TT.getObjectFormat()));
 
-    std::string IndexName = INSTR_PROF_ORDERFILE_BUFFER_IDX_NAME_STR;
+    std::string const IndexName = INSTR_PROF_ORDERFILE_BUFFER_IDX_NAME_STR;
     BufferIdx = new GlobalVariable(M, IdxTy, false, GlobalValue::LinkOnceODRLinkage,
                            Constant::getNullValue(IdxTy), IndexName);
 
-    std::string BitMapName = "bitmap_0";
+    std::string const BitMapName = "bitmap_0";
     BitMap = new GlobalVariable(M, MapTy, false, GlobalValue::PrivateLinkage,
                                 Constant::getNullValue(MapTy), BitMapName);
   }
@@ -97,7 +97,7 @@ public:
   // update the buffer.
   void generateCodeSequence(Module &M, Function &F, int FuncId) {
     if (!ClOrderFileWriteMapping.empty()) {
-      std::lock_guard<std::mutex> LogLock(MappingMutex);
+      std::lock_guard<std::mutex> const LogLock(MappingMutex);
       std::error_code EC;
       llvm::raw_fd_ostream OS(ClOrderFileWriteMapping, EC,
                               llvm::sys::fs::OF_Append);
@@ -107,7 +107,7 @@ public:
       } else {
         std::stringstream stream;
         stream << std::hex << MD5Hash(F.getName());
-        std::string singleLine = "MD5 " + stream.str() + " " +
+        std::string const singleLine = "MD5 " + stream.str() + " " +
                                  std::string(F.getName()) + '\n';
         OS << singleLine;
       }
@@ -131,7 +131,7 @@ public:
 
     // Check the bitmap, if it is already 1, do nothing.
     // Otherwise, set the bit, grab the index, update the buffer.
-    Value *IdxFlags[] = {ConstantInt::get(Int32Ty, 0),
+    Value *const IdxFlags[] = {ConstantInt::get(Int32Ty, 0),
                          ConstantInt::get(Int32Ty, FuncId)};
     Value *MapAddr = entryB.CreateGEP(MapTy, BitMap, IdxFlags, "");
     LoadInst *loadBitMap = entryB.CreateLoad(Int8Ty, MapAddr, "");
@@ -147,7 +147,7 @@ public:
     // We need to wrap around the index to fit it inside the buffer.
     Value *WrappedIdx = updateB.CreateAnd(
         IdxVal, ConstantInt::get(Int32Ty, INSTR_ORDER_FILE_BUFFER_MASK));
-    Value *BufferGEPIdx[] = {ConstantInt::get(Int32Ty, 0), WrappedIdx};
+    Value *const BufferGEPIdx[] = {ConstantInt::get(Int32Ty, 0), WrappedIdx};
     Value *BufferAddr =
         updateB.CreateGEP(BufferTy, OrderFileBuffer, BufferGEPIdx, "");
     updateB.CreateStore(ConstantInt::get(Type::getInt64Ty(Ctx), MD5Hash(F.getName())),

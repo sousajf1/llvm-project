@@ -117,7 +117,7 @@ llvm::Optional<unsigned> X86TTIImpl::getCacheAssociativity(
 }
 
 unsigned X86TTIImpl::getNumberOfRegisters(unsigned ClassID) const {
-  bool Vector = (ClassID == 1);
+  bool const Vector = (ClassID == 1);
   if (Vector && !ST->hasSSE1())
     return 0;
 
@@ -131,7 +131,7 @@ unsigned X86TTIImpl::getNumberOfRegisters(unsigned ClassID) const {
 
 TypeSize
 X86TTIImpl::getRegisterBitWidth(TargetTransformInfo::RegisterKind K) const {
-  unsigned PreferVectorWidth = ST->getPreferVectorWidth();
+  unsigned const PreferVectorWidth = ST->getPreferVectorWidth();
   switch (K) {
   case TargetTransformInfo::RGK_Scalar:
     return TypeSize::getFixed(ST->is64Bit() ? 64 : 32);
@@ -201,7 +201,7 @@ InstructionCost X86TTIImpl::getArithmeticInstrCost(
   }
 
   // Legalize the type.
-  std::pair<InstructionCost, MVT> LT = TLI->getTypeLegalizationCost(DL, Ty);
+  std::pair<InstructionCost, MVT> const LT = TLI->getTypeLegalizationCost(DL, Ty);
 
   int ISD = TLI->InstructionOpcodeToISD(Opcode);
   assert(ISD && "Invalid opcode");
@@ -245,12 +245,12 @@ InstructionCost X86TTIImpl::getArithmeticInstrCost(
     if (Args.size() == 2 && ISD == ISD::MUL && LT.second == MVT::v4i32) {
       // Check if the operands can be shrinked into a smaller datatype.
       bool Op1Signed = false;
-      unsigned Op1MinSize = BaseT::minRequiredElementSize(Args[0], Op1Signed);
+      unsigned const Op1MinSize = BaseT::minRequiredElementSize(Args[0], Op1Signed);
       bool Op2Signed = false;
-      unsigned Op2MinSize = BaseT::minRequiredElementSize(Args[1], Op2Signed);
+      unsigned const Op2MinSize = BaseT::minRequiredElementSize(Args[1], Op2Signed);
 
-      bool SignedMode = Op1Signed || Op2Signed;
-      unsigned OpMinSize = std::max(Op1MinSize, Op2MinSize);
+      bool const SignedMode = Op1Signed || Op2Signed;
+      unsigned const OpMinSize = std::max(Op1MinSize, Op2MinSize);
 
       if (OpMinSize <= 7)
         return LT.first * 3; // pmullw/sext
@@ -767,7 +767,7 @@ InstructionCost X86TTIImpl::getArithmeticInstrCost(
 
   if (ISD == ISD::SHL &&
       Op2Info == TargetTransformInfo::OK_NonUniformConstantValue) {
-    MVT VT = LT.second;
+    MVT const VT = LT.second;
     // Vector shift left by non uniform constant can be lowered
     // into vector multiply.
     if (((VT == MVT::v8i16 || VT == MVT::v4i32) && ST->hasSSE2()) ||
@@ -1032,7 +1032,7 @@ InstructionCost X86TTIImpl::getArithmeticInstrCost(
   // to hide "20 cycles" for each lane.
   if (LT.second.isVector() && (ISD == ISD::SDIV || ISD == ISD::SREM ||
                                ISD == ISD::UDIV || ISD == ISD::UREM)) {
-    InstructionCost ScalarCost = getArithmeticInstrCost(
+    InstructionCost const ScalarCost = getArithmeticInstrCost(
         Opcode, Ty->getScalarType(), CostKind, Op1Info, Op2Info,
         TargetTransformInfo::OP_None, TargetTransformInfo::OP_None);
     return 20 * LT.first * LT.second.getVectorNumElements() * ScalarCost;
@@ -1064,13 +1064,13 @@ InstructionCost X86TTIImpl::getShuffleCost(TTI::ShuffleKind Kind,
   // Subvector extractions are free if they start at the beginning of a
   // vector and cheap if the subvectors are aligned.
   if (Kind == TTI::SK_ExtractSubvector && LT.second.isVector()) {
-    int NumElts = LT.second.getVectorNumElements();
+    int const NumElts = LT.second.getVectorNumElements();
     if ((Index % NumElts) == 0)
       return 0;
-    std::pair<InstructionCost, MVT> SubLT =
+    std::pair<InstructionCost, MVT> const SubLT =
         TLI->getTypeLegalizationCost(DL, SubTp);
     if (SubLT.second.isVector()) {
-      int NumSubElts = SubLT.second.getVectorNumElements();
+      int const NumSubElts = SubLT.second.getVectorNumElements();
       if ((Index % NumSubElts) == 0 && (NumElts % NumSubElts) == 0)
         return SubLT.first;
       // Handle some cases for widening legalization. For now we only handle
@@ -1079,7 +1079,7 @@ InstructionCost X86TTIImpl::getShuffleCost(TTI::ShuffleKind Kind,
       // FIXME: Remove some of the alignment restrictions.
       // FIXME: We can use permq for 64-bit or larger extracts from 256-bit
       // vectors.
-      int OrigSubElts = cast<FixedVectorType>(SubTp)->getNumElements();
+      int const OrigSubElts = cast<FixedVectorType>(SubTp)->getNumElements();
       if (NumSubElts > OrigSubElts && (Index % OrigSubElts) == 0 &&
           (NumSubElts % OrigSubElts) == 0 &&
           LT.second.getVectorElementType() ==
@@ -1092,8 +1092,8 @@ InstructionCost X86TTIImpl::getShuffleCost(TTI::ShuffleKind Kind,
                                            LT.second.getVectorNumElements());
         auto *SubTy = FixedVectorType::get(BaseTp->getElementType(),
                                            SubLT.second.getVectorNumElements());
-        int ExtractIndex = alignDown((Index % NumElts), NumSubElts);
-        InstructionCost ExtractCost = getShuffleCost(
+        int const ExtractIndex = alignDown((Index % NumElts), NumSubElts);
+        InstructionCost const ExtractCost = getShuffleCost(
             TTI::SK_ExtractSubvector, VecTy, None, ExtractIndex, SubTy);
 
         // If the original size is 32-bits or more, we can use pshufd. Otherwise
@@ -1113,11 +1113,11 @@ InstructionCost X86TTIImpl::getShuffleCost(TTI::ShuffleKind Kind,
   // Note that in general, the insertion starting at the beginning of a vector
   // isn't free, because we need to preserve the rest of the wide vector.
   if (Kind == TTI::SK_InsertSubvector && LT.second.isVector()) {
-    int NumElts = LT.second.getVectorNumElements();
-    std::pair<InstructionCost, MVT> SubLT =
+    int const NumElts = LT.second.getVectorNumElements();
+    std::pair<InstructionCost, MVT> const SubLT =
         TLI->getTypeLegalizationCost(DL, SubTp);
     if (SubLT.second.isVector()) {
-      int NumSubElts = SubLT.second.getVectorNumElements();
+      int const NumSubElts = SubLT.second.getVectorNumElements();
       if ((Index % NumSubElts) == 0 && (NumElts % NumSubElts) == 0)
         return SubLT.first;
     }
@@ -1128,7 +1128,7 @@ InstructionCost X86TTIImpl::getShuffleCost(TTI::ShuffleKind Kind,
 
   // Handle some common (illegal) sub-vector types as they are often very cheap
   // to shuffle even on targets without PSHUFB.
-  EVT VT = TLI->getValueType(DL, BaseTp);
+  EVT const VT = TLI->getValueType(DL, BaseTp);
   if (VT.isSimple() && VT.isVector() && VT.getSizeInBits() < 128 &&
       !ST->hasSSSE3()) {
      static const CostTblEntry SSE2SubVectorShuffleTbl[] = {
@@ -1166,24 +1166,24 @@ InstructionCost X86TTIImpl::getShuffleCost(TTI::ShuffleKind Kind,
   // destinations. Providing an accurate cost only for splits where the element
   // type remains the same.
   if (Kind == TTI::SK_PermuteSingleSrc && LT.first != 1) {
-    MVT LegalVT = LT.second;
+    MVT const LegalVT = LT.second;
     if (LegalVT.isVector() &&
         LegalVT.getVectorElementType().getSizeInBits() ==
             BaseTp->getElementType()->getPrimitiveSizeInBits() &&
         LegalVT.getVectorNumElements() <
             cast<FixedVectorType>(BaseTp)->getNumElements()) {
 
-      unsigned VecTySize = DL.getTypeStoreSize(BaseTp);
-      unsigned LegalVTSize = LegalVT.getStoreSize();
+      unsigned const VecTySize = DL.getTypeStoreSize(BaseTp);
+      unsigned const LegalVTSize = LegalVT.getStoreSize();
       // Number of source vectors after legalization:
-      unsigned NumOfSrcs = (VecTySize + LegalVTSize - 1) / LegalVTSize;
+      unsigned const NumOfSrcs = (VecTySize + LegalVTSize - 1) / LegalVTSize;
       // Number of destination vectors after legalization:
-      InstructionCost NumOfDests = LT.first;
+      InstructionCost const NumOfDests = LT.first;
 
       auto *SingleOpTy = FixedVectorType::get(BaseTp->getElementType(),
                                               LegalVT.getVectorNumElements());
 
-      InstructionCost NumOfShuffles = (NumOfSrcs - 1) * NumOfDests;
+      InstructionCost const NumOfShuffles = (NumOfSrcs - 1) * NumOfDests;
       return NumOfShuffles * getShuffleCost(TTI::SK_PermuteTwoSrc, SingleOpTy,
                                             None, 0, nullptr);
     }
@@ -1194,8 +1194,8 @@ InstructionCost X86TTIImpl::getShuffleCost(TTI::ShuffleKind Kind,
   // For 2-input shuffles, we must account for splitting the 2 inputs into many.
   if (Kind == TTI::SK_PermuteTwoSrc && LT.first != 1) {
     // We assume that source and destination have the same vector type.
-    InstructionCost NumOfDests = LT.first;
-    InstructionCost NumOfShufflesPerDest = LT.first * 2 - 1;
+    InstructionCost const NumOfDests = LT.first;
+    InstructionCost const NumOfShufflesPerDest = LT.first * 2 - 1;
     LT.first = NumOfDests * NumOfShufflesPerDest;
   }
 
@@ -1529,7 +1529,7 @@ InstructionCost X86TTIImpl::getCastInstrCost(unsigned Opcode, Type *Dst,
                                              TTI::CastContextHint CCH,
                                              TTI::TargetCostKind CostKind,
                                              const Instruction *I) {
-  int ISD = TLI->InstructionOpcodeToISD(Opcode);
+  int const ISD = TLI->InstructionOpcodeToISD(Opcode);
   assert(ISD && "Invalid opcode");
 
   // TODO: Allow non-throughput costs that aren't binary.
@@ -2219,13 +2219,13 @@ InstructionCost X86TTIImpl::getCastInstrCost(unsigned Opcode, Type *Dst,
   };
 
   // Attempt to map directly to (simple) MVT types to let us match custom entries.
-  EVT SrcTy = TLI->getValueType(DL, Src);
-  EVT DstTy = TLI->getValueType(DL, Dst);
+  EVT const SrcTy = TLI->getValueType(DL, Src);
+  EVT const DstTy = TLI->getValueType(DL, Dst);
 
   // The function getSimpleVT only handles simple value types.
   if (SrcTy.isSimple() && DstTy.isSimple()) {
-    MVT SimpleSrcTy = SrcTy.getSimpleVT();
-    MVT SimpleDstTy = DstTy.getSimpleVT();
+    MVT const SimpleSrcTy = SrcTy.getSimpleVT();
+    MVT const SimpleDstTy = DstTy.getSimpleVT();
 
     if (ST->useAVX512Regs()) {
       if (ST->hasBWI())
@@ -2285,8 +2285,8 @@ InstructionCost X86TTIImpl::getCastInstrCost(unsigned Opcode, Type *Dst,
   }
 
   // Fall back to legalized types.
-  std::pair<InstructionCost, MVT> LTSrc = TLI->getTypeLegalizationCost(DL, Src);
-  std::pair<InstructionCost, MVT> LTDest =
+  std::pair<InstructionCost, MVT> const LTSrc = TLI->getTypeLegalizationCost(DL, Src);
+  std::pair<InstructionCost, MVT> const LTDest =
       TLI->getTypeLegalizationCost(DL, Dst);
 
   if (ST->useAVX512Regs()) {
@@ -2346,7 +2346,7 @@ InstructionCost X86TTIImpl::getCastInstrCost(unsigned Opcode, Type *Dst,
   if ((ISD == ISD::SINT_TO_FP || ISD == ISD::UINT_TO_FP) &&
       1 < Src->getScalarSizeInBits() && Src->getScalarSizeInBits() < 32) {
     Type *ExtSrc = Src->getWithNewBitWidth(32);
-    unsigned ExtOpc =
+    unsigned const ExtOpc =
         (ISD == ISD::SINT_TO_FP) ? Instruction::SExt : Instruction::ZExt;
 
     // For scalar loads the extend would be free.
@@ -2383,11 +2383,11 @@ InstructionCost X86TTIImpl::getCmpSelInstrCost(unsigned Opcode, Type *ValTy,
                                      I);
 
   // Legalize the type.
-  std::pair<InstructionCost, MVT> LT = TLI->getTypeLegalizationCost(DL, ValTy);
+  std::pair<InstructionCost, MVT> const LT = TLI->getTypeLegalizationCost(DL, ValTy);
 
-  MVT MTy = LT.second;
+  MVT const MTy = LT.second;
 
-  int ISD = TLI->InstructionOpcodeToISD(Opcode);
+  int const ISD = TLI->InstructionOpcodeToISD(Opcode);
   assert(ISD && "Invalid opcode");
 
   unsigned ExtraCost = 0;
@@ -3005,7 +3005,7 @@ X86TTIImpl::getTypeBasedIntrinsicInstrCost(const IntrinsicCostAttributes &ICA,
 
   Type *RetTy = ICA.getReturnType();
   Type *OpTy = RetTy;
-  Intrinsic::ID IID = ICA.getID();
+  Intrinsic::ID const IID = ICA.getID();
   unsigned ISD = ISD::DELETED_NODE;
   switch (IID) {
   default:
@@ -3082,8 +3082,8 @@ X86TTIImpl::getTypeBasedIntrinsicInstrCost(const IntrinsicCostAttributes &ICA,
 
   if (ISD != ISD::DELETED_NODE) {
     // Legalize the type.
-    std::pair<InstructionCost, MVT> LT = TLI->getTypeLegalizationCost(DL, OpTy);
-    MVT MTy = LT.second;
+    std::pair<InstructionCost, MVT> const LT = TLI->getTypeLegalizationCost(DL, OpTy);
+    MVT const MTy = LT.second;
 
     // Attempt to lookup cost.
     if (ISD == ISD::BITREVERSE && ST->hasGFNI() && ST->hasSSSE3() &&
@@ -3274,7 +3274,7 @@ X86TTIImpl::getIntrinsicInstrCost(const IntrinsicCostAttributes &ICA,
     { ISD::FSHL,       MVT::i8,      4 }
   };
 
-  Intrinsic::ID IID = ICA.getID();
+  Intrinsic::ID const IID = ICA.getID();
   Type *RetTy = ICA.getReturnType();
   const SmallVectorImpl<const Value *> &Args = ICA.getArgs();
   unsigned ISD = ISD::DELETED_NODE;
@@ -3296,9 +3296,9 @@ X86TTIImpl::getIntrinsicInstrCost(const IntrinsicCostAttributes &ICA,
 
   if (ISD != ISD::DELETED_NODE) {
     // Legalize the type.
-    std::pair<InstructionCost, MVT> LT =
+    std::pair<InstructionCost, MVT> const LT =
         TLI->getTypeLegalizationCost(DL, RetTy);
-    MVT MTy = LT.second;
+    MVT const MTy = LT.second;
 
     // Attempt to lookup cost.
     if (ST->hasAVX512())
@@ -3342,8 +3342,8 @@ InstructionCost X86TTIImpl::getVectorInstrCost(unsigned Opcode, Type *Val,
 
     // TODO: Move this to BasicTTIImpl.h? We'd need better gep + index handling.
     assert(isa<FixedVectorType>(Val) && "Fixed vector type expected");
-    Align VecAlign = DL.getPrefTypeAlign(Val);
-    Align SclAlign = DL.getPrefTypeAlign(ScalarType);
+    Align const VecAlign = DL.getPrefTypeAlign(Val);
+    Align const SclAlign = DL.getPrefTypeAlign(ScalarType);
 
     // Extract - store vector to stack, load scalar.
     if (Opcode == Instruction::ExtractElement) {
@@ -3366,14 +3366,14 @@ InstructionCost X86TTIImpl::getVectorInstrCost(unsigned Opcode, Type *Val,
   if (Index != -1U && (Opcode == Instruction::ExtractElement ||
                        Opcode == Instruction::InsertElement)) {
     // Legalize the type.
-    std::pair<InstructionCost, MVT> LT = TLI->getTypeLegalizationCost(DL, Val);
+    std::pair<InstructionCost, MVT> const LT = TLI->getTypeLegalizationCost(DL, Val);
 
     // This type is legalized to a scalar type.
     if (!LT.second.isVector())
       return 0;
 
     // The type may be split. Normalize the index to the new type.
-    unsigned NumElts = LT.second.getVectorNumElements();
+    unsigned const NumElts = LT.second.getVectorNumElements();
     unsigned SubNumElts = NumElts;
     Index = Index % NumElts;
 
@@ -3381,7 +3381,7 @@ InstructionCost X86TTIImpl::getVectorInstrCost(unsigned Opcode, Type *Val,
     // For inserts, we also need to insert the subvector back.
     if (LT.second.getSizeInBits() > 128) {
       assert((LT.second.getSizeInBits() % 128) == 0 && "Illegal vector");
-      unsigned NumSubVecs = LT.second.getSizeInBits() / 128;
+      unsigned const NumSubVecs = LT.second.getSizeInBits() / 128;
       SubNumElts = NumElts / NumSubVecs;
       if (SubNumElts <= Index) {
         RegisterFileMoveCost += (Opcode == Instruction::InsertElement ? 2 : 1);
@@ -3401,9 +3401,9 @@ InstructionCost X86TTIImpl::getVectorInstrCost(unsigned Opcode, Type *Val,
         return 1 + RegisterFileMoveCost;
     }
 
-    int ISD = TLI->InstructionOpcodeToISD(Opcode);
+    int const ISD = TLI->InstructionOpcodeToISD(Opcode);
     assert(ISD && "Unexpected vector opcode");
-    MVT MScalarTy = LT.second.getScalarType();
+    MVT const MScalarTy = LT.second.getScalarType();
     if (ST->isSLM())
       if (auto *Entry = CostTableLookup(SLMCostTbl, ISD, MScalarTy))
         return Entry->Cost + RegisterFileMoveCost;
@@ -3427,13 +3427,13 @@ InstructionCost X86TTIImpl::getVectorInstrCost(unsigned Opcode, Type *Val,
     InstructionCost ShuffleCost = 1;
     if (Opcode == Instruction::InsertElement) {
       auto *SubTy = cast<VectorType>(Val);
-      EVT VT = TLI->getValueType(DL, Val);
+      EVT const VT = TLI->getValueType(DL, Val);
       if (VT.getScalarType() != MScalarTy || VT.getSizeInBits() >= 128)
         SubTy = FixedVectorType::get(ScalarType, SubNumElts);
       ShuffleCost =
           getShuffleCost(TTI::SK_PermuteTwoSrc, SubTy, None, 0, SubTy);
     }
-    int IntOrFpCost = ScalarType->isFloatingPointTy() ? 0 : 1;
+    int const IntOrFpCost = ScalarType->isFloatingPointTy() ? 0 : 1;
     return ShuffleCost + IntOrFpCost + RegisterFileMoveCost;
   }
 
@@ -3454,8 +3454,8 @@ InstructionCost X86TTIImpl::getScalarizationOverhead(VectorType *Ty,
   // For insertions, a ISD::BUILD_VECTOR style vector initialization can be much
   // cheaper than an accumulation of ISD::INSERT_VECTOR_ELT.
   if (Insert) {
-    std::pair<InstructionCost, MVT> LT = TLI->getTypeLegalizationCost(DL, Ty);
-    MVT MScalarTy = LT.second.getScalarType();
+    std::pair<InstructionCost, MVT> const LT = TLI->getTypeLegalizationCost(DL, Ty);
+    MVT const MScalarTy = LT.second.getScalarType();
 
     if ((MScalarTy == MVT::i16 && ST->hasSSE2()) ||
         (MScalarTy.isInteger() && ST->hasSSE41()) ||
@@ -3480,16 +3480,16 @@ InstructionCost X86TTIImpl::getScalarizationOverhead(VectorType *Ty,
         // Case#3: inserting into 4,5,6,7 index needs 4*vpinsrd + inserti128.
         const int CostValue = *LT.first.getValue();
         assert(CostValue >= 0 && "Negative cost!");
-        unsigned Num128Lanes = LT.second.getSizeInBits() / 128 * CostValue;
-        unsigned NumElts = LT.second.getVectorNumElements() * CostValue;
-        APInt WidenedDemandedElts = DemandedElts.zextOrSelf(NumElts);
-        unsigned Scale = NumElts / Num128Lanes;
+        unsigned const Num128Lanes = LT.second.getSizeInBits() / 128 * CostValue;
+        unsigned const NumElts = LT.second.getVectorNumElements() * CostValue;
+        APInt const WidenedDemandedElts = DemandedElts.zextOrSelf(NumElts);
+        unsigned const Scale = NumElts / Num128Lanes;
         // We iterate each 128-lane, and check if we need a
         // extracti128/inserti128 for this 128-lane.
         for (unsigned I = 0; I < NumElts; I += Scale) {
-          APInt Mask = WidenedDemandedElts.getBitsSet(NumElts, I, I + Scale);
-          APInt MaskedDE = Mask & WidenedDemandedElts;
-          unsigned Population = MaskedDE.countPopulation();
+          APInt const Mask = WidenedDemandedElts.getBitsSet(NumElts, I, I + Scale);
+          APInt const MaskedDE = Mask & WidenedDemandedElts;
+          unsigned const Population = MaskedDE.countPopulation();
           Cost += (Population > 0 && Population != Scale &&
                    I % LT.second.getVectorNumElements() != 0);
           Cost += Population > 0;
@@ -3516,8 +3516,8 @@ InstructionCost X86TTIImpl::getScalarizationOverhead(VectorType *Ty,
       // Get the smaller of the legalized or original pow2-extended number of
       // vector elements, which represents the number of unpacks we'll end up
       // performing.
-      unsigned NumElts = LT.second.getVectorNumElements();
-      unsigned Pow2Elts =
+      unsigned const NumElts = LT.second.getVectorNumElements();
+      unsigned const Pow2Elts =
           PowerOf2Ceil(cast<FixedVectorType>(Ty)->getNumElements());
       Cost += (std::min<unsigned>(NumElts, Pow2Elts) - 1) * LT.first;
     }
@@ -3557,7 +3557,7 @@ InstructionCost X86TTIImpl::getMemoryOpCost(unsigned Opcode, Type *Src,
                                   CostKind);
 
   // Legalize the type.
-  std::pair<InstructionCost, MVT> LT = TLI->getTypeLegalizationCost(DL, Src);
+  std::pair<InstructionCost, MVT> const LT = TLI->getTypeLegalizationCost(DL, Src);
 
   auto *VTy = dyn_cast<FixedVectorType>(Src);
 
@@ -3567,7 +3567,7 @@ InstructionCost X86TTIImpl::getMemoryOpCost(unsigned Opcode, Type *Src,
     // Each load/store unit costs 1.
     return LT.first * 1;
 
-  bool IsLoad = Opcode == Instruction::Load;
+  bool const IsLoad = Opcode == Instruction::Load;
 
   Type *EltTy = VTy->getElementType();
 
@@ -3602,7 +3602,7 @@ InstructionCost X86TTIImpl::getMemoryOpCost(unsigned Opcode, Type *Src,
       // Vector size must be a multiple of the element size. I.e. no padding.
       return BaseT::getMemoryOpCost(Opcode, Src, Alignment, AddressSpace,
                                     CostKind);
-    int CurrNumEltPerOp = (8 * CurrOpSizeBytes) / EltTyBits;
+    int const CurrNumEltPerOp = (8 * CurrOpSizeBytes) / EltTyBits;
 
     assert(CurrOpSizeBytes > 0 && CurrNumEltPerOp > 0 && "How'd we get here?");
     assert((((NumEltRemaining * EltTyBits) < (2 * 8 * CurrOpSizeBytes)) ||
@@ -3638,7 +3638,7 @@ InstructionCost X86TTIImpl::getMemoryOpCost(unsigned Opcode, Type *Src,
           CurrOpSizeBytes != 1)
         break; // Try smalled vector size.
 
-      bool Is0thSubVec = (NumEltDone() % LT.second.getVectorNumElements()) == 0;
+      bool const Is0thSubVec = (NumEltDone() % LT.second.getVectorNumElements()) == 0;
 
       // If we have fully processed the previous reg, we need to replenish it.
       if (SubVecEltsLeft == 0) {
@@ -3655,10 +3655,10 @@ InstructionCost X86TTIImpl::getMemoryOpCost(unsigned Opcode, Type *Src,
       // Again, it's free for the 0'th subreg (if op is 32/64 bit wide,
       // but let's pretend that it is also true for 16/8 bit wide ops...)
       if (CurrOpSizeBytes <= 32 / 8 && !Is0thSubVec) {
-        int NumEltDoneInCurrXMM = NumEltDone() % NumEltPerXMM;
+        int const NumEltDoneInCurrXMM = NumEltDone() % NumEltPerXMM;
         assert(NumEltDoneInCurrXMM % CurrNumEltPerOp == 0 && "");
-        int CoalescedVecEltIdx = NumEltDoneInCurrXMM / CurrNumEltPerOp;
-        APInt DemandedElts =
+        int const CoalescedVecEltIdx = NumEltDoneInCurrXMM / CurrNumEltPerOp;
+        APInt const DemandedElts =
             APInt::getBitsSet(CoalescedVecTy->getNumElements(),
                               CoalescedVecEltIdx, CoalescedVecEltIdx + 1);
         assert(DemandedElts.countPopulation() == 1 && "Inserting single value");
@@ -3689,38 +3689,38 @@ InstructionCost
 X86TTIImpl::getMaskedMemoryOpCost(unsigned Opcode, Type *SrcTy, Align Alignment,
                                   unsigned AddressSpace,
                                   TTI::TargetCostKind CostKind) {
-  bool IsLoad = (Instruction::Load == Opcode);
-  bool IsStore = (Instruction::Store == Opcode);
+  bool const IsLoad = (Instruction::Load == Opcode);
+  bool const IsStore = (Instruction::Store == Opcode);
 
   auto *SrcVTy = dyn_cast<FixedVectorType>(SrcTy);
   if (!SrcVTy)
     // To calculate scalar take the regular cost, without mask
     return getMemoryOpCost(Opcode, SrcTy, Alignment, AddressSpace, CostKind);
 
-  unsigned NumElem = SrcVTy->getNumElements();
+  unsigned const NumElem = SrcVTy->getNumElements();
   auto *MaskTy =
       FixedVectorType::get(Type::getInt8Ty(SrcVTy->getContext()), NumElem);
   if ((IsLoad && !isLegalMaskedLoad(SrcVTy, Alignment)) ||
       (IsStore && !isLegalMaskedStore(SrcVTy, Alignment))) {
     // Scalarization
-    APInt DemandedElts = APInt::getAllOnesValue(NumElem);
-    InstructionCost MaskSplitCost =
+    APInt const DemandedElts = APInt::getAllOnesValue(NumElem);
+    InstructionCost const MaskSplitCost =
         getScalarizationOverhead(MaskTy, DemandedElts, false, true);
-    InstructionCost ScalarCompareCost = getCmpSelInstrCost(
+    InstructionCost const ScalarCompareCost = getCmpSelInstrCost(
         Instruction::ICmp, Type::getInt8Ty(SrcVTy->getContext()), nullptr,
         CmpInst::BAD_ICMP_PREDICATE, CostKind);
-    InstructionCost BranchCost = getCFInstrCost(Instruction::Br, CostKind);
-    InstructionCost MaskCmpCost = NumElem * (BranchCost + ScalarCompareCost);
-    InstructionCost ValueSplitCost =
+    InstructionCost const BranchCost = getCFInstrCost(Instruction::Br, CostKind);
+    InstructionCost const MaskCmpCost = NumElem * (BranchCost + ScalarCompareCost);
+    InstructionCost const ValueSplitCost =
         getScalarizationOverhead(SrcVTy, DemandedElts, IsLoad, IsStore);
-    InstructionCost MemopCost =
+    InstructionCost const MemopCost =
         NumElem * BaseT::getMemoryOpCost(Opcode, SrcVTy->getScalarType(),
                                          Alignment, AddressSpace, CostKind);
     return MemopCost + ValueSplitCost + MaskSplitCost + MaskCmpCost;
   }
 
   // Legalize the type.
-  std::pair<InstructionCost, MVT> LT = TLI->getTypeLegalizationCost(DL, SrcVTy);
+  std::pair<InstructionCost, MVT> const LT = TLI->getTypeLegalizationCost(DL, SrcVTy);
   auto VT = TLI->getValueType(DL, SrcVTy);
   InstructionCost Cost = 0;
   if (VT.isSimple() && LT.second != VT.getSimpleVT() &&
@@ -3812,15 +3812,15 @@ X86TTIImpl::getArithmeticReductionCost(unsigned Opcode, VectorType *ValTy,
     { ISD::ADD,   MVT::v32i8,   4 },
   };
 
-  int ISD = TLI->InstructionOpcodeToISD(Opcode);
+  int const ISD = TLI->InstructionOpcodeToISD(Opcode);
   assert(ISD && "Invalid opcode");
 
   // Before legalizing the type, give a chance to look up illegal narrow types
   // in the table.
   // FIXME: Is there a better way to do this?
-  EVT VT = TLI->getValueType(DL, ValTy);
+  EVT const VT = TLI->getValueType(DL, ValTy);
   if (VT.isSimple()) {
-    MVT MTy = VT.getSimpleVT();
+    MVT const MTy = VT.getSimpleVT();
     if (ST->isSLM())
       if (const auto *Entry = CostTableLookup(SLMCostTblNoPairWise, ISD, MTy))
         return Entry->Cost;
@@ -3834,9 +3834,9 @@ X86TTIImpl::getArithmeticReductionCost(unsigned Opcode, VectorType *ValTy,
         return Entry->Cost;
   }
 
-  std::pair<InstructionCost, MVT> LT = TLI->getTypeLegalizationCost(DL, ValTy);
+  std::pair<InstructionCost, MVT> const LT = TLI->getTypeLegalizationCost(DL, ValTy);
 
-  MVT MTy = LT.second;
+  MVT const MTy = LT.second;
 
   auto *ValVTy = cast<FixedVectorType>(ValTy);
 
@@ -3947,7 +3947,7 @@ X86TTIImpl::getArithmeticReductionCost(unsigned Opcode, VectorType *ValTy,
   }
 
   unsigned NumVecElts = ValVTy->getNumElements();
-  unsigned ScalarSize = ValVTy->getScalarSizeInBits();
+  unsigned const ScalarSize = ValVTy->getScalarSizeInBits();
 
   // Special case power of 2 reductions where the scalar type isn't changed
   // by type legalization.
@@ -3971,7 +3971,7 @@ X86TTIImpl::getArithmeticReductionCost(unsigned Opcode, VectorType *ValTy,
   // at each level.
   while (NumVecElts > 1) {
     // Determine the size of the remaining vector we need to reduce.
-    unsigned Size = NumVecElts * ScalarSize;
+    unsigned const Size = NumVecElts * ScalarSize;
     NumVecElts /= 2;
     // If we're reducing from 256/512 bits, use an extract_subvector.
     if (Size > 128) {
@@ -4022,9 +4022,9 @@ X86TTIImpl::getArithmeticReductionCost(unsigned Opcode, VectorType *ValTy,
 
 InstructionCost X86TTIImpl::getMinMaxCost(Type *Ty, Type *CondTy,
                                           bool IsUnsigned) {
-  std::pair<InstructionCost, MVT> LT = TLI->getTypeLegalizationCost(DL, Ty);
+  std::pair<InstructionCost, MVT> const LT = TLI->getTypeLegalizationCost(DL, Ty);
 
-  MVT MTy = LT.second;
+  MVT const MTy = LT.second;
 
   int ISD;
   if (Ty->isIntOrIntVectorTy()) {
@@ -4138,7 +4138,7 @@ InstructionCost X86TTIImpl::getMinMaxCost(Type *Ty, Type *CondTy,
     CmpOpcode = Instruction::ICmp;
   }
 
-  TTI::TargetCostKind CostKind = TTI::TCK_RecipThroughput;
+  TTI::TargetCostKind const CostKind = TTI::TCK_RecipThroughput;
   // Otherwise fall back to cmp+select.
   InstructionCost Result =
       getCmpSelInstrCost(CmpOpcode, Ty, CondTy, CmpInst::BAD_ICMP_PREDICATE,
@@ -4152,9 +4152,9 @@ InstructionCost
 X86TTIImpl::getMinMaxReductionCost(VectorType *ValTy, VectorType *CondTy,
                                    bool IsUnsigned,
                                    TTI::TargetCostKind CostKind) {
-  std::pair<InstructionCost, MVT> LT = TLI->getTypeLegalizationCost(DL, ValTy);
+  std::pair<InstructionCost, MVT> const LT = TLI->getTypeLegalizationCost(DL, ValTy);
 
-  MVT MTy = LT.second;
+  MVT const MTy = LT.second;
 
   int ISD;
   if (ValTy->isIntOrIntVectorTy()) {
@@ -4208,9 +4208,9 @@ X86TTIImpl::getMinMaxReductionCost(VectorType *ValTy, VectorType *CondTy,
   // Before legalizing the type, give a chance to look up illegal narrow types
   // in the table.
   // FIXME: Is there a better way to do this?
-  EVT VT = TLI->getValueType(DL, ValTy);
+  EVT const VT = TLI->getValueType(DL, ValTy);
   if (VT.isSimple()) {
-    MVT MTy = VT.getSimpleVT();
+    MVT const MTy = VT.getSimpleVT();
     if (ST->hasBWI())
       if (const auto *Entry = CostTableLookup(AVX512BWCostTblNoPairWise, ISD, MTy))
         return Entry->Cost;
@@ -4261,7 +4261,7 @@ X86TTIImpl::getMinMaxReductionCost(VectorType *ValTy, VectorType *CondTy,
     if (const auto *Entry = CostTableLookup(SSE2CostTblNoPairWise, ISD, MTy))
       return MinMaxCost + Entry->Cost;
 
-  unsigned ScalarSize = ValTy->getScalarSizeInBits();
+  unsigned const ScalarSize = ValTy->getScalarSizeInBits();
 
   // Special case power of 2 reductions where the scalar type isn't changed
   // by type legalization.
@@ -4273,7 +4273,7 @@ X86TTIImpl::getMinMaxReductionCost(VectorType *ValTy, VectorType *CondTy,
   // at each level.
   while (NumVecElts > 1) {
     // Determine the size of the remaining vector we need to reduce.
-    unsigned Size = NumVecElts * ScalarSize;
+    unsigned const Size = NumVecElts * ScalarSize;
     NumVecElts /= 2;
     // If we're reducing from 256/512 bits, use an extract_subvector.
     if (Size > 128) {
@@ -4338,7 +4338,7 @@ InstructionCost X86TTIImpl::getIntImmCost(const APInt &Imm, Type *Ty,
                                           TTI::TargetCostKind CostKind) {
   assert(Ty->isIntegerTy());
 
-  unsigned BitSize = Ty->getPrimitiveSizeInBits();
+  unsigned const BitSize = Ty->getPrimitiveSizeInBits();
   if (BitSize == 0)
     return ~0U;
 
@@ -4361,8 +4361,8 @@ InstructionCost X86TTIImpl::getIntImmCost(const APInt &Imm, Type *Ty,
   // chunk.
   InstructionCost Cost = 0;
   for (unsigned ShiftVal = 0; ShiftVal < BitSize; ShiftVal += 64) {
-    APInt Tmp = ImmVal.ashr(ShiftVal).sextOrTrunc(64);
-    int64_t Val = Tmp.getSExtValue();
+    APInt const Tmp = ImmVal.ashr(ShiftVal).sextOrTrunc(64);
+    int64_t const Val = Tmp.getSExtValue();
     Cost += getIntImmCost(Val);
   }
   // We need at least one instruction to materialize the constant.
@@ -4375,7 +4375,7 @@ InstructionCost X86TTIImpl::getIntImmCostInst(unsigned Opcode, unsigned Idx,
                                               Instruction *Inst) {
   assert(Ty->isIntegerTy());
 
-  unsigned BitSize = Ty->getPrimitiveSizeInBits();
+  unsigned const BitSize = Ty->getPrimitiveSizeInBits();
   // There is no cost model for constants with a bit size of 0. Return TCC_Free
   // here, so that constant hoisting will ignore this constant.
   if (BitSize == 0)
@@ -4402,7 +4402,7 @@ InstructionCost X86TTIImpl::getIntImmCostInst(unsigned Opcode, unsigned Idx,
     // Ideally we would check the compare predicate here. There also other
     // similar immediates the backend can use shifts for.
     if (Idx == 1 && Imm.getBitWidth() == 64) {
-      uint64_t ImmVal = Imm.getZExtValue();
+      uint64_t const ImmVal = Imm.getZExtValue();
       if (ImmVal == 0x100000000ULL || ImmVal == 0xffffffff)
         return TTI::TCC_Free;
     }
@@ -4458,8 +4458,8 @@ InstructionCost X86TTIImpl::getIntImmCostInst(unsigned Opcode, unsigned Idx,
   }
 
   if (Idx == ImmIdx) {
-    int NumConstants = divideCeil(BitSize, 64);
-    InstructionCost Cost = X86TTIImpl::getIntImmCost(Imm, Ty, CostKind);
+    int const NumConstants = divideCeil(BitSize, 64);
+    InstructionCost const Cost = X86TTIImpl::getIntImmCost(Imm, Ty, CostKind);
     return (Cost <= NumConstants * TTI::TCC_Basic)
                ? static_cast<int>(TTI::TCC_Free)
                : Cost;
@@ -4473,7 +4473,7 @@ InstructionCost X86TTIImpl::getIntImmCostIntrin(Intrinsic::ID IID, unsigned Idx,
                                                 TTI::TargetCostKind CostKind) {
   assert(Ty->isIntegerTy());
 
-  unsigned BitSize = Ty->getPrimitiveSizeInBits();
+  unsigned const BitSize = Ty->getPrimitiveSizeInBits();
   // There is no cost model for constants with a bit size of 0. Return TCC_Free
   // here, so that constant hoisting will ignore this constant.
   if (BitSize == 0)
@@ -4540,7 +4540,7 @@ InstructionCost X86TTIImpl::getGSVectorCost(unsigned Opcode, Type *SrcVTy,
                                             unsigned AddressSpace) {
 
   assert(isa<VectorType>(SrcVTy) && "Unexpected type in getGSVectorCost");
-  unsigned VF = cast<FixedVectorType>(SrcVTy)->getNumElements();
+  unsigned const VF = cast<FixedVectorType>(SrcVTy)->getNumElements();
 
   // Try to reduce index size from 64 bit (default for GEP)
   // to 32. It is essential for VF 16. If the index can't be reduced to 32, the
@@ -4548,7 +4548,7 @@ InstructionCost X86TTIImpl::getGSVectorCost(unsigned Opcode, Type *SrcVTy,
   // to split. Also check that the base pointer is the same for all lanes,
   // and that there's at most one variable index.
   auto getIndexSizeInBits = [](const Value *Ptr, const DataLayout &DL) {
-    unsigned IndexSize = DL.getPointerSizeInBits();
+    unsigned const IndexSize = DL.getPointerSizeInBits();
     const GetElementPtrInst *GEP = dyn_cast<GetElementPtrInst>(Ptr);
     if (IndexSize < 64 || !GEP)
       return IndexSize;
@@ -4573,17 +4573,17 @@ InstructionCost X86TTIImpl::getGSVectorCost(unsigned Opcode, Type *SrcVTy,
 
   // Trying to reduce IndexSize to 32 bits for vector 16.
   // By default the IndexSize is equal to pointer size.
-  unsigned IndexSize = (ST->hasAVX512() && VF >= 16)
+  unsigned const IndexSize = (ST->hasAVX512() && VF >= 16)
                            ? getIndexSizeInBits(Ptr, DL)
                            : DL.getPointerSizeInBits();
 
   auto *IndexVTy = FixedVectorType::get(
       IntegerType::get(SrcVTy->getContext(), IndexSize), VF);
-  std::pair<InstructionCost, MVT> IdxsLT =
+  std::pair<InstructionCost, MVT> const IdxsLT =
       TLI->getTypeLegalizationCost(DL, IndexVTy);
-  std::pair<InstructionCost, MVT> SrcLT =
+  std::pair<InstructionCost, MVT> const SrcLT =
       TLI->getTypeLegalizationCost(DL, SrcVTy);
-  InstructionCost::CostType SplitFactor =
+  InstructionCost::CostType const SplitFactor =
       *std::max(IdxsLT.first, SrcLT.first).getValue();
   if (SplitFactor > 1) {
     // Handle splitting of vector of pointers
@@ -4615,9 +4615,9 @@ InstructionCost X86TTIImpl::getGSVectorCost(unsigned Opcode, Type *SrcVTy,
 InstructionCost X86TTIImpl::getGSScalarCost(unsigned Opcode, Type *SrcVTy,
                                             bool VariableMask, Align Alignment,
                                             unsigned AddressSpace) {
-  unsigned VF = cast<FixedVectorType>(SrcVTy)->getNumElements();
-  APInt DemandedElts = APInt::getAllOnesValue(VF);
-  TTI::TargetCostKind CostKind = TTI::TCK_RecipThroughput;
+  unsigned const VF = cast<FixedVectorType>(SrcVTy)->getNumElements();
+  APInt const DemandedElts = APInt::getAllOnesValue(VF);
+  TTI::TargetCostKind const CostKind = TTI::TCK_RecipThroughput;
 
   InstructionCost MaskUnpackCost = 0;
   if (VariableMask) {
@@ -4625,15 +4625,15 @@ InstructionCost X86TTIImpl::getGSScalarCost(unsigned Opcode, Type *SrcVTy,
         FixedVectorType::get(Type::getInt1Ty(SrcVTy->getContext()), VF);
     MaskUnpackCost =
         getScalarizationOverhead(MaskTy, DemandedElts, false, true);
-    InstructionCost ScalarCompareCost = getCmpSelInstrCost(
+    InstructionCost const ScalarCompareCost = getCmpSelInstrCost(
         Instruction::ICmp, Type::getInt1Ty(SrcVTy->getContext()), nullptr,
         CmpInst::BAD_ICMP_PREDICATE, CostKind);
-    InstructionCost BranchCost = getCFInstrCost(Instruction::Br, CostKind);
+    InstructionCost const BranchCost = getCFInstrCost(Instruction::Br, CostKind);
     MaskUnpackCost += VF * (BranchCost + ScalarCompareCost);
   }
 
   // The cost of the scalar loads/stores.
-  InstructionCost MemoryOpCost =
+  InstructionCost const MemoryOpCost =
       VF * getMemoryOpCost(Opcode, SrcVTy->getScalarType(),
                            MaybeAlign(Alignment), AddressSpace, CostKind);
 
@@ -4673,7 +4673,7 @@ InstructionCost X86TTIImpl::getGatherScatterOpCost(
     PtrTy = dyn_cast<PointerType>(
         cast<VectorType>(Ptr->getType())->getElementType());
   assert(PtrTy && "Unexpected type for Ptr argument");
-  unsigned AddressSpace = PtrTy->getAddressSpace();
+  unsigned const AddressSpace = PtrTy->getAddressSpace();
 
   if ((Opcode == Instruction::Load &&
        !isLegalMaskedGather(SrcVTy, Align(Alignment))) ||
@@ -4722,7 +4722,7 @@ bool X86TTIImpl::isLegalMaskedLoad(Type *DataTy, Align Alignment) {
   if (!ScalarTy->isIntegerTy())
     return false;
 
-  unsigned IntWidth = ScalarTy->getIntegerBitWidth();
+  unsigned const IntWidth = ScalarTy->getIntegerBitWidth();
   return IntWidth == 32 || IntWidth == 64 ||
          ((IntWidth == 8 || IntWidth == 16) && ST->hasBWI());
 }
@@ -4732,7 +4732,7 @@ bool X86TTIImpl::isLegalMaskedStore(Type *DataType, Align Alignment) {
 }
 
 bool X86TTIImpl::isLegalNTLoad(Type *DataType, Align Alignment) {
-  unsigned DataSize = DL.getTypeStoreSize(DataType);
+  unsigned const DataSize = DL.getTypeStoreSize(DataType);
   // The only supported nontemporal loads are for aligned vectors of 16 or 32
   // bytes.  Note that 32-byte nontemporal vector loads are supported by AVX2
   // (the equivalent stores only require AVX).
@@ -4743,7 +4743,7 @@ bool X86TTIImpl::isLegalNTLoad(Type *DataType, Align Alignment) {
 }
 
 bool X86TTIImpl::isLegalNTStore(Type *DataType, Align Alignment) {
-  unsigned DataSize = DL.getTypeStoreSize(DataType);
+  unsigned const DataSize = DL.getTypeStoreSize(DataType);
 
   // SSE4A supports nontemporal stores of float and double at arbitrary
   // alignment.
@@ -4785,7 +4785,7 @@ bool X86TTIImpl::isLegalMaskedExpandLoad(Type *DataTy) {
   if (!ScalarTy->isIntegerTy())
     return false;
 
-  unsigned IntWidth = ScalarTy->getIntegerBitWidth();
+  unsigned const IntWidth = ScalarTy->getIntegerBitWidth();
   return IntWidth == 32 || IntWidth == 64 ||
          ((IntWidth == 8 || IntWidth == 16) && ST->hasVBMI2());
 }
@@ -4814,7 +4814,7 @@ bool X86TTIImpl::isLegalMaskedGather(Type *DataTy, Align Alignment) {
   // We also reject single element vectors as the type legalizer can't
   // scalarize it.
   if (auto *DataVTy = dyn_cast<FixedVectorType>(DataTy)) {
-    unsigned NumElts = DataVTy->getNumElements();
+    unsigned const NumElts = DataVTy->getNumElements();
     if (NumElts == 1)
       return false;
     // Gather / Scatter for vector 2 is not profitable on KNL / SKX
@@ -4836,7 +4836,7 @@ bool X86TTIImpl::isLegalMaskedGather(Type *DataTy, Align Alignment) {
   if (!ScalarTy->isIntegerTy())
     return false;
 
-  unsigned IntWidth = ScalarTy->getIntegerBitWidth();
+  unsigned const IntWidth = ScalarTy->getIntegerBitWidth();
   return IntWidth == 32 || IntWidth == 64;
 }
 
@@ -4848,7 +4848,7 @@ bool X86TTIImpl::isLegalMaskedScatter(Type *DataType, Align Alignment) {
 }
 
 bool X86TTIImpl::hasDivRemOp(Type *DataType, bool IsSigned) {
-  EVT VT = TLI->getValueType(DL, DataType);
+  EVT const VT = TLI->getValueType(DL, DataType);
   return TLI->isOperationLegal(IsSigned ? ISD::SDIVREM : ISD::UDIVREM, VT);
 }
 
@@ -4866,8 +4866,8 @@ bool X86TTIImpl::areInlineCompatible(const Function *Caller,
   const FeatureBitset &CalleeBits =
       TM.getSubtargetImpl(*Callee)->getFeatureBits();
 
-  FeatureBitset RealCallerBits = CallerBits & ~InlineFeatureIgnoreList;
-  FeatureBitset RealCalleeBits = CalleeBits & ~InlineFeatureIgnoreList;
+  FeatureBitset const RealCallerBits = CallerBits & ~InlineFeatureIgnoreList;
+  FeatureBitset const RealCalleeBits = CalleeBits & ~InlineFeatureIgnoreList;
   return (RealCallerBits & RealCalleeBits) == RealCalleeBits;
 }
 
@@ -4960,7 +4960,7 @@ InstructionCost X86TTIImpl::getInterleavedMemoryOpCostAVX2(
   // VecTy for interleave memop is <VF*Factor x Elt>.
   // So, for VF=4, Interleave Factor = 3, Element type = i32 we have
   // VecTy = <12 x i32>.
-  MVT LegalVT = getTLI()->getTypeLegalizationCost(DL, VecTy).second;
+  MVT const LegalVT = getTLI()->getTypeLegalizationCost(DL, VecTy).second;
 
   // This function can be called with VecTy=<6xi128>, Factor=3, in which case
   // the VF=2, while v2i128 is an unsupported MVT vector type
@@ -4969,7 +4969,7 @@ InstructionCost X86TTIImpl::getInterleavedMemoryOpCostAVX2(
     return BaseT::getInterleavedMemoryOpCost(Opcode, VecTy, Factor, Indices,
                                              Alignment, AddressSpace, CostKind);
 
-  unsigned VF = VecTy->getNumElements() / Factor;
+  unsigned const VF = VecTy->getNumElements() / Factor;
   Type *ScalarTy = VecTy->getElementType();
   // Deduplicate entries, model floats/pointers as appropriately-sized integers.
   if (!ScalarTy->isIntegerTy())
@@ -4977,11 +4977,11 @@ InstructionCost X86TTIImpl::getInterleavedMemoryOpCostAVX2(
         Type::getIntNTy(ScalarTy->getContext(), DL.getTypeSizeInBits(ScalarTy));
 
   // Get the cost of all the memory operations.
-  InstructionCost MemOpCosts = getMemoryOpCost(
+  InstructionCost const MemOpCosts = getMemoryOpCost(
       Opcode, VecTy, MaybeAlign(Alignment), AddressSpace, CostKind);
 
   auto *VT = FixedVectorType::get(ScalarTy, VF);
-  EVT ETy = TLI->getValueType(DL, VT);
+  EVT const ETy = TLI->getValueType(DL, VT);
   if (!ETy.isSimple())
     return BaseT::getInterleavedMemoryOpCost(Opcode, VecTy, Factor, Indices,
                                              Alignment, AddressSpace, CostKind);
@@ -5065,19 +5065,19 @@ InstructionCost X86TTIImpl::getInterleavedMemoryOpCostAVX512(
 
   // Calculate the number of memory operations (NumOfMemOps), required
   // for load/store the VecTy.
-  MVT LegalVT = getTLI()->getTypeLegalizationCost(DL, VecTy).second;
-  unsigned VecTySize = DL.getTypeStoreSize(VecTy);
-  unsigned LegalVTSize = LegalVT.getStoreSize();
-  unsigned NumOfMemOps = (VecTySize + LegalVTSize - 1) / LegalVTSize;
+  MVT const LegalVT = getTLI()->getTypeLegalizationCost(DL, VecTy).second;
+  unsigned const VecTySize = DL.getTypeStoreSize(VecTy);
+  unsigned const LegalVTSize = LegalVT.getStoreSize();
+  unsigned const NumOfMemOps = (VecTySize + LegalVTSize - 1) / LegalVTSize;
 
   // Get the cost of one memory operation.
   auto *SingleMemOpTy = FixedVectorType::get(VecTy->getElementType(),
                                              LegalVT.getVectorNumElements());
-  InstructionCost MemOpCost = getMemoryOpCost(
+  InstructionCost const MemOpCost = getMemoryOpCost(
       Opcode, SingleMemOpTy, MaybeAlign(Alignment), AddressSpace, CostKind);
 
-  unsigned VF = VecTy->getNumElements() / Factor;
-  MVT VT = MVT::getVectorVT(MVT::getVT(VecTy->getScalarType()), VF);
+  unsigned const VF = VecTy->getNumElements() / Factor;
+  MVT const VT = MVT::getVectorVT(MVT::getVT(VecTy->getScalarType()), VF);
 
   if (Opcode == Instruction::Load) {
     // The tables (AVX512InterleavedLoadTbl and AVX512InterleavedStoreTbl)
@@ -5100,27 +5100,27 @@ InstructionCost X86TTIImpl::getInterleavedMemoryOpCostAVX512(
     // Kind of shuffle depends on number of loaded values.
     // If we load the entire data in one register, we can use a 1-src shuffle.
     // Otherwise, we'll merge 2 sources in each operation.
-    TTI::ShuffleKind ShuffleKind =
+    TTI::ShuffleKind const ShuffleKind =
         (NumOfMemOps > 1) ? TTI::SK_PermuteTwoSrc : TTI::SK_PermuteSingleSrc;
 
-    InstructionCost ShuffleCost =
+    InstructionCost const ShuffleCost =
         getShuffleCost(ShuffleKind, SingleMemOpTy, None, 0, nullptr);
 
-    unsigned NumOfLoadsInInterleaveGrp =
+    unsigned const NumOfLoadsInInterleaveGrp =
         Indices.size() ? Indices.size() : Factor;
     auto *ResultTy = FixedVectorType::get(VecTy->getElementType(),
                                           VecTy->getNumElements() / Factor);
-    InstructionCost NumOfResults =
+    InstructionCost const NumOfResults =
         getTLI()->getTypeLegalizationCost(DL, ResultTy).first *
         NumOfLoadsInInterleaveGrp;
 
     // About a half of the loads may be folded in shuffles when we have only
     // one result. If we have more than one result, we do not fold loads at all.
-    unsigned NumOfUnfoldedLoads =
+    unsigned const NumOfUnfoldedLoads =
         NumOfResults > 1 ? NumOfMemOps : NumOfMemOps / 2;
 
     // Get a number of shuffle operations per result.
-    unsigned NumOfShufflesPerResult =
+    unsigned const NumOfShufflesPerResult =
         std::max((unsigned)1, (unsigned)(NumOfMemOps - 1));
 
     // The SK_MergeTwoSrc shuffle clobbers one of src operands.
@@ -5158,14 +5158,14 @@ InstructionCost X86TTIImpl::getInterleavedMemoryOpCostAVX512(
 
   // There is no strided stores meanwhile. And store can't be folded in
   // shuffle.
-  unsigned NumOfSources = Factor; // The number of values to be merged.
-  InstructionCost ShuffleCost =
+  unsigned const NumOfSources = Factor; // The number of values to be merged.
+  InstructionCost const ShuffleCost =
       getShuffleCost(TTI::SK_PermuteTwoSrc, SingleMemOpTy, None, 0, nullptr);
-  unsigned NumOfShufflesPerStore = NumOfSources - 1;
+  unsigned const NumOfShufflesPerStore = NumOfSources - 1;
 
   // The SK_MergeTwoSrc shuffle clobbers one of src operands.
   // We need additional instructions to keep sources.
-  unsigned NumOfMoves = NumOfMemOps * NumOfShufflesPerStore / 2;
+  unsigned const NumOfMoves = NumOfMemOps * NumOfShufflesPerStore / 2;
   InstructionCost Cost =
       NumOfMemOps * (MemOpCost + NumOfShufflesPerStore * ShuffleCost) +
       NumOfMoves;

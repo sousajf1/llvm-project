@@ -35,7 +35,7 @@ void HexagonMCShuffler::init(MCInst &MCB) {
     MCInst const *Extender = nullptr;
     // Copy the bundle for the shuffling.
     for (const auto &I : HexagonMCInstrInfo::bundleInstructions(MCB)) {
-      MCInst &MI = *const_cast<MCInst *>(I.getInst());
+      MCInst  const&MI = *const_cast<MCInst *>(I.getInst());
       LLVM_DEBUG(dbgs() << "Shuffling: " << MCII.getName(MI.getOpcode())
                         << '\n');
       assert(!HexagonMCInstrInfo::getDesc(MCII, MI).isPseudo());
@@ -61,7 +61,7 @@ void HexagonMCShuffler::init(MCInst &MCB, MCInst const &AddMI,
     // Copy the bundle for the shuffling.
     for (auto const &I : HexagonMCInstrInfo::bundleInstructions(MCB)) {
       assert(!HexagonMCInstrInfo::getDesc(MCII, *I.getInst()).isPseudo());
-      MCInst &MI = *const_cast<MCInst *>(I.getInst());
+      MCInst  const&MI = *const_cast<MCInst *>(I.getInst());
       if (!HexagonMCInstrInfo::isImmext(MI)) {
         append(MI, Extender, HexagonMCInstrInfo::getUnits(MCII, STI, MI));
         Extender = nullptr;
@@ -153,7 +153,7 @@ llvm::HexagonMCShuffle(MCContext &Context, MCInstrInfo const &MCII,
   bool doneShuffling = false;
   while (possibleDuplexes.size() > 0 && (!doneShuffling)) {
     // case of Duplex Found
-    DuplexCandidate duplexToTry = possibleDuplexes.pop_back_val();
+    DuplexCandidate const duplexToTry = possibleDuplexes.pop_back_val();
     MCInst Attempt(MCB);
     HexagonMCInstrInfo::replaceDuplex(Context, Attempt, duplexToTry);
     HexagonMCShuffler MCS(Context, false, MCII, STI, Attempt); // copy packet to the shuffler
@@ -187,10 +187,10 @@ bool llvm::HexagonMCShuffle(MCContext &Context, MCInstrInfo const &MCII,
 
   // if fixups present, make sure we don't insert too many nops that would
   // later prevent an extender from being inserted.
-  unsigned int bundleSize = HexagonMCInstrInfo::bundleSize(MCB);
+  unsigned int const bundleSize = HexagonMCInstrInfo::bundleSize(MCB);
   if (bundleSize >= HEXAGON_PACKET_SIZE)
     return false;
-  bool bhasDuplex = HexagonMCInstrInfo::hasDuplex(MCII, MCB);
+  bool const bhasDuplex = HexagonMCInstrInfo::hasDuplex(MCII, MCB);
   if (fixupCount >= 2) {
     if (bhasDuplex) {
       if (bundleSize >= HEXAGON_PACKET_SIZE - 1) {
@@ -210,7 +210,7 @@ bool llvm::HexagonMCShuffle(MCContext &Context, MCInstrInfo const &MCII,
   // mgl: temporary code (shuffler doesn't take into account the fact that
   // a duplex takes up two slots.  for example, 3 nops can be put into a packet
   // containing a duplex oversubscribing slots by 1).
-  unsigned maxBundleSize = (HexagonMCInstrInfo::hasImmExt(MCB))
+  unsigned const maxBundleSize = (HexagonMCInstrInfo::hasImmExt(MCB))
                                ? HEXAGON_PACKET_SIZE
                                : HEXAGON_PACKET_SIZE - 1;
   if (bhasDuplex && bundleSize >= maxBundleSize)

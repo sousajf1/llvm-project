@@ -60,7 +60,7 @@ bool StackLifetime::isAliveAfter(const AllocaInst *AI,
                                return L->comesBefore(R);
                              });
   --It;
-  unsigned InstNum = It - Instructions.begin();
+  unsigned const InstNum = It - Instructions.begin();
   return getLiveRange(AI).test(InstNum);
 }
 
@@ -75,12 +75,12 @@ static const AllocaInst *findMatchingAlloca(const IntrinsicInst &II,
   auto AllocaSizeInBits = AI->getAllocationSizeInBits(DL);
   if (!AllocaSizeInBits)
     return nullptr;
-  int64_t AllocaSize = AllocaSizeInBits.getValue() / 8;
+  int64_t const AllocaSize = AllocaSizeInBits.getValue() / 8;
 
   auto *Size = dyn_cast<ConstantInt>(II.getArgOperand(0));
   if (!Size)
     return nullptr;
-  int64_t LifetimeSize = Size->getSExtValue();
+  int64_t const LifetimeSize = Size->getSExtValue();
 
   if (LifetimeSize != -1 && LifetimeSize != AllocaSize)
     return nullptr;
@@ -110,7 +110,7 @@ void StackLifetime::collectMarkers() {
       if (It == AllocaNumbering.end())
         continue;
       auto AllocaNo = It->second;
-      bool IsStart = II->getIntrinsicID() == Intrinsic::lifetime_start;
+      bool const IsStart = II->getIntrinsicID() == Intrinsic::lifetime_start;
       if (IsStart)
         InterestingAllocas.set(AllocaNo);
       BBMarkerSet[BB][II] = {AllocaNo, IsStart};
@@ -188,7 +188,7 @@ void StackLifetime::calculateLocalLiveness() {
       // Compute LiveIn by unioning together the LiveOut sets of all preds.
       BitVector LocalLiveIn;
       for (auto *PredBB : predecessors(BB)) {
-        LivenessMap::const_iterator I = BlockLiveness.find(PredBB);
+        LivenessMap::const_iterator const I = BlockLiveness.find(PredBB);
         // If a predecessor is unreachable, ignore it.
         if (I == BlockLiveness.end())
           continue;
@@ -233,7 +233,7 @@ void StackLifetime::calculateLocalLiveness() {
 void StackLifetime::calculateLiveIntervals() {
   for (auto IT : BlockLiveness) {
     const BasicBlock *BB = IT.getFirst();
-    BlockLifetimeInfo &BlockInfo = IT.getSecond();
+    BlockLifetimeInfo  const&BlockInfo = IT.getSecond();
     unsigned BBStart, BBEnd;
     std::tie(BBStart, BBEnd) = BlockInstRange[BB];
 
@@ -252,9 +252,9 @@ void StackLifetime::calculateLiveIntervals() {
     }
 
     for (auto &It : BBMarkers[BB]) {
-      unsigned InstNo = It.first;
-      bool IsStart = It.second.IsStart;
-      unsigned AllocaNo = It.second.AllocaNo;
+      unsigned const InstNo = It.first;
+      bool const IsStart = It.second.IsStart;
+      unsigned const AllocaNo = It.second.AllocaNo;
 
       if (IsStart) {
         assert(!Started.test(AllocaNo) || Start[AllocaNo] == BBStart);

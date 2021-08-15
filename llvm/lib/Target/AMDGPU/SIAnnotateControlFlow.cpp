@@ -232,7 +232,7 @@ Value *SIAnnotateControlFlow::handleLoopCondition(
       Insert = L->getHeader()->getFirstNonPHIOrDbgOrLifetime();
     }
 
-    Value *Args[] = { Cond, Broken };
+    Value *const Args[] = { Cond, Broken };
     return CallInst::Create(IfBreak, Args, "", Insert);
   }
 
@@ -241,7 +241,7 @@ Value *SIAnnotateControlFlow::handleLoopCondition(
     Instruction *Insert = Cond == BoolTrue ?
       Term : L->getHeader()->getTerminator();
 
-    Value *Args[] = { Cond, Broken };
+    Value *const Args[] = { Cond, Broken };
     return CallInst::Create(IfBreak, Args, "", Insert);
   }
 
@@ -324,7 +324,7 @@ bool SIAnnotateControlFlow::runOnFunction(Function &F) {
   DT = &getAnalysis<DominatorTreeWrapperPass>().getDomTree();
   LI = &getAnalysis<LoopInfoWrapperPass>().getLoopInfo();
   DA = &getAnalysis<LegacyDivergenceAnalysis>();
-  TargetPassConfig &TPC = getAnalysis<TargetPassConfig>();
+  TargetPassConfig  const&TPC = getAnalysis<TargetPassConfig>();
   const TargetMachine &TM = TPC.getTM<TargetMachine>();
 
   initialize(*F.getParent(), TM.getSubtarget<GCNSubtarget>(F));

@@ -67,13 +67,13 @@ void PPCELFStreamer::emitPrefixedInstruction(const MCInst &Inst,
   // The above instruction is forced to start a new fragment because it
   // comes after a code alignment fragment. Get that new fragment.
   MCFragment *InstructionFragment = getCurrentFragment();
-  SMLoc InstLoc = Inst.getLoc();
+  SMLoc const InstLoc = Inst.getLoc();
   // Check if there was a last label emitted.
   if (LastLabel && !LastLabel->isUnset() && LastLabelLoc.isValid() &&
       InstLoc.isValid()) {
     const SourceMgr *SourceManager = getContext().getSourceManager();
-    unsigned InstLine = SourceManager->FindLineNumber(InstLoc);
-    unsigned LabelLine = SourceManager->FindLineNumber(LastLabelLoc);
+    unsigned const InstLine = SourceManager->FindLineNumber(InstLoc);
+    unsigned const LabelLine = SourceManager->FindLineNumber(LastLabelLoc);
     // If the Label and the Instruction are on the same line then move the
     // label to the top of the fragment containing the aligned instruction that
     // was just added.
@@ -160,7 +160,7 @@ void PPCELFStreamer::emitGOTToPCRelReloc(const MCInst &Inst) {
 
   MCDataFragment *DF = static_cast<MCDataFragment *>(LabelSym->getFragment());
   assert(DF && "Expecting a valid data fragment.");
-  MCFixupKind FixupKind = static_cast<MCFixupKind>(FirstLiteralRelocationKind +
+  MCFixupKind const FixupKind = static_cast<MCFixupKind>(FirstLiteralRelocationKind +
                                                    ELF::R_PPC64_PCREL_OPT);
   DF->getFixups().push_back(
       MCFixup::create(LabelSym->getOffset() - 8, SubExpr2,
@@ -203,7 +203,7 @@ Optional<bool> llvm::isPartOfGOTToPCRelPair(const MCInst &Inst,
   if (Inst.getNumOperands() < 2)
     return None;
 
-  unsigned LastOp = Inst.getNumOperands() - 1;
+  unsigned const LastOp = Inst.getNumOperands() - 1;
   // The last operand needs to be an MCExpr and it needs to have a variant kind
   // of VK_PPC_PCREL_OPT. If it does not satisfy these conditions it is not a
   // link time GOT PC Rel opt instruction and we can ignore it and return None.

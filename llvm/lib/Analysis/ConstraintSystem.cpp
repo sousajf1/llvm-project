@@ -28,10 +28,10 @@ bool ConstraintSystem::eliminateUsingFM() {
   // IEEE conference on Supercomputing. IEEE, 1991.
   assert(!Constraints.empty() &&
          "should only be called for non-empty constraint systems");
-  unsigned NumVariables = Constraints[0].size();
+  unsigned const NumVariables = Constraints[0].size();
   SmallVector<SmallVector<int64_t, 8>, 4> NewSystem;
 
-  unsigned NumConstraints = Constraints.size();
+  unsigned const NumConstraints = Constraints.size();
   uint32_t NewGCD = 1;
   // FIXME do not use copy
   for (unsigned R1 = 0; R1 < NumConstraints; R1++) {
@@ -137,7 +137,7 @@ void ConstraintSystem::dump() const {
 
 bool ConstraintSystem::mayHaveSolution() {
   LLVM_DEBUG(dump());
-  bool HasSolution = mayHaveSolutionImpl();
+  bool const HasSolution = mayHaveSolutionImpl();
   LLVM_DEBUG(dbgs() << (HasSolution ? "sat" : "unsat") << "\n");
   return HasSolution;
 }

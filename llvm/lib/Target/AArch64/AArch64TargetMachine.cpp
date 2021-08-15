@@ -177,11 +177,11 @@ extern cl::opt<bool> EnableHomogeneousPrologEpilog;
 
 extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializeAArch64Target() {
   // Register the target.
-  RegisterTargetMachine<AArch64leTargetMachine> X(getTheAArch64leTarget());
-  RegisterTargetMachine<AArch64beTargetMachine> Y(getTheAArch64beTarget());
-  RegisterTargetMachine<AArch64leTargetMachine> Z(getTheARM64Target());
-  RegisterTargetMachine<AArch64leTargetMachine> W(getTheARM64_32Target());
-  RegisterTargetMachine<AArch64leTargetMachine> V(getTheAArch64_32Target());
+  RegisterTargetMachine<AArch64leTargetMachine> const X(getTheAArch64leTarget());
+  RegisterTargetMachine<AArch64beTargetMachine> const Y(getTheAArch64beTarget());
+  RegisterTargetMachine<AArch64leTargetMachine> const Z(getTheARM64Target());
+  RegisterTargetMachine<AArch64leTargetMachine> const W(getTheARM64_32Target());
+  RegisterTargetMachine<AArch64leTargetMachine> const V(getTheAArch64_32Target());
   auto PR = PassRegistry::getPassRegistry();
   initializeGlobalISel(*PR);
   initializeAArch64A53Fix835769Pass(*PR);
@@ -238,8 +238,8 @@ static std::string computeDataLayout(const Triple &TT,
   }
   if (TT.isOSBinFormatCOFF())
     return "e-m:w-p:64:64-i32:32-i64:64-i128:128-n32:64-S128";
-  std::string Endian = LittleEndian ? "e" : "E";
-  std::string Ptr32 = TT.getEnvironment() == Triple::GNUILP32 ? "-p:32:32" : "";
+  std::string const Endian = LittleEndian ? "e" : "E";
+  std::string const Ptr32 = TT.getEnvironment() == Triple::GNUILP32 ? "-p:32:32" : "";
   return Endian + "-m:e" + Ptr32 +
          "-i8:8:32-i16:16:32-i64:64-i128:128-n32:64-S128";
 }
@@ -353,19 +353,19 @@ AArch64TargetMachine::~AArch64TargetMachine() = default;
 
 const AArch64Subtarget *
 AArch64TargetMachine::getSubtargetImpl(const Function &F) const {
-  Attribute CPUAttr = F.getFnAttribute("target-cpu");
-  Attribute FSAttr = F.getFnAttribute("target-features");
+  Attribute const CPUAttr = F.getFnAttribute("target-cpu");
+  Attribute const FSAttr = F.getFnAttribute("target-features");
 
-  std::string CPU =
+  std::string const CPU =
       CPUAttr.isValid() ? CPUAttr.getValueAsString().str() : TargetCPU;
-  std::string FS =
+  std::string const FS =
       FSAttr.isValid() ? FSAttr.getValueAsString().str() : TargetFS;
 
   SmallString<512> Key;
 
   unsigned MinSVEVectorSize = 0;
   unsigned MaxSVEVectorSize = 0;
-  Attribute VScaleRangeAttr = F.getFnAttribute(Attribute::VScaleRange);
+  Attribute const VScaleRangeAttr = F.getFnAttribute(Attribute::VScaleRange);
   if (VScaleRangeAttr.isValid()) {
     std::tie(MinSVEVectorSize, MaxSVEVectorSize) =
         VScaleRangeAttr.getVScaleRangeArgs();
@@ -576,7 +576,7 @@ bool AArch64PassConfig::addPreISel() {
   if ((TM->getOptLevel() != CodeGenOpt::None &&
        EnableGlobalMerge == cl::BOU_UNSET) ||
       EnableGlobalMerge == cl::BOU_TRUE) {
-    bool OnlyOptimizeForSize = (TM->getOptLevel() < CodeGenOpt::Aggressive) &&
+    bool const OnlyOptimizeForSize = (TM->getOptLevel() < CodeGenOpt::Aggressive) &&
                                (EnableGlobalMerge == cl::BOU_UNSET);
 
     // Merging of extern globals is enabled by default on non-Mach-O as we
@@ -627,7 +627,7 @@ bool AArch64PassConfig::addLegalizeMachineIR() {
 }
 
 void AArch64PassConfig::addPreRegBankSelect() {
-  bool IsOptNone = getOptLevel() == CodeGenOpt::None;
+  bool const IsOptNone = getOptLevel() == CodeGenOpt::None;
   if (!IsOptNone)
     addPass(createAArch64PostLegalizerCombiner(IsOptNone));
   addPass(createAArch64PostLegalizerLowering());

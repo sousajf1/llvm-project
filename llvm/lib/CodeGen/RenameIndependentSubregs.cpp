@@ -130,7 +130,7 @@ bool RenameIndependentSubregs::renameComponents(LiveInterval &LI) const {
     return false;
 
   // Create a new VReg for each class.
-  unsigned Reg = LI.reg();
+  unsigned const Reg = LI.reg();
   const TargetRegisterClass *RegClass = MRI->getRegClass(Reg);
   SmallVector<LiveInterval*, 4> Intervals;
   Intervals.push_back(&LI);
@@ -139,7 +139,7 @@ bool RenameIndependentSubregs::renameComponents(LiveInterval &LI) const {
   LLVM_DEBUG(dbgs() << printReg(Reg) << ": Splitting into newly created:");
   for (unsigned I = 1, NumClasses = Classes.getNumClasses(); I < NumClasses;
        ++I) {
-    Register NewVReg = MRI->createVirtualRegister(RegClass);
+    Register const NewVReg = MRI->createVirtualRegister(RegClass);
     LiveInterval &NewLI = LIS->createEmptyInterval(NewVReg);
     Intervals.push_back(&NewLI);
     LLVM_DEBUG(dbgs() << ' ' << printReg(NewVReg));
@@ -162,7 +162,7 @@ bool RenameIndependentSubregs::findComponents(IntEqClasses &Classes,
     SubRangeInfos.push_back(SubRangeInfo(*LIS, SR, NumComponents));
     ConnectedVNInfoEqClasses &ConEQ = SubRangeInfos.back().ConEQ;
 
-    unsigned NumSubComponents = ConEQ.Classify(SR);
+    unsigned const NumSubComponents = ConEQ.Classify(SR);
     NumComponents += NumSubComponents;
   }
   // Shortcut: With only 1 subrange, the normal separate component tests are
@@ -175,14 +175,14 @@ bool RenameIndependentSubregs::findComponents(IntEqClasses &Classes,
   // across subranges when they are affected by the same MachineOperand.
   const TargetRegisterInfo &TRI = *MRI->getTargetRegisterInfo();
   Classes.grow(NumComponents);
-  unsigned Reg = LI.reg();
+  unsigned const Reg = LI.reg();
   for (const MachineOperand &MO : MRI->reg_nodbg_operands(Reg)) {
     if (!MO.isDef() && !MO.readsReg())
       continue;
-    unsigned SubRegIdx = MO.getSubReg();
-    LaneBitmask LaneMask = TRI.getSubRegIndexLaneMask(SubRegIdx);
+    unsigned const SubRegIdx = MO.getSubReg();
+    LaneBitmask const LaneMask = TRI.getSubRegIndexLaneMask(SubRegIdx);
     unsigned MergedID = ~0u;
-    for (RenameIndependentSubregs::SubRangeInfo &SRInfo : SubRangeInfos) {
+    for (RenameIndependentSubregs::SubRangeInfo  const&SRInfo : SubRangeInfos) {
       const LiveInterval::SubRange &SR = *SRInfo.SR;
       if ((SR.LaneMask & LaneMask).none())
         continue;
@@ -194,9 +194,9 @@ bool RenameIndependentSubregs::findComponents(IntEqClasses &Classes,
         continue;
 
       // Map to local representant ID.
-      unsigned LocalID = SRInfo.ConEQ.getEqClass(VNI);
+      unsigned const LocalID = SRInfo.ConEQ.getEqClass(VNI);
       // Global ID
-      unsigned ID = LocalID + SRInfo.Index;
+      unsigned const ID = LocalID + SRInfo.Index;
       // Merge other sets
       MergedID = MergedID == ~0u ? ID : Classes.join(MergedID, ID);
     }
@@ -204,7 +204,7 @@ bool RenameIndependentSubregs::findComponents(IntEqClasses &Classes,
 
   // Early exit if we ended up with a single equivalence class.
   Classes.compress();
-  unsigned NumClasses = Classes.getNumClasses();
+  unsigned const NumClasses = Classes.getNumClasses();
   return NumClasses > 1;
 }
 
@@ -212,7 +212,7 @@ void RenameIndependentSubregs::rewriteOperands(const IntEqClasses &Classes,
     const SmallVectorImpl<SubRangeInfo> &SubRangeInfos,
     const SmallVectorImpl<LiveInterval*> &Intervals) const {
   const TargetRegisterInfo &TRI = *MRI->getTargetRegisterInfo();
-  unsigned Reg = Intervals[0]->reg();
+  unsigned const Reg = Intervals[0]->reg();
   for (MachineRegisterInfo::reg_nodbg_iterator I = MRI->reg_nodbg_begin(Reg),
        E = MRI->reg_nodbg_end(); I != E; ) {
     MachineOperand &MO = *I++;
@@ -223,8 +223,8 @@ void RenameIndependentSubregs::rewriteOperands(const IntEqClasses &Classes,
     SlotIndex Pos = LIS->getInstructionIndex(*MI);
     Pos = MO.isDef() ? Pos.getRegSlot(MO.isEarlyClobber())
                      : Pos.getBaseIndex();
-    unsigned SubRegIdx = MO.getSubReg();
-    LaneBitmask LaneMask = TRI.getSubRegIndexLaneMask(SubRegIdx);
+    unsigned const SubRegIdx = MO.getSubReg();
+    LaneBitmask const LaneMask = TRI.getSubRegIndexLaneMask(SubRegIdx);
 
     unsigned ID = ~0u;
     for (const SubRangeInfo &SRInfo : SubRangeInfos) {
@@ -236,21 +236,21 @@ void RenameIndependentSubregs::rewriteOperands(const IntEqClasses &Classes,
         continue;
 
       // Map to local representant ID.
-      unsigned LocalID = SRInfo.ConEQ.getEqClass(VNI);
+      unsigned const LocalID = SRInfo.ConEQ.getEqClass(VNI);
       // Global ID
       ID = Classes[LocalID + SRInfo.Index];
       break;
     }
 
-    unsigned VReg = Intervals[ID]->reg();
+    unsigned const VReg = Intervals[ID]->reg();
     MO.setReg(VReg);
 
     if (MO.isTied() && Reg != VReg) {
       /// Undef use operands are not tracked in the equivalence class,
       /// but need to be updated if they are tied; take care to only
       /// update the tied operand.
-      unsigned OperandNo = MI->getOperandNo(&MO);
-      unsigned TiedIdx = MI->findTiedOperandIdx(OperandNo);
+      unsigned const OperandNo = MI->getOperandNo(&MO);
+      unsigned const TiedIdx = MI->findTiedOperandIdx(OperandNo);
       MI->getOperand(TiedIdx).setReg(VReg);
 
       // above substitution breaks the iterator, so restart.
@@ -265,21 +265,21 @@ void RenameIndependentSubregs::rewriteOperands(const IntEqClasses &Classes,
 void RenameIndependentSubregs::distribute(const IntEqClasses &Classes,
     const SmallVectorImpl<SubRangeInfo> &SubRangeInfos,
     const SmallVectorImpl<LiveInterval*> &Intervals) const {
-  unsigned NumClasses = Classes.getNumClasses();
+  unsigned const NumClasses = Classes.getNumClasses();
   SmallVector<unsigned, 8> VNIMapping;
   SmallVector<LiveInterval::SubRange*, 8> SubRanges;
   BumpPtrAllocator &Allocator = LIS->getVNInfoAllocator();
   for (const SubRangeInfo &SRInfo : SubRangeInfos) {
     LiveInterval::SubRange &SR = *SRInfo.SR;
-    unsigned NumValNos = SR.valnos.size();
+    unsigned const NumValNos = SR.valnos.size();
     VNIMapping.clear();
     VNIMapping.reserve(NumValNos);
     SubRanges.clear();
     SubRanges.resize(NumClasses-1, nullptr);
     for (unsigned I = 0; I < NumValNos; ++I) {
       const VNInfo &VNI = *SR.valnos[I];
-      unsigned LocalID = SRInfo.ConEQ.getEqClass(&VNI);
-      unsigned ID = Classes[LocalID + SRInfo.Index];
+      unsigned const LocalID = SRInfo.ConEQ.getEqClass(&VNI);
+      unsigned const ID = Classes[LocalID + SRInfo.Index];
       VNIMapping.push_back(ID);
       if (ID > 0 && SubRanges[ID-1] == nullptr)
         SubRanges[ID-1] = Intervals[ID]->createSubRange(Allocator, SR.LaneMask);
@@ -304,7 +304,7 @@ void RenameIndependentSubregs::computeMainRangesFixFlags(
   const SlotIndexes &Indexes = *LIS->getSlotIndexes();
   for (size_t I = 0, E = Intervals.size(); I < E; ++I) {
     LiveInterval &LI = *Intervals[I];
-    unsigned Reg = LI.reg();
+    unsigned const Reg = LI.reg();
 
     LI.removeEmptySubRanges();
 
@@ -320,20 +320,20 @@ void RenameIndependentSubregs::computeMainRangesFixFlags(
         if (VNI.isUnused() || !VNI.isPHIDef())
           continue;
 
-        SlotIndex Def = VNI.def;
+        SlotIndex const Def = VNI.def;
         MachineBasicBlock &MBB = *Indexes.getMBBFromIndex(Def);
         for (MachineBasicBlock *PredMBB : MBB.predecessors()) {
-          SlotIndex PredEnd = Indexes.getMBBEndIdx(PredMBB);
+          SlotIndex const PredEnd = Indexes.getMBBEndIdx(PredMBB);
           if (subRangeLiveAt(LI, PredEnd.getPrevSlot()))
             continue;
 
-          MachineBasicBlock::iterator InsertPos =
+          MachineBasicBlock::iterator const InsertPos =
             llvm::findPHICopyInsertPoint(PredMBB, &MBB, Reg);
           const MCInstrDesc &MCDesc = TII->get(TargetOpcode::IMPLICIT_DEF);
-          MachineInstrBuilder ImpDef = BuildMI(*PredMBB, InsertPos,
+          MachineInstrBuilder const ImpDef = BuildMI(*PredMBB, InsertPos,
                                                DebugLoc(), MCDesc, Reg);
-          SlotIndex DefIdx = LIS->InsertMachineInstrInMaps(*ImpDef);
-          SlotIndex RegDefIdx = DefIdx.getRegSlot();
+          SlotIndex const DefIdx = LIS->InsertMachineInstrInMaps(*ImpDef);
+          SlotIndex const RegDefIdx = DefIdx.getRegSlot();
           for (LiveInterval::SubRange &SR : LI.subranges()) {
             VNInfo *SRVNI = SR.getNextValue(RegDefIdx, Allocator);
             SR.addSegment(LiveRange::Segment(RegDefIdx, PredEnd, SRVNI));
@@ -345,19 +345,19 @@ void RenameIndependentSubregs::computeMainRangesFixFlags(
     for (MachineOperand &MO : MRI->reg_nodbg_operands(Reg)) {
       if (!MO.isDef())
         continue;
-      unsigned SubRegIdx = MO.getSubReg();
+      unsigned const SubRegIdx = MO.getSubReg();
       if (SubRegIdx == 0)
         continue;
       // After assigning the new vreg we may not have any other sublanes living
       // in and out of the instruction anymore. We need to add new dead and
       // undef flags in these cases.
       if (!MO.isUndef()) {
-        SlotIndex Pos = LIS->getInstructionIndex(*MO.getParent());
+        SlotIndex const Pos = LIS->getInstructionIndex(*MO.getParent());
         if (!subRangeLiveAt(LI, Pos))
           MO.setIsUndef();
       }
       if (!MO.isDead()) {
-        SlotIndex Pos = LIS->getInstructionIndex(*MO.getParent()).getDeadSlot();
+        SlotIndex const Pos = LIS->getInstructionIndex(*MO.getParent()).getDeadSlot();
         if (!subRangeLiveAt(LI, Pos))
           MO.setIsDead();
       }
@@ -391,7 +391,7 @@ bool RenameIndependentSubregs::runOnMachineFunction(MachineFunction &MF) {
   // there can't be any further splitting.
   bool Changed = false;
   for (size_t I = 0, E = MRI->getNumVirtRegs(); I < E; ++I) {
-    unsigned Reg = Register::index2VirtReg(I);
+    unsigned const Reg = Register::index2VirtReg(I);
     if (!LIS->hasInterval(Reg))
       continue;
     LiveInterval &LI = LIS->getInterval(Reg);

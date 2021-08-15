@@ -145,9 +145,9 @@ void XRayInstrumentation::prependRetWithPatchableExit(
 bool XRayInstrumentation::runOnMachineFunction(MachineFunction &MF) {
   auto &F = MF.getFunction();
   auto InstrAttr = F.getFnAttribute("function-instrument");
-  bool AlwaysInstrument = InstrAttr.isStringAttribute() &&
+  bool const AlwaysInstrument = InstrAttr.isStringAttribute() &&
                           InstrAttr.getValueAsString() == "xray-always";
-  bool NeverInstrument = InstrAttr.isStringAttribute() &&
+  bool const NeverInstrument = InstrAttr.isStringAttribute() &&
                          InstrAttr.getValueAsString() == "xray-never";
   if (NeverInstrument && !AlwaysInstrument)
     return false;
@@ -160,14 +160,14 @@ bool XRayInstrumentation::runOnMachineFunction(MachineFunction &MF) {
     if (ThresholdAttr.getValueAsString().getAsInteger(10, XRayThreshold))
       return false; // Invalid value for threshold.
 
-    bool IgnoreLoops = IgnoreLoopsAttr.isValid();
+    bool const IgnoreLoops = IgnoreLoopsAttr.isValid();
 
     // Count the number of MachineInstr`s in MachineFunction
     int64_t MICount = 0;
     for (const auto &MBB : MF)
       MICount += MBB.size();
 
-    bool TooFewInstrs = MICount < XRayThreshold;
+    bool const TooFewInstrs = MICount < XRayThreshold;
 
     if (!IgnoreLoops) {
       // Get MachineDominatorTree or compute it on the fly if it's unavailable

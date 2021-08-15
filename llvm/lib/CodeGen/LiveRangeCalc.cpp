@@ -41,7 +41,7 @@ using namespace llvm;
 static VNInfo UndefVNI(0xbad, SlotIndex());
 
 void LiveRangeCalc::resetLiveOutMap() {
-  unsigned NumBlocks = MF->getNumBlockIDs();
+  unsigned const NumBlocks = MF->getNumBlockIDs();
   Seen.clear();
   Seen.resize(NumBlocks);
   EntryInfos.clear();
@@ -124,7 +124,7 @@ void LiveRangeCalc::calculateValues() {
 bool LiveRangeCalc::isDefOnEntry(LiveRange &LR, ArrayRef<SlotIndex> Undefs,
                                  MachineBasicBlock &MBB, BitVector &DefOnEntry,
                                  BitVector &UndefOnEntry) {
-  unsigned BN = MBB.getNumber();
+  unsigned const BN = MBB.getNumber();
   if (DefOnEntry[BN])
     return true;
   if (UndefOnEntry[BN])
@@ -145,7 +145,7 @@ bool LiveRangeCalc::isDefOnEntry(LiveRange &LR, ArrayRef<SlotIndex> Undefs,
 
   for (unsigned i = 0; i != WorkList.size(); ++i) {
     // Determine if the exit from the block is reached by some def.
-    unsigned N = WorkList[i];
+    unsigned const N = WorkList[i];
     MachineBasicBlock &B = *MF->getBlockNumbered(N);
     if (Seen[N]) {
       const LiveOutPair &LOB = Map[&B];
@@ -160,7 +160,7 @@ bool LiveRangeCalc::isDefOnEntry(LiveRange &LR, ArrayRef<SlotIndex> Undefs,
     // S should be treated as the first segment that does not overlap B.
     LiveRange::iterator UB = upper_bound(LR, End.getPrevSlot());
     if (UB != LR.begin()) {
-      LiveRange::Segment &Seg = *std::prev(UB);
+      LiveRange::Segment  const&Seg = *std::prev(UB);
       if (Seg.end > Begin) {
         // There is a segment that overlaps B. If the range is not explicitly
         // undefined between the end of the segment and the end of the block,
@@ -193,7 +193,7 @@ bool LiveRangeCalc::isDefOnEntry(LiveRange &LR, ArrayRef<SlotIndex> Undefs,
 bool LiveRangeCalc::findReachingDefs(LiveRange &LR, MachineBasicBlock &UseMBB,
                                      SlotIndex Use, unsigned PhysReg,
                                      ArrayRef<SlotIndex> Undefs) {
-  unsigned UseMBBNum = UseMBB.getNumber();
+  unsigned const UseMBBNum = UseMBB.getNumber();
 
   // Block numbers where LR should be live-in.
   SmallVector<unsigned, 16> WorkList(1, UseMBBNum);
@@ -281,7 +281,7 @@ bool LiveRangeCalc::findReachingDefs(LiveRange &LR, MachineBasicBlock &UseMBB,
   if (UniqueVNI) {
     assert(TheVNI != nullptr && TheVNI != &UndefVNI);
     LiveRangeUpdater Updater(&LR);
-    for (unsigned BN : WorkList) {
+    for (unsigned const BN : WorkList) {
       SlotIndex Start, End;
       std::tie(Start, End) = Indexes->getMBBRange(BN);
       // Trim the live range in UseMBB.
@@ -301,7 +301,7 @@ bool LiveRangeCalc::findReachingDefs(LiveRange &LR, MachineBasicBlock &UseMBB,
       std::make_pair(&LR, std::make_pair(BitVector(), BitVector())));
   if (DidInsert) {
     // Initialize newly inserted entries.
-    unsigned N = MF->getNumBlockIDs();
+    unsigned const N = MF->getNumBlockIDs();
     Entry->second.first.resize(N);
     Entry->second.second.resize(N);
   }
@@ -311,7 +311,7 @@ bool LiveRangeCalc::findReachingDefs(LiveRange &LR, MachineBasicBlock &UseMBB,
   // Multiple values were found, so transfer the work list to the LiveIn array
   // where UpdateSSA will use it as a work list.
   LiveIn.reserve(WorkList.size());
-  for (unsigned BN : WorkList) {
+  for (unsigned const BN : WorkList) {
     MachineBasicBlock *MBB = MF->getBlockNumbered(BN);
     if (!Undefs.empty() &&
         !isDefOnEntry(LR, Undefs, *MBB, DefOnEntry, UndefOnEntry))
@@ -436,13 +436,13 @@ bool LiveRangeCalc::isJointlyDominated(const MachineBasicBlock *MBB,
                                        const SlotIndexes &Indexes) {
   const MachineFunction &MF = *MBB->getParent();
   BitVector DefBlocks(MF.getNumBlockIDs());
-  for (SlotIndex I : Defs)
+  for (SlotIndex const I : Defs)
     DefBlocks.set(Indexes.getMBBFromIndex(I)->getNumber());
 
   SetVector<unsigned> PredQueue;
   PredQueue.insert(MBB->getNumber());
   for (unsigned i = 0; i != PredQueue.size(); ++i) {
-    unsigned BN = PredQueue[i];
+    unsigned const BN = PredQueue[i];
     if (DefBlocks[BN])
       return true;
     const MachineBasicBlock *B = MF.getBlockNumbered(BN);

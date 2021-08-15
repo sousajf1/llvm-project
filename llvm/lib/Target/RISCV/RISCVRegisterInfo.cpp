@@ -165,13 +165,13 @@ void RISCVRegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
   MachineFunction &MF = *MI.getParent()->getParent();
   MachineRegisterInfo &MRI = MF.getRegInfo();
   const RISCVInstrInfo *TII = MF.getSubtarget<RISCVSubtarget>().getInstrInfo();
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc const DL = MI.getDebugLoc();
 
-  int FrameIndex = MI.getOperand(FIOperandNum).getIndex();
+  int const FrameIndex = MI.getOperand(FIOperandNum).getIndex();
   Register FrameReg;
   StackOffset Offset =
       getFrameLowering(MF)->getFrameIndexReference(MF, FrameIndex, FrameReg);
-  bool IsRVVSpill = TII->isRVVSpill(MI, /*CheckFIs*/ false);
+  bool const IsRVVSpill = TII->isRVVSpill(MI, /*CheckFIs*/ false);
   if (!IsRVVSpill)
     Offset += StackOffset::getFixed(MI.getOperand(FIOperandNum + 1).getImm());
 
@@ -204,7 +204,7 @@ void RISCVRegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
   if (!isInt<12>(Offset.getFixed())) {
     // The offset won't fit in an immediate, so use a scratch register instead
     // Modify Offset and FrameReg appropriately
-    Register ScratchReg = MRI.createVirtualRegister(&RISCV::GPRRegClass);
+    Register const ScratchReg = MRI.createVirtualRegister(&RISCV::GPRRegClass);
     TII->movImm(MBB, II, DL, ScratchReg, Offset.getFixed());
     if (MI.getOpcode() == RISCV::ADDI && !Offset.getScalable()) {
       BuildMI(MBB, II, DL, TII->get(RISCV::ADD), MI.getOperand(0).getReg())
@@ -229,7 +229,7 @@ void RISCVRegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
       MI.getOperand(FIOperandNum + 1).ChangeToImmediate(Offset.getFixed());
     else {
       if (Offset.getFixed()) {
-        Register ScratchReg = MRI.createVirtualRegister(&RISCV::GPRRegClass);
+        Register const ScratchReg = MRI.createVirtualRegister(&RISCV::GPRRegClass);
         BuildMI(MBB, II, DL, TII->get(RISCV::ADDI), ScratchReg)
           .addReg(FrameReg, getKillRegState(FrameRegIsKill))
           .addImm(Offset.getFixed());
@@ -251,7 +251,7 @@ void RISCVRegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
       MI.eraseFromParent();
       return;
     }
-    Register VL = MRI.createVirtualRegister(&RISCV::GPRRegClass);
+    Register const VL = MRI.createVirtualRegister(&RISCV::GPRRegClass);
     BuildMI(MBB, II, DL, TII->get(ScalableAdjOpc), VL)
         .addReg(FrameReg, getKillRegState(FrameRegIsKill))
         .addReg(ScalableFactorRegister, RegState::Kill);
@@ -272,9 +272,9 @@ void RISCVRegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
 
   auto ZvlssegInfo = TII->isRVVSpillForZvlsseg(MI.getOpcode());
   if (ZvlssegInfo) {
-    Register VL = MRI.createVirtualRegister(&RISCV::GPRRegClass);
+    Register const VL = MRI.createVirtualRegister(&RISCV::GPRRegClass);
     BuildMI(MBB, II, DL, TII->get(RISCV::PseudoReadVLENB), VL);
-    uint32_t ShiftAmount = Log2_32(ZvlssegInfo->second);
+    uint32_t const ShiftAmount = Log2_32(ZvlssegInfo->second);
     if (ShiftAmount != 0)
       BuildMI(MBB, II, DL, TII->get(RISCV::SLLI), VL)
           .addReg(VL)

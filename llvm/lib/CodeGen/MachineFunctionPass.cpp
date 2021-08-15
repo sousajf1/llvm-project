@@ -61,7 +61,7 @@ bool MachineFunctionPass::runOnFunction(Function &F) {
   unsigned CountBefore, CountAfter;
 
   // Check if the user asked for size remarks.
-  bool ShouldEmitSizeRemarks =
+  bool const ShouldEmitSizeRemarks =
       F.getParent()->shouldEmitInstrCountChangedRemark();
 
   // If we want size remarks, collect the number of MachineInstrs in our
@@ -69,7 +69,7 @@ bool MachineFunctionPass::runOnFunction(Function &F) {
   if (ShouldEmitSizeRemarks)
     CountBefore = MF.getInstructionCount();
 
-  bool RV = runOnMachineFunction(MF);
+  bool const RV = runOnMachineFunction(MF);
 
   if (ShouldEmitSizeRemarks) {
     // We wanted size remarks. Check if there was a change to the number of
@@ -78,7 +78,7 @@ bool MachineFunctionPass::runOnFunction(Function &F) {
     if (CountBefore != CountAfter) {
       MachineOptimizationRemarkEmitter MORE(MF, nullptr);
       MORE.emit([&]() {
-        int64_t Delta = static_cast<int64_t>(CountAfter) -
+        int64_t const Delta = static_cast<int64_t>(CountAfter) -
                         static_cast<int64_t>(CountBefore);
         MachineOptimizationRemarkAnalysis R("size-info", "FunctionMISizeChange",
                                             MF.getFunction().getSubprogram(),

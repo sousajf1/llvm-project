@@ -125,10 +125,10 @@ public:
             MCOI::OPERAND_PCREL)
       return false;
 
-    int64_t Imm = Inst.getOperand(0).getImm();
+    int64_t const Imm = Inst.getOperand(0).getImm();
     // Our branches take a simm16, but we need two extra bits to account for
     // the factor of 4.
-    APInt SignedOffset(18, Imm * 4, true);
+    APInt const SignedOffset(18, Imm * 4, true);
     Target = (SignedOffset.sext(64) + Addr + Size).getZExtValue();
     return true;
   }
@@ -145,7 +145,7 @@ extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializeAMDGPUTargetMC() {
   TargetRegistry::RegisterMCInstrInfo(getTheGCNTarget(), createAMDGPUMCInstrInfo);
   TargetRegistry::RegisterMCInstrInfo(getTheAMDGPUTarget(), createR600MCInstrInfo);
   for (Target *T : {&getTheAMDGPUTarget(), &getTheGCNTarget()}) {
-    RegisterMCAsmInfo<AMDGPUMCAsmInfo> X(*T);
+    RegisterMCAsmInfo<AMDGPUMCAsmInfo> const X(*T);
 
     TargetRegistry::RegisterMCRegInfo(*T, createAMDGPUMCRegisterInfo);
     TargetRegistry::RegisterMCSubtargetInfo(*T, createAMDGPUMCSubtargetInfo);

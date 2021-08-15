@@ -369,7 +369,7 @@ bool SDWASrcOperand::convertToSDWA(MachineInstr &MI, const SIInstrInfo *TII) {
         // writing WORD_1. Modifiers don't matter because all the bits that
         // would be impacted are being overwritten by the dst.
         // Any other case will not work.
-        SdwaSel DstSel = static_cast<SdwaSel>(
+        SdwaSel const DstSel = static_cast<SdwaSel>(
             TII->getNamedImmOperand(MI, AMDGPU::OpName::dst_sel));
         if (DstSel == AMDGPU::SDWA::SdwaSel::WORD_1 &&
             getSrcSel() == AMDGPU::SDWA::SdwaSel::WORD_0) {
@@ -464,7 +464,7 @@ bool SDWADstPreserveOperand::convertToSDWA(MachineInstr &MI,
   // MI should be moved right before v_or_b32.
   // For this we should clear all kill flags on uses of MI src-operands or else
   // we can encounter problem with use of killed operand.
-  for (MachineOperand &MO : MI.uses()) {
+  for (MachineOperand  const&MO : MI.uses()) {
     if (!MO.isReg())
       continue;
     getMRI()->clearKillFlags(MO.getReg());
@@ -476,7 +476,7 @@ bool SDWADstPreserveOperand::convertToSDWA(MachineInstr &MI,
   MBB->insert(getParentInst(), &MI);
 
   // Add Implicit use of preserved register
-  MachineInstrBuilder MIB(*MBB->getParent(), MI);
+  MachineInstrBuilder const MIB(*MBB->getParent(), MI);
   MIB.addReg(getPreservedOperand()->getReg(),
              RegState::ImplicitKill,
              getPreservedOperand()->getSubReg());
@@ -518,7 +518,7 @@ Optional<int64_t> SIPeepholeSDWA::foldToImm(const MachineOperand &Op) const {
 
 std::unique_ptr<SDWAOperand>
 SIPeepholeSDWA::matchSDWAOperand(MachineInstr &MI) {
-  unsigned Opcode = MI.getOpcode();
+  unsigned const Opcode = MI.getOpcode();
   switch (Opcode) {
   case AMDGPU::V_LSHRREV_B32_e32:
   case AMDGPU::V_ASHRREV_I32_e32:
@@ -755,9 +755,9 @@ SIPeepholeSDWA::matchSDWAOperand(MachineInstr &MI) {
     if (!TII->isSDWA(*OtherInst))
       break;
 
-    SdwaSel DstSel = static_cast<SdwaSel>(
+    SdwaSel const DstSel = static_cast<SdwaSel>(
       TII->getNamedImmOperand(*SDWAInst, AMDGPU::OpName::dst_sel));;
-    SdwaSel OtherDstSel = static_cast<SdwaSel>(
+    SdwaSel const OtherDstSel = static_cast<SdwaSel>(
       TII->getNamedImmOperand(*OtherInst, AMDGPU::OpName::dst_sel));
 
     bool DstSelAgree = false;
@@ -797,7 +797,7 @@ SIPeepholeSDWA::matchSDWAOperand(MachineInstr &MI) {
       break;
 
     // Also OtherInst dst_unused should be UNUSED_PAD
-    DstUnused OtherDstUnused = static_cast<DstUnused>(
+    DstUnused const OtherDstUnused = static_cast<DstUnused>(
       TII->getNamedImmOperand(*OtherInst, AMDGPU::OpName::dst_unused));
     if (OtherDstUnused != DstUnused::UNUSED_PAD)
       break;
@@ -871,7 +871,7 @@ void SIPeepholeSDWA::pseudoOpConvertToVOP2(MachineInstr &MI,
   // Can the successor be shrunk?
   if (!TII->canShrink(MISucc, *MRI))
     return;
-  int SuccOpc = AMDGPU::getVOPe32(MISucc.getOpcode());
+  int const SuccOpc = AMDGPU::getVOPe32(MISucc.getOpcode());
   // Make sure the carry in/out are subsequently unused.
   MachineOperand *CarryIn = TII->getNamedOperand(MISucc, AMDGPU::OpName::src2);
   if (!CarryIn)
@@ -982,7 +982,7 @@ bool SIPeepholeSDWA::convertToSDWA(MachineInstr &MI,
 
   // Convert to sdwa
   int SDWAOpcode;
-  unsigned Opcode = MI.getOpcode();
+  unsigned const Opcode = MI.getOpcode();
   if (TII->isSDWA(Opcode)) {
     SDWAOpcode = Opcode;
   } else {
@@ -995,7 +995,7 @@ bool SIPeepholeSDWA::convertToSDWA(MachineInstr &MI,
   const MCInstrDesc &SDWADesc = TII->get(SDWAOpcode);
 
   // Create SDWA version of instruction MI and initialize its operands
-  MachineInstrBuilder SDWAInst =
+  MachineInstrBuilder const SDWAInst =
     BuildMI(*MI.getParent(), MI, MI.getDebugLoc(), SDWADesc)
     .setMIFlags(MI.getFlags());
 
@@ -1168,7 +1168,7 @@ void SIPeepholeSDWA::legalizeScalarOperands(MachineInstr &MI,
     if (!Op.isImm() && !(Op.isReg() && !TRI->isVGPR(*MRI, Op.getReg())))
       continue;
 
-    unsigned I = MI.getOperandNo(&Op);
+    unsigned const I = MI.getOperandNo(&Op);
     if (Desc.OpInfo[I].RegClass == -1 ||
        !TRI->hasVGPRs(TRI->getRegClass(Desc.OpInfo[I].RegClass)))
       continue;
@@ -1179,7 +1179,7 @@ void SIPeepholeSDWA::legalizeScalarOperands(MachineInstr &MI,
       continue;
     }
 
-    Register VGPR = MRI->createVirtualRegister(&AMDGPU::VGPR_32RegClass);
+    Register const VGPR = MRI->createVirtualRegister(&AMDGPU::VGPR_32RegClass);
     auto Copy = BuildMI(*MI.getParent(), MI.getIterator(), MI.getDebugLoc(),
                         TII->get(AMDGPU::V_MOV_B32_e32), VGPR);
     if (Op.isImm())

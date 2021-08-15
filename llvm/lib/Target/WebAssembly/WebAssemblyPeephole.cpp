@@ -63,7 +63,7 @@ static bool maybeRewriteToDrop(unsigned OldReg, unsigned NewReg,
   bool Changed = false;
   if (OldReg == NewReg) {
     Changed = true;
-    Register NewReg = MRI.createVirtualRegister(MRI.getRegClass(OldReg));
+    Register const NewReg = MRI.createVirtualRegister(MRI.getRegClass(OldReg));
     MO.setReg(NewReg);
     MO.setIsDead();
     MFI.stackifyVReg(MRI, NewReg);
@@ -91,7 +91,7 @@ static bool maybeRewriteToFallthrough(MachineInstr &MI, MachineBasicBlock &MBB,
   for (auto &MO : MI.explicit_operands()) {
     // If the operand isn't stackified, insert a COPY to read the operands and
     // stackify them.
-    Register Reg = MO.getReg();
+    Register const Reg = MO.getReg();
     if (!MFI.isVRegStackified(Reg)) {
       unsigned CopyLocalOpc;
       const TargetRegisterClass *RegClass = MRI.getRegClass(Reg);
@@ -120,7 +120,7 @@ static bool maybeRewriteToFallthrough(MachineInstr &MI, MachineBasicBlock &MBB,
       default:
         llvm_unreachable("Unexpected register class for return operand");
       }
-      Register NewReg = MRI.createVirtualRegister(RegClass);
+      Register const NewReg = MRI.createVirtualRegister(RegClass);
       BuildMI(MBB, MI, MI.getDebugLoc(), TII.get(CopyLocalOpc), NewReg)
           .addReg(Reg);
       MO.setReg(NewReg);
@@ -153,9 +153,9 @@ bool WebAssemblyPeephole::runOnMachineFunction(MachineFunction &MF) {
       default:
         break;
       case WebAssembly::CALL: {
-        MachineOperand &Op1 = MI.getOperand(1);
+        MachineOperand  const&Op1 = MI.getOperand(1);
         if (Op1.isSymbol()) {
-          StringRef Name(Op1.getSymbolName());
+          StringRef const Name(Op1.getSymbolName());
           if (Name == TLI.getLibcallName(RTLIB::MEMCPY) ||
               Name == TLI.getLibcallName(RTLIB::MEMMOVE) ||
               Name == TLI.getLibcallName(RTLIB::MEMSET)) {
@@ -166,8 +166,8 @@ bool WebAssemblyPeephole::runOnMachineFunction(MachineFunction &MF) {
                 report_fatal_error("Peephole: call to builtin function with "
                                    "wrong signature, not consuming reg");
               MachineOperand &MO = MI.getOperand(0);
-              Register OldReg = MO.getReg();
-              Register NewReg = Op2.getReg();
+              Register const OldReg = MO.getReg();
+              Register const NewReg = Op2.getReg();
 
               if (MRI.getRegClass(NewReg) != MRI.getRegClass(OldReg))
                 report_fatal_error("Peephole: call to builtin function with "

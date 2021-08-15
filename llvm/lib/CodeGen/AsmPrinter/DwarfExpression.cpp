@@ -80,7 +80,7 @@ void DwarfExpression::addOpPiece(unsigned SizeInBits, unsigned OffsetInBits) {
     emitUnsigned(OffsetInBits);
   } else {
     emitOp(dwarf::DW_OP_piece);
-    unsigned ByteSize = SizeInBits / SizeOfByte;
+    unsigned const ByteSize = SizeInBits / SizeOfByte;
     emitUnsigned(ByteSize);
   }
   this->OffsetInBits += SizeInBits;
@@ -120,9 +120,9 @@ bool DwarfExpression::addMachineReg(const TargetRegisterInfo &TRI,
   for (MCSuperRegIterator SR(MachineReg, &TRI); SR.isValid(); ++SR) {
     Reg = TRI.getDwarfRegNum(*SR, false);
     if (Reg >= 0) {
-      unsigned Idx = TRI.getSubRegIndex(*SR, MachineReg);
-      unsigned Size = TRI.getSubRegIdxSize(Idx);
-      unsigned RegOffset = TRI.getSubRegIdxOffset(Idx);
+      unsigned const Idx = TRI.getSubRegIndex(*SR, MachineReg);
+      unsigned const Size = TRI.getSubRegIdxSize(Idx);
+      unsigned const RegOffset = TRI.getSubRegIdxOffset(Idx);
       DwarfRegs.push_back(Register::createRegister(Reg, "super-register"));
       // Use a DW_OP_bit_piece to describe the sub-register.
       setSubRegisterPiece(Size, RegOffset);
@@ -135,7 +135,7 @@ bool DwarfExpression::addMachineReg(const TargetRegisterInfo &TRI,
   unsigned CurPos = 0;
   // The size of the register in bits.
   const TargetRegisterClass *RC = TRI.getMinimalPhysRegClass(MachineReg);
-  unsigned RegSize = TRI.getRegSizeInBits(*RC);
+  unsigned const RegSize = TRI.getRegSizeInBits(*RC);
   // Keep track of the bits in the register we already emitted, so we
   // can avoid emitting redundant aliasing subregs. Because this is
   // just doing a greedy scan of all subregisters, it is possible that
@@ -143,9 +143,9 @@ bool DwarfExpression::addMachineReg(const TargetRegisterInfo &TRI,
   // the register (even though one may exist).
   SmallBitVector Coverage(RegSize, false);
   for (MCSubRegIterator SR(MachineReg, &TRI); SR.isValid(); ++SR) {
-    unsigned Idx = TRI.getSubRegIndex(MachineReg, *SR);
-    unsigned Size = TRI.getSubRegIdxSize(Idx);
-    unsigned Offset = TRI.getSubRegIdxOffset(Idx);
+    unsigned const Idx = TRI.getSubRegIndex(MachineReg, *SR);
+    unsigned const Size = TRI.getSubRegIdxSize(Idx);
+    unsigned const Offset = TRI.getSubRegIdxOffset(Idx);
     Reg = TRI.getDwarfRegNum(*SR, false);
     if (Reg < 0)
       continue;
@@ -204,7 +204,7 @@ void DwarfExpression::addUnsignedConstant(const APInt &Value) {
   assert(isImplicitLocation() || isUnknownLocation());
   LocationKind = Implicit;
 
-  unsigned Size = Value.getBitWidth();
+  unsigned const Size = Value.getBitWidth();
   const uint64_t *Data = Value.getRawData();
 
   // Chop it up into 64-bit pieces, because that's the maximum that
@@ -223,7 +223,7 @@ void DwarfExpression::addUnsignedConstant(const APInt &Value) {
 void DwarfExpression::addConstantFP(const APFloat &APF, const AsmPrinter &AP) {
   assert(isImplicitLocation() || isUnknownLocation());
   APInt API = APF.bitcastToAPInt();
-  int NumBytes = API.getBitWidth() / 8;
+  int const NumBytes = API.getBitWidth() / 8;
   if (NumBytes == 4 /*float*/ || NumBytes == 8 /*double*/) {
     // FIXME: Add support for `long double`.
     emitOp(dwarf::DW_OP_implicit_value);
@@ -323,15 +323,15 @@ bool DwarfExpression::addMachineRegExpression(const TargetRegisterInfo &TRI,
 
   assert(DwarfRegs.size() == 1);
   auto Reg = DwarfRegs[0];
-  bool FBReg = isFrameRegister(TRI, MachineReg);
+  bool const FBReg = isFrameRegister(TRI, MachineReg);
   int SignedOffset = 0;
   assert(!Reg.isSubRegister() && "full register expected");
 
   // Pattern-match combinations for which more efficient representations exist.
   // [Reg, DW_OP_plus_uconst, Offset] --> [DW_OP_breg, Offset].
   if (Op && (Op->getOp() == dwarf::DW_OP_plus_uconst)) {
-    uint64_t Offset = Op->getArg(0);
-    uint64_t IntMax = static_cast<uint64_t>(std::numeric_limits<int>::max());
+    uint64_t const Offset = Op->getArg(0);
+    uint64_t const IntMax = static_cast<uint64_t>(std::numeric_limits<int>::max());
     if (Offset <= IntMax) {
       SignedOffset = Offset;
       ExprCursor.take();
@@ -342,8 +342,8 @@ bool DwarfExpression::addMachineRegExpression(const TargetRegisterInfo &TRI,
   // [Reg, DW_OP_constu, Offset, DW_OP_minus] --> [DW_OP_breg,-Offset]
   // If Reg is a subregister we need to mask it out before subtracting.
   if (Op && Op->getOp() == dwarf::DW_OP_constu) {
-    uint64_t Offset = Op->getArg(0);
-    uint64_t IntMax = static_cast<uint64_t>(std::numeric_limits<int>::max());
+    uint64_t const Offset = Op->getArg(0);
+    uint64_t const IntMax = static_cast<uint64_t>(std::numeric_limits<int>::max());
     auto N = ExprCursor.peekNext();
     if (N && N->getOp() == dwarf::DW_OP_plus && Offset <= IntMax) {
       SignedOffset = Offset;
@@ -408,7 +408,7 @@ void DwarfExpression::finalizeEntryValue() {
   emitOp(CU.getDwarf5OrGNULocationAtom(dwarf::DW_OP_entry_value));
 
   // Emit the entry value's size operand.
-  unsigned Size = getTemporaryBufferSize();
+  unsigned const Size = getTemporaryBufferSize();
   emitUnsigned(Size);
 
   // Emit the entry value's DWARF block operand.
@@ -482,7 +482,7 @@ void DwarfExpression::addExpression(
 
   while (ExprCursor) {
     auto Op = ExprCursor.take();
-    uint64_t OpNum = Op->getOp();
+    uint64_t const OpNum = Op->getOp();
 
     if (OpNum >= dwarf::DW_OP_reg0 && OpNum <= dwarf::DW_OP_reg31) {
       emitOp(OpNum);
@@ -501,7 +501,7 @@ void DwarfExpression::addExpression(
       break;
     case dwarf::DW_OP_LLVM_fragment: {
       unsigned SizeInBits = Op->getArg(1);
-      unsigned FragmentOffset = Op->getArg(0);
+      unsigned const FragmentOffset = Op->getArg(0);
       // The fragment offset must have already been adjusted by emitting an
       // empty DW_OP_piece / DW_OP_bit_piece before we emitted the base
       // location.
@@ -571,8 +571,8 @@ void DwarfExpression::addExpression(
       emitSigned(Op->getArg(0));
       break;
     case dwarf::DW_OP_LLVM_convert: {
-      unsigned BitSize = Op->getArg(0);
-      dwarf::TypeKind Encoding = static_cast<dwarf::TypeKind>(Op->getArg(1));
+      unsigned const BitSize = Op->getArg(0);
+      dwarf::TypeKind const Encoding = static_cast<dwarf::TypeKind>(Op->getArg(1));
       if (DwarfVersion >= 5 && CU.getDwarfDebug().useOpConvert()) {
         emitOp(dwarf::DW_OP_convert);
         // If targeting a location-list; simply emit the index into the raw
@@ -637,7 +637,7 @@ void DwarfExpression::maskSubRegister() {
   assert(SubRegisterSizeInBits && "no subregister was registered");
   if (SubRegisterOffsetInBits > 0)
     addShr(SubRegisterOffsetInBits);
-  uint64_t Mask = (1ULL << (uint64_t)SubRegisterSizeInBits) - 1ULL;
+  uint64_t const Mask = (1ULL << (uint64_t)SubRegisterSizeInBits) - 1ULL;
   addAnd(Mask);
 }
 
@@ -656,7 +656,7 @@ void DwarfExpression::addFragmentOffset(const DIExpression *Expr) {
   if (!Expr || !Expr->isFragment())
     return;
 
-  uint64_t FragmentOffset = Expr->getFragmentInfo()->OffsetInBits;
+  uint64_t const FragmentOffset = Expr->getFragmentInfo()->OffsetInBits;
   assert(FragmentOffset >= OffsetInBits &&
          "overlapping or duplicate fragments");
   if (FragmentOffset > OffsetInBits)

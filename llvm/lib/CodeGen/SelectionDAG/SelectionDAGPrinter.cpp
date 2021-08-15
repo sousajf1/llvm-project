@@ -94,8 +94,8 @@ namespace llvm {
     template<typename EdgeIter>
     static std::string getEdgeAttributes(const void *Node, EdgeIter EI,
                                          const SelectionDAG *Graph) {
-      SDValue Op = EI.getNode()->getOperand(EI.getOperand());
-      EVT VT = Op.getValueType();
+      SDValue const Op = EI.getNode()->getOperand(EI.getOperand());
+      EVT const VT = Op.getValueType();
       if (VT == MVT::Glue)
         return "color=red,style=bold";
       else if (VT == MVT::Other)
@@ -206,7 +206,7 @@ void SelectionDAG::setGraphAttrs(const SDNode *N, const char *Attrs) {
 /// Used from getNodeAttributes.
 std::string SelectionDAG::getGraphAttrs(const SDNode *N) const {
 #ifndef NDEBUG
-  std::map<const SDNode *, std::string>::const_iterator I =
+  std::map<const SDNode *, std::string>::const_iterator const I =
     NodeGraphAttrs.find(N);
 
   if (I != NodeGraphAttrs.end())
@@ -247,7 +247,7 @@ bool SelectionDAG::setSubgraphColorHelper(SDNode *N, const char *Color, DenseSet
     return true;
   }
 
-  unsigned oldSize = visited.size();
+  unsigned const oldSize = visited.size();
   visited.insert(N);
   if (visited.size() != oldSize) {
     setGraphColor(N, Color);

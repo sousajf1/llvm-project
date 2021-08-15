@@ -81,8 +81,8 @@ isOnlyCopiedFromConstantMemory(AAResults *AA,
         if (Call->isCallee(&U))
           continue;
 
-        unsigned DataOpNo = Call->getDataOperandNo(&U);
-        bool IsArgOperand = Call->isArgOperand(&U);
+        unsigned const DataOpNo = Call->getDataOperandNo(&U);
+        bool const IsArgOperand = Call->isArgOperand(&U);
 
         // Inalloca arguments are clobbered by the call.
         if (IsArgOperand && Call->isInAllocaArgument(DataOpNo))
@@ -160,7 +160,7 @@ static bool isDereferenceableForAllocaSize(const Value *V, const AllocaInst *AI,
                                            const DataLayout &DL) {
   if (AI->isArrayAllocation())
     return false;
-  uint64_t AllocaSize = DL.getTypeStoreSize(AI->getAllocatedType());
+  uint64_t const AllocaSize = DL.getTypeStoreSize(AI->getAllocatedType());
   if (!AllocaSize)
     return false;
   return isDereferenceableAndAlignedPointer(V, Align(AI->getAlignment()),
@@ -198,7 +198,7 @@ static Instruction *simplifyAllocaArraySize(InstCombinerImpl &IC,
       //
       Type *IdxTy = IC.getDataLayout().getIntPtrType(AI.getType());
       Value *NullIdx = Constant::getNullValue(IdxTy);
-      Value *Idx[2] = {NullIdx, NullIdx};
+      Value *const Idx[2] = {NullIdx, NullIdx};
       Instruction *NewI = GetElementPtrInst::CreateInBounds(
           NewTy, New, Idx, New->getName() + ".sub");
       IC.InsertNewInstBefore(NewI, *It);
@@ -414,8 +414,8 @@ Instruction *InstCombinerImpl::visitAllocaInst(AllocaInst &AI) {
   SmallVector<Instruction *, 4> ToDelete;
   if (MemTransferInst *Copy = isOnlyCopiedFromConstantMemory(AA, &AI, ToDelete)) {
     Value *TheSrc = Copy->getSource();
-    Align AllocaAlign = AI.getAlign();
-    Align SourceAlign = getOrEnforceKnownAlignment(
+    Align const AllocaAlign = AI.getAlign();
+    Align const SourceAlign = getOrEnforceKnownAlignment(
       TheSrc, AllocaAlign, DL, &AI, &AC, &DT);
     if (AllocaAlign <= SourceAlign &&
         isDereferenceableForAllocaSize(TheSrc, &AI, DL) &&
@@ -424,7 +424,7 @@ Instruction *InstCombinerImpl::visitAllocaInst(AllocaInst &AI) {
       // is an instruction instead of a constant or argument?
       LLVM_DEBUG(dbgs() << "Found alloca equal to global: " << AI << '\n');
       LLVM_DEBUG(dbgs() << "  memcpy = " << *Copy << '\n');
-      unsigned SrcAddrSpace = TheSrc->getType()->getPointerAddressSpace();
+      unsigned const SrcAddrSpace = TheSrc->getType()->getPointerAddressSpace();
       auto *DestTy = PointerType::get(AI.getAllocatedType(), SrcAddrSpace);
       if (AI.getType()->getAddressSpace() == SrcAddrSpace) {
         for (Instruction *Delete : ToDelete)
@@ -474,7 +474,7 @@ LoadInst *InstCombinerImpl::combineLoadToNewType(LoadInst &LI, Type *NewTy,
          "can't fold an atomic load to requested type");
 
   Value *Ptr = LI.getPointerOperand();
-  unsigned AS = LI.getPointerAddressSpace();
+  unsigned const AS = LI.getPointerAddressSpace();
   Type *NewPtrTy = NewTy->getPointerTo(AS);
   Value *NewPtr = nullptr;
   if (!(match(Ptr, m_BitCast(m_Value(NewPtr))) &&
@@ -497,7 +497,7 @@ static StoreInst *combineStoreToNewValue(InstCombinerImpl &IC, StoreInst &SI,
          "can't fold an atomic store of requested type");
 
   Value *Ptr = SI.getPointerOperand();
-  unsigned AS = SI.getPointerAddressSpace();
+  unsigned const AS = SI.getPointerAddressSpace();
   SmallVector<std::pair<unsigned, MDNode *>, 8> MD;
   SI.getAllMetadata(MD);
 
@@ -506,7 +506,7 @@ static StoreInst *combineStoreToNewValue(InstCombinerImpl &IC, StoreInst &SI,
       SI.getAlign(), SI.isVolatile());
   NewStore->setAtomic(SI.getOrdering(), SI.getSyncScopeID());
   for (const auto &MDPair : MD) {
-    unsigned ID = MDPair.first;
+    unsigned const ID = MDPair.first;
     MDNode *N = MDPair.second;
     // Note, essentially every kind of metadata should be preserved here! This
     // routine is supposed to clone a store instruction changing *only its
@@ -640,7 +640,7 @@ static Instruction *unpackLoadToAggregate(InstCombinerImpl &IC, LoadInst &LI) {
   if (!T->isAggregateType())
     return nullptr;
 
-  StringRef Name = LI.getName();
+  StringRef const Name = LI.getName();
   assert(LI.getAlignment() && "Alignment must be set at this point");
 
   if (auto *ST = dyn_cast<StructType>(T)) {
@@ -670,7 +670,7 @@ static Instruction *unpackLoadToAggregate(InstCombinerImpl &IC, LoadInst &LI) {
 
     Value *V = UndefValue::get(T);
     for (unsigned i = 0; i < NumElements; i++) {
-      Value *Indices[2] = {
+      Value *const Indices[2] = {
         Zero,
         ConstantInt::get(IdxType, i),
       };
@@ -720,7 +720,7 @@ static Instruction *unpackLoadToAggregate(InstCombinerImpl &IC, LoadInst &LI) {
     Value *V = UndefValue::get(T);
     uint64_t Offset = 0;
     for (uint64_t i = 0; i < NumElements; i++) {
-      Value *Indices[2] = {
+      Value *const Indices[2] = {
         Zero,
         ConstantInt::get(IdxType, i),
       };
@@ -789,7 +789,7 @@ static bool isObjectSizeLessThanOrEq(Value *V, uint64_t MaxSize,
       if (!CS)
         return false;
 
-      uint64_t TypeSize = DL.getTypeAllocSize(AI->getAllocatedType());
+      uint64_t const TypeSize = DL.getTypeAllocSize(AI->getAllocatedType());
       // Make sure that, even if the multiplication below would wrap as an
       // uint64_t, we still do the right thing.
       if ((CS->getValue().zextOrSelf(128)*APInt(128, TypeSize)).ugt(MaxSize))
@@ -801,7 +801,7 @@ static bool isObjectSizeLessThanOrEq(Value *V, uint64_t MaxSize,
       if (!GV->hasDefinitiveInitializer() || !GV->isConstant())
         return false;
 
-      uint64_t InitSize = DL.getTypeAllocSize(GV->getValueType());
+      uint64_t const InitSize = DL.getTypeAllocSize(GV->getValueType());
       if (InitSize > MaxSize)
         return false;
       continue;
@@ -838,7 +838,7 @@ static bool canReplaceGEPIdxWithZero(InstCombinerImpl &IC,
   // one past the last index.
   auto FirstNZIdx = [](const GetElementPtrInst *GEPI) {
     unsigned I = 1;
-    for (unsigned IE = GEPI->getNumOperands(); I != IE; ++I) {
+    for (unsigned const IE = GEPI->getNumOperands(); I != IE; ++I) {
       Value *V = GEPI->getOperand(I);
       if (const ConstantInt *CI = dyn_cast<ConstantInt>(V))
         if (CI->isZero())
@@ -858,7 +858,7 @@ static bool canReplaceGEPIdxWithZero(InstCombinerImpl &IC,
   if (isa<Constant>(GEPI->getOperand(Idx)))
     return false;
 
-  SmallVector<Value *, 4> Ops(GEPI->idx_begin(), GEPI->idx_begin() + Idx);
+  SmallVector<Value *, 4> const Ops(GEPI->idx_begin(), GEPI->idx_begin() + Idx);
   Type *SourceElementType = GEPI->getSourceElementType();
   // Size information about scalable vectors is not available, so we cannot
   // deduce whether indexing at n is undefined behaviour or not. Bail out.
@@ -869,7 +869,7 @@ static bool canReplaceGEPIdxWithZero(InstCombinerImpl &IC,
   if (!AllocTy || !AllocTy->isSized())
     return false;
   const DataLayout &DL = IC.getDataLayout();
-  uint64_t TyAllocSize = DL.getTypeAllocSize(AllocTy).getFixedSize();
+  uint64_t const TyAllocSize = DL.getTypeAllocSize(AllocTy).getFixedSize();
 
   // If there are more indices after the one we might replace with a zero, make
   // sure they're all non-negative. If any of them are negative, the overall
@@ -877,7 +877,7 @@ static bool canReplaceGEPIdxWithZero(InstCombinerImpl &IC,
   // first non-zero index.
   auto IsAllNonNegative = [&]() {
     for (unsigned i = Idx+1, e = GEPI->getNumOperands(); i != e; ++i) {
-      KnownBits Known = IC.computeKnownBits(GEPI->getOperand(i), 0, MemI);
+      KnownBits const Known = IC.computeKnownBits(GEPI->getOperand(i), 0, MemI);
       if (Known.isNonNegative())
         continue;
       return false;
@@ -954,7 +954,7 @@ Instruction *InstCombinerImpl::visitLoadInst(LoadInst &LI) {
     return Res;
 
   // Attempt to improve the alignment.
-  Align KnownAlign = getOrEnforceKnownAlignment(
+  Align const KnownAlign = getOrEnforceKnownAlignment(
       Op, DL.getPrefTypeAlign(LI.getType()), DL, &LI, &AC, &DT);
   if (KnownAlign > LI.getAlign())
     LI.setAlignment(KnownAlign);
@@ -1012,7 +1012,7 @@ Instruction *InstCombinerImpl::visitLoadInst(LoadInst &LI) {
     //
     if (SelectInst *SI = dyn_cast<SelectInst>(Op)) {
       // load (select (Cond, &V1, &V2))  --> select(Cond, load &V1, load &V2).
-      Align Alignment = LI.getAlign();
+      Align const Alignment = LI.getAlign();
       if (isSafeToLoadUnconditionally(SI->getOperand(1), LI.getType(),
                                       Alignment, DL, SI) &&
           isSafeToLoadUnconditionally(SI->getOperand(2), LI.getType(),
@@ -1174,7 +1174,7 @@ static bool unpackStoreToAggregate(InstCombinerImpl &IC, StoreInst &SI) {
 
   if (auto *ST = dyn_cast<StructType>(T)) {
     // If the struct only have one element, we unpack.
-    unsigned Count = ST->getNumElements();
+    unsigned const Count = ST->getNumElements();
     if (Count == 1) {
       V = IC.Builder.CreateExtractValue(V, 0);
       combineStoreToNewValue(IC, SI, V);
@@ -1199,7 +1199,7 @@ static bool unpackStoreToAggregate(InstCombinerImpl &IC, StoreInst &SI) {
     auto *IdxType = Type::getInt32Ty(ST->getContext());
     auto *Zero = ConstantInt::get(IdxType, 0);
     for (unsigned i = 0; i < Count; i++) {
-      Value *Indices[2] = {
+      Value *const Indices[2] = {
         Zero,
         ConstantInt::get(IdxType, i),
       };
@@ -1247,7 +1247,7 @@ static bool unpackStoreToAggregate(InstCombinerImpl &IC, StoreInst &SI) {
 
     uint64_t Offset = 0;
     for (uint64_t i = 0; i < NumElements; i++) {
-      Value *Indices[2] = {
+      Value *const Indices[2] = {
         Zero,
         ConstantInt::get(IdxType, i),
       };
@@ -1550,7 +1550,7 @@ bool InstCombinerImpl::mergeStoreIntoSuccessor(StoreInst &SI) {
   // Insert a PHI node now if we need it.
   Value *MergedVal = OtherStore->getOperand(0);
   // The debug locations of the original instructions might differ. Merge them.
-  DebugLoc MergedLoc = DILocation::getMergedLocation(SI.getDebugLoc(),
+  DebugLoc const MergedLoc = DILocation::getMergedLocation(SI.getDebugLoc(),
                                                      OtherStore->getDebugLoc());
   if (MergedVal != SI.getOperand(0)) {
     PHINode *PN = PHINode::Create(MergedVal->getType(), 2, "storemerge");

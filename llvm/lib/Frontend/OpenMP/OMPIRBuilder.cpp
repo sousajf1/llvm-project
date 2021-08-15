@@ -156,7 +156,7 @@ void OpenMPIRBuilder::finalize(Function *Fn, bool AllowExtractorSinking) {
     OI.collectBlocks(ParallelRegionBlockSet, Blocks);
 
     Function *OuterFn = OI.getFunction();
-    CodeExtractorAnalysisCache CEAC(*OuterFn);
+    CodeExtractorAnalysisCache const CEAC(*OuterFn);
     CodeExtractor Extractor(Blocks, /* DominatorTree */ nullptr,
                             /* AggregateArgs */ false,
                             /* BlockFrequencyInfo */ nullptr,
@@ -238,7 +238,7 @@ Value *OpenMPIRBuilder::getOrCreateIdent(Constant *SrcLocStr,
       IdentMap[{SrcLocStr, uint64_t(LocFlags) << 31 | Reserve2Flags}];
   if (!Ident) {
     Constant *I32Null = ConstantInt::getNullValue(Int32);
-    Constant *IdentData[] = {
+    Constant *const IdentData[] = {
         I32Null, ConstantInt::get(Int32, uint32_t(LocFlags)),
         ConstantInt::get(Int32, Reserve2Flags), I32Null, SrcLocStr};
     Constant *Initializer = ConstantStruct::get(
@@ -263,7 +263,7 @@ Value *OpenMPIRBuilder::getOrCreateIdent(Constant *SrcLocStr,
 
 Type *OpenMPIRBuilder::getLanemaskType() {
   LLVMContext &Ctx = M.getContext();
-  Triple triple(M.getTargetTriple());
+  Triple const triple(M.getTargetTriple());
 
   // This test is adequate until deviceRTL has finer grained lane widths
   return triple.isAMDGCN() ? Type::getInt64Ty(Ctx) : Type::getInt32Ty(Ctx);
@@ -370,13 +370,13 @@ OpenMPIRBuilder::emitBarrierImpl(const LocationDescription &Loc, Directive Kind,
   }
 
   Constant *SrcLocStr = getOrCreateSrcLocStr(Loc);
-  Value *Args[] = {getOrCreateIdent(SrcLocStr, BarrierLocFlags),
+  Value *const Args[] = {getOrCreateIdent(SrcLocStr, BarrierLocFlags),
                    getOrCreateThreadID(getOrCreateIdent(SrcLocStr))};
 
   // If we are in a cancellable parallel region, barriers are cancellation
   // points.
   // TODO: Check why we would force simple calls or to ignore the cancel flag.
-  bool UseCancelBarrier =
+  bool const UseCancelBarrier =
       !ForceSimpleCall && isLastFinalizationInfoCancellable(OMPD_parallel);
 
   Value *Result =
@@ -419,12 +419,12 @@ OpenMPIRBuilder::createCancel(const LocationDescription &Loc,
 
   Constant *SrcLocStr = getOrCreateSrcLocStr(Loc);
   Value *Ident = getOrCreateIdent(SrcLocStr);
-  Value *Args[] = {Ident, getOrCreateThreadID(Ident), CancelKind};
+  Value *const Args[] = {Ident, getOrCreateThreadID(Ident), CancelKind};
   Value *Result = Builder.CreateCall(
       getOrCreateRuntimeFunctionPtr(OMPRTL___kmpc_cancel), Args);
   auto ExitCB = [this, CanceledDirective, Loc](InsertPointTy IP) {
     if (CanceledDirective == OMPD_parallel) {
-      IRBuilder<>::InsertPointGuard IPG(Builder);
+      IRBuilder<>::InsertPointGuard const IPG(Builder);
       Builder.restoreIP(IP);
       createBarrier(LocationDescription(Builder.saveIP(), Loc.DL),
                     omp::Directive::OMPD_unknown, /* ForceSimpleCall */ false,
@@ -495,7 +495,7 @@ IRBuilder<>::InsertPoint OpenMPIRBuilder::createParallel(
 
   if (NumThreads) {
     // Build call __kmpc_push_num_threads(&Ident, global_tid, num_threads)
-    Value *Args[] = {
+    Value *const Args[] = {
         Ident, ThreadID,
         Builder.CreateIntCast(NumThreads, Int32, /*isSigned*/ false)};
     Builder.CreateCall(
@@ -504,7 +504,7 @@ IRBuilder<>::InsertPoint OpenMPIRBuilder::createParallel(
 
   if (ProcBind != OMP_PROC_BIND_default) {
     // Build call __kmpc_push_proc_bind(&Ident, global_tid, proc_bind)
-    Value *Args[] = {
+    Value *const Args[] = {
         Ident, ThreadID,
         ConstantInt::get(Int32, unsigned(ProcBind), /*isSigned=*/true)};
     Builder.CreateCall(
@@ -561,7 +561,7 @@ IRBuilder<>::InsertPoint OpenMPIRBuilder::createParallel(
     // Hide "open-ended" blocks from the given FiniCB by setting the right jump
     // target to the region exit block.
     if (IP.getBlock()->end() == IP.getPoint()) {
-      IRBuilder<>::InsertPointGuard IPG(Builder);
+      IRBuilder<>::InsertPointGuard const IPG(Builder);
       Builder.restoreIP(IP);
       Instruction *I = Builder.CreateBr(PRegExitBB);
       IP = InsertPointTy(I->getParent(), I->getIterator());
@@ -608,7 +608,7 @@ IRBuilder<>::InsertPoint OpenMPIRBuilder::createParallel(
 
   // Let the caller create the body.
   assert(BodyGenCB && "Expected body generation callback!");
-  InsertPointTy CodeGenIP(PRegBodyBB, PRegBodyBB->begin());
+  InsertPointTy const CodeGenIP(PRegBodyBB, PRegBodyBB->begin());
   BodyGenCB(InnerAllocaIP, CodeGenIP, *PRegPreFiniBB);
 
   LLVM_DEBUG(dbgs() << "After  body codegen: " << *OuterFn << "\n");
@@ -641,7 +641,7 @@ IRBuilder<>::InsertPoint OpenMPIRBuilder::createParallel(
 
     assert(OutlinedFn.arg_size() >= 2 &&
            "Expected at least tid and bounded tid as arguments");
-    unsigned NumCapturedVars =
+    unsigned const NumCapturedVars =
         OutlinedFn.arg_size() - /* tid & bounded tid */ 2;
 
     CallInst *CI = cast<CallInst>(OutlinedFn.user_back());
@@ -662,7 +662,7 @@ IRBuilder<>::InsertPoint OpenMPIRBuilder::createParallel(
     LLVM_DEBUG(dbgs() << "With fork_call placed: "
                       << *Builder.GetInsertBlock()->getParent() << "\n");
 
-    InsertPointTy ExitIP(PRegExitBB, PRegExitBB->end());
+    InsertPointTy const ExitIP(PRegExitBB, PRegExitBB->end());
 
     // Initialize the local TID stack location with the argument value.
     Builder.SetInsertPoint(PrivTID);
@@ -680,7 +680,7 @@ IRBuilder<>::InsertPoint OpenMPIRBuilder::createParallel(
       Builder.SetInsertPoint(ElseTI);
 
       // Build calls __kmpc_serialized_parallel(&Ident, GTid);
-      Value *SerializedParallelCallArgs[] = {Ident, ThreadID};
+      Value *const SerializedParallelCallArgs[] = {Ident, ThreadID};
       Builder.CreateCall(
           getOrCreateRuntimeFunctionPtr(OMPRTL___kmpc_serialized_parallel),
           SerializedParallelCallArgs);
@@ -690,7 +690,7 @@ IRBuilder<>::InsertPoint OpenMPIRBuilder::createParallel(
       Builder.Insert(CI);
 
       // __kmpc_end_serialized_parallel(&Ident, GTid);
-      Value *EndArgs[] = {Ident, ThreadID};
+      Value *const EndArgs[] = {Ident, ThreadID};
       Builder.CreateCall(
           getOrCreateRuntimeFunctionPtr(OMPRTL___kmpc_end_serialized_parallel),
           EndArgs);
@@ -713,7 +713,7 @@ IRBuilder<>::InsertPoint OpenMPIRBuilder::createParallel(
 
   Instruction *PRegPreFiniTI = PRegPreFiniBB->getTerminator();
 
-  InsertPointTy PreFiniIP(PRegPreFiniBB, PRegPreFiniTI->getIterator());
+  InsertPointTy const PreFiniIP(PRegPreFiniBB, PRegPreFiniTI->getIterator());
   FiniCB(PreFiniIP);
 
   OI.EntryBB = PRegEntryBB;
@@ -731,8 +731,8 @@ IRBuilder<>::InsertPoint OpenMPIRBuilder::createParallel(
   PRegOutlinedExitBB->setName("omp.par.outlined.exit");
   Blocks.push_back(PRegOutlinedExitBB);
 
-  CodeExtractorAnalysisCache CEAC(*OuterFn);
-  CodeExtractor Extractor(Blocks, /* DominatorTree */ nullptr,
+  CodeExtractorAnalysisCache const CEAC(*OuterFn);
+  CodeExtractor const Extractor(Blocks, /* DominatorTree */ nullptr,
                           /* AggregateArgs */ false,
                           /* BlockFrequencyInfo */ nullptr,
                           /* BranchProbabilityInfo */ nullptr,
@@ -757,7 +757,7 @@ IRBuilder<>::InsertPoint OpenMPIRBuilder::createParallel(
       return;
 
     SetVector<Use *> Uses;
-    for (Use &U : V.uses())
+    for (Use  const&U : V.uses())
       if (auto *UserI = dyn_cast<Instruction>(U.getUser()))
         if (ParallelRegionBlockSet.count(UserI->getParent()))
           Uses.insert(&U);
@@ -770,7 +770,7 @@ IRBuilder<>::InsertPoint OpenMPIRBuilder::createParallel(
     // additionally packed in a struct.
     Value *Inner = &V;
     if (!V.getType()->isPointerTy()) {
-      IRBuilder<>::InsertPointGuard Guard(Builder);
+      IRBuilder<>::InsertPointGuard const Guard(Builder);
       LLVM_DEBUG(llvm::dbgs() << "Forwarding input as pointer: " << V << "\n");
 
       Builder.restoreIP(OuterAllocaIP);
@@ -848,7 +848,7 @@ IRBuilder<>::InsertPoint OpenMPIRBuilder::createParallel(
 void OpenMPIRBuilder::emitFlush(const LocationDescription &Loc) {
   // Build call void __kmpc_flush(ident_t *loc)
   Constant *SrcLocStr = getOrCreateSrcLocStr(Loc);
-  Value *Args[] = {getOrCreateIdent(SrcLocStr)};
+  Value *const Args[] = {getOrCreateIdent(SrcLocStr)};
 
   Builder.CreateCall(getOrCreateRuntimeFunctionPtr(OMPRTL___kmpc_flush), Args);
 }
@@ -864,7 +864,7 @@ void OpenMPIRBuilder::emitTaskwaitImpl(const LocationDescription &Loc) {
   // global_tid);
   Constant *SrcLocStr = getOrCreateSrcLocStr(Loc);
   Value *Ident = getOrCreateIdent(SrcLocStr);
-  Value *Args[] = {Ident, getOrCreateThreadID(Ident)};
+  Value *const Args[] = {Ident, getOrCreateThreadID(Ident)};
 
   // Ignore return result until untied tasks are supported.
   Builder.CreateCall(getOrCreateRuntimeFunctionPtr(OMPRTL___kmpc_omp_taskwait),
@@ -882,7 +882,7 @@ void OpenMPIRBuilder::emitTaskyieldImpl(const LocationDescription &Loc) {
   Constant *SrcLocStr = getOrCreateSrcLocStr(Loc);
   Value *Ident = getOrCreateIdent(SrcLocStr);
   Constant *I32Null = ConstantInt::getNullValue(Int32);
-  Value *Args[] = {Ident, getOrCreateThreadID(Ident), I32Null};
+  Value *const Args[] = {Ident, getOrCreateThreadID(Ident), I32Null};
 
   Builder.CreateCall(getOrCreateRuntimeFunctionPtr(OMPRTL___kmpc_omp_taskyield),
                      Args);
@@ -911,7 +911,7 @@ OpenMPIRBuilder::InsertPointTy OpenMPIRBuilder::createSections(
     // We need to backtrack to the condition block to fetch
     // the exit block and create a branch from cancelation
     // to exit block.
-    IRBuilder<>::InsertPointGuard IPG(Builder);
+    IRBuilder<>::InsertPointGuard const IPG(Builder);
     Builder.restoreIP(IP);
     auto *CaseBB = IP.getBlock()->getSinglePredecessor();
     auto *CondBB = CaseBB->getSinglePredecessor()->getSinglePredecessor();
@@ -969,7 +969,7 @@ OpenMPIRBuilder::InsertPointTy OpenMPIRBuilder::createSections(
   Value *ST = ConstantInt::get(I32Ty, 1);
   llvm::CanonicalLoopInfo *LoopInfo = createCanonicalLoop(
       Loc, LoopBodyGenCB, LB, UB, ST, true, false, AllocaIP, "section_loop");
-  InsertPointTy AfterIP =
+  InsertPointTy const AfterIP =
       applyStaticWorkshareLoop(Loc.DL, LoopInfo, AllocaIP, true);
   BasicBlock *LoopAfterBB = AfterIP.getBlock();
   Instruction *SplitPos = LoopAfterBB->getTerminator();
@@ -1009,7 +1009,7 @@ OpenMPIRBuilder::createSection(const LocationDescription &Loc,
     // We need to backtrack to the condition block to fetch
     // the exit block and create a branch from cancelation
     // to exit block.
-    IRBuilder<>::InsertPointGuard IPG(Builder);
+    IRBuilder<>::InsertPointGuard const IPG(Builder);
     Builder.restoreIP(IP);
     auto *CaseBB = Loc.IP.getBlock();
     auto *CondBB = CaseBB->getSinglePredecessor()->getSinglePredecessor();
@@ -1019,7 +1019,7 @@ OpenMPIRBuilder::createSection(const LocationDescription &Loc,
     return FiniCB(IP);
   };
 
-  Directive OMPD = Directive::OMPD_sections;
+  Directive const OMPD = Directive::OMPD_sections;
   // Since we are using Finalization Callback here, HasFinalize
   // and IsCancellable have to be true
   return EmitOMPInlinedRegion(OMPD, nullptr, nullptr, BodyGenCB, FiniCBWrapper,
@@ -1064,7 +1064,7 @@ OpenMPIRBuilder::InsertPointTy OpenMPIRBuilder::createReductions(
 
   // Create and populate array of type-erased pointers to private reduction
   // values.
-  unsigned NumReductions = ReductionInfos.size();
+  unsigned const NumReductions = ReductionInfos.size();
   Type *RedArrayTy = ArrayType::get(Builder.getInt8PtrTy(), NumReductions);
   Builder.restoreIP(AllocaIP);
   Value *RedArray = Builder.CreateAlloca(RedArrayTy, nullptr, "red.array");
@@ -1072,7 +1072,7 @@ OpenMPIRBuilder::InsertPointTy OpenMPIRBuilder::createReductions(
   Builder.SetInsertPoint(InsertBlock, InsertBlock->end());
 
   for (auto En : enumerate(ReductionInfos)) {
-    unsigned Index = En.index();
+    unsigned const Index = En.index();
     const ReductionInfo &RI = En.value();
     Value *RedArrayElemPtr = Builder.CreateConstInBoundsGEP2_64(
         RedArrayTy, RedArray, 0, Index, "red.array.elem." + Twine(Index));
@@ -1089,7 +1089,7 @@ OpenMPIRBuilder::InsertPointTy OpenMPIRBuilder::createReductions(
   Value *RedArrayPtr =
       Builder.CreateBitCast(RedArray, Builder.getInt8PtrTy(), "red.array.ptr");
   Constant *SrcLocStr = getOrCreateSrcLocStr(Loc);
-  bool CanGenerateAtomic =
+  bool const CanGenerateAtomic =
       llvm::all_of(ReductionInfos, [](const ReductionInfo &RI) {
         return RI.AtomicReductionGen;
       });
@@ -1099,7 +1099,7 @@ OpenMPIRBuilder::InsertPointTy OpenMPIRBuilder::createReductions(
   Value *ThreadId = getOrCreateThreadID(Ident);
   Constant *NumVariables = Builder.getInt32(NumReductions);
   const DataLayout &DL = Module->getDataLayout();
-  unsigned RedArrayByteSize = DL.getTypeStoreSize(RedArrayTy);
+  unsigned const RedArrayByteSize = DL.getTypeStoreSize(RedArrayTy);
   Constant *RedArraySize = Builder.getInt64(RedArrayByteSize);
   Function *ReductionFunc = getFreshReductionFunc(*Module);
   Value *Lock = getOMPCriticalRegionLock(".reduction");
@@ -1208,11 +1208,11 @@ OpenMPIRBuilder::createMaster(const LocationDescription &Loc,
   if (!updateToLocation(Loc))
     return Loc.IP;
 
-  Directive OMPD = Directive::OMPD_master;
+  Directive const OMPD = Directive::OMPD_master;
   Constant *SrcLocStr = getOrCreateSrcLocStr(Loc);
   Value *Ident = getOrCreateIdent(SrcLocStr);
   Value *ThreadId = getOrCreateThreadID(Ident);
-  Value *Args[] = {Ident, ThreadId};
+  Value *const Args[] = {Ident, ThreadId};
 
   Function *EntryRTLFn = getOrCreateRuntimeFunctionPtr(OMPRTL___kmpc_master);
   Instruction *EntryCall = Builder.CreateCall(EntryRTLFn, Args);
@@ -1231,12 +1231,12 @@ OpenMPIRBuilder::createMasked(const LocationDescription &Loc,
   if (!updateToLocation(Loc))
     return Loc.IP;
 
-  Directive OMPD = Directive::OMPD_masked;
+  Directive const OMPD = Directive::OMPD_masked;
   Constant *SrcLocStr = getOrCreateSrcLocStr(Loc);
   Value *Ident = getOrCreateIdent(SrcLocStr);
   Value *ThreadId = getOrCreateThreadID(Ident);
-  Value *Args[] = {Ident, ThreadId, Filter};
-  Value *ArgsEnd[] = {Ident, ThreadId};
+  Value *const Args[] = {Ident, ThreadId, Filter};
+  Value *const ArgsEnd[] = {Ident, ThreadId};
 
   Function *EntryRTLFn = getOrCreateRuntimeFunctionPtr(OMPRTL___kmpc_masked);
   Instruction *EntryCall = Builder.CreateCall(EntryRTLFn, Args);
@@ -1365,7 +1365,7 @@ CanonicalLoopInfo *OpenMPIRBuilder::createCanonicalLoop(
   assert(IndVarTy == Stop->getType() && "Stop type mismatch");
   assert(IndVarTy == Step->getType() && "Step type mismatch");
 
-  LocationDescription ComputeLoc =
+  LocationDescription const ComputeLoc =
       ComputeIP.isSet() ? LocationDescription(ComputeIP, Loc.DL) : Loc;
   updateToLocation(ComputeLoc);
 
@@ -1417,7 +1417,7 @@ CanonicalLoopInfo *OpenMPIRBuilder::createCanonicalLoop(
     Value *IndVar = Builder.CreateAdd(Span, Start);
     BodyGenCB(Builder.saveIP(), IndVar);
   };
-  LocationDescription LoopLoc = ComputeIP.isSet() ? Loc.IP : Builder.saveIP();
+  LocationDescription const LoopLoc = ComputeIP.isSet() ? Loc.IP : Builder.saveIP();
   return createCanonicalLoop(LoopLoc, BodyGen, TripCount, Name);
 }
 
@@ -1427,7 +1427,7 @@ CanonicalLoopInfo *OpenMPIRBuilder::createCanonicalLoop(
 // CanonicalLoopInfo.
 static FunctionCallee getKmpcForStaticInitForType(Type *Ty, Module &M,
                                                   OpenMPIRBuilder &OMPBuilder) {
-  unsigned Bitwidth = Ty->getIntegerBitWidth();
+  unsigned const Bitwidth = Ty->getIntegerBitWidth();
   if (Bitwidth == 32)
     return OMPBuilder.getOrCreateRuntimeFunction(
         M, omp::RuntimeFunction::OMPRTL___kmpc_for_static_init_4u);
@@ -1463,8 +1463,8 @@ OpenMPIRBuilder::applyStaticWorkshareLoop(DebugLoc DL, CanonicalLoopInfo *CLI,
   // Declare useful OpenMP runtime functions.
   Value *IV = CLI->getIndVar();
   Type *IVTy = IV->getType();
-  FunctionCallee StaticInit = getKmpcForStaticInitForType(IVTy, M, *this);
-  FunctionCallee StaticFini =
+  FunctionCallee const StaticInit = getKmpcForStaticInitForType(IVTy, M, *this);
+  FunctionCallee const StaticFini =
       getOrCreateRuntimeFunction(M, omp::OMPRTL___kmpc_for_static_fini);
 
   // Allocate space for computed loop bounds as expected by the "init" function.
@@ -1551,7 +1551,7 @@ OpenMPIRBuilder::applyWorkshareLoop(DebugLoc DL, CanonicalLoopInfo *CLI,
 /// CanonicalLoopInfo.
 static FunctionCallee
 getKmpcForDynamicInitForType(Type *Ty, Module &M, OpenMPIRBuilder &OMPBuilder) {
-  unsigned Bitwidth = Ty->getIntegerBitWidth();
+  unsigned const Bitwidth = Ty->getIntegerBitWidth();
   if (Bitwidth == 32)
     return OMPBuilder.getOrCreateRuntimeFunction(
         M, omp::RuntimeFunction::OMPRTL___kmpc_dispatch_init_4u);
@@ -1567,7 +1567,7 @@ getKmpcForDynamicInitForType(Type *Ty, Module &M, OpenMPIRBuilder &OMPBuilder) {
 /// CanonicalLoopInfo.
 static FunctionCallee
 getKmpcForDynamicNextForType(Type *Ty, Module &M, OpenMPIRBuilder &OMPBuilder) {
-  unsigned Bitwidth = Ty->getIntegerBitWidth();
+  unsigned const Bitwidth = Ty->getIntegerBitWidth();
   if (Bitwidth == 32)
     return OMPBuilder.getOrCreateRuntimeFunction(
         M, omp::RuntimeFunction::OMPRTL___kmpc_dispatch_next_4u);
@@ -1591,8 +1591,8 @@ OpenMPIRBuilder::InsertPointTy OpenMPIRBuilder::applyDynamicWorkshareLoop(
   // Declare useful OpenMP runtime functions.
   Value *IV = CLI->getIndVar();
   Type *IVTy = IV->getType();
-  FunctionCallee DynamicInit = getKmpcForDynamicInitForType(IVTy, M, *this);
-  FunctionCallee DynamicNext = getKmpcForDynamicNextForType(IVTy, M, *this);
+  FunctionCallee const DynamicInit = getKmpcForDynamicInitForType(IVTy, M, *this);
+  FunctionCallee const DynamicNext = getKmpcForDynamicNextForType(IVTy, M, *this);
 
   // Allocate space for computed loop bounds as expected by the "init" function.
   Builder.restoreIP(AllocaIP);
@@ -1722,7 +1722,7 @@ static void redirectAllPredecessorsTo(BasicBlock *OldTarget,
 static void removeUnusedBlocksFromParent(ArrayRef<BasicBlock *> BBs) {
   SmallPtrSet<BasicBlock *, 6> BBsToErase{BBs.begin(), BBs.end()};
   auto HasRemainingUses = [&BBsToErase](BasicBlock *BB) {
-    for (Use &U : BB->uses()) {
+    for (Use  const&U : BB->uses()) {
       auto *UseInst = dyn_cast<Instruction>(U.getUser());
       if (!UseInst)
         continue;
@@ -1745,7 +1745,7 @@ static void removeUnusedBlocksFromParent(ArrayRef<BasicBlock *> BBs) {
       break;
   }
 
-  SmallVector<BasicBlock *, 7> BBVec(BBsToErase.begin(), BBsToErase.end());
+  SmallVector<BasicBlock *, 7> const BBVec(BBsToErase.begin(), BBsToErase.end());
   DeleteDeadBlocks(BBVec);
 }
 
@@ -1753,7 +1753,7 @@ CanonicalLoopInfo *
 OpenMPIRBuilder::collapseLoops(DebugLoc DL, ArrayRef<CanonicalLoopInfo *> Loops,
                                InsertPointTy ComputeIP) {
   assert(Loops.size() >= 1 && "At least one loop required");
-  size_t NumLoops = Loops.size();
+  size_t const NumLoops = Loops.size();
 
   // Nothing to do if there is already just one loop.
   if (NumLoops == 1)
@@ -1880,7 +1880,7 @@ OpenMPIRBuilder::tileLoops(DebugLoc DL, ArrayRef<CanonicalLoopInfo *> Loops,
                            ArrayRef<Value *> TileSizes) {
   assert(TileSizes.size() == Loops.size() &&
          "Must pass as many tile sizes as there are loops");
-  int NumLoops = Loops.size();
+  int const NumLoops = Loops.size();
   assert(NumLoops >= 1 && "At least one loop to tile required");
 
   CanonicalLoopInfo *OutermostLoop = Loops.front();
@@ -2011,7 +2011,7 @@ OpenMPIRBuilder::tileLoops(DebugLoc DL, ArrayRef<CanonicalLoopInfo *> Loops,
   // Insert the inbetween code into the body.
   BasicBlock *BodyEnter = Enter;
   BasicBlock *BodyEntered = nullptr;
-  for (std::pair<BasicBlock *, BasicBlock *> P : InbetweenCode) {
+  for (std::pair<BasicBlock *, BasicBlock *> const P : InbetweenCode) {
     BasicBlock *EnterBB = P.first;
     BasicBlock *ExitBB = P.second;
 
@@ -2077,7 +2077,7 @@ OpenMPIRBuilder::createCopyPrivate(const LocationDescription &Loc,
 
   llvm::Value *DidItLD = Builder.CreateLoad(Builder.getInt32Ty(), DidIt);
 
-  Value *Args[] = {Ident, ThreadId, BufSize, CpyBuf, CpyFn, DidItLD};
+  Value *const Args[] = {Ident, ThreadId, BufSize, CpyBuf, CpyFn, DidItLD};
 
   Function *Fn = getOrCreateRuntimeFunctionPtr(OMPRTL___kmpc_copyprivate);
   Builder.CreateCall(Fn, Args);
@@ -2098,11 +2098,11 @@ OpenMPIRBuilder::createSingle(const LocationDescription &Loc,
     Builder.CreateStore(Builder.getInt32(0), DidIt);
   }
 
-  Directive OMPD = Directive::OMPD_single;
+  Directive const OMPD = Directive::OMPD_single;
   Constant *SrcLocStr = getOrCreateSrcLocStr(Loc);
   Value *Ident = getOrCreateIdent(SrcLocStr);
   Value *ThreadId = getOrCreateThreadID(Ident);
-  Value *Args[] = {Ident, ThreadId};
+  Value *const Args[] = {Ident, ThreadId};
 
   Function *EntryRTLFn = getOrCreateRuntimeFunctionPtr(OMPRTL___kmpc_single);
   Instruction *EntryCall = Builder.CreateCall(EntryRTLFn, Args);
@@ -2127,7 +2127,7 @@ OpenMPIRBuilder::InsertPointTy OpenMPIRBuilder::createCritical(
   if (!updateToLocation(Loc))
     return Loc.IP;
 
-  Directive OMPD = Directive::OMPD_critical;
+  Directive const OMPD = Directive::OMPD_critical;
   Constant *SrcLocStr = getOrCreateSrcLocStr(Loc);
   Value *Ident = getOrCreateIdent(SrcLocStr);
   Value *ThreadId = getOrCreateThreadID(Ident);
@@ -2263,7 +2263,7 @@ OpenMPIRBuilder::InsertPointTy OpenMPIRBuilder::emitCommonDirectiveExit(
     assert(!FinalizationStack.empty() &&
            "Unexpected finalization stack state!");
 
-    FinalizationInfo Fi = FinalizationStack.pop_back_val();
+    FinalizationInfo const Fi = FinalizationStack.pop_back_val();
     assert(Fi.DK == OMPD && "Unexpected Directive for Finalization call!");
 
     Fi.FiniCB(FinIP);
@@ -2292,7 +2292,7 @@ OpenMPIRBuilder::InsertPointTy OpenMPIRBuilder::createCopyinClauseBlocks(
   if (!IP.isSet())
     return IP;
 
-  IRBuilder<>::InsertPointGuard IPG(Builder);
+  IRBuilder<>::InsertPointGuard const IPG(Builder);
 
   // creates the following CFG structure
   //	   OMP_Entry : (MasterAddr != PrivateAddr)?
@@ -2339,13 +2339,13 @@ OpenMPIRBuilder::InsertPointTy OpenMPIRBuilder::createCopyinClauseBlocks(
 CallInst *OpenMPIRBuilder::createOMPAlloc(const LocationDescription &Loc,
                                           Value *Size, Value *Allocator,
                                           std::string Name) {
-  IRBuilder<>::InsertPointGuard IPG(Builder);
+  IRBuilder<>::InsertPointGuard const IPG(Builder);
   Builder.restoreIP(Loc.IP);
 
   Constant *SrcLocStr = getOrCreateSrcLocStr(Loc);
   Value *Ident = getOrCreateIdent(SrcLocStr);
   Value *ThreadId = getOrCreateThreadID(Ident);
-  Value *Args[] = {ThreadId, Size, Allocator};
+  Value *const Args[] = {ThreadId, Size, Allocator};
 
   Function *Fn = getOrCreateRuntimeFunctionPtr(OMPRTL___kmpc_alloc);
 
@@ -2355,13 +2355,13 @@ CallInst *OpenMPIRBuilder::createOMPAlloc(const LocationDescription &Loc,
 CallInst *OpenMPIRBuilder::createOMPFree(const LocationDescription &Loc,
                                          Value *Addr, Value *Allocator,
                                          std::string Name) {
-  IRBuilder<>::InsertPointGuard IPG(Builder);
+  IRBuilder<>::InsertPointGuard const IPG(Builder);
   Builder.restoreIP(Loc.IP);
 
   Constant *SrcLocStr = getOrCreateSrcLocStr(Loc);
   Value *Ident = getOrCreateIdent(SrcLocStr);
   Value *ThreadId = getOrCreateThreadID(Ident);
-  Value *Args[] = {ThreadId, Addr, Allocator};
+  Value *const Args[] = {ThreadId, Addr, Allocator};
   Function *Fn = getOrCreateRuntimeFunctionPtr(OMPRTL___kmpc_free);
   return Builder.CreateCall(Fn, Args, Name);
 }
@@ -2369,7 +2369,7 @@ CallInst *OpenMPIRBuilder::createOMPFree(const LocationDescription &Loc,
 CallInst *OpenMPIRBuilder::createCachedThreadPrivate(
     const LocationDescription &Loc, llvm::Value *Pointer,
     llvm::ConstantInt *Size, const llvm::Twine &Name) {
-  IRBuilder<>::InsertPointGuard IPG(Builder);
+  IRBuilder<>::InsertPointGuard const IPG(Builder);
   Builder.restoreIP(Loc.IP);
 
   Constant *SrcLocStr = getOrCreateSrcLocStr(Loc);
@@ -2377,7 +2377,7 @@ CallInst *OpenMPIRBuilder::createCachedThreadPrivate(
   Value *ThreadId = getOrCreateThreadID(Ident);
   Constant *ThreadPrivateCache =
       getOrCreateOMPInternalVariable(Int8PtrPtr, Name);
-  llvm::Value *Args[] = {Ident, ThreadId, Pointer, Size, ThreadPrivateCache};
+  llvm::Value *const Args[] = {Ident, ThreadId, Pointer, Size, ThreadPrivateCache};
 
   Function *Fn =
       getOrCreateRuntimeFunctionPtr(OMPRTL___kmpc_threadprivate_cached);
@@ -2455,7 +2455,7 @@ std::string OpenMPIRBuilder::getNameWithSeparators(ArrayRef<StringRef> Parts,
   SmallString<128> Buffer;
   llvm::raw_svector_ostream OS(Buffer);
   StringRef Sep = FirstSeparator;
-  for (StringRef Part : Parts) {
+  for (StringRef const Part : Parts) {
     OS << Sep << Part;
     Sep = Separator;
   }
@@ -2472,7 +2472,7 @@ Constant *OpenMPIRBuilder::getOrCreateOMPInternalVariable(
   SmallString<256> Buffer;
   llvm::raw_svector_ostream Out(Buffer);
   Out << Name;
-  StringRef RuntimeName = Out.str();
+  StringRef const RuntimeName = Out.str();
   auto &Elem = *InternalVars.try_emplace(RuntimeName, nullptr).first;
   if (Elem.second) {
     assert(Elem.second->getType()->getPointerElementType() == Ty &&
@@ -2493,8 +2493,8 @@ Constant *OpenMPIRBuilder::getOrCreateOMPInternalVariable(
 }
 
 Value *OpenMPIRBuilder::getOMPCriticalRegionLock(StringRef CriticalName) {
-  std::string Prefix = Twine("gomp_critical_user_", CriticalName).str();
-  std::string Name = getNameWithSeparators({Prefix, "var"}, ".", ".");
+  std::string const Prefix = Twine("gomp_critical_user_", CriticalName).str();
+  std::string const Name = getNameWithSeparators({Prefix, "var"}, ".", ".");
   return getOrCreateOMPInternalVariable(KmpCriticalNameTy, Name);
 }
 
@@ -2639,7 +2639,7 @@ OpenMPIRBuilder::createAtomicRead(const LocationDescription &Loc,
     XRead = cast<Value>(XLD);
   } else {
     // We need to bitcast and perform atomic op as integer
-    unsigned Addrspace = cast<PointerType>(XTy)->getAddressSpace();
+    unsigned const Addrspace = cast<PointerType>(XTy)->getAddressSpace();
     IntegerType *IntCastTy =
         IntegerType::get(M.getContext(), XElemTy->getScalarSizeInBits());
     Value *XBCast = Builder.CreateBitCast(
@@ -2677,7 +2677,7 @@ OpenMPIRBuilder::createAtomicWrite(const LocationDescription &Loc,
     XSt->setAtomic(AO);
   } else {
     // We need to bitcast and perform atomic op as integers
-    unsigned Addrspace = cast<PointerType>(XTy)->getAddressSpace();
+    unsigned const Addrspace = cast<PointerType>(XTy)->getAddressSpace();
     IntegerType *IntCastTy =
         IntegerType::get(M.getContext(), XElemTy->getScalarSizeInBits());
     Value *XBCast = Builder.CreateBitCast(
@@ -2753,7 +2753,7 @@ OpenMPIRBuilder::emitAtomicUpdate(Instruction *AllocIP, Value *X, Value *Expr,
                                   bool VolatileX, bool IsXLHSInRHSPart) {
   Type *XElemTy = X->getType()->getPointerElementType();
 
-  bool DoCmpExch =
+  bool const DoCmpExch =
       ((RMWOp == AtomicRMWInst::BAD_BINOP) || (RMWOp == AtomicRMWInst::FAdd)) ||
       (RMWOp == AtomicRMWInst::FSub) ||
       (RMWOp == AtomicRMWInst::Sub && !IsXLHSInRHSPart);
@@ -2765,7 +2765,7 @@ OpenMPIRBuilder::emitAtomicUpdate(Instruction *AllocIP, Value *X, Value *Expr,
     // consistency with the else part. Will be removed with any DCE pass.
     Res.second = emitRMWOpAsInstruction(Res.first, Expr, RMWOp);
   } else {
-    unsigned Addrspace = cast<PointerType>(X->getType())->getAddressSpace();
+    unsigned const Addrspace = cast<PointerType>(X->getType())->getAddressSpace();
     IntegerType *IntCastTy =
         IntegerType::get(M.getContext(), XElemTy->getScalarSizeInBits());
     Value *XBCast =
@@ -2794,7 +2794,7 @@ OpenMPIRBuilder::emitAtomicUpdate(Instruction *AllocIP, Value *X, Value *Expr,
     NewAtomicAddr->moveBefore(AllocIP);
     IntegerType *NewAtomicCastTy =
         IntegerType::get(M.getContext(), XElemTy->getScalarSizeInBits());
-    bool IsIntTy = XElemTy->isIntegerTy();
+    bool const IsIntTy = XElemTy->isIntegerTy();
     Value *NewAtomicIntAddr =
         (IsIntTy)
             ? NewAtomicAddr
@@ -2818,7 +2818,7 @@ OpenMPIRBuilder::emitAtomicUpdate(Instruction *AllocIP, Value *X, Value *Expr,
         (IsIntTy)
             ? X
             : Builder.CreateBitCast(X, IntCastTy->getPointerTo(Addrspace));
-    AtomicOrdering Failure =
+    AtomicOrdering const Failure =
         llvm::AtomicCmpXchgInst::getStrongestFailureOrdering(AO);
     AtomicCmpXchgInst *Result = Builder.CreateAtomicCmpXchg(
         XAddr, OldExprVal, DesiredVal, llvm::MaybeAlign(), AO, Failure);
@@ -2866,8 +2866,8 @@ OpenMPIRBuilder::InsertPointTy OpenMPIRBuilder::createAtomicCapture(
 
   // If UpdateExpr is 'x' updated with some `expr` not based on 'x',
   // 'x' is simply atomically rewritten with 'expr'.
-  AtomicRMWInst::BinOp AtomicOp = (UpdateExpr ? RMWOp : AtomicRMWInst::Xchg);
-  std::pair<Value *, Value *> Result =
+  AtomicRMWInst::BinOp const AtomicOp = (UpdateExpr ? RMWOp : AtomicRMWInst::Xchg);
+  std::pair<Value *, Value *> const Result =
       emitAtomicUpdate(AllocIP, X.Var, Expr, AO, AtomicOp, UpdateOp,
                        X.IsVolatile, IsXLHSInRHSPart);
 

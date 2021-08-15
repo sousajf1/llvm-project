@@ -34,7 +34,7 @@ static Expected<const Edge &> getRISCVPCRelHi20(const Edge &E) {
 
   const Symbol &Sym = E.getTarget();
   const Block &B = Sym.getBlock();
-  JITTargetAddress Offset = Sym.getOffset();
+  JITTargetAddress const Offset = Sym.getOffset();
 
   struct Comp {
     bool operator()(const Edge &Lhs, JITTargetAddress Offset) {
@@ -76,38 +76,38 @@ private:
 
     char *BlockWorkingMem = B.getAlreadyMutableContent().data();
     char *FixupPtr = BlockWorkingMem + E.getOffset();
-    JITTargetAddress FixupAddress = B.getAddress() + E.getOffset();
+    JITTargetAddress const FixupAddress = B.getAddress() + E.getOffset();
     switch (E.getKind()) {
     case R_RISCV_HI20: {
-      int64_t Value = E.getTarget().getAddress() + E.getAddend();
-      int32_t Hi = (Value + 0x800) & 0xFFFFF000;
-      uint32_t RawInstr = *(little32_t *)FixupPtr;
+      int64_t const Value = E.getTarget().getAddress() + E.getAddend();
+      int32_t const Hi = (Value + 0x800) & 0xFFFFF000;
+      uint32_t const RawInstr = *(little32_t *)FixupPtr;
       *(little32_t *)FixupPtr = (RawInstr & 0xFFF) | static_cast<uint32_t>(Hi);
       break;
     }
     case R_RISCV_LO12_I: {
-      int64_t Value = E.getTarget().getAddress() + E.getAddend();
-      int32_t Lo = Value & 0xFFF;
-      uint32_t RawInstr = *(little32_t *)FixupPtr;
+      int64_t const Value = E.getTarget().getAddress() + E.getAddend();
+      int32_t const Lo = Value & 0xFFF;
+      uint32_t const RawInstr = *(little32_t *)FixupPtr;
       *(little32_t *)FixupPtr =
           (RawInstr & 0xFFFFF) | (static_cast<uint32_t>(Lo & 0xFFF) << 20);
       break;
     }
     case R_RISCV_CALL: {
-      int64_t Value = E.getTarget().getAddress() + E.getAddend() - FixupAddress;
-      int32_t Hi = (Value + 0x800) & 0xFFFFF000;
-      int32_t Lo = Value & 0xFFF;
-      uint32_t RawInstrAuipc = *(little32_t *)FixupPtr;
-      uint32_t RawInstrJalr = *(little32_t *)(FixupPtr + 4);
+      int64_t const Value = E.getTarget().getAddress() + E.getAddend() - FixupAddress;
+      int32_t const Hi = (Value + 0x800) & 0xFFFFF000;
+      int32_t const Lo = Value & 0xFFF;
+      uint32_t const RawInstrAuipc = *(little32_t *)FixupPtr;
+      uint32_t const RawInstrJalr = *(little32_t *)(FixupPtr + 4);
       *(little32_t *)FixupPtr = RawInstrAuipc | static_cast<uint32_t>(Hi);
       *(little32_t *)(FixupPtr + 4) =
           RawInstrJalr | (static_cast<uint32_t>(Lo) << 20);
       break;
     }
     case R_RISCV_PCREL_HI20: {
-      int64_t Value = E.getTarget().getAddress() + E.getAddend() - FixupAddress;
-      int32_t Hi = (Value + 0x800) & 0xFFFFF000;
-      uint32_t RawInstr = *(little32_t *)FixupPtr;
+      int64_t const Value = E.getTarget().getAddress() + E.getAddend() - FixupAddress;
+      int32_t const Hi = (Value + 0x800) & 0xFFFFF000;
+      uint32_t const RawInstr = *(little32_t *)FixupPtr;
       *(little32_t *)FixupPtr = (RawInstr & 0xFFF) | static_cast<uint32_t>(Hi);
       break;
     }
@@ -115,22 +115,22 @@ private:
       auto RelHI20 = getRISCVPCRelHi20(E);
       if (!RelHI20)
         return RelHI20.takeError();
-      int64_t Value = RelHI20->getTarget().getAddress() +
+      int64_t const Value = RelHI20->getTarget().getAddress() +
                       RelHI20->getAddend() - E.getTarget().getAddress();
-      int64_t Lo = Value & 0xFFF;
-      uint32_t RawInstr = *(little32_t *)FixupPtr;
+      int64_t const Lo = Value & 0xFFF;
+      uint32_t const RawInstr = *(little32_t *)FixupPtr;
       *(little32_t *)FixupPtr =
           (RawInstr & 0xFFFFF) | (static_cast<uint32_t>(Lo & 0xFFF) << 20);
       break;
     }
     case R_RISCV_PCREL_LO12_S: {
       auto RelHI20 = getRISCVPCRelHi20(E);
-      int64_t Value = RelHI20->getTarget().getAddress() +
+      int64_t const Value = RelHI20->getTarget().getAddress() +
                       RelHI20->getAddend() - E.getTarget().getAddress();
-      int64_t Lo = Value & 0xFFF;
-      uint32_t Imm31_25 = extractBits(Lo, 11, 5) << 25;
-      uint32_t Imm11_7 = extractBits(Lo, 4, 0) << 7;
-      uint32_t RawInstr = *(little32_t *)FixupPtr;
+      int64_t const Lo = Value & 0xFFF;
+      uint32_t const Imm31_25 = extractBits(Lo, 11, 5) << 25;
+      uint32_t const Imm11_7 = extractBits(Lo, 4, 0) << 7;
+      uint32_t const RawInstr = *(little32_t *)FixupPtr;
 
       *(little32_t *)FixupPtr = (RawInstr & 0x1FFF07F) | Imm31_25 | Imm11_7;
       break;
@@ -241,8 +241,8 @@ private:
                   std::to_string(Base::GraphSymbols.size()),
               llvm::inconvertibleErrorCode());
         }
-        int64_t Addend = Rela.r_addend;
-        JITTargetAddress FixupAddress =
+        int64_t const Addend = Rela.r_addend;
+        JITTargetAddress const FixupAddress =
             (*UpdateSection)->sh_addr + Rela.r_offset;
 
         LLVM_DEBUG({

@@ -32,7 +32,7 @@ void TrigramIndex::insert(const std::string &Regex) {
   unsigned Tri = 0;
   unsigned Len = 0;
   bool Escaped = false;
-  for (unsigned Char : Regex) {
+  for (unsigned const Char : Regex) {
     if (!Escaped) {
       // Regular expressions allow escaping symbols by preceding it with '\'.
       if (Char == '\\') {
@@ -94,7 +94,7 @@ bool TrigramIndex::isDefinitelyOut(StringRef Query) const {
     const auto &II = Index.find(Tri);
     if (II == Index.end())
       continue;
-    for (size_t J : II->second) {
+    for (size_t const J : II->second) {
       CurCounts[J]++;
       // If we have reached a desired limit, we have to look at the query
       // more closely by running a full regex.

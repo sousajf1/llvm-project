@@ -219,7 +219,7 @@ void MCWinCOFFStreamer::EmitCOFFSectionIndex(const MCSymbol *Symbol) {
   visitUsedSymbol(*Symbol);
   MCDataFragment *DF = getOrCreateDataFragment();
   const MCSymbolRefExpr *SRE = MCSymbolRefExpr::create(Symbol, getContext());
-  MCFixup Fixup = MCFixup::create(DF->getContents().size(), SRE, FK_SecRel_2);
+  MCFixup const Fixup = MCFixup::create(DF->getContents().size(), SRE, FK_SecRel_2);
   DF->getFixups().push_back(Fixup);
   DF->getContents().resize(DF->getContents().size() + 2, 0);
 }
@@ -235,7 +235,7 @@ void MCWinCOFFStreamer::EmitCOFFSecRel32(const MCSymbol *Symbol,
     MCE = MCBinaryExpr::createAdd(
         MCE, MCConstantExpr::create(Offset, getContext()), getContext());
   // Build the secrel32 relocation.
-  MCFixup Fixup = MCFixup::create(DF->getContents().size(), MCE, FK_SecRel_4);
+  MCFixup const Fixup = MCFixup::create(DF->getContents().size(), MCE, FK_SecRel_4);
   // Record the relocation.
   DF->getFixups().push_back(Fixup);
   // Emit 4 bytes (zeros) to the object file.
@@ -254,7 +254,7 @@ void MCWinCOFFStreamer::EmitCOFFImgRel32(const MCSymbol *Symbol,
     MCE = MCBinaryExpr::createAdd(
         MCE, MCConstantExpr::create(Offset, getContext()), getContext());
   // Build the imgrel relocation.
-  MCFixup Fixup = MCFixup::create(DF->getContents().size(), MCE, FK_Data_4);
+  MCFixup const Fixup = MCFixup::create(DF->getContents().size(), MCE, FK_Data_4);
   // Record the relocation.
   DF->getFixups().push_back(Fixup);
   // Emit 4 bytes (zeros) to the object file.

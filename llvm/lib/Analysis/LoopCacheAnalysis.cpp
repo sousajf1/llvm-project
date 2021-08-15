@@ -156,7 +156,7 @@ Optional<bool> IndexedReference::hasSpacialReuse(const IndexedReference &Other,
     return false;
   }
 
-  unsigned NumSubscripts = getNumSubscripts();
+  unsigned const NumSubscripts = getNumSubscripts();
   if (NumSubscripts != Other.getNumSubscripts()) {
     LLVM_DEBUG(dbgs().indent(2)
                << "No spacial reuse: different number of subscripts\n");
@@ -229,8 +229,8 @@ Optional<bool> IndexedReference::hasTemporalReuse(const IndexedReference &Other,
   // Check the dependence distance at every loop level. There is temporal reuse
   // if the distance at the given loop's depth is small (|d| <= MaxDistance) and
   // it is zero at every other loop level.
-  int LoopDepth = L.getLoopDepth();
-  int Levels = D->getLevels();
+  int const LoopDepth = L.getLoopDepth();
+  int const Levels = D->getLevels();
   for (int Level = 1; Level <= Levels; ++Level) {
     const SCEV *Distance = D->getDistance(Level);
     const SCEVConstant *SCEVConst = dyn_cast_or_null<SCEVConstant>(Distance);
@@ -395,7 +395,7 @@ bool IndexedReference::isLoopInvariant(const Loop &L) const {
 
   // The indexed reference is loop invariant if none of the coefficients use
   // the loop induction variable.
-  bool allCoeffForLoopAreZero = all_of(Subscripts, [&](const SCEV *Subscript) {
+  bool const allCoeffForLoopAreZero = all_of(Subscripts, [&](const SCEV *Subscript) {
     return isCoeffForLoopZeroOrInvariant(*Subscript, L);
   });
 
@@ -527,7 +527,7 @@ void CacheCost::calculateCacheFootprint() {
                            return LCC.first == L;
                          }) == LoopCosts.end()) &&
            "Should not add duplicate element");
-    CacheCostTy LoopCost = computeLoopCacheCost(*L, RefGroups);
+    CacheCostTy const LoopCost = computeLoopCacheCost(*L, RefGroups);
     LoopCosts.push_back(std::make_pair(L, LoopCost));
   }
 
@@ -538,7 +538,7 @@ void CacheCost::calculateCacheFootprint() {
 bool CacheCost::populateReferenceGroups(ReferenceGroupsTy &RefGroups) const {
   assert(RefGroups.empty() && "Reference groups should be empty");
 
-  unsigned CLS = TTI.getCacheLineSize();
+  unsigned const CLS = TTI.getCacheLineSize();
   Loop *InnerMostLoop = getInnerMostLoop(Loops);
   assert(InnerMostLoop != nullptr && "Expecting a valid innermost loop");
 
@@ -630,7 +630,7 @@ CacheCost::computeLoopCacheCost(const Loop &L,
 
   CacheCostTy LoopCost = 0;
   for (const ReferenceGroupTy &RG : RefGroups) {
-    CacheCostTy RefGroupCost = computeRefGroupCacheCost(RG, L);
+    CacheCostTy const RefGroupCost = computeRefGroupCacheCost(RG, L);
     LoopCost += RefGroupCost * TripCountsProduct;
   }
 

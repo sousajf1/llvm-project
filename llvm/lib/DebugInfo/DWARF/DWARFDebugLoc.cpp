@@ -110,7 +110,7 @@ static void dumpExpression(raw_ostream &OS, DIDumpOptions DumpOpts,
                            ArrayRef<uint8_t> Data, bool IsLittleEndian,
                            unsigned AddressSize, const MCRegisterInfo *MRI,
                            DWARFUnit *U) {
-  DWARFDataExtractor Extractor(Data, IsLittleEndian, AddressSize);
+  DWARFDataExtractor const Extractor(Data, IsLittleEndian, AddressSize);
   // Note. We do not pass any format to DWARFExpression, even if the
   // corresponding unit is known. For now, there is only one operation,
   // DW_OP_call_ref, which depends on the format; it is rarely used, and
@@ -186,7 +186,7 @@ void DWARFDebugLoc::dump(raw_ostream &OS, const MCRegisterInfo *MRI,
                          const DWARFObject &Obj, DIDumpOptions DumpOpts,
                          Optional<uint64_t> DumpOffset) const {
   auto BaseAddr = None;
-  unsigned Indent = 12;
+  unsigned const Indent = 12;
   if (DumpOffset) {
     dumpLocationList(&*DumpOffset, OS, BaseAddr, MRI, Obj, nullptr, DumpOpts,
                      Indent);
@@ -211,8 +211,8 @@ Error DWARFDebugLoc::visitLocationList(
   DataExtractor::Cursor C(*Offset);
   while (true) {
     uint64_t SectionIndex;
-    uint64_t Value0 = Data.getRelocatedAddress(C);
-    uint64_t Value1 = Data.getRelocatedAddress(C, &SectionIndex);
+    uint64_t const Value0 = Data.getRelocatedAddress(C);
+    uint64_t const Value1 = Data.getRelocatedAddress(C, &SectionIndex);
 
     DWARFLocationEntry E;
 
@@ -231,7 +231,7 @@ Error DWARFDebugLoc::visitLocationList(
       E.Value0 = Value0;
       E.Value1 = Value1;
       E.SectionIndex = SectionIndex;
-      unsigned Bytes = Data.getU16(C);
+      unsigned const Bytes = Data.getU16(C);
       // A single location description describing the location of the object...
       Data.getU8(C, E.Loc, Bytes);
     }
@@ -325,7 +325,7 @@ Error DWARFDebugLoclists::visitLocationList(
     if (E.Kind != dwarf::DW_LLE_base_address &&
         E.Kind != dwarf::DW_LLE_base_addressx &&
         E.Kind != dwarf::DW_LLE_end_of_list) {
-      unsigned Bytes = Version >= 5 ? Data.getULEB128(C) : Data.getU16(C);
+      unsigned const Bytes = Version >= 5 ? Data.getULEB128(C) : Data.getU16(C);
       // A single location description describing the location of the object...
       Data.getU8(C, E.Loc, Bytes);
     }
@@ -350,11 +350,11 @@ void DWARFDebugLoclists::dumpRawEntry(const DWARFLocationEntry &Entry,
 
   OS << "\n";
   OS.indent(Indent);
-  StringRef EncodingString = dwarf::LocListEncodingString(Entry.Kind);
+  StringRef const EncodingString = dwarf::LocListEncodingString(Entry.Kind);
   // Unsupported encodings should have been reported during parsing.
   assert(!EncodingString.empty() && "Unknown loclist entry encoding");
   OS << format("%-*s(", MaxEncodingStringLength, EncodingString.data());
-  unsigned FieldSize = 2 + 2 * Data.getAddressSize();
+  unsigned const FieldSize = 2 + 2 * Data.getAddressSize();
   switch (Entry.Kind) {
   case dwarf::DW_LLE_end_of_list:
   case dwarf::DW_LLE_default_location:

@@ -124,13 +124,13 @@ NodeList Liveness::getAllReachingDefs(RegisterRef RefRR,
   // The initial queue should not have reaching defs for shadows. The
   // whole point of a shadow is that it will have a reaching def that
   // is not aliased to the reaching defs of the related shadows.
-  NodeId Start = RefA.Id;
+  NodeId const Start = RefA.Id;
   auto SNA = DFG.addr<RefNode*>(Start);
-  if (NodeId RD = SNA.Addr->getReachingDef())
+  if (NodeId const RD = SNA.Addr->getReachingDef())
     DefQ.insert(RD);
   if (TopShadows) {
     for (auto S : DFG.getRelatedRefs(RefA.Addr->getOwner(DFG), RefA))
-      if (NodeId RD = NodeAddr<RefNode*>(S).Addr->getReachingDef())
+      if (NodeId const RD = NodeAddr<RefNode*>(S).Addr->getReachingDef())
         DefQ.insert(RD);
   }
 
@@ -145,14 +145,14 @@ NodeList Liveness::getAllReachingDefs(RegisterRef RefRR,
     if (TA.Addr->getFlags() & NodeAttrs::PhiRef)
       continue;
     // Stop at the covering/overwriting def of the initial register reference.
-    RegisterRef RR = TA.Addr->getRegRef(DFG);
+    RegisterRef const RR = TA.Addr->getRegRef(DFG);
     if (!DFG.IsPreservingDef(TA))
       if (RegisterAggr::isCoverOf(RR, RefRR, PRI))
         continue;
     // Get the next level of reaching defs. This will include multiple
     // reaching defs for shadows.
     for (auto S : DFG.getRelatedRefs(TA.Addr->getOwner(DFG), TA))
-      if (NodeId RD = NodeAddr<RefNode*>(S).Addr->getReachingDef())
+      if (NodeId const RD = NodeAddr<RefNode*>(S).Addr->getReachingDef())
         DefQ.insert(RD);
     // Don't visit sibling defs. They share the same reaching def (which
     // will be visited anyway), but they define something not aliased to
@@ -165,7 +165,7 @@ NodeList Liveness::getAllReachingDefs(RegisterRef RefRR,
       return NodeAddr<StmtNode*>(IA).Addr->getCode()->getParent();
     assert(IA.Addr->getKind() == NodeAttrs::Phi);
     NodeAddr<PhiNode*> PA = IA;
-    NodeAddr<BlockNode*> BA = PA.Addr->getOwner(DFG);
+    NodeAddr<BlockNode*> const BA = PA.Addr->getOwner(DFG);
     return BA.Addr->getCode();
   };
 
@@ -175,13 +175,13 @@ NodeList Liveness::getAllReachingDefs(RegisterRef RefRR,
   // the the remaining defs into buckets for containing blocks.
   std::map<NodeId, NodeAddr<InstrNode*>> Owners;
   std::map<MachineBasicBlock*, SmallVector<NodeId,32>> Blocks;
-  for (NodeId N : DefQ) {
+  for (NodeId const N : DefQ) {
     auto TA = DFG.addr<DefNode*>(N);
-    bool IsPhi = TA.Addr->getFlags() & NodeAttrs::PhiRef;
+    bool const IsPhi = TA.Addr->getFlags() & NodeAttrs::PhiRef;
     if (!IsPhi && !PRI.alias(RefRR, TA.Addr->getRegRef(DFG)))
       continue;
     Defs.insert(TA.Id);
-    NodeAddr<InstrNode*> IA = TA.Addr->getOwner(DFG);
+    NodeAddr<InstrNode*> const IA = TA.Addr->getOwner(DFG);
     Owners[TA.Id] = IA;
     Blocks[Block(IA)].push_back(IA.Id);
   }
@@ -189,10 +189,10 @@ NodeList Liveness::getAllReachingDefs(RegisterRef RefRR,
   auto Precedes = [this,&OrdMap] (NodeId A, NodeId B) {
     if (A == B)
       return false;
-    NodeAddr<InstrNode*> OA = DFG.addr<InstrNode*>(A);
-    NodeAddr<InstrNode*> OB = DFG.addr<InstrNode*>(B);
-    bool StmtA = OA.Addr->getKind() == NodeAttrs::Stmt;
-    bool StmtB = OB.Addr->getKind() == NodeAttrs::Stmt;
+    NodeAddr<InstrNode*> const OA = DFG.addr<InstrNode*>(A);
+    NodeAddr<InstrNode*> const OB = DFG.addr<InstrNode*>(B);
+    bool const StmtA = OA.Addr->getKind() == NodeAttrs::Stmt;
+    bool const StmtB = OB.Addr->getKind() == NodeAttrs::Stmt;
     if (StmtA && StmtB) {
       const MachineInstr *InA = NodeAddr<StmtNode*>(OA).Addr->getCode();
       const MachineInstr *InB = NodeAddr<StmtNode*>(OB).Addr->getCode();
@@ -267,14 +267,14 @@ NodeList Liveness::getAllReachingDefs(RegisterRef RefRR,
            Defs.count(TA.Id);
   };
 
-  for (NodeId T : TmpInst) {
+  for (NodeId const T : TmpInst) {
     if (!FullChain && RRs.hasCoverOf(RefRR))
       break;
     auto TA = DFG.addr<InstrNode*>(T);
-    bool IsPhi = DFG.IsCode<NodeAttrs::Phi>(TA);
+    bool const IsPhi = DFG.IsCode<NodeAttrs::Phi>(TA);
     NodeList Ds;
-    for (NodeAddr<DefNode*> DA : TA.Addr->members_if(DefInSet, DFG)) {
-      RegisterRef QR = DA.Addr->getRegRef(DFG);
+    for (NodeAddr<DefNode*> const DA : TA.Addr->members_if(DefInSet, DFG)) {
+      RegisterRef const QR = DA.Addr->getRegRef(DFG);
       // Add phi defs even if they are covered by subsequent defs. This is
       // for cases where the reached use is not covered by any of the defs
       // encountered so far: the phi def is needed to expose the liveness
@@ -287,10 +287,10 @@ NodeList Liveness::getAllReachingDefs(RegisterRef RefRR,
         Ds.push_back(DA);
     }
     llvm::append_range(RDefs, Ds);
-    for (NodeAddr<DefNode*> DA : Ds) {
+    for (NodeAddr<DefNode*> const DA : Ds) {
       // When collecting a full chain of definitions, do not consider phi
       // defs to actually define a register.
-      uint16_t Flags = DA.Addr->getFlags();
+      uint16_t const Flags = DA.Addr->getFlags();
       if (!FullChain || !(Flags & NodeAttrs::PhiRef))
         if (!(Flags & NodeAttrs::Preserving)) // Don't care about Undef here.
           RRs.insert(DA.Addr->getRegRef(DFG));
@@ -319,19 +319,19 @@ Liveness::getAllReachingDefsRecImpl(RegisterRef RefRR, NodeAddr<RefNode*> RefA,
   // Collect all defined registers. Do not consider phis to be defining
   // anything, only collect "real" definitions.
   RegisterAggr DefRRs(PRI);
-  for (NodeId D : Defs) {
+  for (NodeId const D : Defs) {
     const auto DA = DFG.addr<const DefNode*>(D);
     if (!(DA.Addr->getFlags() & NodeAttrs::PhiRef))
       DefRRs.insert(DA.Addr->getRegRef(DFG));
   }
 
-  NodeList RDs = getAllReachingDefs(RefRR, RefA, false, true, DefRRs);
+  NodeList const RDs = getAllReachingDefs(RefRR, RefA, false, true, DefRRs);
   if (RDs.empty())
     return { Defs, true };
 
   // Make a copy of the preexisting definitions and add the newly found ones.
   NodeSet TmpDefs = Defs;
-  for (NodeAddr<NodeBase*> R : RDs)
+  for (NodeAddr<NodeBase*> const R : RDs)
     TmpDefs.insert(R.Id);
 
   NodeSet Result = Defs;
@@ -340,7 +340,7 @@ Liveness::getAllReachingDefsRecImpl(RegisterRef RefRR, NodeAddr<RefNode*> RefA,
     Result.insert(DA.Id);
     if (!(DA.Addr->getFlags() & NodeAttrs::PhiRef))
       continue;
-    NodeAddr<PhiNode*> PA = DA.Addr->getOwner(DFG);
+    NodeAddr<PhiNode*> const PA = DA.Addr->getOwner(DFG);
     if (Visited.count(PA.Id))
       continue;
     Visited.insert(PA.Id);
@@ -363,7 +363,7 @@ NodeAddr<RefNode*> Liveness::getNearestAliasedRef(RegisterRef RefRR,
       NodeAddr<InstrNode*> IA) {
   NodeAddr<BlockNode*> BA = IA.Addr->getOwner(DFG);
   NodeList Ins = BA.Addr->members(DFG);
-  NodeId FindId = IA.Id;
+  NodeId const FindId = IA.Id;
   auto E = Ins.rend();
   auto B = std::find_if(Ins.rbegin(), E,
                         [FindId] (const NodeAddr<InstrNode*> T) {
@@ -375,8 +375,8 @@ NodeAddr<RefNode*> Liveness::getNearestAliasedRef(RegisterRef RefRR,
 
   do {
     // Process the range of instructions from B to E.
-    for (NodeAddr<InstrNode*> I : make_range(B, E)) {
-      NodeList Refs = I.Addr->members(DFG);
+    for (NodeAddr<InstrNode*> const I : make_range(B, E)) {
+      NodeList const Refs = I.Addr->members(DFG);
       NodeAddr<RefNode*> Clob, Use;
       // Scan all the refs in I aliased to RefRR, and return the one that
       // is the closest to the output of I, i.e. def > clobber > use.
@@ -427,12 +427,12 @@ NodeSet Liveness::getAllReachedUses(RegisterRef RefRR,
 
   // Add all directly reached uses.
   // If the def is dead, it does not provide a value for any use.
-  bool IsDead = DefA.Addr->getFlags() & NodeAttrs::Dead;
+  bool const IsDead = DefA.Addr->getFlags() & NodeAttrs::Dead;
   NodeId U = !IsDead ? DefA.Addr->getReachedUse() : 0;
   while (U != 0) {
     auto UA = DFG.addr<UseNode*>(U);
     if (!(UA.Addr->getFlags() & NodeAttrs::Undef)) {
-      RegisterRef UR = UA.Addr->getRegRef(DFG);
+      RegisterRef const UR = UA.Addr->getRegRef(DFG);
       if (PRI.alias(RefRR, UR) && !DefRRs.hasCoverOf(UR))
         Uses.insert(U);
     }
@@ -443,7 +443,7 @@ NodeSet Liveness::getAllReachedUses(RegisterRef RefRR,
   for (NodeId D = DefA.Addr->getReachedDef(), NextD; D != 0; D = NextD) {
     auto DA = DFG.addr<DefNode*>(D);
     NextD = DA.Addr->getSibling();
-    RegisterRef DR = DA.Addr->getRegRef(DFG);
+    RegisterRef const DR = DA.Addr->getRegRef(DFG);
     // If this def is already covered, it cannot reach anything new.
     // Similarly, skip it if it is not aliased to the interesting register.
     if (DefRRs.hasCoverOf(DR) || !PRI.alias(RefRR, DR))
@@ -466,9 +466,9 @@ void Liveness::computePhiInfo() {
   RealUseMap.clear();
 
   NodeList Phis;
-  NodeAddr<FuncNode*> FA = DFG.getFunc();
-  NodeList Blocks = FA.Addr->members(DFG);
-  for (NodeAddr<BlockNode*> BA : Blocks) {
+  NodeAddr<FuncNode*> const FA = DFG.getFunc();
+  NodeList const Blocks = FA.Addr->members(DFG);
+  for (NodeAddr<BlockNode*> const BA : Blocks) {
     auto Ps = BA.Addr->members_if(DFG.IsCode<NodeAttrs::Phi>, DFG);
     llvm::append_range(Phis, Ps);
   }
@@ -479,18 +479,18 @@ void Liveness::computePhiInfo() {
   std::unordered_map<NodeId,RegisterAggr> PhiDRs;  // Phi -> registers defined by it.
 
   // Go over all phis.
-  for (NodeAddr<PhiNode*> PhiA : Phis) {
+  for (NodeAddr<PhiNode*> const PhiA : Phis) {
     // Go over all defs and collect the reached uses that are non-phi uses
     // (i.e. the "real uses").
     RefMap &RealUses = RealUseMap[PhiA.Id];
-    NodeList PhiRefs = PhiA.Addr->members(DFG);
+    NodeList const PhiRefs = PhiA.Addr->members(DFG);
 
     // Have a work queue of defs whose reached uses need to be found.
     // For each def, add to the queue all reached (non-phi) defs.
     SetVector<NodeId> DefQ;
     NodeSet PhiDefs;
     RegisterAggr DRs(PRI);
-    for (NodeAddr<RefNode*> R : PhiRefs) {
+    for (NodeAddr<RefNode*> const R : PhiRefs) {
       if (!DFG.IsRef<NodeAttrs::Def>(R))
         continue;
       DRs.insert(R.Addr->getRegRef(DFG));
@@ -505,16 +505,16 @@ void Liveness::computePhiInfo() {
     // This set of uses will later be trimmed to only contain these uses that
     // are actually reached by the phi defs.
     for (unsigned i = 0; i < DefQ.size(); ++i) {
-      NodeAddr<DefNode*> DA = DFG.addr<DefNode*>(DefQ[i]);
+      NodeAddr<DefNode*> const DA = DFG.addr<DefNode*>(DefQ[i]);
       // Visit all reached uses. Phi defs should not really have the "dead"
       // flag set, but check it anyway for consistency.
-      bool IsDead = DA.Addr->getFlags() & NodeAttrs::Dead;
+      bool const IsDead = DA.Addr->getFlags() & NodeAttrs::Dead;
       NodeId UN = !IsDead ? DA.Addr->getReachedUse() : 0;
       while (UN != 0) {
-        NodeAddr<UseNode*> A = DFG.addr<UseNode*>(UN);
-        uint16_t F = A.Addr->getFlags();
+        NodeAddr<UseNode*> const A = DFG.addr<UseNode*>(UN);
+        uint16_t const F = A.Addr->getFlags();
         if ((F & (NodeAttrs::Undef | NodeAttrs::PhiRef)) == 0) {
-          RegisterRef R = A.Addr->getRegRef(DFG);
+          RegisterRef const R = A.Addr->getRegRef(DFG);
           RealUses[R.Reg].insert({A.Id,R.Mask});
         }
         UN = A.Addr->getSibling();
@@ -526,7 +526,7 @@ void Liveness::computePhiInfo() {
       while (DN != 0) {
         NodeAddr<DefNode*> A = DFG.addr<DefNode*>(DN);
         for (auto T : DFG.getRelatedRefs(A.Addr->getOwner(DFG), A)) {
-          uint16_t Flags = NodeAddr<DefNode*>(T).Addr->getFlags();
+          uint16_t const Flags = NodeAddr<DefNode*>(T).Addr->getFlags();
           // Must traverse the reached-def chain. Consider:
           //   def(D0) -> def(R0) -> def(R0) -> use(D0)
           // The reachable use of D0 passes through a def of R0.
@@ -553,24 +553,24 @@ void Liveness::computePhiInfo() {
       // uses of it. For each such use, check if it is reached by this phi,
       // i.e. check if the set of its reaching uses intersects the set of
       // this phi's defs.
-      NodeRefSet Uses = UI->second;
+      NodeRefSet const Uses = UI->second;
       UI->second.clear();
-      for (std::pair<NodeId,LaneBitmask> I : Uses) {
+      for (std::pair<NodeId,LaneBitmask> const I : Uses) {
         auto UA = DFG.addr<UseNode*>(I.first);
         // Undef flag is checked above.
         assert((UA.Addr->getFlags() & NodeAttrs::Undef) == 0);
-        RegisterRef R(UI->first, I.second);
+        RegisterRef const R(UI->first, I.second);
         // Calculate the exposed part of the reached use.
         RegisterAggr Covered(PRI);
-        for (NodeAddr<DefNode*> DA : getAllReachingDefs(R, UA)) {
+        for (NodeAddr<DefNode*> const DA : getAllReachingDefs(R, UA)) {
           if (PhiDefs.count(DA.Id))
             break;
           Covered.insert(DA.Addr->getRegRef(DFG));
         }
-        if (RegisterRef RC = Covered.clearIn(R)) {
+        if (RegisterRef const RC = Covered.clearIn(R)) {
           // We are updating the map for register UI->first, so we need
           // to map RC to be expressed in terms of that register.
-          RegisterRef S = PRI.mapTo(RC, UI->first);
+          RegisterRef const S = PRI.mapTo(RC, UI->first);
           UI->second.insert({I.first, S.Mask});
         }
       }
@@ -592,17 +592,17 @@ void Liveness::computePhiInfo() {
     for (auto I : PhiRefs) {
       if (!DFG.IsRef<NodeAttrs::Use>(I) || SeenUses.count(I.Id))
         continue;
-      NodeAddr<PhiUseNode*> PUA = I;
+      NodeAddr<PhiUseNode*> const PUA = I;
       if (PUA.Addr->getReachingDef() == 0)
         continue;
 
-      RegisterRef UR = PUA.Addr->getRegRef(DFG);
-      NodeList Ds = getAllReachingDefs(UR, PUA, true, false, NoRegs);
+      RegisterRef const UR = PUA.Addr->getRegRef(DFG);
+      NodeList const Ds = getAllReachingDefs(UR, PUA, true, false, NoRegs);
       RegisterAggr DefRRs(PRI);
 
       for (NodeAddr<DefNode*> D : Ds) {
         if (D.Addr->getFlags() & NodeAttrs::PhiRef) {
-          NodeId RP = D.Addr->getOwner(DFG).Id;
+          NodeId const RP = D.Addr->getOwner(DFG).Id;
           std::map<NodeId,RegisterAggr> &M = PhiUp[PUA.Id];
           auto F = M.find(RP);
           if (F == M.end())
@@ -613,7 +613,7 @@ void Liveness::computePhiInfo() {
         DefRRs.insert(D.Addr->getRegRef(DFG));
       }
 
-      for (NodeAddr<PhiUseNode*> T : DFG.getRelatedRefs(PhiA, PUA))
+      for (NodeAddr<PhiUseNode*> const T : DFG.getRelatedRefs(PhiA, PUA))
         SeenUses.insert(T.Id);
     }
   }
@@ -671,12 +671,12 @@ void Liveness::computePhiInfo() {
   // Go over all phis.
   for (unsigned i = 0; i < PhiUQ.size(); ++i) {
     auto PA = DFG.addr<PhiNode*>(PhiUQ[i]);
-    NodeList PUs = PA.Addr->members_if(DFG.IsRef<NodeAttrs::Use>, DFG);
-    RefMap &RUM = RealUseMap[PA.Id];
+    NodeList const PUs = PA.Addr->members_if(DFG.IsRef<NodeAttrs::Use>, DFG);
+    RefMap  const&RUM = RealUseMap[PA.Id];
 
-    for (NodeAddr<UseNode*> UA : PUs) {
-      std::map<NodeId,RegisterAggr> &PUM = PhiUp[UA.Id];
-      RegisterRef UR = UA.Addr->getRegRef(DFG);
+    for (NodeAddr<UseNode*> const UA : PUs) {
+      std::map<NodeId,RegisterAggr>  const&PUM = PhiUp[UA.Id];
+      RegisterRef const UR = UA.Addr->getRegRef(DFG);
       for (const std::pair<const NodeId, RegisterAggr> &P : PUM) {
         bool Changed = false;
         const RegisterAggr &MidDefs = P.second;
@@ -702,11 +702,11 @@ void Liveness::computePhiInfo() {
           if (!DRs.hasAliasOf(R))
             continue;
           R = PRI.mapTo(DRs.intersectWith(R), T.first);
-          for (std::pair<NodeId,LaneBitmask> V : T.second) {
-            LaneBitmask M = R.Mask & V.second;
+          for (std::pair<NodeId,LaneBitmask> const V : T.second) {
+            LaneBitmask const M = R.Mask & V.second;
             if (M.none())
               continue;
-            if (RegisterRef SS = ClearIn(RegisterRef(R.Reg, M), MidDefs, SM)) {
+            if (RegisterRef const SS = ClearIn(RegisterRef(R.Reg, M), MidDefs, SM)) {
               NodeRefSet &RS = RealUseMap[P.first][SS.Reg];
               Changed |= RS.insert({V.first,SS.Mask}).second;
             }
@@ -723,10 +723,10 @@ void Liveness::computePhiInfo() {
     dbgs() << "Real use map:\n";
     for (auto I : RealUseMap) {
       dbgs() << "phi " << Print<NodeId>(I.first, DFG);
-      NodeAddr<PhiNode*> PA = DFG.addr<PhiNode*>(I.first);
+      NodeAddr<PhiNode*> const PA = DFG.addr<PhiNode*>(I.first);
       NodeList Ds = PA.Addr->members_if(DFG.IsRef<NodeAttrs::Def>, DFG);
       if (!Ds.empty()) {
-        RegisterRef RR = NodeAddr<DefNode*>(Ds[0]).Addr->getRegRef(DFG);
+        RegisterRef const RR = NodeAddr<DefNode*>(Ds[0]).Addr->getRegRef(DFG);
         dbgs() << '<' << Print<RegisterRef>(RR, DFG) << '>';
       } else {
         dbgs() << "<noreg>";
@@ -740,10 +740,10 @@ void Liveness::computeLiveIns() {
   // Populate the node-to-block map. This speeds up the calculations
   // significantly.
   NBMap.clear();
-  for (NodeAddr<BlockNode*> BA : DFG.getFunc().Addr->members(DFG)) {
+  for (NodeAddr<BlockNode*> const BA : DFG.getFunc().Addr->members(DFG)) {
     MachineBasicBlock *BB = BA.Addr->getCode();
-    for (NodeAddr<InstrNode*> IA : BA.Addr->members(DFG)) {
-      for (NodeAddr<RefNode*> RA : IA.Addr->members(DFG))
+    for (NodeAddr<InstrNode*> const IA : BA.Addr->members(DFG)) {
+      for (NodeAddr<RefNode*> const RA : IA.Addr->members(DFG))
         NBMap.insert(std::make_pair(RA.Id, BB));
       NBMap.insert(std::make_pair(IA.Id, BB));
     }
@@ -774,11 +774,11 @@ void Liveness::computeLiveIns() {
 
   computePhiInfo();
 
-  NodeAddr<FuncNode*> FA = DFG.getFunc();
-  NodeList Blocks = FA.Addr->members(DFG);
+  NodeAddr<FuncNode*> const FA = DFG.getFunc();
+  NodeList const Blocks = FA.Addr->members(DFG);
 
   // Build the phi live-on-entry map.
-  for (NodeAddr<BlockNode*> BA : Blocks) {
+  for (NodeAddr<BlockNode*> const BA : Blocks) {
     MachineBasicBlock *MB = BA.Addr->getCode();
     RefMap &LON = PhiLON[MB];
     for (auto P : BA.Addr->members_if(DFG.IsCode<NodeAttrs::Phi>, DFG))
@@ -796,10 +796,10 @@ void Liveness::computeLiveIns() {
   // Build the phi live-on-exit map. Each phi node has some set of reached
   // "real" uses. Propagate this set backwards into the block predecessors
   // through the reaching defs of the corresponding phi uses.
-  for (NodeAddr<BlockNode*> BA : Blocks) {
-    NodeList Phis = BA.Addr->members_if(DFG.IsCode<NodeAttrs::Phi>, DFG);
-    for (NodeAddr<PhiNode*> PA : Phis) {
-      RefMap &RUs = RealUseMap[PA.Id];
+  for (NodeAddr<BlockNode*> const BA : Blocks) {
+    NodeList const Phis = BA.Addr->members_if(DFG.IsCode<NodeAttrs::Phi>, DFG);
+    for (NodeAddr<PhiNode*> const PA : Phis) {
+      RefMap  const&RUs = RealUseMap[PA.Id];
       if (RUs.empty())
         continue;
 
@@ -807,7 +807,7 @@ void Liveness::computeLiveIns() {
       for (auto U : PA.Addr->members_if(DFG.IsRef<NodeAttrs::Use>, DFG)) {
         if (!SeenUses.insert(U.Id).second)
           continue;
-        NodeAddr<PhiUseNode*> PUA = U;
+        NodeAddr<PhiUseNode*> const PUA = U;
         if (PUA.Addr->getReachingDef() == 0)
           continue;
 
@@ -827,23 +827,23 @@ void Liveness::computeLiveIns() {
 
         for (const std::pair<const RegisterId, NodeRefSet> &RS : RUs) {
           // We need to visit each individual use.
-          for (std::pair<NodeId,LaneBitmask> P : RS.second) {
+          for (std::pair<NodeId,LaneBitmask> const P : RS.second) {
             // Create a register ref corresponding to the use, and find
             // all reaching defs starting from the phi use, and treating
             // all related shadows as a single use cluster.
-            RegisterRef S(RS.first, P.second);
-            NodeList Ds = getAllReachingDefs(S, PUA, true, false, NoRegs);
-            for (NodeAddr<DefNode*> D : Ds) {
+            RegisterRef const S(RS.first, P.second);
+            NodeList const Ds = getAllReachingDefs(S, PUA, true, false, NoRegs);
+            for (NodeAddr<DefNode*> const D : Ds) {
               // Calculate the mask corresponding to the visited def.
               RegisterAggr TA(PRI);
               TA.insert(D.Addr->getRegRef(DFG)).intersect(S);
-              LaneBitmask TM = TA.makeRegRef().Mask;
+              LaneBitmask const TM = TA.makeRegRef().Mask;
               LOX[S.Reg].insert({D.Id, TM});
             }
           }
         }
 
-        for (NodeAddr<PhiUseNode*> T : DFG.getRelatedRefs(PA, PUA))
+        for (NodeAddr<PhiUseNode*> const T : DFG.getRelatedRefs(PA, PUA))
           SeenUses.insert(T.Id);
       }  // for U : phi uses
     }  // for P : Phis
@@ -918,7 +918,7 @@ void Liveness::resetKills(MachineBasicBlock *B) {
         continue;
       }
       do {
-        LaneBitmask M = TRI.getSubRegIndexLaneMask(S.getSubRegIndex());
+        LaneBitmask const M = TRI.getSubRegIndexLaneMask(S.getSubRegIndex());
         if ((M & I.LaneMask).any())
           LV.set(S.getSubReg());
         ++S;
@@ -943,7 +943,7 @@ void Liveness::resetKills(MachineBasicBlock *B) {
       // implicit defs.
       if (!Op.isReg() || !Op.isDef() || Op.isImplicit())
         continue;
-      Register R = Op.getReg();
+      Register const R = Op.getReg();
       if (!Register::isPhysicalRegister(R))
         continue;
       for (MCSubRegIterator SR(R, &TRI, true); SR.isValid(); ++SR)
@@ -952,7 +952,7 @@ void Liveness::resetKills(MachineBasicBlock *B) {
     for (auto &Op : MI.operands()) {
       if (!Op.isReg() || !Op.isUse() || Op.isUndef())
         continue;
-      Register R = Op.getReg();
+      Register const R = Op.getReg();
       if (!Register::isPhysicalRegister(R))
         continue;
       bool IsLive = false;
@@ -1042,18 +1042,18 @@ void Liveness::traverse(MachineBasicBlock *B, RefMap &LiveIn) {
 
   // To filter out the defs, first make a copy of LiveIn, and then re-populate
   // LiveIn with the defs that should remain.
-  RefMap LiveInCopy = LiveIn;
+  RefMap const LiveInCopy = LiveIn;
   LiveIn.clear();
 
   for (const std::pair<const RegisterId, NodeRefSet> &LE : LiveInCopy) {
     RegisterRef LRef(LE.first);
     NodeRefSet &NewDefs = LiveIn[LRef.Reg]; // To be filled.
     const NodeRefSet &OldDefs = LE.second;
-    for (NodeRef OR : OldDefs) {
+    for (NodeRef const OR : OldDefs) {
       // R is a def node that was live-on-exit
       auto DA = DFG.addr<DefNode*>(OR.first);
       NodeAddr<InstrNode*> IA = DA.Addr->getOwner(DFG);
-      NodeAddr<BlockNode*> BA = IA.Addr->getOwner(DFG);
+      NodeAddr<BlockNode*> const BA = IA.Addr->getOwner(DFG);
       if (B != BA.Addr->getCode()) {
         // Defs from a different block need to be preserved. Defs from this
         // block will need to be processed further, except for phi defs, the
@@ -1087,14 +1087,14 @@ void Liveness::traverse(MachineBasicBlock *B, RefMap &LiveIn) {
       for (NodeAddr<DefNode*> TA : getAllReachingDefs(DA)) {
         // DefNode -> InstrNode -> BlockNode.
         NodeAddr<InstrNode*> ITA = TA.Addr->getOwner(DFG);
-        NodeAddr<BlockNode*> BTA = ITA.Addr->getOwner(DFG);
+        NodeAddr<BlockNode*> const BTA = ITA.Addr->getOwner(DFG);
         // Reaching defs are ordered in the upward direction.
         if (BTA.Addr->getCode() != B) {
           // We have reached past the beginning of B, and the accumulated
           // registers are not covering LRef. The first def from the
           // upward chain will be live.
           // Subtract all accumulated defs (RRs) from LRef.
-          RegisterRef T = RRs.clearIn(LRef);
+          RegisterRef const T = RRs.clearIn(LRef);
           assert(T);
           NewDefs.insert({TA.Id,T.Mask});
           break;
@@ -1121,14 +1121,14 @@ void Liveness::traverse(MachineBasicBlock *B, RefMap &LiveIn) {
 
   // Scan the block for upward-exposed uses and add them to the tracking set.
   for (auto I : DFG.getFunc().Addr->findBlock(B, DFG).Addr->members(DFG)) {
-    NodeAddr<InstrNode*> IA = I;
+    NodeAddr<InstrNode*> const IA = I;
     if (IA.Addr->getKind() != NodeAttrs::Stmt)
       continue;
-    for (NodeAddr<UseNode*> UA : IA.Addr->members_if(DFG.IsUse, DFG)) {
+    for (NodeAddr<UseNode*> const UA : IA.Addr->members_if(DFG.IsUse, DFG)) {
       if (UA.Addr->getFlags() & NodeAttrs::Undef)
         continue;
-      RegisterRef RR = UA.Addr->getRegRef(DFG);
-      for (NodeAddr<DefNode*> D : getAllReachingDefs(UA))
+      RegisterRef const RR = UA.Addr->getRegRef(DFG);
+      for (NodeAddr<DefNode*> const D : getAllReachingDefs(UA))
         if (getBlockWithRef(D.Id) != B)
           LiveIn[RR.Reg].insert({D.Id,RR.Mask});
     }
@@ -1143,7 +1143,7 @@ void Liveness::traverse(MachineBasicBlock *B, RefMap &LiveIn) {
   // Phi uses should not be propagated up the dominator tree, since they
   // are not dominated by their corresponding reaching defs.
   RegisterAggr &Local = LiveMap[B];
-  RefMap &LON = PhiLON[B];
+  RefMap  const&LON = PhiLON[B];
   for (auto &R : LON) {
     LaneBitmask M;
     for (auto P : R.second)

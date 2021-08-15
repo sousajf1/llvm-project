@@ -29,19 +29,19 @@ uint32_t llvm::codeview::getScopeEndOffset(const CVSymbol &Sym) {
   case SymbolKind::S_LPROC32_ID:
   case SymbolKind::S_LPROC32_DPC:
   case SymbolKind::S_LPROC32_DPC_ID: {
-    ProcSym Proc = createRecord<ProcSym>(Sym);
+    ProcSym const Proc = createRecord<ProcSym>(Sym);
     return Proc.End;
   }
   case SymbolKind::S_BLOCK32: {
-    BlockSym Block = createRecord<BlockSym>(Sym);
+    BlockSym const Block = createRecord<BlockSym>(Sym);
     return Block.End;
   }
   case SymbolKind::S_THUNK32: {
-    Thunk32Sym Thunk = createRecord<Thunk32Sym>(Sym);
+    Thunk32Sym const Thunk = createRecord<Thunk32Sym>(Sym);
     return Thunk.End;
   }
   case SymbolKind::S_INLINESITE: {
-    InlineSiteSym Site = createRecord<InlineSiteSym>(Sym);
+    InlineSiteSym const Site = createRecord<InlineSiteSym>(Sym);
     return Site.End;
   }
   default:
@@ -60,19 +60,19 @@ llvm::codeview::getScopeParentOffset(const llvm::codeview::CVSymbol &Sym) {
   case SymbolKind::S_LPROC32_ID:
   case SymbolKind::S_LPROC32_DPC:
   case SymbolKind::S_LPROC32_DPC_ID: {
-    ProcSym Proc = createRecord<ProcSym>(Sym);
+    ProcSym const Proc = createRecord<ProcSym>(Sym);
     return Proc.Parent;
   }
   case SymbolKind::S_BLOCK32: {
-    BlockSym Block = createRecord<BlockSym>(Sym);
+    BlockSym const Block = createRecord<BlockSym>(Sym);
     return Block.Parent;
   }
   case SymbolKind::S_THUNK32: {
-    Thunk32Sym Thunk = createRecord<Thunk32Sym>(Sym);
+    Thunk32Sym const Thunk = createRecord<Thunk32Sym>(Sym);
     return Thunk.Parent;
   }
   case SymbolKind::S_INLINESITE: {
-    InlineSiteSym Site = createRecord<InlineSiteSym>(Sym);
+    InlineSiteSym const Site = createRecord<InlineSiteSym>(Sym);
     return Site.Parent;
   }
   default:
@@ -84,10 +84,10 @@ llvm::codeview::getScopeParentOffset(const llvm::codeview::CVSymbol &Sym) {
 CVSymbolArray
 llvm::codeview::limitSymbolArrayToScope(const CVSymbolArray &Symbols,
                                         uint32_t ScopeBegin) {
-  CVSymbol Opener = *Symbols.at(ScopeBegin);
+  CVSymbol const Opener = *Symbols.at(ScopeBegin);
   assert(symbolOpensScope(Opener.kind()));
   uint32_t EndOffset = getScopeEndOffset(Opener);
-  CVSymbol Closer = *Symbols.at(EndOffset);
+  CVSymbol const Closer = *Symbols.at(EndOffset);
   EndOffset += Closer.RecordData.size();
   return Symbols.substream(ScopeBegin, EndOffset);
 }

@@ -176,7 +176,7 @@ static void convertToParamAS(Value *OldUser, Value *Param) {
       return LI;
     }
     if (auto *GEP = dyn_cast<GetElementPtrInst>(I.OldInstruction)) {
-      SmallVector<Value *, 4> Indices(GEP->indices());
+      SmallVector<Value *, 4> const Indices(GEP->indices());
       auto *NewGEP = GetElementPtrInst::Create(GEP->getSourceElementType(),
                                                I.NewParam, Indices,
                                                GEP->getName(), GEP);
@@ -278,7 +278,7 @@ void NVPTXLowerArgs::handleByValParam(Argument *Arg) {
 
   // Otherwise we have to create a temporary copy.
   const DataLayout &DL = Func->getParent()->getDataLayout();
-  unsigned AS = DL.getAllocaAddrSpace();
+  unsigned const AS = DL.getAllocaAddrSpace();
   AllocaInst *AllocA = new AllocaInst(StructType, AS, Arg->getName(), FirstInst);
   // Set the alignment to alignment of the byval parameter. This is because,
   // later load/stores assume that alignment, and we are going to replace

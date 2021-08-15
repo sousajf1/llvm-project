@@ -14,7 +14,7 @@ using namespace fuzzerop;
 
 void fuzzerop::makeConstantsWithType(Type *T, std::vector<Constant *> &Cs) {
   if (auto *IntTy = dyn_cast<IntegerType>(T)) {
-    uint64_t W = IntTy->getBitWidth();
+    uint64_t const W = IntTy->getBitWidth();
     Cs.push_back(ConstantInt::get(IntTy, APInt::getMaxValue(W)));
     Cs.push_back(ConstantInt::get(IntTy, APInt::getMinValue(W)));
     Cs.push_back(ConstantInt::get(IntTy, APInt::getSignedMaxValue(W)));

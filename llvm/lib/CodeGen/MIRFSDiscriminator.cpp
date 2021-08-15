@@ -80,11 +80,11 @@ bool MIRAddFSDiscriminators::runOnMachineFunction(MachineFunction &MF) {
   LocationDiscriminatorCurrPassMap LDCM;
 
   // Mask of discriminators before this pass.
-  unsigned BitMaskBefore = getN1Bits(LowBit);
+  unsigned const BitMaskBefore = getN1Bits(LowBit);
   // Mask of discriminators including this pass.
-  unsigned BitMaskNow = getN1Bits(HighBit);
+  unsigned const BitMaskNow = getN1Bits(HighBit);
   // Mask of discriminators for bits specific to this pass.
-  unsigned BitMaskThisPass = BitMaskNow ^ BitMaskBefore;
+  unsigned const BitMaskThisPass = BitMaskNow ^ BitMaskBefore;
   unsigned NumNewD = 0;
 
   LLVM_DEBUG(dbgs() << "MIRAddFSDiscriminators working on Func: "
@@ -94,11 +94,11 @@ bool MIRAddFSDiscriminators::runOnMachineFunction(MachineFunction &MF) {
       const DILocation *DIL = I.getDebugLoc().get();
       if (!DIL)
         continue;
-      unsigned LineNo = DIL->getLine();
+      unsigned const LineNo = DIL->getLine();
       if (LineNo == 0)
         continue;
-      unsigned Discriminator = DIL->getDiscriminator();
-      LocationDiscriminator LD{DIL->getFilename(), LineNo, Discriminator};
+      unsigned const Discriminator = DIL->getDiscriminator();
+      LocationDiscriminator const LD{DIL->getFilename(), LineNo, Discriminator};
       auto &BBMap = LDBM[LD];
       auto R = BBMap.insert(&BB);
       if (BBMap.size() == 1)
@@ -109,7 +109,7 @@ bool MIRAddFSDiscriminators::runOnMachineFunction(MachineFunction &MF) {
       DiscriminatorCurrPass = DiscriminatorCurrPass << LowBit;
       DiscriminatorCurrPass += getCallStackHash(BB, I, DIL);
       DiscriminatorCurrPass &= BitMaskThisPass;
-      unsigned NewD = Discriminator | DiscriminatorCurrPass;
+      unsigned const NewD = Discriminator | DiscriminatorCurrPass;
       const auto *const NewDIL = DIL->cloneWithDiscriminator(NewD);
       if (!NewDIL) {
         LLVM_DEBUG(dbgs() << "Could not encode discriminator: "

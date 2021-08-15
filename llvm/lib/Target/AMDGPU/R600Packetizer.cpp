@@ -72,20 +72,20 @@ private:
     int LastDstChan = -1;
     do {
       bool isTrans = false;
-      int BISlot = getSlot(*BI);
+      int const BISlot = getSlot(*BI);
       if (LastDstChan >= BISlot)
         isTrans = true;
       LastDstChan = BISlot;
       if (TII->isPredicated(*BI))
         continue;
-      int OperandIdx = TII->getOperandIdx(BI->getOpcode(), R600::OpName::write);
+      int const OperandIdx = TII->getOperandIdx(BI->getOpcode(), R600::OpName::write);
       if (OperandIdx > -1 && BI->getOperand(OperandIdx).getImm() == 0)
         continue;
-      int DstIdx = TII->getOperandIdx(BI->getOpcode(), R600::OpName::dst);
+      int const DstIdx = TII->getOperandIdx(BI->getOpcode(), R600::OpName::dst);
       if (DstIdx == -1) {
         continue;
       }
-      Register Dst = BI->getOperand(DstIdx).getReg();
+      Register const Dst = BI->getOperand(DstIdx).getReg();
       if (isTrans || TII->isTransOnly(*BI)) {
         Result[Dst] = R600::PS;
         continue;
@@ -122,16 +122,16 @@ private:
 
   void substitutePV(MachineInstr &MI, const DenseMap<unsigned, unsigned> &PVs)
       const {
-    unsigned Ops[] = {
+    unsigned const Ops[] = {
       R600::OpName::src0,
       R600::OpName::src1,
       R600::OpName::src2
     };
     for (unsigned i = 0; i < 3; i++) {
-      int OperandIdx = TII->getOperandIdx(MI.getOpcode(), Ops[i]);
+      int const OperandIdx = TII->getOperandIdx(MI.getOpcode(), Ops[i]);
       if (OperandIdx < 0)
         continue;
-      Register Src = MI.getOperand(OperandIdx).getReg();
+      Register const Src = MI.getOperand(OperandIdx).getReg();
       const DenseMap<unsigned, unsigned>::const_iterator It = PVs.find(Src);
       if (It != PVs.end())
         MI.getOperand(OperandIdx).setReg(It->second);
@@ -199,9 +199,9 @@ public:
       }
     }
 
-    bool ARDef =
+    bool const ARDef =
         TII->definesAddressRegister(*MII) || TII->definesAddressRegister(*MIJ);
-    bool ARUse =
+    bool const ARUse =
         TII->usesAddressRegister(*MII) || TII->usesAddressRegister(*MIJ);
 
     return !ARDef || !ARUse;
@@ -214,7 +214,7 @@ public:
   }
 
   void setIsLastBit(MachineInstr *MI, unsigned Bit) const {
-    unsigned LastOp = TII->getOperandIdx(MI->getOpcode(), R600::OpName::last);
+    unsigned const LastOp = TII->getOperandIdx(MI->getOpcode(), R600::OpName::last);
     MI->getOperand(LastOp).setImm(Bit);
   }
 
@@ -284,7 +284,7 @@ public:
   }
 
   MachineBasicBlock::iterator addToPacket(MachineInstr &MI) override {
-    MachineBasicBlock::iterator FirstInBundle =
+    MachineBasicBlock::iterator const FirstInBundle =
         CurrentPacketMIs.empty() ? &MI : CurrentPacketMIs.front();
     const DenseMap<unsigned, unsigned> &PV =
         getPreviousVector(FirstInBundle);
@@ -294,11 +294,11 @@ public:
     if (isBundlableWithCurrentPMI(MI, PV, BS, isTransSlot)) {
       for (unsigned i = 0, e = CurrentPacketMIs.size(); i < e; i++) {
         MachineInstr *MI = CurrentPacketMIs[i];
-        unsigned Op = TII->getOperandIdx(MI->getOpcode(),
+        unsigned const Op = TII->getOperandIdx(MI->getOpcode(),
             R600::OpName::bank_swizzle);
         MI->getOperand(Op).setImm(BS[i]);
       }
-      unsigned Op =
+      unsigned const Op =
           TII->getOperandIdx(MI.getOpcode(), R600::OpName::bank_swizzle);
       MI.getOperand(Op).setImm(BS.back());
       if (!CurrentPacketMIs.empty())
@@ -350,7 +350,7 @@ bool R600Packetizer::runOnMachineFunction(MachineFunction &Fn) {
     while (MI != End) {
       if (MI->isKill() || MI->getOpcode() == R600::IMPLICIT_DEF ||
           (MI->getOpcode() == R600::CF_ALU && !MI->getOperand(8).getImm())) {
-        MachineBasicBlock::iterator DeleteMI = MI;
+        MachineBasicBlock::iterator const DeleteMI = MI;
         ++MI;
         MBB->erase(DeleteMI);
         End = MBB->end();

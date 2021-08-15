@@ -254,7 +254,7 @@ static const DIType * stripQualifiers(const DIType *Ty) {
 }
 
 static uint32_t calcArraySize(const DICompositeType *CTy, uint32_t StartDim) {
-  DINodeArray Elements = CTy->getElements();
+  DINodeArray const Elements = CTy->getElements();
   uint32_t DimSize = 1;
   for (uint32_t I = StartDim; I < Elements.size(); ++I) {
     if (auto *Element = dyn_cast_or_null<DINode>(Elements[I]))
@@ -317,7 +317,7 @@ bool BPFAbstractMemberAccess::IsPreserveDIAccessIndexCall(const CallInst *Call,
     CInfo.Kind = BPFPreserveFieldInfoAI;
     CInfo.Metadata = nullptr;
     // Check validity of info_kind as clang did not check this.
-    uint64_t InfoKind = getConstant(Call->getArgOperand(1));
+    uint64_t const InfoKind = getConstant(Call->getArgOperand(1));
     if (InfoKind >= BPFCoreSharedInfo::MAX_FIELD_RELOC_KIND)
       report_fatal_error("Incorrect info_kind for llvm.bpf.preserve.field.info intrinsic");
     CInfo.AccessIndex = InfoKind;
@@ -328,7 +328,7 @@ bool BPFAbstractMemberAccess::IsPreserveDIAccessIndexCall(const CallInst *Call,
     CInfo.Metadata = Call->getMetadata(LLVMContext::MD_preserve_access_index);
     if (!CInfo.Metadata)
       report_fatal_error("Missing metadata for llvm.preserve.type.info intrinsic");
-    uint64_t Flag = getConstant(Call->getArgOperand(1));
+    uint64_t const Flag = getConstant(Call->getArgOperand(1));
     if (Flag >= BPFCoreSharedInfo::MAX_PRESERVE_TYPE_INFO_FLAG)
       report_fatal_error("Incorrect flag for llvm.bpf.preserve.type.info intrinsic");
     if (Flag == BPFCoreSharedInfo::PRESERVE_TYPE_INFO_EXISTENCE)
@@ -342,7 +342,7 @@ bool BPFAbstractMemberAccess::IsPreserveDIAccessIndexCall(const CallInst *Call,
     CInfo.Metadata = Call->getMetadata(LLVMContext::MD_preserve_access_index);
     if (!CInfo.Metadata)
       report_fatal_error("Missing metadata for llvm.preserve.enum.value intrinsic");
-    uint64_t Flag = getConstant(Call->getArgOperand(2));
+    uint64_t const Flag = getConstant(Call->getArgOperand(2));
     if (Flag >= BPFCoreSharedInfo::MAX_PRESERVE_ENUM_VALUE_FLAG)
       report_fatal_error("Incorrect flag for llvm.bpf.preserve.enum.value intrinsic");
     if (Flag == BPFCoreSharedInfo::PRESERVE_ENUM_VALUE_EXISTENCE)
@@ -448,12 +448,12 @@ bool BPFAbstractMemberAccess::IsValidAIChain(const MDNode *ParentType,
   const auto *CTy = dyn_cast<DICompositeType>(CType);
   assert(PTy && CTy && "ParentType or ChildType is null or not composite");
 
-  uint32_t PTyTag = PTy->getTag();
+  uint32_t const PTyTag = PTy->getTag();
   assert(PTyTag == dwarf::DW_TAG_array_type ||
          PTyTag == dwarf::DW_TAG_structure_type ||
          PTyTag == dwarf::DW_TAG_union_type);
 
-  uint32_t CTyTag = CTy->getTag();
+  uint32_t const CTyTag = CTy->getTag();
   assert(CTyTag == dwarf::DW_TAG_array_type ||
          CTyTag == dwarf::DW_TAG_structure_type ||
          CTyTag == dwarf::DW_TAG_union_type);
@@ -590,9 +590,9 @@ void BPFAbstractMemberAccess::GetStorageBitRange(DIDerivedType *MemberTy,
                                                  Align RecordAlignment,
                                                  uint32_t &StartBitOffset,
                                                  uint32_t &EndBitOffset) {
-  uint32_t MemberBitSize = MemberTy->getSizeInBits();
-  uint32_t MemberBitOffset = MemberTy->getOffsetInBits();
-  uint32_t AlignBits = RecordAlignment.value() * 8;
+  uint32_t const MemberBitSize = MemberTy->getSizeInBits();
+  uint32_t const MemberBitOffset = MemberTy->getOffsetInBits();
+  uint32_t const AlignBits = RecordAlignment.value() * 8;
   if (RecordAlignment > 8 || MemberBitSize > AlignBits)
     report_fatal_error("Unsupported field expression for llvm.bpf.preserve.field.info, "
                        "requiring too big alignment");
@@ -612,7 +612,7 @@ uint32_t BPFAbstractMemberAccess::GetFieldInfo(uint32_t InfoKind,
   if (InfoKind == BPFCoreSharedInfo::FIELD_EXISTENCE)
       return 1;
 
-  uint32_t Tag = CTy->getTag();
+  uint32_t const Tag = CTy->getTag();
   if (InfoKind == BPFCoreSharedInfo::FIELD_BYTE_OFFSET) {
     if (Tag == dwarf::DW_TAG_array_type) {
       auto *EltTy = stripQualifiers(CTy->getBaseType());
@@ -673,7 +673,7 @@ uint32_t BPFAbstractMemberAccess::GetFieldInfo(uint32_t InfoKind,
       BaseTy = stripQualifiers(CompTy->getBaseType());
       BTy = dyn_cast<DIBasicType>(BaseTy);
     }
-    uint32_t Encoding = BTy->getEncoding();
+    uint32_t const Encoding = BTy->getEncoding();
     return (Encoding == dwarf::DW_ATE_signed || Encoding == dwarf::DW_ATE_signed_char);
   }
 
@@ -707,7 +707,7 @@ uint32_t BPFAbstractMemberAccess::GetFieldInfo(uint32_t InfoKind,
     if (NextSBitOffset - SBitOffset > 64)
       report_fatal_error("too big field size for llvm.bpf.preserve.field.info");
 
-    unsigned OffsetInBits = MemberTy->getOffsetInBits();
+    unsigned const OffsetInBits = MemberTy->getOffsetInBits();
     if (Triple.getArch() == Triple::bpfel)
       return SBitOffset + 64 - OffsetInBits - SizeInBits;
     else
@@ -813,7 +813,7 @@ Value *BPFAbstractMemberAccess::computeBaseAndAccessKey(CallInst *Call,
     CallStack.pop();
 
     // BPFPreserveArrayAI
-    uint64_t AccessIndex = CInfo.AccessIndex;
+    uint64_t const AccessIndex = CInfo.AccessIndex;
 
     DIType *BaseTy = nullptr;
     bool CheckElemType = false;
@@ -850,7 +850,7 @@ Value *BPFAbstractMemberAccess::computeBaseAndAccessKey(CallInst *Call,
         return nullptr;
       }
 
-      unsigned CTag = CTy->getTag();
+      unsigned const CTag = CTy->getTag();
       if (CTag == dwarf::DW_TAG_structure_type || CTag == dwarf::DW_TAG_union_type) {
         TypeName = std::string(CTy->getName());
       } else {
@@ -884,7 +884,7 @@ Value *BPFAbstractMemberAccess::computeBaseAndAccessKey(CallInst *Call,
     // the action will be extracting field info.
     if (CallStack.size()) {
       auto StackElem2 = CallStack.top();
-      CallInfo CInfo2 = StackElem2.second;
+      CallInfo const CInfo2 = StackElem2.second;
       if (CInfo2.Kind == BPFPreserveFieldInfoAI) {
         InfoKind = CInfo2.AccessIndex;
         assert(CallStack.size() == 1);
@@ -892,7 +892,7 @@ Value *BPFAbstractMemberAccess::computeBaseAndAccessKey(CallInst *Call,
     }
 
     // Access Index
-    uint64_t AccessIndex = CInfo.AccessIndex;
+    uint64_t const AccessIndex = CInfo.AccessIndex;
     AccessKey += ":" + std::to_string(AccessIndex);
 
     MDNode *MDN = CInfo.Metadata;
@@ -938,11 +938,11 @@ MDNode *BPFAbstractMemberAccess::computeAccessKey(CallInst *Call,
     assert(GV->hasInitializer());
     const ConstantDataArray *DA = cast<ConstantDataArray>(GV->getInitializer());
     assert(DA->isString());
-    StringRef ValueStr = DA->getAsString();
+    StringRef const ValueStr = DA->getAsString();
 
     // ValueStr format: <EnumeratorStr>:<Value>
-    size_t Separator = ValueStr.find_first_of(':');
-    StringRef EnumeratorStr = ValueStr.substr(0, Separator);
+    size_t const Separator = ValueStr.find_first_of(':');
+    StringRef const EnumeratorStr = ValueStr.substr(0, Separator);
 
     // Find enumerator index in the debuginfo
     DIType *BaseTy = stripQualifiers(Ty, true);
@@ -959,7 +959,7 @@ MDNode *BPFAbstractMemberAccess::computeAccessKey(CallInst *Call,
     }
 
     if (CInfo.AccessIndex == BPFCoreSharedInfo::ENUM_VALUE) {
-      StringRef EValueStr = ValueStr.substr(Separator + 1);
+      StringRef const EValueStr = ValueStr.substr(Separator + 1);
       PatchImm = std::stoll(std::string(EValueStr));
     } else {
       PatchImm = 1;

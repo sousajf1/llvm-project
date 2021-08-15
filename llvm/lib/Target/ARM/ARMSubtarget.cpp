@@ -86,7 +86,7 @@ ARMSubtarget &ARMSubtarget::initializeSubtargetDependencies(StringRef CPU,
 
 ARMFrameLowering *ARMSubtarget::initializeFrameLowering(StringRef CPU,
                                                         StringRef FS) {
-  ARMSubtarget &STI = initializeSubtargetDependencies(CPU, FS);
+  ARMSubtarget  const&STI = initializeSubtargetDependencies(CPU, FS);
   if (STI.isThumb1Only())
     return (ARMFrameLowering *)new Thumb1FrameLowering(STI);
 
@@ -163,8 +163,8 @@ void ARMSubtarget::initSubtargetFeatures(StringRef CPU, StringRef FS) {
     CPUString = "generic";
 
     if (isTargetDarwin()) {
-      StringRef ArchName = TargetTriple.getArchName();
-      ARM::ArchKind AK = ARM::parseArch(ArchName);
+      StringRef const ArchName = TargetTriple.getArchName();
+      ARM::ArchKind const AK = ARM::parseArch(ArchName);
       if (AK == ARM::ArchKind::ARMV7S)
         // Default to the Swift CPU when targeting armv7s/thumbv7s.
         CPUString = "swift";

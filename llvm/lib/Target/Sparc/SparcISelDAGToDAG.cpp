@@ -66,7 +66,7 @@ private:
 }  // end anonymous namespace
 
 SDNode* SparcDAGToDAGISel::getGlobalBaseReg() {
-  unsigned GlobalBaseReg = Subtarget->getInstrInfo()->getGlobalBaseReg(MF);
+  unsigned const GlobalBaseReg = Subtarget->getInstrInfo()->getGlobalBaseReg(MF);
   return CurDAG->getRegister(GlobalBaseReg,
                              TLI->getPointerTy(CurDAG->getDataLayout()))
       .getNode();
@@ -157,7 +157,7 @@ bool SparcDAGToDAGISel::tryInlineAsm(SDNode *N){
   std::vector<SDValue> AsmNodeOperands;
   unsigned Flag, Kind;
   bool Changed = false;
-  unsigned NumOps = N->getNumOperands();
+  unsigned const NumOps = N->getNumOperands();
 
   // Normally, i64 data is bounded to two arbitrary GPRs for "%r"
   // constraint.  However, some instructions (e.g. ldd/std) require
@@ -167,14 +167,14 @@ bool SparcDAGToDAGISel::tryInlineAsm(SDNode *N){
   // a single IntPair register instead, which guarantees such even/odd
   // placement.
 
-  SDLoc dl(N);
+  SDLoc const dl(N);
   SDValue Glue = N->getGluedNode() ? N->getOperand(NumOps-1)
                                    : SDValue(nullptr,0);
 
   SmallVector<bool, 8> OpChanged;
   // Glue node will be appended late.
   for(unsigned i = 0, e = N->getGluedNode() ? NumOps - 1 : NumOps; i < e; ++i) {
-    SDValue op = N->getOperand(i);
+    SDValue const op = N->getOperand(i);
     AsmNodeOperands.push_back(op);
 
     if (i < InlineAsm::Op_FirstOperand)
@@ -192,12 +192,12 @@ bool SparcDAGToDAGISel::tryInlineAsm(SDNode *N){
     // the second is a constant with the value of the immediate. If we get here
     // and we have a Kind_Imm, skip the next operand, and continue.
     if (Kind == InlineAsm::Kind_Imm) {
-      SDValue op = N->getOperand(++i);
+      SDValue const op = N->getOperand(++i);
       AsmNodeOperands.push_back(op);
       continue;
     }
 
-    unsigned NumRegs = InlineAsm::getNumOperandRegisters(Flag);
+    unsigned const NumRegs = InlineAsm::getNumOperandRegisters(Flag);
     if (NumRegs)
       OpChanged.push_back(false);
 
@@ -213,7 +213,7 @@ bool SparcDAGToDAGISel::tryInlineAsm(SDNode *N){
       continue;
 
     unsigned RC;
-    bool HasRC = InlineAsm::hasRegClassConstraint(Flag, RC);
+    bool const HasRC = InlineAsm::hasRegClassConstraint(Flag, RC);
     if ((!IsTiedToChangedOp && (!HasRC || RC != SP::IntRegsRegClassID))
         || NumRegs != 2)
       continue;
@@ -221,8 +221,8 @@ bool SparcDAGToDAGISel::tryInlineAsm(SDNode *N){
     assert((i+2 < NumOps) && "Invalid number of operands in inline asm");
     SDValue V0 = N->getOperand(i+1);
     SDValue V1 = N->getOperand(i+2);
-    unsigned Reg0 = cast<RegisterSDNode>(V0)->getReg();
-    unsigned Reg1 = cast<RegisterSDNode>(V1)->getReg();
+    unsigned const Reg0 = cast<RegisterSDNode>(V0)->getReg();
+    unsigned const Reg1 = cast<RegisterSDNode>(V1)->getReg();
     SDValue PairedReg;
     MachineRegisterInfo &MRI = MF->getRegInfo();
 
@@ -231,22 +231,22 @@ bool SparcDAGToDAGISel::tryInlineAsm(SDNode *N){
       // Replace the two GPRs with 1 GPRPair and copy values from GPRPair to
       // the original GPRs.
 
-      Register GPVR = MRI.createVirtualRegister(&SP::IntPairRegClass);
+      Register const GPVR = MRI.createVirtualRegister(&SP::IntPairRegClass);
       PairedReg = CurDAG->getRegister(GPVR, MVT::v2i32);
-      SDValue Chain = SDValue(N,0);
+      SDValue const Chain = SDValue(N,0);
 
       SDNode *GU = N->getGluedUser();
-      SDValue RegCopy = CurDAG->getCopyFromReg(Chain, dl, GPVR, MVT::v2i32,
+      SDValue const RegCopy = CurDAG->getCopyFromReg(Chain, dl, GPVR, MVT::v2i32,
                                                Chain.getValue(1));
 
       // Extract values from a GPRPair reg and copy to the original GPR reg.
-      SDValue Sub0 = CurDAG->getTargetExtractSubreg(SP::sub_even, dl, MVT::i32,
+      SDValue const Sub0 = CurDAG->getTargetExtractSubreg(SP::sub_even, dl, MVT::i32,
                                                     RegCopy);
-      SDValue Sub1 = CurDAG->getTargetExtractSubreg(SP::sub_odd, dl, MVT::i32,
+      SDValue const Sub1 = CurDAG->getTargetExtractSubreg(SP::sub_odd, dl, MVT::i32,
                                                     RegCopy);
-      SDValue T0 = CurDAG->getCopyToReg(Sub0, dl, Reg0, Sub0,
+      SDValue const T0 = CurDAG->getCopyToReg(Sub0, dl, Reg0, Sub0,
                                         RegCopy.getValue(1));
-      SDValue T1 = CurDAG->getCopyToReg(Sub1, dl, Reg1, Sub1, T0.getValue(1));
+      SDValue const T1 = CurDAG->getCopyToReg(Sub1, dl, Reg1, Sub1, T0.getValue(1));
 
       // Update the original glue user.
       std::vector<SDValue> Ops(GU->op_begin(), GU->op_end()-1);
@@ -259,11 +259,11 @@ bool SparcDAGToDAGISel::tryInlineAsm(SDNode *N){
       SDValue Chain = AsmNodeOperands[InlineAsm::Op_InputChain];
 
       // As REG_SEQ doesn't take RegisterSDNode, we copy them first.
-      SDValue T0 = CurDAG->getCopyFromReg(Chain, dl, Reg0, MVT::i32,
+      SDValue const T0 = CurDAG->getCopyFromReg(Chain, dl, Reg0, MVT::i32,
                                           Chain.getValue(1));
-      SDValue T1 = CurDAG->getCopyFromReg(Chain, dl, Reg1, MVT::i32,
+      SDValue const T1 = CurDAG->getCopyFromReg(Chain, dl, Reg1, MVT::i32,
                                           T0.getValue(1));
-      SDValue Pair = SDValue(
+      SDValue const Pair = SDValue(
           CurDAG->getMachineNode(
               TargetOpcode::REG_SEQUENCE, dl, MVT::v2i32,
               {
@@ -278,7 +278,7 @@ bool SparcDAGToDAGISel::tryInlineAsm(SDNode *N){
 
       // Copy REG_SEQ into a GPRPair-typed VR and replace the original two
       // i32 VRs of inline asm with it.
-      Register GPVR = MRI.createVirtualRegister(&SP::IntPairRegClass);
+      Register const GPVR = MRI.createVirtualRegister(&SP::IntPairRegClass);
       PairedReg = CurDAG->getRegister(GPVR, MVT::v2i32);
       Chain = CurDAG->getCopyToReg(T1, dl, GPVR, Pair, T1.getValue(1));
 
@@ -312,7 +312,7 @@ bool SparcDAGToDAGISel::tryInlineAsm(SDNode *N){
 
   SelectInlineAsmMemoryOperands(AsmNodeOperands, SDLoc(N));
 
-  SDValue New = CurDAG->getNode(N->getOpcode(), SDLoc(N),
+  SDValue const New = CurDAG->getNode(N->getOpcode(), SDLoc(N),
       CurDAG->getVTList(MVT::Other, MVT::Glue), AsmNodeOperands);
   New->setNodeId(-1);
   ReplaceNode(N, New.getNode());
@@ -320,7 +320,7 @@ bool SparcDAGToDAGISel::tryInlineAsm(SDNode *N){
 }
 
 void SparcDAGToDAGISel::Select(SDNode *N) {
-  SDLoc dl(N);
+  SDLoc const dl(N);
   if (N->isMachineOpcode()) {
     N->setNodeId(-1);
     return;   // Already selected.
@@ -344,8 +344,8 @@ void SparcDAGToDAGISel::Select(SDNode *N) {
     if (N->getValueType(0) == MVT::i64)
       break;
     // FIXME: should use a custom expander to expose the SRA to the dag.
-    SDValue DivLHS = N->getOperand(0);
-    SDValue DivRHS = N->getOperand(1);
+    SDValue const DivLHS = N->getOperand(0);
+    SDValue const DivRHS = N->getOperand(1);
 
     // Set the Y register to the high-part.
     SDValue TopPart;
@@ -361,7 +361,7 @@ void SparcDAGToDAGISel::Select(SDNode *N) {
                   .getValue(1);
 
     // FIXME: Handle div by immediate.
-    unsigned Opcode = N->getOpcode() == ISD::SDIV ? SP::SDIVrr : SP::UDIVrr;
+    unsigned const Opcode = N->getOpcode() == ISD::SDIV ? SP::SDIVrr : SP::UDIVrr;
     CurDAG->SelectNodeTo(N, Opcode, MVT::i32, DivLHS, DivRHS, TopPart);
     return;
   }

@@ -24,7 +24,7 @@ using namespace object;
 
 static Error
 malformedError(Twine Msg) {
-  std::string StringMsg = "truncated or malformed fat file (" + Msg.str() + ")";
+  std::string const StringMsg = "truncated or malformed fat file (" + Msg.str() + ")";
   return make_error<GenericBinaryError>(std::move(StringMsg),
                                         object_error::parse_failed);
 }
@@ -47,7 +47,7 @@ MachOUniversalBinary::ObjectForArch::ObjectForArch(
     clear();
   } else {
     // Parse object header.
-    StringRef ParentData = Parent->getData();
+    StringRef const ParentData = Parent->getData();
     if (Parent->getMagic() == MachO::FAT_MAGIC) {
       const char *HeaderPos = ParentData.begin() + sizeof(MachO::fat_header) +
                               Index * sizeof(MachO::fat_arch);
@@ -66,7 +66,7 @@ MachOUniversalBinary::ObjectForArch::getAsObjectFile() const {
     report_fatal_error("MachOUniversalBinary::ObjectForArch::getAsObjectFile() "
                        "called when Parent is a nullptr");
 
-  StringRef ParentData = Parent->getData();
+  StringRef const ParentData = Parent->getData();
   StringRef ObjectData;
   uint32_t cputype;
   if (Parent->getMagic() == MachO::FAT_MAGIC) {
@@ -76,8 +76,8 @@ MachOUniversalBinary::ObjectForArch::getAsObjectFile() const {
     ObjectData = ParentData.substr(Header64.offset, Header64.size);
     cputype = Header64.cputype;
   }
-  StringRef ObjectName = Parent->getFileName();
-  MemoryBufferRef ObjBuffer(ObjectData, ObjectName);
+  StringRef const ObjectName = Parent->getFileName();
+  MemoryBufferRef const ObjBuffer(ObjectData, ObjectName);
   return ObjectFile::createMachOObjectFile(ObjBuffer, cputype, Index);
 }
 
@@ -87,15 +87,15 @@ MachOUniversalBinary::ObjectForArch::getAsIRObject(LLVMContext &Ctx) const {
     report_fatal_error("MachOUniversalBinary::ObjectForArch::getAsIRObject() "
                        "called when Parent is a nullptr");
 
-  StringRef ParentData = Parent->getData();
+  StringRef const ParentData = Parent->getData();
   StringRef ObjectData;
   if (Parent->getMagic() == MachO::FAT_MAGIC) {
     ObjectData = ParentData.substr(Header.offset, Header.size);
   } else { // Parent->getMagic() == MachO::FAT_MAGIC_64
     ObjectData = ParentData.substr(Header64.offset, Header64.size);
   }
-  StringRef ObjectName = Parent->getFileName();
-  MemoryBufferRef ObjBuffer(ObjectData, ObjectName);
+  StringRef const ObjectName = Parent->getFileName();
+  MemoryBufferRef const ObjBuffer(ObjectData, ObjectName);
 
   return IRObjectFile::create(ObjBuffer, Ctx);
 }
@@ -106,14 +106,14 @@ MachOUniversalBinary::ObjectForArch::getAsArchive() const {
     report_fatal_error("MachOUniversalBinary::ObjectForArch::getAsArchive() "
                        "called when Parent is a nullptr");
 
-  StringRef ParentData = Parent->getData();
+  StringRef const ParentData = Parent->getData();
   StringRef ObjectData;
   if (Parent->getMagic() == MachO::FAT_MAGIC)
     ObjectData = ParentData.substr(Header.offset, Header.size);
   else // Parent->getMagic() == MachO::FAT_MAGIC_64
     ObjectData = ParentData.substr(Header64.offset, Header64.size);
-  StringRef ObjectName = Parent->getFileName();
-  MemoryBufferRef ObjBuffer(ObjectData, ObjectName);
+  StringRef const ObjectName = Parent->getFileName();
+  MemoryBufferRef const ObjBuffer(ObjectData, ObjectName);
   return Archive::create(ObjBuffer);
 }
 
@@ -132,7 +132,7 @@ MachOUniversalBinary::create(MemoryBufferRef Source) {
 MachOUniversalBinary::MachOUniversalBinary(MemoryBufferRef Source, Error &Err)
     : Binary(Binary::ID_MachOUniversalBinary, Source), Magic(0),
       NumberOfObjects(0) {
-  ErrorAsOutParameter ErrAsOutParam(&Err);
+  ErrorAsOutParameter const ErrAsOutParam(&Err);
   if (Data.getBufferSize() < sizeof(MachO::fat_header)) {
     Err = make_error<GenericBinaryError>("File too small to be a Mach-O "
                                          "universal file",
@@ -140,8 +140,8 @@ MachOUniversalBinary::MachOUniversalBinary(MemoryBufferRef Source, Error &Err)
     return;
   }
   // Check for magic value and sufficient header size.
-  StringRef Buf = getData();
-  MachO::fat_header H =
+  StringRef const Buf = getData();
+  MachO::fat_header const H =
       getUniversalBinaryStruct<MachO::fat_header>(Buf.begin());
   Magic = H.magic;
   NumberOfObjects = H.nfat_arch;
@@ -165,7 +165,7 @@ MachOUniversalBinary::MachOUniversalBinary(MemoryBufferRef Source, Error &Err)
     return;
   }
   for (uint32_t i = 0; i < NumberOfObjects; i++) {
-    ObjectForArch A(this, i);
+    ObjectForArch const A(this, i);
     uint64_t bigSize = A.getOffset();
     bigSize += A.getSize();
     if (bigSize > Buf.size()) {
@@ -199,9 +199,9 @@ MachOUniversalBinary::MachOUniversalBinary(MemoryBufferRef Source, Error &Err)
     }
   }
   for (uint32_t i = 0; i < NumberOfObjects; i++) {
-    ObjectForArch A(this, i);
+    ObjectForArch const A(this, i);
     for (uint32_t j = i + 1; j < NumberOfObjects; j++) {
-      ObjectForArch B(this, j);
+      ObjectForArch const B(this, j);
       if (A.getCPUType() == B.getCPUType() &&
           (A.getCPUSubType() & ~MachO::CPU_SUBTYPE_MASK) ==
           (B.getCPUSubType() & ~MachO::CPU_SUBTYPE_MASK)) {

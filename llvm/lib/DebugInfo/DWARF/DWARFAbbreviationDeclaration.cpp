@@ -51,7 +51,7 @@ DWARFAbbreviationDeclaration::extract(DataExtractor Data,
     clear();
     return false;
   }
-  uint8_t ChildrenByte = Data.getU8(OffsetPtr);
+  uint8_t const ChildrenByte = Data.getU8(OffsetPtr);
   HasChildren = (ChildrenByte == DW_CHILDREN_yes);
   // Assign a value to our optional FixedAttributeSize member variable. If
   // this member variable still has a value after the while loop below, then
@@ -63,9 +63,9 @@ DWARFAbbreviationDeclaration::extract(DataExtractor Data,
     auto A = static_cast<Attribute>(Data.getULEB128(OffsetPtr));
     auto F = static_cast<Form>(Data.getULEB128(OffsetPtr));
     if (A && F) {
-      bool IsImplicitConst = (F == DW_FORM_implicit_const);
+      bool const IsImplicitConst = (F == DW_FORM_implicit_const);
       if (IsImplicitConst) {
-        int64_t V = Data.getSLEB128(OffsetPtr);
+        int64_t const V = Data.getSLEB128(OffsetPtr);
         AttributeSpecs.push_back(AttributeSpec(A, F, V));
         continue;
       }

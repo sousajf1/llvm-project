@@ -33,16 +33,16 @@ using namespace llvm;
 // they cannot be used as is on vectors, for which Lo is always stored first.
 void DAGTypeLegalizer::ExpandRes_MERGE_VALUES(SDNode *N, unsigned ResNo,
                                               SDValue &Lo, SDValue &Hi) {
-  SDValue Op = DisintegrateMERGE_VALUES(N, ResNo);
+  SDValue const Op = DisintegrateMERGE_VALUES(N, ResNo);
   GetExpandedOp(Op, Lo, Hi);
 }
 
 void DAGTypeLegalizer::ExpandRes_BITCAST(SDNode *N, SDValue &Lo, SDValue &Hi) {
-  EVT OutVT = N->getValueType(0);
-  EVT NOutVT = TLI.getTypeToTransformTo(*DAG.getContext(), OutVT);
+  EVT const OutVT = N->getValueType(0);
+  EVT const NOutVT = TLI.getTypeToTransformTo(*DAG.getContext(), OutVT);
   SDValue InOp = N->getOperand(0);
-  EVT InVT = InOp.getValueType();
-  SDLoc dl(N);
+  EVT const InVT = InOp.getValueType();
+  SDLoc const dl(N);
 
   // Handle some special cases efficiently.
   switch (getTypeAction(InVT)) {
@@ -108,7 +108,7 @@ void DAGTypeLegalizer::ExpandRes_BITCAST(SDNode *N, SDValue &Lo, SDValue &Hi) {
 
     // If <ElemVT * N> is not a legal type, try <ElemVT/2 * (N*2)>.
     while (!isTypeLegal(NVT)) {
-      unsigned NewSizeInBits = ElemVT.getSizeInBits() / 2;
+      unsigned const NewSizeInBits = ElemVT.getSizeInBits() / 2;
       // If the element size is smaller than byte, bail.
       if (NewSizeInBits < 8)
         break;
@@ -118,7 +118,7 @@ void DAGTypeLegalizer::ExpandRes_BITCAST(SDNode *N, SDValue &Lo, SDValue &Hi) {
     }
 
     if (isTypeLegal(NVT)) {
-      SDValue CastInOp = DAG.getNode(ISD::BITCAST, dl, NVT, InOp);
+      SDValue const CastInOp = DAG.getNode(ISD::BITCAST, dl, NVT, InOp);
 
       SmallVector<SDValue, 8> Vals;
       for (unsigned i = 0; i < NumElems; ++i)
@@ -159,22 +159,22 @@ void DAGTypeLegalizer::ExpandRes_BITCAST(SDNode *N, SDValue &Lo, SDValue &Hi) {
 
   // In cases where the vector is illegal it will be broken down into parts
   // and stored in parts - we should use the alignment for the smallest part.
-  Align InAlign = DAG.getReducedAlign(InVT, /*UseABI=*/false);
-  Align NOutAlign = DAG.getReducedAlign(NOutVT, /*UseABI=*/false);
-  Align Align = std::max(InAlign, NOutAlign);
+  Align const InAlign = DAG.getReducedAlign(InVT, /*UseABI=*/false);
+  Align const NOutAlign = DAG.getReducedAlign(NOutVT, /*UseABI=*/false);
+  Align const Align = std::max(InAlign, NOutAlign);
   SDValue StackPtr = DAG.CreateStackTemporary(InVT.getStoreSize(), Align);
-  int SPFI = cast<FrameIndexSDNode>(StackPtr.getNode())->getIndex();
-  MachinePointerInfo PtrInfo =
+  int const SPFI = cast<FrameIndexSDNode>(StackPtr.getNode())->getIndex();
+  MachinePointerInfo const PtrInfo =
       MachinePointerInfo::getFixedStack(DAG.getMachineFunction(), SPFI);
 
   // Emit a store to the stack slot.
-  SDValue Store = DAG.getStore(DAG.getEntryNode(), dl, InOp, StackPtr, PtrInfo);
+  SDValue const Store = DAG.getStore(DAG.getEntryNode(), dl, InOp, StackPtr, PtrInfo);
 
   // Load the first half from the stack slot.
   Lo = DAG.getLoad(NOutVT, dl, Store, StackPtr, PtrInfo, NOutAlign);
 
   // Increment the pointer to the other half.
-  unsigned IncrementSize = NOutVT.getSizeInBits() / 8;
+  unsigned const IncrementSize = NOutVT.getSizeInBits() / 8;
   StackPtr =
       DAG.getMemBasePlusOffset(StackPtr, TypeSize::Fixed(IncrementSize), dl);
 
@@ -197,7 +197,7 @@ void DAGTypeLegalizer::ExpandRes_BUILD_PAIR(SDNode *N, SDValue &Lo,
 void DAGTypeLegalizer::ExpandRes_EXTRACT_ELEMENT(SDNode *N, SDValue &Lo,
                                                  SDValue &Hi) {
   GetExpandedOp(N->getOperand(0), Lo, Hi);
-  SDValue Part = cast<ConstantSDNode>(N->getOperand(1))->getZExtValue() ?
+  SDValue const Part = cast<ConstantSDNode>(N->getOperand(1))->getZExtValue() ?
                    Hi : Lo;
 
   assert(Part.getValueType() == N->getValueType(0) &&
@@ -209,25 +209,25 @@ void DAGTypeLegalizer::ExpandRes_EXTRACT_ELEMENT(SDNode *N, SDValue &Lo,
 void DAGTypeLegalizer::ExpandRes_EXTRACT_VECTOR_ELT(SDNode *N, SDValue &Lo,
                                                     SDValue &Hi) {
   SDValue OldVec = N->getOperand(0);
-  unsigned OldElts = OldVec.getValueType().getVectorNumElements();
-  EVT OldEltVT = OldVec.getValueType().getVectorElementType();
-  SDLoc dl(N);
+  unsigned const OldElts = OldVec.getValueType().getVectorNumElements();
+  EVT const OldEltVT = OldVec.getValueType().getVectorElementType();
+  SDLoc const dl(N);
 
   // Convert to a vector of the expanded element type, for example
   // <3 x i64> -> <6 x i32>.
-  EVT OldVT = N->getValueType(0);
-  EVT NewVT = TLI.getTypeToTransformTo(*DAG.getContext(), OldVT);
+  EVT const OldVT = N->getValueType(0);
+  EVT const NewVT = TLI.getTypeToTransformTo(*DAG.getContext(), OldVT);
 
   if (OldVT != OldEltVT) {
     // The result of EXTRACT_VECTOR_ELT may be larger than the element type of
     // the input vector.  If so, extend the elements of the input vector to the
     // same bitwidth as the result before expanding.
     assert(OldEltVT.bitsLT(OldVT) && "Result type smaller then element type!");
-    EVT NVecVT = EVT::getVectorVT(*DAG.getContext(), OldVT, OldElts);
+    EVT const NVecVT = EVT::getVectorVT(*DAG.getContext(), OldVT, OldElts);
     OldVec = DAG.getNode(ISD::ANY_EXTEND, dl, NVecVT, N->getOperand(0));
   }
 
-  SDValue NewVec = DAG.getNode(ISD::BITCAST, dl,
+  SDValue const NewVec = DAG.getNode(ISD::BITCAST, dl,
                                EVT::getVectorVT(*DAG.getContext(),
                                                 NewVT, 2*OldElts),
                                OldVec);
@@ -249,15 +249,15 @@ void DAGTypeLegalizer::ExpandRes_EXTRACT_VECTOR_ELT(SDNode *N, SDValue &Lo,
 void DAGTypeLegalizer::ExpandRes_NormalLoad(SDNode *N, SDValue &Lo,
                                             SDValue &Hi) {
   assert(ISD::isNormalLoad(N) && "This routine only for normal loads!");
-  SDLoc dl(N);
+  SDLoc const dl(N);
 
   LoadSDNode *LD = cast<LoadSDNode>(N);
   assert(!LD->isAtomic() && "Atomics can not be split");
-  EVT ValueVT = LD->getValueType(0);
-  EVT NVT = TLI.getTypeToTransformTo(*DAG.getContext(), ValueVT);
+  EVT const ValueVT = LD->getValueType(0);
+  EVT const NVT = TLI.getTypeToTransformTo(*DAG.getContext(), ValueVT);
   SDValue Chain = LD->getChain();
   SDValue Ptr = LD->getBasePtr();
-  AAMDNodes AAInfo = LD->getAAInfo();
+  AAMDNodes const AAInfo = LD->getAAInfo();
 
   assert(NVT.isByteSized() && "Expanded type not byte sized!");
 
@@ -266,7 +266,7 @@ void DAGTypeLegalizer::ExpandRes_NormalLoad(SDNode *N, SDValue &Lo,
                    AAInfo);
 
   // Increment the pointer to the other half.
-  unsigned IncrementSize = NVT.getSizeInBits() / 8;
+  unsigned const IncrementSize = NVT.getSizeInBits() / 8;
   Ptr = DAG.getMemBasePlusOffset(Ptr, TypeSize::Fixed(IncrementSize), dl);
   Hi = DAG.getLoad(
       NVT, dl, Chain, Ptr, LD->getPointerInfo().getWithOffset(IncrementSize),
@@ -287,11 +287,11 @@ void DAGTypeLegalizer::ExpandRes_NormalLoad(SDNode *N, SDValue &Lo,
 }
 
 void DAGTypeLegalizer::ExpandRes_VAARG(SDNode *N, SDValue &Lo, SDValue &Hi) {
-  EVT OVT = N->getValueType(0);
-  EVT NVT = TLI.getTypeToTransformTo(*DAG.getContext(), OVT);
+  EVT const OVT = N->getValueType(0);
+  EVT const NVT = TLI.getTypeToTransformTo(*DAG.getContext(), OVT);
   SDValue Chain = N->getOperand(0);
-  SDValue Ptr = N->getOperand(1);
-  SDLoc dl(N);
+  SDValue const Ptr = N->getOperand(1);
+  SDLoc const dl(N);
   const unsigned Align = N->getConstantOperandVal(3);
 
   Lo = DAG.getVAArg(NVT, dl, Chain, Ptr, N->getOperand(2), Align);
@@ -316,7 +316,7 @@ void DAGTypeLegalizer::IntegerToVector(SDValue Op, unsigned NumElements,
                                        SmallVectorImpl<SDValue> &Ops,
                                        EVT EltVT) {
   assert(Op.getValueType().isInteger());
-  SDLoc DL(Op);
+  SDLoc const DL(Op);
   SDValue Parts[2];
 
   if (NumElements > 1) {
@@ -332,7 +332,7 @@ void DAGTypeLegalizer::IntegerToVector(SDValue Op, unsigned NumElements,
 }
 
 SDValue DAGTypeLegalizer::ExpandOp_BITCAST(SDNode *N) {
-  SDLoc dl(N);
+  SDLoc const dl(N);
   if (N->getValueType(0).isVector() &&
       N->getOperand(0).getValueType().isInteger()) {
     // An illegal expanding type is being converted to a legal vector type.
@@ -345,7 +345,7 @@ SDValue DAGTypeLegalizer::ExpandOp_BITCAST(SDNode *N) {
     // a 2 element vector, so I'm leaving it here to maintain the current
     // behavior.
     unsigned NumElts = 2;
-    EVT OVT = N->getOperand(0).getValueType();
+    EVT const OVT = N->getOperand(0).getValueType();
     EVT NVT = EVT::getVectorVT(*DAG.getContext(),
                                TLI.getTypeToTransformTo(*DAG.getContext(), OVT),
                                NumElts);
@@ -359,7 +359,7 @@ SDValue DAGTypeLegalizer::ExpandOp_BITCAST(SDNode *N) {
     SmallVector<SDValue, 8> Ops;
     IntegerToVector(N->getOperand(0), NumElts, Ops, NVT.getVectorElementType());
 
-    SDValue Vec =
+    SDValue const Vec =
         DAG.getBuildVector(NVT, dl, makeArrayRef(Ops.data(), NumElts));
     return DAG.getNode(ISD::BITCAST, dl, N->getValueType(0), Vec);
   }
@@ -370,11 +370,11 @@ SDValue DAGTypeLegalizer::ExpandOp_BITCAST(SDNode *N) {
 
 SDValue DAGTypeLegalizer::ExpandOp_BUILD_VECTOR(SDNode *N) {
   // The vector type is legal but the element type needs expansion.
-  EVT VecVT = N->getValueType(0);
-  unsigned NumElts = VecVT.getVectorNumElements();
-  EVT OldVT = N->getOperand(0).getValueType();
-  EVT NewVT = TLI.getTypeToTransformTo(*DAG.getContext(), OldVT);
-  SDLoc dl(N);
+  EVT const VecVT = N->getValueType(0);
+  unsigned const NumElts = VecVT.getVectorNumElements();
+  EVT const OldVT = N->getOperand(0).getValueType();
+  EVT const NewVT = TLI.getTypeToTransformTo(*DAG.getContext(), OldVT);
+  SDLoc const dl(N);
 
   assert(OldVT == VecVT.getVectorElementType() &&
          "BUILD_VECTOR operand type doesn't match vector element type!");
@@ -393,8 +393,8 @@ SDValue DAGTypeLegalizer::ExpandOp_BUILD_VECTOR(SDNode *N) {
     NewElts.push_back(Hi);
   }
 
-  EVT NewVecVT = EVT::getVectorVT(*DAG.getContext(), NewVT, NewElts.size());
-  SDValue NewVec = DAG.getBuildVector(NewVecVT, dl, NewElts);
+  EVT const NewVecVT = EVT::getVectorVT(*DAG.getContext(), NewVT, NewElts.size());
+  SDValue const NewVec = DAG.getBuildVector(NewVecVT, dl, NewElts);
 
   // Convert the new vector to the old vector type.
   return DAG.getNode(ISD::BITCAST, dl, VecVT, NewVec);
@@ -408,20 +408,20 @@ SDValue DAGTypeLegalizer::ExpandOp_EXTRACT_ELEMENT(SDNode *N) {
 
 SDValue DAGTypeLegalizer::ExpandOp_INSERT_VECTOR_ELT(SDNode *N) {
   // The vector type is legal but the element type needs expansion.
-  EVT VecVT = N->getValueType(0);
-  unsigned NumElts = VecVT.getVectorNumElements();
-  SDLoc dl(N);
+  EVT const VecVT = N->getValueType(0);
+  unsigned const NumElts = VecVT.getVectorNumElements();
+  SDLoc const dl(N);
 
-  SDValue Val = N->getOperand(1);
-  EVT OldEVT = Val.getValueType();
-  EVT NewEVT = TLI.getTypeToTransformTo(*DAG.getContext(), OldEVT);
+  SDValue const Val = N->getOperand(1);
+  EVT const OldEVT = Val.getValueType();
+  EVT const NewEVT = TLI.getTypeToTransformTo(*DAG.getContext(), OldEVT);
 
   assert(OldEVT == VecVT.getVectorElementType() &&
          "Inserted element type doesn't match vector element type!");
 
   // Bitconvert to a vector of twice the length with elements of the expanded
   // type, insert the expanded vector elements, and then convert back.
-  EVT NewVecVT = EVT::getVectorVT(*DAG.getContext(), NewEVT, NumElts*2);
+  EVT const NewVecVT = EVT::getVectorVT(*DAG.getContext(), NewEVT, NumElts*2);
   SDValue NewVec = DAG.getNode(ISD::BITCAST, dl,
                                NewVecVT, N->getOperand(0));
 
@@ -443,14 +443,14 @@ SDValue DAGTypeLegalizer::ExpandOp_INSERT_VECTOR_ELT(SDNode *N) {
 }
 
 SDValue DAGTypeLegalizer::ExpandOp_SCALAR_TO_VECTOR(SDNode *N) {
-  SDLoc dl(N);
-  EVT VT = N->getValueType(0);
+  SDLoc const dl(N);
+  EVT const VT = N->getValueType(0);
   assert(VT.getVectorElementType() == N->getOperand(0).getValueType() &&
          "SCALAR_TO_VECTOR operand type doesn't match vector element type!");
-  unsigned NumElts = VT.getVectorNumElements();
+  unsigned const NumElts = VT.getVectorNumElements();
   SmallVector<SDValue, 16> Ops(NumElts);
   Ops[0] = N->getOperand(0);
-  SDValue UndefVal = DAG.getUNDEF(Ops[0].getValueType());
+  SDValue const UndefVal = DAG.getUNDEF(Ops[0].getValueType());
   for (unsigned i = 1; i < NumElts; ++i)
     Ops[i] = UndefVal;
   return DAG.getBuildVector(VT, dl, Ops);
@@ -459,18 +459,18 @@ SDValue DAGTypeLegalizer::ExpandOp_SCALAR_TO_VECTOR(SDNode *N) {
 SDValue DAGTypeLegalizer::ExpandOp_NormalStore(SDNode *N, unsigned OpNo) {
   assert(ISD::isNormalStore(N) && "This routine only for normal stores!");
   assert(OpNo == 1 && "Can only expand the stored value so far");
-  SDLoc dl(N);
+  SDLoc const dl(N);
 
   StoreSDNode *St = cast<StoreSDNode>(N);
   assert(!St->isAtomic() && "Atomics can not be split");
-  EVT ValueVT = St->getValue().getValueType();
-  EVT NVT = TLI.getTypeToTransformTo(*DAG.getContext(), ValueVT);
-  SDValue Chain = St->getChain();
+  EVT const ValueVT = St->getValue().getValueType();
+  EVT const NVT = TLI.getTypeToTransformTo(*DAG.getContext(), ValueVT);
+  SDValue const Chain = St->getChain();
   SDValue Ptr = St->getBasePtr();
-  AAMDNodes AAInfo = St->getAAInfo();
+  AAMDNodes const AAInfo = St->getAAInfo();
 
   assert(NVT.isByteSized() && "Expanded type not byte sized!");
-  unsigned IncrementSize = NVT.getSizeInBits() / 8;
+  unsigned const IncrementSize = NVT.getSizeInBits() / 8;
 
   SDValue Lo, Hi;
   GetExpandedOp(St->getValue(), Lo, Hi);
@@ -502,20 +502,20 @@ SDValue DAGTypeLegalizer::ExpandOp_NormalStore(SDNode *N, unsigned OpNo) {
 
 void DAGTypeLegalizer::SplitRes_MERGE_VALUES(SDNode *N, unsigned ResNo,
                                              SDValue &Lo, SDValue &Hi) {
-  SDValue Op = DisintegrateMERGE_VALUES(N, ResNo);
+  SDValue const Op = DisintegrateMERGE_VALUES(N, ResNo);
   GetSplitOp(Op, Lo, Hi);
 }
 
 void DAGTypeLegalizer::SplitRes_SELECT(SDNode *N, SDValue &Lo, SDValue &Hi) {
   SDValue LL, LH, RL, RH, CL, CH;
-  SDLoc dl(N);
+  SDLoc const dl(N);
   GetSplitOp(N->getOperand(1), LL, LH);
   GetSplitOp(N->getOperand(2), RL, RH);
 
-  SDValue Cond = N->getOperand(0);
+  SDValue const Cond = N->getOperand(0);
   CL = CH = Cond;
   if (Cond.getValueType().isVector()) {
-    if (SDValue Res = WidenVSELECTMask(N))
+    if (SDValue const Res = WidenVSELECTMask(N))
       std::tie(CL, CH) = DAG.SplitVector(Res, dl);
     // Check if there are already splitted versions of the vector available and
     // use those instead of splitting the mask operand again.
@@ -528,7 +528,7 @@ void DAGTypeLegalizer::SplitRes_SELECT(SDNode *N, SDValue &Lo, SDValue &Hi) {
       // If the condition is a vXi1 vector, and the LHS of the setcc is a legal
       // type and the setcc result type is the same vXi1, then leave the setcc
       // alone.
-      EVT CondLHSVT = Cond.getOperand(0).getValueType();
+      EVT const CondLHSVT = Cond.getOperand(0).getValueType();
       if (Cond.getValueType().getVectorElementType() == MVT::i1 &&
           isTypeLegal(CondLHSVT) &&
           getSetCCResultType(CondLHSVT) == Cond.getValueType())
@@ -546,7 +546,7 @@ void DAGTypeLegalizer::SplitRes_SELECT(SDNode *N, SDValue &Lo, SDValue &Hi) {
 void DAGTypeLegalizer::SplitRes_SELECT_CC(SDNode *N, SDValue &Lo,
                                           SDValue &Hi) {
   SDValue LL, LH, RL, RH;
-  SDLoc dl(N);
+  SDLoc const dl(N);
   GetSplitOp(N->getOperand(2), LL, LH);
   GetSplitOp(N->getOperand(3), RL, RH);
 
@@ -565,7 +565,7 @@ void DAGTypeLegalizer::SplitRes_UNDEF(SDNode *N, SDValue &Lo, SDValue &Hi) {
 
 void DAGTypeLegalizer::SplitRes_FREEZE(SDNode *N, SDValue &Lo, SDValue &Hi) {
   SDValue L, H;
-  SDLoc dl(N);
+  SDLoc const dl(N);
   GetSplitOp(N->getOperand(0), L, H);
 
   Lo = DAG.getNode(ISD::FREEZE, dl, L.getValueType(), L);

@@ -380,7 +380,7 @@ void WinCOFFObjectWriter::DefineSymbol(const MCSymbol &MCSym,
 
     COFFSymbol *WeakDefault = getLinkedSymbol(MCSym);
     if (!WeakDefault) {
-      std::string WeakName = (".weak." + MCSym.getName() + ".default").str();
+      std::string const WeakName = (".weak." + MCSym.getName() + ".default").str();
       WeakDefault = createSymbol(WeakName);
       if (!Sec)
         WeakDefault->Data.SectionNumber = COFF::IMAGE_SYM_ABSOLUTE;
@@ -416,7 +416,7 @@ void WinCOFFObjectWriter::DefineSymbol(const MCSymbol &MCSym,
 
     // If no storage class was specified in the streamer, define it here.
     if (Local->Data.StorageClass == COFF::IMAGE_SYM_CLASS_NULL) {
-      bool IsExternal = MCSym.isExternal() ||
+      bool const IsExternal = MCSym.isExternal() ||
                         (!MCSym.getFragment() && !MCSym.isVariable());
 
       Local->Data.StorageClass = IsExternal ? COFF::IMAGE_SYM_CLASS_EXTERNAL
@@ -447,7 +447,7 @@ static void encodeBase64StringEntry(char *Buffer, uint64_t Value) {
 
   char *Ptr = Buffer + 7;
   for (unsigned i = 0; i < 6; ++i) {
-    unsigned Rem = Value % 64;
+    unsigned const Rem = Value % 64;
     Value /= 64;
     *(Ptr--) = Alphabet[Rem];
   }
@@ -459,7 +459,7 @@ void WinCOFFObjectWriter::SetSectionName(COFFSection &S) {
     return;
   }
 
-  uint64_t StringTableEntry = Strings.getOffset(S.Name);
+  uint64_t const StringTableEntry = Strings.getOffset(S.Name);
   if (StringTableEntry <= Max7DecimalOffset) {
     SmallVector<char, COFF::NameSize> Buffer;
     Twine('/').concat(Twine(StringTableEntry)).toVector(Buffer);
@@ -632,7 +632,7 @@ void WinCOFFObjectWriter::writeSection(MCAssembler &Asm,
     assert(W.OS.tell() == Sec.Header.PointerToRawData &&
            "Section::PointerToRawData is insane!");
 
-    uint32_t CRC = writeSectionContents(Asm, Layout, MCSec);
+    uint32_t const CRC = writeSectionContents(Asm, Layout, MCSec);
 
     // Update the section definition auxiliary symbol to record the CRC.
     COFFSection *Sec = SectionMap[&MCSec];
@@ -704,7 +704,7 @@ bool WinCOFFObjectWriter::isSymbolRefDifferenceFullyResolvedImpl(
   // point to thunks, and the /GUARD:CF flag assumes that it can use relocations
   // to approximate the set of all address taken functions. LLD's implementation
   // of /GUARD:CF also relies on the existance of these relocations.
-  uint16_t Type = cast<MCSymbolCOFF>(SymA).getType();
+  uint16_t const Type = cast<MCSymbolCOFF>(SymA).getType();
   if ((Type >> COFF::SCT_COMPLEX_TYPE_SHIFT) == COFF::IMAGE_SYM_DTYPE_FUNCTION)
     return false;
   return MCObjectWriter::isSymbolRefDifferenceFullyResolvedImpl(Asm, SymA, FB,
@@ -752,10 +752,10 @@ void WinCOFFObjectWriter::recordRelocation(MCAssembler &Asm,
     }
 
     // Offset of the symbol in the section
-    int64_t OffsetOfB = Layout.getSymbolOffset(*B);
+    int64_t const OffsetOfB = Layout.getSymbolOffset(*B);
 
     // Offset of the relocation in the section
-    int64_t OffsetOfRelocation =
+    int64_t const OffsetOfRelocation =
         Layout.getFragmentOffset(Fragment) + Fixup.getOffset();
 
     FixedValue = (OffsetOfRelocation - OffsetOfB) + Target.getConstant();
@@ -848,7 +848,7 @@ void WinCOFFObjectWriter::recordRelocation(MCAssembler &Asm,
 }
 
 static std::time_t getTime() {
-  std::time_t Now = time(nullptr);
+  std::time_t const Now = time(nullptr);
   if (Now < 0 || !isUInt<32>(Now))
     return UINT32_MAX;
   return Now;
@@ -859,8 +859,8 @@ void WinCOFFObjectWriter::createFileSymbols(MCAssembler &Asm) {
   for (const std::pair<std::string, size_t> &It : Asm.getFileNames()) {
     // round up to calculate the number of auxiliary symbols required
     const std::string &Name = It.first;
-    unsigned SymbolSize = UseBigObj ? COFF::Symbol32Size : COFF::Symbol16Size;
-    unsigned Count = (Name.size() + SymbolSize - 1) / SymbolSize;
+    unsigned const SymbolSize = UseBigObj ? COFF::Symbol32Size : COFF::Symbol16Size;
+    unsigned const Count = (Name.size() + SymbolSize - 1) / SymbolSize;
 
     COFFSymbol *File = createSymbol(".file");
     File->Data.SectionNumber = COFF::IMAGE_SYM_DEBUG;
@@ -898,7 +898,7 @@ void WinCOFFObjectWriter::setWeakDefaultNames() {
   // allow picking a comdat symbol, as that's still better than nothing.
 
   COFFSymbol *Unique = nullptr;
-  for (bool AllowComdat : {false, true}) {
+  for (bool const AllowComdat : {false, true}) {
     for (auto &Sym : Symbols) {
       // Don't include the names of the defaults themselves
       if (WeakDefaults.count(Sym.get()))
@@ -974,7 +974,7 @@ void WinCOFFObjectWriter::assignFileOffsets(MCAssembler &Asm,
     }
 
     if (!Sec->Relocations.empty()) {
-      bool RelocationsOverflow = Sec->Relocations.size() >= 0xffff;
+      bool const RelocationsOverflow = Sec->Relocations.size() >= 0xffff;
 
       if (RelocationsOverflow) {
         // Signal overflow by setting NumberOfRelocations to max value. Actual
@@ -1015,7 +1015,7 @@ void WinCOFFObjectWriter::assignFileOffsets(MCAssembler &Asm,
 
 uint64_t WinCOFFObjectWriter::writeObject(MCAssembler &Asm,
                                           const MCAsmLayout &Layout) {
-  uint64_t StartOffset = W.OS.tell();
+  uint64_t const StartOffset = W.OS.tell();
 
   if (Sections.size() > INT32_MAX)
     report_fatal_error(
@@ -1121,8 +1121,8 @@ uint64_t WinCOFFObjectWriter::writeObject(MCAssembler &Asm,
     Frag->setLayoutOrder(0);
     raw_svector_ostream OS(Frag->getContents());
     for (const MCAssembler::CGProfileEntry &CGPE : Asm.CGProfile) {
-      uint32_t FromIndex = CGPE.From->getSymbol().getIndex();
-      uint32_t ToIndex = CGPE.To->getSymbol().getIndex();
+      uint32_t const FromIndex = CGPE.From->getSymbol().getIndex();
+      uint32_t const ToIndex = CGPE.To->getSymbol().getIndex();
       support::endian::write(OS, FromIndex, W.Endian);
       support::endian::write(OS, ToIndex, W.Endian);
       support::endian::write(OS, CGPE.Count, W.Endian);
@@ -1146,9 +1146,9 @@ uint64_t WinCOFFObjectWriter::writeObject(MCAssembler &Asm,
 
   // Write section contents.
   sections::iterator I = Sections.begin();
-  sections::iterator IE = Sections.end();
+  sections::iterator const IE = Sections.end();
   MCAssembler::iterator J = Asm.begin();
-  MCAssembler::iterator JE = Asm.end();
+  MCAssembler::iterator const JE = Asm.end();
   for (; I != IE && J != JE; ++I, ++J)
     writeSection(Asm, Layout, **I, *J);
 

@@ -183,13 +183,13 @@ bool PPCExpandISEL::canMerge(MachineInstr *PrevPushedMI, MachineInstr *MI) {
   if (!useSameRegister(PrevPushedMI->getOperand(3), MI->getOperand(3)))
     return false;
 
-  MachineBasicBlock::iterator PrevPushedMBBI = *PrevPushedMI;
-  MachineBasicBlock::iterator MBBI = *MI;
+  MachineBasicBlock::iterator const PrevPushedMBBI = *PrevPushedMI;
+  MachineBasicBlock::iterator const MBBI = *MI;
   return (std::prev(MBBI) == PrevPushedMBBI); // Contiguous ISELs?
 }
 
 void PPCExpandISEL::expandAndMergeISELs() {
-  bool ExpandISELEnabled = isExpandISELEnabled(*MF);
+  bool const ExpandISELEnabled = isExpandISELEnabled(*MF);
 
   for (auto &BlockList : ISELInstructions) {
     LLVM_DEBUG(
@@ -202,9 +202,9 @@ void PPCExpandISEL::expandAndMergeISELs() {
 
     while (I != E) {
       assert(isISEL(**I) && "Expecting an ISEL instruction");
-      MachineOperand &Dest = (*I)->getOperand(0);
-      MachineOperand &TrueValue = (*I)->getOperand(1);
-      MachineOperand &FalseValue = (*I)->getOperand(2);
+      MachineOperand  const&Dest = (*I)->getOperand(0);
+      MachineOperand  const&TrueValue = (*I)->getOperand(1);
+      MachineOperand  const&FalseValue = (*I)->getOperand(2);
 
       // Special case 1, all registers used by ISEL are the same one.
       // The non-redundant isel 0, 0, 0, N would not satisfy these conditions
@@ -269,9 +269,9 @@ void PPCExpandISEL::handleSpecialCases(BlockISELList &BIL,
     assert(isISEL(**MI) && "Expecting an ISEL instruction");
     LLVM_DEBUG(dbgs() << "ISEL: " << **MI << "\n");
 
-    MachineOperand &Dest = (*MI)->getOperand(0);
-    MachineOperand &TrueValue = (*MI)->getOperand(1);
-    MachineOperand &FalseValue = (*MI)->getOperand(2);
+    MachineOperand  const&Dest = (*MI)->getOperand(0);
+    MachineOperand  const&TrueValue = (*MI)->getOperand(1);
+    MachineOperand  const&FalseValue = (*MI)->getOperand(2);
 
     // If at least one of the ISEL instructions satisfy the following
     // condition, we need the True Block:
@@ -279,8 +279,8 @@ void PPCExpandISEL::handleSpecialCases(BlockISELList &BIL,
     // Similarly, if at least one of the ISEL instructions satisfy the
     // following condition, we need the False Block:
     // The Dest Register and False Value Register are not the same.
-    bool IsADDIInstRequired = !useSameRegister(Dest, TrueValue);
-    bool IsORIInstRequired = !useSameRegister(Dest, FalseValue);
+    bool const IsADDIInstRequired = !useSameRegister(Dest, TrueValue);
+    bool const IsORIInstRequired = !useSameRegister(Dest, FalseValue);
 
     // Special case 1, all registers used by ISEL are the same one.
     if (!IsADDIInstRequired && !IsORIInstRequired) {
@@ -334,7 +334,7 @@ void PPCExpandISEL::reorganizeBlockLayout(BlockISELList &BIL,
 
   MachineBasicBlock *Successor = nullptr;
   const BasicBlock *LLVM_BB = MBB->getBasicBlock();
-  MachineBasicBlock::iterator MBBI = (*BIL.back());
+  MachineBasicBlock::iterator const MBBI = (*BIL.back());
   NewSuccessor = (MBBI != MBB->getLastNonDebugInstr() || !MBB->canFallThrough())
                      // Another BB is needed to move the instructions that
                      // follow this ISEL.  If the ISEL is the last instruction
@@ -425,10 +425,10 @@ void PPCExpandISEL::populateBlocks(BlockISELList &BIL) {
   for (auto &MI : BIL) {
     assert(isISEL(*MI) && "Expecting an ISEL instruction");
 
-    MachineOperand &Dest = MI->getOperand(0);       // location to store to
-    MachineOperand &TrueValue = MI->getOperand(1);  // Value to store if
+    MachineOperand  const&Dest = MI->getOperand(0);       // location to store to
+    MachineOperand  const&TrueValue = MI->getOperand(1);  // Value to store if
                                                        // condition is true
-    MachineOperand &FalseValue = MI->getOperand(2); // Value to store if
+    MachineOperand  const&FalseValue = MI->getOperand(2); // Value to store if
                                                        // condition is false
 
     LLVM_DEBUG(dbgs() << "Dest: " << Dest << "\n");
@@ -438,8 +438,8 @@ void PPCExpandISEL::populateBlocks(BlockISELList &BIL) {
 
     // If the Dest Register and True Value Register are not the same one, we
     // need the True Block.
-    bool IsADDIInstRequired = !useSameRegister(Dest, TrueValue);
-    bool IsORIInstRequired = !useSameRegister(Dest, FalseValue);
+    bool const IsADDIInstRequired = !useSameRegister(Dest, TrueValue);
+    bool const IsORIInstRequired = !useSameRegister(Dest, FalseValue);
 
     // Copy the result into the destination if the condition is true.
     if (IsADDIInstRequired)

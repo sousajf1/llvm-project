@@ -48,15 +48,15 @@ Error ModuleDebugStreamRef::reload() {
 }
 
 Error ModuleDebugStreamRef::reloadSerialize(BinaryStreamReader &Reader) {
-  uint32_t SymbolSize = Mod.getSymbolDebugInfoByteSize();
-  uint32_t C11Size = Mod.getC11LineInfoByteSize();
-  uint32_t C13Size = Mod.getC13LineInfoByteSize();
+  uint32_t const SymbolSize = Mod.getSymbolDebugInfoByteSize();
+  uint32_t const C11Size = Mod.getC11LineInfoByteSize();
+  uint32_t const C13Size = Mod.getC13LineInfoByteSize();
 
   if (C11Size > 0 && C13Size > 0)
     return make_error<RawError>(raw_error_code::corrupt_file,
                                 "Module has both C11 and C13 line info");
 
-  BinaryStreamRef S;
+  BinaryStreamRef const S;
 
   if (auto EC = Reader.readInteger(Signature))
     return EC;

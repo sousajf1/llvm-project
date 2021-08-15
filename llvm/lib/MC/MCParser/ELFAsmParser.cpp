@@ -36,7 +36,7 @@ namespace {
 class ELFAsmParser : public MCAsmParserExtension {
   template<bool (ELFAsmParser::*HandlerMethod)(StringRef, SMLoc)>
   void addDirectiveHandler(StringRef Directive) {
-    MCAsmParser::ExtensionDirectiveHandler Handler = std::make_pair(
+    MCAsmParser::ExtensionDirectiveHandler const Handler = std::make_pair(
         this, HandleDirective<ELFAsmParser, HandlerMethod>);
 
     getParser().addDirectiveHandler(Directive, Handler);
@@ -167,7 +167,7 @@ private:
 /// ParseDirectiveSymbolAttribute
 ///  ::= { ".local", ".weak", ... } [ identifier ( , identifier )* ]
 bool ELFAsmParser::ParseDirectiveSymbolAttribute(StringRef Directive, SMLoc) {
-  MCSymbolAttr Attr = StringSwitch<MCSymbolAttr>(Directive)
+  MCSymbolAttr const Attr = StringSwitch<MCSymbolAttr>(Directive)
     .Case(".weak", MCSA_Weak)
     .Case(".local", MCSA_Local)
     .Case(".hidden", MCSA_Hidden)
@@ -245,7 +245,7 @@ bool ELFAsmParser::ParseDirectiveSize(StringRef, SMLoc) {
 bool ELFAsmParser::ParseSectionName(StringRef &SectionName) {
   // A section name can contain -, so we cannot just use
   // parseIdentifier.
-  SMLoc FirstLoc = getLexer().getLoc();
+  SMLoc const FirstLoc = getLexer().getLoc();
   unsigned Size = 0;
 
   if (getLexer().is(AsmToken::String)) {
@@ -255,7 +255,7 @@ bool ELFAsmParser::ParseSectionName(StringRef &SectionName) {
   }
 
   while (!getParser().hasPendingError()) {
-    SMLoc PrevLoc = getLexer().getLoc();
+    SMLoc const PrevLoc = getLexer().getLoc();
     if (getLexer().is(AsmToken::Comma) ||
       getLexer().is(AsmToken::EndOfStatement))
       break;
@@ -291,7 +291,7 @@ static unsigned parseSectionFlags(StringRef flagsStr, bool *UseLastGroup) {
   if (!flagsStr.getAsInteger(0, flags))
     return flags;
 
-  for (char i : flagsStr) {
+  for (char const i : flagsStr) {
     switch (i) {
     case 'a':
       flags |= ELF::SHF_ALLOC;
@@ -354,7 +354,7 @@ unsigned ELFAsmParser::parseSunStyleSectionFlags() {
     if (!getLexer().is(AsmToken::Identifier))
       return -1U;
 
-    StringRef flagId = getTok().getIdentifier();
+    StringRef const flagId = getTok().getIdentifier();
     if (flagId == "alloc")
       flags |= ELF::SHF_ALLOC;
     else if (flagId == "execinstr")
@@ -431,7 +431,7 @@ bool ELFAsmParser::parseMergeSize(int64_t &Size) {
 }
 
 bool ELFAsmParser::parseGroup(StringRef &GroupName, bool &IsComdat) {
-  MCAsmLexer &L = getLexer();
+  MCAsmLexer  const&L = getLexer();
   if (L.isNot(AsmToken::Comma))
     return TokError("expected group name");
   Lex();
@@ -456,12 +456,12 @@ bool ELFAsmParser::parseGroup(StringRef &GroupName, bool &IsComdat) {
 }
 
 bool ELFAsmParser::parseLinkedToSym(MCSymbolELF *&LinkedToSym) {
-  MCAsmLexer &L = getLexer();
+  MCAsmLexer  const&L = getLexer();
   if (L.isNot(AsmToken::Comma))
     return TokError("expected linked-to symbol");
   Lex();
   StringRef Name;
-  SMLoc StartLoc = L.getLoc();
+  SMLoc const StartLoc = L.getLoc();
   if (getParser().parseIdentifier(Name)) {
     if (getParser().getTok().getString() == "0") {
       getParser().Lex();
@@ -477,7 +477,7 @@ bool ELFAsmParser::parseLinkedToSym(MCSymbolELF *&LinkedToSym) {
 }
 
 bool ELFAsmParser::maybeParseUniqueID(int64_t &UniqueID) {
-  MCAsmLexer &L = getLexer();
+  MCAsmLexer  const&L = getLexer();
   if (L.isNot(AsmToken::Comma))
     return false;
   Lex();
@@ -569,7 +569,7 @@ bool ELFAsmParser::ParseSectionArguments(bool IsPush, SMLoc loc) {
         return TokError("expected string in directive");
       extraFlags = parseSunStyleSectionFlags();
     } else {
-      StringRef FlagsStr = getTok().getStringContents();
+      StringRef const FlagsStr = getTok().getStringContents();
       Lex();
       extraFlags = parseSectionFlags(FlagsStr, &UseLastGroup);
     }
@@ -578,8 +578,8 @@ bool ELFAsmParser::ParseSectionArguments(bool IsPush, SMLoc loc) {
       return TokError("unknown flag");
     Flags |= extraFlags;
 
-    bool Mergeable = Flags & ELF::SHF_MERGE;
-    bool Group = Flags & ELF::SHF_GROUP;
+    bool const Mergeable = Flags & ELF::SHF_MERGE;
+    bool const Group = Flags & ELF::SHF_GROUP;
     if (Group && UseLastGroup)
       return TokError("Section cannot specifiy a group name while also acting "
                       "as a member of the last group");
@@ -587,7 +587,7 @@ bool ELFAsmParser::ParseSectionArguments(bool IsPush, SMLoc loc) {
     if (maybeParseSectionType(TypeName))
       return true;
 
-    MCAsmLexer &L = getLexer();
+    MCAsmLexer  const&L = getLexer();
     if (TypeName.empty()) {
       if (Mergeable)
         return TokError("Mergeable section must specify the type");
@@ -662,7 +662,7 @@ EndStmt:
   }
 
   if (UseLastGroup) {
-    MCSectionSubPair CurrentSection = getStreamer().getCurrentSection();
+    MCSectionSubPair const CurrentSection = getStreamer().getCurrentSection();
     if (const MCSectionELF *Section =
             cast_or_null<MCSectionELF>(CurrentSection.first))
       if (const MCSymbol *Group = Section->getGroup()) {
@@ -695,7 +695,7 @@ EndStmt:
   if (getContext().getGenDwarfForAssembly() &&
       (Section->getFlags() & ELF::SHF_ALLOC) &&
       (Section->getFlags() & ELF::SHF_EXECINSTR)) {
-    bool InsertResult = getContext().addGenDwarfSection(Section);
+    bool const InsertResult = getContext().addGenDwarfSection(Section);
     if (InsertResult) {
       if (getContext().getDwarfVersion() <= 2)
         Warning(loc, "DWARF2 only supports one section per compilation unit");
@@ -712,7 +712,7 @@ EndStmt:
 }
 
 bool ELFAsmParser::ParseDirectivePrevious(StringRef DirName, SMLoc) {
-  MCSectionSubPair PreviousSection = getStreamer().getPreviousSection();
+  MCSectionSubPair const PreviousSection = getStreamer().getPreviousSection();
   if (PreviousSection.first == nullptr)
       return TokError(".previous without corresponding .section");
   getStreamer().SwitchSection(PreviousSection.first, PreviousSection.second);
@@ -771,13 +771,13 @@ bool ELFAsmParser::ParseDirectiveType(StringRef, SMLoc) {
       getLexer().isNot(AsmToken::Identifier))
     Lex();
 
-  SMLoc TypeLoc = getLexer().getLoc();
+  SMLoc const TypeLoc = getLexer().getLoc();
 
   StringRef Type;
   if (getParser().parseIdentifier(Type))
     return TokError("expected symbol type in directive");
 
-  MCSymbolAttr Attr = MCAttrForString(Type);
+  MCSymbolAttr const Attr = MCAttrForString(Type);
   if (Attr == MCSA_Invalid)
     return Error(TypeLoc, "unsupported attribute in '.type' directive");
 
@@ -796,7 +796,7 @@ bool ELFAsmParser::ParseDirectiveIdent(StringRef, SMLoc) {
   if (getLexer().isNot(AsmToken::String))
     return TokError("unexpected token in '.ident' directive");
 
-  StringRef Data = getTok().getIdentifier();
+  StringRef const Data = getTok().getIdentifier();
 
   Lex();
 
@@ -851,7 +851,7 @@ bool ELFAsmParser::ParseDirectiveVersion(StringRef, SMLoc) {
   if (getLexer().isNot(AsmToken::String))
     return TokError("unexpected token in '.version' directive");
 
-  StringRef Data = getTok().getIdentifier();
+  StringRef const Data = getTok().getIdentifier();
 
   Lex();
 

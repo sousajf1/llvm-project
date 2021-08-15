@@ -213,7 +213,7 @@ static bool getBBClusterInfoForFunction(
   // Get the main alias name for the function.
   auto FuncName = MF.getName();
   auto R = FuncAliasMap.find(FuncName);
-  StringRef AliasName = R == FuncAliasMap.end() ? FuncName : R->second;
+  StringRef const AliasName = R == FuncAliasMap.end() ? FuncName : R->second;
 
   // Find the assoicated cluster information.
   auto P = ProgramBBClusterInfo.find(AliasName);
@@ -321,7 +321,7 @@ static bool avoidZeroOffsetLandingPad(MachineFunction &MF) {
       MachineBasicBlock::iterator MI = MBB.begin();
       while (!MI->isEHLabel())
         ++MI;
-      MCInst Nop = MF.getSubtarget().getInstrInfo()->getNop();
+      MCInst const Nop = MF.getSubtarget().getInstrInfo()->getNop();
       BuildMI(MBB, MI, DebugLoc(),
               MF.getSubtarget().getInstrInfo()->get(Nop.getOpcode()));
       return false;

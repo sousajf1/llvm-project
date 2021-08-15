@@ -64,7 +64,7 @@ bool WebAssemblyDebugFixup::runOnMachineFunction(MachineFunction &MF) {
                        "********** Function: "
                     << MF.getName() << '\n');
 
-  WebAssemblyFunctionInfo &MFI = *MF.getInfo<WebAssemblyFunctionInfo>();
+  WebAssemblyFunctionInfo  const&MFI = *MF.getInfo<WebAssemblyFunctionInfo>();
   const auto *TII = MF.getSubtarget<WebAssemblySubtarget>().getInstrInfo();
 
   struct StackElem {
@@ -105,7 +105,7 @@ bool WebAssemblyDebugFixup::runOnMachineFunction(MachineFunction &MF) {
         }
       } else {
         // Track stack depth.
-        for (MachineOperand &MO : reverse(MI.explicit_uses())) {
+        for (MachineOperand  const&MO : reverse(MI.explicit_uses())) {
           if (MO.isReg() && MFI.isVRegStackified(MO.getReg())) {
             auto Prev = Stack.back();
             Stack.pop_back();
@@ -126,7 +126,7 @@ bool WebAssemblyDebugFixup::runOnMachineFunction(MachineFunction &MF) {
             }
           }
         }
-        for (MachineOperand &MO : MI.defs()) {
+        for (MachineOperand  const&MO : MI.defs()) {
           if (MO.isReg() && MFI.isVRegStackified(MO.getReg())) {
             Stack.push_back({MO.getReg(), nullptr});
           }

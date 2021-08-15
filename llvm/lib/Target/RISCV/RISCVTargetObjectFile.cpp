@@ -44,7 +44,7 @@ bool RISCVELFTargetObjectFile::isGlobalInSmallSection(
 
   // If the variable has an explicit section, it is placed in that section.
   if (GVA->hasSection()) {
-    StringRef Section = GVA->getSection();
+    StringRef const Section = GVA->getSection();
 
     // Explicitly placing any variable in the small data section overrides
     // the global -G value.
@@ -89,7 +89,7 @@ void RISCVELFTargetObjectFile::getModuleMetadata(Module &M) {
   M.getModuleFlagsMetadata(ModuleFlags);
 
   for (const auto &MFE : ModuleFlags) {
-    StringRef Key = MFE.Key->getString();
+    StringRef const Key = MFE.Key->getString();
     if (Key == "SmallDataLimit") {
       SSThreshold = mdconst::extract<ConstantInt>(MFE.Val)->getZExtValue();
       break;

@@ -92,13 +92,13 @@ bool WebAssemblyRegColoring::runOnMachineFunction(MachineFunction &MF) {
   WebAssemblyFunctionInfo &MFI = *MF.getInfo<WebAssemblyFunctionInfo>();
 
   // Gather all register intervals into a list and sort them.
-  unsigned NumVRegs = MRI->getNumVirtRegs();
+  unsigned const NumVRegs = MRI->getNumVirtRegs();
   SmallVector<LiveInterval *, 0> SortedIntervals;
   SortedIntervals.reserve(NumVRegs);
 
   LLVM_DEBUG(dbgs() << "Interesting register intervals:\n");
   for (unsigned I = 0; I < NumVRegs; ++I) {
-    unsigned VReg = Register::index2VirtReg(I);
+    unsigned const VReg = Register::index2VirtReg(I);
     if (MFI.isVRegStackified(VReg))
       continue;
     // Skip unused registers, which can use $drop.
@@ -135,13 +135,13 @@ bool WebAssemblyRegColoring::runOnMachineFunction(MachineFunction &MF) {
   bool Changed = false;
   for (size_t I = 0, E = SortedIntervals.size(); I < E; ++I) {
     LiveInterval *LI = SortedIntervals[I];
-    unsigned Old = LI->reg();
+    unsigned const Old = LI->reg();
     size_t Color = I;
     const TargetRegisterClass *RC = MRI->getRegClass(Old);
 
     // Check if it's possible to reuse any of the used colors.
     if (!MRI->isLiveIn(Old))
-      for (unsigned C : UsedColors.set_bits()) {
+      for (unsigned const C : UsedColors.set_bits()) {
         if (MRI->getRegClass(SortedIntervals[C]->reg()) != RC)
           continue;
         for (LiveInterval *OtherLI : Assignments[C])
@@ -152,7 +152,7 @@ bool WebAssemblyRegColoring::runOnMachineFunction(MachineFunction &MF) {
       continue_outer:;
       }
 
-    unsigned New = SortedIntervals[Color]->reg();
+    unsigned const New = SortedIntervals[Color]->reg();
     SlotMapping[I] = New;
     Changed |= Old != New;
     UsedColors.set(Color);
@@ -168,8 +168,8 @@ bool WebAssemblyRegColoring::runOnMachineFunction(MachineFunction &MF) {
 
   // Rewrite register operands.
   for (size_t I = 0, E = SortedIntervals.size(); I < E; ++I) {
-    unsigned Old = SortedIntervals[I]->reg();
-    unsigned New = SlotMapping[I];
+    unsigned const Old = SortedIntervals[I]->reg();
+    unsigned const New = SlotMapping[I];
     if (Old != New)
       MRI->replaceRegWith(Old, New);
   }

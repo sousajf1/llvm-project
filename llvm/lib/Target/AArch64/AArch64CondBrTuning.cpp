@@ -97,12 +97,12 @@ MachineInstr *AArch64CondBrTuning::convertToFlagSetting(MachineInstr &MI,
     return &MI;
   }
   bool Is64Bit;
-  unsigned NewOpc = TII->convertToFlagSettingOpc(MI.getOpcode(), Is64Bit);
+  unsigned const NewOpc = TII->convertToFlagSettingOpc(MI.getOpcode(), Is64Bit);
   Register NewDestReg = MI.getOperand(0).getReg();
   if (MRI->hasOneNonDBGUse(MI.getOperand(0).getReg()))
     NewDestReg = Is64Bit ? AArch64::XZR : AArch64::WZR;
 
-  MachineInstrBuilder MIB = BuildMI(*MI.getParent(), MI, MI.getDebugLoc(),
+  MachineInstrBuilder const MIB = BuildMI(*MI.getParent(), MI, MI.getDebugLoc(),
                                     TII->get(NewOpc), NewDestReg);
   for (unsigned I = 1, E = MI.getNumOperands(); I != E; ++I)
     MIB.add(MI.getOperand(I));
@@ -146,7 +146,7 @@ bool AArch64CondBrTuning::tryToTuneBranch(MachineInstr &MI,
     return false;
 
   bool IsFlagSetting = true;
-  unsigned MIOpc = MI.getOpcode();
+  unsigned const MIOpc = MI.getOpcode();
   MachineInstr *NewCmp = nullptr, *NewBr = nullptr;
   switch (DefMI.getOpcode()) {
   default:

@@ -68,8 +68,8 @@ bool PatchableFunction::runOnMachineFunction(MachineFunction &MF) {
     return false;
 
 #ifndef NDEBUG
-  Attribute PatchAttr = MF.getFunction().getFnAttribute("patchable-function");
-  StringRef PatchType = PatchAttr.getValueAsString();
+  Attribute const PatchAttr = MF.getFunction().getFnAttribute("patchable-function");
+  StringRef const PatchType = PatchAttr.getValueAsString();
   assert(PatchType == "prologue-short-redirect" && "Only possibility today!");
 #endif
 

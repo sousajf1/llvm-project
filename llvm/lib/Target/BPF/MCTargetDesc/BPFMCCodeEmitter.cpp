@@ -122,12 +122,12 @@ void BPFMCCodeEmitter::encodeInstruction(const MCInst &MI, raw_ostream &OS,
   verifyInstructionPredicates(MI,
                               computeAvailableFeatures(STI.getFeatureBits()));
 
-  unsigned Opcode = MI.getOpcode();
+  unsigned const Opcode = MI.getOpcode();
   support::endian::Writer OSE(OS,
                               IsLittleEndian ? support::little : support::big);
 
   if (Opcode == BPF::LD_imm64 || Opcode == BPF::LD_pseudo) {
-    uint64_t Value = getBinaryCodeForInstr(MI, Fixups, STI);
+    uint64_t const Value = getBinaryCodeForInstr(MI, Fixups, STI);
     OS << char(Value >> 56);
     if (IsLittleEndian)
       OS << char((Value >> 48) & 0xff);
@@ -137,14 +137,14 @@ void BPFMCCodeEmitter::encodeInstruction(const MCInst &MI, raw_ostream &OS,
     OSE.write<uint32_t>(Value & 0xffffFFFF);
 
     const MCOperand &MO = MI.getOperand(1);
-    uint64_t Imm = MO.isImm() ? MO.getImm() : 0;
+    uint64_t const Imm = MO.isImm() ? MO.getImm() : 0;
     OSE.write<uint8_t>(0);
     OSE.write<uint8_t>(0);
     OSE.write<uint16_t>(0);
     OSE.write<uint32_t>(Imm >> 32);
   } else {
     // Get instruction encoding and emit it
-    uint64_t Value = getBinaryCodeForInstr(MI, Fixups, STI);
+    uint64_t const Value = getBinaryCodeForInstr(MI, Fixups, STI);
     OS << char(Value >> 56);
     if (IsLittleEndian)
       OS << char((Value >> 48) & 0xff);
@@ -170,7 +170,7 @@ uint64_t BPFMCCodeEmitter::getMemoryOpValue(const MCInst &MI, unsigned Op,
   assert(Op1.isReg() && "First operand is not register.");
   Encoding = MRI.getEncodingValue(Op1.getReg());
   Encoding <<= 16;
-  MCOperand Op2 = MI.getOperand(MemOpStartIndex + 1);
+  MCOperand const Op2 = MI.getOperand(MemOpStartIndex + 1);
   assert(Op2.isImm() && "Second operand is not immediate.");
   Encoding |= Op2.getImm() & 0xffff;
   return Encoding;

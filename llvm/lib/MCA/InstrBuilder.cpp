@@ -57,7 +57,7 @@ static void initializeUsedResources(InstrDesc &ID,
   // part of a "Super" resource. The key value is the "Super" resource mask ID.
   DenseMap<uint64_t, unsigned> SuperResources;
 
-  unsigned NumProcResources = SM.getNumProcResourceKinds();
+  unsigned const NumProcResources = SM.getNumProcResourceKinds();
   APInt Buffers(NumProcResources, 0);
 
   bool AllInOrderResources = true;
@@ -76,7 +76,7 @@ static void initializeUsedResources(InstrDesc &ID,
       continue;
     }
 
-    uint64_t Mask = ProcResourceMasks[PRE->ProcResourceIdx];
+    uint64_t const Mask = ProcResourceMasks[PRE->ProcResourceIdx];
     if (PR.BufferSize < 0) {
       AllInOrderResources = false;
     } else {
@@ -85,10 +85,10 @@ static void initializeUsedResources(InstrDesc &ID,
       AllInOrderResources &= (PR.BufferSize <= 1);
     }
 
-    CycleSegment RCy(0, PRE->Cycles, false);
+    CycleSegment const RCy(0, PRE->Cycles, false);
     Worklist.emplace_back(ResourcePlusCycles(Mask, ResourceUsage(RCy)));
     if (PR.SuperIdx) {
-      uint64_t Super = ProcResourceMasks[PR.SuperIdx];
+      uint64_t const Super = ProcResourceMasks[PR.SuperIdx];
       SuperResources[Super] += PRE->Cycles;
     }
   }
@@ -98,8 +98,8 @@ static void initializeUsedResources(InstrDesc &ID,
   // Sort elements by mask popcount, so that we prioritize resource units over
   // resource groups, and smaller groups over larger groups.
   sort(Worklist, [](const ResourcePlusCycles &A, const ResourcePlusCycles &B) {
-    unsigned popcntA = countPopulation(A.first);
-    unsigned popcntB = countPopulation(B.first);
+    unsigned const popcntA = countPopulation(A.first);
+    unsigned const popcntB = countPopulation(B.first);
     if (popcntA < popcntB)
       return true;
     if (popcntA > popcntB)
@@ -112,12 +112,12 @@ static void initializeUsedResources(InstrDesc &ID,
   auto GroupIt = find_if(Worklist, [](const ResourcePlusCycles &Elt) {
     return countPopulation(Elt.first) > 1;
   });
-  unsigned FirstGroupIdx = std::distance(Worklist.begin(), GroupIt);
+  unsigned const FirstGroupIdx = std::distance(Worklist.begin(), GroupIt);
   uint64_t ImpliedUsesOfResourceUnits = 0;
 
   // Remove cycles contributed by smaller resources.
   for (unsigned I = 0, E = Worklist.size(); I < E; ++I) {
-    ResourcePlusCycles &A = Worklist[I];
+    ResourcePlusCycles  const&A = Worklist[I];
     if (!A.second.size()) {
       assert(countPopulation(A.first) > 1 && "Expected a group!");
       UsedResourceGroups |= PowerOf2Floor(A.first);
@@ -133,7 +133,7 @@ static void initializeUsedResources(InstrDesc &ID,
       NormalizedMask ^= PowerOf2Floor(NormalizedMask);
       UsedResourceGroups |= (A.first ^ NormalizedMask);
 
-      uint64_t AvailableMask = NormalizedMask & ~UsedResourceUnits;
+      uint64_t const AvailableMask = NormalizedMask & ~UsedResourceUnits;
       if ((NormalizedMask != AvailableMask) &&
           countPopulation(AvailableMask) == 1) {
         // At simulation time, this resource group use will decay into a simple
@@ -160,7 +160,7 @@ static void initializeUsedResources(InstrDesc &ID,
     ID.ImplicitlyUsedProcResUnits |= ImpliedUsesOfResourceUnits;
     ImpliedUsesOfResourceUnits = 0;
     for (unsigned I = FirstGroupIdx, E = Worklist.size(); I < E; ++I) {
-      ResourcePlusCycles &A = Worklist[I];
+      ResourcePlusCycles  const&A = Worklist[I];
       if (!A.second.size())
         continue;
 
@@ -168,7 +168,7 @@ static void initializeUsedResources(InstrDesc &ID,
       assert(countPopulation(NormalizedMask) > 1);
       // Remove the leading 1 from the resource group mask.
       NormalizedMask ^= PowerOf2Floor(NormalizedMask);
-      uint64_t AvailableMask = NormalizedMask & ~UsedResourceUnits;
+      uint64_t const AvailableMask = NormalizedMask & ~UsedResourceUnits;
       if ((NormalizedMask != AvailableMask) &&
           countPopulation(AvailableMask) != 1)
         continue;
@@ -198,8 +198,8 @@ static void initializeUsedResources(InstrDesc &ID,
   for (ResourcePlusCycles &RPC : ID.Resources) {
     if (countPopulation(RPC.first) > 1 && !RPC.second.isReserved()) {
       // Remove the leading 1 from the resource group mask.
-      uint64_t Mask = RPC.first ^ PowerOf2Floor(RPC.first);
-      uint64_t MaxResourceUnits = countPopulation(Mask);
+      uint64_t const Mask = RPC.first ^ PowerOf2Floor(RPC.first);
+      uint64_t const MaxResourceUnits = countPopulation(Mask);
       if (RPC.second.NumUnits > countPopulation(Mask)) {
         RPC.second.setReserved();
         RPC.second.NumUnits = MaxResourceUnits;
@@ -214,7 +214,7 @@ static void initializeUsedResources(InstrDesc &ID,
       if (PR.BufferSize == -1)
         continue;
 
-      uint64_t Mask = ProcResourceMasks[I];
+      uint64_t const Mask = ProcResourceMasks[I];
       if (Mask != SR.first && ((Mask & SR.first) == SR.first))
         Buffers.setBit(getResourceStateIndex(Mask));
     }
@@ -254,7 +254,7 @@ static void computeMaxLatency(InstrDesc &ID, const MCInstrDesc &MCDesc,
     return;
   }
 
-  int Latency = MCSchedModel::computeInstrLatency(STI, SCDesc);
+  int const Latency = MCSchedModel::computeInstrLatency(STI, SCDesc);
   // If latency is unknown, then conservatively assume a MaxLatency of 100cy.
   ID.MaxLatency = Latency < 0 ? 100U : static_cast<unsigned>(Latency);
 }
@@ -278,7 +278,7 @@ static Error verifyOperands(const MCInstrDesc &MCDesc, const MCInst &MCI) {
     // Always assume that the optional definition is the last operand.
     const MCOperand &Op = MCI.getOperand(MCDesc.getNumOperands() - 1);
     if (I == MCI.getNumOperands() || !Op.isReg()) {
-      std::string Message =
+      std::string const Message =
           "expected a register operand for an optional definition. Instruction "
           "has not been correctly analyzed.";
       return make_error<InstructionError<MCInst>>(Message, MCI);
@@ -337,14 +337,14 @@ void InstrBuilder::populateWrites(InstrDesc &ID, const MCInst &MCI,
   //
   // According to assumption 2. register reads start at #(NumExplicitDefs-1).
   // That means, register R1 from the example is both read and written.
-  unsigned NumExplicitDefs = MCDesc.getNumDefs();
-  unsigned NumImplicitDefs = MCDesc.getNumImplicitDefs();
-  unsigned NumWriteLatencyEntries = SCDesc.NumWriteLatencyEntries;
+  unsigned const NumExplicitDefs = MCDesc.getNumDefs();
+  unsigned const NumImplicitDefs = MCDesc.getNumImplicitDefs();
+  unsigned const NumWriteLatencyEntries = SCDesc.NumWriteLatencyEntries;
   unsigned TotalDefs = NumExplicitDefs + NumImplicitDefs;
   if (MCDesc.hasOptionalDef())
     TotalDefs++;
 
-  unsigned NumVariadicOps = MCI.getNumOperands() - MCDesc.getNumOperands();
+  unsigned const NumVariadicOps = MCI.getNumOperands() - MCDesc.getNumOperands();
   ID.Writes.resize(TotalDefs + NumVariadicOps);
   // Iterate over the operands list, and skip non-register operands.
   // The first NumExplicitDefs register operands are expected to be register
@@ -388,7 +388,7 @@ void InstrBuilder::populateWrites(InstrDesc &ID, const MCInst &MCI,
   assert(CurrentDef == NumExplicitDefs &&
          "Expected more register operand definitions.");
   for (CurrentDef = 0; CurrentDef < NumImplicitDefs; ++CurrentDef) {
-    unsigned Index = NumExplicitDefs + CurrentDef;
+    unsigned const Index = NumExplicitDefs + CurrentDef;
     WriteDescriptor &Write = ID.Writes[Index];
     Write.OpIndex = ~CurrentDef;
     Write.RegisterID = MCDesc.getImplicitDefs()[CurrentDef];
@@ -432,7 +432,7 @@ void InstrBuilder::populateWrites(InstrDesc &ID, const MCInst &MCI,
   if (!NumVariadicOps)
     return;
 
-  bool AssumeUsesOnly = !MCDesc.variadicOpsAreDefs();
+  bool const AssumeUsesOnly = !MCDesc.variadicOpsAreDefs();
   CurrentDef = NumExplicitDefs + NumImplicitDefs + MCDesc.hasOptionalDef();
   for (unsigned I = 0, OpIndex = MCDesc.getNumOperands();
        I < NumVariadicOps && !AssumeUsesOnly; ++I, ++OpIndex) {
@@ -461,12 +461,12 @@ void InstrBuilder::populateReads(InstrDesc &ID, const MCInst &MCI,
                                  unsigned SchedClassID) {
   const MCInstrDesc &MCDesc = MCII.get(MCI.getOpcode());
   unsigned NumExplicitUses = MCDesc.getNumOperands() - MCDesc.getNumDefs();
-  unsigned NumImplicitUses = MCDesc.getNumImplicitUses();
+  unsigned const NumImplicitUses = MCDesc.getNumImplicitUses();
   // Remove the optional definition.
   if (MCDesc.hasOptionalDef())
     --NumExplicitUses;
-  unsigned NumVariadicOps = MCI.getNumOperands() - MCDesc.getNumOperands();
-  unsigned TotalUses = NumExplicitUses + NumImplicitUses + NumVariadicOps;
+  unsigned const NumVariadicOps = MCI.getNumOperands() - MCDesc.getNumOperands();
+  unsigned const TotalUses = NumExplicitUses + NumImplicitUses + NumVariadicOps;
   ID.Reads.resize(TotalUses);
   unsigned CurrentUse = 0;
   for (unsigned I = 0, OpIndex = MCDesc.getNumDefs(); I < NumExplicitUses;
@@ -499,7 +499,7 @@ void InstrBuilder::populateReads(InstrDesc &ID, const MCInst &MCI,
 
   CurrentUse += NumImplicitUses;
 
-  bool AssumeDefsOnly = MCDesc.variadicOpsAreDefs();
+  bool const AssumeDefsOnly = MCDesc.variadicOpsAreDefs();
   for (unsigned I = 0, OpIndex = MCDesc.getNumOperands();
        I < NumVariadicOps && !AssumeDefsOnly; ++I, ++OpIndex) {
     const MCOperand &Op = MCI.getOperand(OpIndex);
@@ -523,14 +523,14 @@ Error InstrBuilder::verifyInstrDesc(const InstrDesc &ID,
   if (ID.NumMicroOps != 0)
     return ErrorSuccess();
 
-  bool UsesBuffers = ID.UsedBuffers;
-  bool UsesResources = !ID.Resources.empty();
+  bool const UsesBuffers = ID.UsedBuffers;
+  bool const UsesResources = !ID.Resources.empty();
   if (!UsesBuffers && !UsesResources)
     return ErrorSuccess();
 
   // FIXME: see PR44797. We should revisit these checks and possibly move them
   // in CodeGenSchedule.cpp.
-  StringRef Message = "found an inconsistent instruction that decodes to zero "
+  StringRef const Message = "found an inconsistent instruction that decodes to zero "
                       "opcodes and that consumes scheduler resources.";
   return make_error<InstructionError<MCInst>>(std::string(Message), MCI);
 }
@@ -541,17 +541,17 @@ InstrBuilder::createInstrDescImpl(const MCInst &MCI) {
          "Itineraries are not yet supported!");
 
   // Obtain the instruction descriptor from the opcode.
-  unsigned short Opcode = MCI.getOpcode();
+  unsigned short const Opcode = MCI.getOpcode();
   const MCInstrDesc &MCDesc = MCII.get(Opcode);
   const MCSchedModel &SM = STI.getSchedModel();
 
   // Then obtain the scheduling class information from the instruction.
   unsigned SchedClassID = MCDesc.getSchedClass();
-  bool IsVariant = SM.getSchedClassDesc(SchedClassID)->isVariant();
+  bool const IsVariant = SM.getSchedClassDesc(SchedClassID)->isVariant();
 
   // Try to solve variant scheduling classes.
   if (IsVariant) {
-    unsigned CPUID = SM.getProcessorID();
+    unsigned const CPUID = SM.getProcessorID();
     while (SchedClassID && SM.getSchedClassDesc(SchedClassID)->isVariant())
       SchedClassID =
           STI.resolveVariantSchedClass(SchedClassID, &MCI, &MCII, CPUID);
@@ -617,7 +617,7 @@ InstrBuilder::createInstrDescImpl(const MCInst &MCI) {
     return std::move(Err);
 
   // Now add the new descriptor.
-  bool IsVariadic = MCDesc.isVariadic();
+  bool const IsVariadic = MCDesc.isVariadic();
   if (!IsVariadic && !IsVariant) {
     Descriptors[MCI.getOpcode()] = std::move(ID);
     return *Descriptors[MCI.getOpcode()];
@@ -653,7 +653,7 @@ InstrBuilder::createInstruction(const MCInst &MCI) {
   bool IsZeroIdiom = false;
   bool IsDepBreaking = false;
   if (MCIA) {
-    unsigned ProcID = STI.getSchedModel().getProcessorID();
+    unsigned const ProcID = STI.getSchedModel().getProcessorID();
     IsZeroIdiom = MCIA->isZeroIdiom(MCI, Mask, ProcID);
     IsDepBreaking =
         IsZeroIdiom || MCIA->isDependencyBreaking(MCI, Mask, ProcID);

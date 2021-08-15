@@ -89,7 +89,7 @@ static void dumpUUID(raw_ostream &OS, const ObjectFile &Obj) {
       OS << "UUID: ";
       memcpy(&UUID, LC.Ptr+sizeof(LC.C), sizeof(UUID));
       OS.write_uuid(UUID);
-      Triple T = MachO->getArchTriple();
+      Triple const T = MachO->getArchTriple();
       OS << " (" << T.getArchName() << ')';
       OS << ' ' << MachO->getFileName() << '\n';
     }
@@ -149,9 +149,9 @@ static void dumpStringOffsetsSection(raw_ostream &OS, DIDumpOptions DumpOpts,
                                      DWARFContext::unit_iterator_range Units,
                                      bool LittleEndian) {
   auto Contributions = collectContributionData(Units);
-  DWARFDataExtractor StrOffsetExt(Obj, StringOffsetsSection, LittleEndian, 0);
-  DataExtractor StrData(StringSection, LittleEndian, 0);
-  uint64_t SectionSize = StringOffsetsSection.Data.size();
+  DWARFDataExtractor const StrOffsetExt(Obj, StringOffsetsSection, LittleEndian, 0);
+  DataExtractor const StrData(StringSection, LittleEndian, 0);
+  uint64_t const SectionSize = StringOffsetsSection.Data.size();
   uint64_t Offset = 0;
   for (auto &Contribution : Contributions) {
     // Report an ill-formed contribution.
@@ -161,9 +161,9 @@ static void dumpStringOffsetsSection(raw_ostream &OS, DIDumpOptions DumpOpts,
       return;
     }
 
-    dwarf::DwarfFormat Format = Contribution->getFormat();
-    int OffsetDumpWidth = 2 * dwarf::getDwarfOffsetByteSize(Format);
-    uint16_t Version = Contribution->getVersion();
+    dwarf::DwarfFormat const Format = Contribution->getFormat();
+    int const OffsetDumpWidth = 2 * dwarf::getDwarfOffsetByteSize(Format);
+    uint16_t const Version = Contribution->getVersion();
     uint64_t ContributionHeader = Contribution->Base;
     // In DWARF v5 there is a contribution header that immediately precedes
     // the string offsets base (the location we have previously retrieved from
@@ -194,7 +194,7 @@ static void dumpStringOffsetsSection(raw_ostream &OS, DIDumpOptions DumpOpts,
        << ", Version = " << Version << "\n";
 
     Offset = Contribution->Base;
-    unsigned EntrySize = Contribution->getDwarfOffsetByteSize();
+    unsigned const EntrySize = Contribution->getDwarfOffsetByteSize();
     while (Offset - Contribution->Base < Contribution->Size) {
       OS << format("0x%8.8" PRIx64 ": ", Offset);
       uint64_t StringOffset =
@@ -220,7 +220,7 @@ static void dumpAddrSection(raw_ostream &OS, DWARFDataExtractor &AddrData,
   uint64_t Offset = 0;
   while (AddrData.isValidOffset(Offset)) {
     DWARFDebugAddrTable AddrTable;
-    uint64_t TableOffset = Offset;
+    uint64_t const TableOffset = Offset;
     if (Error Err = AddrTable.extract(AddrData, &Offset, Version, AddrSize,
                                       DumpOpts.WarningHandler)) {
       DumpOpts.RecoverableErrorHandler(std::move(Err));
@@ -245,10 +245,10 @@ static void dumpRnglistsSection(
   uint64_t Offset = 0;
   while (rnglistData.isValidOffset(Offset)) {
     llvm::DWARFDebugRnglistTable Rnglists;
-    uint64_t TableOffset = Offset;
+    uint64_t const TableOffset = Offset;
     if (Error Err = Rnglists.extract(rnglistData, &Offset)) {
       DumpOpts.RecoverableErrorHandler(std::move(Err));
-      uint64_t Length = Rnglists.length();
+      uint64_t const Length = Rnglists.length();
       // Keep going after an error, if we can, assuming that the length field
       // could be read. If it couldn't, stop reading the section.
       if (Length == 0)
@@ -318,7 +318,7 @@ static void dumpLoclistsSection(raw_ostream &OS, DIDumpOptions DumpOpts,
 
     Header.dump(Data, OS, DumpOpts);
 
-    uint64_t EndOffset = Header.length() + Header.getHeaderOffset();
+    uint64_t const EndOffset = Header.length() + Header.getHeaderOffset();
     Data.setAddressSize(Header.getAddrSize());
     DWARFDebugLoclists Loc(Data, Header.getVersion());
     if (DumpOffset) {
@@ -348,8 +348,8 @@ void DWARFContext::dump(
     std::array<Optional<uint64_t>, DIDT_ID_Count> DumpOffsets) {
   uint64_t DumpType = DumpOpts.DumpType;
 
-  StringRef Extension = sys::path::extension(DObj->getFileName());
-  bool IsDWO = (Extension == ".dwo") || (Extension == ".dwp");
+  StringRef const Extension = sys::path::extension(DObj->getFileName());
+  bool const IsDWO = (Extension == ".dwo") || (Extension == ".dwp");
 
   // Print UUID header.
   const auto *ObjFile = DObj->getFile();
@@ -359,12 +359,12 @@ void DWARFContext::dump(
   // Print a header for each explicitly-requested section.
   // Otherwise just print one for non-empty sections.
   // Only print empty .dwo section headers when dumping a .dwo file.
-  bool Explicit = DumpType != DIDT_All && !IsDWO;
-  bool ExplicitDWO = Explicit && IsDWO;
+  bool const Explicit = DumpType != DIDT_All && !IsDWO;
+  bool const ExplicitDWO = Explicit && IsDWO;
   auto shouldDump = [&](bool Explicit, const char *Name, unsigned ID,
                         StringRef Section) -> Optional<uint64_t> * {
-    unsigned Mask = 1U << ID;
-    bool Should = (DumpType & Mask) && (Explicit || !Section.empty());
+    unsigned const Mask = 1U << ID;
+    bool const Should = (DumpType & Mask) && (Explicit || !Section.empty());
     if (!Should)
       return nullptr;
     OS << "\n" << Name << " contents:\n";
@@ -423,14 +423,14 @@ void DWARFContext::dump(
   if (const auto *Off =
           shouldDump(Explicit, ".debug_loclists", DIDT_ID_DebugLoclists,
                      DObj->getLoclistsSection().Data)) {
-    DWARFDataExtractor Data(*DObj, DObj->getLoclistsSection(), isLittleEndian(),
+    DWARFDataExtractor const Data(*DObj, DObj->getLoclistsSection(), isLittleEndian(),
                             0);
     dumpLoclistsSection(OS, LLDumpOpts, Data, getRegisterInfo(), *DObj, *Off);
   }
   if (const auto *Off =
           shouldDump(ExplicitDWO, ".debug_loclists.dwo", DIDT_ID_DebugLoclists,
                      DObj->getLoclistsDWOSection().Data)) {
-    DWARFDataExtractor Data(*DObj, DObj->getLoclistsDWOSection(),
+    DWARFDataExtractor const Data(*DObj, DObj->getLoclistsDWOSection(),
                             isLittleEndian(), 0);
     dumpLoclistsSection(OS, LLDumpOpts, Data, getRegisterInfo(), *DObj, *Off);
   }
@@ -438,7 +438,7 @@ void DWARFContext::dump(
   if (const auto *Off =
           shouldDump(ExplicitDWO, ".debug_loc.dwo", DIDT_ID_DebugLoc,
                      DObj->getLocDWOSection().Data)) {
-    DWARFDataExtractor Data(*DObj, DObj->getLocDWOSection(), isLittleEndian(),
+    DWARFDataExtractor const Data(*DObj, DObj->getLocDWOSection(), isLittleEndian(),
                             4);
     DWARFDebugLoclists Loc(Data, /*Version=*/4);
     if (*Off) {
@@ -498,7 +498,7 @@ void DWARFContext::dump(
   if (shouldDump(Explicit, ".debug_aranges", DIDT_ID_DebugAranges,
                  DObj->getArangesSection())) {
     uint64_t offset = 0;
-    DWARFDataExtractor arangesData(DObj->getArangesSection(), isLittleEndian(),
+    DWARFDataExtractor const arangesData(DObj->getArangesSection(), isLittleEndian(),
                                    0);
     DWARFDebugArangeSet set;
     while (arangesData.isValidOffset(offset)) {
@@ -527,7 +527,7 @@ void DWARFContext::dump(
   };
 
   auto DumpStrSection = [&](StringRef Section) {
-    DataExtractor StrData(Section, isLittleEndian(), 0);
+    DataExtractor const StrData(Section, isLittleEndian(), 0);
     uint64_t Offset = 0;
     uint64_t StrOffset = 0;
     while (StrData.isValidOffset(Offset)) {
@@ -548,7 +548,7 @@ void DWARFContext::dump(
                                    DObj->getLineSection().Data)) {
     DWARFDataExtractor LineData(*DObj, DObj->getLineSection(), isLittleEndian(),
                                 0);
-    DWARFDebugLine::SectionParser Parser(LineData, *this, normal_units());
+    DWARFDebugLine::SectionParser const Parser(LineData, *this, normal_units());
     DumpLineSection(Parser, DumpOpts, *Off);
   }
 
@@ -557,7 +557,7 @@ void DWARFContext::dump(
                      DObj->getLineDWOSection().Data)) {
     DWARFDataExtractor LineData(*DObj, DObj->getLineDWOSection(),
                                 isLittleEndian(), 0);
-    DWARFDebugLine::SectionParser Parser(LineData, *this, dwo_units());
+    DWARFDebugLine::SectionParser const Parser(LineData, *this, dwo_units());
     DumpLineSection(Parser, DumpOpts, *Off);
   }
 
@@ -592,8 +592,8 @@ void DWARFContext::dump(
 
   if (shouldDump(Explicit, ".debug_ranges", DIDT_ID_DebugRanges,
                  DObj->getRangesSection().Data)) {
-    uint8_t savedAddressByteSize = getCUAddrSize();
-    DWARFDataExtractor rangesData(*DObj, DObj->getRangesSection(),
+    uint8_t const savedAddressByteSize = getCUAddrSize();
+    DWARFDataExtractor const rangesData(*DObj, DObj->getRangesSection(),
                                   isLittleEndian(), savedAddressByteSize);
     uint64_t offset = 0;
     DWARFDebugRangeList rangeList;
@@ -630,28 +630,28 @@ void DWARFContext::dump(
 
   if (shouldDump(Explicit, ".debug_pubnames", DIDT_ID_DebugPubnames,
                  DObj->getPubnamesSection().Data)) {
-    DWARFDataExtractor PubTableData(*DObj, DObj->getPubnamesSection(),
+    DWARFDataExtractor const PubTableData(*DObj, DObj->getPubnamesSection(),
                                     isLittleEndian(), 0);
     dumpPubTableSection(OS, DumpOpts, PubTableData, /*GnuStyle=*/false);
   }
 
   if (shouldDump(Explicit, ".debug_pubtypes", DIDT_ID_DebugPubtypes,
                  DObj->getPubtypesSection().Data)) {
-    DWARFDataExtractor PubTableData(*DObj, DObj->getPubtypesSection(),
+    DWARFDataExtractor const PubTableData(*DObj, DObj->getPubtypesSection(),
                                     isLittleEndian(), 0);
     dumpPubTableSection(OS, DumpOpts, PubTableData, /*GnuStyle=*/false);
   }
 
   if (shouldDump(Explicit, ".debug_gnu_pubnames", DIDT_ID_DebugGnuPubnames,
                  DObj->getGnuPubnamesSection().Data)) {
-    DWARFDataExtractor PubTableData(*DObj, DObj->getGnuPubnamesSection(),
+    DWARFDataExtractor const PubTableData(*DObj, DObj->getGnuPubnamesSection(),
                                     isLittleEndian(), 0);
     dumpPubTableSection(OS, DumpOpts, PubTableData, /*GnuStyle=*/true);
   }
 
   if (shouldDump(Explicit, ".debug_gnu_pubtypes", DIDT_ID_DebugGnuPubtypes,
                  DObj->getGnuPubtypesSection().Data)) {
-    DWARFDataExtractor PubTableData(*DObj, DObj->getGnuPubtypesSection(),
+    DWARFDataExtractor const PubTableData(*DObj, DObj->getGnuPubtypesSection(),
                                     isLittleEndian(), 0);
     dumpPubTableSection(OS, DumpOpts, PubTableData, /*GnuStyle=*/true);
   }
@@ -747,7 +747,7 @@ const DWARFUnitIndex &DWARFContext::getCUIndex() {
   if (CUIndex)
     return *CUIndex;
 
-  DataExtractor CUIndexData(DObj->getCUIndexSection(), isLittleEndian(), 0);
+  DataExtractor const CUIndexData(DObj->getCUIndexSection(), isLittleEndian(), 0);
 
   CUIndex = std::make_unique<DWARFUnitIndex>(DW_SECT_INFO);
   CUIndex->parse(CUIndexData);
@@ -758,7 +758,7 @@ const DWARFUnitIndex &DWARFContext::getTUIndex() {
   if (TUIndex)
     return *TUIndex;
 
-  DataExtractor TUIndexData(DObj->getTUIndexSection(), isLittleEndian(), 0);
+  DataExtractor const TUIndexData(DObj->getTUIndexSection(), isLittleEndian(), 0);
 
   TUIndex = std::make_unique<DWARFUnitIndex>(DW_SECT_EXT_TYPES);
   TUIndex->parse(TUIndexData);
@@ -769,7 +769,7 @@ DWARFGdbIndex &DWARFContext::getGdbIndex() {
   if (GdbIndex)
     return *GdbIndex;
 
-  DataExtractor GdbIndexData(DObj->getGdbIndexSection(), true /*LE*/, 0);
+  DataExtractor const GdbIndexData(DObj->getGdbIndexSection(), true /*LE*/, 0);
   GdbIndex = std::make_unique<DWARFGdbIndex>();
   GdbIndex->parse(GdbIndexData);
   return *GdbIndex;
@@ -779,7 +779,7 @@ const DWARFDebugAbbrev *DWARFContext::getDebugAbbrev() {
   if (Abbrev)
     return Abbrev.get();
 
-  DataExtractor abbrData(DObj->getAbbrevSection(), isLittleEndian(), 0);
+  DataExtractor const abbrData(DObj->getAbbrevSection(), isLittleEndian(), 0);
 
   Abbrev.reset(new DWARFDebugAbbrev());
   Abbrev->extract(abbrData);
@@ -790,7 +790,7 @@ const DWARFDebugAbbrev *DWARFContext::getDebugAbbrevDWO() {
   if (AbbrevDWO)
     return AbbrevDWO.get();
 
-  DataExtractor abbrData(DObj->getAbbrevDWOSection(), isLittleEndian(), 0);
+  DataExtractor const abbrData(DObj->getAbbrevDWOSection(), isLittleEndian(), 0);
   AbbrevDWO.reset(new DWARFDebugAbbrev());
   AbbrevDWO->extract(abbrData);
   return AbbrevDWO.get();
@@ -834,7 +834,7 @@ Expected<const DWARFDebugFrame *> DWARFContext::getDebugFrame() {
   // provides this information). This problem is fixed in DWARFv4
   // See this dwarf-discuss discussion for more details:
   // http://lists.dwarfstd.org/htdig.cgi/dwarf-discuss-dwarfstd.org/2011-December/001173.html
-  DWARFDataExtractor DebugFrameData(*DObj, DS, isLittleEndian(),
+  DWARFDataExtractor const DebugFrameData(*DObj, DS, isLittleEndian(),
                                     DObj->getAddressSize());
   auto DF =
       std::make_unique<DWARFDebugFrame>(getArch(), /*IsEH=*/false, DS.Address);
@@ -850,7 +850,7 @@ Expected<const DWARFDebugFrame *> DWARFContext::getEHFrame() {
     return EHFrame.get();
 
   const DWARFSection &DS = DObj->getEHFrameSection();
-  DWARFDataExtractor DebugFrameData(*DObj, DS, isLittleEndian(),
+  DWARFDataExtractor const DebugFrameData(*DObj, DS, isLittleEndian(),
                                     DObj->getAddressSize());
 
   auto DF =
@@ -891,8 +891,8 @@ static T &getAccelTable(std::unique_ptr<T> &Cache, const DWARFObject &Obj,
                         bool IsLittleEndian) {
   if (Cache)
     return *Cache;
-  DWARFDataExtractor AccelSection(Obj, Section, IsLittleEndian, 0);
-  DataExtractor StrData(StringSection, IsLittleEndian, 0);
+  DWARFDataExtractor const AccelSection(Obj, Section, IsLittleEndian, 0);
+  DataExtractor const StrData(StringSection, IsLittleEndian, 0);
   Cache.reset(new T(AccelSection, StrData));
   if (Error E = Cache->extract())
     llvm::consumeError(std::move(E));
@@ -949,7 +949,7 @@ Expected<const DWARFDebugLine::LineTable *> DWARFContext::getLineTableForUnit(
   if (!Offset)
     return nullptr; // No line table for this compile unit.
 
-  uint64_t stmtOffset = *Offset + U->getLineTableOffset();
+  uint64_t const stmtOffset = *Offset + U->getLineTableOffset();
   // See if the line table is cached.
   if (const DWARFLineTable *lt = Line->getLineTable(stmtOffset))
     return lt;
@@ -997,7 +997,7 @@ DWARFCompileUnit *DWARFContext::getCompileUnitForOffset(uint64_t Offset) {
 
 DWARFCompileUnit *DWARFContext::getCompileUnitForAddress(uint64_t Address) {
   // First, get the offset of the compile unit.
-  uint64_t CUOffset = getDebugAranges()->findAddress(Address);
+  uint64_t const CUOffset = getDebugAranges()->findAddress(Address);
   // Retrieve the compile unit.
   return getCompileUnitForOffset(CUOffset);
 }
@@ -1015,7 +1015,7 @@ DWARFContext::DIEsForAddress DWARFContext::getDIEsForAddress(uint64_t Address) {
   std::vector<DWARFDie> Worklist;
   Worklist.push_back(Result.FunctionDIE);
   while (!Worklist.empty()) {
-    DWARFDie DIE = Worklist.back();
+    DWARFDie const DIE = Worklist.back();
     Worklist.pop_back();
 
     if (!DIE.isValid())
@@ -1055,7 +1055,7 @@ static bool getFunctionNameAndStartLineForAddress(
     FunctionName = Name;
     FoundResult = true;
   }
-  std::string DeclFile = DIE.getDeclFile(FileNameKind);
+  std::string const DeclFile = DIE.getDeclFile(FileNameKind);
   if (!DeclFile.empty()) {
     StartFile = DeclFile;
     FoundResult = true;
@@ -1080,7 +1080,7 @@ static Optional<uint64_t> getTypeSize(DWARFDie Type, uint64_t PointerSize) {
   case DW_TAG_rvalue_reference_type:
     return PointerSize;
   case DW_TAG_ptr_to_member_type: {
-    if (DWARFDie BaseType = Type.getAttributeValueAsReferencedDie(DW_AT_type))
+    if (DWARFDie const BaseType = Type.getAttributeValueAsReferencedDie(DW_AT_type))
       if (BaseType.getTag() == DW_TAG_subroutine_type)
         return 2 * PointerSize;
     return PointerSize;
@@ -1089,19 +1089,19 @@ static Optional<uint64_t> getTypeSize(DWARFDie Type, uint64_t PointerSize) {
   case DW_TAG_volatile_type:
   case DW_TAG_restrict_type:
   case DW_TAG_typedef: {
-    if (DWARFDie BaseType = Type.getAttributeValueAsReferencedDie(DW_AT_type))
+    if (DWARFDie const BaseType = Type.getAttributeValueAsReferencedDie(DW_AT_type))
       return getTypeSize(BaseType, PointerSize);
     break;
   }
   case DW_TAG_array_type: {
-    DWARFDie BaseType = Type.getAttributeValueAsReferencedDie(DW_AT_type);
+    DWARFDie const BaseType = Type.getAttributeValueAsReferencedDie(DW_AT_type);
     if (!BaseType)
       return Optional<uint64_t>();
     Optional<uint64_t> BaseSize = getTypeSize(BaseType, PointerSize);
     if (!BaseSize)
       return Optional<uint64_t>();
     uint64_t Size = *BaseSize;
-    for (DWARFDie Child : Type) {
+    for (DWARFDie const Child : Type) {
       if (Child.getTag() != DW_TAG_subrange_type)
         continue;
 
@@ -1218,7 +1218,7 @@ DWARFContext::getLocalsForAddress(object::SectionedAddress Address) {
   if (!CU)
     return Result;
 
-  DWARFDie Subprogram = CU->getSubroutineForAddress(Address.Address);
+  DWARFDie const Subprogram = CU->getSubroutineForAddress(Address.Address);
   if (Subprogram.isValid())
     addLocalsForDie(CU, Subprogram, Subprogram, Result);
   return Result;
@@ -1281,7 +1281,7 @@ DILineInfoTable DWARFContext::getLineInfoForAddressRange(
     return Lines;
   }
 
-  for (uint32_t RowIndex : RowVector) {
+  for (uint32_t const RowIndex : RowVector) {
     // Take file number and line/column from the row.
     const DWARFDebugLine::Row &Row = LineTable->Rows[RowIndex];
     DILineInfo Result;
@@ -1327,7 +1327,7 @@ DWARFContext::getInliningInfoForAddress(object::SectionedAddress Address,
 
   uint32_t CallFile = 0, CallLine = 0, CallColumn = 0, CallDiscriminator = 0;
   for (uint32_t i = 0, n = InlinedChain.size(); i != n; i++) {
-    DWARFDie &FunctionDIE = InlinedChain[i];
+    DWARFDie  const&FunctionDIE = InlinedChain[i];
     DILineInfo Frame;
     // Get function name if necessary.
     if (const char *Name = FunctionDIE.getSubroutineName(Spec.FNKind))
@@ -1438,7 +1438,7 @@ static Expected<SymInfo> getSymbolInfo(const object::ObjectFile &Obj,
                                        std::map<SymbolRef, SymInfo> &Cache) {
   SymInfo Ret = {0, (uint64_t)-1LL};
   object::section_iterator RSec = Obj.section_end();
-  object::symbol_iterator Sym = Reloc.getSymbol();
+  object::symbol_iterator const Sym = Reloc.getSymbol();
 
   std::map<SymbolRef, SymInfo>::iterator CacheIt = Cache.end();
   // First calculate the address of the symbol or section as it appears
@@ -1478,7 +1478,7 @@ static Expected<SymInfo> getSymbolInfo(const object::ObjectFile &Obj,
   // containing the symbol being targeted. In either case,
   // we need to perform the same computation.
   if (L && RSec != Obj.section_end())
-    if (uint64_t SectionLoadAddress = L->getSectionLoadAddress(*RSec))
+    if (uint64_t const SectionLoadAddress = L->getSectionLoadAddress(*RSec))
       Ret.Address += SectionLoadAddress - RSec->getAddress();
 
   if (CacheIt != Cache.end())
@@ -1690,7 +1690,7 @@ public:
       // Try to obtain an already relocated version of this section.
       // Else use the unrelocated section from the object file. We'll have to
       // apply relocations ourselves later.
-      section_iterator RelocatedSection =
+      section_iterator const RelocatedSection =
           Obj.isRelocatableObject() ? *SecOrErr : Obj.section_end();
       if (!L || !L->getLoadedSectionContents(*RelocatedSection, Data)) {
         Expected<StringRef> E = Section.getContents();
@@ -1850,7 +1850,7 @@ public:
   Optional<RelocAddrEntry> find(const DWARFSection &S,
                                 uint64_t Pos) const override {
     auto &Sec = static_cast<const DWARFSectionMap &>(S);
-    RelocAddrMap::const_iterator AI = Sec.Relocs.find(Pos);
+    RelocAddrMap::const_iterator const AI = Sec.Relocs.find(Pos);
     if (AI == Sec.Relocs.end())
       return None;
     return AI->second;

@@ -137,7 +137,7 @@ CrashRecoveryContext *CrashRecoveryContext::GetCurrent() {
 }
 
 void CrashRecoveryContext::Enable() {
-  std::lock_guard<std::mutex> L(*gCrashRecoveryContextMutex);
+  std::lock_guard<std::mutex> const L(*gCrashRecoveryContextMutex);
   // FIXME: Shouldn't this be a refcount or something?
   if (gCrashRecoveryEnabled)
     return;
@@ -146,7 +146,7 @@ void CrashRecoveryContext::Enable() {
 }
 
 void CrashRecoveryContext::Disable() {
-  std::lock_guard<std::mutex> L(*gCrashRecoveryContextMutex);
+  std::lock_guard<std::mutex> const L(*gCrashRecoveryContextMutex);
   if (!gCrashRecoveryEnabled)
     return;
   gCrashRecoveryEnabled = false;
@@ -498,7 +498,7 @@ static void RunSafelyOnThread_Dispatch(void *UserData) {
 }
 bool CrashRecoveryContext::RunSafelyOnThread(function_ref<void()> Fn,
                                              unsigned RequestedStackSize) {
-  bool UseBackgroundPriority = hasThreadBackgroundPriority();
+  bool const UseBackgroundPriority = hasThreadBackgroundPriority();
   RunSafelyOnThreadInfo Info = { Fn, this, UseBackgroundPriority, false };
   llvm::thread Thread(RequestedStackSize == 0
                           ? llvm::None

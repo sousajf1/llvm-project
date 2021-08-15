@@ -323,7 +323,7 @@ Instruction *NaryReassociatePass::tryReassociate(Instruction * I,
 
 static bool isGEPFoldable(GetElementPtrInst *GEP,
                           const TargetTransformInfo *TTI) {
-  SmallVector<const Value *, 4> Indices(GEP->indices());
+  SmallVector<const Value *, 4> const Indices(GEP->indices());
   return TTI->getGEPCost(GEP->getSourceElementType(), GEP->getPointerOperand(),
                          Indices) == TargetTransformInfo::TCC_Free;
 }
@@ -347,7 +347,7 @@ Instruction *NaryReassociatePass::tryReassociateGEP(GetElementPtrInst *GEP) {
 
 bool NaryReassociatePass::requiresSignExtension(Value *Index,
                                                 GetElementPtrInst *GEP) {
-  unsigned PointerSizeInBits =
+  unsigned const PointerSizeInBits =
       DL->getPointerSizeInBits(GEP->getType()->getPointerAddressSpace());
   return cast<IntegerType>(Index->getType())->getBitWidth() < PointerSizeInBits;
 }
@@ -394,7 +394,7 @@ NaryReassociatePass::tryReassociateGEPAtIndex(GetElementPtrInst *GEP,
   // Look for GEP's closest dominator that has the same SCEV as GEP except that
   // the I-th index is replaced with LHS.
   SmallVector<const SCEV *, 4> IndexExprs;
-  for (Use &Index : GEP->indices())
+  for (Use  const&Index : GEP->indices())
     IndexExprs.push_back(SE->getSCEV(Index));
   // Replace the I-th index with LHS.
   IndexExprs[I] = SE->getSCEV(LHS);
@@ -423,9 +423,9 @@ NaryReassociatePass::tryReassociateGEPAtIndex(GetElementPtrInst *GEP,
   assert(Candidate->getType() == GEP->getType());
 
   // NewGEP = (char *)Candidate + RHS * sizeof(IndexedType)
-  uint64_t IndexedSize = DL->getTypeAllocSize(IndexedType);
+  uint64_t const IndexedSize = DL->getTypeAllocSize(IndexedType);
   Type *ElementType = GEP->getResultElementType();
-  uint64_t ElementSize = DL->getTypeAllocSize(ElementType);
+  uint64_t const ElementSize = DL->getTypeAllocSize(ElementType);
   // Another less rare case: because I is not necessarily the last index of the
   // GEP, the size of the type at the I-th index (IndexedSize) is not
   // necessarily divisible by ElementSize. For example,

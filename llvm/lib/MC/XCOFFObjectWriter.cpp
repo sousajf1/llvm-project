@@ -454,8 +454,8 @@ void XCOFFObjectWriter::recordRelocation(MCAssembler &Asm,
 
   const MCSymbol *const SymA = &Target.getSymA()->getSymbol();
 
-  MCAsmBackend &Backend = Asm.getBackend();
-  bool IsPCRel = Backend.getFixupKindInfo(Fixup.getKind()).Flags &
+  MCAsmBackend  const&Backend = Asm.getBackend();
+  bool const IsPCRel = Backend.getFixupKindInfo(Fixup.getKind()).Flags &
                  MCFixupKindInfo::FKF_IsPCRel;
 
   uint8_t Type;
@@ -498,10 +498,10 @@ void XCOFFObjectWriter::recordRelocation(MCAssembler &Asm,
       (TargetObjectWriter->is64Bit() ||
        Fixup.getOffset() <= UINT32_MAX - Layout.getFragmentOffset(Fragment)) &&
       "Fragment offset + fixup offset is overflowed in 32-bit mode.");
-  uint32_t FixupOffsetInCsect =
+  uint32_t const FixupOffsetInCsect =
       Layout.getFragmentOffset(Fragment) + Fixup.getOffset();
 
-  XCOFFRelocation Reloc = {Index, FixupOffsetInCsect, SignAndSize, Type};
+  XCOFFRelocation const Reloc = {Index, FixupOffsetInCsect, SignAndSize, Type};
   MCSectionXCOFF *RelocationSec = cast<MCSectionXCOFF>(Fragment->getParent());
   assert(SectionMap.find(RelocationSec) != SectionMap.end() &&
          "Expected containing csect to exist in map.");
@@ -528,7 +528,7 @@ void XCOFFObjectWriter::recordRelocation(MCAssembler &Asm,
   // SymB must be R_NEG here, given the general form of Target(MCValue) is
   // "SymbolA - SymbolB + imm64".
   const uint8_t TypeB = XCOFF::RelocationType::R_NEG;
-  XCOFFRelocation RelocB = {IndexB, FixupOffsetInCsect, SignAndSize, TypeB};
+  XCOFFRelocation const RelocB = {IndexB, FixupOffsetInCsect, SignAndSize, TypeB};
   SectionMap[RelocationSec]->Relocations.push_back(RelocB);
   // We already folded "SymbolA + imm64" above when Type is R_POS for SymbolA,
   // now we just need to fold "- SymbolB" here.
@@ -556,7 +556,7 @@ void XCOFFObjectWriter::writeSections(const MCAssembler &Asm,
 
     for (const auto *Group : Section->Groups) {
       for (const auto &Csect : *Group) {
-        if (uint32_t PaddingSize = Csect.Address - CurrentAddressLocation)
+        if (uint32_t const PaddingSize = Csect.Address - CurrentAddressLocation)
           W.OS.write_zeros(PaddingSize);
         if (Csect.Size)
           Asm.writeSectionData(W.OS, Csect.MCSec, Layout);
@@ -567,7 +567,7 @@ void XCOFFObjectWriter::writeSections(const MCAssembler &Asm,
     // The size of the tail padding in a section is the end virtual address of
     // the current section minus the the end virtual address of the last csect
     // in that section.
-    if (uint32_t PaddingSize =
+    if (uint32_t const PaddingSize =
             Section->Address + Section->Size - CurrentAddressLocation) {
       W.OS.write_zeros(PaddingSize);
       CurrentAddressLocation += PaddingSize;
@@ -587,7 +587,7 @@ uint64_t XCOFFObjectWriter::writeObject(MCAssembler &Asm,
     report_fatal_error("64-bit XCOFF object files are not supported yet.");
 
   finalizeSectionInfo();
-  uint64_t StartOffset = W.OS.tell();
+  uint64_t const StartOffset = W.OS.tell();
 
   writeFileHeader();
   writeSectionHeaderTable();
@@ -612,7 +612,7 @@ void XCOFFObjectWriter::writeSymbolName(const StringRef &SymbolName) {
   } else {
     char Name[XCOFF::NameSize+1];
     std::strncpy(Name, SymbolName.data(), XCOFF::NameSize);
-    ArrayRef<char> NameRef(Name, XCOFF::NameSize);
+    ArrayRef<char> const NameRef(Name, XCOFF::NameSize);
     W.write(NameRef);
   }
 }
@@ -717,7 +717,7 @@ void XCOFFObjectWriter::writeSectionHeaderTable() {
       continue;
 
     // Write Name.
-    ArrayRef<char> NameRef(Sec->Name, XCOFF::NameSize);
+    ArrayRef<char> const NameRef(Sec->Name, XCOFF::NameSize);
     W.write(NameRef);
 
     // Write the Physical Address and Virtual Address. In an object file these
@@ -966,13 +966,13 @@ void XCOFFObjectWriter::assignAddressesAndIndices(const MCAsmLayout &Layout) {
 // significant bits of a byte, then or's in the csect type into the least
 // significant 3 bits.
 uint8_t getEncodedType(const MCSectionXCOFF *Sec) {
-  unsigned Align = Sec->getAlignment();
+  unsigned const Align = Sec->getAlignment();
   assert(isPowerOf2_32(Align) && "Alignment must be a power of 2.");
-  unsigned Log2Align = Log2_32(Align);
+  unsigned const Log2Align = Log2_32(Align);
   // Result is a number in the range [0, 31] which fits in the 5 least
   // significant bits. Shift this value into the 5 most significant bits, and
   // bitwise-or in the csect type.
-  uint8_t EncodedAlign = Log2Align << 3;
+  uint8_t const EncodedAlign = Log2Align << 3;
   return EncodedAlign | Sec->getCSectType();
 }
 

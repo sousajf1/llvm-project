@@ -17,6 +17,6 @@ Target &llvm::getTheSystemZTarget() {
 }
 
 extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializeSystemZTargetInfo() {
-  RegisterTarget<Triple::systemz, /*HasJIT=*/true> X(
+  RegisterTarget<Triple::systemz, /*HasJIT=*/true> const X(
       getTheSystemZTarget(), "systemz", "SystemZ", "SystemZ");
 }

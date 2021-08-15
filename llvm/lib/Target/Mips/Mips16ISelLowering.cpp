@@ -425,14 +425,14 @@ getOpndList(SmallVectorImpl<SDValue> &Ops,
     //
     bool LookupHelper = true;
     if (ExternalSymbolSDNode *S = dyn_cast<ExternalSymbolSDNode>(CLI.Callee)) {
-      Mips16Libcall Find = { RTLIB::UNKNOWN_LIBCALL, S->getSymbol() };
+      Mips16Libcall const Find = { RTLIB::UNKNOWN_LIBCALL, S->getSymbol() };
 
       if (std::binary_search(std::begin(HardFloatLibCalls),
                              std::end(HardFloatLibCalls), Find))
         LookupHelper = false;
       else {
         const char *Symbol = S->getSymbol();
-        Mips16IntrinsicHelperType IntrinsicFind = { Symbol, "" };
+        Mips16IntrinsicHelperType const IntrinsicFind = { Symbol, "" };
         const Mips16HardFloatInfo::FuncSignature *Signature =
             Mips16HardFloatInfo::findFuncSignature(Symbol);
         if (!IsPICCall && (Signature && (FuncInfo->StubsNeeded.find(Symbol) ==
@@ -467,7 +467,7 @@ getOpndList(SmallVectorImpl<SDValue> &Ops,
       }
     } else if (GlobalAddressSDNode *G =
                    dyn_cast<GlobalAddressSDNode>(CLI.Callee)) {
-      Mips16Libcall Find = { RTLIB::UNKNOWN_LIBCALL,
+      Mips16Libcall const Find = { RTLIB::UNKNOWN_LIBCALL,
                              G->getGlobal()->getName().data() };
 
       if (std::binary_search(std::begin(HardFloatLibCalls),
@@ -484,7 +484,7 @@ getOpndList(SmallVectorImpl<SDValue> &Ops,
   // T9 should contain the address of the callee function if
   // -relocation-model=pic or it is an indirect call.
   if (IsPICCall || !GlobalOrExternal) {
-    unsigned V0Reg = Mips::V0;
+    unsigned const V0Reg = Mips::V0;
     if (NeedMips16Helper) {
       RegsToPass.push_front(std::make_pair(V0Reg, Callee));
       JumpTarget = DAG.getExternalSymbol(Mips16HelperFunction,
@@ -510,13 +510,13 @@ Mips16TargetLowering::emitSel16(unsigned Opc, MachineInstr &MI,
   if (DontExpandCondPseudos16)
     return BB;
   const TargetInstrInfo *TII = Subtarget.getInstrInfo();
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc const DL = MI.getDebugLoc();
   // To "insert" a SELECT_CC instruction, we actually have to insert the
   // diamond control-flow pattern.  The incoming instruction knows the
   // destination vreg to set, the condition code register to branch on, the
   // true/false values to select between, and a branch opcode to use.
   const BasicBlock *LLVM_BB = BB->getBasicBlock();
-  MachineFunction::iterator It = ++BB->getIterator();
+  MachineFunction::iterator const It = ++BB->getIterator();
 
   //  thisMBB:
   //  ...
@@ -573,13 +573,13 @@ Mips16TargetLowering::emitSelT16(unsigned Opc1, unsigned Opc2, MachineInstr &MI,
   if (DontExpandCondPseudos16)
     return BB;
   const TargetInstrInfo *TII = Subtarget.getInstrInfo();
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc const DL = MI.getDebugLoc();
   // To "insert" a SELECT_CC instruction, we actually have to insert the
   // diamond control-flow pattern.  The incoming instruction knows the
   // destination vreg to set, the condition code register to branch on, the
   // true/false values to select between, and a branch opcode to use.
   const BasicBlock *LLVM_BB = BB->getBasicBlock();
-  MachineFunction::iterator It = ++BB->getIterator();
+  MachineFunction::iterator const It = ++BB->getIterator();
 
   //  thisMBB:
   //  ...
@@ -639,13 +639,13 @@ Mips16TargetLowering::emitSeliT16(unsigned Opc1, unsigned Opc2,
   if (DontExpandCondPseudos16)
     return BB;
   const TargetInstrInfo *TII = Subtarget.getInstrInfo();
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc const DL = MI.getDebugLoc();
   // To "insert" a SELECT_CC instruction, we actually have to insert the
   // diamond control-flow pattern.  The incoming instruction knows the
   // destination vreg to set, the condition code register to branch on, the
   // true/false values to select between, and a branch opcode to use.
   const BasicBlock *LLVM_BB = BB->getBasicBlock();
-  MachineFunction::iterator It = ++BB->getIterator();
+  MachineFunction::iterator const It = ++BB->getIterator();
 
   //  thisMBB:
   //  ...
@@ -705,8 +705,8 @@ Mips16TargetLowering::emitFEXT_T8I816_ins(unsigned BtOpc, unsigned CmpOpc,
   if (DontExpandCondPseudos16)
     return BB;
   const TargetInstrInfo *TII = Subtarget.getInstrInfo();
-  Register regX = MI.getOperand(0).getReg();
-  Register regY = MI.getOperand(1).getReg();
+  Register const regX = MI.getOperand(0).getReg();
+  Register const regY = MI.getOperand(1).getReg();
   MachineBasicBlock *target = MI.getOperand(2).getMBB();
   BuildMI(*BB, MI, MI.getDebugLoc(), TII->get(CmpOpc))
       .addReg(regX)
@@ -722,8 +722,8 @@ MachineBasicBlock *Mips16TargetLowering::emitFEXT_T8I8I16_ins(
   if (DontExpandCondPseudos16)
     return BB;
   const TargetInstrInfo *TII = Subtarget.getInstrInfo();
-  Register regX = MI.getOperand(0).getReg();
-  int64_t imm = MI.getOperand(1).getImm();
+  Register const regX = MI.getOperand(0).getReg();
+  int64_t const imm = MI.getOperand(1).getImm();
   MachineBasicBlock *target = MI.getOperand(2).getMBB();
   unsigned CmpOpc;
   if (isUInt<8>(imm))
@@ -755,9 +755,9 @@ Mips16TargetLowering::emitFEXT_CCRX16_ins(unsigned SltOpc, MachineInstr &MI,
   if (DontExpandCondPseudos16)
     return BB;
   const TargetInstrInfo *TII = Subtarget.getInstrInfo();
-  Register CC = MI.getOperand(0).getReg();
-  Register regX = MI.getOperand(1).getReg();
-  Register regY = MI.getOperand(2).getReg();
+  Register const CC = MI.getOperand(0).getReg();
+  Register const regX = MI.getOperand(1).getReg();
+  Register const regY = MI.getOperand(2).getReg();
   BuildMI(*BB, MI, MI.getDebugLoc(), TII->get(SltOpc))
       .addReg(regX)
       .addReg(regY);
@@ -774,10 +774,10 @@ Mips16TargetLowering::emitFEXT_CCRXI16_ins(unsigned SltiOpc, unsigned SltiXOpc,
   if (DontExpandCondPseudos16)
     return BB;
   const TargetInstrInfo *TII = Subtarget.getInstrInfo();
-  Register CC = MI.getOperand(0).getReg();
-  Register regX = MI.getOperand(1).getReg();
-  int64_t Imm = MI.getOperand(2).getImm();
-  unsigned SltOpc = Mips16WhichOp8uOr16simm(SltiOpc, SltiXOpc, Imm);
+  Register const CC = MI.getOperand(0).getReg();
+  Register const regX = MI.getOperand(1).getReg();
+  int64_t const Imm = MI.getOperand(2).getImm();
+  unsigned const SltOpc = Mips16WhichOp8uOr16simm(SltiOpc, SltiXOpc, Imm);
   BuildMI(*BB, MI, MI.getDebugLoc(), TII->get(SltOpc)).addReg(regX).addImm(Imm);
   BuildMI(*BB, MI, MI.getDebugLoc(), TII->get(Mips::MoveR3216), CC)
       .addReg(Mips::T8);

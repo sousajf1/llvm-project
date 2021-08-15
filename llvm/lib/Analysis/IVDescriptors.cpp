@@ -100,7 +100,7 @@ static Instruction *lookThroughAnd(PHINode *Phi, Type *&RT,
   // Matches either I & 2^x-1 or 2^x-1 & I. If we find a match, we update RT
   // with a new integer type of the corresponding bit width.
   if (match(J, m_c_And(m_Instruction(I), m_APInt(M)))) {
-    int32_t Bits = (*M + 1).exactLogBase2();
+    int32_t const Bits = (*M + 1).exactLogBase2();
     if (Bits > 0) {
       RT = IntegerType::get(Phi->getContext(), Bits);
       Visited.insert(Phi);
@@ -138,7 +138,7 @@ static std::pair<Type *, bool> computeRecurrenceType(Instruction *Exit,
     auto NumSignBits = ComputeNumSignBits(Exit, DL, 0, AC, nullptr, DT);
     auto NumTypeBits = DL.getTypeSizeInBits(Exit->getType());
     MaxBitWidth = NumTypeBits - NumSignBits;
-    KnownBits Bits = computeKnownBits(Exit, DL);
+    KnownBits const Bits = computeKnownBits(Exit, DL);
     if (!Bits.isNonNegative()) {
       // If the value is not known to be non-negative, we set IsSigned to true,
       // meaning that we will use sext instructions instead of zext
@@ -310,7 +310,7 @@ bool RecurrenceDescriptor::AddReductionVar(PHINode *Phi, RecurKind Kind,
     if (Cur->use_empty())
       return false;
 
-    bool IsAPhi = isa<PHINode>(Cur);
+    bool const IsAPhi = isa<PHINode>(Cur);
 
     // A header PHI use other than the original PHI.
     if (Cur != Phi && IsAPhi && Cur->getParent() == Phi->getParent())
@@ -350,7 +350,7 @@ bool RecurrenceDescriptor::AddReductionVar(PHINode *Phi, RecurKind Kind,
         Kind = ReduxDesc.getRecKind();
     }
 
-    bool IsASelect = isa<SelectInst>(Cur);
+    bool const IsASelect = isa<SelectInst>(Cur);
 
     // A conditional reduction operation must only have 2 or less uses in
     // VisitedInsts.
@@ -413,7 +413,7 @@ bool RecurrenceDescriptor::AddReductionVar(PHINode *Phi, RecurKind Kind,
       // Process instructions only once (termination). Each reduction cycle
       // value must only be used once, except by phi nodes and min/max
       // reductions which are represented as a cmp followed by a select.
-      InstDesc IgnoredVal(false, nullptr);
+      InstDesc const IgnoredVal(false, nullptr);
       if (VisitedInsts.insert(UI).second) {
         if (isa<PHINode>(UI))
           PHIs.push_back(UI);
@@ -497,7 +497,7 @@ bool RecurrenceDescriptor::AddReductionVar(PHINode *Phi, RecurKind Kind,
   // is saved as part of the RecurrenceDescriptor.
 
   // Save the description of this reduction variable.
-  RecurrenceDescriptor RD(RdxStart, ExitInstruction, Kind, FMF,
+  RecurrenceDescriptor const RD(RdxStart, ExitInstruction, Kind, FMF,
                           ReduxDesc.getExactFPMathInst(), RecurrenceType,
                           IsSigned, IsOrdered, CastInsts);
   RedDes = RD;
@@ -651,7 +651,7 @@ bool RecurrenceDescriptor::isReductionPHI(PHINode *Phi, Loop *TheLoop,
                                           DominatorTree *DT) {
 
   BasicBlock *Header = TheLoop->getHeader();
-  Function &F = *Header->getParent();
+  Function  const&F = *Header->getParent();
   FastMathFlags FMF;
   FMF.setNoNaNs(
       F.getFnAttribute("no-nans-fp-math").getValueAsBool());
@@ -1268,11 +1268,11 @@ bool InductionDescriptor::isInductionPHI(
     return false;
 
   const DataLayout &DL = Phi->getModule()->getDataLayout();
-  int64_t Size = static_cast<int64_t>(DL.getTypeAllocSize(PointerElementType));
+  int64_t const Size = static_cast<int64_t>(DL.getTypeAllocSize(PointerElementType));
   if (!Size)
     return false;
 
-  int64_t CVSize = CV->getSExtValue();
+  int64_t const CVSize = CV->getSExtValue();
   if (CVSize % Size)
     return false;
   auto *StepValue =

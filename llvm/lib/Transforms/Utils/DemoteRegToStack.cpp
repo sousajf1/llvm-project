@@ -45,7 +45,7 @@ AllocaInst *llvm::DemoteRegToStack(Instruction &I, bool VolatileLoads,
   // into which the store can be inserted.
   if (InvokeInst *II = dyn_cast<InvokeInst>(&I)) {
     if (!II->getNormalDest()->getSinglePredecessor()) {
-      unsigned SuccNum = GetSuccessorNumber(II->getParent(), II->getNormalDest());
+      unsigned const SuccNum = GetSuccessorNumber(II->getParent(), II->getNormalDest());
       assert(isCriticalEdge(II, SuccNum) && "Expected a critical edge!");
       BasicBlock *BB = SplitCriticalEdge(II, SuccNum);
       assert(BB && "Unable to split critical edge.");
@@ -96,7 +96,7 @@ AllocaInst *llvm::DemoteRegToStack(Instruction &I, bool VolatileLoads,
     for (; isa<PHINode>(InsertPt) || InsertPt->isEHPad(); ++InsertPt)
       /* empty */;   // Don't insert before PHI nodes or landingpad instrs.
   } else {
-    InvokeInst &II = cast<InvokeInst>(I);
+    InvokeInst  const&II = cast<InvokeInst>(I);
     InsertPt = II.getNormalDest()->getFirstInsertionPt();
   }
 

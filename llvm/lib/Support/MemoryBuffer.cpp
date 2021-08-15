@@ -72,7 +72,7 @@ struct NamedBufferAlloc {
 
 void *operator new(size_t N, const NamedBufferAlloc &Alloc) {
   SmallString<256> NameBuf;
-  StringRef NameRef = Alloc.Name.toStringRef(NameBuf);
+  StringRef const NameRef = Alloc.Name.toStringRef(NameBuf);
 
   char *Mem = static_cast<char *>(operator new(N + NameRef.size() + 1));
   CopyStringRef(Mem + N, NameRef);
@@ -144,7 +144,7 @@ ErrorOr<std::unique_ptr<MemoryBuffer>>
 MemoryBuffer::getFileOrSTDIN(const Twine &Filename, bool IsText,
                              bool RequiresNullTerminator) {
   SmallString<256> NameBuf;
-  StringRef NameRef = Filename.toStringRef(NameBuf);
+  StringRef const NameRef = Filename.toStringRef(NameBuf);
 
   if (NameRef == "-")
     return getSTDIN();
@@ -293,9 +293,9 @@ WritableMemoryBuffer::getNewUninitMemBuffer(size_t Size, const Twine &BufferName
   // TODO: Is 16-byte alignment enough?  We copy small object files with large
   // alignment expectations into this buffer.
   SmallString<256> NameBuf;
-  StringRef NameRef = BufferName.toStringRef(NameBuf);
-  size_t AlignedStringLen = alignTo(sizeof(MemBuffer) + NameRef.size() + 1, 16);
-  size_t RealLen = AlignedStringLen + Size + 1;
+  StringRef const NameRef = BufferName.toStringRef(NameBuf);
+  size_t const AlignedStringLen = alignTo(sizeof(MemBuffer) + NameRef.size() + 1, 16);
+  size_t const RealLen = AlignedStringLen + Size + 1;
   char *Mem = static_cast<char*>(operator new(RealLen, std::nothrow));
   if (!Mem)
     return nullptr;
@@ -354,7 +354,7 @@ static bool shouldUseMmap(sys::fs::file_t FD,
 
   // If we need a null terminator and the end of the map is inside the file,
   // we cannot use mmap.
-  size_t End = Offset + MapSize;
+  size_t const End = Offset + MapSize;
   assert(End <= FileSize);
   if (End != FileSize)
     return false;
@@ -382,7 +382,7 @@ getReadWriteFile(const Twine &Filename, uint64_t FileSize, uint64_t MapSize,
       Filename, sys::fs::CD_OpenExisting, sys::fs::OF_None);
   if (!FDOrErr)
     return errorToErrorCode(FDOrErr.takeError());
-  sys::fs::file_t FD = *FDOrErr;
+  sys::fs::file_t const FD = *FDOrErr;
 
   // Default is to map the full file.
   if (MapSize == uint64_t(-1)) {
@@ -396,7 +396,7 @@ getReadWriteFile(const Twine &Filename, uint64_t FileSize, uint64_t MapSize,
 
       // If this not a file or a block device (e.g. it's a named pipe
       // or character device), we can't mmap it, so error out.
-      sys::fs::file_type Type = Status.type();
+      sys::fs::file_type const Type = Status.type();
       if (Type != sys::fs::file_type::regular_file &&
           Type != sys::fs::file_type::block_file)
         return make_error_code(errc::invalid_argument);
@@ -433,7 +433,7 @@ static ErrorOr<std::unique_ptr<MB>>
 getOpenFileImpl(sys::fs::file_t FD, const Twine &Filename, uint64_t FileSize,
                 uint64_t MapSize, int64_t Offset, bool RequiresNullTerminator,
                 bool IsVolatile) {
-  static int PageSize = sys::Process::getPageSizeEstimate();
+  static int const PageSize = sys::Process::getPageSizeEstimate();
 
   // Default is to map the full file.
   if (MapSize == uint64_t(-1)) {
@@ -448,7 +448,7 @@ getOpenFileImpl(sys::fs::file_t FD, const Twine &Filename, uint64_t FileSize,
       // If this not a file or a block device (e.g. it's a named pipe
       // or character device), we can't trust the size. Create the memory
       // buffer by copying off the stream.
-      sys::fs::file_type Type = Status.type();
+      sys::fs::file_type const Type = Status.type();
       if (Type != sys::fs::file_type::regular_file &&
           Type != sys::fs::file_type::block_file)
         return getMemoryBufferForStream(FD, Filename);
@@ -538,8 +538,8 @@ MemoryBuffer::getFileAsStream(const Twine &Filename) {
 }
 
 MemoryBufferRef MemoryBuffer::getMemBufferRef() const {
-  StringRef Data = getBuffer();
-  StringRef Identifier = getBufferIdentifier();
+  StringRef const Data = getBuffer();
+  StringRef const Identifier = getBufferIdentifier();
   return MemoryBufferRef(Data, Identifier);
 }
 

@@ -62,7 +62,7 @@ static cl::opt<bool>
 static void writeCFGToDotFile(Function &F, BlockFrequencyInfo *BFI,
                               BranchProbabilityInfo *BPI, uint64_t MaxFreq,
                               bool CFGOnly = false) {
-  std::string Filename =
+  std::string const Filename =
       (CFGDotFilenamePrefix + "." + F.getName() + ".dot").str();
   errs() << "Writing '" << Filename << "'...";
 
@@ -266,7 +266,7 @@ void Function::viewCFG(bool ViewCFGOnly, const BlockFrequencyInfo *BFI,
                        const BranchProbabilityInfo *BPI) const {
   if (!CFGFuncName.empty() && !getName().contains(CFGFuncName))
     return;
-  DOTFuncInfo CFGInfo(this, BFI, BPI, BFI ? getMaxFreq(*this, BFI) : 0);
+  DOTFuncInfo const CFGInfo(this, BFI, BPI, BFI ? getMaxFreq(*this, BFI) : 0);
   ViewGraph(&CFGInfo, "cfg" + getName(), ViewCFGOnly);
 }
 
@@ -318,8 +318,8 @@ bool DOTGraphTraits<DOTFuncInfo *>::isNodeHidden(const BasicBlock *Node,
                                                  const DOTFuncInfo *CFGInfo) {
   if (HideColdPaths.getNumOccurrences() > 0)
     if (auto *BFI = CFGInfo->getBFI()) {
-      uint64_t NodeFreq = BFI->getBlockFreq(Node).getFrequency();
-      uint64_t EntryFreq = BFI->getEntryFreq();
+      uint64_t const NodeFreq = BFI->getBlockFreq(Node).getFrequency();
+      uint64_t const EntryFreq = BFI->getEntryFreq();
       // Hide blocks with relative frequency below HideColdPaths threshold.
       if ((double)NodeFreq / EntryFreq < HideColdPaths)
         return true;

@@ -105,14 +105,14 @@ bool expandReductions(Function &F, const TargetTransformInfo *TTI) {
   }
 
   for (auto *II : Worklist) {
-    FastMathFlags FMF =
+    FastMathFlags const FMF =
         isa<FPMathOperator>(II) ? II->getFastMathFlags() : FastMathFlags{};
-    Intrinsic::ID ID = II->getIntrinsicID();
-    RecurKind RK = getRK(ID);
+    Intrinsic::ID const ID = II->getIntrinsicID();
+    RecurKind const RK = getRK(ID);
 
     Value *Rdx = nullptr;
     IRBuilder<> Builder(II);
-    IRBuilder<>::FastMathFlagGuard FMFGuard(Builder);
+    IRBuilder<>::FastMathFlagGuard const FMFGuard(Builder);
     Builder.setFastMathFlags(FMF);
     switch (ID) {
     default: llvm_unreachable("Unexpected intrinsic!");

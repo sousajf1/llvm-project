@@ -91,7 +91,7 @@ static bool replaceDominatedUses(MachineBasicBlock &MBB, MachineInstr &MI,
   LiveInterval *FromLI = &LIS.getInterval(FromReg);
   LiveInterval *ToLI = &LIS.getInterval(ToReg);
 
-  SlotIndex FromIdx = LIS.getInstructionIndex(MI).getRegSlot();
+  SlotIndex const FromIdx = LIS.getInstructionIndex(MI).getRegSlot();
   VNInfo *FromVNI = FromLI->getVNInfoAt(FromIdx);
 
   SmallVector<SlotIndex, 4> Indices;
@@ -106,7 +106,7 @@ static bool replaceDominatedUses(MachineBasicBlock &MBB, MachineInstr &MI,
       continue;
 
     // If this use gets a different value, skip it.
-    SlotIndex WhereIdx = LIS.getInstructionIndex(*Where);
+    SlotIndex const WhereIdx = LIS.getInstructionIndex(*Where);
     VNInfo *WhereVNI = FromLI->getVNInfoAt(WhereIdx);
     if (WhereVNI && WhereVNI != FromVNI)
       continue;
@@ -151,12 +151,12 @@ static bool optimizeCall(MachineBasicBlock &MBB, MachineInstr &MI,
                          MachineDominatorTree &MDT, LiveIntervals &LIS,
                          const WebAssemblyTargetLowering &TLI,
                          const TargetLibraryInfo &LibInfo) {
-  MachineOperand &Op1 = MI.getOperand(1);
+  MachineOperand  const&Op1 = MI.getOperand(1);
   if (!Op1.isSymbol())
     return false;
 
-  StringRef Name(Op1.getSymbolName());
-  bool CallReturnsInput = Name == TLI.getLibcallName(RTLIB::MEMCPY) ||
+  StringRef const Name(Op1.getSymbolName());
+  bool const CallReturnsInput = Name == TLI.getLibcallName(RTLIB::MEMCPY) ||
                           Name == TLI.getLibcallName(RTLIB::MEMMOVE) ||
                           Name == TLI.getLibcallName(RTLIB::MEMSET);
   if (!CallReturnsInput)
@@ -166,8 +166,8 @@ static bool optimizeCall(MachineBasicBlock &MBB, MachineInstr &MI,
   if (!LibInfo.getLibFunc(Name, Func))
     return false;
 
-  Register FromReg = MI.getOperand(2).getReg();
-  Register ToReg = MI.getOperand(0).getReg();
+  Register const FromReg = MI.getOperand(2).getReg();
+  Register const ToReg = MI.getOperand(0).getReg();
   if (MRI.getRegClass(FromReg) != MRI.getRegClass(ToReg))
     report_fatal_error("Memory Intrinsic results: call to builtin function "
                        "with wrong signature, from/to mismatch");

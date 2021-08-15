@@ -162,7 +162,7 @@ SanitizerCoverageOptions getOptions(int LegacyCoverageLevel) {
 
 SanitizerCoverageOptions OverrideFromCL(SanitizerCoverageOptions Options) {
   // Sets CoverageType and IndirectCalls.
-  SanitizerCoverageOptions CLOpts = getOptions(ClCoverageLevel);
+  SanitizerCoverageOptions const CLOpts = getOptions(ClCoverageLevel);
   Options.CoverageType = std::max(Options.CoverageType, CLOpts.CoverageType);
   Options.IndirectCalls |= CLOpts.IndirectCalls;
   Options.TraceCmp |= ClCMPTracing;
@@ -332,7 +332,7 @@ ModuleSanitizerCoverage::CreateSecStartEnd(Module &M, const char *Section,
   // garbage collection, the linker will not report undefined symbol errors.
   // Windows defines the start/stop symbols in compiler-rt so no need for
   // ExternalWeak.
-  GlobalValue::LinkageTypes Linkage = TargetTriple.isOSBinFormatCOFF()
+  GlobalValue::LinkageTypes const Linkage = TargetTriple.isOSBinFormatCOFF()
                                           ? GlobalVariable::ExternalLinkage
                                           : GlobalVariable::ExternalWeakLinkage;
   GlobalVariable *SecStart =
@@ -502,7 +502,7 @@ bool ModuleSanitizerCoverage::instrumentModule(
   }
   if (Ctor && Options.PCTable) {
     auto SecStartEnd = CreateSecStartEnd(M, SanCovPCsSectionName, IntptrTy);
-    FunctionCallee InitFunction = declareSanitizerInitFunction(
+    FunctionCallee const InitFunction = declareSanitizerInitFunction(
         M, SanCovPCsInitName, {IntptrPtrTy, IntptrPtrTy});
     IRBuilder<> IRBCtor(Ctor->getEntryBlock().getTerminator());
     IRBCtor.CreateCall(InitFunction, {SecStartEnd.first, SecStartEnd.second});
@@ -710,7 +710,7 @@ GlobalVariable *ModuleSanitizerCoverage::CreateFunctionLocalArrayInSection(
 GlobalVariable *
 ModuleSanitizerCoverage::CreatePCArray(Function &F,
                                        ArrayRef<BasicBlock *> AllBlocks) {
-  size_t N = AllBlocks.size();
+  size_t const N = AllBlocks.size();
   assert(N);
   SmallVector<Constant *, 32> PCs;
   IRBuilder<> IRB(&*F.getEntryBlock().getFirstInsertionPt());
@@ -777,7 +777,7 @@ void ModuleSanitizerCoverage::InjectCoverageForIndirectCalls(
          Options.Inline8bitCounters || Options.InlineBoolFlag);
   for (auto I : IndirCalls) {
     IRBuilder<> IRB(I);
-    CallBase &CB = cast<CallBase>(*I);
+    CallBase  const&CB = cast<CallBase>(*I);
     Value *Callee = CB.getCalledOperand();
     if (isa<InlineAsm>(Callee))
       continue;
@@ -836,8 +836,8 @@ void ModuleSanitizerCoverage::InjectTraceForDiv(
     if (isa<ConstantInt>(A1)) continue;
     if (!A1->getType()->isIntegerTy())
       continue;
-    uint64_t TypeSize = DL->getTypeStoreSizeInBits(A1->getType());
-    int CallbackIdx = TypeSize == 32 ? 0 :
+    uint64_t const TypeSize = DL->getTypeStoreSizeInBits(A1->getType());
+    int const CallbackIdx = TypeSize == 32 ? 0 :
         TypeSize == 64 ? 1 : -1;
     if (CallbackIdx < 0) continue;
     auto Ty = Type::getIntNTy(*C, TypeSize);
@@ -866,16 +866,16 @@ void ModuleSanitizerCoverage::InjectTraceForCmp(
       Value *A1 = ICMP->getOperand(1);
       if (!A0->getType()->isIntegerTy())
         continue;
-      uint64_t TypeSize = DL->getTypeStoreSizeInBits(A0->getType());
-      int CallbackIdx = TypeSize == 8 ? 0 :
+      uint64_t const TypeSize = DL->getTypeStoreSizeInBits(A0->getType());
+      int const CallbackIdx = TypeSize == 8 ? 0 :
                         TypeSize == 16 ? 1 :
                         TypeSize == 32 ? 2 :
                         TypeSize == 64 ? 3 : -1;
       if (CallbackIdx < 0) continue;
       // __sanitizer_cov_trace_cmp((type_size << 32) | predicate, A0, A1);
       auto CallbackFunc = SanCovTraceCmpFunction[CallbackIdx];
-      bool FirstIsConst = isa<ConstantInt>(A0);
-      bool SecondIsConst = isa<ConstantInt>(A1);
+      bool const FirstIsConst = isa<ConstantInt>(A0);
+      bool const SecondIsConst = isa<ConstantInt>(A1);
       // If both are const, then we don't need such a comparison.
       if (FirstIsConst && SecondIsConst) continue;
       // If only one is const, then make it the first callback argument.
@@ -896,7 +896,7 @@ void ModuleSanitizerCoverage::InjectCoverageAtBlock(Function &F, BasicBlock &BB,
                                                     size_t Idx,
                                                     bool IsLeafFunc) {
   BasicBlock::iterator IP = BB.getFirstInsertionPt();
-  bool IsEntryBB = &BB == &F.getEntryBlock();
+  bool const IsEntryBB = &BB == &F.getEntryBlock();
   DebugLoc EntryLoc;
   if (IsEntryBB) {
     if (auto SP = F.getSubprogram())

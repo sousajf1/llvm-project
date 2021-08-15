@@ -255,7 +255,7 @@ Error JITLinkerBase::allocateSegments(const SegmentLayoutMap &Layout) {
       SegContentSize += B->getSize();
     }
 
-    uint64_t SegZeroFillStart = SegContentSize;
+    uint64_t const SegZeroFillStart = SegContentSize;
     uint64_t SegZeroFillEnd = SegZeroFillStart;
 
     for (auto *B : SegLists.ZeroFillBlocks) {
@@ -320,7 +320,7 @@ JITLinkContext::LookupMap JITLinkerBase::getExternalSymbolNames() const {
            "External has already been assigned an address");
     assert(Sym->getName() != StringRef() && Sym->getName() != "" &&
            "Externals must be named");
-    SymbolLookupFlags LookupFlags =
+    SymbolLookupFlags const LookupFlags =
         Sym->getLinkage() == Linkage::Weak
             ? SymbolLookupFlags::WeaklyReferencedSymbol
             : SymbolLookupFlags::RequiredSymbol;

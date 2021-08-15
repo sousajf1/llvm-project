@@ -569,7 +569,7 @@ APInt ConstantOffsetExtractor::findInEitherOperand(BinaryOperator *BO,
                                                    bool SignExtended,
                                                    bool ZeroExtended) {
   // Save off the current height of the chain, in case we need to restore it.
-  size_t ChainLength = UserChain.size();
+  size_t const ChainLength = UserChain.size();
 
   // BO being non-negative does not shed light on whether its operands are
   // non-negative. Clear the NonNegative flag here.
@@ -605,7 +605,7 @@ APInt ConstantOffsetExtractor::find(Value *V, bool SignExtended,
   // TODO(jingyue): We could trace into integer/pointer casts, such as
   // inttoptr, ptrtoint, bitcast, and addrspacecast. We choose to handle only
   // integers because it gives good enough results for our benchmarks.
-  unsigned BitWidth = cast<IntegerType>(V->getType())->getBitWidth();
+  unsigned const BitWidth = cast<IntegerType>(V->getType())->getBitWidth();
 
   // We cannot do much with Values that are not a User, such as an Argument.
   User *U = dyn_cast<User>(V);
@@ -698,7 +698,7 @@ ConstantOffsetExtractor::distributeExtsAndCloneChain(unsigned ChainIndex) {
   // Function find only trace into BinaryOperator and CastInst.
   BinaryOperator *BO = cast<BinaryOperator>(U);
   // OpNo = which operand of BO is UserChain[ChainIndex - 1]
-  unsigned OpNo = (BO->getOperand(0) == UserChain[ChainIndex - 1] ? 0 : 1);
+  unsigned const OpNo = (BO->getOperand(0) == UserChain[ChainIndex - 1] ? 0 : 1);
   Value *TheOther = applyExts(BO->getOperand(1 - OpNo));
   Value *NextInChain = distributeExtsAndCloneChain(ChainIndex - 1);
 
@@ -725,7 +725,7 @@ Value *ConstantOffsetExtractor::removeConstOffset(unsigned ChainIndex) {
          "UserChain, so no one should be used more than "
          "once");
 
-  unsigned OpNo = (BO->getOperand(0) == UserChain[ChainIndex - 1] ? 0 : 1);
+  unsigned const OpNo = (BO->getOperand(0) == UserChain[ChainIndex - 1] ? 0 : 1);
   assert(BO->getOperand(OpNo) == UserChain[ChainIndex - 1]);
   Value *NextInChain = removeConstOffset(ChainIndex - 1);
   Value *TheOther = BO->getOperand(1 - OpNo);
@@ -770,7 +770,7 @@ Value *ConstantOffsetExtractor::Extract(Value *Idx, GetElementPtrInst *GEP,
                                         const DominatorTree *DT) {
   ConstantOffsetExtractor Extractor(GEP, DT);
   // Find a non-zero constant offset first.
-  APInt ConstantOffset =
+  APInt const ConstantOffset =
       Extractor.find(Idx, /* SignExtended */ false, /* ZeroExtended */ false,
                      GEP->isInBounds());
   if (ConstantOffset == 0) {
@@ -819,7 +819,7 @@ SeparateConstOffsetFromGEP::accumulateByteOffset(GetElementPtrInst *GEP,
   for (unsigned I = 1, E = GEP->getNumOperands(); I != E; ++I, ++GTI) {
     if (GTI.isSequential()) {
       // Tries to extract a constant offset from this GEP index.
-      int64_t ConstantOffset =
+      int64_t const ConstantOffset =
           ConstantOffsetExtractor::Find(GEP->getOperand(I), GEP, DT);
       if (ConstantOffset != 0) {
         NeedsExtraction = true;
@@ -831,7 +831,7 @@ SeparateConstOffsetFromGEP::accumulateByteOffset(GetElementPtrInst *GEP,
       }
     } else if (LowerGEP) {
       StructType *StTy = GTI.getStructType();
-      uint64_t Field = cast<ConstantInt>(GEP->getOperand(I))->getZExtValue();
+      uint64_t const Field = cast<ConstantInt>(GEP->getOperand(I))->getZExtValue();
       // Skip field 0 as the offset is always 0.
       if (Field != 0) {
         NeedsExtraction = true;
@@ -872,7 +872,7 @@ void SeparateConstOffsetFromGEP::lowerToSingleIndexGEPs(
         if (CI->isZero())
           continue;
 
-      APInt ElementSize = APInt(IntPtrTy->getIntegerBitWidth(),
+      APInt const ElementSize = APInt(IntPtrTy->getIntegerBitWidth(),
                                 DL->getTypeAllocSize(GTI.getIndexedType()));
       // Scale the index by element size.
       if (ElementSize != 1) {
@@ -933,7 +933,7 @@ SeparateConstOffsetFromGEP::lowerToArithmetics(GetElementPtrInst *Variadic,
         if (CI->isZero())
           continue;
 
-      APInt ElementSize = APInt(IntPtrTy->getIntegerBitWidth(),
+      APInt const ElementSize = APInt(IntPtrTy->getIntegerBitWidth(),
                                 DL->getTypeAllocSize(GTI.getIndexedType()));
       // Scale the index by element size.
       if (ElementSize != 1) {
@@ -970,15 +970,15 @@ bool SeparateConstOffsetFromGEP::splitGEP(GetElementPtrInst *GEP) {
   if (GEP->hasAllConstantIndices())
     return false;
 
-  bool Changed = canonicalizeArrayIndicesToPointerSize(GEP);
+  bool const Changed = canonicalizeArrayIndicesToPointerSize(GEP);
 
   bool NeedsExtraction;
-  int64_t AccumulativeByteOffset = accumulateByteOffset(GEP, NeedsExtraction);
+  int64_t const AccumulativeByteOffset = accumulateByteOffset(GEP, NeedsExtraction);
 
   if (!NeedsExtraction)
     return Changed;
 
-  TargetTransformInfo &TTI = GetTTI(*GEP->getFunction());
+  TargetTransformInfo  const&TTI = GetTTI(*GEP->getFunction());
 
   // If LowerGEP is disabled, before really splitting the GEP, check whether the
   // backend supports the addressing mode we are about to produce. If no, this
@@ -988,7 +988,7 @@ bool SeparateConstOffsetFromGEP::splitGEP(GetElementPtrInst *GEP) {
   // of variable indices. Therefore, we don't check for addressing modes in that
   // case.
   if (!LowerGEP) {
-    unsigned AddrSpace = GEP->getPointerAddressSpace();
+    unsigned const AddrSpace = GEP->getPointerAddressSpace();
     if (!TTI.isLegalAddressingMode(GEP->getResultElementType(),
                                    /*BaseGV=*/nullptr, AccumulativeByteOffset,
                                    /*HasBaseReg=*/true, /*Scale=*/0,
@@ -1043,7 +1043,7 @@ bool SeparateConstOffsetFromGEP::splitGEP(GetElementPtrInst *GEP) {
   //
   // TODO(jingyue): do some range analysis to keep as many inbounds as
   // possible. GEPs with inbounds are more friendly to alias analysis.
-  bool GEPWasInBounds = GEP->isInBounds();
+  bool const GEPWasInBounds = GEP->isInBounds();
   GEP->setIsInBounds(false);
 
   // Lowers a GEP to either GEPs with a single index or arithmetic operations.
@@ -1095,13 +1095,13 @@ bool SeparateConstOffsetFromGEP::splitGEP(GetElementPtrInst *GEP) {
   // Per ANSI C standard, signed / unsigned = unsigned and signed % unsigned =
   // unsigned.. Therefore, we cast ElementTypeSizeOfGEP to signed because it is
   // used with unsigned integers later.
-  int64_t ElementTypeSizeOfGEP = static_cast<int64_t>(
+  int64_t const ElementTypeSizeOfGEP = static_cast<int64_t>(
       DL->getTypeAllocSize(GEP->getResultElementType()));
   Type *IntPtrTy = DL->getIntPtrType(GEP->getType());
   if (AccumulativeByteOffset % ElementTypeSizeOfGEP == 0) {
     // Very likely. As long as %gep is naturally aligned, the byte offset we
     // extracted should be a multiple of sizeof(*%gep).
-    int64_t Index = AccumulativeByteOffset / ElementTypeSizeOfGEP;
+    int64_t const Index = AccumulativeByteOffset / ElementTypeSizeOfGEP;
     NewGEP = GetElementPtrInst::Create(GEP->getResultElementType(), NewGEP,
                                        ConstantInt::get(IntPtrTy, Index, true),
                                        GEP->getName(), GEP);
@@ -1290,8 +1290,8 @@ bool SeparateConstOffsetFromGEP::isLegalToSwapOperand(
   if (FirstGEP == SecondGEP)
     return false;
 
-  unsigned FirstNum = FirstGEP->getNumOperands();
-  unsigned SecondNum = SecondGEP->getNumOperands();
+  unsigned const FirstNum = FirstGEP->getNumOperands();
+  unsigned const SecondNum = SecondGEP->getNumOperands();
   // Give up if the number of operands are not 2.
   if (FirstNum != SecondNum || FirstNum != 2)
     return false;
@@ -1326,7 +1326,7 @@ bool SeparateConstOffsetFromGEP::isLegalToSwapOperand(
   // Because it may not profitable at all due to constant folding.
   if (FirstOffsetDef)
     if (BinaryOperator *BO = dyn_cast<BinaryOperator>(FirstOffsetDef)) {
-      unsigned opc = BO->getOpcode();
+      unsigned const opc = BO->getOpcode();
       if ((opc == Instruction::Add || opc == Instruction::Sub) &&
           (isa<ConstantInt>(BO->getOperand(0)) ||
            isa<ConstantInt>(BO->getOperand(1))))

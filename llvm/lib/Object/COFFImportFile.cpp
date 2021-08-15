@@ -58,7 +58,7 @@ static uint16_t getImgRelRelocation(MachineTypes Machine) {
 }
 
 template <class T> static void append(std::vector<uint8_t> &B, const T &Data) {
-  size_t S = B.size();
+  size_t const S = B.size();
   B.resize(S + sizeof(T));
   memcpy(&B[S], &Data, sizeof(T));
 }
@@ -72,7 +72,7 @@ static void writeStringTable(std::vector<uint8_t> &B,
   // by the symbol entity in the file format.
 
   size_t Pos = B.size();
-  size_t Offset = B.size();
+  size_t const Offset = B.size();
 
   // Skip over the length field, we will fill it in later as we will have
   // computed the length while emitting the string content itself.
@@ -85,7 +85,7 @@ static void writeStringTable(std::vector<uint8_t> &B,
   }
 
   // Backfill the length of the table now that it has been computed.
-  support::ulittle32_t Length(B.size() - Offset);
+  support::ulittle32_t const Length(B.size() - Offset);
   support::endian::write32le(&B[Offset], Length);
 }
 
@@ -183,7 +183,7 @@ ObjectFactory::createImportDescriptor(std::vector<uint8_t> &Buffer) {
   const uint32_t NumberOfRelocations = 3;
 
   // COFF Header
-  coff_file_header Header{
+  coff_file_header const Header{
       u16(Machine),
       u16(NumberOfSections),
       u32(0),
@@ -312,7 +312,7 @@ ObjectFactory::createImportDescriptor(std::vector<uint8_t> &Buffer) {
                    {ImportDescriptorSymbolName, NullImportDescriptorSymbolName,
                     NullThunkSymbolName});
 
-  StringRef F{reinterpret_cast<const char *>(Buffer.data()), Buffer.size()};
+  StringRef const F{reinterpret_cast<const char *>(Buffer.data()), Buffer.size()};
   return {MemoryBufferRef(F, ImportName)};
 }
 
@@ -322,7 +322,7 @@ ObjectFactory::createNullImportDescriptor(std::vector<uint8_t> &Buffer) {
   const uint32_t NumberOfSymbols = 1;
 
   // COFF Header
-  coff_file_header Header{
+  coff_file_header const Header{
       u16(Machine),
       u16(NumberOfSections),
       u32(0),
@@ -373,17 +373,17 @@ ObjectFactory::createNullImportDescriptor(std::vector<uint8_t> &Buffer) {
   // String Table
   writeStringTable(Buffer, {NullImportDescriptorSymbolName});
 
-  StringRef F{reinterpret_cast<const char *>(Buffer.data()), Buffer.size()};
+  StringRef const F{reinterpret_cast<const char *>(Buffer.data()), Buffer.size()};
   return {MemoryBufferRef(F, ImportName)};
 }
 
 NewArchiveMember ObjectFactory::createNullThunk(std::vector<uint8_t> &Buffer) {
   const uint32_t NumberOfSections = 2;
   const uint32_t NumberOfSymbols = 1;
-  uint32_t VASize = is32bit(Machine) ? 4 : 8;
+  uint32_t const VASize = is32bit(Machine) ? 4 : 8;
 
   // COFF Header
-  coff_file_header Header{
+  coff_file_header const Header{
       u16(Machine),
       u16(NumberOfSections),
       u32(0),
@@ -455,7 +455,7 @@ NewArchiveMember ObjectFactory::createNullThunk(std::vector<uint8_t> &Buffer) {
   // String Table
   writeStringTable(Buffer, {NullThunkSymbolName});
 
-  StringRef F{reinterpret_cast<const char *>(Buffer.data()), Buffer.size()};
+  StringRef const F{reinterpret_cast<const char *>(Buffer.data()), Buffer.size()};
   return {MemoryBufferRef{F, ImportName}};
 }
 
@@ -463,8 +463,8 @@ NewArchiveMember ObjectFactory::createShortImport(StringRef Sym,
                                                   uint16_t Ordinal,
                                                   ImportType ImportType,
                                                   ImportNameType NameType) {
-  size_t ImpSize = ImportName.size() + Sym.size() + 2; // +2 for NULs
-  size_t Size = sizeof(coff_import_header) + ImpSize;
+  size_t const ImpSize = ImportName.size() + Sym.size() + 2; // +2 for NULs
+  size_t const Size = sizeof(coff_import_header) + ImpSize;
   char *Buf = Alloc.Allocate<char>(Size);
   memset(Buf, 0, Size);
   char *P = Buf;
@@ -494,7 +494,7 @@ NewArchiveMember ObjectFactory::createWeakExternal(StringRef Sym,
   const uint32_t NumberOfSymbols = 5;
 
   // COFF Header
-  coff_file_header Header{
+  coff_file_header const Header{
       u16(Machine),
       u16(NumberOfSections),
       u32(0),
@@ -555,7 +555,7 @@ NewArchiveMember ObjectFactory::createWeakExternal(StringRef Sym,
   SymbolTable[2].Name.Offset.Offset = sizeof(uint32_t);
 
   //__imp_ String Table
-  StringRef Prefix = Imp ? "__imp_" : "";
+  StringRef const Prefix = Imp ? "__imp_" : "";
   SymbolTable[3].Name.Offset.Offset =
       sizeof(uint32_t) + Sym.size() + Prefix.size() + 1;
   append(Buffer, SymbolTable);
@@ -584,7 +584,7 @@ Error writeImportLibrary(StringRef ImportName, StringRef Path,
   std::vector<uint8_t> NullThunk;
   Members.push_back(OF.createNullThunk(NullThunk));
 
-  for (COFFShortExport E : Exports) {
+  for (COFFShortExport const E : Exports) {
     if (E.Private)
       continue;
 
@@ -594,8 +594,8 @@ Error writeImportLibrary(StringRef ImportName, StringRef Path,
     if (E.Constant)
       ImportType = IMPORT_CONST;
 
-    StringRef SymbolName = E.SymbolName.empty() ? E.Name : E.SymbolName;
-    ImportNameType NameType = E.Noname
+    StringRef const SymbolName = E.SymbolName.empty() ? E.Name : E.SymbolName;
+    ImportNameType const NameType = E.Noname
                                   ? IMPORT_ORDINAL
                                   : getNameType(SymbolName, E.Name,
                                                 Machine, MinGW);

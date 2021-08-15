@@ -161,7 +161,7 @@ static bool rescheduleCanonically(unsigned &PseudoIdempotentInstCount,
   std::vector<unsigned> PhysRegDefs;
   for (auto *II : Instructions) {
     for (unsigned i = 1; i < II->getNumOperands(); i++) {
-      MachineOperand &MO = II->getOperand(i);
+      MachineOperand  const&MO = II->getOperand(i);
       if (!MO.isReg())
         continue;
 
@@ -181,7 +181,7 @@ static bool rescheduleCanonically(unsigned &PseudoIdempotentInstCount,
     if (II->mayLoadOrStore())
       continue;
 
-    MachineOperand &MO = II->getOperand(0);
+    MachineOperand  const&MO = II->getOperand(0);
     if (!MO.isReg() || !Register::isVirtualRegister(MO.getReg()))
       continue;
     if (!MO.isDef())
@@ -299,7 +299,7 @@ static bool rescheduleCanonically(unsigned &PseudoIdempotentInstCount,
 
 static bool propagateLocalCopies(MachineBasicBlock *MBB) {
   bool Changed = false;
-  MachineRegisterInfo &MRI = MBB->getParent()->getRegInfo();
+  MachineRegisterInfo  const&MRI = MBB->getParent()->getRegInfo();
 
   std::vector<MachineInstr *> Copies;
   for (MachineInstr &MI : MBB->instrs()) {
@@ -412,7 +412,7 @@ bool MIRCanonicalizer::runOnMachineFunction(MachineFunction &MF) {
 
   // we need a valid vreg to create a vreg type for skipping all those
   // stray vreg numbers so reach alignment/canonical vreg values.
-  std::vector<MachineBasicBlock *> RPOList = GetRPOList(MF);
+  std::vector<MachineBasicBlock *> const RPOList = GetRPOList(MF);
 
   LLVM_DEBUG(
       dbgs() << "\n\n  NEW MACHINE FUNCTION: " << MF.getName() << "  \n\n";

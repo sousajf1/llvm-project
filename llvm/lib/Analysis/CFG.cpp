@@ -80,7 +80,7 @@ unsigned llvm::GetSuccessorNumber(const BasicBlock *BB,
     const BasicBlock *Succ) {
   const Instruction *Term = BB->getTerminator();
 #ifndef NDEBUG
-  unsigned e = Term->getNumSuccessors();
+  unsigned const e = Term->getNumSuccessors();
 #endif
   for (unsigned i = 0; ; ++i) {
     assert(i != e && "Didn't find edge?");

@@ -55,7 +55,7 @@ static MCOperand GetSymbolRef(const MachineOperand &MO, const MCSymbol *Symbol,
   MCContext &Ctx = Printer.OutContext;
   MCSymbolRefExpr::VariantKind RefKind = MCSymbolRefExpr::VK_None;
 
-  unsigned access = MO.getTargetFlags() & PPCII::MO_ACCESS_MASK;
+  unsigned const access = MO.getTargetFlags() & PPCII::MO_ACCESS_MASK;
 
   switch (access) {
     case PPCII::MO_TPREL_LO:
@@ -74,7 +74,7 @@ static MCOperand GetSymbolRef(const MachineOperand &MO, const MCSymbol *Symbol,
       RefKind = MCSymbolRefExpr::VK_PPC_TOC_LO;
       break;
     case PPCII::MO_TLS:
-      bool IsPCRel = (MO.getTargetFlags() & ~access) == PPCII::MO_PCREL_FLAG;
+      bool const IsPCRel = (MO.getTargetFlags() & ~access) == PPCII::MO_PCREL_FLAG;
       RefKind = IsPCRel ? MCSymbolRefExpr::VK_PPC_TLS_PCREL
                         : MCSymbolRefExpr::VK_PPC_TLS;
       break;
@@ -101,7 +101,7 @@ static MCOperand GetSymbolRef(const MachineOperand &MO, const MCSymbol *Symbol,
   const PPCSubtarget *Subtarget = &(MF->getSubtarget<PPCSubtarget>());
   const TargetMachine &TM = Printer.TM;
 
-  unsigned MIOpcode = MI->getOpcode();
+  unsigned const MIOpcode = MI->getOpcode();
   assert((Subtarget->isUsingPCRelativeCalls() || MIOpcode != PPC::BL8_NOTOC) &&
          "BL8_NOTOC is only valid when using PC Relative Calls.");
   if (Subtarget->isUsingPCRelativeCalls()) {

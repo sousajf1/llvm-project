@@ -336,7 +336,7 @@ private:
 } // end anonymous namespace
 
 Value *Mapper::mapValue(const Value *V) {
-  ValueToValueMapTy::iterator I = getVM().find(V);
+  ValueToValueMapTy::iterator const I = getVM().find(V);
 
   // If the value already exists in the map, use it.
   if (I != getVM().end()) {
@@ -741,7 +741,7 @@ void MDNodeMapper::mapNodesInPOT(UniquedGraph &G) {
     }
 
     // Remember whether this node had a placeholder.
-    bool HadPlaceholder(D.Placeholder);
+    bool const HadPlaceholder(D.Placeholder);
 
     // Clone the uniqued node and remap the operands.
     TempMDNode ClonedN = D.Placeholder ? std::move(D.Placeholder) : N->clone();
@@ -861,11 +861,11 @@ void Mapper::flush() {
       remapGlobalObjectMetadata(*E.Data.GVInit.GV);
       break;
     case WorklistEntry::MapAppendingVar: {
-      unsigned PrefixSize = AppendingInits.size() - E.AppendingGVNumNewMembers;
+      unsigned const PrefixSize = AppendingInits.size() - E.AppendingGVNumNewMembers;
       // mapAppendingVariable call can change AppendingInits if initalizer for
       // the variable depends on another appending global, because of that inits
       // need to be extracted and updated before the call.
-      SmallVector<Constant *, 8> NewInits(
+      SmallVector<Constant *, 8> const NewInits(
           drop_begin(AppendingInits, PrefixSize));
       AppendingInits.resize(PrefixSize);
       mapAppendingVariable(*E.Data.AppendingGV.GV,
@@ -944,7 +944,7 @@ void Mapper::remapInstruction(Instruction *I) {
     LLVMContext &C = CB->getContext();
     AttributeList Attrs = CB->getAttributes();
     for (unsigned i = 0; i < Attrs.getNumAttrSets(); ++i) {
-      for (Attribute::AttrKind TypedAttr :
+      for (Attribute::AttrKind const TypedAttr :
              {Attribute::ByVal, Attribute::StructRet, Attribute::ByRef,
               Attribute::InAlloca}) {
         if (Type *Ty = Attrs.getAttribute(i, TypedAttr).getValueAsType()) {
@@ -1001,7 +1001,7 @@ void Mapper::mapAppendingVariable(GlobalVariable &GV, Constant *InitPrefix,
                                   ArrayRef<Constant *> NewMembers) {
   SmallVector<Constant *, 16> Elements;
   if (InitPrefix) {
-    unsigned NumElements =
+    unsigned const NumElements =
         cast<ArrayType>(InitPrefix->getType())->getNumElements();
     for (unsigned I = 0; I != NumElements; ++I)
       Elements.push_back(InitPrefix->getAggregateElement(I));
@@ -1014,7 +1014,7 @@ void Mapper::mapAppendingVariable(GlobalVariable &GV, Constant *InitPrefix,
     // also IRLinker::linkAppendingVarProto() in IRMover.cpp.
     VoidPtrTy = Type::getInt8Ty(GV.getContext())->getPointerTo();
     auto &ST = *cast<StructType>(NewMembers.front()->getType());
-    Type *Tys[3] = {ST.getElementType(0), ST.getElementType(1), VoidPtrTy};
+    Type *const Tys[3] = {ST.getElementType(0), ST.getElementType(1), VoidPtrTy};
     EltTy = StructType::get(GV.getContext(), Tys, false);
   }
 

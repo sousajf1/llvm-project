@@ -50,12 +50,12 @@ Mips16DAGToDAGISel::selectMULT(SDNode *N, unsigned Opc, const SDLoc &DL, EVT Ty,
   SDValue InFlag = SDValue(Mul, 0);
 
   if (HasLo) {
-    unsigned Opcode = Mips::Mflo16;
+    unsigned const Opcode = Mips::Mflo16;
     Lo = CurDAG->getMachineNode(Opcode, DL, Ty, MVT::Glue, InFlag);
     InFlag = SDValue(Lo, 1);
   }
   if (HasHi) {
-    unsigned Opcode = Mips::Mfhi16;
+    unsigned const Opcode = Mips::Mfhi16;
     Hi = CurDAG->getMachineNode(Opcode, DL, Ty, InFlag);
   }
   return std::make_pair(Lo, Hi);
@@ -68,10 +68,10 @@ void Mips16DAGToDAGISel::initGlobalBaseReg(MachineFunction &MF) {
     return;
 
   MachineBasicBlock &MBB = MF.front();
-  MachineBasicBlock::iterator I = MBB.begin();
+  MachineBasicBlock::iterator const I = MBB.begin();
   MachineRegisterInfo &RegInfo = MF.getRegInfo();
   const TargetInstrInfo &TII = *Subtarget->getInstrInfo();
-  DebugLoc DL;
+  DebugLoc const DL;
   Register V0, V1, V2, GlobalBaseReg = MipsFI->getGlobalBaseReg(MF);
   const TargetRegisterClass *RC = &Mips::CPU16RegsRegClass;
 
@@ -97,8 +97,8 @@ void Mips16DAGToDAGISel::processFunctionAfterISel(MachineFunction &MF) {
 
 bool Mips16DAGToDAGISel::selectAddr(bool SPAllowed, SDValue Addr, SDValue &Base,
                                     SDValue &Offset) {
-  SDLoc DL(Addr);
-  EVT ValTy = Addr.getValueType();
+  SDLoc const DL(Addr);
+  EVT const ValTy = Addr.getValueType();
 
   // if Address is FI, get the TargetFrameIndex.
   if (SPAllowed) {
@@ -150,7 +150,7 @@ bool Mips16DAGToDAGISel::selectAddr(bool SPAllowed, SDValue Addr, SDValue &Base,
     //  lwc1 $f0, %lo($CPI1_0)($2)
     if (Addr.getOperand(1).getOpcode() == MipsISD::Lo ||
         Addr.getOperand(1).getOpcode() == MipsISD::GPRel) {
-      SDValue Opnd0 = Addr.getOperand(1).getOperand(0);
+      SDValue const Opnd0 = Addr.getOperand(1).getOperand(0);
       if (isa<ConstantPoolSDNode>(Opnd0) || isa<GlobalAddressSDNode>(Opnd0) ||
           isa<JumpTableSDNode>(Opnd0)) {
         Base = Addr.getOperand(0);
@@ -177,14 +177,14 @@ bool Mips16DAGToDAGISel::selectAddr16SP(SDValue Addr, SDValue &Base,
 /// Select instructions not customized! Used for
 /// expanded, promoted and normal instructions
 bool Mips16DAGToDAGISel::trySelect(SDNode *Node) {
-  unsigned Opcode = Node->getOpcode();
-  SDLoc DL(Node);
+  unsigned const Opcode = Node->getOpcode();
+  SDLoc const DL(Node);
 
   ///
   // Instruction Selection not handled by the auto-generated
   // tablegen selection should be handled here.
   ///
-  EVT NodeTy = Node->getValueType(0);
+  EVT const NodeTy = Node->getValueType(0);
   unsigned MultOpc;
 
   switch (Opcode) {
@@ -195,7 +195,7 @@ bool Mips16DAGToDAGISel::trySelect(SDNode *Node) {
   case ISD::SMUL_LOHI:
   case ISD::UMUL_LOHI: {
     MultOpc = (Opcode == ISD::UMUL_LOHI ? Mips::MultuRxRy16 : Mips::MultRxRy16);
-    std::pair<SDNode *, SDNode *> LoHi =
+    std::pair<SDNode *, SDNode *> const LoHi =
         selectMULT(Node, MultOpc, DL, NodeTy, true, true);
     if (!SDValue(Node, 0).use_empty())
       ReplaceUses(SDValue(Node, 0), SDValue(LoHi.first, 0));

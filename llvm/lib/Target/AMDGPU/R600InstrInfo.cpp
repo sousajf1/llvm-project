@@ -54,7 +54,7 @@ void R600InstrInfo::copyPhysReg(MachineBasicBlock &MBB,
 
   if (VectorComponents > 0) {
     for (unsigned I = 0; I < VectorComponents; I++) {
-      unsigned SubRegIndex = R600RegisterInfo::getSubRegFromChannel(I);
+      unsigned const SubRegIndex = R600RegisterInfo::getSubRegFromChannel(I);
       buildDefaultInstruction(MBB, MI, R600::MOV,
                               RI.getSubReg(DestReg, SubRegIndex),
                               RI.getSubReg(SrcReg, SubRegIndex))
@@ -108,13 +108,13 @@ bool R600InstrInfo::isCubeOp(unsigned Opcode) const {
 }
 
 bool R600InstrInfo::isALUInstr(unsigned Opcode) const {
-  unsigned TargetFlags = get(Opcode).TSFlags;
+  unsigned const TargetFlags = get(Opcode).TSFlags;
 
   return (TargetFlags & R600_InstFlag::ALU_INST);
 }
 
 bool R600InstrInfo::hasInstrModifiers(unsigned Opcode) const {
-  unsigned TargetFlags = get(Opcode).TSFlags;
+  unsigned const TargetFlags = get(Opcode).TSFlags;
 
   return ((TargetFlags & R600_InstFlag::OP1) |
           (TargetFlags & R600_InstFlag::OP2) |
@@ -122,7 +122,7 @@ bool R600InstrInfo::hasInstrModifiers(unsigned Opcode) const {
 }
 
 bool R600InstrInfo::isLDSInstr(unsigned Opcode) const {
-  unsigned TargetFlags = get(Opcode).TSFlags;
+  unsigned const TargetFlags = get(Opcode).TSFlags;
 
   return ((TargetFlags & R600_InstFlag::LDS_1A) |
           (TargetFlags & R600_InstFlag::LDS_1A1D) |
@@ -270,9 +270,9 @@ R600InstrInfo::getSrcs(MachineInstr &MI) const {
     for (unsigned j = 0; j < 8; j++) {
       MachineOperand &MO =
           MI.getOperand(getOperandIdx(MI.getOpcode(), OpTable[j][0]));
-      Register Reg = MO.getReg();
+      Register const Reg = MO.getReg();
       if (Reg == R600::ALU_CONST) {
-        MachineOperand &Sel =
+        MachineOperand  const&Sel =
             MI.getOperand(getOperandIdx(MI.getOpcode(), OpTable[j][1]));
         Result.push_back(std::make_pair(&MO, Sel.getImm()));
         continue;
@@ -289,19 +289,19 @@ R600InstrInfo::getSrcs(MachineInstr &MI) const {
   };
 
   for (unsigned j = 0; j < 3; j++) {
-    int SrcIdx = getOperandIdx(MI.getOpcode(), OpTable[j][0]);
+    int const SrcIdx = getOperandIdx(MI.getOpcode(), OpTable[j][0]);
     if (SrcIdx < 0)
       break;
     MachineOperand &MO = MI.getOperand(SrcIdx);
-    Register Reg = MO.getReg();
+    Register const Reg = MO.getReg();
     if (Reg == R600::ALU_CONST) {
-      MachineOperand &Sel =
+      MachineOperand  const&Sel =
           MI.getOperand(getOperandIdx(MI.getOpcode(), OpTable[j][1]));
       Result.push_back(std::make_pair(&MO, Sel.getImm()));
       continue;
     }
     if (Reg == R600::ALU_LITERAL_X) {
-      MachineOperand &Operand =
+      MachineOperand  const&Operand =
           MI.getOperand(getOperandIdx(MI.getOpcode(), R600::OpName::literal));
       if (Operand.isImm()) {
         Result.push_back(std::make_pair(&MO, Operand.getImm()));
@@ -324,8 +324,8 @@ R600InstrInfo::ExtractSrcs(MachineInstr &MI,
   unsigned i = 0;
   for (const auto &Src : getSrcs(MI)) {
     ++i;
-    Register Reg = Src.first->getReg();
-    int Index = RI.getEncodingValue(Reg) & 0xff;
+    Register const Reg = Src.first->getReg();
+    int const Index = RI.getEncodingValue(Reg) & 0xff;
     if (Reg == R600::OQAP) {
       Result.push_back(std::make_pair(Index, 0U));
     }
@@ -339,7 +339,7 @@ R600InstrInfo::ExtractSrcs(MachineInstr &MI,
       Result.push_back(DummyPair);
       continue;
     }
-    unsigned Chan = RI.getHWRegChan(Reg);
+    unsigned const Chan = RI.getHWRegChan(Reg);
     Result.push_back(std::make_pair(Index, Chan));
   }
   for (; i < 3; ++i)
@@ -380,19 +380,19 @@ static unsigned getTransSwizzle(R600InstrInfo::BankSwizzle Swz, unsigned Op) {
   assert(Op < 3 && "Out of range swizzle index");
   switch (Swz) {
   case R600InstrInfo::ALU_VEC_012_SCL_210: {
-    unsigned Cycles[3] = { 2, 1, 0};
+    unsigned const Cycles[3] = { 2, 1, 0};
     return Cycles[Op];
   }
   case R600InstrInfo::ALU_VEC_021_SCL_122: {
-    unsigned Cycles[3] = { 1, 2, 2};
+    unsigned const Cycles[3] = { 1, 2, 2};
     return Cycles[Op];
   }
   case R600InstrInfo::ALU_VEC_120_SCL_212: {
-    unsigned Cycles[3] = { 2, 1, 2};
+    unsigned const Cycles[3] = { 2, 1, 2};
     return Cycles[Op];
   }
   case R600InstrInfo::ALU_VEC_102_SCL_221: {
-    unsigned Cycles[3] = { 2, 2, 1};
+    unsigned const Cycles[3] = { 2, 2, 1};
     return Cycles[Op];
   }
   default:
@@ -436,7 +436,7 @@ unsigned  R600InstrInfo::isLegalUpTo(
   // Now check Trans Alu
   for (unsigned i = 0, e = TransSrcs.size(); i < e; ++i) {
     const std::pair<int, unsigned> &Src = TransSrcs[i];
-    unsigned Cycle = getTransSwizzle(TransSwz, i);
+    unsigned const Cycle = getTransSwizzle(TransSwz, i);
     if (Src.first < 0)
       continue;
     if (Src.first == 255)
@@ -465,7 +465,7 @@ NextPossibleSolution(
   }
   if (ResetIdx == -1)
     return false;
-  int NextSwizzle = SwzCandidate[ResetIdx] + 1;
+  int const NextSwizzle = SwzCandidate[ResetIdx] + 1;
   SwzCandidate[ResetIdx] = (R600InstrInfo::BankSwizzle)NextSwizzle;
   return true;
 }
@@ -497,7 +497,7 @@ isConstCompatible(R600InstrInfo::BankSwizzle TransSwz,
     return false;
   for (unsigned i = 0, e = TransOps.size(); i < e; ++i) {
     const std::pair<int, unsigned> &Src = TransOps[i];
-    unsigned Cycle = getTransSwizzle(TransSwz, i);
+    unsigned const Cycle = getTransSwizzle(TransSwz, i);
     if (Src.first < 0)
       continue;
     if (ConstCount > 0 && Cycle == 0)
@@ -522,7 +522,7 @@ R600InstrInfo::fitsReadPortLimitations(const std::vector<MachineInstr *> &IG,
   BankSwizzle TransBS = ALU_VEC_012_SCL_210;
   for (unsigned i = 0, e = IG.size(); i < e; ++i) {
     IGSrcs.push_back(ExtractSrcs(*IG[i], PV, ConstCount));
-    unsigned Op = getOperandIdx(IG[i]->getOpcode(),
+    unsigned const Op = getOperandIdx(IG[i]->getOpcode(),
         R600::OpName::bank_swizzle);
     ValidSwizzle.push_back( (R600InstrInfo::BankSwizzle)
         IG[i]->getOperand(Op).getImm());
@@ -545,7 +545,7 @@ R600InstrInfo::fitsReadPortLimitations(const std::vector<MachineInstr *> &IG,
     TransBS = TransSwz[i];
     if (!isConstCompatible(TransBS, TransOps, ConstCount))
       continue;
-    bool Result = FindSwizzleForVectorSlot(IGSrcs, ValidSwizzle, TransOps,
+    bool const Result = FindSwizzleForVectorSlot(IGSrcs, ValidSwizzle, TransOps,
         TransBS);
     if (Result) {
       ValidSwizzle.push_back(TransBS);
@@ -562,9 +562,9 @@ R600InstrInfo::fitsConstReadLimitations(const std::vector<unsigned> &Consts)
   assert (Consts.size() <= 12 && "Too many operands in instructions group");
   unsigned Pair1 = 0, Pair2 = 0;
   for (unsigned i = 0, n = Consts.size(); i < n; ++i) {
-    unsigned ReadConstHalf = Consts[i] & 2;
-    unsigned ReadConstIndex = Consts[i] & (~3);
-    unsigned ReadHalfConst = ReadConstIndex | ReadConstHalf;
+    unsigned const ReadConstHalf = Consts[i] & 2;
+    unsigned const ReadConstIndex = Consts[i] & (~3);
+    unsigned const ReadHalfConst = ReadConstIndex | ReadConstHalf;
     if (!Pair1) {
       Pair1 = ReadHalfConst;
       continue;
@@ -600,8 +600,8 @@ R600InstrInfo::fitsConstReadLimitations(const std::vector<MachineInstr *> &MIs)
         Consts.push_back(Src.second);
       if (R600::R600_KC0RegClass.contains(Src.first->getReg()) ||
           R600::R600_KC1RegClass.contains(Src.first->getReg())) {
-        unsigned Index = RI.getEncodingValue(Src.first->getReg()) & 0xff;
-        unsigned Chan = RI.getHWRegChan(Src.first->getReg());
+        unsigned const Index = RI.getEncodingValue(Src.first->getReg()) & 0xff;
+        unsigned const Chan = RI.getHWRegChan(Src.first->getReg());
         Consts.push_back((Index << 2) | Chan);
       }
     }
@@ -670,7 +670,7 @@ bool R600InstrInfo::analyzeBranch(MachineBasicBlock &MBB,
 
   // Remove successive JUMP
   while (I != MBB.begin() && std::prev(I)->getOpcode() == R600::JUMP) {
-      MachineBasicBlock::iterator PriorI = std::prev(I);
+      MachineBasicBlock::iterator const PriorI = std::prev(I);
       if (AllowModify)
         I->removeFromParent();
       I = PriorI;
@@ -678,7 +678,7 @@ bool R600InstrInfo::analyzeBranch(MachineBasicBlock &MBB,
   MachineInstr &LastInst = *I;
 
   // If there is only one terminator instruction, process it.
-  unsigned LastOpc = LastInst.getOpcode();
+  unsigned const LastOpc = LastInst.getOpcode();
   if (I == MBB.begin() || !isJump((--I)->getOpcode())) {
     if (LastOpc == R600::JUMP) {
       TBB = LastInst.getOperand(0).getMBB();
@@ -699,7 +699,7 @@ bool R600InstrInfo::analyzeBranch(MachineBasicBlock &MBB,
 
   // Get the instruction before it if it is a terminator.
   MachineInstr &SecondLastInst = *I;
-  unsigned SecondLastOpc = SecondLastInst.getOpcode();
+  unsigned const SecondLastOpc = SecondLastInst.getOpcode();
 
   // If the block ends with a B and a Bcc, handle it.
   if (SecondLastOpc == R600::JUMP_COND && LastOpc == R600::JUMP) {
@@ -752,7 +752,7 @@ unsigned R600InstrInfo::insertBranch(MachineBasicBlock &MBB,
       BuildMI(&MBB, DL, get(R600::JUMP_COND))
              .addMBB(TBB)
              .addReg(R600::PREDICATE_BIT, RegState::Kill);
-      MachineBasicBlock::iterator CfAlu = FindLastAluClause(MBB);
+      MachineBasicBlock::iterator const CfAlu = FindLastAluClause(MBB);
       if (CfAlu == MBB.end())
         return 1;
       assert (CfAlu->getOpcode() == R600::CF_ALU);
@@ -768,7 +768,7 @@ unsigned R600InstrInfo::insertBranch(MachineBasicBlock &MBB,
             .addMBB(TBB)
             .addReg(R600::PREDICATE_BIT, RegState::Kill);
     BuildMI(&MBB, DL, get(R600::JUMP)).addMBB(FBB);
-    MachineBasicBlock::iterator CfAlu = FindLastAluClause(MBB);
+    MachineBasicBlock::iterator const CfAlu = FindLastAluClause(MBB);
     if (CfAlu == MBB.end())
       return 2;
     assert (CfAlu->getOpcode() == R600::CF_ALU);
@@ -797,7 +797,7 @@ unsigned R600InstrInfo::removeBranch(MachineBasicBlock &MBB,
     MachineInstr *predSet = findFirstPredicateSetterFrom(MBB, I);
     clearFlag(*predSet, 0, MO_FLAG_PUSH);
     I->eraseFromParent();
-    MachineBasicBlock::iterator CfAlu = FindLastAluClause(MBB);
+    MachineBasicBlock::iterator const CfAlu = FindLastAluClause(MBB);
     if (CfAlu == MBB.end())
       break;
     assert (CfAlu->getOpcode() == R600::CF_ALU_PUSH_BEFORE);
@@ -822,7 +822,7 @@ unsigned R600InstrInfo::removeBranch(MachineBasicBlock &MBB,
     MachineInstr *predSet = findFirstPredicateSetterFrom(MBB, I);
     clearFlag(*predSet, 0, MO_FLAG_PUSH);
     I->eraseFromParent();
-    MachineBasicBlock::iterator CfAlu = FindLastAluClause(MBB);
+    MachineBasicBlock::iterator const CfAlu = FindLastAluClause(MBB);
     if (CfAlu == MBB.end())
       break;
     assert (CfAlu->getOpcode() == R600::CF_ALU_PUSH_BEFORE);
@@ -837,11 +837,11 @@ unsigned R600InstrInfo::removeBranch(MachineBasicBlock &MBB,
 }
 
 bool R600InstrInfo::isPredicated(const MachineInstr &MI) const {
-  int idx = MI.findFirstPredOperandIdx();
+  int const idx = MI.findFirstPredOperandIdx();
   if (idx < 0)
     return false;
 
-  Register Reg = MI.getOperand(idx).getReg();
+  Register const Reg = MI.getOperand(idx).getReg();
   switch (Reg) {
   default: return false;
   case R600::PRED_SEL_ONE:
@@ -948,7 +948,7 @@ bool R600InstrInfo::ClobbersPredicate(MachineInstr &MI,
 
 bool R600InstrInfo::PredicateInstruction(MachineInstr &MI,
                                          ArrayRef<MachineOperand> Pred) const {
-  int PIdx = MI.findFirstPredOperandIdx();
+  int const PIdx = MI.findFirstPredOperandIdx();
 
   if (MI.getOpcode() == R600::CF_ALU) {
     MI.getOperand(8).setImm(0);
@@ -964,7 +964,7 @@ bool R600InstrInfo::PredicateInstruction(MachineInstr &MI,
         .setReg(Pred[2].getReg());
     MI.getOperand(getOperandIdx(MI, R600::OpName::pred_sel_W))
         .setReg(Pred[2].getReg());
-    MachineInstrBuilder MIB(*MI.getParent()->getParent(), MI);
+    MachineInstrBuilder const MIB(*MI.getParent()->getParent(), MI);
     MIB.addReg(R600::PREDICATE_BIT, RegState::Implicit);
     return true;
   }
@@ -972,7 +972,7 @@ bool R600InstrInfo::PredicateInstruction(MachineInstr &MI,
   if (PIdx != -1) {
     MachineOperand &PMO = MI.getOperand(PIdx);
     PMO.setReg(Pred[2].getReg());
-    MachineInstrBuilder MIB(*MI.getParent()->getParent(), MI);
+    MachineInstrBuilder const MIB(*MI.getParent()->getParent(), MI);
     MIB.addReg(R600::PREDICATE_BIT, RegState::Implicit);
     return true;
   }
@@ -1002,20 +1002,20 @@ bool R600InstrInfo::expandPostRAPseudo(MachineInstr &MI) const {
   switch (MI.getOpcode()) {
   default: {
     MachineBasicBlock *MBB = MI.getParent();
-    int OffsetOpIdx =
+    int const OffsetOpIdx =
         R600::getNamedOperandIdx(MI.getOpcode(), R600::OpName::addr);
     // addr is a custom operand with multiple MI operands, and only the
     // first MI operand is given a name.
-    int RegOpIdx = OffsetOpIdx + 1;
-    int ChanOpIdx =
+    int const RegOpIdx = OffsetOpIdx + 1;
+    int const ChanOpIdx =
         R600::getNamedOperandIdx(MI.getOpcode(), R600::OpName::chan);
     if (isRegisterLoad(MI)) {
-      int DstOpIdx =
+      int const DstOpIdx =
           R600::getNamedOperandIdx(MI.getOpcode(), R600::OpName::dst);
-      unsigned RegIndex = MI.getOperand(RegOpIdx).getImm();
-      unsigned Channel = MI.getOperand(ChanOpIdx).getImm();
-      unsigned Address = calculateIndirectAddress(RegIndex, Channel);
-      Register OffsetReg = MI.getOperand(OffsetOpIdx).getReg();
+      unsigned const RegIndex = MI.getOperand(RegOpIdx).getImm();
+      unsigned const Channel = MI.getOperand(ChanOpIdx).getImm();
+      unsigned const Address = calculateIndirectAddress(RegIndex, Channel);
+      Register const OffsetReg = MI.getOperand(OffsetOpIdx).getReg();
       if (OffsetReg == R600::INDIRECT_BASE_ADDR) {
         buildMovInstr(MBB, MI, MI.getOperand(DstOpIdx).getReg(),
                       getIndirectAddrRegClass()->getRegister(Address));
@@ -1024,12 +1024,12 @@ bool R600InstrInfo::expandPostRAPseudo(MachineInstr &MI) const {
                           OffsetReg);
       }
     } else if (isRegisterStore(MI)) {
-      int ValOpIdx =
+      int const ValOpIdx =
           R600::getNamedOperandIdx(MI.getOpcode(), R600::OpName::val);
-      unsigned RegIndex = MI.getOperand(RegOpIdx).getImm();
-      unsigned Channel = MI.getOperand(ChanOpIdx).getImm();
-      unsigned Address = calculateIndirectAddress(RegIndex, Channel);
-      Register OffsetReg = MI.getOperand(OffsetOpIdx).getReg();
+      unsigned const RegIndex = MI.getOperand(RegOpIdx).getImm();
+      unsigned const Channel = MI.getOperand(ChanOpIdx).getImm();
+      unsigned const Address = calculateIndirectAddress(RegIndex, Channel);
+      Register const OffsetReg = MI.getOperand(OffsetOpIdx).getReg();
       if (OffsetReg == R600::INDIRECT_BASE_ADDR) {
         buildMovInstr(MBB, MI, getIndirectAddrRegClass()->getRegister(Address),
                       MI.getOperand(ValOpIdx).getReg());
@@ -1070,15 +1070,15 @@ void R600InstrInfo::reserveIndirectRegisters(BitVector &Reserved,
   const R600Subtarget &ST = MF.getSubtarget<R600Subtarget>();
   const R600FrameLowering *TFL = ST.getFrameLowering();
 
-  unsigned StackWidth = TFL->getStackWidth(MF);
-  int End = getIndirectIndexEnd(MF);
+  unsigned const StackWidth = TFL->getStackWidth(MF);
+  int const End = getIndirectIndexEnd(MF);
 
   if (End == -1)
     return;
 
   for (int Index = getIndirectIndexBegin(MF); Index <= End; ++Index) {
     for (unsigned Chan = 0; Chan < StackWidth; ++Chan) {
-      unsigned Reg = R600::R600_TReg32RegClass.getRegister((4 * Index) + Chan);
+      unsigned const Reg = R600::R600_TReg32RegClass.getRegister((4 * Index) + Chan);
       TRI.reserveRegisterTuples(Reserved, Reg);
     }
   }
@@ -1168,8 +1168,8 @@ int R600InstrInfo::getIndirectIndexBegin(const MachineFunction &MF) const {
   }
 
   const TargetRegisterClass *IndirectRC = getIndirectAddrRegClass();
-  for (std::pair<unsigned, unsigned> LI : MRI.liveins()) {
-    Register Reg = LI.first;
+  for (std::pair<unsigned, unsigned> const LI : MRI.liveins()) {
+    Register const Reg = LI.first;
     if (Reg.isVirtual() || !IndirectRC->contains(Reg))
       continue;
 
@@ -1300,10 +1300,10 @@ MachineInstr *R600InstrInfo::buildSlotOfVectorInstruction(
     Opcode = R600::DOT4_r600;
   else
     Opcode = R600::DOT4_eg;
-  MachineBasicBlock::iterator I = MI;
-  MachineOperand &Src0 = MI->getOperand(
+  MachineBasicBlock::iterator const I = MI;
+  MachineOperand  const&Src0 = MI->getOperand(
       getOperandIdx(MI->getOpcode(), getSlotedOps(R600::OpName::src0, Slot)));
-  MachineOperand &Src1 = MI->getOperand(
+  MachineOperand  const&Src1 = MI->getOperand(
       getOperandIdx(MI->getOpcode(), getSlotedOps(R600::OpName::src1, Slot)));
   MachineInstr *MIB = buildDefaultInstruction(
       MBB, I, Opcode, DstReg, Src0.getReg(), Src1.getReg());
@@ -1324,13 +1324,13 @@ MachineInstr *R600InstrInfo::buildSlotOfVectorInstruction(
     R600::OpName::src1_sel,
   };
 
-  MachineOperand &MO = MI->getOperand(getOperandIdx(MI->getOpcode(),
+  MachineOperand  const&MO = MI->getOperand(getOperandIdx(MI->getOpcode(),
       getSlotedOps(R600::OpName::pred_sel, Slot)));
   MIB->getOperand(getOperandIdx(Opcode, R600::OpName::pred_sel))
       .setReg(MO.getReg());
 
   for (unsigned i = 0; i < 14; i++) {
-    MachineOperand &MO = MI->getOperand(
+    MachineOperand  const&MO = MI->getOperand(
         getOperandIdx(MI->getOpcode(), getSlotedOps(Operands[i], Slot)));
     assert (MO.isImm());
     setImmOperand(*MIB, Operands[i], MO.getImm());
@@ -1365,7 +1365,7 @@ int R600InstrInfo::getOperandIdx(unsigned Opcode, unsigned Op) const {
 
 void R600InstrInfo::setImmOperand(MachineInstr &MI, unsigned Op,
                                   int64_t Imm) const {
-  int Idx = getOperandIdx(MI, Op);
+  int const Idx = getOperandIdx(MI, Op);
   assert(Idx != -1 && "Operand not supported for this instruction.");
   assert(MI.getOperand(Idx).isImm());
   MI.getOperand(Idx).setImm(Imm);
@@ -1377,14 +1377,14 @@ void R600InstrInfo::setImmOperand(MachineInstr &MI, unsigned Op,
 
 MachineOperand &R600InstrInfo::getFlagOp(MachineInstr &MI, unsigned SrcIdx,
                                          unsigned Flag) const {
-  unsigned TargetFlags = get(MI.getOpcode()).TSFlags;
+  unsigned const TargetFlags = get(MI.getOpcode()).TSFlags;
   int FlagIndex = 0;
   if (Flag != 0) {
     // If we pass something other than the default value of Flag to this
     // function, it means we are want to set a flag on an instruction
     // that uses native encoding.
     assert(HAS_NATIVE_OPERANDS(TargetFlags));
-    bool IsOP3 = (TargetFlags & R600_InstFlag::OP3) == R600_InstFlag::OP3;
+    bool const IsOP3 = (TargetFlags & R600_InstFlag::OP3) == R600_InstFlag::OP3;
     switch (Flag) {
     case MO_FLAG_CLAMP:
       FlagIndex = getOperandIdx(MI, R600::OpName::clamp);
@@ -1442,7 +1442,7 @@ MachineOperand &R600InstrInfo::getFlagOp(MachineInstr &MI, unsigned SrcIdx,
 
 void R600InstrInfo::addFlag(MachineInstr &MI, unsigned Operand,
                             unsigned Flag) const {
-  unsigned TargetFlags = get(MI.getOpcode()).TSFlags;
+  unsigned const TargetFlags = get(MI.getOpcode()).TSFlags;
   if (Flag == 0) {
     return;
   }
@@ -1463,7 +1463,7 @@ void R600InstrInfo::addFlag(MachineInstr &MI, unsigned Operand,
 
 void R600InstrInfo::clearFlag(MachineInstr &MI, unsigned Operand,
                               unsigned Flag) const {
-  unsigned TargetFlags = get(MI.getOpcode()).TSFlags;
+  unsigned const TargetFlags = get(MI.getOpcode()).TSFlags;
   if (HAS_NATIVE_OPERANDS(TargetFlags)) {
     MachineOperand &FlagOp = getFlagOp(MI, Operand, Flag);
     FlagOp.setImm(0);

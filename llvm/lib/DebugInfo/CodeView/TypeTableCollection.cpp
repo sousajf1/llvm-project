@@ -43,9 +43,9 @@ StringRef TypeTableCollection::getTypeName(TypeIndex Index) {
   if (Index.isNoneType() || Index.isSimple())
     return TypeIndex::simpleTypeName(Index);
 
-  uint32_t I = Index.toArrayIndex();
+  uint32_t const I = Index.toArrayIndex();
   if (Names[I].data() == nullptr) {
-    StringRef Result = NameStorage.save(computeTypeName(*this, Index));
+    StringRef const Result = NameStorage.save(computeTypeName(*this, Index));
     Names[I] = Result;
   }
   return Names[I];

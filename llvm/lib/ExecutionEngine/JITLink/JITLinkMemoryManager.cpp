@@ -47,7 +47,7 @@ InProcessMemoryManager::allocate(const JITLinkDylib *JD,
         SlabEnd = std::max(SlabEnd, (char *)(KV.second.base()) +
                                         KV.second.allocatedSize());
       }
-      size_t SlabSize = SlabEnd - (char *)SlabStart;
+      size_t const SlabSize = SlabEnd - (char *)SlabStart;
       assert((SlabSize % sys::Process::getPageSizeEstimate()) == 0 &&
              "Slab size is not a multiple of page size");
       sys::MemoryBlock Slab(SlabStart, SlabSize);
@@ -110,7 +110,7 @@ InProcessMemoryManager::allocate(const JITLinkDylib *JD,
 
     const auto &Seg = KV.second;
 
-    uint64_t SegmentSize = alignTo(Seg.getContentSize() + Seg.getZeroFillSize(),
+    uint64_t const SegmentSize = alignTo(Seg.getContentSize() + Seg.getZeroFillSize(),
                                    sys::Process::getPageSizeEstimate());
     assert(SlabRemaining.allocatedSize() >= SegmentSize &&
            "Mapping exceeds allocation");

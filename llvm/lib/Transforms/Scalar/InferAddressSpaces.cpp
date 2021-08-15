@@ -377,7 +377,7 @@ void InferAddressSpacesImpl::collectRewritableIntrinsicOperands(
   default:
     SmallVector<int, 2> OpIndexes;
     if (TTI->collectFlatAddressOperands(OpIndexes, IID)) {
-      for (int Idx : OpIndexes) {
+      for (int const Idx : OpIndexes) {
         appendsFlatAddressExpressionToPostorderStack(II->getArgOperand(Idx),
                                                      PostorderStack, Visited);
       }
@@ -568,7 +568,7 @@ Value *InferAddressSpacesImpl::cloneInstructionWithNewAddressSpace(
     return nullptr;
   }
 
-  unsigned AS = TTI->getAssumedAddrSpace(I);
+  unsigned const AS = TTI->getAssumedAddrSpace(I);
   if (AS != UninitializedAddressSpace) {
     // For the assumed address space, insert an `addrspacecast` to make that
     // explicit.
@@ -597,7 +597,7 @@ Value *InferAddressSpacesImpl::cloneInstructionWithNewAddressSpace(
     PHINode *PHI = cast<PHINode>(I);
     PHINode *NewPHI = PHINode::Create(NewPtrType, PHI->getNumIncomingValues());
     for (unsigned Index = 0; Index < PHI->getNumIncomingValues(); ++Index) {
-      unsigned OperandNo = PHINode::getOperandNumForIncomingValue(Index);
+      unsigned const OperandNo = PHINode::getOperandNumForIncomingValue(Index);
       NewPHI->addIncoming(NewPointerOperands[OperandNo],
                           PHI->getIncomingBlock(Index));
     }
@@ -774,7 +774,7 @@ bool InferAddressSpacesImpl::run(Function &F) {
   }
 
   // Collects all flat address expressions in postorder.
-  std::vector<WeakTrackingVH> Postorder = collectFlatAddressExpressions(F);
+  std::vector<WeakTrackingVH> const Postorder = collectFlatAddressExpressions(F);
 
   // Runs a data-flow analysis to refine the address spaces of every expression
   // in Postorder.
@@ -846,11 +846,11 @@ Optional<unsigned> InferAddressSpacesImpl::updateAddressSpace(
     Value *Src1 = Op.getOperand(2);
 
     auto I = InferredAddrSpace.find(Src0);
-    unsigned Src0AS = (I != InferredAddrSpace.end()) ?
+    unsigned const Src0AS = (I != InferredAddrSpace.end()) ?
       I->second : Src0->getType()->getPointerAddressSpace();
 
     auto J = InferredAddrSpace.find(Src1);
-    unsigned Src1AS = (J != InferredAddrSpace.end()) ?
+    unsigned const Src1AS = (J != InferredAddrSpace.end()) ?
       J->second : Src1->getType()->getPointerAddressSpace();
 
     auto *C0 = dyn_cast<Constant>(Src0);
@@ -870,7 +870,7 @@ Optional<unsigned> InferAddressSpacesImpl::updateAddressSpace(
     else
       NewAS = joinAddressSpaces(Src0AS, Src1AS);
   } else {
-    unsigned AS = TTI->getAssumedAddrSpace(&V);
+    unsigned const AS = TTI->getAssumedAddrSpace(&V);
     if (AS != UninitializedAddressSpace) {
       // Use the assumed address space directly.
       NewAS = AS;
@@ -878,7 +878,7 @@ Optional<unsigned> InferAddressSpacesImpl::updateAddressSpace(
       // Otherwise, infer the address space from its pointer operands.
       for (Value *PtrOperand : getPointerOperands(V, *DL, TTI)) {
         auto I = InferredAddrSpace.find(PtrOperand);
-        unsigned OperandAS =
+        unsigned const OperandAS =
             I != InferredAddrSpace.end()
                 ? I->second
                 : PtrOperand->getType()->getPointerAddressSpace();
@@ -891,7 +891,7 @@ Optional<unsigned> InferAddressSpacesImpl::updateAddressSpace(
     }
   }
 
-  unsigned OldAS = InferredAddrSpace.lookup(&V);
+  unsigned const OldAS = InferredAddrSpace.lookup(&V);
   assert(OldAS != FlatAddrSpace);
   if (OldAS == NewAS)
     return None;
@@ -906,7 +906,7 @@ Optional<unsigned> InferAddressSpacesImpl::updateAddressSpace(
 static bool isSimplePointerUseValidToReplace(const TargetTransformInfo &TTI,
                                              Use &U, unsigned AddrSpace) {
   User *Inst = U.getUser();
-  unsigned OpNo = U.getOperandNo();
+  unsigned const OpNo = U.getOperandNo();
   bool VolatileIsAllowed = false;
   if (auto *I = dyn_cast<Instruction>(Inst))
     VolatileIsAllowed = TTI.hasVolatileVariant(I, AddrSpace);
@@ -988,7 +988,7 @@ bool InferAddressSpacesImpl::isSafeToCastConstAddrSpace(Constant *C,
                                                         unsigned NewAS) const {
   assert(NewAS != UninitializedAddressSpace);
 
-  unsigned SrcAS = C->getType()->getPointerAddressSpace();
+  unsigned const SrcAS = C->getType()->getPointerAddressSpace();
   if (SrcAS == NewAS || isa<UndefValue>(C))
     return true;
 
@@ -1034,7 +1034,7 @@ bool InferAddressSpacesImpl::rewriteWithNewAddressSpaces(
   ValueToValueMapTy ValueWithNewAddrSpace;
   SmallVector<const Use *, 32> UndefUsesToFix;
   for (Value* V : Postorder) {
-    unsigned NewAddrSpace = InferredAddrSpace.lookup(V);
+    unsigned const NewAddrSpace = InferredAddrSpace.lookup(V);
 
     // In some degenerate cases (e.g. invalid IR in unreachable code), we may
     // not even infer the value to have its original address space.
@@ -1059,7 +1059,7 @@ bool InferAddressSpacesImpl::rewriteWithNewAddressSpaces(
     if (!NewV)
       continue;
 
-    unsigned OperandNo = UndefUse->getOperandNo();
+    unsigned const OperandNo = UndefUse->getOperandNo();
     assert(isa<UndefValue>(NewV->getOperand(OperandNo)));
     NewV->setOperand(OperandNo, ValueWithNewAddrSpace.lookup(UndefUse->get()));
   }
@@ -1128,9 +1128,9 @@ bool InferAddressSpacesImpl::rewriteWithNewAddressSpaces(
           // into
           //   %cmp = icmp eq float addrspace(3)* %new_p, %new_q
 
-          unsigned NewAS = NewV->getType()->getPointerAddressSpace();
-          int SrcIdx = U.getOperandNo();
-          int OtherIdx = (SrcIdx == 0) ? 1 : 0;
+          unsigned const NewAS = NewV->getType()->getPointerAddressSpace();
+          int const SrcIdx = U.getOperandNo();
+          int const OtherIdx = (SrcIdx == 0) ? 1 : 0;
           Value *OtherSrc = Cmp->getOperand(OtherIdx);
 
           if (Value *OtherNewV = ValueWithNewAddrSpace.lookup(OtherSrc)) {
@@ -1153,7 +1153,7 @@ bool InferAddressSpacesImpl::rewriteWithNewAddressSpaces(
         }
 
         if (AddrSpaceCastInst *ASC = dyn_cast<AddrSpaceCastInst>(CurUser)) {
-          unsigned NewAS = NewV->getType()->getPointerAddressSpace();
+          unsigned const NewAS = NewV->getType()->getPointerAddressSpace();
           if (ASC->getDestAddressSpace() == NewAS) {
             if (ASC->getType()->getPointerElementType() !=
                 NewV->getType()->getPointerElementType()) {
@@ -1216,7 +1216,7 @@ InferAddressSpacesPass::InferAddressSpacesPass(unsigned AddressSpace)
 
 PreservedAnalyses InferAddressSpacesPass::run(Function &F,
                                               FunctionAnalysisManager &AM) {
-  bool Changed =
+  bool const Changed =
       InferAddressSpacesImpl(&AM.getResult<TargetIRAnalysis>(F), FlatAddrSpace)
           .run(F);
   if (Changed) {

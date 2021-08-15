@@ -214,7 +214,7 @@ bool llvm::ConstantFoldTerminator(BasicBlock *BB, bool DeleteDeadConditions,
       // dest.  If so, eliminate it as an explicit compare.
       if (i->getCaseSuccessor() == DefaultDest) {
         MDNode *MD = SI->getMetadata(LLVMContext::MD_prof);
-        unsigned NCases = SI->getNumCases();
+        unsigned const NCases = SI->getNumCases();
         // Fold the case metadata into the default if there will be any branches
         // left, unless the metadata doesn't match the switch.
         if (NCases > 1 && MD && MD->getNumOperands() == 2 + NCases) {
@@ -226,7 +226,7 @@ bool llvm::ConstantFoldTerminator(BasicBlock *BB, bool DeleteDeadConditions,
             Weights.push_back(CI->getValue().getZExtValue());
           }
           // Merge weight of this case to the default weight.
-          unsigned idx = i->getCaseIndex();
+          unsigned const idx = i->getCaseIndex();
           Weights[0] += Weights[idx+1];
           // Remove weight for this case.
           std::swap(Weights[idx+1], Weights.back());
@@ -601,7 +601,7 @@ bool llvm::replaceDbgUsesWithUndef(Instruction *I) {
 /// value.
 static bool areAllUsesEqual(Instruction *I) {
   Value::user_iterator UI = I->user_begin();
-  Value::user_iterator UE = I->user_end();
+  Value::user_iterator const UE = I->user_end();
   if (UI == UE)
     return true;
 
@@ -708,7 +708,7 @@ bool llvm::SimplifyInstructionsInBlock(BasicBlock *BB,
   // or deleted by these simplifications. The idea of simplification is that it
   // cannot introduce new instructions, and there is no way to replace the
   // terminator of a block without introducing a new instruction.
-  AssertingVH<Instruction> TerminatorVH(&BB->back());
+  AssertingVH<Instruction> const TerminatorVH(&BB->back());
 #endif
 
   SmallSetVector<Instruction *, 16> WorkList;
@@ -753,14 +753,14 @@ void llvm::MergeBasicBlockIntoOnlyPred(BasicBlock *DestBB,
   BasicBlock *PredBB = DestBB->getSinglePredecessor();
   assert(PredBB && "Block doesn't have a single predecessor!");
 
-  bool ReplaceEntryBB = PredBB->isEntryBlock();
+  bool const ReplaceEntryBB = PredBB->isEntryBlock();
 
   // DTU updates: Collect all the edges that enter
   // PredBB. These dominator edges will be redirected to DestBB.
   SmallVector<DominatorTree::UpdateType, 32> Updates;
 
   if (DTU) {
-    SmallPtrSet<BasicBlock *, 2> PredsOfPredBB(pred_begin(PredBB),
+    SmallPtrSet<BasicBlock *, 2> const PredsOfPredBB(pred_begin(PredBB),
                                                pred_end(PredBB));
     Updates.reserve(Updates.size() + 2 * PredsOfPredBB.size() + 1);
     for (BasicBlock *PredOfPredBB : PredsOfPredBB)
@@ -838,7 +838,7 @@ static bool CanPropagatePredecessorsForPHIs(BasicBlock *BB, BasicBlock *Succ) {
   if (Succ->getSinglePredecessor()) return true;
 
   // Make a list of the predecessors of BB
-  SmallPtrSet<BasicBlock*, 16> BBPreds(pred_begin(BB), pred_end(BB));
+  SmallPtrSet<BasicBlock*, 16> const BBPreds(pred_begin(BB), pred_end(BB));
 
   // Look at all the phi nodes in Succ, to see if they present a conflict when
   // merging these blocks
@@ -911,7 +911,7 @@ static Value *selectIncomingValueForBlock(Value *OldVal, BasicBlock *BB,
     return OldVal;
   }
 
-  IncomingValueMap::const_iterator It = IncomingValues.find(BB);
+  IncomingValueMap::const_iterator const It = IncomingValues.find(BB);
   if (It != IncomingValues.end()) return It->second;
 
   return OldVal;
@@ -950,7 +950,7 @@ static void replaceUndefValuesInPhi(PHINode *PN,
     if (!isa<UndefValue>(V)) continue;
 
     BasicBlock *BB = PN->getIncomingBlock(i);
-    IncomingValueMap::const_iterator It = IncomingValues.find(BB);
+    IncomingValueMap::const_iterator const It = IncomingValues.find(BB);
 
     // Keep track of undef/poison incoming values. Those must match, so we fix
     // them up below if needed.
@@ -969,11 +969,11 @@ static void replaceUndefValuesInPhi(PHINode *PN,
   // If there are both undef and poison values incoming, then convert those
   // values to undef. It is invalid to have different values for the same
   // incoming block.
-  unsigned PoisonCount = count_if(TrueUndefOps, [&](unsigned i) {
+  unsigned const PoisonCount = count_if(TrueUndefOps, [&](unsigned i) {
     return isa<PoisonValue>(PN->getIncomingValue(i));
   });
   if (PoisonCount != 0 && PoisonCount != TrueUndefOps.size()) {
-    for (unsigned i : TrueUndefOps)
+    for (unsigned const i : TrueUndefOps)
       PN->setIncomingValue(i, UndefValue::get(PN->getType()));
   }
 }
@@ -1068,7 +1068,7 @@ bool llvm::TryToSimplifyUncondBranchFromEmptyBlock(BasicBlock *BB,
   if (!Succ->getSinglePredecessor()) {
     BasicBlock::iterator BBI = BB->begin();
     while (isa<PHINode>(*BBI)) {
-      for (Use &U : BBI->uses()) {
+      for (Use  const&U : BBI->uses()) {
         if (PHINode* PN = dyn_cast<PHINode>(U.getUser())) {
           if (PN->getIncomingBlock(U) != BB)
             return false;
@@ -1097,8 +1097,8 @@ bool llvm::TryToSimplifyUncondBranchFromEmptyBlock(BasicBlock *BB,
   SmallVector<DominatorTree::UpdateType, 32> Updates;
   if (DTU) {
     // All predecessors of BB will be moved to Succ.
-    SmallPtrSet<BasicBlock *, 8> PredsOfBB(pred_begin(BB), pred_end(BB));
-    SmallPtrSet<BasicBlock *, 8> PredsOfSucc(pred_begin(Succ), pred_end(Succ));
+    SmallPtrSet<BasicBlock *, 8> const PredsOfBB(pred_begin(BB), pred_end(BB));
+    SmallPtrSet<BasicBlock *, 8> const PredsOfSucc(pred_begin(Succ), pred_end(Succ));
     Updates.reserve(Updates.size() + 2 * PredsOfBB.size() + 1);
     for (auto *PredOfBB : PredsOfBB)
       // This predecessor of BB may already have Succ as a successor.
@@ -1141,7 +1141,7 @@ bool llvm::TryToSimplifyUncondBranchFromEmptyBlock(BasicBlock *BB,
 
   // If the unconditional branch we replaced contains llvm.loop metadata, we
   // add the metadata to the branch instructions in the predecessors.
-  unsigned LoopMDKind = BB->getContext().getMDKindID("llvm.loop");
+  unsigned const LoopMDKind = BB->getContext().getMDKindID("llvm.loop");
   Instruction *TI = BB->getTerminator();
   if (TI)
     if (MDNode *LoopMD = TI->getMetadata(LoopMDKind))
@@ -1249,7 +1249,7 @@ static bool EliminateDuplicatePHINodesSetBasedImpl(BasicBlock *BB) {
     static bool isEqual(PHINode *LHS, PHINode *RHS) {
       // These comparisons are nontrivial, so assert that equality implies
       // hash equality (DenseMap demands this as an invariant).
-      bool Result = isEqualImpl(LHS, RHS);
+      bool const Result = isEqualImpl(LHS, RHS);
       assert(!Result || (isSentinel(LHS) && LHS == RHS) ||
              getHashValueImpl(LHS) == getHashValueImpl(RHS));
       return Result;
@@ -1348,7 +1348,7 @@ Align llvm::getOrEnforceKnownAlignment(Value *V, MaybeAlign PrefAlign,
   assert(V->getType()->isPointerTy() &&
          "getOrEnforceKnownAlignment expects a pointer!");
 
-  KnownBits Known = computeKnownBits(V, DL, 0, AC, CxtI, DT);
+  KnownBits const Known = computeKnownBits(V, DL, 0, AC, CxtI, DT);
   unsigned TrailZ = Known.countMinTrailingZeros();
 
   // Avoid trouble with ridiculously large TrailZ values, such as
@@ -1397,7 +1397,7 @@ static bool PhiHasDebugValue(DILocalVariable *DIVar,
 /// least n bits.
 static bool valueCoversEntireFragment(Type *ValTy, DbgVariableIntrinsic *DII) {
   const DataLayout &DL = DII->getModule()->getDataLayout();
-  TypeSize ValueSize = DL.getTypeAllocSizeInBits(ValTy);
+  TypeSize const ValueSize = DL.getTypeAllocSizeInBits(ValTy);
   if (Optional<uint64_t> FragmentSize = DII->getFragmentSizeInBits()) {
     assert(!ValueSize.isScalable() &&
            "Fragments don't work on scalable types.");
@@ -1446,7 +1446,7 @@ void llvm::ConvertDebugDeclareToDebugValue(DbgVariableIntrinsic *DII,
   auto *DIExpr = DII->getExpression();
   Value *DV = SI->getValueOperand();
 
-  DebugLoc NewLoc = getDebugValueLoc(DII, SI);
+  DebugLoc const NewLoc = getDebugValueLoc(DII, SI);
 
   if (!valueCoversEntireFragment(DV->getType(), DII)) {
     // FIXME: If storing to a part of the variable described by the dbg.declare,
@@ -1481,7 +1481,7 @@ void llvm::ConvertDebugDeclareToDebugValue(DbgVariableIntrinsic *DII,
     return;
   }
 
-  DebugLoc NewLoc = getDebugValueLoc(DII, nullptr);
+  DebugLoc const NewLoc = getDebugValueLoc(DII, nullptr);
 
   // We are now tracking the loaded value instead of the address. In the
   // future if multi-location support is added to the IR, it might be
@@ -1515,7 +1515,7 @@ void llvm::ConvertDebugDeclareToDebugValue(DbgVariableIntrinsic *DII,
   BasicBlock *BB = APN->getParent();
   auto InsertionPt = BB->getFirstInsertionPt();
 
-  DebugLoc NewLoc = getDebugValueLoc(DII, nullptr);
+  DebugLoc const NewLoc = getDebugValueLoc(DII, nullptr);
 
   // The block may be a catchswitch block, which does not have a valid
   // insertion point.
@@ -1587,7 +1587,7 @@ bool llvm::LowerDbgDeclare(Function &F) {
           // pointer to the variable. Insert a *value* intrinsic that describes
           // the variable by dereferencing the alloca.
           if (!CI->isLifetimeStartOrEnd()) {
-            DebugLoc NewLoc = getDebugValueLoc(DDI, nullptr);
+            DebugLoc const NewLoc = getDebugValueLoc(DDI, nullptr);
             auto *DerefExpr =
                 DIExpression::append(DDI->getExpression(), dwarf::DW_OP_deref);
             DIB.insertDbgValueIntrinsic(AI, DDI->getVariable(), DerefExpr,
@@ -1718,7 +1718,7 @@ void llvm::replaceDbgValueForAlloca(AllocaInst *AI, Value *NewAllocaAddress,
                                     DIBuilder &Builder, int Offset) {
   if (auto *L = LocalAsMetadata::getIfExists(AI))
     if (auto *MDV = MetadataAsValue::getIfExists(AI->getContext(), L))
-      for (Use &U : llvm::make_early_inc_range(MDV->uses()))
+      for (Use  const&U : llvm::make_early_inc_range(MDV->uses()))
         if (auto *DVI = dyn_cast<DbgValueInst>(U.getUser()))
           replaceOneDbgValueForAlloca(DVI, NewAllocaAddress, Builder, Offset);
 }
@@ -1742,7 +1742,7 @@ void llvm::salvageDebugInfoForDbgValues(
     // Do not add DW_OP_stack_value for DbgDeclare and DbgAddr, because they
     // are implicitly pointing out the value as a DWARF memory location
     // description.
-    bool StackValue = isa<DbgValueInst>(DII);
+    bool const StackValue = isa<DbgValueInst>(DII);
     auto DIILocation = DII->location_ops();
     assert(
         is_contained(DIILocation, &I) &&
@@ -1757,8 +1757,8 @@ void llvm::salvageDebugInfoForDbgValues(
     auto LocItr = find(DIILocation, &I);
     while (SalvagedExpr && LocItr != DIILocation.end()) {
       SmallVector<uint64_t, 16> Ops;
-      unsigned LocNo = std::distance(DIILocation.begin(), LocItr);
-      uint64_t CurrentLocOps = SalvagedExpr->getNumLocationOperands();
+      unsigned const LocNo = std::distance(DIILocation.begin(), LocItr);
+      uint64_t const CurrentLocOps = SalvagedExpr->getNumLocationOperands();
       Op0 = salvageDebugInfoImpl(I, CurrentLocOps, Ops, AdditionalValues);
       if (!Op0)
         break;
@@ -1803,7 +1803,7 @@ Value *getSalvageOpsForGEP(GetElementPtrInst *GEP, const DataLayout &DL,
                            uint64_t CurrentLocOps,
                            SmallVectorImpl<uint64_t> &Opcodes,
                            SmallVectorImpl<Value *> &AdditionalValues) {
-  unsigned BitWidth = DL.getIndexSizeInBits(GEP->getPointerAddressSpace());
+  unsigned const BitWidth = DL.getIndexSizeInBits(GEP->getPointerAddressSpace());
   // Rewrite a GEP into a DIExpression.
   MapVector<Value *, APInt> VariableOffsets;
   APInt ConstantOffset(BitWidth, 0);
@@ -1864,14 +1864,14 @@ Value *getSalvageOpsForBinOp(BinaryOperator *BI, uint64_t CurrentLocOps,
   if (ConstInt && ConstInt->getBitWidth() > 64)
     return nullptr;
 
-  Instruction::BinaryOps BinOpcode = BI->getOpcode();
+  Instruction::BinaryOps const BinOpcode = BI->getOpcode();
   // Push any Constant Int operand onto the expression stack.
   if (ConstInt) {
-    uint64_t Val = ConstInt->getSExtValue();
+    uint64_t const Val = ConstInt->getSExtValue();
     // Add or Sub Instructions with a constant operand can potentially be
     // simplified.
     if (BinOpcode == Instruction::Add || BinOpcode == Instruction::Sub) {
-      uint64_t Offset = BinOpcode == Instruction::Add ? Val : -int64_t(Val);
+      uint64_t const Offset = BinOpcode == Instruction::Add ? Val : -int64_t(Val);
       DIExpression::appendOffset(Opcodes, Offset);
       return BI->getOperand(0);
     }
@@ -1887,7 +1887,7 @@ Value *getSalvageOpsForBinOp(BinaryOperator *BI, uint64_t CurrentLocOps,
 
   // Add salvaged binary operator to expression stack, if it has a valid
   // representation in a DIExpression.
-  uint64_t DwarfBinOp = getDwarfOpForBinOp(BinOpcode);
+  uint64_t const DwarfBinOp = getDwarfOpForBinOp(BinOpcode);
   if (!DwarfBinOp)
     return nullptr;
   Opcodes.push_back(DwarfBinOp);
@@ -1913,8 +1913,8 @@ Value *llvm::salvageDebugInfoImpl(Instruction &I, uint64_t CurrentLocOps,
         !(isa<TruncInst>(&I) || isa<SExtInst>(&I) || isa<ZExtInst>(&I)))
       return nullptr;
 
-    unsigned FromTypeBitSize = FromValue->getType()->getScalarSizeInBits();
-    unsigned ToTypeBitSize = Type->getScalarSizeInBits();
+    unsigned const FromTypeBitSize = FromValue->getType()->getScalarSizeInBits();
+    unsigned const ToTypeBitSize = Type->getScalarSizeInBits();
 
     auto ExtOps = DIExpression::getExtOps(FromTypeBitSize, ToTypeBitSize,
                                           isa<SExtInst>(&I));
@@ -1952,7 +1952,7 @@ static bool rewriteDebugUsers(
   bool Changed = false;
   SmallPtrSet<DbgVariableIntrinsic *, 1> UndefOrSalvage;
   if (isa<Instruction>(&To)) {
-    bool DomPointAfterFrom = From.getNextNonDebugInstruction() == &DomPoint;
+    bool const DomPointAfterFrom = From.getNextNonDebugInstruction() == &DomPoint;
 
     for (auto *DII : Users) {
       // It's common to see a debug user between From and DomPoint. Move it
@@ -2009,8 +2009,8 @@ static bool isBitCastSemanticsPreserving(const DataLayout &DL, Type *FromTy,
 
   // Handle compatible pointer <-> integer conversions.
   if (FromTy->isIntOrPtrTy() && ToTy->isIntOrPtrTy()) {
-    bool SameSize = DL.getTypeSizeInBits(FromTy) == DL.getTypeSizeInBits(ToTy);
-    bool LosslessConversion = !DL.isNonIntegralPointerType(FromTy) &&
+    bool const SameSize = DL.getTypeSizeInBits(FromTy) == DL.getTypeSizeInBits(ToTy);
+    bool const LosslessConversion = !DL.isNonIntegralPointerType(FromTy) &&
                               !DL.isNonIntegralPointerType(ToTy);
     return SameSize && LosslessConversion;
   }
@@ -2035,7 +2035,7 @@ bool llvm::replaceAllDbgUsesWith(Instruction &From, Value &To,
   };
 
   // Handle no-op conversions.
-  Module &M = *From.getModule();
+  Module  const&M = *From.getModule();
   const DataLayout &DL = M.getDataLayout();
   if (isBitCastSemanticsPreserving(DL, FromTy, ToTy))
     return rewriteDebugUsers(From, To, DomPoint, DT, Identity);
@@ -2062,7 +2062,7 @@ bool llvm::replaceAllDbgUsesWith(Instruction &From, Value &To,
       if (!Signedness)
         return None;
 
-      bool Signed = *Signedness == DIBasicType::Signedness::Signed;
+      bool const Signed = *Signedness == DIBasicType::Signedness::Signed;
       return DIExpression::appendExt(DII.getExpression(), ToBits, FromBits,
                                      Signed);
     };
@@ -2138,7 +2138,7 @@ unsigned llvm::changeToUnreachable(Instruction *I, bool PreserveLCSSA,
 }
 
 CallInst *llvm::createCallMatchingInvoke(InvokeInst *II) {
-  SmallVector<Value *, 8> Args(II->args());
+  SmallVector<Value *, 8> const Args(II->args());
   SmallVector<OperandBundleDef, 1> OpBundles;
   II->getOperandBundlesAsDefs(OpBundles);
   CallInst *NewCall = CallInst::Create(II->getFunctionType(),
@@ -2196,7 +2196,7 @@ BasicBlock *llvm::changeToInvokeAndSplitBasicBlock(CallInst *CI,
   BB->getInstList().pop_back();
 
   // Create the new invoke instruction.
-  SmallVector<Value *, 8> InvokeArgs(CI->args());
+  SmallVector<Value *, 8> const InvokeArgs(CI->args());
   SmallVector<OperandBundleDef, 1> OpBundles;
 
   CI->getOperandBundlesAsDefs(OpBundles);
@@ -2363,7 +2363,7 @@ static bool markAliveBlocks(Function &F,
       SmallDenseMap<CatchPadInst *, detail::DenseSetEmpty, 4,
                     CatchPadDenseMapInfo, detail::DenseSetPair<CatchPadInst *>>
           HandlerSet;
-      detail::DenseSetEmpty Empty;
+      detail::DenseSetEmpty const Empty;
       for (CatchSwitchInst::handler_iterator I = CatchSwitch->handler_begin(),
                                              E = CatchSwitch->handler_end();
            I != E; ++I) {
@@ -2479,7 +2479,7 @@ void llvm::combineMetadata(Instruction *K, const Instruction *J,
   K->dropUnknownNonDebugMetadata(KnownIDs);
   K->getAllMetadataOtherThanDebugLoc(Metadata);
   for (const auto &MD : Metadata) {
-    unsigned Kind = MD.first;
+    unsigned const Kind = MD.first;
     MDNode *JMD = J->getMetadata(Kind);
     MDNode *KMD = MD.second;
 
@@ -2556,7 +2556,7 @@ void llvm::combineMetadata(Instruction *K, const Instruction *J,
 
 void llvm::combineMetadataForCSE(Instruction *K, const Instruction *J,
                                  bool KDominatesJ) {
-  unsigned KnownIDs[] = {
+  unsigned const KnownIDs[] = {
       LLVMContext::MD_tbaa,            LLVMContext::MD_alias_scope,
       LLVMContext::MD_noalias,         LLVMContext::MD_range,
       LLVMContext::MD_invariant_load,  LLVMContext::MD_nonnull,
@@ -2570,11 +2570,11 @@ void llvm::combineMetadataForCSE(Instruction *K, const Instruction *J,
 void llvm::copyMetadataForLoad(LoadInst &Dest, const LoadInst &Source) {
   SmallVector<std::pair<unsigned, MDNode *>, 8> MD;
   Source.getAllMetadata(MD);
-  MDBuilder MDB(Dest.getContext());
+  MDBuilder const MDB(Dest.getContext());
   Type *NewType = Dest.getType();
   const DataLayout &DL = Source.getModule()->getDataLayout();
   for (const auto &MDPair : MD) {
-    unsigned ID = MDPair.first;
+    unsigned const ID = MDPair.first;
     MDNode *N = MDPair.second;
     // Note, essentially every kind of metadata should be preserved here! This
     // routine is supposed to clone a load instruction changing *only its type*.
@@ -2770,7 +2770,7 @@ void llvm::copyRangeMetadata(const DataLayout &DL, const LoadInst &OldLI,
   if (!NewTy->isPointerTy())
     return;
 
-  unsigned BitWidth = DL.getPointerTypeSizeInBits(NewTy);
+  unsigned const BitWidth = DL.getPointerTypeSizeInBits(NewTy);
   if (!getConstantRangeFromMetadata(*N).contains(APInt(BitWidth, 0))) {
     MDNode *NN = MDNode::get(OldLI.getContext(), None);
     NewLI.setMetadata(LLVMContext::MD_nonnull, NN);
@@ -2967,7 +2967,7 @@ collectBitParts(Value *V, bool MatchBSwaps, bool MatchBitReversals,
 
       // Check that the mask allows a multiple of 8 bits for a bswap, for an
       // early exit.
-      unsigned NumMaskedBits = AndMask.countPopulation();
+      unsigned const NumMaskedBits = AndMask.countPopulation();
       if (!MatchBitReversals && (NumMaskedBits % 8) != 0)
         return Result;
 
@@ -3034,10 +3034,10 @@ collectBitParts(Value *V, bool MatchBSwaps, bool MatchBitReversals,
       if (!Res)
         return Result;
 
-      unsigned ByteWidth = BitWidth / 8;
+      unsigned const ByteWidth = BitWidth / 8;
       Result = BitPart(Res->Provider, BitWidth);
       for (unsigned ByteIdx = 0; ByteIdx < ByteWidth; ++ByteIdx) {
-        unsigned ByteBitOfs = ByteIdx * 8;
+        unsigned const ByteBitOfs = ByteIdx * 8;
         for (unsigned BitIdx = 0; BitIdx < 8; ++BitIdx)
           Result->Provenance[(BitWidth - 8 - ByteBitOfs) + BitIdx] =
               Res->Provenance[ByteBitOfs + BitIdx];
@@ -3071,7 +3071,7 @@ collectBitParts(Value *V, bool MatchBSwaps, bool MatchBitReversals,
       if (!RHS || LHS->Provider != RHS->Provider)
         return Result;
 
-      unsigned StartBitRHS = BitWidth - ModAmt;
+      unsigned const StartBitRHS = BitWidth - ModAmt;
       Result = BitPart(LHS->Provider, BitWidth);
       for (unsigned BitIdx = 0; BitIdx < StartBitRHS; ++BitIdx)
         Result->Provenance[BitIdx + ModAmt] = LHS->Provenance[BitIdx];
@@ -3153,7 +3153,7 @@ bool llvm::recognizeBSwapOrBitReverseIdiom(
   }
 
   // Check BitProvenance hasn't found a source larger than the result type.
-  unsigned DemandedBW = DemandedTy->getScalarSizeInBits();
+  unsigned const DemandedBW = DemandedTy->getScalarSizeInBits();
   if (DemandedBW > ITy->getScalarSizeInBits())
     return false;
 

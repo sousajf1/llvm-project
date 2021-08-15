@@ -63,7 +63,7 @@ NativeSession::~NativeSession() = default;
 
 Error NativeSession::createFromPdb(std::unique_ptr<MemoryBuffer> Buffer,
                                    std::unique_ptr<IPDBSession> &Session) {
-  StringRef Path = Buffer->getBufferIdentifier();
+  StringRef const Path = Buffer->getBufferIdentifier();
   auto Stream = std::make_unique<MemoryBufferByteStream>(
       std::move(Buffer), llvm::support::little);
 
@@ -166,11 +166,11 @@ NativeSession::searchForPdb(const PdbSearchOptions &Opts) {
   Expected<std::string> PathOrErr = getPdbPathFromExe(Opts.ExePath);
   if (!PathOrErr)
     return PathOrErr.takeError();
-  StringRef PathFromExe = PathOrErr.get();
-  sys::path::Style Style = PathFromExe.startswith("/")
+  StringRef const PathFromExe = PathOrErr.get();
+  sys::path::Style const Style = PathFromExe.startswith("/")
                                ? sys::path::Style::posix
                                : sys::path::Style::windows;
-  StringRef PdbName = sys::path::filename(PathFromExe, Style);
+  StringRef const PdbName = sys::path::filename(PathFromExe, Style);
 
   // Check if pdb exists in the executable directory.
   SmallString<128> PdbPath = StringRef(Opts.ExePath);
@@ -211,7 +211,7 @@ NativeSession::getSymbolById(SymIndexId SymbolId) const {
 
 bool NativeSession::addressForVA(uint64_t VA, uint32_t &Section,
                                  uint32_t &Offset) const {
-  uint32_t RVA = VA - getLoadAddress();
+  uint32_t const RVA = VA - getLoadAddress();
   return addressForRVA(RVA, Section, Offset);
 }
 
@@ -282,7 +282,7 @@ NativeSession::findLineNumbersByRVA(uint32_t RVA, uint32_t Length) const {
 std::unique_ptr<IPDBEnumLineNumbers>
 NativeSession::findLineNumbersBySectOffset(uint32_t Section, uint32_t Offset,
                                            uint32_t Length) const {
-  uint64_t VA = getVAFromSectOffset(Section, Offset);
+  uint64_t const VA = getVAFromSectOffset(Section, Offset);
   return Cache.findLineNumbersByVA(VA, Length);
 }
 
@@ -379,7 +379,7 @@ uint32_t NativeSession::getRVAFromSectOffset(uint32_t Section,
   if (!Dbi)
     return 0;
 
-  uint32_t MaxSection = Dbi->getSectionHeaders().size();
+  uint32_t const MaxSection = Dbi->getSectionHeaders().size();
   if (Section > MaxSection + 1)
     Section = MaxSection + 1;
   auto &Sec = Dbi->getSectionHeaders()[Section - 1];
@@ -426,8 +426,8 @@ void NativeSession::parseSectionContribs() {
       if (C.Size == 0)
         return;
 
-      uint64_t VA = Session.getVAFromSectOffset(C.ISect, C.Off);
-      uint64_t End = VA + C.Size;
+      uint64_t const VA = Session.getVAFromSectOffset(C.ISect, C.Off);
+      uint64_t const End = VA + C.Size;
 
       // Ignore overlapping sections based on the assumption that a valid
       // PDB file should not have overlaps.
@@ -446,9 +446,9 @@ NativeSession::getModuleDebugStream(uint32_t Index) const {
   auto *Dbi = getDbiStreamPtr(*Pdb);
   assert(Dbi && "Dbi stream not present");
 
-  DbiModuleDescriptor Modi = Dbi->modules().getModuleDescriptor(Index);
+  DbiModuleDescriptor const Modi = Dbi->modules().getModuleDescriptor(Index);
 
-  uint16_t ModiStream = Modi.getModuleStreamIndex();
+  uint16_t const ModiStream = Modi.getModuleStreamIndex();
   if (ModiStream == kInvalidStreamIndex)
     return make_error<RawError>("Module stream not present");
 

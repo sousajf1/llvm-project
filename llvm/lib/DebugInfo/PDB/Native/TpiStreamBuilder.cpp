@@ -44,8 +44,8 @@ void TpiStreamBuilder::setVersionHeader(PdbRaw_TpiVer Version) {
 
 void TpiStreamBuilder::updateTypeIndexOffsets(ArrayRef<uint16_t> Sizes) {
   // If we just crossed an 8KB threshold, add a type index offset.
-  for (uint16_t Size : Sizes) {
-    size_t NewSize = TypeRecordBytes + Size;
+  for (uint16_t const Size : Sizes) {
+    size_t const NewSize = TypeRecordBytes + Size;
     constexpr size_t EightKB = 8 * 1024;
     if (NewSize / EightKB > TypeRecordBytes / EightKB || TypeRecordCount == 0) {
       TypeIndexOffsets.push_back(
@@ -64,7 +64,7 @@ void TpiStreamBuilder::addTypeRecord(ArrayRef<uint8_t> Record,
          "The type record's size is not a multiple of 4 bytes which will "
          "cause misalignment in the output TPI stream!");
   assert(Record.size() <= codeview::MaxRecordLength);
-  uint16_t OneSize = (uint16_t)Record.size();
+  uint16_t const OneSize = (uint16_t)Record.size();
   updateTypeIndexOffsets(makeArrayRef(&OneSize, 1));
 
   TypeRecBuffers.push_back(Record);
@@ -144,11 +144,11 @@ uint32_t TpiStreamBuilder::calculateIndexOffsetSize() const {
 }
 
 Error TpiStreamBuilder::finalizeMsfLayout() {
-  uint32_t Length = calculateSerializedLength();
+  uint32_t const Length = calculateSerializedLength();
   if (auto EC = Msf.setStreamSize(Idx, Length))
     return EC;
 
-  uint32_t HashStreamSize =
+  uint32_t const HashStreamSize =
       calculateHashBufferSize() + calculateIndexOffsetSize();
 
   if (HashStreamSize == 0)
@@ -160,11 +160,11 @@ Error TpiStreamBuilder::finalizeMsfLayout() {
   HashStreamIndex = *ExpectedIndex;
   if (!TypeHashes.empty()) {
     ulittle32_t *H = Allocator.Allocate<ulittle32_t>(TypeHashes.size());
-    MutableArrayRef<ulittle32_t> HashBuffer(H, TypeHashes.size());
+    MutableArrayRef<ulittle32_t> const HashBuffer(H, TypeHashes.size());
     for (uint32_t I = 0; I < TypeHashes.size(); ++I) {
       HashBuffer[I] = TypeHashes[I] % (MaxTpiHashBuckets - 1);
     }
-    ArrayRef<uint8_t> Bytes(
+    ArrayRef<uint8_t> const Bytes(
         reinterpret_cast<const uint8_t *>(HashBuffer.data()),
         calculateHashBufferSize());
     HashValueStream =

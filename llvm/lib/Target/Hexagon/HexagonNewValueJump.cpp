@@ -178,7 +178,7 @@ static bool canBeFeederToNewValueJump(const HexagonInstrInfo *QII,
         (II->getOperand(i).isUse() || II->getOperand(i).isDef())) {
       MachineBasicBlock::iterator localII = II;
       ++localII;
-      Register Reg = II->getOperand(i).getReg();
+      Register const Reg = II->getOperand(i).getReg();
       for (MachineBasicBlock::iterator localBegin = localII; localBegin != end;
            ++localBegin) {
         if (localBegin == skip)
@@ -252,7 +252,7 @@ static bool canCompareBeNewValueJump(const HexagonInstrInfo *QII,
     if (!Op2.isImm())
       return false;
 
-    int64_t v = Op2.getImm();
+    int64_t const v = Op2.getImm();
     bool Valid = false;
 
     switch (MI.getOpcode()) {
@@ -290,7 +290,7 @@ static bool canCompareBeNewValueJump(const HexagonInstrInfo *QII,
     // Make sure that the second register is not from COPY
     // at machine code level, we don't need this, but if we decide
     // to move new value jump prior to RA, we would be needing this.
-    MachineRegisterInfo &MRI = MF.getRegInfo();
+    MachineRegisterInfo  const&MRI = MF.getRegInfo();
     if (!Register::isPhysicalRegister(cmpOp2)) {
       MachineInstr *def = MRI.getVRegDef(cmpOp2);
       if (def->getOpcode() == TargetOpcode::COPY)
@@ -466,7 +466,7 @@ bool HexagonNewValueJump::runOnMachineFunction(MachineFunction &MF) {
       !MF.getSubtarget<HexagonSubtarget>().useNewValueJumps())
     return false;
 
-  int nvjCount = DbgNVJCount;
+  int const nvjCount = DbgNVJCount;
   int nvjGenerated = 0;
 
   // Loop through all the bb's of the function
@@ -598,13 +598,13 @@ bool HexagonNewValueJump::runOnMachineFunction(MachineFunction &MF) {
           break;
 
         bool foundFeeder = false;
-        MachineBasicBlock::iterator feederPos = MII;
+        MachineBasicBlock::iterator const feederPos = MII;
         if (MI.getOperand(0).isReg() && MI.getOperand(0).isDef() &&
             (MI.getOperand(0).getReg() == cmpReg1 ||
              (isSecondOpReg &&
               MI.getOperand(0).getReg() == (unsigned)cmpOp2))) {
 
-          Register feederReg = MI.getOperand(0).getReg();
+          Register const feederReg = MI.getOperand(0).getReg();
 
           // First try to see if we can get the feeder from the first operand
           // of the compare. If we can not, and if secondOpReg is true
@@ -629,10 +629,10 @@ bool HexagonNewValueJump::runOnMachineFunction(MachineFunction &MF) {
           if (isSecondOpReg) {
             // In case of CMPLT, or CMPLTU, or EQ with the second register
             // to newify, swap the operands.
-            unsigned COp = cmpInstr->getOpcode();
+            unsigned const COp = cmpInstr->getOpcode();
             if ((COp == Hexagon::C2_cmpeq || COp == Hexagon::C4_cmpneq) &&
                 (feederReg == (unsigned)cmpOp2)) {
-              unsigned tmp = cmpReg1;
+              unsigned const tmp = cmpReg1;
               cmpReg1 = cmpOp2;
               cmpOp2 = tmp;
             }
@@ -652,7 +652,7 @@ bool HexagonNewValueJump::runOnMachineFunction(MachineFunction &MF) {
             for (MachineOperand &MO : MI.operands()) {
               if (!MO.isReg() || !MO.isUse())
                 continue;
-              Register UseR = MO.getReg();
+              Register const UseR = MO.getReg();
               for (auto I = std::next(MI.getIterator()); I != jmpPos; ++I) {
                 if (I == cmpPos)
                   continue;
@@ -673,12 +673,12 @@ bool HexagonNewValueJump::runOnMachineFunction(MachineFunction &MF) {
 
           TransferKills(*feederPos);
           TransferKills(*cmpPos);
-          bool MO1IsKill = cmpPos->killsRegister(cmpReg1, QRI);
-          bool MO2IsKill = isSecondOpReg && cmpPos->killsRegister(cmpOp2, QRI);
+          bool const MO1IsKill = cmpPos->killsRegister(cmpReg1, QRI);
+          bool const MO2IsKill = isSecondOpReg && cmpPos->killsRegister(cmpOp2, QRI);
 
           MBB->splice(jmpPos, MI.getParent(), MI);
           MBB->splice(jmpPos, MI.getParent(), cmpInstr);
-          DebugLoc dl = MI.getDebugLoc();
+          DebugLoc const dl = MI.getDebugLoc();
           MachineInstr *NewMI;
 
           assert((isNewValueJumpCandidate(*cmpInstr)) &&

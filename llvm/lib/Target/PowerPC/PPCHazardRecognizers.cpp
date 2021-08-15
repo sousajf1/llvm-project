@@ -87,7 +87,7 @@ bool PPCDispatchGroupSBHazardRecognizer::mustComeFirst(const MCInstrDesc *MCID,
   // FIXME: Indirectly, this information is contained in the itinerary, and
   // we should derive it from there instead of separately specifying it
   // here.
-  unsigned IIC = MCID->getSchedClass();
+  unsigned const IIC = MCID->getSchedClass();
   switch (IIC) {
   default:
     NSlots = 1;
@@ -157,7 +157,7 @@ unsigned PPCDispatchGroupSBHazardRecognizer::PreEmitNoops(SUnit *SU) {
   // only be a second branch, and otherwise the next instruction will start a
   // new group.
   if (isLoadAfterStore(SU) && CurSlots < 6) {
-    unsigned Directive =
+    unsigned const Directive =
         DAG->MF.getSubtarget<PPCSubtarget>().getCPUDirective();
     // If we're using a special group-terminating nop, then we need only one.
     // FIXME: the same for P9 as previous gen until POWER9 scheduling is ready
@@ -182,7 +182,7 @@ void PPCDispatchGroupSBHazardRecognizer::EmitInstruction(SUnit *SU) {
       LLVM_DEBUG(DAG->dumpNode(*SU));
 
       unsigned NSlots;
-      bool MustBeFirst = mustComeFirst(MCID, NSlots);
+      bool const MustBeFirst = mustComeFirst(MCID, NSlots);
 
       // If this instruction must come first, but does not, then it starts a
       // new group.
@@ -217,7 +217,7 @@ void PPCDispatchGroupSBHazardRecognizer::Reset() {
 }
 
 void PPCDispatchGroupSBHazardRecognizer::EmitNoop() {
-  unsigned Directive =
+  unsigned const Directive =
       DAG->MF.getSubtarget<PPCSubtarget>().getCPUDirective();
   // If the group has now filled all of its slots, or if we're using a special
   // group-terminating nop, the group is complete.
@@ -284,7 +284,7 @@ PPCHazardRecognizer970::GetInstrType(unsigned Opcode,
   isLoad  = MCID.mayLoad();
   isStore = MCID.mayStore();
 
-  uint64_t TSFlags = MCID.TSFlags;
+  uint64_t const TSFlags = MCID.TSFlags;
 
   isFirst   = TSFlags & PPCII::PPC970_First;
   isSingle  = TSFlags & PPCII::PPC970_Single;
@@ -330,9 +330,9 @@ getHazardType(SUnit *SU, int Stalls) {
   if (MI->isDebugInstr())
     return NoHazard;
 
-  unsigned Opcode = MI->getOpcode();
+  unsigned const Opcode = MI->getOpcode();
   bool isFirst, isSingle, isCracked, isLoad, isStore;
-  PPCII::PPC970_Unit InstrType =
+  PPCII::PPC970_Unit const InstrType =
     GetInstrType(Opcode, isFirst, isSingle, isCracked,
                  isLoad, isStore);
   if (InstrType == PPCII::PPC970_Pseudo) return NoHazard;
@@ -388,9 +388,9 @@ void PPCHazardRecognizer970::EmitInstruction(SUnit *SU) {
   if (MI->isDebugInstr())
     return;
 
-  unsigned Opcode = MI->getOpcode();
+  unsigned const Opcode = MI->getOpcode();
   bool isFirst, isSingle, isCracked, isLoad, isStore;
-  PPCII::PPC970_Unit InstrType =
+  PPCII::PPC970_Unit const InstrType =
     GetInstrType(Opcode, isFirst, isSingle, isCracked,
                  isLoad, isStore);
   if (InstrType == PPCII::PPC970_Pseudo) return;

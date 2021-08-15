@@ -123,7 +123,7 @@ bool MCAsmInfo::isValidUnquotedName(StringRef Name) const {
 
   // If any of the characters in the string is an unacceptable character, force
   // quotes.
-  for (char C : Name) {
+  for (char const C : Name) {
     if (!isAcceptableChar(C))
       return false;
   }

@@ -132,7 +132,7 @@ HexagonRegisterInfo::getCalleeSavedRegs(const MachineFunction *MF) const {
     Hexagon::R24,   Hexagon::R25,   Hexagon::R26,   Hexagon::R27, 0
   };
 
-  bool HasEHReturn = MF->getInfo<HexagonMachineFunctionInfo>()->hasEHReturn();
+  bool const HasEHReturn = MF->getInfo<HexagonMachineFunctionInfo>()->hasEHReturn();
 
   return HasEHReturn ? CalleeSavedRegsV3EHReturn : CalleeSavedRegsV3;
 }
@@ -216,14 +216,14 @@ void HexagonRegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
   auto &HFI = *HST.getFrameLowering();
 
   Register BP;
-  int FI = MI.getOperand(FIOp).getIndex();
+  int const FI = MI.getOperand(FIOp).getIndex();
   // Select the base pointer (BP) and calculate the actual offset from BP
   // to the beginning of the object at index FI.
-  int Offset = HFI.getFrameIndexReference(MF, FI, BP).getFixed();
+  int const Offset = HFI.getFrameIndexReference(MF, FI, BP).getFixed();
   // Add the offset from the instruction.
   int RealOffset = Offset + MI.getOperand(FIOp+1).getImm();
 
-  unsigned Opc = MI.getOpcode();
+  unsigned const Opc = MI.getOpcode();
   switch (Opc) {
     case Hexagon::PS_fia:
       MI.setDesc(HII.get(Hexagon::A2_addi));
@@ -262,7 +262,7 @@ void HexagonRegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
       case Hexagon::PS_vstorerv_nt_ai:
       case Hexagon::V6_vL32b_ai:
       case Hexagon::V6_vS32b_ai: {
-        unsigned HwLen = HST.getVectorLength();
+        unsigned const HwLen = HST.getVectorLength();
         if (RealOffset % HwLen == 0) {
           int VecOffset = RealOffset / HwLen;
           // Rewrite the offset as "base + [-8, 7)".
@@ -309,7 +309,7 @@ void HexagonRegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
         if (!Op2.isImm() || Op2.getImm() != RealOffset)
           continue;
 
-        Register R = BI.getOperand(0).getReg();
+        Register const R = BI.getOperand(0).getReg();
         if (R.isPhysical()) {
           if (Defs.available(R))
             ReuseBP = R;
@@ -352,17 +352,17 @@ bool HexagonRegisterInfo::shouldCoalesce(MachineInstr *MI,
   // If the destination register is a vector pair, avoid introducing function
   // calls into the interval, since it could result in a spilling of a pair
   // instead of a single vector.
-  MachineFunction &MF = *MI->getParent()->getParent();
+  MachineFunction  const&MF = *MI->getParent()->getParent();
   const HexagonSubtarget &HST = MF.getSubtarget<HexagonSubtarget>();
   if (!HST.useHVXOps() || NewRC->getID() != Hexagon::HvxWRRegClass.getID())
     return true;
-  bool SmallSrc = SrcRC->getID() == Hexagon::HvxVRRegClass.getID();
-  bool SmallDst = DstRC->getID() == Hexagon::HvxVRRegClass.getID();
+  bool const SmallSrc = SrcRC->getID() == Hexagon::HvxVRRegClass.getID();
+  bool const SmallDst = DstRC->getID() == Hexagon::HvxVRRegClass.getID();
   if (!SmallSrc && !SmallDst)
     return true;
 
-  Register DstReg = MI->getOperand(0).getReg();
-  Register SrcReg = MI->getOperand(1).getReg();
+  Register const DstReg = MI->getOperand(0).getReg();
+  Register const SrcReg = MI->getOperand(1).getReg();
   const SlotIndexes &Indexes = *LIS.getSlotIndexes();
   auto HasCall = [&Indexes] (const LiveInterval::Segment &S) {
     for (SlotIndex I = S.start.getBaseIndex(), E = S.end.getBaseIndex();
@@ -386,8 +386,8 @@ bool HexagonRegisterInfo::shouldCoalesce(MachineInstr *MI,
   // If one register is large (HvxWR) and the other is small (HvxVR), then
   // coalescing is ok if the large is already live across a function call,
   // or if the small one is not.
-  unsigned SmallReg = SmallSrc ? SrcReg : DstReg;
-  unsigned LargeReg = SmallSrc ? DstReg : SrcReg;
+  unsigned const SmallReg = SmallSrc ? SrcReg : DstReg;
+  unsigned const LargeReg = SmallSrc ? DstReg : SrcReg;
   return  any_of(LIS.getInterval(LargeReg), HasCall) ||
          !any_of(LIS.getInterval(SmallReg), HasCall);
 }

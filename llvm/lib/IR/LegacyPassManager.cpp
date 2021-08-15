@@ -74,8 +74,8 @@ unsigned PMDataManager::initSizeRemarkInfo(
 
   // Collect instruction counts for every function. We'll use this to emit
   // per-function size remarks later.
-  for (Function &F : M) {
-    unsigned FCount = F.getInstructionCount();
+  for (Function  const&F : M) {
+    unsigned const FCount = F.getInstructionCount();
 
     // Insert a record into FunctionToInstrCount keeping track of the current
     // size of the function as the first member of a pair. Set the second
@@ -101,13 +101,13 @@ void PMDataManager::emitInstrCountChangedRemark(
     return;
 
   // Set to true if this isn't a module pass or CGSCC pass.
-  bool CouldOnlyImpactOneFunction = (F != nullptr);
+  bool const CouldOnlyImpactOneFunction = (F != nullptr);
 
   // Helper lambda that updates the changes to the size of some function.
   auto UpdateFunctionChanges =
       [&FunctionToInstrCount](Function &MaybeChangedFn) {
         // Update the total module count.
-        unsigned FnSize = MaybeChangedFn.getInstructionCount();
+        unsigned const FnSize = MaybeChangedFn.getInstructionCount();
         auto It = FunctionToInstrCount.find(MaybeChangedFn.getName());
 
         // If we created a new function, then we need to add it to the map and
@@ -145,7 +145,7 @@ void PMDataManager::emitInstrCountChangedRemark(
     // We found a function containing at least one basic block.
     F = &*It;
   }
-  int64_t CountAfter = static_cast<int64_t>(CountBefore) + Delta;
+  int64_t const CountAfter = static_cast<int64_t>(CountBefore) + Delta;
   BasicBlock &BB = *F->begin();
   OptimizationRemarkAnalysis R("size-info", "IRSizeChange",
                                DiagnosticLocation(), &BB);
@@ -169,7 +169,7 @@ void PMDataManager::emitInstrCountChangedRemark(
     unsigned FnCountBefore, FnCountAfter;
     std::pair<unsigned, unsigned> &Change = FunctionToInstrCount[Fname];
     std::tie(FnCountBefore, FnCountAfter) = Change;
-    int64_t FnDelta = static_cast<int64_t>(FnCountAfter) -
+    int64_t const FnDelta = static_cast<int64_t>(FnCountAfter) -
                       static_cast<int64_t>(FnCountBefore);
 
     if (FnDelta == 0)
@@ -438,7 +438,7 @@ public:
     for (unsigned Index = 0; Index < getNumContainedPasses(); ++Index) {
       ModulePass *MP = getContainedPass(Index);
       MP->dumpPassStructure(Offset + 1);
-      MapVector<Pass *, legacy::FunctionPassManagerImpl *>::const_iterator I =
+      MapVector<Pass *, legacy::FunctionPassManagerImpl *>::const_iterator const I =
           OnTheFlyManagers.find(MP);
       if (I != OnTheFlyManagers.end())
         I->second->dumpPassStructure(Offset + 2);
@@ -589,7 +589,7 @@ PMTopLevelManager::setLastUser(ArrayRef<Pass*> AnalysisPasses, Pass *P) {
       assert(AnalysisPass && "Expected analysis pass to exist.");
       AnalysisResolver *AR = AnalysisPass->getResolver();
       assert(AR && "Expected analysis resolver to exist.");
-      unsigned APDepth = AR->getPMDataManager().getDepth();
+      unsigned const APDepth = AR->getPMDataManager().getDepth();
 
       if (PDepth == APDepth)
         LastUses.push_back(AnalysisPass);
@@ -920,7 +920,7 @@ void PMDataManager::verifyPreservedAnalysis(Pass *P) {
   // Verify preserved analysis
   for (AnalysisID AID : PreservedSet) {
     if (Pass *AP = findAnalysisPass(AID, true)) {
-      TimeRegion PassTimer(getPassTimer(AP));
+      TimeRegion const PassTimer(getPassTimer(AP));
       AP->verifyAnalysis();
     }
   }
@@ -935,7 +935,7 @@ void PMDataManager::removeNotPreservedAnalysis(Pass *P) {
   const AnalysisUsage::VectorType &PreservedSet = AnUsage->getPreservedSet();
   for (DenseMap<AnalysisID, Pass*>::iterator I = AvailableAnalysis.begin(),
          E = AvailableAnalysis.end(); I != E; ) {
-    DenseMap<AnalysisID, Pass*>::iterator Info = I++;
+    DenseMap<AnalysisID, Pass*>::iterator const Info = I++;
     if (Info->second->getAsImmutablePass() == nullptr &&
         !is_contained(PreservedSet, Info->first)) {
       // Remove this analysis
@@ -957,7 +957,7 @@ void PMDataManager::removeNotPreservedAnalysis(Pass *P) {
     for (DenseMap<AnalysisID, Pass *>::iterator I = IA->begin(),
                                                 E = IA->end();
          I != E;) {
-      DenseMap<AnalysisID, Pass *>::iterator Info = I++;
+      DenseMap<AnalysisID, Pass *>::iterator const Info = I++;
       if (Info->second->getAsImmutablePass() == nullptr &&
           !is_contained(PreservedSet, Info->first)) {
         // Remove this analysis
@@ -1000,8 +1000,8 @@ void PMDataManager::freePass(Pass *P, StringRef Msg,
 
   {
     // If the pass crashes releasing memory, remember this.
-    PassManagerPrettyStackEntry X(P);
-    TimeRegion PassTimer(getPassTimer(P));
+    PassManagerPrettyStackEntry const X(P);
+    TimeRegion const PassTimer(getPassTimer(P));
 
     P->releaseMemory();
   }
@@ -1015,7 +1015,7 @@ void PMDataManager::freePass(Pass *P, StringRef Msg,
     // listed as the available implementation.
     const std::vector<const PassInfo*> &II = PInf->getInterfacesImplemented();
     for (unsigned i = 0, e = II.size(); i != e; ++i) {
-      DenseMap<AnalysisID, Pass*>::iterator Pos =
+      DenseMap<AnalysisID, Pass*>::iterator const Pos =
         AvailableAnalysis.find(II[i]->getTypeInfo());
       if (Pos != AvailableAnalysis.end() && Pos->second == P)
         AvailableAnalysis.erase(Pos);
@@ -1046,14 +1046,14 @@ void PMDataManager::add(Pass *P, bool ProcessAnalysis) {
   SmallVector<Pass *, 8> UsedPasses;
   SmallVector<AnalysisID, 8> ReqAnalysisNotAvailable;
 
-  unsigned PDepth = this->getDepth();
+  unsigned const PDepth = this->getDepth();
 
   collectRequiredAndUsedAnalyses(UsedPasses, ReqAnalysisNotAvailable, P);
   for (Pass *PUsed : UsedPasses) {
     unsigned RDepth = 0;
 
     assert(PUsed->getResolver() && "Analysis Resolver is not set");
-    PMDataManager &DM = PUsed->getResolver()->getPMDataManager();
+    PMDataManager  const&DM = PUsed->getResolver()->getPMDataManager();
     RDepth = DM.getDepth();
 
     if (PDepth == RDepth)
@@ -1141,7 +1141,7 @@ void PMDataManager::initializeAnalysisImpl(Pass *P) {
 Pass *PMDataManager::findAnalysisPass(AnalysisID AID, bool SearchParent) {
 
   // Check if AvailableAnalysis map has one entry.
-  DenseMap<AnalysisID, Pass*>::const_iterator I =  AvailableAnalysis.find(AID);
+  DenseMap<AnalysisID, Pass*>::const_iterator const I =  AvailableAnalysis.find(AID);
 
   if (I != AvailableAnalysis.end())
     return I->second;
@@ -1410,20 +1410,20 @@ bool FPPassManager::runOnFunction(Function &F) {
 
   unsigned InstrCount, FunctionSize = 0;
   StringMap<std::pair<unsigned, unsigned>> FunctionToInstrCount;
-  bool EmitICRemark = M.shouldEmitInstrCountChangedRemark();
+  bool const EmitICRemark = M.shouldEmitInstrCountChangedRemark();
   // Collect the initial size of the module.
   if (EmitICRemark) {
     InstrCount = initSizeRemarkInfo(M, FunctionToInstrCount);
     FunctionSize = F.getInstructionCount();
   }
 
-  llvm::TimeTraceScope FunctionScope("OptFunction", F.getName());
+  llvm::TimeTraceScope const FunctionScope("OptFunction", F.getName());
 
   for (unsigned Index = 0; Index < getNumContainedPasses(); ++Index) {
     FunctionPass *FP = getContainedPass(Index);
     bool LocalChanged = false;
 
-    llvm::TimeTraceScope PassScope("RunPass", FP->getPassName());
+    llvm::TimeTraceScope const PassScope("RunPass", FP->getPassName());
 
     dumpPassInfo(FP, EXECUTION_MSG, ON_FUNCTION_MSG, F.getName());
     dumpRequiredSet(FP);
@@ -1431,8 +1431,8 @@ bool FPPassManager::runOnFunction(Function &F) {
     initializeAnalysisImpl(FP);
 
     {
-      PassManagerPrettyStackEntry X(FP, F);
-      TimeRegion PassTimer(getPassTimer(FP));
+      PassManagerPrettyStackEntry const X(FP, F);
+      TimeRegion const PassTimer(getPassTimer(FP));
 #ifdef EXPENSIVE_CHECKS
       uint64_t RefHash = StructuralHash(F);
 #endif
@@ -1447,12 +1447,12 @@ bool FPPassManager::runOnFunction(Function &F) {
 #endif
 
       if (EmitICRemark) {
-        unsigned NewSize = F.getInstructionCount();
+        unsigned const NewSize = F.getInstructionCount();
 
         // Update the size of the function, emit a remark, and update the size
         // of the module.
         if (NewSize != FunctionSize) {
-          int64_t Delta = static_cast<int64_t>(NewSize) -
+          int64_t const Delta = static_cast<int64_t>(NewSize) -
                           static_cast<int64_t>(FunctionSize);
           emitInstrCountChangedRemark(FP, M, Delta, InstrCount,
                                       FunctionToInstrCount, &F);
@@ -1513,7 +1513,7 @@ bool FPPassManager::doFinalization(Module &M) {
 /// the module, and if so, return true.
 bool
 MPPassManager::runOnModule(Module &M) {
-  llvm::TimeTraceScope TimeScope("OptModule", M.getName());
+  llvm::TimeTraceScope const TimeScope("OptModule", M.getName());
 
   bool Changed = false;
 
@@ -1529,7 +1529,7 @@ MPPassManager::runOnModule(Module &M) {
 
   unsigned InstrCount;
   StringMap<std::pair<unsigned, unsigned>> FunctionToInstrCount;
-  bool EmitICRemark = M.shouldEmitInstrCountChangedRemark();
+  bool const EmitICRemark = M.shouldEmitInstrCountChangedRemark();
   // Collect the initial size of the module.
   if (EmitICRemark)
     InstrCount = initSizeRemarkInfo(M, FunctionToInstrCount);
@@ -1544,8 +1544,8 @@ MPPassManager::runOnModule(Module &M) {
     initializeAnalysisImpl(MP);
 
     {
-      PassManagerPrettyStackEntry X(MP, M);
-      TimeRegion PassTimer(getPassTimer(MP));
+      PassManagerPrettyStackEntry const X(MP, M);
+      TimeRegion const PassTimer(getPassTimer(MP));
 
 #ifdef EXPENSIVE_CHECKS
       uint64_t RefHash = StructuralHash(M);
@@ -1560,9 +1560,9 @@ MPPassManager::runOnModule(Module &M) {
 
       if (EmitICRemark) {
         // Update the size of the module.
-        unsigned ModuleCount = M.getInstructionCount();
+        unsigned const ModuleCount = M.getInstructionCount();
         if (ModuleCount != InstrCount) {
-          int64_t Delta = static_cast<int64_t>(ModuleCount) -
+          int64_t const Delta = static_cast<int64_t>(ModuleCount) -
                           static_cast<int64_t>(InstrCount);
           emitInstrCountChangedRemark(MP, M, Delta, InstrCount,
                                       FunctionToInstrCount);
@@ -1649,7 +1649,7 @@ std::tuple<Pass *, bool> MPPassManager::getOnTheFlyPass(Pass *MP, AnalysisID PI,
   assert(FPP && "Unable to find on the fly pass");
 
   FPP->releaseMemoryOnTheFly();
-  bool Changed = FPP->run(F);
+  bool const Changed = FPP->run(F);
   return std::make_tuple(((PMTopLevelManager *)FPP)->findAnalysisPass(PI),
                          Changed);
 }

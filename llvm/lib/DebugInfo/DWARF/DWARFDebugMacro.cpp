@@ -232,7 +232,7 @@ Error DWARFDebugMacro::parseImpl(
 Error DWARFDebugMacro::MacroHeader::parseMacroHeader(DWARFDataExtractor Data,
                                                      uint64_t *Offset) {
   Version = Data.getU16(Offset);
-  uint8_t FlagData = Data.getU8(Offset);
+  uint8_t const FlagData = Data.getU8(Offset);
 
   // FIXME: Add support for parsing opcode_operands_table
   if (FlagData & MACRO_OPCODE_OPERANDS_TABLE)

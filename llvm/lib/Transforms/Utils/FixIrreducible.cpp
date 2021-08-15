@@ -126,7 +126,7 @@ static void reconnectChildLoops(LoopInfo &LI, Loop *ParentLoop, Loop *NewLoop,
       CandidateLoops.begin(), CandidateLoops.end(), [&](Loop *L) {
         return L == NewLoop || Blocks.count(L->getHeader()) == 0;
       });
-  SmallVector<Loop *, 8> ChildLoops(FirstChild, CandidateLoops.end());
+  SmallVector<Loop *, 8> const ChildLoops(FirstChild, CandidateLoops.end());
   CandidateLoops.erase(FirstChild, CandidateLoops.end());
 
   for (Loop *Child : ChildLoops) {

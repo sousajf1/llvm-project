@@ -122,8 +122,8 @@ public:
 static bool canGoAfterDWARF(const MCSectionMachO &MSec) {
   // These sections are created by the assembler itself after the end of
   // the .s file.
-  StringRef SegName = MSec.getSegmentName();
-  StringRef SecName = MSec.getName();
+  StringRef const SegName = MSec.getSegmentName();
+  StringRef const SecName = MSec.getName();
 
   if (SegName == "__LD" && SecName == "__compact_unwind")
     return true;
@@ -149,9 +149,9 @@ static bool canGoAfterDWARF(const MCSectionMachO &MSec) {
 void MCMachOStreamer::changeSection(MCSection *Section,
                                     const MCExpr *Subsection) {
   // Change the section normally.
-  bool Created = changeSectionImpl(Section, Subsection);
+  bool const Created = changeSectionImpl(Section, Subsection);
   const MCSectionMachO &MSec = *cast<MCSectionMachO>(Section);
-  StringRef SegName = MSec.getSegmentName();
+  StringRef const SegName = MSec.getSegmentName();
   if (SegName == "__DWARF")
     CreatedADWARFSection = true;
   else if (Created && DWARFMustBeAtTheEnd && !canGoAfterDWARF(MSec))
@@ -216,7 +216,7 @@ void MCMachOStreamer::emitDataRegion(DataRegionData::KindTy Kind) {
   MCSymbol *Start = getContext().createTempSymbol();
   emitLabel(Start);
   // Record the region for the object writer to use.
-  DataRegionData Data = { Kind, Start, nullptr };
+  DataRegionData const Data = { Kind, Start, nullptr };
   std::vector<DataRegionData> &Regions = getAssembler().getDataRegions();
   Regions.push_back(Data);
 }

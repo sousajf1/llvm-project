@@ -96,7 +96,7 @@ public:
 uint64_t MSP430AsmBackend::adjustFixupValue(const MCFixup &Fixup,
                                             uint64_t Value,
                                             MCContext &Ctx) const {
-  unsigned Kind = Fixup.getKind();
+  unsigned const Kind = Fixup.getKind();
   switch (Kind) {
   case MSP430::fixup_10_pcrel: {
     if (Value & 0x1)
@@ -128,15 +128,15 @@ void MSP430AsmBackend::applyFixup(const MCAssembler &Asm, const MCFixup &Fixup,
                                   uint64_t Value, bool IsResolved,
                                   const MCSubtargetInfo *STI) const {
   Value = adjustFixupValue(Fixup, Value, Asm.getContext());
-  MCFixupKindInfo Info = getFixupKindInfo(Fixup.getKind());
+  MCFixupKindInfo const Info = getFixupKindInfo(Fixup.getKind());
   if (!Value)
     return; // Doesn't change encoding.
 
   // Shift the value into position.
   Value <<= Info.TargetOffset;
 
-  unsigned Offset = Fixup.getOffset();
-  unsigned NumBytes = alignTo(Info.TargetSize + Info.TargetOffset, 8) / 8;
+  unsigned const Offset = Fixup.getOffset();
+  unsigned const NumBytes = alignTo(Info.TargetSize + Info.TargetOffset, 8) / 8;
 
   assert(Offset + NumBytes <= Data.size() && "Invalid fixup offset!");
 

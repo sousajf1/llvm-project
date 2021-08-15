@@ -245,7 +245,7 @@ llvm::UnrollAndJamLoop(Loop *L, unsigned Count, unsigned TripCount,
   assert(TripCount == 0 || TripCount % TripMultiple == 0);
 
   // Are we eliminating the loop control altogether?
-  bool CompletelyUnroll = (Count == TripCount);
+  bool const CompletelyUnroll = (Count == TripCount);
 
   // We use the runtime remainder in cases where we don't know trip multiple
   if (TripMultiple % Count != 0) {
@@ -305,9 +305,9 @@ llvm::UnrollAndJamLoop(Loop *L, unsigned Count, unsigned TripCount,
   assert(LatchBlock && "No latch block");
   BranchInst *BI = dyn_cast<BranchInst>(LatchBlock->getTerminator());
   assert(BI && !BI->isUnconditional());
-  bool ContinueOnTrue = L->contains(BI->getSuccessor(0));
+  bool const ContinueOnTrue = L->contains(BI->getSuccessor(0));
   BasicBlock *LoopExit = BI->getSuccessor(ContinueOnTrue);
-  bool SubLoopContinueOnTrue = SubLoop->contains(
+  bool const SubLoopContinueOnTrue = SubLoop->contains(
       SubLoop->getLoopLatch()->getTerminator()->getSuccessor(0));
 
   // Partition blocks in an outer/inner loop pair into blocks before and after
@@ -346,8 +346,8 @@ llvm::UnrollAndJamLoop(Loop *L, unsigned Count, unsigned TripCount,
   LoopBlocksDFS DFS(L);
   DFS.perform(LI);
   // Stash the DFS iterators before adding blocks to the loop.
-  LoopBlocksDFS::RPOIterator BlockBegin = DFS.beginRPO();
-  LoopBlocksDFS::RPOIterator BlockEnd = DFS.endRPO();
+  LoopBlocksDFS::RPOIterator const BlockBegin = DFS.beginRPO();
+  LoopBlocksDFS::RPOIterator const BlockEnd = DFS.endRPO();
 
   // When a FSDiscriminator is enabled, we don't need to add the multiply
   // factors to the discriminators.
@@ -771,7 +771,7 @@ checkDependencies(Loop &Root, const BasicBlockSet &SubLoopBlocks,
     if (AftBlocksMap.find(L) != AftBlocksMap.end())
       AllBlocks.push_back(AftBlocksMap.lookup(L));
 
-  unsigned LoopDepth = Root.getLoopDepth();
+  unsigned const LoopDepth = Root.getLoopDepth();
   SmallVector<Instruction *, 4> EarlierLoadsAndStores;
   SmallVector<Instruction *, 4> CurrentLoadsAndStores;
   for (BasicBlockSet &Blocks : AllBlocks) {
@@ -780,12 +780,12 @@ checkDependencies(Loop &Root, const BasicBlockSet &SubLoopBlocks,
       return false;
 
     Loop *CurLoop = LI.getLoopFor((*Blocks.begin())->front().getParent());
-    unsigned CurLoopDepth = CurLoop->getLoopDepth();
+    unsigned const CurLoopDepth = CurLoop->getLoopDepth();
 
     for (auto *Earlier : EarlierLoadsAndStores) {
       Loop *EarlierLoop = LI.getLoopFor(Earlier->getParent());
-      unsigned EarlierDepth = EarlierLoop->getLoopDepth();
-      unsigned CommonLoopDepth = std::min(EarlierDepth, CurLoopDepth);
+      unsigned const EarlierDepth = EarlierLoop->getLoopDepth();
+      unsigned const CommonLoopDepth = std::min(EarlierDepth, CurLoopDepth);
       for (auto *Later : CurrentLoadsAndStores) {
         if (!checkDependency(Earlier, Later, LoopDepth, CommonLoopDepth, false,
                              DI))
@@ -793,7 +793,7 @@ checkDependencies(Loop &Root, const BasicBlockSet &SubLoopBlocks,
       }
     }
 
-    size_t NumInsts = CurrentLoadsAndStores.size();
+    size_t const NumInsts = CurrentLoadsAndStores.size();
     for (size_t I = 0; I < NumInsts; ++I) {
       for (size_t J = I; J < NumInsts; ++J) {
         if (!checkDependency(CurrentLoadsAndStores[I], CurrentLoadsAndStores[J],
@@ -827,7 +827,7 @@ static bool isEligibleLoopForm(const Loop &Root) {
       return false;
     }
 
-    unsigned SubLoopsSize = L->getSubLoops().size();
+    unsigned const SubLoopsSize = L->getSubLoops().size();
     if (SubLoopsSize == 0)
       return true;
 

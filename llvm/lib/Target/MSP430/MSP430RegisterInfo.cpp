@@ -109,10 +109,10 @@ MSP430RegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
   MachineBasicBlock &MBB = *MI.getParent();
   MachineFunction &MF = *MBB.getParent();
   const MSP430FrameLowering *TFI = getFrameLowering(MF);
-  DebugLoc dl = MI.getDebugLoc();
-  int FrameIndex = MI.getOperand(FIOperandNum).getIndex();
+  DebugLoc const dl = MI.getDebugLoc();
+  int const FrameIndex = MI.getOperand(FIOperandNum).getIndex();
 
-  unsigned BasePtr = (TFI->hasFP(MF) ? MSP430::R4 : MSP430::SP);
+  unsigned const BasePtr = (TFI->hasFP(MF) ? MSP430::R4 : MSP430::SP);
   int Offset = MF.getFrameInfo().getObjectOffset(FrameIndex);
 
   // Skip the saved PC
@@ -139,7 +139,7 @@ MSP430RegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
       return;
 
     // We need to materialize the offset via add instruction.
-    Register DstReg = MI.getOperand(0).getReg();
+    Register const DstReg = MI.getOperand(0).getReg();
     if (Offset < 0)
       BuildMI(MBB, std::next(II), dl, TII.get(MSP430::SUB16ri), DstReg)
         .addReg(DstReg).addImm(-Offset);

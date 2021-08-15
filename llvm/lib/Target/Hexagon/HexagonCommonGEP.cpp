@@ -350,8 +350,8 @@ void HexagonCommonGEP::processGepInst(GetElementPtrInst *GepI,
   LLVM_DEBUG(dbgs() << "Visiting GEP: " << *GepI << '\n');
   GepNode *N = new (*Mem) GepNode;
   Value *PtrOp = GepI->getPointerOperand();
-  uint32_t InBounds = GepI->isInBounds() ? GepNode::InBounds : 0;
-  ValueToNodeMap::iterator F = NM.find(PtrOp);
+  uint32_t const InBounds = GepI->isInBounds() ? GepNode::InBounds : 0;
+  ValueToNodeMap::iterator const F = NM.find(PtrOp);
   if (F == NM.end()) {
     N->BaseVal = PtrOp;
     N->Flags |= GepNode::Root | InBounds;
@@ -457,10 +457,10 @@ static void nodes_for_root(GepNode *Root, NodeChildrenMap &NCM,
     Nodes.insert(Root);
 
     while (!Work.empty()) {
-      NodeVect::iterator First = Work.begin();
+      NodeVect::iterator const First = Work.begin();
       GepNode *N = *First;
       Work.erase(First);
-      NodeChildrenMap::iterator CF = NCM.find(N);
+      NodeChildrenMap::iterator const CF = NCM.find(N);
       if (CF != NCM.end()) {
         llvm::append_range(Work, CF->second);
         Nodes.insert(CF->second.begin(), CF->second.end());
@@ -487,8 +487,8 @@ static const NodeSet *node_class(GepNode *N, NodeSymRel &Rel) {
   // determining equality. The only purpose of the ordering is to eliminate
   // duplication due to the commutativity of equality/non-equality.
 static NodePair node_pair(GepNode *N1, GepNode *N2) {
-  uintptr_t P1 = reinterpret_cast<uintptr_t>(N1);
-  uintptr_t P2 = reinterpret_cast<uintptr_t>(N2);
+  uintptr_t const P1 = reinterpret_cast<uintptr_t>(N1);
+  uintptr_t const P2 = reinterpret_cast<uintptr_t>(N2);
   if (P1 <= P2)
     return std::make_pair(N1, N2);
   return std::make_pair(N2, N1);
@@ -509,18 +509,18 @@ static bool node_eq(GepNode *N1, GepNode *N2, NodePairSet &Eq,
     if (node_hash(N1) != node_hash(N2))
       return false;
 
-    NodePair NP = node_pair(N1, N2);
-    NodePairSet::iterator FEq = Eq.find(NP);
+    NodePair const NP = node_pair(N1, N2);
+    NodePairSet::iterator const FEq = Eq.find(NP);
     if (FEq != Eq.end())
       return true;
-    NodePairSet::iterator FNe = Ne.find(NP);
+    NodePairSet::iterator const FNe = Ne.find(NP);
     if (FNe != Ne.end())
       return false;
     // Not previously compared.
-    bool Root1 = N1->Flags & GepNode::Root;
-    uint32_t CmpFlags = GepNode::Root | GepNode::Pointer;
-    bool Different = (N1->Flags & CmpFlags) != (N2->Flags & CmpFlags);
-    NodePair P = node_pair(N1, N2);
+    bool const Root1 = N1->Flags & GepNode::Root;
+    uint32_t const CmpFlags = GepNode::Root | GepNode::Pointer;
+    bool const Different = (N1->Flags & CmpFlags) != (N2->Flags & CmpFlags);
+    NodePair const P = node_pair(N1, N2);
     // If the root/pointer flags have different values, the nodes are
     // different.
     // If both nodes are root nodes, but their base pointers differ,
@@ -549,7 +549,7 @@ void HexagonCommonGEP::common() {
 
   for (NodeVect::iterator I = Nodes.begin(), E = Nodes.end(); I != E; ++I) {
     GepNode *N = *I;
-    unsigned H = node_hash(N);
+    unsigned const H = node_hash(N);
     MaybeEq[H].insert(N);
   }
 
@@ -559,7 +559,7 @@ void HexagonCommonGEP::common() {
   NodePairSet Eq, Ne;  // Caches.
   for (NodeSetMap::iterator I = MaybeEq.begin(), E = MaybeEq.end();
        I != E; ++I) {
-    NodeSet &S = I->second;
+    NodeSet  const&S = I->second;
     for (NodeSet::iterator NI = S.begin(), NE = S.end(); NI != NE; ++NI) {
       GepNode *N = *NI;
       // If node already has a class, then the class must have been created
@@ -577,7 +577,7 @@ void HexagonCommonGEP::common() {
       // creating a class for it then.
       if (!C.empty()) {
         C.insert(N);  // Finalize the set before adding it to the relation.
-        std::pair<NodeSymRel::iterator, bool> Ins = EqRel.insert(C);
+        std::pair<NodeSymRel::iterator, bool> const Ins = EqRel.insert(C);
         (void)Ins;
         assert(Ins.second && "Cannot add a class");
       }
@@ -608,7 +608,7 @@ void HexagonCommonGEP::common() {
   for (NodeSymRel::iterator I = EqRel.begin(), E = EqRel.end(); I != E; ++I) {
     const NodeSet &S = *I;
     GepNode *Min = *std::min_element(S.begin(), S.end(), NodeOrder);
-    std::pair<ProjMap::iterator,bool> Ins = PM.insert(std::make_pair(&S, Min));
+    std::pair<ProjMap::iterator,bool> const Ins = PM.insert(std::make_pair(&S, Min));
     (void)Ins;
     assert(Ins.second && "Cannot add minimal element");
 
@@ -617,7 +617,7 @@ void HexagonCommonGEP::common() {
     UseSet &MinUs = Uses[Min];
     for (NodeSet::iterator J = S.begin(), F = S.end(); J != F; ++J) {
       GepNode *N = *J;
-      uint32_t NF = N->Flags;
+      uint32_t const NF = N->Flags;
       // If N is used, append all original values of N to the list of
       // original values of Min.
       if (NF & GepNode::Used)
@@ -643,7 +643,7 @@ void HexagonCommonGEP::common() {
     const NodeSet *PC = node_class(N->Parent, EqRel);
     if (!PC)
       continue;
-    ProjMap::iterator F = PM.find(PC);
+    ProjMap::iterator const F = PM.find(PC);
     if (F == PM.end())
       continue;
     // Found a replacement, use it.
@@ -660,7 +660,7 @@ void HexagonCommonGEP::common() {
     const NodeSet *PC = node_class(N, EqRel);
     if (!PC)
       continue;
-    ProjMap::iterator F = PM.find(PC);
+    ProjMap::iterator const F = PM.find(PC);
     if (F == PM.end())
       continue;
     if (N == F->second)
@@ -748,7 +748,7 @@ static BasicBlock::iterator first_use_of_in_block(T &Values, BasicBlock *B) {
       Instruction *In = cast<Instruction>(V);
       if (In->getParent() != B)
         continue;
-      BasicBlock::iterator It = In->getIterator();
+      BasicBlock::iterator const It = In->getIterator();
       if (std::distance(FirstUse, BEnd) < std::distance(It, BEnd))
         FirstUse = It;
     }
@@ -775,7 +775,7 @@ BasicBlock *HexagonCommonGEP::recalculatePlacement(GepNode *Node,
   if (Node->Flags & GepNode::Used) {
     // Append all blocks with uses of the original values to the
     // block vector Bs.
-    NodeToUsesMap::iterator UF = Uses.find(Node);
+    NodeToUsesMap::iterator const UF = Uses.find(Node);
     assert(UF != Uses.end() && "Used node with no use information");
     UseSet &Us = UF->second;
     for (UseSet::iterator I = Us.begin(), E = Us.end(); I != E; ++I) {
@@ -790,12 +790,12 @@ BasicBlock *HexagonCommonGEP::recalculatePlacement(GepNode *Node,
     }
   }
   // Append the location of each child.
-  NodeChildrenMap::iterator CF = NCM.find(Node);
+  NodeChildrenMap::iterator const CF = NCM.find(Node);
   if (CF != NCM.end()) {
     NodeVect &Cs = CF->second;
     for (NodeVect::iterator I = Cs.begin(), E = Cs.end(); I != E; ++I) {
       GepNode *CN = *I;
-      NodeToValueMap::iterator LF = Loc.find(CN);
+      NodeToValueMap::iterator const LF = Loc.find(CN);
       // If the child is only used in GEP instructions (i.e. is not used in
       // non-GEP instructions), the nearest dominator computed for it may
       // have been null. In such case it won't have a location available.
@@ -831,7 +831,7 @@ BasicBlock *HexagonCommonGEP::recalculatePlacementRec(GepNode *Node,
   LLVM_DEBUG(dbgs() << "LocRec begin for node:" << Node << '\n');
   // Recalculate the placement of Node, after recursively recalculating the
   // placements of all its children.
-  NodeChildrenMap::iterator CF = NCM.find(Node);
+  NodeChildrenMap::iterator const CF = NCM.find(Node);
   if (CF != NCM.end()) {
     NodeVect &Cs = CF->second;
     for (NodeVect::iterator I = Cs.begin(), E = Cs.end(); I != E; ++I)
@@ -921,7 +921,7 @@ BasicBlock *HexagonCommonGEP::adjustForInvariance(GepNode *Node,
   Loc[Node] = LocB;
 
   // Recursively compute the locations of all children nodes.
-  NodeChildrenMap::iterator CF = NCM.find(Node);
+  NodeChildrenMap::iterator const CF = NCM.find(Node);
   if (CF != NCM.end()) {
     NodeVect &Cs = CF->second;
     for (NodeVect::iterator I = Cs.begin(), E = Cs.end(); I != E; ++I)
@@ -986,7 +986,7 @@ void HexagonCommonGEP::separateChainForNode(GepNode *Node, Use *U,
     return;
 
   // Move over all uses that share the same user as U from Node to NewNode.
-  NodeToUsesMap::iterator UF = Uses.find(Node);
+  NodeToUsesMap::iterator const UF = Uses.find(Node);
   assert(UF != Uses.end());
   UseSet &Us = UF->second;
   UseSet NewUs;
@@ -1023,7 +1023,7 @@ void HexagonCommonGEP::separateConstantChains(GepNode *Node,
     GepNode *N = *I;
     if (!(N->Flags & GepNode::Used))
       continue;
-    NodeToUsesMap::iterator UF = Uses.find(N);
+    NodeToUsesMap::iterator const UF = Uses.find(N);
     assert(UF != Uses.end());
     UseSet &Us = UF->second;
     // Loads/stores that use the node N.
@@ -1035,11 +1035,11 @@ void HexagonCommonGEP::separateConstantChains(GepNode *Node,
       // that the value may also be provided via GEP, but we won't handle
       // those cases here for now.
       if (LoadInst *Ld = dyn_cast<LoadInst>(R)) {
-        unsigned PtrX = LoadInst::getPointerOperandIndex();
+        unsigned const PtrX = LoadInst::getPointerOperandIndex();
         if (&Ld->getOperandUse(PtrX) == U)
           LSs.insert(U);
       } else if (StoreInst *St = dyn_cast<StoreInst>(R)) {
-        unsigned PtrX = StoreInst::getPointerOperandIndex();
+        unsigned const PtrX = StoreInst::getPointerOperandIndex();
         if (&St->getOperandUse(PtrX) == U)
           LSs.insert(U);
       }
@@ -1101,7 +1101,7 @@ Value *HexagonCommonGEP::fabricateGEP(NodeVect &NA, BasicBlock::iterator At,
   LLVM_DEBUG(dbgs() << "Fabricating GEP in " << LocB->getName()
                     << " for nodes:\n"
                     << NA);
-  unsigned Num = NA.size();
+  unsigned const Num = NA.size();
   GepNode *RN = NA[0];
   assert((RN->Flags & GepNode::Root) && "Creating GEP for non-root");
 
@@ -1149,17 +1149,17 @@ void HexagonCommonGEP::getAllUsersForNode(GepNode *Node, ValueVect &Values,
   Work.push_back(Node);
 
   while (!Work.empty()) {
-    NodeVect::iterator First = Work.begin();
+    NodeVect::iterator const First = Work.begin();
     GepNode *N = *First;
     Work.erase(First);
     if (N->Flags & GepNode::Used) {
-      NodeToUsesMap::iterator UF = Uses.find(N);
+      NodeToUsesMap::iterator const UF = Uses.find(N);
       assert(UF != Uses.end() && "No use information for used node");
       UseSet &Us = UF->second;
       for (UseSet::iterator I = Us.begin(), E = Us.end(); I != E; ++I)
         Values.push_back((*I)->getUser());
     }
-    NodeChildrenMap::iterator CF = NCM.find(N);
+    NodeChildrenMap::iterator const CF = NCM.find(N);
     if (CF != NCM.end()) {
       NodeVect &Cs = CF->second;
       llvm::append_range(Work, Cs);
@@ -1176,7 +1176,7 @@ void HexagonCommonGEP::materialize(NodeToValueMap &Loc) {
   invert_find_roots(Nodes, NCM, Roots);
 
   while (!Roots.empty()) {
-    NodeVect::iterator First = Roots.begin();
+    NodeVect::iterator const First = Roots.begin();
     GepNode *Root = *First, *Last = *First;
     Roots.erase(First);
 
@@ -1199,7 +1199,7 @@ void HexagonCommonGEP::materialize(NodeToValueMap &Loc) {
       LastUsed = (Last->Flags & GepNode::Used);
       if (LastUsed)
         break;
-      NodeChildrenMap::iterator CF = NCM.find(Last);
+      NodeChildrenMap::iterator const CF = NCM.find(Last);
       LastCN = (CF != NCM.end()) ? CF->second.size() : 0;
       if (LastCN != 1)
         break;
@@ -1214,7 +1214,7 @@ void HexagonCommonGEP::materialize(NodeToValueMap &Loc) {
     if (LastUsed || LastCN > 0) {
       ValueVect Urs;
       getAllUsersForNode(Root, Urs, NCM);
-      BasicBlock::iterator FirstUse = first_use_of_in_block(Urs, LastB);
+      BasicBlock::iterator const FirstUse = first_use_of_in_block(Urs, LastB);
       if (FirstUse != LastB->end())
         InsertAt = FirstUse;
     }
@@ -1238,7 +1238,7 @@ void HexagonCommonGEP::materialize(NodeToValueMap &Loc) {
     // Lastly, if the Last node was used, replace all uses with the new GEP.
     // The uses reference the original GEP values.
     if (LastUsed) {
-      NodeToUsesMap::iterator UF = Uses.find(Last);
+      NodeToUsesMap::iterator const UF = Uses.find(Last);
       assert(UF != Uses.end() && "No use information found");
       UseSet &Us = UF->second;
       for (UseSet::iterator I = Us.begin(), E = Us.end(); I != E; ++I) {

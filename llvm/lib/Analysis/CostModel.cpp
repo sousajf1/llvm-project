@@ -101,9 +101,9 @@ void CostModelAnalysis::print(raw_ostream &OS, const Module*) const {
   if (!F)
     return;
 
-  for (BasicBlock &B : *F) {
-    for (Instruction &Inst : B) {
-      InstructionCost Cost = TTI->getInstructionCost(&Inst, CostKind);
+  for (BasicBlock  const&B : *F) {
+    for (Instruction  const&Inst : B) {
+      InstructionCost const Cost = TTI->getInstructionCost(&Inst, CostKind);
       if (auto CostVal = Cost.getValue())
         OS << "Cost Model: Found an estimated cost of " << *CostVal;
       else

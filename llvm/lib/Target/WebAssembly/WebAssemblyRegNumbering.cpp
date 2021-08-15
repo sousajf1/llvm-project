@@ -75,7 +75,7 @@ bool WebAssemblyRegNumbering::runOnMachineFunction(MachineFunction &MF) {
     if (!WebAssembly::isArgument(MI.getOpcode()))
       break;
 
-    int64_t Imm = MI.getOperand(1).getImm();
+    int64_t const Imm = MI.getOperand(1).getImm();
     LLVM_DEBUG(dbgs() << "Arg VReg " << MI.getOperand(0).getReg()
                       << " -> WAReg " << Imm << "\n");
     MFI.setWAReg(MI.getOperand(0).getReg(), Imm);
@@ -84,12 +84,12 @@ bool WebAssemblyRegNumbering::runOnMachineFunction(MachineFunction &MF) {
   // Then assign regular WebAssembly registers for all remaining used
   // virtual registers. TODO: Consider sorting the registers by frequency of
   // use, to maximize usage of small immediate fields.
-  unsigned NumVRegs = MF.getRegInfo().getNumVirtRegs();
+  unsigned const NumVRegs = MF.getRegInfo().getNumVirtRegs();
   unsigned NumStackRegs = 0;
   // Start the numbering for locals after the arg regs
   unsigned CurReg = MFI.getParams().size();
   for (unsigned VRegIdx = 0; VRegIdx < NumVRegs; ++VRegIdx) {
-    unsigned VReg = Register::index2VirtReg(VRegIdx);
+    unsigned const VReg = Register::index2VirtReg(VRegIdx);
     // Skip unused registers.
     if (MRI.use_empty(VReg))
       continue;

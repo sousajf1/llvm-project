@@ -102,7 +102,7 @@ LLVMContextImpl::~LLVMContextImpl() {
   // Destroy attribute node lists.
   for (FoldingSetIterator<AttributeSetNode> I = AttrsSetNodes.begin(),
          E = AttrsSetNodes.end(); I != E; ) {
-    FoldingSetIterator<AttributeSetNode> Elem = I++;
+    FoldingSetIterator<AttributeSetNode> const Elem = I++;
     delete &*Elem;
   }
 
@@ -169,11 +169,11 @@ static const Metadata *get_hashable_data(const MDOperand &X) { return X.get(); }
 } // end namespace llvm
 
 unsigned MDNodeOpsKey::calculateHash(MDNode *N, unsigned Offset) {
-  unsigned Hash = hash_combine_range(N->op_begin() + Offset, N->op_end());
+  unsigned const Hash = hash_combine_range(N->op_begin() + Offset, N->op_end());
 #ifndef NDEBUG
   {
-    SmallVector<Metadata *, 8> MDs(drop_begin(N->operands(), Offset));
-    unsigned RawHash = calculateHash(MDs);
+    SmallVector<Metadata *, 8> const MDs(drop_begin(N->operands(), Offset));
+    unsigned const RawHash = calculateHash(MDs);
     assert(Hash == RawHash &&
            "Expected hash of MDOperand to equal hash of Metadata*");
   }
@@ -186,7 +186,7 @@ unsigned MDNodeOpsKey::calculateHash(ArrayRef<Metadata *> Ops) {
 }
 
 StringMapEntry<uint32_t> *LLVMContextImpl::getOrInsertBundleTag(StringRef Tag) {
-  uint32_t NewIdx = BundleTagCache.size();
+  uint32_t const NewIdx = BundleTagCache.size();
   return &*(BundleTagCache.insert(std::make_pair(Tag, NewIdx)).first);
 }
 

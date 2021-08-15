@@ -32,7 +32,7 @@ ContextTrieNode *ContextTrieNode::getChildContext(const LineLocation &CallSite,
   if (CalleeName.empty())
     return getHottestChildContext(CallSite);
 
-  uint32_t Hash = nodeHash(CalleeName, CallSite);
+  uint32_t const Hash = nodeHash(CalleeName, CallSite);
   auto It = AllChildContext.find(Hash);
   if (It != AllChildContext.end())
     return &It->second;
@@ -65,9 +65,9 @@ ContextTrieNode::getHottestChildContext(const LineLocation &CallSite) {
 ContextTrieNode &ContextTrieNode::moveToChildContext(
     const LineLocation &CallSite, ContextTrieNode &&NodeToMove,
     StringRef ContextStrToRemove, bool DeleteNode) {
-  uint32_t Hash = nodeHash(NodeToMove.getFuncName(), CallSite);
+  uint32_t const Hash = nodeHash(NodeToMove.getFuncName(), CallSite);
   assert(!AllChildContext.count(Hash) && "Node to remove must exist");
-  LineLocation OldCallSite = NodeToMove.CallSiteLoc;
+  LineLocation const OldCallSite = NodeToMove.CallSiteLoc;
   ContextTrieNode &OldParentContext = *NodeToMove.getParentContext();
   AllChildContext[Hash] = NodeToMove;
   ContextTrieNode &NewNode = AllChildContext[Hash];
@@ -108,7 +108,7 @@ ContextTrieNode &ContextTrieNode::moveToChildContext(
 
 void ContextTrieNode::removeChildContext(const LineLocation &CallSite,
                                          StringRef CalleeName) {
-  uint32_t Hash = nodeHash(CalleeName, CallSite);
+  uint32_t const Hash = nodeHash(CalleeName, CallSite);
   // Note this essentially calls dtor and destroys that child context
   AllChildContext.erase(Hash);
 }
@@ -153,14 +153,14 @@ uint32_t ContextTrieNode::nodeHash(StringRef ChildName,
   // because for children of root node, we don't have
   // different line/discriminator, and we'll rely on name
   // to differentiate children.
-  uint32_t NameHash = std::hash<std::string>{}(ChildName.str());
-  uint32_t LocId = (Callsite.LineOffset << 16) | Callsite.Discriminator;
+  uint32_t const NameHash = std::hash<std::string>{}(ChildName.str());
+  uint32_t const LocId = (Callsite.LineOffset << 16) | Callsite.Discriminator;
   return NameHash + (LocId << 5) + LocId;
 }
 
 ContextTrieNode *ContextTrieNode::getOrCreateChildContext(
     const LineLocation &CallSite, StringRef CalleeName, bool AllowCreate) {
-  uint32_t Hash = nodeHash(CalleeName, CallSite);
+  uint32_t const Hash = nodeHash(CalleeName, CallSite);
   auto It = AllChildContext.find(Hash);
   if (It != AllChildContext.end()) {
     assert(It->second.getFuncName() == CalleeName &&
@@ -180,7 +180,7 @@ SampleContextTracker::SampleContextTracker(
     StringMap<FunctionSamples> &Profiles) {
   for (auto &FuncSample : Profiles) {
     FunctionSamples *FSamples = &FuncSample.second;
-    SampleContext Context(FuncSample.first(), RawContext);
+    SampleContext const Context(FuncSample.first(), RawContext);
     LLVM_DEBUG(dbgs() << "Tracking Context for function: " << Context << "\n");
     if (!Context.isBaseContext())
       FuncToCtxtProfiles[Context.getNameWithoutContext()].push_back(FSamples);
@@ -223,9 +223,9 @@ SampleContextTracker::getIndirectCalleeContextSamplesFor(
     return R;
 
   ContextTrieNode *CallerNode = getContextFor(DIL);
-  LineLocation CallSite = FunctionSamples::getCallSiteIdentifier(DIL);
+  LineLocation const CallSite = FunctionSamples::getCallSiteIdentifier(DIL);
   for (auto &It : CallerNode->getAllChildContext()) {
-    ContextTrieNode &ChildNode = It.second;
+    ContextTrieNode  const&ChildNode = It.second;
     if (ChildNode.getCallSiteLoc() != CallSite)
       continue;
     if (FunctionSamples *CalleeSamples = ChildNode.getFunctionSamples())
@@ -267,7 +267,7 @@ SampleContextTracker::getContextSamplesFor(const SampleContext &Context) {
 
 SampleContextTracker::ContextSamplesTy &
 SampleContextTracker::getAllContextSamplesFor(const Function &Func) {
-  StringRef CanonName = FunctionSamples::getCanonicalFnName(Func);
+  StringRef const CanonName = FunctionSamples::getCanonicalFnName(Func);
   return FuncToCtxtProfiles[CanonName];
 }
 
@@ -278,7 +278,7 @@ SampleContextTracker::getAllContextSamplesFor(StringRef Name) {
 
 FunctionSamples *SampleContextTracker::getBaseSamplesFor(const Function &Func,
                                                          bool MergeContext) {
-  StringRef CanonName = FunctionSamples::getCanonicalFnName(Func);
+  StringRef const CanonName = FunctionSamples::getCanonicalFnName(Func);
   return getBaseSamplesFor(CanonName, MergeContext);
 }
 
@@ -342,7 +342,7 @@ void SampleContextTracker::promoteMergeContextSamplesTree(
     return;
 
   // Get the context that needs to be promoted
-  LineLocation CallSite = FunctionSamples::getCallSiteIdentifier(DIL);
+  LineLocation const CallSite = FunctionSamples::getCallSiteIdentifier(DIL);
   // For indirect call, CalleeName will be empty, in which case we need to
   // promote all non-inlined child context profiles.
   if (CalleeName.empty()) {
@@ -380,7 +380,7 @@ ContextTrieNode &SampleContextTracker::promoteMergeContextSamplesTree(
 
   assert(!FromSamples->getContext().hasState(InlinedContext) &&
          "Shouldn't promote inlined context profile");
-  StringRef ContextStrToRemove = FromSamples->getContext().getCallingContext();
+  StringRef const ContextStrToRemove = FromSamples->getContext().getCallingContext();
   return promoteMergeContextSamplesTree(NodeToPromo, RootContext,
                                         ContextStrToRemove);
 }
@@ -447,8 +447,8 @@ ContextTrieNode *SampleContextTracker::getContextFor(const DILocation *DIL) {
   ContextTrieNode *ContextNode = &RootContext;
   int I = S.size();
   while (--I >= 0 && ContextNode) {
-    LineLocation &CallSite = S[I].first;
-    StringRef &CalleeName = S[I].second;
+    LineLocation  const&CallSite = S[I].first;
+    StringRef  const&CalleeName = S[I].second;
     ContextNode = ContextNode->getChildContext(CallSite, CalleeName);
   }
 
@@ -526,10 +526,10 @@ ContextTrieNode &SampleContextTracker::promoteMergeContextSamplesTree(
 
   // Ignore call site location if destination is top level under root
   LineLocation NewCallSiteLoc = LineLocation(0, 0);
-  LineLocation OldCallSiteLoc = FromNode.getCallSiteLoc();
+  LineLocation const OldCallSiteLoc = FromNode.getCallSiteLoc();
   ContextTrieNode &FromNodeParent = *FromNode.getParentContext();
   ContextTrieNode *ToNode = nullptr;
-  bool MoveToRoot = (&ToNodeParent == &RootContext);
+  bool const MoveToRoot = (&ToNodeParent == &RootContext);
   if (!MoveToRoot) {
     NewCallSiteLoc = OldCallSiteLoc;
   }

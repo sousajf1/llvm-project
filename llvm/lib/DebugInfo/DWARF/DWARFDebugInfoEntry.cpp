@@ -34,7 +34,7 @@ bool DWARFDebugInfoEntry::extractFast(const DWARFUnit &U, uint64_t *OffsetPtr,
     return false;
   }
   assert(DebugInfoData.isValidOffset(UEndOffset - 1));
-  uint64_t AbbrCode = DebugInfoData.getULEB128(OffsetPtr);
+  uint64_t const AbbrCode = DebugInfoData.getULEB128(OffsetPtr);
   if (0 == AbbrCode) {
     // NULL debug tag entry.
     AbbrevDecl = nullptr;

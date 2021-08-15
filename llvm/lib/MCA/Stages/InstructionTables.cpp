@@ -29,14 +29,14 @@ Error InstructionTables::execute(InstRef &IR) {
     // Skip zero-cycle resources (i.e., unused resources).
     if (!Resource.second.size())
       continue;
-    unsigned Cycles = Resource.second.size();
-    unsigned Index = std::distance(Masks.begin(), find(Masks, Resource.first));
+    unsigned const Cycles = Resource.second.size();
+    unsigned const Index = std::distance(Masks.begin(), find(Masks, Resource.first));
     const MCProcResourceDesc &ProcResource = *SM.getProcResource(Index);
-    unsigned NumUnits = ProcResource.NumUnits;
+    unsigned const NumUnits = ProcResource.NumUnits;
     if (!ProcResource.SubUnitsIdxBegin) {
       // The number of cycles consumed by each unit.
       for (unsigned I = 0, E = NumUnits; I < E; ++I) {
-        ResourceRef ResourceUnit = std::make_pair(Index, 1U << I);
+        ResourceRef const ResourceUnit = std::make_pair(Index, 1U << I);
         UsedResources.emplace_back(
             std::make_pair(ResourceUnit, ResourceCycles(Cycles, NumUnits)));
       }
@@ -47,11 +47,11 @@ Error InstructionTables::execute(InstRef &IR) {
     // group. Some of these resources may implement multiple units.
     // Uniformly distribute Cycles across all of the units.
     for (unsigned I1 = 0; I1 < NumUnits; ++I1) {
-      unsigned SubUnitIdx = ProcResource.SubUnitsIdxBegin[I1];
+      unsigned const SubUnitIdx = ProcResource.SubUnitsIdxBegin[I1];
       const MCProcResourceDesc &SubUnit = *SM.getProcResource(SubUnitIdx);
       // Compute the number of cycles consumed by each resource unit.
       for (unsigned I2 = 0, E2 = SubUnit.NumUnits; I2 < E2; ++I2) {
-        ResourceRef ResourceUnit = std::make_pair(SubUnitIdx, 1U << I2);
+        ResourceRef const ResourceUnit = std::make_pair(SubUnitIdx, 1U << I2);
         UsedResources.emplace_back(std::make_pair(
             ResourceUnit, ResourceCycles(Cycles, NumUnits * SubUnit.NumUnits)));
       }
@@ -59,7 +59,7 @@ Error InstructionTables::execute(InstRef &IR) {
   }
 
   // Send a fake instruction issued event to all the views.
-  HWInstructionIssuedEvent Event(IR, UsedResources);
+  HWInstructionIssuedEvent const Event(IR, UsedResources);
   notifyEvent<HWInstructionIssuedEvent>(Event);
   return ErrorSuccess();
 }

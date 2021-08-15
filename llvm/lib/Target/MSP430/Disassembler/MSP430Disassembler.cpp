@@ -76,7 +76,7 @@ static DecodeStatus DecodeGR8RegisterClass(MCInst &MI, uint64_t RegNo,
   if (RegNo > 15)
     return MCDisassembler::Fail;
 
-  unsigned Reg = GR8DecoderTable[RegNo];
+  unsigned const Reg = GR8DecoderTable[RegNo];
   MI.addOperand(MCOperand::createReg(Reg));
   return MCDisassembler::Success;
 }
@@ -94,7 +94,7 @@ static DecodeStatus DecodeGR16RegisterClass(MCInst &MI, uint64_t RegNo,
   if (RegNo > 15)
     return MCDisassembler::Fail;
 
-  unsigned Reg = GR16DecoderTable[RegNo];
+  unsigned const Reg = GR16DecoderTable[RegNo];
   MI.addOperand(MCOperand::createReg(Reg));
   return MCDisassembler::Success;
 }
@@ -128,8 +128,8 @@ static DecodeStatus DecodeCGImm(MCInst &MI, uint64_t Bits, uint64_t Address,
 static DecodeStatus DecodeMemOperand(MCInst &MI, uint64_t Bits,
                                      uint64_t Address,
                                      const void *Decoder) {
-  unsigned Reg = Bits & 15;
-  unsigned Imm = Bits >> 4;
+  unsigned const Reg = Bits & 15;
+  unsigned const Imm = Bits >> 4;
 
   if (DecodeGR16RegisterClass(MI, Reg, Address, Decoder) !=
       MCDisassembler::Success)
@@ -179,20 +179,20 @@ static AddrMode DecodeSrcAddrMode(unsigned Rs, unsigned As) {
 }
 
 static AddrMode DecodeSrcAddrModeI(unsigned Insn) {
-  unsigned Rs = fieldFromInstruction(Insn, 8, 4);
-  unsigned As = fieldFromInstruction(Insn, 4, 2);
+  unsigned const Rs = fieldFromInstruction(Insn, 8, 4);
+  unsigned const As = fieldFromInstruction(Insn, 4, 2);
   return DecodeSrcAddrMode(Rs, As);
 }
 
 static AddrMode DecodeSrcAddrModeII(unsigned Insn) {
-  unsigned Rs = fieldFromInstruction(Insn, 0, 4);
-  unsigned As = fieldFromInstruction(Insn, 4, 2);
+  unsigned const Rs = fieldFromInstruction(Insn, 0, 4);
+  unsigned const As = fieldFromInstruction(Insn, 4, 2);
   return DecodeSrcAddrMode(Rs, As);
 }
 
 static AddrMode DecodeDstAddrMode(unsigned Insn) {
-  unsigned Rd = fieldFromInstruction(Insn, 0, 4);
-  unsigned Ad = fieldFromInstruction(Insn, 7, 1);
+  unsigned const Rd = fieldFromInstruction(Insn, 0, 4);
+  unsigned const Ad = fieldFromInstruction(Insn, 7, 1);
   switch (Rd) {
   case 0: return Ad ? amSymbolic : amRegister;
   case 2: return Ad ? amAbsolute : amRegister;
@@ -231,8 +231,8 @@ DecodeStatus MSP430Disassembler::getInstructionI(MCInst &MI, uint64_t &Size,
                                                  uint64_t Address,
                                                  raw_ostream &CStream) const {
   uint64_t Insn = support::endian::read16le(Bytes.data());
-  AddrMode SrcAM = DecodeSrcAddrModeI(Insn);
-  AddrMode DstAM = DecodeDstAddrMode(Insn);
+  AddrMode const SrcAM = DecodeSrcAddrModeI(Insn);
+  AddrMode const DstAM = DecodeDstAddrMode(Insn);
   if (SrcAM == amInvalid || DstAM == amInvalid) {
     Size = 2; // skip one word and let disassembler to try further
     return MCDisassembler::Fail;
@@ -270,7 +270,7 @@ DecodeStatus MSP430Disassembler::getInstructionI(MCInst &MI, uint64_t &Size,
     break;
   }
 
-  DecodeStatus Result = decodeInstruction(getDecoderTable(SrcAM, Words), MI,
+  DecodeStatus const Result = decodeInstruction(getDecoderTable(SrcAM, Words), MI,
                                           Insn, Address, this, STI);
   if (Result != MCDisassembler::Fail) {
     Size = Words * 2;
@@ -286,7 +286,7 @@ DecodeStatus MSP430Disassembler::getInstructionII(MCInst &MI, uint64_t &Size,
                                                   uint64_t Address,
                                                   raw_ostream &CStream) const {
   uint64_t Insn = support::endian::read16le(Bytes.data());
-  AddrMode SrcAM = DecodeSrcAddrModeII(Insn);
+  AddrMode const SrcAM = DecodeSrcAddrModeII(Insn);
   if (SrcAM == amInvalid) {
     Size = 2; // skip one word and let disassembler to try further
     return MCDisassembler::Fail;
@@ -310,7 +310,7 @@ DecodeStatus MSP430Disassembler::getInstructionII(MCInst &MI, uint64_t &Size,
   }
 
   const uint8_t *DecoderTable = Words == 2 ? DecoderTable32 : DecoderTable16;
-  DecodeStatus Result = decodeInstruction(DecoderTable, MI, Insn, Address,
+  DecodeStatus const Result = decodeInstruction(DecoderTable, MI, Insn, Address,
                                           this, STI);
   if (Result != MCDisassembler::Fail) {
     Size = Words * 2;
@@ -340,9 +340,9 @@ DecodeStatus MSP430Disassembler::getInstructionCJ(MCInst &MI, uint64_t &Size,
                                                   ArrayRef<uint8_t> Bytes,
                                                   uint64_t Address,
                                                   raw_ostream &CStream) const {
-  uint64_t Insn = support::endian::read16le(Bytes.data());
-  unsigned Cond = fieldFromInstruction(Insn, 10, 3);
-  unsigned Offset = fieldFromInstruction(Insn, 0, 10);
+  uint64_t const Insn = support::endian::read16le(Bytes.data());
+  unsigned const Cond = fieldFromInstruction(Insn, 10, 3);
+  unsigned const Offset = fieldFromInstruction(Insn, 0, 10);
 
   MI.addOperand(MCOperand::createImm(SignExtend32(Offset, 10)));
 
@@ -366,8 +366,8 @@ DecodeStatus MSP430Disassembler::getInstruction(MCInst &MI, uint64_t &Size,
     return MCDisassembler::Fail;
   }
 
-  uint64_t Insn = support::endian::read16le(Bytes.data());
-  unsigned Opc = fieldFromInstruction(Insn, 13, 3);
+  uint64_t const Insn = support::endian::read16le(Bytes.data());
+  unsigned const Opc = fieldFromInstruction(Insn, 13, 3);
   switch (Opc) {
   case 0:
     return getInstructionII(MI, Size, Bytes, Address, CStream);

@@ -62,10 +62,10 @@ bool InOrderIssueStage::isAvailable(const InstRef &IR) const {
     return false;
 
   const Instruction &Inst = *IR.getInstruction();
-  unsigned NumMicroOps = Inst.getNumMicroOps();
+  unsigned const NumMicroOps = Inst.getNumMicroOps();
   const InstrDesc &Desc = Inst.getDesc();
 
-  bool ShouldCarryOver = NumMicroOps > getIssueWidth();
+  bool const ShouldCarryOver = NumMicroOps > getIssueWidth();
   if (Bandwidth < NumMicroOps && !ShouldCarryOver)
     return false;
 
@@ -105,7 +105,7 @@ static unsigned checkRegisterHazard(const RegisterFile &PRF,
                                     const MCSubtargetInfo &STI,
                                     const InstRef &IR) {
   for (const ReadState &RS : IR.getInstruction()->getUses()) {
-    RegisterFile::RAWHazard Hazard = PRF.checkRAWHazards(STI, RS);
+    RegisterFile::RAWHazard const Hazard = PRF.checkRAWHazards(STI, RS);
     if (Hazard.isValid())
       return Hazard.hasUnknownCycles() ? 1U : Hazard.CyclesLeft;
   }
@@ -117,7 +117,7 @@ bool InOrderIssueStage::canExecute(const InstRef &IR) {
   assert(!SI.getCyclesLeft() && "Should not have reached this code!");
   assert(!SI.isValid() && "Should not have reached this code!");
 
-  if (unsigned Cycles = checkRegisterHazard(PRF, STI, IR)) {
+  if (unsigned const Cycles = checkRegisterHazard(PRF, STI, IR)) {
     SI.update(IR, Cycles, StallInfo::StallKind::REGISTER_DEPS);
     return false;
   }
@@ -134,14 +134,14 @@ bool InOrderIssueStage::canExecute(const InstRef &IR) {
     return false;
   }
 
-  if (unsigned CustomStallCycles = CB.checkCustomHazard(IssuedInst, IR)) {
+  if (unsigned const CustomStallCycles = CB.checkCustomHazard(IssuedInst, IR)) {
     SI.update(IR, CustomStallCycles, StallInfo::StallKind::CUSTOM_STALL);
     return false;
   }
 
   if (LastWriteBackCycle) {
     if (!IR.getInstruction()->getDesc().RetireOOO) {
-      unsigned NextWriteBackCycle = findFirstWriteBackCycle(IR);
+      unsigned const NextWriteBackCycle = findFirstWriteBackCycle(IR);
       // Delay the instruction to ensure that writes happen in program order.
       if (NextWriteBackCycle < LastWriteBackCycle) {
         SI.update(IR, LastWriteBackCycle - NextWriteBackCycle,
@@ -212,7 +212,7 @@ llvm::Error InOrderIssueStage::execute(InstRef &IR) {
 
 llvm::Error InOrderIssueStage::tryIssue(InstRef &IR) {
   Instruction &IS = *IR.getInstruction();
-  unsigned SourceIndex = IR.getSourceIndex();
+  unsigned const SourceIndex = IR.getSourceIndex();
   const InstrDesc &Desc = IS.getDesc();
 
   if (!canExecute(IR)) {
@@ -222,13 +222,13 @@ llvm::Error InOrderIssueStage::tryIssue(InstRef &IR) {
     return llvm::ErrorSuccess();
   }
 
-  unsigned RCUTokenID = RetireControlUnit::UnhandledTokenID;
+  unsigned const RCUTokenID = RetireControlUnit::UnhandledTokenID;
   IS.dispatch(RCUTokenID);
 
   SmallVector<unsigned, 4> UsedRegs(PRF.getNumRegisterFiles());
   addRegisterReadWrite(PRF, IS, SourceIndex, STI, UsedRegs);
 
-  unsigned NumMicroOps = IS.getNumMicroOps();
+  unsigned const NumMicroOps = IS.getNumMicroOps();
   notifyInstructionDispatched(IR, NumMicroOps, UsedRegs);
 
   SmallVector<ResourceUse, 4> UsedResources;
@@ -240,12 +240,12 @@ llvm::Error InOrderIssueStage::tryIssue(InstRef &IR) {
 
   // Replace resource masks with valid resource processor IDs.
   for (ResourceUse &Use : UsedResources) {
-    uint64_t Mask = Use.first.first;
+    uint64_t const Mask = Use.first.first;
     Use.first.first = RM.resolveResourceMask(Mask);
   }
   notifyInstructionIssued(IR, UsedResources);
 
-  bool ShouldCarryOver = NumMicroOps > Bandwidth;
+  bool const ShouldCarryOver = NumMicroOps > Bandwidth;
   if (ShouldCarryOver) {
     CarryOver = NumMicroOps - Bandwidth;
     CarriedOver = IR;

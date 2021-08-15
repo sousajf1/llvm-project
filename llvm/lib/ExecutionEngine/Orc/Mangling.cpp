@@ -90,7 +90,7 @@ getObjectSymbolInfo(ExecutionSession &ES, MemoryBufferRef ObjBuffer) {
   if (!Obj)
     return Obj.takeError();
 
-  bool IsMachO = isa<object::MachOObjectFile>(Obj->get());
+  bool const IsMachO = isa<object::MachOObjectFile>(Obj->get());
 
   SymbolFlagsMap SymbolFlags;
   for (auto &Sym : (*Obj)->symbols()) {

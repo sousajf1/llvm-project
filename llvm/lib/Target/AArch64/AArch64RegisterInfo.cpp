@@ -213,7 +213,7 @@ AArch64RegisterInfo::getDarwinCallPreservedMask(const MachineFunction &MF,
 const uint32_t *
 AArch64RegisterInfo::getCallPreservedMask(const MachineFunction &MF,
                                           CallingConv::ID CC) const {
-  bool SCS = MF.getFunction().hasFnAttribute(Attribute::ShadowCallStack);
+  bool const SCS = MF.getFunction().hasFnAttribute(Attribute::ShadowCallStack);
   if (CC == CallingConv::GHC)
     // This is academic because all GHC calls are (supposed to be) tail calls
     return SCS ? CSR_AArch64_NoRegs_SCS_RegMask : CSR_AArch64_NoRegs_RegMask;
@@ -270,7 +270,7 @@ const uint32_t *AArch64RegisterInfo::getTLSCallPreservedMask() const {
 void AArch64RegisterInfo::UpdateCustomCallPreservedMask(MachineFunction &MF,
                                                  const uint32_t **Mask) const {
   uint32_t *UpdatedMask = MF.allocateRegMask();
-  unsigned RegMaskSize = MachineOperand::getRegMaskSize(getNumRegs());
+  unsigned const RegMaskSize = MachineOperand::getRegMaskSize(getNumRegs());
   memcpy(UpdatedMask, *Mask, sizeof(UpdatedMask[0]) * RegMaskSize);
 
   for (size_t i = 0; i < AArch64::GPR64commonRegClass.getNumRegs(); ++i) {
@@ -493,12 +493,12 @@ bool AArch64RegisterInfo::needsFrameBaseReg(MachineInstr *MI,
   // so it'll be negative.
   MachineFunction &MF = *MI->getParent()->getParent();
   const AArch64FrameLowering *TFI = getFrameLowering(MF);
-  MachineFrameInfo &MFI = MF.getFrameInfo();
+  MachineFrameInfo  const&MFI = MF.getFrameInfo();
 
   // Estimate an offset from the frame pointer.
   // Conservatively assume all GPR callee-saved registers get pushed.
   // FP, LR, X19-X28, D8-D15. 64-bits each.
-  int64_t FPOffset = Offset - 16 * 20;
+  int64_t const FPOffset = Offset - 16 * 20;
   // Estimate an offset from the stack pointer.
   // The incoming offset is relating to the SP at the start of the function,
   // but when we access the local it'll be relative to the SP after local
@@ -546,7 +546,7 @@ Register
 AArch64RegisterInfo::materializeFrameBaseRegister(MachineBasicBlock *MBB,
                                                   int FrameIdx,
                                                   int64_t Offset) const {
-  MachineBasicBlock::iterator Ins = MBB->begin();
+  MachineBasicBlock::iterator const Ins = MBB->begin();
   DebugLoc DL; // Defaults to "unknown"
   if (Ins != MBB->end())
     DL = Ins->getDebugLoc();
@@ -557,7 +557,7 @@ AArch64RegisterInfo::materializeFrameBaseRegister(MachineBasicBlock *MBB,
   MachineRegisterInfo &MRI = MBB->getParent()->getRegInfo();
   Register BaseReg = MRI.createVirtualRegister(&AArch64::GPR64spRegClass);
   MRI.constrainRegClass(BaseReg, TII->getRegClass(MCID, 0, this, MF));
-  unsigned Shifter = AArch64_AM::getShifterImm(AArch64_AM::LSL, 0);
+  unsigned const Shifter = AArch64_AM::getShifterImm(AArch64_AM::LSL, 0);
 
   BuildMI(*MBB, Ins, DL, MCID, BaseReg)
       .addFrameIndex(FrameIdx)
@@ -581,7 +581,7 @@ void AArch64RegisterInfo::resolveFrameIndex(MachineInstr &MI, Register BaseReg,
   const MachineFunction *MF = MI.getParent()->getParent();
   const AArch64InstrInfo *TII =
       MF->getSubtarget<AArch64Subtarget>().getInstrInfo();
-  bool Done = rewriteAArch64FrameIndex(MI, i, BaseReg, Off, TII);
+  bool const Done = rewriteAArch64FrameIndex(MI, i, BaseReg, Off, TII);
   assert(Done && "Unable to resolve frame index!");
   (void)Done;
 }
@@ -617,8 +617,8 @@ void AArch64RegisterInfo::getOffsetOpcodes(
   // Add fixed-sized offset using existing DIExpression interface.
   DIExpression::appendOffset(Ops, Offset.getFixed());
 
-  unsigned VG = getDwarfRegNum(AArch64::VG, true);
-  int64_t VGSized = Offset.getScalable() / 2;
+  unsigned const VG = getDwarfRegNum(AArch64::VG, true);
+  int64_t const VGSized = Offset.getScalable() / 2;
   if (VGSized > 0) {
     Ops.push_back(dwarf::DW_OP_constu);
     Ops.push_back(VGSized);
@@ -646,8 +646,8 @@ void AArch64RegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
   const AArch64InstrInfo *TII =
       MF.getSubtarget<AArch64Subtarget>().getInstrInfo();
   const AArch64FrameLowering *TFI = getFrameLowering(MF);
-  int FrameIndex = MI.getOperand(FIOperandNum).getIndex();
-  bool Tagged =
+  int const FrameIndex = MI.getOperand(FIOperandNum).getIndex();
+  bool const Tagged =
       MI.getOperand(FIOperandNum).getTargetFlags() & AArch64II::MO_TAGGED;
   Register FrameReg;
 
@@ -667,7 +667,7 @@ void AArch64RegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
 
   if (MI.getOpcode() == TargetOpcode::LOCAL_ESCAPE) {
     MachineOperand &FI = MI.getOperand(FIOperandNum);
-    StackOffset Offset = TFI->getNonLocalFrameIndexReference(MF, FrameIndex);
+    StackOffset const Offset = TFI->getNonLocalFrameIndexReference(MF, FrameIndex);
     assert(!Offset.getScalable() &&
            "Frame offsets with a scalable component are not supported");
     FI.ChangeToImmediate(Offset.getFixed());
@@ -691,7 +691,7 @@ void AArch64RegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
       // in a scratch register.
       Offset = TFI->resolveFrameIndexReference(
           MF, FrameIndex, FrameReg, /*PreferFP=*/false, /*ForSimm=*/true);
-      Register ScratchReg =
+      Register const ScratchReg =
           MF.getRegInfo().createVirtualRegister(&AArch64::GPR64RegClass);
       emitFrameOffset(MBB, II, MI.getDebugLoc(), ScratchReg, FrameReg, Offset,
                       TII);
@@ -721,7 +721,7 @@ void AArch64RegisterInfo::eliminateFrameIndex(MachineBasicBlock::iterator II,
   // If we get here, the immediate doesn't fit into the instruction.  We folded
   // as much as possible above.  Handle the rest, providing a register that is
   // SP+LargeImm.
-  Register ScratchReg = createScratchRegisterForInstruction(MI, TII);
+  Register const ScratchReg = createScratchRegisterForInstruction(MI, TII);
   emitFrameOffset(MBB, II, MI.getDebugLoc(), ScratchReg, FrameReg, Offset, TII);
   MI.getOperand(FIOperandNum).ChangeToRegister(ScratchReg, false, false, true);
 }

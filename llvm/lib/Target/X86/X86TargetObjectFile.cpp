@@ -45,7 +45,7 @@ const MCExpr *X86_64MachoTargetObjectFile::getIndirectSymViaGOTPCRel(
   // On Darwin/X86-64, we need to use foo@GOTPCREL+4 to access the got entry
   // from a data section. In case there's an additional offset, then use
   // foo@GOTPCREL+4+<offset>.
-  unsigned FinalOff = Offset+MV.getConstant()+4;
+  unsigned const FinalOff = Offset+MV.getConstant()+4;
   const MCExpr *Res =
     MCSymbolRefExpr::create(Sym, MCSymbolRefExpr::VK_GOTPCREL, getContext());
   const MCExpr *Off = MCConstantExpr::create(FinalOff, getContext());

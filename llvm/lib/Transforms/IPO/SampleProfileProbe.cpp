@@ -80,7 +80,7 @@ bool PseudoProbeVerifier::shouldVerifyFunction(const Function *F) {
   if (F->hasAvailableExternallyLinkage())
     return false;
   // Do a name matching.
-  static std::unordered_set<std::string> VerifyFuncNames(
+  static std::unordered_set<std::string> const VerifyFuncNames(
       VerifyPseudoProbeFuncList.begin(), VerifyPseudoProbeFuncList.end());
   return VerifyFuncNames.empty() || VerifyFuncNames.count(F->getName().str());
 }
@@ -96,7 +96,7 @@ void PseudoProbeVerifier::registerCallbacks(PassInstrumentationCallbacks &PIC) {
 
 // Callback to run after each transformation for the new pass manager.
 void PseudoProbeVerifier::runAfterPass(StringRef PassID, Any IR) {
-  std::string Banner =
+  std::string const Banner =
       "\n*** Pseudo Probe Verification After " + PassID.str() + " ***\n";
   dbgs() << Banner;
   if (any_isa<const Module *>(IR))
@@ -139,7 +139,7 @@ void PseudoProbeVerifier::collectProbeFactors(const BasicBlock *Block,
                                               ProbeFactorMap &ProbeFactors) {
   for (const auto &I : *Block) {
     if (Optional<PseudoProbe> Probe = extractProbe(I)) {
-      uint64_t Hash = computeCallStackHash(I);
+      uint64_t const Hash = computeCallStackHash(I);
       ProbeFactors[{Probe->Id, Hash}] += Probe->Factor;
     }
   }
@@ -150,9 +150,9 @@ void PseudoProbeVerifier::verifyProbeFactors(
   bool BannerPrinted = false;
   auto &PrevProbeFactors = FunctionProbeFactors[F->getName()];
   for (const auto &I : ProbeFactors) {
-    float CurProbeFactor = I.second;
+    float const CurProbeFactor = I.second;
     if (PrevProbeFactors.count(I.first)) {
-      float PrevProbeFactor = PrevProbeFactors[I.first];
+      float const PrevProbeFactor = PrevProbeFactors[I.first];
       if (std::abs(CurProbeFactor - PrevProbeFactor) >
           DistributionFactorVariance) {
         if (!BannerPrinted) {
@@ -286,7 +286,7 @@ void SampleProfileProber::instrumentOneFunc(Function &F, TargetMachine *TM) {
   MDBuilder MDB(F.getContext());
   // Compute a GUID without considering the function's linkage type. This is
   // fine since function name is the only key in the profile database.
-  uint64_t Guid = Function::getGUID(F.getName());
+  uint64_t const Guid = Function::getGUID(F.getName());
 
   // Assign an artificial debug line to a probe that doesn't come with a real
   // line. A probe not having a debug line will get an incomplete inline
@@ -313,7 +313,7 @@ void SampleProfileProber::instrumentOneFunc(Function &F, TargetMachine *TM) {
   // Probe basic blocks.
   for (auto &I : BlockProbeIds) {
     BasicBlock *BB = I.first;
-    uint32_t Index = I.second;
+    uint32_t const Index = I.second;
     // Insert a probe before an instruction with a valid debug line number which
     // will be assigned to the probe. The line number will be used later to
     // model the inline context when the probe is inlined into other functions.
@@ -335,7 +335,7 @@ void SampleProfileProber::instrumentOneFunc(Function &F, TargetMachine *TM) {
            "Cannot get the probing point");
     Function *ProbeFn =
         llvm::Intrinsic::getDeclaration(M, Intrinsic::pseudoprobe);
-    Value *Args[] = {Builder.getInt64(Guid), Builder.getInt64(Index),
+    Value *const Args[] = {Builder.getInt64(Guid), Builder.getInt64(Index),
                      Builder.getInt32(0),
                      Builder.getInt64(PseudoProbeFullDistributionFactor)};
     auto *Probe = Builder.CreateCall(ProbeFn, Args);
@@ -347,15 +347,15 @@ void SampleProfileProber::instrumentOneFunc(Function &F, TargetMachine *TM) {
   // calling context.
   for (auto &I : CallProbeIds) {
     auto *Call = I.first;
-    uint32_t Index = I.second;
-    uint32_t Type = cast<CallBase>(Call)->getCalledFunction()
+    uint32_t const Index = I.second;
+    uint32_t const Type = cast<CallBase>(Call)->getCalledFunction()
                         ? (uint32_t)PseudoProbeType::DirectCall
                         : (uint32_t)PseudoProbeType::IndirectCall;
     AssignDebugLoc(Call);
     // Levarge the 32-bit discriminator field of debug data to store the ID and
     // type of a callsite probe. This gets rid of the dependency on plumbing a
     // customized metadata through the codegen pipeline.
-    uint32_t V = PseudoProbeDwarfDiscriminator::packProbeData(
+    uint32_t const V = PseudoProbeDwarfDiscriminator::packProbeData(
         Index, Type, 0, PseudoProbeDwarfDiscriminator::FullDistributionFactor);
     if (auto DIL = Call->getDebugLoc()) {
       DIL = DIL->cloneWithDiscriminator(V);
@@ -425,7 +425,7 @@ void PseudoProbeUpdatePass::runOnFunction(Function &F,
   for (auto &Block : F) {
     for (auto &I : Block) {
       if (Optional<PseudoProbe> Probe = extractProbe(I)) {
-        uint64_t Hash = computeCallStackHash(I);
+        uint64_t const Hash = computeCallStackHash(I);
         ProbeFactors[{Probe->Id, Hash}] += BBProfileCount(&Block);
       }
     }
@@ -435,8 +435,8 @@ void PseudoProbeUpdatePass::runOnFunction(Function &F,
   for (auto &Block : F) {
     for (auto &I : Block) {
       if (Optional<PseudoProbe> Probe = extractProbe(I)) {
-        uint64_t Hash = computeCallStackHash(I);
-        float Sum = ProbeFactors[{Probe->Id, Hash}];
+        uint64_t const Hash = computeCallStackHash(I);
+        float const Sum = ProbeFactors[{Probe->Id, Hash}];
         if (Sum != 0)
           setProbeDistributionFactor(I, BBProfileCount(&Block) / Sum);
       }

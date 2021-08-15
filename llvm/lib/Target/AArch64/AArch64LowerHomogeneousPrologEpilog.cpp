@@ -198,7 +198,7 @@ static void emitStore(MachineFunction &MF, MachineBasicBlock &MBB,
                       MachineBasicBlock::iterator Pos,
                       const TargetInstrInfo &TII, unsigned Reg1, unsigned Reg2,
                       int Offset, bool IsPreDec) {
-  bool IsFloat = AArch64::FPR64RegClass.contains(Reg1);
+  bool const IsFloat = AArch64::FPR64RegClass.contains(Reg1);
   assert(!(IsFloat ^ AArch64::FPR64RegClass.contains(Reg2)));
   unsigned Opc;
   if (IsPreDec)
@@ -206,7 +206,7 @@ static void emitStore(MachineFunction &MF, MachineBasicBlock &MBB,
   else
     Opc = IsFloat ? AArch64::STPDi : AArch64::STPXi;
 
-  MachineInstrBuilder MIB = BuildMI(MBB, Pos, DebugLoc(), TII.get(Opc));
+  MachineInstrBuilder const MIB = BuildMI(MBB, Pos, DebugLoc(), TII.get(Opc));
   if (IsPreDec)
     MIB.addDef(AArch64::SP);
   MIB.addReg(Reg2)
@@ -221,7 +221,7 @@ static void emitLoad(MachineFunction &MF, MachineBasicBlock &MBB,
                      MachineBasicBlock::iterator Pos,
                      const TargetInstrInfo &TII, unsigned Reg1, unsigned Reg2,
                      int Offset, bool IsPostDec) {
-  bool IsFloat = AArch64::FPR64RegClass.contains(Reg1);
+  bool const IsFloat = AArch64::FPR64RegClass.contains(Reg1);
   assert(!(IsFloat ^ AArch64::FPR64RegClass.contains(Reg2)));
   unsigned Opc;
   if (IsPostDec)
@@ -229,7 +229,7 @@ static void emitLoad(MachineFunction &MF, MachineBasicBlock &MBB,
   else
     Opc = IsFloat ? AArch64::LDPDi : AArch64::LDPXi;
 
-  MachineInstrBuilder MIB = BuildMI(MBB, Pos, DebugLoc(), TII.get(Opc));
+  MachineInstrBuilder const MIB = BuildMI(MBB, Pos, DebugLoc(), TII.get(Opc));
   if (IsPostDec)
     MIB.addDef(AArch64::SP);
   MIB.addReg(Reg2, getDefRegState(true))
@@ -284,7 +284,7 @@ static Function *getOrCreateFrameHelper(Module *M, MachineModuleInfo *MMI,
   const TargetSubtargetInfo &STI = MF.getSubtarget();
   const TargetInstrInfo &TII = *STI.getInstrInfo();
 
-  int Size = (int)Regs.size();
+  int const Size = (int)Regs.size();
   switch (Type) {
   case FrameHelperType::Prolog:
   case FrameHelperType::PrologFrame: {
@@ -431,12 +431,12 @@ bool AArch64LowerHomogeneousPE::lowerEpilog(
   auto &MF = *MBB.getParent();
   MachineInstr &MI = *MBBI;
 
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc const DL = MI.getDebugLoc();
   SmallVector<unsigned, 8> Regs;
   for (auto &MO : MI.operands())
     if (MO.isReg())
       Regs.push_back(MO.getReg());
-  int Size = (int)Regs.size();
+  int const Size = (int)Regs.size();
   if (Size == 0)
     return false;
   // Registers are in pair.
@@ -505,7 +505,7 @@ bool AArch64LowerHomogeneousPE::lowerProlog(
   auto &MF = *MBB.getParent();
   MachineInstr &MI = *MBBI;
 
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc const DL = MI.getDebugLoc();
   SmallVector<unsigned, 8> Regs;
   int LRIdx = 0;
   Optional<int> FpOffset;
@@ -518,7 +518,7 @@ bool AArch64LowerHomogeneousPE::lowerProlog(
       FpOffset = MO.getImm();
     }
   }
-  int Size = (int)Regs.size();
+  int const Size = (int)Regs.size();
   if (Size == 0)
     return false;
   // Allow compact unwind case only for oww.
@@ -574,8 +574,8 @@ bool AArch64LowerHomogeneousPE::lowerProlog(
 bool AArch64LowerHomogeneousPE::runOnMI(MachineBasicBlock &MBB,
                                         MachineBasicBlock::iterator MBBI,
                                         MachineBasicBlock::iterator &NextMBBI) {
-  MachineInstr &MI = *MBBI;
-  unsigned Opcode = MI.getOpcode();
+  MachineInstr  const&MI = *MBBI;
+  unsigned const Opcode = MI.getOpcode();
   switch (Opcode) {
   default:
     break;

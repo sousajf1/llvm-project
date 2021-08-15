@@ -339,7 +339,7 @@ bool DivergenceAnalysisImpl::isDivergent(const Value &V) const {
 }
 
 bool DivergenceAnalysisImpl::isDivergentUse(const Use &U) const {
-  Value &V = *U.get();
+  Value  const&V = *U.get();
   Instruction &I = *cast<Instruction>(U.getUser());
   return isDivergent(V) || isTemporalDivergent(*I.getParent(), V);
 }
@@ -351,7 +351,7 @@ DivergenceInfo::DivergenceInfo(Function &F, const DominatorTree &DT,
     : F(F), ContainsIrreducible(false) {
   if (!KnownReducible) {
     using RPOTraversal = ReversePostOrderTraversal<const Function *>;
-    RPOTraversal FuncRPOT(&F);
+    RPOTraversal const FuncRPOT(&F);
     if (containsIrreducibleCFG<const BasicBlock *, const RPOTraversal,
                                const LoopInfo>(FuncRPOT, LI)) {
       ContainsIrreducible = true;

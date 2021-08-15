@@ -69,8 +69,8 @@ const int* XCoreFunctionInfo::createEHSpillSlot(MachineFunction &MF) {
   const TargetRegisterClass &RC = XCore::GRRegsRegClass;
   const TargetRegisterInfo &TRI = *MF.getSubtarget().getRegisterInfo();
   MachineFrameInfo &MFI = MF.getFrameInfo();
-  unsigned Size = TRI.getSpillSize(RC);
-  Align Alignment = TRI.getSpillAlign(RC);
+  unsigned const Size = TRI.getSpillSize(RC);
+  Align const Alignment = TRI.getSpillAlign(RC);
   EHSpillSlot[0] = MFI.CreateStackObject(Size, Alignment, true);
   EHSpillSlot[1] = MFI.CreateStackObject(Size, Alignment, true);
   EHSpillSlotSet = true;

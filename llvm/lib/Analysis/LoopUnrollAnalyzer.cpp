@@ -121,16 +121,16 @@ bool UnrolledInstAnalyzer::visitLoad(LoadInst &I) {
   if (CDS->getElementType() != I.getType())
     return false;
 
-  unsigned ElemSize = CDS->getElementType()->getPrimitiveSizeInBits() / 8U;
+  unsigned const ElemSize = CDS->getElementType()->getPrimitiveSizeInBits() / 8U;
   if (SimplifiedAddrOp->getValue().getActiveBits() > 64)
     return false;
-  int64_t SimplifiedAddrOpV = SimplifiedAddrOp->getSExtValue();
+  int64_t const SimplifiedAddrOpV = SimplifiedAddrOp->getSExtValue();
   if (SimplifiedAddrOpV < 0) {
     // FIXME: For now we conservatively ignore out of bound accesses, but
     // we're allowed to perform the optimization in this case.
     return false;
   }
-  uint64_t Index = static_cast<uint64_t>(SimplifiedAddrOpV) / ElemSize;
+  uint64_t const Index = static_cast<uint64_t>(SimplifiedAddrOpV) / ElemSize;
   if (Index >= CDS->getNumElements()) {
     // FIXME: For now we conservatively ignore out of bound accesses, but
     // we're allowed to perform the optimization in this case.
@@ -181,8 +181,8 @@ bool UnrolledInstAnalyzer::visitCmpInst(CmpInst &I) {
     if (SimplifiedLHS != SimplifiedAddresses.end()) {
       auto SimplifiedRHS = SimplifiedAddresses.find(RHS);
       if (SimplifiedRHS != SimplifiedAddresses.end()) {
-        SimplifiedAddress &LHSAddr = SimplifiedLHS->second;
-        SimplifiedAddress &RHSAddr = SimplifiedRHS->second;
+        SimplifiedAddress  const&LHSAddr = SimplifiedLHS->second;
+        SimplifiedAddress  const&RHSAddr = SimplifiedRHS->second;
         if (LHSAddr.Base == RHSAddr.Base) {
           LHS = LHSAddr.Offset;
           RHS = RHSAddr.Offset;

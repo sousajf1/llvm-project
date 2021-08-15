@@ -356,7 +356,7 @@ SmallVector<Bucket, 16> PPCLoopInstrFormPrep::collectCandidates(
         } else continue;
       } else continue;
 
-      unsigned PtrAddrSpace = PtrValue->getType()->getPointerAddressSpace();
+      unsigned const PtrAddrSpace = PtrValue->getType()->getPointerAddressSpace();
       if (PtrAddrSpace)
         continue;
 
@@ -388,7 +388,7 @@ bool PPCLoopInstrFormPrep::prepareBaseForDispFormChain(Bucket &BucketChain,
     if (!BucketChain.Elements[j].Offset)
       RemainderOffsetInfo[0] = std::make_pair(0, 1);
     else {
-      unsigned Remainder =
+      unsigned const Remainder =
           BucketChain.Elements[j].Offset->getAPInt().urem(Form);
       if (RemainderOffsetInfo.find(Remainder) == RemainderOffsetInfo.end())
         RemainderOffsetInfo[Remainder] = std::make_pair(j, 1);
@@ -522,7 +522,7 @@ bool PPCLoopInstrFormPrep::rewriteLoadStores(Loop *L, Bucket &BucketChain,
 
   // For some DS form load/store instructions, it can also be an update form,
   // if the stride is a multipler of 4. Use update form if prefer it.
-  bool CanPreInc = (Form == UpdateForm ||
+  bool const CanPreInc = (Form == UpdateForm ||
                     ((Form == DSForm) && !BasePtrIncSCEV->getAPInt().urem(4) &&
                      PreferUpdateForm));
   const SCEV *BasePtrStartSCEV = nullptr;
@@ -541,7 +541,7 @@ bool PPCLoopInstrFormPrep::rewriteLoadStores(Loop *L, Bucket &BucketChain,
   LLVM_DEBUG(dbgs() << "PIP: New start is: " << *BasePtrStartSCEV << "\n");
 
   BasicBlock *Header = L->getHeader();
-  unsigned HeaderLoopPredCount = pred_size(Header);
+  unsigned const HeaderLoopPredCount = pred_size(Header);
   BasicBlock *LoopPredecessor = L->getLoopPredecessor();
 
   PHINode *NewPHI =

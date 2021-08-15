@@ -32,7 +32,7 @@ void *MCSymbol::operator new(size_t s, const StringMapEntry<bool> *Name,
                              MCContext &Ctx) {
   // We may need more space for a Name to account for alignment.  So allocate
   // space for the storage type and not the name pointer.
-  size_t Size = s + (Name ? sizeof(NameEntryStorageTy) : 0);
+  size_t const Size = s + (Name ? sizeof(NameEntryStorageTy) : 0);
 
   // For safety, ensure that the alignment of a pointer is enough for an
   // MCSymbol.  This also ensures we don't need padding between the name and
@@ -60,7 +60,7 @@ void MCSymbol::print(raw_ostream &OS, const MCAsmInfo *MAI) const {
   // The name for this MCSymbol is required to be a valid target name.  However,
   // some targets support quoting names with funny characters.  If the name
   // contains a funny character, then print it quoted.
-  StringRef Name = getName();
+  StringRef const Name = getName();
   if (!MAI || MAI->isValidUnquotedName(Name)) {
     OS << Name;
     return;
@@ -70,7 +70,7 @@ void MCSymbol::print(raw_ostream &OS, const MCAsmInfo *MAI) const {
     report_fatal_error("Symbol name with unsupported characters");
 
   OS << '"';
-  for (char C : Name) {
+  for (char const C : Name) {
     if (C == '\n')
       OS << "\\n";
     else if (C == '"')

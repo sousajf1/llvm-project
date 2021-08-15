@@ -279,7 +279,7 @@ bool ShrinkWrap::useOrDefCSROrFI(const MachineInstr &MI,
       // Ignore instructions like DBG_VALUE which don't read/def the register.
       if (!MO.isDef() && !MO.readsReg())
         continue;
-      Register PhysReg = MO.getReg();
+      Register const PhysReg = MO.getReg();
       if (!PhysReg)
         continue;
       assert(Register::isPhysicalRegister(PhysReg) && "Unallocated register?!");
@@ -292,7 +292,7 @@ bool ShrinkWrap::useOrDefCSROrFI(const MachineInstr &MI,
                     RCI.getLastCalleeSavedAlias(PhysReg);
     } else if (MO.isRegMask()) {
       // Check if this regmask clobbers any of the CSRs.
-      for (unsigned Reg : getCurrentCSRs(RS)) {
+      for (unsigned const Reg : getCurrentCSRs(RS)) {
         if (MO.clobbersPhysReg(Reg)) {
           UseOrDefCSR = true;
           break;
@@ -477,7 +477,7 @@ bool ShrinkWrap::runOnMachineFunction(MachineFunction &MF) {
   }
 
   const TargetRegisterInfo *TRI = MF.getSubtarget().getRegisterInfo();
-  std::unique_ptr<RegScavenger> RS(
+  std::unique_ptr<RegScavenger> const RS(
       TRI->requiresRegisterScavenging(MF) ? new RegScavenger() : nullptr);
 
   for (MachineBasicBlock &MBB : MF) {

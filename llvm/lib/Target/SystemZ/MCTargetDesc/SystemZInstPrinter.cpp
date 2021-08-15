@@ -76,14 +76,14 @@ void SystemZInstPrinter::printInst(const MCInst *MI, uint64_t Address,
 
 template <unsigned N>
 static void printUImmOperand(const MCInst *MI, int OpNum, raw_ostream &O) {
-  int64_t Value = MI->getOperand(OpNum).getImm();
+  int64_t const Value = MI->getOperand(OpNum).getImm();
   assert(isUInt<N>(Value) && "Invalid uimm argument");
   O << Value;
 }
 
 template <unsigned N>
 static void printSImmOperand(const MCInst *MI, int OpNum, raw_ostream &O) {
-  int64_t Value = MI->getOperand(OpNum).getImm();
+  int64_t const Value = MI->getOperand(OpNum).getImm();
   assert(isInt<N>(Value) && "Invalid simm argument");
   O << Value;
 }
@@ -207,9 +207,9 @@ void SystemZInstPrinter::printBDXAddrOperand(const MCInst *MI, int OpNum,
 
 void SystemZInstPrinter::printBDLAddrOperand(const MCInst *MI, int OpNum,
                                              raw_ostream &O) {
-  unsigned Base = MI->getOperand(OpNum).getReg();
-  uint64_t Disp = MI->getOperand(OpNum + 1).getImm();
-  uint64_t Length = MI->getOperand(OpNum + 2).getImm();
+  unsigned const Base = MI->getOperand(OpNum).getReg();
+  uint64_t const Disp = MI->getOperand(OpNum + 1).getImm();
+  uint64_t const Length = MI->getOperand(OpNum + 2).getImm();
   O << Disp << '(' << Length;
   if (Base) {
     O << ",";
@@ -220,9 +220,9 @@ void SystemZInstPrinter::printBDLAddrOperand(const MCInst *MI, int OpNum,
 
 void SystemZInstPrinter::printBDRAddrOperand(const MCInst *MI, int OpNum,
                                              raw_ostream &O) {
-  unsigned Base = MI->getOperand(OpNum).getReg();
-  uint64_t Disp = MI->getOperand(OpNum + 1).getImm();
-  unsigned Length = MI->getOperand(OpNum + 2).getReg();
+  unsigned const Base = MI->getOperand(OpNum).getReg();
+  uint64_t const Disp = MI->getOperand(OpNum + 1).getImm();
+  unsigned const Length = MI->getOperand(OpNum + 2).getReg();
   O << Disp << "(";
   printRegName(O, Length);
   if (Base) {
@@ -245,7 +245,7 @@ void SystemZInstPrinter::printCond4Operand(const MCInst *MI, int OpNum,
     "o", "h", "nle", "l", "nhe", "lh", "ne",
     "e", "nlh", "he", "nl", "le", "nh", "no"
   };
-  uint64_t Imm = MI->getOperand(OpNum).getImm();
+  uint64_t const Imm = MI->getOperand(OpNum).getImm();
   assert(Imm > 0 && Imm < 15 && "Invalid condition");
   O << CondNames[Imm - 1];
 }

@@ -164,7 +164,7 @@ static bool findLoopComponents(MachineLoop *ML, MachineRegisterInfo *MRI,
   }
   LLVM_DEBUG(dbgs() << "  found loop phi: " << *LoopPhi);
 
-  Register StartReg = LoopPhi->getOperand(2).getMBB() == Latch
+  Register const StartReg = LoopPhi->getOperand(2).getMBB() == Latch
                           ? LoopPhi->getOperand(3).getReg()
                           : LoopPhi->getOperand(1).getReg();
   LoopStart = LookThroughCOPY(MRI->getVRegDef(StartReg), MRI);
@@ -185,7 +185,7 @@ static void RevertWhileLoopSetup(MachineInstr *MI, const TargetInstrInfo *TII) {
          "Only expected a t2WhileLoopSetup in RevertWhileLoopStart!");
 
   // Subs
-  MachineInstrBuilder MIB =
+  MachineInstrBuilder const MIB =
       BuildMI(*MBB, MI, MI->getDebugLoc(), TII->get(ARM::t2SUBri));
   MIB.add(MI->getOperand(0));
   MIB.add(MI->getOperand(1));
@@ -197,7 +197,7 @@ static void RevertWhileLoopSetup(MachineInstr *MI, const TargetInstrInfo *TII) {
   // Attempt to find a t2WhileLoopStart and revert to a t2Bcc.
   for (MachineInstr &I : MBB->terminators()) {
     if (I.getOpcode() == ARM::t2WhileLoopStart) {
-      MachineInstrBuilder MIB =
+      MachineInstrBuilder const MIB =
           BuildMI(*MBB, &I, I.getDebugLoc(), TII->get(ARM::t2Bcc));
       MIB.add(MI->getOperand(1)); // branch target
       MIB.addImm(ARMCC::EQ);
@@ -231,7 +231,7 @@ bool MVETPAndVPTOptimisations::LowerWhileLoopStart(MachineLoop *ML) {
   if (LoopStart->getOpcode() != ARM::t2WhileLoopSetup)
     return false;
 
-  Register LR = LoopStart->getOperand(0).getReg();
+  Register const LR = LoopStart->getOperand(0).getReg();
   auto WLSIt = find_if(MRI->use_nodbg_instructions(LR), [](auto &MI) {
     return MI.getOpcode() == ARM::t2WhileLoopStart;
   });
@@ -242,7 +242,7 @@ bool MVETPAndVPTOptimisations::LowerWhileLoopStart(MachineLoop *ML) {
     return true;
   }
 
-  MachineInstrBuilder MI =
+  MachineInstrBuilder const MI =
       BuildMI(*WLSIt->getParent(), *WLSIt, WLSIt->getDebugLoc(),
               TII->get(ARM::t2WhileLoopStartLR), LR)
           .add(LoopStart->getOperand(1))
@@ -284,7 +284,7 @@ MachineInstr *MVETPAndVPTOptimisations::CheckForLRUseInPredecessors(
       LLVM_DEBUG(dbgs() << "Found LR use in predecessors, reverting: " << MI);
 
       // Create a t2DoLoopStart at the end of the preheader.
-      MachineInstrBuilder MIB =
+      MachineInstrBuilder const MIB =
           BuildMI(*PreHeader, PreHeader->getFirstTerminator(),
                   LoopStart->getDebugLoc(), TII->get(ARM::t2DoLoopStart));
       MIB.add(LoopStart->getOperand(0));
@@ -348,9 +348,9 @@ bool MVETPAndVPTOptimisations::MergeLoopEnd(MachineLoop *ML) {
   // Remove any copies from the loop, to ensure the phi that remains is both
   // simpler and contains no extra uses. Because t2LoopEndDec is a terminator
   // that cannot spill, we need to be careful what remains in the loop.
-  Register PhiReg = LoopPhi->getOperand(0).getReg();
-  Register DecReg = LoopDec->getOperand(0).getReg();
-  Register StartReg = LoopStart->getOperand(0).getReg();
+  Register const PhiReg = LoopPhi->getOperand(0).getReg();
+  Register const DecReg = LoopDec->getOperand(0).getReg();
+  Register const StartReg = LoopStart->getOperand(0).getReg();
   // Ensure the uses are expected, and collect any copies we want to remove.
   SmallVector<MachineInstr *, 4> Copies;
   auto CheckUsers = [&Copies](Register BaseReg,
@@ -359,7 +359,7 @@ bool MVETPAndVPTOptimisations::MergeLoopEnd(MachineLoop *ML) {
     SmallVector<Register, 4> Worklist;
     Worklist.push_back(BaseReg);
     while (!Worklist.empty()) {
-      Register Reg = Worklist.pop_back_val();
+      Register const Reg = Worklist.pop_back_val();
       for (MachineInstr &MI : MRI->use_nodbg_instructions(Reg)) {
         if (count(ExpectedUsers, &MI))
           continue;
@@ -400,7 +400,7 @@ bool MVETPAndVPTOptimisations::MergeLoopEnd(MachineLoop *ML) {
   }
 
   // Replace the loop dec and loop end as a single instruction.
-  MachineInstrBuilder MI =
+  MachineInstrBuilder const MI =
       BuildMI(*LoopEnd->getParent(), *LoopEnd, LoopEnd->getDebugLoc(),
               TII->get(ARM::t2LoopEndDec), DecReg)
           .addReg(PhiReg)
@@ -486,7 +486,7 @@ bool MVETPAndVPTOptimisations::ConvertTailPredLoop(MachineLoop *ML,
   // the preheader and add the new CountReg to it. We attempt to place it late
   // in the preheader, but may need to move that earlier based on uses.
   MachineBasicBlock *MBB = LoopStart->getParent();
-  MachineBasicBlock::iterator InsertPt = MBB->getFirstTerminator();
+  MachineBasicBlock::iterator const InsertPt = MBB->getFirstTerminator();
   for (MachineInstr &Use :
        MRI->use_instructions(LoopStart->getOperand(0).getReg()))
     if ((InsertPt != MBB->end() && !DT->dominates(&*InsertPt, &Use)) ||
@@ -495,10 +495,10 @@ bool MVETPAndVPTOptimisations::ConvertTailPredLoop(MachineLoop *ML,
       return false;
     }
 
-  unsigned NewOpc = LoopStart->getOpcode() == ARM::t2DoLoopStart
+  unsigned const NewOpc = LoopStart->getOpcode() == ARM::t2DoLoopStart
                         ? ARM::t2DoLoopStartTP
                         : ARM::t2WhileLoopStartTP;
-  MachineInstrBuilder MI =
+  MachineInstrBuilder const MI =
       BuildMI(*MBB, InsertPt, LoopStart->getDebugLoc(), TII->get(NewOpc))
           .add(LoopStart->getOperand(0))
           .add(LoopStart->getOperand(1))
@@ -577,13 +577,13 @@ static bool IsVPNOTEquivalent(MachineInstr &Cond, MachineInstr &Prev) {
 static bool IsWritingToVCCR(MachineInstr &Instr) {
   if (Instr.getNumOperands() == 0)
     return false;
-  MachineOperand &Dst = Instr.getOperand(0);
+  MachineOperand  const&Dst = Instr.getOperand(0);
   if (!Dst.isReg())
     return false;
-  Register DstReg = Dst.getReg();
+  Register const DstReg = Dst.getReg();
   if (!DstReg.isVirtual())
     return false;
-  MachineRegisterInfo &RegInfo = Instr.getMF()->getRegInfo();
+  MachineRegisterInfo  const&RegInfo = Instr.getMF()->getRegInfo();
   const TargetRegisterClass *RegClass = RegInfo.getRegClassOrNull(DstReg);
   return RegClass && (RegClass->getID() == ARM::VCCRRegClassID);
 }
@@ -599,7 +599,7 @@ static bool IsWritingToVCCR(MachineInstr &Instr) {
 MachineInstr &MVETPAndVPTOptimisations::ReplaceRegisterUseWithVPNOT(
     MachineBasicBlock &MBB, MachineInstr &Instr, MachineOperand &User,
     Register Target) {
-  Register NewResult = MRI->createVirtualRegister(MRI->getRegClass(Target));
+  Register const NewResult = MRI->createVirtualRegister(MRI->getRegClass(Target));
 
   MachineInstrBuilder MIBuilder =
       BuildMI(MBB, &Instr, Instr.getDebugLoc(), TII->get(ARM::MVE_VPNOT))
@@ -628,8 +628,8 @@ static bool MoveVPNOTBeforeFirstUser(MachineBasicBlock &MBB,
          "The VPNOT cannot be predicated");
 
   MachineInstr &VPNOT = *Iter;
-  Register VPNOTResult = VPNOT.getOperand(0).getReg();
-  Register VPNOTOperand = VPNOT.getOperand(1).getReg();
+  Register const VPNOTResult = VPNOT.getOperand(0).getReg();
+  Register const VPNOTOperand = VPNOT.getOperand(1).getReg();
 
   // Whether the VPNOT will need to be moved, and whether we found a user of the
   // VPNOT.
@@ -696,7 +696,7 @@ bool MVETPAndVPTOptimisations::ReduceOldVCCRValueUses(MachineBasicBlock &MBB) {
       if (!IsWritingToVCCR(*Iter) ||
           getVPTInstrPredicate(*Iter) != ARMVCC::None)
         continue;
-      Register Dst = Iter->getOperand(0).getReg();
+      Register const Dst = Iter->getOperand(0).getReg();
 
       // If we already have a VCCRValue, and this is a VPNOT on VCCRValue, we've
       // found what we were looking for.
@@ -740,7 +740,7 @@ bool MVETPAndVPTOptimisations::ReduceOldVCCRValueUses(MachineBasicBlock &MBB) {
         //   replace its uses with LastVPNOTResult.
         // - Else, insert a new VPNOT on LastVPNOTResult to recompute VCCRValue.
         if (Iter->getOpcode() == ARM::MVE_VPNOT) {
-          Register Result = Iter->getOperand(0).getReg();
+          Register const Result = Iter->getOperand(0).getReg();
 
           MRI->replaceRegWith(Result, LastVPNOTResult);
           DeadInstructions.push_back(&*Iter);
@@ -785,7 +785,7 @@ bool MVETPAndVPTOptimisations::ReduceOldVCCRValueUses(MachineBasicBlock &MBB) {
         // LastVPNOTResult/OppositeVCCRValue, we can act like we inserted it.
         if (Iter->getOpcode() == ARM::MVE_VPNOT &&
             getVPTInstrPredicate(*Iter) == ARMVCC::None) {
-          Register VPNOTOperand = Iter->getOperand(1).getReg();
+          Register const VPNOTOperand = Iter->getOperand(1).getReg();
           if (VPNOTOperand == LastVPNOTResult ||
               VPNOTOperand == OppositeVCCRValue) {
             IsInteresting = true;
@@ -852,7 +852,7 @@ bool MVETPAndVPTOptimisations::ReplaceVCMPsByVPNOTs(MachineBasicBlock &MBB) {
 
     // The register containing the result of the VCMP that we're going to
     // replace.
-    Register PrevVCMPResultReg = PrevVCMP->getOperand(0).getReg();
+    Register const PrevVCMPResultReg = PrevVCMP->getOperand(0).getReg();
 
     // Build a VPNOT to replace the VCMP, reusing its operands.
     MachineInstrBuilder MIBuilder =
@@ -895,7 +895,7 @@ bool MVETPAndVPTOptimisations::ReplaceConstByVPNOTs(MachineBasicBlock &MBB,
 
   for (MachineInstr &Instr : MBB.instrs()) {
     // Look for predicated MVE instructions.
-    int PIdx = llvm::findFirstVPTPredOperandIdx(Instr);
+    int const PIdx = llvm::findFirstVPTPredOperandIdx(Instr);
     if (PIdx == -1)
       continue;
     Register VPR = Instr.getOperand(PIdx + 1).getReg();
@@ -910,7 +910,7 @@ bool MVETPAndVPTOptimisations::ReplaceConstByVPNOTs(MachineBasicBlock &MBB,
       LastVPTReg = 0;
       continue;
     }
-    Register GPR = Copy->getOperand(1).getReg();
+    Register const GPR = Copy->getOperand(1).getReg();
 
     // Find the Immediate used by the copy.
     auto getImm = [&](Register GPR) -> unsigned {
@@ -920,13 +920,13 @@ bool MVETPAndVPTOptimisations::ReplaceConstByVPNOTs(MachineBasicBlock &MBB,
         return Def->getOperand(1).getImm();
       return -1U;
     };
-    unsigned Imm = getImm(GPR);
+    unsigned const Imm = getImm(GPR);
     if (Imm == -1U) {
       LastVPTReg = 0;
       continue;
     }
 
-    unsigned NotImm = ~Imm & 0xffff;
+    unsigned const NotImm = ~Imm & 0xffff;
     if (LastVPTReg != 0 && LastVPTReg != VPR && LastVPTImm == Imm) {
       Instr.getOperand(PIdx + 1).setReg(LastVPTReg);
       if (MRI->use_empty(VPR)) {
@@ -938,7 +938,7 @@ bool MVETPAndVPTOptimisations::ReplaceConstByVPNOTs(MachineBasicBlock &MBB,
     } else if (LastVPTReg != 0 && LastVPTImm == NotImm) {
       // We have found the not of a previous constant. Create a VPNot of the
       // earlier predicate reg and use it instead of the copy.
-      Register NewVPR = MRI->createVirtualRegister(&ARM::VCCRRegClass);
+      Register const NewVPR = MRI->createVirtualRegister(&ARM::VCCRRegClass);
       auto VPNot = BuildMI(MBB, &Instr, Instr.getDebugLoc(),
                            TII->get(ARM::MVE_VPNOT), NewVPR)
                        .addReg(LastVPTReg);
@@ -984,7 +984,7 @@ bool MVETPAndVPTOptimisations::ConvertVPSEL(MachineBasicBlock &MBB) {
     if (!HasVCTP || MI.getOpcode() != ARM::MVE_VPSEL)
       continue;
 
-    MachineInstrBuilder MIBuilder =
+    MachineInstrBuilder const MIBuilder =
         BuildMI(MBB, &MI, MI.getDebugLoc(), TII->get(ARM::MVE_VORR))
             .add(MI.getOperand(0))
             .add(MI.getOperand(1))
@@ -1012,7 +1012,7 @@ bool MVETPAndVPTOptimisations::HintDoLoopStartReg(MachineBasicBlock &MBB) {
   for (MachineInstr &MI : MBB.instrs()) {
     if (MI.getOpcode() != ARM::t2DoLoopStart)
       continue;
-    Register R = MI.getOperand(1).getReg();
+    Register const R = MI.getOperand(1).getReg();
     MachineFunction *MF = MI.getParent()->getParent();
     MF->getRegInfo().setRegAllocationHint(R, ARMRI::RegLR, 0);
     Changed = true;

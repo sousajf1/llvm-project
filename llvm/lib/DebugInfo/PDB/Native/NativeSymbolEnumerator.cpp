@@ -81,7 +81,7 @@ Variant NativeSymbolEnumerator::getValue() const {
   case PDB_BuiltinType::Long:
   case PDB_BuiltinType::Char: {
     assert(Record.Value.isSignedIntN(BT.getLength() * 8));
-    int64_t N = Record.Value.getSExtValue();
+    int64_t const N = Record.Value.getSExtValue();
     switch (BT.getLength()) {
     case 1:
       return Variant{static_cast<int8_t>(N)};
@@ -97,7 +97,7 @@ Variant NativeSymbolEnumerator::getValue() const {
   case PDB_BuiltinType::UInt:
   case PDB_BuiltinType::ULong: {
     assert(Record.Value.isIntN(BT.getLength() * 8));
-    uint64_t U = Record.Value.getZExtValue();
+    uint64_t const U = Record.Value.getZExtValue();
     switch (BT.getLength()) {
     case 1:
       return Variant{static_cast<uint8_t>(U)};
@@ -112,7 +112,7 @@ Variant NativeSymbolEnumerator::getValue() const {
   }
   case PDB_BuiltinType::Bool: {
     assert(Record.Value.isIntN(BT.getLength() * 8));
-    uint64_t U = Record.Value.getZExtValue();
+    uint64_t const U = Record.Value.getZExtValue();
     return Variant{static_cast<bool>(U)};
   }
   default:

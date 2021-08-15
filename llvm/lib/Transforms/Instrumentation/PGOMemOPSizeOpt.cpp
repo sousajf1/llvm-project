@@ -287,7 +287,7 @@ static inline uint64_t getScaledCount(uint64_t Count, uint64_t Num,
   if (!MemOPScaleCount)
     return Count;
   bool Overflowed;
-  uint64_t ScaleCount = SaturatingMultiply(Count, Num, &Overflowed);
+  uint64_t const ScaleCount = SaturatingMultiply(Count, Num, &Overflowed);
   return ScaleCount / Denom;
 }
 
@@ -305,7 +305,7 @@ bool MemOPSizeOpt::perform(MemOp MO) {
     return false;
 
   uint64_t ActualCount = TotalCount;
-  uint64_t SavedTotalCount = TotalCount;
+  uint64_t const SavedTotalCount = TotalCount;
   if (MemOPScaleCount) {
     auto BBEdgeCount = BFI.getBlockProfileCount(MO.I->getParent());
     if (!BBEdgeCount)
@@ -313,7 +313,7 @@ bool MemOPSizeOpt::perform(MemOp MO) {
     ActualCount = *BBEdgeCount;
   }
 
-  ArrayRef<InstrProfValueData> VDs(ValueDataArray.get(), NumVals);
+  ArrayRef<InstrProfValueData> const VDs(ValueDataArray.get(), NumVals);
   LLVM_DEBUG(dbgs() << "Read one memory intrinsic profile with count "
                     << ActualCount << "\n");
   LLVM_DEBUG(
@@ -345,7 +345,7 @@ bool MemOPSizeOpt::perform(MemOp MO) {
   SmallVector<InstrProfValueData, 24> RemainingVDs;
   for (auto I = VDs.begin(), E = VDs.end(); I != E; ++I) {
     auto &VD = *I;
-    int64_t V = VD.Value;
+    int64_t const V = VD.Value;
     uint64_t C = VD.Count;
     if (MemOPScaleCount)
       C = getScaledCount(C, ActualCount, SavedTotalCount);
@@ -451,7 +451,7 @@ bool MemOPSizeOpt::perform(MemOp MO) {
   // If all promoted, we don't need the MD.prof metadata.
   if (SavedRemainCount > 0 || Version != NumVals) {
     // Otherwise we need update with the un-promoted records back.
-    ArrayRef<InstrProfValueData> RemVDs(RemainingVDs);
+    ArrayRef<InstrProfValueData> const RemVDs(RemainingVDs);
     annotateValueSite(*Func.getParent(), *MO.I, RemVDs, SavedRemainCount,
                       IPVK_MemOPSize, NumVals);
   }
@@ -462,7 +462,7 @@ bool MemOPSizeOpt::perform(MemOp MO) {
   if (DT)
     Updates.reserve(2 * SizeIds.size());
 
-  for (uint64_t SizeId : SizeIds) {
+  for (uint64_t const SizeId : SizeIds) {
     BasicBlock *CaseBB = BasicBlock::Create(
         Ctx, Twine("MemOP.Case.") + Twine(SizeId), &Func, DefaultBB);
     MemOp NewMO = MO.clone();
@@ -537,7 +537,7 @@ PreservedAnalyses PGOMemOPSizeOpt::run(Function &F,
   auto &ORE = FAM.getResult<OptimizationRemarkEmitterAnalysis>(F);
   auto *DT = FAM.getCachedResult<DominatorTreeAnalysis>(F);
   auto &TLI = FAM.getResult<TargetLibraryAnalysis>(F);
-  bool Changed = PGOMemOPSizeOptImpl(F, BFI, ORE, DT, TLI);
+  bool const Changed = PGOMemOPSizeOptImpl(F, BFI, ORE, DT, TLI);
   if (!Changed)
     return PreservedAnalyses::all();
   auto PA = PreservedAnalyses();

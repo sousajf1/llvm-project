@@ -427,14 +427,14 @@ static void computeImportForFunction(
 
     auto IT = ImportThresholds.insert(std::make_pair(
         VI.getGUID(), std::make_tuple(NewThreshold, nullptr, nullptr)));
-    bool PreviouslyVisited = !IT.second;
+    bool const PreviouslyVisited = !IT.second;
     auto &ProcessedThreshold = std::get<0>(IT.first->second);
     auto &CalleeSummary = std::get<1>(IT.first->second);
     auto &FailureInfo = std::get<2>(IT.first->second);
 
-    bool IsHotCallsite =
+    bool const IsHotCallsite =
         Edge.second.getHotness() == CalleeInfo::HotnessType::Hot;
-    bool IsCriticalCallsite =
+    bool const IsCriticalCallsite =
         Edge.second.getHotness() == CalleeInfo::HotnessType::Critical;
 
     const FunctionSummary *ResolvedCalleeSummary = nullptr;
@@ -492,7 +492,7 @@ static void computeImportForFunction(
               VI, Edge.second.getHotness(), Reason, 1);
         }
         if (ForceImportAll) {
-          std::string Msg = std::string("Failed to import function ") +
+          std::string const Msg = std::string("Failed to import function ") +
                             VI.name().str() + " due to " +
                             getFailureName(Reason);
           auto Error = make_error<StringError>(
@@ -519,7 +519,7 @@ static void computeImportForFunction(
       auto ILI = ImportList[ExportModulePath].insert(VI.getGUID());
       // We previously decided to import this GUID definition if it was already
       // inserted in the set of imports from the exporting module.
-      bool PreviouslyImported = !ILI.second;
+      bool const PreviouslyImported = !ILI.second;
       if (!PreviouslyImported) {
         NumImportedFunctionsThinLink++;
         if (IsHotCallsite)
@@ -761,14 +761,14 @@ void llvm::ComputeCrossModuleImport(
   for (auto &ModuleImports : ImportLists) {
     auto ModName = ModuleImports.first();
     auto &Exports = ExportLists[ModName];
-    unsigned NumGVS = numGlobalVarSummaries(Index, Exports);
+    unsigned const NumGVS = numGlobalVarSummaries(Index, Exports);
     LLVM_DEBUG(dbgs() << "* Module " << ModName << " exports "
                       << Exports.size() - NumGVS << " functions and " << NumGVS
                       << " vars. Imports from " << ModuleImports.second.size()
                       << " modules.\n");
     for (auto &Src : ModuleImports.second) {
       auto SrcModName = Src.first();
-      unsigned NumGVSPerMod = numGlobalVarSummaries(Index, Src.second);
+      unsigned const NumGVSPerMod = numGlobalVarSummaries(Index, Src.second);
       LLVM_DEBUG(dbgs() << " - " << Src.second.size() - NumGVSPerMod
                         << " functions imported from " << SrcModName << "\n");
       LLVM_DEBUG(dbgs() << " - " << NumGVSPerMod
@@ -786,7 +786,7 @@ static void dumpImportListForModule(const ModuleSummaryIndex &Index,
                     << ImportList.size() << " modules.\n");
   for (auto &Src : ImportList) {
     auto SrcModName = Src.first();
-    unsigned NumGVSPerMod = numGlobalVarSummaries(Index, Src.second);
+    unsigned const NumGVSPerMod = numGlobalVarSummaries(Index, Src.second);
     LLVM_DEBUG(dbgs() << " - " << Src.second.size() - NumGVSPerMod
                       << " functions imported from " << SrcModName << "\n");
     LLVM_DEBUG(dbgs() << " - " << NumGVSPerMod << " vars imported from "
@@ -853,7 +853,7 @@ void llvm::computeDeadSymbols(
   SmallVector<ValueInfo, 128> Worklist;
   Worklist.reserve(GUIDPreservedSymbols.size() * 2);
   for (auto GUID : GUIDPreservedSymbols) {
-    ValueInfo VI = Index.getValueInfo(GUID);
+    ValueInfo const VI = Index.getValueInfo(GUID);
     if (!VI)
       continue;
     for (auto &S : VI.getSummaryList())
@@ -945,7 +945,7 @@ void llvm::computeDeadSymbols(
   }
   Index.setWithGlobalValueDeadStripping();
 
-  unsigned DeadSymbols = Index.size() - LiveSymbols;
+  unsigned const DeadSymbols = Index.size() - LiveSymbols;
   LLVM_DEBUG(dbgs() << LiveSymbols << " symbols Live, and " << DeadSymbols
                     << " symbols Dead \n");
   NumDeadSymbols += DeadSymbols;
@@ -1126,9 +1126,9 @@ void llvm::thinLTOInternalizeModule(Module &TheModule,
       // be internalized again.
       // FIXME: Eventually we should control promotion instead of promoting
       // and internalizing again.
-      StringRef OrigName =
+      StringRef const OrigName =
           ModuleSummaryIndex::getOriginalNameBeforePromote(GV.getName());
-      std::string OrigId = GlobalValue::getGlobalIdentifier(
+      std::string const OrigId = GlobalValue::getGlobalIdentifier(
           OrigName, GlobalValue::InternalLinkage,
           TheModule.getSourceFileName());
       GS = DefinedGlobals.find(GlobalValue::getGUID(OrigId));

@@ -155,7 +155,7 @@ bool IndirectBrExpandPass::runOnFunction(Function &F) {
 
     // Compute the index we want to use for this basic block. We can't use zero
     // because null can be compared with block addresses.
-    int BBIndex = BBs.size() + 1;
+    int const BBIndex = BBs.size() + 1;
     BBs.push_back(&BB);
 
     auto *ITy = cast<IntegerType>(DL.getIntPtrType(BA->getType()));
@@ -254,13 +254,13 @@ bool IndirectBrExpandPass::runOnFunction(Function &F) {
   auto *SI = SwitchInst::Create(SwitchValue, BBs[0], BBs.size(), SwitchBB);
 
   // Add a case for each block.
-  for (int i : llvm::seq<int>(1, BBs.size()))
+  for (int const i : llvm::seq<int>(1, BBs.size()))
     SI->addCase(ConstantInt::get(CommonITy, i + 1), BBs[i]);
 
   if (DTU) {
     // If there were multiple indirectbr's, they may have common successors,
     // but in the dominator tree, we only track unique edges.
-    SmallPtrSet<BasicBlock *, 8> UniqueSuccessors(BBs.begin(), BBs.end());
+    SmallPtrSet<BasicBlock *, 8> const UniqueSuccessors(BBs.begin(), BBs.end());
     Updates.reserve(Updates.size() + UniqueSuccessors.size());
     for (BasicBlock *BB : UniqueSuccessors)
       Updates.push_back({DominatorTree::Insert, SwitchBB, BB});

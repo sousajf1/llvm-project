@@ -39,7 +39,7 @@ static bool CC_PPC32_SVR4_Custom_AlignArgRegs(unsigned &ValNo, MVT &ValVT,
   };
   const unsigned NumArgRegs = array_lengthof(ArgRegs);
 
-  unsigned RegNum = State.getFirstUnallocated(ArgRegs);
+  unsigned const RegNum = State.getFirstUnallocated(ArgRegs);
 
   // Skip one register if the first unallocated register has an even register
   // number and there are still argument registers available which have not been
@@ -64,8 +64,8 @@ static bool CC_PPC32_SVR4_Custom_SkipLastArgRegsPPCF128(
   };
   const unsigned NumArgRegs = array_lengthof(ArgRegs);
 
-  unsigned RegNum = State.getFirstUnallocated(ArgRegs);
-  int RegsLeft = NumArgRegs - RegNum;
+  unsigned const RegNum = State.getFirstUnallocated(ArgRegs);
+  int const RegsLeft = NumArgRegs - RegNum;
 
   // Skip if there is not enough registers left for long double type (4 gpr regs
   // in soft float mode) and put long double argument on the stack.
@@ -90,7 +90,7 @@ static bool CC_PPC32_SVR4_Custom_AlignFPArgRegs(unsigned &ValNo, MVT &ValVT,
 
   const unsigned NumArgRegs = array_lengthof(ArgRegs);
 
-  unsigned RegNum = State.getFirstUnallocated(ArgRegs);
+  unsigned const RegNum = State.getFirstUnallocated(ArgRegs);
 
   // If there is only one Floating-point register left we need to put both f64
   // values of a split ppc_fp128 value on the stack.
@@ -115,7 +115,7 @@ static bool CC_PPC32_SPE_CustomSplitFP64(unsigned &ValNo, MVT &ValVT,
   static const MCPhysReg LoRegList[] = { PPC::R4, PPC::R6, PPC::R8, PPC::R10 };
 
   // Try to get the first register.
-  unsigned Reg = State.AllocateReg(HiRegList);
+  unsigned const Reg = State.AllocateReg(HiRegList);
   if (!Reg)
     return false;
 
@@ -124,7 +124,7 @@ static bool CC_PPC32_SPE_CustomSplitFP64(unsigned &ValNo, MVT &ValVT,
     if (HiRegList[i] == Reg)
       break;
 
-  unsigned T = State.AllocateReg(LoRegList[i]);
+  unsigned const T = State.AllocateReg(LoRegList[i]);
   (void)T;
   assert(T == LoRegList[i] && "Could not allocate register");
 
@@ -144,7 +144,7 @@ static bool CC_PPC32_SPE_RetF64(unsigned &ValNo, MVT &ValVT,
   static const MCPhysReg LoRegList[] = { PPC::R4 };
 
   // Try to get the first register.
-  unsigned Reg = State.AllocateReg(HiRegList, LoRegList);
+  unsigned const Reg = State.AllocateReg(HiRegList, LoRegList);
   if (!Reg)
     return false;
 

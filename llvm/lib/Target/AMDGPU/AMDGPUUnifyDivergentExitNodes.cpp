@@ -192,7 +192,7 @@ bool AMDGPUUnifyDivergentExitNodes::runOnFunction(Function &F) {
   if (PDT.root_size() <= 1)
     return false;
 
-  LegacyDivergenceAnalysis &DA = getAnalysis<LegacyDivergenceAnalysis>();
+  LegacyDivergenceAnalysis  const&DA = getAnalysis<LegacyDivergenceAnalysis>();
   TTI = &getAnalysis<TargetTransformInfoWrapperPass>().getTTI(F);
 
   // Loop over all of the blocks in a function, tracking all of the blocks that
@@ -232,7 +232,7 @@ bool AMDGPUUnifyDivergentExitNodes::runOnFunction(Function &F) {
         BranchInst::Create(LoopHeaderBB, DummyReturnBB, BoolTrue, BB);
         Updates.push_back({DominatorTree::Insert, BB, DummyReturnBB});
       } else { // Conditional branch.
-        SmallVector<BasicBlock *, 2> Successors(succ_begin(BB), succ_end(BB));
+        SmallVector<BasicBlock *, 2> const Successors(succ_begin(BB), succ_end(BB));
 
         // Create a new transition block to hold the conditional branch.
         BasicBlock *TransitionBB = BB->splitBasicBlock(BI, "TransitionBlock");

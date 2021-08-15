@@ -238,7 +238,7 @@ Error MachOLinkGraphBuilder::createNormalizedSymbols() {
 
   for (auto &SymRef : Obj.symbols()) {
 
-    unsigned SymbolIndex = Obj.getSymbolIndex(SymRef.getRawDataRefImpl());
+    unsigned const SymbolIndex = Obj.getSymbolIndex(SymRef.getRawDataRefImpl());
     uint64_t Value;
     uint32_t NStrX;
     uint8_t Type;
@@ -429,8 +429,8 @@ Error MachOLinkGraphBuilder::graphifyRegularSymbols() {
                << NSec.GraphSection->getName() << "...\n";
       });
 
-    bool SectionIsNoDeadStrip = NSec.Flags & MachO::S_ATTR_NO_DEAD_STRIP;
-    bool SectionIsText = NSec.Flags & MachO::S_ATTR_PURE_INSTRUCTIONS;
+    bool const SectionIsNoDeadStrip = NSec.Flags & MachO::S_ATTR_NO_DEAD_STRIP;
+    bool const SectionIsText = NSec.Flags & MachO::S_ATTR_PURE_INSTRUCTIONS;
 
     auto &SecNSymStack = SecIndexToSymbols[SecIndex];
 
@@ -508,7 +508,7 @@ Error MachOLinkGraphBuilder::graphifyRegularSymbols() {
                                       ? NSec.Address + NSec.Size
                                       : SecNSymStack.back()->Value;
       JITTargetAddress BlockOffset = BlockStart - NSec.Address;
-      JITTargetAddress BlockSize = BlockEnd - BlockStart;
+      JITTargetAddress const BlockSize = BlockEnd - BlockStart;
 
       LLVM_DEBUG({
         dbgs() << "    Creating block for " << formatv("{0:x16}", BlockStart)
@@ -534,7 +534,7 @@ Error MachOLinkGraphBuilder::graphifyRegularSymbols() {
         auto &NSym = *BlockSyms.back();
         BlockSyms.pop_back();
 
-        bool SymLive =
+        bool const SymLive =
             (NSym.Desc & MachO::N_NO_DEAD_STRIP) || SectionIsNoDeadStrip;
 
         auto &Sym = createStandardGraphSymbol(NSym, B, SymEnd - NSym.Value,
@@ -641,15 +641,15 @@ Error MachOLinkGraphBuilder::graphifyCStringSection(
                return false;
              });
 
-  bool SectionIsNoDeadStrip = NSec.Flags & MachO::S_ATTR_NO_DEAD_STRIP;
-  bool SectionIsText = NSec.Flags & MachO::S_ATTR_PURE_INSTRUCTIONS;
+  bool const SectionIsNoDeadStrip = NSec.Flags & MachO::S_ATTR_NO_DEAD_STRIP;
+  bool const SectionIsText = NSec.Flags & MachO::S_ATTR_PURE_INSTRUCTIONS;
   JITTargetAddress BlockStart = 0;
 
   // Scan section for null characters.
   for (size_t I = 0; I != NSec.Size; ++I)
     if (NSec.Data[I] == '\0') {
-      JITTargetAddress BlockEnd = I + 1;
-      size_t BlockSize = BlockEnd - BlockStart;
+      JITTargetAddress const BlockEnd = I + 1;
+      size_t const BlockSize = BlockEnd - BlockStart;
       // Create a block for this null terminated string.
       auto &B = G->createContentBlock(*NSec.GraphSection,
                                       {NSec.Data + BlockStart, BlockSize},
@@ -678,8 +678,8 @@ Error MachOLinkGraphBuilder::graphifyCStringSection(
       while (!NSyms.empty() &&
              NSyms.back()->Value < (B.getAddress() + BlockSize)) {
         auto &NSym = *NSyms.back();
-        size_t SymSize = (B.getAddress() + BlockSize) - NSyms.back()->Value;
-        bool SymLive =
+        size_t const SymSize = (B.getAddress() + BlockSize) - NSyms.back()->Value;
+        bool const SymLive =
             (NSym.Desc & MachO::N_NO_DEAD_STRIP) || SectionIsNoDeadStrip;
 
         bool IsCanonical = false;

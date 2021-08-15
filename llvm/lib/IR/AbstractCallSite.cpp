@@ -45,7 +45,7 @@ void AbstractCallSite::getCallbackUses(
   for (const MDOperand &Op : CallbackMD->operands()) {
     MDNode *OpMD = cast<MDNode>(Op.get());
     auto *CBCalleeIdxAsCM = cast<ConstantAsMetadata>(OpMD->getOperand(0));
-    uint64_t CBCalleeIdx =
+    uint64_t const CBCalleeIdx =
         cast<ConstantInt>(CBCalleeIdxAsCM->getValue())->getZExtValue();
     if (CBCalleeIdx < CB.arg_size())
       CallbackUses.push_back(CB.arg_begin() + CBCalleeIdx);
@@ -98,12 +98,12 @@ AbstractCallSite::AbstractCallSite(const Use *U)
     return;
   }
 
-  unsigned UseIdx = CB->getArgOperandNo(U);
+  unsigned const UseIdx = CB->getArgOperandNo(U);
   MDNode *CallbackEncMD = nullptr;
   for (const MDOperand &Op : CallbackMD->operands()) {
     MDNode *OpMD = cast<MDNode>(Op.get());
     auto *CBCalleeIdxAsCM = cast<ConstantAsMetadata>(OpMD->getOperand(0));
-    uint64_t CBCalleeIdx =
+    uint64_t const CBCalleeIdx =
         cast<ConstantInt>(CBCalleeIdxAsCM->getValue())->getZExtValue();
     if (CBCalleeIdx != UseIdx)
       continue;
@@ -121,7 +121,7 @@ AbstractCallSite::AbstractCallSite(const Use *U)
 
   assert(CallbackEncMD->getNumOperands() >= 2 && "Incomplete !callback metadata");
 
-  unsigned NumCallOperands = CB->getNumArgOperands();
+  unsigned const NumCallOperands = CB->getNumArgOperands();
   // Skip the var-arg flag at the end when reading the metadata.
   for (unsigned u = 0, e = CallbackEncMD->getNumOperands() - 1; u < e; u++) {
     Metadata *OpAsM = CallbackEncMD->getOperand(u).get();
@@ -129,7 +129,7 @@ AbstractCallSite::AbstractCallSite(const Use *U)
     assert(OpAsCM->getType()->isIntegerTy(64) &&
            "Malformed !callback metadata");
 
-    int64_t Idx = cast<ConstantInt>(OpAsCM->getValue())->getSExtValue();
+    int64_t const Idx = cast<ConstantInt>(OpAsCM->getValue())->getSExtValue();
     assert(-1 <= Idx && Idx <= NumCallOperands &&
            "Out-of-bounds !callback metadata index");
 

@@ -115,7 +115,7 @@ bool MipsAsmPrinter::lowerOperand(const MachineOperand &MO, MCOperand &MCOp) {
 void MipsAsmPrinter::emitPseudoIndirectBranch(MCStreamer &OutStreamer,
                                               const MachineInstr *MI) {
   bool HasLinkReg = false;
-  bool InMicroMipsMode = Subtarget->inMicroMipsMode();
+  bool const InMicroMipsMode = Subtarget->inMicroMipsMode();
   MCInst TmpInst0;
 
   if (Subtarget->hasMips64r6()) {
@@ -141,7 +141,7 @@ void MipsAsmPrinter::emitPseudoIndirectBranch(MCStreamer &OutStreamer,
   MCOperand MCOp;
 
   if (HasLinkReg) {
-    unsigned ZeroReg = Subtarget->isGP64bit() ? Mips::ZERO_64 : Mips::ZERO;
+    unsigned const ZeroReg = Subtarget->isGP64bit() ? Mips::ZERO_64 : Mips::ZERO;
     TmpInst0.addOperand(MCOperand::createReg(ZeroReg));
   }
 
@@ -165,7 +165,7 @@ static void emitDirectiveRelocJalr(const MachineInstr &MI,
                                    const MipsSubtarget &Subtarget) {
   for (unsigned int I = MI.getDesc().getNumOperands(), E = MI.getNumOperands();
        I < E; ++I) {
-    MachineOperand MO = MI.getOperand(I);
+    MachineOperand const MO = MI.getOperand(I);
     if (MO.isMCSymbol() && (MO.getTargetFlags() & MipsII::MO_JALR)) {
       MCSymbol *Callee = MO.getMCSymbol();
       if (Callee && !Callee->getName().empty()) {
@@ -187,7 +187,7 @@ static void emitDirectiveRelocJalr(const MachineInstr &MI,
 
 void MipsAsmPrinter::emitInstruction(const MachineInstr *MI) {
   MipsTargetStreamer &TS = getTargetStreamer();
-  unsigned Opc = MI->getOpcode();
+  unsigned const Opc = MI->getOpcode();
   TS.forbidModuleDirective();
 
   if (MI->isDebugValue()) {
@@ -213,8 +213,8 @@ void MipsAsmPrinter::emitInstruction(const MachineInstr *MI) {
     // bytes of this constant pool entry.
     // The required alignment is specified on the basic block holding this MI.
     //
-    unsigned LabelId = (unsigned)MI->getOperand(0).getImm();
-    unsigned CPIdx = (unsigned)MI->getOperand(1).getIndex();
+    unsigned const LabelId = (unsigned)MI->getOperand(0).getImm();
+    unsigned const CPIdx = (unsigned)MI->getOperand(1).getIndex();
 
     // If this is the first entry of the pool, mark it.
     if (!InConstantPool) {
@@ -250,7 +250,7 @@ void MipsAsmPrinter::emitInstruction(const MachineInstr *MI) {
   }
 
   MachineBasicBlock::const_instr_iterator I = MI->getIterator();
-  MachineBasicBlock::const_instr_iterator E = MI->getParent()->instr_end();
+  MachineBasicBlock::const_instr_iterator const E = MI->getParent()->instr_end();
 
   do {
     // Do any auto-generated pseudo lowerings.
@@ -335,15 +335,15 @@ void MipsAsmPrinter::printSavedRegsBitmask() {
   const TargetRegisterInfo *TRI = MF->getSubtarget().getRegisterInfo();
   const std::vector<CalleeSavedInfo> &CSI = MFI.getCalleeSavedInfo();
   // size of stack area to which FP callee-saved regs are saved.
-  unsigned CPURegSize = TRI->getRegSizeInBits(Mips::GPR32RegClass) / 8;
-  unsigned FGR32RegSize = TRI->getRegSizeInBits(Mips::FGR32RegClass) / 8;
-  unsigned AFGR64RegSize = TRI->getRegSizeInBits(Mips::AFGR64RegClass) / 8;
+  unsigned const CPURegSize = TRI->getRegSizeInBits(Mips::GPR32RegClass) / 8;
+  unsigned const FGR32RegSize = TRI->getRegSizeInBits(Mips::FGR32RegClass) / 8;
+  unsigned const AFGR64RegSize = TRI->getRegSizeInBits(Mips::AFGR64RegClass) / 8;
   bool HasAFGR64Reg = false;
   unsigned CSFPRegsSize = 0;
 
   for (const auto &I : CSI) {
-    unsigned Reg = I.getReg();
-    unsigned RegNum = TRI->getEncodingValue(Reg);
+    unsigned const Reg = I.getReg();
+    unsigned const RegNum = TRI->getEncodingValue(Reg);
 
     // If it's a floating point register, set the FPU Bitmask.
     // If it's a general purpose register, set the CPU Bitmask.
@@ -381,9 +381,9 @@ void MipsAsmPrinter::printSavedRegsBitmask() {
 void MipsAsmPrinter::emitFrameDirective() {
   const TargetRegisterInfo &RI = *MF->getSubtarget().getRegisterInfo();
 
-  Register stackReg = RI.getFrameRegister(*MF);
-  unsigned returnReg = RI.getRARegister();
-  unsigned stackSize = MF->getFrameInfo().getStackSize();
+  Register const stackReg = RI.getFrameRegister(*MF);
+  unsigned const returnReg = RI.getRARegister();
+  unsigned const stackSize = MF->getFrameInfo().getStackSize();
 
   getTargetStreamer().emitFrame(stackReg, stackSize, returnReg);
 }
@@ -429,7 +429,7 @@ void MipsAsmPrinter::emitFunctionBodyStart() {
 
   MCInstLowering.Initialize(&MF->getContext());
 
-  bool IsNakedFunction = MF->getFunction().hasFnAttribute(Attribute::Naked);
+  bool const IsNakedFunction = MF->getFunction().hasFnAttribute(Attribute::Naked);
   if (!IsNakedFunction)
     emitFrameDirective();
 
@@ -570,13 +570,13 @@ bool MipsAsmPrinter::PrintAsmOperand(const MachineInstr *MI, unsigned OpNum,
       const MachineOperand &FlagsOP = MI->getOperand(OpNum - 1);
       if (!FlagsOP.isImm())
         return true;
-      unsigned Flags = FlagsOP.getImm();
-      unsigned NumVals = InlineAsm::getNumOperandRegisters(Flags);
+      unsigned const Flags = FlagsOP.getImm();
+      unsigned const NumVals = InlineAsm::getNumOperandRegisters(Flags);
       // Number of registers represented by this operand. We are looking
       // for 2 for 32 bit mode and 1 for 64 bit mode.
       if (NumVals != 2) {
         if (Subtarget->isGP64bit() && NumVals == 1 && MO.isReg()) {
-          Register Reg = MO.getReg();
+          Register const Reg = MO.getReg();
           O << '$' << MipsInstPrinter::getRegisterName(Reg);
           return false;
         }
@@ -602,7 +602,7 @@ bool MipsAsmPrinter::PrintAsmOperand(const MachineInstr *MI, unsigned OpNum,
         const MachineOperand &MO = MI->getOperand(RegOp);
         if (!MO.isReg())
           return true;
-        Register Reg = MO.getReg();
+        Register const Reg = MO.getReg();
         O << '$' << MipsInstPrinter::getRegisterName(Reg);
         return false;
       }
@@ -784,12 +784,12 @@ void MipsAsmPrinter::emitStartOfAsmFile(Module &M) {
   // FIXME: For ifunc related functions we could iterate over and look
   // for a feature string that doesn't match the default one.
   const Triple &TT = TM.getTargetTriple();
-  StringRef CPU = MIPS_MC::selectMipsCPU(TT, TM.getTargetCPU());
-  StringRef FS = TM.getTargetFeatureString();
+  StringRef const CPU = MIPS_MC::selectMipsCPU(TT, TM.getTargetCPU());
+  StringRef const FS = TM.getTargetFeatureString();
   const MipsTargetMachine &MTM = static_cast<const MipsTargetMachine &>(TM);
   const MipsSubtarget STI(TT, CPU, FS, MTM.isLittleEndian(), MTM, None);
 
-  bool IsABICalls = STI.isABICalls();
+  bool const IsABICalls = STI.isABICalls();
   const MipsABIInfo &ABI = MTM.getABI();
   if (IsABICalls) {
     TS.emitDirectiveAbiCalls();
@@ -802,7 +802,7 @@ void MipsAsmPrinter::emitStartOfAsmFile(Module &M) {
   }
 
   // Tell the assembler which ABI we are using
-  std::string SectionName = std::string(".mdebug.") + getCurrentABIString();
+  std::string const SectionName = std::string(".mdebug.") + getCurrentABIString();
   OutStreamer->SwitchSection(
       OutContext.getELFSection(SectionName, ELF::SHT_PROGBITS, 0));
 
@@ -881,7 +881,7 @@ void MipsAsmPrinter::EmitInstrRegReg(const MCSubtargetInfo &STI,
   // change to fix this in the td file so we adjust for it here.
   //
   if (Opcode == Mips::MTC1) {
-    unsigned Temp = Reg1;
+    unsigned const Temp = Reg1;
     Reg1 = Reg2;
     Reg2 = Temp;
   }
@@ -907,7 +907,7 @@ void MipsAsmPrinter::EmitMovFPIntPair(const MCSubtargetInfo &STI,
                                       unsigned Reg2, unsigned FPReg1,
                                       unsigned FPReg2, bool LE) {
   if (!LE) {
-    unsigned temp = Reg1;
+    unsigned const temp = Reg1;
     Reg1 = Reg2;
     Reg2 = temp;
   }
@@ -920,7 +920,7 @@ void MipsAsmPrinter::EmitSwapFPIntParams(const MCSubtargetInfo &STI,
                                          bool LE, bool ToFP) {
   using namespace Mips16HardFloatInfo;
 
-  unsigned MovOpc = ToFP ? Mips::MTC1 : Mips::MFC1;
+  unsigned const MovOpc = ToFP ? Mips::MTC1 : Mips::MFC1;
   switch (PV) {
   case FSig:
     EmitInstrRegReg(STI, MovOpc, Mips::A0, Mips::F12);
@@ -953,7 +953,7 @@ void MipsAsmPrinter::EmitSwapFPIntRetval(
     bool LE) {
   using namespace Mips16HardFloatInfo;
 
-  unsigned MovOpc = Mips::MFC1;
+  unsigned const MovOpc = Mips::MFC1;
   switch (RV) {
   case FRet:
     EmitInstrRegReg(STI, MovOpc, Mips::V0, Mips::F0);
@@ -978,12 +978,12 @@ void MipsAsmPrinter::EmitFPCallStub(
   using namespace Mips16HardFloatInfo;
 
   MCSymbol *MSymbol = OutContext.getOrCreateSymbol(StringRef(Symbol));
-  bool LE = getDataLayout().isLittleEndian();
+  bool const LE = getDataLayout().isLittleEndian();
   // Construct a local MCSubtargetInfo here.
   // This is because the MachineFunction won't exist (but have not yet been
   // freed) and since we're at the global level we can use the default
   // constructed subtarget.
-  std::unique_ptr<MCSubtargetInfo> STI(TM.getTarget().createMCSubtargetInfo(
+  std::unique_ptr<MCSubtargetInfo> const STI(TM.getTarget().createMCSubtargetInfo(
       TM.getTargetTriple().str(), TM.getTargetCPU(),
       TM.getTargetFeatureString()));
 
@@ -1067,7 +1067,7 @@ void MipsAsmPrinter::EmitFPCallStub(
   // .type  __call_stub_fp_xxxx,@function
   //  __call_stub_fp_xxxx:
   //
-  std::string x = "__call_stub_fp_" + std::string(Symbol);
+  std::string const x = "__call_stub_fp_" + std::string(Symbol);
   MCSymbolELF *Stub =
       cast<MCSymbolELF>(OutContext.getOrCreateSymbol(StringRef(x)));
   TS.emitDirectiveEnt(*Stub);
@@ -1307,8 +1307,8 @@ bool MipsAsmPrinter::isLongBranchPseudo(int Opcode) const {
 
 // Force static initialization.
 extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializeMipsAsmPrinter() {
-  RegisterAsmPrinter<MipsAsmPrinter> X(getTheMipsTarget());
-  RegisterAsmPrinter<MipsAsmPrinter> Y(getTheMipselTarget());
-  RegisterAsmPrinter<MipsAsmPrinter> A(getTheMips64Target());
-  RegisterAsmPrinter<MipsAsmPrinter> B(getTheMips64elTarget());
+  RegisterAsmPrinter<MipsAsmPrinter> const X(getTheMipsTarget());
+  RegisterAsmPrinter<MipsAsmPrinter> const Y(getTheMipselTarget());
+  RegisterAsmPrinter<MipsAsmPrinter> const A(getTheMips64Target());
+  RegisterAsmPrinter<MipsAsmPrinter> const B(getTheMips64elTarget());
 }

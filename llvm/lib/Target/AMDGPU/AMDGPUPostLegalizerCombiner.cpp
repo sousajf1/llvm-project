@@ -81,7 +81,7 @@ bool AMDGPUPostLegalizerCombinerHelper::matchFMinFMaxLegacy(
   if (MRI.getType(MI.getOperand(0).getReg()) != LLT::scalar(32))
     return false;
 
-  Register Cond = MI.getOperand(1).getReg();
+  Register const Cond = MI.getOperand(1).getReg();
   if (!MRI.hasOneNonDBGUse(Cond) ||
       !mi_match(Cond, MRI,
                 m_GFCmp(m_Pred(Info.Pred), m_Reg(Info.LHS), m_Reg(Info.RHS))))
@@ -159,16 +159,16 @@ void AMDGPUPostLegalizerCombinerHelper::applySelectFCmpToFMinToFMaxLegacy(
 }
 
 bool AMDGPUPostLegalizerCombinerHelper::matchUCharToFloat(MachineInstr &MI) {
-  Register DstReg = MI.getOperand(0).getReg();
+  Register const DstReg = MI.getOperand(0).getReg();
 
   // TODO: We could try to match extracting the higher bytes, which would be
   // easier if i8 vectors weren't promoted to i32 vectors, particularly after
   // types are legalized. v4i8 -> v4f32 is probably the only case to worry
   // about in practice.
-  LLT Ty = MRI.getType(DstReg);
+  LLT const Ty = MRI.getType(DstReg);
   if (Ty == LLT::scalar(32) || Ty == LLT::scalar(16)) {
-    Register SrcReg = MI.getOperand(1).getReg();
-    unsigned SrcSize = MRI.getType(SrcReg).getSizeInBits();
+    Register const SrcReg = MI.getOperand(1).getReg();
+    unsigned const SrcSize = MRI.getType(SrcReg).getSizeInBits();
     assert(SrcSize == 16 || SrcSize == 32 || SrcSize == 64);
     const APInt Mask = APInt::getHighBitsSet(SrcSize, SrcSize - 8);
     return Helper.getKnownBits()->maskedValueIsZero(SrcReg, Mask);
@@ -182,10 +182,10 @@ void AMDGPUPostLegalizerCombinerHelper::applyUCharToFloat(MachineInstr &MI) {
 
   const LLT S32 = LLT::scalar(32);
 
-  Register DstReg = MI.getOperand(0).getReg();
+  Register const DstReg = MI.getOperand(0).getReg();
   Register SrcReg = MI.getOperand(1).getReg();
-  LLT Ty = MRI.getType(DstReg);
-  LLT SrcTy = MRI.getType(SrcReg);
+  LLT const Ty = MRI.getType(DstReg);
+  LLT const SrcTy = MRI.getType(SrcReg);
   if (SrcTy != S32)
     SrcReg = B.buildAnyExtOrTrunc(S32, SrcReg).getReg(0);
 
@@ -210,7 +210,7 @@ bool AMDGPUPostLegalizerCombinerHelper::matchCvtF32UByteN(
 
   Register Src0;
   int64_t ShiftAmt;
-  bool IsShr = mi_match(SrcReg, MRI, m_GLShr(m_Reg(Src0), m_ICst(ShiftAmt)));
+  bool const IsShr = mi_match(SrcReg, MRI, m_GLShr(m_Reg(Src0), m_ICst(ShiftAmt)));
   if (IsShr || mi_match(SrcReg, MRI, m_GShl(m_Reg(Src0), m_ICst(ShiftAmt)))) {
     const unsigned Offset = MI.getOpcode() - AMDGPU::G_AMDGPU_CVT_F32_UBYTE0;
 
@@ -232,11 +232,11 @@ bool AMDGPUPostLegalizerCombinerHelper::matchCvtF32UByteN(
 void AMDGPUPostLegalizerCombinerHelper::applyCvtF32UByteN(
     MachineInstr &MI, const CvtF32UByteMatchInfo &MatchInfo) {
   B.setInstrAndDebugLoc(MI);
-  unsigned NewOpc = AMDGPU::G_AMDGPU_CVT_F32_UBYTE0 + MatchInfo.ShiftOffset / 8;
+  unsigned const NewOpc = AMDGPU::G_AMDGPU_CVT_F32_UBYTE0 + MatchInfo.ShiftOffset / 8;
 
   const LLT S32 = LLT::scalar(32);
   Register CvtSrc = MatchInfo.CvtVal;
-  LLT SrcTy = MRI.getType(MatchInfo.CvtVal);
+  LLT const SrcTy = MRI.getType(MatchInfo.CvtVal);
   if (SrcTy != S32) {
     assert(SrcTy.isScalar() && SrcTy.getSizeInBits() >= 8);
     CvtSrc = B.buildAnyExt(S32, CvtSrc).getReg(0);
@@ -302,7 +302,7 @@ bool AMDGPUPostLegalizerCombinerInfo::combine(GISelChangeObserver &Observer,
                                               MachineIRBuilder &B) const {
   CombinerHelper Helper(Observer, B, KB, MDT, LInfo);
   AMDGPUPostLegalizerCombinerHelper PostLegalizerHelper(B, Helper);
-  AMDGPUGenPostLegalizerCombinerHelper Generated(GeneratedRuleCfg, Helper,
+  AMDGPUGenPostLegalizerCombinerHelper const Generated(GeneratedRuleCfg, Helper,
                                                  PostLegalizerHelper);
 
   if (Generated.tryCombineAll(Observer, MI, B))
@@ -370,7 +370,7 @@ bool AMDGPUPostLegalizerCombiner::runOnMachineFunction(MachineFunction &MF) {
     return false;
   auto *TPC = &getAnalysis<TargetPassConfig>();
   const Function &F = MF.getFunction();
-  bool EnableOpt =
+  bool const EnableOpt =
       MF.getTarget().getOptLevel() != CodeGenOpt::None && !skipFunction(F);
 
   const GCNSubtarget &ST = MF.getSubtarget<GCNSubtarget>();

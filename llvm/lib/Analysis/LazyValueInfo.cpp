@@ -301,7 +301,7 @@ void LazyValueInfoCache::threadEdgeImpl(BasicBlock *OldSucc,
   const BlockCacheEntry *Entry = getBlockEntry(OldSucc);
   if (!Entry || Entry->OverDefined.empty())
     return; // Nothing to process here.
-  SmallVector<Value *, 4> ValsToClear(Entry->OverDefined.begin(),
+  SmallVector<Value *, 4> const ValsToClear(Entry->OverDefined.begin(),
                                       Entry->OverDefined.end());
 
   // Use a worklist to perform a depth-first search of OldSucc's successors.
@@ -500,7 +500,7 @@ void LazyValueInfoImpl::solve() {
           dbgs() << "Giving up on stack because we are getting too deep\n");
       // Fill in the original values
       while (!StartingStack.empty()) {
-        std::pair<BasicBlock *, Value *> &e = StartingStack.back();
+        std::pair<BasicBlock *, Value *>  const&e = StartingStack.back();
         TheCache.insertResult(e.second, e.first,
                               ValueLatticeElement::getOverdefined());
         StartingStack.pop_back();
@@ -509,7 +509,7 @@ void LazyValueInfoImpl::solve() {
       BlockValueStack.clear();
       return;
     }
-    std::pair<BasicBlock *, Value *> e = BlockValueStack.back();
+    std::pair<BasicBlock *, Value *> const e = BlockValueStack.back();
     assert(BlockValueSet.count(e) && "Stack value should be in BlockValueSet!");
 
     if (solveBlockValue(e.second, e.first)) {
@@ -817,7 +817,7 @@ Optional<ValueLatticeElement> LazyValueInfoImpl::solveBlockValueSelect(
     // ValueTracking getting smarter looking back past our immediate inputs.)
     if (SelectPatternResult::isMinOrMax(SPR.Flavor) &&
         LHS == SI->getTrueValue() && RHS == SI->getFalseValue()) {
-      ConstantRange ResultCR = [&]() {
+      ConstantRange const ResultCR = [&]() {
         switch (SPR.Flavor) {
         default:
           llvm_unreachable("unexpected minmax type!");
@@ -846,7 +846,7 @@ Optional<ValueLatticeElement> LazyValueInfoImpl::solveBlockValueSelect(
     }
 
     if (SPR.Flavor == SPF_NABS) {
-      ConstantRange Zero(APInt::getNullValue(TrueCR.getBitWidth()));
+      ConstantRange const Zero(APInt::getNullValue(TrueCR.getBitWidth()));
       if (LHS == SI->getTrueValue())
         return ValueLatticeElement::getRange(
             Zero.sub(TrueCR.abs()), FalseVal.isConstantRangeIncludingUndef());
@@ -1068,7 +1068,7 @@ static ValueLatticeElement getValueFromSimpleICmpCondition(
     if (auto *Ranges = I->getMetadata(LLVMContext::MD_range))
       RHSRange = getConstantRangeFromMetadata(*Ranges);
 
-  ConstantRange TrueValues =
+  ConstantRange const TrueValues =
       ConstantRange::makeAllowedICmpRegion(Pred, RHSRange);
   return ValueLatticeElement::getRange(TrueValues.subtract(Offset));
 }
@@ -1079,7 +1079,7 @@ static ValueLatticeElement getValueFromICmpCondition(Value *Val, ICmpInst *ICI,
   Value *RHS = ICI->getOperand(1);
 
   // Get the predicate that must hold along the considered edge.
-  CmpInst::Predicate EdgePred =
+  CmpInst::Predicate const EdgePred =
       isTrueDest ? ICI->getPredicate() : ICI->getInversePredicate();
 
   if (isa<Constant>(RHS)) {
@@ -1099,7 +1099,7 @@ static ValueLatticeElement getValueFromICmpCondition(Value *Val, ICmpInst *ICI,
   if (matchICmpOperand(Offset, LHS, Val, EdgePred))
     return getValueFromSimpleICmpCondition(EdgePred, RHS, Offset);
 
-  CmpInst::Predicate SwappedPred = CmpInst::getSwappedPredicate(EdgePred);
+  CmpInst::Predicate const SwappedPred = CmpInst::getSwappedPredicate(EdgePred);
   if (matchICmpOperand(Offset, RHS, Val, SwappedPred))
     return getValueFromSimpleICmpCondition(SwappedPred, LHS, Offset);
 
@@ -1119,7 +1119,7 @@ static ValueLatticeElement getValueFromICmpCondition(Value *Val, ICmpInst *ICI,
     // bit of Mask.
     if (EdgePred == ICmpInst::ICMP_NE && !Mask->isNullValue() &&
         C->isNullValue()) {
-      unsigned BitWidth = Ty->getIntegerBitWidth();
+      unsigned const BitWidth = Ty->getIntegerBitWidth();
       return ValueLatticeElement::getRange(ConstantRange::getNonEmpty(
           APInt::getOneBitSet(BitWidth, Mask->countTrailingZeros()),
           APInt::getNullValue(BitWidth)));
@@ -1220,7 +1220,7 @@ ValueLatticeElement getValueFromCondition(Value *Val, Value *Cond,
     //   "%tmp4 = or i1 undef, %tmp3"
     auto Iter =
         Visited.try_emplace(CurrentCond, ValueLatticeElement::getOverdefined());
-    bool isRevisit = !Iter.second;
+    bool const isRevisit = !Iter.second;
     Optional<ValueLatticeElement> Result = getValueFromConditionImpl(
         Val, CurrentCond, isTrueDest, isRevisit, Visited, Worklist);
     if (Result) {
@@ -1265,8 +1265,8 @@ static ValueLatticeElement constantFoldUser(User *Usr, Value *Op,
       return ValueLatticeElement::getRange(ConstantRange(C->getValue()));
     }
   } else if (auto *BO = dyn_cast<BinaryOperator>(Usr)) {
-    bool Op0Match = BO->getOperand(0) == Op;
-    bool Op1Match = BO->getOperand(1) == Op;
+    bool const Op0Match = BO->getOperand(0) == Op;
+    bool const Op1Match = BO->getOperand(1) == Op;
     assert((Op0Match || Op1Match) &&
            "Operand 0 nor Operand 1 isn't a match");
     Value *LHS = Op0Match ? OpConst : BO->getOperand(0);
@@ -1295,7 +1295,7 @@ static Optional<ValueLatticeElement> getEdgeValueLocal(Value *Val,
     // we may be able to infer something from the condition.
     if (BI->isConditional() &&
         BI->getSuccessor(0) != BI->getSuccessor(1)) {
-      bool isTrueDest = BI->getSuccessor(0) == BBTo;
+      bool const isTrueDest = BI->getSuccessor(0) == BBTo;
       assert(BI->getSuccessor(!isTrueDest) == BBTo &&
              "BBTo isn't a successor of BBFrom");
       Value *Condition = BI->getCondition();
@@ -1328,7 +1328,7 @@ static Optional<ValueLatticeElement> getEdgeValueLocal(Value *Val,
             //   ; %Val is true on the edge to %then.
             //   %Val = and i1 %Condition, true.
             //   br %Condition, label %then, label %else
-            APInt ConditionVal(1, isTrueDest ? 1 : 0);
+            APInt const ConditionVal(1, isTrueDest ? 1 : 0);
             Result = constantFoldUser(Usr, Condition, ConditionVal, DL);
           } else {
             // If one of Val's operand has an inferred value, we may be able to
@@ -1340,7 +1340,7 @@ static Optional<ValueLatticeElement> getEdgeValueLocal(Value *Val,
             //    br i1 %Condition, label %then, label %else
             for (unsigned i = 0; i < Usr->getNumOperands(); ++i) {
               Value *Op = Usr->getOperand(i);
-              ValueLatticeElement OpLatticeVal =
+              ValueLatticeElement const OpLatticeVal =
                   getValueFromCondition(Op, Condition, isTrueDest);
               if (Optional<APInt> OpConst = OpLatticeVal.asConstantInteger()) {
                 Result = constantFoldUser(Usr, Op, OpConst.getValue(), DL);
@@ -1373,17 +1373,17 @@ static Optional<ValueLatticeElement> getEdgeValueLocal(Value *Val,
     assert((Condition == Val || ValUsesConditionAndMayBeFoldable) &&
            "Condition != Val nor Val doesn't use Condition");
 
-    bool DefaultCase = SI->getDefaultDest() == BBTo;
-    unsigned BitWidth = Val->getType()->getIntegerBitWidth();
+    bool const DefaultCase = SI->getDefaultDest() == BBTo;
+    unsigned const BitWidth = Val->getType()->getIntegerBitWidth();
     ConstantRange EdgesVals(BitWidth, DefaultCase/*isFullSet*/);
 
     for (auto Case : SI->cases()) {
-      APInt CaseValue = Case.getCaseValue()->getValue();
+      APInt const CaseValue = Case.getCaseValue()->getValue();
       ConstantRange EdgeVal(CaseValue);
       if (ValUsesConditionAndMayBeFoldable) {
         User *Usr = cast<User>(Val);
         const DataLayout &DL = BBTo->getModule()->getDataLayout();
-        ValueLatticeElement EdgeLatticeVal =
+        ValueLatticeElement const EdgeLatticeVal =
             constantFoldUser(Usr, Condition, CaseValue, DL);
         if (EdgeLatticeVal.isOverdefined())
           return None;
@@ -1586,7 +1586,7 @@ Constant *LazyValueInfo::getConstant(Value *V, Instruction *CxtI) {
     return nullptr;
 
   BasicBlock *BB = CxtI->getParent();
-  ValueLatticeElement Result =
+  ValueLatticeElement const Result =
       getImpl(PImpl, AC, BB->getModule()).getValueInBlock(V, BB, CxtI);
 
   if (Result.isConstant())
@@ -1602,9 +1602,9 @@ Constant *LazyValueInfo::getConstant(Value *V, Instruction *CxtI) {
 ConstantRange LazyValueInfo::getConstantRange(Value *V, Instruction *CxtI,
                                               bool UndefAllowed) {
   assert(V->getType()->isIntegerTy());
-  unsigned Width = V->getType()->getIntegerBitWidth();
+  unsigned const Width = V->getType()->getIntegerBitWidth();
   BasicBlock *BB = CxtI->getParent();
-  ValueLatticeElement Result =
+  ValueLatticeElement const Result =
       getImpl(PImpl, AC, BB->getModule()).getValueInBlock(V, BB, CxtI);
   if (Result.isUnknown())
     return ConstantRange::getEmpty(Width);
@@ -1623,7 +1623,7 @@ Constant *LazyValueInfo::getConstantOnEdge(Value *V, BasicBlock *FromBB,
                                            BasicBlock *ToBB,
                                            Instruction *CxtI) {
   Module *M = FromBB->getModule();
-  ValueLatticeElement Result =
+  ValueLatticeElement const Result =
       getImpl(PImpl, AC, M).getValueOnEdge(V, FromBB, ToBB, CxtI);
 
   if (Result.isConstant())
@@ -1640,9 +1640,9 @@ ConstantRange LazyValueInfo::getConstantRangeOnEdge(Value *V,
                                                     BasicBlock *FromBB,
                                                     BasicBlock *ToBB,
                                                     Instruction *CxtI) {
-  unsigned Width = V->getType()->getIntegerBitWidth();
+  unsigned const Width = V->getType()->getIntegerBitWidth();
   Module *M = FromBB->getModule();
-  ValueLatticeElement Result =
+  ValueLatticeElement const Result =
       getImpl(PImpl, AC, M).getValueOnEdge(V, FromBB, ToBB, CxtI);
 
   if (Result.isUnknown())
@@ -1687,7 +1687,7 @@ getPredicateResult(unsigned Pred, Constant *C, const ValueLatticeElement &Val,
         return LazyValueInfo::False;
     } else {
       // Handle more complex predicates.
-      ConstantRange TrueValues = ConstantRange::makeExactICmpRegion(
+      ConstantRange const TrueValues = ConstantRange::makeExactICmpRegion(
           (ICmpInst::Predicate)Pred, CI->getValue());
       if (TrueValues.contains(CR))
         return LazyValueInfo::True;
@@ -1728,7 +1728,7 @@ LazyValueInfo::getPredicateOnEdge(unsigned Pred, Value *V, Constant *C,
                                   BasicBlock *FromBB, BasicBlock *ToBB,
                                   Instruction *CxtI) {
   Module *M = FromBB->getModule();
-  ValueLatticeElement Result =
+  ValueLatticeElement const Result =
       getImpl(PImpl, AC, M).getValueOnEdge(V, FromBB, ToBB, CxtI);
 
   return getPredicateResult(Pred, C, Result, M->getDataLayout(), TLI);
@@ -1751,10 +1751,10 @@ LazyValueInfo::getPredicateAt(unsigned Pred, Value *V, Constant *C,
       return LazyValueInfo::True;
   }
 
-  ValueLatticeElement Result = UseBlockValue
+  ValueLatticeElement const Result = UseBlockValue
       ? getImpl(PImpl, AC, M).getValueInBlock(V, CxtI->getParent(), CxtI)
       : getImpl(PImpl, AC, M).getValueAt(V, CxtI);
-  Tristate Ret = getPredicateResult(Pred, C, Result, DL, TLI);
+  Tristate const Ret = getPredicateResult(Pred, C, Result, DL, TLI);
   if (Ret != Unknown)
     return Ret;
 
@@ -1800,7 +1800,7 @@ LazyValueInfo::getPredicateAt(unsigned Pred, Value *V, Constant *C,
           Value *Incoming = PHI->getIncomingValue(i);
           BasicBlock *PredBB = PHI->getIncomingBlock(i);
           // Note that PredBB may be BB itself.
-          Tristate Result = getPredicateOnEdge(Pred, Incoming, C, PredBB, BB,
+          Tristate const Result = getPredicateOnEdge(Pred, Incoming, C, PredBB, BB,
                                                CxtI);
 
           // Keep going as long as we've seen a consistent known result for
@@ -1822,11 +1822,11 @@ LazyValueInfo::getPredicateAt(unsigned Pred, Value *V, Constant *C,
       // For predecessor edge, determine if the comparison is true or false
       // on that edge. If they're all true or all false, we can conclude
       // the value of the comparison in this block.
-      Tristate Baseline = getPredicateOnEdge(Pred, V, C, *PI, BB, CxtI);
+      Tristate const Baseline = getPredicateOnEdge(Pred, V, C, *PI, BB, CxtI);
       if (Baseline != Unknown) {
         // Check that all remaining incoming values match the first one.
         while (++PI != PE) {
-          Tristate Ret = getPredicateOnEdge(Pred, V, C, *PI, BB, CxtI);
+          Tristate const Ret = getPredicateOnEdge(Pred, V, C, *PI, BB, CxtI);
           if (Ret != Baseline) break;
         }
         // If we terminated early, then one of the values didn't match.
@@ -1843,7 +1843,7 @@ LazyValueInfo::Tristate LazyValueInfo::getPredicateAt(unsigned P, Value *LHS,
                                                       Value *RHS,
                                                       Instruction *CxtI,
                                                       bool UseBlockValue) {
-  CmpInst::Predicate Pred = (CmpInst::Predicate)P;
+  CmpInst::Predicate const Pred = (CmpInst::Predicate)P;
 
   if (auto *C = dyn_cast<Constant>(RHS))
     return getPredicateAt(P, LHS, C, CxtI, UseBlockValue);
@@ -1884,7 +1884,7 @@ void LazyValueInfoAnnotatedWriter::emitBasicBlockStartAnnot(
   // Find if there are latticevalues defined for arguments of the function.
   auto *F = BB->getParent();
   for (auto &Arg : F->args()) {
-    ValueLatticeElement Result = LVIImpl->getValueInBlock(
+    ValueLatticeElement const Result = LVIImpl->getValueInBlock(
         const_cast<Argument *>(&Arg), const_cast<BasicBlock *>(BB));
     if (Result.isUnknown())
       continue;
@@ -1909,7 +1909,7 @@ void LazyValueInfoAnnotatedWriter::emitInstructionAnnot(
   auto printResult = [&](const BasicBlock *BB) {
     if (!BlocksContainingLVI.insert(BB).second)
       return;
-    ValueLatticeElement Result = LVIImpl->getValueInBlock(
+    ValueLatticeElement const Result = LVIImpl->getValueInBlock(
         const_cast<Instruction *>(I), const_cast<BasicBlock *>(BB));
       OS << "; LatticeVal for: '" << *I << "' in BB: '";
       BB->printAsOperand(OS, false);

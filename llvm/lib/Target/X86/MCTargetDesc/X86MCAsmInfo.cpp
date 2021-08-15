@@ -37,7 +37,7 @@ MarkedJTDataRegions("mark-data-regions", cl::init(true),
 void X86MCAsmInfoDarwin::anchor() { }
 
 X86MCAsmInfoDarwin::X86MCAsmInfoDarwin(const Triple &T) {
-  bool is64Bit = T.getArch() == Triple::x86_64;
+  bool const is64Bit = T.getArch() == Triple::x86_64;
   if (is64Bit)
     CodePointerSize = CalleeSaveStackSlotSize = 8;
 
@@ -80,8 +80,8 @@ X86_64MCAsmInfoDarwin::X86_64MCAsmInfoDarwin(const Triple &Triple)
 void X86ELFMCAsmInfo::anchor() { }
 
 X86ELFMCAsmInfo::X86ELFMCAsmInfo(const Triple &T) {
-  bool is64Bit = T.getArch() == Triple::x86_64;
-  bool isX32 = T.isX32();
+  bool const is64Bit = T.getArch() == Triple::x86_64;
+  bool const isX32 = T.isX32();
 
   // For ELF, x86-64 pointer size depends on the ABI.
   // For x86-64 without the x32 ABI, pointer size is 8. For x86 and for x86-64

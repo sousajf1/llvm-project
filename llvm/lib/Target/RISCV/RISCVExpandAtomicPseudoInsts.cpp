@@ -218,11 +218,11 @@ static void doAtomicBinOpExpansion(const RISCVInstrInfo *TII, MachineInstr &MI,
                                    MachineBasicBlock *LoopMBB,
                                    MachineBasicBlock *DoneMBB,
                                    AtomicRMWInst::BinOp BinOp, int Width) {
-  Register DestReg = MI.getOperand(0).getReg();
-  Register ScratchReg = MI.getOperand(1).getReg();
-  Register AddrReg = MI.getOperand(2).getReg();
-  Register IncrReg = MI.getOperand(3).getReg();
-  AtomicOrdering Ordering =
+  Register const DestReg = MI.getOperand(0).getReg();
+  Register const ScratchReg = MI.getOperand(1).getReg();
+  Register const AddrReg = MI.getOperand(2).getReg();
+  Register const IncrReg = MI.getOperand(3).getReg();
+  AtomicOrdering const Ordering =
       static_cast<AtomicOrdering>(MI.getOperand(4).getImm());
 
   // .loop:
@@ -280,12 +280,12 @@ static void doMaskedAtomicBinOpExpansion(
     MachineBasicBlock *ThisMBB, MachineBasicBlock *LoopMBB,
     MachineBasicBlock *DoneMBB, AtomicRMWInst::BinOp BinOp, int Width) {
   assert(Width == 32 && "Should never need to expand masked 64-bit operations");
-  Register DestReg = MI.getOperand(0).getReg();
-  Register ScratchReg = MI.getOperand(1).getReg();
-  Register AddrReg = MI.getOperand(2).getReg();
-  Register IncrReg = MI.getOperand(3).getReg();
-  Register MaskReg = MI.getOperand(4).getReg();
-  AtomicOrdering Ordering =
+  Register const DestReg = MI.getOperand(0).getReg();
+  Register const ScratchReg = MI.getOperand(1).getReg();
+  Register const AddrReg = MI.getOperand(2).getReg();
+  Register const IncrReg = MI.getOperand(3).getReg();
+  Register const MaskReg = MI.getOperand(4).getReg();
+  AtomicOrdering const Ordering =
       static_cast<AtomicOrdering>(MI.getOperand(5).getImm());
 
   // .loop:
@@ -343,7 +343,7 @@ bool RISCVExpandAtomicPseudo::expandAtomicBinOp(
     AtomicRMWInst::BinOp BinOp, bool IsMasked, int Width,
     MachineBasicBlock::iterator &NextMBBI) {
   MachineInstr &MI = *MBBI;
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc const DL = MI.getDebugLoc();
 
   MachineFunction *MF = MBB.getParent();
   auto LoopMBB = MF->CreateMachineBasicBlock(MBB.getBasicBlock());
@@ -396,7 +396,7 @@ bool RISCVExpandAtomicPseudo::expandAtomicMinMaxOp(
   assert(Width == 32 && "Should never need to expand masked 64-bit operations");
 
   MachineInstr &MI = *MBBI;
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc const DL = MI.getDebugLoc();
   MachineFunction *MF = MBB.getParent();
   auto LoopHeadMBB = MF->CreateMachineBasicBlock(MBB.getBasicBlock());
   auto LoopIfBodyMBB = MF->CreateMachineBasicBlock(MBB.getBasicBlock());
@@ -419,14 +419,14 @@ bool RISCVExpandAtomicPseudo::expandAtomicMinMaxOp(
   DoneMBB->transferSuccessors(&MBB);
   MBB.addSuccessor(LoopHeadMBB);
 
-  Register DestReg = MI.getOperand(0).getReg();
-  Register Scratch1Reg = MI.getOperand(1).getReg();
-  Register Scratch2Reg = MI.getOperand(2).getReg();
-  Register AddrReg = MI.getOperand(3).getReg();
-  Register IncrReg = MI.getOperand(4).getReg();
-  Register MaskReg = MI.getOperand(5).getReg();
-  bool IsSigned = BinOp == AtomicRMWInst::Min || BinOp == AtomicRMWInst::Max;
-  AtomicOrdering Ordering =
+  Register const DestReg = MI.getOperand(0).getReg();
+  Register const Scratch1Reg = MI.getOperand(1).getReg();
+  Register const Scratch2Reg = MI.getOperand(2).getReg();
+  Register const AddrReg = MI.getOperand(3).getReg();
+  Register const IncrReg = MI.getOperand(4).getReg();
+  Register const MaskReg = MI.getOperand(5).getReg();
+  bool const IsSigned = BinOp == AtomicRMWInst::Min || BinOp == AtomicRMWInst::Max;
+  AtomicOrdering const Ordering =
       static_cast<AtomicOrdering>(MI.getOperand(IsSigned ? 7 : 6).getImm());
 
   //
@@ -512,7 +512,7 @@ bool RISCVExpandAtomicPseudo::expandAtomicCmpXchg(
     MachineBasicBlock &MBB, MachineBasicBlock::iterator MBBI, bool IsMasked,
     int Width, MachineBasicBlock::iterator &NextMBBI) {
   MachineInstr &MI = *MBBI;
-  DebugLoc DL = MI.getDebugLoc();
+  DebugLoc const DL = MI.getDebugLoc();
   MachineFunction *MF = MBB.getParent();
   auto LoopHeadMBB = MF->CreateMachineBasicBlock(MBB.getBasicBlock());
   auto LoopTailMBB = MF->CreateMachineBasicBlock(MBB.getBasicBlock());
@@ -532,12 +532,12 @@ bool RISCVExpandAtomicPseudo::expandAtomicCmpXchg(
   DoneMBB->transferSuccessors(&MBB);
   MBB.addSuccessor(LoopHeadMBB);
 
-  Register DestReg = MI.getOperand(0).getReg();
-  Register ScratchReg = MI.getOperand(1).getReg();
-  Register AddrReg = MI.getOperand(2).getReg();
-  Register CmpValReg = MI.getOperand(3).getReg();
-  Register NewValReg = MI.getOperand(4).getReg();
-  AtomicOrdering Ordering =
+  Register const DestReg = MI.getOperand(0).getReg();
+  Register const ScratchReg = MI.getOperand(1).getReg();
+  Register const AddrReg = MI.getOperand(2).getReg();
+  Register const CmpValReg = MI.getOperand(3).getReg();
+  Register const NewValReg = MI.getOperand(4).getReg();
+  AtomicOrdering const Ordering =
       static_cast<AtomicOrdering>(MI.getOperand(IsMasked ? 6 : 5).getImm());
 
   if (!IsMasked) {
@@ -565,7 +565,7 @@ bool RISCVExpandAtomicPseudo::expandAtomicCmpXchg(
     //   lr.w dest, (addr)
     //   and scratch, dest, mask
     //   bne scratch, cmpval, done
-    Register MaskReg = MI.getOperand(5).getReg();
+    Register const MaskReg = MI.getOperand(5).getReg();
     BuildMI(LoopHeadMBB, DL, TII->get(getLRForRMW(Ordering, Width)), DestReg)
         .addReg(AddrReg);
     BuildMI(LoopHeadMBB, DL, TII->get(RISCV::AND), ScratchReg)

@@ -21,8 +21,8 @@ using namespace llvm;
 
 static FunctionCallee getDefaultPersonalityFn(Module *M) {
   LLVMContext &C = M->getContext();
-  Triple T(M->getTargetTriple());
-  EHPersonality Pers = getDefaultEHPersonality(T);
+  Triple const T(M->getTargetTriple());
+  EHPersonality const Pers = getDefaultEHPersonality(T);
   return M->getOrInsertFunction(getEHPersonalityName(Pers),
                                 FunctionType::get(Type::getInt32Ty(C), true));
 }
@@ -87,7 +87,7 @@ IRBuilder<> *EscapeEnumerator::Next() {
 
   // Transform the 'call' instructions into 'invoke's branching to the
   // cleanup block. Go in reverse order to make prettier BB names.
-  SmallVector<Value *, 16> Args;
+  SmallVector<Value *, 16> const Args;
   for (unsigned I = Calls.size(); I != 0;) {
     CallInst *CI = cast<CallInst>(Calls[--I]);
     changeToInvokeAndSplitBasicBlock(CI, CleanupBB, DTU);

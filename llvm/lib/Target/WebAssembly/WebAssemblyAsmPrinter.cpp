@@ -71,11 +71,11 @@ MVT WebAssemblyAsmPrinter::getRegType(unsigned RegNo) const {
 }
 
 std::string WebAssemblyAsmPrinter::regToString(const MachineOperand &MO) {
-  Register RegNo = MO.getReg();
+  Register const RegNo = MO.getReg();
   assert(Register::isVirtualRegister(RegNo) &&
          "Unlowered physical register encountered during assembly printing");
   assert(!MFI->isVRegStackified(RegNo));
-  unsigned WAReg = MFI->getWAReg(RegNo);
+  unsigned const WAReg = MFI->getWAReg(RegNo);
   assert(WAReg != WebAssemblyFunctionInfo::UnusedReg);
   return '$' + utostr(WAReg);
 }
@@ -157,7 +157,7 @@ MCSymbolWasm *WebAssemblyAsmPrinter::getMCSymbolForFunction(
     assert(Sig);
     InvokeDetected = true;
     if (Sig->Returns.size() > 1) {
-      std::string Msg =
+      std::string const Msg =
           "Emscripten EH/SjLj does not support multivalue returns: " +
           std::string(F->getName()) + ": " +
           WebAssembly::signatureToString(Sig);
@@ -189,9 +189,9 @@ void WebAssemblyAsmPrinter::emitGlobalVariable(const GlobalVariable *GV) {
     if (VTs.size() != 1 ||
         TLI.getNumRegisters(GV->getParent()->getContext(), VTs[0]) != 1)
       report_fatal_error("Aggregate globals not yet implemented");
-    MVT VT = TLI.getRegisterType(GV->getParent()->getContext(), VTs[0]);
-    bool Mutable = true;
-    wasm::ValType Type = WebAssembly::toValType(VT);
+    MVT const VT = TLI.getRegisterType(GV->getParent()->getContext(), VTs[0]);
+    bool const Mutable = true;
+    wasm::ValType const Type = WebAssembly::toValType(VT);
     Sym->setType(wasm::WASM_SYMBOL_TYPE_GLOBAL);
     Sym->setGlobalType(wasm::WasmGlobalType{uint8_t(Type), Mutable});
   }
@@ -224,7 +224,7 @@ MCSymbol *WebAssemblyAsmPrinter::getOrCreateWasmSymbol(StringRef Name) {
   if (Name == "__stack_pointer" || Name == "__tls_base" ||
       Name == "__memory_base" || Name == "__table_base" ||
       Name == "__tls_size" || Name == "__tls_align") {
-    bool Mutable =
+    bool const Mutable =
         Name == "__stack_pointer" || Name == "__tls_base";
     WasmSym->setType(wasm::WASM_SYMBOL_TYPE_GLOBAL);
     WasmSym->setGlobalType(wasm::WasmGlobalType{
@@ -273,7 +273,7 @@ void WebAssemblyAsmPrinter::emitExternalDecls(const Module &M) {
 
   // Normally symbols for globals get discovered as the MI gets lowered,
   // but we need to know about them ahead of time.
-  MachineModuleInfoWasm &MMIW = MMI->getObjFileInfo<MachineModuleInfoWasm>();
+  MachineModuleInfoWasm  const&MMIW = MMI->getObjFileInfo<MachineModuleInfoWasm>();
   for (const auto &Name : MMIW.MachineSymbolsUsed) {
     getOrCreateWasmSymbol(Name.getKey());
   }
@@ -332,7 +332,7 @@ void WebAssemblyAsmPrinter::emitExternalDecls(const Module &M) {
       getTargetStreamer()->emitFunctionType(Sym);
 
       if (F.hasFnAttribute("wasm-import-module")) {
-        StringRef Name =
+        StringRef const Name =
             F.getFnAttribute("wasm-import-module").getValueAsString();
         Sym->setImportModule(storeName(Name));
         getTargetStreamer()->emitImportModule(Sym, Name);
@@ -340,7 +340,7 @@ void WebAssemblyAsmPrinter::emitExternalDecls(const Module &M) {
       if (F.hasFnAttribute("wasm-import-name")) {
         // If this is a converted Emscripten EH/SjLj symbol, we shouldn't use
         // the original function name but the converted symbol name.
-        StringRef Name =
+        StringRef const Name =
             InvokeDetected
                 ? Sym->getName()
                 : F.getFnAttribute("wasm-import-name").getValueAsString();
@@ -351,7 +351,7 @@ void WebAssemblyAsmPrinter::emitExternalDecls(const Module &M) {
 
     if (F.hasFnAttribute("wasm-export-name")) {
       auto *Sym = cast<MCSymbolWasm>(getSymbol(&F));
-      StringRef Name = F.getFnAttribute("wasm-export-name").getValueAsString();
+      StringRef const Name = F.getFnAttribute("wasm-export-name").getValueAsString();
       Sym->setExportName(storeName(Name));
       getTargetStreamer()->emitExportName(Sym, Name);
     }
@@ -380,7 +380,7 @@ void WebAssemblyAsmPrinter::emitEndOfAsmFile(Module &M) {
     if (!G.hasInitializer() && G.hasExternalLinkage() &&
         !WebAssembly::isWasmVarAddressSpace(G.getAddressSpace()) &&
         G.getValueType()->isSized()) {
-      uint16_t Size = M.getDataLayout().getTypeAllocSize(G.getValueType());
+      uint16_t const Size = M.getDataLayout().getTypeAllocSize(G.getValueType());
       OutStreamer->emitELFSize(getSymbol(&G),
                                MCConstantExpr::create(Size, OutContext));
     }
@@ -397,7 +397,7 @@ void WebAssemblyAsmPrinter::emitEndOfAsmFile(Module &M) {
         continue;
 
       OutStreamer->PushSection();
-      std::string SectionName = (".custom_section." + Name->getString()).str();
+      std::string const SectionName = (".custom_section." + Name->getString()).str();
       MCSectionWasm *MySection =
           OutContext.getWasmSection(SectionName, SectionKind::getMetadata());
       OutStreamer->SwitchSection(MySection);
@@ -428,15 +428,15 @@ void WebAssemblyAsmPrinter::EmitProducerInfo(Module &M) {
     llvm::SmallSet<StringRef, 4> SeenTools;
     for (size_t I = 0, E = Ident->getNumOperands(); I < E; ++I) {
       const auto *S = cast<MDString>(Ident->getOperand(I)->getOperand(0));
-      std::pair<StringRef, StringRef> Field = S->getString().split("version");
-      StringRef Name = Field.first.trim();
-      StringRef Version = Field.second.trim();
+      std::pair<StringRef, StringRef> const Field = S->getString().split("version");
+      StringRef const Name = Field.first.trim();
+      StringRef const Version = Field.second.trim();
       if (SeenTools.insert(Name).second)
         Tools.emplace_back(Name.str(), Version.str());
     }
   }
 
-  int FieldCount = int(!Languages.empty()) + int(!Tools.empty());
+  int const FieldCount = int(!Languages.empty()) + int(!Tools.empty());
   if (FieldCount != 0) {
     MCSectionWasm *Producers = OutContext.getWasmSection(
         ".custom_section.producers", SectionKind::getMetadata());
@@ -470,7 +470,7 @@ void WebAssemblyAsmPrinter::EmitTargetFeatures(Module &M) {
   // Read target features and linkage policies from module metadata
   SmallVector<FeatureEntry, 4> EmittedFeatures;
   auto EmitFeature = [&](std::string Feature) {
-    std::string MDKey = (StringRef("wasm-feature-") + Feature).str();
+    std::string const MDKey = (StringRef("wasm-feature-") + Feature).str();
     Metadata *Policy = M.getModuleFlag(MDKey);
     if (Policy == nullptr)
       return;
@@ -607,7 +607,7 @@ void WebAssemblyAsmPrinter::emitInstruction(const MachineInstr *MI) {
     // backend compilation, and should not be emitted.
     break;
   default: {
-    WebAssemblyMCInstLower MCInstLowering(OutContext, *this);
+    WebAssemblyMCInstLower const MCInstLowering(OutContext, *this);
     MCInst TmpInst;
     MCInstLowering.lower(MI, TmpInst);
     EmitToStreamer(*OutStreamer, TmpInst);
@@ -669,6 +669,6 @@ bool WebAssemblyAsmPrinter::PrintAsmMemoryOperand(const MachineInstr *MI,
 
 // Force static initialization.
 extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializeWebAssemblyAsmPrinter() {
-  RegisterAsmPrinter<WebAssemblyAsmPrinter> X(getTheWebAssemblyTarget32());
-  RegisterAsmPrinter<WebAssemblyAsmPrinter> Y(getTheWebAssemblyTarget64());
+  RegisterAsmPrinter<WebAssemblyAsmPrinter> const X(getTheWebAssemblyTarget32());
+  RegisterAsmPrinter<WebAssemblyAsmPrinter> const Y(getTheWebAssemblyTarget64());
 }

@@ -183,7 +183,7 @@ bool MSP430DAGToDAGISel::MatchAddress(SDValue N, MSP430ISelAddressMode &AM) {
   switch (N.getOpcode()) {
   default: break;
   case ISD::Constant: {
-    uint64_t Val = cast<ConstantSDNode>(N)->getSExtValue();
+    uint64_t const Val = cast<ConstantSDNode>(N)->getSExtValue();
     AM.Disp += Val;
     return false;
   }
@@ -203,7 +203,7 @@ bool MSP430DAGToDAGISel::MatchAddress(SDValue N, MSP430ISelAddressMode &AM) {
     break;
 
   case ISD::ADD: {
-    MSP430ISelAddressMode Backup = AM;
+    MSP430ISelAddressMode const Backup = AM;
     if (!MatchAddress(N.getNode()->getOperand(0), AM) &&
         !MatchAddress(N.getNode()->getOperand(1), AM))
       return false;
@@ -219,8 +219,8 @@ bool MSP430DAGToDAGISel::MatchAddress(SDValue N, MSP430ISelAddressMode &AM) {
   case ISD::OR:
     // Handle "X | C" as "X + C" iff X is known to have C bits clear.
     if (ConstantSDNode *CN = dyn_cast<ConstantSDNode>(N.getOperand(1))) {
-      MSP430ISelAddressMode Backup = AM;
-      uint64_t Offset = CN->getSExtValue();
+      MSP430ISelAddressMode const Backup = AM;
+      uint64_t const Offset = CN->getSExtValue();
       // Start with the LHS as an addr mode.
       if (!MatchAddress(N.getOperand(0), AM) &&
           // Address could not have picked a GV address for the displacement.
@@ -296,11 +296,11 @@ SelectInlineAsmMemoryOperand(const SDValue &Op, unsigned ConstraintID,
 }
 
 static bool isValidIndexedLoad(const LoadSDNode *LD) {
-  ISD::MemIndexedMode AM = LD->getAddressingMode();
+  ISD::MemIndexedMode const AM = LD->getAddressingMode();
   if (AM != ISD::POST_INC || LD->getExtensionType() != ISD::NON_EXTLOAD)
     return false;
 
-  EVT VT = LD->getMemoryVT();
+  EVT const VT = LD->getMemoryVT();
 
   switch (VT.getSimpleVT().SimpleTy) {
   case MVT::i8:
@@ -327,7 +327,7 @@ bool MSP430DAGToDAGISel::tryIndexedLoad(SDNode *N) {
   if (!isValidIndexedLoad(LD))
     return false;
 
-  MVT VT = LD->getMemoryVT().getSimpleVT();
+  MVT const VT = LD->getMemoryVT().getSimpleVT();
 
   unsigned Opcode = 0;
   switch (VT.SimpleTy) {
@@ -356,10 +356,10 @@ bool MSP430DAGToDAGISel::tryIndexedBinOp(SDNode *Op, SDValue N1, SDValue N2,
     if (!isValidIndexedLoad(LD))
       return false;
 
-    MVT VT = LD->getMemoryVT().getSimpleVT();
-    unsigned Opc = (VT == MVT::i16 ? Opc16 : Opc8);
+    MVT const VT = LD->getMemoryVT().getSimpleVT();
+    unsigned const Opc = (VT == MVT::i16 ? Opc16 : Opc8);
     MachineMemOperand *MemRef = cast<MemSDNode>(N1)->getMemOperand();
-    SDValue Ops0[] = { N2, LD->getBasePtr(), LD->getChain() };
+    SDValue const Ops0[] = { N2, LD->getBasePtr(), LD->getChain() };
     SDNode *ResNode =
       CurDAG->SelectNodeTo(Op, Opc, VT, MVT::i16, MVT::Other, Ops0);
     CurDAG->setNodeMemRefs(cast<MachineSDNode>(ResNode), {MemRef});
@@ -375,7 +375,7 @@ bool MSP430DAGToDAGISel::tryIndexedBinOp(SDNode *Op, SDValue N1, SDValue N2,
 
 
 void MSP430DAGToDAGISel::Select(SDNode *Node) {
-  SDLoc dl(Node);
+  SDLoc const dl(Node);
 
   // If we have a custom node, we already have selected!
   if (Node->isMachineOpcode()) {
@@ -389,8 +389,8 @@ void MSP430DAGToDAGISel::Select(SDNode *Node) {
   default: break;
   case ISD::FrameIndex: {
     assert(Node->getValueType(0) == MVT::i16);
-    int FI = cast<FrameIndexSDNode>(Node)->getIndex();
-    SDValue TFI = CurDAG->getTargetFrameIndex(FI, MVT::i16);
+    int const FI = cast<FrameIndexSDNode>(Node)->getIndex();
+    SDValue const TFI = CurDAG->getTargetFrameIndex(FI, MVT::i16);
     if (Node->hasOneUse()) {
       CurDAG->SelectNodeTo(Node, MSP430::ADDframe, MVT::i16, TFI,
                            CurDAG->getTargetConstant(0, dl, MVT::i16));

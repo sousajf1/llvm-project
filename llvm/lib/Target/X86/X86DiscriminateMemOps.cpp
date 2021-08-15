@@ -53,7 +53,7 @@ Location diToLocation(const DILocation *Loc) {
 /// Ensure each instruction having a memory operand has a distinct <LineNumber,
 /// Discriminator> pair.
 void updateDebugInfo(MachineInstr *MI, const DILocation *Loc) {
-  DebugLoc DL(Loc);
+  DebugLoc const DL(Loc);
   MI->setDebugLoc(DL);
 }
 
@@ -112,7 +112,7 @@ bool X86DiscriminateMemOps::runOnMachineFunction(MachineFunction &MF) {
         continue;
       if (BypassPrefetchInstructions && IsPrefetchOpcode(MI.getDesc().Opcode))
         continue;
-      Location Loc = diToLocation(DI);
+      Location const Loc = diToLocation(DI);
       MemOpDiscriminators[Loc] =
           std::max(MemOpDiscriminators[Loc], DI->getBaseDiscriminator());
     }
@@ -131,11 +131,11 @@ bool X86DiscriminateMemOps::runOnMachineFunction(MachineFunction &MF) {
       if (BypassPrefetchInstructions && IsPrefetchOpcode(MI.getDesc().Opcode))
         continue;
       const DILocation *DI = MI.getDebugLoc();
-      bool HasDebug = DI;
+      bool const HasDebug = DI;
       if (!HasDebug) {
         DI = ReferenceDI;
       }
-      Location L = diToLocation(DI);
+      Location const L = diToLocation(DI);
       DenseSet<unsigned> &Set = Seen[L];
       const std::pair<DenseSet<unsigned>::iterator, bool> TryInsert =
           Set.insert(DI->getBaseDiscriminator());
@@ -163,7 +163,7 @@ bool X86DiscriminateMemOps::runOnMachineFunction(MachineFunction &MF) {
         assert(DI && "DI should not be nullptr");
         updateDebugInfo(&MI, DI);
         Changed = true;
-        std::pair<DenseSet<unsigned>::iterator, bool> MustInsert =
+        std::pair<DenseSet<unsigned>::iterator, bool> const MustInsert =
             Set.insert(DI->getBaseDiscriminator());
         (void)MustInsert; // Silence warning in release build.
         assert(MustInsert.second && "New discriminator shouldn't be present in set");

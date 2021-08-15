@@ -368,7 +368,7 @@ static bool CanGenerateTest(Loop *L, Value *Count) {
   if (!IsCompareZero(ICmp, Count, 0) && !IsCompareZero(ICmp, Count, 1))
     return false;
 
-  unsigned SuccIdx = ICmp->getPredicate() == ICmpInst::ICMP_NE ? 0 : 1;
+  unsigned const SuccIdx = ICmp->getPredicate() == ICmpInst::ICMP_NE ? 0 : 1;
   if (BI->getSuccessor(SuccIdx) != Preheader)
     return false;
 
@@ -433,8 +433,8 @@ Value *HardwareLoop::InitLoopCount() {
 Value* HardwareLoop::InsertIterationSetup(Value *LoopCountInit) {
   IRBuilder<> Builder(BeginBB->getTerminator());
   Type *Ty = LoopCountInit->getType();
-  bool UsePhi = UsePHICounter || ForceHardwareLoopPHI;
-  Intrinsic::ID ID = UseLoopGuard
+  bool const UsePhi = UsePHICounter || ForceHardwareLoopPHI;
+  Intrinsic::ID const ID = UseLoopGuard
                          ? (UsePhi ? Intrinsic::test_start_loop_iterations
                                    : Intrinsic::test_set_loop_iterations)
                          : (UsePhi ? Intrinsic::start_loop_iterations
@@ -468,7 +468,7 @@ void HardwareLoop::InsertLoopDec() {
   Function *DecFunc =
     Intrinsic::getDeclaration(M, Intrinsic::loop_decrement,
                               LoopDecrement->getType());
-  Value *Ops[] = { LoopDecrement };
+  Value *const Ops[] = { LoopDecrement };
   Value *NewCond = CondBuilder.CreateCall(DecFunc, Ops);
   Value *OldCond = ExitBranch->getCondition();
   ExitBranch->setCondition(NewCond);
@@ -490,7 +490,7 @@ Instruction* HardwareLoop::InsertLoopRegDec(Value *EltsRem) {
   Function *DecFunc =
       Intrinsic::getDeclaration(M, Intrinsic::loop_decrement_reg,
                                 { EltsRem->getType() });
-  Value *Ops[] = { EltsRem, LoopDecrement };
+  Value *const Ops[] = { EltsRem, LoopDecrement };
   Value *Call = CondBuilder.CreateCall(DecFunc, Ops);
 
   LLVM_DEBUG(dbgs() << "HWLoops: Inserted loop dec: " << *Call << "\n");

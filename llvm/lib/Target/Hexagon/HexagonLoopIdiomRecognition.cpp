@@ -315,7 +315,7 @@ void Simplifier::Context::print(raw_ostream &OS, const Value *V) const {
     return;
   }
 
-  unsigned N = U->getNumOperands();
+  unsigned const N = U->getNumOperands();
   if (N != 0)
     OS << U << '(';
   OS << U->getOpcodeName();
@@ -349,7 +349,7 @@ void Simplifier::Context::initialize(Instruction *Exp) {
     }
   }
 
-  for (std::pair<Value*,Value*> P : M) {
+  for (std::pair<Value*,Value*> const P : M) {
     Instruction *U = cast<Instruction>(P.second);
     for (unsigned i = 0, n = U->getNumOperands(); i != n; ++i) {
       auto F = M.find(U->getOperand(i));
@@ -547,7 +547,7 @@ Value *Simplifier::simplify(Context &C) {
     if (!U || U->getParent() || !C.Used.count(U))
       continue;
     bool Changed = false;
-    for (Rule &R : Rules) {
+    for (Rule  const&R : Rules) {
       Value *W = R.Fn(U, C.Ctx);
       if (!W)
         continue;
@@ -674,7 +674,7 @@ Value *PolynomialMultiplyRecognize::getCountIV(BasicBlock *BB) {
 
 static void replaceAllUsesOfWithIn(Value *I, Value *J, BasicBlock *BB) {
   for (auto UI = I->user_begin(), UE = I->user_end(); UI != UE;) {
-    Use &TheUse = UI.getUse();
+    Use  const&TheUse = UI.getUse();
     ++UI;
     if (auto *II = dyn_cast<Instruction>(TheUse.getUser()))
       if (BB == II->getParent())
@@ -1025,11 +1025,11 @@ void PolynomialMultiplyRecognize::promoteTo(Instruction *In,
   // Leave boolean values alone.
   if (!In->getType()->isIntegerTy(1))
     In->mutateType(DestTy);
-  unsigned DestBW = DestTy->getBitWidth();
+  unsigned const DestBW = DestTy->getBitWidth();
 
   // Handle PHIs.
   if (PHINode *P = dyn_cast<PHINode>(In)) {
-    unsigned N = P->getNumIncomingValues();
+    unsigned const N = P->getNumIncomingValues();
     for (unsigned i = 0; i != N; ++i) {
       BasicBlock *InB = P->getIncomingBlock(i);
       if (InB == LoopB)
@@ -1081,8 +1081,8 @@ bool PolynomialMultiplyRecognize::promoteTypes(BasicBlock *LoopB,
   IntegerType *DestTy = getPmpyType();
   // Check if the exit values have types that are no wider than the type
   // that we want to promote to.
-  unsigned DestBW = DestTy->getBitWidth();
-  for (PHINode &P : ExitB->phis()) {
+  unsigned const DestBW = DestTy->getBitWidth();
+  for (PHINode  const&P : ExitB->phis()) {
     if (P.getNumIncomingValues() != 1)
       return false;
     assert(P.getIncomingBlock(0) == LoopB);
@@ -1106,7 +1106,7 @@ bool PolynomialMultiplyRecognize::promoteTypes(BasicBlock *LoopB,
 
   // Fix up the PHI nodes in the exit block.
   Instruction *EndI = ExitB->getFirstNonPHI();
-  BasicBlock::iterator End = EndI ? EndI->getIterator() : ExitB->end();
+  BasicBlock::iterator const End = EndI ? EndI->getIterator() : ExitB->end();
   for (auto I = ExitB->begin(); I != End; ++I) {
     PHINode *P = dyn_cast<PHINode>(I);
     if (!P)
@@ -1148,7 +1148,7 @@ bool PolynomialMultiplyRecognize::findCycle(Value *Out, Value *In,
     //   p2 = phi(p1)
     // The cycle p1->p2->p1 would span two loop iterations.
     // Check that there is only one phi in the cycle.
-    bool IsPhi = isa<PHINode>(I);
+    bool const IsPhi = isa<PHINode>(I);
     if (IsPhi && HadPhi)
       return false;
     HadPhi |= IsPhi;
@@ -1303,7 +1303,7 @@ bool PolynomialMultiplyRecognize::keepsHighBitsZero(Value *V,
 }
 
 bool PolynomialMultiplyRecognize::isOperandShifted(Instruction *I, Value *Op) {
-  unsigned Opc = I->getOpcode();
+  unsigned const Opc = I->getOpcode();
   if (Opc == Instruction::Shl || Opc == Instruction::LShr)
     return Op != I->getOperand(1);
   return true;
@@ -1546,7 +1546,7 @@ Value *PolynomialMultiplyRecognize::generate(BasicBlock::iterator At,
   Function *PMF = Intrinsic::getDeclaration(M, Intrinsic::hexagon_M4_pmpyw);
 
   Value *P = PV.P, *Q = PV.Q, *P0 = P;
-  unsigned IC = PV.IterCount;
+  unsigned const IC = PV.IterCount;
 
   if (PV.M != nullptr)
     P0 = P = B.CreateXor(P, PV.M);
@@ -1562,9 +1562,9 @@ Value *PolynomialMultiplyRecognize::generate(BasicBlock::iterator At,
     assert(QI && QI->getBitWidth() <= 32);
 
     // Again, clearing bits beyond IterCount.
-    unsigned M = (1 << PV.IterCount) - 1;
-    unsigned Tmp = (QI->getZExtValue() | 1) & M;
-    unsigned QV = getInverseMxN(Tmp) & M;
+    unsigned const M = (1 << PV.IterCount) - 1;
+    unsigned const Tmp = (QI->getZExtValue() | 1) & M;
+    unsigned const QV = getInverseMxN(Tmp) & M;
     auto *QVI = ConstantInt::get(QI->getType(), QV);
     P = B.CreateCall(PMF, {P, QVI});
     P = B.CreateTrunc(P, QI->getType());
@@ -1649,7 +1649,7 @@ void PolynomialMultiplyRecognize::setupPreSimplifier(Simplifier &S) {
       BinaryOperator *BO = dyn_cast<BinaryOperator>(I);
       if (!BO)
         return nullptr;
-      Instruction::BinaryOps Op = BO->getOpcode();
+      Instruction::BinaryOps const Op = BO->getOpcode();
       if (SelectInst *Sel = dyn_cast<SelectInst>(BO->getOperand(0))) {
         IRBuilder<> B(Ctx);
         Value *X = Sel->getTrueValue(), *Y = Sel->getFalseValue();
@@ -1769,8 +1769,8 @@ void PolynomialMultiplyRecognize::setupPostSimplifier(Simplifier &S) {
       ConstantInt *C1 = dyn_cast<ConstantInt>(And0->getOperand(1));
       if (!C1)
         return nullptr;
-      uint32_t V0 = C0->getZExtValue();
-      uint32_t V1 = C1->getZExtValue();
+      uint32_t const V0 = C0->getZExtValue();
+      uint32_t const V1 = C1->getZExtValue();
       if (V0 != (V0 & V1))
         return nullptr;
       IRBuilder<> B(Ctx);
@@ -1911,7 +1911,7 @@ bool PolynomialMultiplyRecognize::recognize() {
     dbgs() << "  Iteration count:" << PV.IterCount << "\n";
   });
 
-  BasicBlock::iterator At(EntryB->getTerminator());
+  BasicBlock::iterator const At(EntryB->getTerminator());
   Value *PM = generate(At, PV);
   if (PM == nullptr)
     return false;
@@ -1939,7 +1939,7 @@ bool HexagonLoopIdiomRecognize::isLegalStore(Loop *CurLoop, StoreInst *SI) {
   Value *StorePtr = SI->getPointerOperand();
 
   // Reject stores that are so large that they overflow an unsigned.
-  uint64_t SizeInBits = DL->getTypeSizeInBits(StoredVal->getType());
+  uint64_t const SizeInBits = DL->getTypeSizeInBits(StoredVal->getType());
   if ((SizeInBits & 7) || (SizeInBits >> 32) != 0)
     return false;
 
@@ -1952,10 +1952,10 @@ bool HexagonLoopIdiomRecognize::isLegalStore(Loop *CurLoop, StoreInst *SI) {
 
   // Check to see if the stride matches the size of the store.  If so, then we
   // know that every byte is touched in the loop.
-  int Stride = getSCEVStride(StoreEv);
+  int const Stride = getSCEVStride(StoreEv);
   if (Stride == 0)
     return false;
-  unsigned StoreSize = DL->getTypeStoreSize(SI->getValueOperand()->getType());
+  unsigned const StoreSize = DL->getTypeStoreSize(SI->getValueOperand()->getType());
   if (StoreSize != unsigned(std::abs(Stride)))
     return false;
 
@@ -2003,7 +2003,7 @@ mayLoopAccessLocation(Value *Ptr, ModRefInfo Access, Loop *L,
   // operand in the store.  Store to &A[i] of 100 will always return may alias
   // with store of &A[100], we need to StoreLoc to be "A" with size of 100,
   // which will then no-alias a store to &A[100].
-  MemoryLocation StoreLoc(Ptr, AccessSize);
+  MemoryLocation const StoreLoc(Ptr, AccessSize);
 
   for (auto *B : L->blocks())
     for (auto &I : *B)
@@ -2032,8 +2032,8 @@ bool HexagonLoopIdiomRecognize::processCopyingStore(Loop *CurLoop,
 
   Value *StorePtr = SI->getPointerOperand();
   auto *StoreEv = cast<SCEVAddRecExpr>(SE->getSCEV(StorePtr));
-  unsigned Stride = getSCEVStride(StoreEv);
-  unsigned StoreSize = DL->getTypeStoreSize(SI->getValueOperand()->getType());
+  unsigned const Stride = getSCEVStride(StoreEv);
+  unsigned const StoreSize = DL->getTypeStoreSize(SI->getValueOperand()->getType());
   if (Stride != StoreSize)
     return false;
 
@@ -2064,7 +2064,7 @@ bool HexagonLoopIdiomRecognize::processCopyingStore(Loop *CurLoop,
   Value *LoadBasePtr = nullptr;
 
   bool Overlap = false;
-  bool DestVolatile = SI->isVolatile();
+  bool const DestVolatile = SI->isVolatile();
   Type *BECountTy = BECount->getType();
 
   if (DestVolatile) {
@@ -2123,7 +2123,7 @@ CleanupAndExit:
 
     if (DisableMemmoveIdiom || !HasMemmove)
       goto CleanupAndExit;
-    bool IsNested = CurLoop->getParentLoop() != nullptr;
+    bool const IsNested = CurLoop->getParentLoop() != nullptr;
     if (IsNested && OnlyNonNestedMemmove)
       goto CleanupAndExit;
   }
@@ -2140,13 +2140,13 @@ CleanupAndExit:
     goto CleanupAndExit;
 
   // Check the stride.
-  bool StridePos = getSCEVStride(LoadEv) >= 0;
+  bool const StridePos = getSCEVStride(LoadEv) >= 0;
 
   // Currently, the volatile memcpy only emulates traversing memory forward.
   if (!StridePos && DestVolatile)
     goto CleanupAndExit;
 
-  bool RuntimeCheck = (Overlap || DestVolatile);
+  bool const RuntimeCheck = (Overlap || DestVolatile);
 
   BasicBlock *ExitB;
   if (RuntimeCheck) {
@@ -2162,7 +2162,7 @@ CleanupAndExit:
   // pointer size if it isn't already.
   LLVMContext &Ctx = SI->getContext();
   BECount = SE->getTruncateOrZeroExtend(BECount, IntPtrTy);
-  DebugLoc DLoc = SI->getDebugLoc();
+  DebugLoc const DLoc = SI->getDebugLoc();
 
   const SCEV *NumBytesS =
       SE->getAddExpr(BECount, SE->getOne(IntPtrTy), SCEV::FlagNUW);
@@ -2177,9 +2177,9 @@ CleanupAndExit:
   CallInst *NewCall;
 
   if (RuntimeCheck) {
-    unsigned Threshold = RuntimeMemSizeThreshold;
+    unsigned const Threshold = RuntimeMemSizeThreshold;
     if (ConstantInt *CI = dyn_cast<ConstantInt>(NumBytes)) {
-      uint64_t C = CI->getZExtValue();
+      uint64_t const C = CI->getZExtValue();
       if (Threshold != 0 && C < Threshold)
         goto CleanupAndExit;
       if (C < CompileTimeMemSizeThreshold)
@@ -2189,7 +2189,7 @@ CleanupAndExit:
     BasicBlock *Header = CurLoop->getHeader();
     Function *Func = Header->getParent();
     Loop *ParentL = LF->getLoopFor(Preheader);
-    StringRef HeaderName = Header->getName();
+    StringRef const HeaderName = Header->getName();
 
     // Create a new (empty) preheader, and update the PHI nodes in the
     // header to use the new preheader.
@@ -2202,7 +2202,7 @@ CleanupAndExit:
       PHINode *PN = dyn_cast<PHINode>(&In);
       if (!PN)
         break;
-      int bx = PN->getBasicBlockIndex(Preheader);
+      int const bx = PN->getBasicBlockIndex(Preheader);
       if (bx >= 0)
         PN->setIncomingBlock(bx, NewPreheader);
     }
@@ -2273,7 +2273,7 @@ CleanupAndExit:
       Type *Int32PtrTy = Type::getInt32PtrTy(Ctx);
       Type *VoidTy = Type::getVoidTy(Ctx);
       Module *M = Func->getParent();
-      FunctionCallee Fn = M->getOrInsertFunction(
+      FunctionCallee const Fn = M->getOrInsertFunction(
           HexagonVolatileMemcpyName, VoidTy, Int32PtrTy, Int32PtrTy, Int32Ty);
 
       const SCEV *OneS = SE->getConstant(Int32Ty, 1);
@@ -2433,7 +2433,7 @@ bool HexagonLoopIdiomRecognize::run(Loop *L) {
     return false;
 
   // Disable loop idiom recognition if the function's name is a common idiom.
-  StringRef Name = L->getHeader()->getParent()->getName();
+  StringRef const Name = L->getHeader()->getParent()->getName();
   if (Name == "memset" || Name == "memcpy" || Name == "memmove")
     return false;
 

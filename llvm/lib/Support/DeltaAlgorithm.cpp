@@ -18,7 +18,7 @@ bool DeltaAlgorithm::GetTestResult(const changeset_ty &Changes) {
   if (FailedTestsCache.count(Changes))
     return false;
 
-  bool Result = ExecuteOneTest(Changes);
+  bool const Result = ExecuteOneTest(Changes);
   if (!Result)
     FailedTestsCache.insert(Changes);
 

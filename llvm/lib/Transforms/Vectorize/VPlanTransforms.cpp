@@ -22,7 +22,7 @@ void VPlanTransforms::VPInstructionsToVPRecipes(
     SmallPtrSetImpl<Instruction *> &DeadInstructions, ScalarEvolution &SE) {
 
   auto *TopRegion = cast<VPRegionBlock>(Plan->getEntry());
-  ReversePostOrderTraversal<VPBlockBase *> RPOT(TopRegion->getEntry());
+  ReversePostOrderTraversal<VPBlockBase *> const RPOT(TopRegion->getEntry());
 
   for (VPBlockBase *Base : RPOT) {
     // Do not widen instructions in pre-header and exit blocks.
@@ -45,7 +45,7 @@ void VPlanTransforms::VPInstructionsToVPRecipes(
       VPRecipeBase *NewRecipe = nullptr;
       if (auto *VPPhi = dyn_cast<VPWidenPHIRecipe>(Ingredient)) {
         auto *Phi = cast<PHINode>(VPPhi->getUnderlyingValue());
-        InductionDescriptor II = Inductions.lookup(Phi);
+        InductionDescriptor const II = Inductions.lookup(Phi);
         if (II.getKind() == InductionDescriptor::IK_IntInduction ||
             II.getKind() == InductionDescriptor::IK_FpInduction) {
           VPValue *Start = Plan->getOrAddVPValue(II.getStartValue());
@@ -75,7 +75,7 @@ void VPlanTransforms::VPInstructionsToVPRecipes(
           NewRecipe = new VPWidenCallRecipe(
               *CI, Plan->mapToVPValues(CI->arg_operands()));
         } else if (SelectInst *SI = dyn_cast<SelectInst>(Inst)) {
-          bool InvariantCond =
+          bool const InvariantCond =
               SE.isLoopInvariant(SE.getSCEV(SI->getOperand(0)), OrigLoop);
           NewRecipe = new VPWidenSelectRecipe(
               *SI, Plan->mapToVPValues(SI->operands()), InvariantCond);
@@ -182,11 +182,11 @@ static VPBasicBlock *getPredicatedThenBlock(VPRegionBlock *R) {
 
 bool VPlanTransforms::mergeReplicateRegions(VPlan &Plan) {
   SetVector<VPRegionBlock *> DeletedRegions;
-  bool Changed = false;
+  bool const Changed = false;
 
   // Collect region blocks to process up-front, to avoid iterator invalidation
   // issues while merging regions.
-  SmallVector<VPRegionBlock *, 8> CandidateRegions(
+  SmallVector<VPRegionBlock *, 8> const CandidateRegions(
       VPBlockUtils::blocksOnly<VPRegionBlock>(depth_first(
           VPBlockRecursiveTraversalWrapper<VPBlockBase *>(Plan.getEntry()))));
 

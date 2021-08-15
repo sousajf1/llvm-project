@@ -30,7 +30,7 @@ static cl::opt<int> OptBisectLimit("opt-bisect-limit", cl::Hidden,
 
 static void printPassMessage(const StringRef &Name, int PassNum,
                              StringRef TargetDesc, bool Running) {
-  StringRef Status = Running ? "" : "NOT ";
+  StringRef const Status = Running ? "" : "NOT ";
   errs() << "BISECT: " << Status << "running pass "
          << "(" << PassNum << ") " << Name << " on " << TargetDesc << "\n";
 }
@@ -45,8 +45,8 @@ bool OptBisect::checkPass(const StringRef PassName,
                           const StringRef TargetDesc) {
   assert(isEnabled());
 
-  int CurBisectNum = ++LastBisectNum;
-  bool ShouldRun = (BisectLimit == -1 || CurBisectNum <= BisectLimit);
+  int const CurBisectNum = ++LastBisectNum;
+  bool const ShouldRun = (BisectLimit == -1 || CurBisectNum <= BisectLimit);
   printPassMessage(PassName, CurBisectNum, TargetDesc, ShouldRun);
   return ShouldRun;
 }

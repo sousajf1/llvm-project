@@ -315,7 +315,7 @@ static bool GetImm(MachineInstr *MI, unsigned Op, int64_t &Imm) {
 
 // Returns true if the value is a valid immediate for ADDIUSP.
 static bool AddiuspImmValue(int64_t Value) {
-  int64_t Value2 = Value >> 2;
+  int64_t const Value2 = Value >> 2;
   if (((Value & (int64_t)maskTrailingZeros<uint64_t>(2)) == Value) &&
       ((Value2 >= 2 && Value2 <= 257) || (Value2 >= -258 && Value2 <= -3)))
     return true;
@@ -326,7 +326,7 @@ static bool AddiuspImmValue(int64_t Value) {
 // bits equal to Shift and if the shifted value is between the bounds.
 static bool InRange(int64_t Value, unsigned short Shift, int LBound,
                     int HBound) {
-  int64_t Value2 = Value >> Shift;
+  int64_t const Value2 = Value >> Shift;
   if (((Value & (int64_t)maskTrailingZeros<uint64_t>(Shift)) == Value) &&
       (Value2 >= LBound) && (Value2 < HBound))
     return true;
@@ -361,7 +361,7 @@ static bool CheckXWPInstr(MachineInstr *MI, bool ReduceToLwp,
         MI->getOpcode() == Mips::SW16_MM))
     return false;
 
-  Register reg = MI->getOperand(0).getReg();
+  Register const reg = MI->getOperand(0).getReg();
   if (reg == Mips::RA)
     return false;
 
@@ -403,8 +403,8 @@ static bool ConsecutiveInstr(MachineInstr *MI1, MachineInstr *MI2) {
   if (!GetImm(MI2, 2, Offset2))
     return false;
 
-  Register Reg1 = MI1->getOperand(0).getReg();
-  Register Reg2 = MI2->getOperand(0).getReg();
+  Register const Reg1 = MI1->getOperand(0).getReg();
+  Register const Reg2 = MI2->getOperand(0).getReg();
 
   return ((Offset1 == (Offset2 - 4)) && (ConsecutiveRegisters(Reg1, Reg2)));
 }
@@ -415,7 +415,7 @@ bool MicroMipsSizeReduce::ReduceMI(const MachineBasicBlock::instr_iterator &MII,
                                    MachineBasicBlock::instr_iterator &NextMII) {
 
   MachineInstr *MI = &*MII;
-  unsigned Opcode = MI->getOpcode();
+  unsigned const Opcode = MI->getOpcode();
 
   // Search the table.
   ReduceEntryVector::const_iterator Start = std::begin(ReduceTable);
@@ -423,7 +423,7 @@ bool MicroMipsSizeReduce::ReduceMI(const MachineBasicBlock::instr_iterator &MII,
 
   std::pair<ReduceEntryVector::const_iterator,
             ReduceEntryVector::const_iterator>
-      Range = std::equal_range(Start, End, Opcode);
+      const Range = std::equal_range(Start, End, Opcode);
 
   if (Range.first == Range.second)
     return false;
@@ -465,7 +465,7 @@ bool MicroMipsSizeReduce::ReduceXWtoXWP(ReduceEntryFunArgs *Arguments) {
   MachineInstr *MI2 = &*NextMII;
 
   // ReduceToLwp = true/false - reduce to LWP/SWP instruction
-  bool ReduceToLwp = (MI1->getOpcode() == Mips::LW) ||
+  bool const ReduceToLwp = (MI1->getOpcode() == Mips::LW) ||
                      (MI1->getOpcode() == Mips::LW_MM) ||
                      (MI1->getOpcode() == Mips::LW16_MM);
 
@@ -475,14 +475,14 @@ bool MicroMipsSizeReduce::ReduceXWtoXWP(ReduceEntryFunArgs *Arguments) {
   if (!CheckXWPInstr(MI2, ReduceToLwp, Entry))
     return false;
 
-  Register Reg1 = MI1->getOperand(1).getReg();
-  Register Reg2 = MI2->getOperand(1).getReg();
+  Register const Reg1 = MI1->getOperand(1).getReg();
+  Register const Reg2 = MI2->getOperand(1).getReg();
 
   if (Reg1 != Reg2)
     return false;
 
-  bool ConsecutiveForward = ConsecutiveInstr(MI1, MI2);
-  bool ConsecutiveBackward = ConsecutiveInstr(MI2, MI1);
+  bool const ConsecutiveForward = ConsecutiveInstr(MI1, MI2);
+  bool const ConsecutiveBackward = ConsecutiveInstr(MI2, MI1);
 
   if (!(ConsecutiveForward || ConsecutiveBackward))
     return false;
@@ -621,8 +621,8 @@ bool MicroMipsSizeReduce::ReduceMoveToMovep(ReduceEntryFunArgs *Arguments) {
   MachineInstr *MI1 = Arguments->MI;
   MachineInstr *MI2 = &*NextMII;
 
-  Register RegDstMI1 = MI1->getOperand(0).getReg();
-  Register RegSrcMI1 = MI1->getOperand(1).getReg();
+  Register const RegDstMI1 = MI1->getOperand(0).getReg();
+  Register const RegSrcMI1 = MI1->getOperand(1).getReg();
 
   if (!IsMovepSrcRegister(RegSrcMI1))
     return false;
@@ -633,8 +633,8 @@ bool MicroMipsSizeReduce::ReduceMoveToMovep(ReduceEntryFunArgs *Arguments) {
   if (MI2->getOpcode() != Entry.WideOpc())
     return false;
 
-  Register RegDstMI2 = MI2->getOperand(0).getReg();
-  Register RegSrcMI2 = MI2->getOperand(1).getReg();
+  Register const RegDstMI2 = MI2->getOperand(0).getReg();
+  Register const RegSrcMI2 = MI2->getOperand(1).getReg();
 
   if (!IsMovepSrcRegister(RegSrcMI2))
     return false;
@@ -695,7 +695,7 @@ bool MicroMipsSizeReduce::ReplaceInstruction(MachineInstr *MI,
                                              MachineInstr *MI2,
                                              bool ConsecutiveForward) {
 
-  enum OperandTransfer OpTransfer = Entry.TransferOperands();
+  enum OperandTransfer const OpTransfer = Entry.TransferOperands();
 
   LLVM_DEBUG(dbgs() << "Converting 32-bit: " << *MI);
   ++NumReduced;
@@ -707,8 +707,8 @@ bool MicroMipsSizeReduce::ReplaceInstruction(MachineInstr *MI,
   } else {
     MachineBasicBlock &MBB = *MI->getParent();
     const MCInstrDesc &NewMCID = MipsII->get(Entry.NarrowOpc());
-    DebugLoc dl = MI->getDebugLoc();
-    MachineInstrBuilder MIB = BuildMI(MBB, MI, dl, NewMCID);
+    DebugLoc const dl = MI->getDebugLoc();
+    MachineInstrBuilder const MIB = BuildMI(MBB, MI, dl, NewMCID);
     switch (OpTransfer) {
     case OT_Operand2:
       MIB.add(MI->getOperand(2));

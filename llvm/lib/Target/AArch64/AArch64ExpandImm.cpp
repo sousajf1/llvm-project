@@ -269,8 +269,8 @@ static inline void expandMOVImmSimple(uint64_t Imm, unsigned BitSize,
   unsigned Shift = 0;     // LSL amount for high bits with MOVZ/MOVN
   unsigned LastShift = 0; // LSL amount for last MOVK
   if (Imm != 0) {
-    unsigned LZ = countLeadingZeros(Imm);
-    unsigned TZ = countTrailingZeros(Imm);
+    unsigned const LZ = countLeadingZeros(Imm);
+    unsigned const TZ = countTrailingZeros(Imm);
     Shift = (TZ / 16) * 16;
     LastShift = ((63 - LZ) / 16) * 16;
   }
@@ -287,7 +287,7 @@ static inline void expandMOVImmSimple(uint64_t Imm, unsigned BitSize,
   if (isNeg)
     Imm = ~Imm;
 
-  unsigned Opc = (BitSize == 32 ? AArch64::MOVKWi : AArch64::MOVKXi);
+  unsigned const Opc = (BitSize == 32 ? AArch64::MOVKWi : AArch64::MOVKXi);
   while (Shift < LastShift) {
     Shift += 16;
     Imm16 = (Imm >> Shift) & Mask;
@@ -324,10 +324,10 @@ void AArch64_IMM::expandMOVImm(uint64_t Imm, unsigned BitSize,
   }
 
   // Try a single ORR.
-  uint64_t UImm = Imm << (64 - BitSize) >> (64 - BitSize);
+  uint64_t const UImm = Imm << (64 - BitSize) >> (64 - BitSize);
   uint64_t Encoding;
   if (AArch64_AM::processLogicalImmediate(UImm, BitSize, Encoding)) {
-    unsigned Opc = (BitSize == 32 ? AArch64::ORRWri : AArch64::ORRXri);
+    unsigned const Opc = (BitSize == 32 ? AArch64::ORRWri : AArch64::ORRXri);
     Insn.push_back({ Opc, 0, Encoding });
     return;
   }
@@ -353,11 +353,11 @@ void AArch64_IMM::expandMOVImm(uint64_t Imm, unsigned BitSize,
   // the 64-bit immediate. This is comprehensive because of the way ORR
   // immediates are constructed.
   for (unsigned Shift = 0; Shift < BitSize; Shift += 16) {
-    uint64_t ShiftedMask = (0xFFFFULL << Shift);
-    uint64_t ZeroChunk = UImm & ~ShiftedMask;
-    uint64_t OneChunk = UImm | ShiftedMask;
-    uint64_t RotatedImm = (UImm << 32) | (UImm >> 32);
-    uint64_t ReplicateChunk = ZeroChunk | (RotatedImm & ShiftedMask);
+    uint64_t const ShiftedMask = (0xFFFFULL << Shift);
+    uint64_t const ZeroChunk = UImm & ~ShiftedMask;
+    uint64_t const OneChunk = UImm | ShiftedMask;
+    uint64_t const RotatedImm = (UImm << 32) | (UImm >> 32);
+    uint64_t const ReplicateChunk = ZeroChunk | (RotatedImm & ShiftedMask);
     if (AArch64_AM::processLogicalImmediate(ZeroChunk, BitSize, Encoding) ||
         AArch64_AM::processLogicalImmediate(OneChunk, BitSize, Encoding) ||
         AArch64_AM::processLogicalImmediate(ReplicateChunk, BitSize,

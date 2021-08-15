@@ -190,7 +190,7 @@ MCInst *MCContext::createMCInst() {
 
 MCSymbol *MCContext::getOrCreateSymbol(const Twine &Name) {
   SmallString<128> NameSV;
-  StringRef NameRef = Name.toStringRef(NameSV);
+  StringRef const NameRef = Name.toStringRef(NameSV);
 
   assert(!NameRef.empty() && "Normal symbols cannot be unnamed!");
 
@@ -329,7 +329,7 @@ MCSymbol *MCContext::getOrCreateDirectionalLocalSymbol(unsigned LocalLabelVal,
 }
 
 MCSymbol *MCContext::createDirectionalLocalSymbol(unsigned LocalLabelVal) {
-  unsigned Instance = NextInstance(LocalLabelVal);
+  unsigned const Instance = NextInstance(LocalLabelVal);
   return getOrCreateDirectionalLocalSymbol(LocalLabelVal, Instance);
 }
 
@@ -343,7 +343,7 @@ MCSymbol *MCContext::getDirectionalLocalSymbol(unsigned LocalLabelVal,
 
 MCSymbol *MCContext::lookupSymbol(const Twine &Name) const {
   SmallString<128> NameSV;
-  StringRef NameRef = Name.toStringRef(NameSV);
+  StringRef const NameRef = Name.toStringRef(NameSV);
   return Symbols.lookup(NameRef);
 }
 
@@ -364,7 +364,7 @@ MCContext::createXCOFFSymbolImpl(const StringMapEntry<bool> *Name,
   if (!Name)
     return new (nullptr, *this) MCSymbolXCOFF(nullptr, IsTemporary);
 
-  StringRef OriginalName = Name->first();
+  StringRef const OriginalName = Name->first();
   if (OriginalName.startswith("._Renamed..") ||
       OriginalName.startswith("_Renamed.."))
     reportError(SMLoc(), "invalid symbol name from source");
@@ -440,7 +440,7 @@ MCSectionMachO *MCContext::getMachOSection(StringRef Segment, StringRef Section,
     Begin = createTempSymbol(BeginSymName, false);
 
   // Otherwise, return a new section.
-  StringRef Name = R.first->first();
+  StringRef const Name = R.first->first();
   R.first->second = new (MachOAllocator.Allocate())
       MCSectionMachO(Segment, Name.substr(Name.size() - Section.size()),
                      TypeAndAttributes, Reserved2, Kind, Begin);
@@ -454,14 +454,14 @@ void MCContext::renameELFSection(MCSectionELF *Section, StringRef Name) {
 
   // This function is only used by .debug*, which should not have the
   // SHF_LINK_ORDER flag.
-  unsigned UniqueID = Section->getUniqueID();
+  unsigned const UniqueID = Section->getUniqueID();
   ELFUniquingMap.erase(
       ELFSectionKey{Section->getName(), GroupName, "", UniqueID});
   auto I = ELFUniquingMap
                .insert(std::make_pair(
                    ELFSectionKey{Name, GroupName, "", UniqueID}, Section))
                .first;
-  StringRef CachedName = I->first.SectionName;
+  StringRef const CachedName = I->first.SectionName;
   const_cast<MCSectionELF *>(Section)->setSectionName(CachedName);
 }
 
@@ -554,7 +554,7 @@ MCSectionELF *MCContext::getELFSection(const Twine &Section, unsigned Type,
   if (!IterBool.second)
     return Entry.second;
 
-  StringRef CachedName = Entry.first.SectionName;
+  StringRef const CachedName = Entry.first.SectionName;
 
   SectionKind Kind;
   if (Flags & ELF::SHF_ARM_PURECODE)
@@ -585,7 +585,7 @@ MCSectionELF *MCContext::createELFGroupSection(const MCSymbolELF *Group,
 void MCContext::recordELFMergeableSectionInfo(StringRef SectionName,
                                               unsigned Flags, unsigned UniqueID,
                                               unsigned EntrySize) {
-  bool IsMergeable = Flags & ELF::SHF_MERGE;
+  bool const IsMergeable = Flags & ELF::SHF_MERGE;
   if (UniqueID == GenericSectionID)
     ELFSeenGenericMergeableSections.insert(SectionName);
 
@@ -639,7 +639,7 @@ MCSectionCOFF *MCContext::getCOFFSection(StringRef Section,
 
 
   // Do the lookup, if we have a hit, return it.
-  COFFSectionKey T{Section, COMDATSymName, Selection, UniqueID};
+  COFFSectionKey const T{Section, COMDATSymName, Selection, UniqueID};
   auto IterBool = COFFUniquingMap.insert(std::make_pair(T, nullptr));
   auto Iter = IterBool.first;
   if (!IterBool.second)
@@ -649,7 +649,7 @@ MCSectionCOFF *MCContext::getCOFFSection(StringRef Section,
   if (BeginSymName)
     Begin = createTempSymbol(BeginSymName, false);
 
-  StringRef CachedName = Iter->first.SectionName;
+  StringRef const CachedName = Iter->first.SectionName;
   MCSectionCOFF *Result = new (COFFAllocator.Allocate()) MCSectionCOFF(
       CachedName, Characteristics, COMDATSymbol, Selection, Kind, Begin);
 
@@ -714,7 +714,7 @@ MCSectionWasm *MCContext::getWasmSection(const Twine &Section, SectionKind Kind,
   if (!IterBool.second)
     return Entry.second;
 
-  StringRef CachedName = Entry.first.SectionName;
+  StringRef const CachedName = Entry.first.SectionName;
 
   MCSymbol *Begin = createSymbol(CachedName, true, false);
   Symbols[Begin->getName()] = Begin;
@@ -737,7 +737,7 @@ MCSectionXCOFF *MCContext::getXCOFFSection(
     Optional<XCOFF::CsectProperties> CsectProp, bool MultiSymbolsAllowed,
     const char *BeginSymName,
     Optional<XCOFF::DwarfSectionSubtypeFlags> DwarfSectionSubtypeFlags) {
-  bool IsDwarfSec = DwarfSectionSubtypeFlags.hasValue();
+  bool const IsDwarfSec = DwarfSectionSubtypeFlags.hasValue();
   assert((IsDwarfSec != CsectProp.hasValue()) && "Invalid XCOFF section!");
 
   // Do the lookup. If we have a hit, return it.
@@ -756,7 +756,7 @@ MCSectionXCOFF *MCContext::getXCOFFSection(
   }
 
   // Otherwise, return a new section.
-  StringRef CachedName = Entry.first.SectionName;
+  StringRef const CachedName = Entry.first.SectionName;
   MCSymbolXCOFF *QualName = nullptr;
   // Debug section don't have storage class attribute.
   if (IsDwarfSec)
@@ -937,7 +937,7 @@ void MCContext::reportCommon(
   // * MCContext::InlineSrcMgr is null when the inline asm is not used.
   // * A default SourceMgr is needed for diagnosing when both MCContext::SrcMgr
   //   and MCContext::InlineSrcMgr are null.
-  SourceMgr SM;
+  SourceMgr const SM;
   const SourceMgr *SMP = &SM;
   bool UseInlineSrcMgr = false;
 

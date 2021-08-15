@@ -50,7 +50,7 @@ PreservedAnalyses LoopRotatePass::run(Loop &L, LoopAnalysisManager &AM,
   // Vectorization requires loop-rotation. Use default threshold for loops the
   // user explicitly marked for vectorization, even when header duplication is
   // disabled.
-  int Threshold = EnableHeaderDuplication ||
+  int const Threshold = EnableHeaderDuplication ||
                           hasVectorizeTransformation(&L) == TM_ForcedByUser
                       ? DefaultRotationThreshold
                       : 0;
@@ -60,7 +60,7 @@ PreservedAnalyses LoopRotatePass::run(Loop &L, LoopAnalysisManager &AM,
   Optional<MemorySSAUpdater> MSSAU;
   if (AR.MSSA)
     MSSAU = MemorySSAUpdater(AR.MSSA);
-  bool Changed =
+  bool const Changed =
       LoopRotation(&L, &AR.LI, &AR.TTI, &AR.AC, &AR.DT, &AR.SE,
                    MSSAU.hasValue() ? MSSAU.getPointer() : nullptr, SQ, false,
                    Threshold, false, PrepareForLTO || PrepareForLTOOption);
@@ -131,7 +131,7 @@ public:
     // Vectorization requires loop-rotation. Use default threshold for loops the
     // user explicitly marked for vectorization, even when header duplication is
     // disabled.
-    int Threshold = hasVectorizeTransformation(L) == TM_ForcedByUser
+    int const Threshold = hasVectorizeTransformation(L) == TM_ForcedByUser
                         ? DefaultRotationThreshold
                         : MaxHeaderSize;
 

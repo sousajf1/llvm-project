@@ -42,7 +42,7 @@ Expected<XRayFileHeader> readBinaryFormatHeader(DataExtractor &HeaderExtractor,
         OffsetPtr);
 
   PreReadOffset = OffsetPtr;
-  uint32_t Bitfield = HeaderExtractor.getU32(&OffsetPtr);
+  uint32_t const Bitfield = HeaderExtractor.getU32(&OffsetPtr);
   if (OffsetPtr == PreReadOffset)
     return createStringError(
         std::make_error_code(std::errc::invalid_argument),

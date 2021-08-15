@@ -130,7 +130,7 @@ void llvm::finalizeBundle(MachineBasicBlock &MBB,
   const TargetInstrInfo *TII = MF.getSubtarget().getInstrInfo();
   const TargetRegisterInfo *TRI = MF.getSubtarget().getRegisterInfo();
 
-  MachineInstrBuilder MIB =
+  MachineInstrBuilder const MIB =
       BuildMI(MF, getDebugLoc(FirstMI, LastMI), TII->get(TargetOpcode::BUNDLE));
   Bundle.prepend(MIB);
 
@@ -153,7 +153,7 @@ void llvm::finalizeBundle(MachineBasicBlock &MBB,
         continue;
       }
 
-      Register Reg = MO.getReg();
+      Register const Reg = MO.getReg();
       if (!Reg)
         continue;
 
@@ -175,8 +175,8 @@ void llvm::finalizeBundle(MachineBasicBlock &MBB,
     }
 
     for (unsigned i = 0, e = Defs.size(); i != e; ++i) {
-      MachineOperand &MO = *Defs[i];
-      Register Reg = MO.getReg();
+      MachineOperand  const&MO = *Defs[i];
+      Register const Reg = MO.getReg();
       if (!Reg)
         continue;
 
@@ -195,7 +195,7 @@ void llvm::finalizeBundle(MachineBasicBlock &MBB,
 
       if (!MO.isDead() && Register::isPhysicalRegister(Reg)) {
         for (MCSubRegIterator SubRegs(Reg, TRI); SubRegs.isValid(); ++SubRegs) {
-          unsigned SubReg = *SubRegs;
+          unsigned const SubReg = *SubRegs;
           if (LocalDefSet.insert(SubReg).second)
             LocalDefs.push_back(SubReg);
         }
@@ -207,19 +207,19 @@ void llvm::finalizeBundle(MachineBasicBlock &MBB,
 
   SmallSet<Register, 32> Added;
   for (unsigned i = 0, e = LocalDefs.size(); i != e; ++i) {
-    Register Reg = LocalDefs[i];
+    Register const Reg = LocalDefs[i];
     if (Added.insert(Reg).second) {
       // If it's not live beyond end of the bundle, mark it dead.
-      bool isDead = DeadDefSet.count(Reg) || KilledDefSet.count(Reg);
+      bool const isDead = DeadDefSet.count(Reg) || KilledDefSet.count(Reg);
       MIB.addReg(Reg, getDefRegState(true) | getDeadRegState(isDead) |
                  getImplRegState(true));
     }
   }
 
   for (unsigned i = 0, e = ExternUses.size(); i != e; ++i) {
-    Register Reg = ExternUses[i];
-    bool isKill = KilledUseSet.count(Reg);
-    bool isUndef = UndefUseSet.count(Reg);
+    Register const Reg = ExternUses[i];
+    bool const isKill = KilledUseSet.count(Reg);
+    bool const isUndef = UndefUseSet.count(Reg);
     MIB.addReg(Reg, getKillRegState(isKill) | getUndefRegState(isUndef) |
                getImplRegState(true));
   }
@@ -242,7 +242,7 @@ void llvm::finalizeBundle(MachineBasicBlock &MBB,
 MachineBasicBlock::instr_iterator
 llvm::finalizeBundle(MachineBasicBlock &MBB,
                      MachineBasicBlock::instr_iterator FirstMI) {
-  MachineBasicBlock::instr_iterator E = MBB.instr_end();
+  MachineBasicBlock::instr_iterator const E = MBB.instr_end();
   MachineBasicBlock::instr_iterator LastMI = std::next(FirstMI);
   while (LastMI != E && LastMI->isInsideBundle())
     ++LastMI;
@@ -256,7 +256,7 @@ bool llvm::finalizeBundles(MachineFunction &MF) {
   bool Changed = false;
   for (MachineBasicBlock &MBB : MF) {
     MachineBasicBlock::instr_iterator MII = MBB.instr_begin();
-    MachineBasicBlock::instr_iterator MIE = MBB.instr_end();
+    MachineBasicBlock::instr_iterator const MIE = MBB.instr_end();
     if (MII == MIE)
       continue;
     assert(!MII->isInsideBundle() &&
@@ -322,14 +322,14 @@ PhysRegInfo llvm::AnalyzePhysRegInBundle(const MachineInstr &MI, Register Reg,
     if (!MO.isReg())
       continue;
 
-    Register MOReg = MO.getReg();
+    Register const MOReg = MO.getReg();
     if (!MOReg || !Register::isPhysicalRegister(MOReg))
       continue;
 
     if (!TRI->regsOverlap(MOReg, Reg))
       continue;
 
-    bool Covered = TRI->isSuperRegisterEq(Reg, MOReg);
+    bool const Covered = TRI->isSuperRegisterEq(Reg, MOReg);
     if (MO.readsReg()) {
       PRI.Read = true;
       if (Covered) {

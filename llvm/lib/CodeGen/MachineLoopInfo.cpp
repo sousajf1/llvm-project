@@ -60,7 +60,7 @@ void MachineLoopInfo::getAnalysisUsage(AnalysisUsage &AU) const {
 
 MachineBasicBlock *MachineLoop::getTopBlock() {
   MachineBasicBlock *TopMBB = getHeader();
-  MachineFunction::iterator Begin = TopMBB->getParent()->begin();
+  MachineFunction::iterator const Begin = TopMBB->getParent()->begin();
   if (TopMBB->getIterator() != Begin) {
     MachineBasicBlock *PriorMBB = &*std::prev(TopMBB->getIterator());
     while (contains(PriorMBB)) {
@@ -75,7 +75,7 @@ MachineBasicBlock *MachineLoop::getTopBlock() {
 
 MachineBasicBlock *MachineLoop::getBottomBlock() {
   MachineBasicBlock *BotMBB = getHeader();
-  MachineFunction::iterator End = BotMBB->getParent()->end();
+  MachineFunction::iterator const End = BotMBB->getParent()->end();
   if (BotMBB->getIterator() != std::prev(End)) {
     MachineBasicBlock *NextMBB = &*std::next(BotMBB->getIterator());
     while (contains(NextMBB)) {
@@ -161,7 +161,7 @@ bool MachineLoop::isLoopInvariant(MachineInstr &I) const {
     if (!MO.isReg())
       continue;
 
-    Register Reg = MO.getReg();
+    Register const Reg = MO.getReg();
     if (Reg == 0) continue;
 
     // An instruction that uses or defines a physical register can't e.g. be

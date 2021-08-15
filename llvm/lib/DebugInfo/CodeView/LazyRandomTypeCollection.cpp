@@ -123,10 +123,10 @@ StringRef LazyRandomTypeCollection::getTypeName(TypeIndex Index) {
     return "<unknown UDT>";
   }
 
-  uint32_t I = Index.toArrayIndex();
+  uint32_t const I = Index.toArrayIndex();
   ensureCapacityFor(Index);
   if (Records[I].Name.data() == nullptr) {
-    StringRef Result = NameStorage.save(computeTypeName(*this, Index));
+    StringRef const Result = NameStorage.save(computeTypeName(*this, Index));
     Records[I].Name = Result;
   }
   return Records[I].Name;
@@ -156,12 +156,12 @@ Error LazyRandomTypeCollection::ensureTypeExists(TypeIndex TI) {
 
 void LazyRandomTypeCollection::ensureCapacityFor(TypeIndex Index) {
   assert(!Index.isSimple());
-  uint32_t MinSize = Index.toArrayIndex() + 1;
+  uint32_t const MinSize = Index.toArrayIndex() + 1;
 
   if (MinSize <= capacity())
     return;
 
-  uint32_t NewCapacity = MinSize * 3 / 2;
+  uint32_t const NewCapacity = MinSize * 3 / 2;
 
   assert(NewCapacity > capacity());
   Records.resize(NewCapacity);
@@ -180,7 +180,7 @@ Error LazyRandomTypeCollection::visitRangeForType(TypeIndex TI) {
   assert(Next != PartialOffsets.begin());
   auto Prev = std::prev(Next);
 
-  TypeIndex TIB = Prev->Type;
+  TypeIndex const TIB = Prev->Type;
   if (contains(TIB)) {
     // They've asked us to fetch a type index, but the entry we found in the
     // partial offsets array has already been visited.  Since we visit an entire
@@ -238,7 +238,7 @@ Error LazyRandomTypeCollection::fullScanForType(TypeIndex TI) {
     // database has some records, this must be what's going on.  We can also
     // assume that this index must be larger than the largest type index we've
     // visited, so we start from there and scan forward.
-    uint32_t Offset = Records[LargestTypeIndex.toArrayIndex()].Offset;
+    uint32_t const Offset = Records[LargestTypeIndex.toArrayIndex()].Offset;
     CurrentTI = LargestTypeIndex + 1;
     Begin = Types.at(Offset);
     ++Begin;

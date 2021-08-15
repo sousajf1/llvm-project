@@ -28,13 +28,13 @@ Target &llvm::getTheThumbBETarget() {
 }
 
 extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializeARMTargetInfo() {
-  RegisterTarget<Triple::arm, /*HasJIT=*/true> X(getTheARMLETarget(), "arm",
+  RegisterTarget<Triple::arm, /*HasJIT=*/true> const X(getTheARMLETarget(), "arm",
                                                  "ARM", "ARM");
-  RegisterTarget<Triple::armeb, /*HasJIT=*/true> Y(getTheARMBETarget(), "armeb",
+  RegisterTarget<Triple::armeb, /*HasJIT=*/true> const Y(getTheARMBETarget(), "armeb",
                                                    "ARM (big endian)", "ARM");
 
-  RegisterTarget<Triple::thumb, /*HasJIT=*/true> A(getTheThumbLETarget(),
+  RegisterTarget<Triple::thumb, /*HasJIT=*/true> const A(getTheThumbLETarget(),
                                                    "thumb", "Thumb", "ARM");
-  RegisterTarget<Triple::thumbeb, /*HasJIT=*/true> B(
+  RegisterTarget<Triple::thumbeb, /*HasJIT=*/true> const B(
       getTheThumbBETarget(), "thumbeb", "Thumb (big endian)", "ARM");
 }

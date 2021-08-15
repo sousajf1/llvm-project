@@ -48,7 +48,7 @@ Counter CounterExpressionBuilder::get(const CounterExpression &E) {
   auto It = ExpressionIndices.find(E);
   if (It != ExpressionIndices.end())
     return Counter::getExpression(It->second);
-  unsigned I = Expressions.size();
+  unsigned const I = Expressions.size();
   Expressions.push_back(E);
   ExpressionIndices[E] = I;
   return Counter::getExpression(I);
@@ -212,7 +212,7 @@ void FunctionRecordIterator::skipOtherFiles() {
 
 ArrayRef<unsigned> CoverageMapping::getImpreciseRecordIndicesForFilename(
     StringRef Filename) const {
-  size_t FilenameHash = hash_value(Filename);
+  size_t const FilenameHash = hash_value(Filename);
   auto RecordIt = FilenameHash2RecordIndices.find(FilenameHash);
   if (RecordIt == FilenameHash2RecordIndices.end())
     return {};
@@ -245,7 +245,7 @@ Error CoverageMapping::loadFunctionRecord(
   std::vector<uint64_t> Counts;
   if (Error E = ProfileReader.getFunctionCounts(Record.FunctionName,
                                                 Record.FunctionHash, Counts)) {
-    instrprof_error IPE = InstrProfError::take(std::move(E));
+    instrprof_error const IPE = InstrProfError::take(std::move(E));
     if (IPE == instrprof_error::hash_mismatch) {
       FuncHashMismatches.emplace_back(std::string(Record.FunctionName),
                                       Record.FunctionHash);
@@ -293,8 +293,8 @@ Error CoverageMapping::loadFunctionRecord(
   // Performance optimization: keep track of the indices of the function records
   // which correspond to each filename. This can be used to substantially speed
   // up queries for coverage info in a file.
-  unsigned RecordIndex = Functions.size() - 1;
-  for (StringRef Filename : Record.Filenames) {
+  unsigned const RecordIndex = Functions.size() - 1;
+  for (StringRef const Filename : Record.Filenames) {
     auto &RecordIndices = FilenameHash2RecordIndices[hash_value(Filename)];
     // Note that there may be duplicates in the filename set for a function
     // record, because of e.g. macro expansions in the function in which both
@@ -356,10 +356,10 @@ CoverageMapping::load(ArrayRef<StringRef> ObjectFilenames,
   for (const auto &File : llvm::enumerate(ObjectFilenames)) {
     auto CovMappingBufOrErr = MemoryBuffer::getFileOrSTDIN(
         File.value(), /*IsText=*/false, /*RequiresNullTerminator=*/false);
-    if (std::error_code EC = CovMappingBufOrErr.getError())
+    if (std::error_code const EC = CovMappingBufOrErr.getError())
       return errorCodeToError(EC);
-    StringRef Arch = Arches.empty() ? StringRef() : Arches[File.index()];
-    MemoryBufferRef CovMappingBufRef =
+    StringRef const Arch = Arches.empty() ? StringRef() : Arches[File.index()];
+    MemoryBufferRef const CovMappingBufRef =
         CovMappingBufOrErr.get()->getMemBufferRef();
     SmallVector<std::unique_ptr<MemoryBuffer>, 4> Buffers;
     auto CoverageReadersOrErr = BinaryCoverageReader::create(
@@ -422,7 +422,7 @@ class SegmentBuilder {
   /// \p EmitSkippedRegion: The segment must be emitted as a skipped region.
   void startSegment(const CountedRegion &Region, LineColPair StartLoc,
                     bool IsRegionEntry, bool EmitSkippedRegion = false) {
-    bool HasCount = !EmitSkippedRegion &&
+    bool const HasCount = !EmitSkippedRegion &&
                     (Region.Kind != CounterMappingRegion::SkippedRegion);
 
     // If the new segment wouldn't affect coverage rendering, skip it.
@@ -519,12 +519,12 @@ class SegmentBuilder {
                                   return !(Region->endLoc() <= CurStartLoc);
                                 });
       if (CompletedRegions != ActiveRegions.end()) {
-        unsigned FirstCompletedRegion =
+        unsigned const FirstCompletedRegion =
             std::distance(ActiveRegions.begin(), CompletedRegions);
         completeRegionsUntil(CurStartLoc, FirstCompletedRegion);
       }
 
-      bool GapRegion = CR.value().Kind == CounterMappingRegion::GapRegion;
+      bool const GapRegion = CR.value().Kind == CounterMappingRegion::GapRegion;
 
       // Try to emit a segment for the current region.
       if (CurStartLoc == CR.value().endLoc()) {
@@ -621,7 +621,7 @@ public:
     SegmentBuilder Builder(Segments);
 
     sortNestedRegions(Regions);
-    ArrayRef<CountedRegion> CombinedRegions = combineRegions(Regions);
+    ArrayRef<CountedRegion> const CombinedRegions = combineRegions(Regions);
 
     LLVM_DEBUG({
       dbgs() << "Combined regions:\n";
@@ -704,9 +704,9 @@ CoverageData CoverageMapping::getCoverageForFile(StringRef Filename) const {
 
   // Look up the function records in the given file. Due to hash collisions on
   // the filename, we may get back some records that are not in the file.
-  ArrayRef<unsigned> RecordIndices =
+  ArrayRef<unsigned> const RecordIndices =
       getImpreciseRecordIndicesForFilename(Filename);
-  for (unsigned RecordIndex : RecordIndices) {
+  for (unsigned const RecordIndex : RecordIndices) {
     const FunctionRecord &Function = Functions[RecordIndex];
     auto MainFileID = findMainViewFileID(Filename, Function);
     auto FileIDs = gatherFileIDs(Filename, Function);
@@ -733,9 +733,9 @@ CoverageMapping::getInstantiationGroups(StringRef Filename) const {
   FunctionInstantiationSetCollector InstantiationSetCollector;
   // Look up the function records in the given file. Due to hash collisions on
   // the filename, we may get back some records that are not in the file.
-  ArrayRef<unsigned> RecordIndices =
+  ArrayRef<unsigned> const RecordIndices =
       getImpreciseRecordIndicesForFilename(Filename);
-  for (unsigned RecordIndex : RecordIndices) {
+  for (unsigned const RecordIndex : RecordIndices) {
     const FunctionRecord &Function = Functions[RecordIndex];
     auto MainFileID = findMainViewFileID(Filename, Function);
     if (!MainFileID)
@@ -816,7 +816,7 @@ LineCoverageStats::LineCoverageStats(
     if (isStartOfRegion(LineSegments[I]))
       ++MinRegionCount;
 
-  bool StartOfSkippedRegion = !LineSegments.empty() &&
+  bool const StartOfSkippedRegion = !LineSegments.empty() &&
                               !LineSegments.front()->HasCount &&
                               LineSegments.front()->IsRegionEntry;
 

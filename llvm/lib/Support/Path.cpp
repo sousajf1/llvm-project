@@ -77,7 +77,7 @@ namespace {
     if ((path.size() > 2) && is_separator(path[0], style) &&
         path[0] == path[1] && !is_separator(path[2], style)) {
       // Find the next directory separator.
-      size_t end = path.find_first_of(separators(style), 2);
+      size_t const end = path.find_first_of(separators(style), 2);
       return path.substr(0, end);
     }
 
@@ -86,7 +86,7 @@ namespace {
       return path.substr(0, 1);
 
     // * {file,directory}name
-    size_t end = path.find_first_of(separators(style));
+    size_t const end = path.find_first_of(separators(style));
     return path.substr(0, end);
   }
 
@@ -137,11 +137,11 @@ namespace {
   size_t parent_path_end(StringRef path, Style style) {
     size_t end_pos = filename_pos(path, style);
 
-    bool filename_was_sep =
+    bool const filename_was_sep =
         path.size() > 0 && is_separator(path[end_pos], style);
 
     // Skip separators until we reach root dir (or the start of the string).
-    size_t root_dir_pos = root_dir_start(path, style);
+    size_t const root_dir_pos = root_dir_start(path, style);
     while (end_pos > 0 &&
            (root_dir_pos == StringRef::npos || end_pos > root_dir_pos) &&
            is_separator(path[end_pos - 1], style))
@@ -251,7 +251,7 @@ const_iterator &const_iterator::operator++() {
 
   // Both POSIX and Windows treat paths that begin with exactly two separators
   // specially.
-  bool was_net = Component.size() > 2 && is_separator(Component[0], S) &&
+  bool const was_net = Component.size() > 2 && is_separator(Component[0], S) &&
                  Component[1] == Component[0] && !is_separator(Component[2], S);
 
   // Handle separators.
@@ -278,7 +278,7 @@ const_iterator &const_iterator::operator++() {
   }
 
   // Find next component.
-  size_t end_pos = Path.find_first_of(separators(S), Position);
+  size_t const end_pos = Path.find_first_of(separators(S), Position);
   Component = Path.slice(Position, end_pos);
 
   return *this;
@@ -310,7 +310,7 @@ reverse_iterator rend(StringRef Path) {
 }
 
 reverse_iterator &reverse_iterator::operator++() {
-  size_t root_dir_pos = root_dir_start(Path, S);
+  size_t const root_dir_pos = root_dir_start(Path, S);
 
   // Skip separators unless it's the root directory.
   size_t end_pos = Position;
@@ -328,7 +328,7 @@ reverse_iterator &reverse_iterator::operator++() {
   }
 
   // Find next separator.
-  size_t start_pos = filename_pos(Path.substr(0, end_pos), S);
+  size_t const start_pos = filename_pos(Path.substr(0, end_pos), S);
   Component = Path.slice(start_pos, end_pos);
   Position = start_pos;
   return *this;
@@ -346,9 +346,9 @@ ptrdiff_t reverse_iterator::operator-(const reverse_iterator &RHS) const {
 StringRef root_path(StringRef path, Style style) {
   const_iterator b = begin(path, style), pos = b, e = end(path);
   if (b != e) {
-    bool has_net =
+    bool const has_net =
         b->size() > 2 && is_separator((*b)[0], style) && (*b)[1] == (*b)[0];
-    bool has_drive = (real_style(style) == Style::windows) && b->endswith(":");
+    bool const has_drive = (real_style(style) == Style::windows) && b->endswith(":");
 
     if (has_net || has_drive) {
       if ((++pos != e) && is_separator((*pos)[0], style)) {
@@ -371,9 +371,9 @@ StringRef root_path(StringRef path, Style style) {
 StringRef root_name(StringRef path, Style style) {
   const_iterator b = begin(path, style), e = end(path);
   if (b != e) {
-    bool has_net =
+    bool const has_net =
         b->size() > 2 && is_separator((*b)[0], style) && (*b)[1] == (*b)[0];
-    bool has_drive = (real_style(style) == Style::windows) && b->endswith(":");
+    bool const has_drive = (real_style(style) == Style::windows) && b->endswith(":");
 
     if (has_net || has_drive) {
       // just {C:,//net}, return the first component.
@@ -388,9 +388,9 @@ StringRef root_name(StringRef path, Style style) {
 StringRef root_directory(StringRef path, Style style) {
   const_iterator b = begin(path, style), pos = b, e = end(path);
   if (b != e) {
-    bool has_net =
+    bool const has_net =
         b->size() > 2 && is_separator((*b)[0], style) && (*b)[1] == (*b)[0];
-    bool has_drive = (real_style(style) == Style::windows) && b->endswith(":");
+    bool const has_drive = (real_style(style) == Style::windows) && b->endswith(":");
 
     if ((has_net || has_drive) &&
         // {C:,//net}, skip to the next component.
@@ -409,7 +409,7 @@ StringRef root_directory(StringRef path, Style style) {
 }
 
 StringRef relative_path(StringRef path, Style style) {
-  StringRef root = root_path(path, style);
+  StringRef const root = root_path(path, style);
   return path.substr(root.size());
 }
 
@@ -427,19 +427,19 @@ void append(SmallVectorImpl<char> &path, Style style, const Twine &a,
   if (!d.isTriviallyEmpty()) components.push_back(d.toStringRef(d_storage));
 
   for (auto &component : components) {
-    bool path_has_sep =
+    bool const path_has_sep =
         !path.empty() && is_separator(path[path.size() - 1], style);
     if (path_has_sep) {
       // Strip separators from beginning of component.
-      size_t loc = component.find_first_not_of(separators(style));
-      StringRef c = component.substr(loc);
+      size_t const loc = component.find_first_not_of(separators(style));
+      StringRef const c = component.substr(loc);
 
       // Append it.
       path.append(c.begin(), c.end());
       continue;
     }
 
-    bool component_has_sep =
+    bool const component_has_sep =
         !component.empty() && is_separator(component[0], style);
     if (!component_has_sep &&
         !(path.empty() || has_root_name(component, style))) {
@@ -463,26 +463,26 @@ void append(SmallVectorImpl<char> &path, const_iterator begin,
 }
 
 StringRef parent_path(StringRef path, Style style) {
-  size_t end_pos = parent_path_end(path, style);
+  size_t const end_pos = parent_path_end(path, style);
   if (end_pos == StringRef::npos)
     return StringRef();
   return path.substr(0, end_pos);
 }
 
 void remove_filename(SmallVectorImpl<char> &path, Style style) {
-  size_t end_pos = parent_path_end(StringRef(path.begin(), path.size()), style);
+  size_t const end_pos = parent_path_end(StringRef(path.begin(), path.size()), style);
   if (end_pos != StringRef::npos)
     path.set_size(end_pos);
 }
 
 void replace_extension(SmallVectorImpl<char> &path, const Twine &extension,
                        Style style) {
-  StringRef p(path.begin(), path.size());
+  StringRef const p(path.begin(), path.size());
   SmallString<32> ext_storage;
-  StringRef ext = extension.toStringRef(ext_storage);
+  StringRef const ext = extension.toStringRef(ext_storage);
 
   // Erase existing extension.
-  size_t pos = p.find_last_of('.');
+  size_t const pos = p.find_last_of('.');
   if (pos != StringRef::npos && pos >= filename_pos(p, style))
     path.set_size(pos);
 
@@ -501,8 +501,8 @@ static bool starts_with(StringRef Path, StringRef Prefix,
     if (Path.size() < Prefix.size())
       return false;
     for (size_t I = 0, E = Prefix.size(); I != E; ++I) {
-      bool SepPath = is_separator(Path[I], style);
-      bool SepPrefix = is_separator(Prefix[I], style);
+      bool const SepPath = is_separator(Path[I], style);
+      bool const SepPrefix = is_separator(Prefix[I], style);
       if (SepPath != SepPrefix)
         return false;
       if (!SepPath && toLower(Path[I]) != toLower(Prefix[I]))
@@ -518,7 +518,7 @@ bool replace_path_prefix(SmallVectorImpl<char> &Path, StringRef OldPrefix,
   if (OldPrefix.empty() && NewPrefix.empty())
     return false;
 
-  StringRef OrigPath(Path.begin(), Path.size());
+  StringRef const OrigPath(Path.begin(), Path.size());
   if (!starts_with(OrigPath, OldPrefix, style))
     return false;
 
@@ -528,7 +528,7 @@ bool replace_path_prefix(SmallVectorImpl<char> &Path, StringRef OldPrefix,
     return true;
   }
 
-  StringRef RelPath = OrigPath.substr(OldPrefix.size());
+  StringRef const RelPath = OrigPath.substr(OldPrefix.size());
   SmallString<256> NewPath;
   (Twine(NewPrefix) + RelPath).toVector(NewPath);
   Path.swap(NewPath);
@@ -576,7 +576,7 @@ StringRef filename(StringRef path, Style style) { return *rbegin(path, style); }
 
 StringRef stem(StringRef path, Style style) {
   StringRef fname = filename(path, style);
-  size_t pos = fname.find_last_of('.');
+  size_t const pos = fname.find_last_of('.');
   if (pos == StringRef::npos)
     return fname;
   if ((fname.size() == 1 && fname == ".") ||
@@ -586,8 +586,8 @@ StringRef stem(StringRef path, Style style) {
 }
 
 StringRef extension(StringRef path, Style style) {
-  StringRef fname = filename(path, style);
-  size_t pos = fname.find_last_of('.');
+  StringRef const fname = filename(path, style);
+  size_t const pos = fname.find_last_of('.');
   if (pos == StringRef::npos)
     return StringRef();
   if ((fname.size() == 1 && fname == ".") ||
@@ -612,66 +612,66 @@ StringRef get_separator(Style style) {
 
 bool has_root_name(const Twine &path, Style style) {
   SmallString<128> path_storage;
-  StringRef p = path.toStringRef(path_storage);
+  StringRef const p = path.toStringRef(path_storage);
 
   return !root_name(p, style).empty();
 }
 
 bool has_root_directory(const Twine &path, Style style) {
   SmallString<128> path_storage;
-  StringRef p = path.toStringRef(path_storage);
+  StringRef const p = path.toStringRef(path_storage);
 
   return !root_directory(p, style).empty();
 }
 
 bool has_root_path(const Twine &path, Style style) {
   SmallString<128> path_storage;
-  StringRef p = path.toStringRef(path_storage);
+  StringRef const p = path.toStringRef(path_storage);
 
   return !root_path(p, style).empty();
 }
 
 bool has_relative_path(const Twine &path, Style style) {
   SmallString<128> path_storage;
-  StringRef p = path.toStringRef(path_storage);
+  StringRef const p = path.toStringRef(path_storage);
 
   return !relative_path(p, style).empty();
 }
 
 bool has_filename(const Twine &path, Style style) {
   SmallString<128> path_storage;
-  StringRef p = path.toStringRef(path_storage);
+  StringRef const p = path.toStringRef(path_storage);
 
   return !filename(p, style).empty();
 }
 
 bool has_parent_path(const Twine &path, Style style) {
   SmallString<128> path_storage;
-  StringRef p = path.toStringRef(path_storage);
+  StringRef const p = path.toStringRef(path_storage);
 
   return !parent_path(p, style).empty();
 }
 
 bool has_stem(const Twine &path, Style style) {
   SmallString<128> path_storage;
-  StringRef p = path.toStringRef(path_storage);
+  StringRef const p = path.toStringRef(path_storage);
 
   return !stem(p, style).empty();
 }
 
 bool has_extension(const Twine &path, Style style) {
   SmallString<128> path_storage;
-  StringRef p = path.toStringRef(path_storage);
+  StringRef const p = path.toStringRef(path_storage);
 
   return !extension(p, style).empty();
 }
 
 bool is_absolute(const Twine &path, Style style) {
   SmallString<128> path_storage;
-  StringRef p = path.toStringRef(path_storage);
+  StringRef const p = path.toStringRef(path_storage);
 
-  bool rootDir = has_root_directory(p, style);
-  bool rootName =
+  bool const rootDir = has_root_directory(p, style);
+  bool const rootName =
       (real_style(style) != Style::windows) || has_root_name(p, style);
 
   return rootDir && rootName;
@@ -679,7 +679,7 @@ bool is_absolute(const Twine &path, Style style) {
 
 bool is_absolute_gnu(const Twine &path, Style style) {
   SmallString<128> path_storage;
-  StringRef p = path.toStringRef(path_storage);
+  StringRef const p = path.toStringRef(path_storage);
 
   // Handle '/' which is absolute for both Windows and POSIX systems.
   // Handle '\\' on Windows.
@@ -719,8 +719,8 @@ bool remove_dots(SmallVectorImpl<char> &the_path, bool remove_dot_dot,
   SmallVector<StringRef, 16> components;
 
   // Consume the root path, if present.
-  StringRef root = path::root_path(remaining, style);
-  bool absolute = !root.empty();
+  StringRef const root = path::root_path(remaining, style);
+  bool const absolute = !root.empty();
   if (absolute)
     remaining = remaining.drop_front(root.size());
 
@@ -730,7 +730,7 @@ bool remove_dots(SmallVectorImpl<char> &the_path, bool remove_dot_dot,
     size_t next_slash = remaining.find_first_of(separators(style));
     if (next_slash == StringRef::npos)
       next_slash = remaining.size();
-    StringRef component = remaining.take_front(next_slash);
+    StringRef const component = remaining.take_front(next_slash);
     remaining = remaining.drop_front(next_slash);
 
     // Eat the slash, and check if it is the preferred separator.
@@ -766,7 +766,7 @@ bool remove_dots(SmallVectorImpl<char> &the_path, bool remove_dot_dot,
   SmallString<256> buffer = root;
   if (!components.empty()) {
     buffer += components[0];
-    for (StringRef C : makeArrayRef(components).drop_front()) {
+    for (StringRef const C : makeArrayRef(components).drop_front()) {
       buffer += preferred_separator(style);
       buffer += C;
     }
@@ -838,7 +838,7 @@ createTemporaryFile(const Twine &Model, int &ResultFD,
                     llvm::SmallVectorImpl<char> &ResultPath, FSEntity Type,
                     sys::fs::OpenFlags Flags = sys::fs::OF_None) {
   SmallString<128> Storage;
-  StringRef P = Model.toNullTerminatedStringRef(Storage);
+  StringRef const P = Model.toNullTerminatedStringRef(Storage);
   assert(P.find_first_of(separators(Style::native)) == StringRef::npos &&
          "Model must be a simple filename.");
   // Use P.begin() so that createUniqueEntity doesn't need to recreate Storage.
@@ -900,10 +900,10 @@ getPotentiallyUniqueTempFileName(const Twine &Prefix, StringRef Suffix,
 
 void make_absolute(const Twine &current_directory,
                    SmallVectorImpl<char> &path) {
-  StringRef p(path.data(), path.size());
+  StringRef const p(path.data(), path.size());
 
-  bool rootDirectory = path::has_root_directory(p);
-  bool rootName = path::has_root_name(p);
+  bool const rootDirectory = path::has_root_directory(p);
+  bool const rootName = path::has_root_name(p);
 
   // Already absolute.
   if ((rootName || real_style(Style::native) != Style::windows) &&
@@ -924,7 +924,7 @@ void make_absolute(const Twine &current_directory,
   }
 
   if (!rootName && rootDirectory) {
-    StringRef cdrn = path::root_name(current_dir);
+    StringRef const cdrn = path::root_name(current_dir);
     SmallString<128> curDirRootName(cdrn.begin(), cdrn.end());
     path::append(curDirRootName, p);
     // Set path to the result.
@@ -933,10 +933,10 @@ void make_absolute(const Twine &current_directory,
   }
 
   if (rootName && !rootDirectory) {
-    StringRef pRootName      = path::root_name(p);
-    StringRef bRootDirectory = path::root_directory(current_dir);
-    StringRef bRelativePath  = path::relative_path(current_dir);
-    StringRef pRelativePath  = path::relative_path(p);
+    StringRef const pRootName      = path::root_name(p);
+    StringRef const bRootDirectory = path::root_directory(current_dir);
+    StringRef const bRelativePath  = path::relative_path(current_dir);
+    StringRef const pRelativePath  = path::relative_path(p);
 
     SmallString<128> res;
     path::append(res, pRootName, bRootDirectory, bRelativePath, pRelativePath);
@@ -963,7 +963,7 @@ std::error_code make_absolute(SmallVectorImpl<char> &path) {
 std::error_code create_directories(const Twine &Path, bool IgnoreExisting,
                                    perms Perms) {
   SmallString<128> PathStorage;
-  StringRef P = Path.toStringRef(PathStorage);
+  StringRef const P = Path.toStringRef(PathStorage);
 
   // Be optimistic and try to create the directory
   std::error_code EC = create_directory(P, IgnoreExisting, Perms);
@@ -974,7 +974,7 @@ std::error_code create_directories(const Twine &Path, bool IgnoreExisting,
 
   // We failed because of a no_such_file_or_directory, try to create the
   // parent.
-  StringRef Parent = path::parent_path(P);
+  StringRef const Parent = path::parent_path(P);
   if (Parent.empty())
     return EC;
 
@@ -1198,7 +1198,7 @@ TempFile::~TempFile() { assert(Done); }
 Error TempFile::discard() {
   Done = true;
   if (FD != -1 && close(FD) == -1) {
-    std::error_code EC = std::error_code(errno, std::generic_category());
+    std::error_code const EC = std::error_code(errno, std::generic_category());
     return errorCodeToError(EC);
   }
   FD = -1;
@@ -1257,7 +1257,7 @@ Error TempFile::keep(const Twine &Name) {
     TmpName = "";
 
   if (close(FD) == -1) {
-    std::error_code EC(errno, std::generic_category());
+    std::error_code const EC(errno, std::generic_category());
     return errorCodeToError(EC);
   }
   FD = -1;
@@ -1280,7 +1280,7 @@ Error TempFile::keep() {
   TmpName = "";
 
   if (close(FD) == -1) {
-    std::error_code EC(errno, std::generic_category());
+    std::error_code const EC(errno, std::generic_category());
     return errorCodeToError(EC);
   }
   FD = -1;
@@ -1292,7 +1292,7 @@ Expected<TempFile> TempFile::create(const Twine &Model, unsigned Mode,
                                     OpenFlags ExtraFlags) {
   int FD;
   SmallString<128> ResultPath;
-  if (std::error_code EC =
+  if (std::error_code const EC =
           createUniqueFile(Model, FD, ResultPath, OF_Delete | ExtraFlags, Mode))
     return errorCodeToError(EC);
 
@@ -1301,7 +1301,7 @@ Expected<TempFile> TempFile::create(const Twine &Model, unsigned Mode,
   if (sys::RemoveFileOnSignal(ResultPath)) {
     // Make sure we delete the file when RemoveFileOnSignal fails.
     consumeError(Ret.discard());
-    std::error_code EC(errc::operation_not_permitted);
+    std::error_code const EC(errc::operation_not_permitted);
     return errorCodeToError(EC);
   }
 #endif

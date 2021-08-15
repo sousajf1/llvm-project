@@ -99,7 +99,7 @@ public:
   /// copying.
   void markRegsUnavailable(ArrayRef<MCRegister> Regs,
                            const TargetRegisterInfo &TRI) {
-    for (MCRegister Reg : Regs) {
+    for (MCRegister const Reg : Regs) {
       // Source of copy is no longer available for propagation.
       for (MCRegUnitIterator RUI(Reg, &TRI); RUI.isValid(); ++RUI) {
         auto CI = Copies.find(*RUI);
@@ -127,7 +127,7 @@ public:
                                 I->second.DefRegs.end());
       }
     }
-    for (MCRegister InvalidReg : RegsToInvalidate)
+    for (MCRegister const InvalidReg : RegsToInvalidate)
       for (MCRegUnitIterator RUI(InvalidReg, &TRI); RUI.isValid(); ++RUI)
         Copies.erase(*RUI);
   }
@@ -154,8 +154,8 @@ public:
   void trackCopy(MachineInstr *MI, const TargetRegisterInfo &TRI) {
     assert(MI->isCopy() && "Tracking non-copy?");
 
-    MCRegister Def = MI->getOperand(0).getReg().asMCReg();
-    MCRegister Src = MI->getOperand(1).getReg().asMCReg();
+    MCRegister const Def = MI->getOperand(0).getReg().asMCReg();
+    MCRegister const Src = MI->getOperand(1).getReg().asMCReg();
 
     // Remember Def is defined by the copy.
     for (MCRegUnitIterator RUI(Def, &TRI); RUI.isValid(); ++RUI)
@@ -193,20 +193,20 @@ public:
       return nullptr;
     if (CI->second.DefRegs.size() != 1)
       return nullptr;
-    MCRegUnitIterator RUI(CI->second.DefRegs[0], &TRI);
+    MCRegUnitIterator const RUI(CI->second.DefRegs[0], &TRI);
     return findCopyForUnit(*RUI, TRI, true);
   }
 
   MachineInstr *findAvailBackwardCopy(MachineInstr &I, MCRegister Reg,
                                       const TargetRegisterInfo &TRI) {
-    MCRegUnitIterator RUI(Reg, &TRI);
+    MCRegUnitIterator const RUI(Reg, &TRI);
     MachineInstr *AvailCopy = findCopyDefViaUnit(*RUI, TRI);
     if (!AvailCopy ||
         !TRI.isSubRegisterEq(AvailCopy->getOperand(1).getReg(), Reg))
       return nullptr;
 
-    Register AvailSrc = AvailCopy->getOperand(1).getReg();
-    Register AvailDef = AvailCopy->getOperand(0).getReg();
+    Register const AvailSrc = AvailCopy->getOperand(1).getReg();
+    Register const AvailDef = AvailCopy->getOperand(0).getReg();
     for (const MachineInstr &MI :
          make_range(AvailCopy->getReverseIterator(), I.getReverseIterator()))
       for (const MachineOperand &MO : MI.operands())
@@ -222,7 +222,7 @@ public:
                               const TargetRegisterInfo &TRI) {
     // We check the first RegUnit here, since we'll only be interested in the
     // copy if it copies the entire register anyway.
-    MCRegUnitIterator RUI(Reg, &TRI);
+    MCRegUnitIterator const RUI(Reg, &TRI);
     MachineInstr *AvailCopy =
         findCopyForUnit(*RUI, TRI, /*MustBeAvailable=*/true);
     if (!AvailCopy ||
@@ -231,8 +231,8 @@ public:
 
     // Check that the available copy isn't clobbered by any regmasks between
     // itself and the destination.
-    Register AvailSrc = AvailCopy->getOperand(1).getReg();
-    Register AvailDef = AvailCopy->getOperand(0).getReg();
+    Register const AvailSrc = AvailCopy->getOperand(1).getReg();
+    Register const AvailDef = AvailCopy->getOperand(0).getReg();
     for (const MachineInstr &MI :
          make_range(AvailCopy->getIterator(), DestCopy.getIterator()))
       for (const MachineOperand &MO : MI.operands())
@@ -335,13 +335,13 @@ void MachineCopyPropagation::ReadRegister(MCRegister Reg, MachineInstr &Reader,
 /// isNopCopy("ecx = COPY eax", AH, CL) == false
 static bool isNopCopy(const MachineInstr &PreviousCopy, MCRegister Src,
                       MCRegister Def, const TargetRegisterInfo *TRI) {
-  MCRegister PreviousSrc = PreviousCopy.getOperand(1).getReg().asMCReg();
-  MCRegister PreviousDef = PreviousCopy.getOperand(0).getReg().asMCReg();
+  MCRegister const PreviousSrc = PreviousCopy.getOperand(1).getReg().asMCReg();
+  MCRegister const PreviousDef = PreviousCopy.getOperand(0).getReg().asMCReg();
   if (Src == PreviousSrc && Def == PreviousDef)
     return true;
   if (!TRI->isSubRegister(PreviousSrc, Src))
     return false;
-  unsigned SubIdx = TRI->getSubRegIndex(PreviousSrc, Src);
+  unsigned const SubIdx = TRI->getSubRegIndex(PreviousSrc, Src);
   return SubIdx == TRI->getSubRegIndex(PreviousDef, Def);
 }
 
@@ -371,7 +371,7 @@ bool MachineCopyPropagation::eraseIfRedundant(MachineInstr &Copy,
   // Copy was redundantly redefining either Src or Def. Remove earlier kill
   // flags between Copy and PrevCopy because the value will be reused now.
   assert(Copy.isCopy());
-  Register CopyDef = Copy.getOperand(0).getReg();
+  Register const CopyDef = Copy.getOperand(0).getReg();
   assert(CopyDef == Src || CopyDef == Def);
   for (MachineInstr &MI :
        make_range(PrevCopy->getIterator(), Copy.getIterator()))
@@ -385,7 +385,7 @@ bool MachineCopyPropagation::eraseIfRedundant(MachineInstr &Copy,
 
 bool MachineCopyPropagation::isBackwardPropagatableRegClassCopy(
     const MachineInstr &Copy, const MachineInstr &UseI, unsigned UseIdx) {
-  Register Def = Copy.getOperand(0).getReg();
+  Register const Def = Copy.getOperand(0).getReg();
 
   if (const TargetRegisterClass *URC =
           UseI.getRegClassConstraint(UseIdx, TII, TRI))
@@ -403,7 +403,7 @@ bool MachineCopyPropagation::isForwardableRegClassCopy(const MachineInstr &Copy,
                                                        const MachineInstr &UseI,
                                                        unsigned UseIdx) {
 
-  Register CopySrcReg = Copy.getOperand(1).getReg();
+  Register const CopySrcReg = Copy.getOperand(1).getReg();
 
   // If the new register meets the opcode register constraints, then allow
   // forwarding.
@@ -510,9 +510,9 @@ void MachineCopyPropagation::forwardUses(MachineInstr &MI) {
     if (!Copy)
       continue;
 
-    Register CopyDstReg = Copy->getOperand(0).getReg();
+    Register const CopyDstReg = Copy->getOperand(0).getReg();
     const MachineOperand &CopySrc = Copy->getOperand(1);
-    Register CopySrcReg = CopySrc.getReg();
+    Register const CopySrcReg = CopySrc.getReg();
 
     // FIXME: Don't handle partial uses of wider COPYs yet.
     if (MOUse.getReg() != CopyDstReg) {
@@ -582,7 +582,7 @@ void MachineCopyPropagation::ForwardCopyPropagateBlock(MachineBasicBlock &MBB) {
              MI->getOperand(1).getReg().isPhysical() &&
              "MachineCopyPropagation should be run after register allocation!");
 
-      MCRegister Def = MI->getOperand(0).getReg().asMCReg();
+      MCRegister const Def = MI->getOperand(0).getReg().asMCReg();
       MCRegister Src = MI->getOperand(1).getReg().asMCReg();
 
       // The two copies cancel out and the source of the first copy
@@ -614,7 +614,7 @@ void MachineCopyPropagation::ForwardCopyPropagateBlock(MachineBasicBlock &MBB) {
       for (const MachineOperand &MO : MI->implicit_operands()) {
         if (!MO.isReg() || !MO.readsReg())
           continue;
-        MCRegister Reg = MO.getReg().asMCReg();
+        MCRegister const Reg = MO.getReg().asMCReg();
         if (!Reg)
           continue;
         ReadRegister(Reg, *MI, RegularUse);
@@ -637,7 +637,7 @@ void MachineCopyPropagation::ForwardCopyPropagateBlock(MachineBasicBlock &MBB) {
       for (const MachineOperand &MO : MI->implicit_operands()) {
         if (!MO.isReg() || !MO.isDef())
           continue;
-        MCRegister Reg = MO.getReg().asMCReg();
+        MCRegister const Reg = MO.getReg().asMCReg();
         if (!Reg)
           continue;
         Tracker.clobberRegister(Reg, *TRI);
@@ -651,7 +651,7 @@ void MachineCopyPropagation::ForwardCopyPropagateBlock(MachineBasicBlock &MBB) {
     // Clobber any earlyclobber regs first.
     for (const MachineOperand &MO : MI->operands())
       if (MO.isReg() && MO.isEarlyClobber()) {
-        MCRegister Reg = MO.getReg().asMCReg();
+        MCRegister const Reg = MO.getReg().asMCReg();
         // If we have a tied earlyclobber, that means it is also read by this
         // instruction, so we need to make sure we don't remove it as dead
         // later.
@@ -670,7 +670,7 @@ void MachineCopyPropagation::ForwardCopyPropagateBlock(MachineBasicBlock &MBB) {
         RegMask = &MO;
       if (!MO.isReg())
         continue;
-      Register Reg = MO.getReg();
+      Register const Reg = MO.getReg();
       if (!Reg)
         continue;
 
@@ -693,7 +693,7 @@ void MachineCopyPropagation::ForwardCopyPropagateBlock(MachineBasicBlock &MBB) {
                MaybeDeadCopies.begin();
            DI != MaybeDeadCopies.end();) {
         MachineInstr *MaybeDead = *DI;
-        MCRegister Reg = MaybeDead->getOperand(0).getReg().asMCReg();
+        MCRegister const Reg = MaybeDead->getOperand(0).getReg().asMCReg();
         assert(!MRI->isReserved(Reg));
 
         if (!RegMask->clobbersPhysReg(Reg)) {
@@ -718,7 +718,7 @@ void MachineCopyPropagation::ForwardCopyPropagateBlock(MachineBasicBlock &MBB) {
     }
 
     // Any previous copy definition or reading the Defs is no longer available.
-    for (MCRegister Reg : Defs)
+    for (MCRegister const Reg : Defs)
       Tracker.clobberRegister(Reg, *TRI);
   }
 
@@ -733,9 +733,9 @@ void MachineCopyPropagation::ForwardCopyPropagateBlock(MachineBasicBlock &MBB) {
 
       // Update matching debug values, if any.
       assert(MaybeDead->isCopy());
-      Register SrcReg = MaybeDead->getOperand(1).getReg();
-      Register DestReg = MaybeDead->getOperand(0).getReg();
-      SmallVector<MachineInstr *> MaybeDeadDbgUsers(
+      Register const SrcReg = MaybeDead->getOperand(1).getReg();
+      Register const DestReg = MaybeDead->getOperand(0).getReg();
+      SmallVector<MachineInstr *> const MaybeDeadDbgUsers(
           CopyDbgUsers[MaybeDead].begin(), CopyDbgUsers[MaybeDead].end());
       MRI->updateDbgUsersToReg(DestReg.asMCReg(), SrcReg.asMCReg(),
                                MaybeDeadDbgUsers);
@@ -754,8 +754,8 @@ void MachineCopyPropagation::ForwardCopyPropagateBlock(MachineBasicBlock &MBB) {
 static bool isBackwardPropagatableCopy(MachineInstr &MI,
                                        const MachineRegisterInfo &MRI) {
   assert(MI.isCopy() && "MI is expected to be a COPY");
-  Register Def = MI.getOperand(0).getReg();
-  Register Src = MI.getOperand(1).getReg();
+  Register const Def = MI.getOperand(0).getReg();
+  Register const Src = MI.getOperand(1).getReg();
 
   if (!Def || !Src)
     return false;
@@ -793,8 +793,8 @@ void MachineCopyPropagation::propagateDefs(MachineInstr &MI) {
     if (!Copy)
       continue;
 
-    Register Def = Copy->getOperand(0).getReg();
-    Register Src = Copy->getOperand(1).getReg();
+    Register const Def = Copy->getOperand(0).getReg();
+    Register const Src = Copy->getOperand(1).getReg();
 
     if (MODef.getReg() != Src)
       continue;
@@ -837,8 +837,8 @@ void MachineCopyPropagation::BackwardCopyPropagateBlock(
         !TRI->regsOverlap(MI->getOperand(0).getReg(),
                           MI->getOperand(1).getReg())) {
 
-      MCRegister Def = MI->getOperand(0).getReg().asMCReg();
-      MCRegister Src = MI->getOperand(1).getReg().asMCReg();
+      MCRegister const Def = MI->getOperand(0).getReg().asMCReg();
+      MCRegister const Src = MI->getOperand(1).getReg().asMCReg();
 
       // Unlike forward cp, we don't invoke propagateDefs here,
       // just let forward cp do COPY-to-COPY propagation.
@@ -853,7 +853,7 @@ void MachineCopyPropagation::BackwardCopyPropagateBlock(
     // Invalidate any earlyclobber regs first.
     for (const MachineOperand &MO : MI->operands())
       if (MO.isReg() && MO.isEarlyClobber()) {
-        MCRegister Reg = MO.getReg().asMCReg();
+        MCRegister const Reg = MO.getReg().asMCReg();
         if (!Reg)
           continue;
         Tracker.invalidateRegister(Reg, *TRI);
@@ -890,9 +890,9 @@ void MachineCopyPropagation::BackwardCopyPropagateBlock(
 
   for (auto *Copy : MaybeDeadCopies) {
 
-    Register Src = Copy->getOperand(1).getReg();
-    Register Def = Copy->getOperand(0).getReg();
-    SmallVector<MachineInstr *> MaybeDeadDbgUsers(CopyDbgUsers[Copy].begin(),
+    Register const Src = Copy->getOperand(1).getReg();
+    Register const Def = Copy->getOperand(0).getReg();
+    SmallVector<MachineInstr *> const MaybeDeadDbgUsers(CopyDbgUsers[Copy].begin(),
                                                   CopyDbgUsers[Copy].end());
 
     MRI->updateDbgUsersToReg(Src.asMCReg(), Def.asMCReg(), MaybeDeadDbgUsers);

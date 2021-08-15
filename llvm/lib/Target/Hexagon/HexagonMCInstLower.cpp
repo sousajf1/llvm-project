@@ -112,7 +112,7 @@ void llvm::HexagonLowerToMC(const MCInstrInfo &MCII, const MachineInstr *MI,
   for (unsigned i = 0, e = MI->getNumOperands(); i < e; i++) {
     const MachineOperand &MO = MI->getOperand(i);
     MCOperand MCO;
-    bool MustExtend = MO.getTargetFlags() & HexagonII::HMOTF_ConstExtended;
+    bool const MustExtend = MO.getTargetFlags() & HexagonII::HMOTF_ConstExtended;
 
     switch (MO.getType()) {
     default:
@@ -127,7 +127,7 @@ void llvm::HexagonLowerToMC(const MCInstrInfo &MCII, const MachineInstr *MI,
       MCO = MCOperand::createReg(MO.getReg());
       break;
     case MachineOperand::MO_FPImmediate: {
-      APFloat Val = MO.getFPImm()->getValueAPF();
+      APFloat const Val = MO.getFPImm()->getValueAPF();
       // FP immediates are used only when setting GPRs, so they may be dealt
       // with like regular immediates from this point on.
       auto Expr = HexagonMCExpr::create(

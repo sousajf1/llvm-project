@@ -72,7 +72,7 @@ struct OrderMap {
 
   void index(const Value *V) {
     // Explicitly sequence get-size and insert-value operations to avoid UB.
-    unsigned ID = IDs.size() + 1;
+    unsigned const ID = IDs.size() + 1;
     IDs[V].first = ID;
   }
 };
@@ -388,7 +388,7 @@ ValueEnumerator::ValueEnumerator(const Module &M,
     EnumerateValue(&GIF);
 
   // Remember what is the cutoff between globalvalue's and other constants.
-  unsigned FirstConstant = Values.size();
+  unsigned const FirstConstant = Values.size();
 
   // Enumerate the global variable initializers and attributes.
   for (const GlobalVariable &GV : M.globals()) {
@@ -501,13 +501,13 @@ ValueEnumerator::ValueEnumerator(const Module &M,
 }
 
 unsigned ValueEnumerator::getInstructionID(const Instruction *Inst) const {
-  InstructionMapType::const_iterator I = InstructionMap.find(Inst);
+  InstructionMapType::const_iterator const I = InstructionMap.find(Inst);
   assert(I != InstructionMap.end() && "Instruction is not mapped!");
   return I->second;
 }
 
 unsigned ValueEnumerator::getComdatID(const Comdat *C) const {
-  unsigned ComdatID = Comdats.idFor(C);
+  unsigned const ComdatID = Comdats.idFor(C);
   assert(ComdatID && "Comdat not found!");
   return ComdatID;
 }
@@ -520,7 +520,7 @@ unsigned ValueEnumerator::getValueID(const Value *V) const {
   if (auto *MD = dyn_cast<MetadataAsValue>(V))
     return getMetadataID(MD->getMetadata());
 
-  ValueMapType::const_iterator I = ValueMap.find(V);
+  ValueMapType::const_iterator const I = ValueMap.find(V);
   assert(I != ValueMap.end() && "Value not in slotcalculator!");
   return I->second-1;
 }
@@ -870,7 +870,7 @@ void ValueEnumerator::organizeMetadata() {
   unsigned PrevF = 0;
   for (unsigned I = MDs.size(), E = Order.size(), ID = MDs.size(); I != E;
        ++I) {
-    unsigned F = Order[I].F;
+    unsigned const F = Order[I].F;
     if (!PrevF) {
       PrevF = F;
     } else if (PrevF != F) {
@@ -1037,16 +1037,16 @@ void ValueEnumerator::EnumerateAttributes(AttributeList PAL) {
 
   // Do lookups for all attribute groups.
   for (unsigned i = PAL.index_begin(), e = PAL.index_end(); i != e; ++i) {
-    AttributeSet AS = PAL.getAttributes(i);
+    AttributeSet const AS = PAL.getAttributes(i);
     if (!AS.hasAttributes())
       continue;
-    IndexAndAttrSet Pair = {i, AS};
+    IndexAndAttrSet const Pair = {i, AS};
     unsigned &Entry = AttributeGroupMap[Pair];
     if (Entry == 0) {
       AttributeGroups.push_back(Pair);
       Entry = AttributeGroups.size();
 
-      for (Attribute Attr : AS) {
+      for (Attribute const Attr : AS) {
         if (Attr.isTypeAttribute())
           EnumerateType(Attr.getValueAsType());
       }
@@ -1165,7 +1165,7 @@ static void IncorporateFunctionInfoGlobalBBIDs(const Function *F,
 /// specified basic block.  This is relatively expensive information, so it
 /// should only be used by rare constructs such as address-of-label.
 unsigned ValueEnumerator::getGlobalBasicBlockID(const BasicBlock *BB) const {
-  unsigned &Idx = GlobalBasicBlockIDs[BB];
+  unsigned  const&Idx = GlobalBasicBlockIDs[BB];
   if (Idx != 0)
     return Idx-1;
 

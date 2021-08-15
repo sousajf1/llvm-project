@@ -160,10 +160,10 @@ void StackSlotColoring::ScanForSpillSlotRefs(MachineFunction &MF) {
   for (MachineBasicBlock &MBB : MF) {
     for (MachineInstr &MI : MBB) {
       for (unsigned i = 0, e = MI.getNumOperands(); i != e; ++i) {
-        MachineOperand &MO = MI.getOperand(i);
+        MachineOperand  const&MO = MI.getOperand(i);
         if (!MO.isFI())
           continue;
-        int FI = MO.getIndex();
+        int const FI = MO.getIndex();
         if (FI < 0)
           continue;
         if (!LS->hasInterval(FI))
@@ -180,7 +180,7 @@ void StackSlotColoring::ScanForSpillSlotRefs(MachineFunction &MF) {
         if (const FixedStackPseudoSourceValue *FSV =
             dyn_cast_or_null<FixedStackPseudoSourceValue>(
                 MMO->getPseudoValue())) {
-          int FI = FSV->getFrameIndex();
+          int const FI = FSV->getFrameIndex();
           if (FI >= 0)
             SSRefs[FI].push_back(MMO);
         }
@@ -192,7 +192,7 @@ void StackSlotColoring::ScanForSpillSlotRefs(MachineFunction &MF) {
 /// InitializeSlots - Process all spill stack slot liveintervals and add them
 /// to a sorted (by weight) list.
 void StackSlotColoring::InitializeSlots() {
-  int LastFI = MFI->getObjectIndexEnd();
+  int const LastFI = MFI->getObjectIndexEnd();
 
   // There is always at least one stack ID.
   AllColors.resize(1);
@@ -219,7 +219,7 @@ void StackSlotColoring::InitializeSlots() {
   for (auto *I : Intervals) {
     LiveInterval &li = I->second;
     LLVM_DEBUG(li.dump());
-    int FI = Register::stackSlot2Index(li.reg());
+    int const FI = Register::stackSlot2Index(li.reg());
     if (MFI->isDeadObjectIndex(FI))
       continue;
 
@@ -266,8 +266,8 @@ StackSlotColoring::OverlapWithAssignments(LiveInterval *li, int Color) const {
 int StackSlotColoring::ColorSlot(LiveInterval *li) {
   int Color = -1;
   bool Share = false;
-  int FI = Register::stackSlot2Index(li->reg());
-  uint8_t StackID = MFI->getStackID(FI);
+  int const FI = Register::stackSlot2Index(li->reg());
+  uint8_t const StackID = MFI->getStackID(FI);
 
   if (!DisableSharing) {
 
@@ -306,10 +306,10 @@ int StackSlotColoring::ColorSlot(LiveInterval *li) {
   // Change size and alignment of the allocated slot. If there are multiple
   // objects sharing the same slot, then make sure the size and alignment
   // are large enough for all.
-  Align Alignment = OrigAlignments[FI];
+  Align const Alignment = OrigAlignments[FI];
   if (!Share || Alignment > MFI->getObjectAlign(Color))
     MFI->setObjectAlignment(Color, Alignment);
-  int64_t Size = OrigSizes[FI];
+  int64_t const Size = OrigSizes[FI];
   if (!Share || Size > MFI->getObjectSize(Color))
     MFI->setObjectSize(Color, Size);
   return Color;
@@ -318,7 +318,7 @@ int StackSlotColoring::ColorSlot(LiveInterval *li) {
 /// Colorslots - Color all spill stack slots and rewrite all frameindex machine
 /// operands in the function.
 bool StackSlotColoring::ColorSlots(MachineFunction &MF) {
-  unsigned NumObjs = MFI->getObjectIndexEnd();
+  unsigned const NumObjs = MFI->getObjectIndexEnd();
   SmallVector<int, 16> SlotMapping(NumObjs, -1);
   SmallVector<float, 16> SlotWeights(NumObjs, 0.0);
   SmallVector<SmallVector<int, 4>, 16> RevMap(NumObjs);
@@ -328,8 +328,8 @@ bool StackSlotColoring::ColorSlots(MachineFunction &MF) {
   bool Changed = false;
   for (unsigned i = 0, e = SSIntervals.size(); i != e; ++i) {
     LiveInterval *li = SSIntervals[i];
-    int SS = Register::stackSlot2Index(li->reg());
-    int NewSS = ColorSlot(li);
+    int const SS = Register::stackSlot2Index(li->reg());
+    int const NewSS = ColorSlot(li);
     assert(NewSS >= 0 && "Stack coloring failed?");
     SlotMapping[SS] = NewSS;
     RevMap[NewSS].push_back(SS);
@@ -341,7 +341,7 @@ bool StackSlotColoring::ColorSlots(MachineFunction &MF) {
   LLVM_DEBUG(dbgs() << "\nSpill slots after coloring:\n");
   for (unsigned i = 0, e = SSIntervals.size(); i != e; ++i) {
     LiveInterval *li = SSIntervals[i];
-    int SS = Register::stackSlot2Index(li->reg());
+    int const SS = Register::stackSlot2Index(li->reg());
     li->setWeight(SlotWeights[SS]);
   }
   // Sort them by new weight.
@@ -358,7 +358,7 @@ bool StackSlotColoring::ColorSlots(MachineFunction &MF) {
 
   // Rewrite all MachineMemOperands.
   for (unsigned SS = 0, SE = SSRefs.size(); SS != SE; ++SS) {
-    int NewFI = SlotMapping[SS];
+    int const NewFI = SlotMapping[SS];
     if (NewFI == -1 || (NewFI == (int)SS))
       continue;
 
@@ -398,10 +398,10 @@ void StackSlotColoring::RewriteInstruction(MachineInstr &MI,
     MachineOperand &MO = MI.getOperand(i);
     if (!MO.isFI())
       continue;
-    int OldFI = MO.getIndex();
+    int const OldFI = MO.getIndex();
     if (OldFI < 0)
       continue;
-    int NewFI = SlotMapping[OldFI];
+    int const NewFI = SlotMapping[OldFI];
     if (NewFI == -1 || NewFI == OldFI)
       continue;
 
@@ -438,7 +438,7 @@ bool StackSlotColoring::RemoveDeadStores(MachineBasicBlock* MBB) {
     }
 
     MachineBasicBlock::iterator NextMI = std::next(I);
-    MachineBasicBlock::iterator ProbableLoadMI = I;
+    MachineBasicBlock::iterator const ProbableLoadMI = I;
 
     unsigned LoadReg = 0;
     unsigned StoreReg = 0;
@@ -492,7 +492,7 @@ bool StackSlotColoring::runOnMachineFunction(MachineFunction &MF) {
 
   bool Changed = false;
 
-  unsigned NumSlots = LS->getNumIntervals();
+  unsigned const NumSlots = LS->getNumIntervals();
   if (NumSlots == 0)
     // Nothing to do!
     return false;

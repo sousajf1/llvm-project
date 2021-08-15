@@ -86,7 +86,7 @@ static void PrintStack(raw_ostream &OS) {
   for (const PrettyStackTraceEntry *Entry = ReversedStack; Entry;
        Entry = Entry->getNextEntry()) {
     OS << ID++ << ".\t";
-    sys::Watchdog W(5);
+    sys::Watchdog const W(5);
     Entry->print(OS);
   }
   llvm::ReverseStackTrace(ReversedStack);
@@ -190,7 +190,7 @@ static void CrashHandler(void *) {
 }
 
 static void printForSigInfoIfNeeded() {
-  unsigned CurrentSigInfoGeneration =
+  unsigned const CurrentSigInfoGeneration =
       GlobalSigInfoGenerationCounter.load(std::memory_order_relaxed);
   if (ThreadLocalSigInfoGenerationCounter == 0 ||
       ThreadLocalSigInfoGenerationCounter == CurrentSigInfoGeneration) {
@@ -277,7 +277,7 @@ static bool RegisterCrashPrinter() {
 void llvm::EnablePrettyStackTrace() {
 #if ENABLE_BACKTRACES
   // The first time this is called, we register the crash printer.
-  static bool HandlerRegistered = RegisterCrashPrinter();
+  static bool const HandlerRegistered = RegisterCrashPrinter();
   (void)HandlerRegistered;
 #endif
 }
@@ -290,7 +290,7 @@ void llvm::EnablePrettyStackTraceOnSigInfoForThisThread(bool ShouldEnable) {
   }
 
   // The first time this is called, we register the SIGINFO handler.
-  static bool HandlerRegistered = []{
+  static bool const HandlerRegistered = []{
     sys::SetInfoSignalFunction([]{
       GlobalSigInfoGenerationCounter.fetch_add(1, std::memory_order_relaxed);
     });

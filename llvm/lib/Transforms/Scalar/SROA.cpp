@@ -253,7 +253,7 @@ public:
   /// everything so that the usual ordering properties of the alloca's slices
   /// hold.
   void insert(ArrayRef<Slice> NewSlices) {
-    int OldSize = Slices.size();
+    int const OldSize = Slices.size();
     Slices.append(NewSlices.begin(), NewSlices.end());
     auto SliceI = Slices.begin() + OldSize;
     llvm::sort(SliceI, Slices.end());
@@ -679,7 +679,7 @@ private:
       return markAsDead(I);
     }
 
-    uint64_t BeginOffset = Offset.getZExtValue();
+    uint64_t const BeginOffset = Offset.getZExtValue();
     uint64_t EndOffset = BeginOffset + Size;
 
     // Clamp the end offset to the end of the allocation. Note that this is
@@ -738,14 +738,14 @@ private:
 
         // Handle a struct index, which adds its field offset to the pointer.
         if (StructType *STy = GTI.getStructTypeOrNull()) {
-          unsigned ElementIdx = OpC->getZExtValue();
+          unsigned const ElementIdx = OpC->getZExtValue();
           const StructLayout *SL = DL.getStructLayout(STy);
           GEPOffset +=
               APInt(Offset.getBitWidth(), SL->getElementOffset(ElementIdx));
         } else {
           // For array or vector indices, scale the index by the size of the
           // type.
-          APInt Index = OpC->getValue().sextOrTrunc(Offset.getBitWidth());
+          APInt const Index = OpC->getValue().sextOrTrunc(Offset.getBitWidth());
           GEPOffset +=
               Index *
               APInt(Offset.getBitWidth(),
@@ -768,7 +768,7 @@ private:
     // We allow splitting of non-volatile loads and stores where the type is an
     // integer type. These may be used to implement 'memcpy' or other "transfer
     // of bits" patterns.
-    bool IsSplittable =
+    bool const IsSplittable =
         Ty->isIntegerTy() && !IsVolatile && DL.typeSizeEqualsStoreSize(Ty);
 
     insertUse(I, Offset, Size, IsSplittable);
@@ -788,7 +788,7 @@ private:
     if (isa<ScalableVectorType>(LI.getType()))
       return PI.setAborted(&LI);
 
-    uint64_t Size = DL.getTypeStoreSize(LI.getType()).getFixedSize();
+    uint64_t const Size = DL.getTypeStoreSize(LI.getType()).getFixedSize();
     return handleLoadOrStore(LI.getType(), LI, Offset, Size, LI.isVolatile());
   }
 
@@ -806,7 +806,7 @@ private:
     if (isa<ScalableVectorType>(ValOp->getType()))
       return PI.setAborted(&SI);
 
-    uint64_t Size = DL.getTypeStoreSize(ValOp->getType()).getFixedSize();
+    uint64_t const Size = DL.getTypeStoreSize(ValOp->getType()).getFixedSize();
 
     // If this memory access can be shown to *statically* extend outside the
     // bounds of the allocation, it's behavior is undefined, so simply
@@ -877,15 +877,15 @@ private:
     // FIXME: Yet another place we really should bypass this when
     // instrumenting for ASan.
     if (Offset.uge(AllocSize)) {
-      SmallDenseMap<Instruction *, unsigned>::iterator MTPI =
+      SmallDenseMap<Instruction *, unsigned>::iterator const MTPI =
           MemTransferSliceMap.find(&II);
       if (MTPI != MemTransferSliceMap.end())
         AS.Slices[MTPI->second].kill();
       return markAsDead(II);
     }
 
-    uint64_t RawOffset = Offset.getLimitedValue();
-    uint64_t Size = Length ? Length->getLimitedValue() : AllocSize - RawOffset;
+    uint64_t const RawOffset = Offset.getLimitedValue();
+    uint64_t const Size = Length ? Length->getLimitedValue() : AllocSize - RawOffset;
 
     // Check for the special case where the same exact value is used for both
     // source and dest.
@@ -903,7 +903,7 @@ private:
     SmallDenseMap<Instruction *, unsigned>::iterator MTPI;
     std::tie(MTPI, Inserted) =
         MemTransferSliceMap.insert(std::make_pair(&II, AS.Slices.size()));
-    unsigned PrevIdx = MTPI->second;
+    unsigned const PrevIdx = MTPI->second;
     if (!Inserted) {
       Slice &PrevP = AS.Slices[PrevIdx];
 
@@ -942,7 +942,7 @@ private:
 
     if (II.isLifetimeStartOrEnd()) {
       ConstantInt *Length = cast<ConstantInt>(II.getArgOperand(0));
-      uint64_t Size = std::min(AllocSize - Offset.getLimitedValue(),
+      uint64_t const Size = std::min(AllocSize - Offset.getLimitedValue(),
                                Length->getLimitedValue());
       insertUse(II, Offset, Size, true);
       return;
@@ -1069,7 +1069,7 @@ AllocaSlices::AllocaSlices(const DataLayout &DL, AllocaInst &AI)
 #endif
       PointerEscapingInstr(nullptr) {
   SliceBuilder PB(DL, AI, *this);
-  SliceBuilder::PtrInfo PtrI = PB.visitPtr(AI);
+  SliceBuilder::PtrInfo const PtrI = PB.visitPtr(AI);
   if (PtrI.isEscaped() || PtrI.isAborted()) {
     // FIXME: We should sink the escape vs. abort info into the caller nicely,
     // possibly by just storing the PtrInfo in the AllocaSlices.
@@ -1205,7 +1205,7 @@ static bool isSafePHIToSpeculate(PHINode &PN) {
   // TODO: Allow stores.
   BasicBlock *BB = PN.getParent();
   Align MaxAlign;
-  uint64_t APWidth = DL.getIndexTypeSizeInBits(PN.getType());
+  uint64_t const APWidth = DL.getIndexTypeSizeInBits(PN.getType());
   APInt MaxSize(APWidth, 0);
   bool HaveLoad = false;
   for (User *U : PN.users()) {
@@ -1225,7 +1225,7 @@ static bool isSafePHIToSpeculate(PHINode &PN) {
       if (BBI->mayWriteToMemory())
         return false;
 
-    uint64_t Size = DL.getTypeStoreSize(LI->getType()).getFixedSize();
+    uint64_t const Size = DL.getTypeStoreSize(LI->getType()).getFixedSize();
     MaxAlign = std::max(MaxAlign, LI->getAlign());
     MaxSize = MaxSize.ult(Size) ? APInt(APWidth, Size) : MaxSize;
     HaveLoad = true;
@@ -1277,7 +1277,7 @@ static void speculatePHINodeLoads(PHINode &PN) {
   // matter which one we get and if any differ.
   AAMDNodes AATags;
   SomeLoad->getAAMetadata(AATags);
-  Align Alignment = SomeLoad->getAlign();
+  Align const Alignment = SomeLoad->getAlign();
 
   // Rewrite all loads of the PN to use the new PHI.
   while (!PN.use_empty()) {
@@ -1453,7 +1453,7 @@ static Value *getNaturalGEPWithType(IRBuilderTy &IRB, const DataLayout &DL,
     return buildGEP(IRB, BasePtr, Indices, NamePrefix);
 
   // Offset size to use for the indices.
-  unsigned OffsetSize = DL.getIndexTypeSizeInBits(BasePtr->getType());
+  unsigned const OffsetSize = DL.getIndexTypeSizeInBits(BasePtr->getType());
 
   // See if we can descend into a struct and locate a field with the correct
   // type.
@@ -1506,14 +1506,14 @@ static Value *getNaturalGEPRecursively(IRBuilderTy &IRB, const DataLayout &DL,
   // extremely poorly defined currently. The long-term goal is to remove GEPing
   // over a vector from the IR completely.
   if (VectorType *VecTy = dyn_cast<VectorType>(Ty)) {
-    unsigned ElementSizeInBits =
+    unsigned const ElementSizeInBits =
         DL.getTypeSizeInBits(VecTy->getScalarType()).getFixedSize();
     if (ElementSizeInBits % 8 != 0) {
       // GEPs over non-multiple of 8 size vector elements are invalid.
       return nullptr;
     }
-    APInt ElementSize(Offset.getBitWidth(), ElementSizeInBits / 8);
-    APInt NumSkippedElements = Offset.sdiv(ElementSize);
+    APInt const ElementSize(Offset.getBitWidth(), ElementSizeInBits / 8);
+    APInt const NumSkippedElements = Offset.sdiv(ElementSize);
     if (NumSkippedElements.ugt(cast<FixedVectorType>(VecTy)->getNumElements()))
       return nullptr;
     Offset -= NumSkippedElements * ElementSize;
@@ -1524,9 +1524,9 @@ static Value *getNaturalGEPRecursively(IRBuilderTy &IRB, const DataLayout &DL,
 
   if (ArrayType *ArrTy = dyn_cast<ArrayType>(Ty)) {
     Type *ElementTy = ArrTy->getElementType();
-    APInt ElementSize(Offset.getBitWidth(),
+    APInt const ElementSize(Offset.getBitWidth(),
                       DL.getTypeAllocSize(ElementTy).getFixedSize());
-    APInt NumSkippedElements = Offset.sdiv(ElementSize);
+    APInt const NumSkippedElements = Offset.sdiv(ElementSize);
     if (NumSkippedElements.ugt(ArrTy->getNumElements()))
       return nullptr;
 
@@ -1541,10 +1541,10 @@ static Value *getNaturalGEPRecursively(IRBuilderTy &IRB, const DataLayout &DL,
     return nullptr;
 
   const StructLayout *SL = DL.getStructLayout(STy);
-  uint64_t StructOffset = Offset.getZExtValue();
+  uint64_t const StructOffset = Offset.getZExtValue();
   if (StructOffset >= SL->getSizeInBytes())
     return nullptr;
-  unsigned Index = SL->getElementContainingOffset(StructOffset);
+  unsigned const Index = SL->getElementContainingOffset(StructOffset);
   Offset -= APInt(Offset.getBitWidth(), SL->getElementOffset(Index));
   Type *ElementTy = STy->getElementType(Index);
   if (Offset.uge(DL.getTypeAllocSize(ElementTy).getFixedSize()))
@@ -1581,11 +1581,11 @@ static Value *getNaturalGEPWithOffset(IRBuilderTy &IRB, const DataLayout &DL,
     return nullptr; // We can't GEP through an unsized element.
   if (isa<ScalableVectorType>(ElementTy))
     return nullptr;
-  APInt ElementSize(Offset.getBitWidth(),
+  APInt const ElementSize(Offset.getBitWidth(),
                     DL.getTypeAllocSize(ElementTy).getFixedSize());
   if (ElementSize == 0)
     return nullptr; // Zero-length arrays can't help us build a natural GEP.
-  APInt NumSkippedElements = Offset.sdiv(ElementSize);
+  APInt const NumSkippedElements = Offset.sdiv(ElementSize);
 
   Offset -= NumSkippedElements * ElementSize;
   Indices.push_back(IRB.getInt(NumSkippedElements));
@@ -1750,8 +1750,8 @@ static bool canConvertValue(const DataLayout &DL, Type *OldTy, Type *NewTy) {
   NewTy = NewTy->getScalarType();
   if (NewTy->isPointerTy() || OldTy->isPointerTy()) {
     if (NewTy->isPointerTy() && OldTy->isPointerTy()) {
-      unsigned OldAS = OldTy->getPointerAddressSpace();
-      unsigned NewAS = NewTy->getPointerAddressSpace();
+      unsigned const OldAS = OldTy->getPointerAddressSpace();
+      unsigned const NewAS = NewTy->getPointerAddressSpace();
       // Convert pointers if they are pointers from the same address space or
       // different integral (not non-integral) address spaces with the same
       // pointer size.
@@ -1815,8 +1815,8 @@ static Value *convertValue(const DataLayout &DL, IRBuilderTy &IRB, Value *V,
   }
 
   if (OldTy->isPtrOrPtrVectorTy() && NewTy->isPtrOrPtrVectorTy()) {
-    unsigned OldAS = OldTy->getPointerAddressSpace();
-    unsigned NewAS = NewTy->getPointerAddressSpace();
+    unsigned const OldAS = OldTy->getPointerAddressSpace();
+    unsigned const NewAS = NewTy->getPointerAddressSpace();
     // To convert pointers with different address spaces (they are already
     // checked convertible, i.e. they have the same pointer size), so far we
     // cannot use `bitcast` (which has restrict on the same address space) or
@@ -1842,21 +1842,21 @@ static bool isVectorPromotionViableForSlice(Partition &P, const Slice &S,
                                             uint64_t ElementSize,
                                             const DataLayout &DL) {
   // First validate the slice offsets.
-  uint64_t BeginOffset =
+  uint64_t const BeginOffset =
       std::max(S.beginOffset(), P.beginOffset()) - P.beginOffset();
-  uint64_t BeginIndex = BeginOffset / ElementSize;
+  uint64_t const BeginIndex = BeginOffset / ElementSize;
   if (BeginIndex * ElementSize != BeginOffset ||
       BeginIndex >= cast<FixedVectorType>(Ty)->getNumElements())
     return false;
-  uint64_t EndOffset =
+  uint64_t const EndOffset =
       std::min(S.endOffset(), P.endOffset()) - P.beginOffset();
-  uint64_t EndIndex = EndOffset / ElementSize;
+  uint64_t const EndIndex = EndOffset / ElementSize;
   if (EndIndex * ElementSize != EndOffset ||
       EndIndex > cast<FixedVectorType>(Ty)->getNumElements())
     return false;
 
   assert(EndIndex > BeginIndex && "Empty vector!");
-  uint64_t NumElements = EndIndex - BeginIndex;
+  uint64_t const NumElements = EndIndex - BeginIndex;
   Type *SliceTy = (NumElements == 1)
                       ? Ty->getElementType()
                       : FixedVectorType::get(Ty->getElementType(), NumElements);
@@ -2035,10 +2035,10 @@ static bool isIntegerWideningViableForSlice(const Slice &S,
                                             Type *AllocaTy,
                                             const DataLayout &DL,
                                             bool &WholeAllocaOp) {
-  uint64_t Size = DL.getTypeStoreSize(AllocaTy).getFixedSize();
+  uint64_t const Size = DL.getTypeStoreSize(AllocaTy).getFixedSize();
 
-  uint64_t RelBegin = S.beginOffset() - AllocBeginOffset;
-  uint64_t RelEnd = S.endOffset() - AllocBeginOffset;
+  uint64_t const RelBegin = S.beginOffset() - AllocBeginOffset;
+  uint64_t const RelEnd = S.endOffset() - AllocBeginOffset;
 
   // We can't reasonably handle cases where the load or store extends past
   // the end of the alloca's type and into its padding.
@@ -2119,7 +2119,7 @@ static bool isIntegerWideningViableForSlice(const Slice &S,
 /// promote the resulting alloca.
 static bool isIntegerWideningViable(Partition &P, Type *AllocaTy,
                                     const DataLayout &DL) {
-  uint64_t SizeInBits = DL.getTypeSizeInBits(AllocaTy).getFixedSize();
+  uint64_t const SizeInBits = DL.getTypeSizeInBits(AllocaTy).getFixedSize();
   // Don't create integer types larger than the maximum bitwidth.
   if (SizeInBits > IntegerType::MAX_INT_BITS)
     return false;
@@ -2207,7 +2207,7 @@ static Value *insertInteger(const DataLayout &DL, IRBuilderTy &IRB, Value *Old,
   }
 
   if (ShAmt || Ty->getBitWidth() < IntTy->getBitWidth()) {
-    APInt Mask = ~Ty->getMask().zext(IntTy->getBitWidth()).shl(ShAmt);
+    APInt const Mask = ~Ty->getMask().zext(IntTy->getBitWidth()).shl(ShAmt);
     Old = IRB.CreateAnd(Old, Mask, Name + ".mask");
     LLVM_DEBUG(dbgs() << "      masked: " << *Old << "\n");
     V = IRB.CreateOr(Old, V, Name + ".insert");
@@ -2219,7 +2219,7 @@ static Value *insertInteger(const DataLayout &DL, IRBuilderTy &IRB, Value *Old,
 static Value *extractVector(IRBuilderTy &IRB, Value *V, unsigned BeginIndex,
                             unsigned EndIndex, const Twine &Name) {
   auto *VecTy = cast<FixedVectorType>(V->getType());
-  unsigned NumElements = EndIndex - BeginIndex;
+  unsigned const NumElements = EndIndex - BeginIndex;
   assert(NumElements <= VecTy->getNumElements() && "Too many elements!");
 
   if (NumElements == VecTy->getNumElements())
@@ -2263,7 +2263,7 @@ static Value *insertVector(IRBuilderTy &IRB, Value *Old, Value *V,
     assert(V->getType() == VecTy && "Vector type mismatch");
     return V;
   }
-  unsigned EndIndex = BeginIndex + cast<FixedVectorType>(Ty)->getNumElements();
+  unsigned const EndIndex = BeginIndex + cast<FixedVectorType>(Ty)->getNumElements();
 
   // When inserting a smaller vector into the larger to store, we first
   // use a shuffle vector to widen it with undef elements, and then
@@ -2432,20 +2432,20 @@ private:
     // Note that the offset computation can use BeginOffset or NewBeginOffset
     // interchangeably for unsplit slices.
     assert(IsSplit || BeginOffset == NewBeginOffset);
-    uint64_t Offset = NewBeginOffset - NewAllocaBeginOffset;
+    uint64_t const Offset = NewBeginOffset - NewAllocaBeginOffset;
 
 #ifndef NDEBUG
     StringRef OldName = OldPtr->getName();
     // Skip through the last '.sroa.' component of the name.
-    size_t LastSROAPrefix = OldName.rfind(".sroa.");
+    size_t const LastSROAPrefix = OldName.rfind(".sroa.");
     if (LastSROAPrefix != StringRef::npos) {
       OldName = OldName.substr(LastSROAPrefix + strlen(".sroa."));
       // Look for an SROA slice index.
-      size_t IndexEnd = OldName.find_first_not_of("0123456789");
+      size_t const IndexEnd = OldName.find_first_not_of("0123456789");
       if (IndexEnd != StringRef::npos && OldName[IndexEnd] == '.') {
         // Strip the index and look for the offset.
         OldName = OldName.substr(IndexEnd + 1);
-        size_t OffsetEnd = OldName.find_first_not_of("0123456789");
+        size_t const OffsetEnd = OldName.find_first_not_of("0123456789");
         if (OffsetEnd != StringRef::npos && OldName[OffsetEnd] == '.')
           // Strip the offset.
           OldName = OldName.substr(OffsetEnd + 1);
@@ -2478,9 +2478,9 @@ private:
 
   unsigned getIndex(uint64_t Offset) {
     assert(VecTy && "Can only call getIndex when rewriting a vector");
-    uint64_t RelOffset = Offset - NewAllocaBeginOffset;
+    uint64_t const RelOffset = Offset - NewAllocaBeginOffset;
     assert(RelOffset / ElementSize < UINT32_MAX && "Index out of bounds");
-    uint32_t Index = RelOffset / ElementSize;
+    uint32_t const Index = RelOffset / ElementSize;
     assert(Index * ElementSize == RelOffset);
     return Index;
   }
@@ -2492,8 +2492,8 @@ private:
   }
 
   Value *rewriteVectorizedLoadInst(LoadInst &LI) {
-    unsigned BeginIndex = getIndex(NewBeginOffset);
-    unsigned EndIndex = getIndex(NewEndOffset);
+    unsigned const BeginIndex = getIndex(NewBeginOffset);
+    unsigned const EndIndex = getIndex(NewEndOffset);
     assert(EndIndex > BeginIndex && "Empty vector!");
 
     LoadInst *Load = IRB.CreateAlignedLoad(NewAI.getAllocatedType(), &NewAI,
@@ -2511,7 +2511,7 @@ private:
                                      NewAI.getAlign(), "load");
     V = convertValue(DL, IRB, V, IntTy);
     assert(NewBeginOffset >= NewAllocaBeginOffset && "Out of bounds offset");
-    uint64_t Offset = NewBeginOffset - NewAllocaBeginOffset;
+    uint64_t const Offset = NewBeginOffset - NewAllocaBeginOffset;
     if (Offset > 0 || NewEndOffset < NewAllocaEndOffset) {
       IntegerType *ExtractTy = Type::getIntNTy(LI.getContext(), SliceSize * 8);
       V = extractInteger(DL, IRB, V, ExtractTy, Offset, "extract");
@@ -2536,7 +2536,7 @@ private:
     AAMDNodes AATags;
     LI.getAAMetadata(AATags);
 
-    unsigned AS = LI.getPointerAddressSpace();
+    unsigned const AS = LI.getPointerAddressSpace();
 
     Type *TargetTy = IsSplit ? Type::getIntNTy(LI.getContext(), SliceSize * 8)
                              : LI.getType();
@@ -2642,10 +2642,10 @@ private:
   bool rewriteVectorizedStoreInst(Value *V, StoreInst &SI, Value *OldOp,
                                   AAMDNodes AATags) {
     if (V->getType() != VecTy) {
-      unsigned BeginIndex = getIndex(NewBeginOffset);
-      unsigned EndIndex = getIndex(NewEndOffset);
+      unsigned const BeginIndex = getIndex(NewBeginOffset);
+      unsigned const EndIndex = getIndex(NewEndOffset);
       assert(EndIndex > BeginIndex && "Empty vector!");
-      unsigned NumElements = EndIndex - BeginIndex;
+      unsigned const NumElements = EndIndex - BeginIndex;
       assert(NumElements <= cast<FixedVectorType>(VecTy)->getNumElements() &&
              "Too many elements!");
       Type *SliceTy = (NumElements == 1)
@@ -2679,7 +2679,7 @@ private:
                                          NewAI.getAlign(), "oldload");
       Old = convertValue(DL, IRB, Old, IntTy);
       assert(BeginOffset >= NewAllocaBeginOffset && "Out of bounds offset");
-      uint64_t Offset = BeginOffset - NewAllocaBeginOffset;
+      uint64_t const Offset = BeginOffset - NewAllocaBeginOffset;
       V = insertInteger(DL, IRB, Old, SI.getValueOperand(), Offset, "insert");
     }
     V = convertValue(DL, IRB, V, NewAllocaTy);
@@ -2749,7 +2749,7 @@ private:
       NewSI =
           IRB.CreateAlignedStore(V, &NewAI, NewAI.getAlign(), SI.isVolatile());
     } else {
-      unsigned AS = SI.getPointerAddressSpace();
+      unsigned const AS = SI.getPointerAddressSpace();
       Value *NewPtr = getNewAllocaSlicePtr(IRB, V->getType()->getPointerTo(AS));
       NewSI =
           IRB.CreateAlignedStore(V, NewPtr, getSliceAlign(), SI.isVolatile());
@@ -2870,10 +2870,10 @@ private:
       // If this is a memset of a vectorized alloca, insert it.
       assert(ElementTy == ScalarTy);
 
-      unsigned BeginIndex = getIndex(NewBeginOffset);
-      unsigned EndIndex = getIndex(NewEndOffset);
+      unsigned const BeginIndex = getIndex(NewBeginOffset);
+      unsigned const EndIndex = getIndex(NewEndOffset);
       assert(EndIndex > BeginIndex && "Empty vector!");
-      unsigned NumElements = EndIndex - BeginIndex;
+      unsigned const NumElements = EndIndex - BeginIndex;
       assert(NumElements <= cast<FixedVectorType>(VecTy)->getNumElements() &&
              "Too many elements!");
 
@@ -2891,7 +2891,7 @@ private:
       // set integer.
       assert(!II.isVolatile());
 
-      uint64_t Size = NewEndOffset - NewBeginOffset;
+      uint64_t const Size = NewEndOffset - NewBeginOffset;
       V = getIntegerSplat(II.getValue(), Size);
 
       if (IntTy && (BeginOffset != NewAllocaBeginOffset ||
@@ -2899,7 +2899,7 @@ private:
         Value *Old = IRB.CreateAlignedLoad(NewAI.getAllocatedType(), &NewAI,
                                            NewAI.getAlign(), "oldload");
         Old = convertValue(DL, IRB, Old, IntTy);
-        uint64_t Offset = NewBeginOffset - NewAllocaBeginOffset;
+        uint64_t const Offset = NewBeginOffset - NewAllocaBeginOffset;
         V = insertInteger(DL, IRB, Old, V, Offset, "insert");
       } else {
         assert(V->getType() == IntTy &&
@@ -2939,11 +2939,11 @@ private:
     AAMDNodes AATags;
     II.getAAMetadata(AATags);
 
-    bool IsDest = &II.getRawDestUse() == OldUse;
+    bool const IsDest = &II.getRawDestUse() == OldUse;
     assert((IsDest && II.getRawDest() == OldPtr) ||
            (!IsDest && II.getRawSource() == OldPtr));
 
-    MaybeAlign SliceAlign = getSliceAlign();
+    MaybeAlign const SliceAlign = getSliceAlign();
 
     // For unsplit intrinsics, we simply modify the source and destination
     // pointers in place. This isn't just an optimization, it is a matter of
@@ -2975,7 +2975,7 @@ private:
 
     // If this doesn't map cleanly onto the alloca type, and that type isn't
     // a single value type, just emit a memcpy.
-    bool EmitMemCpy =
+    bool const EmitMemCpy =
         !VecTy && !IntTy &&
         (BeginOffset > NewAllocaBeginOffset || EndOffset < NewAllocaEndOffset ||
          SliceSize !=
@@ -3009,11 +3009,11 @@ private:
     }
 
     Type *OtherPtrTy = OtherPtr->getType();
-    unsigned OtherAS = OtherPtrTy->getPointerAddressSpace();
+    unsigned const OtherAS = OtherPtrTy->getPointerAddressSpace();
 
     // Compute the relative offset for the other pointer within the transfer.
-    unsigned OffsetWidth = DL.getIndexSizeInBits(OtherAS);
-    APInt OtherOffset(OffsetWidth, NewBeginOffset - BeginOffset);
+    unsigned const OffsetWidth = DL.getIndexSizeInBits(OtherAS);
+    APInt const OtherOffset(OffsetWidth, NewBeginOffset - BeginOffset);
     Align OtherAlign =
         (IsDest ? II.getSourceAlign() : II.getDestAlign()).valueOrOne();
     OtherAlign =
@@ -3051,12 +3051,12 @@ private:
       return false;
     }
 
-    bool IsWholeAlloca = NewBeginOffset == NewAllocaBeginOffset &&
+    bool const IsWholeAlloca = NewBeginOffset == NewAllocaBeginOffset &&
                          NewEndOffset == NewAllocaEndOffset;
-    uint64_t Size = NewEndOffset - NewBeginOffset;
-    unsigned BeginIndex = VecTy ? getIndex(NewBeginOffset) : 0;
-    unsigned EndIndex = VecTy ? getIndex(NewEndOffset) : 0;
-    unsigned NumElements = EndIndex - BeginIndex;
+    uint64_t const Size = NewEndOffset - NewBeginOffset;
+    unsigned const BeginIndex = VecTy ? getIndex(NewBeginOffset) : 0;
+    unsigned const EndIndex = VecTy ? getIndex(NewEndOffset) : 0;
+    unsigned const NumElements = EndIndex - BeginIndex;
     IntegerType *SubIntTy =
         IntTy ? Type::getIntNTy(IntTy->getContext(), Size * 8) : nullptr;
 
@@ -3094,7 +3094,7 @@ private:
       Src = IRB.CreateAlignedLoad(NewAI.getAllocatedType(), &NewAI,
                                   NewAI.getAlign(), "load");
       Src = convertValue(DL, IRB, Src, IntTy);
-      uint64_t Offset = NewBeginOffset - NewAllocaBeginOffset;
+      uint64_t const Offset = NewBeginOffset - NewAllocaBeginOffset;
       Src = extractInteger(DL, IRB, Src, SubIntTy, Offset, "extract");
     } else {
       LoadInst *Load = IRB.CreateAlignedLoad(OtherTy, SrcPtr, SrcAlign,
@@ -3114,7 +3114,7 @@ private:
       Value *Old = IRB.CreateAlignedLoad(NewAI.getAllocatedType(), &NewAI,
                                          NewAI.getAlign(), "oldload");
       Old = convertValue(DL, IRB, Old, IntTy);
-      uint64_t Offset = NewBeginOffset - NewAllocaBeginOffset;
+      uint64_t const Offset = NewBeginOffset - NewAllocaBeginOffset;
       Src = insertInteger(DL, IRB, Old, Src, Offset, "insert");
       Src = convertValue(DL, IRB, Src, NewAllocaTy);
     }
@@ -3213,7 +3213,7 @@ private:
     // as local as possible to the PHI. To do that, we re-use the location of
     // the old pointer, which necessarily must be in the right position to
     // dominate the PHI.
-    IRBuilderBase::InsertPointGuard Guard(IRB);
+    IRBuilderBase::InsertPointGuard const Guard(IRB);
     if (isa<PHINode>(OldPtr))
       IRB.SetInsertPoint(&*OldPtr->getParent()->getFirstInsertionPt());
     else
@@ -3368,13 +3368,13 @@ private:
     /// whether this is splitting a load or a store respectively.
     void emitSplitOps(Type *Ty, Value *&Agg, const Twine &Name) {
       if (Ty->isSingleValueType()) {
-        unsigned Offset = DL.getIndexedOffsetInType(BaseTy, GEPIndices);
+        unsigned const Offset = DL.getIndexedOffsetInType(BaseTy, GEPIndices);
         return static_cast<Derived *>(this)->emitFunc(
             Ty, Agg, commonAlignment(BaseAlign, Offset), Name);
       }
 
       if (ArrayType *ATy = dyn_cast<ArrayType>(Ty)) {
-        unsigned OldSize = Indices.size();
+        unsigned const OldSize = Indices.size();
         (void)OldSize;
         for (unsigned Idx = 0, Size = ATy->getNumElements(); Idx != Size;
              ++Idx) {
@@ -3389,7 +3389,7 @@ private:
       }
 
       if (StructType *STy = dyn_cast<StructType>(Ty)) {
-        unsigned OldSize = Indices.size();
+        unsigned const OldSize = Indices.size();
         (void)OldSize;
         for (unsigned Idx = 0, Size = STy->getNumElements(); Idx != Size;
              ++Idx) {
@@ -3529,8 +3529,8 @@ private:
                       << "\n              " << GEPI);
 
     IRBuilderTy Builder(&GEPI);
-    SmallVector<Value *, 4> Index(GEPI.indices());
-    bool IsInBounds = GEPI.isInBounds();
+    SmallVector<Value *, 4> const Index(GEPI.indices());
+    bool const IsInBounds = GEPI.isInBounds();
 
     Type *Ty = GEPI.getSourceElementType();
     Value *True = Sel->getTrueValue();
@@ -3585,8 +3585,8 @@ private:
                       << "\n              " << GEPI
                       << "\n          to: ");
 
-    SmallVector<Value *, 4> Index(GEPI.indices());
-    bool IsInBounds = GEPI.isInBounds();
+    SmallVector<Value *, 4> const Index(GEPI.indices());
+    bool const IsInBounds = GEPI.isInBounds();
     IRBuilderTy PHIBuilder(GEPI.getParent()->getFirstNonPHI());
     PHINode *NewPN = PHIBuilder.CreatePHI(GEPI.getType(),
                                           PHI->getNumIncomingValues(),
@@ -3594,7 +3594,7 @@ private:
     for (unsigned I = 0, E = PHI->getNumIncomingValues(); I != E; ++I) {
       BasicBlock *B = PHI->getIncomingBlock(I);
       Value *NewVal = nullptr;
-      int Idx = NewPN->getBasicBlockIndex(B);
+      int const Idx = NewPN->getBasicBlockIndex(B);
       if (Idx >= 0) {
         NewVal = NewPN->getIncomingValue(Idx);
       } else {
@@ -3657,15 +3657,15 @@ static Type *stripAggregateTypeWrapping(const DataLayout &DL, Type *Ty) {
   if (Ty->isSingleValueType())
     return Ty;
 
-  uint64_t AllocSize = DL.getTypeAllocSize(Ty).getFixedSize();
-  uint64_t TypeSize = DL.getTypeSizeInBits(Ty).getFixedSize();
+  uint64_t const AllocSize = DL.getTypeAllocSize(Ty).getFixedSize();
+  uint64_t const TypeSize = DL.getTypeSizeInBits(Ty).getFixedSize();
 
   Type *InnerTy;
   if (ArrayType *ArrTy = dyn_cast<ArrayType>(Ty)) {
     InnerTy = ArrTy->getElementType();
   } else if (StructType *STy = dyn_cast<StructType>(Ty)) {
     const StructLayout *SL = DL.getStructLayout(STy);
-    unsigned Index = SL->getElementContainingOffset(0);
+    unsigned const Index = SL->getElementContainingOffset(0);
     InnerTy = STy->getElementType(Index);
   } else {
     return Ty;
@@ -3712,8 +3712,8 @@ static Type *getTypePartition(const DataLayout &DL, Type *Ty, uint64_t Offset,
        ElementTy = VT->getElementType();
        TyNumElements = VT->getNumElements();
     }
-    uint64_t ElementSize = DL.getTypeAllocSize(ElementTy).getFixedSize();
-    uint64_t NumSkippedElements = Offset / ElementSize;
+    uint64_t const ElementSize = DL.getTypeAllocSize(ElementTy).getFixedSize();
+    uint64_t const NumSkippedElements = Offset / ElementSize;
     if (NumSkippedElements >= TyNumElements)
       return nullptr;
     Offset -= NumSkippedElements * ElementSize;
@@ -3731,7 +3731,7 @@ static Type *getTypePartition(const DataLayout &DL, Type *Ty, uint64_t Offset,
     if (Size == ElementSize)
       return stripAggregateTypeWrapping(DL, ElementTy);
     assert(Size > ElementSize);
-    uint64_t NumElements = Size / ElementSize;
+    uint64_t const NumElements = Size / ElementSize;
     if (NumElements * ElementSize != Size)
       return nullptr;
     return ArrayType::get(ElementTy, NumElements);
@@ -3744,15 +3744,15 @@ static Type *getTypePartition(const DataLayout &DL, Type *Ty, uint64_t Offset,
   const StructLayout *SL = DL.getStructLayout(STy);
   if (Offset >= SL->getSizeInBytes())
     return nullptr;
-  uint64_t EndOffset = Offset + Size;
+  uint64_t const EndOffset = Offset + Size;
   if (EndOffset > SL->getSizeInBytes())
     return nullptr;
 
-  unsigned Index = SL->getElementContainingOffset(Offset);
+  unsigned const Index = SL->getElementContainingOffset(Offset);
   Offset -= SL->getElementOffset(Index);
 
   Type *ElementTy = STy->getElementType(Index);
-  uint64_t ElementSize = DL.getTypeAllocSize(ElementTy).getFixedSize();
+  uint64_t const ElementSize = DL.getTypeAllocSize(ElementTy).getFixedSize();
   if (Offset >= ElementSize)
     return nullptr; // The offset points into alignment padding.
 
@@ -3770,7 +3770,7 @@ static Type *getTypePartition(const DataLayout &DL, Type *Ty, uint64_t Offset,
   StructType::element_iterator EI = STy->element_begin() + Index,
                                EE = STy->element_end();
   if (EndOffset < SL->getSizeInBytes()) {
-    unsigned EndIndex = SL->getElementContainingOffset(EndOffset);
+    unsigned const EndIndex = SL->getElementContainingOffset(EndOffset);
     if (Index == EndIndex)
       return nullptr; // Within a single element and its padding.
 
@@ -4028,13 +4028,13 @@ bool SROA::presplitLoadsAndStores(AllocaInst &AI, AllocaSlices &AS) {
 
     IntegerType *Ty = cast<IntegerType>(LI->getType());
     assert(Ty->getBitWidth() % 8 == 0);
-    uint64_t LoadSize = Ty->getBitWidth() / 8;
+    uint64_t const LoadSize = Ty->getBitWidth() / 8;
     assert(LoadSize > 0 && "Cannot have a zero-sized integer load!");
 
     auto &Offsets = SplitOffsetsMap[LI];
     assert(LoadSize == Offsets.S->endOffset() - Offsets.S->beginOffset() &&
            "Slice size should always match load size exactly!");
-    uint64_t BaseOffset = Offsets.S->beginOffset();
+    uint64_t const BaseOffset = Offsets.S->beginOffset();
     assert(BaseOffset + LoadSize > BaseOffset &&
            "Cannot represent alloca access size using 64-bit integers!");
 
@@ -4102,7 +4102,7 @@ bool SROA::presplitLoadsAndStores(AllocaInst &AI, AllocaSlices &AS) {
 
       for (int Idx = 0, Size = SplitLoads.size(); Idx < Size; ++Idx) {
         LoadInst *PLoad = SplitLoads[Idx];
-        uint64_t PartOffset = Idx == 0 ? 0 : Offsets.Splits[Idx - 1];
+        uint64_t const PartOffset = Idx == 0 ? 0 : Offsets.Splits[Idx - 1];
         auto *PartPtrTy =
             PLoad->getType()->getPointerTo(SI->getPointerAddressSpace());
 
@@ -4153,13 +4153,13 @@ bool SROA::presplitLoadsAndStores(AllocaInst &AI, AllocaSlices &AS) {
     auto *LI = cast<LoadInst>(SI->getValueOperand());
     IntegerType *Ty = cast<IntegerType>(LI->getType());
     assert(Ty->getBitWidth() % 8 == 0);
-    uint64_t StoreSize = Ty->getBitWidth() / 8;
+    uint64_t const StoreSize = Ty->getBitWidth() / 8;
     assert(StoreSize > 0 && "Cannot have a zero-sized integer store!");
 
     auto &Offsets = SplitOffsetsMap[SI];
     assert(StoreSize == Offsets.S->endOffset() - Offsets.S->beginOffset() &&
            "Slice size should always match load size exactly!");
-    uint64_t BaseOffset = Offsets.S->beginOffset();
+    uint64_t const BaseOffset = Offsets.S->beginOffset();
     assert(BaseOffset + StoreSize > BaseOffset &&
            "Cannot represent alloca access size using 64-bit integers!");
 
@@ -4312,7 +4312,7 @@ AllocaInst *SROA::rewritePartition(AllocaInst &AI, AllocaSlices &AS,
   // or an i8 array of an appropriate size.
   Type *SliceTy = nullptr;
   const DataLayout &DL = AI.getModule()->getDataLayout();
-  std::pair<Type *, IntegerType *> CommonUseTy =
+  std::pair<Type *, IntegerType *> const CommonUseTy =
       findCommonType(P.begin(), P.end(), P.endOffset());
   // Do all uses operate on the same type?
   if (CommonUseTy.first)
@@ -4335,7 +4335,7 @@ AllocaInst *SROA::rewritePartition(AllocaInst &AI, AllocaSlices &AS,
     SliceTy = ArrayType::get(Type::getInt8Ty(*C), P.size());
   assert(DL.getTypeAllocSize(SliceTy).getFixedSize() >= P.size());
 
-  bool IsIntegerPromotable = isIntegerWideningViable(P, SliceTy, DL);
+  bool const IsIntegerPromotable = isIntegerWideningViable(P, SliceTy, DL);
 
   VectorType *VecTy =
       IsIntegerPromotable ? nullptr : isVectorPromotionViable(P, DL);
@@ -4376,7 +4376,7 @@ AllocaInst *SROA::rewritePartition(AllocaInst &AI, AllocaSlices &AS,
   // Track the high watermark on the worklist as it is only relevant for
   // promoted allocas. We will reset it to this point if the alloca is not in
   // fact scheduled for promotion.
-  unsigned PPWOldSize = PostPromotionWorklist.size();
+  unsigned const PPWOldSize = PostPromotionWorklist.size();
   unsigned NumUses = 0;
   SmallSetVector<PHINode *, 8> PHIUsers;
   SmallSetVector<SelectInst *, 8> SelectUsers;
@@ -4389,7 +4389,7 @@ AllocaInst *SROA::rewritePartition(AllocaInst &AI, AllocaSlices &AS,
     Promotable &= Rewriter.visit(S);
     ++NumUses;
   }
-  for (Slice &S : P) {
+  for (Slice  const&S : P) {
     Promotable &= Rewriter.visit(&S);
     ++NumUses;
   }
@@ -4476,14 +4476,14 @@ bool SROA::splitAlloca(AllocaInst &AI, AllocaSlices &AS) {
   // to be rewritten into a partition.
   bool IsSorted = true;
 
-  uint64_t AllocaSize =
+  uint64_t const AllocaSize =
       DL.getTypeAllocSize(AI.getAllocatedType()).getFixedSize();
   const uint64_t MaxBitVectorSize = 1024;
   if (AllocaSize <= MaxBitVectorSize) {
     // If a byte boundary is included in any load or store, a slice starting or
     // ending at the boundary is not splittable.
     SmallBitVector SplittableOffset(AllocaSize + 1, true);
-    for (Slice &S : AS)
+    for (Slice  const&S : AS)
       for (unsigned O = S.beginOffset() + 1;
            O < S.endOffset() && O < AllocaSize; O++)
         SplittableOffset.reset(O);
@@ -4540,11 +4540,11 @@ bool SROA::splitAlloca(AllocaInst &AI, AllocaSlices &AS) {
     if (AllocaInst *NewAI = rewritePartition(AI, AS, P)) {
       Changed = true;
       if (NewAI != &AI) {
-        uint64_t SizeOfByte = 8;
-        uint64_t AllocaSize =
+        uint64_t const SizeOfByte = 8;
+        uint64_t const AllocaSize =
             DL.getTypeSizeInBits(NewAI->getAllocatedType()).getFixedSize();
         // Don't include any padding.
-        uint64_t Size = std::min(AllocaSize, P.size() * SizeOfByte);
+        uint64_t const Size = std::min(AllocaSize, P.size() * SizeOfByte);
         Fragments.push_back(Fragment(NewAI, P.beginOffset() * SizeOfByte, Size));
       }
     }
@@ -4556,11 +4556,11 @@ bool SROA::splitAlloca(AllocaInst &AI, AllocaSlices &AS) {
 
   // Migrate debug information from the old alloca to the new alloca(s)
   // and the individual partitions.
-  TinyPtrVector<DbgVariableIntrinsic *> DbgDeclares = FindDbgAddrUses(&AI);
+  TinyPtrVector<DbgVariableIntrinsic *> const DbgDeclares = FindDbgAddrUses(&AI);
   for (DbgVariableIntrinsic *DbgDeclare : DbgDeclares) {
     auto *Expr = DbgDeclare->getExpression();
     DIBuilder DIB(*AI.getModule(), /*AllowUnresolved*/ false);
-    uint64_t AllocaSize =
+    uint64_t const AllocaSize =
         DL.getTypeSizeInBits(AI.getAllocatedType()).getFixedSize();
     for (auto Fragment : Fragments) {
       // Create a fragment expression describing the new partition or reuse AI's
@@ -4570,11 +4570,11 @@ bool SROA::splitAlloca(AllocaInst &AI, AllocaSlices &AS) {
         // If this alloca is already a scalar replacement of a larger aggregate,
         // Fragment.Offset describes the offset inside the scalar.
         auto ExprFragment = Expr->getFragmentInfo();
-        uint64_t Offset = ExprFragment ? ExprFragment->OffsetInBits : 0;
+        uint64_t const Offset = ExprFragment ? ExprFragment->OffsetInBits : 0;
         uint64_t Start = Offset + Fragment.Offset;
         uint64_t Size = Fragment.Size;
         if (ExprFragment) {
-          uint64_t AbsEnd =
+          uint64_t const AbsEnd =
               ExprFragment->OffsetInBits + ExprFragment->SizeInBits;
           if (Start >= AbsEnd)
             // No need to describe a SROAed padding.

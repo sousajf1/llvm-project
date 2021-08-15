@@ -355,7 +355,7 @@ static bool rewriteSingleStoreAlloca(AllocaInst *AI, AllocaInfo &Info,
                                      LargeBlockInfo &LBI, const DataLayout &DL,
                                      DominatorTree &DT, AssumptionCache *AC) {
   StoreInst *OnlyStore = Info.OnlyStore;
-  bool StoringGlobalVal = !isa<Instruction>(OnlyStore->getOperand(0));
+  bool const StoringGlobalVal = !isa<Instruction>(OnlyStore->getOperand(0));
   BasicBlock *StoreBB = OnlyStore->getParent();
   int StoreIndex = -1;
 
@@ -481,7 +481,7 @@ static bool promoteSingleBlockAlloca(AllocaInst *AI, const AllocaInfo &Info,
     if (!LI)
       continue;
 
-    unsigned LoadIdx = LBI.getInstructionIndex(LI);
+    unsigned const LoadIdx = LBI.getInstructionIndex(LI);
 
     // Find the nearest store that has a lower index than this load.
     StoresByIndexTy::iterator I = llvm::lower_bound(
@@ -610,7 +610,7 @@ void PromoteMem2Reg::run() {
     AllocaLookup[Allocas[AllocaNum]] = AllocaNum;
 
     // Unique the set of defining blocks for efficient lookup.
-    SmallPtrSet<BasicBlock *, 32> DefBlocks(Info.DefiningBlocks.begin(),
+    SmallPtrSet<BasicBlock *, 32> const DefBlocks(Info.DefiningBlocks.begin(),
                                             Info.DefiningBlocks.end());
 
     // Determine which blocks the value is live in.  These are blocks which lead
@@ -763,7 +763,7 @@ void PromoteMem2Reg::run() {
     // entries inserted into every PHI nodes for the block.  Update all the phi
     // nodes in this block that we are inserting (there could be phis before
     // mem2reg runs).
-    unsigned NumBadPreds = SomePHI->getNumIncomingValues();
+    unsigned const NumBadPreds = SomePHI->getNumIncomingValues();
     BasicBlock::iterator BBI = BB->begin();
     while ((SomePHI = dyn_cast<PHINode>(BBI++)) &&
            SomePHI->getNumIncomingValues() == NumBadPreds) {
@@ -901,15 +901,15 @@ NextIteration:
       // because it is missing incoming edges.  All other PHI nodes being
       // inserted by this pass of mem2reg will have the same number of incoming
       // operands so far.  Remember this count.
-      unsigned NewPHINumOperands = APN->getNumOperands();
+      unsigned const NewPHINumOperands = APN->getNumOperands();
 
-      unsigned NumEdges = llvm::count(successors(Pred), BB);
+      unsigned const NumEdges = llvm::count(successors(Pred), BB);
       assert(NumEdges && "Must be at least one edge from Pred to BB!");
 
       // Add entries for all the phis.
       BasicBlock::iterator PNI = BB->begin();
       do {
-        unsigned AllocaNo = PhiToAllocaMap[APN];
+        unsigned const AllocaNo = PhiToAllocaMap[APN];
 
         // Update the location of the phi node.
         updateForIncomingValueLocation(APN, IncomingLocs[AllocaNo],
@@ -949,7 +949,7 @@ NextIteration:
       if (!Src)
         continue;
 
-      DenseMap<AllocaInst *, unsigned>::iterator AI = AllocaLookup.find(Src);
+      DenseMap<AllocaInst *, unsigned>::iterator const AI = AllocaLookup.find(Src);
       if (AI == AllocaLookup.end())
         continue;
 
@@ -972,12 +972,12 @@ NextIteration:
       if (!Dest)
         continue;
 
-      DenseMap<AllocaInst *, unsigned>::iterator ai = AllocaLookup.find(Dest);
+      DenseMap<AllocaInst *, unsigned>::iterator const ai = AllocaLookup.find(Dest);
       if (ai == AllocaLookup.end())
         continue;
 
       // what value were we writing?
-      unsigned AllocaNo = ai->second;
+      unsigned const AllocaNo = ai->second;
       IncomingVals[AllocaNo] = SI->getOperand(0);
 
       // Record debuginfo for the store before removing it.

@@ -54,7 +54,7 @@ void LazyBlockFrequencyInfoPass::releaseMemory() { LBFI.releaseMemory(); }
 
 bool LazyBlockFrequencyInfoPass::runOnFunction(Function &F) {
   auto &BPIPass = getAnalysis<LazyBranchProbabilityInfoPass>();
-  LoopInfo &LI = getAnalysis<LoopInfoWrapperPass>().getLoopInfo();
+  LoopInfo  const&LI = getAnalysis<LoopInfoWrapperPass>().getLoopInfo();
   LBFI.setAnalysis(&F, &BPIPass, &LI);
   return false;
 }

@@ -110,7 +110,7 @@ bool AArch64CompressJumpTables::compressJumpTable(MachineInstr &MI,
   if (MI.getOpcode() != AArch64::JumpTableDest32)
     return false;
 
-  int JTIdx = MI.getOperand(4).getIndex();
+  int const JTIdx = MI.getOperand(4).getIndex();
   auto &JTInfo = *MF->getJumpTableInfo();
   const MachineJumpTableEntry &JT = JTInfo.getJumpTables()[JTIdx];
 
@@ -122,7 +122,7 @@ bool AArch64CompressJumpTables::compressJumpTable(MachineInstr &MI,
       MinOffset = std::numeric_limits<int>::max();
   MachineBasicBlock *MinBlock = nullptr;
   for (auto *Block : JT.MBBs) {
-    int BlockOffset = BlockInfo[Block->getNumber()];
+    int const BlockOffset = BlockInfo[Block->getNumber()];
     assert(BlockOffset % 4 == 0 && "misaligned basic block");
 
     MaxOffset = std::max(MaxOffset, BlockOffset);
@@ -140,7 +140,7 @@ bool AArch64CompressJumpTables::compressJumpTable(MachineInstr &MI,
     return false;
   }
 
-  int Span = MaxOffset - MinOffset;
+  int const Span = MaxOffset - MinOffset;
   auto *AFI = MF->getInfo<AArch64FunctionInfo>();
   if (isUInt<8>(Span / 4)) {
     AFI->setJumpTableEntryInfo(JTIdx, 1, MinBlock->getSymbol());

@@ -52,7 +52,7 @@ bool llvm::isCheckForZeroAndMulWithOverflow(Value *Op0, Value *Op1, bool IsAnd,
     return true;
   };
 
-  bool Matched =
+  bool const Matched =
       (IsAnd && Pred == ICmpInst::Predicate::ICMP_NE &&
        matchMulOverflowCheck(Op1)) ||
       (!IsAnd && Pred == ICmpInst::Predicate::ICMP_EQ &&

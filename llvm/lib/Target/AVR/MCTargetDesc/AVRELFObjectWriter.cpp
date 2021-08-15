@@ -40,7 +40,7 @@ unsigned AVRELFObjectWriter::getRelocType(MCContext &Ctx,
                                           const MCValue &Target,
                                           const MCFixup &Fixup,
                                           bool IsPCRel) const {
-  MCSymbolRefExpr::VariantKind Modifier = Target.getAccessVariant();
+  MCSymbolRefExpr::VariantKind const Modifier = Target.getAccessVariant();
   switch ((unsigned) Fixup.getKind()) {
   case FK_Data_1:
     switch (Modifier) {

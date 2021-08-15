@@ -112,7 +112,7 @@ static bool checkOpConstraints(FusionFeature::FusionKind Kd,
     const MachineOperand &SI = FirstMI.getOperand(2);
     if (!SI.isImm())
       return true;
-    int64_t Imm = SI.getImm();
+    int64_t const Imm = SI.getImm();
     if (((Imm & 0xFFF0) != 0) && ((Imm & 0xFFF0) != 0xFFF0))
       return false;
 

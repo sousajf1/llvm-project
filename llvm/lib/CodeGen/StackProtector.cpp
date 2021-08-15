@@ -93,7 +93,7 @@ bool StackProtector::runOnFunction(Function &Fn) {
   HasPrologue = false;
   HasIRCheck = false;
 
-  Attribute Attr = Fn.getFnAttribute("stack-protector-buffer-size");
+  Attribute const Attr = Fn.getFnAttribute("stack-protector-buffer-size");
   if (Attr.isStringAttribute() &&
       Attr.getValueAsString().getAsInteger(10, SSPBufferSize))
     return false; // Invalid integer string
@@ -104,7 +104,7 @@ bool StackProtector::runOnFunction(Function &Fn) {
   // TODO(etienneb): Functions with funclets are not correctly supported now.
   // Do nothing if this is funclet-based personality.
   if (Fn.hasPersonalityFn()) {
-    EHPersonality Personality = classifyEHPersonality(Fn.getPersonalityFn());
+    EHPersonality const Personality = classifyEHPersonality(Fn.getPersonalityFn());
     if (isFuncletEHPersonality(Personality))
       return false;
   }
@@ -205,9 +205,9 @@ bool StackProtector::HasAddressTaken(const Instruction *AI,
       // would use it could also be out-of-bounds meaning stack protection is
       // required.
       const GetElementPtrInst *GEP = cast<GetElementPtrInst>(I);
-      unsigned TypeSize = DL.getIndexTypeSizeInBits(I->getType());
+      unsigned const TypeSize = DL.getIndexTypeSizeInBits(I->getType());
       APInt Offset(TypeSize, 0);
-      APInt MaxOffset(TypeSize, AllocSize);
+      APInt const MaxOffset(TypeSize, AllocSize);
       if (!GEP->accumulateConstantOffset(DL, Offset) || Offset.ugt(MaxOffset))
         return true;
       // Adjust AllocSize to be the space remaining after this offset.
@@ -380,7 +380,7 @@ static Value *getStackGuard(const TargetLoweringBase *TLI, Module *M,
                             IRBuilder<> &B,
                             bool *SupportsSelectionDAGSP = nullptr) {
   Value *Guard = TLI->getIRStackGuard(B);
-  StringRef GuardMode = M->getStackProtectorGuard();
+  StringRef const GuardMode = M->getStackProtectorGuard();
   if ((GuardMode == "tls" || GuardMode.empty()) && Guard)
     return B.CreateLoad(B.getInt8PtrTy(), Guard, true, "StackGuard");
 
@@ -576,13 +576,13 @@ BasicBlock *StackProtector::CreateFailBB() {
     B.SetCurrentDebugLocation(
         DILocation::get(Context, 0, 0, F->getSubprogram()));
   if (Trip.isOSOpenBSD()) {
-    FunctionCallee StackChkFail = M->getOrInsertFunction(
+    FunctionCallee const StackChkFail = M->getOrInsertFunction(
         "__stack_smash_handler", Type::getVoidTy(Context),
         Type::getInt8PtrTy(Context));
 
     B.CreateCall(StackChkFail, B.CreateGlobalStringPtr(F->getName(), "SSH"));
   } else {
-    FunctionCallee StackChkFail =
+    FunctionCallee const StackChkFail =
         M->getOrInsertFunction("__stack_chk_fail", Type::getVoidTy(Context));
 
     B.CreateCall(StackChkFail, {});
@@ -607,7 +607,7 @@ void StackProtector::copyToMachineFrameInfo(MachineFrameInfo &MFI) const {
     if (!AI)
       continue;
 
-    SSPLayoutMap::const_iterator LI = Layout.find(AI);
+    SSPLayoutMap::const_iterator const LI = Layout.find(AI);
     if (LI == Layout.end())
       continue;
 

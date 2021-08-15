@@ -52,11 +52,11 @@ namespace {
 
     inline bool immMskBitp(SDNode *inN) const {
       ConstantSDNode *N = cast<ConstantSDNode>(inN);
-      uint32_t value = (uint32_t)N->getZExtValue();
+      uint32_t const value = (uint32_t)N->getZExtValue();
       if (!isMask_32(value)) {
         return false;
       }
-      int msksize = 32 - countLeadingZeros(value);
+      int const msksize = 32 - countLeadingZeros(value);
       return (msksize >= 1 && msksize <= 8) ||
               msksize == 16 || msksize == 24 || msksize == 32;
     }
@@ -130,21 +130,21 @@ SelectInlineAsmMemoryOperand(const SDValue &Op, unsigned ConstraintID,
 }
 
 void XCoreDAGToDAGISel::Select(SDNode *N) {
-  SDLoc dl(N);
+  SDLoc const dl(N);
   switch (N->getOpcode()) {
   default: break;
   case ISD::Constant: {
-    uint64_t Val = cast<ConstantSDNode>(N)->getZExtValue();
+    uint64_t const Val = cast<ConstantSDNode>(N)->getZExtValue();
     if (immMskBitp(N)) {
       // Transformation function: get the size of a mask
       // Look for the first non-zero bit
-      SDValue MskSize = getI32Imm(32 - countLeadingZeros((uint32_t)Val), dl);
+      SDValue const MskSize = getI32Imm(32 - countLeadingZeros((uint32_t)Val), dl);
       ReplaceNode(N, CurDAG->getMachineNode(XCore::MKMSK_rus, dl,
                                             MVT::i32, MskSize));
       return;
     }
     else if (!isUInt<16>(Val)) {
-      SDValue CPIdx = CurDAG->getTargetConstantPool(
+      SDValue const CPIdx = CurDAG->getTargetConstantPool(
           ConstantInt::get(Type::getInt32Ty(*CurDAG->getContext()), Val),
           getTargetLowering()->getPointerTy(CurDAG->getDataLayout()));
       SDNode *node = CurDAG->getMachineNode(XCore::LDWCP_lru6, dl, MVT::i32,
@@ -160,42 +160,42 @@ void XCoreDAGToDAGISel::Select(SDNode *N) {
     break;
   }
   case XCoreISD::LADD: {
-    SDValue Ops[] = { N->getOperand(0), N->getOperand(1),
+    SDValue const Ops[] = { N->getOperand(0), N->getOperand(1),
                         N->getOperand(2) };
     ReplaceNode(N, CurDAG->getMachineNode(XCore::LADD_l5r, dl, MVT::i32,
                                           MVT::i32, Ops));
     return;
   }
   case XCoreISD::LSUB: {
-    SDValue Ops[] = { N->getOperand(0), N->getOperand(1),
+    SDValue const Ops[] = { N->getOperand(0), N->getOperand(1),
                         N->getOperand(2) };
     ReplaceNode(N, CurDAG->getMachineNode(XCore::LSUB_l5r, dl, MVT::i32,
                                           MVT::i32, Ops));
     return;
   }
   case XCoreISD::MACCU: {
-    SDValue Ops[] = { N->getOperand(0), N->getOperand(1),
+    SDValue const Ops[] = { N->getOperand(0), N->getOperand(1),
                       N->getOperand(2), N->getOperand(3) };
     ReplaceNode(N, CurDAG->getMachineNode(XCore::MACCU_l4r, dl, MVT::i32,
                                           MVT::i32, Ops));
     return;
   }
   case XCoreISD::MACCS: {
-    SDValue Ops[] = { N->getOperand(0), N->getOperand(1),
+    SDValue const Ops[] = { N->getOperand(0), N->getOperand(1),
                       N->getOperand(2), N->getOperand(3) };
     ReplaceNode(N, CurDAG->getMachineNode(XCore::MACCS_l4r, dl, MVT::i32,
                                           MVT::i32, Ops));
     return;
   }
   case XCoreISD::LMUL: {
-    SDValue Ops[] = { N->getOperand(0), N->getOperand(1),
+    SDValue const Ops[] = { N->getOperand(0), N->getOperand(1),
                       N->getOperand(2), N->getOperand(3) };
     ReplaceNode(N, CurDAG->getMachineNode(XCore::LMUL_l6r, dl, MVT::i32,
                                           MVT::i32, Ops));
     return;
   }
   case XCoreISD::CRC8: {
-    SDValue Ops[] = { N->getOperand(0), N->getOperand(1), N->getOperand(2) };
+    SDValue const Ops[] = { N->getOperand(0), N->getOperand(1), N->getOperand(2) };
     ReplaceNode(N, CurDAG->getMachineNode(XCore::CRC8_l4r, dl, MVT::i32,
                                           MVT::i32, Ops));
     return;
@@ -236,24 +236,24 @@ replaceInChain(SelectionDAG *CurDAG, SDValue Chain, SDValue Old, SDValue New)
 }
 
 bool XCoreDAGToDAGISel::tryBRIND(SDNode *N) {
-  SDLoc dl(N);
+  SDLoc const dl(N);
   // (brind (int_xcore_checkevent (addr)))
   SDValue Chain = N->getOperand(0);
-  SDValue Addr = N->getOperand(1);
+  SDValue const Addr = N->getOperand(1);
   if (Addr->getOpcode() != ISD::INTRINSIC_W_CHAIN)
     return false;
-  unsigned IntNo = cast<ConstantSDNode>(Addr->getOperand(1))->getZExtValue();
+  unsigned const IntNo = cast<ConstantSDNode>(Addr->getOperand(1))->getZExtValue();
   if (IntNo != Intrinsic::xcore_checkevent)
     return false;
-  SDValue nextAddr = Addr->getOperand(2);
-  SDValue CheckEventChainOut(Addr.getNode(), 1);
+  SDValue const nextAddr = Addr->getOperand(2);
+  SDValue const CheckEventChainOut(Addr.getNode(), 1);
   if (!CheckEventChainOut.use_empty()) {
     // If the chain out of the checkevent intrinsic is an operand of the
     // indirect branch or used in a TokenFactor which is the operand of the
     // indirect branch then build a new chain which uses the chain coming into
     // the checkevent intrinsic instead.
-    SDValue CheckEventChainIn = Addr->getOperand(0);
-    SDValue NewChain = replaceInChain(CurDAG, Chain, CheckEventChainOut,
+    SDValue const CheckEventChainIn = Addr->getOperand(0);
+    SDValue const NewChain = replaceInChain(CurDAG, Chain, CheckEventChainOut,
                                       CheckEventChainIn);
     if (!NewChain.getNode())
       return false;
@@ -263,7 +263,7 @@ bool XCoreDAGToDAGISel::tryBRIND(SDNode *N) {
   // after with clrsr 1. If any resources owned by the thread are ready an event
   // will be taken. If no resource is ready we branch to the address which was
   // the operand to the checkevent intrinsic.
-  SDValue constOne = getI32Imm(1, dl);
+  SDValue const constOne = getI32Imm(1, dl);
   SDValue Glue =
     SDValue(CurDAG->getMachineNode(XCore::SETSR_branch_u6, dl, MVT::Glue,
                                    constOne, Chain), 0);

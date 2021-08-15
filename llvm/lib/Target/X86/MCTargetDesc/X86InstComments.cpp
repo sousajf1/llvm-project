@@ -248,7 +248,7 @@ static unsigned getVectorRegSize(unsigned RegNo) {
 
 static unsigned getRegOperandNumElts(const MCInst *MI, unsigned ScalarSize,
                                      unsigned OperandIndex) {
-  unsigned OpReg = MI->getOperand(OperandIndex).getReg();
+  unsigned const OpReg = MI->getOperand(OperandIndex).getReg();
   return getVectorRegSize(OpReg) / ScalarSize;
 }
 
@@ -260,12 +260,12 @@ static const char *getRegName(unsigned Reg) {
 static void printMasking(raw_ostream &OS, const MCInst *MI,
                          const MCInstrInfo &MCII) {
   const MCInstrDesc &Desc = MCII.get(MI->getOpcode());
-  uint64_t TSFlags = Desc.TSFlags;
+  uint64_t const TSFlags = Desc.TSFlags;
 
   if (!(TSFlags & X86II::EVEX_K))
     return;
 
-  bool MaskWithZero = (TSFlags & X86II::EVEX_Z);
+  bool const MaskWithZero = (TSFlags & X86II::EVEX_Z);
   unsigned MaskOp = Desc.getNumDefs();
 
   if (Desc.getOperandConstraint(MaskOp, MCOI::TIED_TO) != -1)
@@ -284,7 +284,7 @@ static void printMasking(raw_ostream &OS, const MCInst *MI,
 static bool printFMAComments(const MCInst *MI, raw_ostream &OS,
                              const MCInstrInfo &MCII) {
   const char *Mul1Name = nullptr, *Mul2Name = nullptr, *AccName = nullptr;
-  unsigned NumOperands = MI->getNumOperands();
+  unsigned const NumOperands = MI->getNumOperands();
   bool RegForm = false;
   bool Negate = false;
   StringRef AccStr = "+";
@@ -640,7 +640,7 @@ bool llvm::EmitAnyX86InstComments(const MCInst *MI, raw_ostream &OS,
   // If this is a shuffle operation, the switch should fill in this state.
   SmallVector<int, 8> ShuffleMask;
   const char *DestName = nullptr, *Src1Name = nullptr, *Src2Name = nullptr;
-  unsigned NumOperands = MI->getNumOperands();
+  unsigned const NumOperands = MI->getNumOperands();
   bool RegForm = false;
 
   if (printFMAComments(MI, OS, MCII))
@@ -1435,7 +1435,7 @@ bool llvm::EmitAnyX86InstComments(const MCInst *MI, raw_ostream &OS,
 
     // Otherwise, it must come from src1 or src2.  Print the span of elements
     // that comes from this src.
-    bool isSrc1 = ShuffleMask[i] < (int)ShuffleMask.size();
+    bool const isSrc1 = ShuffleMask[i] < (int)ShuffleMask.size();
     const char *SrcName = isSrc1 ? Src1Name : Src2Name;
     OS << (SrcName ? SrcName : "mem") << '[';
     bool IsFirst = true;

@@ -26,8 +26,8 @@ namespace RISCVABI {
 ABI computeTargetABI(const Triple &TT, FeatureBitset FeatureBits,
                      StringRef ABIName) {
   auto TargetABI = getTargetABI(ABIName);
-  bool IsRV64 = TT.isArch64Bit();
-  bool IsRV32E = FeatureBits[RISCV::FeatureRV32E];
+  bool const IsRV64 = TT.isArch64Bit();
+  bool const IsRV32E = FeatureBits[RISCV::FeatureRV32E];
 
   if (!ABIName.empty() && TargetABI == ABI_Unknown) {
     errs()
@@ -110,8 +110,8 @@ void validate(const Triple &TT, const FeatureBitset &FeatureBits) {
 unsigned RISCVVType::encodeVTYPE(RISCVII::VLMUL VLMUL, unsigned SEW,
                                  bool TailAgnostic, bool MaskAgnostic) {
   assert(isValidSEW(SEW) && "Invalid SEW");
-  unsigned VLMULBits = static_cast<unsigned>(VLMUL);
-  unsigned VSEWBits = Log2_32(SEW) - 3;
+  unsigned const VLMULBits = static_cast<unsigned>(VLMUL);
+  unsigned const VSEWBits = Log2_32(SEW) - 3;
   unsigned VTypeI = (VSEWBits << 3) | (VLMULBits & 0x7);
   if (TailAgnostic)
     VTypeI |= 0x40;
@@ -138,7 +138,7 @@ std::pair<unsigned, bool> RISCVVType::decodeVLMUL(RISCVII::VLMUL VLMUL) {
 }
 
 void RISCVVType::printVType(unsigned VType, raw_ostream &OS) {
-  unsigned Sew = getSEW(VType);
+  unsigned const Sew = getSEW(VType);
   OS << "e" << Sew;
 
   unsigned LMul;

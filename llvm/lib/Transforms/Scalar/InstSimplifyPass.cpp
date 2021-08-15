@@ -138,7 +138,7 @@ PreservedAnalyses InstSimplifyPass::run(Function &F,
   auto &ORE = AM.getResult<OptimizationRemarkEmitterAnalysis>(F);
   const DataLayout &DL = F.getParent()->getDataLayout();
   const SimplifyQuery SQ(DL, &TLI, &DT, &AC);
-  bool Changed = runImpl(F, SQ, &ORE);
+  bool const Changed = runImpl(F, SQ, &ORE);
   if (!Changed)
     return PreservedAnalyses::all();
 

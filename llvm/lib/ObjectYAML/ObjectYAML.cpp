@@ -32,11 +32,11 @@ void MappingTraits<YamlObjectFile>::mapping(IO &IO,
       MappingTraits<MachOYAML::UniversalBinary>::mapping(IO,
                                                          *ObjectFile.FatMachO);
   } else {
-    Input &In = (Input &)IO;
+    Input  const&In = (Input &)IO;
     if (IO.mapTag("!Arch")) {
       ObjectFile.Arch.reset(new ArchYAML::Archive());
       MappingTraits<ArchYAML::Archive>::mapping(IO, *ObjectFile.Arch);
-      std::string Err =
+      std::string const Err =
           MappingTraits<ArchYAML::Archive>::validate(IO, *ObjectFile.Arch);
       if (!Err.empty())
         IO.setError(Err);

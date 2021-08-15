@@ -27,7 +27,7 @@ static StringRef getHWDivSynonym(StringRef HWDiv) {
 // Allows partial match, ex. "v7a" matches "armv7a".
 ARM::ArchKind ARM::parseArch(StringRef Arch) {
   Arch = getCanonicalArchName(Arch);
-  StringRef Syn = getArchSynonym(Arch);
+  StringRef const Syn = getArchSynonym(Arch);
   for (const auto &A : ARCHNames) {
     if (A.getName().endswith(Syn))
       return A.ID;
@@ -258,7 +258,7 @@ ARM::ISAKind ARM::parseArchISA(StringRef Arch) {
 }
 
 unsigned ARM::parseFPU(StringRef FPU) {
-  StringRef Syn = getFPUSynonym(FPU);
+  StringRef const Syn = getFPUSynonym(FPU);
   for (const auto &F : FPUNames) {
     if (Syn == F.getName())
       return F.ID;
@@ -458,7 +458,7 @@ static bool stripNegationPrefix(StringRef &Name) {
 }
 
 StringRef ARM::getArchExtFeature(StringRef ArchExt) {
-  bool Negated = stripNegationPrefix(ArchExt);
+  bool const Negated = stripNegationPrefix(ArchExt);
   for (const auto &AE : ARCHExtNames) {
     if (AE.Feature && ArchExt == AE.getName())
       return StringRef(Negated ? AE.NegFeature : AE.Feature);
@@ -501,9 +501,9 @@ bool ARM::appendArchExtFeatures(StringRef CPU, ARM::ArchKind AK,
                                 std::vector<StringRef> &Features,
                                 unsigned &ArgFPUID) {
 
-  size_t StartingNumFeatures = Features.size();
+  size_t const StartingNumFeatures = Features.size();
   const bool Negated = stripNegationPrefix(ArchExt);
-  uint64_t ID = parseArchExt(ArchExt);
+  uint64_t const ID = parseArchExt(ArchExt);
 
   if (ID == AEK_INVALID)
     return false;
@@ -541,7 +541,7 @@ bool ARM::appendArchExtFeatures(StringRef CPU, ARM::ArchKind AK,
 }
 
 StringRef ARM::getDefaultCPU(StringRef Arch) {
-  ArchKind AK = parseArch(Arch);
+  ArchKind const AK = parseArch(Arch);
   if (AK == ArchKind::INVALID)
     return StringRef();
 
@@ -556,7 +556,7 @@ StringRef ARM::getDefaultCPU(StringRef Arch) {
 }
 
 uint64_t ARM::parseHWDiv(StringRef HWDiv) {
-  StringRef Syn = getHWDivSynonym(HWDiv);
+  StringRef const Syn = getHWDivSynonym(HWDiv);
   for (const auto &D : HWDivNames) {
     if (Syn == D.getName())
       return D.ID;
@@ -588,7 +588,7 @@ void ARM::fillValidCPUArchList(SmallVectorImpl<StringRef> &Values) {
 }
 
 StringRef ARM::computeDefaultTargetABI(const Triple &TT, StringRef CPU) {
-  StringRef ArchName =
+  StringRef const ArchName =
       CPU.empty() ? TT.getArchName() : getArchName(parseCPUArch(CPU));
 
   if (TT.isOSBinFormatMachO()) {

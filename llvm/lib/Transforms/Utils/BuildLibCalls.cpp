@@ -1212,7 +1212,7 @@ StringRef llvm::getFloatFnName(const TargetLibraryInfo *TLI, Type *Ty,
 //- Emit LibCalls ------------------------------------------------------------//
 
 Value *llvm::castToCStr(Value *V, IRBuilderBase &B) {
-  unsigned AS = V->getType()->getPointerAddressSpace();
+  unsigned const AS = V->getType()->getPointerAddressSpace();
   return B.CreateBitCast(V, B.getInt8PtrTy(AS), "cstr");
 }
 
@@ -1225,7 +1225,7 @@ static Value *emitLibCall(LibFunc TheLibFunc, Type *ReturnType,
     return nullptr;
 
   Module *M = B.GetInsertBlock()->getModule();
-  StringRef FuncName = TLI->getName(TheLibFunc);
+  StringRef const FuncName = TLI->getName(TheLibFunc);
   FunctionType *FuncType = FunctionType::get(ReturnType, ParamTypes, IsVaArgs);
   FunctionCallee Callee = M->getOrInsertFunction(FuncName, FuncType);
   inferLibFuncAttributes(M, FuncName, *TLI);
@@ -1476,7 +1476,7 @@ Value *llvm::emitUnaryFloatFnCall(Value *Op, const TargetLibraryInfo *TLI,
                                   LibFunc LongDoubleFn, IRBuilderBase &B,
                                   const AttributeList &Attrs) {
   // Get the name of the function according to TLI.
-  StringRef Name = getFloatFnName(TLI, Op->getType(),
+  StringRef const Name = getFloatFnName(TLI, Op->getType(),
                                   DoubleFn, FloatFn, LongDoubleFn);
 
   return emitUnaryFloatFnCallHelper(Op, Name, B, Attrs);
@@ -1525,7 +1525,7 @@ Value *llvm::emitBinaryFloatFnCall(Value *Op1, Value *Op2,
                                    LibFunc LongDoubleFn, IRBuilderBase &B,
                                    const AttributeList &Attrs) {
   // Get the name of the function according to TLI.
-  StringRef Name = getFloatFnName(TLI, Op1->getType(),
+  StringRef const Name = getFloatFnName(TLI, Op1->getType(),
                                   DoubleFn, FloatFn, LongDoubleFn);
 
   return emitBinaryFloatFnCallHelper(Op1, Op2, Name, B, Attrs, TLI);
@@ -1537,7 +1537,7 @@ Value *llvm::emitPutChar(Value *Char, IRBuilderBase &B,
     return nullptr;
 
   Module *M = B.GetInsertBlock()->getModule();
-  StringRef PutCharName = TLI->getName(LibFunc_putchar);
+  StringRef const PutCharName = TLI->getName(LibFunc_putchar);
   FunctionCallee PutChar =
       M->getOrInsertFunction(PutCharName, B.getInt32Ty(), B.getInt32Ty());
   inferLibFuncAttributes(M, PutCharName, *TLI);
@@ -1560,7 +1560,7 @@ Value *llvm::emitPutS(Value *Str, IRBuilderBase &B,
     return nullptr;
 
   Module *M = B.GetInsertBlock()->getModule();
-  StringRef PutsName = TLI->getName(LibFunc_puts);
+  StringRef const PutsName = TLI->getName(LibFunc_puts);
   FunctionCallee PutS =
       M->getOrInsertFunction(PutsName, B.getInt32Ty(), B.getInt8PtrTy());
   inferLibFuncAttributes(M, PutsName, *TLI);
@@ -1577,7 +1577,7 @@ Value *llvm::emitFPutC(Value *Char, Value *File, IRBuilderBase &B,
     return nullptr;
 
   Module *M = B.GetInsertBlock()->getModule();
-  StringRef FPutcName = TLI->getName(LibFunc_fputc);
+  StringRef const FPutcName = TLI->getName(LibFunc_fputc);
   FunctionCallee F = M->getOrInsertFunction(FPutcName, B.getInt32Ty(),
                                             B.getInt32Ty(), File->getType());
   if (File->getType()->isPointerTy())
@@ -1598,7 +1598,7 @@ Value *llvm::emitFPutS(Value *Str, Value *File, IRBuilderBase &B,
     return nullptr;
 
   Module *M = B.GetInsertBlock()->getModule();
-  StringRef FPutsName = TLI->getName(LibFunc_fputs);
+  StringRef const FPutsName = TLI->getName(LibFunc_fputs);
   FunctionCallee F = M->getOrInsertFunction(FPutsName, B.getInt32Ty(),
                                             B.getInt8PtrTy(), File->getType());
   if (File->getType()->isPointerTy())
@@ -1618,7 +1618,7 @@ Value *llvm::emitFWrite(Value *Ptr, Value *Size, Value *File, IRBuilderBase &B,
 
   Module *M = B.GetInsertBlock()->getModule();
   LLVMContext &Context = B.GetInsertBlock()->getContext();
-  StringRef FWriteName = TLI->getName(LibFunc_fwrite);
+  StringRef const FWriteName = TLI->getName(LibFunc_fwrite);
   FunctionCallee F = M->getOrInsertFunction(
       FWriteName, DL.getIntPtrType(Context), B.getInt8PtrTy(),
       DL.getIntPtrType(Context), DL.getIntPtrType(Context), File->getType());
@@ -1641,7 +1641,7 @@ Value *llvm::emitMalloc(Value *Num, IRBuilderBase &B, const DataLayout &DL,
     return nullptr;
 
   Module *M = B.GetInsertBlock()->getModule();
-  StringRef MallocName = TLI->getName(LibFunc_malloc);
+  StringRef const MallocName = TLI->getName(LibFunc_malloc);
   LLVMContext &Context = B.GetInsertBlock()->getContext();
   FunctionCallee Malloc = M->getOrInsertFunction(MallocName, B.getInt8PtrTy(),
                                                  DL.getIntPtrType(Context));
@@ -1661,7 +1661,7 @@ Value *llvm::emitCalloc(Value *Num, Value *Size, IRBuilderBase &B,
     return nullptr;
 
   Module *M = B.GetInsertBlock()->getModule();
-  StringRef CallocName = TLI.getName(LibFunc_calloc);
+  StringRef const CallocName = TLI.getName(LibFunc_calloc);
   const DataLayout &DL = M->getDataLayout();
   IntegerType *PtrType = DL.getIntPtrType((B.GetInsertBlock()->getContext()));
   FunctionCallee Calloc =

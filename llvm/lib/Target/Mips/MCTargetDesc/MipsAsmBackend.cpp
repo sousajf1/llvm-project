@@ -38,7 +38,7 @@ using namespace llvm;
 static unsigned adjustFixupValue(const MCFixup &Fixup, uint64_t Value,
                                  MCContext &Ctx) {
 
-  unsigned Kind = Fixup.getKind();
+  unsigned const Kind = Fixup.getKind();
 
   // Add/subtract and shift
   switch (Kind) {
@@ -245,7 +245,7 @@ void MipsAsmBackend::applyFixup(const MCAssembler &Asm, const MCFixup &Fixup,
                                 MutableArrayRef<char> Data, uint64_t Value,
                                 bool IsResolved,
                                 const MCSubtargetInfo *STI) const {
-  MCFixupKind Kind = Fixup.getKind();
+  MCFixupKind const Kind = Fixup.getKind();
   MCContext &Ctx = Asm.getContext();
   Value = adjustFixupValue(Fixup, Value, Ctx);
 
@@ -253,9 +253,9 @@ void MipsAsmBackend::applyFixup(const MCAssembler &Asm, const MCFixup &Fixup,
     return; // Doesn't change encoding.
 
   // Where do we start in the object
-  unsigned Offset = Fixup.getOffset();
+  unsigned const Offset = Fixup.getOffset();
   // Number of bytes we need to fixup
-  unsigned NumBytes = (getFixupKindInfo(Kind).TargetSize + 7) / 8;
+  unsigned const NumBytes = (getFixupKindInfo(Kind).TargetSize + 7) / 8;
   // Used to point to big endian bytes
   unsigned FullSize;
 
@@ -278,22 +278,22 @@ void MipsAsmBackend::applyFixup(const MCAssembler &Asm, const MCFixup &Fixup,
   // Grab current value, if any, from bits.
   uint64_t CurVal = 0;
 
-  bool microMipsLEByteOrder = needsMMLEByteOrder((unsigned) Kind);
+  bool const microMipsLEByteOrder = needsMMLEByteOrder((unsigned) Kind);
 
   for (unsigned i = 0; i != NumBytes; ++i) {
-    unsigned Idx = Endian == support::little
+    unsigned const Idx = Endian == support::little
                        ? (microMipsLEByteOrder ? calculateMMLEIndex(i) : i)
                        : (FullSize - 1 - i);
     CurVal |= (uint64_t)((uint8_t)Data[Offset + Idx]) << (i*8);
   }
 
-  uint64_t Mask = ((uint64_t)(-1) >>
+  uint64_t const Mask = ((uint64_t)(-1) >>
                     (64 - getFixupKindInfo(Kind).TargetSize));
   CurVal |= Value & Mask;
 
   // Write out the fixed up bytes back to the code/data bits.
   for (unsigned i = 0; i != NumBytes; ++i) {
-    unsigned Idx = Endian == support::little
+    unsigned const Idx = Endian == support::little
                        ? (microMipsLEByteOrder ? calculateMMLEIndex(i) : i)
                        : (FullSize - 1 - i);
     Data[Offset + Idx] = (uint8_t)((CurVal >> (i*8)) & 0xff);
@@ -585,7 +585,7 @@ MCAsmBackend *llvm::createMipsAsmBackend(const Target &T,
                                          const MCSubtargetInfo &STI,
                                          const MCRegisterInfo &MRI,
                                          const MCTargetOptions &Options) {
-  MipsABIInfo ABI = MipsABIInfo::computeTargetABI(STI.getTargetTriple(),
+  MipsABIInfo const ABI = MipsABIInfo::computeTargetABI(STI.getTargetTriple(),
                                                   STI.getCPU(), Options);
   return new MipsAsmBackend(T, MRI, STI.getTargetTriple(), STI.getCPU(),
                             ABI.IsN32());

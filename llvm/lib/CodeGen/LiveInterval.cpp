@@ -89,7 +89,7 @@ public:
     assert(!Def.isDead() && "Cannot define a value at the dead slot");
     assert((!ForVNI || ForVNI->def == Def) &&
            "If ForVNI is specified, it must match Def");
-    iterator I = impl().find(Def);
+    iterator const I = impl().find(Def);
     if (I == segments().end()) {
       VNInfo *VNI = ForVNI ? ForVNI : LR->getNextValue(Def, *VNInfoAllocator);
       impl().insertAtEnd(Segment(Def, Def.getDeadSlot(), VNI));
@@ -136,7 +136,7 @@ public:
       SlotIndex StartIdx, SlotIndex Use) {
     if (segments().empty())
       return std::make_pair(nullptr, false);
-    SlotIndex BeforeUse = Use.getPrevSlot();
+    SlotIndex const BeforeUse = Use.getPrevSlot();
     iterator I = impl().findInsertPos(Segment(BeforeUse, Use, nullptr));
     if (I == segments().begin())
       return std::make_pair(nullptr, LR->isUndefIn(Undefs, StartIdx, BeforeUse));
@@ -356,7 +356,7 @@ LiveRange::iterator LiveRange::find(SlotIndex Pos) {
   iterator I = begin();
   size_t Len = size();
   do {
-    size_t Mid = Len >> 1;
+    size_t const Mid = Len >> 1;
     if (Pos < I[Mid].end) {
       Len = Mid;
     } else {
@@ -464,7 +464,7 @@ bool LiveRange::overlaps(const LiveRange &Other, const CoalescerPair &CP,
     // Check for an overlap.
     if (J->start < I->end) {
       // I and J are overlapping. Find the later start.
-      SlotIndex Def = std::max(I->start, J->start);
+      SlotIndex const Def = std::max(I->start, J->start);
       // Allow the overlap if Def is a coalescable copy.
       if (Def.isBlock() ||
           !CP.isCoalescable(Indexes.getInstructionFromIndex(Def)))
@@ -620,7 +620,7 @@ void LiveRange::removeSegment(SlotIndex Start, SlotIndex End,
   }
 
   // Otherwise, we are splitting the Segment into two pieces.
-  SlotIndex OldEnd = I->end;
+  SlotIndex const OldEnd = I->end;
   I->end = Start;   // Trim the old segment.
 
   // Insert the new one.
@@ -647,10 +647,10 @@ void LiveRange::join(LiveRange &Other,
   // Determine if any of our values are mapped.  This is uncommon, so we want
   // to avoid the range scan if not.
   bool MustMapCurValNos = false;
-  unsigned NumVals = getNumValNums();
-  unsigned NumNewVals = NewVNInfo.size();
+  unsigned const NumVals = getNumValNums();
+  unsigned const NumNewVals = NewVNInfo.size();
   for (unsigned i = 0; i != NumVals; ++i) {
-    unsigned LHSValID = LHSValNoAssignments[i];
+    unsigned const LHSValID = LHSValNoAssignments[i];
     if (i != LHSValID ||
         (NewVNInfo[LHSValID] && NewVNInfo[LHSValID] != getValNumInfo(i))) {
       MustMapCurValNos = true;
@@ -713,7 +713,7 @@ void LiveRange::join(LiveRange &Other,
 
   // Okay, now insert the RHS live segments into the LHS.
   LiveRangeUpdater Updater(this);
-  for (Segment &S : Other.segments)
+  for (Segment  const&S : Other.segments)
     Updater.add(S);
 }
 
@@ -906,8 +906,8 @@ static void stripValuesNotDefiningMask(unsigned Reg, LiveInterval::SubRange &SR,
         continue;
       if (MOI->getReg() != Reg)
         continue;
-      LaneBitmask OrigMask = TRI.getSubRegIndexLaneMask(MOI->getSubReg());
-      LaneBitmask ExpectedDefMask =
+      LaneBitmask const OrigMask = TRI.getSubRegIndexLaneMask(MOI->getSubReg());
+      LaneBitmask const ExpectedDefMask =
           ComposeSubRegIdx
               ? TRI.composeSubRegIndexLaneMask(ComposeSubRegIdx, OrigMask)
               : OrigMask;
@@ -934,8 +934,8 @@ void LiveInterval::refineSubRanges(
     unsigned ComposeSubRegIdx) {
   LaneBitmask ToApply = LaneMask;
   for (SubRange &SR : subranges()) {
-    LaneBitmask SRMask = SR.LaneMask;
-    LaneBitmask Matching = SRMask & LaneMask;
+    LaneBitmask const SRMask = SR.LaneMask;
+    LaneBitmask const Matching = SRMask & LaneMask;
     if (Matching.none())
       continue;
 
@@ -978,20 +978,20 @@ void LiveInterval::computeSubRangeUndefs(SmallVectorImpl<SlotIndex> &Undefs,
                                          const MachineRegisterInfo &MRI,
                                          const SlotIndexes &Indexes) const {
   assert(Register::isVirtualRegister(reg()));
-  LaneBitmask VRegMask = MRI.getMaxLaneMaskForVReg(reg());
+  LaneBitmask const VRegMask = MRI.getMaxLaneMaskForVReg(reg());
   assert((VRegMask & LaneMask).any());
   const TargetRegisterInfo &TRI = *MRI.getTargetRegisterInfo();
   for (const MachineOperand &MO : MRI.def_operands(reg())) {
     if (!MO.isUndef())
       continue;
-    unsigned SubReg = MO.getSubReg();
+    unsigned const SubReg = MO.getSubReg();
     assert(SubReg != 0 && "Undef should only be set on subreg defs");
-    LaneBitmask DefMask = TRI.getSubRegIndexLaneMask(SubReg);
-    LaneBitmask UndefMask = VRegMask & ~DefMask;
+    LaneBitmask const DefMask = TRI.getSubRegIndexLaneMask(SubReg);
+    LaneBitmask const UndefMask = VRegMask & ~DefMask;
     if ((UndefMask & LaneMask).any()) {
       const MachineInstr &MI = *MO.getParent();
-      bool EarlyClobber = MO.isEarlyClobber();
-      SlotIndex Pos = Indexes.getInstructionIndex(MI).getRegSlot(EarlyClobber);
+      bool const EarlyClobber = MO.isEarlyClobber();
+      SlotIndex const Pos = Indexes.getInstructionIndex(MI).getRegSlot(EarlyClobber);
       Undefs.push_back(Pos);
     }
   }
@@ -1087,7 +1087,7 @@ void LiveInterval::verify(const MachineRegisterInfo *MRI) const {
 
   // Make sure SubRanges are fine and LaneMasks are disjunct.
   LaneBitmask Mask;
-  LaneBitmask MaxMask = MRI != nullptr ? MRI->getMaxLaneMaskForVReg(reg())
+  LaneBitmask const MaxMask = MRI != nullptr ? MRI->getMaxLaneMaskForVReg(reg())
                                        : LaneBitmask::getAll();
   for (const SubRange &SR : subranges()) {
     // Subrange lanemask should be disjunct to any previous subrange masks.
@@ -1262,8 +1262,8 @@ void LiveRangeUpdater::add(LiveRange::Segment Seg) {
 // and ReadI. Advance WriteI to reflect the inserted instructions.
 void LiveRangeUpdater::mergeSpills() {
   // Perform a backwards merge of Spills and [SpillI;WriteI).
-  size_t GapSize = ReadI - WriteI;
-  size_t NumMoved = std::min(Spills.size(), GapSize);
+  size_t const GapSize = ReadI - WriteI;
+  size_t const NumMoved = std::min(Spills.size(), GapSize);
   LiveRange::iterator Src = WriteI;
   LiveRange::iterator Dst = Src + NumMoved;
   LiveRange::iterator SpillSrc = Spills.end();
@@ -1299,10 +1299,10 @@ void LiveRangeUpdater::flush() {
   }
 
   // Resize the WriteI - ReadI gap to match Spills.
-  size_t GapSize = ReadI - WriteI;
+  size_t const GapSize = ReadI - WriteI;
   if (GapSize < Spills.size()) {
     // The gap is too small. Make some room.
-    size_t WritePos = WriteI - LR->begin();
+    size_t const WritePos = WriteI - LR->begin();
     LR->segments.insert(ReadI, Spills.size() - GapSize, LiveRange::Segment());
     // This also invalidated ReadI, but it is recomputed below.
     WriteI = LR->begin() + WritePos;
@@ -1367,31 +1367,31 @@ void ConnectedVNInfoEqClasses::Distribute(LiveInterval &LI, LiveInterval *LIV[],
     if (MI->isDebugValue()) {
       // DBG_VALUE instructions don't have slot indexes, so get the index of
       // the instruction before them. The value is defined there too.
-      SlotIndex Idx = LIS.getSlotIndexes()->getIndexBefore(*MI);
+      SlotIndex const Idx = LIS.getSlotIndexes()->getIndexBefore(*MI);
       VNI = LI.Query(Idx).valueOut();
     } else {
-      SlotIndex Idx = LIS.getInstructionIndex(*MI);
-      LiveQueryResult LRQ = LI.Query(Idx);
+      SlotIndex const Idx = LIS.getInstructionIndex(*MI);
+      LiveQueryResult const LRQ = LI.Query(Idx);
       VNI = MO.readsReg() ? LRQ.valueIn() : LRQ.valueDefined();
     }
     // In the case of an <undef> use that isn't tied to any def, VNI will be
     // NULL. If the use is tied to a def, VNI will be the defined value.
     if (!VNI)
       continue;
-    if (unsigned EqClass = getEqClass(VNI))
+    if (unsigned const EqClass = getEqClass(VNI))
       MO.setReg(LIV[EqClass - 1]->reg());
   }
 
   // Distribute subregister liveranges.
   if (LI.hasSubRanges()) {
-    unsigned NumComponents = EqClass.getNumClasses();
+    unsigned const NumComponents = EqClass.getNumClasses();
     SmallVector<unsigned, 8> VNIMapping;
     SmallVector<LiveInterval::SubRange*, 8> SubRanges;
     BumpPtrAllocator &Allocator = LIS.getVNInfoAllocator();
     for (LiveInterval::SubRange &SR : LI.subranges()) {
       // Create new subranges in the split intervals and construct a mapping
       // for the VNInfos in the subrange.
-      unsigned NumValNos = SR.valnos.size();
+      unsigned const NumValNos = SR.valnos.size();
       VNIMapping.clear();
       VNIMapping.reserve(NumValNos);
       SubRanges.clear();

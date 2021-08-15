@@ -85,7 +85,7 @@ bool llvm::formLCSSAForInstructions(SmallVectorImpl<Instruction *> &Worklist,
   PredIteratorCache PredCache;
   bool Changed = false;
 
-  IRBuilderBase::InsertPointGuard InsertPtGuard(Builder);
+  IRBuilderBase::InsertPointGuard const InsertPtGuard(Builder);
 
   // Cache the Loop ExitBlocks across this loop.  We expect to get a lot of
   // instructions within the same loops, computing the exit blocks is

@@ -115,7 +115,7 @@ public:
 
     endian::Writer LE(Out, little);
 
-    offset_type N = K.size();
+    offset_type const N = K.size();
     LE.write<offset_type>(N);
 
     offset_type M = 0;
@@ -150,13 +150,13 @@ public:
 
       LE.write<uint64_t>(ProfileData.first); // Function hash
       LE.write<uint64_t>(ProfRecord.Counts.size());
-      for (uint64_t I : ProfRecord.Counts)
+      for (uint64_t const I : ProfRecord.Counts)
         LE.write<uint64_t>(I);
 
       // Write value data
       std::unique_ptr<ValueProfData> VDataPtr =
           ValueProfData::serializeFrom(ProfileData.second);
-      uint32_t S = VDataPtr->getSize();
+      uint32_t const S = VDataPtr->getSize();
       VDataPtr->swapBytesFromHost(ValueProfDataEndianness);
       Out.write((const char *)VDataPtr.get(), S);
     }
@@ -315,7 +315,7 @@ Error InstrProfWriter::writeImpl(ProfOStream &OS) {
   Header.Unused = 0;
   Header.HashType = static_cast<uint64_t>(IndexedInstrProf::HashType);
   Header.HashOffset = 0;
-  int N = sizeof(IndexedInstrProf::Header) / sizeof(uint64_t);
+  int const N = sizeof(IndexedInstrProf::Header) / sizeof(uint64_t);
 
   // Only write out all the fields except 'HashOffset'. We need
   // to remember the offset of that field to allow back patching
@@ -329,8 +329,8 @@ Error InstrProfWriter::writeImpl(ProfOStream &OS) {
   OS.write(0);
 
   // Reserve space to write profile summary data.
-  uint32_t NumEntries = ProfileSummaryBuilder::DefaultCutoffs.size();
-  uint32_t SummarySize = Summary::getSize(Summary::NumKinds, NumEntries);
+  uint32_t const NumEntries = ProfileSummaryBuilder::DefaultCutoffs.size();
+  uint32_t const SummarySize = Summary::getSize(Summary::NumKinds, NumEntries);
   // Remember the summary offset.
   uint64_t SummaryOffset = OS.tell();
   for (unsigned I = 0; I < SummarySize / sizeof(uint64_t); I++)
@@ -348,7 +348,7 @@ Error InstrProfWriter::writeImpl(ProfOStream &OS) {
   uint64_t HashTableStart = Generator.Emit(OS.OS, *InfoObj);
 
   // Allocate space for data to be serialized out.
-  std::unique_ptr<IndexedInstrProf::Summary> TheSummary =
+  std::unique_ptr<IndexedInstrProf::Summary> const TheSummary =
       IndexedInstrProf::allocSummary(SummarySize);
   // Compute the Summary and copy the data to the data
   // structure to be serialized out (to disk or buffer).
@@ -409,12 +409,12 @@ static const char *ValueProfKindStr[] = {
 
 Error InstrProfWriter::validateRecord(const InstrProfRecord &Func) {
   for (uint32_t VK = 0; VK <= IPVK_Last; VK++) {
-    uint32_t NS = Func.getNumValueSites(VK);
+    uint32_t const NS = Func.getNumValueSites(VK);
     if (!NS)
       continue;
     for (uint32_t S = 0; S < NS; S++) {
-      uint32_t ND = Func.getNumValueDataForSite(VK, S);
-      std::unique_ptr<InstrProfValueData[]> VD = Func.getValueForSite(VK, S);
+      uint32_t const ND = Func.getNumValueDataForSite(VK, S);
+      std::unique_ptr<InstrProfValueData[]> const VD = Func.getValueForSite(VK, S);
       bool WasZero = false;
       for (uint32_t I = 0; I < ND; I++)
         if ((VK != IPVK_IndirectCallTarget) && (VD[I].Value == 0)) {
@@ -436,10 +436,10 @@ void InstrProfWriter::writeRecordInText(StringRef Name, uint64_t Hash,
   OS << "# Func Hash:\n" << Hash << "\n";
   OS << "# Num Counters:\n" << Func.Counts.size() << "\n";
   OS << "# Counter Values:\n";
-  for (uint64_t Count : Func.Counts)
+  for (uint64_t const Count : Func.Counts)
     OS << Count << "\n";
 
-  uint32_t NumValueKinds = Func.getNumValueKinds();
+  uint32_t const NumValueKinds = Func.getNumValueKinds();
   if (!NumValueKinds) {
     OS << "\n";
     return;
@@ -447,15 +447,15 @@ void InstrProfWriter::writeRecordInText(StringRef Name, uint64_t Hash,
 
   OS << "# Num Value Kinds:\n" << Func.getNumValueKinds() << "\n";
   for (uint32_t VK = 0; VK < IPVK_Last + 1; VK++) {
-    uint32_t NS = Func.getNumValueSites(VK);
+    uint32_t const NS = Func.getNumValueSites(VK);
     if (!NS)
       continue;
     OS << "# ValueKind = " << ValueProfKindStr[VK] << ":\n" << VK << "\n";
     OS << "# NumValueSites:\n" << NS << "\n";
     for (uint32_t S = 0; S < NS; S++) {
-      uint32_t ND = Func.getNumValueDataForSite(VK, S);
+      uint32_t const ND = Func.getNumValueDataForSite(VK, S);
       OS << ND << "\n";
-      std::unique_ptr<InstrProfValueData[]> VD = Func.getValueForSite(VK, S);
+      std::unique_ptr<InstrProfValueData[]> const VD = Func.getValueForSite(VK, S);
       for (uint32_t I = 0; I < ND; I++) {
         if (VK == IPVK_IndirectCallTarget)
           OS << Symtab.getFuncNameOrExternalSymbol(VD[I].Value) << ":"

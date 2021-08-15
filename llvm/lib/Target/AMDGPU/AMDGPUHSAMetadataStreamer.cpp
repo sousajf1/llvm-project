@@ -368,7 +368,7 @@ void MetadataStreamerV2::emitKernelArg(const DataLayout &DL, Type *Ty,
 
   SmallVector<StringRef, 1> SplitTypeQuals;
   TypeQual.split(SplitTypeQuals, " ", -1, false);
-  for (StringRef Key : SplitTypeQuals) {
+  for (StringRef const Key : SplitTypeQuals) {
     auto P = StringSwitch<bool*>(Key)
                  .Case("const",    &Arg.mIsConst)
                  .Case("restrict", &Arg.mIsRestrict)
@@ -381,7 +381,7 @@ void MetadataStreamerV2::emitKernelArg(const DataLayout &DL, Type *Ty,
 }
 
 void MetadataStreamerV2::emitHiddenKernelArgs(const Function &Func) {
-  int HiddenArgNumBytes =
+  int const HiddenArgNumBytes =
       getIntegerAttribute(Func, "amdgpu-implicitarg-num-bytes", 0);
 
   if (!HiddenArgNumBytes)
@@ -775,7 +775,7 @@ void MetadataStreamerV3::emitKernelArg(
 
   SmallVector<StringRef, 1> SplitTypeQuals;
   TypeQual.split(SplitTypeQuals, " ", -1, false);
-  for (StringRef Key : SplitTypeQuals) {
+  for (StringRef const Key : SplitTypeQuals) {
     if (Key == "const")
       Arg[".is_const"] = Arg.getDocument()->getNode(true);
     else if (Key == "restrict")
@@ -792,7 +792,7 @@ void MetadataStreamerV3::emitKernelArg(
 void MetadataStreamerV3::emitHiddenKernelArgs(const Function &Func,
                                               unsigned &Offset,
                                               msgpack::ArrayDocNode Args) {
-  int HiddenArgNumBytes =
+  int const HiddenArgNumBytes =
       getIntegerAttribute(Func, "amdgpu-implicitarg-num-bytes", 0);
 
   if (!HiddenArgNumBytes)

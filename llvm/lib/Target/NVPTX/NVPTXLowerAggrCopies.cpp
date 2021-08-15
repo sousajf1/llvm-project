@@ -106,7 +106,7 @@ bool NVPTXLowerAggrCopies::runOnFunction(Function &F) {
     auto *SI = cast<StoreInst>(*LI->user_begin());
     Value *SrcAddr = LI->getOperand(0);
     Value *DstAddr = SI->getOperand(1);
-    unsigned NumLoads = DL.getTypeStoreSize(LI->getType());
+    unsigned const NumLoads = DL.getTypeStoreSize(LI->getType());
     ConstantInt *CopyLen =
         ConstantInt::get(Type::getInt32Ty(Context), NumLoads);
 

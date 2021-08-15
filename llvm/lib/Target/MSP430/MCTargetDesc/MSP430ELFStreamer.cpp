@@ -33,7 +33,7 @@ MSP430TargetELFStreamer::MSP430TargetELFStreamer(MCStreamer &S,
                                                  const MCSubtargetInfo &STI)
     : MCTargetStreamer(S) {
   MCAssembler &MCA = getStreamer().getAssembler();
-  unsigned EFlags = MCA.getELFHeaderEFlags();
+  unsigned const EFlags = MCA.getELFHeaderEFlags();
   MCA.setELFHeaderEFlags(EFlags);
 
   // Emit build attributes section according to

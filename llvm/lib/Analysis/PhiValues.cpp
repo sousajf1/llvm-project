@@ -51,7 +51,7 @@ void PhiValues::processPhi(const PHINode *Phi,
   // Initialize the phi with the next depth number.
   assert(DepthMap.lookup(Phi) == 0);
   assert(NextDepthNumber != UINT_MAX);
-  unsigned int RootDepthNumber = ++NextDepthNumber;
+  unsigned int const RootDepthNumber = ++NextDepthNumber;
   DepthMap[Phi] = RootDepthNumber;
 
   // Recursively process the incoming phis of this phi.
@@ -94,7 +94,7 @@ void PhiValues::processPhi(const PHINode *Phi,
           // is guaranteed to have been completed before this one. Therefore we
           // can just add its reachable values to the reachable values of this
           // component.
-          unsigned int OpDepthNumber = DepthMap[PhiOp];
+          unsigned int const OpDepthNumber = DepthMap[PhiOp];
           if (OpDepthNumber != RootDepthNumber) {
             auto It = ReachableMap.find(OpDepthNumber);
             if (It != ReachableMap.end())
@@ -141,7 +141,7 @@ void PhiValues::invalidateValue(const Value *V) {
     if (Pair.second.count(V))
       InvalidComponents.push_back(Pair.first);
 
-  for (unsigned int N : InvalidComponents) {
+  for (unsigned int const N : InvalidComponents) {
     for (const Value *V : ReachableMap[N])
       if (const PHINode *PN = dyn_cast<PHINode>(V))
         DepthMap.erase(PN);
@@ -168,7 +168,7 @@ void PhiValues::print(raw_ostream &OS) const {
       OS << "PHI ";
       PN.printAsOperand(OS, false);
       OS << " has values:\n";
-      unsigned int N = DepthMap.lookup(&PN);
+      unsigned int const N = DepthMap.lookup(&PN);
       auto It = NonPhiReachableMap.find(N);
       if (It == NonPhiReachableMap.end())
         OS << "  UNKNOWN\n";

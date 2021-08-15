@@ -134,9 +134,9 @@ bool HexagonFixupHwLoops::fixupLoopInstrs(MachineFunction &MF) {
 
     // Loop over all the instructions.
     MachineBasicBlock::iterator MII = MBB.begin();
-    MachineBasicBlock::iterator MIE = MBB.end();
+    MachineBasicBlock::iterator const MIE = MBB.end();
     while (MII != MIE) {
-      unsigned InstSize = HII->getSize(*MII);
+      unsigned const InstSize = HII->getSize(*MII);
       if (MII->isMetaInstruction()) {
         ++MII;
         continue;
@@ -145,7 +145,7 @@ bool HexagonFixupHwLoops::fixupLoopInstrs(MachineFunction &MF) {
         assert(MII->getOperand(0).isMBB() &&
                "Expect a basic block as loop operand");
         MachineBasicBlock *TargetBB = MII->getOperand(0).getMBB();
-        unsigned Diff = AbsoluteDifference(InstOffset,
+        unsigned const Diff = AbsoluteDifference(InstOffset,
                                            BlockToInstOffset[TargetBB]);
         if (Diff > MaxLoopRange) {
           useExtLoopInstr(MF, MII);
@@ -169,7 +169,7 @@ void HexagonFixupHwLoops::useExtLoopInstr(MachineFunction &MF,
                                           MachineBasicBlock::iterator &MII) {
   const TargetInstrInfo *TII = MF.getSubtarget().getInstrInfo();
   MachineBasicBlock *MBB = MII->getParent();
-  DebugLoc DL = MII->getDebugLoc();
+  DebugLoc const DL = MII->getDebugLoc();
   MachineInstrBuilder MIB;
   unsigned newOp;
   switch (MII->getOpcode()) {

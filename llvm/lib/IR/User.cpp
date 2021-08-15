@@ -61,7 +61,7 @@ void User::allocHungoffUses(unsigned N, bool IsPhi) {
 void User::growHungoffUses(unsigned NewNumUses, bool IsPhi) {
   assert(HasHungOffUses && "realloc must have hung off uses");
 
-  unsigned OldNumUses = getNumOperands();
+  unsigned const OldNumUses = getNumOperands();
 
   // We don't support shrinking the number of uses.  We wouldn't have enough
   // space to copy the old uses in to the new space.
@@ -120,7 +120,7 @@ void *User::allocateFixedOperandUser(size_t Size, unsigned Us,
 
   static_assert(sizeof(DescriptorInfo) % sizeof(void *) == 0, "Required below");
 
-  unsigned DescBytesToAllocate =
+  unsigned const DescBytesToAllocate =
       DescBytes == 0 ? 0 : (DescBytes + sizeof(DescriptorInfo));
   assert(DescBytesToAllocate % sizeof(void *) == 0 &&
          "We need this to satisfy alignment constraints for Uses");

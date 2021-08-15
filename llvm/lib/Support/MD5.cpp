@@ -226,7 +226,7 @@ void MD5::update(ArrayRef<uint8_t> Data) {
 // Note that this isn't a string and so this won't include any trailing NULL
 // bytes.
 void MD5::update(StringRef Str) {
-  ArrayRef<uint8_t> SVal((const uint8_t *)Str.data(), Str.size());
+  ArrayRef<uint8_t> const SVal((const uint8_t *)Str.data(), Str.size());
   update(SVal);
 }
 

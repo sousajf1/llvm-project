@@ -40,7 +40,7 @@ void MCAsmMacro::dump(raw_ostream &OS) const {
   }
   if (!Locals.empty()) {
     OS << "  Locals:\n";
-    for (StringRef L : Locals)
+    for (StringRef const L : Locals)
       OS << "    " << L << '\n';
   }
   OS << "  (BEGIN BODY)" << Body << "(END BODY)\n";

@@ -90,7 +90,7 @@ public:
 };
 
 static inline uint64_t ScaleAddrDelta(MCContext &Context, uint64_t AddrDelta) {
-  unsigned MinInsnLength = Context.getAsmInfo()->getMinInstAlignment();
+  unsigned const MinInsnLength = Context.getAsmInfo()->getMinInstAlignment();
   if (MinInsnLength == 1)
     return AddrDelta;
   if (AddrDelta % MinInsnLength != 0) {
@@ -118,7 +118,7 @@ void MCDwarfLineEntry::make(MCStreamer *MCOS, MCSection *Section) {
   const MCDwarfLoc &DwarfLoc = MCOS->getContext().getCurrentDwarfLoc();
 
   // Create a (local) line entry with the symbol and the current .loc info.
-  MCDwarfLineEntry LineEntry(LineSym, DwarfLoc);
+  MCDwarfLineEntry const LineEntry(LineSym, DwarfLoc);
 
   // clear DwarfLocSeen saying the current .loc info is now used.
   MCOS->getContext().clearDwarfLocSeen();
@@ -137,7 +137,7 @@ static inline const MCExpr *makeEndMinusStartExpr(MCContext &Ctx,
                                                   const MCSymbol &Start,
                                                   const MCSymbol &End,
                                                   int IntVal) {
-  MCSymbolRefExpr::VariantKind Variant = MCSymbolRefExpr::VK_None;
+  MCSymbolRefExpr::VariantKind const Variant = MCSymbolRefExpr::VK_None;
   const MCExpr *Res = MCSymbolRefExpr::create(&End, Variant, Ctx);
   const MCExpr *RHS = MCSymbolRefExpr::create(&Start, Variant, Ctx);
   const MCExpr *Res1 = MCBinaryExpr::create(MCBinaryExpr::Sub, Res, RHS, Ctx);
@@ -151,7 +151,7 @@ static inline const MCExpr *makeEndMinusStartExpr(MCContext &Ctx,
 //
 static inline const MCExpr *
 makeStartPlusIntExpr(MCContext &Ctx, const MCSymbol &Start, int IntVal) {
-  MCSymbolRefExpr::VariantKind Variant = MCSymbolRefExpr::VK_None;
+  MCSymbolRefExpr::VariantKind const Variant = MCSymbolRefExpr::VK_None;
   const MCExpr *LHS = MCSymbolRefExpr::create(&Start, Variant, Ctx);
   const MCExpr *RHS = MCConstantExpr::create(IntVal, Ctx);
   const MCExpr *Res = MCBinaryExpr::create(MCBinaryExpr::Add, LHS, RHS, Ctx);
@@ -175,7 +175,7 @@ static inline void emitDwarfLineTable(
 
   // Loop through each MCDwarfLineEntry and encode the dwarf line number table.
   for (const MCDwarfLineEntry &LineEntry : LineEntries) {
-    int64_t LineDelta = static_cast<int64_t>(LineEntry.getLine()) - LastLine;
+    int64_t const LineDelta = static_cast<int64_t>(LineEntry.getLine()) - LastLine;
 
     if (FileNum != LineEntry.getFileNum()) {
       FileNum = LineEntry.getFileNum();
@@ -190,7 +190,7 @@ static inline void emitDwarfLineTable(
     if (Discriminator != LineEntry.getDiscriminator() &&
         MCOS->getContext().getDwarfVersion() >= 4) {
       Discriminator = LineEntry.getDiscriminator();
-      unsigned Size = getULEB128Size(Discriminator);
+      unsigned const Size = getULEB128Size(Discriminator);
       MCOS->emitInt8(dwarf::DW_LNS_extended_op);
       MCOS->emitULEB128IntValue(Size + 1);
       MCOS->emitInt8(dwarf::DW_LNE_set_discriminator);
@@ -323,9 +323,9 @@ void MCDwarfLineStr::emitSection(MCStreamer *MCOS) {
 }
 
 void MCDwarfLineStr::emitRef(MCStreamer *MCOS, StringRef Path) {
-  int RefSize =
+  int const RefSize =
       dwarf::getDwarfOffsetByteSize(MCOS->getContext().getDwarfFormat());
-  size_t Offset = LineStrings.add(Path);
+  size_t const Offset = LineStrings.add(Path);
   if (UseRelocs) {
     MCContext &Ctx = MCOS->getContext();
     MCOS->emitValue(makeStartPlusIntExpr(Ctx, *LineStrLabel, Offset), RefSize);
@@ -462,12 +462,12 @@ MCDwarfLineTableHeader::Emit(MCStreamer *MCOS, MCDwarfLineTableParams Params,
   // Set the value of the symbol, as we are at the start of the line table.
   MCOS->emitDwarfLineStartLabel(LineStartSym);
 
-  unsigned OffsetSize = dwarf::getDwarfOffsetByteSize(context.getDwarfFormat());
+  unsigned const OffsetSize = dwarf::getDwarfOffsetByteSize(context.getDwarfFormat());
 
   MCSymbol *LineEndSym = MCOS->emitDwarfUnitLength("debug_line", "unit length");
 
   // Next 2 bytes is the Version.
-  unsigned LineTableVersion = context.getDwarfVersion();
+  unsigned const LineTableVersion = context.getDwarfVersion();
   MCOS->emitInt16(LineTableVersion);
 
   // In v5, we get address info next.
@@ -499,7 +499,7 @@ MCDwarfLineTableHeader::Emit(MCStreamer *MCOS, MCDwarfLineTableParams Params,
   MCOS->emitInt8(StandardOpcodeLengths.size() + 1);
 
   // Standard opcode lengths
-  for (char Length : StandardOpcodeLengths)
+  for (char const Length : StandardOpcodeLengths)
     MCOS->emitInt8(Length);
 
   // Put out the directory and file tables.  The formats vary depending on
@@ -598,7 +598,7 @@ MCDwarfLineTableHeader::tryGetFile(StringRef &Directory,
 
   if (Directory.empty()) {
     // Separate the directory part from the basename of the FileName.
-    StringRef tFileName = sys::path::filename(FileName);
+    StringRef const tFileName = sys::path::filename(FileName);
     if (!tFileName.empty()) {
       Directory = sys::path::parent_path(FileName);
       if (!Directory.empty())
@@ -659,7 +659,7 @@ void MCDwarfLineAddr::Encode(MCContext &Context, MCDwarfLineTableParams Params,
   bool NeedCopy = false;
 
   // The maximum address skip amount that can be encoded with a special op.
-  uint64_t MaxSpecialAddrDelta = SpecialAddr(Params, 255);
+  uint64_t const MaxSpecialAddrDelta = SpecialAddr(Params, 255);
 
   // Scale the address delta by the minimum instruction length.
   AddrDelta = ScaleAddrDelta(Context, AddrDelta);
@@ -750,7 +750,7 @@ static void EmitGenDwarfAbbrev(MCStreamer *MCOS) {
   MCOS->emitULEB128IntValue(1);
   MCOS->emitULEB128IntValue(dwarf::DW_TAG_compile_unit);
   MCOS->emitInt8(dwarf::DW_CHILDREN_yes);
-  dwarf::Form SecOffsetForm =
+  dwarf::Form const SecOffsetForm =
       context.getDwarfVersion() >= 4
           ? dwarf::DW_FORM_sec_offset
           : (context.getDwarfFormat() == dwarf::DWARF64 ? dwarf::DW_FORM_data8
@@ -766,7 +766,7 @@ static void EmitGenDwarfAbbrev(MCStreamer *MCOS) {
   EmitAbbrev(MCOS, dwarf::DW_AT_name, dwarf::DW_FORM_string);
   if (!context.getCompilationDir().empty())
     EmitAbbrev(MCOS, dwarf::DW_AT_comp_dir, dwarf::DW_FORM_string);
-  StringRef DwarfDebugFlags = context.getDwarfDebugFlags();
+  StringRef const DwarfDebugFlags = context.getDwarfDebugFlags();
   if (!DwarfDebugFlags.empty())
     EmitAbbrev(MCOS, dwarf::DW_AT_APPLE_flags, dwarf::DW_FORM_string);
   EmitAbbrev(MCOS, dwarf::DW_AT_producer, dwarf::DW_FORM_string);
@@ -799,9 +799,9 @@ static void EmitGenDwarfAranges(MCStreamer *MCOS,
 
   MCOS->SwitchSection(context.getObjectFileInfo()->getDwarfARangesSection());
 
-  unsigned UnitLengthBytes =
+  unsigned const UnitLengthBytes =
       dwarf::getUnitLengthFieldByteSize(context.getDwarfFormat());
-  unsigned OffsetSize = dwarf::getDwarfOffsetByteSize(context.getDwarfFormat());
+  unsigned const OffsetSize = dwarf::getDwarfOffsetByteSize(context.getDwarfFormat());
 
   // This will be the length of the .debug_aranges section, first account for
   // the size of each item in the header (see below where we emit these items).
@@ -810,7 +810,7 @@ static void EmitGenDwarfAranges(MCStreamer *MCOS,
   // Figure the padding after the header before the table of address and size
   // pairs who's values are PointerSize'ed.
   const MCAsmInfo *asmInfo = context.getAsmInfo();
-  int AddrSize = asmInfo->getCodePointerSize();
+  int const AddrSize = asmInfo->getCodePointerSize();
   int Pad = 2 * AddrSize - (Length & (2 * AddrSize - 1));
   if (Pad == 2 * AddrSize)
     Pad = 0;
@@ -886,9 +886,9 @@ static void EmitGenDwarfInfo(MCStreamer *MCOS,
 
   // First part: the header.
 
-  unsigned UnitLengthBytes =
+  unsigned const UnitLengthBytes =
       dwarf::getUnitLengthFieldByteSize(context.getDwarfFormat());
-  unsigned OffsetSize = dwarf::getDwarfOffsetByteSize(context.getDwarfFormat());
+  unsigned const OffsetSize = dwarf::getDwarfOffsetByteSize(context.getDwarfFormat());
 
   if (context.getDwarfFormat() == dwarf::DWARF64)
     // Emit DWARF64 mark.
@@ -906,7 +906,7 @@ static void EmitGenDwarfInfo(MCStreamer *MCOS,
   // The DWARF v5 header has unit type, address size, abbrev offset.
   // Earlier versions have abbrev offset, address size.
   const MCAsmInfo &AsmInfo = *context.getAsmInfo();
-  int AddrSize = AsmInfo.getCodePointerSize();
+  int const AddrSize = AsmInfo.getCodePointerSize();
   if (context.getDwarfVersion() >= 5) {
     MCOS->emitInt8(dwarf::DW_UT_compile);
     MCOS->emitInt8(AddrSize);
@@ -991,14 +991,14 @@ static void EmitGenDwarfInfo(MCStreamer *MCOS,
   }
 
   // AT_APPLE_flags, the command line arguments of the assembler tool.
-  StringRef DwarfDebugFlags = context.getDwarfDebugFlags();
+  StringRef const DwarfDebugFlags = context.getDwarfDebugFlags();
   if (!DwarfDebugFlags.empty()){
     MCOS->emitBytes(DwarfDebugFlags);
     MCOS->emitInt8(0); // NULL byte to terminate the string.
   }
 
   // AT_producer, the version of the assembler tool.
-  StringRef DwarfDebugProducer = context.getDwarfDebugProducer();
+  StringRef const DwarfDebugProducer = context.getDwarfDebugProducer();
   if (!DwarfDebugProducer.empty())
     MCOS->emitBytes(DwarfDebugProducer);
   else
@@ -1049,7 +1049,7 @@ static MCSymbol *emitGenDwarfRanges(MCStreamer *MCOS) {
   auto &Sections = context.getGenDwarfSectionSyms();
 
   const MCAsmInfo *AsmInfo = context.getAsmInfo();
-  int AddrSize = AsmInfo->getCodePointerSize();
+  int const AddrSize = AsmInfo->getCodePointerSize();
   MCSymbol *RangesSymbol;
 
   if (MCOS->getContext().getDwarfVersion() >= 5) {
@@ -1186,12 +1186,12 @@ void MCGenDwarfLabelEntry::Make(MCSymbol *Symbol, MCStreamer *MCOS,
     Name = Name.substr(1, Name.size()-1);
 
   // Get the dwarf file number to be used for the dwarf label.
-  unsigned FileNumber = context.getGenDwarfFileNumber();
+  unsigned const FileNumber = context.getGenDwarfFileNumber();
 
   // Finding the line number is the expensive part which is why we just don't
   // pass it in as for some symbols we won't create a dwarf label.
-  unsigned CurBuffer = SrcMgr.FindBufferContainingLoc(Loc);
-  unsigned LineNumber = SrcMgr.FindLineNumber(Loc, CurBuffer);
+  unsigned const CurBuffer = SrcMgr.FindBufferContainingLoc(Loc);
+  unsigned const LineNumber = SrcMgr.FindLineNumber(Loc, CurBuffer);
 
   // We create a temporary symbol for use for the AT_high_pc and AT_low_pc
   // values so that they don't have things like an ARM thumb bit from the
@@ -1206,9 +1206,9 @@ void MCGenDwarfLabelEntry::Make(MCSymbol *Symbol, MCStreamer *MCOS,
 }
 
 static int getDataAlignmentFactor(MCStreamer &streamer) {
-  MCContext &context = streamer.getContext();
+  MCContext  const&context = streamer.getContext();
   const MCAsmInfo *asmInfo = context.getAsmInfo();
-  int size = asmInfo->getCalleeSaveStackSlotSize();
+  int const size = asmInfo->getCalleeSaveStackSlotSize();
   if (asmInfo->isStackGrowthDirectionUp())
     return size;
   else
@@ -1217,8 +1217,8 @@ static int getDataAlignmentFactor(MCStreamer &streamer) {
 
 static unsigned getSizeForEncoding(MCStreamer &streamer,
                                    unsigned symbolEncoding) {
-  MCContext &context = streamer.getContext();
-  unsigned format = symbolEncoding & 0x0f;
+  MCContext  const&context = streamer.getContext();
+  unsigned const format = symbolEncoding & 0x0f;
   switch (format) {
   default: llvm_unreachable("Unknown Encoding");
   case dwarf::DW_EH_PE_absptr:
@@ -1238,12 +1238,12 @@ static unsigned getSizeForEncoding(MCStreamer &streamer,
 
 static void emitFDESymbol(MCObjectStreamer &streamer, const MCSymbol &symbol,
                        unsigned symbolEncoding, bool isEH) {
-  MCContext &context = streamer.getContext();
+  MCContext  const&context = streamer.getContext();
   const MCAsmInfo *asmInfo = context.getAsmInfo();
   const MCExpr *v = asmInfo->getExprForFDESymbol(&symbol,
                                                  symbolEncoding,
                                                  streamer);
-  unsigned size = getSizeForEncoding(streamer, symbolEncoding);
+  unsigned const size = getSizeForEncoding(streamer, symbolEncoding);
   if (asmInfo->doDwarfFDESymbolsUseAbsDiff() && isEH)
     emitAbsValue(streamer, v, size);
   else
@@ -1252,12 +1252,12 @@ static void emitFDESymbol(MCObjectStreamer &streamer, const MCSymbol &symbol,
 
 static void EmitPersonality(MCStreamer &streamer, const MCSymbol &symbol,
                             unsigned symbolEncoding) {
-  MCContext &context = streamer.getContext();
+  MCContext  const&context = streamer.getContext();
   const MCAsmInfo *asmInfo = context.getAsmInfo();
   const MCExpr *v = asmInfo->getExprForPersonalitySymbol(&symbol,
                                                          symbolEncoding,
                                                          streamer);
-  unsigned size = getSizeForEncoding(streamer, symbolEncoding);
+  unsigned const size = getSizeForEncoding(streamer, symbolEncoding);
   streamer.emitValue(v, size);
 }
 
@@ -1291,7 +1291,7 @@ static void emitEncodingByte(MCObjectStreamer &Streamer, unsigned Encoding) {
 }
 
 void FrameEmitterImpl::emitCFIInstruction(const MCCFIInstruction &Instr) {
-  int dataAlignmentFactor = getDataAlignmentFactor(Streamer);
+  int const dataAlignmentFactor = getDataAlignmentFactor(Streamer);
   auto *MRI = Streamer.getContext().getRegisterInfo();
 
   switch (Instr.getOperation()) {
@@ -1316,7 +1316,7 @@ void FrameEmitterImpl::emitCFIInstruction(const MCCFIInstruction &Instr) {
     return;
 
   case MCCFIInstruction::OpUndefined: {
-    unsigned Reg = Instr.getRegister();
+    unsigned const Reg = Instr.getRegister();
     Streamer.emitInt8(dwarf::DW_CFA_undefined);
     Streamer.emitULEB128IntValue(Reg);
     return;
@@ -1405,7 +1405,7 @@ void FrameEmitterImpl::emitCFIInstruction(const MCCFIInstruction &Instr) {
     Streamer.emitInt8(dwarf::DW_CFA_restore_state);
     return;
   case MCCFIInstruction::OpSameValue: {
-    unsigned Reg = Instr.getRegister();
+    unsigned const Reg = Instr.getRegister();
     Streamer.emitInt8(dwarf::DW_CFA_same_value);
     Streamer.emitULEB128IntValue(Reg);
     return;
@@ -1484,14 +1484,14 @@ void FrameEmitterImpl::EmitCompactUnwind(const MCDwarfFrameInfo &Frame) {
 
   uint32_t Encoding = Frame.CompactUnwindEncoding;
   if (!Encoding) return;
-  bool DwarfEHFrameOnly = (Encoding == MOFI->getCompactUnwindDwarfEHFrameOnly());
+  bool const DwarfEHFrameOnly = (Encoding == MOFI->getCompactUnwindDwarfEHFrameOnly());
 
   // The encoding needs to know we have an LSDA.
   if (!DwarfEHFrameOnly && Frame.Lsda)
     Encoding |= 0x40000000;
 
   // Range Start
-  unsigned FDEEncoding = MOFI->getFDEEncoding();
+  unsigned const FDEEncoding = MOFI->getFDEEncoding();
   unsigned Size = getSizeForEncoding(Streamer, FDEEncoding);
   Streamer.emitSymbolValue(Frame.Begin, Size);
 
@@ -1544,10 +1544,10 @@ const MCSymbol &FrameEmitterImpl::EmitCIE(const MCDwarfFrameInfo &Frame) {
 
   MCSymbol *sectionEnd = context.createTempSymbol();
 
-  dwarf::DwarfFormat Format = IsEH ? dwarf::DWARF32 : context.getDwarfFormat();
-  unsigned UnitLengthBytes = dwarf::getUnitLengthFieldByteSize(Format);
-  unsigned OffsetSize = dwarf::getDwarfOffsetByteSize(Format);
-  bool IsDwarf64 = Format == dwarf::DWARF64;
+  dwarf::DwarfFormat const Format = IsEH ? dwarf::DWARF32 : context.getDwarfFormat();
+  unsigned const UnitLengthBytes = dwarf::getUnitLengthFieldByteSize(Format);
+  unsigned const OffsetSize = dwarf::getDwarfOffsetByteSize(Format);
+  bool const IsDwarf64 = Format == dwarf::DWARF64;
 
   if (IsDwarf64)
     // DWARF64 mark
@@ -1559,12 +1559,12 @@ const MCSymbol &FrameEmitterImpl::EmitCIE(const MCDwarfFrameInfo &Frame) {
   emitAbsValue(Streamer, Length, OffsetSize);
 
   // CIE ID
-  uint64_t CIE_ID =
+  uint64_t const CIE_ID =
       IsEH ? 0 : (IsDwarf64 ? dwarf::DW64_CIE_ID : dwarf::DW_CIE_ID);
   Streamer.emitIntValue(CIE_ID, OffsetSize);
 
   // Version
-  uint8_t CIEVersion = getCIEVersion(IsEH, context.getDwarfVersion());
+  uint8_t const CIEVersion = getCIEVersion(IsEH, context.getDwarfVersion());
   Streamer.emitInt8(CIEVersion);
 
   if (IsEH) {
@@ -1671,8 +1671,8 @@ void FrameEmitterImpl::EmitFDE(const MCSymbol &cieStart,
 
   CFAOffset = InitialCFAOffset;
 
-  dwarf::DwarfFormat Format = IsEH ? dwarf::DWARF32 : context.getDwarfFormat();
-  unsigned OffsetSize = dwarf::getDwarfOffsetByteSize(Format);
+  dwarf::DwarfFormat const Format = IsEH ? dwarf::DWARF32 : context.getDwarfFormat();
+  unsigned const OffsetSize = dwarf::getDwarfOffsetByteSize(Format);
 
   if (Format == dwarf::DWARF64)
     // DWARF64 mark
@@ -1700,9 +1700,9 @@ void FrameEmitterImpl::EmitFDE(const MCSymbol &cieStart,
   }
 
   // PC Begin
-  unsigned PCEncoding =
+  unsigned const PCEncoding =
       IsEH ? MOFI->getFDEEncoding() : (unsigned)dwarf::DW_EH_PE_absptr;
-  unsigned PCSize = getSizeForEncoding(Streamer, PCEncoding);
+  unsigned const PCSize = getSizeForEncoding(Streamer, PCEncoding);
   emitFDESymbol(Streamer, *frame.Begin, PCEncoding, IsEH);
 
   // PC Range
@@ -1731,7 +1731,7 @@ void FrameEmitterImpl::EmitFDE(const MCSymbol &cieStart,
   // The size of a .eh_frame section has to be a multiple of the alignment
   // since a null CIE is interpreted as the end. Old systems overaligned
   // .eh_frame, so we do too and account for it in the last FDE.
-  unsigned Align = LastInSection ? asmInfo->getCodePointerSize() : PCSize;
+  unsigned const Align = LastInSection ? asmInfo->getCodePointerSize() : PCSize;
   Streamer.emitValueToAlignment(Align);
 
   Streamer.emitLabel(fdeEnd);
@@ -1821,7 +1821,7 @@ void MCDwarfFrameEmitter::Emit(MCObjectStreamer &Streamer, MCAsmBackend *MAB,
   const MCObjectFileInfo *MOFI = Context.getObjectFileInfo();
   const MCAsmInfo *AsmInfo = Context.getAsmInfo();
   FrameEmitterImpl Emitter(IsEH, Streamer);
-  ArrayRef<MCDwarfFrameInfo> FrameArray = Streamer.getDwarfFrameInfos();
+  ArrayRef<MCDwarfFrameInfo> const FrameArray = Streamer.getDwarfFrameInfos();
 
   // Emit the compact unwind info if available.
   bool NeedsEHFrameSection = !MOFI->getSupportsCompactUnwindWithoutEHFrame();
@@ -1854,7 +1854,7 @@ void MCDwarfFrameEmitter::Emit(MCObjectStreamer &Streamer, MCAsmBackend *MAB,
   DenseMap<CIEKey, const MCSymbol *> CIEStarts;
 
   const MCSymbol *DummyDebugKey = nullptr;
-  bool CanOmitDwarf = MOFI->getOmitDwarfIfHaveCompactUnwind();
+  bool const CanOmitDwarf = MOFI->getOmitDwarfIfHaveCompactUnwind();
   // Sort the FDEs by their corresponding CIE before we emit them.
   // This isn't technically necessary according to the DWARF standard,
   // but the Android libunwindstack rejects eh_frame sections where
@@ -1873,7 +1873,7 @@ void MCDwarfFrameEmitter::Emit(MCObjectStreamer &Streamer, MCAsmBackend *MAB,
       // of by the compact unwind encoding.
       continue;
 
-    CIEKey Key(Frame);
+    CIEKey const Key(Frame);
     const MCSymbol *&CIEStart = IsEH ? CIEStarts[Key] : DummyDebugKey;
     if (!CIEStart)
       CIEStart = &Emitter.EmitCIE(Frame);
@@ -1899,11 +1899,11 @@ void MCDwarfFrameEmitter::EncodeAdvanceLoc(MCContext &Context,
   if (AddrDelta == 0)
     return;
 
-  support::endianness E =
+  support::endianness const E =
       Context.getAsmInfo()->isLittleEndian() ? support::little : support::big;
 
   if (isUIntN(6, AddrDelta)) {
-    uint8_t Opcode = dwarf::DW_CFA_advance_loc | AddrDelta;
+    uint8_t const Opcode = dwarf::DW_CFA_advance_loc | AddrDelta;
     OS << Opcode;
   } else if (isUInt<8>(AddrDelta)) {
     OS << uint8_t(dwarf::DW_CFA_advance_loc1);

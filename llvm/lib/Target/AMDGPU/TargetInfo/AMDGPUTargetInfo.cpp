@@ -29,8 +29,8 @@ Target &llvm::getTheGCNTarget() {
 
 /// Extern function to initialize the targets for the AMDGPU backend
 extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializeAMDGPUTargetInfo() {
-  RegisterTarget<Triple::r600, false> R600(getTheAMDGPUTarget(), "r600",
+  RegisterTarget<Triple::r600, false> const R600(getTheAMDGPUTarget(), "r600",
                                            "AMD GPUs HD2XXX-HD6XXX", "AMDGPU");
-  RegisterTarget<Triple::amdgcn, false> GCN(getTheGCNTarget(), "amdgcn",
+  RegisterTarget<Triple::amdgcn, false> const GCN(getTheGCNTarget(), "amdgcn",
                                             "AMD GCN GPUs", "AMDGPU");
 }

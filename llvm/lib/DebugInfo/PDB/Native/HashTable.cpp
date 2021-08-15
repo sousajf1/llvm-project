@@ -47,8 +47,8 @@ Error llvm::pdb::writeSparseBitVector(BinaryStreamWriter &Writer,
                                       SparseBitVector<> &Vec) {
   constexpr int BitsPerWord = 8 * sizeof(uint32_t);
 
-  int ReqBits = Vec.find_last() + 1;
-  uint32_t ReqWords = alignTo(ReqBits, BitsPerWord) / BitsPerWord;
+  int const ReqBits = Vec.find_last() + 1;
+  uint32_t const ReqWords = alignTo(ReqBits, BitsPerWord) / BitsPerWord;
   if (auto EC = Writer.writeInteger(ReqWords))
     return joinErrors(
         std::move(EC),

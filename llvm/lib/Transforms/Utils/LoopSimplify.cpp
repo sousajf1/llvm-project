@@ -87,7 +87,7 @@ static void placeSplitBlockCarefully(BasicBlock *NewBB,
                                      SmallVectorImpl<BasicBlock *> &SplitPreds,
                                      Loop *L) {
   // Check to see if NewBB is already well placed.
-  Function::iterator BBI = --NewBB->getIterator();
+  Function::iterator const BBI = --NewBB->getIterator();
   for (unsigned i = 0, e = SplitPreds.size(); i != e; ++i) {
     if (&*BBI == SplitPreds[i])
       return;
@@ -397,7 +397,7 @@ static BasicBlock *insertUniqueBackedgeBlock(Loop *L, BasicBlock *Preheader,
                     << BEBlock->getName() << "\n");
 
   // Move the new backedge block to right after the last backedge block.
-  Function::iterator InsertPos = ++BackedgeBlocks.back()->getIterator();
+  Function::iterator const InsertPos = ++BackedgeBlocks.back()->getIterator();
   F->getBasicBlockList().splice(InsertPos, F->getBasicBlockList(), BEBlock);
 
   // Now that the block has been inserted into the function, create PHI nodes in
@@ -454,7 +454,7 @@ static BasicBlock *insertUniqueBackedgeBlock(Loop *L, BasicBlock *Preheader,
   // backedge blocks to jump to the BEBlock instead of the header.
   // If one of the backedges has llvm.loop metadata attached, we remove
   // it from the backedge and add it to BEBlock.
-  unsigned LoopMDKind = BEBlock->getContext().getMDKindID("llvm.loop");
+  unsigned const LoopMDKind = BEBlock->getContext().getMDKindID("llvm.loop");
   MDNode *LoopMD = nullptr;
   for (unsigned i = 0, e = BackedgeBlocks.size(); i != e; ++i) {
     Instruction *TI = BackedgeBlocks[i]->getTerminator();
@@ -822,7 +822,7 @@ bool LoopSimplify::runOnFunction(Function &F) {
     }
   }
 
-  bool PreserveLCSSA = mustPreserveAnalysisID(LCSSAID);
+  bool const PreserveLCSSA = mustPreserveAnalysisID(LCSSAID);
 
   // Simplify each loop nest in the function.
   for (auto *L : *LI)
@@ -830,7 +830,7 @@ bool LoopSimplify::runOnFunction(Function &F) {
 
 #ifndef NDEBUG
   if (PreserveLCSSA) {
-    bool InLCSSA = all_of(
+    bool const InLCSSA = all_of(
         *LI, [&](Loop *L) { return L->isRecursivelyLCSSAForm(*DT, *LI); });
     assert(InLCSSA && "LCSSA is broken after loop-simplify.");
   }

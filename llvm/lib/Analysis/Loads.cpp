@@ -33,7 +33,7 @@ using namespace llvm;
 
 static bool isAligned(const Value *Base, const APInt &Offset, Align Alignment,
                       const DataLayout &DL) {
-  Align BA = Base->getPointerAlignment(DL);
+  Align const BA = Base->getPointerAlignment(DL);
   const APInt APAlign(Offset.getBitWidth(), Alignment.value());
   assert(APAlign.isPowerOf2() && "must be a power of 2!");
   return BA >= Alignment && !(Offset & (APAlign - 1));
@@ -78,7 +78,7 @@ static bool isDereferenceableAndAlignedPointer(
   }
 
   bool CheckForNonNull, CheckForFreed;
-  APInt KnownDerefBytes(Size.getBitWidth(),
+  APInt const KnownDerefBytes(Size.getBitWidth(),
                         V->getPointerDereferenceableBytes(DL, CheckForNonNull,
                                                           CheckForFreed));
   if (KnownDerefBytes.getBoolValue() && KnownDerefBytes.uge(Size) &&
@@ -89,7 +89,7 @@ static bool isDereferenceableAndAlignedPointer(
       // properly aligned, then the original offset accessed must also be.
       Type *Ty = V->getType();
       assert(Ty->isSized() && "must be sized");
-      APInt Offset(DL.getTypeStoreSizeInBits(Ty), 0);
+      APInt const Offset(DL.getTypeStoreSizeInBits(Ty), 0);
       return isAligned(V, Offset, Alignment, DL);
     }
 
@@ -172,7 +172,7 @@ static bool isDereferenceableAndAlignedPointer(
     Opts.NullIsUnknownSize = true;
     uint64_t ObjSize;
     if (getObjectSize(V, ObjSize, DL, TLI, Opts)) {
-      APInt KnownDerefBytes(Size.getBitWidth(), ObjSize);
+      APInt const KnownDerefBytes(Size.getBitWidth(), ObjSize);
       if (KnownDerefBytes.getBoolValue() && KnownDerefBytes.uge(Size) &&
           isKnownNonZero(V, DL, 0, nullptr, CtxI, DT) && !V->canBeFreed()) {
         // As we recursed through GEPs to get here, we've incrementally
@@ -181,7 +181,7 @@ static bool isDereferenceableAndAlignedPointer(
         // must also be. 
         Type *Ty = V->getType();
         assert(Ty->isSized() && "must be sized");
-        APInt Offset(DL.getTypeStoreSizeInBits(Ty), 0);
+        APInt const Offset(DL.getTypeStoreSizeInBits(Ty), 0);
         return isAligned(V, Offset, Alignment, DL);
       }
     }
@@ -225,7 +225,7 @@ bool llvm::isDereferenceableAndAlignedPointer(const Value *V, Type *Ty,
 
   // Require ABI alignment for loads without alignment specification
   const Align Alignment = DL.getValueOrABITypeAlignment(MA, Ty);
-  APInt AccessSize(DL.getPointerTypeSizeInBits(V->getType()),
+  APInt const AccessSize(DL.getPointerTypeSizeInBits(V->getType()),
                    DL.getTypeStoreSize(Ty));
   return isDereferenceableAndAlignedPointer(V, Alignment, AccessSize, DL, CtxI,
                                             DT, TLI);
@@ -276,7 +276,7 @@ bool llvm::isDereferenceableAndAlignedInLoop(LoadInst *LI, Loop *L,
   auto &DL = LI->getModule()->getDataLayout();
   Value *Ptr = LI->getPointerOperand();
 
-  APInt EltSize(DL.getIndexTypeSizeInBits(Ptr->getType()),
+  APInt const EltSize(DL.getIndexTypeSizeInBits(Ptr->getType()),
                 DL.getTypeStoreSize(LI->getType()).getFixedSize());
   const Align Alignment = LI->getAlign();
 
@@ -438,7 +438,7 @@ Value *llvm::FindAvailableLoadedValue(LoadInst *Load,
   if (!Load->isUnordered())
     return nullptr;
 
-  MemoryLocation Loc = MemoryLocation::get(Load);
+  MemoryLocation const Loc = MemoryLocation::get(Load);
   return findAvailablePtrLoadStore(Loc, Load->getType(), Load->isAtomic(),
                                    ScanBB, ScanFrom, MaxInstsToScan, AA, IsLoad,
                                    NumScanedInst);
@@ -461,9 +461,9 @@ static bool areNonOverlapSameBaseLoadAndStore(const Value *LoadPtr,
     return false;
   auto LoadAccessSize = LocationSize::precise(DL.getTypeStoreSize(LoadTy));
   auto StoreAccessSize = LocationSize::precise(DL.getTypeStoreSize(StoreTy));
-  ConstantRange LoadRange(LoadOffset,
+  ConstantRange const LoadRange(LoadOffset,
                           LoadOffset + LoadAccessSize.toRaw());
-  ConstantRange StoreRange(StoreOffset,
+  ConstantRange const StoreRange(StoreOffset,
                            StoreOffset + StoreAccessSize.toRaw());
   return LoadRange.intersectWith(StoreRange).isEmptySet();
 }
@@ -609,7 +609,7 @@ Value *llvm::FindAvailableLoadedValue(LoadInst *Load, AAResults &AA,
   Value *StrippedPtr = Load->getPointerOperand()->stripPointerCasts();
   BasicBlock *ScanBB = Load->getParent();
   Type *AccessTy = Load->getType();
-  bool AtLeastAtomic = Load->isAtomic();
+  bool const AtLeastAtomic = Load->isAtomic();
 
   if (!Load->isUnordered())
     return nullptr;
@@ -638,7 +638,7 @@ Value *llvm::FindAvailableLoadedValue(LoadInst *Load, AAResults &AA,
   // If we found an available value, ensure that the instructions in between
   // did not modify the memory location.
   if (Available) {
-    MemoryLocation Loc = MemoryLocation::get(Load);
+    MemoryLocation const Loc = MemoryLocation::get(Load);
     for (Instruction *Inst : MustNotAliasInsts)
       if (isModSet(AA.getModRefInfo(Inst, Loc)))
         return nullptr;
@@ -659,7 +659,7 @@ bool llvm::canReplacePointersIfEqual(Value *A, Value *B, const DataLayout &DL,
   if (auto *C = dyn_cast<Constant>(B)) {
     // Do not allow replacing a pointer with a constant pointer, unless it is
     // either null or at least one byte is dereferenceable.
-    APInt OneByte(DL.getPointerTypeSizeInBits(Ty), 1);
+    APInt const OneByte(DL.getPointerTypeSizeInBits(Ty), 1);
     return C->isNullValue() ||
            isDereferenceableAndAlignedPointer(B, Align(1), OneByte, DL, CtxI);
   }

@@ -37,7 +37,7 @@ void MipsELFStreamer::emitInstruction(const MCInst &Inst,
                                       const MCSubtargetInfo &STI) {
   MCELFStreamer::emitInstruction(Inst, STI);
 
-  MCContext &Context = getContext();
+  MCContext  const&Context = getContext();
   const MCRegisterInfo *MCRegInfo = Context.getRegisterInfo();
 
   for (unsigned OpIndex = 0; OpIndex < Inst.getNumOperands(); ++OpIndex) {
@@ -46,7 +46,7 @@ void MipsELFStreamer::emitInstruction(const MCInst &Inst,
     if (!Op.isReg())
       continue;
 
-    unsigned Reg = Op.getReg();
+    unsigned const Reg = Op.getReg();
     RegInfoRecord->SetPhysRegUsed(Reg, MCRegInfo);
   }
 

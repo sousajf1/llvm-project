@@ -32,7 +32,7 @@ void LanaiFrameLowering::determineFrameLayout(MachineFunction &MF) const {
   unsigned FrameSize = MFI.getStackSize();
 
   // Get the alignment.
-  Align StackAlign =
+  Align const StackAlign =
       LRI->hasStackRealignment(MF) ? MFI.getMaxAlign() : getStackAlign();
 
   // Get the maximum call frame size of all the calls.
@@ -63,7 +63,7 @@ void LanaiFrameLowering::determineFrameLayout(MachineFunction &MF) const {
 void LanaiFrameLowering::replaceAdjDynAllocPseudo(MachineFunction &MF) const {
   const LanaiInstrInfo &LII =
       *static_cast<const LanaiInstrInfo *>(STI.getInstrInfo());
-  unsigned MaxCallFrameSize = MF.getFrameInfo().getMaxCallFrameSize();
+  unsigned const MaxCallFrameSize = MF.getFrameInfo().getMaxCallFrameSize();
 
   for (MachineFunction::iterator MBB = MF.begin(), E = MF.end(); MBB != E;
        ++MBB) {
@@ -71,9 +71,9 @@ void LanaiFrameLowering::replaceAdjDynAllocPseudo(MachineFunction &MF) const {
     while (MBBI != MBB->end()) {
       MachineInstr &MI = *MBBI++;
       if (MI.getOpcode() == Lanai::ADJDYNALLOC) {
-        DebugLoc DL = MI.getDebugLoc();
-        Register Dst = MI.getOperand(0).getReg();
-        Register Src = MI.getOperand(1).getReg();
+        DebugLoc const DL = MI.getDebugLoc();
+        Register const Dst = MI.getOperand(0).getReg();
+        Register const Src = MI.getOperand(1).getReg();
 
         BuildMI(*MBB, MI, DL, LII.get(Lanai::ADD_I_LO), Dst)
             .addReg(Src)
@@ -92,21 +92,21 @@ void LanaiFrameLowering::emitPrologue(MachineFunction &MF,
                                       MachineBasicBlock &MBB) const {
   assert(&MF.front() == &MBB && "Shrink-wrapping not yet supported");
 
-  MachineFrameInfo &MFI = MF.getFrameInfo();
+  MachineFrameInfo  const&MFI = MF.getFrameInfo();
   const LanaiInstrInfo &LII =
       *static_cast<const LanaiInstrInfo *>(STI.getInstrInfo());
-  MachineBasicBlock::iterator MBBI = MBB.begin();
+  MachineBasicBlock::iterator const MBBI = MBB.begin();
 
   // Debug location must be unknown since the first debug location is used
   // to determine the end of the prologue.
-  DebugLoc DL;
+  DebugLoc const DL;
 
   // Determine the correct frame layout
   determineFrameLayout(MF);
 
   // FIXME: This appears to be overallocating.  Needs investigation.
   // Get the number of bytes to allocate from the FrameInfo.
-  unsigned StackSize = MFI.getStackSize();
+  unsigned const StackSize = MFI.getStackSize();
 
   // Push old FP
   // st %fp,-4[*%sp]
@@ -177,10 +177,10 @@ MachineBasicBlock::iterator LanaiFrameLowering::eliminateCallFramePseudoInstr(
 // instructions execute in the delay slots of the load to PC.
 void LanaiFrameLowering::emitEpilogue(MachineFunction & /*MF*/,
                                       MachineBasicBlock &MBB) const {
-  MachineBasicBlock::iterator MBBI = MBB.getLastNonDebugInstr();
+  MachineBasicBlock::iterator const MBBI = MBB.getLastNonDebugInstr();
   const LanaiInstrInfo &LII =
       *static_cast<const LanaiInstrInfo *>(STI.getInstrInfo());
-  DebugLoc DL = MBBI->getDebugLoc();
+  DebugLoc const DL = MBBI->getDebugLoc();
 
   // Restore the stack pointer using the callee's frame pointer value.
   BuildMI(MBB, MBBI, DL, LII.get(Lanai::ADD_I_LO), Lanai::SP)

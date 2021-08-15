@@ -44,8 +44,8 @@ namespace {
 } // end anonymous namespace
 
 static void emitInlineAsm(LLVMContext &C, BasicBlock *BB, StringRef AsmText) {
-  std::vector<Type *> AsmArgTypes;
-  std::vector<Value *> AsmArgs;
+  std::vector<Type *> const AsmArgTypes;
+  std::vector<Value *> const AsmArgs;
 
   FunctionType *AsmFTy =
       FunctionType::get(Type::getVoidTy(C), AsmArgTypes, false);
@@ -108,7 +108,7 @@ static FPParamVariant whichFPParamVariantNeeded(Function &F) {
   case 0:
     return NoSig;
   case 1:{
-    TypeID ArgTypeID = F.getFunctionType()->getParamType(0)->getTypeID();
+    TypeID const ArgTypeID = F.getFunctionType()->getParamType(0)->getTypeID();
     switch (ArgTypeID) {
     case FloatTyID:
       return FSig;
@@ -119,8 +119,8 @@ static FPParamVariant whichFPParamVariantNeeded(Function &F) {
     }
   }
   default: {
-    TypeID ArgTypeID0 = F.getFunctionType()->getParamType(0)->getTypeID();
-    TypeID ArgTypeID1 = F.getFunctionType()->getParamType(1)->getTypeID();
+    TypeID const ArgTypeID0 = F.getFunctionType()->getParamType(0)->getTypeID();
+    TypeID const ArgTypeID1 = F.getFunctionType()->getParamType(1)->getTypeID();
     switch(ArgTypeID0) {
     case FloatTyID: {
       switch (ArgTypeID1) {
@@ -185,7 +185,7 @@ static bool needsFPHelperFromSig(Function &F) {
 // interoperate
 static std::string swapFPIntParams(FPParamVariant PV, Module *M, bool LE,
                                    bool ToFP) {
-  std::string MI = ToFP ? "mtc1 ": "mfc1 ";
+  std::string const MI = ToFP ? "mtc1 ": "mfc1 ";
   std::string AsmText;
 
   switch (PV) {
@@ -259,10 +259,10 @@ static void assureFPCallStub(Function &F, Module *M,
   if (TM.isPositionIndependent())
     return;
   LLVMContext &Context = M->getContext();
-  bool LE = TM.isLittleEndian();
-  std::string Name(F.getName());
-  std::string SectionName = ".mips16.call.fp." + Name;
-  std::string StubName = "__call_stub_fp_" + Name;
+  bool const LE = TM.isLittleEndian();
+  std::string const Name(F.getName());
+  std::string const SectionName = ".mips16.call.fp." + Name;
+  std::string const StubName = "__call_stub_fp_" + Name;
   //
   // see if we already have the stub
   //
@@ -277,8 +277,8 @@ static void assureFPCallStub(Function &F, Module *M,
   FStub->addFnAttr("nomips16");
   FStub->setSection(SectionName);
   BasicBlock *BB = BasicBlock::Create(Context, "entry", FStub);
-  FPReturnVariant RV = whichFPReturnVariant(FStub->getReturnType());
-  FPParamVariant PV = whichFPParamVariantNeeded(F);
+  FPReturnVariant const RV = whichFPReturnVariant(FStub->getReturnType());
+  FPParamVariant const PV = whichFPParamVariantNeeded(F);
 
   std::string AsmText;
   AsmText += ".set reorder\n";
@@ -392,7 +392,7 @@ static bool fixupFPReturnAndCall(Function &F, Module *M,
         // where they would have been mapped to in floating point registers.
         //
         Type *T = RVal->getType();
-        FPReturnVariant RV = whichFPReturnVariant(T);
+        FPReturnVariant const RV = whichFPReturnVariant(T);
         if (RV == NoFPRet) continue;
         static const char *const Helper[NoFPRet] = {
           "__mips16_ret_sf", "__mips16_ret_df", "__mips16_ret_sc",
@@ -400,7 +400,7 @@ static bool fixupFPReturnAndCall(Function &F, Module *M,
         };
         const char *Name = Helper[RV];
         AttributeList A;
-        Value *Params[] = {RVal};
+        Value *const Params[] = {RVal};
         Modified = true;
         //
         // These helper functions have a different calling ABI so
@@ -414,7 +414,7 @@ static bool fixupFPReturnAndCall(Function &F, Module *M,
                            Attribute::ReadNone);
         A = A.addAttribute(C, AttributeList::FunctionIndex,
                            Attribute::NoInline);
-        FunctionCallee F = (M->getOrInsertFunction(Name, A, MyVoid, T));
+        FunctionCallee const F = (M->getOrInsertFunction(Name, A, MyVoid, T));
         CallInst::Create(F, Params, "", &I);
       } else if (const CallInst *CI = dyn_cast<CallInst>(&I)) {
         FunctionType *FT = CI->getFunctionType();
@@ -445,13 +445,13 @@ static bool fixupFPReturnAndCall(Function &F, Module *M,
 
 static void createFPFnStub(Function *F, Module *M, FPParamVariant PV,
                            const MipsTargetMachine &TM) {
-  bool PicMode = TM.isPositionIndependent();
-  bool LE = TM.isLittleEndian();
+  bool const PicMode = TM.isPositionIndependent();
+  bool const LE = TM.isLittleEndian();
   LLVMContext &Context = M->getContext();
-  std::string Name(F->getName());
-  std::string SectionName = ".mips16.fn." + Name;
-  std::string StubName = "__fn_stub_" + Name;
-  std::string LocalName = "$$__fn_local_" + Name;
+  std::string const Name(F->getName());
+  std::string const SectionName = ".mips16.fn." + Name;
+  std::string const StubName = "__fn_stub_" + Name;
+  std::string const LocalName = "$$__fn_local_" + Name;
   Function *FStub = Function::Create
     (F->getFunctionType(),
      Function::InternalLinkage, StubName, M);
@@ -522,7 +522,7 @@ bool Mips16HardFloat::runOnModule(Module &M) {
     if (F->isDeclaration() || F->hasFnAttribute("mips16_fp_stub") ||
         F->hasFnAttribute("nomips16")) continue;
     Modified |= fixupFPReturnAndCall(*F, &M, TM);
-    FPParamVariant V = whichFPParamVariantNeeded(*F);
+    FPParamVariant const V = whichFPParamVariantNeeded(*F);
     if (V != NoSig) {
       Modified = true;
       createFPFnStub(&*F, &M, V, TM);

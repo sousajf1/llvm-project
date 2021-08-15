@@ -73,10 +73,10 @@ static MCSymbolRefExpr::VariantKind getAccessVariant(const MCValue &Target,
 unsigned PPCELFObjectWriter::getRelocType(MCContext &Ctx, const MCValue &Target,
                                           const MCFixup &Fixup,
                                           bool IsPCRel) const {
-  MCFixupKind Kind = Fixup.getKind();
+  MCFixupKind const Kind = Fixup.getKind();
   if (Kind >= FirstLiteralRelocationKind)
     return Kind - FirstLiteralRelocationKind;
-  MCSymbolRefExpr::VariantKind Modifier = getAccessVariant(Target, Fixup);
+  MCSymbolRefExpr::VariantKind const Modifier = getAccessVariant(Target, Fixup);
 
   // determine the type of the relocation
   unsigned Type;
@@ -477,7 +477,7 @@ bool PPCELFObjectWriter::needsRelocateWithSymbol(const MCSymbol &Sym,
       // The "other" values are stored in the last 6 bits of the second byte.
       // The traditional defines for STO values assume the full byte and thus
       // the shift to pack it.
-      unsigned Other = cast<MCSymbolELF>(Sym).getOther() << 2;
+      unsigned const Other = cast<MCSymbolELF>(Sym).getOther() << 2;
       return (Other & ELF::STO_PPC64_LOCAL_MASK) != 0;
   }
 }

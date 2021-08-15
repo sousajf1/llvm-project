@@ -142,7 +142,7 @@ void NotifyDebugger(jit_code_entry* JITCodeEntry) {
 
 GDBJITRegistrationListener::~GDBJITRegistrationListener() {
   // Free all registered object files.
-  std::lock_guard<llvm::sys::Mutex> locked(*JITDebugLock);
+  std::lock_guard<llvm::sys::Mutex> const locked(*JITDebugLock);
   for (RegisteredObjectBufferMap::iterator I = ObjectBufferMap.begin(),
                                            E = ObjectBufferMap.end();
        I != E; ++I) {
@@ -164,9 +164,9 @@ void GDBJITRegistrationListener::notifyObjectLoaded(
     return;
 
   const char *Buffer = DebugObj.getBinary()->getMemoryBufferRef().getBufferStart();
-  size_t      Size = DebugObj.getBinary()->getMemoryBufferRef().getBufferSize();
+  size_t      const Size = DebugObj.getBinary()->getMemoryBufferRef().getBufferSize();
 
-  std::lock_guard<llvm::sys::Mutex> locked(*JITDebugLock);
+  std::lock_guard<llvm::sys::Mutex> const locked(*JITDebugLock);
   assert(ObjectBufferMap.find(K) == ObjectBufferMap.end() &&
          "Second attempt to perform debug registration.");
   jit_code_entry* JITCodeEntry = new jit_code_entry();
@@ -185,8 +185,8 @@ void GDBJITRegistrationListener::notifyObjectLoaded(
 }
 
 void GDBJITRegistrationListener::notifyFreeingObject(ObjectKey K) {
-  std::lock_guard<llvm::sys::Mutex> locked(*JITDebugLock);
-  RegisteredObjectBufferMap::iterator I = ObjectBufferMap.find(K);
+  std::lock_guard<llvm::sys::Mutex> const locked(*JITDebugLock);
+  RegisteredObjectBufferMap::iterator const I = ObjectBufferMap.find(K);
 
   if (I != ObjectBufferMap.end()) {
     deregisterObjectInternal(I);

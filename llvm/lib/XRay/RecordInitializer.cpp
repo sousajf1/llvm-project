@@ -392,7 +392,7 @@ Error RecordInitializer::visit(FunctionRecord &R) {
 
   auto BeginOffset = OffsetPtr;
   auto PreReadOffset = BeginOffset;
-  uint32_t Buffer = E.getU32(&OffsetPtr);
+  uint32_t const Buffer = E.getU32(&OffsetPtr);
   if (PreReadOffset == OffsetPtr)
     return createStringError(
         std::make_error_code(std::errc::bad_address),
@@ -401,7 +401,7 @@ Error RecordInitializer::visit(FunctionRecord &R) {
   // To get the function record type, we shift the buffer one to the right
   // (truncating the function record indicator) then take the three bits
   // (0b0111) to get the record type as an unsigned value.
-  unsigned FunctionType = (Buffer >> 1) & 0x07u;
+  unsigned const FunctionType = (Buffer >> 1) & 0x07u;
   switch (FunctionType) {
   case static_cast<unsigned>(RecordTypes::ENTER):
   case static_cast<unsigned>(RecordTypes::ENTER_ARG):

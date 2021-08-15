@@ -117,10 +117,10 @@ unsigned SystemZObjectWriter::getRelocType(MCContext &Ctx,
                                            const MCValue &Target,
                                            const MCFixup &Fixup,
                                            bool IsPCRel) const {
-  unsigned Kind = Fixup.getKind();
+  unsigned const Kind = Fixup.getKind();
   if (Kind >= FirstLiteralRelocationKind)
     return Kind - FirstLiteralRelocationKind;
-  MCSymbolRefExpr::VariantKind Modifier = Target.getAccessVariant();
+  MCSymbolRefExpr::VariantKind const Modifier = Target.getAccessVariant();
   switch (Modifier) {
   case MCSymbolRefExpr::VK_None:
     if (IsPCRel)

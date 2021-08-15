@@ -138,7 +138,7 @@ void SystemZHazardRecognizer::nextGroup() {
   LLVM_DEBUG(dumpCurrGroup("Completed decode group"));
   LLVM_DEBUG(CurGroupDbg = "";);
 
-  int NumGroups = ((CurrGroupSize > 3) ? (CurrGroupSize / 3) : 1);
+  int const NumGroups = ((CurrGroupSize > 3) ? (CurrGroupSize / 3) : 1);
   assert((CurrGroupSize <= 3 || CurrGroupSize % 3 == 0) &&
          "Current decoder group bad.");
 
@@ -180,7 +180,7 @@ void SystemZHazardRecognizer::dumpSU(SUnit *SU, raw_ostream &OS) const {
     std::string FU(PRD.Name);
     // trim e.g. Z13_FXaUnit -> FXa
     FU = FU.substr(FU.find('_') + 1);
-    size_t Pos = FU.find("Unit");
+    size_t const Pos = FU.find("Unit");
     if (Pos != std::string::npos)
       FU.resize(Pos);
     if (FU == "LS") // LSUnit -> LSU
@@ -327,7 +327,7 @@ EmitInstruction(SUnit *SU) {
   // in current group.
   CurrGroupSize += getNumDecoderSlots(SU);
   CurrGroupHas4RegOps |= has4RegOps(SU->getInstr());
-  unsigned GroupLim = (CurrGroupHas4RegOps ? 2 : 3);
+  unsigned const GroupLim = (CurrGroupHas4RegOps ? 2 : 3);
   assert((CurrGroupSize <= GroupLim || CurrGroupSize == getNumDecoderSlots(SU))
          && "SU does not fit into decoder group!");
 
@@ -353,7 +353,7 @@ int SystemZHazardRecognizer::groupingCost(SUnit *SU) const {
   // Similarly, a group-ending SU may either fit well (last in group), or
   // end the group prematurely.
   if (SC->EndGroup) {
-    unsigned resultingGroupSize =
+    unsigned const resultingGroupSize =
       (CurrGroupSize + getNumDecoderSlots(SU));
     if (resultingGroupSize < 3)
       return (3 - resultingGroupSize);
@@ -377,7 +377,7 @@ bool SystemZHazardRecognizer::isFPdOpPreferred_distance(SUnit *SU) const {
   // of the processor to use the other FPd unit there. This should
   // generally happen if two FPd ops are placed with 2 other
   // instructions between them (modulo 6).
-  unsigned SUCycleIdx = getCurrCycleIdx(SU);
+  unsigned const SUCycleIdx = getCurrCycleIdx(SU);
   if (LastFPdOpCycleIdx > SUCycleIdx)
     return ((LastFPdOpCycleIdx - SUCycleIdx) == 3);
   return ((SUCycleIdx - LastFPdOpCycleIdx) == 3);
@@ -431,7 +431,7 @@ void SystemZHazardRecognizer::emitInstruction(MachineInstr *MI,
     }
   }
 
-  unsigned GroupSizeBeforeEmit = CurrGroupSize;
+  unsigned const GroupSizeBeforeEmit = CurrGroupSize;
   EmitInstruction(&SU);
 
   if (!TakenBranch && isBranchRetTrap(MI)) {

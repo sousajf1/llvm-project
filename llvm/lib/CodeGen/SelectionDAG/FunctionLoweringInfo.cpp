@@ -90,7 +90,7 @@ void FunctionLoweringInfo::set(const Function &fn, MachineFunction &mf,
 
   // Check whether the function can return without sret-demotion.
   SmallVector<ISD::OutputArg, 4> Outs;
-  CallingConv::ID CC = Fn->getCallingConv();
+  CallingConv::ID const CC = Fn->getCallingConv();
 
   GetReturnInfo(CC, Fn->getReturnType(), Fn->getAttributes(), Outs, *TLI,
                 mf.getDataLayout());
@@ -99,7 +99,7 @@ void FunctionLoweringInfo::set(const Function &fn, MachineFunction &mf,
 
   // If this personality uses funclets, we need to do a bit more work.
   DenseMap<const AllocaInst *, TinyPtrVector<int *>> CatchObjects;
-  EHPersonality Personality = classifyEHPersonality(
+  EHPersonality const Personality = classifyEHPersonality(
       Fn->hasPersonalityFn() ? Fn->getPersonalityFn() : nullptr);
   if (isFuncletEHPersonality(Personality)) {
     // Calculate state numbers if we haven't already.
@@ -135,19 +135,19 @@ void FunctionLoweringInfo::set(const Function &fn, MachineFunction &mf,
     for (const Instruction &I : BB) {
       if (const AllocaInst *AI = dyn_cast<AllocaInst>(&I)) {
         Type *Ty = AI->getAllocatedType();
-        Align TyPrefAlign = MF->getDataLayout().getPrefTypeAlign(Ty);
+        Align const TyPrefAlign = MF->getDataLayout().getPrefTypeAlign(Ty);
         // The "specified" alignment is the alignment written on the alloca,
         // or the preferred alignment of the type if none is specified.
         //
         // (Unspecified alignment on allocas will be going away soon.)
-        Align SpecifiedAlign = AI->getAlign();
+        Align const SpecifiedAlign = AI->getAlign();
 
         // If the preferred alignment of the type is higher than the specified
         // alignment of the alloca, promote the alignment, as long as it doesn't
         // require realigning the stack.
         //
         // FIXME: Do we really want to second-guess the IR in isel?
-        Align Alignment =
+        Align const Alignment =
             std::max(std::min(TyPrefAlign, StackAlign), SpecifiedAlign);
 
         // Static allocas can be folded into the initial stack frame
@@ -195,7 +195,7 @@ void FunctionLoweringInfo::set(const Function &fn, MachineFunction &mf,
       } else if (auto *Call = dyn_cast<CallBase>(&I)) {
         // Look for inline asm that clobbers the SP register.
         if (Call->isInlineAsm()) {
-          Register SP = TLI->getStackPointerRegisterToSaveRestore();
+          Register const SP = TLI->getStackPointerRegisterToSaveRestore();
           const TargetRegisterInfo *TRI = MF->getSubtarget().getRegisterInfo();
           std::vector<TargetLowering::AsmOperandInfo> Ops =
               TLI->ParseConstraints(Fn->getParent()->getDataLayout(), TRI,
@@ -204,7 +204,7 @@ void FunctionLoweringInfo::set(const Function &fn, MachineFunction &mf,
             if (Op.Type == InlineAsm::isClobber) {
               // Clobbers don't have SDValue operands, hence SDValue().
               TLI->ComputeConstraintToUse(Op, SDValue(), DAG);
-              std::pair<unsigned, const TargetRegisterClass *> PhysReg =
+              std::pair<unsigned, const TargetRegisterClass *> const PhysReg =
                   TLI->getRegForInlineAsmConstraint(TRI, Op.ConstraintCode,
                                                     Op.ConstraintVT);
               if (PhysReg.first == SP)
@@ -289,14 +289,14 @@ void FunctionLoweringInfo::set(const Function &fn, MachineFunction &mf,
       if (PN.getType()->isEmptyTy())
         continue;
 
-      DebugLoc DL = PN.getDebugLoc();
+      DebugLoc const DL = PN.getDebugLoc();
       unsigned PHIReg = ValueMap[&PN];
       assert(PHIReg && "PHI node does not have an assigned virtual register!");
 
       SmallVector<EVT, 4> ValueVTs;
       ComputeValueVTs(*TLI, MF->getDataLayout(), PN.getType(), ValueVTs);
-      for (EVT VT : ValueVTs) {
-        unsigned NumRegisters = TLI->getNumRegisters(Fn->getContext(), VT);
+      for (EVT const VT : ValueVTs) {
+        unsigned const NumRegisters = TLI->getNumRegisters(Fn->getContext(), VT);
         const TargetInstrInfo *TII = MF->getSubtarget().getInstrInfo();
         for (unsigned i = 0; i != NumRegisters; ++i)
           BuildMI(MBB, DL, TII->get(TargetOpcode::PHI), PHIReg + i);
@@ -391,12 +391,12 @@ Register FunctionLoweringInfo::CreateRegs(Type *Ty, bool isDivergent) {
 
   Register FirstReg;
   for (unsigned Value = 0, e = ValueVTs.size(); Value != e; ++Value) {
-    EVT ValueVT = ValueVTs[Value];
-    MVT RegisterVT = TLI->getRegisterType(Ty->getContext(), ValueVT);
+    EVT const ValueVT = ValueVTs[Value];
+    MVT const RegisterVT = TLI->getRegisterType(Ty->getContext(), ValueVT);
 
-    unsigned NumRegs = TLI->getNumRegisters(Ty->getContext(), ValueVT);
+    unsigned const NumRegs = TLI->getNumRegisters(Ty->getContext(), ValueVT);
     for (unsigned i = 0; i != NumRegs; ++i) {
-      Register R = CreateReg(RegisterVT, isDivergent);
+      Register const R = CreateReg(RegisterVT, isDivergent);
       if (!FirstReg) FirstReg = R;
     }
   }
@@ -446,9 +446,9 @@ void FunctionLoweringInfo::ComputePHILiveOutRegInfo(const PHINode *PN) {
   if (TLI->getNumRegisters(PN->getContext(), IntVT) != 1)
     return;
   IntVT = TLI->getTypeToTransformTo(PN->getContext(), IntVT);
-  unsigned BitWidth = IntVT.getSizeInBits();
+  unsigned const BitWidth = IntVT.getSizeInBits();
 
-  Register DestReg = ValueMap[PN];
+  Register const DestReg = ValueMap[PN];
   if (!Register::isVirtualRegister(DestReg))
     return;
   LiveOutRegInfo.grow(DestReg);
@@ -462,13 +462,13 @@ void FunctionLoweringInfo::ComputePHILiveOutRegInfo(const PHINode *PN) {
   }
 
   if (ConstantInt *CI = dyn_cast<ConstantInt>(V)) {
-    APInt Val = CI->getValue().zextOrTrunc(BitWidth);
+    APInt const Val = CI->getValue().zextOrTrunc(BitWidth);
     DestLOI.NumSignBits = Val.getNumSignBits();
     DestLOI.Known = KnownBits::makeConstant(Val);
   } else {
     assert(ValueMap.count(V) && "V should have been placed in ValueMap when its"
                                 "CopyToReg node was created.");
-    Register SrcReg = ValueMap[V];
+    Register const SrcReg = ValueMap[V];
     if (!Register::isVirtualRegister(SrcReg)) {
       DestLOI.IsValid = false;
       return;
@@ -494,7 +494,7 @@ void FunctionLoweringInfo::ComputePHILiveOutRegInfo(const PHINode *PN) {
     }
 
     if (ConstantInt *CI = dyn_cast<ConstantInt>(V)) {
-      APInt Val = CI->getValue().zextOrTrunc(BitWidth);
+      APInt const Val = CI->getValue().zextOrTrunc(BitWidth);
       DestLOI.NumSignBits = std::min(DestLOI.NumSignBits, Val.getNumSignBits());
       DestLOI.Known.Zero &= ~Val;
       DestLOI.Known.One &= Val;
@@ -503,7 +503,7 @@ void FunctionLoweringInfo::ComputePHILiveOutRegInfo(const PHINode *PN) {
 
     assert(ValueMap.count(V) && "V should have been placed in ValueMap when "
                                 "its CopyToReg node was created.");
-    Register SrcReg = ValueMap[V];
+    Register const SrcReg = ValueMap[V];
     if (!SrcReg.isVirtual()) {
       DestLOI.IsValid = false;
       return;
@@ -557,8 +557,8 @@ FunctionLoweringInfo::getValueFromVirtualReg(Register Vreg) {
       ComputeValueVTs(*TLI, Fn->getParent()->getDataLayout(),
                       P.first->getType(), ValueVTs);
       unsigned Reg = P.second;
-      for (EVT VT : ValueVTs) {
-        unsigned NumRegisters = TLI->getNumRegisters(Fn->getContext(), VT);
+      for (EVT const VT : ValueVTs) {
+        unsigned const NumRegisters = TLI->getNumRegisters(Fn->getContext(), VT);
         for (unsigned i = 0, e = NumRegisters; i != e; ++i)
           VirtReg2Value[Reg++] = P.first;
       }

@@ -209,7 +209,7 @@ ModRefInfo AAResults::getModRefInfo(Instruction *I, const CallBase *Call2,
     // is that if the call references what this instruction
     // defines, it must be clobbered by this location.
     const MemoryLocation DefLoc = MemoryLocation::get(I);
-    ModRefInfo MR = getModRefInfo(Call2, DefLoc, AAQI);
+    ModRefInfo const MR = getModRefInfo(Call2, DefLoc, AAQI);
     if (isModOrRefSet(MR))
       return setModAndRef(MR);
   }
@@ -254,12 +254,12 @@ ModRefInfo AAResults::getModRefInfo(const CallBase *Call,
         const Value *Arg = *AI;
         if (!Arg->getType()->isPointerTy())
           continue;
-        unsigned ArgIdx = std::distance(Call->arg_begin(), AI);
-        MemoryLocation ArgLoc =
+        unsigned const ArgIdx = std::distance(Call->arg_begin(), AI);
+        MemoryLocation const ArgLoc =
             MemoryLocation::getForArgument(Call, ArgIdx, TLI);
-        AliasResult ArgAlias = alias(ArgLoc, Loc, AAQI);
+        AliasResult const ArgAlias = alias(ArgLoc, Loc, AAQI);
         if (ArgAlias != AliasResult::NoAlias) {
-          ModRefInfo ArgMask = getArgModRefInfo(Call, ArgIdx);
+          ModRefInfo const ArgMask = getArgModRefInfo(Call, ArgIdx);
           AllArgsMask = unionModRef(AllArgsMask, ArgMask);
         }
         // Conservatively clear IsMustAlias unless only MustAlias is found.
@@ -336,7 +336,7 @@ ModRefInfo AAResults::getModRefInfo(const CallBase *Call1,
       const Value *Arg = *I;
       if (!Arg->getType()->isPointerTy())
         continue;
-      unsigned Call2ArgIdx = std::distance(Call2->arg_begin(), I);
+      unsigned const Call2ArgIdx = std::distance(Call2->arg_begin(), I);
       auto Call2ArgLoc =
           MemoryLocation::getForArgument(Call2, Call2ArgIdx, TLI);
 
@@ -345,7 +345,7 @@ ModRefInfo AAResults::getModRefInfo(const CallBase *Call1,
       // - If Call2 modifies location, dependence exists if Call1 reads or
       //   writes.
       // - If Call2 only reads location, dependence exists if Call1 writes.
-      ModRefInfo ArgModRefC2 = getArgModRefInfo(Call2, Call2ArgIdx);
+      ModRefInfo const ArgModRefC2 = getArgModRefInfo(Call2, Call2ArgIdx);
       ModRefInfo ArgMask = ModRefInfo::NoModRef;
       if (isModSet(ArgModRefC2))
         ArgMask = ModRefInfo::ModRef;
@@ -354,7 +354,7 @@ ModRefInfo AAResults::getModRefInfo(const CallBase *Call1,
 
       // ModRefC1 indicates what Call1 might do to Call2ArgLoc, and we use
       // above ArgMask to update dependence info.
-      ModRefInfo ModRefC1 = getModRefInfo(Call1, Call2ArgLoc, AAQI);
+      ModRefInfo const ModRefC1 = getModRefInfo(Call1, Call2ArgLoc, AAQI);
       ArgMask = intersectModRef(ArgMask, ModRefC1);
 
       // Conservatively clear IsMustAlias unless only MustAlias is found.
@@ -387,15 +387,15 @@ ModRefInfo AAResults::getModRefInfo(const CallBase *Call1,
       const Value *Arg = *I;
       if (!Arg->getType()->isPointerTy())
         continue;
-      unsigned Call1ArgIdx = std::distance(Call1->arg_begin(), I);
+      unsigned const Call1ArgIdx = std::distance(Call1->arg_begin(), I);
       auto Call1ArgLoc =
           MemoryLocation::getForArgument(Call1, Call1ArgIdx, TLI);
 
       // ArgModRefC1 indicates what Call1 might do to Call1ArgLoc; if Call1
       // might Mod Call1ArgLoc, then we care about either a Mod or a Ref by
       // Call2. If Call1 might Ref, then we care only about a Mod by Call2.
-      ModRefInfo ArgModRefC1 = getArgModRefInfo(Call1, Call1ArgIdx);
-      ModRefInfo ModRefC2 = getModRefInfo(Call2, Call1ArgLoc, AAQI);
+      ModRefInfo const ArgModRefC1 = getArgModRefInfo(Call1, Call1ArgIdx);
+      ModRefInfo const ModRefC2 = getModRefInfo(Call2, Call1ArgLoc, AAQI);
       if ((isModSet(ArgModRefC1) && isModOrRefSet(ModRefC2)) ||
           (isRefSet(ArgModRefC1) && isModSet(ModRefC2)))
         R = intersectModRef(unionModRef(R, ArgModRefC1), Result);
@@ -488,7 +488,7 @@ ModRefInfo AAResults::getModRefInfo(const LoadInst *L,
   // If the load address doesn't alias the given address, it doesn't read
   // or write the specified memory.
   if (Loc.Ptr) {
-    AliasResult AR = alias(MemoryLocation::get(L), Loc, AAQI);
+    AliasResult const AR = alias(MemoryLocation::get(L), Loc, AAQI);
     if (AR == AliasResult::NoAlias)
       return ModRefInfo::NoModRef;
     if (AR == AliasResult::MustAlias)
@@ -511,7 +511,7 @@ ModRefInfo AAResults::getModRefInfo(const StoreInst *S,
     return ModRefInfo::ModRef;
 
   if (Loc.Ptr) {
-    AliasResult AR = alias(MemoryLocation::get(S), Loc, AAQI);
+    AliasResult const AR = alias(MemoryLocation::get(S), Loc, AAQI);
     // If the store address cannot alias the pointer in question, then the
     // specified memory cannot be modified by the store.
     if (AR == AliasResult::NoAlias)
@@ -556,7 +556,7 @@ ModRefInfo AAResults::getModRefInfo(const VAArgInst *V,
                                     const MemoryLocation &Loc,
                                     AAQueryInfo &AAQI) {
   if (Loc.Ptr) {
-    AliasResult AR = alias(MemoryLocation::get(V), Loc, AAQI);
+    AliasResult const AR = alias(MemoryLocation::get(V), Loc, AAQI);
     // If the va_arg address cannot alias the pointer in question, then the
     // specified memory cannot be accessed by the va_arg.
     if (AR == AliasResult::NoAlias)
@@ -630,7 +630,7 @@ ModRefInfo AAResults::getModRefInfo(const AtomicCmpXchgInst *CX,
     return ModRefInfo::ModRef;
 
   if (Loc.Ptr) {
-    AliasResult AR = alias(MemoryLocation::get(CX), Loc, AAQI);
+    AliasResult const AR = alias(MemoryLocation::get(CX), Loc, AAQI);
     // If the cmpxchg address does not alias the location, it does not access
     // it.
     if (AR == AliasResult::NoAlias)
@@ -658,7 +658,7 @@ ModRefInfo AAResults::getModRefInfo(const AtomicRMWInst *RMW,
     return ModRefInfo::ModRef;
 
   if (Loc.Ptr) {
-    AliasResult AR = alias(MemoryLocation::get(RMW), Loc, AAQI);
+    AliasResult const AR = alias(MemoryLocation::get(RMW), Loc, AAQI);
     // If the atomicrmw address does not alias the location, it does not access
     // it.
     if (AR == AliasResult::NoAlias)
@@ -750,7 +750,7 @@ ModRefInfo AAResults::callCapturesBefore(const Instruction *I,
          !Call->isByValArgument(ArgNo)))
       continue;
 
-    AliasResult AR = alias(
+    AliasResult const AR = alias(
         MemoryLocation::getBeforeOrAfter(*CI),
         MemoryLocation::getBeforeOrAfter(Object), AAQI);
     // If this is a no-capture pointer argument, see if we can tell that it

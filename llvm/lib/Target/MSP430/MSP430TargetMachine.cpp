@@ -23,7 +23,7 @@ using namespace llvm;
 
 extern "C" LLVM_EXTERNAL_VISIBILITY void LLVMInitializeMSP430Target() {
   // Register the target.
-  RegisterTargetMachine<MSP430TargetMachine> X(getTheMSP430Target());
+  RegisterTargetMachine<MSP430TargetMachine> const X(getTheMSP430Target());
 }
 
 static Reloc::Model getEffectiveRelocModel(Optional<Reloc::Model> RM) {

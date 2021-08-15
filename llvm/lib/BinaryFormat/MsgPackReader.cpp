@@ -159,7 +159,7 @@ Expected<bool> Reader::read(Object &Obj) {
 
   if ((FB & FixBitsMask::String) == FixBits::String) {
     Obj.Kind = Type::String;
-    uint8_t Size = FB & ~FixBitsMask::String;
+    uint8_t const Size = FB & ~FixBitsMask::String;
     return createRaw(Obj, Size);
   }
 

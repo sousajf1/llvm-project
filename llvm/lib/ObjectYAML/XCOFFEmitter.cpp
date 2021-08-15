@@ -70,7 +70,7 @@ static void writeName(StringRef StrName, support::endian::Writer W) {
   memset(Name, 0, XCOFF::NameSize);
   char SrcName[] = "";
   memcpy(Name, StrName.size() ? StrName.data() : SrcName, StrName.size());
-  ArrayRef<char> NameRef(Name, XCOFF::NameSize);
+  ArrayRef<char> const NameRef(Name, XCOFF::NameSize);
   W.write(NameRef);
 }
 
@@ -84,7 +84,7 @@ bool XCOFFWriter::initRelocations(uint64_t &CurrentOffset) {
     if (!InitSections[I].Relocations.empty()) {
       InitSections[I].NumberOfRelocations = InitSections[I].Relocations.size();
       InitSections[I].FileOffsetToRelocations = CurrentOffset;
-      uint64_t RelSize = Is64Bit ? XCOFF::RelocationSerializationSize64
+      uint64_t const RelSize = Is64Bit ? XCOFF::RelocationSerializationSize64
                                  : XCOFF::RelocationSerializationSize32;
       CurrentOffset += InitSections[I].NumberOfRelocations * RelSize;
       if (CurrentOffset > MaxRawDataSize) {
@@ -172,9 +172,9 @@ bool XCOFFWriter::initFileHeader(uint64_t CurrentOffset) {
 
 bool XCOFFWriter::assignAddressesAndIndices() {
   Strings.clear();
-  uint64_t FileHdrSize =
+  uint64_t const FileHdrSize =
       Is64Bit ? XCOFF::FileHeaderSize64 : XCOFF::FileHeaderSize32;
-  uint64_t SecHdrSize =
+  uint64_t const SecHdrSize =
       Is64Bit ? XCOFF::SectionHeaderSize64 : XCOFF::SectionHeaderSize32;
   uint64_t CurrentOffset = FileHdrSize /* TODO: + auxiliaryHeaderSize() */ +
                            InitSections.size() * SecHdrSize;
@@ -214,11 +214,11 @@ void XCOFFWriter::writeFileHeader() {
 
 void XCOFFWriter::writeSectionHeader() {
   for (uint16_t I = 0, E = Obj.Sections.size(); I < E; ++I) {
-    XCOFFYAML::Section YamlSec = Obj.Sections[I];
-    XCOFFYAML::Section DerivedSec = InitSections[I];
+    XCOFFYAML::Section const YamlSec = Obj.Sections[I];
+    XCOFFYAML::Section const DerivedSec = InitSections[I];
     writeName(YamlSec.SectionName, W);
     // Virtual address is the same as physical address.
-    uint64_t SectionAddress =
+    uint64_t const SectionAddress =
         YamlSec.Address ? YamlSec.Address : DerivedSec.Address;
     if (Is64Bit) {
       W.write<uint64_t>(SectionAddress); // Physical address
@@ -257,10 +257,10 @@ void XCOFFWriter::writeSectionHeader() {
 
 bool XCOFFWriter::writeSectionData() {
   for (uint16_t I = 0, E = Obj.Sections.size(); I < E; ++I) {
-    XCOFFYAML::Section YamlSec = Obj.Sections[I];
+    XCOFFYAML::Section const YamlSec = Obj.Sections[I];
     if (YamlSec.SectionData.binary_size()) {
       // Fill the padding size with zeros.
-      int64_t PaddingSize =
+      int64_t const PaddingSize =
           InitSections[I].FileOffsetToData - (W.OS.tell() - StartOffset);
       if (PaddingSize < 0) {
         ErrHandler("redundant data was written before section data");
@@ -275,9 +275,9 @@ bool XCOFFWriter::writeSectionData() {
 
 bool XCOFFWriter::writeRelocations() {
   for (uint16_t I = 0, E = Obj.Sections.size(); I < E; ++I) {
-    XCOFFYAML::Section YamlSec = Obj.Sections[I];
+    XCOFFYAML::Section const YamlSec = Obj.Sections[I];
     if (!YamlSec.Relocations.empty()) {
-      int64_t PaddingSize =
+      int64_t const PaddingSize =
           InitSections[I].FileOffsetToRelocations - (W.OS.tell() - StartOffset);
       if (PaddingSize < 0) {
         ErrHandler("redundant data was written before relocations");
@@ -299,7 +299,7 @@ bool XCOFFWriter::writeRelocations() {
 }
 
 bool XCOFFWriter::writeSymbols() {
-  int64_t PaddingSize =
+  int64_t const PaddingSize =
       (uint64_t)InitFileHdr.SymbolTableOffset - (W.OS.tell() - StartOffset);
   if (PaddingSize < 0) {
     ErrHandler("redundant data was written before symbols");

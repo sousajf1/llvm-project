@@ -28,7 +28,7 @@ WebAssemblyDebugValueManager::WebAssemblyDebugValueManager(
 
   MachineBasicBlock::iterator DI = *Instr;
   ++DI;
-  for (MachineBasicBlock::iterator DE = Instr->getParent()->end(); DI != DE;
+  for (MachineBasicBlock::iterator const DE = Instr->getParent()->end(); DI != DE;
        ++DI) {
     if (DI->isDebugValue() &&
         DI->hasDebugOperandForReg(Instr->getOperand(0).getReg()))

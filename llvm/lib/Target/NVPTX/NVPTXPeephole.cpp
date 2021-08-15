@@ -108,7 +108,7 @@ static void CombineCVTAToLocal(MachineInstr &Root) {
   const TargetInstrInfo *TII = MF.getSubtarget().getInstrInfo();
   auto &Prev = *MRI.getUniqueVRegDef(Root.getOperand(1).getReg());
 
-  MachineInstrBuilder MIB =
+  MachineInstrBuilder const MIB =
       BuildMI(MF, Root.getDebugLoc(), TII->get(Prev.getOpcode()),
               Root.getOperand(0).getReg())
           .addReg(NVPTX::VRFrameLocal)

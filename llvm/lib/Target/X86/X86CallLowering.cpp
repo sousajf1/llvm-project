@@ -68,7 +68,7 @@ public:
                  CCValAssign::LocInfo LocInfo,
                  const CallLowering::ArgInfo &Info, ISD::ArgFlagsTy Flags,
                  CCState &State) override {
-    bool Res = AssignFn(ValNo, ValVT, LocVT, LocInfo, Flags, State);
+    bool const Res = AssignFn(ValNo, ValVT, LocVT, LocInfo, Flags, State);
     StackSize = State.getNextStackOffset();
 
     static const MCPhysReg XMMArgRegs[] = {X86::XMM0, X86::XMM1, X86::XMM2,
@@ -91,8 +91,8 @@ struct X86OutgoingValueHandler : public CallLowering::OutgoingValueHandler {
   Register getStackAddress(uint64_t Size, int64_t Offset,
                            MachinePointerInfo &MPO,
                            ISD::ArgFlagsTy Flags) override {
-    LLT p0 = LLT::pointer(0, DL.getPointerSizeInBits(0));
-    LLT SType = LLT::scalar(DL.getPointerSizeInBits(0));
+    LLT const p0 = LLT::pointer(0, DL.getPointerSizeInBits(0));
+    LLT const SType = LLT::scalar(DL.getPointerSizeInBits(0));
     auto SPReg =
         MIRBuilder.buildCopy(p0, STI.getRegisterInfo()->getStackRegister());
 
@@ -107,14 +107,14 @@ struct X86OutgoingValueHandler : public CallLowering::OutgoingValueHandler {
   void assignValueToReg(Register ValVReg, Register PhysReg,
                         CCValAssign &VA) override {
     MIB.addUse(PhysReg, RegState::Implicit);
-    Register ExtReg = extendRegister(ValVReg, VA);
+    Register const ExtReg = extendRegister(ValVReg, VA);
     MIRBuilder.buildCopy(PhysReg, ExtReg);
   }
 
   void assignValueToAddress(Register ValVReg, Register Addr, LLT MemTy,
                             MachinePointerInfo &MPO, CCValAssign &VA) override {
     MachineFunction &MF = MIRBuilder.getMF();
-    Register ExtReg = extendRegister(ValVReg, VA);
+    Register const ExtReg = extendRegister(ValVReg, VA);
 
     auto *MMO = MF.getMachineMemOperand(MPO, MachineMemOperand::MOStore, MemTy,
                                         inferAlignFromPtrInfo(MF, MPO));
@@ -177,7 +177,7 @@ struct X86IncomingValueHandler : public CallLowering::IncomingValueHandler {
     // are not.
     const bool IsImmutable = !Flags.isByVal();
 
-    int FI = MFI.CreateFixedObject(Size, Offset, IsImmutable);
+    int const FI = MFI.CreateFixedObject(Size, Offset, IsImmutable);
     MPO = MachinePointerInfo::getFixedStack(MIRBuilder.getMF(), FI);
 
     return MIRBuilder
@@ -298,13 +298,13 @@ bool X86CallLowering::lowerCall(MachineIRBuilder &MIRBuilder,
                                 Info.CallConv == CallingConv::X86_64_SysV))
     return false;
 
-  unsigned AdjStackDown = TII.getCallFrameSetupOpcode();
+  unsigned const AdjStackDown = TII.getCallFrameSetupOpcode();
   auto CallSeqStart = MIRBuilder.buildInstr(AdjStackDown);
 
   // Create a temporarily-floating call instruction so we can add the implicit
   // uses of arg registers.
-  bool Is64Bit = STI.is64Bit();
-  unsigned CallOpc = Info.Callee.isReg()
+  bool const Is64Bit = STI.is64Bit();
+  unsigned const CallOpc = Info.Callee.isReg()
                          ? (Is64Bit ? X86::CALL64r : X86::CALL32r)
                          : (Is64Bit ? X86::CALL64pcrel32 : X86::CALLpcrel32);
 
@@ -331,7 +331,7 @@ bool X86CallLowering::lowerCall(MachineIRBuilder &MIRBuilder,
                                      Info.CallConv, Info.IsVarArg))
     return false;
 
-  bool IsFixed = Info.OrigArgs.empty() ? true : Info.OrigArgs.back().IsFixed;
+  bool const IsFixed = Info.OrigArgs.empty() ? true : Info.OrigArgs.back().IsFixed;
   if (STI.is64Bit() && !IsFixed && !STI.isCallingConvWin64(Info.CallConv)) {
     // From AMD64 ABI document:
     // For calls that may call functions that use varargs or stdargs
@@ -368,7 +368,7 @@ bool X86CallLowering::lowerCall(MachineIRBuilder &MIRBuilder,
       return false;
 
     SplitArgs.clear();
-    SmallVector<Register, 8> NewRegs;
+    SmallVector<Register, 8> const NewRegs;
 
     splitToValueTypes(Info.OrigRet, SplitArgs, DL, Info.CallConv);
 
@@ -386,7 +386,7 @@ bool X86CallLowering::lowerCall(MachineIRBuilder &MIRBuilder,
       .addImm(0 /* see getFrameTotalSize */)
       .addImm(0 /* see getFrameAdjustment */);
 
-  unsigned AdjStackUp = TII.getCallFrameDestroyOpcode();
+  unsigned const AdjStackUp = TII.getCallFrameDestroyOpcode();
   MIRBuilder.buildInstr(AdjStackUp)
       .addImm(Assigner.getStackSize())
       .addImm(0 /* NumBytesForCalleeToPop */);

@@ -19,9 +19,9 @@ namespace llvm {
 APFixedPoint APFixedPoint::convert(const FixedPointSemantics &DstSema,
                                    bool *Overflow) const {
   APSInt NewVal = Val;
-  unsigned DstWidth = DstSema.getWidth();
-  unsigned DstScale = DstSema.getScale();
-  bool Upscaling = DstScale > getScale();
+  unsigned const DstWidth = DstSema.getWidth();
+  unsigned const DstScale = DstSema.getScale();
+  bool const Upscaling = DstScale > getScale();
   if (Overflow)
     *Overflow = false;
 
@@ -35,7 +35,7 @@ APFixedPoint APFixedPoint::convert(const FixedPointSemantics &DstSema,
   auto Mask = APInt::getBitsSetFrom(
       NewVal.getBitWidth(),
       std::min(DstScale + DstSema.getIntegralBits(), NewVal.getBitWidth()));
-  APInt Masked(NewVal & Mask);
+  APInt const Masked(NewVal & Mask);
 
   // Change in the bits above the sign
   if (!(Masked == Mask || Masked == 0)) {
@@ -64,10 +64,10 @@ APFixedPoint APFixedPoint::convert(const FixedPointSemantics &DstSema,
 int APFixedPoint::compare(const APFixedPoint &Other) const {
   APSInt ThisVal = getValue();
   APSInt OtherVal = Other.getValue();
-  bool ThisSigned = Val.isSigned();
-  bool OtherSigned = OtherVal.isSigned();
-  unsigned OtherScale = Other.getScale();
-  unsigned OtherWidth = OtherVal.getBitWidth();
+  bool const ThisSigned = Val.isSigned();
+  bool const OtherSigned = OtherVal.isSigned();
+  unsigned const OtherScale = Other.getScale();
+  unsigned const OtherWidth = OtherVal.getBitWidth();
 
   unsigned CommonWidth = std::max(Val.getBitWidth(), OtherWidth);
 
@@ -78,7 +78,7 @@ int APFixedPoint::compare(const APFixedPoint &Other) const {
   ThisVal = ThisVal.extOrTrunc(CommonWidth);
   OtherVal = OtherVal.extOrTrunc(CommonWidth);
 
-  unsigned CommonScale = std::max(getScale(), OtherScale);
+  unsigned const CommonScale = std::max(getScale(), OtherScale);
   ThisVal = ThisVal.shl(CommonScale - getScale());
   OtherVal = OtherVal.shl(CommonScale - OtherScale);
 
@@ -113,7 +113,7 @@ int APFixedPoint::compare(const APFixedPoint &Other) const {
 }
 
 APFixedPoint APFixedPoint::getMax(const FixedPointSemantics &Sema) {
-  bool IsUnsigned = !Sema.isSigned();
+  bool const IsUnsigned = !Sema.isSigned();
   auto Val = APSInt::getMaxValue(Sema.getWidth(), IsUnsigned);
   if (IsUnsigned && Sema.hasUnsignedPadding())
     Val = Val.lshr(1);
@@ -135,14 +135,14 @@ bool FixedPointSemantics::fitsInFloatSemantics(
   // maximum/minimum value will not fit either, so the floating point semantic
   // cannot be used to perform such a rescaling.
 
-  APSInt MaxInt = APFixedPoint::getMax(*this).getValue();
+  APSInt const MaxInt = APFixedPoint::getMax(*this).getValue();
   APFloat F(FloatSema);
   APFloat::opStatus Status = F.convertFromAPInt(MaxInt, MaxInt.isSigned(),
                                                 APFloat::rmNearestTiesToAway);
   if ((Status & APFloat::opOverflow) || !isSigned())
     return !(Status & APFloat::opOverflow);
 
-  APSInt MinInt = APFixedPoint::getMin(*this).getValue();
+  APSInt const MinInt = APFixedPoint::getMin(*this).getValue();
   Status = F.convertFromAPInt(MinInt, MinInt.isSigned(),
                               APFloat::rmNearestTiesToAway);
   return !(Status & APFloat::opOverflow);
@@ -150,12 +150,12 @@ bool FixedPointSemantics::fitsInFloatSemantics(
 
 FixedPointSemantics FixedPointSemantics::getCommonSemantics(
     const FixedPointSemantics &Other) const {
-  unsigned CommonScale = std::max(getScale(), Other.getScale());
+  unsigned const CommonScale = std::max(getScale(), Other.getScale());
   unsigned CommonWidth =
       std::max(getIntegralBits(), Other.getIntegralBits()) + CommonScale;
 
-  bool ResultIsSigned = isSigned() || Other.isSigned();
-  bool ResultIsSaturated = isSaturated() || Other.isSaturated();
+  bool const ResultIsSigned = isSigned() || Other.isSigned();
+  bool const ResultIsSaturated = isSaturated() || Other.isSaturated();
   bool ResultHasUnsignedPadding = false;
   if (!ResultIsSigned) {
     // Both are unsigned.
@@ -176,10 +176,10 @@ FixedPointSemantics FixedPointSemantics::getCommonSemantics(
 APFixedPoint APFixedPoint::add(const APFixedPoint &Other,
                                bool *Overflow) const {
   auto CommonFXSema = Sema.getCommonSemantics(Other.getSemantics());
-  APFixedPoint ConvertedThis = convert(CommonFXSema);
-  APFixedPoint ConvertedOther = Other.convert(CommonFXSema);
-  APSInt ThisVal = ConvertedThis.getValue();
-  APSInt OtherVal = ConvertedOther.getValue();
+  APFixedPoint const ConvertedThis = convert(CommonFXSema);
+  APFixedPoint const ConvertedOther = Other.convert(CommonFXSema);
+  APSInt const ThisVal = ConvertedThis.getValue();
+  APSInt const OtherVal = ConvertedOther.getValue();
   bool Overflowed = false;
 
   APSInt Result;
@@ -200,10 +200,10 @@ APFixedPoint APFixedPoint::add(const APFixedPoint &Other,
 APFixedPoint APFixedPoint::sub(const APFixedPoint &Other,
                                bool *Overflow) const {
   auto CommonFXSema = Sema.getCommonSemantics(Other.getSemantics());
-  APFixedPoint ConvertedThis = convert(CommonFXSema);
-  APFixedPoint ConvertedOther = Other.convert(CommonFXSema);
-  APSInt ThisVal = ConvertedThis.getValue();
-  APSInt OtherVal = ConvertedOther.getValue();
+  APFixedPoint const ConvertedThis = convert(CommonFXSema);
+  APFixedPoint const ConvertedOther = Other.convert(CommonFXSema);
+  APSInt const ThisVal = ConvertedThis.getValue();
+  APSInt const OtherVal = ConvertedOther.getValue();
   bool Overflowed = false;
 
   APSInt Result;
@@ -224,14 +224,14 @@ APFixedPoint APFixedPoint::sub(const APFixedPoint &Other,
 APFixedPoint APFixedPoint::mul(const APFixedPoint &Other,
                                bool *Overflow) const {
   auto CommonFXSema = Sema.getCommonSemantics(Other.getSemantics());
-  APFixedPoint ConvertedThis = convert(CommonFXSema);
-  APFixedPoint ConvertedOther = Other.convert(CommonFXSema);
+  APFixedPoint const ConvertedThis = convert(CommonFXSema);
+  APFixedPoint const ConvertedOther = Other.convert(CommonFXSema);
   APSInt ThisVal = ConvertedThis.getValue();
   APSInt OtherVal = ConvertedOther.getValue();
   bool Overflowed = false;
 
   // Widen the LHS and RHS so we can perform a full multiplication.
-  unsigned Wide = CommonFXSema.getWidth() * 2;
+  unsigned const Wide = CommonFXSema.getWidth() * 2;
   if (CommonFXSema.isSigned()) {
     ThisVal = ThisVal.sextOrSelf(Wide);
     OtherVal = OtherVal.sextOrSelf(Wide);
@@ -259,9 +259,9 @@ APFixedPoint APFixedPoint::mul(const APFixedPoint &Other,
 
   // If our result lies outside of the representative range of the common
   // semantic, we either have overflow or saturation.
-  APSInt Max = APFixedPoint::getMax(CommonFXSema).getValue()
+  APSInt const Max = APFixedPoint::getMax(CommonFXSema).getValue()
                                                  .extOrTrunc(Wide);
-  APSInt Min = APFixedPoint::getMin(CommonFXSema).getValue()
+  APSInt const Min = APFixedPoint::getMin(CommonFXSema).getValue()
                                                  .extOrTrunc(Wide);
   if (CommonFXSema.isSaturated()) {
     if (Result < Min)
@@ -281,14 +281,14 @@ APFixedPoint APFixedPoint::mul(const APFixedPoint &Other,
 APFixedPoint APFixedPoint::div(const APFixedPoint &Other,
                                bool *Overflow) const {
   auto CommonFXSema = Sema.getCommonSemantics(Other.getSemantics());
-  APFixedPoint ConvertedThis = convert(CommonFXSema);
-  APFixedPoint ConvertedOther = Other.convert(CommonFXSema);
+  APFixedPoint const ConvertedThis = convert(CommonFXSema);
+  APFixedPoint const ConvertedOther = Other.convert(CommonFXSema);
   APSInt ThisVal = ConvertedThis.getValue();
   APSInt OtherVal = ConvertedOther.getValue();
   bool Overflowed = false;
 
   // Widen the LHS and RHS so we can perform a full division.
-  unsigned Wide = CommonFXSema.getWidth() * 2;
+  unsigned const Wide = CommonFXSema.getWidth() * 2;
   if (CommonFXSema.isSigned()) {
     ThisVal = ThisVal.sextOrSelf(Wide);
     OtherVal = OtherVal.sextOrSelf(Wide);
@@ -314,9 +314,9 @@ APFixedPoint APFixedPoint::div(const APFixedPoint &Other,
 
   // If our result lies outside of the representative range of the common
   // semantic, we either have overflow or saturation.
-  APSInt Max = APFixedPoint::getMax(CommonFXSema).getValue()
+  APSInt const Max = APFixedPoint::getMax(CommonFXSema).getValue()
                                                  .extOrTrunc(Wide);
-  APSInt Min = APFixedPoint::getMin(CommonFXSema).getValue()
+  APSInt const Min = APFixedPoint::getMin(CommonFXSema).getValue()
                                                  .extOrTrunc(Wide);
   if (CommonFXSema.isSaturated()) {
     if (Result < Min)
@@ -338,7 +338,7 @@ APFixedPoint APFixedPoint::shl(unsigned Amt, bool *Overflow) const {
   bool Overflowed = false;
 
   // Widen the LHS.
-  unsigned Wide = Sema.getWidth() * 2;
+  unsigned const Wide = Sema.getWidth() * 2;
   if (Sema.isSigned())
     ThisVal = ThisVal.sextOrSelf(Wide);
   else
@@ -351,8 +351,8 @@ APFixedPoint APFixedPoint::shl(unsigned Amt, bool *Overflow) const {
 
   // If our result lies outside of the representative range of the
   // semantic, we either have overflow or saturation.
-  APSInt Max = APFixedPoint::getMax(Sema).getValue().extOrTrunc(Wide);
-  APSInt Min = APFixedPoint::getMin(Sema).getValue().extOrTrunc(Wide);
+  APSInt const Max = APFixedPoint::getMax(Sema).getValue().extOrTrunc(Wide);
+  APSInt const Min = APFixedPoint::getMin(Sema).getValue().extOrTrunc(Wide);
   if (Sema.isSaturated()) {
     if (Result < Min)
       Result = Min;
@@ -369,20 +369,20 @@ APFixedPoint APFixedPoint::shl(unsigned Amt, bool *Overflow) const {
 
 void APFixedPoint::toString(SmallVectorImpl<char> &Str) const {
   APSInt Val = getValue();
-  unsigned Scale = getScale();
+  unsigned const Scale = getScale();
 
   if (Val.isSigned() && Val.isNegative() && Val != -Val) {
     Val = -Val;
     Str.push_back('-');
   }
 
-  APSInt IntPart = Val >> Scale;
+  APSInt const IntPart = Val >> Scale;
 
   // Add 4 digits to hold the value after multiplying 10 (the radix)
-  unsigned Width = Val.getBitWidth() + 4;
+  unsigned const Width = Val.getBitWidth() + 4;
   APInt FractPart = Val.zextOrTrunc(Scale).zext(Width);
-  APInt FractPartMask = APInt::getAllOnesValue(Scale).zext(Width);
-  APInt RadixInt = APInt(Width, 10);
+  APInt const FractPartMask = APInt::getAllOnesValue(Scale).zext(Width);
+  APInt const RadixInt = APInt(Width, 10);
 
   IntPart.toString(Str, /*Radix=*/10);
   Str.push_back('.');
@@ -415,7 +415,7 @@ APFixedPoint APFixedPoint::negate(bool *Overflow) const {
 APSInt APFixedPoint::convertToInt(unsigned DstWidth, bool DstSign,
                                   bool *Overflow) const {
   APSInt Result = getIntPart();
-  unsigned SrcWidth = getWidth();
+  unsigned const SrcWidth = getWidth();
 
   APSInt DstMin = APSInt::getMinValue(DstWidth, !DstSign);
   APSInt DstMax = APSInt::getMaxValue(DstWidth, !DstSign);
@@ -457,8 +457,8 @@ APFloat APFixedPoint::convertToFloat(const fltSemantics &FloatSema) const {
   // For some operations, rounding mode has an effect on the result, while
   // other operations are lossless and should never result in rounding.
   // To signify which these operations are, we define two rounding modes here.
-  APFloat::roundingMode RM = APFloat::rmNearestTiesToEven;
-  APFloat::roundingMode LosslessRM = APFloat::rmTowardZero;
+  APFloat::roundingMode const RM = APFloat::rmNearestTiesToEven;
+  APFloat::roundingMode const LosslessRM = APFloat::rmTowardZero;
 
   // Make sure that we are operating in a type that works with this fixed-point
   // semantic.
@@ -470,7 +470,7 @@ APFloat APFixedPoint::convertToFloat(const fltSemantics &FloatSema) const {
   // value does not have the required precision, we will round according to the
   // given mode.
   APFloat Flt(*OpSema);
-  APFloat::opStatus S = Flt.convertFromAPInt(Val, Sema.isSigned(), RM);
+  APFloat::opStatus const S = Flt.convertFromAPInt(Val, Sema.isSigned(), RM);
 
   // If we cared about checking for precision loss, we could look at this
   // status.
@@ -492,7 +492,7 @@ APFloat APFixedPoint::convertToFloat(const fltSemantics &FloatSema) const {
 APFixedPoint APFixedPoint::getFromIntValue(const APSInt &Value,
                                            const FixedPointSemantics &DstFXSema,
                                            bool *Overflow) {
-  FixedPointSemantics IntFXSema = FixedPointSemantics::GetIntegerSemantics(
+  FixedPointSemantics const IntFXSema = FixedPointSemantics::GetIntegerSemantics(
       Value.getBitWidth(), Value.isSigned());
   return APFixedPoint(Value, IntFXSema).convert(DstFXSema, Overflow);
 }
@@ -505,8 +505,8 @@ APFixedPoint::getFromFloatValue(const APFloat &Value,
   // other operations are lossless and should never result in rounding.
   // To signify which these operations are, we define two rounding modes here,
   // even though they are the same mode.
-  APFloat::roundingMode RM = APFloat::rmTowardZero;
-  APFloat::roundingMode LosslessRM = APFloat::rmTowardZero;
+  APFloat::roundingMode const RM = APFloat::rmTowardZero;
+  APFloat::roundingMode const LosslessRM = APFloat::rmTowardZero;
 
   const fltSemantics &FloatSema = Value.getSemantics();
 
@@ -554,8 +554,8 @@ APFixedPoint::getFromFloatValue(const APFloat &Value,
 
   // Check for overflow/saturation by checking if the floating point value
   // is outside the range representable by the fixed-point value.
-  APFloat FloatMax = getMax(DstFXSema).convertToFloat(*OpSema);
-  APFloat FloatMin = getMin(DstFXSema).convertToFloat(*OpSema);
+  APFloat const FloatMax = getMax(DstFXSema).convertToFloat(*OpSema);
+  APFloat const FloatMin = getMin(DstFXSema).convertToFloat(*OpSema);
   bool Overflowed = false;
   if (DstFXSema.isSaturated()) {
     if (Val > FloatMax)

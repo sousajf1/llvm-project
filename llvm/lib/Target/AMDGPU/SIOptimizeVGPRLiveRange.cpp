@@ -225,13 +225,13 @@ void SIOptimizeVGPRLiveRange::collectCandidateRegisters(
         if (!MO.isReg() || !MO.getReg() || MO.isDef())
           continue;
 
-        Register MOReg = MO.getReg();
+        Register const MOReg = MO.getReg();
         // We can only optimize AGPR/VGPR virtual register
         if (MOReg.isPhysical() || !TRI->isVectorRegister(*MRI, MOReg))
           continue;
 
         if (MO.readsReg()) {
-          LiveVariables::VarInfo &VI = LV->getVarInfo(MOReg);
+          LiveVariables::VarInfo  const&VI = LV->getVarInfo(MOReg);
           const MachineBasicBlock *DefMBB = MRI->getVRegDef(MOReg)->getParent();
           // Make sure two conditions are met:
           // a.) the value is defined before/in the IF block
@@ -266,7 +266,7 @@ void SIOptimizeVGPRLiveRange::collectCandidateRegisters(
       if (!MO.isReg() || !MO.getReg() || MO.isUndef())
         continue;
 
-      Register Reg = MO.getReg();
+      Register const Reg = MO.getReg();
       if (Reg.isPhysical() || !TRI->isVectorRegister(*MRI, Reg))
         continue;
 
@@ -329,7 +329,7 @@ void SIOptimizeVGPRLiveRange::collectWaterfallCandidateRegisters(
       if (!MO.isReg() || !MO.getReg() || MO.isDef())
         continue;
 
-      Register MOReg = MO.getReg();
+      Register const MOReg = MO.getReg();
       // We can only optimize AGPR/VGPR virtual register
       if (MOReg.isPhysical() || !TRI->isVectorRegister(*MRI, MOReg))
         continue;
@@ -447,7 +447,7 @@ void SIOptimizeVGPRLiveRange::updateLiveRangeInElseRegion(
 
   // Transfer aliveBlocks from Reg to NewReg
   for (auto *MBB : ElseBlocks) {
-    unsigned BBNum = MBB->getNumber();
+    unsigned const BBNum = MBB->getNumber();
     if (OldVarInfo.AliveBlocks.test(BBNum)) {
       NewVarInfo.AliveBlocks.set(BBNum);
       LLVM_DEBUG(dbgs() << "Removing AliveBlock " << printMBBReference(*MBB)
@@ -476,9 +476,9 @@ void SIOptimizeVGPRLiveRange::optimizeLiveRange(
   // undef.
   LLVM_DEBUG(dbgs() << "Optimizing " << printReg(Reg, TRI) << '\n');
   const auto *RC = MRI->getRegClass(Reg);
-  Register NewReg = MRI->createVirtualRegister(RC);
-  Register UndefReg = MRI->createVirtualRegister(RC);
-  MachineInstrBuilder PHI = BuildMI(*Flow, Flow->getFirstNonPHI(), DebugLoc(),
+  Register const NewReg = MRI->createVirtualRegister(RC);
+  Register const UndefReg = MRI->createVirtualRegister(RC);
+  MachineInstrBuilder const PHI = BuildMI(*Flow, Flow->getFirstNonPHI(), DebugLoc(),
                                     TII->get(TargetOpcode::PHI), NewReg);
   for (auto *Pred : Flow->predecessors()) {
     if (Pred == If)
@@ -517,8 +517,8 @@ void SIOptimizeVGPRLiveRange::optimizeWaterfallLiveRange(
   // Insert a new PHI, marking the value from the last loop iteration undef.
   LLVM_DEBUG(dbgs() << "Optimizing " << printReg(Reg, TRI) << '\n');
   const auto *RC = MRI->getRegClass(Reg);
-  Register NewReg = MRI->createVirtualRegister(RC);
-  Register UndefReg = MRI->createVirtualRegister(RC);
+  Register const NewReg = MRI->createVirtualRegister(RC);
+  Register const UndefReg = MRI->createVirtualRegister(RC);
 
   // Replace all uses in the LOOP region
   // Use early increment range because setReg() will update the linked list.
@@ -530,7 +530,7 @@ void SIOptimizeVGPRLiveRange::optimizeWaterfallLiveRange(
       O.setReg(NewReg);
   }
 
-  MachineInstrBuilder PHI = BuildMI(*Loop, Loop->getFirstNonPHI(), DebugLoc(),
+  MachineInstrBuilder const PHI = BuildMI(*Loop, Loop->getFirstNonPHI(), DebugLoc(),
                                     TII->get(TargetOpcode::PHI), NewReg);
   for (auto *Pred : Loop->predecessors()) {
     if (Pred == Loop)

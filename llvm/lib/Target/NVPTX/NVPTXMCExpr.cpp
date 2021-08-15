@@ -46,7 +46,7 @@ void NVPTXFloatMCExpr::printImpl(raw_ostream &OS, const MCAsmInfo *MAI) const {
     break;
   }
 
-  APInt API = APF.bitcastToAPInt();
+  APInt const API = APF.bitcastToAPInt();
   OS << format_hex_no_prefix(API.getZExtValue(), NumHex, /*Upper=*/true);
 }
 

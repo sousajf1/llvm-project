@@ -43,7 +43,7 @@ LLVMContext::LLVMContext() : pImpl(new LLVMContextImpl(*this)) {
   };
 
   for (auto &MDKind : MDKinds) {
-    unsigned ID = getMDKindID(MDKind.second);
+    unsigned const ID = getMDKindID(MDKind.second);
     assert(ID == MDKind.first && "metadata kind id drifted");
     (void)ID;
   }
@@ -84,13 +84,13 @@ LLVMContext::LLVMContext() : pImpl(new LLVMContextImpl(*this)) {
          "clang.arc.attachedcall operand bundle id drifted!");
   (void)ClangAttachedCall;
 
-  SyncScope::ID SingleThreadSSID =
+  SyncScope::ID const SingleThreadSSID =
       pImpl->getOrInsertSyncScopeID("singlethread");
   assert(SingleThreadSSID == SyncScope::SingleThread &&
          "singlethread synchronization scope ID drifted!");
   (void)SingleThreadSSID;
 
-  SyncScope::ID SystemSSID =
+  SyncScope::ID const SystemSSID =
       pImpl->getOrInsertSyncScopeID("");
   assert(SystemSSID == SyncScope::System &&
          "system synchronization scope ID drifted!");

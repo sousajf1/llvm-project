@@ -19,7 +19,7 @@ namespace {
 MachineInstr &findEquivalentInstruction(MachineInstr &MI,
                                         MachineBasicBlock *BB) {
   MachineBasicBlock *PB = MI.getParent();
-  unsigned Offset = std::distance(PB->instr_begin(), MachineBasicBlock::instr_iterator(MI));
+  unsigned const Offset = std::distance(PB->instr_begin(), MachineBasicBlock::instr_iterator(MI));
   return *std::next(BB->instr_begin(), Offset);
 }
 } // namespace
@@ -44,11 +44,11 @@ MachineBasicBlock *llvm::PeelSingleBlockLoop(LoopPeelDirection Direction,
 
   DenseMap<Register, Register> Remaps;
   auto InsertPt = NewBB->end();
-  for (MachineInstr &MI : *Loop) {
+  for (MachineInstr  const&MI : *Loop) {
     MachineInstr *NewMI = MF.CloneMachineInstr(&MI);
     NewBB->insert(InsertPt, NewMI);
     for (MachineOperand &MO : NewMI->defs()) {
-      Register OrigR = MO.getReg();
+      Register const OrigR = MO.getReg();
       if (OrigR.isPhysical())
         continue;
       Register &R = Remaps[OrigR];
@@ -95,14 +95,14 @@ MachineBasicBlock *llvm::PeelSingleBlockLoop(LoopPeelDirection Direction,
     } else {
       // When peeling back, the initial value is the loop-carried value from
       // the original loop.
-      Register LoopReg = OrigPhi.getOperand(LoopRegIdx).getReg();
+      Register const LoopReg = OrigPhi.getOperand(LoopRegIdx).getReg();
       MI.getOperand(LoopRegIdx).setReg(LoopReg);
       MI.RemoveOperand(InitRegIdx + 1);
       MI.RemoveOperand(InitRegIdx + 0);
     }
   }
 
-  DebugLoc DL;
+  DebugLoc const DL;
   if (Direction == LPD_Front) {
     Preheader->replaceSuccessor(Loop, NewBB);
     NewBB->addSuccessor(Loop);
@@ -118,7 +118,7 @@ MachineBasicBlock *llvm::PeelSingleBlockLoop(LoopPeelDirection Direction,
 
     MachineBasicBlock *TBB = nullptr, *FBB = nullptr;
     SmallVector<MachineOperand, 4> Cond;
-    bool CanAnalyzeBr = !TII->analyzeBranch(*Loop, TBB, FBB, Cond);
+    bool const CanAnalyzeBr = !TII->analyzeBranch(*Loop, TBB, FBB, Cond);
     (void)CanAnalyzeBr;
     assert(CanAnalyzeBr && "Must be able to analyze the loop branch!");
     TII->removeBranch(*Loop);

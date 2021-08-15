@@ -213,8 +213,8 @@ Value *InstCombinerImpl::EmitGEPOffset(User *GEP) {
 /// from frontend languages.
 bool InstCombinerImpl::shouldChangeType(unsigned FromWidth,
                                         unsigned ToWidth) const {
-  bool FromLegal = FromWidth == 1 || DL.isLegalInteger(FromWidth);
-  bool ToLegal = ToWidth == 1 || DL.isLegalInteger(ToWidth);
+  bool const FromLegal = FromWidth == 1 || DL.isLegalInteger(FromWidth);
+  bool const ToLegal = ToWidth == 1 || DL.isLegalInteger(ToWidth);
 
   // Convert to widths of 8, 16 or 32 even if they are not legal types. Only
   // shrink types, to prevent infinite loops.
@@ -245,8 +245,8 @@ bool InstCombinerImpl::shouldChangeType(Type *From, Type *To) const {
   if (!From->isIntegerTy() || !To->isIntegerTy())
     return false;
 
-  unsigned FromWidth = From->getPrimitiveSizeInBits();
-  unsigned ToWidth = To->getPrimitiveSizeInBits();
+  unsigned const FromWidth = From->getPrimitiveSizeInBits();
+  unsigned const ToWidth = To->getPrimitiveSizeInBits();
   return shouldChangeType(FromWidth, ToWidth);
 }
 
@@ -261,7 +261,7 @@ static bool maintainNoSignedWrap(BinaryOperator &I, Value *B, Value *C) {
     return false;
 
   // We reason about Add and Sub Only.
-  Instruction::BinaryOps Opcode = I.getOpcode();
+  Instruction::BinaryOps const Opcode = I.getOpcode();
   if (Opcode != Instruction::Add && Opcode != Instruction::Sub)
     return false;
 
@@ -298,7 +298,7 @@ static void ClearSubclassDataAfterReassociation(BinaryOperator &I) {
     return;
   }
 
-  FastMathFlags FMF = I.getFastMathFlags();
+  FastMathFlags const FMF = I.getFastMathFlags();
   I.clearSubclassOptionalData();
   I.setFastMathFlags(FMF);
 }
@@ -387,7 +387,7 @@ Value *InstCombinerImpl::simplifyIntToPtrRoundTripCast(Value *Val) {
 ///  6. Transform: "(A op C1) op (B op C2)" ==> "(A op B) op (C1 op C2)"
 ///     if C1 and C2 are constants.
 bool InstCombinerImpl::SimplifyAssociativeOrCommutative(BinaryOperator &I) {
-  Instruction::BinaryOps Opcode = I.getOpcode();
+  Instruction::BinaryOps const Opcode = I.getOpcode();
   bool Changed = false;
 
   do {
@@ -413,8 +413,8 @@ bool InstCombinerImpl::SimplifyAssociativeOrCommutative(BinaryOperator &I) {
           // It simplifies to V.  Form "A op V".
           replaceOperand(I, 0, A);
           replaceOperand(I, 1, V);
-          bool IsNUW = hasNoUnsignedWrap(I) && hasNoUnsignedWrap(*Op0);
-          bool IsNSW = maintainNoSignedWrap(I, B, C) && hasNoSignedWrap(*Op0);
+          bool const IsNUW = hasNoUnsignedWrap(I) && hasNoUnsignedWrap(*Op0);
+          bool const IsNSW = maintainNoSignedWrap(I, B, C) && hasNoSignedWrap(*Op0);
 
           // Conservatively clear all optional flags since they may not be
           // preserved by the reassociation. Reset nsw/nuw based on the above
@@ -511,7 +511,7 @@ bool InstCombinerImpl::SimplifyAssociativeOrCommutative(BinaryOperator &I) {
           Op0->getOpcode() == Opcode && Op1->getOpcode() == Opcode &&
           match(Op0, m_OneUse(m_BinOp(m_Value(A), m_Constant(C1)))) &&
           match(Op1, m_OneUse(m_BinOp(m_Value(B), m_Constant(C2))))) {
-        bool IsNUW = hasNoUnsignedWrap(I) &&
+        bool const IsNUW = hasNoUnsignedWrap(I) &&
            hasNoUnsignedWrap(*Op0) &&
            hasNoUnsignedWrap(*Op1);
          BinaryOperator *NewBO = (IsNUW && Opcode == Instruction::Add) ?
@@ -623,10 +623,10 @@ Value *InstCombinerImpl::tryFactorization(BinaryOperator &I,
   Value *V = nullptr;
   Value *SimplifiedInst = nullptr;
   Value *LHS = I.getOperand(0), *RHS = I.getOperand(1);
-  Instruction::BinaryOps TopLevelOpcode = I.getOpcode();
+  Instruction::BinaryOps const TopLevelOpcode = I.getOpcode();
 
   // Does "X op' Y" always equal "Y op' X"?
-  bool InnerCommutative = Instruction::isCommutative(InnerOpcode);
+  bool const InnerCommutative = Instruction::isCommutative(InnerOpcode);
 
   // Does "X op' (Y op Z)" always equal "(X op' Y) op (X op' Z)"?
   if (leftDistributesOverRight(InnerOpcode, TopLevelOpcode))
@@ -724,7 +724,7 @@ Value *InstCombinerImpl::SimplifyUsingDistributiveLaws(BinaryOperator &I) {
   Value *LHS = I.getOperand(0), *RHS = I.getOperand(1);
   BinaryOperator *Op0 = dyn_cast<BinaryOperator>(LHS);
   BinaryOperator *Op1 = dyn_cast<BinaryOperator>(RHS);
-  Instruction::BinaryOps TopLevelOpcode = I.getOpcode();
+  Instruction::BinaryOps const TopLevelOpcode = I.getOpcode();
 
   {
     // Factorization.
@@ -761,7 +761,7 @@ Value *InstCombinerImpl::SimplifyUsingDistributiveLaws(BinaryOperator &I) {
     // The instruction has the form "(A op' B) op C".  See if expanding it out
     // to "(A op C) op' (B op C)" results in simplifications.
     Value *A = Op0->getOperand(0), *B = Op0->getOperand(1), *C = RHS;
-    Instruction::BinaryOps InnerOpcode = Op0->getOpcode(); // op'
+    Instruction::BinaryOps const InnerOpcode = Op0->getOpcode(); // op'
 
     // Disable the use of undef because it's not safe to distribute undef.
     auto SQDistributive = SQ.getWithInstruction(&I).getWithoutUndef();
@@ -800,7 +800,7 @@ Value *InstCombinerImpl::SimplifyUsingDistributiveLaws(BinaryOperator &I) {
     // The instruction has the form "A op (B op' C)".  See if expanding it out
     // to "(A op B) op' (A op C)" results in simplifications.
     Value *A = LHS, *B = Op1->getOperand(0), *C = Op1->getOperand(1);
-    Instruction::BinaryOps InnerOpcode = Op1->getOpcode(); // op'
+    Instruction::BinaryOps const InnerOpcode = Op1->getOpcode(); // op'
 
     // Disable the use of undef because it's not safe to distribute undef.
     auto SQDistributive = SQ.getWithInstruction(&I).getWithoutUndef();
@@ -842,20 +842,20 @@ Value *InstCombinerImpl::SimplifySelectsFeedingBinaryOp(BinaryOperator &I,
                                                         Value *LHS,
                                                         Value *RHS) {
   Value *A, *B, *C, *D, *E, *F;
-  bool LHSIsSelect = match(LHS, m_Select(m_Value(A), m_Value(B), m_Value(C)));
-  bool RHSIsSelect = match(RHS, m_Select(m_Value(D), m_Value(E), m_Value(F)));
+  bool const LHSIsSelect = match(LHS, m_Select(m_Value(A), m_Value(B), m_Value(C)));
+  bool const RHSIsSelect = match(RHS, m_Select(m_Value(D), m_Value(E), m_Value(F)));
   if (!LHSIsSelect && !RHSIsSelect)
     return nullptr;
 
   FastMathFlags FMF;
-  BuilderTy::FastMathFlagGuard Guard(Builder);
+  BuilderTy::FastMathFlagGuard const Guard(Builder);
   if (isa<FPMathOperator>(&I)) {
     FMF = I.getFastMathFlags();
     Builder.setFastMathFlags(FMF);
   }
 
-  Instruction::BinaryOps Opcode = I.getOpcode();
-  SimplifyQuery Q = SQ.getWithInstruction(&I);
+  Instruction::BinaryOps const Opcode = I.getOpcode();
+  SimplifyQuery const Q = SQ.getWithInstruction(&I);
 
   Value *Cond, *True = nullptr, *False = nullptr;
   if (LHSIsSelect && RHSIsSelect && A == D) {
@@ -961,7 +961,7 @@ static Value *foldOperationIntoSelectOperand(Instruction &I, Value *SO,
   if (auto *II = dyn_cast<IntrinsicInst>(&I)) {
     assert(canConstantFoldCallTo(II, cast<Function>(II->getCalledOperand())) &&
            "Expected constant-foldable intrinsic");
-    Intrinsic::ID IID = II->getIntrinsicID();
+    Intrinsic::ID const IID = II->getIntrinsicID();
     if (II->getNumArgOperands() == 1)
       return Builder.CreateUnaryIntrinsic(IID, SO);
 
@@ -977,7 +977,7 @@ static Value *foldOperationIntoSelectOperand(Instruction &I, Value *SO,
   assert(I.isBinaryOp() && "Unexpected opcode for select folding");
 
   // Figure out if the constant is the left or the right argument.
-  bool ConstIsRHS = isa<Constant>(I.getOperand(1));
+  bool const ConstIsRHS = isa<Constant>(I.getOperand(1));
   Constant *ConstOperand = cast<Constant>(I.getOperand(ConstIsRHS));
 
   if (auto *SOC = dyn_cast<Constant>(SO)) {
@@ -1075,7 +1075,7 @@ Instruction *InstCombinerImpl::FoldOpIntoSelect(Instruction &Op,
 
 static Value *foldOperationIntoPhiValue(BinaryOperator *I, Value *InV,
                                         InstCombiner::BuilderTy &Builder) {
-  bool ConstIsRHS = isa<Constant>(I->getOperand(1));
+  bool const ConstIsRHS = isa<Constant>(I->getOperand(1));
   Constant *C = cast<Constant>(I->getOperand(ConstIsRHS));
 
   if (auto *InC = dyn_cast<Constant>(InV)) {
@@ -1096,7 +1096,7 @@ static Value *foldOperationIntoPhiValue(BinaryOperator *I, Value *InV,
 }
 
 Instruction *InstCombinerImpl::foldOpIntoPhi(Instruction &I, PHINode *PN) {
-  unsigned NumPHIValues = PN->getNumIncomingValues();
+  unsigned const NumPHIValues = PN->getNumIncomingValues();
   if (NumPHIValues == 0)
     return nullptr;
 
@@ -1280,7 +1280,7 @@ InstCombinerImpl::FindElementAtOffset(PointerType *PtrTy, int64_t Offset,
   // is something like [0 x {int, int}]
   Type *IndexTy = DL.getIndexType(PtrTy);
   int64_t FirstIdx = 0;
-  if (int64_t TySize = DL.getTypeAllocSize(Ty)) {
+  if (int64_t const TySize = DL.getTypeAllocSize(Ty)) {
     FirstIdx = Offset/TySize;
     Offset -= FirstIdx*TySize;
 
@@ -1306,14 +1306,14 @@ InstCombinerImpl::FindElementAtOffset(PointerType *PtrTy, int64_t Offset,
       assert(Offset < (int64_t)SL->getSizeInBytes() &&
              "Offset must stay within the indexed type");
 
-      unsigned Elt = SL->getElementContainingOffset(Offset);
+      unsigned const Elt = SL->getElementContainingOffset(Offset);
       NewIndices.push_back(ConstantInt::get(Type::getInt32Ty(Ty->getContext()),
                                             Elt));
 
       Offset -= SL->getElementOffset(Elt);
       Ty = STy->getElementType(Elt);
     } else if (ArrayType *AT = dyn_cast<ArrayType>(Ty)) {
-      uint64_t EltSize = DL.getTypeAllocSize(AT->getElementType());
+      uint64_t const EltSize = DL.getTypeAllocSize(AT->getElementType());
       assert(EltSize && "Cannot index into a zero-sized array");
       NewIndices.push_back(ConstantInt::get(IndexTy,Offset/EltSize));
       Offset %= EltSize;
@@ -1448,7 +1448,7 @@ Value *InstCombinerImpl::Descale(Value *Val, APInt Scale, bool &NoSignedWrap) {
           return nullptr;
 
         Value *LHS = BO->getOperand(0);
-        int32_t Amt = cast<ConstantInt>(BO->getOperand(1))->
+        int32_t const Amt = cast<ConstantInt>(BO->getOperand(1))->
           getLimitedValue(Scale.getBitWidth());
         // Op = LHS << Amt.
 
@@ -1475,8 +1475,8 @@ Value *InstCombinerImpl::Descale(Value *Val, APInt Scale, bool &NoSignedWrap) {
     if (CastInst *Cast = dyn_cast<CastInst>(Op)) {
       if (Cast->getOpcode() == Instruction::SExt) {
         // Op is sign-extended from a smaller type, descale in the smaller type.
-        unsigned SmallSize = Cast->getSrcTy()->getPrimitiveSizeInBits();
-        APInt SmallScale = Scale.trunc(SmallSize);
+        unsigned const SmallSize = Cast->getSrcTy()->getPrimitiveSizeInBits();
+        APInt const SmallScale = Scale.trunc(SmallSize);
         // Suppose Op = sext X, and we descale X as Y * SmallScale.  We want to
         // descale Op as (sext Y) * Scale.  In order to have
         //   sext (Y * SmallScale) = (sext Y) * Scale
@@ -1506,7 +1506,7 @@ Value *InstCombinerImpl::Descale(Value *Val, APInt Scale, bool &NoSignedWrap) {
           return nullptr;
 
         // Drill down through the cast.
-        unsigned LargeSize = Cast->getSrcTy()->getPrimitiveSizeInBits();
+        unsigned const LargeSize = Cast->getSrcTy()->getPrimitiveSizeInBits();
         Parent = std::make_pair(Cast, 0);
         Scale = Scale.sext(LargeSize);
         if (logScale + 1 == (int32_t)Cast->getType()->getPrimitiveSizeInBits())
@@ -1554,7 +1554,7 @@ Value *InstCombinerImpl::Descale(Value *Val, APInt Scale, bool &NoSignedWrap) {
       // If the multiplication wasn't nsw then we can't say anything about the
       // value of the descaled multiplication, and we have to clear nsw flags
       // from this point on up.
-      bool OpNoSignedWrap = BO->hasNoSignedWrap();
+      bool const OpNoSignedWrap = BO->hasNoSignedWrap();
       NoSignedWrap &= OpNoSignedWrap;
       if (NoSignedWrap != OpNoSignedWrap) {
         BO->setHasNoSignedWrap(NoSignedWrap);
@@ -1685,14 +1685,14 @@ Instruction *InstCombinerImpl::foldVectorBinop(BinaryOperator &Inst) {
     // If such constant does not exist (example: ShMask=<0,0> and C=<1,2>)
     // reorder is not possible. A 1-to-1 mapping is not required. Example:
     // ShMask = <1,1,2,2> and C = <5,5,6,6> --> NewC = <undef,5,6,undef>
-    bool ConstOp1 = isa<Constant>(RHS);
-    ArrayRef<int> ShMask = Mask;
-    unsigned SrcVecNumElts =
+    bool const ConstOp1 = isa<Constant>(RHS);
+    ArrayRef<int> const ShMask = Mask;
+    unsigned const SrcVecNumElts =
         cast<FixedVectorType>(V1->getType())->getNumElements();
     UndefValue *UndefScalar = UndefValue::get(C->getType()->getScalarType());
     SmallVector<Constant *, 16> NewVecC(SrcVecNumElts, UndefScalar);
     bool MayChange = true;
-    unsigned NumElts = InstVTy->getNumElements();
+    unsigned const NumElts = InstVTy->getNumElements();
     for (unsigned I = 0; I < NumElts; ++I) {
       Constant *CElt = C->getAggregateElement(I);
       if (ShMask[I] >= 0) {
@@ -1781,7 +1781,7 @@ Instruction *InstCombinerImpl::foldVectorBinop(BinaryOperator &Inst) {
     // values followed by a splat followed by the 2nd binary operation:
     // bo (splat X), (bo Y, OtherOp) --> bo (splat (bo X, Y)), OtherOp
     Value *NewBO = Builder.CreateBinOp(Opcode, X, Y);
-    SmallVector<int, 8> NewMask(MaskC.size(), SplatIndex);
+    SmallVector<int, 8> const NewMask(MaskC.size(), SplatIndex);
     Value *NewSplat = Builder.CreateShuffleVector(NewBO, NewMask);
     Instruction *R = BinaryOperator::Create(Opcode, NewSplat, OtherOp);
 
@@ -1812,13 +1812,13 @@ Instruction *InstCombinerImpl::narrowMathIfNoOverflow(BinaryOperator &BO) {
     std::swap(Op0, Op1);
 
   Value *X;
-  bool IsSext = match(Op0, m_SExt(m_Value(X)));
+  bool const IsSext = match(Op0, m_SExt(m_Value(X)));
   if (!IsSext && !match(Op0, m_ZExt(m_Value(X))))
     return nullptr;
 
   // If both operands are the same extension from the same source type and we
   // can eliminate at least one (hasOneUse), this might work.
-  CastInst::CastOps CastOpc = IsSext ? Instruction::SExt : Instruction::ZExt;
+  CastInst::CastOps const CastOpc = IsSext ? Instruction::SExt : Instruction::ZExt;
   Value *Y;
   if (!(match(Op1, m_ZExtOrSExt(m_Value(Y))) && X->getType() == Y->getType() &&
         cast<Operator>(Op1)->getOpcode() == CastOpc &&
@@ -1882,8 +1882,8 @@ static Instruction *foldSelectGEP(GetElementPtrInst &GEP,
   // gep (select Cond, TrueC, FalseC), IndexC --> select Cond, TrueC', FalseC'
   // Propagate 'inbounds' and metadata from existing instructions.
   // Note: using IRBuilder to create the constants for efficiency.
-  SmallVector<Value *, 4> IndexC(GEP.indices());
-  bool IsInBounds = GEP.isInBounds();
+  SmallVector<Value *, 4> const IndexC(GEP.indices());
+  bool const IsInBounds = GEP.isInBounds();
   Type *Ty = GEP.getSourceElementType();
   Value *NewTrueC = IsInBounds ? Builder.CreateInBoundsGEP(Ty, TrueC, IndexC)
                                : Builder.CreateGEP(Ty, TrueC, IndexC);
@@ -1896,7 +1896,7 @@ Instruction *InstCombinerImpl::visitGetElementPtrInst(GetElementPtrInst &GEP) {
   SmallVector<Value *, 8> Ops(GEP.operands());
   Type *GEPType = GEP.getType();
   Type *GEPEltType = GEP.getSourceElementType();
-  bool IsGEPSrcEleScalable = isa<ScalableVectorType>(GEPEltType);
+  bool const IsGEPSrcEleScalable = isa<ScalableVectorType>(GEPEltType);
   if (Value *V = SimplifyGEPInst(GEPEltType, Ops, SQ.getWithInstruction(&GEP)))
     return replaceInstUsesWith(GEP, V);
 
@@ -1906,7 +1906,7 @@ Instruction *InstCombinerImpl::visitGetElementPtrInst(GetElementPtrInst &GEP) {
   if (auto *GEPFVTy = dyn_cast<FixedVectorType>(GEPType)) {
     auto VWidth = GEPFVTy->getNumElements();
     APInt UndefElts(VWidth, 0);
-    APInt AllOnesEltMask(APInt::getAllOnesValue(VWidth));
+    APInt const AllOnesEltMask(APInt::getAllOnesValue(VWidth));
     if (Value *V = SimplifyDemandedVectorElts(&GEP, AllOnesEltMask,
                                               UndefElts)) {
       if (V != &GEP)
@@ -2051,7 +2051,7 @@ Instruction *InstCombinerImpl::visitGetElementPtrInst(GetElementPtrInst &GEP) {
       // set that index.
       PHINode *NewPN;
       {
-        IRBuilderBase::InsertPointGuard Guard(Builder);
+        IRBuilderBase::InsertPointGuard const Guard(Builder);
         Builder.SetInsertPoint(PN);
         NewPN = Builder.CreatePHI(Op1->getOperand(DI)->getType(),
                                   PN->getNumOperands());
@@ -2132,7 +2132,7 @@ Instruction *InstCombinerImpl::visitGetElementPtrInst(GetElementPtrInst &GEP) {
 
       // Fold (gep(gep(Ptr,Idx0),Idx1) -> gep(Ptr,add(Idx0,Idx1))
       if (GO1->getType() == SO1->getType()) {
-        bool NewInBounds = GEP.isInBounds() && Src->isInBounds();
+        bool const NewInBounds = GEP.isInBounds() && Src->isInBounds();
         auto *NewIdx =
             Builder.CreateAdd(GO1, SO1, GEP.getName() + ".idx",
                               /*HasNUW*/ false, /*HasNSW*/ NewInBounds);
@@ -2210,10 +2210,10 @@ Instruction *InstCombinerImpl::visitGetElementPtrInst(GetElementPtrInst &GEP) {
   // Skip if GEP source element type is scalable. The type alloc size is unknown
   // at compile-time.
   if (GEP.getNumIndices() == 1 && !IsGEPSrcEleScalable) {
-    unsigned AS = GEP.getPointerAddressSpace();
+    unsigned const AS = GEP.getPointerAddressSpace();
     if (GEP.getOperand(1)->getType()->getScalarSizeInBits() ==
         DL.getIndexSizeInBits(AS)) {
-      uint64_t TyAllocSize = DL.getTypeAllocSize(GEPEltType).getFixedSize();
+      uint64_t const TyAllocSize = DL.getTypeAllocSize(GEPEltType).getFixedSize();
 
       bool Matched = false;
       uint64_t C;
@@ -2270,7 +2270,7 @@ Instruction *InstCombinerImpl::visitGetElementPtrInst(GetElementPtrInst &GEP) {
         // GEP (bitcast i8* X to [0 x i8]*), i32 0, ... ?
         if (CATy->getElementType() == StrippedPtrEltTy) {
           // -> GEP i8* X, ...
-          SmallVector<Value *, 8> Idx(drop_begin(GEP.indices()));
+          SmallVector<Value *, 8> const Idx(drop_begin(GEP.indices()));
           GetElementPtrInst *Res = GetElementPtrInst::Create(
               StrippedPtrEltTy, StrippedPtr, Idx, GEP.getName());
           Res->setIsInBounds(GEP.isInBounds());
@@ -2306,7 +2306,7 @@ Instruction *InstCombinerImpl::visitGetElementPtrInst(GetElementPtrInst &GEP) {
             // ->
             // %0 = GEP [10 x i8] addrspace(1)* X, ...
             // addrspacecast i8 addrspace(1)* %0 to i8*
-            SmallVector<Value *, 8> Idx(GEP.indices());
+            SmallVector<Value *, 8> const Idx(GEP.indices());
             Value *NewGEP =
                 GEP.isInBounds()
                     ? Builder.CreateInBoundsGEP(StrippedPtrEltTy, StrippedPtr,
@@ -2327,7 +2327,7 @@ Instruction *InstCombinerImpl::visitGetElementPtrInst(GetElementPtrInst &GEP) {
           DL.getTypeAllocSize(StrippedPtrEltTy->getArrayElementType()) ==
               DL.getTypeAllocSize(GEPEltType)) {
         Type *IdxType = DL.getIndexType(GEPType);
-        Value *Idx[2] = { Constant::getNullValue(IdxType), GEP.getOperand(1) };
+        Value *const Idx[2] = { Constant::getNullValue(IdxType), GEP.getOperand(1) };
         Value *NewGEP =
             GEP.isInBounds()
                 ? Builder.CreateInBoundsGEP(StrippedPtrEltTy, StrippedPtr, Idx,
@@ -2346,12 +2346,12 @@ Instruction *InstCombinerImpl::visitGetElementPtrInst(GetElementPtrInst &GEP) {
       if (GEPEltType->isSized() && StrippedPtrEltTy->isSized()) {
         // Check that changing the type amounts to dividing the index by a scale
         // factor.
-        uint64_t ResSize = DL.getTypeAllocSize(GEPEltType).getFixedSize();
-        uint64_t SrcSize = DL.getTypeAllocSize(StrippedPtrEltTy).getFixedSize();
+        uint64_t const ResSize = DL.getTypeAllocSize(GEPEltType).getFixedSize();
+        uint64_t const SrcSize = DL.getTypeAllocSize(StrippedPtrEltTy).getFixedSize();
         if (ResSize && SrcSize % ResSize == 0) {
           Value *Idx = GEP.getOperand(1);
-          unsigned BitWidth = Idx->getType()->getPrimitiveSizeInBits();
-          uint64_t Scale = SrcSize / ResSize;
+          unsigned const BitWidth = Idx->getType()->getPrimitiveSizeInBits();
+          uint64_t const Scale = SrcSize / ResSize;
 
           // Earlier transforms ensure that the index has the right type
           // according to Data Layout, which considerably simplifies the
@@ -2386,14 +2386,14 @@ Instruction *InstCombinerImpl::visitGetElementPtrInst(GetElementPtrInst &GEP) {
           StrippedPtrEltTy->isArrayTy()) {
         // Check that changing to the array element type amounts to dividing the
         // index by a scale factor.
-        uint64_t ResSize = DL.getTypeAllocSize(GEPEltType).getFixedSize();
-        uint64_t ArrayEltSize =
+        uint64_t const ResSize = DL.getTypeAllocSize(GEPEltType).getFixedSize();
+        uint64_t const ArrayEltSize =
             DL.getTypeAllocSize(StrippedPtrEltTy->getArrayElementType())
                 .getFixedSize();
         if (ResSize && ArrayEltSize % ResSize == 0) {
           Value *Idx = GEP.getOperand(1);
-          unsigned BitWidth = Idx->getType()->getPrimitiveSizeInBits();
-          uint64_t Scale = ArrayEltSize / ResSize;
+          unsigned const BitWidth = Idx->getType()->getPrimitiveSizeInBits();
+          uint64_t const Scale = ArrayEltSize / ResSize;
 
           // Earlier transforms ensure that the index has the right type
           // according to the Data Layout, which considerably simplifies
@@ -2407,7 +2407,7 @@ Instruction *InstCombinerImpl::visitGetElementPtrInst(GetElementPtrInst &GEP) {
             // If the multiplication NewIdx * Scale may overflow then the new
             // GEP may not be "inbounds".
             Type *IndTy = DL.getIndexType(GEPType);
-            Value *Off[2] = {Constant::getNullValue(IndTy), NewIdx};
+            Value *const Off[2] = {Constant::getNullValue(IndTy), NewIdx};
 
             Value *NewGEP =
                 GEP.isInBounds() && NSW
@@ -2481,7 +2481,7 @@ Instruction *InstCombinerImpl::visitGetElementPtrInst(GetElementPtrInst &GEP) {
     //   Y = gep X, <...constant indices...>
     // into a gep of the original struct. This is important for SROA and alias
     // analysis of unions. If "A" is also a bitcast, wait for A/X to be merged.
-    unsigned OffsetBits = DL.getIndexTypeSizeInBits(GEPType);
+    unsigned const OffsetBits = DL.getIndexTypeSizeInBits(GEPType);
     APInt Offset(OffsetBits, 0);
 
     // If the bitcast argument is an allocation, The bitcast is for convertion
@@ -2536,7 +2536,7 @@ Instruction *InstCombinerImpl::visitGetElementPtrInst(GetElementPtrInst &GEP) {
   }
 
   if (!GEP.isInBounds()) {
-    unsigned IdxWidth =
+    unsigned const IdxWidth =
         DL.getIndexSizeInBits(PtrOp->getType()->getPointerAddressSpace());
     APInt BasePtrOffset(IdxWidth, 0);
     Value *UnderlyingPtrOp =
@@ -2545,7 +2545,7 @@ Instruction *InstCombinerImpl::visitGetElementPtrInst(GetElementPtrInst &GEP) {
     if (auto *AI = dyn_cast<AllocaInst>(UnderlyingPtrOp)) {
       if (GEP.accumulateConstantOffset(DL, BasePtrOffset) &&
           BasePtrOffset.isNonNegative()) {
-        APInt AllocSize(
+        APInt const AllocSize(
             IdxWidth,
             DL.getTypeAllocSize(AI->getAllocatedType()).getKnownMinSize());
         if (BasePtrOffset.ule(AllocSize)) {
@@ -2606,7 +2606,7 @@ static bool isAllocSiteRemovable(Instruction *AI,
         // not escaped (see isNeverEqualToUnescapedAlloc).
         if (!ICI->isEquality())
           return false;
-        unsigned OtherIndex = (ICI->getOperand(0) == PI) ? 1 : 0;
+        unsigned const OtherIndex = (ICI->getOperand(0) == PI) ? 1 : 0;
         if (!isNeverEqualToUnescapedAlloc(ICI->getOperand(OtherIndex), TLI, AI))
           return false;
         Users.emplace_back(I);
@@ -2903,7 +2903,7 @@ Instruction *InstCombinerImpl::visitReturnInst(ReturnInst &RI) {
 
   // There might be assume intrinsics dominating this return that completely
   // determine the value. If so, constant fold it.
-  KnownBits Known = computeKnownBits(ResultOp, 0, &RI);
+  KnownBits const Known = computeKnownBits(ResultOp, 0, &RI);
   if (Known.isConstant())
     return replaceOperand(RI, 0,
         Constant::getIntegerValue(VTy, Known.getConstant()));
@@ -2952,7 +2952,7 @@ Instruction *InstCombinerImpl::visitUnconditionalBranchInst(BranchInst &BI) {
              (isa<BitCastInst>(BBI) && BBI->getType()->isPointerTy());
     };
 
-    BasicBlock::iterator FirstInstr = BBI->getParent()->begin();
+    BasicBlock::iterator const FirstInstr = BBI->getParent()->begin();
     do {
       if (BBI != FirstInstr)
         --BBI;
@@ -3019,7 +3019,7 @@ Instruction *InstCombinerImpl::visitSwitchInst(SwitchInst &SI) {
     return replaceOperand(SI, 0, Op0);
   }
 
-  KnownBits Known = computeKnownBits(Cond, 0, &SI);
+  KnownBits const Known = computeKnownBits(Cond, 0, &SI);
   unsigned LeadingKnownZeros = Known.countMinLeadingZeros();
   unsigned LeadingKnownOnes = Known.countMinLeadingOnes();
 
@@ -3032,7 +3032,7 @@ Instruction *InstCombinerImpl::visitSwitchInst(SwitchInst &SI) {
         LeadingKnownOnes, C.getCaseValue()->getValue().countLeadingOnes());
   }
 
-  unsigned NewWidth = Known.getBitWidth() - std::max(LeadingKnownZeros, LeadingKnownOnes);
+  unsigned const NewWidth = Known.getBitWidth() - std::max(LeadingKnownZeros, LeadingKnownOnes);
 
   // Shrink the condition operand if the new type is smaller than the old type.
   // But do not shrink to a non-standard type, because backend can't generate
@@ -3045,7 +3045,7 @@ Instruction *InstCombinerImpl::visitSwitchInst(SwitchInst &SI) {
     Value *NewCond = Builder.CreateTrunc(Cond, Ty, "trunc");
 
     for (auto Case : SI.cases()) {
-      APInt TruncatedCase = Case.getCaseValue()->getValue().trunc(NewWidth);
+      APInt const TruncatedCase = Case.getCaseValue()->getValue().trunc(NewWidth);
       Case.setValue(ConstantInt::get(SI.getContext(), TruncatedCase));
     }
     return replaceOperand(SI, 0, NewCond);
@@ -3123,7 +3123,7 @@ Instruction *InstCombinerImpl::visitExtractValueInst(ExtractValueInst &EV) {
       // Check if we're grabbing only the result of a 'with overflow' intrinsic
       // and replace it with a traditional binary instruction.
       if (*EV.idx_begin() == 0) {
-        Instruction::BinaryOps BinOp = WO->getBinaryOp();
+        Instruction::BinaryOps const BinOp = WO->getBinaryOp();
         Value *LHS = WO->getLHS(), *RHS = WO->getRHS();
         // Replace the old instruction's uses with poison.
         replaceInstUsesWith(*WO, PoisonValue::get(WO->getType()));
@@ -3147,7 +3147,7 @@ Instruction *InstCombinerImpl::visitExtractValueInst(ExtractValueInst &EV) {
         ConstantRange NWR =
           ConstantRange::makeExactNoWrapRegion(WO->getBinaryOp(), *C,
                                                WO->getNoWrapKind());
-        APInt Min = WO->isSigned() ? NWR.getSignedMin() : NWR.getUnsignedMin();
+        APInt const Min = WO->isSigned() ? NWR.getSignedMin() : NWR.getUnsignedMin();
         NWR = NWR.subtract(Min);
 
         CmpInst::Predicate Pred;
@@ -3173,7 +3173,7 @@ Instruction *InstCombinerImpl::visitExtractValueInst(ExtractValueInst &EV) {
       SmallVector<Value*, 4> Indices;
       // Prefix an i32 0 since we need the first element.
       Indices.push_back(Builder.getInt32(0));
-      for (unsigned Idx : EV.indices())
+      for (unsigned const Idx : EV.indices())
         Indices.push_back(Builder.getInt32(Idx));
 
       // We need to insert these at the location of the old load, not at that of
@@ -3242,7 +3242,7 @@ Instruction *InstCombinerImpl::visitLandingPadInst(LandingPadInst &LI) {
   // The logic here should be correct for any real-world personality function.
   // However if that turns out not to be true, the offending logic can always
   // be conditioned on the personality function, like the catch-all logic is.
-  EHPersonality Personality =
+  EHPersonality const Personality =
       classifyEHPersonality(LI.getParent()->getParent()->getPersonalityFn());
 
   // Simplify the list of clauses, eg by removing repeated catch clauses
@@ -3253,7 +3253,7 @@ Instruction *InstCombinerImpl::visitLandingPadInst(LandingPadInst &LI) {
 
   SmallPtrSet<Value *, 16> AlreadyCaught; // Typeinfos known caught already.
   for (unsigned i = 0, e = LI.getNumClauses(); i != e; ++i) {
-    bool isLastClause = i + 1 == e;
+    bool const isLastClause = i + 1 == e;
     if (LI.isCatch(i)) {
       // A catch clause.
       Constant *CatchClause = LI.getClause(i);
@@ -3288,7 +3288,7 @@ Instruction *InstCombinerImpl::visitLandingPadInst(LandingPadInst &LI) {
       assert(LI.isFilter(i) && "Unsupported landingpad clause!");
       Constant *FilterClause = LI.getClause(i);
       ArrayType *FilterType = cast<ArrayType>(FilterClause->getType());
-      unsigned NumTypeInfos = FilterType->getNumElements();
+      unsigned const NumTypeInfos = FilterType->getNumElements();
 
       // An empty filter catches everything, so there is no point in keeping any
       // following clauses or marking the landingpad as having a cleanup.  By
@@ -3439,7 +3439,7 @@ Instruction *InstCombinerImpl::visitLandingPadInst(LandingPadInst &LI) {
     if (!FTy)
       // Not a filter - skip it.
       continue;
-    unsigned FElts = FTy->getNumElements();
+    unsigned const FElts = FTy->getNumElements();
     // Examine each filter following this one.  Doing this backwards means that
     // we don't have to worry about filters disappearing under us when removed.
     for (unsigned j = NewClauses.size() - 1; j != i; --j) {
@@ -3459,7 +3459,7 @@ Instruction *InstCombinerImpl::visitLandingPadInst(LandingPadInst &LI) {
         // Move on to the next filter.
         continue;
       }
-      unsigned LElts = LTy->getNumElements();
+      unsigned const LElts = LTy->getNumElements();
       // If Filter is longer than LFilter then it cannot be a subset of it.
       if (FElts > LElts)
         // Move on to the next filter.
@@ -3606,7 +3606,7 @@ bool InstCombinerImpl::freezeDominatedUses(FreezeInst &FI) {
 
   bool Changed = false;
   Op->replaceUsesWithIf(&FI, [&](Use &U) -> bool {
-    bool Dominates = DT.dominates(&FI, U);
+    bool const Dominates = DT.dominates(&FI, U);
     Changed |= Dominates;
     return Dominates;
   });
@@ -3643,7 +3643,7 @@ Instruction *InstCombinerImpl::visitFreeze(FreezeInst &I) {
         C = Constant::getAllOnesValue(I.getType());
       else if (const auto *SI = dyn_cast<SelectInst>(U)) {
         if (SI->getCondition() == &I) {
-          APInt CondVal(1, isa<Constant>(SI->getFalseValue()) ? 0 : 1);
+          APInt const CondVal(1, isa<Constant>(SI->getFalseValue()) ? 0 : 1);
           C = Constant::getIntegerValue(I.getType(), CondVal);
         }
       }
@@ -3716,7 +3716,7 @@ static bool TryToSinkInstruction(Instruction *I, BasicBlock *DestBlock) {
   /// FIXME: We could remove droppable uses that are not dominated by
   /// the new position.
 
-  BasicBlock::iterator InsertPos = DestBlock->getFirstInsertionPt();
+  BasicBlock::iterator const InsertPos = DestBlock->getFirstInsertionPt();
   I->moveBefore(&*InsertPos);
   ++NumSunkInst;
 
@@ -3746,7 +3746,7 @@ static bool TryToSinkInstruction(Instruction *I, BasicBlock *DestBlock) {
     if (isa<DbgDeclareInst>(User))
       continue;
 
-    DebugVariable DbgUserVariable =
+    DebugVariable const DbgUserVariable =
         DebugVariable(User->getVariable(), User->getExpression(),
                       User->getDebugLoc()->getInlinedAt());
 
@@ -3861,7 +3861,7 @@ bool InstCombinerImpl::run() {
               // We'll add uses of the sunk instruction below, but since sinking
               // can expose opportunities for it's *operands* add them to the
               // worklist
-              for (Use &U : I->operands())
+              for (Use  const&U : I->operands())
                 if (Instruction *OpI = dyn_cast<Instruction>(U.get()))
                   Worklist.push(OpI);
             }
@@ -4062,7 +4062,7 @@ static bool prepareICWorklistFromFunction(Function &F, const DataLayout &DL,
     Instruction *TI = BB->getTerminator();
     if (BranchInst *BI = dyn_cast<BranchInst>(TI)) {
       if (BI->isConditional() && isa<ConstantInt>(BI->getCondition())) {
-        bool CondVal = cast<ConstantInt>(BI->getCondition())->getZExtValue();
+        bool const CondVal = cast<ConstantInt>(BI->getCondition())->getZExtValue();
         BasicBlock *ReachableBB = BI->getSuccessor(!CondVal);
         Worklist.push_back(ReachableBB);
         continue;

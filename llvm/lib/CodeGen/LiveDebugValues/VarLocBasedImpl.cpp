@@ -189,9 +189,9 @@ static bool isRegOtherThanSPAndFP(const MachineOperand &Op,
 
   const MachineFunction *MF = MI.getParent()->getParent();
   const TargetLowering *TLI = MF->getSubtarget().getTargetLowering();
-  Register SP = TLI->getStackPointerRegisterToSaveRestore();
-  Register FP = TRI->getFrameRegister(*MF);
-  Register Reg = Op.getReg();
+  Register const SP = TLI->getStackPointerRegisterToSaveRestore();
+  Register const FP = TRI->getFrameRegister(*MF);
+  Register const Reg = Op.getReg();
 
   return Reg && Reg != SP && Reg != FP;
 }
@@ -273,8 +273,8 @@ struct LocIndex {
   /// \p Location in \p Set.
   static auto indexRangeForLocation(const VarLocSet &Set,
                                     u32_location_t Location) {
-    uint64_t Start = LocIndex(Location, 0).getAsRawInteger();
-    uint64_t End = LocIndex(Location + 1, 0).getAsRawInteger();
+    uint64_t const Start = LocIndex(Location, 0).getAsRawInteger();
+    uint64_t const End = LocIndex(Location + 1, 0).getAsRawInteger();
     return Set.half_open_range(Start, End);
   }
 };
@@ -412,7 +412,7 @@ private:
       assert((MI.isDebugValueList() || MI.getNumOperands() == 4) &&
              "malformed DBG_VALUE");
       for (const MachineOperand &Op : MI.debug_operands()) {
-        MachineLoc ML = GetLocForOp(Op);
+        MachineLoc const ML = GetLocForOp(Op);
         auto It = find(Locs, ML);
         if (It == Locs.end()) {
           Locs.push_back(ML);
@@ -420,8 +420,8 @@ private:
         } else {
           // ML duplicates an element in Locs; replace references to Op
           // with references to the duplicating element.
-          unsigned OpIdx = Locs.size();
-          unsigned DuplicatingIdx = std::distance(Locs.begin(), It);
+          unsigned const OpIdx = Locs.size();
+          unsigned const DuplicatingIdx = std::distance(Locs.begin(), It);
           Expr = DIExpression::replaceArg(Expr, OpIdx, DuplicatingIdx);
         }
       }
@@ -540,8 +540,8 @@ private:
       const DIExpression *DIExpr = Expr;
       SmallVector<MachineOperand, 8> MOs;
       for (unsigned I = 0, E = Locs.size(); I < E; ++I) {
-        MachineLocKind LocKind = Locs[I].Kind;
-        MachineLocValue Loc = Locs[I].Value;
+        MachineLocKind const LocKind = Locs[I].Kind;
+        MachineLocValue const Loc = Locs[I].Value;
         const MachineOperand &Orig = MI.getDebugOperand(OrigLocMap[I]);
         switch (LocKind) {
         case MachineLocKind::RegisterKind:
@@ -562,7 +562,7 @@ private:
           // Use the original DBG_VALUEs expression to build the spilt location
           // on top of. FIXME: spill locations created before this pass runs
           // are not recognized, and not handled here.
-          unsigned Base = Loc.SpillLocation.SpillBase;
+          unsigned const Base = Loc.SpillLocation.SpillBase;
           auto *TRI = MF.getSubtarget().getRegisterInfo();
           if (MI.isNonListDebugValue()) {
             DIExpr =
@@ -763,15 +763,15 @@ private:
                       }) &&
                "Physreg out of range?");
         if (VL.containsSpillLocs()) {
-          LocIndex::u32_location_t Loc = LocIndex::kSpillLocation;
+          LocIndex::u32_location_t const Loc = LocIndex::kSpillLocation;
           Locations.push_back(Loc);
         }
       } else if (VL.EVKind != VarLoc::EntryValueLocKind::EntryValueKind) {
-        LocIndex::u32_location_t Loc = LocIndex::kEntryValueBackupLocation;
+        LocIndex::u32_location_t const Loc = LocIndex::kEntryValueBackupLocation;
         Locations.push_back(Loc);
       }
       Locations.push_back(LocIndex::kUniversalLocation);
-      for (LocIndex::u32_location_t Location : Locations) {
+      for (LocIndex::u32_location_t const Location : Locations) {
         auto &Vars = Loc2Vars[Location];
         Indices.push_back(
             {Location, static_cast<LocIndex::u32_index_t>(Vars.size())});
@@ -1042,21 +1042,21 @@ void VarLocBasedLDV::OpenRangesSet::erase(const VarLoc &VL) {
     auto *EraseFrom = VL.isEntryBackupLoc() ? &EntryValuesBackupVars : &Vars;
     auto It = EraseFrom->find(VarToErase);
     if (It != EraseFrom->end()) {
-      LocIndices IDs = It->second;
-      for (LocIndex ID : IDs)
+      LocIndices const IDs = It->second;
+      for (LocIndex const ID : IDs)
         VarLocs.reset(ID.getAsRawInteger());
       EraseFrom->erase(It);
     }
   };
 
-  DebugVariable Var = VL.Var;
+  DebugVariable const Var = VL.Var;
 
   // Erase the variable/fragment that ends here.
   DoErase(Var);
 
   // Extract the fragment. Interpret an empty fragment as one that covers all
   // possible bits.
-  FragmentInfo ThisFragment = Var.getFragmentOrDefault();
+  FragmentInfo const ThisFragment = Var.getFragmentOrDefault();
 
   // There may be fragments that overlap the designated fragment. Look them up
   // in the pre-computed overlap map, and erase them too.
@@ -1075,12 +1075,12 @@ void VarLocBasedLDV::OpenRangesSet::erase(const VarLocsInRange &KillSet,
                                           const VarLocMap &VarLocIDs,
                                           LocIndex::u32_location_t Location) {
   VarLocSet RemoveSet(Alloc);
-  for (LocIndex::u32_index_t ID : KillSet) {
+  for (LocIndex::u32_index_t const ID : KillSet) {
     const VarLoc &VL = VarLocIDs[LocIndex(Location, ID)];
     auto *EraseFrom = VL.isEntryBackupLoc() ? &EntryValuesBackupVars : &Vars;
     EraseFrom->erase(VL.Var);
-    LocIndices VLI = VarLocIDs.getAllIndices(VL);
-    for (LocIndex ID : VLI)
+    LocIndices const VLI = VarLocIDs.getAllIndices(VL);
+    for (LocIndex const ID : VLI)
       RemoveSet.set(ID.getAsRawInteger());
   }
   VarLocs.intersectWithComplement(RemoveSet);
@@ -1092,8 +1092,8 @@ void VarLocBasedLDV::OpenRangesSet::insertFromLocSet(const VarLocSet &ToLoad,
   DefinedRegsSet Regs;
   Regs.insert(LocIndex::kUniversalLocation);
   collectIDsForRegs(UniqueVarLocIDs, Regs, ToLoad, Map);
-  for (uint64_t ID : UniqueVarLocIDs) {
-    LocIndex Idx = LocIndex::fromRawInteger(ID);
+  for (uint64_t const ID : UniqueVarLocIDs) {
+    LocIndex const Idx = LocIndex::fromRawInteger(ID);
     const VarLoc &VarL = Map[Idx];
     const LocIndices Indices = Map.getAllIndices(VarL);
     insert(Indices, VarL);
@@ -1103,7 +1103,7 @@ void VarLocBasedLDV::OpenRangesSet::insertFromLocSet(const VarLocSet &ToLoad,
 void VarLocBasedLDV::OpenRangesSet::insert(LocIndices VarLocIDs,
                                            const VarLoc &VL) {
   auto *InsertInto = VL.isEntryBackupLoc() ? &EntryValuesBackupVars : &Vars;
-  for (LocIndex ID : VarLocIDs)
+  for (LocIndex const ID : VarLocIDs)
     VarLocs.set(ID.getAsRawInteger());
   InsertInto->insert({VL.Var, VarLocIDs});
 }
@@ -1129,17 +1129,17 @@ void VarLocBasedLDV::collectIDsForRegs(VarLocsInRange &Collected,
   array_pod_sort(SortedRegs.begin(), SortedRegs.end());
   auto It = CollectFrom.find(LocIndex::rawIndexForReg(SortedRegs.front()));
   auto End = CollectFrom.end();
-  for (Register Reg : SortedRegs) {
+  for (Register const Reg : SortedRegs) {
     // The half-open interval [FirstIndexForReg, FirstInvalidIndex) contains
     // all possible VarLoc IDs for VarLocs with MLs of kind RegisterKind which
     // live in Reg.
-    uint64_t FirstIndexForReg = LocIndex::rawIndexForReg(Reg);
-    uint64_t FirstInvalidIndex = LocIndex::rawIndexForReg(Reg + 1);
+    uint64_t const FirstIndexForReg = LocIndex::rawIndexForReg(Reg);
+    uint64_t const FirstInvalidIndex = LocIndex::rawIndexForReg(Reg + 1);
     It.advanceToLowerBound(FirstIndexForReg);
 
     // Iterate through that half-open interval and collect all the set IDs.
     for (; It != End && *It < FirstInvalidIndex; ++It) {
-      LocIndex ItIdx = LocIndex::fromRawInteger(*It);
+      LocIndex const ItIdx = LocIndex::fromRawInteger(*It);
       const VarLoc &VL = VarLocIDs[ItIdx];
       LocIndices LI = VarLocIDs.getAllIndices(VL);
       // For now, the back index is always the universal location index.
@@ -1158,16 +1158,16 @@ void VarLocBasedLDV::getUsedRegs(const VarLocSet &CollectFrom,
                                  SmallVectorImpl<Register> &UsedRegs) const {
   // All register-based VarLocs are assigned indices greater than or equal to
   // FirstRegIndex.
-  uint64_t FirstRegIndex =
+  uint64_t const FirstRegIndex =
       LocIndex::rawIndexForReg(LocIndex::kFirstRegLocation);
-  uint64_t FirstInvalidIndex =
+  uint64_t const FirstInvalidIndex =
       LocIndex::rawIndexForReg(LocIndex::kFirstInvalidRegLocation);
   for (auto It = CollectFrom.find(FirstRegIndex),
             End = CollectFrom.find(FirstInvalidIndex);
        It != End;) {
     // We found a VarLoc ID for a VarLoc that lives in a register. Figure out
     // which register and add it to UsedRegs.
-    uint32_t FoundReg = LocIndex::fromRawInteger(*It).Location;
+    uint32_t const FoundReg = LocIndex::fromRawInteger(*It).Location;
     assert((UsedRegs.empty() || FoundReg != UsedRegs.back()) &&
            "Duplicate used reg");
     UsedRegs.push_back(FoundReg);
@@ -1175,7 +1175,7 @@ void VarLocBasedLDV::getUsedRegs(const VarLocSet &CollectFrom,
     // Skip to the next /set/ register. Note that this finds a lower bound, so
     // even if there aren't any VarLocs living in `FoundReg+1`, we're still
     // guaranteed to move on to the next register (or to end()).
-    uint64_t NextRegIndex = LocIndex::rawIndexForReg(FoundReg + 1);
+    uint64_t const NextRegIndex = LocIndex::rawIndexForReg(FoundReg + 1);
     It.advanceToLowerBound(NextRegIndex);
   }
 }
@@ -1218,10 +1218,10 @@ VarLocBasedLDV::extractSpillBaseRegAndOffset(const MachineInstr &MI) {
   const PseudoSourceValue *PVal = (*MMOI)->getPseudoValue();
   assert(PVal->kind() == PseudoSourceValue::FixedStack &&
          "Inconsistent memory operand in spill instruction");
-  int FI = cast<FixedStackPseudoSourceValue>(PVal)->getFrameIndex();
+  int const FI = cast<FixedStackPseudoSourceValue>(PVal)->getFrameIndex();
   const MachineBasicBlock *MBB = MI.getParent();
   Register Reg;
-  StackOffset Offset = TFI->getFrameIndexReference(*MBB->getParent(), FI, Reg);
+  StackOffset const Offset = TFI->getFrameIndexReference(*MBB->getParent(), FI, Reg);
   return {Reg, Offset};
 }
 
@@ -1247,7 +1247,7 @@ bool VarLocBasedLDV::removeEntryValue(const MachineInstr &MI,
   // If the DBG_VALUE comes from a copy instruction that copies the entry value,
   // it means the parameter's value has not changed and we should be able to use
   // its entry value.
-  Register Reg = MI.getDebugOperand(0).getReg();
+  Register const Reg = MI.getDebugOperand(0).getReg();
   auto I = std::next(MI.getReverseIterator());
   const MachineOperand *SrcRegOp, *DestRegOp;
   if (I != MI.getParent()->rend()) {
@@ -1264,7 +1264,7 @@ bool VarLocBasedLDV::removeEntryValue(const MachineInstr &MI,
     if (Reg != DestRegOp->getReg())
       return true;
 
-    for (uint64_t ID : OpenRanges.getEntryValueBackupVarLocs()) {
+    for (uint64_t const ID : OpenRanges.getEntryValueBackupVarLocs()) {
       const VarLoc &VL = VarLocIDs[LocIndex::fromRawInteger(ID)];
       if (VL.isEntryValueCopyBackupReg(Reg) &&
           // Entry Values should not be variadic.
@@ -1290,7 +1290,7 @@ void VarLocBasedLDV::transferDebugValue(const MachineInstr &MI,
   assert(Var->isValidLocationForIntrinsic(DebugLoc) &&
          "Expected inlined-at fields to agree");
 
-  DebugVariable V(Var, Expr, InlinedAt);
+  DebugVariable const V(Var, Expr, InlinedAt);
 
   // Check if this DBG_VALUE indicates a parameter's value changing.
   // If that is the case, we should stop tracking its entry value.
@@ -1311,11 +1311,11 @@ void VarLocBasedLDV::transferDebugValue(const MachineInstr &MI,
                MO.isCImm();
       })) {
     // Use normal VarLoc constructor for registers and immediates.
-    VarLoc VL(MI, LS);
+    VarLoc const VL(MI, LS);
     // End all previous ranges of VL.Var.
     OpenRanges.erase(VL);
 
-    LocIndices IDs = VarLocIDs.insert(VL);
+    LocIndices const IDs = VarLocIDs.insert(VL);
     // Add the VarLoc to OpenRanges from this DBG_VALUE.
     OpenRanges.insert(IDs, VL);
   } else if (MI.memoperands().size() > 0) {
@@ -1324,7 +1324,7 @@ void VarLocBasedLDV::transferDebugValue(const MachineInstr &MI,
     // This must be an undefined location. If it has an open range, erase it.
     assert(MI.isUndefDebugValue() &&
            "Unexpected non-undef DBG_VALUE encountered");
-    VarLoc VL(MI, LS);
+    VarLoc const VL(MI, LS);
     OpenRanges.erase(VL);
   }
 }
@@ -1336,13 +1336,13 @@ void VarLocBasedLDV::collectAllVarLocs(SmallVectorImpl<VarLoc> &Collected,
   // The half-open interval [FirstIndexForReg, FirstInvalidIndex) contains all
   // possible VarLoc IDs for VarLocs with MLs of kind RegisterKind which live
   // in Reg.
-  uint64_t FirstIndex = LocIndex::rawIndexForReg(LocIndex::kUniversalLocation);
-  uint64_t FirstInvalidIndex =
+  uint64_t const FirstIndex = LocIndex::rawIndexForReg(LocIndex::kUniversalLocation);
+  uint64_t const FirstInvalidIndex =
       LocIndex::rawIndexForReg(LocIndex::kUniversalLocation + 1);
   // Iterate through that half-open interval and collect all the set IDs.
   for (auto It = CollectFrom.find(FirstIndex), End = CollectFrom.end();
        It != End && *It < FirstInvalidIndex; ++It) {
-    LocIndex RegIdx = LocIndex::fromRawInteger(*It);
+    LocIndex const RegIdx = LocIndex::fromRawInteger(*It);
     Collected.push_back(VarLocIDs[RegIdx]);
   }
 }
@@ -1357,9 +1357,9 @@ void VarLocBasedLDV::emitEntryValues(MachineInstr &MI,
   if (MI.isTerminator())
     return;
 
-  for (uint32_t ID : KillSet) {
+  for (uint32_t const ID : KillSet) {
     // The KillSet IDs are indices for the universal location bucket.
-    LocIndex Idx = LocIndex(LocIndex::kUniversalLocation, ID);
+    LocIndex const Idx = LocIndex(LocIndex::kUniversalLocation, ID);
     const VarLoc &VL = VarLocIDs[Idx];
     if (!VL.Var.getVariable()->isParameter())
       continue;
@@ -1374,7 +1374,7 @@ void VarLocBasedLDV::emitEntryValues(MachineInstr &MI,
       continue;
 
     const VarLoc &EntryVL = VarLocIDs[EntryValBackupIDs->back()];
-    VarLoc EntryLoc = VarLoc::CreateEntryLoc(EntryVL.MI, LS, EntryVL.Expr,
+    VarLoc const EntryLoc = VarLoc::CreateEntryLoc(EntryVL.MI, LS, EntryVL.Expr,
                                              EntryVL.Locs[0].Value.RegNo);
     LocIndices EntryValueIDs = VarLocIDs.insert(EntryLoc);
     Transfers.push_back({&MI, EntryValueIDs.back()});
@@ -1403,7 +1403,7 @@ void VarLocBasedLDV::insertTransferDebugPair(
     // inserting a DBG_VALUE for this location.
     OpenRanges.insert(LocIds, VL);
     assert(!MI.isTerminator() && "Cannot insert DBG_VALUE after terminator");
-    TransferDebugPair MIP = {&MI, LocIds.back()};
+    TransferDebugPair const MIP = {&MI, LocIds.back()};
     Transfers.push_back(MIP);
   };
 
@@ -1426,7 +1426,7 @@ void VarLocBasedLDV::insertTransferDebugPair(
   case TransferKind::TransferSpill: {
     // Create a DBG_VALUE instruction to describe the Var in its spilled
     // location.
-    VarLoc::SpillLoc SpillLocation = extractSpillBaseRegAndOffset(MI);
+    VarLoc::SpillLoc const SpillLocation = extractSpillBaseRegAndOffset(MI);
     VarLoc VL = VarLoc::CreateSpillLoc(
         OldVarLoc, OldLoc, SpillLocation.SpillBase, SpillLocation.SpillOffset);
     ProcessVarLoc(VL);
@@ -1465,7 +1465,7 @@ void VarLocBasedLDV::transferRegisterDef(
 
   MachineFunction *MF = MI.getMF();
   const TargetLowering *TLI = MF->getSubtarget().getTargetLowering();
-  Register SP = TLI->getStackPointerRegisterToSaveRestore();
+  Register const SP = TLI->getStackPointerRegisterToSaveRestore();
 
   // Find the regs killed by MI, and find regmasks of preserved regs.
   DefinedRegsSet DeadRegs;
@@ -1490,7 +1490,7 @@ void VarLocBasedLDV::transferRegisterDef(
   if (!RegMasks.empty()) {
     SmallVector<Register, 32> UsedRegs;
     getUsedRegs(OpenRanges.getVarLocs(), UsedRegs);
-    for (Register Reg : UsedRegs) {
+    for (Register const Reg : UsedRegs) {
       // Remove ranges of all clobbered registers. Register masks don't usually
       // list SP as preserved. Assume that call instructions never clobber SP,
       // because some backends (e.g., AArch64) never list SP in the regmask.
@@ -1499,7 +1499,7 @@ void VarLocBasedLDV::transferRegisterDef(
       // still a better user experience.
       if (Reg == SP)
         continue;
-      bool AnyRegMaskKillsReg =
+      bool const AnyRegMaskKillsReg =
           any_of(RegMasks, [Reg](const uint32_t *RegMask) {
             return MachineOperand::clobbersPhysReg(RegMask, Reg);
           });
@@ -1614,8 +1614,8 @@ void VarLocBasedLDV::transferSpillOrRestoreInst(MachineInstr &MI,
   VarLocsInRange KillSet;
   if (isSpillInstruction(MI, MF)) {
     Loc = extractSpillBaseRegAndOffset(MI);
-    for (uint64_t ID : OpenRanges.getSpillVarLocs()) {
-      LocIndex Idx = LocIndex::fromRawInteger(ID);
+    for (uint64_t const ID : OpenRanges.getSpillVarLocs()) {
+      LocIndex const Idx = LocIndex::fromRawInteger(ID);
       const VarLoc &VL = VarLocIDs[Idx];
       assert(VL.containsSpillLocs() && "Broken VarLocSet?");
       if (VL.usesSpillLoc(*Loc)) {
@@ -1630,9 +1630,9 @@ void VarLocBasedLDV::transferSpillOrRestoreInst(MachineInstr &MI,
         // At this stage, we already know which DBG_VALUEs are for spills and
         // where they are located; it's best to fix handle overwrites now.
         KillSet.insert(ID);
-        unsigned SpillLocIdx = VL.getSpillLocIdx(*Loc);
-        VarLoc::MachineLoc OldLoc = VL.Locs[SpillLocIdx];
-        VarLoc UndefVL = VarLoc::CreateCopyLoc(VL, OldLoc, 0);
+        unsigned const SpillLocIdx = VL.getSpillLocIdx(*Loc);
+        VarLoc::MachineLoc const OldLoc = VL.Locs[SpillLocIdx];
+        VarLoc const UndefVL = VarLoc::CreateCopyLoc(VL, OldLoc, 0);
         LocIndices UndefLocIDs = VarLocIDs.insert(UndefVL);
         Transfers.push_back({&MI, UndefLocIDs.back()});
       }
@@ -1661,8 +1661,8 @@ void VarLocBasedLDV::transferSpillOrRestoreInst(MachineInstr &MI,
     TransferCandidates = OpenRanges.getRegisterVarLocs(Reg);
   else if (TKind == TransferKind::TransferRestore)
     TransferCandidates = OpenRanges.getSpillVarLocs();
-  for (uint64_t ID : TransferCandidates) {
-    LocIndex Idx = LocIndex::fromRawInteger(ID);
+  for (uint64_t const ID : TransferCandidates) {
+    LocIndex const Idx = LocIndex::fromRawInteger(ID);
     const VarLoc &VL = VarLocIDs[Idx];
     unsigned LocIdx;
     if (TKind == TransferKind::TransferSpill) {
@@ -1680,7 +1680,7 @@ void VarLocBasedLDV::transferSpillOrRestoreInst(MachineInstr &MI,
                         << VL.Var.getVariable()->getName() << ")\n");
       LocIdx = VL.getSpillLocIdx(*Loc);
     }
-    VarLoc::MachineLoc MLoc = VL.Locs[LocIdx];
+    VarLoc::MachineLoc const MLoc = VL.Locs[LocIdx];
     insertTransferDebugPair(MI, OpenRanges, Transfers, VarLocIDs, Idx, TKind,
                             MLoc, Reg);
     // FIXME: A comment should explain why it's correct to return early here,
@@ -1713,8 +1713,8 @@ void VarLocBasedLDV::transferRegisterCopy(MachineInstr &MI,
     return false;
   };
 
-  Register SrcReg = SrcRegOp->getReg();
-  Register DestReg = DestRegOp->getReg();
+  Register const SrcReg = SrcRegOp->getReg();
+  Register const DestReg = DestRegOp->getReg();
 
   // We want to recognize instructions where destination register is callee
   // saved register. If register that could be clobbered by the call is
@@ -1728,18 +1728,18 @@ void VarLocBasedLDV::transferRegisterCopy(MachineInstr &MI,
   // a parameter describing only a moving of the value around, rather then
   // modifying it, we are still able to use the entry value if needed.
   if (isRegOtherThanSPAndFP(*DestRegOp, MI, TRI)) {
-    for (uint64_t ID : OpenRanges.getEntryValueBackupVarLocs()) {
-      LocIndex Idx = LocIndex::fromRawInteger(ID);
+    for (uint64_t const ID : OpenRanges.getEntryValueBackupVarLocs()) {
+      LocIndex const Idx = LocIndex::fromRawInteger(ID);
       const VarLoc &VL = VarLocIDs[Idx];
       if (VL.isEntryValueBackupReg(SrcReg)) {
         LLVM_DEBUG(dbgs() << "Copy of the entry value: "; MI.dump(););
-        VarLoc EntryValLocCopyBackup =
+        VarLoc const EntryValLocCopyBackup =
             VarLoc::CreateEntryCopyBackupLoc(VL.MI, LS, VL.Expr, DestReg);
         // Stop tracking the original entry value.
         OpenRanges.erase(VL);
 
         // Start tracking the entry value copy.
-        LocIndices EntryValCopyLocIDs = VarLocIDs.insert(EntryValLocCopyBackup);
+        LocIndices const EntryValCopyLocIDs = VarLocIDs.insert(EntryValLocCopyBackup);
         OpenRanges.insert(EntryValCopyLocIDs, EntryValLocCopyBackup);
         break;
       }
@@ -1749,12 +1749,12 @@ void VarLocBasedLDV::transferRegisterCopy(MachineInstr &MI,
   if (!SrcRegOp->isKill())
     return;
 
-  for (uint64_t ID : OpenRanges.getRegisterVarLocs(SrcReg)) {
-    LocIndex Idx = LocIndex::fromRawInteger(ID);
+  for (uint64_t const ID : OpenRanges.getRegisterVarLocs(SrcReg)) {
+    LocIndex const Idx = LocIndex::fromRawInteger(ID);
     assert(VarLocIDs[Idx].usesReg(SrcReg) && "Broken VarLocSet?");
     VarLoc::MachineLocValue Loc;
     Loc.RegNo = SrcReg;
-    VarLoc::MachineLoc MLoc{VarLoc::MachineLocKind::RegisterKind, Loc};
+    VarLoc::MachineLoc const MLoc{VarLoc::MachineLocKind::RegisterKind, Loc};
     insertTransferDebugPair(MI, OpenRanges, Transfers, VarLocIDs, Idx,
                             TransferKind::TransferCopy, MLoc, DestReg);
     // FIXME: A comment should explain why it's correct to return early here,
@@ -1801,9 +1801,9 @@ bool VarLocBasedLDV::transferTerminator(MachineBasicBlock *CurMBB,
 void VarLocBasedLDV::accumulateFragmentMap(MachineInstr &MI,
                                             VarToFragments &SeenFragments,
                                             OverlapMap &OverlappingFragments) {
-  DebugVariable MIVar(MI.getDebugVariable(), MI.getDebugExpression(),
+  DebugVariable const MIVar(MI.getDebugVariable(), MI.getDebugExpression(),
                       MI.getDebugLoc()->getInlinedAt());
-  FragmentInfo ThisFragment = MIVar.getFragmentOrDefault();
+  FragmentInfo const ThisFragment = MIVar.getFragmentOrDefault();
 
   // If this is the first sighting of this variable, then we are guaranteed
   // there are currently no overlapping fragments either. Initialize the set
@@ -1891,7 +1891,7 @@ bool VarLocBasedLDV::join(
 
     // Just copy over the Out locs to incoming locs for the first visited
     // predecessor, and for all other predecessors join the Out locs.
-    VarLocSet &OutLocVLS = *OL->second.get();
+    VarLocSet  const&OutLocVLS = *OL->second.get();
     if (!NumVisited)
       InLocsT = OutLocVLS;
     else
@@ -1912,10 +1912,10 @@ bool VarLocBasedLDV::join(
 
   // Filter out DBG_VALUES that are out of scope.
   VarLocSet KillSet(Alloc);
-  bool IsArtificial = ArtificialBlocks.count(&MBB);
+  bool const IsArtificial = ArtificialBlocks.count(&MBB);
   if (!IsArtificial) {
-    for (uint64_t ID : InLocsT) {
-      LocIndex Idx = LocIndex::fromRawInteger(ID);
+    for (uint64_t const ID : InLocsT) {
+      LocIndex const Idx = LocIndex::fromRawInteger(ID);
       if (!VarLocIDs[Idx].dominates(LS, MBB)) {
         KillSet.set(ID);
         LLVM_DEBUG({
@@ -1950,12 +1950,12 @@ void VarLocBasedLDV::flushPendingLocs(VarLocInMBB &PendingInLocs,
   for (auto &Iter : PendingInLocs) {
     // Map is keyed on a constant pointer, unwrap it so we can insert insts.
     auto &MBB = const_cast<MachineBasicBlock &>(*Iter.first);
-    VarLocSet &Pending = *Iter.second.get();
+    VarLocSet  const&Pending = *Iter.second.get();
 
     SmallVector<VarLoc, 32> VarLocs;
     collectAllVarLocs(VarLocs, Pending, VarLocIDs);
 
-    for (VarLoc DiffIt : VarLocs) {
+    for (VarLoc const DiffIt : VarLocs) {
       // The ID location is live-in to MBB -- work out what kind of machine
       // location it is and create a DBG_VALUE.
       if (DiffIt.isEntryBackupLoc())
@@ -2028,7 +2028,7 @@ void VarLocBasedLDV::recordEntryValue(const MachineInstr &MI,
       return;
   }
 
-  DebugVariable V(MI.getDebugVariable(), MI.getDebugExpression(),
+  DebugVariable const V(MI.getDebugVariable(), MI.getDebugExpression(),
                   MI.getDebugLoc()->getInlinedAt());
 
   if (!isEntryValueCandidate(MI, DefinedRegs) ||
@@ -2041,8 +2041,8 @@ void VarLocBasedLDV::recordEntryValue(const MachineInstr &MI,
   // valid. It is valid until a parameter is not changed.
   DIExpression *NewExpr =
       DIExpression::prepend(MI.getDebugExpression(), DIExpression::EntryValue);
-  VarLoc EntryValLocAsBackup = VarLoc::CreateEntryBackupLoc(MI, LS, NewExpr);
-  LocIndices EntryValLocIDs = VarLocIDs.insert(EntryValLocAsBackup);
+  VarLoc const EntryValLocAsBackup = VarLoc::CreateEntryBackupLoc(MI, LS, NewExpr);
+  LocIndices const EntryValLocIDs = VarLocIDs.insert(EntryValLocAsBackup);
   OpenRanges.insert(EntryValLocIDs, EntryValLocAsBackup);
 }
 
@@ -2101,7 +2101,7 @@ bool VarLocBasedLDV::ExtendRanges(MachineFunction &MF, TargetPassConfig *TPC) {
 
   // Only in the case of entry MBB collect DBG_VALUEs representing
   // function parameters in order to generate debug entry values for them.
-  MachineBasicBlock &First_MBB = *(MF.begin());
+  MachineBasicBlock  const&First_MBB = *(MF.begin());
   for (auto &MI : First_MBB) {
     collectRegDefs(MI, DefinedRegs, TRI);
     if (MI.isDebugValue())
@@ -2126,7 +2126,7 @@ bool VarLocBasedLDV::ExtendRanges(MachineFunction &MF, TargetPassConfig *TPC) {
   LLVM_DEBUG(printVarLocInMBB(MF, OutLocs, VarLocIDs,
                               "OutLocs after initialization", dbgs()));
 
-  ReversePostOrderTraversal<MachineFunction *> RPOT(&MF);
+  ReversePostOrderTraversal<MachineFunction *> const RPOT(&MF);
   unsigned int RPONumber = 0;
   for (MachineBasicBlock *MBB : RPOT) {
     OrderToBB[RPONumber] = MBB;

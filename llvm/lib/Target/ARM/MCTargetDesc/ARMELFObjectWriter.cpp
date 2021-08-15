@@ -79,10 +79,10 @@ unsigned ARMELFObjectWriter::GetRelocTypeInner(const MCValue &Target,
                                                const MCFixup &Fixup,
                                                bool IsPCRel,
                                                MCContext &Ctx) const {
-  unsigned Kind = Fixup.getTargetKind();
+  unsigned const Kind = Fixup.getTargetKind();
   if (Kind >= FirstLiteralRelocationKind)
     return Kind - FirstLiteralRelocationKind;
-  MCSymbolRefExpr::VariantKind Modifier = Target.getAccessVariant();
+  MCSymbolRefExpr::VariantKind const Modifier = Target.getAccessVariant();
 
   if (IsPCRel) {
     switch (Fixup.getTargetKind()) {

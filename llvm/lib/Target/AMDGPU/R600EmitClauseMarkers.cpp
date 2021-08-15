@@ -59,7 +59,7 @@ private:
     for (MachineInstr::mop_iterator It = MI.operands_begin(),
                                     E = MI.operands_end();
          It != E; ++It) {
-      MachineOperand &MO = *It;
+      MachineOperand  const&MO = *It;
       if (MO.isReg() && MO.getReg() == R600::ALU_LITERAL_X)
         ++NumLiteral;
     }
@@ -126,9 +126,9 @@ private:
     for (unsigned i = 0, n = Consts.size(); i < n; ++i) {
       if (Consts[i].first->getReg() != R600::ALU_CONST)
         continue;
-      unsigned Sel = Consts[i].second;
+      unsigned const Sel = Consts[i].second;
       unsigned Chan = Sel & 3, Index = ((Sel >> 2) - 512) & 31;
-      unsigned KCacheIndex = Index * 4 + Chan;
+      unsigned const KCacheIndex = Index * 4 + Chan;
       const std::pair<unsigned, unsigned> &BankLine = getAccessedBankLine(Sel);
       if (CachedConsts.empty()) {
         CachedConsts.push_back(BankLine);
@@ -225,11 +225,11 @@ private:
 
   MachineBasicBlock::iterator
   MakeALUClause(MachineBasicBlock &MBB, MachineBasicBlock::iterator I) {
-    MachineBasicBlock::iterator ClauseHead = I;
+    MachineBasicBlock::iterator const ClauseHead = I;
     std::vector<std::pair<unsigned, unsigned>> KCacheBanks;
     bool PushBeforeModifier = false;
     unsigned AluInstCount = 0;
-    for (MachineBasicBlock::iterator E = MBB.end(); I != E; ++I) {
+    for (MachineBasicBlock::iterator const E = MBB.end(); I != E; ++I) {
       if (IsTrivialInst(*I))
         continue;
       if (!isALU(*I))
@@ -271,7 +271,7 @@ private:
         break;
       AluInstCount += OccupiedDwords(*I);
     }
-    unsigned Opcode = PushBeforeModifier ?
+    unsigned const Opcode = PushBeforeModifier ?
         R600::CF_ALU_PUSH_BEFORE : R600::CF_ALU;
     BuildMI(MBB, ClauseHead, MBB.findDebugLoc(ClauseHead), TII->get(Opcode))
     // We don't use the ADDR field until R600ControlFlowFinalizer pass, where
@@ -307,7 +307,7 @@ public:
       MachineBasicBlock::iterator I = MBB.begin();
       if (I != MBB.end() && I->getOpcode() == R600::CF_ALU)
         continue; // BB was already parsed
-      for (MachineBasicBlock::iterator E = MBB.end(); I != E;) {
+      for (MachineBasicBlock::iterator const E = MBB.end(); I != E;) {
         if (isALU(*I)) {
           auto next = MakeALUClause(MBB, I);
           assert(next != I);

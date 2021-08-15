@@ -182,7 +182,7 @@ performOnModule(Module &M) {
   for (auto &C : (M.*Iterator)()) {
     std::string Error;
 
-    std::string Name = Regex(Pattern).sub(Transform, C.getName(), &Error);
+    std::string const Name = Regex(Pattern).sub(Transform, C.getName(), &Error);
     if (!Error.empty())
       report_fatal_error("unable to transforn " + C.getName() + " in " +
                          M.getModuleIdentifier() + ": " + Error);

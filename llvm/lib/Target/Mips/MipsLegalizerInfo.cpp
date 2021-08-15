@@ -37,7 +37,7 @@ static bool isUnalignedMemmoryAccess(uint64_t MemSize, uint64_t AlignInBits) {
 static bool
 CheckTy0Ty1MemSizeAlign(const LegalityQuery &Query,
                         std::initializer_list<TypesAndMemOps> SupportedValues) {
-  unsigned QueryMemSize = Query.MMODescrs[0].MemoryTy.getSizeInBits();
+  unsigned const QueryMemSize = Query.MMODescrs[0].MemoryTy.getSizeInBits();
 
   // Non power of two memory access is never legal.
   if (!isPowerOf2_64(QueryMemSize))
@@ -126,8 +126,8 @@ MipsLegalizerInfo::MipsLegalizerInfo(const MipsSubtarget &ST) {
             Query.Types[0] == s1)
           return false;
 
-        unsigned Size = Query.Types[0].getSizeInBits();
-        unsigned QueryMemSize = Query.MMODescrs[0].MemoryTy.getSizeInBits();
+        unsigned const Size = Query.Types[0].getSizeInBits();
+        unsigned const QueryMemSize = Query.MMODescrs[0].MemoryTy.getSizeInBits();
         assert(QueryMemSize <= Size && "Scalar can't hold MemSize");
 
         if (Size > 64 || QueryMemSize > 64)
@@ -333,7 +333,7 @@ bool MipsLegalizerInfo::legalizeCustom(LegalizerHelper &Helper,
   using namespace TargetOpcode;
 
   MachineIRBuilder &MIRBuilder = Helper.MIRBuilder;
-  MachineRegisterInfo &MRI = *MIRBuilder.getMRI();
+  MachineRegisterInfo  const&MRI = *MIRBuilder.getMRI();
 
   const LLT s32 = LLT::scalar(32);
   const LLT s64 = LLT::scalar(64);
@@ -341,9 +341,9 @@ bool MipsLegalizerInfo::legalizeCustom(LegalizerHelper &Helper,
   switch (MI.getOpcode()) {
   case G_LOAD:
   case G_STORE: {
-    unsigned MemSize = (**MI.memoperands_begin()).getSize();
+    unsigned const MemSize = (**MI.memoperands_begin()).getSize();
     Register Val = MI.getOperand(0).getReg();
-    unsigned Size = MRI.getType(Val).getSizeInBits();
+    unsigned const Size = MRI.getType(Val).getSizeInBits();
 
     MachineMemOperand *MMOBase = *MI.memoperands_begin();
 
@@ -360,8 +360,8 @@ bool MipsLegalizerInfo::legalizeCustom(LegalizerHelper &Helper,
       RemMemSize = MemSize - P2HalfMemSize;
     }
 
-    Register BaseAddr = MI.getOperand(1).getReg();
-    LLT PtrTy = MRI.getType(BaseAddr);
+    Register const BaseAddr = MI.getOperand(1).getReg();
+    LLT const PtrTy = MRI.getType(BaseAddr);
     MachineFunction &MF = MIRBuilder.getMF();
 
     auto P2HalfMemOp = MF.getMachineMemOperand(MMOBase, 0, P2HalfMemSize);
@@ -421,10 +421,10 @@ bool MipsLegalizerInfo::legalizeCustom(LegalizerHelper &Helper,
     break;
   }
   case G_UITOFP: {
-    Register Dst = MI.getOperand(0).getReg();
-    Register Src = MI.getOperand(1).getReg();
-    LLT DstTy = MRI.getType(Dst);
-    LLT SrcTy = MRI.getType(Src);
+    Register const Dst = MI.getOperand(0).getReg();
+    Register const Src = MI.getOperand(1).getReg();
+    LLT const DstTy = MRI.getType(Dst);
+    LLT const SrcTy = MRI.getType(Src);
 
     if (SrcTy != s32)
       return false;
@@ -441,13 +441,13 @@ bool MipsLegalizerInfo::legalizeCustom(LegalizerHelper &Helper,
     auto C_HiMask = MIRBuilder.buildConstant(s32, UINT32_C(0x43300000));
     auto Bitcast = MIRBuilder.buildMerge(s64, {Src, C_HiMask.getReg(0)});
 
-    MachineInstrBuilder TwoP52FP = MIRBuilder.buildFConstant(
+    MachineInstrBuilder const TwoP52FP = MIRBuilder.buildFConstant(
         s64, BitsToDouble(UINT64_C(0x4330000000000000)));
 
     if (DstTy == s64)
       MIRBuilder.buildFSub(Dst, Bitcast, TwoP52FP);
     else {
-      MachineInstrBuilder ResF64 = MIRBuilder.buildFSub(s64, Bitcast, TwoP52FP);
+      MachineInstrBuilder const ResF64 = MIRBuilder.buildFSub(s64, Bitcast, TwoP52FP);
       MIRBuilder.buildFPTrunc(Dst, ResF64);
     }
 
@@ -515,8 +515,8 @@ bool MipsLegalizerInfo::legalizeIntrinsic(LegalizerHelper &Helper,
     return constrainSelectedInstRegOperands(*Trap, TII, TRI, RBI);
   }
   case Intrinsic::vacopy: {
-    MachinePointerInfo MPO;
-    LLT PtrTy = LLT::pointer(0, 32);
+    MachinePointerInfo const MPO;
+    LLT const PtrTy = LLT::pointer(0, 32);
     auto Tmp =
         MIRBuilder.buildLoad(PtrTy, MI.getOperand(2),
                              *MI.getMF()->getMachineMemOperand(

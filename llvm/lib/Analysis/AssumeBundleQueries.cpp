@@ -84,7 +84,7 @@ void llvm::fillMapFromAssume(AssumeInst &Assume, RetainedKnowledgeMap &Result) {
         getValueFromBundleOpInfo(Assume, Bundles, ABA_Argument));
     if (!CI)
       continue;
-    unsigned Val = CI->getZExtValue();
+    unsigned const Val = CI->getZExtValue();
     auto Lookup = Result.find(Key);
     if (Lookup == Result.end() || !Lookup->second.count(&Assume)) {
       Result[Key][&Assume] = {Val, Val};
@@ -118,7 +118,7 @@ llvm::getKnowledgeFromBundle(AssumeInst &Assume,
 
 RetainedKnowledge llvm::getKnowledgeFromOperandInAssume(AssumeInst &Assume,
                                                         unsigned Idx) {
-  CallBase::BundleOpInfo BOI = Assume.getBundleOpInfoForOperand(Idx);
+  CallBase::BundleOpInfo const BOI = Assume.getBundleOpInfoForOperand(Idx);
   return getKnowledgeFromBundle(Assume, BOI);
 }
 

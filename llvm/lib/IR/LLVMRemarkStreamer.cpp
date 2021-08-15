@@ -47,9 +47,9 @@ static Optional<remarks::RemarkLocation>
 toRemarkLocation(const DiagnosticLocation &DL) {
   if (!DL.isValid())
     return None;
-  StringRef File = DL.getRelativePath();
-  unsigned Line = DL.getLine();
-  unsigned Col = DL.getColumn();
+  StringRef const File = DL.getRelativePath();
+  unsigned const Line = DL.getLine();
+  unsigned const Col = DL.getColumn();
   return remarks::RemarkLocation{File, Line, Col};
 }
 
@@ -80,7 +80,7 @@ void LLVMRemarkStreamer::emit(const DiagnosticInfoOptimizationBase &Diag) {
       return;
 
   // First, convert the diagnostic to a remark.
-  remarks::Remark R = toRemark(Diag);
+  remarks::Remark const R = toRemark(Diag);
   // Then, emit the remark through the serializer.
   RS.getSerializer().emit(R);
 }

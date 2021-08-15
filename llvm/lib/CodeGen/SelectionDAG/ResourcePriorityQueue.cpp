@@ -55,7 +55,7 @@ ResourcePriorityQueue::ResourcePriorityQueue(SelectionDAGISel *IS)
   // do not let it proceed.
   assert(ResourcesModel && "Unimplemented CreateTargetScheduleState.");
 
-  unsigned NumRC = TRI->getNumRegClasses();
+  unsigned const NumRC = TRI->getNumRegClasses();
   RegLimit.resize(NumRC);
   RegPressure.resize(NumRC);
   std::fill(RegLimit.begin(), RegLimit.end(), 0);
@@ -70,7 +70,7 @@ ResourcePriorityQueue::ResourcePriorityQueue(SelectionDAGISel *IS)
 unsigned
 ResourcePriorityQueue::numberRCValPredInSU(SUnit *SU, unsigned RCId) {
   unsigned NumberDeps = 0;
-  for (SDep &Pred : SU->Preds) {
+  for (SDep  const&Pred : SU->Preds) {
     if (Pred.isCtrl())
       continue;
 
@@ -94,7 +94,7 @@ ResourcePriorityQueue::numberRCValPredInSU(SUnit *SU, unsigned RCId) {
       continue;
 
     for (unsigned i = 0, e = ScegN->getNumValues(); i != e; ++i) {
-      MVT VT = ScegN->getSimpleValueType(i);
+      MVT const VT = ScegN->getSimpleValueType(i);
       if (TLI->isTypeLegal(VT)
           && (TLI->getRegClassFor(VT)->getID() == RCId)) {
         NumberDeps++;
@@ -132,7 +132,7 @@ unsigned ResourcePriorityQueue::numberRCValSuccInSU(SUnit *SU,
 
     for (unsigned i = 0, e = ScegN->getNumOperands(); i != e; ++i) {
       const SDValue &Op = ScegN->getOperand(i);
-      MVT VT = Op.getNode()->getSimpleValueType(Op.getResNo());
+      MVT const VT = Op.getNode()->getSimpleValueType(Op.getResNo());
       if (TLI->isTypeLegal(VT)
           && (TLI->getRegClassFor(VT)->getID() == RCId)) {
         NumberDeps++;
@@ -154,7 +154,7 @@ static unsigned numberCtrlDepsInSU(SUnit *SU) {
 
 static unsigned numberCtrlPredInSU(SUnit *SU) {
   unsigned NumberDeps = 0;
-  for (SDep &Pred : SU->Preds)
+  for (SDep  const&Pred : SU->Preds)
     if (Pred.isCtrl())
       NumberDeps++;
 
@@ -187,19 +187,19 @@ bool resource_sort::operator()(const SUnit *LHS, const SUnit *RHS) const {
   if (!LHS->isScheduleHigh && RHS->isScheduleHigh)
     return true;
 
-  unsigned LHSNum = LHS->NodeNum;
-  unsigned RHSNum = RHS->NodeNum;
+  unsigned const LHSNum = LHS->NodeNum;
+  unsigned const RHSNum = RHS->NodeNum;
 
   // The most important heuristic is scheduling the critical path.
-  unsigned LHSLatency = PQ->getLatency(LHSNum);
-  unsigned RHSLatency = PQ->getLatency(RHSNum);
+  unsigned const LHSLatency = PQ->getLatency(LHSNum);
+  unsigned const RHSLatency = PQ->getLatency(RHSNum);
   if (LHSLatency < RHSLatency) return true;
   if (LHSLatency > RHSLatency) return false;
 
   // After that, if two nodes have identical latencies, look to see if one will
   // unblock more other nodes than the other.
-  unsigned LHSBlocked = PQ->getNumSolelyBlockNodes(LHSNum);
-  unsigned RHSBlocked = PQ->getNumSolelyBlockNodes(RHSNum);
+  unsigned const LHSBlocked = PQ->getNumSolelyBlockNodes(LHSNum);
+  unsigned const RHSBlocked = PQ->getNumSolelyBlockNodes(RHSNum);
   if (LHSBlocked < RHSBlocked) return true;
   if (LHSBlocked > RHSBlocked) return false;
 
@@ -328,7 +328,7 @@ int ResourcePriorityQueue::rawRegPressureDelta(SUnit *SU, unsigned RCId) {
 
   // Gen estimate.
   for (unsigned i = 0, e = SU->getNode()->getNumValues(); i != e; ++i) {
-      MVT VT = SU->getNode()->getSimpleValueType(i);
+      MVT const VT = SU->getNode()->getSimpleValueType(i);
       if (TLI->isTypeLegal(VT)
           && TLI->getRegClassFor(VT)
           && TLI->getRegClassFor(VT)->getID() == RCId)
@@ -337,7 +337,7 @@ int ResourcePriorityQueue::rawRegPressureDelta(SUnit *SU, unsigned RCId) {
   // Kill estimate.
   for (unsigned i = 0, e = SU->getNode()->getNumOperands(); i != e; ++i) {
       const SDValue &Op = SU->getNode()->getOperand(i);
-      MVT VT = Op.getNode()->getSimpleValueType(Op.getResNo());
+      MVT const VT = Op.getNode()->getSimpleValueType(Op.getResNo());
       if (isa<ConstantSDNode>(Op.getNode()))
         continue;
 
@@ -476,7 +476,7 @@ void ResourcePriorityQueue::scheduledNode(SUnit *SU) {
   if (ScegN->isMachineOpcode()) {
     // Estimate generated regs.
     for (unsigned i = 0, e = ScegN->getNumValues(); i != e; ++i) {
-      MVT VT = ScegN->getSimpleValueType(i);
+      MVT const VT = ScegN->getSimpleValueType(i);
 
       if (TLI->isTypeLegal(VT)) {
         const TargetRegisterClass *RC = TLI->getRegClassFor(VT);
@@ -487,7 +487,7 @@ void ResourcePriorityQueue::scheduledNode(SUnit *SU) {
     // Estimate killed regs.
     for (unsigned i = 0, e = ScegN->getNumOperands(); i != e; ++i) {
       const SDValue &Op = ScegN->getOperand(i);
-      MVT VT = Op.getNode()->getSimpleValueType(Op.getResNo());
+      MVT const VT = Op.getNode()->getSimpleValueType(Op.getResNo());
 
       if (TLI->isTypeLegal(VT)) {
         const TargetRegisterClass *RC = TLI->getRegClassFor(VT);
@@ -499,7 +499,7 @@ void ResourcePriorityQueue::scheduledNode(SUnit *SU) {
         }
       }
     }
-    for (SDep &Pred : SU->Preds) {
+    for (SDep  const&Pred : SU->Preds) {
       if (Pred.isCtrl() || (Pred.getSUnit()->NumRegDefsLeft == 0))
         continue;
       --Pred.getSUnit()->NumRegDefsLeft;
@@ -621,7 +621,7 @@ SUnit *ResourcePriorityQueue::pop() {
 
 void ResourcePriorityQueue::remove(SUnit *SU) {
   assert(!Queue.empty() && "Queue is empty!");
-  std::vector<SUnit *>::iterator I = find(Queue, SU);
+  std::vector<SUnit *>::iterator const I = find(Queue, SU);
   if (I != std::prev(Queue.end()))
     std::swap(*I, Queue.back());
 
