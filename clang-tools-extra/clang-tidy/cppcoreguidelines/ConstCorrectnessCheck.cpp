@@ -143,11 +143,9 @@ void ConstCorrectnessCheck::check(const MatchFinder::MatchResult &Result) {
   /// dependent. Variables like 'int x = 42;' in a template that can become
   /// const emit multiple warnings otherwise.
   const bool IsNormalVariableInTemplate = Function->isTemplateInstantiation();
-  if (IsNormalVariableInTemplate) {
-    if (TemplateDiagnosticsCache.contains(Variable->getBeginLoc())) {
-      return;
-    }
-  }
+  if (IsNormalVariableInTemplate &&
+      TemplateDiagnosticsCache.contains(Variable->getBeginLoc()))
+    return;
 
   auto Diag = diag(Variable->getBeginLoc(),
                    "variable %0 of type %1 can be declared 'const'")
