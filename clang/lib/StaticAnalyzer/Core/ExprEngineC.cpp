@@ -1098,7 +1098,7 @@ void ExprEngine::VisitIncrementDecrementOperator(const UnaryOperator* U,
 
       continue;
     }
-    DefinedSVal const V2 = V2_untested.castAs<DefinedSVal>();
+    DefinedSVal V2 = V2_untested.castAs<DefinedSVal>();
 
     // Handle all other values.
     BinaryOperator::Opcode const Op = U->isIncrementOp() ? BO_Add : BO_Sub;

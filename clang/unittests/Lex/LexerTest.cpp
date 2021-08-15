@@ -442,7 +442,7 @@ TEST_F(LexerTest, DontOverallocateStringifyArgs) {
   auto PP = CreatePP("\"StrArg\", 5, 'C'", ModLoader);
 
   llvm::BumpPtrAllocator Allocator;
-  std::array<IdentifierInfo *, 3> const ParamList;
+  std::array<IdentifierInfo *, 3> const ParamList{};
   MacroInfo *MI = PP->AllocateMacroInfo({});
   MI->setIsFunctionLike();
   MI->setParameterList(ParamList, Allocator);
