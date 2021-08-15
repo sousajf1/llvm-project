@@ -20,10 +20,10 @@ namespace {
 
 TEST(BuildCompilerInvocationTest, RecoverMultipleJobs) {
   // This generates multiple jobs and we recover by using the first.
-  std::vector<const char *> Args = {"clang", "--target=macho", "-arch",  "i386",
+  std::vector<const char *> const Args = {"clang", "--target=macho", "-arch",  "i386",
                                     "-arch", "x86_64",         "foo.cpp"};
   clang::IgnoringDiagConsumer D;
-  llvm::IntrusiveRefCntPtr<DiagnosticsEngine> CommandLineDiagsEngine =
+  llvm::IntrusiveRefCntPtr<DiagnosticsEngine> const CommandLineDiagsEngine =
       clang::CompilerInstance::createDiagnostics(new DiagnosticOptions, &D,
                                                  false);
   std::unique_ptr<CompilerInvocation> CI = createInvocationFromCommandLine(

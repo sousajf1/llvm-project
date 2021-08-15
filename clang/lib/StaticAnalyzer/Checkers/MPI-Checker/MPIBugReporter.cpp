@@ -34,7 +34,7 @@ void MPIBugReporter::reportDoubleNonblocking(
       *DoubleNonblockingBugType, ErrorText, ExplNode);
 
   Report->addRange(MPICallEvent.getSourceRange());
-  SourceRange Range = RequestRegion->sourceRange();
+  SourceRange const Range = RequestRegion->sourceRange();
 
   if (Range.isValid())
     Report->addRange(Range);
@@ -50,13 +50,13 @@ void MPIBugReporter::reportMissingWait(
     const ento::mpi::Request &Req, const MemRegion *const RequestRegion,
     const ExplodedNode *const ExplNode,
     BugReporter &BReporter) const {
-  std::string ErrorText{"Request " + RequestRegion->getDescriptiveName() +
+  std::string const ErrorText{"Request " + RequestRegion->getDescriptiveName() +
                         " has no matching wait. "};
 
   auto Report = std::make_unique<PathSensitiveBugReport>(*MissingWaitBugType,
                                                          ErrorText, ExplNode);
 
-  SourceRange Range = RequestRegion->sourceRange();
+  SourceRange const Range = RequestRegion->sourceRange();
   if (Range.isValid())
     Report->addRange(Range);
   Report->addVisitor(std::make_unique<RequestNodeVisitor>(
@@ -70,14 +70,14 @@ void MPIBugReporter::reportUnmatchedWait(
     const CallEvent &CE, const clang::ento::MemRegion *const RequestRegion,
     const ExplodedNode *const ExplNode,
     BugReporter &BReporter) const {
-  std::string ErrorText{"Request " + RequestRegion->getDescriptiveName() +
+  std::string const ErrorText{"Request " + RequestRegion->getDescriptiveName() +
                         " has no matching nonblocking call. "};
 
   auto Report = std::make_unique<PathSensitiveBugReport>(*UnmatchedWaitBugType,
                                                          ErrorText, ExplNode);
 
   Report->addRange(CE.getSourceRange());
-  SourceRange Range = RequestRegion->sourceRange();
+  SourceRange const Range = RequestRegion->sourceRange();
   if (Range.isValid())
     Report->addRange(Range);
 
@@ -102,8 +102,8 @@ MPIBugReporter::RequestNodeVisitor::VisitNode(const ExplodedNode *N,
   if (!PrevReq || (Req->CurrentState != PrevReq->CurrentState)) {
     IsNodeFound = true;
 
-    ProgramPoint P = N->getFirstPred()->getLocation();
-    PathDiagnosticLocation L =
+    ProgramPoint const P = N->getFirstPred()->getLocation();
+    PathDiagnosticLocation const L =
         PathDiagnosticLocation::create(P, BRC.getSourceManager());
 
     return std::make_shared<PathDiagnosticEventPiece>(L, ErrorText);

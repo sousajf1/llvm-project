@@ -136,7 +136,7 @@ ParseProgress<ResultType> makeParseProgress(ParseState State,
 }
 
 static llvm::Error makeParseError(const ParseState &S, std::string ErrorMsg) {
-  size_t Pos = S.OriginalInput.size() - S.Input.size();
+  size_t const Pos = S.OriginalInput.size() - S.Input.size();
   return llvm::make_error<ParseError>(Pos, std::move(ErrorMsg),
                                       S.OriginalInput.substr(Pos, 20).str());
 }
@@ -182,7 +182,7 @@ static ExpectedProgress<std::string> parseStringId(ParseState State) {
         State,
         "expecting string, but encountered other character or end of input");
 
-  StringRef Id = State.Input.take_until([](char c) { return c == '"'; });
+  StringRef const Id = State.Input.take_until([](char c) { return c == '"'; });
   if (State.Input.size() == Id.size())
     return makeParseError(State, "unterminated string");
   // Advance past the trailing quote as well.
@@ -249,7 +249,7 @@ parseRangeSelectorImpl(ParseState State) {
   if (!Id)
     return Id.takeError();
 
-  std::string OpName = std::move(Id->Value);
+  std::string const OpName = std::move(Id->Value);
   if (auto Op = findOptional(getUnaryStringSelectors(), OpName))
     return parseSingle(parseStringId, *Op, Id->State);
 

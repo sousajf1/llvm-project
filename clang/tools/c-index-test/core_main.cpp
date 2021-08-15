@@ -104,12 +104,12 @@ public:
                             ArrayRef<SymbolRelation> Relations,
                             SourceLocation Loc, ASTNodeInfo ASTNode) override {
     ASTContext &Ctx = D->getASTContext();
-    SourceManager &SM = Ctx.getSourceManager();
+    SourceManager  const&SM = Ctx.getSourceManager();
 
     Loc = SM.getFileLoc(Loc);
-    FileID FID = SM.getFileID(Loc);
-    unsigned Line = SM.getLineNumber(FID, SM.getFileOffset(Loc));
-    unsigned Col = SM.getColumnNumber(FID, SM.getFileOffset(Loc));
+    FileID const FID = SM.getFileID(Loc);
+    unsigned const Line = SM.getLineNumber(FID, SM.getFileOffset(Loc));
+    unsigned const Col = SM.getColumnNumber(FID, SM.getFileOffset(Loc));
     OS << Line << ':' << Col << " | ";
 
     printSymbolInfo(getSymbolInfo(D), OS);
@@ -142,12 +142,12 @@ public:
                               const clang::Module *Mod, SymbolRoleSet Roles,
                               SourceLocation Loc) override {
     ASTContext &Ctx = ImportD->getASTContext();
-    SourceManager &SM = Ctx.getSourceManager();
+    SourceManager  const&SM = Ctx.getSourceManager();
 
     Loc = SM.getFileLoc(Loc);
-    FileID FID = SM.getFileID(Loc);
-    unsigned Line = SM.getLineNumber(FID, SM.getFileOffset(Loc));
-    unsigned Col = SM.getColumnNumber(FID, SM.getFileOffset(Loc));
+    FileID const FID = SM.getFileID(Loc);
+    unsigned const Line = SM.getLineNumber(FID, SM.getFileOffset(Loc));
+    unsigned const Col = SM.getColumnNumber(FID, SM.getFileOffset(Loc));
     OS << Line << ':' << Col << " | ";
 
     printSymbolInfo(getSymbolInfo(ImportD), OS);
@@ -165,12 +165,12 @@ public:
   bool handleMacroOccurrence(const IdentifierInfo *Name, const MacroInfo *MI,
                              SymbolRoleSet Roles, SourceLocation Loc) override {
     assert(PP);
-    SourceManager &SM = PP->getSourceManager();
+    SourceManager  const&SM = PP->getSourceManager();
 
     Loc = SM.getFileLoc(Loc);
-    FileID FID = SM.getFileID(Loc);
-    unsigned Line = SM.getLineNumber(FID, SM.getFileOffset(Loc));
-    unsigned Col = SM.getColumnNumber(FID, SM.getFileOffset(Loc));
+    FileID const FID = SM.getFileID(Loc);
+    unsigned const Line = SM.getLineNumber(FID, SM.getFileOffset(Loc));
+    unsigned const Col = SM.getColumnNumber(FID, SM.getFileOffset(Loc));
     OS << Line << ':' << Col << " | ";
 
     printSymbolInfo(getSymbolInfoForMacro(*MI), OS);
@@ -219,7 +219,7 @@ static bool printSourceSymbols(const char *Executable,
   ArgsWithProgName.push_back(Executable);
   ArgsWithProgName.append(Args.begin(), Args.end());
   IntrusiveRefCntPtr<DiagnosticsEngine>
-    Diags(CompilerInstance::createDiagnostics(new DiagnosticOptions));
+    const Diags(CompilerInstance::createDiagnostics(new DiagnosticOptions));
   auto CInvok = createInvocationFromCommandLine(ArgsWithProgName, Diags);
   if (!CInvok)
     return true;
@@ -230,7 +230,7 @@ static bool printSourceSymbols(const char *Executable,
   IndexOpts.IndexFunctionLocals = indexLocals;
   IndexOpts.IndexMacros = !ignoreMacros;
   IndexOpts.IndexMacrosInPreprocessor = !ignoreMacros;
-  std::unique_ptr<FrontendAction> IndexAction =
+  std::unique_ptr<FrontendAction> const IndexAction =
       createIndexingAction(DataConsumer, IndexOpts);
 
   auto PCHContainerOps = std::make_shared<PCHContainerOperations>();
@@ -256,7 +256,7 @@ static bool printSourceSymbols(const char *Executable,
 
 static bool printSourceSymbolsFromModule(StringRef modulePath,
                                          StringRef format) {
-  FileSystemOptions FileSystemOpts;
+  FileSystemOptions const FileSystemOpts;
   auto pchContOps = std::make_shared<PCHContainerOperations>();
   // Register the support for object-file-wrapped Clang modules.
   pchContOps->registerReader(std::make_unique<ObjectFilePCHContainerReader>());
@@ -266,7 +266,7 @@ static bool printSourceSymbolsFromModule(StringRef modulePath,
     return true;
   }
 
-  IntrusiveRefCntPtr<DiagnosticsEngine> Diags =
+  IntrusiveRefCntPtr<DiagnosticsEngine> const Diags =
       CompilerInstance::createDiagnostics(new DiagnosticOptions());
   std::unique_ptr<ASTUnit> AU = ASTUnit::LoadFromASTFile(
       std::string(modulePath), *pchRdr, ASTUnit::LoadASTOnly, Diags,
@@ -280,7 +280,7 @@ static bool printSourceSymbolsFromModule(StringRef modulePath,
   }
 
   PrintIndexDataConsumer DataConsumer(outs());
-  IndexingOptions IndexOpts;
+  IndexingOptions const IndexOpts;
   indexASTUnit(*AU, DataConsumer, IndexOpts);
 
   return false;
@@ -329,9 +329,9 @@ static void printSymbolNameAndUSR(const clang::Module *Mod, raw_ostream &OS) {
 
 int indextest_core_main(int argc, const char **argv) {
   sys::PrintStackTraceOnErrorSignal(argv[0]);
-  PrettyStackTraceProgram X(argc, argv);
+  PrettyStackTraceProgram const X(argc, argv);
   void *MainAddr = (void*) (intptr_t) indextest_core_main;
-  std::string Executable = llvm::sys::fs::getMainExecutable(argv[0], MainAddr);
+  std::string const Executable = llvm::sys::fs::getMainExecutable(argv[0], MainAddr);
 
   assert(argv[1] == StringRef("core"));
   ++argv;
@@ -379,10 +379,10 @@ int indextest_perform_shell_execution(const char *command_line) {
   SmallVector<const char *, 4> Args;
   llvm::cl::TokenizeGNUCommandLine(command_line, Saver, Args);
   auto Program = llvm::sys::findProgramByName(Args[0]);
-  if (std::error_code ec = Program.getError()) {
+  if (std::error_code const ec = Program.getError()) {
     llvm::errs() << "command not found: " << Args[0] << "\n";
     return ec.value();
   }
-  SmallVector<StringRef, 8> execArgs(Args.begin(), Args.end());
+  SmallVector<StringRef, 8> const execArgs(Args.begin(), Args.end());
   return llvm::sys::ExecuteAndWait(*Program, execArgs);
 }

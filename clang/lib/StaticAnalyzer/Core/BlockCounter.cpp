@@ -56,7 +56,7 @@ static inline CountMap::Factory& GetFactory(void *F) {
 
 unsigned BlockCounter::getNumVisited(const StackFrameContext *CallSite,
                                        unsigned BlockID) const {
-  CountMap M = GetMap(Data);
+  CountMap const M = GetMap(Data);
   CountMap::data_type* T = M.lookup(CountKey(CallSite, BlockID));
   return T ? *T : 0;
 }

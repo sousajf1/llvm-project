@@ -42,7 +42,7 @@ TEST(CFG, StaticInitializerLastCondition) {
   CFG::BuildOptions Options;
   Options.AddStaticInitBranches = true;
   Options.setAllAlwaysAdd();
-  BuildResult B = BuildCFG(Code, Options);
+  BuildResult const B = BuildCFG(Code, Options);
   EXPECT_EQ(BuildResult::BuiltCFG, B.getStatus());
   EXPECT_EQ(1u, B.getCFG()->getEntry().succ_size());
   CFGBlock *Block = *B.getCFG()->getEntry().succ_begin();
@@ -72,7 +72,7 @@ TEST(CFG, VariableOfIncompleteType) {
 
 TEST(CFG, IsLinear) {
   auto expectLinear = [](bool IsLinear, const char *Code) {
-    BuildResult B = BuildCFG(Code);
+    BuildResult const B = BuildCFG(Code);
     EXPECT_EQ(BuildResult::BuiltCFG, B.getStatus());
     EXPECT_EQ(IsLinear, B.getCFG()->isLinear());
   };
@@ -96,7 +96,7 @@ TEST(CFG, ElementRefIterator) {
                           j = 7;
                         })";
 
-  BuildResult B = BuildCFG(Code);
+  BuildResult const B = BuildCFG(Code);
   EXPECT_EQ(BuildResult::BuiltCFG, B.getStatus());
   CFG *Cfg = B.getCFG();
 
@@ -227,7 +227,7 @@ TEST(CFG, Worklists) {
                      "    a += 1;\n"
                      "  return a;\n"
                      "}\n";
-  BuildResult B = BuildCFG(Code);
+  BuildResult const B = BuildCFG(Code);
   EXPECT_EQ(BuildResult::BuiltCFG, B.getStatus());
   const FunctionDecl *Func = B.getFunc();
   AnalysisDeclContext AC(nullptr, Func);

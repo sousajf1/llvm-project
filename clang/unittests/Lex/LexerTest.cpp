@@ -93,7 +93,7 @@ protected:
 
   std::string getSourceText(Token Begin, Token End) {
     bool Invalid;
-    StringRef Str =
+    StringRef const Str =
         Lexer::getSourceText(CharSourceRange::getTokenRange(SourceRange(
                                     Begin.getLocation(), End.getLocation())),
                              SourceMgr, LangOpts, &Invalid);
@@ -288,9 +288,9 @@ TEST_F(LexerTest, LexAPI) {
                                      "N(INN(val)) N(NOF1) N(NOF2) N(val)",
                                      ExpectedTokens);
 
-  SourceLocation lsqrLoc = toks[0].getLocation();
-  SourceLocation idLoc = toks[1].getLocation();
-  SourceLocation rsqrLoc = toks[2].getLocation();
+  SourceLocation const lsqrLoc = toks[0].getLocation();
+  SourceLocation const idLoc = toks[1].getLocation();
+  SourceLocation const rsqrLoc = toks[2].getLocation();
   CharSourceRange macroRange = SourceMgr.getExpansionRange(lsqrLoc);
 
   SourceLocation Loc;
@@ -320,12 +320,12 @@ TEST_F(LexerTest, LexAPI) {
                                SourceMgr, LangOpts);
   EXPECT_EQ(text, "M(foo)");
 
-  SourceLocation macroLsqrLoc = toks[3].getLocation();
-  SourceLocation macroIdLoc = toks[4].getLocation();
-  SourceLocation macroRsqrLoc = toks[5].getLocation();
-  SourceLocation fileLsqrLoc = SourceMgr.getSpellingLoc(macroLsqrLoc);
-  SourceLocation fileIdLoc = SourceMgr.getSpellingLoc(macroIdLoc);
-  SourceLocation fileRsqrLoc = SourceMgr.getSpellingLoc(macroRsqrLoc);
+  SourceLocation const macroLsqrLoc = toks[3].getLocation();
+  SourceLocation const macroIdLoc = toks[4].getLocation();
+  SourceLocation const macroRsqrLoc = toks[5].getLocation();
+  SourceLocation const fileLsqrLoc = SourceMgr.getSpellingLoc(macroLsqrLoc);
+  SourceLocation const fileIdLoc = SourceMgr.getSpellingLoc(macroIdLoc);
+  SourceLocation const fileRsqrLoc = SourceMgr.getSpellingLoc(macroRsqrLoc);
 
   range = Lexer::makeFileCharRange(
       CharSourceRange::getTokenRange(macroLsqrLoc, macroIdLoc),
@@ -351,10 +351,10 @@ TEST_F(LexerTest, LexAPI) {
   EXPECT_EQ(text, "[bar");
 
 
-  SourceLocation idLoc1 = toks[6].getLocation();
-  SourceLocation idLoc2 = toks[7].getLocation();
-  SourceLocation idLoc3 = toks[8].getLocation();
-  SourceLocation idLoc4 = toks[9].getLocation();
+  SourceLocation const idLoc1 = toks[6].getLocation();
+  SourceLocation const idLoc2 = toks[7].getLocation();
+  SourceLocation const idLoc3 = toks[8].getLocation();
+  SourceLocation const idLoc4 = toks[9].getLocation();
   EXPECT_EQ("INN", Lexer::getImmediateMacroName(idLoc1, SourceMgr, LangOpts));
   EXPECT_EQ("INN", Lexer::getImmediateMacroName(idLoc2, SourceMgr, LangOpts));
   EXPECT_EQ("NOF2", Lexer::getImmediateMacroName(idLoc3, SourceMgr, LangOpts));
@@ -382,12 +382,12 @@ TEST_F(LexerTest, HandlesSplitTokens) {
                                      "RANGLE",
                                      ExpectedTokens);
 
-  SourceLocation outerTyLoc = toks[0].getLocation();
-  SourceLocation innerTyLoc = toks[2].getLocation();
-  SourceLocation gtgtLoc = toks[4].getLocation();
+  SourceLocation const outerTyLoc = toks[0].getLocation();
+  SourceLocation const innerTyLoc = toks[2].getLocation();
+  SourceLocation const gtgtLoc = toks[4].getLocation();
   // Split the token to simulate the action of the parser and force creation of
   // an `ExpansionTokenRange`.
-  SourceLocation rangleLoc = PP->SplitToken(gtgtLoc, 1);
+  SourceLocation const rangleLoc = PP->SplitToken(gtgtLoc, 1);
 
   // Verify that it only captures the first greater-then and not the second one.
   CharSourceRange range = Lexer::makeFileCharRange(
@@ -406,11 +406,11 @@ TEST_F(LexerTest, HandlesSplitTokens) {
             SourceRange(SourceMgr.getExpansionLoc(outerTyLoc),
                         gtgtLoc.getLocWithOffset(1)));
 
-  SourceLocation macroInnerTyLoc = toks[7].getLocation();
-  SourceLocation macroGtgtLoc = toks[9].getLocation();
+  SourceLocation const macroInnerTyLoc = toks[7].getLocation();
+  SourceLocation const macroGtgtLoc = toks[9].getLocation();
   // Split the token to simulate the action of the parser and force creation of
   // an `ExpansionTokenRange`.
-  SourceLocation macroRAngleLoc = PP->SplitToken(macroGtgtLoc, 1);
+  SourceLocation const macroRAngleLoc = PP->SplitToken(macroGtgtLoc, 1);
 
   // Verify that it fails (because it only captures the first greater-then and
   // not the second one, so it doesn't span the entire macro expansion).
@@ -433,7 +433,7 @@ TEST_F(LexerTest, DontMergeMacroArgsFromDifferentMacroFiles) {
   // The lexer used to report its size as 31, meaning that the end of the
   // expansion would be on the *next line* (just past `M2("a", "b")`). Make
   // sure that we get the correct end location (the comma after "helper1").
-  SourceLocation helper1ArgLoc = toks[20].getLocation();
+  SourceLocation const helper1ArgLoc = toks[20].getLocation();
   EXPECT_EQ(SourceMgr.getFileIDSize(SourceMgr.getFileID(helper1ArgLoc)), 8U);
 }
 
@@ -442,7 +442,7 @@ TEST_F(LexerTest, DontOverallocateStringifyArgs) {
   auto PP = CreatePP("\"StrArg\", 5, 'C'", ModLoader);
 
   llvm::BumpPtrAllocator Allocator;
-  std::array<IdentifierInfo *, 3> ParamList;
+  std::array<IdentifierInfo *, 3> const ParamList;
   MacroInfo *MI = PP->AllocateMacroInfo({});
   MI->setIsFunctionLike();
   MI->setParameterList(ParamList, Allocator);
@@ -513,22 +513,22 @@ TEST_F(LexerTest, GetBeginningOfTokenWithEscapedNewLine) {
   // Each line should have the same length for
   // further offset calculation to be more straightforward.
   const unsigned IdentifierLength = 8;
-  std::string TextToLex = "rabarbar\n"
+  std::string const TextToLex = "rabarbar\n"
                           "foo\\\nbar\n"
                           "foo\\\rbar\n"
                           "fo\\\r\nbar\n"
                           "foo\\\n\rba\n";
-  std::vector<tok::TokenKind> ExpectedTokens{5, tok::identifier};
-  std::vector<Token> LexedTokens = CheckLex(TextToLex, ExpectedTokens);
+  std::vector<tok::TokenKind> const ExpectedTokens{5, tok::identifier};
+  std::vector<Token> const LexedTokens = CheckLex(TextToLex, ExpectedTokens);
 
   for (const Token &Tok : LexedTokens) {
-    std::pair<FileID, unsigned> OriginalLocation =
+    std::pair<FileID, unsigned> const OriginalLocation =
         SourceMgr.getDecomposedLoc(Tok.getLocation());
     for (unsigned Offset = 0; Offset < IdentifierLength; ++Offset) {
-      SourceLocation LookupLocation =
+      SourceLocation const LookupLocation =
           Tok.getLocation().getLocWithOffset(Offset);
 
-      std::pair<FileID, unsigned> FoundLocation =
+      std::pair<FileID, unsigned> const FoundLocation =
           SourceMgr.getDecomposedExpansionLoc(
               Lexer::GetBeginningOfToken(LookupLocation, SourceMgr, LangOpts));
 
@@ -590,14 +590,14 @@ TEST_F(LexerTest, CharRangeOffByOne) {
 
   EXPECT_EQ(getSourceText(moo, moo), "MOO");
 
-  SourceRange R{moo.getLocation(), moo.getLocation()};
+  SourceRange const R{moo.getLocation(), moo.getLocation()};
 
   EXPECT_TRUE(
       Lexer::isAtStartOfMacroExpansion(R.getBegin(), SourceMgr, LangOpts));
   EXPECT_TRUE(
       Lexer::isAtEndOfMacroExpansion(R.getEnd(), SourceMgr, LangOpts));
 
-  CharSourceRange CR = Lexer::getAsCharRange(R, SourceMgr, LangOpts);
+  CharSourceRange const CR = Lexer::getAsCharRange(R, SourceMgr, LangOpts);
 
   EXPECT_EQ(Lexer::getSourceText(CR, SourceMgr, LangOpts), "MOO"); // Was "MO".
 }

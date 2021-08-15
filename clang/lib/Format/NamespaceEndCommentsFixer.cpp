@@ -102,7 +102,7 @@ bool validEndComment(const FormatToken *RBraceTok, StringRef NamespaceName,
   SmallVector<StringRef, 8> Groups;
   if (NamespaceTok->is(TT_NamespaceMacro) &&
       NamespaceMacroCommentPattern.match(Comment->TokenText, &Groups)) {
-    StringRef NamespaceTokenText = Groups.size() > 4 ? Groups[4] : "";
+    StringRef const NamespaceTokenText = Groups.size() > 4 ? Groups[4] : "";
     // The name of the macro must be used.
     if (NamespaceTokenText != NamespaceTok->TokenText)
       return false;
@@ -115,7 +115,7 @@ bool validEndComment(const FormatToken *RBraceTok, StringRef NamespaceName,
   // Anonymous namespace comments must not mention a namespace name.
   if (NamespaceName.empty() && !NamespaceNameInComment.empty())
     return false;
-  StringRef AnonymousInComment = Groups.size() > 3 ? Groups[3] : "";
+  StringRef const AnonymousInComment = Groups.size() > 3 ? Groups[3] : "";
   // Named namespace comments must not mention anonymous namespace.
   if (!NamespaceName.empty() && !AnonymousInComment.empty())
     return false;
@@ -172,7 +172,7 @@ getNamespaceToken(const AnnotatedLine *Line,
                   const SmallVectorImpl<AnnotatedLine *> &AnnotatedLines) {
   if (!Line->Affected || Line->InPPDirective || !Line->startsWith(tok::r_brace))
     return nullptr;
-  size_t StartLineIndex = Line->MatchingOpeningBlockLineIndex;
+  size_t const StartLineIndex = Line->MatchingOpeningBlockLineIndex;
   if (StartLineIndex == UnwrappedLine::kInvalidIndex)
     return nullptr;
   assert(StartLineIndex < AnnotatedLines.size());
@@ -272,14 +272,14 @@ std::pair<tooling::Replacements, unsigned> NamespaceEndCommentsFixer::analyze(
       EndCommentNextTok = EndCommentNextTok->Next;
     if (!EndCommentNextTok && I + 1 < E)
       EndCommentNextTok = AnnotatedLines[I + 1]->First;
-    bool AddNewline = EndCommentNextTok &&
+    bool const AddNewline = EndCommentNextTok &&
                       EndCommentNextTok->NewlinesBefore == 0 &&
                       EndCommentNextTok->isNot(tok::eof);
     const std::string EndCommentText =
         computeEndCommentText(NamespaceName, AddNewline, NamespaceTok,
                               Style.SpacesInLineCommentPrefix.Minimum);
     if (!hasEndComment(EndCommentPrevTok)) {
-      bool isShort = I - StartLineIndex <= Style.ShortNamespaceLines + 1;
+      bool const isShort = I - StartLineIndex <= Style.ShortNamespaceLines + 1;
       if (!isShort)
         addEndComment(EndCommentPrevTok, EndCommentText, SourceMgr, &Fixes);
     } else if (!validEndComment(EndCommentPrevTok, NamespaceName,

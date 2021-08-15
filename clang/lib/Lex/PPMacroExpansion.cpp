@@ -529,8 +529,8 @@ bool Preprocessor::HandleMacroExpandedIdentifier(Token &Identifier,
   markMacroAsUsed(MI);
 
   // Remember where the token is expanded.
-  SourceLocation ExpandLoc = Identifier.getLocation();
-  SourceRange ExpansionRange(ExpandLoc, ExpansionEnd);
+  SourceLocation const ExpandLoc = Identifier.getLocation();
+  SourceRange const ExpansionRange(ExpandLoc, ExpansionEnd);
 
   if (Callbacks) {
     if (InMacroArgs) {
@@ -592,8 +592,8 @@ bool Preprocessor::HandleMacroExpandedIdentifier(Token &Identifier,
 
     // Propagate the isAtStartOfLine/hasLeadingSpace markers of the macro
     // identifier to the expanded token.
-    bool isAtStartOfLine = Identifier.isAtStartOfLine();
-    bool hasLeadingSpace = Identifier.hasLeadingSpace();
+    bool const isAtStartOfLine = Identifier.isAtStartOfLine();
+    bool const hasLeadingSpace = Identifier.hasLeadingSpace();
 
     // Replace the result token.
     Identifier = MI->getReplacementToken(0);
@@ -604,7 +604,7 @@ bool Preprocessor::HandleMacroExpandedIdentifier(Token &Identifier,
 
     // Update the tokens location to include both its expansion and physical
     // locations.
-    SourceLocation Loc =
+    SourceLocation const Loc =
       SourceMgr.createExpansionLoc(Identifier.getLocation(), ExpandLoc,
                                    ExpansionEnd,Identifier.getLength());
     Identifier.setLocation(Loc);
@@ -738,7 +738,7 @@ static bool GenerateNewArgTokens(Preprocessor &PP,
 
         // Add right paren and store the paren locations in ParenHints
         if (FoundSeparatorToken) {
-          SourceLocation Loc = PP.getLocForEndOfToken((I - 1)->getLocation());
+          SourceLocation const Loc = PP.getLocForEndOfToken((I - 1)->getLocation());
           TempToken.startToken();
           TempToken.setKind(tok::r_paren);
           TempToken.setLocation(Loc);
@@ -770,7 +770,7 @@ MacroArgs *Preprocessor::ReadMacroCallArgumentList(Token &MacroName,
                                                    SourceLocation &MacroEnd) {
   // The number of fixed arguments to parse.
   unsigned NumFixedArgsLeft = MI->getNumParams();
-  bool isVariadic = MI->isVariadic();
+  bool const isVariadic = MI->isVariadic();
 
   // Outer loop, while there are more arguments, keep reading them.
   Token Tok;
@@ -797,8 +797,8 @@ MacroArgs *Preprocessor::ReadMacroCallArgumentList(Token &MacroName,
     assert(Tok.isOneOf(tok::l_paren, tok::comma) &&
            "only expect argument separators here");
 
-    size_t ArgTokenStart = ArgTokens.size();
-    SourceLocation ArgStartLoc = Tok.getLocation();
+    size_t const ArgTokenStart = ArgTokens.size();
+    SourceLocation const ArgStartLoc = Tok.getLocation();
 
     // C99 6.10.3p11: Keep track of the number of l_parens we have seen.  Note
     // that we already consumed the first one.
@@ -917,7 +917,7 @@ MacroArgs *Preprocessor::ReadMacroCallArgumentList(Token &MacroName,
 
   // Okay, we either found the r_paren.  Check to see if we parsed too few
   // arguments.
-  unsigned MinArgsExpected = MI->getNumParams();
+  unsigned const MinArgsExpected = MI->getNumParams();
 
   // If this is not a variadic macro, and too many args were specified, emit
   // an error.
@@ -940,10 +940,10 @@ MacroArgs *Preprocessor::ReadMacroCallArgumentList(Token &MacroName,
     if (!GenerateNewArgTokens(*this, ArgTokens, FixedArgTokens, FixedNumArgs,
                               ParenHints, InitLists)) {
       if (!InitLists.empty()) {
-        DiagnosticBuilder DB =
+        DiagnosticBuilder const DB =
             Diag(MacroName,
                  diag::note_init_list_at_beginning_of_macro_argument);
-        for (SourceRange Range : InitLists)
+        for (SourceRange const Range : InitLists)
           DB << Range;
       }
       return nullptr;
@@ -951,8 +951,8 @@ MacroArgs *Preprocessor::ReadMacroCallArgumentList(Token &MacroName,
     if (FixedNumArgs != MinArgsExpected)
       return nullptr;
 
-    DiagnosticBuilder DB = Diag(MacroName, diag::note_suggest_parens_for_macro);
-    for (SourceRange ParenLocation : ParenHints) {
+    DiagnosticBuilder const DB = Diag(MacroName, diag::note_suggest_parens_for_macro);
+    for (SourceRange const ParenLocation : ParenHints) {
       DB << FixItHint::CreateInsertion(ParenLocation.getBegin(), "(");
       DB << FixItHint::CreateInsertion(ParenLocation.getEnd(), ")");
     }
@@ -1014,7 +1014,7 @@ MacroArgs *Preprocessor::ReadMacroCallArgumentList(Token &MacroName,
     }
 
     // Add a marker EOF token to the end of the token list for this argument.
-    SourceLocation EndLoc = Tok.getLocation();
+    SourceLocation const EndLoc = Tok.getLocation();
     Tok.startToken();
     Tok.setKind(tok::eof);
     Tok.setLocation(EndLoc);
@@ -1049,8 +1049,8 @@ Token *Preprocessor::cacheMacroExpandedTokens(TokenLexer *tokLexer,
   if (tokens.empty())
     return nullptr;
 
-  size_t newIndex = MacroExpandedTokens.size();
-  bool cacheNeedsToGrow = tokens.size() >
+  size_t const newIndex = MacroExpandedTokens.size();
+  bool const cacheNeedsToGrow = tokens.size() >
                       MacroExpandedTokens.capacity()-MacroExpandedTokens.size();
   MacroExpandedTokens.append(tokens.begin(), tokens.end());
 
@@ -1071,7 +1071,7 @@ Token *Preprocessor::cacheMacroExpandedTokens(TokenLexer *tokLexer,
 
 void Preprocessor::removeCachedMacroExpandedTokensOfLastLexer() {
   assert(!MacroExpandingLexersStack.empty());
-  size_t tokIndex = MacroExpandingLexersStack.back().second;
+  size_t const tokIndex = MacroExpandingLexersStack.back().second;
   assert(tokIndex < MacroExpandedTokens.size());
   // Pop the cached macro expanded tokens from the end.
   MacroExpandedTokens.resize(tokIndex);
@@ -1083,7 +1083,7 @@ void Preprocessor::removeCachedMacroExpandedTokensOfLastLexer() {
 /// the identifier tokens inserted.
 static void ComputeDATE_TIME(SourceLocation &DATELoc, SourceLocation &TIMELoc,
                              Preprocessor &PP) {
-  time_t TT = time(nullptr);
+  time_t const TT = time(nullptr);
   struct tm *TM = localtime(&TT);
 
   static const char * const Months[] = {
@@ -1212,7 +1212,7 @@ static bool EvaluateHasIncludeCommon(Token &Tok,
   if (Invalid)
     return false;
 
-  SourceLocation FilenameLoc = Tok.getLocation();
+  SourceLocation const FilenameLoc = Tok.getLocation();
 
   // Get ')'.
   PP.LexNonComment(Tok);
@@ -1225,7 +1225,7 @@ static bool EvaluateHasIncludeCommon(Token &Tok,
     return false;
   }
 
-  bool isAngled = PP.GetIncludeFilenameSpelling(Tok.getLocation(), Filename);
+  bool const isAngled = PP.GetIncludeFilenameSpelling(Tok.getLocation(), Filename);
   // If GetIncludeFilenameSpelling set the start ptr to null, there was an
   // error.
   if (Filename.empty())
@@ -1313,7 +1313,7 @@ static void EvaluateFeatureLikeBuiltinMacro(llvm::raw_svector_ostream& OS,
   }
 
   unsigned ParenDepth = 1;
-  SourceLocation LParenLoc = Tok.getLocation();
+  SourceLocation const LParenLoc = Tok.getLocation();
   llvm::Optional<int> Result;
 
   Token ResultTok;
@@ -1412,8 +1412,8 @@ static IdentifierInfo *ExpectFeatureIdentifierInfo(Token &Tok,
 
 /// Implements the __is_target_arch builtin macro.
 static bool isTargetArch(const TargetInfo &TI, const IdentifierInfo *II) {
-  std::string ArchName = II->getName().lower() + "--";
-  llvm::Triple Arch(ArchName);
+  std::string const ArchName = II->getName().lower() + "--";
+  llvm::Triple const Arch(ArchName);
   const llvm::Triple &TT = TI.getTriple();
   if (TT.isThumb()) {
     // arm matches thumb or thumbv7. armv7 matches thumbv7.
@@ -1442,9 +1442,9 @@ static bool isTargetVendor(const TargetInfo &TI, const IdentifierInfo *II) {
 
 /// Implements the __is_target_os builtin macro.
 static bool isTargetOS(const TargetInfo &TI, const IdentifierInfo *II) {
-  std::string OSName =
+  std::string const OSName =
       (llvm::Twine("unknown-unknown-") + II->getName().lower()).str();
-  llvm::Triple OS(OSName);
+  llvm::Triple const OS(OSName);
   if (OS.getOS() == llvm::Triple::Darwin) {
     // Darwin matches macos, ios, etc.
     return TI.getTriple().isOSDarwin();
@@ -1455,8 +1455,8 @@ static bool isTargetOS(const TargetInfo &TI, const IdentifierInfo *II) {
 /// Implements the __is_target_environment builtin macro.
 static bool isTargetEnvironment(const TargetInfo &TI,
                                 const IdentifierInfo *II) {
-  std::string EnvName = (llvm::Twine("---") + II->getName().lower()).str();
-  llvm::Triple Env(EnvName);
+  std::string const EnvName = (llvm::Twine("---") + II->getName().lower()).str();
+  llvm::Triple const Env(EnvName);
   return TI.getTriple().getEnvironment() == Env.getEnvironment();
 }
 
@@ -1482,8 +1482,8 @@ void Preprocessor::ExpandBuiltinMacro(Token &Tok) {
   // Set up the return result.
   Tok.setIdentifierInfo(nullptr);
   Tok.clearFlag(Token::NeedsCleaning);
-  bool IsAtStartOfLine = Tok.isAtStartOfLine();
-  bool HasLeadingSpace = Tok.hasLeadingSpace();
+  bool const IsAtStartOfLine = Tok.isAtStartOfLine();
+  bool const HasLeadingSpace = Tok.hasLeadingSpace();
 
   if (II == Ident__LINE__) {
     // C99 6.10.8: "__LINE__: The presumed line number (within the current
@@ -1501,7 +1501,7 @@ void Preprocessor::ExpandBuiltinMacro(Token &Tok) {
     // Skip down through expansion points until we find a file loc for the
     // end of the expansion history.
     Loc = SourceMgr.getExpansionRange(Loc).getEnd();
-    PresumedLoc PLoc = SourceMgr.getPresumedLoc(Loc);
+    PresumedLoc const PLoc = SourceMgr.getPresumedLoc(Loc);
 
     // __LINE__ expands to a simple numeric value.
     OS << (PLoc.isValid()? PLoc.getLine() : 1);
@@ -1533,7 +1533,7 @@ void Preprocessor::ExpandBuiltinMacro(Token &Tok) {
       if (II == Ident__FILE_NAME__) {
         // Try to get the last path component, failing that return the original
         // presumed location.
-        StringRef PLFileName = llvm::sys::path::filename(PLoc.getFilename());
+        StringRef const PLFileName = llvm::sys::path::filename(PLoc.getFilename());
         if (PLFileName != "")
           FN += PLFileName;
         else
@@ -1596,7 +1596,7 @@ void Preprocessor::ExpandBuiltinMacro(Token &Tok) {
 
     const char *Result;
     if (CurFile) {
-      time_t TT = CurFile->getModificationTime();
+      time_t const TT = CurFile->getModificationTime();
       struct tm *TM = localtime(&TT);
       Result = asctime(TM);
     } else {
@@ -1728,7 +1728,7 @@ void Preprocessor::ExpandBuiltinMacro(Token &Tok) {
                                              diag::err_feature_check_malformed);
           }
 
-          AttrSyntax Syntax = IsCXX ? AttrSyntax::CXX : AttrSyntax::C;
+          AttrSyntax const Syntax = IsCXX ? AttrSyntax::CXX : AttrSyntax::C;
           return II ? hasAttribute(Syntax, ScopeII, II, getTargetInfo(),
                                    getLangOpts())
                     : 0;
@@ -1752,7 +1752,7 @@ void Preprocessor::ExpandBuiltinMacro(Token &Tok) {
     EvaluateFeatureLikeBuiltinMacro(OS, Tok, II, *this,
       [this](Token &Tok, bool &HasLexedNextToken) -> int {
         std::string WarningName;
-        SourceLocation StrStartLoc = Tok.getLocation();
+        SourceLocation const StrStartLoc = Tok.getLocation();
 
         HasLexedNextToken = Tok.is(tok::string_literal);
         if (!FinishLexStringLiteral(Tok, WarningName, "'__has_warning'",
@@ -1794,7 +1794,7 @@ void Preprocessor::ExpandBuiltinMacro(Token &Tok) {
     Tok.setIdentifierInfo(ModuleII);
     Tok.setKind(ModuleII->getTokenID());
   } else if (II == Ident__identifier) {
-    SourceLocation Loc = Tok.getLocation();
+    SourceLocation const Loc = Tok.getLocation();
 
     // We're expecting '__identifier' '(' identifier ')'. Try to recover
     // if the parens are missing.
@@ -1809,13 +1809,13 @@ void Preprocessor::ExpandBuiltinMacro(Token &Tok) {
       return;
     }
 
-    SourceLocation LParenLoc = Tok.getLocation();
+    SourceLocation const LParenLoc = Tok.getLocation();
     LexNonComment(Tok);
 
     if (!Tok.isAnnotation() && Tok.getIdentifierInfo())
       Tok.setKind(tok::identifier);
     else if (Tok.is(tok::string_literal) && !Tok.hasUDSuffix()) {
-      StringLiteralParser Literal(Tok, *this);
+      StringLiteralParser const Literal(Tok, *this);
       if (Literal.hadError)
         return;
 

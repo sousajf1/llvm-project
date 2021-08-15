@@ -112,7 +112,7 @@ APValue Pointer::toAPValue() const {
           Ptr = Ptr.getArray();
         } else {
           // TODO: figure out if base is virtual
-          bool IsVirtual = false;
+          bool const IsVirtual = false;
 
           // Create a path entry for the field.
           Descriptor *Desc = Ptr.getFieldDesc();

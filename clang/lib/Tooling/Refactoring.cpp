@@ -34,12 +34,12 @@ std::map<std::string, Replacements> &RefactoringTool::getReplacements() {
 }
 
 int RefactoringTool::runAndSave(FrontendActionFactory *ActionFactory) {
-  if (int Result = run(ActionFactory)) {
+  if (int const Result = run(ActionFactory)) {
     return Result;
   }
 
-  LangOptions DefaultLangOptions;
-  IntrusiveRefCntPtr<DiagnosticOptions> DiagOpts = new DiagnosticOptions();
+  LangOptions const DefaultLangOptions;
+  IntrusiveRefCntPtr<DiagnosticOptions> const DiagOpts = new DiagnosticOptions();
   TextDiagnosticPrinter DiagnosticPrinter(llvm::errs(), &*DiagOpts);
   DiagnosticsEngine Diagnostics(
       IntrusiveRefCntPtr<DiagnosticIDs>(new DiagnosticIDs()),
@@ -82,8 +82,8 @@ bool formatAndApplyAllReplacements(
     if (auto File = Files.getFile(FilePath))
       Entry = *File;
 
-    FileID ID = SM.getOrCreateFileID(Entry, SrcMgr::C_User);
-    StringRef Code = SM.getBufferData(ID);
+    FileID const ID = SM.getOrCreateFileID(Entry, SrcMgr::C_User);
+    StringRef const Code = SM.getBufferData(ID);
 
     auto CurStyle = format::getStyle(Style, FilePath, "LLVM");
     if (!CurStyle) {

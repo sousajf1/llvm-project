@@ -33,7 +33,7 @@ static bool translateCodePointToUTF8(unsigned CodePoint,
   if (!ConvertCodePointToUTF8(CodePoint, TranslatedPtr))
     return false;
 
-  StringRef UTF8(Translated, TranslatedPtr - Translated);
+  StringRef const UTF8(Translated, TranslatedPtr - Translated);
 
   raw_svector_ostream OS(CLiteral);
   OS << "\"";
@@ -53,9 +53,9 @@ void clang::EmitClangCommentHTMLNamedCharacterReferences(RecordKeeper &Records,
   SmallString<32> CLiteral;
   for (std::vector<Record *>::iterator I = Tags.begin(), E = Tags.end();
        I != E; ++I) {
-    Record &Tag = **I;
-    std::string Spelling = std::string(Tag.getValueAsString("Spelling"));
-    uint64_t CodePoint = Tag.getValueAsInt("CodePoint");
+    Record  const&Tag = **I;
+    std::string const Spelling = std::string(Tag.getValueAsString("Spelling"));
+    uint64_t const CodePoint = Tag.getValueAsInt("CodePoint");
     CLiteral.clear();
     CLiteral.append("return ");
     if (!translateCodePointToUTF8(CodePoint, CLiteral)) {
@@ -66,7 +66,7 @@ void clang::EmitClangCommentHTMLNamedCharacterReferences(RecordKeeper &Records,
     }
     CLiteral.append(";");
 
-    StringMatcher::StringPair Match(Spelling, std::string(CLiteral.str()));
+    StringMatcher::StringPair const Match(Spelling, std::string(CLiteral.str()));
     NameToUTF8.push_back(Match);
   }
 

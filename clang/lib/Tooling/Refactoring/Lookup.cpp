@@ -61,7 +61,7 @@ usingFromDifferentCanonicalNamespace(const DeclContext *FromContext,
   // same canonical namespace as the `FromContext`.
   if (UseNamespaces.size() < FromNamespaces.size())
     return false;
-  unsigned Diff = UseNamespaces.size() - FromNamespaces.size();
+  unsigned const Diff = UseNamespaces.size() - FromNamespaces.size();
   auto FromIter = FromNamespaces.begin();
   // Only compare `FromNamespaces` with namespaces in `UseNamespaces` that can
   // collide, i.e. the top N namespaces where N is the number of namespaces in
@@ -96,7 +96,7 @@ static StringRef getBestNamespaceSubstr(const DeclContext *DeclA,
     // Otherwise strip off redundant namespace qualifications from the new name.
     // We use the fully qualified name of the namespace and remove that part
     // from NewName if it has an identical prefix.
-    std::string NS =
+    std::string const NS =
         "::" + cast<NamespaceDecl>(DeclA)->getQualifiedNameAsString() + "::";
     if (NewName.startswith(NS))
       return NewName.substr(NS.size());
@@ -151,7 +151,7 @@ static std::string disambiguateSpellingInScope(StringRef Spelling,
     // Lookup the first component of Spelling in all enclosing namespaces
     // and check if there is any existing symbols with the same name but in
     // different scope.
-    StringRef Head = CurSpelling.split("::").first;
+    StringRef const Head = CurSpelling.split("::").first;
     for (const auto *NS : EnclosingNamespaces) {
       auto LookupRes = NS->lookup(DeclarationName(&AST.Idents.get(Head)));
       if (!LookupRes.empty()) {
@@ -216,7 +216,7 @@ std::string tooling::replaceNestedName(const NestedNameSpecifier *Use,
   // figure out how good a namespace match we have with our destination type.
   // We work backwards (from most specific possible namespace to least
   // specific).
-  StringRef Suggested = getBestNamespaceSubstr(UseContext, ReplacementString,
+  StringRef const Suggested = getBestNamespaceSubstr(UseContext, ReplacementString,
                                                isFullyQualified(Use));
 
   return disambiguateSpellingInScope(Suggested, ReplacementString, *UseContext,

@@ -41,12 +41,12 @@ RocmInstallationDetector::findSPACKPackage(const Candidate &Cand,
   if (!Cand.isSPACK())
     return {};
   std::error_code EC;
-  std::string Prefix = Twine(PackageName + "-" + Cand.SPACKReleaseStr).str();
+  std::string const Prefix = Twine(PackageName + "-" + Cand.SPACKReleaseStr).str();
   llvm::SmallVector<llvm::SmallString<0>> SubDirs;
   for (llvm::vfs::directory_iterator File = D.getVFS().dir_begin(Cand.Path, EC),
                                      FileEnd;
        File != FileEnd && !EC; File.increment(EC)) {
-    llvm::StringRef FileName = llvm::sys::path::filename(File->path());
+    llvm::StringRef const FileName = llvm::sys::path::filename(File->path());
     if (FileName.startswith(Prefix)) {
       SubDirs.push_back(FileName);
       if (SubDirs.size() > 1)
@@ -80,8 +80,8 @@ void RocmInstallationDetector::scanLibDevicePath(llvm::StringRef Path) {
   std::error_code EC;
   for (llvm::vfs::directory_iterator LI = D.getVFS().dir_begin(Path, EC), LE;
        !EC && LI != LE; LI = LI.increment(EC)) {
-    StringRef FilePath = LI->path();
-    StringRef FileName = llvm::sys::path::filename(FilePath);
+    StringRef const FilePath = LI->path();
+    StringRef const FileName = llvm::sys::path::filename(FilePath);
     if (!FileName.endswith(Suffix))
       continue;
 
@@ -128,10 +128,10 @@ void RocmInstallationDetector::scanLibDevicePath(llvm::StringRef Path) {
       if (!BaseName.startswith(DeviceLibPrefix))
         continue;
 
-      StringRef IsaVersionNumber =
+      StringRef const IsaVersionNumber =
         BaseName.drop_front(DeviceLibPrefix.size());
 
-      llvm::Twine GfxName = Twine("gfx") + IsaVersionNumber;
+      llvm::Twine const GfxName = Twine("gfx") + IsaVersionNumber;
       SmallString<8> Tmp;
       LibDeviceMap.insert(
         std::make_pair(GfxName.toStringRef(Tmp), FilePath.str()));
@@ -281,7 +281,7 @@ RocmInstallationDetector::getInstallationPathCandidates() {
            File = D.getVFS().dir_begin(D.SysRoot + "/opt", EC),
            FileEnd;
        File != FileEnd && !EC; File.increment(EC)) {
-    llvm::StringRef FileName = llvm::sys::path::filename(File->path());
+    llvm::StringRef const FileName = llvm::sys::path::filename(File->path());
     if (!FileName.startswith("rocm-"))
       continue;
     if (LatestROCm.empty()) {
@@ -384,7 +384,7 @@ void RocmInstallationDetector::detectDeviceLibrary() {
 
     // Check device library exists at the given path.
     auto CheckDeviceLib = [&](StringRef Path) {
-      bool CheckLibDevice = (!NoBuiltinLibs || Candidate.StrictChecking);
+      bool const CheckLibDevice = (!NoBuiltinLibs || Candidate.StrictChecking);
       if (CheckLibDevice && !FS.exists(Path))
         return false;
 
@@ -478,7 +478,7 @@ void RocmInstallationDetector::print(raw_ostream &OS) const {
 
 void RocmInstallationDetector::AddHIPIncludeArgs(const ArgList &DriverArgs,
                                                  ArgStringList &CC1Args) const {
-  bool UsesRuntimeWrapper = VersionMajorMinor > llvm::VersionTuple(3, 5);
+  bool const UsesRuntimeWrapper = VersionMajorMinor > llvm::VersionTuple(3, 5);
 
   if (!DriverArgs.hasArg(options::OPT_nobuiltininc)) {
     // HIP header includes standard library wrapper headers under clang
@@ -521,7 +521,7 @@ void amdgpu::Linker::ConstructJob(Compilation &C, const JobAction &JA,
                                   const ArgList &Args,
                                   const char *LinkingOutput) const {
 
-  std::string Linker = getToolChain().GetProgramPath(getShortName());
+  std::string const Linker = getToolChain().GetProgramPath(getShortName());
   ArgStringList CmdArgs;
   addLinkerCompressDebugSectionsOption(getToolChain(), Args, CmdArgs);
   AddLinkerInputs(getToolChain(), Inputs, Args, CmdArgs, JA);
@@ -539,12 +539,12 @@ void amdgpu::getAMDGPUTargetFeatures(const Driver &D,
                                      std::vector<StringRef> &Features) {
   // Add target ID features to -target-feature options. No diagnostics should
   // be emitted here since invalid target ID is diagnosed at other places.
-  StringRef TargetID = Args.getLastArgValue(options::OPT_mcpu_EQ);
+  StringRef const TargetID = Args.getLastArgValue(options::OPT_mcpu_EQ);
   if (!TargetID.empty()) {
     llvm::StringMap<bool> FeatureMap;
     auto OptionalGpuArch = parseTargetID(Triple, TargetID, &FeatureMap);
     if (OptionalGpuArch) {
-      StringRef GpuArch = OptionalGpuArch.getValue();
+      StringRef const GpuArch = OptionalGpuArch.getValue();
       // Iterate through all possible target ID features for the given GPU.
       // If it is mapped to true, add +feature.
       // If it is mapped to false, add -feature.
@@ -665,7 +665,7 @@ llvm::DenormalMode AMDGPUToolChain::getDefaultDenormalModeForType(
 
   // TODO: There are way too many flags that change this. Do we need to check
   // them all?
-  bool DAZ = DriverArgs.hasArg(options::OPT_cl_denorms_are_zero) ||
+  bool const DAZ = DriverArgs.hasArg(options::OPT_cl_denorms_are_zero) ||
              getDefaultDenormsAreZeroForTarget(Kind);
 
   // Outputs are flushed to zero (FTZ), preserving sign. Denormal inputs are
@@ -677,7 +677,7 @@ llvm::DenormalMode AMDGPUToolChain::getDefaultDenormalModeForType(
 bool AMDGPUToolChain::isWave64(const llvm::opt::ArgList &DriverArgs,
                                llvm::AMDGPU::GPUKind Kind) {
   const unsigned ArchAttr = llvm::AMDGPU::getArchAttrAMDGCN(Kind);
-  bool HasWave32 = (ArchAttr & llvm::AMDGPU::FEATURE_WAVE32);
+  bool const HasWave32 = (ArchAttr & llvm::AMDGPU::FEATURE_WAVE32);
 
   return !HasWave32 || DriverArgs.hasFlag(
     options::OPT_mwavefrontsize64, options::OPT_mno_wavefrontsize64, false);
@@ -713,7 +713,7 @@ AMDGPUToolChain::getGPUArch(const llvm::opt::ArgList &DriverArgs) const {
 
 AMDGPUToolChain::ParsedTargetIDType
 AMDGPUToolChain::getParsedTargetID(const llvm::opt::ArgList &DriverArgs) const {
-  StringRef TargetID = DriverArgs.getLastArgValue(options::OPT_mcpu_EQ);
+  StringRef const TargetID = DriverArgs.getLastArgValue(options::OPT_mcpu_EQ);
   if (TargetID.empty())
     return {None, None, None};
 
@@ -745,15 +745,15 @@ AMDGPUToolChain::detectSystemGPUs(const ArgList &Args,
   llvm::SmallString<64> OutputFile;
   llvm::sys::fs::createTemporaryFile("print-system-gpus", "" /* No Suffix */,
                                      OutputFile);
-  llvm::FileRemover OutputRemover(OutputFile.c_str());
-  llvm::Optional<llvm::StringRef> Redirects[] = {
+  llvm::FileRemover const OutputRemover(OutputFile.c_str());
+  llvm::Optional<llvm::StringRef> const Redirects[] = {
       {""},
       OutputFile.str(),
       {""},
   };
 
   std::string ErrorMessage;
-  if (int Result = llvm::sys::ExecuteAndWait(
+  if (int const Result = llvm::sys::ExecuteAndWait(
           Program.c_str(), {}, {}, Redirects, /* SecondsToWait */ 0,
           /*MemoryLimit*/ 0, &ErrorMessage)) {
     if (Result > 0) {
@@ -796,7 +796,7 @@ llvm::Error AMDGPUToolChain::getSystemGPUArch(const ArgList &Args,
   }
   GPUArch = GPUArchs[0];
   if (GPUArchs.size() > 1) {
-    bool AllSame = std::all_of(
+    bool const AllSame = std::all_of(
         GPUArchs.begin(), GPUArchs.end(),
         [&](const StringRef &GPUArch) { return GPUArch == GPUArchs.front(); });
     if (!AllSame)
@@ -830,24 +830,24 @@ void ROCMToolChain::addClangTargetOptions(
   const StringRef GpuArch = getGPUArch(DriverArgs);
   auto Kind = llvm::AMDGPU::parseArchAMDGCN(GpuArch);
   const StringRef CanonArch = llvm::AMDGPU::getArchNameAMDGCN(Kind);
-  std::string LibDeviceFile = RocmInstallation.getLibDeviceFile(CanonArch);
+  std::string const LibDeviceFile = RocmInstallation.getLibDeviceFile(CanonArch);
   if (LibDeviceFile.empty()) {
     getDriver().Diag(diag::err_drv_no_rocm_device_lib) << 1 << GpuArch;
     return;
   }
 
-  bool Wave64 = isWave64(DriverArgs, Kind);
+  bool const Wave64 = isWave64(DriverArgs, Kind);
 
   // TODO: There are way too many flags that change this. Do we need to check
   // them all?
-  bool DAZ = DriverArgs.hasArg(options::OPT_cl_denorms_are_zero) ||
+  bool const DAZ = DriverArgs.hasArg(options::OPT_cl_denorms_are_zero) ||
              getDefaultDenormsAreZeroForTarget(Kind);
-  bool FiniteOnly = DriverArgs.hasArg(options::OPT_cl_finite_math_only);
+  bool const FiniteOnly = DriverArgs.hasArg(options::OPT_cl_finite_math_only);
 
-  bool UnsafeMathOpt =
+  bool const UnsafeMathOpt =
       DriverArgs.hasArg(options::OPT_cl_unsafe_math_optimizations);
-  bool FastRelaxedMath = DriverArgs.hasArg(options::OPT_cl_fast_relaxed_math);
-  bool CorrectSqrt =
+  bool const FastRelaxedMath = DriverArgs.hasArg(options::OPT_cl_fast_relaxed_math);
+  bool const CorrectSqrt =
       DriverArgs.hasArg(options::OPT_cl_fp32_correctly_rounded_divide_sqrt);
 
   // Add the OpenCL specific bitcode library.
@@ -888,7 +888,7 @@ RocmInstallationDetector::getCommonBitcodeLibs(
 }
 
 bool AMDGPUToolChain::shouldSkipArgument(const llvm::opt::Arg *A) const {
-  Option O = A->getOption();
+  Option const O = A->getOption();
   if (O.matches(options::OPT_fPIE) || O.matches(options::OPT_fpie))
     return true;
   return false;
@@ -900,7 +900,7 @@ ROCMToolChain::getCommonDeviceLibNames(const llvm::opt::ArgList &DriverArgs,
   auto Kind = llvm::AMDGPU::parseArchAMDGCN(GPUArch);
   const StringRef CanonArch = llvm::AMDGPU::getArchNameAMDGCN(Kind);
 
-  std::string LibDeviceFile = RocmInstallation.getLibDeviceFile(CanonArch);
+  std::string const LibDeviceFile = RocmInstallation.getLibDeviceFile(CanonArch);
   if (LibDeviceFile.empty()) {
     getDriver().Diag(diag::err_drv_no_rocm_device_lib) << 1 << GPUArch;
     return {};
@@ -909,20 +909,20 @@ ROCMToolChain::getCommonDeviceLibNames(const llvm::opt::ArgList &DriverArgs,
   // If --hip-device-lib is not set, add the default bitcode libraries.
   // TODO: There are way too many flags that change this. Do we need to check
   // them all?
-  bool DAZ = DriverArgs.hasFlag(options::OPT_fgpu_flush_denormals_to_zero,
+  bool const DAZ = DriverArgs.hasFlag(options::OPT_fgpu_flush_denormals_to_zero,
                                 options::OPT_fno_gpu_flush_denormals_to_zero,
                                 getDefaultDenormsAreZeroForTarget(Kind));
-  bool FiniteOnly = DriverArgs.hasFlag(
+  bool const FiniteOnly = DriverArgs.hasFlag(
       options::OPT_ffinite_math_only, options::OPT_fno_finite_math_only, false);
-  bool UnsafeMathOpt =
+  bool const UnsafeMathOpt =
       DriverArgs.hasFlag(options::OPT_funsafe_math_optimizations,
                          options::OPT_fno_unsafe_math_optimizations, false);
-  bool FastRelaxedMath = DriverArgs.hasFlag(options::OPT_ffast_math,
+  bool const FastRelaxedMath = DriverArgs.hasFlag(options::OPT_ffast_math,
                                             options::OPT_fno_fast_math, false);
-  bool CorrectSqrt = DriverArgs.hasFlag(
+  bool const CorrectSqrt = DriverArgs.hasFlag(
       options::OPT_fhip_fp32_correctly_rounded_divide_sqrt,
       options::OPT_fno_hip_fp32_correctly_rounded_divide_sqrt);
-  bool Wave64 = isWave64(DriverArgs, Kind);
+  bool const Wave64 = isWave64(DriverArgs, Kind);
 
   return RocmInstallation.getCommonBitcodeLibs(
       DriverArgs, LibDeviceFile, Wave64, DAZ, FiniteOnly, UnsafeMathOpt,

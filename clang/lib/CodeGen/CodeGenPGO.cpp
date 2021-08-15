@@ -407,7 +407,7 @@ struct ComputeRegionCounts : public ConstStmtVisitor<ComputeRegionCounts> {
 
   void VisitFunctionDecl(const FunctionDecl *D) {
     // Counter tracks entry to the function body.
-    uint64_t BodyCount = setCount(PGO.getRegionCount(D->getBody()));
+    uint64_t const BodyCount = setCount(PGO.getRegionCount(D->getBody()));
     CountMap[D->getBody()] = BodyCount;
     Visit(D->getBody());
   }
@@ -419,21 +419,21 @@ struct ComputeRegionCounts : public ConstStmtVisitor<ComputeRegionCounts> {
 
   void VisitCapturedDecl(const CapturedDecl *D) {
     // Counter tracks entry to the capture body.
-    uint64_t BodyCount = setCount(PGO.getRegionCount(D->getBody()));
+    uint64_t const BodyCount = setCount(PGO.getRegionCount(D->getBody()));
     CountMap[D->getBody()] = BodyCount;
     Visit(D->getBody());
   }
 
   void VisitObjCMethodDecl(const ObjCMethodDecl *D) {
     // Counter tracks entry to the method body.
-    uint64_t BodyCount = setCount(PGO.getRegionCount(D->getBody()));
+    uint64_t const BodyCount = setCount(PGO.getRegionCount(D->getBody()));
     CountMap[D->getBody()] = BodyCount;
     Visit(D->getBody());
   }
 
   void VisitBlockDecl(const BlockDecl *D) {
     // Counter tracks entry to the block body.
-    uint64_t BodyCount = setCount(PGO.getRegionCount(D->getBody()));
+    uint64_t const BodyCount = setCount(PGO.getRegionCount(D->getBody()));
     CountMap[D->getBody()] = BodyCount;
     Visit(D->getBody());
   }
@@ -463,7 +463,7 @@ struct ComputeRegionCounts : public ConstStmtVisitor<ComputeRegionCounts> {
   void VisitLabelStmt(const LabelStmt *S) {
     RecordNextStmtCount = false;
     // Counter tracks the block following the label.
-    uint64_t BlockCount = setCount(PGO.getRegionCount(S));
+    uint64_t const BlockCount = setCount(PGO.getRegionCount(S));
     CountMap[S] = BlockCount;
     Visit(S->getSubStmt());
   }
@@ -486,22 +486,22 @@ struct ComputeRegionCounts : public ConstStmtVisitor<ComputeRegionCounts> {
 
   void VisitWhileStmt(const WhileStmt *S) {
     RecordStmtCount(S);
-    uint64_t ParentCount = CurrentCount;
+    uint64_t const ParentCount = CurrentCount;
 
     BreakContinueStack.push_back(BreakContinue());
     // Visit the body region first so the break/continue adjustments can be
     // included when visiting the condition.
-    uint64_t BodyCount = setCount(PGO.getRegionCount(S));
+    uint64_t const BodyCount = setCount(PGO.getRegionCount(S));
     CountMap[S->getBody()] = CurrentCount;
     Visit(S->getBody());
-    uint64_t BackedgeCount = CurrentCount;
+    uint64_t const BackedgeCount = CurrentCount;
 
     // ...then go back and propagate counts through the condition. The count
     // at the start of the condition is the sum of the incoming edges,
     // the backedge from the end of the loop body, and the edges from
     // continue statements.
-    BreakContinue BC = BreakContinueStack.pop_back_val();
-    uint64_t CondCount =
+    BreakContinue const BC = BreakContinueStack.pop_back_val();
+    uint64_t const CondCount =
         setCount(ParentCount + BackedgeCount + BC.ContinueCount);
     CountMap[S->getCond()] = CondCount;
     Visit(S->getCond());
@@ -511,19 +511,19 @@ struct ComputeRegionCounts : public ConstStmtVisitor<ComputeRegionCounts> {
 
   void VisitDoStmt(const DoStmt *S) {
     RecordStmtCount(S);
-    uint64_t LoopCount = PGO.getRegionCount(S);
+    uint64_t const LoopCount = PGO.getRegionCount(S);
 
     BreakContinueStack.push_back(BreakContinue());
     // The count doesn't include the fallthrough from the parent scope. Add it.
-    uint64_t BodyCount = setCount(LoopCount + CurrentCount);
+    uint64_t const BodyCount = setCount(LoopCount + CurrentCount);
     CountMap[S->getBody()] = BodyCount;
     Visit(S->getBody());
-    uint64_t BackedgeCount = CurrentCount;
+    uint64_t const BackedgeCount = CurrentCount;
 
-    BreakContinue BC = BreakContinueStack.pop_back_val();
+    BreakContinue const BC = BreakContinueStack.pop_back_val();
     // The count at the start of the condition is equal to the count at the
     // end of the body, plus any continues.
-    uint64_t CondCount = setCount(BackedgeCount + BC.ContinueCount);
+    uint64_t const CondCount = setCount(BackedgeCount + BC.ContinueCount);
     CountMap[S->getCond()] = CondCount;
     Visit(S->getCond());
     setCount(BC.BreakCount + CondCount - LoopCount);
@@ -535,27 +535,27 @@ struct ComputeRegionCounts : public ConstStmtVisitor<ComputeRegionCounts> {
     if (S->getInit())
       Visit(S->getInit());
 
-    uint64_t ParentCount = CurrentCount;
+    uint64_t const ParentCount = CurrentCount;
 
     BreakContinueStack.push_back(BreakContinue());
     // Visit the body region first. (This is basically the same as a while
     // loop; see further comments in VisitWhileStmt.)
-    uint64_t BodyCount = setCount(PGO.getRegionCount(S));
+    uint64_t const BodyCount = setCount(PGO.getRegionCount(S));
     CountMap[S->getBody()] = BodyCount;
     Visit(S->getBody());
-    uint64_t BackedgeCount = CurrentCount;
-    BreakContinue BC = BreakContinueStack.pop_back_val();
+    uint64_t const BackedgeCount = CurrentCount;
+    BreakContinue const BC = BreakContinueStack.pop_back_val();
 
     // The increment is essentially part of the body but it needs to include
     // the count for all the continue statements.
     if (S->getInc()) {
-      uint64_t IncCount = setCount(BackedgeCount + BC.ContinueCount);
+      uint64_t const IncCount = setCount(BackedgeCount + BC.ContinueCount);
       CountMap[S->getInc()] = IncCount;
       Visit(S->getInc());
     }
 
     // ...then go back and propagate counts through the condition.
-    uint64_t CondCount =
+    uint64_t const CondCount =
         setCount(ParentCount + BackedgeCount + BC.ContinueCount);
     if (S->getCond()) {
       CountMap[S->getCond()] = CondCount;
@@ -574,24 +574,24 @@ struct ComputeRegionCounts : public ConstStmtVisitor<ComputeRegionCounts> {
     Visit(S->getBeginStmt());
     Visit(S->getEndStmt());
 
-    uint64_t ParentCount = CurrentCount;
+    uint64_t const ParentCount = CurrentCount;
     BreakContinueStack.push_back(BreakContinue());
     // Visit the body region first. (This is basically the same as a while
     // loop; see further comments in VisitWhileStmt.)
-    uint64_t BodyCount = setCount(PGO.getRegionCount(S));
+    uint64_t const BodyCount = setCount(PGO.getRegionCount(S));
     CountMap[S->getBody()] = BodyCount;
     Visit(S->getBody());
-    uint64_t BackedgeCount = CurrentCount;
-    BreakContinue BC = BreakContinueStack.pop_back_val();
+    uint64_t const BackedgeCount = CurrentCount;
+    BreakContinue const BC = BreakContinueStack.pop_back_val();
 
     // The increment is essentially part of the body but it needs to include
     // the count for all the continue statements.
-    uint64_t IncCount = setCount(BackedgeCount + BC.ContinueCount);
+    uint64_t const IncCount = setCount(BackedgeCount + BC.ContinueCount);
     CountMap[S->getInc()] = IncCount;
     Visit(S->getInc());
 
     // ...then go back and propagate counts through the condition.
-    uint64_t CondCount =
+    uint64_t const CondCount =
         setCount(ParentCount + BackedgeCount + BC.ContinueCount);
     CountMap[S->getCond()] = CondCount;
     Visit(S->getCond());
@@ -602,14 +602,14 @@ struct ComputeRegionCounts : public ConstStmtVisitor<ComputeRegionCounts> {
   void VisitObjCForCollectionStmt(const ObjCForCollectionStmt *S) {
     RecordStmtCount(S);
     Visit(S->getElement());
-    uint64_t ParentCount = CurrentCount;
+    uint64_t const ParentCount = CurrentCount;
     BreakContinueStack.push_back(BreakContinue());
     // Counter tracks the body of the loop.
-    uint64_t BodyCount = setCount(PGO.getRegionCount(S));
+    uint64_t const BodyCount = setCount(PGO.getRegionCount(S));
     CountMap[S->getBody()] = BodyCount;
     Visit(S->getBody());
-    uint64_t BackedgeCount = CurrentCount;
-    BreakContinue BC = BreakContinueStack.pop_back_val();
+    uint64_t const BackedgeCount = CurrentCount;
+    BreakContinue const BC = BreakContinueStack.pop_back_val();
 
     setCount(BC.BreakCount + ParentCount + BackedgeCount + BC.ContinueCount -
              BodyCount);
@@ -625,7 +625,7 @@ struct ComputeRegionCounts : public ConstStmtVisitor<ComputeRegionCounts> {
     BreakContinueStack.push_back(BreakContinue());
     Visit(S->getBody());
     // If the switch is inside a loop, add the continue counts.
-    BreakContinue BC = BreakContinueStack.pop_back_val();
+    BreakContinue const BC = BreakContinueStack.pop_back_val();
     if (!BreakContinueStack.empty())
       BreakContinueStack.back().ContinueCount += BC.ContinueCount;
     // Counter tracks the exit block of the switch.
@@ -638,7 +638,7 @@ struct ComputeRegionCounts : public ConstStmtVisitor<ComputeRegionCounts> {
     // Counter for this particular case. This counts only jumps from the
     // switch header and does not include fallthrough from the case before
     // this one.
-    uint64_t CaseCount = PGO.getRegionCount(S);
+    uint64_t const CaseCount = PGO.getRegionCount(S);
     setCount(CurrentCount + CaseCount);
     // We need the count without fallthrough in the mapping, so it's more useful
     // for branch probabilities.
@@ -649,19 +649,19 @@ struct ComputeRegionCounts : public ConstStmtVisitor<ComputeRegionCounts> {
 
   void VisitIfStmt(const IfStmt *S) {
     RecordStmtCount(S);
-    uint64_t ParentCount = CurrentCount;
+    uint64_t const ParentCount = CurrentCount;
     if (S->getInit())
       Visit(S->getInit());
     Visit(S->getCond());
 
     // Counter tracks the "then" part of an if statement. The count for
     // the "else" part, if it exists, will be calculated from this counter.
-    uint64_t ThenCount = setCount(PGO.getRegionCount(S));
+    uint64_t const ThenCount = setCount(PGO.getRegionCount(S));
     CountMap[S->getThen()] = ThenCount;
     Visit(S->getThen());
     uint64_t OutCount = CurrentCount;
 
-    uint64_t ElseCount = ParentCount - ThenCount;
+    uint64_t const ElseCount = ParentCount - ThenCount;
     if (S->getElse()) {
       setCount(ElseCount);
       CountMap[S->getElse()] = ElseCount;
@@ -686,24 +686,24 @@ struct ComputeRegionCounts : public ConstStmtVisitor<ComputeRegionCounts> {
   void VisitCXXCatchStmt(const CXXCatchStmt *S) {
     RecordNextStmtCount = false;
     // Counter tracks the catch statement's handler block.
-    uint64_t CatchCount = setCount(PGO.getRegionCount(S));
+    uint64_t const CatchCount = setCount(PGO.getRegionCount(S));
     CountMap[S] = CatchCount;
     Visit(S->getHandlerBlock());
   }
 
   void VisitAbstractConditionalOperator(const AbstractConditionalOperator *E) {
     RecordStmtCount(E);
-    uint64_t ParentCount = CurrentCount;
+    uint64_t const ParentCount = CurrentCount;
     Visit(E->getCond());
 
     // Counter tracks the "true" part of a conditional operator. The
     // count in the "false" part will be calculated from this counter.
-    uint64_t TrueCount = setCount(PGO.getRegionCount(E));
+    uint64_t const TrueCount = setCount(PGO.getRegionCount(E));
     CountMap[E->getTrueExpr()] = TrueCount;
     Visit(E->getTrueExpr());
     uint64_t OutCount = CurrentCount;
 
-    uint64_t FalseCount = setCount(ParentCount - TrueCount);
+    uint64_t const FalseCount = setCount(ParentCount - TrueCount);
     CountMap[E->getFalseExpr()] = FalseCount;
     Visit(E->getFalseExpr());
     OutCount += CurrentCount;
@@ -714,10 +714,10 @@ struct ComputeRegionCounts : public ConstStmtVisitor<ComputeRegionCounts> {
 
   void VisitBinLAnd(const BinaryOperator *E) {
     RecordStmtCount(E);
-    uint64_t ParentCount = CurrentCount;
+    uint64_t const ParentCount = CurrentCount;
     Visit(E->getLHS());
     // Counter tracks the right hand side of a logical and operator.
-    uint64_t RHSCount = setCount(PGO.getRegionCount(E));
+    uint64_t const RHSCount = setCount(PGO.getRegionCount(E));
     CountMap[E->getRHS()] = RHSCount;
     Visit(E->getRHS());
     setCount(ParentCount + RHSCount - CurrentCount);
@@ -726,10 +726,10 @@ struct ComputeRegionCounts : public ConstStmtVisitor<ComputeRegionCounts> {
 
   void VisitBinLOr(const BinaryOperator *E) {
     RecordStmtCount(E);
-    uint64_t ParentCount = CurrentCount;
+    uint64_t const ParentCount = CurrentCount;
     Visit(E->getLHS());
     // Counter tracks the right hand side of a logical or operator.
-    uint64_t RHSCount = setCount(PGO.getRegionCount(E));
+    uint64_t const RHSCount = setCount(PGO.getRegionCount(E));
     CountMap[E->getRHS()] = RHSCount;
     Visit(E->getRHS());
     setCount(ParentCount + RHSCount - CurrentCount);
@@ -793,7 +793,7 @@ void CodeGenPGO::assignRegionCounters(GlobalDecl GD, llvm::Function *Fn) {
       D->hasAttr<CUDAGlobalAttr>())
     return;
 
-  bool InstrumentRegions = CGM.getCodeGenOpts().hasProfileClangInstr();
+  bool const InstrumentRegions = CGM.getCodeGenOpts().hasProfileClangInstr();
   llvm::IndexedInstrProfReader *PGOReader = CGM.getPGOReader();
   if (!InstrumentRegions && !PGOReader)
     return;
@@ -821,7 +821,7 @@ void CodeGenPGO::assignRegionCounters(GlobalDecl GD, llvm::Function *Fn) {
   if (CGM.getCodeGenOpts().CoverageMapping)
     emitCounterRegionMapping(D);
   if (PGOReader) {
-    SourceManager &SM = CGM.getContext().getSourceManager();
+    SourceManager  const&SM = CGM.getContext().getSourceManager();
     loadRegionCounts(PGOReader, SM.isInMainFile(D->getLocation()));
     computeRegionCounts(D);
     applyFunctionAttributes(PGOReader, Fn);
@@ -935,7 +935,7 @@ CodeGenPGO::applyFunctionAttributes(llvm::IndexedInstrProfReader *PGOReader,
   if (!haveRegionCounts())
     return;
 
-  uint64_t FunctionCount = getRegionCount(nullptr);
+  uint64_t const FunctionCount = getRegionCount(nullptr);
   Fn->setEntryCount(FunctionCount);
 }
 
@@ -946,7 +946,7 @@ void CodeGenPGO::emitCounterIncrement(CGBuilderTy &Builder, const Stmt *S,
   if (!Builder.GetInsertBlock())
     return;
 
-  unsigned Counter = (*RegionCounterMap)[S];
+  unsigned const Counter = (*RegionCounterMap)[S];
   auto *I8PtrTy = llvm::Type::getInt8PtrTy(CGM.getLLVMContext());
 
   llvm::Value *Args[] = {llvm::ConstantExpr::getBitCast(FuncNameVar, I8PtrTy),
@@ -982,11 +982,11 @@ void CodeGenPGO::valueProfile(CGBuilderTy &Builder, uint32_t ValueKind,
   if (isa<llvm::Constant>(ValuePtr))
     return;
 
-  bool InstrumentValueSites = CGM.getCodeGenOpts().hasProfileClangInstr();
+  bool const InstrumentValueSites = CGM.getCodeGenOpts().hasProfileClangInstr();
   if (InstrumentValueSites && RegionCounterMap) {
     auto BuilderInsertPoint = Builder.saveIP();
     Builder.SetInsertPoint(ValueSite);
-    llvm::Value *Args[5] = {
+    llvm::Value *const Args[5] = {
         llvm::ConstantExpr::getBitCast(FuncNameVar, Builder.getInt8PtrTy()),
         Builder.getInt64(FunctionHash),
         Builder.CreatePtrToInt(ValuePtr, Builder.getInt64Ty()),
@@ -1059,7 +1059,7 @@ static uint64_t calculateWeightScale(uint64_t MaxWeight) {
 /// greater than \c Weight.
 static uint32_t scaleBranchWeight(uint64_t Weight, uint64_t Scale) {
   assert(Scale && "scale by 0?");
-  uint64_t Scaled = Weight / Scale + 1;
+  uint64_t const Scaled = Weight / Scale + 1;
   assert(Scaled <= UINT32_MAX && "overflow 32-bits");
   return Scaled;
 }
@@ -1071,7 +1071,7 @@ llvm::MDNode *CodeGenFunction::createProfileWeights(uint64_t TrueCount,
     return nullptr;
 
   // Calculate how to scale down to 32-bits.
-  uint64_t Scale = calculateWeightScale(std::max(TrueCount, FalseCount));
+  uint64_t const Scale = calculateWeightScale(std::max(TrueCount, FalseCount));
 
   llvm::MDBuilder MDHelper(CGM.getLLVMContext());
   return MDHelper.createBranchWeights(scaleBranchWeight(TrueCount, Scale),
@@ -1085,16 +1085,16 @@ CodeGenFunction::createProfileWeights(ArrayRef<uint64_t> Weights) const {
     return nullptr;
 
   // Check for empty weights.
-  uint64_t MaxWeight = *std::max_element(Weights.begin(), Weights.end());
+  uint64_t const MaxWeight = *std::max_element(Weights.begin(), Weights.end());
   if (MaxWeight == 0)
     return nullptr;
 
   // Calculate how to scale down to 32-bits.
-  uint64_t Scale = calculateWeightScale(MaxWeight);
+  uint64_t const Scale = calculateWeightScale(MaxWeight);
 
   SmallVector<uint32_t, 16> ScaledWeights;
   ScaledWeights.reserve(Weights.size());
-  for (uint64_t W : Weights)
+  for (uint64_t const W : Weights)
     ScaledWeights.push_back(scaleBranchWeight(W, Scale));
 
   llvm::MDBuilder MDHelper(CGM.getLLVMContext());

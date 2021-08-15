@@ -51,7 +51,7 @@ void AnalyzerOptions::printFormattedEntry(
     return;
   }
 
-  for (char C : EntryDescPair.second) {
+  for (char const C : EntryDescPair.second) {
     if (FOut.getColumn() > MinLineWidth && C == ' ') {
       FOut << '\n';
       FOut.PadToColumn(PadForDesc);
@@ -121,13 +121,13 @@ StringRef AnalyzerOptions::getCheckerStringOption(StringRef CheckerName,
          "Empty checker name! Make sure the checker object (including it's "
          "bases!) if fully initialized before calling this function!");
 
-  ConfigTable::const_iterator E = Config.end();
+  ConfigTable::const_iterator const E = Config.end();
   do {
     ConfigTable::const_iterator I =
         Config.find((Twine(CheckerName) + ":" + OptionName).str());
     if (I != E)
       return StringRef(I->getValue());
-    size_t Pos = CheckerName.rfind('.');
+    size_t const Pos = CheckerName.rfind('.');
     if (Pos == StringRef::npos)
       break;
 
@@ -176,7 +176,7 @@ int AnalyzerOptions::getCheckerIntegerOption(StringRef CheckerName,
                                              StringRef OptionName,
                                              bool SearchInParents) const {
   int Ret = 0;
-  bool HasFailed = getCheckerStringOption(CheckerName, OptionName,
+  bool const HasFailed = getCheckerStringOption(CheckerName, OptionName,
                                           SearchInParents)
                      .getAsInteger(0, Ret);
   assert(!HasFailed &&

@@ -86,19 +86,19 @@ public:
 // Called recursively to ensure that nodes remain contiguous
 std::pair<ASTNode, ASTNode> ClangASTNodesEmitter::EmitNode(raw_ostream &OS,
                                                            ASTNode Base) {
-  std::string BaseName = macroName(std::string(Base.getName()));
+  std::string const BaseName = macroName(std::string(Base.getName()));
 
   ChildIterator i = Tree.lower_bound(Base), e = Tree.upper_bound(Base);
-  bool HasChildren = (i != e);
+  bool const HasChildren = (i != e);
 
   ASTNode First, Last;
   if (!Base.isAbstract())
     First = Last = Base;
 
   for (; i != e; ++i) {
-    ASTNode Child = i->second;
-    bool Abstract = Child.isAbstract();
-    std::string NodeName = macroName(std::string(Child.getName()));
+    ASTNode const Child = i->second;
+    bool const Abstract = Child.isAbstract();
+    std::string const NodeName = macroName(std::string(Child.getName()));
 
     OS << "#ifndef " << NodeName << "\n";
     OS << "#  define " << NodeName << "(Type, Base) "

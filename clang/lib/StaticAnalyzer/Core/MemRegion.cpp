@@ -688,7 +688,7 @@ std::string MemRegion::getDescriptiveName(bool UseQuotes) const {
     // If not a ConcreteInt, try to obtain the variable
     // name by calling 'getDescriptiveName' recursively.
     else {
-      std::string Idx = ER->getDescriptiveName(false);
+      std::string const Idx = ER->getDescriptiveName(false);
       if (!Idx.empty()) {
         ArrayIndices = (llvm::Twine("[") + Idx + "]" + ArrayIndices).str();
       }
@@ -753,7 +753,7 @@ DefinedOrUnknownSVal MemRegionManager::getStaticSize(const MemRegion *MR,
   case MemRegion::ParamVarRegionKind:
   case MemRegion::ElementRegionKind:
   case MemRegion::ObjCStringRegionKind: {
-    QualType Ty = cast<TypedValueRegion>(SR)->getDesugaredValueType(Ctx);
+    QualType const Ty = cast<TypedValueRegion>(SR)->getDesugaredValueType(Ctx);
     if (isa<VariableArrayType>(Ty))
       return nonloc::SymbolVal(SymMgr.getExtentSymbol(SR));
 
@@ -767,7 +767,7 @@ DefinedOrUnknownSVal MemRegionManager::getStaticSize(const MemRegion *MR,
     if (cast<FieldRegion>(SR)->getDecl()->isBitField())
       return UnknownVal();
 
-    QualType Ty = cast<TypedValueRegion>(SR)->getDesugaredValueType(Ctx);
+    QualType const Ty = cast<TypedValueRegion>(SR)->getDesugaredValueType(Ctx);
     DefinedOrUnknownSVal Size = getElementExtent(Ty, SVB);
 
     // A zero-length array at the end of a struct often stands for dynamically
@@ -921,7 +921,7 @@ const VarRegion *MemRegionManager::getVarRegion(const VarDecl *D,
                                                 const LocationContext *LC) {
   const auto *PVD = dyn_cast<ParmVarDecl>(D);
   if (PVD) {
-    unsigned Index = PVD->getFunctionScopeIndex();
+    unsigned const Index = PVD->getFunctionScopeIndex();
     const StackFrameContext *SFC = LC->getStackFrame();
     const Stmt *CallSite = SFC->getCallSite();
     if (CallSite) {
@@ -957,7 +957,7 @@ const VarRegion *MemRegionManager::getVarRegion(const VarDecl *D,
 
     // Treat other globals as GlobalInternal unless they are constants.
     } else {
-      QualType GQT = D->getType();
+      QualType const GQT = D->getType();
       const Type *GT = GQT.getTypePtrOrNull();
       // TODO: We could walk the complex types here and see if everything is
       // constified.
@@ -972,7 +972,7 @@ const VarRegion *MemRegionManager::getVarRegion(const VarDecl *D,
     // FIXME: Once we implement scope handling, we will need to properly lookup
     // 'D' to the proper LocationContext.
     const DeclContext *DC = D->getDeclContext();
-    llvm::PointerUnion<const StackFrameContext *, const VarRegion *> V =
+    llvm::PointerUnion<const StackFrameContext *, const VarRegion *> const V =
       getStackOrCaptureRegionForDeclContext(LC, DC, D);
 
     if (V.is<const VarRegion*>())
@@ -1096,7 +1096,7 @@ const ElementRegion*
 MemRegionManager::getElementRegion(QualType elementType, NonLoc Idx,
                                    const SubRegion* superRegion,
                                    ASTContext &Ctx){
-  QualType T = Ctx.getCanonicalType(elementType).getUnqualifiedType();
+  QualType const T = Ctx.getCanonicalType(elementType).getUnqualifiedType();
 
   llvm::FoldingSetNodeID ID;
   ElementRegion::ProfileRegion(ID, T, Idx, superRegion);
@@ -1338,7 +1338,7 @@ RegionRawOffset ElementRegion::getAsArrayOffset() const {
   int64_t offset = 0;
   const ElementRegion *ER = this;
   const MemRegion *superR = nullptr;
-  ASTContext &C = getContext();
+  ASTContext  const&C = getContext();
 
   // FIXME: Handle multi-dimensional arrays.
 
@@ -1346,13 +1346,13 @@ RegionRawOffset ElementRegion::getAsArrayOffset() const {
     superR = ER->getSuperRegion();
 
     // FIXME: generalize to symbolic offsets.
-    SVal index = ER->getIndex();
+    SVal const index = ER->getIndex();
     if (auto CI = index.getAs<nonloc::ConcreteInt>()) {
       // Update the offset.
-      int64_t i = CI->getValue().getSExtValue();
+      int64_t const i = CI->getValue().getSExtValue();
 
       if (i != 0) {
-        QualType elemType = ER->getElementType();
+        QualType const elemType = ER->getElementType();
 
         // If we are pointing to an incomplete type, go no further.
         if (elemType->isIncompleteType()) {
@@ -1360,7 +1360,7 @@ RegionRawOffset ElementRegion::getAsArrayOffset() const {
           break;
         }
 
-        int64_t size = C.getTypeSizeInChars(elemType).getQuantity();
+        int64_t const size = C.getTypeSizeInChars(elemType).getQuantity();
         if (auto NewOffset = llvm::checkedMulAdd(i, size, offset)) {
           offset = *NewOffset;
         } else {
@@ -1507,14 +1507,14 @@ static RegionOffset calculateOffset(const MemRegion *R) {
       const auto *ER = cast<ElementRegion>(R);
       R = ER->getSuperRegion();
 
-      QualType EleTy = ER->getValueType();
+      QualType const EleTy = ER->getValueType();
       if (EleTy->isIncompleteType()) {
         // We cannot compute the offset of the base class.
         SymbolicOffsetBase = R;
         continue;
       }
 
-      SVal Index = ER->getIndex();
+      SVal const Index = ER->getIndex();
       if (Optional<nonloc::ConcreteInt> CI =
               Index.getAs<nonloc::ConcreteInt>()) {
         // Don't bother calculating precise offsets if we already have a
@@ -1522,7 +1522,7 @@ static RegionOffset calculateOffset(const MemRegion *R) {
         if (SymbolicOffsetBase)
           continue;
 
-        int64_t i = CI->getValue().getSExtValue();
+        int64_t const i = CI->getValue().getSExtValue();
         // This type size is in bits.
         Offset += i * R->getContext().getTypeSize(EleTy);
       } else {
@@ -1706,7 +1706,7 @@ void RegionAndSymbolInvalidationTraits::setTrait(const MemRegion *MR,
 
 bool RegionAndSymbolInvalidationTraits::hasTrait(SymbolRef Sym,
                                                  InvalidationKinds IK) const {
-  const_symbol_iterator I = SymTraitsMap.find(Sym);
+  const_symbol_iterator const I = SymTraitsMap.find(Sym);
   if (I != SymTraitsMap.end())
     return I->second & IK;
 
@@ -1721,7 +1721,7 @@ bool RegionAndSymbolInvalidationTraits::hasTrait(const MemRegion *MR,
   if (const auto *SR = dyn_cast<SymbolicRegion>(MR))
     return hasTrait(SR->getSymbol(), IK);
 
-  const_region_iterator I = MRTraitsMap.find(MR);
+  const_region_iterator const I = MRTraitsMap.find(MR);
   if (I != MRTraitsMap.end())
     return I->second & IK;
 

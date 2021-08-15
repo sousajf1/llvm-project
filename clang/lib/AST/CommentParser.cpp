@@ -98,7 +98,7 @@ class TextTokenRetokenizer {
 
     if (P.Tok.is(tok::newline)) {
       // If we see a single newline token between text tokens, skip it.
-      Token Newline = P.Tok;
+      Token const Newline = P.Tok;
       P.consumeToken();
       if (P.Tok.isNot(tok::text)) {
         P.putBack(Newline);
@@ -154,12 +154,12 @@ public:
     if (isEnd())
       return false;
 
-    Position SavedPos = Pos;
+    Position const SavedPos = Pos;
 
     consumeWhitespace();
     SmallString<32> WordText;
     const char *WordBegin = Pos.BufferPtr;
-    SourceLocation Loc = getSourceLocation();
+    SourceLocation const Loc = getSourceLocation();
     while (!isEnd()) {
       const char C = peek();
       if (!isWhitespace(C)) {
@@ -177,7 +177,7 @@ public:
     char *TextPtr = Allocator.Allocate<char>(Length + 1);
 
     memcpy(TextPtr, WordText.c_str(), Length + 1);
-    StringRef Text = StringRef(TextPtr, Length);
+    StringRef const Text = StringRef(TextPtr, Length);
 
     formTokenWithChars(Tok, Loc, WordBegin, Length, Text);
     return true;
@@ -187,12 +187,12 @@ public:
     if (isEnd())
       return false;
 
-    Position SavedPos = Pos;
+    Position const SavedPos = Pos;
 
     consumeWhitespace();
     SmallString<32> WordText;
     const char *WordBegin = Pos.BufferPtr;
-    SourceLocation Loc = getSourceLocation();
+    SourceLocation const Loc = getSourceLocation();
     bool Error = false;
     if (!isEnd()) {
       const char C = peek();
@@ -222,7 +222,7 @@ public:
     char *TextPtr = Allocator.Allocate<char>(Length + 1);
 
     memcpy(TextPtr, WordText.c_str(), Length + 1);
-    StringRef Text = StringRef(TextPtr, Length);
+    StringRef const Text = StringRef(TextPtr, Length);
 
     formTokenWithChars(Tok, Loc, WordBegin,
                        Pos.BufferPtr - WordBegin, Text);
@@ -314,7 +314,7 @@ BlockCommandComment *Parser::parseBlockCommand() {
   TParamCommandComment *TPC = nullptr;
   BlockCommandComment *BC = nullptr;
   const CommandInfo *Info = Traits.getCommandInfo(Tok.getCommandID());
-  CommandMarkerKind CommandMarker =
+  CommandMarkerKind const CommandMarker =
       Tok.is(tok::backslash_command) ? CMK_Backslash : CMK_At;
   if (Info->IsParamCommand) {
     PC = S.actOnParamCommandStart(Tok.getLocation(),
@@ -371,7 +371,7 @@ BlockCommandComment *Parser::parseBlockCommand() {
   if (isTokBlockCommand())
     EmptyParagraph = true;
   else if (Tok.is(tok::newline)) {
-    Token PrevTok = Tok;
+    Token const PrevTok = Tok;
     consumeToken();
     EmptyParagraph = isTokBlockCommand();
     putBack(PrevTok);
@@ -408,7 +408,7 @@ InlineCommandComment *Parser::parseInlineCommand() {
   TextTokenRetokenizer Retokenizer(Allocator, *this);
 
   Token ArgTok;
-  bool ArgTokValid = Retokenizer.lexWord(ArgTok);
+  bool const ArgTokValid = Retokenizer.lexWord(ArgTok);
 
   InlineCommandComment *IC;
   if (ArgTokValid) {
@@ -446,14 +446,14 @@ HTMLStartTagComment *Parser::parseHTMLStartTag() {
   while (true) {
     switch (Tok.getKind()) {
     case tok::html_ident: {
-      Token Ident = Tok;
+      Token const Ident = Tok;
       consumeToken();
       if (Tok.isNot(tok::html_equals)) {
         Attrs.push_back(HTMLStartTagComment::Attribute(Ident.getLocation(),
                                                        Ident.getHTMLIdent()));
         continue;
       }
-      Token Equals = Tok;
+      Token const Equals = Tok;
       consumeToken();
       if (Tok.isNot(tok::html_quoted_string)) {
         Diag(Tok.getLocation(),
@@ -542,7 +542,7 @@ HTMLStartTagComment *Parser::parseHTMLStartTag() {
 
 HTMLEndTagComment *Parser::parseHTMLEndTag() {
   assert(Tok.is(tok::html_end_tag));
-  Token TokEndTag = Tok;
+  Token const TokEndTag = Tok;
   consumeToken();
   SourceLocation Loc;
   if (Tok.is(tok::html_greater)) {
@@ -610,7 +610,7 @@ BlockContentComment *Parser::parseParagraphOrBlockCommand() {
       // Also allow [tok::newline, tok::text, tok::newline] if the middle
       // tok::text is just whitespace.
       if (Tok.is(tok::text) && isWhitespace(Tok.getText())) {
-        Token WhitespaceTok = Tok;
+        Token const WhitespaceTok = Tok;
         consumeToken();
         if (Tok.is(tok::newline) || Tok.is(tok::eof)) {
           consumeToken();
@@ -706,7 +706,7 @@ VerbatimBlockComment *Parser::parseVerbatimBlock() {
 VerbatimLineComment *Parser::parseVerbatimLine() {
   assert(Tok.is(tok::verbatim_line_name));
 
-  Token NameTok = Tok;
+  Token const NameTok = Tok;
   consumeToken();
 
   SourceLocation TextBegin;

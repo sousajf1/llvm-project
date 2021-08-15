@@ -225,7 +225,7 @@ public:
   SourceLocation getPreciseTokenLocEnd(SourceLocation Loc) {
     // We avoid getLocForEndOfToken here, because it doesn't do what we want for
     // macro locations, which we just treat as expanded files.
-    unsigned TokLen =
+    unsigned const TokLen =
         Lexer::MeasureTokenLength(SM.getSpellingLoc(Loc), SM, LangOpts);
     return Loc.getLocWithOffset(TokLen);
   }
@@ -293,8 +293,8 @@ public:
     llvm::SmallSet<FileID, 8> Visited;
     SmallVector<std::pair<SourceLocation, unsigned>, 8> FileLocs;
     for (const auto &Region : SourceRegions) {
-      SourceLocation Loc = Region.getBeginLoc();
-      FileID File = SM.getFileID(Loc);
+      SourceLocation const Loc = Region.getBeginLoc();
+      FileID const File = SM.getFileID(Loc);
       if (!Visited.insert(File).second)
         continue;
 
@@ -311,8 +311,8 @@ public:
     llvm::stable_sort(FileLocs, llvm::less_second());
 
     for (const auto &FL : FileLocs) {
-      SourceLocation Loc = FL.first;
-      FileID SpellingFile = SM.getDecomposedSpellingLoc(Loc).first;
+      SourceLocation const Loc = FL.first;
+      FileID const SpellingFile = SM.getDecomposedSpellingLoc(Loc).first;
       auto Entry = SM.getFileEntryForID(SpellingFile);
       if (!Entry)
         continue;
@@ -373,7 +373,7 @@ public:
 
     auto SkippedRanges = CVM.getSourceInfo().getSkippedRanges();
     for (auto &I : SkippedRanges) {
-      SourceRange Range = I.Range;
+      SourceRange const Range = I.Range;
       auto LocStart = Range.getBegin();
       auto LocEnd = Range.getEnd();
       assert(SM.isWrittenInSameFile(LocStart, LocEnd) &&
@@ -403,7 +403,7 @@ public:
     for (const auto &Region : SourceRegions) {
       assert(Region.hasEndLoc() && "incomplete region");
 
-      SourceLocation LocStart = Region.getBeginLoc();
+      SourceLocation const LocStart = Region.getBeginLoc();
       assert(SM.getFileID(LocStart).isValid() && "region in invalid file");
 
       // Ignore regions from system headers.
@@ -415,7 +415,7 @@ public:
       if (!CovFileID)
         continue;
 
-      SourceLocation LocEnd = Region.getEndLoc();
+      SourceLocation const LocEnd = Region.getEndLoc();
       assert(SM.isWrittenInSameFile(LocStart, LocEnd) &&
              "region spans multiple files");
 
@@ -427,7 +427,7 @@ public:
         continue;
 
       // Find the spelling locations for the mapping region.
-      SpellingRegion SR{SM, LocStart, LocEnd};
+      SpellingRegion const SR{SM, LocStart, LocEnd};
       assert(SR.isInSourceOrder() && "region start and end out of order");
 
       if (Region.isGap()) {
@@ -450,8 +450,8 @@ public:
   SourceRegionFilter emitExpansionRegions() {
     SourceRegionFilter Filter;
     for (const auto &FM : FileIDMapping) {
-      SourceLocation ExpandedLoc = FM.second.second;
-      SourceLocation ParentLoc = getIncludeOrExpansionLoc(ExpandedLoc);
+      SourceLocation const ExpandedLoc = FM.second.second;
+      SourceLocation const ParentLoc = getIncludeOrExpansionLoc(ExpandedLoc);
       if (ParentLoc.isInvalid())
         continue;
 
@@ -461,12 +461,12 @@ public:
       auto ExpandedFileID = getCoverageFileID(ExpandedLoc);
       assert(ExpandedFileID && "expansion in uncovered file");
 
-      SourceLocation LocEnd = getPreciseTokenLocEnd(ParentLoc);
+      SourceLocation const LocEnd = getPreciseTokenLocEnd(ParentLoc);
       assert(SM.isWrittenInSameFile(ParentLoc, LocEnd) &&
              "region spans multiple files");
       Filter.insert(std::make_pair(ParentLoc, LocEnd));
 
-      SpellingRegion SR{SM, ParentLoc, LocEnd};
+      SpellingRegion const SR{SM, ParentLoc, LocEnd};
       assert(SR.isInSourceOrder() && "region start and end out of order");
       MappingRegions.push_back(CounterMappingRegion::makeExpansion(
           *ParentFileID, *ExpandedFileID, SR.LineStart, SR.ColumnStart,
@@ -609,12 +609,12 @@ struct CounterCoverageMappingBuilder
         SourceLocation EndLoc = Region.hasEndLoc()
                                     ? Region.getEndLoc()
                                     : RegionStack[ParentIndex].getEndLoc();
-        bool isBranch = Region.isBranch();
+        bool const isBranch = Region.isBranch();
         size_t StartDepth = locationDepth(StartLoc);
         size_t EndDepth = locationDepth(EndLoc);
         while (!SM.isWrittenInSameFile(StartLoc, EndLoc)) {
-          bool UnnestStart = StartDepth >= EndDepth;
-          bool UnnestEnd = EndDepth >= StartDepth;
+          bool const UnnestStart = StartDepth >= EndDepth;
+          bool const UnnestEnd = EndDepth >= StartDepth;
           if (UnnestEnd) {
             // The region ends in a nested file or macro expansion. If the
             // region is not a branch region, create a separate region for each
@@ -622,7 +622,7 @@ struct CounterCoverageMappingBuilder
             // regions should not be split in order to keep a straightforward
             // correspondance between the region and its associated branch
             // condition, even if the condition spans multiple depths.
-            SourceLocation NestedLoc = getStartOfFileOrMacro(EndLoc);
+            SourceLocation const NestedLoc = getStartOfFileOrMacro(EndLoc);
             assert(SM.isWrittenInSameFile(NestedLoc, EndLoc));
 
             if (!isBranch && !isRegionAlreadyAdded(NestedLoc, EndLoc))
@@ -642,7 +642,7 @@ struct CounterCoverageMappingBuilder
             // regions should not be split in order to keep a straightforward
             // correspondance between the region and its associated branch
             // condition, even if the condition spans multiple depths.
-            SourceLocation NestedLoc = getEndOfFileOrMacro(StartLoc);
+            SourceLocation const NestedLoc = getEndOfFileOrMacro(StartLoc);
             assert(SM.isWrittenInSameFile(StartLoc, NestedLoc));
 
             if (!isBranch && !isRegionAlreadyAdded(StartLoc, NestedLoc))
@@ -686,9 +686,9 @@ struct CounterCoverageMappingBuilder
   /// Otherwise, only emit a count for \p S itself.
   Counter propagateCounts(Counter TopCount, const Stmt *S,
                           bool VisitChildren = true) {
-    SourceLocation StartLoc = getStart(S);
-    SourceLocation EndLoc = getEnd(S);
-    size_t Index = pushRegion(TopCount, StartLoc, EndLoc);
+    SourceLocation const StartLoc = getStart(S);
+    SourceLocation const EndLoc = getEnd(S);
+    size_t const Index = pushRegion(TopCount, StartLoc, EndLoc);
     if (VisitChildren)
       Visit(S);
     Counter ExitCount = getRegion().getCounter();
@@ -836,7 +836,7 @@ struct CounterCoverageMappingBuilder
       // corresponding to the parent.
       SourceLocation Loc = MostRecentLocation;
       while (isNestedIn(Loc, ParentFile)) {
-        SourceLocation FileStart = getStartOfFileOrMacro(Loc);
+        SourceLocation const FileStart = getStartOfFileOrMacro(Loc);
         if (StartLocs.insert(FileStart).second) {
           SourceRegions.emplace_back(*ParentCounter, FileStart,
                                      getEndOfFileOrMacro(Loc));
@@ -852,7 +852,7 @@ struct CounterCoverageMappingBuilder
   /// Ensure that \c S is included in the current region.
   void extendRegion(const Stmt *S) {
     SourceMappingRegion &Region = getRegion();
-    SourceLocation StartLoc = getStart(S);
+    SourceLocation const StartLoc = getStart(S);
 
     handleFileExit(StartLoc);
     if (!Region.hasStartLoc())
@@ -863,7 +863,7 @@ struct CounterCoverageMappingBuilder
   void terminateRegion(const Stmt *S) {
     extendRegion(S);
     SourceMappingRegion &Region = getRegion();
-    SourceLocation EndLoc = getEnd(S);
+    SourceLocation const EndLoc = getEnd(S);
     if (!Region.hasEndLoc())
       Region.setEndLoc(EndLoc);
     pushRegion(Counter::getZero());
@@ -876,7 +876,7 @@ struct CounterCoverageMappingBuilder
     // If AfterLoc is in function-like macro, use the right parenthesis
     // location.
     if (AfterLoc.isMacroID()) {
-      FileID FID = SM.getFileID(AfterLoc);
+      FileID const FID = SM.getFileID(AfterLoc);
       const SrcMgr::ExpansionInfo *EI = &SM.getSLocEntry(FID).getExpansion();
       if (EI->isFunctionMacroExpansion())
         AfterLoc = EI->getExpansionLocEnd();
@@ -885,8 +885,8 @@ struct CounterCoverageMappingBuilder
     size_t StartDepth = locationDepth(AfterLoc);
     size_t EndDepth = locationDepth(BeforeLoc);
     while (!SM.isWrittenInSameFile(AfterLoc, BeforeLoc)) {
-      bool UnnestStart = StartDepth >= EndDepth;
-      bool UnnestEnd = EndDepth >= StartDepth;
+      bool const UnnestStart = StartDepth >= EndDepth;
+      bool const UnnestEnd = EndDepth >= StartDepth;
       if (UnnestEnd) {
         assert(SM.isWrittenInSameFile(getStartOfFileOrMacro(BeforeLoc),
                                       BeforeLoc));
@@ -924,7 +924,7 @@ struct CounterCoverageMappingBuilder
       return;
     assert(SpellingRegion(SM, StartLoc, EndLoc).isInSourceOrder());
     handleFileExit(StartLoc);
-    size_t Index = pushRegion(Count, StartLoc, EndLoc);
+    size_t const Index = pushRegion(Count, StartLoc, EndLoc);
     getRegion().setGap(true);
     handleFileExit(EndLoc);
     popRegions(Index);
@@ -947,7 +947,7 @@ struct CounterCoverageMappingBuilder
   void write(llvm::raw_ostream &OS) {
     llvm::SmallVector<unsigned, 8> VirtualFileMapping;
     gatherFileIDs(VirtualFileMapping);
-    SourceRegionFilter Filter = emitExpansionRegions();
+    SourceRegionFilter const Filter = emitExpansionRegions();
     emitSourceRegions(Filter);
     gatherSkippedRegions();
 
@@ -1036,8 +1036,8 @@ struct CounterCoverageMappingBuilder
   void VisitGotoStmt(const GotoStmt *S) { terminateRegion(S); }
 
   void VisitLabelStmt(const LabelStmt *S) {
-    Counter LabelCount = getRegionCounter(S);
-    SourceLocation Start = getStart(S);
+    Counter const LabelCount = getRegionCounter(S);
+    SourceLocation const Start = getStart(S);
     // We can't extendRegion here or we risk overlapping with our new region.
     handleFileExit(Start);
     pushRegion(LabelCount, Start);
@@ -1065,7 +1065,7 @@ struct CounterCoverageMappingBuilder
 
     // Terminate the region when we hit a noreturn function.
     // (This is helpful dealing with switch statements.)
-    QualType CalleeType = E->getCallee()->getType();
+    QualType const CalleeType = E->getCallee()->getType();
     if (getFunctionExtInfo(*CalleeType).getNoReturn())
       terminateRegion(E);
   }
@@ -1073,20 +1073,20 @@ struct CounterCoverageMappingBuilder
   void VisitWhileStmt(const WhileStmt *S) {
     extendRegion(S);
 
-    Counter ParentCount = getRegion().getCounter();
-    Counter BodyCount = getRegionCounter(S);
+    Counter const ParentCount = getRegion().getCounter();
+    Counter const BodyCount = getRegionCounter(S);
 
     // Handle the body first so that we can get the backedge count.
     BreakContinueStack.push_back(BreakContinue());
     extendRegion(S->getBody());
-    Counter BackedgeCount = propagateCounts(BodyCount, S->getBody());
-    BreakContinue BC = BreakContinueStack.pop_back_val();
+    Counter const BackedgeCount = propagateCounts(BodyCount, S->getBody());
+    BreakContinue const BC = BreakContinueStack.pop_back_val();
 
-    bool BodyHasTerminateStmt = HasTerminateStmt;
+    bool const BodyHasTerminateStmt = HasTerminateStmt;
     HasTerminateStmt = false;
 
     // Go back to handle the condition.
-    Counter CondCount =
+    Counter const CondCount =
         addCounters(ParentCount, BackedgeCount, BC.ContinueCount);
     propagateCounts(CondCount, S->getCond());
     adjustForOutOfOrderTraversal(getEnd(S));
@@ -1096,7 +1096,7 @@ struct CounterCoverageMappingBuilder
     if (Gap)
       fillGapAreaWithCount(Gap->getBegin(), Gap->getEnd(), BodyCount);
 
-    Counter OutCount =
+    Counter const OutCount =
         addCounters(BC.BreakCount, subtractCounters(CondCount, BodyCount));
     if (OutCount != ParentCount) {
       pushRegion(OutCount);
@@ -1113,22 +1113,22 @@ struct CounterCoverageMappingBuilder
   void VisitDoStmt(const DoStmt *S) {
     extendRegion(S);
 
-    Counter ParentCount = getRegion().getCounter();
-    Counter BodyCount = getRegionCounter(S);
+    Counter const ParentCount = getRegion().getCounter();
+    Counter const BodyCount = getRegionCounter(S);
 
     BreakContinueStack.push_back(BreakContinue());
     extendRegion(S->getBody());
-    Counter BackedgeCount =
+    Counter const BackedgeCount =
         propagateCounts(addCounters(ParentCount, BodyCount), S->getBody());
-    BreakContinue BC = BreakContinueStack.pop_back_val();
+    BreakContinue const BC = BreakContinueStack.pop_back_val();
 
-    bool BodyHasTerminateStmt = HasTerminateStmt;
+    bool const BodyHasTerminateStmt = HasTerminateStmt;
     HasTerminateStmt = false;
 
-    Counter CondCount = addCounters(BackedgeCount, BC.ContinueCount);
+    Counter const CondCount = addCounters(BackedgeCount, BC.ContinueCount);
     propagateCounts(CondCount, S->getCond());
 
-    Counter OutCount =
+    Counter const OutCount =
         addCounters(BC.BreakCount, subtractCounters(CondCount, BodyCount));
     if (OutCount != ParentCount) {
       pushRegion(OutCount);
@@ -1148,8 +1148,8 @@ struct CounterCoverageMappingBuilder
     if (S->getInit())
       Visit(S->getInit());
 
-    Counter ParentCount = getRegion().getCounter();
-    Counter BodyCount = getRegionCounter(S);
+    Counter const ParentCount = getRegion().getCounter();
+    Counter const BodyCount = getRegionCounter(S);
 
     // The loop increment may contain a break or continue.
     if (S->getInc())
@@ -1158,10 +1158,10 @@ struct CounterCoverageMappingBuilder
     // Handle the body first so that we can get the backedge count.
     BreakContinueStack.emplace_back();
     extendRegion(S->getBody());
-    Counter BackedgeCount = propagateCounts(BodyCount, S->getBody());
-    BreakContinue BodyBC = BreakContinueStack.pop_back_val();
+    Counter const BackedgeCount = propagateCounts(BodyCount, S->getBody());
+    BreakContinue const BodyBC = BreakContinueStack.pop_back_val();
 
-    bool BodyHasTerminateStmt = HasTerminateStmt;
+    bool const BodyHasTerminateStmt = HasTerminateStmt;
     HasTerminateStmt = false;
 
     // The increment is essentially part of the body but it needs to include
@@ -1173,7 +1173,7 @@ struct CounterCoverageMappingBuilder
     }
 
     // Go back to handle the condition.
-    Counter CondCount = addCounters(
+    Counter const CondCount = addCounters(
         addCounters(ParentCount, BackedgeCount, BodyBC.ContinueCount),
         IncrementBC.ContinueCount);
     if (const Expr *Cond = S->getCond()) {
@@ -1186,7 +1186,7 @@ struct CounterCoverageMappingBuilder
     if (Gap)
       fillGapAreaWithCount(Gap->getBegin(), Gap->getEnd(), BodyCount);
 
-    Counter OutCount = addCounters(BodyBC.BreakCount, IncrementBC.BreakCount,
+    Counter const OutCount = addCounters(BodyBC.BreakCount, IncrementBC.BreakCount,
                                    subtractCounters(CondCount, BodyCount));
     if (OutCount != ParentCount) {
       pushRegion(OutCount);
@@ -1207,15 +1207,15 @@ struct CounterCoverageMappingBuilder
     Visit(S->getLoopVarStmt());
     Visit(S->getRangeStmt());
 
-    Counter ParentCount = getRegion().getCounter();
-    Counter BodyCount = getRegionCounter(S);
+    Counter const ParentCount = getRegion().getCounter();
+    Counter const BodyCount = getRegionCounter(S);
 
     BreakContinueStack.push_back(BreakContinue());
     extendRegion(S->getBody());
-    Counter BackedgeCount = propagateCounts(BodyCount, S->getBody());
-    BreakContinue BC = BreakContinueStack.pop_back_val();
+    Counter const BackedgeCount = propagateCounts(BodyCount, S->getBody());
+    BreakContinue const BC = BreakContinueStack.pop_back_val();
 
-    bool BodyHasTerminateStmt = HasTerminateStmt;
+    bool const BodyHasTerminateStmt = HasTerminateStmt;
     HasTerminateStmt = false;
 
     // The body count applies to the area immediately after the range.
@@ -1223,9 +1223,9 @@ struct CounterCoverageMappingBuilder
     if (Gap)
       fillGapAreaWithCount(Gap->getBegin(), Gap->getEnd(), BodyCount);
 
-    Counter LoopCount =
+    Counter const LoopCount =
         addCounters(ParentCount, BackedgeCount, BC.ContinueCount);
-    Counter OutCount =
+    Counter const OutCount =
         addCounters(BC.BreakCount, subtractCounters(LoopCount, BodyCount));
     if (OutCount != ParentCount) {
       pushRegion(OutCount);
@@ -1243,22 +1243,22 @@ struct CounterCoverageMappingBuilder
     extendRegion(S);
     Visit(S->getElement());
 
-    Counter ParentCount = getRegion().getCounter();
-    Counter BodyCount = getRegionCounter(S);
+    Counter const ParentCount = getRegion().getCounter();
+    Counter const BodyCount = getRegionCounter(S);
 
     BreakContinueStack.push_back(BreakContinue());
     extendRegion(S->getBody());
-    Counter BackedgeCount = propagateCounts(BodyCount, S->getBody());
-    BreakContinue BC = BreakContinueStack.pop_back_val();
+    Counter const BackedgeCount = propagateCounts(BodyCount, S->getBody());
+    BreakContinue const BC = BreakContinueStack.pop_back_val();
 
     // The body count applies to the area immediately after the collection.
     auto Gap = findGapAreaBetween(S->getRParenLoc(), getStart(S->getBody()));
     if (Gap)
       fillGapAreaWithCount(Gap->getBegin(), Gap->getEnd(), BodyCount);
 
-    Counter LoopCount =
+    Counter const LoopCount =
         addCounters(ParentCount, BackedgeCount, BC.ContinueCount);
-    Counter OutCount =
+    Counter const OutCount =
         addCounters(BC.BreakCount, subtractCounters(LoopCount, BodyCount));
     if (OutCount != ParentCount) {
       pushRegion(OutCount);
@@ -1281,7 +1281,7 @@ struct CounterCoverageMappingBuilder
         // Make a region for the body of the switch.  If the body starts with
         // a case, that case will reuse this region; otherwise, this covers
         // the unreachable code at the beginning of the switch body.
-        size_t Index = pushRegion(Counter::getZero(), getStart(CS));
+        size_t const Index = pushRegion(Counter::getZero(), getStart(CS));
         getRegion().setGap(true);
         Visit(Body);
 
@@ -1295,15 +1295,15 @@ struct CounterCoverageMappingBuilder
       }
     } else
       propagateCounts(Counter::getZero(), Body);
-    BreakContinue BC = BreakContinueStack.pop_back_val();
+    BreakContinue const BC = BreakContinueStack.pop_back_val();
 
     if (!BreakContinueStack.empty())
       BreakContinueStack.back().ContinueCount = addCounters(
           BreakContinueStack.back().ContinueCount, BC.ContinueCount);
 
-    Counter ParentCount = getRegion().getCounter();
-    Counter ExitCount = getRegionCounter(S);
-    SourceLocation ExitLoc = getEnd(S);
+    Counter const ParentCount = getRegion().getCounter();
+    Counter const ExitCount = getRegionCounter(S);
+    SourceLocation const ExitLoc = getEnd(S);
     pushRegion(ExitCount);
     GapRegionCounter = ExitCount;
 
@@ -1329,8 +1329,8 @@ struct CounterCoverageMappingBuilder
     // the hidden branch, which will be added later by the CodeGen. This region
     // will be associated with the switch statement's condition.
     if (!HasDefaultCase) {
-      Counter DefaultTrue = subtractCounters(ParentCount, CaseCountSum);
-      Counter DefaultFalse = subtractCounters(ParentCount, DefaultTrue);
+      Counter const DefaultTrue = subtractCounters(ParentCount, CaseCountSum);
+      Counter const DefaultFalse = subtractCounters(ParentCount, DefaultTrue);
       createBranchRegion(S->getCond(), DefaultTrue, DefaultFalse);
     }
   }
@@ -1340,7 +1340,7 @@ struct CounterCoverageMappingBuilder
 
     SourceMappingRegion &Parent = getRegion();
 
-    Counter Count = addCounters(Parent.getCounter(), getRegionCounter(S));
+    Counter const Count = addCounters(Parent.getCounter(), getRegionCounter(S));
     // Reuse the existing region if it starts at our label. This is typical of
     // the first case in a switch.
     if (Parent.hasStartLoc() && Parent.getBeginLoc() == getStart(S))
@@ -1367,8 +1367,8 @@ struct CounterCoverageMappingBuilder
     // needed to handle macros that generate the "if" but not the condition.
     extendRegion(S->getCond());
 
-    Counter ParentCount = getRegion().getCounter();
-    Counter ThenCount = getRegionCounter(S);
+    Counter const ParentCount = getRegion().getCounter();
+    Counter const ThenCount = getRegionCounter(S);
 
     // Emitting a counter for the condition makes it easier to interpret the
     // counter for the body when looking at the coverage.
@@ -1382,9 +1382,9 @@ struct CounterCoverageMappingBuilder
     extendRegion(S->getThen());
     Counter OutCount = propagateCounts(ThenCount, S->getThen());
 
-    Counter ElseCount = subtractCounters(ParentCount, ThenCount);
+    Counter const ElseCount = subtractCounters(ParentCount, ThenCount);
     if (const Stmt *Else = S->getElse()) {
-      bool ThenHasTerminateStmt = HasTerminateStmt;
+      bool const ThenHasTerminateStmt = HasTerminateStmt;
       HasTerminateStmt = false;
 
       // The 'else' count applies to the area immediately after the 'then'.
@@ -1414,13 +1414,13 @@ struct CounterCoverageMappingBuilder
     // Handle macros that generate the "try" but not the rest.
     extendRegion(S->getTryBlock());
 
-    Counter ParentCount = getRegion().getCounter();
+    Counter const ParentCount = getRegion().getCounter();
     propagateCounts(ParentCount, S->getTryBlock());
 
     for (unsigned I = 0, E = S->getNumHandlers(); I < E; ++I)
       Visit(S->getHandler(I));
 
-    Counter ExitCount = getRegionCounter(S);
+    Counter const ExitCount = getRegionCounter(S);
     pushRegion(ExitCount);
   }
 
@@ -1431,8 +1431,8 @@ struct CounterCoverageMappingBuilder
   void VisitAbstractConditionalOperator(const AbstractConditionalOperator *E) {
     extendRegion(E);
 
-    Counter ParentCount = getRegion().getCounter();
-    Counter TrueCount = getRegionCounter(E);
+    Counter const ParentCount = getRegion().getCounter();
+    Counter const TrueCount = getRegionCounter(E);
 
     propagateCounts(ParentCount, E->getCond());
 
@@ -1466,13 +1466,13 @@ struct CounterCoverageMappingBuilder
     propagateCounts(getRegionCounter(E), E->getRHS());
 
     // Extract the RHS's Execution Counter.
-    Counter RHSExecCnt = getRegionCounter(E);
+    Counter const RHSExecCnt = getRegionCounter(E);
 
     // Extract the RHS's "True" Instance Counter.
-    Counter RHSTrueCnt = getRegionCounter(E->getRHS());
+    Counter const RHSTrueCnt = getRegionCounter(E->getRHS());
 
     // Extract the Parent Region Counter.
-    Counter ParentCnt = getRegion().getCounter();
+    Counter const ParentCnt = getRegion().getCounter();
 
     // Create Branch Region around LHS condition.
     createBranchRegion(E->getLHS(), RHSExecCnt,
@@ -1493,13 +1493,13 @@ struct CounterCoverageMappingBuilder
     propagateCounts(getRegionCounter(E), E->getRHS());
 
     // Extract the RHS's Execution Counter.
-    Counter RHSExecCnt = getRegionCounter(E);
+    Counter const RHSExecCnt = getRegionCounter(E);
 
     // Extract the RHS's "False" Instance Counter.
-    Counter RHSFalseCnt = getRegionCounter(E->getRHS());
+    Counter const RHSFalseCnt = getRegionCounter(E->getRHS());
 
     // Extract the Parent Region Counter.
-    Counter ParentCnt = getRegion().getCounter();
+    Counter const ParentCnt = getRegion().getCounter();
 
     // Create Branch Region around LHS condition.
     createBranchRegion(E->getLHS(), subtractCounters(ParentCnt, RHSExecCnt),
@@ -1522,7 +1522,7 @@ static void dump(llvm::raw_ostream &OS, StringRef FunctionName,
                  ArrayRef<CounterExpression> Expressions,
                  ArrayRef<CounterMappingRegion> Regions) {
   OS << FunctionName << ":\n";
-  CounterMappingContext Ctx(Expressions);
+  CounterMappingContext const Ctx(Expressions);
   for (const auto &R : Regions) {
     OS.indent(2);
     switch (R.Kind) {
@@ -1607,7 +1607,7 @@ void CoverageMappingModuleGen::emitFunctionMappingRecord(
   const uint64_t FuncHash = Info.FuncHash;
   const std::string &CoverageMapping = Info.CoverageMapping;
 #define COVMAP_FUNC_RECORD(Type, LLVMType, Name, Init) LLVMType,
-  llvm::Type *FunctionRecordTypes[] = {
+  llvm::Type *const FunctionRecordTypes[] = {
 #include "llvm/ProfileData/InstrProfData.inc"
   };
   auto *FunctionRecordTy =
@@ -1616,7 +1616,7 @@ void CoverageMappingModuleGen::emitFunctionMappingRecord(
 
   // Create the function record constant.
 #define COVMAP_FUNC_RECORD(Type, LLVMType, Name, Init) Init,
-  llvm::Constant *FunctionRecordVals[] = {
+  llvm::Constant *const FunctionRecordVals[] = {
       #include "llvm/ProfileData/InstrProfData.inc"
   };
   auto *FuncRecordConstant = llvm::ConstantStruct::get(
@@ -1705,13 +1705,13 @@ void CoverageMappingModuleGen::emit() {
   const unsigned NRecords = 0;
   const size_t FilenamesSize = Filenames.size();
   const unsigned CoverageMappingSize = 0;
-  llvm::Type *CovDataHeaderTypes[] = {
+  llvm::Type *const CovDataHeaderTypes[] = {
 #define COVMAP_HEADER(Type, LLVMType, Name, Init) LLVMType,
 #include "llvm/ProfileData/InstrProfData.inc"
   };
   auto CovDataHeaderTy =
       llvm::StructType::get(Ctx, makeArrayRef(CovDataHeaderTypes));
-  llvm::Constant *CovDataHeaderVals[] = {
+  llvm::Constant *const CovDataHeaderVals[] = {
 #define COVMAP_HEADER(Type, LLVMType, Name, Init) Init,
 #include "llvm/ProfileData/InstrProfData.inc"
   };
@@ -1719,9 +1719,9 @@ void CoverageMappingModuleGen::emit() {
       CovDataHeaderTy, makeArrayRef(CovDataHeaderVals));
 
   // Create the coverage data record
-  llvm::Type *CovDataTypes[] = {CovDataHeaderTy, FilenamesVal->getType()};
+  llvm::Type *const CovDataTypes[] = {CovDataHeaderTy, FilenamesVal->getType()};
   auto CovDataTy = llvm::StructType::get(Ctx, makeArrayRef(CovDataTypes));
-  llvm::Constant *TUDataVals[] = {CovDataHeaderVal, FilenamesVal};
+  llvm::Constant *const TUDataVals[] = {CovDataHeaderVal, FilenamesVal};
   auto CovDataVal =
       llvm::ConstantStruct::get(CovDataTy, makeArrayRef(TUDataVals));
   auto CovData = new llvm::GlobalVariable(
@@ -1750,7 +1750,7 @@ unsigned CoverageMappingModuleGen::getFileID(const FileEntry *File) {
   auto It = FileEntries.find(File);
   if (It != FileEntries.end())
     return It->second;
-  unsigned FileID = FileEntries.size() + 1;
+  unsigned const FileID = FileEntries.size() + 1;
   FileEntries.insert(std::make_pair(File, FileID));
   return FileID;
 }

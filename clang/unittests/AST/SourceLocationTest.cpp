@@ -76,15 +76,15 @@ public:
 protected:
   void verify(const MatchFinder::MatchResult &Result,
               const WhileStmt &Node) override {
-    SourceLocation LParenLoc = Node.getLParenLoc();
-    SourceLocation RParenLoc = Node.getRParenLoc();
-    unsigned LParenLine =
+    SourceLocation const LParenLoc = Node.getLParenLoc();
+    SourceLocation const RParenLoc = Node.getRParenLoc();
+    unsigned const LParenLine =
         Result.SourceManager->getSpellingLineNumber(LParenLoc);
-    unsigned LParenColumn =
+    unsigned const LParenColumn =
         Result.SourceManager->getSpellingColumnNumber(LParenLoc);
-    unsigned RParenLine =
+    unsigned const RParenLine =
         Result.SourceManager->getSpellingLineNumber(RParenLoc);
-    unsigned RParenColumn =
+    unsigned const RParenColumn =
         Result.SourceManager->getSpellingColumnNumber(RParenLoc);
 
     if (LParenLine != ExpectLParenLine || LParenColumn != ExpectLParenColumn ||
@@ -347,7 +347,7 @@ TEST(InitListExpr, VectorLiteralInitListParens) {
 class TemplateAngleBracketLocRangeVerifier : public RangeVerifier<TypeLoc> {
 protected:
   SourceRange getRange(const TypeLoc &Node) override {
-    TemplateSpecializationTypeLoc T =
+    TemplateSpecializationTypeLoc const T =
         Node.getUnqualifiedLoc().castAs<TemplateSpecializationTypeLoc>();
     assert(!T.isNull());
     return SourceRange(T.getLAngleLoc(), T.getRAngleLoc());
@@ -372,7 +372,7 @@ TEST(CXXNewExpr, TypeParenRange) {
 class UnaryTransformTypeLocParensRangeVerifier : public RangeVerifier<TypeLoc> {
 protected:
   SourceRange getRange(const TypeLoc &Node) override {
-    UnaryTransformTypeLoc T =
+    UnaryTransformTypeLoc const T =
         Node.getUnqualifiedLoc().castAs<UnaryTransformTypeLoc>();
     assert(!T.isNull());
     return SourceRange(T.getLParenLoc(), T.getRParenLoc());
@@ -894,13 +894,13 @@ TEST(FunctionDecl, ExceptionSpecifications) {
 }
 
 TEST(Decl, MemberPointerStarLoc) {
-  llvm::Annotations Example(R"cpp(
+  llvm::Annotations const Example(R"cpp(
     struct X {};
     int X::$star^* a;
   )cpp");
 
   auto AST = tooling::buildASTFromCode(Example.code());
-  SourceManager &SM = AST->getSourceManager();
+  SourceManager  const&SM = AST->getSourceManager();
   auto &Ctx = AST->getASTContext();
 
   auto *VD = selectFirst<VarDecl>("vd", match(varDecl().bind("vd"), Ctx));

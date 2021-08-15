@@ -220,7 +220,7 @@ LLVM_DUMP_METHOD void DeclContext::dumpDeclContext() const {
   while (!DC->isTranslationUnit())
     DC = DC->getParent();
 
-  ASTContext &Ctx = cast<TranslationUnitDecl>(DC)->getASTContext();
+  ASTContext  const&Ctx = cast<TranslationUnitDecl>(DC)->getASTContext();
   DeclPrinter Printer(llvm::errs(), Ctx.getPrintingPolicy(), Ctx, 0);
   Printer.VisitDeclContext(const_cast<DeclContext *>(this), /*Indent=*/false);
 }
@@ -236,7 +236,7 @@ void DeclPrinter::prettyPrintAttributes(Decl *D) {
     return;
 
   if (D->hasAttrs()) {
-    AttrVec &Attrs = D->getAttrs();
+    AttrVec  const&Attrs = D->getAttrs();
     for (auto *A : Attrs) {
       if (A->isInherited() || A->isImplicit())
         continue;
@@ -258,7 +258,7 @@ void DeclPrinter::prettyPrintPragmas(Decl *D) {
     return;
 
   if (D->hasAttrs()) {
-    AttrVec &Attrs = D->getAttrs();
+    AttrVec  const&Attrs = D->getAttrs();
     for (auto *A : Attrs) {
       switch (A->getKind()) {
 #define ATTR(X)
@@ -410,7 +410,7 @@ void DeclPrinter::VisitDeclContext(DeclContext *DC, bool Indent) {
     //
     // Check whether the current declaration should be grouped with a previous
     // non-free-standing tag declaration.
-    QualType CurDeclType = getDeclType(*D);
+    QualType const CurDeclType = getDeclType(*D);
     if (!Decls.empty() && !CurDeclType.isNull()) {
       QualType BaseType = GetBaseType(CurDeclType);
       if (!BaseType.isNull() && isa<ElaboratedType>(BaseType) &&
@@ -511,7 +511,7 @@ void DeclPrinter::VisitTypedefDecl(TypedefDecl *D) {
     if (D->isModulePrivate())
       Out << "__module_private__ ";
   }
-  QualType Ty = D->getTypeSourceInfo()->getType();
+  QualType const Ty = D->getTypeSourceInfo()->getType();
   Ty.print(Out, Policy, D->getName(), Indentation);
   prettyPrintAttributes(D);
 }
@@ -622,7 +622,7 @@ void DeclPrinter::VisitFunctionDecl(FunctionDecl *D) {
     if (D->isConstexprSpecified() && !D->isExplicitlyDefaulted())
       Out << "constexpr ";
     if (D->isConsteval())        Out << "consteval ";
-    ExplicitSpecifier ExplicitSpec = ExplicitSpecifier::getFromDecl(D);
+    ExplicitSpecifier const ExplicitSpec = ExplicitSpecifier::getFromDecl(D);
     if (ExplicitSpec.isSpecified())
       printExplicitSpecifier(ExplicitSpec, Out, Policy, Indentation, Context);
   }
@@ -801,7 +801,7 @@ void DeclPrinter::VisitFunctionDecl(FunctionDecl *D) {
 
 void DeclPrinter::VisitFriendDecl(FriendDecl *D) {
   if (TypeSourceInfo *TSI = D->getFriendType()) {
-    unsigned NumTPLists = D->getFriendTypeNumTemplateParameterLists();
+    unsigned const NumTPLists = D->getFriendTypeNumTemplateParameterLists();
     for (unsigned i = 0; i < NumTPLists; ++i)
       printTemplateParameters(D->getFriendTypeTemplateParameterList(i));
     Out << "friend ";
@@ -863,7 +863,7 @@ void DeclPrinter::VisitVarDecl(VarDecl *D) {
     : D->getASTContext().getUnqualifiedObjCPointerType(D->getType());
 
   if (!Policy.SuppressSpecifiers) {
-    StorageClass SC = D->getStorageClass();
+    StorageClass const SC = D->getStorageClass();
     if (SC != SC_None)
       Out << VarDecl::getStorageClassSpecifierString(SC) << " ";
 
@@ -1016,7 +1016,7 @@ void DeclPrinter::VisitCXXRecordDecl(CXXRecordDecl *D) {
         if (Base->isVirtual())
           Out << "virtual ";
 
-        AccessSpecifier AS = Base->getAccessSpecifierAsWritten();
+        AccessSpecifier const AS = Base->getAccessSpecifierAsWritten();
         if (AS != AS_none) {
           Print(AS);
           Out << " ";
@@ -1279,7 +1279,7 @@ void DeclPrinter::VisitObjCMethodDecl(ObjCMethodDecl *OMD) {
                         OMD->getReturnType());
   }
 
-  std::string name = OMD->getSelector().getAsString();
+  std::string const name = OMD->getSelector().getAsString();
   std::string::size_type pos, lastPos = 0;
   for (const auto *PI : OMD->parameters()) {
     // FIXME: selector is missing here!
@@ -1312,7 +1312,7 @@ void DeclPrinter::VisitObjCMethodDecl(ObjCMethodDecl *OMD) {
 }
 
 void DeclPrinter::VisitObjCImplementationDecl(ObjCImplementationDecl *OID) {
-  std::string I = OID->getNameAsString();
+  std::string const I = OID->getNameAsString();
   ObjCInterfaceDecl *SID = OID->getSuperClass();
 
   bool eolnOut = false;
@@ -1343,7 +1343,7 @@ void DeclPrinter::VisitObjCImplementationDecl(ObjCImplementationDecl *OID) {
 }
 
 void DeclPrinter::VisitObjCInterfaceDecl(ObjCInterfaceDecl *OID) {
-  std::string I = OID->getNameAsString();
+  std::string const I = OID->getNameAsString();
   ObjCInterfaceDecl *SID = OID->getSuperClass();
 
   if (!OID->isThisDeclarationADefinition()) {
@@ -1569,7 +1569,7 @@ void DeclPrinter::VisitObjCPropertyDecl(ObjCPropertyDecl *PDecl) {
     (void) first; // Silence dead store warning due to idiomatic code.
     Out << ")";
   }
-  std::string TypeStr = PDecl->getASTContext().getUnqualifiedObjCPointerType(T).
+  std::string const TypeStr = PDecl->getASTContext().getUnqualifiedObjCPointerType(T).
       getAsString(Policy);
   Out << ' ' << TypeStr;
   if (!StringRef(TypeStr).endswith("*"))

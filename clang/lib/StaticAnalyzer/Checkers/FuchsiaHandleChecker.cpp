@@ -336,7 +336,7 @@ void FuchsiaHandleChecker::checkPreCall(const CallEvent &Call,
     if (Arg >= FuncDecl->getNumParams())
       break;
     const ParmVarDecl *PVD = FuncDecl->getParamDecl(Arg);
-    SmallVector<SymbolRef, 1024> Handles =
+    SmallVector<SymbolRef, 1024> const Handles =
         getFuchsiaHandleSymbols(PVD->getType(), Call.getArgSVal(Arg), State);
 
     // Handled in checkPostCall.
@@ -416,8 +416,8 @@ void FuchsiaHandleChecker::checkPostCall(const CallEvent &Call,
     if (Arg >= FuncDecl->getNumParams())
       break;
     const ParmVarDecl *PVD = FuncDecl->getParamDecl(Arg);
-    unsigned ParamDiagIdx = PVD->getFunctionScopeIndex() + 1;
-    SmallVector<SymbolRef, 1024> Handles =
+    unsigned const ParamDiagIdx = PVD->getFunctionScopeIndex() + 1;
+    SmallVector<SymbolRef, 1024> const Handles =
         getFuchsiaHandleSymbols(PVD->getType(), Call.getArgSVal(Arg), State);
 
     for (SymbolRef Handle : Handles) {
@@ -507,7 +507,7 @@ void FuchsiaHandleChecker::checkDeadSymbols(SymbolReaper &SymReaper,
                                             CheckerContext &C) const {
   ProgramStateRef State = C.getState();
   SmallVector<SymbolRef, 2> LeakedSyms;
-  HStateMapTy TrackedHandles = State->get<HStateMap>();
+  HStateMapTy const TrackedHandles = State->get<HStateMap>();
   for (auto &CurItem : TrackedHandles) {
     SymbolRef ErrorSym = CurItem.second.getErrorSym();
     // Keeping zombie handle symbols. In case the error symbol is dying later
@@ -544,9 +544,9 @@ ProgramStateRef FuchsiaHandleChecker::evalAssume(ProgramStateRef State,
                                                  bool Assumption) const {
   // TODO: add notes about successes/fails for APIs.
   ConstraintManager &Cmr = State->getConstraintManager();
-  HStateMapTy TrackedHandles = State->get<HStateMap>();
+  HStateMapTy const TrackedHandles = State->get<HStateMap>();
   for (auto &CurItem : TrackedHandles) {
-    ConditionTruthVal HandleVal = Cmr.isNull(State, CurItem.first);
+    ConditionTruthVal const HandleVal = Cmr.isNull(State, CurItem.first);
     if (HandleVal.isConstrainedTrue()) {
       // The handle is invalid. We can no longer follow the symbol on this path.
       State = State->remove<HStateMap>(CurItem.first);
@@ -554,7 +554,7 @@ ProgramStateRef FuchsiaHandleChecker::evalAssume(ProgramStateRef State,
     SymbolRef ErrorSym = CurItem.second.getErrorSym();
     if (!ErrorSym)
       continue;
-    ConditionTruthVal ErrorVal = Cmr.isNull(State, ErrorSym);
+    ConditionTruthVal const ErrorVal = Cmr.isNull(State, ErrorSym);
     if (ErrorVal.isConstrainedTrue()) {
       // Allocation succeeded.
       if (CurItem.second.maybeAllocated())
@@ -584,7 +584,7 @@ ProgramStateRef FuchsiaHandleChecker::checkPointerEscape(
       if (Arg >= FuncDecl->getNumParams())
         break;
       const ParmVarDecl *PVD = FuncDecl->getParamDecl(Arg);
-      SmallVector<SymbolRef, 1024> Handles =
+      SmallVector<SymbolRef, 1024> const Handles =
           getFuchsiaHandleSymbols(PVD->getType(), Call->getArgSVal(Arg), State);
       for (SymbolRef Handle : Handles) {
         if (hasFuchsiaAttr<UseHandleAttr>(PVD) ||
@@ -656,7 +656,7 @@ void FuchsiaHandleChecker::reportBug(SymbolRef Sym, ExplodedNode *ErrorNode,
   if (Type.isSuppressOnSink()) {
     const ExplodedNode *AcquireNode = getAcquireSite(ErrorNode, Sym, C);
     if (AcquireNode) {
-      PathDiagnosticLocation LocUsedForUniqueing =
+      PathDiagnosticLocation const LocUsedForUniqueing =
           PathDiagnosticLocation::createBegin(
               AcquireNode->getStmtForDiagnostics(), C.getSourceManager(),
               AcquireNode->getLocationContext());
@@ -685,7 +685,7 @@ bool ento::shouldRegisterFuchsiaHandleChecker(const CheckerManager &mgr) {
 void FuchsiaHandleChecker::printState(raw_ostream &Out, ProgramStateRef State,
                                       const char *NL, const char *Sep) const {
 
-  HStateMapTy StateMap = State->get<HStateMap>();
+  HStateMapTy const StateMap = State->get<HStateMap>();
 
   if (!StateMap.isEmpty()) {
     Out << Sep << "FuchsiaHandleChecker :" << NL;

@@ -135,7 +135,7 @@ void CloneChecker::reportSuspiciousClones(
       VariablePattern PatternA(Group[i]);
 
       for (unsigned j = i + 1; j < Group.size(); ++j) {
-        VariablePattern PatternB(Group[j]);
+        VariablePattern const PatternB(Group[j]);
 
         VariablePattern::SuspiciousClonePair ClonePair;
         // For now, we only report clones which break the variable pattern just
@@ -159,11 +159,11 @@ void CloneChecker::reportSuspiciousClones(
         new BugType(this, "Suspicious code clone", "Code clone"));
 
   ASTContext &ACtx = BR.getContext();
-  SourceManager &SM = ACtx.getSourceManager();
+  SourceManager  const&SM = ACtx.getSourceManager();
   AnalysisDeclContext *ADC =
       Mgr.getAnalysisDeclContext(ACtx.getTranslationUnitDecl());
 
-  for (VariablePattern::SuspiciousClonePair &Pair : Pairs) {
+  for (VariablePattern::SuspiciousClonePair  const&Pair : Pairs) {
     // FIXME: We are ignoring the suggestions currently, because they are
     // only 50% accurate (even if the second suggestion is unavailable),
     // which may confuse the user.

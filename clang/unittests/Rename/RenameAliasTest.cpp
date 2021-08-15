@@ -196,75 +196,75 @@ TEST_P(RenameAliasTest, RenameAlias) {
   auto Param = GetParam();
   assert(!Param.OldName.empty());
   assert(!Param.NewName.empty());
-  std::string Actual =
+  std::string const Actual =
       runClangRenameOnCode(Param.Before, Param.OldName, Param.NewName);
   CompareSnippets(Param.After, Actual);
 }
 
 TEST_F(RenameAliasTest, RenameTypedefDefinitions) {
-  std::string Before = R"(
+  std::string const Before = R"(
     class X {};
     typedef X TOld;
     )";
-  std::string Expected = R"(
+  std::string const Expected = R"(
     class X {};
     typedef X TNew;
     )";
-  std::string After = runClangRenameOnCode(Before, "TOld", "TNew");
+  std::string const After = runClangRenameOnCode(Before, "TOld", "TNew");
   CompareSnippets(Expected, After);
 }
 
 TEST_F(RenameAliasTest, RenameUsingAliasDefinitions) {
-  std::string Before = R"(
+  std::string const Before = R"(
     class X {};
     using UOld = X;
     )";
-  std::string Expected = R"(
+  std::string const Expected = R"(
     class X {};
     using UNew = X;
     )";
-  std::string After = runClangRenameOnCode(Before, "UOld", "UNew");
+  std::string const After = runClangRenameOnCode(Before, "UOld", "UNew");
   CompareSnippets(Expected, After);
 }
 
 TEST_F(RenameAliasTest, RenameTemplatedAliasDefinitions) {
-  std::string Before = R"(
+  std::string const Before = R"(
     template <typename T>
     class X { T t; };
 
     template <typename T>
     using Old = X<T>;
     )";
-  std::string Expected = R"(
+  std::string const Expected = R"(
     template <typename T>
     class X { T t; };
 
     template <typename T>
     using New = X<T>;
     )";
-  std::string After = runClangRenameOnCode(Before, "Old", "New");
+  std::string const After = runClangRenameOnCode(Before, "Old", "New");
   CompareSnippets(Expected, After);
 }
 
 TEST_F(RenameAliasTest, RenameAliasesInNamespaces) {
-  std::string Before = R"(
+  std::string const Before = R"(
     namespace x { class X {}; }
     namespace ns {
     using UOld = x::X;
     }
     )";
-  std::string Expected = R"(
+  std::string const Expected = R"(
     namespace x { class X {}; }
     namespace ns {
     using UNew = x::X;
     }
     )";
-  std::string After = runClangRenameOnCode(Before, "ns::UOld", "ns::UNew");
+  std::string const After = runClangRenameOnCode(Before, "ns::UOld", "ns::UNew");
   CompareSnippets(Expected, After);
 }
 
 TEST_F(RenameAliasTest, AliasesInMacros) {
-  std::string Before = R"(
+  std::string const Before = R"(
     namespace x { class Old {}; }
     namespace ns {
     #define REF(alias) alias alias_var;
@@ -278,7 +278,7 @@ TEST_F(RenameAliasTest, AliasesInMacros) {
     OldAlias old_alias;
     }
     )";
-  std::string Expected = R"(
+  std::string const Expected = R"(
     namespace x { class Old {}; }
     namespace ns {
     #define REF(alias) alias alias_var;
@@ -292,7 +292,7 @@ TEST_F(RenameAliasTest, AliasesInMacros) {
     NewAlias old_alias;
     }
     )";
-  std::string After =
+  std::string const After =
       runClangRenameOnCode(Before, "ns::OldAlias", "ns::NewAlias");
   CompareSnippets(Expected, After);
 }

@@ -1793,7 +1793,7 @@ void OMPClausePrinter::VisitOMPSIMDClause(OMPSIMDClause *) { OS << "simd"; }
 
 void OMPClausePrinter::VisitOMPDeviceClause(OMPDeviceClause *Node) {
   OS << "device(";
-  OpenMPDeviceClauseModifier Modifier = Node->getModifier();
+  OpenMPDeviceClauseModifier const Modifier = Node->getModifier();
   if (Modifier != OMPC_DEVICE_unknown) {
     OS << getOpenMPSimpleClauseTypeName(Node->getClauseKind(), Modifier)
        << ": ";
@@ -1947,7 +1947,7 @@ void OMPClausePrinter::VisitOMPFirstprivateClause(OMPFirstprivateClause *Node) {
 void OMPClausePrinter::VisitOMPLastprivateClause(OMPLastprivateClause *Node) {
   if (!Node->varlist_empty()) {
     OS << "lastprivate";
-    OpenMPLastprivateModifier LPKind = Node->getKind();
+    OpenMPLastprivateModifier const LPKind = Node->getKind();
     if (LPKind != OMPC_LASTPRIVATE_unknown) {
       OS << "("
          << getOpenMPSimpleClauseTypeName(OMPC_lastprivate, Node->getKind())
@@ -1974,7 +1974,7 @@ void OMPClausePrinter::VisitOMPReductionClause(OMPReductionClause *Node) {
          << ", ";
     NestedNameSpecifier *QualifierLoc =
         Node->getQualifierLoc().getNestedNameSpecifier();
-    OverloadedOperatorKind OOK =
+    OverloadedOperatorKind const OOK =
         Node->getNameInfo().getName().getCXXOverloadedOperator();
     if (QualifierLoc == nullptr && OOK != OO_None) {
       // Print reduction identifier in C format
@@ -1997,7 +1997,7 @@ void OMPClausePrinter::VisitOMPTaskReductionClause(
     OS << "task_reduction(";
     NestedNameSpecifier *QualifierLoc =
         Node->getQualifierLoc().getNestedNameSpecifier();
-    OverloadedOperatorKind OOK =
+    OverloadedOperatorKind const OOK =
         Node->getNameInfo().getName().getCXXOverloadedOperator();
     if (QualifierLoc == nullptr && OOK != OO_None) {
       // Print reduction identifier in C format
@@ -2019,7 +2019,7 @@ void OMPClausePrinter::VisitOMPInReductionClause(OMPInReductionClause *Node) {
     OS << "in_reduction(";
     NestedNameSpecifier *QualifierLoc =
         Node->getQualifierLoc().getNestedNameSpecifier();
-    OverloadedOperatorKind OOK =
+    OverloadedOperatorKind const OOK =
         Node->getNameInfo().getName().getCXXOverloadedOperator();
     if (QualifierLoc == nullptr && OOK != OO_None) {
       // Print reduction identifier in C format
@@ -2261,7 +2261,7 @@ void OMPClausePrinter::VisitOMPUsesAllocatorsClause(
     return;
   OS << "uses_allocators(";
   for (unsigned I = 0, E = Node->getNumberOfAllocators(); I < E; ++I) {
-    OMPUsesAllocatorsClause::Data Data = Node->getAllocatorData(I);
+    OMPUsesAllocatorsClause::Data const Data = Node->getAllocatorData(I);
     Data.Allocator->printPretty(OS, nullptr, Policy);
     if (Data.AllocatorTraits) {
       OS << "(";
@@ -2450,7 +2450,7 @@ OMPTraitInfo::OMPTraitInfo(StringRef MangledName) {
           break;
         Selector.Properties.push_back(OMPTraitProperty());
         OMPTraitProperty &Property = Selector.Properties.back();
-        std::pair<StringRef, StringRef> PropRestPair = MangledName.split('$');
+        std::pair<StringRef, StringRef> const PropRestPair = MangledName.split('$');
         Property.RawString = PropRestPair.first;
         Property.Kind = getOpenMPContextTraitPropertyKind(
             Set.Kind, Selector.Kind, PropRestPair.first);
@@ -2462,8 +2462,8 @@ OMPTraitInfo::OMPTraitInfo(StringRef MangledName) {
 
 llvm::raw_ostream &clang::operator<<(llvm::raw_ostream &OS,
                                      const OMPTraitInfo &TI) {
-  LangOptions LO;
-  PrintingPolicy Policy(LO);
+  LangOptions const LO;
+  PrintingPolicy const Policy(LO);
   TI.print(OS, Policy);
   return OS;
 }

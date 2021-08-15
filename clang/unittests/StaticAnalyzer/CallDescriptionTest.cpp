@@ -59,8 +59,8 @@ class CallDescriptionConsumer : public ExprEngineConsumer {
     const CallExpr *CE = findNode<CallExpr>(D, callExpr());
     const StackFrameContext *SFC =
         Eng.getAnalysisDeclContextManager().getStackFrame(D);
-    ProgramStateRef State = Eng.getInitialState(SFC);
-    CallEventRef<> Call =
+    ProgramStateRef const State = Eng.getInitialState(SFC);
+    CallEventRef<> const Call =
         Eng.getStateManager().getCallEventManager().getCall(CE, State, SFC);
 
     const bool *LookupResult = RM.lookup(*Call);

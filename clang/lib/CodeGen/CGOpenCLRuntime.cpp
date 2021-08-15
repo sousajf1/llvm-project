@@ -35,7 +35,7 @@ llvm::Type *CGOpenCLRuntime::convertOpenCLSpecificType(const Type *T) {
          "Not an OpenCL specific type!");
 
   llvm::LLVMContext& Ctx = CGM.getLLVMContext();
-  uint32_t AddrSpc = CGM.getContext().getTargetAddressSpace(
+  uint32_t const AddrSpc = CGM.getContext().getTargetAddressSpace(
       CGM.getContext().getOpenCLTypeAddrSpace(T));
   switch (cast<BuiltinType>(T)->getKind()) {
   default:
@@ -99,7 +99,7 @@ llvm::Value *CGOpenCLRuntime::getPipeElemSize(const Expr *PipeArg) {
   const PipeType *PipeTy = PipeArg->getType()->castAs<PipeType>();
   // The type of the last (implicit) argument to be passed.
   llvm::Type *Int32Ty = llvm::IntegerType::getInt32Ty(CGM.getLLVMContext());
-  unsigned TypeSize = CGM.getContext()
+  unsigned const TypeSize = CGM.getContext()
                           .getTypeSizeInChars(PipeTy->getElementType())
                           .getQuantity();
   return llvm::ConstantInt::get(Int32Ty, TypeSize, false);
@@ -109,7 +109,7 @@ llvm::Value *CGOpenCLRuntime::getPipeElemAlign(const Expr *PipeArg) {
   const PipeType *PipeTy = PipeArg->getType()->castAs<PipeType>();
   // The type of the last (implicit) argument to be passed.
   llvm::Type *Int32Ty = llvm::IntegerType::getInt32Ty(CGM.getLLVMContext());
-  unsigned TypeSize = CGM.getContext()
+  unsigned const TypeSize = CGM.getContext()
                           .getTypeAlignInChars(PipeTy->getElementType())
                           .getQuantity();
   return llvm::ConstantInt::get(Int32Ty, TypeSize, false);

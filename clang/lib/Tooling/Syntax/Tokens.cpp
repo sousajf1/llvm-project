@@ -175,7 +175,7 @@ llvm::raw_ostream &syntax::operator<<(llvm::raw_ostream &OS,
 
 llvm::StringRef FileRange::text(const SourceManager &SM) const {
   bool Invalid = false;
-  StringRef Text = SM.getBufferData(File, &Invalid);
+  StringRef const Text = SM.getBufferData(File, &Invalid);
   if (Invalid)
     return "";
   assert(Begin <= Text.size());
@@ -190,7 +190,7 @@ void TokenBuffer::indexExpandedTokens() {
   ExpandedTokIndex.reserve(ExpandedTokens.size());
   // Index ExpandedTokens for faster lookups by SourceLocation.
   for (size_t I = 0, E = ExpandedTokens.size(); I != E; ++I) {
-    SourceLocation Loc = ExpandedTokens[I].location();
+    SourceLocation const Loc = ExpandedTokens[I].location();
     if (Loc.isValid())
       ExpandedTokIndex[Loc] = I;
   }
@@ -265,7 +265,7 @@ const TokenBuffer::Mapping *
 TokenBuffer::mappingStartingBeforeSpelled(const MarkedFile &F,
                                           const syntax::Token *Spelled) {
   assert(F.SpelledTokens.data() <= Spelled);
-  unsigned SpelledI = Spelled - F.SpelledTokens.data();
+  unsigned const SpelledI = Spelled - F.SpelledTokens.data();
   assert(SpelledI < F.SpelledTokens.size());
 
   auto It = llvm::partition_point(F.Mappings, [SpelledI](const Mapping &M) {
@@ -284,7 +284,7 @@ TokenBuffer::expandedForSpelled(llvm::ArrayRef<syntax::Token> Spelled) const {
   const auto &File = fileForSpelled(Spelled);
 
   auto *FrontMapping = mappingStartingBeforeSpelled(File, &Spelled.front());
-  unsigned SpelledFrontI = &Spelled.front() - File.SpelledTokens.data();
+  unsigned const SpelledFrontI = &Spelled.front() - File.SpelledTokens.data();
   assert(SpelledFrontI < File.SpelledTokens.size());
   unsigned ExpandedBegin;
   if (!FrontMapping) {
@@ -307,7 +307,7 @@ TokenBuffer::expandedForSpelled(llvm::ArrayRef<syntax::Token> Spelled) const {
   }
 
   auto *BackMapping = mappingStartingBeforeSpelled(File, &Spelled.back());
-  unsigned SpelledBackI = &Spelled.back() - File.SpelledTokens.data();
+  unsigned const SpelledBackI = &Spelled.back() - File.SpelledTokens.data();
   unsigned ExpandedEnd;
   if (!BackMapping) {
     // No mapping that starts before the last token of Spelled, we don't have to
@@ -374,7 +374,7 @@ TokenBuffer::spelledForExpanded(llvm::ArrayRef<syntax::Token> Expanded) const {
   std::tie(LastSpelled, LastMapping) =
       spelledForExpandedToken(&Expanded.back());
 
-  FileID FID = SourceMgr->getFileID(BeginSpelled->location());
+  FileID const FID = SourceMgr->getFileID(BeginSpelled->location());
   // FIXME: Handle multi-file changes by trying to map onto a common root.
   if (FID != SourceMgr->getFileID(LastSpelled->location()))
     return llvm::None;
@@ -398,8 +398,8 @@ TokenBuffer::spelledForExpanded(llvm::ArrayRef<syntax::Token> Expanded) const {
   }
 
   // Do not allow changes that doesn't cover full expansion.
-  unsigned BeginExpanded = Expanded.begin() - ExpandedTokens.data();
-  unsigned EndExpanded = Expanded.end() - ExpandedTokens.data();
+  unsigned const BeginExpanded = Expanded.begin() - ExpandedTokens.data();
+  unsigned const EndExpanded = Expanded.end() - ExpandedTokens.data();
   if (BeginMapping && BeginExpanded != BeginMapping->BeginExpanded)
     return llvm::None;
   if (LastMapping && LastMapping->EndExpanded != EndExpanded)
@@ -463,7 +463,7 @@ std::vector<TokenBuffer::Expansion> TokenBuffer::expansionsOverlapping(
 
   // Find the first overlapping range, and then copy until we stop overlapping.
   unsigned SpelledBeginIndex = Spelled.begin() - File.SpelledTokens.data();
-  unsigned SpelledEndIndex = Spelled.end() - File.SpelledTokens.data();
+  unsigned const SpelledEndIndex = Spelled.end() - File.SpelledTokens.data();
   auto M = llvm::partition_point(File.Mappings, [&](const Mapping &M) {
     return M.EndSpelled <= SpelledBeginIndex;
   });
@@ -480,8 +480,8 @@ syntax::spelledTokensTouching(SourceLocation Loc,
 
   auto *Right = llvm::partition_point(
       Tokens, [&](const syntax::Token &Tok) { return Tok.location() < Loc; });
-  bool AcceptRight = Right != Tokens.end() && Right->location() <= Loc;
-  bool AcceptLeft =
+  bool const AcceptRight = Right != Tokens.end() && Right->location() <= Loc;
+  bool const AcceptLeft =
       Right != Tokens.begin() && (Right - 1)->endLocation() >= Loc;
   return llvm::makeArrayRef(Right - (AcceptLeft ? 1 : 0),
                             Right + (AcceptRight ? 1 : 0));
@@ -683,7 +683,7 @@ public:
       discard();
       // Create mapping for a contiguous run of expanded tokens.
       // Advances NextExpanded past the run, and NextSpelled accordingly.
-      unsigned OldPosition = NextExpanded;
+      unsigned const OldPosition = NextExpanded;
       advance();
       if (NextExpanded == OldPosition)
         diagnoseAdvanceFailure();
@@ -715,7 +715,7 @@ private:
   // the NextExpanded token, and creates an empty mapping for them.
   // If Drain is provided, skips remaining tokens from that file instead.
   void discard(llvm::Optional<FileID> Drain = llvm::None) {
-    SourceLocation Target =
+    SourceLocation const Target =
         Drain ? SM.getLocForEndOfFile(*Drain)
               : SM.getExpansionLoc(
                     Result.ExpandedTokens[NextExpanded].location());
@@ -743,7 +743,7 @@ private:
       // If we know mapping bounds at [NextSpelled, KnownEnd] (macro expansion)
       // then we want to partition our (empty) mapping.
       //   [Start, NextSpelled) [NextSpelled, KnownEnd] (KnownEnd, Target)
-      SourceLocation KnownEnd =
+      SourceLocation const KnownEnd =
           CollectedExpansions.lookup(SpelledTokens[NextSpelled].location());
       if (KnownEnd.isValid()) {
         FlushMapping(); // Emits [Start, NextSpelled)
@@ -764,8 +764,8 @@ private:
   // (unless this is a run of file tokens, which we represent with no mapping).
   void advance() {
     const syntax::Token &Tok = Result.ExpandedTokens[NextExpanded];
-    SourceLocation Expansion = SM.getExpansionLoc(Tok.location());
-    FileID File = SM.getFileID(Expansion);
+    SourceLocation const Expansion = SM.getExpansionLoc(Tok.location());
+    FileID const File = SM.getFileID(Expansion);
     const auto &SpelledTokens = Result.Files[File].SpelledTokens;
     auto &NextSpelled = this->NextSpelled[File];
 
@@ -899,7 +899,7 @@ std::string TokenBuffer::dumpForTests() const {
     Keys.push_back(F.first);
   llvm::sort(Keys);
 
-  for (FileID ID : Keys) {
+  for (FileID const ID : Keys) {
     const MarkedFile &File = Files.find(ID)->second;
     auto *Entry = SourceMgr->getFileEntryForID(ID);
     if (!Entry)

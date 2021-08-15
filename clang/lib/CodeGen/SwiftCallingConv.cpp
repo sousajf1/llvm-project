@@ -74,7 +74,7 @@ void SwiftAggLowering::addTypedData(QualType type, CharUnits begin) {
     auto arrayType = CGM.getContext().getAsConstantArrayType(type);
     if (!arrayType) return;
 
-    QualType eltType = arrayType->getElementType();
+    QualType const eltType = arrayType->getElementType();
     auto eltSize = CGM.getContext().getTypeSizeInChars(eltType);
     for (uint64_t i = 0, e = arrayType->getSize().getZExtValue(); i != e; ++i) {
       addTypedData(eltType, begin + i * eltSize);
@@ -191,13 +191,13 @@ void SwiftAggLowering::addBitFieldData(const FieldDecl *bitfield,
   if (width == 0) return;
 
   // toCharUnitsFromBits rounds down.
-  CharUnits bitfieldByteBegin = ctx.toCharUnitsFromBits(bitfieldBitBegin);
+  CharUnits const bitfieldByteBegin = ctx.toCharUnitsFromBits(bitfieldBitBegin);
 
   // Find the offset of the last byte that is partially occupied by the
   // bit-field; since we otherwise expect exclusive ends, the end is the
   // next byte.
-  uint64_t bitfieldBitLast = bitfieldBitBegin + width - 1;
-  CharUnits bitfieldByteEnd =
+  uint64_t const bitfieldBitLast = bitfieldBitBegin + width - 1;
+  CharUnits const bitfieldByteEnd =
     ctx.toCharUnitsFromBits(bitfieldBitLast) + CharUnits::One();
   addOpaqueData(recordBegin + bitfieldByteBegin,
                 recordBegin + bitfieldByteEnd);
@@ -333,7 +333,7 @@ restartAfterSplit:
   // If we have a vector type, split it.
   if (auto vecTy = dyn_cast_or_null<llvm::VectorType>(type)) {
     auto eltTy = vecTy->getElementType();
-    CharUnits eltSize =
+    CharUnits const eltSize =
         (end - begin) / cast<llvm::FixedVectorType>(vecTy)->getNumElements();
     assert(eltSize == getTypeStoreSize(CGM, eltTy));
     for (unsigned i = 0,
@@ -401,7 +401,7 @@ void SwiftAggLowering::splitVectorEntry(unsigned index) {
   auto split = splitLegalVectorType(CGM, Entries[index].getWidth(), vecTy);
 
   auto eltTy = split.first;
-  CharUnits eltSize = getTypeStoreSize(CGM, eltTy);
+  CharUnits const eltSize = getTypeStoreSize(CGM, eltTy);
   auto numElts = split.second;
   Entries.insert(Entries.begin() + index + 1, numElts - 1, StorageEntry());
 
@@ -525,10 +525,10 @@ void SwiftAggLowering::finish() {
       // Find the smallest aligned storage unit in the maximal aligned
       // storage unit containing 'begin' that contains all the bytes in
       // the intersection between the range and this chunk.
-      CharUnits localBegin = begin;
-      CharUnits chunkBegin = getOffsetAtStartOfUnit(localBegin, chunkSize);
-      CharUnits chunkEnd = chunkBegin + chunkSize;
-      CharUnits localEnd = std::min(end, chunkEnd);
+      CharUnits const localBegin = begin;
+      CharUnits const chunkBegin = getOffsetAtStartOfUnit(localBegin, chunkSize);
+      CharUnits const chunkEnd = chunkBegin + chunkSize;
+      CharUnits const localEnd = std::min(end, chunkEnd);
 
       // Just do a simple loop over ever-increasing unit sizes.
       CharUnits unitSize = CharUnits::One();
@@ -743,7 +743,7 @@ void swiftcall::legalizeVectorType(CodeGenModule &CGM, CharUnits origVectorSize,
     candidateNumElts >>= 1;
   }
 
-  CharUnits eltSize = (origVectorSize / numElts);
+  CharUnits const eltSize = (origVectorSize / numElts);
   CharUnits candidateSize = eltSize * candidateNumElts;
 
   // The sensibility of this algorithm relies on the fact that we never
@@ -840,7 +840,7 @@ static ABIArgInfo classifyType(CodeGenModule &CGM, CanQualType type,
     lowering.addTypedData(type, CharUnits::Zero());
     lowering.finish();
 
-    CharUnits alignment = CGM.getContext().getTypeAlignInChars(type);
+    CharUnits const alignment = CGM.getContext().getTypeAlignInChars(type);
     return classifyExpandedType(lowering, forReturn, alignment);
   }
 

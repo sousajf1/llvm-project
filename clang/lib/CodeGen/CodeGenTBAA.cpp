@@ -113,7 +113,7 @@ static bool isValidBaseType(QualType QTy) {
 }
 
 llvm::MDNode *CodeGenTBAA::getTypeInfoHelper(const Type *Ty) {
-  uint64_t Size = Context.getTypeSizeInChars(Ty).getQuantity();
+  uint64_t const Size = Context.getTypeSizeInChars(Ty).getQuantity();
 
   // Handle builtin types.
   if (const BuiltinType *BTy = dyn_cast<BuiltinType>(Ty)) {
@@ -261,13 +261,13 @@ TBAAAccessInfo CodeGenTBAA::getAccessInfo(QualType AccessType) {
   if (TypeHasMayAlias(AccessType))
     return TBAAAccessInfo::getMayAliasInfo();
 
-  uint64_t Size = Context.getTypeSizeInChars(AccessType).getQuantity();
+  uint64_t const Size = Context.getTypeSizeInChars(AccessType).getQuantity();
   return TBAAAccessInfo(getTypeInfo(AccessType), Size);
 }
 
 TBAAAccessInfo CodeGenTBAA::getVTablePtrAccessInfo(llvm::Type *VTablePtrType) {
-  llvm::DataLayout DL(&Module);
-  unsigned Size = DL.getPointerTypeSize(VTablePtrType);
+  llvm::DataLayout const DL(&Module);
+  unsigned const Size = DL.getPointerTypeSize(VTablePtrType);
   return TBAAAccessInfo(createScalarTypeNode("vtable pointer", getRoot(), Size),
                         Size);
 }
@@ -297,9 +297,9 @@ CodeGenTBAA::CollectFields(uint64_t BaseOffset,
          e = RD->field_end(); i != e; ++i, ++idx) {
       if ((*i)->isZeroSize(Context) || (*i)->isUnnamedBitfield())
         continue;
-      uint64_t Offset = BaseOffset +
+      uint64_t const Offset = BaseOffset +
                         Layout.getFieldOffset(idx) / Context.getCharWidth();
-      QualType FieldQTy = i->getType();
+      QualType const FieldQTy = i->getType();
       if (!CollectFields(Offset, FieldQTy, Fields,
                          MayAlias || TypeHasMayAlias(FieldQTy)))
         return false;
@@ -308,8 +308,8 @@ CodeGenTBAA::CollectFields(uint64_t BaseOffset,
   }
 
   /* Otherwise, treat whatever it is as a field. */
-  uint64_t Offset = BaseOffset;
-  uint64_t Size = Context.getTypeSizeInChars(QTy).getQuantity();
+  uint64_t const Offset = BaseOffset;
+  uint64_t const Size = Context.getTypeSizeInChars(QTy).getQuantity();
   llvm::MDNode *TBAAType = MayAlias ? getChar() : getTypeInfo(QTy);
   llvm::MDNode *TBAATag = getAccessTagInfo(TBAAAccessInfo(TBAAType, Size));
   Fields.push_back(llvm::MDBuilder::TBAAStructField(Offset, Size, TBAATag));
@@ -339,15 +339,15 @@ llvm::MDNode *CodeGenTBAA::getBaseTypeInfoHelper(const Type *Ty) {
     for (FieldDecl *Field : RD->fields()) {
       if (Field->isZeroSize(Context) || Field->isUnnamedBitfield())
         continue;
-      QualType FieldQTy = Field->getType();
+      QualType const FieldQTy = Field->getType();
       llvm::MDNode *TypeNode = isValidBaseType(FieldQTy) ?
           getBaseTypeInfo(FieldQTy) : getTypeInfo(FieldQTy);
       if (!TypeNode)
         return BaseTypeMetadataCache[Ty] = nullptr;
 
-      uint64_t BitOffset = Layout.getFieldOffset(Field->getFieldIndex());
-      uint64_t Offset = Context.toCharUnitsFromBits(BitOffset).getQuantity();
-      uint64_t Size = Context.getTypeSizeInChars(FieldQTy).getQuantity();
+      uint64_t const BitOffset = Layout.getFieldOffset(Field->getFieldIndex());
+      uint64_t const Offset = Context.toCharUnitsFromBits(BitOffset).getQuantity();
+      uint64_t const Size = Context.getTypeSizeInChars(FieldQTy).getQuantity();
       Fields.push_back(llvm::MDBuilder::TBAAStructField(Offset, Size,
                                                         TypeNode));
     }
@@ -363,7 +363,7 @@ llvm::MDNode *CodeGenTBAA::getBaseTypeInfoHelper(const Type *Ty) {
 
     if (CodeGenOpts.NewStructPathTBAA) {
       llvm::MDNode *Parent = getChar();
-      uint64_t Size = Context.getTypeSizeInChars(Ty).getQuantity();
+      uint64_t const Size = Context.getTypeSizeInChars(Ty).getQuantity();
       llvm::Metadata *Id = MDHelper.createString(OutName);
       return MDHelper.createTBAATypeNode(Parent, Size, Id, Fields);
     }

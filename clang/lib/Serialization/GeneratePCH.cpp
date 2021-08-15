@@ -43,7 +43,7 @@ void PCHGenerator::HandleTranslationUnit(ASTContext &Ctx) {
   if (PP.getModuleLoader().HadFatalFailure)
     return;
 
-  bool hasErrors = PP.getDiagnostics().hasErrorOccurred();
+  bool const hasErrors = PP.getDiagnostics().hasErrorOccurred();
   if (hasErrors && !AllowASTWithErrors)
     return;
 

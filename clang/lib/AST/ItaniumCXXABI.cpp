@@ -86,13 +86,13 @@ template<typename T> bool isDenseMapKeyTombstone(T V) {
 
 template<typename T>
 Optional<bool> areDenseMapKeysEqualSpecialValues(T LHS, T RHS) {
-  bool LHSEmpty = isDenseMapKeyEmpty(LHS);
-  bool RHSEmpty = isDenseMapKeyEmpty(RHS);
+  bool const LHSEmpty = isDenseMapKeyEmpty(LHS);
+  bool const RHSEmpty = isDenseMapKeyEmpty(RHS);
   if (LHSEmpty || RHSEmpty)
     return LHSEmpty && RHSEmpty;
 
-  bool LHSTombstone = isDenseMapKeyTombstone(LHS);
-  bool RHSTombstone = isDenseMapKeyTombstone(RHS);
+  bool const LHSTombstone = isDenseMapKeyTombstone(LHS);
+  bool const RHSTombstone = isDenseMapKeyTombstone(RHS);
   if (LHSTombstone || RHSTombstone)
     return LHSTombstone && RHSTombstone;
 
@@ -163,7 +163,7 @@ public:
   /// Variable decls are numbered by identifier.
   unsigned getManglingNumber(const VarDecl *VD, unsigned) override {
     if (auto *DD = dyn_cast<DecompositionDecl>(VD)) {
-      DecompositionDeclName Name{DD->bindings()};
+      DecompositionDeclName const Name{DD->bindings()};
       return ++DecompsitionDeclManglingNumbers[Name];
     }
 
@@ -193,7 +193,7 @@ public:
   MemberPointerInfo
   getMemberPointerInfo(const MemberPointerType *MPT) const override {
     const TargetInfo &Target = Context.getTargetInfo();
-    TargetInfo::IntType PtrDiff = Target.getPtrDiffType(0);
+    TargetInfo::IntType const PtrDiff = Target.getPtrDiffType(0);
     MemberPointerInfo MPI;
     MPI.Width = Target.getTypeWidth(PtrDiff);
     MPI.Align = Target.getTypeAlign(PtrDiff);
@@ -220,7 +220,7 @@ public:
       return false;
 
     const ASTRecordLayout &Layout = Context.getASTRecordLayout(RD);
-    CharUnits PointerSize =
+    CharUnits const PointerSize =
       Context.toCharUnitsFromBits(Context.getTargetInfo().getPointerWidth(0));
     return Layout.getNonVirtualSize() == PointerSize;
   }

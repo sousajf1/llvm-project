@@ -25,7 +25,7 @@ bool PPConditionalDirectiveRecord::rangeIntersectsConditionalDirective(
   if (Range.isInvalid())
     return false;
 
-  CondDirectiveLocsTy::const_iterator low = llvm::lower_bound(
+  CondDirectiveLocsTy::const_iterator const low = llvm::lower_bound(
       CondDirectiveLocs, Range.getBegin(), CondDirectiveLoc::Comp(SourceMgr));
   if (low == CondDirectiveLocs.end())
     return false;
@@ -34,7 +34,7 @@ bool PPConditionalDirectiveRecord::rangeIntersectsConditionalDirective(
     return false;
 
   CondDirectiveLocsTy::const_iterator
-    upp = std::upper_bound(low, CondDirectiveLocs.end(),
+    const upp = std::upper_bound(low, CondDirectiveLocs.end(),
                            Range.getEnd(), CondDirectiveLoc::Comp(SourceMgr));
   SourceLocation uppRegion;
   if (upp != CondDirectiveLocs.end())
@@ -54,7 +54,7 @@ SourceLocation PPConditionalDirectiveRecord::findConditionalDirectiveRegionLoc(
                                           Loc))
     return CondDirectiveStack.back();
 
-  CondDirectiveLocsTy::const_iterator low = llvm::lower_bound(
+  CondDirectiveLocsTy::const_iterator const low = llvm::lower_bound(
       CondDirectiveLocs, Loc, CondDirectiveLoc::Comp(SourceMgr));
   assert(low != CondDirectiveLocs.end());
   return low->getRegionLoc();

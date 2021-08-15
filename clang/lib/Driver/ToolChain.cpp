@@ -75,15 +75,15 @@ ToolChain::ToolChain(const Driver &D, const llvm::Triple &T,
                      const ArgList &Args)
     : D(D), Triple(T), Args(Args), CachedRTTIArg(GetRTTIArgument(Args)),
       CachedRTTIMode(CalculateRTTIMode(Args, Triple, CachedRTTIArg)) {
-  std::string RuntimePath = getRuntimePath();
+  std::string const RuntimePath = getRuntimePath();
   if (getVFS().exists(RuntimePath))
     getLibraryPaths().push_back(RuntimePath);
 
-  std::string StdlibPath = getStdlibPath();
+  std::string const StdlibPath = getStdlibPath();
   if (getVFS().exists(StdlibPath))
     getFilePaths().push_back(StdlibPath);
 
-  std::string CandidateLibPath = getArchSpecificLibPath();
+  std::string const CandidateLibPath = getArchSpecificLibPath();
   if (getVFS().exists(CandidateLibPath))
     getFilePaths().push_back(CandidateLibPath);
 }
@@ -156,7 +156,7 @@ static const DriverSuffix *FindDriverSuffix(StringRef ProgName, size_t &Pos) {
   };
 
   for (size_t i = 0; i < llvm::array_lengthof(DriverSuffixes); ++i) {
-    StringRef Suffix(DriverSuffixes[i].Suffix);
+    StringRef const Suffix(DriverSuffixes[i].Suffix);
     if (ProgName.endswith(Suffix)) {
       Pos = ProgName.size() - Suffix.size();
       return &DriverSuffixes[i];
@@ -204,24 +204,24 @@ static const DriverSuffix *parseDriverSuffix(StringRef ProgName, size_t &Pos) {
 
 ParsedClangName
 ToolChain::getTargetAndModeFromProgramName(StringRef PN) {
-  std::string ProgName = normalizeProgramName(PN);
+  std::string const ProgName = normalizeProgramName(PN);
   size_t SuffixPos;
   const DriverSuffix *DS = parseDriverSuffix(ProgName, SuffixPos);
   if (!DS)
     return {};
-  size_t SuffixEnd = SuffixPos + strlen(DS->Suffix);
+  size_t const SuffixEnd = SuffixPos + strlen(DS->Suffix);
 
-  size_t LastComponent = ProgName.rfind('-', SuffixPos);
+  size_t const LastComponent = ProgName.rfind('-', SuffixPos);
   if (LastComponent == std::string::npos)
     return ParsedClangName(ProgName.substr(0, SuffixEnd), DS->ModeFlag);
-  std::string ModeSuffix = ProgName.substr(LastComponent + 1,
+  std::string const ModeSuffix = ProgName.substr(LastComponent + 1,
                                            SuffixEnd - LastComponent - 1);
 
   // Infer target from the prefix.
   StringRef Prefix(ProgName);
   Prefix = Prefix.slice(0, LastComponent);
   std::string IgnoredError;
-  bool IsRegistered =
+  bool const IsRegistered =
       llvm::TargetRegistry::lookupTarget(std::string(Prefix), IgnoredError);
   return ParsedClangName{std::string(Prefix), ModeSuffix, DS->ModeFlag,
                          IsRegistered};
@@ -372,7 +372,7 @@ Tool *ToolChain::getTool(Action::ActionClass AC) const {
 static StringRef getArchNameForCompilerRTLib(const ToolChain &TC,
                                              const ArgList &Args) {
   const llvm::Triple &Triple = TC.getTriple();
-  bool IsWindows = Triple.isOSWindows();
+  bool const IsWindows = Triple.isOSWindows();
 
   if (TC.getArch() == llvm::Triple::arm || TC.getArch() == llvm::Triple::armeb)
     return (arm::getARMFloatABI(TC, Args) == arm::FloatABI::Hard && !IsWindows)
@@ -422,7 +422,7 @@ std::string ToolChain::getCompilerRTPath() const {
 std::string ToolChain::getCompilerRTBasename(const ArgList &Args,
                                              StringRef Component,
                                              FileType Type) const {
-  std::string CRTAbsolutePath = getCompilerRT(Args, Component, Type);
+  std::string const CRTAbsolutePath = getCompilerRT(Args, Component, Type);
   return llvm::sys::path::filename(CRTAbsolutePath).str();
 }
 
@@ -431,7 +431,7 @@ std::string ToolChain::buildCompilerRTBasename(const llvm::opt::ArgList &Args,
                                                FileType Type,
                                                bool AddArch) const {
   const llvm::Triple &TT = getTriple();
-  bool IsITANMSVCWindows =
+  bool const IsITANMSVCWindows =
       TT.isWindowsMSVCEnvironment() || TT.isWindowsItaniumEnvironment();
 
   const char *Prefix =
@@ -453,7 +453,7 @@ std::string ToolChain::buildCompilerRTBasename(const llvm::opt::ArgList &Args,
 
   std::string ArchAndEnv;
   if (AddArch) {
-    StringRef Arch = getArchNameForCompilerRTLib(*this, Args);
+    StringRef const Arch = getArchNameForCompilerRTLib(*this, Args);
     const char *Env = TT.isAndroid() ? "-android" : "";
     ArchAndEnv = ("-" + Arch + Env).str();
   }
@@ -529,7 +529,7 @@ bool ToolChain::needsGCovInstrumentation(const llvm::opt::ArgList &Args) {
 Tool *ToolChain::SelectTool(const JobAction &JA) const {
   if (D.IsFlangMode() && getDriver().ShouldUseFlangCompiler(JA)) return getFlang();
   if (getDriver().ShouldUseClangCompiler(JA)) return getClang();
-  Action::ActionClass AC = JA.getKind();
+  Action::ActionClass const AC = JA.getKind();
   if (AC == Action::AssembleJobClass && useIntegratedAs())
     return getClangAs();
   return getTool(AC);
@@ -553,7 +553,7 @@ std::string ToolChain::GetLinkerPath(bool *LinkerIsLLD,
   // Get -fuse-ld= first to prevent -Wunused-command-line-argument. -fuse-ld= is
   // considered as the linker flavor, e.g. "bfd", "gold", or "lld".
   const Arg* A = Args.getLastArg(options::OPT_fuse_ld_EQ);
-  StringRef UseLinker = A ? A->getValue() : CLANG_DEFAULT_LINKER;
+  StringRef const UseLinker = A ? A->getValue() : CLANG_DEFAULT_LINKER;
 
   // --ld-path= takes precedence over -fuse-ld= and specifies the executable
   // name. -B, COMPILER_PATH and PATH and consulted if the value does not
@@ -638,7 +638,7 @@ bool ToolChain::HasNativeLLVMSupport() const {
 }
 
 bool ToolChain::isCrossCompiling() const {
-  llvm::Triple HostTriple(LLVM_HOST_TRIPLE);
+  llvm::Triple const HostTriple(LLVM_HOST_TRIPLE);
   switch (HostTriple.getArch()) {
   // The A32/T32/T16 instruction sets are not separate architectures in this
   // context.
@@ -690,7 +690,7 @@ std::string ToolChain::ComputeLLVMTriple(const ArgList &Args,
     if (Arg *A = Args.getLastArg(options::OPT_march_EQ)) {
       // x86_64h goes in the triple. Other -march options just use the
       // vanilla triple we already have.
-      StringRef MArch = A->getValue();
+      StringRef const MArch = A->getValue();
       if (MArch == "x86_64h")
         Triple.setArchName(MArch);
     }
@@ -758,7 +758,7 @@ ToolChain::RuntimeLibType ToolChain::GetRuntimeLibType(
     return *runtimeLibType;
 
   const Arg* A = Args.getLastArg(options::OPT_rtlib_EQ);
-  StringRef LibName = A ? A->getValue() : CLANG_DEFAULT_RTLIB;
+  StringRef const LibName = A ? A->getValue() : CLANG_DEFAULT_RTLIB;
 
   // Only use "platform" in tests to override CLANG_DEFAULT_RTLIB!
   if (LibName == "compiler-rt")
@@ -784,12 +784,12 @@ ToolChain::UnwindLibType ToolChain::GetUnwindLibType(
     return *unwindLibType;
 
   const Arg *A = Args.getLastArg(options::OPT_unwindlib_EQ);
-  StringRef LibName = A ? A->getValue() : CLANG_DEFAULT_UNWINDLIB;
+  StringRef const LibName = A ? A->getValue() : CLANG_DEFAULT_UNWINDLIB;
 
   if (LibName == "none")
     unwindLibType = ToolChain::UNW_None;
   else if (LibName == "platform" || LibName == "") {
-    ToolChain::RuntimeLibType RtLibType = GetRuntimeLibType(Args);
+    ToolChain::RuntimeLibType const RtLibType = GetRuntimeLibType(Args);
     if (RtLibType == ToolChain::RLT_CompilerRT) {
       if (getTriple().isAndroid() || getTriple().isOSAIX())
         unwindLibType = ToolChain::UNW_CompilerRT;
@@ -819,7 +819,7 @@ ToolChain::CXXStdlibType ToolChain::GetCXXStdlibType(const ArgList &Args) const{
     return *cxxStdlibType;
 
   const Arg *A = Args.getLastArg(options::OPT_stdlib_EQ);
-  StringRef LibName = A ? A->getValue() : CLANG_DEFAULT_CXX_STDLIB;
+  StringRef const LibName = A ? A->getValue() : CLANG_DEFAULT_CXX_STDLIB;
 
   // Only use "platform" in tests to override CLANG_DEFAULT_CXX_STDLIB!
   if (LibName == "libc++")
@@ -887,7 +887,7 @@ std::string ToolChain::detectLibcxxVersion(StringRef IncludePath) const {
   llvm::sys::path::append(Path, "c++");
   for (llvm::vfs::directory_iterator LI = getVFS().dir_begin(Path, EC), LE;
        !EC && LI != LE; LI = LI.increment(EC)) {
-    StringRef VersionText = llvm::sys::path::filename(LI->path());
+    StringRef const VersionText = llvm::sys::path::filename(LI->path());
     int Version;
     if (VersionText[0] == 'v' &&
         !VersionText.slice(1, StringRef::npos).getAsInteger(10, Version)) {
@@ -937,7 +937,7 @@ void ToolChain::AddCXXStdlibLibArgs(const ArgList &Args,
                                     ArgStringList &CmdArgs) const {
   assert(!Args.hasArg(options::OPT_nostdlibxx) &&
          "should not have called this");
-  CXXStdlibType Type = GetCXXStdlibType(Args);
+  CXXStdlibType const Type = GetCXXStdlibType(Args);
 
   switch (Type) {
   case ToolChain::CST_Libcxx:
@@ -1109,7 +1109,7 @@ llvm::opt::DerivedArgList *ToolChain::TranslateOpenMPTargetArgs(
 
     unsigned Index;
     unsigned Prev;
-    bool XOpenMPTargetNoTriple =
+    bool const XOpenMPTargetNoTriple =
         A->getOption().matches(options::OPT_Xopenmp_target);
 
     if (A->getOption().matches(options::OPT_Xopenmp_target_EQ)) {
@@ -1167,7 +1167,7 @@ void ToolChain::TranslateXarchArgs(
     ValuePos = 0;
 
   unsigned Index = Args.getBaseArgs().MakeIndex(A->getValue(ValuePos));
-  unsigned Prev = Index;
+  unsigned const Prev = Index;
   std::unique_ptr<llvm::opt::Arg> XarchArg(Opts.ParseOneArg(Args, Index));
 
   // If the argument parsing failed or more than one argument was
@@ -1183,7 +1183,7 @@ void ToolChain::TranslateXarchArgs(
     return;
   } else if (XarchArg->getOption().hasFlag(options::NoXarchOption)) {
     auto &Diags = getDriver().getDiags();
-    unsigned DiagID =
+    unsigned const DiagID =
         Diags.getCustomDiagID(DiagnosticsEngine::Error,
                               "invalid Xarch argument: '%0', not all driver "
                               "options can be forwared via Xarch argument");
@@ -1205,7 +1205,7 @@ llvm::opt::DerivedArgList *ToolChain::TranslateXarchArgs(
   DerivedArgList *DAL = new DerivedArgList(Args.getBaseArgs());
   bool Modified = false;
 
-  bool IsGPU = OFK == Action::OFK_Cuda || OFK == Action::OFK_HIP;
+  bool const IsGPU = OFK == Action::OFK_Cuda || OFK == Action::OFK_HIP;
   for (Arg *A : Args) {
     bool NeedTrans = false;
     bool Skip = false;

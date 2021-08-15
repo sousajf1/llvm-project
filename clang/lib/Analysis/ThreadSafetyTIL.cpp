@@ -56,7 +56,7 @@ SExpr* Future::force() {
 }
 
 unsigned BasicBlock::addPredecessor(BasicBlock *Pred) {
-  unsigned Idx = Predecessors.size();
+  unsigned const Idx = Predecessors.size();
   Predecessors.reserveCheck(1, Arena);
   Predecessors.push_back(Pred);
   for (auto *E : Args) {
@@ -289,11 +289,11 @@ static inline void computeNodeID(BasicBlock *B,
 // 3) Topologically sorting the blocks into the "Blocks" array.
 void SCFG::computeNormalForm() {
   // Topologically sort the blocks starting from the entry block.
-  unsigned NumUnreachableBlocks = Entry->topologicalSort(Blocks, Blocks.size());
+  unsigned const NumUnreachableBlocks = Entry->topologicalSort(Blocks, Blocks.size());
   if (NumUnreachableBlocks > 0) {
     // If there were unreachable blocks shift everything down, and delete them.
     for (unsigned I = NumUnreachableBlocks, E = Blocks.size(); I < E; ++I) {
-      unsigned NI = I - NumUnreachableBlocks;
+      unsigned const NI = I - NumUnreachableBlocks;
       Blocks[NI] = Blocks[I];
       Blocks[NI]->BlockID = NI;
       // FIXME: clean up predecessor pointers to unreachable blocks?
@@ -306,7 +306,7 @@ void SCFG::computeNormalForm() {
     Block->computeDominator();
 
   // Once dominators have been computed, the final sort may be performed.
-  unsigned NumBlocks = Exit->topologicalFinalSort(Blocks, 0);
+  unsigned const NumBlocks = Exit->topologicalFinalSort(Blocks, 0);
   assert(static_cast<size_t>(NumBlocks) == Blocks.size());
   (void) NumBlocks;
 

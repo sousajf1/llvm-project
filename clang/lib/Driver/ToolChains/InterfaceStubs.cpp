@@ -19,7 +19,7 @@ void Merger::ConstructJob(Compilation &C, const JobAction &JA,
                           const InputInfo &Output, const InputInfoList &Inputs,
                           const llvm::opt::ArgList &Args,
                           const char *LinkingOutput) const {
-  std::string Merger = getToolChain().GetProgramPath(getShortName());
+  std::string const Merger = getToolChain().GetProgramPath(getShortName());
   // TODO: Use IFS library directly in the future.
   llvm::opt::ArgStringList CmdArgs;
   CmdArgs.push_back("--input-format=IFS");

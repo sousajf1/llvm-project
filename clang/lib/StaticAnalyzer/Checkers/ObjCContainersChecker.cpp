@@ -38,7 +38,7 @@ class ObjCContainersChecker : public Checker< check::PreStmt<CallExpr>,
   }
 
   inline SymbolRef getArraySym(const Expr *E, CheckerContext &C) const {
-    SVal ArrayRef = C.getSVal(E);
+    SVal const ArrayRef = C.getSVal(E);
     SymbolRef ArraySym = ArrayRef.getAsSymbol();
     return ArraySym;
   }
@@ -67,14 +67,14 @@ REGISTER_MAP_WITH_PROGRAMSTATE(ArraySizeMap, SymbolRef, DefinedSVal)
 
 void ObjCContainersChecker::addSizeInfo(const Expr *Array, const Expr *Size,
                                         CheckerContext &C) const {
-  ProgramStateRef State = C.getState();
-  SVal SizeV = C.getSVal(Size);
+  ProgramStateRef const State = C.getState();
+  SVal const SizeV = C.getSVal(Size);
   // Undefined is reported by another checker.
   if (SizeV.isUnknownOrUndef())
     return;
 
   // Get the ArrayRef symbol.
-  SVal ArrayRef = C.getSVal(Array);
+  SVal const ArrayRef = C.getSVal(Array);
   SymbolRef ArraySym = ArrayRef.getAsSymbol();
   if (!ArraySym)
     return;
@@ -85,7 +85,7 @@ void ObjCContainersChecker::addSizeInfo(const Expr *Array, const Expr *Size,
 
 void ObjCContainersChecker::checkPostStmt(const CallExpr *CE,
                                           CheckerContext &C) const {
-  StringRef Name = C.getCalleeName(CE);
+  StringRef const Name = C.getCalleeName(CE);
   if (Name.empty() || CE->getNumArgs() < 1)
     return;
 
@@ -108,13 +108,13 @@ void ObjCContainersChecker::checkPostStmt(const CallExpr *CE,
 
 void ObjCContainersChecker::checkPreStmt(const CallExpr *CE,
                                          CheckerContext &C) const {
-  StringRef Name = C.getCalleeName(CE);
+  StringRef const Name = C.getCalleeName(CE);
   if (Name.empty() || CE->getNumArgs() < 2)
     return;
 
   // Check the array access.
   if (Name.equals("CFArrayGetValueAtIndex")) {
-    ProgramStateRef State = C.getState();
+    ProgramStateRef const State = C.getState();
     // Retrieve the size.
     // Find out if we saw this array symbol before and have information about
     // it.
@@ -130,15 +130,15 @@ void ObjCContainersChecker::checkPreStmt(const CallExpr *CE,
 
     // Get the index.
     const Expr *IdxExpr = CE->getArg(1);
-    SVal IdxVal = C.getSVal(IdxExpr);
+    SVal const IdxVal = C.getSVal(IdxExpr);
     if (IdxVal.isUnknownOrUndef())
       return;
-    DefinedSVal Idx = IdxVal.castAs<DefinedSVal>();
+    DefinedSVal const Idx = IdxVal.castAs<DefinedSVal>();
 
     // Now, check if 'Idx in [0, Size-1]'.
     const QualType T = IdxExpr->getType();
-    ProgramStateRef StInBound = State->assumeInBound(Idx, *Size, true, T);
-    ProgramStateRef StOutBound = State->assumeInBound(Idx, *Size, false, T);
+    ProgramStateRef const StInBound = State->assumeInBound(Idx, *Size, true, T);
+    ProgramStateRef const StOutBound = State->assumeInBound(Idx, *Size, false, T);
     if (StOutBound && !StInBound) {
       ExplodedNode *N = C.generateErrorNode(StOutBound);
       if (!N)
@@ -174,7 +174,7 @@ ObjCContainersChecker::checkPointerEscape(ProgramStateRef State,
 
 void ObjCContainersChecker::printState(raw_ostream &OS, ProgramStateRef State,
                                        const char *NL, const char *Sep) const {
-  ArraySizeMapTy Map = State->get<ArraySizeMap>();
+  ArraySizeMapTy const Map = State->get<ArraySizeMap>();
   if (Map.isEmpty())
     return;
 

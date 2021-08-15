@@ -44,9 +44,9 @@ public:
 
 template <typename M>
 std::string describeContainsN(M InnerMatcher, unsigned N, bool Negation) {
-  StringRef Contains = Negation ? "doesn't contain" : "contains";
-  StringRef Instance = N == 1 ? " instance " : " instances ";
-  StringRef Element = "of element that ";
+  StringRef const Contains = Negation ? "doesn't contain" : "contains";
+  StringRef const Instance = N == 1 ? " instance " : " instances ";
+  StringRef const Element = "of element that ";
 
   std::ostringstream Inner;
   InnerMatcher.impl().DescribeTo(&Inner);
@@ -66,7 +66,7 @@ MATCHER_P2(ContainsN, InnerMatcher, N,
 }
 
 TEST(ContainsN, Empty) {
-  const char *Array[] = {""};
+  const char *const Array[] = {""};
 
   ASSERT_THAT(Array, ContainsN(StrEq("x"), 0));
   ASSERT_THAT(Array, Not(ContainsN(StrEq("x"), 1)));
@@ -74,7 +74,7 @@ TEST(ContainsN, Empty) {
 }
 
 TEST(ContainsN, Zero) {
-  const char *Array[] = {"y"};
+  const char *const Array[] = {"y"};
 
   ASSERT_THAT(Array, ContainsN(StrEq("x"), 0));
   ASSERT_THAT(Array, Not(ContainsN(StrEq("x"), 1)));
@@ -82,7 +82,7 @@ TEST(ContainsN, Zero) {
 }
 
 TEST(ContainsN, One) {
-  const char *Array[] = {"a", "b", "x", "z"};
+  const char *const Array[] = {"a", "b", "x", "z"};
 
   ASSERT_THAT(Array, Not(ContainsN(StrEq("x"), 0)));
   ASSERT_THAT(Array, ContainsN(StrEq("x"), 1));
@@ -90,7 +90,7 @@ TEST(ContainsN, One) {
 }
 
 TEST(ContainsN, Two) {
-  const char *Array[] = {"x", "a", "b", "x"};
+  const char *const Array[] = {"x", "a", "b", "x"};
 
   ASSERT_THAT(Array, Not(ContainsN(StrEq("x"), 0)));
   ASSERT_THAT(Array, Not(ContainsN(StrEq("x"), 1)));
@@ -100,17 +100,17 @@ TEST(ContainsN, Two) {
 // Copy constructor/assignment perform deep copy of reference-counted pointers.
 
 TEST(CompilerInvocationTest, DeepCopyConstructor) {
-  CompilerInvocation A;
+  CompilerInvocation const A;
   A.getAnalyzerOpts()->Config["Key"] = "Old";
 
-  CompilerInvocation B(A);
+  CompilerInvocation const B(A);
   B.getAnalyzerOpts()->Config["Key"] = "New";
 
   ASSERT_EQ(A.getAnalyzerOpts()->Config["Key"], "Old");
 }
 
 TEST(CompilerInvocationTest, DeepCopyAssignment) {
-  CompilerInvocation A;
+  CompilerInvocation const A;
   A.getAnalyzerOpts()->Config["Key"] = "Old";
 
   CompilerInvocation B;
@@ -124,7 +124,7 @@ TEST(CompilerInvocationTest, DeepCopyAssignment) {
 // The only flag with a negative spelling can set the keypath to false.
 
 TEST_F(CommandLineTest, BoolOptionDefaultTrueSingleFlagNotPresent) {
-  const char *Args[] = {""};
+  const char *const Args[] = {""};
 
   ASSERT_TRUE(CompilerInvocation::CreateFromArgs(Invocation, Args, *Diags));
   ASSERT_TRUE(Invocation.getFrontendOpts().UseTemporary);
@@ -135,7 +135,7 @@ TEST_F(CommandLineTest, BoolOptionDefaultTrueSingleFlagNotPresent) {
 }
 
 TEST_F(CommandLineTest, BoolOptionDefaultTrueSingleFlagPresent) {
-  const char *Args[] = {"-fno-temp-file"};
+  const char *const Args[] = {"-fno-temp-file"};
 
   ASSERT_TRUE(CompilerInvocation::CreateFromArgs(Invocation, Args, *Diags));
   ASSERT_FALSE(Invocation.getFrontendOpts().UseTemporary);
@@ -146,7 +146,7 @@ TEST_F(CommandLineTest, BoolOptionDefaultTrueSingleFlagPresent) {
 }
 
 TEST_F(CommandLineTest, BoolOptionDefaultTrueSingleFlagUnknownPresent) {
-  const char *Args[] = {"-ftemp-file"};
+  const char *const Args[] = {"-ftemp-file"};
 
   // Driver-only flag.
   ASSERT_FALSE(CompilerInvocation::CreateFromArgs(Invocation, Args, *Diags));
@@ -158,7 +158,7 @@ TEST_F(CommandLineTest, BoolOptionDefaultTrueSingleFlagUnknownPresent) {
 // The flag with positive spelling can reset the keypath to true.
 
 TEST_F(CommandLineTest, BoolOptionDefaultTruePresentNone) {
-  const char *Args[] = {""};
+  const char *const Args[] = {""};
 
   ASSERT_TRUE(CompilerInvocation::CreateFromArgs(Invocation, Args, *Diags));
   ASSERT_TRUE(Invocation.getCodeGenOpts().Autolink);
@@ -169,7 +169,7 @@ TEST_F(CommandLineTest, BoolOptionDefaultTruePresentNone) {
 }
 
 TEST_F(CommandLineTest, BoolOptionDefaultTruePresentNegChange) {
-  const char *Args[] = {"-fno-autolink"};
+  const char *const Args[] = {"-fno-autolink"};
 
   ASSERT_TRUE(CompilerInvocation::CreateFromArgs(Invocation, Args, *Diags));
   ASSERT_FALSE(Invocation.getCodeGenOpts().Autolink);
@@ -180,7 +180,7 @@ TEST_F(CommandLineTest, BoolOptionDefaultTruePresentNegChange) {
 }
 
 TEST_F(CommandLineTest, BoolOptionDefaultTruePresentPosReset) {
-  const char *Args[] = {"-fautolink"};
+  const char *const Args[] = {"-fautolink"};
 
   // Driver-only flag.
   ASSERT_FALSE(CompilerInvocation::CreateFromArgs(Invocation, Args, *Diags));
@@ -192,7 +192,7 @@ TEST_F(CommandLineTest, BoolOptionDefaultTruePresentPosReset) {
 // The flag with positive spelling can reset the keypath to false.
 
 TEST_F(CommandLineTest, BoolOptionDefaultFalsePresentNone) {
-  const char *Args[] = {""};
+  const char *const Args[] = {""};
 
   ASSERT_TRUE(CompilerInvocation::CreateFromArgs(Invocation, Args, *Diags));
   ASSERT_FALSE(Invocation.getCodeGenOpts().NoInlineLineTables);
@@ -203,7 +203,7 @@ TEST_F(CommandLineTest, BoolOptionDefaultFalsePresentNone) {
 }
 
 TEST_F(CommandLineTest, BoolOptionDefaultFalsePresentNegChange) {
-  const char *Args[] = {"-gno-inline-line-tables"};
+  const char *const Args[] = {"-gno-inline-line-tables"};
 
   ASSERT_TRUE(CompilerInvocation::CreateFromArgs(Invocation, Args, *Diags));
   ASSERT_TRUE(Invocation.getCodeGenOpts().NoInlineLineTables);
@@ -214,7 +214,7 @@ TEST_F(CommandLineTest, BoolOptionDefaultFalsePresentNegChange) {
 }
 
 TEST_F(CommandLineTest, BoolOptionDefaultFalsePresentPosReset) {
-  const char *Args[] = {"-ginline-line-tables"};
+  const char *const Args[] = {"-ginline-line-tables"};
 
   // Driver-only flag.
   ASSERT_FALSE(CompilerInvocation::CreateFromArgs(Invocation, Args, *Diags));
@@ -226,7 +226,7 @@ TEST_F(CommandLineTest, BoolOptionDefaultFalsePresentPosReset) {
 // The flag with negative spelling can reset the keypath to false.
 
 TEST_F(CommandLineTest, BoolOptionDefaultFalsePresentNoneX) {
-  const char *Args[] = {""};
+  const char *const Args[] = {""};
 
   ASSERT_TRUE(CompilerInvocation::CreateFromArgs(Invocation, Args, *Diags));
   ASSERT_FALSE(Invocation.getCodeGenOpts().CodeViewGHash);
@@ -237,7 +237,7 @@ TEST_F(CommandLineTest, BoolOptionDefaultFalsePresentNoneX) {
 }
 
 TEST_F(CommandLineTest, BoolOptionDefaultFalsePresentPosChange) {
-  const char *Args[] = {"-gcodeview-ghash"};
+  const char *const Args[] = {"-gcodeview-ghash"};
 
   ASSERT_TRUE(CompilerInvocation::CreateFromArgs(Invocation, Args, *Diags));
   ASSERT_TRUE(Invocation.getCodeGenOpts().CodeViewGHash);
@@ -248,7 +248,7 @@ TEST_F(CommandLineTest, BoolOptionDefaultFalsePresentPosChange) {
 }
 
 TEST_F(CommandLineTest, BoolOptionDefaultFalsePresentNegReset) {
-  const char *Args[] = {"-gno-codeview-ghash"};
+  const char *const Args[] = {"-gno-codeview-ghash"};
 
   // Driver-only flag.
   ASSERT_FALSE(CompilerInvocation::CreateFromArgs(Invocation, Args, *Diags));
@@ -283,7 +283,7 @@ TEST_F(CommandLineTest, BoolOptionDefaultArbitraryTwoFlagsPresentNone) {
 }
 
 TEST_F(CommandLineTest, BoolOptionDefaultArbitraryTwoFlagsPresentChange) {
-  const char *Args[] = {PassManagerChangedByFlag};
+  const char *const Args[] = {PassManagerChangedByFlag};
 
   ASSERT_TRUE(CompilerInvocation::CreateFromArgs(Invocation, Args, *Diags));
   ASSERT_EQ(Invocation.getCodeGenOpts().LegacyPassManager, !PassManagerDefault);
@@ -294,7 +294,7 @@ TEST_F(CommandLineTest, BoolOptionDefaultArbitraryTwoFlagsPresentChange) {
 }
 
 TEST_F(CommandLineTest, BoolOptionDefaultArbitraryTwoFlagsPresentReset) {
-  const char *Args[] = {PassManagerResetByFlag};
+  const char *const Args[] = {PassManagerResetByFlag};
 
   ASSERT_TRUE(CompilerInvocation::CreateFromArgs(Invocation, Args, *Diags));
   ASSERT_EQ(Invocation.getCodeGenOpts().LegacyPassManager, PassManagerDefault);
@@ -312,7 +312,7 @@ TEST_F(CommandLineTest, BoolOptionDefaultArbitraryTwoFlagsPresentReset) {
 //   }
 
 TEST_F(CommandLineTest, BoolOptionCC1ViaLetPresentNone) {
-  const char *Args[] = {""};
+  const char *const Args[] = {""};
 
   ASSERT_TRUE(CompilerInvocation::CreateFromArgs(Invocation, Args, *Diags));
   ASSERT_FALSE(Invocation.getCodeGenOpts().DebugPassManager);
@@ -324,7 +324,7 @@ TEST_F(CommandLineTest, BoolOptionCC1ViaLetPresentNone) {
 }
 
 TEST_F(CommandLineTest, BoolOptionCC1ViaLetPresentPos) {
-  const char *Args[] = {"-fdebug-pass-manager"};
+  const char *const Args[] = {"-fdebug-pass-manager"};
 
   ASSERT_TRUE(CompilerInvocation::CreateFromArgs(Invocation, Args, *Diags));
   ASSERT_TRUE(Invocation.getCodeGenOpts().DebugPassManager);
@@ -336,7 +336,7 @@ TEST_F(CommandLineTest, BoolOptionCC1ViaLetPresentPos) {
 }
 
 TEST_F(CommandLineTest, BoolOptionCC1ViaLetPresentNeg) {
-  const char *Args[] = {"-fno-debug-pass-manager"};
+  const char *const Args[] = {"-fno-debug-pass-manager"};
 
   ASSERT_TRUE(CompilerInvocation::CreateFromArgs(Invocation, Args, *Diags));
   ASSERT_FALSE(Invocation.getCodeGenOpts().DebugPassManager);
@@ -348,7 +348,7 @@ TEST_F(CommandLineTest, BoolOptionCC1ViaLetPresentNeg) {
 }
 
 TEST_F(CommandLineTest, CanGenerateCC1CommandLineFlag) {
-  const char *Args[] = {"-fmodules-strict-context-hash"};
+  const char *const Args[] = {"-fmodules-strict-context-hash"};
 
   ASSERT_TRUE(CompilerInvocation::CreateFromArgs(Invocation, Args, *Diags));
 
@@ -359,7 +359,7 @@ TEST_F(CommandLineTest, CanGenerateCC1CommandLineFlag) {
 
 TEST_F(CommandLineTest, CanGenerateCC1CommandLineSeparate) {
   const char *TripleCStr = "i686-apple-darwin9";
-  const char *Args[] = {"-triple", TripleCStr};
+  const char *const Args[] = {"-triple", TripleCStr};
 
   ASSERT_TRUE(CompilerInvocation::CreateFromArgs(Invocation, Args, *Diags));
 
@@ -371,7 +371,7 @@ TEST_F(CommandLineTest, CanGenerateCC1CommandLineSeparate) {
 TEST_F(CommandLineTest,  CanGenerateCC1CommandLineSeparateRequiredPresent) {
   const std::string DefaultTriple =
       llvm::Triple::normalize(llvm::sys::getDefaultTargetTriple());
-  const char *Args[] = {"-triple", DefaultTriple.c_str()};
+  const char *const Args[] = {"-triple", DefaultTriple.c_str()};
 
   ASSERT_TRUE(CompilerInvocation::CreateFromArgs(Invocation, Args, *Diags));
 
@@ -384,7 +384,7 @@ TEST_F(CommandLineTest,  CanGenerateCC1CommandLineSeparateRequiredPresent) {
 TEST_F(CommandLineTest, CanGenerateCC1CommandLineSeparateRequiredAbsent) {
   const std::string DefaultTriple =
       llvm::Triple::normalize(llvm::sys::getDefaultTargetTriple());
-  const char *Args[] = {""};
+  const char *const Args[] = {""};
 
   ASSERT_TRUE(CompilerInvocation::CreateFromArgs(Invocation, Args, *Diags));
 
@@ -395,7 +395,7 @@ TEST_F(CommandLineTest, CanGenerateCC1CommandLineSeparateRequiredAbsent) {
 }
 
 TEST_F(CommandLineTest, SeparateEnumNonDefault) {
-  const char *Args[] = {"-mrelocation-model", "static"};
+  const char *const Args[] = {"-mrelocation-model", "static"};
 
   ASSERT_TRUE(CompilerInvocation::CreateFromArgs(Invocation, Args, *Diags));
   ASSERT_EQ(Invocation.getCodeGenOpts().RelocationModel, Reloc::Model::Static);
@@ -409,7 +409,7 @@ TEST_F(CommandLineTest, SeparateEnumNonDefault) {
 }
 
 TEST_F(CommandLineTest, SeparateEnumDefault) {
-  const char *Args[] = {"-mrelocation-model", "pic"};
+  const char *const Args[] = {"-mrelocation-model", "pic"};
 
   ASSERT_TRUE(CompilerInvocation::CreateFromArgs(Invocation, Args, *Diags));
   ASSERT_EQ(Invocation.getCodeGenOpts().RelocationModel, Reloc::Model::PIC_);
@@ -423,7 +423,7 @@ TEST_F(CommandLineTest, SeparateEnumDefault) {
 }
 
 TEST_F(CommandLineTest, JoinedEnumNonDefault) {
-  const char *Args[] = {"-fobjc-dispatch-method=non-legacy"};
+  const char *const Args[] = {"-fobjc-dispatch-method=non-legacy"};
 
   ASSERT_TRUE(CompilerInvocation::CreateFromArgs(Invocation, Args, *Diags));
   ASSERT_EQ(Invocation.getCodeGenOpts().getObjCDispatchMethod(),
@@ -438,7 +438,7 @@ TEST_F(CommandLineTest, JoinedEnumNonDefault) {
 }
 
 TEST_F(CommandLineTest, JoinedEnumDefault) {
-  const char *Args[] = {"-fobjc-dispatch-method=legacy"};
+  const char *const Args[] = {"-fobjc-dispatch-method=legacy"};
 
   ASSERT_TRUE(CompilerInvocation::CreateFromArgs(Invocation, Args, *Diags));
   ASSERT_EQ(Invocation.getCodeGenOpts().getObjCDispatchMethod(),
@@ -453,7 +453,7 @@ TEST_F(CommandLineTest, JoinedEnumDefault) {
 }
 
 TEST_F(CommandLineTest, StringVectorEmpty) {
-  const char *Args[] = {""};
+  const char *const Args[] = {""};
 
   ASSERT_TRUE(CompilerInvocation::CreateFromArgs(Invocation, Args, *Diags));
   ASSERT_TRUE(Invocation.getFrontendOpts().ModuleMapFiles.empty());
@@ -464,7 +464,7 @@ TEST_F(CommandLineTest, StringVectorEmpty) {
 }
 
 TEST_F(CommandLineTest, StringVectorSingle) {
-  const char *Args[] = {"-fmodule-map-file=a"};
+  const char *const Args[] = {"-fmodule-map-file=a"};
 
   ASSERT_TRUE(CompilerInvocation::CreateFromArgs(Invocation, Args, *Diags));
   ASSERT_EQ(Invocation.getFrontendOpts().ModuleMapFiles,
@@ -477,7 +477,7 @@ TEST_F(CommandLineTest, StringVectorSingle) {
 }
 
 TEST_F(CommandLineTest, StringVectorMultiple) {
-  const char *Args[] = {"-fmodule-map-file=a", "-fmodule-map-file=b"};
+  const char *const Args[] = {"-fmodule-map-file=a", "-fmodule-map-file=b"};
 
   ASSERT_TRUE(CompilerInvocation::CreateFromArgs(Invocation, Args, *Diags));
   ASSERT_TRUE(Invocation.getFrontendOpts().ModuleMapFiles ==
@@ -493,7 +493,7 @@ TEST_F(CommandLineTest, StringVectorMultiple) {
 // CommaJoined option with MarshallingInfoStringVector.
 
 TEST_F(CommandLineTest, StringVectorCommaJoinedNone) {
-  const char *Args[] = {""};
+  const char *const Args[] = {""};
 
   ASSERT_TRUE(CompilerInvocation::CreateFromArgs(Invocation, Args, *Diags));
   ASSERT_TRUE(Invocation.getLangOpts()->CommentOpts.BlockCommandNames.empty());
@@ -505,7 +505,7 @@ TEST_F(CommandLineTest, StringVectorCommaJoinedNone) {
 }
 
 TEST_F(CommandLineTest, StringVectorCommaJoinedSingle) {
-  const char *Args[] = {"-fcomment-block-commands=x,y"};
+  const char *const Args[] = {"-fcomment-block-commands=x,y"};
 
   ASSERT_TRUE(CompilerInvocation::CreateFromArgs(Invocation, Args, *Diags));
   ASSERT_EQ(Invocation.getLangOpts()->CommentOpts.BlockCommandNames,
@@ -518,7 +518,7 @@ TEST_F(CommandLineTest, StringVectorCommaJoinedSingle) {
 }
 
 TEST_F(CommandLineTest, StringVectorCommaJoinedMultiple) {
-  const char *Args[] = {"-fcomment-block-commands=x,y",
+  const char *const Args[] = {"-fcomment-block-commands=x,y",
                         "-fcomment-block-commands=a,b"};
 
   ASSERT_TRUE(CompilerInvocation::CreateFromArgs(Invocation, Args, *Diags));
@@ -534,7 +534,7 @@ TEST_F(CommandLineTest, StringVectorCommaJoinedMultiple) {
 // A flag that should be parsed only if a condition is met.
 
 TEST_F(CommandLineTest, ConditionalParsingIfFalseFlagNotPresent) {
-  const char *Args[] = {""};
+  const char *const Args[] = {""};
 
   CompilerInvocation::CreateFromArgs(Invocation, Args, *Diags);
 
@@ -550,7 +550,7 @@ TEST_F(CommandLineTest, ConditionalParsingIfFalseFlagNotPresent) {
 }
 
 TEST_F(CommandLineTest, ConditionalParsingIfFalseFlagPresent) {
-  const char *Args[] = {"-sycl-std=2017"};
+  const char *const Args[] = {"-sycl-std=2017"};
 
   CompilerInvocation::CreateFromArgs(Invocation, Args, *Diags);
 
@@ -567,7 +567,7 @@ TEST_F(CommandLineTest, ConditionalParsingIfFalseFlagPresent) {
 }
 
 TEST_F(CommandLineTest, ConditionalParsingIfNonsenseSyclStdArg) {
-  const char *Args[] = {"-fsycl-is-device", "-sycl-std=garbage"};
+  const char *const Args[] = {"-fsycl-is-device", "-sycl-std=garbage"};
 
   CompilerInvocation::CreateFromArgs(Invocation, Args, *Diags);
 
@@ -584,7 +584,7 @@ TEST_F(CommandLineTest, ConditionalParsingIfNonsenseSyclStdArg) {
 }
 
 TEST_F(CommandLineTest, ConditionalParsingIfOddSyclStdArg1) {
-  const char *Args[] = {"-fsycl-is-device", "-sycl-std=121"};
+  const char *const Args[] = {"-fsycl-is-device", "-sycl-std=121"};
 
   CompilerInvocation::CreateFromArgs(Invocation, Args, *Diags);
 
@@ -601,7 +601,7 @@ TEST_F(CommandLineTest, ConditionalParsingIfOddSyclStdArg1) {
 }
 
 TEST_F(CommandLineTest, ConditionalParsingIfOddSyclStdArg2) {
-  const char *Args[] = {"-fsycl-is-device", "-sycl-std=1.2.1"};
+  const char *const Args[] = {"-fsycl-is-device", "-sycl-std=1.2.1"};
 
   CompilerInvocation::CreateFromArgs(Invocation, Args, *Diags);
 
@@ -618,7 +618,7 @@ TEST_F(CommandLineTest, ConditionalParsingIfOddSyclStdArg2) {
 }
 
 TEST_F(CommandLineTest, ConditionalParsingIfOddSyclStdArg3) {
-  const char *Args[] = {"-fsycl-is-device", "-sycl-std=sycl-1.2.1"};
+  const char *const Args[] = {"-fsycl-is-device", "-sycl-std=sycl-1.2.1"};
 
   CompilerInvocation::CreateFromArgs(Invocation, Args, *Diags);
 
@@ -635,7 +635,7 @@ TEST_F(CommandLineTest, ConditionalParsingIfOddSyclStdArg3) {
 }
 
 TEST_F(CommandLineTest, ConditionalParsingIfTrueFlagNotPresentHost) {
-  const char *Args[] = {"-fsycl-is-host"};
+  const char *const Args[] = {"-fsycl-is-host"};
 
   CompilerInvocation::CreateFromArgs(Invocation, Args, *Diags);
 
@@ -650,7 +650,7 @@ TEST_F(CommandLineTest, ConditionalParsingIfTrueFlagNotPresentHost) {
 }
 
 TEST_F(CommandLineTest, ConditionalParsingIfTrueFlagNotPresentDevice) {
-  const char *Args[] = {"-fsycl-is-device"};
+  const char *const Args[] = {"-fsycl-is-device"};
 
   CompilerInvocation::CreateFromArgs(Invocation, Args, *Diags);
 
@@ -665,7 +665,7 @@ TEST_F(CommandLineTest, ConditionalParsingIfTrueFlagNotPresentDevice) {
 }
 
 TEST_F(CommandLineTest, ConditionalParsingIfTrueFlagPresent) {
-  const char *Args[] = {"-fsycl-is-device", "-sycl-std=2017"};
+  const char *const Args[] = {"-fsycl-is-device", "-sycl-std=2017"};
 
   CompilerInvocation::CreateFromArgs(Invocation, Args, *Diags);
 
@@ -681,7 +681,7 @@ TEST_F(CommandLineTest, ConditionalParsingIfTrueFlagPresent) {
 // Wide integer option.
 
 TEST_F(CommandLineTest, WideIntegerHighValue) {
-  const char *Args[] = {"-fbuild-session-timestamp=1609827494445723662"};
+  const char *const Args[] = {"-fbuild-session-timestamp=1609827494445723662"};
 
   CompilerInvocation::CreateFromArgs(Invocation, Args, *Diags);
 
@@ -699,7 +699,7 @@ TEST_F(CommandLineTest, WideIntegerHighValue) {
 //       * -freciprocal-math
 
 TEST_F(CommandLineTest, ImpliedBoolOptionsNoFlagPresent) {
-  const char *Args[] = {""};
+  const char *const Args[] = {""};
 
   ASSERT_TRUE(CompilerInvocation::CreateFromArgs(Invocation, Args, *Diags));
   ASSERT_FALSE(Invocation.getLangOpts()->CLUnsafeMath);
@@ -718,7 +718,7 @@ TEST_F(CommandLineTest, ImpliedBoolOptionsNoFlagPresent) {
 }
 
 TEST_F(CommandLineTest, ImpliedBoolOptionsRootFlagPresent) {
-  const char *Args[] = {"-cl-unsafe-math-optimizations"};
+  const char *const Args[] = {"-cl-unsafe-math-optimizations"};
 
   ASSERT_TRUE(CompilerInvocation::CreateFromArgs(Invocation, Args, *Diags));
   // Explicitly provided root flag.
@@ -740,7 +740,7 @@ TEST_F(CommandLineTest, ImpliedBoolOptionsRootFlagPresent) {
 }
 
 TEST_F(CommandLineTest, ImpliedBoolOptionsAllFlagsPresent) {
-  const char *Args[] = {"-cl-unsafe-math-optimizations", "-cl-mad-enable",
+  const char *const Args[] = {"-cl-unsafe-math-optimizations", "-cl-mad-enable",
                         "-menable-unsafe-fp-math", "-freciprocal-math"};
 
   ASSERT_TRUE(CompilerInvocation::CreateFromArgs(Invocation, Args, *Diags));
@@ -760,7 +760,7 @@ TEST_F(CommandLineTest, ImpliedBoolOptionsAllFlagsPresent) {
 }
 
 TEST_F(CommandLineTest, ImpliedBoolOptionsImpliedFlagsPresent) {
-  const char *Args[] = {"-cl-mad-enable", "-menable-unsafe-fp-math",
+  const char *const Args[] = {"-cl-mad-enable", "-menable-unsafe-fp-math",
                         "-freciprocal-math"};
 
   ASSERT_TRUE(CompilerInvocation::CreateFromArgs(Invocation, Args, *Diags));
@@ -781,7 +781,7 @@ TEST_F(CommandLineTest, ImpliedBoolOptionsImpliedFlagsPresent) {
 }
 
 TEST_F(CommandLineTest, PresentAndNotImpliedGenerated) {
-  const char *Args[] = {"-cl-mad-enable", "-menable-unsafe-fp-math"};
+  const char *const Args[] = {"-cl-mad-enable", "-menable-unsafe-fp-math"};
 
   ASSERT_TRUE(CompilerInvocation::CreateFromArgs(Invocation, Args, *Diags));
 
@@ -795,7 +795,7 @@ TEST_F(CommandLineTest, PresentAndNotImpliedGenerated) {
 // Diagnostic option.
 
 TEST_F(CommandLineTest, DiagnosticOptionPresent) {
-  const char *Args[] = {"-verify=xyz"};
+  const char *const Args[] = {"-verify=xyz"};
 
   ASSERT_TRUE(CompilerInvocation::CreateFromArgs(Invocation, Args, *Diags));
 
@@ -810,7 +810,7 @@ TEST_F(CommandLineTest, DiagnosticOptionPresent) {
 // Option default depends on language standard.
 
 TEST_F(CommandLineTest, DigraphsImplied) {
-  const char *Args[] = {""};
+  const char *const Args[] = {""};
 
   ASSERT_TRUE(CompilerInvocation::CreateFromArgs(Invocation, Args, *Diags));
   ASSERT_TRUE(Invocation.getLangOpts()->Digraphs);
@@ -821,7 +821,7 @@ TEST_F(CommandLineTest, DigraphsImplied) {
 }
 
 TEST_F(CommandLineTest, DigraphsDisabled) {
-  const char *Args[] = {"-fno-digraphs"};
+  const char *const Args[] = {"-fno-digraphs"};
 
   ASSERT_TRUE(CompilerInvocation::CreateFromArgs(Invocation, Args, *Diags));
   ASSERT_FALSE(Invocation.getLangOpts()->Digraphs);
@@ -832,7 +832,7 @@ TEST_F(CommandLineTest, DigraphsDisabled) {
 }
 
 TEST_F(CommandLineTest, DigraphsNotImplied) {
-  const char *Args[] = {"-std=c89"};
+  const char *const Args[] = {"-std=c89"};
 
   ASSERT_TRUE(CompilerInvocation::CreateFromArgs(Invocation, Args, *Diags));
   ASSERT_FALSE(Invocation.getLangOpts()->Digraphs);
@@ -843,7 +843,7 @@ TEST_F(CommandLineTest, DigraphsNotImplied) {
 }
 
 TEST_F(CommandLineTest, DigraphsEnabled) {
-  const char *Args[] = {"-std=c89", "-fdigraphs"};
+  const char *const Args[] = {"-std=c89", "-fdigraphs"};
 
   ASSERT_TRUE(CompilerInvocation::CreateFromArgs(Invocation, Args, *Diags));
   ASSERT_TRUE(Invocation.getLangOpts()->Digraphs);
@@ -880,7 +880,7 @@ struct DummyModuleFileExtension
 char DummyModuleFileExtension::ID = 0;
 
 TEST_F(CommandLineTest, TestModuleFileExtension) {
-  const char *Args[] = {"-ftest-module-file-extension=first:2:1:0:first",
+  const char *const Args[] = {"-ftest-module-file-extension=first:2:1:0:first",
                         "-ftest-module-file-extension=second:3:2:1:second"};
 
   ASSERT_TRUE(CompilerInvocation::CreateFromArgs(Invocation, Args, *Diags));
@@ -907,7 +907,7 @@ TEST_F(CommandLineTest, TestModuleFileExtension) {
 TEST_F(CommandLineTest, RoundTrip) {
   // Testing one marshalled and one manually generated option from each
   // CompilerInvocation member.
-  const char *Args[] = {
+  const char *const Args[] = {
       "-round-trip-args",
       // LanguageOptions
       "-std=c17",
@@ -986,7 +986,7 @@ TEST_F(CommandLineTest, RoundTrip) {
 }
 
 TEST_F(CommandLineTest, PluginArgsRoundTripDeterminism) {
-  const char *Args[] = {
+  const char *const Args[] = {
       "-plugin-arg-blink-gc-plugin", "no-members-in-stack-allocated",
       "-plugin-arg-find-bad-constructs", "checked-ptr-as-trivial-member",
       "-plugin-arg-find-bad-constructs", "check-ipc",

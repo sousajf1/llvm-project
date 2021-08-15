@@ -141,7 +141,7 @@ CXCursor cxcursor::MakeCXCursor(const Decl *D, CXTranslationUnit TU,
                                 bool FirstInDeclGroup) {
   assert(D && TU && "Invalid arguments!");
 
-  CXCursorKind K = getCursorKindForDecl(D);
+  CXCursorKind const K = getCursorKindForDecl(D);
 
   if (K == CXCursor_ObjCClassMethodDecl ||
       K == CXCursor_ObjCInstanceMethodDecl) {
@@ -633,7 +633,7 @@ CXCursor cxcursor::MakeCXCursor(const Stmt *S, const Decl *Parent,
       if (I != SelLocs.end())
         SelectorIdIndex = I - SelLocs.begin();
     }
-    CXCursor C = {K, 0, {Parent, S, TU}};
+    CXCursor const C = {K, 0, {Parent, S, TU}};
     return getSelectorIdentifierCursor(SelectorIdIndex, C);
   }
 
@@ -983,7 +983,7 @@ CXCursor cxcursor::MakePreprocessingDirectiveCursor(SourceRange Range,
 
 SourceRange cxcursor::getCursorPreprocessingDirective(CXCursor C) {
   assert(C.kind == CXCursor_PreprocessingDirective);
-  SourceRange Range(SourceLocation::getFromPtrEncoding(C.data[0]),
+  SourceRange const Range(SourceLocation::getFromPtrEncoding(C.data[0]),
                     SourceLocation::getFromPtrEncoding(C.data[1]));
   ASTUnit *TU = getCursorASTUnit(C);
   return TU->mapRangeFromPreamble(Range);
@@ -1061,7 +1061,7 @@ cxcursor::getCursorLabelRef(CXCursor C) {
 CXCursor cxcursor::MakeCursorOverloadedDeclRef(const OverloadExpr *E,
                                                CXTranslationUnit TU) {
   assert(E && TU && "Invalid arguments!");
-  OverloadedDeclRefStorage Storage(E);
+  OverloadedDeclRefStorage const Storage(E);
   void *RawLoc = E->getNameLoc().getPtrEncoding();
   CXCursor C = {
       CXCursor_OverloadedDeclRef, 0, {Storage.getOpaqueValue(), RawLoc, TU}};
@@ -1073,7 +1073,7 @@ CXCursor cxcursor::MakeCursorOverloadedDeclRef(const Decl *D,
                                                CXTranslationUnit TU) {
   assert(D && TU && "Invalid arguments!");
   void *RawLoc = Loc.getPtrEncoding();
-  OverloadedDeclRefStorage Storage(D);
+  OverloadedDeclRefStorage const Storage(D);
   CXCursor C = {
       CXCursor_OverloadedDeclRef, 0, {Storage.getOpaqueValue(), RawLoc, TU}};
   return C;
@@ -1084,7 +1084,7 @@ CXCursor cxcursor::MakeCursorOverloadedDeclRef(TemplateName Name,
                                                CXTranslationUnit TU) {
   assert(Name.getAsOverloadedTemplate() && TU && "Invalid arguments!");
   void *RawLoc = Loc.getPtrEncoding();
-  OverloadedDeclRefStorage Storage(Name.getAsOverloadedTemplate());
+  OverloadedDeclRefStorage const Storage(Name.getAsOverloadedTemplate());
   CXCursor C = {
       CXCursor_OverloadedDeclRef, 0, {Storage.getOpaqueValue(), RawLoc, TU}};
   return C;
@@ -1215,12 +1215,12 @@ CXCursor cxcursor::getTypeRefCursor(CXCursor cursor) {
 
   CXTranslationUnit TU = getCursorTU(cursor);
   QualType Ty = Type->getType();
-  TypeLoc TL = Type->getTypeLoc();
+  TypeLoc const TL = Type->getTypeLoc();
   SourceLocation Loc = TL.getBeginLoc();
 
   if (const ElaboratedType *ElabT = Ty->getAs<ElaboratedType>()) {
     Ty = ElabT->getNamedType();
-    ElaboratedTypeLoc ElabTL = TL.castAs<ElaboratedTypeLoc>();
+    ElaboratedTypeLoc const ElabTL = TL.castAs<ElaboratedTypeLoc>();
     Loc = ElabTL.getNamedTypeLoc().getBeginLoc();
   }
 
@@ -1510,13 +1510,13 @@ unsigned clang_CXCursorSet_insert(CXCursorSet set, CXCursor cursor) {
   if (!setImpl)
     return 1;
   unsigned &entry = (*setImpl)[cursor];
-  unsigned flag = entry == 0 ? 1 : 0;
+  unsigned const flag = entry == 0 ? 1 : 0;
   entry = 1;
   return flag;
 }
 
 CXCompletionString clang_getCursorCompletionString(CXCursor cursor) {
-  enum CXCursorKind kind = clang_getCursorKind(cursor);
+  enum CXCursorKind const kind = clang_getCursorKind(cursor);
   if (clang_isDeclaration(kind)) {
     const Decl *decl = getCursorDecl(cursor);
     if (const NamedDecl *namedDecl = dyn_cast_or_null<NamedDecl>(decl)) {

@@ -193,8 +193,8 @@ TEST(DynTypedNode, StmtPrint) {
 }
 
 TEST(DynTypedNode, QualType) {
-  QualType Q;
-  DynTypedNode Node = DynTypedNode::create(Q);
+  QualType const Q;
+  DynTypedNode const Node = DynTypedNode::create(Q);
   EXPECT_TRUE(Node == Node);
   EXPECT_FALSE(Node < Node);
 }

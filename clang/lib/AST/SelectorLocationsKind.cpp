@@ -21,13 +21,13 @@ static SourceLocation getStandardSelLoc(unsigned Index,
                                         bool WithArgSpace,
                                         SourceLocation ArgLoc,
                                         SourceLocation EndLoc) {
-  unsigned NumSelArgs = Sel.getNumArgs();
+  unsigned const NumSelArgs = Sel.getNumArgs();
   if (NumSelArgs == 0) {
     assert(Index == 0);
     if (EndLoc.isInvalid())
       return SourceLocation();
     IdentifierInfo *II = Sel.getIdentifierInfoForSlot(0);
-    unsigned Len = II ? II->getLength() : 0;
+    unsigned const Len = II ? II->getLength() : 0;
     return EndLoc.getLocWithOffset(-Len);
   }
 

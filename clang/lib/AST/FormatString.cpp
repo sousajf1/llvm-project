@@ -36,13 +36,13 @@ FormatStringHandler::~FormatStringHandler() {}
 OptionalAmount
 clang::analyze_format_string::ParseAmount(const char *&Beg, const char *E) {
   const char *I = Beg;
-  UpdateOnReturn <const char*> UpdateBeg(Beg, I);
+  UpdateOnReturn <const char*> const UpdateBeg(Beg, I);
 
   unsigned accumulator = 0;
   bool hasDigits = false;
 
   for ( ; I != E; ++I) {
-    char c = *I;
+    char const c = *I;
     if (c >= '0' && c <= '9') {
       hasDigits = true;
       accumulator = (accumulator * 10) + (c - '0');
@@ -195,7 +195,7 @@ clang::analyze_format_string::ParseVectorModifier(FormatStringHandler &H,
       return true;
     }
 
-    OptionalAmount NumElts = ParseAmount(I, E);
+    OptionalAmount const NumElts = ParseAmount(I, E);
     if (NumElts.getHowSpecified() != OptionalAmount::Constant) {
       H.HandleIncompleteSpecifier(Start, E - Start);
       return true;
@@ -288,7 +288,7 @@ clang::analyze_format_string::ParseLengthModifier(FormatSpecifier &FS,
     case 'w':
       lmKind = LengthModifier::AsWide; ++I; break;
   }
-  LengthModifier lm(lmPosition, lmKind);
+  LengthModifier const lm(lmPosition, lmKind);
   FS.setLengthModifier(lm);
   return true;
 }
@@ -306,7 +306,7 @@ bool clang::analyze_format_string::ParseUTF8InvalidSpecifier(
   // If the invalid specifier is a multibyte UTF-8 string, return the
   // total length accordingly so that the conversion specifier can be
   // properly updated to reflect a complete UTF-8 specifier.
-  unsigned NumBytes = llvm::getNumBytesForUTF8(FirstByte);
+  unsigned const NumBytes = llvm::getNumBytesForUTF8(FirstByte);
   if (NumBytes == 1)
     return false;
   if (SB + NumBytes > SE)
@@ -416,7 +416,7 @@ ArgType::matchesType(ASTContext &C, QualType argTy) const {
       const PointerType *PT = argTy->getAs<PointerType>();
       if (!PT)
         return NoMatch;
-      QualType pointeeTy = PT->getPointeeType();
+      QualType const pointeeTy = PT->getPointeeType();
       if (const BuiltinType *BT = pointeeTy->getAs<BuiltinType>())
         switch (BT->getKind()) {
           case BuiltinType::Char_U:
@@ -435,13 +435,13 @@ ArgType::matchesType(ASTContext &C, QualType argTy) const {
       const PointerType *PT = argTy->getAs<PointerType>();
       if (!PT)
         return NoMatch;
-      QualType pointeeTy =
+      QualType const pointeeTy =
         C.getCanonicalType(PT->getPointeeType()).getUnqualifiedType();
       return pointeeTy == C.getWideCharType() ? Match : NoMatch;
     }
 
     case WIntTy: {
-      QualType WInt = C.getCanonicalType(C.getWIntType()).getUnqualifiedType();
+      QualType const WInt = C.getCanonicalType(C.getWIntType()).getUnqualifiedType();
 
       if (C.getCanonicalType(argTy).getUnqualifiedType() == WInt)
         return Match;
@@ -481,7 +481,7 @@ ArgType::matchesType(ASTContext &C, QualType argTy) const {
         // to C structs representing CF types that can often be bridged
         // to Objective-C objects.  Since the compiler doesn't know which
         // structs can be toll-free bridged, we just accept them all.
-        QualType pointee = PT->getPointeeType();
+        QualType const pointee = PT->getPointeeType();
         if (pointee->getAsStructureType() || pointee->isVoidType())
           return Match;
       }
@@ -497,7 +497,7 @@ ArgType ArgType::makeVectorType(ASTContext &C, unsigned NumElts) const {
   if (T.isNull())
     return ArgType::Invalid();
 
-  QualType Vec = C.getExtVectorType(T, NumElts);
+  QualType const Vec = C.getExtVectorType(T, NumElts);
   return ArgType(Vec, Name);
 }
 
@@ -538,7 +538,7 @@ QualType ArgType::getRepresentativeType(ASTContext &C) const {
 }
 
 std::string ArgType::getRepresentativeTypeName(ASTContext &C) const {
-  std::string S = getRepresentativeType(C).getAsString(C.getPrintingPolicy());
+  std::string const S = getRepresentativeType(C).getAsString(C.getPrintingPolicy());
 
   std::string Alias;
   if (Name) {

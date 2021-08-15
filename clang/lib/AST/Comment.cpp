@@ -131,25 +131,25 @@ static TypeLoc lookThroughTypedefOrTypeAliasLocs(TypeLoc &SrcTL) {
   TypeLoc TL = SrcTL.IgnoreParens();
 
   // Look through attribute types.
-  if (AttributedTypeLoc AttributeTL = TL.getAs<AttributedTypeLoc>())
+  if (AttributedTypeLoc const AttributeTL = TL.getAs<AttributedTypeLoc>())
     return AttributeTL.getModifiedLoc();
   // Look through qualified types.
-  if (QualifiedTypeLoc QualifiedTL = TL.getAs<QualifiedTypeLoc>())
+  if (QualifiedTypeLoc const QualifiedTL = TL.getAs<QualifiedTypeLoc>())
     return QualifiedTL.getUnqualifiedLoc();
   // Look through pointer types.
-  if (PointerTypeLoc PointerTL = TL.getAs<PointerTypeLoc>())
+  if (PointerTypeLoc const PointerTL = TL.getAs<PointerTypeLoc>())
     return PointerTL.getPointeeLoc().getUnqualifiedLoc();
   // Look through reference types.
-  if (ReferenceTypeLoc ReferenceTL = TL.getAs<ReferenceTypeLoc>())
+  if (ReferenceTypeLoc const ReferenceTL = TL.getAs<ReferenceTypeLoc>())
     return ReferenceTL.getPointeeLoc().getUnqualifiedLoc();
   // Look through adjusted types.
-  if (AdjustedTypeLoc ATL = TL.getAs<AdjustedTypeLoc>())
+  if (AdjustedTypeLoc const ATL = TL.getAs<AdjustedTypeLoc>())
     return ATL.getOriginalLoc();
-  if (BlockPointerTypeLoc BlockPointerTL = TL.getAs<BlockPointerTypeLoc>())
+  if (BlockPointerTypeLoc const BlockPointerTL = TL.getAs<BlockPointerTypeLoc>())
     return BlockPointerTL.getPointeeLoc().getUnqualifiedLoc();
-  if (MemberPointerTypeLoc MemberPointerTL = TL.getAs<MemberPointerTypeLoc>())
+  if (MemberPointerTypeLoc const MemberPointerTL = TL.getAs<MemberPointerTypeLoc>())
     return MemberPointerTL.getPointeeLoc().getUnqualifiedLoc();
-  if (ElaboratedTypeLoc ETL = TL.getAs<ElaboratedTypeLoc>())
+  if (ElaboratedTypeLoc const ETL = TL.getAs<ElaboratedTypeLoc>())
     return ETL.getNamedTypeLoc();
 
   return TL;
@@ -162,12 +162,12 @@ static bool getFunctionTypeLoc(TypeLoc TL, FunctionTypeLoc &ResFTL) {
     TL = lookThroughTypedefOrTypeAliasLocs(TL);
   }
 
-  if (FunctionTypeLoc FTL = TL.getAs<FunctionTypeLoc>()) {
+  if (FunctionTypeLoc const FTL = TL.getAs<FunctionTypeLoc>()) {
     ResFTL = FTL;
     return true;
   }
 
-  if (TemplateSpecializationTypeLoc STL =
+  if (TemplateSpecializationTypeLoc const STL =
           TL.getAs<TemplateSpecializationTypeLoc>()) {
     // If we have a typedef to a template specialization with exactly one
     // template argument of a function type, this looks like std::function,
@@ -175,12 +175,12 @@ static bool getFunctionTypeLoc(TypeLoc TL, FunctionTypeLoc &ResFTL) {
     // functions.
     if (STL.getNumArgs() != 1)
       return false;
-    TemplateArgumentLoc MaybeFunction = STL.getArgLoc(0);
+    TemplateArgumentLoc const MaybeFunction = STL.getArgLoc(0);
     if (MaybeFunction.getArgument().getKind() != TemplateArgument::Type)
       return false;
     TypeSourceInfo *MaybeFunctionTSI = MaybeFunction.getTypeSourceInfo();
-    TypeLoc TL = MaybeFunctionTSI->getTypeLoc().getUnqualifiedLoc();
-    if (FunctionTypeLoc FTL = TL.getAs<FunctionTypeLoc>()) {
+    TypeLoc const TL = MaybeFunctionTSI->getTypeLoc().getUnqualifiedLoc();
+    if (FunctionTypeLoc const FTL = TL.getAs<FunctionTypeLoc>()) {
       ResFTL = FTL;
       return true;
     }
@@ -220,7 +220,7 @@ void DeclInfo::fill() {
   }
   CurrentDecl = CommentDecl;
 
-  Decl::Kind K = CommentDecl->getKind();
+  Decl::Kind const K = CommentDecl->getKind();
   switch (K) {
   default:
     // Defaults are should be good for declarations we don't handle explicitly.
@@ -234,7 +234,7 @@ void DeclInfo::fill() {
     Kind = FunctionKind;
     ParamVars = FD->parameters();
     ReturnType = FD->getReturnType();
-    unsigned NumLists = FD->getNumTemplateParameterLists();
+    unsigned const NumLists = FD->getNumTemplateParameterLists();
     if (NumLists != 0) {
       TemplateKind = TemplateSpecialization;
       TemplateParameters =
@@ -306,7 +306,7 @@ void DeclInfo::fill() {
     else
       TSI = nullptr;
     if (TSI) {
-      TypeLoc TL = TSI->getTypeLoc().getUnqualifiedLoc();
+      TypeLoc const TL = TSI->getTypeLoc().getUnqualifiedLoc();
       FunctionTypeLoc FTL;
       if (getFunctionTypeLoc(TL, FTL)) {
         ParamVars = FTL.getParams();
@@ -330,7 +330,7 @@ void DeclInfo::fill() {
             : cast<TypeAliasDecl>(CommentDecl)->getTypeSourceInfo();
     if (!TSI)
       break;
-    TypeLoc TL = TSI->getTypeLoc().getUnqualifiedLoc();
+    TypeLoc const TL = TSI->getTypeLoc().getUnqualifiedLoc();
     FunctionTypeLoc FTL;
     if (getFunctionTypeLoc(TL, FTL)) {
       Kind = FunctionKind;
@@ -351,7 +351,7 @@ void DeclInfo::fill() {
     const TypeSourceInfo *TSI = TAD->getTypeSourceInfo();
     if (!TSI)
       break;
-    TypeLoc TL = TSI->getTypeLoc().getUnqualifiedLoc();
+    TypeLoc const TL = TSI->getTypeLoc().getUnqualifiedLoc();
     FunctionTypeLoc FTL;
     if (getFunctionTypeLoc(TL, FTL)) {
       Kind = FunctionKind;

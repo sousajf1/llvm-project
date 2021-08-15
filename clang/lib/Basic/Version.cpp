@@ -60,8 +60,8 @@ std::string getLLVMRevision() {
 std::string getClangFullRepositoryVersion() {
   std::string buf;
   llvm::raw_string_ostream OS(buf);
-  std::string Path = getClangRepositoryPath();
-  std::string Revision = getClangRevision();
+  std::string const Path = getClangRepositoryPath();
+  std::string const Revision = getClangRevision();
   if (!Path.empty() || !Revision.empty()) {
     OS << '(';
     if (!Path.empty())
@@ -74,10 +74,10 @@ std::string getClangFullRepositoryVersion() {
     OS << ')';
   }
   // Support LLVM in a separate repository.
-  std::string LLVMRev = getLLVMRevision();
+  std::string const LLVMRev = getLLVMRevision();
   if (!LLVMRev.empty() && LLVMRev != Revision) {
     OS << " (";
-    std::string LLVMRepo = getLLVMRepositoryPath();
+    std::string const LLVMRepo = getLLVMRepositoryPath();
     if (!LLVMRepo.empty())
       OS << LLVMRepo << ' ';
     OS << LLVMRev << ')';
@@ -97,7 +97,7 @@ std::string getClangToolFullVersion(StringRef ToolName) {
 #endif
   OS << ToolName << " version " CLANG_VERSION_STRING;
 
-  std::string repo = getClangFullRepositoryVersion();
+  std::string const repo = getClangFullRepositoryVersion();
   if (!repo.empty()) {
     OS << " " << repo;
   }
@@ -115,7 +115,7 @@ std::string getClangFullCPPVersion() {
 #endif
   OS << "Clang " CLANG_VERSION_STRING;
 
-  std::string repo = getClangFullRepositoryVersion();
+  std::string const repo = getClangFullRepositoryVersion();
   if (!repo.empty()) {
     OS << " " << repo;
   }

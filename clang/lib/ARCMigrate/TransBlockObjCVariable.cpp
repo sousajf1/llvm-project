@@ -90,7 +90,7 @@ public:
       VarDecl *var = BlockVars[i];
 
       BlockVarChecker checker(var);
-      bool onlyValueOfVarIsNeeded = checker.TraverseStmt(block->getBody());
+      bool const onlyValueOfVarIsNeeded = checker.TraverseStmt(block->getBody());
       if (onlyValueOfVarIsNeeded)
         VarsToChange.insert(var);
       else
@@ -136,9 +136,9 @@ void BlockObjCVariableTraverser::traverseBody(BodyContext &BodyCtx) {
     BlocksAttr *attr = var->getAttr<BlocksAttr>();
     if(!attr)
       continue;
-    bool useWeak = canApplyWeak(Pass.Ctx, var->getType());
-    SourceManager &SM = Pass.Ctx.getSourceManager();
-    Transaction Trans(Pass.TA);
+    bool const useWeak = canApplyWeak(Pass.Ctx, var->getType());
+    SourceManager  const&SM = Pass.Ctx.getSourceManager();
+    Transaction const Trans(Pass.TA);
     Pass.TA.replaceText(SM.getExpansionLoc(attr->getLocation()),
                         "__block",
                         useWeak ? "__weak" : "__unsafe_unretained");

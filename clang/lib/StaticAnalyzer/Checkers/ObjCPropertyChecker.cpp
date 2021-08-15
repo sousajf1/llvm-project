@@ -43,7 +43,7 @@ void ObjCPropertyChecker::checkCopyMutable(const ObjCPropertyDecl *D,
   if (D->isReadOnly() || D->getSetterKind() != ObjCPropertyDecl::Copy)
     return;
 
-  QualType T = D->getType();
+  QualType const T = D->getType();
   if (!T->isObjCObjectPointerType())
     return;
 

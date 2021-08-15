@@ -297,8 +297,8 @@ public:
   uint64_t encodeFlag(uint64_t V, StringRef MaskName) const {
     auto It = FlagTypes.find(MaskName);
     if (It != FlagTypes.end()) {
-      uint64_t Mask = It->getValue();
-      unsigned Shift = llvm::countTrailingZeros(Mask);
+      uint64_t const Mask = It->getValue();
+      unsigned const Shift = llvm::countTrailingZeros(Mask);
       return (V << Shift) & Mask;
     }
     llvm_unreachable("Unsupported flag");
@@ -460,7 +460,7 @@ std::string SVEType::str() const {
   return S;
 }
 void SVEType::applyTypespec() {
-  for (char I : TS) {
+  for (char const I : TS) {
     switch (I) {
     case 'P':
       Predicate = true;
@@ -820,7 +820,7 @@ Intrinsic::Intrinsic(StringRef Name, StringRef Proto, uint64_t MergeTy,
       ImmChecks(Checks.begin(), Checks.end()) {
   // Types[0] is the return value.
   for (unsigned I = 0; I < Proto.size(); ++I) {
-    SVEType T(BaseTypeSpec, Proto[I]);
+    SVEType const T(BaseTypeSpec, Proto[I]);
     Types.push_back(T);
 
     // Add range checks for immediates
@@ -854,13 +854,13 @@ std::string Intrinsic::replaceTemplatedArgs(std::string Name, TypeSpec TS,
                                             std::string Proto) const {
   std::string Ret = Name;
   while (Ret.find('{') != std::string::npos) {
-    size_t Pos = Ret.find('{');
-    size_t End = Ret.find('}');
-    unsigned NumChars = End - Pos + 1;
+    size_t const Pos = Ret.find('{');
+    size_t const End = Ret.find('}');
+    unsigned const NumChars = End - Pos + 1;
     assert(NumChars == 3 && "Unexpected template argument");
 
     SVEType T;
-    char C = Ret[Pos+1];
+    char const C = Ret[Pos+1];
     switch(C) {
     default:
       llvm_unreachable("Unknown predication specifier");
@@ -919,10 +919,10 @@ std::string Intrinsic::mangleName(ClassKind LocalCK) const {
 }
 
 void Intrinsic::emitIntrinsic(raw_ostream &OS) const {
-  bool IsOverloaded = getClassKind() == ClassG && getProto().size() > 1;
+  bool const IsOverloaded = getClassKind() == ClassG && getProto().size() > 1;
 
-  std::string FullName = mangleName(ClassS);
-  std::string ProtoName = mangleName(getClassKind());
+  std::string const FullName = mangleName(ClassS);
+  std::string const ProtoName = mangleName(getClassKind());
 
   OS << (IsOverloaded ? "__aio " : "__ai ")
      << "__attribute__((__clang_arm_builtin_alias("
@@ -990,16 +990,16 @@ uint64_t SVEEmitter::encodeTypeFlags(const SVEType &T) {
 
 void SVEEmitter::createIntrinsic(
     Record *R, SmallVectorImpl<std::unique_ptr<Intrinsic>> &Out) {
-  StringRef Name = R->getValueAsString("Name");
-  StringRef Proto = R->getValueAsString("Prototype");
+  StringRef const Name = R->getValueAsString("Name");
+  StringRef const Proto = R->getValueAsString("Prototype");
   StringRef Types = R->getValueAsString("Types");
-  StringRef Guard = R->getValueAsString("ArchGuard");
-  StringRef LLVMName = R->getValueAsString("LLVMIntrinsic");
-  uint64_t Merge = R->getValueAsInt("Merge");
-  StringRef MergeSuffix = R->getValueAsString("MergeSuffix");
-  uint64_t MemEltType = R->getValueAsInt("MemEltType");
-  std::vector<Record*> FlagsList = R->getValueAsListOfDefs("Flags");
-  std::vector<Record*> ImmCheckList = R->getValueAsListOfDefs("ImmChecks");
+  StringRef const Guard = R->getValueAsString("ArchGuard");
+  StringRef const LLVMName = R->getValueAsString("LLVMIntrinsic");
+  uint64_t const Merge = R->getValueAsInt("Merge");
+  StringRef const MergeSuffix = R->getValueAsString("MergeSuffix");
+  uint64_t const MemEltType = R->getValueAsInt("MemEltType");
+  std::vector<Record*> const FlagsList = R->getValueAsListOfDefs("Flags");
+  std::vector<Record*> const ImmCheckList = R->getValueAsListOfDefs("ImmChecks");
 
   int64_t Flags = 0;
   for (auto FlagRec : FlagsList)
@@ -1015,7 +1015,7 @@ void SVEEmitter::createIntrinsic(
   // Extract type specs from string
   SmallVector<TypeSpec, 8> TypeSpecs;
   TypeSpec Acc;
-  for (char I : Types) {
+  for (char const I : Types) {
     Acc.push_back(I);
     if (islower(I)) {
       TypeSpecs.push_back(TypeSpec(Acc));
@@ -1033,9 +1033,9 @@ void SVEEmitter::createIntrinsic(
     // Collate a list of range/option checks for the immediates.
     SmallVector<ImmCheck, 2> ImmChecks;
     for (auto *R : ImmCheckList) {
-      int64_t Arg = R->getValueAsInt("Arg");
-      int64_t EltSizeArg = R->getValueAsInt("EltSizeArg");
-      int64_t Kind = R->getValueAsDef("Kind")->getValueAsInt("Value");
+      int64_t const Arg = R->getValueAsInt("Arg");
+      int64_t const EltSizeArg = R->getValueAsInt("EltSizeArg");
+      int64_t const Kind = R->getValueAsDef("Kind")->getValueAsInt("Value");
       assert(Arg >= 0 && Kind >= 0 && "Arg and Kind must be nonnegative");
 
       unsigned ElementSizeInBits = 0;
@@ -1228,7 +1228,7 @@ void SVEEmitter::createHeader(raw_ostream &OS) {
       }
 
   SmallVector<std::unique_ptr<Intrinsic>, 128> Defs;
-  std::vector<Record *> RV = Records.getAllDerivedDefinitions("Inst");
+  std::vector<Record *> const RV = Records.getAllDerivedDefinitions("Inst");
   for (auto *R : RV)
     createIntrinsic(R, Defs);
 
@@ -1287,7 +1287,7 @@ void SVEEmitter::createHeader(raw_ostream &OS) {
 }
 
 void SVEEmitter::createBuiltins(raw_ostream &OS) {
-  std::vector<Record *> RV = Records.getAllDerivedDefinitions("Inst");
+  std::vector<Record *> const RV = Records.getAllDerivedDefinitions("Inst");
   SmallVector<std::unique_ptr<Intrinsic>, 128> Defs;
   for (auto *R : RV)
     createIntrinsic(R, Defs);
@@ -1318,7 +1318,7 @@ void SVEEmitter::createBuiltins(raw_ostream &OS) {
   }
 
 void SVEEmitter::createCodeGenMap(raw_ostream &OS) {
-  std::vector<Record *> RV = Records.getAllDerivedDefinitions("Inst");
+  std::vector<Record *> const RV = Records.getAllDerivedDefinitions("Inst");
   SmallVector<std::unique_ptr<Intrinsic>, 128> Defs;
   for (auto *R : RV)
     createIntrinsic(R, Defs);
@@ -1336,11 +1336,11 @@ void SVEEmitter::createCodeGenMap(raw_ostream &OS) {
     if (Def->getClassKind() == ClassG)
       continue;
 
-    uint64_t Flags = Def->getFlags();
+    uint64_t const Flags = Def->getFlags();
     auto FlagString = std::to_string(Flags);
 
-    std::string LLVMName = Def->getLLVMName();
-    std::string Builtin = Def->getMangledName();
+    std::string const LLVMName = Def->getLLVMName();
+    std::string const Builtin = Def->getMangledName();
     if (!LLVMName.empty())
       OS << "SVEMAP1(" << Builtin << ", " << LLVMName << ", " << FlagString
          << "),\n";
@@ -1351,7 +1351,7 @@ void SVEEmitter::createCodeGenMap(raw_ostream &OS) {
 }
 
 void SVEEmitter::createRangeChecks(raw_ostream &OS) {
-  std::vector<Record *> RV = Records.getAllDerivedDefinitions("Inst");
+  std::vector<Record *> const RV = Records.getAllDerivedDefinitions("Inst");
   SmallVector<std::unique_ptr<Intrinsic>, 128> Defs;
   for (auto *R : RV)
     createIntrinsic(R, Defs);

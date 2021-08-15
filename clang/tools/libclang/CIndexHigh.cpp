@@ -144,7 +144,7 @@ static SourceLocation getFileSpellingLoc(SourceManager &SM,
 static enum CXChildVisitResult findFileIdRefVisit(CXCursor cursor,
                                                   CXCursor parent,
                                                   CXClientData client_data) {
-  CXCursor declCursor = clang_getCursorReferenced(cursor);
+  CXCursor const declCursor = clang_getCursorReferenced(cursor);
   if (!clang_isDeclaration(declCursor.kind))
     return CXChildVisit_Recurse;
 
@@ -178,7 +178,7 @@ static enum CXChildVisitResult findFileIdRefVisit(CXCursor cursor,
 
     SourceLocation
       Loc = cxloc::translateSourceLocation(clang_getCursorLocation(cursor));
-    SourceLocation SelIdLoc = cxcursor::getSelectorIdentifierLoc(cursor);
+    SourceLocation const SelIdLoc = cxcursor::getSelectorIdentifierLoc(cursor);
     if (SelIdLoc.isValid())
       Loc = SelIdLoc;
 
@@ -192,7 +192,7 @@ static enum CXChildVisitResult findFileIdRefVisit(CXCursor cursor,
     }
 
     // We are looking for identifiers in a specific file.
-    std::pair<FileID, unsigned> LocInfo = SM.getDecomposedLoc(Loc);
+    std::pair<FileID, unsigned> const LocInfo = SM.getDecomposedLoc(Loc);
     if (LocInfo.first != data->FID)
       return CXChildVisit_Recurse;
 
@@ -213,9 +213,9 @@ static bool findIdRefsInFile(CXTranslationUnit TU, CXCursor declCursor,
                              const FileEntry *File,
                              CXCursorAndRangeVisitor Visitor) {
   assert(clang_isDeclaration(declCursor.kind));
-  SourceManager &SM = cxtu::getASTUnit(TU)->getSourceManager();
+  SourceManager  const&SM = cxtu::getASTUnit(TU)->getSourceManager();
 
-  FileID FID = SM.translateFile(File);
+  FileID const FID = SM.translateFile(File);
   const Decl *Dcl = cxcursor::getCursorDecl(declCursor);
   if (!Dcl)
     return false;
@@ -229,7 +229,7 @@ static bool findIdRefsInFile(CXTranslationUnit TU, CXCursor declCursor,
                                findFileIdRefVisit, &data);
   }
 
-  SourceRange Range(SM.getLocForStartOfFile(FID), SM.getLocForEndOfFile(FID));
+  SourceRange const Range(SM.getLocForStartOfFile(FID), SM.getLocForEndOfFile(FID));
   CursorVisitor FindIdRefsVisitor(TU,
                                   findFileIdRefVisit, &data,
                                   /*VisitPreprocessorLast=*/true,
@@ -287,7 +287,7 @@ static enum CXChildVisitResult findFileMacroRefVisit(CXCursor cursor,
   }
 
   // We are looking for identifiers in a specific file.
-  std::pair<FileID, unsigned> LocInfo = SM.getDecomposedLoc(Loc);
+  std::pair<FileID, unsigned> const LocInfo = SM.getDecomposedLoc(Loc);
   if (SM.getFileEntryForID(LocInfo.first) != data->File)
     return CXChildVisit_Continue;
 
@@ -311,9 +311,9 @@ static bool findMacroRefsInFile(CXTranslationUnit TU, CXCursor Cursor,
     return false;
 
   ASTUnit *Unit = cxtu::getASTUnit(TU);
-  SourceManager &SM = Unit->getSourceManager();
+  SourceManager  const&SM = Unit->getSourceManager();
 
-  FileID FID = SM.translateFile(File);
+  FileID const FID = SM.translateFile(File);
   const IdentifierInfo *Macro = nullptr;
   if (Cursor.kind == CXCursor_MacroDefinition)
     Macro = getCursorMacroDefinition(Cursor)->getName();
@@ -324,7 +324,7 @@ static bool findMacroRefsInFile(CXTranslationUnit TU, CXCursor Cursor,
 
   FindFileMacroRefVisitData data(*Unit, File, Macro, Visitor);
 
-  SourceRange Range(SM.getLocForStartOfFile(FID), SM.getLocForEndOfFile(FID));
+  SourceRange const Range(SM.getLocForStartOfFile(FID), SM.getLocForEndOfFile(FID));
   CursorVisitor FindMacroRefsVisitor(TU,
                                   findFileMacroRefVisit, &data,
                                   /*VisitPreprocessorLast=*/false,
@@ -353,13 +353,13 @@ struct FindFileIncludesVisitor {
       return CXChildVisit_Continue;
 
     SourceLocation
-      Loc = cxloc::translateSourceLocation(clang_getCursorLocation(cursor));
+      const Loc = cxloc::translateSourceLocation(clang_getCursorLocation(cursor));
 
     ASTContext &Ctx = getASTContext();
-    SourceManager &SM = Ctx.getSourceManager();
+    SourceManager  const&SM = Ctx.getSourceManager();
 
     // We are looking for includes in a specific file.
-    std::pair<FileID, unsigned> LocInfo = SM.getDecomposedLoc(Loc);
+    std::pair<FileID, unsigned> const LocInfo = SM.getDecomposedLoc(Loc);
     if (SM.getFileEntryForID(LocInfo.first) != File)
       return CXChildVisit_Continue;
 
@@ -383,13 +383,13 @@ static bool findIncludesInFile(CXTranslationUnit TU, const FileEntry *File,
   assert(TU && File && Visitor.visit);
 
   ASTUnit *Unit = cxtu::getASTUnit(TU);
-  SourceManager &SM = Unit->getSourceManager();
+  SourceManager  const&SM = Unit->getSourceManager();
 
-  FileID FID = SM.translateFile(File);
+  FileID const FID = SM.translateFile(File);
 
   FindFileIncludesVisitor IncludesVisitor(*Unit, File, Visitor);
 
-  SourceRange Range(SM.getLocForStartOfFile(FID), SM.getLocForEndOfFile(FID));
+  SourceRange const Range(SM.getLocForStartOfFile(FID), SM.getLocForEndOfFile(FID));
   CursorVisitor InclusionCursorsVisitor(TU,
                                         FindFileIncludesVisitor::visit,
                                         &IncludesVisitor,
@@ -408,7 +408,7 @@ extern "C" {
 
 CXResult clang_findReferencesInFile(CXCursor cursor, CXFile file,
                                     CXCursorAndRangeVisitor visitor) {
-  LogRef Log = Logger::make(__func__);
+  LogRef const Log = Logger::make(__func__);
 
   if (clang_Cursor_isNull(cursor)) {
     if (Log)
@@ -438,7 +438,7 @@ CXResult clang_findReferencesInFile(CXCursor cursor, CXFile file,
   if (!CXXUnit)
     return CXResult_Invalid;
 
-  ASTUnit::ConcurrencyCheck Check(*CXXUnit);
+  ASTUnit::ConcurrencyCheck const Check(*CXXUnit);
 
   if (cursor.kind == CXCursor_MacroDefinition ||
       cursor.kind == CXCursor_MacroExpansion) {
@@ -459,7 +459,7 @@ CXResult clang_findReferencesInFile(CXCursor cursor, CXFile file,
   // we are actually interested in the type declaration.
   cursor = cxcursor::getTypeRefCursor(cursor);
 
-  CXCursor refCursor = clang_getCursorReferenced(cursor);
+  CXCursor const refCursor = clang_getCursorReferenced(cursor);
 
   if (!clang_isDeclaration(refCursor.kind)) {
     if (Log)
@@ -482,7 +482,7 @@ CXResult clang_findIncludesInFile(CXTranslationUnit TU, CXFile file,
     return CXResult_Invalid;
   }
 
-  LogRef Log = Logger::make(__func__);
+  LogRef const Log = Logger::make(__func__);
   if (!file) {
     if (Log)
       *Log << "Null file";
@@ -501,7 +501,7 @@ CXResult clang_findIncludesInFile(CXTranslationUnit TU, CXFile file,
   if (!CXXUnit)
     return CXResult_Invalid;
 
-  ASTUnit::ConcurrencyCheck Check(*CXXUnit);
+  ASTUnit::ConcurrencyCheck const Check(*CXXUnit);
 
   if (findIncludesInFile(TU, static_cast<const FileEntry *>(file), visitor))
     return CXResult_VisitBreak;
@@ -518,7 +518,7 @@ static enum CXVisitorResult _visitCursorAndRange(void *context,
 CXResult clang_findReferencesInFileWithBlock(CXCursor cursor,
                                              CXFile file,
                                            CXCursorAndRangeVisitorBlock block) {
-  CXCursorAndRangeVisitor visitor = { block,
+  CXCursorAndRangeVisitor const visitor = { block,
                                       block ? _visitCursorAndRange : nullptr };
   return clang_findReferencesInFile(cursor, file, visitor);
 }
@@ -526,7 +526,7 @@ CXResult clang_findReferencesInFileWithBlock(CXCursor cursor,
 CXResult clang_findIncludesInFileWithBlock(CXTranslationUnit TU,
                                            CXFile file,
                                            CXCursorAndRangeVisitorBlock block) {
-  CXCursorAndRangeVisitor visitor = { block,
+  CXCursorAndRangeVisitor const visitor = { block,
                                       block ? _visitCursorAndRange : nullptr };
   return clang_findIncludesInFile(TU, file, visitor);
 }

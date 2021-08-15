@@ -54,12 +54,12 @@ static char getCharForLevel(DiagnosticsEngine::Level Level) {
 
 static IntrusiveRefCntPtr<DiagnosticsEngine>
 createDiagnostics(unsigned int argc, char **argv) {
-  IntrusiveRefCntPtr<DiagnosticIDs> DiagIDs(new DiagnosticIDs());
+  IntrusiveRefCntPtr<DiagnosticIDs> const DiagIDs(new DiagnosticIDs());
 
   // Buffer diagnostics from argument parsing so that we can output them using a
   // well formed diagnostic object.
   TextDiagnosticBuffer *DiagsBuffer = new TextDiagnosticBuffer;
-  IntrusiveRefCntPtr<DiagnosticsEngine> InterimDiags(
+  IntrusiveRefCntPtr<DiagnosticsEngine> const InterimDiags(
     new DiagnosticsEngine(DiagIDs, new DiagnosticOptions(), DiagsBuffer));
 
   // Try to build a CompilerInvocation.
@@ -88,7 +88,7 @@ int ShowEnabledWarnings::run(unsigned int argc, char **argv, raw_ostream &Out) {
   // First check our one flag (--levels).
   bool ShouldShowLevels = true;
   if (argc > 0) {
-    StringRef FirstArg(*argv);
+    StringRef const FirstArg(*argv);
     if (FirstArg.equals("--no-levels")) {
       ShouldShowLevels = false;
       --argc;
@@ -101,7 +101,7 @@ int ShowEnabledWarnings::run(unsigned int argc, char **argv, raw_ostream &Out) {
   }
 
   // Create the diagnostic engine.
-  IntrusiveRefCntPtr<DiagnosticsEngine> Diags = createDiagnostics(argc, argv);
+  IntrusiveRefCntPtr<DiagnosticsEngine> const Diags = createDiagnostics(argc, argv);
   if (!Diags) {
     printUsage();
     return EXIT_FAILURE;
@@ -114,7 +114,7 @@ int ShowEnabledWarnings::run(unsigned int argc, char **argv, raw_ostream &Out) {
   std::vector<PrettyDiag> Active;
 
   for (const DiagnosticRecord &DR : getBuiltinDiagnosticsByName()) {
-    unsigned DiagID = DR.DiagID;
+    unsigned const DiagID = DR.DiagID;
 
     if (DiagnosticIDs::isBuiltinNote(DiagID))
       continue;
@@ -122,12 +122,12 @@ int ShowEnabledWarnings::run(unsigned int argc, char **argv, raw_ostream &Out) {
     if (!DiagnosticIDs::isBuiltinWarningOrExtension(DiagID))
       continue;
 
-    DiagnosticsEngine::Level DiagLevel =
+    DiagnosticsEngine::Level const DiagLevel =
       Diags->getDiagnosticLevel(DiagID, SourceLocation());
     if (DiagLevel == DiagnosticsEngine::Ignored)
       continue;
 
-    StringRef WarningOpt = DiagnosticIDs::getWarningOptionForDiag(DiagID);
+    StringRef const WarningOpt = DiagnosticIDs::getWarningOptionForDiag(DiagID);
     Active.push_back(PrettyDiag(DR.getName(), WarningOpt, DiagLevel));
   }
 

@@ -90,11 +90,11 @@ void DynamicTypeChecker::reportTypeError(QualType DynamicType,
 
 PathDiagnosticPieceRef DynamicTypeChecker::DynamicTypeBugVisitor::VisitNode(
     const ExplodedNode *N, BugReporterContext &BRC, PathSensitiveBugReport &) {
-  ProgramStateRef State = N->getState();
-  ProgramStateRef StatePrev = N->getFirstPred()->getState();
+  ProgramStateRef const State = N->getState();
+  ProgramStateRef const StatePrev = N->getFirstPred()->getState();
 
-  DynamicTypeInfo TrackedType = getDynamicTypeInfo(State, Reg);
-  DynamicTypeInfo TrackedTypePrev = getDynamicTypeInfo(StatePrev, Reg);
+  DynamicTypeInfo const TrackedType = getDynamicTypeInfo(State, Reg);
+  DynamicTypeInfo const TrackedTypePrev = getDynamicTypeInfo(StatePrev, Reg);
   if (!TrackedType.isValid())
     return nullptr;
 
@@ -137,7 +137,7 @@ PathDiagnosticPieceRef DynamicTypeChecker::DynamicTypeBugVisitor::VisitNode(
   }
 
   // Generate the extra diagnostic.
-  PathDiagnosticLocation Pos(S, BRC.getSourceManager(),
+  PathDiagnosticLocation const Pos(S, BRC.getSourceManager(),
                              N->getLocationContext());
   return std::make_shared<PathDiagnosticEventPiece>(Pos, OS.str(), true);
 }
@@ -161,14 +161,14 @@ void DynamicTypeChecker::checkPostStmt(const ImplicitCastExpr *CE,
   if (!Region)
     return;
 
-  ProgramStateRef State = C.getState();
-  DynamicTypeInfo DynTypeInfo = getDynamicTypeInfo(State, Region);
+  ProgramStateRef const State = C.getState();
+  DynamicTypeInfo const DynTypeInfo = getDynamicTypeInfo(State, Region);
 
   if (!DynTypeInfo.isValid())
     return;
 
-  QualType DynType = DynTypeInfo.getType();
-  QualType StaticType = CE->getType();
+  QualType const DynType = DynTypeInfo.getType();
+  QualType const StaticType = CE->getType();
 
   const auto *DynObjCType = DynType->getAs<ObjCObjectPointerType>();
   const auto *StaticObjCType = StaticType->getAs<ObjCObjectPointerType>();

@@ -70,7 +70,7 @@ SourceRange StackAddrEscapeChecker::genName(raw_ostream &os, const MemRegion *R,
                                             ASTContext &Ctx) {
   // Get the base region, stripping away fields and elements.
   R = R->getBaseRegion();
-  SourceManager &SM = Ctx.getSourceManager();
+  SourceManager  const&SM = Ctx.getSourceManager();
   SourceRange range;
   os << "Address of ";
 
@@ -83,13 +83,13 @@ SourceRange StackAddrEscapeChecker::genName(raw_ostream &os, const MemRegion *R,
     range = CL->getSourceRange();
   } else if (const auto *AR = dyn_cast<AllocaRegion>(R)) {
     const Expr *ARE = AR->getExpr();
-    SourceLocation L = ARE->getBeginLoc();
+    SourceLocation const L = ARE->getBeginLoc();
     range = ARE->getSourceRange();
     os << "stack memory allocated by call to alloca() on line "
        << SM.getExpansionLineNumber(L);
   } else if (const auto *BR = dyn_cast<BlockDataRegion>(R)) {
     const BlockDecl *BD = BR->getCodeRegion()->getDecl();
-    SourceLocation L = BD->getBeginLoc();
+    SourceLocation const L = BD->getBeginLoc();
     range = BD->getSourceRange();
     os << "stack-allocated block declared on line "
        << SM.getExpansionLineNumber(L);
@@ -98,7 +98,7 @@ SourceRange StackAddrEscapeChecker::genName(raw_ostream &os, const MemRegion *R,
        << '\'';
     range = VR->getDecl()->getSourceRange();
   } else if (const auto *TOR = dyn_cast<CXXTempObjectRegion>(R)) {
-    QualType Ty = TOR->getValueType().getLocalUnqualifiedType();
+    QualType const Ty = TOR->getValueType().getLocalUnqualifiedType();
     os << "stack memory associated with temporary object of type '";
     Ty.print(os, Ctx.getPrintingPolicy());
     os << "'";
@@ -139,9 +139,9 @@ StackAddrEscapeChecker::getCapturedStackRegions(const BlockDataRegion &B,
                                                 CheckerContext &C) {
   SmallVector<const MemRegion *, 4> Regions;
   BlockDataRegion::referenced_vars_iterator I = B.referenced_vars_begin();
-  BlockDataRegion::referenced_vars_iterator E = B.referenced_vars_end();
+  BlockDataRegion::referenced_vars_iterator const E = B.referenced_vars_end();
   for (; I != E; ++I) {
-    SVal Val = C.getState()->getSVal(I.getCapturedRegion());
+    SVal const Val = C.getState()->getSVal(I.getCapturedRegion());
     const MemRegion *Region = Val.getAsRegion();
     if (Region && isa<StackSpaceRegion>(Region->getMemorySpace()))
       Regions.push_back(Region);
@@ -162,7 +162,7 @@ void StackAddrEscapeChecker::EmitStackError(CheckerContext &C,
   // Generate a report for this bug.
   SmallString<128> buf;
   llvm::raw_svector_ostream os(buf);
-  SourceRange range = genName(os, R, C.getASTContext());
+  SourceRange const range = genName(os, R, C.getASTContext());
   os << " returned to caller";
   auto report =
       std::make_unique<PathSensitiveBugReport>(*BT_returnstack, os.str(), N);
@@ -201,7 +201,7 @@ void StackAddrEscapeChecker::checkAsyncExecutedBlockCaptures(
           "Address of stack-allocated memory is captured");
     SmallString<128> Buf;
     llvm::raw_svector_ostream Out(Buf);
-    SourceRange Range = genName(Out, Region, C.getASTContext());
+    SourceRange const Range = genName(Out, Region, C.getASTContext());
     Out << " is captured by an asynchronously-executed block";
     auto Report = std::make_unique<PathSensitiveBugReport>(
         *BT_capturedstackasync, Out.str(), N);
@@ -225,7 +225,7 @@ void StackAddrEscapeChecker::checkReturnedBlockCaptures(
           "Address of stack-allocated memory is captured");
     SmallString<128> Buf;
     llvm::raw_svector_ostream Out(Buf);
-    SourceRange Range = genName(Out, Region, C.getASTContext());
+    SourceRange const Range = genName(Out, Region, C.getASTContext());
     Out << " is captured by a returned block";
     auto Report = std::make_unique<PathSensitiveBugReport>(*BT_capturedstackret,
                                                            Out.str(), N);
@@ -259,7 +259,7 @@ void StackAddrEscapeChecker::checkPreStmt(const ReturnStmt *RS,
     return;
   RetE = RetE->IgnoreParens();
 
-  SVal V = C.getSVal(RetE);
+  SVal const V = C.getSVal(RetE);
   const MemRegion *R = V.getAsRegion();
   if (!R)
     return;
@@ -296,7 +296,7 @@ void StackAddrEscapeChecker::checkEndFunction(const ReturnStmt *RS,
   if (!ChecksEnabled[CK_StackAddrEscapeChecker])
     return;
 
-  ProgramStateRef State = Ctx.getState();
+  ProgramStateRef const State = Ctx.getState();
 
   // Iterate over all bindings to global variables and see if it contains
   // a memory region in the stack space.
@@ -347,7 +347,7 @@ void StackAddrEscapeChecker::checkEndFunction(const ReturnStmt *RS,
     // Generate a report for this bug.
     SmallString<128> Buf;
     llvm::raw_svector_ostream Out(Buf);
-    SourceRange Range = genName(Out, P.second, Ctx.getASTContext());
+    SourceRange const Range = genName(Out, P.second, Ctx.getASTContext());
     Out << " is still referred to by the ";
     if (isa<StaticGlobalSpaceRegion>(P.first->getMemorySpace()))
       Out << "static";

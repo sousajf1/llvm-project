@@ -135,7 +135,7 @@ public:
 
   bool dynMatches(const DynTypedNode &DynNode, ASTMatchFinder *Finder,
                   BoundNodesTreeBuilder *Builder) const override {
-    bool Result = InnerMatcher->dynMatches(DynNode, Finder, Builder);
+    bool const Result = InnerMatcher->dynMatches(DynNode, Finder, Builder);
     if (Result) Builder->setBinding(ID, DynNode);
     return Result;
   }
@@ -286,7 +286,7 @@ DynTypedMatcher DynTypedMatcher::dynCastTo(const ASTNodeKind Kind) const {
 bool DynTypedMatcher::matches(const DynTypedNode &DynNode,
                               ASTMatchFinder *Finder,
                               BoundNodesTreeBuilder *Builder) const {
-  TraversalKindScope RAII(Finder->getASTContext(),
+  TraversalKindScope const RAII(Finder->getASTContext(),
                           Implementation->TraversalKind());
 
   if (Finder->isTraversalIgnoringImplicitNodes() &&
@@ -314,7 +314,7 @@ bool DynTypedMatcher::matches(const DynTypedNode &DynNode,
 bool DynTypedMatcher::matchesNoKindCheck(const DynTypedNode &DynNode,
                                          ASTMatchFinder *Finder,
                                          BoundNodesTreeBuilder *Builder) const {
-  TraversalKindScope raii(Finder->getASTContext(),
+  TraversalKindScope const raii(Finder->getASTContext(),
                           Implementation->TraversalKind());
 
   if (Finder->isTraversalIgnoringImplicitNodes() &&
@@ -472,7 +472,7 @@ HasNameMatcher::HasNameMatcher(std::vector<std::string> N)
           N, [](StringRef Name) { return Name.find("::") == Name.npos; })),
       Names(std::move(N)) {
 #ifndef NDEBUG
-  for (StringRef Name : Names)
+  for (StringRef const Name : Names)
     assert(!Name.empty());
 #endif
 }
@@ -528,7 +528,7 @@ class PatternSet {
 public:
   PatternSet(ArrayRef<std::string> Names) {
     Patterns.reserve(Names.size());
-    for (StringRef Name : Names)
+    for (StringRef const Name : Names)
       Patterns.push_back({Name, Name.startswith("::")});
   }
 
@@ -639,7 +639,7 @@ bool HasNameMatcher::matchesNodeFullFast(const NamedDecl &Node) const {
 
 bool HasNameMatcher::matchesNodeFullSlow(const NamedDecl &Node) const {
   const bool SkipUnwrittenCases[] = {false, true};
-  for (bool SkipUnwritten : SkipUnwrittenCases) {
+  for (bool const SkipUnwritten : SkipUnwrittenCases) {
     llvm::SmallString<128> NodeName = StringRef("::");
     llvm::raw_svector_ostream OS(NodeName);
 
@@ -680,7 +680,7 @@ static bool isTokenAtLoc(const SourceManager &SM, const LangOptions &LangOpts,
   bool Invalid = false;
   // Since `Loc` may point into an expansion buffer, which has no corresponding
   // source, we need to look at the spelling location to read the actual source.
-  StringRef TokenText = Lexer::getSpelling(SM.getSpellingLoc(Loc), Buffer, SM,
+  StringRef const TokenText = Lexer::getSpelling(SM.getSpellingLoc(Loc), Buffer, SM,
                                            LangOpts, &Invalid);
   return !Invalid && Text == TokenText;
 }
@@ -691,7 +691,7 @@ getExpansionLocOfMacro(StringRef MacroName, SourceLocation Loc,
   auto &SM = Context.getSourceManager();
   const LangOptions &LangOpts = Context.getLangOpts();
   while (Loc.isMacroID()) {
-    SrcMgr::ExpansionInfo Expansion =
+    SrcMgr::ExpansionInfo const Expansion =
         SM.getSLocEntry(SM.getFileID(Loc)).getExpansion();
     if (Expansion.isMacroArgExpansion())
       // Check macro argument for an expansion of the given macro. For example,

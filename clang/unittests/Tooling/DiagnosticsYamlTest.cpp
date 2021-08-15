@@ -117,17 +117,17 @@ TEST(DiagnosticsYamlTest, serializesDiagnostics) {
   TranslationUnitDiagnostics TUD;
   TUD.MainSourceFile = "path/to/source.cpp";
 
-  StringMap<Replacements> Fix1 = {
+  StringMap<Replacements> const Fix1 = {
       {"path/to/source.cpp",
        Replacements({"path/to/source.cpp", 100, 12, "replacement #1"})}};
   TUD.Diagnostics.push_back(makeDiagnostic("diagnostic#1", "message #1", 55,
                                            "path/to/source.cpp", Fix1, {},
                                            Diagnostic::Warning));
 
-  StringMap<Replacements> Fix2 = {
+  StringMap<Replacements> const Fix2 = {
       {"path/to/header.h",
        Replacements({"path/to/header.h", 62, 2, "replacement #2"})}};
-  SmallVector<FileByteRange, 1> Ranges2 =
+  SmallVector<FileByteRange, 1> const Ranges2 =
       {makeByteRange(10, 10, "path/to/source.cpp")};
   TUD.Diagnostics.push_back(makeDiagnostic("diagnostic#2", "message #2", 60,
                                            "path/to/header.h", Fix2, Ranges2,
@@ -173,7 +173,7 @@ TEST(DiagnosticsYamlTest, deserializesDiagnostics) {
     return Fixes;
   };
 
-  Diagnostic D1 = TUDActual.Diagnostics[0];
+  Diagnostic const D1 = TUDActual.Diagnostics[0];
   EXPECT_EQ("diagnostic#1", D1.DiagnosticName);
   EXPECT_EQ("message #1", D1.Message.Message);
   EXPECT_EQ(55u, D1.Message.FileOffset);
@@ -214,7 +214,7 @@ TEST(DiagnosticsYamlTest, deserializesDiagnostics) {
   EXPECT_EQ("Note2", D3.Notes[1].Message);
   EXPECT_EQ(99u, D3.Notes[1].FileOffset);
   EXPECT_EQ("path/to/note2.cpp", D3.Notes[1].FilePath);
-  std::vector<Replacement> Fixes3 = getFixes(D3.Message.Fix);
+  std::vector<Replacement> const Fixes3 = getFixes(D3.Message.Fix);
   EXPECT_TRUE(Fixes3.empty());
   EXPECT_TRUE(D3.Message.Ranges.empty());
 }

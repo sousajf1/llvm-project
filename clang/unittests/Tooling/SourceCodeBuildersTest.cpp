@@ -173,7 +173,7 @@ TEST(SourceCodeBuildersTest, BuildAddressOfBinaryOperation) {
 }
 
 TEST(SourceCodeBuildersTest, BuildAddressOfImplicitThis) {
-  StringRef Snippet = R"cc(
+  StringRef const Snippet = R"cc(
     struct Struct {
       void foo() {}
       void bar() {

@@ -124,8 +124,8 @@ void fuchsia::Linker::ConstructJob(Compilation &C, const JobAction &JA,
                   D.getLTOMode() == LTOK_Thin);
   }
 
-  bool NeedsSanitizerDeps = addSanitizerRuntimes(ToolChain, Args, CmdArgs);
-  bool NeedsXRayDeps = addXRayRuntime(ToolChain, Args, CmdArgs);
+  bool const NeedsSanitizerDeps = addSanitizerRuntimes(ToolChain, Args, CmdArgs);
+  bool const NeedsXRayDeps = addXRayRuntime(ToolChain, Args, CmdArgs);
   AddLinkerInputs(ToolChain, Inputs, Args, CmdArgs, JA);
   ToolChain.addProfileRTLibs(Args, CmdArgs);
 
@@ -135,7 +135,7 @@ void fuchsia::Linker::ConstructJob(Compilation &C, const JobAction &JA,
 
     if (D.CCCIsCXX()) {
       if (ToolChain.ShouldLinkCXXStdlib(Args)) {
-        bool OnlyLibstdcxxStatic = Args.hasArg(options::OPT_static_libstdcxx) &&
+        bool const OnlyLibstdcxxStatic = Args.hasArg(options::OPT_static_libstdcxx) &&
                                    !Args.hasArg(options::OPT_static);
         CmdArgs.push_back("--push-state");
         CmdArgs.push_back("--as-needed");
@@ -280,7 +280,7 @@ Fuchsia::Fuchsia(const Driver &D, const llvm::Triple &Triple,
 
 std::string Fuchsia::ComputeEffectiveClangTriple(const ArgList &Args,
                                                  types::ID InputType) const {
-  llvm::Triple Triple(ComputeLLVMTriple(Args, InputType));
+  llvm::Triple const Triple(ComputeLLVMTriple(Args, InputType));
   return Triple.str();
 }
 
@@ -291,7 +291,7 @@ Tool *Fuchsia::buildLinker() const {
 ToolChain::RuntimeLibType Fuchsia::GetRuntimeLibType(
     const ArgList &Args) const {
   if (Arg *A = Args.getLastArg(clang::driver::options::OPT_rtlib_EQ)) {
-    StringRef Value = A->getValue();
+    StringRef const Value = A->getValue();
     if (Value != "compiler-rt")
       getDriver().Diag(clang::diag::err_drv_invalid_rtlib_name)
           << A->getAsString(Args);
@@ -303,7 +303,7 @@ ToolChain::RuntimeLibType Fuchsia::GetRuntimeLibType(
 ToolChain::CXXStdlibType
 Fuchsia::GetCXXStdlibType(const ArgList &Args) const {
   if (Arg *A = Args.getLastArg(options::OPT_stdlib_EQ)) {
-    StringRef Value = A->getValue();
+    StringRef const Value = A->getValue();
     if (Value != "libc++")
       getDriver().Diag(diag::err_drv_invalid_stdlib_name)
         << A->getAsString(Args);
@@ -337,12 +337,12 @@ void Fuchsia::AddClangSystemIncludeArgs(const ArgList &DriverArgs,
     return;
 
   // Check for configure-time C include directories.
-  StringRef CIncludeDirs(C_INCLUDE_DIRS);
+  StringRef const CIncludeDirs(C_INCLUDE_DIRS);
   if (CIncludeDirs != "") {
     SmallVector<StringRef, 5> dirs;
     CIncludeDirs.split(dirs, ":");
-    for (StringRef dir : dirs) {
-      StringRef Prefix =
+    for (StringRef const dir : dirs) {
+      StringRef const Prefix =
           llvm::sys::path::is_absolute(dir) ? "" : StringRef(D.SysRoot);
       addExternCSystemInclude(DriverArgs, CC1Args, Prefix + dir);
     }
@@ -366,7 +366,7 @@ void Fuchsia::AddClangCXXStdlibIncludeArgs(const ArgList &DriverArgs,
   std::string Target = getTripleString();
 
   auto AddCXXIncludePath = [&](StringRef Path) {
-    std::string Version = detectLibcxxVersion(Path);
+    std::string const Version = detectLibcxxVersion(Path);
     if (Version.empty())
       return;
 

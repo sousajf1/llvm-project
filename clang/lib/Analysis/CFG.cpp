@@ -933,14 +933,14 @@ private:
     if (!IntLiteral || !BoolExpr->isKnownToHaveBooleanValue())
       return TryResult();
 
-    llvm::APInt IntValue = IntLiteral->getValue();
+    llvm::APInt const IntValue = IntLiteral->getValue();
     if ((IntValue == 1) || (IntValue == 0))
       return TryResult();
 
-    bool IntLarger = IntLiteral->getType()->isUnsignedIntegerType() ||
+    bool const IntLarger = IntLiteral->getType()->isUnsignedIntegerType() ||
                      !IntValue.isNegative();
 
-    BinaryOperatorKind Bok = B->getOpcode();
+    BinaryOperatorKind const Bok = B->getOpcode();
     if (Bok == BO_GT || Bok == BO_GE) {
       // Always true for 10 > bool and bool > -1
       // Always false for -1 > bool and bool > 10
@@ -985,8 +985,8 @@ private:
       if (!IntLiteral2)
         return TryResult();
 
-      llvm::APInt L1 = IntLiteral->getValue();
-      llvm::APInt L2 = IntLiteral2->getValue();
+      llvm::APInt const L1 = IntLiteral->getValue();
+      llvm::APInt const L2 = IntLiteral2->getValue();
       if ((BitOp->getOpcode() == BO_And && (L2 & L1) != L1) ||
           (BitOp->getOpcode() == BO_Or  && (L2 | L1) != L1)) {
         if (BuildOpts.Observer)
@@ -995,7 +995,7 @@ private:
         TryResult(B->getOpcode() != BO_EQ);
       }
     } else if (BoolExpr->isKnownToHaveBooleanValue()) {
-      llvm::APInt IntValue = IntLiteral->getValue();
+      llvm::APInt const IntValue = IntLiteral->getValue();
       if ((IntValue == 1) || (IntValue == 0)) {
         return TryResult();
       }
@@ -1073,8 +1073,8 @@ private:
         !NumExpr2->EvaluateAsInt(L2Result, *Context))
       return {};
 
-    llvm::APSInt L1 = L1Result.Val.getInt();
-    llvm::APSInt L2 = L2Result.Val.getInt();
+    llvm::APSInt const L1 = L1Result.Val.getInt();
+    llvm::APSInt const L2 = L2Result.Val.getInt();
 
     // Can't compare signed with unsigned or with different bit width.
     if (L1.isSigned() != L2.isSigned() || L1.getBitWidth() != L2.getBitWidth())
@@ -1182,7 +1182,7 @@ private:
     if (BinaryOperator *Bop = dyn_cast<BinaryOperator>(S)) {
       if (Bop->isLogicalOp() || Bop->isEqualityOp()) {
         // Check the cache first.
-        CachedBoolEvalsTy::iterator I = CachedBoolEvals.find(S);
+        CachedBoolEvalsTy::iterator const I = CachedBoolEvals.find(S);
         if (I != CachedBoolEvals.end())
           return I->second; // already in map;
 
@@ -1202,14 +1202,14 @@ private:
             // must be false.
             Expr::EvalResult LHSResult;
             if (Bop->getLHS()->EvaluateAsInt(LHSResult, *Context)) {
-              llvm::APSInt IntVal = LHSResult.Val.getInt();
+              llvm::APSInt const IntVal = LHSResult.Val.getInt();
               if (!IntVal.getBoolValue()) {
                 return TryResult(false);
               }
             }
             Expr::EvalResult RHSResult;
             if (Bop->getRHS()->EvaluateAsInt(RHSResult, *Context)) {
-              llvm::APSInt IntVal = RHSResult.Val.getInt();
+              llvm::APSInt const IntVal = RHSResult.Val.getInt();
               if (!IntVal.getBoolValue()) {
                 return TryResult(false);
               }
@@ -1227,14 +1227,14 @@ private:
   TryResult evaluateAsBooleanConditionNoCache(Expr *E) {
     if (BinaryOperator *Bop = dyn_cast<BinaryOperator>(E)) {
       if (Bop->isLogicalOp()) {
-        TryResult LHS = tryEvaluateBool(Bop->getLHS());
+        TryResult const LHS = tryEvaluateBool(Bop->getLHS());
         if (LHS.isKnown()) {
           // We were able to evaluate the LHS, see if we can get away with not
           // evaluating the RHS: 0 && X -> 0, 1 || X -> 1
           if (LHS.isTrue() == (Bop->getOpcode() == BO_LOr))
             return LHS.isTrue();
 
-          TryResult RHS = tryEvaluateBool(Bop->getRHS());
+          TryResult const RHS = tryEvaluateBool(Bop->getRHS());
           if (RHS.isKnown()) {
             if (Bop->getOpcode() == BO_LOr)
               return LHS.isTrue() || RHS.isTrue();
@@ -1242,14 +1242,14 @@ private:
               return LHS.isTrue() && RHS.isTrue();
           }
         } else {
-          TryResult RHS = tryEvaluateBool(Bop->getRHS());
+          TryResult const RHS = tryEvaluateBool(Bop->getRHS());
           if (RHS.isKnown()) {
             // We can't evaluate the LHS; however, sometimes the result
             // is determined by the RHS: X && 0 -> 0, X || 1 -> 1.
             if (RHS.isTrue() == (Bop->getOpcode() == BO_LOr))
               return RHS.isTrue();
           } else {
-            TryResult BopRes = checkIncorrectLogicOperator(Bop);
+            TryResult const BopRes = checkIncorrectLogicOperator(Bop);
             if (BopRes.isKnown())
               return BopRes.isTrue();
           }
@@ -1257,15 +1257,15 @@ private:
 
         return {};
       } else if (Bop->isEqualityOp()) {
-          TryResult BopRes = checkIncorrectEqualityOperator(Bop);
+          TryResult const BopRes = checkIncorrectEqualityOperator(Bop);
           if (BopRes.isKnown())
             return BopRes.isTrue();
       } else if (Bop->isRelationalOp()) {
-        TryResult BopRes = checkIncorrectRelationalOperator(Bop);
+        TryResult const BopRes = checkIncorrectRelationalOperator(Bop);
         if (BopRes.isKnown())
           return BopRes.isTrue();
       } else if (Bop->getOpcode() == BO_Or) {
-        TryResult BopRes = checkIncorrectBitwiseOrOperator(Bop);
+        TryResult const BopRes = checkIncorrectBitwiseOrOperator(Bop);
         if (BopRes.isKnown())
           return BopRes.isTrue();
       }
@@ -1289,7 +1289,7 @@ inline bool AddStmtChoice::alwaysAdd(CFGBuilder &builder,
 }
 
 bool CFGBuilder::alwaysAdd(const Stmt *stmt) {
-  bool shouldAdd = BuildOpts.alwaysAdd(stmt);
+  bool const shouldAdd = BuildOpts.alwaysAdd(stmt);
 
   if (!BuildOpts.forcedBlkExprs)
     return shouldAdd;
@@ -1313,7 +1313,7 @@ bool CFGBuilder::alwaysAdd(const Stmt *stmt) {
     return shouldAdd;
   }
 
-  CFG::BuildOptions::ForcedBlkExprs::iterator itr = fb->find(stmt);
+  CFG::BuildOptions::ForcedBlkExprs::iterator const itr = fb->find(stmt);
   if (itr == fb->end()) {
     cachedEntry = nullptr;
     return shouldAdd;
@@ -1554,12 +1554,12 @@ std::unique_ptr<CFG> CFGBuilder::buildCFG(const Decl *D, Stmt *Statement) {
 
     CFGBlock *B = I->block;
     if (auto *G = dyn_cast<GotoStmt>(B->getTerminator())) {
-      LabelMapTy::iterator LI = LabelMap.find(G->getLabel());
+      LabelMapTy::iterator const LI = LabelMap.find(G->getLabel());
       // If there is no target for the goto, then we are looking at an
       // incomplete AST.  Handle this by not registering a successor.
       if (LI == LabelMap.end())
         continue;
-      JumpTarget JT = LI->second;
+      JumpTarget const JT = LI->second;
       prependAutomaticObjLifetimeWithTerminator(B, I->scopePosition,
                                                 JT.scopePosition);
       prependAutomaticObjDtorsWithTerminator(B, I->scopePosition,
@@ -1572,12 +1572,12 @@ std::unique_ptr<CFG> CFGBuilder::buildCFG(const Decl *D, Stmt *Statement) {
     if (auto *G = dyn_cast<GCCAsmStmt>(B->getTerminator())) {
       CFGBlock *Successor  = (I+1)->block;
       for (auto *L : G->labels()) {
-        LabelMapTy::iterator LI = LabelMap.find(L->getLabel());
+        LabelMapTy::iterator const LI = LabelMap.find(L->getLabel());
         // If there is no target for the goto, then we are looking at an
         // incomplete AST.  Handle this by not registering a successor.
         if (LI == LabelMap.end())
           continue;
-        JumpTarget JT = LI->second;
+        JumpTarget const JT = LI->second;
         // Successor has been added, so skip it.
         if (JT.block == Successor)
           continue;
@@ -1592,7 +1592,7 @@ std::unique_ptr<CFG> CFGBuilder::buildCFG(const Decl *D, Stmt *Statement) {
     for (LabelSetTy::iterator I = AddressTakenLabels.begin(),
                               E = AddressTakenLabels.end(); I != E; ++I ) {
       // Lookup the target block.
-      LabelMapTy::iterator LI = LabelMap.find(*I);
+      LabelMapTy::iterator const LI = LabelMap.find(*I);
 
       // If there is no target block that contains label, then we are looking
       // at an incomplete AST.  Handle this by not registering a successor.
@@ -1743,8 +1743,8 @@ void CFGBuilder::getDeclsWithEndedScope(LocalScope::const_iterator B,
   // then sideways in one scope from P to P' and then down
   // the scopes from P' to E.
   // The lifetime of all objects between B and P end.
-  LocalScope::const_iterator P = B.shared_parent(E);
-  int Dist = B.distance(P);
+  LocalScope::const_iterator const P = B.shared_parent(E);
+  int const Dist = B.distance(P);
   if (Dist <= 0)
     return;
 
@@ -1778,8 +1778,8 @@ void CFGBuilder::addLifetimeEnds(LocalScope::const_iterator B,
   // then sideways in one scope from P to P' and then down
   // the scopes from P' to E.
   // The lifetime of all objects between B and P end.
-  LocalScope::const_iterator P = B.shared_parent(E);
-  int dist = B.distance(P);
+  LocalScope::const_iterator const P = B.shared_parent(E);
+  int const dist = B.distance(P);
   if (dist <= 0)
     return;
 
@@ -2058,7 +2058,7 @@ LocalScope* CFGBuilder::addLocalScopeForVarDecl(VarDecl *VD,
 /// addLocalScopeAndDtors - For given statement add local scope for it and
 /// add destructors that will cleanup the scope. Will reuse Scope if not NULL.
 void CFGBuilder::addLocalScopeAndDtors(Stmt *S) {
-  LocalScope::const_iterator scopeBeginPos = ScopePos;
+  LocalScope::const_iterator const scopeBeginPos = ScopePos;
   addLocalScopeForStmt(S);
   addAutomaticObjHandling(ScopePos, scopeBeginPos, S);
 }
@@ -2111,7 +2111,7 @@ CFGBuilder::prependAutomaticObjScopeEndWithTerminator(
   if (!BuildOpts.AddScopes)
     return nullptr;
   BumpVectorContext &C = cfg->getBumpVectorContext();
-  CFGBlock::iterator InsertPos =
+  CFGBlock::iterator const InsertPos =
       Blk->beginScopeEndInsert(Blk->end(), 1, C);
   LocalScope::const_iterator PlaceToInsert = B;
   for (LocalScope::const_iterator I = B; I != E; ++I)
@@ -2354,7 +2354,7 @@ CFGBlock *CFGBuilder::VisitChildren(Stmt *S) {
 
   // Visit the children in their reverse order so that they appear in
   // left-to-right (natural) order in the CFG.
-  reverse_children RChildren(S);
+  reverse_children const RChildren(S);
   for (Stmt *Child : RChildren) {
     if (Child)
       if (CFGBlock *R = Visit(Child))
@@ -2370,7 +2370,7 @@ CFGBlock *CFGBuilder::VisitInitListExpr(InitListExpr *ILE, AddStmtChoice asc) {
   }
   CFGBlock *B = Block;
 
-  reverse_children RChildren(ILE);
+  reverse_children const RChildren(ILE);
   for (Stmt *Child : RChildren) {
     if (!Child)
       continue;
@@ -2500,7 +2500,7 @@ CFGBuilder::VisitLogicalOperator(BinaryOperator *B,
     return std::make_pair(nullptr, nullptr);
 
   // See if this is a known constant.
-  TryResult KnownVal = tryEvaluateBool(LHS);
+  TryResult const KnownVal = tryEvaluateBool(LHS);
 
   // Now link the LHSBlock with RHSBlock.
   if (B->getOpcode() == BO_LOr) {
@@ -2601,7 +2601,7 @@ CFGBlock *CFGBuilder::VisitCallExpr(CallExpr *C, AddStmtChoice asc) {
   // Compute the callee type.
   QualType calleeType = C->getCallee()->getType();
   if (calleeType == Context->BoundMemberTy) {
-    QualType boundType = Expr::findBoundMemberType(C->getCallee());
+    QualType const boundType = Expr::findBoundMemberType(C->getCallee());
 
     // We should only get a null bound type if processing a dependent
     // CFG.  Recover by assuming nothing.
@@ -2689,7 +2689,7 @@ CFGBlock *CFGBuilder::VisitChooseExpr(ChooseExpr *C,
   if (badCFG)
     return nullptr;
 
-  AddStmtChoice alwaysAdd = asc.withAlwaysAdd(true);
+  AddStmtChoice const alwaysAdd = asc.withAlwaysAdd(true);
   Succ = ConfluenceBlock;
   Block = nullptr;
   CFGBlock *LHSBlock = Visit(C->getLHS(), alwaysAdd);
@@ -2712,7 +2712,7 @@ CFGBlock *CFGBuilder::VisitChooseExpr(ChooseExpr *C,
 }
 
 CFGBlock *CFGBuilder::VisitCompoundStmt(CompoundStmt *C, bool ExternallyDestructed) {
-  LocalScope::const_iterator scopeBeginPos = ScopePos;
+  LocalScope::const_iterator const scopeBeginPos = ScopePos;
   addLocalScopeForStmt(C);
 
   if (!C->body_empty() && !isa<ReturnStmt>(*C->body_rbegin())) {
@@ -2754,7 +2754,7 @@ CFGBlock *CFGBuilder::VisitConditionalOperator(AbstractConditionalOperator *C,
   if (badCFG)
     return nullptr;
 
-  AddStmtChoice alwaysAdd = asc.withAlwaysAdd(true);
+  AddStmtChoice const alwaysAdd = asc.withAlwaysAdd(true);
 
   // Create a block for the LHS expression if there is an LHS expression.  A
   // GCC extension allows LHS to be NULL, causing the condition to be the
@@ -2828,7 +2828,7 @@ CFGBlock *CFGBuilder::VisitDeclStmt(DeclStmt *DS) {
 
     // Allocate the DeclStmt using the BumpPtrAllocator.  It will get
     // automatically freed with the CFG.
-    DeclGroupRef DG(*I);
+    DeclGroupRef const DG(*I);
     Decl *D = *I;
     DeclStmt *DSNew = new (Context) DeclStmt(DG, D->getLocation(), GetEndLoc(D));
     cfg->addSyntheticDeclStmt(DSNew, DS);
@@ -3133,7 +3133,7 @@ CFGBlock *CFGBuilder::VisitSEHExceptStmt(SEHExceptStmt *ES) {
 
   // Save local scope position because in case of exception variable ScopePos
   // won't be restored when traversing AST.
-  SaveAndRestore<LocalScope::const_iterator> save_scope_pos(ScopePos);
+  SaveAndRestore<LocalScope::const_iterator> const save_scope_pos(ScopePos);
 
   addStmt(ES->getBlock());
   CFGBlock *SEHExceptBlock = Block;
@@ -3223,14 +3223,14 @@ CFGBlock *CFGBuilder::VisitSEHTryStmt(SEHTryStmt *Terminator) {
   Succ = SEHTrySuccessor;
 
   // Save the current "__try" context.
-  SaveAndRestore<CFGBlock *> save_try(TryTerminatedBlock,
+  SaveAndRestore<CFGBlock *> const save_try(TryTerminatedBlock,
                                       NewTryTerminatedBlock);
   cfg->addTryDispatchBlock(TryTerminatedBlock);
 
   // Save the current value for the __leave target.
   // All __leaves should go to the code following the __try
   // (FIXME: or if the __try has a __finally, to the __finally.)
-  SaveAndRestore<JumpTarget> save_break(SEHLeaveJumpTarget);
+  SaveAndRestore<JumpTarget> const save_break(SEHLeaveJumpTarget);
   SEHLeaveJumpTarget = JumpTarget(SEHTrySuccessor, ScopePos);
 
   assert(Terminator->getTryBlock() && "__try must contain a non-NULL body");
@@ -3300,13 +3300,13 @@ CFGBlock *CFGBuilder::VisitGotoStmt(GotoStmt *G) {
   Block->setTerminator(G);
 
   // If we already know the mapping to the label block add the successor now.
-  LabelMapTy::iterator I = LabelMap.find(G->getLabel());
+  LabelMapTy::iterator const I = LabelMap.find(G->getLabel());
 
   if (I == LabelMap.end())
     // We will need to backpatch this block later.
     BackpatchBlocks.push_back(JumpSource(Block, ScopePos));
   else {
-    JumpTarget JT = I->second;
+    JumpTarget const JT = I->second;
     addAutomaticObjHandling(ScopePos, JT.scopePosition, G);
     addSuccessor(Block, JT.block);
   }
@@ -3348,11 +3348,11 @@ CFGBlock *CFGBuilder::VisitForStmt(ForStmt *F) {
   // Store scope position for continue statement.
   if (Stmt *Init = F->getInit())
     addLocalScopeForStmt(Init);
-  LocalScope::const_iterator LoopBeginScopePos = ScopePos;
+  LocalScope::const_iterator const LoopBeginScopePos = ScopePos;
 
   if (VarDecl *VD = F->getConditionVariable())
     addLocalScopeForVarDecl(VD);
-  LocalScope::const_iterator ContinueScopePos = ScopePos;
+  LocalScope::const_iterator const ContinueScopePos = ScopePos;
 
   addAutomaticObjHandling(ScopePos, save_scope_pos.get(), F);
 
@@ -3369,7 +3369,7 @@ CFGBlock *CFGBuilder::VisitForStmt(ForStmt *F) {
 
   // Save the current value for the break targets.
   // All breaks should go to the code following the loop.
-  SaveAndRestore<JumpTarget> save_break(BreakJumpTarget);
+  SaveAndRestore<JumpTarget> const save_break(BreakJumpTarget);
   BreakJumpTarget = JumpTarget(LoopSuccessor, ScopePos);
 
   CFGBlock *BodyBlock = nullptr, *TransitionBlock = nullptr;
@@ -3380,7 +3380,7 @@ CFGBlock *CFGBuilder::VisitForStmt(ForStmt *F) {
 
     // Save the current values for Block, Succ, continue and break targets.
     SaveAndRestore<CFGBlock*> save_Block(Block), save_Succ(Succ);
-    SaveAndRestore<JumpTarget> save_continue(ContinueJumpTarget);
+    SaveAndRestore<JumpTarget> const save_continue(ContinueJumpTarget);
 
     // Create an empty block to represent the transition block for looping back
     // to the head of the loop.  If we have increment code, it will
@@ -3435,7 +3435,7 @@ CFGBlock *CFGBuilder::VisitForStmt(ForStmt *F) {
 
   do {
     Expr *C = F->getCond();
-    SaveAndRestore<LocalScope::const_iterator> save_scope_pos(ScopePos);
+    SaveAndRestore<LocalScope::const_iterator> const save_scope_pos(ScopePos);
 
     // Specially handle logical operators, which have a slightly
     // more optimal CFG representation.
@@ -3501,7 +3501,7 @@ CFGBlock *CFGBuilder::VisitForStmt(ForStmt *F) {
   // If the loop contains initialization, create a new block for those
   // statements.  This block can also contain statements that precede the loop.
   if (Stmt *I = F->getInit()) {
-    SaveAndRestore<LocalScope::const_iterator> save_scope_pos(ScopePos);
+    SaveAndRestore<LocalScope::const_iterator> const save_scope_pos(ScopePos);
     ScopePos = LoopBeginScopePos;
     Block = createBlock();
     return addStmt(I);
@@ -3705,11 +3705,11 @@ CFGBlock *CFGBuilder::VisitWhileStmt(WhileStmt *W) {
 
   // Save local scope position because in case of condition variable ScopePos
   // won't be restored when traversing AST.
-  SaveAndRestore<LocalScope::const_iterator> save_scope_pos(ScopePos);
+  SaveAndRestore<LocalScope::const_iterator> const save_scope_pos(ScopePos);
 
   // Create local scope for possible condition variable.
   // Store scope position for continue statement.
-  LocalScope::const_iterator LoopBeginScopePos = ScopePos;
+  LocalScope::const_iterator const LoopBeginScopePos = ScopePos;
   if (VarDecl *VD = W->getConditionVariable()) {
     addLocalScopeForVarDecl(VD);
     addAutomaticObjHandling(ScopePos, LoopBeginScopePos, W);
@@ -4077,7 +4077,7 @@ CFGBlock *CFGBuilder::VisitSwitchStmt(SwitchStmt *Terminator) {
   // Save the current "switch" context.
   SaveAndRestore<CFGBlock*> save_switch(SwitchTerminatedBlock),
                             save_default(DefaultCaseBlock);
-  SaveAndRestore<JumpTarget> save_break(BreakJumpTarget);
+  SaveAndRestore<JumpTarget> const save_break(BreakJumpTarget);
 
   // Set the "default" case to be the block after the switch statement.  If the
   // switch statement contains a "default:", this value will be overwritten with
@@ -4100,14 +4100,14 @@ CFGBlock *CFGBuilder::VisitSwitchStmt(SwitchStmt *Terminator) {
 
   // For pruning unreachable case statements, save the current state
   // for tracking the condition value.
-  SaveAndRestore<bool> save_switchExclusivelyCovered(switchExclusivelyCovered,
+  SaveAndRestore<bool> const save_switchExclusivelyCovered(switchExclusivelyCovered,
                                                      false);
 
   // Determine if the switch condition can be explicitly evaluated.
   assert(Terminator->getCond() && "switch condition must be non-NULL");
   Expr::EvalResult result;
-  bool b = tryEvaluate(Terminator->getCond(), result);
-  SaveAndRestore<Expr::EvalResult*> save_switchCond(switchCond,
+  bool const b = tryEvaluate(Terminator->getCond(), result);
+  SaveAndRestore<Expr::EvalResult*> const save_switchCond(switchCond,
                                                     b ? &result : nullptr);
 
   // If body is not a compound statement create implicit scope
@@ -4334,7 +4334,7 @@ CFGBlock *CFGBuilder::VisitCXXTryStmt(CXXTryStmt *Terminator) {
   Succ = TrySuccessor;
 
   // Save the current "try" context.
-  SaveAndRestore<CFGBlock*> save_try(TryTerminatedBlock, NewTryTerminatedBlock);
+  SaveAndRestore<CFGBlock*> const save_try(TryTerminatedBlock, NewTryTerminatedBlock);
   cfg->addTryDispatchBlock(TryTerminatedBlock);
 
   assert(Terminator->getTryBlock() && "try must contain a non-NULL body");
@@ -4348,12 +4348,12 @@ CFGBlock *CFGBuilder::VisitCXXCatchStmt(CXXCatchStmt *CS) {
 
   // Save local scope position because in case of exception variable ScopePos
   // won't be restored when traversing AST.
-  SaveAndRestore<LocalScope::const_iterator> save_scope_pos(ScopePos);
+  SaveAndRestore<LocalScope::const_iterator> const save_scope_pos(ScopePos);
 
   // Create local scope for possible exception variable.
   // Store scope position. Add implicit destructor.
   if (VarDecl *VD = CS->getExceptionDecl()) {
-    LocalScope::const_iterator BeginScopePos = ScopePos;
+    LocalScope::const_iterator const BeginScopePos = ScopePos;
     addLocalScopeForVarDecl(VD);
     addAutomaticObjHandling(ScopePos, BeginScopePos, CS);
   }
@@ -4411,7 +4411,7 @@ CFGBlock *CFGBuilder::VisitCXXForRangeStmt(CXXForRangeStmt *S) {
     addLocalScopeForStmt(End);
   addAutomaticObjHandling(ScopePos, save_scope_pos.get(), S);
 
-  LocalScope::const_iterator ContinueScopePos = ScopePos;
+  LocalScope::const_iterator const ContinueScopePos = ScopePos;
 
   // "for" is a control-flow statement.  Thus we stop processing the current
   // block.
@@ -4425,7 +4425,7 @@ CFGBlock *CFGBuilder::VisitCXXForRangeStmt(CXXForRangeStmt *S) {
 
   // Save the current value for the break targets.
   // All breaks should go to the code following the loop.
-  SaveAndRestore<JumpTarget> save_break(BreakJumpTarget);
+  SaveAndRestore<JumpTarget> const save_break(BreakJumpTarget);
   BreakJumpTarget = JumpTarget(LoopSuccessor, ScopePos);
 
   // The block for the __begin != __end expression.
@@ -4459,7 +4459,7 @@ CFGBlock *CFGBuilder::VisitCXXForRangeStmt(CXXForRangeStmt *S) {
 
     // Save the current values for Block, Succ, and continue targets.
     SaveAndRestore<CFGBlock*> save_Block(Block), save_Succ(Succ);
-    SaveAndRestore<JumpTarget> save_continue(ContinueJumpTarget);
+    SaveAndRestore<JumpTarget> const save_continue(ContinueJumpTarget);
 
     // Generate increment code in its own basic block.  This is the target of
     // continue statements.
@@ -4880,7 +4880,7 @@ CFGBlock *CFGBuilder::VisitConditionalOperatorForTemporaryDtors(
   VisitForTemporaryDtors(E->getCond(), false, Context);
   CFGBlock *ConditionBlock = Block;
   CFGBlock *ConditionSucc = Succ;
-  TryResult ConditionVal = tryEvaluateBool(E->getCond());
+  TryResult const ConditionVal = tryEvaluateBool(E->getCond());
   TryResult NegatedVal = ConditionVal;
   if (NegatedVal.isKnown()) NegatedVal.negate();
 
@@ -4941,7 +4941,7 @@ CFGBlock *CFGBuilder::VisitOMPExecutableDirective(OMPExecutableDirective *D,
 ///  no successors or predecessors.  If this is the first block created in the
 ///  CFG, it is automatically set to be the Entry and Exit of the CFG.
 CFGBlock *CFG::createBlock() {
-  bool first_block = begin() == end();
+  bool const first_block = begin() == end();
 
   // Create the block.
   CFGBlock *Mem = getAllocator().Allocate<CFGBlock>();
@@ -5143,7 +5143,7 @@ public:
            BI != BEnd; ++BI, ++j ) {
         if (Optional<CFGStmt> SE = BI->getAs<CFGStmt>()) {
           const Stmt *stmt= SE->getStmt();
-          std::pair<unsigned, unsigned> P((*I)->getBlockID(), j);
+          std::pair<unsigned, unsigned> const P((*I)->getBlockID(), j);
           StmtMap[stmt] = P;
 
           switch (stmt->getStmtClass()) {
@@ -5198,7 +5198,7 @@ public:
   void setStmtID(unsigned i) { currStmt = i; }
 
   bool handledStmt(Stmt *S, raw_ostream &OS) override {
-    StmtMapTy::iterator I = StmtMap.find(S);
+    StmtMapTy::iterator const I = StmtMap.find(S);
 
     if (I == StmtMap.end())
       return false;
@@ -5213,7 +5213,7 @@ public:
   }
 
   bool handleDecl(const Decl *D, raw_ostream &OS) {
-    DeclMapTy::iterator I = DeclMap.find(D);
+    DeclMapTy::iterator const I = DeclMap.find(D);
 
     if (I == DeclMap.end())
       return false;
@@ -5472,7 +5472,7 @@ static void print_elem(raw_ostream &OS, StmtPrinterHelper &Helper,
   case CFGElement::Kind::Statement:
   case CFGElement::Kind::CXXRecordTypedCall:
   case CFGElement::Kind::Constructor: {
-    CFGStmt CS = E.castAs<CFGStmt>();
+    CFGStmt const CS = E.castAs<CFGStmt>();
     const Stmt *S = CS.getStmt();
     assert(S != nullptr && "Expecting non-null Stmt");
 
@@ -5535,7 +5535,7 @@ static void print_elem(raw_ostream &OS, StmtPrinterHelper &Helper,
     break;
 
   case CFGElement::Kind::AutomaticObjectDtor: {
-    CFGAutomaticObjDtor DE = E.castAs<CFGAutomaticObjDtor>();
+    CFGAutomaticObjDtor const DE = E.castAs<CFGAutomaticObjDtor>();
     const VarDecl *VD = DE.getVarDecl();
     Helper.handleDecl(VD, OS);
 
@@ -5580,7 +5580,7 @@ static void print_elem(raw_ostream &OS, StmtPrinterHelper &Helper,
     break;
 
   case CFGElement::Kind::DeleteDtor: {
-    CFGDeleteDtor DE = E.castAs<CFGDeleteDtor>();
+    CFGDeleteDtor const DE = E.castAs<CFGDeleteDtor>();
     const CXXRecordDecl *RD = DE.getCXXRecordDecl();
     if (!RD)
       return;
@@ -5707,7 +5707,7 @@ static void print_block(raw_ostream &OS, const CFG* cfg,
 
     Helper.setBlockID(-1);
 
-    PrintingPolicy PP(Helper.getLangOpts());
+    PrintingPolicy const PP(Helper.getLangOpts());
     CFGBlockTerminatorPrint TPrinter(OS, &Helper, PP);
     TPrinter.print(B.getTerminator());
     OS << '\n';

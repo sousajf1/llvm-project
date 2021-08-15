@@ -59,7 +59,7 @@ bool ObjCRuntime::tryParse(StringRef input) {
 
   // Everything prior to that must be a valid string name.
   Kind kind;
-  StringRef runtimeName = input.substr(0, dash);
+  StringRef const runtimeName = input.substr(0, dash);
   Version = VersionTuple(0);
   if (runtimeName == "macosx") {
     kind = ObjCRuntime::MacOSX;
@@ -85,7 +85,7 @@ bool ObjCRuntime::tryParse(StringRef input) {
   TheKind = kind;
 
   if (dash != StringRef::npos) {
-    StringRef verString = input.substr(dash + 1);
+    StringRef const verString = input.substr(dash + 1);
     if (Version.tryParse(verString))
       return true;
   }

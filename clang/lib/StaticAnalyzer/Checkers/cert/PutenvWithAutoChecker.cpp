@@ -41,14 +41,14 @@ void PutenvWithAutoChecker::checkPostCall(const CallEvent &Call,
   if (!Call.isCalled(Putenv))
     return;
 
-  SVal ArgV = Call.getArgSVal(0);
+  SVal const ArgV = Call.getArgSVal(0);
   const Expr *ArgExpr = Call.getArgExpr(0);
   const MemSpaceRegion *MSR = ArgV.getAsRegion()->getMemorySpace();
 
   if (!isa<StackSpaceRegion>(MSR))
     return;
 
-  StringRef ErrorMsg = "The 'putenv' function should not be called with "
+  StringRef const ErrorMsg = "The 'putenv' function should not be called with "
                        "arguments that have automatic storage";
   ExplodedNode *N = C.generateErrorNode();
   auto Report = std::make_unique<PathSensitiveBugReport>(BT, ErrorMsg, N);

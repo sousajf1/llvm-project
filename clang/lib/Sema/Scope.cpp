@@ -137,12 +137,12 @@ LLVM_DUMP_METHOD void Scope::dump() const { dumpImpl(llvm::errs()); }
 
 void Scope::dumpImpl(raw_ostream &OS) const {
   unsigned Flags = getFlags();
-  bool HasFlags = Flags != 0;
+  bool const HasFlags = Flags != 0;
 
   if (HasFlags)
     OS << "Flags: ";
 
-  std::pair<unsigned, const char *> FlagInfo[] = {
+  std::pair<unsigned, const char *> const FlagInfo[] = {
       {FnScope, "FnScope"},
       {BreakScope, "BreakScope"},
       {ContinueScope, "ContinueScope"},

@@ -34,69 +34,69 @@ namespace clang {
 namespace tooling {
 
 TEST_F(ReplacementTest, CanDeleteAllText) {
-  FileID ID = Context.createInMemoryFile("input.cpp", "text");
-  SourceLocation Location = Context.getLocation(ID, 1, 1);
-  Replacement Replace(createReplacement(Location, 4, ""));
+  FileID const ID = Context.createInMemoryFile("input.cpp", "text");
+  SourceLocation const Location = Context.getLocation(ID, 1, 1);
+  Replacement const Replace(createReplacement(Location, 4, ""));
   EXPECT_TRUE(Replace.apply(Context.Rewrite));
   EXPECT_EQ("", Context.getRewrittenText(ID));
 }
 
 TEST_F(ReplacementTest, CanDeleteAllTextInTextWithNewlines) {
-  FileID ID = Context.createInMemoryFile("input.cpp", "line1\nline2\nline3");
-  SourceLocation Location = Context.getLocation(ID, 1, 1);
-  Replacement Replace(createReplacement(Location, 17, ""));
+  FileID const ID = Context.createInMemoryFile("input.cpp", "line1\nline2\nline3");
+  SourceLocation const Location = Context.getLocation(ID, 1, 1);
+  Replacement const Replace(createReplacement(Location, 17, ""));
   EXPECT_TRUE(Replace.apply(Context.Rewrite));
   EXPECT_EQ("", Context.getRewrittenText(ID));
 }
 
 TEST_F(ReplacementTest, CanAddText) {
-  FileID ID = Context.createInMemoryFile("input.cpp", "");
-  SourceLocation Location = Context.getLocation(ID, 1, 1);
-  Replacement Replace(createReplacement(Location, 0, "result"));
+  FileID const ID = Context.createInMemoryFile("input.cpp", "");
+  SourceLocation const Location = Context.getLocation(ID, 1, 1);
+  Replacement const Replace(createReplacement(Location, 0, "result"));
   EXPECT_TRUE(Replace.apply(Context.Rewrite));
   EXPECT_EQ("result", Context.getRewrittenText(ID));
 }
 
 TEST_F(ReplacementTest, CanReplaceTextAtPosition) {
-  FileID ID = Context.createInMemoryFile("input.cpp",
+  FileID const ID = Context.createInMemoryFile("input.cpp",
                                          "line1\nline2\nline3\nline4");
-  SourceLocation Location = Context.getLocation(ID, 2, 3);
-  Replacement Replace(createReplacement(Location, 12, "x"));
+  SourceLocation const Location = Context.getLocation(ID, 2, 3);
+  Replacement const Replace(createReplacement(Location, 12, "x"));
   EXPECT_TRUE(Replace.apply(Context.Rewrite));
   EXPECT_EQ("line1\nlixne4", Context.getRewrittenText(ID));
 }
 
 TEST_F(ReplacementTest, CanReplaceTextAtPositionMultipleTimes) {
-  FileID ID = Context.createInMemoryFile("input.cpp",
+  FileID const ID = Context.createInMemoryFile("input.cpp",
                                          "line1\nline2\nline3\nline4");
-  SourceLocation Location1 = Context.getLocation(ID, 2, 3);
-  Replacement Replace1(createReplacement(Location1, 12, "x\ny\n"));
+  SourceLocation const Location1 = Context.getLocation(ID, 2, 3);
+  Replacement const Replace1(createReplacement(Location1, 12, "x\ny\n"));
   EXPECT_TRUE(Replace1.apply(Context.Rewrite));
   EXPECT_EQ("line1\nlix\ny\nne4", Context.getRewrittenText(ID));
 
   // Since the original source has not been modified, the (4, 4) points to the
   // 'e' in the original content.
-  SourceLocation Location2 = Context.getLocation(ID, 4, 4);
-  Replacement Replace2(createReplacement(Location2, 1, "f"));
+  SourceLocation const Location2 = Context.getLocation(ID, 4, 4);
+  Replacement const Replace2(createReplacement(Location2, 1, "f"));
   EXPECT_TRUE(Replace2.apply(Context.Rewrite));
   EXPECT_EQ("line1\nlix\ny\nnf4", Context.getRewrittenText(ID));
 }
 
 TEST_F(ReplacementTest, ApplyFailsForNonExistentLocation) {
-  Replacement Replace("nonexistent-file.cpp", 0, 1, "");
+  Replacement const Replace("nonexistent-file.cpp", 0, 1, "");
   EXPECT_FALSE(Replace.apply(Context.Rewrite));
 }
 
 TEST_F(ReplacementTest, CanRetrivePath) {
-  Replacement Replace("/path/to/file.cpp", 0, 1, "");
+  Replacement const Replace("/path/to/file.cpp", 0, 1, "");
   EXPECT_EQ("/path/to/file.cpp", Replace.getFilePath());
 }
 
 TEST_F(ReplacementTest, ReturnsInvalidPath) {
-  Replacement Replace1(Context.Sources, SourceLocation(), 0, "");
+  Replacement const Replace1(Context.Sources, SourceLocation(), 0, "");
   EXPECT_TRUE(Replace1.getFilePath().empty());
 
-  Replacement Replace2;
+  Replacement const Replace2;
   EXPECT_TRUE(Replace2.getFilePath().empty());
 }
 
@@ -142,24 +142,24 @@ static bool checkReplacementError(llvm::Error &&Error,
 
 TEST_F(ReplacementTest, FailAddReplacements) {
   Replacements Replaces;
-  Replacement Deletion("x.cc", 0, 10, "3");
+  Replacement const Deletion("x.cc", 0, 10, "3");
   auto Err = Replaces.add(Deletion);
   EXPECT_TRUE(!Err);
   llvm::consumeError(std::move(Err));
 
-  Replacement OverlappingReplacement("x.cc", 0, 2, "a");
+  Replacement const OverlappingReplacement("x.cc", 0, 2, "a");
   Err = Replaces.add(OverlappingReplacement);
   EXPECT_TRUE(checkReplacementError(std::move(Err),
                                     replacement_error::overlap_conflict,
                                     Deletion, OverlappingReplacement));
 
-  Replacement ContainedReplacement("x.cc", 2, 2, "a");
+  Replacement const ContainedReplacement("x.cc", 2, 2, "a");
   Err = Replaces.add(Replacement(ContainedReplacement));
   EXPECT_TRUE(checkReplacementError(std::move(Err),
                                     replacement_error::overlap_conflict,
                                     Deletion, ContainedReplacement));
 
-  Replacement WrongPathReplacement("y.cc", 20, 2, "");
+  Replacement const WrongPathReplacement("y.cc", 20, 2, "");
   Err = Replaces.add(WrongPathReplacement);
   EXPECT_TRUE(checkReplacementError(std::move(Err),
                                     replacement_error::wrong_file_path,
@@ -171,7 +171,7 @@ TEST_F(ReplacementTest, FailAddReplacements) {
 
 TEST_F(ReplacementTest, DeletionInReplacements) {
   Replacements Replaces;
-  Replacement R("x.cc", 0, 10, "3");
+  Replacement const R("x.cc", 0, 10, "3");
   auto Err = Replaces.add(R);
   EXPECT_TRUE(!Err);
   llvm::consumeError(std::move(Err));
@@ -228,7 +228,7 @@ TEST_F(ReplacementTest, AddAdjacentInsertionAndReplacement) {
 
 TEST_F(ReplacementTest, MergeNewDeletions) {
   Replacements Replaces;
-  Replacement ContainingReplacement("x.cc", 0, 10, "");
+  Replacement const ContainingReplacement("x.cc", 0, 10, "");
   auto Err = Replaces.add(ContainingReplacement);
   EXPECT_TRUE(!Err);
   llvm::consumeError(std::move(Err));
@@ -259,12 +259,12 @@ TEST_F(ReplacementTest, MergeOverlappingButNotAdjacentReplacement) {
   EXPECT_TRUE(!Err);
   llvm::consumeError(std::move(Err));
 
-  Replacement After = Replacement("x.cc", 10, 5, "");
+  Replacement const After = Replacement("x.cc", 10, 5, "");
   Err = Replaces.add(After);
   EXPECT_TRUE(!Err);
   llvm::consumeError(std::move(Err));
 
-  Replacement ContainingReplacement("x.cc", 0, 10, "");
+  Replacement const ContainingReplacement("x.cc", 0, 10, "");
   Err = Replaces.add(ContainingReplacement);
   EXPECT_TRUE(!Err);
   llvm::consumeError(std::move(Err));
@@ -277,7 +277,7 @@ TEST_F(ReplacementTest, MergeOverlappingButNotAdjacentReplacement) {
 TEST_F(ReplacementTest, InsertionBeforeMergedDeletions) {
   Replacements Replaces;
 
-  Replacement Insertion("x.cc", 0, 0, "123");
+  Replacement const Insertion("x.cc", 0, 0, "123");
   auto Err = Replaces.add(Insertion);
   EXPECT_TRUE(!Err);
   llvm::consumeError(std::move(Err));
@@ -286,7 +286,7 @@ TEST_F(ReplacementTest, InsertionBeforeMergedDeletions) {
   EXPECT_TRUE(!Err);
   llvm::consumeError(std::move(Err));
 
-  Replacement Deletion("x.cc", 0, 10, "");
+  Replacement const Deletion("x.cc", 0, 10, "");
   Err = Replaces.add(Deletion);
   EXPECT_TRUE(!Err);
   llvm::consumeError(std::move(Err));
@@ -318,12 +318,12 @@ TEST_F(ReplacementTest, MergeOverlappingDeletions) {
 
 TEST_F(ReplacementTest, FailedMergeExistingDeletions) {
   Replacements Replaces;
-  Replacement First("x.cc", 0, 2, "");
+  Replacement const First("x.cc", 0, 2, "");
   auto Err = Replaces.add(First);
   EXPECT_TRUE(!Err);
   llvm::consumeError(std::move(Err));
 
-  Replacement Second("x.cc", 5, 5, "");
+  Replacement const Second("x.cc", 5, 5, "");
   Err = Replaces.add(Second);
   EXPECT_TRUE(!Err);
   llvm::consumeError(std::move(Err));
@@ -349,7 +349,7 @@ TEST_F(ReplacementTest, FailAddRegression) {
 
   // Make sure we find the overlap with the first entry when inserting a
   // replacement that ends exactly at the seam of the existing replacements.
-  Replacement OverlappingReplacement("x.cc", 5, 5, "fail");
+  Replacement const OverlappingReplacement("x.cc", 5, 5, "fail");
   Err = Replaces.add(OverlappingReplacement);
   EXPECT_TRUE(checkReplacementError(std::move(Err),
                                     replacement_error::overlap_conflict,
@@ -385,7 +385,7 @@ TEST_F(ReplacementTest, AddInsertAtOtherInsertWhenOderIndependent) {
   auto Err = Replaces.add(Replacement("x.cc", 10, 0, "a"));
   EXPECT_TRUE(!Err);
   llvm::consumeError(std::move(Err));
-  Replacement ConflictInsertion("x.cc", 10, 0, "b");
+  Replacement const ConflictInsertion("x.cc", 10, 0, "b");
   Err = Replaces.add(ConflictInsertion);
   EXPECT_TRUE(checkReplacementError(std::move(Err),
                                     replacement_error::insert_conflict,
@@ -430,9 +430,9 @@ TEST_F(ReplacementTest, InsertBetweenAdjacentReplacements) {
 }
 
 TEST_F(ReplacementTest, CanApplyReplacements) {
-  FileID ID = Context.createInMemoryFile("input.cpp",
+  FileID const ID = Context.createInMemoryFile("input.cpp",
                                          "line1\nline2\nline3\nline4");
-  Replacements Replaces =
+  Replacements const Replaces =
       toReplacements({Replacement(Context.Sources,
                                   Context.getLocation(ID, 2, 1), 5, "replaced"),
                       Replacement(Context.Sources,
@@ -444,9 +444,9 @@ TEST_F(ReplacementTest, CanApplyReplacements) {
 // Verifies that replacement/deletion is applied before insertion at the same
 // offset.
 TEST_F(ReplacementTest, InsertAndDelete) {
-  FileID ID = Context.createInMemoryFile("input.cpp",
+  FileID const ID = Context.createInMemoryFile("input.cpp",
                                          "line1\nline2\nline3\nline4");
-  Replacements Replaces = toReplacements(
+  Replacements const Replaces = toReplacements(
       {Replacement(Context.Sources, Context.getLocation(ID, 2, 1), 6, ""),
        Replacement(Context.Sources, Context.getLocation(ID, 2, 1), 0,
                    "other\n")});
@@ -455,9 +455,9 @@ TEST_F(ReplacementTest, InsertAndDelete) {
 }
 
 TEST_F(ReplacementTest, AdjacentReplacements) {
-  FileID ID = Context.createInMemoryFile("input.cpp",
+  FileID const ID = Context.createInMemoryFile("input.cpp",
                                          "ab");
-  Replacements Replaces = toReplacements(
+  Replacements const Replaces = toReplacements(
       {Replacement(Context.Sources, Context.getLocation(ID, 1, 1), 1, "x"),
        Replacement(Context.Sources, Context.getLocation(ID, 1, 2), 1, "y")});
   EXPECT_TRUE(applyAllReplacements(Replaces, Context.Rewrite));
@@ -465,7 +465,7 @@ TEST_F(ReplacementTest, AdjacentReplacements) {
 }
 
 TEST_F(ReplacementTest, AddDuplicateReplacements) {
-  FileID ID = Context.createInMemoryFile("input.cpp",
+  FileID const ID = Context.createInMemoryFile("input.cpp",
                                          "line1\nline2\nline3\nline4");
   auto Replaces = toReplacements({Replacement(
       Context.Sources, Context.getLocation(ID, 2, 1), 5, "replaced")});
@@ -485,12 +485,12 @@ TEST_F(ReplacementTest, AddDuplicateReplacements) {
 }
 
 TEST_F(ReplacementTest, FailOrderDependentReplacements) {
-  FileID ID = Context.createInMemoryFile("input.cpp",
+  FileID const ID = Context.createInMemoryFile("input.cpp",
                                          "line1\nline2\nline3\nline4");
   auto Replaces = toReplacements({Replacement(
       Context.Sources, Context.getLocation(ID, 2, 1), 5, "other")});
 
-  Replacement ConflictReplacement(Context.Sources,
+  Replacement const ConflictReplacement(Context.Sources,
                                   Context.getLocation(ID, 2, 1), 5, "rehto");
   auto Err = Replaces.add(ConflictReplacement);
   EXPECT_TRUE(checkReplacementError(std::move(Err),
@@ -502,7 +502,7 @@ TEST_F(ReplacementTest, FailOrderDependentReplacements) {
 }
 
 TEST_F(ReplacementTest, InvalidSourceLocationFailsApplyAll) {
-  Replacements Replaces =
+  Replacements const Replaces =
       toReplacements({Replacement(Context.Sources, SourceLocation(), 5, "2")});
 
   EXPECT_FALSE(applyAllReplacements(Replaces, Context.Rewrite));
@@ -510,21 +510,21 @@ TEST_F(ReplacementTest, InvalidSourceLocationFailsApplyAll) {
 
 TEST_F(ReplacementTest, MultipleFilesReplaceAndFormat) {
   // Column limit is 20.
-  std::string Code1 = "Long *a =\n"
+  std::string const Code1 = "Long *a =\n"
                       "    new Long();\n"
                       "long x = 1;";
-  std::string Expected1 = "auto a = new Long();\n"
+  std::string const Expected1 = "auto a = new Long();\n"
                           "long x =\n"
                           "    12345678901;";
-  std::string Code2 = "int x = 123;\n"
+  std::string const Code2 = "int x = 123;\n"
                       "int y = 0;";
-  std::string Expected2 = "int x =\n"
+  std::string const Expected2 = "int x =\n"
                           "    1234567890123;\n"
                           "int y = 10;";
-  StringRef File1 = "format_1.cpp";
-  StringRef File2 = "format_2.cpp";
-  FileID ID1 = Context.createInMemoryFile(File1, Code1);
-  FileID ID2 = Context.createInMemoryFile(File2, Code2);
+  StringRef const File1 = "format_1.cpp";
+  StringRef const File2 = "format_2.cpp";
+  FileID const ID1 = Context.createInMemoryFile(File1, Code1);
+  FileID const ID2 = Context.createInMemoryFile(File2, Code2);
 
   // Scrambled the order of replacements.
   std::map<std::string, Replacements> FileToReplaces;
@@ -546,7 +546,7 @@ TEST_F(ReplacementTest, MultipleFilesReplaceAndFormat) {
 }
 
 TEST(ShiftedCodePositionTest, FindsNewCodePosition) {
-  Replacements Replaces =
+  Replacements const Replaces =
       toReplacements({Replacement("", 0, 1, ""), Replacement("", 4, 3, " ")});
   // Assume ' int   i;' is turned into 'int i;' and cursor is located at '|'.
   EXPECT_EQ(0u, Replaces.getShiftedCodePosition(0)); // |int   i;
@@ -561,7 +561,7 @@ TEST(ShiftedCodePositionTest, FindsNewCodePosition) {
 }
 
 TEST(ShiftedCodePositionTest, FindsNewCodePositionWithInserts) {
-  Replacements Replaces = toReplacements({Replacement("", 4, 0, "\"\n\"")});
+  Replacements const Replaces = toReplacements({Replacement("", 4, 0, "\"\n\"")});
   // Assume '"12345678"' is turned into '"1234"\n"5678"'.
   EXPECT_EQ(3u, Replaces.getShiftedCodePosition(3)); // "123|5678"
   EXPECT_EQ(7u, Replaces.getShiftedCodePosition(4)); // "1234|678"
@@ -576,7 +576,7 @@ TEST(ShiftedCodePositionTest, FindsNewCodePositionInReplacedText) {
 }
 
 TEST(ShiftedCodePositionTest, NoReplacementText) {
-  Replacements Replaces = toReplacements({Replacement("", 0, 42, "")});
+  Replacements const Replaces = toReplacements({Replacement("", 0, 42, "")});
   EXPECT_EQ(0u, Replaces.getShiftedCodePosition(0));
   EXPECT_EQ(0u, Replaces.getShiftedCodePosition(39));
   EXPECT_EQ(3u, Replaces.getShiftedCodePosition(45));
@@ -591,8 +591,8 @@ public:
     for (llvm::StringMap<std::string>::iterator I = TemporaryFiles.begin(),
                                                 E = TemporaryFiles.end();
          I != E; ++I) {
-      llvm::StringRef Name = I->second;
-      std::error_code EC = llvm::sys::fs::remove(Name);
+      llvm::StringRef const Name = I->second;
+      std::error_code const EC = llvm::sys::fs::remove(Name);
       (void)EC;
       assert(!EC);
     }
@@ -601,7 +601,7 @@ public:
   FileID createFile(llvm::StringRef Name, llvm::StringRef Content) {
     SmallString<1024> Path;
     int FD;
-    std::error_code EC = llvm::sys::fs::createTemporaryFile(Name, "", FD, Path);
+    std::error_code const EC = llvm::sys::fs::createTemporaryFile(Name, "", FD, Path);
     assert(!EC);
     (void)EC;
 
@@ -611,7 +611,7 @@ public:
     auto File = Context.Files.getOptionalFileRef(Path);
     assert(File);
 
-    StringRef Found =
+    StringRef const Found =
         TemporaryFiles.insert(std::make_pair(Name, std::string(Path.str())))
             .first->second;
     assert(Found == Path);
@@ -621,7 +621,7 @@ public:
   }
 
   std::string getFileContentFromDisk(llvm::StringRef Name) {
-    std::string Path = TemporaryFiles.lookup(Name);
+    std::string const Path = TemporaryFiles.lookup(Name);
     assert(!Path.empty());
     // We need to read directly from the FileManager without relaying through
     // a FileEntry, as otherwise we'd read through an already opened file
@@ -637,8 +637,8 @@ public:
 };
 
 TEST_F(FlushRewrittenFilesTest, StoresChangesOnDisk) {
-  FileID ID = createFile("input.cpp", "line1\nline2\nline3\nline4");
-  Replacements Replaces = toReplacements({Replacement(
+  FileID const ID = createFile("input.cpp", "line1\nline2\nline3\nline4");
+  Replacements const Replaces = toReplacements({Replacement(
       Context.Sources, Context.getLocation(ID, 2, 1), 5, "replaced")});
   EXPECT_TRUE(applyAllReplacements(Replaces, Context.Rewrite));
   EXPECT_FALSE(Context.Rewrite.overwriteChangedFiles());
@@ -787,7 +787,7 @@ TEST(Range, contains) {
 TEST(Range, CalculateRangesOfReplacements) {
   // Before: aaaabbbbbbz
   // After : bbbbbbzzzzzzoooooooooooooooo
-  Replacements Replaces = toReplacements(
+  Replacements const Replaces = toReplacements(
       {Replacement("foo", 0, 4, ""), Replacement("foo", 10, 1, "zzzzzz"),
        Replacement("foo", 11, 0, "oooooooooooooooo")});
 
@@ -801,7 +801,7 @@ TEST(Range, CalculateRangesOfReplacements) {
 }
 
 TEST(Range, CalculateRangesOfInsertionAroundReplacement) {
-  Replacements Replaces = toReplacements(
+  Replacements const Replaces = toReplacements(
       {Replacement("foo", 0, 2, ""), Replacement("foo", 0, 0, "ba")});
 
   std::vector<Range> Ranges = Replaces.getAffectedRanges();
@@ -812,104 +812,104 @@ TEST(Range, CalculateRangesOfInsertionAroundReplacement) {
 }
 
 TEST(Range, RangesAfterEmptyReplacements) {
-  std::vector<Range> Ranges = {Range(5, 6), Range(10, 5)};
-  Replacements Replaces;
-  std::vector<Range> Expected = {Range(5, 10)};
+  std::vector<Range> const Ranges = {Range(5, 6), Range(10, 5)};
+  Replacements const Replaces;
+  std::vector<Range> const Expected = {Range(5, 10)};
   EXPECT_EQ(Expected, calculateRangesAfterReplacements(Replaces, Ranges));
 }
 
 TEST(Range, RangesAfterReplacements) {
-  std::vector<Range> Ranges = {Range(5, 2), Range(10, 5)};
-  Replacements Replaces = toReplacements({Replacement("foo", 0, 2, "1234")});
-  std::vector<Range> Expected = {Range(0, 4), Range(7, 2), Range(12, 5)};
+  std::vector<Range> const Ranges = {Range(5, 2), Range(10, 5)};
+  Replacements const Replaces = toReplacements({Replacement("foo", 0, 2, "1234")});
+  std::vector<Range> const Expected = {Range(0, 4), Range(7, 2), Range(12, 5)};
   EXPECT_EQ(Expected, calculateRangesAfterReplacements(Replaces, Ranges));
 }
 
 TEST(Range, RangesBeforeReplacements) {
-  std::vector<Range> Ranges = {Range(5, 2), Range(10, 5)};
-  Replacements Replaces = toReplacements({Replacement("foo", 20, 2, "1234")});
-  std::vector<Range> Expected = {Range(5, 2), Range(10, 5), Range(20, 4)};
+  std::vector<Range> const Ranges = {Range(5, 2), Range(10, 5)};
+  Replacements const Replaces = toReplacements({Replacement("foo", 20, 2, "1234")});
+  std::vector<Range> const Expected = {Range(5, 2), Range(10, 5), Range(20, 4)};
   EXPECT_EQ(Expected, calculateRangesAfterReplacements(Replaces, Ranges));
 }
 
 TEST(Range, NotAffectedByReplacements) {
-  std::vector<Range> Ranges = {Range(0, 2), Range(5, 2), Range(10, 5)};
-  Replacements Replaces = toReplacements({Replacement("foo", 3, 2, "12"),
+  std::vector<Range> const Ranges = {Range(0, 2), Range(5, 2), Range(10, 5)};
+  Replacements const Replaces = toReplacements({Replacement("foo", 3, 2, "12"),
                                           Replacement("foo", 12, 2, "12"),
                                           Replacement("foo", 20, 5, "")});
-  std::vector<Range> Expected = {Range(0, 2), Range(3, 4), Range(10, 5),
+  std::vector<Range> const Expected = {Range(0, 2), Range(3, 4), Range(10, 5),
                                  Range(20, 0)};
   EXPECT_EQ(Expected, calculateRangesAfterReplacements(Replaces, Ranges));
 }
 
 TEST(Range, RangesWithNonOverlappingReplacements) {
-  std::vector<Range> Ranges = {Range(0, 2), Range(5, 2), Range(10, 5)};
-  Replacements Replaces = toReplacements({Replacement("foo", 3, 1, ""),
+  std::vector<Range> const Ranges = {Range(0, 2), Range(5, 2), Range(10, 5)};
+  Replacements const Replaces = toReplacements({Replacement("foo", 3, 1, ""),
                                           Replacement("foo", 6, 1, "123"),
                                           Replacement("foo", 20, 2, "12345")});
-  std::vector<Range> Expected = {Range(0, 2), Range(3, 0), Range(4, 4),
+  std::vector<Range> const Expected = {Range(0, 2), Range(3, 0), Range(4, 4),
                                  Range(11, 5), Range(21, 5)};
   EXPECT_EQ(Expected, calculateRangesAfterReplacements(Replaces, Ranges));
 }
 
 TEST(Range, RangesWithOverlappingReplacements) {
-  std::vector<Range> Ranges = {Range(0, 2), Range(5, 2), Range(15, 5),
+  std::vector<Range> const Ranges = {Range(0, 2), Range(5, 2), Range(15, 5),
                                Range(30, 5)};
-  Replacements Replaces = toReplacements(
+  Replacements const Replaces = toReplacements(
       {Replacement("foo", 1, 3, ""), Replacement("foo", 6, 1, "123"),
        Replacement("foo", 13, 3, "1"), Replacement("foo", 25, 15, "")});
-  std::vector<Range> Expected = {Range(0, 1), Range(2, 4), Range(12, 5),
+  std::vector<Range> const Expected = {Range(0, 1), Range(2, 4), Range(12, 5),
                                  Range(22, 0)};
   EXPECT_EQ(Expected, calculateRangesAfterReplacements(Replaces, Ranges));
 }
 
 TEST(Range, MergeIntoOneRange) {
-  std::vector<Range> Ranges = {Range(0, 2), Range(5, 2), Range(15, 5)};
-  Replacements Replaces =
+  std::vector<Range> const Ranges = {Range(0, 2), Range(5, 2), Range(15, 5)};
+  Replacements const Replaces =
       toReplacements({Replacement("foo", 1, 15, "1234567890")});
-  std::vector<Range> Expected = {Range(0, 15)};
+  std::vector<Range> const Expected = {Range(0, 15)};
   EXPECT_EQ(Expected, calculateRangesAfterReplacements(Replaces, Ranges));
 }
 
 TEST(Range, ReplacementsStartingAtRangeOffsets) {
-  std::vector<Range> Ranges = {Range(0, 2), Range(5, 5), Range(15, 5)};
-  Replacements Replaces = toReplacements(
+  std::vector<Range> const Ranges = {Range(0, 2), Range(5, 5), Range(15, 5)};
+  Replacements const Replaces = toReplacements(
       {Replacement("foo", 0, 2, "12"), Replacement("foo", 5, 1, "123"),
        Replacement("foo", 7, 4, "12345"), Replacement("foo", 15, 10, "12")});
-  std::vector<Range> Expected = {Range(0, 2), Range(5, 9), Range(18, 2)};
+  std::vector<Range> const Expected = {Range(0, 2), Range(5, 9), Range(18, 2)};
   EXPECT_EQ(Expected, calculateRangesAfterReplacements(Replaces, Ranges));
 }
 
 TEST(Range, ReplacementsEndingAtRangeEnds) {
-  std::vector<Range> Ranges = {Range(0, 2), Range(5, 2), Range(15, 5)};
-  Replacements Replaces = toReplacements(
+  std::vector<Range> const Ranges = {Range(0, 2), Range(5, 2), Range(15, 5)};
+  Replacements const Replaces = toReplacements(
       {Replacement("foo", 6, 1, "123"), Replacement("foo", 17, 3, "12")});
-  std::vector<Range> Expected = {Range(0, 2), Range(5, 4), Range(17, 4)};
+  std::vector<Range> const Expected = {Range(0, 2), Range(5, 4), Range(17, 4)};
   EXPECT_EQ(Expected, calculateRangesAfterReplacements(Replaces, Ranges));
 }
 
 TEST(Range, AjacentReplacements) {
-  std::vector<Range> Ranges = {Range(0, 0), Range(15, 5)};
-  Replacements Replaces = toReplacements(
+  std::vector<Range> const Ranges = {Range(0, 0), Range(15, 5)};
+  Replacements const Replaces = toReplacements(
       {Replacement("foo", 1, 2, "123"), Replacement("foo", 12, 3, "1234")});
-  std::vector<Range> Expected = {Range(0, 0), Range(1, 3), Range(13, 9)};
+  std::vector<Range> const Expected = {Range(0, 0), Range(1, 3), Range(13, 9)};
   EXPECT_EQ(Expected, calculateRangesAfterReplacements(Replaces, Ranges));
 }
 
 TEST(Range, MergeRangesAfterReplacements) {
-  std::vector<Range> Ranges = {Range(8, 0), Range(5, 2), Range(9, 0), Range(0, 1)};
-  Replacements Replaces = toReplacements({Replacement("foo", 1, 3, ""),
+  std::vector<Range> const Ranges = {Range(8, 0), Range(5, 2), Range(9, 0), Range(0, 1)};
+  Replacements const Replaces = toReplacements({Replacement("foo", 1, 3, ""),
                                           Replacement("foo", 7, 0, "12"),
                                           Replacement("foo", 9, 2, "")});
-  std::vector<Range> Expected = {Range(0, 1), Range(2, 4), Range(7, 0),
+  std::vector<Range> const Expected = {Range(0, 1), Range(2, 4), Range(7, 0),
                                  Range(8, 0)};
   EXPECT_EQ(Expected, calculateRangesAfterReplacements(Replaces, Ranges));
 }
 
 TEST(Range, ConflictingRangesBeforeReplacements) {
-  std::vector<Range> Ranges = {Range(8, 3), Range(5, 4), Range(9, 1)};
-  Replacements Replaces = toReplacements({Replacement("foo", 1, 3, "")});
-  std::vector<Range> Expected = {Range(1, 0), Range(2, 6)};
+  std::vector<Range> const Ranges = {Range(8, 3), Range(5, 4), Range(9, 1)};
+  Replacements const Replaces = toReplacements({Replacement("foo", 1, 3, "")});
+  std::vector<Range> const Expected = {Range(1, 0), Range(2, 6)};
   EXPECT_EQ(Expected, calculateRangesAfterReplacements(Replaces, Ranges));
 }
 
@@ -926,12 +926,12 @@ protected:
     EXPECT_EQ(Intermediate, *AfterFirst);
     EXPECT_EQ(Result, *InSequenceRewrite);
 
-    tooling::Replacements Merged = First.merge(Second);
+    tooling::Replacements const Merged = First.merge(Second);
     auto MergedRewrite = applyAllReplacements(Code, Merged);
     EXPECT_TRUE(static_cast<bool>(MergedRewrite));
     EXPECT_EQ(*InSequenceRewrite, *MergedRewrite);
     if (*InSequenceRewrite != *MergedRewrite)
-      for (tooling::Replacement M : Merged)
+      for (tooling::Replacement const M : Merged)
         llvm::errs() << M.getOffset() << " " << M.getLength() << " "
                      << M.getReplacementText() << "\n";
   }
@@ -940,12 +940,12 @@ protected:
     auto AfterFirst = applyAllReplacements(Code, First);
     EXPECT_TRUE(static_cast<bool>(AfterFirst));
     auto InSequenceRewrite = applyAllReplacements(*AfterFirst, Second);
-    tooling::Replacements Merged = First.merge(Second);
+    tooling::Replacements const Merged = First.merge(Second);
     auto MergedRewrite = applyAllReplacements(Code, Merged);
     EXPECT_TRUE(static_cast<bool>(MergedRewrite));
     EXPECT_EQ(*InSequenceRewrite, *MergedRewrite);
     if (*InSequenceRewrite != *MergedRewrite)
-      for (tooling::Replacement M : Merged)
+      for (tooling::Replacement const M : Merged)
         llvm::errs() << M.getOffset() << " " << M.getLength() << " "
                      << M.getReplacementText() << "\n";
   }
@@ -1033,12 +1033,12 @@ TEST_F(MergeReplacementsTest, OverlappingRanges) {
 
 TEST(DeduplicateByFileTest, PathsWithDots) {
   std::map<std::string, Replacements> FileToReplaces;
-  llvm::IntrusiveRefCntPtr<llvm::vfs::InMemoryFileSystem> VFS(
+  llvm::IntrusiveRefCntPtr<llvm::vfs::InMemoryFileSystem> const VFS(
       new llvm::vfs::InMemoryFileSystem());
   FileManager FileMgr(FileSystemOptions(), VFS);
 #if !defined(_WIN32)
-  StringRef Path1 = "a/b/.././c.h";
-  StringRef Path2 = "a/c.h";
+  StringRef const Path1 = "a/b/.././c.h";
+  StringRef const Path2 = "a/c.h";
 #else
   StringRef Path1 = "a\\b\\..\\.\\c.h";
   StringRef Path2 = "a\\c.h";
@@ -1054,12 +1054,12 @@ TEST(DeduplicateByFileTest, PathsWithDots) {
 
 TEST(DeduplicateByFileTest, PathWithDotSlash) {
   std::map<std::string, Replacements> FileToReplaces;
-  llvm::IntrusiveRefCntPtr<llvm::vfs::InMemoryFileSystem> VFS(
+  llvm::IntrusiveRefCntPtr<llvm::vfs::InMemoryFileSystem> const VFS(
       new llvm::vfs::InMemoryFileSystem());
   FileManager FileMgr(FileSystemOptions(), VFS);
 #if !defined(_WIN32)
-  StringRef Path1 = "./a/b/c.h";
-  StringRef Path2 = "a/b/c.h";
+  StringRef const Path1 = "./a/b/c.h";
+  StringRef const Path2 = "a/b/c.h";
 #else
   StringRef Path1 = ".\\a\\b\\c.h";
   StringRef Path2 = "a\\b\\c.h";
@@ -1075,12 +1075,12 @@ TEST(DeduplicateByFileTest, PathWithDotSlash) {
 
 TEST(DeduplicateByFileTest, NonExistingFilePath) {
   std::map<std::string, Replacements> FileToReplaces;
-  llvm::IntrusiveRefCntPtr<llvm::vfs::InMemoryFileSystem> VFS(
+  llvm::IntrusiveRefCntPtr<llvm::vfs::InMemoryFileSystem> const VFS(
       new llvm::vfs::InMemoryFileSystem());
   FileManager FileMgr(FileSystemOptions(), VFS);
 #if !defined(_WIN32)
-  StringRef Path1 = "./a/b/c.h";
-  StringRef Path2 = "a/b/c.h";
+  StringRef const Path1 = "./a/b/c.h";
+  StringRef const Path2 = "a/b/c.h";
 #else
   StringRef Path1 = ".\\a\\b\\c.h";
   StringRef Path2 = "a\\b\\c.h";
@@ -1117,7 +1117,7 @@ TEST_F(AtomicChangeTest, AtomicChangeToYAML) {
   ASSERT_TRUE(!Err);
   Change.addHeader("a.h");
   Change.removeHeader("b.h");
-  std::string YAMLString = Change.toYAMLString();
+  std::string const YAMLString = Change.toYAMLString();
 
   // NOTE: If this test starts to fail for no obvious reason, check whitespace.
   ASSERT_STREQ("---\n"
@@ -1142,7 +1142,7 @@ TEST_F(AtomicChangeTest, AtomicChangeToYAML) {
 }
 
 TEST_F(AtomicChangeTest, YAMLToAtomicChange) {
-  std::string YamlContent = "---\n"
+  std::string const YamlContent = "---\n"
                             "Key:             'input.cpp:20'\n"
                             "FilePath:        input.cpp\n"
                             "Error:           'ok'\n"
@@ -1172,7 +1172,7 @@ TEST_F(AtomicChangeTest, YAMLToAtomicChange) {
   ExpectedChange.removeHeader("b.h");
   ExpectedChange.setError("ok");
 
-  AtomicChange ActualChange = AtomicChange::convertFromYAML(YamlContent);
+  AtomicChange const ActualChange = AtomicChange::convertFromYAML(YamlContent);
   EXPECT_EQ(ExpectedChange.getKey(), ActualChange.getKey());
   EXPECT_EQ(ExpectedChange.getFilePath(), ActualChange.getFilePath());
   EXPECT_EQ(ExpectedChange.getError(), ActualChange.getError());
@@ -1190,7 +1190,7 @@ TEST_F(AtomicChangeTest, YAMLToAtomicChange) {
 }
 
 TEST_F(AtomicChangeTest, CheckKeyAndKeyFile) {
-  AtomicChange Change(Context.Sources, DefaultLoc);
+  AtomicChange const Change(Context.Sources, DefaultLoc);
   EXPECT_EQ("input.cpp:20", Change.getKey());
   EXPECT_EQ("input.cpp", Change.getFilePath());
 }
@@ -1212,7 +1212,7 @@ TEST_F(AtomicChangeTest, Replace) {
 
 TEST_F(AtomicChangeTest, ReplaceWithRange) {
   AtomicChange Change(Context.Sources, DefaultLoc);
-  SourceLocation End = DefaultLoc.getLocWithOffset(20);
+  SourceLocation const End = DefaultLoc.getLocWithOffset(20);
   llvm::Error Err = Change.replace(
       Context.Sources, CharSourceRange::getCharRange(DefaultLoc, End), "aa");
   ASSERT_TRUE(!Err);
@@ -1272,8 +1272,8 @@ TEST_F(AtomicChangeTest, InsertBeforeToWrongFile) {
   ASSERT_TRUE(!Err);
 
   // Inserting at a different file.
-  FileID NewID = Context.createInMemoryFile("extra.cpp", DefaultCode);
-  SourceLocation NewLoc = Context.Sources.getLocForStartOfFile(NewID);
+  FileID const NewID = Context.createInMemoryFile("extra.cpp", DefaultCode);
+  SourceLocation const NewLoc = Context.Sources.getLocForStartOfFile(NewID);
   Err = Change.insert(Context.Sources, NewLoc, "b", /*InsertAfter=*/false);
   ASSERT_TRUE((bool)Err);
   EXPECT_TRUE(
@@ -1297,14 +1297,14 @@ TEST_F(AtomicChangeTest, InsertAfterWithInvalidLocation) {
 }
 
 TEST_F(AtomicChangeTest, Metadata) {
-  AtomicChange Change(Context.Sources, DefaultLoc, 17);
+  AtomicChange const Change(Context.Sources, DefaultLoc, 17);
   const llvm::Any &Metadata = Change.getMetadata();
   ASSERT_TRUE(llvm::any_isa<int>(Metadata));
   EXPECT_EQ(llvm::any_cast<int>(Metadata), 17);
 }
 
 TEST_F(AtomicChangeTest, NoMetadata) {
-  AtomicChange Change(Context.Sources, DefaultLoc);
+  AtomicChange const Change(Context.Sources, DefaultLoc);
   EXPECT_FALSE(Change.getMetadata().hasValue());
 }
 
@@ -1359,7 +1359,7 @@ protected:
 
 TEST_F(ApplyAtomicChangesTest, BasicRefactoring) {
   setInput("int a;");
-  AtomicChange Change(FilePath, "key1");
+  AtomicChange const Change(FilePath, "key1");
   Changes.push_back(replacementToAtomicChange("key1", 4, 1, "b"));
   EXPECT_EQ("int b;", rewrite());
 }
@@ -1381,7 +1381,7 @@ TEST_F(ApplyAtomicChangesTest, IgnorePathsInRefactorings) {
            "int b;");
   Changes.push_back(replacementToAtomicChange("key1", 4, 1, "aa"));
 
-  FileID ID = Context.createInMemoryFile("AnotherFile", "12345678912345");
+  FileID const ID = Context.createInMemoryFile("AnotherFile", "12345678912345");
   Changes.emplace_back("AnotherFile", "key2");
   auto Err = Changes.back().replace(
       Context.Sources,

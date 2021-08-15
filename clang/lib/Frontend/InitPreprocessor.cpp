@@ -38,12 +38,12 @@ static bool MacroBodyEndsInBackslash(StringRef MacroBody) {
 // "#define XXX Y z W".  To get a #define with no value, use "XXX=".
 static void DefineBuiltinMacro(MacroBuilder &Builder, StringRef Macro,
                                DiagnosticsEngine &Diags) {
-  std::pair<StringRef, StringRef> MacroPair = Macro.split('=');
-  StringRef MacroName = MacroPair.first;
+  std::pair<StringRef, StringRef> const MacroPair = Macro.split('=');
+  StringRef const MacroName = MacroPair.first;
   StringRef MacroBody = MacroPair.second;
   if (MacroName.size() != Macro.size()) {
     // Per GCC -D semantics, the macro ends at \n if it exists.
-    StringRef::size_type End = MacroBody.find_first_of("\n\r");
+    StringRef::size_type const End = MacroBody.find_first_of("\n\r");
     if (End != StringRef::npos)
       Diags.Report(diag::warn_fe_macro_contains_embedded_newline)
         << MacroName;
@@ -80,7 +80,7 @@ static void AddImplicitIncludeMacros(MacroBuilder &Builder, StringRef File) {
 static void AddImplicitIncludePCH(MacroBuilder &Builder, Preprocessor &PP,
                                   const PCHContainerReader &PCHContainerRdr,
                                   StringRef ImplicitIncludePCH) {
-  std::string OriginalFile = ASTReader::getOriginalSourceFile(
+  std::string const OriginalFile = ASTReader::getOriginalSourceFile(
       std::string(ImplicitIncludePCH), PP.getFileManager(), PCHContainerRdr,
       PP.getDiagnostics());
   if (OriginalFile.empty())
@@ -116,17 +116,17 @@ static void DefineFloatMacros(MacroBuilder &Builder, StringRef Prefix,
                      "4.9406564584124654e-324", "3.64519953188247460253e-4951",
                      "4.94065645841246544176568792868221e-324",
                      "6.47517511943802511092443895822764655e-4966");
-  int Digits = PickFP(Sem, 3, 6, 15, 18, 31, 33);
-  int DecimalDigits = PickFP(Sem, 5, 9, 17, 21, 33, 36);
+  int const Digits = PickFP(Sem, 3, 6, 15, 18, 31, 33);
+  int const DecimalDigits = PickFP(Sem, 5, 9, 17, 21, 33, 36);
   Epsilon = PickFP(Sem, "9.765625e-4", "1.19209290e-7",
                    "2.2204460492503131e-16", "1.08420217248550443401e-19",
                    "4.94065645841246544176568792868221e-324",
                    "1.92592994438723585305597794258492732e-34");
-  int MantissaDigits = PickFP(Sem, 11, 24, 53, 64, 106, 113);
-  int Min10Exp = PickFP(Sem, -4, -37, -307, -4931, -291, -4931);
-  int Max10Exp = PickFP(Sem, 4, 38, 308, 4932, 308, 4932);
-  int MinExp = PickFP(Sem, -13, -125, -1021, -16381, -968, -16381);
-  int MaxExp = PickFP(Sem, 16, 128, 1024, 16384, 1024, 16384);
+  int const MantissaDigits = PickFP(Sem, 11, 24, 53, 64, 106, 113);
+  int const Min10Exp = PickFP(Sem, -4, -37, -307, -4931, -291, -4931);
+  int const Max10Exp = PickFP(Sem, 4, 38, 308, 4932, 308, 4932);
+  int const MinExp = PickFP(Sem, -13, -125, -1021, -16381, -968, -16381);
+  int const MaxExp = PickFP(Sem, 16, 128, 1024, 16384, 1024, 16384);
   Min = PickFP(Sem, "6.103515625e-5", "1.17549435e-38", "2.2250738585072014e-308",
                "3.36210314311209350626e-4932",
                "2.00416836000897277799610805135016e-292",
@@ -166,7 +166,7 @@ static void DefineFloatMacros(MacroBuilder &Builder, StringRef Prefix,
 static void DefineTypeSize(const Twine &MacroName, unsigned TypeWidth,
                            StringRef ValSuffix, bool isSigned,
                            MacroBuilder &Builder) {
-  llvm::APInt MaxVal = isSigned ? llvm::APInt::getSignedMaxValue(TypeWidth)
+  llvm::APInt const MaxVal = isSigned ? llvm::APInt::getSignedMaxValue(TypeWidth)
                                 : llvm::APInt::getMaxValue(TypeWidth);
   Builder.defineMacro(MacroName, toString(MaxVal, 10, isSigned) + ValSuffix);
 }
@@ -181,8 +181,8 @@ static void DefineTypeSize(const Twine &MacroName, TargetInfo::IntType Ty,
 
 static void DefineFmt(const Twine &Prefix, TargetInfo::IntType Ty,
                       const TargetInfo &TI, MacroBuilder &Builder) {
-  bool IsSigned = TI.isTypeSigned(Ty);
-  StringRef FmtModifier = TI.getTypeFormatModifier(Ty);
+  bool const IsSigned = TI.isTypeSigned(Ty);
+  StringRef const FmtModifier = TI.getTypeFormatModifier(Ty);
   for (const char *Fmt = IsSigned ? "di" : "ouxX"; *Fmt; ++Fmt) {
     Builder.defineMacro(Prefix + "_FMT" + Twine(*Fmt) + "__",
                         Twine("\"") + FmtModifier + Twine(*Fmt) + "\"");
@@ -208,8 +208,8 @@ static void DefineTypeSizeof(StringRef MacroName, unsigned BitWidth,
 static void DefineExactWidthIntType(TargetInfo::IntType Ty,
                                     const TargetInfo &TI,
                                     MacroBuilder &Builder) {
-  int TypeWidth = TI.getTypeWidth(Ty);
-  bool IsSigned = TI.isTypeSigned(Ty);
+  int const TypeWidth = TI.getTypeWidth(Ty);
+  bool const IsSigned = TI.isTypeSigned(Ty);
 
   // Use the target specified int64 type, when appropriate, so that [u]int64_t
   // ends up being defined in terms of the correct type.
@@ -226,15 +226,15 @@ static void DefineExactWidthIntType(TargetInfo::IntType Ty,
   DefineType(Prefix + Twine(TypeWidth) + "_TYPE__", Ty, Builder);
   DefineFmt(Prefix + Twine(TypeWidth), Ty, TI, Builder);
 
-  StringRef ConstSuffix(TI.getTypeConstantSuffix(Ty));
+  StringRef const ConstSuffix(TI.getTypeConstantSuffix(Ty));
   Builder.defineMacro(Prefix + Twine(TypeWidth) + "_C_SUFFIX__", ConstSuffix);
 }
 
 static void DefineExactWidthIntTypeSize(TargetInfo::IntType Ty,
                                         const TargetInfo &TI,
                                         MacroBuilder &Builder) {
-  int TypeWidth = TI.getTypeWidth(Ty);
-  bool IsSigned = TI.isTypeSigned(Ty);
+  int const TypeWidth = TI.getTypeWidth(Ty);
+  bool const IsSigned = TI.isTypeSigned(Ty);
 
   // Use the target specified int64 type, when appropriate, so that [u]int64_t
   // ends up being defined in terms of the correct type.
@@ -248,7 +248,7 @@ static void DefineExactWidthIntTypeSize(TargetInfo::IntType Ty,
 static void DefineLeastWidthIntType(unsigned TypeWidth, bool IsSigned,
                                     const TargetInfo &TI,
                                     MacroBuilder &Builder) {
-  TargetInfo::IntType Ty = TI.getLeastIntTypeByWidth(TypeWidth, IsSigned);
+  TargetInfo::IntType const Ty = TI.getLeastIntTypeByWidth(TypeWidth, IsSigned);
   if (Ty == TargetInfo::NoInt)
     return;
 
@@ -262,7 +262,7 @@ static void DefineFastIntType(unsigned TypeWidth, bool IsSigned,
                               const TargetInfo &TI, MacroBuilder &Builder) {
   // stdint.h currently defines the fast int types as equivalent to the least
   // types.
-  TargetInfo::IntType Ty = TI.getLeastIntTypeByWidth(TypeWidth, IsSigned);
+  TargetInfo::IntType const Ty = TI.getLeastIntTypeByWidth(TypeWidth, IsSigned);
   if (Ty == TargetInfo::NoInt)
     return;
 
@@ -655,9 +655,9 @@ static void InitializePredefinedMacros(const TargetInfo &TI,
   if (LangOpts.GNUCVersion != 0) {
     // Major, minor, patch, are given two decimal places each, so 4.2.1 becomes
     // 40201.
-    unsigned GNUCMajor = LangOpts.GNUCVersion / 100 / 100;
-    unsigned GNUCMinor = LangOpts.GNUCVersion / 100 % 100;
-    unsigned GNUCPatch = LangOpts.GNUCVersion % 100;
+    unsigned const GNUCMajor = LangOpts.GNUCVersion / 100 / 100;
+    unsigned const GNUCMinor = LangOpts.GNUCVersion / 100 % 100;
+    unsigned const GNUCPatch = LangOpts.GNUCVersion % 100;
     Builder.defineMacro("__GNUC__", Twine(GNUCMajor));
     Builder.defineMacro("__GNUC_MINOR__", Twine(GNUCMinor));
     Builder.defineMacro("__GNUC_PATCHLEVEL__", Twine(GNUCPatch));
@@ -724,7 +724,7 @@ static void InitializePredefinedMacros(const TargetInfo &TI,
 
     if (LangOpts.ObjCRuntime.getKind() == ObjCRuntime::GNUstep) {
       auto version = LangOpts.ObjCRuntime.getVersion();
-      std::string versionString = "1";
+      std::string const versionString = "1";
       // Don't rely on the tuple argument, because we can be asked to target
       // later ABIs than we actually support, so clamp these values to those
       // currently supported
@@ -736,7 +736,7 @@ static void InitializePredefinedMacros(const TargetInfo &TI,
     }
 
     if (LangOpts.ObjCRuntime.getKind() == ObjCRuntime::ObjFW) {
-      VersionTuple tuple = LangOpts.ObjCRuntime.getVersion();
+      VersionTuple const tuple = LangOpts.ObjCRuntime.getVersion();
 
       unsigned minor = 0;
       if (tuple.getMinor().hasValue())
@@ -1037,7 +1037,7 @@ static void InitializePredefinedMacros(const TargetInfo &TI,
 
   auto addLockFreeMacros = [&](const llvm::Twine &Prefix) {
     // Used by libc++ and libstdc++ to implement ATOMIC_<foo>_LOCK_FREE.
-    unsigned InlineWidthBits = TI.getMaxAtomicInlineWidth();
+    unsigned const InlineWidthBits = TI.getMaxAtomicInlineWidth();
 #define DEFINE_LOCK_FREE_MACRO(TYPE, Type)                                     \
   Builder.defineMacro(Prefix + #TYPE "_LOCK_FREE",                             \
                       getLockFreeValue(TI.get##Type##Width(),                  \
@@ -1067,7 +1067,7 @@ static void InitializePredefinedMacros(const TargetInfo &TI,
   if (LangOpts.NoInlineDefine)
     Builder.defineMacro("__NO_INLINE__");
 
-  if (unsigned PICLevel = LangOpts.PICLevel) {
+  if (unsigned const PICLevel = LangOpts.PICLevel) {
     Builder.defineMacro("__PIC__", Twine(PICLevel));
     Builder.defineMacro("__pic__", Twine(PICLevel));
     if (LangOpts.PIE) {

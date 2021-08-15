@@ -241,7 +241,7 @@ private:
 
     if (SymbolOffset >= SourceMgr.getFileIDSize(MainFileID)) {
       ErrorOccurred = true;
-      unsigned InvalidOffset = Engine.getCustomDiagID(
+      unsigned const InvalidOffset = Engine.getCustomDiagID(
           DiagnosticsEngine::Error,
           "SourceLocation in file %0 at offset %1 is invalid");
       Engine.Report(SourceLocation(), InvalidOffset)
@@ -257,8 +257,8 @@ private:
 
     if (FoundDecl == nullptr) {
       if (QualifiedName.empty()) {
-        FullSourceLoc FullLoc(Point, SourceMgr);
-        unsigned CouldNotFindSymbolAt = Engine.getCustomDiagID(
+        FullSourceLoc const FullLoc(Point, SourceMgr);
+        unsigned const CouldNotFindSymbolAt = Engine.getCustomDiagID(
             DiagnosticsEngine::Error,
             "clang-rename could not find symbol (offset %0)");
         Engine.Report(Point, CouldNotFindSymbolAt) << SymbolOffset;
@@ -272,7 +272,7 @@ private:
         return true;
       }
 
-      unsigned CouldNotFindSymbolNamed = Engine.getCustomDiagID(
+      unsigned const CouldNotFindSymbolNamed = Engine.getCustomDiagID(
           DiagnosticsEngine::Error, "clang-rename could not find symbol %0");
       Engine.Report(CouldNotFindSymbolNamed) << QualifiedName;
       ErrorOccurred = true;
@@ -288,7 +288,7 @@ private:
 
   void HandleTranslationUnit(ASTContext &Context) override {
     const SourceManager &SourceMgr = Context.getSourceManager();
-    for (unsigned Offset : SymbolOffsets) {
+    for (unsigned const Offset : SymbolOffsets) {
       if (!FindSymbol(Context, SourceMgr, Offset, ""))
         return;
     }

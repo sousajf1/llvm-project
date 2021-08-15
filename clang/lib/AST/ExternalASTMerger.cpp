@@ -55,14 +55,14 @@ LookupSameContext(Source<TranslationUnitDecl *> SourceTU, const DeclContext *DC,
     return nullptr;
   }
   auto *ND = cast<NamedDecl>(DC);
-  DeclarationName Name = ND->getDeclName();
+  DeclarationName const Name = ND->getDeclName();
   auto SourceNameOrErr = ReverseImporter.Import(Name);
   if (!SourceNameOrErr) {
     llvm::consumeError(SourceNameOrErr.takeError());
     return nullptr;
   }
   Source<DeclarationName> SourceName = *SourceNameOrErr;
-  DeclContext::lookup_result SearchResult =
+  DeclContext::lookup_result const SearchResult =
       SourceParentDC.get()->lookup(SourceName.get());
 
   // There are two cases here. First, we might not find the name.
@@ -280,13 +280,13 @@ template <typename CallbackType>
 void ExternalASTMerger::ForEachMatchingDC(const DeclContext *DC,
                                           CallbackType Callback) {
   if (Origins.count(DC)) {
-    ExternalASTMerger::DCOrigin Origin = Origins[DC];
+    ExternalASTMerger::DCOrigin const Origin = Origins[DC];
     LazyASTImporter &Importer = LazyImporterForOrigin(*this, *Origin.AST);
     Callback(Importer, Importer.GetReverse(), Origin.DC);
   } else {
     bool DidCallback = false;
     for (const std::unique_ptr<ASTImporter> &Importer : Importers) {
-      Source<TranslationUnitDecl *> SourceTU =
+      Source<TranslationUnitDecl *> const SourceTU =
           Importer->getFromContext().getTranslationUnitDecl();
       ASTImporter &Reverse =
           static_cast<LazyASTImporter *>(Importer.get())->GetReverse();
@@ -436,7 +436,7 @@ void ExternalASTMerger::RemoveSources(llvm::ArrayRef<ImporterSource> Sources) {
                      }),
       Importers.end());
   for (OriginMap::iterator OI = Origins.begin(), OE = Origins.end(); OI != OE; ) {
-    std::pair<const DeclContext *, DCOrigin> Origin = *OI;
+    std::pair<const DeclContext *, DCOrigin> const Origin = *OI;
     bool Erase = false;
     for (const ImporterSource &S : Sources) {
       if (&S.getASTContext() == Origin.second.AST) {
@@ -494,7 +494,7 @@ bool ExternalASTMerger::FindExternalVisibleDeclsByName(const DeclContext *DC,
                         llvm::consumeError(FromNameOrErr.takeError());
                         return false;
                       }
-                      DeclContextLookupResult Result =
+                      DeclContextLookupResult const Result =
                           SourceDC.get()->lookup(*FromNameOrErr);
                       for (NamedDecl *FromD : Result) {
                         FilterFoundDecl(std::make_pair(FromD, &Forward));
@@ -515,7 +515,7 @@ bool ExternalASTMerger::FindExternalVisibleDeclsByName(const DeclContext *DC,
     // If we don't import specialization, they are not available via lookup
     // because the lookup result is imported TemplateDecl and it does not
     // reference its specializations until they are imported explicitly.
-    bool IsSpecImportFailed =
+    bool const IsSpecImportFailed =
         importSpecializationsIfNeeded(LookupRes, Importer);
     assert(!IsSpecImportFailed);
     (void)IsSpecImportFailed;

@@ -76,7 +76,7 @@ public:
   static void collectProperties(ObjCContainerDecl *D, AtPropDeclsTy &AtProps,
                                 AtPropDeclsTy *PrevAtProps = nullptr) {
     for (auto *Prop : D->instance_properties()) {
-      SourceLocation Loc = Prop->getAtLoc();
+      SourceLocation const Loc = Prop->getAtLoc();
       if (Loc.isInvalid())
         continue;
       if (PrevAtProps)
@@ -113,7 +113,7 @@ public:
       ObjCIvarDecl *ivarD = implD->getPropertyIvarDecl();
       if (!ivarD || ivarD->isInvalidDecl())
         continue;
-      AtPropDeclsTy::iterator findAtLoc = AtProps.find(propD->getAtLoc());
+      AtPropDeclsTy::iterator const findAtLoc = AtProps.find(propD->getAtLoc());
       if (findAtLoc == AtProps.end())
         continue;
 
@@ -129,14 +129,14 @@ public:
 
     for (AtPropDeclsTy::iterator
            I = AtProps.begin(), E = AtProps.end(); I != E; ++I) {
-      SourceLocation atLoc = I->first;
+      SourceLocation const atLoc = I->first;
       PropsTy &props = I->second;
       if (!getPropertyType(props)->isObjCRetainableType())
         continue;
       if (hasIvarWithExplicitARCOwnership(props))
         continue;
 
-      Transaction Trans(Pass.TA);
+      Transaction const Trans(Pass.TA);
       rewriteProperty(props, atLoc);
     }
   }
@@ -153,7 +153,7 @@ private:
     case PropAction_None:
       return;
     case PropAction_RetainReplacedWithStrong: {
-      StringRef toAttr = "strong";
+      StringRef const toAttr = "strong";
       MigrateCtx.rewritePropertyAttribute("retain", toAttr, atLoc);
       return;
     }
@@ -167,7 +167,7 @@ private:
   }
 
   void rewriteProperty(PropsTy &props, SourceLocation atLoc) {
-    ObjCPropertyAttribute::Kind propAttrs = getPropertyAttrs(props);
+    ObjCPropertyAttribute::Kind const propAttrs = getPropertyAttrs(props);
 
     if (propAttrs &
         (ObjCPropertyAttribute::kind_copy |
@@ -180,7 +180,7 @@ private:
       return doPropAction(PropAction_RetainReplacedWithStrong, props, atLoc);
     }
 
-    bool HasIvarAssignedAPlusOneObject = hasIvarAssignedAPlusOneObject(props);
+    bool const HasIvarAssignedAPlusOneObject = hasIvarAssignedAPlusOneObject(props);
 
     if (propAttrs & ObjCPropertyAttribute::kind_assign) {
       if (HasIvarAssignedAPlusOneObject)
@@ -217,7 +217,7 @@ private:
       (Pass.isGCMigration() && !hasGCWeak(props, atLoc)) ? "strong" :
       (canUseWeak ? "weak" : "unsafe_unretained");
 
-    bool rewroteAttr = rewriteAttribute("assign", toWhich, atLoc);
+    bool const rewroteAttr = rewriteAttribute("assign", toWhich, atLoc);
     if (!rewroteAttr)
       canUseWeak = false;
 
@@ -244,7 +244,7 @@ private:
     bool canUseWeak = canApplyWeak(Pass.Ctx, getPropertyType(props),
                                   /*AllowOnUnknownClass=*/Pass.isGCMigration());
 
-    bool addedAttr = addAttribute(canUseWeak ? "weak" : "unsafe_unretained",
+    bool const addedAttr = addAttribute(canUseWeak ? "weak" : "unsafe_unretained",
                                   atLoc);
     if (!addedAttr)
       canUseWeak = false;
@@ -306,7 +306,7 @@ private:
   bool hasIvarAssignedAPlusOneObject(PropsTy &props) const {
     for (PropsTy::iterator I = props.begin(), E = props.end(); I != E; ++I) {
       PlusOneAssign oneAssign(I->IvarD);
-      bool notFound = oneAssign.TraverseDecl(CurImplD);
+      bool const notFound = oneAssign.TraverseDecl(CurImplD);
       if (!notFound)
         return true;
     }
@@ -358,7 +358,7 @@ private:
 
   ObjCPropertyAttribute::Kind getPropertyAttrs(PropsTy &props) const {
     assert(!props.empty());
-    ObjCPropertyAttribute::Kind attrs =
+    ObjCPropertyAttribute::Kind const attrs =
         props[0].PropD->getPropertyAttributesAsWritten();
 
 #ifndef NDEBUG

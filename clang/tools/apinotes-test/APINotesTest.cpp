@@ -42,7 +42,7 @@ int main(int argc, const char **argv) {
   for (const std::string &Notes : APINotes) {
     llvm::ErrorOr<std::unique_ptr<llvm::MemoryBuffer>> NotesOrError =
         llvm::MemoryBuffer::getFileOrSTDIN(Notes);
-    if (std::error_code EC = NotesOrError.getError()) {
+    if (std::error_code const EC = NotesOrError.getError()) {
       llvm::errs() << EC.message() << '\n';
       return EXIT_FAILURE;
     }

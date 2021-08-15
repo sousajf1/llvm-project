@@ -75,7 +75,7 @@ void tools::SHAVE::Compiler::ConstructJob(Compilation &C, const JobAction &JA,
   CmdArgs.push_back("-o");
   CmdArgs.push_back(Output.getFilename());
 
-  std::string Exec =
+  std::string const Exec =
       Args.MakeArgString(getToolChain().GetProgramPath("moviCompile"));
   C.addCommand(std::make_unique<Command>(JA, *this, ResponseFileSupport::None(),
                                          Args.MakeArgString(Exec), CmdArgs,
@@ -111,7 +111,7 @@ void tools::SHAVE::Assembler::ConstructJob(Compilation &C, const JobAction &JA,
   CmdArgs.push_back(
       Args.MakeArgString(std::string("-o:") + Output.getFilename()));
 
-  std::string Exec =
+  std::string const Exec =
       Args.MakeArgString(getToolChain().GetProgramPath("moviAsm"));
   C.addCommand(std::make_unique<Command>(JA, *this, ResponseFileSupport::None(),
                                          Args.MakeArgString(Exec), CmdArgs,
@@ -127,9 +127,9 @@ void tools::Myriad::Linker::ConstructJob(Compilation &C, const JobAction &JA,
       static_cast<const toolchains::MyriadToolChain &>(getToolChain());
   const llvm::Triple &T = TC.getTriple();
   ArgStringList CmdArgs;
-  bool UseStartfiles =
+  bool const UseStartfiles =
       !Args.hasArg(options::OPT_nostdlib, options::OPT_nostartfiles);
-  bool UseDefaultLibs =
+  bool const UseDefaultLibs =
       !Args.hasArg(options::OPT_nostdlib, options::OPT_nodefaultlibs);
   // Silence warning if the args contain both -nostdlib and -stdlib=.
   Args.getLastArg(options::OPT_stdlib_EQ);
@@ -167,7 +167,7 @@ void tools::Myriad::Linker::ConstructJob(Compilation &C, const JobAction &JA,
 
   TC.AddFilePathLibArgs(Args, CmdArgs);
 
-  bool NeedsSanitizerDeps = addSanitizerRuntimes(TC, Args, CmdArgs);
+  bool const NeedsSanitizerDeps = addSanitizerRuntimes(TC, Args, CmdArgs);
   AddLinkerInputs(getToolChain(), Inputs, Args, CmdArgs, JA);
 
   if (UseDefaultLibs) {
@@ -198,7 +198,7 @@ void tools::Myriad::Linker::ConstructJob(Compilation &C, const JobAction &JA,
     CmdArgs.push_back(Args.MakeArgString(TC.GetFilePath("crtn.o")));
   }
 
-  std::string Exec =
+  std::string const Exec =
       Args.MakeArgString(TC.GetProgramPath("sparc-myriad-rtems-ld"));
   C.addCommand(std::make_unique<Command>(
       JA, *this, ResponseFileSupport::AtFileCurCP(), Args.MakeArgString(Exec),
@@ -229,7 +229,7 @@ MyriadToolChain::MyriadToolChain(const Driver &D, const llvm::Triple &Triple,
   if (GCCInstallation.isValid()) {
     // This directory contains crt{i,n,begin,end}.o as well as libgcc.
     // These files are tied to a particular version of gcc.
-    SmallString<128> CompilerSupportDir(GCCInstallation.getInstallPath());
+    SmallString<128> const CompilerSupportDir(GCCInstallation.getInstallPath());
     addPathIfExists(D, CompilerSupportDir, getFilePaths());
   }
   // libstd++ and libc++ must both be found in this one place.
@@ -247,16 +247,16 @@ void MyriadToolChain::AddClangSystemIncludeArgs(const ArgList &DriverArgs,
 void MyriadToolChain::addLibCxxIncludePaths(
     const llvm::opt::ArgList &DriverArgs,
     llvm::opt::ArgStringList &CC1Args) const {
-  std::string Path(getDriver().getInstalledDir());
+  std::string const Path(getDriver().getInstalledDir());
   addSystemInclude(DriverArgs, CC1Args, Path + "/../include/c++/v1");
 }
 
 void MyriadToolChain::addLibStdCxxIncludePaths(
     const llvm::opt::ArgList &DriverArgs,
     llvm::opt::ArgStringList &CC1Args) const {
-  StringRef LibDir = GCCInstallation.getParentLibPath();
+  StringRef const LibDir = GCCInstallation.getParentLibPath();
   const GCCVersion &Version = GCCInstallation.getVersion();
-  StringRef TripleStr = GCCInstallation.getTriple().str();
+  StringRef const TripleStr = GCCInstallation.getTriple().str();
   const Multilib &Multilib = GCCInstallation.getMultilib();
   addLibStdCXXIncludePaths(
       LibDir.str() + "/../" + TripleStr.str() + "/include/c++/" + Version.Text,

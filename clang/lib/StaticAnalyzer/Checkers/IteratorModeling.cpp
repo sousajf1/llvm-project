@@ -250,7 +250,7 @@ void IteratorModeling::checkBind(SVal Loc, SVal Val, const Stmt *S,
 
 void IteratorModeling::checkPostStmt(const UnaryOperator *UO,
                                      CheckerContext &C) const {
-  UnaryOperatorKind OK = UO->getOpcode();
+  UnaryOperatorKind const OK = UO->getOpcode();
   if (!isIncrementOperator(OK) && !isDecrementOperator(OK))
     return;
 
@@ -270,7 +270,7 @@ void IteratorModeling::checkPostStmt(const BinaryOperator *BO,
   const SVal RVal = State->getSVal(RHS, C.getLocationContext());
 
   if (isSimpleComparisonOperator(BO->getOpcode())) {
-    SVal Result = State->getSVal(BO, C.getLocationContext());
+    SVal const Result = State->getSVal(BO, C.getLocationContext());
     handleComparison(C, BO, Result, LVal, RVal,
                      BinaryOperator::getOverloadedOperator(OK));
   } else if (isRandomIncrOrDecrOperator(OK)) {
@@ -633,13 +633,13 @@ void IteratorModeling::handlePtrIncrOrDecr(CheckerContext &C,
   if (!Offset.getAs<DefinedSVal>())
     return;
 
-  QualType PtrType = Iterator->getType();
+  QualType const PtrType = Iterator->getType();
   if (!PtrType->isPointerType())
     return;
-  QualType ElementType = PtrType->getPointeeType();
+  QualType const ElementType = PtrType->getPointeeType();
 
-  ProgramStateRef State = C.getState();
-  SVal OldVal = State->getSVal(Iterator, C.getLocationContext());
+  ProgramStateRef const State = C.getState();
+  SVal const OldVal = State->getSVal(Iterator, C.getLocationContext());
 
   const IteratorPosition *OldPos = getIteratorPosition(State, OldVal);
   if (!OldPos)
@@ -650,7 +650,7 @@ void IteratorModeling::handlePtrIncrOrDecr(CheckerContext &C,
     NewVal = State->getLValue(ElementType, Offset, OldVal);
   } else {
     auto &SVB = C.getSValBuilder();
-    SVal NegatedOffset = SVB.evalMinus(Offset.castAs<NonLoc>());
+    SVal const NegatedOffset = SVB.evalMinus(Offset.castAs<NonLoc>());
     NewVal = State->getLValue(ElementType, NegatedOffset, OldVal);
   }
 
@@ -663,7 +663,7 @@ void IteratorModeling::handlePtrIncrOrDecr(CheckerContext &C,
     assert(NewPos &&
            "Iterator should have position after successful advancement");
 
-    ProgramStateRef NewState = setIteratorPosition(State, NewVal, *NewPos);
+    ProgramStateRef const NewState = setIteratorPosition(State, NewVal, *NewPos);
     C.addTransition(NewState);
   } else {
     assignToContainer(C, Iterator, NewVal, OldPos->getContainer());
@@ -833,7 +833,7 @@ bool isBoundThroughLazyCompoundVal(const Environment &Env,
 
 const ExplodedNode *findCallEnter(const ExplodedNode *Node, const Expr *Call) {
   while (Node) {
-    ProgramPoint PP = Node->getLocation();
+    ProgramPoint const PP = Node->getLocation();
     if (auto Enter = PP.getAs<CallEnter>()) {
       if (Enter->getCallExpr() == Call)
         break;

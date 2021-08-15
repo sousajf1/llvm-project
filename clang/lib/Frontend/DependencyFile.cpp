@@ -56,7 +56,7 @@ struct DepCollectorPPCallbacks : public PPCallbacks {
 
   void FileSkipped(const FileEntryRef &SkippedFile, const Token &FilenameTok,
                    SrcMgr::CharacteristicKind FileType) override {
-    StringRef Filename =
+    StringRef const Filename =
         llvm::sys::path::remove_leading_dotslash(SkippedFile.getName());
     DepCollector.maybeAddDependency(Filename, /*FromModule=*/false,
                                     /*IsSystem=*/isSystem(FileType),
@@ -82,7 +82,7 @@ struct DepCollectorPPCallbacks : public PPCallbacks {
                   SrcMgr::CharacteristicKind FileType) override {
     if (!File)
       return;
-    StringRef Filename =
+    StringRef const Filename =
         llvm::sys::path::remove_leading_dotslash(File->getName());
     DepCollector.maybeAddDependency(Filename, /*FromModule=*/false,
                                     /*IsSystem=*/isSystem(FileType),
@@ -99,7 +99,7 @@ struct DepCollectorMMCallbacks : public ModuleMapCallbacks {
 
   void moduleMapFileRead(SourceLocation Loc, const FileEntry &Entry,
                          bool IsSystem) override {
-    StringRef Filename = Entry.getName();
+    StringRef const Filename = Entry.getName();
     DepCollector.maybeAddDependency(Filename, /*FromModule*/false,
                                     /*IsSystem*/IsSystem,
                                     /*IsModuleFile*/false,
@@ -335,8 +335,8 @@ void DependencyFileGenerator::outputDependencyFile(llvm::raw_ostream &OS) {
   const unsigned MaxColumns = 75;
   unsigned Columns = 0;
 
-  for (StringRef Target : Targets) {
-    unsigned N = Target.size();
+  for (StringRef const Target : Targets) {
+    unsigned const N = Target.size();
     if (Columns == 0) {
       Columns += N;
     } else if (Columns + N + 2 > MaxColumns) {
@@ -355,12 +355,12 @@ void DependencyFileGenerator::outputDependencyFile(llvm::raw_ostream &OS) {
 
   // Now add each dependency in the order it was seen, but avoiding
   // duplicates.
-  ArrayRef<std::string> Files = getDependencies();
-  for (StringRef File : Files) {
+  ArrayRef<std::string> const Files = getDependencies();
+  for (StringRef const File : Files) {
     // Start a new line if this would exceed the column limit. Make
     // sure to leave space for a trailing " \" in case we need to
     // break the line on the next iteration.
-    unsigned N = File.size();
+    unsigned const N = File.size();
     if (Columns + (N + 1) + 2 > MaxColumns) {
       OS << " \\\n ";
       Columns = 2;

@@ -35,7 +35,7 @@ private:
 };
 
 TEST(RecursiveASTVisitor, CXXMethodDeclNoDefaultBodyVisited) {
-  for (bool VisitImplCode : {false, true}) {
+  for (bool const VisitImplCode : {false, true}) {
     CXXMethodDeclVisitor Visitor(VisitImplCode);
     if (VisitImplCode)
       Visitor.ExpectMatch("declref", 8, 28);
@@ -43,7 +43,7 @@ TEST(RecursiveASTVisitor, CXXMethodDeclNoDefaultBodyVisited) {
       Visitor.DisallowMatch("declref", 8, 28);
 
     Visitor.ExpectMatch("parm", 8, 27);
-    llvm::StringRef Code = R"cpp(
+    llvm::StringRef const Code = R"cpp(
       struct B {};
       struct A {
         B BB;
@@ -57,13 +57,13 @@ TEST(RecursiveASTVisitor, CXXMethodDeclNoDefaultBodyVisited) {
 }
 
 TEST(RecursiveASTVisitor, FunctionDeclNoDefaultBodyVisited) {
-  for (bool VisitImplCode : {false, true}) {
+  for (bool const VisitImplCode : {false, true}) {
     CXXMethodDeclVisitor Visitor(VisitImplCode);
     if (VisitImplCode)
       Visitor.ExpectMatch("declref", 4, 58, /*Times=*/2);
     else
       Visitor.DisallowMatch("declref", 4, 58);
-    llvm::StringRef Code = R"cpp(
+    llvm::StringRef const Code = R"cpp(
       struct s {
         int x;
         friend auto operator==(s a, s b) -> bool = default;

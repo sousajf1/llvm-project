@@ -39,7 +39,7 @@ std::string x86::getX86TargetCPU(const ArgList &Args,
 
   if (const Arg *A = Args.getLastArgNoClaim(options::OPT__SLASH_arch)) {
     // Mapping built by looking at lib/Basic's X86TargetInfo::initFeatureMap().
-    StringRef Arch = A->getValue();
+    StringRef const Arch = A->getValue();
     StringRef CPU;
     if (Triple.getArch() == llvm::Triple::x86) {  // 32-bit-only /arch: flags.
       CPU = llvm::StringSwitch<StringRef>(Arch)
@@ -67,7 +67,7 @@ std::string x86::getX86TargetCPU(const ArgList &Args,
   if (!Triple.isX86())
     return ""; // This routine is only handling x86 targets.
 
-  bool Is64Bit = Triple.getArch() == llvm::Triple::x86_64;
+  bool const Is64Bit = Triple.getArch() == llvm::Triple::x86_64;
 
   // FIXME: Need target hooks.
   if (Triple.isOSDarwin()) {
@@ -228,7 +228,7 @@ void x86::getX86TargetFeatures(const Driver &D, const llvm::Triple &Triple,
       continue;
     }
 
-    bool IsNegative = Name.startswith("no-");
+    bool const IsNegative = Name.startswith("no-");
     if (IsNegative)
       Name = Name.substr(3);
     Features.push_back(Args.MakeArgString((IsNegative ? "-" : "+") + Name));

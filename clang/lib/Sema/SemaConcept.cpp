@@ -68,7 +68,7 @@ bool Sema::CheckConstraintExpression(const Expr *ConstraintExpression,
 
   ConstraintExpression = ConstraintExpression->IgnoreParenImpCasts();
 
-  if (LogicalBinOp BO = ConstraintExpression) {
+  if (LogicalBinOp const BO = ConstraintExpression) {
     return CheckConstraintExpression(BO.getLHS(), NextToken,
                                      PossibleNonPrimary) &&
            CheckConstraintExpression(BO.getRHS(), NextToken,
@@ -129,12 +129,12 @@ calculateConstraintSatisfaction(Sema &S, const Expr *ConstraintExpr,
                                 AtomicEvaluator &&Evaluator) {
   ConstraintExpr = ConstraintExpr->IgnoreParenImpCasts();
 
-  if (LogicalBinOp BO = ConstraintExpr) {
+  if (LogicalBinOp const BO = ConstraintExpr) {
     if (calculateConstraintSatisfaction(S, BO.getLHS(), Satisfaction,
                                         Evaluator))
       return true;
 
-    bool IsLHSSatisfied = Satisfaction.IsSatisfied;
+    bool const IsLHSSatisfied = Satisfaction.IsSatisfied;
 
     if (BO.isOr() && IsLHSSatisfied)
       // [temp.constr.op] p3
@@ -162,7 +162,7 @@ calculateConstraintSatisfaction(Sema &S, const Expr *ConstraintExpr,
   }
 
   // An atomic constraint expression
-  ExprResult SubstitutedAtomicExpr = Evaluator(ConstraintExpr);
+  ExprResult const SubstitutedAtomicExpr = Evaluator(ConstraintExpr);
 
   if (SubstitutedAtomicExpr.isInvalid())
     return true;
@@ -171,7 +171,7 @@ calculateConstraintSatisfaction(Sema &S, const Expr *ConstraintExpr,
     // Evaluator has decided satisfaction without yielding an expression.
     return false;
 
-  EnterExpressionEvaluationContext ConstantEvaluated(
+  EnterExpressionEvaluationContext const ConstantEvaluated(
       S, Sema::ExpressionEvaluationContext::ConstantEvaluated);
   SmallVector<PartialDiagnosticAt, 2> EvaluationDiags;
   Expr::EvalResult EvalResult;
@@ -205,21 +205,21 @@ static bool calculateConstraintSatisfaction(
     const Expr *ConstraintExpr, ConstraintSatisfaction &Satisfaction) {
   return calculateConstraintSatisfaction(
       S, ConstraintExpr, Satisfaction, [&](const Expr *AtomicExpr) {
-        EnterExpressionEvaluationContext ConstantEvaluated(
+        EnterExpressionEvaluationContext const ConstantEvaluated(
             S, Sema::ExpressionEvaluationContext::ConstantEvaluated);
 
         // Atomic constraint - substitute arguments and check satisfaction.
         ExprResult SubstitutedExpression;
         {
           TemplateDeductionInfo Info(TemplateNameLoc);
-          Sema::InstantiatingTemplate Inst(S, AtomicExpr->getBeginLoc(),
+          Sema::InstantiatingTemplate const Inst(S, AtomicExpr->getBeginLoc(),
               Sema::InstantiatingTemplate::ConstraintSubstitution{},
               const_cast<NamedDecl *>(Template), Info,
               AtomicExpr->getSourceRange());
           if (Inst.isInvalid())
             return ExprError();
           // We do not want error diagnostics escaping here.
-          Sema::SFINAETrap Trap(S);
+          Sema::SFINAETrap const Trap(S);
           SubstitutedExpression = S.SubstExpr(const_cast<Expr *>(AtomicExpr),
                                               MLTAL);
           // Substitution might have stripped off a contextual conversion to
@@ -250,7 +250,7 @@ static bool calculateConstraintSatisfaction(
             SmallString<128> DiagString;
             DiagString = ": ";
             SubstDiag.second.EmitToString(S.getDiagnostics(), DiagString);
-            unsigned MessageSize = DiagString.size();
+            unsigned const MessageSize = DiagString.size();
             char *Mem = new (S.Context) char[MessageSize];
             memcpy(Mem, DiagString.c_str(), MessageSize);
             Satisfaction.Details.emplace_back(
@@ -286,7 +286,7 @@ static bool CheckConstraintSatisfaction(Sema &S, const NamedDecl *Template,
       return false;
     }
 
-  Sema::InstantiatingTemplate Inst(S, TemplateIDRange.getBegin(),
+  Sema::InstantiatingTemplate const Inst(S, TemplateIDRange.getBegin(),
       Sema::InstantiatingTemplate::ConstraintsCheck{},
       const_cast<NamedDecl *>(Template), TemplateArgs, TemplateIDRange);
   if (Inst.isInvalid())
@@ -322,7 +322,7 @@ bool Sema::CheckConstraintSatisfaction(
   llvm::FoldingSetNodeID ID;
   void *InsertPos;
   ConstraintSatisfaction *Satisfaction = nullptr;
-  bool ShouldCache = LangOpts.ConceptSatisfactionCaching && Template;
+  bool const ShouldCache = LangOpts.ConceptSatisfactionCaching && Template;
   if (ShouldCache) {
     ConstraintSatisfaction::Profile(ID, Context, Template, TemplateArgs);
     Satisfaction = SatisfactionCache.FindNodeOrInsertPos(ID, InsertPos);
@@ -374,7 +374,7 @@ bool Sema::CheckFunctionConstraints(const FunctionDecl *FD,
     ThisQuals = Method->getMethodQualifiers();
     Record = const_cast<CXXRecordDecl *>(Method->getParent());
   }
-  CXXThisScopeRAII ThisScope(*this, Record, ThisQuals, Record != nullptr);
+  CXXThisScopeRAII const ThisScope(*this, Record, ThisQuals, Record != nullptr);
   // We substitute with empty arguments in order to rebuild the atomic
   // constraint in a constant-evaluated context.
   // FIXME: Should this be a dedicated TreeTransform?
@@ -539,7 +539,7 @@ static void diagnoseWellFormedUnsatisfiedConstraintExpr(Sema &S,
                                                   /*First=*/false);
       return;
     case BO_LAnd: {
-      bool LHSSatisfied =
+      bool const LHSSatisfied =
           BO->getLHS()->EvaluateKnownConstInt(S.Context).getBoolValue();
       if (LHSSatisfied) {
         // LHS is true, so RHS must be false.
@@ -550,7 +550,7 @@ static void diagnoseWellFormedUnsatisfiedConstraintExpr(Sema &S,
       diagnoseWellFormedUnsatisfiedConstraintExpr(S, BO->getLHS(), First);
 
       // RHS might also be false
-      bool RHSSatisfied =
+      bool const RHSSatisfied =
           BO->getRHS()->EvaluateKnownConstInt(S.Context).getBoolValue();
       if (!RHSSatisfied)
         diagnoseWellFormedUnsatisfiedConstraintExpr(S, BO->getRHS(),
@@ -721,7 +721,7 @@ static bool substituteParameterMappings(Sema &S, NormalizedConstraint &N,
                 ArgsAsWritten->arguments()[I].getLocation() :
                 SourceLocation()));
   }
-  Sema::InstantiatingTemplate Inst(
+  Sema::InstantiatingTemplate const Inst(
       S, ArgsAsWritten->arguments().front().getSourceRange().getBegin(),
       Sema::InstantiatingTemplate::ParameterMappingSubstitution{}, Concept,
       SourceRange(ArgsAsWritten->arguments()[0].getSourceRange().getBegin(),
@@ -763,7 +763,7 @@ NormalizedConstraint::fromConstraintExpr(Sema &S, NamedDecl *D, const Expr *E) {
   // - The normal form of an expression (E) is the normal form of E.
   // [...]
   E = E->IgnoreParenImpCasts();
-  if (LogicalBinOp BO = E) {
+  if (LogicalBinOp const BO = E) {
     auto LHS = fromConstraintExpr(S, D, BO.getLHS());
     if (!LHS)
       return None;
@@ -776,7 +776,7 @@ NormalizedConstraint::fromConstraintExpr(Sema &S, NamedDecl *D, const Expr *E) {
   } else if (auto *CSE = dyn_cast<const ConceptSpecializationExpr>(E)) {
     const NormalizedConstraint *SubNF;
     {
-      Sema::InstantiatingTemplate Inst(
+      Sema::InstantiatingTemplate const Inst(
           S, CSE->getExprLoc(),
           Sema::InstantiatingTemplate::ConstraintNormalization{}, D,
           CSE->getSourceRange());
@@ -938,7 +938,7 @@ bool Sema::IsAtLeastAsConstrained(NamedDecl *D1, ArrayRef<const Expr *> AC1,
     return false;
   }
 
-  std::pair<NamedDecl *, NamedDecl *> Key{D1, D2};
+  std::pair<NamedDecl *, NamedDecl *> const Key{D1, D2};
   auto CacheEntry = SubsumptionCache.find(Key);
   if (CacheEntry != SubsumptionCache.end()) {
     Result = CacheEntry->second;
@@ -992,7 +992,7 @@ bool Sema::MaybeEmitAmbiguousAtomicConstraintsDiagnostic(NamedDecl *D1,
 
   {
     // The subsumption checks might cause diagnostics
-    SFINAETrap Trap(*this);
+    SFINAETrap const Trap(*this);
     auto *Normalized1 = getNormalizedAssociatedConstraints(D1, AC1);
     if (!Normalized1)
       return false;
@@ -1005,10 +1005,10 @@ bool Sema::MaybeEmitAmbiguousAtomicConstraintsDiagnostic(NamedDecl *D1,
     const NormalForm DNF2 = makeDNF(*Normalized2);
     const NormalForm CNF2 = makeCNF(*Normalized2);
 
-    bool Is1AtLeastAs2Normally = subsumes(DNF1, CNF2, NormalExprEvaluator);
-    bool Is2AtLeastAs1Normally = subsumes(DNF2, CNF1, NormalExprEvaluator);
-    bool Is1AtLeastAs2 = subsumes(DNF1, CNF2, IdenticalExprEvaluator);
-    bool Is2AtLeastAs1 = subsumes(DNF2, CNF1, IdenticalExprEvaluator);
+    bool const Is1AtLeastAs2Normally = subsumes(DNF1, CNF2, NormalExprEvaluator);
+    bool const Is2AtLeastAs1Normally = subsumes(DNF2, CNF1, NormalExprEvaluator);
+    bool const Is1AtLeastAs2 = subsumes(DNF1, CNF2, IdenticalExprEvaluator);
+    bool const Is2AtLeastAs1 = subsumes(DNF2, CNF1, IdenticalExprEvaluator);
     if (Is1AtLeastAs2 == Is1AtLeastAs2Normally &&
         Is2AtLeastAs1 == Is2AtLeastAs1Normally)
       // Same result - no ambiguity was caused by identical atomic expressions.
@@ -1067,7 +1067,7 @@ ReturnTypeRequirement(TemplateParameterList *TPL) :
   auto *Constraint =
       cast_or_null<ConceptSpecializationExpr>(
           TC->getImmediatelyDeclaredConstraint());
-  bool Dependent =
+  bool const Dependent =
       Constraint->getTemplateArgsAsWritten() &&
       TemplateSpecializationType::anyInstantiationDependentTemplateArguments(
           Constraint->getTemplateArgsAsWritten()->arguments().drop_front(1));

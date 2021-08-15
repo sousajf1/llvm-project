@@ -52,7 +52,7 @@ static bool ParsePrecision(FormatStringHandler &H, PrintfSpecifier &FS,
 
 static bool ParseObjCFlags(FormatStringHandler &H, PrintfSpecifier &FS,
                            const char *FlagBeg, const char *E, bool Warn) {
-   StringRef Flag(FlagBeg, E - FlagBeg);
+   StringRef const Flag(FlagBeg, E - FlagBeg);
    // Currently there is only one flag.
    if (Flag == "tt") {
      FS.setHasObjCTechnicalTerm(FlagBeg);
@@ -82,11 +82,11 @@ static PrintfSpecifierResult ParsePrintfSpecifier(FormatStringHandler &H,
 
   const char *I = Beg;
   const char *Start = nullptr;
-  UpdateOnReturn <const char*> UpdateBeg(Beg, I);
+  UpdateOnReturn <const char*> const UpdateBeg(Beg, I);
 
   // Look for a '%' character that indicates the start of a format specifier.
   for ( ; I != E ; ++I) {
-    char c = *I;
+    char const c = *I;
     if (c == '\0') {
       // Detect spurious null characters, which are likely errors.
       H.HandleNullChar(I);
@@ -126,11 +126,11 @@ static PrintfSpecifierResult ParsePrintfSpecifier(FormatStringHandler &H,
     StringRef MatchedStr;
 
     do {
-      StringRef Str(I, E - I);
-      std::string Match = "^[[:space:]]*"
+      StringRef const Str(I, E - I);
+      std::string const Match = "^[[:space:]]*"
                           "(private|public|sensitive|mask\\.[^[:space:],}]*)"
                           "[[:space:]]*(,|})";
-      llvm::Regex R(Match);
+      llvm::Regex const R(Match);
       SmallVector<StringRef, 2> Matches;
 
       if (R.match(Str, &Matches)) {
@@ -141,8 +141,8 @@ static PrintfSpecifierResult ParsePrintfSpecifier(FormatStringHandler &H,
         // comma-delimited segment is at least as strict as the privacy
         // annotations in previous comma-delimited segments.
         if (MatchedStr.startswith("mask")) {
-          StringRef MaskType = MatchedStr.substr(sizeof("mask.") - 1);
-          unsigned Size = MaskType.size();
+          StringRef const MaskType = MatchedStr.substr(sizeof("mask.") - 1);
+          unsigned const Size = MaskType.size();
           if (Warn && (Size == 0 || Size > 8))
             H.handleInvalidMaskType(MaskType);
           FS.setMaskType(MaskType);
@@ -155,7 +155,7 @@ static PrintfSpecifierResult ParsePrintfSpecifier(FormatStringHandler &H,
         else if (PrivacyFlags == 0 && MatchedStr.equals("public"))
           PrivacyFlags = clang::analyze_os_log::OSLogBufferItem::IsPublic;
       } else {
-        size_t CommaOrBracePos =
+        size_t const CommaOrBracePos =
             Str.find_if([](char c) { return c == ',' || c == '}'; });
 
         if (CommaOrBracePos == StringRef::npos) {

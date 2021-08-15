@@ -205,7 +205,7 @@ CompoundStmt
   `-IntegerLiteral
 )cpp");
 
-  QualType QT = Func->getType();
+  QualType const QT = Func->getType();
 
   verifyWithDynNode(QT,
                     R"cpp(
@@ -225,7 +225,7 @@ FunctionProtoType
   Attr *A = *Func->attr_begin();
 
   {
-    std::string expectedString = R"cpp(
+    std::string const expectedString = R"cpp(
 WarnUnusedResultAttr
 )cpp";
 
@@ -244,7 +244,7 @@ CXXCtorInitializer 'm_number'
   const comments::FullComment *Comment =
       AST->getASTContext().getLocalCommentForDeclUncached(CTorFunc);
   {
-    std::string expectedString = R"cpp(
+    std::string const expectedString = R"cpp(
 FullComment
 `-ParagraphComment
   `-TextComment
@@ -258,7 +258,7 @@ FullComment
   EXPECT_EQ(Result.size(), 1u);
   auto Templ = Result[0].getNodeAs<ClassTemplateSpecializationDecl>("fn");
 
-  TemplateArgument TA = Templ->getTemplateArgs()[0];
+  TemplateArgument const TA = Templ->getTemplateArgs()[0];
 
   verifyWithDynNode(TA,
                     R"cpp(
@@ -1026,7 +1026,7 @@ LambdaExpr
   {
     auto L = getLambdaNode("templated");
 
-    llvm::StringRef Expected = R"cpp(
+    llvm::StringRef const Expected = R"cpp(
 LambdaExpr
 |-DeclRefExpr 'a'
 |-TemplateTypeParmDecl 'T'
@@ -1039,7 +1039,7 @@ LambdaExpr
   {
     auto L = getLambdaNode("capture_this");
 
-    llvm::StringRef Expected = R"cpp(
+    llvm::StringRef const Expected = R"cpp(
 LambdaExpr
 |-CXXThisExpr
 `-CompoundStmt
@@ -1050,7 +1050,7 @@ LambdaExpr
   {
     auto L = getLambdaNode("capture_this_copy");
 
-    llvm::StringRef Expected = R"cpp(
+    llvm::StringRef const Expected = R"cpp(
 LambdaExpr
 |-VarDecl 'self'
 | `-UnaryOperator

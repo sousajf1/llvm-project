@@ -115,7 +115,7 @@ sparc::FloatABI sparc::getSparcFloatABI(const Driver &D,
 
 void sparc::getSparcTargetFeatures(const Driver &D, const ArgList &Args,
                                    std::vector<StringRef> &Features) {
-  sparc::FloatABI FloatABI = sparc::getSparcFloatABI(D, Args);
+  sparc::FloatABI const FloatABI = sparc::getSparcFloatABI(D, Args);
   if (FloatABI == sparc::FloatABI::Soft)
     Features.push_back("+soft-float");
 }

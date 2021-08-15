@@ -71,11 +71,11 @@ public:
       if (NewPath == Path)
           return;
       // Make this a node and create a child-leaf with 'Path'.
-      StringRef Element(llvm::sys::path::filename(
+      StringRef const Element(llvm::sys::path::filename(
           StringRef(Path).drop_back(ConsumedLength)));
       Children[Element].Path = Path;
     }
-    StringRef Element(llvm::sys::path::filename(
+    StringRef const Element(llvm::sys::path::filename(
           StringRef(NewPath).drop_back(ConsumedLength)));
     Children[Element].insert(NewPath, ConsumedLength + Element.size() + 1);
   }
@@ -115,7 +115,7 @@ public:
         return StringRef(Path);
       return {};
     }
-    StringRef Element(llvm::sys::path::filename(FileName.drop_back(
+    StringRef const Element(llvm::sys::path::filename(FileName.drop_back(
         ConsumedLength)));
     llvm::StringMap<FileMatchTrieNode>::const_iterator MatchingChild =
         Children.find(Element);

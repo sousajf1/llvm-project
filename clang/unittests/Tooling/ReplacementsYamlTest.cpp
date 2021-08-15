@@ -71,7 +71,7 @@ TEST(ReplacementsYamlTest, serializesNewLines) {
 }
 
 TEST(ReplacementsYamlTest, deserializesReplacements) {
-  std::string YamlContent = "---\n"
+  std::string const YamlContent = "---\n"
                             "MainSourceFile:      /path/to/source.cpp\n"
                             "Replacements:\n"
                             "  - FilePath:        /path/to/file1.h\n"
@@ -101,7 +101,7 @@ TEST(ReplacementsYamlTest, deserializesReplacements) {
 
 TEST(ReplacementsYamlTest, deserializesWithoutContext) {
   // Make sure a doc can be read without the context field.
-  std::string YamlContent = "---\n"
+  std::string const YamlContent = "---\n"
                             "MainSourceFile:      /path/to/source.cpp\n"
                             "Replacements:\n"
                             "  - FilePath:        target_file.h\n"

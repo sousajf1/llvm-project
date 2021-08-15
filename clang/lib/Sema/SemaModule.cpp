@@ -145,7 +145,7 @@ Sema::ActOnModuleDecl(SourceLocation StartLoc, SourceLocation ModuleLoc,
   // is no global module fragment.
   if (getLangOpts().CPlusPlusModules && !IsFirstDecl && !GlobalModuleFragment) {
     Diag(ModuleLoc, diag::err_module_decl_not_at_start);
-    SourceLocation BeginLoc =
+    SourceLocation const BeginLoc =
         ModuleScopes.empty()
             ? SourceMgr.getLocForStartOfFile(SourceMgr.getMainFileID())
             : ModuleScopes.back().BeginLoc;
@@ -202,7 +202,7 @@ Sema::ActOnModuleDecl(SourceLocation StartLoc, SourceLocation ModuleLoc,
   }
 
   case ModuleDeclKind::Implementation:
-    std::pair<IdentifierInfo *, SourceLocation> ModuleNameLoc(
+    std::pair<IdentifierInfo *, SourceLocation> const ModuleNameLoc(
         PP.getIdentifierInfo(ModuleName), Path[0].second);
     Mod = getModuleLoader().loadModule(ModuleLoc, {ModuleNameLoc},
                                        Module::AllVisible,
@@ -412,11 +412,11 @@ void Sema::BuildModuleInclude(SourceLocation DirectiveLoc, Module *Mod) {
   // implementation detail of us building the module.
   //
   // FIXME: Should we even get ActOnModuleInclude calls for those?
-  bool IsInModuleIncludes =
+  bool const IsInModuleIncludes =
       TUKind == TU_Module &&
       getSourceManager().isWrittenInMainFile(DirectiveLoc);
 
-  bool ShouldAddImport = !IsInModuleIncludes;
+  bool const ShouldAddImport = !IsInModuleIncludes;
 
   // If this module import was due to an inclusion directive, create an
   // implicit import declaration to capture it in the AST.
@@ -473,7 +473,7 @@ void Sema::ActOnModuleEnd(SourceLocation EomLoc, Module *Mod) {
 
   // We got to the end of processing a local module. Create an
   // ImportDecl as we would for an imported module.
-  FileID File = getSourceManager().getFileID(EomLoc);
+  FileID const File = getSourceManager().getFileID(EomLoc);
   SourceLocation DirectiveLoc;
   if (EomLoc == getSourceManager().getLocForEndOfFile(File)) {
     // We reached the end of a #included module header. Use the #include loc.
@@ -694,7 +694,7 @@ Decl *Sema::ActOnFinishExportDecl(Scope *S, Decl *D, SourceLocation RBraceLoc) {
   PopDeclContext();
 
   if (!D->isInvalidDecl()) {
-    SourceLocation BlockStart =
+    SourceLocation const BlockStart =
         ED->hasBraces() ? ED->getBeginLoc() : SourceLocation();
     for (auto *Child : ED->decls()) {
       if (checkExportedDecl(*this, Child, BlockStart)) {

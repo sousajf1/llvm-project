@@ -55,7 +55,7 @@ static bool evenFlexibleArraySize(ASTContext &Ctx, CharUnits RegionSize,
 
   const RecordDecl *RD = RT->getDecl();
   RecordDecl::field_iterator Iter(RD->field_begin());
-  RecordDecl::field_iterator End(RD->field_end());
+  RecordDecl::field_iterator const End(RD->field_end());
   const FieldDecl *Last = nullptr;
   for (; Iter != End; ++Iter)
     Last = *Iter;
@@ -79,7 +79,7 @@ static bool evenFlexibleArraySize(ASTContext &Ctx, CharUnits RegionSize,
   if (FlexSize.isZero())
     return false;
 
-  CharUnits Left = RegionSize - TypeSize;
+  CharUnits const Left = RegionSize - TypeSize;
   if (Left.isNegative())
     return false;
 
@@ -89,19 +89,19 @@ static bool evenFlexibleArraySize(ASTContext &Ctx, CharUnits RegionSize,
 void CastSizeChecker::checkPreStmt(const CastExpr *CE,CheckerContext &C) const {
   const Expr *E = CE->getSubExpr();
   ASTContext &Ctx = C.getASTContext();
-  QualType ToTy = Ctx.getCanonicalType(CE->getType());
+  QualType const ToTy = Ctx.getCanonicalType(CE->getType());
   const PointerType *ToPTy = dyn_cast<PointerType>(ToTy.getTypePtr());
 
   if (!ToPTy)
     return;
 
-  QualType ToPointeeTy = ToPTy->getPointeeType();
+  QualType const ToPointeeTy = ToPTy->getPointeeType();
 
   // Only perform the check if 'ToPointeeTy' is a complete type.
   if (ToPointeeTy->isIncompleteType())
     return;
 
-  ProgramStateRef state = C.getState();
+  ProgramStateRef const state = C.getState();
   const MemRegion *R = C.getSVal(E).getAsRegion();
   if (!R)
     return;
@@ -112,13 +112,13 @@ void CastSizeChecker::checkPreStmt(const CastExpr *CE,CheckerContext &C) const {
 
   SValBuilder &svalBuilder = C.getSValBuilder();
 
-  DefinedOrUnknownSVal Size = getDynamicExtent(state, SR, svalBuilder);
+  DefinedOrUnknownSVal const Size = getDynamicExtent(state, SR, svalBuilder);
   const llvm::APSInt *SizeInt = svalBuilder.getKnownValue(state, Size);
   if (!SizeInt)
     return;
 
-  CharUnits regionSize = CharUnits::fromQuantity(SizeInt->getZExtValue());
-  CharUnits typeSize = C.getASTContext().getTypeSizeInChars(ToPointeeTy);
+  CharUnits const regionSize = CharUnits::fromQuantity(SizeInt->getZExtValue());
+  CharUnits const typeSize = C.getASTContext().getTypeSizeInChars(ToPointeeTy);
 
   // Ignore void, and a few other un-sizeable types.
   if (typeSize.isZero())

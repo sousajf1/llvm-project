@@ -61,7 +61,7 @@ MDNode *LoopInfo::createPipeliningMetadata(const LoopAttributes &Attrs,
   Args.append(LoopProperties.begin(), LoopProperties.end());
 
   if (Attrs.PipelineInitiationInterval > 0) {
-    Metadata *Vals[] = {
+    Metadata *const Vals[] = {
         MDString::get(Ctx, "llvm.loop.pipeline.initiationinterval"),
         ConstantAsMetadata::get(ConstantInt::get(
             llvm::Type::getInt32Ty(Ctx), Attrs.PipelineInitiationInterval))};
@@ -116,7 +116,7 @@ LoopInfo::createPartialUnrollMetadata(const LoopAttributes &Attrs,
 
   // Setting unroll.count
   if (Attrs.UnrollCount > 0) {
-    Metadata *Vals[] = {MDString::get(Ctx, "llvm.loop.unroll.count"),
+    Metadata *const Vals[] = {MDString::get(Ctx, "llvm.loop.unroll.count"),
                         ConstantAsMetadata::get(ConstantInt::get(
                             llvm::Type::getInt32Ty(Ctx), Attrs.UnrollCount))};
     Args.push_back(MDNode::get(Ctx, Vals));
@@ -124,7 +124,7 @@ LoopInfo::createPartialUnrollMetadata(const LoopAttributes &Attrs,
 
   // Setting unroll.full or unroll.disable
   if (Attrs.UnrollEnable == LoopAttributes::Enable) {
-    Metadata *Vals[] = {MDString::get(Ctx, "llvm.loop.unroll.enable")};
+    Metadata *const Vals[] = {MDString::get(Ctx, "llvm.loop.unroll.enable")};
     Args.push_back(MDNode::get(Ctx, Vals));
   }
 
@@ -178,7 +178,7 @@ LoopInfo::createUnrollAndJamMetadata(const LoopAttributes &Attrs,
 
   // Setting unroll_and_jam.count
   if (Attrs.UnrollAndJamCount > 0) {
-    Metadata *Vals[] = {
+    Metadata *const Vals[] = {
         MDString::get(Ctx, "llvm.loop.unroll_and_jam.count"),
         ConstantAsMetadata::get(ConstantInt::get(llvm::Type::getInt32Ty(Ctx),
                                                  Attrs.UnrollAndJamCount))};
@@ -186,7 +186,7 @@ LoopInfo::createUnrollAndJamMetadata(const LoopAttributes &Attrs,
   }
 
   if (Attrs.UnrollAndJamEnable == LoopAttributes::Enable) {
-    Metadata *Vals[] = {MDString::get(Ctx, "llvm.loop.unroll_and_jam.enable")};
+    Metadata *const Vals[] = {MDString::get(Ctx, "llvm.loop.unroll_and_jam.enable")};
     Args.push_back(MDNode::get(Ctx, Vals));
   }
 
@@ -257,7 +257,7 @@ LoopInfo::createLoopVectorizeMetadata(const LoopAttributes &Attrs,
     IsVectorPredicateEnabled =
         (Attrs.VectorizePredicateEnable == LoopAttributes::Enable);
 
-    Metadata *Vals[] = {
+    Metadata *const Vals[] = {
         MDString::get(Ctx, "llvm.loop.vectorize.predicate.enable"),
         ConstantAsMetadata::get(ConstantInt::get(llvm::Type::getInt1Ty(Ctx),
                                                  IsVectorPredicateEnabled))};
@@ -266,7 +266,7 @@ LoopInfo::createLoopVectorizeMetadata(const LoopAttributes &Attrs,
 
   // Setting vectorize.width
   if (Attrs.VectorizeWidth > 0) {
-    Metadata *Vals[] = {
+    Metadata *const Vals[] = {
         MDString::get(Ctx, "llvm.loop.vectorize.width"),
         ConstantAsMetadata::get(ConstantInt::get(llvm::Type::getInt32Ty(Ctx),
                                                  Attrs.VectorizeWidth))};
@@ -275,8 +275,8 @@ LoopInfo::createLoopVectorizeMetadata(const LoopAttributes &Attrs,
   }
 
   if (Attrs.VectorizeScalable != LoopAttributes::Unspecified) {
-    bool IsScalable = Attrs.VectorizeScalable == LoopAttributes::Enable;
-    Metadata *Vals[] = {
+    bool const IsScalable = Attrs.VectorizeScalable == LoopAttributes::Enable;
+    Metadata *const Vals[] = {
         MDString::get(Ctx, "llvm.loop.vectorize.scalable.enable"),
         ConstantAsMetadata::get(
             ConstantInt::get(llvm::Type::getInt1Ty(Ctx), IsScalable))};
@@ -285,7 +285,7 @@ LoopInfo::createLoopVectorizeMetadata(const LoopAttributes &Attrs,
 
   // Setting interleave.count
   if (Attrs.InterleaveCount > 0) {
-    Metadata *Vals[] = {
+    Metadata *const Vals[] = {
         MDString::get(Ctx, "llvm.loop.interleave.count"),
         ConstantAsMetadata::get(ConstantInt::get(llvm::Type::getInt32Ty(Ctx),
                                                  Attrs.InterleaveCount))};
@@ -306,7 +306,7 @@ LoopInfo::createLoopVectorizeMetadata(const LoopAttributes &Attrs,
       Attrs.VectorizeScalable == LoopAttributes::Enable ||
       (Attrs.VectorizeScalable == LoopAttributes::Disable &&
        Attrs.VectorizeWidth != 1)) {
-    bool AttrVal = Attrs.VectorizeEnable != LoopAttributes::Disable;
+    bool const AttrVal = Attrs.VectorizeEnable != LoopAttributes::Disable;
     Args.push_back(
         MDNode::get(Ctx, {MDString::get(Ctx, "llvm.loop.vectorize.enable"),
                           ConstantAsMetadata::get(ConstantInt::get(
@@ -358,7 +358,7 @@ LoopInfo::createLoopDistributeMetadata(const LoopAttributes &Attrs,
   Args.push_back(nullptr);
   Args.append(LoopProperties.begin(), LoopProperties.end());
 
-  Metadata *Vals[] = {MDString::get(Ctx, "llvm.loop.distribute.enable"),
+  Metadata *const Vals[] = {MDString::get(Ctx, "llvm.loop.distribute.enable"),
                       ConstantAsMetadata::get(ConstantInt::get(
                           llvm::Type::getInt1Ty(Ctx),
                           (Attrs.DistributeEnable == LoopAttributes::Enable)))};
@@ -628,7 +628,7 @@ void LoopInfoStack::push(BasicBlock *Header, clang::ASTContext &Ctx,
     } else if (LH) {
       auto *ValueExpr = LH->getValue();
       if (ValueExpr) {
-        llvm::APSInt ValueAPS = ValueExpr->EvaluateKnownConstInt(Ctx);
+        llvm::APSInt const ValueAPS = ValueExpr->EvaluateKnownConstInt(Ctx);
         ValueInt = ValueAPS.getSExtValue();
       }
 

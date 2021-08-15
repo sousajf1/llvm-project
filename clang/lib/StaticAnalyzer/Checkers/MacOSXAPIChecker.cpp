@@ -84,7 +84,7 @@ void MacOSXAPIChecker::CheckDispatchOnce(CheckerContext &C, const CallExpr *CE,
   // _dispatch_once is then a function which then calls the real dispatch_once.
   // Users do not care; they just want the warning at the top-level call.
   if (CE->getBeginLoc().isMacroID()) {
-    StringRef TrimmedFName = FName.ltrim('_');
+    StringRef const TrimmedFName = FName.ltrim('_');
     if (TrimmedFName != FName)
       FName = TrimmedFName;
   }
@@ -152,11 +152,11 @@ void MacOSXAPIChecker::CheckDispatchOnce(CheckerContext &C, const CallExpr *CE,
 
 void MacOSXAPIChecker::checkPreStmt(const CallExpr *CE,
                                     CheckerContext &C) const {
-  StringRef Name = C.getCalleeName(CE);
+  StringRef const Name = C.getCalleeName(CE);
   if (Name.empty())
     return;
 
-  SubChecker SC =
+  SubChecker const SC =
     llvm::StringSwitch<SubChecker>(Name)
       .Cases("dispatch_once",
              "_dispatch_once",

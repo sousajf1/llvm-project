@@ -85,7 +85,7 @@ private:
   void add(const llvm::Record *R) {
     AllTypes.emplace_back();
     AllTypes.back().Record = R;
-    bool Inserted = ByName.try_emplace(R->getName(), &AllTypes.back()).second;
+    bool const Inserted = ByName.try_emplace(R->getName(), &AllTypes.back()).second;
     assert(Inserted && "Duplicate node name");
     (void)Inserted;
   }
@@ -179,7 +179,7 @@ static void printDoc(llvm::StringRef Doc, llvm::raw_ostream &OS) {
   llvm::StringRef Line;
   while (Line.trim().empty() && !Doc.empty())
     std::tie(Line, Doc) = Doc.split('\n');
-  llvm::StringRef Indent = Line.take_while(llvm::isSpace);
+  llvm::StringRef const Indent = Line.take_while(llvm::isSpace);
   for (; !Line.empty() || !Doc.empty(); std::tie(Line, Doc) = Doc.split('\n')) {
     Line.consume_front(Indent);
     OS << "/// " << Line << "\n";

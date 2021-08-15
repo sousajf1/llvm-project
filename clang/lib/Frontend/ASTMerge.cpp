@@ -37,12 +37,12 @@ void ASTMergeAction::ExecuteAction() {
   CI.getDiagnostics().SetArgToStringFn(&FormatASTNodeDiagnosticArgument,
                                        &CI.getASTContext());
   IntrusiveRefCntPtr<DiagnosticIDs>
-      DiagIDs(CI.getDiagnostics().getDiagnosticIDs());
+      const DiagIDs(CI.getDiagnostics().getDiagnosticIDs());
   auto SharedState = std::make_shared<ASTImporterSharedState>(
       *CI.getASTContext().getTranslationUnitDecl());
   for (unsigned I = 0, N = ASTFiles.size(); I != N; ++I) {
     IntrusiveRefCntPtr<DiagnosticsEngine>
-        Diags(new DiagnosticsEngine(DiagIDs, &CI.getDiagnosticOpts(),
+        const Diags(new DiagnosticsEngine(DiagIDs, &CI.getDiagnosticOpts(),
                                     new ForwardingDiagnosticConsumer(
                                           *CI.getDiagnostics().getClient()),
                                     /*ShouldOwnClient=*/true));
@@ -68,7 +68,7 @@ void ASTMergeAction::ExecuteAction() {
       llvm::Expected<Decl *> ToDOrError = Importer.Import(D);
 
       if (ToDOrError) {
-        DeclGroupRef DGR(*ToDOrError);
+        DeclGroupRef const DGR(*ToDOrError);
         CI.getASTConsumer().HandleTopLevelDecl(DGR);
       } else {
         llvm::consumeError(ToDOrError.takeError());

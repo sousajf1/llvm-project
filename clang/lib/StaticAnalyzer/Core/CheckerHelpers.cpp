@@ -132,14 +132,14 @@ llvm::Optional<int> tryExpandAsInteger(StringRef Macro,
   //        literal, doesn't contain any literal data
   if (!T.isLiteral() || !T.getLiteralData())
     return llvm::None;
-  StringRef ValueStr = StringRef(T.getLiteralData(), T.getLength());
+  StringRef const ValueStr = StringRef(T.getLiteralData(), T.getLength());
   llvm::APInt IntValue;
   constexpr unsigned AutoSenseRadix = 0;
   if (ValueStr.getAsInteger(AutoSenseRadix, IntValue))
     return llvm::None;
 
   // Parse an optional minus sign.
-  size_t Size = FilteredTokens.size();
+  size_t const Size = FilteredTokens.size();
   if (Size >= 2) {
     if (FilteredTokens[Size - 2].is(tok::minus))
       IntValue = -IntValue;

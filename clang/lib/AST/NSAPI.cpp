@@ -20,7 +20,7 @@ NSAPI::NSAPI(ASTContext &ctx)
     NSUTF8StringEncodingId(nullptr) {}
 
 IdentifierInfo *NSAPI::getNSClassId(NSClassIdKindKind K) const {
-  static const char *ClassName[NumClassIds] = {
+  static const char *const ClassName[NumClassIds] = {
     "NSObject",
     "NSString",
     "NSArray",
@@ -382,7 +382,7 @@ NSAPI::getNSNumberFactoryMethodKind(QualType T) const {
 
   const TypedefType *TDT = T->getAs<TypedefType>();
   if (TDT) {
-    QualType TDTTy = QualType(TDT, 0);
+    QualType const TDTTy = QualType(TDT, 0);
     if (isObjCBOOLType(TDTTy))
       return NSAPI::NSNumberWithBool;
     if (isObjCNSIntegerType(TDTTy))

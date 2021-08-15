@@ -243,7 +243,7 @@ bool FormatTokenLexer::tryMergeCSharpStringLiteral() {
 
     auto TokenTextSize = CSharpInterpolatedString->TokenText.size();
     for (size_t Index = 0; Index < TokenTextSize; ++Index) {
-      char C = CSharpInterpolatedString->TokenText[Index];
+      char const C = CSharpInterpolatedString->TokenText[Index];
       if (C == '{') {
         // "{{"  inside an interpolated string is an escaped '{' so skip it.
         if (Index + 1 < TokenTextSize &&
@@ -521,7 +521,7 @@ void FormatTokenLexer::tryParseJSRegexLiteral() {
   // 'Manually' lex ahead in the current file buffer.
   const char *Offset = Lex->getBufferLocation();
   const char *RegexBegin = Offset - RegexToken->TokenText.size();
-  StringRef Buffer = Lex->getBuffer();
+  StringRef const Buffer = Lex->getBuffer();
   bool InCharacterClass = false;
   bool HaveClosingSlash = false;
   for (; !HaveClosingSlash && Offset != Buffer.end(); ++Offset) {
@@ -591,27 +591,27 @@ void FormatTokenLexer::handleCSharpVerbatimAndInterpolatedStrings() {
   if (Offset == Lex->getBuffer().end())
     return;
 
-  StringRef LiteralText(StrBegin, Offset - StrBegin + 1);
+  StringRef const LiteralText(StrBegin, Offset - StrBegin + 1);
   CSharpStringLiteral->TokenText = LiteralText;
 
   // Adjust width for potentially multiline string literals.
-  size_t FirstBreak = LiteralText.find('\n');
-  StringRef FirstLineText = FirstBreak == StringRef::npos
+  size_t const FirstBreak = LiteralText.find('\n');
+  StringRef const FirstLineText = FirstBreak == StringRef::npos
                                 ? LiteralText
                                 : LiteralText.substr(0, FirstBreak);
   CSharpStringLiteral->ColumnWidth = encoding::columnWidthWithTabs(
       FirstLineText, CSharpStringLiteral->OriginalColumn, Style.TabWidth,
       Encoding);
-  size_t LastBreak = LiteralText.rfind('\n');
+  size_t const LastBreak = LiteralText.rfind('\n');
   if (LastBreak != StringRef::npos) {
     CSharpStringLiteral->IsMultiline = true;
-    unsigned StartColumn = 0;
+    unsigned const StartColumn = 0;
     CSharpStringLiteral->LastLineColumnWidth = encoding::columnWidthWithTabs(
         LiteralText.substr(LastBreak + 1, LiteralText.size()), StartColumn,
         Style.TabWidth, Encoding);
   }
 
-  SourceLocation loc = Offset < Lex->getBuffer().end()
+  SourceLocation const loc = Offset < Lex->getBuffer().end()
                            ? Lex->getSourceLocation(Offset + 1)
                            : SourceMgr.getLocForEndOfFile(ID);
   resetLexer(SourceMgr.getFileOffset(loc));
@@ -657,28 +657,28 @@ void FormatTokenLexer::handleTemplateStrings() {
     }
   }
 
-  StringRef LiteralText(TmplBegin, Offset - TmplBegin + 1);
+  StringRef const LiteralText(TmplBegin, Offset - TmplBegin + 1);
   BacktickToken->setType(TT_TemplateString);
   BacktickToken->Tok.setKind(tok::string_literal);
   BacktickToken->TokenText = LiteralText;
 
   // Adjust width for potentially multiline string literals.
-  size_t FirstBreak = LiteralText.find('\n');
-  StringRef FirstLineText = FirstBreak == StringRef::npos
+  size_t const FirstBreak = LiteralText.find('\n');
+  StringRef const FirstLineText = FirstBreak == StringRef::npos
                                 ? LiteralText
                                 : LiteralText.substr(0, FirstBreak);
   BacktickToken->ColumnWidth = encoding::columnWidthWithTabs(
       FirstLineText, BacktickToken->OriginalColumn, Style.TabWidth, Encoding);
-  size_t LastBreak = LiteralText.rfind('\n');
+  size_t const LastBreak = LiteralText.rfind('\n');
   if (LastBreak != StringRef::npos) {
     BacktickToken->IsMultiline = true;
-    unsigned StartColumn = 0; // The template tail spans the entire line.
+    unsigned const StartColumn = 0; // The template tail spans the entire line.
     BacktickToken->LastLineColumnWidth = encoding::columnWidthWithTabs(
         LiteralText.substr(LastBreak + 1, LiteralText.size()), StartColumn,
         Style.TabWidth, Encoding);
   }
 
-  SourceLocation loc = Offset < Lex->getBuffer().end()
+  SourceLocation const loc = Offset < Lex->getBuffer().end()
                            ? Lex->getSourceLocation(Offset + 1)
                            : SourceMgr.getLocForEndOfFile(ID);
   resetLexer(SourceMgr.getFileOffset(loc));
@@ -691,15 +691,15 @@ void FormatTokenLexer::tryParsePythonComment() {
   // Turn the remainder of this line into a comment.
   const char *CommentBegin =
       Lex->getBufferLocation() - HashToken->TokenText.size(); // at "#"
-  size_t From = CommentBegin - Lex->getBuffer().begin();
+  size_t const From = CommentBegin - Lex->getBuffer().begin();
   size_t To = Lex->getBuffer().find_first_of('\n', From);
   if (To == StringRef::npos)
     To = Lex->getBuffer().size();
-  size_t Len = To - From;
+  size_t const Len = To - From;
   HashToken->setType(TT_LineComment);
   HashToken->Tok.setKind(tok::comment);
   HashToken->TokenText = Lex->getBuffer().substr(From, Len);
-  SourceLocation Loc = To < Lex->getBuffer().size()
+  SourceLocation const Loc = To < Lex->getBuffer().size()
                            ? Lex->getSourceLocation(CommentBegin + Len)
                            : SourceMgr.getLocForEndOfFile(ID);
   resetLexer(SourceMgr.getFileOffset(Loc));
@@ -760,7 +760,7 @@ bool FormatTokenLexer::tryMergeConflictMarkers() {
   unsigned FirstInLineOffset;
   std::tie(ID, FirstInLineOffset) = SourceMgr.getDecomposedLoc(
       Tokens[FirstInLineIndex]->getStartOfNonWhitespace());
-  StringRef Buffer = SourceMgr.getBufferOrFake(ID).getBuffer();
+  StringRef const Buffer = SourceMgr.getBufferOrFake(ID).getBuffer();
   // Calculate the offset of the start of the current line.
   auto LineOffset = Buffer.rfind('\n', FirstInLineOffset);
   if (LineOffset == StringRef::npos) {
@@ -806,13 +806,13 @@ bool FormatTokenLexer::tryMergeConflictMarkers() {
 
 FormatToken *FormatTokenLexer::getStashedToken() {
   // Create a synthesized second '>' or '<' token.
-  Token Tok = FormatTok->Tok;
-  StringRef TokenText = FormatTok->TokenText;
+  Token const Tok = FormatTok->Tok;
+  StringRef const TokenText = FormatTok->TokenText;
 
-  unsigned OriginalColumn = FormatTok->OriginalColumn;
+  unsigned const OriginalColumn = FormatTok->OriginalColumn;
   FormatTok = new (Allocator.Allocate()) FormatToken;
   FormatTok->Tok = Tok;
-  SourceLocation TokLocation =
+  SourceLocation const TokLocation =
       FormatTok->Tok.getLocation().getLocWithOffset(Tok.getLength() - 1);
   FormatTok->Tok.setLocation(TokLocation);
   FormatTok->WhitespaceRange = SourceRange(TokLocation, TokLocation);
@@ -831,7 +831,7 @@ FormatToken *FormatTokenLexer::getNextToken() {
 
   FormatTok = new (Allocator.Allocate()) FormatToken;
   readRawToken(*FormatTok);
-  SourceLocation WhitespaceStart =
+  SourceLocation const WhitespaceStart =
       FormatTok->Tok.getLocation().getLocWithOffset(-TrailingWhitespace);
   FormatTok->IsFirst = IsFirstToken;
   IsFirstToken = false;
@@ -955,7 +955,7 @@ FormatToken *FormatTokenLexer::getNextToken() {
   TrailingWhitespace = 0;
   if (FormatTok->Tok.is(tok::comment)) {
     // FIXME: Add the trimmed whitespace to Column.
-    StringRef UntrimmedText = FormatTok->TokenText;
+    StringRef const UntrimmedText = FormatTok->TokenText;
     FormatTok->TokenText = FormatTok->TokenText.rtrim(" \t\v\f");
     TrailingWhitespace = UntrimmedText.size() - FormatTok->TokenText.size();
   } else if (FormatTok->Tok.is(tok::raw_identifier)) {
@@ -987,8 +987,8 @@ FormatToken *FormatTokenLexer::getNextToken() {
 
   // Now FormatTok is the next non-whitespace token.
 
-  StringRef Text = FormatTok->TokenText;
-  size_t FirstNewlinePos = Text.find('\n');
+  StringRef const Text = FormatTok->TokenText;
+  size_t const FirstNewlinePos = Text.find('\n');
   if (FirstNewlinePos == StringRef::npos) {
     // FIXME: ColumnWidth actually depends on the start column, we need to
     // take this into account when the token is moved.
@@ -1072,7 +1072,7 @@ void FormatTokenLexer::readRawToken(FormatToken &Tok) {
 }
 
 void FormatTokenLexer::resetLexer(unsigned Offset) {
-  StringRef Buffer = SourceMgr.getBufferData(ID);
+  StringRef const Buffer = SourceMgr.getBufferData(ID);
   Lex.reset(new Lexer(SourceMgr.getLocForStartOfFile(ID),
                       getFormattingLangOpts(Style), Buffer.begin(),
                       Buffer.begin() + Offset, Buffer.end()));

@@ -142,7 +142,7 @@ static void formatErrorString(StringRef FormatString,
                               ArrayRef<std::string> Args,
                               llvm::raw_ostream &OS) {
   while (!FormatString.empty()) {
-    std::pair<StringRef, StringRef> Pieces = FormatString.split("$");
+    std::pair<StringRef, StringRef> const Pieces = FormatString.split("$");
     OS << Pieces.first.str();
     if (Pieces.second.empty()) break;
 

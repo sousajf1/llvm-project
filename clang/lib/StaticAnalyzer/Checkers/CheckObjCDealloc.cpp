@@ -76,7 +76,7 @@ static bool isSynthesizedRetainableProperty(const ObjCPropertyImplDecl *I,
   if (!(*ID))
     return false;
 
-  QualType T = (*ID)->getType();
+  QualType const T = (*ID)->getType();
   if (!T->isObjCRetainableType())
     return false;
 
@@ -238,7 +238,7 @@ void ObjCDeallocChecker::checkASTDecl(const ObjCImplementationDecl *D,
 
     if (HasOthers)
       OS << " and others";
-    PathDiagnosticLocation DLoc =
+    PathDiagnosticLocation const DLoc =
         PathDiagnosticLocation::createBegin(D, BR.getSourceManager());
 
     BR.EmitBasicReport(D, this, Name, categories::CoreFoundationObjectiveC,
@@ -262,7 +262,7 @@ void ObjCDeallocChecker::checkBeginFunction(
   SymbolRef SelfSymbol = SelfVal.getAsSymbol();
 
   const LocationContext *LCtx = C.getLocationContext();
-  ProgramStateRef InitialState = C.getState();
+  ProgramStateRef const InitialState = C.getState();
 
   ProgramStateRef State = InitialState;
 
@@ -277,16 +277,16 @@ void ObjCDeallocChecker::checkBeginFunction(
     RequiredReleases = *CurrSet;
 
   for (auto *PropImpl : getContainingObjCImpl(LCtx)->property_impls()) {
-    ReleaseRequirement Requirement = getDeallocReleaseRequirement(PropImpl);
+    ReleaseRequirement const Requirement = getDeallocReleaseRequirement(PropImpl);
     if (Requirement != ReleaseRequirement::MustRelease)
       continue;
 
-    SVal LVal = State->getLValue(PropImpl->getPropertyIvarDecl(), SelfVal);
+    SVal const LVal = State->getLValue(PropImpl->getPropertyIvarDecl(), SelfVal);
     Optional<Loc> LValLoc = LVal.getAs<Loc>();
     if (!LValLoc)
       continue;
 
-    SVal InitialVal = State->getSVal(LValLoc.getValue());
+    SVal const InitialVal = State->getSVal(LValLoc.getValue());
     SymbolRef Symbol = InitialVal.getAsSymbol();
     if (!Symbol || !isa<SymbolRegionValue>(Symbol))
       continue;
@@ -410,7 +410,7 @@ ProgramStateRef ObjCDeallocChecker::evalAssume(ProgramStateRef State, SVal Cond,
   if (!CondBSE)
     return State;
 
-  BinaryOperator::Opcode OpCode = CondBSE->getOpcode();
+  BinaryOperator::Opcode const OpCode = CondBSE->getOpcode();
   if (Assumption) {
     if (OpCode != BO_EQ)
       return State;
@@ -507,7 +507,7 @@ void ObjCDeallocChecker::diagnoseMissingReleases(CheckerContext &C) const {
   SymbolSet NewUnreleased = *OldUnreleased;
   SymbolSet::Factory &F = State->getStateManager().get_context<SymbolSet>();
 
-  ProgramStateRef InitialState = State;
+  ProgramStateRef const InitialState = State;
 
   for (auto *IvarSymbol : *OldUnreleased) {
     const TypedValueRegion *TVR =
@@ -838,9 +838,9 @@ void ObjCDeallocChecker::transitionToReleaseValue(CheckerContext &C,
   SymbolRef InstanceSym = getInstanceSymbolFromIvarSymbol(Value);
   if (!InstanceSym)
     return;
-  ProgramStateRef InitialState = C.getState();
+  ProgramStateRef const InitialState = C.getState();
 
-  ProgramStateRef ReleasedState =
+  ProgramStateRef const ReleasedState =
       removeValueRequiringRelease(InitialState, InstanceSym, Value);
 
   if (ReleasedState != InitialState) {
@@ -889,7 +889,7 @@ ReleaseRequirement ObjCDeallocChecker::getDeallocReleaseRequirement(
   if (!isSynthesizedRetainableProperty(PropImpl, &IvarDecl, &PropDecl))
     return ReleaseRequirement::Unknown;
 
-  ObjCPropertyDecl::SetterKind SK = PropDecl->getSetterKind();
+  ObjCPropertyDecl::SetterKind const SK = PropDecl->getSetterKind();
 
   switch (SK) {
   // Retain and copy setters retain/copy their values before storing and so
@@ -924,7 +924,7 @@ ReleaseRequirement ObjCDeallocChecker::getDeallocReleaseRequirement(
 SymbolRef
 ObjCDeallocChecker::getValueReleasedByNillingOut(const ObjCMethodCall &M,
                                                  CheckerContext &C) const {
-  SVal ReceiverVal = M.getReceiverSVal();
+  SVal const ReceiverVal = M.getReceiverSVal();
   if (!ReceiverVal.isValid())
     return nullptr;
 
@@ -935,7 +935,7 @@ ObjCDeallocChecker::getValueReleasedByNillingOut(const ObjCMethodCall &M,
     return nullptr;
 
   // Is the first argument nil?
-  SVal Arg = M.getArgSVal(0);
+  SVal const Arg = M.getArgSVal(0);
   ProgramStateRef notNilState, nilState;
   std::tie(notNilState, nilState) =
       M.getState()->assume(Arg.castAs<DefinedOrUnknownSVal>());
@@ -950,14 +950,14 @@ ObjCDeallocChecker::getValueReleasedByNillingOut(const ObjCMethodCall &M,
   if (!PropIvarDecl)
     return nullptr;
 
-  ProgramStateRef State = C.getState();
+  ProgramStateRef const State = C.getState();
 
-  SVal LVal = State->getLValue(PropIvarDecl, ReceiverVal);
+  SVal const LVal = State->getLValue(PropIvarDecl, ReceiverVal);
   Optional<Loc> LValLoc = LVal.getAs<Loc>();
   if (!LValLoc)
     return nullptr;
 
-  SVal CurrentValInIvar = State->getSVal(LValLoc.getValue());
+  SVal const CurrentValInIvar = State->getSVal(LValLoc.getValue());
   return CurrentValInIvar.getAsSymbol();
 }
 
@@ -982,7 +982,7 @@ bool ObjCDeallocChecker::isInInstanceDealloc(const CheckerContext &C,
   const ImplicitParamDecl *SelfDecl = LCtx->getSelfDecl();
   assert(SelfDecl && "No self in -dealloc?");
 
-  ProgramStateRef State = C.getState();
+  ProgramStateRef const State = C.getState();
   SelfValOut = State->getSVal(State->getRegion(SelfDecl, LCtx));
   return true;
 }
@@ -1038,8 +1038,8 @@ bool ObjCDeallocChecker::classHasSeparateTeardown(
 bool ObjCDeallocChecker::isReleasedByCIFilterDealloc(
     const ObjCPropertyImplDecl *PropImpl) const {
   assert(PropImpl->getPropertyIvarDecl());
-  StringRef PropName = PropImpl->getPropertyDecl()->getName();
-  StringRef IvarName = PropImpl->getPropertyIvarDecl()->getName();
+  StringRef const PropName = PropImpl->getPropertyDecl()->getName();
+  StringRef const IvarName = PropImpl->getPropertyIvarDecl()->getName();
 
   const char *ReleasePrefix = "input";
   if (!(PropName.startswith(ReleasePrefix) ||

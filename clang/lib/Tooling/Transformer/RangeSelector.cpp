@@ -67,7 +67,7 @@ static SourceLocation findPreviousTokenStart(SourceLocation Start,
   if (Start.isInvalid() || Start.isMacroID())
     return SourceLocation();
 
-  SourceLocation BeforeStart = Start.getLocWithOffset(-1);
+  SourceLocation const BeforeStart = Start.getLocWithOffset(-1);
   if (BeforeStart.isInvalid() || BeforeStart.isMacroID())
     return SourceLocation();
 
@@ -81,7 +81,7 @@ static SourceLocation findPreviousTokenKind(SourceLocation Start,
                                             const LangOptions &LangOpts,
                                             tok::TokenKind TK) {
   while (true) {
-    SourceLocation L = findPreviousTokenStart(Start, SM, LangOpts);
+    SourceLocation const L = findPreviousTokenStart(Start, SM, LangOpts);
     if (L.isInvalid() || L.isMacroID())
       return SourceLocation();
 
@@ -98,7 +98,7 @@ static SourceLocation findPreviousTokenKind(SourceLocation Start,
 
 static SourceLocation findOpenParen(const CallExpr &E, const SourceManager &SM,
                                     const LangOptions &LangOpts) {
-  SourceLocation EndLoc =
+  SourceLocation const EndLoc =
       E.getNumArgs() == 0 ? E.getRParenLoc() : E.getArg(0)->getBeginLoc();
   return findPreviousTokenKind(EndLoc, SM, LangOpts, tok::TokenKind::l_paren);
 }
@@ -125,7 +125,7 @@ RangeSelector transformer::after(RangeSelector Selector) {
       // consisting only of the last token, then map that range back to the
       // source file. If that succeeds, we have a valid location for the end of
       // the generated range.
-      CharSourceRange Range = Lexer::makeFileCharRange(
+      CharSourceRange const Range = Lexer::makeFileCharRange(
           CharSourceRange::getTokenRange(SelectedRange->getEnd()),
           *Result.SourceManager, Result.Context->getLangOpts());
       if (Range.isInvalid())
@@ -169,8 +169,8 @@ RangeSelector transformer::enclose(RangeSelector Begin, RangeSelector End) {
     Expected<CharSourceRange> EndRange = End(Result);
     if (!EndRange)
       return EndRange.takeError();
-    SourceLocation B = BeginRange->getBegin();
-    SourceLocation E = EndRange->getEnd();
+    SourceLocation const B = BeginRange->getBegin();
+    SourceLocation const E = EndRange->getEnd();
     // Note: we are precluding the possibility of sub-token ranges in the case
     // that EndRange is a token range.
     if (Result.SourceManager->isBeforeInTranslationUnit(E, B)) {
@@ -206,7 +206,7 @@ RangeSelector transformer::name(std::string ID) {
     if (const auto *D = Node.get<NamedDecl>()) {
       if (!D->getDeclName().isIdentifier())
         return missingPropertyError(ID, "name", "identifier");
-      SourceLocation L = D->getLocation();
+      SourceLocation const L = D->getLocation();
       auto R = CharSourceRange::getTokenRange(L, L);
       // Verify that the range covers exactly the name.
       // FIXME: extend this code to support cases like `operator +` or
@@ -220,13 +220,13 @@ RangeSelector transformer::name(std::string ID) {
     if (const auto *E = Node.get<DeclRefExpr>()) {
       if (!E->getNameInfo().getName().isIdentifier())
         return missingPropertyError(ID, "name", "identifier");
-      SourceLocation L = E->getLocation();
+      SourceLocation const L = E->getLocation();
       return CharSourceRange::getTokenRange(L, L);
     }
     if (const auto *I = Node.get<CXXCtorInitializer>()) {
       if (!I->isMemberInitializer() && I->isWritten())
         return missingPropertyError(ID, "name", "explicit member initializer");
-      SourceLocation L = I->getMemberLocation();
+      SourceLocation const L = I->getMemberLocation();
       return CharSourceRange::getTokenRange(L, L);
     }
     if (const auto *T = Node.get<TypeLoc>()) {

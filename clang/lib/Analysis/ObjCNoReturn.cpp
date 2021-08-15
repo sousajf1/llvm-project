@@ -46,7 +46,7 @@ ObjCNoReturn::ObjCNoReturn(ASTContext &C)
 
 
 bool ObjCNoReturn::isImplicitNoReturn(const ObjCMessageExpr *ME) {
-  Selector S = ME->getSelector();
+  Selector const S = ME->getSelector();
 
   if (ME->isInstanceMessage()) {
     // Check for the "raise" message.

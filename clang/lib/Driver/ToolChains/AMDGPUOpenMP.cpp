@@ -38,7 +38,7 @@ static const char *getOutputFileName(Compilation &C, StringRef Base,
     OutputFileName =
         C.getArgs().MakeArgString(Base.str() + Postfix + "." + Extension);
   } else {
-    std::string TmpName =
+    std::string const TmpName =
         C.getDriver().GetTemporaryPath(Base.str() + Postfix, Extension);
     OutputFileName = C.addTempFile(C.getArgs().MakeArgString(TmpName));
   }
@@ -75,7 +75,7 @@ static void addLLCOptArg(const llvm::opt::ArgList &Args,
 static bool checkSystemForAMDGPU(const ArgList &Args, const AMDGPUToolChain &TC,
                                  std::string &GPUArch) {
   if (auto Err = TC.getSystemGPUArch(Args, GPUArch)) {
-    std::string ErrMsg =
+    std::string const ErrMsg =
         llvm::formatv("{0}", llvm::fmt_consume(std::move(Err)));
     TC.getDriver().Diag(diag::err_drv_undetermined_amdgpu_arch) << ErrMsg;
     return false;
@@ -165,7 +165,7 @@ void AMDGCN::OpenMPLinker::constructLldCommand(
     const char *InputFileName) const {
   // Construct lld command.
   // The output from ld.lld is an HSA code object file.
-  ArgStringList LldArgs{"-flavor",    "gnu", "--no-undefined",
+  ArgStringList const LldArgs{"-flavor",    "gnu", "--no-undefined",
                         "-shared",    "-o",  Output.getFilename(),
                         InputFileName};
 

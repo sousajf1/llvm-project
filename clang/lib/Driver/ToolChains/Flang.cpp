@@ -94,7 +94,7 @@ void Flang::ConstructJob(Compilation &C, const JobAction &JA,
   }
 
   const InputInfo &Input = Inputs[0];
-  types::ID InputType = Input.getType();
+  types::ID const InputType = Input.getType();
 
   // Add preprocessing options like -I, -D, etc. if we are using the
   // preprocessor (i.e. skip when dealing with e.g. binary files).

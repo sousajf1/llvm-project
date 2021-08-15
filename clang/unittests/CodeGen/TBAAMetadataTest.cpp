@@ -61,7 +61,7 @@ TEST(TBAAMetadataTest, BasicTypes) {
     }
   )**";
 
-  clang::LangOptions LO;
+  clang::LangOptions const LO;
   TBAATestCompiler Compiler(LO, TBAATestCompiler::getCommonCodeGenOpts());
   Compiler.init(TestProgram);
   const BasicBlock *BB = Compiler.compile();

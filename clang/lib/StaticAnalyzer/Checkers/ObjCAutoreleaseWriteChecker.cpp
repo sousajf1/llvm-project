@@ -112,7 +112,7 @@ static void emitDiagnostics(BoundNodes &Match, const Decl *D, BugReporter &BR,
   AnalysisDeclContext *ADC = AM.getAnalysisDeclContext(D);
 
   const auto *PVD = Match.getNodeAs<ParmVarDecl>(ParamBind);
-  QualType Ty = PVD->getType();
+  QualType const Ty = PVD->getType();
   if (Ty->getPointeeType().getObjCLifetime() != Qualifiers::OCL_Autoreleasing)
     return;
   const char *ActionMsg = "Write to";
@@ -127,13 +127,13 @@ static void emitDiagnostics(BoundNodes &Match, const Decl *D, BugReporter &BR,
     IsCapture = true;
   }
 
-  SourceRange Range = MarkedStmt->getSourceRange();
-  PathDiagnosticLocation Location = PathDiagnosticLocation::createBegin(
+  SourceRange const Range = MarkedStmt->getSourceRange();
+  PathDiagnosticLocation const Location = PathDiagnosticLocation::createBegin(
       MarkedStmt, BR.getSourceManager(), ADC);
 
-  bool IsMethod = Match.getNodeAs<ObjCMethodDecl>(IsMethodBind) != nullptr;
+  bool const IsMethod = Match.getNodeAs<ObjCMethodDecl>(IsMethodBind) != nullptr;
   const char *FunctionDescription = IsMethod ? "method" : "function";
-  bool IsARP = Match.getNodeAs<ObjCAutoreleasePoolStmt>(IsARPBind) != nullptr;
+  bool const IsARP = Match.getNodeAs<ObjCAutoreleasePoolStmt>(IsARPBind) != nullptr;
 
   llvm::SmallString<128> BugNameBuf;
   llvm::raw_svector_ostream BugName(BugNameBuf);

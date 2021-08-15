@@ -80,7 +80,7 @@ CodeGen::getImplicitCXXConstructorArgs(CodeGenModule &CGM,
   // the called constructor, but that can't happen here because we're asking for
   // the args for a complete, non-delegating constructor call.
   CodeGenFunction CGF(CGM, /* suppressNewContext= */ true);
-  CGCXXABI::AddedStructorArgs addedArgs =
+  CGCXXABI::AddedStructorArgs const addedArgs =
       CGM.getCXXABI().getImplicitConstructorArgs(CGF, D, Ctor_Complete,
                                                  /* ForVirtualBase= */ false,
                                                  /* Delegating= */ false);

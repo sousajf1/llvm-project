@@ -22,9 +22,9 @@ protected:
                             unsigned Length, const FormatStyle &Style) {
     LLVM_DEBUG(llvm::errs() << "---\n");
     LLVM_DEBUG(llvm::errs() << Code << "\n\n");
-    std::vector<tooling::Range> Ranges(1, tooling::Range(Offset, Length));
+    std::vector<tooling::Range> const Ranges(1, tooling::Range(Offset, Length));
     FormattingAttemptStatus Status;
-    tooling::Replacements Replaces =
+    tooling::Replacements const Replaces =
         reformat(Style, Code, Ranges, "<stdin>", &Status);
     EXPECT_TRUE(Status.FormatComplete);
     auto Result = applyAllReplacements(Code, Replaces);
@@ -49,7 +49,7 @@ protected:
       llvm::StringRef Code,
       const FormatStyle &Style = getGoogleStyle(FormatStyle::LK_JavaScript)) {
     EXPECT_EQ(Code.str(), format(Code, Style)) << "Expected code is not stable";
-    std::string Result = format(test::messUp(Code), Style);
+    std::string const Result = format(test::messUp(Code), Style);
     EXPECT_EQ(Code.str(), Result) << "Formatted:\n" << Result;
   }
 
@@ -58,7 +58,7 @@ protected:
       const FormatStyle &Style = getGoogleStyle(FormatStyle::LK_JavaScript)) {
     EXPECT_EQ(Expected.str(), format(Expected, Style))
         << "Expected code is not stable";
-    std::string Result = format(Code, Style);
+    std::string const Result = format(Code, Style);
     EXPECT_EQ(Expected.str(), Result) << "Formatted:\n" << Result;
   }
 };
@@ -644,7 +644,7 @@ TEST_F(FormatTestJS, NamespacesMayNotWrap) {
 }
 
 TEST_F(FormatTestJS, AmbientDeclarations) {
-  FormatStyle NineCols = getGoogleJSStyleWithColumns(9);
+  FormatStyle const NineCols = getGoogleJSStyleWithColumns(9);
   verifyFormat("declare class\n"
                "    X {}",
                NineCols);

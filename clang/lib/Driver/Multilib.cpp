@@ -31,7 +31,7 @@ static void normalizePathSegment(std::string &Segment) {
 
   // Prune trailing "/" or "./"
   while (true) {
-    StringRef last = path::filename(seg);
+    StringRef const last = path::filename(seg);
     if (last != ".")
       break;
     seg = path::parent_path(seg);
@@ -89,7 +89,7 @@ void Multilib::print(raw_ostream &OS) const {
     OS << StringRef(GCCSuffix).drop_front();
   }
   OS << ";";
-  for (StringRef Flag : Flags) {
+  for (StringRef const Flag : Flags) {
     if (Flag.front() == '+')
       OS << "@" << Flag.substr(1);
   }
@@ -98,7 +98,7 @@ void Multilib::print(raw_ostream &OS) const {
 bool Multilib::isValid() const {
   llvm::StringMap<int> FlagSet;
   for (unsigned I = 0, N = Flags.size(); I != N; ++I) {
-    StringRef Flag(Flags[I]);
+    StringRef const Flag(Flags[I]);
     llvm::StringMap<int>::iterator SI = FlagSet.find(Flag.substr(1));
 
     assert(StringRef(Flag).front() == '+' || StringRef(Flag).front() == '-');
@@ -142,7 +142,7 @@ raw_ostream &clang::driver::operator<<(raw_ostream &OS, const Multilib &M) {
 MultilibSet &MultilibSet::Maybe(const Multilib &M) {
   Multilib Opposite;
   // Negate any '+' flags
-  for (StringRef Flag : M.flags()) {
+  for (StringRef const Flag : M.flags()) {
     if (Flag.front() == '+')
       Opposite.flags().push_back(("-" + Flag.substr(1)).str());
   }
@@ -197,7 +197,7 @@ MultilibSet &MultilibSet::Either(ArrayRef<Multilib> MultilibSegments) {
   else {
     for (const auto &New : MultilibSegments) {
       for (const auto &Base : *this) {
-        Multilib MO = compose(Base, New);
+        Multilib const MO = compose(Base, New);
         if (MO.isValid())
           Composed.push_back(MO);
       }
@@ -236,7 +236,7 @@ void MultilibSet::combineWith(const MultilibSet &Other) {
 }
 
 static bool isFlagEnabled(StringRef Flag) {
-  char Indicator = Flag.front();
+  char const Indicator = Flag.front();
   assert(Indicator == '+' || Indicator == '-');
   return Indicator == '+';
 }
@@ -246,11 +246,11 @@ bool MultilibSet::select(const Multilib::flags_list &Flags, Multilib &M) const {
 
   // Stuff all of the flags into the FlagSet such that a true mappend indicates
   // the flag was enabled, and a false mappend indicates the flag was disabled.
-  for (StringRef Flag : Flags)
+  for (StringRef const Flag : Flags)
     FlagSet[Flag.substr(1)] = isFlagEnabled(Flag);
 
   multilib_list Filtered = filterCopy([&FlagSet](const Multilib &M) {
-    for (StringRef Flag : M.flags()) {
+    for (StringRef const Flag : M.flags()) {
       llvm::StringMap<bool>::const_iterator SI = FlagSet.find(Flag.substr(1));
       if (SI != FlagSet.end())
         if (SI->getValue() != isFlagEnabled(Flag))

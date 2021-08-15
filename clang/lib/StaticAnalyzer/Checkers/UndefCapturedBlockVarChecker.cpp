@@ -53,7 +53,7 @@ UndefCapturedBlockVarChecker::checkPostStmt(const BlockExpr *BE,
   if (!BE->getBlockDecl()->hasCaptures())
     return;
 
-  ProgramStateRef state = C.getState();
+  ProgramStateRef const state = C.getState();
   auto *R = cast<BlockDataRegion>(C.getSVal(BE).getAsRegion());
 
   BlockDataRegion::referenced_vars_iterator I = R->referenced_vars_begin(),

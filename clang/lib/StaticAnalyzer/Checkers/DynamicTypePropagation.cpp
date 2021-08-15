@@ -170,11 +170,11 @@ RuntimeType inferReceiverType(const ObjCMethodCall &Message,
   // Otherwise, let's try to get type information from our estimations of
   // runtime types.
   QualType InferredType;
-  SVal ReceiverSVal = C.getSVal(RecE);
-  ProgramStateRef State = C.getState();
+  SVal const ReceiverSVal = C.getSVal(RecE);
+  ProgramStateRef const State = C.getState();
 
   if (const MemRegion *ReceiverRegion = ReceiverSVal.getAsRegion()) {
-    if (DynamicTypeInfo DTI = getDynamicTypeInfo(State, ReceiverRegion)) {
+    if (DynamicTypeInfo const DTI = getDynamicTypeInfo(State, ReceiverRegion)) {
       InferredType = DTI.getType().getCanonicalType();
     }
   }
@@ -188,14 +188,14 @@ RuntimeType inferReceiverType(const ObjCMethodCall &Message,
     // represents.
     if (isObjCClassType(InferredType)) {
       // We actually might have some info on what type is contained in there.
-      if (DynamicTypeInfo DTI =
+      if (DynamicTypeInfo const DTI =
               getClassObjectDynamicTypeInfo(State, ReceiverSymbol)) {
 
         // Types in Class objects can be ONLY Objective-C types
         return {cast<ObjCObjectType>(DTI.getType()), !DTI.canBeASubClass()};
       }
 
-      SVal SelfSVal = State->getSelfSVal(C.getLocationContext());
+      SVal const SelfSVal = State->getSelfSVal(C.getLocationContext());
 
       // Another way we can guess what is in Class object, is when it is a
       // 'self' variable of the current class method.
@@ -233,7 +233,7 @@ void DynamicTypePropagation::checkDeadSymbols(SymbolReaper &SR,
   ProgramStateRef State = removeDeadTypes(C.getState(), SR);
   State = removeDeadClassObjectTypes(State, SR);
 
-  MostSpecializedTypeArgsMapTy TyArgMap =
+  MostSpecializedTypeArgsMapTy const TyArgMap =
       State->get<MostSpecializedTypeArgsMap>();
   for (MostSpecializedTypeArgsMapTy::iterator I = TyArgMap.begin(),
                                               E = TyArgMap.end();
@@ -251,8 +251,8 @@ static void recordFixedType(const MemRegion *Region, const CXXMethodDecl *MD,
   assert(Region);
   assert(MD);
 
-  ASTContext &Ctx = C.getASTContext();
-  QualType Ty = Ctx.getPointerType(Ctx.getRecordType(MD->getParent()));
+  ASTContext  const&Ctx = C.getASTContext();
+  QualType const Ty = Ctx.getPointerType(Ctx.getRecordType(MD->getParent()));
 
   ProgramStateRef State = C.getState();
   State = setDynamicTypeInfo(State, Region, Ty, /*CanBeSubClassed=*/false);
@@ -313,7 +313,7 @@ void DynamicTypePropagation::checkPostCall(const CallEvent &Call,
     if (!RetReg)
       return;
 
-    ProgramStateRef State = C.getState();
+    ProgramStateRef const State = C.getState();
     const ObjCMethodDecl *D = Msg->getDecl();
 
     if (D && D->hasRelatedResultType()) {
@@ -327,12 +327,12 @@ void DynamicTypePropagation::checkPostCall(const CallEvent &Call,
       case OMF_alloc:
       case OMF_new: {
         // Get the type of object that will get created.
-        RuntimeType ObjTy = inferReceiverType(*Msg, C);
+        RuntimeType const ObjTy = inferReceiverType(*Msg, C);
 
         if (!ObjTy)
           return;
 
-        QualType DynResTy =
+        QualType const DynResTy =
             C.getASTContext().getObjCObjectPointerType(QualType(ObjTy.Type, 0));
         // We used to assume that whatever type we got from inferring the
         // type is actually precise (and it is not exactly correct).
@@ -351,7 +351,7 @@ void DynamicTypePropagation::checkPostCall(const CallEvent &Call,
         const MemRegion *RecReg = Msg->getReceiverSVal().getAsRegion();
         if (!RecReg)
           return;
-        DynamicTypeInfo RecDynType = getDynamicTypeInfo(State, RecReg);
+        DynamicTypeInfo const RecDynType = getDynamicTypeInfo(State, RecReg);
         C.addTransition(setDynamicTypeInfo(State, RetReg, RecDynType));
         break;
       }
@@ -444,7 +444,7 @@ DynamicTypePropagation::getBetterObjCType(const Expr *CastE,
       CastE->getType()->getAs<ObjCObjectPointerType>();
   if (!NewTy)
     return nullptr;
-  QualType OldDTy = getDynamicTypeInfo(C.getState(), ToR).getType();
+  QualType const OldDTy = getDynamicTypeInfo(C.getState(), ToR).getType();
   if (OldDTy.isNull()) {
     return NewTy;
   }
@@ -489,7 +489,7 @@ static const ObjCObjectPointerType *getMostInformativeDerivedClassImpl(
   const auto *SuperOfTo =
       To->getObjectType()->getSuperClassType()->castAs<ObjCObjectType>();
   assert(SuperOfTo);
-  QualType SuperPtrOfToQual =
+  QualType const SuperPtrOfToQual =
       C.getObjCObjectPointerType(QualType(SuperOfTo, 0));
   const auto *SuperPtrOfTo = SuperPtrOfToQual->castAs<ObjCObjectPointerType>();
   if (To->isUnspecialized())
@@ -615,8 +615,8 @@ void DynamicTypePropagation::checkPostStmt(const CastExpr *CE,
   if (CE->getCastKind() != CK_BitCast)
     return;
 
-  QualType OriginType = CE->getSubExpr()->getType();
-  QualType DestType = CE->getType();
+  QualType const OriginType = CE->getSubExpr()->getType();
+  QualType const DestType = CE->getType();
 
   const auto *OrigObjectPtrType = OriginType->getAs<ObjCObjectPointerType>();
   const auto *DestObjectPtrType = DestType->getAs<ObjCObjectPointerType>();
@@ -665,9 +665,9 @@ void DynamicTypePropagation::checkPostStmt(const CastExpr *CE,
   }
 
   // Check which assignments are legal.
-  bool OrigToDest =
+  bool const OrigToDest =
       ASTCtxt.canAssignObjCInterfaces(DestObjectPtrType, OrigObjectPtrType);
-  bool DestToOrig =
+  bool const DestToOrig =
       ASTCtxt.canAssignObjCInterfaces(OrigObjectPtrType, DestObjectPtrType);
 
   // The tracked type should be the sub or super class of the static destination
@@ -743,7 +743,7 @@ findMethodDecl(const ObjCMessageExpr *MessageExpr,
                const ObjCObjectPointerType *TrackedType, ASTContext &ASTCtxt) {
   const ObjCMethodDecl *Method = nullptr;
 
-  QualType ReceiverType = MessageExpr->getReceiverType();
+  QualType const ReceiverType = MessageExpr->getReceiverType();
   const auto *ReceiverObjectPtrType =
       ReceiverType->getAs<ObjCObjectPointerType>();
 
@@ -758,7 +758,7 @@ findMethodDecl(const ObjCMessageExpr *MessageExpr,
         ASTCtxt.canAssignObjCInterfaces(ReceiverObjectPtrType, TrackedType)) {
       const ObjCInterfaceDecl *InterfaceDecl = TrackedType->getInterfaceDecl();
       // The method might not be found.
-      Selector Sel = MessageExpr->getSelector();
+      Selector const Sel = MessageExpr->getSelector();
       Method = InterfaceDecl->lookupInstanceMethod(Sel);
       if (!Method)
         Method = InterfaceDecl->lookupClassMethod(Sel);
@@ -776,7 +776,7 @@ findMethodDecl(const ObjCMessageExpr *MessageExpr,
 static QualType getReturnTypeForMethod(
     const ObjCMethodDecl *Method, ArrayRef<QualType> TypeArgs,
     const ObjCObjectPointerType *SelfType, ASTContext &C) {
-  QualType StaticResultType = Method->getReturnType();
+  QualType const StaticResultType = Method->getReturnType();
 
   // Is the return type declared as instance type?
   if (StaticResultType == C.getObjCInstanceType())
@@ -796,7 +796,7 @@ static QualType getReturnTypeForMethod(
 /// argumments of the message expression and the return value.
 void DynamicTypePropagation::checkPreObjCMessage(const ObjCMethodCall &M,
                                                  CheckerContext &C) const {
-  ProgramStateRef State = C.getState();
+  ProgramStateRef const State = C.getState();
   SymbolRef Sym = M.getReceiverSVal().getAsSymbol();
   if (!Sym)
     return;
@@ -860,11 +860,11 @@ void DynamicTypePropagation::checkPreObjCMessage(const ObjCMethodCall &M,
     const Expr *Arg = MessageExpr->getArg(i);
     const ParmVarDecl *Param = Method->parameters()[i];
 
-    QualType OrigParamType = Param->getType();
+    QualType const OrigParamType = Param->getType();
     if (!isObjCTypeParamDependent(OrigParamType))
       continue;
 
-    QualType ParamType = OrigParamType.substObjCTypeArgs(
+    QualType const ParamType = OrigParamType.substObjCTypeArgs(
         ASTCtxt, *TypeArgs, ObjCSubstitutionContext::Parameter);
     // Check if it can be assigned
     const auto *ParamObjectPtrType = ParamType->getAs<ObjCObjectPointerType>();
@@ -875,7 +875,7 @@ void DynamicTypePropagation::checkPreObjCMessage(const ObjCMethodCall &M,
 
     // Check if we have more concrete tracked type that is not a super type of
     // the static argument type.
-    SVal ArgSVal = M.getArgSVal(i);
+    SVal const ArgSVal = M.getArgSVal(i);
     SymbolRef ArgSym = ArgSVal.getAsSymbol();
     if (ArgSym) {
       const ObjCObjectPointerType *const *TrackedArgType =
@@ -912,21 +912,21 @@ void DynamicTypePropagation::checkPostObjCMessage(const ObjCMethodCall &M,
   if (!RetSym)
     return;
 
-  Selector Sel = MessageExpr->getSelector();
+  Selector const Sel = MessageExpr->getSelector();
   ProgramStateRef State = C.getState();
 
   // Here we try to propagate information on Class objects.
   if (Sel.getAsString() == "class") {
     // We try to figure out the type from the receiver of the 'class' message.
-    if (RuntimeType ReceiverRuntimeType = inferReceiverType(M, C)) {
+    if (RuntimeType const ReceiverRuntimeType = inferReceiverType(M, C)) {
 
       ReceiverRuntimeType.Type->getSuperClassType();
-      QualType ReceiverClassType(ReceiverRuntimeType.Type, 0);
+      QualType const ReceiverClassType(ReceiverRuntimeType.Type, 0);
 
       // We want to consider only precise information on generics.
       if (ReceiverRuntimeType.Type->isSpecialized() &&
           ReceiverRuntimeType.Precise) {
-        QualType ReceiverClassPointerType =
+        QualType const ReceiverClassPointerType =
             C.getASTContext().getObjCObjectPointerType(ReceiverClassType);
         const auto *InferredType =
             ReceiverClassPointerType->castAs<ObjCObjectPointerType>();
@@ -945,10 +945,10 @@ void DynamicTypePropagation::checkPostObjCMessage(const ObjCMethodCall &M,
   if (Sel.getAsString() == "superclass") {
     // We try to figure out the type from the receiver of the 'superclass'
     // message.
-    if (RuntimeType ReceiverRuntimeType = inferReceiverType(M, C)) {
+    if (RuntimeType const ReceiverRuntimeType = inferReceiverType(M, C)) {
 
       // Result type would be a super class of the receiver's type.
-      QualType ReceiversSuperClass =
+      QualType const ReceiversSuperClass =
           ReceiverRuntimeType.Type->getSuperClassType();
 
       // Check if it really had super class.
@@ -987,7 +987,7 @@ void DynamicTypePropagation::checkPostObjCMessage(const ObjCMethodCall &M,
   if (!TypeArgs)
     return;
 
-  QualType ResultType =
+  QualType const ResultType =
       getReturnTypeForMethod(Method, *TypeArgs, *TrackedType, ASTCtxt);
   // The static type is the same as the deduced type.
   if (ResultType.isNull())
@@ -1047,8 +1047,8 @@ void DynamicTypePropagation::reportGenericsBug(
 PathDiagnosticPieceRef DynamicTypePropagation::GenericsBugVisitor::VisitNode(
     const ExplodedNode *N, BugReporterContext &BRC,
     PathSensitiveBugReport &BR) {
-  ProgramStateRef state = N->getState();
-  ProgramStateRef statePrev = N->getFirstPred()->getState();
+  ProgramStateRef const state = N->getState();
+  ProgramStateRef const statePrev = N->getFirstPred()->getState();
 
   const ObjCObjectPointerType *const *TrackedType =
       state->get<MostSpecializedTypeArgsMap>(Sym);
@@ -1094,7 +1094,7 @@ PathDiagnosticPieceRef DynamicTypePropagation::GenericsBugVisitor::VisitNode(
   }
 
   // Generate the extra diagnostic.
-  PathDiagnosticLocation Pos(S, BRC.getSourceManager(),
+  PathDiagnosticLocation const Pos(S, BRC.getSourceManager(),
                              N->getLocationContext());
   return std::make_shared<PathDiagnosticEventPiece>(Pos, OS.str(), true);
 }

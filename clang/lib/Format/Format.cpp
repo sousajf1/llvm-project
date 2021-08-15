@@ -499,9 +499,9 @@ template <> struct MappingTraits<FormatStyle> {
     IO.mapOptional("Language", Style.Language);
 
     if (IO.outputting()) {
-      StringRef StylesArray[] = {"LLVM",   "Google", "Chromium", "Mozilla",
+      StringRef const StylesArray[] = {"LLVM",   "Google", "Chromium", "Mozilla",
                                  "WebKit", "GNU",    "Microsoft"};
-      ArrayRef<StringRef> Styles(StylesArray);
+      ArrayRef<StringRef> const Styles(StylesArray);
       for (size_t i = 0, e = Styles.size(); i < e; ++i) {
         StringRef StyleName(Styles[i]);
         FormatStyle PredefinedStyle;
@@ -515,8 +515,8 @@ template <> struct MappingTraits<FormatStyle> {
       StringRef BasedOnStyle;
       IO.mapOptional("BasedOnStyle", BasedOnStyle);
       if (!BasedOnStyle.empty()) {
-        FormatStyle::LanguageKind OldLanguage = Style.Language;
-        FormatStyle::LanguageKind Language =
+        FormatStyle::LanguageKind const OldLanguage = Style.Language;
+        FormatStyle::LanguageKind const Language =
             ((FormatStyle *)IO.getContext())->Language;
         if (!getPredefinedStyle(BasedOnStyle, Language, &Style)) {
           IO.setError(Twine("Unknown value for BasedOnStyle: ", BasedOnStyle));
@@ -1476,7 +1476,7 @@ std::error_code parseConfiguration(llvm::MemoryBufferRef Config,
                                    llvm::SourceMgr::DiagHandlerTy DiagHandler,
                                    void *DiagHandlerCtxt) {
   assert(Style);
-  FormatStyle::LanguageKind Language = Style->Language;
+  FormatStyle::LanguageKind const Language = Style->Language;
   assert(Language != FormatStyle::LK_None);
   if (Config.getBuffer().trim().empty())
     return make_error_code(ParseError::Error);
@@ -1604,7 +1604,7 @@ private:
         continue;
       for (FormatToken *FormatTok = Line->First; FormatTok;
            FormatTok = FormatTok->Next) {
-        StringRef Input = FormatTok->TokenText;
+        StringRef const Input = FormatTok->TokenText;
         if (FormatTok->Finalized || !FormatTok->isStringLiteral() ||
             // NB: testing for not starting with a double quote to avoid
             // breaking `template strings`.
@@ -1615,8 +1615,8 @@ private:
           continue;
 
         // Change start and end quote.
-        bool IsSingle = Style.JavaScriptQuotes == FormatStyle::JSQS_Single;
-        SourceLocation Start = FormatTok->Tok.getLocation();
+        bool const IsSingle = Style.JavaScriptQuotes == FormatStyle::JSQS_Single;
+        SourceLocation const Start = FormatTok->Tok.getLocation();
         auto Replace = [&](SourceLocation Start, unsigned Length,
                            StringRef ReplacementText) {
           auto Err = Result.add(tooling::Replacement(
@@ -1693,7 +1693,7 @@ public:
     ContinuationIndenter Indenter(Style, Tokens.getKeywords(),
                                   Env.getSourceManager(), Whitespaces, Encoding,
                                   BinPackInconclusiveFunctions);
-    unsigned Penalty =
+    unsigned const Penalty =
         UnwrappedLineFormatter(&Indenter, &Whitespaces, Style,
                                Tokens.getKeywords(), Env.getSourceManager(),
                                Status)
@@ -1711,8 +1711,8 @@ public:
 
 private:
   static bool inputUsesCRLF(StringRef Text, bool DefaultToCRLF) {
-    size_t LF = Text.count('\n');
-    size_t CR = Text.count('\r') * 2;
+    size_t const LF = Text.count('\n');
+    size_t const CR = Text.count('\r') * 2;
     return LF == CR ? DefaultToCRLF : CR > LF;
   }
 
@@ -1741,9 +1741,9 @@ private:
       for (FormatToken *Tok = Line->First; Tok && Tok->Next; Tok = Tok->Next) {
         if (!Tok->is(TT_PointerOrReference))
           continue;
-        bool SpaceBefore =
+        bool const SpaceBefore =
             Tok->WhitespaceRange.getBegin() != Tok->WhitespaceRange.getEnd();
-        bool SpaceAfter = Tok->Next->WhitespaceRange.getBegin() !=
+        bool const SpaceAfter = Tok->Next->WhitespaceRange.getBegin() !=
                           Tok->Next->WhitespaceRange.getEnd();
         if (SpaceBefore && !SpaceAfter)
           ++AlignmentDiff;
@@ -1840,12 +1840,12 @@ private:
           continue;
         // getEndLoc is not reliably set during re-lexing, use text length
         // instead.
-        SourceLocation Start =
+        SourceLocation const Start =
             Prev->Tok.getLocation().getLocWithOffset(Prev->TokenText.size());
         // If inserting a comma would push the code over the column limit, skip
         // this location - it'd introduce an unstable formatting due to the
         // required reflow.
-        unsigned ColumnNumber =
+        unsigned const ColumnNumber =
             Env.getSourceManager().getSpellingColumnNumber(Start);
         if (ColumnNumber > Style.ColumnLimit)
           continue;
@@ -2097,7 +2097,7 @@ public:
     assert(Style.Language == FormatStyle::LK_Cpp);
     IsObjC = guessIsObjC(Env.getSourceManager(), AnnotatedLines,
                          Tokens.getKeywords());
-    tooling::Replacements Result;
+    tooling::Replacements const Result;
     return {Result, 0};
   }
 
@@ -2263,8 +2263,8 @@ FindCursorIndex(const SmallVectorImpl<IncludeDirective> &Includes,
   unsigned CursorIndex = UINT_MAX;
   unsigned OffsetToEOL = 0;
   for (int i = 0, e = Includes.size(); i != e; ++i) {
-    unsigned Start = Includes[Indices[i]].Offset;
-    unsigned End = Start + Includes[Indices[i]].Text.size();
+    unsigned const Start = Includes[Indices[i]].Offset;
+    unsigned const End = Start + Includes[Indices[i]].Text.size();
     if (!(Cursor >= Start && Cursor < End))
       continue;
     CursorIndex = Indices[i];
@@ -2312,11 +2312,11 @@ static void sortCppIncludes(const FormatStyle &Style,
                             ArrayRef<tooling::Range> Ranges, StringRef FileName,
                             StringRef Code, tooling::Replacements &Replaces,
                             unsigned *Cursor) {
-  tooling::IncludeCategoryManager Categories(Style.IncludeStyle, FileName);
-  unsigned IncludesBeginOffset = Includes.front().Offset;
-  unsigned IncludesEndOffset =
+  tooling::IncludeCategoryManager const Categories(Style.IncludeStyle, FileName);
+  unsigned const IncludesBeginOffset = Includes.front().Offset;
+  unsigned const IncludesEndOffset =
       Includes.back().Offset + Includes.back().Text.size();
-  unsigned IncludesBlockSize = IncludesEndOffset - IncludesBeginOffset;
+  unsigned const IncludesBlockSize = IncludesEndOffset - IncludesBeginOffset;
   if (!affectsRange(Ranges, IncludesBeginOffset, IncludesEndOffset))
     return;
   SmallVector<unsigned, 16> Indices;
@@ -2370,7 +2370,7 @@ static void sortCppIncludes(const FormatStyle &Style,
     return;
 
   std::string result;
-  for (unsigned Index : Indices) {
+  for (unsigned const Index : Indices) {
     if (!result.empty()) {
       result += "\n";
       if (Style.IncludeStyle.IncludeBlocks ==
@@ -2416,7 +2416,7 @@ tooling::Replacements sortCppIncludes(const FormatStyle &Style, StringRef Code,
                       .StartsWith("\xEF\xBB\xBF", 3) // UTF-8 BOM
                       .Default(0);
   unsigned SearchFrom = 0;
-  llvm::Regex IncludeRegex(CppIncludeRegexPattern);
+  llvm::Regex const IncludeRegex(CppIncludeRegexPattern);
   SmallVector<StringRef, 4> Matches;
   SmallVector<IncludeDirective, 16> IncludesInBlock;
 
@@ -2427,17 +2427,17 @@ tooling::Replacements sortCppIncludes(const FormatStyle &Style, StringRef Code,
   //
   // FIXME: Do some sanity checking, e.g. edit distance of the base name, to fix
   // cases where the first #include is unlikely to be the main header.
-  tooling::IncludeCategoryManager Categories(Style.IncludeStyle, FileName);
+  tooling::IncludeCategoryManager const Categories(Style.IncludeStyle, FileName);
   bool FirstIncludeBlock = true;
   bool MainIncludeFound = false;
   bool FormattingOff = false;
 
   for (;;) {
     auto Pos = Code.find('\n', SearchFrom);
-    StringRef Line =
+    StringRef const Line =
         Code.substr(Prev, (Pos != StringRef::npos ? Pos : Code.size()) - Prev);
 
-    StringRef Trimmed = Line.trim();
+    StringRef const Trimmed = Line.trim();
     if (Trimmed == "// clang-format off" || Trimmed == "/* clang-format off */")
       FormattingOff = true;
     else if (Trimmed == "// clang-format on" ||
@@ -2450,14 +2450,14 @@ tooling::Replacements sortCppIncludes(const FormatStyle &Style, StringRef Code,
          Style.IncludeStyle.IncludeBlocks ==
              tooling::IncludeStyle::IBS_Regroup);
 
-    bool MergeWithNextLine = Trimmed.endswith("\\");
+    bool const MergeWithNextLine = Trimmed.endswith("\\");
     if (!FormattingOff && !MergeWithNextLine) {
       if (IncludeRegex.match(Line, &Matches)) {
-        StringRef IncludeName = Matches[2];
-        int Category = Categories.getIncludePriority(
+        StringRef const IncludeName = Matches[2];
+        int const Category = Categories.getIncludePriority(
             IncludeName,
             /*CheckMainHeader=*/!MainIncludeFound && FirstIncludeBlock);
-        int Priority = Categories.getSortIncludePriority(
+        int const Priority = Categories.getSortIncludePriority(
             IncludeName, !MainIncludeFound && FirstIncludeBlock);
         if (Category == 0)
           MainIncludeFound = true;
@@ -2494,7 +2494,7 @@ static unsigned findJavaImportGroup(const FormatStyle &Style,
   unsigned LongestMatchIndex = UINT_MAX;
   unsigned LongestMatchLength = 0;
   for (unsigned I = 0; I < Style.JavaImportGroups.size(); I++) {
-    std::string GroupPrefix = Style.JavaImportGroups[I];
+    std::string const GroupPrefix = Style.JavaImportGroups[I];
     if (ImportIdentifier.startswith(GroupPrefix) &&
         GroupPrefix.length() > LongestMatchLength) {
       LongestMatchIndex = I;
@@ -2513,10 +2513,10 @@ static void sortJavaImports(const FormatStyle &Style,
                             const SmallVectorImpl<JavaImportDirective> &Imports,
                             ArrayRef<tooling::Range> Ranges, StringRef FileName,
                             StringRef Code, tooling::Replacements &Replaces) {
-  unsigned ImportsBeginOffset = Imports.front().Offset;
-  unsigned ImportsEndOffset =
+  unsigned const ImportsBeginOffset = Imports.front().Offset;
+  unsigned const ImportsEndOffset =
       Imports.back().Offset + Imports.back().Text.size();
-  unsigned ImportsBlockSize = ImportsEndOffset - ImportsBeginOffset;
+  unsigned const ImportsBlockSize = ImportsEndOffset - ImportsBeginOffset;
   if (!affectsRange(Ranges, ImportsBeginOffset, ImportsEndOffset))
     return;
   SmallVector<unsigned, 16> Indices;
@@ -2549,14 +2549,14 @@ static void sortJavaImports(const FormatStyle &Style,
   unsigned CurrentImportGroup = JavaImportGroups[Indices.front()];
 
   std::string result;
-  for (unsigned Index : Indices) {
+  for (unsigned const Index : Indices) {
     if (!result.empty()) {
       result += "\n";
       if (CurrentIsStatic != Imports[Index].IsStatic ||
           CurrentImportGroup != JavaImportGroups[Index])
         result += "\n";
     }
-    for (StringRef CommentLine : Imports[Index].AssociatedCommentLines) {
+    for (StringRef const CommentLine : Imports[Index].AssociatedCommentLines) {
       result += CommentLine;
       result += "\n";
     }
@@ -2594,7 +2594,7 @@ tooling::Replacements sortJavaImports(const FormatStyle &Style, StringRef Code,
                                       tooling::Replacements &Replaces) {
   unsigned Prev = 0;
   unsigned SearchFrom = 0;
-  llvm::Regex ImportRegex(JavaImportRegexPattern);
+  llvm::Regex const ImportRegex(JavaImportRegexPattern);
   SmallVector<StringRef, 4> Matches;
   SmallVector<JavaImportDirective, 16> ImportsInBlock;
   std::vector<StringRef> AssociatedCommentLines;
@@ -2603,10 +2603,10 @@ tooling::Replacements sortJavaImports(const FormatStyle &Style, StringRef Code,
 
   for (;;) {
     auto Pos = Code.find('\n', SearchFrom);
-    StringRef Line =
+    StringRef const Line =
         Code.substr(Prev, (Pos != StringRef::npos ? Pos : Code.size()) - Prev);
 
-    StringRef Trimmed = Line.trim();
+    StringRef const Trimmed = Line.trim();
     if (Trimmed == "// clang-format off")
       FormattingOff = true;
     else if (Trimmed == "// clang-format on")
@@ -2618,8 +2618,8 @@ tooling::Replacements sortJavaImports(const FormatStyle &Style, StringRef Code,
         // formatting entirely.
         return Replaces;
       }
-      StringRef Static = Matches[1];
-      StringRef Identifier = Matches[2];
+      StringRef const Static = Matches[1];
+      StringRef const Identifier = Matches[2];
       bool IsStatic = false;
       if (Static.contains("static")) {
         IsStatic = true;
@@ -2680,10 +2680,10 @@ processReplacements(T ProcessFunc, StringRef Code,
   auto NewCode = applyAllReplacements(Code, Replaces);
   if (!NewCode)
     return NewCode.takeError();
-  std::vector<tooling::Range> ChangedRanges = Replaces.getAffectedRanges();
-  StringRef FileName = Replaces.begin()->getFilePath();
+  std::vector<tooling::Range> const ChangedRanges = Replaces.getAffectedRanges();
+  StringRef const FileName = Replaces.begin()->getFilePath();
 
-  tooling::Replacements FormatReplaces =
+  tooling::Replacements const FormatReplaces =
       ProcessFunc(Style, *NewCode, ChangedRanges, FileName);
 
   return Replaces.merge(FormatReplaces);
@@ -2754,11 +2754,11 @@ fixCppIncludeInsertions(StringRef Code, const tooling::Replacements &Replaces,
   if (HeaderInsertions.empty() && HeadersToDelete.empty())
     return Replaces;
 
-  StringRef FileName = Replaces.begin()->getFilePath();
-  tooling::HeaderIncludes Includes(FileName, Code, Style.IncludeStyle);
+  StringRef const FileName = Replaces.begin()->getFilePath();
+  tooling::HeaderIncludes const Includes(FileName, Code, Style.IncludeStyle);
 
   for (const auto &Header : HeadersToDelete) {
-    tooling::Replacements Replaces =
+    tooling::Replacements const Replaces =
         Includes.remove(Header.trim("\"<>"), Header.startswith("<"));
     for (const auto &R : Replaces) {
       auto Err = Result.add(R);
@@ -2771,11 +2771,11 @@ fixCppIncludeInsertions(StringRef Code, const tooling::Replacements &Replaces,
     }
   }
 
-  llvm::Regex IncludeRegex = llvm::Regex(CppIncludeRegexPattern);
+  llvm::Regex const IncludeRegex = llvm::Regex(CppIncludeRegexPattern);
   llvm::SmallVector<StringRef, 4> Matches;
   for (const auto &R : HeaderInsertions) {
     auto IncludeDirective = R.getReplacementText();
-    bool Matched = IncludeRegex.match(IncludeDirective, &Matches);
+    bool const Matched = IncludeRegex.match(IncludeDirective, &Matches);
     assert(Matched && "Header insertion replacement must have replacement text "
                       "'#include ...'");
     (void)Matched;
@@ -2786,7 +2786,7 @@ fixCppIncludeInsertions(StringRef Code, const tooling::Replacements &Replaces,
       auto Err = Result.add(*Replace);
       if (Err) {
         llvm::consumeError(std::move(Err));
-        unsigned NewOffset =
+        unsigned const NewOffset =
             Result.getShiftedCodePosition(Replace->getOffset());
         auto Shifted = tooling::Replacement(FileName, NewOffset, 0,
                                             Replace->getReplacementText());
@@ -2810,7 +2810,7 @@ cleanupAroundReplacements(StringRef Code, const tooling::Replacements &Replaces,
     return cleanup(Style, Code, Ranges, FileName);
   };
   // Make header insertion replacements insert new headers into correct blocks.
-  tooling::Replacements NewReplaces =
+  tooling::Replacements const NewReplaces =
       fixCppIncludeInsertions(Code, Replaces, Style);
   return processReplacements(Cleanup, Code, NewReplaces, Style);
 }
@@ -2831,7 +2831,7 @@ reformat(const FormatStyle &Style, StringRef Code,
 
   // JSON only needs the formatting passing.
   if (Style.isJson()) {
-    std::vector<tooling::Range> Ranges(1, tooling::Range(0, Code.size()));
+    std::vector<tooling::Range> const Ranges(1, tooling::Range(0, Code.size()));
     auto Env =
         std::make_unique<Environment>(Code, FileName, Ranges, FirstStartColumn,
                                       NextStartColumn, LastStartColumn);
@@ -2888,7 +2888,7 @@ reformat(const FormatStyle &Style, StringRef Code,
   tooling::Replacements Fixes;
   unsigned Penalty = 0;
   for (size_t I = 0, E = Passes.size(); I < E; ++I) {
-    std::pair<tooling::Replacements, unsigned> PassFixes = Passes[I](*Env);
+    std::pair<tooling::Replacements, unsigned> const PassFixes = Passes[I](*Env);
     auto NewCode = applyAllReplacements(
         CurrentCode ? StringRef(*CurrentCode) : Code, PassFixes.first);
     if (NewCode) {
@@ -2972,7 +2972,7 @@ LangOptions getFormattingLangOpts(const FormatStyle &Style) {
   LangOpts.Char8 = LexingStd >= FormatStyle::LS_Cpp20;
 
   LangOpts.LineComment = 1;
-  bool AlternativeOperators = Style.isCpp();
+  bool const AlternativeOperators = Style.isCpp();
   LangOpts.CXXOperatorNames = AlternativeOperators ? 1 : 0;
   LangOpts.Bool = 1;
   LangOpts.ObjC = 1;
@@ -3027,7 +3027,7 @@ FormatStyle::LanguageKind guessLanguage(StringRef FileName, StringRef Code) {
     // of the code to see if it contains Objective-C.
     if (Extension.empty() || Extension == ".h") {
       auto NonEmptyFileName = FileName.empty() ? "guess.h" : FileName;
-      Environment Env(Code, NonEmptyFileName, /*Ranges=*/{});
+      Environment const Env(Code, NonEmptyFileName, /*Ranges=*/{});
       ObjCHeaderStyleGuesser Guesser(Env, getLLVMStyle());
       Guesser.process();
       if (Guesser.isObjC())
@@ -3059,8 +3059,8 @@ llvm::Expected<FormatStyle> getStyle(StringRef StyleName, StringRef FileName,
 
   if (StyleName.startswith("{")) {
     // Parse YAML/JSON style from the command line.
-    StringRef Source = "<command-line>";
-    if (std::error_code ec =
+    StringRef const Source = "<command-line>";
+    if (std::error_code const ec =
             parseConfiguration(llvm::MemoryBufferRef(StyleName, Source), &Style,
                                AllowUnknownOptions))
       return make_string_error("Error parsing -style: " + ec.message());
@@ -3087,7 +3087,7 @@ llvm::Expected<FormatStyle> getStyle(StringRef StyleName, StringRef FileName,
   // Look for .clang-format/_clang-format file in the file's parent directories.
   SmallString<128> UnsuitableConfigFiles;
   SmallString<128> Path(FileName);
-  if (std::error_code EC = FS->makeAbsolute(Path))
+  if (std::error_code const EC = FS->makeAbsolute(Path))
     return make_string_error(EC.message());
 
   llvm::SmallVector<std::string, 2> FilesToLookFor;
@@ -3117,9 +3117,9 @@ llvm::Expected<FormatStyle> getStyle(StringRef StyleName, StringRef FileName,
           (Status->getType() == llvm::sys::fs::file_type::regular_file)) {
         llvm::ErrorOr<std::unique_ptr<llvm::MemoryBuffer>> Text =
             FS->getBufferForFile(ConfigFile.str());
-        if (std::error_code EC = Text.getError())
+        if (std::error_code const EC = Text.getError())
           return make_string_error(EC.message());
-        if (std::error_code ec =
+        if (std::error_code const ec =
                 parseConfiguration(*Text.get(), &Style, AllowUnknownOptions)) {
           if (ec == ParseError::Unsuitable) {
             if (!UnsuitableConfigFiles.empty())

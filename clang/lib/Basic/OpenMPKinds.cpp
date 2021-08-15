@@ -52,7 +52,7 @@ unsigned clang::getOpenMPSimpleClauseType(OpenMPClauseKind Kind, StringRef Str,
 #include "clang/Basic/OpenMPKinds.def"
         .Default(OMPC_LINEAR_unknown);
   case OMPC_map: {
-    unsigned Type = llvm::StringSwitch<unsigned>(Str)
+    unsigned const Type = llvm::StringSwitch<unsigned>(Str)
 #define OPENMP_MAP_KIND(Name)                                                  \
   .Case(#Name, static_cast<unsigned>(OMPC_MAP_##Name))
 #define OPENMP_MAP_MODIFIER_KIND(Name)                                         \
@@ -65,7 +65,7 @@ unsigned clang::getOpenMPSimpleClauseType(OpenMPClauseKind Kind, StringRef Str,
   }
   case OMPC_to:
   case OMPC_from: {
-    unsigned Type = llvm::StringSwitch<unsigned>(Str)
+    unsigned const Type = llvm::StringSwitch<unsigned>(Str)
 #define OPENMP_MOTION_MODIFIER_KIND(Name)                                      \
   .Case(#Name, static_cast<unsigned>(OMPC_MOTION_MODIFIER_##Name))
 #include "clang/Basic/OpenMPKinds.def"

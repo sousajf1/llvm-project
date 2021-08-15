@@ -24,7 +24,7 @@ TEST(DiagnosticTest, suppressAndTrap) {
   Diags.setSuppressAllDiagnostics(true);
 
   {
-    DiagnosticErrorTrap trap(Diags);
+    DiagnosticErrorTrap const trap(Diags);
 
     // Diag that would set UncompilableErrorOccurred and ErrorOccurred.
     Diags.Report(diag::err_target_unknown_triple) << "unknown";
@@ -72,7 +72,7 @@ TEST(DiagnosticTest, fatalsAsError) {
   }
 }
 TEST(DiagnosticTest, diagnosticError) {
-  DiagnosticsEngine Diags(new DiagnosticIDs(), new DiagnosticOptions,
+  DiagnosticsEngine const Diags(new DiagnosticIDs(), new DiagnosticOptions,
                           new IgnoringDiagConsumer());
   PartialDiagnostic::DiagStorageAllocator Alloc;
   llvm::Expected<std::pair<int, int>> Value = DiagnosticError::create(

@@ -243,7 +243,7 @@ ObjCMessageExpr *ObjCMessageExpr::alloc(const ASTContext &C,
                                         Selector Sel,
                                         SelectorLocationsKind &SelLocsK) {
   SelLocsK = hasStandardSelectorLocs(Sel, SelLocs, Args, RBraceLoc);
-  unsigned NumStoredSelLocs =
+  unsigned const NumStoredSelLocs =
       (SelLocsK == SelLoc_NonStandard) ? SelLocs.size() : 0;
   return alloc(C, Args.size(), NumStoredSelLocs);
 }
@@ -312,7 +312,7 @@ QualType ObjCMessageExpr::getReceiverType() const {
 }
 
 ObjCInterfaceDecl *ObjCMessageExpr::getReceiverInterface() const {
-  QualType T = getReceiverType();
+  QualType const T = getReceiverType();
 
   if (const ObjCObjectPointerType *Ptr = T->getAs<ObjCObjectPointerType>())
     return Ptr->getInterfaceDecl();

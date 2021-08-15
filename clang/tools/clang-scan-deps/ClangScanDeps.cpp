@@ -34,7 +34,7 @@ class SharedStream {
 public:
   SharedStream(raw_ostream &OS) : OS(OS) {}
   void applyLocked(llvm::function_ref<void(raw_ostream &OS)> Fn) {
-    std::unique_lock<std::mutex> LockGuard(Lock);
+    std::unique_lock<std::mutex> const LockGuard(Lock);
     Fn(OS);
     OS.flush();
   }
@@ -63,7 +63,7 @@ public:
     const std::string &ClangBinaryName =
         std::string(llvm::sys::path::filename(ClangBinaryPath));
 
-    std::unique_lock<std::mutex> LockGuard(CacheLock);
+    std::unique_lock<std::mutex> const LockGuard(CacheLock);
     const auto &CachedResourceDir = Cache.find(ClangBinaryPath);
     if (CachedResourceDir != Cache.end())
       return CachedResourceDir->second;
@@ -79,9 +79,9 @@ public:
                                        "" /*no-suffix*/, OutputFile);
     llvm::sys::fs::createTemporaryFile("print-resource-dir-error",
                                        "" /*no-suffix*/, ErrorFile);
-    llvm::FileRemover OutputRemover(OutputFile.c_str());
-    llvm::FileRemover ErrorRemover(ErrorFile.c_str());
-    llvm::Optional<StringRef> Redirects[] = {
+    llvm::FileRemover const OutputRemover(OutputFile.c_str());
+    llvm::FileRemover const ErrorRemover(ErrorFile.c_str());
+    llvm::Optional<StringRef> const Redirects[] = {
         {""}, // Stdin
         OutputFile.str(),
         ErrorFile.str(),
@@ -96,7 +96,7 @@ public:
     auto OutputBuf = llvm::MemoryBuffer::getFile(OutputFile.c_str());
     if (!OutputBuf)
       return "";
-    StringRef Output = OutputBuf.get()->getBuffer().rtrim('\n');
+    StringRef const Output = OutputBuf.get()->getBuffer().rtrim('\n');
 
     Cache[ClangBinaryPath] = Output.str();
     return Cache[ClangBinaryPath];
@@ -257,7 +257,7 @@ public:
     ID.FileDeps = std::move(FD.FileDeps);
     ID.ModuleDeps = std::move(FD.ClangModuleDeps);
 
-    std::unique_lock<std::mutex> ul(Lock);
+    std::unique_lock<std::mutex> const ul(Lock);
     for (const ModuleDeps &MD : FDR.DiscoveredModules) {
       auto I = Modules.find({MD.ID, 0});
       if (I != Modules.end()) {
@@ -347,7 +347,7 @@ private:
 
   /// Construct a path for the explicitly built PCM.
   std::string constructPCMPath(const ModuleDeps &MD) const {
-    StringRef Filename = llvm::sys::path::filename(MD.ImplicitModulePCMPath);
+    StringRef const Filename = llvm::sys::path::filename(MD.ImplicitModulePCMPath);
 
     SmallString<256> ExplicitPCMPath(
         !ModuleFilesDir.empty()
@@ -415,7 +415,7 @@ static bool handleFullDependencyToolResult(
 }
 
 int main(int argc, const char **argv) {
-  llvm::InitLLVM X(argc, argv);
+  llvm::InitLLVM const X(argc, argv);
   llvm::cl::HideUnrelatedOptions(DependencyScannerCategory);
   if (!llvm::cl::ParseCommandLineOptions(argc, argv))
     return 1;
@@ -453,7 +453,7 @@ int main(int argc, const char **argv) {
           // Reverse scan, starting at the end or at the element before "--".
           auto R = llvm::make_reverse_iterator(FlagsEnd);
           for (auto I = R, E = Args.rend(); I != E; ++I) {
-            StringRef Arg = *I;
+            StringRef const Arg = *I;
             if (ClangCLMode) {
               // Ignore arguments that are preceded by "-Xclang".
               if ((I + 1) != E && I[1] == "-Xclang")
@@ -486,7 +486,7 @@ int main(int argc, const char **argv) {
         }
 
         if (!HasResourceDir) {
-          StringRef ResourceDir =
+          StringRef const ResourceDir =
               ResourceDirCache.findResourceDir(Args, ClangCLMode);
           if (!ResourceDir.empty()) {
             AdjustedArgs.push_back("-resource-dir");
@@ -509,7 +509,7 @@ int main(int argc, const char **argv) {
     WorkerTools.push_back(std::make_unique<DependencyScanningTool>(Service));
 
   std::vector<SingleCommandCompilationDatabase> Inputs;
-  for (tooling::CompileCommand Cmd :
+  for (tooling::CompileCommand const Cmd :
        AdjustingCompilations->getAllCompileCommands())
     Inputs.emplace_back(Cmd);
 
@@ -525,7 +525,7 @@ int main(int argc, const char **argv) {
   for (unsigned I = 0; I < Pool.getThreadCount(); ++I) {
     Pool.async([I, &Lock, &Index, &Inputs, &HadErrors, &FD, &WorkerTools,
                 &DependencyOS, &Errs]() {
-      llvm::StringSet<> AlreadySeenModules;
+      llvm::StringSet<> const AlreadySeenModules;
       while (true) {
         const SingleCommandCompilationDatabase *Input;
         std::string Filename;
@@ -533,7 +533,7 @@ int main(int argc, const char **argv) {
         size_t LocalIndex;
         // Take the next input.
         {
-          std::unique_lock<std::mutex> LockGuard(Lock);
+          std::unique_lock<std::mutex> const LockGuard(Lock);
           if (Index >= Inputs.size())
             return;
           LocalIndex = Index;

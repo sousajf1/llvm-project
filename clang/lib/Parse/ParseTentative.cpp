@@ -133,7 +133,7 @@ bool Parser::isCXXSimpleDeclaration(bool AllowForRangeDecl) {
   // parsing...
 
   {
-    RevertingTentativeParsingAction PA(*this);
+    RevertingTentativeParsingAction const PA(*this);
     TPR = TryParseSimpleDeclaration(AllowForRangeDecl);
   }
 
@@ -231,7 +231,7 @@ Parser::TPResult Parser::TryParseSimpleDeclaration(bool AllowForRangeDecl) {
   // simple-declaration. Don't bother calling isCXXDeclarationSpecifier in the
   // overwhelmingly common case that the next token is a '('.
   if (Tok.isNot(tok::l_paren)) {
-    TPResult TPR = isCXXDeclarationSpecifier();
+    TPResult const TPR = isCXXDeclarationSpecifier();
     if (TPR == TPResult::Ambiguous)
       return TPResult::True;
     if (TPR == TPResult::True || TPR == TPResult::Error)
@@ -239,7 +239,7 @@ Parser::TPResult Parser::TryParseSimpleDeclaration(bool AllowForRangeDecl) {
     assert(TPR == TPResult::False);
   }
 
-  TPResult TPR = TryParseInitDeclaratorList();
+  TPResult const TPR = TryParseInitDeclaratorList();
   if (TPR != TPResult::Ambiguous)
     return TPR;
 
@@ -279,7 +279,7 @@ Parser::TPResult Parser::TryParseSimpleDeclaration(bool AllowForRangeDecl) {
 Parser::TPResult Parser::TryParseInitDeclaratorList() {
   while (1) {
     // declarator
-    TPResult TPR = TryParseDeclarator(false/*mayBeAbstract*/);
+    TPResult const TPR = TryParseDeclarator(false/*mayBeAbstract*/);
     if (TPR != TPResult::Ambiguous)
       return TPR;
 
@@ -349,7 +349,7 @@ struct Parser::ConditionDeclarationOrInitStatementState {
       // simple-declarations so that we don't need to eagerly figure out which
       // kind we have here. (Just parse init-declarators until we reach a
       // semicolon or right paren.)
-      RevertingTentativeParsingAction PA(P);
+      RevertingTentativeParsingAction const PA(P);
       if (CanBeForRangeDecl) {
         // Skip until we hit a ')', ';', or a ':' with no matching '?'.
         // The final case is a for range declaration, the rest are not.
@@ -431,7 +431,7 @@ struct Parser::ConditionDeclarationOrInitStatementState {
 bool Parser::isEnumBase(bool AllowSemi) {
   assert(Tok.is(tok::colon) && "should be looking at the ':'");
 
-  RevertingTentativeParsingAction PA(*this);
+  RevertingTentativeParsingAction const PA(*this);
   // ':'
   ConsumeToken();
 
@@ -487,7 +487,7 @@ Parser::isCXXConditionDeclarationOrInitStatement(bool CanBeInitStatement,
     return State.result();
 
   // It might be a declaration; we need tentative parsing.
-  RevertingTentativeParsingAction PA(*this);
+  RevertingTentativeParsingAction const PA(*this);
 
   // FIXME: A tag definition unambiguously tells us this is an init-statement.
   if (State.update(TryConsumeDeclarationSpecifier()))
@@ -580,7 +580,7 @@ bool Parser::isCXXTypeId(TentativeCXXTypeIdContext Context, bool &isAmbiguous) {
   // Ok, we have a simple-type-specifier/typename-specifier followed by a '('.
   // We need tentative parsing...
 
-  RevertingTentativeParsingAction PA(*this);
+  RevertingTentativeParsingAction const PA(*this);
 
   // type-specifier-seq
   TryConsumeDeclarationSpecifier();
@@ -674,7 +674,7 @@ Parser::isCXX11AttributeSpecifier(bool Disambiguate,
   if (GetLookAheadToken(2).is(tok::kw_using))
     return CAK_AttributeSpecifier;
 
-  RevertingTentativeParsingAction PA(*this);
+  RevertingTentativeParsingAction const PA(*this);
 
   // Opening brackets were checked for above.
   ConsumeBracket();
@@ -701,7 +701,7 @@ Parser::isCXX11AttributeSpecifier(bool Disambiguate,
   // FIXME: If this disambiguation is too slow, fold the tentative lambda parse
   // into the tentative attribute parse below.
   {
-    RevertingTentativeParsingAction LambdaTPA(*this);
+    RevertingTentativeParsingAction const LambdaTPA(*this);
     LambdaIntroducer Intro;
     LambdaIntroducerTentativeParse Tentative;
     if (ParseLambdaIntroducer(Intro, &Tentative)) {
@@ -930,7 +930,7 @@ Parser::TPResult Parser::TryParseOperatorId() {
   // Maybe this is a conversion-function-id.
   bool AnyDeclSpecifiers = false;
   while (true) {
-    TPResult TPR = isCXXDeclarationSpecifier();
+    TPResult const TPR = isCXXDeclarationSpecifier();
     if (TPR == TPResult::Error)
       return TPR;
     if (TPR == TPResult::False) {
@@ -1041,7 +1041,7 @@ Parser::TPResult Parser::TryParseDeclarator(bool mayBeAbstract,
          isDeclarationSpecifier())) {   // 'int(int)' is a function.
       // '(' parameter-declaration-clause ')' cv-qualifier-seq[opt]
       //        exception-specification[opt]
-      TPResult TPR = TryParseFunctionDeclarator();
+      TPResult const TPR = TryParseFunctionDeclarator();
       if (TPR != TPResult::Ambiguous)
         return TPR;
     } else {
@@ -1052,7 +1052,7 @@ Parser::TPResult Parser::TryParseDeclarator(bool mayBeAbstract,
                       tok::kw___stdcall, tok::kw___fastcall, tok::kw___thiscall,
                       tok::kw___regcall, tok::kw___vectorcall))
         return TPResult::True; // attributes indicate declaration
-      TPResult TPR = TryParseDeclarator(mayBeAbstract, mayHaveIdentifier);
+      TPResult const TPR = TryParseDeclarator(mayBeAbstract, mayHaveIdentifier);
       if (TPR != TPResult::Ambiguous)
         return TPR;
       if (Tok.isNot(tok::r_paren))
@@ -1504,10 +1504,10 @@ Parser::isCXXDeclarationSpecifier(Parser::TPResult BracedCastResult,
                                                      Tok.getAnnotationRange(),
                                                      SS);
         if (SS.getScopeRep() && SS.getScopeRep()->isDependent()) {
-          RevertingTentativeParsingAction PA(*this);
+          RevertingTentativeParsingAction const PA(*this);
           ConsumeAnnotationToken();
           ConsumeToken();
-          bool isIdentifier = Tok.is(tok::identifier);
+          bool const isIdentifier = Tok.is(tok::identifier);
           TPResult TPR = TPResult::False;
           if (!isIdentifier)
             TPR = isCXXDeclarationSpecifier(BracedCastResult,
@@ -1598,12 +1598,12 @@ Parser::isCXXDeclarationSpecifier(Parser::TPResult BracedCastResult,
     // In Objective-C, we might have a protocol-qualified type.
     if (getLangOpts().ObjC && NextToken().is(tok::less)) {
       // Tentatively parse the protocol qualifiers.
-      RevertingTentativeParsingAction PA(*this);
+      RevertingTentativeParsingAction const PA(*this);
       ConsumeAnyToken(); // The type token
 
-      TPResult TPR = TryParseProtocolQualifiers();
-      bool isFollowedByParen = Tok.is(tok::l_paren);
-      bool isFollowedByBrace = Tok.is(tok::l_brace);
+      TPResult const TPR = TryParseProtocolQualifiers();
+      bool const isFollowedByParen = Tok.is(tok::l_paren);
+      bool const isFollowedByBrace = Tok.is(tok::l_brace);
 
       if (TPR == TPResult::Error)
         return TPResult::Error;
@@ -1663,11 +1663,11 @@ Parser::isCXXDeclarationSpecifier(Parser::TPResult BracedCastResult,
     if (NextToken().isNot(tok::l_paren))
       return TPResult::True;
 
-    RevertingTentativeParsingAction PA(*this);
+    RevertingTentativeParsingAction const PA(*this);
 
-    TPResult TPR = TryParseTypeofSpecifier();
-    bool isFollowedByParen = Tok.is(tok::l_paren);
-    bool isFollowedByBrace = Tok.is(tok::l_brace);
+    TPResult const TPR = TryParseTypeofSpecifier();
+    bool const isFollowedByParen = Tok.is(tok::l_paren);
+    bool const isFollowedByBrace = Tok.is(tok::l_brace);
 
     if (TPR == TPResult::Error)
       return TPResult::Error;
@@ -1692,7 +1692,7 @@ Parser::isCXXDeclarationSpecifier(Parser::TPResult BracedCastResult,
   case tok::kw__ExtInt: {
     if (NextToken().isNot(tok::l_paren))
       return TPResult::Error;
-    RevertingTentativeParsingAction PA(*this);
+    RevertingTentativeParsingAction const PA(*this);
     ConsumeToken();
     ConsumeParen();
 
@@ -1832,7 +1832,7 @@ bool Parser::isCXXFunctionDeclarator(bool *IsAmbiguous) {
   // ambiguities mentioned in 6.8, the resolution is to consider any construct
   // that could possibly be a declaration a declaration.
 
-  RevertingTentativeParsingAction PA(*this);
+  RevertingTentativeParsingAction const PA(*this);
 
   ConsumeParen();
   bool InvalidAsDeclaration = false;
@@ -2081,7 +2081,7 @@ Parser::TPResult Parser::isTemplateArgumentList(unsigned TokensToSkip) {
       return TPResult::True;
   }
 
-  RevertingTentativeParsingAction PA(*this);
+  RevertingTentativeParsingAction const PA(*this);
 
   while (TokensToSkip) {
     ConsumeAnyToken();
@@ -2125,7 +2125,7 @@ Parser::TPResult Parser::isTemplateArgumentList(unsigned TokensToSkip) {
 Parser::TPResult Parser::isExplicitBool() {
   assert(Tok.is(tok::l_paren) && "expected to be looking at a '(' token");
 
-  RevertingTentativeParsingAction PA(*this);
+  RevertingTentativeParsingAction const PA(*this);
   ConsumeParen();
 
   // We can only have 'explicit' on a constructor, conversion function, or

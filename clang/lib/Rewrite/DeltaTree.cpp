@@ -256,7 +256,7 @@ bool DeltaTreeNode::DoInsertion(unsigned FileIndex, int Delta,
   // avoid having the split clobber it.
   IN->Children[i] = InsertRes->LHS;
   DeltaTreeNode *SubRHS = InsertRes->RHS;
-  SourceDelta SubSplit = InsertRes->Split;
+  SourceDelta const SubSplit = InsertRes->Split;
 
   // Do the split.
   DoSplit(*InsertRes);
@@ -416,7 +416,7 @@ int DeltaTree::getDeltaAt(unsigned FileIndex) const {
     // index by summing them up directly.  Keep track of how many were
     // included.
     unsigned NumValsGreater = 0;
-    for (unsigned e = Node->getNumValuesUsed(); NumValsGreater != e;
+    for (unsigned const e = Node->getNumValuesUsed(); NumValsGreater != e;
          ++NumValsGreater) {
       const SourceDelta &Val = Node->getValue(NumValsGreater);
 

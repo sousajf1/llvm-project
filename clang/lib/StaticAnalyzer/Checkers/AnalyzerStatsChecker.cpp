@@ -89,7 +89,7 @@ void AnalyzerStatsChecker::checkEndAnalysis(ExplodedGraph &G,
   // Generate the warning string
   SmallString<128> buf;
   llvm::raw_svector_ostream output(buf);
-  PresumedLoc Loc = SM.getPresumedLoc(D->getLocation());
+  PresumedLoc const Loc = SM.getPresumedLoc(D->getLocation());
   if (!Loc.isValid())
     return;
 
@@ -103,7 +103,7 @@ void AnalyzerStatsChecker::checkEndAnalysis(ExplodedGraph &G,
 
   NumBlocksUnreachable += unreachable;
   NumBlocks += total;
-  std::string NameOfRootFunction = std::string(output.str());
+  std::string const NameOfRootFunction = std::string(output.str());
 
   output << " -> Total CFGBlocks: " << total << " | Unreachable CFGBlocks: "
       << unreachable << " | Exhausted Block: "

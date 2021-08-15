@@ -697,7 +697,7 @@ void NonLocalizedStringChecker::setLocalizedState(const SVal S,
                                                   CheckerContext &C) const {
   const MemRegion *mt = S.getAsRegion();
   if (mt) {
-    ProgramStateRef State =
+    ProgramStateRef const State =
         C.getState()->set<LocalizedMemMap>(mt, LocalizedState::getLocalized());
     C.addTransition(State);
   }
@@ -708,7 +708,7 @@ void NonLocalizedStringChecker::setNonLocalizedState(const SVal S,
                                                      CheckerContext &C) const {
   const MemRegion *mt = S.getAsRegion();
   if (mt) {
-    ProgramStateRef State = C.getState()->set<LocalizedMemMap>(
+    ProgramStateRef const State = C.getState()->set<LocalizedMemMap>(
         mt, LocalizedState::getNonLocalized());
     C.addTransition(State);
   }
@@ -791,7 +791,7 @@ int NonLocalizedStringChecker::getLocalizedArgumentForSelector(
   if (argumentIterator == method->getSecond().end())
     return -1;
 
-  int argumentNumber = argumentIterator->getSecond();
+  int const argumentNumber = argumentIterator->getSecond();
   return argumentNumber;
 }
 
@@ -805,10 +805,10 @@ void NonLocalizedStringChecker::checkPreObjCMessage(const ObjCMethodCall &msg,
     return;
   const IdentifierInfo *odInfo = OD->getIdentifier();
 
-  Selector S = msg.getSelector();
+  Selector const S = msg.getSelector();
 
-  std::string SelectorString = S.getAsString();
-  StringRef SelectorName = SelectorString;
+  std::string const SelectorString = S.getAsString();
+  StringRef const SelectorName = SelectorString;
   assert(!SelectorName.empty());
 
   if (odInfo->isStr("NSString")) {
@@ -820,9 +820,9 @@ void NonLocalizedStringChecker::checkPreObjCMessage(const ObjCMethodCall &msg,
           SelectorName.startswith("drawWithRect")))
       return;
 
-    SVal svTitle = msg.getReceiverSVal();
+    SVal const svTitle = msg.getReceiverSVal();
 
-    bool isNonLocalized = hasNonLocalizedState(svTitle, C);
+    bool const isNonLocalized = hasNonLocalizedState(svTitle, C);
 
     if (isNonLocalized) {
       reportLocalizationError(svTitle, msg, C);
@@ -860,11 +860,11 @@ void NonLocalizedStringChecker::checkPreObjCMessage(const ObjCMethodCall &msg,
   if (argumentNumber < 0) // Still no match
     return;
 
-  SVal svTitle = msg.getArgSVal(argumentNumber);
+  SVal const svTitle = msg.getArgSVal(argumentNumber);
 
   if (const ObjCStringRegion *SR =
           dyn_cast_or_null<ObjCStringRegion>(svTitle.getAsRegion())) {
-    StringRef stringValue =
+    StringRef const stringValue =
         SR->getObjCStringLiteral()->getString()->getString();
     if ((stringValue.trim().size() == 0 && stringValue.size() > 0) ||
         stringValue.empty())
@@ -873,7 +873,7 @@ void NonLocalizedStringChecker::checkPreObjCMessage(const ObjCMethodCall &msg,
       return;
   }
 
-  bool isNonLocalized = hasNonLocalizedState(svTitle, C);
+  bool const isNonLocalized = hasNonLocalizedState(svTitle, C);
 
   if (isNonLocalized) {
     reportLocalizationError(svTitle, msg, C, argumentNumber + 1);
@@ -933,9 +933,9 @@ void NonLocalizedStringChecker::checkPostCall(const CallEvent &Call,
   const QualType RT = Call.getResultType();
   if (isNSStringType(RT, C.getASTContext())) {
     for (unsigned i = 0; i < Call.getNumArgs(); ++i) {
-      SVal argValue = Call.getArgSVal(i);
+      SVal const argValue = Call.getArgSVal(i);
       if (hasLocalizedState(argValue, C)) {
-        SVal sv = Call.getReturnValue();
+        SVal const sv = Call.getReturnValue();
         setLocalizedState(sv, C);
         return;
       }
@@ -948,7 +948,7 @@ void NonLocalizedStringChecker::checkPostCall(const CallEvent &Call,
 
   const IdentifierInfo *Identifier = Call.getCalleeIdentifier();
 
-  SVal sv = Call.getReturnValue();
+  SVal const sv = Call.getReturnValue();
   if (isAnnotatedAsReturningLocalized(D) || LSF.count(Identifier) != 0) {
     setLocalizedState(sv, C);
   } else if (isNSStringType(RT, C.getASTContext()) &&
@@ -978,14 +978,14 @@ void NonLocalizedStringChecker::checkPostObjCMessage(const ObjCMethodCall &msg,
     return;
   const IdentifierInfo *odInfo = OD->getIdentifier();
 
-  Selector S = msg.getSelector();
-  std::string SelectorName = S.getAsString();
+  Selector const S = msg.getSelector();
+  std::string const SelectorName = S.getAsString();
 
-  std::pair<const IdentifierInfo *, Selector> MethodDescription = {odInfo, S};
+  std::pair<const IdentifierInfo *, Selector> const MethodDescription = {odInfo, S};
 
   if (LSM.count(MethodDescription) ||
       isAnnotatedAsReturningLocalized(msg.getDecl())) {
-    SVal sv = msg.getReturnValue();
+    SVal const sv = msg.getReturnValue();
     setLocalizedState(sv, C);
   }
 }
@@ -993,7 +993,7 @@ void NonLocalizedStringChecker::checkPostObjCMessage(const ObjCMethodCall &msg,
 /// Marks all empty string literals as localized
 void NonLocalizedStringChecker::checkPostStmt(const ObjCStringLiteral *SL,
                                               CheckerContext &C) const {
-  SVal sv = C.getSVal(SL);
+  SVal const sv = C.getSVal(SL);
   setNonLocalizedState(sv, C);
 }
 
@@ -1012,13 +1012,13 @@ NonLocalizedStringBRVisitor::VisitNode(const ExplodedNode *Succ,
   if (!LiteralExpr)
     return nullptr;
 
-  SVal LiteralSVal = Succ->getSVal(LiteralExpr);
+  SVal const LiteralSVal = Succ->getSVal(LiteralExpr);
   if (LiteralSVal.getAsRegion() != NonLocalizedString)
     return nullptr;
 
   Satisfied = true;
 
-  PathDiagnosticLocation L =
+  PathDiagnosticLocation const L =
       PathDiagnosticLocation::create(*Point, BRC.getSourceManager());
 
   if (!L.isValid() || !L.asLocation().isValid())
@@ -1119,7 +1119,7 @@ void EmptyLocalizationContextChecker::MethodCrawler::VisitObjCMessageExpr(
     return;
   }
 
-  SourceRange R = ME->getSourceRange();
+  SourceRange const R = ME->getSourceRange();
   if (!R.getBegin().isMacroID())
     return;
 
@@ -1173,7 +1173,7 @@ void EmptyLocalizationContextChecker::MethodCrawler::VisitObjCMessageExpr(
   if (!isStringLiteral(Result.getKind()))
     return;
 
-  StringRef Comment =
+  StringRef const Comment =
       StringRef(Result.getLiteralData(), Result.getLength()).trim('"');
 
   if ((Comment.trim().size() == 0 && Comment.size() > 0) || // Is Whitespace
@@ -1267,7 +1267,7 @@ bool PluralMisuseChecker::MethodCrawler::isCheckingPlurality(
 
   if (IntegerLiteral *IL = dyn_cast_or_null<IntegerLiteral>(
           BO->getRHS()->IgnoreParenImpCasts())) {
-    llvm::APInt Value = IL->getValue();
+    llvm::APInt const Value = IL->getValue();
     if (Value == 1 || Value == 2) {
       return true;
     }
@@ -1282,7 +1282,7 @@ bool PluralMisuseChecker::MethodCrawler::isCheckingPlurality(
 bool PluralMisuseChecker::MethodCrawler::VisitCallExpr(const CallExpr *CE) {
   if (InMatchingStatement) {
     if (const FunctionDecl *FD = CE->getDirectCallee()) {
-      std::string NormalizedName =
+      std::string const NormalizedName =
           StringRef(FD->getNameInfo().getAsString()).lower();
       if (NormalizedName.find("loc") != std::string::npos) {
         for (const Expr *Arg : CE->arguments()) {

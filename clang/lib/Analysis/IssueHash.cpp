@@ -135,16 +135,16 @@ static StringRef GetNthLineOfFile(llvm::Optional<llvm::MemoryBufferRef> Buffer,
 
 static std::string NormalizeLine(const SourceManager &SM, const FullSourceLoc &L,
                                  const LangOptions &LangOpts) {
-  static StringRef Whitespaces = " \t\n";
+  static StringRef const Whitespaces = " \t\n";
 
-  StringRef Str = GetNthLineOfFile(SM.getBufferOrNone(L.getFileID(), L),
+  StringRef const Str = GetNthLineOfFile(SM.getBufferOrNone(L.getFileID(), L),
                                    L.getExpansionLineNumber());
   StringRef::size_type col = Str.find_first_not_of(Whitespaces);
   if (col == StringRef::npos)
     col = 1; // The line only contains whitespace.
   else
     col++;
-  SourceLocation StartOfLine =
+  SourceLocation const StartOfLine =
       SM.translateLineCol(SM.getFileID(L), L.getExpansionLineNumber(), col);
   Optional<llvm::MemoryBufferRef> Buffer =
       SM.getBufferOrNone(SM.getFileID(StartOfLine), StartOfLine);
@@ -186,7 +186,7 @@ std::string clang::getIssueString(const FullSourceLoc &IssueLoc,
                                   StringRef WarningMessage,
                                   const Decl *IssueDecl,
                                   const LangOptions &LangOpts) {
-  static StringRef Delimiter = "$";
+  static StringRef const Delimiter = "$";
 
   return (llvm::Twine(CheckerName) + Delimiter +
           GetEnclosingDeclContextSignature(IssueDecl) + Delimiter +

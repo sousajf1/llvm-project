@@ -29,10 +29,10 @@ void clang_fuzzer::HandleCXX(const std::string &S,
     CC1Args.push_back(A);
   CC1Args.push_back(FileName);
 
-  llvm::IntrusiveRefCntPtr<FileManager> Files(
+  llvm::IntrusiveRefCntPtr<FileManager> const Files(
       new FileManager(FileSystemOptions()));
   IgnoringDiagConsumer Diags;
-  IntrusiveRefCntPtr<DiagnosticOptions> DiagOpts = new DiagnosticOptions();
+  IntrusiveRefCntPtr<DiagnosticOptions> const DiagOpts = new DiagnosticOptions();
   DiagnosticsEngine Diagnostics(
       IntrusiveRefCntPtr<clang::DiagnosticIDs>(new DiagnosticIDs()), &*DiagOpts,
       &Diags, false);
@@ -44,7 +44,7 @@ void clang_fuzzer::HandleCXX(const std::string &S,
                                                     Input.release());
   std::unique_ptr<tooling::ToolAction> action(
       tooling::newFrontendActionFactory<clang::EmitObjAction>());
-  std::shared_ptr<PCHContainerOperations> PCHContainerOps =
+  std::shared_ptr<PCHContainerOperations> const PCHContainerOps =
       std::make_shared<PCHContainerOperations>();
   action->runInvocation(std::move(Invocation), Files.get(), PCHContainerOps,
                         &Diags);

@@ -296,7 +296,7 @@ static AccessResult IsDerivedFromInclusive(const CXXRecordDecl *Derived,
 
   if (Derived == Target) return AR_accessible;
 
-  bool CheckDependent = Derived->isDependentContext();
+  bool const CheckDependent = Derived->isDependentContext();
   if (CheckDependent && MightInstantiateTo(Derived, Target))
     return AR_dependent;
 
@@ -311,7 +311,7 @@ static AccessResult IsDerivedFromInclusive(const CXXRecordDecl *Derived,
     for (const auto &I : Derived->bases()) {
       const CXXRecordDecl *RD;
 
-      QualType T = I.getType();
+      QualType const T = I.getType();
       if (const RecordType *RT = T->getAs<RecordType>()) {
         RD = cast<CXXRecordDecl>(RT->getDecl());
       } else if (const InjectedClassNameType *IT
@@ -382,10 +382,10 @@ static bool MightInstantiateTo(Sema &S,
                           Friend->getDeclContext()))
     return false;
 
-  CanQual<FunctionProtoType> FriendTy
+  CanQual<FunctionProtoType> const FriendTy
     = S.Context.getCanonicalType(Friend->getType())
          ->getAs<FunctionProtoType>();
-  CanQual<FunctionProtoType> ContextTy
+  CanQual<FunctionProtoType> const ContextTy
     = S.Context.getCanonicalType(Context->getType())
          ->getAs<FunctionProtoType>();
 
@@ -629,7 +629,7 @@ struct ProtectedFriendContext {
   /// the given index.
   bool checkFriendshipAlongPath(unsigned I) {
     assert(I < CurPath.size());
-    for (unsigned E = CurPath.size(); I != E; ++I) {
+    for (unsigned const E = CurPath.size(); I != E; ++I) {
       switch (GetFriendKind(S, EC, CurPath[I])) {
       case AR_accessible:   return true;
       case AR_inaccessible: continue;
@@ -664,7 +664,7 @@ struct ProtectedFriendContext {
 
       const CXXRecordDecl *RD;
 
-      QualType T = I.getType();
+      QualType const T = I.getType();
       if (const RecordType *RT = T->getAs<RecordType>()) {
         RD = cast<CXXRecordDecl>(RT->getDecl());
       } else if (const InjectedClassNameType *IT
@@ -946,7 +946,7 @@ static CXXBasePath *FindBestPath(Sema &S,
   const CXXRecordDecl *Base = Target.getDeclaringClass();
 
   // FIXME: fail correctly when there are dependent paths.
-  bool isDerived = Derived->isDerivedFrom(const_cast<CXXRecordDecl*>(Base),
+  bool const isDerived = Derived->isDerivedFrom(const_cast<CXXRecordDecl*>(Base),
                                           Paths);
   assert(isDerived && "derived class not actually derived from base");
   (void) isDerived;
@@ -960,7 +960,7 @@ static CXXBasePath *FindBestPath(Sema &S,
   // Derive the friend-modified access along each path.
   for (CXXBasePaths::paths_iterator PI = Paths.begin(), PE = Paths.end();
          PI != PE; ++PI) {
-    AccessTarget::SavedInstanceContext _ = Target.saveInstanceContext();
+    AccessTarget::SavedInstanceContext const _ = Target.saveInstanceContext();
 
     // Walk through the path backwards.
     AccessSpecifier PathAccess = FinalAccess;
@@ -980,7 +980,7 @@ static CXXBasePath *FindBestPath(Sema &S,
 
       const CXXRecordDecl *NC = I->Class->getCanonicalDecl();
 
-      AccessSpecifier BaseAccess = I->Base->getAccessSpecifier();
+      AccessSpecifier const BaseAccess = I->Base->getAccessSpecifier();
       PathAccess = std::max(PathAccess, BaseAccess);
 
       switch (HasAccess(S, EC, NC, PathAccess, Target)) {
@@ -1164,7 +1164,7 @@ static void DiagnoseAccessPath(Sema &S,
                                const EffectiveContext &EC,
                                AccessTarget &entity) {
   // Save the instance context to preserve invariants.
-  AccessTarget::SavedInstanceContext _ = entity.saveInstanceContext();
+  AccessTarget::SavedInstanceContext const _ = entity.saveInstanceContext();
 
   // This basically repeats the main algorithm but keeps some more
   // information.
@@ -1215,7 +1215,7 @@ static void DiagnoseAccessPath(Sema &S,
 
     // If the access to this base is worse than the access we have to
     // the declaration, remember it.
-    AccessSpecifier baseAccess = base->getAccessSpecifier();
+    AccessSpecifier const baseAccess = base->getAccessSpecifier();
     if (baseAccess > accessSoFar) {
       constrainingBase = i;
       accessSoFar = baseAccess;
@@ -1331,7 +1331,7 @@ static AccessResult IsAccessible(Sema &S,
   // Determine the actual naming class.
   const CXXRecordDecl *NamingClass = Entity.getEffectiveNamingClass();
 
-  AccessSpecifier UnprivilegedAccess = Entity.getAccess();
+  AccessSpecifier const UnprivilegedAccess = Entity.getAccess();
   assert(UnprivilegedAccess != AS_public && "public access not weeded out");
 
   // Before we try to recalculate access paths, try to white-list
@@ -1355,7 +1355,7 @@ static AccessResult IsAccessible(Sema &S,
     }
   }
 
-  AccessTarget::SavedInstanceContext _ = Entity.saveInstanceContext();
+  AccessTarget::SavedInstanceContext const _ = Entity.saveInstanceContext();
 
   // We lower member accesses to base accesses by pretending that the
   // member is a base class of its declaring class.
@@ -1470,7 +1470,7 @@ static Sema::AccessResult CheckAccess(Sema &S, SourceLocation Loc,
     return Sema::AR_delayed;
   }
 
-  EffectiveContext EC(S.CurContext);
+  EffectiveContext const EC(S.CurContext);
   switch (CheckEffectiveAccess(S, EC, Loc, Entity)) {
   case AR_accessible: return Sema::AR_accessible;
   case AR_inaccessible: return Sema::AR_inaccessible;
@@ -1495,7 +1495,7 @@ void Sema::HandleDelayedAccessCheck(DelayedDiagnostic &DD, Decl *D) {
       DC = cast<DeclContext>(TD->getTemplatedDecl());
   }
 
-  EffectiveContext EC(DC);
+  EffectiveContext const EC(DC);
 
   AccessTarget Target(DD.getAccessData());
 
@@ -1505,8 +1505,8 @@ void Sema::HandleDelayedAccessCheck(DelayedDiagnostic &DD, Decl *D) {
 
 void Sema::HandleDependentAccessCheck(const DependentDiagnostic &DD,
                         const MultiLevelTemplateArgumentList &TemplateArgs) {
-  SourceLocation Loc = DD.getAccessLoc();
-  AccessSpecifier Access = DD.getAccess();
+  SourceLocation const Loc = DD.getAccessLoc();
+  AccessSpecifier const Access = DD.getAccess();
 
   Decl *NamingD = FindInstantiatedDecl(Loc, DD.getAccessNamingClass(),
                                        TemplateArgs);
@@ -1610,7 +1610,7 @@ Sema::AccessResult Sema::CheckDestructorAccess(SourceLocation Loc,
     return AR_accessible;
 
   // There's never a path involved when checking implicit destructor access.
-  AccessSpecifier Access = Dtor->getAccess();
+  AccessSpecifier const Access = Dtor->getAccess();
   if (Access == AS_public)
     return AR_accessible;
 
@@ -1657,7 +1657,7 @@ Sema::AccessResult Sema::CheckConstructorAccess(SourceLocation UseLoc,
   }
 
   case InitializedEntity::EK_LambdaCapture: {
-    StringRef VarName = Entity.getCapturedVarName();
+    StringRef const VarName = Entity.getCapturedVarName();
     PD = PDiag(diag::err_access_lambda_capture);
     PD << VarName << Entity.getType() << getSpecialMember(Constructor);
     break;
@@ -1789,7 +1789,7 @@ Sema::AccessResult Sema::CheckFriendAccess(NamedDecl *target) {
 
   // Friendship lookup is a redeclaration lookup, so there's never an
   // inheritance path modifying access.
-  AccessSpecifier access = target->getAccess();
+  AccessSpecifier const access = target->getAccess();
 
   if (!getLangOpts().AccessControl || access == AS_public)
     return AR_accessible;
@@ -1806,7 +1806,7 @@ Sema::AccessResult Sema::CheckFriendAccess(NamedDecl *target) {
 
   // We need to bypass delayed-diagnostics because we might be called
   // while the ParsingDeclarator is active.
-  EffectiveContext EC(CurContext);
+  EffectiveContext const EC(CurContext);
   switch (CheckEffectiveAccess(*this, EC, target->getLocation(), entity)) {
   case ::AR_accessible: return Sema::AR_accessible;
   case ::AR_inaccessible: return Sema::AR_inaccessible;
@@ -1919,7 +1919,7 @@ bool Sema::IsSimplyAccessible(NamedDecl *Target, CXXRecordDecl *NamingClass,
     // Decl->getAccess()) when calculating the access.
     AccessTarget Entity(Context, AccessedEntity::Member, NamingClass,
                         DeclAccessPair::make(Target, AS_none), BaseType);
-    EffectiveContext EC(CurContext);
+    EffectiveContext const EC(CurContext);
     return ::IsAccessible(*this, EC, Entity) != ::AR_inaccessible;
   }
 

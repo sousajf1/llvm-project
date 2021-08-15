@@ -144,7 +144,7 @@ public:
 
     Os << " but doesn't have virtual destructor";
 
-    PathDiagnosticLocation BSLoc(BaseSpec->getSourceRange().getBegin(),
+    PathDiagnosticLocation const BSLoc(BaseSpec->getSourceRange().getBegin(),
                                  BR->getSourceManager());
     auto Report = std::make_unique<BasicBugReport>(Bug, Os.str(), BSLoc);
     Report->addRange(BaseSpec->getSourceRange());

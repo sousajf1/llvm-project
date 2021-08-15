@@ -37,7 +37,7 @@ static void mangleFunctionBlock(MangleContext &Context,
                                 StringRef Outer,
                                 const BlockDecl *BD,
                                 raw_ostream &Out) {
-  unsigned discriminator = Context.getBlockId(BD, true);
+  unsigned const discriminator = Context.getBlockId(BD, true);
   if (discriminator == 0)
     Out << "__" << Outer << "_block_invoke";
   else
@@ -87,11 +87,11 @@ static CCMangling getCallingConvMangling(const ASTContext &Context,
   const FunctionDecl *FD = dyn_cast<FunctionDecl>(ND);
   if (!FD)
     return CCM_Other;
-  QualType T = FD->getType();
+  QualType const T = FD->getType();
 
   const FunctionType *FT = T->castAs<FunctionType>();
 
-  CallingConv CC = FT->getCallConv();
+  CallingConv const CC = FT->getCallConv();
   switch (CC) {
   default:
     return CCM_Other;
@@ -107,7 +107,7 @@ static CCMangling getCallingConvMangling(const ASTContext &Context,
 bool MangleContext::shouldMangleDeclName(const NamedDecl *D) {
   const ASTContext &ASTContext = getASTContext();
 
-  CCMangling CC = getCallingConvMangling(ASTContext, D);
+  CCMangling const CC = getCallingConvMangling(ASTContext, D);
   if (CC != CCM_Other)
     return true;
 
@@ -159,10 +159,10 @@ void MangleContext::mangleName(GlobalDecl GD, raw_ostream &Out) {
     // tricks normally used for producing aliases (PR9177). Fortunately the
     // llvm mangler on ELF is a nop, so we can just avoid adding the \01
     // marker.
-    StringRef UserLabelPrefix =
+    StringRef const UserLabelPrefix =
         getASTContext().getTargetInfo().getUserLabelPrefix();
 #ifndef NDEBUG
-    char GlobalPrefix =
+    char const GlobalPrefix =
         llvm::DataLayout(getASTContext().getTargetInfo().getDataLayoutString())
             .getGlobalPrefix();
     assert((UserLabelPrefix.empty() && !GlobalPrefix) ||
@@ -178,14 +178,14 @@ void MangleContext::mangleName(GlobalDecl GD, raw_ostream &Out) {
   if (auto *GD = dyn_cast<MSGuidDecl>(D))
     return mangleMSGuidDecl(GD, Out);
 
-  CCMangling CC = getCallingConvMangling(ASTContext, D);
+  CCMangling const CC = getCallingConvMangling(ASTContext, D);
 
   if (CC == CCM_WasmMainArgcArgv) {
     Out << "__main_argc_argv";
     return;
   }
 
-  bool MCXX = shouldMangleCXXName(D);
+  bool const MCXX = shouldMangleCXXName(D);
   const TargetInfo &TI = Context.getTargetInfo();
   if (CC == CCM_Other || (MCXX && TI.getCXXABI() == TargetCXXABI::Microsoft)) {
     if (const ObjCMethodDecl *OMD = dyn_cast<ObjCMethodDecl>(D))
@@ -236,11 +236,11 @@ void MangleContext::mangleName(GlobalDecl GD, raw_ostream &Out) {
 void MangleContext::mangleMSGuidDecl(const MSGuidDecl *GD, raw_ostream &Out) {
   // For now, follow the MSVC naming convention for GUID objects on all
   // targets.
-  MSGuidDecl::Parts P = GD->getParts();
+  MSGuidDecl::Parts const P = GD->getParts();
   Out << llvm::format("_GUID_%08" PRIx32 "_%04" PRIx32 "_%04" PRIx32 "_",
                       P.Part1, P.Part2, P.Part3);
   unsigned I = 0;
-  for (uint8_t C : P.Part4And5) {
+  for (uint8_t const C : P.Part4And5) {
     Out << llvm::format("%02" PRIx8, C);
     if (++I == 2)
       Out << "_";
@@ -250,7 +250,7 @@ void MangleContext::mangleMSGuidDecl(const MSGuidDecl *GD, raw_ostream &Out) {
 void MangleContext::mangleGlobalBlock(const BlockDecl *BD,
                                       const NamedDecl *ID,
                                       raw_ostream &Out) {
-  unsigned discriminator = getBlockId(BD, false);
+  unsigned const discriminator = getBlockId(BD, false);
   if (ID) {
     if (shouldMangleDeclName(ID))
       mangleName(ID, Out);
@@ -475,7 +475,7 @@ public:
     const NamedDecl *ND = cast<NamedDecl>(D);
 
     ASTContext &Ctx = ND->getASTContext();
-    std::unique_ptr<MangleContext> M(Ctx.createMangleContext());
+    std::unique_ptr<MangleContext> const M(Ctx.createMangleContext());
 
     std::vector<std::string> Manglings;
 

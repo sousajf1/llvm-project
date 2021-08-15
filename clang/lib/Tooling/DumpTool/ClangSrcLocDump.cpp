@@ -91,7 +91,7 @@ int main(int argc, const char **argv) {
   llvm::transform(Args, Argv.begin(),
                   [](const std::string &Arg) { return Arg.c_str(); });
 
-  IntrusiveRefCntPtr<DiagnosticOptions> DiagOpts = new DiagnosticOptions();
+  IntrusiveRefCntPtr<DiagnosticOptions> const DiagOpts = new DiagnosticOptions();
   unsigned MissingArgIndex, MissingArgCount;
   auto Opts = driver::getDriverOptTable();
   auto ParsedArgs = Opts.ParseArgs(llvm::makeArrayRef(Argv).slice(1),

@@ -82,14 +82,14 @@ public:
 void ObjCSuperDeallocChecker::checkPreObjCMessage(const ObjCMethodCall &M,
                                                   CheckerContext &C) const {
 
-  ProgramStateRef State = C.getState();
+  ProgramStateRef const State = C.getState();
   SymbolRef ReceiverSymbol = M.getReceiverSVal().getAsSymbol();
   if (!ReceiverSymbol) {
     diagnoseCallArguments(M, C);
     return;
   }
 
-  bool AlreadyCalled = State->contains<CalledSuperDealloc>(ReceiverSymbol);
+  bool const AlreadyCalled = State->contains<CalledSuperDealloc>(ReceiverSymbol);
   if (!AlreadyCalled)
     return;
 
@@ -133,7 +133,7 @@ void ObjCSuperDeallocChecker::checkLocation(SVal L, bool IsLoad, const Stmt *S,
   if (!BaseSym)
     return;
 
-  ProgramStateRef State = C.getState();
+  ProgramStateRef const State = C.getState();
 
   if (!State->contains<CalledSuperDealloc>(BaseSym))
     return;
@@ -199,8 +199,8 @@ void ObjCSuperDeallocChecker::reportUseAfterDealloc(SymbolRef Sym,
 /// dealloc'd.
 void ObjCSuperDeallocChecker::diagnoseCallArguments(const CallEvent &CE,
                                                     CheckerContext &C) const {
-  ProgramStateRef State = C.getState();
-  unsigned ArgCount = CE.getNumArgs();
+  ProgramStateRef const State = C.getState();
+  unsigned const ArgCount = CE.getNumArgs();
   for (unsigned I = 0; I < ArgCount; I++) {
     SymbolRef Sym = CE.getArgSVal(I).getAsSymbol();
     if (!Sym)
@@ -250,11 +250,11 @@ SuperDeallocBRVisitor::VisitNode(const ExplodedNode *Succ,
   if (Satisfied)
     return nullptr;
 
-  ProgramStateRef State = Succ->getState();
+  ProgramStateRef const State = Succ->getState();
 
-  bool CalledNow =
+  bool const CalledNow =
       Succ->getState()->contains<CalledSuperDealloc>(ReceiverSymbol);
-  bool CalledBefore =
+  bool const CalledBefore =
       Succ->getFirstPred()->getState()->contains<CalledSuperDealloc>(
           ReceiverSymbol);
 
@@ -263,8 +263,8 @@ SuperDeallocBRVisitor::VisitNode(const ExplodedNode *Succ,
   if (CalledNow && !CalledBefore) {
     Satisfied = true;
 
-    ProgramPoint P = Succ->getLocation();
-    PathDiagnosticLocation L =
+    ProgramPoint const P = Succ->getLocation();
+    PathDiagnosticLocation const L =
         PathDiagnosticLocation::create(P, BRC.getSourceManager());
 
     if (!L.isValid() || !L.asLocation().isValid())

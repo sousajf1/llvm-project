@@ -89,7 +89,7 @@ parseTargetIDWithFormatCheckingOnly(llvm::StringRef TargetID,
     auto Feature = Splits.first.drop_back();
     if (Sign != '+' && Sign != '-')
       return llvm::None;
-    bool IsOn = Sign == '+';
+    bool const IsOn = Sign == '+';
     auto Loc = FeatureMap->find(Feature);
     // Each feature can only show up at most once in target ID.
     if (Loc != FeatureMap->end())
@@ -150,7 +150,7 @@ getConflictTargetIDCombination(const std::set<llvm::StringRef> &TargetIDs) {
   llvm::StringMap<Info> FeatureMap;
   for (auto &&ID : TargetIDs) {
     llvm::StringMap<bool> Features;
-    llvm::StringRef Proc =
+    llvm::StringRef const Proc =
         parseTargetIDWithFormatCheckingOnly(ID, &Features).getValue();
     auto Loc = FeatureMap.find(Proc);
     if (Loc == FeatureMap.end())

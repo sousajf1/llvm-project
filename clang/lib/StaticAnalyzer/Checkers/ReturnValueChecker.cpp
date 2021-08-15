@@ -87,8 +87,8 @@ void ReturnValueChecker::checkPostCall(const CallEvent &Call,
   if (!RawExpectedValue)
     return;
 
-  SVal ReturnV = Call.getReturnValue();
-  bool ExpectedValue = *RawExpectedValue;
+  SVal const ReturnV = Call.getReturnValue();
+  bool const ExpectedValue = *RawExpectedValue;
   Optional<bool> IsInvariantBreak = isInvariantBreak(ExpectedValue, ReturnV, C);
   if (!IsInvariantBreak)
     return;
@@ -97,7 +97,7 @@ void ReturnValueChecker::checkPostCall(const CallEvent &Call,
   if (*IsInvariantBreak)
     return;
 
-  std::string Name = getName(Call);
+  std::string const Name = getName(Call);
   const NoteTag *CallTag = C.getNoteTag(
       [Name, ExpectedValue](PathSensitiveBugReport &) -> std::string {
         SmallString<128> Msg;
@@ -124,9 +124,9 @@ void ReturnValueChecker::checkEndFunction(const ReturnStmt *RS,
   if (C.getStackFrame()->inTopFrame())
     return;
 
-  ProgramStateRef State = C.getState();
+  ProgramStateRef const State = C.getState();
   CallEventManager &CMgr = C.getStateManager().getCallEventManager();
-  CallEventRef<> Call = CMgr.getCaller(SFC, State);
+  CallEventRef<> const Call = CMgr.getCaller(SFC, State);
   if (!Call)
     return;
 
@@ -134,8 +134,8 @@ void ReturnValueChecker::checkEndFunction(const ReturnStmt *RS,
   if (!RawExpectedValue)
     return;
 
-  SVal ReturnV = State->getSVal(RS->getRetValue(), C.getLocationContext());
-  bool ExpectedValue = *RawExpectedValue;
+  SVal const ReturnV = State->getSVal(RS->getRetValue(), C.getLocationContext());
+  bool const ExpectedValue = *RawExpectedValue;
   Optional<bool> IsInvariantBreak = isInvariantBreak(ExpectedValue, ReturnV, C);
   if (!IsInvariantBreak)
     return;
@@ -144,7 +144,7 @@ void ReturnValueChecker::checkEndFunction(const ReturnStmt *RS,
   if (!*IsInvariantBreak)
     return;
 
-  std::string Name = getName(*Call);
+  std::string const Name = getName(*Call);
   const NoteTag *CallTag = C.getNoteTag(
       [Name, ExpectedValue](BugReport &BR) -> std::string {
         SmallString<128> Msg;

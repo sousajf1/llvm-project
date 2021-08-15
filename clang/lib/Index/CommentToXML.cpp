@@ -269,7 +269,7 @@ void CommentASTToHTMLConverter::visitInlineCommandComment(
     return;
 
   // Nothing to render if argument is empty.
-  StringRef Arg0 = C->getArgText(0);
+  StringRef const Arg0 = C->getArgText(0);
   if (Arg0.empty())
     return;
 
@@ -414,7 +414,7 @@ void CommentASTToHTMLConverter::visitTParamCommandComment(
 
 void CommentASTToHTMLConverter::visitVerbatimBlockComment(
                                   const VerbatimBlockComment *C) {
-  unsigned NumLines = C->getNumLines();
+  unsigned const NumLines = C->getNumLines();
   if (NumLines == 0)
     return;
 
@@ -575,7 +575,7 @@ private:
 
 void getSourceTextOfDeclaration(const DeclInfo *ThisDecl,
                                 SmallVectorImpl<char> &Str) {
-  ASTContext &Context = ThisDecl->CurrentDecl->getASTContext();
+  ASTContext  const&Context = ThisDecl->CurrentDecl->getASTContext();
   const LangOptions &LangOpts = Context.getLangOpts();
   llvm::raw_svector_ostream OS(Str);
   PrintingPolicy PPolicy(LangOpts);
@@ -589,15 +589,15 @@ void getSourceTextOfDeclaration(const DeclInfo *ThisDecl,
 void CommentASTToXMLConverter::formatTextOfDeclaration(
     const DeclInfo *DI, SmallString<128> &Declaration) {
   // Formatting API expects null terminated input string.
-  StringRef StringDecl(Declaration.c_str(), Declaration.size());
+  StringRef const StringDecl(Declaration.c_str(), Declaration.size());
 
   // Formatter specific code.
-  unsigned Offset = 0;
-  unsigned Length = Declaration.size();
+  unsigned const Offset = 0;
+  unsigned const Length = Declaration.size();
 
   format::FormatStyle Style = format::getLLVMStyle();
   Style.FixNamespaceComments = false;
-  tooling::Replacements Replaces =
+  tooling::Replacements const Replaces =
       reformat(Style, StringDecl, tooling::Range(Offset, Length), "xmldecl.xd");
   auto FormattedStringDecl = applyAllReplacements(StringDecl, Replaces);
   if (static_cast<bool>(FormattedStringDecl)) {
@@ -618,7 +618,7 @@ void CommentASTToXMLConverter::visitInlineCommandComment(
     return;
 
   // Nothing to render if argument is empty.
-  StringRef Arg0 = C->getArgText(0);
+  StringRef const Arg0 = C->getArgText(0);
   if (Arg0.empty())
     return;
 
@@ -784,7 +784,7 @@ void CommentASTToXMLConverter::visitTParamCommandComment(
 
 void CommentASTToXMLConverter::visitVerbatimBlockComment(
                                   const VerbatimBlockComment *C) {
-  unsigned NumLines = C->getNumLines();
+  unsigned const NumLines = C->getNumLines();
   if (NumLines == 0)
     return;
 
@@ -885,10 +885,10 @@ void CommentASTToXMLConverter::visitFullComment(const FullComment *C) {
 
     {
       // Print line and column number.
-      SourceLocation Loc = DI->CurrentDecl->getLocation();
-      std::pair<FileID, unsigned> LocInfo = SM.getDecomposedLoc(Loc);
-      FileID FID = LocInfo.first;
-      unsigned FileOffset = LocInfo.second;
+      SourceLocation const Loc = DI->CurrentDecl->getLocation();
+      std::pair<FileID, unsigned> const LocInfo = SM.getDecomposedLoc(Loc);
+      FileID const FID = LocInfo.first;
+      unsigned const FileOffset = LocInfo.second;
 
       if (FID.isValid()) {
         if (const FileEntry *FE = SM.getFileEntryForID(FID)) {
@@ -907,9 +907,9 @@ void CommentASTToXMLConverter::visitFullComment(const FullComment *C) {
 
     bool FoundName = false;
     if (const NamedDecl *ND = dyn_cast<NamedDecl>(DI->CommentDecl)) {
-      if (DeclarationName DeclName = ND->getDeclName()) {
+      if (DeclarationName const DeclName = ND->getDeclName()) {
         Result << "<Name>";
-        std::string Name = DeclName.getAsString();
+        std::string const Name = DeclName.getAsString();
         appendToResultWithXMLEscaping(Name);
         FoundName = true;
         Result << "</Name>";
@@ -1026,25 +1026,25 @@ void CommentASTToXMLConverter::visitFullComment(const FullComment *C) {
           Distribution = AA->getPlatform()->getName();
       }
       Result << " distribution=\"" << Distribution << "\">";
-      VersionTuple IntroducedInVersion = AA->getIntroduced();
+      VersionTuple const IntroducedInVersion = AA->getIntroduced();
       if (!IntroducedInVersion.empty()) {
         Result << "<IntroducedInVersion>"
                << IntroducedInVersion.getAsString()
                << "</IntroducedInVersion>";
       }
-      VersionTuple DeprecatedInVersion = AA->getDeprecated();
+      VersionTuple const DeprecatedInVersion = AA->getDeprecated();
       if (!DeprecatedInVersion.empty()) {
         Result << "<DeprecatedInVersion>"
                << DeprecatedInVersion.getAsString()
                << "</DeprecatedInVersion>";
       }
-      VersionTuple RemovedAfterVersion = AA->getObsoleted();
+      VersionTuple const RemovedAfterVersion = AA->getObsoleted();
       if (!RemovedAfterVersion.empty()) {
         Result << "<RemovedAfterVersion>"
                << RemovedAfterVersion.getAsString()
                << "</RemovedAfterVersion>";
       }
-      StringRef DeprecationSummary = AA->getMessage();
+      StringRef const DeprecationSummary = AA->getMessage();
       if (!DeprecationSummary.empty()) {
         Result << "<DeprecationSummary>";
         appendToResultWithXMLEscaping(DeprecationSummary);

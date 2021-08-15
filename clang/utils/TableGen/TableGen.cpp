@@ -481,10 +481,10 @@ bool ClangTableGenMain(raw_ostream &OS, RecordKeeper &Records) {
 
 int main(int argc, char **argv) {
   sys::PrintStackTraceOnErrorSignal(argv[0]);
-  PrettyStackTraceProgram X(argc, argv);
+  PrettyStackTraceProgram const X(argc, argv);
   cl::ParseCommandLineOptions(argc, argv);
 
-  llvm_shutdown_obj Y;
+  llvm_shutdown_obj const Y;
 
   return TableGenMain(argv[0], &ClangTableGenMain);
 }

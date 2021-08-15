@@ -76,9 +76,9 @@ void Callback::run(const MatchFinder::MatchResult &Result) {
     // to zero literals in non-pedantic mode.
     // FIXME: Introduce an AST matcher to implement the macro-related logic?
     bool MacroIndicatesWeShouldSkipTheCheck = false;
-    SourceLocation Loc = CheckIfNull->getBeginLoc();
+    SourceLocation const Loc = CheckIfNull->getBeginLoc();
     if (Loc.isMacroID()) {
-      StringRef MacroName = Lexer::getImmediateMacroName(
+      StringRef const MacroName = Lexer::getImmediateMacroName(
           Loc, ACtx.getSourceManager(), ACtx.getLangOpts());
       if (MacroName == "NULL" || MacroName == "nil")
         return;
@@ -89,7 +89,7 @@ void Callback::run(const MatchFinder::MatchResult &Result) {
       Expr::EvalResult EVResult;
       if (CheckIfNull->IgnoreParenCasts()->EvaluateAsInt(
               EVResult, ACtx, Expr::SE_AllowSideEffects)) {
-        llvm::APSInt Result = EVResult.Val.getInt();
+        llvm::APSInt const Result = EVResult.Val.getInt();
         if (Result == 0) {
           if (!C->Pedantic)
             return;
@@ -105,24 +105,24 @@ void Callback::run(const MatchFinder::MatchResult &Result) {
   const Expr *ConvertedCObject = Result.Nodes.getNodeAs<Expr>("c_object");
   const Expr *ConvertedCppObject = Result.Nodes.getNodeAs<Expr>("cpp_object");
   const Expr *ConvertedObjCObject = Result.Nodes.getNodeAs<Expr>("objc_object");
-  bool IsCpp = (ConvertedCppObject != nullptr);
-  bool IsObjC = (ConvertedObjCObject != nullptr);
+  bool const IsCpp = (ConvertedCppObject != nullptr);
+  bool const IsObjC = (ConvertedObjCObject != nullptr);
   const Expr *Obj = IsObjC ? ConvertedObjCObject
                   : IsCpp ? ConvertedCppObject
                   : ConvertedCObject;
   assert(Obj);
 
-  bool IsComparison =
+  bool const IsComparison =
       (Result.Nodes.getNodeAs<Stmt>("comparison") != nullptr);
 
-  bool IsOSNumber =
+  bool const IsOSNumber =
       (Result.Nodes.getNodeAs<Decl>("osnumber") != nullptr);
 
-  bool IsInteger =
+  bool const IsInteger =
       (Result.Nodes.getNodeAs<QualType>("int_type") != nullptr);
-  bool IsObjCBool =
+  bool const IsObjCBool =
       (Result.Nodes.getNodeAs<QualType>("objc_bool_type") != nullptr);
-  bool IsCppBool =
+  bool const IsCppBool =
       (Result.Nodes.getNodeAs<QualType>("cpp_bool_type") != nullptr);
 
   llvm::SmallString<64> Msg;

@@ -31,8 +31,8 @@ static DefinedSVal getLocFromSymbol(const ProgramStateRef &State,
 
 ConditionTruthVal ConstraintManager::checkNull(ProgramStateRef State,
                                                SymbolRef Sym) {
-  QualType Ty = Sym->getType();
-  DefinedSVal V = Loc::isLocType(Ty) ? getLocFromSymbol(State, Sym)
+  QualType const Ty = Sym->getType();
+  DefinedSVal const V = Loc::isLocType(Ty) ? getLocFromSymbol(State, Sym)
                                      : nonloc::SymbolVal(Sym);
   const ProgramStatePair &P = assumeDual(State, V);
   if (P.first && !P.second)

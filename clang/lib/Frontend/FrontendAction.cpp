@@ -117,7 +117,7 @@ public:
   void DeclRead(serialization::DeclID ID, const Decl *D) override {
     if (const NamedDecl *ND = dyn_cast<NamedDecl>(D))
       if (NamesToCheck.find(ND->getNameAsString()) != NamesToCheck.end()) {
-        unsigned DiagID
+        unsigned const DiagID
           = Ctx.getDiagnostics().getCustomDiagID(DiagnosticsEngine::Error,
                                                  "%0 was deserialized");
         Ctx.getDiagnostics().Report(Ctx.getFullLoc(D->getLocation()), DiagID)
@@ -253,7 +253,7 @@ static SourceLocation ReadOriginalFileName(CompilerInstance &CI,
     return SourceLocation();
 
   unsigned LineNo;
-  SourceLocation LineNoLoc = T.getLocation();
+  SourceLocation const LineNoLoc = T.getLocation();
   if (IsModuleMap) {
     llvm::SmallString<16> Buffer;
     if (Lexer::getSpelling(LineNoLoc, Buffer, SourceMgr, CI.getLangOpts())
@@ -265,7 +265,7 @@ static SourceLocation ReadOriginalFileName(CompilerInstance &CI,
   if (T.isAtStartOfLine() || T.getKind() != tok::string_literal)
     return SourceLocation();
 
-  StringLiteralParser Literal(T, CI.getPreprocessor());
+  StringLiteralParser const Literal(T, CI.getPreprocessor());
   if (Literal.hadError)
     return SourceLocation();
   RawLexer->LexFromRawLexer(T);
@@ -336,7 +336,7 @@ static std::error_code collectModuleHeaderIncludes(
 
   // Add includes for each of these headers.
   for (auto HK : {Module::HK_Normal, Module::HK_Private}) {
-    for (Module::Header &H : Module->Headers[HK]) {
+    for (Module::Header  const&H : Module->Headers[HK]) {
       Module->addTopHeader(H.Entry);
       // Use the path as specified in the module map file. We'll look for this
       // file relative to the module build directory (the directory containing
@@ -393,7 +393,7 @@ static std::error_code collectModuleHeaderIncludes(
            ++It)
         llvm::sys::path::append(RelativeHeader, *It);
 
-      std::string RelName = RelativeHeader.c_str();
+      std::string const RelName = RelativeHeader.c_str();
       Headers.push_back(std::make_pair(RelName, *Header));
     }
 
@@ -433,14 +433,14 @@ static bool loadModuleMapForModuleBuild(CompilerInstance &CI, bool IsSystem,
   HeaderSearch &HS = CI.getPreprocessor().getHeaderSearchInfo();
 
   // Map the current input to a file.
-  FileID ModuleMapID = SrcMgr.getMainFileID();
+  FileID const ModuleMapID = SrcMgr.getMainFileID();
   const FileEntry *ModuleMap = SrcMgr.getFileEntryForID(ModuleMapID);
 
   // If the module map is preprocessed, handle the initial line marker;
   // line directives are not part of the module map syntax in general.
   Offset = 0;
   if (IsPreprocessed) {
-    SourceLocation EndOfLineMarker =
+    SourceLocation const EndOfLineMarker =
         ReadOriginalFileName(CI, PresumedModuleMapFile, /*IsModuleMap*/ true);
     if (EndOfLineMarker.isValid())
       Offset = CI.getSourceManager().getDecomposedLoc(EndOfLineMarker).second;
@@ -493,7 +493,7 @@ static Module *prepareToBuildModule(CompilerInstance &CI,
   // umbrella module definition), track that fact.
   // FIXME: It would be preferable to fill this in as part of processing
   // the module map, rather than adding it after the fact.
-  StringRef OriginalModuleMapName = CI.getFrontendOpts().OriginalModuleMap;
+  StringRef const OriginalModuleMapName = CI.getFrontendOpts().OriginalModuleMap;
   if (!OriginalModuleMapName.empty()) {
     auto OriginalModuleMap =
         CI.getFileManager().getFile(OriginalModuleMapName,
@@ -556,7 +556,7 @@ bool FrontendAction::BeginSourceFile(CompilerInstance &CI,
   setCompilerInstance(&CI);
 
   bool HasBegunSourceFile = false;
-  bool ReplayASTFile = Input.getKind().getFormat() == InputKind::Precompiled &&
+  bool const ReplayASTFile = Input.getKind().getFormat() == InputKind::Precompiled &&
                        usesPreprocessorOnly();
   if (!BeginInvocation(CI))
     goto failure;
@@ -564,16 +564,16 @@ bool FrontendAction::BeginSourceFile(CompilerInstance &CI,
   // If we're replaying the build of an AST file, import it and set up
   // the initial state from its build.
   if (ReplayASTFile) {
-    IntrusiveRefCntPtr<DiagnosticsEngine> Diags(&CI.getDiagnostics());
+    IntrusiveRefCntPtr<DiagnosticsEngine> const Diags(&CI.getDiagnostics());
 
     // The AST unit populates its own diagnostics engine rather than ours.
-    IntrusiveRefCntPtr<DiagnosticsEngine> ASTDiags(
+    IntrusiveRefCntPtr<DiagnosticsEngine> const ASTDiags(
         new DiagnosticsEngine(Diags->getDiagnosticIDs(),
                               &Diags->getDiagnosticOptions()));
     ASTDiags->setClient(Diags->getClient(), /*OwnsClient*/false);
 
     // FIXME: What if the input is a memory buffer?
-    StringRef InputFile = Input.getFile();
+    StringRef const InputFile = Input.getFile();
 
     std::unique_ptr<ASTUnit> AST = ASTUnit::LoadFromASTFile(
         std::string(InputFile), CI.getPCHContainerReader(),
@@ -622,7 +622,7 @@ bool FrontendAction::BeginSourceFile(CompilerInstance &CI,
       Input = FrontendInputFile(ASTModule->PresumedModuleMapFile, Kind);
     } else {
       auto &OldSM = AST->getSourceManager();
-      FileID ID = OldSM.getMainFileID();
+      FileID const ID = OldSM.getMainFileID();
       if (auto *File = OldSM.getFileEntryForID(ID))
         Input = FrontendInputFile(File->getName(), Kind);
       else
@@ -638,10 +638,10 @@ bool FrontendAction::BeginSourceFile(CompilerInstance &CI,
     assert(hasASTFileSupport() &&
            "This action does not have AST file support!");
 
-    IntrusiveRefCntPtr<DiagnosticsEngine> Diags(&CI.getDiagnostics());
+    IntrusiveRefCntPtr<DiagnosticsEngine> const Diags(&CI.getDiagnostics());
 
     // FIXME: What if the input is a memory buffer?
-    StringRef InputFile = Input.getFile();
+    StringRef const InputFile = Input.getFile();
 
     std::unique_ptr<ASTUnit> AST = ASTUnit::LoadFromASTFile(
         std::string(InputFile), CI.getPCHContainerReader(),
@@ -724,8 +724,8 @@ bool FrontendAction::BeginSourceFile(CompilerInstance &CI,
   if (!CI.getPreprocessorOpts().ImplicitPCHInclude.empty()) {
     FileManager &FileMgr = CI.getFileManager();
     PreprocessorOptions &PPOpts = CI.getPreprocessorOpts();
-    StringRef PCHInclude = PPOpts.ImplicitPCHInclude;
-    std::string SpecificModuleCachePath = CI.getSpecificModuleCachePath();
+    StringRef const PCHInclude = PPOpts.ImplicitPCHInclude;
+    std::string const SpecificModuleCachePath = CI.getSpecificModuleCachePath();
     if (auto PCHDir = FileMgr.getDirectory(PCHInclude)) {
       std::error_code EC;
       SmallString<128> DirNative;
@@ -922,7 +922,7 @@ bool FrontendAction::BeginSourceFile(CompilerInstance &CI,
   if (!CI.getFrontendOpts().OverrideRecordLayoutsFile.empty() &&
       CI.hasASTContext() && !CI.getASTContext().getExternalSource()) {
     IntrusiveRefCntPtr<ExternalASTSource>
-      Override(new LayoutOverrideSource(
+      const Override(new LayoutOverrideSource(
                      CI.getFrontendOpts().OverrideRecordLayoutsFile));
     CI.getASTContext().setExternalSource(Override);
   }
@@ -942,10 +942,10 @@ failure:
 }
 
 llvm::Error FrontendAction::Execute() {
-  CompilerInstance &CI = getCompilerInstance();
+  CompilerInstance  const&CI = getCompilerInstance();
 
   if (CI.hasFrontendTimer()) {
-    llvm::TimeRegion Timer(CI.getFrontendTimer());
+    llvm::TimeRegion const Timer(CI.getFrontendTimer());
     ExecuteAction();
   }
   else ExecuteAction();
@@ -954,7 +954,7 @@ llvm::Error FrontendAction::Execute() {
   // there were any module-build failures.
   if (CI.shouldBuildGlobalModuleIndex() && CI.hasFileManager() &&
       CI.hasPreprocessor()) {
-    StringRef Cache =
+    StringRef const Cache =
         CI.getPreprocessor().getHeaderSearchInfo().getModuleCachePath();
     if (!Cache.empty()) {
       if (llvm::Error Err = GlobalModuleIndex::writeIndex(
@@ -986,7 +986,7 @@ void FrontendAction::EndSourceFile() {
   // Sema references the ast consumer, so reset sema first.
   //
   // FIXME: There is more per-file stuff we could just drop here?
-  bool DisableFree = CI.getFrontendOpts().DisableFree;
+  bool const DisableFree = CI.getFrontendOpts().DisableFree;
   if (DisableFree) {
     CI.resetAndLeakSema();
     CI.resetAndLeakASTContext();

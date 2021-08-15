@@ -484,7 +484,7 @@ TEST(MinimizeSourceToDependencyDirectivesTest, RawStringLiteral) {
                "#endif\n",
                Out.data());
 
-  bool RawStringLiteralResult = minimizeSourceToDependencyDirectives(
+  bool const RawStringLiteralResult = minimizeSourceToDependencyDirectives(
       "#ifndef GUARD\n"
       "#define GUARD\n"
       R"raw(static constexpr char bytes[] = R"(-?:\,[]{}#&*!|>'"%@`)";)raw"
@@ -497,7 +497,7 @@ TEST(MinimizeSourceToDependencyDirectivesTest, RawStringLiteral) {
                "#endif\n",
                Out.data());
 
-  bool RawStringLiteralResult2 = minimizeSourceToDependencyDirectives(
+  bool const RawStringLiteralResult2 = minimizeSourceToDependencyDirectives(
       "#ifndef GUARD\n"
       "#define GUARD\n"
       R"raw(static constexpr char bytes[] = R"abc(-?:\,[]{}#&*!|>'"%@`)abc";)raw"
@@ -592,7 +592,7 @@ TEST(MinimizeSourceToDependencyDirectivesTest, PoundWarningAndError) {
 TEST(MinimizeSourceToDependencyDirectivesTest, CharacterLiteral) {
   SmallVector<char, 128> Out;
 
-  StringRef Source = R"(
+  StringRef const Source = R"(
 #include <bob>
 int a = 0'1;
 int b = 0xfa'af'fa;
@@ -606,7 +606,7 @@ int c = 12 ' ';
 TEST(MinimizeSourceToDependencyDirectivesTest, CharacterLiteralPrefixL) {
   SmallVector<char, 128> Out;
 
-  StringRef Source = R"(L'P'
+  StringRef const Source = R"(L'P'
 #if DEBUG
 // '
 #endif
@@ -619,7 +619,7 @@ TEST(MinimizeSourceToDependencyDirectivesTest, CharacterLiteralPrefixL) {
 TEST(MinimizeSourceToDependencyDirectivesTest, CharacterLiteralPrefixU) {
   SmallVector<char, 128> Out;
 
-  StringRef Source = R"(int x = U'P';
+  StringRef const Source = R"(int x = U'P';
 #include <test.h>
 // '
 )";
@@ -630,7 +630,7 @@ TEST(MinimizeSourceToDependencyDirectivesTest, CharacterLiteralPrefixU) {
 TEST(MinimizeSourceToDependencyDirectivesTest, CharacterLiteralPrefixu) {
   SmallVector<char, 128> Out;
 
-  StringRef Source = R"(int x = u'b';
+  StringRef const Source = R"(int x = u'b';
 int y = u8'a';
 int z = 128'78;
 #include <test.h>
@@ -712,7 +712,7 @@ TEST(MinimizeSourceToDependencyDirectivesTest, CxxModules) {
   SmallVector<char, 128> Out;
   SmallVector<Token, 4> Tokens;
 
-  StringRef Source = R"(
+  StringRef const Source = R"(
     module;
     #include "textual-header.h"
 
@@ -755,7 +755,7 @@ ort \
 TEST(MinimizeSourceToDependencyDirectivesTest, SkippedPPRangesBasic) {
   SmallString<128> Out;
   SmallVector<Token, 32> Toks;
-  StringRef Source = "#ifndef GUARD\n"
+  StringRef const Source = "#ifndef GUARD\n"
                      "#define GUARD\n"
                      "void foo();\n"
                      "#endif\n";
@@ -770,7 +770,7 @@ TEST(MinimizeSourceToDependencyDirectivesTest, SkippedPPRangesBasic) {
 TEST(MinimizeSourceToDependencyDirectivesTest, SkippedPPRangesBasicElifdef) {
   SmallString<128> Out;
   SmallVector<Token, 32> Toks;
-  StringRef Source = "#ifdef BLAH\n"
+  StringRef const Source = "#ifdef BLAH\n"
                      "void skip();\n"
                      "#elifdef BLAM\n"
                      "void skip();\n"
@@ -793,7 +793,7 @@ TEST(MinimizeSourceToDependencyDirectivesTest, SkippedPPRangesBasicElifdef) {
 TEST(MinimizeSourceToDependencyDirectivesTest, SkippedPPRangesNested) {
   SmallString<128> Out;
   SmallVector<Token, 32> Toks;
-  StringRef Source = "#ifndef GUARD\n"
+  StringRef const Source = "#ifndef GUARD\n"
                      "#define GUARD\n"
                      "#if FOO\n"
                      "#include hello\n"

@@ -40,11 +40,11 @@ using tools::addPathIfExists;
 std::string Linux::getMultiarchTriple(const Driver &D,
                                       const llvm::Triple &TargetTriple,
                                       StringRef SysRoot) const {
-  llvm::Triple::EnvironmentType TargetEnvironment =
+  llvm::Triple::EnvironmentType const TargetEnvironment =
       TargetTriple.getEnvironment();
-  bool IsAndroid = TargetTriple.isAndroid();
-  bool IsMipsR6 = TargetTriple.getSubArch() == llvm::Triple::MipsSubArch_r6;
-  bool IsMipsN32Abi = TargetTriple.getEnvironment() == llvm::Triple::GNUABIN32;
+  bool const IsAndroid = TargetTriple.isAndroid();
+  bool const IsMipsR6 = TargetTriple.getSubArch() == llvm::Triple::MipsSubArch_r6;
+  bool const IsMipsN32Abi = TargetTriple.getEnvironment() == llvm::Triple::GNUABIN32;
 
   // For most architectures, just use whatever we have rather than trying to be
   // clever.
@@ -180,13 +180,13 @@ Linux::Linux(const Driver &D, const llvm::Triple &Triple, const ArgList &Args)
   GCCInstallation.init(Triple, Args);
   Multilibs = GCCInstallation.getMultilibs();
   SelectedMultilib = GCCInstallation.getMultilib();
-  llvm::Triple::ArchType Arch = Triple.getArch();
-  std::string SysRoot = computeSysRoot();
+  llvm::Triple::ArchType const Arch = Triple.getArch();
+  std::string const SysRoot = computeSysRoot();
   ToolChain::path_list &PPaths = getProgramPaths();
 
   Generic_GCC::PushPPaths(PPaths);
 
-  Distro Distro(D.getVFS(), Triple);
+  Distro const Distro(D.getVFS(), Triple);
 
   if (Distro.IsAlpineLinux() || Triple.isAndroid()) {
     ExtraOpts.push_back("-z");
@@ -291,7 +291,7 @@ Linux::Linux(const Driver &D, const llvm::Triple &Triple, const ArgList &Args)
   else
     addPathIfExists(D, SysRoot + "/usr/lib/../" + OSLibDir, Paths);
   if (IsRISCV) {
-    StringRef ABIName = tools::riscv::getRISCVABI(Args, Triple);
+    StringRef const ABIName = tools::riscv::getRISCVABI(Args, Triple);
     addPathIfExists(D, SysRoot + "/" + OSLibDir + "/" + ABIName, Paths);
     addPathIfExists(D, SysRoot + "/usr/" + OSLibDir + "/" + ABIName, Paths);
   }
@@ -449,7 +449,7 @@ std::string Linux::getDynamicLinker(const ArgList &Args) const {
   case llvm::Triple::mipsel:
   case llvm::Triple::mips64:
   case llvm::Triple::mips64el: {
-    bool IsNaN2008 = tools::mips::isNaN2008(Args, Triple);
+    bool const IsNaN2008 = tools::mips::isNaN2008(Args, Triple);
 
     LibDir = "lib" + tools::mips::getMipsABILibSuffix(Args, Triple);
 
@@ -483,13 +483,13 @@ std::string Linux::getDynamicLinker(const ArgList &Args) const {
         (tools::ppc::hasPPCAbiArg(Args, "elfv1")) ? "ld64.so.1" : "ld64.so.2";
     break;
   case llvm::Triple::riscv32: {
-    StringRef ABIName = tools::riscv::getRISCVABI(Args, Triple);
+    StringRef const ABIName = tools::riscv::getRISCVABI(Args, Triple);
     LibDir = "lib";
     Loader = ("ld-linux-riscv32-" + ABIName + ".so.1").str();
     break;
   }
   case llvm::Triple::riscv64: {
-    StringRef ABIName = tools::riscv::getRISCVABI(Args, Triple);
+    StringRef const ABIName = tools::riscv::getRISCVABI(Args, Triple);
     LibDir = "lib";
     Loader = ("ld-linux-riscv64-" + ABIName + ".so.1").str();
     break;
@@ -512,7 +512,7 @@ std::string Linux::getDynamicLinker(const ArgList &Args) const {
     Loader = "ld-linux.so.2";
     break;
   case llvm::Triple::x86_64: {
-    bool X32 = Triple.isX32();
+    bool const X32 = Triple.isX32();
 
     LibDir = X32 ? "libx32" : "lib64";
     Loader = X32 ? "ld-linux-x32.so.2" : "ld-linux-x86-64.so.2";
@@ -532,7 +532,7 @@ std::string Linux::getDynamicLinker(const ArgList &Args) const {
 void Linux::AddClangSystemIncludeArgs(const ArgList &DriverArgs,
                                       ArgStringList &CC1Args) const {
   const Driver &D = getDriver();
-  std::string SysRoot = computeSysRoot();
+  std::string const SysRoot = computeSysRoot();
 
   if (DriverArgs.hasArg(clang::driver::options::OPT_nostdinc))
     return;
@@ -556,12 +556,12 @@ void Linux::AddClangSystemIncludeArgs(const ArgList &DriverArgs,
   AddMultilibIncludeArgs(DriverArgs, CC1Args);
 
   // Check for configure-time C include directories.
-  StringRef CIncludeDirs(C_INCLUDE_DIRS);
+  StringRef const CIncludeDirs(C_INCLUDE_DIRS);
   if (CIncludeDirs != "") {
     SmallVector<StringRef, 5> dirs;
     CIncludeDirs.split(dirs, ":");
-    for (StringRef dir : dirs) {
-      StringRef Prefix =
+    for (StringRef const dir : dirs) {
+      StringRef const Prefix =
           llvm::sys::path::is_absolute(dir) ? "" : StringRef(SysRoot);
       addExternCSystemInclude(DriverArgs, CC1Args, Prefix + dir);
     }
@@ -570,7 +570,7 @@ void Linux::AddClangSystemIncludeArgs(const ArgList &DriverArgs,
 
   // On systems using multiarch and Android, add /usr/include/$triple before
   // /usr/include.
-  std::string MultiarchIncludeDir = getMultiarchTriple(D, getTriple(), SysRoot);
+  std::string const MultiarchIncludeDir = getMultiarchTriple(D, getTriple(), SysRoot);
   if (!MultiarchIncludeDir.empty() &&
       D.getVFS().exists(SysRoot + "/usr/include/" + MultiarchIncludeDir))
     addExternCSystemInclude(DriverArgs, CC1Args,
@@ -598,8 +598,8 @@ void Linux::addLibStdCxxIncludePaths(const llvm::opt::ArgList &DriverArgs,
     return;
 
   // Detect Debian g++-multiarch-incdir.diff.
-  StringRef TripleStr = GCCInstallation.getTriple().str();
-  StringRef DebianMultiarch =
+  StringRef const TripleStr = GCCInstallation.getTriple().str();
+  StringRef const DebianMultiarch =
       GCCInstallation.getTriple().getArch() == llvm::Triple::x86
           ? "i386-linux-gnu"
           : TripleStr;
@@ -609,7 +609,7 @@ void Linux::addLibStdCxxIncludePaths(const llvm::opt::ArgList &DriverArgs,
                                                DebianMultiarch))
     return;
 
-  StringRef LibDir = GCCInstallation.getParentLibPath();
+  StringRef const LibDir = GCCInstallation.getParentLibPath();
   const Multilib &Multilib = GCCInstallation.getMultilib();
   const GCCVersion &Version = GCCInstallation.getVersion();
 
@@ -660,7 +660,7 @@ bool Linux::IsAArch64OutlineAtomicsDefault(const ArgList &Args) const {
   // Outline atomics for AArch64 are supported by compiler-rt
   // and libgcc since 9.3.1
   assert(getTriple().isAArch64() && "expected AArch64 target!");
-  ToolChain::RuntimeLibType RtLib = GetRuntimeLibType(Args);
+  ToolChain::RuntimeLibType const RtLib = GetRuntimeLibType(Args);
   if (RtLib == ToolChain::RLT_CompilerRT)
     return true;
   assert(RtLib == ToolChain::RLT_Libgcc && "unexpected runtime library type!");

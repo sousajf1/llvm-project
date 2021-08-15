@@ -64,7 +64,7 @@ public:
       return true;
 
     ArgsData.emplace_back();
-    unsigned ArgIndex = FS.getArgIndex();
+    unsigned const ArgIndex = FS.getArgIndex();
     if (ArgIndex < Args.size())
       ArgsData.back().E = Args[ArgIndex];
 
@@ -136,24 +136,24 @@ public:
     Layout.Items.clear();
     for (auto &Data : ArgsData) {
       if (!Data.MaskType.empty()) {
-        CharUnits Size = CharUnits::fromQuantity(8);
+        CharUnits const Size = CharUnits::fromQuantity(8);
         Layout.Items.emplace_back(OSLogBufferItem::MaskKind, nullptr,
                                   Size, 0, Data.MaskType);
       }
 
       if (Data.FieldWidth) {
-        CharUnits Size = Ctx.getTypeSizeInChars((*Data.FieldWidth)->getType());
+        CharUnits const Size = Ctx.getTypeSizeInChars((*Data.FieldWidth)->getType());
         Layout.Items.emplace_back(OSLogBufferItem::ScalarKind, *Data.FieldWidth,
                                   Size, 0);
       }
       if (Data.Precision) {
-        CharUnits Size = Ctx.getTypeSizeInChars((*Data.Precision)->getType());
+        CharUnits const Size = Ctx.getTypeSizeInChars((*Data.Precision)->getType());
         Layout.Items.emplace_back(OSLogBufferItem::ScalarKind, *Data.Precision,
                                   Size, 0);
       }
       if (Data.Count) {
         // "%.*P" has an extra "count" that we insert before the argument.
-        CharUnits Size = Ctx.getTypeSizeInChars((*Data.Count)->getType());
+        CharUnits const Size = Ctx.getTypeSizeInChars((*Data.Count)->getType());
         Layout.Items.emplace_back(OSLogBufferItem::CountKind, *Data.Count, Size,
                                   0);
       }
@@ -179,7 +179,7 @@ public:
 
 bool clang::analyze_os_log::computeOSLogBufferLayout(
     ASTContext &Ctx, const CallExpr *E, OSLogBufferLayout &Layout) {
-  ArrayRef<const Expr *> Args(E->getArgs(), E->getArgs() + E->getNumArgs());
+  ArrayRef<const Expr *> const Args(E->getArgs(), E->getArgs() + E->getNumArgs());
 
   const Expr *StringArg;
   ArrayRef<const Expr *> VarArgs;
@@ -202,7 +202,7 @@ bool clang::analyze_os_log::computeOSLogBufferLayout(
 
   const StringLiteral *Lit = cast<StringLiteral>(StringArg->IgnoreParenCasts());
   assert(Lit && (Lit->isAscii() || Lit->isUTF8()));
-  StringRef Data = Lit->getString();
+  StringRef const Data = Lit->getString();
   OSLogFormatStringHandler H(VarArgs);
   ParsePrintfString(H, Data.begin(), Data.end(), Ctx.getLangOpts(),
                     Ctx.getTargetInfo(), /*isFreeBSDKPrintf*/ false);

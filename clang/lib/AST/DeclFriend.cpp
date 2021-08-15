@@ -53,7 +53,7 @@ FriendDecl *FriendDecl::Create(ASTContext &C, DeclContext *DC,
   }
 #endif
 
-  std::size_t Extra =
+  std::size_t const Extra =
       FriendDecl::additionalSizeToAlloc<TemplateParameterList *>(
           FriendTypeTPLists.size());
   auto *FD = new (C, DC, Extra) FriendDecl(DC, L, Friend, FriendL,
@@ -64,7 +64,7 @@ FriendDecl *FriendDecl::Create(ASTContext &C, DeclContext *DC,
 
 FriendDecl *FriendDecl::CreateDeserialized(ASTContext &C, unsigned ID,
                                            unsigned FriendTypeNumTPLists) {
-  std::size_t Extra =
+  std::size_t const Extra =
       additionalSizeToAlloc<TemplateParameterList *>(FriendTypeNumTPLists);
   return new (C, ID, Extra) FriendDecl(EmptyShell(), FriendTypeNumTPLists);
 }

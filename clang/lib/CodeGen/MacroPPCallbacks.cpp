@@ -108,7 +108,7 @@ void MacroPPCallbacks::updateStatusToNextScope() {
 }
 
 void MacroPPCallbacks::FileEntered(SourceLocation Loc) {
-  SourceLocation LineLoc = getCorrectLocation(LastHashLoc);
+  SourceLocation const LineLoc = getCorrectLocation(LastHashLoc);
   switch (Status) {
   case NoScope:
     updateStatusToNextScope();
@@ -178,7 +178,7 @@ void MacroPPCallbacks::InclusionDirective(
 void MacroPPCallbacks::MacroDefined(const Token &MacroNameTok,
                                     const MacroDirective *MD) {
   IdentifierInfo *Id = MacroNameTok.getIdentifierInfo();
-  SourceLocation location = getCorrectLocation(MacroNameTok.getLocation());
+  SourceLocation const location = getCorrectLocation(MacroNameTok.getLocation());
   std::string NameBuffer, ValueBuffer;
   llvm::raw_string_ostream Name(NameBuffer);
   llvm::raw_string_ostream Value(ValueBuffer);
@@ -192,7 +192,7 @@ void MacroPPCallbacks::MacroUndefined(const Token &MacroNameTok,
                                       const MacroDefinition &MD,
                                       const MacroDirective *Undef) {
   IdentifierInfo *Id = MacroNameTok.getIdentifierInfo();
-  SourceLocation location = getCorrectLocation(MacroNameTok.getLocation());
+  SourceLocation const location = getCorrectLocation(MacroNameTok.getLocation());
   Gen->getCGDebugInfo()->CreateMacro(getCurrentScope(),
                                      llvm::dwarf::DW_MACINFO_undef, location,
                                      Id->getName(), "");

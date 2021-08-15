@@ -270,8 +270,8 @@ InitMap::T *InitMap::data() {
 }
 
 bool InitMap::initialize(unsigned I) {
-  unsigned Bucket = I / PER_FIELD;
-  unsigned Mask = 1ull << static_cast<uint64_t>(I % PER_FIELD);
+  unsigned const Bucket = I / PER_FIELD;
+  unsigned const Mask = 1ull << static_cast<uint64_t>(I % PER_FIELD);
   if (!(data()[Bucket] & Mask)) {
     data()[Bucket] |= Mask;
     UninitFields -= 1;
@@ -280,8 +280,8 @@ bool InitMap::initialize(unsigned I) {
 }
 
 bool InitMap::isInitialized(unsigned I) {
-  unsigned Bucket = I / PER_FIELD;
-  unsigned Mask = 1ull << static_cast<uint64_t>(I % PER_FIELD);
+  unsigned const Bucket = I / PER_FIELD;
+  unsigned const Mask = 1ull << static_cast<uint64_t>(I % PER_FIELD);
   return data()[Bucket] & Mask;
 }
 

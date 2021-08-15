@@ -60,20 +60,20 @@ StoreRef StoreManager::enterStackFrame(Store OldStore,
 const ElementRegion *StoreManager::MakeElementRegion(const SubRegion *Base,
                                                      QualType EleTy,
                                                      uint64_t index) {
-  NonLoc idx = svalBuilder.makeArrayIndex(index);
+  NonLoc const idx = svalBuilder.makeArrayIndex(index);
   return MRMgr.getElementRegion(EleTy, idx, Base, svalBuilder.getContext());
 }
 
 const ElementRegion *StoreManager::GetElementZeroRegion(const SubRegion *R,
                                                         QualType T) {
-  NonLoc idx = svalBuilder.makeZeroArrayIndex();
+  NonLoc const idx = svalBuilder.makeZeroArrayIndex();
   assert(!T.isNull());
   return MRMgr.getElementRegion(T, idx, R, Ctx);
 }
 
 Optional<const MemRegion *> StoreManager::castRegion(const MemRegion *R,
                                                      QualType CastToTy) {
-  ASTContext &Ctx = StateMgr.getContext();
+  ASTContext  const&Ctx = StateMgr.getContext();
 
   // Handle casts to Objective-C objects.
   if (CastToTy->isObjCObjectPointerType())
@@ -94,8 +94,8 @@ Optional<const MemRegion *> StoreManager::castRegion(const MemRegion *R,
 
   // Now assume we are casting from pointer to pointer. Other cases should
   // already be handled.
-  QualType PointeeTy = CastToTy->getPointeeType();
-  QualType CanonPointeeTy = Ctx.getCanonicalType(PointeeTy);
+  QualType const PointeeTy = CastToTy->getPointeeType();
+  QualType const CanonPointeeTy = Ctx.getCanonicalType(PointeeTy);
 
   // Handle casts to void*.  We just pass the region through.
   if (CanonPointeeTy.getLocalUnqualifiedType() == Ctx.VoidTy)
@@ -104,7 +104,7 @@ Optional<const MemRegion *> StoreManager::castRegion(const MemRegion *R,
   // Handle casts from compatible types.
   if (R->isBoundable())
     if (const auto *TR = dyn_cast<TypedValueRegion>(R)) {
-      QualType ObjTy = Ctx.getCanonicalType(TR->getValueType());
+      QualType const ObjTy = Ctx.getCanonicalType(TR->getValueType());
       if (CanonPointeeTy == ObjTy)
         return R;
     }
@@ -171,15 +171,15 @@ Optional<const MemRegion *> StoreManager::castRegion(const MemRegion *R,
       if (!baseR)
         return None;
 
-      CharUnits off = rawOff.getOffset();
+      CharUnits const off = rawOff.getOffset();
 
       if (off.isZero()) {
         // Edge case: we are at 0 bytes off the beginning of baseR.  We
         // check to see if type we are casting to is the same as the base
         // region.  If so, just return the base region.
         if (const auto *TR = dyn_cast<TypedValueRegion>(baseR)) {
-          QualType ObjTy = Ctx.getCanonicalType(TR->getValueType());
-          QualType CanonPointeeTy = Ctx.getCanonicalType(PointeeTy);
+          QualType const ObjTy = Ctx.getCanonicalType(TR->getValueType());
+          QualType const CanonPointeeTy = Ctx.getCanonicalType(PointeeTy);
           if (CanonPointeeTy == ObjTy)
             return baseR;
         }
@@ -201,7 +201,7 @@ Optional<const MemRegion *> StoreManager::castRegion(const MemRegion *R,
       // We can only compute sizeof(PointeeTy) if it is a complete type.
       if (!PointeeTy->isIncompleteType()) {
         // Compute the size in **bytes**.
-        CharUnits pointeeTySize = Ctx.getTypeSizeInChars(PointeeTy);
+        CharUnits const pointeeTySize = Ctx.getTypeSizeInChars(PointeeTy);
         if (!pointeeTySize.isZero()) {
           // Is the offset a multiple of the size?  If so, we can layer the
           // ElementRegion (with elementType == PointeeTy) directly on top of
@@ -382,7 +382,7 @@ SVal StoreManager::attemptDownCast(SVal Base, QualType TargetType,
   // be fine with ElementRegion. TODO: Should we instead make
   // Derived{TargetClass, Element{SourceClass, SR}}?
   if (const auto *SR = dyn_cast<SymbolicRegion>(MR)) {
-    QualType T = SR->getSymbol()->getType();
+    QualType const T = SR->getSymbol()->getType();
     const CXXRecordDecl *SourceClass = T->getPointeeCXXRecordDecl();
     if (TargetClass && SourceClass && TargetClass->isDerivedFrom(SourceClass))
       return loc::MemRegionVal(
@@ -399,7 +399,7 @@ SVal StoreManager::getLValueFieldOrIvar(const Decl *D, SVal Base) {
   if (Base.isUnknownOrUndef())
     return Base;
 
-  Loc BaseL = Base.castAs<Loc>();
+  Loc const BaseL = Base.castAs<Loc>();
   const SubRegion* BaseR = nullptr;
 
   switch (BaseL.getSubKind()) {
@@ -473,7 +473,7 @@ SVal StoreManager::getLValueElement(QualType elementType, NonLoc Offset,
                                                     BaseRegion, Ctx));
   }
 
-  SVal BaseIdx = ElemR->getIndex();
+  SVal const BaseIdx = ElemR->getIndex();
 
   if (!BaseIdx.getAs<nonloc::ConcreteInt>())
     return UnknownVal();
@@ -496,7 +496,7 @@ SVal StoreManager::getLValueElement(QualType elementType, NonLoc Offset,
   assert(BaseIdxI.isSigned());
 
   // Compute the new index.
-  nonloc::ConcreteInt NewIdx(svalBuilder.getBasicValueFactory().getValue(BaseIdxI +
+  nonloc::ConcreteInt const NewIdx(svalBuilder.getBasicValueFactory().getValue(BaseIdxI +
                                                                     OffI));
 
   // Construct the new ElementRegion.

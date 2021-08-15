@@ -342,7 +342,7 @@ LLVM_DUMP_METHOD void NestedNameSpecifier::dump(const LangOptions &LO) const {
 LLVM_DUMP_METHOD void NestedNameSpecifier::dump() const { dump(llvm::errs()); }
 
 LLVM_DUMP_METHOD void NestedNameSpecifier::dump(llvm::raw_ostream &OS) const {
-  LangOptions LO;
+  LangOptions const LO;
   dump(OS, LO);
 }
 
@@ -411,7 +411,7 @@ SourceRange NestedNameSpecifierLoc::getSourceRange() const {
     return SourceRange();
 
   NestedNameSpecifierLoc First = *this;
-  while (NestedNameSpecifierLoc Prefix = First.getPrefix())
+  while (NestedNameSpecifierLoc const Prefix = First.getPrefix())
     First = Prefix;
 
   return SourceRange(First.getLocalSourceRange().getBegin(),
@@ -422,7 +422,7 @@ SourceRange NestedNameSpecifierLoc::getLocalSourceRange() const {
   if (!Qualifier)
     return SourceRange();
 
-  unsigned Offset = getDataLength(Qualifier->getPrefix());
+  unsigned const Offset = getDataLength(Qualifier->getPrefix());
   switch (Qualifier->getKind()) {
   case NestedNameSpecifier::Global:
     return LoadSourceLocation(Data, Offset);
@@ -440,7 +440,7 @@ SourceRange NestedNameSpecifierLoc::getLocalSourceRange() const {
     // The "void*" that points at the TypeLoc data.
     // Note: the 'template' keyword is part of the TypeLoc.
     void *TypeData = LoadPointer(Data, Offset);
-    TypeLoc TL(Qualifier->getAsType(), TypeData);
+    TypeLoc const TL(Qualifier->getAsType(), TypeData);
     return SourceRange(TL.getBeginLoc(),
                        LoadSourceLocation(Data, Offset + sizeof(void*)));
   }
@@ -455,7 +455,7 @@ TypeLoc NestedNameSpecifierLoc::getTypeLoc() const {
     return TypeLoc();
 
   // The "void*" that points at the TypeLoc data.
-  unsigned Offset = getDataLength(Qualifier->getPrefix());
+  unsigned const Offset = getDataLength(Qualifier->getPrefix());
   void *TypeData = LoadPointer(Data, Offset);
   return TypeLoc(Qualifier->getAsType(), TypeData);
 }
@@ -467,7 +467,7 @@ static void Append(char *Start, char *End, char *&Buffer, unsigned &BufferSize,
 
   if (BufferSize + (End - Start) > BufferCapacity) {
     // Reallocate the buffer.
-    unsigned NewCapacity = std::max(
+    unsigned const NewCapacity = std::max(
         (unsigned)(BufferCapacity ? BufferCapacity * 2 : sizeof(void *) * 2),
         (unsigned)(BufferSize + (End - Start)));
     if (!BufferCapacity) {

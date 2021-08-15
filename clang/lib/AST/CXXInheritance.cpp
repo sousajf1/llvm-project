@@ -39,7 +39,7 @@ using namespace clang;
 /// an unqualified, canonical class type.
 bool CXXBasePaths::isAmbiguous(CanQualType BaseType) {
   BaseType = BaseType.getUnqualifiedType();
-  IsVirtBaseAndNumberNonVirtBases Subobjects = ClassSubobjects[BaseType];
+  IsVirtBaseAndNumberNonVirtBases const Subobjects = ClassSubobjects[BaseType];
   return Subobjects.NumberOfNonVirtBases + (Subobjects.IsVirtBase ? 1 : 0) > 1;
 }
 
@@ -162,12 +162,12 @@ bool CXXBasePaths::lookupInBases(ASTContext &Context,
   bool FoundPath = false;
 
   // The access of the path down to this record.
-  AccessSpecifier AccessToHere = ScratchPath.Access;
-  bool IsFirstStep = ScratchPath.empty();
+  AccessSpecifier const AccessToHere = ScratchPath.Access;
+  bool const IsFirstStep = ScratchPath.empty();
 
   for (const auto &BaseSpec : Record->bases()) {
     // Find the record of the base class subobjects for this type.
-    QualType BaseType =
+    QualType const BaseType =
         Context.getCanonicalType(BaseSpec.getType()).getUnqualifiedType();
 
     // C++ [temp.dep]p3:
@@ -253,7 +253,7 @@ bool CXXBasePaths::lookupInBases(ASTContext &Context,
           if (auto *RT = BaseSpec.getType()->getAs<RecordType>())
             BaseRecord = cast<CXXRecordDecl>(RT->getDecl());
         } else {
-          TemplateName TN = TST->getTemplateName();
+          TemplateName const TN = TST->getTemplateName();
           if (auto *TD =
                   dyn_cast_or_null<ClassTemplateDecl>(TN.getAsTemplateDecl()))
             BaseRecord = TD->getTemplatedDecl();
@@ -419,7 +419,7 @@ findOrdinaryMemberInDependentClasses(const CXXBaseSpecifier *Specifier,
       return false;
     return findOrdinaryMember(cast<CXXRecordDecl>(RT->getDecl()), Path, Name);
   }
-  TemplateName TN = TST->getTemplateName();
+  TemplateName const TN = TST->getTemplateName();
   const auto *TD = dyn_cast_or_null<ClassTemplateDecl>(TN.getAsTemplateDecl());
   if (!TD)
     return false;
@@ -573,7 +573,7 @@ void FinalOverriderCollector::Collect(const CXXRecordDecl *RD,
     CXXMethodDecl *CanonM = M->getCanonicalDecl();
     using OverriddenMethodsRange =
         llvm::iterator_range<CXXMethodDecl::method_iterator>;
-    OverriddenMethodsRange OverriddenMethods = CanonM->overridden_methods();
+    OverriddenMethodsRange const OverriddenMethods = CanonM->overridden_methods();
 
     if (OverriddenMethods.begin() == OverriddenMethods.end()) {
       // This is a new virtual function that does not override any

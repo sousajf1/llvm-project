@@ -113,7 +113,7 @@ public:
   // Adds may-call edges for the ObjC message sends.
   void VisitObjCMessageExpr(ObjCMessageExpr *ME) {
     if (ObjCInterfaceDecl *IDecl = ME->getReceiverInterface()) {
-      Selector Sel = ME->getSelector();
+      Selector const Sel = ME->getSelector();
 
       // Find the callee definition within the same translation unit.
       Decl *D = nullptr;
@@ -195,7 +195,7 @@ void CallGraph::addNodeForDecl(Decl* D, bool IsGlobal) {
 }
 
 CallGraphNode *CallGraph::getNode(const Decl *F) const {
-  FunctionMapTy::const_iterator I = FunctionMap.find(F);
+  FunctionMapTy::const_iterator const I = FunctionMap.find(F);
   if (I == FunctionMap.end()) return nullptr;
   return I->second.get();
 }

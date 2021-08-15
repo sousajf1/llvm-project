@@ -60,7 +60,7 @@ protected:
 } // namespace
 
 void InheritanceHierarchyWriter::WriteNode(QualType Type, bool FromVirtual) {
-  QualType CanonType = Context.getCanonicalType(Type);
+  QualType const CanonType = Context.getCanonicalType(Type);
 
   if (FromVirtual) {
     if (KnownVirtualBases.find(CanonType) != KnownVirtualBases.end())
@@ -76,7 +76,7 @@ void InheritanceHierarchyWriter::WriteNode(QualType Type, bool FromVirtual) {
   WriteNodeReference(Type, FromVirtual);
 
   // Give the node a label based on the name of the class.
-  std::string TypeName = Type.getAsString();
+  std::string const TypeName = Type.getAsString();
   Out << " [ shape=\"box\", label=\"" << llvm::DOT::EscapeString(TypeName);
 
   // If the name of the class was a typedef or something different
@@ -93,7 +93,7 @@ void InheritanceHierarchyWriter::WriteNode(QualType Type, bool FromVirtual) {
   const auto *Decl =
       static_cast<const CXXRecordDecl *>(Type->castAs<RecordType>()->getDecl());
   for (const auto &Base : Decl->bases()) {
-    QualType CanonBaseType = Context.getCanonicalType(Base.getType());
+    QualType const CanonBaseType = Context.getCanonicalType(Base.getType());
 
     // If this is not virtual inheritance, bump the direct base
     // count for the type.
@@ -123,7 +123,7 @@ void InheritanceHierarchyWriter::WriteNode(QualType Type, bool FromVirtual) {
 raw_ostream&
 InheritanceHierarchyWriter::WriteNodeReference(QualType Type,
                                                bool FromVirtual) {
-  QualType CanonType = Context.getCanonicalType(Type);
+  QualType const CanonType = Context.getCanonicalType(Type);
 
   Out << "Class_" << CanonType.getAsOpaquePtr();
   if (!FromVirtual)
@@ -134,11 +134,11 @@ InheritanceHierarchyWriter::WriteNodeReference(QualType Type,
 /// viewInheritance - Display the inheritance hierarchy of this C++
 /// class using GraphViz.
 void CXXRecordDecl::viewInheritance(ASTContext& Context) const {
-  QualType Self = Context.getTypeDeclType(this);
+  QualType const Self = Context.getTypeDeclType(this);
 
   int FD;
   SmallString<128> Filename;
-  if (std::error_code EC = llvm::sys::fs::createTemporaryFile(
+  if (std::error_code const EC = llvm::sys::fs::createTemporaryFile(
           Self.getAsString(), "dot", FD, Filename)) {
     llvm::errs() << "Error: " << EC.message() << "\n";
     return;

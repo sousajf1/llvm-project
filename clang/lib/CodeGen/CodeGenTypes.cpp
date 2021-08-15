@@ -111,7 +111,7 @@ llvm::Type *CodeGenTypes::ConvertTypeForMem(QualType T, bool ForBitField) {
 /// isRecordLayoutComplete - Return true if the specified type is already
 /// completely laid out.
 bool CodeGenTypes::isRecordLayoutComplete(const Type *Ty) const {
-  llvm::DenseMap<const Type*, llvm::StructType *>::const_iterator I =
+  llvm::DenseMap<const Type*, llvm::StructType *>::const_iterator const I =
   RecordDeclTypes.find(Ty);
   return I != RecordDeclTypes.end() && !I->second->isOpaque();
 }
@@ -416,7 +416,7 @@ llvm::Type *CodeGenTypes::ConvertType(QualType T) {
     return ConvertRecordDeclType(RT->getDecl());
 
   // See if type is already cached.
-  llvm::DenseMap<const Type *, llvm::Type *>::iterator TCI = TypeCache.find(Ty);
+  llvm::DenseMap<const Type *, llvm::Type *>::iterator const TCI = TypeCache.find(Ty);
   // If type is found in map then use it. Otherwise, convert type T.
   if (TCI != TypeCache.end())
     return TCI->second;
@@ -589,7 +589,7 @@ llvm::Type *CodeGenTypes::ConvertType(QualType T) {
     case BuiltinType::SveBFloat16x2:
     case BuiltinType::SveBFloat16x3:
     case BuiltinType::SveBFloat16x4: {
-      ASTContext::BuiltinVectorTypeInfo Info =
+      ASTContext::BuiltinVectorTypeInfo const Info =
           Context.getBuiltinVectorTypeInfo(cast<BuiltinType>(Ty));
       return llvm::ScalableVectorType::get(ConvertType(Info.ElementType),
                                            Info.EC.getKnownMinValue() *
@@ -604,7 +604,7 @@ llvm::Type *CodeGenTypes::ConvertType(QualType T) {
 #define RVV_TYPE(Name, Id, SingletonId) case BuiltinType::Id:
 #include "clang/Basic/RISCVVTypes.def"
     {
-      ASTContext::BuiltinVectorTypeInfo Info =
+      ASTContext::BuiltinVectorTypeInfo const Info =
           Context.getBuiltinVectorTypeInfo(cast<BuiltinType>(Ty));
       return llvm::ScalableVectorType::get(ConvertType(Info.ElementType),
                                            Info.EC.getKnownMinValue() *
@@ -630,20 +630,20 @@ llvm::Type *CodeGenTypes::ConvertType(QualType T) {
   case Type::LValueReference:
   case Type::RValueReference: {
     const ReferenceType *RTy = cast<ReferenceType>(Ty);
-    QualType ETy = RTy->getPointeeType();
+    QualType const ETy = RTy->getPointeeType();
     llvm::Type *PointeeType = ConvertTypeForMem(ETy);
-    unsigned AS = Context.getTargetAddressSpace(ETy);
+    unsigned const AS = Context.getTargetAddressSpace(ETy);
     ResultType = llvm::PointerType::get(PointeeType, AS);
     break;
   }
   case Type::Pointer: {
     const PointerType *PTy = cast<PointerType>(Ty);
-    QualType ETy = PTy->getPointeeType();
+    QualType const ETy = PTy->getPointeeType();
     llvm::Type *PointeeType = ConvertTypeForMem(ETy);
     if (PointeeType->isVoidTy())
       PointeeType = llvm::Type::getInt8Ty(getLLVMContext());
 
-    unsigned AS = PointeeType->isFunctionTy()
+    unsigned const AS = PointeeType->isFunctionTy()
                       ? getDataLayout().getProgramAddressSpace()
                       : Context.getTargetAddressSpace(ETy);
 
@@ -747,7 +747,7 @@ llvm::Type *CodeGenTypes::ConvertType(QualType T) {
     llvm::Type *PointeeType = CGM.getLangOpts().OpenCL
                                   ? CGM.getGenericBlockLiteralType()
                                   : ConvertTypeForMem(FTy);
-    unsigned AS = Context.getTargetAddressSpace(FTy);
+    unsigned const AS = Context.getTargetAddressSpace(FTy);
     ResultType = llvm::PointerType::get(PointeeType, AS);
     break;
   }
@@ -764,15 +764,15 @@ llvm::Type *CodeGenTypes::ConvertType(QualType T) {
   }
 
   case Type::Atomic: {
-    QualType valueType = cast<AtomicType>(Ty)->getValueType();
+    QualType const valueType = cast<AtomicType>(Ty)->getValueType();
     ResultType = ConvertTypeForMem(valueType);
 
     // Pad out to the inflated size if necessary.
-    uint64_t valueSize = Context.getTypeSize(valueType);
-    uint64_t atomicSize = Context.getTypeSize(Ty);
+    uint64_t const valueSize = Context.getTypeSize(valueType);
+    uint64_t const atomicSize = Context.getTypeSize(Ty);
     if (valueSize != atomicSize) {
       assert(valueSize < atomicSize);
-      llvm::Type *elts[] = {
+      llvm::Type *const elts[] = {
         ResultType,
         llvm::ArrayType::get(CGM.Int8Ty, (atomicSize - valueSize) / 8)
       };
@@ -834,7 +834,7 @@ llvm::StructType *CodeGenTypes::ConvertRecordDeclType(const RecordDecl *RD) {
   }
 
   // Okay, this is a definition of a type.  Compile the implementation now.
-  bool InsertResult = RecordsBeingLaidOut.insert(Key).second;
+  bool const InsertResult = RecordsBeingLaidOut.insert(Key).second;
   (void)InsertResult;
   assert(InsertResult && "Recursively compiling a struct?");
 
@@ -851,7 +851,7 @@ llvm::StructType *CodeGenTypes::ConvertRecordDeclType(const RecordDecl *RD) {
   CGRecordLayouts[Key] = std::move(Layout);
 
   // We're done laying out this struct.
-  bool EraseResult = RecordsBeingLaidOut.erase(Key); (void)EraseResult;
+  bool const EraseResult = RecordsBeingLaidOut.erase(Key); (void)EraseResult;
   assert(EraseResult && "struct not in RecordsBeingLaidOut set?");
 
   // If this struct blocked a FunctionType conversion, then recompute whatever

@@ -46,7 +46,7 @@ bool BuiltinFunctionChecker::evalCall(const CallEvent &Call,
 
   case Builtin::BI__builtin_assume: {
     assert (Call.getNumArgs() > 0);
-    SVal Arg = Call.getArgSVal(0);
+    SVal const Arg = Call.getArgSVal(0);
     if (Arg.isUndef())
       return true; // Return true to model purity.
 
@@ -73,7 +73,7 @@ bool BuiltinFunctionChecker::evalCall(const CallEvent &Call,
     // __builtin_addressof is going from a reference to a pointer, but those
     // are represented the same way in the analyzer.
     assert (Call.getNumArgs() > 0);
-    SVal Arg = Call.getArgSVal(0);
+    SVal const Arg = Call.getArgSVal(0);
     C.addTransition(state->BindExpr(CE, LCtx, Arg));
     return true;
   }
@@ -110,7 +110,7 @@ bool BuiltinFunctionChecker::evalCall(const CallEvent &Call,
     if (CE->EvaluateAsInt(EVResult, C.getASTContext(), Expr::SE_NoSideEffects)) {
       // Make sure the result has the correct type.
       llvm::APSInt Result = EVResult.Val.getInt();
-      BasicValueFactory &BVF = SVB.getBasicValueFactory();
+      BasicValueFactory  const&BVF = SVB.getBasicValueFactory();
       BVF.getAPSIntType(CE->getType()).apply(Result);
       V = SVB.makeIntVal(Result);
     }

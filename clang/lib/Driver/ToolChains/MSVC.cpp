@@ -87,7 +87,7 @@ static std::string getHighestNumericTupleInDirectory(llvm::vfs::FileSystem &VFS,
     auto Status = VFS.status(DirIt->path());
     if (!Status || !Status->isDirectory())
       continue;
-    StringRef CandidateName = llvm::sys::path::filename(DirIt->path());
+    StringRef const CandidateName = llvm::sys::path::filename(DirIt->path());
     llvm::VersionTuple Tuple;
     if (Tuple.tryParse(CandidateName)) // tryParse() returns true on error.
       continue;
@@ -160,7 +160,7 @@ findVCToolChainViaEnvironment(llvm::vfs::FileSystem &VFS, std::string &Path,
           llvm::sys::Process::GetEnv("PATH")) {
     llvm::SmallVector<llvm::StringRef, 8> PathEntries;
     llvm::StringRef(*PathEnv).split(PathEntries, llvm::sys::EnvPathSeparator);
-    for (llvm::StringRef PathEntry : PathEntries) {
+    for (llvm::StringRef const PathEntry : PathEntries) {
       if (PathEntry.empty())
         continue;
 
@@ -189,8 +189,8 @@ findVCToolChainViaEnvironment(llvm::vfs::FileSystem &VFS, std::string &Path,
         IsBin = llvm::sys::path::filename(TestPath).equals_insensitive("bin");
       }
       if (IsBin) {
-        llvm::StringRef ParentPath = llvm::sys::path::parent_path(TestPath);
-        llvm::StringRef ParentFilename = llvm::sys::path::filename(ParentPath);
+        llvm::StringRef const ParentPath = llvm::sys::path::parent_path(TestPath);
+        llvm::StringRef const ParentFilename = llvm::sys::path::filename(ParentPath);
         if (ParentFilename.equals_insensitive("VC")) {
           Path = std::string(ParentPath);
           VSLayout = MSVCToolChain::ToolsetLayout::OlderVS;
@@ -210,12 +210,12 @@ findVCToolChainViaEnvironment(llvm::vfs::FileSystem &VFS, std::string &Path,
         // path components with these prefixes when walking backwards through
         // the path.
         // Note: empty strings match anything.
-        llvm::StringRef ExpectedPrefixes[] = {"",     "Host",  "bin", "",
+        llvm::StringRef const ExpectedPrefixes[] = {"",     "Host",  "bin", "",
                                               "MSVC", "Tools", "VC"};
 
         auto It = llvm::sys::path::rbegin(PathEntry);
         auto End = llvm::sys::path::rend(PathEntry);
-        for (llvm::StringRef Prefix : ExpectedPrefixes) {
+        for (llvm::StringRef const Prefix : ExpectedPrefixes) {
           if (It == End)
             goto NotAToolChain;
           if (!It->startswith_insensitive(Prefix))
@@ -444,14 +444,14 @@ void visualstudio::Linker::ConstructJob(Compilation &C, const JobAction &JA,
 
   // Pass on /Brepro if it was passed to the compiler.
   // Note that /Brepro maps to -mno-incremental-linker-compatible.
-  bool DefaultIncrementalLinkerCompatible =
+  bool const DefaultIncrementalLinkerCompatible =
       C.getDefaultToolChain().getTriple().isWindowsMSVCEnvironment();
   if (!Args.hasFlag(options::OPT_mincremental_linker_compatible,
                     options::OPT_mno_incremental_linker_compatible,
                     DefaultIncrementalLinkerCompatible))
     CmdArgs.push_back("-Brepro");
 
-  bool DLL = Args.hasArg(options::OPT__SLASH_LD, options::OPT__SLASH_LDd,
+  bool const DLL = Args.hasArg(options::OPT__SLASH_LD, options::OPT__SLASH_LDd,
                          options::OPT_shared);
   if (DLL) {
     CmdArgs.push_back(Args.MakeArgString("-dll"));
@@ -507,7 +507,7 @@ void visualstudio::Linker::ConstructJob(Compilation &C, const JobAction &JA,
 
   // Control Flow Guard checks
   if (Arg *A = Args.getLastArg(options::OPT__SLASH_guard)) {
-    StringRef GuardArgs = A->getValue();
+    StringRef const GuardArgs = A->getValue();
     if (GuardArgs.equals_insensitive("cf") ||
         GuardArgs.equals_insensitive("cf,nochecks")) {
       // MSVC doesn't yet support the "nochecks" modifier.
@@ -559,7 +559,7 @@ void visualstudio::Linker::ConstructJob(Compilation &C, const JobAction &JA,
 
     // Render -l options differently for the MSVC linker.
     if (A.getOption().matches(options::OPT_l)) {
-      StringRef Lib = A.getValue();
+      StringRef const Lib = A.getValue();
       const char *LinkLibArg;
       if (Lib.endswith(".lib"))
         LinkLibArg = Args.MakeArgString(Lib);
@@ -576,7 +576,7 @@ void visualstudio::Linker::ConstructJob(Compilation &C, const JobAction &JA,
 
   TC.addProfileRTLibs(Args, CmdArgs);
 
-  std::vector<const char *> Environment;
+  std::vector<const char *> const Environment;
 
   // We need to special case some linker paths.  In the case of lld, we need to
   // translate 'lld' into 'lld-link', and in the case of the regular msvc
@@ -1068,7 +1068,7 @@ static bool getWindowsSDKDir(llvm::vfs::FileSystem &VFS, const ArgList &Args,
     // Windows SDK 8.x installs libraries in a folder whose names depend on the
     // version of the OS you're targeting.  By default choose the newest, which
     // usually corresponds to the version of the OS you've installed the SDK on.
-    const char *Tests[] = {"winv6.3", "win8", "win7"};
+    const char *const Tests[] = {"winv6.3", "win8", "win7"};
     for (const char *Test : Tests) {
       llvm::SmallString<128> TestPath(Path);
       llvm::sys::path::append(TestPath, "Lib", Test);
@@ -1167,7 +1167,7 @@ bool MSVCToolChain::getUniversalCRTLibraryPath(const ArgList &Args,
   if (!getUniversalCRTSdkDir(getVFS(), Args, UniversalCRTSdkPath, UCRTVersion))
     return false;
 
-  StringRef ArchName = llvmArchToWindowsSDKArch(getArch());
+  StringRef const ArchName = llvmArchToWindowsSDKArch(getArch());
   if (ArchName.empty())
     return false;
 
@@ -1342,7 +1342,7 @@ void MSVCToolChain::AddClangCXXStdlibIncludeArgs(const ArgList &DriverArgs,
 
 VersionTuple MSVCToolChain::computeMSVCVersion(const Driver *D,
                                                const ArgList &Args) const {
-  bool IsWindowsMSVC = getTriple().isWindowsMSVCEnvironment();
+  bool const IsWindowsMSVC = getTriple().isWindowsMSVCEnvironment();
   VersionTuple MSVT = ToolChain::computeMSVCVersion(D, Args);
   if (MSVT.empty())
     MSVT = getMSVCVersionFromTriple(getTriple());
@@ -1370,7 +1370,7 @@ MSVCToolChain::ComputeEffectiveClangTriple(const ArgList &Args,
   // be needed.
   llvm::Triple Triple(ToolChain::ComputeEffectiveClangTriple(Args, InputType));
   if (Triple.getEnvironment() == llvm::Triple::MSVC) {
-    StringRef ObjFmt = Triple.getEnvironmentName().split('-').second;
+    StringRef const ObjFmt = Triple.getEnvironmentName().split('-').second;
     if (ObjFmt.empty())
       Triple.setEnvironmentName((Twine("msvc") + MSVT.getAsString()).str());
     else
@@ -1396,7 +1396,7 @@ static void TranslateOptArg(Arg *A, llvm::opt::DerivedArgList &DAL,
                             const char *ExpandChar, const OptTable &Opts) {
   assert(A->getOption().matches(options::OPT__SLASH_O));
 
-  StringRef OptStr = A->getValue();
+  StringRef const OptStr = A->getValue();
   for (size_t I = 0, E = OptStr.size(); I != E; ++I) {
     const char &OptChar = *(OptStr.data() + I);
     switch (OptChar) {
@@ -1491,8 +1491,8 @@ static void TranslateDArg(Arg *A, llvm::opt::DerivedArgList &DAL,
                           const OptTable &Opts) {
   assert(A->getOption().matches(options::OPT_D));
 
-  StringRef Val = A->getValue();
-  size_t Hash = Val.find('#');
+  StringRef const Val = A->getValue();
+  size_t const Hash = Val.find('#');
   if (Hash == StringRef::npos || Hash > Val.find('=')) {
     DAL.append(A);
     return;
@@ -1523,7 +1523,7 @@ MSVCToolChain::TranslateArgs(const llvm::opt::DerivedArgList &Args,
   const OptTable &Opts = getDriver().getOpts();
 
   // /Oy and /Oy- don't have an effect on X86-64
-  bool SupportsForcingFramePointer = getArch() != llvm::Triple::x86_64;
+  bool const SupportsForcingFramePointer = getArch() != llvm::Triple::x86_64;
 
   // The -O[12xd] flag actually expands to several flags.  We must desugar the
   // flags so that options embedded can be negated.  For example, the '-O2' flag
@@ -1536,10 +1536,10 @@ MSVCToolChain::TranslateArgs(const llvm::opt::DerivedArgList &Args,
   // First step is to search for the character we'd like to expand.
   const char *ExpandChar = nullptr;
   for (Arg *A : Args.filtered(options::OPT__SLASH_O)) {
-    StringRef OptStr = A->getValue();
+    StringRef const OptStr = A->getValue();
     for (size_t I = 0, E = OptStr.size(); I != E; ++I) {
-      char OptChar = OptStr[I];
-      char PrevChar = I > 0 ? OptStr[I - 1] : '0';
+      char const OptChar = OptStr[I];
+      char const PrevChar = I > 0 ? OptStr[I - 1] : '0';
       if (PrevChar == 'b') {
         // OptChar does not expand; it's an argument to the previous char.
         continue;

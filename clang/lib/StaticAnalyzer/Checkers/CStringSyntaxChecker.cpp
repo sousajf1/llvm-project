@@ -179,7 +179,7 @@ bool WalkAST::containsBadStrlcpyStrlcatPattern(const CallExpr *CE) {
   // We try to figure out if the last argument is possibly longer
   // than the destination can possibly handle if its size can be defined.
   if (const auto *IL = dyn_cast<IntegerLiteral>(LenArg->IgnoreParenImpCasts())) {
-    uint64_t ILRawVal = IL->getValue().getZExtValue();
+    uint64_t const ILRawVal = IL->getValue().getZExtValue();
 
     // Case when there is pointer arithmetic on the destination buffer
     // especially when we offset from the base decreasing the
@@ -198,8 +198,8 @@ bool WalkAST::containsBadStrlcpyStrlcatPattern(const CallExpr *CE) {
     if (DstArgDRE) {
       if (const auto *Buffer =
               dyn_cast<ConstantArrayType>(DstArgDRE->getType())) {
-        ASTContext &C = BR.getContext();
-        uint64_t BufferLen = C.getTypeSize(Buffer) / 8;
+        ASTContext  const&C = BR.getContext();
+        uint64_t const BufferLen = C.getTypeSize(Buffer) / 8;
         auto RemainingBufferLen = BufferLen - DstOff;
         if (RemainingBufferLen < ILRawVal)
           return true;
@@ -219,10 +219,10 @@ void WalkAST::VisitCallExpr(CallExpr *CE) {
     if (containsBadStrncatPattern(CE)) {
       const Expr *DstArg = CE->getArg(0);
       const Expr *LenArg = CE->getArg(2);
-      PathDiagnosticLocation Loc =
+      PathDiagnosticLocation const Loc =
         PathDiagnosticLocation::createBegin(LenArg, BR.getSourceManager(), AC);
 
-      StringRef DstName = getPrintableName(DstArg);
+      StringRef const DstName = getPrintableName(DstArg);
 
       SmallString<256> S;
       llvm::raw_svector_ostream os(S);
@@ -244,10 +244,10 @@ void WalkAST::VisitCallExpr(CallExpr *CE) {
     if (containsBadStrlcpyStrlcatPattern(CE)) {
       const Expr *DstArg = CE->getArg(0);
       const Expr *LenArg = CE->getArg(2);
-      PathDiagnosticLocation Loc =
+      PathDiagnosticLocation const Loc =
         PathDiagnosticLocation::createBegin(LenArg, BR.getSourceManager(), AC);
 
-      StringRef DstName = getPrintableName(DstArg);
+      StringRef const DstName = getPrintableName(DstArg);
 
       SmallString<256> S;
       llvm::raw_svector_ostream os(S);

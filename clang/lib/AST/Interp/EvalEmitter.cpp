@@ -55,7 +55,7 @@ Scope::Local EvalEmitter::createLocal(Descriptor *D) {
   B->invokeCtor();
 
   // Register the local.
-  unsigned Off = Locals.size();
+  unsigned const Off = Locals.size();
   Locals.insert({Off, std::move(Memory)});
   return {Off, D};
 }
@@ -121,7 +121,7 @@ bool EvalEmitter::emitRetValue(const SourceInfo &Info) {
         APValue Value;
         for (auto &F : Record->fields()) {
           const Pointer &FP = Ptr.atField(F.Offset);
-          QualType FieldTy = F.Decl->getType();
+          QualType const FieldTy = F.Decl->getType();
           if (FP.isActive()) {
             if (llvm::Optional<PrimType> T = Ctx.classify(FieldTy)) {
               TYPE_SWITCH(*T, Ok &= ReturnValue<T>(FP.deref<T>(), Value));
@@ -133,15 +133,15 @@ bool EvalEmitter::emitRetValue(const SourceInfo &Info) {
         }
         R = APValue(ActiveField, Value);
       } else {
-        unsigned NF = Record->getNumFields();
-        unsigned NB = Record->getNumBases();
-        unsigned NV = Ptr.isBaseClass() ? 0 : Record->getNumVirtualBases();
+        unsigned const NF = Record->getNumFields();
+        unsigned const NB = Record->getNumBases();
+        unsigned const NV = Ptr.isBaseClass() ? 0 : Record->getNumVirtualBases();
 
         R = APValue(APValue::UninitStruct(), NB, NF);
 
         for (unsigned I = 0; I < NF; ++I) {
           const Record::Field *FD = Record->getField(I);
-          QualType FieldTy = FD->Decl->getType();
+          QualType const FieldTy = FD->Decl->getType();
           const Pointer &FP = Ptr.atField(FD->Offset);
           APValue &Value = R.getStructField(I);
 
@@ -154,14 +154,14 @@ bool EvalEmitter::emitRetValue(const SourceInfo &Info) {
 
         for (unsigned I = 0; I < NB; ++I) {
           const Record::Base *BD = Record->getBase(I);
-          QualType BaseTy = Ctx.getASTContext().getRecordType(BD->Decl);
+          QualType const BaseTy = Ctx.getASTContext().getRecordType(BD->Decl);
           const Pointer &BP = Ptr.atField(BD->Offset);
           Ok &= Composite(BaseTy, BP, R.getStructBase(I));
         }
 
         for (unsigned I = 0; I < NV; ++I) {
           const Record::Base *VD = Record->getVirtualBase(I);
-          QualType VirtBaseTy = Ctx.getASTContext().getRecordType(VD->Decl);
+          QualType const VirtBaseTy = Ctx.getASTContext().getRecordType(VD->Decl);
           const Pointer &VP = Ptr.atField(VD->Offset);
           Ok &= Composite(VirtBaseTy, VP, R.getStructBase(NB + I));
         }
@@ -170,7 +170,7 @@ bool EvalEmitter::emitRetValue(const SourceInfo &Info) {
     }
     if (auto *AT = Ty->getAsArrayTypeUnsafe()) {
       const size_t NumElems = Ptr.getNumElems();
-      QualType ElemTy = AT->getElementType();
+      QualType const ElemTy = AT->getElementType();
       R = APValue(APValue::UninitArray{}, NumElems, NumElems);
 
       bool Ok = true;

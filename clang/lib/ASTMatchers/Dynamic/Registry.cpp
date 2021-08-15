@@ -622,7 +622,7 @@ static llvm::raw_ostream &operator<<(llvm::raw_ostream &OS,
 
 std::vector<ArgKind> Registry::getAcceptedCompletionTypes(
     ArrayRef<std::pair<MatcherCtor, unsigned>> Context) {
-  ASTNodeKind InitialTypes[] = {
+  ASTNodeKind const InitialTypes[] = {
       ASTNodeKind::getFromNodeKind<Decl>(),
       ASTNodeKind::getFromNodeKind<QualType>(),
       ASTNodeKind::getFromNodeKind<Type>(),
@@ -639,7 +639,7 @@ std::vector<ArgKind> Registry::getAcceptedCompletionTypes(
   }
   for (const auto &CtxEntry : Context) {
     MatcherCtor Ctor = CtxEntry.first;
-    unsigned ArgNumber = CtxEntry.second;
+    unsigned const ArgNumber = CtxEntry.second;
     std::vector<ArgKind> NextTypeSet;
     for (const ArgKind &Kind : TypeSet) {
       if (Kind.getArgKind() == Kind.AK_Matcher &&
@@ -660,11 +660,11 @@ Registry::getMatcherCompletions(ArrayRef<ArgKind> AcceptedTypes) {
   // Search the registry for acceptable matchers.
   for (const auto &M : RegistryData->constructors()) {
     const MatcherDescriptor& Matcher = *M.getValue();
-    StringRef Name = M.getKey();
+    StringRef const Name = M.getKey();
 
     std::set<ASTNodeKind> RetKinds;
-    unsigned NumArgs = Matcher.isVariadic() ? 1 : Matcher.getNumArgs();
-    bool IsPolymorphic = Matcher.isPolymorphic();
+    unsigned const NumArgs = Matcher.isVariadic() ? 1 : Matcher.getNumArgs();
+    bool const IsPolymorphic = Matcher.isPolymorphic();
     std::vector<std::vector<ArgKind>> ArgsKinds(NumArgs);
     unsigned MaxSpecificity = 0;
     bool NodeArgs = false;

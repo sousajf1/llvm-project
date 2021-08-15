@@ -173,7 +173,7 @@ static SplitQualType splitAccordingToPolicy(QualType QT,
 }
 
 void TypePrinter::print(QualType t, raw_ostream &OS, StringRef PlaceHolder) {
-  SplitQualType split = splitAccordingToPolicy(t, Policy);
+  SplitQualType const split = splitAccordingToPolicy(t, Policy);
   print(split.Ty, split.Quals, OS, PlaceHolder);
 }
 
@@ -184,7 +184,7 @@ void TypePrinter::print(const Type *T, Qualifiers Quals, raw_ostream &OS,
     return;
   }
 
-  SaveAndRestore<bool> PHVal(HasEmptyPlaceHolder, PlaceHolder.empty());
+  SaveAndRestore<bool> const PHVal(HasEmptyPlaceHolder, PlaceHolder.empty());
 
   printBefore(T, Quals, OS);
   OS << PlaceHolder;
@@ -283,7 +283,7 @@ bool TypePrinter::canPrefixQualifiers(const Type *T,
 }
 
 void TypePrinter::printBefore(QualType T, raw_ostream &OS) {
-  SplitQualType Split = splitAccordingToPolicy(T, Policy);
+  SplitQualType const Split = splitAccordingToPolicy(T, Policy);
 
   // If we have cv1 T, where T is substituted for cv2 U, only print cv1 - cv2
   // at this level.
@@ -310,7 +310,7 @@ void TypePrinter::printBefore(const Type *T,Qualifiers Quals, raw_ostream &OS) {
 
   if (CanPrefixQualifiers && !Quals.empty()) {
     if (NeedARCStrongQualifier) {
-      IncludeStrongLifetimeRAII Strong(Policy);
+      IncludeStrongLifetimeRAII const Strong(Policy);
       Quals.print(OS, Policy, /*appendSpaceIfNonEmpty=*/true);
     } else {
       Quals.print(OS, Policy, /*appendSpaceIfNonEmpty=*/true);
@@ -334,7 +334,7 @@ void TypePrinter::printBefore(const Type *T,Qualifiers Quals, raw_ostream &OS) {
 
   if (hasAfterQuals) {
     if (NeedARCStrongQualifier) {
-      IncludeStrongLifetimeRAII Strong(Policy);
+      IncludeStrongLifetimeRAII const Strong(Policy);
       Quals.print(OS, Policy, /*appendSpaceIfNonEmpty=*/!PrevPHIsEmpty.get());
     } else {
       Quals.print(OS, Policy, /*appendSpaceIfNonEmpty=*/!PrevPHIsEmpty.get());
@@ -343,7 +343,7 @@ void TypePrinter::printBefore(const Type *T,Qualifiers Quals, raw_ostream &OS) {
 }
 
 void TypePrinter::printAfter(QualType t, raw_ostream &OS) {
-  SplitQualType split = splitAccordingToPolicy(t, Policy);
+  SplitQualType const split = splitAccordingToPolicy(t, Policy);
   printAfter(split.Ty, split.Quals, OS);
 }
 
@@ -376,8 +376,8 @@ void TypePrinter::printComplexAfter(const ComplexType *T, raw_ostream &OS) {
 }
 
 void TypePrinter::printPointerBefore(const PointerType *T, raw_ostream &OS) {
-  IncludeStrongLifetimeRAII Strong(Policy);
-  SaveAndRestore<bool> NonEmptyPH(HasEmptyPlaceHolder, false);
+  IncludeStrongLifetimeRAII const Strong(Policy);
+  SaveAndRestore<bool> const NonEmptyPH(HasEmptyPlaceHolder, false);
   printBefore(T->getPointeeType(), OS);
   // Handle things like 'int (*A)[4];' correctly.
   // FIXME: this should include vectors, but vectors use attributes I guess.
@@ -387,8 +387,8 @@ void TypePrinter::printPointerBefore(const PointerType *T, raw_ostream &OS) {
 }
 
 void TypePrinter::printPointerAfter(const PointerType *T, raw_ostream &OS) {
-  IncludeStrongLifetimeRAII Strong(Policy);
-  SaveAndRestore<bool> NonEmptyPH(HasEmptyPlaceHolder, false);
+  IncludeStrongLifetimeRAII const Strong(Policy);
+  SaveAndRestore<bool> const NonEmptyPH(HasEmptyPlaceHolder, false);
   // Handle things like 'int (*A)[4];' correctly.
   // FIXME: this should include vectors, but vectors use attributes I guess.
   if (isa<ArrayType>(T->getPointeeType()))
@@ -398,14 +398,14 @@ void TypePrinter::printPointerAfter(const PointerType *T, raw_ostream &OS) {
 
 void TypePrinter::printBlockPointerBefore(const BlockPointerType *T,
                                           raw_ostream &OS) {
-  SaveAndRestore<bool> NonEmptyPH(HasEmptyPlaceHolder, false);
+  SaveAndRestore<bool> const NonEmptyPH(HasEmptyPlaceHolder, false);
   printBefore(T->getPointeeType(), OS);
   OS << '^';
 }
 
 void TypePrinter::printBlockPointerAfter(const BlockPointerType *T,
                                           raw_ostream &OS) {
-  SaveAndRestore<bool> NonEmptyPH(HasEmptyPlaceHolder, false);
+  SaveAndRestore<bool> const NonEmptyPH(HasEmptyPlaceHolder, false);
   printAfter(T->getPointeeType(), OS);
 }
 
@@ -419,9 +419,9 @@ static QualType skipTopLevelReferences(QualType T) {
 
 void TypePrinter::printLValueReferenceBefore(const LValueReferenceType *T,
                                              raw_ostream &OS) {
-  IncludeStrongLifetimeRAII Strong(Policy);
-  SaveAndRestore<bool> NonEmptyPH(HasEmptyPlaceHolder, false);
-  QualType Inner = skipTopLevelReferences(T->getPointeeTypeAsWritten());
+  IncludeStrongLifetimeRAII const Strong(Policy);
+  SaveAndRestore<bool> const NonEmptyPH(HasEmptyPlaceHolder, false);
+  QualType const Inner = skipTopLevelReferences(T->getPointeeTypeAsWritten());
   printBefore(Inner, OS);
   // Handle things like 'int (&A)[4];' correctly.
   // FIXME: this should include vectors, but vectors use attributes I guess.
@@ -432,9 +432,9 @@ void TypePrinter::printLValueReferenceBefore(const LValueReferenceType *T,
 
 void TypePrinter::printLValueReferenceAfter(const LValueReferenceType *T,
                                             raw_ostream &OS) {
-  IncludeStrongLifetimeRAII Strong(Policy);
-  SaveAndRestore<bool> NonEmptyPH(HasEmptyPlaceHolder, false);
-  QualType Inner = skipTopLevelReferences(T->getPointeeTypeAsWritten());
+  IncludeStrongLifetimeRAII const Strong(Policy);
+  SaveAndRestore<bool> const NonEmptyPH(HasEmptyPlaceHolder, false);
+  QualType const Inner = skipTopLevelReferences(T->getPointeeTypeAsWritten());
   // Handle things like 'int (&A)[4];' correctly.
   // FIXME: this should include vectors, but vectors use attributes I guess.
   if (isa<ArrayType>(Inner))
@@ -444,9 +444,9 @@ void TypePrinter::printLValueReferenceAfter(const LValueReferenceType *T,
 
 void TypePrinter::printRValueReferenceBefore(const RValueReferenceType *T,
                                              raw_ostream &OS) {
-  IncludeStrongLifetimeRAII Strong(Policy);
-  SaveAndRestore<bool> NonEmptyPH(HasEmptyPlaceHolder, false);
-  QualType Inner = skipTopLevelReferences(T->getPointeeTypeAsWritten());
+  IncludeStrongLifetimeRAII const Strong(Policy);
+  SaveAndRestore<bool> const NonEmptyPH(HasEmptyPlaceHolder, false);
+  QualType const Inner = skipTopLevelReferences(T->getPointeeTypeAsWritten());
   printBefore(Inner, OS);
   // Handle things like 'int (&&A)[4];' correctly.
   // FIXME: this should include vectors, but vectors use attributes I guess.
@@ -457,9 +457,9 @@ void TypePrinter::printRValueReferenceBefore(const RValueReferenceType *T,
 
 void TypePrinter::printRValueReferenceAfter(const RValueReferenceType *T,
                                             raw_ostream &OS) {
-  IncludeStrongLifetimeRAII Strong(Policy);
-  SaveAndRestore<bool> NonEmptyPH(HasEmptyPlaceHolder, false);
-  QualType Inner = skipTopLevelReferences(T->getPointeeTypeAsWritten());
+  IncludeStrongLifetimeRAII const Strong(Policy);
+  SaveAndRestore<bool> const NonEmptyPH(HasEmptyPlaceHolder, false);
+  QualType const Inner = skipTopLevelReferences(T->getPointeeTypeAsWritten());
   // Handle things like 'int (&&A)[4];' correctly.
   // FIXME: this should include vectors, but vectors use attributes I guess.
   if (isa<ArrayType>(Inner))
@@ -469,8 +469,8 @@ void TypePrinter::printRValueReferenceAfter(const RValueReferenceType *T,
 
 void TypePrinter::printMemberPointerBefore(const MemberPointerType *T,
                                            raw_ostream &OS) {
-  IncludeStrongLifetimeRAII Strong(Policy);
-  SaveAndRestore<bool> NonEmptyPH(HasEmptyPlaceHolder, false);
+  IncludeStrongLifetimeRAII const Strong(Policy);
+  SaveAndRestore<bool> const NonEmptyPH(HasEmptyPlaceHolder, false);
   printBefore(T->getPointeeType(), OS);
   // Handle things like 'int (Cls::*A)[4];' correctly.
   // FIXME: this should include vectors, but vectors use attributes I guess.
@@ -486,8 +486,8 @@ void TypePrinter::printMemberPointerBefore(const MemberPointerType *T,
 
 void TypePrinter::printMemberPointerAfter(const MemberPointerType *T,
                                           raw_ostream &OS) {
-  IncludeStrongLifetimeRAII Strong(Policy);
-  SaveAndRestore<bool> NonEmptyPH(HasEmptyPlaceHolder, false);
+  IncludeStrongLifetimeRAII const Strong(Policy);
+  SaveAndRestore<bool> const NonEmptyPH(HasEmptyPlaceHolder, false);
   // Handle things like 'int (Cls::*A)[4];' correctly.
   // FIXME: this should include vectors, but vectors use attributes I guess.
   if (isa<ArrayType>(T->getPointeeType()))
@@ -497,8 +497,8 @@ void TypePrinter::printMemberPointerAfter(const MemberPointerType *T,
 
 void TypePrinter::printConstantArrayBefore(const ConstantArrayType *T,
                                            raw_ostream &OS) {
-  IncludeStrongLifetimeRAII Strong(Policy);
-  SaveAndRestore<bool> NonEmptyPH(HasEmptyPlaceHolder, false);
+  IncludeStrongLifetimeRAII const Strong(Policy);
+  SaveAndRestore<bool> const NonEmptyPH(HasEmptyPlaceHolder, false);
   printBefore(T->getElementType(), OS);
 }
 
@@ -520,8 +520,8 @@ void TypePrinter::printConstantArrayAfter(const ConstantArrayType *T,
 
 void TypePrinter::printIncompleteArrayBefore(const IncompleteArrayType *T,
                                              raw_ostream &OS) {
-  IncludeStrongLifetimeRAII Strong(Policy);
-  SaveAndRestore<bool> NonEmptyPH(HasEmptyPlaceHolder, false);
+  IncludeStrongLifetimeRAII const Strong(Policy);
+  SaveAndRestore<bool> const NonEmptyPH(HasEmptyPlaceHolder, false);
   printBefore(T->getElementType(), OS);
 }
 
@@ -533,8 +533,8 @@ void TypePrinter::printIncompleteArrayAfter(const IncompleteArrayType *T,
 
 void TypePrinter::printVariableArrayBefore(const VariableArrayType *T,
                                            raw_ostream &OS) {
-  IncludeStrongLifetimeRAII Strong(Policy);
-  SaveAndRestore<bool> NonEmptyPH(HasEmptyPlaceHolder, false);
+  IncludeStrongLifetimeRAII const Strong(Policy);
+  SaveAndRestore<bool> const NonEmptyPH(HasEmptyPlaceHolder, false);
   printBefore(T->getElementType(), OS);
 }
 
@@ -580,8 +580,8 @@ void TypePrinter::printDecayedAfter(const DecayedType *T, raw_ostream &OS) {
 void TypePrinter::printDependentSizedArrayBefore(
                                                const DependentSizedArrayType *T,
                                                raw_ostream &OS) {
-  IncludeStrongLifetimeRAII Strong(Policy);
-  SaveAndRestore<bool> NonEmptyPH(HasEmptyPlaceHolder, false);
+  IncludeStrongLifetimeRAII const Strong(Policy);
+  SaveAndRestore<bool> const NonEmptyPH(HasEmptyPlaceHolder, false);
   printBefore(T->getElementType(), OS);
 }
 
@@ -861,11 +861,11 @@ void TypePrinter::printFunctionProtoAfter(const FunctionProtoType *T,
   // If needed for precedence reasons, wrap the inner part in grouping parens.
   if (!HasEmptyPlaceHolder)
     OS << ')';
-  SaveAndRestore<bool> NonEmptyPH(HasEmptyPlaceHolder, false);
+  SaveAndRestore<bool> const NonEmptyPH(HasEmptyPlaceHolder, false);
 
   OS << '(';
   {
-    ParamPolicyRAII ParamPolicy(Policy);
+    ParamPolicyRAII const ParamPolicy(Policy);
     for (unsigned i = 0, e = T->getNumParams(); i != e; ++i) {
       if (i) OS << ", ";
 
@@ -892,7 +892,7 @@ void TypePrinter::printFunctionProtoAfter(const FunctionProtoType *T,
 
   OS << ')';
 
-  FunctionType::ExtInfo Info = T->getExtInfo();
+  FunctionType::ExtInfo const Info = T->getExtInfo();
 
   printFunctionAfter(Info, OS);
 
@@ -1017,7 +1017,7 @@ void TypePrinter::printFunctionNoProtoAfter(const FunctionNoProtoType *T,
   // If needed for precedence reasons, wrap the inner part in grouping parens.
   if (!HasEmptyPlaceHolder)
     OS << ')';
-  SaveAndRestore<bool> NonEmptyPH(HasEmptyPlaceHolder, false);
+  SaveAndRestore<bool> const NonEmptyPH(HasEmptyPlaceHolder, false);
 
   OS << "()";
   printFunctionAfter(T->getExtInfo(), OS);
@@ -1051,7 +1051,7 @@ void TypePrinter::printTypedefBefore(const TypedefType *T, raw_ostream &OS) {
 
 void TypePrinter::printMacroQualifiedBefore(const MacroQualifiedType *T,
                                             raw_ostream &OS) {
-  StringRef MacroName = T->getMacroIdentifier()->getName();
+  StringRef const MacroName = T->getMacroIdentifier()->getName();
   OS << MacroName << " ";
 
   // Since this type is meant to print the macro instead of the whole attribute,
@@ -1098,7 +1098,7 @@ void TypePrinter::printDecltypeAfter(const DecltypeType *T, raw_ostream &OS) {}
 
 void TypePrinter::printUnaryTransformBefore(const UnaryTransformType *T,
                                             raw_ostream &OS) {
-  IncludeStrongLifetimeRAII Strong(Policy);
+  IncludeStrongLifetimeRAII const Strong(Policy);
 
   switch (T->getUTTKind()) {
     case UnaryTransformType::EnumUnderlyingType:
@@ -1114,7 +1114,7 @@ void TypePrinter::printUnaryTransformBefore(const UnaryTransformType *T,
 
 void TypePrinter::printUnaryTransformAfter(const UnaryTransformType *T,
                                            raw_ostream &OS) {
-  IncludeStrongLifetimeRAII Strong(Policy);
+  IncludeStrongLifetimeRAII const Strong(Policy);
 
   switch (T->getUTTKind()) {
     case UnaryTransformType::EnumUnderlyingType:
@@ -1161,7 +1161,7 @@ void TypePrinter::printDeducedTemplateSpecializationBefore(
   if (!T->getDeducedType().isNull()) {
     printBefore(T->getDeducedType(), OS);
   } else {
-    IncludeStrongLifetimeRAII Strong(Policy);
+    IncludeStrongLifetimeRAII const Strong(Policy);
     T->getTemplateName().print(OS, Policy);
     spaceBeforePlaceHolder(OS);
   }
@@ -1175,7 +1175,7 @@ void TypePrinter::printDeducedTemplateSpecializationAfter(
 }
 
 void TypePrinter::printAtomicBefore(const AtomicType *T, raw_ostream &OS) {
-  IncludeStrongLifetimeRAII Strong(Policy);
+  IncludeStrongLifetimeRAII const Strong(Policy);
 
   OS << "_Atomic(";
   print(T->getValueType(), OS, StringRef());
@@ -1186,7 +1186,7 @@ void TypePrinter::printAtomicBefore(const AtomicType *T, raw_ostream &OS) {
 void TypePrinter::printAtomicAfter(const AtomicType *T, raw_ostream &OS) {}
 
 void TypePrinter::printPipeBefore(const PipeType *T, raw_ostream &OS) {
-  IncludeStrongLifetimeRAII Strong(Policy);
+  IncludeStrongLifetimeRAII const Strong(Policy);
 
   if (T->isReadOnly())
     OS << "read_only ";
@@ -1252,7 +1252,7 @@ void TypePrinter::AppendScope(DeclContext *DC, raw_ostream &OS,
       OS << "(anonymous namespace)::";
   } else if (const auto *Spec = dyn_cast<ClassTemplateSpecializationDecl>(DC)) {
     AppendScope(DC->getParent(), OS, Spec->getDeclName());
-    IncludeStrongLifetimeRAII Strong(Policy);
+    IncludeStrongLifetimeRAII const Strong(Policy);
     OS << Spec->getIdentifier()->getName();
     const TemplateArgumentList &TemplateArgs = Spec->getTemplateArgs();
     printTemplateArgumentList(
@@ -1323,11 +1323,11 @@ void TypePrinter::printTag(TagDecl *D, raw_ostream &OS) {
       if (!HasKindDecoration)
         OS << " " << D->getKindName();
 
-      PresumedLoc PLoc = D->getASTContext().getSourceManager().getPresumedLoc(
+      PresumedLoc const PLoc = D->getASTContext().getSourceManager().getPresumedLoc(
           D->getLocation());
       if (PLoc.isValid()) {
         OS << " at ";
-        StringRef File = PLoc.getFilename();
+        StringRef const File = PLoc.getFilename();
         if (auto *Callbacks = Policy.Callbacks)
           OS << Callbacks->remapPath(File);
         else
@@ -1352,7 +1352,7 @@ void TypePrinter::printTag(TagDecl *D, raw_ostream &OS) {
       const TemplateArgumentList &TemplateArgs = Spec->getTemplateArgs();
       Args = TemplateArgs.asArray();
     }
-    IncludeStrongLifetimeRAII Strong(Policy);
+    IncludeStrongLifetimeRAII const Strong(Policy);
     printTemplateArgumentList(
         OS, Args, Policy,
         Spec->getSpecializedTemplate()->getTemplateParameters());
@@ -1412,34 +1412,34 @@ void TypePrinter::printTemplateTypeParmAfter(const TemplateTypeParmType *T,
 void TypePrinter::printSubstTemplateTypeParmBefore(
                                              const SubstTemplateTypeParmType *T,
                                              raw_ostream &OS) {
-  IncludeStrongLifetimeRAII Strong(Policy);
+  IncludeStrongLifetimeRAII const Strong(Policy);
   printBefore(T->getReplacementType(), OS);
 }
 
 void TypePrinter::printSubstTemplateTypeParmAfter(
                                              const SubstTemplateTypeParmType *T,
                                              raw_ostream &OS) {
-  IncludeStrongLifetimeRAII Strong(Policy);
+  IncludeStrongLifetimeRAII const Strong(Policy);
   printAfter(T->getReplacementType(), OS);
 }
 
 void TypePrinter::printSubstTemplateTypeParmPackBefore(
                                         const SubstTemplateTypeParmPackType *T,
                                         raw_ostream &OS) {
-  IncludeStrongLifetimeRAII Strong(Policy);
+  IncludeStrongLifetimeRAII const Strong(Policy);
   printTemplateTypeParmBefore(T->getReplacedParameter(), OS);
 }
 
 void TypePrinter::printSubstTemplateTypeParmPackAfter(
                                         const SubstTemplateTypeParmPackType *T,
                                         raw_ostream &OS) {
-  IncludeStrongLifetimeRAII Strong(Policy);
+  IncludeStrongLifetimeRAII const Strong(Policy);
   printTemplateTypeParmAfter(T->getReplacedParameter(), OS);
 }
 
 void TypePrinter::printTemplateId(const TemplateSpecializationType *T,
                                   raw_ostream &OS, bool FullyQualify) {
-  IncludeStrongLifetimeRAII Strong(Policy);
+  IncludeStrongLifetimeRAII const Strong(Policy);
 
   TemplateDecl *TD = T->getTemplateName().getAsTemplateDecl();
   if (FullyQualify && TD) {
@@ -1471,7 +1471,7 @@ void TypePrinter::printInjectedClassNameBefore(const InjectedClassNameType *T,
   if (Policy.PrintInjectedClassNameWithArguments)
     return printTemplateSpecializationBefore(T->getInjectedTST(), OS);
 
-  IncludeStrongLifetimeRAII Strong(Policy);
+  IncludeStrongLifetimeRAII const Strong(Policy);
   T->getTemplateName().print(OS, Policy);
   spaceBeforePlaceHolder(OS);
 }
@@ -1503,7 +1503,7 @@ void TypePrinter::printElaboratedBefore(const ElaboratedType *T,
       Qualifier->print(OS, Policy);
   }
 
-  ElaboratedTypePolicyRAII PolicyRAII(Policy);
+  ElaboratedTypePolicyRAII const PolicyRAII(Policy);
   printBefore(T->getNamedType(), OS);
 }
 
@@ -1511,7 +1511,7 @@ void TypePrinter::printElaboratedAfter(const ElaboratedType *T,
                                         raw_ostream &OS) {
   if (Policy.IncludeTagDefinition && T->getOwnedTagDecl())
     return;
-  ElaboratedTypePolicyRAII PolicyRAII(Policy);
+  ElaboratedTypePolicyRAII const PolicyRAII(Policy);
   printAfter(T->getNamedType(), OS);
 }
 
@@ -1548,7 +1548,7 @@ void TypePrinter::printDependentNameAfter(const DependentNameType *T,
 
 void TypePrinter::printDependentTemplateSpecializationBefore(
         const DependentTemplateSpecializationType *T, raw_ostream &OS) {
-  IncludeStrongLifetimeRAII Strong(Policy);
+  IncludeStrongLifetimeRAII const Strong(Policy);
 
   OS << TypeWithKeyword::getKeywordName(T->getKeyword());
   if (T->getKeyword() != ETK_None)
@@ -1630,7 +1630,7 @@ void TypePrinter::printAttributedAfter(const AttributedType *T,
 
   // If this is a calling convention attribute, don't print the implicit CC from
   // the modified type.
-  SaveAndRestore<bool> MaybeSuppressCC(InsideCCAttribute, T->isCallingConv());
+  SaveAndRestore<bool> const MaybeSuppressCC(InsideCCAttribute, T->isCallingConv());
 
   printAfter(T->getModifiedType(), OS);
 
@@ -1877,7 +1877,7 @@ static bool isSubstitutedType(ASTContext &Ctx, QualType T, QualType Pattern,
   if (auto *TTPT = Pattern->getAs<TemplateTypeParmType>()) {
     if (TTPT->getDepth() == Depth && TTPT->getIndex() < Args.size() &&
         Args[TTPT->getIndex()].getKind() == TemplateArgument::Type) {
-      QualType SubstArg = Ctx.getQualifiedType(
+      QualType const SubstArg = Ctx.getQualifiedType(
           Args[TTPT->getIndex()].getAsType(), Pattern.getQualifiers());
       return Ctx.hasSameType(SubstArg, T);
     }
@@ -1895,8 +1895,8 @@ static bool isSubstitutedType(ASTContext &Ctx, QualType T, QualType Pattern,
 
   // Recurse into pointer-like types.
   {
-    QualType TPointee = T->getPointeeType();
-    QualType PPointee = Pattern->getPointeeType();
+    QualType const TPointee = T->getPointeeType();
+    QualType const PPointee = Pattern->getPointeeType();
     if (!TPointee.isNull() && !PPointee.isNull())
       return T->getTypeClass() == Pattern->getTypeClass() &&
              isSubstitutedType(Ctx, TPointee, PPointee, Args, Depth);
@@ -2041,7 +2041,7 @@ static void printTo(raw_ostream &OS, ArrayRef<TA> Args,
           Arg, Policy, ArgOS,
           TemplateParameterList::shouldIncludeTypeForArgument(TPL, ParmIndex));
     }
-    StringRef ArgString = ArgOS.str();
+    StringRef const ArgString = ArgOS.str();
 
     // If this is the first argument and its string representation
     // begins with the global scope specifier ('::foo'), add a space
@@ -2091,7 +2091,7 @@ void clang::printTemplateArgumentList(raw_ostream &OS,
 }
 
 std::string Qualifiers::getAsString() const {
-  LangOptions LO;
+  LangOptions const LO;
   return getAsString(PrintingPolicy(LO));
 }
 
@@ -2115,7 +2115,7 @@ bool Qualifiers::isEmptyWhenPrinted(const PrintingPolicy &Policy) const {
   if (getObjCGCAttr())
     return false;
 
-  if (Qualifiers::ObjCLifetime lifetime = getObjCLifetime())
+  if (Qualifiers::ObjCLifetime const lifetime = getObjCLifetime())
     if (!(lifetime == Qualifiers::OCL_Strong && Policy.SuppressStrongLifetime))
       return false;
 
@@ -2169,7 +2169,7 @@ void Qualifiers::print(raw_ostream &OS, const PrintingPolicy& Policy,
                        bool appendSpaceIfNonEmpty) const {
   bool addSpace = false;
 
-  unsigned quals = getCVRQualifiers();
+  unsigned const quals = getCVRQualifiers();
   if (quals) {
     AppendTypeQualList(OS, quals, Policy.Restrict);
     addSpace = true;
@@ -2192,7 +2192,7 @@ void Qualifiers::print(raw_ostream &OS, const PrintingPolicy& Policy,
       OS << ASStr;
   }
 
-  if (Qualifiers::GC gc = getObjCGCAttr()) {
+  if (Qualifiers::GC const gc = getObjCGCAttr()) {
     if (addSpace)
       OS << ' ';
     addSpace = true;
@@ -2201,7 +2201,7 @@ void Qualifiers::print(raw_ostream &OS, const PrintingPolicy& Policy,
     else
       OS << "__strong";
   }
-  if (Qualifiers::ObjCLifetime lifetime = getObjCLifetime()) {
+  if (Qualifiers::ObjCLifetime const lifetime = getObjCLifetime()) {
     if (!(lifetime == Qualifiers::OCL_Strong && Policy.SuppressStrongLifetime)){
       if (addSpace)
         OS << ' ';
@@ -2252,7 +2252,7 @@ void QualType::print(const Type *ty, Qualifiers qs,
                      raw_ostream &OS, const PrintingPolicy &policy,
                      const Twine &PlaceHolder, unsigned Indentation) {
   SmallString<128> PHBuf;
-  StringRef PH = PlaceHolder.toStringRef(PHBuf);
+  StringRef const PH = PlaceHolder.toStringRef(PHBuf);
 
   TypePrinter(policy, Indentation).print(ty, qs, OS, PH);
 }

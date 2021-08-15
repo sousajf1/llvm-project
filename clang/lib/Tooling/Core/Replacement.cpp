@@ -71,14 +71,14 @@ bool Replacement::apply(Rewriter &Rewrite) const {
   if (!Entry)
     return false;
 
-  FileID ID = SM.getOrCreateFileID(*Entry, SrcMgr::C_User);
+  FileID const ID = SM.getOrCreateFileID(*Entry, SrcMgr::C_User);
   const SourceLocation Start =
     SM.getLocForStartOfFile(ID).
     getLocWithOffset(ReplacementRange.getOffset());
   // ReplaceText returns false on success.
   // ReplaceText only fails if the source location is not a file location, in
   // which case we already returned false earlier.
-  bool RewriteSucceeded = !Rewrite.ReplaceText(
+  bool const RewriteSucceeded = !Rewrite.ReplaceText(
       Start, ReplacementRange.getLength(), ReplacementText);
   assert(RewriteSucceeded);
   return RewriteSucceeded;
@@ -134,9 +134,9 @@ void Replacement::setFromSourceLocation(const SourceManager &Sources,
 static int getRangeSize(const SourceManager &Sources,
                         const CharSourceRange &Range,
                         const LangOptions &LangOpts) {
-  SourceLocation SpellingBegin = Sources.getSpellingLoc(Range.getBegin());
-  SourceLocation SpellingEnd = Sources.getSpellingLoc(Range.getEnd());
-  std::pair<FileID, unsigned> Start = Sources.getDecomposedLoc(SpellingBegin);
+  SourceLocation const SpellingBegin = Sources.getSpellingLoc(Range.getBegin());
+  SourceLocation const SpellingEnd = Sources.getSpellingLoc(Range.getEnd());
+  std::pair<FileID, unsigned> const Start = Sources.getDecomposedLoc(SpellingBegin);
   std::pair<FileID, unsigned> End = Sources.getDecomposedLoc(SpellingEnd);
   if (Start.first != End.first) return -1;
   if (Range.isTokenRange())
@@ -155,8 +155,8 @@ void Replacement::setFromSourceRange(const SourceManager &Sources,
 
 Replacement
 Replacements::getReplacementInChangedCode(const Replacement &R) const {
-  unsigned NewStart = getShiftedCodePosition(R.getOffset());
-  unsigned NewEnd = getShiftedCodePosition(R.getOffset() + R.getLength());
+  unsigned const NewStart = getShiftedCodePosition(R.getOffset());
+  unsigned const NewEnd = getShiftedCodePosition(R.getOffset() + R.getLength());
   return Replacement(R.getFilePath(), NewStart, NewEnd - NewStart,
                      R.getReplacementText());
 }
@@ -197,19 +197,19 @@ Replacements Replacements::getCanonicalReplacements() const {
       continue;
     }
     auto &Prev = NewReplaces.back();
-    unsigned PrevEnd = Prev.getOffset() + Prev.getLength();
+    unsigned const PrevEnd = Prev.getOffset() + Prev.getLength();
     if (PrevEnd < R.getOffset()) {
       NewReplaces.push_back(R);
     } else {
       assert(PrevEnd == R.getOffset() &&
              "Existing replacements must not overlap.");
-      Replacement NewR(
+      Replacement const NewR(
           R.getFilePath(), Prev.getOffset(), Prev.getLength() + R.getLength(),
           (Prev.getReplacementText() + R.getReplacementText()).str());
       Prev = NewR;
     }
   }
-  ReplacementsImpl NewReplacesImpl(NewReplaces.begin(), NewReplaces.end());
+  ReplacementsImpl const NewReplacesImpl(NewReplaces.begin(), NewReplaces.end());
   return Replacements(NewReplacesImpl.begin(), NewReplacesImpl.end());
 }
 
@@ -218,10 +218,10 @@ Replacements Replacements::getCanonicalReplacements() const {
 // applying them in either order.
 llvm::Expected<Replacements>
 Replacements::mergeIfOrderIndependent(const Replacement &R) const {
-  Replacements Rs(R);
+  Replacements const Rs(R);
   // A Replacements set containing a single replacement that is `R` referring to
   // the code after the existing replacements `Replaces` are applied.
-  Replacements RsShiftedByReplaces(getReplacementInChangedCode(R));
+  Replacements const RsShiftedByReplaces(getReplacementInChangedCode(R));
   // A Replacements set that is `Replaces` referring to the code after `R` is
   // applied.
   Replacements ReplacesShiftedByRs;
@@ -259,7 +259,7 @@ llvm::Error Replacements::add(const Replacement &R) {
   // We also know that there currently are no overlapping replacements.
   // Thus, we know that all replacements that start after the end of the current
   // replacement cannot overlap.
-  Replacement AtEnd(R.getFilePath(), R.getOffset() + R.getLength(), 0, "");
+  Replacement const AtEnd(R.getFilePath(), R.getOffset() + R.getLength(), 0, "");
 
   // Find the first entry that starts after or at the end of R. Note that
   // entries that start at the end can still be conflicting if R is an
@@ -330,7 +330,7 @@ llvm::Error Replacements::add(const Replacement &R) {
         break;
       MergeBegin = I;
     }
-    Replacements OverlapReplaces(MergeBegin, MergeEnd);
+    Replacements const OverlapReplaces(MergeBegin, MergeEnd);
     llvm::Expected<Replacements> Merged =
         OverlapReplaces.mergeIfOrderIndependent(R);
     if (!Merged)
@@ -378,21 +378,21 @@ public:
   // set the next element is coming from.
   void merge(const Replacement &R) {
     if (MergeSecond) {
-      unsigned REnd = R.getOffset() + Delta + R.getLength();
-      unsigned End = Offset + Text.size();
+      unsigned const REnd = R.getOffset() + Delta + R.getLength();
+      unsigned const End = Offset + Text.size();
       if (REnd > End) {
         Length += REnd - End;
         MergeSecond = false;
       }
-      StringRef TextRef = Text;
-      StringRef Head = TextRef.substr(0, R.getOffset() + Delta - Offset);
-      StringRef Tail = TextRef.substr(REnd - Offset);
+      StringRef const TextRef = Text;
+      StringRef const Head = TextRef.substr(0, R.getOffset() + Delta - Offset);
+      StringRef const Tail = TextRef.substr(REnd - Offset);
       Text = (Head + R.getReplacementText() + Tail).str();
       Delta += R.getReplacementText().size() - R.getLength();
     } else {
-      unsigned End = Offset + Length;
-      StringRef RText = R.getReplacementText();
-      StringRef Tail = RText.substr(End - R.getOffset());
+      unsigned const End = Offset + Length;
+      StringRef const RText = R.getReplacementText();
+      StringRef const Tail = RText.substr(End - R.getOffset());
       Text = (Text + Tail).str();
       if (R.getOffset() + RText.size() > End) {
         Length = R.getOffset() + R.getLength() - Offset;
@@ -457,7 +457,7 @@ Replacements Replacements::merge(const Replacements &ReplacesToMerge) const {
   // comment on MergedReplacement.
   for (auto FirstI = First.begin(), SecondI = Second.begin();
        FirstI != First.end() || SecondI != Second.end();) {
-    bool NextIsFirst = SecondI == Second.end() ||
+    bool const NextIsFirst = SecondI == Second.end() ||
                        (FirstI != First.end() &&
                         FirstI->getOffset() < SecondI->getOffset() + Delta);
     MergedReplacement Merged(NextIsFirst ? *FirstI : *SecondI, NextIsFirst,
@@ -493,7 +493,7 @@ static std::vector<Range> combineAndSortRanges(std::vector<Range> Ranges) {
         Result.back().getOffset() + Result.back().getLength() < R.getOffset()) {
       Result.push_back(R);
     } else {
-      unsigned NewEnd =
+      unsigned const NewEnd =
           std::max(Result.back().getOffset() + Result.back().getLength(),
                    R.getOffset() + R.getLength());
       Result[Result.size() - 1] =
@@ -535,8 +535,8 @@ std::vector<Range> Replacements::getAffectedRanges() const {
   std::vector<Range> ChangedRanges;
   int Shift = 0;
   for (const auto &R : Replaces) {
-    unsigned Offset = R.getOffset() + Shift;
-    unsigned Length = R.getReplacementText().size();
+    unsigned const Offset = R.getOffset() + Shift;
+    unsigned const Length = R.getReplacementText().size();
     Shift += Length - R.getLength();
     ChangedRanges.push_back(Range(Offset, Length));
   }
@@ -581,7 +581,7 @@ llvm::Expected<std::string> applyAllReplacements(StringRef Code,
   if (Replaces.empty())
     return Code.str();
 
-  IntrusiveRefCntPtr<llvm::vfs::InMemoryFileSystem> InMemoryFileSystem(
+  IntrusiveRefCntPtr<llvm::vfs::InMemoryFileSystem> const InMemoryFileSystem(
       new llvm::vfs::InMemoryFileSystem);
   FileManager Files(FileSystemOptions(), InMemoryFileSystem);
   DiagnosticsEngine Diagnostics(
@@ -591,11 +591,11 @@ llvm::Expected<std::string> applyAllReplacements(StringRef Code,
   Rewriter Rewrite(SourceMgr, LangOptions());
   InMemoryFileSystem->addFile(
       "<stdin>", 0, llvm::MemoryBuffer::getMemBuffer(Code, "<stdin>"));
-  FileID ID = SourceMgr.createFileID(*Files.getOptionalFileRef("<stdin>"),
+  FileID const ID = SourceMgr.createFileID(*Files.getOptionalFileRef("<stdin>"),
                                      SourceLocation(),
                                      clang::SrcMgr::C_User);
   for (auto I = Replaces.rbegin(), E = Replaces.rend(); I != E; ++I) {
-    Replacement Replace("<stdin>", I->getOffset(), I->getLength(),
+    Replacement const Replace("<stdin>", I->getOffset(), I->getLength(),
                         I->getReplacementText());
     if (!Replace.apply(Rewrite))
       return llvm::make_error<ReplacementError>(

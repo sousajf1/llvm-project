@@ -64,7 +64,7 @@ std::vector<std::string> ModuleDeps::getCanonicalCommandLine(
   CompilerInvocation CI(Invocation);
   FrontendOptions &FrontendOpts = CI.getFrontendOpts();
 
-  InputKind ModuleMapInputKind(FrontendOpts.DashX.getLanguage(),
+  InputKind const ModuleMapInputKind(FrontendOpts.DashX.getLanguage(),
                                InputKind::Format::ModuleMap);
   FrontendOpts.Inputs.emplace_back(ClangModuleMapFile, ModuleMapInputKind);
   FrontendOpts.OutputFile = std::string(LookupPCMPath(ID));
@@ -119,7 +119,7 @@ void ModuleDepCollectorPP::FileChanged(SourceLocation Loc,
     MDC.Consumer.handleContextHash(MDC.ContextHash);
   }
 
-  SourceManager &SM = Instance.getSourceManager();
+  SourceManager  const&SM = Instance.getSourceManager();
 
   // Dependency generation really does want to go all the way to the
   // file entry for a source location to find out what is depended on.
@@ -162,7 +162,7 @@ void ModuleDepCollectorPP::handleImport(const Module *Imported) {
 }
 
 void ModuleDepCollectorPP::EndOfMainFile() {
-  FileID MainFileID = Instance.getSourceManager().getMainFileID();
+  FileID const MainFileID = Instance.getSourceManager().getMainFileID();
   MDC.MainFile = std::string(
       Instance.getSourceManager().getFileEntryForID(MainFileID)->getName());
 
@@ -265,7 +265,7 @@ void ModuleDepCollectorPP::addModuleDep(
   for (const Module *Import : M->Imports) {
     if (Import->getTopLevelModule() != M->getTopLevelModule() &&
         !MDC.isPrebuiltModule(Import)) {
-      ModuleID ImportID = handleTopLevelModule(Import->getTopLevelModule());
+      ModuleID const ImportID = handleTopLevelModule(Import->getTopLevelModule());
       if (AddedModules.insert(Import->getTopLevelModule()).second)
         MD.ClangModuleDeps.push_back(ImportID);
     }
@@ -285,7 +285,7 @@ void ModuleDepCollector::attachToPreprocessor(Preprocessor &PP) {
 void ModuleDepCollector::attachToASTReader(ASTReader &R) {}
 
 bool ModuleDepCollector::isPrebuiltModule(const Module *M) {
-  std::string Name(M->getTopLevelModuleName());
+  std::string const Name(M->getTopLevelModuleName());
   const auto &PrebuiltModuleFiles =
       Instance.getHeaderSearchOpts().PrebuiltModuleFiles;
   auto PrebuiltModuleFileIt = PrebuiltModuleFiles.find(Name);

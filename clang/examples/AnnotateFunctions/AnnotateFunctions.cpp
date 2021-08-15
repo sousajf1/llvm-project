@@ -69,7 +69,7 @@ public:
 
     if (HandledDecl) {
       DiagnosticsEngine &D = PP.getDiagnostics();
-      unsigned ID = D.getCustomDiagID(
+      unsigned const ID = D.getCustomDiagID(
         DiagnosticsEngine::Error,
         "#pragma enable_annotate not allowed after declarations");
       D.Report(PragmaTok.getLocation(), ID);

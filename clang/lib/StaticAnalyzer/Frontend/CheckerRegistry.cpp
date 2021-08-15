@@ -343,7 +343,7 @@ static void insertAndValidate(StringRef FullName, const CmdLineOption &Option,
                               AnalyzerOptions &AnOpts,
                               DiagnosticsEngine &Diags) {
 
-  std::string FullOption = (FullName + ":" + Option.OptionName).str();
+  std::string const FullOption = (FullName + ":" + Option.OptionName).str();
 
   auto It =
       AnOpts.Config.insert({FullOption, std::string(Option.DefaultValStr)});
@@ -358,7 +358,7 @@ static void insertAndValidate(StringRef FullName, const CmdLineOption &Option,
   // to it's default value, and if we're in non-compatibility mode, we'll also
   // emit an error.
 
-  StringRef SuppliedValue = It.first->getValue();
+  StringRef const SuppliedValue = It.first->getValue();
 
   if (Option.OptionType == "bool") {
     if (SuppliedValue != "true" && SuppliedValue != "false") {
@@ -374,7 +374,7 @@ static void insertAndValidate(StringRef FullName, const CmdLineOption &Option,
 
   if (Option.OptionType == "int") {
     int Tmp;
-    bool HasFailed = SuppliedValue.getAsInteger(0, Tmp);
+    bool const HasFailed = SuppliedValue.getAsInteger(0, Tmp);
     if (HasFailed) {
       if (AnOpts.ShouldEmitErrorsOnInvalidConfigValue) {
         Diags.Report(diag::err_analyzer_checker_option_invalid_input)

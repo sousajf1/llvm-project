@@ -76,7 +76,7 @@ DereferenceChecker::AddDerefSource(raw_ostream &os,
       const MemberExpr *ME = cast<MemberExpr>(Ex);
       os << " (" << (loadedFrom ? "loaded from" : "via")
          << " field '" << ME->getMemberNameInfo() << "')";
-      SourceLocation L = ME->getMemberLoc();
+      SourceLocation const L = ME->getMemberLoc();
       Ranges.push_back(SourceRange(L, L));
       break;
     }
@@ -84,7 +84,7 @@ DereferenceChecker::AddDerefSource(raw_ostream &os,
       const ObjCIvarRefExpr *IV = cast<ObjCIvarRefExpr>(Ex);
       os << " (" << (loadedFrom ? "loaded from" : "via")
          << " ivar '" << IV->getDecl()->getName() << "')";
-      SourceLocation L = IV->getLocation();
+      SourceLocation const L = IV->getLocation();
       Ranges.push_back(SourceRange(L, L));
       break;
     }
@@ -214,13 +214,13 @@ void DereferenceChecker::checkLocation(SVal l, bool isLoad, const Stmt* S,
     return;
   }
 
-  DefinedOrUnknownSVal location = l.castAs<DefinedOrUnknownSVal>();
+  DefinedOrUnknownSVal const location = l.castAs<DefinedOrUnknownSVal>();
 
   // Check for null dereferences.
   if (!location.getAs<Loc>())
     return;
 
-  ProgramStateRef state = C.getState();
+  ProgramStateRef const state = C.getState();
 
   ProgramStateRef notNullState, nullState;
   std::tie(notNullState, nullState) = state->assume(location);
@@ -240,7 +240,7 @@ void DereferenceChecker::checkLocation(SVal l, bool isLoad, const Stmt* S,
     // null or not-null.  Record the error node as an "implicit" null
     // dereference.
     if (ExplodedNode *N = C.generateSink(nullState, C.getPredecessor())) {
-      ImplicitNullDerefEvent event = {l, isLoad, N, &C.getBugReporter(),
+      ImplicitNullDerefEvent const event = {l, isLoad, N, &C.getBugReporter(),
                                       /*IsDirectDereference=*/true};
       dispatchEvent(event);
     }
@@ -264,7 +264,7 @@ void DereferenceChecker::checkBind(SVal L, SVal V, const Stmt *S,
   if (!TVR->getValueType()->isReferenceType())
     return;
 
-  ProgramStateRef State = C.getState();
+  ProgramStateRef const State = C.getState();
 
   ProgramStateRef StNonNull, StNull;
   std::tie(StNonNull, StNull) = State->assume(V.castAs<DefinedOrUnknownSVal>());
@@ -281,7 +281,7 @@ void DereferenceChecker::checkBind(SVal L, SVal V, const Stmt *S,
     // At this point the value could be either null or non-null.
     // Record this as an "implicit" null dereference.
     if (ExplodedNode *N = C.generateSink(StNull, C.getPredecessor())) {
-      ImplicitNullDerefEvent event = {V, /*isLoad=*/true, N,
+      ImplicitNullDerefEvent const event = {V, /*isLoad=*/true, N,
                                       &C.getBugReporter(),
                                       /*IsDirectDereference=*/true};
       dispatchEvent(event);

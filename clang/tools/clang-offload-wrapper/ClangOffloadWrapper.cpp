@@ -197,12 +197,12 @@ private:
     DummyEntry->setVisibility(GlobalValue::HiddenVisibility);
 
     auto *Zero = ConstantInt::get(getSizeTTy(), 0u);
-    Constant *ZeroZero[] = {Zero, Zero};
+    Constant *const ZeroZero[] = {Zero, Zero};
 
     // Create initializer for the images array.
     SmallVector<Constant *, 4u> ImagesInits;
     ImagesInits.reserve(Bufs.size());
-    for (ArrayRef<char> Buf : Bufs) {
+    for (ArrayRef<char> const Buf : Bufs) {
       auto *Data = ConstantDataArray::get(C, Buf);
       auto *Image = new GlobalVariable(M, Data->getType(), /*isConstant*/ true,
                                        GlobalVariable::InternalLinkage, Data,
@@ -210,7 +210,7 @@ private:
       Image->setUnnamedAddr(GlobalValue::UnnamedAddr::Global);
 
       auto *Size = ConstantInt::get(getSizeTTy(), Buf.size());
-      Constant *ZeroSize[] = {Zero, Size};
+      Constant *const ZeroSize[] = {Zero, Size};
 
       auto *ImageB = ConstantExpr::getGetElementPtr(Image->getValueType(),
                                                     Image, ZeroZero);
@@ -254,7 +254,7 @@ private:
     // Get __tgt_register_lib function declaration.
     auto *RegFuncTy = FunctionType::get(Type::getVoidTy(C), getBinDescPtrTy(),
                                         /*isVarArg*/ false);
-    FunctionCallee RegFuncC =
+    FunctionCallee const RegFuncC =
         M.getOrInsertFunction("__tgt_register_lib", RegFuncTy);
 
     // Construct function body
@@ -280,7 +280,7 @@ private:
     // Get __tgt_unregister_lib function declaration.
     auto *UnRegFuncTy = FunctionType::get(Type::getVoidTy(C), getBinDescPtrTy(),
                                           /*isVarArg*/ false);
-    FunctionCallee UnRegFuncC =
+    FunctionCallee const UnRegFuncC =
         M.getOrInsertFunction("__tgt_unregister_lib", UnRegFuncTy);
 
     // Construct function body

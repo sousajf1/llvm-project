@@ -92,14 +92,14 @@ ProgramStateRef VLASizeChecker::checkVLA(CheckerContext &C,
   assert(VLALast &&
          "Array should have at least one variably-modified dimension.");
 
-  ASTContext &Ctx = C.getASTContext();
+  ASTContext  const&Ctx = C.getASTContext();
   SValBuilder &SVB = C.getSValBuilder();
-  CanQualType SizeTy = Ctx.getSizeType();
-  uint64_t SizeMax =
+  CanQualType const SizeTy = Ctx.getSizeType();
+  uint64_t const SizeMax =
       SVB.getBasicValueFactory().getMaxValue(SizeTy).getZExtValue();
 
   // Get the element size.
-  CharUnits EleSize = Ctx.getTypeSizeInChars(VLALast->getElementType());
+  CharUnits const EleSize = Ctx.getTypeSizeInChars(VLALast->getElementType());
   NonLoc ArrSize =
       SVB.makeIntVal(EleSize.getQuantity(), SizeTy).castAs<NonLoc>();
 
@@ -111,10 +111,10 @@ ProgramStateRef VLASizeChecker::checkVLA(CheckerContext &C,
   for (const Expr *SizeE : VLASizes) {
     auto SizeD = C.getSVal(SizeE).castAs<DefinedSVal>();
     // Convert the array length to size_t.
-    NonLoc IndexLength =
+    NonLoc const IndexLength =
         SVB.evalCast(SizeD, SizeTy, SizeE->getType()).castAs<NonLoc>();
     // Multiply the array length by the element size.
-    SVal Mul = SVB.evalBinOpNN(State, BO_Mul, ArrSize, IndexLength, SizeTy);
+    SVal const Mul = SVB.evalBinOpNN(State, BO_Mul, ArrSize, IndexLength, SizeTy);
     if (auto MulNonLoc = Mul.getAs<NonLoc>())
       ArrSize = *MulNonLoc;
     else
@@ -125,7 +125,7 @@ ProgramStateRef VLASizeChecker::checkVLA(CheckerContext &C,
       // Check if the array size will overflow.
       // Size overflow check does not work with symbolic expressions because a
       // overflow situation can not be detected easily.
-      uint64_t IndexL = IndexLVal->getZExtValue();
+      uint64_t const IndexL = IndexLVal->getZExtValue();
       // FIXME: See https://reviews.llvm.org/D80903 for discussion of
       // some difference in assume and getKnownValue that leads to
       // unexpected behavior. Just bail on IndexL == 0 at this point.
@@ -152,7 +152,7 @@ ProgramStateRef VLASizeChecker::checkVLA(CheckerContext &C,
 ProgramStateRef VLASizeChecker::checkVLAIndexSize(CheckerContext &C,
                                                   ProgramStateRef State,
                                                   const Expr *SizeE) const {
-  SVal SizeV = C.getSVal(SizeE);
+  SVal const SizeV = C.getSVal(SizeE);
 
   if (SizeV.isUndef()) {
     reportBug(VLA_Garbage, SizeE, State, C);
@@ -172,7 +172,7 @@ ProgramStateRef VLASizeChecker::checkVLAIndexSize(CheckerContext &C,
   }
 
   // Check if the size is zero.
-  DefinedSVal SizeD = SizeV.castAs<DefinedSVal>();
+  DefinedSVal const SizeD = SizeV.castAs<DefinedSVal>();
 
   ProgramStateRef StateNotZero, StateZero;
   std::tie(StateNotZero, StateZero) = State->assume(SizeD);
@@ -188,10 +188,10 @@ ProgramStateRef VLASizeChecker::checkVLAIndexSize(CheckerContext &C,
   // Check if the size is negative.
   SValBuilder &SVB = C.getSValBuilder();
 
-  QualType SizeTy = SizeE->getType();
-  DefinedOrUnknownSVal Zero = SVB.makeZeroVal(SizeTy);
+  QualType const SizeTy = SizeE->getType();
+  DefinedOrUnknownSVal const Zero = SVB.makeZeroVal(SizeTy);
 
-  SVal LessThanZeroVal = SVB.evalBinOp(State, BO_LT, SizeD, Zero, SizeTy);
+  SVal const LessThanZeroVal = SVB.evalBinOp(State, BO_LT, SizeD, Zero, SizeTy);
   if (Optional<DefinedSVal> LessThanZeroDVal =
           LessThanZeroVal.getAs<DefinedSVal>()) {
     ConstraintManager &CM = C.getConstraintManager();
@@ -252,7 +252,7 @@ void VLASizeChecker::checkPreStmt(const DeclStmt *DS, CheckerContext &C) const {
   if (!DS->isSingleDecl())
     return;
 
-  ASTContext &Ctx = C.getASTContext();
+  ASTContext  const&Ctx = C.getASTContext();
   SValBuilder &SVB = C.getSValBuilder();
   ProgramStateRef State = C.getState();
   QualType TypeToCheck;

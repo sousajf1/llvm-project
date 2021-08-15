@@ -223,7 +223,7 @@ namespace clang {
         LazySpecializations = llvm::makeArrayRef(LS + 1, LS[0]);
 
       // Add a slot to the record for the number of specializations.
-      unsigned I = Record.size();
+      unsigned const I = Record.size();
       Record.push_back(0);
 
       // AddFirstDeclFromEachModule might trigger deserialization, invalidating
@@ -335,7 +335,7 @@ void ASTDeclWriter::VisitDecl(Decl *D) {
 }
 
 void ASTDeclWriter::VisitPragmaCommentDecl(PragmaCommentDecl *D) {
-  StringRef Arg = D->getArg();
+  StringRef const Arg = D->getArg();
   Record.push_back(Arg.size());
   VisitDecl(D);
   Record.AddSourceLocation(D->getBeginLoc());
@@ -346,8 +346,8 @@ void ASTDeclWriter::VisitPragmaCommentDecl(PragmaCommentDecl *D) {
 
 void ASTDeclWriter::VisitPragmaDetectMismatchDecl(
     PragmaDetectMismatchDecl *D) {
-  StringRef Name = D->getName();
-  StringRef Value = D->getValue();
+  StringRef const Name = D->getName();
+  StringRef const Value = D->getValue();
   Record.push_back(Name.size() + 1 + Value.size());
   VisitDecl(D);
   Record.AddSourceLocation(D->getBeginLoc());
@@ -571,7 +571,7 @@ void ASTDeclWriter::VisitFunctionDecl(FunctionDecl *D) {
   if (D->isDefaulted()) {
     if (auto *FDI = D->getDefaultedFunctionInfo()) {
       Record.push_back(FDI->getUnqualifiedLookups().size());
-      for (DeclAccessPair P : FDI->getUnqualifiedLookups()) {
+      for (DeclAccessPair const P : FDI->getUnqualifiedLookups()) {
         Record.AddDeclRef(P.getDecl());
         Record.push_back(P.getAccess());
       }
@@ -684,7 +684,7 @@ void ASTDeclWriter::VisitObjCMethodDecl(ObjCMethodDecl *D) {
   VisitNamedDecl(D);
   // FIXME: convert to LazyStmtPtr?
   // Unlike C/C++, method bodies will never be in header files.
-  bool HasBodyStuff = D->getBody() != nullptr;
+  bool const HasBodyStuff = D->getBody() != nullptr;
   Record.push_back(HasBodyStuff);
   if (HasBodyStuff) {
     Record.AddStmt(D->getBody());
@@ -719,7 +719,7 @@ void ASTDeclWriter::VisitObjCMethodDecl(ObjCMethodDecl *D) {
     Record.AddDeclRef(P);
 
   Record.push_back(D->getSelLocsKind());
-  unsigned NumStoredSelLocs = D->getNumStoredSelLocs();
+  unsigned const NumStoredSelLocs = D->getNumStoredSelLocs();
   SourceLocation *SelLocs = D->getStoredSelLocs();
   Record.push_back(NumStoredSelLocs);
   for (unsigned i = 0; i != NumStoredSelLocs; ++i)
@@ -754,7 +754,7 @@ void ASTDeclWriter::VisitObjCInterfaceDecl(ObjCInterfaceDecl *D) {
   Record.push_back(D->isThisDeclarationADefinition());
   if (D->isThisDeclarationADefinition()) {
     // Write the DefinitionData
-    ObjCInterfaceDecl::DefinitionData &Data = D->data();
+    ObjCInterfaceDecl::DefinitionData  const&Data = D->data();
 
     Record.AddTypeSourceInfo(D->getSuperClassTInfo());
     Record.AddSourceLocation(D->getEndOfDefinitionLoc());
@@ -917,7 +917,7 @@ void ASTDeclWriter::VisitFieldDecl(FieldDecl *D) {
   VisitDeclaratorDecl(D);
   Record.push_back(D->isMutable());
 
-  FieldDecl::InitStorageKind ISK = D->InitStorage.getInt();
+  FieldDecl::InitStorageKind const ISK = D->InitStorage.getInt();
   Record.push_back(ISK);
   if (ISK == FieldDecl::ISK_CapturedVLAType)
     Record.AddTypeRef(QualType(D->getCapturedVLAType(), 0));
@@ -958,7 +958,7 @@ void ASTDeclWriter::VisitMSPropertyDecl(MSPropertyDecl *D) {
 
 void ASTDeclWriter::VisitMSGuidDecl(MSGuidDecl *D) {
   VisitValueDecl(D);
-  MSGuidDecl::Parts Parts = D->getParts();
+  MSGuidDecl::Parts const Parts = D->getParts();
   Record.push_back(Parts.Part1);
   Record.push_back(Parts.Part2);
   Record.push_back(Parts.Part3);
@@ -1011,7 +1011,7 @@ void ASTDeclWriter::VisitVarDecl(VarDecl *D) {
   Record.AddVarDeclInit(D);
 
   if (D->hasAttr<BlocksAttr>() && D->getType()->getAsCXXRecordDecl()) {
-    BlockVarCopyInit Init = Writer.Context->getBlockVarCopyInit(D);
+    BlockVarCopyInit const Init = Writer.Context->getBlockVarCopyInit(D);
     Record.AddStmt(Init.getCopyExpr());
     if (Init.getCopyExpr())
       Record.push_back(Init.canThrow());
@@ -1438,7 +1438,7 @@ void ASTDeclWriter::VisitCXXConversionDecl(CXXConversionDecl *D) {
 void ASTDeclWriter::VisitImportDecl(ImportDecl *D) {
   VisitDecl(D);
   Record.push_back(Writer.getSubmoduleID(D->getImportedModule()));
-  ArrayRef<SourceLocation> IdentifierLocs = D->getIdentifierLocs();
+  ArrayRef<SourceLocation> const IdentifierLocs = D->getIdentifierLocs();
   Record.push_back(!IdentifierLocs.empty());
   if (IdentifierLocs.empty()) {
     Record.AddSourceLocation(D->getEndLoc());
@@ -1464,7 +1464,7 @@ void ASTDeclWriter::VisitFriendDecl(FriendDecl *D) {
   // so as to simplify memory allocation during deserialization.
   Record.push_back(D->NumTPLists);
   VisitDecl(D);
-  bool hasFriendDecl = D->Friend.is<NamedDecl*>();
+  bool const hasFriendDecl = D->Friend.is<NamedDecl*>();
   Record.push_back(hasFriendDecl);
   if (hasFriendDecl)
     Record.AddDeclRef(D->getFriendDecl());
@@ -1540,7 +1540,7 @@ void ASTDeclWriter::VisitClassTemplateSpecializationDecl(
   VisitCXXRecordDecl(D);
 
   llvm::PointerUnion<ClassTemplateDecl *,
-                     ClassTemplatePartialSpecializationDecl *> InstFrom
+                     ClassTemplatePartialSpecializationDecl *> const InstFrom
     = D->getSpecializedTemplateOrPartial();
   if (Decl *InstFromD = InstFrom.dyn_cast<ClassTemplateDecl *>()) {
     Record.AddDeclRef(InstFromD);
@@ -1600,7 +1600,7 @@ void ASTDeclWriter::VisitVarTemplateSpecializationDecl(
   VisitVarDecl(D);
 
   llvm::PointerUnion<VarTemplateDecl *, VarTemplatePartialSpecializationDecl *>
-  InstFrom = D->getSpecializedTemplateOrPartial();
+  const InstFrom = D->getSpecializedTemplateOrPartial();
   if (Decl *InstFromD = InstFrom.dyn_cast<VarTemplateDecl *>()) {
     Record.AddDeclRef(InstFromD);
   } else {
@@ -1685,7 +1685,7 @@ void ASTDeclWriter::VisitTemplateTypeParmDecl(TemplateTypeParmDecl *D) {
       Record.push_back(D->getNumExpansionParameters());
   }
 
-  bool OwnsDefaultArg = D->hasDefaultArgument() &&
+  bool const OwnsDefaultArg = D->hasDefaultArgument() &&
                         !D->defaultArgumentWasInherited();
   Record.push_back(OwnsDefaultArg);
   if (OwnsDefaultArg)
@@ -1720,7 +1720,7 @@ void ASTDeclWriter::VisitNonTypeTemplateParmDecl(NonTypeTemplateParmDecl *D) {
   } else {
     // Rest of NonTypeTemplateParmDecl.
     Record.push_back(D->isParameterPack());
-    bool OwnsDefaultArg = D->hasDefaultArgument() &&
+    bool const OwnsDefaultArg = D->hasDefaultArgument() &&
                           !D->defaultArgumentWasInherited();
     Record.push_back(OwnsDefaultArg);
     if (OwnsDefaultArg)
@@ -1749,7 +1749,7 @@ void ASTDeclWriter::VisitTemplateTemplateParmDecl(TemplateTemplateParmDecl *D) {
   } else {
     // Rest of TemplateTemplateParmDecl.
     Record.push_back(D->isParameterPack());
-    bool OwnsDefaultArg = D->hasDefaultArgument() &&
+    bool const OwnsDefaultArg = D->hasDefaultArgument() &&
                           !D->defaultArgumentWasInherited();
     Record.push_back(OwnsDefaultArg);
     if (OwnsDefaultArg)
@@ -1813,7 +1813,7 @@ void ASTDeclWriter::VisitRedeclarable(Redeclarable<T> *D) {
       // Emit a list of all imported first declarations so that we can be sure
       // that all redeclarations visible to this module are before D in the
       // redecl chain.
-      unsigned I = Record.size();
+      unsigned const I = Record.size();
       Record.push_back(0);
       if (Writer.Chain)
         AddFirstDeclFromEachModule(DAsT, /*IncludeLocal*/false);
@@ -2407,7 +2407,7 @@ static bool isRequiredDecl(const Decl *D, ASTContext &Context,
 }
 
 void ASTWriter::WriteDecl(ASTContext &Context, Decl *D) {
-  PrettyDeclStackTraceEntry CrashInfo(Context, D, SourceLocation(),
+  PrettyDeclStackTraceEntry const CrashInfo(Context, D, SourceLocation(),
                                       "serializing");
 
   // Determine the ID for this declaration.
@@ -2428,11 +2428,11 @@ void ASTWriter::WriteDecl(ASTContext &Context, Decl *D) {
   W.Visit(D);
 
   // Emit this declaration to the bitstream.
-  uint64_t Offset = W.Emit(D);
+  uint64_t const Offset = W.Emit(D);
 
   // Record the offset for this declaration
-  SourceLocation Loc = D->getLocation();
-  unsigned Index = ID - FirstDeclID;
+  SourceLocation const Loc = D->getLocation();
+  unsigned const Index = ID - FirstDeclID;
   if (DeclOffsets.size() == Index)
     DeclOffsets.emplace_back(Loc, Offset, DeclTypesBlockStartOffset);
   else if (DeclOffsets.size() < Index) {
@@ -2444,7 +2444,7 @@ void ASTWriter::WriteDecl(ASTContext &Context, Decl *D) {
     llvm_unreachable("declarations should be emitted in ID order");
   }
 
-  SourceManager &SM = Context.getSourceManager();
+  SourceManager  const&SM = Context.getSourceManager();
   if (Loc.isValid() && SM.isLocalSourceLocation(Loc))
     associateDeclWithFile(D, ID);
 

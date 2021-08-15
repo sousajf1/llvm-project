@@ -46,10 +46,10 @@ TEST(InterpreterTest, Sanity) {
 
   using PTU = PartialTranslationUnit;
 
-  PTU &R1(cantFail(Interp->Parse("void g(); void g() {}")));
+  PTU  const&R1(cantFail(Interp->Parse("void g(); void g() {}")));
   EXPECT_EQ(2U, DeclsSize(R1.TUPart));
 
-  PTU &R2(cantFail(Interp->Parse("int i;")));
+  PTU  const&R2(cantFail(Interp->Parse("int i;")));
   EXPECT_EQ(1U, DeclsSize(R2.TUPart));
 }
 
@@ -75,7 +75,7 @@ TEST(InterpreterTest, IncrementalInputTopLevelDecls) {
 }
 
 TEST(InterpreterTest, Errors) {
-  Args ExtraArgs = {"-Xclang", "-diagnostic-log-file", "-Xclang", "-"};
+  Args const ExtraArgs = {"-Xclang", "-diagnostic-log-file", "-Xclang", "-"};
 
   // Create the diagnostic engine with unowned consumer.
   std::string DiagnosticOutput;
@@ -98,7 +98,7 @@ TEST(InterpreterTest, Errors) {
 // interpreter should be smart enough to recognize the declarations from the
 // statements and wrap the latter into a declaration, producing valid code.
 TEST(InterpreterTest, DeclsAndStatements) {
-  Args ExtraArgs = {"-Xclang", "-diagnostic-log-file", "-Xclang", "-"};
+  Args const ExtraArgs = {"-Xclang", "-diagnostic-log-file", "-Xclang", "-"};
 
   // Create the diagnostic engine with unowned consumer.
   std::string DiagnosticOutput;

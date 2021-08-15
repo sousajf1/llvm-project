@@ -125,11 +125,11 @@ CXSourceLocation clang_getLocation(CXTranslationUnit TU,
   if (line == 0 || column == 0)
     return clang_getNullLocation();
   
-  LogRef Log = Logger::make(__func__);
+  LogRef const Log = Logger::make(__func__);
   ASTUnit *CXXUnit = cxtu::getASTUnit(TU);
-  ASTUnit::ConcurrencyCheck Check(*CXXUnit);
+  ASTUnit::ConcurrencyCheck const Check(*CXXUnit);
   const FileEntry *File = static_cast<const FileEntry *>(file);
-  SourceLocation SLoc = CXXUnit->getLocation(File, line, column);
+  SourceLocation const SLoc = CXXUnit->getLocation(File, line, column);
   if (SLoc.isInvalid()) {
     if (Log)
       *Log << llvm::format("(\"%s\", %d, %d) = invalid",
@@ -159,7 +159,7 @@ CXSourceLocation clang_getLocationForOffset(CXTranslationUnit TU,
 
   ASTUnit *CXXUnit = cxtu::getASTUnit(TU);
 
-  SourceLocation SLoc 
+  SourceLocation const SLoc 
     = CXXUnit->getLocation(static_cast<const FileEntry *>(file), offset);
 
   if (SLoc.isInvalid())
@@ -229,7 +229,7 @@ void clang_getExpansionLocation(CXSourceLocation location,
     return;
   }
 
-  SourceLocation Loc = SourceLocation::getFromRawEncoding(location.int_data);
+  SourceLocation const Loc = SourceLocation::getFromRawEncoding(location.int_data);
 
   if (!location.ptr_data[0] || Loc.isInvalid()) {
     createNullLocation(file, line, column, offset);
@@ -238,11 +238,11 @@ void clang_getExpansionLocation(CXSourceLocation location,
 
   const SourceManager &SM =
   *static_cast<const SourceManager*>(location.ptr_data[0]);
-  SourceLocation ExpansionLoc = SM.getExpansionLoc(Loc);
+  SourceLocation const ExpansionLoc = SM.getExpansionLoc(Loc);
   
   // Check that the FileID is invalid on the expansion location.
   // This can manifest in invalid code.
-  FileID fileID = SM.getFileID(ExpansionLoc);
+  FileID const fileID = SM.getFileID(ExpansionLoc);
   bool Invalid = false;
   const SrcMgr::SLocEntry &sloc = SM.getSLocEntry(fileID, &Invalid);
   if (Invalid || !sloc.isFile()) {
@@ -271,7 +271,7 @@ void clang_getPresumedLocation(CXSourceLocation location,
     return;
   }
 
-  SourceLocation Loc = SourceLocation::getFromRawEncoding(location.int_data);
+  SourceLocation const Loc = SourceLocation::getFromRawEncoding(location.int_data);
 
   if (!location.ptr_data[0] || Loc.isInvalid()) {
     createNullLocation(filename, line, column);
@@ -280,7 +280,7 @@ void clang_getPresumedLocation(CXSourceLocation location,
 
   const SourceManager &SM =
       *static_cast<const SourceManager *>(location.ptr_data[0]);
-  PresumedLoc PreLoc = SM.getPresumedLoc(Loc);
+  PresumedLoc const PreLoc = SM.getPresumedLoc(Loc);
   if (PreLoc.isInvalid()) {
     createNullLocation(filename, line, column);
     return;
@@ -311,7 +311,7 @@ void clang_getSpellingLocation(CXSourceLocation location,
     return;
   }
   
-  SourceLocation Loc = SourceLocation::getFromRawEncoding(location.int_data);
+  SourceLocation const Loc = SourceLocation::getFromRawEncoding(location.int_data);
   
   if (!location.ptr_data[0] || Loc.isInvalid())
     return createNullLocation(file, line, column, offset);
@@ -319,10 +319,10 @@ void clang_getSpellingLocation(CXSourceLocation location,
   const SourceManager &SM =
   *static_cast<const SourceManager*>(location.ptr_data[0]);
   // FIXME: This should call SourceManager::getSpellingLoc().
-  SourceLocation SpellLoc = SM.getFileLoc(Loc);
-  std::pair<FileID, unsigned> LocInfo = SM.getDecomposedLoc(SpellLoc);
-  FileID FID = LocInfo.first;
-  unsigned FileOffset = LocInfo.second;
+  SourceLocation const SpellLoc = SM.getFileLoc(Loc);
+  std::pair<FileID, unsigned> const LocInfo = SM.getDecomposedLoc(SpellLoc);
+  FileID const FID = LocInfo.first;
+  unsigned const FileOffset = LocInfo.second;
   
   if (FID.isInvalid())
     return createNullLocation(file, line, column, offset);
@@ -348,17 +348,17 @@ void clang_getFileLocation(CXSourceLocation location,
     return;
   }
 
-  SourceLocation Loc = SourceLocation::getFromRawEncoding(location.int_data);
+  SourceLocation const Loc = SourceLocation::getFromRawEncoding(location.int_data);
 
   if (!location.ptr_data[0] || Loc.isInvalid())
     return createNullLocation(file, line, column, offset);
 
   const SourceManager &SM =
   *static_cast<const SourceManager*>(location.ptr_data[0]);
-  SourceLocation FileLoc = SM.getFileLoc(Loc);
-  std::pair<FileID, unsigned> LocInfo = SM.getDecomposedLoc(FileLoc);
-  FileID FID = LocInfo.first;
-  unsigned FileOffset = LocInfo.second;
+  SourceLocation const FileLoc = SM.getFileLoc(Loc);
+  std::pair<FileID, unsigned> const LocInfo = SM.getDecomposedLoc(FileLoc);
+  FileID const FID = LocInfo.first;
+  unsigned const FileOffset = LocInfo.second;
 
   if (FID.isInvalid())
     return createNullLocation(file, line, column, offset);

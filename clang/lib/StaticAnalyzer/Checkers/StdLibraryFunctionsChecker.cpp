@@ -258,11 +258,11 @@ class StdLibraryFunctionsChecker
     ProgramStateRef apply(ProgramStateRef State, const CallEvent &Call,
                           const Summary &Summary,
                           CheckerContext &C) const override {
-      SVal V = getArgSVal(Call, getArgNo());
+      SVal const V = getArgSVal(Call, getArgNo());
       if (V.isUndef())
         return State;
 
-      DefinedOrUnknownSVal L = V.castAs<DefinedOrUnknownSVal>();
+      DefinedOrUnknownSVal const L = V.castAs<DefinedOrUnknownSVal>();
       if (!L.getAs<Loc>())
         return State;
 
@@ -332,7 +332,7 @@ class StdLibraryFunctionsChecker
                           CheckerContext &C) const override {
       SValBuilder &SvalBuilder = C.getSValBuilder();
       // The buffer argument.
-      SVal BufV = getArgSVal(Call, getArgNo());
+      SVal const BufV = getArgSVal(Call, getArgNo());
 
       // Get the size constraint.
       const SVal SizeV = [this, &State, &Call, &Summary, &SvalBuilder]() {
@@ -345,7 +345,7 @@ class StdLibraryFunctionsChecker
         SVal SizeV = getArgSVal(Call, *SizeArgN);
         // Multiply with another argument if given.
         if (SizeMultiplierArgN) {
-          SVal SizeMulV = getArgSVal(Call, *SizeMultiplierArgN);
+          SVal const SizeMulV = getArgSVal(Call, *SizeMultiplierArgN);
           SizeV = SvalBuilder.evalBinOp(State, BO_Mul, SizeV, SizeMulV,
                                         Summary.getArgType(*SizeArgN));
         }
@@ -353,9 +353,9 @@ class StdLibraryFunctionsChecker
       }();
 
       // The dynamic size of the buffer argument, got from the analyzer engine.
-      SVal BufDynSize = getDynamicExtentWithOffset(State, BufV);
+      SVal const BufDynSize = getDynamicExtentWithOffset(State, BufV);
 
-      SVal Feasible = SvalBuilder.evalBinOp(State, Op, SizeV, BufDynSize,
+      SVal const Feasible = SvalBuilder.evalBinOp(State, Op, SizeV, BufDynSize,
                                             SvalBuilder.getContext().BoolTy);
       if (auto F = Feasible.getAs<DefinedOrUnknownSVal>())
         return State->assume(*F, true);
@@ -518,7 +518,7 @@ class StdLibraryFunctionsChecker
     // Returns true if the summary should be applied to the given function.
     // And if yes then store the function declaration.
     bool matchesAndSet(const Signature &Sign, const FunctionDecl *FD) {
-      bool Result = Sign.matches(FD) && validateByConstraints(FD);
+      bool const Result = Sign.matches(FD) && validateByConstraints(FD);
       if (Result) {
         assert(!this->FD && "FD must not be set more than once");
         this->FD = FD;
@@ -582,7 +582,7 @@ private:
                  CheckerContext &C) const {
     if (!ChecksEnabled[CK_StdCLibraryFunctionArgsChecker])
       return;
-    std::string Msg =
+    std::string const Msg =
         (Twine("Function argument constraint is not satisfied, constraint: ") +
          VC->getName().data())
             .str();
@@ -592,7 +592,7 @@ private:
           "Unsatisfied argument constraints", categories::LogicError);
     auto R = std::make_unique<PathSensitiveBugReport>(*BT_InvalidArg, Msg, N);
 
-    for (ArgNo ArgN : VC->getArgsToTrack())
+    for (ArgNo const ArgN : VC->getArgsToTrack())
       bugreporter::trackExpressionValue(N, Call.getArgExpr(ArgN), *R);
 
     // Highlight the range of the argument that was violated.
@@ -631,7 +631,7 @@ std::string StdLibraryFunctionsChecker::RangeConstraint::describe(
 
   BasicValueFactory &BVF = getBVF(State);
 
-  QualType T = Summary.getArgType(getArgNo());
+  QualType const T = Summary.getArgType(getArgNo());
   SmallString<48> Result;
   Result += "The ";
   Result += getArgDesc(ArgN);
@@ -700,12 +700,12 @@ ProgramStateRef StdLibraryFunctionsChecker::RangeConstraint::applyAsOutOfRange(
   SValBuilder &SVB = Mgr.getSValBuilder();
   BasicValueFactory &BVF = SVB.getBasicValueFactory();
   ConstraintManager &CM = Mgr.getConstraintManager();
-  QualType T = Summary.getArgType(getArgNo());
-  SVal V = getArgSVal(Call, getArgNo());
+  QualType const T = Summary.getArgType(getArgNo());
+  SVal const V = getArgSVal(Call, getArgNo());
 
   if (auto N = V.getAs<NonLoc>()) {
     const IntRangeVector &R = getRanges();
-    size_t E = R.size();
+    size_t const E = R.size();
     for (size_t I = 0; I != E; ++I) {
       const llvm::APSInt &Min = BVF.getValue(R[I].first, T);
       const llvm::APSInt &Max = BVF.getValue(R[I].second, T);
@@ -729,8 +729,8 @@ ProgramStateRef StdLibraryFunctionsChecker::RangeConstraint::applyAsWithinRange(
   SValBuilder &SVB = Mgr.getSValBuilder();
   BasicValueFactory &BVF = SVB.getBasicValueFactory();
   ConstraintManager &CM = Mgr.getConstraintManager();
-  QualType T = Summary.getArgType(getArgNo());
-  SVal V = getArgSVal(Call, getArgNo());
+  QualType const T = Summary.getArgType(getArgNo());
+  SVal const V = getArgSVal(Call, getArgNo());
 
   // "WithinRange R" is treated as "outside [T_MIN, T_MAX] \ R".
   // We cut off [T_MIN, min(R) - 1] and [max(R) + 1, T_MAX] if necessary,
@@ -743,7 +743,7 @@ ProgramStateRef StdLibraryFunctionsChecker::RangeConstraint::applyAsWithinRange(
   // then not in [D + 1, +inf], then not in [B + 1, C - 1]
   if (auto N = V.getAs<NonLoc>()) {
     const IntRangeVector &R = getRanges();
-    size_t E = R.size();
+    size_t const E = R.size();
 
     const llvm::APSInt &MinusInf = BVF.getMinValue(T);
     const llvm::APSInt &PlusInf = BVF.getMaxValue(T);
@@ -784,14 +784,14 @@ ProgramStateRef StdLibraryFunctionsChecker::ComparisonConstraint::apply(
 
   ProgramStateManager &Mgr = State->getStateManager();
   SValBuilder &SVB = Mgr.getSValBuilder();
-  QualType CondT = SVB.getConditionType();
-  QualType T = Summary.getArgType(getArgNo());
-  SVal V = getArgSVal(Call, getArgNo());
+  QualType const CondT = SVB.getConditionType();
+  QualType const T = Summary.getArgType(getArgNo());
+  SVal const V = getArgSVal(Call, getArgNo());
 
-  BinaryOperator::Opcode Op = getOpcode();
-  ArgNo OtherArg = getOtherArgNo();
+  BinaryOperator::Opcode const Op = getOpcode();
+  ArgNo const OtherArg = getOtherArgNo();
   SVal OtherV = getArgSVal(Call, OtherArg);
-  QualType OtherT = Summary.getArgType(OtherArg);
+  QualType const OtherT = Summary.getArgType(OtherArg);
   // Note: we avoid integral promotion for comparison.
   OtherV = SVB.evalCast(OtherV, T, OtherT);
   if (auto CompV = SVB.evalBinOp(State, Op, V, OtherV, CondT)
@@ -807,12 +807,12 @@ void StdLibraryFunctionsChecker::checkPreCall(const CallEvent &Call,
     return;
 
   const Summary &Summary = *FoundSummary;
-  ProgramStateRef State = C.getState();
+  ProgramStateRef const State = C.getState();
 
   ProgramStateRef NewState = State;
   for (const ValueConstraintPtr &Constraint : Summary.getArgConstraints()) {
-    ProgramStateRef SuccessSt = Constraint->apply(NewState, Call, Summary, C);
-    ProgramStateRef FailureSt =
+    ProgramStateRef const SuccessSt = Constraint->apply(NewState, Call, Summary, C);
+    ProgramStateRef const FailureSt =
         Constraint->negate()->apply(NewState, Call, Summary, C);
     // The argument constraint is not satisfied.
     if (FailureSt && !SuccessSt) {
@@ -840,7 +840,7 @@ void StdLibraryFunctionsChecker::checkPostCall(const CallEvent &Call,
 
   // Now apply the constraints.
   const Summary &Summary = *FoundSummary;
-  ProgramStateRef State = C.getState();
+  ProgramStateRef const State = C.getState();
 
   // Apply case/branch specifications.
   for (const ConstraintSet &Case : Summary.getCaseConstraints()) {
@@ -868,7 +868,7 @@ bool StdLibraryFunctionsChecker::evalCall(const CallEvent &Call,
     ProgramStateRef State = C.getState();
     const LocationContext *LC = C.getLocationContext();
     const auto *CE = cast<CallExpr>(Call.getOriginExpr());
-    SVal V = C.getSValBuilder().conjureSymbolVal(
+    SVal const V = C.getSValBuilder().conjureSymbolVal(
         CE, LC, CE->getType().getCanonicalType(), C.blockCount());
     State = State->BindExpr(CE, LC, V);
     C.addTransition(State);
@@ -904,17 +904,17 @@ bool StdLibraryFunctionsChecker::Signature::matches(
 
   // Check the return type.
   if (!isIrrelevant(RetTy)) {
-    QualType FDRetTy = RemoveRestrict(FD->getReturnType().getCanonicalType());
+    QualType const FDRetTy = RemoveRestrict(FD->getReturnType().getCanonicalType());
     if (RetTy != FDRetTy)
       return false;
   }
 
   // Check the argument types.
   for (size_t I = 0, E = ArgTys.size(); I != E; ++I) {
-    QualType ArgTy = ArgTys[I];
+    QualType const ArgTy = ArgTys[I];
     if (isIrrelevant(ArgTy))
       continue;
-    QualType FDArgTy =
+    QualType const FDArgTy =
         RemoveRestrict(FD->getParamDecl(I)->getType().getCanonicalType());
     if (ArgTy != FDArgTy)
       return false;
@@ -964,7 +964,7 @@ void StdLibraryFunctionsChecker::initFunctionSummaries(
 
     // Find the type. If not found then the optional is not set.
     llvm::Optional<QualType> operator()(StringRef Name) {
-      IdentifierInfo &II = ACtx.Idents.get(Name);
+      IdentifierInfo  const&II = ACtx.Idents.get(Name);
       auto LookupRes = ACtx.getTranslationUnitDecl()->lookup(&II);
       if (LookupRes.empty())
         return None;
@@ -1116,7 +1116,7 @@ void StdLibraryFunctionsChecker::initFunctionSummaries(
     bool operator()(StringRef Name, Signature Sign, Summary Sum) {
       if (Sign.isInvalid())
         return false;
-      IdentifierInfo &II = ACtx.Idents.get(Name);
+      IdentifierInfo  const&II = ACtx.Idents.get(Name);
       auto LookupRes = ACtx.getTranslationUnitDecl()->lookup(&II);
       if (LookupRes.empty())
         return false;
@@ -1140,7 +1140,7 @@ void StdLibraryFunctionsChecker::initFunctionSummaries(
     // Add the same summary for different names with the Signature explicitly
     // given.
     void operator()(std::vector<StringRef> Names, Signature Sign, Summary Sum) {
-      for (StringRef Name : Names)
+      for (StringRef const Name : Names)
         operator()(Name, Sign, Sum);
     }
   } addToFunctionSummaryMap(ACtx, FunctionSummaryMap, DisplayLoadedSummaries);
@@ -1185,9 +1185,9 @@ void StdLibraryFunctionsChecker::initFunctionSummaries(
     return std::make_shared<NotNullConstraint>(ArgN);
   };
 
-  Optional<QualType> FileTy = lookupTy("FILE");
-  Optional<QualType> FilePtrTy = getPointerTy(FileTy);
-  Optional<QualType> FilePtrRestrictTy = getRestrictTy(FilePtrTy);
+  Optional<QualType> const FileTy = lookupTy("FILE");
+  Optional<QualType> const FilePtrTy = getPointerTy(FileTy);
+  Optional<QualType> const FilePtrRestrictTy = getRestrictTy(FilePtrTy);
 
   // We are finally ready to define specifications for all supported functions.
   //
@@ -1386,8 +1386,8 @@ void StdLibraryFunctionsChecker::initFunctionSummaries(
                                     RetType{SizeTy}),
                           FreadSummary);
 
-  Optional<QualType> Ssize_tTy = lookupTy("ssize_t");
-  Optional<RangeInt> Ssize_tMax = getMaxValue(Ssize_tTy);
+  Optional<QualType> const Ssize_tTy = lookupTy("ssize_t");
+  Optional<RangeInt> const Ssize_tMax = getMaxValue(Ssize_tTy);
 
   auto ReadSummary =
       Summary(NoEvalCall)
@@ -1411,7 +1411,7 @@ void StdLibraryFunctionsChecker::initFunctionSummaries(
           .Case({ReturnValueCondition(WithinRange,
                                       Range({-1, -1}, {1, Ssize_tMax}))});
 
-  QualType CharPtrPtrRestrictTy = getRestrictTy(getPointerTy(CharPtrTy));
+  QualType const CharPtrPtrRestrictTy = getRestrictTy(getPointerTy(CharPtrTy));
 
   // getline()-like functions either fail or read at least the delimiter.
   // FIXME these are actually defined by POSIX and not by the C standard, we
@@ -1508,7 +1508,7 @@ void StdLibraryFunctionsChecker::initFunctionSummaries(
                                 .ArgConstraint(ArgumentCondition(
                                     0, WithinRange, Range(0, IntMax))));
 
-    Optional<QualType> Off_tTy = lookupTy("off_t");
+    Optional<QualType> const Off_tTy = lookupTy("off_t");
 
     // int truncate(const char *path, off_t length);
     addToFunctionSummaryMap(
@@ -1546,7 +1546,7 @@ void StdLibraryFunctionsChecker::initFunctionSummaries(
             .ArgConstraint(
                 ArgumentCondition(0, WithinRange, Range(0, IntMax))));
 
-    Optional<QualType> Mode_tTy = lookupTy("mode_t");
+    Optional<QualType> const Mode_tTy = lookupTy("mode_t");
 
     // int creat(const char *pathname, mode_t mode);
     addToFunctionSummaryMap(
@@ -1562,8 +1562,8 @@ void StdLibraryFunctionsChecker::initFunctionSummaries(
             .ArgConstraint(
                 ArgumentCondition(0, WithinRange, Range(0, UnsignedIntMax))));
 
-    Optional<QualType> DirTy = lookupTy("DIR");
-    Optional<QualType> DirPtrTy = getPointerTy(DirTy);
+    Optional<QualType> const DirTy = lookupTy("DIR");
+    Optional<QualType> const DirPtrTy = getPointerTy(DirTy);
 
     // int dirfd(DIR *dirp);
     addToFunctionSummaryMap("dirfd",
@@ -1639,7 +1639,7 @@ void StdLibraryFunctionsChecker::initFunctionSummaries(
             .Case(ReturnsZeroOrMinusOne)
             .ArgConstraint(NotNull(ArgNo(1))));
 
-    Optional<QualType> Dev_tTy = lookupTy("dev_t");
+    Optional<QualType> const Dev_tTy = lookupTy("dev_t");
 
     // int mknod(const char *pathname, mode_t mode, dev_t dev);
     addToFunctionSummaryMap(
@@ -1683,8 +1683,8 @@ void StdLibraryFunctionsChecker::initFunctionSummaries(
             .ArgConstraint(
                 ArgumentCondition(0, WithinRange, Range(0, IntMax))));
 
-    Optional<QualType> Uid_tTy = lookupTy("uid_t");
-    Optional<QualType> Gid_tTy = lookupTy("gid_t");
+    Optional<QualType> const Uid_tTy = lookupTy("uid_t");
+    Optional<QualType> const Gid_tTy = lookupTy("gid_t");
 
     // int fchownat(int dirfd, const char *pathname, uid_t owner, gid_t group,
     //              int flags);
@@ -1773,9 +1773,9 @@ void StdLibraryFunctionsChecker::initFunctionSummaries(
             .ArgConstraint(ArgumentCondition(0, WithinRange, Range(0, IntMax)))
             .ArgConstraint(NotNull(ArgNo(1))));
 
-    Optional<QualType> StructStatTy = lookupTy("stat");
-    Optional<QualType> StructStatPtrTy = getPointerTy(StructStatTy);
-    Optional<QualType> StructStatPtrRestrictTy = getRestrictTy(StructStatPtrTy);
+    Optional<QualType> const StructStatTy = lookupTy("stat");
+    Optional<QualType> const StructStatPtrTy = getPointerTy(StructStatTy);
+    Optional<QualType> const StructStatPtrRestrictTy = getRestrictTy(StructStatPtrTy);
 
     // int fstat(int fd, struct stat *statbuf);
     addToFunctionSummaryMap(
@@ -1924,7 +1924,7 @@ void StdLibraryFunctionsChecker::initFunctionSummaries(
             .ArgConstraint(
                 ArgumentCondition(4, WithinRange, Range(-1, IntMax))));
 
-    Optional<QualType> Off64_tTy = lookupTy("off64_t");
+    Optional<QualType> const Off64_tTy = lookupTy("off64_t");
     // void *mmap64(void *addr, size_t length, int prot, int flags, int fd,
     // off64_t offset);
     addToFunctionSummaryMap(
@@ -2003,7 +2003,7 @@ void StdLibraryFunctionsChecker::initFunctionSummaries(
                   RetType{CharPtrTy}),
         Summary(NoEvalCall).ArgConstraint(NotNull(ArgNo(0))));
 
-    QualType CharPtrConstPtr = getPointerTy(getConstTy(CharPtrTy));
+    QualType const CharPtrConstPtr = getPointerTy(getConstTy(CharPtrTy));
 
     // int execv(const char *path, char *const argv[]);
     addToFunctionSummaryMap(
@@ -2032,18 +2032,18 @@ void StdLibraryFunctionsChecker::initFunctionSummaries(
             .ArgConstraint(NotNull(ArgNo(1)))
             .ArgConstraint(NotNull(ArgNo(2))));
 
-    Optional<QualType> StructSockaddrTy = lookupTy("sockaddr");
-    Optional<QualType> StructSockaddrPtrTy = getPointerTy(StructSockaddrTy);
-    Optional<QualType> ConstStructSockaddrPtrTy =
+    Optional<QualType> const StructSockaddrTy = lookupTy("sockaddr");
+    Optional<QualType> const StructSockaddrPtrTy = getPointerTy(StructSockaddrTy);
+    Optional<QualType> const ConstStructSockaddrPtrTy =
         getPointerTy(getConstTy(StructSockaddrTy));
-    Optional<QualType> StructSockaddrPtrRestrictTy =
+    Optional<QualType> const StructSockaddrPtrRestrictTy =
         getRestrictTy(StructSockaddrPtrTy);
-    Optional<QualType> ConstStructSockaddrPtrRestrictTy =
+    Optional<QualType> const ConstStructSockaddrPtrRestrictTy =
         getRestrictTy(ConstStructSockaddrPtrTy);
-    Optional<QualType> Socklen_tTy = lookupTy("socklen_t");
-    Optional<QualType> Socklen_tPtrTy = getPointerTy(Socklen_tTy);
-    Optional<QualType> Socklen_tPtrRestrictTy = getRestrictTy(Socklen_tPtrTy);
-    Optional<RangeInt> Socklen_tMax = getMaxValue(Socklen_tTy);
+    Optional<QualType> const Socklen_tTy = lookupTy("socklen_t");
+    Optional<QualType> const Socklen_tPtrTy = getPointerTy(Socklen_tTy);
+    Optional<QualType> const Socklen_tPtrRestrictTy = getRestrictTy(Socklen_tPtrTy);
+    Optional<RangeInt> const Socklen_tMax = getMaxValue(Socklen_tTy);
 
     // In 'socket.h' of some libc implementations with C99, sockaddr parameter
     // is a transparent union of the underlying sockaddr_ family of pointers
@@ -2226,9 +2226,9 @@ void StdLibraryFunctionsChecker::initFunctionSummaries(
             .ArgConstraint(BufferSize(/*Buffer=*/ArgNo(1),
                                       /*BufSize=*/ArgNo(2))));
 
-    Optional<QualType> StructMsghdrTy = lookupTy("msghdr");
-    Optional<QualType> StructMsghdrPtrTy = getPointerTy(StructMsghdrTy);
-    Optional<QualType> ConstStructMsghdrPtrTy =
+    Optional<QualType> const StructMsghdrTy = lookupTy("msghdr");
+    Optional<QualType> const StructMsghdrPtrTy = getPointerTy(StructMsghdrTy);
+    Optional<QualType> const ConstStructMsghdrPtrTy =
         getPointerTy(getConstTy(StructMsghdrTy));
 
     // ssize_t recvmsg(int sockfd, struct msghdr *msg, int flags);
@@ -2325,8 +2325,8 @@ void StdLibraryFunctionsChecker::initFunctionSummaries(
             .ArgConstraint(
                 ArgumentCondition(5, WithinRange, Range(0, Socklen_tMax))));
 
-    Optional<QualType> StructUtimbufTy = lookupTy("utimbuf");
-    Optional<QualType> StructUtimbufPtrTy = getPointerTy(StructUtimbufTy);
+    Optional<QualType> const StructUtimbufTy = lookupTy("utimbuf");
+    Optional<QualType> const StructUtimbufPtrTy = getPointerTy(StructUtimbufTy);
 
     // int utime(const char *filename, struct utimbuf *buf);
     addToFunctionSummaryMap(
@@ -2336,9 +2336,9 @@ void StdLibraryFunctionsChecker::initFunctionSummaries(
             .Case(ReturnsZeroOrMinusOne)
             .ArgConstraint(NotNull(ArgNo(0))));
 
-    Optional<QualType> StructTimespecTy = lookupTy("timespec");
-    Optional<QualType> StructTimespecPtrTy = getPointerTy(StructTimespecTy);
-    Optional<QualType> ConstStructTimespecPtrTy =
+    Optional<QualType> const StructTimespecTy = lookupTy("timespec");
+    Optional<QualType> const StructTimespecPtrTy = getPointerTy(StructTimespecTy);
+    Optional<QualType> const ConstStructTimespecPtrTy =
         getPointerTy(getConstTy(StructTimespecTy));
 
     // int futimens(int fd, const struct timespec times[2]);
@@ -2360,8 +2360,8 @@ void StdLibraryFunctionsChecker::initFunctionSummaries(
                                 .Case(ReturnsZeroOrMinusOne)
                                 .ArgConstraint(NotNull(ArgNo(1))));
 
-    Optional<QualType> StructTimevalTy = lookupTy("timeval");
-    Optional<QualType> ConstStructTimevalPtrTy =
+    Optional<QualType> const StructTimevalTy = lookupTy("timeval");
+    Optional<QualType> const ConstStructTimevalPtrTy =
         getPointerTy(getConstTy(StructTimevalTy));
 
     // int utimes(const char *filename, const struct timeval times[2]);
@@ -2382,17 +2382,17 @@ void StdLibraryFunctionsChecker::initFunctionSummaries(
             .Case(ReturnsZeroOrMinusOne)
             .ArgConstraint(NotNull(ArgNo(0))));
 
-    Optional<QualType> Time_tTy = lookupTy("time_t");
-    Optional<QualType> ConstTime_tPtrTy = getPointerTy(getConstTy(Time_tTy));
-    Optional<QualType> ConstTime_tPtrRestrictTy =
+    Optional<QualType> const Time_tTy = lookupTy("time_t");
+    Optional<QualType> const ConstTime_tPtrTy = getPointerTy(getConstTy(Time_tTy));
+    Optional<QualType> const ConstTime_tPtrRestrictTy =
         getRestrictTy(ConstTime_tPtrTy);
 
-    Optional<QualType> StructTmTy = lookupTy("tm");
-    Optional<QualType> StructTmPtrTy = getPointerTy(StructTmTy);
-    Optional<QualType> StructTmPtrRestrictTy = getRestrictTy(StructTmPtrTy);
-    Optional<QualType> ConstStructTmPtrTy =
+    Optional<QualType> const StructTmTy = lookupTy("tm");
+    Optional<QualType> const StructTmPtrTy = getPointerTy(StructTmTy);
+    Optional<QualType> const StructTmPtrRestrictTy = getRestrictTy(StructTmPtrTy);
+    Optional<QualType> const ConstStructTmPtrTy =
         getPointerTy(getConstTy(StructTmTy));
-    Optional<QualType> ConstStructTmPtrRestrictTy =
+    Optional<QualType> const ConstStructTmPtrRestrictTy =
         getRestrictTy(ConstStructTmPtrTy);
 
     // struct tm * localtime(const time_t *tp);
@@ -2448,7 +2448,7 @@ void StdLibraryFunctionsChecker::initFunctionSummaries(
         "gmtime", Signature(ArgTypes{ConstTime_tPtrTy}, RetType{StructTmPtrTy}),
         Summary(NoEvalCall).ArgConstraint(NotNull(ArgNo(0))));
 
-    Optional<QualType> Clockid_tTy = lookupTy("clockid_t");
+    Optional<QualType> const Clockid_tTy = lookupTy("clockid_t");
 
     // int clock_gettime(clockid_t clock_id, struct timespec *tp);
     addToFunctionSummaryMap(
@@ -2458,8 +2458,8 @@ void StdLibraryFunctionsChecker::initFunctionSummaries(
             .Case(ReturnsZeroOrMinusOne)
             .ArgConstraint(NotNull(ArgNo(1))));
 
-    Optional<QualType> StructItimervalTy = lookupTy("itimerval");
-    Optional<QualType> StructItimervalPtrTy = getPointerTy(StructItimervalTy);
+    Optional<QualType> const StructItimervalTy = lookupTy("itimerval");
+    Optional<QualType> const StructItimervalPtrTy = getPointerTy(StructItimervalTy);
 
     // int getitimer(int which, struct itimerval *curr_value);
     addToFunctionSummaryMap(
@@ -2469,28 +2469,28 @@ void StdLibraryFunctionsChecker::initFunctionSummaries(
             .Case(ReturnsZeroOrMinusOne)
             .ArgConstraint(NotNull(ArgNo(1))));
 
-    Optional<QualType> Pthread_cond_tTy = lookupTy("pthread_cond_t");
-    Optional<QualType> Pthread_cond_tPtrTy = getPointerTy(Pthread_cond_tTy);
-    Optional<QualType> Pthread_tTy = lookupTy("pthread_t");
-    Optional<QualType> Pthread_tPtrTy = getPointerTy(Pthread_tTy);
-    Optional<QualType> Pthread_tPtrRestrictTy = getRestrictTy(Pthread_tPtrTy);
-    Optional<QualType> Pthread_mutex_tTy = lookupTy("pthread_mutex_t");
-    Optional<QualType> Pthread_mutex_tPtrTy = getPointerTy(Pthread_mutex_tTy);
-    Optional<QualType> Pthread_mutex_tPtrRestrictTy =
+    Optional<QualType> const Pthread_cond_tTy = lookupTy("pthread_cond_t");
+    Optional<QualType> const Pthread_cond_tPtrTy = getPointerTy(Pthread_cond_tTy);
+    Optional<QualType> const Pthread_tTy = lookupTy("pthread_t");
+    Optional<QualType> const Pthread_tPtrTy = getPointerTy(Pthread_tTy);
+    Optional<QualType> const Pthread_tPtrRestrictTy = getRestrictTy(Pthread_tPtrTy);
+    Optional<QualType> const Pthread_mutex_tTy = lookupTy("pthread_mutex_t");
+    Optional<QualType> const Pthread_mutex_tPtrTy = getPointerTy(Pthread_mutex_tTy);
+    Optional<QualType> const Pthread_mutex_tPtrRestrictTy =
         getRestrictTy(Pthread_mutex_tPtrTy);
-    Optional<QualType> Pthread_attr_tTy = lookupTy("pthread_attr_t");
-    Optional<QualType> Pthread_attr_tPtrTy = getPointerTy(Pthread_attr_tTy);
-    Optional<QualType> ConstPthread_attr_tPtrTy =
+    Optional<QualType> const Pthread_attr_tTy = lookupTy("pthread_attr_t");
+    Optional<QualType> const Pthread_attr_tPtrTy = getPointerTy(Pthread_attr_tTy);
+    Optional<QualType> const ConstPthread_attr_tPtrTy =
         getPointerTy(getConstTy(Pthread_attr_tTy));
-    Optional<QualType> ConstPthread_attr_tPtrRestrictTy =
+    Optional<QualType> const ConstPthread_attr_tPtrRestrictTy =
         getRestrictTy(ConstPthread_attr_tPtrTy);
-    Optional<QualType> Pthread_mutexattr_tTy = lookupTy("pthread_mutexattr_t");
-    Optional<QualType> ConstPthread_mutexattr_tPtrTy =
+    Optional<QualType> const Pthread_mutexattr_tTy = lookupTy("pthread_mutexattr_t");
+    Optional<QualType> const ConstPthread_mutexattr_tPtrTy =
         getPointerTy(getConstTy(Pthread_mutexattr_tTy));
-    Optional<QualType> ConstPthread_mutexattr_tPtrRestrictTy =
+    Optional<QualType> const ConstPthread_mutexattr_tPtrRestrictTy =
         getRestrictTy(ConstPthread_mutexattr_tPtrTy);
 
-    QualType PthreadStartRoutineTy = getPointerTy(
+    QualType const PthreadStartRoutineTy = getPointerTy(
         ACtx.getFunctionType(/*ResultTy=*/VoidPtrTy, /*Args=*/VoidPtrTy,
                              FunctionProtoType::ExtProtoInfo()));
 

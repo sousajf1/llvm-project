@@ -56,7 +56,7 @@ void DivZeroChecker::reportBug(
 
 void DivZeroChecker::checkPreStmt(const BinaryOperator *B,
                                   CheckerContext &C) const {
-  BinaryOperator::Opcode Op = B->getOpcode();
+  BinaryOperator::Opcode const Op = B->getOpcode();
   if (Op != BO_Div &&
       Op != BO_Rem &&
       Op != BO_DivAssign &&
@@ -66,7 +66,7 @@ void DivZeroChecker::checkPreStmt(const BinaryOperator *B,
   if (!B->getRHS()->getType()->isScalarType())
     return;
 
-  SVal Denom = C.getSVal(B->getRHS());
+  SVal const Denom = C.getSVal(B->getRHS());
   Optional<DefinedSVal> DV = Denom.getAs<DefinedSVal>();
 
   // Divide-by-undefined handled in the generic checking for uses of
@@ -85,7 +85,7 @@ void DivZeroChecker::checkPreStmt(const BinaryOperator *B,
     return;
   }
 
-  bool TaintedD = isTainted(C.getState(), *DV);
+  bool const TaintedD = isTainted(C.getState(), *DV);
   if ((stateNotZero && stateZero && TaintedD)) {
     reportBug("Division by a tainted value, possibly zero", stateZero, C,
               std::make_unique<taint::TaintBugVisitor>(*DV));

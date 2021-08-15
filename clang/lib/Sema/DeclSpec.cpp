@@ -1128,7 +1128,7 @@ void DeclSpec::Finish(Sema &S, const PrintingPolicy &Policy) {
        TypeAltiVecVector || TypeAltiVecPixel || TypeAltiVecBool ||
        TypeQualifiers)) {
     const unsigned NumLocs = 9;
-    SourceLocation ExtraLocs[NumLocs] = {
+    SourceLocation const ExtraLocs[NumLocs] = {
         TSWRange.getBegin(), TSCLoc,       TSSLoc,
         AltiVecLoc,          TQ_constLoc,  TQ_restrictLoc,
         TQ_volatileLoc,      TQ_atomicLoc, TQ_unalignedLoc};
@@ -1236,7 +1236,7 @@ void DeclSpec::Finish(Sema &S, const PrintingPolicy &Policy) {
     }
   }
 
-  bool IsFixedPointType =
+  bool const IsFixedPointType =
       TypeSpecType == TST_accum || TypeSpecType == TST_fract;
 
   // signed/unsigned are only valid with int/char/wchar_t/_Accum.
@@ -1375,13 +1375,13 @@ void DeclSpec::Finish(Sema &S, const PrintingPolicy &Policy) {
     SourceLocation SCLoc;
     FixItHint StorageHint, ThreadHint;
 
-    if (DeclSpec::SCS SC = getStorageClassSpec()) {
+    if (DeclSpec::SCS const SC = getStorageClassSpec()) {
       SpecName = getSpecifierName(SC);
       SCLoc = getStorageClassSpecLoc();
       StorageHint = FixItHint::CreateRemoval(SCLoc);
     }
 
-    if (DeclSpec::TSCS TSC = getThreadStorageClassSpec()) {
+    if (DeclSpec::TSCS const TSC = getThreadStorageClassSpec()) {
       if (!SpecName.empty()) SpecName += " ";
       SpecName += getSpecifierName(TSC);
       SCLoc = getThreadStorageClassSpecLoc();
@@ -1434,7 +1434,7 @@ void DeclSpec::Finish(Sema &S, const PrintingPolicy &Policy) {
 }
 
 bool DeclSpec::isMissingDeclaratorOk() {
-  TST tst = getTypeSpecType();
+  TST const tst = getTypeSpecType();
   return isDeclRep(tst) && getRepAsDecl() != nullptr &&
     StorageClassSpec != DeclSpec::SCS_typedef;
 }

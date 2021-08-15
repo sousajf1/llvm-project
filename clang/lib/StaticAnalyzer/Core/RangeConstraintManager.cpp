@@ -176,7 +176,7 @@ bool RangeSet::containsImpl(llvm::APSInt &Point) const {
   if (isEmpty() || !pin(Point))
     return false;
 
-  Range Dummy(Point);
+  Range const Dummy(Point);
   const_iterator It = llvm::upper_bound(*this, Dummy);
   if (It == begin())
     return false;
@@ -185,7 +185,7 @@ bool RangeSet::containsImpl(llvm::APSInt &Point) const {
 }
 
 bool RangeSet::pin(llvm::APSInt &Point) const {
-  APSIntType Type(getMinValue());
+  APSIntType const Type(getMinValue());
   if (Type.testInRange(Point, true) != APSIntType::RTR_Within)
     return false;
 
@@ -199,9 +199,9 @@ bool RangeSet::pin(llvm::APSInt &Lower, llvm::APSInt &Upper) const {
   // Each case requires a different pinning operation.
   // The function returns false if the described range is entirely outside
   // the range of values for the associated symbol.
-  APSIntType Type(getMinValue());
-  APSIntType::RangeTestResultKind LowerTest = Type.testInRange(Lower, true);
-  APSIntType::RangeTestResultKind UpperTest = Type.testInRange(Upper, true);
+  APSIntType const Type(getMinValue());
+  APSIntType::RangeTestResultKind const LowerTest = Type.testInRange(Lower, true);
+  APSIntType::RangeTestResultKind const UpperTest = Type.testInRange(Upper, true);
 
   switch (LowerTest) {
   case APSIntType::RTR_Below:
@@ -879,7 +879,7 @@ private:
 
   /// Infer range information from symbol in the context of the given type.
   RangeSet inferAs(SymbolRef Sym, QualType DestType) {
-    QualType ActualType = Sym->getType();
+    QualType const ActualType = Sym->getType();
     // Check that we can reason about the symbol at all.
     if (ActualType->isIntegralOrEnumerationType() ||
         Loc::isLocType(ActualType)) {
@@ -946,7 +946,7 @@ private:
     // involved in conditions and get tested continuously.  We definitely
     // need to address this issue and introduce some sort of caching
     // in here.
-    QualType ResultType = Sym->getType();
+    QualType const ResultType = Sym->getType();
     return VisitBinaryOperator(inferAs(Sym->getLHS(), ResultType),
                                Sym->getOpcode(),
                                inferAs(Sym->getRHS(), ResultType), ResultType);
@@ -1000,10 +1000,10 @@ private:
       return RangeFactory.getEmptySet();
     }
 
-    Range CoarseLHS = fillGaps(LHS);
-    Range CoarseRHS = fillGaps(RHS);
+    Range const CoarseLHS = fillGaps(LHS);
+    Range const CoarseRHS = fillGaps(RHS);
 
-    APSIntType ResultType = ValueFactory.getAPSIntType(T);
+    APSIntType const ResultType = ValueFactory.getAPSIntType(T);
 
     // We need to convert ranges to the resulting type, so we can compare values
     // and combine them in a meaningful (in terms of the given operation) way.
@@ -1033,7 +1033,7 @@ private:
   /// If T is unsigned, return the smallest range [0..x] that covers the
   /// original range.
   Range getSymmetricalRange(Range Origin, QualType T) {
-    APSIntType RangeType = ValueFactory.getAPSIntType(T);
+    APSIntType const RangeType = ValueFactory.getAPSIntType(T);
 
     if (RangeType.isUnsigned()) {
       return Range(ValueFactory.getMinValue(RangeType), Origin.To());
@@ -1058,7 +1058,7 @@ private:
     //     AbsMax == -From == max(-From, To)
     //   * Otherwise, From <= 0, To >= 0, and
     //     AbsMax == max(abs(From), abs(To))
-    llvm::APSInt AbsMax = std::max(-Origin.From(), Origin.To());
+    llvm::APSInt const AbsMax = std::max(-Origin.From(), Origin.To());
 
     // Intersection is guaranteed to be non-empty.
     return {ValueFactory.getValue(-AbsMax), ValueFactory.getValue(AbsMax)};
@@ -1066,7 +1066,7 @@ private:
 
   /// Return a range set subtracting zero from \p Domain.
   RangeSet assumeNonZero(RangeSet Domain, QualType T) {
-    APSIntType IntType = ValueFactory.getAPSIntType(T);
+    APSIntType const IntType = ValueFactory.getAPSIntType(T);
     return RangeFactory.deletePoint(Domain, IntType.getZeroValue());
   }
 
@@ -1078,7 +1078,7 @@ private:
   Optional<RangeSet> getRangeForNegatedSub(SymbolRef Sym) {
     if (const SymSymExpr *SSE = dyn_cast<SymSymExpr>(Sym)) {
       if (SSE->getOpcode() == BO_Sub) {
-        QualType T = Sym->getType();
+        QualType const T = Sym->getType();
 
         // Do not negate unsigned ranges
         if (!T->isUnsignedIntegerOrEnumerationType() &&
@@ -1112,7 +1112,7 @@ private:
     if (!SSE)
       return llvm::None;
 
-    BinaryOperatorKind CurrentOP = SSE->getOpcode();
+    BinaryOperatorKind const CurrentOP = SSE->getOpcode();
 
     // We currently do not support <=> (C++20).
     if (!BinaryOperator::isComparisonOp(CurrentOP) || (CurrentOP == BO_Cmp))
@@ -1122,7 +1122,7 @@ private:
 
     const SymExpr *LHS = SSE->getLHS();
     const SymExpr *RHS = SSE->getRHS();
-    QualType T = SSE->getType();
+    QualType const T = SSE->getType();
 
     SymbolManager &SymMgr = State->getSymbolManager();
 
@@ -1203,7 +1203,7 @@ private:
   }
 
   RangeSet getTrueRange(QualType T) {
-    RangeSet TypeRange = infer(T);
+    RangeSet const TypeRange = infer(T);
     return assumeNonZero(TypeRange, T);
   }
 
@@ -1224,14 +1224,14 @@ private:
 template <>
 RangeSet SymbolicRangeInferrer::VisitBinaryOperator<BO_Or>(Range LHS, Range RHS,
                                                            QualType T) {
-  APSIntType ResultType = ValueFactory.getAPSIntType(T);
+  APSIntType const ResultType = ValueFactory.getAPSIntType(T);
   llvm::APSInt Zero = ResultType.getZeroValue();
 
-  bool IsLHSPositiveOrZero = LHS.From() >= Zero;
-  bool IsRHSPositiveOrZero = RHS.From() >= Zero;
+  bool const IsLHSPositiveOrZero = LHS.From() >= Zero;
+  bool const IsRHSPositiveOrZero = RHS.From() >= Zero;
 
-  bool IsLHSNegative = LHS.To() < Zero;
-  bool IsRHSNegative = RHS.To() < Zero;
+  bool const IsLHSNegative = LHS.To() < Zero;
+  bool const IsRHSNegative = RHS.To() < Zero;
 
   // Check if both ranges have the same sign.
   if ((IsLHSPositiveOrZero && IsRHSPositiveOrZero) ||
@@ -1282,14 +1282,14 @@ template <>
 RangeSet SymbolicRangeInferrer::VisitBinaryOperator<BO_And>(Range LHS,
                                                             Range RHS,
                                                             QualType T) {
-  APSIntType ResultType = ValueFactory.getAPSIntType(T);
-  llvm::APSInt Zero = ResultType.getZeroValue();
+  APSIntType const ResultType = ValueFactory.getAPSIntType(T);
+  llvm::APSInt const Zero = ResultType.getZeroValue();
 
-  bool IsLHSPositiveOrZero = LHS.From() >= Zero;
-  bool IsRHSPositiveOrZero = RHS.From() >= Zero;
+  bool const IsLHSPositiveOrZero = LHS.From() >= Zero;
+  bool const IsRHSPositiveOrZero = RHS.From() >= Zero;
 
-  bool IsLHSNegative = LHS.To() < Zero;
-  bool IsRHSNegative = RHS.To() < Zero;
+  bool const IsLHSNegative = LHS.To() < Zero;
+  bool const IsRHSNegative = RHS.To() < Zero;
 
   // Check if both ranges have the same sign.
   if ((IsLHSPositiveOrZero && IsRHSPositiveOrZero) ||
@@ -1328,9 +1328,9 @@ template <>
 RangeSet SymbolicRangeInferrer::VisitBinaryOperator<BO_Rem>(Range LHS,
                                                             Range RHS,
                                                             QualType T) {
-  llvm::APSInt Zero = ValueFactory.getAPSIntType(T).getZeroValue();
+  llvm::APSInt const Zero = ValueFactory.getAPSIntType(T).getZeroValue();
 
-  Range ConservativeRange = getSymmetricalRange(RHS, T);
+  Range const ConservativeRange = getSymmetricalRange(RHS, T);
 
   llvm::APSInt Max = ConservativeRange.To();
   llvm::APSInt Min = ConservativeRange.From();
@@ -1357,8 +1357,8 @@ RangeSet SymbolicRangeInferrer::VisitBinaryOperator<BO_Rem>(Range LHS,
   }
   --Max;
 
-  bool IsLHSPositiveOrZero = LHS.From() >= Zero;
-  bool IsRHSPositiveOrZero = RHS.From() >= Zero;
+  bool const IsLHSPositiveOrZero = LHS.From() >= Zero;
+  bool const IsRHSPositiveOrZero = RHS.From() >= Zero;
 
   // Remainder operator results with negative operands is implementation
   // defined.  Positive cases are much easier to reason about though.
@@ -1532,7 +1532,7 @@ private:
       // Add new constraint.
       Constraints = CF.add(Constraints, Class, NewConstraint);
 
-      for (EquivalenceClass DisequalClass : Class.getDisequalClasses(State)) {
+      for (EquivalenceClass const DisequalClass : Class.getDisequalClasses(State)) {
         RangeSet UpdatedConstraint = SymbolicRangeInferrer::inferRange(
             RangeFactory, State, DisequalClass);
 
@@ -1570,7 +1570,7 @@ private:
     if (Constraint.getConcreteValue())
       return !Constraint.getConcreteValue()->isNullValue();
 
-    APSIntType T{Constraint.getMinValue()};
+    APSIntType const T{Constraint.getMinValue()};
     Const Zero = T.getZeroValue();
     if (!Constraint.contains(Zero))
       return true;
@@ -1694,9 +1694,9 @@ bool ConstraintAssignor::assignSymExprToConst(const SymExpr *Sym,
                                               const llvm::APSInt &Constraint) {
   llvm::SmallSet<EquivalenceClass, 4> SimplifiedClasses;
   // Iterate over all equivalence classes and try to simplify them.
-  ClassMembersTy Members = State->get<ClassMembers>();
-  for (std::pair<EquivalenceClass, SymbolSet> ClassToSymbolSet : Members) {
-    EquivalenceClass Class = ClassToSymbolSet.first;
+  ClassMembersTy const Members = State->get<ClassMembers>();
+  for (std::pair<EquivalenceClass, SymbolSet> const ClassToSymbolSet : Members) {
+    EquivalenceClass const Class = ClassToSymbolSet.first;
     State = EquivalenceClass::simplify(Builder, RangeFactory, State, Class);
     if (!State)
       return false;
@@ -1706,9 +1706,9 @@ bool ConstraintAssignor::assignSymExprToConst(const SymExpr *Sym,
   // Trivial equivalence classes (those that have only one symbol member) are
   // not stored in the State. Thus, we must skim through the constraints as
   // well. And we try to simplify symbols in the constraints.
-  ConstraintRangeTy Constraints = State->get<ConstraintRange>();
-  for (std::pair<EquivalenceClass, RangeSet> ClassConstraint : Constraints) {
-    EquivalenceClass Class = ClassConstraint.first;
+  ConstraintRangeTy const Constraints = State->get<ConstraintRange>();
+  for (std::pair<EquivalenceClass, RangeSet> const ClassConstraint : Constraints) {
+    EquivalenceClass const Class = ClassConstraint.first;
     if (SimplifiedClasses.count(Class)) // Already simplified.
       continue;
     State = EquivalenceClass::simplify(Builder, RangeFactory, State, Class);
@@ -1758,10 +1758,10 @@ ConstraintMap ento::getConstraintMap(ProgramStateRef State) {
   ConstraintMap::Factory &F = State->get_context<ConstraintMap>();
   ConstraintMap Result = F.getEmptyMap();
 
-  ConstraintRangeTy Constraints = State->get<ConstraintRange>();
-  for (std::pair<EquivalenceClass, RangeSet> ClassConstraint : Constraints) {
-    EquivalenceClass Class = ClassConstraint.first;
-    SymbolSet ClassMembers = Class.getClassMembers(State);
+  ConstraintRangeTy const Constraints = State->get<ConstraintRange>();
+  for (std::pair<EquivalenceClass, RangeSet> const ClassConstraint : Constraints) {
+    EquivalenceClass const Class = ClassConstraint.first;
+    SymbolSet const ClassMembers = Class.getClassMembers(State);
     assert(!ClassMembers.isEmpty() &&
            "Class must always have at least one member!");
 
@@ -1778,7 +1778,7 @@ ConstraintMap ento::getConstraintMap(ProgramStateRef State) {
 
 LLVM_DUMP_METHOD void EquivalenceClass::dumpToStream(ProgramStateRef State,
                                                      raw_ostream &os) const {
-  SymbolSet ClassMembers = getClassMembers(State);
+  SymbolSet const ClassMembers = getClassMembers(State);
   for (const SymbolRef &MemberSym : ClassMembers) {
     MemberSym->dump();
     os << "\n";
@@ -1802,7 +1802,7 @@ inline ProgramStateRef EquivalenceClass::merge(RangeSet::Factory &F,
                                                SymbolRef First,
                                                SymbolRef Second) {
   EquivalenceClass FirstClass = find(State, First);
-  EquivalenceClass SecondClass = find(State, Second);
+  EquivalenceClass const SecondClass = find(State, Second);
 
   return FirstClass.merge(F, State, SecondClass);
 }
@@ -1828,8 +1828,8 @@ inline ProgramStateRef EquivalenceClass::merge(RangeSet::Factory &F,
   if (getType() != Other.getType())
     return State;
 
-  SymbolSet Members = getClassMembers(State);
-  SymbolSet OtherMembers = Other.getClassMembers(State);
+  SymbolSet const Members = getClassMembers(State);
+  SymbolSet const OtherMembers = Other.getClassMembers(State);
 
   // We estimate the size of the class by the height of tree containing
   // its members.  Merging is not a trivial operation, so it's easier to
@@ -1916,7 +1916,7 @@ EquivalenceClass::mergeImpl(RangeSet::Factory &RangeFactory,
   Members = MF.add(Members, *this, NewClassMembers);
 
   // 4. Update disequality relations
-  ClassSet DisequalToOther = Other.getDisequalClasses(DisequalityInfo, CF);
+  ClassSet const DisequalToOther = Other.getDisequalClasses(DisequalityInfo, CF);
   // We are about to merge two classes but they are already known to be
   // non-equal. This is a contradiction.
   if (DisequalToOther.contains(*this))
@@ -1926,13 +1926,13 @@ EquivalenceClass::mergeImpl(RangeSet::Factory &RangeFactory,
     ClassSet DisequalToThis = getDisequalClasses(DisequalityInfo, CF);
     DisequalityInfo = DF.remove(DisequalityInfo, Other);
 
-    for (EquivalenceClass DisequalClass : DisequalToOther) {
+    for (EquivalenceClass const DisequalClass : DisequalToOther) {
       DisequalToThis = CF.add(DisequalToThis, DisequalClass);
 
       // Disequality is a symmetric relation meaning that if
       // DisequalToOther not null then the set for DisequalClass is not
       // empty and has at least Other.
-      ClassSet OriginalSetLinkedToOther =
+      ClassSet const OriginalSetLinkedToOther =
           *DisequalityInfo.lookup(DisequalClass);
 
       // Other will be eliminated and we should replace it with the bigger
@@ -2078,7 +2078,7 @@ inline Optional<bool> EquivalenceClass::areEqual(ProgramStateRef State,
 
   // Let's check if we know anything about these two classes being not equal to
   // each other.
-  ClassSet DisequalToFirst = First.getDisequalClasses(State);
+  ClassSet const DisequalToFirst = First.getDisequalClasses(State);
   if (DisequalToFirst.contains(Second))
     return false;
 
@@ -2094,7 +2094,7 @@ inline Optional<bool> EquivalenceClass::areEqual(ProgramStateRef State,
 LLVM_NODISCARD ProgramStateRef
 EquivalenceClass::simplify(SValBuilder &SVB, RangeSet::Factory &F,
                            ProgramStateRef State, EquivalenceClass Class) {
-  SymbolSet ClassMembers = Class.getClassMembers(State);
+  SymbolSet const ClassMembers = Class.getClassMembers(State);
   for (const SymbolRef &MemberSym : ClassMembers) {
     SymbolRef SimplifiedMemberSym = ento::simplify(State, MemberSym);
     if (SimplifiedMemberSym && MemberSym != SimplifiedMemberSym) {
@@ -2130,9 +2130,9 @@ EquivalenceClass::getDisequalClasses(DisequalityMapTy Map,
 }
 
 bool EquivalenceClass::isClassDataConsistent(ProgramStateRef State) {
-  ClassMembersTy Members = State->get<ClassMembers>();
+  ClassMembersTy const Members = State->get<ClassMembers>();
 
-  for (std::pair<EquivalenceClass, SymbolSet> ClassMembersPair : Members) {
+  for (std::pair<EquivalenceClass, SymbolSet> const ClassMembersPair : Members) {
     for (SymbolRef Member : ClassMembersPair.second) {
       // Every member of the class should have a mapping back to the class.
       if (find(State, Member) == ClassMembersPair.first) {
@@ -2143,10 +2143,10 @@ bool EquivalenceClass::isClassDataConsistent(ProgramStateRef State) {
     }
   }
 
-  DisequalityMapTy Disequalities = State->get<DisequalityMap>();
-  for (std::pair<EquivalenceClass, ClassSet> DisequalityInfo : Disequalities) {
-    EquivalenceClass Class = DisequalityInfo.first;
-    ClassSet DisequalClasses = DisequalityInfo.second;
+  DisequalityMapTy const Disequalities = State->get<DisequalityMap>();
+  for (std::pair<EquivalenceClass, ClassSet> const DisequalityInfo : Disequalities) {
+    EquivalenceClass const Class = DisequalityInfo.first;
+    ClassSet const DisequalClasses = DisequalityInfo.second;
 
     // There is no use in keeping empty sets in the map.
     if (DisequalClasses.isEmpty())
@@ -2154,7 +2154,7 @@ bool EquivalenceClass::isClassDataConsistent(ProgramStateRef State) {
 
     // Disequality is symmetrical, i.e. for every Class A and B that A != B,
     // B != A should also be true.
-    for (EquivalenceClass DisequalClass : DisequalClasses) {
+    for (EquivalenceClass const DisequalClass : DisequalClasses) {
       const ClassSet *DisequalToDisequalClasses =
           Disequalities.lookup(DisequalClass);
 
@@ -2230,9 +2230,9 @@ ConditionTruthVal RangeConstraintManager::checkNull(ProgramStateRef State,
   if (const llvm::APSInt *Value = Ranges->getConcreteValue())
     return *Value == 0;
 
-  BasicValueFactory &BV = getBasicVals();
-  APSIntType IntType = BV.getAPSIntType(Sym->getType());
-  llvm::APSInt Zero = IntType.getZeroValue();
+  BasicValueFactory  const&BV = getBasicVals();
+  APSIntType const IntType = BV.getAPSIntType(Sym->getType());
+  llvm::APSInt const Zero = IntType.getZeroValue();
 
   // Check if zero is in the set of possible values.
   if (!Ranges->contains(Zero))
@@ -2257,17 +2257,17 @@ const llvm::APSInt *RangeConstraintManager::getSymVal(ProgramStateRef St,
 ProgramStateRef
 RangeConstraintManager::removeDeadBindings(ProgramStateRef State,
                                            SymbolReaper &SymReaper) {
-  ClassMembersTy ClassMembersMap = State->get<ClassMembers>();
+  ClassMembersTy const ClassMembersMap = State->get<ClassMembers>();
   ClassMembersTy NewClassMembersMap = ClassMembersMap;
   ClassMembersTy::Factory &EMFactory = State->get_context<ClassMembers>();
   SymbolSet::Factory &SetFactory = State->get_context<SymbolSet>();
 
   ConstraintRangeTy Constraints = State->get<ConstraintRange>();
-  ConstraintRangeTy NewConstraints = Constraints;
+  ConstraintRangeTy const NewConstraints = Constraints;
   ConstraintRangeTy::Factory &ConstraintFactory =
       State->get_context<ConstraintRange>();
 
-  ClassMapTy Map = State->get<ClassMap>();
+  ClassMapTy const Map = State->get<ClassMap>();
   ClassMapTy NewMap = Map;
   ClassMapTy::Factory &ClassFactory = State->get_context<ClassMap>();
 
@@ -2288,16 +2288,16 @@ RangeConstraintManager::removeDeadBindings(ProgramStateRef State,
 
     // Update disequality information to not hold any information on the
     // removed class.
-    ClassSet DisequalClasses =
+    ClassSet const DisequalClasses =
         Class.getDisequalClasses(Disequalities, ClassSetFactory);
     if (!DisequalClasses.isEmpty()) {
-      for (EquivalenceClass DisequalClass : DisequalClasses) {
-        ClassSet DisequalToDisequalSet =
+      for (EquivalenceClass const DisequalClass : DisequalClasses) {
+        ClassSet const DisequalToDisequalSet =
             DisequalClass.getDisequalClasses(Disequalities, ClassSetFactory);
         // DisequalToDisequalSet is guaranteed to be non-empty for consistent
         // disequality info.
         assert(!DisequalToDisequalSet.isEmpty());
-        ClassSet NewSet = ClassSetFactory.remove(DisequalToDisequalSet, Class);
+        ClassSet const NewSet = ClassSetFactory.remove(DisequalToDisequalSet, Class);
 
         // No need in keeping an empty set.
         if (NewSet.isEmpty()) {
@@ -2315,9 +2315,9 @@ RangeConstraintManager::removeDeadBindings(ProgramStateRef State,
   };
 
   // 1. Let's see if dead symbols are trivial and have associated constraints.
-  for (std::pair<EquivalenceClass, RangeSet> ClassConstraintPair :
+  for (std::pair<EquivalenceClass, RangeSet> const ClassConstraintPair :
        Constraints) {
-    EquivalenceClass Class = ClassConstraintPair.first;
+    EquivalenceClass const Class = ClassConstraintPair.first;
     if (Class.isTriviallyDead(State, SymReaper)) {
       // If this class is trivial, we can remove its constraints right away.
       removeDeadClass(Class);
@@ -2325,7 +2325,7 @@ RangeConstraintManager::removeDeadBindings(ProgramStateRef State,
   }
 
   // 2. We don't need to track classes for dead symbols.
-  for (std::pair<SymbolRef, EquivalenceClass> SymbolClassPair : Map) {
+  for (std::pair<SymbolRef, EquivalenceClass> const SymbolClassPair : Map) {
     SymbolRef Sym = SymbolClassPair.first;
 
     if (SymReaper.isDead(Sym)) {
@@ -2336,9 +2336,9 @@ RangeConstraintManager::removeDeadBindings(ProgramStateRef State,
 
   // 3. Remove dead members from classes and remove dead non-trivial classes
   //    and their constraints.
-  for (std::pair<EquivalenceClass, SymbolSet> ClassMembersPair :
+  for (std::pair<EquivalenceClass, SymbolSet> const ClassMembersPair :
        ClassMembersMap) {
-    EquivalenceClass Class = ClassMembersPair.first;
+    EquivalenceClass const Class = ClassMembersPair.first;
     SymbolSet LiveMembers = ClassMembersPair.second;
     bool MembersChanged = false;
 
@@ -2416,11 +2416,11 @@ RangeConstraintManager::assumeSymNE(ProgramStateRef St, SymbolRef Sym,
                                     const llvm::APSInt &Int,
                                     const llvm::APSInt &Adjustment) {
   // Before we do any real work, see if the value can even show up.
-  APSIntType AdjustmentType(Adjustment);
+  APSIntType const AdjustmentType(Adjustment);
   if (AdjustmentType.testInRange(Int, true) != APSIntType::RTR_Within)
     return St;
 
-  llvm::APSInt Point = AdjustmentType.convert(Int) - Adjustment;
+  llvm::APSInt const Point = AdjustmentType.convert(Int) - Adjustment;
   RangeSet New = getRange(St, Sym);
   New = F.deletePoint(New, Point);
 
@@ -2432,12 +2432,12 @@ RangeConstraintManager::assumeSymEQ(ProgramStateRef St, SymbolRef Sym,
                                     const llvm::APSInt &Int,
                                     const llvm::APSInt &Adjustment) {
   // Before we do any real work, see if the value can even show up.
-  APSIntType AdjustmentType(Adjustment);
+  APSIntType const AdjustmentType(Adjustment);
   if (AdjustmentType.testInRange(Int, true) != APSIntType::RTR_Within)
     return nullptr;
 
   // [Int-Adjustment, Int-Adjustment]
-  llvm::APSInt AdjInt = AdjustmentType.convert(Int) - Adjustment;
+  llvm::APSInt const AdjInt = AdjustmentType.convert(Int) - Adjustment;
   RangeSet New = getRange(St, Sym);
   New = F.intersect(New, AdjInt);
 
@@ -2449,7 +2449,7 @@ RangeSet RangeConstraintManager::getSymLTRange(ProgramStateRef St,
                                                const llvm::APSInt &Int,
                                                const llvm::APSInt &Adjustment) {
   // Before we do any real work, see if the value can even show up.
-  APSIntType AdjustmentType(Adjustment);
+  APSIntType const AdjustmentType(Adjustment);
   switch (AdjustmentType.testInRange(Int, true)) {
   case APSIntType::RTR_Below:
     return F.getEmptySet();
@@ -2460,16 +2460,16 @@ RangeSet RangeConstraintManager::getSymLTRange(ProgramStateRef St,
   }
 
   // Special case for Int == Min. This is always false.
-  llvm::APSInt ComparisonVal = AdjustmentType.convert(Int);
-  llvm::APSInt Min = AdjustmentType.getMinValue();
+  llvm::APSInt const ComparisonVal = AdjustmentType.convert(Int);
+  llvm::APSInt const Min = AdjustmentType.getMinValue();
   if (ComparisonVal == Min)
     return F.getEmptySet();
 
-  llvm::APSInt Lower = Min - Adjustment;
+  llvm::APSInt const Lower = Min - Adjustment;
   llvm::APSInt Upper = ComparisonVal - Adjustment;
   --Upper;
 
-  RangeSet Result = getRange(St, Sym);
+  RangeSet const Result = getRange(St, Sym);
   return F.intersect(Result, Lower, Upper);
 }
 
@@ -2477,7 +2477,7 @@ ProgramStateRef
 RangeConstraintManager::assumeSymLT(ProgramStateRef St, SymbolRef Sym,
                                     const llvm::APSInt &Int,
                                     const llvm::APSInt &Adjustment) {
-  RangeSet New = getSymLTRange(St, Sym, Int, Adjustment);
+  RangeSet const New = getSymLTRange(St, Sym, Int, Adjustment);
   return setRange(St, Sym, New);
 }
 
@@ -2486,7 +2486,7 @@ RangeSet RangeConstraintManager::getSymGTRange(ProgramStateRef St,
                                                const llvm::APSInt &Int,
                                                const llvm::APSInt &Adjustment) {
   // Before we do any real work, see if the value can even show up.
-  APSIntType AdjustmentType(Adjustment);
+  APSIntType const AdjustmentType(Adjustment);
   switch (AdjustmentType.testInRange(Int, true)) {
   case APSIntType::RTR_Below:
     return getRange(St, Sym);
@@ -2497,16 +2497,16 @@ RangeSet RangeConstraintManager::getSymGTRange(ProgramStateRef St,
   }
 
   // Special case for Int == Max. This is always false.
-  llvm::APSInt ComparisonVal = AdjustmentType.convert(Int);
-  llvm::APSInt Max = AdjustmentType.getMaxValue();
+  llvm::APSInt const ComparisonVal = AdjustmentType.convert(Int);
+  llvm::APSInt const Max = AdjustmentType.getMaxValue();
   if (ComparisonVal == Max)
     return F.getEmptySet();
 
   llvm::APSInt Lower = ComparisonVal - Adjustment;
-  llvm::APSInt Upper = Max - Adjustment;
+  llvm::APSInt const Upper = Max - Adjustment;
   ++Lower;
 
-  RangeSet SymRange = getRange(St, Sym);
+  RangeSet const SymRange = getRange(St, Sym);
   return F.intersect(SymRange, Lower, Upper);
 }
 
@@ -2514,7 +2514,7 @@ ProgramStateRef
 RangeConstraintManager::assumeSymGT(ProgramStateRef St, SymbolRef Sym,
                                     const llvm::APSInt &Int,
                                     const llvm::APSInt &Adjustment) {
-  RangeSet New = getSymGTRange(St, Sym, Int, Adjustment);
+  RangeSet const New = getSymGTRange(St, Sym, Int, Adjustment);
   return setRange(St, Sym, New);
 }
 
@@ -2523,7 +2523,7 @@ RangeSet RangeConstraintManager::getSymGERange(ProgramStateRef St,
                                                const llvm::APSInt &Int,
                                                const llvm::APSInt &Adjustment) {
   // Before we do any real work, see if the value can even show up.
-  APSIntType AdjustmentType(Adjustment);
+  APSIntType const AdjustmentType(Adjustment);
   switch (AdjustmentType.testInRange(Int, true)) {
   case APSIntType::RTR_Below:
     return getRange(St, Sym);
@@ -2534,16 +2534,16 @@ RangeSet RangeConstraintManager::getSymGERange(ProgramStateRef St,
   }
 
   // Special case for Int == Min. This is always feasible.
-  llvm::APSInt ComparisonVal = AdjustmentType.convert(Int);
-  llvm::APSInt Min = AdjustmentType.getMinValue();
+  llvm::APSInt const ComparisonVal = AdjustmentType.convert(Int);
+  llvm::APSInt const Min = AdjustmentType.getMinValue();
   if (ComparisonVal == Min)
     return getRange(St, Sym);
 
-  llvm::APSInt Max = AdjustmentType.getMaxValue();
-  llvm::APSInt Lower = ComparisonVal - Adjustment;
-  llvm::APSInt Upper = Max - Adjustment;
+  llvm::APSInt const Max = AdjustmentType.getMaxValue();
+  llvm::APSInt const Lower = ComparisonVal - Adjustment;
+  llvm::APSInt const Upper = Max - Adjustment;
 
-  RangeSet SymRange = getRange(St, Sym);
+  RangeSet const SymRange = getRange(St, Sym);
   return F.intersect(SymRange, Lower, Upper);
 }
 
@@ -2551,7 +2551,7 @@ ProgramStateRef
 RangeConstraintManager::assumeSymGE(ProgramStateRef St, SymbolRef Sym,
                                     const llvm::APSInt &Int,
                                     const llvm::APSInt &Adjustment) {
-  RangeSet New = getSymGERange(St, Sym, Int, Adjustment);
+  RangeSet const New = getSymGERange(St, Sym, Int, Adjustment);
   return setRange(St, Sym, New);
 }
 
@@ -2560,7 +2560,7 @@ RangeConstraintManager::getSymLERange(llvm::function_ref<RangeSet()> RS,
                                       const llvm::APSInt &Int,
                                       const llvm::APSInt &Adjustment) {
   // Before we do any real work, see if the value can even show up.
-  APSIntType AdjustmentType(Adjustment);
+  APSIntType const AdjustmentType(Adjustment);
   switch (AdjustmentType.testInRange(Int, true)) {
   case APSIntType::RTR_Below:
     return F.getEmptySet();
@@ -2571,16 +2571,16 @@ RangeConstraintManager::getSymLERange(llvm::function_ref<RangeSet()> RS,
   }
 
   // Special case for Int == Max. This is always feasible.
-  llvm::APSInt ComparisonVal = AdjustmentType.convert(Int);
-  llvm::APSInt Max = AdjustmentType.getMaxValue();
+  llvm::APSInt const ComparisonVal = AdjustmentType.convert(Int);
+  llvm::APSInt const Max = AdjustmentType.getMaxValue();
   if (ComparisonVal == Max)
     return RS();
 
-  llvm::APSInt Min = AdjustmentType.getMinValue();
-  llvm::APSInt Lower = Min - Adjustment;
-  llvm::APSInt Upper = ComparisonVal - Adjustment;
+  llvm::APSInt const Min = AdjustmentType.getMinValue();
+  llvm::APSInt const Lower = Min - Adjustment;
+  llvm::APSInt const Upper = ComparisonVal - Adjustment;
 
-  RangeSet Default = RS();
+  RangeSet const Default = RS();
   return F.intersect(Default, Lower, Upper);
 }
 
@@ -2595,7 +2595,7 @@ ProgramStateRef
 RangeConstraintManager::assumeSymLE(ProgramStateRef St, SymbolRef Sym,
                                     const llvm::APSInt &Int,
                                     const llvm::APSInt &Adjustment) {
-  RangeSet New = getSymLERange(St, Sym, Int, Adjustment);
+  RangeSet const New = getSymLERange(St, Sym, Int, Adjustment);
   return setRange(St, Sym, New);
 }
 
@@ -2605,16 +2605,16 @@ ProgramStateRef RangeConstraintManager::assumeSymWithinInclusiveRange(
   RangeSet New = getSymGERange(State, Sym, From, Adjustment);
   if (New.isEmpty())
     return nullptr;
-  RangeSet Out = getSymLERange([&] { return New; }, To, Adjustment);
+  RangeSet const Out = getSymLERange([&] { return New; }, To, Adjustment);
   return setRange(State, Sym, Out);
 }
 
 ProgramStateRef RangeConstraintManager::assumeSymOutsideInclusiveRange(
     ProgramStateRef State, SymbolRef Sym, const llvm::APSInt &From,
     const llvm::APSInt &To, const llvm::APSInt &Adjustment) {
-  RangeSet RangeLT = getSymLTRange(State, Sym, From, Adjustment);
-  RangeSet RangeGT = getSymGTRange(State, Sym, To, Adjustment);
-  RangeSet New(F.add(RangeLT, RangeGT));
+  RangeSet const RangeLT = getSymLTRange(State, Sym, From, Adjustment);
+  RangeSet const RangeGT = getSymGTRange(State, Sym, To, Adjustment);
+  RangeSet const New(F.add(RangeLT, RangeGT));
   return setRange(State, Sym, New);
 }
 
@@ -2642,7 +2642,7 @@ void RangeConstraintManager::printConstraints(raw_ostream &Out,
                                               const char *NL,
                                               unsigned int Space,
                                               bool IsDot) const {
-  ConstraintRangeTy Constraints = State->get<ConstraintRange>();
+  ConstraintRangeTy const Constraints = State->get<ConstraintRange>();
 
   Indent(Out, Space, IsDot) << "\"constraints\": ";
   if (Constraints.isEmpty()) {
@@ -2651,8 +2651,8 @@ void RangeConstraintManager::printConstraints(raw_ostream &Out,
   }
 
   std::map<std::string, RangeSet> OrderedConstraints;
-  for (std::pair<EquivalenceClass, RangeSet> P : Constraints) {
-    SymbolSet ClassMembers = P.first.getClassMembers(State);
+  for (std::pair<EquivalenceClass, RangeSet> const P : Constraints) {
+    SymbolSet const ClassMembers = P.first.getClassMembers(State);
     for (const SymbolRef &ClassMember : ClassMembers) {
       bool insertion_took_place;
       std::tie(std::ignore, insertion_took_place) =
@@ -2665,7 +2665,7 @@ void RangeConstraintManager::printConstraints(raw_ostream &Out,
   ++Space;
   Out << '[' << NL;
   bool First = true;
-  for (std::pair<std::string, RangeSet> P : OrderedConstraints) {
+  for (std::pair<std::string, RangeSet> const P : OrderedConstraints) {
     if (First) {
       First = false;
     } else {
@@ -2684,7 +2684,7 @@ void RangeConstraintManager::printConstraints(raw_ostream &Out,
 }
 
 static std::string toString(ProgramStateRef State, EquivalenceClass Class) {
-  SymbolSet ClassMembers = Class.getClassMembers(State);
+  SymbolSet const ClassMembers = Class.getClassMembers(State);
   llvm::SmallVector<SymbolRef, 8> ClassMembersSorted(ClassMembers.begin(),
                                                      ClassMembers.end());
   llvm::sort(ClassMembersSorted,
@@ -2713,7 +2713,7 @@ void RangeConstraintManager::printEquivalenceClasses(raw_ostream &Out,
                                                      const char *NL,
                                                      unsigned int Space,
                                                      bool IsDot) const {
-  ClassMembersTy Members = State->get<ClassMembers>();
+  ClassMembersTy const Members = State->get<ClassMembers>();
 
   Indent(Out, Space, IsDot) << "\"equivalence_classes\": ";
   if (Members.isEmpty()) {
@@ -2722,7 +2722,7 @@ void RangeConstraintManager::printEquivalenceClasses(raw_ostream &Out,
   }
 
   std::set<std::string> MembersStr;
-  for (std::pair<EquivalenceClass, SymbolSet> ClassToSymbolSet : Members)
+  for (std::pair<EquivalenceClass, SymbolSet> const ClassToSymbolSet : Members)
     MembersStr.insert(toString(State, ClassToSymbolSet.first));
 
   ++Space;
@@ -2749,7 +2749,7 @@ void RangeConstraintManager::printDisequalities(raw_ostream &Out,
                                                 const char *NL,
                                                 unsigned int Space,
                                                 bool IsDot) const {
-  DisequalityMapTy Disequalities = State->get<DisequalityMap>();
+  DisequalityMapTy const Disequalities = State->get<DisequalityMap>();
 
   Indent(Out, Space, IsDot) << "\"disequality_info\": ";
   if (Disequalities.isEmpty()) {
@@ -2762,11 +2762,11 @@ void RangeConstraintManager::printDisequalities(raw_ostream &Out,
   using EqClassesStrTy = std::set<std::string>;
   using DisequalityInfoStrTy = std::map<std::string, EqClassesStrTy>;
   DisequalityInfoStrTy DisequalityInfoStr;
-  for (std::pair<EquivalenceClass, ClassSet> ClassToDisEqSet : Disequalities) {
-    EquivalenceClass Class = ClassToDisEqSet.first;
-    ClassSet DisequalClasses = ClassToDisEqSet.second;
+  for (std::pair<EquivalenceClass, ClassSet> const ClassToDisEqSet : Disequalities) {
+    EquivalenceClass const Class = ClassToDisEqSet.first;
+    ClassSet const DisequalClasses = ClassToDisEqSet.second;
     EqClassesStrTy MembersStr;
-    for (EquivalenceClass DisEqClass : DisequalClasses)
+    for (EquivalenceClass const DisEqClass : DisequalClasses)
       MembersStr.insert(toString(State, DisEqClass));
     DisequalityInfoStr.insert({toString(State, Class), MembersStr});
   }
@@ -2774,7 +2774,7 @@ void RangeConstraintManager::printDisequalities(raw_ostream &Out,
   ++Space;
   Out << '[' << NL;
   bool FirstClass = true;
-  for (std::pair<std::string, EqClassesStrTy> ClassToDisEqSet :
+  for (std::pair<std::string, EqClassesStrTy> const ClassToDisEqSet :
        DisequalityInfoStr) {
     const std::string &Class = ClassToDisEqSet.first;
     if (FirstClass) {
@@ -2784,14 +2784,14 @@ void RangeConstraintManager::printDisequalities(raw_ostream &Out,
       Out << NL;
     }
     Indent(Out, Space, IsDot) << "{" << NL;
-    unsigned int DisEqSpace = Space + 1;
+    unsigned int const DisEqSpace = Space + 1;
     Indent(Out, DisEqSpace, IsDot) << "\"class\": ";
     Out << Class;
     const EqClassesStrTy &DisequalClasses = ClassToDisEqSet.second;
     if (!DisequalClasses.empty()) {
       Out << "," << NL;
       Indent(Out, DisEqSpace, IsDot) << "\"disequal_to\": [" << NL;
-      unsigned int DisEqClassSpace = DisEqSpace + 1;
+      unsigned int const DisEqClassSpace = DisEqSpace + 1;
       Indent(Out, DisEqClassSpace, IsDot);
       bool FirstDisEqClass = true;
       for (const std::string &DisEqClass : DisequalClasses) {

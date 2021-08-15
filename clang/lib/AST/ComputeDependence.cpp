@@ -419,7 +419,7 @@ ExprDependence clang::computeDependence(OMPIteratorExpr *E) {
   for (unsigned I = 0, End = E->numOfIterators(); I < End; ++I) {
     if (auto *VD = cast_or_null<ValueDecl>(E->getIteratorDecl(I)))
       D |= toExprDependence(VD->getType()->getDependence());
-    OMPIteratorExpr::IteratorRange IR = E->getIteratorRange(I);
+    OMPIteratorExpr::IteratorRange const IR = E->getIteratorRange(I);
     if (Expr *BE = IR.Begin)
       D |= BE->getDependence();
     if (Expr *EE = IR.End)
@@ -441,7 +441,7 @@ ExprDependence clang::computeDependence(DeclRefExpr *E, const ASTContext &Ctx) {
                              ~NestedNameSpecifierDependence::Dependent);
 
   if (auto *FirstArg = E->getTemplateArgs()) {
-    unsigned NumArgs = E->getNumTemplateArgs();
+    unsigned const NumArgs = E->getNumTemplateArgs();
     for (auto *Arg = FirstArg, *End = FirstArg + NumArgs; Arg < End; ++Arg)
       Deps |= toExprDependence(Arg->getArgument().getDependence());
   }
@@ -470,7 +470,7 @@ ExprDependence clang::computeDependence(DeclRefExpr *E, const ASTContext &Ctx) {
   //    - a conversion-function-id that specifies a dependent type
   if (Decl->getDeclName().getNameKind() ==
       DeclarationName::CXXConversionFunctionName) {
-    QualType T = Decl->getDeclName().getCXXNameType();
+    QualType const T = Decl->getDeclName().getCXXNameType();
     if (T->isDependentType())
       return Deps | ExprDependence::TypeValueInstantiation;
 
@@ -814,7 +814,7 @@ ExprDependence clang::computeDependence(ConceptSpecializationExpr *E,
       break;
   }
 
-  ExprDependence D =
+  ExprDependence const D =
       ValueDependent ? ExprDependence::Value : ExprDependence::None;
   return D | toExprDependence(TA);
 }

@@ -47,12 +47,12 @@ class AnalysisOrderChecker
   }
 
   bool isCallbackEnabled(CheckerContext &C, StringRef CallbackName) const {
-    AnalyzerOptions &Opts = C.getAnalysisManager().getAnalyzerOptions();
+    AnalyzerOptions  const&Opts = C.getAnalysisManager().getAnalyzerOptions();
     return isCallbackEnabled(Opts, CallbackName);
   }
 
   bool isCallbackEnabled(ProgramStateRef State, StringRef CallbackName) const {
-    AnalyzerOptions &Opts = State->getStateManager().getOwningEngine()
+    AnalyzerOptions  const&Opts = State->getStateManager().getOwningEngine()
                                  .getAnalysisManager().getAnalyzerOptions();
     return isCallbackEnabled(Opts, CallbackName);
   }
@@ -163,7 +163,7 @@ public:
 
       llvm::errs() << "CFGElement: ";
       CFGStmtMap *Map = C.getCurrentAnalysisDeclContext()->getCFGStmtMap();
-      CFGElement LastElement = Map->getBlock(S)->back();
+      CFGElement const LastElement = Map->getBlock(S)->back();
 
       if (LastElement.getAs<CFGStmt>())
         llvm::errs() << "CFGStmt\n";

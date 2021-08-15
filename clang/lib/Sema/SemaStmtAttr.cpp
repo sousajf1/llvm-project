@@ -25,11 +25,11 @@ using namespace sema;
 
 static Attr *handleFallThroughAttr(Sema &S, Stmt *St, const ParsedAttr &A,
                                    SourceRange Range) {
-  FallThroughAttr Attr(S.Context, A);
+  FallThroughAttr const Attr(S.Context, A);
   if (isa<SwitchCase>(St)) {
     S.Diag(A.getRange().getBegin(), diag::err_fallthrough_attr_wrong_target)
         << A << St->getBeginLoc();
-    SourceLocation L = S.getLocForEndOfToken(Range.getEnd());
+    SourceLocation const L = S.getLocForEndOfToken(Range.getEnd());
     S.Diag(L, diag::note_fallthrough_insert_semi_fixit)
         << FixItHint::CreateInsertion(L, ";");
     return nullptr;
@@ -75,7 +75,7 @@ static Attr *handleLoopHintAttr(Sema &S, Stmt *St, const ParsedAttr &A,
   IdentifierLoc *StateLoc = A.getArgAsIdent(2);
   Expr *ValueExpr = A.getArgAsExpr(3);
 
-  StringRef PragmaName =
+  StringRef const PragmaName =
       llvm::StringSwitch<StringRef>(PragmaNameLoc->Ident->getName())
           .Cases("unroll", "nounroll", "unroll_and_jam", "nounroll_and_jam",
                  PragmaNameLoc->Ident->getName())
@@ -85,7 +85,7 @@ static Attr *handleLoopHintAttr(Sema &S, Stmt *St, const ParsedAttr &A,
   // Attr.td, but that would make the diagnostic behavior worse in this case
   // because the user spells this attribute as a pragma.
   if (!isa<DoStmt, ForStmt, CXXForRangeStmt, WhileStmt>(St)) {
-    std::string Pragma = "#pragma " + std::string(PragmaName);
+    std::string const Pragma = "#pragma " + std::string(PragmaName);
     S.Diag(St->getBeginLoc(), diag::err_pragma_loop_precedes_nonloop) << Pragma;
     return nullptr;
   }
@@ -197,7 +197,7 @@ public:
 
 static Attr *handleNoMergeAttr(Sema &S, Stmt *St, const ParsedAttr &A,
                                SourceRange Range) {
-  NoMergeAttr NMA(S.Context, A);
+  NoMergeAttr const NMA(S.Context, A);
   CallExprFinder CEF(S, St);
 
   if (!CEF.foundCallExpr()) {
@@ -272,7 +272,7 @@ CheckForIncompatibleAttributes(Sema &S,
     if (!LH)
       continue;
 
-    LoopHintAttr::OptionType Option = LH->getOption();
+    LoopHintAttr::OptionType const Option = LH->getOption();
     enum {
       Vectorize,
       Interleave,
@@ -330,8 +330,8 @@ CheckForIncompatibleAttributes(Sema &S,
       CategoryState.NumericAttr = LH;
     }
 
-    PrintingPolicy Policy(S.Context.getLangOpts());
-    SourceLocation OptionLoc = LH->getRange().getBegin();
+    PrintingPolicy const Policy(S.Context.getLangOpts());
+    SourceLocation const OptionLoc = LH->getRange().getBegin();
     if (PrevAttr)
       // Cannot specify same type of attribute twice.
       S.Diag(OptionLoc, diag::err_pragma_loop_compatibility)
@@ -371,7 +371,7 @@ static Attr *handleOpenCLUnrollHint(Sema &S, Stmt *St, const ParsedAttr &A,
       return nullptr;
     }
 
-    int Val = ArgVal->getSExtValue();
+    int const Val = ArgVal->getSExtValue();
     if (Val <= 0) {
       S.Diag(A.getRange().getBegin(),
              diag::err_attribute_requires_positive_integer)

@@ -45,8 +45,8 @@ public:
     if (!ND)
       return true;
     for (const auto &Range : NameRanges) {
-      SourceLocation Start = Range.getBegin();
-      SourceLocation End = Range.getEnd();
+      SourceLocation const Start = Range.getBegin();
+      SourceLocation const End = Range.getEnd();
       if (!Start.isValid() || !Start.isFileID() || !End.isValid() ||
           !End.isFileID() || !isPointWithin(Start, End))
         return true;
@@ -83,8 +83,8 @@ const NamedDecl *getNamedDeclAt(const ASTContext &Context,
   // see. If both start and end is either before or after the point we're
   // looking for the point cannot be inside of this decl. Don't even look at it.
   for (auto *CurrDecl : Context.getTranslationUnitDecl()->decls()) {
-    SourceLocation StartLoc = CurrDecl->getBeginLoc();
-    SourceLocation EndLoc = CurrDecl->getEndLoc();
+    SourceLocation const StartLoc = CurrDecl->getBeginLoc();
+    SourceLocation const EndLoc = CurrDecl->getEndLoc();
     if (StartLoc.isValid() && EndLoc.isValid() &&
         SM.isBeforeInTranslationUnit(StartLoc, Point) !=
             SM.isBeforeInTranslationUnit(EndLoc, Point))

@@ -183,7 +183,7 @@ int main(int argc, const char **argv) {
   // Perform the renaming.
   tooling::RenamingAction RenameAction(NewNames, PrevNames, USRList,
                                        Tool.getReplacements(), PrintLocations);
-  std::unique_ptr<tooling::FrontendActionFactory> Factory =
+  std::unique_ptr<tooling::FrontendActionFactory> const Factory =
       tooling::newFrontendActionFactory(&RenameAction);
   int ExitCode;
 
@@ -216,8 +216,8 @@ int main(int argc, const char **argv) {
     // Write every file to stdout. Right now we just barf the files without any
     // indication of which files start where, other than that we print the files
     // in the same order we see them.
-    LangOptions DefaultLangOptions;
-    IntrusiveRefCntPtr<DiagnosticOptions> DiagOpts = new DiagnosticOptions();
+    LangOptions const DefaultLangOptions;
+    IntrusiveRefCntPtr<DiagnosticOptions> const DiagOpts = new DiagnosticOptions();
     TextDiagnosticPrinter DiagnosticPrinter(errs(), &*DiagOpts);
     DiagnosticsEngine Diagnostics(
         IntrusiveRefCntPtr<DiagnosticIDs>(new DiagnosticIDs()), &*DiagOpts,

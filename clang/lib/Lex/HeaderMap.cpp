@@ -50,7 +50,7 @@ static inline unsigned HashHMapKey(StringRef Str) {
 std::unique_ptr<HeaderMap> HeaderMap::Create(const FileEntry *FE,
                                              FileManager &FM) {
   // If the file is too small to be a header map, ignore it.
-  unsigned FileSize = FE->getSize();
+  unsigned const FileSize = FE->getSize();
   if (FileSize <= sizeof(HMapHeader)) return nullptr;
 
   auto FileBuffer = FM.getBufferForFile(FE);
@@ -87,7 +87,7 @@ bool HeaderMapImpl::checkHeader(const llvm::MemoryBuffer &File,
 
   // Check the number of buckets.  It should be a power of two, and there
   // should be enough space in the file for all of them.
-  uint32_t NumBuckets = NeedsByteSwap
+  uint32_t const NumBuckets = NeedsByteSwap
                             ? llvm::sys::getSwappedBytes(Header->NumBuckets)
                             : Header->NumBuckets;
   if (!llvm::isPowerOf2_32(NumBuckets))
@@ -154,8 +154,8 @@ Optional<StringRef> HeaderMapImpl::getString(unsigned StrTabIdx) const {
     return None;
 
   const char *Data = FileBuffer->getBufferStart() + StrTabIdx;
-  unsigned MaxLen = FileBuffer->getBufferSize() - StrTabIdx;
-  unsigned Len = strnlen(Data, MaxLen);
+  unsigned const MaxLen = FileBuffer->getBufferSize() - StrTabIdx;
+  unsigned const Len = strnlen(Data, MaxLen);
 
   // Check whether the buffer is null-terminated.
   if (Len == MaxLen && Data[Len - 1])
@@ -171,7 +171,7 @@ Optional<StringRef> HeaderMapImpl::getString(unsigned StrTabIdx) const {
 /// dump - Print the contents of this headermap to stderr.
 LLVM_DUMP_METHOD void HeaderMapImpl::dump() const {
   const HMapHeader &Hdr = getHeader();
-  unsigned NumBuckets = getEndianAdjustedWord(Hdr.NumBuckets);
+  unsigned const NumBuckets = getEndianAdjustedWord(Hdr.NumBuckets);
 
   llvm::dbgs() << "Header Map " << getFileName() << ":\n  " << NumBuckets
                << ", " << getEndianAdjustedWord(Hdr.NumEntries) << "\n";
@@ -183,12 +183,12 @@ LLVM_DUMP_METHOD void HeaderMapImpl::dump() const {
   };
 
   for (unsigned i = 0; i != NumBuckets; ++i) {
-    HMapBucket B = getBucket(i);
+    HMapBucket const B = getBucket(i);
     if (B.Key == HMAP_EmptyBucketKey) continue;
 
-    StringRef Key = getStringOrInvalid(B.Key);
-    StringRef Prefix = getStringOrInvalid(B.Prefix);
-    StringRef Suffix = getStringOrInvalid(B.Suffix);
+    StringRef const Key = getStringOrInvalid(B.Key);
+    StringRef const Prefix = getStringOrInvalid(B.Prefix);
+    StringRef const Suffix = getStringOrInvalid(B.Suffix);
     llvm::dbgs() << "  " << i << ". " << Key << " -> '" << Prefix << "' '"
                  << Suffix << "'\n";
   }
@@ -200,7 +200,7 @@ Optional<FileEntryRef> HeaderMap::LookupFile(StringRef Filename,
                                              FileManager &FM) const {
 
   SmallString<1024> Path;
-  StringRef Dest = HeaderMapImpl::lookupFilename(Filename, Path);
+  StringRef const Dest = HeaderMapImpl::lookupFilename(Filename, Path);
   if (Dest.empty())
     return None;
 
@@ -210,14 +210,14 @@ Optional<FileEntryRef> HeaderMap::LookupFile(StringRef Filename,
 StringRef HeaderMapImpl::lookupFilename(StringRef Filename,
                                         SmallVectorImpl<char> &DestPath) const {
   const HMapHeader &Hdr = getHeader();
-  unsigned NumBuckets = getEndianAdjustedWord(Hdr.NumBuckets);
+  unsigned const NumBuckets = getEndianAdjustedWord(Hdr.NumBuckets);
 
   // Don't probe infinitely.  This should be checked before constructing.
   assert(llvm::isPowerOf2_32(NumBuckets) && "Expected power of 2");
 
   // Linearly probe the hash table.
   for (unsigned Bucket = HashHMapKey(Filename);; ++Bucket) {
-    HMapBucket B = getBucket(Bucket & (NumBuckets-1));
+    HMapBucket const B = getBucket(Bucket & (NumBuckets-1));
     if (B.Key == HMAP_EmptyBucketKey) return StringRef(); // Hash miss.
 
     // See if the key matches.  If not, probe on.
@@ -246,10 +246,10 @@ StringRef HeaderMapImpl::reverseLookupFilename(StringRef DestPath) const {
     return ReverseMap.lookup(DestPath);
 
   const HMapHeader &Hdr = getHeader();
-  unsigned NumBuckets = getEndianAdjustedWord(Hdr.NumBuckets);
+  unsigned const NumBuckets = getEndianAdjustedWord(Hdr.NumBuckets);
   StringRef RetKey;
   for (unsigned i = 0; i != NumBuckets; ++i) {
-    HMapBucket B = getBucket(i);
+    HMapBucket const B = getBucket(i);
     if (B.Key == HMAP_EmptyBucketKey)
       continue;
 
@@ -260,7 +260,7 @@ StringRef HeaderMapImpl::reverseLookupFilename(StringRef DestPath) const {
       SmallVector<char, 1024> Buf;
       Buf.append(Prefix->begin(), Prefix->end());
       Buf.append(Suffix->begin(), Suffix->end());
-      StringRef Value(Buf.begin(), Buf.size());
+      StringRef const Value(Buf.begin(), Buf.size());
       ReverseMap[Value] = *Key;
 
       if (DestPath == Value)

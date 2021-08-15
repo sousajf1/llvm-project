@@ -88,7 +88,7 @@ void HexagonTargetInfo::getTargetDefines(const LangOptions &Opts,
     Builder.defineMacro("__HEXAGON_AUDIO__");
   }
 
-  std::string NumPhySlots = isTinyCore() ? "3" : "4";
+  std::string const NumPhySlots = isTinyCore() ? "3" : "4";
   Builder.defineMacro("__HEXAGON_PHYSICAL_SLOTS__", NumPhySlots);
 }
 
@@ -190,7 +190,7 @@ const Builtin::Info HexagonTargetInfo::BuiltinInfo[] = {
 };
 
 bool HexagonTargetInfo::hasFeature(StringRef Feature) const {
-  std::string VS = "hvxv" + HVXVersion;
+  std::string const VS = "hvxv" + HVXVersion;
   if (Feature == VS)
     return true;
 

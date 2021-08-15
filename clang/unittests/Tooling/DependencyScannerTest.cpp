@@ -77,18 +77,18 @@ private:
 } // namespace
 
 TEST(DependencyScanner, ScanDepsReuseFilemanager) {
-  std::vector<std::string> Compilation = {"-c", "-E", "-MT", "test.cpp.o"};
-  StringRef CWD = "/root";
-  FixedCompilationDatabase CDB(CWD, Compilation);
+  std::vector<std::string> const Compilation = {"-c", "-E", "-MT", "test.cpp.o"};
+  StringRef const CWD = "/root";
+  FixedCompilationDatabase const CDB(CWD, Compilation);
 
   auto VFS = new llvm::vfs::InMemoryFileSystem();
   VFS->setCurrentWorkingDirectory(CWD);
   auto Sept = llvm::sys::path::get_separator();
-  std::string HeaderPath =
+  std::string const HeaderPath =
       std::string(llvm::formatv("{0}root{0}header.h", Sept));
-  std::string SymlinkPath =
+  std::string const SymlinkPath =
       std::string(llvm::formatv("{0}root{0}symlink.h", Sept));
-  std::string TestPath = std::string(llvm::formatv("{0}root{0}test.cpp", Sept));
+  std::string const TestPath = std::string(llvm::formatv("{0}root{0}test.cpp", Sept));
 
   VFS->addFile(HeaderPath, 0, llvm::MemoryBuffer::getMemBuffer("\n"));
   VFS->addHardLink(SymlinkPath, HeaderPath);
@@ -111,7 +111,7 @@ TEST(DependencyScanner, ScanDepsReuseFilemanager) {
 
   // The file manager should still have two FileEntries, as one file is a
   // hardlink.
-  FileManager &Files = Tool.getFiles();
+  FileManager  const&Files = Tool.getFiles();
   EXPECT_EQ(Files.getNumUniqueRealFiles(), 2u);
 
   Deps.clear();
@@ -126,19 +126,19 @@ TEST(DependencyScanner, ScanDepsReuseFilemanager) {
 }
 
 TEST(DependencyScanner, ScanDepsReuseFilemanagerSkippedFile) {
-  std::vector<std::string> Compilation = {"-c", "-E", "-MT", "test.cpp.o"};
-  StringRef CWD = "/root";
-  FixedCompilationDatabase CDB(CWD, Compilation);
+  std::vector<std::string> const Compilation = {"-c", "-E", "-MT", "test.cpp.o"};
+  StringRef const CWD = "/root";
+  FixedCompilationDatabase const CDB(CWD, Compilation);
 
   auto VFS = new llvm::vfs::InMemoryFileSystem();
   VFS->setCurrentWorkingDirectory(CWD);
   auto Sept = llvm::sys::path::get_separator();
-  std::string HeaderPath =
+  std::string const HeaderPath =
       std::string(llvm::formatv("{0}root{0}header.h", Sept));
-  std::string SymlinkPath =
+  std::string const SymlinkPath =
       std::string(llvm::formatv("{0}root{0}symlink.h", Sept));
-  std::string TestPath = std::string(llvm::formatv("{0}root{0}test.cpp", Sept));
-  std::string Test2Path =
+  std::string const TestPath = std::string(llvm::formatv("{0}root{0}test.cpp", Sept));
+  std::string const Test2Path =
       std::string(llvm::formatv("{0}root{0}test2.cpp", Sept));
 
   VFS->addFile(HeaderPath, 0,
@@ -168,18 +168,18 @@ TEST(DependencyScanner, ScanDepsReuseFilemanagerSkippedFile) {
 }
 
 TEST(DependencyScanner, ScanDepsReuseFilemanagerHasInclude) {
-  std::vector<std::string> Compilation = {"-c", "-E", "-MT", "test.cpp.o"};
-  StringRef CWD = "/root";
-  FixedCompilationDatabase CDB(CWD, Compilation);
+  std::vector<std::string> const Compilation = {"-c", "-E", "-MT", "test.cpp.o"};
+  StringRef const CWD = "/root";
+  FixedCompilationDatabase const CDB(CWD, Compilation);
 
   auto VFS = new llvm::vfs::InMemoryFileSystem();
   VFS->setCurrentWorkingDirectory(CWD);
   auto Sept = llvm::sys::path::get_separator();
-  std::string HeaderPath =
+  std::string const HeaderPath =
       std::string(llvm::formatv("{0}root{0}header.h", Sept));
-  std::string SymlinkPath =
+  std::string const SymlinkPath =
       std::string(llvm::formatv("{0}root{0}symlink.h", Sept));
-  std::string TestPath = std::string(llvm::formatv("{0}root{0}test.cpp", Sept));
+  std::string const TestPath = std::string(llvm::formatv("{0}root{0}test.cpp", Sept));
 
   VFS->addFile(HeaderPath, 0, llvm::MemoryBuffer::getMemBuffer("\n"));
   VFS->addHardLink(SymlinkPath, HeaderPath);

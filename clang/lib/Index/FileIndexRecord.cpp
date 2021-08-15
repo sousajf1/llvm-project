@@ -58,8 +58,8 @@ void FileIndexRecord::print(llvm::raw_ostream &OS, SourceManager &SM) const {
   OS << "DECLS BEGIN ---\n";
   for (auto &DclInfo : Decls) {
     if (const auto *D = DclInfo.DeclOrMacro.dyn_cast<const Decl *>()) {
-      SourceLocation Loc = SM.getFileLoc(D->getLocation());
-      PresumedLoc PLoc = SM.getPresumedLoc(Loc);
+      SourceLocation const Loc = SM.getFileLoc(D->getLocation());
+      PresumedLoc const PLoc = SM.getPresumedLoc(Loc);
       OS << llvm::sys::path::filename(PLoc.getFilename()) << ':'
          << PLoc.getLine() << ':' << PLoc.getColumn();
 
@@ -68,8 +68,8 @@ void FileIndexRecord::print(llvm::raw_ostream &OS, SourceManager &SM) const {
       }
     } else {
       const auto *MI = DclInfo.DeclOrMacro.get<const MacroInfo *>();
-      SourceLocation Loc = SM.getFileLoc(MI->getDefinitionLoc());
-      PresumedLoc PLoc = SM.getPresumedLoc(Loc);
+      SourceLocation const Loc = SM.getFileLoc(MI->getDefinitionLoc());
+      PresumedLoc const PLoc = SM.getPresumedLoc(Loc);
       OS << llvm::sys::path::filename(PLoc.getFilename()) << ':'
          << PLoc.getLine() << ':' << PLoc.getColumn();
       OS << ' ' << DclInfo.MacroName->getName();

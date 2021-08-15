@@ -37,7 +37,7 @@ bool isDeclaredInForOrIf(const VarDecl *Var) {
 
   if (parent.size() == 1) {
     if (auto *DS = parent.begin()->get<DeclStmt>()) {
-      DynTypedNodeList grandParent = ASTCtx.getParents(*DS);
+      DynTypedNodeList const grandParent = ASTCtx.getParents(*DS);
       if (grandParent.size() == 1) {
         return grandParent.begin()->get<ForStmt>() ||
                grandParent.begin()->get<IfStmt>() ||
@@ -55,7 +55,7 @@ bool isRefcountedStringsHack(const VarDecl *V) {
     return className == "String" || className == "AtomString" ||
            className == "UniquedString" || className == "Identifier";
   };
-  QualType QT = V->getType();
+  QualType const QT = V->getType();
   auto *T = QT.getTypePtr();
   if (auto *CXXRD = T->getAsCXXRecordDecl()) {
     if (safeClass(safeGetName(CXXRD)))
@@ -234,7 +234,7 @@ public:
     printQuotedQualifiedName(Os, V);
     Os << " is uncounted and unsafe.";
 
-    PathDiagnosticLocation BSLoc(V->getLocation(), BR->getSourceManager());
+    PathDiagnosticLocation const BSLoc(V->getLocation(), BR->getSourceManager());
     auto Report = std::make_unique<BasicBugReport>(Bug, Os.str(), BSLoc);
     Report->addRange(V->getSourceRange());
     BR->emitReport(std::move(Report));

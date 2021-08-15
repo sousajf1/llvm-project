@@ -33,7 +33,7 @@ std::string aarch64::getAArch64TargetCPU(const ArgList &Args,
   std::string CPU;
   // If we have -mcpu, use that.
   if ((A = Args.getLastArg(options::OPT_mcpu_EQ))) {
-    StringRef Mcpu = A->getValue();
+    StringRef const Mcpu = A->getValue();
     CPU = Mcpu.split("+").first.lower();
   }
 
@@ -70,8 +70,8 @@ static bool DecodeAArch64Features(const Driver &D, StringRef text,
   SmallVector<StringRef, 8> Split;
   text.split(Split, StringRef("+"), -1, false);
 
-  for (StringRef Feature : Split) {
-    StringRef FeatureName = llvm::AArch64::getArchExtFeature(Feature);
+  for (StringRef const Feature : Split) {
+    StringRef const FeatureName = llvm::AArch64::getArchExtFeature(Feature);
     if (!FeatureName.empty())
       Features.push_back(FeatureName);
     else if (Feature == "neon" || Feature == "noneon")
@@ -92,7 +92,7 @@ static bool DecodeAArch64Features(const Driver &D, StringRef text,
 // decode CPU and feature.
 static bool DecodeAArch64Mcpu(const Driver &D, StringRef Mcpu, StringRef &CPU,
                               std::vector<StringRef> &Features) {
-  std::pair<StringRef, StringRef> Split = Mcpu.split("+");
+  std::pair<StringRef, StringRef> const Split = Mcpu.split("+");
   CPU = Split.first;
   llvm::AArch64::ArchKind ArchKind = llvm::AArch64::ArchKind::ARMV8A;
 
@@ -106,7 +106,7 @@ static bool DecodeAArch64Mcpu(const Driver &D, StringRef Mcpu, StringRef &CPU,
     if (!llvm::AArch64::getArchFeatures(ArchKind, Features))
       return false;
 
-    uint64_t Extension = llvm::AArch64::getDefaultExtensions(CPU, ArchKind);
+    uint64_t const Extension = llvm::AArch64::getDefaultExtensions(CPU, ArchKind);
     if (!llvm::AArch64::getExtensionFeatures(Extension, Features))
       return false;
    }
@@ -122,10 +122,10 @@ static bool
 getAArch64ArchFeaturesFromMarch(const Driver &D, StringRef March,
                                 const ArgList &Args,
                                 std::vector<StringRef> &Features) {
-  std::string MarchLowerCase = March.lower();
-  std::pair<StringRef, StringRef> Split = StringRef(MarchLowerCase).split("+");
+  std::string const MarchLowerCase = March.lower();
+  std::pair<StringRef, StringRef> const Split = StringRef(MarchLowerCase).split("+");
 
-  llvm::AArch64::ArchKind ArchKind = llvm::AArch64::parseArch(Split.first);
+  llvm::AArch64::ArchKind const ArchKind = llvm::AArch64::parseArch(Split.first);
   if (ArchKind == llvm::AArch64::ArchKind::INVALID ||
       !llvm::AArch64::getArchFeatures(ArchKind, Features) ||
       (Split.second.size() &&
@@ -140,7 +140,7 @@ getAArch64ArchFeaturesFromMcpu(const Driver &D, StringRef Mcpu,
                                const ArgList &Args,
                                std::vector<StringRef> &Features) {
   StringRef CPU;
-  std::string McpuLowerCase = Mcpu.lower();
+  std::string const McpuLowerCase = Mcpu.lower();
   if (!DecodeAArch64Mcpu(D, McpuLowerCase, CPU, Features))
     return false;
 
@@ -175,7 +175,7 @@ getAArch64MicroArchFeaturesFromMcpu(const Driver &D, StringRef Mcpu,
                                     std::vector<StringRef> &Features) {
   StringRef CPU;
   std::vector<StringRef> DecodedFeature;
-  std::string McpuLowerCase = Mcpu.lower();
+  std::string const McpuLowerCase = Mcpu.lower();
   if (!DecodeAArch64Mcpu(D, McpuLowerCase, CPU, DecodedFeature))
     return false;
 
@@ -195,7 +195,7 @@ void aarch64::getAArch64TargetFeatures(const Driver &D,
   if (ForAS)
     for (const auto *A :
          Args.filtered(options::OPT_Wa_COMMA, options::OPT_Xassembler))
-      for (StringRef Value : A->getValues())
+      for (StringRef const Value : A->getValues())
         if (Value.startswith("-march="))
           WaMArch = Value.substr(7);
   // Call getAArch64ArchFeaturesFromMarch only if "-Wa,-march=" or
@@ -232,7 +232,7 @@ void aarch64::getAArch64TargetFeatures(const Driver &D,
   }
 
   if (Arg *A = Args.getLastArg(options::OPT_mtp_mode_EQ)) {
-    StringRef Mtp = A->getValue();
+    StringRef const Mtp = A->getValue();
     if (Mtp == "el3")
       Features.push_back("+tpidr-el3");
     else if (Mtp == "el2")
@@ -245,7 +245,7 @@ void aarch64::getAArch64TargetFeatures(const Driver &D,
 
   // Enable/disable straight line speculation hardening.
   if (Arg *A = Args.getLastArg(options::OPT_mharden_sls_EQ)) {
-    StringRef Scope = A->getValue();
+    StringRef const Scope = A->getValue();
     bool EnableRetBr = false;
     bool EnableBlr = false;
     bool DisableComdat = false;

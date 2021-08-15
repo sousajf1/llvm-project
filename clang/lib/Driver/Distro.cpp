@@ -33,7 +33,7 @@ static Distro::DistroType DetectOsRelease(llvm::vfs::FileSystem &VFS) {
   Distro::DistroType Version = Distro::UnknownDistro;
 
   // Obviously this can be improved a lot.
-  for (StringRef Line : Lines)
+  for (StringRef const Line : Lines)
     if (Version == Distro::UnknownDistro && Line.startswith("ID="))
       Version = llvm::StringSwitch<Distro::DistroType>(Line.substr(3))
                     .Case("alpine", Distro::AlpineLinux)
@@ -58,7 +58,7 @@ static Distro::DistroType DetectLsbRelease(llvm::vfs::FileSystem &VFS) {
   File.get()->getBuffer().split(Lines, "\n");
   Distro::DistroType Version = Distro::UnknownDistro;
 
-  for (StringRef Line : Lines)
+  for (StringRef const Line : Lines)
     if (Version == Distro::UnknownDistro &&
         Line.startswith("DISTRIB_CODENAME="))
       Version = llvm::StringSwitch<Distro::DistroType>(Line.substr(17))
@@ -113,7 +113,7 @@ static Distro::DistroType DetectDistro(llvm::vfs::FileSystem &VFS) {
       VFS.getBufferForFile("/etc/redhat-release");
 
   if (File) {
-    StringRef Data = File.get()->getBuffer();
+    StringRef const Data = File.get()->getBuffer();
     if (Data.startswith("Fedora release"))
       return Distro::Fedora;
     if (Data.startswith("Red Hat Enterprise Linux") ||
@@ -131,7 +131,7 @@ static Distro::DistroType DetectDistro(llvm::vfs::FileSystem &VFS) {
   // ...for Debian
   File = VFS.getBufferForFile("/etc/debian_version");
   if (File) {
-    StringRef Data = File.get()->getBuffer();
+    StringRef const Data = File.get()->getBuffer();
     // Contents: < major.minor > or < codename/sid >
     int MajorVersion;
     if (!Data.split('.').first.getAsInteger(10, MajorVersion)) {
@@ -167,16 +167,16 @@ static Distro::DistroType DetectDistro(llvm::vfs::FileSystem &VFS) {
   // ...for SUSE
   File = VFS.getBufferForFile("/etc/SuSE-release");
   if (File) {
-    StringRef Data = File.get()->getBuffer();
+    StringRef const Data = File.get()->getBuffer();
     SmallVector<StringRef, 8> Lines;
     Data.split(Lines, "\n");
     for (const StringRef &Line : Lines) {
       if (!Line.trim().startswith("VERSION"))
         continue;
-      std::pair<StringRef, StringRef> SplitLine = Line.split('=');
+      std::pair<StringRef, StringRef> const SplitLine = Line.split('=');
       // Old versions have split VERSION and PATCHLEVEL
       // Newer versions use VERSION = x.y
-      std::pair<StringRef, StringRef> SplitVer =
+      std::pair<StringRef, StringRef> const SplitVer =
           SplitLine.second.trim().split('.');
       int Version;
 
@@ -210,14 +210,14 @@ static Distro::DistroType GetDistro(llvm::vfs::FileSystem &VFS,
   // system, no need to check the distro. This is the case where someone
   // is cross-compiling from BSD or Windows to Linux, and it would be
   // meaningless to try to figure out the "distro" of the non-Linux host.
-  llvm::Triple HostTriple(llvm::sys::getProcessTriple());
+  llvm::Triple const HostTriple(llvm::sys::getProcessTriple());
   if (!HostTriple.isOSLinux() && onRealFS)
     return Distro::UnknownDistro;
 
   if (onRealFS) {
     // If we're backed by a real file system, perform
     // the detection only once and save the result.
-    static Distro::DistroType LinuxDistro = DetectDistro(VFS);
+    static Distro::DistroType const LinuxDistro = DetectDistro(VFS);
     return LinuxDistro;
   }
   // This is mostly for passing tests which uses llvm::vfs::InMemoryFileSystem,

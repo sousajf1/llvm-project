@@ -45,7 +45,7 @@ bool IsValidEditLoc(const clang::SourceManager& SM, clang::SourceLocation Loc) {
   if (Loc.isInvalid())
     return false;
   const clang::FullSourceLoc FullLoc(Loc, SM);
-  std::pair<clang::FileID, unsigned> FileIdAndOffset =
+  std::pair<clang::FileID, unsigned> const FileIdAndOffset =
       FullLoc.getSpellingLoc().getDecomposedLoc();
   return SM.getFileEntryForID(FileIdAndOffset.first) != nullptr;
 }
@@ -89,10 +89,10 @@ private:
     const SourceLocation BeginLoc = Loc;
     const SourceLocation EndLoc = Lexer::getLocForEndOfToken(
         BeginLoc, 0, Context.getSourceManager(), Context.getLangOpts());
-    StringRef TokenName =
+    StringRef const TokenName =
         Lexer::getSourceText(CharSourceRange::getTokenRange(BeginLoc, EndLoc),
                              Context.getSourceManager(), Context.getLangOpts());
-    size_t Offset = TokenName.find(PrevName.getNamePieces()[0]);
+    size_t const Offset = TokenName.find(PrevName.getNamePieces()[0]);
 
     // The token of the source location we find actually has the old
     // name.
@@ -111,7 +111,7 @@ SourceLocation StartLocationForType(TypeLoc TL) {
   // For elaborated types (e.g. `struct a::A`) we want the portion after the
   // `struct` but including the namespace qualifier, `a::`.
   if (auto ElaboratedTypeLoc = TL.getAs<clang::ElaboratedTypeLoc>()) {
-    NestedNameSpecifierLoc NestedNameSpecifier =
+    NestedNameSpecifierLoc const NestedNameSpecifier =
         ElaboratedTypeLoc.getQualifierLoc();
     if (NestedNameSpecifier.getNestedNameSpecifier())
       return NestedNameSpecifier.getBeginLoc();
@@ -200,7 +200,7 @@ public:
       auto StartLoc = Decl->getLocation();
       auto EndLoc = StartLoc;
       if (IsValidEditLoc(Context.getSourceManager(), StartLoc)) {
-        RenameInfo Info = {StartLoc,
+        RenameInfo const Info = {StartLoc,
                            EndLoc,
                            /*FromDecl=*/nullptr,
                            /*Context=*/nullptr,
@@ -327,7 +327,7 @@ public:
     }
     if (isInUSRSet(Decl) &&
         IsValidEditLoc(Context.getSourceManager(), StartLoc)) {
-      RenameInfo Info = {StartLoc,
+      RenameInfo const Info = {StartLoc,
                          EndLoc,
                          Decl,
                          getClosestAncestorDecl(*Expr),
@@ -356,7 +356,7 @@ public:
     if (const auto *TargetDecl =
             getSupportedDeclFromTypeLoc(NestedLoc.getTypeLoc())) {
       if (isInUSRSet(TargetDecl)) {
-        RenameInfo Info = {NestedLoc.getBeginLoc(),
+        RenameInfo const Info = {NestedLoc.getBeginLoc(),
                            EndLocationForType(NestedLoc.getTypeLoc()),
                            TargetDecl,
                            getClosestAncestorDecl(NestedLoc),
@@ -406,7 +406,7 @@ public:
         auto StartLoc = StartLocationForType(Loc);
         auto EndLoc = EndLocationForType(Loc);
         if (IsValidEditLoc(Context.getSourceManager(), StartLoc)) {
-          RenameInfo Info = {StartLoc,
+          RenameInfo const Info = {StartLoc,
                              EndLoc,
                              TargetDecl,
                              getClosestAncestorDecl(Loc),
@@ -441,7 +441,7 @@ public:
         auto StartLoc = StartLocationForType(TargetLoc);
         auto EndLoc = EndLocationForType(TargetLoc);
         if (IsValidEditLoc(Context.getSourceManager(), StartLoc)) {
-          RenameInfo Info = {
+          RenameInfo const Info = {
               StartLoc,
               EndLoc,
               TemplateSpecType->getTemplateName().getAsTemplateDecl(),
@@ -551,7 +551,7 @@ createRenameAtomicChanges(llvm::ArrayRef<std::string> USRs,
     std::string ReplacedName = NewName.str();
     if (RenameInfo.IgnorePrefixQualifers) {
       // Get the name without prefix qualifiers from NewName.
-      size_t LastColonPos = NewName.find_last_of(':');
+      size_t const LastColonPos = NewName.find_last_of(':');
       if (LastColonPos != std::string::npos)
         ReplacedName = std::string(NewName.substr(LastColonPos + 1));
     } else {
@@ -571,7 +571,7 @@ createRenameAtomicChanges(llvm::ArrayRef<std::string> USRs,
           // the translation unit and ignore the possible existence of
           // using-decls (in the global scope) that can shorten the replaced
           // name.
-          llvm::StringRef ActualName = Lexer::getSourceText(
+          llvm::StringRef const ActualName = Lexer::getSourceText(
               CharSourceRange::getTokenRange(
                   SourceRange(RenameInfo.Begin, RenameInfo.End)),
               SM, TranslationUnitDecl->getASTContext().getLangOpts());

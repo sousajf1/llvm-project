@@ -26,7 +26,7 @@ getBestGuess(llvm::StringRef Search, llvm::ArrayRef<llvm::StringRef> Allowed,
       Res = Item;
       continue;
     }
-    unsigned Distance = Item.edit_distance(Search);
+    unsigned const Distance = Item.edit_distance(Search);
     if (Distance < MaxEditDistance) {
       MaxEditDistance = Distance;
       Res = Item;
@@ -47,7 +47,7 @@ getBestGuess(llvm::StringRef Search, llvm::ArrayRef<llvm::StringRef> Allowed,
         Res = Item;
         continue;
       }
-      unsigned Distance = NoPrefix.edit_distance(Search);
+      unsigned const Distance = NoPrefix.edit_distance(Search);
       if (Distance < MaxEditDistance) {
         MaxEditDistance = Distance;
         Res = Item;
@@ -145,7 +145,7 @@ clang::ast_matchers::dynamic::internal::ArgTypeTraits<
   llvm::Optional<llvm::Regex::RegexFlags> Flag;
   SmallVector<StringRef, 4> Split;
   Flags.split(Split, '|', -1, false);
-  for (StringRef OrFlag : Split) {
+  for (StringRef const OrFlag : Split) {
     if (llvm::Optional<llvm::Regex::RegexFlags> NextFlag =
             getRegexFlag(OrFlag.trim()))
       Flag = Flag.getValueOr(llvm::Regex::NoFlags) | *NextFlag;

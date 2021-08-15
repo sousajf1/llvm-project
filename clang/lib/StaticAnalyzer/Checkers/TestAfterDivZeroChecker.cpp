@@ -102,7 +102,7 @@ DivisionBRVisitor::VisitNode(const ExplodedNode *Succ, BugReporterContext &BRC,
 
   if (Optional<PostStmt> P = Succ->getLocationAs<PostStmt>())
     if (const BinaryOperator *BO = P->getStmtAs<BinaryOperator>()) {
-      BinaryOperator::Opcode Op = BO->getOpcode();
+      BinaryOperator::Opcode const Op = BO->getOpcode();
       if (Op == BO_Div || Op == BO_Rem || Op == BO_DivAssign ||
           Op == BO_RemAssign) {
         E = BO->getRHS();
@@ -112,13 +112,13 @@ DivisionBRVisitor::VisitNode(const ExplodedNode *Succ, BugReporterContext &BRC,
   if (!E)
     return nullptr;
 
-  SVal S = Succ->getSVal(E);
+  SVal const S = Succ->getSVal(E);
   if (ZeroSymbol == S.getAsSymbol() && SFC == Succ->getStackFrame()) {
     Satisfied = true;
 
     // Construct a new PathDiagnosticPiece.
-    ProgramPoint P = Succ->getLocation();
-    PathDiagnosticLocation L =
+    ProgramPoint const P = Succ->getLocation();
+    PathDiagnosticLocation const L =
         PathDiagnosticLocation::create(P, BRC.getSourceManager());
 
     if (!L.isValid() || !L.asLocation().isValid())
@@ -158,7 +158,7 @@ bool TestAfterDivZeroChecker::hasDivZeroMap(SVal Var,
   if (!SR)
     return false;
 
-  ZeroState ZS(SR, C.getBlockID(), C.getStackFrame());
+  ZeroState const ZS(SR, C.getBlockID(), C.getStackFrame());
   return C.getState()->contains<DivZeroMap>(ZS);
 }
 
@@ -180,7 +180,7 @@ void TestAfterDivZeroChecker::reportBug(SVal Val, CheckerContext &C) const {
 
 void TestAfterDivZeroChecker::checkEndFunction(const ReturnStmt *,
                                                CheckerContext &C) const {
-  ProgramStateRef State = C.getState();
+  ProgramStateRef const State = C.getState();
 
   DivZeroMapTy DivZeroes = State->get<DivZeroMap>();
   if (DivZeroes.isEmpty())
@@ -190,7 +190,7 @@ void TestAfterDivZeroChecker::checkEndFunction(const ReturnStmt *,
   for (llvm::ImmutableSet<ZeroState>::iterator I = DivZeroes.begin(),
                                                E = DivZeroes.end();
        I != E; ++I) {
-    ZeroState ZS = *I;
+    ZeroState const ZS = *I;
     if (ZS.getStackFrameContext() == C.getStackFrame())
       DivZeroes = F.remove(DivZeroes, ZS);
   }
@@ -199,10 +199,10 @@ void TestAfterDivZeroChecker::checkEndFunction(const ReturnStmt *,
 
 void TestAfterDivZeroChecker::checkPreStmt(const BinaryOperator *B,
                                            CheckerContext &C) const {
-  BinaryOperator::Opcode Op = B->getOpcode();
+  BinaryOperator::Opcode const Op = B->getOpcode();
   if (Op == BO_Div || Op == BO_Rem || Op == BO_DivAssign ||
       Op == BO_RemAssign) {
-    SVal S = C.getSVal(B->getRHS());
+    SVal const S = C.getSVal(B->getRHS());
 
     if (!isZero(S, C))
       setDivZeroMap(S, C);
@@ -223,7 +223,7 @@ void TestAfterDivZeroChecker::checkBranchCondition(const Stmt *Condition,
       if (!IntLiteral || IntLiteral->getValue() != 0)
         return;
 
-      SVal Val = C.getSVal(LRHS ? B->getLHS() : B->getRHS());
+      SVal const Val = C.getSVal(LRHS ? B->getLHS() : B->getRHS());
       if (hasDivZeroMap(Val, C))
         reportBug(Val, C);
     }
@@ -244,12 +244,12 @@ void TestAfterDivZeroChecker::checkBranchCondition(const Stmt *Condition,
     }
   } else if (const ImplicitCastExpr *IE =
                  dyn_cast<ImplicitCastExpr>(Condition)) {
-    SVal Val = C.getSVal(IE->getSubExpr());
+    SVal const Val = C.getSVal(IE->getSubExpr());
 
     if (hasDivZeroMap(Val, C))
       reportBug(Val, C);
     else {
-      SVal Val = C.getSVal(Condition);
+      SVal const Val = C.getSVal(Condition);
 
       if (hasDivZeroMap(Val, C))
         reportBug(Val, C);

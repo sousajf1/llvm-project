@@ -57,28 +57,28 @@ bool Builtin::Context::isBuiltinFunc(llvm::StringRef FuncName) {
 
 bool Builtin::Context::builtinIsSupported(const Builtin::Info &BuiltinInfo,
                                           const LangOptions &LangOpts) {
-  bool BuiltinsUnsupported =
+  bool const BuiltinsUnsupported =
       (LangOpts.NoBuiltin || LangOpts.isNoBuiltinFunc(BuiltinInfo.Name)) &&
       strchr(BuiltinInfo.Attributes, 'f');
-  bool CorBuiltinsUnsupported =
+  bool const CorBuiltinsUnsupported =
       !LangOpts.Coroutines && (BuiltinInfo.Langs & COR_LANG);
-  bool MathBuiltinsUnsupported =
+  bool const MathBuiltinsUnsupported =
     LangOpts.NoMathBuiltin && BuiltinInfo.HeaderName &&
     llvm::StringRef(BuiltinInfo.HeaderName).equals("math.h");
-  bool GnuModeUnsupported = !LangOpts.GNUMode && (BuiltinInfo.Langs & GNU_LANG);
-  bool MSModeUnsupported =
+  bool const GnuModeUnsupported = !LangOpts.GNUMode && (BuiltinInfo.Langs & GNU_LANG);
+  bool const MSModeUnsupported =
       !LangOpts.MicrosoftExt && (BuiltinInfo.Langs & MS_LANG);
-  bool ObjCUnsupported = !LangOpts.ObjC && BuiltinInfo.Langs == OBJC_LANG;
-  bool OclC1Unsupported = (LangOpts.OpenCLVersion / 100) != 1 &&
+  bool const ObjCUnsupported = !LangOpts.ObjC && BuiltinInfo.Langs == OBJC_LANG;
+  bool const OclC1Unsupported = (LangOpts.OpenCLVersion / 100) != 1 &&
                           (BuiltinInfo.Langs & ALL_OCLC_LANGUAGES ) ==  OCLC1X_LANG;
-  bool OclC2Unsupported =
+  bool const OclC2Unsupported =
       (LangOpts.OpenCLVersion != 200 && !LangOpts.OpenCLCPlusPlus) &&
       (BuiltinInfo.Langs & ALL_OCLC_LANGUAGES) == OCLC20_LANG;
-  bool OclCUnsupported = !LangOpts.OpenCL &&
+  bool const OclCUnsupported = !LangOpts.OpenCL &&
                          (BuiltinInfo.Langs & ALL_OCLC_LANGUAGES);
-  bool OpenMPUnsupported = !LangOpts.OpenMP && BuiltinInfo.Langs == OMP_LANG;
-  bool CUDAUnsupported = !LangOpts.CUDA && BuiltinInfo.Langs == CUDA_LANG;
-  bool CPlusPlusUnsupported =
+  bool const OpenMPUnsupported = !LangOpts.OpenMP && BuiltinInfo.Langs == OMP_LANG;
+  bool const CUDAUnsupported = !LangOpts.CUDA && BuiltinInfo.Langs == CUDA_LANG;
+  bool const CPlusPlusUnsupported =
       !LangOpts.CPlusPlus && BuiltinInfo.Langs == CXX_LANG;
   return !BuiltinsUnsupported && !CorBuiltinsUnsupported &&
          !MathBuiltinsUnsupported && !OclCUnsupported && !OclC1Unsupported &&
@@ -120,7 +120,7 @@ unsigned Builtin::Context::getRequiredVectorWidth(unsigned ID) const {
   ++WidthPos;
 
   char *EndPos;
-  unsigned Width = ::strtol(WidthPos, &EndPos, 10);
+  unsigned const Width = ::strtol(WidthPos, &EndPos, 10);
   assert(*EndPos == ':' && "Vector width specific must end with a ':'");
   return Width;
 }
@@ -170,14 +170,14 @@ bool Builtin::Context::performsCallback(unsigned ID,
   ++CalleePos;
 
   char *EndPos;
-  int CalleeIdx = ::strtol(CalleePos, &EndPos, 10);
+  int const CalleeIdx = ::strtol(CalleePos, &EndPos, 10);
   assert(CalleeIdx >= 0 && "Callee index is supposed to be positive!");
   Encoding.push_back(CalleeIdx);
 
   while (*EndPos == ',') {
     const char *PayloadPos = EndPos + 1;
 
-    int PayloadIdx = ::strtol(PayloadPos, &EndPos, 10);
+    int const PayloadIdx = ::strtol(PayloadPos, &EndPos, 10);
     Encoding.push_back(PayloadIdx);
   }
 

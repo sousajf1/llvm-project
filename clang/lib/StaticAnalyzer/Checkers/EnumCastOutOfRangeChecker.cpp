@@ -42,8 +42,8 @@ public:
       : CompareValue(CompareValue), PS(C.getState()), SVB(C.getSValBuilder()) {}
 
   bool operator()(const llvm::APSInt &EnumDeclInitValue) {
-    DefinedOrUnknownSVal EnumDeclValue = SVB.makeIntVal(EnumDeclInitValue);
-    DefinedOrUnknownSVal ElemEqualsValueToCast =
+    DefinedOrUnknownSVal const EnumDeclValue = SVB.makeIntVal(EnumDeclInitValue);
+    DefinedOrUnknownSVal const ElemEqualsValueToCast =
         SVB.evalEQ(PS, EnumDeclValue, CompareValue);
 
     return static_cast<bool>(PS->assume(ElemEqualsValueToCast, true));
@@ -129,7 +129,7 @@ void EnumCastOutOfRangeChecker::checkPreStmt(const CastExpr *CE,
 
   EnumValueVector DeclValues = getDeclValuesForEnum(ED);
   // Check if any of the enum values possibly match.
-  bool PossibleValueMatch = llvm::any_of(
+  bool const PossibleValueMatch = llvm::any_of(
       DeclValues, ConstraintBasedEQEvaluator(C, *ValueToCast));
 
   // If there is no value that can possibly match any of the enum values, then

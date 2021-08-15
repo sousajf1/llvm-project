@@ -128,7 +128,7 @@ protected:
           : Index(std::move(Index)), PP(std::move(PP)), Opts(Opts) {}
 
       void HandleTranslationUnit(ASTContext &Ctx) override {
-        std::vector<Decl *> DeclsToIndex(
+        std::vector<Decl *> const DeclsToIndex(
             Ctx.getTranslationUnitDecl()->decls().begin(),
             Ctx.getTranslationUnitDecl()->decls().end());
         indexTopLevelDecls(Ctx, *PP, DeclsToIndex, *Index, Opts);
@@ -161,7 +161,7 @@ TEST(IndexTest, Simple) {
 }
 
 TEST(IndexTest, IndexPreprocessorMacros) {
-  std::string Code = R"cpp(
+  std::string const Code = R"cpp(
     #define INDEX_MAC 1
     #define INDEX_MAC_UNDEF 1
     #undef INDEX_MAC_UNDEF
@@ -204,7 +204,7 @@ TEST(IndexTest, IndexPreprocessorMacros) {
 }
 
 TEST(IndexTest, IndexParametersInDecls) {
-  std::string Code = "void foo(int bar);";
+  std::string const Code = "void foo(int bar);";
   auto Index = std::make_shared<Indexer>();
   IndexingOptions Opts;
   Opts.IndexFunctionLocals = true;
@@ -219,7 +219,7 @@ TEST(IndexTest, IndexParametersInDecls) {
 }
 
 TEST(IndexTest, IndexExplicitTemplateInstantiation) {
-  std::string Code = R"cpp(
+  std::string const Code = R"cpp(
     template <typename T>
     struct Foo { void bar() {} };
     template <>
@@ -230,7 +230,7 @@ TEST(IndexTest, IndexExplicitTemplateInstantiation) {
     }
   )cpp";
   auto Index = std::make_shared<Indexer>();
-  IndexingOptions Opts;
+  IndexingOptions const Opts;
   tooling::runToolOnCode(std::make_unique<IndexAction>(Index, Opts), Code);
   EXPECT_THAT(Index->Symbols,
               AllOf(Contains(AllOf(QName("Foo"), WrittenAt(Position(8, 7)),
@@ -240,7 +240,7 @@ TEST(IndexTest, IndexExplicitTemplateInstantiation) {
 }
 
 TEST(IndexTest, IndexTemplateInstantiationPartial) {
-  std::string Code = R"cpp(
+  std::string const Code = R"cpp(
     template <typename T1, typename T2>
     struct Foo { void bar() {} };
     template <typename T>
@@ -251,7 +251,7 @@ TEST(IndexTest, IndexTemplateInstantiationPartial) {
     }
   )cpp";
   auto Index = std::make_shared<Indexer>();
-  IndexingOptions Opts;
+  IndexingOptions const Opts;
   tooling::runToolOnCode(std::make_unique<IndexAction>(Index, Opts), Code);
   EXPECT_THAT(Index->Symbols,
               Contains(AllOf(QName("Foo"), WrittenAt(Position(8, 7)),
@@ -259,7 +259,7 @@ TEST(IndexTest, IndexTemplateInstantiationPartial) {
 }
 
 TEST(IndexTest, IndexTypeParmDecls) {
-  std::string Code = R"cpp(
+  std::string const Code = R"cpp(
     template <typename T, int I, template<typename> class C, typename NoRef>
     struct Foo {
       T t = I;
@@ -288,28 +288,28 @@ TEST(IndexTest, IndexTypeParmDecls) {
 }
 
 TEST(IndexTest, UsingDecls) {
-  std::string Code = R"cpp(
+  std::string const Code = R"cpp(
     void foo(int bar);
     namespace std {
       using ::foo;
     }
   )cpp";
   auto Index = std::make_shared<Indexer>();
-  IndexingOptions Opts;
+  IndexingOptions const Opts;
   tooling::runToolOnCode(std::make_unique<IndexAction>(Index, Opts), Code);
   EXPECT_THAT(Index->Symbols,
               Contains(AllOf(QName("std::foo"), Kind(SymbolKind::Using))));
 }
 
 TEST(IndexTest, Constructors) {
-  std::string Code = R"cpp(
+  std::string const Code = R"cpp(
     struct Foo {
       Foo(int);
       ~Foo();
     };
   )cpp";
   auto Index = std::make_shared<Indexer>();
-  IndexingOptions Opts;
+  IndexingOptions const Opts;
   tooling::runToolOnCode(std::make_unique<IndexAction>(Index, Opts), Code);
   EXPECT_THAT(
       Index->Symbols,
@@ -328,14 +328,14 @@ TEST(IndexTest, Constructors) {
 }
 
 TEST(IndexTest, InjecatedNameClass) {
-  std::string Code = R"cpp(
+  std::string const Code = R"cpp(
     template <typename T>
     class Foo {
       void f(Foo x);
     };
   )cpp";
   auto Index = std::make_shared<Indexer>();
-  IndexingOptions Opts;
+  IndexingOptions const Opts;
   tooling::runToolOnCode(std::make_unique<IndexAction>(Index, Opts), Code);
   EXPECT_THAT(Index->Symbols,
               UnorderedElementsAre(AllOf(QName("Foo"), Kind(SymbolKind::Class),
@@ -349,7 +349,7 @@ TEST(IndexTest, InjecatedNameClass) {
 }
 
 TEST(IndexTest, VisitDefaultArgs) {
-  std::string Code = R"cpp(
+  std::string const Code = R"cpp(
     int var = 0;
     void f(int s = var) {}
   )cpp";
@@ -364,7 +364,7 @@ TEST(IndexTest, VisitDefaultArgs) {
 }
 
 TEST(IndexTest, RelationBaseOf) {
-  std::string Code = R"cpp(
+  std::string const Code = R"cpp(
     class A {};
     template <typename> class B {};
     class C : B<A> {};

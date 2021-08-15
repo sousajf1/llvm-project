@@ -352,7 +352,7 @@ public:
     // Use <4 x i1> instead of <2 x i1> for two-lane vector types. See
     // the comment in llvm/lib/Target/ARM/ARMInstrMVE.td for further
     // explanation.
-    unsigned ModifiedLanes = (Lanes == 2 ? 4 : Lanes);
+    unsigned const ModifiedLanes = (Lanes == 2 ? 4 : Lanes);
 
     return "llvm::FixedVectorType::get(Builder.getInt1Ty(), " +
            utostr(ModifiedLanes) + ")";
@@ -429,7 +429,7 @@ struct CodeGenParamAllocator {
     } else {
       // In pass 2, consult the map provided by the caller to find out which
       // variable we should be keeping things in.
-      int MapValue = (*ParamNumberMap)[nparams++];
+      int const MapValue = (*ParamNumberMap)[nparams++];
       if (MapValue < 0)
         return std::string(Value);
       ParamNumber = MapValue;
@@ -546,7 +546,7 @@ public:
   // flag back to false: you just set Pass=1 the first time round, and Pass=2
   // the second time.
   bool needsVisiting(unsigned Pass) {
-    bool ToRet = Visited < Pass;
+    bool const ToRet = Visited < Pass;
     Visited = Pass;
     return ToRet;
   }
@@ -672,7 +672,7 @@ public:
     OS << CallPrefix;
     const char *Sep = "";
     for (unsigned i = 0, e = Args.size(); i < e; ++i) {
-      Ptr Arg = Args[i];
+      Ptr const Arg = Args[i];
       auto it = IntegerArgs.find(i);
 
       OS << Sep;
@@ -695,7 +695,7 @@ public:
   }
   void morePrerequisites(std::vector<Ptr> &output) const override {
     for (unsigned i = 0, e = Args.size(); i < e; ++i) {
-      Ptr Arg = Args[i];
+      Ptr const Arg = Args[i];
       if (IntegerArgs.find(i) != IntegerArgs.end())
         continue;
       output.push_back(Arg);
@@ -735,7 +735,7 @@ public:
         Args(Args) {}
   void genCode(raw_ostream &OS,
                CodeGenParamAllocator &ParamAlloc) const override {
-    std::string IntNo = ParamAlloc.allocParam(
+    std::string const IntNo = ParamAlloc.allocParam(
         "Intrinsic::ID", "Intrinsic::" + IntrinsicID);
     OS << "Builder.CreateCall(CGM.getIntrinsic(" << IntNo;
     if (!ParamTypes.empty()) {
@@ -829,7 +829,7 @@ class ACLEIntrinsic {
     if (!V->needsVisiting(Pass))
       return;
 
-    for (Result::Ptr W : V->prerequisites())
+    for (Result::Ptr const W : V->prerequisites())
       genCodeDfs(W, Used, Pass);
 
     Used.push_back(V);
@@ -872,17 +872,17 @@ public:
     genCodeDfs(Code, Used, Pass);
 
     unsigned varindex = 0;
-    for (Result::Ptr V : Used)
+    for (Result::Ptr const V : Used)
       if (V->varnameUsed())
         V->setVarname("Val" + utostr(varindex++));
 
-    for (Result::Ptr V : Used) {
+    for (Result::Ptr const V : Used) {
       OS << "  ";
       if (V == Used.back()) {
         assert(!V->varnameUsed());
         OS << "return "; // FIXME: what if the top-level thing is void?
       } else if (V->varnameUsed()) {
-        std::string Type = V->typeName();
+        std::string const Type = V->typeName();
         OS << V->typeName();
         if (!StringRef(Type).endswith("*"))
           OS << " ";
@@ -895,7 +895,7 @@ public:
   bool hasCode() const { return Code != nullptr; }
 
   static std::string signedHexLiteral(const llvm::APInt &iOrig) {
-    llvm::APInt i = iOrig.trunc(64);
+    llvm::APInt const i = iOrig.trunc(64);
     SmallString<40> s;
     i.toString(s, 16, true, true);
     return std::string(s.str());
@@ -920,14 +920,14 @@ public:
         break;
       }
 
-      std::string Index = utostr(kv.first);
+      std::string const Index = utostr(kv.first);
 
       // Emit a range check if the legal range of values for the
       // immediate is smaller than the _possible_ range of values for
       // its type.
-      unsigned ArgTypeBits = IA.ArgType->sizeInBits();
-      llvm::APInt ArgTypeRange = llvm::APInt::getMaxValue(ArgTypeBits).zext(128);
-      llvm::APInt ActualRange = (hi-lo).trunc(64).sext(128);
+      unsigned const ArgTypeBits = IA.ArgType->sizeInBits();
+      llvm::APInt const ArgTypeRange = llvm::APInt::getMaxValue(ArgTypeBits).zext(128);
+      llvm::APInt const ActualRange = (hi-lo).trunc(64).sext(128);
       if (ActualRange.ult(ArgTypeRange))
         SemaChecks.push_back("SemaBuiltinConstantArgRange(TheCall, " + Index +
                              ", " + signedHexLiteral(lo) + ", " +
@@ -993,7 +993,7 @@ public:
     return getScalarType(R->getName());
   }
   const VectorType *getVectorType(const ScalarType *ST, unsigned Lanes) {
-    std::tuple<ScalarTypeKind, unsigned, unsigned> key(ST->kind(),
+    std::tuple<ScalarTypeKind, unsigned, unsigned> const key(ST->kind(),
                                                        ST->sizeInBits(), Lanes);
     if (VectorTypes.find(key) == VectorTypes.end())
       VectorTypes[key] = std::make_unique<VectorType>(ST, Lanes);
@@ -1004,20 +1004,20 @@ public:
   }
   const MultiVectorType *getMultiVectorType(unsigned Registers,
                                             const VectorType *VT) {
-    std::pair<std::string, unsigned> key(VT->cNameBase(), Registers);
+    std::pair<std::string, unsigned> const key(VT->cNameBase(), Registers);
     if (MultiVectorTypes.find(key) == MultiVectorTypes.end())
       MultiVectorTypes[key] = std::make_unique<MultiVectorType>(Registers, VT);
     return MultiVectorTypes[key].get();
   }
   const PredicateType *getPredicateType(unsigned Lanes) {
-    unsigned key = Lanes;
+    unsigned const key = Lanes;
     if (PredicateTypes.find(key) == PredicateTypes.end())
       PredicateTypes[key] = std::make_unique<PredicateType>(Lanes);
     return PredicateTypes[key].get();
   }
   const PointerType *getPointerType(const Type *T, bool Const) {
-    PointerType PT(T, Const);
-    std::string key = PT.cName();
+    PointerType const PT(T, Const);
+    std::string const key = PT.cName();
     if (PointerTypes.find(key) == PointerTypes.end())
       PointerTypes[key] = std::make_unique<PointerType>(PT);
     return PointerTypes[key].get();
@@ -1117,7 +1117,7 @@ const Type *EmitterBase::getType(DagInit *D, const Type *Param) {
   }
 
   if (Op->isSubClassOf("CTO_Tuple")) {
-    unsigned Registers = Op->getValueAsInt("n");
+    unsigned const Registers = Op->getValueAsInt("n");
     const Type *Element = getType(D->getArg(0), Param);
     return getMultiVectorType(Registers, cast<VectorType>(Element));
   }
@@ -1141,7 +1141,7 @@ const Type *EmitterBase::getType(DagInit *D, const Type *Param) {
   if (Op->isSubClassOf("CTO_ScaleSize")) {
     const ScalarType *STKind = cast<ScalarType>(getType(D->getArg(0), Param));
     int Num = Op->getValueAsInt("num"), Denom = Op->getValueAsInt("denom");
-    unsigned DesiredSize = STKind->sizeInBits() * Num / Denom;
+    unsigned const DesiredSize = STKind->sizeInBits() * Num / Denom;
     for (const auto &kv : ScalarTypes) {
       const ScalarType *RT = kv.second.get();
       if (RT->kind() == STKind->kind() && RT->sizeInBits() == DesiredSize)
@@ -1163,9 +1163,9 @@ Result::Ptr EmitterBase::getCodeForDag(DagInit *D, const Result::Scope &Scope,
     for (unsigned i = 0, e = D->getNumArgs(); i < e; ++i) {
       // We don't use getCodeForDagArg here, because the argument name
       // has different semantics in a seq
-      Result::Ptr V =
+      Result::Ptr const V =
           getCodeForDag(cast<DagInit>(D->getArg(i)), SubScope, Param);
-      StringRef ArgName = D->getArgNameStr(i);
+      StringRef const ArgName = D->getArgNameStr(i);
       if (!ArgName.empty())
         SubScope[std::string(ArgName)] = V;
       if (PrevV)
@@ -1177,7 +1177,7 @@ Result::Ptr EmitterBase::getCodeForDag(DagInit *D, const Result::Scope &Scope,
     if (D->getNumArgs() != 1)
       PrintFatalError("Type casts should have exactly one argument");
     const Type *CastType = getType(Op, Param);
-    Result::Ptr Arg = getCodeForDagArg(D, 0, Scope, Param);
+    Result::Ptr const Arg = getCodeForDagArg(D, 0, Scope, Param);
     if (const auto *ST = dyn_cast<ScalarType>(CastType)) {
       if (!ST->requiresFloat()) {
         if (Arg->hasIntegerConstantValue())
@@ -1193,7 +1193,7 @@ Result::Ptr EmitterBase::getCodeForDag(DagInit *D, const Result::Scope &Scope,
   } else if (Op->getName() == "address") {
     if (D->getNumArgs() != 2)
       PrintFatalError("'address' should have two arguments");
-    Result::Ptr Arg = getCodeForDagArg(D, 0, Scope, Param);
+    Result::Ptr const Arg = getCodeForDagArg(D, 0, Scope, Param);
     unsigned Alignment;
     if (auto *II = dyn_cast<IntInit>(D->getArg(1))) {
       Alignment = II->getValue();
@@ -1233,7 +1233,7 @@ Result::Ptr EmitterBase::getCodeForDag(DagInit *D, const Result::Scope &Scope,
       std::set<unsigned> AddressArgs;
       std::map<unsigned, std::string> IntegerArgs;
       for (Record *sp : Op->getValueAsListOfDefs("special_params")) {
-        unsigned Index = sp->getValueAsInt("index");
+        unsigned const Index = sp->getValueAsInt("index");
         if (sp->isSubClassOf("IRBuilderAddrParam")) {
           AddressArgs.insert(Index);
         } else if (sp->isSubClassOf("IRBuilderIntParam")) {
@@ -1260,7 +1260,7 @@ Result::Ptr EmitterBase::getCodeForDagArg(DagInit *D, unsigned ArgNum,
                                           const Result::Scope &Scope,
                                           const Type *Param) {
   Init *Arg = D->getArg(ArgNum);
-  StringRef Name = D->getArgNameStr(ArgNum);
+  StringRef const Name = D->getArgNameStr(ArgNum);
 
   if (!Name.empty()) {
     if (!isa<UnsetInit>(Arg))
@@ -1328,10 +1328,10 @@ ACLEIntrinsic::ACLEIntrinsic(EmitterBase &ME, Record *R, const Type *Param)
   // parameter type. (If the intrinsic is unparametrised, its
   // parameter type will be given as Void, which returns the empty
   // string for acleSuffix.)
-  StringRef BaseName =
+  StringRef const BaseName =
       (R->isSubClassOf("NameOverride") ? R->getValueAsString("basename")
                                        : R->getName());
-  StringRef overrideLetter = R->getValueAsString("overrideKindLetter");
+  StringRef const overrideLetter = R->getValueAsString("overrideKindLetter");
   FullName =
       (Twine(BaseName) + Param->acleSuffix(std::string(overrideLetter))).str();
 
@@ -1347,7 +1347,7 @@ ACLEIntrinsic::ACLEIntrinsic(EmitterBase &ME, Record *R, const Type *Param)
        i < e; ++i)
     NameParts.pop_back();
   if (!PolymorphicNameType->isValueUnset("ExtraSuffixToDiscard")) {
-    StringRef ExtraSuffix =
+    StringRef const ExtraSuffix =
         PolymorphicNameType->getValueAsString("ExtraSuffixToDiscard");
     auto it = NameParts.end();
     while (it != NameParts.begin()) {
@@ -1424,7 +1424,7 @@ ACLEIntrinsic::ACLEIntrinsic(EmitterBase &ME, Record *R, const Type *Param)
 
     // The argument will usually have a name in the arguments dag, which goes
     // into the variable-name scope that the code gen will refer to.
-    StringRef ArgName = ArgsDag->getArgNameStr(i);
+    StringRef const ArgName = ArgsDag->getArgNameStr(i);
     if (!ArgName.empty())
       Scope[std::string(ArgName)] =
           ME.getCodeForArg(i, ArgType, Promote, Immediate);
@@ -1441,7 +1441,7 @@ ACLEIntrinsic::ACLEIntrinsic(EmitterBase &ME, Record *R, const Type *Param)
     CustomCodeGenArgs["CustomCodeGenType"] =
         (Twine("CustomCodeGen::") + MainOp->getValueAsString("type")).str();
     for (unsigned i = 0, e = CodeDag->getNumArgs(); i < e; ++i) {
-      StringRef Name = CodeDag->getArgNameStr(i);
+      StringRef const Name = CodeDag->getArgNameStr(i);
       if (Name.empty()) {
         PrintFatalError("Operands to CustomCodegen should have names");
       } else if (auto *II = dyn_cast<IntInit>(CodeDag->getArg(i))) {
@@ -1597,7 +1597,7 @@ void EmitterBase::EmitBuiltinCG(raw_ostream &OS) {
     for (size_t i = 0, e = MG.ParamTypes.size(); i < e; ++i) {
       // Is this parameter the same for all intrinsics in the group?
       const OutputIntrinsic &OI_first = *kv.second.begin();
-      bool Constant = all_of(kv.second, [&](const OutputIntrinsic &OI) {
+      bool const Constant = all_of(kv.second, [&](const OutputIntrinsic &OI) {
         return OI.ParamValues[i] == OI_first.ParamValues[i];
       });
 
@@ -1628,7 +1628,7 @@ void EmitterBase::EmitBuiltinCG(raw_ostream &OS) {
       }
 
       // No, we need a new parameter variable.
-      int ExistingIndex = ParamNumberMap.size();
+      int const ExistingIndex = ParamNumberMap.size();
       ParamNumberMap[key] = ExistingIndex;
       ParamNumbers.push_back(ExistingIndex);
     }
@@ -1673,7 +1673,7 @@ void EmitterBase::EmitBuiltinCG(raw_ostream &OS) {
     if (!MG.ParamTypes.empty()) {
       // If we've got some parameter variables, then emit their declarations...
       for (size_t i = 0, e = MG.ParamTypes.size(); i < e; ++i) {
-        StringRef Type = MG.ParamTypes[i];
+        StringRef const Type = MG.ParamTypes[i];
         OS << "  " << Type;
         if (!Type.endswith("*"))
           OS << " ";
@@ -1711,7 +1711,7 @@ void EmitterBase::EmitBuiltinAliases(raw_ostream &OS) {
     const ACLEIntrinsic &Int = *kv.second;
     if (Int.headerOnly())
       continue;
-    int32_t ShortNameOffset =
+    int32_t const ShortNameOffset =
         Int.polymorphic() ? StringTable.GetOrAddStringOffset(Int.shortName())
                           : -1;
     OS << "  { ARM::BI__builtin_arm_" << Int.builtinExtension() << "_"
@@ -1734,7 +1734,7 @@ void EmitterBase::GroupSemaChecks(
     const ACLEIntrinsic &Int = *kv.second;
     if (Int.headerOnly())
       continue;
-    std::string Check = Int.genSema();
+    std::string const Check = Int.genSema();
     if (!Check.empty())
       Checks[Check].insert(Int.fullName());
   }
@@ -1797,7 +1797,7 @@ void MveEmitter::EmitHeader(raw_ostream &OS) {
 
     // We generate each intrinsic twice, under its full unambiguous
     // name and its shorter polymorphic name (if the latter exists).
-    for (bool Polymorphic : {false, true}) {
+    for (bool const Polymorphic : {false, true}) {
       if (Polymorphic && !Int.polymorphic())
         continue;
       if (!Polymorphic && Int.polymorphicOnly())
@@ -1813,7 +1813,7 @@ void MveEmitter::EmitHeader(raw_ostream &OS) {
       // and leave only the implementation-namespace ones. Then they
       // have to write __arm_vfooq everywhere, of course.
 
-      for (bool UserNamespace : {false, true}) {
+      for (bool const UserNamespace : {false, true}) {
         raw_ostream &OS = parts[(Int.requiresFloat() ? Float : 0) |
                                 (UserNamespace ? UseUserNamespace : 0)];
 
@@ -1834,7 +1834,7 @@ void MveEmitter::EmitHeader(raw_ostream &OS) {
         std::vector<std::string> ArgTypeNames;
         for (const Type *ArgTypePtr : Int.argTypes())
           ArgTypeNames.push_back(ArgTypePtr->cName());
-        std::string ArgTypesString =
+        std::string const ArgTypesString =
             join(std::begin(ArgTypeNames), std::end(ArgTypeNames), ", ");
 
         // Emit the actual declaration. All these functions are
@@ -1922,7 +1922,7 @@ void MveEmitter::EmitHeader(raw_ostream &OS) {
     if (i & UseUserNamespace)
       conditions.push_back("(!defined __ARM_MVE_PRESERVE_USER_NAMESPACE)");
 
-    std::string condition =
+    std::string const condition =
         join(std::begin(conditions), std::end(conditions), " && ");
     if (!condition.empty())
       OS << "#if " << condition << "\n\n";
@@ -1950,7 +1950,7 @@ void MveEmitter::EmitBuiltinDef(raw_ostream &OS) {
   for (const auto &kv : ACLEIntrinsics) {
     const ACLEIntrinsic &Int = *kv.second;
     if (Int.polymorphic()) {
-      StringRef Name = Int.shortName();
+      StringRef const Name = Int.shortName();
       if (ShortNamesSeen.find(std::string(Name)) == ShortNamesSeen.end()) {
         OS << "BUILTIN(__builtin_arm_mve_" << Name << ", \"vi.\", \"nt";
         if (Int.nonEvaluating())
@@ -1967,7 +1967,7 @@ void MveEmitter::EmitBuiltinSema(raw_ostream &OS) {
   GroupSemaChecks(Checks);
 
   for (const auto &kv : Checks) {
-    for (StringRef Name : kv.second)
+    for (StringRef const Name : kv.second)
       OS << "case ARM::BI__builtin_arm_mve_" << Name << ":\n";
     OS << "  return " << kv.first;
   }
@@ -2056,7 +2056,7 @@ void CdeEmitter::EmitHeader(raw_ostream &OS) {
 
     // We generate each intrinsic twice, under its full unambiguous
     // name and its shorter polymorphic name (if the latter exists).
-    for (bool Polymorphic : {false, true}) {
+    for (bool const Polymorphic : {false, true}) {
       if (Polymorphic && !Int.polymorphic())
         continue;
       if (!Polymorphic && Int.polymorphicOnly())
@@ -2067,7 +2067,7 @@ void CdeEmitter::EmitHeader(raw_ostream &OS) {
                                     : Int.requiresMVE() ? MVE : None];
 
       // Make the name of the function in this declaration.
-      std::string FunctionName =
+      std::string const FunctionName =
           "__arm_" + (Polymorphic ? Int.shortName() : Int.fullName());
 
       // Make strings for the types involved in the function's
@@ -2079,7 +2079,7 @@ void CdeEmitter::EmitHeader(raw_ostream &OS) {
       std::vector<std::string> ArgTypeNames;
       for (const Type *ArgTypePtr : Int.argTypes())
         ArgTypeNames.push_back(ArgTypePtr->cName());
-      std::string ArgTypesString =
+      std::string const ArgTypesString =
           join(std::begin(ArgTypeNames), std::end(ArgTypeNames), ", ");
 
       // Emit the actual declaration. See MveEmitter::EmitHeader for detailed
@@ -2093,7 +2093,7 @@ void CdeEmitter::EmitHeader(raw_ostream &OS) {
   }
 
   for (const auto &kv : FunctionMacros) {
-    StringRef Name = kv.first;
+    StringRef const Name = kv.first;
     const FunctionMacro &FM = kv.second;
 
     raw_ostream &OS = parts[MVE];
@@ -2161,7 +2161,7 @@ void CdeEmitter::EmitBuiltinSema(raw_ostream &OS) {
   GroupSemaChecks(Checks);
 
   for (const auto &kv : Checks) {
-    for (StringRef Name : kv.second)
+    for (StringRef const Name : kv.second)
       OS << "case ARM::BI__builtin_arm_cde_" << Name << ":\n";
     OS << "  Err = " << kv.first << "  break;\n";
   }

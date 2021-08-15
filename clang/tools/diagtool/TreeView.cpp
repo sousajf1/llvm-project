@@ -31,7 +31,7 @@ public:
 
   static bool isIgnored(unsigned DiagID) {
     // FIXME: This feels like a hack.
-    static clang::DiagnosticsEngine Diags(new DiagnosticIDs,
+    static clang::DiagnosticsEngine const Diags(new DiagnosticIDs,
                                           new DiagnosticOptions);
     return Diags.isIgnored(DiagID, SourceLocation());
   }
@@ -108,7 +108,7 @@ public:
   }
 
   int showAll() {
-    ArrayRef<GroupRecord> AllGroups = getDiagnosticGroups();
+    ArrayRef<GroupRecord> const AllGroups = getDiagnosticGroups();
     llvm::DenseSet<unsigned> NonRootGroupIDs;
 
     for (const GroupRecord &GR : AllGroups) {
@@ -144,7 +144,7 @@ int TreeView::run(unsigned int argc, char **argv, llvm::raw_ostream &out) {
   // First check our one flag (--flags-only).
   bool Internal = false;
   if (argc > 0) {
-    StringRef FirstArg(*argv);
+    StringRef const FirstArg(*argv);
     if (FirstArg.equals("--internal")) {
       Internal = true;
       --argc;

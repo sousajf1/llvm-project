@@ -80,7 +80,7 @@ std::unique_ptr<CompilerInvocation> clang::createInvocationFromCommandLine(
     }
   }
 
-  bool PickFirstOfMany = OffloadCompilation || ShouldRecoverOnErorrs;
+  bool const PickFirstOfMany = OffloadCompilation || ShouldRecoverOnErorrs;
   if (Jobs.size() == 0 || (Jobs.size() > 1 && !PickFirstOfMany)) {
     SmallString<256> Msg;
     llvm::raw_svector_ostream OS(Msg);

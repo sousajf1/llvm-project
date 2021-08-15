@@ -131,7 +131,7 @@ void CheckerRegistryData::printCheckerWithDescList(
   for (const auto &Checker : Checkers) {
     // Limit the amount of padding we are willing to give up for alignment.
     //   Package.Name     Description  [Hidden]
-    size_t NameLength = Checker.FullName.size();
+    size_t const NameLength = Checker.FullName.size();
     if (NameLength <= MaxNameChars)
       OptionFieldWidth = std::max(OptionFieldWidth, NameLength);
   }
@@ -210,9 +210,9 @@ void CheckerRegistryData::printCheckerOptionList(const AnalyzerOptions &AnOpts,
   for (const std::pair<const StringRef, const CmdLineOption &> &Entry :
        OptionMap) {
     const CmdLineOption &Option = Entry.second;
-    std::string FullOption = (Entry.first + ":" + Option.OptionName).str();
+    std::string const FullOption = (Entry.first + ":" + Option.OptionName).str();
 
-    std::string Desc =
+    std::string const Desc =
         ("(" + Option.OptionType + ") " + Option.Description + " (default: " +
          (Option.DefaultValStr.empty() ? "\"\"" : Option.DefaultValStr) + ")")
             .str();

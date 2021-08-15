@@ -102,7 +102,7 @@ getAST(const std::unique_ptr<CompilationDatabase> &CommonCompilations,
     }
   }
   addExtraArgs(Compilations);
-  std::array<std::string, 1> Files = {{std::string(Filename)}};
+  std::array<std::string, 1> const Files = {{std::string(Filename)}};
   ClangTool Tool(Compilations ? *Compilations : *CommonCompilations, Files);
   std::vector<std::unique_ptr<ASTUnit>> ASTs;
   Tool.buildASTs(ASTs);
@@ -241,7 +241,7 @@ static void printHtml(raw_ostream &OS, char C) {
 }
 
 static void printHtml(raw_ostream &OS, const StringRef Str) {
-  for (char C : Str)
+  for (char const C : Str)
     printHtml(OS, C);
 }
 
@@ -269,7 +269,7 @@ static unsigned printHtmlForNode(raw_ostream &OS, const diff::ASTDiff &Diff,
   const diff::Node &Node = Tree.getNode(Id);
   char MyTag, OtherTag;
   diff::NodeId LeftId, RightId;
-  diff::NodeId TargetId = Diff.getMapped(Tree, Id);
+  diff::NodeId const TargetId = Diff.getMapped(Tree, Id);
   if (IsLeft) {
     MyTag = 'L';
     OtherTag = 'R';
@@ -292,7 +292,7 @@ static unsigned printHtmlForNode(raw_ostream &OS, const diff::ASTDiff &Diff,
   OS << "title='";
   printHtml(OS, Node.getTypeLabel());
   OS << "\n" << LeftId << " -> " << RightId;
-  std::string Value = Tree.getNodeValue(Node);
+  std::string const Value = Tree.getNodeValue(Node);
   if (!Value.empty()) {
     OS << "\n";
     printHtml(OS, Value);
@@ -302,7 +302,7 @@ static unsigned printHtmlForNode(raw_ostream &OS, const diff::ASTDiff &Diff,
     OS << " class='" << getChangeKindAbbr(Node.Change) << "'";
   OS << ">";
 
-  for (diff::NodeId Child : Node.Children)
+  for (diff::NodeId const Child : Node.Children)
     Offset = printHtmlForNode(OS, Diff, Tree, IsLeft, Child, Offset);
 
   for (; Offset < End; ++Offset)
@@ -317,7 +317,7 @@ static unsigned printHtmlForNode(raw_ostream &OS, const diff::ASTDiff &Diff,
 }
 
 static void printJsonString(raw_ostream &OS, const StringRef Str) {
-  for (signed char C : Str) {
+  for (signed char const C : Str) {
     switch (C) {
     case '"':
       OS << R"(\")";
@@ -349,7 +349,7 @@ static void printNodeAttributes(raw_ostream &OS, diff::SyntaxTree &Tree,
   auto Offsets = Tree.getSourceRangeOffsets(N);
   OS << R"(,"begin":)" << Offsets.first;
   OS << R"(,"end":)" << Offsets.second;
-  std::string Value = Tree.getNodeValue(N);
+  std::string const Value = Tree.getNodeValue(N);
   if (!Value.empty()) {
     OS << R"(,"value":")";
     printJsonString(OS, Value);
@@ -392,14 +392,14 @@ static void printNode(raw_ostream &OS, diff::SyntaxTree &Tree,
     return;
   }
   OS << Tree.getNode(Id).getTypeLabel();
-  std::string Value = Tree.getNodeValue(Id);
+  std::string const Value = Tree.getNodeValue(Id);
   if (!Value.empty())
     OS << ": " << Value;
   OS << "(" << Id << ")";
 }
 
 static void printTree(raw_ostream &OS, diff::SyntaxTree &Tree) {
-  for (diff::NodeId Id : Tree) {
+  for (diff::NodeId const Id : Tree) {
     for (int I = 0; I < Tree.getNode(Id).Depth; ++I)
       OS << " ";
     printNode(OS, Tree, Id);
@@ -411,7 +411,7 @@ static void printDstChange(raw_ostream &OS, diff::ASTDiff &Diff,
                            diff::SyntaxTree &SrcTree, diff::SyntaxTree &DstTree,
                            diff::NodeId Dst) {
   const diff::Node &DstNode = DstTree.getNode(Dst);
-  diff::NodeId Src = Diff.getMapped(DstTree, Dst);
+  diff::NodeId const Src = Diff.getMapped(DstTree, Dst);
   switch (DstNode.Change) {
   case diff::None:
     break;
@@ -513,8 +513,8 @@ int main(int argc, const char **argv) {
     return 0;
   }
 
-  for (diff::NodeId Dst : DstTree) {
-    diff::NodeId Src = Diff.getMapped(DstTree, Dst);
+  for (diff::NodeId const Dst : DstTree) {
+    diff::NodeId const Src = Diff.getMapped(DstTree, Dst);
     if (PrintMatches && Src.isValid()) {
       llvm::outs() << "Match ";
       printNode(llvm::outs(), SrcTree, Src);
@@ -524,7 +524,7 @@ int main(int argc, const char **argv) {
     }
     printDstChange(llvm::outs(), Diff, SrcTree, DstTree, Dst);
   }
-  for (diff::NodeId Src : SrcTree) {
+  for (diff::NodeId const Src : SrcTree) {
     if (Diff.getMapped(SrcTree, Src).isInvalid()) {
       llvm::outs() << "Delete ";
       printNode(llvm::outs(), SrcTree, Src);

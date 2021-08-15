@@ -28,7 +28,7 @@ TEST(RecursiveASTVisitor, StmtCallbacks_TraverseBinaryOperator) {
     }
   };
 
-  StringRef Code = R"cpp(
+  StringRef const Code = R"cpp(
 void test() {
   1;
   2 + 3;
@@ -95,7 +95,7 @@ TEST(RecursiveASTVisitor,
     }
   };
 
-  StringRef Code = R"cpp(
+  StringRef const Code = R"cpp(
 void test() {
   1;
   2 + 3;
@@ -166,7 +166,7 @@ TEST(RecursiveASTVisitor, StmtCallbacks_WalkUpFromBinaryOperator) {
     }
   };
 
-  StringRef Code = R"cpp(
+  StringRef const Code = R"cpp(
 void test() {
   1;
   2 + 3;

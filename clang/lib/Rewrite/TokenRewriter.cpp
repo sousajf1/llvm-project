@@ -28,7 +28,7 @@ TokenRewriter::TokenRewriter(FileID FID, SourceManager &SM,
   ScratchBuf.reset(new ScratchBuffer(SM));
 
   // Create a lexer to lex all the tokens of the main file in raw mode.
-  llvm::MemoryBufferRef FromFile = SM.getBufferOrFake(FID);
+  llvm::MemoryBufferRef const FromFile = SM.getBufferOrFake(FID);
   Lexer RawLex(FID, FromFile, SM, LangOpts);
 
   // Return all comments and whitespace as tokens.
@@ -60,7 +60,7 @@ TokenRewriter::TokenRefTy TokenRewriter::RemapIterator(token_iterator I) {
 
   // FIXME: This is horrible, we should use our own list or something to avoid
   // this.
-  std::map<SourceLocation, TokenRefTy>::iterator MapIt =
+  std::map<SourceLocation, TokenRefTy>::iterator const MapIt =
     TokenAtLoc.find(I->getLocation());
   assert(MapIt != TokenAtLoc.end() && "iterator not in rewriter?");
   return MapIt->second;
@@ -72,7 +72,7 @@ TokenRewriter::TokenRefTy
 TokenRewriter::AddToken(const Token &T, TokenRefTy Where) {
   Where = TokenList.insert(Where, T);
 
-  bool InsertSuccess = TokenAtLoc.insert(std::make_pair(T.getLocation(),
+  bool const InsertSuccess = TokenAtLoc.insert(std::make_pair(T.getLocation(),
                                                         Where)).second;
   assert(InsertSuccess && "Token location already in rewriter!");
   (void)InsertSuccess;
@@ -81,7 +81,7 @@ TokenRewriter::AddToken(const Token &T, TokenRefTy Where) {
 
 TokenRewriter::token_iterator
 TokenRewriter::AddTokenBefore(token_iterator I, const char *Val) {
-  unsigned Len = strlen(Val);
+  unsigned const Len = strlen(Val);
 
   // Plop the string into the scratch buffer, then create a token for this
   // string.

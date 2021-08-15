@@ -28,7 +28,7 @@ TEST(RecursiveASTVisitor, StmtCallbacks_TraverseLeaf) {
     }
   };
 
-  StringRef Code = R"cpp(
+  StringRef const Code = R"cpp(
 void add(int, int);
 void test() {
   1;
@@ -111,7 +111,7 @@ TEST(RecursiveASTVisitor, StmtCallbacks_TraverseLeaf_WalkUpFromLeaf) {
     }
   };
 
-  StringRef Code = R"cpp(
+  StringRef const Code = R"cpp(
 void add(int, int);
 void test() {
   1;
@@ -215,7 +215,7 @@ TEST(RecursiveASTVisitor, StmtCallbacks_WalkUpFromLeaf) {
     }
   };
 
-  StringRef Code = R"cpp(
+  StringRef const Code = R"cpp(
 void add(int, int);
 void test() {
   1;

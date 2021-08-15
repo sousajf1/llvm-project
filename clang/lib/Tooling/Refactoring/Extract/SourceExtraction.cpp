@@ -88,13 +88,13 @@ ExtractionSemicolonPolicy::compute(const Stmt *S, SourceRange &ExtractedRange,
   /// Some statements don't need to be terminated with ';'. The call to the
   /// extracted function will be a standalone statement, so it should be
   /// terminated with a ';'.
-  bool NeedsSemi = isSemicolonRequiredAfter(S);
+  bool const NeedsSemi = isSemicolonRequiredAfter(S);
   if (!NeedsSemi)
     return neededInOriginalFunction();
 
   /// Some statements might end at ';'. The extraction will move that ';', so
   /// the call to the extracted function should be terminated with a ';'.
-  SourceLocation End = ExtractedRange.getEnd();
+  SourceLocation const End = ExtractedRange.getEnd();
   if (isSemicolonAtLocation(End, SM, LangOpts))
     return neededInOriginalFunction();
 

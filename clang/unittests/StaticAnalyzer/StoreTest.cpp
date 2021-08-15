@@ -57,16 +57,16 @@ class VariableBindConsumer : public StoreTestConsumer {
     const StackFrameContext *SFC =
         Eng.getAnalysisDeclContextManager().getStackFrame(D);
 
-    Loc LX0 = loc::MemRegionVal(MRManager.getVarRegion(VDX0, SFC));
-    Loc LY0 = loc::MemRegionVal(MRManager.getVarRegion(VDY0, SFC));
-    Loc LZ0 = loc::MemRegionVal(MRManager.getVarRegion(VDZ0, SFC));
-    Loc LX1 = loc::MemRegionVal(MRManager.getVarRegion(VDX1, SFC));
-    Loc LY1 = loc::MemRegionVal(MRManager.getVarRegion(VDY1, SFC));
+    Loc const LX0 = loc::MemRegionVal(MRManager.getVarRegion(VDX0, SFC));
+    Loc const LY0 = loc::MemRegionVal(MRManager.getVarRegion(VDY0, SFC));
+    Loc const LZ0 = loc::MemRegionVal(MRManager.getVarRegion(VDZ0, SFC));
+    Loc const LX1 = loc::MemRegionVal(MRManager.getVarRegion(VDX1, SFC));
+    Loc const LY1 = loc::MemRegionVal(MRManager.getVarRegion(VDY1, SFC));
 
     Store StInit = SManager.getInitialStore(SFC).getStore();
-    SVal Zero = Builder.makeZeroVal(ASTCtxt.IntTy);
-    SVal One = Builder.makeIntVal(1, ASTCtxt.IntTy);
-    SVal NarrowZero = Builder.makeZeroVal(ASTCtxt.CharTy);
+    SVal const Zero = Builder.makeZeroVal(ASTCtxt.IntTy);
+    SVal const One = Builder.makeIntVal(1, ASTCtxt.IntTy);
+    SVal const NarrowZero = Builder.makeZeroVal(ASTCtxt.CharTy);
 
     // Bind(Zero)
     Store StX0 = SManager.Bind(StInit, LX0, Zero).getStore();
@@ -121,19 +121,19 @@ class LiteralCompoundConsumer : public StoreTestConsumer {
     const StackFrameContext *SFC =
         Eng.getAnalysisDeclContextManager().getStackFrame(D);
 
-    QualType Int = ASTCtxt.IntTy;
+    QualType const Int = ASTCtxt.IntTy;
 
     // Get region for 'test'
     const SubRegion *CLRegion = MRManager.getCompoundLiteralRegion(CL, SFC);
 
     // Get value for 'test[0]'
-    NonLoc Zero = Builder.makeIntVal(0, false);
-    loc::MemRegionVal ZeroElement(
+    NonLoc const Zero = Builder.makeIntVal(0, false);
+    loc::MemRegionVal const ZeroElement(
         MRManager.getElementRegion(ASTCtxt.IntTy, Zero, CLRegion, ASTCtxt));
 
     Store StInit = SManager.getInitialStore(SFC).getStore();
     // Let's bind constant 1 to 'test[0]'
-    SVal One = Builder.makeIntVal(1, Int);
+    SVal const One = Builder.makeIntVal(1, Int);
     Store StX = SManager.Bind(StInit, ZeroElement, One).getStore();
 
     // And make sure that we can read this binding back as it was

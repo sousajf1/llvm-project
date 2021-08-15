@@ -371,7 +371,7 @@ ProgramStateRef CallAndMessageChecker::checkFunctionPointerCall(
 
   const Expr *Callee = CE->getCallee()->IgnoreParens();
   const LocationContext *LCtx = C.getLocationContext();
-  SVal L = State->getSVal(Callee, LCtx);
+  SVal const L = State->getSVal(Callee, LCtx);
 
   if (L.isUndef()) {
     if (!ChecksEnabled[CK_FunctionPointer]) {
@@ -409,7 +409,7 @@ ProgramStateRef CallAndMessageChecker::checkParameterCount(
 
   // If we have a function or block declaration, we can make sure we pass
   // enough parameters.
-  unsigned Params = Call.parameters().size();
+  unsigned const Params = Call.parameters().size();
   if (Call.getNumArgs() >= Params)
     return State;
 
@@ -443,7 +443,7 @@ ProgramStateRef CallAndMessageChecker::checkParameterCount(
 ProgramStateRef CallAndMessageChecker::checkCXXMethodCall(
     const CXXInstanceCall *CC, CheckerContext &C, ProgramStateRef State) const {
 
-  SVal V = CC->getCXXThisVal();
+  SVal const V = CC->getCXXThisVal();
   if (V.isUndef()) {
     if (!ChecksEnabled[CK_CXXThisMethodCall]) {
       C.addSink(State);
@@ -480,7 +480,7 @@ CallAndMessageChecker::checkCXXDeallocation(const CXXDeallocatorCall *DC,
                                             ProgramStateRef State) const {
   const CXXDeleteExpr *DE = DC->getOriginExpr();
   assert(DE);
-  SVal Arg = C.getSVal(DE->getArgument());
+  SVal const Arg = C.getSVal(DE->getArgument());
   if (!Arg.isUndef())
     return State;
 
@@ -574,7 +574,7 @@ void CallAndMessageChecker::checkPreCall(const CallEvent &Call,
 
 void CallAndMessageChecker::checkPreObjCMessage(const ObjCMethodCall &msg,
                                                 CheckerContext &C) const {
-  SVal recVal = msg.getReceiverSVal();
+  SVal const recVal = msg.getReceiverSVal();
   if (recVal.isUndef()) {
     if (!ChecksEnabled[CK_UndefReceiver]) {
       C.addSink();
@@ -639,7 +639,7 @@ void CallAndMessageChecker::emitNilReceiverBug(CheckerContext &C,
 
   const ObjCMessageExpr *ME = msg.getOriginExpr();
 
-  QualType ResTy = msg.getResultType();
+  QualType const ResTy = msg.getResultType();
 
   SmallString<200> buf;
   llvm::raw_svector_ostream os(buf);
@@ -673,18 +673,18 @@ static bool supportsNilWithFloatRet(const llvm::Triple &triple) {
 void CallAndMessageChecker::HandleNilReceiver(CheckerContext &C,
                                               ProgramStateRef state,
                                               const ObjCMethodCall &Msg) const {
-  ASTContext &Ctx = C.getASTContext();
+  ASTContext  const&Ctx = C.getASTContext();
   static CheckerProgramPointTag Tag(this, "NilReceiver");
 
   // Check the return type of the message expression.  A message to nil will
   // return different values depending on the return type and the architecture.
-  QualType RetTy = Msg.getResultType();
-  CanQualType CanRetTy = Ctx.getCanonicalType(RetTy);
+  QualType const RetTy = Msg.getResultType();
+  CanQualType const CanRetTy = Ctx.getCanonicalType(RetTy);
   const LocationContext *LCtx = C.getLocationContext();
 
   if (CanRetTy->isStructureOrClassType()) {
     // Structure returns are safe since the compiler zeroes them out.
-    SVal V = C.getSValBuilder().makeZeroVal(RetTy);
+    SVal const V = C.getSValBuilder().makeZeroVal(RetTy);
     C.addTransition(state->BindExpr(Msg.getOriginExpr(), LCtx, V), &Tag);
     return;
   }
@@ -722,7 +722,7 @@ void CallAndMessageChecker::HandleNilReceiver(CheckerContext &C,
     // it most likely isn't nil.  We should assume the semantics
     // of this case unless we have *a lot* more knowledge.
     //
-    SVal V = C.getSValBuilder().makeZeroVal(RetTy);
+    SVal const V = C.getSValBuilder().makeZeroVal(RetTy);
     C.addTransition(state->BindExpr(Msg.getOriginExpr(), LCtx, V), &Tag);
     return;
   }

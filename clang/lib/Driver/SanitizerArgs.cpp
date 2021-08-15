@@ -128,7 +128,7 @@ static void validateSpecialCaseListFormat(const Driver &D,
     return;
 
   std::string BLError;
-  std::unique_ptr<llvm::SpecialCaseList> SCL(
+  std::unique_ptr<llvm::SpecialCaseList> const SCL(
       llvm::SpecialCaseList::create(SCLFiles, D.getVFS(), BLError));
   if (!SCL.get())
     D.Diag(MalformedSCLErrorDiagID) << BLError;
@@ -180,7 +180,7 @@ static void parseSpecialCaseListArg(const Driver &D,
     // Match -fsanitize-(coverage-)?(white|ignore)list.
     if (Arg->getOption().matches(SCLOptionID)) {
       Arg->claim();
-      std::string SCLPath = Arg->getValue();
+      std::string const SCLPath = Arg->getValue();
       if (D.getVFS().exists(SCLPath)) {
         SCLFiles.push_back(SCLPath);
       } else {
@@ -212,7 +212,7 @@ static SanitizerMask parseSanitizeTrapArgs(const Driver &D,
                                 // sanitizers disabled by the current sanitizer
                                 // argument or any argument after it.
   SanitizerMask TrappingKinds;
-  SanitizerMask TrappingSupportedWithGroups = setGroupBits(TrappingSupported);
+  SanitizerMask const TrappingSupportedWithGroups = setGroupBits(TrappingSupported);
 
   for (ArgList::const_reverse_iterator I = Args.rbegin(), E = Args.rend();
        I != E; ++I) {
@@ -221,7 +221,7 @@ static SanitizerMask parseSanitizeTrapArgs(const Driver &D,
       Arg->claim();
       SanitizerMask Add = parseArgValues(D, Arg, true);
       Add &= ~TrapRemove;
-      if (SanitizerMask InvalidValues = Add & ~TrappingSupportedWithGroups) {
+      if (SanitizerMask const InvalidValues = Add & ~TrappingSupportedWithGroups) {
         SanitizerSet S;
         S.Mask = InvalidValues;
         D.Diag(diag::err_drv_unsupported_option_argument) << "-fsanitize-trap"
@@ -295,11 +295,11 @@ SanitizerArgs::SanitizerArgs(const ToolChain &TC,
   CfiCrossDso = Args.hasFlag(options::OPT_fsanitize_cfi_cross_dso,
                              options::OPT_fno_sanitize_cfi_cross_dso, false);
 
-  ToolChain::RTTIMode RTTIMode = TC.getRTTIMode();
+  ToolChain::RTTIMode const RTTIMode = TC.getRTTIMode();
 
   const Driver &D = TC.getDriver();
   SanitizerMask TrappingKinds = parseSanitizeTrapArgs(D, Args);
-  SanitizerMask InvalidTrappingKinds = TrappingKinds & NotAllowedWithTrap;
+  SanitizerMask const InvalidTrappingKinds = TrappingKinds & NotAllowedWithTrap;
 
   MinimalRuntime =
       Args.hasFlag(options::OPT_fsanitize_minimal_runtime,
@@ -307,7 +307,7 @@ SanitizerArgs::SanitizerArgs(const ToolChain &TC,
 
   // The object size sanitizer should not be enabled at -O0.
   Arg *OptLevel = Args.getLastArg(options::OPT_O_Group);
-  bool RemoveObjectSizeAtO0 =
+  bool const RemoveObjectSizeAtO0 =
       !OptLevel || OptLevel->getOption().matches(options::OPT_O0);
 
   for (ArgList::const_reverse_iterator I = Args.rbegin(), E = Args.rend();
@@ -334,9 +334,9 @@ SanitizerArgs::SanitizerArgs(const ToolChain &TC,
       // At this point we have not expanded groups, so any unsupported
       // sanitizers in Add are those which have been explicitly enabled.
       // Diagnose them.
-      if (SanitizerMask KindsToDiagnose =
+      if (SanitizerMask const KindsToDiagnose =
               Add & InvalidTrappingKinds & ~DiagnosedKinds) {
-        std::string Desc = describeSanitizeArg(*I, KindsToDiagnose);
+        std::string const Desc = describeSanitizeArg(*I, KindsToDiagnose);
         D.Diag(diag::err_drv_argument_not_allowed_with)
             << Desc << "-fsanitize-trap=undefined";
         DiagnosedKinds |= KindsToDiagnose;
@@ -344,9 +344,9 @@ SanitizerArgs::SanitizerArgs(const ToolChain &TC,
       Add &= ~InvalidTrappingKinds;
 
       if (MinimalRuntime) {
-        if (SanitizerMask KindsToDiagnose =
+        if (SanitizerMask const KindsToDiagnose =
                 Add & NotAllowedWithMinimalRuntime & ~DiagnosedKinds) {
-          std::string Desc = describeSanitizeArg(*I, KindsToDiagnose);
+          std::string const Desc = describeSanitizeArg(*I, KindsToDiagnose);
           D.Diag(diag::err_drv_argument_not_allowed_with)
               << Desc << "-fsanitize-minimal-runtime";
           DiagnosedKinds |= KindsToDiagnose;
@@ -372,8 +372,8 @@ SanitizerArgs::SanitizerArgs(const ToolChain &TC,
         DiagnosedKinds |= SanitizerKind::CFIMFCall;
       }
 
-      if (SanitizerMask KindsToDiagnose = Add & ~Supported & ~DiagnosedKinds) {
-        std::string Desc = describeSanitizeArg(*I, KindsToDiagnose);
+      if (SanitizerMask const KindsToDiagnose = Add & ~Supported & ~DiagnosedKinds) {
+        std::string const Desc = describeSanitizeArg(*I, KindsToDiagnose);
         D.Diag(diag::err_drv_unsupported_opt_for_target)
             << Desc << TC.getTriple().str();
         DiagnosedKinds |= KindsToDiagnose;
@@ -429,12 +429,12 @@ SanitizerArgs::SanitizerArgs(const ToolChain &TC,
       Kinds |= Add;
     } else if (Arg->getOption().matches(options::OPT_fno_sanitize_EQ)) {
       Arg->claim();
-      SanitizerMask Remove = parseArgValues(D, Arg, true);
+      SanitizerMask const Remove = parseArgValues(D, Arg, true);
       AllRemove |= expandSanitizerGroups(Remove);
     }
   }
 
-  std::pair<SanitizerMask, SanitizerMask> IncompatibleGroups[] = {
+  std::pair<SanitizerMask, SanitizerMask> const IncompatibleGroups[] = {
       std::make_pair(SanitizerKind::Address,
                      SanitizerKind::Thread | SanitizerKind::Memory),
       std::make_pair(SanitizerKind::Thread, SanitizerKind::Memory),
@@ -476,7 +476,7 @@ SanitizerArgs::SanitizerArgs(const ToolChain &TC,
   // Disable default sanitizers that are incompatible with explicitly requested
   // ones.
   for (auto G : IncompatibleGroups) {
-    SanitizerMask Group = G.first;
+    SanitizerMask const Group = G.first;
     if ((Default & Group) && (Kinds & G.second))
       Default &= ~Group;
   }
@@ -526,9 +526,9 @@ SanitizerArgs::SanitizerArgs(const ToolChain &TC,
 
   // Warn about incompatible groups of sanitizers.
   for (auto G : IncompatibleGroups) {
-    SanitizerMask Group = G.first;
+    SanitizerMask const Group = G.first;
     if (Kinds & Group) {
-      if (SanitizerMask Incompatible = Kinds & G.second) {
+      if (SanitizerMask const Incompatible = Kinds & G.second) {
         D.Diag(clang::diag::err_drv_argument_not_allowed_with)
             << lastArgumentForMask(D, Args, Group)
             << lastArgumentForMask(D, Args, Incompatible);
@@ -547,10 +547,10 @@ SanitizerArgs::SanitizerArgs(const ToolChain &TC,
   SanitizerMask DiagnosedAlwaysRecoverableKinds;
   for (const auto *Arg : Args) {
     if (Arg->getOption().matches(options::OPT_fsanitize_recover_EQ)) {
-      SanitizerMask Add = parseArgValues(D, Arg, true);
+      SanitizerMask const Add = parseArgValues(D, Arg, true);
       // Report error if user explicitly tries to recover from unrecoverable
       // sanitizer.
-      if (SanitizerMask KindsToDiagnose =
+      if (SanitizerMask const KindsToDiagnose =
               Add & Unrecoverable & ~DiagnosedUnrecoverableKinds) {
         SanitizerSet SetToDiagnose;
         SetToDiagnose.Mask |= KindsToDiagnose;
@@ -561,10 +561,10 @@ SanitizerArgs::SanitizerArgs(const ToolChain &TC,
       RecoverableKinds |= expandSanitizerGroups(Add);
       Arg->claim();
     } else if (Arg->getOption().matches(options::OPT_fno_sanitize_recover_EQ)) {
-      SanitizerMask Remove = parseArgValues(D, Arg, true);
+      SanitizerMask const Remove = parseArgValues(D, Arg, true);
       // Report error if user explicitly tries to disable recovery from
       // always recoverable sanitizer.
-      if (SanitizerMask KindsToDiagnose =
+      if (SanitizerMask const KindsToDiagnose =
               Remove & AlwaysRecoverable & ~DiagnosedAlwaysRecoverableKinds) {
         SanitizerSet SetToDiagnose;
         SetToDiagnose.Mask |= KindsToDiagnose;
@@ -607,7 +607,7 @@ SanitizerArgs::SanitizerArgs(const ToolChain &TC,
                      options::OPT_fno_sanitize_memory_track_origins)) {
         MsanTrackOrigins = 0;
       } else {
-        StringRef S = A->getValue();
+        StringRef const S = A->getValue();
         if (S.getAsInteger(0, MsanTrackOrigins) || MsanTrackOrigins < 0 ||
             MsanTrackOrigins > 2) {
           D.Diag(clang::diag::err_drv_invalid_value) << A->getAsString(Args) << S;
@@ -657,14 +657,14 @@ SanitizerArgs::SanitizerArgs(const ToolChain &TC,
                        options::OPT_fno_sanitize_stats, false);
 
   if (MinimalRuntime) {
-    SanitizerMask IncompatibleMask =
+    SanitizerMask const IncompatibleMask =
         Kinds & ~setGroupBits(CompatibleWithMinimalRuntime);
     if (IncompatibleMask)
       D.Diag(clang::diag::err_drv_argument_not_allowed_with)
           << "-fsanitize-minimal-runtime"
           << lastArgumentForMask(D, Args, IncompatibleMask);
 
-    SanitizerMask NonTrappingCfi = Kinds & SanitizerKind::CFI & ~TrappingKinds;
+    SanitizerMask const NonTrappingCfi = Kinds & SanitizerKind::CFI & ~TrappingKinds;
     if (NonTrappingCfi)
       D.Diag(clang::diag::err_drv_argument_only_allowed_with)
           << "fsanitize-minimal-runtime"
@@ -725,8 +725,8 @@ SanitizerArgs::SanitizerArgs(const ToolChain &TC,
         << "-fsanitize-coverage=8bit-counters"
         << "-fsanitize-coverage=trace-pc-guard";
 
-  int InsertionPointTypes = CoverageFunc | CoverageBB | CoverageEdge;
-  int InstrumentationTypes = CoverageTracePC | CoverageTracePCGuard |
+  int const InsertionPointTypes = CoverageFunc | CoverageBB | CoverageEdge;
+  int const InstrumentationTypes = CoverageTracePC | CoverageTracePCGuard |
                              CoverageInline8bitCounters |
                              CoverageInlineBoolFlag;
   if ((CoverageFeatures & InsertionPointTypes) &&
@@ -773,7 +773,7 @@ SanitizerArgs::SanitizerArgs(const ToolChain &TC,
     NeedPIE |= TC.getTriple().isOSFuchsia();
     if (Arg *A =
             Args.getLastArg(options::OPT_fsanitize_address_field_padding)) {
-        StringRef S = A->getValue();
+        StringRef const S = A->getValue();
         // Legal values are 0 and 1, 2, but in future we may add more levels.
         if (S.getAsInteger(0, AsanFieldPadding) || AsanFieldPadding < 0 ||
             AsanFieldPadding > 2) {
@@ -862,7 +862,7 @@ SanitizerArgs::SanitizerArgs(const ToolChain &TC,
   } else {
     AsanUseAfterScope = false;
     // -fsanitize=pointer-compare/pointer-subtract requires -fsanitize=address.
-    SanitizerMask DetectInvalidPointerPairs =
+    SanitizerMask const DetectInvalidPointerPairs =
         SanitizerKind::PointerCompare | SanitizerKind::PointerSubtract;
     if (AllAddedKinds & DetectInvalidPointerPairs & ~AllRemove) {
       TC.getDriver().Diag(clang::diag::err_drv_argument_only_allowed_with)
@@ -984,7 +984,7 @@ void SanitizerArgs::addArgs(const ToolChain &TC, const llvm::opt::ArgList &Args,
   // Translate available CoverageFeatures to corresponding clang-cc1 flags.
   // Do it even if Sanitizers.empty() since some forms of coverage don't require
   // sanitizers.
-  std::pair<int, const char *> CoverageFlags[] = {
+  std::pair<int, const char *> const CoverageFlags[] = {
       std::make_pair(CoverageFunc, "-fsanitize-coverage-type=1"),
       std::make_pair(CoverageBB, "-fsanitize-coverage-type=2"),
       std::make_pair(CoverageEdge, "-fsanitize-coverage-type=3"),
@@ -1226,7 +1226,7 @@ int parseCoverageFeatures(const Driver &D, const llvm::opt::Arg *A) {
   int Features = 0;
   for (int i = 0, n = A->getNumValues(); i != n; ++i) {
     const char *Value = A->getValue(i);
-    int F = llvm::StringSwitch<int>(Value)
+    int const F = llvm::StringSwitch<int>(Value)
                 .Case("func", CoverageFunc)
                 .Case("bb", CoverageBB)
                 .Case("edge", CoverageEdge)
@@ -1259,12 +1259,12 @@ std::string lastArgumentForMask(const Driver &D, const llvm::opt::ArgList &Args,
        I != E; ++I) {
     const auto *Arg = *I;
     if (Arg->getOption().matches(options::OPT_fsanitize_EQ)) {
-      SanitizerMask AddKinds =
+      SanitizerMask const AddKinds =
           expandSanitizerGroups(parseArgValues(D, Arg, false));
       if (AddKinds & Mask)
         return describeSanitizeArg(Arg, Mask);
     } else if (Arg->getOption().matches(options::OPT_fno_sanitize_EQ)) {
-      SanitizerMask RemoveKinds =
+      SanitizerMask const RemoveKinds =
           expandSanitizerGroups(parseArgValues(D, Arg, false));
       Mask &= ~RemoveKinds;
     }

@@ -228,7 +228,7 @@ static void dumpNode(raw_ostream &OS, const syntax::Node *N,
   OS << "\n";
 
   for (const syntax::Node &It : T->getChildren()) {
-    for (bool Filled : IndentMask) {
+    for (bool const Filled : IndentMask) {
       if (Filled)
         OS << "| ";
       else

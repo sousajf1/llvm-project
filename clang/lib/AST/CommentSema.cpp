@@ -241,7 +241,7 @@ void Sema::actOnParamCommandDirectionArg(ParamCommandComment *Command,
         ArgLower.end());
     Direction = getParamPassDirection(ArgLower);
 
-    SourceRange ArgRange(ArgLocBegin, ArgLocEnd);
+    SourceRange const ArgRange(ArgLocBegin, ArgLocEnd);
     if (Direction != -1) {
       const char *FixedName = ParamCommandComment::getDirectionAsString(
           (ParamCommandComment::PassDirection)Direction);
@@ -323,7 +323,7 @@ void Sema::actOnTParamCommandParamNameArg(TParamCommandComment *Command,
     Command->setPosition(copyArray(llvm::makeArrayRef(Position)));
     TParamCommandComment *&PrevCommand = TemplateParameterDocs[Arg];
     if (PrevCommand) {
-      SourceRange ArgRange(ArgLocBegin, ArgLocEnd);
+      SourceRange const ArgRange(ArgLocBegin, ArgLocEnd);
       Diag(ArgLocBegin, diag::warn_doc_tparam_duplicate)
         << Arg << ArgRange;
       Diag(PrevCommand->getLocation(), diag::note_doc_tparam_previous)
@@ -333,7 +333,7 @@ void Sema::actOnTParamCommandParamNameArg(TParamCommandComment *Command,
     return;
   }
 
-  SourceRange ArgRange(ArgLocBegin, ArgLocEnd);
+  SourceRange const ArgRange(ArgLocBegin, ArgLocEnd);
   Diag(ArgLocBegin, diag::warn_doc_tparam_not_found)
     << Arg << ArgRange;
 
@@ -366,8 +366,8 @@ void Sema::actOnTParamCommandFinish(TParamCommandComment *Command,
 InlineCommandComment *Sema::actOnInlineCommand(SourceLocation CommandLocBegin,
                                                SourceLocation CommandLocEnd,
                                                unsigned CommandID) {
-  ArrayRef<InlineCommandComment::Argument> Args;
-  StringRef CommandName = Traits.getCommandInfo(CommandID)->Name;
+  ArrayRef<InlineCommandComment::Argument> const Args;
+  StringRef const CommandName = Traits.getCommandInfo(CommandID)->Name;
   return new (Allocator) InlineCommandComment(
                                   CommandLocBegin,
                                   CommandLocEnd,
@@ -386,7 +386,7 @@ InlineCommandComment *Sema::actOnInlineCommand(SourceLocation CommandLocBegin,
   Argument *A = new (Allocator) Argument(SourceRange(ArgLocBegin,
                                                      ArgLocEnd),
                                          Arg);
-  StringRef CommandName = Traits.getCommandInfo(CommandID)->Name;
+  StringRef const CommandName = Traits.getCommandInfo(CommandID)->Name;
 
   return new (Allocator) InlineCommandComment(
                                   CommandLocBegin,
@@ -399,14 +399,14 @@ InlineCommandComment *Sema::actOnInlineCommand(SourceLocation CommandLocBegin,
 InlineContentComment *Sema::actOnUnknownCommand(SourceLocation LocBegin,
                                                 SourceLocation LocEnd,
                                                 StringRef CommandName) {
-  unsigned CommandID = Traits.registerUnknownCommand(CommandName)->getID();
+  unsigned const CommandID = Traits.registerUnknownCommand(CommandName)->getID();
   return actOnUnknownCommand(LocBegin, LocEnd, CommandID);
 }
 
 InlineContentComment *Sema::actOnUnknownCommand(SourceLocation LocBegin,
                                                 SourceLocation LocEnd,
                                                 unsigned CommandID) {
-  ArrayRef<InlineCommandComment::Argument> Args;
+  ArrayRef<InlineCommandComment::Argument> const Args;
   return new (Allocator) InlineCommandComment(
                                   LocBegin, LocEnd, CommandID,
                                   InlineCommandComment::RenderNormal,
@@ -421,7 +421,7 @@ TextComment *Sema::actOnText(SourceLocation LocBegin,
 
 VerbatimBlockComment *Sema::actOnVerbatimBlockStart(SourceLocation Loc,
                                                     unsigned CommandID) {
-  StringRef CommandName = Traits.getCommandInfo(CommandID)->Name;
+  StringRef const CommandName = Traits.getCommandInfo(CommandID)->Name;
   return new (Allocator) VerbatimBlockComment(
                                   Loc,
                                   Loc.getLocWithOffset(1 + CommandName.size()),
@@ -505,7 +505,7 @@ HTMLEndTagComment *Sema::actOnHTMLEndTag(SourceLocation LocBegin,
 
   while (!HTMLOpenTags.empty()) {
     HTMLStartTagComment *HST = HTMLOpenTags.pop_back_val();
-    StringRef LastNotClosedTagName = HST->getTagName();
+    StringRef const LastNotClosedTagName = HST->getTagName();
     if (LastNotClosedTagName == TagName) {
       // If the start tag is malformed, end tag is malformed as well.
       if (HST->isMalformed())
@@ -645,8 +645,8 @@ void Sema::checkBlockCommandDuplicate(const BlockCommandComment *Command) {
     // We don't want to check this command for duplicates.
     return;
   }
-  StringRef CommandName = Command->getCommandName(Traits);
-  StringRef PrevCommandName = PrevCommand->getCommandName(Traits);
+  StringRef const CommandName = Command->getCommandName(Traits);
+  StringRef const PrevCommandName = PrevCommand->getCommandName(Traits);
   Diag(Command->getLocation(), diag::warn_doc_block_command_duplicate)
       << Command->getCommandMarker()
       << CommandName
@@ -701,7 +701,7 @@ void Sema::checkDeprecatedCommand(const BlockCommandComment *Command) {
       // - If not found or an older C/C++ look for __attribute__((deprecated)).
       StringRef MacroName;
       if (DoubleSquareBracket) {
-        TokenValue Tokens[] = {tok::l_square, tok::l_square,
+        TokenValue const Tokens[] = {tok::l_square, tok::l_square,
                                PP->getIdentifierInfo("deprecated"),
                                tok::r_square, tok::r_square};
         MacroName = PP->getLastMacroWithSpelling(FD->getLocation(), Tokens);
@@ -710,11 +710,11 @@ void Sema::checkDeprecatedCommand(const BlockCommandComment *Command) {
       }
 
       if (MacroName.empty()) {
-        TokenValue Tokens[] = {
+        TokenValue const Tokens[] = {
             tok::kw___attribute, tok::l_paren,
             tok::l_paren,        PP->getIdentifierInfo("deprecated"),
             tok::r_paren,        tok::r_paren};
-        StringRef MacroName =
+        StringRef const MacroName =
             PP->getLastMacroWithSpelling(FD->getLocation(), Tokens);
         if (!MacroName.empty())
           AttributeSpelling = MacroName;
@@ -723,7 +723,7 @@ void Sema::checkDeprecatedCommand(const BlockCommandComment *Command) {
 
     SmallString<64> TextToInsert = AttributeSpelling;
     TextToInsert += " ";
-    SourceLocation Loc = FD->getSourceRange().getBegin();
+    SourceLocation const Loc = FD->getSourceRange().getBegin();
     Diag(Loc, diag::note_add_deprecation_attr)
         << FixItHint::CreateInsertion(Loc, TextToInsert);
   }
@@ -742,7 +742,7 @@ void Sema::resolveParamCommandIndexes(const FullComment *FC) {
   // found a \\param command or NULL if no documentation was found so far.
   SmallVector<ParamCommandComment *, 8> ParamVarDocs;
 
-  ArrayRef<const ParmVarDecl *> ParamVars = getParamVars();
+  ArrayRef<const ParmVarDecl *> const ParamVars = getParamVars();
   ParamVarDocs.resize(ParamVars.size(), nullptr);
 
   // First pass over all \\param commands: resolve all parameter names.
@@ -751,7 +751,7 @@ void Sema::resolveParamCommandIndexes(const FullComment *FC) {
     ParamCommandComment *PCC = dyn_cast<ParamCommandComment>(*I);
     if (!PCC || !PCC->hasParamName())
       continue;
-    StringRef ParamName = PCC->getParamNameAsWritten();
+    StringRef const ParamName = PCC->getParamNameAsWritten();
 
     // Check that referenced parameter name is in the function decl.
     const unsigned ResolvedParamIndex = resolveParmVarReference(ParamName,
@@ -766,7 +766,7 @@ void Sema::resolveParamCommandIndexes(const FullComment *FC) {
     }
     PCC->setParamIndex(ResolvedParamIndex);
     if (ParamVarDocs[ResolvedParamIndex]) {
-      SourceRange ArgRange = PCC->getParamNameRange();
+      SourceRange const ArgRange = PCC->getParamNameRange();
       Diag(ArgRange.getBegin(), diag::warn_doc_param_duplicate)
         << ParamName << ArgRange;
       ParamCommandComment *PrevCommand = ParamVarDocs[ResolvedParamIndex];
@@ -789,8 +789,8 @@ void Sema::resolveParamCommandIndexes(const FullComment *FC) {
   for (unsigned i = 0, e = UnresolvedParamCommands.size(); i != e; ++i) {
     const ParamCommandComment *PCC = UnresolvedParamCommands[i];
 
-    SourceRange ArgRange = PCC->getParamNameRange();
-    StringRef ParamName = PCC->getParamNameAsWritten();
+    SourceRange const ArgRange = PCC->getParamNameRange();
+    StringRef const ParamName = PCC->getParamNameAsWritten();
     Diag(ArgRange.getBegin(), diag::warn_doc_param_not_found)
       << ParamName << ArgRange;
 
@@ -866,7 +866,7 @@ bool Sema::isFunctionPointerVarDecl() {
     inspectThisDecl();
   if (ThisDeclInfo->getKind() == DeclInfo::VariableKind) {
     if (const VarDecl *VD = dyn_cast_or_null<VarDecl>(ThisDeclInfo->CurrentDecl)) {
-      QualType QT = VD->getType();
+      QualType const QT = VD->getType();
       return QT->isFunctionPointerType();
     }
   }
@@ -1074,19 +1074,19 @@ public:
 };
 
 void SimpleTypoCorrector::addDecl(const NamedDecl *ND) {
-  unsigned CurrIndex = NextIndex++;
+  unsigned const CurrIndex = NextIndex++;
 
   const IdentifierInfo *II = ND->getIdentifier();
   if (!II)
     return;
 
-  StringRef Name = II->getName();
-  unsigned MinPossibleEditDistance = abs((int)Name.size() - (int)Typo.size());
+  StringRef const Name = II->getName();
+  unsigned const MinPossibleEditDistance = abs((int)Name.size() - (int)Typo.size());
   if (MinPossibleEditDistance > 0 &&
       Typo.size() / MinPossibleEditDistance < 3)
     return;
 
-  unsigned EditDistance = Typo.edit_distance(Name, true, MaxEditDistance);
+  unsigned const EditDistance = Typo.edit_distance(Name, true, MaxEditDistance);
   if (EditDistance < BestEditDistance) {
     BestEditDistance = EditDistance;
     BestDecl = ND;

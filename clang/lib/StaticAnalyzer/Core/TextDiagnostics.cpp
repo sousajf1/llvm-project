@@ -59,11 +59,11 @@ public:
 
   void FlushDiagnosticsImpl(std::vector<const PathDiagnostic *> &Diags,
                             FilesMade *filesMade) override {
-    unsigned WarnID =
+    unsigned const WarnID =
         DiagOpts.ShouldDisplayWarningsAsErrors
             ? DiagEng.getCustomDiagID(DiagnosticsEngine::Error, "%0")
             : DiagEng.getCustomDiagID(DiagnosticsEngine::Warning, "%0");
-    unsigned NoteID = DiagEng.getCustomDiagID(DiagnosticsEngine::Note, "%0");
+    unsigned const NoteID = DiagEng.getCustomDiagID(DiagnosticsEngine::Note, "%0");
     SourceManager &SM = DiagEng.getSourceManager();
 
     Replacements Repls;
@@ -77,7 +77,7 @@ public:
 
       DiagEng.Report(Loc, ID) << String << Ranges;
       for (const FixItHint &Hint : Fixits) {
-        Replacement Repl(SM, Hint.RemoveRange, Hint.CodeToInsert);
+        Replacement const Repl(SM, Hint.RemoveRange, Hint.CodeToInsert);
 
         if (llvm::Error Err = Repls.add(Repl)) {
           llvm::errs() << "Error applying replacement " << Repl.toString()
@@ -90,7 +90,7 @@ public:
          E = Diags.end();
          I != E; ++I) {
       const PathDiagnostic *PD = *I;
-      std::string WarningMsg = (DiagOpts.ShouldDisplayDiagnosticName
+      std::string const WarningMsg = (DiagOpts.ShouldDisplayDiagnosticName
                                     ? " [" + PD->getCheckerName() + "]"
                                     : "")
                                    .str();
@@ -113,7 +113,7 @@ public:
         continue;
 
       // Then, add the path notes if necessary.
-      PathPieces FlatPath = PD->path.flatten(/*ShouldFlattenMacros=*/true);
+      PathPieces const FlatPath = PD->path.flatten(/*ShouldFlattenMacros=*/true);
       for (const auto &Piece : FlatPath) {
         if (isa<PathDiagnosticNotePiece>(Piece.get()))
           continue;

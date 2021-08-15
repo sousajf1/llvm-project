@@ -78,7 +78,7 @@ bool Preprocessor::EnterSourceFile(FileID FID, const DirectoryLookup *CurDir,
   llvm::Optional<llvm::MemoryBufferRef> InputFile =
       getSourceManager().getBufferOrNone(FID, Loc);
   if (!InputFile) {
-    SourceLocation FileStart = SourceMgr.getLocForStartOfFile(FID);
+    SourceLocation const FileStart = SourceMgr.getLocForStartOfFile(FID);
     Diag(Loc, diag::err_pp_error_opening_file)
         << std::string(SourceMgr.getBufferName(FileStart)) << "";
     return true;
@@ -113,7 +113,7 @@ void Preprocessor::EnterSourceFileWithLexer(Lexer *TheLexer,
 
   // Notify the client, if desired, that we are in a new source file.
   if (Callbacks && !CurLexer->Is_PragmaLexer) {
-    SrcMgr::CharacteristicKind FileType =
+    SrcMgr::CharacteristicKind const FileType =
        SourceMgr.getFileCharacteristic(CurLexer->getFileLoc());
 
     Callbacks->FileChanged(CurLexer->getFileLoc(),
@@ -202,7 +202,7 @@ static void computeRelativePath(FileManager &FM, const DirectoryEntry *Dir,
                                 SmallString<128> &Result) {
   Result.clear();
 
-  StringRef FilePath = File->getDir()->getName();
+  StringRef const FilePath = File->getDir()->getName();
   StringRef Path = FilePath;
   while (!Path.empty()) {
     if (auto CurDir = FM.getDirectory(Path)) {
@@ -267,12 +267,12 @@ void Preprocessor::diagnoseMissingHeaderInUmbrellaDir(const Module &Mod) {
   const Module::Header &UmbrellaHeader = Mod.getUmbrellaHeader();
   assert(UmbrellaHeader.Entry && "Module must use umbrella header");
   const FileID &File = SourceMgr.translateFile(UmbrellaHeader.Entry);
-  SourceLocation ExpectedHeadersLoc = SourceMgr.getLocForEndOfFile(File);
+  SourceLocation const ExpectedHeadersLoc = SourceMgr.getLocForEndOfFile(File);
   if (getDiagnostics().isIgnored(diag::warn_uncovered_module_header,
                                  ExpectedHeadersLoc))
     return;
 
-  ModuleMap &ModMap = getHeaderSearchInfo().getModuleMap();
+  ModuleMap  const&ModMap = getHeaderSearchInfo().getModuleMap();
   const DirectoryEntry *Dir = Mod.getUmbrellaDir().Entry;
   llvm::vfs::FileSystem &FS = FileMgr.getVirtualFileSystem();
   std::error_code EC;
@@ -311,9 +311,9 @@ void Preprocessor::ResolvePragmaIncludeInstead(
     return;
 
   for (const auto &Include : CurLexer->getIncludeHistory()) {
-    StringRef Filename = Include.getKey();
+    StringRef const Filename = Include.getKey();
     const PreprocessorLexer::IncludeInfo &Info = Include.getValue();
-    ArrayRef<SmallString<32>> Aliases =
+    ArrayRef<SmallString<32>> const Aliases =
         HeaderInfo.getFileInfo(Info.File).Aliases.getArrayRef();
 
     if (Aliases.empty())
@@ -463,7 +463,7 @@ bool Preprocessor::HandleEndOfFile(Token &Result, SourceLocation EndLoc,
           CurPPLexer->getFileID() == PredefinesFileID))) {
       // Notify SourceManager to record the number of FileIDs that were created
       // during lexing of the #include'd file.
-      unsigned NumFIDs =
+      unsigned const NumFIDs =
           SourceMgr.local_sloc_entry_size() -
           CurPPLexer->getInitialNumSLocEntries() + 1/*#include'd file*/;
       SourceMgr.setNumCreatedFIDsForFileID(CurPPLexer->getFileID(), NumFIDs);
@@ -506,7 +506,7 @@ bool Preprocessor::HandleEndOfFile(Token &Result, SourceLocation EndLoc,
 
     // Notify the client, if desired, that we are in a new source file.
     if (Callbacks && !isEndOfMacro && CurPPLexer) {
-      SrcMgr::CharacteristicKind FileType =
+      SrcMgr::CharacteristicKind const FileType =
         SourceMgr.getFileCharacteristic(CurPPLexer->getSourceLocation());
       Callbacks->FileChanged(CurPPLexer->getSourceLocation(),
                              PPCallbacks::ExitFile, FileType, ExitedFID);
@@ -708,7 +708,7 @@ void Preprocessor::EnterSubmodule(Module *M, SourceLocation ImportLoc,
   // If this is the first time we've entered this module, set up its state.
   auto R = Submodules.insert(std::make_pair(M, SubmoduleState()));
   auto &State = R.first->second;
-  bool FirstTime = R.second;
+  bool const FirstTime = R.second;
   if (FirstTime) {
     // Determine the set of starting macros for this submodule; take these
     // from the "null" module (the predefines buffer).
@@ -771,7 +771,7 @@ Module *Preprocessor::LeaveSubmodule(bool ForPragma) {
   auto &Info = BuildingSubmoduleStack.back();
 
   Module *LeavingMod = Info.M;
-  SourceLocation ImportLoc = Info.ImportLoc;
+  SourceLocation const ImportLoc = Info.ImportLoc;
 
   if (!needModuleMacros() ||
       (!getLangOpts().ModulesLocalVisibility &&

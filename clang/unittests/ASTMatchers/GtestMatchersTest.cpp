@@ -200,7 +200,7 @@ static std::string wrapGtest(llvm::StringRef Input) {
 }
 
 TEST(GtestAssertTest, ShouldMatchAssert) {
-  std::string Input = R"cc(
+  std::string const Input = R"cc(
     void Test() { ASSERT_EQ(1010, 4321); }
   )cc";
   EXPECT_TRUE(matches(wrapGtest(Input),
@@ -209,7 +209,7 @@ TEST(GtestAssertTest, ShouldMatchAssert) {
 }
 
 TEST(GtestAssertTest, ShouldNotMatchExpect) {
-  std::string Input = R"cc(
+  std::string const Input = R"cc(
     void Test() { EXPECT_EQ(2, 3); }
   )cc";
   EXPECT_TRUE(
@@ -217,7 +217,7 @@ TEST(GtestAssertTest, ShouldNotMatchExpect) {
 }
 
 TEST(GtestAssertTest, ShouldMatchNestedAssert) {
-  std::string Input = R"cc(
+  std::string const Input = R"cc(
     #define WRAPPER(a, b) ASSERT_EQ(a, b)
     void Test() { WRAPPER(2, 3); }
   )cc";
@@ -226,7 +226,7 @@ TEST(GtestAssertTest, ShouldMatchNestedAssert) {
 }
 
 TEST(GtestExpectTest, ShouldMatchExpect) {
-  std::string Input = R"cc(
+  std::string const Input = R"cc(
     void Test() { EXPECT_EQ(1010, 4321); }
   )cc";
   EXPECT_TRUE(matches(wrapGtest(Input),
@@ -235,7 +235,7 @@ TEST(GtestExpectTest, ShouldMatchExpect) {
 }
 
 TEST(GtestExpectTest, ShouldNotMatchAssert) {
-  std::string Input = R"cc(
+  std::string const Input = R"cc(
     void Test() { ASSERT_EQ(2, 3); }
   )cc";
   EXPECT_TRUE(
@@ -243,7 +243,7 @@ TEST(GtestExpectTest, ShouldNotMatchAssert) {
 }
 
 TEST(GtestExpectTest, NeShouldMatchExpectNe) {
-  std::string Input = R"cc(
+  std::string const Input = R"cc(
     void Test() { EXPECT_NE(2, 3); }
   )cc";
   EXPECT_TRUE(
@@ -251,7 +251,7 @@ TEST(GtestExpectTest, NeShouldMatchExpectNe) {
 }
 
 TEST(GtestExpectTest, LeShouldMatchExpectLe) {
-  std::string Input = R"cc(
+  std::string const Input = R"cc(
     void Test() { EXPECT_LE(2, 3); }
   )cc";
   EXPECT_TRUE(
@@ -259,7 +259,7 @@ TEST(GtestExpectTest, LeShouldMatchExpectLe) {
 }
 
 TEST(GtestExpectTest, LtShouldMatchExpectLt) {
-  std::string Input = R"cc(
+  std::string const Input = R"cc(
     void Test() { EXPECT_LT(2, 3); }
   )cc";
   EXPECT_TRUE(
@@ -267,7 +267,7 @@ TEST(GtestExpectTest, LtShouldMatchExpectLt) {
 }
 
 TEST(GtestExpectTest, GeShouldMatchExpectGe) {
-  std::string Input = R"cc(
+  std::string const Input = R"cc(
     void Test() { EXPECT_GE(2, 3); }
   )cc";
   EXPECT_TRUE(
@@ -275,7 +275,7 @@ TEST(GtestExpectTest, GeShouldMatchExpectGe) {
 }
 
 TEST(GtestExpectTest, GtShouldMatchExpectGt) {
-  std::string Input = R"cc(
+  std::string const Input = R"cc(
     void Test() { EXPECT_GT(2, 3); }
   )cc";
   EXPECT_TRUE(
@@ -283,7 +283,7 @@ TEST(GtestExpectTest, GtShouldMatchExpectGt) {
 }
 
 TEST(GtestExpectTest, ThatShouldMatchAssertThat) {
-  std::string Input = R"cc(
+  std::string const Input = R"cc(
     using ::testing::Eq;
     void Test() { ASSERT_THAT(2, Eq(2)); }
   )cc";
@@ -294,7 +294,7 @@ TEST(GtestExpectTest, ThatShouldMatchAssertThat) {
 }
 
 TEST(GtestExpectTest, ThatShouldMatchExpectThat) {
-  std::string Input = R"cc(
+  std::string const Input = R"cc(
     using ::testing::Eq;
     void Test() { EXPECT_THAT(2, Eq(2)); }
   )cc";
@@ -305,7 +305,7 @@ TEST(GtestExpectTest, ThatShouldMatchExpectThat) {
 }
 
 TEST(GtestOnCallTest, CallShouldMatchOnCallWithoutParams1) {
-  std::string Input = R"cc(
+  std::string const Input = R"cc(
     void Test() {
       Mock mock;
       ON_CALL(mock, TwoArgsMethod);
@@ -317,7 +317,7 @@ TEST(GtestOnCallTest, CallShouldMatchOnCallWithoutParams1) {
 }
 
 TEST(GtestOnCallTest, CallShouldMatchOnCallWithoutParams2) {
-  std::string Input = R"cc(
+  std::string const Input = R"cc(
     void Test() {
       Mock mock;
       ON_CALL(mock, TwoArgsMethod);
@@ -332,7 +332,7 @@ TEST(GtestOnCallTest, CallShouldMatchOnCallWithoutParams2) {
 }
 
 TEST(GtestOnCallTest, CallShouldMatchOnCallWithParams1) {
-  std::string Input = R"cc(
+  std::string const Input = R"cc(
     void Test() {
       Mock mock;
       ON_CALL(mock, TwoArgsMethod(1, 2));
@@ -344,7 +344,7 @@ TEST(GtestOnCallTest, CallShouldMatchOnCallWithParams1) {
 }
 
 TEST(GtestOnCallTest, CallShouldMatchOnCallWithParams2) {
-  std::string Input = R"cc(
+  std::string const Input = R"cc(
     void Test() {
       Mock mock;
       ON_CALL(mock, TwoArgsMethod(1, 2));
@@ -359,7 +359,7 @@ TEST(GtestOnCallTest, CallShouldMatchOnCallWithParams2) {
 }
 
 TEST(GtestExpectCallTest, CallShouldMatchExpectCallWithoutParams1) {
-  std::string Input = R"cc(
+  std::string const Input = R"cc(
     void Test() {
       Mock mock;
       EXPECT_CALL(mock, TwoArgsMethod);
@@ -372,7 +372,7 @@ TEST(GtestExpectCallTest, CallShouldMatchExpectCallWithoutParams1) {
 }
 
 TEST(GtestExpectCallTest, CallShouldMatchExpectCallWithoutParams2) {
-  std::string Input = R"cc(
+  std::string const Input = R"cc(
     void Test() {
       Mock mock;
       EXPECT_CALL(mock, TwoArgsMethod);
@@ -387,7 +387,7 @@ TEST(GtestExpectCallTest, CallShouldMatchExpectCallWithoutParams2) {
 }
 
 TEST(GtestExpectCallTest, CallShouldMatchExpectCallWithParams1) {
-  std::string Input = R"cc(
+  std::string const Input = R"cc(
     void Test() {
       Mock mock;
       EXPECT_CALL(mock, TwoArgsMethod(1, 2));
@@ -400,7 +400,7 @@ TEST(GtestExpectCallTest, CallShouldMatchExpectCallWithParams1) {
 }
 
 TEST(GtestExpectCallTest, CallShouldMatchExpectCallWithParams2) {
-  std::string Input = R"cc(
+  std::string const Input = R"cc(
     void Test() {
       Mock mock;
       EXPECT_CALL(mock, TwoArgsMethod(1, 2));

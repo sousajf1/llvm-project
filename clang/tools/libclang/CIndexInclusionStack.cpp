@@ -22,7 +22,7 @@ namespace {
 void getInclusions(bool IsLocal, unsigned n, CXTranslationUnit TU,
                    CXInclusionVisitor CB, CXClientData clientData) {
   ASTUnit *CXXUnit = cxtu::getASTUnit(TU);
-  SourceManager &SM = CXXUnit->getSourceManager();
+  SourceManager  const&SM = CXXUnit->getSourceManager();
   ASTContext &Ctx = CXXUnit->getASTContext();
   SmallVector<CXSourceLocation, 10> InclusionStack;
   const bool HasPreamble = SM.getPreambleFileID().isValid();
@@ -47,7 +47,7 @@ void getInclusions(bool IsLocal, unsigned n, CXTranslationUnit TU,
     // Build the inclusion stack.
     InclusionStack.clear();
     while (L.isValid()) {
-      PresumedLoc PLoc = SM.getPresumedLoc(L);
+      PresumedLoc const PLoc = SM.getPresumedLoc(L);
       InclusionStack.push_back(cxloc::translateSourceLocation(Ctx, L));
       L = PLoc.isValid()? PLoc.getIncludeLoc() : SourceLocation();
     }
@@ -73,7 +73,7 @@ void clang_getInclusions(CXTranslationUnit TU, CXInclusionVisitor CB,
     return;
   }
 
-  SourceManager &SM = cxtu::getASTUnit(TU)->getSourceManager();
+  SourceManager  const&SM = cxtu::getASTUnit(TU)->getSourceManager();
   const unsigned n =  SM.local_sloc_entry_size();
 
   // In the case where all the SLocEntries are in an external source, traverse

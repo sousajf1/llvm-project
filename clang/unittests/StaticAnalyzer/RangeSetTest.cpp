@@ -93,10 +93,10 @@ public:
   }
 
   void checkNegateImpl(RangeSet Original, RangeSet Expected) {
-    RangeSet NegatedFromOriginal = F.negate(Original);
+    RangeSet const NegatedFromOriginal = F.negate(Original);
     EXPECT_EQ(NegatedFromOriginal, Expected);
     // Negate negated back and check with original.
-    RangeSet NegatedBackward = F.negate(NegatedFromOriginal);
+    RangeSet const NegatedBackward = F.negate(NegatedFromOriginal);
     EXPECT_EQ(NegatedBackward, Original);
   }
 
@@ -106,14 +106,14 @@ public:
 
   template <class PointOrSet>
   void checkIntersectImpl(RangeSet LHS, PointOrSet RHS, RangeSet Expected) {
-    RangeSet Result = F.intersect(LHS, RHS);
+    RangeSet const Result = F.intersect(LHS, RHS);
     EXPECT_EQ(Result, Expected)
         << "while intersecting " << toString(LHS) << " and " << toString(RHS);
   }
 
   void checkIntersectRangeImpl(RangeSet LHS, const llvm::APSInt &Lower,
                                const llvm::APSInt &Upper, RangeSet Expected) {
-    RangeSet Result = F.intersect(LHS, Lower, Upper);
+    RangeSet const Result = F.intersect(LHS, Lower, Upper);
     EXPECT_EQ(Result, Expected)
         << "while intersecting " << toString(LHS) << " and [" << toString(Lower)
         << ", " << toString(Upper) << "]";
@@ -137,7 +137,7 @@ public:
   }
 
   void checkContainsImpl(RangeSet LHS, const llvm::APSInt &RHS, bool Expected) {
-    bool Result = LHS.contains(RHS);
+    bool const Result = LHS.contains(RHS);
     EXPECT_EQ(Result, Expected)
         << toString(LHS) << (Result ? " contains " : " doesn't contain ")
         << toString(RHS);
@@ -149,7 +149,7 @@ public:
 
   template <class RHSType>
   void checkAddImpl(RangeSet LHS, RHSType RHS, RangeSet Expected) {
-    RangeSet Result = F.add(LHS, RHS);
+    RangeSet const Result = F.add(LHS, RHS);
     EXPECT_EQ(Result, Expected)
         << "while adding " << toString(LHS) << " and " << toString(RHS);
   }
@@ -170,7 +170,7 @@ public:
 
   void checkDeleteImpl(const llvm::APSInt &Point, RangeSet From,
                        RangeSet Expected) {
-    RangeSet Result = F.deletePoint(From, Point);
+    RangeSet const Result = F.deletePoint(From, Point);
     EXPECT_EQ(Result, Expected)
         << "while deleting " << toString(Point) << " from " << toString(From);
   }

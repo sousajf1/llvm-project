@@ -265,16 +265,16 @@ ProgramStateRef advancePosition(ProgramStateRef State, const SVal &Iter,
 ProgramStateRef assumeNoOverflow(ProgramStateRef State, SymbolRef Sym,
                                  long Scale) {
   SValBuilder &SVB = State->getStateManager().getSValBuilder();
-  BasicValueFactory &BV = SVB.getBasicValueFactory();
+  BasicValueFactory  const&BV = SVB.getBasicValueFactory();
 
-  QualType T = Sym->getType();
+  QualType const T = Sym->getType();
   assert(T->isSignedIntegerOrEnumerationType());
-  APSIntType AT = BV.getAPSIntType(T);
+  APSIntType const AT = BV.getAPSIntType(T);
 
   ProgramStateRef NewState = State;
 
-  llvm::APSInt Max = AT.getMaxValue() / AT.getValue(Scale);
-  SVal IsCappedFromAbove =
+  llvm::APSInt const Max = AT.getMaxValue() / AT.getValue(Scale);
+  SVal const IsCappedFromAbove =
       SVB.evalBinOpNN(State, BO_LE, nonloc::SymbolVal(Sym),
                       nonloc::ConcreteInt(Max), SVB.getConditionType());
   if (auto DV = IsCappedFromAbove.getAs<DefinedSVal>()) {
@@ -283,8 +283,8 @@ ProgramStateRef assumeNoOverflow(ProgramStateRef State, SymbolRef Sym,
       return State;
   }
 
-  llvm::APSInt Min = -Max;
-  SVal IsCappedFromBelow =
+  llvm::APSInt const Min = -Max;
+  SVal const IsCappedFromBelow =
       SVB.evalBinOpNN(State, BO_GE, nonloc::SymbolVal(Sym),
                       nonloc::ConcreteInt(Min), SVB.getConditionType());
   if (auto DV = IsCappedFromBelow.getAs<DefinedSVal>()) {

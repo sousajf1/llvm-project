@@ -36,12 +36,12 @@ protected:
                      StatusCheck CheckComplete = SC_ExpectComplete) {
     LLVM_DEBUG(llvm::errs() << "---\n");
     LLVM_DEBUG(llvm::errs() << Code << "\n\n");
-    std::vector<tooling::Range> Ranges(1, tooling::Range(0, Code.size()));
+    std::vector<tooling::Range> const Ranges(1, tooling::Range(0, Code.size()));
     FormattingAttemptStatus Status;
-    tooling::Replacements Replaces =
+    tooling::Replacements const Replaces =
         reformat(Style, Code, Ranges, "<stdin>", &Status);
     if (CheckComplete != SC_DoNotCheck) {
-      bool ExpectedCompleteFormat = CheckComplete == SC_ExpectComplete;
+      bool const ExpectedCompleteFormat = CheckComplete == SC_ExpectComplete;
       EXPECT_EQ(ExpectedCompleteFormat, Status.FormatComplete)
           << Code << "\n\n";
     }
@@ -68,7 +68,7 @@ protected:
   void _verifyFormat(const char *File, int Line, llvm::StringRef Expected,
                      llvm::StringRef Code,
                      const FormatStyle &Style = getLLVMStyle()) {
-    ScopedTrace t(File, Line, ::testing::Message() << Code.str());
+    ScopedTrace const t(File, Line, ::testing::Message() << Code.str());
     EXPECT_EQ(Expected.str(), format(Expected, Style))
         << "Expected code is not stable";
     EXPECT_EQ(Expected.str(), format(Code, Style));
@@ -88,7 +88,7 @@ protected:
 
   void _verifyIncompleteFormat(const char *File, int Line, llvm::StringRef Code,
                                const FormatStyle &Style = getLLVMStyle()) {
-    ScopedTrace t(File, Line, ::testing::Message() << Code.str());
+    ScopedTrace const t(File, Line, ::testing::Message() << Code.str());
     EXPECT_EQ(Code.str(),
               format(test::messUp(Code), Style, SC_ExpectIncomplete));
   }
@@ -5058,7 +5058,7 @@ TEST_F(FormatTest, FormatUnbalancedStructuralElements) {
 }
 
 TEST_F(FormatTest, EscapedNewlines) {
-  FormatStyle Narrow = getLLVMStyleWithColumns(11);
+  FormatStyle const Narrow = getLLVMStyleWithColumns(11);
   EXPECT_EQ("#define A \\\n  int i;  \\\n  int j;",
             format("#define A \\\nint i;\\\n  int j;", Narrow));
   EXPECT_EQ("#define A\n\nint i;", format("#define A \\\n\n int i;"));
@@ -6199,7 +6199,7 @@ TEST_F(FormatTest, AllowAllArgumentsOnNextLineDontAlign) {
   // and BAS_Align.
   auto Style = getLLVMStyle();
   Style.ColumnLimit = 35;
-  StringRef Input = "functionCall(paramA, paramB, paramC);\n"
+  StringRef const Input = "functionCall(paramA, paramB, paramC);\n"
                     "void functionDecl(int A, int B, int C);";
   Style.AllowAllArgumentsOnNextLine = false;
   Style.AlignAfterOpenBracket = FormatStyle::BAS_DontAlign;
@@ -9696,10 +9696,10 @@ TEST_F(FormatTest, UnderstandsPointerQualifiersInCast) {
 
   // Check that we handle multiple trailing qualifiers and skip them all to
   // determine that the expression is a cast to a pointer type.
-  FormatStyle LongPointerRight = getLLVMStyleWithColumns(999);
+  FormatStyle const LongPointerRight = getLLVMStyleWithColumns(999);
   FormatStyle LongPointerLeft = getLLVMStyleWithColumns(999);
   LongPointerLeft.PointerAlignment = FormatStyle::PAS_Left;
-  StringRef AllQualifiers =
+  StringRef const AllQualifiers =
       "const volatile restrict __attribute__((foo)) _Nonnull _Null_unspecified "
       "_Nonnull [[clang::attr]] __ptr32 __ptr64 __capability";
   verifyFormat(("x = (foo *" + AllQualifiers + ")*v;").str(), LongPointerRight);
@@ -9765,7 +9765,7 @@ TEST_F(FormatTest, UnderstandsSquareAttributes) {
 }
 
 TEST_F(FormatTest, AttributeClass) {
-  FormatStyle Style = getChromiumStyle(FormatStyle::LK_Cpp);
+  FormatStyle const Style = getChromiumStyle(FormatStyle::LK_Cpp);
   verifyFormat("class S {\n"
                "  S(S&&) = default;\n"
                "};",
@@ -9789,7 +9789,7 @@ TEST_F(FormatTest, AttributeClass) {
 }
 
 TEST_F(FormatTest, AttributesAfterMacro) {
-  FormatStyle Style = getLLVMStyle();
+  FormatStyle const Style = getLLVMStyle();
   verifyFormat("MACRO;\n"
                "__attribute__((maybe_unused)) int foo() {\n"
                "  //...\n"
@@ -9820,7 +9820,7 @@ TEST_F(FormatTest, AttributesAfterMacro) {
 }
 
 TEST_F(FormatTest, AttributePenaltyBreaking) {
-  FormatStyle Style = getLLVMStyle();
+  FormatStyle const Style = getLLVMStyle();
   verifyFormat("void ABCDEFGH::ABCDEFGHIJKLMN(\n"
                "    [[maybe_unused]] const shared_ptr<ALongTypeName> &C d) {}",
                Style);
@@ -11092,7 +11092,7 @@ TEST_F(FormatTest, FormatsArrays) {
 
   verifyNoCrash("a[,Y?)]", getLLVMStyleWithColumns(10));
 
-  FormatStyle NoColumnLimit = getLLVMStyleWithColumns(0);
+  FormatStyle const NoColumnLimit = getLLVMStyleWithColumns(0);
   verifyFormat("aaaaa[bbbbbb].cccccc()", NoColumnLimit);
 }
 
@@ -12454,7 +12454,7 @@ TEST_F(FormatTest, SpecialTokensAtEndOfLine) {
 
 TEST_F(FormatTest, SkipsDeeplyNestedLines) {
   // This code would be painfully slow to format if we didn't skip it.
-  std::string Code("A(A(A(A(A(A(A(A(A(A(A(A(A(A(A(A(A(A(A(A(\n" // 20x
+  std::string const Code("A(A(A(A(A(A(A(A(A(A(A(A(A(A(A(A(A(A(A(A(\n" // 20x
                    "A(A(A(A(A(A(A(A(A(A(A(A(A(A(A(A(A(A(A(A(\n"
                    "A(A(A(A(A(A(A(A(A(A(A(A(A(A(A(A(A(A(A(A(\n"
                    "A(A(A(A(A(A(A(A(A(A(A(A(A(A(A(A(A(A(A(A(\n"
@@ -12760,7 +12760,7 @@ TEST_F(FormatTest, BreaksWideAndNSStringLiterals) {
 }
 
 TEST_F(FormatTest, DoesNotBreakRawStringLiterals) {
-  FormatStyle Style = getGoogleStyleWithColumns(15);
+  FormatStyle const Style = getGoogleStyleWithColumns(15);
   EXPECT_EQ("R\"x(raw literal)x\";", format("R\"x(raw literal)x\";", Style));
   EXPECT_EQ("uR\"x(raw literal)x\";", format("uR\"x(raw literal)x\";", Style));
   EXPECT_EQ("LR\"x(raw literal)x\";", format("LR\"x(raw literal)x\";", Style));
@@ -12770,7 +12770,7 @@ TEST_F(FormatTest, DoesNotBreakRawStringLiterals) {
 }
 
 TEST_F(FormatTest, BreaksStringLiteralsWithin_TMacro) {
-  FormatStyle Style = getLLVMStyleWithColumns(20);
+  FormatStyle const Style = getLLVMStyleWithColumns(20);
   EXPECT_EQ(
       "_T(\"aaaaaaaaaaaaaa\")\n"
       "_T(\"aaaaaaaaaaaaaa\")\n"
@@ -14292,7 +14292,7 @@ TEST_F(FormatTest, ConfigurableSpacesInSquareBrackets) {
 }
 
 TEST_F(FormatTest, ConfigurableSpaceBeforeBrackets) {
-  FormatStyle NoSpaceStyle = getLLVMStyle();
+  FormatStyle const NoSpaceStyle = getLLVMStyle();
   verifyFormat("int a[5];", NoSpaceStyle);
   verifyFormat("a[3] += 42;", NoSpaceStyle);
 
@@ -15909,7 +15909,7 @@ TEST_F(FormatTest, AlignConsecutiveDeclarations) {
   verifyFormat("int    a(int x);\n"
                "double b();",
                Alignment);
-  unsigned OldColumnLimit = Alignment.ColumnLimit;
+  unsigned const OldColumnLimit = Alignment.ColumnLimit;
   // We need to set ColumnLimit to zero, in order to stress nested alignments,
   // otherwise the function parameters will be re-flowed onto a single line.
   Alignment.ColumnLimit = 0;
@@ -18563,7 +18563,7 @@ TEST_F(FormatTest, ParsesConfiguration) {
               FormatStyle::SBPO_ControlStatementsExceptControlMacros);
 
   Style.ColumnLimit = 123;
-  FormatStyle BaseStyle = getLLVMStyle();
+  FormatStyle const BaseStyle = getLLVMStyle();
   CHECK_PARSE("BasedOnStyle: LLVM", ColumnLimit, BaseStyle.ColumnLimit);
   CHECK_PARSE("BasedOnStyle: LLVM\nColumnLimit: 1234", ColumnLimit, 1234u);
 
@@ -18750,7 +18750,7 @@ TEST_F(FormatTest, ParsesConfiguration) {
               std::vector<std::string>({"STRINGIZE", "ASSERT"}));
 
   Style.IncludeStyle.IncludeCategories.clear();
-  std::vector<tooling::IncludeStyle::IncludeCategory> ExpectedCategories = {
+  std::vector<tooling::IncludeStyle::IncludeCategory> const ExpectedCategories = {
       {"abc/.*", 2, 0, false}, {".*", 1, 0, true}};
   CHECK_PARSE("IncludeCategories:\n"
               "  - Regex: abc/.*\n"
@@ -18775,7 +18775,7 @@ TEST_F(FormatTest, ParsesConfiguration) {
   CHECK_PARSE("SortIncludes: Never", SortIncludes, FormatStyle::SI_Never);
 
   Style.RawStringFormats.clear();
-  std::vector<FormatStyle::RawStringFormat> ExpectedRawStringFormats = {
+  std::vector<FormatStyle::RawStringFormat> const ExpectedRawStringFormats = {
       {
           FormatStyle::LK_TextProto,
           {"pb", "proto"},
@@ -18970,8 +18970,8 @@ TEST_F(FormatTest, UsesLanguageForBasedOnStyle) {
 }
 
 TEST_F(FormatTest, ConfigurationRoundTripTest) {
-  FormatStyle Style = getLLVMStyle();
-  std::string YAML = configurationAsText(Style);
+  FormatStyle const Style = getLLVMStyle();
+  std::string const YAML = configurationAsText(Style);
   FormatStyle ParsedStyle = {};
   ParsedStyle.Language = FormatStyle::LK_Cpp;
   EXPECT_EQ(0, parseConfiguration(YAML, &ParsedStyle).value());
@@ -19228,7 +19228,7 @@ TEST_F(FormatTest, Destructors) {
 }
 
 TEST_F(FormatTest, FormatsWithWebKitStyle) {
-  FormatStyle Style = getWebKitStyle();
+  FormatStyle const Style = getWebKitStyle();
 
   // Don't indent in outer namespaces.
   verifyFormat("namespace outer {\n"
@@ -20538,7 +20538,7 @@ TEST_F(FormatTest, ConfigurableContinuationIndentWidth) {
 }
 
 TEST_F(FormatTest, WrappedClosingParenthesisIndent) {
-  FormatStyle Style = getLLVMStyle();
+  FormatStyle const Style = getLLVMStyle();
   verifyFormat("int Foo::getter(\n"
                "    //\n"
                ") const {\n"
@@ -20645,7 +20645,7 @@ TEST_F(FormatTest, MergeLessLessAtEnd) {
 }
 
 TEST_F(FormatTest, HandleUnbalancedImplicitBracesAcrossPPBranches) {
-  std::string code = "#if A\n"
+  std::string const code = "#if A\n"
                      "#if B\n"
                      "a.\n"
                      "#endif\n"
@@ -21021,19 +21021,19 @@ TEST(FormatStyle, GetStyleOfFile) {
 
 TEST_F(ReplacementTest, FormatCodeAfterReplacements) {
   // Column limit is 20.
-  std::string Code = "Type *a =\n"
+  std::string const Code = "Type *a =\n"
                      "    new Type();\n"
                      "g(iiiii, 0, jjjjj,\n"
                      "  0, kkkkk, 0, mm);\n"
                      "int  bad     = format   ;";
-  std::string Expected = "auto a = new Type();\n"
+  std::string const Expected = "auto a = new Type();\n"
                          "g(iiiii, nullptr,\n"
                          "  jjjjj, nullptr,\n"
                          "  kkkkk, nullptr,\n"
                          "  mm);\n"
                          "int  bad     = format   ;";
-  FileID ID = Context.createInMemoryFile("format.cpp", Code);
-  tooling::Replacements Replaces = toReplacements(
+  FileID const ID = Context.createInMemoryFile("format.cpp", Code);
+  tooling::Replacements const Replaces = toReplacements(
       {tooling::Replacement(Context.Sources, Context.getLocation(ID, 1, 1), 6,
                             "auto "),
        tooling::Replacement(Context.Sources, Context.getLocation(ID, 3, 10), 1,
@@ -21054,21 +21054,21 @@ TEST_F(ReplacementTest, FormatCodeAfterReplacements) {
 }
 
 TEST_F(ReplacementTest, SortIncludesAfterReplacement) {
-  std::string Code = "#include \"a.h\"\n"
+  std::string const Code = "#include \"a.h\"\n"
                      "#include \"c.h\"\n"
                      "\n"
                      "int main() {\n"
                      "  return 0;\n"
                      "}";
-  std::string Expected = "#include \"a.h\"\n"
+  std::string const Expected = "#include \"a.h\"\n"
                          "#include \"b.h\"\n"
                          "#include \"c.h\"\n"
                          "\n"
                          "int main() {\n"
                          "  return 0;\n"
                          "}";
-  FileID ID = Context.createInMemoryFile("fix.cpp", Code);
-  tooling::Replacements Replaces = toReplacements(
+  FileID const ID = Context.createInMemoryFile("fix.cpp", Code);
+  tooling::Replacements const Replaces = toReplacements(
       {tooling::Replacement(Context.Sources, Context.getLocation(ID, 1, 1), 0,
                             "#include \"b.h\"\n")});
 
@@ -21342,7 +21342,7 @@ TEST_F(FormatTest, GuessLanguageWithChildLines) {
 }
 
 TEST_F(FormatTest, TypenameMacros) {
-  std::vector<std::string> TypenameMacros = {"STACK_OF", "LIST", "TAILQ_ENTRY"};
+  std::vector<std::string> const TypenameMacros = {"STACK_OF", "LIST", "TAILQ_ENTRY"};
 
   // Test case reported in https://bugs.llvm.org/show_bug.cgi?id=30353
   FormatStyle Google = getGoogleStyleWithColumns(0);
@@ -21378,7 +21378,7 @@ TEST_F(FormatTest, TypenameMacros) {
 
 TEST_F(FormatTest, AtomicQualifier) {
   // Check that we treate _Atomic as a type and not a function call
-  FormatStyle Google = getGoogleStyleWithColumns(0);
+  FormatStyle const Google = getGoogleStyleWithColumns(0);
   verifyFormat("struct foo {\n"
                "  int a1;\n"
                "  _Atomic(a) a2;\n"
@@ -21653,7 +21653,7 @@ TEST_F(FormatTest, OperatorSpacing) {
 }
 
 TEST_F(FormatTest, OperatorPassedAsAFunctionPtr) {
-  FormatStyle Style = getLLVMStyle();
+  FormatStyle const Style = getLLVMStyle();
   // PR46157
   verifyFormat("foo(operator+, -42);", Style);
   verifyFormat("foo(operator++, -42);", Style);
@@ -21762,7 +21762,7 @@ TEST_F(FormatTest, VeryLongNamespaceCommentSplit) {
 }
 
 TEST_F(FormatTest, LikelyUnlikely) {
-  FormatStyle Style = getLLVMStyle();
+  FormatStyle const Style = getLLVMStyle();
 
   verifyFormat("if (argc > 5) [[unlikely]] {\n"
                "  return 29;\n"
@@ -21819,14 +21819,14 @@ TEST_F(FormatTest, PenaltyIndentedWhitespace) {
 }
 
 TEST_F(FormatTest, LLVMDefaultStyle) {
-  FormatStyle Style = getLLVMStyle();
+  FormatStyle const Style = getLLVMStyle();
   verifyFormat("extern \"C\" {\n"
                "int foo();\n"
                "}",
                Style);
 }
 TEST_F(FormatTest, GNUDefaultStyle) {
-  FormatStyle Style = getGNUStyle();
+  FormatStyle const Style = getGNUStyle();
   verifyFormat("extern \"C\"\n"
                "{\n"
                "  int foo ();\n"
@@ -21834,7 +21834,7 @@ TEST_F(FormatTest, GNUDefaultStyle) {
                Style);
 }
 TEST_F(FormatTest, MozillaDefaultStyle) {
-  FormatStyle Style = getMozillaStyle();
+  FormatStyle const Style = getMozillaStyle();
   verifyFormat("extern \"C\"\n"
                "{\n"
                "  int foo();\n"
@@ -21842,21 +21842,21 @@ TEST_F(FormatTest, MozillaDefaultStyle) {
                Style);
 }
 TEST_F(FormatTest, GoogleDefaultStyle) {
-  FormatStyle Style = getGoogleStyle();
+  FormatStyle const Style = getGoogleStyle();
   verifyFormat("extern \"C\" {\n"
                "int foo();\n"
                "}",
                Style);
 }
 TEST_F(FormatTest, ChromiumDefaultStyle) {
-  FormatStyle Style = getChromiumStyle(FormatStyle::LanguageKind::LK_Cpp);
+  FormatStyle const Style = getChromiumStyle(FormatStyle::LanguageKind::LK_Cpp);
   verifyFormat("extern \"C\" {\n"
                "int foo();\n"
                "}",
                Style);
 }
 TEST_F(FormatTest, MicrosoftDefaultStyle) {
-  FormatStyle Style = getMicrosoftStyle(FormatStyle::LanguageKind::LK_Cpp);
+  FormatStyle const Style = getMicrosoftStyle(FormatStyle::LanguageKind::LK_Cpp);
   verifyFormat("extern \"C\"\n"
                "{\n"
                "    int foo();\n"
@@ -21864,7 +21864,7 @@ TEST_F(FormatTest, MicrosoftDefaultStyle) {
                Style);
 }
 TEST_F(FormatTest, WebKitDefaultStyle) {
-  FormatStyle Style = getWebKitStyle();
+  FormatStyle const Style = getWebKitStyle();
   verifyFormat("extern \"C\" {\n"
                "int foo();\n"
                "}",
@@ -22144,7 +22144,7 @@ TEST_F(FormatTest, ConceptsAndRequires) {
 
 TEST_F(FormatTest, StatementAttributeLikeMacros) {
   FormatStyle Style = getLLVMStyle();
-  StringRef Source = "void Foo::slot() {\n"
+  StringRef const Source = "void Foo::slot() {\n"
                      "  unsigned char MyChar = 'x';\n"
                      "  emit signal(MyChar);\n"
                      "  Q_EMIT signal(MyChar);\n"

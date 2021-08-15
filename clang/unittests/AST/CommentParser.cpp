@@ -53,8 +53,8 @@ protected:
 
 FullComment *CommentParserTest::parseString(const char *Source) {
   std::unique_ptr<MemoryBuffer> Buf = MemoryBuffer::getMemBuffer(Source);
-  FileID File = SourceMgr.createFileID(std::move(Buf));
-  SourceLocation Begin = SourceMgr.getLocForStartOfFile(File);
+  FileID const File = SourceMgr.createFileID(std::move(Buf));
+  SourceLocation const Begin = SourceMgr.getLocForStartOfFile(File);
 
   Lexer L(Allocator, Diags, Traits, Begin, Source, Source + strlen(Source));
 
@@ -117,11 +117,11 @@ template <typename T>
                                      size_t Idx,
                                      StringRef Text) {
   TextComment *TC;
-  ::testing::AssertionResult AR = GetChildAt(C, Idx, TC);
+  ::testing::AssertionResult const AR = GetChildAt(C, Idx, TC);
   if (!AR)
     return AR;
 
-  StringRef ActualText = TC->getText();
+  StringRef const ActualText = TC->getText();
   if (ActualText != Text)
     return ::testing::AssertionFailure()
         << "TextComment has text \"" << ActualText.str() << "\", "
@@ -138,11 +138,11 @@ template <typename T>
                                                 size_t Idx,
                                                 StringRef Text) {
   TextComment *TC;
-  ::testing::AssertionResult AR = GetChildAt(C, Idx, TC);
+  ::testing::AssertionResult const AR = GetChildAt(C, Idx, TC);
   if (!AR)
     return AR;
 
-  StringRef ActualText = TC->getText();
+  StringRef const ActualText = TC->getText();
   if (ActualText != Text)
     return ::testing::AssertionFailure()
         << "TextComment has text \"" << ActualText.str() << "\", "
@@ -161,11 +161,11 @@ template <typename T>
                                              BlockCommandComment *&BCC,
                                              StringRef Name,
                                              ParagraphComment *&Paragraph) {
-  ::testing::AssertionResult AR = GetChildAt(C, Idx, BCC);
+  ::testing::AssertionResult const AR = GetChildAt(C, Idx, BCC);
   if (!AR)
     return AR;
 
-  StringRef ActualName = BCC->getCommandName(Traits);
+  StringRef const ActualName = BCC->getCommandName(Traits);
   if (ActualName != Name)
     return ::testing::AssertionFailure()
         << "BlockCommandComment has name \"" << ActualName.str() << "\", "
@@ -186,11 +186,11 @@ template <typename T>
                               bool IsDirectionExplicit,
                               StringRef ParamName,
                               ParagraphComment *&Paragraph) {
-  ::testing::AssertionResult AR = GetChildAt(C, Idx, PCC);
+  ::testing::AssertionResult const AR = GetChildAt(C, Idx, PCC);
   if (!AR)
     return AR;
 
-  StringRef ActualCommandName = PCC->getCommandName(Traits);
+  StringRef const ActualCommandName = PCC->getCommandName(Traits);
   if (ActualCommandName != CommandName)
     return ::testing::AssertionFailure()
         << "ParamCommandComment has name \"" << ActualCommandName.str() << "\", "
@@ -212,7 +212,7 @@ template <typename T>
     return ::testing::AssertionFailure()
         << "ParamCommandComment has no parameter name";
 
-  StringRef ActualParamName = PCC->hasParamName() ? PCC->getParamNameAsWritten() : "";
+  StringRef const ActualParamName = PCC->hasParamName() ? PCC->getParamNameAsWritten() : "";
   if (ActualParamName != ParamName)
     return ::testing::AssertionFailure()
         << "ParamCommandComment has parameter name \"" << ActualParamName.str()
@@ -232,11 +232,11 @@ template <typename T>
                               StringRef CommandName,
                               StringRef ParamName,
                               ParagraphComment *&Paragraph) {
-  ::testing::AssertionResult AR = GetChildAt(C, Idx, TPCC);
+  ::testing::AssertionResult const AR = GetChildAt(C, Idx, TPCC);
   if (!AR)
     return AR;
 
-  StringRef ActualCommandName = TPCC->getCommandName(Traits);
+  StringRef const ActualCommandName = TPCC->getCommandName(Traits);
   if (ActualCommandName != CommandName)
     return ::testing::AssertionFailure()
         << "TParamCommandComment has name \"" << ActualCommandName.str() << "\", "
@@ -246,7 +246,7 @@ template <typename T>
     return ::testing::AssertionFailure()
         << "TParamCommandComment has no parameter name";
 
-  StringRef ActualParamName = TPCC->hasParamName() ? TPCC->getParamNameAsWritten() : "";
+  StringRef const ActualParamName = TPCC->hasParamName() ? TPCC->getParamNameAsWritten() : "";
   if (ActualParamName != ParamName)
     return ::testing::AssertionFailure()
         << "TParamCommandComment has parameter name \"" << ActualParamName.str()
@@ -263,11 +263,11 @@ template <typename T>
                                               size_t Idx,
                                               InlineCommandComment *&ICC,
                                               StringRef Name) {
-  ::testing::AssertionResult AR = GetChildAt(C, Idx, ICC);
+  ::testing::AssertionResult const AR = GetChildAt(C, Idx, ICC);
   if (!AR)
     return AR;
 
-  StringRef ActualName = ICC->getCommandName(Traits);
+  StringRef const ActualName = ICC->getCommandName(Traits);
   if (ActualName != Name)
     return ::testing::AssertionFailure()
         << "InlineCommandComment has name \"" << ActualName.str() << "\", "
@@ -284,7 +284,7 @@ struct NoArgs {};
                                               InlineCommandComment *&ICC,
                                               StringRef Name,
                                               NoArgs) {
-  ::testing::AssertionResult AR = HasInlineCommandAt(C, Traits, Idx, ICC, Name);
+  ::testing::AssertionResult const AR = HasInlineCommandAt(C, Traits, Idx, ICC, Name);
   if (!AR)
     return AR;
 
@@ -302,7 +302,7 @@ struct NoArgs {};
                                               InlineCommandComment *&ICC,
                                               StringRef Name,
                                               StringRef Arg) {
-  ::testing::AssertionResult AR = HasInlineCommandAt(C, Traits, Idx, ICC, Name);
+  ::testing::AssertionResult const AR = HasInlineCommandAt(C, Traits, Idx, ICC, Name);
   if (!AR)
     return AR;
 
@@ -311,7 +311,7 @@ struct NoArgs {};
         << "InlineCommandComment has " << ICC->getNumArgs() << " arg(s), "
            "expected 1";
 
-  StringRef ActualArg = ICC->getArgText(0);
+  StringRef const ActualArg = ICC->getArgText(0);
   if (ActualArg != Arg)
     return ::testing::AssertionFailure()
         << "InlineCommandComment has argument \"" << ActualArg.str() << "\", "
@@ -324,11 +324,11 @@ struct NoArgs {};
                                              size_t Idx,
                                              HTMLStartTagComment *&HST,
                                              StringRef TagName) {
-  ::testing::AssertionResult AR = GetChildAt(C, Idx, HST);
+  ::testing::AssertionResult const AR = GetChildAt(C, Idx, HST);
   if (!AR)
     return AR;
 
-  StringRef ActualTagName = HST->getTagName();
+  StringRef const ActualTagName = HST->getTagName();
   if (ActualTagName != TagName)
     return ::testing::AssertionFailure()
         << "HTMLStartTagComment has name \"" << ActualTagName.str() << "\", "
@@ -344,7 +344,7 @@ struct SelfClosing {};
                                              HTMLStartTagComment *&HST,
                                              StringRef TagName,
                                              SelfClosing) {
-  ::testing::AssertionResult AR = HasHTMLStartTagAt(C, Idx, HST, TagName);
+  ::testing::AssertionResult const AR = HasHTMLStartTagAt(C, Idx, HST, TagName);
   if (!AR)
     return AR;
 
@@ -363,7 +363,7 @@ struct NoAttrs {};
                                              HTMLStartTagComment *&HST,
                                              StringRef TagName,
                                              NoAttrs) {
-  ::testing::AssertionResult AR = HasHTMLStartTagAt(C, Idx, HST, TagName);
+  ::testing::AssertionResult const AR = HasHTMLStartTagAt(C, Idx, HST, TagName);
   if (!AR)
     return AR;
 
@@ -385,7 +385,7 @@ struct NoAttrs {};
                                              StringRef TagName,
                                              StringRef AttrName,
                                              StringRef AttrValue) {
-  ::testing::AssertionResult AR = HasHTMLStartTagAt(C, Idx, HST, TagName);
+  ::testing::AssertionResult const AR = HasHTMLStartTagAt(C, Idx, HST, TagName);
   if (!AR)
     return AR;
 
@@ -398,13 +398,13 @@ struct NoAttrs {};
         << "HTMLStartTagComment has " << HST->getNumAttrs() << " attr(s), "
            "expected 1";
 
-  StringRef ActualName = HST->getAttr(0).Name;
+  StringRef const ActualName = HST->getAttr(0).Name;
   if (ActualName != AttrName)
     return ::testing::AssertionFailure()
         << "HTMLStartTagComment has attr \"" << ActualName.str() << "\", "
            "expected \"" << AttrName.str() << "\"";
 
-  StringRef ActualValue = HST->getAttr(0).Value;
+  StringRef const ActualValue = HST->getAttr(0).Value;
   if (ActualValue != AttrValue)
     return ::testing::AssertionFailure()
         << "HTMLStartTagComment has attr value \"" << ActualValue.str() << "\", "
@@ -417,11 +417,11 @@ struct NoAttrs {};
                                            size_t Idx,
                                            HTMLEndTagComment *&HET,
                                            StringRef TagName) {
-  ::testing::AssertionResult AR = GetChildAt(C, Idx, HET);
+  ::testing::AssertionResult const AR = GetChildAt(C, Idx, HET);
   if (!AR)
     return AR;
 
-  StringRef ActualTagName = HET->getTagName();
+  StringRef const ActualTagName = HET->getTagName();
   if (ActualTagName != TagName)
     return ::testing::AssertionFailure()
         << "HTMLEndTagComment has name \"" << ActualTagName.str() << "\", "
@@ -436,19 +436,19 @@ struct NoAttrs {};
   ParagraphComment *PC;
 
   {
-    ::testing::AssertionResult AR = GetChildAt(C, Idx, PC);
+    ::testing::AssertionResult const AR = GetChildAt(C, Idx, PC);
     if (!AR)
       return AR;
   }
 
   {
-    ::testing::AssertionResult AR = HasChildCount(PC, 1);
+    ::testing::AssertionResult const AR = HasChildCount(PC, 1);
     if (!AR)
       return AR;
   }
 
   {
-    ::testing::AssertionResult AR = HasTextAt(PC, 0, Text);
+    ::testing::AssertionResult const AR = HasTextAt(PC, 0, Text);
     if (!AR)
       return AR;
   }
@@ -462,17 +462,17 @@ struct NoAttrs {};
                                               VerbatimBlockComment *&VBC,
                                               StringRef Name,
                                               StringRef CloseName) {
-  ::testing::AssertionResult AR = GetChildAt(C, Idx, VBC);
+  ::testing::AssertionResult const AR = GetChildAt(C, Idx, VBC);
   if (!AR)
     return AR;
 
-  StringRef ActualName = VBC->getCommandName(Traits);
+  StringRef const ActualName = VBC->getCommandName(Traits);
   if (ActualName != Name)
     return ::testing::AssertionFailure()
         << "VerbatimBlockComment has name \"" << ActualName.str() << "\", "
            "expected \"" << Name.str() << "\"";
 
-  StringRef ActualCloseName = VBC->getCloseName();
+  StringRef const ActualCloseName = VBC->getCloseName();
   if (ActualCloseName != CloseName)
     return ::testing::AssertionFailure()
         << "VerbatimBlockComment has closing command name \""
@@ -492,7 +492,7 @@ struct Lines {};
                                               StringRef Name,
                                               StringRef CloseName,
                                               NoLines) {
-  ::testing::AssertionResult AR = HasVerbatimBlockAt(C, Traits, Idx, VBC, Name,
+  ::testing::AssertionResult const AR = HasVerbatimBlockAt(C, Traits, Idx, VBC, Name,
                                                      CloseName);
   if (!AR)
     return AR;
@@ -513,7 +513,7 @@ struct Lines {};
                                               StringRef CloseName,
                                               Lines,
                                               StringRef Line0) {
-  ::testing::AssertionResult AR = HasVerbatimBlockAt(C, Traits, Idx, VBC, Name,
+  ::testing::AssertionResult const AR = HasVerbatimBlockAt(C, Traits, Idx, VBC, Name,
                                                      CloseName);
   if (!AR)
     return AR;
@@ -523,7 +523,7 @@ struct Lines {};
         << "VerbatimBlockComment has " << VBC->getNumLines() << " lines(s), "
            "expected 1";
 
-  StringRef ActualLine0 = VBC->getText(0);
+  StringRef const ActualLine0 = VBC->getText(0);
   if (ActualLine0 != Line0)
     return ::testing::AssertionFailure()
         << "VerbatimBlockComment has lines[0] \"" << ActualLine0.str() << "\", "
@@ -541,7 +541,7 @@ struct Lines {};
                                               Lines,
                                               StringRef Line0,
                                               StringRef Line1) {
-  ::testing::AssertionResult AR = HasVerbatimBlockAt(C, Traits, Idx, VBC, Name,
+  ::testing::AssertionResult const AR = HasVerbatimBlockAt(C, Traits, Idx, VBC, Name,
                                                      CloseName);
   if (!AR)
     return AR;
@@ -551,13 +551,13 @@ struct Lines {};
         << "VerbatimBlockComment has " << VBC->getNumLines() << " lines(s), "
            "expected 2";
 
-  StringRef ActualLine0 = VBC->getText(0);
+  StringRef const ActualLine0 = VBC->getText(0);
   if (ActualLine0 != Line0)
     return ::testing::AssertionFailure()
         << "VerbatimBlockComment has lines[0] \"" << ActualLine0.str() << "\", "
            "expected \"" << Line0.str() << "\"";
 
-  StringRef ActualLine1 = VBC->getText(1);
+  StringRef const ActualLine1 = VBC->getText(1);
   if (ActualLine1 != Line1)
     return ::testing::AssertionFailure()
         << "VerbatimBlockComment has lines[1] \"" << ActualLine1.str() << "\", "
@@ -572,17 +572,17 @@ struct Lines {};
                                              VerbatimLineComment *&VLC,
                                              StringRef Name,
                                              StringRef Text) {
-  ::testing::AssertionResult AR = GetChildAt(C, Idx, VLC);
+  ::testing::AssertionResult const AR = GetChildAt(C, Idx, VLC);
   if (!AR)
     return AR;
 
-  StringRef ActualName = VLC->getCommandName(Traits);
+  StringRef const ActualName = VLC->getCommandName(Traits);
   if (ActualName != Name)
     return ::testing::AssertionFailure()
         << "VerbatimLineComment has name \"" << ActualName.str() << "\", "
            "expected \"" << Name.str() << "\"";
 
-  StringRef ActualText = VLC->getText();
+  StringRef const ActualText = VLC->getText();
   if (ActualText != Text)
     return ::testing::AssertionFailure()
         << "VerbatimLineComment has text \"" << ActualText.str() << "\", "

@@ -126,8 +126,8 @@ struct StaticDiagInfoRec {
   }
 
   StringRef getDescription() const {
-    size_t MyIndex = this - &StaticDiagInfo[0];
-    uint32_t StringOffset = StaticDiagInfoDescriptionOffsets[MyIndex];
+    size_t const MyIndex = this - &StaticDiagInfo[0];
+    uint32_t const StringOffset = StaticDiagInfoDescriptionOffsets[MyIndex];
     const char* Table = reinterpret_cast<const char*>(&StaticDiagInfoDescriptions);
     return StringRef(&Table[StringOffset], DescriptionLen);
   }
@@ -295,7 +295,7 @@ namespace {
 // access GetDefaultDiagMapping.
 DiagnosticMapping &
 DiagnosticsEngine::DiagState::getOrAddMapping(diag::kind Diag) {
-  std::pair<iterator, bool> Result =
+  std::pair<iterator, bool> const Result =
       DiagMap.insert(std::make_pair(Diag, DiagnosticMapping()));
 
   // Initialize the entry if we added it.
@@ -379,14 +379,14 @@ namespace clang {
 
       unsigned getOrCreateDiagID(DiagnosticIDs::Level L, StringRef Message,
                                  DiagnosticIDs &Diags) {
-        DiagDesc D(L, std::string(Message));
+        DiagDesc const D(L, std::string(Message));
         // Check to see if it already exists.
-        std::map<DiagDesc, unsigned>::iterator I = DiagIDs.lower_bound(D);
+        std::map<DiagDesc, unsigned>::iterator const I = DiagIDs.lower_bound(D);
         if (I != DiagIDs.end() && I->first == D)
           return I->second;
 
         // If not, assign a new ID.
-        unsigned ID = DiagInfo.size()+DIAG_UPPER_LIMIT;
+        unsigned const ID = DiagInfo.size()+DIAG_UPPER_LIMIT;
         DiagIDs.insert(std::make_pair(D, ID));
         DiagInfo.push_back(D);
         return ID;
@@ -494,7 +494,7 @@ DiagnosticIDs::getDiagnosticLevel(unsigned DiagID, SourceLocation Loc,
     return CustomDiagInfo->getLevel(DiagID);
   }
 
-  unsigned DiagClass = getBuiltinDiagClass(DiagID);
+  unsigned const DiagClass = getBuiltinDiagClass(DiagID);
   if (DiagClass == CLASS_NOTE) return DiagnosticIDs::Note;
   return toLevel(getDiagnosticSeverity(DiagID, Loc, Diag));
 }
@@ -516,7 +516,7 @@ DiagnosticIDs::getDiagnosticSeverity(unsigned DiagID, SourceLocation Loc,
 
   // Get the mapping information, or compute it lazily.
   DiagnosticsEngine::DiagState *State = Diag.GetDiagStateForLoc(Loc);
-  DiagnosticMapping &Mapping = State->getOrAddMapping((diag::kind)DiagID);
+  DiagnosticMapping  const&Mapping = State->getOrAddMapping((diag::kind)DiagID);
 
   // TODO: Can a null severity really get here?
   if (Mapping.getSeverity() != diag::Severity())
@@ -531,7 +531,7 @@ DiagnosticIDs::getDiagnosticSeverity(unsigned DiagID, SourceLocation Loc,
   // (The diagnostics controlled by -pedantic are the extension diagnostics
   // that are not enabled by default.)
   bool EnabledByDefault = false;
-  bool IsExtensionDiag = isBuiltinExtensionDiag(DiagID, EnabledByDefault);
+  bool const IsExtensionDiag = isBuiltinExtensionDiag(DiagID, EnabledByDefault);
   if (Diag.AllExtensionsSilenced && IsExtensionDiag && !EnabledByDefault)
     return diag::Severity::Ignored;
 
@@ -575,7 +575,7 @@ DiagnosticIDs::getDiagnosticSeverity(unsigned DiagID, SourceLocation Loc,
     Result = diag::Severity::Error;
 
   // Custom diagnostics always are emitted in system headers.
-  bool ShowInSystemHeader =
+  bool const ShowInSystemHeader =
       !GetDiagInfo(DiagID) || GetDiagInfo(DiagID)->WarnShowInSystemHeader;
 
   // If we are in a system header, we ignore it. We look at the diagnostic class
@@ -626,7 +626,7 @@ StringRef DiagnosticIDs::getWarningOptionForDiag(unsigned DiagID) {
 std::vector<std::string> DiagnosticIDs::getDiagnosticFlags() {
   std::vector<std::string> Res;
   for (size_t I = 1; DiagGroupNames[I] != '\0';) {
-    std::string Diag(DiagGroupNames + I + 1, DiagGroupNames[I]);
+    std::string const Diag(DiagGroupNames + I + 1, DiagGroupNames[I]);
     I += DiagGroupNames[I] + 1;
     Res.push_back("-W" + Diag);
     Res.push_back("-Wno-" + Diag);
@@ -692,7 +692,7 @@ StringRef DiagnosticIDs::getNearestOption(diag::Flavor Flavor,
     if (!O.Members && !O.SubGroups)
       continue;
 
-    unsigned Distance = O.getName().edit_distance(Group, true, BestDistance);
+    unsigned const Distance = O.getName().edit_distance(Group, true, BestDistance);
     if (Distance > BestDistance)
       continue;
 
@@ -717,13 +717,13 @@ StringRef DiagnosticIDs::getNearestOption(diag::Flavor Flavor,
 /// ProcessDiag - This is the method used to report a diagnostic that is
 /// finally fully formed.
 bool DiagnosticIDs::ProcessDiag(DiagnosticsEngine &Diag) const {
-  Diagnostic Info(&Diag);
+  Diagnostic const Info(&Diag);
 
   assert(Diag.getClient() && "DiagnosticClient not set!");
 
   // Figure out the diagnostic level of this message.
-  unsigned DiagID = Info.getID();
-  DiagnosticIDs::Level DiagLevel
+  unsigned const DiagID = Info.getID();
+  DiagnosticIDs::Level const DiagLevel
     = getDiagnosticLevel(DiagID, Info.getLocation(), Diag);
 
   // Update counts for DiagnosticErrorTrap even if a fatal error occurred
@@ -798,7 +798,7 @@ bool DiagnosticIDs::ProcessDiag(DiagnosticsEngine &Diag) const {
 }
 
 void DiagnosticIDs::EmitDiag(DiagnosticsEngine &Diag, Level DiagLevel) const {
-  Diagnostic Info(&Diag);
+  Diagnostic const Info(&Diag);
   assert(DiagLevel != DiagnosticIDs::Ignored && "Cannot emit ignored diagnostics!");
 
   Diag.Client->HandleDiagnostic((DiagnosticsEngine::Level)DiagLevel, Info);
@@ -833,6 +833,6 @@ bool DiagnosticIDs::isUnrecoverable(unsigned DiagID) const {
 }
 
 bool DiagnosticIDs::isARCDiagnostic(unsigned DiagID) {
-  unsigned cat = getCategoryNumberForDiag(DiagID);
+  unsigned const cat = getCategoryNumberForDiag(DiagID);
   return DiagnosticIDs::getCategoryNameFromID(cat).startswith("ARC ");
 }

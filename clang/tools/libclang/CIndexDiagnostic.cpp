@@ -181,7 +181,7 @@ CXDiagnosticSetImpl *cxdiag::lazyCreateDiags(CXTranslationUnit TU,
   if (!TU->Diagnostics) {
     CXDiagnosticSetImpl *Set = new CXDiagnosticSetImpl();
     TU->Diagnostics = Set;
-    IntrusiveRefCntPtr<DiagnosticOptions> DOpts = new DiagnosticOptions;
+    IntrusiveRefCntPtr<DiagnosticOptions> const DOpts = new DiagnosticOptions;
     CXDiagnosticRenderer Renderer(AU->getASTContext().getLangOpts(),
                                   &*DOpts, Set);
     
@@ -242,7 +242,7 @@ CXString clang_formatDiagnostic(CXDiagnostic Diagnostic, unsigned Options) {
   if (!Diagnostic)
     return cxstring::createEmpty();
 
-  CXDiagnosticSeverity Severity = clang_getDiagnosticSeverity(Diagnostic);
+  CXDiagnosticSeverity const Severity = clang_getDiagnosticSeverity(Diagnostic);
 
   SmallString<256> Str;
   llvm::raw_svector_ostream Out(Str);
@@ -255,18 +255,18 @@ CXString clang_formatDiagnostic(CXDiagnostic Diagnostic, unsigned Options) {
     clang_getSpellingLocation(clang_getDiagnosticLocation(Diagnostic),
                               &File, &Line, &Column, nullptr);
     if (File) {
-      CXString FName = clang_getFileName(File);
+      CXString const FName = clang_getFileName(File);
       Out << clang_getCString(FName) << ":" << Line << ":";
       clang_disposeString(FName);
       if (Options & CXDiagnostic_DisplayColumn)
         Out << Column << ":";
 
       if (Options & CXDiagnostic_DisplaySourceRanges) {
-        unsigned N = clang_getDiagnosticNumRanges(Diagnostic);
+        unsigned const N = clang_getDiagnosticNumRanges(Diagnostic);
         bool PrintedRange = false;
         for (unsigned I = 0; I != N; ++I) {
           CXFile StartFile, EndFile;
-          CXSourceRange Range = clang_getDiagnosticRange(Diagnostic, I);
+          CXSourceRange const Range = clang_getDiagnosticRange(Diagnostic, I);
           
           unsigned StartLine, StartColumn, EndLine, EndColumn;
           clang_getSpellingLocation(clang_getRangeStart(Range),
@@ -299,7 +299,7 @@ CXString clang_formatDiagnostic(CXDiagnostic Diagnostic, unsigned Options) {
   case CXDiagnostic_Fatal: Out << "fatal error: "; break;
   }
 
-  CXString Text = clang_getDiagnosticSpelling(Diagnostic);
+  CXString const Text = clang_getDiagnosticSpelling(Diagnostic);
   if (clang_getCString(Text))
     Out << clang_getCString(Text);
   else
@@ -312,7 +312,7 @@ CXString clang_formatDiagnostic(CXDiagnostic Diagnostic, unsigned Options) {
     bool NeedComma = false;
 
     if (Options & CXDiagnostic_DisplayOption) {
-      CXString OptionName = clang_getDiagnosticOption(Diagnostic, nullptr);
+      CXString const OptionName = clang_getDiagnosticOption(Diagnostic, nullptr);
       if (const char *OptionText = clang_getCString(OptionName)) {
         if (OptionText[0]) {
           Out << " [" << OptionText;
@@ -325,7 +325,7 @@ CXString clang_formatDiagnostic(CXDiagnostic Diagnostic, unsigned Options) {
     
     if (Options & (CXDiagnostic_DisplayCategoryId | 
                    CXDiagnostic_DisplayCategoryName)) {
-      if (unsigned CategoryID = clang_getDiagnosticCategory(Diagnostic)) {
+      if (unsigned const CategoryID = clang_getDiagnosticCategory(Diagnostic)) {
         if (Options & CXDiagnostic_DisplayCategoryId) {
           if (NeedBracket)
             Out << " [";
@@ -337,7 +337,7 @@ CXString clang_formatDiagnostic(CXDiagnostic Diagnostic, unsigned Options) {
         }
         
         if (Options & CXDiagnostic_DisplayCategoryName) {
-          CXString CategoryName = clang_getDiagnosticCategoryText(Diagnostic);
+          CXString const CategoryName = clang_getDiagnosticCategoryText(Diagnostic);
           if (NeedBracket)
             Out << " [";
           if (NeedComma)

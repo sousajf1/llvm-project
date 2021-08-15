@@ -38,9 +38,9 @@ public:
 
 bool CastToStructVisitor::VisitCastExpr(const CastExpr *CE) {
   const Expr *E = CE->getSubExpr();
-  ASTContext &Ctx = AC->getASTContext();
-  QualType OrigTy = Ctx.getCanonicalType(E->getType());
-  QualType ToTy = Ctx.getCanonicalType(CE->getType());
+  ASTContext  const&Ctx = AC->getASTContext();
+  QualType const OrigTy = Ctx.getCanonicalType(E->getType());
+  QualType const ToTy = Ctx.getCanonicalType(CE->getType());
 
   const PointerType *OrigPTy = dyn_cast<PointerType>(OrigTy.getTypePtr());
   const PointerType *ToPTy = dyn_cast<PointerType>(ToTy.getTypePtr());
@@ -48,8 +48,8 @@ bool CastToStructVisitor::VisitCastExpr(const CastExpr *CE) {
   if (!ToPTy || !OrigPTy)
     return true;
 
-  QualType OrigPointeeTy = OrigPTy->getPointeeType();
-  QualType ToPointeeTy = ToPTy->getPointeeType();
+  QualType const OrigPointeeTy = OrigPTy->getPointeeType();
+  QualType const ToPointeeTy = ToPTy->getPointeeType();
 
   if (!ToPointeeTy->isStructureOrClassType())
     return true;
@@ -60,8 +60,8 @@ bool CastToStructVisitor::VisitCastExpr(const CastExpr *CE) {
 
   // Now the cast-to-type is struct pointer, the original type is not void*.
   if (!OrigPointeeTy->isRecordType()) {
-    SourceRange Sr[1] = {CE->getSourceRange()};
-    PathDiagnosticLocation Loc(CE, BR.getSourceManager(), AC);
+    SourceRange const Sr[1] = {CE->getSourceRange()};
+    PathDiagnosticLocation const Loc(CE, BR.getSourceManager(), AC);
     BR.EmitBasicReport(
         AC->getDecl(), Checker, "Cast from non-struct type to struct type",
         categories::LogicError, "Casting a non-structure type to a structure "
@@ -88,12 +88,12 @@ bool CastToStructVisitor::VisitCastExpr(const CastExpr *CE) {
       return true;
 
     // Warn when there is widening cast.
-    unsigned ToWidth = Ctx.getTypeInfo(ToPointeeTy).Width;
-    unsigned OrigWidth = Ctx.getTypeInfo(OrigPointeeTy).Width;
+    unsigned const ToWidth = Ctx.getTypeInfo(ToPointeeTy).Width;
+    unsigned const OrigWidth = Ctx.getTypeInfo(OrigPointeeTy).Width;
     if (ToWidth <= OrigWidth)
       return true;
 
-    PathDiagnosticLocation Loc(CE, BR.getSourceManager(), AC);
+    PathDiagnosticLocation const Loc(CE, BR.getSourceManager(), AC);
     BR.EmitBasicReport(AC->getDecl(), Checker, "Widening cast to struct type",
                        categories::LogicError,
                        "Casting data to a larger structure type and accessing "

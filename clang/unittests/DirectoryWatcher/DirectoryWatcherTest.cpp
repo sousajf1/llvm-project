@@ -52,7 +52,7 @@ struct DirectoryWatcherTestFixture {
   DirectoryWatcherTestFixture() {
     SmallString<128> pathBuf;
 #ifndef NDEBUG
-    std::error_code UniqDirRes =
+    std::error_code const UniqDirRes =
 #endif
     createUniqueDirectory("dirwatcher", pathBuf);
     assert(!UniqDirRes);
@@ -60,7 +60,7 @@ struct DirectoryWatcherTestFixture {
     path::append(pathBuf, "watch");
     TestWatchedDir = std::string(pathBuf.str());
 #ifndef NDEBUG
-    std::error_code CreateDirRes =
+    std::error_code const CreateDirRes =
 #endif
     create_directory(TestWatchedDir, false);
     assert(!CreateDirRes);
@@ -88,7 +88,7 @@ struct DirectoryWatcherTestFixture {
   }
 
   void deleteFile(const std::string &testFile) {
-    std::error_code EC =
+    std::error_code const EC =
         remove(getPathInWatched(testFile), /*IgnoreNonExisting=*/false);
     ASSERT_FALSE(EC);
   }
@@ -250,14 +250,14 @@ struct VerifyingConsumer {
 void checkEventualResultWithTimeout(VerifyingConsumer &TestConsumer) {
   std::packaged_task<int(void)> task(
       [&TestConsumer]() { return TestConsumer.blockUntilResult(); });
-  std::future<int> WaitForExpectedStateResult = task.get_future();
+  std::future<int> const WaitForExpectedStateResult = task.get_future();
   std::thread worker(std::move(task));
   worker.detach();
 
   EXPECT_TRUE(WaitForExpectedStateResult.wait_for(EventualResultTimeout) ==
               std::future_status::ready)
       << "The expected result state wasn't reached before the time-out.";
-  std::unique_lock<std::mutex> L(TestConsumer.Mtx);
+  std::unique_lock<std::mutex> const L(TestConsumer.Mtx);
   EXPECT_TRUE(TestConsumer.result().hasValue());
   if (TestConsumer.result().hasValue()) {
     EXPECT_TRUE(*TestConsumer.result());
@@ -418,7 +418,7 @@ TEST(DirectoryWatcherTest, DeleteFile) {
 }
 
 TEST(DirectoryWatcherTest, DeleteWatchedDir) {
-  DirectoryWatcherTestFixture fixture;
+  DirectoryWatcherTestFixture const fixture;
 
   VerifyingConsumer TestConsumer{
       {},
@@ -441,7 +441,7 @@ TEST(DirectoryWatcherTest, DeleteWatchedDir) {
 }
 
 TEST(DirectoryWatcherTest, InvalidatedWatcher) {
-  DirectoryWatcherTestFixture fixture;
+  DirectoryWatcherTestFixture const fixture;
 
   VerifyingConsumer TestConsumer{
       {}, {{EventKind::WatcherGotInvalidated, ""}}};

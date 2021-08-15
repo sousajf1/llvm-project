@@ -58,7 +58,7 @@ TemplateParameterList::TemplateParameterList(const ASTContext& C,
     NamedDecl *P = Params[Idx];
     begin()[Idx] = P;
 
-    bool IsPack = P->isTemplateParameterPack();
+    bool const IsPack = P->isTemplateParameterPack();
     if (const auto *NTTP = dyn_cast<NonTypeTemplateParmDecl>(P)) {
       if (!IsPack && NTTP->getType()->containsUnexpandedParameterPack())
         ContainsUnexpandedParameterPack = true;
@@ -285,7 +285,7 @@ void RedeclarableTemplateDecl::loadLazySpecializationsImpl() const {
   // redeclarations of this template.
   CommonBase *CommonBasePtr = getMostRecentDecl()->getCommonPtr();
   if (CommonBasePtr->LazySpecializations) {
-    ASTContext &Context = getASTContext();
+    ASTContext  const&Context = getASTContext();
     uint32_t *Specs = CommonBasePtr->LazySpecializations;
     CommonBasePtr->LazySpecializations = nullptr;
     for (uint32_t I = 0, N = *Specs++; I != N; ++I)
@@ -565,7 +565,7 @@ void ClassTemplateDecl::getPartialSpecializations(
 
 ClassTemplatePartialSpecializationDecl *
 ClassTemplateDecl::findPartialSpecialization(QualType T) {
-  ASTContext &Context = getASTContext();
+  ASTContext  const&Context = getASTContext();
   for (ClassTemplatePartialSpecializationDecl &P :
        getPartialSpecializations()) {
     if (Context.hasSameType(P.getInjectedSpecializationType(), T))
@@ -626,7 +626,7 @@ TemplateTypeParmDecl::Create(const ASTContext &C, DeclContext *DC,
            additionalSizeToAlloc<TypeConstraint>(HasTypeConstraint ? 1 : 0))
       TemplateTypeParmDecl(DC, KeyLoc, NameLoc, Id, Typename,
                            HasTypeConstraint, NumExpanded);
-  QualType TTPType = C.getTemplateTypeParmType(D, P, ParameterPack, TTPDecl);
+  QualType const TTPType = C.getTemplateTypeParmType(D, P, ParameterPack, TTPDecl);
   TTPDecl->setTypeForDecl(TTPType.getTypePtr());
   return TTPDecl;
 }
@@ -988,7 +988,7 @@ ClassTemplateSpecializationDecl::getSourceRange() const {
     // No explicit info available.
     llvm::PointerUnion<ClassTemplateDecl *,
                        ClassTemplatePartialSpecializationDecl *>
-      inst_from = getInstantiatedFrom();
+      const inst_from = getInstantiatedFrom();
     if (inst_from.isNull())
       return getSpecializedTemplate()->getSourceRange();
     if (const auto *ctd = inst_from.dyn_cast<ClassTemplateDecl *>())
@@ -1380,7 +1380,7 @@ createMakeIntegerSeqParameterList(const ASTContext &C, DeclContext *DC) {
   N->setImplicit(true);
 
   // <typename T, T ...Ints>
-  NamedDecl *P[2] = {T, N};
+  NamedDecl *const P[2] = {T, N};
   auto *TPL = TemplateParameterList::Create(
       C, SourceLocation(), SourceLocation(), P, SourceLocation(), nullptr);
 
@@ -1403,7 +1403,7 @@ createMakeIntegerSeqParameterList(const ASTContext &C, DeclContext *DC) {
   auto *NonTypeTemplateParm = NonTypeTemplateParmDecl::Create(
       C, DC, SourceLocation(), SourceLocation(), /*Depth=*/0, /*Position=*/2,
       /*Id=*/nullptr, TInfo->getType(), /*ParameterPack=*/false, TInfo);
-  NamedDecl *Params[] = {TemplateTemplateParm, TemplateTypeParm,
+  NamedDecl *const Params[] = {TemplateTemplateParm, TemplateTypeParm,
                          NonTypeTemplateParm};
 
   // template <template <typename T, T ...Ints> class IntSeq, typename T, T N>
@@ -1427,7 +1427,7 @@ createTypePackElementParameterList(const ASTContext &C, DeclContext *DC) {
   Ts->setImplicit(true);
 
   // template <std::size_t Index, typename ...T>
-  NamedDecl *Params[] = {Index, Ts};
+  NamedDecl *const Params[] = {Index, Ts};
   return TemplateParameterList::Create(C, SourceLocation(), SourceLocation(),
                                        llvm::makeArrayRef(Params),
                                        SourceLocation(), nullptr);

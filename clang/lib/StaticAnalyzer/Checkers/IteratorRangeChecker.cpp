@@ -146,9 +146,9 @@ void IteratorRangeChecker::checkPreStmt(const UnaryOperator *UO,
   if (isa<CXXThisExpr>(UO->getSubExpr()))
     return;
 
-  ProgramStateRef State = C.getState();
-  UnaryOperatorKind OK = UO->getOpcode();
-  SVal SubVal = State->getSVal(UO->getSubExpr(), C.getLocationContext());
+  ProgramStateRef const State = C.getState();
+  UnaryOperatorKind const OK = UO->getOpcode();
+  SVal const SubVal = State->getSVal(UO->getSubExpr(), C.getLocationContext());
 
   if (isDereferenceOperator(OK)) {
     verifyDereference(C, SubVal);
@@ -161,14 +161,14 @@ void IteratorRangeChecker::checkPreStmt(const UnaryOperator *UO,
 
 void IteratorRangeChecker::checkPreStmt(const BinaryOperator *BO,
                                         CheckerContext &C) const {
-  ProgramStateRef State = C.getState();
-  BinaryOperatorKind OK = BO->getOpcode();
-  SVal LVal = State->getSVal(BO->getLHS(), C.getLocationContext());
+  ProgramStateRef const State = C.getState();
+  BinaryOperatorKind const OK = BO->getOpcode();
+  SVal const LVal = State->getSVal(BO->getLHS(), C.getLocationContext());
 
   if (isDereferenceOperator(OK)) {
     verifyDereference(C, LVal);
   } else if (isRandomIncrOrDecrOperator(OK)) {
-    SVal RVal = State->getSVal(BO->getRHS(), C.getLocationContext());
+    SVal const RVal = State->getSVal(BO->getRHS(), C.getLocationContext());
     if (!BO->getRHS()->getType()->isIntegralOrEnumerationType())
       return;
     verifyRandomIncrOrDecr(C, BinaryOperator::getOverloadedOperator(OK), LVal,
@@ -178,8 +178,8 @@ void IteratorRangeChecker::checkPreStmt(const BinaryOperator *BO,
 
 void IteratorRangeChecker::checkPreStmt(const ArraySubscriptExpr *ASE,
                                         CheckerContext &C) const {
-  ProgramStateRef State = C.getState();
-  SVal LVal = State->getSVal(ASE->getLHS(), C.getLocationContext());
+  ProgramStateRef const State = C.getState();
+  SVal const LVal = State->getSVal(ASE->getLHS(), C.getLocationContext());
   verifyDereference(C, LVal);
 }
 
@@ -188,8 +188,8 @@ void IteratorRangeChecker::checkPreStmt(const MemberExpr *ME,
   if (!ME->isArrow() || ME->isImplicitAccess())
     return;
 
-  ProgramStateRef State = C.getState();
-  SVal BaseVal = State->getSVal(ME->getBase(), C.getLocationContext());
+  ProgramStateRef const State = C.getState();
+  SVal const BaseVal = State->getSVal(ME->getBase(), C.getLocationContext());
   verifyDereference(C, BaseVal);
 }
 

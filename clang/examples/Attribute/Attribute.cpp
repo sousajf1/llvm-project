@@ -50,7 +50,7 @@ struct ExampleAttrInfo : public ParsedAttrInfo {
                                    const ParsedAttr &Attr) const override {
     // Check if the decl is at file scope.
     if (!D->getDeclContext()->isFileContext()) {
-      unsigned ID = S.getDiagnostics().getCustomDiagID(
+      unsigned const ID = S.getDiagnostics().getCustomDiagID(
           DiagnosticsEngine::Error,
           "'example' attribute only allowed at file scope");
       S.Diag(Attr.getLoc(), ID);
@@ -60,7 +60,7 @@ struct ExampleAttrInfo : public ParsedAttrInfo {
     // 1. Only accept at most 3 arguments here.
     // 2. The first argument must be a string literal if it exists.
     if (Attr.getNumArgs() > 3) {
-      unsigned ID = S.getDiagnostics().getCustomDiagID(
+      unsigned const ID = S.getDiagnostics().getCustomDiagID(
           DiagnosticsEngine::Error,
           "'example' attribute only accepts at most three arguments");
       S.Diag(Attr.getLoc(), ID);
@@ -72,7 +72,7 @@ struct ExampleAttrInfo : public ParsedAttrInfo {
       StringLiteral *Literal =
           dyn_cast<StringLiteral>(Arg0->IgnoreParenCasts());
       if (!Literal) {
-        unsigned ID = S.getDiagnostics().getCustomDiagID(
+        unsigned const ID = S.getDiagnostics().getCustomDiagID(
             DiagnosticsEngine::Error, "first argument to the 'example' "
                                       "attribute must be a string literal");
         S.Diag(Attr.getLoc(), ID);

@@ -116,7 +116,7 @@ void LogDiagnosticPrinter::HandleDiagnostic(DiagnosticsEngine::Level Level,
   // Initialize the main file name, if we haven't already fetched it.
   if (MainFilename.empty() && Info.hasSourceManager()) {
     const SourceManager &SM = Info.getSourceManager();
-    FileID FID = SM.getMainFileID();
+    FileID const FID = SM.getMainFileID();
     if (FID.isValid()) {
       const FileEntry *FE = SM.getFileEntryForID(FID);
       if (FE && FE->isValid())
@@ -142,11 +142,11 @@ void LogDiagnosticPrinter::HandleDiagnostic(DiagnosticsEngine::Level Level,
   DE.Line = DE.Column = 0;
   if (Info.getLocation().isValid() && Info.hasSourceManager()) {
     const SourceManager &SM = Info.getSourceManager();
-    PresumedLoc PLoc = SM.getPresumedLoc(Info.getLocation());
+    PresumedLoc const PLoc = SM.getPresumedLoc(Info.getLocation());
 
     if (PLoc.isInvalid()) {
       // At least print the file name if available:
-      FileID FID = SM.getFileID(Info.getLocation());
+      FileID const FID = SM.getFileID(Info.getLocation());
       if (FID.isValid()) {
         const FileEntry *FE = SM.getFileEntryForID(FID);
         if (FE && FE->isValid())

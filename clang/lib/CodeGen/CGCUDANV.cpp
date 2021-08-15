@@ -89,7 +89,7 @@ private:
                                      const std::string &Name = "",
                                      const std::string &SectionName = "",
                                      unsigned Alignment = 0) {
-    llvm::Constant *Zeros[] = {llvm::ConstantInt::get(SizeTy, 0),
+    llvm::Constant *const Zeros[] = {llvm::ConstantInt::get(SizeTy, 0),
                                llvm::ConstantInt::get(SizeTy, 0)};
     auto ConstStr = CGM.GetAddrOfConstantCString(Str, Name.c_str());
     llvm::GlobalVariable *GV =
@@ -213,7 +213,7 @@ CGNVCUDARuntime::CGNVCUDARuntime(CodeGenModule &CGM)
       RelocatableDeviceCode(CGM.getLangOpts().GPURelocatableDeviceCode),
       DeviceMC(InitDeviceMC(CGM)) {
   CodeGen::CodeGenTypes &Types = CGM.getTypes();
-  ASTContext &Ctx = CGM.getContext();
+  ASTContext  const&Ctx = CGM.getContext();
 
   IntTy = CGM.IntTy;
   SizeTy = CGM.SizeTy;
@@ -226,7 +226,7 @@ CGNVCUDARuntime::CGNVCUDARuntime(CodeGenModule &CGM)
 
 llvm::FunctionCallee CGNVCUDARuntime::getSetupArgumentFn() const {
   // cudaError_t cudaSetupArgument(void *, size_t, size_t)
-  llvm::Type *Params[] = {VoidPtrTy, SizeTy, SizeTy};
+  llvm::Type *const Params[] = {VoidPtrTy, SizeTy, SizeTy};
   return CGM.CreateRuntimeFunction(
       llvm::FunctionType::get(IntTy, Params, false),
       addPrefixToName("SetupArgument"));
@@ -255,7 +255,7 @@ llvm::FunctionType *CGNVCUDARuntime::getCallbackFnTy() const {
 llvm::FunctionType *CGNVCUDARuntime::getRegisterLinkedBinaryFnTy() const {
   auto CallbackFnTy = getCallbackFnTy();
   auto RegisterGlobalsFnTy = getRegisterGlobalsFnTy();
-  llvm::Type *Params[] = {RegisterGlobalsFnTy->getPointerTo(), VoidPtrTy,
+  llvm::Type *const Params[] = {RegisterGlobalsFnTy->getPointerTo(), VoidPtrTy,
                           VoidPtrTy, CallbackFnTy->getPointerTo()};
   return llvm::FunctionType::get(VoidTy, Params, false);
 }
@@ -318,7 +318,7 @@ void CGNVCUDARuntime::emitDeviceStubBodyNew(CodeGenFunction &CGF,
   // Calculate amount of space we will need for all arguments.  If we have no
   // args, allocate a single pointer so we still have a valid pointer to the
   // argument array that we can pass to runtime, even if it will be unused.
-  Address KernelArgs = CGF.CreateTempAlloca(
+  Address const KernelArgs = CGF.CreateTempAlloca(
       VoidPtrTy, CharUnits::fromQuantity(16), "kernel_args",
       llvm::ConstantInt::get(SizeTy, std::max<size_t>(1, Args.size())));
   // Store pointers to the arguments in a locally allocated launch_args.
@@ -342,7 +342,7 @@ void CGNVCUDARuntime::emitDeviceStubBodyNew(CodeGenFunction &CGF,
   TranslationUnitDecl *TUDecl = CGM.getContext().getTranslationUnitDecl();
   DeclContext *DC = TranslationUnitDecl::castToDeclContext(TUDecl);
   auto LaunchKernelName = addPrefixToName("LaunchKernel");
-  IdentifierInfo &cudaLaunchKernelII =
+  IdentifierInfo  const&cudaLaunchKernelII =
       CGM.getContext().Idents.get(LaunchKernelName);
   FunctionDecl *cudaLaunchKernelFD = nullptr;
   for (auto *Result : DC->lookup(&cudaLaunchKernelII)) {
@@ -357,16 +357,16 @@ void CGNVCUDARuntime::emitDeviceStubBodyNew(CodeGenFunction &CGF,
   }
   // Create temporary dim3 grid_dim, block_dim.
   ParmVarDecl *GridDimParam = cudaLaunchKernelFD->getParamDecl(1);
-  QualType Dim3Ty = GridDimParam->getType();
-  Address GridDim =
+  QualType const Dim3Ty = GridDimParam->getType();
+  Address const GridDim =
       CGF.CreateMemTemp(Dim3Ty, CharUnits::fromQuantity(8), "grid_dim");
-  Address BlockDim =
+  Address const BlockDim =
       CGF.CreateMemTemp(Dim3Ty, CharUnits::fromQuantity(8), "block_dim");
-  Address ShmemSize =
+  Address const ShmemSize =
       CGF.CreateTempAlloca(SizeTy, CGM.getSizeAlign(), "shmem_size");
-  Address Stream =
+  Address const Stream =
       CGF.CreateTempAlloca(VoidPtrTy, CGM.getPointerAlign(), "stream");
-  llvm::FunctionCallee cudaPopConfigFn = CGM.CreateRuntimeFunction(
+  llvm::FunctionCallee const cudaPopConfigFn = CGM.CreateRuntimeFunction(
       llvm::FunctionType::get(IntTy,
                               {/*gridDim=*/GridDim.getType(),
                                /*blockDim=*/BlockDim.getType(),
@@ -394,14 +394,14 @@ void CGNVCUDARuntime::emitDeviceStubBodyNew(CodeGenFunction &CGF,
   LaunchKernelArgs.add(RValue::get(CGF.Builder.CreateLoad(Stream)),
                        cudaLaunchKernelFD->getParamDecl(5)->getType());
 
-  QualType QT = cudaLaunchKernelFD->getType();
-  QualType CQT = QT.getCanonicalType();
+  QualType const QT = cudaLaunchKernelFD->getType();
+  QualType const CQT = QT.getCanonicalType();
   llvm::Type *Ty = CGM.getTypes().ConvertType(CQT);
   llvm::FunctionType *FTy = dyn_cast<llvm::FunctionType>(Ty);
 
   const CGFunctionInfo &FI =
       CGM.getTypes().arrangeFunctionDeclaration(cudaLaunchKernelFD);
-  llvm::FunctionCallee cudaLaunchKernelFn =
+  llvm::FunctionCallee const cudaLaunchKernelFn =
       CGM.CreateRuntimeFunction(FTy, LaunchKernelName);
   CGF.EmitCall(FI, CGCallee::forDirect(cudaLaunchKernelFn), ReturnValueSlot(),
                LaunchKernelArgs);
@@ -413,13 +413,13 @@ void CGNVCUDARuntime::emitDeviceStubBodyNew(CodeGenFunction &CGF,
 void CGNVCUDARuntime::emitDeviceStubBodyLegacy(CodeGenFunction &CGF,
                                                FunctionArgList &Args) {
   // Emit a call to cudaSetupArgument for each arg in Args.
-  llvm::FunctionCallee cudaSetupArgFn = getSetupArgumentFn();
+  llvm::FunctionCallee const cudaSetupArgFn = getSetupArgumentFn();
   llvm::BasicBlock *EndBlock = CGF.createBasicBlock("setup.end");
   CharUnits Offset = CharUnits::Zero();
   for (const VarDecl *A : Args) {
     auto TInfo = CGM.getContext().getTypeInfoInChars(A->getType());
     Offset = Offset.alignTo(TInfo.Align);
-    llvm::Value *Args[] = {
+    llvm::Value *const Args[] = {
         CGF.Builder.CreatePointerCast(CGF.GetAddrOfLocalVar(A).getPointer(),
                                       VoidPtrTy),
         llvm::ConstantInt::get(SizeTy, TInfo.Width.getQuantity()),
@@ -435,7 +435,7 @@ void CGNVCUDARuntime::emitDeviceStubBodyLegacy(CodeGenFunction &CGF,
   }
 
   // Emit the call to cudaLaunch
-  llvm::FunctionCallee cudaLaunchFn = getLaunchFn();
+  llvm::FunctionCallee const cudaLaunchFn = getLaunchFn();
   llvm::Value *Arg =
       CGF.Builder.CreatePointerCast(KernelHandles[CGF.CurFn], CharPtrTy);
   CGF.EmitRuntimeCallOrInvoke(cudaLaunchFn, Arg);
@@ -514,10 +514,10 @@ llvm::Function *CGNVCUDARuntime::makeRegisterGlobalsFn() {
 
   // void __cudaRegisterFunction(void **, const char *, char *, const char *,
   //                             int, uint3*, uint3*, dim3*, dim3*, int*)
-  llvm::Type *RegisterFuncParams[] = {
+  llvm::Type *const RegisterFuncParams[] = {
       VoidPtrPtrTy, CharPtrTy, CharPtrTy, CharPtrTy, IntTy,
       VoidPtrTy,    VoidPtrTy, VoidPtrTy, VoidPtrTy, IntTy->getPointerTo()};
-  llvm::FunctionCallee RegisterFunc = CGM.CreateRuntimeFunction(
+  llvm::FunctionCallee const RegisterFunc = CGM.CreateRuntimeFunction(
       llvm::FunctionType::get(IntTy, RegisterFuncParams, false),
       addUnderscoredPrefixToName("RegisterFunction"));
 
@@ -529,7 +529,7 @@ llvm::Function *CGNVCUDARuntime::makeRegisterGlobalsFn() {
     llvm::Constant *KernelName =
         makeConstantString(getDeviceSideName(cast<NamedDecl>(I.D)));
     llvm::Constant *NullPtr = llvm::ConstantPointerNull::get(VoidPtrTy);
-    llvm::Value *Args[] = {
+    llvm::Value *const Args[] = {
         &GpuBinaryHandlePtr,
         Builder.CreateBitCast(KernelHandles[I.Kernel], VoidPtrTy),
         KernelName,
@@ -551,29 +551,29 @@ llvm::Function *CGNVCUDARuntime::makeRegisterGlobalsFn() {
 
   // void __cudaRegisterVar(void **, char *, char *, const char *,
   //                        int, int, int, int)
-  llvm::Type *RegisterVarParams[] = {VoidPtrPtrTy, CharPtrTy, CharPtrTy,
+  llvm::Type *const RegisterVarParams[] = {VoidPtrPtrTy, CharPtrTy, CharPtrTy,
                                      CharPtrTy,    IntTy,     VarSizeTy,
                                      IntTy,        IntTy};
-  llvm::FunctionCallee RegisterVar = CGM.CreateRuntimeFunction(
+  llvm::FunctionCallee const RegisterVar = CGM.CreateRuntimeFunction(
       llvm::FunctionType::get(VoidTy, RegisterVarParams, false),
       addUnderscoredPrefixToName("RegisterVar"));
   // void __hipRegisterManagedVar(void **, char *, char *, const char *,
   //                              size_t, unsigned)
-  llvm::Type *RegisterManagedVarParams[] = {VoidPtrPtrTy, CharPtrTy, CharPtrTy,
+  llvm::Type *const RegisterManagedVarParams[] = {VoidPtrPtrTy, CharPtrTy, CharPtrTy,
                                             CharPtrTy,    VarSizeTy, IntTy};
-  llvm::FunctionCallee RegisterManagedVar = CGM.CreateRuntimeFunction(
+  llvm::FunctionCallee const RegisterManagedVar = CGM.CreateRuntimeFunction(
       llvm::FunctionType::get(VoidTy, RegisterManagedVarParams, false),
       addUnderscoredPrefixToName("RegisterManagedVar"));
   // void __cudaRegisterSurface(void **, const struct surfaceReference *,
   //                            const void **, const char *, int, int);
-  llvm::FunctionCallee RegisterSurf = CGM.CreateRuntimeFunction(
+  llvm::FunctionCallee const RegisterSurf = CGM.CreateRuntimeFunction(
       llvm::FunctionType::get(
           VoidTy, {VoidPtrPtrTy, VoidPtrTy, CharPtrTy, CharPtrTy, IntTy, IntTy},
           false),
       addUnderscoredPrefixToName("RegisterSurface"));
   // void __cudaRegisterTexture(void **, const struct textureReference *,
   //                            const void **, const char *, int, int, int)
-  llvm::FunctionCallee RegisterTex = CGM.CreateRuntimeFunction(
+  llvm::FunctionCallee const RegisterTex = CGM.CreateRuntimeFunction(
       llvm::FunctionType::get(
           VoidTy,
           {VoidPtrPtrTy, VoidPtrTy, CharPtrTy, CharPtrTy, IntTy, IntTy, IntTy},
@@ -587,7 +587,7 @@ llvm::Function *CGNVCUDARuntime::makeRegisterGlobalsFn() {
     llvm::Constant *VarName = makeConstantString(getDeviceSideName(Info.D));
     switch (Info.Flags.getKind()) {
     case DeviceVarFlags::Variable: {
-      uint64_t VarSize =
+      uint64_t const VarSize =
           CGM.getDataLayout().getTypeAllocSize(Var->getValueType());
       if (Info.Flags.isManaged()) {
         auto ManagedVar = new llvm::GlobalVariable(
@@ -604,7 +604,7 @@ llvm::Function *CGNVCUDARuntime::makeRegisterGlobalsFn() {
         ManagedVar->takeName(Var);
         Var->setName(Twine(ManagedVar->getName() + ".managed"));
         replaceManagedVar(Var, ManagedVar);
-        llvm::Value *Args[] = {
+        llvm::Value *const Args[] = {
             &GpuBinaryHandlePtr,
             Builder.CreateBitCast(ManagedVar, VoidPtrTy),
             Builder.CreateBitCast(Var, VoidPtrTy),
@@ -614,7 +614,7 @@ llvm::Function *CGNVCUDARuntime::makeRegisterGlobalsFn() {
         if (!Var->isDeclaration())
           Builder.CreateCall(RegisterManagedVar, Args);
       } else {
-        llvm::Value *Args[] = {
+        llvm::Value *const Args[] = {
             &GpuBinaryHandlePtr,
             Builder.CreateBitCast(Var, VoidPtrTy),
             VarName,
@@ -669,10 +669,10 @@ llvm::Function *CGNVCUDARuntime::makeRegisterGlobalsFn() {
 /// }
 /// \endcode
 llvm::Function *CGNVCUDARuntime::makeModuleCtorFunction() {
-  bool IsHIP = CGM.getLangOpts().HIP;
-  bool IsCUDA = CGM.getLangOpts().CUDA;
+  bool const IsHIP = CGM.getLangOpts().HIP;
+  bool const IsCUDA = CGM.getLangOpts().CUDA;
   // No need to generate ctors/dtors if there is no GPU binary.
-  StringRef CudaGpuBinaryFileName = CGM.getCodeGenOpts().CudaGpuBinaryFileName;
+  StringRef const CudaGpuBinaryFileName = CGM.getCodeGenOpts().CudaGpuBinaryFileName;
   if (CudaGpuBinaryFileName.empty() && !IsHIP)
     return nullptr;
   if ((IsHIP || (IsCUDA && !RelocatableDeviceCode)) && EmittedKernels.empty() &&
@@ -687,7 +687,7 @@ llvm::Function *CGNVCUDARuntime::makeModuleCtorFunction() {
     RegisterGlobalsFunc = makeDummyFunction(getRegisterGlobalsFnTy());
 
   // void ** __{cuda|hip}RegisterFatBinary(void *);
-  llvm::FunctionCallee RegisterFatbinFunc = CGM.CreateRuntimeFunction(
+  llvm::FunctionCallee const RegisterFatbinFunc = CGM.CreateRuntimeFunction(
       llvm::FunctionType::get(VoidPtrPtrTy, VoidPtrTy, false),
       addUnderscoredPrefixToName("RegisterFatBinary"));
   // struct { int magic, int version, void * gpu_binary, void * dont_care };
@@ -702,7 +702,7 @@ llvm::Function *CGNVCUDARuntime::makeModuleCtorFunction() {
   if (!CudaGpuBinaryFileName.empty()) {
     llvm::ErrorOr<std::unique_ptr<llvm::MemoryBuffer>> CudaGpuBinaryOrErr =
         llvm::MemoryBuffer::getFileOrSTDIN(CudaGpuBinaryFileName);
-    if (std::error_code EC = CudaGpuBinaryOrErr.getError()) {
+    if (std::error_code const EC = CudaGpuBinaryOrErr.getError()) {
       CGM.getDiags().Report(diag::err_cannot_open_file)
           << CudaGpuBinaryFileName << EC.message();
       return nullptr;
@@ -819,7 +819,7 @@ llvm::Function *CGNVCUDARuntime::makeModuleCtorFunction() {
     // Prevent the weak symbol in different shared libraries being merged.
     if (Linkage != llvm::GlobalValue::InternalLinkage)
       GpuBinaryHandle->setVisibility(llvm::GlobalValue::HiddenVisibility);
-    Address GpuBinaryAddr(
+    Address const GpuBinaryAddr(
         GpuBinaryHandle,
         CharUnits::fromQuantity(GpuBinaryHandle->getAlignment()));
     {
@@ -868,7 +868,7 @@ llvm::Function *CGNVCUDARuntime::makeModuleCtorFunction() {
     if (CudaFeatureEnabled(CGM.getTarget().getSDKVersion(),
                            CudaFeature::CUDA_USES_FATBIN_REGISTER_END)) {
       // void __cudaRegisterFatBinaryEnd(void **);
-      llvm::FunctionCallee RegisterFatbinEndFunc = CGM.CreateRuntimeFunction(
+      llvm::FunctionCallee const RegisterFatbinEndFunc = CGM.CreateRuntimeFunction(
           llvm::FunctionType::get(VoidTy, VoidPtrPtrTy, false),
           "__cudaRegisterFatBinaryEnd");
       CtorBuilder.CreateCall(RegisterFatbinEndFunc, RegisterFatbinCall);
@@ -889,11 +889,11 @@ llvm::Function *CGNVCUDARuntime::makeModuleCtorFunction() {
     // void *, void (*)(void **))
     SmallString<128> RegisterLinkedBinaryName("__cudaRegisterLinkedBinary");
     RegisterLinkedBinaryName += ModuleID;
-    llvm::FunctionCallee RegisterLinkedBinaryFunc = CGM.CreateRuntimeFunction(
+    llvm::FunctionCallee const RegisterLinkedBinaryFunc = CGM.CreateRuntimeFunction(
         getRegisterLinkedBinaryFnTy(), RegisterLinkedBinaryName);
 
     assert(RegisterGlobalsFunc && "Expecting at least dummy function!");
-    llvm::Value *Args[] = {RegisterGlobalsFunc,
+    llvm::Value *const Args[] = {RegisterGlobalsFunc,
                            CtorBuilder.CreateBitCast(FatbinWrapper, VoidPtrTy),
                            ModuleIDConstant,
                            makeDummyFunction(getCallbackFnTy())};
@@ -907,7 +907,7 @@ llvm::Function *CGNVCUDARuntime::makeModuleCtorFunction() {
     // extern "C" int atexit(void (*f)(void));
     llvm::FunctionType *AtExitTy =
         llvm::FunctionType::get(IntTy, CleanupFn->getType(), false);
-    llvm::FunctionCallee AtExitFunc =
+    llvm::FunctionCallee const AtExitFunc =
         CGM.CreateRuntimeFunction(AtExitTy, "atexit", llvm::AttributeList(),
                                   /*Local=*/true);
     CtorBuilder.CreateCall(AtExitFunc, CleanupFn);
@@ -942,7 +942,7 @@ llvm::Function *CGNVCUDARuntime::makeModuleDtorFunction() {
     return nullptr;
 
   // void __cudaUnregisterFatBinary(void ** handle);
-  llvm::FunctionCallee UnregisterFatbinFunc = CGM.CreateRuntimeFunction(
+  llvm::FunctionCallee const UnregisterFatbinFunc = CGM.CreateRuntimeFunction(
       llvm::FunctionType::get(VoidTy, VoidPtrPtrTy, false),
       addUnderscoredPrefixToName("UnregisterFatBinary"));
 
@@ -956,7 +956,7 @@ llvm::Function *CGNVCUDARuntime::makeModuleDtorFunction() {
   CGBuilderTy DtorBuilder(CGM, Context);
   DtorBuilder.SetInsertPoint(DtorEntryBB);
 
-  Address GpuBinaryAddr(GpuBinaryHandle, CharUnits::fromQuantity(
+  Address const GpuBinaryAddr(GpuBinaryHandle, CharUnits::fromQuantity(
                                              GpuBinaryHandle->getAlignment()));
   auto HandleValue = DtorBuilder.CreateLoad(GpuBinaryAddr);
   // There is only one HIP fat binary per linked module, however there are

@@ -153,7 +153,7 @@ FileManager::getDirectoryRef(StringRef DirName, bool CacheFailure) {
 
   // Get the null-terminated directory name as stored as the key of the
   // SeenDirEntries map.
-  StringRef InterndDirName = NamedDirEnt.first();
+  StringRef const InterndDirName = NamedDirEnt.first();
 
   // Check to see if the directory exists.
   llvm::vfs::Status Status;
@@ -213,7 +213,7 @@ FileManager::getFileRef(StringRef Filename, bool openFile, bool CacheFailure) {
           SeenFileInsertResult.first->second.getError());
     // Construct and return and FileEntryRef, unless it's a redirect to another
     // filename.
-    FileEntryRef::MapValue Value = *SeenFileInsertResult.first->second;
+    FileEntryRef::MapValue const Value = *SeenFileInsertResult.first->second;
     if (LLVM_LIKELY(Value.V.is<FileEntry *>()))
       return FileEntryRef(*SeenFileInsertResult.first);
     return FileEntryRef(*reinterpret_cast<const FileEntryRef::MapEntry *>(
@@ -227,7 +227,7 @@ FileManager::getFileRef(StringRef Filename, bool openFile, bool CacheFailure) {
 
   // Get the null-terminated file name as stored as the key of the
   // SeenFileEntries map.
-  StringRef InterndFileName = NamedFileEnt->first();
+  StringRef const InterndFileName = NamedFileEnt->first();
 
   // Look up the directory for the file.  When looking up something like
   // sys/foo.h we'll discover all of the search directories that have a 'sys'
@@ -236,7 +236,7 @@ FileManager::getFileRef(StringRef Filename, bool openFile, bool CacheFailure) {
   // without a 'sys' subdir will get a cached failure result.
   auto DirInfoOrErr = getDirectoryFromFile(*this, Filename, CacheFailure);
   if (!DirInfoOrErr) { // Directory doesn't exist, file can't exist.
-    std::error_code Err = errorToErrorCode(DirInfoOrErr.takeError());
+    std::error_code const Err = errorToErrorCode(DirInfoOrErr.takeError());
     if (CacheFailure)
       NamedFileEnt->second = Err;
     else
@@ -244,7 +244,7 @@ FileManager::getFileRef(StringRef Filename, bool openFile, bool CacheFailure) {
 
     return llvm::errorCodeToError(Err);
   }
-  DirectoryEntryRef DirInfo = *DirInfoOrErr;
+  DirectoryEntryRef const DirInfo = *DirInfoOrErr;
 
   // FIXME: Use the directory info to prune this, before doing the stat syscall.
   // FIXME: This will reduce the # syscalls.
@@ -370,7 +370,7 @@ FileEntryRef FileManager::getVirtualFileRef(StringRef Filename, off_t Size,
   auto &NamedFileEnt = *SeenFileEntries.insert(
       {Filename, std::errc::no_such_file_or_directory}).first;
   if (NamedFileEnt.second) {
-    FileEntryRef::MapValue Value = *NamedFileEnt.second;
+    FileEntryRef::MapValue const Value = *NamedFileEnt.second;
     if (LLVM_LIKELY(Value.V.is<FileEntry *>()))
       return FileEntryRef(NamedFileEnt);
     return FileEntryRef(*reinterpret_cast<const FileEntryRef::MapEntry *>(
@@ -471,7 +471,7 @@ llvm::Optional<FileEntryRef> FileManager::getBypassFile(FileEntryRef VF) {
 }
 
 bool FileManager::FixupRelativePath(SmallVectorImpl<char> &path) const {
-  StringRef pathRef(path.data(), path.size());
+  StringRef const pathRef(path.data(), path.size());
 
   if (FileSystemOpts.WorkingDir.empty()
       || llvm::sys::path::is_absolute(pathRef))
@@ -518,7 +518,7 @@ FileManager::getBufferForFile(const FileEntry *Entry, bool isVolatile,
   if (isVolatile || Entry->isNamedPipe())
     FileSize = -1;
 
-  StringRef Filename = Entry->getName();
+  StringRef const Filename = Entry->getName();
   // If the file is already open, use the open file descriptor.
   if (Entry->File) {
     auto Result = Entry->File->getBuffer(Filename, FileSize,
@@ -602,7 +602,7 @@ void FileManager::GetUniqueIDMapping(
 }
 
 StringRef FileManager::getCanonicalName(const DirectoryEntry *Dir) {
-  llvm::DenseMap<const void *, llvm::StringRef>::iterator Known
+  llvm::DenseMap<const void *, llvm::StringRef>::iterator const Known
     = CanonicalNames.find(Dir);
   if (Known != CanonicalNames.end())
     return Known->second;
@@ -618,7 +618,7 @@ StringRef FileManager::getCanonicalName(const DirectoryEntry *Dir) {
 }
 
 StringRef FileManager::getCanonicalName(const FileEntry *File) {
-  llvm::DenseMap<const void *, llvm::StringRef>::iterator Known
+  llvm::DenseMap<const void *, llvm::StringRef>::iterator const Known
     = CanonicalNames.find(File);
   if (Known != CanonicalNames.end())
     return Known->second;

@@ -70,16 +70,16 @@ SVal PlacementNewChecker::getExtentSizeOfPlace(const CXXNewExpr *NE,
 SVal PlacementNewChecker::getExtentSizeOfNewTarget(const CXXNewExpr *NE,
                                                    CheckerContext &C,
                                                    bool &IsArray) const {
-  ProgramStateRef State = C.getState();
+  ProgramStateRef const State = C.getState();
   SValBuilder &SvalBuilder = C.getSValBuilder();
-  QualType ElementType = NE->getAllocatedType();
-  ASTContext &AstContext = C.getASTContext();
-  CharUnits TypeSize = AstContext.getTypeSizeInChars(ElementType);
+  QualType const ElementType = NE->getAllocatedType();
+  ASTContext  const&AstContext = C.getASTContext();
+  CharUnits const TypeSize = AstContext.getTypeSizeInChars(ElementType);
   IsArray = false;
   if (NE->isArray()) {
     IsArray = true;
     const Expr *SizeExpr = *NE->getArraySize();
-    SVal ElementCount = C.getSVal(SizeExpr);
+    SVal const ElementCount = C.getSVal(SizeExpr);
     if (auto ElementCountNL = ElementCount.getAs<NonLoc>()) {
       // size in Bytes = ElementCountNL * TypeSize
       return SvalBuilder.evalBinOp(
@@ -90,7 +90,7 @@ SVal PlacementNewChecker::getExtentSizeOfNewTarget(const CXXNewExpr *NE,
   } else {
     // Create a concrete int whose size in bits and signedness is equal to
     // ArrayIndexType.
-    llvm::APInt I(AstContext.getTypeSizeInChars(SvalBuilder.getArrayIndexType())
+    llvm::APInt const I(AstContext.getTypeSizeInChars(SvalBuilder.getArrayIndexType())
                           .getQuantity() *
                       C.getASTContext().getCharWidth(),
                   TypeSize.getQuantity());
@@ -102,8 +102,8 @@ SVal PlacementNewChecker::getExtentSizeOfNewTarget(const CXXNewExpr *NE,
 bool PlacementNewChecker::checkPlaceCapacityIsSufficient(
     const CXXNewExpr *NE, CheckerContext &C) const {
   bool IsArrayTypeAllocated;
-  SVal SizeOfTarget = getExtentSizeOfNewTarget(NE, C, IsArrayTypeAllocated);
-  SVal SizeOfPlace = getExtentSizeOfPlace(NE, C);
+  SVal const SizeOfTarget = getExtentSizeOfNewTarget(NE, C, IsArrayTypeAllocated);
+  SVal const SizeOfPlace = getExtentSizeOfPlace(NE, C);
   const auto SizeOfTargetCI = SizeOfTarget.getAs<nonloc::ConcreteInt>();
   if (!SizeOfTargetCI)
     return true;
@@ -152,9 +152,9 @@ bool PlacementNewChecker::checkPlaceCapacityIsSufficient(
 void PlacementNewChecker::emitBadAlignReport(const Expr *P, CheckerContext &C,
                                              unsigned AllocatedTAlign,
                                              unsigned StorageTAlign) const {
-  ProgramStateRef State = C.getState();
+  ProgramStateRef const State = C.getState();
   if (ExplodedNode *N = C.generateErrorNode(State)) {
-    std::string Msg(llvm::formatv("Storage type is aligned to {0} bytes but "
+    std::string const Msg(llvm::formatv("Storage type is aligned to {0} bytes but "
                                   "allocated type is aligned to {1} bytes",
                                   StorageTAlign, AllocatedTAlign));
 
@@ -167,7 +167,7 @@ void PlacementNewChecker::emitBadAlignReport(const Expr *P, CheckerContext &C,
 unsigned PlacementNewChecker::getStorageAlign(CheckerContext &C,
                                               const ValueDecl *VD) const {
   unsigned StorageTAlign = C.getASTContext().getTypeAlign(VD->getType());
-  if (unsigned SpecifiedAlignment = VD->getMaxAlignment())
+  if (unsigned const SpecifiedAlignment = VD->getMaxAlignment())
     StorageTAlign = SpecifiedAlignment;
 
   return StorageTAlign / C.getASTContext().getCharWidth();
@@ -214,13 +214,13 @@ void PlacementNewChecker::checkElementRegionAlign(
   };
 
   auto CheckElementRegionOffset = [this, R, &C, P, AllocatedTAlign]() -> void {
-    RegionOffset TheOffsetRegion = R->getAsOffset();
+    RegionOffset const TheOffsetRegion = R->getAsOffset();
     if (TheOffsetRegion.hasSymbolicOffset())
       return;
 
-    unsigned Offset =
+    unsigned const Offset =
         TheOffsetRegion.getOffset() / C.getASTContext().getCharWidth();
-    unsigned AddressAlign = Offset % AllocatedTAlign;
+    unsigned const AddressAlign = Offset % AllocatedTAlign;
     if (AddressAlign != 0) {
       emitBadAlignReport(P, C, AllocatedTAlign, AddressAlign);
       return;
@@ -244,13 +244,13 @@ void PlacementNewChecker::checkFieldRegionAlign(
       // We've checked type align but, unless FieldRegion
       // offset is zero, we also need to check its own
       // align.
-      RegionOffset Offset = R->getAsOffset();
+      RegionOffset const Offset = R->getAsOffset();
       if (Offset.hasSymbolicOffset())
         return;
 
-      int64_t OffsetValue =
+      int64_t const OffsetValue =
           Offset.getOffset() / C.getASTContext().getCharWidth();
-      unsigned AddressAlign = OffsetValue % AllocatedTAlign;
+      unsigned const AddressAlign = OffsetValue % AllocatedTAlign;
       if (AddressAlign != 0)
         emitBadAlignReport(P, C, AllocatedTAlign, AddressAlign);
     }
@@ -261,7 +261,7 @@ bool PlacementNewChecker::isVarRegionAlignedProperly(
     const VarRegion *R, CheckerContext &C, const Expr *P,
     unsigned AllocatedTAlign) const {
   const VarDecl *TheVarDecl = R->getDecl();
-  unsigned StorageTAlign = getStorageAlign(C, TheVarDecl);
+  unsigned const StorageTAlign = getStorageAlign(C, TheVarDecl);
   if (AllocatedTAlign > StorageTAlign) {
     emitBadAlignReport(P, C, AllocatedTAlign, StorageTAlign);
 
@@ -275,11 +275,11 @@ bool PlacementNewChecker::checkPlaceIsAlignedProperly(const CXXNewExpr *NE,
                                                       CheckerContext &C) const {
   const Expr *Place = NE->getPlacementArg(0);
 
-  QualType AllocatedT = NE->getAllocatedType();
-  unsigned AllocatedTAlign = C.getASTContext().getTypeAlign(AllocatedT) /
+  QualType const AllocatedT = NE->getAllocatedType();
+  unsigned const AllocatedTAlign = C.getASTContext().getTypeAlign(AllocatedT) /
                              C.getASTContext().getCharWidth();
 
-  SVal PlaceVal = C.getSVal(Place);
+  SVal const PlaceVal = C.getSVal(Place);
   if (const MemRegion *MRegion = PlaceVal.getAsRegion()) {
     if (const ElementRegion *TheElementRegion = MRegion->getAs<ElementRegion>())
       checkElementRegionAlign(TheElementRegion, C, Place, AllocatedTAlign);

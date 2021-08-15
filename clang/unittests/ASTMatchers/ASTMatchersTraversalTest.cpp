@@ -122,7 +122,7 @@ TEST(Has, MatchesChildTypes) {
 }
 
 TEST(StatementMatcher, Has) {
-  StatementMatcher HasVariableI =
+  StatementMatcher const HasVariableI =
       expr(hasType(pointsTo(recordDecl(hasName("X")))),
            has(ignoringParenImpCasts(declRefExpr(to(varDecl(hasName("i")))))));
 
@@ -133,7 +133,7 @@ TEST(StatementMatcher, Has) {
 }
 
 TEST(StatementMatcher, HasDescendant) {
-  StatementMatcher HasDescendantVariableI =
+  StatementMatcher const HasDescendantVariableI =
     expr(hasType(pointsTo(recordDecl(hasName("X")))),
          hasDescendant(declRefExpr(to(varDecl(hasName("i"))))));
 
@@ -146,19 +146,19 @@ TEST(StatementMatcher, HasDescendant) {
 }
 
 TEST(TypeMatcher, MatchesClassType) {
-  TypeMatcher TypeA = hasDeclaration(recordDecl(hasName("A")));
+  TypeMatcher const TypeA = hasDeclaration(recordDecl(hasName("A")));
 
   EXPECT_TRUE(matches("class A { public: A *a; };", TypeA));
   EXPECT_TRUE(notMatches("class A {};", TypeA));
 
-  TypeMatcher TypeDerivedFromA =
+  TypeMatcher const TypeDerivedFromA =
     hasDeclaration(cxxRecordDecl(isDerivedFrom("A")));
 
   EXPECT_TRUE(matches("class A {}; class B : public A { public: B *b; };",
                       TypeDerivedFromA));
   EXPECT_TRUE(notMatches("class A {};", TypeA));
 
-  TypeMatcher TypeAHasClassB = hasDeclaration(
+  TypeMatcher const TypeAHasClassB = hasDeclaration(
     recordDecl(hasName("A"), has(recordDecl(hasName("B")))));
 
   EXPECT_TRUE(
@@ -300,7 +300,7 @@ TEST(HasUnderlyingDecl, Matches) {
 }
 
 TEST(HasType, TakesQualTypeMatcherAndMatchesExpr) {
-  TypeMatcher ClassX = hasDeclaration(recordDecl(hasName("X")));
+  TypeMatcher const ClassX = hasDeclaration(recordDecl(hasName("X")));
   EXPECT_TRUE(
     matches("class X {}; void y(X &x) { x; }", expr(hasType(ClassX))));
   EXPECT_TRUE(
@@ -312,7 +312,7 @@ TEST(HasType, TakesQualTypeMatcherAndMatchesExpr) {
 }
 
 TEST(HasType, TakesQualTypeMatcherAndMatchesValueDecl) {
-  TypeMatcher ClassX = hasDeclaration(recordDecl(hasName("X")));
+  TypeMatcher const ClassX = hasDeclaration(recordDecl(hasName("X")));
   EXPECT_TRUE(
     matches("class X {}; void y() { X x; }", varDecl(hasType(ClassX))));
   EXPECT_TRUE(
@@ -323,16 +323,16 @@ TEST(HasType, TakesQualTypeMatcherAndMatchesValueDecl) {
 }
 
 TEST(HasType, TakesQualTypeMatcherAndMatchesCXXBaseSpecifier) {
-  TypeMatcher ClassX = hasDeclaration(recordDecl(hasName("X")));
-  CXXBaseSpecifierMatcher BaseClassX = cxxBaseSpecifier(hasType(ClassX));
-  DeclarationMatcher ClassHasBaseClassX =
+  TypeMatcher const ClassX = hasDeclaration(recordDecl(hasName("X")));
+  CXXBaseSpecifierMatcher const BaseClassX = cxxBaseSpecifier(hasType(ClassX));
+  DeclarationMatcher const ClassHasBaseClassX =
       cxxRecordDecl(hasDirectBase(BaseClassX));
   EXPECT_TRUE(matches("class X {}; class Y : X {};", ClassHasBaseClassX));
   EXPECT_TRUE(notMatches("class Z {}; class Y : Z {};", ClassHasBaseClassX));
 }
 
 TEST(HasType, TakesDeclMatcherAndMatchesExpr) {
-  DeclarationMatcher ClassX = recordDecl(hasName("X"));
+  DeclarationMatcher const ClassX = recordDecl(hasName("X"));
   EXPECT_TRUE(
     matches("class X {}; void y(X &x) { x; }", expr(hasType(ClassX))));
   EXPECT_TRUE(
@@ -341,7 +341,7 @@ TEST(HasType, TakesDeclMatcherAndMatchesExpr) {
 }
 
 TEST(HasType, TakesDeclMatcherAndMatchesValueDecl) {
-  DeclarationMatcher ClassX = recordDecl(hasName("X"));
+  DeclarationMatcher const ClassX = recordDecl(hasName("X"));
   EXPECT_TRUE(
     matches("class X {}; void y() { X x; }", varDecl(hasType(ClassX))));
   EXPECT_TRUE(
@@ -349,9 +349,9 @@ TEST(HasType, TakesDeclMatcherAndMatchesValueDecl) {
 }
 
 TEST(HasType, TakesDeclMatcherAndMatchesCXXBaseSpecifier) {
-  DeclarationMatcher ClassX = recordDecl(hasName("X"));
-  CXXBaseSpecifierMatcher BaseClassX = cxxBaseSpecifier(hasType(ClassX));
-  DeclarationMatcher ClassHasBaseClassX =
+  DeclarationMatcher const ClassX = recordDecl(hasName("X"));
+  CXXBaseSpecifierMatcher const BaseClassX = cxxBaseSpecifier(hasType(ClassX));
+  DeclarationMatcher const ClassHasBaseClassX =
       cxxRecordDecl(hasDirectBase(BaseClassX));
   EXPECT_TRUE(matches("class X {}; class Y : X {};", ClassHasBaseClassX));
   EXPECT_TRUE(notMatches("class Z {}; class Y : Z {};", ClassHasBaseClassX));
@@ -385,7 +385,7 @@ TEST(HasTypeLoc, MatchesBlockDecl) {
 }
 
 TEST(HasTypeLoc, MatchesCXXBaseSpecifierAndCtorInitializer) {
-  llvm::StringRef code = R"cpp(
+  llvm::StringRef const code = R"cpp(
   class Foo {};
   class Bar : public Foo {
     Bar() : Foo() {}
@@ -497,7 +497,7 @@ TEST(Callee, MatchesMemberExpressions) {
 }
 
 TEST(Matcher, Argument) {
-  StatementMatcher CallArgumentY = callExpr(
+  StatementMatcher const CallArgumentY = callExpr(
     hasArgument(0, declRefExpr(to(varDecl(hasName("y"))))));
 
   EXPECT_TRUE(matches("void x(int) { int y; x(y); }", CallArgumentY));
@@ -505,7 +505,7 @@ TEST(Matcher, Argument) {
     matches("class X { void x(int) { int y; x(y); } };", CallArgumentY));
   EXPECT_TRUE(notMatches("void x(int) { int z; x(z); }", CallArgumentY));
 
-  StatementMatcher WrongIndex = callExpr(
+  StatementMatcher const WrongIndex = callExpr(
     hasArgument(42, declRefExpr(to(varDecl(hasName("y"))))));
   EXPECT_TRUE(notMatches("void x(int) { int y; x(y); }", WrongIndex));
 }
@@ -513,11 +513,11 @@ TEST(Matcher, Argument) {
 TEST(Matcher, AnyArgument) {
   auto HasArgumentY = hasAnyArgument(
       ignoringParenImpCasts(declRefExpr(to(varDecl(hasName("y"))))));
-  StatementMatcher CallArgumentY = callExpr(HasArgumentY);
-  StatementMatcher CtorArgumentY = cxxConstructExpr(HasArgumentY);
-  StatementMatcher UnresolvedCtorArgumentY =
+  StatementMatcher const CallArgumentY = callExpr(HasArgumentY);
+  StatementMatcher const CtorArgumentY = cxxConstructExpr(HasArgumentY);
+  StatementMatcher const UnresolvedCtorArgumentY =
       cxxUnresolvedConstructExpr(HasArgumentY);
-  StatementMatcher ObjCCallArgumentY = objcMessageExpr(HasArgumentY);
+  StatementMatcher const ObjCCallArgumentY = objcMessageExpr(HasArgumentY);
   EXPECT_TRUE(matches("void x(int, int) { int y; x(1, y); }", CallArgumentY));
   EXPECT_TRUE(matches("void x(int, int) { int y; x(y, 42); }", CallArgumentY));
   EXPECT_TRUE(matches("struct Y { Y(int, int); };"
@@ -544,7 +544,7 @@ TEST(Matcher, AnyArgument) {
                          "void x() { int y; (void)Y(1, 2); }",
                          UnresolvedCtorArgumentY));
 
-  StatementMatcher ImplicitCastedArgument =
+  StatementMatcher const ImplicitCastedArgument =
       traverse(TK_AsIs, callExpr(hasAnyArgument(implicitCastExpr())));
   EXPECT_TRUE(matches("void x(long) { int y; x(y); }", ImplicitCastedArgument));
 }
@@ -584,7 +584,7 @@ TEST(Matcher, CapturesThis) {
 }
 
 TEST(Matcher, MatchesMethodsOnLambda) {
-  StringRef Code = R"cpp(
+  StringRef const Code = R"cpp(
 struct A {
   ~A() {}
 };
@@ -667,7 +667,7 @@ struct coroutine_handle {
 };
 }} // namespace std::experimental
 )cpp"));
-  StringRef CoReturnCode = R"cpp(
+  StringRef const CoReturnCode = R"cpp(
 #include <coro_header>
 void check_match_co_return() {
   co_return 1;
@@ -676,7 +676,7 @@ void check_match_co_return() {
   EXPECT_TRUE(matchesConditionally(CoReturnCode, 
                                    coreturnStmt(isExpansionInMainFile()), 
                                    true, {"-std=c++20", "-I/"}, M));
-  StringRef CoAwaitCode = R"cpp(
+  StringRef const CoAwaitCode = R"cpp(
 #include <coro_header>
 void check_match_co_await() {
   co_await a;
@@ -685,7 +685,7 @@ void check_match_co_await() {
   EXPECT_TRUE(matchesConditionally(CoAwaitCode, 
                                    coawaitExpr(isExpansionInMainFile()), 
                                    true, {"-std=c++20", "-I/"}, M));
-  StringRef CoYieldCode = R"cpp(
+  StringRef const CoYieldCode = R"cpp(
 #include <coro_header>
 void check_match_co_yield() {
   co_yield 1.0;
@@ -766,13 +766,13 @@ TEST(Matcher, isInstanceMethod) {
 }
 
 TEST(MatcherCXXMemberCallExpr, On) {
-  StringRef Snippet1 = R"cc(
+  StringRef const Snippet1 = R"cc(
         struct Y {
           void m();
         };
         void z(Y y) { y.m(); }
       )cc";
-  StringRef Snippet2 = R"cc(
+  StringRef const Snippet2 = R"cc(
         struct Y {
           void m();
         };
@@ -787,7 +787,7 @@ TEST(MatcherCXXMemberCallExpr, On) {
   EXPECT_TRUE(matches(Snippet2, MatchesX));
 
   // Parens are ignored.
-  StringRef Snippet3 = R"cc(
+  StringRef const Snippet3 = R"cc(
     struct Y {
       void m();
     };
@@ -799,13 +799,13 @@ TEST(MatcherCXXMemberCallExpr, On) {
 }
 
 TEST(MatcherCXXMemberCallExpr, OnImplicitObjectArgument) {
-  StringRef Snippet1 = R"cc(
+  StringRef const Snippet1 = R"cc(
     struct Y {
       void m();
     };
     void z(Y y) { y.m(); }
   )cc";
-  StringRef Snippet2 = R"cc(
+  StringRef const Snippet2 = R"cc(
     struct Y {
       void m();
     };
@@ -822,7 +822,7 @@ TEST(MatcherCXXMemberCallExpr, OnImplicitObjectArgument) {
   EXPECT_TRUE(notMatches(Snippet2, MatchesX));
 
   // Parens are not ignored.
-  StringRef Snippet3 = R"cc(
+  StringRef const Snippet3 = R"cc(
     struct Y {
       void m();
     };
@@ -835,13 +835,13 @@ TEST(MatcherCXXMemberCallExpr, OnImplicitObjectArgument) {
 }
 
 TEST(Matcher, HasObjectExpr) {
-  StringRef Snippet1 = R"cc(
+  StringRef const Snippet1 = R"cc(
         struct X {
           int m;
           int f(X x) { return x.m; }
         };
       )cc";
-  StringRef Snippet2 = R"cc(
+  StringRef const Snippet2 = R"cc(
         struct X {
           int m;
           int f(X x) { return m; }
@@ -859,10 +859,10 @@ TEST(Matcher, HasObjectExpr) {
 }
 
 TEST(ForEachArgumentWithParam, ReportsNoFalsePositives) {
-  StatementMatcher ArgumentY =
+  StatementMatcher const ArgumentY =
     declRefExpr(to(varDecl(hasName("y")))).bind("arg");
-  DeclarationMatcher IntParam = parmVarDecl(hasType(isInteger())).bind("param");
-  StatementMatcher CallExpr =
+  DeclarationMatcher const IntParam = parmVarDecl(hasType(isInteger())).bind("param");
+  StatementMatcher const CallExpr =
     callExpr(forEachArgumentWithParam(ArgumentY, IntParam));
 
   // IntParam does not match.
@@ -872,10 +872,10 @@ TEST(ForEachArgumentWithParam, ReportsNoFalsePositives) {
 }
 
 TEST(ForEachArgumentWithParam, MatchesCXXMemberCallExpr) {
-  StatementMatcher ArgumentY =
+  StatementMatcher const ArgumentY =
     declRefExpr(to(varDecl(hasName("y")))).bind("arg");
-  DeclarationMatcher IntParam = parmVarDecl(hasType(isInteger())).bind("param");
-  StatementMatcher CallExpr =
+  DeclarationMatcher const IntParam = parmVarDecl(hasType(isInteger())).bind("param");
+  StatementMatcher const CallExpr =
     callExpr(forEachArgumentWithParam(ArgumentY, IntParam));
   EXPECT_TRUE(matchAndVerifyResultTrue(
     "struct S {"
@@ -887,7 +887,7 @@ TEST(ForEachArgumentWithParam, MatchesCXXMemberCallExpr) {
       "}",
     CallExpr, std::make_unique<VerifyIdIsBoundTo<ParmVarDecl>>("param", 1)));
 
-  StatementMatcher CallExpr2 =
+  StatementMatcher const CallExpr2 =
     callExpr(forEachArgumentWithParam(ArgumentY, IntParam));
   EXPECT_TRUE(matchAndVerifyResultTrue(
     "struct S {"
@@ -901,10 +901,10 @@ TEST(ForEachArgumentWithParam, MatchesCXXMemberCallExpr) {
 }
 
 TEST(ForEachArgumentWithParam, MatchesCallExpr) {
-  StatementMatcher ArgumentY =
+  StatementMatcher const ArgumentY =
     declRefExpr(to(varDecl(hasName("y")))).bind("arg");
-  DeclarationMatcher IntParam = parmVarDecl(hasType(isInteger())).bind("param");
-  StatementMatcher CallExpr =
+  DeclarationMatcher const IntParam = parmVarDecl(hasType(isInteger())).bind("param");
+  StatementMatcher const CallExpr =
     callExpr(forEachArgumentWithParam(ArgumentY, IntParam));
 
   EXPECT_TRUE(
@@ -925,10 +925,10 @@ TEST(ForEachArgumentWithParam, MatchesCallExpr) {
 }
 
 TEST(ForEachArgumentWithParam, MatchesConstructExpr) {
-  StatementMatcher ArgumentY =
+  StatementMatcher const ArgumentY =
     declRefExpr(to(varDecl(hasName("y")))).bind("arg");
-  DeclarationMatcher IntParam = parmVarDecl(hasType(isInteger())).bind("param");
-  StatementMatcher ConstructExpr = traverse(
+  DeclarationMatcher const IntParam = parmVarDecl(hasType(isInteger())).bind("param");
+  StatementMatcher const ConstructExpr = traverse(
       TK_AsIs, cxxConstructExpr(forEachArgumentWithParam(ArgumentY, IntParam)));
 
   EXPECT_TRUE(matchAndVerifyResultTrue(
@@ -959,10 +959,10 @@ TEST(ForEachArgumentWithParam, HandlesBoundNodesForNonMatches) {
 }
 
 TEST(ForEachArgumentWithParamType, ReportsNoFalsePositives) {
-  StatementMatcher ArgumentY =
+  StatementMatcher const ArgumentY =
       declRefExpr(to(varDecl(hasName("y")))).bind("arg");
-  TypeMatcher IntType = qualType(isInteger()).bind("type");
-  StatementMatcher CallExpr =
+  TypeMatcher const IntType = qualType(isInteger()).bind("type");
+  StatementMatcher const CallExpr =
       callExpr(forEachArgumentWithParamType(ArgumentY, IntType));
 
   // IntParam does not match.
@@ -972,10 +972,10 @@ TEST(ForEachArgumentWithParamType, ReportsNoFalsePositives) {
 }
 
 TEST(ForEachArgumentWithParamType, MatchesCXXMemberCallExpr) {
-  StatementMatcher ArgumentY =
+  StatementMatcher const ArgumentY =
       declRefExpr(to(varDecl(hasName("y")))).bind("arg");
-  TypeMatcher IntType = qualType(isInteger()).bind("type");
-  StatementMatcher CallExpr =
+  TypeMatcher const IntType = qualType(isInteger()).bind("type");
+  StatementMatcher const CallExpr =
       callExpr(forEachArgumentWithParamType(ArgumentY, IntType));
   EXPECT_TRUE(matchAndVerifyResultTrue(
       "struct S {"
@@ -987,7 +987,7 @@ TEST(ForEachArgumentWithParamType, MatchesCXXMemberCallExpr) {
       "}",
       CallExpr, std::make_unique<VerifyIdIsBoundTo<QualType>>("type", 1)));
 
-  StatementMatcher CallExpr2 =
+  StatementMatcher const CallExpr2 =
       callExpr(forEachArgumentWithParamType(ArgumentY, IntType));
   EXPECT_TRUE(matchAndVerifyResultTrue(
       "struct S {"
@@ -1001,10 +1001,10 @@ TEST(ForEachArgumentWithParamType, MatchesCXXMemberCallExpr) {
 }
 
 TEST(ForEachArgumentWithParamType, MatchesCallExpr) {
-  StatementMatcher ArgumentY =
+  StatementMatcher const ArgumentY =
       declRefExpr(to(varDecl(hasName("y")))).bind("arg");
-  TypeMatcher IntType = qualType(isInteger()).bind("type");
-  StatementMatcher CallExpr =
+  TypeMatcher const IntType = qualType(isInteger()).bind("type");
+  StatementMatcher const CallExpr =
       callExpr(forEachArgumentWithParamType(ArgumentY, IntType));
 
   EXPECT_TRUE(matchAndVerifyResultTrue(
@@ -1023,10 +1023,10 @@ TEST(ForEachArgumentWithParamType, MatchesCallExpr) {
 }
 
 TEST(ForEachArgumentWithParamType, MatchesConstructExpr) {
-  StatementMatcher ArgumentY =
+  StatementMatcher const ArgumentY =
       declRefExpr(to(varDecl(hasName("y")))).bind("arg");
-  TypeMatcher IntType = qualType(isInteger()).bind("type");
-  StatementMatcher ConstructExpr =
+  TypeMatcher const IntType = qualType(isInteger()).bind("type");
+  StatementMatcher const ConstructExpr =
       cxxConstructExpr(forEachArgumentWithParamType(ArgumentY, IntType));
 
   EXPECT_TRUE(matchAndVerifyResultTrue(
@@ -1046,10 +1046,10 @@ TEST(ForEachArgumentWithParamType, MatchesConstructExpr) {
 }
 
 TEST(ForEachArgumentWithParamType, HandlesKandRFunctions) {
-  StatementMatcher ArgumentY =
+  StatementMatcher const ArgumentY =
       declRefExpr(to(varDecl(hasName("y")))).bind("arg");
-  TypeMatcher IntType = qualType(isInteger()).bind("type");
-  StatementMatcher CallExpr =
+  TypeMatcher const IntType = qualType(isInteger()).bind("type");
+  StatementMatcher const CallExpr =
       callExpr(forEachArgumentWithParamType(ArgumentY, IntType));
 
   EXPECT_TRUE(matchesC("void f();\n"
@@ -1077,10 +1077,10 @@ TEST(ForEachArgumentWithParamType, HandlesBoundNodesForNonMatches) {
 }
 
 TEST(ForEachArgumentWithParamType, MatchesFunctionPtrCalls) {
-  StatementMatcher ArgumentY =
+  StatementMatcher const ArgumentY =
       declRefExpr(to(varDecl(hasName("y")))).bind("arg");
-  TypeMatcher IntType = qualType(builtinType()).bind("type");
-  StatementMatcher CallExpr =
+  TypeMatcher const IntType = qualType(builtinType()).bind("type");
+  StatementMatcher const CallExpr =
       callExpr(forEachArgumentWithParamType(ArgumentY, IntType));
 
   EXPECT_TRUE(matchAndVerifyResultTrue(
@@ -1094,13 +1094,13 @@ TEST(ForEachArgumentWithParamType, MatchesFunctionPtrCalls) {
 }
 
 TEST(ForEachArgumentWithParamType, MatchesMemberFunctionPtrCalls) {
-  StatementMatcher ArgumentY =
+  StatementMatcher const ArgumentY =
       declRefExpr(to(varDecl(hasName("y")))).bind("arg");
-  TypeMatcher IntType = qualType(builtinType()).bind("type");
-  StatementMatcher CallExpr =
+  TypeMatcher const IntType = qualType(builtinType()).bind("type");
+  StatementMatcher const CallExpr =
       callExpr(forEachArgumentWithParamType(ArgumentY, IntType));
 
-  StringRef S = "struct A {\n"
+  StringRef const S = "struct A {\n"
                 "  int f(int i) { return i + 1; }\n"
                 "  int (A::*x)(int);\n"
                 "};\n"
@@ -1502,14 +1502,14 @@ TEST(IfStmt, ChildTraversalMatchers) {
 }
 
 TEST(MatchBinaryOperator, HasOperatorName) {
-  StatementMatcher OperatorOr = binaryOperator(hasOperatorName("||"));
+  StatementMatcher const OperatorOr = binaryOperator(hasOperatorName("||"));
 
   EXPECT_TRUE(matches("void x() { true || false; }", OperatorOr));
   EXPECT_TRUE(notMatches("void x() { true && false; }", OperatorOr));
 }
 
 TEST(MatchBinaryOperator, HasAnyOperatorName) {
-  StatementMatcher Matcher =
+  StatementMatcher const Matcher =
       binaryOperator(hasAnyOperatorName("+", "-", "*", "/"));
 
   EXPECT_TRUE(matches("int x(int I) { return I + 2; }", Matcher));
@@ -1522,7 +1522,7 @@ TEST(MatchBinaryOperator, HasAnyOperatorName) {
 }
 
 TEST(MatchBinaryOperator, HasLHSAndHasRHS) {
-  StatementMatcher OperatorTrueFalse =
+  StatementMatcher const OperatorTrueFalse =
     binaryOperator(hasLHS(cxxBoolLiteral(equals(true))),
                    hasRHS(cxxBoolLiteral(equals(false))));
 
@@ -1530,13 +1530,13 @@ TEST(MatchBinaryOperator, HasLHSAndHasRHS) {
   EXPECT_TRUE(matches("void x() { true && false; }", OperatorTrueFalse));
   EXPECT_TRUE(notMatches("void x() { false || true; }", OperatorTrueFalse));
 
-  StatementMatcher OperatorIntPointer = arraySubscriptExpr(
+  StatementMatcher const OperatorIntPointer = arraySubscriptExpr(
       hasLHS(hasType(isInteger())),
       traverse(TK_AsIs, hasRHS(hasType(pointsTo(qualType())))));
   EXPECT_TRUE(matches("void x() { 1[\"abc\"]; }", OperatorIntPointer));
   EXPECT_TRUE(notMatches("void x() { \"abc\"[1]; }", OperatorIntPointer));
 
-  StringRef Code = R"cpp(
+  StringRef const Code = R"cpp(
 struct HasOpEqMem
 {
     bool operator==(const HasOpEqMem& other) const
@@ -1617,7 +1617,7 @@ void opFree()
 }
 
 TEST(MatchBinaryOperator, HasEitherOperand) {
-  StatementMatcher HasOperand =
+  StatementMatcher const HasOperand =
     binaryOperator(hasEitherOperand(cxxBoolLiteral(equals(false))));
 
   EXPECT_TRUE(matches("void x() { true || false; }", HasOperand));
@@ -1626,7 +1626,7 @@ TEST(MatchBinaryOperator, HasEitherOperand) {
 }
 
 TEST(MatchBinaryOperator, HasOperands) {
-  StatementMatcher HasOperands = binaryOperator(
+  StatementMatcher const HasOperands = binaryOperator(
       hasOperands(integerLiteral(equals(1)), integerLiteral(equals(2))));
   EXPECT_TRUE(matches("void x() { 1 + 2; }", HasOperands));
   EXPECT_TRUE(matches("void x() { 2 + 1; }", HasOperands));
@@ -1738,14 +1738,14 @@ TEST(Matcher, BinaryOperatorTypes) {
 }
 
 TEST(MatchUnaryOperator, HasOperatorName) {
-  StatementMatcher OperatorNot = unaryOperator(hasOperatorName("!"));
+  StatementMatcher const OperatorNot = unaryOperator(hasOperatorName("!"));
 
   EXPECT_TRUE(matches("void x() { !true; } ", OperatorNot));
   EXPECT_TRUE(notMatches("void x() { true; } ", OperatorNot));
 }
 
 TEST(MatchUnaryOperator, HasAnyOperatorName) {
-  StatementMatcher Matcher = unaryOperator(hasAnyOperatorName("-", "*", "++"));
+  StatementMatcher const Matcher = unaryOperator(hasAnyOperatorName("-", "*", "++"));
 
   EXPECT_TRUE(matches("int x(int *I) { return *I; }", Matcher));
   EXPECT_TRUE(matches("int x(int I) { return -I; }", Matcher));
@@ -1757,7 +1757,7 @@ TEST(MatchUnaryOperator, HasAnyOperatorName) {
 }
 
 TEST(MatchUnaryOperator, HasUnaryOperand) {
-  StatementMatcher OperatorOnFalse =
+  StatementMatcher const OperatorOnFalse =
     unaryOperator(hasUnaryOperand(cxxBoolLiteral(equals(false))));
 
   EXPECT_TRUE(matches("void x() { !false; }", OperatorOnFalse));
@@ -1968,7 +1968,7 @@ TEST(ArraySubscriptMatchers, MatchesArrayBase) {
 }
 
 TEST(Matcher, OfClass) {
-  StatementMatcher Constructor = cxxConstructExpr(hasDeclaration(cxxMethodDecl(
+  StatementMatcher const Constructor = cxxConstructExpr(hasDeclaration(cxxMethodDecl(
     ofClass(hasName("X")))));
 
   EXPECT_TRUE(
@@ -2002,22 +2002,22 @@ TEST(Matcher, VisitsTemplateInstantiations) {
 }
 
 TEST(Matcher, HasCondition) {
-  StatementMatcher IfStmt =
+  StatementMatcher const IfStmt =
     ifStmt(hasCondition(cxxBoolLiteral(equals(true))));
   EXPECT_TRUE(matches("void x() { if (true) {} }", IfStmt));
   EXPECT_TRUE(notMatches("void x() { if (false) {} }", IfStmt));
 
-  StatementMatcher ForStmt =
+  StatementMatcher const ForStmt =
     forStmt(hasCondition(cxxBoolLiteral(equals(true))));
   EXPECT_TRUE(matches("void x() { for (;true;) {} }", ForStmt));
   EXPECT_TRUE(notMatches("void x() { for (;false;) {} }", ForStmt));
 
-  StatementMatcher WhileStmt =
+  StatementMatcher const WhileStmt =
     whileStmt(hasCondition(cxxBoolLiteral(equals(true))));
   EXPECT_TRUE(matches("void x() { while (true) {} }", WhileStmt));
   EXPECT_TRUE(notMatches("void x() { while (false) {} }", WhileStmt));
 
-  StatementMatcher SwitchStmt =
+  StatementMatcher const SwitchStmt =
     switchStmt(hasCondition(integerLiteral(equals(42))));
   EXPECT_TRUE(matches("void x() { switch (42) {case 42:;} }", SwitchStmt));
   EXPECT_TRUE(notMatches("void x() { switch (43) {case 43:;} }", SwitchStmt));
@@ -2263,7 +2263,7 @@ TEST(IgnoringImplicit, MatchesImplicit) {
 }
 
 TEST(IgnoringImplicit, MatchesNestedImplicit) {
-  StringRef Code = R"(
+  StringRef const Code = R"(
 
 struct OtherType;
 
@@ -2306,7 +2306,7 @@ TEST(IgnoringImplicit, DoesNotMatchIncorrectly) {
 
 TEST(Traversal, traverseMatcher) {
 
-  StringRef VarDeclCode = R"cpp(
+  StringRef const VarDeclCode = R"cpp(
 void foo()
 {
   int i = 3.0;
@@ -3492,7 +3492,7 @@ TEST(Traversal, traverseWithBinding) {
   // Some existing matcher code expects to take a matcher as a
   // template arg and bind to it.  Verify that that works.
 
-  llvm::StringRef Code = R"cpp(
+  llvm::StringRef const Code = R"cpp(
 int foo()
 {
   return 42.0;
@@ -3505,7 +3505,7 @@ int foo()
 
 TEST(Traversal, traverseMatcherNesting) {
 
-  StringRef Code = R"cpp(
+  StringRef const Code = R"cpp(
 float bar(int i)
 {
   return i;
@@ -3530,7 +3530,7 @@ void foo()
 }
 
 TEST(Traversal, traverseMatcherThroughImplicit) {
-  StringRef Code = R"cpp(
+  StringRef const Code = R"cpp(
 struct S {
   S(int x);
 };
@@ -3549,7 +3549,7 @@ void constructImplicit() {
 
 TEST(Traversal, traverseMatcherThroughMemoization) {
 
-  StringRef Code = R"cpp(
+  StringRef const Code = R"cpp(
 void foo()
 {
   int i = 3.0;
@@ -4430,7 +4430,7 @@ void binop()
 TEST(IgnoringImpCasts, PathologicalLambda) {
 
   // Test that deeply nested lambdas are not a performance penalty
-  StringRef Code = R"cpp(
+  StringRef const Code = R"cpp(
 void f() {
   [] {
   [] {
@@ -4675,7 +4675,7 @@ TEST(UsingDeclaration, ThroughUsingDeclaration) {
 }
 
 TEST(SingleDecl, IsSingleDecl) {
-  StatementMatcher SingleDeclStmt =
+  StatementMatcher const SingleDeclStmt =
     declStmt(hasSingleDecl(varDecl(hasInitializer(anything()))));
   EXPECT_TRUE(matches("void f() {int a = 4;}", SingleDeclStmt));
   EXPECT_TRUE(notMatches("void f() {int a;}", SingleDeclStmt));
@@ -4684,14 +4684,14 @@ TEST(SingleDecl, IsSingleDecl) {
 }
 
 TEST(DeclStmt, ContainsDeclaration) {
-  DeclarationMatcher MatchesInit = varDecl(hasInitializer(anything()));
+  DeclarationMatcher const MatchesInit = varDecl(hasInitializer(anything()));
 
   EXPECT_TRUE(matches("void f() {int a = 4;}",
                       declStmt(containsDeclaration(0, MatchesInit))));
   EXPECT_TRUE(matches("void f() {int a = 4, b = 3;}",
                       declStmt(containsDeclaration(0, MatchesInit),
                                containsDeclaration(1, MatchesInit))));
-  unsigned WrongIndex = 42;
+  unsigned const WrongIndex = 42;
   EXPECT_TRUE(notMatches("void f() {int a = 4, b = 3;}",
                          declStmt(containsDeclaration(WrongIndex,
                                                       MatchesInit))));
@@ -4827,7 +4827,7 @@ TEST(ForEach, BindsRecursiveCombinations) {
 }
 
 TEST(ForEach, DoesNotIgnoreImplicit) {
-  StringRef Code = R"cpp(
+  StringRef const Code = R"cpp(
 void foo()
 {
     int i = 0;
@@ -5361,7 +5361,7 @@ TEST(NNS, BindsNestedNameSpecifierLocs) {
 }
 
 TEST(NNS, DescendantsOfNestedNameSpecifiers) {
-  StringRef Fragment =
+  StringRef const Fragment =
       "namespace a { struct A { struct B { struct C {}; }; }; };"
       "void f() { a::A::B::C c; }";
   EXPECT_TRUE(matches(
@@ -5390,7 +5390,7 @@ TEST(NNS, DescendantsOfNestedNameSpecifiers) {
 }
 
 TEST(NNS, NestedNameSpecifiersAsDescendants) {
-  StringRef Fragment =
+  StringRef const Fragment =
       "namespace a { struct A { struct B { struct C {}; }; }; };"
       "void f() { a::A::B::C c; }";
   EXPECT_TRUE(matches(
@@ -5406,7 +5406,7 @@ TEST(NNS, NestedNameSpecifiersAsDescendants) {
 }
 
 TEST(NNSLoc, DescendantsOfNestedNameSpecifierLocs) {
-  StringRef Fragment =
+  StringRef const Fragment =
       "namespace a { struct A { struct B { struct C {}; }; }; };"
       "void f() { a::A::B::C c; }";
   EXPECT_TRUE(matches(
@@ -5433,7 +5433,7 @@ TEST(NNSLoc, DescendantsOfNestedNameSpecifierLocs) {
 }
 
 TEST(NNSLoc, NestedNameSpecifierLocsAsDescendants) {
-  StringRef Fragment =
+  StringRef const Fragment =
       "namespace a { struct A { struct B { struct C {}; }; }; };"
       "void f() { a::A::B::C c; }";
   EXPECT_TRUE(matches(
@@ -5449,7 +5449,7 @@ TEST(NNSLoc, NestedNameSpecifierLocsAsDescendants) {
 }
 
 TEST(Attr, AttrsAsDescendants) {
-  StringRef Fragment = "namespace a { struct [[clang::warn_unused_result]] "
+  StringRef const Fragment = "namespace a { struct [[clang::warn_unused_result]] "
                        "F{}; [[noreturn]] void foo(); }";
   EXPECT_TRUE(matches(Fragment, namespaceDecl(hasDescendant(attr()))));
   EXPECT_TRUE(matchAndVerifyResultTrue(
@@ -5460,7 +5460,7 @@ TEST(Attr, AttrsAsDescendants) {
 }
 
 TEST(Attr, ParentsOfAttrs) {
-  StringRef Fragment =
+  StringRef const Fragment =
       "namespace a { struct [[clang::warn_unused_result]] F{}; }";
   EXPECT_TRUE(matches(Fragment, attr(hasAncestor(namespaceDecl()))));
 }
@@ -5521,20 +5521,20 @@ TEST(MatchFinder, CanMatchSingleNodesRecursively) {
 }
 
 TEST(StatementMatcher, HasReturnValue) {
-  StatementMatcher RetVal = returnStmt(hasReturnValue(binaryOperator()));
+  StatementMatcher const RetVal = returnStmt(hasReturnValue(binaryOperator()));
   EXPECT_TRUE(matches("int F() { int a, b; return a + b; }", RetVal));
   EXPECT_FALSE(matches("int F() { int a; return a; }", RetVal));
   EXPECT_FALSE(matches("void F() { return; }", RetVal));
 }
 
 TEST(StatementMatcher, ForFunction) {
-  StringRef CppString1 = "struct PosVec {"
+  StringRef const CppString1 = "struct PosVec {"
                          "  PosVec& operator=(const PosVec&) {"
                          "    auto x = [] { return 1; };"
                          "    return *this;"
                          "  }"
                          "};";
-  StringRef CppString2 = "void F() {"
+  StringRef const CppString2 = "void F() {"
                          "  struct S {"
                          "    void F2() {"
                          "       return;"
@@ -5562,13 +5562,13 @@ TEST(StatementMatcher, ForFunction) {
 
 TEST(StatementMatcher, ForCallable) {
   // These tests are copied over from the forFunction() test above.
-  StringRef CppString1 = "struct PosVec {"
+  StringRef const CppString1 = "struct PosVec {"
                          "  PosVec& operator=(const PosVec&) {"
                          "    auto x = [] { return 1; };"
                          "    return *this;"
                          "  }"
                          "};";
-  StringRef CppString2 = "void F() {"
+  StringRef const CppString2 = "void F() {"
                          "  struct S {"
                          "    void F2() {"
                          "       return;"
@@ -5597,7 +5597,7 @@ TEST(StatementMatcher, ForCallable) {
                          returnStmt(forCallable(functionDecl(hasName("F"))))));
 
   // These tests are specific to forCallable().
-  StringRef ObjCString1 = "@interface I"
+  StringRef const ObjCString1 = "@interface I"
                           "-(void) foo;"
                           "@end"
                           "@implementation I"
@@ -5616,7 +5616,7 @@ TEST(StatementMatcher, ForCallable) {
       ObjCString1,
       binaryOperator(forCallable(objcMethodDecl()))));
 
-  StringRef ObjCString2 = "@interface I"
+  StringRef const ObjCString2 = "@interface I"
                           "-(void) foo;"
                           "@end"
                           "@implementation I"
@@ -5682,7 +5682,7 @@ TEST(Matcher, ForEachOverriden) {
 }
 
 TEST(Matcher, HasAnyDeclaration) {
-  StringRef Fragment = "void foo(int p1);"
+  StringRef const Fragment = "void foo(int p1);"
                        "void foo(int *p2);"
                        "void bar(int p3);"
                        "template <typename T> void baz(T t) { foo(t); }";
@@ -5701,7 +5701,7 @@ TEST(Matcher, HasAnyDeclaration) {
 }
 
 TEST(SubstTemplateTypeParmType, HasReplacementType) {
-  StringRef Fragment = "template<typename T>"
+  StringRef const Fragment = "template<typename T>"
                        "double F(T t);"
                        "int i;"
                        "double j = F(i);";
@@ -5725,12 +5725,12 @@ TEST(ClassTemplateSpecializationDecl, HasSpecializedTemplate) {
 }
 
 TEST(CXXNewExpr, Array) {
-  StatementMatcher NewArray = cxxNewExpr(isArray());
+  StatementMatcher const NewArray = cxxNewExpr(isArray());
 
   EXPECT_TRUE(matches("void foo() { int *Ptr = new int[10]; }", NewArray));
   EXPECT_TRUE(notMatches("void foo() { int *Ptr = new int; }", NewArray));
 
-  StatementMatcher NewArraySize10 =
+  StatementMatcher const NewArraySize10 =
       cxxNewExpr(hasArraySize(integerLiteral(equals(10))));
   EXPECT_TRUE(
       matches("void foo() { int *Ptr = new int[10]; }", NewArraySize10));
@@ -5739,7 +5739,7 @@ TEST(CXXNewExpr, Array) {
 }
 
 TEST(CXXNewExpr, PlacementArgs) {
-  StatementMatcher IsPlacementNew = cxxNewExpr(hasAnyPlacementArg(anything()));
+  StatementMatcher const IsPlacementNew = cxxNewExpr(hasAnyPlacementArg(anything()));
 
   EXPECT_TRUE(matches(R"(
     void* operator new(decltype(sizeof(void*)), void*);

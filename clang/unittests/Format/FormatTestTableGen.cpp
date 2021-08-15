@@ -22,8 +22,8 @@ protected:
                             unsigned Length, const FormatStyle &Style) {
     LLVM_DEBUG(llvm::errs() << "---\n");
     LLVM_DEBUG(llvm::errs() << Code << "\n\n");
-    std::vector<tooling::Range> Ranges(1, tooling::Range(Offset, Length));
-    tooling::Replacements Replaces = reformat(Style, Code, Ranges);
+    std::vector<tooling::Range> const Ranges(1, tooling::Range(Offset, Length));
+    tooling::Replacements const Replaces = reformat(Style, Code, Ranges);
     auto Result = applyAllReplacements(Code, Replaces);
     EXPECT_TRUE(static_cast<bool>(Result));
     LLVM_DEBUG(llvm::errs() << "\n" << *Result << "\n\n");

@@ -68,12 +68,12 @@ bool mergedCommentIsTrailingComment(StringRef Comment) {
 /// column.
 bool commentsStartOnSameColumn(const SourceManager &SM, const RawComment &R1,
                                const RawComment &R2) {
-  SourceLocation L1 = R1.getBeginLoc();
-  SourceLocation L2 = R2.getBeginLoc();
+  SourceLocation const L1 = R1.getBeginLoc();
+  SourceLocation const L2 = R2.getBeginLoc();
   bool Invalid = false;
-  unsigned C1 = SM.getPresumedColumnNumber(L1, &Invalid);
+  unsigned const C1 = SM.getPresumedColumnNumber(L1, &Invalid);
   if (!Invalid) {
-    unsigned C2 = SM.getPresumedColumnNumber(L2, &Invalid);
+    unsigned const C2 = SM.getPresumedColumnNumber(L2, &Invalid);
     return !Invalid && (C1 == C2);
   }
   return false;
@@ -90,7 +90,7 @@ bool commentsStartOnSameColumn(const SourceManager &SM, const RawComment &R1,
 static bool onlyWhitespaceOnLineBefore(const char *Buffer, unsigned P) {
   // Search backwards until we see linefeed or carriage return.
   for (unsigned I = P; I != 0; --I) {
-    char C = Buffer[I - 1];
+    char const C = Buffer[I - 1];
     if (isVerticalWhitespace(C))
       return true;
     if (!isHorizontalWhitespace(C))
@@ -118,7 +118,7 @@ RawComment::RawComment(const SourceManager &SourceMgr, SourceRange SR,
   }
 
   // Guess comment kind.
-  std::pair<CommentKind, bool> K =
+  std::pair<CommentKind, bool> const K =
       getCommentKind(RawText, CommentOpts.ParseAllComments);
 
   // Guess whether an ordinary comment is trailing.
@@ -225,8 +225,8 @@ comments::FullComment *RawComment::parse(const ASTContext &Context,
 static bool onlyWhitespaceBetween(SourceManager &SM,
                                   SourceLocation Loc1, SourceLocation Loc2,
                                   unsigned MaxNewlinesAllowed) {
-  std::pair<FileID, unsigned> Loc1Info = SM.getDecomposedLoc(Loc1);
-  std::pair<FileID, unsigned> Loc2Info = SM.getDecomposedLoc(Loc2);
+  std::pair<FileID, unsigned> const Loc1Info = SM.getDecomposedLoc(Loc1);
+  std::pair<FileID, unsigned> const Loc2Info = SM.getDecomposedLoc(Loc2);
 
   // Question does not make sense if locations are in different files.
   if (Loc1Info.first != Loc2Info.first)
@@ -280,7 +280,7 @@ void RawCommentList::addComment(const RawComment &RC,
   if (RC.isOrdinary() && !CommentOpts.ParseAllComments)
     return;
 
-  std::pair<FileID, unsigned> Loc =
+  std::pair<FileID, unsigned> const Loc =
       SourceMgr.getDecomposedLoc(RC.getBeginLoc());
 
   const FileID CommentFile = Loc.first;
@@ -316,7 +316,7 @@ void RawCommentList::addComment(const RawComment &RC,
         commentsStartOnSameColumn(SourceMgr, C1, C2))) &&
       onlyWhitespaceBetween(SourceMgr, C1.getEndLoc(), C2.getBeginLoc(),
                             /*MaxNewlinesAllowed=*/1)) {
-    SourceRange MergedRange(C1.getBeginLoc(), C2.getEndLoc());
+    SourceRange const MergedRange(C1.getBeginLoc(), C2.getEndLoc());
     *OrderedComments[CommentFile].rbegin()->second =
         RawComment(SourceMgr, MergedRange, CommentOpts, true);
   } else {
@@ -358,15 +358,15 @@ unsigned RawCommentList::getCommentEndOffset(RawComment *C) const {
 
 std::string RawComment::getFormattedText(const SourceManager &SourceMgr,
                                          DiagnosticsEngine &Diags) const {
-  llvm::StringRef CommentText = getRawText(SourceMgr);
+  llvm::StringRef const CommentText = getRawText(SourceMgr);
   if (CommentText.empty())
     return "";
 
   llvm::BumpPtrAllocator Allocator;
   // We do not parse any commands, so CommentOptions are ignored by
   // comments::Lexer. Therefore, we just use default-constructed options.
-  CommentOptions DefOpts;
-  comments::CommandTraits EmptyTraits(Allocator, DefOpts);
+  CommentOptions const DefOpts;
+  comments::CommandTraits const EmptyTraits(Allocator, DefOpts);
   comments::Lexer L(Allocator, Diags, EmptyTraits, getSourceRange().getBegin(),
                     CommentText.begin(), CommentText.end(),
                     /*ParseCommands=*/false);
@@ -392,9 +392,9 @@ std::string RawComment::getFormattedText(const SourceManager &SourceMgr,
       Result += "\n";
       return true;
     }
-    llvm::StringRef TokText = L.getSpelling(Tok, SourceMgr);
+    llvm::StringRef const TokText = L.getSpelling(Tok, SourceMgr);
     bool LocInvalid = false;
-    unsigned TokColumn =
+    unsigned const TokColumn =
         SourceMgr.getSpellingColumnNumber(Tok.getLocation(), &LocInvalid);
     assert(!LocInvalid && "getFormattedText for invalid location");
 
@@ -410,13 +410,13 @@ std::string RawComment::getFormattedText(const SourceManager &SourceMgr,
     // Amount of leading whitespace we actually want to skip.
     // For the first line we skip all the whitespace.
     // For the rest of the lines, we skip whitespace up to IndentColumn.
-    unsigned SkipLen =
+    unsigned const SkipLen =
         IsFirstLine
             ? WhitespaceLen
             : std::min<size_t>(
                   WhitespaceLen,
                   std::max<int>(static_cast<int>(IndentColumn) - TokColumn, 0));
-    llvm::StringRef Trimmed = TokText.drop_front(SkipLen);
+    llvm::StringRef const Trimmed = TokText.drop_front(SkipLen);
     Result += Trimmed;
     // Lex all tokens in the rest of the line.
     for (L.lex(Tok); Tok.isNot(comments::tok::eof); L.lex(Tok)) {

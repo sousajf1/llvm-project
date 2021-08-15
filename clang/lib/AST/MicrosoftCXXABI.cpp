@@ -245,7 +245,7 @@ MSVtorDispMode CXXRecordDecl::getMSVtorDispMode() const {
 static std::pair<unsigned, unsigned>
 getMSMemberPointerSlots(const MemberPointerType *MPT) {
   const CXXRecordDecl *RD = MPT->getMostRecentCXXRecordDecl();
-  MSInheritanceModel Inheritance = RD->getMSInheritanceModel();
+  MSInheritanceModel const Inheritance = RD->getMSInheritanceModel();
   unsigned Ptrs = 0;
   unsigned Ints = 0;
   if (MPT->isMemberFunctionPointer())
@@ -267,8 +267,8 @@ CXXABI::MemberPointerInfo MicrosoftCXXABI::getMemberPointerInfo(
   // The nominal struct is laid out with pointers followed by ints and aligned
   // to a pointer width if any are present and an int width otherwise.
   const TargetInfo &Target = Context.getTargetInfo();
-  unsigned PtrSize = Target.getPointerWidth(0);
-  unsigned IntSize = Target.getIntWidth();
+  unsigned const PtrSize = Target.getPointerWidth(0);
+  unsigned const IntSize = Target.getIntWidth();
 
   unsigned Ptrs, Ints;
   std::tie(Ptrs, Ints) = getMSMemberPointerSlots(MPT);

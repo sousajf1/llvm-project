@@ -117,7 +117,7 @@ protected:
 
   // Type-parameterized test.
   void TypedTest_ImportChain() {
-    std::string Code = getCode() + getCode();
+    std::string const Code = getCode() + getCode();
     auto Pattern = getPattern();
 
     TranslationUnitDecl *FromTu = getTuDecl(Code, Lang_CXX14, "input0.cc");

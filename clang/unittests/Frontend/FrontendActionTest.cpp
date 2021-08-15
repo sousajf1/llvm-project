@@ -208,7 +208,7 @@ public:
     // Generate a fake typo correction with one attached note.
     ASTContext &Ctx = CI.getASTContext();
     TypoCorrection TC(DeclarationName(&Ctx.Idents.get("moo")));
-    unsigned DiagID = Ctx.getDiagnostics().getCustomDiagID(
+    unsigned const DiagID = Ctx.getDiagnostics().getCustomDiagID(
         DiagnosticsEngine::Note, "This is a note");
     TC.addExtraDiagnostic(PartialDiagnostic(DiagID, Ctx.getDiagAllocator()));
     return TC;
@@ -262,9 +262,9 @@ TEST(GeneratePCHFrontendAction, CacheGeneratedPCH) {
   llvm::SmallString<128> PCHFilename;
   ASSERT_FALSE(
       llvm::sys::fs::createTemporaryFile("test.h", "pch", PCHFD, PCHFilename));
-  llvm::ToolOutputFile PCHFile(PCHFilename, PCHFD);
+  llvm::ToolOutputFile const PCHFile(PCHFilename, PCHFD);
 
-  for (bool ShouldCache : {false, true}) {
+  for (bool const ShouldCache : {false, true}) {
     auto Invocation = std::make_shared<CompilerInvocation>();
     Invocation->getLangOpts()->CacheGeneratedPCH = ShouldCache;
     Invocation->getPreprocessorOpts().addRemappedFile(

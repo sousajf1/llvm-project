@@ -108,7 +108,7 @@ ExtractFunction::createSourceReplacements(RefactoringRuleContext &Context) {
   ASTContext &AST = Context.getASTContext();
   SourceManager &SM = AST.getSourceManager();
   const LangOptions &LangOpts = AST.getLangOpts();
-  Rewriter ExtractedCodeRewriter(SM, LangOpts);
+  Rewriter const ExtractedCodeRewriter(SM, LangOpts);
 
   // FIXME: Capture used variables.
 
@@ -116,7 +116,7 @@ ExtractFunction::createSourceReplacements(RefactoringRuleContext &Context) {
   QualType ReturnType = AST.VoidTy;
   // FIXME (Alex L): Account for the return statement in extracted code.
   // FIXME (Alex L): Check for lexical expression instead.
-  bool IsExpr = Code.size() == 1 && isa<Expr>(Code[0]);
+  bool const IsExpr = Code.size() == 1 && isa<Expr>(Code[0]);
   if (IsExpr) {
     // FIXME (Alex L): Get a more user-friendly type if needed.
     ReturnType = cast<Expr>(Code[0])->getType();
@@ -133,7 +133,7 @@ ExtractFunction::createSourceReplacements(RefactoringRuleContext &Context) {
   // FIXME: Compute the actual parameter types.
 
   // Compute the location of the extracted declaration.
-  SourceLocation ExtractedDeclLocation =
+  SourceLocation const ExtractedDeclLocation =
       computeFunctionExtractionLocation(ParentDecl);
   // FIXME: Adjust the location to account for any preceding comments.
 
@@ -145,7 +145,7 @@ ExtractFunction::createSourceReplacements(RefactoringRuleContext &Context) {
   PP.SuppressLifetimeQualifiers = true;
   PP.SuppressUnwrittenScope = true;
 
-  ExtractionSemicolonPolicy Semicolons = ExtractionSemicolonPolicy::compute(
+  ExtractionSemicolonPolicy const Semicolons = ExtractionSemicolonPolicy::compute(
       Code[Code.size() - 1], ExtractedRange, SM, LangOpts);
   AtomicChange Change(SM, ExtractedDeclLocation);
   // Create the replacement for the extracted declaration.

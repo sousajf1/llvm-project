@@ -109,7 +109,7 @@ void RISCVToolChain::addLibStdCxxIncludePaths(
     const llvm::opt::ArgList &DriverArgs,
     llvm::opt::ArgStringList &CC1Args) const {
   const GCCVersion &Version = GCCInstallation.getVersion();
-  StringRef TripleStr = GCCInstallation.getTriple().str();
+  StringRef const TripleStr = GCCInstallation.getTriple().str();
   const Multilib &Multilib = GCCInstallation.getMultilib();
   addLibStdCXXIncludePaths(computeSysRoot() + "/include/c++/" + Version.Text,
                            TripleStr, Multilib.includeSuffix(), DriverArgs,
@@ -122,8 +122,8 @@ std::string RISCVToolChain::computeSysRoot() const {
 
   SmallString<128> SysRootDir;
   if (GCCInstallation.isValid()) {
-    StringRef LibDir = GCCInstallation.getParentLibPath();
-    StringRef TripleStr = GCCInstallation.getTriple().str();
+    StringRef const LibDir = GCCInstallation.getParentLibPath();
+    StringRef const TripleStr = GCCInstallation.getTriple().str();
     llvm::sys::path::append(SysRootDir, LibDir, "..", TripleStr);
   } else {
     // Use the triple as provided to the driver. Unlike the parsed triple
@@ -150,7 +150,7 @@ void RISCV::Linker::ConstructJob(Compilation &C, const JobAction &JA,
   if (!D.SysRoot.empty())
     CmdArgs.push_back(Args.MakeArgString("--sysroot=" + D.SysRoot));
 
-  bool IsRV64 = ToolChain.getArch() == llvm::Triple::riscv64;
+  bool const IsRV64 = ToolChain.getArch() == llvm::Triple::riscv64;
   CmdArgs.push_back("-m");
   if (IsRV64) {
     CmdArgs.push_back("elf64lriscv");
@@ -158,9 +158,9 @@ void RISCV::Linker::ConstructJob(Compilation &C, const JobAction &JA,
     CmdArgs.push_back("elf32lriscv");
   }
 
-  std::string Linker = getToolChain().GetLinkerPath();
+  std::string const Linker = getToolChain().GetLinkerPath();
 
-  bool WantCRTs =
+  bool const WantCRTs =
       !Args.hasArg(options::OPT_nostdlib, options::OPT_nostartfiles);
 
   const char *crtbegin, *crtend;

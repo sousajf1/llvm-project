@@ -276,7 +276,7 @@ til::SExpr *SExprBuilder::translateDeclRefExpr(const DeclRefExpr *DRE,
 
   // Function parameters require substitution and/or renaming.
   if (const auto *PV = dyn_cast<ParmVarDecl>(VD)) {
-    unsigned I = PV->getFunctionScopeIndex();
+    unsigned const I = PV->getFunctionScopeIndex();
     const DeclContext *D = PV->getDeclContext();
     if (Ctx && Ctx->FunArgs) {
       const Decl *Canonical = Ctx->AttrDecl->getCanonicalDecl();
@@ -417,7 +417,7 @@ til::SExpr *SExprBuilder::translateCXXOperatorCallExpr(
     const CXXOperatorCallExpr *OCE, CallingContext *Ctx) {
   if (CapabilityExprMode) {
     // Ignore operator * and operator -> on smart pointers.
-    OverloadedOperatorKind k = OCE->getOperator();
+    OverloadedOperatorKind const k = OCE->getOperator();
     if (k == OO_Star || k == OO_Arrow) {
       auto *E = translate(OCE->getArg(0), Ctx);
       return new (Arena) til::Cast(til::CAST_objToPtr, E);
@@ -561,7 +561,7 @@ til::SExpr *SExprBuilder::translateBinaryOperator(const BinaryOperator *BO,
 
 til::SExpr *SExprBuilder::translateCastExpr(const CastExpr *CE,
                                             CallingContext *Ctx) {
-  CastKind K = CE->getCastKind();
+  CastKind const K = CE->getCastKind();
   switch (K) {
   case CK_LValueToRValue: {
     if (const auto *DRE = dyn_cast<DeclRefExpr>(CE->getSubExpr())) {
@@ -611,14 +611,14 @@ SExprBuilder::translateAbstractConditionalOperator(
 
 til::SExpr *
 SExprBuilder::translateDeclStmt(const DeclStmt *S, CallingContext *Ctx) {
-  DeclGroupRef DGrp = S->getDeclGroup();
+  DeclGroupRef const DGrp = S->getDeclGroup();
   for (auto I : DGrp) {
     if (auto *VD = dyn_cast_or_null<VarDecl>(I)) {
       Expr *E = VD->getInit();
       til::SExpr* SE = translate(E, Ctx);
 
       // Add local variables with trivial type to the variable map
-      QualType T = VD->getType();
+      QualType const T = VD->getType();
       if (T.isTrivialType(VD->getASTContext()))
         return addVarDecl(VD, SE);
       else {
@@ -692,7 +692,7 @@ til::SExpr *SExprBuilder::updateVarDecl(const ValueDecl *VD, til::SExpr *E) {
 // If E != null, sets Phi[CurrentBlockInfo->ArgIndex] = E.
 // If E == null, this is a backedge and will be set later.
 void SExprBuilder::makePhiNodeVar(unsigned i, unsigned NPreds, til::SExpr *E) {
-  unsigned ArgIndex = CurrentBlockInfo->ProcessedPredecessors;
+  unsigned const ArgIndex = CurrentBlockInfo->ProcessedPredecessors;
   assert(ArgIndex > 0 && ArgIndex < NPreds);
 
   til::SExpr *CurrE = CurrentLVarMap[i].second;
@@ -742,10 +742,10 @@ void SExprBuilder::mergeEntryMap(LVarDefinitionMap Map) {
   if (CurrentLVarMap.sameAs(Map))
     return;  // Easy merge: maps from different predecessors are unchanged.
 
-  unsigned NPreds = CurrentBB->numPredecessors();
-  unsigned ESz = CurrentLVarMap.size();
-  unsigned MSz = Map.size();
-  unsigned Sz  = std::min(ESz, MSz);
+  unsigned const NPreds = CurrentBB->numPredecessors();
+  unsigned const ESz = CurrentLVarMap.size();
+  unsigned const MSz = Map.size();
+  unsigned const Sz  = std::min(ESz, MSz);
 
   for (unsigned i = 0; i < Sz; ++i) {
     if (CurrentLVarMap[i].first != Map[i].first) {
@@ -781,8 +781,8 @@ void SExprBuilder::mergeEntryMapBackEdge() {
   CurrentBlockInfo->HasBackEdges = true;
 
   CurrentLVarMap.makeWritable();
-  unsigned Sz = CurrentLVarMap.size();
-  unsigned NPreds = CurrentBB->numPredecessors();
+  unsigned const Sz = CurrentLVarMap.size();
+  unsigned const NPreds = CurrentBB->numPredecessors();
 
   for (unsigned i = 0; i < Sz; ++i)
     makePhiNodeVar(i, NPreds, nullptr);
@@ -793,7 +793,7 @@ void SExprBuilder::mergeEntryMapBackEdge() {
 // I.e., merge the current variable map into the phi nodes for Blk.
 void SExprBuilder::mergePhiNodesBackEdge(const CFGBlock *Blk) {
   til::BasicBlock *BB = lookupBlock(Blk);
-  unsigned ArgIndex = BBInfo[Blk->getBlockID()].ProcessedPredecessors;
+  unsigned const ArgIndex = BBInfo[Blk->getBlockID()].ProcessedPredecessors;
   assert(ArgIndex > 0 && ArgIndex < BB->numPredecessors());
 
   for (til::SExpr *PE : BB->arguments()) {
@@ -810,7 +810,7 @@ void SExprBuilder::mergePhiNodesBackEdge(const CFGBlock *Blk) {
 void SExprBuilder::enterCFG(CFG *Cfg, const NamedDecl *D,
                             const CFGBlock *First) {
   // Perform initial setup operations.
-  unsigned NBlocks = Cfg->getNumBlockIDs();
+  unsigned const NBlocks = Cfg->getNumBlockIDs();
   Scfg = new (Arena) til::SCFG(Arena, NBlocks);
 
   // allocate all basic blocks immediately, to handle forward references.
@@ -827,7 +827,7 @@ void SExprBuilder::enterCFG(CFG *Cfg, const NamedDecl *D,
   auto Parms = isa<ObjCMethodDecl>(D) ? cast<ObjCMethodDecl>(D)->parameters()
                                       : cast<FunctionDecl>(D)->parameters();
   for (auto *Pm : Parms) {
-    QualType T = Pm->getType();
+    QualType const T = Pm->getType();
     if (!T.isTrivialType(Pm->getASTContext()))
       continue;
 
@@ -902,12 +902,12 @@ void SExprBuilder::exitCFGBlockBody(const CFGBlock *B) {
     CurrentBB->addInstruction(V);
 
   // Create an appropriate terminator
-  unsigned N = B->succ_size();
+  unsigned const N = B->succ_size();
   auto It = B->succ_begin();
   if (N == 1) {
     til::BasicBlock *BB = *It ? lookupBlock(*It) : nullptr;
     // TODO: set index
-    unsigned Idx = BB ? BB->findPredecessorIndex(CurrentBB) : 0;
+    unsigned const Idx = BB ? BB->findPredecessorIndex(CurrentBB) : 0;
     auto *Tm = new (Arena) til::Goto(BB, Idx);
     CurrentBB->setTerminator(Tm);
   }

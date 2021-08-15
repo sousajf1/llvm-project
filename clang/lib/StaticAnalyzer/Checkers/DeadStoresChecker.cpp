@@ -38,17 +38,17 @@ public:
   llvm::DenseSet<const VarDecl *> &S;
 
   bool TraverseObjCAtFinallyStmt(ObjCAtFinallyStmt *S) {
-    SaveAndRestore<bool> inFinally(inEH, true);
+    SaveAndRestore<bool> const inFinally(inEH, true);
     return ::RecursiveASTVisitor<EHCodeVisitor>::TraverseObjCAtFinallyStmt(S);
   }
 
   bool TraverseObjCAtCatchStmt(ObjCAtCatchStmt *S) {
-    SaveAndRestore<bool> inCatch(inEH, true);
+    SaveAndRestore<bool> const inCatch(inEH, true);
     return ::RecursiveASTVisitor<EHCodeVisitor>::TraverseObjCAtCatchStmt(S);
   }
 
   bool TraverseCXXCatchStmt(CXXCatchStmt *S) {
-    SaveAndRestore<bool> inCatch(inEH, true);
+    SaveAndRestore<bool> const inCatch(inEH, true);
     return TraverseStmt(S->getHandlerBlock());
   }
 
@@ -173,14 +173,14 @@ public:
   }
 
   bool isSuppressed(SourceRange R) {
-    SourceManager &SMgr = Ctx.getSourceManager();
-    SourceLocation Loc = R.getBegin();
+    SourceManager  const&SMgr = Ctx.getSourceManager();
+    SourceLocation const Loc = R.getBegin();
     if (!Loc.isValid())
       return false;
 
-    FileID FID = SMgr.getFileID(Loc);
+    FileID const FID = SMgr.getFileID(Loc);
     bool Invalid = false;
-    StringRef Data = SMgr.getBufferData(FID, &Invalid);
+    StringRef const Data = SMgr.getBufferData(FID, &Invalid);
     if (Invalid)
       return false;
 
@@ -228,13 +228,13 @@ public:
                                            /*IncludePossibleEffects=*/true)) {
             break;
           }
-          SourceManager &SM = ACtx.getSourceManager();
+          SourceManager  const&SM = ACtx.getSourceManager();
           const LangOptions &LO = ACtx.getLangOpts();
-          SourceLocation L1 =
+          SourceLocation const L1 =
               Lexer::findNextToken(
                   V->getTypeSourceInfo()->getTypeLoc().getEndLoc(),
                   SM, LO)->getEndLoc();
-          SourceLocation L2 =
+          SourceLocation const L2 =
               Lexer::getLocForEndOfToken(V->getInit()->getEndLoc(), 1, SM, LO);
           Fixits.push_back(FixItHint::CreateRemoval({L1, L2}));
         }
@@ -280,7 +280,7 @@ public:
         !(VD->hasAttr<UnusedAttr>() || VD->hasAttr<BlocksAttr>() ||
           VD->hasAttr<ObjCPreciseLifetimeAttr>())) {
 
-      PathDiagnosticLocation ExLoc =
+      PathDiagnosticLocation const ExLoc =
         PathDiagnosticLocation::createBegin(Ex, BR.getSourceManager(), AC);
       Report(VD, dsk, ExLoc, Val->getSourceRange());
     }
@@ -337,7 +337,7 @@ public:
             LookThroughTransitiveAssignmentsAndCommaOperators(B->getRHS());
           RHS = RHS->IgnoreParenCasts();
 
-          QualType T = VD->getType();
+          QualType const T = VD->getType();
           if (T.isVolatileQualified())
             return;
           if (T->isPointerType() || T->isObjCObjectPointerType()) {
@@ -352,7 +352,7 @@ public:
               return;
 
           // Otherwise, issue a warning.
-          DeadStoreKind dsk = Parents.isConsumedExpr(B)
+          DeadStoreKind const dsk = Parents.isConsumedExpr(B)
                               ? Enclosing
                               : (isIncrement(VD,B) ? DeadIncrement : Standard);
 
@@ -439,7 +439,7 @@ public:
                     return;
                 }
 
-              PathDiagnosticLocation Loc =
+              PathDiagnosticLocation const Loc =
                 PathDiagnosticLocation::create(V, BR.getSourceManager());
               Report(V, DeadInit, Loc, E->getSourceRange());
             }
@@ -545,7 +545,7 @@ void DeadStoresChecker::checkASTCodeBody(const Decl *D, AnalysisManager &mgr,
       return;
 
   if (LiveVariables *L = mgr.getAnalysis<LiveVariables>(D)) {
-    CFG &cfg = *mgr.getCFG(D);
+    CFG  const&cfg = *mgr.getCFG(D);
     AnalysisDeclContext *AC = mgr.getAnalysisDeclContext(D);
     ParentMap &pmap = mgr.getParentMap(D);
     FindEscaped FS;

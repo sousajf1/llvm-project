@@ -80,7 +80,7 @@ static void compareSnippets(StringRef Expected,
                      const llvm::Optional<std::string> &MaybeActual) {
   ASSERT_TRUE(MaybeActual) << "Rewrite failed. Expecting: " << Expected;
   auto Actual = *MaybeActual;
-  std::string HL = "#include \"header.h\"\n";
+  std::string const HL = "#include \"header.h\"\n";
   auto I = Actual.find(HL);
   if (I != std::string::npos)
     Actual.erase(I, HL.size());
@@ -97,7 +97,7 @@ protected:
   }
 
   llvm::Optional<std::string> rewrite(StringRef Input) {
-    std::string Code = ("#include \"header.h\"\n" + Input).str();
+    std::string const Code = ("#include \"header.h\"\n" + Input).str();
     auto Factory = newFrontendActionFactory(&MatchFinder);
     if (!runToolOnCodeWithArgs(
             Factory->create(), Code, std::vector<std::string>(), "input.cc",
@@ -166,7 +166,7 @@ protected:
 
 // Given string s, change strlen($s.c_str()) to REPLACED.
 static RewriteRule ruleStrlenSize() {
-  StringRef StringExpr = "strexpr";
+  StringRef const StringExpr = "strexpr";
   auto StringType = namedDecl(hasAnyName("::basic_string", "::string"));
   auto R = makeRule(
       callExpr(callee(functionDecl(hasName("strlen"))),
@@ -179,20 +179,20 @@ static RewriteRule ruleStrlenSize() {
 }
 
 TEST_F(TransformerTest, StrlenSize) {
-  std::string Input = "int f(string s) { return strlen(s.c_str()); }";
-  std::string Expected = "int f(string s) { return REPLACED; }";
+  std::string const Input = "int f(string s) { return strlen(s.c_str()); }";
+  std::string const Expected = "int f(string s) { return REPLACED; }";
   testRule(ruleStrlenSize(), Input, Expected);
 }
 
 // Tests that no change is applied when a match is not expected.
 TEST_F(TransformerTest, NoMatch) {
-  std::string Input = "int f(string s) { return s.size(); }";
+  std::string const Input = "int f(string s) { return s.size(); }";
   testRule(ruleStrlenSize(), Input, Input);
 }
 
 // Tests replacing an expression.
 TEST_F(TransformerTest, Flag) {
-  StringRef Flag = "flag";
+  StringRef const Flag = "flag";
   RewriteRule Rule = makeRule(
       cxxMemberCallExpr(on(expr(hasType(cxxRecordDecl(
                                     hasName("proto::ProtoCommandLineFlag"))))
@@ -200,12 +200,12 @@ TEST_F(TransformerTest, Flag) {
                         unless(callee(cxxMethodDecl(hasName("GetProto"))))),
       changeTo(node(std::string(Flag)), cat("EXPR")));
 
-  std::string Input = R"cc(
+  std::string const Input = R"cc(
     proto::ProtoCommandLineFlag flag;
     int x = flag.foo();
     int y = flag.GetProto().foo();
   )cc";
-  std::string Expected = R"cc(
+  std::string const Expected = R"cc(
     proto::ProtoCommandLineFlag flag;
     int x = EXPR.foo();
     int y = flag.GetProto().foo();
@@ -215,15 +215,15 @@ TEST_F(TransformerTest, Flag) {
 }
 
 TEST_F(TransformerTest, AddIncludeQuoted) {
-  RewriteRule Rule =
+  RewriteRule const Rule =
       makeRule(callExpr(callee(functionDecl(hasName("f")))),
                {addInclude("clang/OtherLib.h"), changeTo(cat("other()"))});
 
-  std::string Input = R"cc(
+  std::string const Input = R"cc(
     int f(int x);
     int h(int x) { return f(x); }
   )cc";
-  std::string Expected = R"cc(#include "clang/OtherLib.h"
+  std::string const Expected = R"cc(#include "clang/OtherLib.h"
 
     int f(int x);
     int h(int x) { return other(); }
@@ -233,16 +233,16 @@ TEST_F(TransformerTest, AddIncludeQuoted) {
 }
 
 TEST_F(TransformerTest, AddIncludeAngled) {
-  RewriteRule Rule = makeRule(
+  RewriteRule const Rule = makeRule(
       callExpr(callee(functionDecl(hasName("f")))),
       {addInclude("clang/OtherLib.h", transformer::IncludeFormat::Angled),
        changeTo(cat("other()"))});
 
-  std::string Input = R"cc(
+  std::string const Input = R"cc(
     int f(int x);
     int h(int x) { return f(x); }
   )cc";
-  std::string Expected = R"cc(#include <clang/OtherLib.h>
+  std::string const Expected = R"cc(#include <clang/OtherLib.h>
 
     int f(int x);
     int h(int x) { return other(); }
@@ -256,11 +256,11 @@ TEST_F(TransformerTest, AddIncludeQuotedForRule) {
                               changeTo(cat("other()")));
   addInclude(Rule, "clang/OtherLib.h");
 
-  std::string Input = R"cc(
+  std::string const Input = R"cc(
     int f(int x);
     int h(int x) { return f(x); }
   )cc";
-  std::string Expected = R"cc(#include "clang/OtherLib.h"
+  std::string const Expected = R"cc(#include "clang/OtherLib.h"
 
     int f(int x);
     int h(int x) { return other(); }
@@ -274,11 +274,11 @@ TEST_F(TransformerTest, AddIncludeAngledForRule) {
                               changeTo(cat("other()")));
   addInclude(Rule, "clang/OtherLib.h", transformer::IncludeFormat::Angled);
 
-  std::string Input = R"cc(
+  std::string const Input = R"cc(
     int f(int x);
     int h(int x) { return f(x); }
   )cc";
-  std::string Expected = R"cc(#include <clang/OtherLib.h>
+  std::string const Expected = R"cc(#include <clang/OtherLib.h>
 
     int f(int x);
     int h(int x) { return other(); }
@@ -288,15 +288,15 @@ TEST_F(TransformerTest, AddIncludeAngledForRule) {
 }
 
 TEST_F(TransformerTest, NodePartNameNamedDecl) {
-  StringRef Fun = "fun";
-  RewriteRule Rule = makeRule(functionDecl(hasName("bad")).bind(Fun),
+  StringRef const Fun = "fun";
+  RewriteRule const Rule = makeRule(functionDecl(hasName("bad")).bind(Fun),
                               changeTo(name(std::string(Fun)), cat("good")));
 
-  std::string Input = R"cc(
+  std::string const Input = R"cc(
     int bad(int x);
     int bad(int x) { return x * x; }
   )cc";
-  std::string Expected = R"cc(
+  std::string const Expected = R"cc(
     int good(int x);
     int good(int x) { return x * x; }
   )cc";
@@ -305,14 +305,14 @@ TEST_F(TransformerTest, NodePartNameNamedDecl) {
 }
 
 TEST_F(TransformerTest, NodePartNameDeclRef) {
-  std::string Input = R"cc(
+  std::string const Input = R"cc(
     template <typename T>
     T bad(T x) {
       return x;
     }
     int neutral(int x) { return bad<int>(x) * x; }
   )cc";
-  std::string Expected = R"cc(
+  std::string const Expected = R"cc(
     template <typename T>
     T bad(T x) {
       return x;
@@ -320,14 +320,14 @@ TEST_F(TransformerTest, NodePartNameDeclRef) {
     int neutral(int x) { return good<int>(x) * x; }
   )cc";
 
-  StringRef Ref = "ref";
+  StringRef const Ref = "ref";
   testRule(makeRule(declRefExpr(to(functionDecl(hasName("bad")))).bind(Ref),
                     changeTo(name(std::string(Ref)), cat("good"))),
            Input, Expected);
 }
 
 TEST_F(TransformerTest, NodePartNameDeclRefFailure) {
-  std::string Input = R"cc(
+  std::string const Input = R"cc(
     struct Y {
       int operator*();
     };
@@ -338,7 +338,7 @@ TEST_F(TransformerTest, NodePartNameDeclRefFailure) {
     }
   )cc";
 
-  StringRef Ref = "ref";
+  StringRef const Ref = "ref";
   Transformer T(makeRule(declRefExpr(to(functionDecl())).bind(Ref),
                          changeTo(name(std::string(Ref)), cat("good"))),
                 consumer());
@@ -347,12 +347,12 @@ TEST_F(TransformerTest, NodePartNameDeclRefFailure) {
 }
 
 TEST_F(TransformerTest, NodePartMember) {
-  StringRef E = "expr";
-  RewriteRule Rule =
+  StringRef const E = "expr";
+  RewriteRule const Rule =
       makeRule(memberExpr(clang::ast_matchers::member(hasName("bad"))).bind(E),
                changeTo(member(std::string(E)), cat("good")));
 
-  std::string Input = R"cc(
+  std::string const Input = R"cc(
     struct S {
       int bad;
     };
@@ -361,7 +361,7 @@ TEST_F(TransformerTest, NodePartMember) {
       return s.bad;
     }
   )cc";
-  std::string Expected = R"cc(
+  std::string const Expected = R"cc(
     struct S {
       int bad;
     };
@@ -375,7 +375,7 @@ TEST_F(TransformerTest, NodePartMember) {
 }
 
 TEST_F(TransformerTest, NodePartMemberQualified) {
-  std::string Input = R"cc(
+  std::string const Input = R"cc(
     struct S {
       int bad;
       int good;
@@ -388,7 +388,7 @@ TEST_F(TransformerTest, NodePartMemberQualified) {
       return t.S::bad;
     }
   )cc";
-  std::string Expected = R"cc(
+  std::string const Expected = R"cc(
     struct S {
       int bad;
       int good;
@@ -402,14 +402,14 @@ TEST_F(TransformerTest, NodePartMemberQualified) {
     }
   )cc";
 
-  StringRef E = "expr";
+  StringRef const E = "expr";
   testRule(makeRule(memberExpr().bind(E),
                     changeTo(member(std::string(E)), cat("good"))),
            Input, Expected);
 }
 
 TEST_F(TransformerTest, NodePartMemberMultiToken) {
-  std::string Input = R"cc(
+  std::string const Input = R"cc(
     struct Y {
       int operator*();
       int good();
@@ -421,7 +421,7 @@ TEST_F(TransformerTest, NodePartMemberMultiToken) {
       return y.operator *();
     }
   )cc";
-  std::string Expected = R"cc(
+  std::string const Expected = R"cc(
     struct Y {
       int operator*();
       int good();
@@ -434,7 +434,7 @@ TEST_F(TransformerTest, NodePartMemberMultiToken) {
     }
   )cc";
 
-  StringRef MemExpr = "member";
+  StringRef const MemExpr = "member";
   testRule(makeRule(memberExpr().bind(MemExpr),
                     changeTo(member(std::string(MemExpr)), cat("good"))),
            Input, Expected);
@@ -442,22 +442,22 @@ TEST_F(TransformerTest, NodePartMemberMultiToken) {
 
 TEST_F(TransformerTest, NoEdits) {
   using transformer::noEdits;
-  std::string Input = "int f(int x) { return x; }";
+  std::string const Input = "int f(int x) { return x; }";
   testRule(makeRule(returnStmt().bind("return"), noEdits()), Input, Input);
 }
 
 TEST_F(TransformerTest, NoopEdit) {
   using transformer::node;
   using transformer::noopEdit;
-  std::string Input = "int f(int x) { return x; }";
+  std::string const Input = "int f(int x) { return x; }";
   testRule(makeRule(returnStmt().bind("return"), noopEdit(node("return"))),
            Input, Input);
 }
 
 TEST_F(TransformerTest, IfBound2Args) {
   using transformer::ifBound;
-  std::string Input = "int f(int x) { return x; }";
-  std::string Expected = "int f(int x) { CHANGE; }";
+  std::string const Input = "int f(int x) { return x; }";
+  std::string const Expected = "int f(int x) { CHANGE; }";
   testRule(makeRule(returnStmt().bind("return"),
                     ifBound("return", changeTo(cat("CHANGE;")))),
            Input, Expected);
@@ -465,8 +465,8 @@ TEST_F(TransformerTest, IfBound2Args) {
 
 TEST_F(TransformerTest, IfBound3Args) {
   using transformer::ifBound;
-  std::string Input = "int f(int x) { return x; }";
-  std::string Expected = "int f(int x) { CHANGE; }";
+  std::string const Input = "int f(int x) { return x; }";
+  std::string const Expected = "int f(int x) { CHANGE; }";
   testRule(makeRule(returnStmt().bind("return"),
                     ifBound("nothing", changeTo(cat("ERROR")),
                             changeTo(cat("CHANGE;")))),
@@ -475,8 +475,8 @@ TEST_F(TransformerTest, IfBound3Args) {
 
 TEST_F(TransformerTest, ShrinkTo) {
   using transformer::shrinkTo;
-  std::string Input = "int f(int x) { return x; }";
-  std::string Expected = "return x;";
+  std::string const Input = "int f(int x) { return x; }";
+  std::string const Expected = "return x;";
   testRule(makeRule(functionDecl(hasDescendant(returnStmt().bind("return")))
                         .bind("function"),
                     shrinkTo(node("function"), node("return"))),
@@ -485,9 +485,9 @@ TEST_F(TransformerTest, ShrinkTo) {
 
 // Rewrite various Stmts inside a Decl.
 TEST_F(TransformerTest, RewriteDescendantsDeclChangeStmt) {
-  std::string Input =
+  std::string const Input =
       "int f(int x) { int y = x; { int z = x * x; } return x; }";
-  std::string Expected =
+  std::string const Expected =
       "int f(int x) { int y = 3; { int z = 3 * 3; } return 3; }";
   auto InlineX =
       makeRule(declRefExpr(to(varDecl(hasName("x")))), changeTo(cat("3")));
@@ -498,8 +498,8 @@ TEST_F(TransformerTest, RewriteDescendantsDeclChangeStmt) {
 
 // Rewrite various TypeLocs inside a Decl.
 TEST_F(TransformerTest, RewriteDescendantsDeclChangeTypeLoc) {
-  std::string Input = "int f(int *x) { return *x; }";
-  std::string Expected = "char f(char *x) { return *x; }";
+  std::string const Input = "int f(int *x) { return *x; }";
+  std::string const Expected = "char f(char *x) { return *x; }";
   auto IntToChar = makeRule(typeLoc(loc(qualType(isInteger(), builtinType()))),
                             changeTo(cat("char")));
   testRule(makeRule(functionDecl(hasName("f")).bind("fun"),
@@ -511,9 +511,9 @@ TEST_F(TransformerTest, RewriteDescendantsStmt) {
   // Add an unrelated definition to the header that also has a variable named
   // "x", to test that the rewrite is limited to the scope we intend.
   appendToHeader(R"cc(int g(int x) { return x; })cc");
-  std::string Input =
+  std::string const Input =
       "int f(int x) { int y = x; { int z = x * x; } return x; }";
-  std::string Expected =
+  std::string const Expected =
       "int f(int x) { int y = 3; { int z = 3 * 3; } return 3; }";
   auto InlineX =
       makeRule(declRefExpr(to(varDecl(hasName("x")))), changeTo(cat("3")));
@@ -523,9 +523,9 @@ TEST_F(TransformerTest, RewriteDescendantsStmt) {
 }
 
 TEST_F(TransformerTest, RewriteDescendantsStmtWithAdditionalChange) {
-  std::string Input =
+  std::string const Input =
       "int f(int x) { int y = x; { int z = x * x; } return x; }";
-  std::string Expected =
+  std::string const Expected =
       "int newName(int x) { int y = 3; { int z = 3 * 3; } return 3; }";
   auto InlineX =
       makeRule(declRefExpr(to(varDecl(hasName("x")))), changeTo(cat("3")));
@@ -538,8 +538,8 @@ TEST_F(TransformerTest, RewriteDescendantsStmtWithAdditionalChange) {
 }
 
 TEST_F(TransformerTest, RewriteDescendantsTypeLoc) {
-  std::string Input = "int f(int *x) { return *x; }";
-  std::string Expected = "int f(char *x) { return *x; }";
+  std::string const Input = "int f(int *x) { return *x; }";
+  std::string const Expected = "int f(char *x) { return *x; }";
   auto IntToChar =
       makeRule(typeLoc(loc(qualType(isInteger(), builtinType()))).bind("loc"),
                changeTo(cat("char")));
@@ -552,11 +552,11 @@ TEST_F(TransformerTest, RewriteDescendantsTypeLoc) {
 }
 
 TEST_F(TransformerTest, RewriteDescendantsReferToParentBinding) {
-  std::string Input =
+  std::string const Input =
       "int f(int p) { int y = p; { int z = p * p; } return p; }";
-  std::string Expected =
+  std::string const Expected =
       "int f(int p) { int y = 3; { int z = 3 * 3; } return 3; }";
-  std::string VarId = "var";
+  std::string const VarId = "var";
   auto InlineVar = makeRule(declRefExpr(to(varDecl(equalsBoundNode(VarId)))),
                             changeTo(cat("3")));
   testRule(makeRule(functionDecl(hasName("f"),
@@ -567,7 +567,7 @@ TEST_F(TransformerTest, RewriteDescendantsReferToParentBinding) {
 }
 
 TEST_F(TransformerTest, RewriteDescendantsUnboundNode) {
-  std::string Input =
+  std::string const Input =
       "int f(int x) { int y = x; { int z = x * x; } return x; }";
   auto InlineX =
       makeRule(declRefExpr(to(varDecl(hasName("x")))), changeTo(cat("3")));
@@ -581,7 +581,7 @@ TEST_F(TransformerTest, RewriteDescendantsUnboundNode) {
 }
 
 TEST_F(TransformerTest, RewriteDescendantsInvalidNodeType) {
-  std::string Input =
+  std::string const Input =
       "int f(int x) { int y = x; { int z = x * x; } return x; }";
   auto IntToChar =
       makeRule(qualType(isInteger(), builtinType()), changeTo(cat("char")));
@@ -606,9 +606,9 @@ TEST_F(TransformerTest, RewriteDescendantsTypedStmt) {
   // Add an unrelated definition to the header that also has a variable named
   // "x", to test that the rewrite is limited to the scope we intend.
   appendToHeader(R"cc(int g(int x) { return x; })cc");
-  std::string Input =
+  std::string const Input =
       "int f(int x) { int y = x; { int z = x * x; } return x; }";
-  std::string Expected =
+  std::string const Expected =
       "int f(int x) { int y = 3; { int z = 3 * 3; } return 3; }";
   auto InlineX =
       makeRule(declRefExpr(to(varDecl(hasName("x")))), changeTo(cat("3")));
@@ -623,9 +623,9 @@ TEST_F(TransformerTest, RewriteDescendantsTypedStmt) {
 }
 
 TEST_F(TransformerTest, RewriteDescendantsTypedDecl) {
-  std::string Input =
+  std::string const Input =
       "int f(int x) { int y = x; { int z = x * x; } return x; }";
-  std::string Expected =
+  std::string const Expected =
       "int f(int x) { int y = 3; { int z = 3 * 3; } return 3; }";
   auto InlineX =
       makeRule(declRefExpr(to(varDecl(hasName("x")))), changeTo(cat("3")));
@@ -640,8 +640,8 @@ TEST_F(TransformerTest, RewriteDescendantsTypedDecl) {
 }
 
 TEST_F(TransformerTest, RewriteDescendantsTypedTypeLoc) {
-  std::string Input = "int f(int *x) { return *x; }";
-  std::string Expected = "int f(char *x) { return *x; }";
+  std::string const Input = "int f(int *x) { return *x; }";
+  std::string const Expected = "int f(char *x) { return *x; }";
   auto IntToChar =
       makeRule(typeLoc(loc(qualType(isInteger(), builtinType()))).bind("loc"),
                changeTo(cat("char")));
@@ -662,9 +662,9 @@ TEST_F(TransformerTest, RewriteDescendantsTypedDynTyped) {
   // Add an unrelated definition to the header that also has a variable named
   // "x", to test that the rewrite is limited to the scope we intend.
   appendToHeader(R"cc(int g(int x) { return x; })cc");
-  std::string Input =
+  std::string const Input =
       "int f(int x) { int y = x; { int z = x * x; } return x; }";
-  std::string Expected =
+  std::string const Expected =
       "int f(int x) { int y = 3; { int z = 3 * 3; } return 3; }";
   auto InlineX =
       makeRule(declRefExpr(to(varDecl(hasName("x")))), changeTo(cat("3")));
@@ -680,19 +680,19 @@ TEST_F(TransformerTest, RewriteDescendantsTypedDynTyped) {
 }
 
 TEST_F(TransformerTest, InsertBeforeEdit) {
-  std::string Input = R"cc(
+  std::string const Input = R"cc(
     int f() {
       return 7;
     }
   )cc";
-  std::string Expected = R"cc(
+  std::string const Expected = R"cc(
     int f() {
       int y = 3;
       return 7;
     }
   )cc";
 
-  StringRef Ret = "return";
+  StringRef const Ret = "return";
   testRule(
       makeRule(returnStmt().bind(Ret),
                insertBefore(statement(std::string(Ret)), cat("int y = 3;"))),
@@ -700,13 +700,13 @@ TEST_F(TransformerTest, InsertBeforeEdit) {
 }
 
 TEST_F(TransformerTest, InsertAfterEdit) {
-  std::string Input = R"cc(
+  std::string const Input = R"cc(
     int f() {
       int x = 5;
       return 7;
     }
   )cc";
-  std::string Expected = R"cc(
+  std::string const Expected = R"cc(
     int f() {
       int x = 5;
       int y = 3;
@@ -714,7 +714,7 @@ TEST_F(TransformerTest, InsertAfterEdit) {
     }
   )cc";
 
-  StringRef Decl = "decl";
+  StringRef const Decl = "decl";
   testRule(
       makeRule(declStmt().bind(Decl),
                insertAfter(statement(std::string(Decl)), cat("int y = 3;"))),
@@ -722,19 +722,19 @@ TEST_F(TransformerTest, InsertAfterEdit) {
 }
 
 TEST_F(TransformerTest, RemoveEdit) {
-  std::string Input = R"cc(
+  std::string const Input = R"cc(
     int f() {
       int x = 5;
       return 7;
     }
   )cc";
-  std::string Expected = R"cc(
+  std::string const Expected = R"cc(
     int f() {
       return 7;
     }
   )cc";
 
-  StringRef Decl = "decl";
+  StringRef const Decl = "decl";
   testRule(
       makeRule(declStmt().bind(Decl), remove(statement(std::string(Decl)))),
       Input, Expected);
@@ -747,7 +747,7 @@ TEST_F(TransformerTest, WithMetadata) {
     return N;
   };
 
-  std::string Input = R"cc(
+  std::string const Input = R"cc(
     int f() {
       int x = 5;
       return 7;
@@ -773,7 +773,7 @@ TEST_F(TransformerTest, WithMetadata) {
 }
 
 TEST_F(TransformerTest, MultiChange) {
-  std::string Input = R"cc(
+  std::string const Input = R"cc(
     void foo() {
       if (10 > 1.0)
         log(1) << "oh no!";
@@ -781,7 +781,7 @@ TEST_F(TransformerTest, MultiChange) {
         log(0) << "ok";
     }
   )cc";
-  std::string Expected = R"(
+  std::string const Expected = R"(
     void foo() {
       if (true) { /* then */ }
       else { /* else */ }
@@ -800,7 +800,7 @@ TEST_F(TransformerTest, MultiChange) {
 
 TEST_F(TransformerTest, EditList) {
   using clang::transformer::editList;
-  std::string Input = R"cc(
+  std::string const Input = R"cc(
     void foo() {
       if (10 > 1.0)
         log(1) << "oh no!";
@@ -808,7 +808,7 @@ TEST_F(TransformerTest, EditList) {
         log(0) << "ok";
     }
   )cc";
-  std::string Expected = R"(
+  std::string const Expected = R"(
     void foo() {
       if (true) { /* then */ }
       else { /* else */ }
@@ -828,7 +828,7 @@ TEST_F(TransformerTest, EditList) {
 
 TEST_F(TransformerTest, Flatten) {
   using clang::transformer::editList;
-  std::string Input = R"cc(
+  std::string const Input = R"cc(
     void foo() {
       if (10 > 1.0)
         log(1) << "oh no!";
@@ -836,7 +836,7 @@ TEST_F(TransformerTest, Flatten) {
         log(0) << "ok";
     }
   )cc";
-  std::string Expected = R"(
+  std::string const Expected = R"(
     void foo() {
       if (true) { /* then */ }
       else { /* else */ }
@@ -856,7 +856,7 @@ TEST_F(TransformerTest, Flatten) {
 
 TEST_F(TransformerTest, FlattenWithMixedArgs) {
   using clang::transformer::editList;
-  std::string Input = R"cc(
+  std::string const Input = R"cc(
     void foo() {
       if (10 > 1.0)
         log(1) << "oh no!";
@@ -864,7 +864,7 @@ TEST_F(TransformerTest, FlattenWithMixedArgs) {
         log(0) << "ok";
     }
   )cc";
-  std::string Expected = R"(
+  std::string const Expected = R"(
     void foo() {
       if (true) { /* then */ }
       else { /* else */ }
@@ -883,21 +883,21 @@ TEST_F(TransformerTest, FlattenWithMixedArgs) {
 }
 
 TEST_F(TransformerTest, OrderedRuleUnrelated) {
-  StringRef Flag = "flag";
-  RewriteRule FlagRule = makeRule(
+  StringRef const Flag = "flag";
+  RewriteRule const FlagRule = makeRule(
       cxxMemberCallExpr(on(expr(hasType(cxxRecordDecl(
                                     hasName("proto::ProtoCommandLineFlag"))))
                                .bind(Flag)),
                         unless(callee(cxxMethodDecl(hasName("GetProto"))))),
       changeTo(node(std::string(Flag)), cat("PROTO")));
 
-  std::string Input = R"cc(
+  std::string const Input = R"cc(
     proto::ProtoCommandLineFlag flag;
     int x = flag.foo();
     int y = flag.GetProto().foo();
     int f(string s) { return strlen(s.c_str()); }
   )cc";
-  std::string Expected = R"cc(
+  std::string const Expected = R"cc(
     proto::ProtoCommandLineFlag flag;
     int x = PROTO.foo();
     int y = flag.GetProto().foo();
@@ -908,23 +908,23 @@ TEST_F(TransformerTest, OrderedRuleUnrelated) {
 }
 
 TEST_F(TransformerTest, OrderedRuleRelated) {
-  std::string Input = R"cc(
+  std::string const Input = R"cc(
     void f1();
     void f2();
     void call_f1() { f1(); }
     void call_f2() { f2(); }
   )cc";
-  std::string Expected = R"cc(
+  std::string const Expected = R"cc(
     void f1();
     void f2();
     void call_f1() { REPLACE_F1; }
     void call_f2() { REPLACE_F1_OR_F2; }
   )cc";
 
-  RewriteRule ReplaceF1 =
+  RewriteRule const ReplaceF1 =
       makeRule(callExpr(callee(functionDecl(hasName("f1")))),
                changeTo(cat("REPLACE_F1")));
-  RewriteRule ReplaceF1OrF2 =
+  RewriteRule const ReplaceF1OrF2 =
       makeRule(callExpr(callee(functionDecl(hasAnyName("f1", "f2")))),
                changeTo(cat("REPLACE_F1_OR_F2")));
   testRule(applyFirst({ReplaceF1, ReplaceF1OrF2}), Input, Expected);
@@ -933,23 +933,23 @@ TEST_F(TransformerTest, OrderedRuleRelated) {
 // Change the order of the rules to get a different result. When `ReplaceF1OrF2`
 // comes first, it applies for both uses, so `ReplaceF1` never applies.
 TEST_F(TransformerTest, OrderedRuleRelatedSwapped) {
-  std::string Input = R"cc(
+  std::string const Input = R"cc(
     void f1();
     void f2();
     void call_f1() { f1(); }
     void call_f2() { f2(); }
   )cc";
-  std::string Expected = R"cc(
+  std::string const Expected = R"cc(
     void f1();
     void f2();
     void call_f1() { REPLACE_F1_OR_F2; }
     void call_f2() { REPLACE_F1_OR_F2; }
   )cc";
 
-  RewriteRule ReplaceF1 =
+  RewriteRule const ReplaceF1 =
       makeRule(callExpr(callee(functionDecl(hasName("f1")))),
                changeTo(cat("REPLACE_F1")));
-  RewriteRule ReplaceF1OrF2 =
+  RewriteRule const ReplaceF1OrF2 =
       makeRule(callExpr(callee(functionDecl(hasAnyName("f1", "f2")))),
                changeTo(cat("REPLACE_F1_OR_F2")));
   testRule(applyFirst({ReplaceF1OrF2, ReplaceF1}), Input, Expected);
@@ -961,29 +961,29 @@ TEST_F(TransformerTest, OrderedRuleRelatedSwapped) {
 // middle to test that `buildMatchers` works even when the kinds aren't grouped
 // together.
 TEST_F(TransformerTest, OrderedRuleMultipleKinds) {
-  std::string Input = R"cc(
+  std::string const Input = R"cc(
     void f1();
     void f2();
     void call_f1() { f1(); }
     void call_f2() { f2(); }
   )cc";
-  std::string Expected = R"cc(
+  std::string const Expected = R"cc(
     void f1();
     void DECL_RULE();
     void call_f1() { REPLACE_F1; }
     void call_f2() { REPLACE_F1_OR_F2; }
   )cc";
 
-  RewriteRule ReplaceF1 =
+  RewriteRule const ReplaceF1 =
       makeRule(callExpr(callee(functionDecl(hasName("f1")))),
                changeTo(cat("REPLACE_F1")));
-  RewriteRule ReplaceF1OrF2 =
+  RewriteRule const ReplaceF1OrF2 =
       makeRule(callExpr(callee(functionDecl(hasAnyName("f1", "f2")))),
                changeTo(cat("REPLACE_F1_OR_F2")));
-  RewriteRule DeclRule = makeRule(functionDecl(hasName("f2")).bind("fun"),
+  RewriteRule const DeclRule = makeRule(functionDecl(hasName("f2")).bind("fun"),
                                   changeTo(name("fun"), cat("DECL_RULE")));
 
-  RewriteRule Rule = applyFirst({ReplaceF1, DeclRule, ReplaceF1OrF2});
+  RewriteRule const Rule = applyFirst({ReplaceF1, DeclRule, ReplaceF1OrF2});
   EXPECT_EQ(transformer::detail::buildMatchers(Rule).size(), 2UL);
   testRule(Rule, Input, Expected);
 }
@@ -991,23 +991,23 @@ TEST_F(TransformerTest, OrderedRuleMultipleKinds) {
 // Verifies that a rule with a top-level matcher for an implicit node (like
 // `implicitCastExpr`) works correctly -- the implicit nodes are not skipped.
 TEST_F(TransformerTest, OrderedRuleImplicitMatched) {
-  std::string Input = R"cc(
+  std::string const Input = R"cc(
     void f1();
     int f2();
     void call_f1() { f1(); }
     float call_f2() { return f2(); }
   )cc";
-  std::string Expected = R"cc(
+  std::string const Expected = R"cc(
     void f1();
     int f2();
     void call_f1() { REPLACE_F1; }
     float call_f2() { return REPLACE_F2; }
   )cc";
 
-  RewriteRule ReplaceF1 =
+  RewriteRule const ReplaceF1 =
       makeRule(callExpr(callee(functionDecl(hasName("f1")))),
                changeTo(cat("REPLACE_F1")));
-  RewriteRule ReplaceF2 =
+  RewriteRule const ReplaceF2 =
       makeRule(implicitCastExpr(hasSourceExpression(callExpr())),
                changeTo(cat("REPLACE_F2")));
   testRule(applyFirst({ReplaceF1, ReplaceF2}), Input, Expected);
@@ -1019,9 +1019,9 @@ TEST_F(TransformerTest, OrderedRuleImplicitMatched) {
 
 // Tests for a conflict in edits from a single match for a rule.
 TEST_F(TransformerTest, TextGeneratorFailure) {
-  std::string Input = "int conflictOneRule() { return 3 + 7; }";
+  std::string const Input = "int conflictOneRule() { return 3 + 7; }";
   // Try to change the whole binary-operator expression AND one its operands:
-  StringRef O = "O";
+  StringRef const O = "O";
   class AlwaysFail : public transformer::MatchComputation<std::string> {
     llvm::Error eval(const ast_matchers::MatchFinder::MatchResult &,
                      std::string *) const override {
@@ -1041,7 +1041,7 @@ TEST_F(TransformerTest, TextGeneratorFailure) {
 
 // Tests for a conflict in edits from a single match for a rule.
 TEST_F(TransformerTest, OverlappingEditsInRule) {
-  std::string Input = "int conflictOneRule() { return 3 + 7; }";
+  std::string const Input = "int conflictOneRule() { return 3 + 7; }";
   // Try to change the whole binary-operator expression AND one its operands:
   StringRef O = "O", L = "L";
   Transformer T(makeRule(binaryOperator(hasLHS(expr().bind(L))).bind(O),
@@ -1056,9 +1056,9 @@ TEST_F(TransformerTest, OverlappingEditsInRule) {
 
 // Tests for a conflict in edits across multiple matches (of the same rule).
 TEST_F(TransformerTest, OverlappingEditsMultipleMatches) {
-  std::string Input = "int conflictOneRule() { return -7; }";
+  std::string const Input = "int conflictOneRule() { return -7; }";
   // Try to change the whole binary-operator expression AND one its operands:
-  StringRef E = "E";
+  StringRef const E = "E";
   Transformer T(makeRule(expr().bind(E),
                          changeTo(node(std::string(E)), cat("DELETE_EXPR"))),
                 consumer());
@@ -1072,7 +1072,7 @@ TEST_F(TransformerTest, OverlappingEditsMultipleMatches) {
 
 TEST_F(TransformerTest, ErrorOccurredMatchSkipped) {
   // Syntax error in the function body:
-  std::string Input = "void errorOccurred() { 3 }";
+  std::string const Input = "void errorOccurred() { 3 }";
   Transformer T(makeRule(functionDecl(hasName("errorOccurred")),
                          changeTo(cat("DELETED;"))),
                 consumer());
@@ -1086,32 +1086,32 @@ TEST_F(TransformerTest, ErrorOccurredMatchSkipped) {
 
 TEST_F(TransformerTest, ImplicitNodes_ConstructorDecl) {
 
-  std::string OtherStructPrefix = R"cpp(
+  std::string const OtherStructPrefix = R"cpp(
 struct Other {
 )cpp";
-  std::string OtherStructSuffix = "};";
+  std::string const OtherStructSuffix = "};";
 
-  std::string CopyableStructName = "struct Copyable";
-  std::string BrokenStructName = "struct explicit Copyable";
+  std::string const CopyableStructName = "struct Copyable";
+  std::string const BrokenStructName = "struct explicit Copyable";
 
-  std::string CodeSuffix = R"cpp(
+  std::string const CodeSuffix = R"cpp(
 {
     Other m_i;
     Copyable();
 };
 )cpp";
 
-  std::string CopyCtor = "Other(const Other&) = default;";
-  std::string ExplicitCopyCtor = "explicit Other(const Other&) = default;";
-  std::string BrokenExplicitCopyCtor =
+  std::string const CopyCtor = "Other(const Other&) = default;";
+  std::string const ExplicitCopyCtor = "explicit Other(const Other&) = default;";
+  std::string const BrokenExplicitCopyCtor =
       "explicit explicit explicit Other(const Other&) = default;";
 
-  std::string RewriteInput = OtherStructPrefix + CopyCtor + OtherStructSuffix +
+  std::string const RewriteInput = OtherStructPrefix + CopyCtor + OtherStructSuffix +
                              CopyableStructName + CodeSuffix;
-  std::string ExpectedRewriteOutput = OtherStructPrefix + ExplicitCopyCtor +
+  std::string const ExpectedRewriteOutput = OtherStructPrefix + ExplicitCopyCtor +
                                       OtherStructSuffix + CopyableStructName +
                                       CodeSuffix;
-  std::string BrokenRewriteOutput = OtherStructPrefix + BrokenExplicitCopyCtor +
+  std::string const BrokenRewriteOutput = OtherStructPrefix + BrokenExplicitCopyCtor +
                                     OtherStructSuffix + BrokenStructName +
                                     CodeSuffix;
 
@@ -1131,7 +1131,7 @@ struct Other {
 
 TEST_F(TransformerTest, ImplicitNodes_RangeFor) {
 
-  std::string CodePrefix = R"cpp(
+  std::string const CodePrefix = R"cpp(
 struct Container
 {
     int* begin() const;
@@ -1145,23 +1145,23 @@ void foo()
   const Container c;
 )cpp";
 
-  std::string BeginCallBefore = "  c.begin();";
-  std::string BeginCallAfter = "  c.cbegin();";
+  std::string const BeginCallBefore = "  c.begin();";
+  std::string const BeginCallAfter = "  c.cbegin();";
 
-  std::string ForLoop = "for (auto i : c)";
-  std::string BrokenForLoop = "for (auto i :.cbegin() c)";
+  std::string const ForLoop = "for (auto i : c)";
+  std::string const BrokenForLoop = "for (auto i :.cbegin() c)";
 
-  std::string CodeSuffix = R"cpp(
+  std::string const CodeSuffix = R"cpp(
   {
   }
 }
 )cpp";
 
-  std::string RewriteInput =
+  std::string const RewriteInput =
       CodePrefix + BeginCallBefore + ForLoop + CodeSuffix;
-  std::string ExpectedRewriteOutput =
+  std::string const ExpectedRewriteOutput =
       CodePrefix + BeginCallAfter + ForLoop + CodeSuffix;
-  std::string BrokenRewriteOutput =
+  std::string const BrokenRewriteOutput =
       CodePrefix + BeginCallAfter + BrokenForLoop + CodeSuffix;
 
   auto MatchedRecord =
@@ -1185,7 +1185,7 @@ void foo()
 
 TEST_F(TransformerTest, ImplicitNodes_ForStmt) {
 
-  std::string CodePrefix = R"cpp(
+  std::string const CodePrefix = R"cpp(
 struct NonTrivial {
     NonTrivial() {}
     NonTrivial(NonTrivial&) {}
@@ -1259,7 +1259,7 @@ void testIt()
 
 TEST_F(TransformerTest, ImplicitNodes_ForStmt2) {
 
-  std::string CodePrefix = R"cpp(
+  std::string const CodePrefix = R"cpp(
 struct NonTrivial {
     NonTrivial() {}
     NonTrivial(NonTrivial&) {}
@@ -1332,18 +1332,18 @@ void testIt()
 
 TEST_F(TransformerTest, TemplateInstantiation) {
 
-  std::string NonTemplatesInput = R"cpp(
+  std::string const NonTemplatesInput = R"cpp(
 struct S {
   int m_i;
 };
 )cpp";
-  std::string NonTemplatesExpected = R"cpp(
+  std::string const NonTemplatesExpected = R"cpp(
 struct S {
   safe_int m_i;
 };
 )cpp";
 
-  std::string TemplatesInput = R"cpp(
+  std::string const TemplatesInput = R"cpp(
 template<typename T>
 struct TemplStruct {
   TemplStruct() {}
@@ -1370,7 +1370,7 @@ void instantiate()
   // In AsIs mode, template instantiations are modified, which is
   // often not desired:
 
-  std::string IncorrectTemplatesExpected = R"cpp(
+  std::string const IncorrectTemplatesExpected = R"cpp(
 template<typename T>
 struct TemplStruct {
   TemplStruct() {}
@@ -1397,17 +1397,17 @@ void instantiate()
 // Transformation of macro source text when the change encompasses the entirety
 // of the expanded text.
 TEST_F(TransformerTest, SimpleMacro) {
-  std::string Input = R"cc(
+  std::string const Input = R"cc(
 #define ZERO 0
     int f(string s) { return ZERO; }
   )cc";
-  std::string Expected = R"cc(
+  std::string const Expected = R"cc(
 #define ZERO 0
     int f(string s) { return 999; }
   )cc";
 
-  StringRef zero = "zero";
-  RewriteRule R = makeRule(integerLiteral(equals(0)).bind(zero),
+  StringRef const zero = "zero";
+  RewriteRule const R = makeRule(integerLiteral(equals(0)).bind(zero),
                            changeTo(node(std::string(zero)), cat("999")));
   testRule(R, Input, Expected);
 }
@@ -1415,11 +1415,11 @@ TEST_F(TransformerTest, SimpleMacro) {
 // Transformation of macro source text when the change encompasses the entirety
 // of the expanded text, for the case of function-style macros.
 TEST_F(TransformerTest, FunctionMacro) {
-  std::string Input = R"cc(
+  std::string const Input = R"cc(
 #define MACRO(str) strlen((str).c_str())
     int f(string s) { return MACRO(s); }
   )cc";
-  std::string Expected = R"cc(
+  std::string const Expected = R"cc(
 #define MACRO(str) strlen((str).c_str())
     int f(string s) { return REPLACED; }
   )cc";
@@ -1429,11 +1429,11 @@ TEST_F(TransformerTest, FunctionMacro) {
 
 // Tests that expressions in macro arguments can be rewritten.
 TEST_F(TransformerTest, MacroArg) {
-  std::string Input = R"cc(
+  std::string const Input = R"cc(
 #define PLUS(e) e + 1
     int f(string s) { return PLUS(strlen(s.c_str())); }
   )cc";
-  std::string Expected = R"cc(
+  std::string const Expected = R"cc(
 #define PLUS(e) e + 1
     int f(string s) { return PLUS(REPLACED); }
   )cc";
@@ -1444,12 +1444,12 @@ TEST_F(TransformerTest, MacroArg) {
 // Tests that expressions in macro arguments can be rewritten, even when the
 // macro call occurs inside another macro's definition.
 TEST_F(TransformerTest, MacroArgInMacroDef) {
-  std::string Input = R"cc(
+  std::string const Input = R"cc(
 #define NESTED(e) e
 #define MACRO(str) NESTED(strlen((str).c_str()))
     int f(string s) { return MACRO(s); }
   )cc";
-  std::string Expected = R"cc(
+  std::string const Expected = R"cc(
 #define NESTED(e) e
 #define MACRO(str) NESTED(strlen((str).c_str()))
     int f(string s) { return REPLACED; }
@@ -1464,11 +1464,11 @@ TEST_F(TransformerTest, MacroArgInMacroDef) {
 // in the code), but we test it to verify (and demonstrate) how this case is
 // handled.
 TEST_F(TransformerTest, IdentityMacro) {
-  std::string Input = R"cc(
+  std::string const Input = R"cc(
 #define ID(e) e
     int f(string s) { return ID(strlen(s.c_str())); }
   )cc";
-  std::string Expected = R"cc(
+  std::string const Expected = R"cc(
 #define ID(e) e
     int f(string s) { return REPLACED; }
   )cc";
@@ -1479,11 +1479,11 @@ TEST_F(TransformerTest, IdentityMacro) {
 // Tests that two changes in a single macro expansion do not lead to conflicts
 // in applying the changes.
 TEST_F(TransformerTest, TwoChangesInOneMacroExpansion) {
-  std::string Input = R"cc(
+  std::string const Input = R"cc(
 #define PLUS(a,b) (a) + (b)
     int f() { return PLUS(3, 4); }
   )cc";
-  std::string Expected = R"cc(
+  std::string const Expected = R"cc(
 #define PLUS(a,b) (a) + (b)
     int f() { return PLUS(LIT, LIT); }
   )cc";
@@ -1494,16 +1494,16 @@ TEST_F(TransformerTest, TwoChangesInOneMacroExpansion) {
 // Tests case where the rule's match spans both source from the macro and its
 // arg, with the begin location (the "anchor") being the arg.
 TEST_F(TransformerTest, MatchSpansMacroTextButChangeDoesNot) {
-  std::string Input = R"cc(
+  std::string const Input = R"cc(
 #define PLUS_ONE(a) a + 1
     int f() { return PLUS_ONE(3); }
   )cc";
-  std::string Expected = R"cc(
+  std::string const Expected = R"cc(
 #define PLUS_ONE(a) a + 1
     int f() { return PLUS_ONE(LIT); }
   )cc";
 
-  StringRef E = "expr";
+  StringRef const E = "expr";
   testRule(makeRule(binaryOperator(hasLHS(expr().bind(E))),
                     changeTo(node(std::string(E)), cat("LIT"))),
            Input, Expected);
@@ -1512,16 +1512,16 @@ TEST_F(TransformerTest, MatchSpansMacroTextButChangeDoesNot) {
 // Tests case where the rule's match spans both source from the macro and its
 // arg, with the begin location (the "anchor") being inside the macro.
 TEST_F(TransformerTest, MatchSpansMacroTextButChangeDoesNotAnchoredInMacro) {
-  std::string Input = R"cc(
+  std::string const Input = R"cc(
 #define PLUS_ONE(a) 1 + a
     int f() { return PLUS_ONE(3); }
   )cc";
-  std::string Expected = R"cc(
+  std::string const Expected = R"cc(
 #define PLUS_ONE(a) 1 + a
     int f() { return PLUS_ONE(LIT); }
   )cc";
 
-  StringRef E = "expr";
+  StringRef const E = "expr";
   testRule(makeRule(binaryOperator(hasRHS(expr().bind(E))),
                     changeTo(node(std::string(E)), cat("LIT"))),
            Input, Expected);
@@ -1532,12 +1532,12 @@ TEST_F(TransformerTest, MatchSpansMacroTextButChangeDoesNotAnchoredInMacro) {
 // macro's definition to succeed and editing the expansion point would not
 // suffice.
 TEST_F(TransformerTest, NoPartialRewriteOMacroExpansion) {
-  std::string Input = R"cc(
+  std::string const Input = R"cc(
 #define ZERO_PLUS 0 + 3
     int f(string s) { return ZERO_PLUS; })cc";
 
-  StringRef zero = "zero";
-  RewriteRule R = makeRule(integerLiteral(equals(0)).bind(zero),
+  StringRef const zero = "zero";
+  RewriteRule const R = makeRule(integerLiteral(equals(0)).bind(zero),
                            changeTo(node(std::string(zero)), cat("0")));
   testRule(R, Input, Input);
 }
@@ -1547,7 +1547,7 @@ TEST_F(TransformerTest, NoPartialRewriteOMacroExpansion) {
 // simple check of isMacroArgExpansion() vs. isMacroBodyExpansion() will get
 // this wrong, and transform the code.
 TEST_F(TransformerTest, NoPartialRewriteOfMacroExpansionForMacroArgs) {
-  std::string Input = R"cc(
+  std::string const Input = R"cc(
 #define NESTED(e) e
 #define MACRO(str) 1 + NESTED(strlen((str).c_str()))
     int f(string s) { return MACRO(s); }
@@ -1560,11 +1560,11 @@ TEST_F(TransformerTest, NoPartialRewriteOfMacroExpansionForMacroArgs) {
 // Verifies that `Type` and `QualType` are not allowed as top-level matchers in
 // rules.
 TEST(TransformerDeathTest, OrderedRuleTypes) {
-  RewriteRule QualTypeRule = makeRule(qualType(), changeTo(cat("Q")));
+  RewriteRule const QualTypeRule = makeRule(qualType(), changeTo(cat("Q")));
   EXPECT_DEATH(transformer::detail::buildMatchers(QualTypeRule),
                "Matcher must be.*node matcher");
 
-  RewriteRule TypeRule = makeRule(arrayType(), changeTo(cat("T")));
+  RewriteRule const TypeRule = makeRule(arrayType(), changeTo(cat("T")));
   EXPECT_DEATH(transformer::detail::buildMatchers(TypeRule),
                "Matcher must be.*node matcher");
 }
@@ -1574,7 +1574,7 @@ TEST(TransformerDeathTest, OrderedRuleTypes) {
 // implementation file.
 TEST_F(TransformerTest, MultipleFiles) {
   std::string Header = R"cc(void RemoveThisFunction();)cc";
-  std::string Source = R"cc(#include "input.h"
+  std::string const Source = R"cc(#include "input.h"
                             void RemoveThisFunction();)cc";
   Transformer T(
       makeRule(functionDecl(hasName("RemoveThisFunction")), changeTo(cat(""))),
@@ -1613,7 +1613,7 @@ TEST_F(TransformerTest, MultipleFiles) {
 
 TEST_F(TransformerTest, AddIncludeMultipleFiles) {
   std::string Header = R"cc(void RemoveThisFunction();)cc";
-  std::string Source = R"cc(#include "input.h"
+  std::string const Source = R"cc(#include "input.h"
                             void Foo() {RemoveThisFunction();})cc";
   Transformer T(
       makeRule(callExpr(callee(

@@ -369,7 +369,7 @@ void TransferFunctions::VisitBlockExpr(BlockExpr *BE) {
 
 void TransferFunctions::VisitDeclRefExpr(DeclRefExpr *DR) {
   const Decl* D = DR->getDecl();
-  bool InAssignment = LV.inAssignment[DR];
+  bool const InAssignment = LV.inAssignment[DR];
   if (const auto *BD = dyn_cast<BindingDecl>(D)) {
     if (!InAssignment)
       val.liveBindings = LV.BSetFact.add(val.liveBindings, BD);
@@ -575,7 +575,7 @@ void LiveVariablesImpl::dumpBlockLiveness(const SourceManager &M) {
     llvm::errs() << "\n[ B" << (*it)->getBlockID()
                  << " (live variables at block exit) ]\n";
 
-    LiveVariables::LivenessValues vals = blocksEndToLiveness[*it];
+    LiveVariables::LivenessValues const vals = blocksEndToLiveness[*it];
     declVec.clear();
 
     for (llvm::ImmutableSet<const VarDecl *>::iterator si =

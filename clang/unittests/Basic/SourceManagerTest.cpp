@@ -57,7 +57,7 @@ TEST_F(SourceManagerTest, isBeforeInTranslationUnit) {
     "M(foo)";
   std::unique_ptr<llvm::MemoryBuffer> Buf =
       llvm::MemoryBuffer::getMemBuffer(source);
-  FileID mainFileID = SourceMgr.createFileID(std::move(Buf));
+  FileID const mainFileID = SourceMgr.createFileID(std::move(Buf));
   SourceMgr.setMainFileID(mainFileID);
 
   TrivialModuleLoader ModLoader;
@@ -85,12 +85,12 @@ TEST_F(SourceManagerTest, isBeforeInTranslationUnit) {
   ASSERT_EQ(tok::identifier, toks[1].getKind());
   ASSERT_EQ(tok::r_square, toks[2].getKind());
   
-  SourceLocation lsqrLoc = toks[0].getLocation();
-  SourceLocation idLoc = toks[1].getLocation();
-  SourceLocation rsqrLoc = toks[2].getLocation();
+  SourceLocation const lsqrLoc = toks[0].getLocation();
+  SourceLocation const idLoc = toks[1].getLocation();
+  SourceLocation const rsqrLoc = toks[2].getLocation();
   
-  SourceLocation macroExpStartLoc = SourceMgr.translateLineCol(mainFileID, 2, 1);
-  SourceLocation macroExpEndLoc = SourceMgr.translateLineCol(mainFileID, 2, 6);
+  SourceLocation const macroExpStartLoc = SourceMgr.translateLineCol(mainFileID, 2, 1);
+  SourceLocation const macroExpEndLoc = SourceMgr.translateLineCol(mainFileID, 2, 6);
   ASSERT_TRUE(macroExpStartLoc.isFileID());
   ASSERT_TRUE(macroExpEndLoc.isFileID());
 
@@ -111,7 +111,7 @@ TEST_F(SourceManagerTest, getColumnNumber) {
 
   std::unique_ptr<llvm::MemoryBuffer> Buf =
       llvm::MemoryBuffer::getMemBuffer(Source);
-  FileID MainFileID = SourceMgr.createFileID(std::move(Buf));
+  FileID const MainFileID = SourceMgr.createFileID(std::move(Buf));
   SourceMgr.setMainFileID(MainFileID);
 
   bool Invalid;
@@ -175,8 +175,8 @@ TEST_F(SourceManagerTest, locationPrintTest) {
       FileMgr.getVirtualFile("/test-header.h", HeaderBuf->getBufferSize(), 0);
   SourceMgr.overrideFileContents(HeaderFile, std::move(HeaderBuf));
 
-  FileID MainFileID = SourceMgr.getOrCreateFileID(SourceFile, SrcMgr::C_User);
-  FileID HeaderFileID = SourceMgr.getOrCreateFileID(HeaderFile, SrcMgr::C_User);
+  FileID const MainFileID = SourceMgr.getOrCreateFileID(SourceFile, SrcMgr::C_User);
+  FileID const HeaderFileID = SourceMgr.getOrCreateFileID(HeaderFile, SrcMgr::C_User);
   SourceMgr.setMainFileID(MainFileID);
 
   auto BeginLoc = SourceMgr.getLocForStartOfFile(MainFileID);
@@ -246,7 +246,7 @@ TEST_F(SourceManagerTest, getInvalidBOM) {
 // Regression test - there was an out of bound access for buffers not terminated by zero.
 TEST_F(SourceManagerTest, getLineNumber) {
   const unsigned pageSize = llvm::sys::Process::getPageSizeEstimate();
-  std::unique_ptr<char[]> source(new char[pageSize]);
+  std::unique_ptr<char[]> const source(new char[pageSize]);
   for(unsigned i = 0; i < pageSize; ++i) {
     source[i] = 'a';
   }
@@ -259,7 +259,7 @@ TEST_F(SourceManagerTest, getLineNumber) {
         false
       );
 
-  FileID mainFileID = SourceMgr.createFileID(std::move(Buf));
+  FileID const mainFileID = SourceMgr.createFileID(std::move(Buf));
   SourceMgr.setMainFileID(mainFileID);
 
   ASSERT_NO_FATAL_FAILURE(SourceMgr.getLineNumber(mainFileID, 1, nullptr));
@@ -284,7 +284,7 @@ TEST_F(SourceManagerTest, getMacroArgExpandedLocation) {
       llvm::MemoryBuffer::getMemBuffer(header);
   std::unique_ptr<llvm::MemoryBuffer> MainBuf =
       llvm::MemoryBuffer::getMemBuffer(main);
-  FileID mainFileID = SourceMgr.createFileID(std::move(MainBuf));
+  FileID const mainFileID = SourceMgr.createFileID(std::move(MainBuf));
   SourceMgr.setMainFileID(mainFileID);
 
   const FileEntry *headerFile = FileMgr.getVirtualFile("/test-header.h",
@@ -506,7 +506,7 @@ TEST_F(SourceManagerTest, isMainFile) {
       FileMgr.getVirtualFile("file2.cpp", Buf2->getBufferSize(), 0);
   SourceMgr.overrideFileContents(SecondFile, std::move(Buf2));
 
-  FileID MainFileID = SourceMgr.getOrCreateFileID(SourceFile, SrcMgr::C_User);
+  FileID const MainFileID = SourceMgr.getOrCreateFileID(SourceFile, SrcMgr::C_User);
   SourceMgr.setMainFileID(MainFileID);
 
   EXPECT_TRUE(SourceMgr.isMainFile(*SourceFile));

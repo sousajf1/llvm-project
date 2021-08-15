@@ -105,7 +105,7 @@ static const NoteTag *getNoteTag(CheckerContext &C,
                                  const DynamicCastInfo *CastInfo,
                                  QualType CastToTy, const Expr *Object,
                                  bool CastSucceeds, bool IsKnownCast) {
-  std::string CastToName =
+  std::string const CastToName =
       CastInfo ? CastInfo->to()->getAsCXXRecordDecl()->getNameAsString()
                : CastToTy->getPointeeCXXRecordDecl()->getNameAsString();
   Object = Object->IgnoreParenImpCasts();
@@ -160,8 +160,8 @@ static const NoteTag *getNoteTag(CheckerContext &C,
         Out << " is";
 
         bool First = true;
-        for (QualType CastToTy: CastToTyVec) {
-          std::string CastToName =
+        for (QualType const CastToTy: CastToTyVec) {
+          std::string const CastToName =
             CastToTy->getAsCXXRecordDecl() ?
             CastToTy->getAsCXXRecordDecl()->getNameAsString() :
             CastToTy->getPointeeCXXRecordDecl()->getNameAsString();
@@ -204,7 +204,7 @@ static void addCastTransition(const CallEvent &Call, DefinedOrUnknownSVal DV,
 
   const Expr *Object;
   QualType CastFromTy;
-  QualType CastToTy = Call.getResultType();
+  QualType const CastToTy = Call.getResultType();
 
   if (Call.getNumArgs() > 0) {
     Object = Call.getArgExpr(0);
@@ -243,12 +243,12 @@ static void addCastTransition(const CallEvent &Call, DefinedOrUnknownSVal DV,
   }
 
   // Store the type and the cast information.
-  bool IsKnownCast = CastInfo || IsCheckedCast || CastFromTy == CastToTy;
+  bool const IsKnownCast = CastInfo || IsCheckedCast || CastFromTy == CastToTy;
   if (!IsKnownCast || IsCheckedCast)
     State = setDynamicTypeAndCastInfo(State, MR, CastFromTy, CastToTy,
                                       CastSucceeds);
 
-  SVal V = CastSucceeds ? C.getSValBuilder().evalCast(DV, CastToTy, CastFromTy)
+  SVal const V = CastSucceeds ? C.getSValBuilder().evalCast(DV, CastToTy, CastFromTy)
                         : C.getSValBuilder().makeNull();
   C.addTransition(
       State->BindExpr(Call.getOriginExpr(), C.getLocationContext(), V, false),
@@ -260,11 +260,11 @@ static void addInstanceOfTransition(const CallEvent &Call,
                                     ProgramStateRef State, CheckerContext &C,
                                     bool IsInstanceOf) {
   const FunctionDecl *FD = Call.getDecl()->getAsFunction();
-  QualType CastFromTy = Call.parameters()[0]->getType();
+  QualType const CastFromTy = Call.parameters()[0]->getType();
   SmallVector<QualType, 4> CastToTyVec;
   for (unsigned idx = 0; idx < FD->getTemplateSpecializationArgs()->size() - 1;
        ++idx) {
-    TemplateArgument CastToTempArg =
+    TemplateArgument const CastToTempArg =
       FD->getTemplateSpecializationArgs()->get(idx);
     switch (CastToTempArg.getKind()) {
     default:
@@ -273,7 +273,7 @@ static void addInstanceOfTransition(const CallEvent &Call,
       CastToTyVec.push_back(CastToTempArg.getAsType());
       break;
     case TemplateArgument::Pack:
-      for (TemplateArgument ArgInPack: CastToTempArg.pack_elements())
+      for (TemplateArgument const ArgInPack: CastToTempArg.pack_elements())
         CastToTyVec.push_back(ArgInPack.getAsType());
       break;
     }
@@ -303,7 +303,7 @@ static void addInstanceOfTransition(const CallEvent &Call,
       CastSucceeds = IsInstanceOf || CastFromTy == CastToTy;
 
     // Store the type and the cast information.
-    bool IsKnownCast = CastInfo || CastFromTy == CastToTy;
+    bool const IsKnownCast = CastInfo || CastFromTy == CastToTy;
     IsAnyKnown = IsAnyKnown || IsKnownCast;
     ProgramStateRef NewState = State;
     if (!IsKnownCast)
@@ -355,7 +355,7 @@ static void evalNonNullParamNullReturn(const CallEvent &Call,
 static void evalNullParamNullReturn(const CallEvent &Call,
                                     DefinedOrUnknownSVal DV,
                                     CheckerContext &C) {
-  if (ProgramStateRef State = C.getState()->assume(DV, false))
+  if (ProgramStateRef const State = C.getState()->assume(DV, false))
     C.addTransition(State->BindExpr(Call.getOriginExpr(),
                                     C.getLocationContext(),
                                     C.getSValBuilder().makeNull(), false),
@@ -467,7 +467,7 @@ bool CastValueChecker::evalCall(const CallEvent &Call,
     return false;
 
   const CastCheck &Check = Lookup->first;
-  CallKind Kind = Lookup->second;
+  CallKind const Kind = Lookup->second;
 
   Optional<DefinedOrUnknownSVal> DV;
 
@@ -476,8 +476,8 @@ bool CastValueChecker::evalCall(const CallEvent &Call,
     // We only model casts from pointers to pointers or from references
     // to references. Other casts are most likely specialized and we
     // cannot model them.
-    QualType ParamT = Call.parameters()[0]->getType();
-    QualType ResultT = Call.getResultType();
+    QualType const ParamT = Call.parameters()[0]->getType();
+    QualType const ResultT = Call.getResultType();
     if (!(ParamT->isPointerType() && ResultT->isPointerType()) &&
         !(ParamT->isReferenceType() && ResultT->isReferenceType())) {
       return false;

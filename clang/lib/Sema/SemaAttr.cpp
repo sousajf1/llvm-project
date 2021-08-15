@@ -48,10 +48,10 @@ Sema::PragmaStackSentinelRAII::~PragmaStackSentinelRAII() {
 }
 
 void Sema::AddAlignmentAttributesForRecord(RecordDecl *RD) {
-  AlignPackInfo InfoVal = AlignPackStack.CurrentValue;
-  AlignPackInfo::Mode M = InfoVal.getAlignMode();
-  bool IsPackSet = InfoVal.IsPackSet();
-  bool IsXLPragma = getLangOpts().XLPragmaPack;
+  AlignPackInfo const InfoVal = AlignPackStack.CurrentValue;
+  AlignPackInfo::Mode const M = InfoVal.getAlignMode();
+  bool const IsPackSet = InfoVal.IsPackSet();
+  bool const IsXLPragma = getLangOpts().XLPragmaPack;
 
   // If we are not under mac68k/natural alignment mode and also there is no pack
   // value, we don't need any attributes.
@@ -114,7 +114,7 @@ void Sema::inferGslPointerAttribute(NamedDecl *ND,
   if (!Parent)
     return;
 
-  static llvm::StringSet<> Containers{
+  static llvm::StringSet<> const Containers{
       "array",
       "basic_string",
       "deque",
@@ -134,7 +134,7 @@ void Sema::inferGslPointerAttribute(NamedDecl *ND,
       "unordered_multimap",
   };
 
-  static llvm::StringSet<> Iterators{"iterator", "const_iterator",
+  static llvm::StringSet<> const Iterators{"iterator", "const_iterator",
                                      "reverse_iterator",
                                      "const_reverse_iterator"};
 
@@ -146,7 +146,7 @@ void Sema::inferGslPointerAttribute(NamedDecl *ND,
 
 void Sema::inferGslPointerAttribute(TypedefNameDecl *TD) {
 
-  QualType Canonical = TD->getUnderlyingType().getCanonicalType();
+  QualType const Canonical = TD->getUnderlyingType().getCanonicalType();
 
   CXXRecordDecl *RD = Canonical->getAsCXXRecordDecl();
   if (!RD) {
@@ -162,7 +162,7 @@ void Sema::inferGslPointerAttribute(TypedefNameDecl *TD) {
 }
 
 void Sema::inferGslOwnerPointerAttribute(CXXRecordDecl *Record) {
-  static llvm::StringSet<> StdOwners{
+  static llvm::StringSet<> const StdOwners{
       "any",
       "array",
       "basic_regex",
@@ -186,7 +186,7 @@ void Sema::inferGslOwnerPointerAttribute(CXXRecordDecl *Record) {
       "unordered_multimap",
       "variant",
   };
-  static llvm::StringSet<> StdPointers{
+  static llvm::StringSet<> const StdPointers{
       "basic_string_view",
       "reference_wrapper",
       "regex_iterator",
@@ -264,7 +264,7 @@ void Sema::ActOnPragmaOptionsAlign(PragmaOptionsAlignKind Kind,
     break;
   }
 
-  AlignPackInfo Info(ModeVal, getLangOpts().XLPragmaPack);
+  AlignPackInfo const Info(ModeVal, getLangOpts().XLPragmaPack);
 
   AlignPackStack.Act(PragmaLoc, Action, StringRef(), Info);
 }
@@ -320,7 +320,7 @@ void Sema::ActOnPragmaClangSection(SourceLocation PragmaLoc,
 
 void Sema::ActOnPragmaPack(SourceLocation PragmaLoc, PragmaMsStackAction Action,
                            StringRef SlotLabel, Expr *alignment) {
-  bool IsXLPragma = getLangOpts().XLPragmaPack;
+  bool const IsXLPragma = getLangOpts().XLPragmaPack;
   // XL pragma pack does not support identifier syntax.
   if (IsXLPragma && !SlotLabel.empty()) {
     Diag(PragmaLoc, diag::err_pragma_pack_identifer_not_supported);
@@ -332,7 +332,7 @@ void Sema::ActOnPragmaPack(SourceLocation PragmaLoc, PragmaMsStackAction Action,
 
   // If specified then alignment must be a "small" power of two.
   unsigned AlignmentVal = 0;
-  AlignPackInfo::Mode ModeVal = CurVal.getAlignMode();
+  AlignPackInfo::Mode const ModeVal = CurVal.getAlignMode();
 
   if (Alignment) {
     Optional<llvm::APSInt> Val;
@@ -379,7 +379,7 @@ void Sema::ActOnPragmaPack(SourceLocation PragmaLoc, PragmaMsStackAction Action,
     }
   }
 
-  AlignPackInfo Info(ModeVal, AlignmentVal, IsXLPragma);
+  AlignPackInfo const Info(ModeVal, AlignmentVal, IsXLPragma);
 
   AlignPackStack.Act(PragmaLoc, Action, SlotLabel, Info);
 }
@@ -387,13 +387,13 @@ void Sema::ActOnPragmaPack(SourceLocation PragmaLoc, PragmaMsStackAction Action,
 void Sema::DiagnoseNonDefaultPragmaAlignPack(PragmaAlignPackDiagnoseKind Kind,
                                              SourceLocation IncludeLoc) {
   if (Kind == PragmaAlignPackDiagnoseKind::NonDefaultStateAtInclude) {
-    SourceLocation PrevLocation = AlignPackStack.CurrentPragmaLocation;
+    SourceLocation const PrevLocation = AlignPackStack.CurrentPragmaLocation;
     // Warn about non-default alignment at #includes (without redundant
     // warnings for the same directive in nested includes).
     // The warning is delayed until the end of the file to avoid warnings
     // for files that don't have any records that are affected by the modified
     // alignment.
-    bool HasNonDefaultValue =
+    bool const HasNonDefaultValue =
         AlignPackStack.hasValue() &&
         (AlignPackIncludeStack.empty() ||
          AlignPackIncludeStack.back().CurrentPragmaLocation != PrevLocation);
@@ -406,7 +406,7 @@ void Sema::DiagnoseNonDefaultPragmaAlignPack(PragmaAlignPackDiagnoseKind Kind,
 
   assert(Kind == PragmaAlignPackDiagnoseKind::ChangedStateAtExit &&
          "invalid kind");
-  AlignPackIncludeState PrevAlignPackState =
+  AlignPackIncludeState const PrevAlignPackState =
       AlignPackIncludeStack.pop_back_val();
   // FIXME: AlignPackStack may contain both #pragma align and #pragma pack
   // information, diagnostics below might not be accurate if we have mixed
@@ -439,7 +439,7 @@ void Sema::DiagnoseUnterminatedPragmaAlignPack() {
         AlignPackStack.CurrentValue == AlignPackStack.DefaultValue) {
       auto DB = Diag(AlignPackStack.CurrentPragmaLocation,
                      diag::note_pragma_pack_pop_instead_reset);
-      SourceLocation FixItLoc =
+      SourceLocation const FixItLoc =
           Lexer::findLocationAfterToken(AlignPackStack.CurrentPragmaLocation,
                                         tok::l_paren, SourceMgr, LangOpts,
                                         /*SkipTrailing=*/false);
@@ -752,7 +752,7 @@ void Sema::AddCFAuditedAttribute(Decl *D) {
       D->hasAttr<CFUnknownTransferAttr>())
     return;
 
-  AttributeCommonInfo Info(Ident, SourceRange(Loc),
+  AttributeCommonInfo const Info(Ident, SourceRange(Loc),
                            AttributeCommonInfo::AS_Pragma);
   D->addAttr(CFAuditedTransferAttr::CreateImplicit(Context, Info));
 }
@@ -789,7 +789,7 @@ bool isNegatedAttrMatcherSubRule(attr::SubjectMatchRule Rule) {
 CharSourceRange replacementRangeForListElement(const Sema &S,
                                                SourceRange Range) {
   // Make sure that the ',' is removed as well.
-  SourceLocation AfterCommaLoc = Lexer::findLocationAfterToken(
+  SourceLocation const AfterCommaLoc = Lexer::findLocationAfterToken(
       Range.getEnd(), tok::comma, S.getSourceManager(), S.getLangOpts(),
       /*SkipTrailingWhitespaceAndNewLine=*/false);
   if (AfterCommaLoc.isValid())
@@ -833,7 +833,7 @@ void Sema::ActOnPragmaAttributeAttribute(
     llvm::SmallDenseMap<int, std::pair<int, SourceRange>, 2>
         RulesToFirstSpecifiedNegatedSubRule;
     for (const auto &Rule : Rules) {
-      attr::SubjectMatchRule MatchRule = attr::SubjectMatchRule(Rule.first);
+      attr::SubjectMatchRule const MatchRule = attr::SubjectMatchRule(Rule.first);
       Optional<attr::SubjectMatchRule> ParentRule =
           getParentAttrMatcherRule(MatchRule);
       if (!ParentRule)
@@ -857,7 +857,7 @@ void Sema::ActOnPragmaAttributeAttribute(
     }
     bool IgnoreNegatedSubRules = false;
     for (const auto &Rule : Rules) {
-      attr::SubjectMatchRule MatchRule = attr::SubjectMatchRule(Rule.first);
+      attr::SubjectMatchRule const MatchRule = attr::SubjectMatchRule(Rule.first);
       Optional<attr::SubjectMatchRule> ParentRule =
           getParentAttrMatcherRule(MatchRule);
       if (!ParentRule)
@@ -909,7 +909,7 @@ void Sema::ActOnPragmaAttributeAttribute(
     // Check remaining rules for subset matches.
     auto RulesToCheck = Rules;
     for (const auto &Rule : RulesToCheck) {
-      attr::SubjectMatchRule MatchRule = attr::SubjectMatchRule(Rule.first);
+      attr::SubjectMatchRule const MatchRule = attr::SubjectMatchRule(Rule.first);
       if (auto ParentRule = getParentAttrMatcherRule(MatchRule)) {
         if (llvm::any_of(StrictSubjectMatchRuleSet,
                          [ParentRule](const auto &StrictRule) {
@@ -1069,12 +1069,12 @@ void Sema::AddPushedVisibilityAttribute(Decl *D) {
     return;
 
   VisStack *Stack = static_cast<VisStack*>(VisContext);
-  unsigned rawType = Stack->back().first;
+  unsigned const rawType = Stack->back().first;
   if (rawType == NoVisibility) return;
 
-  VisibilityAttr::VisibilityType type
+  VisibilityAttr::VisibilityType const type
     = (VisibilityAttr::VisibilityType) rawType;
-  SourceLocation loc = Stack->back().second;
+  SourceLocation const loc = Stack->back().second;
 
   D->addAttr(VisibilityAttr::CreateImplicit(Context, type, loc));
 }

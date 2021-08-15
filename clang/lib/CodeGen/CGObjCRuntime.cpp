@@ -57,10 +57,10 @@ LValue CGObjCRuntime::EmitValueForIvarAtOffset(CodeGen::CodeGenFunction &CGF,
                                                unsigned CVRQualifiers,
                                                llvm::Value *Offset) {
   // Compute (type*) ( (char *) BaseValue + Offset)
-  QualType InterfaceTy{OID->getTypeForDecl(), 0};
-  QualType ObjectPtrTy =
+  QualType const InterfaceTy{OID->getTypeForDecl(), 0};
+  QualType const ObjectPtrTy =
       CGF.CGM.getContext().getObjCObjectPointerType(InterfaceTy);
-  QualType IvarTy =
+  QualType const IvarTy =
       Ivar->getUsageType(ObjectPtrTy).withCVRQualifiers(CVRQualifiers);
   llvm::Type *LTy = CGF.CGM.getTypes().ConvertTypeForMem(IvarTy);
   llvm::Value *V = CGF.Builder.CreateBitCast(BaseValue, CGF.Int8PtrTy);
@@ -86,14 +86,14 @@ LValue CGObjCRuntime::EmitValueForIvarAtOffset(CodeGen::CodeGenFunction &CGF,
   // Note, there is a subtle invariant here: we can only call this routine on
   // non-synthesized ivars but we may be called for synthesized ivars.  However,
   // a synthesized ivar can never be a bit-field, so this is safe.
-  uint64_t FieldBitOffset =
+  uint64_t const FieldBitOffset =
       CGF.CGM.getContext().lookupFieldBitOffset(OID, nullptr, Ivar);
-  uint64_t BitOffset = FieldBitOffset % CGF.CGM.getContext().getCharWidth();
-  uint64_t AlignmentBits = CGF.CGM.getTarget().getCharAlign();
-  uint64_t BitFieldSize = Ivar->getBitWidthValue(CGF.getContext());
-  CharUnits StorageSize = CGF.CGM.getContext().toCharUnitsFromBits(
+  uint64_t const BitOffset = FieldBitOffset % CGF.CGM.getContext().getCharWidth();
+  uint64_t const AlignmentBits = CGF.CGM.getTarget().getCharAlign();
+  uint64_t const BitFieldSize = Ivar->getBitWidthValue(CGF.getContext());
+  CharUnits const StorageSize = CGF.CGM.getContext().toCharUnitsFromBits(
       llvm::alignTo(BitOffset + BitFieldSize, AlignmentBits));
-  CharUnits Alignment = CGF.CGM.getContext().toCharUnitsFromBits(AlignmentBits);
+  CharUnits const Alignment = CGF.CGM.getContext().toCharUnitsFromBits(AlignmentBits);
 
   // Allocate a new CGBitFieldInfo object to describe this access.
   //
@@ -150,7 +150,7 @@ void CGObjCRuntime::EmitTryCatchStmt(CodeGenFunction &CGF,
   if (S.getNumCatchStmts())
     Cont = CGF.getJumpDestInCurrentScope("eh.cont");
 
-  bool useFunclets = EHPersonality::get(CGF).usesFuncletPads();
+  bool const useFunclets = EHPersonality::get(CGF).usesFuncletPads();
 
   CodeGenFunction::FinallyInfo FinallyInfo;
   if (!useFunclets)
@@ -221,7 +221,7 @@ void CGObjCRuntime::EmitTryCatchStmt(CodeGenFunction &CGF,
     CGF.popCatchScope();
 
   // Remember where we were.
-  CGBuilderTy::InsertPoint SavedIP = CGF.Builder.saveAndClearIP();
+  CGBuilderTy::InsertPoint const SavedIP = CGF.Builder.saveAndClearIP();
 
   // Emit the handlers.
   for (unsigned I = 0, E = Handlers.size(); I != E; ++I) {
@@ -229,7 +229,7 @@ void CGObjCRuntime::EmitTryCatchStmt(CodeGenFunction &CGF,
 
     CGF.EmitBlock(Handler.Block);
     llvm::CatchPadInst *CPI = nullptr;
-    SaveAndRestore<llvm::Instruction *> RestoreCurrentFuncletPad(CGF.CurrentFuncletPad);
+    SaveAndRestore<llvm::Instruction *> const RestoreCurrentFuncletPad(CGF.CurrentFuncletPad);
     if (useFunclets)
       if ((CPI = dyn_cast_or_null<llvm::CatchPadInst>(Handler.Block->getFirstNonPHI()))) {
         CGF.CurrentFuncletPad = CPI;
@@ -246,7 +246,7 @@ void CGObjCRuntime::EmitTryCatchStmt(CodeGenFunction &CGF,
 
     if (endCatchFn) {
       // Add a cleanup to leave the catch.
-      bool EndCatchMightThrow = (Handler.Variable == nullptr);
+      bool const EndCatchMightThrow = (Handler.Variable == nullptr);
 
       CGF.EHStack.pushCleanup<CallObjCEndCatch>(NormalAndEHCleanup,
                                                 EndCatchMightThrow,
@@ -289,7 +289,7 @@ void CGObjCRuntime::EmitInitOfCatchParam(CodeGenFunction &CGF,
                                          llvm::Value *exn,
                                          const VarDecl *paramDecl) {
 
-  Address paramAddr = CGF.GetAddrOfLocalVar(paramDecl);
+  Address const paramAddr = CGF.GetAddrOfLocalVar(paramDecl);
 
   switch (paramDecl->getType().getQualifiers().getObjCLifetime()) {
   case Qualifiers::OCL_Strong:
@@ -326,7 +326,7 @@ void CGObjCRuntime::EmitAtSynchronizedStmt(CodeGenFunction &CGF,
                                            const ObjCAtSynchronizedStmt &S,
                                            llvm::FunctionCallee syncEnterFn,
                                            llvm::FunctionCallee syncExitFn) {
-  CodeGenFunction::RunCleanupsScope cleanups(CGF);
+  CodeGenFunction::RunCleanupsScope const cleanups(CGF);
 
   // Evaluate the lock operand.  This is guaranteed to dominate the
   // ARC release and lock-release cleanups.

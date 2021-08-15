@@ -47,7 +47,7 @@ template <typename M> TestMatch matchCode(StringRef Code, M Matcher) {
   ASTContext &Context = ASTUnit->getASTContext();
   assert(!Context.getDiagnostics().hasErrorOccurred() && "Compilation error");
 
-  TraversalKindScope RAII(Context, TK_AsIs);
+  TraversalKindScope const RAII(Context, TK_AsIs);
   auto Matches = ast_matchers::match(Matcher, Context);
   // We expect a single, exact match.
   assert(Matches.size() != 0 && "no matches found");
@@ -69,7 +69,7 @@ Expected<StringRef> select(RangeSelector Selector, const TestMatch &Match) {
 Expected<CharSourceRange> selectFromTrivial(const RangeSelector &Selector) {
   // We need to bind the result to something, or the match will fail. Use a
   // binding that is not used in the unbound node tests.
-  TestMatch Match =
+  TestMatch const Match =
       matchCode("static int x = 0;", varDecl().bind("bound_node_id"));
   return Selector(Match.Result);
 }
@@ -86,7 +86,7 @@ testing::Matcher<StringError> withUnboundNodeMessage() {
 // ("init"), an expression ("expr") and a (nameless) declaration ("decl").  Used
 // to test failures caused by applying selectors to nodes of the wrong type.
 Expected<CharSourceRange> selectFromAssorted(RangeSelector Selector) {
-  StringRef Code = R"cc(
+  StringRef const Code = R"cc(
       struct A {};
       class F : public A {
        public:
@@ -129,15 +129,15 @@ MATCHER_P(EqualsCharSourceRange, Range, "") {
 // FIXME: here and elsewhere: use llvm::Annotations library to explicitly mark
 // points and ranges of interest, enabling more readable tests.
 TEST(RangeSelectorTest, BeforeOp) {
-  StringRef Code = R"cc(
+  StringRef const Code = R"cc(
     int f(int x, int y, int z) { return 3; }
     int g() { return f(/* comment */ 3, 7 /* comment */, 9); }
   )cc";
-  StringRef CallID = "call";
-  ast_matchers::internal::Matcher<Stmt> M = callExpr().bind(CallID);
-  RangeSelector R = before(node(CallID.str()));
+  StringRef const CallID = "call";
+  ast_matchers::internal::Matcher<Stmt> const M = callExpr().bind(CallID);
+  RangeSelector const R = before(node(CallID.str()));
 
-  TestMatch Match = matchCode(Code, M);
+  TestMatch const Match = matchCode(Code, M);
   const auto *E = Match.Result.Nodes.getNodeAs<Expr>(CallID);
   assert(E != nullptr);
   auto ExprBegin = E->getSourceRange().getBegin();
@@ -148,16 +148,16 @@ TEST(RangeSelectorTest, BeforeOp) {
 }
 
 TEST(RangeSelectorTest, BeforeOpParsed) {
-  StringRef Code = R"cc(
+  StringRef const Code = R"cc(
     int f(int x, int y, int z) { return 3; }
     int g() { return f(/* comment */ 3, 7 /* comment */, 9); }
   )cc";
-  StringRef CallID = "call";
-  ast_matchers::internal::Matcher<Stmt> M = callExpr().bind(CallID);
+  StringRef const CallID = "call";
+  ast_matchers::internal::Matcher<Stmt> const M = callExpr().bind(CallID);
   auto R = parseRangeSelector(R"rs(before(node("call")))rs");
   ASSERT_THAT_EXPECTED(R, llvm::Succeeded());
 
-  TestMatch Match = matchCode(Code, M);
+  TestMatch const Match = matchCode(Code, M);
   const auto *E = Match.Result.Nodes.getNodeAs<Expr>(CallID);
   assert(E != nullptr);
   auto ExprBegin = E->getSourceRange().getBegin();
@@ -168,12 +168,12 @@ TEST(RangeSelectorTest, BeforeOpParsed) {
 }
 
 TEST(RangeSelectorTest, AfterOp) {
-  StringRef Code = R"cc(
+  StringRef const Code = R"cc(
     int f(int x, int y, int z) { return 3; }
     int g() { return f(/* comment */ 3, 7 /* comment */, 9); }
   )cc";
-  StringRef Call = "call";
-  TestMatch Match = matchCode(Code, callExpr().bind(Call));
+  StringRef const Call = "call";
+  TestMatch const Match = matchCode(Code, callExpr().bind(Call));
   const auto* E = Match.Result.Nodes.getNodeAs<Expr>(Call);
   assert(E != nullptr);
   const SourceRange Range = E->getSourceRange();
@@ -206,66 +206,66 @@ static SourceLocation getSpellingLocAfter(const MatchResult &Result,
 // Test with a range that is the entire macro arg, but does not end the
 // expansion itself.
 TEST(RangeSelectorTest, AfterOpInMacroArg) {
-  StringRef Code = R"cc(
+  StringRef const Code = R"cc(
 #define ISNULL(x) x == nullptr
     bool g() { int* y; return ISNULL(y); }
   )cc";
 
-  TestMatch Match =
+  TestMatch const Match =
       matchCode(Code, declRefExpr(to(namedDecl(hasName("y")))).bind("yvar"));
-  int YVarLen = 1;
-  SourceLocation After = getSpellingLocAfter(Match.Result, "yvar", YVarLen);
-  CharSourceRange Expected = CharSourceRange::getCharRange(After, After);
+  int const YVarLen = 1;
+  SourceLocation const After = getSpellingLocAfter(Match.Result, "yvar", YVarLen);
+  CharSourceRange const Expected = CharSourceRange::getCharRange(After, After);
   EXPECT_THAT_EXPECTED(after(node("yvar"))(Match.Result),
                        HasValue(EqualsCharSourceRange(Expected)));
 }
 
 // Test with a range that is the entire macro arg and ends the expansion itself.
 TEST(RangeSelectorTest, AfterOpInMacroArgEndsExpansion) {
-  StringRef Code = R"cc(
+  StringRef const Code = R"cc(
 #define ISNULL(x) nullptr == x
     bool g() { int* y; return ISNULL(y); }
   )cc";
 
-  TestMatch Match =
+  TestMatch const Match =
       matchCode(Code, declRefExpr(to(namedDecl(hasName("y")))).bind("yvar"));
-  int YVarLen = 1;
-  SourceLocation After = getSpellingLocAfter(Match.Result, "yvar", YVarLen);
-  CharSourceRange Expected = CharSourceRange::getCharRange(After, After);
+  int const YVarLen = 1;
+  SourceLocation const After = getSpellingLocAfter(Match.Result, "yvar", YVarLen);
+  CharSourceRange const Expected = CharSourceRange::getCharRange(After, After);
   EXPECT_THAT_EXPECTED(after(node("yvar"))(Match.Result),
                        HasValue(EqualsCharSourceRange(Expected)));
 }
 
 TEST(RangeSelectorTest, AfterOpInPartOfMacroArg) {
-  StringRef Code = R"cc(
+  StringRef const Code = R"cc(
 #define ISNULL(x) x == nullptr
     int* f(int*);
     bool g() { int* y; return ISNULL(f(y)); }
   )cc";
 
-  TestMatch Match =
+  TestMatch const Match =
       matchCode(Code, declRefExpr(to(namedDecl(hasName("y")))).bind("yvar"));
-  int YVarLen = 1;
-  SourceLocation After = getSpellingLocAfter(Match.Result, "yvar", YVarLen);
-  CharSourceRange Expected = CharSourceRange::getCharRange(After, After);
+  int const YVarLen = 1;
+  SourceLocation const After = getSpellingLocAfter(Match.Result, "yvar", YVarLen);
+  CharSourceRange const Expected = CharSourceRange::getCharRange(After, After);
   EXPECT_THAT_EXPECTED(after(node("yvar"))(Match.Result),
                        HasValue(EqualsCharSourceRange(Expected)));
 }
 
 TEST(RangeSelectorTest, BetweenOp) {
-  StringRef Code = R"cc(
+  StringRef const Code = R"cc(
     int f(int x, int y, int z) { return 3; }
     int g() { return f(3, /* comment */ 7 /* comment */, 9); }
   )cc";
   auto Matcher = callExpr(hasArgument(0, expr().bind("a0")),
                           hasArgument(1, expr().bind("a1")));
-  RangeSelector R = between(node("a0"), node("a1"));
-  TestMatch Match = matchCode(Code, Matcher);
+  RangeSelector const R = between(node("a0"), node("a1"));
+  TestMatch const Match = matchCode(Code, Matcher);
   EXPECT_THAT_EXPECTED(select(R, Match), HasValue(", /* comment */ "));
 }
 
 TEST(RangeSelectorTest, BetweenOpParsed) {
-  StringRef Code = R"cc(
+  StringRef const Code = R"cc(
     int f(int x, int y, int z) { return 3; }
     int g() { return f(3, /* comment */ 7 /* comment */, 9); }
   )cc";
@@ -273,37 +273,37 @@ TEST(RangeSelectorTest, BetweenOpParsed) {
                           hasArgument(1, expr().bind("a1")));
   auto R = parseRangeSelector(R"rs(between(node("a0"), node("a1")))rs");
   ASSERT_THAT_EXPECTED(R, llvm::Succeeded());
-  TestMatch Match = matchCode(Code, Matcher);
+  TestMatch const Match = matchCode(Code, Matcher);
   EXPECT_THAT_EXPECTED(select(*R, Match), HasValue(", /* comment */ "));
 }
 
 // Node-id specific version.
 TEST(RangeSelectorTest, EncloseOpNodes) {
-  StringRef Code = R"cc(
+  StringRef const Code = R"cc(
     int f(int x, int y, int z) { return 3; }
     int g() { return f(/* comment */ 3, 7 /* comment */, 9); }
   )cc";
   auto Matcher = callExpr(hasArgument(0, expr().bind("a0")),
                           hasArgument(1, expr().bind("a1")));
-  RangeSelector R = encloseNodes("a0", "a1");
-  TestMatch Match = matchCode(Code, Matcher);
+  RangeSelector const R = encloseNodes("a0", "a1");
+  TestMatch const Match = matchCode(Code, Matcher);
   EXPECT_THAT_EXPECTED(select(R, Match), HasValue("3, 7"));
 }
 
 TEST(RangeSelectorTest, EncloseOpGeneral) {
-  StringRef Code = R"cc(
+  StringRef const Code = R"cc(
     int f(int x, int y, int z) { return 3; }
     int g() { return f(/* comment */ 3, 7 /* comment */, 9); }
   )cc";
   auto Matcher = callExpr(hasArgument(0, expr().bind("a0")),
                           hasArgument(1, expr().bind("a1")));
-  RangeSelector R = enclose(node("a0"), node("a1"));
-  TestMatch Match = matchCode(Code, Matcher);
+  RangeSelector const R = enclose(node("a0"), node("a1"));
+  TestMatch const Match = matchCode(Code, Matcher);
   EXPECT_THAT_EXPECTED(select(R, Match), HasValue("3, 7"));
 }
 
 TEST(RangeSelectorTest, EncloseOpNodesParsed) {
-  StringRef Code = R"cc(
+  StringRef const Code = R"cc(
     int f(int x, int y, int z) { return 3; }
     int g() { return f(/* comment */ 3, 7 /* comment */, 9); }
   )cc";
@@ -311,12 +311,12 @@ TEST(RangeSelectorTest, EncloseOpNodesParsed) {
                           hasArgument(1, expr().bind("a1")));
   auto R = parseRangeSelector(R"rs(encloseNodes("a0", "a1"))rs");
   ASSERT_THAT_EXPECTED(R, llvm::Succeeded());
-  TestMatch Match = matchCode(Code, Matcher);
+  TestMatch const Match = matchCode(Code, Matcher);
   EXPECT_THAT_EXPECTED(select(*R, Match), HasValue("3, 7"));
 }
 
 TEST(RangeSelectorTest, EncloseOpGeneralParsed) {
-  StringRef Code = R"cc(
+  StringRef const Code = R"cc(
     int f(int x, int y, int z) { return 3; }
     int g() { return f(/* comment */ 3, 7 /* comment */, 9); }
   )cc";
@@ -324,39 +324,39 @@ TEST(RangeSelectorTest, EncloseOpGeneralParsed) {
                           hasArgument(1, expr().bind("a1")));
   auto R = parseRangeSelector(R"rs(encloseNodes("a0", "a1"))rs");
   ASSERT_THAT_EXPECTED(R, llvm::Succeeded());
-  TestMatch Match = matchCode(Code, Matcher);
+  TestMatch const Match = matchCode(Code, Matcher);
   EXPECT_THAT_EXPECTED(select(*R, Match), HasValue("3, 7"));
 }
 
 TEST(RangeSelectorTest, NodeOpStatement) {
-  StringRef Code = "int f() { return 3; }";
-  TestMatch Match = matchCode(Code, returnStmt().bind("id"));
+  StringRef const Code = "int f() { return 3; }";
+  TestMatch const Match = matchCode(Code, returnStmt().bind("id"));
   EXPECT_THAT_EXPECTED(select(node("id"), Match), HasValue("return 3;"));
 }
 
 TEST(RangeSelectorTest, NodeOpExpression) {
-  StringRef Code = "int f() { return 3; }";
-  TestMatch Match = matchCode(Code, expr().bind("id"));
+  StringRef const Code = "int f() { return 3; }";
+  TestMatch const Match = matchCode(Code, expr().bind("id"));
   EXPECT_THAT_EXPECTED(select(node("id"), Match), HasValue("3"));
 }
 
 TEST(RangeSelectorTest, StatementOp) {
-  StringRef Code = "int f() { return 3; }";
-  TestMatch Match = matchCode(Code, expr().bind("id"));
-  RangeSelector R = statement("id");
+  StringRef const Code = "int f() { return 3; }";
+  TestMatch const Match = matchCode(Code, expr().bind("id"));
+  RangeSelector const R = statement("id");
   EXPECT_THAT_EXPECTED(select(R, Match), HasValue("3;"));
 }
 
 TEST(RangeSelectorTest, StatementOpParsed) {
-  StringRef Code = "int f() { return 3; }";
-  TestMatch Match = matchCode(Code, expr().bind("id"));
+  StringRef const Code = "int f() { return 3; }";
+  TestMatch const Match = matchCode(Code, expr().bind("id"));
   auto R = parseRangeSelector(R"rs(statement("id"))rs");
   ASSERT_THAT_EXPECTED(R, llvm::Succeeded());
   EXPECT_THAT_EXPECTED(select(*R, Match), HasValue("3;"));
 }
 
 TEST(RangeSelectorTest, MemberOp) {
-  StringRef Code = R"cc(
+  StringRef const Code = R"cc(
     struct S {
       int member;
     };
@@ -366,13 +366,13 @@ TEST(RangeSelectorTest, MemberOp) {
     }
   )cc";
   const char *ID = "id";
-  TestMatch Match = matchCode(Code, memberExpr().bind(ID));
+  TestMatch const Match = matchCode(Code, memberExpr().bind(ID));
   EXPECT_THAT_EXPECTED(select(member(ID), Match), HasValue("member"));
 }
 
 // Tests that member does not select any qualifiers on the member name.
 TEST(RangeSelectorTest, MemberOpQualified) {
-  StringRef Code = R"cc(
+  StringRef const Code = R"cc(
     struct S {
       int member;
     };
@@ -385,12 +385,12 @@ TEST(RangeSelectorTest, MemberOpQualified) {
     }
   )cc";
   const char *ID = "id";
-  TestMatch Match = matchCode(Code, memberExpr().bind(ID));
+  TestMatch const Match = matchCode(Code, memberExpr().bind(ID));
   EXPECT_THAT_EXPECTED(select(member(ID), Match), HasValue("member"));
 }
 
 TEST(RangeSelectorTest, MemberOpTemplate) {
-  StringRef Code = R"cc(
+  StringRef const Code = R"cc(
     struct S {
       template <typename T> T foo(T t);
     };
@@ -401,12 +401,12 @@ TEST(RangeSelectorTest, MemberOpTemplate) {
   )cc";
 
   const char *ID = "id";
-  TestMatch Match = matchCode(Code, memberExpr().bind(ID));
+  TestMatch const Match = matchCode(Code, memberExpr().bind(ID));
   EXPECT_THAT_EXPECTED(select(member(ID), Match), HasValue("foo"));
 }
 
 TEST(RangeSelectorTest, MemberOpOperator) {
-  StringRef Code = R"cc(
+  StringRef const Code = R"cc(
     struct S {
       int operator*();
     };
@@ -417,35 +417,35 @@ TEST(RangeSelectorTest, MemberOpOperator) {
   )cc";
 
   const char *ID = "id";
-  TestMatch Match = matchCode(Code, memberExpr().bind(ID));
+  TestMatch const Match = matchCode(Code, memberExpr().bind(ID));
   EXPECT_THAT_EXPECTED(select(member(ID), Match), HasValue("operator *"));
 }
 
 TEST(RangeSelectorTest, NameOpNamedDecl) {
-  StringRef Code = R"cc(
+  StringRef const Code = R"cc(
     int myfun() {
       return 3;
     }
   )cc";
   const char *ID = "id";
-  TestMatch Match = matchCode(Code, functionDecl().bind(ID));
+  TestMatch const Match = matchCode(Code, functionDecl().bind(ID));
   EXPECT_THAT_EXPECTED(select(name(ID), Match), HasValue("myfun"));
 }
 
 TEST(RangeSelectorTest, NameOpDeclRef) {
-  StringRef Code = R"cc(
+  StringRef const Code = R"cc(
     int foo(int x) {
       return x;
     }
     int g(int x) { return foo(x) * x; }
   )cc";
   const char *Ref = "ref";
-  TestMatch Match = matchCode(Code, declRefExpr(to(functionDecl())).bind(Ref));
+  TestMatch const Match = matchCode(Code, declRefExpr(to(functionDecl())).bind(Ref));
   EXPECT_THAT_EXPECTED(select(name(Ref), Match), HasValue("foo"));
 }
 
 TEST(RangeSelectorTest, NameOpCtorInitializer) {
-  StringRef Code = R"cc(
+  StringRef const Code = R"cc(
     class C {
      public:
       C() : field(3) {}
@@ -453,12 +453,12 @@ TEST(RangeSelectorTest, NameOpCtorInitializer) {
     };
   )cc";
   const char *Init = "init";
-  TestMatch Match = matchCode(Code, cxxCtorInitializer().bind(Init));
+  TestMatch const Match = matchCode(Code, cxxCtorInitializer().bind(Init));
   EXPECT_THAT_EXPECTED(select(name(Init), Match), HasValue("field"));
 }
 
 TEST(RangeSelectorTest, NameOpTypeLoc) {
-  StringRef Code = R"cc(
+  StringRef const Code = R"cc(
     namespace ns {
     struct Foo {
       Foo();
@@ -473,15 +473,15 @@ TEST(RangeSelectorTest, NameOpTypeLoc) {
   )cc";
   const char *CtorTy = "ctor_ty";
   // Matches declaration of `a`
-  TestMatch MatchA = matchCode(
+  TestMatch const MatchA = matchCode(
       Code, varDecl(hasName("a"), hasTypeLoc(typeLoc().bind(CtorTy))));
   EXPECT_THAT_EXPECTED(select(name(CtorTy), MatchA), HasValue("Foo"));
   // Matches call of Foo(int)
-  TestMatch MatchB = matchCode(
+  TestMatch const MatchB = matchCode(
       Code, cxxFunctionalCastExpr(hasTypeLoc(typeLoc().bind(CtorTy))));
   EXPECT_THAT_EXPECTED(select(name(CtorTy), MatchB), HasValue("Foo"));
   // Matches call of Foo(int, int)
-  TestMatch MatchC = matchCode(
+  TestMatch const MatchC = matchCode(
       Code, cxxTemporaryObjectExpr(hasTypeLoc(typeLoc().bind(CtorTy))));
   EXPECT_THAT_EXPECTED(select(name(CtorTy), MatchC), HasValue("Foo"));
 }
@@ -494,7 +494,7 @@ TEST(RangeSelectorTest, NameOpErrors) {
 }
 
 TEST(RangeSelectorTest, NameOpDeclRefError) {
-  StringRef Code = R"cc(
+  StringRef const Code = R"cc(
     struct S {
       int operator*();
     };
@@ -504,7 +504,7 @@ TEST(RangeSelectorTest, NameOpDeclRefError) {
     }
   )cc";
   const char *Ref = "ref";
-  TestMatch Match = matchCode(Code, declRefExpr(to(functionDecl())).bind(Ref));
+  TestMatch const Match = matchCode(Code, declRefExpr(to(functionDecl())).bind(Ref));
   EXPECT_THAT_EXPECTED(
       name(Ref)(Match.Result),
       Failed<StringError>(testing::Property(
@@ -523,7 +523,7 @@ TEST(RangeSelectorTest, CallArgsOp) {
     }
   )cc";
   const char *ID = "id";
-  TestMatch Match = matchCode(Code, callExpr().bind(ID));
+  TestMatch const Match = matchCode(Code, callExpr().bind(ID));
   EXPECT_THAT_EXPECTED(select(callArgs(ID), Match), HasValue("3, 4"));
 }
 
@@ -538,7 +538,7 @@ TEST(RangeSelectorTest, CallArgsOpNoArgs) {
     }
   )cc";
   const char *ID = "id";
-  TestMatch Match = matchCode(Code, callExpr().bind(ID));
+  TestMatch const Match = matchCode(Code, callExpr().bind(ID));
   EXPECT_THAT_EXPECTED(select(callArgs(ID), Match), HasValue(""));
 }
 
@@ -553,7 +553,7 @@ TEST(RangeSelectorTest, CallArgsOpNoArgsWithComments) {
     }
   )cc";
   const char *ID = "id";
-  TestMatch Match = matchCode(Code, callExpr().bind(ID));
+  TestMatch const Match = matchCode(Code, callExpr().bind(ID));
   EXPECT_THAT_EXPECTED(select(callArgs(ID), Match), HasValue("/*empty*/"));
 }
 
@@ -570,7 +570,7 @@ TEST(RangeSelectorTest, CallArgsOpWithParens) {
     }
   )cc";
   const char *ID = "id";
-  TestMatch Match =
+  TestMatch const Match =
       matchCode(Code, callExpr(callee(functionDecl(hasName("bar")))).bind(ID));
   EXPECT_THAT_EXPECTED(select(callArgs(ID), Match), HasValue("3, 4"));
 }
@@ -586,7 +586,7 @@ TEST(RangeSelectorTest, CallArgsOpLeadingComments) {
     }
   )cc";
   const char *ID = "id";
-  TestMatch Match = matchCode(Code, callExpr().bind(ID));
+  TestMatch const Match = matchCode(Code, callExpr().bind(ID));
   EXPECT_THAT_EXPECTED(select(callArgs(ID), Match),
                        HasValue("/*leading*/ 3, 4"));
 }
@@ -602,7 +602,7 @@ TEST(RangeSelectorTest, CallArgsOpTrailingComments) {
     }
   )cc";
   const char *ID = "id";
-  TestMatch Match = matchCode(Code, callExpr().bind(ID));
+  TestMatch const Match = matchCode(Code, callExpr().bind(ID));
   EXPECT_THAT_EXPECTED(select(callArgs(ID), Match),
                        HasValue("3 /*trailing*/, 4"));
 }
@@ -621,8 +621,8 @@ TEST(RangeSelectorTest, CallArgsOpEolComments) {
     }
   )cc";
   const char *ID = "id";
-  TestMatch Match = matchCode(Code, callExpr().bind(ID));
-  std::string ExpectedString = R"(  // Header
+  TestMatch const Match = matchCode(Code, callExpr().bind(ID));
+  std::string const ExpectedString = R"(  // Header
           1,           // foo
           2            // bar
       )";
@@ -637,21 +637,21 @@ TEST(RangeSelectorTest, CallArgsErrors) {
 }
 
 TEST(RangeSelectorTest, StatementsOp) {
-  StringRef Code = R"cc(
+  StringRef const Code = R"cc(
     void g();
     void f() { /* comment */ g(); /* comment */ g(); /* comment */ }
   )cc";
   const char *ID = "id";
-  TestMatch Match = matchCode(Code, compoundStmt().bind(ID));
+  TestMatch const Match = matchCode(Code, compoundStmt().bind(ID));
   EXPECT_THAT_EXPECTED(
       select(statements(ID), Match),
       HasValue(" /* comment */ g(); /* comment */ g(); /* comment */ "));
 }
 
 TEST(RangeSelectorTest, StatementsOpEmptyList) {
-  StringRef Code = "void f() {}";
+  StringRef const Code = "void f() {}";
   const char *ID = "id";
-  TestMatch Match = matchCode(Code, compoundStmt().bind(ID));
+  TestMatch const Match = matchCode(Code, compoundStmt().bind(ID));
   EXPECT_THAT_EXPECTED(select(statements(ID), Match), HasValue(""));
 }
 
@@ -663,28 +663,28 @@ TEST(RangeSelectorTest, StatementsOpErrors) {
 }
 
 TEST(RangeSelectorTest, ElementsOp) {
-  StringRef Code = R"cc(
+  StringRef const Code = R"cc(
     void f() {
       int v[] = {/* comment */ 3, /* comment*/ 4 /* comment */};
       (void)v;
     }
   )cc";
   const char *ID = "id";
-  TestMatch Match = matchCode(Code, initListExpr().bind(ID));
+  TestMatch const Match = matchCode(Code, initListExpr().bind(ID));
   EXPECT_THAT_EXPECTED(
       select(initListElements(ID), Match),
       HasValue("/* comment */ 3, /* comment*/ 4 /* comment */"));
 }
 
 TEST(RangeSelectorTest, ElementsOpEmptyList) {
-  StringRef Code = R"cc(
+  StringRef const Code = R"cc(
     void f() {
       int v[] = {};
       (void)v;
     }
   )cc";
   const char *ID = "id";
-  TestMatch Match = matchCode(Code, initListExpr().bind(ID));
+  TestMatch const Match = matchCode(Code, initListExpr().bind(ID));
   EXPECT_THAT_EXPECTED(select(initListElements(ID), Match), HasValue(""));
 }
 
@@ -696,7 +696,7 @@ TEST(RangeSelectorTest, ElementsOpErrors) {
 }
 
 TEST(RangeSelectorTest, ElseBranchOpSingleStatement) {
-  StringRef Code = R"cc(
+  StringRef const Code = R"cc(
     int f() {
       int x = 0;
       if (true) x = 3;
@@ -705,12 +705,12 @@ TEST(RangeSelectorTest, ElseBranchOpSingleStatement) {
     }
   )cc";
   const char *ID = "id";
-  TestMatch Match = matchCode(Code, ifStmt().bind(ID));
+  TestMatch const Match = matchCode(Code, ifStmt().bind(ID));
   EXPECT_THAT_EXPECTED(select(elseBranch(ID), Match), HasValue("else x = 4;"));
 }
 
 TEST(RangeSelectorTest, ElseBranchOpCompoundStatement) {
-  StringRef Code = R"cc(
+  StringRef const Code = R"cc(
     int f() {
       int x = 0;
       if (true) x = 3;
@@ -719,58 +719,58 @@ TEST(RangeSelectorTest, ElseBranchOpCompoundStatement) {
     }
   )cc";
   const char *ID = "id";
-  TestMatch Match = matchCode(Code, ifStmt().bind(ID));
+  TestMatch const Match = matchCode(Code, ifStmt().bind(ID));
   EXPECT_THAT_EXPECTED(select(elseBranch(ID), Match),
                        HasValue("else { x = 4; }"));
 }
 
 // Tests case where the matched node is the complete expanded text.
 TEST(RangeSelectorTest, ExpansionOp) {
-  StringRef Code = R"cc(
+  StringRef const Code = R"cc(
 #define BADDECL(E) int bad(int x) { return E; }
     BADDECL(x * x)
   )cc";
 
   const char *Fun = "Fun";
-  TestMatch Match = matchCode(Code, functionDecl(hasName("bad")).bind(Fun));
+  TestMatch const Match = matchCode(Code, functionDecl(hasName("bad")).bind(Fun));
   EXPECT_THAT_EXPECTED(select(expansion(node(Fun)), Match),
                        HasValue("BADDECL(x * x)"));
 }
 
 // Tests case where the matched node is (only) part of the expanded text.
 TEST(RangeSelectorTest, ExpansionOpPartial) {
-  StringRef Code = R"cc(
+  StringRef const Code = R"cc(
 #define BADDECL(E) int bad(int x) { return E; }
     BADDECL(x * x)
   )cc";
 
   const char *Ret = "Ret";
-  TestMatch Match = matchCode(Code, returnStmt().bind(Ret));
+  TestMatch const Match = matchCode(Code, returnStmt().bind(Ret));
   EXPECT_THAT_EXPECTED(select(expansion(node(Ret)), Match),
                        HasValue("BADDECL(x * x)"));
 }
 
 TEST(RangeSelectorTest, IfBoundOpBound) {
-  StringRef Code = R"cc(
+  StringRef const Code = R"cc(
     int f() {
       return 3 + 5;
     }
   )cc";
   const char *ID = "id", *Op = "op";
-  TestMatch Match =
+  TestMatch const Match =
       matchCode(Code, binaryOperator(hasLHS(expr().bind(ID))).bind(Op));
   EXPECT_THAT_EXPECTED(select(ifBound(ID, node(ID), node(Op)), Match),
                        HasValue("3"));
 }
 
 TEST(RangeSelectorTest, IfBoundOpUnbound) {
-  StringRef Code = R"cc(
+  StringRef const Code = R"cc(
     int f() {
       return 3 + 5;
     }
   )cc";
   const char *ID = "id", *Op = "op";
-  TestMatch Match = matchCode(Code, binaryOperator().bind(Op));
+  TestMatch const Match = matchCode(Code, binaryOperator().bind(Op));
   EXPECT_THAT_EXPECTED(select(ifBound(ID, node(ID), node(Op)), Match),
                        HasValue("3 + 5"));
 }

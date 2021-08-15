@@ -97,7 +97,7 @@ bool CoreEngine::ExecuteWorkList(const LocationContext *L, unsigned Steps,
 
     // Construct an edge representing the
     // starting location in the function.
-    BlockEdge StartLoc(Entry, Succ, L);
+    BlockEdge const StartLoc(Entry, Succ, L);
 
     // Set the current block counter to being empty.
     WList->setBlockCounter(BCounterFactory.GetEmptyCounter());
@@ -118,7 +118,7 @@ bool CoreEngine::ExecuteWorkList(const LocationContext *L, unsigned Steps,
   }
 
   // Check if we have a steps limit
-  bool UnlimitedSteps = Steps == 0;
+  bool const UnlimitedSteps = Steps == 0;
   // Cap our pre-reservation in the event that the user specifies
   // a very large number of maximum steps.
   const unsigned PreReservationCap = 4000000;
@@ -197,7 +197,7 @@ bool CoreEngine::ExecuteWorkListWithInitialState(const LocationContext *L,
                                                  unsigned Steps,
                                                  ProgramStateRef InitState,
                                                  ExplodedNodeSet &Dst) {
-  bool DidNotFinish = ExecuteWorkList(L, Steps, InitState);
+  bool const DidNotFinish = ExecuteWorkList(L, Steps, InitState);
   for (ExplodedGraph::eop_iterator I = G.eop_begin(), E = G.eop_end(); I != E;
        ++I) {
     Dst.Add(*I);
@@ -219,7 +219,7 @@ void CoreEngine::HandleBlockEdge(const BlockEdge &L, ExplodedNode *Pred) {
   // and we're taking the path that skips virtual base constructors.
   if (L.getSrc()->getTerminator().isVirtualBaseBranch() &&
       L.getDst() == *L.getSrc()->succ_begin()) {
-    ProgramPoint P = L.withTag(getDataTags().make<NoteTag>(
+    ProgramPoint const P = L.withTag(getDataTags().make<NoteTag>(
         [](BugReporterContext &, PathSensitiveBugReport &) -> std::string {
           // TODO: Just call out the name of the most derived class
           // when we know it.
@@ -243,7 +243,7 @@ void CoreEngine::HandleBlockEdge(const BlockEdge &L, ExplodedNode *Pred) {
     // Get return statement..
     const ReturnStmt *RS = nullptr;
     if (!L.getSrc()->empty()) {
-      CFGElement LastElement = L.getSrc()->back();
+      CFGElement const LastElement = L.getSrc()->back();
       if (Optional<CFGStmt> LastStmt = LastElement.getAs<CFGStmt>()) {
         RS = dyn_cast<ReturnStmt>(LastStmt->getStmt());
       } else if (Optional<CFGAutomaticObjDtor> AutoDtor =
@@ -278,7 +278,7 @@ void CoreEngine::HandleBlockEntrance(const BlockEntrance &L,
                                        ExplodedNode *Pred) {
   // Increment the block counter.
   const LocationContext *LC = Pred->getLocationContext();
-  unsigned BlockId = L.getBlock()->getBlockID();
+  unsigned const BlockId = L.getBlock()->getBlockID();
   BlockCounter Counter = WList->getBlockCounter();
   Counter = BCounterFactory.IncrementCount(Counter, LC->getStackFrame(),
                                            BlockId);
@@ -477,7 +477,7 @@ void CoreEngine::HandleVirtualBaseBranch(const CFGBlock *B,
     switch (CallerCtor->getConstructionKind()) {
     case CXXConstructExpr::CK_NonVirtualBase:
     case CXXConstructExpr::CK_VirtualBase: {
-      BlockEdge Loc(B, *B->succ_begin(), LCtx);
+      BlockEdge const Loc(B, *B->succ_begin(), LCtx);
       HandleBlockEdge(Loc, Pred);
       return;
     }
@@ -488,7 +488,7 @@ void CoreEngine::HandleVirtualBaseBranch(const CFGBlock *B,
 
   // We either don't see a parent stack frame because we're in the top frame,
   // or the parent stack frame doesn't initialize our virtual bases.
-  BlockEdge Loc(B, *(B->succ_begin() + 1), LCtx);
+  BlockEdge const Loc(B, *(B->succ_begin() + 1), LCtx);
   HandleBlockEdge(Loc, Pred);
 }
 
@@ -543,8 +543,8 @@ void CoreEngine::enqueueStmtNode(ExplodedNode *N,
   }
 
   // At this point, we know we're processing a normal statement.
-  CFGStmt CS = (*Block)[Idx].castAs<CFGStmt>();
-  PostStmt Loc(CS.getStmt(), N->getLocationContext());
+  CFGStmt const CS = (*Block)[Idx].castAs<CFGStmt>();
+  PostStmt const Loc(CS.getStmt(), N->getLocationContext());
 
   if (Loc == N->getLocation().withTag(nullptr)) {
     // Note: 'N' should be a fresh node because otherwise it shouldn't be
@@ -567,7 +567,7 @@ ExplodedNode *CoreEngine::generateCallExitBeginNode(ExplodedNode *N,
   const auto *LocCtx = cast<StackFrameContext>(N->getLocationContext());
 
   // Use the callee location context.
-  CallExitBegin Loc(LocCtx, RS);
+  CallExitBegin const Loc(LocCtx, RS);
 
   bool isNew;
   ExplodedNode *Node = G.getNode(Loc, N->getState(), false, &isNew);
@@ -639,7 +639,7 @@ ExplodedNode *BranchNodeBuilder::generateNode(ProgramStateRef State,
   if (!isFeasible(branch))
     return nullptr;
 
-  ProgramPoint Loc = BlockEdge(C.Block, branch ? DstT:DstF,
+  ProgramPoint const Loc = BlockEdge(C.Block, branch ? DstT:DstF,
                                NodePred->getLocationContext());
   ExplodedNode *Succ = generateNodeImpl(Loc, State, NodePred);
   return Succ;

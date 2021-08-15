@@ -40,7 +40,7 @@ TEST(MultilibTest, MultilibValidity) {
 }
 
 TEST(MultilibTest, OpEqReflexivity1) {
-  Multilib M;
+  Multilib const M;
   ASSERT_TRUE(M == M) << "Multilib::operator==() is not reflexive";
 }
 
@@ -81,7 +81,7 @@ TEST(MultilibTest, OpEqEquivalence1) {
 }
 
 TEST(MultilibTest, OpEqEquivalence2) {
-  Multilib M1("64");
+  Multilib const M1("64");
   Multilib M2;
   M2.gccSuffix("/64");
   ASSERT_TRUE(M1 == M2)
@@ -91,7 +91,7 @@ TEST(MultilibTest, OpEqEquivalence2) {
 }
 
 TEST(MultilibTest, OpEqEquivalence3) {
-  Multilib M1("", "32");
+  Multilib const M1("", "32");
   Multilib M2;
   M2.osSuffix("/32");
   ASSERT_TRUE(M1 == M2)
@@ -101,7 +101,7 @@ TEST(MultilibTest, OpEqEquivalence3) {
 }
 
 TEST(MultilibTest, OpEqEquivalence4) {
-  Multilib M1("", "", "16");
+  Multilib const M1("", "", "16");
   Multilib M2;
   M2.includeSuffix("/16");
   ASSERT_TRUE(M1 == M2)
@@ -111,41 +111,41 @@ TEST(MultilibTest, OpEqEquivalence4) {
 }
 
 TEST(MultilibTest, OpEqInequivalence3) {
-  Multilib M1("foo");
-  Multilib M2("bar");
+  Multilib const M1("foo");
+  Multilib const M2("bar");
   ASSERT_FALSE(M1 == M2) << "Differing gccSuffixes should be different";
   ASSERT_FALSE(M2 == M1)
       << "Differing gccSuffixes should be different (commuted)";
 }
 
 TEST(MultilibTest, OpEqInequivalence4) {
-  Multilib M1("", "foo");
-  Multilib M2("", "bar");
+  Multilib const M1("", "foo");
+  Multilib const M2("", "bar");
   ASSERT_FALSE(M1 == M2) << "Differing osSuffixes should be different";
   ASSERT_FALSE(M2 == M1)
       << "Differing osSuffixes should be different (commuted)";
 }
 
 TEST(MultilibTest, OpEqInequivalence5) {
-  Multilib M1("", "", "foo");
-  Multilib M2("", "", "bar");
+  Multilib const M1("", "", "foo");
+  Multilib const M2("", "", "bar");
   ASSERT_FALSE(M1 == M2) << "Differing includeSuffixes should be different";
   ASSERT_FALSE(M2 == M1)
       << "Differing includeSuffixes should be different (commuted)";
 }
 
 TEST(MultilibTest, Construction1) {
-  Multilib M("gcc64", "os64", "inc64");
+  Multilib const M("gcc64", "os64", "inc64");
   ASSERT_TRUE(M.gccSuffix() == "/gcc64");
   ASSERT_TRUE(M.osSuffix() == "/os64");
   ASSERT_TRUE(M.includeSuffix() == "/inc64");
 }
 
 TEST(MultilibTest, Construction2) {
-  Multilib M1;
-  Multilib M2("");
-  Multilib M3("", "");
-  Multilib M4("", "", "");
+  Multilib const M1;
+  Multilib const M2("");
+  Multilib const M3("", "");
+  Multilib const M4("", "", "");
   ASSERT_TRUE(M1 == M2)
       << "Default arguments to Multilib constructor broken (first argument)";
   ASSERT_TRUE(M1 == M3)
@@ -282,7 +282,7 @@ TEST(MultilibTest, SetFilterObject) {
 }
 
 TEST(MultilibTest, SetSelection1) {
-  MultilibSet MS1 = MultilibSet()
+  MultilibSet const MS1 = MultilibSet()
     .Maybe(Multilib("64").flag("+m64"));
 
   Multilib::flags_list FlagM64;
@@ -303,13 +303,13 @@ TEST(MultilibTest, SetSelection1) {
 }
 
 TEST(MultilibTest, SetSelection2) {
-  MultilibSet MS2 = MultilibSet()
+  MultilibSet const MS2 = MultilibSet()
     .Maybe(Multilib("el").flag("+EL"))
     .Maybe(Multilib("sf").flag("+SF"));
 
   for (unsigned I = 0; I < 4; ++I) {
-    bool IsEL = I & 0x1;
-    bool IsSF = I & 0x2;
+    bool const IsEL = I & 0x1;
+    bool const IsSF = I & 0x2;
     Multilib::flags_list Flags;
     if (IsEL)
       Flags.push_back("+EL");

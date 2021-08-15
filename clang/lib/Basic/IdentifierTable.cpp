@@ -167,7 +167,7 @@ static KeywordStatus getKeywordStatus(const LangOptions &LangOpts,
 static void AddKeyword(StringRef Keyword,
                        tok::TokenKind TokenCode, unsigned Flags,
                        const LangOptions &LangOpts, IdentifierTable &Table) {
-  KeywordStatus AddResult = getKeywordStatus(LangOpts, Flags);
+  KeywordStatus const AddResult = getKeywordStatus(LangOpts, Flags);
 
   // Don't add this keyword under MSVCCompat.
   if (LangOpts.MSVCCompat && (Flags & KEYNOMS18) &&
@@ -278,7 +278,7 @@ bool IdentifierInfo::isCPlusPlusKeyword(const LangOptions &LangOpts) const {
 
 ReservedIdentifierStatus
 IdentifierInfo::isReserved(const LangOptions &LangOpts) const {
-  StringRef Name = getName();
+  StringRef const Name = getName();
 
   // '_' is a reserved identifier, but its use is so common (e.g. to store
   // ignored values) that we don't warn on it.
@@ -321,7 +321,7 @@ tok::PPKeywordKind IdentifierInfo::getPPKeywordID() const {
   case HASH(LEN, FIRST, THIRD): \
     return memcmp(Name, #NAME, LEN) ? tok::pp_not_keyword : tok::pp_ ## NAME
 
-  unsigned Len = getLength();
+  unsigned const Len = getLength();
   if (Len < 2) return tok::pp_not_keyword;
   const char *Name = getNameStart();
   switch (HASH(Len, Name[0], Name[2])) {
@@ -369,16 +369,16 @@ tok::PPKeywordKind IdentifierInfo::getPPKeywordID() const {
 /// PrintStats - Print statistics about how well the identifier table is doing
 /// at hashing identifiers.
 void IdentifierTable::PrintStats() const {
-  unsigned NumBuckets = HashTable.getNumBuckets();
-  unsigned NumIdentifiers = HashTable.getNumItems();
-  unsigned NumEmptyBuckets = NumBuckets-NumIdentifiers;
+  unsigned const NumBuckets = HashTable.getNumBuckets();
+  unsigned const NumIdentifiers = HashTable.getNumItems();
+  unsigned const NumEmptyBuckets = NumBuckets-NumIdentifiers;
   unsigned AverageIdentifierSize = 0;
   unsigned MaxIdentifierLength = 0;
 
   // TODO: Figure out maximum times an identifier had to probe for -stats.
   for (llvm::StringMap<IdentifierInfo*, llvm::BumpPtrAllocator>::const_iterator
        I = HashTable.begin(), E = HashTable.end(); I != E; ++I) {
-    unsigned IdLen = I->getKeyLength();
+    unsigned const IdLen = I->getKeyLength();
     AverageIdentifierSize += IdLen;
     if (MaxIdentifierLength < IdLen)
       MaxIdentifierLength = IdLen;
@@ -478,7 +478,7 @@ bool Selector::isUnarySelector(StringRef Name) const {
 }
 
 unsigned Selector::getNumArgs() const {
-  unsigned IIF = getIdentifierInfoFlag();
+  unsigned const IIF = getIdentifierInfoFlag();
   if (IIF <= ZeroArg)
     return 0;
   if (IIF == OneArg)
@@ -606,7 +606,7 @@ ObjCInstanceTypeFamily Selector::getInstTypeMethodFamily(Selector sel) {
   IdentifierInfo *first = sel.getIdentifierInfoForSlot(0);
   if (!first) return OIT_None;
 
-  StringRef name = first->getName();
+  StringRef const name = first->getName();
 
   if (name.empty()) return OIT_None;
   switch (name.front()) {
@@ -634,7 +634,7 @@ ObjCStringFormatFamily Selector::getStringFormatFamilyImpl(Selector sel) {
   IdentifierInfo *first = sel.getIdentifierInfoForSlot(0);
   if (!first) return SFF_None;
 
-  StringRef name = first->getName();
+  StringRef const name = first->getName();
 
   switch (name.front()) {
     case 'a':
@@ -688,13 +688,13 @@ SelectorTable::constructSetterSelector(IdentifierTable &Idents,
 }
 
 std::string SelectorTable::getPropertyNameFromSetterSelector(Selector Sel) {
-  StringRef Name = Sel.getNameForSlot(0);
+  StringRef const Name = Sel.getNameForSlot(0);
   assert(Name.startswith("set") && "invalid setter name");
   return (Twine(toLowercase(Name[3])) + Name.drop_front(4)).str();
 }
 
 size_t SelectorTable::getTotalMemory() const {
-  SelectorTableImpl &SelTabImpl = getSelectorTableImpl(Impl);
+  SelectorTableImpl  const&SelTabImpl = getSelectorTableImpl(Impl);
   return SelTabImpl.Allocator.getTotalMemory();
 }
 
@@ -715,7 +715,7 @@ Selector SelectorTable::getSelector(unsigned nKeys, IdentifierInfo **IIV) {
 
   // MultiKeywordSelector objects are not allocated with new because they have a
   // variable size array (for parameter types) at the end of them.
-  unsigned Size = sizeof(MultiKeywordSelector) + nKeys*sizeof(IdentifierInfo *);
+  unsigned const Size = sizeof(MultiKeywordSelector) + nKeys*sizeof(IdentifierInfo *);
   MultiKeywordSelector *SI =
       (MultiKeywordSelector *)SelTabImpl.Allocator.Allocate(
           Size, alignof(MultiKeywordSelector));

@@ -80,7 +80,7 @@ XRayArgs::XRayArgs(const ToolChain &TC, const ArgList &Args) {
   if (const Arg *A =
           Args.getLastArg(options::OPT_fxray_instruction_threshold_,
                           options::OPT_fxray_instruction_threshold_EQ)) {
-    StringRef S = A->getValue();
+    StringRef const S = A->getValue();
     if (S.getAsInteger(0, InstructionThreshold) || InstructionThreshold < 0)
       D.Diag(clang::diag::err_drv_invalid_value) << A->getAsString(Args) << S;
   }
@@ -187,14 +187,14 @@ XRayArgs::XRayArgs(const ToolChain &TC, const ArgList &Args) {
     }
 
   if (const Arg *A = Args.getLastArg(options::OPT_fxray_function_groups)) {
-    StringRef S = A->getValue();
+    StringRef const S = A->getValue();
     if (S.getAsInteger(0, XRayFunctionGroups) || XRayFunctionGroups < 1)
       D.Diag(clang::diag::err_drv_invalid_value) << A->getAsString(Args) << S;
   }
 
   if (const Arg *A =
           Args.getLastArg(options::OPT_fxray_selected_function_group)) {
-    StringRef S = A->getValue();
+    StringRef const S = A->getValue();
     if (S.getAsInteger(0, XRaySelectedFunctionGroup) ||
         XRaySelectedFunctionGroup < 0 ||
         XRaySelectedFunctionGroup >= XRayFunctionGroups)

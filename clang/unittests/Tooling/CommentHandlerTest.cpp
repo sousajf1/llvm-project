@@ -36,16 +36,16 @@ public:
   bool HandleComment(Preprocessor &PP, SourceRange Loc) override {
     assert(&PP == this->PP && "Preprocessor changed!");
 
-    SourceLocation Start = Loc.getBegin();
-    SourceManager &SM = PP.getSourceManager();
-    std::string C(SM.getCharacterData(Start),
+    SourceLocation const Start = Loc.getBegin();
+    SourceManager  const&SM = PP.getSourceManager();
+    std::string const C(SM.getCharacterData(Start),
                   SM.getCharacterData(Loc.getEnd()));
 
     bool Invalid;
-    unsigned CLine = SM.getSpellingLineNumber(Start, &Invalid);
+    unsigned const CLine = SM.getSpellingLineNumber(Start, &Invalid);
     EXPECT_TRUE(!Invalid) << "Invalid line number on comment " << C;
 
-    unsigned CCol = SM.getSpellingColumnNumber(Start, &Invalid);
+    unsigned const CCol = SM.getSpellingColumnNumber(Start, &Invalid);
     EXPECT_TRUE(!Invalid) << "Invalid column number on comment " << C;
 
     Comments.push_back(Comment(C, CLine, CCol));
@@ -131,7 +131,7 @@ CommentVerifier CommentHandlerVisitor::GetVerifier() {
 TEST(CommentHandlerTest, BasicTest1) {
   CommentHandlerVisitor Visitor;
   EXPECT_TRUE(Visitor.runOver("class X {}; int main() { return 0; }"));
-  CommentVerifier Verifier = Visitor.GetVerifier();
+  CommentVerifier const Verifier = Visitor.GetVerifier();
 }
 
 TEST(CommentHandlerTest, BasicTest2) {

@@ -72,7 +72,7 @@ TEST_F(RefactoringActionRulesTest, MyFirstRefactoringRule) {
     Expected<AtomicChanges>
     createSourceReplacements(RefactoringRuleContext &Context) {
       const SourceManager &SM = Context.getSources();
-      SourceLocation Loc =
+      SourceLocation const Loc =
           Selection.first.getBegin().getLocWithOffset(Selection.second);
       AtomicChange Change(SM, Loc);
       llvm::Error E = Change.replace(SM, Loc, 1, "b");
@@ -99,7 +99,7 @@ TEST_F(RefactoringActionRulesTest, MyFirstRefactoringRule) {
   // When the requirements are satisfied, the rule's function must be invoked.
   {
     RefactoringRuleContext RefContext(Context.Sources);
-    SourceLocation Cursor =
+    SourceLocation const Cursor =
         Context.Sources.getLocForStartOfFile(Context.Sources.getMainFileID())
             .getLocWithOffset(10);
     RefContext.setSelectionRange({Cursor, Cursor});
@@ -109,7 +109,7 @@ TEST_F(RefactoringActionRulesTest, MyFirstRefactoringRule) {
     ASSERT_FALSE(!ErrorOrResult);
     AtomicChanges Result = std::move(*ErrorOrResult);
     ASSERT_EQ(Result.size(), 1u);
-    std::string YAMLString =
+    std::string const YAMLString =
         const_cast<AtomicChange &>(Result[0]).toYAMLString();
 
     ASSERT_STREQ("---\n"
@@ -162,7 +162,7 @@ TEST_F(RefactoringActionRulesTest, ReturnError) {
   auto Rule =
       createRefactoringActionRule<ErrorRule>(SourceRangeSelectionRequirement());
   RefactoringRuleContext RefContext(Context.Sources);
-  SourceLocation Cursor =
+  SourceLocation const Cursor =
       Context.Sources.getLocForStartOfFile(Context.Sources.getMainFileID());
   RefContext.setSelectionRange({Cursor, Cursor});
   Expected<AtomicChanges> Result = createReplacements(Rule, RefContext);
@@ -221,7 +221,7 @@ TEST_F(RefactoringActionRulesTest, ReturnSymbolOccurrences) {
       SourceRangeSelectionRequirement());
 
   RefactoringRuleContext RefContext(Context.Sources);
-  SourceLocation Cursor =
+  SourceLocation const Cursor =
       Context.Sources.getLocForStartOfFile(Context.Sources.getMainFileID());
   RefContext.setSelectionRange({Cursor, Cursor});
   Optional<SymbolOccurrences> Result = findOccurrences(*Rule, RefContext);

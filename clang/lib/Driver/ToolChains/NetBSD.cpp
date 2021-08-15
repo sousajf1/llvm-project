@@ -44,7 +44,7 @@ void netbsd::Assembler::ConstructJob(Compilation &C, const JobAction &JA,
   case llvm::Triple::thumbeb: {
     StringRef MArch, MCPU;
     arm::getARMArchCPUFromArgs(Args, MArch, MCPU, /*FromAs*/ true);
-    std::string Arch =
+    std::string const Arch =
         arm::getARMTargetCPU(MCPU, MArch, getToolChain().getTriple());
     CmdArgs.push_back(Args.MakeArgString("-mcpu=" + Arch));
     break;
@@ -76,7 +76,7 @@ void netbsd::Assembler::ConstructJob(Compilation &C, const JobAction &JA,
   case llvm::Triple::sparc:
   case llvm::Triple::sparcel: {
     CmdArgs.push_back("-32");
-    std::string CPU = getCPUName(Args, getToolChain().getTriple());
+    std::string const CPU = getCPUName(Args, getToolChain().getTriple());
     CmdArgs.push_back(sparc::getSparcAsmModeForCPU(CPU, getToolChain().getTriple()));
     AddAssemblerKPIC(getToolChain(), Args, CmdArgs);
     break;
@@ -84,7 +84,7 @@ void netbsd::Assembler::ConstructJob(Compilation &C, const JobAction &JA,
 
   case llvm::Triple::sparcv9: {
     CmdArgs.push_back("-64");
-    std::string CPU = getCPUName(Args, getToolChain().getTriple());
+    std::string const CPU = getCPUName(Args, getToolChain().getTriple());
     CmdArgs.push_back(sparc::getSparcAsmModeForCPU(CPU, getToolChain().getTriple()));
     AddAssemblerKPIC(getToolChain(), Args, CmdArgs);
     break;
@@ -254,8 +254,8 @@ void netbsd::Linker::ConstructJob(Compilation &C, const JobAction &JA,
   Args.AddAllArgs(CmdArgs, options::OPT_Z_Flag);
   Args.AddAllArgs(CmdArgs, options::OPT_r);
 
-  bool NeedsSanitizerDeps = addSanitizerRuntimes(getToolChain(), Args, CmdArgs);
-  bool NeedsXRayDeps = addXRayRuntime(ToolChain, Args, CmdArgs);
+  bool const NeedsSanitizerDeps = addSanitizerRuntimes(getToolChain(), Args, CmdArgs);
+  bool const NeedsXRayDeps = addXRayRuntime(ToolChain, Args, CmdArgs);
   AddLinkerInputs(getToolChain(), Inputs, Args, CmdArgs, JA);
 
   const SanitizerArgs &SanArgs = ToolChain.getSanitizerArgs();
@@ -292,7 +292,7 @@ void netbsd::Linker::ConstructJob(Compilation &C, const JobAction &JA,
 
   if (!Args.hasArg(options::OPT_nostdlib, options::OPT_nodefaultlibs)) {
     // Use the static OpenMP runtime with -static-openmp
-    bool StaticOpenMP = Args.hasArg(options::OPT_static_openmp) &&
+    bool const StaticOpenMP = Args.hasArg(options::OPT_static_openmp) &&
                         !Args.hasArg(options::OPT_static);
     addOpenMPRuntime(CmdArgs, getToolChain(), Args, StaticOpenMP);
 
@@ -458,7 +458,7 @@ void NetBSD::addLibStdCxxIncludePaths(const llvm::opt::ArgList &DriverArgs,
 
 llvm::ExceptionHandling NetBSD::GetExceptionModel(const ArgList &Args) const {
   // NetBSD uses Dwarf exceptions on ARM.
-  llvm::Triple::ArchType TArch = getTriple().getArch();
+  llvm::Triple::ArchType const TArch = getTriple().getArch();
   if (TArch == llvm::Triple::arm || TArch == llvm::Triple::armeb ||
       TArch == llvm::Triple::thumb || TArch == llvm::Triple::thumbeb)
     return llvm::ExceptionHandling::DwarfCFI;
@@ -502,7 +502,7 @@ void NetBSD::addClangTargetOptions(const ArgList &DriverArgs,
 
   unsigned Major, Minor, Micro;
   getTriple().getOSVersion(Major, Minor, Micro);
-  bool UseInitArrayDefault =
+  bool const UseInitArrayDefault =
     Major >= 9 || Major == 0 ||
     getTriple().getArch() == llvm::Triple::aarch64 ||
     getTriple().getArch() == llvm::Triple::aarch64_be ||

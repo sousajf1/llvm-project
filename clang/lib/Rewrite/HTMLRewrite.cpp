@@ -31,13 +31,13 @@ using namespace clang;
 void html::HighlightRange(Rewriter &R, SourceLocation B, SourceLocation E,
                           const char *StartTag, const char *EndTag,
                           bool IsTokenRange) {
-  SourceManager &SM = R.getSourceMgr();
+  SourceManager  const&SM = R.getSourceMgr();
   B = SM.getExpansionLoc(B);
   E = SM.getExpansionLoc(E);
-  FileID FID = SM.getFileID(B);
+  FileID const FID = SM.getFileID(B);
   assert(SM.getFileID(E) == FID && "B/E not in the same file!");
 
-  unsigned BOffset = SM.getFileOffset(B);
+  unsigned const BOffset = SM.getFileOffset(B);
   unsigned EOffset = SM.getFileOffset(E);
 
   // Include the whole end token in the range.
@@ -107,7 +107,7 @@ void html::HighlightRange(RewriteBuffer &RB, unsigned B, unsigned E,
 void html::EscapeText(Rewriter &R, FileID FID,
                       bool EscapeSpaces, bool ReplaceTabs) {
 
-  llvm::MemoryBufferRef Buf = R.getSourceMgr().getBufferOrFake(FID);
+  llvm::MemoryBufferRef const Buf = R.getSourceMgr().getBufferOrFake(FID);
   const char* C = Buf.getBufferStart();
   const char* FileEnd = Buf.getBufferEnd();
 
@@ -137,7 +137,7 @@ void html::EscapeText(Rewriter &R, FileID FID,
     case '\t': {
       if (!ReplaceTabs)
         break;
-      unsigned NumSpaces = 8-(ColNo&7);
+      unsigned const NumSpaces = 8-(ColNo&7);
       if (EscapeSpaces)
         RB.ReplaceText(FilePos, 1,
                        StringRef("&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;"
@@ -167,13 +167,13 @@ void html::EscapeText(Rewriter &R, FileID FID,
 
 std::string html::EscapeText(StringRef s, bool EscapeSpaces, bool ReplaceTabs) {
 
-  unsigned len = s.size();
+  unsigned const len = s.size();
   std::string Str;
   llvm::raw_string_ostream os(Str);
 
   for (unsigned i = 0 ; i < len; ++i) {
 
-    char c = s[i];
+    char const c = s[i];
     switch (c) {
     default:
       os << c; break;
@@ -226,7 +226,7 @@ static void AddLineNumber(RewriteBuffer &RB, unsigned LineNo,
 
 void html::AddLineNumbers(Rewriter& R, FileID FID) {
 
-  llvm::MemoryBufferRef Buf = R.getSourceMgr().getBufferOrFake(FID);
+  llvm::MemoryBufferRef const Buf = R.getSourceMgr().getBufferOrFake(FID);
   const char* FileBeg = Buf.getBufferStart();
   const char* FileEnd = Buf.getBufferEnd();
   const char* C = FileBeg;
@@ -240,7 +240,7 @@ void html::AddLineNumbers(Rewriter& R, FileID FID) {
   while (C != FileEnd) {
 
     ++LineNo;
-    unsigned LineStartPos = FilePos;
+    unsigned const LineStartPos = FilePos;
     unsigned LineEndPos = FileEnd - FileBeg;
 
     assert (FilePos <= LineEndPos);
@@ -249,7 +249,7 @@ void html::AddLineNumbers(Rewriter& R, FileID FID) {
     // Scan until the newline (or end-of-file).
 
     while (C != FileEnd) {
-      char c = *C;
+      char const c = *C;
       ++C;
 
       if (c == '\n') {
@@ -274,12 +274,12 @@ void html::AddLineNumbers(Rewriter& R, FileID FID) {
 void html::AddHeaderFooterInternalBuiltinCSS(Rewriter &R, FileID FID,
                                              StringRef title) {
 
-  llvm::MemoryBufferRef Buf = R.getSourceMgr().getBufferOrFake(FID);
+  llvm::MemoryBufferRef const Buf = R.getSourceMgr().getBufferOrFake(FID);
   const char* FileStart = Buf.getBufferStart();
   const char* FileEnd = Buf.getBufferEnd();
 
-  SourceLocation StartLoc = R.getSourceMgr().getLocForStartOfFile(FID);
-  SourceLocation EndLoc = StartLoc.getLocWithOffset(FileEnd-FileStart);
+  SourceLocation const StartLoc = R.getSourceMgr().getLocForStartOfFile(FID);
+  SourceLocation const EndLoc = StartLoc.getLocWithOffset(FileEnd-FileStart);
 
   std::string s;
   llvm::raw_string_ostream os(s);
@@ -446,7 +446,7 @@ void html::SyntaxHighlight(Rewriter &R, FileID FID, const Preprocessor &PP) {
   RewriteBuffer &RB = R.getEditBuffer(FID);
 
   const SourceManager &SM = PP.getSourceManager();
-  llvm::MemoryBufferRef FromFile = SM.getBufferOrFake(FID);
+  llvm::MemoryBufferRef const FromFile = SM.getBufferOrFake(FID);
   Lexer L(FID, FromFile, SM, PP.getLangOpts());
   const char *BufferStart = L.getBuffer().data();
 
@@ -537,7 +537,7 @@ void html::HighlightMacros(Rewriter &R, FileID FID, const Preprocessor& PP) {
   const SourceManager &SM = PP.getSourceManager();
   std::vector<Token> TokenStream;
 
-  llvm::MemoryBufferRef FromFile = SM.getBufferOrFake(FID);
+  llvm::MemoryBufferRef const FromFile = SM.getBufferOrFake(FID);
   Lexer L(FID, FromFile, SM, PP.getLangOpts());
 
   // Lex all the tokens in raw mode, to avoid entering #includes or expanding
@@ -586,14 +586,14 @@ void html::HighlightMacros(Rewriter &R, FileID FID, const Preprocessor& PP) {
 
   // We don't want pragmas either. Although we filtered out #pragma, removing
   // _Pragma and __pragma is much harder.
-  bool PragmasPreviouslyEnabled = TmpPP.getPragmasEnabled();
+  bool const PragmasPreviouslyEnabled = TmpPP.getPragmasEnabled();
   TmpPP.setPragmasEnabled(false);
 
   // Enter the tokens we just lexed.  This will cause them to be macro expanded
   // but won't enter sub-files (because we removed #'s).
   TmpPP.EnterTokenStream(TokenStream, false, /*IsReinject=*/false);
 
-  TokenConcatenation ConcatInfo(TmpPP);
+  TokenConcatenation const ConcatInfo(TmpPP);
 
   // Lex all the tokens.
   Token Tok;
@@ -608,7 +608,7 @@ void html::HighlightMacros(Rewriter &R, FileID FID, const Preprocessor& PP) {
     // Okay, we have the first token of a macro expansion: highlight the
     // expansion by inserting a start tag before the macro expansion and
     // end tag after it.
-    CharSourceRange LLoc = SM.getExpansionRange(Tok.getLocation());
+    CharSourceRange const LLoc = SM.getExpansionRange(Tok.getLocation());
 
     // Ignore tokens whose instantiation location was not the main file.
     if (SM.getFileID(LLoc.getBegin()) != FID) {

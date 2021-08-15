@@ -140,14 +140,14 @@ RetainSummaryManager::getPersistentSummary(const RetainSummary &OldSumm) {
 static bool isSubclass(const Decl *D,
                        StringRef ClassName) {
   using namespace ast_matchers;
-  DeclarationMatcher SubclassM =
+  DeclarationMatcher const SubclassM =
       cxxRecordDecl(isSameOrDerivedFrom(std::string(ClassName)));
   return !(match(SubclassM, *D, D->getASTContext()).empty());
 }
 
 static bool isExactClass(const Decl *D, StringRef ClassName) {
   using namespace ast_matchers;
-  DeclarationMatcher sameClassM =
+  DeclarationMatcher const sameClassM =
       cxxRecordDecl(hasName(std::string(ClassName)));
   return !(match(sameClassM, *D, D->getASTContext()).empty());
 }
@@ -214,7 +214,7 @@ static bool isOSObjectRelated(const CXXMethodDecl *MD) {
     return true;
 
   for (ParmVarDecl *Param : MD->parameters()) {
-    QualType PT = Param->getType()->getPointeeType();
+    QualType const PT = Param->getType()->getPointeeType();
     if (!PT.isNull())
       if (CXXRecordDecl *RD = PT->getAsCXXRecordDecl())
         if (isOSObjectSubclass(RD))
@@ -298,7 +298,7 @@ const RetainSummary *RetainSummaryManager::getSummaryForObjCOrCFObject(
 
   ArgEffects ScratchArgs(AF.getEmptyMap());
 
-  std::string RetTyName = RetTy.getAsString();
+  std::string const RetTyName = RetTy.getAsString();
   if (FName == "pthread_create" || FName == "pthread_setspecific") {
     // Part of: <rdar://problem/7299394> and <rdar://problem/11282706>.
     // This will be addressed better with IPA.
@@ -480,7 +480,7 @@ const RetainSummary *RetainSummaryManager::getSummaryForObjCOrCFObject(
       // "AppendValue", or "SetAttribute", then we assume that arguments may
       // "escape."  This means that something else holds on to the object,
       // allowing it be used even after its local retain count drops to 0.
-      ArgEffectKind E =
+      ArgEffectKind const E =
           (StrInStrNoCase(FName, "InsertValue") != StringRef::npos ||
            StrInStrNoCase(FName, "AddValue") != StringRef::npos ||
            StrInStrNoCase(FName, "SetValue") != StringRef::npos ||
@@ -514,7 +514,7 @@ RetainSummaryManager::generateSummary(const FunctionDecl *FD,
 
   // Inspect the result type. Strip away any typedefs.
   const auto *FT = FD->getType()->castAs<FunctionType>();
-  QualType RetTy = FT->getReturnType();
+  QualType const RetTy = FT->getReturnType();
 
   if (TrackOSObjects)
     if (const RetainSummary *S = getSummaryForOSObject(FD, FName, RetTy))
@@ -543,7 +543,7 @@ RetainSummaryManager::getFunctionSummary(const FunctionDecl *FD) {
     return getDefaultSummary();
 
   // Look up a summary in our cache of FunctionDecls -> Summaries.
-  FuncSummariesTy::iterator I = FuncSummaries.find(FD);
+  FuncSummariesTy::iterator const I = FuncSummaries.find(FD);
   if (I != FuncSummaries.end())
     return I->second;
 
@@ -590,15 +590,15 @@ static ArgEffect getStopTrackingHardEquivalent(ArgEffect E) {
 const RetainSummary *
 RetainSummaryManager::updateSummaryForNonZeroCallbackArg(const RetainSummary *S,
                                                          AnyCall &C) {
-  ArgEffect RecEffect = getStopTrackingHardEquivalent(S->getReceiverEffect());
-  ArgEffect DefEffect = getStopTrackingHardEquivalent(S->getDefaultArgEffect());
+  ArgEffect const RecEffect = getStopTrackingHardEquivalent(S->getReceiverEffect());
+  ArgEffect const DefEffect = getStopTrackingHardEquivalent(S->getDefaultArgEffect());
 
   ArgEffects ScratchArgs(AF.getEmptyMap());
-  ArgEffects CustomArgEffects = S->getArgEffects();
+  ArgEffects const CustomArgEffects = S->getArgEffects();
   for (ArgEffects::iterator I = CustomArgEffects.begin(),
                             E = CustomArgEffects.end();
        I != E; ++I) {
-    ArgEffect Translated = getStopTrackingHardEquivalent(I->second);
+    ArgEffect const Translated = getStopTrackingHardEquivalent(I->second);
     if (Translated.getKind() != DefEffect.getKind())
       ScratchArgs = AF.add(ScratchArgs, I->first, Translated);
   }
@@ -638,7 +638,7 @@ void RetainSummaryManager::updateSummaryForArgumentTypes(
   unsigned parm_idx = 0;
   for (auto pi = C.param_begin(), pe = C.param_end(); pi != pe;
        ++pi, ++parm_idx) {
-    QualType QT = (*pi)->getType();
+    QualType const QT = (*pi)->getType();
 
     // Skip already created values.
     if (RS->getArgEffects().contains(parm_idx))
@@ -730,7 +730,7 @@ RetainSummaryManager::canEval(const CallExpr *CE, const FunctionDecl *FD,
   StringRef FName = II->getName();
   FName = FName.substr(FName.find_first_not_of('_'));
 
-  QualType ResultTy = CE->getCallReturnType(Ctx);
+  QualType const ResultTy = CE->getCallReturnType(Ctx);
   if (ResultTy->isObjCIdType()) {
     if (II->isStr("NSMakeCollectable"))
       return BehaviorSummary::Identity;
@@ -798,7 +798,7 @@ RetainSummaryManager::getUnarySummary(const FunctionType* FT,
   if (!FTP || FTP->getNumParams() != 1)
     return getPersistentStopSummary();
 
-  ArgEffect Effect(AE, ObjKind::CF);
+  ArgEffect const Effect(AE, ObjKind::CF);
 
   ScratchArgs = AF.add(ScratchArgs, 0, Effect);
   return getPersistentSummary(RetEffect::MakeNoRet(),
@@ -915,7 +915,7 @@ static QualType getCallableReturnType(const NamedDecl *ND) {
 bool RetainSummaryManager::applyParamAnnotationEffect(
     const ParmVarDecl *pd, unsigned parm_idx, const NamedDecl *FD,
     RetainSummaryTemplate &Template) {
-  QualType QT = pd->getType();
+  QualType const QT = pd->getType();
   if (auto K =
           hasAnyEnabledAttrOf<NSConsumedAttr, CFConsumedAttr, OSConsumedAttr,
                               GeneralizedConsumedAttr>(pd, QT)) {
@@ -929,19 +929,19 @@ bool RetainSummaryManager::applyParamAnnotationEffect(
     // For OSObjects, we try to guess whether the object is created based
     // on the return value.
     if (K == ObjKind::OS) {
-      QualType QT = getCallableReturnType(FD);
+      QualType const QT = getCallableReturnType(FD);
 
-      bool HasRetainedOnZero = pd->hasAttr<OSReturnsRetainedOnZeroAttr>();
-      bool HasRetainedOnNonZero = pd->hasAttr<OSReturnsRetainedOnNonZeroAttr>();
+      bool const HasRetainedOnZero = pd->hasAttr<OSReturnsRetainedOnZeroAttr>();
+      bool const HasRetainedOnNonZero = pd->hasAttr<OSReturnsRetainedOnNonZeroAttr>();
 
       // The usual convention is to create an object on non-zero return, but
       // it's reverted if the typedef chain has a typedef kern_return_t,
       // because kReturnSuccess constant is defined as zero.
       // The convention can be overwritten by custom attributes.
-      bool SuccessOnZero =
+      bool const SuccessOnZero =
           HasRetainedOnZero ||
           (hasTypedefNamed(QT, "kern_return_t") && !HasRetainedOnNonZero);
-      bool ShouldSplit = !QT.isNull() && !QT->isVoidType();
+      bool const ShouldSplit = !QT.isNull() && !QT->isVoidType();
       ArgEffectKind AK = RetainedOutParameter;
       if (ShouldSplit && SuccessOnZero) {
         AK = RetainedOutParameterOnZero;
@@ -990,7 +990,7 @@ RetainSummaryManager::updateSummaryFromAnnotations(const RetainSummary *&Summ,
          pe = FD->param_end(); pi != pe; ++pi, ++parm_idx)
     applyParamAnnotationEffect(*pi, parm_idx, FD, Template);
 
-  QualType RetTy = FD->getReturnType();
+  QualType const RetTy = FD->getReturnType();
   if (Optional<RetEffect> RetE = getRetEffectFromAnnotations(RetTy, FD))
     Template->setRetEffect(*RetE);
 
@@ -1017,7 +1017,7 @@ RetainSummaryManager::updateSummaryFromAnnotations(const RetainSummary *&Summ,
        ++pi, ++parm_idx)
     applyParamAnnotationEffect(*pi, parm_idx, MD, Template);
 
-  QualType RetTy = MD->getReturnType();
+  QualType const RetTy = MD->getReturnType();
   if (Optional<RetEffect> RetE = getRetEffectFromAnnotations(RetTy, MD))
     Template->setRetEffect(*RetE);
 }
@@ -1101,7 +1101,7 @@ RetainSummaryManager::getStandardMethodSummary(const ObjCMethodDecl *MD,
   // method.
   if (S.isKeywordSelector()) {
     for (unsigned i = 0, e = S.getNumArgs(); i != e; ++i) {
-      StringRef Slot = S.getNameForSlot(i);
+      StringRef const Slot = S.getNameForSlot(i);
       if (Slot.substr(Slot.size() - 8).equals_insensitive("delegate")) {
         if (ResultEff == ObjCInitRetE)
           ResultEff = RetEffect::MakeNoRetHard();
@@ -1147,7 +1147,7 @@ const RetainSummary *RetainSummaryManager::getInstanceMethodSummary(
   //  we should use the class method.
   // id x = [NSObject class];
   // [x performSelector:... withObject:... afterDelay:...];
-  Selector S = ME->getSelector();
+  Selector const S = ME->getSelector();
   const ObjCMethodDecl *Method = ME->getMethodDecl();
   if (!Method && ReceiverClass)
     Method = ReceiverClass->getInstanceMethod(S);
@@ -1200,7 +1200,7 @@ void RetainSummaryManager::InitializeClassMethodSummaries() {
 
 void RetainSummaryManager::InitializeMethodSummaries() {
 
-  ArgEffects ScratchArgs = AF.getEmptyMap();
+  ArgEffects const ScratchArgs = AF.getEmptyMap();
   // Create the "init" selector.  It just acts as a pass-through for the
   // receiver.
   const RetainSummary *InitSumm = getPersistentSummary(
@@ -1219,7 +1219,7 @@ void RetainSummaryManager::InitializeMethodSummaries() {
     getPersistentSummary(RetEffect::MakeOwned(ObjKind::CF), ScratchArgs);
 
   // Create the "retain" selector.
-  RetEffect NoRet = RetEffect::MakeNoRet();
+  RetEffect const NoRet = RetEffect::MakeNoRet();
   const RetainSummary *Summ = getPersistentSummary(
       NoRet, ScratchArgs, ArgEffect(IncRef, ObjKind::ObjC));
   addNSObjectMethSummary(GetNullarySelector("retain", Ctx), Summ);
@@ -1284,8 +1284,8 @@ void RetainSummaryManager::InitializeMethodSummaries() {
 const RetainSummary *
 RetainSummaryManager::getMethodSummary(const ObjCMethodDecl *MD) {
   const ObjCInterfaceDecl *ID = MD->getClassInterface();
-  Selector S = MD->getSelector();
-  QualType ResultTy = MD->getReturnType();
+  Selector const S = MD->getSelector();
+  QualType const ResultTy = MD->getReturnType();
 
   ObjCMethodSummariesTy *CachedSummaries;
   if (MD->isInstanceMethod())

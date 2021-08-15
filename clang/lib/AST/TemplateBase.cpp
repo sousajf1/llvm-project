@@ -165,7 +165,7 @@ TemplateArgument::TemplateArgument(ASTContext &Ctx, const llvm::APSInt &Value,
   Integer.BitWidth = Value.getBitWidth();
   Integer.IsUnsigned = Value.isUnsigned();
   // If the value is large, we have to get additional memory from the ASTContext
-  unsigned NumWords = Value.getNumWords();
+  unsigned const NumWords = Value.getNumWords();
   if (NumWords > 1) {
     void *Mem = Ctx.Allocate(NumWords * sizeof(uint64_t));
     std::memcpy(Mem, Value.getRawData(), NumWords * sizeof(uint64_t));
@@ -324,7 +324,7 @@ void TemplateArgument::Profile(llvm::FoldingSetNodeID &ID,
 
   case Template:
   case TemplateExpansion: {
-    TemplateName Template = getAsTemplateOrTemplatePattern();
+    TemplateName const Template = getAsTemplateOrTemplatePattern();
     if (TemplateTemplateParmDecl *TTP
           = dyn_cast_or_null<TemplateTemplateParmDecl>(
                                                 Template.getAsTemplateDecl())) {
@@ -571,7 +571,7 @@ static const T &DiagTemplateArg(const T &DB, const TemplateArgument &Arg) {
     llvm::raw_svector_ostream OS(Str);
     LangOptions LangOpts;
     LangOpts.CPlusPlus = true;
-    PrintingPolicy Policy(LangOpts);
+    PrintingPolicy const Policy(LangOpts);
     Arg.getAsExpr()->printPretty(OS, nullptr, Policy);
     return DB << OS.str();
   }
@@ -582,7 +582,7 @@ static const T &DiagTemplateArg(const T &DB, const TemplateArgument &Arg) {
     llvm::raw_svector_ostream OS(Str);
     LangOptions LangOpts;
     LangOpts.CPlusPlus = true;
-    PrintingPolicy Policy(LangOpts);
+    PrintingPolicy const Policy(LangOpts);
     Arg.print(Policy, OS, /*IncludeType*/ true);
     return DB << OS.str();
   }
@@ -610,7 +610,7 @@ clang::TemplateArgumentLocInfo::TemplateArgumentLocInfo(
 const ASTTemplateArgumentListInfo *
 ASTTemplateArgumentListInfo::Create(const ASTContext &C,
                                     const TemplateArgumentListInfo &List) {
-  std::size_t size = totalSizeToAlloc<TemplateArgumentLoc>(List.size());
+  std::size_t const size = totalSizeToAlloc<TemplateArgumentLoc>(List.size());
   void *Mem = C.Allocate(size, alignof(ASTTemplateArgumentListInfo));
   return new (Mem) ASTTemplateArgumentListInfo(List);
 }

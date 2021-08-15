@@ -99,13 +99,13 @@ DeclContext *Sema::computeDeclContext(const CXXScopeSpec &SS,
         if (ClassTemplateDecl *ClassTemplate
               = dyn_cast_or_null<ClassTemplateDecl>(
                             SpecType->getTemplateName().getAsTemplateDecl())) {
-          QualType ContextType
+          QualType const ContextType
             = Context.getCanonicalType(QualType(SpecType, 0));
 
           // If the type of the nested name specifier is the same as the
           // injected class name of the named class template, we're entering
           // into that class template definition.
-          QualType Injected
+          QualType const Injected
             = ClassTemplate->getInjectedClassNameSpecialization();
           if (Context.hasSameType(Injected, ContextType))
             return ClassTemplate->getTemplatedDecl();
@@ -183,7 +183,7 @@ CXXRecordDecl *Sema::getCurrentInstantiationOf(NestedNameSpecifier *NNS) {
   if (!NNS->getAsType())
     return nullptr;
 
-  QualType T = QualType(NNS->getAsType(), 0);
+  QualType const T = QualType(NNS->getAsType(), 0);
   return ::getCurrentInstantiationOf(T, CurContext);
 }
 
@@ -209,7 +209,7 @@ bool Sema::RequireCompleteDeclContext(CXXScopeSpec &SS,
     return false;
 
   // Grab the tag definition, if there is one.
-  QualType type = Context.getTypeDeclType(tag);
+  QualType const type = Context.getTypeDeclType(tag);
   tag = type->getAsTagDecl();
 
   // If we're currently defining this type, then lookup into the
@@ -247,7 +247,7 @@ bool Sema::RequireCompleteEnumDecl(EnumDecl *EnumD, SourceLocation L,
                               /*OnlyNeedComplete*/false)) {
       // If the user is going to see an error here, recover by making the
       // definition visible.
-      bool TreatAsComplete = !isSFINAEContext();
+      bool const TreatAsComplete = !isSFINAEContext();
       diagnoseMissingImport(L, SuggestedDef, MissingImportKind::Definition,
                             /*Recover*/ TreatAsComplete);
       return !TreatAsComplete;
@@ -341,7 +341,7 @@ bool Sema::isAcceptableNestedNameSpecifier(const NamedDecl *SD,
 
   // Determine whether we have a class (or, in C++11, an enum) or
   // a typedef thereof. If so, build the nested-name-specifier.
-  QualType T = Context.getTypeDeclType(cast<TypeDecl>(SD));
+  QualType const T = Context.getTypeDeclType(cast<TypeDecl>(SD));
   if (T->isDependentType())
     return true;
   if (const TypedefNameDecl *TD = dyn_cast<TypedefNameDecl>(SD)) {
@@ -396,7 +396,7 @@ NamedDecl *Sema::FindFirstQualifierInScope(Scope *S, NestedNameSpecifier *NNS) {
 
 bool Sema::isNonTypeNestedNameSpecifier(Scope *S, CXXScopeSpec &SS,
                                         NestedNameSpecInfo &IdInfo) {
-  QualType ObjectType = GetTypeFromParser(IdInfo.ObjectType);
+  QualType const ObjectType = GetTypeFromParser(IdInfo.ObjectType);
   LookupResult Found(*this, IdInfo.Identifier, IdInfo.IdentifierLoc,
                      LookupNestedNameSpecifierName);
 
@@ -505,7 +505,7 @@ bool Sema::BuildCXXNestedNameSpecifier(Scope *S, NestedNameSpecInfo &IdInfo,
   LookupResult Found(*this, IdInfo.Identifier, IdInfo.IdentifierLoc,
                      OnlyNamespace ? LookupNamespaceName
                                    : LookupNestedNameSpecifierName);
-  QualType ObjectType = GetTypeFromParser(IdInfo.ObjectType);
+  QualType const ObjectType = GetTypeFromParser(IdInfo.ObjectType);
 
   // Determine where to perform name lookup
   DeclContext *LookupCtx = nullptr;
@@ -631,14 +631,14 @@ bool Sema::BuildCXXNestedNameSpecifier(Scope *S, NestedNameSpecInfo &IdInfo,
   if (Found.empty() && !ErrorRecoveryLookup && !getLangOpts().MSVCCompat) {
     // We haven't found anything, and we're not recovering from a
     // different kind of error, so look for typos.
-    DeclarationName Name = Found.getLookupName();
+    DeclarationName const Name = Found.getLookupName();
     Found.clear();
     NestedNameSpecifierValidatorCCC CCC(*this);
-    if (TypoCorrection Corrected = CorrectTypo(
+    if (TypoCorrection const Corrected = CorrectTypo(
             Found.getLookupNameInfo(), Found.getLookupKind(), S, &SS, CCC,
             CTK_ErrorRecovery, LookupCtx, EnteringContext)) {
       if (LookupCtx) {
-        bool DroppedSpecifier =
+        bool const DroppedSpecifier =
             Corrected.WillReplaceSpecifier() &&
             Name.getAsString() == Corrected.getAsString(getLangOpts());
         if (DroppedSpecifier)
@@ -734,7 +734,7 @@ bool Sema::BuildCXXNestedNameSpecifier(Scope *S, NestedNameSpecInfo &IdInfo,
       return false;
     }
 
-    QualType T =
+    QualType const T =
         Context.getTypeDeclType(cast<TypeDecl>(SD->getUnderlyingDecl()));
     TypeLocBuilder TLB;
     if (isa<InjectedClassNameType>(T)) {
@@ -865,7 +865,7 @@ bool Sema::ActOnCXXNestedNameSpecifierDecltype(CXXScopeSpec &SS,
 
   assert(DS.getTypeSpecType() == DeclSpec::TST_decltype);
 
-  QualType T = BuildDecltypeType(DS.getRepAsExpr(), DS.getTypeSpecTypeLoc());
+  QualType const T = BuildDecltypeType(DS.getRepAsExpr(), DS.getTypeSpecTypeLoc());
   if (T.isNull())
     return true;
 
@@ -923,7 +923,7 @@ bool Sema::ActOnCXXNestedNameSpecifier(Scope *S,
     // Handle a dependent template specialization for which we cannot resolve
     // the template name.
     assert(DTN->getQualifier() == SS.getScopeRep());
-    QualType T = Context.getDependentTemplateSpecializationType(ETK_None,
+    QualType const T = Context.getDependentTemplateSpecializationType(ETK_None,
                                                           DTN->getQualifier(),
                                                           DTN->getIdentifier(),
                                                                 TemplateArgs);
@@ -967,7 +967,7 @@ bool Sema::ActOnCXXNestedNameSpecifier(Scope *S,
 
   // We were able to resolve the template name to an actual template.
   // Build an appropriate nested-name-specifier.
-  QualType T = CheckTemplateIdType(Template, TemplateNameLoc, TemplateArgs);
+  QualType const T = CheckTemplateIdType(Template, TemplateNameLoc, TemplateArgs);
   if (T.isNull())
     return true;
 

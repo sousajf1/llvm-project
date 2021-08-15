@@ -191,7 +191,7 @@ static void test_codegen_fns(MyASTConsumer *my) {
         ASSERT_TRUE(def != NULL);
         const clang::Type *clangTy = rd->getCanonicalDecl()->getTypeForDecl();
         ASSERT_TRUE(clangTy != NULL);
-        QualType qType = clangTy->getCanonicalTypeInternal();
+        QualType const qType = clangTy->getCanonicalTypeInternal();
 
         // Check convertTypeForMemory
         llvm::Type *llvmTy = CodeGen::convertTypeForMemory(CGM, qType);
@@ -219,9 +219,9 @@ static void test_codegen_fns(MyASTConsumer *my) {
         ASSERT_TRUE(yField != NULL);
         ASSERT_TRUE(zField != NULL);
 
-        unsigned x = CodeGen::getLLVMFieldNumber(CGM, rd, xField);
-        unsigned y = CodeGen::getLLVMFieldNumber(CGM, rd, yField);
-        unsigned z = CodeGen::getLLVMFieldNumber(CGM, rd, zField);
+        unsigned const x = CodeGen::getLLVMFieldNumber(CGM, rd, xField);
+        unsigned const y = CodeGen::getLLVMFieldNumber(CGM, rd, yField);
+        unsigned const z = CodeGen::getLLVMFieldNumber(CGM, rd, zField);
 
         ASSERT_NE(x, y);
         ASSERT_NE(y, z);

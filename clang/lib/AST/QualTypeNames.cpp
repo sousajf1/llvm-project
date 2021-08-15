@@ -102,9 +102,9 @@ static bool getFullyQualifiedTemplateArgument(const ASTContext &Ctx,
       Arg = TemplateArgument(TName);
     }
   } else if (Arg.getKind() == TemplateArgument::Type) {
-    QualType SubTy = Arg.getAsType();
+    QualType const SubTy = Arg.getAsType();
     // Check if the type needs more desugaring and recurse.
-    QualType QTFQ = getFullyQualifiedType(SubTy, Ctx, WithGlobalNsPrefix);
+    QualType const QTFQ = getFullyQualifiedType(SubTy, Ctx, WithGlobalNsPrefix);
     if (QTFQ != SubTy) {
       Arg = TemplateArgument(QTFQ);
       Changed = true;
@@ -138,7 +138,7 @@ static const Type *getFullyQualifiedTemplateType(const ASTContext &Ctx,
     // If a fully qualified arg is different from the unqualified arg,
     // allocate new type in the AST.
     if (MightHaveChanged) {
-      QualType QT = Ctx.getTemplateSpecializationType(
+      QualType const QT = Ctx.getTemplateSpecializationType(
           TST->getTemplateName(), FQArgs,
           TST->getCanonicalTypeInternal());
       // getTemplateSpecializationType returns a fully qualified
@@ -169,8 +169,8 @@ static const Type *getFullyQualifiedTemplateType(const ASTContext &Ctx,
       // If a fully qualified arg is different from the unqualified arg,
       // allocate new type in the AST.
       if (MightHaveChanged) {
-        TemplateName TN(TSTDecl->getSpecializedTemplate());
-        QualType QT = Ctx.getTemplateSpecializationType(
+        TemplateName const TN(TSTDecl->getSpecializedTemplate());
+        QualType const QT = Ctx.getTemplateSpecializationType(
             TN, FQArgs,
             TSTRecord->getCanonicalTypeInternal());
         // getTemplateSpecializationType returns a fully qualified
@@ -345,7 +345,7 @@ NestedNameSpecifier *createNestedNameSpecifier(const ASTContext &Ctx,
   }
   if (!Namespace) return nullptr;
 
-  bool FullyQualified = true;  // doesn't matter, DeclContexts are namespaces
+  bool const FullyQualified = true;  // doesn't matter, DeclContexts are namespaces
   return NestedNameSpecifier::Create(
       Ctx,
       createOuterNNS(Ctx, Namespace, FullyQualified, WithGlobalNsPrefix),
@@ -379,7 +379,7 @@ QualType getFullyQualifiedType(QualType QT, const ASTContext &Ctx,
   // qualify and attach the pointer once again.
   if (isa<PointerType>(QT.getTypePtr())) {
     // Get the qualifiers.
-    Qualifiers Quals = QT.getQualifiers();
+    Qualifiers const Quals = QT.getQualifiers();
     QT = getFullyQualifiedType(QT->getPointeeType(), Ctx, WithGlobalNsPrefix);
     QT = Ctx.getPointerType(QT);
     // Add back the qualifiers.
@@ -389,10 +389,10 @@ QualType getFullyQualifiedType(QualType QT, const ASTContext &Ctx,
 
   if (auto *MPT = dyn_cast<MemberPointerType>(QT.getTypePtr())) {
     // Get the qualifiers.
-    Qualifiers Quals = QT.getQualifiers();
+    Qualifiers const Quals = QT.getQualifiers();
     // Fully qualify the pointee and class types.
     QT = getFullyQualifiedType(QT->getPointeeType(), Ctx, WithGlobalNsPrefix);
-    QualType Class = getFullyQualifiedType(QualType(MPT->getClass(), 0), Ctx,
+    QualType const Class = getFullyQualifiedType(QualType(MPT->getClass(), 0), Ctx,
                                            WithGlobalNsPrefix);
     QT = Ctx.getMemberPointerType(QT, Class.getTypePtr());
     // Add back the qualifiers.
@@ -404,8 +404,8 @@ QualType getFullyQualifiedType(QualType QT, const ASTContext &Ctx,
   // qualify and attach the reference once again.
   if (isa<ReferenceType>(QT.getTypePtr())) {
     // Get the qualifiers.
-    bool IsLValueRefTy = isa<LValueReferenceType>(QT.getTypePtr());
-    Qualifiers Quals = QT.getQualifiers();
+    bool const IsLValueRefTy = isa<LValueReferenceType>(QT.getTypePtr());
+    Qualifiers const Quals = QT.getQualifiers();
     QT = getFullyQualifiedType(QT->getPointeeType(), Ctx, WithGlobalNsPrefix);
     // Add the r- or l-value reference type back to the fully
     // qualified one.
@@ -424,7 +424,7 @@ QualType getFullyQualifiedType(QualType QT, const ASTContext &Ctx,
   // those)
   while (isa<SubstTemplateTypeParmType>(QT.getTypePtr())) {
     // Get the qualifiers.
-    Qualifiers Quals = QT.getQualifiers();
+    Qualifiers const Quals = QT.getQualifiers();
 
     QT = cast<SubstTemplateTypeParmType>(QT.getTypePtr())->desugar();
 
@@ -436,7 +436,7 @@ QualType getFullyQualifiedType(QualType QT, const ASTContext &Ctx,
   // Local qualifiers are attached to the QualType outside of the
   // elaborated type.  Retrieve them before descending into the
   // elaborated type.
-  Qualifiers PrefixQualifiers = QT.getLocalQualifiers();
+  Qualifiers const PrefixQualifiers = QT.getLocalQualifiers();
   QT = QualType(QT.getTypePtr(), 0);
   ElaboratedTypeKeyword Keyword = ETK_None;
   if (const auto *ETypeInput = dyn_cast<ElaboratedType>(QT.getTypePtr())) {
@@ -472,7 +472,7 @@ std::string getFullyQualifiedName(QualType QT,
                                   const ASTContext &Ctx,
                                   const PrintingPolicy &Policy,
                                   bool WithGlobalNsPrefix) {
-  QualType FQQT = getFullyQualifiedType(QT, Ctx, WithGlobalNsPrefix);
+  QualType const FQQT = getFullyQualifiedType(QT, Ctx, WithGlobalNsPrefix);
   return FQQT.getAsString(Policy);
 }
 

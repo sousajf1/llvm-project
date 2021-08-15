@@ -161,7 +161,7 @@ void MPIChecker::allRegionsUsedByWait(
       return;
     }
 
-    DefinedOrUnknownSVal ElementCount = getDynamicElementCount(
+    DefinedOrUnknownSVal const ElementCount = getDynamicElementCount(
         Ctx.getState(), SuperRegion, Ctx.getSValBuilder(),
         CE.getArgExpr(1)->getType()->getPointeeType());
     const llvm::APSInt &ArrSize =

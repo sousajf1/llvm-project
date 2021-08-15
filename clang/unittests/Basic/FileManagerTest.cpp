@@ -49,7 +49,7 @@ private:
     auto fileType = IsFile ?
       llvm::sys::fs::file_type::regular_file :
       llvm::sys::fs::file_type::directory_file;
-    llvm::vfs::Status Status(StatPath, llvm::sys::fs::UniqueID(1, INode),
+    llvm::vfs::Status const Status(StatPath, llvm::sys::fs::UniqueID(1, INode),
                              /*MTime*/{}, /*User*/0, /*Group*/0,
                              /*Size*/0, fileType,
                              llvm::sys::fs::perms::all_all);
@@ -449,8 +449,8 @@ TEST_F(FileManagerTest, makeAbsoluteUsesVFS) {
   // setCurrentworkingdirectory must finish without error.
   ASSERT_TRUE(!FS->setCurrentWorkingDirectory(CustomWorkingDir));
 
-  FileSystemOptions Opts;
-  FileManager Manager(Opts, FS);
+  FileSystemOptions const Opts;
+  FileManager const Manager(Opts, FS);
 
   SmallString<64> Path("a/foo.cpp");
 
@@ -475,7 +475,7 @@ TEST_F(FileManagerTest, getVirtualFileFillsRealPathName) {
   // setCurrentworkingdirectory must finish without error.
   ASSERT_TRUE(!FS->setCurrentWorkingDirectory(CustomWorkingDir));
 
-  FileSystemOptions Opts;
+  FileSystemOptions const Opts;
   FileManager Manager(Opts, FS);
 
   // Inject fake files into the file system.
@@ -508,7 +508,7 @@ TEST_F(FileManagerTest, getFileDontOpenRealPath) {
   // setCurrentworkingdirectory must finish without error.
   ASSERT_TRUE(!FS->setCurrentWorkingDirectory(CustomWorkingDir));
 
-  FileSystemOptions Opts;
+  FileSystemOptions const Opts;
   FileManager Manager(Opts, FS);
 
   // Inject fake files into the file system.
@@ -541,7 +541,7 @@ TEST_F(FileManagerTest, getBypassFile) {
   // setCurrentworkingdirectory must finish without error.
   ASSERT_TRUE(!FS->setCurrentWorkingDirectory(CustomWorkingDir));
 
-  FileSystemOptions Opts;
+  FileSystemOptions const Opts;
   FileManager Manager(Opts, FS);
 
   // Inject fake files into the file system.
@@ -558,7 +558,7 @@ TEST_F(FileManagerTest, getBypassFile) {
   EXPECT_EQ(FE.getSize(), 10);
 
   // Calling a second time should not affect the UID or size.
-  unsigned VirtualUID = FE.getUID();
+  unsigned const VirtualUID = FE.getUID();
   EXPECT_EQ(
       &FE,
       &expectedToOptional(Manager.getFileRef("/tmp/test"))->getFileEntry());

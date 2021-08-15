@@ -391,7 +391,7 @@ private:
       // We must check that the type has memoization data before calling
       // std::find() because DynTypedNode::operator== can't compare all
       // types.
-      bool Found = ParentStack.back().getMemoizationData() &&
+      bool const Found = ParentStack.back().getMemoizationData() &&
                    std::find(Vector->begin(), Vector->end(),
                              ParentStack.back()) != Vector->end();
       if (!Found)
@@ -407,7 +407,7 @@ private:
       return true;
     addParent(MapNode, Parents);
     ParentStack.push_back(createDynTypedNode(Node));
-    bool Result = BaseTraverse();
+    bool const Result = BaseTraverse();
     ParentStack.pop_back();
     return Result;
   }

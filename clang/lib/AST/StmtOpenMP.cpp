@@ -173,7 +173,7 @@ bool OMPLoopBasedDirective::doForAllLoops(
 void OMPLoopBasedDirective::doForAllLoopsBodies(
     Stmt *CurStmt, bool TryImperfectlyNestedLoops, unsigned NumLoops,
     llvm::function_ref<void(unsigned, Stmt *, Stmt *)> Callback) {
-  bool Res = OMPLoopBasedDirective::doForAllLoops(
+  bool const Res = OMPLoopBasedDirective::doForAllLoops(
       CurStmt, TryImperfectlyNestedLoops, NumLoops,
       [Callback](unsigned Cnt, Stmt *Loop) {
         Stmt *Body = nullptr;

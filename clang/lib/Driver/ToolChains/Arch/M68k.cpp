@@ -28,7 +28,7 @@ std::string m68k::getM68kTargetCPU(const ArgList &Args) {
   if (Arg *A = Args.getLastArg(clang::driver::options::OPT_mcpu_EQ)) {
     // The canonical CPU name is captalize. However, we allow
     // starting with lower case or numbers only
-    StringRef CPUName = A->getValue();
+    StringRef const CPUName = A->getValue();
 
     if (CPUName == "native") {
       std::string CPU = std::string(llvm::sys::getHostCPUName());
@@ -69,7 +69,7 @@ void m68k::getM68kTargetFeatures(const Driver &D, const llvm::Triple &Triple,
                                  const ArgList &Args,
                                  std::vector<StringRef> &Features) {
 
-  m68k::FloatABI FloatABI = m68k::getM68kFloatABI(D, Args);
+  m68k::FloatABI const FloatABI = m68k::getM68kFloatABI(D, Args);
   if (FloatABI == m68k::FloatABI::Soft)
     Features.push_back("-hard-float");
 

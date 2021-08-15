@@ -84,7 +84,7 @@ llvm::Error CommonOptionsParser::init(
     int &argc, const char **argv, cl::OptionCategory &Category,
     llvm::cl::NumOccurrencesFlag OccurrencesFlag, const char *Overview) {
 
-  static cl::opt<std::string> BuildPath("p", cl::desc("Build path"),
+  static cl::opt<std::string> const BuildPath("p", cl::desc("Build path"),
                                         cl::Optional, cl::cat(Category),
                                         cl::sub(*cl::AllSubCommands));
 

@@ -367,7 +367,7 @@ void TokenLexer::ExpandFunctionArguments() {
     // parameter or __VA_OPT__ when the #define was lexed.
 
     if (CurTok.isOneOf(tok::hash, tok::hashat)) {
-      int ArgNo = Macro->getParameterNum(Tokens[I+1].getIdentifierInfo());
+      int const ArgNo = Macro->getParameterNum(Tokens[I+1].getIdentifierInfo());
       assert((ArgNo != -1 || VCtx.isVAOptToken(Tokens[I + 1])) &&
              "Token following # is not an argument or __VA_OPT__!");
 
@@ -378,12 +378,12 @@ void TokenLexer::ExpandFunctionArguments() {
         continue;
       }
       // Else handle the simple argument case.
-      SourceLocation ExpansionLocStart =
+      SourceLocation const ExpansionLocStart =
           getExpansionLocForMacroDefLoc(CurTok.getLocation());
-      SourceLocation ExpansionLocEnd =
+      SourceLocation const ExpansionLocEnd =
           getExpansionLocForMacroDefLoc(Tokens[I+1].getLocation());
 
-      bool Charify = CurTok.is(tok::hashat);
+      bool const Charify = CurTok.is(tok::hashat);
       const Token *UnexpArg = ActualArgs->getUnexpArgument(ArgNo);
       Token Res = MacroArgs::StringifyArgument(
           UnexpArg, PP, Charify, ExpansionLocStart, ExpansionLocEnd);
@@ -402,11 +402,11 @@ void TokenLexer::ExpandFunctionArguments() {
     }
 
     // Find out if there is a paste (##) operator before or after the token.
-    bool NonEmptyPasteBefore =
+    bool const NonEmptyPasteBefore =
       !ResultToks.empty() && ResultToks.back().is(tok::hashhash);
-    bool PasteBefore = I != 0 && Tokens[I-1].is(tok::hashhash);
-    bool PasteAfter = I+1 != E && Tokens[I+1].is(tok::hashhash);
-    bool RParenAfter = I+1 != E && Tokens[I+1].is(tok::r_paren);
+    bool const PasteBefore = I != 0 && Tokens[I-1].is(tok::hashhash);
+    bool const PasteAfter = I+1 != E && Tokens[I+1].is(tok::hashhash);
+    bool const RParenAfter = I+1 != E && Tokens[I+1].is(tok::r_paren);
 
     assert((!NonEmptyPasteBefore || PasteBefore || VCtx.isInVAOpt()) &&
            "unexpected ## in ResultToks");
@@ -414,7 +414,7 @@ void TokenLexer::ExpandFunctionArguments() {
     // Otherwise, if this is not an argument token, just add the token to the
     // output buffer.
     IdentifierInfo *II = CurTok.getIdentifierInfo();
-    int ArgNo = II ? Macro->getParameterNum(II) : -1;
+    int const ArgNo = II ? Macro->getParameterNum(II) : -1;
     if (ArgNo == -1) {
       // This isn't an argument, just add it.
       ResultToks.push_back(CurTok);
@@ -458,8 +458,8 @@ void TokenLexer::ExpandFunctionArguments() {
 
       // If the arg token expanded into anything, append it.
       if (ResultArgToks->isNot(tok::eof)) {
-        size_t FirstResult = ResultToks.size();
-        unsigned NumToks = MacroArgs::getArgLength(ResultArgToks);
+        size_t const FirstResult = ResultToks.size();
+        unsigned const NumToks = MacroArgs::getArgLength(ResultArgToks);
         ResultToks.append(ResultArgToks, ResultArgToks+NumToks);
 
         // In Microsoft-compatibility mode, we follow MSVC's preprocessing
@@ -510,7 +510,7 @@ void TokenLexer::ExpandFunctionArguments() {
     // Okay, we have a token that is either the LHS or RHS of a paste (##)
     // argument.  It gets substituted as its non-pre-expanded tokens.
     const Token *ArgToks = ActualArgs->getUnexpArgument(ArgNo);
-    unsigned NumToks = MacroArgs::getArgLength(ArgToks);
+    unsigned const NumToks = MacroArgs::getArgLength(ArgToks);
     if (NumToks) {  // Not an empty argument?
       bool VaArgsPseudoPaste = false;
       // If this is the GNU ", ## __VA_ARGS__" extension, and we just learned
@@ -639,7 +639,7 @@ bool TokenLexer::Lex(Token &Tok) {
 
   // If this is the first token of the expanded result, we inherit spacing
   // properties later.
-  bool isFirstToken = CurTokenIdx == 0;
+  bool const isFirstToken = CurTokenIdx == 0;
 
   // Get the next token to return.
   Tok = Tokens[CurTokenIdx++];
@@ -772,14 +772,14 @@ bool TokenLexer::pasteTokens(Token &LHSTok, ArrayRef<Token> TokenStream,
     // Get the spelling of the LHS token in Buffer.
     const char *BufPtr = &Buffer[0];
     bool Invalid = false;
-    unsigned LHSLen = PP.getSpelling(LHSTok, BufPtr, &Invalid);
+    unsigned const LHSLen = PP.getSpelling(LHSTok, BufPtr, &Invalid);
     if (BufPtr != &Buffer[0])   // Really, we want the chars in Buffer!
       memcpy(&Buffer[0], BufPtr, LHSLen);
     if (Invalid)
       return true;
 
     BufPtr = Buffer.data() + LHSLen;
-    unsigned RHSLen = PP.getSpelling(RHS, BufPtr, &Invalid);
+    unsigned const RHSLen = PP.getSpelling(RHS, BufPtr, &Invalid);
     if (Invalid)
       return true;
     if (RHSLen && BufPtr != &Buffer[LHSLen])
@@ -798,7 +798,7 @@ bool TokenLexer::pasteTokens(Token &LHSTok, ArrayRef<Token> TokenStream,
     // character pointer back from CreateString in getLiteralData().
     ResultTokTmp.setKind(tok::string_literal);
     PP.CreateString(Buffer, ResultTokTmp);
-    SourceLocation ResultTokLoc = ResultTokTmp.getLocation();
+    SourceLocation const ResultTokLoc = ResultTokTmp.getLocation();
     ResultTokStrPtr = ResultTokTmp.getLiteralData();
 
     // Lex the resultant pasted token into Result.
@@ -818,8 +818,8 @@ bool TokenLexer::pasteTokens(Token &LHSTok, ArrayRef<Token> TokenStream,
 
       assert(ResultTokLoc.isFileID() &&
              "Should be a raw location into scratch buffer");
-      SourceManager &SourceMgr = PP.getSourceManager();
-      FileID LocFileID = SourceMgr.getFileID(ResultTokLoc);
+      SourceManager  const&SourceMgr = PP.getSourceManager();
+      FileID const LocFileID = SourceMgr.getFileID(ResultTokLoc);
 
       bool Invalid = false;
       const char *ScratchBufStart
@@ -850,7 +850,7 @@ bool TokenLexer::pasteTokens(Token &LHSTok, ArrayRef<Token> TokenStream,
         // Explicitly convert the token location to have proper expansion
         // information so that the user knows where it came from.
         SourceManager &SM = PP.getSourceManager();
-        SourceLocation Loc =
+        SourceLocation const Loc =
           SM.createExpansionLoc(PasteOpLoc, ExpandLocStart, ExpandLocEnd, 2);
 
         // Test for the Microsoft extension of /##/ turning into // here on the
@@ -902,7 +902,7 @@ bool TokenLexer::pasteTokens(Token &LHSTok, ArrayRef<Token> TokenStream,
     StartLoc = getExpansionLocForMacroDefLoc(StartLoc);
   if (EndLoc.isFileID())
     EndLoc = getExpansionLocForMacroDefLoc(EndLoc);
-  FileID MacroFID = SM.getFileID(MacroExpansionStart);
+  FileID const MacroFID = SM.getFileID(MacroExpansionStart);
   while (SM.getFileID(StartLoc) != MacroFID)
     StartLoc = SM.getImmediateExpansionRange(StartLoc).getBegin();
   while (SM.getFileID(EndLoc) != MacroFID)
@@ -967,7 +967,7 @@ TokenLexer::getExpansionLocForMacroDefLoc(SourceLocation loc) const {
          "Not appropriate for token streams");
   assert(loc.isValid() && loc.isFileID());
 
-  SourceManager &SM = PP.getSourceManager();
+  SourceManager  const&SM = PP.getSourceManager();
   assert(SM.isInSLocAddrSpace(loc, MacroDefStart, MacroDefLength) &&
          "Expected loc to come from the macro definition");
 
@@ -991,7 +991,7 @@ static void updateConsecutiveMacroArgTokens(SourceManager &SM,
                                             Token * end_tokens) {
   assert(begin_tokens < end_tokens);
 
-  SourceLocation FirstLoc = begin_tokens->getLocation();
+  SourceLocation const FirstLoc = begin_tokens->getLocation();
   SourceLocation CurLoc = FirstLoc;
 
   // Compare the source location offset of tokens and group together tokens that
@@ -1006,7 +1006,7 @@ static void updateConsecutiveMacroArgTokens(SourceManager &SM,
 
   Token *NextTok = begin_tokens + 1;
   for (; NextTok < end_tokens; ++NextTok) {
-    SourceLocation NextLoc = NextTok->getLocation();
+    SourceLocation const NextLoc = NextTok->getLocation();
     if (CurLoc.isFileID() != NextLoc.isFileID())
       break; // Token from different kind of FileID.
 
@@ -1026,15 +1026,15 @@ static void updateConsecutiveMacroArgTokens(SourceManager &SM,
 
   // For the consecutive tokens, find the length of the SLocEntry to contain
   // all of them.
-  Token &LastConsecutiveTok = *(NextTok-1);
+  Token  const&LastConsecutiveTok = *(NextTok-1);
   SourceLocation::IntTy LastRelOffs = 0;
   SM.isInSameSLocAddrSpace(FirstLoc, LastConsecutiveTok.getLocation(),
                            &LastRelOffs);
-  SourceLocation::UIntTy FullLength =
+  SourceLocation::UIntTy const FullLength =
       LastRelOffs + LastConsecutiveTok.getLength();
 
   // Create a macro expansion SLocEntry that will "contain" all of the tokens.
-  SourceLocation Expansion =
+  SourceLocation const Expansion =
       SM.createMacroArgExpansionLoc(FirstLoc, InstLoc,FullLength);
 
   // Change the location of the tokens from the spelling location to the new
@@ -1057,7 +1057,7 @@ void TokenLexer::updateLocForMacroArgTokens(SourceLocation ArgIdSpellLoc,
                                             Token *end_tokens) {
   SourceManager &SM = PP.getSourceManager();
 
-  SourceLocation InstLoc =
+  SourceLocation const InstLoc =
       getExpansionLocForMacroDefLoc(ArgIdSpellLoc);
 
   while (begin_tokens < end_tokens) {

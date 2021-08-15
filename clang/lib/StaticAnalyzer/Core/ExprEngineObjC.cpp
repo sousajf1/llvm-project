@@ -21,10 +21,10 @@ using namespace ento;
 void ExprEngine::VisitLvalObjCIvarRefExpr(const ObjCIvarRefExpr *Ex,
                                           ExplodedNode *Pred,
                                           ExplodedNodeSet &Dst) {
-  ProgramStateRef state = Pred->getState();
+  ProgramStateRef const state = Pred->getState();
   const LocationContext *LCtx = Pred->getLocationContext();
-  SVal baseVal = state->getSVal(Ex->getBase(), LCtx);
-  SVal location = state->getLValue(Ex->getDecl(), baseVal);
+  SVal const baseVal = state->getSVal(Ex->getBase(), LCtx);
+  SVal const location = state->getLValue(Ex->getDecl(), baseVal);
 
   ExplodedNodeSet dstIvar;
   StmtNodeBuilder Bldr(Pred, dstIvar, *currBldrCtx);
@@ -50,7 +50,7 @@ static void populateObjCForDestinationSet(
     StmtNodeBuilder &Bldr, bool hasElements) {
 
   for (ExplodedNode *Pred : dstLocation) {
-    ProgramStateRef state = Pred->getState();
+    ProgramStateRef const state = Pred->getState();
     const LocationContext *LCtx = Pred->getLocationContext();
 
     ProgramStateRef nextState =
@@ -61,7 +61,7 @@ static void populateObjCForDestinationSet(
         // FIXME: The proper thing to do is to really iterate over the
         //  container.  We will do this with dispatch logic to the store.
         //  For now, just 'conjure' up a symbolic value.
-        QualType T = R->getValueType();
+        QualType const T = R->getValueType();
         assert(Loc::isLocType(T));
 
         SVal V;
@@ -110,8 +110,8 @@ void ExprEngine::VisitObjCForCollectionStmt(const ObjCForCollectionStmt *S,
 
   const Stmt *elem = S->getElement();
   const Stmt *collection = S->getCollection();
-  ProgramStateRef state = Pred->getState();
-  SVal collectionV = state->getSVal(collection, Pred->getLocationContext());
+  ProgramStateRef const state = Pred->getState();
+  SVal const collectionV = state->getSVal(collection, Pred->getLocationContext());
 
   SVal elementV;
   if (const auto *DS = dyn_cast<DeclStmt>(elem)) {
@@ -122,7 +122,7 @@ void ExprEngine::VisitObjCForCollectionStmt(const ObjCForCollectionStmt *S,
     elementV = state->getSVal(elem, Pred->getLocationContext());
   }
 
-  bool isContainerNull = state->isNull(collectionV).isConstrainedTrue();
+  bool const isContainerNull = state->isNull(collectionV).isConstrainedTrue();
 
   ExplodedNodeSet dstLocation;
   evalLocation(dstLocation, S, elem, Pred, state, elementV, false);
@@ -148,7 +148,7 @@ void ExprEngine::VisitObjCMessage(const ObjCMessageExpr *ME,
                                   ExplodedNode *Pred,
                                   ExplodedNodeSet &Dst) {
   CallEventManager &CEMgr = getStateManager().getCallEventManager();
-  CallEventRef<ObjCMethodCall> Msg =
+  CallEventRef<ObjCMethodCall> const Msg =
     CEMgr.getObjCMethodCall(ME, Pred->getState(), Pred->getLocationContext());
 
   // There are three cases for the receiver:
@@ -181,12 +181,12 @@ void ExprEngine::VisitObjCMessage(const ObjCMessageExpr *ME,
   // FIXME: This ignores many potential bugs (<rdar://problem/11733396>).
   // Revisit once we have lazier constraints.
   if (Msg->isInstanceMessage()) {
-    SVal recVal = Msg->getReceiverSVal();
+    SVal const recVal = Msg->getReceiverSVal();
     if (!recVal.isUndef()) {
       // Bifurcate the state into nil and non-nil ones.
-      DefinedOrUnknownSVal receiverVal =
+      DefinedOrUnknownSVal const receiverVal =
           recVal.castAs<DefinedOrUnknownSVal>();
-      ProgramStateRef State = Pred->getState();
+      ProgramStateRef const State = Pred->getState();
 
       ProgramStateRef notNilState, nilState;
       std::tie(notNilState, nilState) = State->assume(receiverVal);
@@ -195,7 +195,7 @@ void ExprEngine::VisitObjCMessage(const ObjCMessageExpr *ME,
       if (nilState && !notNilState) {
         ExplodedNodeSet dstNil;
         StmtNodeBuilder Bldr(Pred, dstNil, *currBldrCtx);
-        bool HasTag = Pred->getLocation().getTag();
+        bool const HasTag = Pred->getLocation().getTag();
         Pred = Bldr.generateNode(ME, Pred, nilState, nullptr,
                                  ProgramPoint::PreStmtKind);
         assert((Pred || HasTag) && "Should have cached out already!");
@@ -216,7 +216,7 @@ void ExprEngine::VisitObjCMessage(const ObjCMessageExpr *ME,
       // Generate a transition to the non-nil state, dropping any potential
       // nil flow.
       if (notNilState != State) {
-        bool HasTag = Pred->getLocation().getTag();
+        bool const HasTag = Pred->getLocation().getTag();
         Pred = Bldr.generateNode(ME, Pred, notNilState);
         assert((Pred || HasTag) && "Should have cached out already!");
         (void)HasTag;
@@ -241,11 +241,11 @@ void ExprEngine::VisitObjCMessage(const ObjCMessageExpr *ME,
   for (ExplodedNodeSet::iterator DI = dstGenericPrevisit.begin(),
        DE = dstGenericPrevisit.end(); DI != DE; ++DI) {
     ExplodedNode *Pred = *DI;
-    ProgramStateRef State = Pred->getState();
-    CallEventRef<ObjCMethodCall> UpdatedMsg = Msg.cloneWithState(State);
+    ProgramStateRef const State = Pred->getState();
+    CallEventRef<ObjCMethodCall> const UpdatedMsg = Msg.cloneWithState(State);
 
     if (UpdatedMsg->isInstanceMessage()) {
-      SVal recVal = UpdatedMsg->getReceiverSVal();
+      SVal const recVal = UpdatedMsg->getReceiverSVal();
       if (!recVal.isUndef()) {
         if (ObjCNoRet.isImplicitNoReturn(ME)) {
           // If we raise an exception, for now treat it as a sink.

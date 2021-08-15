@@ -38,7 +38,7 @@ namespace clang {
 static std::unique_ptr<FrontendAction>
 CreateFrontendBaseAction(CompilerInstance &CI) {
   using namespace clang::frontend;
-  StringRef Action("unknown");
+  StringRef const Action("unknown");
   (void)Action;
 
   switch (CI.getFrontendOpts().ProgramAction) {
@@ -227,7 +227,7 @@ bool ExecuteCompilerInvocation(CompilerInstance *Clang) {
   // FIXME: Remove this, one day.
   // This should happen AFTER plugins have been loaded!
   if (!Clang->getFrontendOpts().LLVMArgs.empty()) {
-    unsigned NumArgs = Clang->getFrontendOpts().LLVMArgs.size();
+    unsigned const NumArgs = Clang->getFrontendOpts().LLVMArgs.size();
     auto Args = std::make_unique<const char*[]>(NumArgs + 2);
     Args[0] = "clang (LLVM option parsing)";
     for (unsigned i = 0; i != NumArgs; ++i)
@@ -239,7 +239,7 @@ bool ExecuteCompilerInvocation(CompilerInstance *Clang) {
 #if CLANG_ENABLE_STATIC_ANALYZER
   // These should happen AFTER plugins have been loaded!
 
-  AnalyzerOptions &AnOpts = *Clang->getAnalyzerOpts();
+  AnalyzerOptions  const&AnOpts = *Clang->getAnalyzerOpts();
 
   // Honor -analyzer-checker-help and -analyzer-checker-help-hidden.
   if (AnOpts.ShowCheckerHelp || AnOpts.ShowCheckerHelpAlpha ||
@@ -275,7 +275,7 @@ bool ExecuteCompilerInvocation(CompilerInstance *Clang) {
   std::unique_ptr<FrontendAction> Act(CreateFrontendAction(*Clang));
   if (!Act)
     return false;
-  bool Success = Clang->ExecuteAction(*Act);
+  bool const Success = Clang->ExecuteAction(*Act);
   if (Clang->getFrontendOpts().DisableFree)
     llvm::BuryPointer(std::move(Act));
   return Success;

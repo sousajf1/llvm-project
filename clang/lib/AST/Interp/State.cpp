@@ -78,7 +78,7 @@ DiagnosticBuilder State::report(SourceLocation Loc, diag::kind DiagId) {
 
 /// Add a diagnostic to the diagnostics list.
 PartialDiagnostic &State::addDiag(SourceLocation Loc, diag::kind DiagId) {
-  PartialDiagnostic PD(DiagId, getCtx().getDiagAllocator());
+  PartialDiagnostic const PD(DiagId, getCtx().getDiagAllocator());
   getEvalStatus().Diag->push_back(std::make_pair(Loc, PD));
   return getEvalStatus().Diag->back().second;
 }
@@ -92,7 +92,7 @@ OptionalDiagnostic State::diag(SourceLocation Loc, diag::kind DiagId,
     }
 
     unsigned CallStackNotes = getCallStackDepth() - 1;
-    unsigned Limit = getCtx().getDiagnostics().getConstexprBacktraceLimit();
+    unsigned const Limit = getCtx().getDiagnostics().getConstexprBacktraceLimit();
     if (Limit)
       CallStackNotes = std::min(CallStackNotes, Limit + 1);
     if (checkingPotentialConstantExpression())
@@ -116,7 +116,7 @@ const LangOptions &State::getLangOpts() const { return getCtx().getLangOpts(); }
 
 void State::addCallStack(unsigned Limit) {
   // Determine which calls to skip, if any.
-  unsigned ActiveCalls = getCallStackDepth() - 1;
+  unsigned const ActiveCalls = getCallStackDepth() - 1;
   unsigned SkipStart = ActiveCalls, SkipEnd = SkipStart;
   if (Limit && Limit < ActiveCalls) {
     SkipStart = Limit / 2 + Limit % 2;
@@ -128,7 +128,7 @@ void State::addCallStack(unsigned Limit) {
   Frame *Top = getCurrentFrame();
   const Frame *Bottom = getBottomFrame();
   for (Frame *F = Top; F != Bottom; F = F->getCaller(), ++CallIdx) {
-    SourceLocation CallLocation = F->getCallLocation();
+    SourceLocation const CallLocation = F->getCallLocation();
 
     // Skip this call?
     if (CallIdx >= SkipStart && CallIdx < SkipEnd) {

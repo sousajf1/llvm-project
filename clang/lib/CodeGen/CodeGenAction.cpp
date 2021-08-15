@@ -201,7 +201,7 @@ namespace clang {
     }
 
     bool HandleTopLevelDecl(DeclGroupRef D) override {
-      PrettyStackTraceDecl CrashInfo(*D.begin(), SourceLocation(),
+      PrettyStackTraceDecl const CrashInfo(*D.begin(), SourceLocation(),
                                      Context->getSourceManager(),
                                      "LLVM IR generation of declaration");
 
@@ -224,7 +224,7 @@ namespace clang {
     }
 
     void HandleInlineFunctionDefinition(FunctionDecl *D) override {
-      PrettyStackTraceDecl CrashInfo(D, SourceLocation(),
+      PrettyStackTraceDecl const CrashInfo(D, SourceLocation(),
                                      Context->getSourceManager(),
                                      "LLVM IR generation of inline function");
       if (TimerIsEnabled)
@@ -278,8 +278,8 @@ namespace clang {
 
     void HandleTranslationUnit(ASTContext &C) override {
       {
-        llvm::TimeTraceScope TimeScope("Frontend");
-        PrettyStackTraceString CrashInfo("Per-file LLVM IR generation");
+        llvm::TimeTraceScope const TimeScope("Frontend");
+        PrettyStackTraceString const CrashInfo("Per-file LLVM IR generation");
         if (TimerIsEnabled) {
           LLVMIRGenerationRefCount += 1;
           if (LLVMIRGenerationRefCount == 1)
@@ -342,7 +342,7 @@ namespace clang {
     }
 
     void HandleTagDeclDefinition(TagDecl *D) override {
-      PrettyStackTraceDecl CrashInfo(D, SourceLocation(),
+      PrettyStackTraceDecl const CrashInfo(D, SourceLocation(),
                                      Context->getSourceManager(),
                                      "LLVM IR generation of declaration");
       Gen->HandleTagDeclDefinition(D);
@@ -431,11 +431,11 @@ static FullSourceLoc ConvertBackendLocation(const llvm::SMDiagnostic &D,
       llvm::MemoryBuffer::getMemBufferCopy(LBuf->getBuffer(),
                                            LBuf->getBufferIdentifier());
   // FIXME: Keep a file ID map instead of creating new IDs for each location.
-  FileID FID = CSM.createFileID(std::move(CBuf));
+  FileID const FID = CSM.createFileID(std::move(CBuf));
 
   // Translate the offset into the file.
-  unsigned Offset = D.getLoc().getPointer() - LBuf->getBufferStart();
-  SourceLocation NewLoc =
+  unsigned const Offset = D.getLoc().getPointer() - LBuf->getBufferStart();
+  SourceLocation const NewLoc =
   CSM.getLocForStartOfFile(FID).getLocWithOffset(Offset);
   return FullSourceLoc(NewLoc, CSM);
 }
@@ -509,17 +509,17 @@ void BackendConsumer::SrcMgrDiagHandler(const llvm::DiagnosticInfoSrcMgr &DI) {
   // issue in the source with a note showing the instantiated
   // code.
   if (DI.isInlineAsmDiag()) {
-    SourceLocation LocCookie =
+    SourceLocation const LocCookie =
         SourceLocation::getFromRawEncoding(DI.getLocCookie());
     if (LocCookie.isValid()) {
       Diags.Report(LocCookie, DiagID).AddString(Message);
 
       if (D.getLoc().isValid()) {
-        DiagnosticBuilder B = Diags.Report(Loc, diag::note_fe_inline_asm_here);
+        DiagnosticBuilder const B = Diags.Report(Loc, diag::note_fe_inline_asm_here);
         // Convert the SMDiagnostic ranges into SourceRange and attach them
         // to the diagnostic.
         for (const std::pair<unsigned, unsigned> &Range : D.getRanges()) {
-          unsigned Column = D.getColumnNo();
+          unsigned const Column = D.getColumnNo();
           B << SourceRange(Loc.getLocWithOffset(Range.first - Column),
                            Loc.getLocWithOffset(Range.second - Column));
         }
@@ -539,12 +539,12 @@ bool
 BackendConsumer::InlineAsmDiagHandler(const llvm::DiagnosticInfoInlineAsm &D) {
   unsigned DiagID;
   ComputeDiagID(D.getSeverity(), inline_asm, DiagID);
-  std::string Message = D.getMsgStr().str();
+  std::string const Message = D.getMsgStr().str();
 
   // If this problem has clang-level source location information, report the
   // issue as being a problem in the source with a note showing the instantiated
   // code.
-  SourceLocation LocCookie =
+  SourceLocation const LocCookie =
       SourceLocation::getFromRawEncoding(D.getLocCookie());
   if (LocCookie.isValid())
     Diags.Report(LocCookie, DiagID).AddString(Message);
@@ -553,7 +553,7 @@ BackendConsumer::InlineAsmDiagHandler(const llvm::DiagnosticInfoInlineAsm &D) {
     // .s file.
     // If Loc is invalid, we still need to report the diagnostic, it just gets
     // no location info.
-    FullSourceLoc Loc;
+    FullSourceLoc const Loc;
     Diags.Report(Loc, DiagID).AddString(Message);
   }
   // We handled all the possible severities.
@@ -583,7 +583,7 @@ BackendConsumer::StackSizeDiagHandler(const llvm::DiagnosticInfoStackSize &D) {
 const FullSourceLoc BackendConsumer::getBestLocationFromDebugLoc(
     const llvm::DiagnosticInfoWithLocationBase &D, bool &BadDebugInfo,
     StringRef &Filename, unsigned &Line, unsigned &Column) const {
-  SourceManager &SourceMgr = Context->getSourceManager();
+  SourceManager  const&SourceMgr = Context->getSourceManager();
   FileManager &FileMgr = SourceMgr.getFileManager();
   SourceLocation DILoc;
 
@@ -762,7 +762,7 @@ void BackendConsumer::OptimizationFailureHandler(
 /// to report something to the user.
 void BackendConsumer::DiagnosticHandlerImpl(const DiagnosticInfo &DI) {
   unsigned DiagID = diag::err_fe_inline_asm;
-  llvm::DiagnosticSeverity Severity = DI.getSeverity();
+  llvm::DiagnosticSeverity const Severity = DI.getSeverity();
   // Get the diagnostic ID based.
   switch (DI.getKind()) {
   case llvm::DK_InlineAsm:
@@ -852,7 +852,7 @@ void BackendConsumer::DiagnosticHandlerImpl(const DiagnosticInfo &DI) {
   }
 
   // Report the backend message using the usual diagnostic mechanism.
-  FullSourceLoc Loc;
+  FullSourceLoc const Loc;
   Diags.Report(Loc, DiagID).AddString(MsgStorage);
 }
 #undef ComputeDiagID
@@ -913,7 +913,7 @@ GetOutputStream(CompilerInstance &CI, StringRef InFile, BackendAction Action) {
 
 std::unique_ptr<ASTConsumer>
 CodeGenAction::CreateASTConsumer(CompilerInstance &CI, StringRef InFile) {
-  BackendAction BA = static_cast<BackendAction>(Act);
+  BackendAction const BA = static_cast<BackendAction>(Act);
   std::unique_ptr<raw_pwrite_stream> OS = CI.takeOutputStream();
   if (!OS)
     OS = GetOutputStream(CI, InFile, BA);
@@ -976,7 +976,7 @@ CodeGenAction::CreateASTConsumer(CompilerInstance &CI, StringRef InFile) {
 std::unique_ptr<llvm::Module>
 CodeGenAction::loadModule(MemoryBufferRef MBRef) {
   CompilerInstance &CI = getCompilerInstance();
-  SourceManager &SM = CI.getSourceManager();
+  SourceManager  const&SM = CI.getSourceManager();
 
   // For ThinLTO backend invocations, ensure that the context
   // merges types based on ODR identifiers. We also need to read
@@ -1032,7 +1032,7 @@ CodeGenAction::loadModule(MemoryBufferRef MBRef) {
   if (Msg.startswith("error: "))
     Msg = Msg.substr(7);
 
-  unsigned DiagID =
+  unsigned const DiagID =
       CI.getDiagnostics().getCustomDiagID(DiagnosticsEngine::Error, "%0");
 
   CI.getDiagnostics().Report(Loc, DiagID) << Msg;
@@ -1046,7 +1046,7 @@ void CodeGenAction::ExecuteAction() {
   }
 
   // If this is an IR file, we have to treat it specially.
-  BackendAction BA = static_cast<BackendAction>(Act);
+  BackendAction const BA = static_cast<BackendAction>(Act);
   CompilerInstance &CI = getCompilerInstance();
   auto &CodeGenOpts = CI.getCodeGenOpts();
   auto &Diagnostics = CI.getDiagnostics();
@@ -1055,8 +1055,8 @@ void CodeGenAction::ExecuteAction() {
   if (BA != Backend_EmitNothing && !OS)
     return;
 
-  SourceManager &SM = CI.getSourceManager();
-  FileID FID = SM.getMainFileID();
+  SourceManager  const&SM = CI.getSourceManager();
+  FileID const FID = SM.getMainFileID();
   Optional<MemoryBufferRef> MainFile = SM.getBufferOrNone(FID);
   if (!MainFile)
     return;

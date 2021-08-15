@@ -113,7 +113,7 @@ void UnixAPIMisuseChecker::checkPreStmt(const CallExpr *CE,
   if (NamespaceCtx && isa<NamespaceDecl>(NamespaceCtx))
     return;
 
-  StringRef FName = C.getCalleeName(FD);
+  StringRef const FName = C.getCalleeName(FD);
   if (FName.empty())
     return;
 
@@ -170,16 +170,16 @@ void UnixAPIMisuseChecker::CheckOpenVariant(CheckerContext &C,
   };
 
   // All calls should at least provide arguments up to the 'flags' parameter.
-  unsigned int MinArgCount = FlagsArgIndex + 1;
+  unsigned int const MinArgCount = FlagsArgIndex + 1;
 
   // If the flags has O_CREAT set then open/openat() require an additional
   // argument specifying the file mode (permission bits) for the created file.
-  unsigned int CreateModeArgIndex = FlagsArgIndex + 1;
+  unsigned int const CreateModeArgIndex = FlagsArgIndex + 1;
 
   // The create mode argument should be the last argument.
-  unsigned int MaxArgCount = CreateModeArgIndex + 1;
+  unsigned int const MaxArgCount = CreateModeArgIndex + 1;
 
-  ProgramStateRef state = C.getState();
+  ProgramStateRef const state = C.getState();
 
   if (CE->getNumArgs() < MinArgCount) {
     // The frontend should issue a warning for this case, so this is a sanity
@@ -187,7 +187,7 @@ void UnixAPIMisuseChecker::CheckOpenVariant(CheckerContext &C,
     return;
   } else if (CE->getNumArgs() == MaxArgCount) {
     const Expr *Arg = CE->getArg(CreateModeArgIndex);
-    QualType QT = Arg->getType();
+    QualType const QT = Arg->getType();
     if (!QT->isIntegerType()) {
       SmallString<256> SBuf;
       llvm::raw_svector_ostream OS(SBuf);
@@ -235,15 +235,15 @@ void UnixAPIMisuseChecker::CheckOpenVariant(CheckerContext &C,
     // so in this case bail out.
     return;
   }
-  NonLoc oflags = V.castAs<NonLoc>();
-  NonLoc ocreateFlag = C.getSValBuilder()
+  NonLoc const oflags = V.castAs<NonLoc>();
+  NonLoc const ocreateFlag = C.getSValBuilder()
       .makeIntVal(Val_O_CREAT.getValue(), oflagsEx->getType()).castAs<NonLoc>();
-  SVal maskedFlagsUC = C.getSValBuilder().evalBinOpNN(state, BO_And,
+  SVal const maskedFlagsUC = C.getSValBuilder().evalBinOpNN(state, BO_And,
                                                       oflags, ocreateFlag,
                                                       oflagsEx->getType());
   if (maskedFlagsUC.isUnknownOrUndef())
     return;
-  DefinedSVal maskedFlags = maskedFlagsUC.castAs<DefinedSVal>();
+  DefinedSVal const maskedFlags = maskedFlagsUC.castAs<DefinedSVal>();
 
   // Check if maskedFlags is non-zero.
   ProgramStateRef trueState, falseState;
@@ -282,7 +282,7 @@ void UnixAPIMisuseChecker::CheckPthreadOnce(CheckerContext &C,
 
   // Check if the first argument is stack allocated.  If so, issue a warning
   // because that's likely to be bad news.
-  ProgramStateRef state = C.getState();
+  ProgramStateRef const state = C.getState();
   const MemRegion *R = C.getSVal(CE->getArg(0)).getAsRegion();
   if (!R || !isa<StackSpaceRegion>(R->getMemorySpace()))
     return;
@@ -371,10 +371,10 @@ void UnixAPIPortabilityChecker::BasicAllocationCheck(CheckerContext &C,
     return;
 
   // Check if the allocation size is 0.
-  ProgramStateRef state = C.getState();
+  ProgramStateRef const state = C.getState();
   ProgramStateRef trueState = nullptr, falseState = nullptr;
   const Expr *arg = CE->getArg(sizeArg);
-  SVal argVal = C.getSVal(arg);
+  SVal const argVal = C.getSVal(arg);
 
   if (argVal.isUnknownOrUndef())
     return;
@@ -392,17 +392,17 @@ void UnixAPIPortabilityChecker::BasicAllocationCheck(CheckerContext &C,
 
 void UnixAPIPortabilityChecker::CheckCallocZero(CheckerContext &C,
                                                 const CallExpr *CE) const {
-  unsigned int nArgs = CE->getNumArgs();
+  unsigned int const nArgs = CE->getNumArgs();
   if (nArgs != 2)
     return;
 
-  ProgramStateRef state = C.getState();
+  ProgramStateRef const state = C.getState();
   ProgramStateRef trueState = nullptr, falseState = nullptr;
 
   unsigned int i;
   for (i = 0; i < nArgs; i++) {
     const Expr *arg = CE->getArg(i);
-    SVal argVal = C.getSVal(arg);
+    SVal const argVal = C.getSVal(arg);
     if (argVal.isUnknownOrUndef()) {
       if (i == 0)
         continue;
@@ -469,7 +469,7 @@ void UnixAPIPortabilityChecker::checkPreStmt(const CallExpr *CE,
   if (NamespaceCtx && isa<NamespaceDecl>(NamespaceCtx))
     return;
 
-  StringRef FName = C.getCalleeName(FD);
+  StringRef const FName = C.getCalleeName(FD);
   if (FName.empty())
     return;
 

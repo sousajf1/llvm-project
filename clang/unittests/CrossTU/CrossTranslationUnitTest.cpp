@@ -43,7 +43,7 @@ public:
     const TranslationUnitDecl *TU = Ctx.getTranslationUnitDecl();
     const FunctionDecl *FD = FindFInTU(TU);
     assert(FD && FD->getName() == "f");
-    bool OrigFDHasBody = FD->hasBody();
+    bool const OrigFDHasBody = FD->hasBody();
 
     const DynTypedNodeList ParentsBeforeImport =
         Ctx.getParentMapContext().getParents<Decl>(*FD);
@@ -54,7 +54,7 @@ public:
     llvm::SmallString<256> ASTFileName;
     ASSERT_FALSE(
         llvm::sys::fs::createTemporaryFile("f_ast", "ast", ASTFD, ASTFileName));
-    llvm::ToolOutputFile ASTFile(ASTFileName, ASTFD);
+    llvm::ToolOutputFile const ASTFile(ASTFileName, ASTFD);
 
     int IndexFD;
     llvm::SmallString<256> IndexFileName;
@@ -65,7 +65,7 @@ public:
     IndexFile.os().flush();
     EXPECT_TRUE(llvm::sys::fs::exists(IndexFileName));
 
-    StringRef SourceText = "int f(int) { return 0; }\n";
+    StringRef const SourceText = "int f(int) { return 0; }\n";
     // This file must exist since the saved ASTFile will reference it.
     int SourceFD;
     llvm::SmallString<256> SourceFileName;
@@ -157,7 +157,7 @@ TEST(CrossTranslationUnit, IndexFormatCanBeParsed) {
   Index["a"] = "/b/f1";
   Index["c"] = "/d/f2";
   Index["e"] = "/f/f3";
-  std::string IndexText = createCrossTUIndexString(Index);
+  std::string const IndexText = createCrossTUIndexString(Index);
 
   int IndexFD;
   llvm::SmallString<256> IndexFileName;

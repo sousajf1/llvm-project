@@ -86,7 +86,7 @@ protected:
 
   /// Returns the expansion location to main file at the given row and column.
   SourceLocation at(unsigned row, unsigned col) const {
-    SourceLocation Loc =
+    SourceLocation const Loc =
         SourceMgr.translateLineCol(SourceMgr.getMainFileID(), row, col);
     return SourceMgr.getExpansionLoc(Loc);
   }

@@ -67,9 +67,9 @@ public:
       return true;
 
     // Remove the setter message if RHS is null
-    Transaction Trans(TA);
+    Transaction const Trans(TA);
     Expr *RHS = ME->getArg(0);
-    bool RHSIsNull =
+    bool const RHSIsNull =
       RHS->isNullPointerConstant(Ctx,
                                  Expr::NPC_ValueDependentIsNull);
     if (RHSIsNull && isRemovable(ME))
@@ -80,7 +80,7 @@ public:
 
   bool VisitPseudoObjectExpr(PseudoObjectExpr *POE) {
     if (isZeroingPropIvar(POE) && isRemovable(POE)) {
-      Transaction Trans(Pass.TA);
+      Transaction const Trans(Pass.TA);
       Pass.TA.removeStmt(POE);
     }
 
@@ -89,7 +89,7 @@ public:
 
   bool VisitBinaryOperator(BinaryOperator *BOE) {
     if (isZeroingPropIvar(BOE) && isRemovable(BOE)) {
-      Transaction Trans(Pass.TA);
+      Transaction const Trans(Pass.TA);
       Pass.TA.removeStmt(BOE);
     }
 
@@ -118,7 +118,7 @@ public:
         ObjCPropertyDecl *PD = PID->getPropertyDecl();
         ObjCMethodDecl *setterM = PD->getSetterMethodDecl();
         if (!(setterM && setterM->isDefined())) {
-          ObjCPropertyAttribute::Kind AttrKind = PD->getPropertyAttributes();
+          ObjCPropertyAttribute::Kind const AttrKind = PD->getPropertyAttributes();
           if (AttrKind & (ObjCPropertyAttribute::kind_retain |
                           ObjCPropertyAttribute::kind_copy |
                           ObjCPropertyAttribute::kind_strong))

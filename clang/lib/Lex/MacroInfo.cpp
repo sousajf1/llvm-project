@@ -44,17 +44,17 @@ unsigned MacroInfo::getDefinitionLengthSlow(const SourceManager &SM) const {
 
   const Token &firstToken = ReplacementTokens.front();
   const Token &lastToken = ReplacementTokens.back();
-  SourceLocation macroStart = firstToken.getLocation();
-  SourceLocation macroEnd = lastToken.getLocation();
+  SourceLocation const macroStart = firstToken.getLocation();
+  SourceLocation const macroEnd = lastToken.getLocation();
   assert(macroStart.isValid() && macroEnd.isValid());
   assert((macroStart.isFileID() || firstToken.is(tok::comment)) &&
          "Macro defined in macro?");
   assert((macroEnd.isFileID() || lastToken.is(tok::comment)) &&
          "Macro defined in macro?");
   std::pair<FileID, unsigned>
-      startInfo = SM.getDecomposedExpansionLoc(macroStart);
+      const startInfo = SM.getDecomposedExpansionLoc(macroStart);
   std::pair<FileID, unsigned>
-      endInfo = SM.getDecomposedExpansionLoc(macroEnd);
+      const endInfo = SM.getDecomposedExpansionLoc(macroEnd);
   assert(startInfo.first == endInfo.first &&
          "Macro definition spanning multiple FileIDs ?");
   assert(startInfo.second <= endInfo.second);
@@ -73,7 +73,7 @@ unsigned MacroInfo::getDefinitionLengthSlow(const SourceManager &SM) const {
 /// C99 6.10.3.
 bool MacroInfo::isIdenticalTo(const MacroInfo &Other, Preprocessor &PP,
                               bool Syntactically) const {
-  bool Lexically = !Syntactically;
+  bool const Lexically = !Syntactically;
 
   // Check # tokens in replacement, number of args, and various flags all match.
   if (ReplacementTokens.size() != Other.ReplacementTokens.size() ||
@@ -113,7 +113,7 @@ bool MacroInfo::isIdenticalTo(const MacroInfo &Other, Preprocessor &PP,
         return false;
       // With syntactic equivalence the parameter names can be different as long
       // as they are used in the same place.
-      int AArgNum = getParameterNum(A.getIdentifierInfo());
+      int const AArgNum = getParameterNum(A.getIdentifierInfo());
       if (AArgNum == -1)
         return false;
       if (AArgNum != Other.getParameterNum(B.getIdentifierInfo()))

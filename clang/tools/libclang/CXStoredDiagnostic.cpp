@@ -50,8 +50,8 @@ CXString CXStoredDiagnostic::getSpelling() const {
 }
 
 CXString CXStoredDiagnostic::getDiagnosticOption(CXString *Disable) const {
-  unsigned ID = Diag.getID();
-  StringRef Option = DiagnosticIDs::getWarningOptionForDiag(ID);
+  unsigned const ID = Diag.getID();
+  StringRef const Option = DiagnosticIDs::getWarningOptionForDiag(ID);
   if (!Option.empty()) {
     if (Disable)
       *Disable = cxstring::createDup((Twine("-Wno-") + Option).str());
@@ -72,7 +72,7 @@ unsigned CXStoredDiagnostic::getCategory() const {
 }
 
 CXString CXStoredDiagnostic::getCategoryText() const {
-  unsigned catID = DiagnosticIDs::getCategoryNumberForDiag(Diag.getID());
+  unsigned const catID = DiagnosticIDs::getCategoryNumberForDiag(Diag.getID());
   return cxstring::createRef(DiagnosticIDs::getCategoryNameFromID(catID));
 }
 

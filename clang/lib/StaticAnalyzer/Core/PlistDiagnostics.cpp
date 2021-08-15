@@ -263,13 +263,13 @@ void PlistPrinter::ReportControlFlow(raw_ostream &o,
     // by forcing to use only the beginning of the range.  This simplifies the layout
     // logic for clients.
     Indent(o, indent) << "<key>start</key>\n";
-    SourceRange StartEdge(
+    SourceRange const StartEdge(
         SM.getExpansionLoc(I->getStart().asRange().getBegin()));
     EmitRange(o, SM, Lexer::getAsCharRange(StartEdge, SM, LangOpts), FM,
               indent + 1);
 
     Indent(o, indent) << "<key>end</key>\n";
-    SourceRange EndEdge(SM.getExpansionLoc(I->getEnd().asRange().getBegin()));
+    SourceRange const EndEdge(SM.getExpansionLoc(I->getEnd().asRange().getBegin()));
     EmitRange(o, SM, Lexer::getAsCharRange(EndEdge, SM, LangOpts), FM,
               indent + 1);
 
@@ -310,13 +310,13 @@ void PlistPrinter::ReportEvent(raw_ostream &o, const PathDiagnosticEventPiece& P
   }
 
   // Output the location.
-  FullSourceLoc L = P.getLocation().asLocation();
+  FullSourceLoc const L = P.getLocation().asLocation();
 
   Indent(o, indent) << "<key>location</key>\n";
   EmitLocation(o, SM, L, FM, indent);
 
   // Output the ranges (if any).
-  ArrayRef<SourceRange> Ranges = P.getRanges();
+  ArrayRef<SourceRange> const Ranges = P.getRanges();
   EmitRanges(o, Ranges, indent);
 
   // Output the call depth.
@@ -381,7 +381,7 @@ void PlistPrinter::ReportMacroExpansions(raw_ostream &o, unsigned indent) {
   for (const PathDiagnosticMacroPiece *P : MacroPieces) {
     const SourceManager &SM = PP.getSourceManager();
 
-    SourceLocation MacroExpansionLoc =
+    SourceLocation const MacroExpansionLoc =
         P->getLocation().asLocation().getExpansionLoc();
 
     const Optional<StringRef> MacroName =
@@ -396,13 +396,13 @@ void PlistPrinter::ReportMacroExpansions(raw_ostream &o, unsigned indent) {
     ++indent;
 
     // Output the location.
-    FullSourceLoc L = P->getLocation().asLocation();
+    FullSourceLoc const L = P->getLocation().asLocation();
 
     Indent(o, indent) << "<key>location</key>\n";
     EmitLocation(o, SM, L, FM, indent);
 
     // Output the ranges (if any).
-    ArrayRef<SourceRange> Ranges = P->getRanges();
+    ArrayRef<SourceRange> const Ranges = P->getRanges();
     EmitRanges(o, Ranges, indent);
 
     // Output the macro name.
@@ -429,13 +429,13 @@ void PlistPrinter::ReportNote(raw_ostream &o, const PathDiagnosticNotePiece& P,
   ++indent;
 
   // Output the location.
-  FullSourceLoc L = P.getLocation().asLocation();
+  FullSourceLoc const L = P.getLocation().asLocation();
 
   Indent(o, indent) << "<key>location</key>\n";
   EmitLocation(o, SM, L, FM, indent);
 
   // Output the ranges (if any).
-  ArrayRef<SourceRange> Ranges = P.getRanges();
+  ArrayRef<SourceRange> const Ranges = P.getRanges();
   EmitRanges(o, Ranges, indent);
 
   // Output the text.
@@ -460,13 +460,13 @@ void PlistPrinter::ReportPopUp(raw_ostream &o,
   Indent(o, indent) << "<key>kind</key><string>pop-up</string>\n";
 
   // Output the location.
-  FullSourceLoc L = P.getLocation().asLocation();
+  FullSourceLoc const L = P.getLocation().asLocation();
 
   Indent(o, indent) << "<key>location</key>\n";
   EmitLocation(o, SM, L, FM, indent);
 
   // Output the ranges (if any).
-  ArrayRef<SourceRange> Ranges = P.getRanges();
+  ArrayRef<SourceRange> const Ranges = P.getRanges();
   EmitRanges(o, Ranges, indent);
 
   // Output the text.
@@ -500,11 +500,11 @@ static void printCoverage(const PathDiagnostic *D,
   // Mapping from file IDs to executed lines.
   const FilesToLineNumsMap &ExecutedLines = D->getExecutedLines();
   for (auto I = ExecutedLines.begin(), E = ExecutedLines.end(); I != E; ++I) {
-    unsigned FileKey = AddFID(FM, Fids, I->first);
+    unsigned const FileKey = AddFID(FM, Fids, I->first);
     Indent(o, IndentLevel) << "<key>" << FileKey << "</key>\n";
     Indent(o, IndentLevel) << "<array>\n";
     IndentLevel++;
-    for (unsigned LineNo : I->second) {
+    for (unsigned const LineNo : I->second) {
       Indent(o, IndentLevel);
       EmitInteger(o, LineNo) << "\n";
     }
@@ -575,7 +575,7 @@ void PlistDiagnostics::printBugPath(llvm::raw_ostream &o, const FIDMap &FM,
                              }) &&
          "PathDiagnostic is not partitioned so that notes precede the rest");
 
-  PathPieces::const_iterator FirstNonNote = std::partition_point(
+  PathPieces::const_iterator const FirstNonNote = std::partition_point(
       Path.begin(), Path.end(), [](const PathDiagnosticPieceRef &E) {
         return E->getKind() == PathDiagnosticPiece::Note;
       });
@@ -596,7 +596,7 @@ void PlistDiagnostics::printBugPath(llvm::raw_ostream &o, const FIDMap &FM,
 
   o << "   <array>\n";
 
-  for (PathPieces::const_iterator E = Path.end(); I != E; ++I)
+  for (PathPieces::const_iterator const E = Path.end(); I != E; ++I)
     Printer.ReportDiag(o, **I);
 
   o << "   </array>\n";
@@ -622,7 +622,7 @@ void PlistDiagnostics::FlushDiagnosticsImpl(
 
   auto AddPieceFID = [&FM, &Fids, &SM](const PathDiagnosticPiece &Piece) {
     AddFID(FM, Fids, SM, Piece.getLocation().asLocation());
-    ArrayRef<SourceRange> Ranges = Piece.getRanges();
+    ArrayRef<SourceRange> const Ranges = Piece.getRanges();
     for (const SourceRange &Range : Ranges) {
       AddFID(FM, Fids, SM, Range.getBegin());
       AddFID(FM, Fids, SM, Range.getEnd());
@@ -698,8 +698,8 @@ void PlistDiagnostics::FlushDiagnosticsImpl(
 
     o << "   <!-- This hash is experimental and going to change! -->\n";
     o << "   <key>issue_hash_content_of_line_in_context</key>";
-    PathDiagnosticLocation UPDLoc = D->getUniqueingLoc();
-    FullSourceLoc L(SM.getExpansionLoc(UPDLoc.isValid()
+    PathDiagnosticLocation const UPDLoc = D->getUniqueingLoc();
+    FullSourceLoc const L(SM.getExpansionLoc(UPDLoc.isValid()
                                             ? UPDLoc.asLocation()
                                             : D->getLocation().asLocation()),
                     SM);
@@ -748,7 +748,7 @@ void PlistDiagnostics::FlushDiagnosticsImpl(
           // the leak location even after code is added between the allocation
           // site and the end of scope (leak report location).
           if (UPDLoc.isValid()) {
-            FullSourceLoc UFunL(
+            FullSourceLoc const UFunL(
                 SM.getExpansionLoc(
                     D->getUniqueingDecl()->getBody()->getBeginLoc()),
                 SM);
@@ -758,7 +758,7 @@ void PlistDiagnostics::FlushDiagnosticsImpl(
 
           // Otherwise, use the location on which the bug is reported.
           } else {
-            FullSourceLoc FunL(SM.getExpansionLoc(Body->getBeginLoc()), SM);
+            FullSourceLoc const FunL(SM.getExpansionLoc(Body->getBeginLoc()), SM);
             o << "  <key>issue_hash_function_offset</key><string>"
               << L.getExpansionLineNumber() - FunL.getExpansionLineNumber()
               << "</string>\n";
@@ -779,7 +779,7 @@ void PlistDiagnostics::FlushDiagnosticsImpl(
       if (files) {
         for (PDFileEntry::ConsumerFiles::const_iterator CI = files->begin(),
                 CE = files->end(); CI != CE; ++CI) {
-          StringRef newName = CI->first;
+          StringRef const newName = CI->first;
           if (newName != lastName) {
             if (!lastName.empty()) {
               o << "  </array>\n";
@@ -804,7 +804,7 @@ void PlistDiagnostics::FlushDiagnosticsImpl(
 
   o << " <key>files</key>\n"
        " <array>\n";
-  for (FileID FID : Fids)
+  for (FileID const FID : Fids)
     EmitString(o << "  ", SM.getFileEntryForID(FID)->getName()) << '\n';
   o << " </array>\n";
 

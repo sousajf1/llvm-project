@@ -114,7 +114,7 @@ static cl::extrahelp CommonHelp(CommonOptionsParser::HelpMessage);
 int main(int argc, const char **argv) {
   // Print a stack trace if we signal out.
   sys::PrintStackTraceOnErrorSignal(argv[0], false);
-  PrettyStackTraceProgram X(argc, argv);
+  PrettyStackTraceProgram const X(argc, argv);
 
   const char *Overview = "\nThis tool collects the USR name and location "
                          "of external definitions in the source files "

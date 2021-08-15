@@ -109,22 +109,22 @@ bool CodeGenModule::TryEmitBaseDestructorAsAlias(const CXXDestructorDecl *D) {
       D->getType()->castAs<FunctionType>()->getCallConv())
     return true;
 
-  GlobalDecl AliasDecl(D, Dtor_Base);
-  GlobalDecl TargetDecl(BaseD, Dtor_Base);
+  GlobalDecl const AliasDecl(D, Dtor_Base);
+  GlobalDecl const TargetDecl(BaseD, Dtor_Base);
 
   // The alias will use the linkage of the referent.  If we can't
   // support aliases with that linkage, fail.
-  llvm::GlobalValue::LinkageTypes Linkage = getFunctionLinkage(AliasDecl);
+  llvm::GlobalValue::LinkageTypes const Linkage = getFunctionLinkage(AliasDecl);
 
   // We can't use an alias if the linkage is not valid for one.
   if (!llvm::GlobalAlias::isValidLinkage(Linkage))
     return true;
 
-  llvm::GlobalValue::LinkageTypes TargetLinkage =
+  llvm::GlobalValue::LinkageTypes const TargetLinkage =
       getFunctionLinkage(TargetDecl);
 
   // Check if we have it already.
-  StringRef MangledName = getMangledName(AliasDecl);
+  StringRef const MangledName = getMangledName(AliasDecl);
   llvm::GlobalValue *Entry = GetGlobalValue(MangledName);
   if (Entry && !Entry->isDeclaration())
     return false;
@@ -257,7 +257,7 @@ static CGCallee BuildAppleKextVirtualCall(CodeGenFunction &CGF,
   assert(VTable && "BuildVirtualCall = kext vtbl pointer is null");
   uint64_t VTableIndex = CGM.getItaniumVTableContext().getMethodVTableIndex(GD);
   const VTableLayout &VTLayout = CGM.getItaniumVTableContext().getVTableLayout(RD);
-  VTableLayout::AddressPointLocation AddressPoint =
+  VTableLayout::AddressPointLocation const AddressPoint =
       VTLayout.getAddressPoint(BaseSubobject(RD, CharUnits::Zero()));
   VTableIndex += VTLayout.getVTableOffset(AddressPoint.VTableIndex) +
                  AddressPoint.AddressPointIndex;
@@ -280,7 +280,7 @@ CodeGenFunction::BuildAppleKextVirtualCall(const CXXMethodDecl *MD,
          "BuildAppleKextVirtualCall - bad Qual kind");
 
   const Type *QTy = Qual->getAsType();
-  QualType T = QualType(QTy, 0);
+  QualType const T = QualType(QTy, 0);
   const RecordType *RT = T->getAs<RecordType>();
   assert(RT && "BuildAppleKextVirtualCall - Qual type must be record");
   const auto *RD = cast<CXXRecordDecl>(RT->getDecl());

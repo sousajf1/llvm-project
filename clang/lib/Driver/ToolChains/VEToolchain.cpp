@@ -81,7 +81,7 @@ void VEToolChain::AddClangSystemIncludeArgs(const ArgList &DriverArgs,
       SmallVector<StringRef, 4> Dirs;
       const char EnvPathSeparatorStr[] = {llvm::sys::EnvPathSeparator, '\0'};
       StringRef(cl_include_dir).split(Dirs, StringRef(EnvPathSeparatorStr));
-      ArrayRef<StringRef> DirVec(Dirs);
+      ArrayRef<StringRef> const DirVec(Dirs);
       addSystemIncludes(DriverArgs, CC1Args, DirVec);
     } else {
       addSystemInclude(DriverArgs, CC1Args,
@@ -94,7 +94,7 @@ void VEToolChain::addClangTargetOptions(const ArgList &DriverArgs,
                                         ArgStringList &CC1Args,
                                         Action::OffloadKind) const {
   CC1Args.push_back("-nostdsysteminc");
-  bool UseInitArrayDefault = true;
+  bool const UseInitArrayDefault = true;
   if (!DriverArgs.hasFlag(options::OPT_fuse_init_array,
                           options::OPT_fno_use_init_array, UseInitArrayDefault))
     CC1Args.push_back("-fno-use-init-array");
@@ -110,7 +110,7 @@ void VEToolChain::AddClangCXXStdlibIncludeArgs(const ArgList &DriverArgs,
     SmallVector<StringRef, 4> Dirs;
     const char EnvPathSeparatorStr[] = {llvm::sys::EnvPathSeparator, '\0'};
     StringRef(cl_include_dir).split(Dirs, StringRef(EnvPathSeparatorStr));
-    ArrayRef<StringRef> DirVec(Dirs);
+    ArrayRef<StringRef> const DirVec(Dirs);
     addSystemIncludes(DriverArgs, CC1Args, DirVec);
   } else {
     SmallString<128> P(getDriver().ResourceDir);

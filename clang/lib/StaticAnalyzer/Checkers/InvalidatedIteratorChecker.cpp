@@ -77,9 +77,9 @@ void InvalidatedIteratorChecker::checkPreStmt(const UnaryOperator *UO,
   if (isa<CXXThisExpr>(UO->getSubExpr()))
     return;
 
-  ProgramStateRef State = C.getState();
-  UnaryOperatorKind OK = UO->getOpcode();
-  SVal SubVal = State->getSVal(UO->getSubExpr(), C.getLocationContext());
+  ProgramStateRef const State = C.getState();
+  UnaryOperatorKind const OK = UO->getOpcode();
+  SVal const SubVal = State->getSVal(UO->getSubExpr(), C.getLocationContext());
 
   if (isAccessOperator(OK)) {
     verifyAccess(C, SubVal);
@@ -88,9 +88,9 @@ void InvalidatedIteratorChecker::checkPreStmt(const UnaryOperator *UO,
 
 void InvalidatedIteratorChecker::checkPreStmt(const BinaryOperator *BO,
                                               CheckerContext &C) const {
-  ProgramStateRef State = C.getState();
-  BinaryOperatorKind OK = BO->getOpcode();
-  SVal LVal = State->getSVal(BO->getLHS(), C.getLocationContext());
+  ProgramStateRef const State = C.getState();
+  BinaryOperatorKind const OK = BO->getOpcode();
+  SVal const LVal = State->getSVal(BO->getLHS(), C.getLocationContext());
 
   if (isAccessOperator(OK)) {
     verifyAccess(C, LVal);
@@ -99,8 +99,8 @@ void InvalidatedIteratorChecker::checkPreStmt(const BinaryOperator *BO,
 
 void InvalidatedIteratorChecker::checkPreStmt(const ArraySubscriptExpr *ASE,
                                               CheckerContext &C) const {
-  ProgramStateRef State = C.getState();
-  SVal LVal = State->getSVal(ASE->getLHS(), C.getLocationContext());
+  ProgramStateRef const State = C.getState();
+  SVal const LVal = State->getSVal(ASE->getLHS(), C.getLocationContext());
   verifyAccess(C, LVal);
 }
 
@@ -109,8 +109,8 @@ void InvalidatedIteratorChecker::checkPreStmt(const MemberExpr *ME,
   if (!ME->isArrow() || ME->isImplicitAccess())
     return;
 
-  ProgramStateRef State = C.getState();
-  SVal BaseVal = State->getSVal(ME->getBase(), C.getLocationContext());
+  ProgramStateRef const State = C.getState();
+  SVal const BaseVal = State->getSVal(ME->getBase(), C.getLocationContext());
   verifyAccess(C, BaseVal);
 }
 

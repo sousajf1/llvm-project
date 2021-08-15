@@ -16,7 +16,7 @@
 using namespace clang;
 
 void TypeLocBuilder::pushFullCopy(TypeLoc L) {
-  size_t Size = L.getFullDataSize();
+  size_t const Size = L.getFullDataSize();
   reserve(Size);
 
   SmallVector<TypeLoc, 4> TypeLocs;
@@ -27,7 +27,7 @@ void TypeLocBuilder::pushFullCopy(TypeLoc L) {
   }
 
   for (unsigned i = 0, e = TypeLocs.size(); i < e; ++i) {
-    TypeLoc CurTL = TypeLocs[e-i-1];
+    TypeLoc const CurTL = TypeLocs[e-i-1];
     switch (CurTL.getTypeLocClass()) {
 #define ABSTRACT_TYPELOC(CLASS, PARENT)
 #define TYPELOC(CLASS, PARENT) \
@@ -46,7 +46,7 @@ void TypeLocBuilder::grow(size_t NewCapacity) {
 
   // Allocate the new buffer and copy the old data into it.
   char *NewBuffer = new char[NewCapacity];
-  unsigned NewIndex = Index + NewCapacity - Capacity;
+  unsigned const NewIndex = Index + NewCapacity - Capacity;
   memcpy(&NewBuffer[NewIndex],
          &Buffer[Index],
          Capacity - Index);
@@ -61,7 +61,7 @@ void TypeLocBuilder::grow(size_t NewCapacity) {
 
 TypeLoc TypeLocBuilder::pushImpl(QualType T, size_t LocalSize, unsigned LocalAlignment) {
 #ifndef NDEBUG
-  QualType TLast = TypeLoc(T, nullptr).getNextTypeLoc().getType();
+  QualType const TLast = TypeLoc(T, nullptr).getNextTypeLoc().getType();
   assert(TLast == LastTy &&
          "mismatch between last type and new type's inner type");
   LastTy = T;
@@ -71,7 +71,7 @@ TypeLoc TypeLocBuilder::pushImpl(QualType T, size_t LocalSize, unsigned LocalAli
 
   // If we need to grow, grow by a factor of 2.
   if (LocalSize > Index) {
-    size_t RequiredCapacity = Capacity + (LocalSize - Index);
+    size_t const RequiredCapacity = Capacity + (LocalSize - Index);
     size_t NewCapacity = Capacity * 2;
     while (RequiredCapacity > NewCapacity)
       NewCapacity *= 2;
@@ -88,7 +88,7 @@ TypeLoc TypeLocBuilder::pushImpl(QualType T, size_t LocalSize, unsigned LocalAli
     if (NumBytesAtAlign8 == 0) {
       NumBytesAtAlign4 += LocalSize;
     } else {
-      unsigned Padding = NumBytesAtAlign4 % 8;
+      unsigned const Padding = NumBytesAtAlign4 % 8;
       if (Padding == 0) {
         if (LocalSize % 8 == 0) {
           // Everything is set: there's no padding and we don't need to add
@@ -122,7 +122,7 @@ TypeLoc TypeLocBuilder::pushImpl(QualType T, size_t LocalSize, unsigned LocalAli
         Index -= 4;
       }
     } else {
-      unsigned Padding = NumBytesAtAlign4 % 8;
+      unsigned const Padding = NumBytesAtAlign4 % 8;
       if (Padding == 0) {
         if (LocalSize % 8 == 0) {
           // Everything is set: there's no padding and we don't need to add

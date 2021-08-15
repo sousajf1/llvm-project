@@ -286,10 +286,10 @@ static constexpr llvm::StringLiteral ValidFamilyNames[] = {
     "avrxmega6", "avrxmega7", "avrtiny"};
 
 bool AVRTargetInfo::isValidCPUName(StringRef Name) const {
-  bool IsFamily =
+  bool const IsFamily =
       llvm::find(ValidFamilyNames, Name) != std::end(ValidFamilyNames);
 
-  bool IsMCU =
+  bool const IsMCU =
       llvm::find_if(AVRMcus, [&](const MCUInfo &Info) {
         return Info.Name == Name;
       }) != std::end(AVRMcus);

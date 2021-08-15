@@ -205,11 +205,11 @@ bool runToolOnCodeWithArgs(
     const Twine &ToolName,
     std::shared_ptr<PCHContainerOperations> PCHContainerOps) {
   SmallString<16> FileNameStorage;
-  StringRef FileNameRef = FileName.toNullTerminatedStringRef(FileNameStorage);
+  StringRef const FileNameRef = FileName.toNullTerminatedStringRef(FileNameStorage);
 
-  llvm::IntrusiveRefCntPtr<FileManager> Files(
+  llvm::IntrusiveRefCntPtr<FileManager> const Files(
       new FileManager(FileSystemOptions(), VFS));
-  ArgumentsAdjuster Adjuster = getClangStripDependencyFileAdjuster();
+  ArgumentsAdjuster const Adjuster = getClangStripDependencyFileAdjuster();
   ToolInvocation Invocation(
       getSyntaxOnlyToolArgs(ToolName, Adjuster(Args, FileNameRef), FileNameRef),
       std::move(ToolAction), Files.get(), std::move(PCHContainerOps));
@@ -222,9 +222,9 @@ bool runToolOnCodeWithArgs(
     const Twine &ToolName,
     std::shared_ptr<PCHContainerOperations> PCHContainerOps,
     const FileContentMappings &VirtualMappedFiles) {
-  llvm::IntrusiveRefCntPtr<llvm::vfs::OverlayFileSystem> OverlayFileSystem(
+  llvm::IntrusiveRefCntPtr<llvm::vfs::OverlayFileSystem> const OverlayFileSystem(
       new llvm::vfs::OverlayFileSystem(llvm::vfs::getRealFileSystem()));
-  llvm::IntrusiveRefCntPtr<llvm::vfs::InMemoryFileSystem> InMemoryFileSystem(
+  llvm::IntrusiveRefCntPtr<llvm::vfs::InMemoryFileSystem> const InMemoryFileSystem(
       new llvm::vfs::InMemoryFileSystem);
   OverlayFileSystem->pushOverlay(InMemoryFileSystem);
 
@@ -285,7 +285,7 @@ void addTargetAndModeForProgramName(std::vector<std::string> &CommandLine,
   // Skip CommandLine[0].
   for (auto Token = ++CommandLine.begin(); Token != CommandLine.end();
        ++Token) {
-    StringRef TokenRef(*Token);
+    StringRef const TokenRef(*Token);
     ShouldAddTarget = ShouldAddTarget && !TokenRef.startswith(TargetOPT) &&
                       !TokenRef.equals(TargetOPTLegacy);
     ShouldAddMode = ShouldAddMode && !TokenRef.startswith(DriverModeOPT);
@@ -343,7 +343,7 @@ bool ToolInvocation::run() {
   for (const std::string &Str : CommandLine)
     Argv.push_back(Str.c_str());
   const char *const BinaryName = Argv[0];
-  IntrusiveRefCntPtr<DiagnosticOptions> DiagOpts = new DiagnosticOptions();
+  IntrusiveRefCntPtr<DiagnosticOptions> const DiagOpts = new DiagnosticOptions();
   unsigned MissingArgIndex, MissingArgCount;
   llvm::opt::InputArgList ParsedArgs = driver::getDriverOptTable().ParseArgs(
       ArrayRef<const char *>(Argv).slice(1), MissingArgIndex, MissingArgCount);
@@ -458,7 +458,7 @@ void ClangTool::clearArgumentsAdjusters() {
 static void injectResourceDir(CommandLineArguments &Args, const char *Argv0,
                               void *MainAddr) {
   // Allow users to override the resource dir.
-  for (StringRef Arg : Args)
+  for (StringRef const Arg : Args)
     if (Arg.startswith("-resource-dir"))
       return;
 
@@ -510,7 +510,7 @@ int ClangTool::run(ToolAction *Action) {
     }
   }
 
-  for (llvm::StringRef File : AbsolutePaths) {
+  for (llvm::StringRef const File : AbsolutePaths) {
     // Currently implementations of CompilationDatabase::getCompileCommands can
     // change the state of the file system (e.g.  prepare generated headers), so
     // this method needs to run right before we invoke the tool, as the next
@@ -518,14 +518,14 @@ int ClangTool::run(ToolAction *Action) {
     //
     // FIXME: Make the compilation database interface more explicit about the
     // requirements to the order of invocation of its members.
-    std::vector<CompileCommand> CompileCommandsForFile =
+    std::vector<CompileCommand> const CompileCommandsForFile =
         Compilations.getCompileCommands(File);
     if (CompileCommandsForFile.empty()) {
       llvm::errs() << "Skipping " << File << ". Compile command not found.\n";
       FileSkipped = true;
       continue;
     }
-    for (CompileCommand &CompileCommand : CompileCommandsForFile) {
+    for (CompileCommand  const&CompileCommand : CompileCommandsForFile) {
       // FIXME: chdir is thread hostile; on the other hand, creating the same
       // behavior as chdir is complex: chdir resolves the path once, thus
       // guaranteeing that all subsequent relative path operations work
@@ -646,12 +646,12 @@ std::unique_ptr<ASTUnit> buildASTFromCodeWithArgs(
     DiagnosticConsumer *DiagConsumer) {
   std::vector<std::unique_ptr<ASTUnit>> ASTs;
   ASTBuilderAction Action(ASTs);
-  llvm::IntrusiveRefCntPtr<llvm::vfs::OverlayFileSystem> OverlayFileSystem(
+  llvm::IntrusiveRefCntPtr<llvm::vfs::OverlayFileSystem> const OverlayFileSystem(
       new llvm::vfs::OverlayFileSystem(llvm::vfs::getRealFileSystem()));
-  llvm::IntrusiveRefCntPtr<llvm::vfs::InMemoryFileSystem> InMemoryFileSystem(
+  llvm::IntrusiveRefCntPtr<llvm::vfs::InMemoryFileSystem> const InMemoryFileSystem(
       new llvm::vfs::InMemoryFileSystem);
   OverlayFileSystem->pushOverlay(InMemoryFileSystem);
-  llvm::IntrusiveRefCntPtr<FileManager> Files(
+  llvm::IntrusiveRefCntPtr<FileManager> const Files(
       new FileManager(FileSystemOptions(), OverlayFileSystem));
 
   ToolInvocation Invocation(

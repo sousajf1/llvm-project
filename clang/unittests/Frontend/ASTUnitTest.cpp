@@ -39,7 +39,7 @@ protected:
     input_file = std::make_unique<ToolOutputFile>(InputFileName, FD);
     input_file->os() << "";
 
-    const char *Args[] = {"clang", "-xc++", InputFileName.c_str()};
+    const char *const Args[] = {"clang", "-xc++", InputFileName.c_str()};
 
     Diags = CompilerInstance::createDiagnostics(new DiagnosticOptions());
 
@@ -69,7 +69,7 @@ TEST_F(ASTUnitTest, SaveLoadPreservesLangOptionsInPrintingPolicy) {
   // policy.
 
   {
-    PrintingPolicy PolicyWithDefaultLangOpt(LangOptions{});
+    PrintingPolicy const PolicyWithDefaultLangOpt(LangOptions{});
     EXPECT_TRUE(PolicyWithDefaultLangOpt.UseVoidForZeroParams);
   }
 
@@ -83,7 +83,7 @@ TEST_F(ASTUnitTest, SaveLoadPreservesLangOptionsInPrintingPolicy) {
   llvm::SmallString<256> ASTFileName;
   ASSERT_FALSE(
       llvm::sys::fs::createTemporaryFile("ast-unit", "ast", FD, ASTFileName));
-  ToolOutputFile ast_file(ASTFileName, FD);
+  ToolOutputFile const ast_file(ASTFileName, FD);
   AST->Save(ASTFileName.str());
 
   EXPECT_TRUE(llvm::sys::fs::exists(ASTFileName));
@@ -113,7 +113,7 @@ TEST_F(ASTUnitTest, GetBufferForFileMemoryMapping) {
 }
 
 TEST_F(ASTUnitTest, ModuleTextualHeader) {
-  llvm::IntrusiveRefCntPtr<llvm::vfs::InMemoryFileSystem> InMemoryFs =
+  llvm::IntrusiveRefCntPtr<llvm::vfs::InMemoryFileSystem> const InMemoryFs =
       new llvm::vfs::InMemoryFileSystem();
   InMemoryFs->addFile("test.cpp", 0, llvm::MemoryBuffer::getMemBuffer(R"cpp(
       #include "Textual.h"
@@ -130,7 +130,7 @@ TEST_F(ASTUnitTest, ModuleTextualHeader) {
       void foo();
     )cpp"));
 
-  const char *Args[] = {"clang", "test.cpp", "-fmodule-map-file=m.modulemap",
+  const char *const Args[] = {"clang", "test.cpp", "-fmodule-map-file=m.modulemap",
                         "-fmodule-name=M"};
   Diags = CompilerInstance::createDiagnostics(new DiagnosticOptions());
   CInvok = createInvocationFromCommandLine(Args, Diags);

@@ -98,16 +98,16 @@ public:
 		: Out(out), Records(records) {
 
 		// Find all the properties.
-		for (Property property :
+		for (Property const property :
            records.getAllDerivedDefinitions(PropertyClassName)) {
-			HasProperties node = property.getClass();
+			HasProperties const node = property.getClass();
 			NodeInfos[node].Properties.push_back(property);
 		}
 
     // Find all the creation rules.
-    for (CreationRule creationRule :
+    for (CreationRule const creationRule :
            records.getAllDerivedDefinitions(CreationRuleClassName)) {
-      HasProperties node = creationRule.getClass();
+      HasProperties const node = creationRule.getClass();
 
       auto &info = NodeInfos[node];
       if (info.Creator) {
@@ -119,9 +119,9 @@ public:
     }
 
     // Find all the override rules.
-    for (OverrideRule overrideRule :
+    for (OverrideRule const overrideRule :
            records.getAllDerivedDefinitions(OverrideRuleClassName)) {
-      HasProperties node = overrideRule.getClass();
+      HasProperties const node = overrideRule.getClass();
 
       auto &info = NodeInfos[node];
       if (info.Override) {
@@ -133,9 +133,9 @@ public:
     }
 
     // Find all the write helper rules.
-    for (ReadHelperRule helperRule :
+    for (ReadHelperRule const helperRule :
            records.getAllDerivedDefinitions(ReadHelperRuleClassName)) {
-      HasProperties node = helperRule.getClass();
+      HasProperties const node = helperRule.getClass();
 
       auto &info = NodeInfos[node];
       if (info.ReadHelper) {
@@ -147,7 +147,7 @@ public:
     }
 
     // Find all the concrete property types.
-    for (PropertyType type :
+    for (PropertyType const type :
            records.getAllDerivedDefinitions(PropertyTypeClassName)) {
       // Ignore generic specializations; they're generally not useful when
       // emitting basic emitters etc.
@@ -157,9 +157,9 @@ public:
     }
 
     // Find all the type kind rules.
-    for (TypeKindRule kindRule :
+    for (TypeKindRule const kindRule :
            records.getAllDerivedDefinitions(TypeKindClassName)) {
-      PropertyType type = kindRule.getParentType();
+      PropertyType const type = kindRule.getParentType();
       auto &info = CasedTypeInfos[type];
       if (info.KindRule) {
         PrintFatalError(kindRule.getLoc(),
@@ -170,7 +170,7 @@ public:
     }
 
     // Find all the type cases.
-    for (TypeCase typeCase :
+    for (TypeCase const typeCase :
            records.getAllDerivedDefinitions(TypeCaseClassName)) {
       CasedTypeInfos[typeCase.getParentType()].Cases.push_back(typeCase);
     }
@@ -194,7 +194,7 @@ public:
 
     visitAllNodesWithInfo(derived, derivedInfo,
                           [&](HasProperties node, const NodeInfo &info) {
-      for (Property prop : info.Properties) {
+      for (Property const prop : info.Properties) {
         if (ignoredProperties.count(prop.getName()))
           continue;
 
@@ -301,7 +301,7 @@ void ASTPropsEmitter::Validator::validateNode(HasProperties derivedNode,
   Emitter.visitAllNodesWithInfo(derivedNode, derivedNodeInfo,
                                 [&](HasProperties node,
                                     const NodeInfo &nodeInfo) {
-    for (Property property : nodeInfo.Properties) {
+    for (Property const property : nodeInfo.Properties) {
       validateType(property.getType(), property);
 
       auto result = allProperties.insert(
@@ -311,7 +311,7 @@ void ASTPropsEmitter::Validator::validateNode(HasProperties derivedNode,
       if (!result.second) {
         // The existing property is more likely to be associated with a
         // derived node, so use it as the error.
-        Property existingProperty = result.first->second;
+        Property const existingProperty = result.first->second;
         PrintError(existingProperty.getLoc(),
                    "multiple properties named \"" + property.getName()
                       + "\" in hierarchy of " + derivedNode.getName());
@@ -355,8 +355,8 @@ void ASTPropsEmitter::Validator::validateType(PropertyType type,
 
 template <class NodeClass>
 void ASTPropsEmitter::emitNodeReaderWriterClass(const ReaderWriterInfo &info) {
-  StringRef suffix = info.ClassSuffix;
-  StringRef var = info.HelperVariable;
+  StringRef const suffix = info.ClassSuffix;
+  StringRef const var = info.HelperVariable;
 
   // Enter the class declaration.
   Out << "template <class Property" << suffix << ">\n"
@@ -630,7 +630,7 @@ ASTPropsEmitter::emitDispatcherTemplate(const ReaderWriterInfo &info) {
     [&](StringRef specializationParameters,
         const Twine &cxxTypeName,
         StringRef methodSuffix) {
-    StringRef var = info.HelperVariable;
+    StringRef const var = info.HelperVariable;
     Out << "template " << specializationParameters << "\n"
            "struct " << dispatcherPrefix << "Dispatcher<"
                      << cxxTypeName << "> {\n";
@@ -647,7 +647,7 @@ ASTPropsEmitter::emitDispatcherTemplate(const ReaderWriterInfo &info) {
   };
 
   // Declare explicit specializations for each of the concrete types.
-  for (PropertyType type : AllPropertyTypes) {
+  for (PropertyType const type : AllPropertyTypes) {
     declareSpecialization("<>",
                           type.getCXXTypeName(),
                           type.getAbstractTypeName());
@@ -690,12 +690,12 @@ ASTPropsEmitter::emitPackUnpackOptionalTemplate(const ReaderWriterInfo &info) {
            "};\n";
   };
 
-  for (PropertyType type : AllPropertyTypes) {
-    StringRef code = (info.IsReader ? type.getUnpackOptionalCode()
+  for (PropertyType const type : AllPropertyTypes) {
+    StringRef const code = (info.IsReader ? type.getUnpackOptionalCode()
                                     : type.getPackOptionalCode());
     if (code.empty()) continue;
 
-    StringRef typeName = type.getCXXTypeName();
+    StringRef const typeName = type.getCXXTypeName();
     declareSpecialization(typeName, code);
     if (type.isConstWhenWriting() && !info.IsReader)
       declareSpecialization("const " + typeName, code);
@@ -761,7 +761,7 @@ ASTPropsEmitter::emitBasicReaderWriterTemplate(const ReaderWriterInfo &info) {
         Out << "    asImpl().writeEnum(value);\n";
       exitMethod();
 
-    } else if (PropertyType superclass = type.getSuperclassType()) {
+    } else if (PropertyType const superclass = type.getSuperclassType()) {
       enterMethod("value");
       if (info.IsReader)
         Out << "    return cast_or_null<" << type.getSubclassClassName()
@@ -795,7 +795,7 @@ void ASTPropsEmitter::emitCasedReaderWriterMethodBody(PropertyType type,
   }
 
   auto var = info.HelperVariable;
-  std::string subvar = ("sub" + var).str();
+  std::string const subvar = ("sub" + var).str();
 
   // Bind `ctx` for readers.
   if (info.IsReader)
@@ -806,9 +806,9 @@ void ASTPropsEmitter::emitCasedReaderWriterMethodBody(PropertyType type,
                        << info.MethodPrefix << "Object();\n";
 
   // Read/write the kind property;
-  TypeKindRule kindRule = typeCases.KindRule;
-  StringRef kindProperty = kindRule.getKindPropertyName();
-  PropertyType kindType = kindRule.getKindType();
+  TypeKindRule const kindRule = typeCases.KindRule;
+  StringRef const kindProperty = kindRule.getKindPropertyName();
+  PropertyType const kindType = kindRule.getKindType();
   if (info.IsReader) {
     emitReadOfProperty(subvar, kindProperty, kindType);
   } else {
@@ -825,7 +825,7 @@ void ASTPropsEmitter::emitCasedReaderWriterMethodBody(PropertyType type,
 
   // Switch on the kind.
   Out << "    switch (" << kindProperty << ") {\n";
-  for (TypeCase typeCase : typeCases.Cases) {
+  for (TypeCase const typeCase : typeCases.Cases) {
     Out << "    case " << type.getCXXTypeName() << "::"
                        << typeCase.getCaseName() << ": {\n";
     emitPropertiedReaderWriterBody(typeCase, subInfo);

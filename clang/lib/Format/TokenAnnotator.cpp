@@ -97,11 +97,11 @@ private:
 
     FormatToken *Left = CurrentToken->Previous;
     Left->ParentBracket = Contexts.back().ContextKind;
-    ScopedContextCreator ContextCreator(*this, tok::less, 12);
+    ScopedContextCreator const ContextCreator(*this, tok::less, 12);
 
     // If this angle is in the context of an expression, we need to be more
     // hesitant to detect it as opening template parameters.
-    bool InExprContext = Contexts.back().IsExpression;
+    bool const InExprContext = Contexts.back().IsExpression;
 
     Contexts.back().IsExpression = false;
     // If there's a template keyword before the opening angle bracket, this is a
@@ -208,7 +208,7 @@ private:
     assert(Left && "Unknown previous token");
     FormatToken *PrevNonComment = Left->getPreviousNonComment();
     Left->ParentBracket = Contexts.back().ContextKind;
-    ScopedContextCreator ContextCreator(*this, tok::l_paren, 1);
+    ScopedContextCreator const ContextCreator(*this, tok::l_paren, 1);
 
     // FIXME: This is a bit of a hack. Do better.
     Contexts.back().ColonIsForRangeExpr =
@@ -239,7 +239,7 @@ private:
       // If faced with "a.operator*(argument)" or "a->operator*(argument)",
       // i.e. the operator is called as a member function,
       // then the argument must be an expression.
-      bool OperatorCalledAsMemberFunction =
+      bool const OperatorCalledAsMemberFunction =
           Prev->Previous && Prev->Previous->isOneOf(tok::period, tok::arrow);
       Contexts.back().IsExpression = OperatorCalledAsMemberFunction;
     } else if (Style.Language == FormatStyle::LK_JavaScript &&
@@ -283,7 +283,7 @@ private:
                Left->Previous->MatchingParen->is(TT_ObjCBlockLParen)) {
       Contexts.back().IsExpression = false;
     } else if (!Line.MustBeDeclaration && !Line.InPPDirective) {
-      bool IsForOrCatch =
+      bool const IsForOrCatch =
           Left->Previous && Left->Previous->isOneOf(tok::kw_for, tok::kw_catch);
       Contexts.back().IsExpression = !IsForOrCatch;
     }
@@ -409,7 +409,7 @@ private:
           !CurrentToken->Next->HasUnescapedNewline &&
           !CurrentToken->Next->isTrailingComment())
         HasMultipleParametersOnALine = true;
-      bool ProbablyFunctionTypeLParen =
+      bool const ProbablyFunctionTypeLParen =
           (CurrentToken->is(tok::l_paren) && CurrentToken->Next &&
            CurrentToken->Next->isOneOf(tok::star, tok::amp, tok::caret));
       if ((CurrentToken->Previous->isOneOf(tok::kw_const, tok::kw_auto) ||
@@ -540,21 +540,21 @@ private:
     // Cases where '>' is followed by '['.
     // In C++, this can happen either in array of templates (foo<int>[10])
     // or when array is a nested template type (unique_ptr<type1<type2>[]>).
-    bool CppArrayTemplates =
+    bool const CppArrayTemplates =
         Style.isCpp() && Parent && Parent->is(TT_TemplateCloser) &&
         (Contexts.back().CanBeExpression || Contexts.back().IsExpression ||
          Contexts.back().InTemplateArgument);
 
-    bool IsCpp11AttributeSpecifier = isCpp11AttributeSpecifier(*Left) ||
+    bool const IsCpp11AttributeSpecifier = isCpp11AttributeSpecifier(*Left) ||
                                      Contexts.back().InCpp11AttributeSpecifier;
 
     // Treat C# Attributes [STAThread] much like C++ attributes [[...]].
-    bool IsCSharpAttributeSpecifier =
+    bool const IsCSharpAttributeSpecifier =
         isCSharpAttributeSpecifier(*Left) ||
         Contexts.back().InCSharpAttributeSpecifier;
 
-    bool InsideInlineASM = Line.startsWith(tok::kw_asm);
-    bool IsCppStructuredBinding = Left->isCppStructuredBinding(Style);
+    bool const InsideInlineASM = Line.startsWith(tok::kw_asm);
+    bool const IsCppStructuredBinding = Left->isCppStructuredBinding(Style);
     bool StartsObjCMethodExpr =
         !IsCppStructuredBinding && !InsideInlineASM && !CppArrayTemplates &&
         Style.isCpp() && !IsCpp11AttributeSpecifier &&
@@ -643,7 +643,7 @@ private:
       }
     }
 
-    ScopedContextCreator ContextCreator(*this, tok::l_square, BindingIncrease);
+    ScopedContextCreator const ContextCreator(*this, tok::l_square, BindingIncrease);
     Contexts.back().IsExpression = true;
     if (Style.Language == FormatStyle::LK_JavaScript && Parent &&
         Parent->is(TT_JsTypeColon))
@@ -769,7 +769,7 @@ private:
         Left->setType(TT_ObjCBlockLBrace);
       Contexts.back().CaretFound = false;
 
-      ScopedContextCreator ContextCreator(*this, tok::l_brace, 1);
+      ScopedContextCreator const ContextCreator(*this, tok::l_brace, 1);
       Contexts.back().ColonIsDictLiteral = true;
       if (Left->is(BK_BracedInit))
         Contexts.back().IsExpression = true;
@@ -916,7 +916,7 @@ private:
         const FormatToken *BeforePrevious = Tok->Previous->Previous;
         // Ensure we tag all identifiers in method declarations as
         // TT_SelectorName.
-        bool UnknownIdentifierInMethodDeclaration =
+        bool const UnknownIdentifierInMethodDeclaration =
             Line.startsWith(TT_ObjCMethodSpecifier) &&
             Tok->Previous->is(tok::identifier) && Tok->Previous->is(TT_Unknown);
         if (!BeforePrevious ||
@@ -1215,7 +1215,7 @@ private:
     next(); // Consume "pragma".
     if (CurrentToken &&
         CurrentToken->isOneOf(Keywords.kw_mark, Keywords.kw_option)) {
-      bool IsMark = CurrentToken->is(Keywords.kw_mark);
+      bool const IsMark = CurrentToken->is(Keywords.kw_mark);
       next(); // Consume "mark".
       next(); // Consume first token (so we fix leading whitespace).
       while (CurrentToken) {
@@ -1235,7 +1235,7 @@ private:
   }
 
   LineType parsePreprocessorDirective() {
-    bool IsFirstToken = CurrentToken->IsFirst;
+    bool const IsFirstToken = CurrentToken->IsFirst;
     LineType Type = LT_PreprocessorDirective;
     next();
     if (!CurrentToken)
@@ -1623,7 +1623,7 @@ private:
     if ((Style.Language == FormatStyle::LK_JavaScript || Style.isCSharp()) &&
         Current.is(tok::exclaim)) {
       if (Current.Previous) {
-        bool IsIdentifier =
+        bool const IsIdentifier =
             Style.Language == FormatStyle::LK_JavaScript
                 ? Keywords.IsJavaScriptIdentifier(
                       *Current.Previous, /* AcceptIdentifierName= */ true)
@@ -1825,7 +1825,7 @@ private:
     if (!PreviousNotConst)
       return false;
 
-    bool IsPPKeyword = PreviousNotConst->is(tok::identifier) &&
+    bool const IsPPKeyword = PreviousNotConst->is(tok::identifier) &&
                        PreviousNotConst->Previous &&
                        PreviousNotConst->Previous->is(tok::hash);
 
@@ -1935,12 +1935,12 @@ private:
       }
       return T && T->is(TT_PointerOrReference);
     };
-    bool ParensAreType =
+    bool const ParensAreType =
         !Tok.Previous ||
         Tok.Previous->isOneOf(TT_TemplateCloser, TT_TypeDeclarationParen) ||
         Tok.Previous->isSimpleTypeSpecifier() ||
         IsQualifiedPointerOrReference(Tok.Previous);
-    bool ParensCouldEndDecl =
+    bool const ParensCouldEndDecl =
         Tok.Next->isOneOf(tok::equal, tok::semi, tok::l_brace, tok::greater);
     if (ParensAreType && !ParensCouldEndDecl)
       return true;
@@ -1976,7 +1976,7 @@ private:
     // If the next token after the parenthesis is a unary operator, assume
     // that this is cast, unless there are unexpected tokens inside the
     // parenthesis.
-    bool NextIsUnary =
+    bool const NextIsUnary =
         Tok.Next->isUnaryOperator() || Tok.Next->isOneOf(tok::amp, tok::star);
     if (!NextIsUnary || Tok.Next->is(tok::plus) ||
         !Tok.Next->Next->isOneOf(tok::identifier, tok::numeric_constant))
@@ -2159,7 +2159,7 @@ public:
       // Consume operators with higher precedence.
       parse(Precedence + 1);
 
-      int CurrentPrecedence = getCurrentPrecedence();
+      int const CurrentPrecedence = getCurrentPrecedence();
 
       if (Current && Current->is(TT_SelectorName) &&
           Precedence == CurrentPrecedence) {
@@ -2537,7 +2537,7 @@ void TokenAnnotator::calculateFormattingInformation(AnnotatedLine &Line) {
                               : Line.FirstStartColumn + Line.First->ColumnWidth;
   FormatToken *Current = Line.First->Next;
   bool InFunctionDecl = Line.MightBeFunctionDecl;
-  bool AlignArrayOfStructures =
+  bool const AlignArrayOfStructures =
       (Style.AlignArrayOfStructures != FormatStyle::AIAS_None &&
        Line.Type == LT_ArrayOfStructInitializer);
   if (AlignArrayOfStructures)
@@ -2590,7 +2590,7 @@ void TokenAnnotator::calculateFormattingInformation(AnnotatedLine &Line) {
         Current->MustBreakBefore || canBreakBefore(Line, *Current);
     unsigned ChildSize = 0;
     if (Current->Previous->Children.size() == 1) {
-      FormatToken &LastOfChild = *Current->Previous->Children[0]->Last;
+      FormatToken  const&LastOfChild = *Current->Previous->Children[0]->Last;
       ChildSize = LastOfChild.isTrailingComment() ? Style.ColumnLimit
                                                   : LastOfChild.TotalLength + 1;
     }
@@ -2668,7 +2668,7 @@ void TokenAnnotator::calculateArrayInitializerColumnList(AnnotatedLine &Line) {
   }
   auto *CurrentToken = Line.First;
   CurrentToken->ArrayInitializerLineStart = true;
-  unsigned Depth = 0;
+  unsigned const Depth = 0;
   while (CurrentToken != nullptr && CurrentToken != Line.Last) {
     if (CurrentToken->is(tok::l_brace)) {
       CurrentToken->IsArrayInitializer = true;
@@ -2812,7 +2812,7 @@ unsigned TokenAnnotator::splitPenalty(const AnnotatedLine &Line,
     // annotations (i.e. "const", "final" and "override") on the same line.
     // Use a slightly higher penalty after ")" so that annotations like
     // "const override" are kept together.
-    bool is_short_annotation = Right.TokenText.size() < 10;
+    bool const is_short_annotation = Right.TokenText.size() < 10;
     return (Left.is(tok::r_paren) ? 100 : 120) + (is_short_annotation ? 50 : 0);
   }
 
@@ -2948,7 +2948,7 @@ bool TokenAnnotator::spaceRequiredBetween(const AnnotatedLine &Line,
   if (Right.isOneOf(tok::semi, tok::comma))
     return false;
   if (Right.is(tok::less) && Line.Type == LT_ObjCDecl) {
-    bool IsLightweightGeneric = Right.MatchingParen &&
+    bool const IsLightweightGeneric = Right.MatchingParen &&
                                 Right.MatchingParen->Next &&
                                 Right.MatchingParen->Next->is(tok::colon);
     return !IsLightweightGeneric && Style.ObjCSpaceBeforeProtocolList;

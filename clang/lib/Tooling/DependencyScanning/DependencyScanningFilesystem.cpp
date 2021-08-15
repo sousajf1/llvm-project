@@ -52,7 +52,7 @@ CachedFileSystemEntry CachedFileSystemEntry::createFileEntry(
   }
 
   CachedFileSystemEntry Result;
-  size_t Size = MinimizedFileContents.size();
+  size_t const Size = MinimizedFileContents.size();
   Result.MaybeStat = llvm::vfs::Status(Stat->getName(), Stat->getUniqueID(),
                                        Stat->getLastModificationTime(),
                                        Stat->getUser(), Stat->getGroup(), Size,
@@ -113,7 +113,7 @@ DependencyScanningFilesystemSharedCache::SingleCache::SingleCache() {
 DependencyScanningFilesystemSharedCache::SharedFileSystemEntry &
 DependencyScanningFilesystemSharedCache::SingleCache::get(StringRef Key) {
   CacheShard &Shard = CacheShards[llvm::hash_value(Key) % NumShards];
-  std::unique_lock<std::mutex> LockGuard(Shard.CacheLock);
+  std::unique_lock<std::mutex> const LockGuard(Shard.CacheLock);
   auto It = Shard.Cache.try_emplace(Key);
   return It.first->getValue();
 }
@@ -130,7 +130,7 @@ DependencyScanningFilesystemSharedCache::get(StringRef Key, bool Minimized) {
 /// This is kinda hacky, it would be better if we knew what kind of file Clang
 /// was expecting instead.
 static bool shouldMinimize(StringRef Filename) {
-  StringRef Ext = llvm::sys::path::extension(Filename);
+  StringRef const Ext = llvm::sys::path::extension(Filename);
   if (Ext.empty())
     return true; // C++ standard library
   return llvm::StringSwitch<bool>(Ext)
@@ -144,7 +144,7 @@ static bool shouldMinimize(StringRef Filename) {
 
 
 static bool shouldCacheStatFailures(StringRef Filename) {
-  StringRef Ext = llvm::sys::path::extension(Filename);
+  StringRef const Ext = llvm::sys::path::extension(Filename);
   if (Ext.empty())
     return false; // This may be the module cache directory.
   return shouldMinimize(Filename); // Only cache stat failures on source files.
@@ -166,7 +166,7 @@ bool DependencyScanningWorkerFilesystem::shouldIgnoreFile(
 llvm::ErrorOr<const CachedFileSystemEntry *>
 DependencyScanningWorkerFilesystem::getOrCreateFileSystemEntry(
     const StringRef Filename) {
-  bool ShouldMinimize = !shouldIgnoreFile(Filename) && shouldMinimize(Filename);
+  bool const ShouldMinimize = !shouldIgnoreFile(Filename) && shouldMinimize(Filename);
 
   if (const auto *Entry = Cache.getCachedEntry(Filename, ShouldMinimize))
     return Entry;
@@ -178,7 +178,7 @@ DependencyScanningWorkerFilesystem::getOrCreateFileSystemEntry(
       &SharedCacheEntry = SharedCache.get(Filename, ShouldMinimize);
   const CachedFileSystemEntry *Result;
   {
-    std::unique_lock<std::mutex> LockGuard(SharedCacheEntry.ValueLock);
+    std::unique_lock<std::mutex> const LockGuard(SharedCacheEntry.ValueLock);
     CachedFileSystemEntry &CacheEntry = SharedCacheEntry.Value;
 
     if (!CacheEntry.isValid()) {
@@ -212,7 +212,7 @@ DependencyScanningWorkerFilesystem::getOrCreateFileSystemEntry(
 llvm::ErrorOr<llvm::vfs::Status>
 DependencyScanningWorkerFilesystem::status(const Twine &Path) {
   SmallString<256> OwnedFilename;
-  StringRef Filename = Path.toStringRef(OwnedFilename);
+  StringRef const Filename = Path.toStringRef(OwnedFilename);
   const llvm::ErrorOr<const CachedFileSystemEntry *> Result =
       getOrCreateFileSystemEntry(Filename);
   if (!Result)
@@ -274,7 +274,7 @@ llvm::ErrorOr<std::unique_ptr<llvm::vfs::File>> MinimizedVFSFile::create(
 llvm::ErrorOr<std::unique_ptr<llvm::vfs::File>>
 DependencyScanningWorkerFilesystem::openFileForRead(const Twine &Path) {
   SmallString<256> OwnedFilename;
-  StringRef Filename = Path.toStringRef(OwnedFilename);
+  StringRef const Filename = Path.toStringRef(OwnedFilename);
 
   const llvm::ErrorOr<const CachedFileSystemEntry *> Result =
       getOrCreateFileSystemEntry(Filename);

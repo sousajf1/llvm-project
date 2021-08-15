@@ -72,7 +72,7 @@ ArgumentsAdjuster getClangStripOutputAdjuster() {
   return [](const CommandLineArguments &Args, StringRef /*unused*/) {
     CommandLineArguments AdjustedArgs;
     for (size_t i = 0, e = Args.size(); i < e; ++i) {
-      StringRef Arg = Args[i];
+      StringRef const Arg = Args[i];
       if (!Arg.startswith("-o"))
         AdjustedArgs.push_back(Args[i]);
 
@@ -92,7 +92,7 @@ ArgumentsAdjuster getClangStripDependencyFileAdjuster() {
 
     CommandLineArguments AdjustedArgs;
     for (size_t i = 0, e = Args.size(); i < e; ++i) {
-      StringRef Arg = Args[i];
+      StringRef const Arg = Args[i];
 
       // These flags take an argument: -MX foo. Skip the next argument also.
       if (!UsingClDriver && (Arg == "-MF" || Arg == "-MT" || Arg == "-MQ")) {

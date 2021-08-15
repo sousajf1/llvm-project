@@ -292,7 +292,7 @@ ConstantExpr *ConstantExpr::Create(const ASTContext &Context, Expr *E,
   assert(!isa<ConstantExpr>(E));
   AssertResultStorageKind(StorageKind);
 
-  unsigned Size = totalSizeToAlloc<APValue, uint64_t>(
+  unsigned const Size = totalSizeToAlloc<APValue, uint64_t>(
       StorageKind == ConstantExpr::RSK_APValue,
       StorageKind == ConstantExpr::RSK_Int64);
   void *Mem = Context.Allocate(Size, alignof(ConstantExpr));
@@ -301,7 +301,7 @@ ConstantExpr *ConstantExpr::Create(const ASTContext &Context, Expr *E,
 
 ConstantExpr *ConstantExpr::Create(const ASTContext &Context, Expr *E,
                                    const APValue &Result) {
-  ResultStorageKind StorageKind = getStorageKind(Result);
+  ResultStorageKind const StorageKind = getStorageKind(Result);
   ConstantExpr *Self = Create(Context, E, StorageKind);
   Self->SetResult(Result, Context);
   return Self;
@@ -319,7 +319,7 @@ ConstantExpr *ConstantExpr::CreateEmpty(const ASTContext &Context,
                                         ResultStorageKind StorageKind) {
   AssertResultStorageKind(StorageKind);
 
-  unsigned Size = totalSizeToAlloc<APValue, uint64_t>(
+  unsigned const Size = totalSizeToAlloc<APValue, uint64_t>(
       StorageKind == ConstantExpr::RSK_APValue,
       StorageKind == ConstantExpr::RSK_Int64);
   void *Mem = Context.Allocate(Size, alignof(ConstantExpr));
@@ -459,8 +459,8 @@ DeclRefExpr *DeclRefExpr::Create(const ASTContext &Context,
   if (D == FoundD)
     FoundD = nullptr;
 
-  bool HasTemplateKWAndArgsInfo = TemplateArgs || TemplateKWLoc.isValid();
-  std::size_t Size =
+  bool const HasTemplateKWAndArgsInfo = TemplateArgs || TemplateKWLoc.isValid();
+  std::size_t const Size =
       totalSizeToAlloc<NestedNameSpecifierLoc, NamedDecl *,
                        ASTTemplateKWAndArgsInfo, TemplateArgumentLoc>(
           QualifierLoc ? 1 : 0, FoundD ? 1 : 0,
@@ -479,7 +479,7 @@ DeclRefExpr *DeclRefExpr::CreateEmpty(const ASTContext &Context,
                                       bool HasTemplateKWAndArgsInfo,
                                       unsigned NumTemplateArgs) {
   assert(NumTemplateArgs == 0 || HasTemplateKWAndArgsInfo);
-  std::size_t Size =
+  std::size_t const Size =
       totalSizeToAlloc<NestedNameSpecifierLoc, NamedDecl *,
                        ASTTemplateKWAndArgsInfo, TemplateArgumentLoc>(
           HasQualifier ? 1 : 0, HasFoundDecl ? 1 : 0, HasTemplateKWAndArgsInfo,
@@ -525,14 +525,14 @@ SYCLUniqueStableNameExpr *
 SYCLUniqueStableNameExpr::Create(const ASTContext &Ctx, SourceLocation OpLoc,
                                  SourceLocation LParen, SourceLocation RParen,
                                  TypeSourceInfo *TSI) {
-  QualType ResultTy = Ctx.getPointerType(Ctx.CharTy.withConst());
+  QualType const ResultTy = Ctx.getPointerType(Ctx.CharTy.withConst());
   return new (Ctx)
       SYCLUniqueStableNameExpr(OpLoc, LParen, RParen, ResultTy, TSI);
 }
 
 SYCLUniqueStableNameExpr *
 SYCLUniqueStableNameExpr::CreateEmpty(const ASTContext &Ctx) {
-  QualType ResultTy = Ctx.getPointerType(Ctx.CharTy.withConst());
+  QualType const ResultTy = Ctx.getPointerType(Ctx.CharTy.withConst());
   return new (Ctx) SYCLUniqueStableNameExpr(EmptyShell(), ResultTy);
 }
 
@@ -576,7 +576,7 @@ PredefinedExpr::PredefinedExpr(SourceLocation L, QualType FNTy, IdentKind IK,
   PredefinedExprBits.Kind = IK;
   assert((getIdentKind() == IK) &&
          "IdentKind do not fit in PredefinedExprBitfields!");
-  bool HasFunctionName = SL != nullptr;
+  bool const HasFunctionName = SL != nullptr;
   PredefinedExprBits.HasFunctionName = HasFunctionName;
   PredefinedExprBits.Loc = L;
   if (HasFunctionName)
@@ -592,7 +592,7 @@ PredefinedExpr::PredefinedExpr(EmptyShell Empty, bool HasFunctionName)
 PredefinedExpr *PredefinedExpr::Create(const ASTContext &Ctx, SourceLocation L,
                                        QualType FNTy, IdentKind IK,
                                        StringLiteral *SL) {
-  bool HasFunctionName = SL != nullptr;
+  bool const HasFunctionName = SL != nullptr;
   void *Mem = Ctx.Allocate(totalSizeToAlloc<Stmt *>(HasFunctionName),
                            alignof(PredefinedExpr));
   return new (Mem) PredefinedExpr(L, FNTy, IK, SL);
@@ -691,7 +691,7 @@ std::string PredefinedExpr::ComputeName(IdentKind IK, const Decl *CurrentDecl) {
         Out << "static ";
     }
 
-    PrintingPolicy Policy(Context.getLangOpts());
+    PrintingPolicy const Policy(Context.getLangOpts());
     std::string Proto;
     llvm::raw_string_ostream POut(Proto);
 
@@ -742,7 +742,7 @@ std::string PredefinedExpr::ComputeName(IdentKind IK, const Decl *CurrentDecl) {
         POut << " const";
       if (FT->isVolatile())
         POut << " volatile";
-      RefQualifierKind Ref = MD->getRefQualifier();
+      RefQualifierKind const Ref = MD->getRefQualifier();
       if (Ref == RQ_LValue)
         POut << " &";
       else if (Ref == RQ_RValue)
@@ -769,7 +769,7 @@ std::string PredefinedExpr::ComputeName(IdentKind IK, const Decl *CurrentDecl) {
       const TemplateArgumentList &Args = (*I)->getTemplateArgs();
       assert(Params->size() == Args.size());
       for (unsigned i = 0, numParams = Params->size(); i != numParams; ++i) {
-        StringRef Param = Params->getParam(i)->getName();
+        StringRef const Param = Params->getParam(i)->getName();
         if (Param.empty()) continue;
         TOut << Param << " = ";
         Args.get(i).print(
@@ -787,7 +787,7 @@ std::string PredefinedExpr::ComputeName(IdentKind IK, const Decl *CurrentDecl) {
       const TemplateArgumentList* Args = FSI->TemplateArguments;
       assert(Params->size() == Args->size());
       for (unsigned i = 0, e = Params->size(); i != e; ++i) {
-        StringRef Param = Params->getParam(i)->getName();
+        StringRef const Param = Params->getParam(i)->getName();
         if (Param.empty()) continue;
         TOut << Param << " = ";
         Args->get(i).print(Policy, TOut, /*IncludeType*/ true);
@@ -867,7 +867,7 @@ void APNumericStorage::setIntValue(const ASTContext &C,
     C.Deallocate(pVal);
 
   BitWidth = Val.getBitWidth();
-  unsigned NumWords = Val.getNumWords();
+  unsigned const NumWords = Val.getNumWords();
   const uint64_t* Words = Val.getRawData();
   if (NumWords > 1) {
     pVal = new (C) uint64_t[NumWords];
@@ -1073,8 +1073,8 @@ StringLiteral::StringLiteral(const ASTContext &Ctx, StringRef Str,
     : Expr(StringLiteralClass, Ty, VK_LValue, OK_Ordinary) {
   assert(Ctx.getAsConstantArrayType(Ty) &&
          "StringLiteral must be of constant array type!");
-  unsigned CharByteWidth = mapCharByteWidth(Ctx.getTargetInfo(), Kind);
-  unsigned ByteLength = Str.size();
+  unsigned const CharByteWidth = mapCharByteWidth(Ctx.getTargetInfo(), Kind);
+  unsigned const ByteLength = Str.size();
   assert((ByteLength % CharByteWidth == 0) &&
          "The size of the data must be a multiple of CharByteWidth!");
 
@@ -1164,7 +1164,7 @@ void StringLiteral::outputString(raw_ostream &OS) const {
       // Leave invalid surrogates alone; we'll use \x for those.
       if (getKind() == UTF16 && I != N - 1 && Char >= 0xd800 &&
           Char <= 0xdbff) {
-        uint32_t Trail = getCodeUnit(I + 1);
+        uint32_t const Trail = getCodeUnit(I + 1);
         if (Trail >= 0xdc00 && Trail <= 0xdfff) {
           Char = 0x10000 + ((Char - 0xd800) << 10) + (Trail - 0xdc00);
           ++I;
@@ -1276,7 +1276,7 @@ StringLiteral::getLocationOfByte(unsigned ByteNo, const SourceManager &SM,
   }
   while (1) {
     assert(TokNo < getNumConcatenated() && "Invalid byte number!");
-    SourceLocation StrTokLoc = getStrTokenLoc(TokNo);
+    SourceLocation const StrTokLoc = getStrTokenLoc(TokNo);
 
     // Get the spelling of the string so that we can get the data that makes up
     // the string literal, not the identifier for the macro it is potentially
@@ -1284,10 +1284,10 @@ StringLiteral::getLocationOfByte(unsigned ByteNo, const SourceManager &SM,
     SourceLocation StrTokSpellingLoc = SM.getSpellingLoc(StrTokLoc);
 
     // Re-lex the token to get its length and original spelling.
-    std::pair<FileID, unsigned> LocInfo =
+    std::pair<FileID, unsigned> const LocInfo =
         SM.getDecomposedLoc(StrTokSpellingLoc);
     bool Invalid = false;
-    StringRef Buffer = SM.getBufferData(LocInfo.first, &Invalid);
+    StringRef const Buffer = SM.getBufferData(LocInfo.first, &Invalid);
     if (Invalid) {
       if (StartTokenByteOffset != nullptr)
         *StartTokenByteOffset = StringOffset;
@@ -1305,13 +1305,13 @@ StringLiteral::getLocationOfByte(unsigned ByteNo, const SourceManager &SM,
     TheLexer.LexFromRawLexer(TheTok);
 
     // Use the StringLiteralParser to compute the length of the string in bytes.
-    StringLiteralParser SLP(TheTok, SM, Features, Target);
-    unsigned TokNumBytes = SLP.GetStringLength();
+    StringLiteralParser const SLP(TheTok, SM, Features, Target);
+    unsigned const TokNumBytes = SLP.GetStringLength();
 
     // If the byte is in this token, return the location of the byte.
     if (ByteNo < TokNumBytes ||
         (ByteNo == TokNumBytes && TokNo == getNumConcatenated() - 1)) {
-      unsigned Offset = SLP.getOffsetOfStringByte(TheTok, ByteNo);
+      unsigned const Offset = SLP.getOffsetOfStringByte(TheTok, ByteNo);
 
       // Now that we know the offset of the token in the spelling, use the
       // preprocessor to get the offset in the original source.
@@ -1381,11 +1381,11 @@ CallExpr::CallExpr(StmtClass SC, Expr *Fn, ArrayRef<Expr *> PreArgs,
                    unsigned MinNumArgs, ADLCallKind UsesADL)
     : Expr(SC, Ty, VK, OK_Ordinary), RParenLoc(RParenLoc) {
   NumArgs = std::max<unsigned>(Args.size(), MinNumArgs);
-  unsigned NumPreArgs = PreArgs.size();
+  unsigned const NumPreArgs = PreArgs.size();
   CallExprBits.NumPreArgs = NumPreArgs;
   assert((NumPreArgs == getNumPreArgs()) && "NumPreArgs overflow!");
 
-  unsigned OffsetToTrailingObjects = offsetToTrailingObjects(SC);
+  unsigned const OffsetToTrailingObjects = offsetToTrailingObjects(SC);
   CallExprBits.OffsetToTrailingObjects = OffsetToTrailingObjects;
   assert((CallExprBits.OffsetToTrailingObjects == OffsetToTrailingObjects) &&
          "OffsetToTrailingObjects overflow!");
@@ -1413,7 +1413,7 @@ CallExpr::CallExpr(StmtClass SC, unsigned NumPreArgs, unsigned NumArgs,
   CallExprBits.NumPreArgs = NumPreArgs;
   assert((NumPreArgs == getNumPreArgs()) && "NumPreArgs overflow!");
 
-  unsigned OffsetToTrailingObjects = offsetToTrailingObjects(SC);
+  unsigned const OffsetToTrailingObjects = offsetToTrailingObjects(SC);
   CallExprBits.OffsetToTrailingObjects = OffsetToTrailingObjects;
   assert((CallExprBits.OffsetToTrailingObjects == OffsetToTrailingObjects) &&
          "OffsetToTrailingObjects overflow!");
@@ -1425,8 +1425,8 @@ CallExpr *CallExpr::Create(const ASTContext &Ctx, Expr *Fn,
                            SourceLocation RParenLoc,
                            FPOptionsOverride FPFeatures, unsigned MinNumArgs,
                            ADLCallKind UsesADL) {
-  unsigned NumArgs = std::max<unsigned>(Args.size(), MinNumArgs);
-  unsigned SizeOfTrailingObjects = CallExpr::sizeOfTrailingObjects(
+  unsigned const NumArgs = std::max<unsigned>(Args.size(), MinNumArgs);
+  unsigned const SizeOfTrailingObjects = CallExpr::sizeOfTrailingObjects(
       /*NumPreArgs=*/0, NumArgs, FPFeatures.requiresTrailingStorage());
   void *Mem =
       Ctx.Allocate(sizeof(CallExpr) + SizeOfTrailingObjects, alignof(CallExpr));
@@ -1446,7 +1446,7 @@ CallExpr *CallExpr::CreateTemporary(void *Mem, Expr *Fn, QualType Ty,
 
 CallExpr *CallExpr::CreateEmpty(const ASTContext &Ctx, unsigned NumArgs,
                                 bool HasFPFeatures, EmptyShell Empty) {
-  unsigned SizeOfTrailingObjects =
+  unsigned const SizeOfTrailingObjects =
       CallExpr::sizeOfTrailingObjects(/*NumPreArgs=*/0, NumArgs, HasFPFeatures);
   void *Mem =
       Ctx.Allocate(sizeof(CallExpr) + SizeOfTrailingObjects, alignof(CallExpr));
@@ -1514,7 +1514,7 @@ unsigned CallExpr::getBuiltinCallee() const {
 }
 
 bool CallExpr::isUnevaluatedBuiltinCall(const ASTContext &Ctx) const {
-  if (unsigned BI = getBuiltinCallee())
+  if (unsigned const BI = getBuiltinCallee())
     return Ctx.BuiltinInfo.isUnevaluated(BI);
   return false;
 }
@@ -1658,10 +1658,10 @@ MemberExpr *MemberExpr::Create(
     ValueDecl *MemberDecl, DeclAccessPair FoundDecl,
     DeclarationNameInfo NameInfo, const TemplateArgumentListInfo *TemplateArgs,
     QualType T, ExprValueKind VK, ExprObjectKind OK, NonOdrUseReason NOUR) {
-  bool HasQualOrFound = QualifierLoc || FoundDecl.getDecl() != MemberDecl ||
+  bool const HasQualOrFound = QualifierLoc || FoundDecl.getDecl() != MemberDecl ||
                         FoundDecl.getAccess() != MemberDecl->getAccess();
-  bool HasTemplateKWAndArgsInfo = TemplateArgs || TemplateKWLoc.isValid();
-  std::size_t Size =
+  bool const HasTemplateKWAndArgsInfo = TemplateArgs || TemplateKWLoc.isValid();
+  std::size_t const Size =
       totalSizeToAlloc<MemberExprNameQualifier, ASTTemplateKWAndArgsInfo,
                        TemplateArgumentLoc>(
           HasQualOrFound ? 1 : 0, HasTemplateKWAndArgsInfo ? 1 : 0,
@@ -1714,8 +1714,8 @@ MemberExpr *MemberExpr::CreateEmpty(const ASTContext &Context,
                                     unsigned NumTemplateArgs) {
   assert((!NumTemplateArgs || HasTemplateKWAndArgsInfo) &&
          "template args but no template arg info?");
-  bool HasQualOrFound = HasQualifier || HasFoundDecl;
-  std::size_t Size =
+  bool const HasQualOrFound = HasQualifier || HasFoundDecl;
+  std::size_t const Size =
       totalSizeToAlloc<MemberExprNameQualifier, ASTTemplateKWAndArgsInfo,
                        TemplateArgumentLoc>(HasQualOrFound ? 1 : 0,
                                             HasTemplateKWAndArgsInfo ? 1 : 0,
@@ -2008,7 +2008,7 @@ ImplicitCastExpr *ImplicitCastExpr::Create(const ASTContext &C, QualType T,
                                            const CXXCastPath *BasePath,
                                            ExprValueKind VK,
                                            FPOptionsOverride FPO) {
-  unsigned PathSize = (BasePath ? BasePath->size() : 0);
+  unsigned const PathSize = (BasePath ? BasePath->size() : 0);
   void *Buffer =
       C.Allocate(totalSizeToAlloc<CXXBaseSpecifier *, FPOptionsOverride>(
           PathSize, FPO.requiresTrailingStorage()));
@@ -2040,7 +2040,7 @@ CStyleCastExpr *CStyleCastExpr::Create(const ASTContext &C, QualType T,
                                        FPOptionsOverride FPO,
                                        TypeSourceInfo *WrittenTy,
                                        SourceLocation L, SourceLocation R) {
-  unsigned PathSize = (BasePath ? BasePath->size() : 0);
+  unsigned const PathSize = (BasePath ? BasePath->size() : 0);
   void *Buffer =
       C.Allocate(totalSizeToAlloc<CXXBaseSpecifier *, FPOptionsOverride>(
           PathSize, FPO.requiresTrailingStorage()));
@@ -2173,7 +2173,7 @@ static QualType getDecayedSourceLocExprType(const ASTContext &Ctx,
   switch (Kind) {
   case SourceLocExpr::File:
   case SourceLocExpr::Function: {
-    QualType ArrTy = Ctx.getStringLiteralArrayType(Ctx.CharTy, 0);
+    QualType const ArrTy = Ctx.getStringLiteralArrayType(Ctx.CharTy, 0);
     return Ctx.getPointerType(ArrTy->getAsArrayTypeUnsafe()->getElementType());
   }
   case SourceLocExpr::Line:
@@ -2221,14 +2221,14 @@ APValue SourceLocExpr::EvaluateInContext(const ASTContext &Ctx,
     return {this->getLocation(), this->getParentContext()};
   }();
 
-  PresumedLoc PLoc = Ctx.getSourceManager().getPresumedLoc(
+  PresumedLoc const PLoc = Ctx.getSourceManager().getPresumedLoc(
       Ctx.getSourceManager().getExpansionRange(Loc).getEnd());
 
   auto MakeStringLiteral = [&](StringRef Tmp) {
     using LValuePathEntry = APValue::LValuePathEntry;
     StringLiteral *Res = Ctx.getPredefinedStringLiteralFromCache(Tmp);
     // Decay the string to a pointer to the first character.
-    LValuePathEntry Path[1] = {LValuePathEntry::ArrayIndex(0)};
+    LValuePathEntry const Path[1] = {LValuePathEntry::ArrayIndex(0)};
     return APValue(Res, CharUnits::Zero(), Path, /*OnePastTheEnd=*/false);
   };
 
@@ -2639,7 +2639,7 @@ bool Expr::isUnusedResultAWarning(const Expr *&WarnE, SourceLocation &Loc,
         Loc = CE->getCallee()->getBeginLoc();
         R1 = CE->getCallee()->getSourceRange();
 
-        if (unsigned NumArgs = CE->getNumArgs())
+        if (unsigned const NumArgs = CE->getNumArgs())
           R2 = SourceRange(CE->getArg(0)->getBeginLoc(),
                            CE->getArg(NumArgs - 1)->getEndLoc());
         return true;
@@ -2675,7 +2675,7 @@ bool Expr::isUnusedResultAWarning(const Expr *&WarnE, SourceLocation &Loc,
         Loc = getBeginLoc();
         R1 = getSourceRange();
 
-        if (unsigned NumArgs = CE->getNumArgs())
+        if (unsigned const NumArgs = CE->getNumArgs())
           R2 = SourceRange(CE->getArg(0)->getBeginLoc(),
                            CE->getArg(NumArgs - 1)->getEndLoc());
         return true;
@@ -2858,7 +2858,7 @@ bool Expr::isOBJCGCCandidate(ASTContext &Ctx) const {
     if (const VarDecl *VD = dyn_cast<VarDecl>(D)) {
       if (VD->hasGlobalStorage())
         return true;
-      QualType T = VD->getType();
+      QualType const T = VD->getType();
       // dereferencing to a  pointer is always a gc'able candidate,
       // unless it is __weak.
       return T->isPointerType() &&
@@ -2958,9 +2958,9 @@ Expr *Expr::IgnoreParenNoopCasts(const ASTContext &Ctx) {
       // We ignore integer <-> casts that are of the same width, ptr<->ptr and
       // ptr<->int casts of the same width. We also ignore all identity casts.
       Expr *SubExpr = CE->getSubExpr();
-      bool IsIdentityCast =
+      bool const IsIdentityCast =
           Ctx.hasSameUnqualifiedType(E->getType(), SubExpr->getType());
-      bool IsSameWidthCast = (E->getType()->isPointerType() ||
+      bool const IsSameWidthCast = (E->getType()->isPointerType() ||
                               E->getType()->isIntegralType(Ctx)) &&
                              (SubExpr->getType()->isPointerType() ||
                               SubExpr->getType()->isIntegralType(Ctx)) &&
@@ -3222,7 +3222,7 @@ bool Expr::isConstantInitializer(ASTContext &Ctx, bool IsForRef,
     const InitListExpr *ILE = cast<InitListExpr>(this);
     assert(ILE->isSemanticForm() && "InitListExpr must be in semantic form");
     if (ILE->getType()->isArrayType()) {
-      unsigned numInits = ILE->getNumInits();
+      unsigned const numInits = ILE->getNumInits();
       for (unsigned i = 0; i < numInits; i++) {
         if (!ILE->getInit(i)->isConstantInitializer(Ctx, false, Culprit))
           return false;
@@ -3253,7 +3253,7 @@ bool Expr::isConstantInitializer(ASTContext &Ctx, bool IsForRef,
               return false;
             }
           } else {
-            bool RefType = Field->getType()->isReferenceType();
+            bool const RefType = Field->getType()->isReferenceType();
             if (!Elt->isConstantInitializer(Ctx, RefType, Culprit))
               return false;
           }
@@ -3471,7 +3471,7 @@ bool Expr::HasSideEffects(const ASTContext &Ctx,
     // to pure/const functions that definitely don't.
     // If the call itself is considered side-effect free, check the operands.
     const Decl *FD = cast<CallExpr>(this)->getCalleeDecl();
-    bool IsPure = FD && (FD->hasAttr<ConstAttr>() || FD->hasAttr<PureAttr>());
+    bool const IsPure = FD && (FD->hasAttr<ConstAttr>() || FD->hasAttr<PureAttr>());
     if (IsPure || !IncludePossibleEffects)
       break;
     return true;
@@ -3773,7 +3773,7 @@ Expr::isNullPointerConstant(ASTContext &Ctx,
     if (!Ctx.getLangOpts().CPlusPlus) {
       // Check that it is a cast to void*.
       if (const PointerType *PT = CE->getType()->getAs<PointerType>()) {
-        QualType Pointee = PT->getPointeeType();
+        QualType const Pointee = PT->getPointeeType();
         Qualifiers Qs = Pointee.getQualifiers();
         // Only (void*)0 or equivalent are treated as nullptr. If pointee type
         // has non-default address space it is not treated as nullptr.
@@ -4144,10 +4144,10 @@ void ExtVectorElementExpr::getEncodedElementAccess(
     isNumericAccessor = true;
   }
 
-  bool isHi =   Comp == "hi";
-  bool isLo =   Comp == "lo";
-  bool isEven = Comp == "even";
-  bool isOdd  = Comp == "odd";
+  bool const isHi =   Comp == "hi";
+  bool const isLo =   Comp == "lo";
+  bool const isEven = Comp == "even";
+  bool const isOdd  = Comp == "odd";
 
   for (unsigned i = 0, e = getNumElements(); i != e; ++i) {
     uint64_t Index;
@@ -4243,7 +4243,7 @@ GenericSelectionExpr *GenericSelectionExpr::Create(
     ArrayRef<TypeSourceInfo *> AssocTypes, ArrayRef<Expr *> AssocExprs,
     SourceLocation DefaultLoc, SourceLocation RParenLoc,
     bool ContainsUnexpandedParameterPack, unsigned ResultIndex) {
-  unsigned NumAssocs = AssocExprs.size();
+  unsigned const NumAssocs = AssocExprs.size();
   void *Mem = Context.Allocate(
       totalSizeToAlloc<Stmt *, TypeSourceInfo *>(1 + NumAssocs, NumAssocs),
       alignof(GenericSelectionExpr));
@@ -4257,7 +4257,7 @@ GenericSelectionExpr *GenericSelectionExpr::Create(
     ArrayRef<TypeSourceInfo *> AssocTypes, ArrayRef<Expr *> AssocExprs,
     SourceLocation DefaultLoc, SourceLocation RParenLoc,
     bool ContainsUnexpandedParameterPack) {
-  unsigned NumAssocs = AssocExprs.size();
+  unsigned const NumAssocs = AssocExprs.size();
   void *Mem = Context.Allocate(
       totalSizeToAlloc<Stmt *, TypeSourceInfo *>(1 + NumAssocs, NumAssocs),
       alignof(GenericSelectionExpr));
@@ -4360,7 +4360,7 @@ SourceRange DesignatedInitExpr::getDesignatorsSourceRange() const {
 SourceLocation DesignatedInitExpr::getBeginLoc() const {
   SourceLocation StartLoc;
   auto *DIE = const_cast<DesignatedInitExpr *>(this);
-  Designator &First = *DIE->getDesignator(0);
+  Designator  const&First = *DIE->getDesignator(0);
   if (First.isFieldDesignator())
     StartLoc = GNUSyntax ? First.Field.FieldLoc : First.Field.DotLoc;
   else
@@ -4509,7 +4509,7 @@ BinaryOperator::BinaryOperator(const ASTContext &Ctx, Expr *lhs, Expr *rhs,
 
 BinaryOperator *BinaryOperator::CreateEmpty(const ASTContext &C,
                                             bool HasFPFeatures) {
-  unsigned Extra = sizeOfTrailingObjects(HasFPFeatures);
+  unsigned const Extra = sizeOfTrailingObjects(HasFPFeatures);
   void *Mem =
       C.Allocate(sizeof(BinaryOperator) + Extra, alignof(BinaryOperator));
   return new (Mem) BinaryOperator(EmptyShell());
@@ -4520,8 +4520,8 @@ BinaryOperator *BinaryOperator::Create(const ASTContext &C, Expr *lhs,
                                        ExprValueKind VK, ExprObjectKind OK,
                                        SourceLocation opLoc,
                                        FPOptionsOverride FPFeatures) {
-  bool HasFPFeatures = FPFeatures.requiresTrailingStorage();
-  unsigned Extra = sizeOfTrailingObjects(HasFPFeatures);
+  bool const HasFPFeatures = FPFeatures.requiresTrailingStorage();
+  unsigned const Extra = sizeOfTrailingObjects(HasFPFeatures);
   void *Mem =
       C.Allocate(sizeof(BinaryOperator) + Extra, alignof(BinaryOperator));
   return new (Mem)
@@ -4530,7 +4530,7 @@ BinaryOperator *BinaryOperator::Create(const ASTContext &C, Expr *lhs,
 
 CompoundAssignOperator *
 CompoundAssignOperator::CreateEmpty(const ASTContext &C, bool HasFPFeatures) {
-  unsigned Extra = sizeOfTrailingObjects(HasFPFeatures);
+  unsigned const Extra = sizeOfTrailingObjects(HasFPFeatures);
   void *Mem = C.Allocate(sizeof(CompoundAssignOperator) + Extra,
                          alignof(CompoundAssignOperator));
   return new (Mem) CompoundAssignOperator(C, EmptyShell(), HasFPFeatures);
@@ -4542,8 +4542,8 @@ CompoundAssignOperator::Create(const ASTContext &C, Expr *lhs, Expr *rhs,
                                ExprObjectKind OK, SourceLocation opLoc,
                                FPOptionsOverride FPFeatures,
                                QualType CompLHSType, QualType CompResultType) {
-  bool HasFPFeatures = FPFeatures.requiresTrailingStorage();
-  unsigned Extra = sizeOfTrailingObjects(HasFPFeatures);
+  bool const HasFPFeatures = FPFeatures.requiresTrailingStorage();
+  unsigned const Extra = sizeOfTrailingObjects(HasFPFeatures);
   void *Mem = C.Allocate(sizeof(CompoundAssignOperator) + Extra,
                          alignof(CompoundAssignOperator));
   return new (Mem)
@@ -4577,8 +4577,8 @@ UnaryOperator *UnaryOperator::Create(const ASTContext &C, Expr *input,
                                      ExprValueKind VK, ExprObjectKind OK,
                                      SourceLocation l, bool CanOverflow,
                                      FPOptionsOverride FPFeatures) {
-  bool HasFPFeatures = FPFeatures.requiresTrailingStorage();
-  unsigned Size = totalSizeToAlloc<FPOptionsOverride>(HasFPFeatures);
+  bool const HasFPFeatures = FPFeatures.requiresTrailingStorage();
+  unsigned const Size = totalSizeToAlloc<FPOptionsOverride>(HasFPFeatures);
   void *Mem = C.Allocate(Size, alignof(UnaryOperator));
   return new (Mem)
       UnaryOperator(C, input, opc, type, VK, OK, l, CanOverflow, FPFeatures);
@@ -4659,7 +4659,7 @@ PseudoObjectExpr::PseudoObjectExpr(QualType type, ExprValueKind VK,
 
 // UnaryExprOrTypeTraitExpr
 Stmt::child_range UnaryExprOrTypeTraitExpr::children() {
-  const_child_range CCR =
+  const_child_range const CCR =
       const_cast<const UnaryExprOrTypeTraitExpr *>(this)->children();
   return child_range(cast_away_const(CCR.begin()), cast_away_const(CCR.end()));
 }

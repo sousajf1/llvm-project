@@ -33,7 +33,7 @@ public:
     if (MacroName.getIdentifierInfo()->getName() == "_Pragma")
       return;
 
-    SourceLocation MacroNameBegin = SM.getExpansionLoc(MacroName.getLocation());
+    SourceLocation const MacroNameBegin = SM.getExpansionLoc(MacroName.getLocation());
     assert(MacroNameBegin == SM.getExpansionLoc(Range.getBegin()));
 
     const SourceLocation ExpansionEnd = [Range, &SM = SM, &MacroName] {
@@ -193,7 +193,7 @@ static void dumpTokenInto(const Preprocessor &PP, raw_ostream &OS, Token Tok) {
     if (Tok.getLength() < sizeof(Tmp)) {
       const char *TokPtr = Tmp;
       // FIXME: Might use a different overload for cleaner callsite.
-      unsigned Len = PP.getSpelling(Tok, TokPtr);
+      unsigned const Len = PP.getSpelling(Tok, TokPtr);
       OS.write(TokPtr, Len);
     } else {
       OS << "<too long token>";
@@ -202,7 +202,7 @@ static void dumpTokenInto(const Preprocessor &PP, raw_ostream &OS, Token Tok) {
 }
 
 void MacroExpansionContext::onTokenLexed(const Token &Tok) {
-  SourceLocation SLoc = Tok.getLocation();
+  SourceLocation const SLoc = Tok.getLocation();
   if (SLoc.isFileID())
     return;
 
@@ -211,7 +211,7 @@ void MacroExpansionContext::onTokenLexed(const Token &Tok) {
              SLoc.print(llvm::dbgs(), *SM); llvm::dbgs() << '\n';);
 
   // Remove spelling location.
-  SourceLocation CurrExpansionLoc = SM->getExpansionLoc(SLoc);
+  SourceLocation const CurrExpansionLoc = SM->getExpansionLoc(SLoc);
 
   MacroExpansionText TokenAsString;
   llvm::raw_svector_ostream OS(TokenAsString);

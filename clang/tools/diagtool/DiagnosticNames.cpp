@@ -51,7 +51,7 @@ static bool orderByID(const DiagnosticRecord &Left,
 }
 
 const DiagnosticRecord &diagtool::getDiagnosticForID(short DiagID) {
-  DiagnosticRecord Key = {nullptr, DiagID, 0};
+  DiagnosticRecord const Key = {nullptr, DiagID, 0};
 
   const DiagnosticRecord *Result =
       llvm::lower_bound(BuiltinDiagnosticsByID, Key, orderByID);

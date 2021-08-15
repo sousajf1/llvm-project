@@ -23,7 +23,7 @@ Sema::SemaDiagnosticBuilder Sema::SYCLDiagIfDeviceCode(SourceLocation Loc,
   assert(getLangOpts().SYCLIsDevice &&
          "Should only be called during SYCL compilation");
   FunctionDecl *FD = dyn_cast<FunctionDecl>(getCurLexicalContext());
-  SemaDiagnosticBuilder::Kind DiagKind = [this, FD] {
+  SemaDiagnosticBuilder::Kind const DiagKind = [this, FD] {
     if (!FD)
       return SemaDiagnosticBuilder::K_Nop;
     if (getEmissionStatus(FD) == Sema::FunctionEmissionStatus::Emitted)
@@ -43,7 +43,7 @@ bool Sema::checkSYCLDeviceFunction(SourceLocation Loc, FunctionDecl *Callee) {
   if (isUnevaluatedContext() || isConstantEvaluated())
     return true;
 
-  SemaDiagnosticBuilder::Kind DiagKind = SemaDiagnosticBuilder::K_Nop;
+  SemaDiagnosticBuilder::Kind const DiagKind = SemaDiagnosticBuilder::K_Nop;
 
   return DiagKind != SemaDiagnosticBuilder::K_Immediate &&
          DiagKind != SemaDiagnosticBuilder::K_ImmediateWithCallStack;
@@ -74,7 +74,7 @@ void Sema::AddSYCLKernelLambda(const FunctionDecl *FD) {
     return 1;
   };
 
-  QualType Ty = GetSYCLKernelObjectType(FD);
+  QualType const Ty = GetSYCLKernelObjectType(FD);
   std::unique_ptr<MangleContext> Ctx{ItaniumMangleContext::create(
       Context, Context.getDiagnostics(), MangleCallback)};
   llvm::raw_null_ostream Out;

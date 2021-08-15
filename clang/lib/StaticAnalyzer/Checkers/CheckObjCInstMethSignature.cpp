@@ -42,8 +42,8 @@ static void CompareReturnTypes(const ObjCMethodDecl *MethDerived,
                                const ObjCImplementationDecl *ID,
                                const CheckerBase *Checker) {
 
-  QualType ResDerived = MethDerived->getReturnType();
-  QualType ResAncestor = MethAncestor->getReturnType();
+  QualType const ResDerived = MethDerived->getReturnType();
+  QualType const ResAncestor = MethAncestor->getReturnType();
 
   if (!AreTypesCompatible(ResDerived, ResAncestor, Ctx)) {
     std::string sbuf;
@@ -65,7 +65,7 @@ static void CompareReturnTypes(const ObjCMethodDecl *MethDerived,
        << "'.  These two types are incompatible, and may result in undefined "
           "behavior for clients of these classes.";
 
-    PathDiagnosticLocation MethDLoc =
+    PathDiagnosticLocation const MethDLoc =
       PathDiagnosticLocation::createBegin(MethDerived,
                                           BR.getSourceManager());
 
@@ -101,9 +101,9 @@ static void CheckObjCInstMethSignature(const ObjCImplementationDecl *ID,
   // same signatures.
   while (C && NumMethods) {
     for (const auto *M : C->instance_methods()) {
-      Selector S = M->getSelector();
+      Selector const S = M->getSelector();
 
-      MapTy::iterator MI = IMeths.find(S);
+      MapTy::iterator const MI = IMeths.find(S);
 
       if (MI == IMeths.end() || MI->second == nullptr)
         continue;

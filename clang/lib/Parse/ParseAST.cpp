@@ -76,7 +76,7 @@ void PrettyStackTraceParserEntry::print(raw_ostream &OS) const {
     // allocate memory.
     bool Invalid = false;
     const SourceManager &SM = P.getPreprocessor().getSourceManager();
-    unsigned Length = Tok.getLength();
+    unsigned const Length = Tok.getLength();
     const char *Spelling = SM.getCharacterData(Tok.getLocation(), &Invalid);
     if (Invalid) {
       OS << ": unknown current parser token\n";
@@ -102,11 +102,11 @@ void clang::ParseAST(Preprocessor &PP, ASTConsumer *Consumer,
                      CodeCompleteConsumer *CompletionConsumer,
                      bool SkipFunctionBodies) {
 
-  std::unique_ptr<Sema> S(
+  std::unique_ptr<Sema> const S(
       new Sema(PP, Ctx, *Consumer, TUKind, CompletionConsumer));
 
   // Recover resources if we crash before exiting this method.
-  llvm::CrashRecoveryContextCleanupRegistrar<Sema> CleanupSema(S.get());
+  llvm::CrashRecoveryContextCleanupRegistrar<Sema> const CleanupSema(S.get());
 
   ParseAST(*S.get(), PrintStats, SkipFunctionBodies);
 }
@@ -128,17 +128,17 @@ void clang::ParseAST(Sema &S, bool PrintStats, bool SkipFunctionBodies) {
 
   ASTConsumer *Consumer = &S.getASTConsumer();
 
-  std::unique_ptr<Parser> ParseOP(
+  std::unique_ptr<Parser> const ParseOP(
       new Parser(S.getPreprocessor(), S, SkipFunctionBodies));
   Parser &P = *ParseOP.get();
 
   llvm::CrashRecoveryContextCleanupRegistrar<const void, ResetStackCleanup>
-      CleanupPrettyStack(llvm::SavePrettyStackState());
-  PrettyStackTraceParserEntry CrashInfo(P);
+      const CleanupPrettyStack(llvm::SavePrettyStackState());
+  PrettyStackTraceParserEntry const CrashInfo(P);
 
   // Recover resources if we crash before exiting this method.
   llvm::CrashRecoveryContextCleanupRegistrar<Parser>
-    CleanupParser(ParseOP.get());
+    const CleanupParser(ParseOP.get());
 
   S.getPreprocessor().EnterMainSourceFile();
   ExternalASTSource *External = S.getASTContext().getExternalSource();
@@ -148,10 +148,10 @@ void clang::ParseAST(Sema &S, bool PrintStats, bool SkipFunctionBodies) {
   // If a PCH through header is specified that does not have an include in
   // the source, or a PCH is being created with #pragma hdrstop with nothing
   // after the pragma, there won't be any tokens or a Lexer.
-  bool HaveLexer = S.getPreprocessor().getCurrentLexer();
+  bool const HaveLexer = S.getPreprocessor().getCurrentLexer();
 
   if (HaveLexer) {
-    llvm::TimeTraceScope TimeScope("Frontend");
+    llvm::TimeTraceScope const TimeScope("Frontend");
     P.Initialize();
     Parser::DeclGroupPtrTy ADecl;
     for (bool AtEOF = P.ParseFirstTopLevelDecl(ADecl); !AtEOF;

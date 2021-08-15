@@ -62,8 +62,8 @@ int DeclarationName::compare(DeclarationName LHS, DeclarationName RHS) {
   case DeclarationName::ObjCZeroArgSelector:
   case DeclarationName::ObjCOneArgSelector:
   case DeclarationName::ObjCMultiArgSelector: {
-    Selector LHSSelector = LHS.getObjCSelector();
-    Selector RHSSelector = RHS.getObjCSelector();
+    Selector const LHSSelector = LHS.getObjCSelector();
+    Selector const RHSSelector = RHS.getObjCSelector();
     // getNumArgs for ZeroArgSelector returns 0, but we still need to compare.
     if (LHS.getNameKind() == DeclarationName::ObjCZeroArgSelector &&
         RHS.getNameKind() == DeclarationName::ObjCZeroArgSelector) {
@@ -140,11 +140,11 @@ void DeclarationName::print(raw_ostream &OS,
   switch (getNameKind()) {
   case DeclarationName::Identifier:
     if (const IdentifierInfo *II = getAsIdentifierInfo()) {
-      StringRef Name = II->getName();
+      StringRef const Name = II->getName();
       // If this is a mangled OpenMP variant name we strip off the mangling for
       // printing. It should not be visible to the user at all.
       if (II->isMangledOpenMPVariantName()) {
-        std::pair<StringRef, StringRef> NameContextPair =
+        std::pair<StringRef, StringRef> const NameContextPair =
             Name.split(getOpenMPVariantManglingSeparatorStr());
         OS << NameContextPair.first << "["
            << OMPTraitInfo(NameContextPair.second) << "]";
@@ -190,7 +190,7 @@ void DeclarationName::print(raw_ostream &OS,
 
   case DeclarationName::CXXConversionFunctionName: {
     OS << "operator ";
-    QualType Type = getCXXNameType();
+    QualType const Type = getCXXNameType();
     if (const RecordType *Rec = Type->getAs<RecordType>()) {
       OS << *Rec->getDecl();
       return;
@@ -212,7 +212,7 @@ void DeclarationName::print(raw_ostream &OS,
 namespace clang {
 
 raw_ostream &operator<<(raw_ostream &OS, DeclarationName N) {
-  LangOptions LO;
+  LangOptions const LO;
   N.print(OS, PrintingPolicy(LO));
   return OS;
 }
@@ -220,7 +220,7 @@ raw_ostream &operator<<(raw_ostream &OS, DeclarationName N) {
 } // namespace clang
 
 bool DeclarationName::isDependentName() const {
-  QualType T = getCXXNameType();
+  QualType const T = getCXXNameType();
   if (!T.isNull() && T->isDependentType())
     return true;
 
@@ -464,7 +464,7 @@ std::string DeclarationNameInfo::getAsString() const {
 }
 
 raw_ostream &clang::operator<<(raw_ostream &OS, DeclarationNameInfo DNInfo) {
-  LangOptions LO;
+  LangOptions const LO;
   DNInfo.printName(OS, PrintingPolicy(LangOptions()));
   return OS;
 }
@@ -490,7 +490,7 @@ void DeclarationNameInfo::printName(raw_ostream &OS, PrintingPolicy Policy) cons
         OS << '~';
       else if (Name.getNameKind() == DeclarationName::CXXConversionFunctionName)
         OS << "operator ";
-      LangOptions LO;
+      LangOptions const LO;
       Policy.adjustForCPlusPlus();
       Policy.SuppressScope = true;
       OS << TInfo->getType().getAsString(Policy);

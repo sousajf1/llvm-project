@@ -203,9 +203,9 @@ void MIGChecker::checkPostCall(const CallEvent &Call, CheckerContext &C) const {
   if (I == Deallocators.end())
     return;
 
-  ProgramStateRef State = C.getState();
-  unsigned ArgIdx = I->second;
-  SVal Arg = Call.getArgSVal(ArgIdx);
+  ProgramStateRef const State = C.getState();
+  unsigned const ArgIdx = I->second;
+  SVal const Arg = Call.getArgSVal(ArgIdx);
   const ParmVarDecl *PVD = getOriginParam(Arg, C);
   if (!PVD || State->contains<RefCountedParameters>(PVD))
     return;
@@ -225,14 +225,14 @@ void MIGChecker::checkPostCall(const CallEvent &Call, CheckerContext &C) const {
 
 // Returns true if V can potentially represent a "successful" kern_return_t.
 static bool mayBeSuccess(SVal V, CheckerContext &C) {
-  ProgramStateRef State = C.getState();
+  ProgramStateRef const State = C.getState();
 
   // Can V represent KERN_SUCCESS?
   if (!State->isNull(V).isConstrainedFalse())
     return true;
 
   SValBuilder &SVB = C.getSValBuilder();
-  ASTContext &ACtx = C.getASTContext();
+  ASTContext  const&ACtx = C.getASTContext();
 
   // Can V represent MIG_NO_REPLY?
   static const int MigNoReply = -305;
@@ -264,11 +264,11 @@ void MIGChecker::checkReturnAux(const ReturnStmt *RS, CheckerContext &C) const {
   if (!RS)
     return;
 
-  ProgramStateRef State = C.getState();
+  ProgramStateRef const State = C.getState();
   if (!State->get<ReleasedParameter>())
     return;
 
-  SVal V = C.getSVal(RS);
+  SVal const V = C.getSVal(RS);
   if (mayBeSuccess(V, C))
     return;
 

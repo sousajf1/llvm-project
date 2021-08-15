@@ -138,7 +138,7 @@ static bool isVoidPointer(QualType T);
 bool FindUninitializedFields::isDereferencableUninit(
     const FieldRegion *FR, FieldChainInfo LocalChain) {
 
-  SVal V = State->getSVal(FR);
+  SVal const V = State->getSVal(FR);
 
   assert((isDereferencableType(FR->getDecl()->getType()) ||
           V.getAs<nonloc::LocAsInteger>()) &&
@@ -173,8 +173,8 @@ bool FindUninitializedFields::isDereferencableUninit(
   const TypedValueRegion *R = DerefInfo->R;
   const bool NeedsCastBack = DerefInfo->NeedsCastBack;
 
-  QualType DynT = R->getLocationType();
-  QualType PointeeT = DynT->getPointeeType();
+  QualType const DynT = R->getLocationType();
+  QualType const PointeeT = DynT->getPointeeType();
 
   if (PointeeT->isStructureOrClassType()) {
     if (NeedsCastBack)
@@ -203,7 +203,7 @@ bool FindUninitializedFields::isDereferencableUninit(
          "At this point FR must either have a primitive dynamic type, or it "
          "must be a null, undefined, unknown or concrete pointer!");
 
-  SVal PointeeV = State->getSVal(R);
+  SVal const PointeeV = State->getSVal(R);
 
   if (isPrimitiveUninit(PointeeV)) {
     if (NeedsCastBack)
@@ -224,7 +224,7 @@ static llvm::Optional<DereferenceInfo> dereference(ProgramStateRef State,
 
   llvm::SmallSet<const TypedValueRegion *, 5> VisitedRegions;
 
-  SVal V = State->getSVal(FR);
+  SVal const V = State->getSVal(FR);
   assert(V.getAsRegion() && "V must have an underlying region!");
 
   // If the static type of the field is a void pointer, or it is a

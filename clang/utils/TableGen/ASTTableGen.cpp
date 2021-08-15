@@ -31,7 +31,7 @@ llvm::StringRef clang::tblgen::HasProperties::getName() const {
 }
 
 static StringRef removeExpectedNodeNameSuffix(Record *node, StringRef suffix) {
-  StringRef nodeName = node->getName();
+  StringRef const nodeName = node->getName();
   if (!nodeName.endswith(suffix)) {
     PrintFatalError(node->getLoc(),
                     Twine("name of node doesn't end in ") + suffix);
@@ -119,7 +119,7 @@ static void visitHierarchy(RecordKeeper &records,
   // Derive the child map.
   ChildMap hierarchy;
   ASTNode root;
-  for (ASTNode node : nodes) {
+  for (ASTNode const node : nodes) {
     if (auto base = node.getBase())
       hierarchy.insert(std::make_pair(base, node));
     else if (root)

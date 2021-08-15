@@ -127,7 +127,7 @@ struct CGRecordLowering {
 
   /// Wraps llvm::Type::getIntNTy with some implicit arguments.
   llvm::Type *getIntNType(uint64_t NumBits) {
-    unsigned AlignedBits = llvm::alignTo(NumBits, Context.getCharWidth());
+    unsigned const AlignedBits = llvm::alignTo(NumBits, Context.getCharWidth());
     return llvm::Type::getIntNTy(Types.getLLVMContext(), AlignedBits);
   }
   /// Get the LLVM type sized as one character unit.
@@ -278,7 +278,7 @@ void CGRecordLowering::lower(bool NVBaseType) {
   //    been placed anywhere after phase 1.
   // 8) Format the complete list of members in a way that can be consumed by
   //    CodeGenTypes::ComputeRecordLayout.
-  CharUnits Size = NVBaseType ? Layout.getNonVirtualSize() : Layout.getSize();
+  CharUnits const Size = NVBaseType ? Layout.getNonVirtualSize() : Layout.getSize();
   if (D->isUnion()) {
     lowerUnion();
     computeVolatileBitfields();
@@ -309,7 +309,7 @@ void CGRecordLowering::lower(bool NVBaseType) {
 }
 
 void CGRecordLowering::lowerUnion() {
-  CharUnits LayoutSize = Layout.getSize();
+  CharUnits const LayoutSize = Layout.getSize();
   llvm::Type *StorageType = nullptr;
   bool SeenNamedMember = false;
   // Iterate through the fields setting bitFieldInfo and the Fields array. Also
@@ -374,7 +374,7 @@ void CGRecordLowering::accumulateFields() {
                                   FieldEnd = D->field_end();
     Field != FieldEnd;) {
     if (Field->isBitField()) {
-      RecordDecl::field_iterator Start = Field;
+      RecordDecl::field_iterator const Start = Field;
       // Iterate to gather the list of bitfields.
       for (++Field; Field != FieldEnd && Field->isBitField(); ++Field);
       accumulateBitFields(Start, Field);
@@ -404,7 +404,7 @@ CGRecordLowering::accumulateBitFields(RecordDecl::field_iterator Field,
   uint64_t StartBitOffset, Tail = 0;
   if (isDiscreteBitFieldABI()) {
     for (; Field != FieldEnd; ++Field) {
-      uint64_t BitOffset = getFieldBitOffset(*Field);
+      uint64_t const BitOffset = getFieldBitOffset(*Field);
       // Zero-width bitfields end runs.
       if (Field->isZeroLengthBitField(Context)) {
         Run = FieldEnd;
@@ -679,7 +679,7 @@ void CGRecordLowering::accumulateVBases() {
     const CXXRecordDecl *BaseDecl = Base.getType()->getAsCXXRecordDecl();
     if (BaseDecl->isEmpty())
       continue;
-    CharUnits Offset = Layout.getVBaseClassOffset(BaseDecl);
+    CharUnits const Offset = Layout.getVBaseClassOffset(BaseDecl);
     // If the vbase is a primary virtual base of some base, then it doesn't
     // get its own storage location but instead lives inside of that base.
     if (isOverlappingVBaseABI() &&
@@ -761,7 +761,7 @@ void CGRecordLowering::determinePacked(bool NVBaseType) {
     return;
   CharUnits Alignment = CharUnits::One();
   CharUnits NVAlignment = CharUnits::One();
-  CharUnits NVSize =
+  CharUnits const NVSize =
       !NVBaseType && RD ? Layout.getNonVirtualSize() : CharUnits::Zero();
   for (std::vector<MemberInfo>::const_iterator Member = Members.begin(),
                                                MemberEnd = Members.end();
@@ -798,7 +798,7 @@ void CGRecordLowering::insertPadding() {
        Member != MemberEnd; ++Member) {
     if (!Member->Data)
       continue;
-    CharUnits Offset = Member->Offset;
+    CharUnits const Offset = Member->Offset;
     assert(Offset >= Size);
     // Insert padding if we need to.
     if (Offset !=
@@ -844,11 +844,11 @@ CGBitFieldInfo CGBitFieldInfo::MakeInfo(CodeGenTypes &Types,
   // used in GCObjCRuntime.cpp.  That usage has a "fixme" attached to it that
   // when addressed will allow for the removal of this function.
   llvm::Type *Ty = Types.ConvertTypeForMem(FD->getType());
-  CharUnits TypeSizeInBytes =
+  CharUnits const TypeSizeInBytes =
     CharUnits::fromQuantity(Types.getDataLayout().getTypeAllocSize(Ty));
-  uint64_t TypeSizeInBits = Types.getContext().toBits(TypeSizeInBytes);
+  uint64_t const TypeSizeInBits = Types.getContext().toBits(TypeSizeInBytes);
 
-  bool IsSigned = FD->getType()->isSignedIntegerOrEnumerationType();
+  bool const IsSigned = FD->getType()->isSignedIntegerOrEnumerationType();
 
   if (Size > TypeSizeInBits) {
     // We have a wide bit-field. The extra bits are only used for padding, so
@@ -928,14 +928,14 @@ CodeGenTypes::ComputeRecordLayout(const RecordDecl *D, llvm::StructType *Ty) {
   // Verify that the computed LLVM struct size matches the AST layout size.
   const ASTRecordLayout &Layout = getContext().getASTRecordLayout(D);
 
-  uint64_t TypeSizeInBits = getContext().toBits(Layout.getSize());
+  uint64_t const TypeSizeInBits = getContext().toBits(Layout.getSize());
   assert(TypeSizeInBits == getDataLayout().getTypeAllocSizeInBits(Ty) &&
          "Type size mismatch!");
 
   if (BaseTy) {
-    CharUnits NonVirtualSize  = Layout.getNonVirtualSize();
+    CharUnits const NonVirtualSize  = Layout.getNonVirtualSize();
 
-    uint64_t AlignedNonVirtualTypeSizeInBits =
+    uint64_t const AlignedNonVirtualTypeSizeInBits =
       getContext().toBits(NonVirtualSize);
 
     assert(AlignedNonVirtualTypeSizeInBits ==
@@ -959,7 +959,7 @@ CodeGenTypes::ComputeRecordLayout(const RecordDecl *D, llvm::StructType *Ty) {
     // For non-bit-fields, just check that the LLVM struct offset matches the
     // AST offset.
     if (!FD->isBitField()) {
-      unsigned FieldNo = RL->getLLVMFieldNo(FD);
+      unsigned const FieldNo = RL->getLLVMFieldNo(FD);
       assert(AST_RL.getFieldOffset(i) == SL->getElementOffsetInBits(FieldNo) &&
              "Invalid field offset!");
       continue;

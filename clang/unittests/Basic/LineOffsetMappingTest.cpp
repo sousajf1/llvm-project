@@ -16,7 +16,7 @@ using namespace llvm;
 namespace {
 
 TEST(LineOffsetMappingTest, empty) {
-  LineOffsetMapping Mapping;
+  LineOffsetMapping const Mapping;
   EXPECT_FALSE(Mapping);
 
 #if !defined(NDEBUG) && GTEST_HAS_DEATH_TEST
@@ -26,8 +26,8 @@ TEST(LineOffsetMappingTest, empty) {
 
 TEST(LineOffsetMappingTest, construct) {
   BumpPtrAllocator Alloc;
-  unsigned Offsets[] = {0, 10, 20};
-  LineOffsetMapping Mapping(Offsets, Alloc);
+  unsigned const Offsets[] = {0, 10, 20};
+  LineOffsetMapping const Mapping(Offsets, Alloc);
   EXPECT_EQ(3u, Mapping.size());
   EXPECT_EQ(0u, Mapping[0]);
   EXPECT_EQ(10u, Mapping[1]);
@@ -41,10 +41,10 @@ TEST(LineOffsetMappingTest, construct) {
 TEST(LineOffsetMappingTest, constructTwo) {
   // Confirm allocation size is big enough, convering an off-by-one bug.
   BumpPtrAllocator Alloc;
-  unsigned Offsets1[] = {0, 10};
-  unsigned Offsets2[] = {0, 20};
-  LineOffsetMapping Mapping1(Offsets1, Alloc);
-  LineOffsetMapping Mapping2(Offsets2, Alloc);
+  unsigned const Offsets1[] = {0, 10};
+  unsigned const Offsets2[] = {0, 20};
+  LineOffsetMapping const Mapping1(Offsets1, Alloc);
+  LineOffsetMapping const Mapping2(Offsets2, Alloc);
 
   // Need to check Mapping1 *after* building Mapping2.
   EXPECT_EQ(2u, Mapping1.size());
@@ -57,7 +57,7 @@ TEST(LineOffsetMappingTest, constructTwo) {
 
 TEST(LineOffsetMappingTest, get) {
   BumpPtrAllocator Alloc;
-  StringRef Source = "first line\n"
+  StringRef const Source = "first line\n"
                      "second line\n";
   auto Mapping = LineOffsetMapping::get(MemoryBufferRef(Source, ""), Alloc);
   EXPECT_EQ(3u, Mapping.size());
@@ -68,7 +68,7 @@ TEST(LineOffsetMappingTest, get) {
 
 TEST(LineOffsetMappingTest, getMissingFinalNewline) {
   BumpPtrAllocator Alloc;
-  StringRef Source = "first line\n"
+  StringRef const Source = "first line\n"
                      "second line";
   auto Mapping = LineOffsetMapping::get(MemoryBufferRef(Source, ""), Alloc);
   EXPECT_EQ(2u, Mapping.size());

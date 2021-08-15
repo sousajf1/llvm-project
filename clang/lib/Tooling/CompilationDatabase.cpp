@@ -103,8 +103,8 @@ findCompilationDatabaseFromDirectory(StringRef Directory,
 std::unique_ptr<CompilationDatabase>
 CompilationDatabase::autoDetectFromSource(StringRef SourceFile,
                                           std::string &ErrorMessage) {
-  SmallString<1024> AbsolutePath(getAbsolutePath(SourceFile));
-  StringRef Directory = llvm::sys::path::parent_path(AbsolutePath);
+  SmallString<1024> const AbsolutePath(getAbsolutePath(SourceFile));
+  StringRef const Directory = llvm::sys::path::parent_path(AbsolutePath);
 
   std::unique_ptr<CompilationDatabase> DB =
       findCompilationDatabaseFromDirectory(Directory, ErrorMessage);
@@ -118,7 +118,7 @@ CompilationDatabase::autoDetectFromSource(StringRef SourceFile,
 std::unique_ptr<CompilationDatabase>
 CompilationDatabase::autoDetectFromDirectory(StringRef SourceDir,
                                              std::string &ErrorMessage) {
-  SmallString<1024> AbsolutePath(getAbsolutePath(SourceDir));
+  SmallString<1024> const AbsolutePath(getAbsolutePath(SourceDir));
 
   std::unique_ptr<CompilationDatabase> DB =
       findCompilationDatabaseFromDirectory(AbsolutePath, ErrorMessage);
@@ -210,7 +210,7 @@ struct FilterUnusedFlags {
 
 std::string GetClangToolCommand() {
   static int Dummy;
-  std::string ClangExecutable =
+  std::string const ClangExecutable =
       llvm::sys::fs::getMainExecutable("clang", (void *)&Dummy);
   SmallString<128> ClangToolPath;
   ClangToolPath = llvm::sys::path::parent_path(ClangExecutable);
@@ -242,7 +242,7 @@ std::string GetClangToolCommand() {
 static bool stripPositionalArgs(std::vector<const char *> Args,
                                 std::vector<std::string> &Result,
                                 std::string &ErrorMsg) {
-  IntrusiveRefCntPtr<DiagnosticOptions> DiagOpts = new DiagnosticOptions();
+  IntrusiveRefCntPtr<DiagnosticOptions> const DiagOpts = new DiagnosticOptions();
   llvm::raw_string_ostream Output(ErrorMsg);
   TextDiagnosticPrinter DiagnosticPrinter(Output, &*DiagOpts);
   UnusedInputDiagConsumer DiagClient(DiagnosticPrinter);
@@ -259,7 +259,7 @@ static bool stripPositionalArgs(std::vector<const char *> Args,
 
   // This becomes the new argv[0]. The value is used to detect libc++ include
   // dirs on Mac, it isn't used for other platforms.
-  std::string Argv0 = GetClangToolCommand();
+  std::string const Argv0 = GetClangToolCommand();
   Args.insert(Args.begin(), Argv0.c_str());
 
   // By adding -c, we force the driver to treat compilation as the last phase.
@@ -330,7 +330,7 @@ FixedCompilationDatabase::loadFromCommandLine(int &Argc,
   const char *const *DoubleDash = std::find(Argv, Argv + Argc, StringRef("--"));
   if (DoubleDash == Argv + Argc)
     return nullptr;
-  std::vector<const char *> CommandLine(DoubleDash + 1, Argv + Argc);
+  std::vector<const char *> const CommandLine(DoubleDash + 1, Argv + Argc);
   Argc = DoubleDash - Argv;
 
   std::vector<std::string> StrippedArgs;
@@ -344,7 +344,7 @@ FixedCompilationDatabase::loadFromFile(StringRef Path, std::string &ErrorMsg) {
   ErrorMsg.clear();
   llvm::ErrorOr<std::unique_ptr<llvm::MemoryBuffer>> File =
       llvm::MemoryBuffer::getFile(Path);
-  if (std::error_code Result = File.getError()) {
+  if (std::error_code const Result = File.getError()) {
     ErrorMsg = "Error while opening fixed database: " + Result.message();
     return nullptr;
   }

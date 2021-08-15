@@ -50,12 +50,12 @@ TEST(CompilerInstance, DefaultVFSOverlayFromInvocation) {
 
   // Create a CompilerInvocation that uses this overlay file.
   const std::string VFSArg = "-ivfsoverlay" + FileNameStr;
-  const char *Args[] = {"clang", VFSArg.c_str(), "-xc++", "-"};
+  const char *const Args[] = {"clang", VFSArg.c_str(), "-xc++", "-"};
 
-  IntrusiveRefCntPtr<DiagnosticsEngine> Diags =
+  IntrusiveRefCntPtr<DiagnosticsEngine> const Diags =
       CompilerInstance::createDiagnostics(new DiagnosticOptions());
 
-  std::shared_ptr<CompilerInvocation> CInvok =
+  std::shared_ptr<CompilerInvocation> const CInvok =
       createInvocationFromCommandLine(Args, Diags);
 
   if (!CInvok)
@@ -84,8 +84,8 @@ TEST(CompilerInstance, AllowDiagnosticLogWithUnownedDiagnosticConsumer) {
   llvm::raw_string_ostream DiagnosticsOS(DiagnosticOutput);
   auto DiagPrinter = std::make_unique<TextDiagnosticPrinter>(
       DiagnosticsOS, new DiagnosticOptions());
-  CompilerInstance Instance;
-  IntrusiveRefCntPtr<DiagnosticsEngine> Diags = Instance.createDiagnostics(
+  CompilerInstance const Instance;
+  IntrusiveRefCntPtr<DiagnosticsEngine> const Diags = Instance.createDiagnostics(
       DiagOpts, DiagPrinter.get(), /*ShouldOwnClient=*/false);
 
   Diags->Report(diag::err_expected) << "no crash";

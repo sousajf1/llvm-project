@@ -227,7 +227,7 @@ public:
     unsigned Depth = 1;
     P = C;
     while (P < End) {
-      StringRef S(P, End - P);
+      StringRef const S(P, End - P);
       if (S.startswith(OpenBrace)) {
         ++Depth;
         P += OpenBrace.size();
@@ -381,8 +381,8 @@ public:
   // multiply-defined-and-used markers.
   void finalize() {
     for (auto &MarkerInfo : Markers) {
-      StringRef Name = MarkerInfo.first();
-      Marker &M = MarkerInfo.second;
+      StringRef const Name = MarkerInfo.first();
+      Marker  const&M = MarkerInfo.second;
       if (M.RedefLoc.isValid() && M.UseLoc.isValid()) {
         Diags.Report(M.UseLoc, diag::err_verify_ambiguous_marker) << Name;
         Diags.Report(M.DefLoc, diag::note_verify_ambiguous_marker) << Name;
@@ -509,7 +509,7 @@ static bool ParseDirective(StringRef S, ExpectedData *ED, SourceManager &SM,
     } else {
       PH.Advance();
       unsigned Line = 0;
-      bool FoundPlus = PH.Next("+");
+      bool const FoundPlus = PH.Next("+");
       if (FoundPlus || PH.Next("-")) {
         // Relative to current line.
         PH.Advance();
@@ -528,7 +528,7 @@ static bool ParseDirective(StringRef S, ExpectedData *ED, SourceManager &SM,
         Marker = PH.Match();
       } else if (PP && PH.Search(":")) {
         // Specific source file.
-        StringRef Filename(PH.C, PH.P-PH.C);
+        StringRef const Filename(PH.C, PH.P-PH.C);
         PH.Advance();
 
         if (Filename == "*") {
@@ -630,8 +630,8 @@ static bool ParseDirective(StringRef S, ExpectedData *ED, SourceManager &SM,
     D.ContentBegin = Pos.getLocWithOffset(ContentBegin - PH.Begin);
 
     // Build directive text; convert \n to newlines.
-    StringRef NewlineStr = "\\n";
-    StringRef Content(ContentBegin, ContentEnd-ContentBegin);
+    StringRef const NewlineStr = "\\n";
+    StringRef const Content(ContentBegin, ContentEnd-ContentBegin);
     size_t CPos = 0;
     size_t FPos;
     while ((FPos = Content.find(NewlineStr, CPos)) != StringRef::npos) {
@@ -738,13 +738,13 @@ void VerifyDiagnosticConsumer::HandleDiagnostic(
       ParsedStatus PS = IsUnparsed;
 
       Loc = SrcManager->getExpansionLoc(Loc);
-      FileID FID = SrcManager->getFileID(Loc);
+      FileID const FID = SrcManager->getFileID(Loc);
 
       const FileEntry *FE = SrcManager->getFileEntryForID(FID);
       if (FE && CurrentPreprocessor && SrcManager->isLoadedFileID(FID)) {
         // If the file is a modules header file it shall not be parsed
         // for expected-* directives.
-        HeaderSearch &HS = CurrentPreprocessor->getHeaderSearchInfo();
+        HeaderSearch  const&HS = CurrentPreprocessor->getHeaderSearchInfo();
         if (HS.findModuleForHeader(FE))
           PS = IsUnparsedNoDirectives;
       }
@@ -769,10 +769,10 @@ bool VerifyDiagnosticConsumer::HandleComment(Preprocessor &PP,
   if (SrcManager && &SM != SrcManager)
     return false;
 
-  SourceLocation CommentBegin = Comment.getBegin();
+  SourceLocation const CommentBegin = Comment.getBegin();
 
   const char *CommentRaw = SM.getCharacterData(CommentBegin);
-  StringRef C(CommentRaw, SM.getCharacterData(Comment.getEnd()) - CommentRaw);
+  StringRef const C(CommentRaw, SM.getCharacterData(Comment.getEnd()) - CommentRaw);
 
   if (C.empty())
     return false;
@@ -827,7 +827,7 @@ static bool findDirectives(SourceManager &SM, FileID FID,
     return false;
 
   // Create a lexer to lex all the tokens of the main file in raw mode.
-  llvm::MemoryBufferRef FromFile = SM.getBufferOrFake(FID);
+  llvm::MemoryBufferRef const FromFile = SM.getBufferOrFake(FID);
   Lexer RawLex(FID, FromFile, SM, LangOpts);
 
   // Return comments as tokens, this is how we find expected diagnostics.
@@ -841,7 +841,7 @@ static bool findDirectives(SourceManager &SM, FileID FID,
     RawLex.LexFromRawLexer(Tok);
     if (!Tok.is(tok::comment)) continue;
 
-    std::string Comment = RawLex.getSpelling(Tok, SM, LangOpts);
+    std::string const Comment = RawLex.getSpelling(Tok, SM, LangOpts);
     if (Comment.empty()) continue;
 
     // We don't care about tracking markers for this phase.
@@ -944,13 +944,13 @@ static unsigned CheckLists(DiagnosticsEngine &Diags, SourceManager &SourceMgr,
 
   for (auto &Owner : Left) {
     Directive &D = *Owner;
-    unsigned LineNo1 = SourceMgr.getPresumedLineNumber(D.DiagnosticLoc);
+    unsigned const LineNo1 = SourceMgr.getPresumedLineNumber(D.DiagnosticLoc);
 
     for (unsigned i = 0; i < D.Max; ++i) {
       DiagList::iterator II, IE;
       for (II = Right.begin(), IE = Right.end(); II != IE; ++II) {
         if (!D.MatchAnyLine) {
-          unsigned LineNo2 = SourceMgr.getPresumedLineNumber(II->first);
+          unsigned const LineNo2 = SourceMgr.getPresumedLineNumber(II->first);
           if (LineNo1 != LineNo2)
             continue;
         }
@@ -1146,7 +1146,7 @@ std::unique_ptr<Directive> Directive::create(bool RegexKind,
   while (!S.empty()) {
     if (S.startswith("{{")) {
       S = S.drop_front(2);
-      size_t RegexMatchLength = S.find("}}");
+      size_t const RegexMatchLength = S.find("}}");
       assert(RegexMatchLength != StringRef::npos);
       // Append the regex, enclosed in parentheses.
       RegexStr += "(";

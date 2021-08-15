@@ -9,7 +9,7 @@ TEST(CheckTargetFeaturesTest, checkBuiltinFeatures) {
     SmallVector<StringRef, 1> Features;
     FuncFeatures.split(Features, ',');
     StringMap<bool> SM;
-    for (StringRef F : Features)
+    for (StringRef const F : Features)
       SM.insert(std::make_pair(F, true));
     clang::CodeGen::TargetFeatures TF(SM);
     return TF.hasRequiredFeatures(BuiltinFeatures);

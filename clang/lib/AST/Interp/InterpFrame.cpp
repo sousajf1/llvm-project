@@ -23,7 +23,7 @@ InterpFrame::InterpFrame(InterpState &S, Function *Func, InterpFrame *Caller,
       ArgSize(Func ? Func->getArgSize() : 0),
       Args(static_cast<char *>(S.Stk.top())), FrameOffset(S.Stk.size()) {
   if (Func) {
-    if (unsigned FrameSize = Func->getFrameSize()) {
+    if (unsigned const FrameSize = Func->getFrameSize()) {
       Locals = std::make_unique<char[]>(FrameSize);
       for (auto &Scope : Func->scopes()) {
         for (auto &Local : Scope.locals()) {
@@ -49,7 +49,7 @@ void InterpFrame::destroy(unsigned Idx) {
 }
 
 void InterpFrame::popArgs() {
-  for (PrimType Ty : Func->args_reverse())
+  for (PrimType const Ty : Func->args_reverse())
     TYPE_SWITCH(Ty, S.Stk.discard<T>());
 }
 
@@ -119,7 +119,7 @@ void InterpFrame::describe(llvm::raw_ostream &OS) {
   OS << *F << "(";
   unsigned Off = Func->hasRVO() ? primSize(PT_Ptr) : 0;
   for (unsigned I = 0, N = F->getNumParams(); I < N; ++I) {
-    QualType Ty = F->getParamDecl(I)->getType();
+    QualType const Ty = F->getParamDecl(I)->getType();
 
     PrimType PrimTy;
     if (llvm::Optional<PrimType> T = S.Ctx.classify(Ty)) {
@@ -167,7 +167,7 @@ Pointer InterpFrame::getParamPointer(unsigned Off) {
 
   // Allocate memory to store the parameter and the block metadata.
   const auto &Desc = Func->getParamDescriptor(Off);
-  size_t BlockSize = sizeof(Block) + Desc.second->getAllocSize();
+  size_t const BlockSize = sizeof(Block) + Desc.second->getAllocSize();
   auto Memory = std::make_unique<char[]>(BlockSize);
   auto *B = new (Memory.get()) Block(Desc.second);
 

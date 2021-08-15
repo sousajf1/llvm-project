@@ -69,7 +69,7 @@ public:
         return true;
 
       Expr *parm = E->getArg(0)->IgnoreParenCasts();
-      QualType pointee = parm->getType()->getPointeeType();
+      QualType const pointee = parm->getType()->getPointeeType();
       if (pointee.isNull())
         return true;
 
@@ -90,7 +90,7 @@ public:
                               diag::err_unavailable_message,
                               E->getSelectorLoc(0))) {
       // Calling -zone is meaningless in ARC, change it to nil.
-      Transaction Trans(Pass.TA);
+      Transaction const Trans(Pass.TA);
       Pass.TA.clearDiagnostic(diag::err_unavailable,
                               diag::err_unavailable_message,
                               E->getSelectorLoc(0));

@@ -213,7 +213,7 @@ bool CheckLive(InterpState &S, CodePtr OpPC, const Pointer &Ptr,
   }
 
   if (!Ptr.isLive()) {
-    bool IsTemp = Ptr.isTemporary();
+    bool const IsTemp = Ptr.isTemporary();
 
     S.FFDiag(Src, diag::note_constexpr_lifetime_ended, 1) << AK << !IsTemp;
 
@@ -403,7 +403,7 @@ bool Interpret(InterpState &S, APValue &Result) {
 
   for (;;) {
     auto Op = PC.read<Opcode>();
-    CodePtr OpPC = PC;
+    CodePtr const OpPC = PC;
 
     switch (Op) {
 #define GET_INTERP

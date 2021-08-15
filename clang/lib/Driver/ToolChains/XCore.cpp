@@ -119,7 +119,7 @@ void XCoreToolChain::AddClangSystemIncludeArgs(const ArgList &DriverArgs,
     SmallVector<StringRef, 4> Dirs;
     const char EnvPathSeparatorStr[] = {llvm::sys::EnvPathSeparator, '\0'};
     StringRef(cl_include_dir).split(Dirs, StringRef(EnvPathSeparatorStr));
-    ArrayRef<StringRef> DirVec(Dirs);
+    ArrayRef<StringRef> const DirVec(Dirs);
     addSystemIncludes(DriverArgs, CC1Args, DirVec);
   }
 }
@@ -140,7 +140,7 @@ void XCoreToolChain::AddClangCXXStdlibIncludeArgs(
     SmallVector<StringRef, 4> Dirs;
     const char EnvPathSeparatorStr[] = {llvm::sys::EnvPathSeparator, '\0'};
     StringRef(cl_include_dir).split(Dirs, StringRef(EnvPathSeparatorStr));
-    ArrayRef<StringRef> DirVec(Dirs);
+    ArrayRef<StringRef> const DirVec(Dirs);
     addSystemIncludes(DriverArgs, CC1Args, DirVec);
   }
 }

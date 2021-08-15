@@ -118,7 +118,7 @@ void ASTImporterTestBase::lazyInitToAST(TestLanguage ToLang,
                                         StringRef FileName) {
   if (ToAST)
     return;
-  std::vector<std::string> ToArgs = getCommandLineArgsForLanguage(ToLang);
+  std::vector<std::string> const ToArgs = getCommandLineArgsForLanguage(ToLang);
   // Source code must be a valid live buffer through the tests lifetime.
   ToCode = std::string(ToSrcCode);
   // Build the AST from an empty file.
@@ -141,8 +141,8 @@ ASTImporterTestBase::TU *ASTImporterTestBase::findFromTU(Decl *From) {
 std::tuple<Decl *, Decl *> ASTImporterTestBase::getImportedDecl(
     StringRef FromSrcCode, TestLanguage FromLang, StringRef ToSrcCode,
     TestLanguage ToLang, StringRef Identifier) {
-  std::vector<std::string> FromArgs = getCommandLineArgsForLanguage(FromLang);
-  std::vector<std::string> ToArgs = getCommandLineArgsForLanguage(ToLang);
+  std::vector<std::string> const FromArgs = getCommandLineArgsForLanguage(FromLang);
+  std::vector<std::string> const ToArgs = getCommandLineArgsForLanguage(ToLang);
 
   FromTUs.emplace_back(FromSrcCode, InputFileName, FromArgs, Creator,
                        ODRHandling);
@@ -156,7 +156,7 @@ std::tuple<Decl *, Decl *> ASTImporterTestBase::getImportedDecl(
   IdentifierInfo *ImportedII = &FromCtx.Idents.get(Identifier);
   assert(ImportedII && "Declaration with the given identifier "
                        "should be specified in test!");
-  DeclarationName ImportDeclName(ImportedII);
+  DeclarationName const ImportDeclName(ImportedII);
   SmallVector<NamedDecl *, 1> FoundDecls;
   FromCtx.getTranslationUnitDecl()->localUncachedLookup(ImportDeclName,
                                                         FoundDecls);
@@ -177,16 +177,16 @@ TranslationUnitDecl *ASTImporterTestBase::getTuDecl(StringRef SrcCode,
            return E.FileName == FileName;
          }) == FromTUs.end());
 
-  std::vector<std::string> Args = getCommandLineArgsForLanguage(Lang);
+  std::vector<std::string> const Args = getCommandLineArgsForLanguage(Lang);
   FromTUs.emplace_back(SrcCode, FileName, Args, Creator, ODRHandling);
-  TU &Tu = FromTUs.back();
+  TU  const&Tu = FromTUs.back();
 
   return Tu.TUDecl;
 }
 
 TranslationUnitDecl *ASTImporterTestBase::getToTuDecl(StringRef ToSrcCode,
                                                       TestLanguage ToLang) {
-  std::vector<std::string> ToArgs = getCommandLineArgsForLanguage(ToLang);
+  std::vector<std::string> const ToArgs = getCommandLineArgsForLanguage(ToLang);
   assert(!ToAST);
   lazyInitToAST(ToLang, ToSrcCode, OutputFileName);
   return ToAST->getASTContext().getTranslationUnitDecl();

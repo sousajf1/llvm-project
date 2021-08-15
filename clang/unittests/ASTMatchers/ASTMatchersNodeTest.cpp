@@ -29,7 +29,7 @@ TEST_P(ASTMatchersTest, Decl_CXX) {
 }
 
 TEST_P(ASTMatchersTest, NameableDeclaration_MatchesVariousDecls) {
-  DeclarationMatcher NamedX = namedDecl(hasName("X"));
+  DeclarationMatcher const NamedX = namedDecl(hasName("X"));
   EXPECT_TRUE(matches("typedef int X;", NamedX));
   EXPECT_TRUE(matches("int X;", NamedX));
   EXPECT_TRUE(matches("void foo() { int X; }", NamedX));
@@ -42,14 +42,14 @@ TEST_P(ASTMatchersTest, NamedDecl_CXX) {
   if (!GetParam().isCXX()) {
     return;
   }
-  DeclarationMatcher NamedX = namedDecl(hasName("X"));
+  DeclarationMatcher const NamedX = namedDecl(hasName("X"));
   EXPECT_TRUE(matches("class foo { virtual void X(); };", NamedX));
   EXPECT_TRUE(matches("void foo() try { } catch(int X) { }", NamedX));
   EXPECT_TRUE(matches("namespace X { }", NamedX));
 }
 
 TEST_P(ASTMatchersTest, MatchesNameRE) {
-  DeclarationMatcher NamedX = namedDecl(matchesName("::X"));
+  DeclarationMatcher const NamedX = namedDecl(matchesName("::X"));
   EXPECT_TRUE(matches("typedef int Xa;", NamedX));
   EXPECT_TRUE(matches("int Xb;", NamedX));
   EXPECT_TRUE(matches("void foo() { int Xgh; }", NamedX));
@@ -57,16 +57,16 @@ TEST_P(ASTMatchersTest, MatchesNameRE) {
 
   EXPECT_TRUE(notMatches("#define Xkl 1", NamedX));
 
-  DeclarationMatcher StartsWithNo = namedDecl(matchesName("::no"));
+  DeclarationMatcher const StartsWithNo = namedDecl(matchesName("::no"));
   EXPECT_TRUE(matches("int no_foo;", StartsWithNo));
 
-  DeclarationMatcher Abc = namedDecl(matchesName("a.*b.*c"));
+  DeclarationMatcher const Abc = namedDecl(matchesName("a.*b.*c"));
   EXPECT_TRUE(matches("int abc;", Abc));
   EXPECT_TRUE(matches("int aFOObBARc;", Abc));
   EXPECT_TRUE(notMatches("int cab;", Abc));
   EXPECT_TRUE(matches("int cabc;", Abc));
 
-  DeclarationMatcher StartsWithK = namedDecl(matchesName(":k[^:]*$"));
+  DeclarationMatcher const StartsWithK = namedDecl(matchesName(":k[^:]*$"));
   EXPECT_TRUE(matches("int k;", StartsWithK));
   EXPECT_TRUE(matches("int kAbc;", StartsWithK));
 }
@@ -75,21 +75,21 @@ TEST_P(ASTMatchersTest, MatchesNameRE_CXX) {
   if (!GetParam().isCXX()) {
     return;
   }
-  DeclarationMatcher NamedX = namedDecl(matchesName("::X"));
+  DeclarationMatcher const NamedX = namedDecl(matchesName("::X"));
   EXPECT_TRUE(matches("class foo { virtual void Xc(); };", NamedX));
   EXPECT_TRUE(matches("void foo() try { } catch(int Xdef) { }", NamedX));
   EXPECT_TRUE(matches("namespace Xij { }", NamedX));
 
-  DeclarationMatcher StartsWithNo = namedDecl(matchesName("::no"));
+  DeclarationMatcher const StartsWithNo = namedDecl(matchesName("::no"));
   EXPECT_TRUE(matches("class foo { virtual void nobody(); };", StartsWithNo));
 
-  DeclarationMatcher StartsWithK = namedDecl(matchesName(":k[^:]*$"));
+  DeclarationMatcher const StartsWithK = namedDecl(matchesName(":k[^:]*$"));
   EXPECT_TRUE(matches("namespace x { int kTest; }", StartsWithK));
   EXPECT_TRUE(matches("class C { int k; };", StartsWithK));
   EXPECT_TRUE(notMatches("class C { int ckc; };", StartsWithK));
   EXPECT_TRUE(notMatches("int K;", StartsWithK));
 
-  DeclarationMatcher StartsWithKIgnoreCase =
+  DeclarationMatcher const StartsWithKIgnoreCase =
       namedDecl(matchesName(":k[^:]*$", llvm::Regex::IgnoreCase));
   EXPECT_TRUE(matches("int k;", StartsWithKIgnoreCase));
   EXPECT_TRUE(matches("int K;", StartsWithKIgnoreCase));
@@ -100,7 +100,7 @@ TEST_P(ASTMatchersTest, DeclarationMatcher_MatchClass) {
     return;
   }
 
-  DeclarationMatcher ClassX = recordDecl(recordDecl(hasName("X")));
+  DeclarationMatcher const ClassX = recordDecl(recordDecl(hasName("X")));
   EXPECT_TRUE(matches("class X;", ClassX));
   EXPECT_TRUE(matches("class X {};", ClassX));
   EXPECT_TRUE(matches("template<class T> class X {};", ClassX));
@@ -113,7 +113,7 @@ TEST_P(ASTMatchersTest, TranslationUnitDecl) {
     // C++.
     return;
   }
-  StringRef Code = "int MyVar1;\n"
+  StringRef const Code = "int MyVar1;\n"
                    "namespace NameSpace {\n"
                    "int MyVar2;\n"
                    "}  // namespace NameSpace\n";
@@ -139,7 +139,7 @@ TEST_P(ASTMatchersTest, ClassTemplateDecl_DoesNotMatchClass) {
   if (!GetParam().isCXX()) {
     return;
   }
-  DeclarationMatcher ClassX = classTemplateDecl(hasName("X"));
+  DeclarationMatcher const ClassX = classTemplateDecl(hasName("X"));
   EXPECT_TRUE(notMatches("class X;", ClassX));
   EXPECT_TRUE(notMatches("class X {};", ClassX));
 }
@@ -148,7 +148,7 @@ TEST_P(ASTMatchersTest, ClassTemplateDecl_MatchesClassTemplate) {
   if (!GetParam().isCXX()) {
     return;
   }
-  DeclarationMatcher ClassX = classTemplateDecl(hasName("X"));
+  DeclarationMatcher const ClassX = classTemplateDecl(hasName("X"));
   EXPECT_TRUE(matches("template<typename T> class X {};", ClassX));
   EXPECT_TRUE(matches("class Z { template<class T> class X {}; };", ClassX));
 }
@@ -233,7 +233,7 @@ TEST_P(ASTMatchersTest, EnumConstantDecl) {
     // FIXME: Fix this test in non-C++ language modes.
     return;
   }
-  DeclarationMatcher Matcher = enumConstantDecl(hasName("A"));
+  DeclarationMatcher const Matcher = enumConstantDecl(hasName("A"));
   EXPECT_TRUE(matches("enum X{ A };", Matcher));
   EXPECT_TRUE(notMatches("enum X{ B };", Matcher));
   EXPECT_TRUE(notMatches("enum X {};", Matcher));
@@ -276,8 +276,8 @@ TEST_P(ASTMatchersTest, UsesADL) {
     return;
   }
 
-  StatementMatcher ADLMatch = callExpr(usesADL());
-  StatementMatcher ADLMatchOper = cxxOperatorCallExpr(usesADL());
+  StatementMatcher const ADLMatch = callExpr(usesADL());
+  StatementMatcher const ADLMatchOper = cxxOperatorCallExpr(usesADL());
   StringRef NS_Str = R"cpp(
   namespace NS {
     struct X {};
@@ -314,13 +314,13 @@ TEST_P(ASTMatchersTest, CallExpr_CXX) {
   }
   // FIXME: Do we want to overload Call() to directly take
   // Matcher<Decl>, too?
-  StatementMatcher MethodX =
+  StatementMatcher const MethodX =
       callExpr(hasDeclaration(cxxMethodDecl(hasName("x"))));
 
   EXPECT_TRUE(matches("class Y { void x() { x(); } };", MethodX));
   EXPECT_TRUE(notMatches("class Y { void x() {} };", MethodX));
 
-  StatementMatcher MethodOnY =
+  StatementMatcher const MethodOnY =
       cxxMemberCallExpr(on(hasType(recordDecl(hasName("Y")))));
 
   EXPECT_TRUE(matches("class Y { public: void x(); }; void z() { Y y; y.x(); }",
@@ -334,7 +334,7 @@ TEST_P(ASTMatchersTest, CallExpr_CXX) {
   EXPECT_TRUE(notMatches(
       "class Y { public: void x(); }; void z() { Y *y; y->x(); }", MethodOnY));
 
-  StatementMatcher MethodOnYPointer =
+  StatementMatcher const MethodOnYPointer =
       cxxMemberCallExpr(on(hasType(pointsTo(recordDecl(hasName("Y"))))));
 
   EXPECT_TRUE(
@@ -444,7 +444,7 @@ TEST_P(ASTMatchersTest, CXXOperatorCallExpr) {
     return;
   }
 
-  StatementMatcher OpCall = cxxOperatorCallExpr();
+  StatementMatcher const OpCall = cxxOperatorCallExpr();
   // Unary operator
   EXPECT_TRUE(matches("class Y { }; "
                       "bool operator!(Y x) { return false; }; "
@@ -476,7 +476,7 @@ TEST_P(ASTMatchersTest, ThisPointerType) {
     return;
   }
 
-  StatementMatcher MethodOnY = traverse(
+  StatementMatcher const MethodOnY = traverse(
       TK_AsIs, cxxMemberCallExpr(thisPointerType(recordDecl(hasName("Y")))));
 
   EXPECT_TRUE(matches("class Y { public: void x(); }; void z() { Y y; y.x(); }",
@@ -505,7 +505,7 @@ TEST_P(ASTMatchersTest, DeclRefExpr) {
     // FIXME: Add a test for `declRefExpr()` that does not depend on C++.
     return;
   }
-  StatementMatcher Reference = declRefExpr(to(varDecl(hasInitializer(
+  StatementMatcher const Reference = declRefExpr(to(varDecl(hasInitializer(
       cxxMemberCallExpr(thisPointerType(recordDecl(hasName("Y"))))))));
 
   EXPECT_TRUE(matches("class Y {"
@@ -532,7 +532,7 @@ TEST_P(ASTMatchersTest, CXXMemberCallExpr) {
   if (!GetParam().isCXX()) {
     return;
   }
-  StatementMatcher CallOnVariableY =
+  StatementMatcher const CallOnVariableY =
       cxxMemberCallExpr(on(declRefExpr(to(varDecl(hasName("y"))))));
 
   EXPECT_TRUE(matches("class Y { public: void x() { Y y; y.x(); } };",
@@ -620,7 +620,7 @@ TEST_P(ASTMatchersTest, MemberExpr_MatchesStaticVariable) {
 }
 
 TEST_P(ASTMatchersTest, FunctionDecl) {
-  StatementMatcher CallFunctionF = callExpr(callee(functionDecl(hasName("f"))));
+  StatementMatcher const CallFunctionF = callExpr(callee(functionDecl(hasName("f"))));
 
   EXPECT_TRUE(matches("void f() { f(); }", CallFunctionF));
   EXPECT_TRUE(notMatches("void f() { }", CallFunctionF));
@@ -643,7 +643,7 @@ TEST_P(ASTMatchersTest, FunctionDecl_CXX) {
     return;
   }
 
-  StatementMatcher CallFunctionF = callExpr(callee(functionDecl(hasName("f"))));
+  StatementMatcher const CallFunctionF = callExpr(callee(functionDecl(hasName("f"))));
 
   if (!GetParam().hasDelayedTemplateParsing()) {
     // FIXME: Fix this test to work with delayed template parsing.
@@ -740,7 +740,7 @@ TEST_P(ASTMatchersTest, Matcher_ConstructorCall) {
     return;
   }
 
-  StatementMatcher Constructor = traverse(TK_AsIs, cxxConstructExpr());
+  StatementMatcher const Constructor = traverse(TK_AsIs, cxxConstructExpr());
 
   EXPECT_TRUE(
       matches("class X { public: X(); }; void x() { X x; }", Constructor));
@@ -774,9 +774,9 @@ TEST_P(ASTMatchersTest, Matcher_BindTemporaryExpression) {
     return;
   }
 
-  StatementMatcher TempExpression = traverse(TK_AsIs, cxxBindTemporaryExpr());
+  StatementMatcher const TempExpression = traverse(TK_AsIs, cxxBindTemporaryExpr());
 
-  StringRef ClassString = "class string { public: string(); ~string(); }; ";
+  StringRef const ClassString = "class string { public: string(); ~string(); }; ";
 
   EXPECT_TRUE(matches(
       ClassString + "string GetStringByValue();"
@@ -806,7 +806,7 @@ TEST_P(ASTMatchersTest, MaterializeTemporaryExpr_MatchesTemporaryCXX11CXX14) {
     return;
   }
 
-  StatementMatcher TempExpression =
+  StatementMatcher const TempExpression =
       traverse(TK_AsIs, materializeTemporaryExpr());
 
   EXPECT_TRUE(matches("class string { public: string(); }; "
@@ -821,8 +821,8 @@ TEST_P(ASTMatchersTest, MaterializeTemporaryExpr_MatchesTemporary) {
     return;
   }
 
-  StringRef ClassString = "class string { public: string(); int length(); }; ";
-  StatementMatcher TempExpression =
+  StringRef const ClassString = "class string { public: string(); int length(); }; ";
+  StatementMatcher const TempExpression =
       traverse(TK_AsIs, materializeTemporaryExpr());
 
   EXPECT_TRUE(notMatches(ClassString +
@@ -850,7 +850,7 @@ TEST_P(ASTMatchersTest, Matcher_NewExpression) {
     return;
   }
 
-  StatementMatcher New = cxxNewExpr();
+  StatementMatcher const New = cxxNewExpr();
 
   EXPECT_TRUE(matches("class X { public: X(); }; void x() { new X; }", New));
   EXPECT_TRUE(matches("class X { public: X(); }; void x() { new X(); }", New));
@@ -871,7 +871,7 @@ TEST_P(ASTMatchersTest, Matcher_NoexceptExpression) {
   if (!GetParam().isCXX11OrLater()) {
     return;
   }
-  StatementMatcher NoExcept = cxxNoexceptExpr();
+  StatementMatcher const NoExcept = cxxNoexceptExpr();
   EXPECT_TRUE(matches("void foo(); bool bar = noexcept(foo());", NoExcept));
   EXPECT_TRUE(
       matches("void foo() noexcept; bool bar = noexcept(foo());", NoExcept));
@@ -884,7 +884,7 @@ TEST_P(ASTMatchersTest, Matcher_DefaultArgument) {
   if (!GetParam().isCXX()) {
     return;
   }
-  StatementMatcher Arg = cxxDefaultArgExpr();
+  StatementMatcher const Arg = cxxDefaultArgExpr();
   EXPECT_TRUE(matches("void x(int, int = 0) { int y; x(y); }", Arg));
   EXPECT_TRUE(
       matches("class X { void x(int, int = 0) { int y; x(y); } };", Arg));
@@ -892,7 +892,7 @@ TEST_P(ASTMatchersTest, Matcher_DefaultArgument) {
 }
 
 TEST_P(ASTMatchersTest, StringLiteral) {
-  StatementMatcher Literal = stringLiteral();
+  StatementMatcher const Literal = stringLiteral();
   EXPECT_TRUE(matches("const char *s = \"string\";", Literal));
   // with escaped characters
   EXPECT_TRUE(matches("const char *s = \"\x05five\";", Literal));
@@ -923,7 +923,7 @@ TEST_P(ASTMatchersTest, CharacterLiteral_CXX) {
 }
 
 TEST_P(ASTMatchersTest, IntegerLiteral) {
-  StatementMatcher HasIntLiteral = integerLiteral();
+  StatementMatcher const HasIntLiteral = integerLiteral();
   EXPECT_TRUE(matches("int i = 10;", HasIntLiteral));
   EXPECT_TRUE(matches("int i = 0x1AB;", HasIntLiteral));
   EXPECT_TRUE(matches("int i = 10L;", HasIntLiteral));
@@ -945,7 +945,7 @@ TEST_P(ASTMatchersTest, IntegerLiteral) {
 }
 
 TEST_P(ASTMatchersTest, FloatLiteral) {
-  StatementMatcher HasFloatLiteral = floatLiteral();
+  StatementMatcher const HasFloatLiteral = floatLiteral();
   EXPECT_TRUE(matches("float i = 10.0;", HasFloatLiteral));
   EXPECT_TRUE(matches("float i = 10.0f;", HasFloatLiteral));
   EXPECT_TRUE(matches("double i = 10.0;", HasFloatLiteral));
@@ -1063,7 +1063,7 @@ TEST_P(ASTMatchersTest, HasCondition) {
     return;
   }
 
-  StatementMatcher Condition =
+  StatementMatcher const Condition =
       ifStmt(hasCondition(cxxBoolLiteral(equals(true))));
 
   EXPECT_TRUE(matches("void x() { if (true) {} }", Condition));
@@ -1080,7 +1080,7 @@ TEST_P(ASTMatchersTest, ConditionalOperator) {
     return;
   }
 
-  StatementMatcher Conditional =
+  StatementMatcher const Conditional =
       conditionalOperator(hasCondition(cxxBoolLiteral(equals(true))),
                           hasTrueExpression(cxxBoolLiteral(equals(false))));
 
@@ -1088,7 +1088,7 @@ TEST_P(ASTMatchersTest, ConditionalOperator) {
   EXPECT_TRUE(notMatches("void x() { false ? false : true; }", Conditional));
   EXPECT_TRUE(notMatches("void x() { true ? true : false; }", Conditional));
 
-  StatementMatcher ConditionalFalse =
+  StatementMatcher const ConditionalFalse =
       conditionalOperator(hasFalseExpression(cxxBoolLiteral(equals(false))));
 
   EXPECT_TRUE(matches("void x() { true ? true : false; }", ConditionalFalse));
@@ -1106,7 +1106,7 @@ TEST_P(ASTMatchersTest, BinaryConditionalOperator) {
     return;
   }
 
-  StatementMatcher AlwaysOne = traverse(
+  StatementMatcher const AlwaysOne = traverse(
       TK_AsIs, binaryConditionalOperator(
                    hasCondition(implicitCastExpr(has(opaqueValueExpr(
                        hasSourceExpression((integerLiteral(equals(1)))))))),
@@ -1114,7 +1114,7 @@ TEST_P(ASTMatchersTest, BinaryConditionalOperator) {
 
   EXPECT_TRUE(matches("void x() { 1 ?: 0; }", AlwaysOne));
 
-  StatementMatcher FourNotFive = binaryConditionalOperator(
+  StatementMatcher const FourNotFive = binaryConditionalOperator(
       hasTrueExpression(
           opaqueValueExpr(hasSourceExpression((integerLiteral(equals(4)))))),
       hasFalseExpression(integerLiteral(equals(5))));
@@ -1231,7 +1231,7 @@ TEST_P(ASTMatchersTest, CXXFunctionalCastExpr_MatchesSimpleCase) {
   if (!GetParam().isCXX()) {
     return;
   }
-  StringRef foo_class = "class Foo { public: Foo(const char*); };";
+  StringRef const foo_class = "class Foo { public: Foo(const char*); };";
   EXPECT_TRUE(matches(foo_class + "void r() { Foo f = Foo(\"hello world\"); }",
                       cxxFunctionalCastExpr()));
 }
@@ -1240,7 +1240,7 @@ TEST_P(ASTMatchersTest, CXXFunctionalCastExpr_DoesNotMatchOtherCasts) {
   if (!GetParam().isCXX()) {
     return;
   }
-  StringRef FooClass = "class Foo { public: Foo(const char*); };";
+  StringRef const FooClass = "class Foo { public: Foo(const char*); };";
   EXPECT_TRUE(
       notMatches(FooClass + "void r() { Foo f = (Foo) \"hello world\"; }",
                  cxxFunctionalCastExpr()));
@@ -1389,7 +1389,7 @@ TEST_P(ASTMatchersTest,
   if (!GetParam().isCXX11OrLater()) {
     return;
   }
-  StringRef code = "namespace std {"
+  StringRef const code = "namespace std {"
                    "template <typename> class initializer_list {"
                    "  public: initializer_list() noexcept {}"
                    "};"
@@ -1670,7 +1670,7 @@ TEST_P(ASTMatchersTest, PointerType) {
   EXPECT_TRUE(matches("int* b; int* * const a = &b;",
                       loc(qualType(isConstQualified(), pointerType()))));
 
-  StringRef Fragment = "int *ptr;";
+  StringRef const Fragment = "int *ptr;";
   EXPECT_TRUE(notMatches(Fragment,
                          varDecl(hasName("ptr"), hasType(blockPointerType()))));
   EXPECT_TRUE(notMatches(
@@ -1718,7 +1718,7 @@ TEST_P(ASTMatchersTest, PointerType_CXX11) {
   if (!GetParam().isCXX11OrLater()) {
     return;
   }
-  StringRef Fragment = "int &&ref = 2;";
+  StringRef const Fragment = "int &&ref = 2;";
   EXPECT_TRUE(notMatches(Fragment,
                          varDecl(hasName("ref"), hasType(blockPointerType()))));
   EXPECT_TRUE(notMatches(
@@ -1738,7 +1738,7 @@ TEST_P(ASTMatchersTest, AutoRefTypes) {
     return;
   }
 
-  StringRef Fragment = "auto a = 1;"
+  StringRef const Fragment = "auto a = 1;"
                        "auto b = a;"
                        "auto &c = a;"
                        "auto &&d = c;"
@@ -1854,7 +1854,7 @@ TEST_P(ASTMatchersTest, SubstTemplateTypeParmType) {
   if (!GetParam().isCXX()) {
     return;
   }
-  StringRef code = "template <typename T>"
+  StringRef const code = "template <typename T>"
                    "int F() {"
                    "  return 1 + T();"
                    "}"
@@ -1887,7 +1887,7 @@ TEST_P(ASTMatchersTest, NestedNameSpecifier) {
 
 TEST_P(ASTMatchersTest, Attr) {
   // Windows adds some implicit attributes.
-  bool AutomaticAttributes = StringRef(GetParam().Target).contains("win32");
+  bool const AutomaticAttributes = StringRef(GetParam().Target).contains("win32");
   if (GetParam().isCXX11OrLater()) {
     EXPECT_TRUE(matches("struct [[clang::warn_unused_result]] F{};", attr()));
 
@@ -1925,7 +1925,7 @@ TEST_P(ASTMatchersTest, NestedNameSpecifier_MatchesTypes) {
   if (!GetParam().isCXX()) {
     return;
   }
-  NestedNameSpecifierMatcher Matcher = nestedNameSpecifier(
+  NestedNameSpecifierMatcher const Matcher = nestedNameSpecifier(
       specifiesType(hasDeclaration(recordDecl(hasName("A")))));
   EXPECT_TRUE(matches("struct A { struct B {}; }; A::B b;", Matcher));
   EXPECT_TRUE(
@@ -1937,7 +1937,7 @@ TEST_P(ASTMatchersTest, NestedNameSpecifier_MatchesNamespaceDecls) {
   if (!GetParam().isCXX()) {
     return;
   }
-  NestedNameSpecifierMatcher Matcher =
+  NestedNameSpecifierMatcher const Matcher =
       nestedNameSpecifier(specifiesNamespace(hasName("ns")));
   EXPECT_TRUE(matches("namespace ns { struct A {}; } ns::A a;", Matcher));
   EXPECT_TRUE(notMatches("namespace xx { struct A {}; } xx::A a;", Matcher));
@@ -2063,7 +2063,7 @@ TEST_P(ASTMatchersTest, TypeAliasTemplateDecl) {
   if (!GetParam().isCXX11OrLater()) {
     return;
   }
-  StringRef Code = R"(
+  StringRef const Code = R"(
     template <typename T>
     class X { T t; };
 
@@ -2082,7 +2082,7 @@ TEST(ASTMatchersTestObjC, ObjCMessageExpr) {
   // Don't find ObjCMessageExpr where none are present.
   EXPECT_TRUE(notMatchesObjC("", objcMessageExpr(anything())));
 
-  StringRef Objc1String = "@interface Str "
+  StringRef const Objc1String = "@interface Str "
                           " - (Str *)uppercaseString;"
                           "@end "
                           "@interface foo "
@@ -2124,7 +2124,7 @@ TEST(ASTMatchersTestObjC, ObjCMessageExpr) {
 }
 
 TEST(ASTMatchersTestObjC, ObjCDecls) {
-  StringRef ObjCString = "@protocol Proto "
+  StringRef const ObjCString = "@protocol Proto "
                          "- (void)protoDidThing; "
                          "@end "
                          "@interface Thing "
@@ -2155,7 +2155,7 @@ TEST(ASTMatchersTestObjC, ObjCDecls) {
 }
 
 TEST(ASTMatchersTestObjC, ObjCExceptionStmts) {
-  StringRef ObjCString = "void f(id obj) {"
+  StringRef const ObjCString = "void f(id obj) {"
                          "  @try {"
                          "    @throw obj;"
                          "  } @catch (...) {"
@@ -2169,7 +2169,7 @@ TEST(ASTMatchersTestObjC, ObjCExceptionStmts) {
 }
 
 TEST(ASTMatchersTest, DecompositionDecl) {
-  StringRef Code = R"cpp(
+  StringRef const Code = R"cpp(
 void foo()
 {
     int arr[3];
@@ -2200,34 +2200,34 @@ void foo()
 }
 
 TEST(ASTMatchersTestObjC, ObjCAutoreleasePoolStmt) {
-  StringRef ObjCString = "void f() {"
+  StringRef const ObjCString = "void f() {"
                          "@autoreleasepool {"
                          "  int x = 1;"
                          "}"
                          "}";
   EXPECT_TRUE(matchesObjC(ObjCString, autoreleasePoolStmt()));
-  StringRef ObjCStringNoPool = "void f() { int x = 1; }";
+  StringRef const ObjCStringNoPool = "void f() { int x = 1; }";
   EXPECT_FALSE(matchesObjC(ObjCStringNoPool, autoreleasePoolStmt()));
 }
 
 TEST(ASTMatchersTestOpenMP, OMPExecutableDirective) {
   auto Matcher = stmt(ompExecutableDirective());
 
-  StringRef Source0 = R"(
+  StringRef const Source0 = R"(
 void x() {
 #pragma omp parallel
 ;
 })";
   EXPECT_TRUE(matchesWithOpenMP(Source0, Matcher));
 
-  StringRef Source1 = R"(
+  StringRef const Source1 = R"(
 void x() {
 #pragma omp taskyield
 ;
 })";
   EXPECT_TRUE(matchesWithOpenMP(Source1, Matcher));
 
-  StringRef Source2 = R"(
+  StringRef const Source2 = R"(
 void x() {
 ;
 })";
@@ -2237,41 +2237,41 @@ void x() {
 TEST(ASTMatchersTestOpenMP, OMPDefaultClause) {
   auto Matcher = ompExecutableDirective(hasAnyClause(ompDefaultClause()));
 
-  StringRef Source0 = R"(
+  StringRef const Source0 = R"(
 void x() {
 ;
 })";
   EXPECT_TRUE(notMatchesWithOpenMP(Source0, Matcher));
 
-  StringRef Source1 = R"(
+  StringRef const Source1 = R"(
 void x() {
 #pragma omp parallel
 ;
 })";
   EXPECT_TRUE(notMatchesWithOpenMP(Source1, Matcher));
 
-  StringRef Source2 = R"(
+  StringRef const Source2 = R"(
 void x() {
 #pragma omp parallel default(none)
 ;
 })";
   EXPECT_TRUE(matchesWithOpenMP(Source2, Matcher));
 
-  StringRef Source3 = R"(
+  StringRef const Source3 = R"(
 void x() {
 #pragma omp parallel default(shared)
 ;
 })";
   EXPECT_TRUE(matchesWithOpenMP(Source3, Matcher));
 
-  StringRef Source4 = R"(
+  StringRef const Source4 = R"(
 void x() {
 #pragma omp parallel default(firstprivate)
 ;
 })";
   EXPECT_TRUE(matchesWithOpenMP51(Source4, Matcher));
 
-  StringRef Source5 = R"(
+  StringRef const Source5 = R"(
 void x(int x) {
 #pragma omp parallel num_threads(x)
 ;
@@ -2292,7 +2292,7 @@ TEST(ASTMatchersTest, Finder_DynamicOnlyAcceptsSomeMatchers) {
 }
 
 TEST(MatchFinderAPI, MatchesDynamic) {
-  StringRef SourceCode = "struct A { void f() {} };";
+  StringRef const SourceCode = "struct A { void f() {} };";
   auto Matcher = functionDecl(isDefinition()).bind("method");
 
   auto astUnit = tooling::buildASTFromCode(SourceCode);
@@ -2316,7 +2316,7 @@ TEST(MatchFinderAPI, MatchesDynamic) {
 
 static std::vector<TestClangConfig> allTestClangConfigs() {
   std::vector<TestClangConfig> all_configs;
-  for (TestLanguage lang : {Lang_C89, Lang_C99, Lang_CXX03, Lang_CXX11,
+  for (TestLanguage const lang : {Lang_C89, Lang_C99, Lang_CXX03, Lang_CXX11,
                             Lang_CXX14, Lang_CXX17, Lang_CXX20}) {
     TestClangConfig config;
     config.Language = lang;

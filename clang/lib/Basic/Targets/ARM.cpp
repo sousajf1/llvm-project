@@ -30,8 +30,8 @@ void ARMTargetInfo::setABIAAPCS() {
 
   const llvm::Triple &T = getTriple();
 
-  bool IsNetBSD = T.isOSNetBSD();
-  bool IsOpenBSD = T.isOSOpenBSD();
+  bool const IsNetBSD = T.isOSNetBSD();
+  bool const IsOpenBSD = T.isOSOpenBSD();
   if (!T.isOSWindows() && !IsNetBSD && !IsOpenBSD)
     WCharType = UnsignedInt;
 
@@ -111,11 +111,11 @@ void ARMTargetInfo::setABIAPCS(bool IsAAPCS16) {
 }
 
 void ARMTargetInfo::setArchInfo() {
-  StringRef ArchName = getTriple().getArchName();
+  StringRef const ArchName = getTriple().getArchName();
 
   ArchISA = llvm::ARM::parseArchISA(ArchName);
   CPU = std::string(llvm::ARM::getDefaultCPU(ArchName));
-  llvm::ARM::ArchKind AK = llvm::ARM::parseArch(ArchName);
+  llvm::ARM::ArchKind const AK = llvm::ARM::parseArch(ArchName);
   if (AK != llvm::ARM::ArchKind::INVALID)
     ArchKind = AK;
   setArchInfo(ArchKind);
@@ -138,7 +138,7 @@ void ARMTargetInfo::setArchInfo(llvm::ARM::ArchKind Kind) {
 void ARMTargetInfo::setAtomic() {
   // when triple does not specify a sub arch,
   // then we are not using inline atomics
-  bool ShouldUseInlineAtomic =
+  bool const ShouldUseInlineAtomic =
       (ArchISA == llvm::ARM::ISAKind::ARM && ArchVersion >= 6) ||
       (ArchISA == llvm::ARM::ISAKind::THUMB && ArchVersion >= 7);
   // Cortex M does not support 8 byte atomics, while general Thumb2 does.
@@ -240,8 +240,8 @@ ARMTargetInfo::ARMTargetInfo(const llvm::Triple &Triple,
                              const TargetOptions &Opts)
     : TargetInfo(Triple), FPMath(FP_Default), IsAAPCS(true), LDREX(0),
       HW_FP(0) {
-  bool IsOpenBSD = Triple.isOSOpenBSD();
-  bool IsNetBSD = Triple.isOSNetBSD();
+  bool const IsOpenBSD = Triple.isOSOpenBSD();
+  bool const IsNetBSD = Triple.isOSNetBSD();
 
   // FIXME: the isOSBinFormatMachO is a workaround for identifying a Darwin-like
   // environment where size_t is `unsigned long` rather than `unsigned int`
@@ -368,7 +368,7 @@ bool ARMTargetInfo::initFeatureMap(
 
   std::string ArchFeature;
   std::vector<StringRef> TargetFeatures;
-  llvm::ARM::ArchKind Arch = llvm::ARM::parseArch(getTriple().getArchName());
+  llvm::ARM::ArchKind const Arch = llvm::ARM::parseArch(getTriple().getArchName());
 
   // Map the base architecture to an appropriate target feature, so we don't
   // rely on the target triple.
@@ -381,11 +381,11 @@ bool ARMTargetInfo::initFeatureMap(
   }
 
   // get default FPU features
-  unsigned FPUKind = llvm::ARM::getDefaultFPU(CPU, Arch);
+  unsigned const FPUKind = llvm::ARM::getDefaultFPU(CPU, Arch);
   llvm::ARM::getFPUFeatures(FPUKind, TargetFeatures);
 
   // get default Extension features
-  uint64_t Extensions = llvm::ARM::getDefaultExtensions(CPU, Arch);
+  uint64_t const Extensions = llvm::ARM::getDefaultExtensions(CPU, Arch);
   llvm::ARM::getExtensionFeatures(Extensions, TargetFeatures);
 
   for (auto Feature : TargetFeatures)
@@ -512,7 +512,7 @@ bool ARMTargetInfo::handleTargetFeatures(std::vector<std::string> &Features,
       HasMatMul = 1;
     } else if (Feature.size() == strlen("+cdecp0") && Feature >= "+cdecp0" &&
                Feature <= "+cdecp7") {
-      unsigned Coproc = Feature.back() - '0';
+      unsigned const Coproc = Feature.back() - '0';
       ARMCDECoprocMask |= (1U << Coproc);
     } else if (Feature == "+bf16") {
       HasBFloat16 = true;
@@ -1104,8 +1104,8 @@ std::string ARMTargetInfo::convertConstraint(const char *&Constraint) const {
 bool ARMTargetInfo::validateConstraintModifier(
     StringRef Constraint, char Modifier, unsigned Size,
     std::string &SuggestedModifier) const {
-  bool isOutput = (Constraint[0] == '=');
-  bool isInOut = (Constraint[0] == '+');
+  bool const isOutput = (Constraint[0] == '=');
+  bool const isInOut = (Constraint[0] == '+');
 
   // Strip off constraint modifiers.
   while (Constraint[0] == '=' || Constraint[0] == '+' || Constraint[0] == '&')
@@ -1192,7 +1192,7 @@ void WindowsARMTargetInfo::getVisualStudioDefines(const LangOptions &Opts,
   assert((Triple.getArch() == llvm::Triple::arm ||
           Triple.getArch() == llvm::Triple::thumb) &&
          "invalid architecture for Windows ARM target info");
-  unsigned Offset = Triple.getArch() == llvm::Triple::arm ? 4 : 6;
+  unsigned const Offset = Triple.getArch() == llvm::Triple::arm ? 4 : 6;
   Builder.defineMacro("_M_ARM", Triple.getArchName().substr(Offset));
 
   // TODO map the complete set of values

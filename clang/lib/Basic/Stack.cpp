@@ -52,8 +52,8 @@ bool clang::isStackNearlyExhausted() {
   if (!BottomOfStack)
     return false;
 
-  intptr_t StackDiff = (intptr_t)getStackPointer() - (intptr_t)BottomOfStack;
-  size_t StackUsage = (size_t)std::abs(StackDiff);
+  intptr_t const StackDiff = (intptr_t)getStackPointer() - (intptr_t)BottomOfStack;
+  size_t const StackUsage = (size_t)std::abs(StackDiff);
 
   // If the stack pointer has a surprising value, we do not understand this
   // stack usage scheme. (Perhaps the target allocates new stack regions on

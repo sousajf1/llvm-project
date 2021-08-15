@@ -36,17 +36,17 @@ static bool findRISCVMultilibs(const Driver &D,
                                const llvm::Triple &TargetTriple,
                                const ArgList &Args, DetectedMultilibs &Result) {
   Multilib::flags_list Flags;
-  StringRef Arch = riscv::getRISCVArch(Args, TargetTriple);
-  StringRef Abi = tools::riscv::getRISCVABI(Args, TargetTriple);
+  StringRef const Arch = riscv::getRISCVArch(Args, TargetTriple);
+  StringRef const Abi = tools::riscv::getRISCVABI(Args, TargetTriple);
 
   if (TargetTriple.getArch() == llvm::Triple::riscv64) {
-    Multilib Imac = makeMultilib("").flag("+march=rv64imac").flag("+mabi=lp64");
-    Multilib Imafdc = makeMultilib("/rv64imafdc/lp64d")
+    Multilib const Imac = makeMultilib("").flag("+march=rv64imac").flag("+mabi=lp64");
+    Multilib const Imafdc = makeMultilib("/rv64imafdc/lp64d")
                           .flag("+march=rv64imafdc")
                           .flag("+mabi=lp64d");
 
     // Multilib reuse
-    bool UseImafdc =
+    bool const UseImafdc =
         (Arch == "rv64imafdc") || (Arch == "rv64gc"); // gc => imafdc
 
     addMultilibFlag((Arch == "rv64imac"), "march=rv64imac", Flags);
@@ -58,23 +58,23 @@ static bool findRISCVMultilibs(const Driver &D,
     return Result.Multilibs.select(Flags, Result.SelectedMultilib);
   }
   if (TargetTriple.getArch() == llvm::Triple::riscv32) {
-    Multilib Imac =
+    Multilib const Imac =
         makeMultilib("").flag("+march=rv32imac").flag("+mabi=ilp32");
-    Multilib I =
+    Multilib const I =
         makeMultilib("/rv32i/ilp32").flag("+march=rv32i").flag("+mabi=ilp32");
-    Multilib Im =
+    Multilib const Im =
         makeMultilib("/rv32im/ilp32").flag("+march=rv32im").flag("+mabi=ilp32");
-    Multilib Iac = makeMultilib("/rv32iac/ilp32")
+    Multilib const Iac = makeMultilib("/rv32iac/ilp32")
                        .flag("+march=rv32iac")
                        .flag("+mabi=ilp32");
-    Multilib Imafc = makeMultilib("/rv32imafc/ilp32f")
+    Multilib const Imafc = makeMultilib("/rv32imafc/ilp32f")
                          .flag("+march=rv32imafc")
                          .flag("+mabi=ilp32f");
 
     // Multilib reuse
-    bool UseI = (Arch == "rv32i") || (Arch == "rv32ic");    // ic => i
-    bool UseIm = (Arch == "rv32im") || (Arch == "rv32imc"); // imc => im
-    bool UseImafc = (Arch == "rv32imafc") || (Arch == "rv32imafdc") ||
+    bool const UseI = (Arch == "rv32i") || (Arch == "rv32ic");    // ic => i
+    bool const UseIm = (Arch == "rv32im") || (Arch == "rv32imc"); // imc => im
+    bool const UseImafc = (Arch == "rv32imafc") || (Arch == "rv32imafdc") ||
                     (Arch == "rv32gc"); // imafdc,gc => imafc
 
     addMultilibFlag(UseI, "march=rv32i", Flags);
@@ -218,7 +218,7 @@ void BareMetal::AddClangCXXStdlibIncludeArgs(
       DriverArgs.hasArg(options::OPT_nostdincxx))
     return;
 
-  std::string SysRoot(computeSysRoot());
+  std::string const SysRoot(computeSysRoot());
   if (SysRoot.empty())
     return;
 
@@ -239,7 +239,7 @@ void BareMetal::AddClangCXXStdlibIncludeArgs(
              LI = getDriver().getVFS().dir_begin(Dir.str(), EC),
              LE;
          !EC && LI != LE; LI = LI.increment(EC)) {
-      StringRef VersionText = llvm::sys::path::filename(LI->path());
+      StringRef const VersionText = llvm::sys::path::filename(LI->path());
       auto CandidateVersion = Generic_GCC::GCCVersion::Parse(VersionText);
       if (CandidateVersion.Major == -1)
         continue;
@@ -273,7 +273,7 @@ void BareMetal::AddCXXStdlibLibArgs(const ArgList &Args,
 
 void BareMetal::AddLinkRuntimeLib(const ArgList &Args,
                                   ArgStringList &CmdArgs) const {
-  ToolChain::RuntimeLibType RLT = GetRuntimeLibType(Args);
+  ToolChain::RuntimeLibType const RLT = GetRuntimeLibType(Args);
   switch (RLT) {
   case ToolChain::RLT_CompilerRT:
     CmdArgs.push_back(

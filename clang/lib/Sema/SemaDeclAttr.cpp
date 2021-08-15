@@ -301,10 +301,10 @@ static bool checkFunctionOrMethodParameterIndex(
 
   // In C++ the implicit 'this' function parameter also counts.
   // Parameters are counted from one.
-  bool HP = hasFunctionProto(D);
-  bool HasImplicitThisParam = isInstanceMethod(D);
-  bool IV = HP && isFunctionOrMethodVariadic(D);
-  unsigned NumParams =
+  bool const HP = hasFunctionProto(D);
+  bool const HasImplicitThisParam = isInstanceMethod(D);
+  bool const IV = HP && isFunctionOrMethodVariadic(D);
+  unsigned const NumParams =
       (HP ? getFunctionOrMethodNumParams(D) : 0) + HasImplicitThisParam;
 
   Optional<llvm::APSInt> IdxInt;
@@ -316,7 +316,7 @@ static bool checkFunctionOrMethodParameterIndex(
     return false;
   }
 
-  unsigned IdxSource = IdxInt->getLimitedValue(UINT_MAX);
+  unsigned const IdxSource = IdxInt->getLimitedValue(UINT_MAX);
   if (IdxSource < 1 || (!IV && IdxSource > NumParams)) {
     S.Diag(getAttrLoc(AI), diag::err_attribute_argument_out_of_bounds)
         << &AI << AttrArgNum << IdxExpr->getSourceRange();
@@ -402,7 +402,7 @@ static void handleSimpleAttributeOrDiagnose(Sema &S, Decl *D,
                                             bool PassesCheck, unsigned DiagID,
                                             DiagnosticArgs &&... ExtraArgs) {
   if (!PassesCheck) {
-    Sema::SemaDiagnosticBuilder DB = S.Diag(D->getBeginLoc(), DiagID);
+    Sema::SemaDiagnosticBuilder const DB = S.Diag(D->getBeginLoc(), DiagID);
     appendDiagnostics(DB, std::forward<DiagnosticArgs>(ExtraArgs)...);
     return;
   }
@@ -411,7 +411,7 @@ static void handleSimpleAttributeOrDiagnose(Sema &S, Decl *D,
 
 /// Check if the passed-in expression is of type int or bool.
 static bool isIntOrBool(Expr *Exp) {
-  QualType QT = Exp->getType();
+  QualType const QT = Exp->getType();
   return QT->isBooleanType() || QT->isIntegerType();
 }
 
@@ -421,7 +421,7 @@ static bool isIntOrBool(Expr *Exp) {
 static bool threadSafetyCheckIsSmartPointer(Sema &S, const RecordType* RT) {
   auto IsOverloadedOperatorPresent = [&S](const RecordDecl *Record,
                                           OverloadedOperatorKind Op) {
-    DeclContextLookupResult Result =
+    DeclContextLookupResult const Result =
         Record->lookup(S.Context.DeclarationNames.getCXXOperatorName(Op));
     return !Result.empty();
   };
@@ -457,7 +457,7 @@ static bool threadSafetyCheckIsSmartPointer(Sema &S, const RecordType* RT) {
 static bool threadSafetyCheckIsPointer(Sema &S, const Decl *D,
                                        const ParsedAttr &AL) {
   const auto *VD = cast<ValueDecl>(D);
-  QualType QT = VD->getType();
+  QualType const QT = VD->getType();
   if (QT->isAnyPointerType())
     return true;
 
@@ -642,10 +642,10 @@ static void checkAttrArgsAreCapabilityObjs(Sema &S, Decl *D,
       const auto *FD = dyn_cast<FunctionDecl>(D);
       const auto *IL = dyn_cast<IntegerLiteral>(ArgExp);
       if(FD && IL) {
-        unsigned int NumParams = FD->getNumParams();
-        llvm::APInt ArgValue = IL->getValue();
-        uint64_t ParamIdxFromOne = ArgValue.getZExtValue();
-        uint64_t ParamIdxFromZero = ParamIdxFromOne - 1;
+        unsigned int const NumParams = FD->getNumParams();
+        llvm::APInt const ArgValue = IL->getValue();
+        uint64_t const ParamIdxFromOne = ArgValue.getZExtValue();
+        uint64_t const ParamIdxFromZero = ParamIdxFromOne - 1;
         if (!ArgValue.isStrictlyPositive() || ParamIdxFromOne > NumParams) {
           S.Diag(AL.getLoc(),
                  diag::err_attribute_argument_out_of_bounds_extra_info)
@@ -684,7 +684,7 @@ static bool checkGuardedByAttrCommon(Sema &S, Decl *D, const ParsedAttr &AL,
   SmallVector<Expr *, 1> Args;
   // check that all arguments are lockable objects
   checkAttrArgsAreCapabilityObjs(S, D, AL, Args);
-  unsigned Size = Args.size();
+  unsigned const Size = Args.size();
   if (Size != 1)
     return false;
 
@@ -718,7 +718,7 @@ static bool checkAcquireOrderAttrCommon(Sema &S, Decl *D, const ParsedAttr &AL,
     return false;
 
   // Check that this attribute only applies to lockable types.
-  QualType QT = cast<ValueDecl>(D)->getType();
+  QualType const QT = cast<ValueDecl>(D)->getType();
   if (!QT->isDependentType() && !typeHasCapability(S, QT)) {
     S.Diag(AL.getLoc(), diag::warn_thread_attribute_decl_not_lockable) << AL;
     return false;
@@ -766,7 +766,7 @@ static void handleAssertSharedLockAttr(Sema &S, Decl *D, const ParsedAttr &AL) {
   if (!checkLockFunAttrCommon(S, D, AL, Args))
     return;
 
-  unsigned Size = Args.size();
+  unsigned const Size = Args.size();
   Expr **StartArg = Size == 0 ? nullptr : &Args[0];
   D->addAttr(::new (S.Context)
                  AssertSharedLockAttr(S.Context, AL, StartArg, Size));
@@ -778,7 +778,7 @@ static void handleAssertExclusiveLockAttr(Sema &S, Decl *D,
   if (!checkLockFunAttrCommon(S, D, AL, Args))
     return;
 
-  unsigned Size = Args.size();
+  unsigned const Size = Args.size();
   Expr **StartArg = Size == 0 ? nullptr : &Args[0];
   D->addAttr(::new (S.Context)
                  AssertExclusiveLockAttr(S.Context, AL, StartArg, Size));
@@ -799,9 +799,9 @@ static bool checkParamIsIntegerType(Sema &S, const Decl *D, const AttrInfo &AI,
                                            Idx))
     return false;
 
-  QualType ParamTy = getFunctionOrMethodParamType(D, Idx.getASTIndex());
+  QualType const ParamTy = getFunctionOrMethodParamType(D, Idx.getASTIndex());
   if (!ParamTy->isIntegerType() && !ParamTy->isCharType()) {
-    SourceLocation SrcLoc = AttrArg->getBeginLoc();
+    SourceLocation const SrcLoc = AttrArg->getBeginLoc();
     S.Diag(SrcLoc, diag::err_attribute_integers_only)
         << AI << getFunctionOrMethodParamRange(D, Idx.getASTIndex());
     return false;
@@ -815,7 +815,7 @@ static void handleAllocSizeAttr(Sema &S, Decl *D, const ParsedAttr &AL) {
 
   assert(isFunctionOrMethod(D) && hasFunctionProto(D));
 
-  QualType RetTy = getFunctionOrMethodResultType(D);
+  QualType const RetTy = getFunctionOrMethodResultType(D);
   if (!RetTy->isPointerType()) {
     S.Diag(AL.getLoc(), diag::warn_attribute_return_pointers_only) << AL;
     return;
@@ -828,7 +828,7 @@ static void handleAllocSizeAttr(Sema &S, Decl *D, const ParsedAttr &AL) {
     return;
   if (!checkParamIsIntegerType(S, D, AL, /*AttrArgNo=*/0))
     return;
-  ParamIdx SizeArgNo(SizeArgNoVal, D);
+  ParamIdx const SizeArgNo(SizeArgNoVal, D);
 
   ParamIdx NumberArgNo;
   if (AL.getNumArgs() == 2) {
@@ -887,7 +887,7 @@ static void handleLockReturnedAttr(Sema &S, Decl *D, const ParsedAttr &AL) {
   // check that the argument is lockable object
   SmallVector<Expr*, 1> Args;
   checkAttrArgsAreCapabilityObjs(S, D, AL, Args);
-  unsigned Size = Args.size();
+  unsigned const Size = Args.size();
   if (Size == 0)
     return;
 
@@ -901,7 +901,7 @@ static void handleLocksExcludedAttr(Sema &S, Decl *D, const ParsedAttr &AL) {
   // check that all arguments are lockable objects
   SmallVector<Expr*, 1> Args;
   checkAttrArgsAreCapabilityObjs(S, D, AL, Args);
-  unsigned Size = Args.size();
+  unsigned const Size = Args.size();
   if (Size == 0)
     return;
   Expr **StartArg = &Args[0];
@@ -914,7 +914,7 @@ static bool checkFunctionConditionAttr(Sema &S, Decl *D, const ParsedAttr &AL,
                                        Expr *&Cond, StringRef &Msg) {
   Cond = AL.getArgAsExpr(0);
   if (!Cond->isTypeDependent()) {
-    ExprResult Converted = S.PerformContextuallyConvertToBool(Cond);
+    ExprResult const Converted = S.PerformContextuallyConvertToBool(Cond);
     if (Converted.isInvalid())
       return false;
     Cond = Converted.get();
@@ -1033,7 +1033,7 @@ static void handleNoBuiltinAttr(Sema &S, Decl *D, const ParsedAttr &AL) {
 
   // Add previously defined attributes.
   if (const auto *NBA = D->getAttr<NoBuiltinAttr>())
-    for (StringRef BuiltinName : NBA->builtinNames())
+    for (StringRef const BuiltinName : NBA->builtinNames())
       AddBuiltinName(BuiltinName);
 
   // Add current attributes.
@@ -1123,7 +1123,7 @@ static void handleConsumableAttr(Sema &S, Decl *D, const ParsedAttr &AL) {
 
 static bool checkForConsumableClass(Sema &S, const CXXMethodDecl *MD,
                                     const ParsedAttr &AL) {
-  QualType ThisType = MD->getThisType()->getPointeeType();
+  QualType const ThisType = MD->getThisType()->getPointeeType();
 
   if (const CXXRecordDecl *RD = ThisType->getAsCXXRecordDecl()) {
     if (!RD->hasAttr<ConsumableAttr>()) {
@@ -1176,7 +1176,7 @@ static void handleParamTypestateAttr(Sema &S, Decl *D, const ParsedAttr &AL) {
 
   if (AL.isArgIdent(0)) {
     IdentifierLoc *Ident = AL.getArgAsIdent(0);
-    StringRef StateString = Ident->Ident->getName();
+    StringRef const StateString = Ident->Ident->getName();
 
     if (!ParamTypestateAttr::ConvertStrToConsumedState(StateString,
                                                        ParamState)) {
@@ -1257,7 +1257,7 @@ static void handleSetTypestateAttr(Sema &S, Decl *D, const ParsedAttr &AL) {
   SetTypestateAttr::ConsumedState NewState;
   if (AL.isArgIdent(0)) {
     IdentifierLoc *Ident = AL.getArgAsIdent(0);
-    StringRef Param = Ident->Ident->getName();
+    StringRef const Param = Ident->Ident->getName();
     if (!SetTypestateAttr::ConvertStrToConsumedState(Param, NewState)) {
       S.Diag(Ident->Loc, diag::warn_attribute_type_not_supported) << AL
                                                                   << Param;
@@ -1279,7 +1279,7 @@ static void handleTestTypestateAttr(Sema &S, Decl *D, const ParsedAttr &AL) {
   TestTypestateAttr::ConsumedState TestState;
   if (AL.isArgIdent(0)) {
     IdentifierLoc *Ident = AL.getArgAsIdent(0);
-    StringRef Param = Ident->Ident->getName();
+    StringRef const Param = Ident->Ident->getName();
     if (!TestTypestateAttr::ConvertStrToConsumedState(Param, TestState)) {
       S.Diag(Ident->Loc, diag::warn_attribute_type_not_supported) << AL
                                                                   << Param;
@@ -1303,7 +1303,7 @@ static void handlePackedAttr(Sema &S, Decl *D, const ParsedAttr &AL) {
   if (auto *TD = dyn_cast<TagDecl>(D))
     TD->addAttr(::new (S.Context) PackedAttr(S.Context, AL));
   else if (auto *FD = dyn_cast<FieldDecl>(D)) {
-    bool BitfieldByteAligned = (!FD->getType()->isDependentType() &&
+    bool const BitfieldByteAligned = (!FD->getType()->isDependentType() &&
                                 !FD->getType()->isIncompleteType() &&
                                 FD->isBitField() &&
                                 S.Context.getTypeAlign(FD->getType()) <= 8);
@@ -1332,9 +1332,9 @@ static void handlePreferredName(Sema &S, Decl *D, const ParsedAttr &AL) {
   ClassTemplateDecl *CTD = RD->getDescribedClassTemplate();
   assert(CTD && "attribute does not appertain to this declaration");
 
-  ParsedType PT = AL.getTypeArg();
+  ParsedType const PT = AL.getTypeArg();
   TypeSourceInfo *TSI = nullptr;
-  QualType T = S.GetTypeFromParser(PT, &TSI);
+  QualType const T = S.GetTypeFromParser(PT, &TSI);
   if (!TSI)
     TSI = S.Context.getTrivialTypeSourceInfo(T, AL.getLoc());
 
@@ -1422,7 +1422,7 @@ static void handleIBOutletCollection(Sema &S, Decl *D, const ParsedAttr &AL) {
   }
 
   TypeSourceInfo *QTLoc = nullptr;
-  QualType QT = S.GetTypeFromParser(PT, &QTLoc);
+  QualType const QT = S.GetTypeFromParser(PT, &QTLoc);
   if (!QTLoc)
     QTLoc = S.Context.getTrivialTypeSourceInfo(QT, AL.getLoc());
 
@@ -1454,7 +1454,7 @@ bool Sema::isValidPointerAttrType(QualType T, bool RefOkay) {
     if (UT && UT->getDecl()->hasAttr<TransparentUnionAttr>()) {
       RecordDecl *UD = UT->getDecl();
       for (const auto *I : UD->fields()) {
-        QualType QT = I->getType();
+        QualType const QT = I->getType();
         if (QT->isAnyPointerType() || QT->isBlockPointerType())
           return true;
       }
@@ -1508,7 +1508,7 @@ static void handleNonNullAttr(Sema &S, Decl *D, const ParsedAttr &AL) {
     bool AnyPointers = isFunctionOrMethodVariadic(D);
     for (unsigned I = 0, E = getFunctionOrMethodNumParams(D);
          I != E && !AnyPointers; ++I) {
-      QualType T = getFunctionOrMethodParamType(D, I);
+      QualType const T = getFunctionOrMethodParamType(D, I);
       if (T->isDependentType() || S.isValidPointerAttrType(T))
         AnyPointers = true;
     }
@@ -1518,7 +1518,7 @@ static void handleNonNullAttr(Sema &S, Decl *D, const ParsedAttr &AL) {
   }
 
   ParamIdx *Start = NonNullArgs.data();
-  unsigned Size = NonNullArgs.size();
+  unsigned const Size = NonNullArgs.size();
   llvm::array_pod_sort(Start, Start + Size);
   D->addAttr(::new (S.Context) NonNullAttr(S.Context, AL, Start, Size));
 }
@@ -1544,8 +1544,8 @@ static void handleNonNullAttrParameter(Sema &S, ParmVarDecl *D,
 }
 
 static void handleReturnsNonNullAttr(Sema &S, Decl *D, const ParsedAttr &AL) {
-  QualType ResultType = getFunctionOrMethodResultType(D);
-  SourceRange SR = getFunctionOrMethodResultSourceRange(D);
+  QualType const ResultType = getFunctionOrMethodResultType(D);
+  SourceRange const SR = getFunctionOrMethodResultSourceRange(D);
   if (!attrNonNullArgCheck(S, ResultType, AL, SourceRange(), SR,
                            /* isReturnValue */ true))
     return;
@@ -1558,7 +1558,7 @@ static void handleNoEscapeAttr(Sema &S, Decl *D, const ParsedAttr &AL) {
     return;
 
   // noescape only applies to pointer types.
-  QualType T = cast<ParmVarDecl>(D)->getType();
+  QualType const T = cast<ParmVarDecl>(D)->getType();
   if (!S.isValidPointerAttrType(T, /* RefOkay */ true)) {
     S.Diag(AL.getLoc(), diag::warn_attribute_pointers_only)
         << AL << AL.getRange() << 0;
@@ -1580,11 +1580,11 @@ static void handleAllocAlignAttr(Sema &S, Decl *D, const ParsedAttr &AL) {
 
 void Sema::AddAssumeAlignedAttr(Decl *D, const AttributeCommonInfo &CI, Expr *E,
                                 Expr *OE) {
-  QualType ResultType = getFunctionOrMethodResultType(D);
-  SourceRange SR = getFunctionOrMethodResultSourceRange(D);
+  QualType const ResultType = getFunctionOrMethodResultType(D);
+  SourceRange const SR = getFunctionOrMethodResultSourceRange(D);
 
   AssumeAlignedAttr TmpAttr(Context, CI, E, OE);
-  SourceLocation AttrLoc = TmpAttr.getLocation();
+  SourceLocation const AttrLoc = TmpAttr.getLocation();
 
   if (!isValidPointerAttrType(ResultType, /* RefOkay */ true)) {
     Diag(AttrLoc, diag::warn_attribute_return_pointers_refs_only)
@@ -1629,10 +1629,10 @@ void Sema::AddAssumeAlignedAttr(Decl *D, const AttributeCommonInfo &CI, Expr *E,
 
 void Sema::AddAllocAlignAttr(Decl *D, const AttributeCommonInfo &CI,
                              Expr *ParamExpr) {
-  QualType ResultType = getFunctionOrMethodResultType(D);
+  QualType const ResultType = getFunctionOrMethodResultType(D);
 
   AllocAlignAttr TmpAttr(Context, CI, ParamIdx());
-  SourceLocation AttrLoc = CI.getLoc();
+  SourceLocation const AttrLoc = CI.getLoc();
 
   if (!ResultType->isDependentType() &&
       !isValidPointerAttrType(ResultType, /* RefOkay */ true)) {
@@ -1647,7 +1647,7 @@ void Sema::AddAllocAlignAttr(Decl *D, const AttributeCommonInfo &CI,
                                            /*AttrArgNum=*/1, ParamExpr, Idx))
     return;
 
-  QualType Ty = getFunctionOrMethodParamType(D, Idx.getASTIndex());
+  QualType const Ty = getFunctionOrMethodParamType(D, Idx.getASTIndex());
   if (!Ty->isDependentType() && !Ty->isIntegralType(Context) &&
       !Ty->isAlignValT()) {
     Diag(ParamExpr->getBeginLoc(), diag::err_attribute_integers_only)
@@ -1668,7 +1668,7 @@ static void checkAssumptionAttr(Sema &S, SourceLocation Loc,
   unsigned BestEditDistance = 3;
   StringRef Suggestion;
   for (const auto &KnownAssumptionIt : llvm::KnownAssumptionStrings) {
-    unsigned EditDistance =
+    unsigned const EditDistance =
         AssumptionStr.edit_distance(KnownAssumptionIt.getKey());
     if (EditDistance < BestEditDistance) {
       Suggestion = KnownAssumptionIt.getKey();
@@ -1722,7 +1722,7 @@ static void handleOwnershipAttr(Sema &S, Decl *D, const ParsedAttr &AL) {
   }
 
   // Figure out our Kind.
-  OwnershipAttr::OwnershipKind K =
+  OwnershipAttr::OwnershipKind const K =
       OwnershipAttr(S.Context, AL, nullptr, nullptr, 0).getOwnKind();
 
   // Check arguments.
@@ -1757,7 +1757,7 @@ static void handleOwnershipAttr(Sema &S, Decl *D, const ParsedAttr &AL) {
       return;
 
     // Is the function argument a pointer type?
-    QualType T = getFunctionOrMethodParamType(D, Idx.getASTIndex());
+    QualType const T = getFunctionOrMethodParamType(D, Idx.getASTIndex());
     int Err = -1;  // No error
     switch (K) {
       case OwnershipAttr::Takes:
@@ -1802,7 +1802,7 @@ static void handleOwnershipAttr(Sema &S, Decl *D, const ParsedAttr &AL) {
   }
 
   ParamIdx *Start = OwnershipArgs.data();
-  unsigned Size = OwnershipArgs.size();
+  unsigned const Size = OwnershipArgs.size();
   llvm::array_pod_sort(Start, Start + Size);
   D->addAttr(::new (S.Context)
                  OwnershipAttr(S.Context, AL, Module, Start, Size));
@@ -1946,7 +1946,7 @@ static void handleTLSModelAttr(Sema &S, Decl *D, const ParsedAttr &AL) {
 }
 
 static void handleRestrictAttr(Sema &S, Decl *D, const ParsedAttr &AL) {
-  QualType ResultType = getFunctionOrMethodResultType(D);
+  QualType const ResultType = getFunctionOrMethodResultType(D);
   if (ResultType->isAnyPointerType() || ResultType->isBlockPointerType()) {
     D->addAttr(::new (S.Context) RestrictAttr(S.Context, AL));
     return;
@@ -1978,7 +1978,7 @@ static void handleCPUSpecificAttr(Sema &S, Decl *D, const ParsedAttr &AL) {
     }
 
     IdentifierLoc *CPUArg = AL.getArgAsIdent(ArgNo);
-    StringRef CPUName = CPUArg->Ident->getName().trim();
+    StringRef const CPUName = CPUArg->Ident->getName().trim();
 
     if (!S.Context.getTargetInfo().validateCPUSpecificCPUDispatch(CPUName)) {
       S.Diag(CPUArg->Loc, diag::err_invalid_cpu_specific_dispatch_value)
@@ -2176,7 +2176,7 @@ static void handleDependencyAttr(Sema &S, Scope *Scope, Decl *D,
 }
 
 static void handleUnusedAttr(Sema &S, Decl *D, const ParsedAttr &AL) {
-  bool IsCXX17Attr = AL.isCXX11Attribute() && !AL.getScopeName();
+  bool const IsCXX17Attr = AL.isCXX11Attribute() && !AL.getScopeName();
 
   // If this is spelled as the standard C++17 attribute, but not in C++17, warn
   // about using it as an extension.
@@ -2337,10 +2337,10 @@ AvailabilityAttr *Sema::mergeAvailabilityAttr(
       }
 
       FoundAny = true;
-      VersionTuple OldIntroduced = OldAA->getIntroduced();
-      VersionTuple OldDeprecated = OldAA->getDeprecated();
-      VersionTuple OldObsoleted = OldAA->getObsoleted();
-      bool OldIsUnavailable = OldAA->getUnavailable();
+      VersionTuple const OldIntroduced = OldAA->getIntroduced();
+      VersionTuple const OldDeprecated = OldAA->getDeprecated();
+      VersionTuple const OldObsoleted = OldAA->getObsoleted();
+      bool const OldIsUnavailable = OldAA->getUnavailable();
 
       if (!versionsMatch(OldIntroduced, Introduced, OverrideOrImpl) ||
           !versionsMatch(Deprecated, OldDeprecated, OverrideOrImpl) ||
@@ -2467,11 +2467,11 @@ static void handleAvailabilityAttr(Sema &S, Decl *D, const ParsedAttr &AL) {
   if (!ND) // We warned about this already, so just return.
     return;
 
-  AvailabilityChange Introduced = AL.getAvailabilityIntroduced();
-  AvailabilityChange Deprecated = AL.getAvailabilityDeprecated();
-  AvailabilityChange Obsoleted = AL.getAvailabilityObsoleted();
-  bool IsUnavailable = AL.getUnavailableLoc().isValid();
-  bool IsStrict = AL.getStrictLoc().isValid();
+  AvailabilityChange const Introduced = AL.getAvailabilityIntroduced();
+  AvailabilityChange const Deprecated = AL.getAvailabilityDeprecated();
+  AvailabilityChange const Obsoleted = AL.getAvailabilityObsoleted();
+  bool const IsUnavailable = AL.getUnavailableLoc().isValid();
+  bool const IsStrict = AL.getStrictLoc().isValid();
   StringRef Str;
   if (const auto *SE = dyn_cast_or_null<StringLiteral>(AL.getMessageExpr()))
     Str = SE->getString();
@@ -2488,7 +2488,7 @@ static void handleAvailabilityAttr(Sema &S, Decl *D, const ParsedAttr &AL) {
     }
   }
 
-  int PriorityModifier = AL.isPragmaClangAttribute()
+  int const PriorityModifier = AL.isPragmaClangAttribute()
                              ? Sema::AP_PragmaClangAttribute
                              : Sema::AP_Explicit;
   AvailabilityAttr *NewAttr = S.mergeAvailabilityAttr(
@@ -2648,7 +2648,7 @@ static void handleExternalSourceSymbolAttr(Sema &S, Decl *D,
   StringRef DefinedIn;
   if (const auto *SE = dyn_cast_or_null<StringLiteral>(AL.getArgAsExpr(1)))
     DefinedIn = SE->getString();
-  bool IsGeneratedDeclaration = AL.getArgAsIdent(2) != nullptr;
+  bool const IsGeneratedDeclaration = AL.getArgAsIdent(2) != nullptr;
 
   D->addAttr(::new (S.Context) ExternalSourceSymbolAttr(
       S.Context, AL, Language, DefinedIn, IsGeneratedDeclaration));
@@ -2659,7 +2659,7 @@ static T *mergeVisibilityAttr(Sema &S, Decl *D, const AttributeCommonInfo &CI,
                               typename T::VisibilityType value) {
   T *existingAttr = D->getAttr<T>();
   if (existingAttr) {
-    typename T::VisibilityType existingValue = existingAttr->getVisibility();
+    typename T::VisibilityType const existingValue = existingAttr->getVisibility();
     if (existingValue == value)
       return nullptr;
     S.Diag(existingAttr->getLocation(), diag::err_mismatched_visibility);
@@ -2782,14 +2782,14 @@ static void handleObjCMethodFamilyAttr(Sema &S, Decl *D, const ParsedAttr &AL) {
 
 static void handleObjCNSObject(Sema &S, Decl *D, const ParsedAttr &AL) {
   if (const auto *TD = dyn_cast<TypedefNameDecl>(D)) {
-    QualType T = TD->getUnderlyingType();
+    QualType const T = TD->getUnderlyingType();
     if (!T->isCARCBridgableType()) {
       S.Diag(TD->getLocation(), diag::err_nsobject_attribute);
       return;
     }
   }
   else if (const auto *PD = dyn_cast<ObjCPropertyDecl>(D)) {
-    QualType T = PD->getType();
+    QualType const T = PD->getType();
     if (!T->isCARCBridgableType()) {
       S.Diag(PD->getLocation(), diag::err_nsobject_attribute);
       return;
@@ -2809,7 +2809,7 @@ static void handleObjCNSObject(Sema &S, Decl *D, const ParsedAttr &AL) {
 
 static void handleObjCIndependentClass(Sema &S, Decl *D, const ParsedAttr &AL) {
   if (const auto *TD = dyn_cast<TypedefNameDecl>(D)) {
-    QualType T = TD->getUnderlyingType();
+    QualType const T = TD->getUnderlyingType();
     if (!T->isObjCObjectPointerType()) {
       S.Diag(TD->getLocation(), diag::warn_ptr_independentclass_attribute);
       return;
@@ -2902,7 +2902,7 @@ static void handleSentinelAttr(Sema &S, Decl *D, const ParsedAttr &AL) {
       return;
     }
   } else if (const auto *V = dyn_cast<VarDecl>(D)) {
-    QualType Ty = V->getType();
+    QualType const Ty = V->getType();
     if (Ty->isBlockPointerType() || Ty->isFunctionPointerType()) {
       const FunctionType *FT = Ty->isFunctionPointerType()
                                    ? D->getFunctionType()
@@ -2910,7 +2910,7 @@ static void handleSentinelAttr(Sema &S, Decl *D, const ParsedAttr &AL) {
                                          ->getPointeeType()
                                          ->castAs<FunctionType>();
       if (!cast<FunctionProtoType>(FT)->isVariadic()) {
-        int m = Ty->isFunctionPointerType() ? 0 : 1;
+        int const m = Ty->isFunctionPointerType() ? 0 : 1;
         S.Diag(AL.getLoc(), diag::warn_attribute_sentinel_not_variadic) << m;
         return;
       }
@@ -3046,7 +3046,7 @@ static void handleVecTypeHint(Sema &S, Decl *D, const ParsedAttr &AL) {
   }
 
   TypeSourceInfo *ParmTSI = nullptr;
-  QualType ParmType = S.GetTypeFromParser(AL.getTypeArg(), &ParmTSI);
+  QualType const ParmType = S.GetTypeFromParser(AL.getTypeArg(), &ParmTSI);
   assert(ParmTSI && "no type source info for attribute argument");
 
   if (!ParmType->isExtVectorType() && !ParmType->isFloatingType() &&
@@ -3206,7 +3206,7 @@ bool Sema::checkTargetAttr(SourceLocation LiteralLoc, StringRef AttrStr) {
     return Diag(LiteralLoc, diag::warn_unsupported_target_attribute)
            << Unsupported << None << "tune=";
 
-  ParsedTargetAttr ParsedAttrs = TargetAttr::parse(AttrStr);
+  ParsedTargetAttr const ParsedAttrs = TargetAttr::parse(AttrStr);
 
   if (!ParsedAttrs.Architecture.empty() &&
       !Context.getTargetInfo().isValidCPUName(ParsedAttrs.Architecture))
@@ -3278,7 +3278,7 @@ static void handleMinVectorWidthAttr(Sema &S, Decl *D, const ParsedAttr &AL) {
 
 static void handleCleanupAttr(Sema &S, Decl *D, const ParsedAttr &AL) {
   Expr *E = AL.getArgAsExpr(0);
-  SourceLocation Loc = E->getExprLoc();
+  SourceLocation const Loc = E->getExprLoc();
   FunctionDecl *FD = nullptr;
   DeclarationNameInfo NI;
 
@@ -3319,8 +3319,8 @@ static void handleCleanupAttr(Sema &S, Decl *D, const ParsedAttr &AL) {
 
   // We're currently more strict than GCC about what function types we accept.
   // If this ever proves to be a problem it should be easy to fix.
-  QualType Ty = S.Context.getPointerType(cast<VarDecl>(D)->getType());
-  QualType ParamTy = FD->getParamDecl(0)->getType();
+  QualType const Ty = S.Context.getPointerType(cast<VarDecl>(D)->getType());
+  QualType const ParamTy = FD->getParamDecl(0)->getType();
   if (S.CheckAssignmentConstraints(FD->getParamDecl(0)->getLocation(),
                                    ParamTy, Ty) != Sema::Compatible) {
     S.Diag(Loc, diag::err_attribute_cleanup_func_arg_incompatible_type)
@@ -3362,7 +3362,7 @@ static void handleFormatArgAttr(Sema &S, Decl *D, const ParsedAttr &AL) {
   // Make sure the format string is really a string.
   QualType Ty = getFunctionOrMethodParamType(D, Idx.getASTIndex());
 
-  bool NotNSStringTy = !isNSStringType(Ty, S.Context);
+  bool const NotNSStringTy = !isNSStringType(Ty, S.Context);
   if (NotNSStringTy &&
       !isCFStringType(Ty, S.Context) &&
       (!Ty->isPointerType() ||
@@ -3488,7 +3488,7 @@ static void handleFormatAttr(Sema &S, Decl *D, const ParsedAttr &AL) {
 
   // In C++ the implicit 'this' function parameter also counts, and they are
   // counted from one.
-  bool HasImplicitThisParam = isInstanceMethod(D);
+  bool const HasImplicitThisParam = isInstanceMethod(D);
   unsigned NumArgs = getFunctionOrMethodNumParams(D) + HasImplicitThisParam;
 
   IdentifierInfo *II = AL.getArgAsIdent(0)->Ident;
@@ -3500,7 +3500,7 @@ static void handleFormatAttr(Sema &S, Decl *D, const ParsedAttr &AL) {
   }
 
   // Check for supported formats.
-  FormatAttrKind Kind = getFormatAttrKind(Format);
+  FormatAttrKind const Kind = getFormatAttrKind(Format);
 
   if (Kind == IgnoredFormat)
     return;
@@ -3537,7 +3537,7 @@ static void handleFormatAttr(Sema &S, Decl *D, const ParsedAttr &AL) {
   }
 
   // make sure the format string is really a string
-  QualType Ty = getFunctionOrMethodParamType(D, ArgIdx);
+  QualType const Ty = getFunctionOrMethodParamType(D, ArgIdx);
 
   if (Kind == CFStringFormat) {
     if (!isCFStringType(Ty, S.Context)) {
@@ -3608,8 +3608,8 @@ static void handleCallbackAttr(Sema &S, Decl *D, const ParsedAttr &AL) {
     return;
   }
 
-  bool HasImplicitThisParam = isInstanceMethod(D);
-  int32_t NumArgs = getFunctionOrMethodNumParams(D);
+  bool const HasImplicitThisParam = isInstanceMethod(D);
+  int32_t const NumArgs = getFunctionOrMethodNumParams(D);
 
   FunctionDecl *FD = D->getAsFunction();
   assert(FD && "Expected a function declaration!");
@@ -3678,7 +3678,7 @@ static void handleCallbackAttr(Sema &S, Decl *D, const ParsedAttr &AL) {
     EncodingIndices.push_back(ArgIdx);
   }
 
-  int CalleeIdx = EncodingIndices.front();
+  int const CalleeIdx = EncodingIndices.front();
   // Check if the callee index is proper, thus not "this" and not "unknown".
   // This means the "CalleeIdx" has to be non-negative if "HasImplicitThisParam"
   // is false and positive if "HasImplicitThisParam" is true.
@@ -3748,7 +3748,7 @@ static bool isFunctionLike(const Type &T) {
 /// Handle 'called_once' attribute.
 static void handleCalledOnceAttr(Sema &S, Decl *D, const ParsedAttr &AL) {
   // 'called_once' only applies to parameters representing functions.
-  QualType T = cast<ParmVarDecl>(D)->getType();
+  QualType const T = cast<ParmVarDecl>(D)->getType();
 
   if (!isFunctionLike(*T)) {
     S.Diag(AL.getLoc(), diag::err_called_once_attribute_wrong_type);
@@ -3788,7 +3788,7 @@ static void handleTransparentUnionAttr(Sema &S, Decl *D, const ParsedAttr &AL) {
   }
 
   FieldDecl *FirstField = *Field;
-  QualType FirstType = FirstField->getType();
+  QualType const FirstType = FirstField->getType();
   if (FirstType->hasFloatingRepresentation() || FirstType->isVectorType()) {
     S.Diag(FirstField->getLocation(),
            diag::warn_transparent_union_attribute_floating)
@@ -3798,10 +3798,10 @@ static void handleTransparentUnionAttr(Sema &S, Decl *D, const ParsedAttr &AL) {
 
   if (FirstType->isIncompleteType())
     return;
-  uint64_t FirstSize = S.Context.getTypeSize(FirstType);
-  uint64_t FirstAlign = S.Context.getTypeAlign(FirstType);
+  uint64_t const FirstSize = S.Context.getTypeSize(FirstType);
+  uint64_t const FirstAlign = S.Context.getTypeAlign(FirstType);
   for (; Field != FieldEnd; ++Field) {
-    QualType FieldType = Field->getType();
+    QualType const FieldType = Field->getType();
     if (FieldType->isIncompleteType())
       return;
     // FIXME: this isn't fully correct; we also need to test whether the
@@ -3812,13 +3812,13 @@ static void handleTransparentUnionAttr(Sema &S, Decl *D, const ParsedAttr &AL) {
     if (S.Context.getTypeSize(FieldType) != FirstSize ||
         S.Context.getTypeAlign(FieldType) > FirstAlign) {
       // Warn if we drop the attribute.
-      bool isSize = S.Context.getTypeSize(FieldType) != FirstSize;
-      unsigned FieldBits = isSize ? S.Context.getTypeSize(FieldType)
+      bool const isSize = S.Context.getTypeSize(FieldType) != FirstSize;
+      unsigned const FieldBits = isSize ? S.Context.getTypeSize(FieldType)
                                   : S.Context.getTypeAlign(FieldType);
       S.Diag(Field->getLocation(),
              diag::warn_transparent_union_attribute_field_size_align)
           << isSize << *Field << FieldBits;
-      unsigned FirstBits = isSize ? FirstSize : FirstAlign;
+      unsigned const FirstBits = isSize ? FirstSize : FirstAlign;
       S.Diag(FirstField->getLocation(),
              diag::note_transparent_union_first_field_size_align)
           << isSize << FirstBits;
@@ -3857,7 +3857,7 @@ void Sema::AddAnnotationAttr(Decl *D, const AttributeCommonInfo &CI,
     Notes.clear();
     Eval.Diag = &Notes;
 
-    bool Result =
+    bool const Result =
         E->EvaluateAsConstantExpr(Eval, Context);
 
     /// Result means the expression can be folded to a constant.
@@ -3899,7 +3899,7 @@ static void handleAlignValueAttr(Sema &S, Decl *D, const ParsedAttr &AL) {
 
 void Sema::AddAlignValueAttr(Decl *D, const AttributeCommonInfo &CI, Expr *E) {
   AlignValueAttr TmpAttr(Context, CI, E);
-  SourceLocation AttrLoc = CI.getLoc();
+  SourceLocation const AttrLoc = CI.getLoc();
 
   QualType T;
   if (const auto *TD = dyn_cast<TypedefNameDecl>(D))
@@ -3918,7 +3918,7 @@ void Sema::AddAlignValueAttr(Decl *D, const AttributeCommonInfo &CI, Expr *E) {
 
   if (!E->isValueDependent()) {
     llvm::APSInt Alignment;
-    ExprResult ICE = VerifyIntegerConstantExpression(
+    ExprResult const ICE = VerifyIntegerConstantExpression(
         E, &Alignment, diag::err_align_value_attribute_argument_not_int);
     if (ICE.isInvalid())
       return;
@@ -3965,7 +3965,7 @@ static void handleAlignedAttr(Sema &S, Decl *D, const ParsedAttr &AL) {
 void Sema::AddAlignedAttr(Decl *D, const AttributeCommonInfo &CI, Expr *E,
                           bool IsPackExpansion) {
   AlignedAttr TmpAttr(Context, CI, true, E);
-  SourceLocation AttrLoc = CI.getLoc();
+  SourceLocation const AttrLoc = CI.getLoc();
 
   // C++11 alignas(...) and C11 _Alignas(...) have additional requirements.
   if (TmpAttr.isAlignas()) {
@@ -4025,12 +4025,12 @@ void Sema::AddAlignedAttr(Decl *D, const AttributeCommonInfo &CI, Expr *E,
 
   // FIXME: Cache the number on the AL object?
   llvm::APSInt Alignment;
-  ExprResult ICE = VerifyIntegerConstantExpression(
+  ExprResult const ICE = VerifyIntegerConstantExpression(
       E, &Alignment, diag::err_aligned_attribute_argument_not_int);
   if (ICE.isInvalid())
     return;
 
-  uint64_t AlignVal = Alignment.getZExtValue();
+  uint64_t const AlignVal = Alignment.getZExtValue();
   // 16 byte ByVal alignment not due to a vector member is not honoured by XL
   // on AIX. Emit a warning here that users are generating binary incompatible
   // code to be safe.
@@ -4062,7 +4062,7 @@ void Sema::AddAlignedAttr(Decl *D, const AttributeCommonInfo &CI, Expr *E,
 
   const auto *VD = dyn_cast<VarDecl>(D);
   if (VD && Context.getTargetInfo().isTLSSupported()) {
-    unsigned MaxTLSAlign =
+    unsigned const MaxTLSAlign =
         Context.toCharUnitsFromBits(Context.getTargetInfo().getMaxTLSAlign())
             .getQuantity();
     if (MaxTLSAlign && AlignVal > MaxTLSAlign &&
@@ -4132,8 +4132,8 @@ void Sema::CheckAlignasUnderalignment(Decl *D) {
     Diag(LastAlignedAttr->getLocation(), diag::err_attribute_sizeless_type)
         << LastAlignedAttr << DiagTy;
   } else if (AlignasAttr && Align) {
-    CharUnits RequestedAlign = Context.toCharUnitsFromBits(Align);
-    CharUnits NaturalAlign = Context.getTypeAlignInChars(UnderlyingTy);
+    CharUnits const RequestedAlign = Context.toCharUnitsFromBits(Align);
+    CharUnits const NaturalAlign = Context.getTypeAlignInChars(UnderlyingTy);
     if (NaturalAlign > RequestedAlign)
       Diag(AlignasAttr->getLocation(), diag::err_alignas_underaligned)
         << DiagTy << (unsigned)NaturalAlign.getQuantity();
@@ -4254,7 +4254,7 @@ void Sema::AddModeAttr(Decl *D, const AttributeCommonInfo &CI,
                        IdentifierInfo *Name, bool InInstantiation) {
   StringRef Str = Name->getName();
   normalizeName(Str);
-  SourceLocation AttrLoc = CI.getLoc();
+  SourceLocation const AttrLoc = CI.getLoc();
 
   unsigned DestWidth = 0;
   bool IntegerMode = true;
@@ -4263,7 +4263,7 @@ void Sema::AddModeAttr(Decl *D, const AttributeCommonInfo &CI,
   llvm::APInt VectorSize(64, 0);
   if (Str.size() >= 4 && Str[0] == 'V') {
     // Minimal length of vector mode is 4: 'V' + NUMBER(>=1) + TYPE(>=2).
-    size_t StrSize = Str.size();
+    size_t const StrSize = Str.size();
     size_t VectorStringLength = 0;
     while ((VectorStringLength + 1) < StrSize &&
            isdigit(Str[VectorStringLength + 1]))
@@ -4325,7 +4325,7 @@ void Sema::AddModeAttr(Decl *D, const AttributeCommonInfo &CI,
     Diag(AttrLoc, diag::err_enum_mode_vector_type) << Name << CI.getRange();
     return;
   }
-  bool IntegralOrAnyEnumType = (OldElemTy->isIntegralOrEnumerationType() &&
+  bool const IntegralOrAnyEnumType = (OldElemTy->isIntegralOrEnumerationType() &&
                                 !OldElemTy->isExtIntType()) ||
                                OldElemTy->getAs<EnumType>();
 
@@ -4370,7 +4370,7 @@ void Sema::AddModeAttr(Decl *D, const AttributeCommonInfo &CI,
       Diag(AttrLoc, diag::err_complex_mode_vector_type);
       return;
     }
-    unsigned NumElements = Context.getTypeSize(OldElemTy) *
+    unsigned const NumElements = Context.getTypeSize(OldElemTy) *
                            OldVT->getNumElements() /
                            Context.getTypeSize(NewElemTy);
     NewTy =
@@ -4552,7 +4552,7 @@ static void handleGlobalAttr(Sema &S, Decl *D, const ParsedAttr &AL) {
   if (!FD->getReturnType()->isVoidType() &&
       !FD->getReturnType()->getAs<AutoType>() &&
       !FD->getReturnType()->isInstantiationDependentType()) {
-    SourceRange RTRange = FD->getReturnTypeSourceRange();
+    SourceRange const RTRange = FD->getReturnTypeSourceRange();
     S.Diag(FD->getTypeSpecStartLoc(), diag::err_kern_type_not_void_return)
         << FD->getType()
         << (RTRange.isValid() ? FixItHint::CreateReplacement(RTRange, "void")
@@ -4797,7 +4797,7 @@ bool Sema::CheckCallingConvAttr(const ParsedAttr &Attrs, CallingConv &CC,
     return false;
   }
 
-  unsigned ReqArgs = Attrs.getKind() == ParsedAttr::AT_Pcs ? 1 : 0;
+  unsigned const ReqArgs = Attrs.getKind() == ParsedAttr::AT_Pcs ? 1 : 0;
   if (!Attrs.checkExactlyNumArgs(*this, ReqArgs)) {
     Attrs.setInvalid();
     return true;
@@ -4981,7 +4981,7 @@ static bool isValidSwiftErrorResultType(QualType Ty) {
 void Sema::AddParameterABIAttr(Decl *D, const AttributeCommonInfo &CI,
                                ParameterABI abi) {
 
-  QualType type = cast<ParmVarDecl>(D)->getType();
+  QualType const type = cast<ParmVarDecl>(D)->getType();
 
   if (auto existingAttr = D->getAttr<ParameterABIAttr>()) {
     if (existingAttr->getABI() != abi) {
@@ -5099,7 +5099,7 @@ static Expr *makeLaunchBoundsArgExpr(Sema &S, Expr *E,
         << &AL << Idx << E->getSourceRange();
 
   // We may need to perform implicit conversion of the argument.
-  InitializedEntity Entity = InitializedEntity::InitializeParameter(
+  InitializedEntity const Entity = InitializedEntity::InitializeParameter(
       S.Context, S.Context.getConstType(S.Context.IntTy), /*consume*/ false);
   ExprResult ValArg = S.PerformCopyInitialization(Entity, SourceLocation(), E);
   assert(!ValArg.isInvalid() &&
@@ -5110,7 +5110,7 @@ static Expr *makeLaunchBoundsArgExpr(Sema &S, Expr *E,
 
 void Sema::AddLaunchBoundsAttr(Decl *D, const AttributeCommonInfo &CI,
                                Expr *MaxThreads, Expr *MinBlocks) {
-  CUDALaunchBoundsAttr TmpAttr(Context, CI, MaxThreads, MinBlocks);
+  CUDALaunchBoundsAttr const TmpAttr(Context, CI, MaxThreads, MinBlocks);
   MaxThreads = makeLaunchBoundsArgExpr(*this, MaxThreads, TmpAttr, 0);
   if (MaxThreads == nullptr)
     return;
@@ -5151,10 +5151,10 @@ static void handleArgumentWithTypeTagAttr(Sema &S, Decl *D,
                                            TypeTagIdx))
     return;
 
-  bool IsPointer = AL.getAttrName()->getName() == "pointer_with_type_tag";
+  bool const IsPointer = AL.getAttrName()->getName() == "pointer_with_type_tag";
   if (IsPointer) {
     // Ensure that buffer has a pointer type.
-    unsigned ArgumentIdxAST = ArgumentIdx.getASTIndex();
+    unsigned const ArgumentIdxAST = ArgumentIdx.getASTIndex();
     if (ArgumentIdxAST >= getFunctionOrMethodNumParams(D) ||
         !getFunctionOrMethodParamType(D, ArgumentIdxAST)->isPointerType())
       S.Diag(AL.getLoc(), diag::err_attribute_pointers_only) << AL << 0;
@@ -5242,12 +5242,12 @@ static bool ArmBuiltinAliasValid(unsigned BuiltinID, StringRef AliasName,
       [](const IntrinToName &L, unsigned Id) { return L.Id < Id; });
   if (It == Map.end() || It->Id != BuiltinID)
     return false;
-  StringRef FullName(&IntrinNames[It->FullName]);
+  StringRef const FullName(&IntrinNames[It->FullName]);
   if (AliasName == FullName)
     return true;
   if (It->ShortName == -1)
     return false;
-  StringRef ShortName(&IntrinNames[It->ShortName]);
+  StringRef const ShortName(&IntrinNames[It->ShortName]);
   return AliasName == ShortName;
 }
 
@@ -5280,10 +5280,10 @@ static void handleArmBuiltinAliasAttr(Sema &S, Decl *D, const ParsedAttr &AL) {
   }
 
   IdentifierInfo *Ident = AL.getArgAsIdent(0)->Ident;
-  unsigned BuiltinID = Ident->getBuiltinID();
-  StringRef AliasName = cast<FunctionDecl>(D)->getIdentifier()->getName();
+  unsigned const BuiltinID = Ident->getBuiltinID();
+  StringRef const AliasName = cast<FunctionDecl>(D)->getIdentifier()->getName();
 
-  bool IsAArch64 = S.Context.getTargetInfo().getTriple().isAArch64();
+  bool const IsAArch64 = S.Context.getTargetInfo().getTriple().isAArch64();
   if ((IsAArch64 && !ArmSveAliasValid(S.Context, BuiltinID, AliasName)) ||
       (!IsAArch64 && !ArmMveAliasValid(BuiltinID, AliasName) &&
        !ArmCdeAliasValid(BuiltinID, AliasName))) {
@@ -5308,12 +5308,12 @@ static void handleBuiltinAliasAttr(Sema &S, Decl *D,
   }
 
   IdentifierInfo *Ident = AL.getArgAsIdent(0)->Ident;
-  unsigned BuiltinID = Ident->getBuiltinID();
-  StringRef AliasName = cast<FunctionDecl>(D)->getIdentifier()->getName();
+  unsigned const BuiltinID = Ident->getBuiltinID();
+  StringRef const AliasName = cast<FunctionDecl>(D)->getIdentifier()->getName();
 
-  bool IsAArch64 = S.Context.getTargetInfo().getTriple().isAArch64();
-  bool IsARM = S.Context.getTargetInfo().getTriple().isARM();
-  bool IsRISCV = S.Context.getTargetInfo().getTriple().isRISCV();
+  bool const IsAArch64 = S.Context.getTargetInfo().getTriple().isAArch64();
+  bool const IsARM = S.Context.getTargetInfo().getTriple().isARM();
+  bool const IsRISCV = S.Context.getTargetInfo().getTriple().isRISCV();
   if ((IsAArch64 && !ArmSveAliasValid(S.Context, BuiltinID, AliasName)) ||
       (IsARM && !ArmMveAliasValid(BuiltinID, AliasName) &&
        !ArmCdeAliasValid(BuiltinID, AliasName)) ||
@@ -5346,7 +5346,7 @@ static bool isValidSubjectOfCFAttribute(QualType QT) {
 static bool isValidSubjectOfOSAttribute(QualType QT) {
   if (QT->isDependentType())
     return true;
-  QualType PT = QT->getPointeeType();
+  QualType const PT = QT->getPointeeType();
   return !PT.isNull() && PT->getAsCXXRecordDecl() != nullptr;
 }
 
@@ -5422,15 +5422,15 @@ static bool isValidOSObjectOutParameter(const Decl *D) {
   const auto *PVD = dyn_cast<ParmVarDecl>(D);
   if (!PVD)
     return false;
-  QualType QT = PVD->getType();
-  QualType PT = QT->getPointeeType();
+  QualType const QT = PVD->getType();
+  QualType const PT = QT->getPointeeType();
   return !PT.isNull() && isValidSubjectOfOSAttribute(PT);
 }
 
 static void handleXReturnsXRetainedAttr(Sema &S, Decl *D,
                                         const ParsedAttr &AL) {
   QualType ReturnType;
-  Sema::RetainOwnershipKind K = parsedAttrToRetainOwnershipKind(AL);
+  Sema::RetainOwnershipKind const K = parsedAttrToRetainOwnershipKind(AL);
 
   if (const auto *MD = dyn_cast<ObjCMethodDecl>(D)) {
     ReturnType = MD->getReturnType();
@@ -5444,7 +5444,7 @@ static void handleXReturnsXRetainedAttr(Sema &S, Decl *D,
   } else if (const auto *Param = dyn_cast<ParmVarDecl>(D)) {
     // Attributes on parameters are used for out-parameters,
     // passed as pointers-to-pointers.
-    unsigned DiagID = K == Sema::RetainOwnershipKind::CF
+    unsigned const DiagID = K == Sema::RetainOwnershipKind::CF
             ? /*pointer-to-CF-pointer*/2
             : /*pointer-to-OSObject-pointer*/3;
     ReturnType = Param->getType()->getPointeeType();
@@ -5563,7 +5563,7 @@ static void handleObjCReturnsInnerPointerAttr(Sema &S, Decl *D,
   const int EP_ObjCMethod = 1;
   const int EP_ObjCProperty = 2;
 
-  SourceLocation loc = Attrs.getLoc();
+  SourceLocation const loc = Attrs.getLoc();
   QualType resultType;
   if (isa<ObjCMethodDecl>(D))
     resultType = cast<ObjCMethodDecl>(D)->getReturnType();
@@ -5645,7 +5645,7 @@ static void handleObjCBridgeAttr(Sema &S, Decl *D, const ParsedAttr &AL) {
     }
 
     // Only allow 'cv void *'.
-    QualType T = TD->getUnderlyingType();
+    QualType const T = TD->getUnderlyingType();
     if (!T->isVoidPointerType()) {
       S.Diag(AL.getLoc(), diag::err_objc_attr_typedef_not_void_pointer);
       return;
@@ -5754,7 +5754,7 @@ static void handleObjCOwnershipAttr(Sema &S, Decl *D, const ParsedAttr &AL) {
 static void handleObjCPreciseLifetimeAttr(Sema &S, Decl *D,
                                           const ParsedAttr &AL) {
   const auto *VD = cast<ValueDecl>(D);
-  QualType QT = VD->getType();
+  QualType const QT = VD->getType();
 
   if (!QT->isDependentType() &&
       !QT->isObjCLifetimeType()) {
@@ -5823,7 +5823,7 @@ static bool isErrorParameter(Sema &S, QualType QT) {
   if (!PT)
     return false;
 
-  QualType Pointee = PT->getPointeeType();
+  QualType const Pointee = PT->getPointeeType();
 
   // Check for NSError**.
   if (const auto *OPT = Pointee->getAs<ObjCObjectPointerType>())
@@ -5856,7 +5856,7 @@ static void handleSwiftError(Sema &S, Decl *D, const ParsedAttr &AL) {
     // - C, ObjC, and block pointers are definitely okay.
     // - References are definitely not okay.
     // - nullptr_t is weird, but acceptable.
-    QualType RT = getFunctionOrMethodResultType(D);
+    QualType const RT = getFunctionOrMethodResultType(D);
     if (RT->hasPointerRepresentation() && !RT->isReferenceType())
       return true;
 
@@ -5867,7 +5867,7 @@ static void handleSwiftError(Sema &S, Decl *D, const ParsedAttr &AL) {
   };
 
   auto hasIntegerResult = [](Sema &S, Decl *D, const ParsedAttr &AL) -> bool {
-    QualType RT = getFunctionOrMethodResultType(D);
+    QualType const RT = getFunctionOrMethodResultType(D);
     if (RT->isIntegralType(S.Context))
       return true;
 
@@ -5941,15 +5941,15 @@ static void checkSwiftAsyncErrorBlock(Sema &S, Decl *D,
   switch (ErrorAttr->getConvention()) {
   case SwiftAsyncErrorAttr::ZeroArgument:
   case SwiftAsyncErrorAttr::NonZeroArgument: {
-    uint32_t ParamIdx = ErrorAttr->getHandlerParamIdx();
+    uint32_t const ParamIdx = ErrorAttr->getHandlerParamIdx();
     if (ParamIdx == 0 || ParamIdx > BlockParams.size()) {
       S.Diag(ErrorAttr->getLocation(),
              diag::err_attribute_argument_out_of_bounds) << ErrorAttr << 2;
       return;
     }
-    QualType ErrorParam = BlockParams[ParamIdx - 1];
+    QualType const ErrorParam = BlockParams[ParamIdx - 1];
     if (!ErrorParam->isIntegralType(S.Context)) {
-      StringRef ConvStr =
+      StringRef const ConvStr =
           ErrorAttr->getConvention() == SwiftAsyncErrorAttr::ZeroArgument
               ? "zero_argument"
               : "nonzero_argument";
@@ -5961,7 +5961,7 @@ static void checkSwiftAsyncErrorBlock(Sema &S, Decl *D,
   }
   case SwiftAsyncErrorAttr::NonNullError: {
     bool AnyErrorParams = false;
-    for (QualType Param : BlockParams) {
+    for (QualType const Param : BlockParams) {
       // Check for NSError *.
       if (const auto *ObjCPtrTy = Param->getAs<ObjCObjectPointerType>()) {
         if (const auto *ID = ObjCPtrTy->getInterfaceDecl()) {
@@ -6088,7 +6088,7 @@ validateSwiftFunctionName(Sema &S, const ParsedAttr &AL, SourceLocation Loc,
     return false;
   }
 
-  bool IsSubscript = BaseName == "subscript";
+  bool const IsSubscript = BaseName == "subscript";
   // A subscript accessor must be a getter or setter.
   if (IsSubscript && !IsGetter && !IsSetter) {
     S.Diag(Loc, diag::warn_attr_swift_name_subscript_invalid_parameter)
@@ -6176,7 +6176,7 @@ validateSwiftFunctionName(Sema &S, const ParsedAttr &AL, SourceLocation Loc,
   if (IsGetter || IsSetter) {
     // Setters have one parameter for the new value.
     unsigned NumExpectedParams = IsGetter ? 0 : 1;
-    unsigned ParamDiag =
+    unsigned const ParamDiag =
         IsGetter ? diag::warn_attr_swift_name_getter_parameters
                  : diag::warn_attr_swift_name_setter_parameters;
 
@@ -6272,10 +6272,10 @@ bool Sema::DiagnoseSwiftName(Decl *D, StringRef Name, SourceLocation Loc,
       // We have fewer Swift parameters than Objective-C parameters, but that
       // might be because we've transformed some of them. Check for potential
       // "out" parameters and err on the side of not warning.
-      unsigned MaybeOutParamCount =
+      unsigned const MaybeOutParamCount =
           std::count_if(Params.begin(), Params.end(),
                         [](const ParmVarDecl *Param) -> bool {
-        QualType ParamTy = Param->getType();
+        QualType const ParamTy = Param->getType();
         if (ParamTy->isReferenceType() || ParamTy->isPointerType())
           return !ParamTy->getPointeeType().isConstQualified();
         return false;
@@ -6400,14 +6400,14 @@ static void handleSwiftAsyncAttr(Sema &S, Decl *D, const ParsedAttr &AL) {
 
     const ParmVarDecl *CompletionBlock =
         getFunctionOrMethodParam(D, Idx.getASTIndex());
-    QualType CompletionBlockType = CompletionBlock->getType();
+    QualType const CompletionBlockType = CompletionBlock->getType();
     if (!CompletionBlockType->isBlockPointerType()) {
       S.Diag(CompletionBlock->getLocation(),
              diag::err_swift_async_bad_block_type)
           << CompletionBlock->getType();
       return;
     }
-    QualType BlockTy =
+    QualType const BlockTy =
         CompletionBlockType->castAs<BlockPointerType>()->getPointeeType();
     if (!BlockTy->castAs<FunctionType>()->getReturnType()->isVoidType()) {
       S.Diag(CompletionBlock->getLocation(),
@@ -6631,7 +6631,7 @@ static void handleMSP430InterruptAttr(Sema &S, Decl *D, const ParsedAttr &AL) {
     return;
   }
   // The argument should be in range 0..63.
-  unsigned Num = NumParams->getLimitedValue(255);
+  unsigned const Num = NumParams->getLimitedValue(255);
   if (Num > 63) {
     S.Diag(AL.getLoc(), diag::err_attribute_argument_out_of_bounds)
         << AL << (int)NumParams->getSExtValue()
@@ -6721,7 +6721,7 @@ static void handleM68kInterruptAttr(Sema &S, Decl *D, const ParsedAttr &AL) {
     return;
   }
 
-  unsigned Num = MaybeNumParams->getLimitedValue(255);
+  unsigned const Num = MaybeNumParams->getLimitedValue(255);
   if ((Num & 1) || Num > 30) {
     S.Diag(AL.getLoc(), diag::err_attribute_argument_out_of_bounds)
         << AL << (int)MaybeNumParams->getSExtValue()
@@ -6758,7 +6758,7 @@ static void handleAnyX86InterruptAttr(Sema &S, Decl *D, const ParsedAttr &AL) {
     return;
   }
   // Interrupt handler must have 1 or 2 parameters.
-  unsigned NumParams = getFunctionOrMethodNumParams(D);
+  unsigned const NumParams = getFunctionOrMethodNumParams(D);
   if (NumParams < 1 || NumParams > 2) {
     S.Diag(D->getBeginLoc(), diag::err_anyx86_interrupt_attribute)
         << (S.Context.getTargetInfo().getTriple().getArch() == llvm::Triple::x86
@@ -6778,7 +6778,7 @@ static void handleAnyX86InterruptAttr(Sema &S, Decl *D, const ParsedAttr &AL) {
     return;
   }
   // The second argument, if present, must be an unsigned integer.
-  unsigned TypeSize =
+  unsigned const TypeSize =
       S.Context.getTargetInfo().getTriple().getArch() == llvm::Triple::x86_64
           ? 64
           : 32;
@@ -7082,7 +7082,7 @@ checkAMDGPUFlatWorkGroupSizeArguments(Sema &S, Expr *MinExpr, Expr *MaxExpr,
 void Sema::addAMDGPUFlatWorkGroupSizeAttr(Decl *D,
                                           const AttributeCommonInfo &CI,
                                           Expr *MinExpr, Expr *MaxExpr) {
-  AMDGPUFlatWorkGroupSizeAttr TmpAttr(Context, CI, MinExpr, MaxExpr);
+  AMDGPUFlatWorkGroupSizeAttr const TmpAttr(Context, CI, MinExpr, MaxExpr);
 
   if (checkAMDGPUFlatWorkGroupSizeArguments(*this, MinExpr, MaxExpr, TmpAttr))
     return;
@@ -7135,7 +7135,7 @@ static bool checkAMDGPUWavesPerEUArguments(Sema &S, Expr *MinExpr,
 
 void Sema::addAMDGPUWavesPerEUAttr(Decl *D, const AttributeCommonInfo &CI,
                                    Expr *MinExpr, Expr *MaxExpr) {
-  AMDGPUWavesPerEUAttr TmpAttr(Context, CI, MinExpr, MaxExpr);
+  AMDGPUWavesPerEUAttr const TmpAttr(Context, CI, MinExpr, MaxExpr);
 
   if (checkAMDGPUWavesPerEUArguments(*this, MinExpr, MaxExpr, TmpAttr))
     return;
@@ -7525,7 +7525,7 @@ static void handleOpenCLAccessAttr(Sema &S, Decl *D, const ParsedAttr &AL) {
   if (const auto *PDecl = dyn_cast<ParmVarDecl>(D)) {
     const Type *DeclTy = PDecl->getType().getCanonicalType().getTypePtr();
     if (AL.getAttrName()->getName().find("read_write") != StringRef::npos) {
-      bool ReadWriteImagesUnsupportedForOCLC =
+      bool const ReadWriteImagesUnsupportedForOCLC =
           (S.getLangOpts().OpenCLVersion < 200) ||
           (S.getLangOpts().OpenCLVersion == 300 &&
            !S.getOpenCLOptions().isSupported("__opencl_c_read_write_images",
@@ -7574,7 +7574,7 @@ static void handleSYCLKernelAttr(Sema &S, Decl *D, const ParsedAttr &AL) {
   }
 
   // Function must return void.
-  QualType RetTy = getFunctionOrMethodResultType(D);
+  QualType const RetTy = getFunctionOrMethodResultType(D);
   if (!RetTy->isVoidType()) {
     S.Diag(FT->getLocation(), diag::warn_sycl_kernel_return_type);
     return;
@@ -7604,7 +7604,7 @@ static void handleUninitializedAttr(Sema &S, Decl *D, const ParsedAttr &AL) {
 
 static bool tryMakeVariablePseudoStrong(Sema &S, VarDecl *VD,
                                         bool DiagnoseFailure) {
-  QualType Ty = VD->getType();
+  QualType const Ty = VD->getType();
   if (!Ty->isObjCRetainableType()) {
     if (DiagnoseFailure) {
       S.Diag(VD->getBeginLoc(), diag::warn_ignored_objc_externally_retained)
@@ -7658,11 +7658,11 @@ static void handleObjCExternallyRetainedAttr(Sema &S, Decl *D,
 
   // If D is a function-like declaration (method, block, or function), then we
   // make every parameter psuedo-strong.
-  unsigned NumParams =
+  unsigned const NumParams =
       hasFunctionProto(D) ? getFunctionOrMethodNumParams(D) : 0;
   for (unsigned I = 0; I != NumParams; ++I) {
     auto *PVD = const_cast<ParmVarDecl *>(getFunctionOrMethodParam(D, I));
-    QualType Ty = PVD->getType();
+    QualType const Ty = PVD->getType();
 
     // If a user wrote a parameter with __strong explicitly, then assume they
     // want "real" strong semantics for that parameter. This works because if
@@ -7702,7 +7702,7 @@ static void handleMIGServerRoutineAttr(Sema &S, Decl *D, const ParsedAttr &AL) {
 static void handleMSAllocatorAttr(Sema &S, Decl *D, const ParsedAttr &AL) {
   // Warn if the return type is not a pointer or reference type.
   if (auto *FD = dyn_cast<FunctionDecl>(D)) {
-    QualType RetTy = FD->getReturnType();
+    QualType const RetTy = FD->getReturnType();
     if (!RetTy->isPointerType() && !RetTy->isReferenceType()) {
       S.Diag(AL.getLoc(), diag::warn_declspec_allocator_nonpointer)
           << AL.getRange() << RetTy;
@@ -7796,7 +7796,7 @@ static void handleEnforceTCBAttr(Sema &S, Decl *D, const ParsedAttr &AL) {
 template <typename AttrTy, typename ConflictingAttrTy>
 static AttrTy *mergeEnforceTCBAttrImpl(Sema &S, Decl *D, const AttrTy &AL) {
   // Check if the new redeclaration has different leaf-ness in the same TCB.
-  StringRef TCBName = AL.getTCBName();
+  StringRef const TCBName = AL.getTCBName();
   if (const ConflictingAttrTy *ConflictingAttr =
       findEnforceTCBAttrByName<ConflictingAttrTy>(D, TCBName)) {
     S.Diag(ConflictingAttr->getLoc(), diag::err_tcb_conflicting_attributes)
@@ -8640,7 +8640,7 @@ NamedDecl * Sema::DeclClonePragmaWeak(NamedDecl *ND, IdentifierInfo *II,
 
     // Fake up parameter variables; they are declared as if this were
     // a typedef.
-    QualType FDTy = FD->getType();
+    QualType const FDTy = FD->getType();
     if (const auto *FT = FDTy->getAs<FunctionProtoType>()) {
       SmallVector<ParmVarDecl*, 16> Params;
       for (const auto &AI : FT->param_types()) {
@@ -8802,7 +8802,7 @@ static void handleDelayedForbiddenType(Sema &S, DelayedDiagnostic &DD,
 
 void Sema::PopParsingDeclaration(ParsingDeclState state, Decl *decl) {
   assert(DelayedDiagnostics.getCurrentPool());
-  DelayedDiagnosticPool &poppedPool = *DelayedDiagnostics.getCurrentPool();
+  DelayedDiagnosticPool  const&poppedPool = *DelayedDiagnostics.getCurrentPool();
   DelayedDiagnostics.popWithoutEmitting(state);
 
   // When delaying diagnostics to run in the context of a parsed

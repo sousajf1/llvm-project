@@ -148,8 +148,8 @@ bool isArrowPiece(const PathDiagnosticPiece &P) {
 }
 
 unsigned getPathSizeWithoutArrows(const PathPieces &Path) {
-  unsigned TotalPieces = Path.size();
-  unsigned TotalArrowPieces = llvm::count_if(
+  unsigned const TotalPieces = Path.size();
+  unsigned const TotalArrowPieces = llvm::count_if(
       Path, [](const PathDiagnosticPieceRef &P) { return isArrowPiece(*P); });
   return TotalPieces - TotalArrowPieces;
 }
@@ -250,7 +250,7 @@ void HTMLDiagnostics::ReportDiag(const PathDiagnostic& D,
   // Create the HTML directory if it is missing.
   if (!createdDir) {
     createdDir = true;
-    if (std::error_code ec = llvm::sys::fs::create_directories(Directory)) {
+    if (std::error_code const ec = llvm::sys::fs::create_directories(Directory)) {
       llvm::errs() << "warning: could not create directory '"
                    << Directory << "': " << ec.message() << '\n';
       noDir = true;
@@ -274,7 +274,7 @@ void HTMLDiagnostics::ReportDiag(const PathDiagnostic& D,
   // The file for the first path element is considered the main report file, it
   // will usually be equivalent to SMgr.getMainFileID(); however, it might be a
   // header when -analyzer-opt-analyze-headers is used.
-  FileID ReportFile = path.front()->getLocation().asLocation().getExpansionLoc().getFileID();
+  FileID const ReportFile = path.front()->getLocation().asLocation().getExpansionLoc().getFileID();
 
   // Get the function/method name
   SmallString<128> declName("unknown");
@@ -286,15 +286,15 @@ void HTMLDiagnostics::ReportDiag(const PathDiagnostic& D,
       if (const Stmt *Body = DeclWithIssue->getBody()) {
           // Retrieve the relative position of the declaration which will be used
           // for the file name
-          FullSourceLoc L(
+          FullSourceLoc const L(
               SMgr.getExpansionLoc(path.back()->getLocation().asLocation()),
               SMgr);
-          FullSourceLoc FunL(SMgr.getExpansionLoc(Body->getBeginLoc()), SMgr);
+          FullSourceLoc const FunL(SMgr.getExpansionLoc(Body->getBeginLoc()), SMgr);
           offsetDecl = L.getExpansionLineNumber() - FunL.getExpansionLineNumber();
       }
   }
 
-  std::string report = GenerateHTML(D, R, SMgr, path, declName.c_str());
+  std::string const report = GenerateHTML(D, R, SMgr, path, declName.c_str());
   if (report.empty()) {
     llvm::errs() << "warning: no diagnostics generated for main file.\n";
     return;
@@ -306,13 +306,13 @@ void HTMLDiagnostics::ReportDiag(const PathDiagnostic& D,
 
   if (!DiagOpts.ShouldWriteStableReportFilename) {
       llvm::sys::path::append(Model, Directory, "report-%%%%%%.html");
-      if (std::error_code EC =
+      if (std::error_code const EC =
           llvm::sys::fs::make_absolute(Model)) {
           llvm::errs() << "warning: could not make '" << Model
                        << "' absolute: " << EC.message() << '\n';
         return;
       }
-      if (std::error_code EC = llvm::sys::fs::createUniqueFile(
+      if (std::error_code const EC = llvm::sys::fs::createUniqueFile(
               Model, FD, ResultPath, llvm::sys::fs::OF_Text)) {
         llvm::errs() << "warning: could not create file in '" << Directory
                      << "': " << EC.message() << '\n';
@@ -359,7 +359,7 @@ std::string HTMLDiagnostics::GenerateHTML(const PathDiagnostic& D, Rewriter &R,
   // Rewrite source files as HTML for every new file the path crosses
   std::vector<FileID> FileIDs;
   for (auto I : path) {
-    FileID FID = I->getLocation().asLocation().getExpansionLoc().getFileID();
+    FileID const FID = I->getLocation().asLocation().getExpansionLoc().getFileID();
     if (llvm::is_contained(FileIDs, FID))
       continue;
 
@@ -414,7 +414,7 @@ std::string HTMLDiagnostics::GenerateHTML(const PathDiagnostic& D, Rewriter &R,
     return {};
 
   // Add CSS, header, and footer.
-  FileID FID =
+  FileID const FID =
       path.back()->getLocation().asLocation().getExpansionLoc().getFileID();
   const FileEntry* Entry = SMgr.getFileEntryForID(FID);
   FinalizeHTML(D, R, SMgr, path, FileIDs[0], Entry, declName);
@@ -441,7 +441,7 @@ void HTMLDiagnostics::dumpCoverageData(
       os << ", ";
 
     os << "\"" << I->first.getHashValue() << "\": {";
-    for (unsigned LineNo : I->second) {
+    for (unsigned const LineNo : I->second) {
       if (LineNo != *(I->second.begin()))
         os << ", ";
 
@@ -538,8 +538,8 @@ void HTMLDiagnostics::FinalizeHTML(const PathDiagnostic& D, Rewriter &R,
     DirName += '/';
   }
 
-  int LineNumber = path.back()->getLocation().asLocation().getExpansionLineNumber();
-  int ColumnNumber = path.back()->getLocation().asLocation().getExpansionColumnNumber();
+  int const LineNumber = path.back()->getLocation().asLocation().getExpansionLineNumber();
+  int const ColumnNumber = path.back()->getLocation().asLocation().getExpansionColumnNumber();
 
   R.InsertTextBefore(SMgr.getLocForStartOfFile(FID), showHelpJavascript());
 
@@ -575,9 +575,9 @@ void HTMLDiagnostics::FinalizeHTML(const PathDiagnostic& D, Rewriter &R,
     unsigned NumExtraPieces = 0;
     for (const auto &Piece : path) {
       if (const auto *P = dyn_cast<PathDiagnosticNotePiece>(Piece.get())) {
-        int LineNumber =
+        int const LineNumber =
             P->getLocation().asLocation().getExpansionLineNumber();
-        int ColumnNumber =
+        int const ColumnNumber =
             P->getLocation().asLocation().getExpansionColumnNumber();
         os << "<tr><td class=\"rowname\">Note:</td><td>"
            << "<a href=\"#Note" << NumExtraPieces << "\">line "
@@ -625,22 +625,22 @@ void HTMLDiagnostics::FinalizeHTML(const PathDiagnostic& D, Rewriter &R,
     std::string s;
     llvm::raw_string_ostream os(s);
 
-    StringRef BugDesc = D.getVerboseDescription();
+    StringRef const BugDesc = D.getVerboseDescription();
     if (!BugDesc.empty())
       os << "\n<!-- BUGDESC " << BugDesc << " -->\n";
 
-    StringRef BugType = D.getBugType();
+    StringRef const BugType = D.getBugType();
     if (!BugType.empty())
       os << "\n<!-- BUGTYPE " << BugType << " -->\n";
 
-    PathDiagnosticLocation UPDLoc = D.getUniqueingLoc();
-    FullSourceLoc L(SMgr.getExpansionLoc(UPDLoc.isValid()
+    PathDiagnosticLocation const UPDLoc = D.getUniqueingLoc();
+    FullSourceLoc const L(SMgr.getExpansionLoc(UPDLoc.isValid()
                                              ? UPDLoc.asLocation()
                                              : D.getLocation().asLocation()),
                     SMgr);
     const Decl *DeclWithIssue = D.getDeclWithIssue();
 
-    StringRef BugCategory = D.getCategory();
+    StringRef const BugCategory = D.getCategory();
     if (!BugCategory.empty())
       os << "\n<!-- BUGCATEGORY " << BugCategory << " -->\n";
 
@@ -728,7 +728,7 @@ static void HandlePopUpPieceEndTag(Rewriter &R,
   SmallString<256> Buf;
   llvm::raw_svector_ostream Out(Buf);
 
-  SourceRange Range(Piece.getLocation().asRange());
+  SourceRange const Range(Piece.getLocation().asRange());
   if (!shouldDisplayPopUpRange(Range))
     return;
 
@@ -763,17 +763,17 @@ void HTMLDiagnostics::RewriteFile(Rewriter &R, const PathPieces &path,
 
   // Process the path.
   // Maintain the counts of extra note pieces separately.
-  unsigned TotalPieces = getPathSizeWithoutArrows(path);
-  unsigned TotalNotePieces =
+  unsigned const TotalPieces = getPathSizeWithoutArrows(path);
+  unsigned const TotalNotePieces =
       llvm::count_if(path, [](const PathDiagnosticPieceRef &p) {
         return isa<PathDiagnosticNotePiece>(*p);
       });
-  unsigned PopUpPieceCount =
+  unsigned const PopUpPieceCount =
       llvm::count_if(path, [](const PathDiagnosticPieceRef &p) {
         return isa<PathDiagnosticPopUpPiece>(*p);
       });
 
-  unsigned TotalRegularPieces = TotalPieces - TotalNotePieces - PopUpPieceCount;
+  unsigned const TotalRegularPieces = TotalPieces - TotalNotePieces - PopUpPieceCount;
   unsigned NumRegularPieces = TotalRegularPieces;
   unsigned NumNotePieces = TotalNotePieces;
   unsigned NumberOfArrows = 0;
@@ -830,7 +830,7 @@ void HTMLDiagnostics::RewriteFile(Rewriter &R, const PathPieces &path,
     const auto &Piece = *I->get();
 
     if (const auto *PopUpP = dyn_cast<PathDiagnosticPopUpPiece>(&Piece)) {
-      int PopUpPieceIndex = IndexMap[NumRegularPieces];
+      int const PopUpPieceIndex = IndexMap[NumRegularPieces];
 
       // Pop-up pieces needs the index of the last reported piece and its count
       // how many times we report to handle multiple reports on the same range.
@@ -870,24 +870,24 @@ void HTMLDiagnostics::HandlePiece(Rewriter &R, FileID BugFileID,
                                   unsigned num, unsigned max) {
   // For now, just draw a box above the line in question, and emit the
   // warning.
-  FullSourceLoc Pos = P.getLocation().asLocation();
+  FullSourceLoc const Pos = P.getLocation().asLocation();
 
   if (!Pos.isValid())
     return;
 
-  SourceManager &SM = R.getSourceMgr();
+  SourceManager  const&SM = R.getSourceMgr();
   assert(&Pos.getManager() == &SM && "SourceManagers are different!");
-  std::pair<FileID, unsigned> LPosInfo = SM.getDecomposedExpansionLoc(Pos);
+  std::pair<FileID, unsigned> const LPosInfo = SM.getDecomposedExpansionLoc(Pos);
 
   if (LPosInfo.first != BugFileID)
     return;
 
-  llvm::MemoryBufferRef Buf = SM.getBufferOrFake(LPosInfo.first);
+  llvm::MemoryBufferRef const Buf = SM.getBufferOrFake(LPosInfo.first);
   const char *FileStart = Buf.getBufferStart();
 
   // Compute the column number.  Rewind from the current position to the start
   // of the line.
-  unsigned ColNo = SM.getColumnNumber(LPosInfo.first, LPosInfo.second);
+  unsigned const ColNo = SM.getColumnNumber(LPosInfo.first, LPosInfo.second);
   const char *TokInstantiationPtr =Pos.getExpansionLoc().getCharacterData();
   const char *LineStart = TokInstantiationPtr-ColNo;
 
@@ -945,9 +945,9 @@ void HTMLDiagnostics::HandlePiece(Rewriter &R, FileID BugFileID,
     const auto &Msg = P.getString();
     unsigned max_token = 0;
     unsigned cnt = 0;
-    unsigned len = Msg.size();
+    unsigned const len = Msg.size();
 
-    for (char C : Msg)
+    for (char const C : Msg)
       switch (C) {
       default:
         ++cnt;
@@ -970,7 +970,7 @@ void HTMLDiagnostics::HandlePiece(Rewriter &R, FileID BugFileID,
       em = max_token / 2;
     else {
       unsigned characters = max_line;
-      unsigned lines = len / max_line;
+      unsigned const lines = len / max_line;
 
       if (lines > 0) {
         for (; characters > max_token; --characters)
@@ -1013,10 +1013,10 @@ void HTMLDiagnostics::HandlePiece(Rewriter &R, FileID BugFileID,
 
     // Get the name of the macro by relexing it.
     {
-      FullSourceLoc L = MP->getLocation().asLocation().getExpansionLoc();
+      FullSourceLoc const L = MP->getLocation().asLocation().getExpansionLoc();
       assert(L.isFileID());
-      StringRef BufferInfo = L.getBufferData();
-      std::pair<FileID, unsigned> LocInfo = L.getDecomposedLoc();
+      StringRef const BufferInfo = L.getBufferData();
+      std::pair<FileID, unsigned> const LocInfo = L.getDecomposedLoc();
       const char* MacroName = LocInfo.second + BufferInfo.data();
       Lexer rawLexer(SM.getLocForStartOfFile(LocInfo.first), PP.getLangOpts(),
                      BufferInfo.begin(), MacroName, BufferInfo.end());
@@ -1071,14 +1071,14 @@ void HTMLDiagnostics::HandlePiece(Rewriter &R, FileID BugFileID,
   os << "</div></td></tr>";
 
   // Insert the new html.
-  unsigned DisplayPos = LineEnd - FileStart;
-  SourceLocation Loc =
+  unsigned const DisplayPos = LineEnd - FileStart;
+  SourceLocation const Loc =
     SM.getLocForStartOfFile(LPosInfo.first).getLocWithOffset(DisplayPos);
 
   R.InsertTextBefore(Loc, os.str());
 
   // Now highlight the ranges.
-  ArrayRef<SourceRange> Ranges = P.getRanges();
+  ArrayRef<SourceRange> const Ranges = P.getRanges();
   for (const auto &Range : Ranges) {
     // If we have already highlighted the range as a pop-up there is no work.
     if (std::find(PopUpRanges.begin(), PopUpRanges.end(), Range) !=
@@ -1090,7 +1090,7 @@ void HTMLDiagnostics::HandlePiece(Rewriter &R, FileID BugFileID,
 }
 
 static void EmitAlphaCounter(raw_ostream &os, unsigned n) {
-  unsigned x = n % ('z' - 'a');
+  unsigned const x = n % ('z' - 'a');
   n /= 'z' - 'a';
 
   if (n > 0)
@@ -1174,7 +1174,7 @@ void HTMLDiagnostics::addArrowSVGs(Rewriter &R, FileID BugFileID,
   <g id="arrows" fill="none" stroke="blue" visibility="hidden">
 )<<<";
 
-  for (unsigned Index : llvm::seq(0u, ArrowIndices.getTotalNumberOfArrows())) {
+  for (unsigned const Index : llvm::seq(0u, ArrowIndices.getTotalNumberOfArrows())) {
     OS << "    <path class=\"arrow\" id=\"arrow" << Index << "\"/>\n";
   }
 
@@ -1225,14 +1225,14 @@ void HTMLDiagnostics::HighlightRange(Rewriter& R, FileID BugFileID,
                                      SourceRange Range,
                                      const char *HighlightStart,
                                      const char *HighlightEnd) {
-  SourceManager &SM = R.getSourceMgr();
+  SourceManager  const&SM = R.getSourceMgr();
   const LangOptions &LangOpts = R.getLangOpts();
 
-  SourceLocation InstantiationStart = SM.getExpansionLoc(Range.getBegin());
-  unsigned StartLineNo = SM.getExpansionLineNumber(InstantiationStart);
+  SourceLocation const InstantiationStart = SM.getExpansionLoc(Range.getBegin());
+  unsigned const StartLineNo = SM.getExpansionLineNumber(InstantiationStart);
 
-  SourceLocation InstantiationEnd = SM.getExpansionLoc(Range.getEnd());
-  unsigned EndLineNo = SM.getExpansionLineNumber(InstantiationEnd);
+  SourceLocation const InstantiationEnd = SM.getExpansionLoc(Range.getEnd());
+  unsigned const EndLineNo = SM.getExpansionLineNumber(InstantiationEnd);
 
   if (EndLineNo < StartLineNo)
     return;
@@ -1243,7 +1243,7 @@ void HTMLDiagnostics::HighlightRange(Rewriter& R, FileID BugFileID,
 
   // Compute the column number of the end.
   unsigned EndColNo = SM.getExpansionColumnNumber(InstantiationEnd);
-  unsigned OldEndColNo = EndColNo;
+  unsigned const OldEndColNo = EndColNo;
 
   if (EndColNo) {
     // Add in the length of the token, so that we cover multi-char tokens.
@@ -1253,7 +1253,7 @@ void HTMLDiagnostics::HighlightRange(Rewriter& R, FileID BugFileID,
   // Highlight the range.  Make the span tag the outermost tag for the
   // selected range.
 
-  SourceLocation E =
+  SourceLocation const E =
     InstantiationEnd.getLocWithOffset(EndColNo - OldEndColNo);
 
   html::HighlightRange(R, InstantiationStart, E, HighlightStart, HighlightEnd);

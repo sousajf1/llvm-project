@@ -34,7 +34,7 @@ llvm::Constant *clang::CodeGen::initializationPatternFor(CodeGenModule &CGM,
   constexpr bool NegativeNaN = true;
   constexpr uint64_t NaNPayload = 0xFFFFFFFFFFFFFFFFull;
   if (Ty->isIntOrIntVectorTy()) {
-    unsigned BitWidth =
+    unsigned const BitWidth =
         cast<llvm::IntegerType>(Ty->getScalarType())->getBitWidth();
     if (BitWidth <= 64)
       return llvm::ConstantInt::get(Ty, IntValue);
@@ -43,7 +43,7 @@ llvm::Constant *clang::CodeGen::initializationPatternFor(CodeGenModule &CGM,
   }
   if (Ty->isPtrOrPtrVectorTy()) {
     auto *PtrTy = cast<llvm::PointerType>(Ty->getScalarType());
-    unsigned PtrWidth = CGM.getContext().getTargetInfo().getPointerWidth(
+    unsigned const PtrWidth = CGM.getContext().getTargetInfo().getPointerWidth(
         PtrTy->getAddressSpace());
     if (PtrWidth > 64)
       llvm_unreachable("pattern initialization of unsupported pointer width");
@@ -52,7 +52,7 @@ llvm::Constant *clang::CodeGen::initializationPatternFor(CodeGenModule &CGM,
     return llvm::ConstantExpr::getIntToPtr(Int, PtrTy);
   }
   if (Ty->isFPOrFPVectorTy()) {
-    unsigned BitWidth = llvm::APFloat::semanticsSizeInBits(
+    unsigned const BitWidth = llvm::APFloat::semanticsSizeInBits(
         Ty->getScalarType()->getFltSemantics());
     llvm::APInt Payload(64, NaNPayload);
     if (BitWidth >= 64)
@@ -63,7 +63,7 @@ llvm::Constant *clang::CodeGen::initializationPatternFor(CodeGenModule &CGM,
     // Note: this doesn't touch tail padding (at the end of an object, before
     // the next array object). It is instead handled by replaceUndef.
     auto *ArrTy = cast<llvm::ArrayType>(Ty);
-    llvm::SmallVector<llvm::Constant *, 8> Element(
+    llvm::SmallVector<llvm::Constant *, 8> const Element(
         ArrTy->getNumElements(),
         initializationPatternFor(CGM, ArrTy->getElementType()));
     return llvm::ConstantArray::get(ArrTy, Element);

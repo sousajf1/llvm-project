@@ -142,7 +142,7 @@ const std::string &CIndexer::getClangResourcesPath() {
 StringRef CIndexer::getClangToolchainPath() {
   if (!ToolchainPath.empty())
     return ToolchainPath;
-  StringRef ResourcePath = getClangResourcesPath();
+  StringRef const ResourcePath = getClangResourcesPath();
   ToolchainPath =
       std::string(llvm::sys::path::parent_path(llvm::sys::path::parent_path(
           llvm::sys::path::parent_path(ResourcePath))));
@@ -154,7 +154,7 @@ LibclangInvocationReporter::LibclangInvocationReporter(
     llvm::ArrayRef<const char *> Args,
     llvm::ArrayRef<std::string> InvocationArgs,
     llvm::ArrayRef<CXUnsavedFile> UnsavedFiles) {
-  StringRef Path = Idx.getInvocationEmissionPath();
+  StringRef const Path = Idx.getInvocationEmissionPath();
   if (Path.empty())
     return;
 
@@ -208,7 +208,7 @@ LibclangInvocationReporter::LibclangInvocationReporter(
       Hash.update(getContents(UF.value()));
       llvm::MD5::MD5Result Result;
       Hash.final(Result);
-      SmallString<32> Digest = Result.digest();
+      SmallString<32> const Digest = Result.digest();
       WriteStringKey("md5", Digest);
       OS << '}';
     }

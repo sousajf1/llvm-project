@@ -50,7 +50,7 @@ bool TokenConcatenation::IsIdentifierStringPrefix(const Token &Tok) const {
   if (!Tok.needsCleaning()) {
     if (Tok.getLength() < 1 || Tok.getLength() > 3)
       return false;
-    SourceManager &SM = PP.getSourceManager();
+    SourceManager  const&SM = PP.getSourceManager();
     const char *Ptr = SM.getCharacterData(SM.getSpellingLoc(Tok.getLocation()));
     return IsStringPrefix(StringRef(Ptr, Tok.getLength()),
                           LangOpts.CPlusPlus11);
@@ -59,7 +59,7 @@ bool TokenConcatenation::IsIdentifierStringPrefix(const Token &Tok) const {
   if (Tok.getLength() < 256) {
     char Buffer[256];
     const char *TokPtr = Buffer;
-    unsigned length = PP.getSpelling(Tok, TokPtr);
+    unsigned const length = PP.getSpelling(Tok, TokPtr);
     return IsStringPrefix(StringRef(TokPtr, length), LangOpts.CPlusPlus11);
   }
 
@@ -133,7 +133,7 @@ static char GetFirstChar(const Preprocessor &PP, const Token &Tok) {
     if (Tok.isLiteral() && Tok.getLiteralData()) {
       return *Tok.getLiteralData();
     } else {
-      SourceManager &SM = PP.getSourceManager();
+      SourceManager  const&SM = PP.getSourceManager();
       return *SM.getCharacterData(SM.getSpellingLoc(Tok.getLocation()));
     }
   } else if (Tok.getLength() < 256) {
@@ -168,9 +168,9 @@ bool TokenConcatenation::AvoidConcat(const Token &PrevPrevTok,
   // First, check to see if the tokens were directly adjacent in the original
   // source.  If they were, it must be okay to stick them together: if there
   // were an issue, the tokens would have been lexed differently.
-  SourceManager &SM = PP.getSourceManager();
-  SourceLocation PrevSpellLoc = SM.getSpellingLoc(PrevTok.getLocation());
-  SourceLocation SpellLoc = SM.getSpellingLoc(Tok.getLocation());
+  SourceManager  const&SM = PP.getSourceManager();
+  SourceLocation const PrevSpellLoc = SM.getSpellingLoc(PrevTok.getLocation());
+  SourceLocation const SpellLoc = SM.getSpellingLoc(Tok.getLocation());
   if (PrevSpellLoc.getLocWithOffset(PrevTok.getLength()) == SpellLoc)
     return false;
 

@@ -57,11 +57,11 @@ CommandTraits::getTypoCorrectCommandInfo(StringRef Typo) const {
   SmallVector<const CommandInfo *, 2> BestCommand;
 
   auto ConsiderCorrection = [&](const CommandInfo *Command) {
-    StringRef Name = Command->Name;
+    StringRef const Name = Command->Name;
 
-    unsigned MinPossibleEditDistance = abs((int)Name.size() - (int)Typo.size());
+    unsigned const MinPossibleEditDistance = abs((int)Name.size() - (int)Typo.size());
     if (MinPossibleEditDistance <= BestEditDistance) {
-      unsigned EditDistance = Typo.edit_distance(Name, true, BestEditDistance);
+      unsigned const EditDistance = Typo.edit_distance(Name, true, BestEditDistance);
       if (EditDistance < BestEditDistance) {
         BestEditDistance = EditDistance;
         BestCommand.clear();

@@ -278,7 +278,7 @@ void CodeGenFunction::EmitCoreturnStmt(CoreturnStmt const &S) {
   if (RV && RV->getType()->isVoidType() && !isa<InitListExpr>(RV)) {
     // Make sure to evaluate the non initlist expression of a co_return
     // with a void expression for side effects.
-    RunCleanupsScope cleanupScope(*this);
+    RunCleanupsScope const cleanupScope(*this);
     EmitIgnoredExpr(RV);
   }
   EmitStmt(S.getPromiseCall());
@@ -543,7 +543,7 @@ static void emitBodyAndFallthrough(CodeGenFunction &CGF,
 void CodeGenFunction::EmitCoroutineBody(const CoroutineBodyStmt &S) {
   auto *NullPtr = llvm::ConstantPointerNull::get(Builder.getInt8PtrTy());
   auto &TI = CGM.getContext().getTargetInfo();
-  unsigned NewAlign = TI.getNewAlign() / TI.getCharWidth();
+  unsigned const NewAlign = TI.getNewAlign() / TI.getCharWidth();
 
   auto *EntryBB = Builder.GetInsertBlock();
   auto *AllocBB = createBasicBlock("coro.alloc");
@@ -604,7 +604,7 @@ void CodeGenFunction::EmitCoroutineBody(const CoroutineBodyStmt &S) {
   {
     CGDebugInfo *DI = getDebugInfo();
     ParamReferenceReplacerRAII ParamReplacer(LocalDeclMap);
-    CodeGenFunction::RunCleanupsScope ResumeScope(*this);
+    CodeGenFunction::RunCleanupsScope const ResumeScope(*this);
     EHStack.pushCleanup<CallCoroDelete>(NormalAndEHCleanup, S.getDeallocate());
 
     // Create mapping between parameters and copy-params for coroutine function.
@@ -630,7 +630,7 @@ void CodeGenFunction::EmitCoroutineBody(const CoroutineBodyStmt &S) {
 
     EmitStmt(S.getPromiseDeclStmt());
 
-    Address PromiseAddr = GetAddrOfLocalVar(S.getPromiseDecl());
+    Address const PromiseAddr = GetAddrOfLocalVar(S.getPromiseDecl());
     auto *PromiseAddrVoidPtr =
         new llvm::BitCastInst(PromiseAddr.getPointer(), VoidPtrTy, "", CoroId);
     // Update CoroId to refer to the promise. We could not do it earlier because

@@ -318,7 +318,7 @@ QualType SymbolDerived::getType() const {
 }
 
 QualType SymbolExtent::getType() const {
-  ASTContext &Ctx = R->getMemRegionManager().getContext();
+  ASTContext  const&Ctx = R->getMemRegionManager().getContext();
   return Ctx.getSizeType();
 }
 
@@ -356,7 +356,7 @@ void SymbolManager::addSymbolDependency(const SymbolRef Primary,
 
 const SymbolRefSmallVectorTy *SymbolManager::getDependentSymbols(
                                                      const SymbolRef Primary) {
-  SymbolDependTy::const_iterator I = SymbolDependencies.find(Primary);
+  SymbolDependTy::const_iterator const I = SymbolDependencies.find(Primary);
   if (I == SymbolDependencies.end())
     return nullptr;
   return I->second.get();
@@ -364,7 +364,7 @@ const SymbolRefSmallVectorTy *SymbolManager::getDependentSymbols(
 
 void SymbolReaper::markDependentsLive(SymbolRef sym) {
   // Do not mark dependents more then once.
-  SymbolMapTy::iterator LI = TheLiving.find(sym);
+  SymbolMapTy::iterator const LI = TheLiving.find(sym);
   assert(LI != TheLiving.end() && "The primary symbol is not live.");
   if (LI->second == HaveMarkedDependents)
     return;
@@ -393,7 +393,7 @@ void SymbolReaper::markElementIndicesLive(const MemRegion *region) {
   for (auto SR = dyn_cast<SubRegion>(region); SR;
        SR = dyn_cast<SubRegion>(SR->getSuperRegion())) {
     if (const auto ER = dyn_cast<ElementRegion>(SR)) {
-      SVal Idx = ER->getIndex();
+      SVal const Idx = ER->getIndex();
       for (auto SI = Idx.symbol_begin(), SE = Idx.symbol_end(); SI != SE; ++SI)
         markLive(*SI);
     }
@@ -544,7 +544,7 @@ bool SymbolReaper::isLive(const VarRegion *VR, bool includeStoreBindings) const{
 
     // Query the store to see if the region occurs in any live bindings.
     if (Store store = reapedStore.getStore()) {
-      bool hasRegion =
+      bool const hasRegion =
         reapedStore.getStoreManager().includedInBindings(store, VR);
       cachedQuery = hasRegion ? 1 : 2;
       return hasRegion;

@@ -242,10 +242,10 @@ public:
       if (!*CurTripleOrErr)
         break;
 
-      StringRef CurTriple = **CurTripleOrErr;
+      StringRef const CurTriple = **CurTripleOrErr;
       assert(!CurTriple.empty());
 
-      BundleInfo Info{CurTriple};
+      BundleInfo const Info{CurTriple};
       if (Error Err = Func(Info))
         return Err;
     }
@@ -289,7 +289,7 @@ static uint64_t Read8byteIntegerFromBuffer(StringRef Buffer, size_t pos) {
 
   for (unsigned i = 0; i < 8; ++i) {
     Res <<= 8;
-    uint64_t Char = (uint64_t)Data[pos + 7 - i];
+    uint64_t const Char = (uint64_t)Data[pos + 7 - i];
     Res |= 0xffu & Char;
   }
   return Res;
@@ -298,7 +298,7 @@ static uint64_t Read8byteIntegerFromBuffer(StringRef Buffer, size_t pos) {
 /// Write 8-byte integers to a buffer in little-endian format.
 static void Write8byteIntegerToBuffer(raw_fd_ostream &OS, uint64_t Val) {
   for (unsigned i = 0; i < 8; ++i) {
-    char Char = (char)(Val & 0xffu);
+    char const Char = (char)(Val & 0xffu);
     OS.write(&Char, 1);
     Val >>= 8;
   }
@@ -333,7 +333,7 @@ public:
   ~BinaryFileHandler() final {}
 
   Error ReadHeader(MemoryBuffer &Input) final {
-    StringRef FC = Input.getBuffer();
+    StringRef const FC = Input.getBuffer();
 
     // Initialize the current bundle with the end of the container.
     CurBundleInfo = BundlesInfo.end();
@@ -344,7 +344,7 @@ public:
       return Error::success();
 
     // Check if no magic was found.
-    StringRef Magic(FC.data(), sizeof(OFFLOAD_BUNDLER_MAGIC_STR) - 1);
+    StringRef const Magic(FC.data(), sizeof(OFFLOAD_BUNDLER_MAGIC_STR) - 1);
     if (!Magic.equals(OFFLOAD_BUNDLER_MAGIC_STR))
       return Error::success();
 
@@ -352,7 +352,7 @@ public:
     if (ReadChars + 8 > FC.size())
       return Error::success();
 
-    uint64_t NumberOfBundles = Read8byteIntegerFromBuffer(FC, ReadChars);
+    uint64_t const NumberOfBundles = Read8byteIntegerFromBuffer(FC, ReadChars);
     ReadChars += 8;
 
     // Read bundle offsets, sizes and triples.
@@ -362,28 +362,28 @@ public:
       if (ReadChars + 8 > FC.size())
         return Error::success();
 
-      uint64_t Offset = Read8byteIntegerFromBuffer(FC, ReadChars);
+      uint64_t const Offset = Read8byteIntegerFromBuffer(FC, ReadChars);
       ReadChars += 8;
 
       // Read size.
       if (ReadChars + 8 > FC.size())
         return Error::success();
 
-      uint64_t Size = Read8byteIntegerFromBuffer(FC, ReadChars);
+      uint64_t const Size = Read8byteIntegerFromBuffer(FC, ReadChars);
       ReadChars += 8;
 
       // Read triple size.
       if (ReadChars + 8 > FC.size())
         return Error::success();
 
-      uint64_t TripleSize = Read8byteIntegerFromBuffer(FC, ReadChars);
+      uint64_t const TripleSize = Read8byteIntegerFromBuffer(FC, ReadChars);
       ReadChars += 8;
 
       // Read triple.
       if (ReadChars + TripleSize > FC.size())
         return Error::success();
 
-      StringRef Triple(&FC.data()[ReadChars], TripleSize);
+      StringRef const Triple(&FC.data()[ReadChars], TripleSize);
       ReadChars += TripleSize;
 
       // Check if the offset and size make sense.
@@ -414,7 +414,7 @@ public:
 
   Error ReadBundle(raw_ostream &OS, MemoryBuffer &Input) final {
     assert(CurBundleInfo != BundlesInfo.end() && "Invalid reader info!");
-    StringRef FC = Input.getBuffer();
+    StringRef const FC = Input.getBuffer();
     OS.write(FC.data() + CurBundleInfo->second.Offset,
              CurBundleInfo->second.Size);
     return Error::success();
@@ -440,7 +440,7 @@ public:
 
     unsigned Idx = 0;
     for (auto &T : TargetNames) {
-      MemoryBuffer &MB = *Inputs[Idx++];
+      MemoryBuffer  const&MB = *Inputs[Idx++];
       HeaderSize = alignTo(HeaderSize, BundleAlignment);
       // Bundle offset.
       Write8byteIntegerToBuffer(OS, HeaderSize);
@@ -487,7 +487,7 @@ public:
   // Creates temporary file with given contents.
   Expected<StringRef> Create(Optional<ArrayRef<char>> Contents) {
     SmallString<128u> File;
-    if (std::error_code EC =
+    if (std::error_code const EC =
             sys::fs::createTemporaryFile("clang-offload-bundler", "tmp", File))
       return createFileError(File, EC);
     Files.push_front(File);
@@ -678,7 +678,7 @@ private:
     // instead of executing it.
     if (PrintExternalCommands) {
       errs() << "\"" << Objcopy << "\"";
-      for (StringRef Arg : drop_begin(Args, 1))
+      for (StringRef const Arg : drop_begin(Args, 1))
         errs() << " \"" << Arg << "\"";
       errs() << "\n";
     } else {
@@ -716,7 +716,7 @@ protected:
   Error ReadHeader(MemoryBuffer &Input) final { return Error::success(); }
 
   Expected<Optional<StringRef>> ReadBundleStart(MemoryBuffer &Input) final {
-    StringRef FC = Input.getBuffer();
+    StringRef const FC = Input.getBuffer();
 
     // Find start of the bundle.
     ReadChars = FC.find(BundleStartString, ReadChars);
@@ -724,10 +724,10 @@ protected:
       return None;
 
     // Get position of the triple.
-    size_t TripleStart = ReadChars = ReadChars + BundleStartString.size();
+    size_t const TripleStart = ReadChars = ReadChars + BundleStartString.size();
 
     // Get position that closes the triple.
-    size_t TripleEnd = ReadChars = FC.find("\n", ReadChars);
+    size_t const TripleEnd = ReadChars = FC.find("\n", ReadChars);
     if (TripleEnd == FC.npos)
       return None;
 
@@ -738,12 +738,12 @@ protected:
   }
 
   Error ReadBundleEnd(MemoryBuffer &Input) final {
-    StringRef FC = Input.getBuffer();
+    StringRef const FC = Input.getBuffer();
 
     // Read up to the next new line.
     assert(FC[ReadChars] == '\n' && "The bundle should end with a new line.");
 
-    size_t TripleEnd = ReadChars = FC.find("\n", ReadChars + 1);
+    size_t const TripleEnd = ReadChars = FC.find("\n", ReadChars + 1);
     if (TripleEnd != FC.npos)
       // Next time we read after the new line.
       ++ReadChars;
@@ -752,13 +752,13 @@ protected:
   }
 
   Error ReadBundle(raw_ostream &OS, MemoryBuffer &Input) final {
-    StringRef FC = Input.getBuffer();
-    size_t BundleStart = ReadChars;
+    StringRef const FC = Input.getBuffer();
+    size_t const BundleStart = ReadChars;
 
     // Find end of the bundle.
-    size_t BundleEnd = ReadChars = FC.find(BundleEndString, ReadChars);
+    size_t const BundleEnd = ReadChars = FC.find(BundleEndString, ReadChars);
 
-    StringRef Bundle(&FC.data()[BundleStart], BundleEnd - BundleStart);
+    StringRef const Bundle(&FC.data()[BundleStart], BundleEnd - BundleStart);
     OS << Bundle;
 
     return Error::success();
@@ -872,7 +872,7 @@ static Error BundleFiles() {
   for (auto &I : InputFileNames) {
     ErrorOr<std::unique_ptr<MemoryBuffer>> CodeOrErr =
         MemoryBuffer::getFileOrSTDIN(I);
-    if (std::error_code EC = CodeOrErr.getError())
+    if (std::error_code const EC = CodeOrErr.getError())
       return createFileError(I, EC);
     InputBuffers.emplace_back(std::move(*CodeOrErr));
   }
@@ -912,7 +912,7 @@ static Error ListBundleIDsInFile(StringRef InputFileName) {
   // Open Input file.
   ErrorOr<std::unique_ptr<MemoryBuffer>> CodeOrErr =
       MemoryBuffer::getFileOrSTDIN(InputFileName);
-  if (std::error_code EC = CodeOrErr.getError())
+  if (std::error_code const EC = CodeOrErr.getError())
     return createFileError(InputFileName, EC);
 
   MemoryBuffer &Input = **CodeOrErr;
@@ -933,7 +933,7 @@ static Error UnbundleFiles() {
   // Open Input file.
   ErrorOr<std::unique_ptr<MemoryBuffer>> CodeOrErr =
       MemoryBuffer::getFileOrSTDIN(InputFileNames.front());
-  if (std::error_code EC = CodeOrErr.getError())
+  if (std::error_code const EC = CodeOrErr.getError())
     return createFileError(InputFileNames.front(), EC);
 
   MemoryBuffer &Input = **CodeOrErr;
@@ -971,7 +971,7 @@ static Error UnbundleFiles() {
     if (!*CurTripleOrErr)
       break;
 
-    StringRef CurTriple = **CurTripleOrErr;
+    StringRef const CurTriple = **CurTripleOrErr;
     assert(!CurTriple.empty());
 
     auto Output = Worklist.find(CurTriple);
@@ -1003,7 +1003,7 @@ static Error UnbundleFiles() {
     for (auto &E : Worklist)
       Sorted.insert(E.first());
     unsigned I = 0;
-    unsigned Last = Sorted.size() - 1;
+    unsigned const Last = Sorted.size() - 1;
     for (auto &E : Sorted) {
       if (I != 0 && Last > 1)
         ErrMsg += ",";
@@ -1042,7 +1042,7 @@ static Error UnbundleFiles() {
   // If we still have any elements in the worklist, create empty files for them.
   for (auto &E : Worklist) {
     std::error_code EC;
-    raw_fd_ostream OutputFile(E.second, EC, sys::fs::OF_None);
+    raw_fd_ostream const OutputFile(E.second, EC, sys::fs::OF_None);
     if (EC)
       return createFileError(E.second, EC);
   }
@@ -1142,10 +1142,10 @@ static Error UnbundleArchive() {
     ++Output;
   }
 
-  StringRef IFName = InputFileNames.front();
+  StringRef const IFName = InputFileNames.front();
   ErrorOr<std::unique_ptr<MemoryBuffer>> BufOrErr =
       MemoryBuffer::getFileOrSTDIN(IFName, true, false);
-  if (std::error_code EC = BufOrErr.getError())
+  if (std::error_code const EC = BufOrErr.getError())
     return createFileError(InputFileNames.front(), EC);
 
   ArchiveBuffers.push_back(std::move(*BufOrErr));
@@ -1168,7 +1168,7 @@ static Error UnbundleArchive() {
     if (!ArchiveChildNameOrErr)
       return ArchiveChildNameOrErr.takeError();
 
-    StringRef BundledObjectFile = sys::path::filename(*ArchiveChildNameOrErr);
+    StringRef const BundledObjectFile = sys::path::filename(*ArchiveChildNameOrErr);
 
     auto CodeObjectBufferRefOrErr = (*ArchiveIter).getMemoryBufferRef();
     if (!CodeObjectBufferRefOrErr)
@@ -1230,7 +1230,7 @@ static Error UnbundleArchive() {
           std::unique_ptr<MemoryBuffer> MemBuf = MemoryBuffer::getMemBufferCopy(
               DataStream.str(), OutputBundleName);
           ArchiveBuffers.push_back(std::move(MemBuf));
-          llvm::MemoryBufferRef MemBufRef =
+          llvm::MemoryBufferRef const MemBufRef =
               MemoryBufferRef(*(ArchiveBuffers.back()));
 
           // For inserting <CompatibleTarget, list<CodeObject>> entry in
@@ -1265,7 +1265,7 @@ static Error UnbundleArchive() {
 
   /// Write out an archive for each target
   for (auto &Target : TargetNames) {
-    StringRef FileName = TargetOutputFileNameMap[Target];
+    StringRef const FileName = TargetOutputFileNameMap[Target];
     StringMapIterator<std::vector<llvm::NewArchiveMember>> CurArchiveMembers =
         OutputArchivesMap.find(Target);
     if (CurArchiveMembers != OutputArchivesMap.end()) {
@@ -1274,7 +1274,7 @@ static Error UnbundleArchive() {
                                         true, false, nullptr))
         return WriteErr;
     } else if (!AllowMissingBundles) {
-      std::string ErrMsg =
+      std::string const ErrMsg =
           Twine("no compatible code object found for the target '" + Target +
                 "' in heterogenous archive library: " + IFName)
               .str();
@@ -1392,7 +1392,7 @@ int main(int argc, const char **argv) {
   unsigned HostTargetNum = 0u;
   bool HIPOnly = true;
   llvm::DenseSet<StringRef> ParsedTargets;
-  for (StringRef Target : TargetNames) {
+  for (StringRef const Target : TargetNames) {
     if (ParsedTargets.contains(Target)) {
       reportError(createStringError(errc::invalid_argument,
                                     "Duplicate targets are not allowed"));
@@ -1400,8 +1400,8 @@ int main(int argc, const char **argv) {
     ParsedTargets.insert(Target);
 
     auto OffloadInfo = OffloadTargetInfo(Target);
-    bool KindIsValid = OffloadInfo.isOffloadKindValid();
-    bool TripleIsValid = OffloadInfo.isTripleValid();
+    bool const KindIsValid = OffloadInfo.isOffloadKindValid();
+    bool const TripleIsValid = OffloadInfo.isTripleValid();
 
     if (!KindIsValid || !TripleIsValid) {
       SmallVector<char, 128u> Buf;

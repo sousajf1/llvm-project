@@ -63,7 +63,7 @@ GetCC1Arguments(DiagnosticsEngine *Diagnostics,
 static llvm::Expected<std::unique_ptr<CompilerInstance>>
 CreateCI(const llvm::opt::ArgStringList &Argv) {
   std::unique_ptr<CompilerInstance> Clang(new CompilerInstance());
-  IntrusiveRefCntPtr<DiagnosticIDs> DiagID(new DiagnosticIDs());
+  IntrusiveRefCntPtr<DiagnosticIDs> const DiagID(new DiagnosticIDs());
 
   // Register the support for object-file-wrapped Clang modules.
   // FIXME: Clang should register these container operations automatically.
@@ -73,10 +73,10 @@ CreateCI(const llvm::opt::ArgStringList &Argv) {
 
   // Buffer diagnostics from argument parsing so that we can output them using
   // a well formed diagnostic object.
-  IntrusiveRefCntPtr<DiagnosticOptions> DiagOpts = new DiagnosticOptions();
+  IntrusiveRefCntPtr<DiagnosticOptions> const DiagOpts = new DiagnosticOptions();
   TextDiagnosticBuffer *DiagsBuffer = new TextDiagnosticBuffer;
   DiagnosticsEngine Diags(DiagID, &*DiagOpts, DiagsBuffer);
-  bool Success = CompilerInvocation::CreateFromArgs(
+  bool const Success = CompilerInvocation::CreateFromArgs(
       Clang->getInvocation(), llvm::makeArrayRef(Argv.begin(), Argv.size()),
       Diags);
 
@@ -122,7 +122,7 @@ IncrementalCompilerBuilder::create(std::vector<const char *> &ClangArgv) {
 
   // If we don't know ClangArgv0 or the address of main() at this point, try
   // to guess it anyway (it's possible on some platforms).
-  std::string MainExecutableName =
+  std::string const MainExecutableName =
       llvm::sys::fs::getMainExecutable(nullptr, nullptr);
 
   ClangArgv.insert(ClangArgv.begin(), MainExecutableName.c_str());
@@ -143,11 +143,11 @@ IncrementalCompilerBuilder::create(std::vector<const char *> &ClangArgv) {
   // driver to construct.
   ClangArgv.push_back("<<< inputs >>>");
 
-  CompilerInvocation Invocation;
+  CompilerInvocation const Invocation;
   // Buffer diagnostics from argument parsing so that we can output them using a
   // well formed diagnostic object.
-  IntrusiveRefCntPtr<DiagnosticIDs> DiagID(new DiagnosticIDs());
-  IntrusiveRefCntPtr<DiagnosticOptions> DiagOpts = new DiagnosticOptions();
+  IntrusiveRefCntPtr<DiagnosticIDs> const DiagID(new DiagnosticIDs());
+  IntrusiveRefCntPtr<DiagnosticOptions> const DiagOpts = new DiagnosticOptions();
   TextDiagnosticBuffer *DiagsBuffer = new TextDiagnosticBuffer;
   DiagnosticsEngine Diags(DiagID, &*DiagOpts, DiagsBuffer);
   unsigned MissingArgIndex, MissingArgCount;
@@ -160,7 +160,7 @@ IncrementalCompilerBuilder::create(std::vector<const char *> &ClangArgv) {
   driver::Driver Driver(/*MainBinaryName=*/ClangArgv[0],
                         llvm::sys::getProcessTriple(), Diags);
   Driver.setCheckInputsExist(false); // the input comes from mem buffers
-  llvm::ArrayRef<const char *> RF = llvm::makeArrayRef(ClangArgv);
+  llvm::ArrayRef<const char *> const RF = llvm::makeArrayRef(ClangArgv);
   std::unique_ptr<driver::Compilation> Compilation(Driver.BuildCompilation(RF));
 
   if (Compilation->getArgs().hasArg(driver::options::OPT_v))
@@ -175,7 +175,7 @@ IncrementalCompilerBuilder::create(std::vector<const char *> &ClangArgv) {
 
 Interpreter::Interpreter(std::unique_ptr<CompilerInstance> CI,
                          llvm::Error &Err) {
-  llvm::ErrorAsOutParameter EAO(&Err);
+  llvm::ErrorAsOutParameter const EAO(&Err);
   auto LLVMCtx = std::make_unique<llvm::LLVMContext>();
   TSCtx = std::make_unique<llvm::orc::ThreadSafeContext>(std::move(LLVMCtx));
   IncrParser = std::make_unique<IncrementalParser>(std::move(CI),

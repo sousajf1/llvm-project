@@ -165,7 +165,7 @@ static bool isLeaked(SymbolRef Sym, const StreamState &SS,
     // If a symbol is NULL, assume that fopen failed on this path.
     // A symbol should only be considered leaked if it is non-null.
     ConstraintManager &CMgr = State->getConstraintManager();
-    ConditionTruthVal OpenFailed = CMgr.isNull(State, Sym);
+    ConditionTruthVal const OpenFailed = CMgr.isNull(State, Sym);
     return !OpenFailed.isConstrainedTrue();
   }
   return false;
@@ -175,11 +175,11 @@ void SimpleStreamChecker::checkDeadSymbols(SymbolReaper &SymReaper,
                                            CheckerContext &C) const {
   ProgramStateRef State = C.getState();
   SymbolVector LeakedStreams;
-  StreamMapTy TrackedStreams = State->get<StreamMap>();
+  StreamMapTy const TrackedStreams = State->get<StreamMap>();
   for (StreamMapTy::iterator I = TrackedStreams.begin(),
                              E = TrackedStreams.end(); I != E; ++I) {
     SymbolRef Sym = I->first;
-    bool IsSymDead = SymReaper.isDead(Sym);
+    bool const IsSymDead = SymReaper.isDead(Sym);
 
     // Collect leaked symbols.
     if (isLeaked(Sym, I->second, IsSymDead, State))

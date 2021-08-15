@@ -101,7 +101,7 @@ struct DefinedTracker {
 /// EvaluateDefined - Process a 'defined(sym)' expression.
 static bool EvaluateDefined(PPValue &Result, Token &PeekTok, DefinedTracker &DT,
                             bool ValueLive, Preprocessor &PP) {
-  SourceLocation beginLoc(PeekTok.getLocation());
+  SourceLocation const beginLoc(PeekTok.getLocation());
   Result.setBegin(beginLoc);
 
   // Get the next token, don't expand it.
@@ -128,7 +128,7 @@ static bool EvaluateDefined(PPValue &Result, Token &PeekTok, DefinedTracker &DT,
 
   // Otherwise, we got an identifier, is it defined to something?
   IdentifierInfo *II = PeekTok.getIdentifierInfo();
-  MacroDefinition Macro = PP.getMacroDefinition(II);
+  MacroDefinition const Macro = PP.getMacroDefinition(II);
   Result.Val = !!Macro;
   Result.Val.setIsUnsigned(false); // Result is signed intmax_t.
   DT.IncludedUndefinedIds = !Macro;
@@ -140,7 +140,7 @@ static bool EvaluateDefined(PPValue &Result, Token &PeekTok, DefinedTracker &DT,
     PP.markMacroAsUsed(Macro.getMacroInfo());
 
   // Save macro token for callback.
-  Token macroToken(PeekTok);
+  Token const macroToken(PeekTok);
 
   // If we are in parens, ensure we have a trailing ).
   if (LParenLoc.isValid()) {
@@ -182,7 +182,7 @@ static bool EvaluateDefined(PPValue &Result, Token &PeekTok, DefinedTracker &DT,
   // clang and gcc will pick the #if branch while Visual Studio will take the
   // #else branch.  Emit a warning about this undefined behavior.
   if (beginLoc.isMacroID()) {
-    bool IsFunctionTypeMacro =
+    bool const IsFunctionTypeMacro =
         PP.getSourceManager()
             .getSLocEntry(PP.getSourceManager().getFileID(beginLoc))
             .getExpansion()
@@ -292,7 +292,7 @@ static bool EvaluateValue(PPValue &Result, Token &PeekTok, DefinedTracker &DT,
   case tok::numeric_constant: {
     SmallString<64> IntegerBuffer;
     bool NumberInvalid = false;
-    StringRef Spelling = PP.getSpelling(PeekTok, IntegerBuffer,
+    StringRef const Spelling = PP.getSpelling(PeekTok, IntegerBuffer,
                                               &NumberInvalid);
     if (NumberInvalid)
       return true; // a diagnostic was already reported
@@ -372,11 +372,11 @@ static bool EvaluateValue(PPValue &Result, Token &PeekTok, DefinedTracker &DT,
 
     SmallString<32> CharBuffer;
     bool CharInvalid = false;
-    StringRef ThisTok = PP.getSpelling(PeekTok, CharBuffer, &CharInvalid);
+    StringRef const ThisTok = PP.getSpelling(PeekTok, CharBuffer, &CharInvalid);
     if (CharInvalid)
       return true;
 
-    CharLiteralParser Literal(ThisTok.begin(), ThisTok.end(),
+    CharLiteralParser const Literal(ThisTok.begin(), ThisTok.end(),
                               PeekTok.getLocation(), PP, PeekTok.getKind());
     if (Literal.hadError())
       return true;  // A diagnostic was already emitted.
@@ -419,7 +419,7 @@ static bool EvaluateValue(PPValue &Result, Token &PeekTok, DefinedTracker &DT,
     return false;
   }
   case tok::l_paren: {
-    SourceLocation Start = PeekTok.getLocation();
+    SourceLocation const Start = PeekTok.getLocation();
     PP.LexNonComment(PeekTok);  // Eat the (.
     // Parse the value and if there are any binary operators involved, parse
     // them.
@@ -449,7 +449,7 @@ static bool EvaluateValue(PPValue &Result, Token &PeekTok, DefinedTracker &DT,
     return false;
   }
   case tok::plus: {
-    SourceLocation Start = PeekTok.getLocation();
+    SourceLocation const Start = PeekTok.getLocation();
     // Unary plus doesn't modify the value.
     PP.LexNonComment(PeekTok);
     if (EvaluateValue(Result, PeekTok, DT, ValueLive, PP)) return true;
@@ -458,7 +458,7 @@ static bool EvaluateValue(PPValue &Result, Token &PeekTok, DefinedTracker &DT,
     return false;
   }
   case tok::minus: {
-    SourceLocation Loc = PeekTok.getLocation();
+    SourceLocation const Loc = PeekTok.getLocation();
     PP.LexNonComment(PeekTok);
     if (EvaluateValue(Result, PeekTok, DT, ValueLive, PP)) return true;
     Result.setBegin(Loc);
@@ -468,7 +468,7 @@ static bool EvaluateValue(PPValue &Result, Token &PeekTok, DefinedTracker &DT,
     Result.Val = -Result.Val;
 
     // -MININT is the only thing that overflows.  Unsigned never overflows.
-    bool Overflow = !Result.isUnsigned() && Result.Val.isMinSignedValue();
+    bool const Overflow = !Result.isUnsigned() && Result.Val.isMinSignedValue();
 
     // If this operator is live and overflowed, report the issue.
     if (Overflow && ValueLive)
@@ -479,7 +479,7 @@ static bool EvaluateValue(PPValue &Result, Token &PeekTok, DefinedTracker &DT,
   }
 
   case tok::tilde: {
-    SourceLocation Start = PeekTok.getLocation();
+    SourceLocation const Start = PeekTok.getLocation();
     PP.LexNonComment(PeekTok);
     if (EvaluateValue(Result, PeekTok, DT, ValueLive, PP)) return true;
     Result.setBegin(Start);
@@ -492,7 +492,7 @@ static bool EvaluateValue(PPValue &Result, Token &PeekTok, DefinedTracker &DT,
   }
 
   case tok::exclaim: {
-    SourceLocation Start = PeekTok.getLocation();
+    SourceLocation const Start = PeekTok.getLocation();
     PP.LexNonComment(PeekTok);
     if (EvaluateValue(Result, PeekTok, DT, ValueLive, PP)) return true;
     Result.setBegin(Start);
@@ -587,7 +587,7 @@ static bool EvaluateDirectiveSubExpr(PPValue &LHS, unsigned MinPrec,
     if (PeekPrec < MinPrec)
       return false;
 
-    tok::TokenKind Operator = PeekTok.getKind();
+    tok::TokenKind const Operator = PeekTok.getKind();
 
     // If this is a short-circuiting operator, see if the RHS of the operator is
     // dead.  Note that this cannot just clobber ValueLive.  Consider
@@ -605,7 +605,7 @@ static bool EvaluateDirectiveSubExpr(PPValue &LHS, unsigned MinPrec,
       RHSIsLive = ValueLive;
 
     // Consume the operator, remembering the operator's location for reporting.
-    SourceLocation OpLoc = PeekTok.getLocation();
+    SourceLocation const OpLoc = PeekTok.getLocation();
     PP.LexNonComment(PeekTok);
 
     PPValue RHS(LHS.getBitWidth());
@@ -616,7 +616,7 @@ static bool EvaluateDirectiveSubExpr(PPValue &LHS, unsigned MinPrec,
 
     // Remember the precedence of this operator and get the precedence of the
     // operator immediately to the right of the RHS.
-    unsigned ThisPrec = PeekPrec;
+    unsigned const ThisPrec = PeekPrec;
     PeekPrec = getPrecedence(PeekTok.getKind());
 
     // If this token isn't valid, report the error.
@@ -803,7 +803,7 @@ static bool EvaluateDirectiveSubExpr(PPValue &LHS, unsigned MinPrec,
       PP.LexNonComment(PeekTok);
 
       // Evaluate the value after the :.
-      bool AfterColonLive = ValueLive && LHS.Val == 0;
+      bool const AfterColonLive = ValueLive && LHS.Val == 0;
       PPValue AfterColonVal(LHS.getBitWidth());
       DefinedTracker DT;
       if (EvaluateValue(AfterColonVal, PeekTok, DT, AfterColonLive, PP))
@@ -852,14 +852,14 @@ static bool EvaluateDirectiveSubExpr(PPValue &LHS, unsigned MinPrec,
 /// to "!defined(X)" return X in IfNDefMacro.
 Preprocessor::DirectiveEvalResult
 Preprocessor::EvaluateDirectiveExpression(IdentifierInfo *&IfNDefMacro) {
-  SaveAndRestore<bool> PPDir(ParsingIfOrElifDirective, true);
+  SaveAndRestore<bool> const PPDir(ParsingIfOrElifDirective, true);
   // Save the current state of 'DisableMacroExpansion' and reset it to false. If
   // 'DisableMacroExpansion' is true, then we must be in a macro argument list
   // in which case a directive is undefined behavior.  We want macros to be able
   // to recursively expand in order to get more gcc-list behavior, so we force
   // DisableMacroExpansion to false and restore it when we're done parsing the
   // expression.
-  bool DisableMacroExpansionAtStartOfDirective = DisableMacroExpansion;
+  bool const DisableMacroExpansionAtStartOfDirective = DisableMacroExpansion;
   DisableMacroExpansion = false;
 
   // Peek ahead one token.
@@ -867,7 +867,7 @@ Preprocessor::EvaluateDirectiveExpression(IdentifierInfo *&IfNDefMacro) {
   LexNonComment(Tok);
 
   // C99 6.10.1p3 - All expressions are evaluated as intmax_t or uintmax_t.
-  unsigned BitWidth = getTargetInfo().getIntMaxTWidth();
+  unsigned const BitWidth = getTargetInfo().getIntMaxTWidth();
 
   PPValue ResVal(BitWidth);
   DefinedTracker DT;

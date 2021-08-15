@@ -28,7 +28,7 @@ TEST(RecursiveASTVisitor, StmtCallbacks_TraverseCompoundAssignOperator) {
     }
   };
 
-  StringRef Code = R"cpp(
+  StringRef const Code = R"cpp(
 void test(int a) {
   1;
   a += 2;
@@ -96,7 +96,7 @@ TEST(
     }
   };
 
-  StringRef Code = R"cpp(
+  StringRef const Code = R"cpp(
 void test(int a) {
   1;
   a += 2;
@@ -167,7 +167,7 @@ TEST(RecursiveASTVisitor, StmtCallbacks_WalkUpFromCompoundAssignOperator) {
     }
   };
 
-  StringRef Code = R"cpp(
+  StringRef const Code = R"cpp(
 void test(int a) {
   1;
   a += 2;

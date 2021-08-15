@@ -383,7 +383,7 @@ void AMDGPUTargetInfo::getTargetDefines(const LangOptions &Opts,
     Builder.defineMacro("__R600__");
 
   if (GPUKind != llvm::AMDGPU::GK_NONE) {
-    StringRef CanonName = isAMDGCN(getTriple()) ?
+    StringRef const CanonName = isAMDGCN(getTriple()) ?
       getArchNameAMDGCN(GPUKind) : getArchNameR600(GPUKind);
     Builder.defineMacro(Twine("__") + Twine(CanonName) + Twine("__"));
     if (isAMDGCN(getTriple())) {

@@ -200,8 +200,8 @@ public:
     if (!Opts->AnalyzerDisplayProgress)
       return;
 
-    SourceManager &SM = Mgr->getASTContext().getSourceManager();
-    PresumedLoc Loc = SM.getPresumedLoc(D->getLocation());
+    SourceManager  const&SM = Mgr->getASTContext().getSourceManager();
+    PresumedLoc const Loc = SM.getPresumedLoc(D->getLocation());
     if (Loc.isValid()) {
       llvm::errs() << "ANALYZE";
 
@@ -272,7 +272,7 @@ public:
 
   /// Handle callbacks for arbitrary Decls.
   bool VisitDecl(Decl *D) {
-    AnalysisMode Mode = getModeForDecl(D, RecVisitorMode);
+    AnalysisMode const Mode = getModeForDecl(D, RecVisitorMode);
     if (Mode & AM_Syntax) {
       if (SyntaxCheckTimer)
         SyntaxCheckTimer->startTimer();
@@ -495,8 +495,8 @@ void AnalysisConsumer::HandleDeclsCallGraph(const unsigned LocalTUDeclsSize) {
 
 static bool isBisonFile(ASTContext &C) {
   const SourceManager &SM = C.getSourceManager();
-  FileID FID = SM.getMainFileID();
-  StringRef Buffer = SM.getBufferOrFake(FID).getBuffer();
+  FileID const FID = SM.getMainFileID();
+  StringRef const Buffer = SM.getBufferOrFake(FID).getBuffer();
   if (Buffer.startswith("/* A Bison parser, made by"))
     return true;
   return false;
@@ -548,7 +548,7 @@ void AnalysisConsumer::reportAnalyzerProgress(StringRef S) {
 void AnalysisConsumer::HandleTranslationUnit(ASTContext &C) {
 
   // Don't run the actions if an error has occurred with parsing the file.
-  DiagnosticsEngine &Diags = PP.getDiagnostics();
+  DiagnosticsEngine  const&Diags = PP.getDiagnostics();
   if (Diags.hasErrorOccurred() || Diags.hasFatalErrorOccurred())
     return;
 
@@ -591,7 +591,7 @@ AnalysisConsumer::getModeForDecl(Decl *D, AnalysisMode Mode) {
   // - Main source file: run both path-sensitive and non-path-sensitive checks.
   // - Header files: run non-path-sensitive checks only.
   // - System headers: don't run any checks.
-  SourceManager &SM = Ctx->getSourceManager();
+  SourceManager  const&SM = Ctx->getSourceManager();
   const Stmt *Body = D->getBody();
   SourceLocation SL = Body ? Body->getBeginLoc() : D->getLocation();
   SL = SM.getExpansionLoc(SL);
@@ -708,8 +708,8 @@ ento::CreateAnalysisConsumer(CompilerInstance &CI) {
   // Disable the effects of '-Werror' when using the AnalysisConsumer.
   CI.getPreprocessor().getDiagnostics().setWarningsAsErrors(false);
 
-  AnalyzerOptionsRef analyzerOpts = CI.getAnalyzerOpts();
-  bool hasModelPath = analyzerOpts->Config.count("model-path") > 0;
+  AnalyzerOptionsRef const analyzerOpts = CI.getAnalyzerOpts();
+  bool const hasModelPath = analyzerOpts->Config.count("model-path") > 0;
 
   return std::make_unique<AnalysisConsumer>(
       CI, CI.getFrontendOpts().OutputFile, analyzerOpts,

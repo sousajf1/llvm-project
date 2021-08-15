@@ -117,13 +117,13 @@ IntrusiveRefCntPtr<ExternalSemaSource> clang::createChainedIncludesSource(
   assert(!includes.empty() && "No '-chain-include' in options!");
 
   std::vector<std::unique_ptr<CompilerInstance>> CIs;
-  InputKind IK = CI.getFrontendOpts().Inputs[0].getKind();
+  InputKind const IK = CI.getFrontendOpts().Inputs[0].getKind();
 
   SmallVector<std::unique_ptr<llvm::MemoryBuffer>, 4> SerialBufs;
   SmallVector<std::string, 4> serialBufNames;
 
   for (unsigned i = 0, e = includes.size(); i != e; ++i) {
-    bool firstInclude = (i == 0);
+    bool const firstInclude = (i == 0);
     std::unique_ptr<CompilerInvocation> CInvok;
     CInvok.reset(new CompilerInvocation(CI.getInvocation()));
 
@@ -136,13 +136,13 @@ IntrusiveRefCntPtr<ExternalSemaSource> clang::createChainedIncludesSource(
     CInvok->getPreprocessorOpts().Macros.clear();
 
     CInvok->getFrontendOpts().Inputs.clear();
-    FrontendInputFile InputFile(includes[i], IK);
+    FrontendInputFile const InputFile(includes[i], IK);
     CInvok->getFrontendOpts().Inputs.push_back(InputFile);
 
     TextDiagnosticPrinter *DiagClient =
       new TextDiagnosticPrinter(llvm::errs(), new DiagnosticOptions());
-    IntrusiveRefCntPtr<DiagnosticIDs> DiagID(new DiagnosticIDs());
-    IntrusiveRefCntPtr<DiagnosticsEngine> Diags(
+    IntrusiveRefCntPtr<DiagnosticIDs> const DiagID(new DiagnosticIDs());
+    IntrusiveRefCntPtr<DiagnosticsEngine> const Diags(
         new DiagnosticsEngine(DiagID, &CI.getDiagnosticOpts(), DiagClient));
 
     std::unique_ptr<CompilerInstance> Clang(
@@ -159,7 +159,7 @@ IntrusiveRefCntPtr<ExternalSemaSource> clang::createChainedIncludesSource(
     Clang->createASTContext();
 
     auto Buffer = std::make_shared<PCHBuffer>();
-    ArrayRef<std::shared_ptr<ModuleFileExtension>> Extensions;
+    ArrayRef<std::shared_ptr<ModuleFileExtension>> const Extensions;
     auto consumer = std::make_unique<PCHGenerator>(
         Clang->getPreprocessor(), Clang->getModuleCache(), "-", /*isysroot=*/"",
         Buffer, Extensions, /*AllowASTWithErrors=*/true);
@@ -208,7 +208,7 @@ IntrusiveRefCntPtr<ExternalSemaSource> clang::createChainedIncludesSource(
   }
 
   assert(!SerialBufs.empty());
-  std::string pchName = includes.back() + ".pch-final";
+  std::string const pchName = includes.back() + ".pch-final";
   serialBufNames.push_back(pchName);
   Reader = createASTReader(CI, pchName, SerialBufs, serialBufNames);
   if (!Reader)

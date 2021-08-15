@@ -33,7 +33,7 @@ ASTConstraintSatisfaction::ASTConstraintSatisfaction(const ASTContext &C,
     else {
       auto &SubstitutionDiagnostic =
           *Detail.second.get<std::pair<SourceLocation, StringRef> *>();
-      unsigned MessageSize = SubstitutionDiagnostic.second.size();
+      unsigned const MessageSize = SubstitutionDiagnostic.second.size();
       char *Mem = new (C) char[MessageSize];
       memcpy(Mem, SubstitutionDiagnostic.second.data(), MessageSize);
       auto *NewSubstDiag = new (C) std::pair<SourceLocation, StringRef>(
@@ -50,7 +50,7 @@ ASTConstraintSatisfaction::ASTConstraintSatisfaction(const ASTContext &C,
 ASTConstraintSatisfaction *
 ASTConstraintSatisfaction::Create(const ASTContext &C,
                                   const ConstraintSatisfaction &Satisfaction) {
-  std::size_t size =
+  std::size_t const size =
       totalSizeToAlloc<UnsatisfiedConstraintRecord>(
           Satisfaction.Details.size());
   void *Mem = C.Allocate(size, alignof(ASTConstraintSatisfaction));

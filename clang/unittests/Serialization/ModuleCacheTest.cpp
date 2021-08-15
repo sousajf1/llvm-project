@@ -93,14 +93,14 @@ TEST_F(ModuleCacheTest, CachedModuleNewPath) {
 
   SmallString<256> MCPArg("-fmodules-cache-path=");
   MCPArg.append(ModuleCachePath);
-  IntrusiveRefCntPtr<DiagnosticsEngine> Diags =
+  IntrusiveRefCntPtr<DiagnosticsEngine> const Diags =
       CompilerInstance::createDiagnostics(new DiagnosticOptions());
 
   // First run should pass with no errors
-  const char *Args[] = {"clang",        "-fmodules",          "-Fframeworks",
+  const char *const Args[] = {"clang",        "-fmodules",          "-Fframeworks",
                         MCPArg.c_str(), "-working-directory", TestDir.c_str(),
                         "test.m"};
-  std::shared_ptr<CompilerInvocation> Invocation =
+  std::shared_ptr<CompilerInvocation> const Invocation =
       createInvocationFromCommandLine(Args, Diags);
   ASSERT_TRUE(Invocation);
   CompilerInstance Instance;
@@ -120,10 +120,10 @@ TEST_F(ModuleCacheTest, CachedModuleNewPath) {
   // removed from the cache, causing possible crashed if it is ever used.
   //
   // Make sure that an error occurs instead.
-  const char *Args2[] = {"clang",         "-fmodules",    "-Fframeworks2",
+  const char *const Args2[] = {"clang",         "-fmodules",    "-Fframeworks2",
                          "-Fframeworks",  MCPArg.c_str(), "-working-directory",
                          TestDir.c_str(), "test.m"};
-  std::shared_ptr<CompilerInvocation> Invocation2 =
+  std::shared_ptr<CompilerInvocation> const Invocation2 =
       createInvocationFromCommandLine(Args2, Diags);
   ASSERT_TRUE(Invocation2);
   CompilerInstance Instance2(Instance.getPCHContainerOperations(),
@@ -140,14 +140,14 @@ TEST_F(ModuleCacheTest, CachedModuleNewPathAllowErrors) {
 
   SmallString<256> MCPArg("-fmodules-cache-path=");
   MCPArg.append(ModuleCachePath);
-  IntrusiveRefCntPtr<DiagnosticsEngine> Diags =
+  IntrusiveRefCntPtr<DiagnosticsEngine> const Diags =
       CompilerInstance::createDiagnostics(new DiagnosticOptions());
 
   // First run should pass with no errors
-  const char *Args[] = {"clang",        "-fmodules",          "-Fframeworks",
+  const char *const Args[] = {"clang",        "-fmodules",          "-Fframeworks",
                         MCPArg.c_str(), "-working-directory", TestDir.c_str(),
                         "test.m"};
-  std::shared_ptr<CompilerInvocation> Invocation =
+  std::shared_ptr<CompilerInvocation> const Invocation =
       createInvocationFromCommandLine(Args, Diags);
   ASSERT_TRUE(Invocation);
   CompilerInstance Instance;
@@ -159,12 +159,12 @@ TEST_F(ModuleCacheTest, CachedModuleNewPathAllowErrors) {
 
   // Same as `CachedModuleNewPath` but while allowing errors. This is a hard
   // failure where the module wasn't created, so it should still fail.
-  const char *Args2[] = {
+  const char *const Args2[] = {
       "clang",         "-fmodules",    "-Fframeworks2",
       "-Fframeworks",  MCPArg.c_str(), "-working-directory",
       TestDir.c_str(), "-Xclang",      "-fallow-pcm-with-compiler-errors",
       "test.m"};
-  std::shared_ptr<CompilerInvocation> Invocation2 =
+  std::shared_ptr<CompilerInvocation> const Invocation2 =
       createInvocationFromCommandLine(Args2, Diags);
   ASSERT_TRUE(Invocation2);
   CompilerInstance Instance2(Instance.getPCHContainerOperations(),

@@ -37,7 +37,7 @@ static StringRef getDefaultHvxLength(StringRef Cpu) {
 static void handleHVXWarnings(const Driver &D, const ArgList &Args) {
   // Handle the unsupported values passed to mhvx-length.
   if (Arg *A = Args.getLastArg(options::OPT_mhexagon_hvx_length_EQ)) {
-    StringRef Val = A->getValue();
+    StringRef const Val = A->getValue();
     if (!Val.equals_insensitive("64b") && !Val.equals_insensitive("128b"))
       D.Diag(diag::err_drv_unsupported_option_argument)
           << A->getOption().getName() << Val;
@@ -210,18 +210,18 @@ constructHexagonLinkArgs(Compilation &C, const JobAction &JA,
   //----------------------------------------------------------------------------
   //
   //----------------------------------------------------------------------------
-  bool IsStatic = Args.hasArg(options::OPT_static);
-  bool IsShared = Args.hasArg(options::OPT_shared);
-  bool IsPIE = Args.hasArg(options::OPT_pie);
-  bool IncStdLib = !Args.hasArg(options::OPT_nostdlib);
-  bool IncStartFiles = !Args.hasArg(options::OPT_nostartfiles);
-  bool IncDefLibs = !Args.hasArg(options::OPT_nodefaultlibs);
+  bool const IsStatic = Args.hasArg(options::OPT_static);
+  bool const IsShared = Args.hasArg(options::OPT_shared);
+  bool const IsPIE = Args.hasArg(options::OPT_pie);
+  bool const IncStdLib = !Args.hasArg(options::OPT_nostdlib);
+  bool const IncStartFiles = !Args.hasArg(options::OPT_nostartfiles);
+  bool const IncDefLibs = !Args.hasArg(options::OPT_nodefaultlibs);
   bool UseG0 = false;
   const char *Exec = Args.MakeArgString(HTC.GetLinkerPath());
-  bool UseLLD = (llvm::sys::path::filename(Exec).equals_insensitive("ld.lld") ||
+  bool const UseLLD = (llvm::sys::path::filename(Exec).equals_insensitive("ld.lld") ||
                  llvm::sys::path::stem(Exec).equals_insensitive("ld.lld"));
-  bool UseShared = IsShared && !IsStatic;
-  StringRef CpuVer = toolchains::HexagonToolChain::GetTargetCPUVersion(Args);
+  bool const UseShared = IsShared && !IsStatic;
+  StringRef const CpuVer = toolchains::HexagonToolChain::GetTargetCPUVersion(Args);
 
   //----------------------------------------------------------------------------
   // Silence warnings for various options
@@ -325,7 +325,7 @@ constructHexagonLinkArgs(Compilation &C, const JobAction &JA,
 
   auto Find = [&HTC] (const std::string &RootDir, const std::string &SubDir,
                       const char *Name) -> std::string {
-    std::string RelName = SubDir + Name;
+    std::string const RelName = SubDir + Name;
     std::string P = HTC.GetFilePath(RelName.c_str());
     if (llvm::sys::fs::exists(P))
       return P;
@@ -335,13 +335,13 @@ constructHexagonLinkArgs(Compilation &C, const JobAction &JA,
   if (IncStdLib && IncStartFiles) {
     if (!IsShared) {
       if (HasStandalone) {
-        std::string Crt0SA = Find(RootDir, StartSubDir, "/crt0_standalone.o");
+        std::string const Crt0SA = Find(RootDir, StartSubDir, "/crt0_standalone.o");
         CmdArgs.push_back(Args.MakeArgString(Crt0SA));
       }
-      std::string Crt0 = Find(RootDir, StartSubDir, "/crt0.o");
+      std::string const Crt0 = Find(RootDir, StartSubDir, "/crt0.o");
       CmdArgs.push_back(Args.MakeArgString(Crt0));
     }
-    std::string Init = UseShared
+    std::string const Init = UseShared
           ? Find(RootDir, StartSubDir + "/pic", "/initS.o")
           : Find(RootDir, StartSubDir, "/init.o");
     CmdArgs.push_back(Args.MakeArgString(Init));
@@ -376,7 +376,7 @@ constructHexagonLinkArgs(Compilation &C, const JobAction &JA,
     CmdArgs.push_back("--start-group");
 
     if (!IsShared) {
-      for (StringRef Lib : OsLibs)
+      for (StringRef const Lib : OsLibs)
         CmdArgs.push_back(Args.MakeArgString("-l" + Lib));
       CmdArgs.push_back("-lc");
     }
@@ -389,7 +389,7 @@ constructHexagonLinkArgs(Compilation &C, const JobAction &JA,
   // End files
   //----------------------------------------------------------------------------
   if (IncStdLib && IncStartFiles) {
-    std::string Fini = UseShared
+    std::string const Fini = UseShared
           ? Find(RootDir, StartSubDir + "/pic", "/finiS.o")
           : Find(RootDir, StartSubDir, "/fini.o");
     CmdArgs.push_back(Args.MakeArgString(Fini));
@@ -468,12 +468,12 @@ void HexagonToolChain::getHexagonLibraryPaths(const ArgList &Args,
   std::copy(D.PrefixDirs.begin(), D.PrefixDirs.end(),
             std::back_inserter(RootDirs));
 
-  std::string TargetDir = getHexagonTargetDir(D.getInstalledDir(),
+  std::string const TargetDir = getHexagonTargetDir(D.getInstalledDir(),
                                               D.PrefixDirs);
   if (llvm::find(RootDirs, TargetDir) == RootDirs.end())
     RootDirs.push_back(TargetDir);
 
-  bool HasPIC = Args.hasArg(options::OPT_fpic, options::OPT_fPIC);
+  bool const HasPIC = Args.hasArg(options::OPT_fpic, options::OPT_fPIC);
   // Assume G0 with -shared.
   bool HasG0 = Args.hasArg(options::OPT_shared);
   if (auto G = getSmallDataThreshold(Args))
@@ -481,8 +481,8 @@ void HexagonToolChain::getHexagonLibraryPaths(const ArgList &Args,
 
   const std::string CpuVer = GetTargetCPUVersion(Args).str();
   for (auto &Dir : RootDirs) {
-    std::string LibDir = Dir + "/hexagon/lib";
-    std::string LibDirCpu = LibDir + '/' + CpuVer;
+    std::string const LibDir = Dir + "/hexagon/lib";
+    std::string const LibDirCpu = LibDir + '/' + CpuVer;
     if (HasG0) {
       if (HasPIC)
         LibPaths.push_back(LibDirCpu + "/G0/pic");
@@ -518,7 +518,7 @@ HexagonToolChain::~HexagonToolChain() {}
 
 void HexagonToolChain::AddCXXStdlibLibArgs(const ArgList &Args,
                                            ArgStringList &CmdArgs) const {
-  CXXStdlibType Type = GetCXXStdlibType(Args);
+  CXXStdlibType const Type = GetCXXStdlibType(Args);
   switch (Type) {
   case ToolChain::CST_Libcxx:
     CmdArgs.push_back("-lc++");
@@ -553,7 +553,7 @@ unsigned HexagonToolChain::getOptimizationLevel(
       A->getOption().matches(options::OPT_O4))
     return 3;
   assert(A->getNumValues() != 0);
-  StringRef S(A->getValue());
+  StringRef const S(A->getValue());
   if (S == "s" || S == "z" || S.empty())
     return 2;
   if (S == "g")
@@ -569,7 +569,7 @@ void HexagonToolChain::addClangTargetOptions(const ArgList &DriverArgs,
                                              ArgStringList &CC1Args,
                                              Action::OffloadKind) const {
 
-  bool UseInitArrayDefault = getTriple().isMusl();
+  bool const UseInitArrayDefault = getTriple().isMusl();
 
   if (!DriverArgs.hasFlag(options::OPT_fuse_init_array,
                           options::OPT_fno_use_init_array,
@@ -625,7 +625,7 @@ void HexagonToolChain::AddClangSystemIncludeArgs(const ArgList &DriverArgs,
 
   if (HasSysRoot)
     return;
-  std::string TargetDir = getHexagonTargetDir(D.getInstalledDir(),
+  std::string const TargetDir = getHexagonTargetDir(D.getInstalledDir(),
                                               D.PrefixDirs);
   addExternCSystemInclude(DriverArgs, CC1Args, TargetDir + "/hexagon/include");
 }
@@ -641,7 +641,7 @@ void HexagonToolChain::addLibCxxIncludePaths(
     addLibStdCXXIncludePaths("/usr/include/c++/v1", "", "", DriverArgs,
                              CC1Args);
   else {
-    std::string TargetDir = getHexagonTargetDir(D.InstalledDir, D.PrefixDirs);
+    std::string const TargetDir = getHexagonTargetDir(D.InstalledDir, D.PrefixDirs);
     addLibStdCXXIncludePaths(TargetDir + "/hexagon/include/c++/v1", "", "",
                              DriverArgs, CC1Args);
   }
@@ -650,7 +650,7 @@ void HexagonToolChain::addLibStdCxxIncludePaths(
     const llvm::opt::ArgList &DriverArgs,
     llvm::opt::ArgStringList &CC1Args) const {
   const Driver &D = getDriver();
-  std::string TargetDir = getHexagonTargetDir(D.InstalledDir, D.PrefixDirs);
+  std::string const TargetDir = getHexagonTargetDir(D.InstalledDir, D.PrefixDirs);
   addLibStdCXXIncludePaths(TargetDir + "/hexagon/include/c++", "", "",
                            DriverArgs, CC1Args);
 }
@@ -664,7 +664,7 @@ HexagonToolChain::GetCXXStdlibType(const ArgList &Args) const {
     else
       return ToolChain::CST_Libstdcxx;
   }
-  StringRef Value = A->getValue();
+  StringRef const Value = A->getValue();
   if (Value != "libstdc++" && Value != "libc++")
     getDriver().Diag(diag::err_drv_invalid_stdlib_name) << A->getAsString(Args);
 

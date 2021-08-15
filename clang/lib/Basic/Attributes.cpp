@@ -67,7 +67,7 @@ static StringRef normalizeAttrName(const IdentifierInfo *Name,
                                    AttributeCommonInfo::Syntax SyntaxUsed) {
   // Normalize the attribute name, __foo__ becomes foo. This is only allowable
   // for GNU attributes, and attributes using the double square bracket syntax.
-  bool ShouldNormalize =
+  bool const ShouldNormalize =
       SyntaxUsed == AttributeCommonInfo::AS_GNU ||
       ((SyntaxUsed == AttributeCommonInfo::AS_CXX11 ||
         SyntaxUsed == AttributeCommonInfo::AS_C2x) &&
@@ -90,8 +90,8 @@ bool AttributeCommonInfo::isGNUScope() const {
 static SmallString<64> normalizeName(const IdentifierInfo *Name,
                                      const IdentifierInfo *Scope,
                                      AttributeCommonInfo::Syntax SyntaxUsed) {
-  StringRef ScopeName = normalizeAttrScopeName(Scope, SyntaxUsed);
-  StringRef AttrName = normalizeAttrName(Name, ScopeName, SyntaxUsed);
+  StringRef const ScopeName = normalizeAttrScopeName(Scope, SyntaxUsed);
+  StringRef const AttrName = normalizeAttrName(Name, ScopeName, SyntaxUsed);
 
   SmallString<64> FullName = ScopeName;
   if (!ScopeName.empty()) {
@@ -120,8 +120,8 @@ unsigned AttributeCommonInfo::calculateAttributeSpellingListIndex() const {
   // Both variables will be used in tablegen generated
   // attribute spell list index matching code.
   auto Syntax = static_cast<AttributeCommonInfo::Syntax>(getSyntax());
-  StringRef Scope = normalizeAttrScopeName(getScopeName(), Syntax);
-  StringRef Name = normalizeAttrName(getAttrName(), Scope, Syntax);
+  StringRef const Scope = normalizeAttrScopeName(getScopeName(), Syntax);
+  StringRef const Name = normalizeAttrName(getAttrName(), Scope, Syntax);
 
 #include "clang/Sema/AttrSpellingListIndex.inc"
 }

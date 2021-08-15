@@ -25,7 +25,7 @@ bool cocoa::isRefType(QualType RetTy, StringRef Prefix,
                       StringRef Name) {
   // Recursively walk the typedef stack, allowing typedefs of reference types.
   while (const TypedefType *TD = RetTy->getAs<TypedefType>()) {
-    StringRef TDName = TD->getDecl()->getIdentifier()->getName();
+    StringRef const TDName = TD->getDecl()->getIdentifier()->getName();
     if (TDName.startswith(Prefix) && TDName.endswith("Ref"))
       return true;
     // XPC unfortunately uses CF-style function names, but aren't CF types.
@@ -99,7 +99,7 @@ bool coreFoundation::followsCreateRule(const FunctionDecl *fn) {
 
   const IdentifierInfo *ident = fn->getIdentifier();
   if (!ident) return false;
-  StringRef functionName = ident->getName();
+  StringRef const functionName = ident->getName();
 
   StringRef::iterator it = functionName.begin();
   StringRef::iterator start = it;
@@ -109,7 +109,7 @@ bool coreFoundation::followsCreateRule(const FunctionDecl *fn) {
     // Scan for the start of 'create' or 'copy'.
     for ( ; it != endI ; ++it) {
       // Search for the first character.  It can either be 'C' or 'c'.
-      char ch = *it;
+      char const ch = *it;
       if (ch == 'C' || ch == 'c') {
         // Make sure this isn't something like 'recreate' or 'Scopy'.
         if (ch == 'c' && it != start && isLetter(*(it - 1)))
@@ -126,7 +126,7 @@ bool coreFoundation::followsCreateRule(const FunctionDecl *fn) {
 
     // Scan for *lowercase* 'reate' or 'opy', followed by no lowercase
     // character.
-    StringRef suffix = functionName.substr(it - start);
+    StringRef const suffix = functionName.substr(it - start);
     if (suffix.startswith("reate")) {
       it += 5;
     }

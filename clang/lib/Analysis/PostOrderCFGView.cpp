@@ -41,10 +41,10 @@ const void *PostOrderCFGView::getTag() { static int x; return &x; }
 
 bool PostOrderCFGView::BlockOrderCompare::operator()(const CFGBlock *b1,
                                                      const CFGBlock *b2) const {
-  PostOrderCFGView::BlockOrderTy::const_iterator b1It = POV.BlockOrder.find(b1);
-  PostOrderCFGView::BlockOrderTy::const_iterator b2It = POV.BlockOrder.find(b2);
+  PostOrderCFGView::BlockOrderTy::const_iterator const b1It = POV.BlockOrder.find(b1);
+  PostOrderCFGView::BlockOrderTy::const_iterator const b2It = POV.BlockOrder.find(b2);
 
-  unsigned b1V = (b1It == POV.BlockOrder.end()) ? 0 : b1It->second;
-  unsigned b2V = (b2It == POV.BlockOrder.end()) ? 0 : b2It->second;
+  unsigned const b1V = (b1It == POV.BlockOrder.end()) ? 0 : b1It->second;
+  unsigned const b2V = (b2It == POV.BlockOrder.end()) ? 0 : b2It->second;
   return b1V > b2V;
 }

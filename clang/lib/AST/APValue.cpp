@@ -601,7 +601,7 @@ void APValue::Profile(llvm::FoldingSetNodeID &ID) const {
       // For uniqueness, we only need to profile the entries corresponding
       // to union members, but we don't have the type here so we don't know
       // how to interpret the entries.
-      for (LValuePathEntry E : getLValuePath())
+      for (LValuePathEntry const E : getLValuePath())
         E.Profile(ID);
     }
     return;
@@ -660,7 +660,7 @@ void APValue::printPretty(raw_ostream &Out, const PrintingPolicy &Policy,
     return;
   case APValue::Vector: {
     Out << '{';
-    QualType ElemTy = Ty->castAs<VectorType>()->getElementType();
+    QualType const ElemTy = Ty->castAs<VectorType>()->getElementType();
     getVectorElt(0).printPretty(Out, Policy, ElemTy, Ctx);
     for (unsigned i = 1; i != getVectorLength(); ++i) {
       Out << ", ";
@@ -677,13 +677,13 @@ void APValue::printPretty(raw_ostream &Out, const PrintingPolicy &Policy,
         << GetApproxValue(getComplexFloatImag()) << "i";
     return;
   case APValue::LValue: {
-    bool IsReference = Ty->isReferenceType();
+    bool const IsReference = Ty->isReferenceType();
     QualType InnerTy
       = IsReference ? Ty.getNonReferenceType() : Ty->getPointeeType();
     if (InnerTy.isNull())
       InnerTy = Ty;
 
-    LValueBase Base = getLValueBase();
+    LValueBase const Base = getLValueBase();
     if (!Base) {
       if (isNullPointer()) {
         Out << (Policy.Nullptr ? "nullptr" : "0");
@@ -699,7 +699,7 @@ void APValue::printPretty(raw_ostream &Out, const PrintingPolicy &Policy,
 
     if (!hasLValuePath()) {
       // No lvalue path: just print the offset.
-      CharUnits O = getLValueOffset();
+      CharUnits const O = getLValueOffset();
       CharUnits S = Ctx ? Ctx->getTypeSizeInChars(InnerTy) : CharUnits::Zero();
       if (!O.isZero()) {
         if (IsReference)
@@ -715,7 +715,7 @@ void APValue::printPretty(raw_ostream &Out, const PrintingPolicy &Policy,
 
       if (const ValueDecl *VD = Base.dyn_cast<const ValueDecl*>())
         Out << *VD;
-      else if (TypeInfoLValue TI = Base.dyn_cast<TypeInfoLValue>()) {
+      else if (TypeInfoLValue const TI = Base.dyn_cast<TypeInfoLValue>()) {
         TI.print(Out, Policy);
       } else if (DynamicAllocLValue DA = Base.dyn_cast<DynamicAllocLValue>()) {
         Out << "{*new "
@@ -744,7 +744,7 @@ void APValue::printPretty(raw_ostream &Out, const PrintingPolicy &Policy,
     QualType ElemTy = Base.getType();
     if (const ValueDecl *VD = Base.dyn_cast<const ValueDecl*>()) {
       Out << *VD;
-    } else if (TypeInfoLValue TI = Base.dyn_cast<TypeInfoLValue>()) {
+    } else if (TypeInfoLValue const TI = Base.dyn_cast<TypeInfoLValue>()) {
       TI.print(Out, Policy);
     } else if (DynamicAllocLValue DA = Base.dyn_cast<DynamicAllocLValue>()) {
       Out << "{*new " << Base.getDynamicAllocType().stream(Policy) << "#"
@@ -755,7 +755,7 @@ void APValue::printPretty(raw_ostream &Out, const PrintingPolicy &Policy,
       E->printPretty(Out, nullptr, Policy);
     }
 
-    ArrayRef<LValuePathEntry> Path = getLValuePath();
+    ArrayRef<LValuePathEntry> const Path = getLValuePath();
     const CXXRecordDecl *CastToBase = nullptr;
     for (unsigned I = 0, N = Path.size(); I != N; ++I) {
       if (ElemTy->isRecordType()) {
@@ -793,9 +793,9 @@ void APValue::printPretty(raw_ostream &Out, const PrintingPolicy &Policy,
   }
   case APValue::Array: {
     const ArrayType *AT = Ty->castAsArrayTypeUnsafe();
-    QualType ElemTy = AT->getElementType();
+    QualType const ElemTy = AT->getElementType();
     Out << '{';
-    if (unsigned N = getArrayInitializedElts()) {
+    if (unsigned const N = getArrayInitializedElts()) {
       getArrayInitializedElt(0).printPretty(Out, Policy, ElemTy, Ctx);
       for (unsigned I = 1; I != N; ++I) {
         Out << ", ";
@@ -814,7 +814,7 @@ void APValue::printPretty(raw_ostream &Out, const PrintingPolicy &Policy,
     Out << '{';
     const RecordDecl *RD = Ty->castAs<RecordType>()->getDecl();
     bool First = true;
-    if (unsigned N = getStructNumBases()) {
+    if (unsigned const N = getStructNumBases()) {
       const CXXRecordDecl *CD = cast<CXXRecordDecl>(RD);
       CXXRecordDecl::base_class_const_iterator BI = CD->bases_begin();
       for (unsigned I = 0; I != N; ++I, ++BI) {
@@ -958,7 +958,7 @@ APValue::setLValueUninit(LValueBase B, const CharUnits &O, unsigned Size,
 void APValue::setLValue(LValueBase B, const CharUnits &O,
                         ArrayRef<LValuePathEntry> Path, bool IsOnePastTheEnd,
                         bool IsNullPtr) {
-  MutableArrayRef<APValue::LValuePathEntry> InternalPath =
+  MutableArrayRef<APValue::LValuePathEntry> const InternalPath =
       setLValueUninit(B, O, Path.size(), IsOnePastTheEnd, IsNullPtr);
   if (Path.size()) {
     memcpy(InternalPath.data(), Path.data(),
@@ -1026,7 +1026,7 @@ APValue::setMemberPointerUninit(const ValueDecl *Member, bool IsDerivedMember,
 
 void APValue::MakeMemberPointer(const ValueDecl *Member, bool IsDerivedMember,
                                 ArrayRef<const CXXRecordDecl *> Path) {
-  MutableArrayRef<const CXXRecordDecl *> InternalPath =
+  MutableArrayRef<const CXXRecordDecl *> const InternalPath =
       setMemberPointerUninit(Member, IsDerivedMember, Path.size());
   for (unsigned I = 0; I != Path.size(); ++I)
     InternalPath[I] = Path[I]->getCanonicalDecl();

@@ -62,7 +62,7 @@ void BoolAssignmentChecker::checkBind(SVal loc, SVal val, const Stmt *S,
   if (!TR)
     return;
 
-  QualType valTy = TR->getValueType();
+  QualType const valTy = TR->getValueType();
 
   if (!isBooleanType(valTy))
     return;
@@ -77,13 +77,13 @@ void BoolAssignmentChecker::checkBind(SVal loc, SVal val, const Stmt *S,
   // Check if the assigned value meets our criteria for correctness.  It must
   // be a value that is either 0 or 1.  One way to check this is to see if
   // the value is possibly < 0 (for a negative value) or greater than 1.
-  ProgramStateRef state = C.getState();
+  ProgramStateRef const state = C.getState();
   SValBuilder &svalBuilder = C.getSValBuilder();
   BasicValueFactory &BVF = svalBuilder.getBasicValueFactory();
   ConstraintManager &CM = C.getConstraintManager();
 
-  llvm::APSInt Zero = BVF.getValue(0, valTy);
-  llvm::APSInt One = BVF.getValue(1, valTy);
+  llvm::APSInt const Zero = BVF.getValue(0, valTy);
+  llvm::APSInt const One = BVF.getValue(1, valTy);
 
   ProgramStateRef StIn, StOut;
   std::tie(StIn, StOut) = CM.assumeInclusiveRangeDual(state, *NV, Zero, One);

@@ -127,12 +127,12 @@ int main(int argc, const char **argv) {
   // This just needs to be some symbol in the binary; C++ doesn't
   // allow taking the address of ::main however.
   void *MainAddr = (void*) (intptr_t) GetExecutablePath;
-  std::string Path = GetExecutablePath(argv[0], MainAddr);
-  IntrusiveRefCntPtr<DiagnosticOptions> DiagOpts = new DiagnosticOptions();
+  std::string const Path = GetExecutablePath(argv[0], MainAddr);
+  IntrusiveRefCntPtr<DiagnosticOptions> const DiagOpts = new DiagnosticOptions();
   TextDiagnosticPrinter *DiagClient =
     new TextDiagnosticPrinter(llvm::errs(), &*DiagOpts);
 
-  IntrusiveRefCntPtr<DiagnosticIDs> DiagID(new DiagnosticIDs());
+  IntrusiveRefCntPtr<DiagnosticIDs> const DiagID(new DiagnosticIDs());
   DiagnosticsEngine Diags(DiagID, &*DiagOpts, DiagClient);
 
   const std::string TripleStr = llvm::sys::getProcessTriple();

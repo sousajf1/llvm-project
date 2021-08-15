@@ -61,7 +61,7 @@ public:
     // FIXME: Scan the map once in the visitor's constructor and do a direct
     // lookup by region.
     bool isSymbolTracked(ProgramStateRef State, SymbolRef Sym) {
-      RawPtrMapTy Map = State->get<RawPtrMap>();
+      RawPtrMapTy const Map = State->get<RawPtrMap>();
       for (const auto &Entry : Map) {
         if (Entry.second.contains(Sym))
           return true;
@@ -120,7 +120,7 @@ public:
 bool InnerPointerChecker::isInvalidatingMemberFunction(
         const CallEvent &Call) const {
   if (const auto *MemOpCall = dyn_cast<CXXMemberOperatorCall>(&Call)) {
-    OverloadedOperatorKind Opc = MemOpCall->getOriginExpr()->getOperator();
+    OverloadedOperatorKind const Opc = MemOpCall->getOriginExpr()->getOperator();
     if (Opc == OO_Equal || Opc == OO_PlusEqual)
       return true;
     return false;
@@ -166,17 +166,17 @@ void InnerPointerChecker::checkFunctionArguments(const CallEvent &Call,
       return;
 
     for (unsigned I = 0, E = FD->getNumParams(); I != E; ++I) {
-      QualType ParamTy = FD->getParamDecl(I)->getType();
+      QualType const ParamTy = FD->getParamDecl(I)->getType();
       if (!ParamTy->isReferenceType() ||
           ParamTy->getPointeeType().isConstQualified())
         continue;
 
       // In case of member operator calls, `this` is counted as an
       // argument but not as a parameter.
-      bool isaMemberOpCall = isa<CXXMemberOperatorCall>(FC);
-      unsigned ArgI = isaMemberOpCall ? I+1 : I;
+      bool const isaMemberOpCall = isa<CXXMemberOperatorCall>(FC);
+      unsigned const ArgI = isaMemberOpCall ? I+1 : I;
 
-      SVal Arg = FC->getArgSVal(ArgI);
+      SVal const Arg = FC->getArgSVal(ArgI);
       const auto *ArgRegion =
           dyn_cast_or_null<TypedValueRegion>(Arg.getAsRegion());
       if (!ArgRegion)
@@ -237,7 +237,7 @@ void InnerPointerChecker::checkPostCall(const CallEvent &Call,
     if (!ObjRegion)
       return;
 
-    SVal RawPtr = Call.getReturnValue();
+    SVal const RawPtr = Call.getReturnValue();
     if (SymbolRef Sym = RawPtr.getAsSymbol(/*IncludeBaseRegions=*/true)) {
       // Start tracking this raw pointer by adding it to the set of symbols
       // associated with this container object in the program state map.
@@ -263,7 +263,7 @@ void InnerPointerChecker::checkDeadSymbols(SymbolReaper &SymReaper,
                                            CheckerContext &C) const {
   ProgramStateRef State = C.getState();
   PtrSet::Factory &F = State->getStateManager().get_context<PtrSet>();
-  RawPtrMapTy RPM = State->get<RawPtrMap>();
+  RawPtrMapTy const RPM = State->get<RawPtrMap>();
   for (const auto &Entry : RPM) {
     if (!SymReaper.isLiveRegion(Entry.first)) {
       // Due to incomplete destructor support, some dead regions might
@@ -293,7 +293,7 @@ std::unique_ptr<BugReporterVisitor> getInnerPointerBRVisitor(SymbolRef Sym) {
 }
 
 const MemRegion *getContainerObjRegion(ProgramStateRef State, SymbolRef Sym) {
-  RawPtrMapTy Map = State->get<RawPtrMap>();
+  RawPtrMapTy const Map = State->get<RawPtrMap>();
   for (const auto &Entry : Map) {
     if (Entry.second.contains(Sym)) {
       return Entry.first;
@@ -319,13 +319,13 @@ PathDiagnosticPieceRef InnerPointerChecker::InnerPointerBRVisitor::VisitNode(
   const MemRegion *ObjRegion =
       allocation_state::getContainerObjRegion(N->getState(), PtrToBuf);
   const auto *TypedRegion = cast<TypedValueRegion>(ObjRegion);
-  QualType ObjTy = TypedRegion->getValueType();
+  QualType const ObjTy = TypedRegion->getValueType();
 
   SmallString<256> Buf;
   llvm::raw_svector_ostream OS(Buf);
   OS << "Pointer to inner buffer of '" << ObjTy.getAsString()
      << "' obtained here";
-  PathDiagnosticLocation Pos(S, BRC.getSourceManager(),
+  PathDiagnosticLocation const Pos(S, BRC.getSourceManager(),
                              N->getLocationContext());
   return std::make_shared<PathDiagnosticEventPiece>(Pos, OS.str(), true);
 }

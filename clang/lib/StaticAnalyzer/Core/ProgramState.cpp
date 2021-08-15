@@ -106,7 +106,7 @@ ProgramStateRef ProgramStateManager::removeDeadBindingsFromEnvironmentAndStore(
   NewState.Env = EnvMgr.removeDeadBindings(NewState.Env, SymReaper, state);
 
   // Clean up the store.
-  StoreRef newStore = StoreMgr->removeDeadBindings(NewState.getStore(), LCtx,
+  StoreRef const newStore = StoreMgr->removeDeadBindings(NewState.getStore(), LCtx,
                                                    SymReaper);
   NewState.setStore(newStore);
   SymReaper.setReapedStore(newStore);
@@ -134,7 +134,7 @@ ProgramState::bindDefaultInitial(SVal loc, SVal V,
   ProgramStateManager &Mgr = getStateManager();
   const MemRegion *R = loc.castAs<loc::MemRegionVal>().getRegion();
   const StoreRef &newStore = Mgr.StoreMgr->BindDefaultInitial(getStore(), R, V);
-  ProgramStateRef new_state = makeWithStore(newStore);
+  ProgramStateRef const new_state = makeWithStore(newStore);
   return Mgr.getOwningEngine().processRegionChange(new_state, R, LCtx);
 }
 
@@ -143,7 +143,7 @@ ProgramState::bindDefaultZero(SVal loc, const LocationContext *LCtx) const {
   ProgramStateManager &Mgr = getStateManager();
   const MemRegion *R = loc.castAs<loc::MemRegionVal>().getRegion();
   const StoreRef &newStore = Mgr.StoreMgr->BindDefaultZero(getStore(), R);
-  ProgramStateRef new_state = makeWithStore(newStore);
+  ProgramStateRef const new_state = makeWithStore(newStore);
   return Mgr.getOwningEngine().processRegionChange(new_state, R, LCtx);
 }
 
@@ -255,7 +255,7 @@ SVal ProgramState::getSValAsScalarOrLoc(const MemRegion *R) const {
     return UnknownVal();
 
   if (const TypedValueRegion *TR = dyn_cast<TypedValueRegion>(R)) {
-    QualType T = TR->getValueType();
+    QualType const T = TR->getValueType();
     if (Loc::isLocType(T) || T->isIntegralOrEnumerationType())
       return getSVal(R);
   }
@@ -307,7 +307,7 @@ SVal ProgramState::getSVal(Loc location, QualType T) const {
 ProgramStateRef ProgramState::BindExpr(const Stmt *S,
                                            const LocationContext *LCtx,
                                            SVal V, bool Invalidate) const{
-  Environment NewEnv =
+  Environment const NewEnv =
     getStateManager().EnvMgr.bindExpr(Env, EnvironmentEntry(S, LCtx), V,
                                       Invalidate);
   if (NewEnv == Env)
@@ -330,22 +330,22 @@ ProgramStateRef ProgramState::assumeInBound(DefinedOrUnknownSVal Idx,
   // FIXME: This should probably be part of SValBuilder.
   ProgramStateManager &SM = getStateManager();
   SValBuilder &svalBuilder = SM.getSValBuilder();
-  ASTContext &Ctx = svalBuilder.getContext();
+  ASTContext  const&Ctx = svalBuilder.getContext();
 
   // Get the offset: the minimum value of the array index type.
   BasicValueFactory &BVF = svalBuilder.getBasicValueFactory();
   if (indexTy.isNull())
     indexTy = svalBuilder.getArrayIndexType();
-  nonloc::ConcreteInt Min(BVF.getMinValue(indexTy));
+  nonloc::ConcreteInt const Min(BVF.getMinValue(indexTy));
 
   // Adjust the index.
-  SVal newIdx = svalBuilder.evalBinOpNN(this, BO_Add,
+  SVal const newIdx = svalBuilder.evalBinOpNN(this, BO_Add,
                                         Idx.castAs<NonLoc>(), Min, indexTy);
   if (newIdx.isUnknownOrUndef())
     return this;
 
   // Adjust the upper bound.
-  SVal newBound =
+  SVal const newBound =
     svalBuilder.evalBinOpNN(this, BO_Add, UpperBound.castAs<NonLoc>(),
                             Min, indexTy);
 
@@ -353,7 +353,7 @@ ProgramStateRef ProgramState::assumeInBound(DefinedOrUnknownSVal Idx,
     return this;
 
   // Build the actual comparison.
-  SVal inBound = svalBuilder.evalBinOpNN(this, BO_LT, newIdx.castAs<NonLoc>(),
+  SVal const inBound = svalBuilder.evalBinOpNN(this, BO_LT, newIdx.castAs<NonLoc>(),
                                          newBound.castAs<NonLoc>(), Ctx.IntTy);
   if (inBound.isUnknownOrUndef())
     return this;
@@ -509,8 +509,8 @@ ProgramStateManager::FindGDMContext(void *K,
 }
 
 ProgramStateRef ProgramStateManager::addGDM(ProgramStateRef St, void *Key, void *Data){
-  ProgramState::GenericDataMap M1 = St->getGDM();
-  ProgramState::GenericDataMap M2 = GDMFactory.add(M1, Key, Data);
+  ProgramState::GenericDataMap const M1 = St->getGDM();
+  ProgramState::GenericDataMap const M2 = GDMFactory.add(M1, Key, Data);
 
   if (M1 == M2)
     return St;
@@ -521,8 +521,8 @@ ProgramStateRef ProgramStateManager::addGDM(ProgramStateRef St, void *Key, void 
 }
 
 ProgramStateRef ProgramStateManager::removeGDM(ProgramStateRef state, void *Key) {
-  ProgramState::GenericDataMap OldM = state->getGDM();
-  ProgramState::GenericDataMap NewM = GDMFactory.remove(OldM, Key);
+  ProgramState::GenericDataMap const OldM = state->getGDM();
+  ProgramState::GenericDataMap const NewM = GDMFactory.remove(OldM, Key);
 
   if (NewM == OldM)
     return state;
@@ -533,7 +533,7 @@ ProgramStateRef ProgramStateManager::removeGDM(ProgramStateRef state, void *Key)
 }
 
 bool ScanReachableSymbols::scan(nonloc::LazyCompoundVal val) {
-  bool wasVisited = !visited.insert(val.getCVData()).second;
+  bool const wasVisited = !visited.insert(val.getCVData()).second;
   if (wasVisited)
     return true;
 
@@ -557,7 +557,7 @@ bool ScanReachableSymbols::scan(const SymExpr *sym) {
   for (SymExpr::symbol_iterator SI = sym->symbol_begin(),
                                 SE = sym->symbol_end();
        SI != SE; ++SI) {
-    bool wasVisited = !visited.insert(*SI).second;
+    bool const wasVisited = !visited.insert(*SI).second;
     if (wasVisited)
       continue;
 
@@ -592,7 +592,7 @@ bool ScanReachableSymbols::scan(const MemRegion *R) {
   if (isa<MemSpaceRegion>(R))
     return true;
 
-  bool wasVisited = !visited.insert(R).second;
+  bool const wasVisited = !visited.insert(R).second;
   if (wasVisited)
     return true;
 

@@ -256,7 +256,7 @@ public:
     auto RawRange = Selector(Match);
     if (!RawRange)
       return RawRange.takeError();
-    CharSourceRange Range = Lexer::makeFileCharRange(
+    CharSourceRange const Range = Lexer::makeFileCharRange(
         *RawRange, *Match.SourceManager, Match.Context->getLangOpts());
     if (Range.isInvalid()) {
       // Validate the original range to attempt to get a meaningful error

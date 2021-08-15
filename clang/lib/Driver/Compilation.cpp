@@ -71,7 +71,7 @@ Compilation::getArgsForToolChain(const ToolChain *TC, StringRef BoundArch,
     // Translate OpenMP toolchain arguments provided via the -Xopenmp-target flags.
     if (DeviceOffloadKind == Action::OFK_OpenMP) {
       const ToolChain *HostTC = getSingleOffloadToolChain<Action::OFK_Host>();
-      bool SameTripleAsHost = (TC->getTriple() == HostTC->getTriple());
+      bool const SameTripleAsHost = (TC->getTriple() == HostTC->getTriple());
       OpenMPArgs = TC->TranslateOpenMPTargetArgs(
           *TranslatedArgs, SameTripleAsHost, AllocatedArgs);
     }
@@ -126,7 +126,7 @@ bool Compilation::CleanupFile(const char *File, bool IssueErrors) const {
   if (!llvm::sys::fs::can_write(File) || !llvm::sys::fs::is_regular_file(File))
     return true;
 
-  if (std::error_code EC = llvm::sys::fs::remove(File)) {
+  if (std::error_code const EC = llvm::sys::fs::remove(File)) {
     // Failure is only failure if the file exists and is "regular". We checked
     // for it being regular before, and llvm::sys::fs::remove ignores ENOENT,
     // so we don't need to check again.
@@ -193,7 +193,7 @@ int Compilation::ExecuteCommand(const Command &C,
 
   std::string Error;
   bool ExecutionFailed;
-  int Res = C.Execute(Redirects, &Error, &ExecutionFailed);
+  int const Res = C.Execute(Redirects, &Error, &ExecutionFailed);
   if (PostCallback)
     PostCallback(C, Res);
   if (!Error.empty()) {
@@ -246,7 +246,7 @@ void Compilation::ExecuteJobs(const JobList &Jobs,
     if (!InputsOk(Job, FailingCommands))
       continue;
     const Command *FailingCommand = nullptr;
-    if (int Res = ExecuteCommand(Job, FailingCommand)) {
+    if (int const Res = ExecuteCommand(Job, FailingCommand)) {
       FailingCommands.push_back(std::make_pair(Res, FailingCommand));
       // Bail as soon as one command fails in cl driver mode.
       if (TheDriver.IsCLMode())

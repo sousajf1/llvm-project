@@ -187,33 +187,33 @@ void testFailure(StringRef Id, StringRef Snippet, const Stencil &Stencil,
 }
 
 TEST_F(StencilTest, SelectionOp) {
-  StringRef Id = "id";
+  StringRef const Id = "id";
   testExpr(Id, "3;", cat(node(std::string(Id))), "3");
 }
 
 TEST_F(StencilTest, IfBoundOpBound) {
-  StringRef Id = "id";
+  StringRef const Id = "id";
   testExpr(Id, "3;", ifBound(Id, cat("5"), cat("7")), "5");
 }
 
 TEST_F(StencilTest, IfBoundOpUnbound) {
-  StringRef Id = "id";
+  StringRef const Id = "id";
   testExpr(Id, "3;", ifBound("other", cat("5"), cat("7")), "7");
 }
 
 TEST_F(StencilTest, ExpressionOpNoParens) {
-  StringRef Id = "id";
+  StringRef const Id = "id";
   testExpr(Id, "3;", expression(Id), "3");
 }
 
 // Don't parenthesize a parens expression.
 TEST_F(StencilTest, ExpressionOpNoParensParens) {
-  StringRef Id = "id";
+  StringRef const Id = "id";
   testExpr(Id, "(3);", expression(Id), "(3)");
 }
 
 TEST_F(StencilTest, ExpressionOpBinaryOpParens) {
-  StringRef Id = "id";
+  StringRef const Id = "id";
   testExpr(Id, "3+4;", expression(Id), "(3+4)");
 }
 
@@ -221,59 +221,59 @@ TEST_F(StencilTest, ExpressionOpBinaryOpParens) {
 // error handling code with this test. If that changes in the future, more error
 // tests should be added.
 TEST_F(StencilTest, ExpressionOpUnbound) {
-  StringRef Id = "id";
+  StringRef const Id = "id";
   testFailure(Id, "3;", expression("ACACA"),
               AllOf(HasSubstr("ACACA"), HasSubstr("not bound")));
 }
 
 TEST_F(StencilTest, DerefPointer) {
-  StringRef Id = "id";
+  StringRef const Id = "id";
   testExpr(Id, "int *x; x;", deref(Id), "*x");
 }
 
 TEST_F(StencilTest, DerefBinOp) {
-  StringRef Id = "id";
+  StringRef const Id = "id";
   testExpr(Id, "int *x; x + 1;", deref(Id), "*(x + 1)");
 }
 
 TEST_F(StencilTest, DerefAddressExpr) {
-  StringRef Id = "id";
+  StringRef const Id = "id";
   testExpr(Id, "int x; &x;", deref(Id), "x");
 }
 
 TEST_F(StencilTest, AddressOfValue) {
-  StringRef Id = "id";
+  StringRef const Id = "id";
   testExpr(Id, "int x; x;", addressOf(Id), "&x");
 }
 
 TEST_F(StencilTest, AddressOfDerefExpr) {
-  StringRef Id = "id";
+  StringRef const Id = "id";
   testExpr(Id, "int *x; *x;", addressOf(Id), "x");
 }
 
 TEST_F(StencilTest, MaybeDerefValue) {
-  StringRef Id = "id";
+  StringRef const Id = "id";
   testExpr(Id, "int x; x;", maybeDeref(Id), "x");
 }
 
 TEST_F(StencilTest, MaybeDerefPointer) {
-  StringRef Id = "id";
+  StringRef const Id = "id";
   testExpr(Id, "int *x; x;", maybeDeref(Id), "*x");
 }
 
 TEST_F(StencilTest, MaybeDerefBinOp) {
-  StringRef Id = "id";
+  StringRef const Id = "id";
   testExpr(Id, "int *x; x + 1;", maybeDeref(Id), "*(x + 1)");
 }
 
 TEST_F(StencilTest, MaybeDerefAddressExpr) {
-  StringRef Id = "id";
+  StringRef const Id = "id";
   testExpr(Id, "int x; &x;", maybeDeref(Id), "x");
 }
 
 TEST_F(StencilTest, MaybeDerefSmartPointer) {
-  StringRef Id = "id";
-  std::string Snippet = R"cc(
+  StringRef const Id = "id";
+  std::string const Snippet = R"cc(
     Smart x;
     x;
   )cc";
@@ -282,12 +282,12 @@ TEST_F(StencilTest, MaybeDerefSmartPointer) {
 
 // Tests that unique_ptr specifically is handled.
 TEST_F(StencilTest, MaybeDerefSmartPointerUniquePtr) {
-  StringRef Id = "id";
+  StringRef const Id = "id";
   // We deliberately specify `unique_ptr` as empty to verify that it matches
   // because of its name, rather than its contents.
-  StringRef ExtraPreface =
+  StringRef const ExtraPreface =
       "namespace std { template <typename T> class unique_ptr {}; }\n";
-  StringRef Snippet = R"cc(
+  StringRef const Snippet = R"cc(
     std::unique_ptr<int> x;
     x;
   )cc";
@@ -298,8 +298,8 @@ TEST_F(StencilTest, MaybeDerefSmartPointerUniquePtr) {
 }
 
 TEST_F(StencilTest, MaybeDerefSmartPointerFromMemberExpr) {
-  StringRef Id = "id";
-  std::string Snippet = "Smart x; x->Field;";
+  StringRef const Id = "id";
+  std::string const Snippet = "Smart x; x->Field;";
   auto StmtMatch =
       matchStmt(Snippet, memberExpr(hasObjectExpression(expr().bind(Id))));
   ASSERT_TRUE(StmtMatch);
@@ -308,33 +308,33 @@ TEST_F(StencilTest, MaybeDerefSmartPointerFromMemberExpr) {
 }
 
 TEST_F(StencilTest, MaybeAddressOfPointer) {
-  StringRef Id = "id";
+  StringRef const Id = "id";
   testExpr(Id, "int *x; x;", maybeAddressOf(Id), "x");
 }
 
 TEST_F(StencilTest, MaybeAddressOfValue) {
-  StringRef Id = "id";
+  StringRef const Id = "id";
   testExpr(Id, "int x; x;", addressOf(Id), "&x");
 }
 
 TEST_F(StencilTest, MaybeAddressOfBinOp) {
-  StringRef Id = "id";
+  StringRef const Id = "id";
   testExpr(Id, "int x; x + 1;", maybeAddressOf(Id), "&(x + 1)");
 }
 
 TEST_F(StencilTest, MaybeAddressOfDerefExpr) {
-  StringRef Id = "id";
+  StringRef const Id = "id";
   testExpr(Id, "int *x; *x;", addressOf(Id), "x");
 }
 
 TEST_F(StencilTest, MaybeAddressOfSmartPointer) {
-  StringRef Id = "id";
+  StringRef const Id = "id";
   testExpr(Id, "Smart x; x;", maybeAddressOf(Id), "x");
 }
 
 TEST_F(StencilTest, MaybeAddressOfSmartPointerFromMemberCall) {
-  StringRef Id = "id";
-  std::string Snippet = "Smart x; x->Field;";
+  StringRef const Id = "id";
+  std::string const Snippet = "Smart x; x->Field;";
   auto StmtMatch =
       matchStmt(Snippet, memberExpr(hasObjectExpression(expr().bind(Id))));
   ASSERT_TRUE(StmtMatch);
@@ -343,79 +343,79 @@ TEST_F(StencilTest, MaybeAddressOfSmartPointerFromMemberCall) {
 }
 
 TEST_F(StencilTest, MaybeAddressOfSmartPointerDerefNoCancel) {
-  StringRef Id = "id";
+  StringRef const Id = "id";
   testExpr(Id, "Smart x; *x;", maybeAddressOf(Id), "&*x");
 }
 
 TEST_F(StencilTest, AccessOpValue) {
-  StringRef Snippet = R"cc(
+  StringRef const Snippet = R"cc(
     S x;
     x;
   )cc";
-  StringRef Id = "id";
+  StringRef const Id = "id";
   testExpr(Id, Snippet, access(Id, "field"), "x.field");
 }
 
 TEST_F(StencilTest, AccessOpValueExplicitText) {
-  StringRef Snippet = R"cc(
+  StringRef const Snippet = R"cc(
     S x;
     x;
   )cc";
-  StringRef Id = "id";
+  StringRef const Id = "id";
   testExpr(Id, Snippet, access(Id, cat("field")), "x.field");
 }
 
 TEST_F(StencilTest, AccessOpValueAddress) {
-  StringRef Snippet = R"cc(
+  StringRef const Snippet = R"cc(
     S x;
     &x;
   )cc";
-  StringRef Id = "id";
+  StringRef const Id = "id";
   testExpr(Id, Snippet, access(Id, "field"), "x.field");
 }
 
 TEST_F(StencilTest, AccessOpPointer) {
-  StringRef Snippet = R"cc(
+  StringRef const Snippet = R"cc(
     S *x;
     x;
   )cc";
-  StringRef Id = "id";
+  StringRef const Id = "id";
   testExpr(Id, Snippet, access(Id, "field"), "x->field");
 }
 
 TEST_F(StencilTest, AccessOpPointerDereference) {
-  StringRef Snippet = R"cc(
+  StringRef const Snippet = R"cc(
     S *x;
     *x;
   )cc";
-  StringRef Id = "id";
+  StringRef const Id = "id";
   testExpr(Id, Snippet, access(Id, "field"), "x->field");
 }
 
 TEST_F(StencilTest, AccessOpSmartPointer) {
-  StringRef Snippet = R"cc(
+  StringRef const Snippet = R"cc(
     Smart x;
     x;
   )cc";
-  StringRef Id = "id";
+  StringRef const Id = "id";
   testExpr(Id, Snippet, access(Id, "field"), "x->field");
 }
 
 TEST_F(StencilTest, AccessOpSmartPointerDereference) {
-  StringRef Snippet = R"cc(
+  StringRef const Snippet = R"cc(
     Smart x;
     *x;
   )cc";
-  StringRef Id = "id";
+  StringRef const Id = "id";
   testExpr(Id, Snippet, access(Id, "field"), "x->field");
 }
 
 TEST_F(StencilTest, AccessOpSmartPointerMemberCall) {
-  StringRef Snippet = R"cc(
+  StringRef const Snippet = R"cc(
     Smart x;
     x->Field;
   )cc";
-  StringRef Id = "id";
+  StringRef const Id = "id";
   auto StmtMatch =
       matchStmt(Snippet, memberExpr(hasObjectExpression(expr().bind(Id))));
   ASSERT_TRUE(StmtMatch);
@@ -428,7 +428,7 @@ TEST_F(StencilTest, AccessOpExplicitThis) {
   using clang::ast_matchers::memberExpr;
 
   // Set up the code so we can bind to a use of this.
-  StringRef Snippet = R"cc(
+  StringRef const Snippet = R"cc(
     class C {
      public:
       int x;
@@ -450,7 +450,7 @@ TEST_F(StencilTest, AccessOpImplicitThis) {
   using clang::ast_matchers::memberExpr;
 
   // Set up the code so we can bind to a use of (implicit) this.
-  StringRef Snippet = R"cc(
+  StringRef const Snippet = R"cc(
     class C {
      public:
       int x;
@@ -466,8 +466,8 @@ TEST_F(StencilTest, AccessOpImplicitThis) {
 }
 
 TEST_F(StencilTest, DescribeType) {
-  std::string Snippet = "int *x; x;";
-  std::string Expected = "int *";
+  std::string const Snippet = "int *x; x;";
+  std::string const Expected = "int *";
   auto StmtMatch =
       matchStmt(Snippet, declRefExpr(hasType(qualType().bind("type"))));
   ASSERT_TRUE(StmtMatch);
@@ -476,8 +476,8 @@ TEST_F(StencilTest, DescribeType) {
 }
 
 TEST_F(StencilTest, DescribeSugaredType) {
-  std::string Snippet = "using Ty = int; Ty *x; x;";
-  std::string Expected = "Ty *";
+  std::string const Snippet = "using Ty = int; Ty *x; x;";
+  std::string const Expected = "Ty *";
   auto StmtMatch =
       matchStmt(Snippet, declRefExpr(hasType(qualType().bind("type"))));
   ASSERT_TRUE(StmtMatch);
@@ -486,8 +486,8 @@ TEST_F(StencilTest, DescribeSugaredType) {
 }
 
 TEST_F(StencilTest, DescribeDeclType) {
-  std::string Snippet = "S s; s;";
-  std::string Expected = "S";
+  std::string const Snippet = "S s; s;";
+  std::string const Expected = "S";
   auto StmtMatch =
       matchStmt(Snippet, declRefExpr(hasType(qualType().bind("type"))));
   ASSERT_TRUE(StmtMatch);
@@ -496,8 +496,8 @@ TEST_F(StencilTest, DescribeDeclType) {
 }
 
 TEST_F(StencilTest, DescribeQualifiedType) {
-  std::string Snippet = "N::C c; c;";
-  std::string Expected = "N::C";
+  std::string const Snippet = "N::C c; c;";
+  std::string const Expected = "N::C";
   auto StmtMatch =
       matchStmt(Snippet, declRefExpr(hasType(qualType().bind("type"))));
   ASSERT_TRUE(StmtMatch);
@@ -506,8 +506,8 @@ TEST_F(StencilTest, DescribeQualifiedType) {
 }
 
 TEST_F(StencilTest, DescribeUnqualifiedType) {
-  std::string Snippet = "using N::C; C c; c;";
-  std::string Expected = "N::C";
+  std::string const Snippet = "using N::C; C c; c;";
+  std::string const Expected = "N::C";
   auto StmtMatch =
       matchStmt(Snippet, declRefExpr(hasType(qualType().bind("type"))));
   ASSERT_TRUE(StmtMatch);
@@ -516,8 +516,8 @@ TEST_F(StencilTest, DescribeUnqualifiedType) {
 }
 
 TEST_F(StencilTest, DescribeAnonNamespaceType) {
-  std::string Snippet = "AnonC c; c;";
-  std::string Expected = "(anonymous namespace)::AnonC";
+  std::string const Snippet = "AnonC c; c;";
+  std::string const Expected = "(anonymous namespace)::AnonC";
   auto StmtMatch =
       matchStmt(Snippet, declRefExpr(hasType(qualType().bind("type"))));
   ASSERT_TRUE(StmtMatch);
@@ -526,7 +526,7 @@ TEST_F(StencilTest, DescribeAnonNamespaceType) {
 }
 
 TEST_F(StencilTest, RunOp) {
-  StringRef Id = "id";
+  StringRef const Id = "id";
   auto SimpleFn = [Id](const MatchResult &R) {
     return std::string(R.Nodes.getNodeAs<Stmt>(Id) != nullptr ? "Bound"
                                                               : "Unbound");
@@ -535,7 +535,7 @@ TEST_F(StencilTest, RunOp) {
 }
 
 TEST_F(StencilTest, CatOfMacroRangeSucceeds) {
-  StringRef Snippet = R"cpp(
+  StringRef const Snippet = R"cpp(
 #define MACRO 3.77
   double foo(double d);
   foo(MACRO);)cpp";
@@ -545,24 +545,24 @@ TEST_F(StencilTest, CatOfMacroRangeSucceeds) {
                                   argumentCountIs(1),
                                   hasArgument(0, expr().bind("arg"))));
   ASSERT_TRUE(StmtMatch);
-  Stencil S = cat(node("arg"));
+  Stencil const S = cat(node("arg"));
   EXPECT_THAT_EXPECTED(S->eval(StmtMatch->Result), HasValue("MACRO"));
 }
 
 TEST_F(StencilTest, CatOfMacroArgRangeSucceeds) {
-  StringRef Snippet = R"cpp(
+  StringRef const Snippet = R"cpp(
 #define MACRO(a, b) a + b
   MACRO(2, 3);)cpp";
 
   auto StmtMatch =
       matchStmt(Snippet, binaryOperator(hasRHS(expr().bind("rhs"))));
   ASSERT_TRUE(StmtMatch);
-  Stencil S = cat(node("rhs"));
+  Stencil const S = cat(node("rhs"));
   EXPECT_THAT_EXPECTED(S->eval(StmtMatch->Result), HasValue("3"));
 }
 
 TEST_F(StencilTest, CatOfMacroArgSubRangeSucceeds) {
-  StringRef Snippet = R"cpp(
+  StringRef const Snippet = R"cpp(
 #define MACRO(a, b) a + b
   int foo(int);
   MACRO(2, foo(3));)cpp";
@@ -572,12 +572,12 @@ TEST_F(StencilTest, CatOfMacroArgSubRangeSucceeds) {
                    callee(functionDecl(hasName("foo"))), argumentCountIs(1),
                    hasArgument(0, expr().bind("arg"))))));
   ASSERT_TRUE(StmtMatch);
-  Stencil S = cat(node("arg"));
+  Stencil const S = cat(node("arg"));
   EXPECT_THAT_EXPECTED(S->eval(StmtMatch->Result), HasValue("3"));
 }
 
 TEST_F(StencilTest, CatOfInvalidRangeFails) {
-  StringRef Snippet = R"cpp(
+  StringRef const Snippet = R"cpp(
 #define MACRO (3.77)
   double foo(double d);
   foo(MACRO);)cpp";
@@ -587,7 +587,7 @@ TEST_F(StencilTest, CatOfInvalidRangeFails) {
                                   argumentCountIs(1),
                                   hasArgument(0, expr().bind("arg"))));
   ASSERT_TRUE(StmtMatch);
-  Stencil S = cat(node("arg"));
+  Stencil const S = cat(node("arg"));
   Expected<std::string> Result = S->eval(StmtMatch->Result);
   ASSERT_THAT_EXPECTED(Result, Failed<StringError>());
   llvm::handleAllErrors(Result.takeError(), [](const llvm::StringError &E) {
@@ -604,43 +604,43 @@ TEST_F(StencilTest, CatOfInvalidRangeFails) {
 
 TEST(StencilToStringTest, RawTextOp) {
   auto S = cat("foo bar baz");
-  StringRef Expected = R"("foo bar baz")";
+  StringRef const Expected = R"("foo bar baz")";
   EXPECT_EQ(S->toString(), Expected);
 }
 
 TEST(StencilToStringTest, RawTextOpEscaping) {
   auto S = cat("foo \"bar\" baz\\n");
-  StringRef Expected = R"("foo \"bar\" baz\\n")";
+  StringRef const Expected = R"("foo \"bar\" baz\\n")";
   EXPECT_EQ(S->toString(), Expected);
 }
 
 TEST(StencilToStringTest, DescribeOp) {
   auto S = describe("Id");
-  StringRef Expected = R"repr(describe("Id"))repr";
+  StringRef const Expected = R"repr(describe("Id"))repr";
   EXPECT_EQ(S->toString(), Expected);
 }
 
 TEST(StencilToStringTest, DebugPrintNodeOp) {
   auto S = dPrint("Id");
-  StringRef Expected = R"repr(dPrint("Id"))repr";
+  StringRef const Expected = R"repr(dPrint("Id"))repr";
   EXPECT_EQ(S->toString(), Expected);
 }
 
 TEST(StencilToStringTest, ExpressionOp) {
   auto S = expression("Id");
-  StringRef Expected = R"repr(expression("Id"))repr";
+  StringRef const Expected = R"repr(expression("Id"))repr";
   EXPECT_EQ(S->toString(), Expected);
 }
 
 TEST(StencilToStringTest, DerefOp) {
   auto S = deref("Id");
-  StringRef Expected = R"repr(deref("Id"))repr";
+  StringRef const Expected = R"repr(deref("Id"))repr";
   EXPECT_EQ(S->toString(), Expected);
 }
 
 TEST(StencilToStringTest, AddressOfOp) {
   auto S = addressOf("Id");
-  StringRef Expected = R"repr(addressOf("Id"))repr";
+  StringRef const Expected = R"repr(addressOf("Id"))repr";
   EXPECT_EQ(S->toString(), Expected);
 }
 
@@ -651,25 +651,25 @@ TEST(StencilToStringTest, SelectionOp) {
 
 TEST(StencilToStringTest, AccessOpText) {
   auto S = access("Id", "memberData");
-  StringRef Expected = R"repr(access("Id", "memberData"))repr";
+  StringRef const Expected = R"repr(access("Id", "memberData"))repr";
   EXPECT_EQ(S->toString(), Expected);
 }
 
 TEST(StencilToStringTest, AccessOpSelector) {
   auto S = access("Id", cat(name("otherId")));
-  StringRef Expected = R"repr(access("Id", selection(...)))repr";
+  StringRef const Expected = R"repr(access("Id", selection(...)))repr";
   EXPECT_EQ(S->toString(), Expected);
 }
 
 TEST(StencilToStringTest, AccessOpStencil) {
   auto S = access("Id", cat("foo_", "bar"));
-  StringRef Expected = R"repr(access("Id", seq("foo_", "bar")))repr";
+  StringRef const Expected = R"repr(access("Id", seq("foo_", "bar")))repr";
   EXPECT_EQ(S->toString(), Expected);
 }
 
 TEST(StencilToStringTest, IfBoundOp) {
   auto S = ifBound("Id", cat("trueText"), access("exprId", "memberData"));
-  StringRef Expected =
+  StringRef const Expected =
       R"repr(ifBound("Id", "trueText", access("exprId", "memberData")))repr";
   EXPECT_EQ(S->toString(), Expected);
 }
@@ -683,27 +683,27 @@ TEST(StencilToStringTest, RunOp) {
 TEST(StencilToStringTest, Sequence) {
   auto S = cat("foo", access("x", "m()"), "bar",
                ifBound("x", cat("t"), access("e", "f")));
-  StringRef Expected = R"repr(seq("foo", access("x", "m()"), "bar", )repr"
+  StringRef const Expected = R"repr(seq("foo", access("x", "m()"), "bar", )repr"
                        R"repr(ifBound("x", "t", access("e", "f"))))repr";
   EXPECT_EQ(S->toString(), Expected);
 }
 
 TEST(StencilToStringTest, SequenceEmpty) {
   auto S = cat();
-  StringRef Expected = "seq()";
+  StringRef const Expected = "seq()";
   EXPECT_EQ(S->toString(), Expected);
 }
 
 TEST(StencilToStringTest, SequenceSingle) {
   auto S = cat("foo");
-  StringRef Expected = "\"foo\"";
+  StringRef const Expected = "\"foo\"";
   EXPECT_EQ(S->toString(), Expected);
 }
 
 TEST(StencilToStringTest, SequenceFromVector) {
   auto S = catVector({cat("foo"), access("x", "m()"), cat("bar"),
                       ifBound("x", cat("t"), access("e", "f"))});
-  StringRef Expected = R"repr(seq("foo", access("x", "m()"), "bar", )repr"
+  StringRef const Expected = R"repr(seq("foo", access("x", "m()"), "bar", )repr"
                        R"repr(ifBound("x", "t", access("e", "f"))))repr";
   EXPECT_EQ(S->toString(), Expected);
 }

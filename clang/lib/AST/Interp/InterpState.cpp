@@ -49,7 +49,7 @@ Frame *InterpState::getCurrentFrame() {
 }
 
 bool InterpState::reportOverflow(const Expr *E, const llvm::APSInt &Value) {
-  QualType Type = E->getType();
+  QualType const Type = E->getType();
   CCEDiag(E, diag::note_constexpr_overflow) << Value << Type;
   return noteUndefinedBehavior();
 }
@@ -57,7 +57,7 @@ bool InterpState::reportOverflow(const Expr *E, const llvm::APSInt &Value) {
 void InterpState::deallocate(Block *B) {
   Descriptor *Desc = B->getDescriptor();
   if (B->hasPointers()) {
-    size_t Size = B->getSize();
+    size_t const Size = B->getSize();
 
     // Allocate a new block, transferring over pointers.
     char *Memory = reinterpret_cast<char *>(malloc(sizeof(DeadBlock) + Size));

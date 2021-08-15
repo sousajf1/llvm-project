@@ -69,7 +69,7 @@ using namespace clang;
 using namespace ento;
 
 QualType CallEvent::getResultType() const {
-  ASTContext &Ctx = getState()->getStateManager().getContext();
+  ASTContext  const&Ctx = getState()->getStateManager().getContext();
   const Expr *E = getOriginExpr();
   if (!E)
     return Ctx.VoidTy;
@@ -92,7 +92,7 @@ static bool isCallback(QualType T) {
   if (const RecordType *RT = T->getAsStructureType()) {
     const RecordDecl *RD = RT->getDecl();
     for (const auto *I : RD->fields()) {
-      QualType FieldT = I->getType();
+      QualType const FieldT = I->getType();
       if (FieldT->isBlockPointerType() || FieldT->isFunctionPointerType())
         return true;
     }
@@ -102,7 +102,7 @@ static bool isCallback(QualType T) {
 
 static bool isVoidPointerToNonConst(QualType T) {
   if (const auto *PT = T->getAs<PointerType>()) {
-    QualType PointeeTy = PT->getPointeeType();
+    QualType const PointeeTy = PT->getPointeeType();
     if (PointeeTy.isConstQualified())
       return false;
     return PointeeTy->isVoidType();
@@ -111,7 +111,7 @@ static bool isVoidPointerToNonConst(QualType T) {
 }
 
 bool CallEvent::hasNonNullArgumentsWithType(bool (*Condition)(QualType)) const {
-  unsigned NumOfArgs = getNumArgs();
+  unsigned const NumOfArgs = getNumArgs();
 
   // If calling using a function pointer, assume the function does not
   // satisfy the callback.
@@ -206,7 +206,7 @@ const ParamVarRegion
 /// Returns true if a type is a pointer-to-const or reference-to-const
 /// with no further indirection.
 static bool isPointerToConst(QualType Ty) {
-  QualType PointeeTy = Ty->getPointeeType();
+  QualType const PointeeTy = Ty->getPointeeType();
   if (PointeeTy == QualType())
     return false;
   if (!PointeeTy.isConstQualified())
@@ -296,7 +296,7 @@ ProgramPoint CallEvent::getProgramPoint(bool IsPreVisit,
   const Decl *D = getDecl();
   assert(D && "Cannot get a program point without a statement or decl");
 
-  SourceLocation Loc = getSourceRange().getBegin();
+  SourceLocation const Loc = getSourceRange().getBegin();
   if (IsPreVisit)
     return PreImplicitCall(D, Loc, getLocationContext(), Tag);
   return PostImplicitCall(D, Loc, getLocationContext(), Tag);
@@ -384,7 +384,7 @@ SVal CallEvent::getReturnValue() const {
 LLVM_DUMP_METHOD void CallEvent::dump() const { dump(llvm::errs()); }
 
 void CallEvent::dump(raw_ostream &Out) const {
-  ASTContext &Ctx = getState()->getStateManager().getContext();
+  ASTContext  const&Ctx = getState()->getStateManager().getContext();
   if (const Expr *E = getOriginExpr()) {
     E->printPretty(Out, nullptr, Ctx.getPrintingPolicy());
     Out << "\n";
@@ -457,8 +457,8 @@ static bool isTransparentUnion(QualType T) {
 // them with parameters.  This function incapsulates such cases.
 static SVal processArgument(SVal Value, const Expr *ArgumentExpr,
                             const ParmVarDecl *Parameter, SValBuilder &SVB) {
-  QualType ParamType = Parameter->getType();
-  QualType ArgumentType = ArgumentExpr->getType();
+  QualType const ParamType = Parameter->getType();
+  QualType const ArgumentType = ArgumentExpr->getType();
 
   // Transparent unions allow users to easily convert values of union field
   // types into union-typed objects.
@@ -493,7 +493,7 @@ static void addParameterValuesToBindings(const StackFrameContext *CalleeCtx,
 
   // If the function has fewer parameters than the call has arguments, we simply
   // do not bind any values to them.
-  unsigned NumArgs = Call.getNumArgs();
+  unsigned const NumArgs = Call.getNumArgs();
   unsigned Idx = 0;
   ArrayRef<ParmVarDecl*>::iterator I = parameters.begin(), E = parameters.end();
   for (; I != E && Idx < NumArgs; ++I, ++Idx) {
@@ -507,10 +507,10 @@ static void addParameterValuesToBindings(const StackFrameContext *CalleeCtx,
     // TODO: Allocators should receive the correct size and possibly alignment,
     // determined in compile-time but not represented as arg-expressions,
     // which makes getArgSVal() fail and return UnknownVal.
-    SVal ArgVal = Call.getArgSVal(Idx);
+    SVal const ArgVal = Call.getArgSVal(Idx);
     const Expr *ArgExpr = Call.getArgExpr(Idx);
     if (!ArgVal.isUnknown()) {
-      Loc ParamLoc = SVB.makeLoc(
+      Loc const ParamLoc = SVB.makeLoc(
           MRMgr.getParamVarRegion(Call.getOriginExpr(), Idx, CalleeCtx));
       Bindings.push_back(
           std::make_pair(ParamLoc, processArgument(ArgVal, ArgExpr, *I, SVB)));
@@ -581,7 +581,7 @@ RuntimeDefinition AnyFunctionCall::getRuntimeDefinition() const {
   }
 
   ExprEngine &Engine = getState()->getStateManager().getOwningEngine();
-  AnalyzerOptions &Opts = Engine.getAnalysisManager().options;
+  AnalyzerOptions  const&Opts = Engine.getAnalysisManager().options;
 
   // Try to get CTU definition only if CTUDir is provided.
   if (!Opts.IsNaiveCTUEnabled)
@@ -648,7 +648,7 @@ bool AnyFunctionCall::argumentsMayEscape() const {
   if (II->isStr("__cxa_demangle"))
     return true;
 
-  StringRef FName = II->getName();
+  StringRef const FName = II->getName();
 
   // - CoreFoundation functions that end with "NoCopy" can free a passed-in
   //   buffer even if it is const.
@@ -696,7 +696,7 @@ const FunctionDecl *CXXInstanceCall::getDecl() const {
 
 void CXXInstanceCall::getExtraInvalidatedValues(
     ValueList &Values, RegionAndSymbolInvalidationTraits *ETraits) const {
-  SVal ThisVal = getCXXThisVal();
+  SVal const ThisVal = getCXXThisVal();
   Values.push_back(ThisVal);
 
   // Don't invalidate if the method is const and there are no mutable fields.
@@ -753,12 +753,12 @@ RuntimeDefinition CXXInstanceCall::getRuntimeDefinition() const {
     return {};
 
   // Do we know anything about the type of 'this'?
-  DynamicTypeInfo DynType = getDynamicTypeInfo(getState(), R);
+  DynamicTypeInfo const DynType = getDynamicTypeInfo(getState(), R);
   if (!DynType.isValid())
     return {};
 
   // Is the type a C++ class? (This is mostly a defensive check.)
-  QualType RegionType = DynType.getType()->getPointeeType();
+  QualType const RegionType = DynType.getType()->getPointeeType();
   assert(!RegionType.isNull() && "DynamicTypeInfo should always be a pointer.");
 
   const CXXRecordDecl *RD = RegionType->getAsCXXRecordDecl();
@@ -812,14 +812,14 @@ void CXXInstanceCall::getInitialStackFrameContents(
     SValBuilder &SVB = StateMgr.getSValBuilder();
 
     const auto *MD = cast<CXXMethodDecl>(CalleeCtx->getDecl());
-    Loc ThisLoc = SVB.getCXXThis(MD, CalleeCtx);
+    Loc const ThisLoc = SVB.getCXXThis(MD, CalleeCtx);
 
     // If we devirtualized to a different member function, we need to make sure
     // we have the proper layering of CXXBaseObjectRegions.
     if (MD->getCanonicalDecl() != getDecl()->getCanonicalDecl()) {
-      ASTContext &Ctx = SVB.getContext();
+      ASTContext  const&Ctx = SVB.getContext();
       const CXXRecordDecl *Class = MD->getParent();
-      QualType Ty = Ctx.getPointerType(Ctx.getRecordType(Class));
+      QualType const Ty = Ctx.getPointerType(Ctx.getRecordType(Class));
 
       // FIXME: CallEvent maybe shouldn't be directly accessing StoreManager.
       bool Failed;
@@ -830,7 +830,7 @@ void CXXInstanceCall::getInitialStackFrameContents(
         // Fall back to a generic pointer cast for this-value.
         const CXXMethodDecl *StaticMD = cast<CXXMethodDecl>(getDecl());
         const CXXRecordDecl *StaticClass = StaticMD->getParent();
-        QualType StaticTy = Ctx.getPointerType(Ctx.getRecordType(StaticClass));
+        QualType const StaticTy = Ctx.getPointerType(Ctx.getRecordType(StaticClass));
         ThisVal = SVB.evalCast(ThisVal, Ty, StaticTy);
       }
     }
@@ -893,8 +893,8 @@ void BlockCall::getInitialStackFrameContents(const StackFrameContext *CalleeCtx,
     // operator() method on the lambda so we bind "this" to
     // the lambda captured by the block.
     const VarRegion *CapturedLambdaRegion = getRegionStoringCapturedLambda();
-    SVal ThisVal = loc::MemRegionVal(CapturedLambdaRegion);
-    Loc ThisLoc = SVB.getCXXThis(LambdaOperatorDecl, CalleeCtx);
+    SVal const ThisVal = loc::MemRegionVal(CapturedLambdaRegion);
+    Loc const ThisLoc = SVB.getCXXThis(LambdaOperatorDecl, CalleeCtx);
     Bindings.push_back(std::make_pair(ThisLoc, ThisVal));
   } else {
     Params = cast<BlockDecl>(CalleeCtx->getDecl())->parameters();
@@ -912,7 +912,7 @@ SVal AnyCXXConstructorCall::getCXXThisVal() const {
 
 void AnyCXXConstructorCall::getExtraInvalidatedValues(ValueList &Values,
                            RegionAndSymbolInvalidationTraits *ETraits) const {
-  SVal V = getCXXThisVal();
+  SVal const V = getCXXThisVal();
   if (SymbolRef Sym = V.getAsSymbol(true))
     ETraits->setTrait(Sym,
                       RegionAndSymbolInvalidationTraits::TK_SuppressEscape);
@@ -924,11 +924,11 @@ void AnyCXXConstructorCall::getInitialStackFrameContents(
                                              BindingsTy &Bindings) const {
   AnyFunctionCall::getInitialStackFrameContents(CalleeCtx, Bindings);
 
-  SVal ThisVal = getCXXThisVal();
+  SVal const ThisVal = getCXXThisVal();
   if (!ThisVal.isUnknown()) {
     SValBuilder &SVB = getState()->getStateManager().getSValBuilder();
     const auto *MD = cast<CXXMethodDecl>(CalleeCtx->getDecl());
-    Loc ThisLoc = SVB.getCXXThis(MD, CalleeCtx);
+    Loc const ThisLoc = SVB.getCXXThis(MD, CalleeCtx);
     Bindings.push_back(std::make_pair(ThisLoc, ThisVal));
   }
 }
@@ -971,7 +971,7 @@ void ObjCMethodCall::getExtraInvalidatedValues(
   // the storage for that instance variable.
   if (const ObjCPropertyDecl *PropDecl = getAccessedProperty()) {
     if (const ObjCIvarDecl *PropIvar = PropDecl->getPropertyIvarDecl()) {
-      SVal IvarLVal = getState()->getLValue(PropIvar, getReceiverSVal());
+      SVal const IvarLVal = getState()->getLValue(PropIvar, getReceiverSVal());
       if (const MemRegion *IvarRegion = IvarLVal.getAsRegion()) {
         ETraits->setTrait(
           IvarRegion,
@@ -1012,8 +1012,8 @@ bool ObjCMethodCall::isReceiverSelfOrSuper() const {
   if (!isInstanceMessage())
     return false;
 
-  SVal RecVal = getSVal(getOriginExpr()->getInstanceReceiver());
-  SVal SelfVal = getState()->getSelfSVal(getLocationContext());
+  SVal const RecVal = getSVal(getOriginExpr()->getInstanceReceiver());
+  SVal const SelfVal = getState()->getSelfSVal(getLocationContext());
 
   return (RecVal == SelfVal);
 }
@@ -1087,7 +1087,7 @@ ObjCMessageKind ObjCMethodCall::getMessageKind() const {
     return OCM_Message;
   }
 
-  ObjCMessageDataTy Info = ObjCMessageDataTy::getFromOpaqueValue(Data);
+  ObjCMessageDataTy const Info = ObjCMessageDataTy::getFromOpaqueValue(Data);
   if (!Info.getPointer())
     return OCM_Message;
   return static_cast<ObjCMessageKind>(Info.getInt());
@@ -1124,7 +1124,7 @@ bool ObjCMethodCall::canBeOverridenInSubclass(ObjCInterfaceDecl *IDecl,
   // subcassed.
   // TODO: It could actually be subclassed if the subclass is private as well.
   // This is probably very rare.
-  SourceLocation InterfLoc = IDecl->getEndOfDefinitionLoc();
+  SourceLocation const InterfLoc = IDecl->getEndOfDefinitionLoc();
   if (InterfLoc.isValid() && AMgr.isInCodeFile(InterfLoc))
     return false;
 
@@ -1258,7 +1258,7 @@ lookupRuntimeDefinition(const ObjCInterfaceDecl *Interface,
 RuntimeDefinition ObjCMethodCall::getRuntimeDefinition() const {
   const ObjCMessageExpr *E = getOriginExpr();
   assert(E);
-  Selector Sel = E->getSelector();
+  Selector const Sel = E->getSelector();
 
   if (E->isInstanceMessage()) {
     // Find the receiver type.
@@ -1278,14 +1278,14 @@ RuntimeDefinition ObjCMethodCall::getRuntimeDefinition() const {
       if (!Receiver)
         return {};
 
-      DynamicTypeInfo DTI = getDynamicTypeInfo(getState(), Receiver);
+      DynamicTypeInfo const DTI = getDynamicTypeInfo(getState(), Receiver);
       if (!DTI.isValid()) {
         assert(isa<AllocaRegion>(Receiver) &&
                "Unhandled untyped region class!");
         return {};
       }
 
-      QualType DynType = DTI.getType();
+      QualType const DynType = DTI.getType();
       CanBeSubClassed = DTI.canBeASubClass();
 
       const auto *ReceiverDynT =
@@ -1299,7 +1299,7 @@ RuntimeDefinition ObjCMethodCall::getRuntimeDefinition() const {
         // instance (not class).
         if (ReceiverT->isObjCClass()) {
 
-          SVal SelfVal = getState()->getSelfSVal(getLocationContext());
+          SVal const SelfVal = getState()->getSelfSVal(getLocationContext());
           // For [self classMethod], return compiler visible declaration.
           if (Receiver == SelfVal.getAsRegion()) {
             return RuntimeDefinition(findDefiningRedecl(E->getMethodDecl()));
@@ -1308,7 +1308,7 @@ RuntimeDefinition ObjCMethodCall::getRuntimeDefinition() const {
           // Otherwise, let's check if we know something about the type
           // inside of this class object.
           if (SymbolRef ReceiverSym = getReceiverSVal().getAsSymbol()) {
-            DynamicTypeInfo DTI =
+            DynamicTypeInfo const DTI =
                 getClassObjectDynamicTypeInfo(getState(), ReceiverSym);
             if (DTI.isValid()) {
               // Let's use this type for lookup.
@@ -1360,7 +1360,7 @@ RuntimeDefinition ObjCMethodCall::getRuntimeDefinition() const {
 
 bool ObjCMethodCall::argumentsMayEscape() const {
   if (isInSystemHeader() && !isInstanceMessage()) {
-    Selector Sel = getSelector();
+    Selector const Sel = getSelector();
     if (Sel.getNumArgs() == 1 &&
         Sel.getIdentifierInfoForSlot(0)->isStr("valueWithPointer"))
       return true;
@@ -1377,11 +1377,11 @@ void ObjCMethodCall::getInitialStackFrameContents(
   addParameterValuesToBindings(CalleeCtx, Bindings, SVB, *this,
                                D->parameters());
 
-  SVal SelfVal = getReceiverSVal();
+  SVal const SelfVal = getReceiverSVal();
   if (!SelfVal.isUnknown()) {
     const VarDecl *SelfD = CalleeCtx->getAnalysisDeclContext()->getSelfDecl();
     MemRegionManager &MRMgr = SVB.getRegionManager();
-    Loc SelfLoc = SVB.makeLoc(MRMgr.getVarRegion(SelfD, CalleeCtx));
+    Loc const SelfLoc = SVB.makeLoc(MRMgr.getVarRegion(SelfD, CalleeCtx));
     Bindings.push_back(std::make_pair(SelfLoc, SelfVal));
   }
 }
@@ -1417,13 +1417,13 @@ CallEventManager::getCaller(const StackFrameContext *CalleeCtx,
   const Stmt *CallSite = CalleeCtx->getCallSite();
 
   if (CallSite) {
-    if (CallEventRef<> Out = getCall(CallSite, State, CallerCtx))
+    if (CallEventRef<> const Out = getCall(CallSite, State, CallerCtx))
       return Out;
 
     SValBuilder &SVB = State->getStateManager().getSValBuilder();
     const auto *Ctor = cast<CXXMethodDecl>(CalleeCtx->getDecl());
-    Loc ThisPtr = SVB.getCXXThis(Ctor, CalleeCtx);
-    SVal ThisVal = State->getSVal(ThisPtr);
+    Loc const ThisPtr = SVB.getCXXThis(Ctor, CalleeCtx);
+    SVal const ThisVal = State->getSVal(ThisPtr);
 
     if (const auto *CE = dyn_cast<CXXConstructExpr>(CallSite))
       return getCXXConstructorCall(CE, ThisVal.getAsRegion(), State, CallerCtx);
@@ -1439,14 +1439,14 @@ CallEventManager::getCaller(const StackFrameContext *CalleeCtx,
   // Fall back to the CFG. The only thing we haven't handled yet is
   // destructors, though this could change in the future.
   const CFGBlock *B = CalleeCtx->getCallSiteBlock();
-  CFGElement E = (*B)[CalleeCtx->getIndex()];
+  CFGElement const E = (*B)[CalleeCtx->getIndex()];
   assert((E.getAs<CFGImplicitDtor>() || E.getAs<CFGTemporaryDtor>()) &&
          "All other CFG elements should have exprs");
 
   SValBuilder &SVB = State->getStateManager().getSValBuilder();
   const auto *Dtor = cast<CXXDestructorDecl>(CalleeCtx->getDecl());
-  Loc ThisPtr = SVB.getCXXThis(Dtor, CalleeCtx);
-  SVal ThisVal = State->getSVal(ThisPtr);
+  Loc const ThisPtr = SVB.getCXXThis(Dtor, CalleeCtx);
+  SVal const ThisVal = State->getSVal(ThisPtr);
 
   const Stmt *Trigger;
   if (Optional<CFGAutomaticObjDtor> AutoDtor = E.getAs<CFGAutomaticObjDtor>())

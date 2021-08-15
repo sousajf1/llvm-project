@@ -83,7 +83,7 @@ static bool IsStdVector(QualType T) {
   if (!TS)
     return false;
 
-  TemplateName TM = TS->getTemplateName();
+  TemplateName const TM = TS->getTemplateName();
   TemplateDecl *TD = TM.getAsTemplateDecl();
 
   if (!TD || !InNamespace(TD, "std"))
@@ -97,7 +97,7 @@ static bool IsSmallVector(QualType T) {
   if (!TS)
     return false;
 
-  TemplateName TM = TS->getTemplateName();
+  TemplateName const TM = TS->getTemplateName();
   TemplateDecl *TD = TM.getAsTemplateDecl();
 
   if (!TD || !InNamespace(TD, "llvm"))
@@ -178,7 +178,7 @@ void StringRefCheckerVisitor::VisitVarDecl(VarDecl *VD) {
   // Okay, badness!  Report an error.
   const char *desc = "StringRef should not be bound to temporary "
                      "std::string that it outlives";
-  PathDiagnosticLocation VDLoc =
+  PathDiagnosticLocation const VDLoc =
     PathDiagnosticLocation::createBegin(VD, BR.getSourceManager());
   BR.EmitBasicReport(DeclWithIssue, Checker, desc, "LLVM Conventions", desc,
                      VDLoc, Init->getSourceRange());
@@ -199,7 +199,7 @@ static bool IsPartOfAST(const CXXRecordDecl *R) {
     return true;
 
   for (const auto &BS : R->bases()) {
-    QualType T = BS.getType();
+    QualType const T = BS.getType();
     if (const RecordType *baseT = T->getAs<RecordType>()) {
       CXXRecordDecl *baseD = cast<CXXRecordDecl>(baseT->getDecl());
       if (IsPartOfAST(baseD))
@@ -241,7 +241,7 @@ static void CheckASTMemory(const CXXRecordDecl *R, BugReporter &BR,
 void ASTFieldVisitor::Visit(FieldDecl *D) {
   FieldChain.push_back(D);
 
-  QualType T = D->getType();
+  QualType const T = D->getType();
 
   if (AllocatesMemory(T))
     ReportError(T);
@@ -282,7 +282,7 @@ void ASTFieldVisitor::ReportError(QualType T) {
   // just report warnings when we see an out-of-line method definition for a
   // class, as that heuristic doesn't always work (the complete definition of
   // the class may be in the header file, for example).
-  PathDiagnosticLocation L = PathDiagnosticLocation::createBegin(
+  PathDiagnosticLocation const L = PathDiagnosticLocation::createBegin(
                                FieldChain.front(), BR.getSourceManager());
   BR.EmitBasicReport(Root, Checker, "AST node allocates heap memory",
                      "LLVM Conventions", os.str(), L);

@@ -160,7 +160,7 @@ void InclusionRewriter::FileChanged(SourceLocation Loc,
   if (LastInclusionLocation.isInvalid())
     // we didn't reach this file (eg: the main file) via an inclusion directive
     return;
-  FileID Id = FullSourceLoc(Loc, SM).getFileID();
+  FileID const Id = FullSourceLoc(Loc, SM).getFileID();
   auto P = FileIncludes.insert(
       std::make_pair(LastInclusionLocation,
                      IncludedFile(Id, NewFileType, PP.GetCurDirLookup())));
@@ -302,7 +302,7 @@ void InclusionRewriter::OutputContentUpTo(const MemoryBufferRef &FromFile,
       LocalEOL[1] == (FromFile.getBufferStart() + WriteTo)[0])
     WriteTo++;
 
-  StringRef TextToWrite(FromFile.getBufferStart() + WriteFrom,
+  StringRef const TextToWrite(FromFile.getBufferStart() + WriteFrom,
                         WriteTo - WriteFrom);
 
   if (MainEOL == LocalEOL) {
@@ -380,11 +380,11 @@ void InclusionRewriter::Process(FileID FileId,
     if (B)
       FromFile = *B;
   }
-  StringRef FileName = FromFile.getBufferIdentifier();
+  StringRef const FileName = FromFile.getBufferIdentifier();
   Lexer RawLex(FileId, FromFile, PP.getSourceManager(), PP.getLangOpts());
   RawLex.SetCommentRetentionState(false);
 
-  StringRef LocalEOL = DetectEOL(FromFile);
+  StringRef const LocalEOL = DetectEOL(FromFile);
 
   // Per the GNU docs: "1" indicates entering a new file.
   if (FileId == SM.getMainFileID() || FileId == PP.getPredefinesFileID())
@@ -409,7 +409,7 @@ void InclusionRewriter::Process(FileID FileId,
   while (RawToken.isNot(tok::eof)) {
     if (RawToken.is(tok::hash) && RawToken.isAtStartOfLine()) {
       RawLex.setParsingPreprocessorDirective(true);
-      Token HashToken = RawToken;
+      Token const HashToken = RawToken;
       RawLex.LexFromRawLexer(RawToken);
       if (RawToken.is(tok::raw_identifier))
         PP.LookUpIdentifierInfo(RawToken);
@@ -423,7 +423,7 @@ void InclusionRewriter::Process(FileID FileId,
             if (FileId != PP.getPredefinesFileID())
               WriteLineInfo(FileName, Line - 1, FileType, "");
             StringRef LineInfoExtra;
-            SourceLocation Loc = HashToken.getLocation();
+            SourceLocation const Loc = HashToken.getLocation();
             if (const Module *Mod = FindModuleAtLocation(Loc))
               WriteImplicitModuleImport(Mod);
             else if (const IncludedFile *Inc = FindIncludeAtLocation(Loc)) {
@@ -449,7 +449,7 @@ void InclusionRewriter::Process(FileID FileId,
             break;
           }
           case tok::pp_pragma: {
-            StringRef Identifier = NextIdentifierName(RawLex, RawToken);
+            StringRef const Identifier = NextIdentifierName(RawLex, RawToken);
             if (Identifier == "clang" || Identifier == "GCC") {
               if (NextIdentifierName(RawLex, RawToken) == "system_header") {
                 // keep the directive in, commented out
@@ -469,9 +469,9 @@ void InclusionRewriter::Process(FileID FileId,
           }
           case tok::pp_if:
           case tok::pp_elif: {
-            bool elif = (RawToken.getIdentifierInfo()->getPPKeywordID() ==
+            bool const elif = (RawToken.getIdentifierInfo()->getPPKeywordID() ==
                          tok::pp_elif);
-            bool isTrue = IsIfAtLocationTrue(RawToken.getLocation());
+            bool const isTrue = IsIfAtLocationTrue(RawToken.getLocation());
             OutputContentUpTo(FromFile, NextToWrite,
                               SM.getFileOffset(HashToken.getLocation()),
                               LocalEOL, Line, /*EnsureNewline=*/true);
@@ -535,7 +535,7 @@ void InclusionRewriter::Process(FileID FileId,
 /// InclusionRewriterInInput - Implement -frewrite-includes mode.
 void clang::RewriteIncludesInInput(Preprocessor &PP, raw_ostream *OS,
                                    const PreprocessorOutputOptions &Opts) {
-  SourceManager &SM = PP.getSourceManager();
+  SourceManager  const&SM = PP.getSourceManager();
   InclusionRewriter *Rewrite = new InclusionRewriter(
       PP, *OS, Opts.ShowLineMarkers, Opts.UseLineDirectives);
   Rewrite->detectMainFileEOL();

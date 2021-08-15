@@ -155,7 +155,7 @@ public:
       // correct.
       StackUnexplored.push_back(U);
     } else {
-      LocIdentifier LocId = std::make_pair(
+      LocIdentifier const LocId = std::make_pair(
           BE->getBlock()->getBlockID(),
           N->getLocationContext()->getStackFrame());
       auto InsertInfo = Reachable.insert(LocId);
@@ -172,11 +172,11 @@ public:
 
   WorkListUnit dequeue() override {
     if (!StackUnexplored.empty()) {
-      WorkListUnit &U = StackUnexplored.back();
+      WorkListUnit  const&U = StackUnexplored.back();
       StackUnexplored.pop_back();
       return U;
     } else {
-      WorkListUnit &U = StackOthers.back();
+      WorkListUnit  const&U = StackOthers.back();
       StackOthers.pop_back();
       return U;
     }
@@ -231,7 +231,7 @@ public:
     const ExplodedNode *N = U.getNode();
     unsigned NumVisited = 0;
     if (auto BE = N->getLocation().getAs<BlockEntrance>()) {
-      LocIdentifier LocId = std::make_pair(
+      LocIdentifier const LocId = std::make_pair(
           BE->getBlock()->getBlockID(),
           N->getLocationContext()->getStackFrame());
       NumVisited = NumReached[LocId]++;
@@ -241,7 +241,7 @@ public:
   }
 
   WorkListUnit dequeue() override {
-    QueueItem U = queue.top();
+    QueueItem const U = queue.top();
     queue.pop();
     return U.first;
   }
@@ -299,7 +299,7 @@ public:
   }
 
   WorkListUnit dequeue() override {
-    QueueItem U = queue.top();
+    QueueItem const U = queue.top();
     queue.pop();
     return U.first;
   }

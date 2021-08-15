@@ -29,7 +29,7 @@ static StringRef getNameFromID(StringRef Name) {
 static Optional<DiagnosticRecord>
 findDiagnostic(ArrayRef<DiagnosticRecord> Diagnostics, StringRef Name) {
   for (const auto &Diag : Diagnostics) {
-    StringRef DiagName = Diag.getName();
+    StringRef const DiagName = Diag.getName();
     if (DiagName == Name)
       return Diag;
   }
@@ -41,7 +41,7 @@ int FindDiagnosticID::run(unsigned int argc, char **argv,
   static llvm::cl::OptionCategory FindDiagnosticIDOptions(
       "diagtool find-diagnostic-id options");
 
-  static llvm::cl::opt<std::string> DiagnosticName(
+  static llvm::cl::opt<std::string> const DiagnosticName(
       llvm::cl::Positional, llvm::cl::desc("<diagnostic-name>"),
       llvm::cl::Required, llvm::cl::cat(FindDiagnosticIDOptions));
 
@@ -54,7 +54,7 @@ int FindDiagnosticID::run(unsigned int argc, char **argv,
   llvm::cl::ParseCommandLineOptions((int)Args.size(), Args.data(),
                                     "Diagnostic ID mapping utility");
 
-  ArrayRef<DiagnosticRecord> AllDiagnostics = getBuiltinDiagnosticsByName();
+  ArrayRef<DiagnosticRecord> const AllDiagnostics = getBuiltinDiagnosticsByName();
   Optional<DiagnosticRecord> Diag =
       findDiagnostic(AllDiagnostics, DiagnosticName);
   if (!Diag) {

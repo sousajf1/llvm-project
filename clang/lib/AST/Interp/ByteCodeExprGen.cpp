@@ -131,7 +131,7 @@ bool ByteCodeExprGen<Emitter>::VisitIntegerLiteral(const IntegerLiteral *LE) {
     return true;
 
   auto Val = LE->getValue();
-  QualType LitTy = LE->getType();
+  QualType const LitTy = LE->getType();
   if (Optional<PrimType> T = classify(LitTy))
     return emitConst(*T, getIntWidth(LitTy), LE->getValue(), LE);
   return this->bail(LE);
@@ -161,7 +161,7 @@ bool ByteCodeExprGen<Emitter>::VisitBinaryOperator(const BinaryOperator *BO) {
 
   // Typecheck the args.
   Optional<PrimType> LT = classify(LHS->getType());
-  Optional<PrimType> RT = classify(RHS->getType());
+  Optional<PrimType> const RT = classify(RHS->getType());
   if (!LT || !RT) {
     return this->bail(BO);
   }
@@ -207,19 +207,19 @@ bool ByteCodeExprGen<Emitter>::VisitBinaryOperator(const BinaryOperator *BO) {
 
 template <class Emitter>
 bool ByteCodeExprGen<Emitter>::discard(const Expr *E) {
-  OptionScope<Emitter> Scope(this, /*discardResult=*/true);
+  OptionScope<Emitter> const Scope(this, /*discardResult=*/true);
   return this->Visit(E);
 }
 
 template <class Emitter>
 bool ByteCodeExprGen<Emitter>::visit(const Expr *E) {
-  OptionScope<Emitter> Scope(this, /*discardResult=*/false);
+  OptionScope<Emitter> const Scope(this, /*discardResult=*/false);
   return this->Visit(E);
 }
 
 template <class Emitter>
 bool ByteCodeExprGen<Emitter>::visitBool(const Expr *E) {
-  if (Optional<PrimType> T = classify(E->getType())) {
+  if (Optional<PrimType> const T = classify(E->getType())) {
     return visit(E);
   } else {
     return this->bail(E);
@@ -285,7 +285,7 @@ bool ByteCodeExprGen<Emitter>::dereferenceParam(
     llvm::function_ref<bool(PrimType)> Indirect) {
   auto It = this->Params.find(PD);
   if (It != this->Params.end()) {
-    unsigned Idx = It->second;
+    unsigned const Idx = It->second;
     switch (AK) {
     case DerefKind::Read:
       return DiscardResult ? true : this->emitGetParam(T, Idx, LV);
@@ -380,7 +380,7 @@ bool ByteCodeExprGen<Emitter>::dereferenceVar(
   // The access mode can only be read in this case.
   if (!DiscardResult && AK == DerefKind::Read) {
     if (VD->hasLocalStorage() && VD->hasInit() && !VD->isConstexpr()) {
-      QualType VT = VD->getType();
+      QualType const VT = VD->getType();
       if (VT.isConstQualified() && VT->isFundamentalType())
         return this->Visit(VD->getInit());
     }
@@ -425,7 +425,7 @@ unsigned ByteCodeExprGen<Emitter>::allocateLocalPrimitive(DeclTy &&Src,
                                                           bool IsConst,
                                                           bool IsExtended) {
   Descriptor *D = P.createDescriptor(Src, Ty, IsConst, Src.is<const Expr *>());
-  Scope::Local Local = this->createLocal(D);
+  Scope::Local const Local = this->createLocal(D);
   if (auto *VD = dyn_cast_or_null<ValueDecl>(Src.dyn_cast<const Decl *>()))
     Locals.insert({VD, Local});
   VarScope->add(Local, IsExtended);
@@ -453,7 +453,7 @@ ByteCodeExprGen<Emitter>::allocateLocal(DeclTy &&Src, bool IsExtended) {
   if (!D)
     return {};
 
-  Scope::Local Local = this->createLocal(D);
+  Scope::Local const Local = this->createLocal(D);
   if (Key)
     Locals.insert({Key, Local});
   VarScope->add(Local, IsExtended);
@@ -463,7 +463,7 @@ ByteCodeExprGen<Emitter>::allocateLocal(DeclTy &&Src, bool IsExtended) {
 template <class Emitter>
 bool ByteCodeExprGen<Emitter>::visitInitializer(
     const Expr *Init, InitFnRef InitFn) {
-  OptionScope<Emitter> Scope(this, InitFn);
+  OptionScope<Emitter> const Scope(this, InitFn);
   return this->Visit(Init);
 }
 
@@ -488,7 +488,7 @@ ByteCodeExprGen<Emitter>::getGlobalIdx(const VarDecl *VD) {
   }
   if (!VD->hasLocalStorage()) {
     // Not constexpr, but a global var - can have pointer taken.
-    Program::DeclScope Scope(P, VD);
+    Program::DeclScope const Scope(P, VD);
     return P.getOrCreateGlobal(VD);
   }
   return {};
@@ -517,7 +517,7 @@ Record *ByteCodeExprGen<Emitter>::getRecord(const RecordDecl *RD) {
 
 template <class Emitter>
 bool ByteCodeExprGen<Emitter>::visitExpr(const Expr *Exp) {
-  ExprScope<Emitter> RootScope(this);
+  ExprScope<Emitter> const RootScope(this);
   if (!visit(Exp))
     return false;
 
@@ -535,7 +535,7 @@ bool ByteCodeExprGen<Emitter>::visitDecl(const VarDecl *VD) {
     if (Optional<PrimType> T = classify(VD->getType())) {
       {
         // Primitive declarations - compute the value and set it.
-        DeclScope<Emitter> LocalScope(this, VD);
+        DeclScope<Emitter> const LocalScope(this, VD);
         if (!visit(Init))
           return false;
       }
@@ -549,7 +549,7 @@ bool ByteCodeExprGen<Emitter>::visitDecl(const VarDecl *VD) {
     } else {
       {
         // Composite declarations - allocate storage and initialize it.
-        DeclScope<Emitter> LocalScope(this, VD);
+        DeclScope<Emitter> const LocalScope(this, VD);
         if (!visitGlobalInitializer(Init, *I))
           return false;
       }

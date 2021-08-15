@@ -39,7 +39,7 @@ void TestModuleFileExtension::Writer::writeExtensionContents(
     OS << "Hello from " << Ext->BlockName << " v" << Ext->MajorVersion << "."
        << Ext->MinorVersion;
   }
-  uint64_t Record[] = {FIRST_EXTENSION_RECORD_ID, Message.size()};
+  uint64_t const Record[] = {FIRST_EXTENSION_RECORD_ID, Message.size()};
   Stream.EmitRecordWithBlob(Abbrev, Record, Message);
 }
 
@@ -54,7 +54,7 @@ TestModuleFileExtension::Reader::Reader(ModuleFileExtension *Ext,
         Stream.advanceSkippingSubblocks();
     if (!MaybeEntry)
       (void)MaybeEntry.takeError();
-    llvm::BitstreamEntry Entry = MaybeEntry.get();
+    llvm::BitstreamEntry const Entry = MaybeEntry.get();
 
     switch (Entry.Kind) {
     case llvm::BitstreamEntry::SubBlock:
@@ -75,7 +75,7 @@ TestModuleFileExtension::Reader::Reader(ModuleFileExtension *Ext,
               toString(MaybeRecCode.takeError()).c_str());
     switch (MaybeRecCode.get()) {
     case FIRST_EXTENSION_RECORD_ID: {
-      StringRef Message = Blob.substr(0, Record[0]);
+      StringRef const Message = Blob.substr(0, Record[0]);
       fprintf(stderr, "Read extension block message: %s\n",
               Message.str().c_str());
       break;

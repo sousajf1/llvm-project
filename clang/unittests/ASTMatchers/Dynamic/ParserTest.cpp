@@ -27,7 +27,7 @@ public:
     // Optimizations on the matcher framework make simple matchers like
     // 'stmt()' to be all the same matcher.
     // Use a more complex expression to prevent that.
-    ast_matchers::internal::Matcher<Stmt> M = stmt(stmt(), stmt());
+    ast_matchers::internal::Matcher<Stmt> const M = stmt(stmt(), stmt());
     ExpectedMatchers.insert(std::make_pair(std::string(MatcherName), M));
     return M.getID().second;
   }
@@ -65,7 +65,7 @@ public:
                                         Diagnostics *Error) override {
     const ExpectedMatchersTy::value_type *Matcher =
         reinterpret_cast<const ExpectedMatchersTy::value_type *>(Ctor);
-    MatcherInfo ToStore = {Matcher->first, NameRange, Args,
+    MatcherInfo const ToStore = {Matcher->first, NameRange, Args,
                            std::string(BindID)};
     Matchers.push_back(ToStore);
     return VariantMatcher::SingleMatcher(Matcher->second);
@@ -236,7 +236,7 @@ TEST(ParserTest, FullParserTest) {
   llvm::Optional<DynTypedMatcher> implicitIntBooleanCast(
       Parser::parseMatcherExpression(Code, nullptr, nullptr, &Error));
   EXPECT_EQ("", Error.toStringFull());
-  Matcher<Stmt> MCastStmt =
+  Matcher<Stmt> const MCastStmt =
       traverse(TK_AsIs, implicitIntBooleanCast->unconditionalConvertTo<Stmt>());
   EXPECT_TRUE(matches("bool X = 1;", MCastStmt));
   EXPECT_FALSE(matches("bool X = true;", MCastStmt));
@@ -266,7 +266,7 @@ TEST(ParserTest, FullParserTest) {
   llvm::Optional<DynTypedMatcher> UnaryExprSizeOf(
       Parser::parseMatcherExpression(Code, nullptr, nullptr, &Error));
   EXPECT_EQ("", Error.toStringFull());
-  Matcher<Stmt> MStmt = UnaryExprSizeOf->unconditionalConvertTo<Stmt>();
+  Matcher<Stmt> const MStmt = UnaryExprSizeOf->unconditionalConvertTo<Stmt>();
   EXPECT_TRUE(matches("unsigned X = sizeof(int);", MStmt));
   EXPECT_FALSE(matches("unsigned X = alignof(int);", MStmt));
 
@@ -522,7 +522,7 @@ decl()))matcher";
 )matcher";
     M = Parser::parseMatcherExpression(Code, nullptr, nullptr, &Error);
     EXPECT_FALSE(M.hasValue());
-    StringRef Expected = R"error(1:1: Error parsing argument 1 for matcher varDecl.
+    StringRef const Expected = R"error(1:1: Error parsing argument 1 for matcher varDecl.
 2:3: Matcher not found: doesNotExist)error";
     EXPECT_EQ(Expected, Error.toStringFull());
   }

@@ -103,10 +103,10 @@ private:
   static void PrintSourceForLocation(const SourceLocation &Loc,
                                      SourceManager &SM) {
     const char *LocData = SM.getCharacterData(Loc, /*Invalid=*/nullptr);
-    unsigned LocColumn =
+    unsigned const LocColumn =
         SM.getSpellingColumnNumber(Loc, /*Invalid=*/nullptr) - 1;
-    FileID FID = SM.getFileID(Loc);
-    llvm::MemoryBufferRef Buffer = SM.getBufferOrFake(FID, Loc);
+    FileID const FID = SM.getFileID(Loc);
+    llvm::MemoryBufferRef const Buffer = SM.getBufferOrFake(FID, Loc);
 
     assert(LocData >= Buffer.getBufferStart() &&
            LocData < Buffer.getBufferEnd());
@@ -122,7 +122,7 @@ private:
          ++LineEnd)
       ;
 
-    llvm::StringRef LineString(LineBegin, LineEnd - LineBegin);
+    llvm::StringRef const LineString(LineBegin, LineEnd - LineBegin);
 
     llvm::errs() << LineString << '\n';
     llvm::errs().indent(LocColumn);
@@ -150,7 +150,7 @@ private:
 
       for (const CharSourceRange &Range : Info.getRanges()) {
         bool Invalid = true;
-        StringRef Ref = Lexer::getSourceText(Range, SM, *LangOpts, &Invalid);
+        StringRef const Ref = Lexer::getSourceText(Range, SM, *LangOpts, &Invalid);
         if (!Invalid) {
           llvm::errs() << Ref << '\n';
         }
@@ -175,7 +175,7 @@ std::unique_ptr<CompilerInstance> BuildCompilerInstance() {
 
   {
     using namespace driver::types;
-    ID Id = lookupTypeForTypeSpecifier(Input.c_str());
+    ID const Id = lookupTypeForTypeSpecifier(Input.c_str());
     assert(Id != TY_INVALID);
     if (isCXX(Id)) {
       Inv->getLangOpts()->CPlusPlus = true;
@@ -228,7 +228,7 @@ BuildASTContext(CompilerInstance &CI, SelectorTable &ST, Builtin::Context &BC) {
 
 std::unique_ptr<CodeGenerator> BuildCodeGen(CompilerInstance &CI,
                                             llvm::LLVMContext &LLVMCtx) {
-  StringRef ModuleName("$__module");
+  StringRef const ModuleName("$__module");
   return std::unique_ptr<CodeGenerator>(CreateLLVMCodeGen(
       CI.getDiagnostics(), ModuleName, CI.getHeaderSearchOpts(),
       CI.getPreprocessorOpts(), CI.getCodeGenOpts(), LLVMCtx));
@@ -265,7 +265,7 @@ struct CIAndOrigins {
 
 void AddExternalSource(CIAndOrigins &CI,
                        llvm::MutableArrayRef<CIAndOrigins> Imports) {
-  ExternalASTMerger::ImporterTarget Target(
+  ExternalASTMerger::ImporterTarget const Target(
       {CI.getASTContext(), CI.getFileManager()});
   llvm::SmallVector<ExternalASTMerger::ImporterSource, 3> Sources;
   for (CIAndOrigins &Import : Imports)

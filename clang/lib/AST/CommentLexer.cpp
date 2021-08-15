@@ -310,8 +310,8 @@ void Lexer::lexCommentText(Token &T) {
           return;
 
       default: {
-          StringRef TokStartSymbols = ParseCommands ? "\n\r\\@&<" : "\n\r";
-          size_t End = StringRef(TokenPtr, CommentEnd - TokenPtr)
+          StringRef const TokStartSymbols = ParseCommands ? "\n\r\\@&<" : "\n\r";
+          size_t const End = StringRef(TokenPtr, CommentEnd - TokenPtr)
                            .find_first_of(TokStartSymbols);
           if (End != StringRef::npos)
             TokenPtr += End;
@@ -355,7 +355,7 @@ void Lexer::lexCommentText(Token &T) {
       // Commands that start with a backslash and commands that start with
       // 'at' have equivalent semantics.  But we keep information about the
       // exact syntax in AST for comments.
-      tok::TokenKind CommandKind =
+      tok::TokenKind const CommandKind =
           (*TokenPtr == '@') ? tok::at_command : tok::backslash_command;
       TokenPtr++;
       if (TokenPtr == CommentEnd) {
@@ -376,7 +376,7 @@ void Lexer::lexCommentText(Token &T) {
           // This is the \:: escape sequence.
           TokenPtr++;
         }
-        StringRef UnescapedText(BufferPtr + 1, TokenPtr - (BufferPtr + 1));
+        StringRef const UnescapedText(BufferPtr + 1, TokenPtr - (BufferPtr + 1));
         formTokenWithChars(T, TokenPtr, tok::text);
         T.setText(UnescapedText);
         return;
@@ -401,16 +401,16 @@ void Lexer::lexCommentText(Token &T) {
         }
       }
 
-      StringRef CommandName(BufferPtr + 1, Length);
+      StringRef const CommandName(BufferPtr + 1, Length);
 
       const CommandInfo *Info = Traits.getCommandInfoOrNULL(CommandName);
       if (!Info) {
         if ((Info = Traits.getTypoCorrectCommandInfo(CommandName))) {
-          StringRef CorrectedName = Info->Name;
-          SourceLocation Loc = getSourceLocation(BufferPtr);
-          SourceLocation EndLoc = getSourceLocation(TokenPtr);
-          SourceRange FullRange = SourceRange(Loc, EndLoc);
-          SourceRange CommandRange(Loc.getLocWithOffset(1), EndLoc);
+          StringRef const CorrectedName = Info->Name;
+          SourceLocation const Loc = getSourceLocation(BufferPtr);
+          SourceLocation const EndLoc = getSourceLocation(TokenPtr);
+          SourceRange const FullRange = SourceRange(Loc, EndLoc);
+          SourceRange const CommandRange(Loc.getLocWithOffset(1), EndLoc);
           Diag(Loc, diag::warn_correct_comment_command_name)
             << FullRange << CommandName << CorrectedName
             << FixItHint::CreateReplacement(CommandRange, CorrectedName);
@@ -494,10 +494,10 @@ again:
   //
   // Extract current line.
   const char *Newline = findNewline(BufferPtr, CommentEnd);
-  StringRef Line(BufferPtr, Newline - BufferPtr);
+  StringRef const Line(BufferPtr, Newline - BufferPtr);
 
   // Look for end command in current line.
-  size_t Pos = Line.find(VerbatimBlockEndCommandName);
+  size_t const Pos = Line.find(VerbatimBlockEndCommandName);
   const char *TextEnd;
   const char *NextLine;
   if (Pos == StringRef::npos) {
@@ -507,7 +507,7 @@ again:
   } else if (Pos == 0) {
     // Current line contains just an end command.
     const char *End = BufferPtr + VerbatimBlockEndCommandName.size();
-    StringRef Name(BufferPtr + 1, End - (BufferPtr + 1));
+    StringRef const Name(BufferPtr + 1, End - (BufferPtr + 1));
     formTokenWithChars(T, End, tok::verbatim_block_end);
     T.setVerbatimBlockID(Traits.getCommandInfo(Name)->getID());
     State = LS_Normal;
@@ -523,7 +523,7 @@ again:
     }
   }
 
-  StringRef Text(BufferPtr, TextEnd - BufferPtr);
+  StringRef const Text(BufferPtr, TextEnd - BufferPtr);
   formTokenWithChars(T, NextLine, tok::verbatim_block_line);
   T.setVerbatimBlockText(Text);
 
@@ -559,7 +559,7 @@ void Lexer::lexVerbatimLineText(Token &T) {
 
   // Extract current line.
   const char *Newline = findNewline(BufferPtr, CommentEnd);
-  StringRef Text(BufferPtr, Newline - BufferPtr);
+  StringRef const Text(BufferPtr, Newline - BufferPtr);
   formTokenWithChars(T, Newline, tok::verbatim_line_text);
   T.setVerbatimLineText(Text);
 
@@ -610,7 +610,7 @@ void Lexer::lexHTMLCharacterReference(Token &T) {
     formTextToken(T, TokenPtr);
     return;
   }
-  StringRef Name(NamePtr, TokenPtr - NamePtr);
+  StringRef const Name(NamePtr, TokenPtr - NamePtr);
   TokenPtr++; // Skip semicolon.
   StringRef Resolved;
   if (isNamed)
@@ -632,7 +632,7 @@ void Lexer::setupAndLexHTMLStartTag(Token &T) {
   assert(BufferPtr[0] == '<' &&
          isHTMLIdentifierStartingCharacter(BufferPtr[1]));
   const char *TagNameEnd = skipHTMLIdentifier(BufferPtr + 2, CommentEnd);
-  StringRef Name(BufferPtr + 1, TagNameEnd - (BufferPtr + 1));
+  StringRef const Name(BufferPtr + 1, TagNameEnd - (BufferPtr + 1));
   if (!isHTMLTagName(Name)) {
     formTextToken(T, TagNameEnd);
     return;
@@ -656,7 +656,7 @@ void Lexer::lexHTMLStartTag(Token &T) {
   char C = *TokenPtr;
   if (isHTMLIdentifierCharacter(C)) {
     TokenPtr = skipHTMLIdentifier(TokenPtr, CommentEnd);
-    StringRef Ident(BufferPtr, TokenPtr - BufferPtr);
+    StringRef const Ident(BufferPtr, TokenPtr - BufferPtr);
     formTokenWithChars(T, TokenPtr, tok::html_ident);
     T.setHTMLIdent(Ident);
   } else {
@@ -716,7 +716,7 @@ void Lexer::setupAndLexHTMLEndTag(Token &T) {
 
   const char *TagNameBegin = skipWhitespace(BufferPtr + 2, CommentEnd);
   const char *TagNameEnd = skipHTMLIdentifier(TagNameBegin, CommentEnd);
-  StringRef Name(TagNameBegin, TagNameEnd - TagNameBegin);
+  StringRef const Name(TagNameBegin, TagNameEnd - TagNameBegin);
   if (!isHTMLTagName(Name)) {
     formTextToken(T, TagNameEnd);
     return;
@@ -850,11 +850,11 @@ again:
 
 StringRef Lexer::getSpelling(const Token &Tok,
                              const SourceManager &SourceMgr) const {
-  SourceLocation Loc = Tok.getLocation();
-  std::pair<FileID, unsigned> LocInfo = SourceMgr.getDecomposedLoc(Loc);
+  SourceLocation const Loc = Tok.getLocation();
+  std::pair<FileID, unsigned> const LocInfo = SourceMgr.getDecomposedLoc(Loc);
 
   bool InvalidTemp = false;
-  StringRef File = SourceMgr.getBufferData(LocInfo.first, &InvalidTemp);
+  StringRef const File = SourceMgr.getBufferData(LocInfo.first, &InvalidTemp);
   if (InvalidTemp)
     return StringRef();
 

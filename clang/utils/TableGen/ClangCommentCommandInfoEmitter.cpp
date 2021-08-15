@@ -28,7 +28,7 @@ void clang::EmitClangCommentCommandInfo(RecordKeeper &Records, raw_ostream &OS) 
         "const CommandInfo Commands[] = {\n";
   std::vector<Record *> Tags = Records.getAllDerivedDefinitions("Command");
   for (size_t i = 0, e = Tags.size(); i != e; ++i) {
-    Record &Tag = *Tags[i];
+    Record  const&Tag = *Tags[i];
     OS << "  { "
        << "\"" << Tag.getValueAsString("Name") << "\", "
        << "\"" << Tag.getValueAsString("EndCommandName") << "\", "
@@ -62,7 +62,7 @@ void clang::EmitClangCommentCommandInfo(RecordKeeper &Records, raw_ostream &OS) 
 
   std::vector<StringMatcher::StringPair> Matches;
   for (size_t i = 0, e = Tags.size(); i != e; ++i) {
-    Record &Tag = *Tags[i];
+    Record  const&Tag = *Tags[i];
     std::string Name = std::string(Tag.getValueAsString("Name"));
     std::string Return;
     raw_string_ostream(Return) << "return &Commands[" << i << "];";
@@ -116,8 +116,8 @@ void clang::EmitClangCommentCommandList(RecordKeeper &Records, raw_ostream &OS) 
 
   std::vector<Record *> Tags = Records.getAllDerivedDefinitions("Command");
   for (size_t i = 0, e = Tags.size(); i != e; ++i) {
-    Record &Tag = *Tags[i];
-    std::string MangledName = MangleName(Tag.getValueAsString("Name"));
+    Record  const&Tag = *Tags[i];
+    std::string const MangledName = MangleName(Tag.getValueAsString("Name"));
 
     OS << "COMMENT_COMMAND(" << MangledName << ")\n";
   }

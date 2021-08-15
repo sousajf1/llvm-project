@@ -90,7 +90,7 @@ public:
     printQuotedQualifiedName(Os, Capture.getCapturedVar());
     Os << " to uncounted type is unsafe.";
 
-    PathDiagnosticLocation BSLoc(Capture.getLocation(), BR->getSourceManager());
+    PathDiagnosticLocation const BSLoc(Capture.getLocation(), BR->getSourceManager());
     auto Report = std::make_unique<BasicBugReport>(Bug, Os.str(), BSLoc);
     BR->emitReport(std::move(Report));
   }

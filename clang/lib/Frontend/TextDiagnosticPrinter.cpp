@@ -76,11 +76,11 @@ static void printDiagnosticOptions(raw_ostream &OS,
       Started = true;
     }
 
-    StringRef Opt = DiagnosticIDs::getWarningOptionForDiag(Info.getID());
+    StringRef const Opt = DiagnosticIDs::getWarningOptionForDiag(Info.getID());
     if (!Opt.empty()) {
       OS << (Started ? "," : " [")
          << (Level == DiagnosticsEngine::Remark ? "-R" : "-W") << Opt;
-      StringRef OptValue = Info.getDiags()->getFlagValue();
+      StringRef const OptValue = Info.getDiags()->getFlagValue();
       if (!OptValue.empty())
         OS << "=" << OptValue;
       Started = true;
@@ -89,7 +89,7 @@ static void printDiagnosticOptions(raw_ostream &OS,
 
   // If the user wants to see category information, include it too.
   if (DiagOpts.ShowCategories) {
-    unsigned DiagCategory =
+    unsigned const DiagCategory =
       DiagnosticIDs::getCategoryNumberForDiag(Info.getID());
     if (DiagCategory) {
       OS << (Started ? "," : " [");
@@ -123,7 +123,7 @@ void TextDiagnosticPrinter::HandleDiagnostic(DiagnosticsEngine::Level Level,
   // information (e.g., "foo.c:10:4:") that precedes the error
   // message. We use this information to determine how long the
   // file+line+column number prefix is.
-  uint64_t StartOfLocationInfo = OS.tell();
+  uint64_t const StartOfLocationInfo = OS.tell();
 
   if (!Prefix.empty())
     OS << Prefix << ": ";

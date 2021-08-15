@@ -39,7 +39,7 @@ TEST(FrontendOutputTests, TestOutputStream) {
   Compiler.setInvocation(std::move(Invocation));
   Compiler.createDiagnostics();
 
-  bool Success = ExecuteCompilerInvocation(&Compiler);
+  bool const Success = ExecuteCompilerInvocation(&Compiler);
   EXPECT_TRUE(Success);
   EXPECT_TRUE(!IRBuffer.empty());
   EXPECT_TRUE(StringRef(IRBuffer.data()).startswith("BC"));
@@ -60,12 +60,12 @@ TEST(FrontendOutputTests, TestVerboseOutputStreamShared) {
 
   Compiler.setOutputStream(std::make_unique<raw_null_ostream>());
   Compiler.setInvocation(std::move(Invocation));
-  IntrusiveRefCntPtr<DiagnosticOptions> DiagOpts = new DiagnosticOptions();
+  IntrusiveRefCntPtr<DiagnosticOptions> const DiagOpts = new DiagnosticOptions();
   Compiler.createDiagnostics(
       new TextDiagnosticPrinter(llvm::nulls(), &*DiagOpts), true);
   Compiler.setVerboseOutputStream(VerboseStream);
 
-  bool Success = ExecuteCompilerInvocation(&Compiler);
+  bool const Success = ExecuteCompilerInvocation(&Compiler);
   EXPECT_FALSE(Success);
   EXPECT_TRUE(!VerboseStream.str().empty());
   EXPECT_TRUE(StringRef(VerboseBuffer.data()).contains("errors generated"));
@@ -89,7 +89,7 @@ TEST(FrontendOutputTests, TestVerboseOutputStreamOwned) {
 
     Compiler.setOutputStream(std::make_unique<raw_null_ostream>());
     Compiler.setInvocation(std::move(Invocation));
-    IntrusiveRefCntPtr<DiagnosticOptions> DiagOpts = new DiagnosticOptions();
+    IntrusiveRefCntPtr<DiagnosticOptions> const DiagOpts = new DiagnosticOptions();
     Compiler.createDiagnostics(
         new TextDiagnosticPrinter(llvm::nulls(), &*DiagOpts), true);
     Compiler.setVerboseOutputStream(std::move(VerboseStream));

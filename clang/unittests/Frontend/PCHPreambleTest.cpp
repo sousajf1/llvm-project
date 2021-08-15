@@ -78,7 +78,7 @@ public:
 
   std::unique_ptr<ASTUnit> ParseAST(const std::string &EntryFile) {
     PCHContainerOpts = std::make_shared<PCHContainerOperations>();
-    std::shared_ptr<CompilerInvocation> CI(new CompilerInvocation);
+    std::shared_ptr<CompilerInvocation> const CI(new CompilerInvocation);
     CI->getFrontendOpts().Inputs.push_back(
       FrontendInputFile(EntryFile, FrontendOptions::getInputKindForExtension(
         llvm::sys::path::extension(EntryFile).substr(1))));
@@ -91,7 +91,7 @@ public:
     PPOpts.RemappedFilesKeepOriginalName = true;
 
     IntrusiveRefCntPtr<DiagnosticsEngine>
-      Diags(CompilerInstance::createDiagnostics(new DiagnosticOptions, new DiagnosticConsumer));
+      const Diags(CompilerInstance::createDiagnostics(new DiagnosticOptions, new DiagnosticConsumer));
 
     FileManager *FileMgr = new FileManager(FSOpts, VFS);
 
@@ -102,7 +102,7 @@ public:
   }
 
   bool ReparseAST(const std::unique_ptr<ASTUnit> &AST) {
-    bool reparseFailed = AST->Reparse(PCHContainerOpts, GetRemappedFiles(), VFS);
+    bool const reparseFailed = AST->Reparse(PCHContainerOpts, GetRemappedFiles(), VFS);
     return !reparseFailed;
   }
 
@@ -124,8 +124,8 @@ private:
 };
 
 TEST_F(PCHPreambleTest, ReparseReusesPreambleWithUnsavedFileNotExistingOnDisk) {
-  std::string Header1 = "//./header1.h";
-  std::string MainName = "//./main.cpp";
+  std::string const Header1 = "//./header1.h";
+  std::string const MainName = "//./main.cpp";
   AddFile(MainName, R"cpp(
 #include "//./header1.h"
 int main() { return ZERO; }
@@ -144,8 +144,8 @@ int main() { return ZERO; }
 }
 
 TEST_F(PCHPreambleTest, ReparseReusesPreambleAfterUnsavedFileWasCreatedOnDisk) {
-  std::string Header1 = "//./header1.h";
-  std::string MainName = "//./main.cpp";
+  std::string const Header1 = "//./header1.h";
+  std::string const MainName = "//./main.cpp";
   AddFile(MainName, R"cpp(
 #include "//./header1.h"
 int main() { return ZERO; }
@@ -166,9 +166,9 @@ int main() { return ZERO; }
 
 TEST_F(PCHPreambleTest,
        ReparseReusesPreambleAfterUnsavedFileWasRemovedFromDisk) {
-  std::string Header1 = "//./foo/header1.h";
-  std::string MainName = "//./main.cpp";
-  std::string MainFileContent = R"cpp(
+  std::string const Header1 = "//./foo/header1.h";
+  std::string const MainName = "//./main.cpp";
+  std::string const MainFileContent = R"cpp(
 #include "//./foo/header1.h"
 int main() { return ZERO; }
 )cpp";
@@ -190,9 +190,9 @@ int main() { return ZERO; }
 }
 
 TEST_F(PCHPreambleTest, ReparseWithOverriddenFileDoesNotInvalidatePreamble) {
-  std::string Header1 = "//./header1.h";
-  std::string Header2 = "//./header2.h";
-  std::string MainName = "//./main.cpp";
+  std::string const Header1 = "//./header1.h";
+  std::string const Header2 = "//./header2.h";
+  std::string const MainName = "//./main.cpp";
   AddFile(Header1, "");
   AddFile(Header2, "#pragma once");
   AddFile(MainName,
@@ -205,7 +205,7 @@ TEST_F(PCHPreambleTest, ReparseWithOverriddenFileDoesNotInvalidatePreamble) {
   ASSERT_TRUE(AST.get());
   ASSERT_FALSE(AST->getDiagnostics().hasErrorOccurred());
 
-  unsigned initialCounts[] = {
+  unsigned const initialCounts[] = {
     GetFileReadCount(MainName),
     GetFileReadCount(Header1),
     GetFileReadCount(Header2)
@@ -219,8 +219,8 @@ TEST_F(PCHPreambleTest, ReparseWithOverriddenFileDoesNotInvalidatePreamble) {
 }
 
 TEST_F(PCHPreambleTest, ParseWithBom) {
-  std::string Header = "//./header.h";
-  std::string Main = "//./main.cpp";
+  std::string const Header = "//./header.h";
+  std::string const Main = "//./main.cpp";
   AddFile(Header, "int random() { return 4; }");
   AddFile(Main,
     "\xef\xbb\xbf"

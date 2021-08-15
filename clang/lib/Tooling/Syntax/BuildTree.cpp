@@ -252,7 +252,7 @@ static SourceLocation getQualifiedNameStart(NamedDecl *D) {
          "only DeclaratorDecl and TypedefNameDecl are supported.");
 
   auto DN = D->getDeclName();
-  bool IsAnonymous = DN.isIdentifier() && !DN.getAsIdentifierInfo();
+  bool const IsAnonymous = DN.isIdentifier() && !DN.getAsIdentifierInfo();
   if (IsAnonymous)
     return SourceLocation();
 
@@ -323,7 +323,7 @@ public:
     assert(To != nullptr);
     assert(!From.isNull());
 
-    bool Added = Nodes.insert({From, To}).second;
+    bool const Added = Nodes.insert({From, To}).second;
     (void)Added;
     assert(Added && "mapping added twice");
   }
@@ -332,7 +332,7 @@ public:
     assert(To != nullptr);
     assert(From.hasQualifier());
 
-    bool Added = NNSNodes.insert({From, To}).second;
+    bool const Added = NNSNodes.insert({From, To}).second;
     (void)Added;
     assert(Added && "mapping added twice");
   }
@@ -802,7 +802,7 @@ public:
   }
 
   bool TraverseIfStmt(IfStmt *S) {
-    bool Result = [&, this]() {
+    bool const Result = [&, this]() {
       if (S->getInit() && !TraverseStmt(S->getInit())) {
         return false;
       }
@@ -830,7 +830,7 @@ public:
     // RAV traverses it as a statement, we produce invalid node kinds in that
     // case.
     // FIXME: should do this in RAV instead?
-    bool Result = [&, this]() {
+    bool const Result = [&, this]() {
       if (S->getInit() && !TraverseStmt(S->getInit()))
         return false;
       if (S->getLoopVariable() && !TraverseDecl(S->getLoopVariable()))

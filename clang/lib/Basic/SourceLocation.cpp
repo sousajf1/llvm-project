@@ -66,7 +66,7 @@ void SourceLocation::print(raw_ostream &OS, const SourceManager &SM)const{
   }
 
   if (isFileID()) {
-    PresumedLoc PLoc = SM.getPresumedLoc(*this);
+    PresumedLoc const PLoc = SM.getPresumedLoc(*this);
 
     if (PLoc.isInvalid()) {
       OS << "<invalid>";
@@ -197,7 +197,7 @@ std::pair<FullSourceLoc, StringRef> FullSourceLoc::getModuleImportLoc() const {
   if (!isValid())
     return std::make_pair(FullSourceLoc(), StringRef());
 
-  std::pair<SourceLocation, StringRef> ImportLoc =
+  std::pair<SourceLocation, StringRef> const ImportLoc =
       SrcMgr->getModuleImportLoc(*this);
   return std::make_pair(FullSourceLoc(ImportLoc.first, *SrcMgr),
                         ImportLoc.second);

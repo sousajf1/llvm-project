@@ -42,7 +42,7 @@ void DiagTools::printCommands(llvm::raw_ostream &out) {
   for (ToolMap::iterator it = getTools(tools)->begin(),
        ei = getTools(tools)->end(); it != ei; ++it) {
     toolNames.push_back(it->getKey());
-    unsigned len = it->getKey().size();
+    unsigned const len = it->getKey().size();
     if (len > maxName)
       maxName = len;    
   }
@@ -52,7 +52,7 @@ void DiagTools::printCommands(llvm::raw_ostream &out) {
        ei = toolNames.end(); it != ei; ++it) {
 
     out << "  " << (*it);
-    unsigned spaces = (maxName + 3) - (it->size());
+    unsigned const spaces = (maxName + 3) - (it->size());
     for (unsigned i = 0; i < spaces; ++i)
       out << ' ';
     

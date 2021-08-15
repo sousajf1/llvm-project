@@ -23,7 +23,7 @@ using namespace llvm::opt;
 /// getPPCTargetCPU - Get the (LLVM) name of the PowerPC cpu we are targeting.
 std::string ppc::getPPCTargetCPU(const ArgList &Args) {
   if (Arg *A = Args.getLastArg(clang::driver::options::OPT_mcpu_EQ)) {
-    StringRef CPUName = A->getValue();
+    StringRef const CPUName = A->getValue();
 
     if (CPUName == "native") {
       std::string CPU = std::string(llvm::sys::getHostCPUName());
@@ -112,11 +112,11 @@ void ppc::getPPCTargetFeatures(const Driver &D, const llvm::Triple &Triple,
 
   handleTargetFeaturesGroup(Args, Features, options::OPT_m_ppc_Features_Group);
 
-  ppc::FloatABI FloatABI = ppc::getPPCFloatABI(D, Args);
+  ppc::FloatABI const FloatABI = ppc::getPPCFloatABI(D, Args);
   if (FloatABI == ppc::FloatABI::Soft)
     Features.push_back("-hard-float");
 
-  ppc::ReadGOTPtrMode ReadGOT = ppc::getPPCReadGOTPtrMode(D, Triple, Args);
+  ppc::ReadGOTPtrMode const ReadGOT = ppc::getPPCReadGOTPtrMode(D, Triple, Args);
   if (ReadGOT == ppc::ReadGOTPtrMode::SecurePlt)
     Features.push_back("+secure-plt");
 }

@@ -92,7 +92,7 @@ public:
 
         const auto *Arg = CE->getArg(ArgIdx);
 
-        std::pair<const clang::Expr *, bool> ArgOrigin =
+        std::pair<const clang::Expr *, bool> const ArgOrigin =
             tryToFindPtrOrigin(Arg, true);
 
         // Temporary ref-counted object created as part of the call argument
@@ -179,7 +179,7 @@ public:
         isa<CXXDefaultArgExpr>(CallArg) ? Param->getDefaultArg()->getExprLoc()
                                         : CallArg->getSourceRange().getBegin();
 
-    PathDiagnosticLocation BSLoc(SrcLocToReport, BR->getSourceManager());
+    PathDiagnosticLocation const BSLoc(SrcLocToReport, BR->getSourceManager());
     auto Report = std::make_unique<BasicBugReport>(Bug, Os.str(), BSLoc);
     Report->addRange(CallArg->getSourceRange());
     BR->emitReport(std::move(Report));

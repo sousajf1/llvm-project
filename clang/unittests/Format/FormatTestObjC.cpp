@@ -36,12 +36,12 @@ protected:
                      StatusCheck CheckComplete = SC_ExpectComplete) {
     LLVM_DEBUG(llvm::errs() << "---\n");
     LLVM_DEBUG(llvm::errs() << Code << "\n\n");
-    std::vector<tooling::Range> Ranges(1, tooling::Range(0, Code.size()));
+    std::vector<tooling::Range> const Ranges(1, tooling::Range(0, Code.size()));
     FormattingAttemptStatus Status;
-    tooling::Replacements Replaces =
+    tooling::Replacements const Replaces =
         reformat(Style, Code, Ranges, "<stdin>", &Status);
     if (CheckComplete != SC_DoNotCheck) {
-      bool ExpectedCompleteFormat = CheckComplete == SC_ExpectComplete;
+      bool const ExpectedCompleteFormat = CheckComplete == SC_ExpectComplete;
       EXPECT_EQ(ExpectedCompleteFormat, Status.FormatComplete)
           << Code << "\n\n";
     }
@@ -52,13 +52,13 @@ protected:
   }
 
   void _verifyFormat(const char *File, int Line, StringRef Code) {
-    ScopedTrace t(File, Line, ::testing::Message() << Code.str());
+    ScopedTrace const t(File, Line, ::testing::Message() << Code.str());
     EXPECT_EQ(Code.str(), format(Code)) << "Expected code is not stable";
     EXPECT_EQ(Code.str(), format(test::messUp(Code)));
   }
 
   void _verifyIncompleteFormat(const char *File, int Line, StringRef Code) {
-    ScopedTrace t(File, Line, ::testing::Message() << Code.str());
+    ScopedTrace const t(File, Line, ::testing::Message() << Code.str());
     EXPECT_EQ(Code.str(), format(test::messUp(Code), SC_ExpectIncomplete));
   }
 
@@ -727,7 +727,7 @@ TEST_F(FormatTestObjC, FormatObjCMethodExpr) {
   verifyFormat("[(id)foo bar:(id) ? baz : quux];");
   verifyFormat("4 > 4 ? (id)a : (id)baz;");
 
-  unsigned PreviousColumnLimit = Style.ColumnLimit;
+  unsigned const PreviousColumnLimit = Style.ColumnLimit;
   Style.ColumnLimit = 50;
   // Instead of:
   // bool a =

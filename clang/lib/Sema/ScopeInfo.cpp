@@ -209,7 +209,7 @@ void FunctionScopeInfo::markSafeWeakUse(const Expr *E) {
     return;
 
   // Has there been a read from the object using this Expr?
-  FunctionScopeInfo::WeakUseVector::reverse_iterator ThisUse =
+  FunctionScopeInfo::WeakUseVector::reverse_iterator const ThisUse =
       llvm::find(llvm::reverse(Uses->second), WeakUseTy(E, true));
   if (ThisUse == Uses->second.rend())
     return;

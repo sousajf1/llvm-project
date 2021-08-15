@@ -134,7 +134,7 @@ void HeaderIncludesCallback::FileChanged(SourceLocation Loc,
                                          FileID PrevFID) {
   // Unless we are exiting a #include, make sure to skip ahead to the line the
   // #include directive was at.
-  PresumedLoc UserLoc = SM.getPresumedLoc(Loc);
+  PresumedLoc const UserLoc = SM.getPresumedLoc(Loc);
   if (UserLoc.isInvalid())
     return;
 

@@ -51,7 +51,7 @@ void WalkAST::VisitUnaryExprOrTypeTraitExpr(UnaryExprOrTypeTraitExpr *E) {
   if (E->isArgumentType())
     return;
 
-  QualType T = E->getTypeOfArgument();
+  QualType const T = E->getTypeOfArgument();
   if (T->isPointerType()) {
 
     // Many false positives have the form 'sizeof *p'. This is reasonable
@@ -61,7 +61,7 @@ void WalkAST::VisitUnaryExprOrTypeTraitExpr(UnaryExprOrTypeTraitExpr *E) {
     if (!isa<DeclRefExpr>(ArgEx->IgnoreParens()))
       return;
 
-    PathDiagnosticLocation ELoc =
+    PathDiagnosticLocation const ELoc =
       PathDiagnosticLocation::createBegin(E, BR.getSourceManager(), AC);
     BR.EmitBasicReport(AC->getDecl(), Checker,
                        "Potential unintended use of sizeof() on pointer type",

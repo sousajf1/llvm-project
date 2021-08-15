@@ -66,7 +66,7 @@ Hurd::Hurd(const Driver &D, const llvm::Triple &Triple, const ArgList &Args)
   GCCInstallation.init(Triple, Args);
   Multilibs = GCCInstallation.getMultilibs();
   SelectedMultilib = GCCInstallation.getMultilib();
-  std::string SysRoot = computeSysRoot();
+  std::string const SysRoot = computeSysRoot();
   ToolChain::path_list &PPaths = getProgramPaths();
 
   Generic_GCC::PushPPaths(PPaths);
@@ -135,7 +135,7 @@ std::string Hurd::getDynamicLinker(const ArgList &Args) const {
 void Hurd::AddClangSystemIncludeArgs(const ArgList &DriverArgs,
                                      ArgStringList &CC1Args) const {
   const Driver &D = getDriver();
-  std::string SysRoot = computeSysRoot();
+  std::string const SysRoot = computeSysRoot();
 
   if (DriverArgs.hasArg(clang::driver::options::OPT_nostdinc))
     return;
@@ -153,12 +153,12 @@ void Hurd::AddClangSystemIncludeArgs(const ArgList &DriverArgs,
     return;
 
   // Check for configure-time C include directories.
-  StringRef CIncludeDirs(C_INCLUDE_DIRS);
+  StringRef const CIncludeDirs(C_INCLUDE_DIRS);
   if (CIncludeDirs != "") {
     SmallVector<StringRef, 5> Dirs;
     CIncludeDirs.split(Dirs, ":");
-    for (StringRef Dir : Dirs) {
-      StringRef Prefix =
+    for (StringRef const Dir : Dirs) {
+      StringRef const Prefix =
           llvm::sys::path::is_absolute(Dir) ? "" : StringRef(SysRoot);
       addExternCSystemInclude(DriverArgs, CC1Args, Prefix + Dir);
     }
@@ -172,7 +172,7 @@ void Hurd::AddClangSystemIncludeArgs(const ArgList &DriverArgs,
 
   // On systems using multiarch, add /usr/include/$triple before
   // /usr/include.
-  std::string MultiarchIncludeDir = getMultiarchTriple(D, getTriple(), SysRoot);
+  std::string const MultiarchIncludeDir = getMultiarchTriple(D, getTriple(), SysRoot);
   if (!MultiarchIncludeDir.empty() &&
       D.getVFS().exists(SysRoot + "/usr/include/" + MultiarchIncludeDir))
     addExternCSystemInclude(DriverArgs, CC1Args,
@@ -193,8 +193,8 @@ void Hurd::addLibStdCxxIncludePaths(const llvm::opt::ArgList &DriverArgs,
   if (!GCCInstallation.isValid())
     return;
 
-  StringRef TripleStr = GCCInstallation.getTriple().str();
-  StringRef DebianMultiarch =
+  StringRef const TripleStr = GCCInstallation.getTriple().str();
+  StringRef const DebianMultiarch =
       GCCInstallation.getTriple().getArch() == llvm::Triple::x86 ? "i386-gnu"
                                                                  : TripleStr;
 

@@ -114,9 +114,9 @@ generateReproducerForInvocationArguments(ArrayRef<const char *> Argv,
   using namespace driver;
   auto TargetAndMode = ToolChain::getTargetAndModeFromProgramName(Argv[0]);
 
-  IntrusiveRefCntPtr<DiagnosticOptions> DiagOpts = new DiagnosticOptions;
+  IntrusiveRefCntPtr<DiagnosticOptions> const DiagOpts = new DiagnosticOptions;
 
-  IntrusiveRefCntPtr<DiagnosticIDs> DiagID(new DiagnosticIDs());
+  IntrusiveRefCntPtr<DiagnosticIDs> const DiagID(new DiagnosticIDs());
   DiagnosticsEngine Diags(DiagID, &*DiagOpts, new IgnoringDiagConsumer());
   ProcessWarningOptions(Diags, *DiagOpts, /*ReportDiags=*/false);
   Driver TheDriver(Argv[0], llvm::sys::getDefaultTargetTriple(), Diags);
@@ -160,7 +160,7 @@ int cc1gen_reproducer_main(ArrayRef<const char *> Argv, const char *Argv0,
     return 1;
   }
   // Parse the invocation descriptor.
-  StringRef Input = Argv[0];
+  StringRef const Input = Argv[0];
   llvm::ErrorOr<std::unique_ptr<llvm::MemoryBuffer>> Buffer =
       llvm::MemoryBuffer::getFile(Input, /*IsText=*/true);
   if (!Buffer) {
@@ -178,7 +178,7 @@ int cc1gen_reproducer_main(ArrayRef<const char *> Argv, const char *Argv0,
   std::vector<const char *> DriverArgs;
   for (const auto &Arg : InvocationInfo.Arguments)
     DriverArgs.push_back(Arg.c_str());
-  std::string Path = GetExecutablePath(Argv0, /*CanonicalPrefixes=*/true);
+  std::string const Path = GetExecutablePath(Argv0, /*CanonicalPrefixes=*/true);
   DriverArgs[0] = Path.c_str();
   llvm::Optional<driver::Driver::CompilationDiagnosticReport> Report =
       generateReproducerForInvocationArguments(DriverArgs, InvocationInfo);

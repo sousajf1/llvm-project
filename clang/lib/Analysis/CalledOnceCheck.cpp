@@ -555,8 +555,8 @@ public:
   VisitBranchingBlock(const Stmt *Terminator, NeverCalledReason DefaultReason) {
     assert(Parent->succ_size() == 2 &&
            "Branching block should have exactly two successors");
-    unsigned SuccessorIndex = getSuccessorIndex(Parent, SuccInQuestion);
-    NeverCalledReason ActualReason =
+    unsigned const SuccessorIndex = getSuccessorIndex(Parent, SuccInQuestion);
+    NeverCalledReason const ActualReason =
         updateForSuccessor(DefaultReason, SuccessorIndex);
     return Clarification{ActualReason, Terminator};
   }
@@ -587,7 +587,7 @@ public:
   updateForSuccessor(NeverCalledReason ReasonForTrueBranch,
                      unsigned SuccessorIndex) {
     assert(SuccessorIndex <= 1);
-    unsigned RawReason =
+    unsigned const RawReason =
         static_cast<unsigned>(ReasonForTrueBranch) + SuccessorIndex;
     assert(RawReason <=
            static_cast<unsigned>(NeverCalledReason::LARGEST_VALUE));
@@ -656,7 +656,7 @@ private:
 
   template <class FunctionLikeDecl>
   void findParamsToTrack(const FunctionLikeDecl *Function) {
-    for (unsigned Index : llvm::seq<unsigned>(0u, Function->param_size())) {
+    for (unsigned const Index : llvm::seq<unsigned>(0u, Function->param_size())) {
       if (shouldBeCalledOnce(Function, Index)) {
         TrackedParams.push_back(Function->getParamDecl(Index));
       }
@@ -844,7 +844,7 @@ private:
 
       const State &BlockState = getState(BB);
 
-      for (unsigned Index : llvm::seq(0u, size())) {
+      for (unsigned const Index : llvm::seq(0u, size())) {
         // We don't want to use 'isLosingCall' here because we want to report
         // the following situation as well:
         //
@@ -922,7 +922,7 @@ private:
     } else if (CurrentParamStatus.getKind() != ParameterStatus::Reported) {
       // If we didn't report anything yet, let's mark this parameter
       // as called.
-      ParameterStatus Called(ParameterStatus::DefinitelyCalled, Call);
+      ParameterStatus const Called(ParameterStatus::DefinitelyCalled, Call);
       CurrentParamStatus = Called;
     }
   }
@@ -983,7 +983,7 @@ private:
       return false;
     }
 
-    QualType BlockType = Ty->castAs<BlockPointerType>()->getPointeeType();
+    QualType const BlockType = Ty->castAs<BlockPointerType>()->getPointeeType();
     // Completion handlers should have a block type with void return type.
     return BlockType->castAs<FunctionType>()->getReturnType()->isVoidType();
   }
@@ -1029,7 +1029,7 @@ private:
       return hasConventionalSuffix(MethodSelector.getNameForSlot(0));
     }
 
-    llvm::StringRef PieceName = MethodSelector.getNameForSlot(PieceIndex);
+    llvm::StringRef const PieceName = MethodSelector.getNameForSlot(PieceIndex);
     return isConventional(PieceName) || hasConventionalSuffix(PieceName);
   }
 
@@ -1043,7 +1043,7 @@ private:
 
   bool shouldBeCalledOnce(const DeclContext *ParamContext,
                           const ParmVarDecl *Param) {
-    unsigned ParamIndex = Param->getFunctionScopeIndex();
+    unsigned const ParamIndex = Param->getFunctionScopeIndex();
     if (const auto *Function = dyn_cast<FunctionDecl>(ParamContext)) {
       return shouldBeCalledOnce(Function, ParamIndex);
     }
@@ -1075,7 +1075,7 @@ private:
 
   bool shouldBeCalledOnce(const ObjCMethodDecl *Method,
                           unsigned ParamIndex) const {
-    Selector MethodSelector = Method->getSelector();
+    Selector const MethodSelector = Method->getSelector();
     if (ParamIndex >= MethodSelector.getNumArgs()) {
       return false;
     }
@@ -1117,7 +1117,7 @@ private:
 
   // Return a call site where the block is called exactly once or null otherwise
   const Expr *getBlockGuaraneedCallSite(const BlockExpr *Block) const {
-    ParentMap &PM = AC.getParentMap();
+    ParentMap  const&PM = AC.getParentMap();
 
     // We don't want to track the block through assignments and so on, instead
     // we simply see how the block used and if it's used directly in a call,

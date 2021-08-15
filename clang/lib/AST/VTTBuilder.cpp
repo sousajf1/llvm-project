@@ -68,7 +68,7 @@ void VTTBuilder::LayoutSecondaryVTTs(BaseSubobject Base) {
         cast<CXXRecordDecl>(I.getType()->castAs<RecordType>()->getDecl());
 
     const ASTRecordLayout &Layout = Ctx.getASTRecordLayout(RD);
-    CharUnits BaseOffset = Base.getBaseOffset() +
+    CharUnits const BaseOffset = Base.getBaseOffset() +
       Layout.getBaseClassOffset(BaseDecl);
 
     // Layout the VTT for this base.
@@ -163,7 +163,7 @@ void VTTBuilder::LayoutVirtualVTTs(const CXXRecordDecl *RD,
       if (!VBases.insert(BaseDecl).second)
         continue;
 
-      CharUnits BaseOffset =
+      CharUnits const BaseOffset =
         MostDerivedClassLayout.getVBaseClassOffset(BaseDecl);
 
       LayoutVTT(BaseSubobject(BaseDecl, BaseOffset), /*BaseIsVirtual=*/true);
@@ -185,14 +185,14 @@ void VTTBuilder::LayoutVTT(BaseSubobject Base, bool BaseIsVirtual) {
   if (RD->getNumVBases() == 0)
     return;
 
-  bool IsPrimaryVTT = Base.getBase() == MostDerivedClass;
+  bool const IsPrimaryVTT = Base.getBase() == MostDerivedClass;
 
   if (!IsPrimaryVTT) {
     // Remember the sub-VTT index.
     SubVTTIndicies[Base] = VTTComponents.size();
   }
 
-  uint64_t VTableIndex = VTTVTables.size();
+  uint64_t const VTableIndex = VTTVTables.size();
   VTTVTables.push_back(VTTVTable(Base, BaseIsVirtual));
 
   // Add the primary vtable pointer.

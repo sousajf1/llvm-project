@@ -55,7 +55,7 @@ TEST(CodeGenTest, TestNullCodeGen) {
   EXPECT_TRUE(Compiler.hasDiagnostics());
 
   std::unique_ptr<FrontendAction> Act(new NullCodeGenAction);
-  bool Success = Compiler.ExecuteAction(*Act);
+  bool const Success = Compiler.ExecuteAction(*Act);
   EXPECT_TRUE(Success);
 }
 

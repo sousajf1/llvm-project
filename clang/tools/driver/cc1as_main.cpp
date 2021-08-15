@@ -183,7 +183,7 @@ bool AssemblerInvocation::CreateFromArgs(AssemblerInvocation &Opts,
 
   const unsigned IncludedFlagsBitmask = options::CC1AsOption;
   unsigned MissingArgIndex, MissingArgCount;
-  InputArgList Args = OptTbl.ParseArgs(Argv, MissingArgIndex, MissingArgCount,
+  InputArgList const Args = OptTbl.ParseArgs(Argv, MissingArgIndex, MissingArgCount,
                                        IncludedFlagsBitmask);
 
   // Check for missing argument error.
@@ -269,8 +269,8 @@ bool AssemblerInvocation::CreateFromArgs(AssemblerInvocation &Opts,
   Opts.SplitDwarfOutput =
       std::string(Args.getLastArgValue(OPT_split_dwarf_output));
   if (Arg *A = Args.getLastArg(OPT_filetype)) {
-    StringRef Name = A->getValue();
-    unsigned OutputType = StringSwitch<unsigned>(Name)
+    StringRef const Name = A->getValue();
+    unsigned const OutputType = StringSwitch<unsigned>(Name)
       .Case("asm", FT_Asm)
       .Case("null", FT_Null)
       .Case("obj", FT_Obj)
@@ -344,7 +344,7 @@ static bool ExecuteAssemblerImpl(AssemblerInvocation &Opts,
   ErrorOr<std::unique_ptr<MemoryBuffer>> Buffer =
       MemoryBuffer::getFileOrSTDIN(Opts.InputFile, /*IsText=*/true);
 
-  if (std::error_code EC = Buffer.getError()) {
+  if (std::error_code const EC = Buffer.getError()) {
     Error = EC.message();
     return Diags.Report(diag::err_fe_error_reading) << Opts.InputFile;
   }
@@ -352,13 +352,13 @@ static bool ExecuteAssemblerImpl(AssemblerInvocation &Opts,
   SourceMgr SrcMgr;
 
   // Tell SrcMgr about this buffer, which is what the parser will pick up.
-  unsigned BufferIndex = SrcMgr.AddNewSourceBuffer(std::move(*Buffer), SMLoc());
+  unsigned const BufferIndex = SrcMgr.AddNewSourceBuffer(std::move(*Buffer), SMLoc());
 
   // Record the location of the include directories so that the lexer can find
   // it later.
   SrcMgr.setIncludeDirs(Opts.IncludePaths);
 
-  std::unique_ptr<MCRegisterInfo> MRI(TheTarget->createMCRegInfo(Opts.Triple));
+  std::unique_ptr<MCRegisterInfo> const MRI(TheTarget->createMCRegInfo(Opts.Triple));
   assert(MRI && "Unable to create target register info!");
 
   MCTargetOptions MCOptions;
@@ -372,7 +372,7 @@ static bool ExecuteAssemblerImpl(AssemblerInvocation &Opts,
 
   MAI->setRelaxELFRelocations(Opts.RelaxELFRelocations);
 
-  bool IsBinary = Opts.OutputType == AssemblerInvocation::FT_Obj;
+  bool const IsBinary = Opts.OutputType == AssemblerInvocation::FT_Obj;
   if (Opts.OutputPath.empty())
     Opts.OutputPath = "-";
   std::unique_ptr<raw_fd_ostream> FDOS =
@@ -384,9 +384,9 @@ static bool ExecuteAssemblerImpl(AssemblerInvocation &Opts,
     DwoOS = getOutputStream(Opts.SplitDwarfOutput, Diags, IsBinary);
 
   // Build up the feature string from the target feature list.
-  std::string FS = llvm::join(Opts.Features, ",");
+  std::string const FS = llvm::join(Opts.Features, ",");
 
-  std::unique_ptr<MCSubtargetInfo> STI(
+  std::unique_ptr<MCSubtargetInfo> const STI(
       TheTarget->createMCSubtargetInfo(Opts.Triple, Opts.CPU, FS));
   assert(STI && "Unable to create subtarget info!");
 
@@ -406,7 +406,7 @@ static bool ExecuteAssemblerImpl(AssemblerInvocation &Opts,
 
   // FIXME: This is not pretty. MCContext has a ptr to MCObjectFileInfo and
   // MCObjectFileInfo needs a MCContext reference in order to initialize itself.
-  std::unique_ptr<MCObjectFileInfo> MOFI(
+  std::unique_ptr<MCObjectFileInfo> const MOFI(
       TheTarget->createMCObjectFileInfo(Ctx, PIC));
   Ctx.setObjectFileInfo(MOFI.get());
 
@@ -439,7 +439,7 @@ static bool ExecuteAssemblerImpl(AssemblerInvocation &Opts,
 
   std::unique_ptr<MCStreamer> Str;
 
-  std::unique_ptr<MCInstrInfo> MCII(TheTarget->createMCInstrInfo());
+  std::unique_ptr<MCInstrInfo> const MCII(TheTarget->createMCInstrInfo());
   assert(MCII && "Unable to create instruction info!");
 
   raw_pwrite_stream *Out = FDOS.get();
@@ -485,7 +485,7 @@ static bool ExecuteAssemblerImpl(AssemblerInvocation &Opts,
         DwoOS ? MAB->createDwoObjectWriter(*Out, *DwoOS)
               : MAB->createObjectWriter(*Out);
 
-    Triple T(Opts.Triple);
+    Triple const T(Opts.Triple);
     Str.reset(TheTarget->createMCObjectStreamer(
         T, Ctx, std::move(MAB), std::move(OW), std::move(CE), *STI,
         Opts.RelaxAll, Opts.IncrementalLinkerCompatible,
@@ -511,7 +511,7 @@ static bool ExecuteAssemblerImpl(AssemblerInvocation &Opts,
       createMCAsmParser(SrcMgr, Ctx, *Str.get(), *MAI));
 
   // FIXME: init MCTargetOptions from sanitizer flags here.
-  std::unique_ptr<MCTargetAsmParser> TAP(
+  std::unique_ptr<MCTargetAsmParser> const TAP(
       TheTarget->createMCAsmParser(*STI, *Parser, *MCII, MCOptions));
   if (!TAP)
     Failed = Diags.Report(diag::err_target_unknown_triple) << Opts.Triple;
@@ -537,7 +537,7 @@ static bool ExecuteAssemblerImpl(AssemblerInvocation &Opts,
 
 static bool ExecuteAssembler(AssemblerInvocation &Opts,
                              DiagnosticsEngine &Diags) {
-  bool Failed = ExecuteAssemblerImpl(Opts, Diags);
+  bool const Failed = ExecuteAssemblerImpl(Opts, Diags);
 
   // Delete output file if there were errors.
   if (Failed) {
@@ -567,16 +567,16 @@ int cc1as_main(ArrayRef<const char *> Argv, const char *Argv0, void *MainAddr) {
   InitializeAllAsmParsers();
 
   // Construct our diagnostic client.
-  IntrusiveRefCntPtr<DiagnosticOptions> DiagOpts = new DiagnosticOptions();
+  IntrusiveRefCntPtr<DiagnosticOptions> const DiagOpts = new DiagnosticOptions();
   TextDiagnosticPrinter *DiagClient
     = new TextDiagnosticPrinter(errs(), &*DiagOpts);
   DiagClient->setPrefix("clang -cc1as");
-  IntrusiveRefCntPtr<DiagnosticIDs> DiagID(new DiagnosticIDs());
+  IntrusiveRefCntPtr<DiagnosticIDs> const DiagID(new DiagnosticIDs());
   DiagnosticsEngine Diags(DiagID, &*DiagOpts, DiagClient);
 
   // Set an error handler, so that any LLVM backend diagnostics go through our
   // error handler.
-  ScopedFatalErrorHandler FatalErrorHandler
+  ScopedFatalErrorHandler const FatalErrorHandler
     (LLVMErrorHandler, static_cast<void*>(&Diags));
 
   // Parse the arguments.
@@ -605,7 +605,7 @@ int cc1as_main(ArrayRef<const char *> Argv, const char *Argv0, void *MainAddr) {
   //
   // FIXME: Remove this, one day.
   if (!Asm.LLVMArgs.empty()) {
-    unsigned NumArgs = Asm.LLVMArgs.size();
+    unsigned const NumArgs = Asm.LLVMArgs.size();
     auto Args = std::make_unique<const char*[]>(NumArgs + 2);
     Args[0] = "clang (LLVM option parsing)";
     for (unsigned i = 0; i != NumArgs; ++i)
@@ -615,7 +615,7 @@ int cc1as_main(ArrayRef<const char *> Argv, const char *Argv0, void *MainAddr) {
   }
 
   // Execute the invocation, unless there were parsing errors.
-  bool Failed = Diags.hasErrorOccurred() || ExecuteAssembler(Asm, Diags);
+  bool const Failed = Diags.hasErrorOccurred() || ExecuteAssembler(Asm, Diags);
 
   // If any timers were active but haven't been destroyed yet, print their
   // results now.

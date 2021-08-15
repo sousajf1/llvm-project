@@ -224,7 +224,7 @@ void mips::getMIPSTargetFeatures(const Driver &D, const llvm::Triple &Triple,
 
   // For case (a) we need to add +noabicalls for N64.
 
-  bool IsN64 = ABIName == "64";
+  bool const IsN64 = ABIName == "64";
   bool IsPIC = false;
   bool NonPIC = false;
 
@@ -233,7 +233,7 @@ void mips::getMIPSTargetFeatures(const Driver &D, const llvm::Triple &Triple,
                                     options::OPT_fPIE, options::OPT_fno_PIE,
                                     options::OPT_fpie, options::OPT_fno_pie);
   if (LastPICArg) {
-    Option O = LastPICArg->getOption();
+    Option const O = LastPICArg->getOption();
     NonPIC =
         (O.matches(options::OPT_fno_PIC) || O.matches(options::OPT_fno_pic) ||
          O.matches(options::OPT_fno_PIE) || O.matches(options::OPT_fno_pie));
@@ -280,7 +280,7 @@ void mips::getMIPSTargetFeatures(const Driver &D, const llvm::Triple &Triple,
       Features.push_back("-xgot");
   }
 
-  mips::FloatABI FloatABI = mips::getMipsFloatABI(D, Args, Triple);
+  mips::FloatABI const FloatABI = mips::getMipsFloatABI(D, Args, Triple);
   if (FloatABI == mips::FloatABI::Soft) {
     // FIXME: Note, this is a hack. We need to pass the selected float
     // mode to the MipsTargetInfoBase to define appropriate macros there.
@@ -289,7 +289,7 @@ void mips::getMIPSTargetFeatures(const Driver &D, const llvm::Triple &Triple,
   }
 
   if (Arg *A = Args.getLastArg(options::OPT_mnan_EQ)) {
-    StringRef Val = StringRef(A->getValue());
+    StringRef const Val = StringRef(A->getValue());
     if (Val == "2008") {
       if (mips::getIEEE754Standard(CPUName) & mips::Std2008)
         Features.push_back("+nan2008");
@@ -310,7 +310,7 @@ void mips::getMIPSTargetFeatures(const Driver &D, const llvm::Triple &Triple,
   }
 
   if (Arg *A = Args.getLastArg(options::OPT_mabs_EQ)) {
-    StringRef Val = StringRef(A->getValue());
+    StringRef const Val = StringRef(A->getValue());
     if (Val == "2008") {
       if (mips::getIEEE754Standard(CPUName) & mips::Std2008) {
         Features.push_back("+abs2008");
@@ -377,7 +377,7 @@ void mips::getMIPSTargetFeatures(const Driver &D, const llvm::Triple &Triple,
                    "ginv");
 
   if (Arg *A = Args.getLastArg(options::OPT_mindirect_jump_EQ)) {
-    StringRef Val = StringRef(A->getValue());
+    StringRef const Val = StringRef(A->getValue());
     if (Val == "hazard") {
       Arg *B =
           Args.getLastArg(options::OPT_mmicromips, options::OPT_mno_micromips);

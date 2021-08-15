@@ -78,7 +78,7 @@ ComparisonCategoryInfo::ValueInfo *ComparisonCategoryInfo::lookupValueInfo(
 
   // We don't have a cached result. Lookup the variable declaration and create
   // a new entry representing it.
-  DeclContextLookupResult Lookup = Record->getCanonicalDecl()->lookup(
+  DeclContextLookupResult const Lookup = Record->getCanonicalDecl()->lookup(
       &Ctx.Idents.get(ComparisonCategories::getResultString(ValueKind)));
   if (Lookup.empty() || !isa<VarDecl>(Lookup.front()))
     return nullptr;
@@ -89,7 +89,7 @@ ComparisonCategoryInfo::ValueInfo *ComparisonCategoryInfo::lookupValueInfo(
 static const NamespaceDecl *lookupStdNamespace(const ASTContext &Ctx,
                                                NamespaceDecl *&StdNS) {
   if (!StdNS) {
-    DeclContextLookupResult Lookup =
+    DeclContextLookupResult const Lookup =
         Ctx.getTranslationUnitDecl()->lookup(&Ctx.Idents.get("std"));
     if (!Lookup.empty())
       StdNS = dyn_cast<NamespaceDecl>(Lookup.front());
@@ -100,8 +100,8 @@ static const NamespaceDecl *lookupStdNamespace(const ASTContext &Ctx,
 static CXXRecordDecl *lookupCXXRecordDecl(const ASTContext &Ctx,
                                           const NamespaceDecl *StdNS,
                                           ComparisonCategoryType Kind) {
-  StringRef Name = ComparisonCategories::getCategoryString(Kind);
-  DeclContextLookupResult Lookup = StdNS->lookup(&Ctx.Idents.get(Name));
+  StringRef const Name = ComparisonCategories::getCategoryString(Kind);
+  DeclContextLookupResult const Lookup = StdNS->lookup(&Ctx.Idents.get(Name));
   if (!Lookup.empty())
     if (CXXRecordDecl *RD = dyn_cast<CXXRecordDecl>(Lookup.front()))
       return RD;
@@ -204,7 +204,7 @@ ComparisonCategories::getPossibleResultsForType(ComparisonCategoryType Type) {
   using CCR = ComparisonCategoryResult;
   std::vector<CCR> Values;
   Values.reserve(4);
-  bool IsStrong = Type == CCT::StrongOrdering;
+  bool const IsStrong = Type == CCT::StrongOrdering;
   Values.push_back(IsStrong ? CCR::Equal : CCR::Equivalent);
   Values.push_back(CCR::Less);
   Values.push_back(CCR::Greater);

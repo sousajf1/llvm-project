@@ -106,7 +106,7 @@ public:
         }
       } else if (auto CXXOp = dyn_cast<CXXOperatorCallExpr>(CE)) {
         if (CXXOp->getNumArgs() > 0 && CXXOp->getArg(0)->IgnoreParenCasts() == E) {
-          OverloadedOperatorKind Op = CXXOp->getOperator();
+          OverloadedOperatorKind const Op = CXXOp->getOperator();
           if (Op == OO_Equal) {
             Roles |= (unsigned)SymbolRole::Write;
           } else if ((Op >= OO_PlusEqual && Op <= OO_PipeEqual) ||
@@ -135,7 +135,7 @@ public:
 
   bool VisitDeclRefExpr(DeclRefExpr *E) {
     SmallVector<SymbolRelation, 4> Relations;
-    SymbolRoleSet Roles = getRolesForRef(E, Relations);
+    SymbolRoleSet const Roles = getRolesForRef(E, Relations);
     return IndexCtx.handleReference(E->getDecl(), E->getLocation(),
                                     Parent, ParentDC, Roles, Relations, E);
   }
@@ -145,7 +145,7 @@ public:
     if (Loc.isInvalid())
       Loc = E->getBeginLoc();
     SmallVector<SymbolRelation, 4> Relations;
-    SymbolRoleSet Roles = getRolesForRef(E, Relations);
+    SymbolRoleSet const Roles = getRolesForRef(E, Relations);
     return IndexCtx.handleReference(E->getMemberDecl(), Loc,
                                     Parent, ParentDC, Roles, Relations, E);
   }
@@ -159,7 +159,7 @@ public:
         T->getAs<TemplateSpecializationType>();
     if (!TST)
       return true;
-    TemplateName TN = TST->getTemplateName();
+    TemplateName const TN = TST->getTemplateName();
     const ClassTemplateDecl *TD =
         dyn_cast_or_null<ClassTemplateDecl>(TN.getAsTemplateDecl());
     if (!TD)
@@ -177,7 +177,7 @@ public:
     if (Loc.isInvalid())
       Loc = E->getBeginLoc();
     SmallVector<SymbolRelation, 4> Relations;
-    SymbolRoleSet Roles = getRolesForRef(E, Relations);
+    SymbolRoleSet const Roles = getRolesForRef(E, Relations);
     return IndexCtx.handleReference(Symbols[0], Loc, Parent, ParentDC, Roles,
                                     Relations, E);
   }
@@ -198,7 +198,7 @@ public:
   }
 
   bool VisitDesignatedInitExpr(DesignatedInitExpr *E) {
-    for (DesignatedInitExpr::Designator &D : llvm::reverse(E->designators())) {
+    for (DesignatedInitExpr::Designator  const&D : llvm::reverse(E->designators())) {
       if (D.isFieldDesignator() && D.getField())
         return IndexCtx.handleReference(D.getField(), D.getFieldLoc(), Parent,
                                         ParentDC, SymbolRoleSet(), {}, E);
@@ -208,7 +208,7 @@ public:
 
   bool VisitObjCIvarRefExpr(ObjCIvarRefExpr *E) {
     SmallVector<SymbolRelation, 4> Relations;
-    SymbolRoleSet Roles = getRolesForRef(E, Relations);
+    SymbolRoleSet const Roles = getRolesForRef(E, Relations);
     return IndexCtx.handleReference(E->getDecl(), E->getLocation(),
                                     Parent, ParentDC, Roles, Relations, E);
   }
@@ -250,7 +250,7 @@ public:
         }
         return true;
       };
-      bool IsPropCall = Containing && isa<PseudoObjectExpr>(Containing);
+      bool const IsPropCall = Containing && isa<PseudoObjectExpr>(Containing);
       // Implicit property message sends are not 'implicit'.
       if ((E->isImplicit() || IsPropCall) &&
           !(IsPropCall &&
@@ -272,7 +272,7 @@ public:
                                    protD);
           }
         };
-        QualType recT = E->getReceiverType();
+        QualType const recT = E->getReceiverType();
         if (const auto *Ptr = recT->getAs<ObjCObjectPointerType>())
           addReceivers(Ptr->getObjectType());
         else
@@ -288,7 +288,7 @@ public:
   bool VisitObjCPropertyRefExpr(ObjCPropertyRefExpr *E) {
     if (E->isExplicitProperty()) {
       SmallVector<SymbolRelation, 2> Relations;
-      SymbolRoleSet Roles = getRolesForRef(E, Relations);
+      SymbolRoleSet const Roles = getRolesForRef(E, Relations);
       return IndexCtx.handleReference(E->getExplicitProperty(), E->getLocation(),
                                       Parent, ParentDC, Roles, Relations, E);
     } else if (const ObjCMethodDecl *Getter = E->getImplicitPropertyGetter()) {
@@ -298,7 +298,7 @@ public:
       if (Getter->isClassMethod()) {
         if (const auto *PD = Getter->getCanonicalDecl()->findPropertyDecl()) {
           SmallVector<SymbolRelation, 2> Relations;
-          SymbolRoleSet Roles = getRolesForRef(E, Relations);
+          SymbolRoleSet const Roles = getRolesForRef(E, Relations);
           return IndexCtx.handleReference(PD, E->getLocation(), Parent,
                                           ParentDC, Roles, Relations, E);
         }
@@ -412,7 +412,7 @@ public:
     };
 
     auto visitSyntacticDesignatedInitExpr = [&](DesignatedInitExpr *E) -> bool {
-      for (DesignatedInitExpr::Designator &D : llvm::reverse(E->designators())) {
+      for (DesignatedInitExpr::Designator  const&D : llvm::reverse(E->designators())) {
         if (D.isFieldDesignator() && D.getField())
           return IndexCtx.handleReference(D.getField(), D.getFieldLoc(),
                                           Parent, ParentDC, SymbolRoleSet(),
@@ -466,7 +466,7 @@ public:
 
   bool VisitUnresolvedLookupExpr(UnresolvedLookupExpr *E) {
     SmallVector<SymbolRelation, 4> Relations;
-    SymbolRoleSet Roles = getRolesForRef(E, Relations);
+    SymbolRoleSet const Roles = getRolesForRef(E, Relations);
     for (auto *D : E->decls())
       IndexCtx.handleReference(D, E->getNameLoc(), Parent, ParentDC, Roles,
                                Relations, E);

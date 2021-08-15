@@ -865,7 +865,7 @@ void OMPClauseProfiler::VisitOMPExclusiveClause(const OMPExclusiveClause *C) {
 void OMPClauseProfiler::VisitOMPUsesAllocatorsClause(
     const OMPUsesAllocatorsClause *C) {
   for (unsigned I = 0, E = C->getNumberOfAllocators(); I < E; ++I) {
-    OMPUsesAllocatorsClause::Data D = C->getAllocatorData(I);
+    OMPUsesAllocatorsClause::Data const D = C->getAllocatorData(I);
     Profiler->VisitStmt(D.Allocator);
     if (D.AllocatorTraits)
       Profiler->VisitStmt(D.AllocatorTraits);
@@ -884,7 +884,7 @@ void
 StmtProfiler::VisitOMPExecutableDirective(const OMPExecutableDirective *S) {
   VisitStmt(S);
   OMPClauseProfiler P(this);
-  ArrayRef<OMPClause *> Clauses = S->clauses();
+  ArrayRef<OMPClause *> const Clauses = S->clauses();
   for (ArrayRef<OMPClause *>::iterator I = Clauses.begin(), E = Clauses.end();
        I != E; ++I)
     if (*I)
@@ -1262,7 +1262,7 @@ void StmtProfiler::VisitUnaryOperator(const UnaryOperator *S) {
 
 void StmtProfiler::VisitOffsetOfExpr(const OffsetOfExpr *S) {
   VisitType(S->getTypeSourceInfo()->getType());
-  unsigned n = S->getNumComponents();
+  unsigned const n = S->getNumComponents();
   for (unsigned i = 0; i < n; ++i) {
     const OffsetOfNode &ON = S->getComponent(i);
     ID.AddInteger(ON.getKind());
@@ -1468,7 +1468,7 @@ void StmtProfiler::VisitGenericSelectionExpr(const GenericSelectionExpr *S) {
   VisitExpr(S);
   for (const GenericSelectionExpr::ConstAssociation Assoc :
        S->associations()) {
-    QualType T = Assoc.getType();
+    QualType const T = Assoc.getType();
     if (T.isNull())
       ID.AddPointer(nullptr);
     else
@@ -1757,7 +1757,7 @@ void StmtProfiler::VisitCXXOperatorCallExpr(const CXXOperatorCallExpr *S) {
 
     UnaryOperatorKind UnaryOp = UO_Extension;
     BinaryOperatorKind BinaryOp = BO_Comma;
-    Stmt::StmtClass SC = DecodeOperatorCall(S, UnaryOp, BinaryOp);
+    Stmt::StmtClass const SC = DecodeOperatorCall(S, UnaryOp, BinaryOp);
 
     ID.AddInteger(SC);
     for (unsigned I = 0, N = S->getNumArgs(); I != N; ++I)

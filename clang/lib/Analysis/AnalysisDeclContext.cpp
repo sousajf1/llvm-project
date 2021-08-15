@@ -191,7 +191,7 @@ AnalysisDeclContext::getBlockForRegisteredExpression(const Stmt *stmt) {
   assert(forcedBlkExprs);
   if (const auto *e = dyn_cast<Expr>(stmt))
     stmt = e->IgnoreParens();
-  CFG::BuildOptions::ForcedBlkExprs::const_iterator itr =
+  CFG::BuildOptions::ForcedBlkExprs::const_iterator const itr =
     forcedBlkExprs->find(stmt);
   assert(itr != forcedBlkExprs->end());
   return itr->second;
@@ -231,7 +231,7 @@ CFG *AnalysisDeclContext::getCFG() {
 
 CFG *AnalysisDeclContext::getUnoptimizedCFG() {
   if (!builtCompleteCFG) {
-    SaveAndRestore<bool> NotPrune(cfgBuildOptions.PruneTriviallyFalseEdges,
+    SaveAndRestore<bool> const NotPrune(cfgBuildOptions.PruneTriviallyFalseEdges,
                                   false);
     completeCFG =
         CFG::buildCFG(D, getBody(), &D->getASTContext(), cfgBuildOptions);
@@ -358,7 +358,7 @@ std::string AnalysisDeclContext::getFunctionName(const Decl *D) {
     }
 
   } else if (isa<BlockDecl>(D)) {
-    PresumedLoc Loc = Ctx.getSourceManager().getPresumedLoc(D->getLocation());
+    PresumedLoc const Loc = Ctx.getSourceManager().getPresumedLoc(D->getLocation());
 
     if (Loc.isValid()) {
       OS << "block (line: " << Loc.getLine() << ", col: " << Loc.getColumn()
@@ -495,7 +495,7 @@ static void printLocation(raw_ostream &Out, const SourceManager &SM,
 }
 
 void LocationContext::dumpStack(raw_ostream &Out) const {
-  ASTContext &Ctx = getAnalysisDeclContext()->getASTContext();
+  ASTContext  const&Ctx = getAnalysisDeclContext()->getASTContext();
   PrintingPolicy PP(Ctx.getLangOpts());
   PP.TerseOutput = 1;
 
@@ -533,7 +533,7 @@ void LocationContext::printJson(raw_ostream &Out, const char *NL,
                                 unsigned int Space, bool IsDot,
                                 std::function<void(const LocationContext *)>
                                     printMoreInfoPerContext) const {
-  ASTContext &Ctx = getAnalysisDeclContext()->getASTContext();
+  ASTContext  const&Ctx = getAnalysisDeclContext()->getASTContext();
   PrintingPolicy PP(Ctx.getLangOpts());
   PP.TerseOutput = 1;
 

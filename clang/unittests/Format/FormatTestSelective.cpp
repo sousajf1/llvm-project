@@ -22,9 +22,9 @@ protected:
   std::string format(llvm::StringRef Code, unsigned Offset, unsigned Length) {
     LLVM_DEBUG(llvm::errs() << "---\n");
     LLVM_DEBUG(llvm::errs() << Code << "\n\n");
-    std::vector<tooling::Range> Ranges(1, tooling::Range(Offset, Length));
+    std::vector<tooling::Range> const Ranges(1, tooling::Range(Offset, Length));
     FormattingAttemptStatus Status;
-    tooling::Replacements Replaces =
+    tooling::Replacements const Replaces =
         reformat(Style, Code, Ranges, "<stdin>", &Status);
     EXPECT_TRUE(Status.FormatComplete) << Code << "\n\n";
     auto Result = applyAllReplacements(Code, Replaces);
@@ -596,7 +596,7 @@ TEST_F(FormatTestSelective, SelectivelyRequoteJavaScript) {
 }
 
 TEST_F(FormatTestSelective, KeepsIndentAfterCommentSectionImport) {
-  std::string Code = "#include <a> // line 1\n" // 23 chars long
+  std::string const Code = "#include <a> // line 1\n" // 23 chars long
                      "             // line 2\n" // 23 chars long
                      "\n"                       // this newline is char 47
                      "int i;";                  // this line is not indented

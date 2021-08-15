@@ -66,7 +66,7 @@ void msp430::getMSP430TargetFeatures(const Driver &D, const ArgList &Args,
     return;
 
   StringRef HWMult = HWMultArg ? HWMultArg->getValue() : "auto";
-  StringRef SupportedHWMult = getSupportedHWMult(MCU);
+  StringRef const SupportedHWMult = getSupportedHWMult(MCU);
 
   if (HWMult == "auto") {
     // 'auto' - deduce hw multiplier support based on mcu name provided.
@@ -267,11 +267,11 @@ void msp430::Linker::ConstructJob(Compilation &C, const JobAction &JA,
                                   const char *LinkingOutput) const {
   const ToolChain &ToolChain = getToolChain();
   const Driver &D = ToolChain.getDriver();
-  std::string Linker = ToolChain.GetProgramPath(getShortName());
+  std::string const Linker = ToolChain.GetProgramPath(getShortName());
   ArgStringList CmdArgs;
-  bool UseExceptions = Args.hasFlag(options::OPT_fexceptions,
+  bool const UseExceptions = Args.hasFlag(options::OPT_fexceptions,
                                     options::OPT_fno_exceptions, false);
-  bool UseStartAndEndFiles = !Args.hasArg(options::OPT_nostdlib, options::OPT_r,
+  bool const UseStartAndEndFiles = !Args.hasArg(options::OPT_nostdlib, options::OPT_r,
                                           options::OPT_nostartfiles);
 
   if (Args.hasArg(options::OPT_mrelax))

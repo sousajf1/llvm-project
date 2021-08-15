@@ -92,7 +92,7 @@ PrintedNamedDeclMatches(StringRef Code, const std::vector<std::string> &Args,
 ::testing::AssertionResult
 PrintedNamedDeclCXX98Matches(StringRef Code, StringRef DeclName,
                              StringRef ExpectedPrinted) {
-  std::vector<std::string> Args(1, "-std=c++98");
+  std::vector<std::string> const Args(1, "-std=c++98");
   return PrintedNamedDeclMatches(Code, Args,
                                  /*SuppressUnwrittenScope*/ false,
                                  namedDecl(hasName(DeclName)).bind("id"),
@@ -102,7 +102,7 @@ PrintedNamedDeclCXX98Matches(StringRef Code, StringRef DeclName,
 ::testing::AssertionResult
 PrintedWrittenNamedDeclCXX11Matches(StringRef Code, StringRef DeclName,
                                     StringRef ExpectedPrinted) {
-  std::vector<std::string> Args(1, "-std=c++11");
+  std::vector<std::string> const Args(1, "-std=c++11");
   return PrintedNamedDeclMatches(Code, Args,
                                  /*SuppressUnwrittenScope*/ true,
                                  namedDecl(hasName(DeclName)).bind("id"),
@@ -112,7 +112,7 @@ PrintedWrittenNamedDeclCXX11Matches(StringRef Code, StringRef DeclName,
 ::testing::AssertionResult
 PrintedWrittenPropertyDeclObjCMatches(StringRef Code, StringRef DeclName,
                                    StringRef ExpectedPrinted) {
-  std::vector<std::string> Args{"-std=c++11", "-xobjective-c++"};
+  std::vector<std::string> const Args{"-std=c++11", "-xobjective-c++"};
   return PrintedNamedDeclMatches(Code, Args,
                                  /*SuppressUnwrittenScope*/ true,
                                  objcPropertyDecl(hasName(DeclName)).bind("id"),
@@ -122,7 +122,7 @@ PrintedWrittenPropertyDeclObjCMatches(StringRef Code, StringRef DeclName,
 ::testing::AssertionResult
 PrintedNestedNameSpecifierMatches(StringRef Code, StringRef DeclName,
                                   StringRef ExpectedPrinted) {
-  std::vector<std::string> Args{"-std=c++11"};
+  std::vector<std::string> const Args{"-std=c++11"};
   return PrintedDeclMatches(Code, Args, namedDecl(hasName(DeclName)).bind("id"),
                             ExpectedPrinted, "input.cc",
                             [](llvm::raw_ostream &Out, const NamedDecl *D) {
@@ -222,7 +222,7 @@ R"(
 @end
 )";
 
-  std::vector<std::string> Args{
+  std::vector<std::string> const Args{
       "-std=c++11", "-xobjective-c++",
       "-fobjc-runtime=macosx" /*force to use non-fragile ABI*/};
   ASSERT_TRUE(PrintedNamedDeclMatches(Code, Args,

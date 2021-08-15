@@ -34,7 +34,7 @@ static bool isEmptyARCMTMacroStatement(NullStmt *S,
   if (!S->hasLeadingEmptyMacro())
     return false;
 
-  SourceLocation SemiLoc = S->getSemiLoc();
+  SourceLocation const SemiLoc = S->getSemiLoc();
   if (SemiLoc.isInvalid() || SemiLoc.isMacroID())
     return false;
 
@@ -46,7 +46,7 @@ static bool isEmptyARCMTMacroStatement(NullStmt *S,
       MacroLocs, SemiLoc, BeforeThanCompare<SourceLocation>(SM));
   --I;
   SourceLocation
-      AfterMacroLoc = I->getLocWithOffset(getARCMTMacroName().size());
+      const AfterMacroLoc = I->getLocWithOffset(getARCMTMacroName().size());
   assert(AfterMacroLoc.isFileID());
 
   if (AfterMacroLoc == SemiLoc)
@@ -65,7 +65,7 @@ static bool isEmptyARCMTMacroStatement(NullStmt *S,
   if (RelOffs - getARCMTMacroName().size() > 100)
     return false;
 
-  SourceLocation AfterMacroSemiLoc = findSemiAfterLocation(AfterMacroLoc, Ctx);
+  SourceLocation const AfterMacroSemiLoc = findSemiAfterLocation(AfterMacroLoc, Ctx);
   return AfterMacroSemiLoc == SemiLoc;
 }
 
@@ -173,7 +173,7 @@ private:
   void check(Stmt *S) {
     if (!S) return;
     if (EmptyChecker(Pass.Ctx, Pass.ARCMTMacroLocs).Visit(S)) {
-      Transaction Trans(Pass.TA);
+      Transaction const Trans(Pass.TA);
       Pass.TA.removeStmt(S);
     }
   }
@@ -194,7 +194,7 @@ static void cleanupDeallocOrFinalize(MigrationPass &pass) {
   ASTContext &Ctx = pass.Ctx;
   TransformActions &TA = pass.TA;
   DeclContext *DC = Ctx.getTranslationUnitDecl();
-  Selector FinalizeSel =
+  Selector const FinalizeSel =
       Ctx.Selectors.getNullarySelector(&pass.Ctx.Idents.get("finalize"));
 
   typedef DeclContext::specific_decl_iterator<ObjCImplementationDecl>
@@ -216,21 +216,21 @@ static void cleanupDeallocOrFinalize(MigrationPass &pass) {
 
     if (DeallocM) {
       if (isBodyEmpty(DeallocM->getCompoundBody(), Ctx, pass.ARCMTMacroLocs)) {
-        Transaction Trans(TA);
+        Transaction const Trans(TA);
         TA.remove(DeallocM->getSourceRange());
       }
 
       if (FinalizeM) {
-        Transaction Trans(TA);
+        Transaction const Trans(TA);
         TA.remove(FinalizeM->getSourceRange());
       }
 
     } else if (FinalizeM) {
       if (isBodyEmpty(FinalizeM->getCompoundBody(), Ctx, pass.ARCMTMacroLocs)) {
-        Transaction Trans(TA);
+        Transaction const Trans(TA);
         TA.remove(FinalizeM->getSourceRange());
       } else {
-        Transaction Trans(TA);
+        Transaction const Trans(TA);
         TA.replaceText(FinalizeM->getSelectorStartLoc(), "finalize", "dealloc");
       }
     }
@@ -243,7 +243,7 @@ void trans::removeEmptyStatementsAndDeallocFinalize(MigrationPass &pass) {
   cleanupDeallocOrFinalize(pass);
 
   for (unsigned i = 0, e = pass.ARCMTMacroLocs.size(); i != e; ++i) {
-    Transaction Trans(pass.TA);
+    Transaction const Trans(pass.TA);
     pass.TA.remove(pass.ARCMTMacroLocs[i]);
   }
 }

@@ -117,7 +117,7 @@ TEST_F(SortImportsTestJava, UnspecifiedGroupAfterAllGroups) {
 }
 
 TEST_F(SortImportsTestJava, NoSortOutsideRange) {
-  std::vector<tooling::Range> Ranges = {tooling::Range(27, 15)};
+  std::vector<tooling::Range> const Ranges = {tooling::Range(27, 15)};
   EXPECT_EQ("import org.b;\n"
             "import org.a;\n"
             "// comments\n"
@@ -132,7 +132,7 @@ TEST_F(SortImportsTestJava, NoSortOutsideRange) {
 }
 
 TEST_F(SortImportsTestJava, SortWhenRangeContainsOneLine) {
-  std::vector<tooling::Range> Ranges = {tooling::Range(27, 20)};
+  std::vector<tooling::Range> const Ranges = {tooling::Range(27, 20)};
   EXPECT_EQ("import org.a;\n"
             "import org.b;\n"
             "\n"
@@ -335,14 +335,14 @@ TEST_F(SortImportsTestJava, ImportNamedFunction) {
 
 TEST_F(SortImportsTestJava, NoReplacementsForValidImports) {
   // Identical #includes have led to a failure with an unstable sort.
-  std::string Code = "import org.a;\n"
+  std::string const Code = "import org.a;\n"
                      "import org.b;\n";
   EXPECT_TRUE(
       sortIncludes(FmtStyle, Code, GetCodeRange(Code), "input.java").empty());
 }
 
 TEST_F(SortImportsTestJava, NoReplacementsForValidImportsWindows) {
-  std::string Code = "import org.a;\r\n"
+  std::string const Code = "import org.a;\r\n"
                      "import org.b;\r\n";
   EXPECT_TRUE(
       sortIncludes(FmtStyle, Code, GetCodeRange(Code), "input.java").empty());

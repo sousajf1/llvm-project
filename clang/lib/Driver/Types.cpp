@@ -54,7 +54,7 @@ const char *types::getTypeName(ID Id) {
 }
 
 types::ID types::getPreprocessedType(ID Id) {
-  ID PPT = getInfo(Id).PreprocessedType;
+  ID const PPT = getInfo(Id).PreprocessedType;
   assert((getInfo(Id).Phases.contains(phases::Preprocess) !=
           (PPT == TY_INVALID)) &&
          "Unexpected Preprocess Type.");
@@ -336,7 +336,7 @@ types::ID types::lookupTypeForExtension(llvm::StringRef Ext) {
 
 types::ID types::lookupTypeForTypeSpecifier(const char *Name) {
   for (unsigned i=0; i<numTypes; ++i) {
-    types::ID Id = (types::ID) (i + 1);
+    types::ID const Id = (types::ID) (i + 1);
     if (canTypeBeUserSpecified(Id) &&
         strcmp(Name, getInfo(Id).Name) == 0)
       return Id;

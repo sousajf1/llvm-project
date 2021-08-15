@@ -77,7 +77,7 @@ public:
 
 TEST(Introspection, SourceLocations_CallContainer) {
   SourceLocationMap slm;
-  SharedLocationCall Prefix;
+  SharedLocationCall const Prefix;
   slm.insert(std::make_pair(
       SourceLocation(),
       llvm::makeIntrusiveRefCnt<LocationCall>(Prefix, "getSourceRange")));
@@ -93,7 +93,7 @@ TEST(Introspection, SourceLocations_CallContainer) {
 
 TEST(Introspection, SourceLocations_CallContainer2) {
   SourceRangeMap slm;
-  SharedLocationCall Prefix;
+  SharedLocationCall const Prefix;
   slm.insert(
       std::make_pair(SourceRange(), llvm::makeIntrusiveRefCnt<LocationCall>(
                                         Prefix, "getCXXOperatorNameRange")));
@@ -106,7 +106,7 @@ TEST(Introspection, SourceLocations_CallContainer2) {
 }
 
 TEST(Introspection, SourceLocations_CallChainFormatting) {
-  SharedLocationCall Prefix;
+  SharedLocationCall const Prefix;
   auto chainedCall = llvm::makeIntrusiveRefCnt<LocationCall>(
       llvm::makeIntrusiveRefCnt<LocationCall>(Prefix, "getTypeLoc"),
       "getSourceRange");
@@ -115,7 +115,7 @@ TEST(Introspection, SourceLocations_CallChainFormatting) {
 }
 
 TEST(Introspection, SourceLocations_Formatter) {
-  SharedLocationCall Prefix;
+  SharedLocationCall const Prefix;
   auto chainedCall = llvm::makeIntrusiveRefCnt<LocationCall>(
       llvm::makeIntrusiveRefCnt<LocationCall>(
           llvm::makeIntrusiveRefCnt<LocationCall>(
@@ -210,7 +210,7 @@ ns1::ns2::Foo<A, B> ns1::ns2::Bar<T, U>::Nested::method(int i, bool b) const
   llvm::sort(ExpectedLocations);
 
   // clang-format off
-  std::vector<std::pair<std::string, SourceLocation>> ActualLocations{
+  std::vector<std::pair<std::string, SourceLocation>> const ActualLocations{
 STRING_LOCATION_STDPAIR(MethodDecl, getBeginLoc()),
 STRING_LOCATION_STDPAIR(MethodDecl, getBodyRBrace()),
 STRING_LOCATION_STDPAIR(MethodDecl, getEndLoc()),

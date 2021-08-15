@@ -66,7 +66,7 @@ void FindIdenticalExprVisitor::reportIdenticalExpr(const BinaryOperator *B,
   else
     Message = "identical expressions on both sides of logical operator";
 
-  PathDiagnosticLocation ELoc =
+  PathDiagnosticLocation const ELoc =
       PathDiagnosticLocation::createOperatorLoc(B, BR.getSourceManager());
   BR.EmitBasicReport(AC->getDecl(), Checker,
                      "Use of identical expressions",
@@ -116,7 +116,7 @@ bool FindIdenticalExprVisitor::VisitIfStmt(const IfStmt *I) {
     if (!CS->body_empty()) {
       const IfStmt *InnerIf = dyn_cast<IfStmt>(*CS->body_begin());
       if (InnerIf && isIdenticalStmt(AC->getASTContext(), I->getCond(), InnerIf->getCond(), /*IgnoreSideEffects=*/ false)) {
-        PathDiagnosticLocation ELoc(InnerIf->getCond(), BR.getSourceManager(), AC);
+        PathDiagnosticLocation const ELoc(InnerIf->getCond(), BR.getSourceManager(), AC);
         BR.EmitBasicReport(AC->getDecl(), Checker, "Identical conditions",
           categories::LogicError,
           "conditions of the inner and outer statements are identical",
@@ -138,8 +138,8 @@ bool FindIdenticalExprVisitor::VisitIfStmt(const IfStmt *I) {
     while (const IfStmt *I2 = dyn_cast_or_null<IfStmt>(Else)) {
       const Expr *Cond2 = I2->getCond();
       if (isIdenticalStmt(AC->getASTContext(), Cond1, Cond2, false)) {
-        SourceRange Sr = Cond1->getSourceRange();
-        PathDiagnosticLocation ELoc(Cond2, BR.getSourceManager(), AC);
+        SourceRange const Sr = Cond1->getSourceRange();
+        PathDiagnosticLocation const ELoc(Cond2, BR.getSourceManager(), AC);
         BR.EmitBasicReport(AC->getDecl(), Checker, "Identical conditions",
                            categories::LogicError,
                            "expression is identical to previous condition",
@@ -168,7 +168,7 @@ bool FindIdenticalExprVisitor::VisitIfStmt(const IfStmt *I) {
   }
 
   if (isIdenticalStmt(AC->getASTContext(), Stmt1, Stmt2, true)) {
-      PathDiagnosticLocation ELoc =
+      PathDiagnosticLocation const ELoc =
           PathDiagnosticLocation::createBegin(I, BR.getSourceManager(), AC);
       BR.EmitBasicReport(AC->getDecl(), Checker,
                          "Identical branches",
@@ -179,7 +179,7 @@ bool FindIdenticalExprVisitor::VisitIfStmt(const IfStmt *I) {
 }
 
 bool FindIdenticalExprVisitor::VisitBinaryOperator(const BinaryOperator *B) {
-  BinaryOperator::Opcode Op = B->getOpcode();
+  BinaryOperator::Opcode const Op = B->getOpcode();
 
   if (BinaryOperator::isBitwiseOp(Op))
     checkBitwiseOrLogicalOp(B, true);
@@ -197,7 +197,7 @@ bool FindIdenticalExprVisitor::VisitBinaryOperator(const BinaryOperator *B) {
 }
 
 void FindIdenticalExprVisitor::checkComparisonOp(const BinaryOperator *B) {
-  BinaryOperator::Opcode Op = B->getOpcode();
+  BinaryOperator::Opcode const Op = B->getOpcode();
 
   //
   // Special case for floating-point representation.
@@ -251,7 +251,7 @@ void FindIdenticalExprVisitor::checkComparisonOp(const BinaryOperator *B) {
   }
 
   if (isIdenticalStmt(AC->getASTContext(), B->getLHS(), B->getRHS())) {
-    PathDiagnosticLocation ELoc =
+    PathDiagnosticLocation const ELoc =
         PathDiagnosticLocation::createOperatorLoc(B, BR.getSourceManager());
     StringRef Message;
     if (Op == BO_Cmp)
@@ -275,7 +275,7 @@ bool FindIdenticalExprVisitor::VisitConditionalOperator(
 
   if (isIdenticalStmt(AC->getASTContext(), C->getTrueExpr(),
                       C->getFalseExpr(), true)) {
-    PathDiagnosticLocation ELoc =
+    PathDiagnosticLocation const ELoc =
         PathDiagnosticLocation::createConditionalColonLoc(
             C, BR.getSourceManager());
 
@@ -467,8 +467,8 @@ static bool isIdenticalStmt(const ASTContext &Ctx, const Stmt *Stmt1,
     const IntegerLiteral *IntLit1 = cast<IntegerLiteral>(Stmt1);
     const IntegerLiteral *IntLit2 = cast<IntegerLiteral>(Stmt2);
 
-    llvm::APInt I1 = IntLit1->getValue();
-    llvm::APInt I2 = IntLit2->getValue();
+    llvm::APInt const I1 = IntLit1->getValue();
+    llvm::APInt const I2 = IntLit2->getValue();
     if (I1.getBitWidth() != I2.getBitWidth())
       return false;
     return  I1 == I2;

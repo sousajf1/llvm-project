@@ -17,7 +17,7 @@ namespace {
 
 TEST(VariantValueTest, Unsigned) {
   const unsigned kUnsigned = 17;
-  VariantValue Value = kUnsigned;
+  VariantValue const Value = kUnsigned;
 
   EXPECT_TRUE(Value.isUnsigned());
   EXPECT_EQ(kUnsigned, Value.getUnsigned());
@@ -29,7 +29,7 @@ TEST(VariantValueTest, Unsigned) {
 
 TEST(VariantValueTest, String) {
   const StringRef kString = "string";
-  VariantValue Value = kString;
+  VariantValue const Value = kString;
 
   EXPECT_TRUE(Value.isString());
   EXPECT_EQ(kString, Value.getString());

@@ -348,7 +348,7 @@ const char *CodeCompletionString::getTypedText() const {
 
 const char *CodeCompletionAllocator::CopyString(const Twine &String) {
   SmallString<128> Data;
-  StringRef Ref = String.toStringRef(Data);
+  StringRef const Ref = String.toStringRef(Data);
   // FIXME: It would be more efficient to teach Twine to tell us its size and
   // then add a routine there to fill in an allocated char* with the contents
   // of the string.
@@ -544,7 +544,7 @@ void PrintingCodeCompleteConsumer::ProcessCodeCompleteResults(
     OS << "PREFERRED-TYPE: " << Context.getPreferredType().getAsString()
        << "\n";
 
-  StringRef Filter = SemaRef.getPreprocessor().getCodeCompletionFilter();
+  StringRef const Filter = SemaRef.getPreprocessor().getCodeCompletionFilter();
   // Print the completions.
   for (unsigned I = 0; I != NumResults; ++I) {
     if (!Filter.empty() && isResultFilteredOut(Filter, Results[I]))
@@ -595,8 +595,8 @@ void PrintingCodeCompleteConsumer::ProcessCodeCompleteResults(
       const SourceLocation BLoc = FixIt.RemoveRange.getBegin();
       const SourceLocation ELoc = FixIt.RemoveRange.getEnd();
 
-      SourceManager &SM = SemaRef.SourceMgr;
-      std::pair<FileID, unsigned> BInfo = SM.getDecomposedLoc(BLoc);
+      SourceManager  const&SM = SemaRef.SourceMgr;
+      std::pair<FileID, unsigned> const BInfo = SM.getDecomposedLoc(BLoc);
       std::pair<FileID, unsigned> EInfo = SM.getDecomposedLoc(ELoc);
       // Adjust for token ranges.
       if (FixIt.RemoveRange.isTokenRange())
@@ -739,7 +739,7 @@ StringRef CodeCompletionResult::getOrderedName(std::string &Saved) const {
     break;
   }
 
-  DeclarationName Name = Declaration->getDeclName();
+  DeclarationName const Name = Declaration->getDeclName();
 
   // If the name is a simple identifier (by far the common case), or a
   // zero-argument selector, just return a reference to that identifier.
@@ -756,9 +756,9 @@ StringRef CodeCompletionResult::getOrderedName(std::string &Saved) const {
 bool clang::operator<(const CodeCompletionResult &X,
                       const CodeCompletionResult &Y) {
   std::string XSaved, YSaved;
-  StringRef XStr = X.getOrderedName(XSaved);
-  StringRef YStr = Y.getOrderedName(YSaved);
-  int cmp = XStr.compare_insensitive(YStr);
+  StringRef const XStr = X.getOrderedName(XSaved);
+  StringRef const YStr = Y.getOrderedName(YSaved);
+  int const cmp = XStr.compare_insensitive(YStr);
   if (cmp)
     return cmp < 0;
 

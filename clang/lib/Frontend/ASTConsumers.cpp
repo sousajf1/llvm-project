@@ -54,7 +54,7 @@ namespace {
 
     bool TraverseDecl(Decl *D) {
       if (D && filterMatches(D)) {
-        bool ShowColors = Out.has_colors();
+        bool const ShowColors = Out.has_colors();
         if (ShowColors)
           Out.changeColor(raw_ostream::BLUE);
         Out << (OutputKind != Print ? "Dumping " : "Printing ") << getName(D)
@@ -89,7 +89,7 @@ namespace {
         } else
           Out << "Not a DeclContext\n";
       } else if (OutputKind == Print) {
-        PrintingPolicy Policy(D->getASTContext().getLangOpts());
+        PrintingPolicy const Policy(D->getASTContext().getLangOpts());
         D->print(Out, Policy, /*Indentation=*/0, /*PrintInstantiation=*/true);
       } else if (OutputKind != None) {
         D->dump(Out, OutputKind == DumpFull, OutputFormat);

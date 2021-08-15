@@ -80,7 +80,7 @@ void WhitespaceManager::replaceWhitespaceInToken(
     unsigned Newlines, int Spaces) {
   if (Tok.Finalized)
     return;
-  SourceLocation Start = Tok.getStartOfNonWhitespace().getLocWithOffset(Offset);
+  SourceLocation const Start = Tok.getStartOfNonWhitespace().getLocWithOffset(Offset);
   Changes.push_back(
       Change(Tok, /*CreateReplacement=*/true,
              SourceRange(Start, Start.getLocWithOffset(ReplaceChars)), Spaces,
@@ -112,19 +112,19 @@ void WhitespaceManager::calculateLineBreakInformation() {
   Changes[0].PreviousEndOfTokenColumn = 0;
   Change *LastOutsideTokenChange = &Changes[0];
   for (unsigned i = 1, e = Changes.size(); i != e; ++i) {
-    SourceLocation OriginalWhitespaceStart =
+    SourceLocation const OriginalWhitespaceStart =
         Changes[i].OriginalWhitespaceRange.getBegin();
-    SourceLocation PreviousOriginalWhitespaceEnd =
+    SourceLocation const PreviousOriginalWhitespaceEnd =
         Changes[i - 1].OriginalWhitespaceRange.getEnd();
-    unsigned OriginalWhitespaceStartOffset =
+    unsigned const OriginalWhitespaceStartOffset =
         SourceMgr.getFileOffset(OriginalWhitespaceStart);
-    unsigned PreviousOriginalWhitespaceEndOffset =
+    unsigned const PreviousOriginalWhitespaceEndOffset =
         SourceMgr.getFileOffset(PreviousOriginalWhitespaceEnd);
     assert(PreviousOriginalWhitespaceEndOffset <=
            OriginalWhitespaceStartOffset);
     const char *const PreviousOriginalWhitespaceEndData =
         SourceMgr.getCharacterData(PreviousOriginalWhitespaceEnd);
-    StringRef Text(PreviousOriginalWhitespaceEndData,
+    StringRef const Text(PreviousOriginalWhitespaceEndData,
                    SourceMgr.getCharacterData(OriginalWhitespaceStart) -
                        PreviousOriginalWhitespaceEndData);
     // Usually consecutive changes would occur in consecutive tokens. This is
@@ -242,7 +242,7 @@ void WhitespaceManager::calculateLineBreakInformation() {
   int ConditionalsLevel = 0;
   for (auto &Change : Changes) {
     for (unsigned i = 0, e = Change.Tok->FakeLParens.size(); i != e; ++i) {
-      bool isNestedConditional =
+      bool const isNestedConditional =
           Change.Tok->FakeLParens[e - 1 - i] == prec::Conditional &&
           !(i == 0 && Change.Tok->Previous &&
             Change.Tok->Previous->is(TT_ConditionalExpr) &&
@@ -309,11 +309,11 @@ AlignTokenSequence(const FormatStyle &Style, unsigned Start, unsigned End,
                           Changes[PreviousNonComment].indentAndNestingLevel())
       ScopeStack.push_back(i);
 
-    bool InsideNestedScope = ScopeStack.size() != 0;
-    bool ContinuedStringLiteral = i > Start &&
+    bool const InsideNestedScope = ScopeStack.size() != 0;
+    bool const ContinuedStringLiteral = i > Start &&
                                   Changes[i].Tok->is(tok::string_literal) &&
                                   Changes[i - 1].Tok->is(tok::string_literal);
-    bool SkipMatchCheck = InsideNestedScope || ContinuedStringLiteral;
+    bool const SkipMatchCheck = InsideNestedScope || ContinuedStringLiteral;
 
     if (Changes[i].NewlinesBefore > 0 && !SkipMatchCheck) {
       Shift = 0;
@@ -332,7 +332,7 @@ AlignTokenSequence(const FormatStyle &Style, unsigned Start, unsigned End,
     // This is for function parameters that are split across multiple lines,
     // as mentioned in the ScopeStack comment.
     if (InsideNestedScope && Changes[i].NewlinesBefore > 0) {
-      unsigned ScopeStart = ScopeStack.back();
+      unsigned const ScopeStart = ScopeStack.back();
       auto ShouldShiftBeAdded = [&] {
         // Function declaration
         if (Changes[ScopeStart - 1].Tok->is(TT_FunctionDeclarationName))
@@ -467,7 +467,7 @@ static unsigned AlignTokens(
   };
 
   unsigned i = StartAt;
-  for (unsigned e = Changes.size(); i != e; ++i) {
+  for (unsigned const e = Changes.size(); i != e; ++i) {
     if (Changes[i].indentAndNestingLevel() < IndentAndNestingLevel)
       break;
 
@@ -476,14 +476,14 @@ static unsigned AlignTokens(
       EndOfSequence = i;
 
       // Whether to break the alignment sequence because of an empty line.
-      bool EmptyLineBreak =
+      bool const EmptyLineBreak =
           (Changes[i].NewlinesBefore > 1) &&
           (ACS != FormatStyle::ACS_AcrossEmptyLines) &&
           (ACS != FormatStyle::ACS_AcrossEmptyLinesAndComments);
 
       // Whether to break the alignment sequence because of a line without a
       // match.
-      bool NoMatchBreak =
+      bool const NoMatchBreak =
           !FoundMatchOnLine &&
           !(LineIsComment &&
             ((ACS == FormatStyle::ACS_AcrossComments) ||
@@ -508,7 +508,7 @@ static unsigned AlignTokens(
       ++CommasBeforeMatch;
     } else if (Changes[i].indentAndNestingLevel() > IndentAndNestingLevel) {
       // Call AlignTokens recursively, skipping over this scope block.
-      unsigned StoppedAt = AlignTokens(Style, Matches, Changes, i, ACS);
+      unsigned const StoppedAt = AlignTokens(Style, Matches, Changes, i, ACS);
       i = StoppedAt - 1;
       continue;
     }
@@ -527,7 +527,7 @@ static unsigned AlignTokens(
     if (StartOfSequence == 0)
       StartOfSequence = i;
 
-    unsigned ChangeMinColumn = Changes[i].StartOfTokenColumn;
+    unsigned const ChangeMinColumn = Changes[i].StartOfTokenColumn;
     int LineLengthAfter = Changes[i].TokenLength;
     for (unsigned j = i + 1; j != e && Changes[j].NewlinesBefore == 0; ++j) {
       LineLengthAfter += Changes[j].Spaces;
@@ -539,7 +539,7 @@ static unsigned AlignTokens(
       if (!Changes[j].IsInsideToken)
         LineLengthAfter += Changes[j].TokenLength;
     }
-    unsigned ChangeMaxColumn = Style.ColumnLimit - LineLengthAfter;
+    unsigned const ChangeMaxColumn = Style.ColumnLimit - LineLengthAfter;
 
     // If we are restricted by the maximum column width, end the sequence.
     if (ChangeMinColumn > MaxColumn || ChangeMaxColumn < MinColumn ||
@@ -649,12 +649,12 @@ void WhitespaceManager::alignConsecutiveMacros() {
   bool LineIsComment = true;
 
   unsigned I = 0;
-  for (unsigned E = Changes.size(); I != E; ++I) {
+  for (unsigned const E = Changes.size(); I != E; ++I) {
     if (Changes[I].NewlinesBefore != 0) {
       EndOfSequence = I;
 
       // Whether to break the alignment sequence because of an empty line.
-      bool EmptyLineBreak =
+      bool const EmptyLineBreak =
           (Changes[I].NewlinesBefore > 1) &&
           (Style.AlignConsecutiveMacros != FormatStyle::ACS_AcrossEmptyLines) &&
           (Style.AlignConsecutiveMacros !=
@@ -662,7 +662,7 @@ void WhitespaceManager::alignConsecutiveMacros() {
 
       // Whether to break the alignment sequence because of a line without a
       // match.
-      bool NoMatchBreak =
+      bool const NoMatchBreak =
           !FoundMatchOnLine &&
           !(LineIsComment && ((Style.AlignConsecutiveMacros ==
                                FormatStyle::ACS_AcrossComments) ||
@@ -690,11 +690,11 @@ void WhitespaceManager::alignConsecutiveMacros() {
     if (StartOfSequence == 0)
       StartOfSequence = I;
 
-    unsigned ChangeMinColumn = Changes[I].StartOfTokenColumn;
+    unsigned const ChangeMinColumn = Changes[I].StartOfTokenColumn;
     int LineLengthAfter = -Changes[I].Spaces;
     for (unsigned j = I; j != E && Changes[j].NewlinesBefore == 0; ++j)
       LineLengthAfter += Changes[j].Spaces + Changes[j].TokenLength;
-    unsigned ChangeMaxColumn = Style.ColumnLimit - LineLengthAfter;
+    unsigned const ChangeMaxColumn = Style.ColumnLimit - LineLengthAfter;
 
     MinColumn = std::max(MinColumn, ChangeMinColumn);
     MaxColumn = std::min(MaxColumn, ChangeMaxColumn);
@@ -834,7 +834,7 @@ void WhitespaceManager::alignTrailingComments() {
     if (!Changes[i].IsTrailingComment)
       continue;
 
-    unsigned ChangeMinColumn = Changes[i].StartOfTokenColumn;
+    unsigned const ChangeMinColumn = Changes[i].StartOfTokenColumn;
     unsigned ChangeMaxColumn;
 
     if (Style.ColumnLimit == 0)
@@ -853,18 +853,18 @@ void WhitespaceManager::alignTrailingComments() {
       ChangeMaxColumn -= 2;
     // If this comment follows an } in column 0, it probably documents the
     // closing of a namespace and we don't want to align it.
-    bool FollowsRBraceInColumn0 = i > 0 && Changes[i].NewlinesBefore == 0 &&
+    bool const FollowsRBraceInColumn0 = i > 0 && Changes[i].NewlinesBefore == 0 &&
                                   Changes[i - 1].Tok->is(tok::r_brace) &&
                                   Changes[i - 1].StartOfTokenColumn == 0;
     bool WasAlignedWithStartOfNextLine = false;
     if (Changes[i].NewlinesBefore == 1) { // A comment on its own line.
-      unsigned CommentColumn = SourceMgr.getSpellingColumnNumber(
+      unsigned const CommentColumn = SourceMgr.getSpellingColumnNumber(
           Changes[i].OriginalWhitespaceRange.getEnd());
       for (unsigned j = i + 1; j != e; ++j) {
         if (Changes[j].Tok->is(tok::comment))
           continue;
 
-        unsigned NextColumn = SourceMgr.getSpellingColumnNumber(
+        unsigned const NextColumn = SourceMgr.getSpellingColumnNumber(
             Changes[j].OriginalWhitespaceRange.getEnd());
         // The start of the next token was previously aligned with the
         // start of this comment.
@@ -927,11 +927,11 @@ void WhitespaceManager::alignEscapedNewlines() {
   if (Style.AlignEscapedNewlines == FormatStyle::ENAS_DontAlign)
     return;
 
-  bool AlignLeft = Style.AlignEscapedNewlines == FormatStyle::ENAS_Left;
+  bool const AlignLeft = Style.AlignEscapedNewlines == FormatStyle::ENAS_Left;
   unsigned MaxEndOfLine = AlignLeft ? 0 : Style.ColumnLimit;
   unsigned StartOfMacro = 0;
   for (unsigned i = 1, e = Changes.size(); i < e; ++i) {
-    Change &C = Changes[i];
+    Change  const&C = Changes[i];
     if (C.NewlinesBefore > 0) {
       if (C.ContinuesPPDirective) {
         MaxEndOfLine = std::max(C.PreviousEndOfTokenColumn + 2, MaxEndOfLine);
@@ -1281,7 +1281,7 @@ void WhitespaceManager::generateChanges() {
 }
 
 void WhitespaceManager::storeReplacement(SourceRange Range, StringRef Text) {
-  unsigned WhitespaceLength = SourceMgr.getFileOffset(Range.getEnd()) -
+  unsigned const WhitespaceLength = SourceMgr.getFileOffset(Range.getEnd()) -
                               SourceMgr.getFileOffset(Range.getBegin());
   // Don't create a replacement, if it does not change anything.
   if (StringRef(SourceMgr.getCharacterData(Range.getBegin()),
@@ -1327,7 +1327,7 @@ void WhitespaceManager::appendIndentText(std::string &Text,
     break;
   case FormatStyle::UT_Always: {
     if (Style.TabWidth) {
-      unsigned FirstTabWidth =
+      unsigned const FirstTabWidth =
           Style.TabWidth - WhitespaceStartColumn % Style.TabWidth;
 
       // Insert only spaces when we want to end up before the next tab.
@@ -1348,7 +1348,7 @@ void WhitespaceManager::appendIndentText(std::string &Text,
   }
   case FormatStyle::UT_ForIndentation:
     if (WhitespaceStartColumn == 0) {
-      unsigned Indentation = IndentLevel * Style.IndentWidth;
+      unsigned const Indentation = IndentLevel * Style.IndentWidth;
       Spaces = appendTabIndent(Text, Spaces, Indentation);
     }
     Text.append(Spaces, ' ');
@@ -1360,7 +1360,7 @@ void WhitespaceManager::appendIndentText(std::string &Text,
     break;
   case FormatStyle::UT_AlignWithSpaces:
     if (WhitespaceStartColumn == 0) {
-      unsigned Indentation =
+      unsigned const Indentation =
           IsAligned ? IndentLevel * Style.IndentWidth : Spaces;
       Spaces = appendTabIndent(Text, Spaces, Indentation);
     }
@@ -1376,7 +1376,7 @@ unsigned WhitespaceManager::appendTabIndent(std::string &Text, unsigned Spaces,
   if (Indentation > Spaces)
     Indentation = Spaces;
   if (Style.TabWidth) {
-    unsigned Tabs = Indentation / Style.TabWidth;
+    unsigned const Tabs = Indentation / Style.TabWidth;
     Text.append(Tabs, '\t');
     Spaces -= Tabs * Style.TabWidth;
   }

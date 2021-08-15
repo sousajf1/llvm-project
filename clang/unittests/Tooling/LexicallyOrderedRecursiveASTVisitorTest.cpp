@@ -101,7 +101,7 @@ bool LexicallyOrderedDeclVisitor::VisitDeclRefExpr(const DeclRefExpr *D) {
 }
 
 TEST(LexicallyOrderedRecursiveASTVisitor, VisitDeclsInImplementation) {
-  StringRef Source = R"(
+  StringRef const Source = R"(
 @interface I
 @end
 @implementation I
@@ -144,7 +144,7 @@ void outerFunction() { }
 }
 
 TEST(LexicallyOrderedRecursiveASTVisitor, VisitMacroDeclsInImplementation) {
-  StringRef Source = R"(
+  StringRef const Source = R"(
 @interface I
 @end
 
@@ -168,7 +168,7 @@ MACRO_F(2)
 }
 
 TEST(LexicallyOrderedRecursiveASTVisitor, VisitTemplateDecl) {
-  StringRef Source = R"(
+  StringRef const Source = R"(
 template <class T> T f();
 template <class U, class = void> class Class {};
 )";
@@ -182,7 +182,7 @@ template <class U, class = void> class Class {};
 }
 
 TEST(LexicallyOrderedRecursiveASTVisitor, VisitCXXOperatorCallExpr) {
-  StringRef Source = R"(
+  StringRef const Source = R"(
 struct S {
   S &operator+(S&);
   S *operator->();

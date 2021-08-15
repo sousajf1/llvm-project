@@ -90,22 +90,22 @@ public:
         E->getCastKind() != CK_AnyPointerToBlockPointerCast)
       return true;
 
-    QualType castType = E->getType();
+    QualType const castType = E->getType();
     Expr *castExpr = E->getSubExpr();
-    QualType castExprType = castExpr->getType();
+    QualType const castExprType = castExpr->getType();
 
     if (castType->isObjCRetainableType() == castExprType->isObjCRetainableType())
       return true;
 
-    bool exprRetainable = castExprType->isObjCIndirectLifetimeType();
-    bool castRetainable = castType->isObjCIndirectLifetimeType();
+    bool const exprRetainable = castExprType->isObjCIndirectLifetimeType();
+    bool const castRetainable = castType->isObjCIndirectLifetimeType();
     if (exprRetainable == castRetainable) return true;
 
     if (castExpr->isNullPointerConstant(Pass.Ctx,
                                         Expr::NPC_ValueDependentIsNull))
       return true;
 
-    SourceLocation loc = castExpr->getExprLoc();
+    SourceLocation const loc = castExpr->getExprLoc();
     if (loc.isValid() && Pass.Ctx.getSourceManager().isInSystemHeader(loc))
       return true;
 
@@ -145,7 +145,7 @@ private:
             FD->getIdentifier() &&
             ento::cocoa::isRefType(E->getSubExpr()->getType(), "CF",
                                    FD->getIdentifier()->getName())) {
-          StringRef fname = FD->getIdentifier()->getName();
+          StringRef const fname = FD->getIdentifier()->getName();
           if (fname.endswith("Retain") ||
               fname.find("Create") != StringRef::npos ||
               fname.find("Copy") != StringRef::npos) {
@@ -159,7 +159,7 @@ private:
               Expr *Arg = callE->getArg(0);
               if (const ImplicitCastExpr *ICE = dyn_cast<ImplicitCastExpr>(Arg)) {
                 const Expr *sub = ICE->getSubExpr();
-                QualType T = sub->getType();
+                QualType const T = sub->getType();
                 if (T->isObjCObjectPointerType())
                   return;
               }
@@ -229,7 +229,7 @@ private:
       if (CStyleCastExpr *CCE = dyn_cast<CStyleCastExpr>(E)) {
         TA.insertAfterToken(CCE->getLParenLoc(), bridge);
       } else {
-        SourceLocation insertLoc = E->getSubExpr()->getBeginLoc();
+        SourceLocation const insertLoc = E->getSubExpr()->getBeginLoc();
         SmallString<128> newCast;
         newCast += '(';
         newCast += bridge;
@@ -249,10 +249,10 @@ private:
       SmallString<32> BridgeCall;
 
       Expr *WrapE = E->getSubExpr();
-      SourceLocation InsertLoc = WrapE->getBeginLoc();
+      SourceLocation const InsertLoc = WrapE->getBeginLoc();
 
-      SourceManager &SM = Pass.Ctx.getSourceManager();
-      char PrevChar = *SM.getCharacterData(InsertLoc.getLocWithOffset(-1));
+      SourceManager  const&SM = Pass.Ctx.getSourceManager();
+      char const PrevChar = *SM.getCharacterData(InsertLoc.getLocWithOffset(-1));
       if (Lexer::isIdentifierBodyChar(PrevChar, Pass.Ctx.getLangOpts()))
         BridgeCall += ' ';
 
@@ -278,13 +278,13 @@ private:
   }
 
   void getBlockMacroRanges(CastExpr *E, SourceRange &Outer, SourceRange &Inner) {
-    SourceManager &SM = Pass.Ctx.getSourceManager();
-    SourceLocation Loc = E->getExprLoc();
+    SourceManager  const&SM = Pass.Ctx.getSourceManager();
+    SourceLocation const Loc = E->getExprLoc();
     assert(Loc.isMacroID());
-    CharSourceRange MacroRange = SM.getImmediateExpansionRange(Loc);
-    SourceRange SubRange = E->getSubExpr()->IgnoreParenImpCasts()->getSourceRange();
-    SourceLocation InnerBegin = SM.getImmediateMacroCallerLoc(SubRange.getBegin());
-    SourceLocation InnerEnd = SM.getImmediateMacroCallerLoc(SubRange.getEnd());
+    CharSourceRange const MacroRange = SM.getImmediateExpansionRange(Loc);
+    SourceRange const SubRange = E->getSubExpr()->IgnoreParenImpCasts()->getSourceRange();
+    SourceLocation const InnerBegin = SM.getImmediateMacroCallerLoc(SubRange.getBegin());
+    SourceLocation const InnerEnd = SM.getImmediateMacroCallerLoc(SubRange.getEnd());
 
     Outer = MacroRange.getAsRange();
     Inner = SourceRange(InnerBegin, InnerEnd);
@@ -294,7 +294,7 @@ private:
     SourceRange OuterRange, InnerRange;
     getBlockMacroRanges(E, OuterRange, InnerRange);
 
-    Transaction Trans(Pass.TA);
+    Transaction const Trans(Pass.TA);
     Pass.TA.replace(OuterRange, InnerRange);
     Pass.TA.insert(InnerRange.getBegin(), "[");
     Pass.TA.insertAfterToken(InnerRange.getEnd(), " copy]");
@@ -307,7 +307,7 @@ private:
     SourceRange OuterRange, InnerRange;
     getBlockMacroRanges(E, OuterRange, InnerRange);
 
-    Transaction Trans(Pass.TA);
+    Transaction const Trans(Pass.TA);
     Pass.TA.clearDiagnostic(diag::err_arc_mismatched_cast,
                             diag::err_arc_cast_requires_bridge,
                             OuterRange);
@@ -333,9 +333,9 @@ private:
   }
 
   void transformObjCToNonObjCCast(CastExpr *E) {
-    SourceLocation CastLoc = E->getExprLoc();
+    SourceLocation const CastLoc = E->getExprLoc();
     if (CastLoc.isMacroID()) {
-      StringRef MacroName = Lexer::getImmediateMacroName(CastLoc,
+      StringRef const MacroName = Lexer::getImmediateMacroName(CastLoc,
                                                     Pass.Ctx.getSourceManager(),
                                                     Pass.Ctx.getLangOpts());
       if (MacroName == "Block_copy") {
@@ -355,7 +355,7 @@ private:
     if (isPassedToCFRetain(E, callE))
       return rewriteCastForCFRetain(E, callE);
 
-    ObjCMethodFamily family = getFamilyOfMessage(E->getSubExpr());
+    ObjCMethodFamily const family = getFamilyOfMessage(E->getSubExpr());
     if (family == OMF_retain)
       return rewriteToBridgedCast(E, OBC_BridgeRetained);
 
@@ -430,7 +430,7 @@ private:
       if (FunctionDecl *
             FD = dyn_cast_or_null<FunctionDecl>(callE->getCalleeDecl())) {
         unsigned i = 0;
-        for (unsigned e = callE->getNumArgs(); i != e; ++i) {
+        for (unsigned const e = callE->getNumArgs(); i != e; ++i) {
           Expr *arg = callE->getArg(i);
           if (arg == E || arg->IgnoreParenImpCasts() == E)
             break;

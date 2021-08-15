@@ -22,7 +22,7 @@ using namespace clang;
 using namespace CodeGen;
 
 static llvm::Function *GetVprintfDeclaration(llvm::Module &M) {
-  llvm::Type *ArgTypes[] = {llvm::Type::getInt8PtrTy(M.getContext()),
+  llvm::Type *const ArgTypes[] = {llvm::Type::getInt8PtrTy(M.getContext()),
                             llvm::Type::getInt8PtrTy(M.getContext())};
   llvm::FunctionType *VprintfFuncType = llvm::FunctionType::get(
       llvm::Type::getInt32Ty(M.getContext()), ArgTypes, false);

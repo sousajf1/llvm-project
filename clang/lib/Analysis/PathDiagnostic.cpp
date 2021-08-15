@@ -168,7 +168,7 @@ void PathDiagnosticConsumer::HandlePathDiagnostic(
 
       for (const auto &I : path) {
         const PathDiagnosticPiece *piece = I.get();
-        FullSourceLoc L = piece->getLocation().asLocation().getExpansionLoc();
+        FullSourceLoc const L = piece->getLocation().asLocation().getExpansionLoc();
 
         if (FID.isInvalid()) {
           FID = SMgr.getFileID(L);
@@ -178,7 +178,7 @@ void PathDiagnosticConsumer::HandlePathDiagnostic(
         }
 
         // Check the source ranges.
-        ArrayRef<SourceRange> Ranges = piece->getRanges();
+        ArrayRef<SourceRange> const Ranges = piece->getRanges();
         for (const auto &I : Ranges) {
           SourceLocation L = SMgr.getExpansionLoc(I.getBegin());
           if (!L.isFileID() || SMgr.getFileID(L) != FID) {
@@ -231,12 +231,12 @@ static Optional<bool> comparePath(const PathPieces &X, const PathPieces &Y);
 static Optional<bool>
 compareControlFlow(const PathDiagnosticControlFlowPiece &X,
                    const PathDiagnosticControlFlowPiece &Y) {
-  FullSourceLoc XSL = X.getStartLocation().asLocation();
-  FullSourceLoc YSL = Y.getStartLocation().asLocation();
+  FullSourceLoc const XSL = X.getStartLocation().asLocation();
+  FullSourceLoc const YSL = Y.getStartLocation().asLocation();
   if (XSL != YSL)
     return XSL.isBeforeInTranslationUnitThan(YSL);
-  FullSourceLoc XEL = X.getEndLocation().asLocation();
-  FullSourceLoc YEL = Y.getEndLocation().asLocation();
+  FullSourceLoc const XEL = X.getEndLocation().asLocation();
+  FullSourceLoc const YEL = Y.getEndLocation().asLocation();
   if (XEL != YEL)
     return XEL.isBeforeInTranslationUnitThan(YEL);
   return None;
@@ -249,16 +249,16 @@ static Optional<bool> compareMacro(const PathDiagnosticMacroPiece &X,
 
 static Optional<bool> compareCall(const PathDiagnosticCallPiece &X,
                                   const PathDiagnosticCallPiece &Y) {
-  FullSourceLoc X_CEL = X.callEnter.asLocation();
-  FullSourceLoc Y_CEL = Y.callEnter.asLocation();
+  FullSourceLoc const X_CEL = X.callEnter.asLocation();
+  FullSourceLoc const Y_CEL = Y.callEnter.asLocation();
   if (X_CEL != Y_CEL)
     return X_CEL.isBeforeInTranslationUnitThan(Y_CEL);
-  FullSourceLoc X_CEWL = X.callEnterWithin.asLocation();
-  FullSourceLoc Y_CEWL = Y.callEnterWithin.asLocation();
+  FullSourceLoc const X_CEWL = X.callEnterWithin.asLocation();
+  FullSourceLoc const Y_CEWL = Y.callEnterWithin.asLocation();
   if (X_CEWL != Y_CEWL)
     return X_CEWL.isBeforeInTranslationUnitThan(Y_CEWL);
-  FullSourceLoc X_CRL = X.callReturn.asLocation();
-  FullSourceLoc Y_CRL = Y.callReturn.asLocation();
+  FullSourceLoc const X_CRL = X.callReturn.asLocation();
+  FullSourceLoc const Y_CRL = Y.callReturn.asLocation();
   if (X_CRL != Y_CRL)
     return X_CRL.isBeforeInTranslationUnitThan(Y_CRL);
   return comparePath(X.path, Y.path);
@@ -269,8 +269,8 @@ static Optional<bool> comparePiece(const PathDiagnosticPiece &X,
   if (X.getKind() != Y.getKind())
     return X.getKind() < Y.getKind();
 
-  FullSourceLoc XL = X.getLocation().asLocation();
-  FullSourceLoc YL = Y.getLocation().asLocation();
+  FullSourceLoc const XL = X.getLocation().asLocation();
+  FullSourceLoc const YL = Y.getLocation().asLocation();
   if (XL != YL)
     return XL.isBeforeInTranslationUnitThan(YL);
 
@@ -283,8 +283,8 @@ static Optional<bool> comparePiece(const PathDiagnosticPiece &X,
   const SourceManager &SM = XL.getManager();
 
   for (unsigned i = 0, n = X.getRanges().size(); i < n; ++i) {
-    SourceRange XR = X.getRanges()[i];
-    SourceRange YR = Y.getRanges()[i];
+    SourceRange const XR = X.getRanges()[i];
+    SourceRange const YR = Y.getRanges()[i];
     if (XR != YR) {
       if (XR.getBegin() != YR.getBegin())
         return SM.isBeforeInTranslationUnit(XR.getBegin(), YR.getBegin());
@@ -334,14 +334,14 @@ static bool compareCrossTUSourceLocs(FullSourceLoc XL, FullSourceLoc YL) {
   std::pair<FileID, unsigned> XOffs = XL.getDecomposedLoc();
   std::pair<FileID, unsigned> YOffs = YL.getDecomposedLoc();
   const SourceManager &SM = XL.getManager();
-  std::pair<bool, bool> InSameTU = SM.isInTheSameTranslationUnit(XOffs, YOffs);
+  std::pair<bool, bool> const InSameTU = SM.isInTheSameTranslationUnit(XOffs, YOffs);
   if (InSameTU.first)
     return XL.isBeforeInTranslationUnitThan(YL);
   const FileEntry *XFE = SM.getFileEntryForID(XL.getSpellingLoc().getFileID());
   const FileEntry *YFE = SM.getFileEntryForID(YL.getSpellingLoc().getFileID());
   if (!XFE || !YFE)
     return XFE && !YFE;
-  int NameCmp = XFE->getName().compare(YFE->getName());
+  int const NameCmp = XFE->getName().compare(YFE->getName());
   if (NameCmp != 0)
     return NameCmp == -1;
   // Last resort: Compare raw file IDs that are possibly expansions.
@@ -350,11 +350,11 @@ static bool compareCrossTUSourceLocs(FullSourceLoc XL, FullSourceLoc YL) {
 
 static bool compare(const PathDiagnostic &X, const PathDiagnostic &Y) {
   FullSourceLoc XL = X.getLocation().asLocation();
-  FullSourceLoc YL = Y.getLocation().asLocation();
+  FullSourceLoc const YL = Y.getLocation().asLocation();
   if (XL != YL)
     return compareCrossTUSourceLocs(XL, YL);
-  FullSourceLoc XUL = X.getUniqueingLoc().asLocation();
-  FullSourceLoc YUL = Y.getUniqueingLoc().asLocation();
+  FullSourceLoc const XUL = X.getUniqueingLoc().asLocation();
+  FullSourceLoc const YUL = Y.getUniqueingLoc().asLocation();
   if (XUL != YUL)
     return compareCrossTUSourceLocs(XUL, YUL);
   if (X.getBugType() != Y.getBugType())
@@ -372,8 +372,8 @@ static bool compare(const PathDiagnostic &X, const PathDiagnostic &Y) {
       return true;
     if (!D2)
       return false;
-    SourceLocation D1L = D1->getLocation();
-    SourceLocation D2L = D2->getLocation();
+    SourceLocation const D1L = D1->getLocation();
+    SourceLocation const D2L = D2->getLocation();
     if (D1L != D2L) {
       const SourceManager &SM = XL.getManager();
       return compareCrossTUSourceLocs(FullSourceLoc(D1L, SM),
@@ -491,7 +491,7 @@ SourceLocation PathDiagnosticLocation::getValidSourceLocation(
     else
       ADC = LAC.get<AnalysisDeclContext*>();
 
-    ParentMap &PM = ADC->getParentMap();
+    ParentMap  const&PM = ADC->getParentMap();
 
     const Stmt *Parent = S;
     do {
@@ -524,7 +524,7 @@ getLocationForCaller(const StackFrameContext *SFC,
                      const LocationContext *CallerCtx,
                      const SourceManager &SM) {
   const CFGBlock &Block = *SFC->getCallSiteBlock();
-  CFGElement Source = Block[SFC->getIndex()];
+  CFGElement const Source = Block[SFC->getIndex()];
 
   switch (Source.getKind()) {
   case CFGElement::Statement:
@@ -630,14 +630,14 @@ PathDiagnosticLocation::createMemberLoc(const MemberExpr *ME,
 PathDiagnosticLocation
 PathDiagnosticLocation::createBeginBrace(const CompoundStmt *CS,
                                          const SourceManager &SM) {
-  SourceLocation L = CS->getLBracLoc();
+  SourceLocation const L = CS->getLBracLoc();
   return PathDiagnosticLocation(L, SM, SingleLocK);
 }
 
 PathDiagnosticLocation
 PathDiagnosticLocation::createEndBrace(const CompoundStmt *CS,
                                        const SourceManager &SM) {
-  SourceLocation L = CS->getRBracLoc();
+  SourceLocation const L = CS->getRBracLoc();
   return PathDiagnosticLocation(L, SM, SingleLocK);
 }
 
@@ -647,7 +647,7 @@ PathDiagnosticLocation::createDeclBegin(const LocationContext *LC,
   // FIXME: Should handle CXXTryStmt if analyser starts supporting C++.
   if (const auto *CS = dyn_cast_or_null<CompoundStmt>(LC->getDecl()->getBody()))
     if (!CS->body_empty()) {
-      SourceLocation Loc = (*CS->body_begin())->getBeginLoc();
+      SourceLocation const Loc = (*CS->body_begin())->getBeginLoc();
       return PathDiagnosticLocation(Loc, SM, SingleLocK);
     }
 
@@ -657,7 +657,7 @@ PathDiagnosticLocation::createDeclBegin(const LocationContext *LC,
 PathDiagnosticLocation
 PathDiagnosticLocation::createDeclEnd(const LocationContext *LC,
                                       const SourceManager &SM) {
-  SourceLocation L = LC->getDecl()->getBodyRBrace();
+  SourceLocation const L = LC->getDecl()->getBodyRBrace();
   return PathDiagnosticLocation(L, SM, SingleLocK);
 }
 
@@ -735,7 +735,7 @@ PathDiagnosticLocation::create(const ProgramPoint& P,
 
 PathDiagnosticLocation PathDiagnosticLocation::createSingleLocation(
                                            const PathDiagnosticLocation &PDL) {
-  FullSourceLoc L = PDL.asLocation();
+  FullSourceLoc const L = PDL.asLocation();
   return PathDiagnosticLocation(L, L.getManager(), SingleLocK);
 }
 
@@ -801,7 +801,7 @@ PathDiagnosticRange
         case Stmt::BinaryConditionalOperatorClass:
         case Stmt::ConditionalOperatorClass:
         case Stmt::ObjCForCollectionStmtClass: {
-          SourceLocation L = getValidSourceLocation(S, LAC);
+          SourceLocation const L = getValidSourceLocation(S, LAC);
           return SourceRange(L, L);
         }
       }
@@ -818,7 +818,7 @@ PathDiagnosticRange
           return Body->getSourceRange();
       }
       else {
-        SourceLocation L = D->getLocation();
+        SourceLocation const L = D->getLocation();
         return PathDiagnosticRange(SourceRange(L, L), true);
       }
   }
@@ -847,7 +847,7 @@ std::shared_ptr<PathDiagnosticCallPiece>
 PathDiagnosticCallPiece::construct(const CallExitEnd &CE,
                                    const SourceManager &SM) {
   const Decl *caller = CE.getLocationContext()->getDecl();
-  PathDiagnosticLocation pos = getLocationForCaller(CE.getCalleeContext(),
+  PathDiagnosticLocation const pos = getLocationForCaller(CE.getCalleeContext(),
                                                     CE.getLocationContext(),
                                                     SM);
   return std::shared_ptr<PathDiagnosticCallPiece>(
@@ -1051,7 +1051,7 @@ PathDiagnosticCallPiece::getCallExitEvent() const {
   if (!CallStackMessage.empty()) {
     Out << CallStackMessage;
   } else {
-    bool DidDescribe = describeCodeDecl(Out, Callee,
+    bool const DidDescribe = describeCodeDecl(Out, Callee,
                                         /*ExtendedDescription=*/false,
                                         "Returning from ");
     if (!DidDescribe)
@@ -1093,7 +1093,7 @@ void PathDiagnosticPiece::Profile(llvm::FoldingSetNodeID &ID) const {
   ID.AddString(str);
   // FIXME: Add profiling support for code hints.
   ID.AddInteger((unsigned) getDisplayHint());
-  ArrayRef<SourceRange> Ranges = getRanges();
+  ArrayRef<SourceRange> const Ranges = getRanges();
   for (const auto &I : Ranges) {
     ID.Add(I.getBegin());
     ID.Add(I.getEnd());

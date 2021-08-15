@@ -30,7 +30,7 @@ void Transformer::run(const MatchFinder::MatchResult &Result) {
   if (Result.Context->getDiagnostics().hasErrorOccurred())
     return;
 
-  transformer::RewriteRule::Case Case =
+  transformer::RewriteRule::Case const Case =
       transformer::detail::findSelectedCase(Result, Rule);
   auto Transformations = Case.Edits(Result);
   if (!Transformations) {

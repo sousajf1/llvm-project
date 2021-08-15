@@ -150,7 +150,7 @@ public:
       Consumer(clang::CompilerInstance &CI) : Collector(CI.getPreprocessor()) {}
 
       void HandleTranslationUnit(clang::ASTContext &AST) override {
-        clang::syntax::TokenBuffer TB = std::move(Collector).consume();
+        clang::syntax::TokenBuffer const TB = std::move(Collector).consume();
         if (TokensDump)
           llvm::outs() << TB.dumpForTests();
         clang::syntax::Arena A(AST.getSourceManager(), AST.getLangOpts(), TB);

@@ -150,7 +150,7 @@ bool CXXTypeidExpr::isMostDerived(ASTContext &Context) const {
   assert(!isTypeOperand() && "Cannot call isMostDerived for typeid(type)");
   const Expr *E = getExprOperand()->IgnoreParenNoopCasts(Context);
   if (const auto *DRE = dyn_cast<DeclRefExpr>(E)) {
-    QualType Ty = DRE->getDecl()->getType();
+    QualType const Ty = DRE->getDecl()->getType();
     if (!Ty->isPointerType() && !Ty->isReferenceType())
       return true;
   }
@@ -201,7 +201,7 @@ CXXNewExpr::CXXNewExpr(bool IsGlobalNew, FunctionDecl *OperatorNew,
   CXXNewExprBits.UsualArrayDeleteWantsSize = UsualArrayDeleteWantsSize;
   CXXNewExprBits.StoredInitializationStyle =
       Initializer ? InitializationStyle + 1 : 0;
-  bool IsParenTypeId = TypeIdParens.isValid();
+  bool const IsParenTypeId = TypeIdParens.isValid();
   CXXNewExprBits.IsParenTypeId = IsParenTypeId;
   CXXNewExprBits.NumPlacementArgs = PlacementArgs.size();
 
@@ -248,10 +248,10 @@ CXXNewExpr::Create(const ASTContext &Ctx, bool IsGlobalNew,
                    InitializationStyle InitializationStyle, Expr *Initializer,
                    QualType Ty, TypeSourceInfo *AllocatedTypeInfo,
                    SourceRange Range, SourceRange DirectInitRange) {
-  bool IsArray = ArraySize.hasValue();
-  bool HasInit = Initializer != nullptr;
-  unsigned NumPlacementArgs = PlacementArgs.size();
-  bool IsParenTypeId = TypeIdParens.isValid();
+  bool const IsArray = ArraySize.hasValue();
+  bool const HasInit = Initializer != nullptr;
+  unsigned const NumPlacementArgs = PlacementArgs.size();
+  bool const IsParenTypeId = TypeIdParens.isValid();
   void *Mem =
       Ctx.Allocate(totalSizeToAlloc<Stmt *, SourceRange>(
                        IsArray + HasInit + NumPlacementArgs, IsParenTypeId),
@@ -371,8 +371,8 @@ UnresolvedLookupExpr *UnresolvedLookupExpr::Create(
     NestedNameSpecifierLoc QualifierLoc, const DeclarationNameInfo &NameInfo,
     bool RequiresADL, bool Overloaded, UnresolvedSetIterator Begin,
     UnresolvedSetIterator End) {
-  unsigned NumResults = End - Begin;
-  unsigned Size = totalSizeToAlloc<DeclAccessPair, ASTTemplateKWAndArgsInfo,
+  unsigned const NumResults = End - Begin;
+  unsigned const Size = totalSizeToAlloc<DeclAccessPair, ASTTemplateKWAndArgsInfo,
                                    TemplateArgumentLoc>(NumResults, 0, 0);
   void *Mem = Context.Allocate(Size, alignof(UnresolvedLookupExpr));
   return new (Mem) UnresolvedLookupExpr(Context, NamingClass, QualifierLoc,
@@ -387,9 +387,9 @@ UnresolvedLookupExpr *UnresolvedLookupExpr::Create(
     const TemplateArgumentListInfo *Args, UnresolvedSetIterator Begin,
     UnresolvedSetIterator End) {
   assert(Args || TemplateKWLoc.isValid());
-  unsigned NumResults = End - Begin;
-  unsigned NumTemplateArgs = Args ? Args->size() : 0;
-  unsigned Size =
+  unsigned const NumResults = End - Begin;
+  unsigned const NumTemplateArgs = Args ? Args->size() : 0;
+  unsigned const Size =
       totalSizeToAlloc<DeclAccessPair, ASTTemplateKWAndArgsInfo,
                        TemplateArgumentLoc>(NumResults, 1, NumTemplateArgs);
   void *Mem = Context.Allocate(Size, alignof(UnresolvedLookupExpr));
@@ -402,7 +402,7 @@ UnresolvedLookupExpr *UnresolvedLookupExpr::CreateEmpty(
     const ASTContext &Context, unsigned NumResults,
     bool HasTemplateKWAndArgsInfo, unsigned NumTemplateArgs) {
   assert(NumTemplateArgs == 0 || HasTemplateKWAndArgsInfo);
-  unsigned Size = totalSizeToAlloc<DeclAccessPair, ASTTemplateKWAndArgsInfo,
+  unsigned const Size = totalSizeToAlloc<DeclAccessPair, ASTTemplateKWAndArgsInfo,
                                    TemplateArgumentLoc>(
       NumResults, HasTemplateKWAndArgsInfo, NumTemplateArgs);
   void *Mem = Context.Allocate(Size, alignof(UnresolvedLookupExpr));
@@ -421,7 +421,7 @@ OverloadExpr::OverloadExpr(StmtClass SC, const ASTContext &Context,
                            bool KnownContainsUnexpandedParameterPack)
     : Expr(SC, Context.OverloadTy, VK_LValue, OK_Ordinary), NameInfo(NameInfo),
       QualifierLoc(QualifierLoc) {
-  unsigned NumResults = End - Begin;
+  unsigned const NumResults = End - Begin;
   OverloadExprBits.NumResults = NumResults;
   OverloadExprBits.HasTemplateKWAndArgsInfo =
       (TemplateArgs != nullptr ) || TemplateKWLoc.isValid();
@@ -480,8 +480,8 @@ DependentScopeDeclRefExpr *DependentScopeDeclRefExpr::Create(
     SourceLocation TemplateKWLoc, const DeclarationNameInfo &NameInfo,
     const TemplateArgumentListInfo *Args) {
   assert(QualifierLoc && "should be created for dependent qualifiers");
-  bool HasTemplateKWAndArgsInfo = Args || TemplateKWLoc.isValid();
-  std::size_t Size =
+  bool const HasTemplateKWAndArgsInfo = Args || TemplateKWLoc.isValid();
+  std::size_t const Size =
       totalSizeToAlloc<ASTTemplateKWAndArgsInfo, TemplateArgumentLoc>(
           HasTemplateKWAndArgsInfo, Args ? Args->size() : 0);
   void *Mem = Context.Allocate(Size);
@@ -494,7 +494,7 @@ DependentScopeDeclRefExpr::CreateEmpty(const ASTContext &Context,
                                        bool HasTemplateKWAndArgsInfo,
                                        unsigned NumTemplateArgs) {
   assert(NumTemplateArgs == 0 || HasTemplateKWAndArgsInfo);
-  std::size_t Size =
+  std::size_t const Size =
       totalSizeToAlloc<ASTTemplateKWAndArgsInfo, TemplateArgumentLoc>(
           HasTemplateKWAndArgsInfo, NumTemplateArgs);
   void *Mem = Context.Allocate(Size);
@@ -523,7 +523,7 @@ SourceLocation CXXConstructExpr::getEndLoc() const {
   for (unsigned I = getNumArgs(); I > 0; --I) {
     const Expr *Arg = getArg(I-1);
     if (!Arg->isDefaultArgument()) {
-      SourceLocation NewEnd = Arg->getEndLoc();
+      SourceLocation const NewEnd = Arg->getEndLoc();
       if (NewEnd.isValid()) {
         End = NewEnd;
         break;
@@ -561,8 +561,8 @@ CXXOperatorCallExpr::Create(const ASTContext &Ctx,
                             ExprValueKind VK, SourceLocation OperatorLoc,
                             FPOptionsOverride FPFeatures, ADLCallKind UsesADL) {
   // Allocate storage for the trailing objects of CallExpr.
-  unsigned NumArgs = Args.size();
-  unsigned SizeOfTrailingObjects = CallExpr::sizeOfTrailingObjects(
+  unsigned const NumArgs = Args.size();
+  unsigned const SizeOfTrailingObjects = CallExpr::sizeOfTrailingObjects(
       /*NumPreArgs=*/0, NumArgs, FPFeatures.requiresTrailingStorage());
   void *Mem = Ctx.Allocate(sizeof(CXXOperatorCallExpr) + SizeOfTrailingObjects,
                            alignof(CXXOperatorCallExpr));
@@ -575,7 +575,7 @@ CXXOperatorCallExpr *CXXOperatorCallExpr::CreateEmpty(const ASTContext &Ctx,
                                                       bool HasFPFeatures,
                                                       EmptyShell Empty) {
   // Allocate storage for the trailing objects of CallExpr.
-  unsigned SizeOfTrailingObjects =
+  unsigned const SizeOfTrailingObjects =
       CallExpr::sizeOfTrailingObjects(/*NumPreArgs=*/0, NumArgs, HasFPFeatures);
   void *Mem = Ctx.Allocate(sizeof(CXXOperatorCallExpr) + SizeOfTrailingObjects,
                            alignof(CXXOperatorCallExpr));
@@ -583,7 +583,7 @@ CXXOperatorCallExpr *CXXOperatorCallExpr::CreateEmpty(const ASTContext &Ctx,
 }
 
 SourceRange CXXOperatorCallExpr::getSourceRangeImpl() const {
-  OverloadedOperatorKind Kind = getOperator();
+  OverloadedOperatorKind const Kind = getOperator();
   if (Kind == OO_PlusPlus || Kind == OO_MinusMinus) {
     if (getNumArgs() == 1)
       // Prefix operator
@@ -626,8 +626,8 @@ CXXMemberCallExpr *CXXMemberCallExpr::Create(const ASTContext &Ctx, Expr *Fn,
                                              FPOptionsOverride FPFeatures,
                                              unsigned MinNumArgs) {
   // Allocate storage for the trailing objects of CallExpr.
-  unsigned NumArgs = std::max<unsigned>(Args.size(), MinNumArgs);
-  unsigned SizeOfTrailingObjects = CallExpr::sizeOfTrailingObjects(
+  unsigned const NumArgs = std::max<unsigned>(Args.size(), MinNumArgs);
+  unsigned const SizeOfTrailingObjects = CallExpr::sizeOfTrailingObjects(
       /*NumPreArgs=*/0, NumArgs, FPFeatures.requiresTrailingStorage());
   void *Mem = Ctx.Allocate(sizeof(CXXMemberCallExpr) + SizeOfTrailingObjects,
                            alignof(CXXMemberCallExpr));
@@ -640,7 +640,7 @@ CXXMemberCallExpr *CXXMemberCallExpr::CreateEmpty(const ASTContext &Ctx,
                                                   bool HasFPFeatures,
                                                   EmptyShell Empty) {
   // Allocate storage for the trailing objects of CallExpr.
-  unsigned SizeOfTrailingObjects =
+  unsigned const SizeOfTrailingObjects =
       CallExpr::sizeOfTrailingObjects(/*NumPreArgs=*/0, NumArgs, HasFPFeatures);
   void *Mem = Ctx.Allocate(sizeof(CXXMemberCallExpr) + SizeOfTrailingObjects,
                            alignof(CXXMemberCallExpr));
@@ -710,7 +710,7 @@ CXXStaticCastExpr::Create(const ASTContext &C, QualType T, ExprValueKind VK,
                           TypeSourceInfo *WrittenTy, FPOptionsOverride FPO,
                           SourceLocation L, SourceLocation RParenLoc,
                           SourceRange AngleBrackets) {
-  unsigned PathSize = (BasePath ? BasePath->size() : 0);
+  unsigned const PathSize = (BasePath ? BasePath->size() : 0);
   void *Buffer =
       C.Allocate(totalSizeToAlloc<CXXBaseSpecifier *, FPOptionsOverride>(
           PathSize, FPO.requiresTrailingStorage()));
@@ -739,7 +739,7 @@ CXXDynamicCastExpr *CXXDynamicCastExpr::Create(const ASTContext &C, QualType T,
                                                SourceLocation L,
                                                SourceLocation RParenLoc,
                                                SourceRange AngleBrackets) {
-  unsigned PathSize = (BasePath ? BasePath->size() : 0);
+  unsigned const PathSize = (BasePath ? BasePath->size() : 0);
   void *Buffer = C.Allocate(totalSizeToAlloc<CXXBaseSpecifier *>(PathSize));
   auto *E =
       new (Buffer) CXXDynamicCastExpr(T, VK, K, Op, PathSize, WrittenTy, L,
@@ -796,7 +796,7 @@ CXXReinterpretCastExpr::Create(const ASTContext &C, QualType T,
                                TypeSourceInfo *WrittenTy, SourceLocation L,
                                SourceLocation RParenLoc,
                                SourceRange AngleBrackets) {
-  unsigned PathSize = (BasePath ? BasePath->size() : 0);
+  unsigned const PathSize = (BasePath ? BasePath->size() : 0);
   void *Buffer = C.Allocate(totalSizeToAlloc<CXXBaseSpecifier *>(PathSize));
   auto *E =
       new (Buffer) CXXReinterpretCastExpr(T, VK, K, Op, PathSize, WrittenTy, L,
@@ -843,7 +843,7 @@ CXXFunctionalCastExpr *CXXFunctionalCastExpr::Create(
     const ASTContext &C, QualType T, ExprValueKind VK, TypeSourceInfo *Written,
     CastKind K, Expr *Op, const CXXCastPath *BasePath, FPOptionsOverride FPO,
     SourceLocation L, SourceLocation R) {
-  unsigned PathSize = (BasePath ? BasePath->size() : 0);
+  unsigned const PathSize = (BasePath ? BasePath->size() : 0);
   void *Buffer =
       C.Allocate(totalSizeToAlloc<CXXBaseSpecifier *, FPOptionsOverride>(
           PathSize, FPO.requiresTrailingStorage()));
@@ -894,8 +894,8 @@ UserDefinedLiteral *UserDefinedLiteral::Create(const ASTContext &Ctx, Expr *Fn,
                                                SourceLocation SuffixLoc,
                                                FPOptionsOverride FPFeatures) {
   // Allocate storage for the trailing objects of CallExpr.
-  unsigned NumArgs = Args.size();
-  unsigned SizeOfTrailingObjects = CallExpr::sizeOfTrailingObjects(
+  unsigned const NumArgs = Args.size();
+  unsigned const SizeOfTrailingObjects = CallExpr::sizeOfTrailingObjects(
       /*NumPreArgs=*/0, NumArgs, FPFeatures.requiresTrailingStorage());
   void *Mem = Ctx.Allocate(sizeof(UserDefinedLiteral) + SizeOfTrailingObjects,
                            alignof(UserDefinedLiteral));
@@ -908,7 +908,7 @@ UserDefinedLiteral *UserDefinedLiteral::CreateEmpty(const ASTContext &Ctx,
                                                     bool HasFPOptions,
                                                     EmptyShell Empty) {
   // Allocate storage for the trailing objects of CallExpr.
-  unsigned SizeOfTrailingObjects =
+  unsigned const SizeOfTrailingObjects =
       CallExpr::sizeOfTrailingObjects(/*NumPreArgs=*/0, NumArgs, HasFPOptions);
   void *Mem = Ctx.Allocate(sizeof(UserDefinedLiteral) + SizeOfTrailingObjects,
                            alignof(UserDefinedLiteral));
@@ -923,7 +923,7 @@ UserDefinedLiteral::getLiteralOperatorKind() const {
     return LOK_String;
 
   assert(getNumArgs() == 1 && "unexpected #args in literal operator call");
-  QualType ParamTy =
+  QualType const ParamTy =
     cast<FunctionDecl>(getCalleeDecl())->getParamDecl(0)->getType();
   if (ParamTy->isPointerType())
     return LOK_Raw;
@@ -939,7 +939,7 @@ UserDefinedLiteral::getLiteralOperatorKind() const {
 
 Expr *UserDefinedLiteral::getCookedLiteral() {
 #ifndef NDEBUG
-  LiteralOperatorKind LOK = getLiteralOperatorKind();
+  LiteralOperatorKind const LOK = getLiteralOperatorKind();
   assert(LOK != LOK_Template && LOK != LOK_Raw && "not a cooked literal");
 #endif
   return getArg(0);
@@ -1000,7 +1000,7 @@ CXXTemporaryObjectExpr *CXXTemporaryObjectExpr::Create(
     TypeSourceInfo *TSI, ArrayRef<Expr *> Args, SourceRange ParenOrBraceRange,
     bool HadMultipleCandidates, bool ListInitialization,
     bool StdInitListInitialization, bool ZeroInitialization) {
-  unsigned SizeOfTrailingObjects = sizeOfTrailingObjects(Args.size());
+  unsigned const SizeOfTrailingObjects = sizeOfTrailingObjects(Args.size());
   void *Mem =
       Ctx.Allocate(sizeof(CXXTemporaryObjectExpr) + SizeOfTrailingObjects,
                    alignof(CXXTemporaryObjectExpr));
@@ -1011,7 +1011,7 @@ CXXTemporaryObjectExpr *CXXTemporaryObjectExpr::Create(
 
 CXXTemporaryObjectExpr *
 CXXTemporaryObjectExpr::CreateEmpty(const ASTContext &Ctx, unsigned NumArgs) {
-  unsigned SizeOfTrailingObjects = sizeOfTrailingObjects(NumArgs);
+  unsigned const SizeOfTrailingObjects = sizeOfTrailingObjects(NumArgs);
   void *Mem =
       Ctx.Allocate(sizeof(CXXTemporaryObjectExpr) + SizeOfTrailingObjects,
                    alignof(CXXTemporaryObjectExpr));
@@ -1035,7 +1035,7 @@ CXXConstructExpr *CXXConstructExpr::Create(
     bool HadMultipleCandidates, bool ListInitialization,
     bool StdInitListInitialization, bool ZeroInitialization,
     ConstructionKind ConstructKind, SourceRange ParenOrBraceRange) {
-  unsigned SizeOfTrailingObjects = sizeOfTrailingObjects(Args.size());
+  unsigned const SizeOfTrailingObjects = sizeOfTrailingObjects(Args.size());
   void *Mem = Ctx.Allocate(sizeof(CXXConstructExpr) + SizeOfTrailingObjects,
                            alignof(CXXConstructExpr));
   return new (Mem) CXXConstructExpr(
@@ -1046,7 +1046,7 @@ CXXConstructExpr *CXXConstructExpr::Create(
 
 CXXConstructExpr *CXXConstructExpr::CreateEmpty(const ASTContext &Ctx,
                                                 unsigned NumArgs) {
-  unsigned SizeOfTrailingObjects = sizeOfTrailingObjects(NumArgs);
+  unsigned const SizeOfTrailingObjects = sizeOfTrailingObjects(NumArgs);
   void *Mem = Ctx.Allocate(sizeof(CXXConstructExpr) + SizeOfTrailingObjects,
                            alignof(CXXConstructExpr));
   return new (Mem)
@@ -1115,7 +1115,7 @@ LambdaCapture::LambdaCapture(SourceLocation Loc, bool Implicit,
 LambdaCaptureKind LambdaCapture::getCaptureKind() const {
   if (capturesVLAType())
     return LCK_VLAType;
-  bool CapByCopy = DeclAndBits.getInt() & Capture_ByCopy;
+  bool const CapByCopy = DeclAndBits.getInt() & Capture_ByCopy;
   if (capturesThis())
     return CapByCopy ? LCK_StarThis : LCK_This;
   return CapByCopy ? LCK_ByCopy : LCK_ByRef;
@@ -1170,9 +1170,9 @@ LambdaExpr *LambdaExpr::Create(const ASTContext &Context, CXXRecordDecl *Class,
                                bool ContainsUnexpandedParameterPack) {
   // Determine the type of the expression (i.e., the type of the
   // function object we're creating).
-  QualType T = Context.getTypeDeclType(Class);
+  QualType const T = Context.getTypeDeclType(Class);
 
-  unsigned Size = totalSizeToAlloc<Stmt *>(CaptureInits.size() + 1);
+  unsigned const Size = totalSizeToAlloc<Stmt *>(CaptureInits.size() + 1);
   void *Mem = Context.Allocate(Size);
   return new (Mem)
       LambdaExpr(T, IntroducerRange, CaptureDefault, CaptureDefaultLoc,
@@ -1182,7 +1182,7 @@ LambdaExpr *LambdaExpr::Create(const ASTContext &Context, CXXRecordDecl *Class,
 
 LambdaExpr *LambdaExpr::CreateDeserialized(const ASTContext &C,
                                            unsigned NumCaptures) {
-  unsigned Size = totalSizeToAlloc<Stmt *>(NumCaptures + 1);
+  unsigned const Size = totalSizeToAlloc<Stmt *>(NumCaptures + 1);
   void *Mem = C.Allocate(Size);
   return new (Mem) LambdaExpr(EmptyShell(), NumCaptures);
 }
@@ -1228,7 +1228,7 @@ LambdaExpr::capture_iterator LambdaExpr::explicit_capture_begin() const {
 }
 
 LambdaExpr::capture_iterator LambdaExpr::explicit_capture_end() const {
-  struct CXXRecordDecl::LambdaDefinitionData &Data
+  struct CXXRecordDecl::LambdaDefinitionData  const&Data
     = getLambdaClass()->getLambdaData();
   return Data.Captures + Data.NumExplicitCaptures;
 }
@@ -1407,12 +1407,12 @@ CXXDependentScopeMemberExpr *CXXDependentScopeMemberExpr::Create(
     SourceLocation TemplateKWLoc, NamedDecl *FirstQualifierFoundInScope,
     DeclarationNameInfo MemberNameInfo,
     const TemplateArgumentListInfo *TemplateArgs) {
-  bool HasTemplateKWAndArgsInfo =
+  bool const HasTemplateKWAndArgsInfo =
       (TemplateArgs != nullptr) || TemplateKWLoc.isValid();
-  unsigned NumTemplateArgs = TemplateArgs ? TemplateArgs->size() : 0;
-  bool HasFirstQualifierFoundInScope = FirstQualifierFoundInScope != nullptr;
+  unsigned const NumTemplateArgs = TemplateArgs ? TemplateArgs->size() : 0;
+  bool const HasFirstQualifierFoundInScope = FirstQualifierFoundInScope != nullptr;
 
-  unsigned Size = totalSizeToAlloc<ASTTemplateKWAndArgsInfo,
+  unsigned const Size = totalSizeToAlloc<ASTTemplateKWAndArgsInfo,
                                    TemplateArgumentLoc, NamedDecl *>(
       HasTemplateKWAndArgsInfo, NumTemplateArgs, HasFirstQualifierFoundInScope);
 
@@ -1427,7 +1427,7 @@ CXXDependentScopeMemberExpr *CXXDependentScopeMemberExpr::CreateEmpty(
     unsigned NumTemplateArgs, bool HasFirstQualifierFoundInScope) {
   assert(NumTemplateArgs == 0 || HasTemplateKWAndArgsInfo);
 
-  unsigned Size = totalSizeToAlloc<ASTTemplateKWAndArgsInfo,
+  unsigned const Size = totalSizeToAlloc<ASTTemplateKWAndArgsInfo,
                                    TemplateArgumentLoc, NamedDecl *>(
       HasTemplateKWAndArgsInfo, NumTemplateArgs, HasFirstQualifierFoundInScope);
 
@@ -1500,10 +1500,10 @@ UnresolvedMemberExpr *UnresolvedMemberExpr::Create(
     const DeclarationNameInfo &MemberNameInfo,
     const TemplateArgumentListInfo *TemplateArgs, UnresolvedSetIterator Begin,
     UnresolvedSetIterator End) {
-  unsigned NumResults = End - Begin;
-  bool HasTemplateKWAndArgsInfo = TemplateArgs || TemplateKWLoc.isValid();
-  unsigned NumTemplateArgs = TemplateArgs ? TemplateArgs->size() : 0;
-  unsigned Size = totalSizeToAlloc<DeclAccessPair, ASTTemplateKWAndArgsInfo,
+  unsigned const NumResults = End - Begin;
+  bool const HasTemplateKWAndArgsInfo = TemplateArgs || TemplateKWLoc.isValid();
+  unsigned const NumTemplateArgs = TemplateArgs ? TemplateArgs->size() : 0;
+  unsigned const Size = totalSizeToAlloc<DeclAccessPair, ASTTemplateKWAndArgsInfo,
                                    TemplateArgumentLoc>(
       NumResults, HasTemplateKWAndArgsInfo, NumTemplateArgs);
   void *Mem = Context.Allocate(Size, alignof(UnresolvedMemberExpr));
@@ -1516,7 +1516,7 @@ UnresolvedMemberExpr *UnresolvedMemberExpr::CreateEmpty(
     const ASTContext &Context, unsigned NumResults,
     bool HasTemplateKWAndArgsInfo, unsigned NumTemplateArgs) {
   assert(NumTemplateArgs == 0 || HasTemplateKWAndArgsInfo);
-  unsigned Size = totalSizeToAlloc<DeclAccessPair, ASTTemplateKWAndArgsInfo,
+  unsigned const Size = totalSizeToAlloc<DeclAccessPair, ASTTemplateKWAndArgsInfo,
                                    TemplateArgumentLoc>(
       NumResults, HasTemplateKWAndArgsInfo, NumTemplateArgs);
   void *Mem = Context.Allocate(Size, alignof(UnresolvedMemberExpr));
@@ -1722,8 +1722,8 @@ CUDAKernelCallExpr::Create(const ASTContext &Ctx, Expr *Fn, CallExpr *Config,
                            SourceLocation RP, FPOptionsOverride FPFeatures,
                            unsigned MinNumArgs) {
   // Allocate storage for the trailing objects of CallExpr.
-  unsigned NumArgs = std::max<unsigned>(Args.size(), MinNumArgs);
-  unsigned SizeOfTrailingObjects = CallExpr::sizeOfTrailingObjects(
+  unsigned const NumArgs = std::max<unsigned>(Args.size(), MinNumArgs);
+  unsigned const SizeOfTrailingObjects = CallExpr::sizeOfTrailingObjects(
       /*NumPreArgs=*/END_PREARG, NumArgs, FPFeatures.requiresTrailingStorage());
   void *Mem = Ctx.Allocate(sizeof(CUDAKernelCallExpr) + SizeOfTrailingObjects,
                            alignof(CUDAKernelCallExpr));
@@ -1736,7 +1736,7 @@ CUDAKernelCallExpr *CUDAKernelCallExpr::CreateEmpty(const ASTContext &Ctx,
                                                     bool HasFPFeatures,
                                                     EmptyShell Empty) {
   // Allocate storage for the trailing objects of CallExpr.
-  unsigned SizeOfTrailingObjects = CallExpr::sizeOfTrailingObjects(
+  unsigned const SizeOfTrailingObjects = CallExpr::sizeOfTrailingObjects(
       /*NumPreArgs=*/END_PREARG, NumArgs, HasFPFeatures);
   void *Mem = Ctx.Allocate(sizeof(CUDAKernelCallExpr) + SizeOfTrailingObjects,
                            alignof(CUDAKernelCallExpr));

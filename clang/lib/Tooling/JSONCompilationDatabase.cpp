@@ -136,7 +136,7 @@ std::vector<std::string> unescapeCommandLine(JSONCommandLineSyntax Syntax,
                                              StringRef EscapedCommandLine) {
   if (Syntax == JSONCommandLineSyntax::AutoDetect) {
     Syntax = JSONCommandLineSyntax::Gnu;
-    llvm::Triple Triple(llvm::sys::getProcessTriple());
+    llvm::Triple const Triple(llvm::sys::getProcessTriple());
     if (Triple.getOS() == llvm::Triple::OSType::Win32) {
       // Assume Windows command line parsing on Win32 unless the triple
       // explicitly tells us otherwise.
@@ -201,7 +201,7 @@ JSONCompilationDatabase::loadFromFile(StringRef FilePath,
       llvm::MemoryBuffer::getFile(FilePath, /*IsText=*/false,
                                   /*RequiresNullTerminator=*/true,
                                   /*IsVolatile=*/true);
-  if (std::error_code Result = DatabaseBuffer.getError()) {
+  if (std::error_code const Result = DatabaseBuffer.getError()) {
     ErrorMessage = "Error while opening JSON database: " + Result.message();
     return nullptr;
   }
@@ -232,7 +232,7 @@ JSONCompilationDatabase::getCompileCommands(StringRef FilePath) const {
 
   std::string Error;
   llvm::raw_string_ostream ES(Error);
-  StringRef Match = MatchTrie.findEquivalent(NativeFilePath, ES);
+  StringRef const Match = MatchTrie.findEquivalent(NativeFilePath, ES);
   if (Match.empty())
     return {};
   const auto CommandsRefI = IndexByFile.find(Match);
@@ -270,7 +270,7 @@ static llvm::StringRef stripExecutableExtension(llvm::StringRef Name) {
 static bool unwrapCommand(std::vector<std::string> &Args) {
   if (Args.size() < 2)
     return false;
-  StringRef Wrapper =
+  StringRef const Wrapper =
       stripExecutableExtension(llvm::sys::path::filename(Args.front()));
   if (Wrapper == "distcc" || Wrapper == "gomacc" || Wrapper == "ccache" ||
       Wrapper == "sccache") {
@@ -285,7 +285,7 @@ static bool unwrapCommand(std::vector<std::string> &Args) {
     // We need to distinguish between the first and second case.
     // The wrappers themselves don't take flags, so Args[1] is a compiler flag,
     // an input file, or a compiler. Inputs have extensions, compilers don't.
-    bool HasCompiler =
+    bool const HasCompiler =
         (Args[1][0] != '-') &&
         !llvm::sys::path::has_extension(stripExecutableExtension(Args[1]));
     if (HasCompiler) {
@@ -362,7 +362,7 @@ bool JSONCompilationDatabase::parse(std::string &ErrorMessage) {
         return false;
       }
       SmallString<10> KeyStorage;
-      StringRef KeyValue = KeyString->getValue(KeyStorage);
+      StringRef const KeyValue = KeyString->getValue(KeyStorage);
       llvm::yaml::Node *Value = NextKeyValue.getValue();
       if (!Value) {
         ErrorMessage = "Expected value.";
@@ -418,7 +418,7 @@ bool JSONCompilationDatabase::parse(std::string &ErrorMessage) {
       return false;
     }
     SmallString<8> FileStorage;
-    StringRef FileName = File->getValue(FileStorage);
+    StringRef const FileName = File->getValue(FileStorage);
     SmallString<128> NativeFilePath;
     if (llvm::sys::path::is_relative(FileName)) {
       SmallString<8> DirectoryStorage;

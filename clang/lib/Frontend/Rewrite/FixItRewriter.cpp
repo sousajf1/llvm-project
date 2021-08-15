@@ -95,7 +95,7 @@ bool FixItRewriter::WriteFixedFiles(
   for (iterator I = buffer_begin(), E = buffer_end(); I != E; ++I) {
     const FileEntry *Entry = Rewrite.getSourceMgr().getFileEntryForID(I->first);
     int fd;
-    std::string Filename =
+    std::string const Filename =
         FixItOpts->RewriteFilename(std::string(Entry->getName()), fd);
     std::error_code EC;
     std::unique_ptr<llvm::raw_fd_ostream> OS;
@@ -109,7 +109,7 @@ bool FixItRewriter::WriteFixedFiles(
                                                               << EC.message();
       continue;
     }
-    RewriteBuffer &RewriteBuf = I->second;
+    RewriteBuffer  const&RewriteBuf = I->second;
     RewriteBuf.write(*OS);
     OS->flush();
 
@@ -172,7 +172,7 @@ void FixItRewriter::HandleDiagnostic(DiagnosticsEngine::Level DiagLevel,
                     /*afterToken=*/false, Hint.BeforePreviousInsertions);
     }
   }
-  bool CanRewrite = Info.getNumFixItHints() > 0 && commit.isCommitable();
+  bool const CanRewrite = Info.getNumFixItHints() > 0 && commit.isCommitable();
 
   if (!CanRewrite) {
     if (Info.getNumFixItHints() > 0)

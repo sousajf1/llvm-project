@@ -187,17 +187,17 @@ public:
   ///
   /// @return Whether column adjustments are necessary.
   bool MoveToLine(const Token &Tok, bool RequireStartOfLine) {
-    PresumedLoc PLoc = SM.getPresumedLoc(Tok.getLocation());
+    PresumedLoc const PLoc = SM.getPresumedLoc(Tok.getLocation());
     if (PLoc.isInvalid())
       return false;
-    bool IsFirstInFile = Tok.isAtStartOfLine() && PLoc.getLine() == 1;
+    bool const IsFirstInFile = Tok.isAtStartOfLine() && PLoc.getLine() == 1;
     return MoveToLine(PLoc.getLine(), RequireStartOfLine) || IsFirstInFile;
   }
 
   /// Move to the line of the provided source location. Returns true if a new
   /// line was inserted.
   bool MoveToLine(SourceLocation Loc, bool RequireStartOfLine) {
-    PresumedLoc PLoc = SM.getPresumedLoc(Loc);
+    PresumedLoc const PLoc = SM.getPresumedLoc(Loc);
     if (PLoc.isInvalid())
       return false;
     return MoveToLine(PLoc.getLine(), RequireStartOfLine);
@@ -326,16 +326,16 @@ void PrintPPOutputPPCallbacks::FileChanged(SourceLocation Loc,
                                        FileID PrevFID) {
   // Unless we are exiting a #include, make sure to skip ahead to the line the
   // #include directive was at.
-  SourceManager &SourceMgr = SM;
+  SourceManager  const&SourceMgr = SM;
 
-  PresumedLoc UserLoc = SourceMgr.getPresumedLoc(Loc);
+  PresumedLoc const UserLoc = SourceMgr.getPresumedLoc(Loc);
   if (UserLoc.isInvalid())
     return;
 
   unsigned NewLine = UserLoc.getLine();
 
   if (Reason == PPCallbacks::EnterFile) {
-    SourceLocation IncludeLoc = UserLoc.getIncludeLoc();
+    SourceLocation const IncludeLoc = UserLoc.getIncludeLoc();
     if (IncludeLoc.isValid())
       MoveToLine(IncludeLoc, /*RequireStartOfLine=*/false);
   } else if (Reason == PPCallbacks::SystemHeaderPragma) {
@@ -490,7 +490,7 @@ void PrintPPOutputPPCallbacks::MacroUndefined(const Token &MacroNameTok,
 }
 
 static void outputPrintable(raw_ostream &OS, StringRef Str) {
-  for (unsigned char Char : Str) {
+  for (unsigned char const Char : Str) {
     if (isPrintable(Char) && Char != '\\' && Char != '"')
       OS << (char)Char;
     else // Output anything hard as an octal escape.
@@ -775,7 +775,7 @@ struct UnknownPragmaHandler : public PragmaHandler {
 static void PrintPreprocessedTokens(Preprocessor &PP, Token &Tok,
                                     PrintPPOutputPPCallbacks *Callbacks,
                                     raw_ostream &OS) {
-  bool DropComments = PP.getLangOpts().TraditionalCPP &&
+  bool const DropComments = PP.getLangOpts().TraditionalCPP &&
                       !PP.getCommentRetentionState();
 
   bool IsStartOfLine = false;
@@ -853,7 +853,7 @@ static void PrintPreprocessedTokens(Preprocessor &PP, Token &Tok,
       OS.write(Tok.getLiteralData(), Tok.getLength());
     } else if (Tok.getLength() < llvm::array_lengthof(Buffer)) {
       const char *TokPtr = Buffer;
-      unsigned Len = PP.getSpelling(Tok, TokPtr);
+      unsigned const Len = PP.getSpelling(Tok, TokPtr);
       OS.write(TokPtr, Len);
 
       // Tokens that can contain embedded newlines need to adjust our current
@@ -919,7 +919,7 @@ static void DoPrintMacros(Preprocessor &PP, raw_ostream *OS) {
   llvm::array_pod_sort(MacrosByID.begin(), MacrosByID.end(), MacroIDCompare);
 
   for (unsigned i = 0, e = MacrosByID.size(); i != e; ++i) {
-    MacroInfo &MI = *MacrosByID[i].second;
+    MacroInfo  const&MI = *MacrosByID[i].second;
     // Ignore computed macros like __LINE__ and friends.
     if (MI.isBuiltinMacro()) continue;
 
@@ -951,16 +951,16 @@ void clang::DoPrintPreprocessedInput(Preprocessor &PP, raw_ostream *OS,
   // Expand macros in pragmas with -fms-extensions.  The assumption is that
   // the majority of pragmas in such a file will be Microsoft pragmas.
   // Remember the handlers we will add so that we can remove them later.
-  std::unique_ptr<UnknownPragmaHandler> MicrosoftExtHandler(
+  std::unique_ptr<UnknownPragmaHandler> const MicrosoftExtHandler(
       new UnknownPragmaHandler(
           "#pragma", Callbacks,
           /*RequireTokenExpansion=*/PP.getLangOpts().MicrosoftExt));
 
-  std::unique_ptr<UnknownPragmaHandler> GCCHandler(new UnknownPragmaHandler(
+  std::unique_ptr<UnknownPragmaHandler> const GCCHandler(new UnknownPragmaHandler(
       "#pragma GCC", Callbacks,
       /*RequireTokenExpansion=*/PP.getLangOpts().MicrosoftExt));
 
-  std::unique_ptr<UnknownPragmaHandler> ClangHandler(new UnknownPragmaHandler(
+  std::unique_ptr<UnknownPragmaHandler> const ClangHandler(new UnknownPragmaHandler(
       "#pragma clang", Callbacks,
       /*RequireTokenExpansion=*/PP.getLangOpts().MicrosoftExt));
 
@@ -973,7 +973,7 @@ void clang::DoPrintPreprocessedInput(Preprocessor &PP, raw_ostream *OS,
   //  OpenMP [2.1, Directive format]
   //  Preprocessing tokens following the #pragma omp are subject to macro
   //  replacement.
-  std::unique_ptr<UnknownPragmaHandler> OpenMPHandler(
+  std::unique_ptr<UnknownPragmaHandler> const OpenMPHandler(
       new UnknownPragmaHandler("#pragma omp", Callbacks,
                                /*RequireTokenExpansion=*/true));
   PP.AddPragmaHandler("omp", OpenMPHandler.get());
@@ -993,7 +993,7 @@ void clang::DoPrintPreprocessedInput(Preprocessor &PP, raw_ostream *OS,
     if (Tok.is(tok::eof) || !Tok.getLocation().isFileID())
       break;
 
-    PresumedLoc PLoc = SourceMgr.getPresumedLoc(Tok.getLocation());
+    PresumedLoc const PLoc = SourceMgr.getPresumedLoc(Tok.getLocation());
     if (PLoc.isInvalid())
       break;
 

@@ -175,7 +175,7 @@ ModuleManager::addModule(StringRef FileName, ModuleKind Type,
   NewModule->InputFilesValidationTimestamp = 0;
 
   if (NewModule->Kind == MK_ImplicitModule) {
-    std::string TimestampFilename = NewModule->getTimestampFilename();
+    std::string const TimestampFilename = NewModule->getTimestampFilename();
     llvm::vfs::Status Status;
     // A cached stat value would be fine as well.
     if (!FileMgr.getNoncachedStatValue(TimestampFilename, Status))
@@ -286,7 +286,7 @@ void ModuleManager::removeModules(ModuleIterator First, ModuleMap *modMap) {
     Modules.erase(victim->File);
 
     if (modMap) {
-      StringRef ModuleName = victim->ModuleName;
+      StringRef const ModuleName = victim->ModuleName;
       if (Module *mod = modMap->findModule(ModuleName)) {
         mod->setASTFile(None);
       }
@@ -358,7 +358,7 @@ void ModuleManager::visit(llvm::function_ref<bool(ModuleFile &M)> Visitor,
                           llvm::SmallPtrSetImpl<ModuleFile *> *ModuleFilesHit) {
   // If the visitation order vector is the wrong size, recompute the order.
   if (VisitOrder.size() != Chain.size()) {
-    unsigned N = size();
+    unsigned const N = size();
     VisitOrder.clear();
     VisitOrder.reserve(N);
 
@@ -370,7 +370,7 @@ void ModuleManager::visit(llvm::function_ref<bool(ModuleFile &M)> Visitor,
     llvm::SmallVector<unsigned, 4> UnusedIncomingEdges;
     UnusedIncomingEdges.resize(size());
     for (ModuleFile &M : llvm::reverse(*this)) {
-      unsigned Size = M.ImportedBy.size();
+      unsigned const Size = M.ImportedBy.size();
       UnusedIncomingEdges[M.Index] = Size;
       if (!Size)
         Queue.push_back(&M);
@@ -404,7 +404,7 @@ void ModuleManager::visit(llvm::function_ref<bool(ModuleFile &M)> Visitor,
   }
 
   VisitState *State = allocateVisitState();
-  unsigned VisitNumber = State->NextVisitNumber++;
+  unsigned const VisitNumber = State->NextVisitNumber++;
 
   // If the caller has provided us with a hit-set that came from the global
   // module index, mark every module file in common with the global module

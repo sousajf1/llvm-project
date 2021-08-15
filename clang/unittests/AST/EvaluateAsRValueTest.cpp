@@ -42,7 +42,7 @@ class EvaluateConstantInitializersVisitor
   bool VisitVarDecl(const clang::VarDecl *VD) {
     if (const clang::Expr *Init = VD->getInit()) {
       clang::Expr::EvalResult Result;
-      bool WasEvaluated = Init->EvaluateAsRValue(Result, VD->getASTContext());
+      bool const WasEvaluated = Init->EvaluateAsRValue(Result, VD->getASTContext());
       VarInfo[VD->getNameAsString()] = WasEvaluated;
       EXPECT_EQ(WasEvaluated, Init->isConstantInitializer(VD->getASTContext(),
                                                           false /*ForRef*/));
@@ -84,7 +84,7 @@ TEST(EvaluateAsRValue, FailsGracefullyForUnknownTypes) {
   // This is a regression test; the AST library used to trigger assertion
   // failures because it assumed that the type of initializers was always
   // known (which is true only after template instantiation).
-  std::string ModesToTest[] = {"-std=c++03", "-std=c++11", "-std=c++1y"};
+  std::string const ModesToTest[] = {"-std=c++03", "-std=c++11", "-std=c++1y"};
   for (std::string const &Mode : ModesToTest) {
     std::vector<std::string> Args(1, Mode);
     Args.push_back("-fno-delayed-template-parsing");

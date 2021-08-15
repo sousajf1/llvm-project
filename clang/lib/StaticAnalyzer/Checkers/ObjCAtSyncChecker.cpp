@@ -37,8 +37,8 @@ void ObjCAtSyncChecker::checkPreStmt(const ObjCAtSynchronizedStmt *S,
                                      CheckerContext &C) const {
 
   const Expr *Ex = S->getSynchExpr();
-  ProgramStateRef state = C.getState();
-  SVal V = C.getSVal(Ex);
+  ProgramStateRef const state = C.getState();
+  SVal const V = C.getSVal(Ex);
 
   // Uninitialized value used for the mutex?
   if (V.getAs<UndefinedVal>()) {

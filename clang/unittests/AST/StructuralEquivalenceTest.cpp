@@ -25,7 +25,7 @@ struct StructuralEquivalenceTest : ::testing::Test {
                     TestLanguage Lang) {
     this->Code0 = SrcCode0;
     this->Code1 = SrcCode1;
-    std::vector<std::string> Args = getCommandLineArgsForTesting(Lang);
+    std::vector<std::string> const Args = getCommandLineArgsForTesting(Lang);
 
     const char *const InputFileName = "input.cc";
 
@@ -139,8 +139,8 @@ struct StructuralEquivalenceTest : ::testing::Test {
     StructuralEquivalenceContext Ctx10(
         D1->getASTContext(), D0->getASTContext(),
         NonEquivalentDecls10, StructuralEquivalenceKind::Default, false, false);
-    bool Eq01 = Ctx01.IsEquivalent(D0, D1);
-    bool Eq10 = Ctx10.IsEquivalent(D1, D0);
+    bool const Eq01 = Ctx01.IsEquivalent(D0, D1);
+    bool const Eq10 = Ctx10.IsEquivalent(D1, D0);
     EXPECT_EQ(Eq01, Eq10);
     return Eq01;
   }
@@ -154,8 +154,8 @@ struct StructuralEquivalenceTest : ::testing::Test {
     StructuralEquivalenceContext Ctx10(
         *S1.Context, *S0.Context, NonEquivalentDecls10,
         StructuralEquivalenceKind::Default, false, false);
-    bool Eq01 = Ctx01.IsEquivalent(S0.S, S1.S);
-    bool Eq10 = Ctx10.IsEquivalent(S1.S, S0.S);
+    bool const Eq01 = Ctx01.IsEquivalent(S0.S, S1.S);
+    bool const Eq10 = Ctx10.IsEquivalent(S1.S, S0.S);
     EXPECT_EQ(Eq01, Eq10);
     return Eq01;
   }
@@ -1097,7 +1097,7 @@ struct StructuralEquivalenceDependentTemplateArgsTest
 
 TEST_F(StructuralEquivalenceDependentTemplateArgsTest,
        SameStructsInDependentArgs) {
-  std::string Code =
+  std::string const Code =
       R"(
       template <typename>
       struct S1;
@@ -1118,7 +1118,7 @@ TEST_F(StructuralEquivalenceDependentTemplateArgsTest,
 
 TEST_F(StructuralEquivalenceDependentTemplateArgsTest,
        DifferentStructsInDependentArgs) {
-  std::string Code =
+  std::string const Code =
       R"(
       template <typename>
       struct S1;
@@ -1150,7 +1150,7 @@ TEST_F(StructuralEquivalenceDependentTemplateArgsTest,
 
 TEST_F(StructuralEquivalenceDependentTemplateArgsTest,
        SameStructsInDependentScopeDeclRefExpr) {
-  std::string Code =
+  std::string const Code =
       R"(
       template <typename>
       struct S1;
@@ -1171,7 +1171,7 @@ TEST_F(StructuralEquivalenceDependentTemplateArgsTest,
 
 TEST_F(StructuralEquivalenceDependentTemplateArgsTest,
        DifferentStructsInDependentScopeDeclRefExpr) {
-  std::string Code =
+  std::string const Code =
       R"(
       template <typename>
       struct S1;
@@ -1203,7 +1203,7 @@ TEST_F(StructuralEquivalenceDependentTemplateArgsTest,
 
 TEST_F(StructuralEquivalenceDependentTemplateArgsTest,
        DifferentValueInDependentScopeDeclRefExpr) {
-  std::string Code =
+  std::string const Code =
       R"(
       template <typename>
       struct S1;
@@ -1509,7 +1509,7 @@ enum memory_order {
 )";
 
 TEST_F(StructuralEquivalenceStmtTest, AtomicExpr) {
-  std::string Prefix = "char a, b; " + MemoryOrderSrc;
+  std::string const Prefix = "char a, b; " + MemoryOrderSrc;
   auto t = makeStmts(
       Prefix +
           "void wrapped() { __atomic_load(&a, &b, memory_order_seq_cst); }",
@@ -1520,7 +1520,7 @@ TEST_F(StructuralEquivalenceStmtTest, AtomicExpr) {
 }
 
 TEST_F(StructuralEquivalenceStmtTest, AtomicExprDifferentOp) {
-  std::string Prefix = "char a, b; " + MemoryOrderSrc;
+  std::string const Prefix = "char a, b; " + MemoryOrderSrc;
   auto t = makeStmts(
       Prefix +
           "void wrapped() { __atomic_load(&a, &b, memory_order_seq_cst); }",
@@ -1541,13 +1541,13 @@ TEST_F(StructuralEquivalenceStmtTest, BinaryOperatorDifferentOps) {
 }
 
 TEST_F(StructuralEquivalenceStmtTest, CallExpr) {
-  std::string Src = "int call(); int wrapped() { call(); }";
+  std::string const Src = "int call(); int wrapped() { call(); }";
   auto t = makeStmts(Src, Src, Lang_CXX03, callExpr());
   EXPECT_TRUE(testStructuralMatch(t));
 }
 
 TEST_F(StructuralEquivalenceStmtTest, CallExprDifferentCallee) {
-  std::string FunctionSrc = "int func1(); int func2();\n";
+  std::string const FunctionSrc = "int func1(); int func2();\n";
   auto t = makeStmts(FunctionSrc + "void wrapper() { func1(); }",
                      FunctionSrc + "void wrapper() { func2(); }", Lang_CXX03,
                      callExpr());
@@ -1686,7 +1686,7 @@ TEST_F(StructuralEquivalenceStmtTest, IntegerLiteralDifferentTypes) {
 }
 
 TEST_F(StructuralEquivalenceStmtTest, MemberExpr) {
-  std::string ClassSrc = "struct C { int a; int b; };";
+  std::string const ClassSrc = "struct C { int a; int b; };";
   auto t = makeStmts(ClassSrc + "int wrapper() { C c; return c.a; }",
                      ClassSrc + "int wrapper() { C c; return c.a; }",
                      Lang_CXX03, memberExpr());
@@ -1694,7 +1694,7 @@ TEST_F(StructuralEquivalenceStmtTest, MemberExpr) {
 }
 
 TEST_F(StructuralEquivalenceStmtTest, MemberExprDifferentMember) {
-  std::string ClassSrc = "struct C { int a; int b; };";
+  std::string const ClassSrc = "struct C { int a; int b; };";
   auto t = makeStmts(ClassSrc + "int wrapper() { C c; return c.a; }",
                      ClassSrc + "int wrapper() { C c; return c.b; }",
                      Lang_CXX03, memberExpr());

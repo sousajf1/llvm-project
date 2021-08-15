@@ -136,7 +136,7 @@ CompoundStmt *ASTMaker::makeCompound(ArrayRef<Stmt *> Stmts) {
 DeclRefExpr *ASTMaker::makeDeclRefExpr(
     const VarDecl *D,
     bool RefersToEnclosingVariableOrCapture) {
-  QualType Type = D->getType().getNonReferenceType();
+  QualType const Type = D->getType().getNonReferenceType();
 
   DeclRefExpr *DR = DeclRefExpr::Create(
       C, NestedNameSpecifierLoc(), SourceLocation(), const_cast<VarDecl *>(D),
@@ -157,7 +157,7 @@ ImplicitCastExpr *ASTMaker::makeLvalueToRvalue(const Expr *Arg, QualType Ty) {
 ImplicitCastExpr *
 ASTMaker::makeLvalueToRvalue(const VarDecl *Arg,
                              bool RefersToEnclosingVariableOrCapture) {
-  QualType Type = Arg->getType().getNonReferenceType();
+  QualType const Type = Arg->getType().getNonReferenceType();
   return makeLvalueToRvalue(makeDeclRefExpr(Arg,
                                             RefersToEnclosingVariableOrCapture),
                             Type);
@@ -184,7 +184,7 @@ ImplicitCastExpr *ASTMaker::makeIntegralCastToBoolean(const Expr *Arg) {
 }
 
 ObjCBoolLiteralExpr *ASTMaker::makeObjCBool(bool Val) {
-  QualType Ty = C.getBOOLDecl() ? C.getBOOLType() : C.ObjCBuiltinBoolTy;
+  QualType const Ty = C.getBOOLDecl() ? C.getBOOLType() : C.ObjCBuiltinBoolTy;
   return new (C) ObjCBoolLiteralExpr(Val, Ty, SourceLocation());
 }
 
@@ -202,7 +202,7 @@ ReturnStmt *ASTMaker::makeReturn(const Expr *RetVal) {
 }
 
 IntegerLiteral *ASTMaker::makeIntegerLiteral(uint64_t Value, QualType Ty) {
-  llvm::APInt APValue = llvm::APInt(C.getTypeSize(Ty), Value);
+  llvm::APInt const APValue = llvm::APInt(C.getTypeSize(Ty), Value);
   return IntegerLiteral::Create(C, APValue, Ty, SourceLocation());
 }
 
@@ -210,7 +210,7 @@ MemberExpr *ASTMaker::makeMemberExpression(Expr *base, ValueDecl *MemberDecl,
                                            bool IsArrow,
                                            ExprValueKind ValueKind) {
 
-  DeclAccessPair FoundDecl = DeclAccessPair::make(MemberDecl, AS_public);
+  DeclAccessPair const FoundDecl = DeclAccessPair::make(MemberDecl, AS_public);
   return MemberExpr::Create(
       C, base, IsArrow, SourceLocation(), NestedNameSpecifierLoc(),
       SourceLocation(), MemberDecl, FoundDecl,
@@ -221,14 +221,14 @@ MemberExpr *ASTMaker::makeMemberExpression(Expr *base, ValueDecl *MemberDecl,
 
 ValueDecl *ASTMaker::findMemberField(const RecordDecl *RD, StringRef Name) {
 
-  CXXBasePaths Paths(
+  CXXBasePaths const Paths(
       /* FindAmbiguities=*/false,
       /* RecordPaths=*/false,
       /* DetectVirtual=*/ false);
   const IdentifierInfo &II = C.Idents.get(Name);
-  DeclarationName DeclName = C.DeclarationNames.getIdentifier(&II);
+  DeclarationName const DeclName = C.DeclarationNames.getIdentifier(&II);
 
-  DeclContextLookupResult Decls = RD->lookup(DeclName);
+  DeclContextLookupResult const Decls = RD->lookup(DeclName);
   for (NamedDecl *FoundDecl : Decls)
     if (!FoundDecl->getDeclContext()->isFunctionOrMethod())
       return cast<ValueDecl>(FoundDecl);
@@ -332,11 +332,11 @@ static Stmt *create_call_once(ASTContext &C, const FunctionDecl *D) {
     return nullptr;
   }
 
-  QualType CallbackType = Callback->getType().getNonReferenceType();
+  QualType const CallbackType = Callback->getType().getNonReferenceType();
 
   // Nullable pointer, non-null iff function is a CXXRecordDecl.
   CXXRecordDecl *CallbackRecordDecl = CallbackType->getAsCXXRecordDecl();
-  QualType FlagType = Flag->getType().getNonReferenceType();
+  QualType const FlagType = Flag->getType().getNonReferenceType();
   auto *FlagRecordDecl = FlagType->getAsRecordDecl();
 
   if (!FlagRecordDecl) {
@@ -363,7 +363,7 @@ static Stmt *create_call_once(ASTContext &C, const FunctionDecl *D) {
     return nullptr;
   }
 
-  bool isLambdaCall = CallbackRecordDecl && CallbackRecordDecl->isLambda();
+  bool const isLambdaCall = CallbackRecordDecl && CallbackRecordDecl->isLambda();
   if (CallbackRecordDecl && !isLambdaCall) {
     LLVM_DEBUG(llvm::dbgs()
                << "Not supported: synthesizing body for functors when "
@@ -417,7 +417,7 @@ static Stmt *create_call_once(ASTContext &C, const FunctionDecl *D) {
     }
     Expr *ParamExpr = M.makeDeclRefExpr(PDecl);
     if (!CallbackFunctionType->getParamType(ParamIdx - 2)->isReferenceType()) {
-      QualType PTy = PDecl->getType().getNonReferenceType();
+      QualType const PTy = PDecl->getType().getNonReferenceType();
       ParamExpr = M.makeLvalueToRvalue(ParamExpr, PTy);
     }
     CallArgs.push_back(ParamExpr);
@@ -441,7 +441,7 @@ static Stmt *create_call_once(ASTContext &C, const FunctionDecl *D) {
 
   MemberExpr *Deref = M.makeMemberExpression(FlagDecl, FlagFieldDecl);
   assert(Deref->isLValue());
-  QualType DerefType = Deref->getType();
+  QualType const DerefType = Deref->getType();
 
   // Negation predicate.
   UnaryOperator *FlagCheck = UnaryOperator::Create(
@@ -481,17 +481,17 @@ static Stmt *create_dispatch_once(ASTContext &C, const FunctionDecl *D) {
 
   // Check if the first parameter is a pointer to integer type.
   const ParmVarDecl *Predicate = D->getParamDecl(0);
-  QualType PredicateQPtrTy = Predicate->getType();
+  QualType const PredicateQPtrTy = Predicate->getType();
   const PointerType *PredicatePtrTy = PredicateQPtrTy->getAs<PointerType>();
   if (!PredicatePtrTy)
     return nullptr;
-  QualType PredicateTy = PredicatePtrTy->getPointeeType();
+  QualType const PredicateTy = PredicatePtrTy->getPointeeType();
   if (!PredicateTy->isIntegerType())
     return nullptr;
 
   // Check if the second parameter is the proper block type.
   const ParmVarDecl *Block = D->getParamDecl(1);
-  QualType Ty = Block->getType();
+  QualType const Ty = Block->getType();
   if (!isDispatchBlock(Ty))
     return nullptr;
 
@@ -532,7 +532,7 @@ static Stmt *create_dispatch_once(ASTContext &C, const FunctionDecl *D) {
        PredicateTy);
 
   // (3) Create the compound statement.
-  Stmt *Stmts[] = { B, CE };
+  Stmt *const Stmts[] = { B, CE };
   CompoundStmt *CS = M.makeCompound(Stmts);
 
   // (4) Create the 'if' condition.
@@ -566,7 +566,7 @@ static Stmt *create_dispatch_sync(ASTContext &C, const FunctionDecl *D) {
 
   // Check if the second parameter is a block.
   const ParmVarDecl *PV = D->getParamDecl(1);
-  QualType Ty = PV->getType();
+  QualType const Ty = PV->getType();
   if (!isDispatchBlock(Ty))
     return nullptr;
 
@@ -602,25 +602,25 @@ static Stmt *create_OSAtomicCompareAndSwap(ASTContext &C, const FunctionDecl *D)
   //   }
   //   else return NO;
 
-  QualType ResultTy = D->getReturnType();
-  bool isBoolean = ResultTy->isBooleanType();
+  QualType const ResultTy = D->getReturnType();
+  bool const isBoolean = ResultTy->isBooleanType();
   if (!isBoolean && !ResultTy->isIntegralType(C))
     return nullptr;
 
   const ParmVarDecl *OldValue = D->getParamDecl(0);
-  QualType OldValueTy = OldValue->getType();
+  QualType const OldValueTy = OldValue->getType();
 
   const ParmVarDecl *NewValue = D->getParamDecl(1);
-  QualType NewValueTy = NewValue->getType();
+  QualType const NewValueTy = NewValue->getType();
 
   assert(OldValueTy == NewValueTy);
 
   const ParmVarDecl *TheValue = D->getParamDecl(2);
-  QualType TheValueTy = TheValue->getType();
+  QualType const TheValueTy = TheValue->getType();
   const PointerType *PT = TheValueTy->getAs<PointerType>();
   if (!PT)
     return nullptr;
-  QualType PointeeTy = PT->getPointeeType();
+  QualType const PointeeTy = PT->getPointeeType();
 
   ASTMaker M(C);
   // Construct the comparison.
@@ -678,7 +678,7 @@ Stmt *BodyFarm::getBody(const FunctionDecl *D) {
   if (D->getIdentifier() == nullptr)
     return nullptr;
 
-  StringRef Name = D->getName();
+  StringRef const Name = D->getName();
   if (Name.empty())
     return nullptr;
 

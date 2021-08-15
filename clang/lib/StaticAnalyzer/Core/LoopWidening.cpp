@@ -57,7 +57,7 @@ ProgramStateRef getWidenedLoopState(ProgramStateRef PrevState,
   ASTContext &ASTCtx = LCtx->getAnalysisDeclContext()->getASTContext();
   const StackFrameContext *STC = LCtx->getStackFrame();
   MemRegionManager &MRMgr = PrevState->getStateManager().getRegionManager();
-  const MemRegion *Regions[] = {MRMgr.getStackLocalsRegion(STC),
+  const MemRegion *const Regions[] = {MRMgr.getStackLocalsRegion(STC),
                                 MRMgr.getStackArgumentsRegion(STC),
                                 MRMgr.getGlobalsRegion()};
   RegionAndSymbolInvalidationTraits ITraits;
@@ -71,7 +71,7 @@ ProgramStateRef getWidenedLoopState(ProgramStateRef PrevState,
       findAll(stmt(hasDescendant(
           varDecl(hasType(hasCanonicalType(referenceType()))).bind(MatchRef)))),
       *LCtx->getDecl()->getBody(), ASTCtx);
-  for (BoundNodes Match : Matches) {
+  for (BoundNodes const Match : Matches) {
     const VarDecl *VD = Match.getNodeAs<VarDecl>(MatchRef);
     assert(VD);
     const VarRegion *VarMem = MRMgr.getVarRegion(VD, LCtx);

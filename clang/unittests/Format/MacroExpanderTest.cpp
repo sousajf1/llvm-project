@@ -49,7 +49,7 @@ public:
     for (size_t I = 0, E = Tokens.size(); I != E; ++I) {
       if (I >= Attributes.size())
         continue;
-      std::string Context =
+      std::string const Context =
           ("for token " + llvm::Twine(I) + ": " + Tokens[I]->Tok.getName() +
            " / " + Tokens[I]->TokenText)
               .str();
@@ -167,7 +167,7 @@ TEST_F(MacroExpanderTest, RecursiveExpansion) {
   auto BResult = uneof(Macros->expand(B, CResult));
   auto AResult = uneof(Macros->expand(A, BResult));
 
-  std::vector<MacroAttributes> Attributes = {
+  std::vector<MacroAttributes> const Attributes = {
       {tok::identifier, MR_ExpandedArg, 3, 3, {C, B, A}},
   };
   EXPECT_ATTRIBUTES(AResult, Attributes);
@@ -178,7 +178,7 @@ TEST_F(MacroExpanderTest, SingleExpansion) {
   auto *A = Lex.id("A");
   auto Args = lexArgs({"id"});
   auto Result = uneof(Macros->expand(A, Args));
-  std::vector<MacroAttributes> Attributes = {
+  std::vector<MacroAttributes> const Attributes = {
       {tok::identifier, MR_ExpandedArg, 1, 0, {A}},
       {tok::plus, MR_Hidden, 0, 0, {A}},
       {tok::identifier, MR_Hidden, 0, 1, {A}},
@@ -191,7 +191,7 @@ TEST_F(MacroExpanderTest, UnderstandsCppTokens) {
   auto *A = Lex.id("A");
   auto Args = lexArgs({"const int", "x"});
   auto Result = uneof(Macros->expand(A, Args));
-  std::vector<MacroAttributes> Attributes = {
+  std::vector<MacroAttributes> const Attributes = {
       {tok::kw_const, MR_ExpandedArg, 1, 0, {A}},
       {tok::kw_int, MR_ExpandedArg, 0, 0, {A}},
       {tok::identifier, MR_ExpandedArg, 0, 0, {A}},

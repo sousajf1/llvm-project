@@ -33,7 +33,7 @@ static bool ParseScanList(FormatStringHandler &H,
                           const char *&Beg, const char *E) {
   const char *I = Beg;
   const char *start = I - 1;
-  UpdateOnReturn <const char*> UpdateBeg(Beg, I);
+  UpdateOnReturn <const char*> const UpdateBeg(Beg, I);
 
   // No more characters?
   if (I == E) {
@@ -82,11 +82,11 @@ static ScanfSpecifierResult ParseScanfSpecifier(FormatStringHandler &H,
   using namespace clang::analyze_scanf;
   const char *I = Beg;
   const char *Start = nullptr;
-  UpdateOnReturn <const char*> UpdateBeg(Beg, I);
+  UpdateOnReturn <const char*> const UpdateBeg(Beg, I);
 
     // Look for a '%' character that indicates the start of a format specifier.
   for ( ; I != E ; ++I) {
-    char c = *I;
+    char const c = *I;
     if (c == '\0') {
         // Detect spurious null characters, which are likely errors.
       H.HandleNullChar(I);

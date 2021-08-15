@@ -92,7 +92,7 @@ static bool skipArgs(const char *Flag, bool HaveCrashVFS, int &SkipNum,
     return true;
 
   // These flags are treated as a single argument (e.g., -F<Dir>).
-  StringRef FlagRef(Flag);
+  StringRef const FlagRef(Flag);
   IsInclude = FlagRef.startswith("-F") || FlagRef.startswith("-I");
   if (IsInclude)
     return !HaveCrashVFS;
@@ -169,7 +169,7 @@ rewriteIncludes(const llvm::ArrayRef<const char *> &Args, size_t Idx,
   auto getAbsPath = [](StringRef InInc, SmallVectorImpl<char> &OutInc) -> bool {
     if (path::is_absolute(InInc)) // Nothing to do here...
       return false;
-    std::error_code EC = fs::current_path(OutInc);
+    std::error_code const EC = fs::current_path(OutInc);
     if (EC)
       return false;
     path::append(OutInc, InInc);
@@ -178,10 +178,10 @@ rewriteIncludes(const llvm::ArrayRef<const char *> &Args, size_t Idx,
 
   SmallString<128> NewInc;
   if (NumArgs == 1) {
-    StringRef FlagRef(Args[Idx + NumArgs - 1]);
+    StringRef const FlagRef(Args[Idx + NumArgs - 1]);
     assert((FlagRef.startswith("-F") || FlagRef.startswith("-I")) &&
             "Expecting -I or -F");
-    StringRef Inc = FlagRef.slice(2, StringRef::npos);
+    StringRef const Inc = FlagRef.slice(2, StringRef::npos);
     if (getAbsPath(Inc, NewInc)) {
       SmallString<128> NewArg(FlagRef.slice(0, 2));
       NewArg += NewInc;
@@ -191,7 +191,7 @@ rewriteIncludes(const llvm::ArrayRef<const char *> &Args, size_t Idx,
   }
 
   assert(NumArgs == 2 && "Not expecting more than two arguments");
-  StringRef Inc(Args[Idx + NumArgs - 1]);
+  StringRef const Inc(Args[Idx + NumArgs - 1]);
   if (!getAbsPath(Inc, NewInc))
     return;
   IncFlags.push_back(SmallString<128>(Args[Idx]));
@@ -211,7 +211,7 @@ void Command::Print(raw_ostream &OS, const char *Terminator, bool Quote,
     Args = ArrayRef<const char *>(ArgsRespFile).slice(1); // no executable name
   }
 
-  bool HaveCrashVFS = CrashInfo && !CrashInfo->VFSPath.empty();
+  bool const HaveCrashVFS = CrashInfo && !CrashInfo->VFSPath.empty();
   for (size_t i = 0, e = Args.size(); i < e; ++i) {
     const char *const Arg = Args[i];
 
@@ -244,7 +244,7 @@ void Command::Print(raw_ostream &OS, const char *Terminator, bool Quote,
           (i == 0 || StringRef(Args[i - 1]) != "-main-file-name")) {
         // Replace the input file name with the crashinfo's file name.
         OS << ' ';
-        StringRef ShortName = llvm::sys::path::filename(CrashInfo->Filename);
+        StringRef const ShortName = llvm::sys::path::filename(CrashInfo->Filename);
         llvm::sys::printArg(OS, ShortName.str(), Quote);
         continue;
       }
@@ -330,7 +330,7 @@ int Command::Execute(ArrayRef<llvm::Optional<StringRef>> Redirects,
     SS.flush();
 
     // Save the response file in the appropriate encoding
-    if (std::error_code EC = writeFileWithEncoding(
+    if (std::error_code const EC = writeFileWithEncoding(
             ResponseFile, RespContents, ResponseSupport.ResponseEncoding)) {
       if (ErrMsg)
         *ErrMsg = EC.message();
@@ -432,7 +432,7 @@ void ForceSuccessCommand::Print(raw_ostream &OS, const char *Terminator,
 int ForceSuccessCommand::Execute(ArrayRef<llvm::Optional<StringRef>> Redirects,
                                  std::string *ErrMsg,
                                  bool *ExecutionFailed) const {
-  int Status = Command::Execute(Redirects, ErrMsg, ExecutionFailed);
+  int const Status = Command::Execute(Redirects, ErrMsg, ExecutionFailed);
   (void)Status;
   if (ExecutionFailed)
     *ExecutionFailed = false;

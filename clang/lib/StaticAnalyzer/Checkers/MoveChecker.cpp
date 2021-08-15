@@ -279,8 +279,8 @@ MoveChecker::MovedBugVisitor::VisitNode(const ExplodedNode *N,
   // The visitor walks the ExplodedGraph backwards.
   if (Found)
     return nullptr;
-  ProgramStateRef State = N->getState();
-  ProgramStateRef StatePrev = N->getFirstPred()->getState();
+  ProgramStateRef const State = N->getState();
+  ProgramStateRef const StatePrev = N->getFirstPred()->getState();
   const RegionState *TrackedObject = State->get<TrackedRegionMap>(Region);
   const RegionState *TrackedObjectPrev =
       StatePrev->get<TrackedRegionMap>(Region);
@@ -298,7 +298,7 @@ MoveChecker::MovedBugVisitor::VisitNode(const ExplodedNode *N,
   SmallString<128> Str;
   llvm::raw_svector_ostream OS(Str);
 
-  ObjectKind OK = Chk.classifyObject(Region, RD);
+  ObjectKind const OK = Chk.classifyObject(Region, RD);
   switch (OK.StdKind) {
     case SK_SmartPtr:
       if (MK == MK_Dereference) {
@@ -325,7 +325,7 @@ MoveChecker::MovedBugVisitor::VisitNode(const ExplodedNode *N,
   }
 
   // Generate the extra diagnostic.
-  PathDiagnosticLocation Pos(S, BRC.getSourceManager(),
+  PathDiagnosticLocation const Pos(S, BRC.getSourceManager(),
                              N->getLocationContext());
   return std::make_shared<PathDiagnosticEventPiece>(Pos, OS.str(), true);
 }
@@ -338,7 +338,7 @@ const ExplodedNode *MoveChecker::getMoveLocation(const ExplodedNode *N,
   const ExplodedNode *MoveNode = N;
 
   while (N) {
-    ProgramStateRef State = N->getState();
+    ProgramStateRef const State = N->getState();
     if (!State->get<TrackedRegionMap>(Region))
       break;
     MoveNode = N;
@@ -352,7 +352,7 @@ void MoveChecker::modelUse(ProgramStateRef State, const MemRegion *Region,
                            CheckerContext &C) const {
   assert(!C.isDifferent() && "No transitions should have been made by now");
   const RegionState *RS = State->get<TrackedRegionMap>(Region);
-  ObjectKind OK = classifyObject(Region, RD);
+  ObjectKind const OK = classifyObject(Region, RD);
 
   // Just in case: if it's not a smart pointer but it does have operator *,
   // we shouldn't call the bug a dereference.
@@ -480,7 +480,7 @@ void MoveChecker::checkPostCall(const CallEvent &Call,
     return;
 
   const CXXRecordDecl *RD = MethodDecl->getParent();
-  ObjectKind OK = classifyObject(ArgRegion, RD);
+  ObjectKind const OK = classifyObject(ArgRegion, RD);
   if (shouldBeTracked(OK)) {
     // Mark object as moved-from.
     State = State->set<TrackedRegionMap>(ArgRegion, RegionState::getMoved());
@@ -512,7 +512,7 @@ bool MoveChecker::isStateResetMethod(const CXXMethodDecl *MethodDec) const {
   if (MethodDec->hasAttr<ReinitializesAttr>())
       return true;
   if (MethodDec->getDeclName().isIdentifier()) {
-    std::string MethodName = MethodDec->getName().lower();
+    std::string const MethodName = MethodDec->getName().lower();
     // TODO: Some of these methods (eg., resize) are not always resetting
     // the state, so we should consider looking at the arguments.
     if (MethodName == "assign" || MethodName == "clear" ||
@@ -553,7 +553,7 @@ MoveChecker::classifyObject(const MemRegion *MR,
   // For the purposes of this checker, we classify move-safe STL types
   // as not-"STL" types, because that's how the checker treats them.
   MR = unwrapRValueReferenceIndirection(MR);
-  bool IsLocal =
+  bool const IsLocal =
       MR && isa<VarRegion>(MR) && isa<StackSpaceRegion>(MR->getMemorySpace());
 
   if (!RD || !RD->getDeclContext()->isStdNamespace())
@@ -578,7 +578,7 @@ void MoveChecker::explainObject(llvm::raw_ostream &OS, const MemRegion *MR,
     OS << " '" << RegionDecl->getDeclName() << "'";
   }
 
-  ObjectKind OK = classifyObject(MR, RD);
+  ObjectKind const OK = classifyObject(MR, RD);
   switch (OK.StdKind) {
     case SK_NonStd:
     case SK_Safe:
@@ -609,7 +609,7 @@ void MoveChecker::checkPreCall(const CallEvent &Call, CheckerContext &C) const {
     if (CtorDec && CtorDec->isCopyOrMoveConstructor()) {
       const MemRegion *ArgRegion = CC->getArgSVal(0).getAsRegion();
       const CXXRecordDecl *RD = CtorDec->getParent();
-      MisuseKind MK = CtorDec->isMoveConstructor() ? MK_Move : MK_Copy;
+      MisuseKind const MK = CtorDec->isMoveConstructor() ? MK_Move : MK_Copy;
       modelUse(State, ArgRegion, RD, MK, C);
       return;
     }
@@ -649,7 +649,7 @@ void MoveChecker::checkPreCall(const CallEvent &Call, CheckerContext &C) const {
   const CXXRecordDecl *RD = MethodDecl->getParent();
 
   if (MethodDecl->isOverloadedOperator()) {
-    OverloadedOperatorKind OOK = MethodDecl->getOverloadedOperator();
+    OverloadedOperatorKind const OOK = MethodDecl->getOverloadedOperator();
 
     if (OOK == OO_Equal) {
       // Remove the tracked object for every assignment operator, but report bug
@@ -659,7 +659,7 @@ void MoveChecker::checkPreCall(const CallEvent &Call, CheckerContext &C) const {
       if (MethodDecl->isCopyAssignmentOperator() ||
           MethodDecl->isMoveAssignmentOperator()) {
         const MemRegion *ArgRegion = IC->getArgSVal(0).getAsRegion();
-        MisuseKind MK =
+        MisuseKind const MK =
             MethodDecl->isMoveAssignmentOperator() ? MK_Move : MK_Copy;
         modelUse(State, ArgRegion, RD, MK, C);
         return;
@@ -680,10 +680,10 @@ void MoveChecker::checkPreCall(const CallEvent &Call, CheckerContext &C) const {
 void MoveChecker::checkDeadSymbols(SymbolReaper &SymReaper,
                                    CheckerContext &C) const {
   ProgramStateRef State = C.getState();
-  TrackedRegionMapTy TrackedRegions = State->get<TrackedRegionMap>();
+  TrackedRegionMapTy const TrackedRegions = State->get<TrackedRegionMap>();
   for (auto E : TrackedRegions) {
     const MemRegion *Region = E.first;
-    bool IsRegDead = !SymReaper.isLiveRegion(Region);
+    bool const IsRegDead = !SymReaper.isLiveRegion(Region);
 
     // Remove the dead regions from the region map.
     if (IsRegDead) {
@@ -732,7 +732,7 @@ ProgramStateRef MoveChecker::checkRegionChanges(
 void MoveChecker::printState(raw_ostream &Out, ProgramStateRef State,
                              const char *NL, const char *Sep) const {
 
-  TrackedRegionMapTy RS = State->get<TrackedRegionMap>();
+  TrackedRegionMapTy const RS = State->get<TrackedRegionMap>();
 
   if (!RS.isEmpty()) {
     Out << Sep << "Moved-from objects :" << NL;

@@ -108,15 +108,15 @@ struct CopyStructVisitor : StructVisitor<Derived>,
                     Ts... Args) {
     assert(!FT.isVolatileQualified() && "volatile field not expected");
     ASTContext &Ctx = asDerived().getContext();
-    uint64_t FieldSize = getFieldSize(FD, FT, Ctx);
+    uint64_t const FieldSize = getFieldSize(FD, FT, Ctx);
 
     // Ignore zero-sized fields.
     if (FieldSize == 0)
       return;
 
-    uint64_t FStartInBits = asDerived().getFieldOffsetInBits(FD);
-    uint64_t FEndInBits = FStartInBits + FieldSize;
-    uint64_t RoundedFEnd = llvm::alignTo(FEndInBits, Ctx.getCharWidth());
+    uint64_t const FStartInBits = asDerived().getFieldOffsetInBits(FD);
+    uint64_t const FEndInBits = FStartInBits + FieldSize;
+    uint64_t const RoundedFEnd = llvm::alignTo(FEndInBits, Ctx.getCharWidth());
 
     // Set Start if this is the first field of a sequence of trivial fields.
     if (Start == End)
@@ -161,20 +161,20 @@ template <class Derived> struct GenFuncNameBase {
     appendStr("_s");
     if (FT->isBlockPointerType())
       appendStr("b");
-    CharUnits FieldOffset = CurStructOffset + asDerived().getFieldOffset(FD);
+    CharUnits const FieldOffset = CurStructOffset + asDerived().getFieldOffset(FD);
     appendStr(getVolatileOffsetStr(FT.isVolatileQualified(), FieldOffset));
   }
 
   void visitARCWeak(QualType FT, const FieldDecl *FD,
                     CharUnits CurStructOffset) {
     appendStr("_w");
-    CharUnits FieldOffset = CurStructOffset + asDerived().getFieldOffset(FD);
+    CharUnits const FieldOffset = CurStructOffset + asDerived().getFieldOffset(FD);
     appendStr(getVolatileOffsetStr(FT.isVolatileQualified(), FieldOffset));
   }
 
   void visitStruct(QualType QT, const FieldDecl *FD,
                    CharUnits CurStructOffset) {
-    CharUnits FieldOffset = CurStructOffset + asDerived().getFieldOffset(FD);
+    CharUnits const FieldOffset = CurStructOffset + asDerived().getFieldOffset(FD);
     appendStr("_S");
     asDerived().visitStructFields(QT, FieldOffset);
   }
@@ -188,12 +188,12 @@ template <class Derived> struct GenFuncNameBase {
       return asDerived().visitTrivial(QualType(AT, 0), FD, CurStructOffset);
 
     asDerived().flushTrivialFields();
-    CharUnits FieldOffset = CurStructOffset + asDerived().getFieldOffset(FD);
-    ASTContext &Ctx = asDerived().getContext();
+    CharUnits const FieldOffset = CurStructOffset + asDerived().getFieldOffset(FD);
+    ASTContext  const&Ctx = asDerived().getContext();
     const ConstantArrayType *CAT = cast<ConstantArrayType>(AT);
-    unsigned NumElts = Ctx.getConstantArrayElementCount(CAT);
+    unsigned const NumElts = Ctx.getConstantArrayElementCount(CAT);
     QualType EltTy = Ctx.getBaseElementType(CAT);
-    CharUnits EltSize = Ctx.getTypeSizeInChars(EltTy);
+    CharUnits const EltSize = Ctx.getTypeSizeInChars(EltTy);
     appendStr("_AB" + llvm::to_string(FieldOffset.getQuantity()) + "s" +
               llvm::to_string(EltSize.getQuantity()) + "n" +
               llvm::to_string(NumElts));
@@ -260,7 +260,7 @@ struct GenBinaryFuncName : CopyStructVisitor<GenBinaryFuncName<IsMove>, IsMove>,
 
     // Because volatile fields can be bit-fields and are individually copied,
     // their offset and width are in bits.
-    uint64_t OffsetInBits =
+    uint64_t const OffsetInBits =
         this->Ctx.toBits(CurStructOffset) + this->getFieldOffsetInBits(FD);
     this->appendStr("_tv" + llvm::to_string(OffsetInBits) + "w" +
                     llvm::to_string(getFieldSize(FD, FT, this->Ctx)));
@@ -308,7 +308,7 @@ static const CGFunctionInfo &getFunctionInfo(CodeGenModule &CGM,
                                              FunctionArgList &Args) {
   ASTContext &Ctx = CGM.getContext();
   llvm::SmallVector<ImplicitParamDecl *, N> Params;
-  QualType ParamTy = Ctx.getPointerType(Ctx.VoidPtrTy);
+  QualType const ParamTy = Ctx.getPointerType(Ctx.VoidPtrTy);
 
   for (unsigned I = 0; I < N; ++I)
     Params.push_back(ImplicitParamDecl::Create(
@@ -352,7 +352,7 @@ template <class Derived> struct GenFuncBase {
 
     asDerived().flushTrivialFields(Addrs);
     CodeGenFunction &CGF = *this->CGF;
-    ASTContext &Ctx = CGF.getContext();
+    ASTContext  const&Ctx = CGF.getContext();
 
     // Compute the end address.
     QualType BaseEltQT;
@@ -361,12 +361,12 @@ template <class Derived> struct GenFuncBase {
       StartAddrs[I] = getAddrWithOffset(Addrs[I], CurStructOffset, FD);
     Address DstAddr = StartAddrs[DstIdx];
     llvm::Value *NumElts = CGF.emitArrayLength(AT, BaseEltQT, DstAddr);
-    unsigned BaseEltSize = Ctx.getTypeSizeInChars(BaseEltQT).getQuantity();
+    unsigned const BaseEltSize = Ctx.getTypeSizeInChars(BaseEltQT).getQuantity();
     llvm::Value *BaseEltSizeVal =
         llvm::ConstantInt::get(NumElts->getType(), BaseEltSize);
     llvm::Value *SizeInBytes =
         CGF.Builder.CreateNUWMul(BaseEltSizeVal, NumElts);
-    Address BC = CGF.Builder.CreateBitCast(DstAddr, CGF.CGM.Int8PtrTy);
+    Address const BC = CGF.Builder.CreateBitCast(DstAddr, CGF.CGM.Int8PtrTy);
     llvm::Value *DstArrayEnd =
         CGF.Builder.CreateInBoundsGEP(CGF.Int8Ty, BC.getPointer(), SizeInBytes);
     DstArrayEnd = CGF.Builder.CreateBitCast(DstArrayEnd, CGF.CGM.Int8PtrPtrTy,
@@ -396,7 +396,7 @@ template <class Derived> struct GenFuncBase {
     // Visit the element of the array in the loop body.
     CGF.EmitBlock(LoopBB);
     QualType EltQT = AT->getElementType();
-    CharUnits EltSize = Ctx.getTypeSizeInChars(EltQT);
+    CharUnits const EltSize = Ctx.getTypeSizeInChars(EltQT);
     std::array<Address, N> NewAddrs = Addrs;
 
     for (unsigned I = 0; I < N; ++I)
@@ -453,8 +453,8 @@ template <class Derived> struct GenFuncBase {
       }
 
       if (WrongType) {
-        std::string FuncName = std::string(F->getName());
-        SourceLocation Loc = QT->castAs<RecordType>()->getDecl()->getLocation();
+        std::string const FuncName = std::string(F->getName());
+        SourceLocation const Loc = QT->castAs<RecordType>()->getDecl()->getLocation();
         CGM.Error(Loc, "special function " + FuncName +
                            " for non-trivial C struct has incorrect type");
         return nullptr;
@@ -462,7 +462,7 @@ template <class Derived> struct GenFuncBase {
       return F;
     }
 
-    ASTContext &Ctx = CGM.getContext();
+    ASTContext  const&Ctx = CGM.getContext();
     FunctionArgList Args;
     const CGFunctionInfo &FI = getFunctionInfo<N>(CGM, Args);
     llvm::FunctionType *FuncTy = CGM.getTypes().GetFunctionType(FI);
@@ -476,7 +476,7 @@ template <class Derived> struct GenFuncBase {
     setCGF(&NewCGF);
     CGF->StartFunction(GlobalDecl(), Ctx.VoidTy, F, FI, Args);
     auto AL = ApplyDebugLocation::CreateArtificial(*CGF);
-    std::array<Address, N> Addrs =
+    std::array<Address, N> const Addrs =
         getParamAddrs<N>(std::make_index_sequence<N>{}, Alignments, Args, CGF);
     asDerived().visitStructFields(QT, CharUnits::Zero(), Addrs);
     CGF->FinishFunction();
@@ -514,7 +514,7 @@ struct GenBinaryFunc : CopyStructVisitor<Derived, IsMove>,
   GenBinaryFunc(ASTContext &Ctx) : CopyStructVisitor<Derived, IsMove>(Ctx) {}
 
   void flushTrivialFields(std::array<Address, 2> Addrs) {
-    CharUnits Size = this->End - this->Start;
+    CharUnits const Size = this->End - this->Start;
 
     if (Size.getQuantity() == 0)
       return;
@@ -553,24 +553,24 @@ struct GenBinaryFunc : CopyStructVisitor<Derived, IsMove>,
       if (FD->isZeroLengthBitField(this->CGF->getContext()))
         return;
 
-      QualType RT = QualType(FD->getParent()->getTypeForDecl(), 0);
+      QualType const RT = QualType(FD->getParent()->getTypeForDecl(), 0);
       llvm::PointerType *PtrTy = this->CGF->ConvertType(RT)->getPointerTo();
-      Address DstAddr = this->getAddrWithOffset(Addrs[DstIdx], Offset);
-      LValue DstBase = this->CGF->MakeAddrLValue(
+      Address const DstAddr = this->getAddrWithOffset(Addrs[DstIdx], Offset);
+      LValue const DstBase = this->CGF->MakeAddrLValue(
           this->CGF->Builder.CreateBitCast(DstAddr, PtrTy), FT);
       DstLV = this->CGF->EmitLValueForField(DstBase, FD);
-      Address SrcAddr = this->getAddrWithOffset(Addrs[SrcIdx], Offset);
-      LValue SrcBase = this->CGF->MakeAddrLValue(
+      Address const SrcAddr = this->getAddrWithOffset(Addrs[SrcIdx], Offset);
+      LValue const SrcBase = this->CGF->MakeAddrLValue(
           this->CGF->Builder.CreateBitCast(SrcAddr, PtrTy), FT);
       SrcLV = this->CGF->EmitLValueForField(SrcBase, FD);
     } else {
       llvm::PointerType *Ty = this->CGF->ConvertTypeForMem(FT)->getPointerTo();
-      Address DstAddr = this->CGF->Builder.CreateBitCast(Addrs[DstIdx], Ty);
-      Address SrcAddr = this->CGF->Builder.CreateBitCast(Addrs[SrcIdx], Ty);
+      Address const DstAddr = this->CGF->Builder.CreateBitCast(Addrs[DstIdx], Ty);
+      Address const SrcAddr = this->CGF->Builder.CreateBitCast(Addrs[SrcIdx], Ty);
       DstLV = this->CGF->MakeAddrLValue(DstAddr, FT);
       SrcLV = this->CGF->MakeAddrLValue(SrcAddr, FT);
     }
-    RValue SrcVal = this->CGF->EmitLoadOfLValue(SrcLV, SourceLocation());
+    RValue const SrcVal = this->CGF->EmitLoadOfLValue(SrcLV, SourceLocation());
     this->CGF->EmitStoreThroughLValue(SrcVal, DstLV);
   }
 };
@@ -653,9 +653,9 @@ struct GenDefaultInitialize
     if (!FK)
       return visitTrivial(QualType(AT, 0), FD, CurStructOffset, Addrs);
 
-    ASTContext &Ctx = getContext();
-    CharUnits Size = Ctx.getTypeSizeInChars(QualType(AT, 0));
-    QualType EltTy = Ctx.getBaseElementType(QualType(AT, 0));
+    ASTContext  const&Ctx = getContext();
+    CharUnits const Size = Ctx.getTypeSizeInChars(QualType(AT, 0));
+    QualType const EltTy = Ctx.getBaseElementType(QualType(AT, 0));
 
     if (Size < CharUnits::fromQuantity(16) || EltTy->getAs<RecordType>()) {
       GenFuncBaseTy::visitArray(FK, AT, IsVolatile, FD, CurStructOffset, Addrs);
@@ -663,8 +663,8 @@ struct GenDefaultInitialize
     }
 
     llvm::Constant *SizeVal = CGF->Builder.getInt64(Size.getQuantity());
-    Address DstAddr = getAddrWithOffset(Addrs[DstIdx], CurStructOffset, FD);
-    Address Loc = CGF->Builder.CreateElementBitCast(DstAddr, CGF->Int8Ty);
+    Address const DstAddr = getAddrWithOffset(Addrs[DstIdx], CurStructOffset, FD);
+    Address const Loc = CGF->Builder.CreateElementBitCast(DstAddr, CGF->Int8Ty);
     CGF->Builder.CreateMemSet(Loc, CGF->Builder.getInt8(0), SizeVal,
                               IsVolatile);
   }
@@ -714,7 +714,7 @@ struct GenMoveConstructor : GenBinaryFunc<GenMoveConstructor, true> {
                       CharUnits CurStructOffset, std::array<Address, 2> Addrs) {
     Addrs[DstIdx] = getAddrWithOffset(Addrs[DstIdx], CurStructOffset, FD);
     Addrs[SrcIdx] = getAddrWithOffset(Addrs[SrcIdx], CurStructOffset, FD);
-    LValue SrcLV = CGF->MakeAddrLValue(Addrs[SrcIdx], QT);
+    LValue const SrcLV = CGF->MakeAddrLValue(Addrs[SrcIdx], QT);
     llvm::Value *SrcVal =
         CGF->EmitLoadOfLValue(SrcLV, SourceLocation()).getScalarVal();
     CGF->EmitStoreOfScalar(getNullForVariable(SrcLV.getAddress(*CGF)), SrcLV);
@@ -777,11 +777,11 @@ struct GenMoveAssignment : GenBinaryFunc<GenMoveAssignment, true> {
                       CharUnits CurStructOffset, std::array<Address, 2> Addrs) {
     Addrs[DstIdx] = getAddrWithOffset(Addrs[DstIdx], CurStructOffset, FD);
     Addrs[SrcIdx] = getAddrWithOffset(Addrs[SrcIdx], CurStructOffset, FD);
-    LValue SrcLV = CGF->MakeAddrLValue(Addrs[SrcIdx], QT);
+    LValue const SrcLV = CGF->MakeAddrLValue(Addrs[SrcIdx], QT);
     llvm::Value *SrcVal =
         CGF->EmitLoadOfLValue(SrcLV, SourceLocation()).getScalarVal();
     CGF->EmitStoreOfScalar(getNullForVariable(SrcLV.getAddress(*CGF)), SrcLV);
-    LValue DstLV = CGF->MakeAddrLValue(Addrs[DstIdx], QT);
+    LValue const DstLV = CGF->MakeAddrLValue(Addrs[DstIdx], QT);
     llvm::Value *DstVal =
         CGF->EmitLoadOfLValue(DstLV, SourceLocation()).getScalarVal();
     CGF->EmitStoreOfScalar(SrcVal, DstLV);
@@ -848,11 +848,11 @@ getSpecialFunction(G &&Gen, StringRef FuncName, QualType QT, bool IsVolatile,
 
 // Functions to emit calls to the special functions of a non-trivial C struct.
 void CodeGenFunction::callCStructDefaultConstructor(LValue Dst) {
-  bool IsVolatile = Dst.isVolatile();
+  bool const IsVolatile = Dst.isVolatile();
   Address DstPtr = Dst.getAddress(*this);
-  QualType QT = Dst.getType();
+  QualType const QT = Dst.getType();
   GenDefaultInitializeFuncName GenName(DstPtr.getAlignment(), getContext());
-  std::string FuncName = GenName.getName(QT, IsVolatile);
+  std::string const FuncName = GenName.getName(QT, IsVolatile);
   callSpecialFunction(GenDefaultInitialize(getContext()), FuncName, QT,
                       IsVolatile, *this, std::array<Address, 1>({{DstPtr}}));
 }
@@ -872,23 +872,23 @@ std::string CodeGenFunction::getNonTrivialDestructorStr(QualType QT,
 }
 
 void CodeGenFunction::callCStructDestructor(LValue Dst) {
-  bool IsVolatile = Dst.isVolatile();
+  bool const IsVolatile = Dst.isVolatile();
   Address DstPtr = Dst.getAddress(*this);
-  QualType QT = Dst.getType();
+  QualType const QT = Dst.getType();
   GenDestructorFuncName GenName("__destructor_", DstPtr.getAlignment(),
                                 getContext());
-  std::string FuncName = GenName.getName(QT, IsVolatile);
+  std::string const FuncName = GenName.getName(QT, IsVolatile);
   callSpecialFunction(GenDestructor(getContext()), FuncName, QT, IsVolatile,
                       *this, std::array<Address, 1>({{DstPtr}}));
 }
 
 void CodeGenFunction::callCStructCopyConstructor(LValue Dst, LValue Src) {
-  bool IsVolatile = Dst.isVolatile() || Src.isVolatile();
+  bool const IsVolatile = Dst.isVolatile() || Src.isVolatile();
   Address DstPtr = Dst.getAddress(*this), SrcPtr = Src.getAddress(*this);
-  QualType QT = Dst.getType();
+  QualType const QT = Dst.getType();
   GenBinaryFuncName<false> GenName("__copy_constructor_", DstPtr.getAlignment(),
                                    SrcPtr.getAlignment(), getContext());
-  std::string FuncName = GenName.getName(QT, IsVolatile);
+  std::string const FuncName = GenName.getName(QT, IsVolatile);
   callSpecialFunction(GenCopyConstructor(getContext()), FuncName, QT,
                       IsVolatile, *this,
                       std::array<Address, 2>({{DstPtr, SrcPtr}}));
@@ -897,23 +897,23 @@ void CodeGenFunction::callCStructCopyConstructor(LValue Dst, LValue Src) {
 void CodeGenFunction::callCStructCopyAssignmentOperator(LValue Dst, LValue Src
 
 ) {
-  bool IsVolatile = Dst.isVolatile() || Src.isVolatile();
+  bool const IsVolatile = Dst.isVolatile() || Src.isVolatile();
   Address DstPtr = Dst.getAddress(*this), SrcPtr = Src.getAddress(*this);
-  QualType QT = Dst.getType();
+  QualType const QT = Dst.getType();
   GenBinaryFuncName<false> GenName("__copy_assignment_", DstPtr.getAlignment(),
                                    SrcPtr.getAlignment(), getContext());
-  std::string FuncName = GenName.getName(QT, IsVolatile);
+  std::string const FuncName = GenName.getName(QT, IsVolatile);
   callSpecialFunction(GenCopyAssignment(getContext()), FuncName, QT, IsVolatile,
                       *this, std::array<Address, 2>({{DstPtr, SrcPtr}}));
 }
 
 void CodeGenFunction::callCStructMoveConstructor(LValue Dst, LValue Src) {
-  bool IsVolatile = Dst.isVolatile() || Src.isVolatile();
+  bool const IsVolatile = Dst.isVolatile() || Src.isVolatile();
   Address DstPtr = Dst.getAddress(*this), SrcPtr = Src.getAddress(*this);
-  QualType QT = Dst.getType();
+  QualType const QT = Dst.getType();
   GenBinaryFuncName<true> GenName("__move_constructor_", DstPtr.getAlignment(),
                                   SrcPtr.getAlignment(), getContext());
-  std::string FuncName = GenName.getName(QT, IsVolatile);
+  std::string const FuncName = GenName.getName(QT, IsVolatile);
   callSpecialFunction(GenMoveConstructor(getContext()), FuncName, QT,
                       IsVolatile, *this,
                       std::array<Address, 2>({{DstPtr, SrcPtr}}));
@@ -922,12 +922,12 @@ void CodeGenFunction::callCStructMoveConstructor(LValue Dst, LValue Src) {
 void CodeGenFunction::callCStructMoveAssignmentOperator(LValue Dst, LValue Src
 
 ) {
-  bool IsVolatile = Dst.isVolatile() || Src.isVolatile();
+  bool const IsVolatile = Dst.isVolatile() || Src.isVolatile();
   Address DstPtr = Dst.getAddress(*this), SrcPtr = Src.getAddress(*this);
-  QualType QT = Dst.getType();
+  QualType const QT = Dst.getType();
   GenBinaryFuncName<true> GenName("__move_assignment_", DstPtr.getAlignment(),
                                   SrcPtr.getAlignment(), getContext());
-  std::string FuncName = GenName.getName(QT, IsVolatile);
+  std::string const FuncName = GenName.getName(QT, IsVolatile);
   callSpecialFunction(GenMoveAssignment(getContext()), FuncName, QT, IsVolatile,
                       *this, std::array<Address, 2>({{DstPtr, SrcPtr}}));
 }
@@ -936,7 +936,7 @@ llvm::Function *clang::CodeGen::getNonTrivialCStructDefaultConstructor(
     CodeGenModule &CGM, CharUnits DstAlignment, bool IsVolatile, QualType QT) {
   ASTContext &Ctx = CGM.getContext();
   GenDefaultInitializeFuncName GenName(DstAlignment, Ctx);
-  std::string FuncName = GenName.getName(QT, IsVolatile);
+  std::string const FuncName = GenName.getName(QT, IsVolatile);
   return getSpecialFunction(GenDefaultInitialize(Ctx), FuncName, QT, IsVolatile,
                             std::array<CharUnits, 1>({{DstAlignment}}), CGM);
 }
@@ -947,7 +947,7 @@ llvm::Function *clang::CodeGen::getNonTrivialCStructCopyConstructor(
   ASTContext &Ctx = CGM.getContext();
   GenBinaryFuncName<false> GenName("__copy_constructor_", DstAlignment,
                                    SrcAlignment, Ctx);
-  std::string FuncName = GenName.getName(QT, IsVolatile);
+  std::string const FuncName = GenName.getName(QT, IsVolatile);
   return getSpecialFunction(
       GenCopyConstructor(Ctx), FuncName, QT, IsVolatile,
       std::array<CharUnits, 2>({{DstAlignment, SrcAlignment}}), CGM);
@@ -959,7 +959,7 @@ llvm::Function *clang::CodeGen::getNonTrivialCStructMoveConstructor(
   ASTContext &Ctx = CGM.getContext();
   GenBinaryFuncName<true> GenName("__move_constructor_", DstAlignment,
                                   SrcAlignment, Ctx);
-  std::string FuncName = GenName.getName(QT, IsVolatile);
+  std::string const FuncName = GenName.getName(QT, IsVolatile);
   return getSpecialFunction(
       GenMoveConstructor(Ctx), FuncName, QT, IsVolatile,
       std::array<CharUnits, 2>({{DstAlignment, SrcAlignment}}), CGM);
@@ -971,7 +971,7 @@ llvm::Function *clang::CodeGen::getNonTrivialCStructCopyAssignmentOperator(
   ASTContext &Ctx = CGM.getContext();
   GenBinaryFuncName<false> GenName("__copy_assignment_", DstAlignment,
                                    SrcAlignment, Ctx);
-  std::string FuncName = GenName.getName(QT, IsVolatile);
+  std::string const FuncName = GenName.getName(QT, IsVolatile);
   return getSpecialFunction(
       GenCopyAssignment(Ctx), FuncName, QT, IsVolatile,
       std::array<CharUnits, 2>({{DstAlignment, SrcAlignment}}), CGM);
@@ -983,7 +983,7 @@ llvm::Function *clang::CodeGen::getNonTrivialCStructMoveAssignmentOperator(
   ASTContext &Ctx = CGM.getContext();
   GenBinaryFuncName<true> GenName("__move_assignment_", DstAlignment,
                                   SrcAlignment, Ctx);
-  std::string FuncName = GenName.getName(QT, IsVolatile);
+  std::string const FuncName = GenName.getName(QT, IsVolatile);
   return getSpecialFunction(
       GenMoveAssignment(Ctx), FuncName, QT, IsVolatile,
       std::array<CharUnits, 2>({{DstAlignment, SrcAlignment}}), CGM);
@@ -993,7 +993,7 @@ llvm::Function *clang::CodeGen::getNonTrivialCStructDestructor(
     CodeGenModule &CGM, CharUnits DstAlignment, bool IsVolatile, QualType QT) {
   ASTContext &Ctx = CGM.getContext();
   GenDestructorFuncName GenName("__destructor_", DstAlignment, Ctx);
-  std::string FuncName = GenName.getName(QT, IsVolatile);
+  std::string const FuncName = GenName.getName(QT, IsVolatile);
   return getSpecialFunction(GenDestructor(Ctx), FuncName, QT, IsVolatile,
                             std::array<CharUnits, 1>({{DstAlignment}}), CGM);
 }

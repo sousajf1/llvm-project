@@ -49,7 +49,7 @@ void AMDGCN::Linker::constructLldCommand(Compilation &C, const JobAction &JA,
   auto &TC = getToolChain();
   auto &D = TC.getDriver();
   assert(!Inputs.empty() && "Must have at least one input.");
-  bool IsThinLTO = D.getLTOMode(/*IsOffload=*/true) == LTOK_Thin;
+  bool const IsThinLTO = D.getLTOMode(/*IsOffload=*/true) == LTOK_Thin;
   addLTOOptions(TC, Args, LldArgs, Output, Inputs[0], IsThinLTO);
 
   // Extract all the -m options
@@ -130,7 +130,7 @@ void AMDGCN::constructHIPFatbinCommand(Compilation &C, const JobAction &JA,
   BundlerArgs.push_back(Args.MakeArgString(BundlerTargetArg));
   BundlerArgs.push_back(Args.MakeArgString(BundlerInputArg));
 
-  std::string Output = std::string(OutputFileName);
+  std::string const Output = std::string(OutputFileName);
   auto BundlerOutputArg =
       Args.MakeArgString(std::string("-outputs=").append(Output));
   BundlerArgs.push_back(BundlerOutputArg);
@@ -151,7 +151,7 @@ void AMDGCN::Linker::constructGenerateObjFileFromHIPFatBinary(
     const InputInfoList &Inputs, const ArgList &Args,
     const JobAction &JA) const {
   const ToolChain &TC = getToolChain();
-  std::string Name =
+  std::string const Name =
       std::string(llvm::sys::path::stem(Output.getFilename()));
 
   // Create Temp Object File Generator,
@@ -206,7 +206,7 @@ void AMDGCN::Linker::constructGenerateObjFileFromHIPFatBinary(
 
   Objf << ObjBuffer;
 
-  ArgStringList McArgs{"-o",      Output.getFilename(),
+  ArgStringList const McArgs{"-o",      Output.getFilename(),
                        McinFile,  "--filetype=obj"};
   const char *Mc = Args.MakeArgString(TC.GetProgramPath("llvm-mc"));
   C.addCommand(std::make_unique<Command>(JA, *this, ResponseFileSupport::None(),
@@ -258,10 +258,10 @@ void HIPToolChain::addClangTargetOptions(
                           false))
     CC1Args.append({"-mllvm", "-amdgpu-internalize-symbols"});
 
-  StringRef MaxThreadsPerBlock =
+  StringRef const MaxThreadsPerBlock =
       DriverArgs.getLastArgValue(options::OPT_gpu_max_threads_per_block_EQ);
   if (!MaxThreadsPerBlock.empty()) {
-    std::string ArgStr =
+    std::string const ArgStr =
         std::string("--gpu-max-threads-per-block=") + MaxThreadsPerBlock.str();
     CC1Args.push_back(DriverArgs.MakeArgStringRef(ArgStr));
   }
@@ -377,7 +377,7 @@ HIPToolChain::getHIPDeviceLibs(const llvm::opt::ArgList &DriverArgs) const {
   if (!BCLibArgs.empty()) {
     llvm::for_each(BCLibArgs, [&](StringRef BCName) {
       StringRef FullName;
-      for (std::string LibraryPath : LibraryPaths) {
+      for (std::string const LibraryPath : LibraryPaths) {
         SmallString<128> Path(LibraryPath);
         llvm::sys::path::append(Path, BCName);
         FullName = Path;
@@ -393,7 +393,7 @@ HIPToolChain::getHIPDeviceLibs(const llvm::opt::ArgList &DriverArgs) const {
       getDriver().Diag(diag::err_drv_no_rocm_device_lib) << 0;
       return {};
     }
-    StringRef GpuArch = getGPUArch(DriverArgs);
+    StringRef const GpuArch = getGPUArch(DriverArgs);
     assert(!GpuArch.empty() && "Must have an explicit GPU arch.");
 
     // If --hip-device-lib is not set, add the default bitcode libraries.
@@ -401,7 +401,7 @@ HIPToolChain::getHIPDeviceLibs(const llvm::opt::ArgList &DriverArgs) const {
                            options::OPT_fno_gpu_sanitize, false)) {
       auto AsanRTL = RocmInstallation.getAsanRTLPath();
       if (AsanRTL.empty()) {
-        unsigned DiagID = getDriver().getDiags().getCustomDiagID(
+        unsigned const DiagID = getDriver().getDiags().getCustomDiagID(
             DiagnosticsEngine::Error,
             "AMDGPU address sanitizer runtime library (asanrtl) is not found. "
             "Please install ROCm device library which supports address "

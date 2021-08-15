@@ -46,10 +46,10 @@ DefinedOrUnknownSVal getDynamicElementCount(ProgramStateRef State,
                                             QualType ElementTy) {
   MR = MR->StripCasts();
 
-  DefinedOrUnknownSVal Size = getDynamicExtent(State, MR, SVB);
-  SVal ElementSize = getElementExtent(ElementTy, SVB);
+  DefinedOrUnknownSVal const Size = getDynamicExtent(State, MR, SVB);
+  SVal const ElementSize = getElementExtent(ElementTy, SVB);
 
-  SVal ElementCount =
+  SVal const ElementCount =
       SVB.evalBinOp(State, BO_Div, Size, ElementSize, SVB.getArrayIndexType());
 
   return ElementCount.castAs<DefinedOrUnknownSVal>();
@@ -60,17 +60,17 @@ SVal getDynamicExtentWithOffset(ProgramStateRef State, SVal BufV) {
   const MemRegion *MRegion = BufV.getAsRegion();
   if (!MRegion)
     return UnknownVal();
-  RegionOffset Offset = MRegion->getAsOffset();
+  RegionOffset const Offset = MRegion->getAsOffset();
   if (Offset.hasSymbolicOffset())
     return UnknownVal();
   const MemRegion *BaseRegion = MRegion->getBaseRegion();
   if (!BaseRegion)
     return UnknownVal();
 
-  NonLoc OffsetInBytes = SvalBuilder.makeArrayIndex(
+  NonLoc const OffsetInBytes = SvalBuilder.makeArrayIndex(
       Offset.getOffset() /
       MRegion->getMemRegionManager().getContext().getCharWidth());
-  DefinedOrUnknownSVal ExtentInBytes =
+  DefinedOrUnknownSVal const ExtentInBytes =
       getDynamicExtent(State, BaseRegion, SvalBuilder);
 
   return SvalBuilder.evalBinOp(State, BinaryOperator::Opcode::BO_Sub,

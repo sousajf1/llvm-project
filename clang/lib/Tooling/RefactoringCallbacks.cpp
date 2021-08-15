@@ -165,14 +165,14 @@ ReplaceNodeWithTemplate::create(StringRef FromId, StringRef ToTemplate) {
         ParsedTemplate.push_back(
             TemplateElement{TemplateElement::Literal, "$"});
       } else if (ToTemplate.substr(Index, 2) == "${") {
-        size_t EndOfIdentifier = ToTemplate.find("}", Index);
+        size_t const EndOfIdentifier = ToTemplate.find("}", Index);
         if (EndOfIdentifier == std::string::npos) {
           return make_error<StringError>(
               "Unterminated ${...} in replacement template near " +
                   ToTemplate.substr(Index),
               llvm::inconvertibleErrorCode());
         }
-        std::string SourceNodeName = std::string(
+        std::string const SourceNodeName = std::string(
             ToTemplate.substr(Index + 2, EndOfIdentifier - Index - 2));
         ParsedTemplate.push_back(
             TemplateElement{TemplateElement::Identifier, SourceNodeName});
@@ -184,7 +184,7 @@ ReplaceNodeWithTemplate::create(StringRef FromId, StringRef ToTemplate) {
             llvm::inconvertibleErrorCode());
       }
     } else {
-      size_t NextIndex = ToTemplate.find('$', Index + 1);
+      size_t const NextIndex = ToTemplate.find('$', Index + 1);
       ParsedTemplate.push_back(TemplateElement{
           TemplateElement::Literal,
           std::string(ToTemplate.substr(Index, NextIndex - Index))});
@@ -212,7 +212,7 @@ void ReplaceNodeWithTemplate::run(
                      << " used in replacement template not bound in Matcher \n";
         llvm::report_fatal_error("Unbound node in replacement template.");
       }
-      CharSourceRange Source =
+      CharSourceRange const Source =
           CharSourceRange::getTokenRange(NodeIter->second.getSourceRange());
       ToText += Lexer::getSourceText(Source, *Result.SourceManager,
                                      Result.Context->getLangOpts());

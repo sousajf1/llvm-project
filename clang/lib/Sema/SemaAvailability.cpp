@@ -33,15 +33,15 @@ static const AvailabilityAttr *getAttrForPlatform(ASTContext &Context,
 
       // Check if this is an App Extension "platform", and if so chop off
       // the suffix for matching with the actual platform.
-      StringRef ActualPlatform = Avail->getPlatform()->getName();
+      StringRef const ActualPlatform = Avail->getPlatform()->getName();
       StringRef RealizedPlatform = ActualPlatform;
       if (Context.getLangOpts().AppExt) {
-        size_t suffix = RealizedPlatform.rfind("_app_extension");
+        size_t const suffix = RealizedPlatform.rfind("_app_extension");
         if (suffix != StringRef::npos)
           RealizedPlatform = RealizedPlatform.slice(0, suffix);
       }
 
-      StringRef TargetPlatform = Context.getTargetInfo().getPlatformName();
+      StringRef const TargetPlatform = Context.getTargetInfo().getPlatformName();
 
       // Match the platform name.
       if (RealizedPlatform == TargetPlatform)
@@ -264,8 +264,8 @@ tryParseObjCMethodName(StringRef Name, SmallVectorImpl<StringRef> &SlotNames,
     NumParams = 0;
   }
   // Verify all slot names are valid.
-  bool AllowDollar = LangOpts.DollarIdents;
-  for (StringRef S : SlotNames) {
+  bool const AllowDollar = LangOpts.DollarIdents;
+  for (StringRef const S : SlotNames) {
     if (S.empty())
       continue;
     if (!isValidIdentifier(S, AllowDollar))
@@ -287,7 +287,7 @@ createAttributeInsertion(const NamedDecl *D, const SourceManager &SM,
     return AttributeInsertion::createInsertionAfter(D);
   }
   if (const auto *TD = dyn_cast<TagDecl>(D)) {
-    SourceLocation Loc =
+    SourceLocation const Loc =
         Lexer::getLocForEndOfToken(TD->getInnerLocStart(), 0, SM, LangOpts);
     if (Loc.isInvalid())
       return None;
@@ -334,7 +334,7 @@ static void DoEmitAvailabilityWarning(Sema &S, AvailabilityResult K,
                                            OffendingDecl))
     return;
 
-  SourceLocation Loc = Locs.front();
+  SourceLocation const Loc = Locs.front();
 
   // The declaration can have multiple availability attributes, we are looking
   // at one of them.
@@ -361,15 +361,15 @@ static void DoEmitAvailabilityWarning(Sema &S, AvailabilityResult K,
     // later.
     const AvailabilityAttr *AA =
         getAttrForPlatform(S.getASTContext(), OffendingDecl);
-    VersionTuple Introduced = AA->getIntroduced();
+    VersionTuple const Introduced = AA->getIntroduced();
 
-    bool UseNewWarning = shouldDiagnoseAvailabilityByDefault(
+    bool const UseNewWarning = shouldDiagnoseAvailabilityByDefault(
         S.Context, S.Context.getTargetInfo().getPlatformMinVersion(),
         Introduced);
-    unsigned Warning = UseNewWarning ? diag::warn_unguarded_availability_new
+    unsigned const Warning = UseNewWarning ? diag::warn_unguarded_availability_new
                                      : diag::warn_unguarded_availability;
 
-    std::string PlatformName(AvailabilityAttr::getPrettyPlatformName(
+    std::string const PlatformName(AvailabilityAttr::getPrettyPlatformName(
         S.getASTContext().getTargetInfo().getPlatformName()));
 
     S.Diag(Loc, Warning) << OffendingDecl << PlatformName
@@ -401,11 +401,11 @@ static void DoEmitAvailabilityWarning(Sema &S, AvailabilityResult K,
           Enclosing, S.getSourceManager(), S.getLangOpts());
       if (!Insertion)
         return;
-      std::string PlatformName =
+      std::string const PlatformName =
           AvailabilityAttr::getPlatformNameSourceSpelling(
               S.getASTContext().getTargetInfo().getPlatformName())
               .lower();
-      std::string Introduced =
+      std::string const Introduced =
           OffendingDecl->getVersionIntroduced().getAsString();
       FixitNoteDiag << FixItHint::CreateInsertion(
           Insertion->Loc,
@@ -497,7 +497,7 @@ static void DoEmitAvailabilityWarning(Sema &S, AvailabilityResult K,
           CharSourceRange::getCharRange(Loc, S.getLocForEndOfToken(Loc));
     if (UseRange.isValid()) {
       if (const auto *MethodDecl = dyn_cast<ObjCMethodDecl>(ReferringDecl)) {
-        Selector Sel = MethodDecl->getSelector();
+        Selector const Sel = MethodDecl->getSelector();
         SmallVector<StringRef, 12> SelectorSlotNames;
         Optional<unsigned> NumParams = tryParseObjCMethodName(
             Replacement, SelectorSlotNames, S.getLangOpts());
@@ -505,7 +505,7 @@ static void DoEmitAvailabilityWarning(Sema &S, AvailabilityResult K,
           assert(SelectorSlotNames.size() == Locs.size());
           for (unsigned I = 0; I < Locs.size(); ++I) {
             if (!Sel.getNameForSlot(I).empty()) {
-              CharSourceRange NameRange = CharSourceRange::getCharRange(
+              CharSourceRange const NameRange = CharSourceRange::getCharRange(
                   Locs[I], S.getLocForEndOfToken(Locs[I]));
               FixIts.push_back(FixItHint::CreateReplacement(
                   NameRange, SelectorSlotNames[I]));
@@ -670,7 +670,7 @@ public:
     if (!S)
       return true;
     StmtStack.push_back(S);
-    bool Result = Base::TraverseStmt(S);
+    bool const Result = Base::TraverseStmt(S);
     StmtStack.pop_back();
     return Result;
   }
@@ -688,7 +688,7 @@ public:
   bool VisitObjCMessageExpr(ObjCMessageExpr *Msg) {
     if (ObjCMethodDecl *D = Msg->getMethodDecl()) {
       ObjCInterfaceDecl *ID = nullptr;
-      QualType ReceiverTy = Msg->getClassReceiver();
+      QualType const ReceiverTy = Msg->getClassReceiver();
       if (!ReceiverTy.isNull() && ReceiverTy->getAsObjCInterfaceType())
         ID = ReceiverTy->getAsObjCInterfaceType()->getInterface();
 
@@ -733,7 +733,7 @@ void DiagnoseUnguardedAvailability::DiagnoseDeclAvailability(
 
     const AvailabilityAttr *AA =
       getAttrForPlatform(SemaRef.getASTContext(), OffendingDecl);
-    VersionTuple Introduced = AA->getIntroduced();
+    VersionTuple const Introduced = AA->getIntroduced();
 
     if (AvailabilityStack.back() >= Introduced)
       return;
@@ -748,14 +748,14 @@ void DiagnoseUnguardedAvailability::DiagnoseDeclAvailability(
     // not specified for deployment targets >= to iOS 11 or equivalent or
     // for declarations that were introduced in iOS 11 (macOS 10.13, ...) or
     // later.
-    unsigned DiagKind =
+    unsigned const DiagKind =
         shouldDiagnoseAvailabilityByDefault(
             SemaRef.Context,
             SemaRef.Context.getTargetInfo().getPlatformMinVersion(), Introduced)
             ? diag::warn_unguarded_availability_new
             : diag::warn_unguarded_availability;
 
-    std::string PlatformName(AvailabilityAttr::getPrettyPlatformName(
+    std::string const PlatformName(AvailabilityAttr::getPrettyPlatformName(
         SemaRef.getASTContext().getTargetInfo().getPlatformName()));
 
     SemaRef.Diag(Range.getBegin(), DiagKind)
@@ -803,16 +803,16 @@ void DiagnoseUnguardedAvailability::DiagnoseDeclAvailability(
     }
 
     const SourceManager &SM = SemaRef.getSourceManager();
-    SourceLocation IfInsertionLoc =
+    SourceLocation const IfInsertionLoc =
         SM.getExpansionLoc(StmtOfUse->getBeginLoc());
-    SourceLocation StmtEndLoc =
+    SourceLocation const StmtEndLoc =
         SM.getExpansionRange(
               (LastStmtOfUse ? LastStmtOfUse : StmtOfUse)->getEndLoc())
             .getEnd();
     if (SM.getFileID(IfInsertionLoc) != SM.getFileID(StmtEndLoc))
       return;
 
-    StringRef Indentation = Lexer::getIndentationForLine(IfInsertionLoc, SM);
+    StringRef const Indentation = Lexer::getIndentationForLine(IfInsertionLoc, SM);
     const char *ExtraIndentation = "    ";
     std::string FixItString;
     llvm::raw_string_ostream FixItOS(FixItString);
@@ -842,7 +842,7 @@ void DiagnoseUnguardedAvailability::DiagnoseDeclAvailability(
 
 bool DiagnoseUnguardedAvailability::VisitTypeLoc(TypeLoc Ty) {
   const Type *TyPtr = Ty.getTypePtr();
-  SourceRange Range{Ty.getBeginLoc(), Ty.getEndLoc()};
+  SourceRange const Range{Ty.getBeginLoc(), Ty.getEndLoc()};
 
   if (Range.isInvalid())
     return true;
@@ -878,7 +878,7 @@ bool DiagnoseUnguardedAvailability::TraverseIfStmt(IfStmt *If) {
   }
 
   AvailabilityStack.push_back(CondVersion);
-  bool ShouldContinue = TraverseStmt(If->getThen());
+  bool const ShouldContinue = TraverseStmt(If->getThen());
   AvailabilityStack.pop_back();
 
   return ShouldContinue && TraverseStmt(If->getElse());
@@ -948,7 +948,7 @@ void Sema::DiagnoseAvailabilityOfDecl(NamedDecl *D,
   const ObjCPropertyDecl *ObjCPDecl = nullptr;
   if (const auto *MD = dyn_cast<ObjCMethodDecl>(D)) {
     if (const ObjCPropertyDecl *PD = MD->findPropertyDecl()) {
-      AvailabilityResult PDeclResult = PD->getAvailability(nullptr);
+      AvailabilityResult const PDeclResult = PD->getAvailability(nullptr);
       if (PDeclResult == Result)
         ObjCPDecl = PD;
     }

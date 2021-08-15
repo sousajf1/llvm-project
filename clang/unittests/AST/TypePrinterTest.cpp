@@ -45,7 +45,7 @@ PrintedTypeMatches(StringRef Code, const std::vector<std::string> &Args,
 } // unnamed namespace
 
 TEST(TypePrinter, TemplateId) {
-  std::string Code = R"cpp(
+  std::string const Code = R"cpp(
     namespace N {
       template <typename> struct Type {};
       

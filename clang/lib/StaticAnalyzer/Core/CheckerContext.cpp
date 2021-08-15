@@ -24,7 +24,7 @@ const FunctionDecl *CheckerContext::getCalleeDecl(const CallExpr *CE) const {
     return D;
 
   const Expr *Callee = CE->getCallee();
-  SVal L = Pred->getSVal(Callee);
+  SVal const L = Pred->getSVal(Callee);
   return L.getAsFunctionDecl();
 }
 
@@ -50,11 +50,11 @@ bool CheckerContext::isCLibraryFunction(const FunctionDecl *FD,
   // To avoid false positives (Ex: finding user defined functions with
   // similar names), only perform fuzzy name matching when it's a builtin.
   // Using a string compare is slow, we might want to switch on BuiltinID here.
-  unsigned BId = FD->getBuiltinID();
+  unsigned const BId = FD->getBuiltinID();
   if (BId != 0) {
     if (Name.empty())
       return true;
-    StringRef BName = FD->getASTContext().BuiltinInfo.getName(BId);
+    StringRef const BName = FD->getASTContext().BuiltinInfo.getName(BId);
     if (BName.find(Name) != StringRef::npos)
       return true;
   }
@@ -79,7 +79,7 @@ bool CheckerContext::isCLibraryFunction(const FunctionDecl *FD,
   if (Name.empty())
     return true;
 
-  StringRef FName = II->getName();
+  StringRef const FName = II->getName();
   if (FName.equals(Name))
     return true;
 
@@ -115,7 +115,7 @@ static bool evalComparison(SVal LHSVal, BinaryOperatorKind ComparisonOp,
   }
 
   SValBuilder &Bldr = Mgr.getSValBuilder();
-  SVal Eval = Bldr.evalBinOp(State, ComparisonOp, LHSVal, RHSVal,
+  SVal const Eval = Bldr.evalBinOp(State, ComparisonOp, LHSVal, RHSVal,
                              Bldr.getConditionType());
   if (Eval.isUnknownOrUndef())
     return false;
@@ -125,11 +125,11 @@ static bool evalComparison(SVal LHSVal, BinaryOperatorKind ComparisonOp,
 }
 
 bool CheckerContext::isGreaterOrEqual(const Expr *E, unsigned long long Val) {
-  DefinedSVal V = getSValBuilder().makeIntVal(Val, getASTContext().LongLongTy);
+  DefinedSVal const V = getSValBuilder().makeIntVal(Val, getASTContext().LongLongTy);
   return evalComparison(getSVal(E), BO_GE, V, getState());
 }
 
 bool CheckerContext::isNegative(const Expr *E) {
-  DefinedSVal V = getSValBuilder().makeIntVal(0, false);
+  DefinedSVal const V = getSValBuilder().makeIntVal(0, false);
   return evalComparison(getSVal(E), BO_LT, V, getState());
 }

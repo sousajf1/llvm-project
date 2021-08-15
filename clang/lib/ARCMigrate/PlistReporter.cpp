@@ -35,7 +35,7 @@ void arcmt::writeARCDiagsToPlist(const std::string &outPath,
                                  ArrayRef<StoredDiagnostic> diags,
                                  SourceManager &SM,
                                  const LangOptions &LangOpts) {
-  DiagnosticIDs DiagIDs;
+  DiagnosticIDs const DiagIDs;
 
   // Build up a set of FIDs that we use by scanning the locations and
   // ranges of the diagnostics.
@@ -71,7 +71,7 @@ void arcmt::writeARCDiagsToPlist(const std::string &outPath,
        " <key>files</key>\n"
        " <array>\n";
 
-  for (FileID FID : Fids)
+  for (FileID const FID : Fids)
     EmitString(o << "  ", SM.getFileEntryForID(FID)->getName()) << '\n';
 
   o << " </array>\n"
@@ -106,7 +106,7 @@ void arcmt::writeARCDiagsToPlist(const std::string &outPath,
       o << "   <key>ranges</key>\n";
       o << "   <array>\n";
       for (auto &R : D.getRanges()) {
-        CharSourceRange ExpansionRange = SM.getExpansionRange(R);
+        CharSourceRange const ExpansionRange = SM.getExpansionRange(R);
         EmitRange(o, SM, Lexer::getAsCharRange(ExpansionRange, SM, LangOpts),
                   FM, 4);
       }

@@ -53,7 +53,7 @@ AST_MATCHER_P(Decl, just, internal::Matcher<Decl>, AMatcher) {
 }
 
 TEST(AstMatcherPMacro, Works) {
-  DeclarationMatcher HasClassB = just(has(recordDecl(hasName("B")).bind("b")));
+  DeclarationMatcher const HasClassB = just(has(recordDecl(hasName("B")).bind("b")));
 
   EXPECT_TRUE(matchAndVerifyResultTrue("class A { class B {}; };",
       HasClassB, std::make_unique<VerifyIdIsBoundTo<Decl>>("b")));
@@ -74,7 +74,7 @@ AST_POLYMORPHIC_MATCHER_P(polymorphicHas,
 }
 
 TEST(AstPolymorphicMatcherPMacro, Works) {
-  DeclarationMatcher HasClassB =
+  DeclarationMatcher const HasClassB =
       polymorphicHas(recordDecl(hasName("B")).bind("b"));
 
   EXPECT_TRUE(matchAndVerifyResultTrue("class A { class B {}; };",
@@ -86,7 +86,7 @@ TEST(AstPolymorphicMatcherPMacro, Works) {
   EXPECT_TRUE(matchAndVerifyResultFalse("class A { class C {}; };",
       HasClassB, std::make_unique<VerifyIdIsBoundTo<Decl>>("b")));
 
-  StatementMatcher StatementHasClassB =
+  StatementMatcher const StatementHasClassB =
       polymorphicHas(recordDecl(hasName("B")));
 
   EXPECT_TRUE(matches("void x() { class B {}; }", StatementHasClassB));

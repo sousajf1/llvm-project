@@ -16,7 +16,7 @@ using namespace llvm;
 
 Optional<sys::fs::file_status> getFileStatus(StringRef Path) {
   sys::fs::file_status Status;
-  std::error_code EC = status(Path, Status);
+  std::error_code const EC = status(Path, Status);
   if (EC)
     return None;
   return Status;

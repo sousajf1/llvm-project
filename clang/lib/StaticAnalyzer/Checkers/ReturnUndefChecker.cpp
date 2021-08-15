@@ -40,10 +40,10 @@ void ReturnUndefChecker::checkPreStmt(const ReturnStmt *RS,
   const Expr *RetE = RS->getRetValue();
   if (!RetE)
     return;
-  SVal RetVal = C.getSVal(RetE);
+  SVal const RetVal = C.getSVal(RetE);
 
   const StackFrameContext *SFC = C.getStackFrame();
-  QualType RT = CallEvent::getDeclaredResultType(SFC->getDecl());
+  QualType const RT = CallEvent::getDeclaredResultType(SFC->getDecl());
 
   if (RetVal.isUndef()) {
     // "return;" is modeled to evaluate to an UndefinedVal. Allow UndefinedVal

@@ -61,7 +61,7 @@ class CollectInterestingEvents
 public:
   bool TraverseFunctionDecl(FunctionDecl *D) {
     Events.push_back(VisitEvent::StartTraverseFunction);
-    bool Ret = RecursiveASTVisitor::TraverseFunctionDecl(D);
+    bool const Ret = RecursiveASTVisitor::TraverseFunctionDecl(D);
     Events.push_back(VisitEvent::EndTraverseFunction);
 
     return Ret;
@@ -69,7 +69,7 @@ public:
 
   bool TraverseAttr(Attr *A) {
     Events.push_back(VisitEvent::StartTraverseAttr);
-    bool Ret = RecursiveASTVisitor::TraverseAttr(A);
+    bool const Ret = RecursiveASTVisitor::TraverseAttr(A);
     Events.push_back(VisitEvent::EndTraverseAttr);
 
     return Ret;
@@ -93,7 +93,7 @@ std::vector<VisitEvent> collectEvents(llvm::StringRef Code) {
 
 TEST(RecursiveASTVisitorTest, AttributesInsideDecls) {
   /// Check attributes are traversed inside TraverseFunctionDecl.
-  llvm::StringRef Code = R"cpp(
+  llvm::StringRef const Code = R"cpp(
 __attribute__((annotate("something"))) int foo() { return 10; }
   )cpp";
 

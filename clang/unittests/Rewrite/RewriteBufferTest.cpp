@@ -36,16 +36,16 @@ static void tagRange(unsigned Offset, unsigned Len, StringRef tagName,
 }
 
 TEST(RewriteBuffer, TagRanges) {
-  StringRef Input = "hello world";
+  StringRef const Input = "hello world";
   const char *Output = "<outer><inner>hello</inner></outer> ";
 
   RewriteBuffer Buf;
   Buf.Initialize(Input);
-  StringRef RemoveStr = "world";
+  StringRef const RemoveStr = "world";
   size_t Pos = Input.find(RemoveStr);
   Buf.RemoveText(Pos, RemoveStr.size());
 
-  StringRef TagStr = "hello";
+  StringRef const TagStr = "hello";
   Pos = Input.find(TagStr);
   tagRange(Pos, TagStr.size(), "outer", Buf);
   tagRange(Pos, TagStr.size(), "inner", Buf);
@@ -54,7 +54,7 @@ TEST(RewriteBuffer, TagRanges) {
 }
 
 TEST(RewriteBuffer, DISABLED_RemoveLineIfEmpty_XFAIL) {
-  StringRef Input = "def\n"
+  StringRef const Input = "def\n"
                     "ghi\n"
                     "jkl\n";
   RewriteBuffer Buf;
@@ -87,7 +87,7 @@ TEST(RewriteBuffer, DISABLED_RemoveLineIfEmpty_XFAIL) {
   // at the original input's "g" will incorrectly see "g" as having become an
   // empty string and so will map to the next character, "h", in the rewrite
   // buffer.
-  StringRef RemoveStr0 = "def";
+  StringRef const RemoveStr0 = "def";
   Buf.RemoveText(Input.find(RemoveStr0), RemoveStr0.size(),
                  /*removeLineIfEmpty*/ true);
   EXPECT_OUTPUT(Buf, "abc\n"
@@ -104,7 +104,7 @@ TEST(RewriteBuffer, DISABLED_RemoveLineIfEmpty_XFAIL) {
   //
   // To show that removeLineIfEmpty=true is the culprit, change true to false
   // and append a newline to RemoveStr0 above.  The test then passes.
-  StringRef RemoveStr1 = "ghi\n";
+  StringRef const RemoveStr1 = "ghi\n";
   Buf.RemoveText(Input.find(RemoveStr1), RemoveStr1.size());
   EXPECT_OUTPUT(Buf, "abc\n"
                      "jkl\n");

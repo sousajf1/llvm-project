@@ -87,7 +87,7 @@ int main(int argc, const char **argv) {
   }
 
   if (OptInputs.empty()) {
-    llvm::LineEditor LE("clang-repl");
+    llvm::LineEditor const LE("clang-repl");
     // FIXME: Add LE.setListCompleter
     while (llvm::Optional<std::string> Line = LE.readLine()) {
       if (*Line == "quit")

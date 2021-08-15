@@ -38,9 +38,9 @@ protected:
     if (!ChangedCode) {
       llvm::errs() << "Bad Json varibale replacement\n";
     }
-    StringRef NewCode = *ChangedCode;
+    StringRef const NewCode = *ChangedCode;
 
-    std::vector<tooling::Range> Ranges(1, tooling::Range(0, NewCode.size()));
+    std::vector<tooling::Range> const Ranges(1, tooling::Range(0, NewCode.size()));
     Replaces = reformat(Style, NewCode, Ranges);
     auto Result = applyAllReplacements(NewCode, Replaces);
     EXPECT_TRUE(static_cast<bool>(Result));

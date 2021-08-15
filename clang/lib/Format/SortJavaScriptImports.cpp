@@ -113,7 +113,7 @@ bool operator<(const JsModuleReference &LHS, const JsModuleReference &RHS) {
   // Empty URLs sort *last* (for export {...};).
   if (LHS.URL.empty() != RHS.URL.empty())
     return LHS.URL.empty() < RHS.URL.empty();
-  if (int Res = LHS.URL.compare_insensitive(RHS.URL))
+  if (int const Res = LHS.URL.compare_insensitive(RHS.URL))
     return Res < 0;
   // '*' imports (with prefix) sort before {a, b, ...} imports.
   if (LHS.Prefix.empty() != RHS.Prefix.empty())
@@ -169,7 +169,7 @@ public:
           ReferencesText += "\n";
       }
     }
-    llvm::StringRef PreviousText = getSourceText(InsertionPoint);
+    llvm::StringRef const PreviousText = getSourceText(InsertionPoint);
     if (ReferencesText == PreviousText)
       return {Result, 0};
 
@@ -180,7 +180,7 @@ public:
     // This loop just backfills trailing spaces after the imports, which are
     // harmless and will be stripped by the subsequent formatting pass.
     // FIXME: A better long term fix is to re-calculate Ranges after sorting.
-    unsigned PreviousSize = PreviousText.size();
+    unsigned const PreviousSize = PreviousText.size();
     while (ReferencesText.size() < PreviousSize) {
       ReferencesText += " ";
     }
@@ -331,7 +331,7 @@ private:
         });
     if (!Reference.SymbolsMerged && Symbols == Reference.Symbols) {
       // Symbols didn't change, just emit the entire module reference.
-      StringRef ReferenceStmt = getSourceText(Reference.Range);
+      StringRef const ReferenceStmt = getSourceText(Reference.Range);
       Buffer += ReferenceStmt;
       return;
     }
@@ -364,7 +364,7 @@ private:
       // clang-format comments toggle formatting on/off.
       // This is tracked in FormattingOff here and on JsModuleReference.
       while (Current && Current->is(tok::comment)) {
-        StringRef CommentText = Current->TokenText.trim();
+        StringRef const CommentText = Current->TokenText.trim();
         if (CommentText == "// clang-format off") {
           FormattingOff = true;
         } else if (CommentText == "// clang-format on") {

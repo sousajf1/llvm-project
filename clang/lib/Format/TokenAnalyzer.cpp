@@ -40,10 +40,10 @@ Environment::Environment(StringRef Code, StringRef FileName,
     : VirtualSM(new SourceManagerForFile(FileName, Code)), SM(VirtualSM->get()),
       ID(VirtualSM->get().getMainFileID()), FirstStartColumn(FirstStartColumn),
       NextStartColumn(NextStartColumn), LastStartColumn(LastStartColumn) {
-  SourceLocation StartOfFile = SM.getLocForStartOfFile(ID);
+  SourceLocation const StartOfFile = SM.getLocForStartOfFile(ID);
   for (const tooling::Range &Range : Ranges) {
-    SourceLocation Start = StartOfFile.getLocWithOffset(Range.getOffset());
-    SourceLocation End = Start.getLocWithOffset(Range.getLength());
+    SourceLocation const Start = StartOfFile.getLocWithOffset(Range.getOffset());
+    SourceLocation const End = Start.getLocWithOffset(Range.getLength());
     CharRanges.push_back(CharSourceRange::getCharRange(Start, End));
   }
 }
@@ -70,8 +70,8 @@ std::pair<tooling::Replacements, unsigned> TokenAnalyzer::process() {
                        Env.getFirstStartColumn(), Style, Encoding, Allocator,
 
                        IdentTable);
-  ArrayRef<FormatToken *> Toks(Lex.lex());
-  SmallVector<FormatToken *, 10> Tokens(Toks.begin(), Toks.end());
+  ArrayRef<FormatToken *> const Toks(Lex.lex());
+  SmallVector<FormatToken *, 10> const Tokens(Toks.begin(), Toks.end());
   UnwrappedLineParser Parser(Style, Lex.getKeywords(),
                              Env.getFirstStartColumn(), Tokens, *this);
   Parser.parse();
@@ -87,7 +87,7 @@ std::pair<tooling::Replacements, unsigned> TokenAnalyzer::process() {
       Annotator.annotate(*AnnotatedLines.back());
     }
 
-    std::pair<tooling::Replacements, unsigned> RunResult =
+    std::pair<tooling::Replacements, unsigned> const RunResult =
         analyze(Annotator, AnnotatedLines, Lex);
 
     LLVM_DEBUG({

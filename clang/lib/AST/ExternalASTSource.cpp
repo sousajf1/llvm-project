@@ -109,7 +109,7 @@ void ExternalASTSource::FindExternalLexicalDecls(
 void ExternalASTSource::getMemoryBufferSizes(MemoryBufferSizes &sizes) const {}
 
 uint32_t ExternalASTSource::incrementGeneration(ASTContext &C) {
-  uint32_t OldGeneration = CurrentGeneration;
+  uint32_t const OldGeneration = CurrentGeneration;
 
   // Make sure the generation of the topmost external source for the context is
   // incremented. That might not be us.

@@ -182,7 +182,7 @@ TEST(CreateToolExecutorTest, CreateTestToolExecutor) {
 }
 
 TEST(StandaloneToolTest, SynctaxOnlyActionOnSimpleCode) {
-  FixedCompilationDatabase Compilations(".", std::vector<std::string>());
+  FixedCompilationDatabase const Compilations(".", std::vector<std::string>());
   StandaloneToolExecutor Executor(Compilations,
                                   std::vector<std::string>(1, "a.cc"));
   Executor.mapVirtualFile("a.cc", "int x = 0;");
@@ -193,7 +193,7 @@ TEST(StandaloneToolTest, SynctaxOnlyActionOnSimpleCode) {
 }
 
 TEST(StandaloneToolTest, SimpleAction) {
-  FixedCompilationDatabase Compilations(".", std::vector<std::string>());
+  FixedCompilationDatabase const Compilations(".", std::vector<std::string>());
   StandaloneToolExecutor Executor(Compilations,
                                   std::vector<std::string>(1, "a.cc"));
   Executor.mapVirtualFile("a.cc", "int x = 0;");
@@ -206,7 +206,7 @@ TEST(StandaloneToolTest, SimpleAction) {
 }
 
 TEST(StandaloneToolTest, SimpleActionWithResult) {
-  FixedCompilationDatabase Compilations(".", std::vector<std::string>());
+  FixedCompilationDatabase const Compilations(".", std::vector<std::string>());
   StandaloneToolExecutor Executor(Compilations,
                                   std::vector<std::string>(1, "a.cc"));
   Executor.mapVirtualFile("a.cc", "int x = 0; void f() {}");
@@ -247,7 +247,7 @@ private:
 MATCHER_P(Named, Name, "") { return arg.first == Name; }
 
 TEST(AllTUsToolTest, AFewFiles) {
-  FixedCompilationDatabaseWithFiles Compilations(
+  FixedCompilationDatabaseWithFiles const Compilations(
       ".", {"a.cc", "b.cc", "c.cc", "ignore.cc"}, std::vector<std::string>());
   AllTUsToolExecutor Executor(Compilations, /*ThreadCount=*/0);
   Filter.setValue("[a-c].cc");
@@ -266,18 +266,18 @@ TEST(AllTUsToolTest, AFewFiles) {
 }
 
 TEST(AllTUsToolTest, ManyFiles) {
-  unsigned NumFiles = 100;
+  unsigned const NumFiles = 100;
   std::vector<std::string> Files;
   std::map<std::string, std::string> FileToContent;
   std::vector<std::string> ExpectedSymbols;
   for (unsigned i = 1; i <= NumFiles; ++i) {
-    std::string File = "f" + std::to_string(i) + ".cc";
-    std::string Symbol = "looong_function_name_" + std::to_string(i);
+    std::string const File = "f" + std::to_string(i) + ".cc";
+    std::string const Symbol = "looong_function_name_" + std::to_string(i);
     Files.push_back(File);
     FileToContent[File] = "void " + Symbol + "() {}";
     ExpectedSymbols.push_back(Symbol);
   }
-  FixedCompilationDatabaseWithFiles Compilations(".", Files,
+  FixedCompilationDatabaseWithFiles const Compilations(".", Files,
                                                  std::vector<std::string>());
   AllTUsToolExecutor Executor(Compilations, /*ThreadCount=*/0);
   for (const auto &FileAndContent : FileToContent) {

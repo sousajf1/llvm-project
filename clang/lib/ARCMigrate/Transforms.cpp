@@ -94,7 +94,7 @@ bool trans::isPlusOne(const Expr *E) {
           FD->isExternallyVisible() &&
           ento::cocoa::isRefType(callE->getType(), "CF",
                                  FD->getIdentifier()->getName())) {
-        StringRef fname = FD->getIdentifier()->getName();
+        StringRef const fname = FD->getIdentifier()->getName();
         if (fname.endswith("Retain") ||
             fname.find("Create") != StringRef::npos ||
             fname.find("Copy") != StringRef::npos) {
@@ -117,7 +117,7 @@ bool trans::isPlusOne(const Expr *E) {
 /// source location will be invalid.
 SourceLocation trans::findLocationAfterSemi(SourceLocation loc,
                                             ASTContext &Ctx, bool IsDecl) {
-  SourceLocation SemiLoc = findSemiAfterLocation(loc, Ctx, IsDecl);
+  SourceLocation const SemiLoc = findSemiAfterLocation(loc, Ctx, IsDecl);
   if (SemiLoc.isInvalid())
     return SourceLocation();
   return SemiLoc.getLocWithOffset(1);
@@ -130,7 +130,7 @@ SourceLocation trans::findLocationAfterSemi(SourceLocation loc,
 SourceLocation trans::findSemiAfterLocation(SourceLocation loc,
                                             ASTContext &Ctx,
                                             bool IsDecl) {
-  SourceManager &SM = Ctx.getSourceManager();
+  SourceManager  const&SM = Ctx.getSourceManager();
   if (loc.isMacroID()) {
     if (!Lexer::isAtEndOfMacroExpansion(loc, SM, Ctx.getLangOpts(), &loc))
       return SourceLocation();
@@ -138,11 +138,11 @@ SourceLocation trans::findSemiAfterLocation(SourceLocation loc,
   loc = Lexer::getLocForEndOfToken(loc, /*Offset=*/0, SM, Ctx.getLangOpts());
 
   // Break down the source location.
-  std::pair<FileID, unsigned> locInfo = SM.getDecomposedLoc(loc);
+  std::pair<FileID, unsigned> const locInfo = SM.getDecomposedLoc(loc);
 
   // Try to load the file buffer.
   bool invalidTemp = false;
-  StringRef file = SM.getBufferData(locInfo.first, &invalidTemp);
+  StringRef const file = SM.getBufferData(locInfo.first, &invalidTemp);
   if (invalidTemp)
     return SourceLocation();
 
@@ -383,14 +383,14 @@ bool MigrationContext::rewritePropertyAttribute(StringRef fromAttr,
   if (atLoc.isMacroID())
     return false;
 
-  SourceManager &SM = Pass.Ctx.getSourceManager();
+  SourceManager  const&SM = Pass.Ctx.getSourceManager();
 
   // Break down the source location.
-  std::pair<FileID, unsigned> locInfo = SM.getDecomposedLoc(atLoc);
+  std::pair<FileID, unsigned> const locInfo = SM.getDecomposedLoc(atLoc);
 
   // Try to load the file buffer.
   bool invalidTemp = false;
-  StringRef file = SM.getBufferData(locInfo.first, &invalidTemp);
+  StringRef const file = SM.getBufferData(locInfo.first, &invalidTemp);
   if (invalidTemp)
     return false;
 
@@ -464,14 +464,14 @@ bool MigrationContext::addPropertyAttribute(StringRef attr,
   if (atLoc.isMacroID())
     return false;
 
-  SourceManager &SM = Pass.Ctx.getSourceManager();
+  SourceManager  const&SM = Pass.Ctx.getSourceManager();
 
   // Break down the source location.
-  std::pair<FileID, unsigned> locInfo = SM.getDecomposedLoc(atLoc);
+  std::pair<FileID, unsigned> const locInfo = SM.getDecomposedLoc(atLoc);
 
   // Try to load the file buffer.
   bool invalidTemp = false;
-  StringRef file = SM.getBufferData(locInfo.first, &invalidTemp);
+  StringRef const file = SM.getBufferData(locInfo.first, &invalidTemp);
   if (invalidTemp)
     return false;
 
@@ -519,7 +519,7 @@ static void GCRewriteFinalize(MigrationPass &pass) {
   ASTContext &Ctx = pass.Ctx;
   TransformActions &TA = pass.TA;
   DeclContext *DC = Ctx.getTranslationUnitDecl();
-  Selector FinalizeSel =
+  Selector const FinalizeSel =
    Ctx.Selectors.getNullarySelector(&pass.Ctx.Idents.get("finalize"));
 
   typedef DeclContext::specific_decl_iterator<ObjCImplementationDecl>
@@ -532,7 +532,7 @@ static void GCRewriteFinalize(MigrationPass &pass) {
 
       if (MD->isInstanceMethod() && MD->getSelector() == FinalizeSel) {
         const ObjCMethodDecl *FinalizeM = MD;
-        Transaction Trans(TA);
+        Transaction const Trans(TA);
         TA.insert(FinalizeM->getSourceRange().getBegin(),
                   "#if !__has_feature(objc_arc)\n");
         CharSourceRange::getTokenRange(FinalizeM->getSourceRange());

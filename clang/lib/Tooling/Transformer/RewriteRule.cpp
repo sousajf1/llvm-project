@@ -86,7 +86,7 @@ EditGenerator transformer::noopEdit(RangeSelector Anchor) {
       return Range.takeError();
     // In case the range is inside a macro expansion, map the location back to a
     // "real" source location.
-    SourceLocation Begin =
+    SourceLocation const Begin =
         Result.SourceManager->getSpellingLoc(Range->getBegin());
     Edit E;
     // Implicitly, leave `E.Replacement` as the empty string.
@@ -247,7 +247,7 @@ public:
   void run(const MatchFinder::MatchResult &Result) override {
     if (!Edits)
       return;
-    transformer::RewriteRule::Case Case =
+    transformer::RewriteRule::Case const Case =
         transformer::detail::findSelectedCase(Result, Rule);
     auto Transformations = Case.Edits(Result);
     if (!Transformations) {
@@ -351,7 +351,7 @@ static std::vector<DynTypedMatcher> taggedMatchers(
   std::vector<DynTypedMatcher> Matchers;
   Matchers.reserve(Cases.size());
   for (const auto &Case : Cases) {
-    std::string Tag = (TagBase + Twine(Case.first)).str();
+    std::string const Tag = (TagBase + Twine(Case.first)).str();
     // HACK: Many matchers are not bindable, so ensure that tryBind will work.
     DynTypedMatcher BoundMatcher(Case.second.Matcher);
     BoundMatcher.setAllowBind(true);
@@ -436,7 +436,7 @@ transformer::detail::findSelectedCase(const MatchResult &Result,
 
   auto &NodesMap = Result.Nodes.getMap();
   for (size_t i = 0, N = Rule.Cases.size(); i < N; ++i) {
-    std::string Tag = ("Tag" + Twine(i)).str();
+    std::string const Tag = ("Tag" + Twine(i)).str();
     if (NodesMap.find(Tag) != NodesMap.end())
       return Rule.Cases[i];
   }

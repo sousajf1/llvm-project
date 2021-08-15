@@ -134,9 +134,9 @@ void ASTStmtWriter::VisitAttributedStmt(AttributedStmt *S) {
 void ASTStmtWriter::VisitIfStmt(IfStmt *S) {
   VisitStmt(S);
 
-  bool HasElse = S->getElse() != nullptr;
-  bool HasVar = S->getConditionVariableDeclStmt() != nullptr;
-  bool HasInit = S->getInit() != nullptr;
+  bool const HasElse = S->getElse() != nullptr;
+  bool const HasVar = S->getConditionVariableDeclStmt() != nullptr;
+  bool const HasInit = S->getInit() != nullptr;
 
   Record.push_back(S->isConstexpr());
   Record.push_back(HasElse);
@@ -164,8 +164,8 @@ void ASTStmtWriter::VisitIfStmt(IfStmt *S) {
 void ASTStmtWriter::VisitSwitchStmt(SwitchStmt *S) {
   VisitStmt(S);
 
-  bool HasInit = S->getInit() != nullptr;
-  bool HasVar = S->getConditionVariableDeclStmt() != nullptr;
+  bool const HasInit = S->getInit() != nullptr;
+  bool const HasVar = S->getConditionVariableDeclStmt() != nullptr;
   Record.push_back(HasInit);
   Record.push_back(HasVar);
   Record.push_back(S->isAllEnumCasesCovered());
@@ -190,7 +190,7 @@ void ASTStmtWriter::VisitSwitchStmt(SwitchStmt *S) {
 void ASTStmtWriter::VisitWhileStmt(WhileStmt *S) {
   VisitStmt(S);
 
-  bool HasVar = S->getConditionVariableDeclStmt() != nullptr;
+  bool const HasVar = S->getConditionVariableDeclStmt() != nullptr;
   Record.push_back(HasVar);
 
   Record.AddStmt(S->getCond());
@@ -258,7 +258,7 @@ void ASTStmtWriter::VisitBreakStmt(BreakStmt *S) {
 void ASTStmtWriter::VisitReturnStmt(ReturnStmt *S) {
   VisitStmt(S);
 
-  bool HasNRVOCandidate = S->getNRVOCandidate() != nullptr;
+  bool const HasNRVOCandidate = S->getNRVOCandidate() != nullptr;
   Record.push_back(HasNRVOCandidate);
 
   Record.AddStmt(S->getRetValue());
@@ -430,7 +430,7 @@ addSubstitutionDiagnostic(
 void ASTStmtWriter::VisitConceptSpecializationExpr(
         ConceptSpecializationExpr *E) {
   VisitExpr(E);
-  ArrayRef<TemplateArgument> TemplateArgs = E->getTemplateArguments();
+  ArrayRef<TemplateArgument> const TemplateArgs = E->getTemplateArguments();
   Record.push_back(TemplateArgs.size());
   Record.AddNestedNameSpecifierLoc(E->getNestedNameSpecifierLoc());
   Record.AddSourceLocation(E->getTemplateKWLoc());
@@ -594,7 +594,7 @@ void ASTStmtWriter::VisitSYCLUniqueStableNameExpr(SYCLUniqueStableNameExpr *E) {
 void ASTStmtWriter::VisitPredefinedExpr(PredefinedExpr *E) {
   VisitExpr(E);
 
-  bool HasFunctionName = E->getFunctionName() != nullptr;
+  bool const HasFunctionName = E->getFunctionName() != nullptr;
   Record.push_back(HasFunctionName);
   Record.push_back(E->getIdentKind()); // FIXME: stable encoding
   Record.AddSourceLocation(E->getLocation());
@@ -614,11 +614,11 @@ void ASTStmtWriter::VisitDeclRefExpr(DeclRefExpr *E) {
   Record.push_back(E->isNonOdrUse());
 
   if (E->hasTemplateKWAndArgsInfo()) {
-    unsigned NumTemplateArgs = E->getNumTemplateArgs();
+    unsigned const NumTemplateArgs = E->getNumTemplateArgs();
     Record.push_back(NumTemplateArgs);
   }
 
-  DeclarationName::NameKind nk = (E->getDecl()->getDeclName().getNameKind());
+  DeclarationName::NameKind const nk = (E->getDecl()->getDeclName().getNameKind());
 
   if ((!E->hasTemplateKWAndArgsInfo()) && (!E->hasQualifier()) &&
       (E->getDecl() == E->getFoundDecl()) &&
@@ -693,7 +693,7 @@ void ASTStmtWriter::VisitStringLiteral(StringLiteral *E) {
     Record.AddSourceLocation(E->getStrTokenLoc(I));
 
   // Store the trailing array of char holding the string data.
-  StringRef StrData = E->getBytes();
+  StringRef const StrData = E->getBytes();
   for (unsigned I = 0, N = E->getByteLength(); I != N; ++I)
     Record.push_back(StrData[I]);
 
@@ -731,7 +731,7 @@ void ASTStmtWriter::VisitParenListExpr(ParenListExpr *E) {
 
 void ASTStmtWriter::VisitUnaryOperator(UnaryOperator *E) {
   VisitExpr(E);
-  bool HasFPFeatures = E->hasStoredFPFeatures();
+  bool const HasFPFeatures = E->hasStoredFPFeatures();
   // Write this first for easy access when deserializing, as they affect the
   // size of the UnaryOperator.
   Record.push_back(HasFPFeatures);
@@ -828,7 +828,7 @@ void ASTStmtWriter::VisitOMPArrayShapingExpr(OMPArrayShapingExpr *E) {
   Record.AddStmt(E->getBase());
   for (Expr *Dim : E->getDimensions())
     Record.AddStmt(Dim);
-  for (SourceRange SR : E->getBracketsRanges())
+  for (SourceRange const SR : E->getBracketsRanges())
     Record.AddSourceRange(SR);
   Record.AddSourceLocation(E->getLParenLoc());
   Record.AddSourceLocation(E->getRParenLoc());
@@ -844,7 +844,7 @@ void ASTStmtWriter::VisitOMPIteratorExpr(OMPIteratorExpr *E) {
   for (unsigned I = 0, End = E->numOfIterators(); I < End; ++I) {
     Record.AddDeclRef(E->getIteratorDecl(I));
     Record.AddSourceLocation(E->getAssignLoc(I));
-    OMPIteratorExpr::IteratorRange Range = E->getIteratorRange(I);
+    OMPIteratorExpr::IteratorRange const Range = E->getIteratorRange(I);
     Record.AddStmt(Range.Begin);
     Record.AddStmt(Range.End);
     Record.AddStmt(Range.Step);
@@ -852,7 +852,7 @@ void ASTStmtWriter::VisitOMPIteratorExpr(OMPIteratorExpr *E) {
     if (Range.Step)
       Record.AddSourceLocation(E->getSecondColonLoc(I));
     // Serialize helpers
-    OMPIteratorHelperData &HD = E->getHelper(I);
+    OMPIteratorHelperData  const&HD = E->getHelper(I);
     Record.AddDeclRef(HD.CounterVD);
     Record.AddStmt(HD.Upper);
     Record.AddStmt(HD.Update);
@@ -889,13 +889,13 @@ void ASTStmtWriter::VisitRecoveryExpr(RecoveryExpr *E) {
 void ASTStmtWriter::VisitMemberExpr(MemberExpr *E) {
   VisitExpr(E);
 
-  bool HasQualifier = E->hasQualifier();
-  bool HasFoundDecl =
+  bool const HasQualifier = E->hasQualifier();
+  bool const HasFoundDecl =
       E->hasQualifierOrFoundDecl() &&
       (E->getFoundDecl().getDecl() != E->getMemberDecl() ||
        E->getFoundDecl().getAccess() != E->getMemberDecl()->getAccess());
-  bool HasTemplateInfo = E->hasTemplateKWAndArgsInfo();
-  unsigned NumTemplateArgs = E->getNumTemplateArgs();
+  bool const HasTemplateInfo = E->hasTemplateKWAndArgsInfo();
+  unsigned const NumTemplateArgs = E->getNumTemplateArgs();
 
   // Write these first for easy access when deserializing, as they affect the
   // size of the MemberExpr.
@@ -915,7 +915,7 @@ void ASTStmtWriter::VisitMemberExpr(MemberExpr *E) {
   Record.AddSourceLocation(E->getOperatorLoc());
 
   if (HasFoundDecl) {
-    DeclAccessPair FoundDecl = E->getFoundDecl();
+    DeclAccessPair const FoundDecl = E->getFoundDecl();
     Record.AddDeclRef(FoundDecl.getDecl());
     Record.push_back(FoundDecl.getAccess());
   }
@@ -972,7 +972,7 @@ void ASTStmtWriter::VisitCastExpr(CastExpr *E) {
 
 void ASTStmtWriter::VisitBinaryOperator(BinaryOperator *E) {
   VisitExpr(E);
-  bool HasFPFeatures = E->hasStoredFPFeatures();
+  bool const HasFPFeatures = E->hasStoredFPFeatures();
   // Write this first for easy access when deserializing, as they affect the
   // size of the UnaryOperator.
   Record.push_back(HasFPFeatures);
@@ -1061,7 +1061,7 @@ void ASTStmtWriter::VisitInitListExpr(InitListExpr *E) {
   Record.AddStmt(E->getSyntacticForm());
   Record.AddSourceLocation(E->getLBraceLoc());
   Record.AddSourceLocation(E->getRBraceLoc());
-  bool isArrayFiller = E->ArrayFillerOrUnionFieldInit.is<Expr*>();
+  bool const isArrayFiller = E->ArrayFillerOrUnionFieldInit.is<Expr*>();
   Record.push_back(isArrayFiller);
   if (isArrayFiller)
     Record.AddStmt(E->getArrayFiller());
@@ -2584,7 +2584,7 @@ void ASTStmtWriter::VisitOMPMaskedDirective(OMPMaskedDirective *D) {
 unsigned ASTWriter::RecordSwitchCaseID(SwitchCase *S) {
   assert(SwitchCaseIDs.find(S) == SwitchCaseIDs.end() &&
          "SwitchCase recorded twice");
-  unsigned NextID = SwitchCaseIDs.size();
+  unsigned const NextID = SwitchCaseIDs.size();
   SwitchCaseIDs[S] = NextID;
   return NextID;
 }
@@ -2611,7 +2611,7 @@ void ASTWriter::WriteSubStmt(Stmt *S) {
     return;
   }
 
-  llvm::DenseMap<Stmt *, uint64_t>::iterator I = SubStmtEntries.find(S);
+  llvm::DenseMap<Stmt *, uint64_t>::iterator const I = SubStmtEntries.find(S);
   if (I != SubStmtEntries.end()) {
     Record.push_back(I->second);
     Stream.EmitRecord(serialization::STMT_REF_PTR, Record);
@@ -2634,12 +2634,12 @@ void ASTWriter::WriteSubStmt(Stmt *S) {
     }
   };
 
-  ParentStmtInserterRAII ParentStmtInserter(S, ParentStmts);
+  ParentStmtInserterRAII const ParentStmtInserter(S, ParentStmts);
 #endif
 
   Writer.Visit(S);
 
-  uint64_t Offset = Writer.Emit();
+  uint64_t const Offset = Writer.Emit();
   SubStmtEntries[S] = Offset;
 }
 

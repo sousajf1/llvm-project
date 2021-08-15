@@ -210,7 +210,7 @@ void ASTSrcLocProcessor::run(const MatchFinder::MatchResult &Result) {
     CladeName = "TypeLoc";
   }
 
-  StringRef ClassName = ASTClass->getName();
+  StringRef const ClassName = ASTClass->getName();
 
   ClassData CD;
 

@@ -36,12 +36,12 @@ public:
 } // end anonymous namespace
 
 static bool isArrayIndexOutOfBounds(CheckerContext &C, const Expr *Ex) {
-  ProgramStateRef state = C.getState();
+  ProgramStateRef const state = C.getState();
 
   if (!isa<ArraySubscriptExpr>(Ex))
     return false;
 
-  SVal Loc = C.getSVal(Ex);
+  SVal const Loc = C.getSVal(Ex);
   if (!Loc.isValid())
     return false;
 
@@ -50,11 +50,11 @@ static bool isArrayIndexOutOfBounds(CheckerContext &C, const Expr *Ex) {
   if (!ER)
     return false;
 
-  DefinedOrUnknownSVal Idx = ER->getIndex().castAs<DefinedOrUnknownSVal>();
-  DefinedOrUnknownSVal ElementCount = getDynamicElementCount(
+  DefinedOrUnknownSVal const Idx = ER->getIndex().castAs<DefinedOrUnknownSVal>();
+  DefinedOrUnknownSVal const ElementCount = getDynamicElementCount(
       state, ER->getSuperRegion(), C.getSValBuilder(), ER->getValueType());
-  ProgramStateRef StInBound = state->assumeInBound(Idx, ElementCount, true);
-  ProgramStateRef StOutBound = state->assumeInBound(Idx, ElementCount, false);
+  ProgramStateRef const StInBound = state->assumeInBound(Idx, ElementCount, true);
+  ProgramStateRef const StOutBound = state->assumeInBound(Idx, ElementCount, false);
   return StOutBound && !StInBound;
 }
 
@@ -66,7 +66,7 @@ static bool isShiftOverflow(const BinaryOperator *B, CheckerContext &C) {
 static bool isLeftShiftResultUnrepresentable(const BinaryOperator *B,
                                              CheckerContext &C) {
   SValBuilder &SB = C.getSValBuilder();
-  ProgramStateRef State = C.getState();
+  ProgramStateRef const State = C.getState();
   const llvm::APSInt *LHS = SB.getKnownValue(State, C.getSVal(B->getLHS()));
   const llvm::APSInt *RHS = SB.getKnownValue(State, C.getSVal(B->getRHS()));
   assert(LHS && RHS && "Values unknown, inconsistent state");
@@ -153,7 +153,7 @@ void UndefResultChecker::checkPostStmt(const BinaryOperator *B,
         Ex = B->getLHS();
       } else if (B->getOpcode() == BinaryOperatorKind::BO_Shl &&
                  isLeftShiftResultUnrepresentable(B, C)) {
-        ProgramStateRef State = C.getState();
+        ProgramStateRef const State = C.getState();
         SValBuilder &SB = C.getSValBuilder();
         const llvm::APSInt *LHS =
             SB.getKnownValue(State, C.getSVal(B->getLHS()));

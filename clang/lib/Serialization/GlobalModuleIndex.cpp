@@ -89,8 +89,8 @@ public:
   static std::pair<unsigned, unsigned>
   ReadKeyDataLength(const unsigned char*& d) {
     using namespace llvm::support;
-    unsigned KeyLen = endian::readNext<uint16_t, little, unaligned>(d);
-    unsigned DataLen = endian::readNext<uint16_t, little, unaligned>(d);
+    unsigned const KeyLen = endian::readNext<uint16_t, little, unaligned>(d);
+    unsigned const DataLen = endian::readNext<uint16_t, little, unaligned>(d);
     return std::make_pair(KeyLen, DataLen);
   }
 
@@ -111,7 +111,7 @@ public:
 
     data_type Result;
     while (DataLen > 0) {
-      unsigned ID = endian::readNext<uint32_t, little, unaligned>(d);
+      unsigned const ID = endian::readNext<uint32_t, little, unaligned>(d);
       Result.push_back(ID);
       DataLen -= 4;
     }
@@ -135,7 +135,7 @@ GlobalModuleIndex::GlobalModuleIndex(
                        "' failed: " + toString(std::move(Err)));
   };
 
-  llvm::TimeTraceScope TimeScope("Module LoadIndex");
+  llvm::TimeTraceScope const TimeScope("Module LoadIndex");
   // Read the global index.
   bool InGlobalIndexBlock = false;
   bool Done = false;
@@ -182,7 +182,7 @@ GlobalModuleIndex::GlobalModuleIndex(
         Cursor.readRecord(Entry.ID, Record, &Blob);
     if (!MaybeIndexRecord)
       Fail(MaybeIndexRecord.takeError());
-    IndexRecordTypes IndexRecord =
+    IndexRecordTypes const IndexRecord =
         static_cast<IndexRecordTypes>(MaybeIndexRecord.get());
     switch (IndexRecord) {
     case INDEX_METADATA:
@@ -193,7 +193,7 @@ GlobalModuleIndex::GlobalModuleIndex(
 
     case MODULE: {
       unsigned Idx = 0;
-      unsigned ID = Record[Idx++];
+      unsigned const ID = Record[Idx++];
 
       // Make room for this module's information.
       if (ID == Modules.size())
@@ -207,13 +207,13 @@ GlobalModuleIndex::GlobalModuleIndex(
       Modules[ID].ModTime = Record[Idx++];
 
       // File name.
-      unsigned NameLen = Record[Idx++];
+      unsigned const NameLen = Record[Idx++];
       Modules[ID].FileName.assign(Record.begin() + Idx,
                                   Record.begin() + Idx + NameLen);
       Idx += NameLen;
 
       // Dependencies
-      unsigned NumDeps = Record[Idx++];
+      unsigned const NumDeps = Record[Idx++];
       Modules[ID].Dependencies.insert(Modules[ID].Dependencies.end(),
                                       Record.begin() + Idx,
                                       Record.begin() + Idx + NumDeps);
@@ -267,7 +267,7 @@ GlobalModuleIndex::readIndex(StringRef Path) {
   llvm::BitstreamCursor Cursor(*Buffer);
 
   // Sniff for the signature.
-  for (unsigned char C : {'B', 'C', 'G', 'I'}) {
+  for (unsigned char const C : {'B', 'C', 'G', 'I'}) {
     if (Expected<llvm::SimpleBitstreamCursor::word_t> Res = Cursor.Read(8)) {
       if (Res.get() != C)
         return std::make_pair(
@@ -294,14 +294,14 @@ void GlobalModuleIndex::getModuleDependencies(
        ModuleFile *File,
        SmallVectorImpl<ModuleFile *> &Dependencies) {
   // Look for information about this module file.
-  llvm::DenseMap<ModuleFile *, unsigned>::iterator Known
+  llvm::DenseMap<ModuleFile *, unsigned>::iterator const Known
     = ModulesByFile.find(File);
   if (Known == ModulesByFile.end())
     return;
 
   // Record dependencies.
   Dependencies.clear();
-  ArrayRef<unsigned> StoredDependencies = Modules[Known->second].Dependencies;
+  ArrayRef<unsigned> const StoredDependencies = Modules[Known->second].Dependencies;
   for (unsigned I = 0, N = StoredDependencies.size(); I != N; ++I) {
     if (ModuleFile *MF = Modules[I].File)
       Dependencies.push_back(MF);
@@ -319,7 +319,7 @@ bool GlobalModuleIndex::lookupIdentifier(StringRef Name, HitSet &Hits) {
   ++NumIdentifierLookups;
   IdentifierIndexTable &Table
     = *static_cast<IdentifierIndexTable *>(IdentifierIndex);
-  IdentifierIndexTable::iterator Known = Table.find(Name);
+  IdentifierIndexTable::iterator const Known = Table.find(Name);
   if (Known == Table.end()) {
     return false;
   }
@@ -336,7 +336,7 @@ bool GlobalModuleIndex::lookupIdentifier(StringRef Name, HitSet &Hits) {
 
 bool GlobalModuleIndex::loadedModuleFile(ModuleFile *File) {
   // Look for the module in the global module index based on the module name.
-  StringRef Name = File->ModuleName;
+  StringRef const Name = File->ModuleName;
   llvm::StringMap<unsigned>::iterator Known = UnresolvedModules.find(Name);
   if (Known == UnresolvedModules.end()) {
     return true;
@@ -440,12 +440,12 @@ namespace {
 
     /// Retrieve the module file information for the given file.
     ModuleFileInfo &getModuleFileInfo(const FileEntry *File) {
-      llvm::MapVector<const FileEntry *, ModuleFileInfo>::iterator Known
+      llvm::MapVector<const FileEntry *, ModuleFileInfo>::iterator const Known
         = ModuleFiles.find(File);
       if (Known != ModuleFiles.end())
         return Known->second;
 
-      unsigned NewID = ModuleFiles.size();
+      unsigned const NewID = ModuleFiles.size();
       ModuleFileInfo &Info = ModuleFiles[File];
       Info.ID = NewID;
       return Info;
@@ -521,8 +521,8 @@ namespace {
       // The first bit indicates whether this identifier is interesting.
       // That's all we care about.
       using namespace llvm::support;
-      unsigned RawID = endian::readNext<uint32_t, little, unaligned>(d);
-      bool IsInteresting = RawID & 0x01;
+      unsigned const RawID = endian::readNext<uint32_t, little, unaligned>(d);
+      bool const IsInteresting = RawID & 0x01;
       return std::make_pair(k, IsInteresting);
     }
   };
@@ -540,7 +540,7 @@ llvm::Error GlobalModuleIndexBuilder::loadModuleFile(const FileEntry *File) {
   llvm::BitstreamCursor InStream(PCHContainerRdr.ExtractPCH(**Buffer));
 
   // Sniff for the signature.
-  for (unsigned char C : {'C', 'P', 'C', 'H'})
+  for (unsigned char const C : {'C', 'P', 'C', 'H'})
     if (Expected<llvm::SimpleBitstreamCursor::word_t> Res = InStream.Read(8)) {
       if (Res.get() != C)
         return llvm::createStringError(std::errc::illegal_byte_sequence,
@@ -550,7 +550,7 @@ llvm::Error GlobalModuleIndexBuilder::loadModuleFile(const FileEntry *File) {
 
   // Record this module file and assign it a unique ID (if it doesn't have
   // one already).
-  unsigned ID = getModuleFileInfo(File).ID;
+  unsigned const ID = getModuleFileInfo(File).ID;
 
   // Search for the blocks and records we care about.
   enum { Other, ControlBlock, ASTBlock, DiagnosticOptionsBlock } State = Other;
@@ -559,7 +559,7 @@ llvm::Error GlobalModuleIndexBuilder::loadModuleFile(const FileEntry *File) {
     Expected<llvm::BitstreamEntry> MaybeEntry = InStream.advance();
     if (!MaybeEntry)
       return MaybeEntry.takeError();
-    llvm::BitstreamEntry Entry = MaybeEntry.get();
+    llvm::BitstreamEntry const Entry = MaybeEntry.get();
 
     switch (Entry.Kind) {
     case llvm::BitstreamEntry::Error:
@@ -622,7 +622,7 @@ llvm::Error GlobalModuleIndexBuilder::loadModuleFile(const FileEntry *File) {
     Expected<unsigned> MaybeCode = InStream.readRecord(Entry.ID, Record, &Blob);
     if (!MaybeCode)
       return MaybeCode.takeError();
-    unsigned Code = MaybeCode.get();
+    unsigned const Code = MaybeCode.get();
 
     // Handle module dependencies.
     if (State == ControlBlock && Code == IMPORTS) {
@@ -638,13 +638,13 @@ llvm::Error GlobalModuleIndexBuilder::loadModuleFile(const FileEntry *File) {
         ++Idx;
 
         // Load stored size/modification time.
-        off_t StoredSize = (off_t)Record[Idx++];
-        time_t StoredModTime = (time_t)Record[Idx++];
+        off_t const StoredSize = (off_t)Record[Idx++];
+        time_t const StoredModTime = (time_t)Record[Idx++];
 
         // Skip the stored signature.
         // FIXME: we could read the signature out of the import and validate it.
         auto FirstSignatureByte = Record.begin() + Idx;
-        ASTFileSignature StoredSignature = ASTFileSignature::create(
+        ASTFileSignature const StoredSignature = ASTFileSignature::create(
             FirstSignatureByte, FirstSignatureByte + ASTFileSignature::size);
         Idx += ASTFileSignature::size;
 
@@ -653,7 +653,7 @@ llvm::Error GlobalModuleIndexBuilder::loadModuleFile(const FileEntry *File) {
         Idx += Record[Idx] + 1;
 
         // Retrieve the imported file name.
-        unsigned Length = Record[Idx++];
+        unsigned const Length = Record[Idx++];
         SmallString<128> ImportedFile(Record.begin() + Idx,
                                       Record.begin() + Idx + Length);
         Idx += Length;
@@ -675,7 +675,7 @@ llvm::Error GlobalModuleIndexBuilder::loadModuleFile(const FileEntry *File) {
                                                    StoredSignature)));
 
         // Record the dependency.
-        unsigned DependsOnID = getModuleFileInfo(*DependsOnFile).ID;
+        unsigned const DependsOnID = getModuleFileInfo(*DependsOnFile).ID;
         getModuleFileInfo(File).Dependencies.push_back(DependsOnID);
       }
 
@@ -694,7 +694,7 @@ llvm::Error GlobalModuleIndexBuilder::loadModuleFile(const FileEntry *File) {
       for (InterestingIdentifierTable::data_iterator D = Table->data_begin(),
                                                      DEnd = Table->data_end();
            D != DEnd; ++D) {
-        std::pair<StringRef, bool> Ident = *D;
+        std::pair<StringRef, bool> const Ident = *D;
         if (Ident.second)
           InterestingIdentifiers[Ident.first].push_back(ID);
         else
@@ -734,8 +734,8 @@ public:
   EmitKeyDataLength(raw_ostream& Out, key_type_ref Key, data_type_ref Data) {
     using namespace llvm::support;
     endian::Writer LE(Out, little);
-    unsigned KeyLen = Key.size();
-    unsigned DataLen = Data.size() * 4;
+    unsigned const KeyLen = Key.size();
+    unsigned const DataLen = Data.size() * 4;
     LE.write<uint16_t>(KeyLen);
     LE.write<uint16_t>(DataLen);
     return std::make_pair(KeyLen, DataLen);
@@ -758,7 +758,7 @@ public:
 bool GlobalModuleIndexBuilder::writeIndex(llvm::BitstreamWriter &Stream) {
   for (auto MapEntry : ImportedModuleFiles) {
     auto *File = MapEntry.first;
-    ImportedModuleFileInfo &Info = MapEntry.second;
+    ImportedModuleFileInfo  const&Info = MapEntry.second;
     if (getModuleFileInfo(File).Signature) {
       if (getModuleFileInfo(File).Signature != Info.StoredSignature)
         // Verify Signature.
@@ -770,7 +770,7 @@ bool GlobalModuleIndexBuilder::writeIndex(llvm::BitstreamWriter &Stream) {
   }
 
   using namespace llvm;
-  llvm::TimeTraceScope TimeScope("Module WriteIndex");
+  llvm::TimeTraceScope const TimeScope("Module WriteIndex");
 
   // Emit the file header.
   Stream.Emit((unsigned)'B', 8);
@@ -799,7 +799,7 @@ bool GlobalModuleIndexBuilder::writeIndex(llvm::BitstreamWriter &Stream) {
     Record.push_back(M->first->getModificationTime());
 
     // File name
-    StringRef Name(M->first->getName());
+    StringRef const Name(M->first->getName());
     Record.push_back(Name.size());
     Record.append(Name.begin(), Name.end());
 
@@ -837,10 +837,10 @@ bool GlobalModuleIndexBuilder::writeIndex(llvm::BitstreamWriter &Stream) {
     Abbrev->Add(BitCodeAbbrevOp(IDENTIFIER_INDEX));
     Abbrev->Add(BitCodeAbbrevOp(BitCodeAbbrevOp::Fixed, 32));
     Abbrev->Add(BitCodeAbbrevOp(BitCodeAbbrevOp::Blob));
-    unsigned IDTableAbbrev = Stream.EmitAbbrev(std::move(Abbrev));
+    unsigned const IDTableAbbrev = Stream.EmitAbbrev(std::move(Abbrev));
 
     // Write the identifier table
-    uint64_t Record[] = {IDENTIFIER_INDEX, BucketOffset};
+    uint64_t const Record[] = {IDENTIFIER_INDEX, BucketOffset};
     Stream.EmitRecordWithBlob(IDTableAbbrev, Record, IdentifierTable);
   }
 
@@ -858,7 +858,7 @@ GlobalModuleIndex::writeIndex(FileManager &FileMgr,
 
   // Coordinate building the global index file with other processes that might
   // try to do the same.
-  llvm::LockFileManager Locked(IndexPath);
+  llvm::LockFileManager const Locked(IndexPath);
   switch (Locked) {
   case llvm::LockFileManager::LFS_Error:
     return llvm::createStringError(std::errc::io_error, "LFS error");

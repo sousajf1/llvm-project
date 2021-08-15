@@ -167,7 +167,7 @@ void IdentifierResolver::AddDecl(NamedDecl *D) {
 }
 
 void IdentifierResolver::InsertDeclAfter(iterator Pos, NamedDecl *D) {
-  DeclarationName Name = D->getDeclName();
+  DeclarationName const Name = D->getDeclName();
   if (IdentifierInfo *II = Name.getAsIdentifierInfo())
     updatingIdentifier(*II);
 

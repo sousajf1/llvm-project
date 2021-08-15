@@ -112,7 +112,7 @@ void OSObjectCStyleCastChecker::checkASTCodeBody(const Decl *D,
 
   auto Matches =
       match(stmt(forEachDescendant(CastM)), *D->getBody(), AM.getASTContext());
-  for (BoundNodes Match : Matches)
+  for (BoundNodes const Match : Matches)
     emitDiagnostics(Match, BR, ADC, this);
 }
 

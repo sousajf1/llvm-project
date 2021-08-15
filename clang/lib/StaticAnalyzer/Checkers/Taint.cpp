@@ -28,7 +28,7 @@ REGISTER_MAP_WITH_PROGRAMSTATE(DerivedSymTaint, SymbolRef, TaintedSubRegions)
 
 void taint::printTaint(ProgramStateRef State, raw_ostream &Out, const char *NL,
                        const char *Sep) {
-  TaintMapTy TM = State->get<TaintMap>();
+  TaintMapTy const TM = State->get<TaintMap>();
 
   if (!TM.isEmpty())
     Out << "Tainted symbols:" << NL;
@@ -143,7 +143,7 @@ ProgramStateRef taint::addPartialTaint(ProgramStateRef State,
 
 bool taint::isTainted(ProgramStateRef State, const Stmt *S,
                       const LocationContext *LCtx, TaintTagType Kind) {
-  SVal val = State->getSVal(S, LCtx);
+  SVal const val = State->getSVal(S, LCtx);
   return isTainted(State, val, Kind);
 }
 
@@ -243,7 +243,7 @@ PathDiagnosticPieceRef TaintBugVisitor::VisitNode(const ExplodedNode *N,
     return nullptr;
 
   const LocationContext *NCtx = N->getLocationContext();
-  PathDiagnosticLocation L =
+  PathDiagnosticLocation const L =
       PathDiagnosticLocation::createBegin(S, BRC.getSourceManager(), NCtx);
   if (!L.isValid() || !L.asLocation().isValid())
     return nullptr;

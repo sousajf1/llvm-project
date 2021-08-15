@@ -63,7 +63,7 @@ void RewriteBuffer::RemoveText(unsigned OrigOffset, unsigned Size,
   // Nothing to remove, exit early.
   if (Size == 0) return;
 
-  unsigned RealOffset = getMappedOffset(OrigOffset, true);
+  unsigned const RealOffset = getMappedOffset(OrigOffset, true);
   assert(RealOffset+Size <= Buffer.size() && "Invalid location");
 
   // Remove the dead characters.
@@ -117,7 +117,7 @@ void RewriteBuffer::InsertText(unsigned OrigOffset, StringRef Str,
   // Nothing to insert, exit early.
   if (Str.empty()) return;
 
-  unsigned RealOffset = getMappedOffset(OrigOffset, InsertAfter);
+  unsigned const RealOffset = getMappedOffset(OrigOffset, InsertAfter);
   Buffer.insert(RealOffset, Str.begin(), Str.end());
 
   // Add a delta so that future changes are offset correctly.
@@ -129,7 +129,7 @@ void RewriteBuffer::InsertText(unsigned OrigOffset, StringRef Str,
 /// operation.
 void RewriteBuffer::ReplaceText(unsigned OrigOffset, unsigned OrigLength,
                                 StringRef NewStr) {
-  unsigned RealOffset = getMappedOffset(OrigOffset, true);
+  unsigned const RealOffset = getMappedOffset(OrigOffset, true);
   Buffer.erase(RealOffset, OrigLength);
   Buffer.insert(RealOffset, NewStr.begin(), NewStr.end());
   if (OrigLength != NewStr.size())
@@ -156,7 +156,7 @@ int Rewriter::getRangeSize(const CharSourceRange &Range,
 
   // If edits have been made to this buffer, the delta between the range may
   // have changed.
-  std::map<FileID, RewriteBuffer>::const_iterator I =
+  std::map<FileID, RewriteBuffer>::const_iterator const I =
     RewriteBuffers.find(StartFileID);
   if (I != RewriteBuffers.end()) {
     const RewriteBuffer &RB = I->second;
@@ -196,7 +196,7 @@ std::string Rewriter::getRewrittenText(CharSourceRange Range) const {
 
   // If edits have been made to this buffer, the delta between the range may
   // have changed.
-  std::map<FileID, RewriteBuffer>::const_iterator I =
+  std::map<FileID, RewriteBuffer>::const_iterator const I =
     RewriteBuffers.find(StartFileID);
   if (I == RewriteBuffers.end()) {
     // If the buffer hasn't been rewritten, just return the text from the input.
@@ -231,7 +231,7 @@ std::string Rewriter::getRewrittenText(CharSourceRange Range) const {
 unsigned Rewriter::getLocationOffsetAndFileID(SourceLocation Loc,
                                               FileID &FID) const {
   assert(Loc.isValid() && "Invalid location");
-  std::pair<FileID, unsigned> V = SourceMgr->getDecomposedLoc(Loc);
+  std::pair<FileID, unsigned> const V = SourceMgr->getDecomposedLoc(Loc);
   FID = V.first;
   return V.second;
 }
@@ -244,7 +244,7 @@ RewriteBuffer &Rewriter::getEditBuffer(FileID FID) {
     return I->second;
   I = RewriteBuffers.insert(I, std::make_pair(FID, RewriteBuffer()));
 
-  StringRef MB = SourceMgr->getBufferData(FID);
+  StringRef const MB = SourceMgr->getBufferData(FID);
   I->second.Initialize(MB.begin(), MB.end());
 
   return I->second;
@@ -256,16 +256,16 @@ bool Rewriter::InsertText(SourceLocation Loc, StringRef Str,
                           bool InsertAfter, bool indentNewLines) {
   if (!isRewritable(Loc)) return true;
   FileID FID;
-  unsigned StartOffs = getLocationOffsetAndFileID(Loc, FID);
+  unsigned const StartOffs = getLocationOffsetAndFileID(Loc, FID);
 
   SmallString<128> indentedStr;
   if (indentNewLines && Str.find('\n') != StringRef::npos) {
-    StringRef MB = SourceMgr->getBufferData(FID);
+    StringRef const MB = SourceMgr->getBufferData(FID);
 
-    unsigned lineNo = SourceMgr->getLineNumber(FID, StartOffs) - 1;
+    unsigned const lineNo = SourceMgr->getLineNumber(FID, StartOffs) - 1;
     const SrcMgr::ContentCache *Content =
         &SourceMgr->getSLocEntry(FID).getFile().getContentCache();
-    unsigned lineOffs = Content->SourceLineCache[lineNo];
+    unsigned const lineOffs = Content->SourceLineCache[lineNo];
 
     // Find the whitespace at the start of the line.
     StringRef indentSpace;
@@ -309,7 +309,7 @@ bool Rewriter::RemoveText(SourceLocation Start, unsigned Length,
                           RewriteOptions opts) {
   if (!isRewritable(Start)) return true;
   FileID FID;
-  unsigned StartOffs = getLocationOffsetAndFileID(Start, FID);
+  unsigned const StartOffs = getLocationOffsetAndFileID(Start, FID);
   getEditBuffer(FID).RemoveText(StartOffs, Length, opts.RemoveLineIfEmpty);
   return false;
 }
@@ -321,7 +321,7 @@ bool Rewriter::ReplaceText(SourceLocation Start, unsigned OrigLength,
                            StringRef NewStr) {
   if (!isRewritable(Start)) return true;
   FileID StartFileID;
-  unsigned StartOffs = getLocationOffsetAndFileID(Start, StartFileID);
+  unsigned const StartOffs = getLocationOffsetAndFileID(Start, StartFileID);
 
   getEditBuffer(StartFileID).ReplaceText(StartOffs, OrigLength, NewStr);
   return false;
@@ -331,13 +331,13 @@ bool Rewriter::ReplaceText(SourceRange range, SourceRange replacementRange) {
   if (!isRewritable(range.getBegin())) return true;
   if (!isRewritable(range.getEnd())) return true;
   if (replacementRange.isInvalid()) return true;
-  SourceLocation start = range.getBegin();
-  unsigned origLength = getRangeSize(range);
-  unsigned newLength = getRangeSize(replacementRange);
+  SourceLocation const start = range.getBegin();
+  unsigned const origLength = getRangeSize(range);
+  unsigned const newLength = getRangeSize(replacementRange);
   FileID FID;
-  unsigned newOffs = getLocationOffsetAndFileID(replacementRange.getBegin(),
+  unsigned const newOffs = getLocationOffsetAndFileID(replacementRange.getBegin(),
                                                 FID);
-  StringRef MB = SourceMgr->getBufferData(FID);
+  StringRef const MB = SourceMgr->getBufferData(FID);
   return ReplaceText(start, origLength, MB.substr(newOffs, newLength));
 }
 
@@ -360,19 +360,19 @@ bool Rewriter::IncreaseIndentation(CharSourceRange range,
   if (StartOff > EndOff)
     return true;
 
-  FileID FID = StartFileID;
-  StringRef MB = SourceMgr->getBufferData(FID);
+  FileID const FID = StartFileID;
+  StringRef const MB = SourceMgr->getBufferData(FID);
 
-  unsigned parentLineNo = SourceMgr->getLineNumber(FID, parentOff) - 1;
-  unsigned startLineNo = SourceMgr->getLineNumber(FID, StartOff) - 1;
-  unsigned endLineNo = SourceMgr->getLineNumber(FID, EndOff) - 1;
+  unsigned const parentLineNo = SourceMgr->getLineNumber(FID, parentOff) - 1;
+  unsigned const startLineNo = SourceMgr->getLineNumber(FID, StartOff) - 1;
+  unsigned const endLineNo = SourceMgr->getLineNumber(FID, EndOff) - 1;
 
   const SrcMgr::ContentCache *Content =
       &SourceMgr->getSLocEntry(FID).getFile().getContentCache();
 
   // Find where the lines start.
-  unsigned parentLineOffs = Content->SourceLineCache[parentLineNo];
-  unsigned startLineOffs = Content->SourceLineCache[startLineNo];
+  unsigned const parentLineOffs = Content->SourceLineCache[parentLineNo];
+  unsigned const startLineOffs = Content->SourceLineCache[startLineNo];
 
   // Find the whitespace at the start of each line.
   StringRef parentSpace, startSpace;
@@ -392,16 +392,16 @@ bool Rewriter::IncreaseIndentation(CharSourceRange range,
   if (!startSpace.startswith(parentSpace))
     return true;
 
-  StringRef indent = startSpace.substr(parentSpace.size());
+  StringRef const indent = startSpace.substr(parentSpace.size());
 
   // Indent the lines between start/end offsets.
   RewriteBuffer &RB = getEditBuffer(FID);
   for (unsigned lineNo = startLineNo; lineNo <= endLineNo; ++lineNo) {
-    unsigned offs = Content->SourceLineCache[lineNo];
+    unsigned const offs = Content->SourceLineCache[lineNo];
     unsigned i = offs;
     while (isWhitespaceExceptNL(MB[i]))
       ++i;
-    StringRef origIndent = MB.substr(offs, i-offs);
+    StringRef const origIndent = MB.substr(offs, i-offs);
     if (origIndent.startswith(startSpace))
       RB.InsertText(offs, indent, /*InsertAfter=*/false);
   }
@@ -439,7 +439,7 @@ public:
 
     // Close (will also flush) theFileStream.
     FileStream->close();
-    if (std::error_code ec = llvm::sys::fs::rename(TempFilename, Filename)) {
+    if (std::error_code const ec = llvm::sys::fs::rename(TempFilename, Filename)) {
       AllWritten = false;
       Diagnostics.Report(clang::diag::err_unable_to_rename_temp)
         << TempFilename << Filename << ec.message();

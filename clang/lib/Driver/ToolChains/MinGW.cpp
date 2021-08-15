@@ -65,12 +65,12 @@ void tools::MinGW::Linker::AddLibGCC(const ArgList &Args,
   CmdArgs.push_back("-lmingw32");
 
   // Make use of compiler-rt if --rtlib option is used
-  ToolChain::RuntimeLibType RLT = getToolChain().GetRuntimeLibType(Args);
+  ToolChain::RuntimeLibType const RLT = getToolChain().GetRuntimeLibType(Args);
   if (RLT == ToolChain::RLT_Libgcc) {
-    bool Static = Args.hasArg(options::OPT_static_libgcc) ||
+    bool const Static = Args.hasArg(options::OPT_static_libgcc) ||
                   Args.hasArg(options::OPT_static);
-    bool Shared = Args.hasArg(options::OPT_shared);
-    bool CXX = getToolChain().getDriver().CCCIsCXX();
+    bool const Shared = Args.hasArg(options::OPT_shared);
+    bool const CXX = getToolChain().getDriver().CCCIsCXX();
 
     if (Static || (!CXX && !Shared)) {
       CmdArgs.push_back("-lgcc");
@@ -216,7 +216,7 @@ void tools::MinGW::Linker::ConstructJob(Compilation &C, const JobAction &JA,
   // TODO: Add profile stuff here
 
   if (TC.ShouldLinkCXXStdlib(Args)) {
-    bool OnlyLibstdcxxStatic = Args.hasArg(options::OPT_static_libstdcxx) &&
+    bool const OnlyLibstdcxxStatic = Args.hasArg(options::OPT_static_libstdcxx) &&
                                !Args.hasArg(options::OPT_static);
     if (OnlyLibstdcxxStatic)
       CmdArgs.push_back("-Bstatic");
@@ -334,7 +334,7 @@ static bool findGccVersion(StringRef LibDir, std::string &GccLibDir,
   std::error_code EC;
   for (llvm::sys::fs::directory_iterator LI(LibDir, EC), LE; !EC && LI != LE;
        LI = LI.increment(EC)) {
-    StringRef VersionText = llvm::sys::path::filename(LI->path());
+    StringRef const VersionText = llvm::sys::path::filename(LI->path());
     auto CandidateVersion =
         toolchains::Generic_GCC::GCCVersion::Parse(VersionText);
     if (CandidateVersion.Major == -1)
@@ -357,8 +357,8 @@ void toolchains::MinGW::findGccLibDir() {
     Arch = std::string(Archs[0].str());
   // lib: Arch Linux, Ubuntu, Windows
   // lib64: openSUSE Linux
-  for (StringRef CandidateLib : {"lib", "lib64"}) {
-    for (StringRef CandidateArch : Archs) {
+  for (StringRef const CandidateLib : {"lib", "lib64"}) {
+    for (StringRef const CandidateArch : Archs) {
       llvm::SmallString<1024> LibDir(Base);
       llvm::sys::path::append(LibDir, CandidateLib, "gcc", CandidateArch);
       if (findGccVersion(LibDir, GccLibDir, Ver)) {
@@ -375,7 +375,7 @@ llvm::ErrorOr<std::string> toolchains::MinGW::findGcc() {
   Gccs[0] += "-w64-mingw32-gcc";
   Gccs.emplace_back("mingw32-gcc");
   // Please do not add "gcc" here
-  for (StringRef CandidateGcc : Gccs)
+  for (StringRef const CandidateGcc : Gccs)
     if (llvm::ErrorOr<std::string> GPPName = llvm::sys::findProgramByName(CandidateGcc))
       return GPPName;
   return make_error_code(std::errc::no_such_file_or_directory);
@@ -386,10 +386,10 @@ llvm::ErrorOr<std::string> toolchains::MinGW::findClangRelativeSysroot() {
   Subdirs.emplace_back(getTriple().str());
   Subdirs.emplace_back(getTriple().getArchName());
   Subdirs[1] += "-w64-mingw32";
-  StringRef ClangRoot =
+  StringRef const ClangRoot =
       llvm::sys::path::parent_path(getDriver().getInstalledDir());
-  StringRef Sep = llvm::sys::path::get_separator();
-  for (StringRef CandidateSubdir : Subdirs) {
+  StringRef const Sep = llvm::sys::path::get_separator();
+  for (StringRef const CandidateSubdir : Subdirs) {
     if (llvm::sys::fs::is_directory(ClangRoot + Sep + CandidateSubdir)) {
       Arch = std::string(CandidateSubdir);
       return (ClangRoot + Sep + CandidateSubdir).str();
@@ -585,11 +585,11 @@ void toolchains::MinGW::AddClangCXXStdlibIncludeArgs(
       DriverArgs.hasArg(options::OPT_nostdincxx))
     return;
 
-  StringRef Slash = llvm::sys::path::get_separator();
+  StringRef const Slash = llvm::sys::path::get_separator();
 
   switch (GetCXXStdlibType(DriverArgs)) {
   case ToolChain::CST_Libcxx: {
-    std::string TargetDir = (Base + "include" + Slash + getTripleString() +
+    std::string const TargetDir = (Base + "include" + Slash + getTripleString() +
                              Slash + "c++" + Slash + "v1")
                                 .str();
     if (getDriver().getVFS().exists(TargetDir))

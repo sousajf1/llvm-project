@@ -35,16 +35,16 @@ void EditedSource::deconstructMacroArgLoc(SourceLocation Loc,
                                           SourceLocation &ExpansionLoc,
                                           MacroArgUse &ArgUse) {
   assert(SourceMgr.isMacroArgExpansion(Loc));
-  SourceLocation DefArgLoc =
+  SourceLocation const DefArgLoc =
       SourceMgr.getImmediateExpansionRange(Loc).getBegin();
-  SourceLocation ImmediateExpansionLoc =
+  SourceLocation const ImmediateExpansionLoc =
       SourceMgr.getImmediateExpansionRange(DefArgLoc).getBegin();
   ExpansionLoc = ImmediateExpansionLoc;
   while (SourceMgr.isMacroBodyExpansion(ExpansionLoc))
     ExpansionLoc =
         SourceMgr.getImmediateExpansionRange(ExpansionLoc).getBegin();
   SmallString<20> Buf;
-  StringRef ArgName = Lexer::getSpelling(SourceMgr.getSpellingLoc(DefArgLoc),
+  StringRef const ArgName = Lexer::getSpelling(SourceMgr.getSpellingLoc(DefArgLoc),
                                          Buf, SourceMgr, LangOpts);
   ArgUse = MacroArgUse{nullptr, SourceLocation(), SourceLocation()};
   if (!ArgName.empty())
@@ -72,7 +72,7 @@ StringRef EditedSource::copyString(const Twine &twine) {
 }
 
 bool EditedSource::canInsertInOffset(SourceLocation OrigLoc, FileOffset Offs) {
-  FileEditsTy::iterator FA = getActionForOffset(Offs);
+  FileEditsTy::iterator const FA = getActionForOffset(Offs);
   if (FA != FileEdits.end()) {
     if (FA->first != Offs)
       return false; // position has been removed.
@@ -147,15 +147,15 @@ bool EditedSource::commitInsertFromRange(SourceLocation OrigLoc,
 
   SmallString<128> StrVec;
   FileOffset BeginOffs = InsertFromRangeOffs;
-  FileOffset EndOffs = BeginOffs.getWithOffset(Len);
+  FileOffset const EndOffs = BeginOffs.getWithOffset(Len);
   FileEditsTy::iterator I = FileEdits.upper_bound(BeginOffs);
   if (I != FileEdits.begin())
     --I;
 
   for (; I != FileEdits.end(); ++I) {
-    FileEdit &FA = I->second;
-    FileOffset B = I->first;
-    FileOffset E = B.getWithOffset(FA.RemoveLen);
+    FileEdit  const&FA = I->second;
+    FileOffset const B = I->first;
+    FileOffset const E = B.getWithOffset(FA.RemoveLen);
 
     if (BeginOffs == B)
       break;
@@ -170,13 +170,13 @@ bool EditedSource::commitInsertFromRange(SourceLocation OrigLoc,
   }
 
   for (; I != FileEdits.end() && EndOffs > I->first; ++I) {
-    FileEdit &FA = I->second;
-    FileOffset B = I->first;
-    FileOffset E = B.getWithOffset(FA.RemoveLen);
+    FileEdit  const&FA = I->second;
+    FileOffset const B = I->first;
+    FileOffset const E = B.getWithOffset(FA.RemoveLen);
 
     if (BeginOffs < B) {
       bool Invalid = false;
-      StringRef text = getSourceText(BeginOffs, B, Invalid);
+      StringRef const text = getSourceText(BeginOffs, B, Invalid);
       if (Invalid)
         return false;
       StrVec += text;
@@ -187,7 +187,7 @@ bool EditedSource::commitInsertFromRange(SourceLocation OrigLoc,
 
   if (BeginOffs < EndOffs) {
     bool Invalid = false;
-    StringRef text = getSourceText(BeginOffs, EndOffs, Invalid);
+    StringRef const text = getSourceText(BeginOffs, EndOffs, Invalid);
     if (Invalid)
       return false;
     StrVec += text;
@@ -201,15 +201,15 @@ void EditedSource::commitRemove(SourceLocation OrigLoc,
   if (Len == 0)
     return;
 
-  FileOffset EndOffs = BeginOffs.getWithOffset(Len);
+  FileOffset const EndOffs = BeginOffs.getWithOffset(Len);
   FileEditsTy::iterator I = FileEdits.upper_bound(BeginOffs);
   if (I != FileEdits.begin())
     --I;
 
   for (; I != FileEdits.end(); ++I) {
-    FileEdit &FA = I->second;
-    FileOffset B = I->first;
-    FileOffset E = B.getWithOffset(FA.RemoveLen);
+    FileEdit  const&FA = I->second;
+    FileOffset const B = I->first;
+    FileOffset const E = B.getWithOffset(FA.RemoveLen);
 
     if (BeginOffs < E)
       break;
@@ -220,17 +220,17 @@ void EditedSource::commitRemove(SourceLocation OrigLoc,
 
   if (I == FileEdits.end()) {
     FileEditsTy::iterator
-      NewI = FileEdits.insert(I, std::make_pair(BeginOffs, FileEdit()));
+      const NewI = FileEdits.insert(I, std::make_pair(BeginOffs, FileEdit()));
     NewI->second.RemoveLen = Len;
     return;
   }
 
-  FileEdit &FA = I->second;
-  FileOffset B = I->first;
-  FileOffset E = B.getWithOffset(FA.RemoveLen);
+  FileEdit  const&FA = I->second;
+  FileOffset const B = I->first;
+  FileOffset const E = B.getWithOffset(FA.RemoveLen);
   if (BeginOffs < B) {
     FileEditsTy::iterator
-      NewI = FileEdits.insert(I, std::make_pair(BeginOffs, FileEdit()));
+      const NewI = FileEdits.insert(I, std::make_pair(BeginOffs, FileEdit()));
     TopBegin = BeginOffs;
     TopEnd = EndOffs;
     TopFA = &NewI->second;
@@ -241,7 +241,7 @@ void EditedSource::commitRemove(SourceLocation OrigLoc,
     TopFA = &I->second;
     if (TopEnd >= EndOffs)
       return;
-    unsigned diff = EndOffs.getOffset() - TopEnd.getOffset();
+    unsigned const diff = EndOffs.getOffset() - TopEnd.getOffset();
     TopEnd = EndOffs;
     TopFA->RemoveLen += diff;
     if (B == BeginOffs)
@@ -250,9 +250,9 @@ void EditedSource::commitRemove(SourceLocation OrigLoc,
   }
 
   while (I != FileEdits.end()) {
-    FileEdit &FA = I->second;
-    FileOffset B = I->first;
-    FileOffset E = B.getWithOffset(FA.RemoveLen);
+    FileEdit  const&FA = I->second;
+    FileOffset const B = I->first;
+    FileOffset const E = B.getWithOffset(FA.RemoveLen);
 
     if (B >= TopEnd)
       break;
@@ -263,7 +263,7 @@ void EditedSource::commitRemove(SourceLocation OrigLoc,
     }
 
     if (B < TopEnd) {
-      unsigned diff = E.getOffset() - TopEnd.getOffset();
+      unsigned const diff = E.getOffset() - TopEnd.getOffset();
       TopEnd = E;
       TopFA->RemoveLen += diff;
       FileEdits.erase(I);
@@ -338,17 +338,17 @@ static void adjustRemoval(const SourceManager &SM, const LangOptions &LangOpts,
                           SourceLocation Loc, FileOffset offs,
                           unsigned &len, StringRef &text) {
   assert(len && text.empty());
-  SourceLocation BeginTokLoc = Lexer::GetBeginningOfToken(Loc, SM, LangOpts);
+  SourceLocation const BeginTokLoc = Lexer::GetBeginningOfToken(Loc, SM, LangOpts);
   if (BeginTokLoc != Loc)
     return; // the range is not at the beginning of a token, keep the range.
 
   bool Invalid = false;
-  StringRef buffer = SM.getBufferData(offs.getFID(), &Invalid);
+  StringRef const buffer = SM.getBufferData(offs.getFID(), &Invalid);
   if (Invalid)
     return;
 
-  unsigned begin = offs.getOffset();
-  unsigned end = begin + len;
+  unsigned const begin = offs.getOffset();
+  unsigned const end = begin + len;
 
   // Do not try to extend the removal if we're at the end of the buffer already.
   if (end == buffer.size())
@@ -391,7 +391,7 @@ static void applyRewrite(EditsReceiver &receiver,
   if (text.empty() && shouldAdjustRemovals)
     adjustRemoval(SM, LangOpts, Loc, offs, len, text);
 
-  CharSourceRange range = CharSourceRange::getCharRange(Loc,
+  CharSourceRange const range = CharSourceRange::getCharRange(Loc,
                                                      Loc.getLocWithOffset(len));
 
   if (text.empty()) {
@@ -422,9 +422,9 @@ void EditedSource::applyRewrites(EditsReceiver &receiver,
   CurEnd = CurOffs.getWithOffset(CurLen);
   ++I;
 
-  for (FileEditsTy::iterator E = FileEdits.end(); I != E; ++I) {
-    FileOffset offs = I->first;
-    FileEdit act = I->second;
+  for (FileEditsTy::iterator const E = FileEdits.end(); I != E; ++I) {
+    FileOffset const offs = I->first;
+    FileEdit const act = I->second;
     assert(offs >= CurEnd);
 
     if (offs == CurEnd) {
@@ -459,7 +459,7 @@ StringRef EditedSource::getSourceText(FileOffset BeginOffs, FileOffset EndOffs,
   BLoc = BLoc.getLocWithOffset(BeginOffs.getOffset());
   assert(BLoc.isFileID());
   SourceLocation
-    ELoc = BLoc.getLocWithOffset(EndOffs.getOffset() - BeginOffs.getOffset());
+    const ELoc = BLoc.getLocWithOffset(EndOffs.getOffset() - BeginOffs.getOffset());
   return Lexer::getSourceText(CharSourceRange::getCharRange(BLoc, ELoc),
                               SourceMgr, LangOpts, &Invalid);
 }
@@ -470,9 +470,9 @@ EditedSource::getActionForOffset(FileOffset Offs) {
   if (I == FileEdits.begin())
     return FileEdits.end();
   --I;
-  FileEdit &FA = I->second;
-  FileOffset B = I->first;
-  FileOffset E = B.getWithOffset(FA.RemoveLen);
+  FileEdit  const&FA = I->second;
+  FileOffset const B = I->first;
+  FileOffset const E = B.getWithOffset(FA.RemoveLen);
   if (Offs >= B && Offs < E)
     return I;
 

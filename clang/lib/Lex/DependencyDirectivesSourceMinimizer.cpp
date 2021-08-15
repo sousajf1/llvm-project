@@ -156,7 +156,7 @@ static void skipRawString(const char *&First, const char *const End) {
     return;
   }
 
-  StringRef Terminator(First, Last - First);
+  StringRef const Terminator(First, Last - First);
   for (;;) {
     // Move First to just past the next ")".
     First = Last;
@@ -215,7 +215,7 @@ static void skipString(const char *&First, const char *const End) {
     // Whitespace after the backslash might indicate a line continuation.
     const char *FirstAfterBackslashPastSpace = First;
     skipOverSpaces(FirstAfterBackslashPastSpace, End);
-    if (unsigned NLSize = isEOL(FirstAfterBackslashPastSpace, End)) {
+    if (unsigned const NLSize = isEOL(FirstAfterBackslashPastSpace, End)) {
       // Advance the character pointer to the next line for the next
       // iteration.
       First = FirstAfterBackslashPastSpace + NLSize - 1;
@@ -230,7 +230,7 @@ static unsigned skipNewline(const char *&First, const char *End) {
   if (First == End)
     return 0;
   assert(isVerticalWhitespace(*First));
-  unsigned Len = isEOL(First, End);
+  unsigned const Len = isEOL(First, End);
   assert(Len && "expected newline");
   First += Len;
   return Len;
@@ -311,7 +311,7 @@ static bool isQuoteCppDigitSeparator(const char *const Start,
   // The previous character must be a valid PP number character.
   // Make sure that the L, u, U, u8 prefixes don't get marked as a
   // separator though.
-  char Prev = *(Cur - 1);
+  char const Prev = *(Cur - 1);
   if (Prev == 'L' || Prev == 'U' || Prev == 'u')
     return false;
   if (Prev == '8' && (Cur - 1 != Start) && *(Cur - 2) == 'u')
@@ -368,7 +368,7 @@ static void skipLine(const char *&First, const char *const End) {
       return;
 
     // Skip over the newline.
-    unsigned Len = skipNewline(First, End);
+    unsigned const Len = skipNewline(First, End);
     if (!wasLineContinuation(First, Len)) // Continue past line-continuations.
       break;
   }
@@ -605,7 +605,7 @@ bool Minimizer::isNextIdentifier(StringRef Id, const char *&First,
   if (First == End || !isIdentifierHead(*First))
     return false;
 
-  IdInfo FoundId = lexIdentifier(First, End);
+  IdInfo const FoundId = lexIdentifier(First, End);
   First = FoundId.Last;
   return FoundId.Name == Id;
 }
@@ -693,13 +693,13 @@ bool Minimizer::lexDefine(const char *&First, const char *const End) {
   if (!isIdentifierHead(*First))
     return reportError(First, diag::err_pp_macro_not_identifier);
 
-  IdInfo Id = lexIdentifier(First, End);
+  IdInfo const Id = lexIdentifier(First, End);
   const char *Last = Id.Last;
   append(Id.Name);
   if (Last == End)
     return false;
   if (*Last == '(') {
-    size_t Size = Out.size();
+    size_t const Size = Out.size();
     if (printMacroArgs(Last, End)) {
       // Be robust to bad macro arguments, since they can show up in disabled
       // code.
@@ -725,7 +725,7 @@ bool Minimizer::lexPragma(const char *&First, const char *const End) {
   if (First == End || !isIdentifierHead(*First))
     return false;
 
-  IdInfo FoundId = lexIdentifier(First, End);
+  IdInfo const FoundId = lexIdentifier(First, End);
   First = FoundId.Last;
   if (FoundId.Name == "once") {
     // #pragma once
@@ -833,7 +833,7 @@ bool Minimizer::lexPPLine(const char *&First, const char *const End) {
   }
 
   // Figure out the token.
-  IdInfo Id = lexIdentifier(First, End);
+  IdInfo const Id = lexIdentifier(First, End);
   First = Id.Last;
   auto Kind = llvm::StringSwitch<TokenKind>(Id.Name)
                   .Case("include", pp_include)
@@ -885,7 +885,7 @@ bool Minimizer::minimizeImpl(const char *First, const char *const End) {
 }
 
 bool Minimizer::minimize() {
-  bool Error = minimizeImpl(Input.begin(), Input.end());
+  bool const Error = minimizeImpl(Input.begin(), Input.end());
 
   if (!Error) {
     // Add a trailing newline and an EOF on success.
@@ -926,7 +926,7 @@ bool clang::minimize_source_to_dependency_directives::computeSkippedRanges(
     case pp_else: {
       if (Offsets.empty())
         return true;
-      int PreviousOffset = Offsets.back().Offset;
+      int const PreviousOffset = Offsets.back().Offset;
       Range.push_back({PreviousOffset, T.Offset - PreviousOffset});
       Offsets.push_back({T.Offset, Directive::Else});
       break;
@@ -935,10 +935,10 @@ bool clang::minimize_source_to_dependency_directives::computeSkippedRanges(
     case pp_endif: {
       if (Offsets.empty())
         return true;
-      int PreviousOffset = Offsets.back().Offset;
+      int const PreviousOffset = Offsets.back().Offset;
       Range.push_back({PreviousOffset, T.Offset - PreviousOffset});
       do {
-        Directive::DirectiveKind Kind = Offsets.pop_back_val().Kind;
+        Directive::DirectiveKind const Kind = Offsets.pop_back_val().Kind;
         if (Kind == Directive::If)
           break;
       } while (!Offsets.empty());

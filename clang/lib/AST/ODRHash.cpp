@@ -66,11 +66,11 @@ void ODRHash::AddDeclarationNameImpl(DeclarationName Name) {
   case DeclarationName::ObjCZeroArgSelector:
   case DeclarationName::ObjCOneArgSelector:
   case DeclarationName::ObjCMultiArgSelector: {
-    Selector S = Name.getObjCSelector();
+    Selector const S = Name.getObjCSelector();
     AddBoolean(S.isNull());
     AddBoolean(S.isKeywordSelector());
     AddBoolean(S.isUnarySelector());
-    unsigned NumArgs = S.getNumArgs();
+    unsigned const NumArgs = S.getNumArgs();
     ID.AddInteger(NumArgs);
     for (unsigned i = 0; i < NumArgs; ++i) {
       const IdentifierInfo *II = S.getIdentifierInfoForSlot(i);
@@ -759,13 +759,13 @@ public:
   void VisitType(const Type *T) {}
 
   void VisitAdjustedType(const AdjustedType *T) {
-    QualType Original = T->getOriginalType();
-    QualType Adjusted = T->getAdjustedType();
+    QualType const Original = T->getOriginalType();
+    QualType const Adjusted = T->getAdjustedType();
 
     // The original type and pointee type can be the same, as in the case of
     // function pointers decaying to themselves.  Set a bool and only process
     // the type once, to prevent doubling the work.
-    SplitQualType split = Adjusted.split();
+    SplitQualType const split = Adjusted.split();
     if (auto Pointer = dyn_cast<PointerType>(split.Ty)) {
       if (Pointer->getPointeeType() == Original) {
         Hash.AddBoolean(true);
@@ -1125,7 +1125,7 @@ void ODRHash::AddQualType(QualType T) {
   AddBoolean(T.isNull());
   if (T.isNull())
     return;
-  SplitQualType split = T.split();
+  SplitQualType const split = T.split();
   ID.AddInteger(split.Quals.getAsOpaqueValue());
   AddType(split.Ty);
 }

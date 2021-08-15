@@ -60,7 +60,7 @@ PrintedDeclMatches(StringRef Code, const std::vector<std::string> &Args,
 PrintedDeclCXX98Matches(StringRef Code, StringRef DeclName,
                         StringRef ExpectedPrinted,
                         PrintingPolicyAdjuster PolicyModifier = nullptr) {
-  std::vector<std::string> Args(1, "-std=c++98");
+  std::vector<std::string> const Args(1, "-std=c++98");
   return PrintedDeclMatches(Code, Args, namedDecl(hasName(DeclName)).bind("id"),
                             ExpectedPrinted, "input.cc", PolicyModifier);
 }
@@ -69,7 +69,7 @@ PrintedDeclCXX98Matches(StringRef Code, StringRef DeclName,
 PrintedDeclCXX98Matches(StringRef Code, const DeclarationMatcher &NodeMatch,
                         StringRef ExpectedPrinted,
                         PrintingPolicyAdjuster PolicyModifier = nullptr) {
-  std::vector<std::string> Args(1, "-std=c++98");
+  std::vector<std::string> const Args(1, "-std=c++98");
   return PrintedDeclMatches(Code,
                             Args,
                             NodeMatch,
@@ -81,7 +81,7 @@ PrintedDeclCXX98Matches(StringRef Code, const DeclarationMatcher &NodeMatch,
 ::testing::AssertionResult PrintedDeclCXX11Matches(StringRef Code,
                                                    StringRef DeclName,
                                                    StringRef ExpectedPrinted) {
-  std::vector<std::string> Args(1, "-std=c++11");
+  std::vector<std::string> const Args(1, "-std=c++11");
   return PrintedDeclMatches(Code, Args, namedDecl(hasName(DeclName)).bind("id"),
                             ExpectedPrinted, "input.cc");
 }
@@ -90,7 +90,7 @@ PrintedDeclCXX98Matches(StringRef Code, const DeclarationMatcher &NodeMatch,
                                   StringRef Code,
                                   const DeclarationMatcher &NodeMatch,
                                   StringRef ExpectedPrinted) {
-  std::vector<std::string> Args(1, "-std=c++11");
+  std::vector<std::string> const Args(1, "-std=c++11");
   return PrintedDeclMatches(Code,
                             Args,
                             NodeMatch,
@@ -102,7 +102,7 @@ PrintedDeclCXX98Matches(StringRef Code, const DeclarationMatcher &NodeMatch,
                                   StringRef Code,
                                   const DeclarationMatcher &NodeMatch,
                                   StringRef ExpectedPrinted) {
-  std::vector<std::string> Args{"-std=c++11", "-fno-delayed-template-parsing"};
+  std::vector<std::string> const Args{"-std=c++11", "-fno-delayed-template-parsing"};
   return PrintedDeclMatches(Code,
                             Args,
                             NodeMatch,
@@ -114,7 +114,7 @@ PrintedDeclCXX98Matches(StringRef Code, const DeclarationMatcher &NodeMatch,
 PrintedDeclCXX17Matches(StringRef Code, const DeclarationMatcher &NodeMatch,
                         StringRef ExpectedPrinted,
                         PrintingPolicyAdjuster PolicyModifier = nullptr) {
-  std::vector<std::string> Args{"-std=c++17", "-fno-delayed-template-parsing"};
+  std::vector<std::string> const Args{"-std=c++17", "-fno-delayed-template-parsing"};
   return PrintedDeclMatches(Code, Args, NodeMatch, ExpectedPrinted, "input.cc",
                             PolicyModifier);
 }
@@ -123,7 +123,7 @@ PrintedDeclCXX17Matches(StringRef Code, const DeclarationMatcher &NodeMatch,
 PrintedDeclC11Matches(StringRef Code, const DeclarationMatcher &NodeMatch,
                       StringRef ExpectedPrinted,
                       PrintingPolicyAdjuster PolicyModifier = nullptr) {
-  std::vector<std::string> Args(1, "-std=c11");
+  std::vector<std::string> const Args(1, "-std=c11");
   return PrintedDeclMatches(Code, Args, NodeMatch, ExpectedPrinted, "input.c",
                             PolicyModifier);
 }
@@ -131,7 +131,7 @@ PrintedDeclC11Matches(StringRef Code, const DeclarationMatcher &NodeMatch,
 ::testing::AssertionResult
 PrintedDeclObjCMatches(StringRef Code, const DeclarationMatcher &NodeMatch,
                        StringRef ExpectedPrinted, bool AllowError = false) {
-  std::vector<std::string> Args(1, "");
+  std::vector<std::string> const Args(1, "");
   return PrintedDeclMatches(Code, Args, NodeMatch, ExpectedPrinted, "input.m",
                             /*PolicyModifier=*/nullptr, AllowError);
 }
@@ -1328,7 +1328,7 @@ TEST(DeclPrinter, TestTemplateArgumentList15) {
 }
 
 TEST(DeclPrinter, TestTemplateArgumentList16) {
-  llvm::StringLiteral Code = "template<typename T1, int NT1, typename T2 = "
+  llvm::StringLiteral const Code = "template<typename T1, int NT1, typename T2 = "
                              "bool, int NT2 = 5> struct Z {};";
   ASSERT_TRUE(PrintedDeclCXX11Matches(Code, "T1", "typename T1"));
   ASSERT_TRUE(PrintedDeclCXX11Matches(Code, "T2", "typename T2 = bool"));

@@ -95,7 +95,7 @@ static void emitDiagnostics(BoundNodes &Match,
       Match.getNodeAs<ObjCAutoreleasePoolStmt>(AutoreleasePoolBind);
   const auto *OAP =
       Match.getNodeAs<ObjCAutoreleasePoolStmt>(OtherStmtAutoreleasePoolBind);
-  bool HasAutoreleasePool = (AP != nullptr);
+  bool const HasAutoreleasePool = (AP != nullptr);
 
   const auto *RL = Match.getNodeAs<ObjCMessageExpr>(RunLoopBind);
   const auto *RLR = Match.getNodeAs<Stmt>(RunLoopRunBind);
@@ -109,9 +109,9 @@ static void emitDiagnostics(BoundNodes &Match,
   if (HasAutoreleasePool && (OAP != AP))
     return;
 
-  PathDiagnosticLocation Location = PathDiagnosticLocation::createBegin(
+  PathDiagnosticLocation const Location = PathDiagnosticLocation::createBegin(
     ME, BR.getSourceManager(), ADC);
-  SourceRange Range = ME->getSourceRange();
+  SourceRange const Range = ME->getSourceRange();
 
   BR.EmitBasicReport(ADC->getDecl(), Checker,
                      /*Name=*/"Memory leak inside autorelease pool",
@@ -129,7 +129,7 @@ static void emitDiagnostics(BoundNodes &Match,
 }
 
 static StatementMatcher getRunLoopRunM(StatementMatcher Extra = anything()) {
-  StatementMatcher MainRunLoopM =
+  StatementMatcher const MainRunLoopM =
       objcMessageExpr(hasSelector("mainRunLoop"),
                       hasReceiverType(asString("NSRunLoop")),
                       Extra)
@@ -154,16 +154,16 @@ static StatementMatcher getOtherMessageSentM(StatementMatcher Extra = anything()
 static void
 checkTempObjectsInSamePool(const Decl *D, AnalysisManager &AM, BugReporter &BR,
                            const RunLoopAutoreleaseLeakChecker *Chkr) {
-  StatementMatcher RunLoopRunM = getRunLoopRunM();
-  StatementMatcher OtherMessageSentM = getOtherMessageSentM(
+  StatementMatcher const RunLoopRunM = getRunLoopRunM();
+  StatementMatcher const OtherMessageSentM = getOtherMessageSentM(
     hasAncestor(autoreleasePoolStmt().bind(OtherStmtAutoreleasePoolBind)));
 
-  StatementMatcher RunLoopInAutorelease =
+  StatementMatcher const RunLoopInAutorelease =
       autoreleasePoolStmt(
         hasDescendant(RunLoopRunM),
         hasDescendant(OtherMessageSentM)).bind(AutoreleasePoolBind);
 
-  DeclarationMatcher GroupM = decl(hasDescendant(RunLoopInAutorelease));
+  DeclarationMatcher const GroupM = decl(hasDescendant(RunLoopInAutorelease));
 
   auto Matches = match(GroupM, *D, AM.getASTContext());
   for (BoundNodes Match : Matches)
@@ -176,10 +176,10 @@ checkTempObjectsInNoPool(const Decl *D, AnalysisManager &AM, BugReporter &BR,
 
   auto NoPoolM = unless(hasAncestor(autoreleasePoolStmt()));
 
-  StatementMatcher RunLoopRunM = getRunLoopRunM(NoPoolM);
-  StatementMatcher OtherMessageSentM = getOtherMessageSentM(NoPoolM);
+  StatementMatcher const RunLoopRunM = getRunLoopRunM(NoPoolM);
+  StatementMatcher const OtherMessageSentM = getOtherMessageSentM(NoPoolM);
 
-  DeclarationMatcher GroupM = functionDecl(
+  DeclarationMatcher const GroupM = functionDecl(
     isMain(),
     hasDescendant(RunLoopRunM),
     hasDescendant(OtherMessageSentM)

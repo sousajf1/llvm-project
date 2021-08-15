@@ -66,10 +66,10 @@ MATCHER_P2(EqualsAnnotatedRange, Context, R, "") {
     return false;
   }
 
-  CharSourceRange Range = Lexer::getAsCharRange(
+  CharSourceRange const Range = Lexer::getAsCharRange(
       arg, Context->getSourceManager(), Context->getLangOpts());
-  unsigned Begin = Context->getSourceManager().getFileOffset(Range.getBegin());
-  unsigned End = Context->getSourceManager().getFileOffset(Range.getEnd());
+  unsigned const Begin = Context->getSourceManager().getFileOffset(Range.getBegin());
+  unsigned const End = Context->getSourceManager().getFileOffset(Range.getEnd());
 
   *result_listener << "which is a " << (arg.isTokenRange() ? "Token" : "Char")
                    << " range [" << Begin << "," << End << ")";
@@ -111,7 +111,7 @@ public:
     MatchCount = 0;
     Args.push_back("-std=c++11");
     Args.push_back("-fno-delayed-template-parsing");
-    bool result = tooling::runToolOnCodeWithArgs(this->CreateTestAction(),
+    bool const result = tooling::runToolOnCodeWithArgs(this->CreateTestAction(),
                                                  Code.code(), Args);
     EXPECT_EQ(MatchCount, 1) << AnnotatedCode;
     return result;
@@ -209,7 +209,7 @@ TEST(SourceCodeTest, maybeExtendRange_CharRange) {
   struct ExtendCharRangeVisitor : AnnotatedCodeVisitor<ExtendCharRangeVisitor> {
     bool VisitCallExpr(CallExpr *CE) {
       ++MatchCount;
-      CharSourceRange Call = Lexer::getAsCharRange(CE->getSourceRange(),
+      CharSourceRange const Call = Lexer::getAsCharRange(CE->getSourceRange(),
                                                    Context->getSourceManager(),
                                                    Context->getLangOpts());
       EXPECT_THAT(maybeExtendRange(Call, tok::TokenKind::semi, *Context),
@@ -425,7 +425,7 @@ TEST(SourceCodeTest, getAssociatedRangeInvalidForPartialExpansions) {
 
   FailingVarDeclsVisitor Visitor;
   // Should fail because it only includes a part of the expansion.
-  std::string Code = R"cpp(
+  std::string const Code = R"cpp(
       #define DECL class foo { }; int x
       DECL;)cpp";
   Visitor.runOver(Code);
@@ -466,7 +466,7 @@ int a = $r[[FOO]];
 }
 
 TEST(SourceCodeTest, EditPartialMacroExpansionShouldFail) {
-  std::string Code = R"cpp(
+  std::string const Code = R"cpp(
 #define BAR 10+
 int c = BAR 3.0;
 )cpp";
@@ -512,7 +512,7 @@ int a = FOO($r[[10]] + 10.0);
 TEST(SourceCodeTest, EditRangeWithMacroExpansionsIsValid) {
   // The call expression, whose range we are extracting, includes two macro
   // expansions.
-  llvm::StringRef Code = R"cpp(
+  llvm::StringRef const Code = R"cpp(
 #define M(a) a * 13
 int foo(int x, int y);
 int a = foo(M(1), M(2));
@@ -529,14 +529,14 @@ int a = foo(M(1), M(2));
 }
 
 TEST(SourceCodeTest, SpellingRangeOfMacroArgIsValid) {
-  llvm::StringRef Code = R"cpp(
+  llvm::StringRef const Code = R"cpp(
 #define FOO(a) a + 7.0;
 int a = FOO(10);
 )cpp";
 
   IntLitVisitor Visitor;
   Visitor.OnIntLit = [](IntegerLiteral *Expr, ASTContext *Context) {
-    SourceLocation ArgLoc =
+    SourceLocation const ArgLoc =
         Context->getSourceManager().getSpellingLoc(Expr->getBeginLoc());
     // The integer literal is a single token.
     auto ArgRange = CharSourceRange::getTokenRange(ArgLoc);
@@ -547,12 +547,12 @@ int a = FOO(10);
 }
 
 TEST(SourceCodeTest, InvalidEditRangeIsInvalid) {
-  llvm::StringRef Code = "int c = 10;";
+  llvm::StringRef const Code = "int c = 10;";
 
   // We use the visitor just to get a valid context.
   IntLitVisitor Visitor;
   Visitor.OnIntLit = [](IntegerLiteral *, ASTContext *Context) {
-    CharSourceRange Invalid;
+    CharSourceRange const Invalid;
     EXPECT_THAT_ERROR(validateEditRange(Invalid, Context->getSourceManager()),
                       Failed());
   };
@@ -560,7 +560,7 @@ TEST(SourceCodeTest, InvalidEditRangeIsInvalid) {
 }
 
 TEST(SourceCodeTest, InvertedEditRangeIsInvalid) {
-  llvm::StringRef Code = R"cpp(
+  llvm::StringRef const Code = R"cpp(
 int foo(int x);
 int a = foo(2);
 )cpp";
@@ -577,7 +577,7 @@ int a = foo(2);
 }
 
 TEST(SourceCodeTest, MacroArgIsInvalid) {
-  llvm::StringRef Code = R"cpp(
+  llvm::StringRef const Code = R"cpp(
 #define FOO(a) a + 7.0;
 int a = FOO(10);
 )cpp";
@@ -592,7 +592,7 @@ int a = FOO(10);
 }
 
 TEST(SourceCodeTest, EditWholeMacroExpansionIsInvalid) {
-  llvm::StringRef Code = R"cpp(
+  llvm::StringRef const Code = R"cpp(
 #define FOO 10
 int a = FOO;
 )cpp";
@@ -608,7 +608,7 @@ int a = FOO;
 }
 
 TEST(SourceCodeTest, EditPartialMacroExpansionIsInvalid) {
-  llvm::StringRef Code = R"cpp(
+  llvm::StringRef const Code = R"cpp(
 #define BAR 10+
 int c = BAR 3.0;
 )cpp";
@@ -623,7 +623,7 @@ int c = BAR 3.0;
 }
 
 TEST(SourceCodeTest, GetCallReturnType_Dependent) {
-  llvm::Annotations Code{R"cpp(
+  llvm::Annotations const Code{R"cpp(
 template<class T, class F>
 void templ(const T& t, F f) {}
 
@@ -662,13 +662,13 @@ void f2() {
 
   CallsVisitor Visitor;
   Visitor.OnCall = [&R1, &R2, &R3](CallExpr *Expr, ASTContext *Context) {
-    unsigned Begin = Context->getSourceManager().getFileOffset(
+    unsigned const Begin = Context->getSourceManager().getFileOffset(
         Expr->getSourceRange().getBegin());
-    unsigned End = Context->getSourceManager().getFileOffset(
+    unsigned const End = Context->getSourceManager().getFileOffset(
         Expr->getSourceRange().getEnd());
-    llvm::Annotations::Range R{Begin, End + 1};
+    llvm::Annotations::Range const R{Begin, End + 1};
 
-    QualType CalleeType = Expr->getCallee()->getType();
+    QualType const CalleeType = Expr->getCallee()->getType();
     if (R == R1) {
       ASSERT_TRUE(CalleeType->isDependentType());
       EXPECT_EQ(Expr->getCallReturnType(*Context), Context->DependentTy);

@@ -43,19 +43,19 @@ bool TestSelectionRangesInFile::foreachRange(
     const SourceManager &SM,
     llvm::function_ref<void(SourceRange)> Callback) const {
   auto FE = SM.getFileManager().getFile(Filename);
-  FileID FID = FE ? SM.translateFile(*FE) : FileID();
+  FileID const FID = FE ? SM.translateFile(*FE) : FileID();
   if (!FE || FID.isInvalid()) {
     llvm::errs() << "error: -selection=test:" << Filename
                  << " : given file is not in the target TU";
     return true;
   }
-  SourceLocation FileLoc = SM.getLocForStartOfFile(FID);
+  SourceLocation const FileLoc = SM.getLocForStartOfFile(FID);
   for (const auto &Group : GroupedRanges) {
     for (const TestSelectionRange &Range : Group.Ranges) {
       // Translate the offset pair to a true source range.
-      SourceLocation Start =
+      SourceLocation const Start =
           SM.getMacroArgExpandedLocation(FileLoc.getLocWithOffset(Range.Begin));
-      SourceLocation End =
+      SourceLocation const End =
           SM.getMacroArgExpandedLocation(FileLoc.getLocWithOffset(Range.End));
       assert(Start.isValid() && End.isValid() && "unexpected invalid range");
       Callback(SourceRange(Start, End));
@@ -166,7 +166,7 @@ std::pair<unsigned, unsigned> getLineColumn(StringRef Filename,
     return {0, 0};
   StringRef Source = ErrOrFile.get()->getBuffer();
   Source = Source.take_front(Offset);
-  size_t LastLine = Source.find_last_of("\r\n");
+  size_t const LastLine = Source.find_last_of("\r\n");
   return {Source.count('\n') + 1,
           (LastLine == StringRef::npos ? Offset : Offset - LastLine) + 1};
 }
@@ -182,7 +182,7 @@ bool TestRefactoringResultConsumer::handleAllResults() {
     for (auto &I : llvm::enumerate(Group.value())) {
       Expected<tooling::AtomicChanges> &Result = I.value();
       std::string ErrorMessage;
-      bool HasResult = !!Result;
+      bool const HasResult = !!Result;
       if (!HasResult) {
         handleAllErrors(
             Result.takeError(),
@@ -215,7 +215,7 @@ bool TestRefactoringResultConsumer::handleAllResults() {
       }
       Failed = true;
       // Report the mismatch.
-      std::pair<unsigned, unsigned> LineColumn = getLineColumn(
+      std::pair<unsigned, unsigned> const LineColumn = getLineColumn(
           TestRanges.Filename,
           TestRanges.GroupedRanges[Group.index()].Ranges[I.index()].Begin);
       llvm::errs()
@@ -266,8 +266,8 @@ static unsigned addColumnOffset(StringRef Source, unsigned Offset,
                                 unsigned ColumnOffset) {
   if (!ColumnOffset)
     return Offset;
-  StringRef Substr = Source.drop_front(Offset).take_front(ColumnOffset);
-  size_t NewlinePos = Substr.find_first_of("\r\n");
+  StringRef const Substr = Source.drop_front(Offset).take_front(ColumnOffset);
+  size_t const NewlinePos = Substr.find_first_of("\r\n");
   return Offset +
          (NewlinePos == StringRef::npos ? ColumnOffset : (unsigned)NewlinePos);
 }
@@ -278,7 +278,7 @@ static unsigned addEndLineOffsetAndEndColumn(StringRef Source, unsigned Offset,
   StringRef Line = Source.drop_front(Offset);
   unsigned LineOffset = 0;
   for (; LineNumberOffset != 0; --LineNumberOffset) {
-    size_t NewlinePos = Line.find_first_of("\r\n");
+    size_t const NewlinePos = Line.find_first_of("\r\n");
     // Line offset goes out of bounds.
     if (NewlinePos == StringRef::npos)
       break;
@@ -286,7 +286,7 @@ static unsigned addEndLineOffsetAndEndColumn(StringRef Source, unsigned Offset,
     Line = Line.drop_front(NewlinePos + 1);
   }
   // Source now points to the line at +lineOffset;
-  size_t LineStart = Source.find_last_of("\r\n", /*From=*/Offset + LineOffset);
+  size_t const LineStart = Source.find_last_of("\r\n", /*From=*/Offset + LineOffset);
   return addColumnOffset(
       Source, LineStart == StringRef::npos ? 0 : LineStart + 1, Column - 1);
 }
@@ -300,7 +300,7 @@ findTestSelectionRanges(StringRef Filename) {
                  << " : could not open the given file";
     return None;
   }
-  StringRef Source = ErrOrFile.get()->getBuffer();
+  StringRef const Source = ErrOrFile.get()->getBuffer();
 
   // See the doc comment for this function for the explanation of this
   // syntax.
@@ -371,7 +371,7 @@ findTestSelectionRanges(StringRef Filename) {
     } else {
       EndOffset = Offset;
     }
-    TestSelectionRange Range = {Offset, EndOffset};
+    TestSelectionRange const Range = {Offset, EndOffset};
     auto It = GroupedRanges.insert(std::make_pair(
         Matches[1].str(), SmallVector<TestSelectionRange, 8>{Range}));
     if (!It.second)

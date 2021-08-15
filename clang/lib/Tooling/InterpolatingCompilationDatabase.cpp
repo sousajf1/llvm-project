@@ -69,7 +69,7 @@ namespace path = llvm::sys::path;
 
 // The length of the prefix these two strings have in common.
 size_t matchingPrefix(StringRef L, StringRef R) {
-  size_t Limit = std::min(L.size(), R.size());
+  size_t const Limit = std::min(L.size(), R.size());
   for (size_t I = 0; I < Limit; ++I)
     if (L[I] != R[I])
       return I;
@@ -80,11 +80,11 @@ size_t matchingPrefix(StringRef L, StringRef R) {
 // Optionaly prefix semantics: compares equal if the key is a prefix.
 template <bool Prefix> struct Less {
   bool operator()(StringRef Key, std::pair<StringRef, size_t> Value) const {
-    StringRef V = Prefix ? Value.first.substr(0, Key.size()) : Value.first;
+    StringRef const V = Prefix ? Value.first.substr(0, Key.size()) : Value.first;
     return Key < V;
   }
   bool operator()(std::pair<StringRef, size_t> Value, StringRef Key) const {
-    StringRef V = Prefix ? Value.first.substr(0, Key.size()) : Value.first;
+    StringRef const V = Prefix ? Value.first.substr(0, Key.size()) : Value.first;
     return V < Key;
   }
 };
@@ -326,7 +326,7 @@ public:
     Types.reserve(OriginalPaths.size());
     Stems.reserve(OriginalPaths.size());
     for (size_t I = 0; I < OriginalPaths.size(); ++I) {
-      StringRef Path = Strings.save(StringRef(OriginalPaths[I]).lower());
+      StringRef const Path = Strings.save(StringRef(OriginalPaths[I]).lower());
 
       Paths.emplace_back(Path, I);
       Types.push_back(foldType(guessType(Path)));
@@ -349,9 +349,9 @@ public:
   StringRef chooseProxy(StringRef OriginalFilename,
                         types::ID PreferLanguage) const {
     assert(!empty() && "need at least one candidate!");
-    std::string Filename = OriginalFilename.lower();
+    std::string const Filename = OriginalFilename.lower();
     auto Candidates = scoreCandidates(Filename);
-    std::pair<size_t, int> Best =
+    std::pair<size_t, int> const Best =
         pickWinner(Candidates, Filename, PreferLanguage);
 
     DEBUG_WITH_TYPE(
@@ -380,7 +380,7 @@ private:
     // Decompose Filename into the parts we care about.
     // /some/path/complicated/project/Interesting.h
     // [-prefix--][---dir---] [-dir-] [--stem---]
-    StringRef Stem = sys::path::stem(Filename);
+    StringRef const Stem = sys::path::stem(Filename);
     llvm::SmallVector<StringRef, DirectorySegmentsQueried> Dirs;
     llvm::StringRef Prefix;
     auto Dir = ++sys::path::rbegin(Filename),
@@ -403,7 +403,7 @@ private:
     Award(1, indexLookup</*Prefix=*/false>(Stem, Stems));
     // For each of the last few directories in the Filename, award a point
     // if it's present in the candidate.
-    for (StringRef Dir : Dirs)
+    for (StringRef const Dir : Dirs)
       Award(1, indexLookup</*Prefix=*/false>(Dir, Components));
     // Award one more point if the whole rest of the path matches.
     if (sys::path::root_directory(Prefix) != Prefix)
@@ -479,8 +479,8 @@ private:
     if (It == Idx.end())
       return *--It;
     // Have to choose between It and It-1
-    size_t Prefix = matchingPrefix(Key, It->first);
-    size_t PrevPrefix = matchingPrefix(Key, (It - 1)->first);
+    size_t const Prefix = matchingPrefix(Key, It->first);
+    size_t const PrevPrefix = matchingPrefix(Key, (It - 1)->first);
     return Prefix > PrevPrefix ? *It : *--It;
   }
 

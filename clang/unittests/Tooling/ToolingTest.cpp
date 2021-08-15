@@ -143,7 +143,7 @@ TEST(buildASTFromCode, FindsClassDecl) {
 
 TEST(buildASTFromCode, ReportsErrors) {
   TestDiagnosticConsumer Consumer;
-  std::unique_ptr<ASTUnit> AST = buildASTFromCodeWithArgs(
+  std::unique_ptr<ASTUnit> const AST = buildASTFromCodeWithArgs(
       "int x = \"A\";", {}, "input.cc", "clang-tool",
       std::make_shared<PCHContainerOperations>(),
       getClangStripDependencyFileAdjuster(), FileContentMappings(), &Consumer);
@@ -154,7 +154,7 @@ TEST(buildASTFromCode, ReportsErrors) {
 TEST(newFrontendActionFactory, CreatesFrontendActionFactoryFromType) {
   std::unique_ptr<FrontendActionFactory> Factory(
       newFrontendActionFactory<SyntaxOnlyAction>());
-  std::unique_ptr<FrontendAction> Action(Factory->create());
+  std::unique_ptr<FrontendAction> const Action(Factory->create());
   EXPECT_TRUE(Action.get() != nullptr);
 }
 
@@ -168,17 +168,17 @@ TEST(newFrontendActionFactory, CreatesFrontendActionFactoryFromFactoryType) {
   IndependentFrontendActionCreator Creator;
   std::unique_ptr<FrontendActionFactory> Factory(
       newFrontendActionFactory(&Creator));
-  std::unique_ptr<FrontendAction> Action(Factory->create());
+  std::unique_ptr<FrontendAction> const Action(Factory->create());
   EXPECT_TRUE(Action.get() != nullptr);
 }
 
 TEST(ToolInvocation, TestMapVirtualFile) {
-  llvm::IntrusiveRefCntPtr<llvm::vfs::OverlayFileSystem> OverlayFileSystem(
+  llvm::IntrusiveRefCntPtr<llvm::vfs::OverlayFileSystem> const OverlayFileSystem(
       new llvm::vfs::OverlayFileSystem(llvm::vfs::getRealFileSystem()));
-  llvm::IntrusiveRefCntPtr<llvm::vfs::InMemoryFileSystem> InMemoryFileSystem(
+  llvm::IntrusiveRefCntPtr<llvm::vfs::InMemoryFileSystem> const InMemoryFileSystem(
       new llvm::vfs::InMemoryFileSystem);
   OverlayFileSystem->pushOverlay(InMemoryFileSystem);
-  llvm::IntrusiveRefCntPtr<FileManager> Files(
+  llvm::IntrusiveRefCntPtr<FileManager> const Files(
       new FileManager(FileSystemOptions(), OverlayFileSystem));
   std::vector<std::string> Args;
   Args.push_back("tool-executable");
@@ -199,12 +199,12 @@ TEST(ToolInvocation, TestVirtualModulesCompilation) {
   // mapped module.map is found on the include path. In the future, expand this
   // test to run a full modules enabled compilation, so we make sure we can
   // rerun modules compilations with a virtual file system.
-  llvm::IntrusiveRefCntPtr<llvm::vfs::OverlayFileSystem> OverlayFileSystem(
+  llvm::IntrusiveRefCntPtr<llvm::vfs::OverlayFileSystem> const OverlayFileSystem(
       new llvm::vfs::OverlayFileSystem(llvm::vfs::getRealFileSystem()));
-  llvm::IntrusiveRefCntPtr<llvm::vfs::InMemoryFileSystem> InMemoryFileSystem(
+  llvm::IntrusiveRefCntPtr<llvm::vfs::InMemoryFileSystem> const InMemoryFileSystem(
       new llvm::vfs::InMemoryFileSystem);
   OverlayFileSystem->pushOverlay(InMemoryFileSystem);
-  llvm::IntrusiveRefCntPtr<FileManager> Files(
+  llvm::IntrusiveRefCntPtr<FileManager> const Files(
       new FileManager(FileSystemOptions(), OverlayFileSystem));
   std::vector<std::string> Args;
   Args.push_back("tool-executable");
@@ -236,12 +236,12 @@ struct DiagnosticConsumerExpectingSourceManager : public DiagnosticConsumer {
 };
 
 TEST(ToolInvocation, DiagConsumerExpectingSourceManager) {
-  llvm::IntrusiveRefCntPtr<llvm::vfs::OverlayFileSystem> OverlayFileSystem(
+  llvm::IntrusiveRefCntPtr<llvm::vfs::OverlayFileSystem> const OverlayFileSystem(
       new llvm::vfs::OverlayFileSystem(llvm::vfs::getRealFileSystem()));
-  llvm::IntrusiveRefCntPtr<llvm::vfs::InMemoryFileSystem> InMemoryFileSystem(
+  llvm::IntrusiveRefCntPtr<llvm::vfs::InMemoryFileSystem> const InMemoryFileSystem(
       new llvm::vfs::InMemoryFileSystem);
   OverlayFileSystem->pushOverlay(InMemoryFileSystem);
-  llvm::IntrusiveRefCntPtr<FileManager> Files(
+  llvm::IntrusiveRefCntPtr<FileManager> const Files(
       new FileManager(FileSystemOptions(), OverlayFileSystem));
   std::vector<std::string> Args;
   Args.push_back("tool-executable");
@@ -299,7 +299,7 @@ public:
 
 TEST_F(CommandLineExtractorTest, AcceptOffloading) {
   addFile("test.c", "int main() {}\n");
-  const char *Args[] = {"clang",     "-target",  "arm64-apple-macosx11.0.0",
+  const char *const Args[] = {"clang",     "-target",  "arm64-apple-macosx11.0.0",
                         "-x",        "hip",      "test.c",
                         "-nogpulib", "-nogpuinc"};
   EXPECT_NE(extractCC1Arguments(Args), nullptr);
@@ -307,7 +307,7 @@ TEST_F(CommandLineExtractorTest, AcceptOffloading) {
 
 TEST_F(CommandLineExtractorTest, AcceptOffloadingCompile) {
   addFile("test.c", "int main() {}\n");
-  const char *Args[] = {"clang",  "-target",   "arm64-apple-macosx11.0.0",
+  const char *const Args[] = {"clang",  "-target",   "arm64-apple-macosx11.0.0",
                         "-c",     "-x",        "hip",
                         "test.c", "-nogpulib", "-nogpuinc"};
   EXPECT_NE(extractCC1Arguments(Args), nullptr);
@@ -315,7 +315,7 @@ TEST_F(CommandLineExtractorTest, AcceptOffloadingCompile) {
 
 TEST_F(CommandLineExtractorTest, AcceptOffloadingSyntaxOnly) {
   addFile("test.c", "int main() {}\n");
-  const char *Args[] = {
+  const char *const Args[] = {
       "clang",         "-target",   "arm64-apple-macosx11.0.0",
       "-fsyntax-only", "-x",        "hip",
       "test.c",        "-nogpulib", "-nogpuinc"};
@@ -324,7 +324,7 @@ TEST_F(CommandLineExtractorTest, AcceptOffloadingSyntaxOnly) {
 
 TEST_F(CommandLineExtractorTest, AcceptExternalAssembler) {
   addFile("test.c", "int main() {}\n");
-  const char *Args[] = {
+  const char *const Args[] = {
       "clang", "-target", "arm64-apple-macosx11.0.0", "-fno-integrated-as",
       "-c",    "test.c"};
   EXPECT_NE(extractCC1Arguments(Args), nullptr);
@@ -332,21 +332,21 @@ TEST_F(CommandLineExtractorTest, AcceptExternalAssembler) {
 
 TEST_F(CommandLineExtractorTest, AcceptEmbedBitcode) {
   addFile("test.c", "int main() {}\n");
-  const char *Args[] = {"clang", "-target",         "arm64-apple-macosx11.0.0",
+  const char *const Args[] = {"clang", "-target",         "arm64-apple-macosx11.0.0",
                         "-c",    "-fembed-bitcode", "test.c"};
   EXPECT_NE(extractCC1Arguments(Args), nullptr);
 }
 
 TEST_F(CommandLineExtractorTest, AcceptSaveTemps) {
   addFile("test.c", "int main() {}\n");
-  const char *Args[] = {"clang", "-target",     "arm64-apple-macosx11.0.0",
+  const char *const Args[] = {"clang", "-target",     "arm64-apple-macosx11.0.0",
                         "-c",    "-save-temps", "test.c"};
   EXPECT_NE(extractCC1Arguments(Args), nullptr);
 }
 
 TEST_F(CommandLineExtractorTest, RejectMultipleArchitectures) {
   addFile("test.c", "int main() {}\n");
-  const char *Args[] = {"clang", "-target", "arm64-apple-macosx11.0.0",
+  const char *const Args[] = {"clang", "-target", "arm64-apple-macosx11.0.0",
                         "-arch", "x86_64",  "-arch",
                         "arm64", "-c",      "test.c"};
   EXPECT_EQ(extractCC1Arguments(Args), nullptr);
@@ -355,7 +355,7 @@ TEST_F(CommandLineExtractorTest, RejectMultipleArchitectures) {
 TEST_F(CommandLineExtractorTest, RejectMultipleInputFiles) {
   addFile("one.c", "void one() {}\n");
   addFile("two.c", "void two() {}\n");
-  const char *Args[] = {"clang", "-target", "arm64-apple-macosx11.0.0",
+  const char *const Args[] = {"clang", "-target", "arm64-apple-macosx11.0.0",
                         "-c",    "one.c",   "two.c"};
   EXPECT_EQ(extractCC1Arguments(Args), nullptr);
 }
@@ -379,7 +379,7 @@ struct VerifyEndCallback : public SourceFileCallbacks {
 TEST(newFrontendActionFactory, InjectsSourceFileCallbacks) {
   VerifyEndCallback EndCallback;
 
-  FixedCompilationDatabase Compilations("/", std::vector<std::string>());
+  FixedCompilationDatabase const Compilations("/", std::vector<std::string>());
   std::vector<std::string> Sources;
   Sources.push_back("/a.cc");
   Sources.push_back("/b.cc");
@@ -388,7 +388,7 @@ TEST(newFrontendActionFactory, InjectsSourceFileCallbacks) {
   Tool.mapVirtualFile("/a.cc", "void a() {}");
   Tool.mapVirtualFile("/b.cc", "void b() {}");
 
-  std::unique_ptr<FrontendActionFactory> Action(
+  std::unique_ptr<FrontendActionFactory> const Action(
       newFrontendActionFactory(&EndCallback, &EndCallback));
   Tool.run(Action.get());
 
@@ -415,8 +415,8 @@ struct SkipBodyAction : public clang::ASTFrontendAction {
 };
 
 TEST(runToolOnCode, TestSkipFunctionBody) {
-  std::vector<std::string> Args = {"-std=c++11"};
-  std::vector<std::string> Args2 = {"-fno-delayed-template-parsing"};
+  std::vector<std::string> const Args = {"-std=c++11"};
+  std::vector<std::string> const Args2 = {"-fno-delayed-template-parsing"};
 
   EXPECT_TRUE(runToolOnCode(std::make_unique<SkipBodyAction>(),
                             "int skipMe() { an_error_here }"));
@@ -532,17 +532,17 @@ TEST(runToolOnCodeWithArgs, DiagnosticsColor) {
 }
 
 TEST(ClangToolTest, ArgumentAdjusters) {
-  FixedCompilationDatabase Compilations("/", std::vector<std::string>());
+  FixedCompilationDatabase const Compilations("/", std::vector<std::string>());
 
   ClangTool Tool(Compilations, std::vector<std::string>(1, "/a.cc"));
   Tool.mapVirtualFile("/a.cc", "void a() {}");
 
-  std::unique_ptr<FrontendActionFactory> Action(
+  std::unique_ptr<FrontendActionFactory> const Action(
       newFrontendActionFactory<SyntaxOnlyAction>());
 
   bool Found = false;
   bool Ran = false;
-  ArgumentsAdjuster CheckSyntaxOnlyAdjuster =
+  ArgumentsAdjuster const CheckSyntaxOnlyAdjuster =
       [&Found, &Ran](const CommandLineArguments &Args, StringRef /*unused*/) {
     Ran = true;
     if (llvm::is_contained(Args, "-fsyntax-only"))
@@ -564,19 +564,19 @@ TEST(ClangToolTest, ArgumentAdjusters) {
 }
 
 TEST(ClangToolTest, NoDoubleSyntaxOnly) {
-  FixedCompilationDatabase Compilations("/", {"-fsyntax-only"});
+  FixedCompilationDatabase const Compilations("/", {"-fsyntax-only"});
 
   ClangTool Tool(Compilations, std::vector<std::string>(1, "/a.cc"));
   Tool.mapVirtualFile("/a.cc", "void a() {}");
 
-  std::unique_ptr<FrontendActionFactory> Action(
+  std::unique_ptr<FrontendActionFactory> const Action(
       newFrontendActionFactory<SyntaxOnlyAction>());
 
   size_t SyntaxOnlyCount = 0;
-  ArgumentsAdjuster CheckSyntaxOnlyAdjuster =
+  ArgumentsAdjuster const CheckSyntaxOnlyAdjuster =
       [&SyntaxOnlyCount](const CommandLineArguments &Args,
                          StringRef /*unused*/) {
-        for (llvm::StringRef Arg : Args) {
+        for (llvm::StringRef const Arg : Args) {
           if (Arg == "-fsyntax-only")
             ++SyntaxOnlyCount;
         }
@@ -591,23 +591,23 @@ TEST(ClangToolTest, NoDoubleSyntaxOnly) {
 }
 
 TEST(ClangToolTest, NoOutputCommands) {
-  FixedCompilationDatabase Compilations("/", {"-save-temps", "-save-temps=cwd",
+  FixedCompilationDatabase const Compilations("/", {"-save-temps", "-save-temps=cwd",
                                               "--save-temps",
                                               "--save-temps=somedir"});
 
   ClangTool Tool(Compilations, std::vector<std::string>(1, "/a.cc"));
   Tool.mapVirtualFile("/a.cc", "void a() {}");
 
-  std::unique_ptr<FrontendActionFactory> Action(
+  std::unique_ptr<FrontendActionFactory> const Action(
       newFrontendActionFactory<SyntaxOnlyAction>());
 
   const std::vector<llvm::StringRef> OutputCommands = {"-save-temps"};
   bool Ran = false;
-  ArgumentsAdjuster CheckSyntaxOnlyAdjuster =
+  ArgumentsAdjuster const CheckSyntaxOnlyAdjuster =
       [&OutputCommands, &Ran](const CommandLineArguments &Args,
                               StringRef /*unused*/) {
-        for (llvm::StringRef Arg : Args) {
-          for (llvm::StringRef OutputCommand : OutputCommands)
+        for (llvm::StringRef const Arg : Args) {
+          for (llvm::StringRef const OutputCommand : OutputCommands)
             EXPECT_FALSE(Arg.contains(OutputCommand));
         }
         Ran = true;
@@ -622,10 +622,10 @@ TEST(ClangToolTest, NoOutputCommands) {
 }
 
 TEST(ClangToolTest, BaseVirtualFileSystemUsage) {
-  FixedCompilationDatabase Compilations("/", std::vector<std::string>());
-  llvm::IntrusiveRefCntPtr<llvm::vfs::OverlayFileSystem> OverlayFileSystem(
+  FixedCompilationDatabase const Compilations("/", std::vector<std::string>());
+  llvm::IntrusiveRefCntPtr<llvm::vfs::OverlayFileSystem> const OverlayFileSystem(
       new llvm::vfs::OverlayFileSystem(llvm::vfs::getRealFileSystem()));
-  llvm::IntrusiveRefCntPtr<llvm::vfs::InMemoryFileSystem> InMemoryFileSystem(
+  llvm::IntrusiveRefCntPtr<llvm::vfs::InMemoryFileSystem> const InMemoryFileSystem(
       new llvm::vfs::InMemoryFileSystem);
   OverlayFileSystem->pushOverlay(InMemoryFileSystem);
 
@@ -634,23 +634,23 @@ TEST(ClangToolTest, BaseVirtualFileSystemUsage) {
 
   ClangTool Tool(Compilations, std::vector<std::string>(1, "a.cpp"),
                  std::make_shared<PCHContainerOperations>(), OverlayFileSystem);
-  std::unique_ptr<FrontendActionFactory> Action(
+  std::unique_ptr<FrontendActionFactory> const Action(
       newFrontendActionFactory<SyntaxOnlyAction>());
   EXPECT_EQ(0, Tool.run(Action.get()));
 }
 
 // Check getClangStripDependencyFileAdjuster doesn't strip args after -MD/-MMD.
 TEST(ClangToolTest, StripDependencyFileAdjuster) {
-  FixedCompilationDatabase Compilations("/", {"-MD", "-c", "-MMD", "-w"});
+  FixedCompilationDatabase const Compilations("/", {"-MD", "-c", "-MMD", "-w"});
 
   ClangTool Tool(Compilations, std::vector<std::string>(1, "/a.cc"));
   Tool.mapVirtualFile("/a.cc", "void a() {}");
 
-  std::unique_ptr<FrontendActionFactory> Action(
+  std::unique_ptr<FrontendActionFactory> const Action(
       newFrontendActionFactory<SyntaxOnlyAction>());
 
   CommandLineArguments FinalArgs;
-  ArgumentsAdjuster CheckFlagsAdjuster =
+  ArgumentsAdjuster const CheckFlagsAdjuster =
     [&FinalArgs](const CommandLineArguments &Args, StringRef /*unused*/) {
       FinalArgs = Args;
       return Args;
@@ -671,18 +671,18 @@ TEST(ClangToolTest, StripDependencyFileAdjuster) {
 
 // Check getClangStripDependencyFileAdjuster strips /showIncludes and variants
 TEST(ClangToolTest, StripDependencyFileAdjusterShowIncludes) {
-  FixedCompilationDatabase Compilations(
+  FixedCompilationDatabase const Compilations(
       "/", {"/showIncludes", "/showIncludes:user", "-showIncludes",
             "-showIncludes:user", "-c"});
 
   ClangTool Tool(Compilations, std::vector<std::string>(1, "/a.cc"));
   Tool.mapVirtualFile("/a.cc", "void a() {}");
 
-  std::unique_ptr<FrontendActionFactory> Action(
+  std::unique_ptr<FrontendActionFactory> const Action(
       newFrontendActionFactory<SyntaxOnlyAction>());
 
   CommandLineArguments FinalArgs;
-  ArgumentsAdjuster CheckFlagsAdjuster =
+  ArgumentsAdjuster const CheckFlagsAdjuster =
       [&FinalArgs](const CommandLineArguments &Args, StringRef /*unused*/) {
         FinalArgs = Args;
         return Args;
@@ -705,17 +705,17 @@ TEST(ClangToolTest, StripDependencyFileAdjusterShowIncludes) {
 // Check getClangStripDependencyFileAdjuster doesn't strip args when using the
 // MSVC cl.exe driver
 TEST(ClangToolTest, StripDependencyFileAdjusterMsvc) {
-  FixedCompilationDatabase Compilations(
+  FixedCompilationDatabase const Compilations(
       "/", {"--driver-mode=cl", "-MD", "-MDd", "-MT", "-O1", "-MTd", "-MP"});
 
   ClangTool Tool(Compilations, std::vector<std::string>(1, "/a.cc"));
   Tool.mapVirtualFile("/a.cc", "void a() {}");
 
-  std::unique_ptr<FrontendActionFactory> Action(
+  std::unique_ptr<FrontendActionFactory> const Action(
       newFrontendActionFactory<SyntaxOnlyAction>());
 
   CommandLineArguments FinalArgs;
-  ArgumentsAdjuster CheckFlagsAdjuster =
+  ArgumentsAdjuster const CheckFlagsAdjuster =
       [&FinalArgs](const CommandLineArguments &Args, StringRef /*unused*/) {
         FinalArgs = Args;
         return Args;
@@ -738,17 +738,17 @@ TEST(ClangToolTest, StripDependencyFileAdjusterMsvc) {
 
 // Check getClangStripPluginsAdjuster strips plugin related args.
 TEST(ClangToolTest, StripPluginsAdjuster) {
-  FixedCompilationDatabase Compilations(
+  FixedCompilationDatabase const Compilations(
       "/", {"-Xclang", "-add-plugin", "-Xclang", "random-plugin"});
 
   ClangTool Tool(Compilations, std::vector<std::string>(1, "/a.cc"));
   Tool.mapVirtualFile("/a.cc", "void a() {}");
 
-  std::unique_ptr<FrontendActionFactory> Action(
+  std::unique_ptr<FrontendActionFactory> const Action(
       newFrontendActionFactory<SyntaxOnlyAction>());
 
   CommandLineArguments FinalArgs;
-  ArgumentsAdjuster CheckFlagsAdjuster =
+  ArgumentsAdjuster const CheckFlagsAdjuster =
       [&FinalArgs](const CommandLineArguments &Args, StringRef /*unused*/) {
         FinalArgs = Args;
         return Args;
@@ -787,7 +787,7 @@ std::string getAnyTarget() {
 }
 
 TEST(addTargetAndModeForProgramName, AddsTargetAndMode) {
-  std::string Target = getAnyTarget();
+  std::string const Target = getAnyTarget();
   ASSERT_FALSE(Target.empty());
 
   std::vector<std::string> Args = {"clang", "-foo"};
@@ -800,7 +800,7 @@ TEST(addTargetAndModeForProgramName, AddsTargetAndMode) {
 }
 
 TEST(addTargetAndModeForProgramName, PathIgnored) {
-  std::string Target = getAnyTarget();
+  std::string const Target = getAnyTarget();
   ASSERT_FALSE(Target.empty());
 
   SmallString<32> ToolPath;
@@ -814,7 +814,7 @@ TEST(addTargetAndModeForProgramName, PathIgnored) {
 }
 
 TEST(addTargetAndModeForProgramName, IgnoresExistingTarget) {
-  std::string Target = getAnyTarget();
+  std::string const Target = getAnyTarget();
   ASSERT_FALSE(Target.empty());
 
   std::vector<std::string> Args = {"clang", "-foo", "-target", "something"};
@@ -831,7 +831,7 @@ TEST(addTargetAndModeForProgramName, IgnoresExistingTarget) {
 }
 
 TEST(addTargetAndModeForProgramName, IgnoresExistingMode) {
-  std::string Target = getAnyTarget();
+  std::string const Target = getAnyTarget();
   ASSERT_FALSE(Target.empty());
 
   std::vector<std::string> Args = {"clang", "-foo", "--driver-mode=abc"};
@@ -843,7 +843,7 @@ TEST(addTargetAndModeForProgramName, IgnoresExistingMode) {
 
 #ifndef _WIN32
 TEST(ClangToolTest, BuildASTs) {
-  FixedCompilationDatabase Compilations("/", std::vector<std::string>());
+  FixedCompilationDatabase const Compilations("/", std::vector<std::string>());
 
   std::vector<std::string> Sources;
   Sources.push_back("/a.cc");
@@ -859,19 +859,19 @@ TEST(ClangToolTest, BuildASTs) {
 }
 
 TEST(ClangToolTest, InjectDiagnosticConsumer) {
-  FixedCompilationDatabase Compilations("/", std::vector<std::string>());
+  FixedCompilationDatabase const Compilations("/", std::vector<std::string>());
   ClangTool Tool(Compilations, std::vector<std::string>(1, "/a.cc"));
   Tool.mapVirtualFile("/a.cc", "int x = undeclared;");
   TestDiagnosticConsumer Consumer;
   Tool.setDiagnosticConsumer(&Consumer);
-  std::unique_ptr<FrontendActionFactory> Action(
+  std::unique_ptr<FrontendActionFactory> const Action(
       newFrontendActionFactory<SyntaxOnlyAction>());
   Tool.run(Action.get());
   EXPECT_EQ(1u, Consumer.NumDiagnosticsSeen);
 }
 
 TEST(ClangToolTest, InjectDiagnosticConsumerInBuildASTs) {
-  FixedCompilationDatabase Compilations("/", std::vector<std::string>());
+  FixedCompilationDatabase const Compilations("/", std::vector<std::string>());
   ClangTool Tool(Compilations, std::vector<std::string>(1, "/a.cc"));
   Tool.mapVirtualFile("/a.cc", "int x = undeclared;");
   TestDiagnosticConsumer Consumer;

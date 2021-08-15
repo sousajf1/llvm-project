@@ -79,7 +79,7 @@ void DependencyGraphCallback::InclusionDirective(
   if (!File)
     return;
 
-  SourceManager &SM = PP->getSourceManager();
+  SourceManager  const&SM = PP->getSourceManager();
   const FileEntry *FromFile
     = SM.getFileEntryForID(SM.getFileID(SM.getExpansionLoc(HashLoc)));
   if (!FromFile)

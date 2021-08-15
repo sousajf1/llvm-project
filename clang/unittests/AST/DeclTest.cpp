@@ -66,7 +66,7 @@ TEST(Decl, CleansUpAPValues) {
 
 TEST(Decl, AsmLabelAttr) {
   // Create two method decls: `f` and `g`.
-  StringRef Code = R"(
+  StringRef const Code = R"(
     struct S {
       void f() {}
       void g() {}
@@ -106,7 +106,7 @@ TEST(Decl, AsmLabelAttr) {
 }
 
 TEST(Decl, MangleDependentSizedArray) {
-  StringRef Code = R"(
+  StringRef const Code = R"(
     template <int ...N>
     int A[] = {N...};
 

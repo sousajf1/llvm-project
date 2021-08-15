@@ -33,12 +33,12 @@ protected:
                      StatusCheck CheckComplete = SC_ExpectComplete) {
     LLVM_DEBUG(llvm::errs() << "---\n");
     LLVM_DEBUG(llvm::errs() << Code << "\n\n");
-    std::vector<tooling::Range> Ranges(1, tooling::Range(0, Code.size()));
+    std::vector<tooling::Range> const Ranges(1, tooling::Range(0, Code.size()));
     FormattingAttemptStatus Status;
-    tooling::Replacements Replaces =
+    tooling::Replacements const Replaces =
         reformat(Style, Code, Ranges, "<stdin>", &Status);
     if (CheckComplete != SC_DoNotCheck) {
-      bool ExpectedCompleteFormat = CheckComplete == SC_ExpectComplete;
+      bool const ExpectedCompleteFormat = CheckComplete == SC_ExpectComplete;
       EXPECT_EQ(ExpectedCompleteFormat, Status.FormatComplete)
           << Code << "\n\n";
     }
@@ -799,7 +799,7 @@ TEST_F(FormatTestRawStrings, UpdatesToCanonicalDelimiters) {
 }
 
 TEST_F(FormatTestRawStrings, PenalizesPrefixExcessChars) {
-  FormatStyle Style = getRawStringPbStyleWithColumns(60);
+  FormatStyle const Style = getRawStringPbStyleWithColumns(60);
 
   // The '(' in R"pb is at column 60, no break.
   expect_eq(R"test(
@@ -829,7 +829,7 @@ xxxxxxxaaaaax wwwwwww = _Verxrrrrrrrrr(PARSE_TEXT_PROTO(R"pb(
 }
 
 TEST_F(FormatTestRawStrings, KeepsRBraceFolloedByMoreLBracesOnSameLine) {
-  FormatStyle Style = getRawStringPbStyleWithColumns(80);
+  FormatStyle const Style = getRawStringPbStyleWithColumns(80);
 
   expect_eq(
       R"test(
@@ -890,7 +890,7 @@ item {
 
 TEST_F(FormatTestRawStrings,
        BreaksBeforeNextParamAfterMultilineRawStringParam) {
-  FormatStyle Style = getRawStringPbStyleWithColumns(60);
+  FormatStyle const Style = getRawStringPbStyleWithColumns(60);
   expect_eq(R"test(
 int f() {
   int a = g(x, R"pb(
@@ -979,7 +979,7 @@ int f() {
 }
 
 TEST_F(FormatTestRawStrings, IndentsLastParamAfterNewline) {
-  FormatStyle Style = getRawStringPbStyleWithColumns(60);
+  FormatStyle const Style = getRawStringPbStyleWithColumns(60);
   expect_eq(R"test(
 fffffffffffffffffffff("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
                       R"pb(

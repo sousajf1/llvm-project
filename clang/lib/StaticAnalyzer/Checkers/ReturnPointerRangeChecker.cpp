@@ -35,20 +35,20 @@ public:
 
 void ReturnPointerRangeChecker::checkPreStmt(const ReturnStmt *RS,
                                              CheckerContext &C) const {
-  ProgramStateRef state = C.getState();
+  ProgramStateRef const state = C.getState();
 
   const Expr *RetE = RS->getRetValue();
   if (!RetE)
     return;
 
-  SVal V = C.getSVal(RetE);
+  SVal const V = C.getSVal(RetE);
   const MemRegion *R = V.getAsRegion();
 
   const ElementRegion *ER = dyn_cast_or_null<ElementRegion>(R);
   if (!ER)
     return;
 
-  DefinedOrUnknownSVal Idx = ER->getIndex().castAs<DefinedOrUnknownSVal>();
+  DefinedOrUnknownSVal const Idx = ER->getIndex().castAs<DefinedOrUnknownSVal>();
   // Zero index is always in bound, this also passes ElementRegions created for
   // pointer casts.
   if (Idx.isZeroConstant())
@@ -56,7 +56,7 @@ void ReturnPointerRangeChecker::checkPreStmt(const ReturnStmt *RS,
 
   // FIXME: All of this out-of-bounds checking should eventually be refactored
   // into a common place.
-  DefinedOrUnknownSVal ElementCount = getDynamicElementCount(
+  DefinedOrUnknownSVal const ElementCount = getDynamicElementCount(
       state, ER->getSuperRegion(), C.getSValBuilder(), ER->getValueType());
 
   // We assume that the location after the last element in the array is used as
@@ -64,8 +64,8 @@ void ReturnPointerRangeChecker::checkPreStmt(const ReturnStmt *RS,
   if (Idx == ElementCount)
     return;
 
-  ProgramStateRef StInBound = state->assumeInBound(Idx, ElementCount, true);
-  ProgramStateRef StOutBound = state->assumeInBound(Idx, ElementCount, false);
+  ProgramStateRef const StInBound = state->assumeInBound(Idx, ElementCount, true);
+  ProgramStateRef const StOutBound = state->assumeInBound(Idx, ElementCount, false);
   if (StOutBound && !StInBound) {
     ExplodedNode *N = C.generateErrorNode(StOutBound);
 

@@ -66,8 +66,8 @@ Module::~Module() {
 }
 
 static bool isPlatformEnvironment(const TargetInfo &Target, StringRef Feature) {
-  StringRef Platform = Target.getPlatformName();
-  StringRef Env = Target.getTriple().getEnvironmentName();
+  StringRef const Platform = Target.getPlatformName();
+  StringRef const Env = Target.getTriple().getEnvironmentName();
 
   // Attempt to match platform and environment.
   if (Platform == Feature || Target.getTriple().getOSName() == Feature ||
@@ -83,7 +83,7 @@ static bool isPlatformEnvironment(const TargetInfo &Target, StringRef Feature) {
     return NewLHS == RHS;
   };
 
-  SmallString<128> PlatformEnv = Target.getTriple().getOSAndEnvironmentName();
+  SmallString<128> const PlatformEnv = Target.getTriple().getOSAndEnvironmentName();
   // Darwin has different but equivalent variants for simulators, example:
   //   1. x86_64-apple-ios-simulator
   //   2. x86_64-apple-iossimulator
@@ -202,7 +202,7 @@ static void printModuleId(raw_ostream &OS, InputIter Begin, InputIter End,
     if (It != Begin)
       OS << ".";
 
-    StringRef Name = getModuleNameFromComponent(*It);
+    StringRef const Name = getModuleNameFromComponent(*It);
     if (!AllowStringLiterals || isValidIdentifier(Name))
       OS << Name;
     else {
@@ -645,7 +645,7 @@ void VisibleModuleSet::setVisible(Module *M, SourceLocation Loc,
 
   std::function<void(Visiting)> VisitModule = [&](Visiting V) {
     // Nothing to do for a module that's already visible.
-    unsigned ID = V.M->getVisibilityID();
+    unsigned const ID = V.M->getVisibilityID();
     if (ImportLocs.size() <= ID)
       ImportLocs.resize(ID + 1);
     else if (ImportLocs[ID].isValid())

@@ -158,9 +158,9 @@ protected:
                                 llvm::MemoryBuffer::getMemBuffer("\n"));
 
     // Add header's parent path to search path.
-    StringRef SearchPath = llvm::sys::path::parent_path(HeaderPath);
+    StringRef const SearchPath = llvm::sys::path::parent_path(HeaderPath);
     auto DE = FileMgr.getOptionalDirectoryRef(SearchPath);
-    DirectoryLookup DL(*DE, SrcMgr::C_User, false);
+    DirectoryLookup const DL(*DE, SrcMgr::C_User, false);
     HeaderInfo.AddSearchPath(DL, IsSystemHeader);
   }
 
@@ -328,7 +328,7 @@ protected:
 
     ASTConsumer Consumer;
     Sema S(PP, Context, Consumer);
-    Parser P(PP, S, false);
+    Parser const P(PP, S, false);
     PragmaOpenCLExtensionCallbacks* Callbacks = new PragmaOpenCLExtensionCallbacks;
     PP.addPPCallbacks(std::unique_ptr<PPCallbacks>(Callbacks));
 
@@ -352,7 +352,7 @@ protected:
 TEST_F(PPCallbacksTest, UserFileCharacteristics) {
   const char *Source = "#include \"quoted.h\"\n";
 
-  SrcMgr::CharacteristicKind Kind =
+  SrcMgr::CharacteristicKind const Kind =
       InclusionDirectiveCharacteristicKind(Source, "/quoted.h", false);
 
   ASSERT_EQ(SrcMgr::CharacteristicKind::C_User, Kind);
@@ -362,7 +362,7 @@ TEST_F(PPCallbacksTest, QuotedFilename) {
   const char* Source =
     "#include \"quoted.h\"\n";
 
-  CharSourceRange Range =
+  CharSourceRange const Range =
     InclusionDirectiveFilenameRange(Source, "/quoted.h", false);
 
   ASSERT_EQ("\"quoted.h\"", GetSourceString(Range));
@@ -372,7 +372,7 @@ TEST_F(PPCallbacksTest, AngledFilename) {
   const char* Source =
     "#include <angled.h>\n";
 
-  CharSourceRange Range =
+  CharSourceRange const Range =
     InclusionDirectiveFilenameRange(Source, "/angled.h", true);
 
   ASSERT_EQ("<angled.h>", GetSourceString(Range));
@@ -383,7 +383,7 @@ TEST_F(PPCallbacksTest, QuotedInMacro) {
     "#define MACRO_QUOTED \"quoted.h\"\n"
     "#include MACRO_QUOTED\n";
 
-  CharSourceRange Range =
+  CharSourceRange const Range =
     InclusionDirectiveFilenameRange(Source, "/quoted.h", false);
 
   ASSERT_EQ("\"quoted.h\"", GetSourceString(Range));
@@ -394,7 +394,7 @@ TEST_F(PPCallbacksTest, AngledInMacro) {
     "#define MACRO_ANGLED <angled.h>\n"
     "#include MACRO_ANGLED\n";
 
-  CharSourceRange Range =
+  CharSourceRange const Range =
     InclusionDirectiveFilenameRange(Source, "/angled.h", true);
 
   ASSERT_EQ("<angled.h>", GetSourceString(Range));
@@ -405,7 +405,7 @@ TEST_F(PPCallbacksTest, StringizedMacroArgument) {
     "#define MACRO_STRINGIZED(x) #x\n"
     "#include MACRO_STRINGIZED(quoted.h)\n";
 
-  CharSourceRange Range =
+  CharSourceRange const Range =
     InclusionDirectiveFilenameRange(Source, "/quoted.h", false);
 
   ASSERT_EQ("\"quoted.h\"", GetSourceString(Range));
@@ -417,7 +417,7 @@ TEST_F(PPCallbacksTest, ConcatenatedMacroArgument) {
     "#define MACRO_CONCAT(x, y) x ## _ ## y\n"
     "#include MACRO_CONCAT(MACRO, ANGLED)\n";
 
-  CharSourceRange Range =
+  CharSourceRange const Range =
     InclusionDirectiveFilenameRange(Source, "/angled.h", false);
 
   ASSERT_EQ("<angled.h>", GetSourceString(Range));
@@ -427,7 +427,7 @@ TEST_F(PPCallbacksTest, TrigraphFilename) {
   const char* Source =
     "#include \"tri\?\?-graph.h\"\n";
 
-  CharSourceRange Range =
+  CharSourceRange const Range =
     InclusionDirectiveFilenameRange(Source, "/tri~graph.h", false);
 
   ASSERT_EQ("\"tri\?\?-graph.h\"", GetSourceString(Range));
@@ -438,7 +438,7 @@ TEST_F(PPCallbacksTest, TrigraphInMacro) {
     "#define MACRO_TRIGRAPH \"tri\?\?-graph.h\"\n"
     "#include MACRO_TRIGRAPH\n";
 
-  CharSourceRange Range =
+  CharSourceRange const Range =
     InclusionDirectiveFilenameRange(Source, "/tri~graph.h", false);
 
   ASSERT_EQ("\"tri\?\?-graph.h\"", GetSourceString(Range));
@@ -448,11 +448,11 @@ TEST_F(PPCallbacksTest, OpenCLExtensionPragmaEnabled) {
   const char* Source =
     "#pragma OPENCL EXTENSION cl_khr_fp64 : enable\n";
 
-  PragmaOpenCLExtensionCallbacks::CallbackParameters Parameters =
+  PragmaOpenCLExtensionCallbacks::CallbackParameters const Parameters =
     PragmaOpenCLExtensionCall(Source);
 
   ASSERT_EQ("cl_khr_fp64", Parameters.Name);
-  unsigned ExpectedState = 1;
+  unsigned const ExpectedState = 1;
   ASSERT_EQ(ExpectedState, Parameters.State);
 }
 
@@ -460,11 +460,11 @@ TEST_F(PPCallbacksTest, OpenCLExtensionPragmaDisabled) {
   const char* Source =
     "#pragma OPENCL EXTENSION cl_khr_fp16 : disable\n";
 
-  PragmaOpenCLExtensionCallbacks::CallbackParameters Parameters =
+  PragmaOpenCLExtensionCallbacks::CallbackParameters const Parameters =
     PragmaOpenCLExtensionCall(Source);
 
   ASSERT_EQ("cl_khr_fp16", Parameters.Name);
-  unsigned ExpectedState = 0;
+  unsigned const ExpectedState = 0;
   ASSERT_EQ(ExpectedState, Parameters.State);
 }
 

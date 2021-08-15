@@ -35,7 +35,7 @@ static void Scan(IvarUsageMap& M, const Stmt *S) {
 
   if (const ObjCIvarRefExpr *Ex = dyn_cast<ObjCIvarRefExpr>(S)) {
     const ObjCIvarDecl *D = Ex->getDecl();
-    IvarUsageMap::iterator I = M.find(D);
+    IvarUsageMap::iterator const I = M.find(D);
     if (I != M.end())
       I->second = Used;
     return;
@@ -69,7 +69,7 @@ static void Scan(IvarUsageMap& M, const ObjCPropertyImplDecl *D) {
   if (!ID)
     return;
 
-  IvarUsageMap::iterator I = M.find(ID);
+  IvarUsageMap::iterator const I = M.find(ID);
   if (I != M.end())
     I->second = Used;
 }
@@ -97,7 +97,7 @@ static void Scan(IvarUsageMap &M, const DeclContext *C, const FileID FID,
                  const SourceManager &SM) {
   for (const auto *I : C->decls())
     if (const auto *FD = dyn_cast<FunctionDecl>(I)) {
-      SourceLocation L = FD->getBeginLoc();
+      SourceLocation const L = FD->getBeginLoc();
       if (SM.getFileID(L) == FID)
         Scan(M, FD->getBody());
     }
@@ -160,7 +160,7 @@ static void checkObjCUnusedIvar(const ObjCImplementationDecl *D,
          << "' is never used by the methods in its @implementation "
             "(although it may be used by category methods).";
 
-      PathDiagnosticLocation L =
+      PathDiagnosticLocation const L =
         PathDiagnosticLocation::create(I->first, BR.getSourceManager());
       BR.EmitBasicReport(D, Checker, "Unused instance variable", "Optimization",
                          os.str(), L);

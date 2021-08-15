@@ -128,7 +128,7 @@ private:
   void lateDiagAppertainsToDecl(DiagnosticsEngine &Diags,
                                 const CXXMethodDecl *MethodDecl) {
     if (MethodDecl->hasAttr<FinalAttr>()) {
-      unsigned ID = Diags.getCustomDiagID(
+      unsigned const ID = Diags.getCustomDiagID(
           DiagnosticsEngine::Warning,
           "'call_super' attribute marked on a final method");
       Diags.Report(MethodDecl->getLocation(), ID);

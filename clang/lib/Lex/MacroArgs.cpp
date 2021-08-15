@@ -169,10 +169,10 @@ const std::vector<Token> &MacroArgs::getPreExpArgument(unsigned Arg,
   std::vector<Token> &Result = PreExpArgTokens[Arg];
   if (!Result.empty()) return Result;
 
-  SaveAndRestore<bool> PreExpandingMacroArgs(PP.InMacroArgPreExpansion, true);
+  SaveAndRestore<bool> const PreExpandingMacroArgs(PP.InMacroArgPreExpansion, true);
 
   const Token *AT = getUnexpArgument(Arg);
-  unsigned NumToks = getArgLength(AT)+1;  // Include the EOF.
+  unsigned const NumToks = getArgLength(AT)+1;  // Include the EOF.
 
   // Otherwise, we have to pre-expand this argument, populating Result.  To do
   // this, we set up a fake TokenLexer to lex from the unexpanded argument
@@ -235,7 +235,7 @@ Token MacroArgs::StringifyArgument(const Token *ArgToks,
         Tok.is(tok::utf16_char_constant) ||    // u'x'.
         Tok.is(tok::utf32_char_constant)) {    // U'x'.
       bool Invalid = false;
-      std::string TokStr = PP.getSpelling(Tok, &Invalid);
+      std::string const TokStr = PP.getSpelling(Tok, &Invalid);
       if (!Invalid) {
         std::string Str = Lexer::Stringify(TokStr);
         Result.append(Str.begin(), Str.end());
@@ -245,11 +245,11 @@ Token MacroArgs::StringifyArgument(const Token *ArgToks,
     } else {
       // Otherwise, just append the token.  Do some gymnastics to get the token
       // in place and avoid copies where possible.
-      unsigned CurStrLen = Result.size();
+      unsigned const CurStrLen = Result.size();
       Result.resize(CurStrLen+Tok.getLength());
       const char *BufPtr = Result.data() + CurStrLen;
       bool Invalid = false;
-      unsigned ActualTokLen = PP.getSpelling(Tok, BufPtr, &Invalid);
+      unsigned const ActualTokLen = PP.getSpelling(Tok, BufPtr, &Invalid);
 
       if (!Invalid) {
         // If getSpelling returned a pointer to an already uniqued version of

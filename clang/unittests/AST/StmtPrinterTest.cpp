@@ -70,7 +70,7 @@ PrintedStmtCXXMatches(StdVer Standard, StringRef Code, const T &NodeMatch,
   case StdVer::CXX2a: StdOpt = "-std=c++2a"; break;
   }
 
-  std::vector<std::string> Args = {
+  std::vector<std::string> const Args = {
     StdOpt,
     "-Wno-unused-value",
   };
@@ -83,7 +83,7 @@ template <typename T>
 PrintedStmtMSMatches(StringRef Code, const T &NodeMatch,
                      StringRef ExpectedPrinted,
                      PrintingPolicyAdjuster PolicyAdjuster = nullptr) {
-  std::vector<std::string> Args = {
+  std::vector<std::string> const Args = {
     "-std=c++98",
     "-target", "i686-pc-win32",
     "-fms-extensions",
@@ -98,7 +98,7 @@ template <typename T>
 PrintedStmtObjCMatches(StringRef Code, const T &NodeMatch,
                        StringRef ExpectedPrinted,
                        PrintingPolicyAdjuster PolicyAdjuster = nullptr) {
-  std::vector<std::string> Args = {
+  std::vector<std::string> const Args = {
     "-ObjC",
     "-fobjc-runtime=macosx-10.12.0",
   };

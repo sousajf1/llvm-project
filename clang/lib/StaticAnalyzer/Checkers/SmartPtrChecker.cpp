@@ -61,7 +61,7 @@ void SmartPtrChecker::checkPreCall(const CallEvent &Call,
                                    CheckerContext &C) const {
   if (!smartptr::isStdSmartPtrCall(Call))
     return;
-  ProgramStateRef State = C.getState();
+  ProgramStateRef const State = C.getState();
   const auto *OC = dyn_cast<CXXMemberOperatorCall>(&Call);
   if (!OC)
     return;
@@ -69,7 +69,7 @@ void SmartPtrChecker::checkPreCall(const CallEvent &Call,
   if (!ThisRegion)
     return;
 
-  OverloadedOperatorKind OOK = OC->getOverloadedOperator();
+  OverloadedOperatorKind const OOK = OC->getOverloadedOperator();
   if (OOK == OO_Star || OOK == OO_Arrow) {
     if (smartptr::isNullSmartPtr(State, ThisRegion))
       reportBug(C, ThisRegion, Call);

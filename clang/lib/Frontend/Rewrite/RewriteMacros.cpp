@@ -60,11 +60,11 @@ static const Token &GetNextRawTok(const std::vector<Token> &RawTokens,
 /// the specified vector.
 static void LexRawTokensFromMainFile(Preprocessor &PP,
                                      std::vector<Token> &RawTokens) {
-  SourceManager &SM = PP.getSourceManager();
+  SourceManager  const&SM = PP.getSourceManager();
 
   // Create a lexer to lex all the tokens of the main file in raw mode.  Even
   // though it is in raw mode, it will not return comments.
-  llvm::MemoryBufferRef FromFile = SM.getBufferOrFake(SM.getMainFileID());
+  llvm::MemoryBufferRef const FromFile = SM.getBufferOrFake(SM.getMainFileID());
   Lexer RawLex(SM.getMainFileID(), FromFile, SM, PP.getLangOpts());
 
   // Switch on comment lexing because we really do want them.
@@ -165,7 +165,7 @@ void clang::RewriteMacrosInInput(Preprocessor &PP, raw_ostream *OS) {
     if (RawOffs <= PPOffs) {
       // Comment out a whole run of tokens instead of bracketing each one with
       // comments.  Add a leading space if RawTok didn't have one.
-      bool HasSpace = RawTok.hasLeadingSpace();
+      bool const HasSpace = RawTok.hasLeadingSpace();
       RB.InsertTextAfter(RawOffs, &" /*"[HasSpace]);
       unsigned EndPos;
 
@@ -191,7 +191,7 @@ void clang::RewriteMacrosInInput(Preprocessor &PP, raw_ostream *OS) {
     // Otherwise, there was a replacement an expansion.  Insert the new token
     // in the output buffer.  Insert the whole run of new tokens at once to get
     // them in the right order.
-    unsigned InsertPos = PPOffs;
+    unsigned const InsertPos = PPOffs;
     std::string Expansion;
     while (PPOffs < RawOffs) {
       Expansion += ' ' + PP.getSpelling(PPTok);

@@ -51,28 +51,28 @@ void RefVal::print(raw_ostream &Out) const {
     default: llvm_unreachable("Invalid RefVal kind");
     case Owned: {
       Out << "Owned";
-      unsigned cnt = getCount();
+      unsigned const cnt = getCount();
       if (cnt) Out << " (+ " << cnt << ")";
       break;
     }
 
     case NotOwned: {
       Out << "NotOwned";
-      unsigned cnt = getCount();
+      unsigned const cnt = getCount();
       if (cnt) Out << " (+ " << cnt << ")";
       break;
     }
 
     case ReturnedOwned: {
       Out << "ReturnedOwned";
-      unsigned cnt = getCount();
+      unsigned const cnt = getCount();
       if (cnt) Out << " (+ " << cnt << ")";
       break;
     }
 
     case ReturnedNotOwned: {
       Out << "ReturnedNotOwned";
-      unsigned cnt = getCount();
+      unsigned const cnt = getCount();
       if (cnt) Out << " (+ " << cnt << ")";
       break;
     }
@@ -185,7 +185,7 @@ void RetainCountChecker::checkPostStmt(const CastExpr *CE,
   if (!BE)
     return;
 
-  QualType QT = CE->getType();
+  QualType const QT = CE->getType();
   ObjKind K;
   if (QT->isObjCObjectPointerType()) {
     K = ObjKind::ObjC;
@@ -231,7 +231,7 @@ void RetainCountChecker::processObjCLiterals(CheckerContext &C,
   ProgramStateRef state = C.getState();
   const ExplodedNode *pred = C.getPredecessor();
   for (const Stmt *Child : Ex->children()) {
-    SVal V = pred->getSVal(Child);
+    SVal const V = pred->getSVal(Child);
     if (SymbolRef sym = V.getAsSymbol())
       if (const RefVal* T = getRefBinding(state, sym)) {
         RefVal::Kind hasErr = (RefVal::Kind) 0;
@@ -248,7 +248,7 @@ void RetainCountChecker::processObjCLiterals(CheckerContext &C,
   //  RetEffect RE = RetEffect::MakeNotOwned(ObjKind::ObjC);
   if (SymbolRef sym =
         state->getSVal(Ex, pred->getLocationContext()).getAsSymbol()) {
-    QualType ResultTy = Ex->getType();
+    QualType const ResultTy = Ex->getType();
     state = setRefBinding(state, sym,
                           RefVal::makeNotOwned(ObjKind::ObjC, ResultTy));
   }
@@ -274,7 +274,7 @@ void RetainCountChecker::checkPostStmt(const ObjCBoxedExpr *Ex,
   ProgramStateRef State = Pred->getState();
 
   if (SymbolRef Sym = Pred->getSVal(Ex).getAsSymbol()) {
-    QualType ResultTy = Ex->getType();
+    QualType const ResultTy = Ex->getType();
     State = setRefBinding(State, Sym,
                           RefVal::makeNotOwned(ObjKind::ObjC, ResultTy));
   }
@@ -296,7 +296,7 @@ void RetainCountChecker::checkPostStmt(const ObjCIvarRefExpr *IRE,
   // Accessing an ivar directly is unusual. If we've done that, be more
   // forgiving about what the surrounding code is allowed to do.
 
-  QualType Ty = Sym->getType();
+  QualType const Ty = Sym->getType();
   ObjKind Kind;
   if (Ty->isObjCRetainableType())
     Kind = ObjKind::ObjC;
@@ -323,7 +323,7 @@ void RetainCountChecker::checkPostStmt(const ObjCIvarRefExpr *IRE,
     return;
   }
 
-  RefVal PlusZero = RefVal::makeNotOwned(Kind, Ty);
+  RefVal const PlusZero = RefVal::makeNotOwned(Kind, Ty);
 
   // In a synthesized accessor, the effective retain count is +0.
   if (isSynthesizedAccessor(C.getStackFrame())) {
@@ -353,7 +353,7 @@ const static RetainSummary *getSummary(RetainSummaryManager &Summaries,
                                        const CallEvent &Call,
                                        QualType ReceiverType) {
   const Expr *CE = Call.getOriginExpr();
-  AnyCall C =
+  AnyCall const C =
       CE ? *AnyCall::forExpr(CE)
          : AnyCall(cast<CXXDestructorDecl>(Call.getDecl()));
   return Summaries.getSummary(C, Call.hasNonZeroCallbackArg(),
@@ -368,7 +368,7 @@ void RetainCountChecker::checkPostCall(const CallEvent &Call,
   QualType ReceiverType;
   if (const auto *MC = dyn_cast<ObjCMethodCall>(&Call)) {
     if (MC->isInstanceMessage()) {
-      SVal ReceiverV = MC->getReceiverSVal();
+      SVal const ReceiverV = MC->getReceiverSVal();
       if (SymbolRef Sym = ReceiverV.getAsLocSymbol())
         if (const RefVal *T = getRefBinding(C.getState(), Sym))
           ReceiverType = T->getType();
@@ -424,7 +424,7 @@ static Optional<RefVal> refValFromRetEffect(RetEffect RE,
 }
 
 static bool isPointerToObject(QualType QT) {
-  QualType PT = QT->getPointeeType();
+  QualType const PT = QT->getPointeeType();
   if (!PT.isNull())
     if (PT->getAsCXXRecordDecl())
       return true;
@@ -452,7 +452,7 @@ void RetainCountChecker::processSummaryOfInlined(const RetainSummary &Summ,
 
   // Evaluate the effect of the arguments.
   for (unsigned idx = 0, e = CallOrMsg.getNumArgs(); idx != e; ++idx) {
-    SVal V = CallOrMsg.getArgSVal(idx);
+    SVal const V = CallOrMsg.getArgSVal(idx);
 
     if (SymbolRef Sym = V.getAsLocSymbol()) {
       bool ShouldRemoveBinding = Summ.getArg(idx).getKind() == StopTrackingHard;
@@ -475,7 +475,7 @@ void RetainCountChecker::processSummaryOfInlined(const RetainSummary &Summ,
   }
 
   // Consult the summary for the return value.
-  RetEffect RE = Summ.getRetEffect();
+  RetEffect const RE = Summ.getRetEffect();
 
   if (SymbolRef Sym = CallOrMsg.getReturnValue().getAsSymbol()) {
     if (RE.getKind() == RetEffect::NoRetHard)
@@ -521,7 +521,7 @@ static SmallVector<ProgramStateRef, 2>
 updateOutParameters(ProgramStateRef State, const RetainSummary &Summ,
                     const CallEvent &CE) {
 
-  SVal L = CE.getReturnValue();
+  SVal const L = CE.getReturnValue();
 
   // Splitting is required to support out parameters,
   // as out parameters might be created only on the "success" branch.
@@ -549,7 +549,7 @@ updateOutParameters(ProgramStateRef State, const RetainSummary &Summ,
   }
 
   for (unsigned idx = 0, e = CE.getNumArgs(); idx != e; ++idx) {
-    SVal ArgVal = CE.getArgSVal(idx);
+    SVal const ArgVal = CE.getArgSVal(idx);
     ArgEffect AE = Summ.getArg(idx);
 
     auto *ArgRegion = dyn_cast_or_null<TypedValueRegion>(ArgVal.getAsRegion());
@@ -557,7 +557,7 @@ updateOutParameters(ProgramStateRef State, const RetainSummary &Summ,
       continue;
 
     QualType PointeeTy = ArgRegion->getValueType();
-    SVal PointeeVal = State->getSVal(ArgRegion);
+    SVal const PointeeVal = State->getSVal(ArgRegion);
     SymbolRef Pointee = PointeeVal.getAsLocSymbol();
     if (!Pointee)
       continue;
@@ -617,7 +617,7 @@ void RetainCountChecker::checkSummary(const RetainSummary &Summ,
   bool DeallocSent = false;
 
   for (unsigned idx = 0, e = CallOrMsg.getNumArgs(); idx != e; ++idx) {
-    SVal V = CallOrMsg.getArgSVal(idx);
+    SVal const V = CallOrMsg.getArgSVal(idx);
 
     ArgEffect Effect = Summ.getArg(idx);
     if (SymbolRef Sym = V.getAsLocSymbol()) {
@@ -696,10 +696,10 @@ void RetainCountChecker::checkSummary(const RetainSummary &Summ,
       state = setRefBinding(state, Sym, *updatedRefVal);
   }
 
-  SmallVector<ProgramStateRef, 2> Out =
+  SmallVector<ProgramStateRef, 2> const Out =
       updateOutParameters(state, Summ, CallOrMsg);
 
-  for (ProgramStateRef St : Out) {
+  for (ProgramStateRef const St : Out) {
     if (DeallocSent) {
       C.addTransition(St, C.getPredecessor(), &getDeallocSentTag());
     } else {
@@ -713,7 +713,7 @@ ProgramStateRef RetainCountChecker::updateSymbol(ProgramStateRef state,
                                                  ArgEffect AE,
                                                  RefVal::Kind &hasErr,
                                                  CheckerContext &C) const {
-  bool IgnoreRetainMsg = (bool)C.getASTContext().getLangOpts().ObjCAutoRefCount;
+  bool const IgnoreRetainMsg = (bool)C.getASTContext().getLangOpts().ObjCAutoRefCount;
   if (AE.getObjKind() == ObjKind::ObjC && IgnoreRetainMsg) {
     switch (AE.getKind()) {
     default:
@@ -898,7 +898,7 @@ bool RetainCountChecker::evalCall(const CallEvent &Call,
     return false;
 
   RetainSummaryManager &SmrMgr = getSummaryManager(C);
-  QualType ResultTy = Call.getResultType();
+  QualType const ResultTy = Call.getResultType();
 
   // See if the function has 'rc_ownership_trusted_implementation'
   // annotate attribute. If it does, we will not inline it.
@@ -907,7 +907,7 @@ bool RetainCountChecker::evalCall(const CallEvent &Call,
   const LocationContext *LCtx = C.getLocationContext();
 
   using BehaviorSummary = RetainSummaryManager::BehaviorSummary;
-  Optional<BehaviorSummary> BSmr =
+  Optional<BehaviorSummary> const BSmr =
       SmrMgr.canEval(CE, FD, hasTrustedImplementationAnnotation);
 
   // See if it's one of the specific functions we know how to eval.
@@ -997,7 +997,7 @@ ExplodedNode * RetainCountChecker::processReturn(const ReturnStmt *S,
 
   switch (X.getKind()) {
     case RefVal::Owned: {
-      unsigned cnt = X.getCount();
+      unsigned const cnt = X.getCount();
       assert(cnt > 0);
       X.setCount(cnt - 1);
       X = X ^ RefVal::ReturnedOwned;
@@ -1005,7 +1005,7 @@ ExplodedNode * RetainCountChecker::processReturn(const ReturnStmt *S,
     }
 
     case RefVal::NotOwned: {
-      unsigned cnt = X.getCount();
+      unsigned const cnt = X.getCount();
       if (cnt) {
         X.setCount(cnt - 1);
         X = X ^ RefVal::ReturnedOwned;
@@ -1167,7 +1167,7 @@ ProgramStateRef RetainCountChecker::evalAssume(ProgramStateRef state,
 
   for (auto &I : B) {
     // Check if the symbol is null stop tracking the symbol.
-    ConditionTruthVal AllocFailed = CMgr.isNull(state, I.first);
+    ConditionTruthVal const AllocFailed = CMgr.isNull(state, I.first);
     if (AllocFailed.isConstrainedTrue()) {
       changed = true;
       B = RefBFactory.remove(B, I.first);
@@ -1342,19 +1342,19 @@ void RetainCountChecker::checkBeginFunction(CheckerContext &Ctx) const {
 
   ProgramStateRef state = Ctx.getState();
   const RetainSummary *FunctionSummary = SmrMgr.getSummary(*C);
-  ArgEffects CalleeSideArgEffects = FunctionSummary->getArgEffects();
+  ArgEffects const CalleeSideArgEffects = FunctionSummary->getArgEffects();
 
   for (unsigned idx = 0, e = C->param_size(); idx != e; ++idx) {
     const ParmVarDecl *Param = C->parameters()[idx];
     SymbolRef Sym = state->getSVal(state->getRegion(Param, LCtx)).getAsSymbol();
 
-    QualType Ty = Param->getType();
+    QualType const Ty = Param->getType();
     const ArgEffect *AE = CalleeSideArgEffects.lookup(idx);
     if (AE) {
-      ObjKind K = AE->getObjKind();
+      ObjKind const K = AE->getObjKind();
       if (K == ObjKind::Generalized || K == ObjKind::OS ||
           (TrackNSCFStartParam && (K == ObjKind::ObjC || K == ObjKind::CF))) {
-        RefVal NewVal = AE->getKind() == DecRef ? RefVal::makeOwned(K, Ty)
+        RefVal const NewVal = AE->getKind() == DecRef ? RefVal::makeOwned(K, Ty)
                                                 : RefVal::makeNotOwned(K, Ty);
         state = setRefBinding(state, Sym, NewVal);
       }
@@ -1455,7 +1455,7 @@ void RetainCountChecker::checkDeadSymbols(SymbolReaper &SymReaper,
 void RetainCountChecker::printState(raw_ostream &Out, ProgramStateRef State,
                                     const char *NL, const char *Sep) const {
 
-  RefBindingsTy B = State->get<RefBindings>();
+  RefBindingsTy const B = State->get<RefBindings>();
 
   if (B.isEmpty())
     return;

@@ -27,7 +27,7 @@ using namespace serialized_diags;
 
 std::error_code SerializedDiagnosticReader::readDiagnostics(StringRef File) {
   // Open the diagnostics file.
-  FileSystemOptions FO;
+  FileSystemOptions const FO;
   FileManager FileMgr(FO);
 
   auto Buffer = FileMgr.getBufferForFile(File);
@@ -41,7 +41,7 @@ std::error_code SerializedDiagnosticReader::readDiagnostics(StringRef File) {
     return SDError::InvalidSignature;
 
   // Sniff for the signature.
-  for (unsigned char C : {'D', 'I', 'A', 'G'}) {
+  for (unsigned char const C : {'D', 'I', 'A', 'G'}) {
     if (Expected<llvm::SimpleBitstreamCursor::word_t> Res = Stream.Read(8)) {
       if (Res.get() == C)
         continue;
@@ -195,7 +195,7 @@ SerializedDiagnosticReader::readMetaBlock(llvm::BitstreamCursor &Stream) {
     Expected<unsigned> MaybeRecordID = Stream.readRecord(BlockOrCode, Record);
     if (!MaybeRecordID)
       return errorToErrorCode(MaybeRecordID.takeError());
-    unsigned RecordID = MaybeRecordID.get();
+    unsigned const RecordID = MaybeRecordID.get();
 
     if (RecordID == RECORD_VERSION) {
       if (Record.size() < 1)
@@ -254,7 +254,7 @@ SerializedDiagnosticReader::readDiagnosticBlock(llvm::BitstreamCursor &Stream) {
         Stream.readRecord(BlockOrCode, Record, &Blob);
     if (!MaybeRecID)
       return errorToErrorCode(MaybeRecID.takeError());
-    unsigned RecID = MaybeRecID.get();
+    unsigned const RecID = MaybeRecID.get();
 
     if (RecID < serialized_diags::RECORD_FIRST ||
         RecID > serialized_diags::RECORD_LAST)

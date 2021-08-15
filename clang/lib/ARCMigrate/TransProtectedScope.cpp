@@ -108,7 +108,7 @@ public:
         .TraverseStmt(BodyCtx.getTopStmt());
     LocalRefsCollector(LocalRefs).TraverseStmt(BodyCtx.getTopStmt());
 
-    SourceRange BodyRange = BodyCtx.getTopStmt()->getSourceRange();
+    SourceRange const BodyRange = BodyCtx.getTopStmt()->getSourceRange();
     const CapturedDiagList &DiagList = Pass.getDiags();
     // Copy the diagnostics so we don't have to worry about invaliding iterators
     // from the diagnostic list.
@@ -129,9 +129,9 @@ public:
   void handleProtectedScopeError(
                              SmallVectorImpl<StoredDiagnostic>::iterator &DiagI,
                              SmallVectorImpl<StoredDiagnostic>::iterator DiagE){
-    Transaction Trans(Pass.TA);
+    Transaction const Trans(Pass.TA);
     assert(DiagI->getID() == diag::err_switch_into_protected_scope);
-    SourceLocation ErrLoc = DiagI->getLocation();
+    SourceLocation const ErrLoc = DiagI->getLocation();
     bool handledAllNotes = true;
     ++DiagI;
     for (; DiagI != DiagE && DiagI->getLevel() == DiagnosticsEngine::Note;
@@ -199,5 +199,5 @@ public:
 } // anonymous namespace
 
 void ProtectedScopeTraverser::traverseBody(BodyContext &BodyCtx) {
-  ProtectedScopeFixer Fix(BodyCtx);
+  ProtectedScopeFixer const Fix(BodyCtx);
 }

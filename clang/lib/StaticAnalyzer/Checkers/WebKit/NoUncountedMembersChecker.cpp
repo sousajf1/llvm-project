@@ -139,7 +139,7 @@ public:
     printQuotedQualifiedName(Os, MemberCXXRD);
     Os << "; member variables must be ref-counted.";
 
-    PathDiagnosticLocation BSLoc(Member->getSourceRange().getBegin(),
+    PathDiagnosticLocation const BSLoc(Member->getSourceRange().getBegin(),
                                  BR->getSourceManager());
     auto Report = std::make_unique<BasicBugReport>(Bug, Os.str(), BSLoc);
     Report->addRange(Member->getSourceRange());

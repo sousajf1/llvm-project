@@ -88,7 +88,7 @@ static StringRef getSectionName(CodeGenOptions::ProfileInstrKind Kind) {
 llvm::Optional<bool>
 ProfileList::isFunctionExcluded(StringRef FunctionName,
                                 CodeGenOptions::ProfileInstrKind Kind) const {
-  StringRef Section = getSectionName(Kind);
+  StringRef const Section = getSectionName(Kind);
   if (SCL->inSection(Section, "!fun", FunctionName))
     return true;
   if (SCL->inSection(Section, "fun", FunctionName))
@@ -105,7 +105,7 @@ ProfileList::isLocationExcluded(SourceLocation Loc,
 llvm::Optional<bool>
 ProfileList::isFileExcluded(StringRef FileName,
                             CodeGenOptions::ProfileInstrKind Kind) const {
-  StringRef Section = getSectionName(Kind);
+  StringRef const Section = getSectionName(Kind);
   if (SCL->inSection(Section, "!src", FileName))
     return true;
   if (SCL->inSection(Section, "src", FileName))

@@ -193,9 +193,9 @@ INSTANTIATE_TEST_SUITE_P(
 
 TEST_P(RenameClassTest, RenameClasses) {
   auto Param = GetParam();
-  std::string OldName = Param.OldName.empty() ? "a::Foo" : Param.OldName;
-  std::string NewName = Param.NewName.empty() ? "b::Bar" : Param.NewName;
-  std::string Actual = runClangRenameOnCode(Param.Before, OldName, NewName);
+  std::string const OldName = Param.OldName.empty() ? "a::Foo" : Param.OldName;
+  std::string const NewName = Param.NewName.empty() ? "b::Bar" : Param.NewName;
+  std::string const Actual = runClangRenameOnCode(Param.Before, OldName, NewName);
   CompareSnippets(Param.After, Actual);
 }
 
@@ -302,7 +302,7 @@ INSTANTIATE_TEST_SUITE_P(
 
 TEST_P(NamespaceDetectionTest, RenameClasses) {
   auto Param = GetParam();
-  std::string Actual =
+  std::string const Actual =
       runClangRenameOnCode(Param.Before, Param.OldName, Param.NewName);
   CompareSnippets(Param.After, Actual);
 }
@@ -398,13 +398,13 @@ INSTANTIATE_TEST_SUITE_P(
 
 TEST_P(TemplatedClassRenameTest, RenameTemplateClasses) {
   auto Param = GetParam();
-  std::string Actual =
+  std::string const Actual =
       runClangRenameOnCode(Param.Before, Param.OldName, Param.NewName);
   CompareSnippets(Param.After, Actual);
 }
 
 TEST_F(ClangRenameTest, RenameClassWithOutOfLineMembers) {
-  std::string Before = R"(
+  std::string const Before = R"(
       class Old {
        public:
         Old();
@@ -420,7 +420,7 @@ TEST_F(ClangRenameTest, RenameClassWithOutOfLineMembers) {
       Old::~Old() {}
       Old* Old::next() { return next_; }
     )";
-  std::string Expected = R"(
+  std::string const Expected = R"(
       class New {
        public:
         New();
@@ -436,12 +436,12 @@ TEST_F(ClangRenameTest, RenameClassWithOutOfLineMembers) {
       New::~New() {}
       New* New::next() { return next_; }
     )";
-  std::string After = runClangRenameOnCode(Before, "Old", "New");
+  std::string const After = runClangRenameOnCode(Before, "Old", "New");
   CompareSnippets(Expected, After);
 }
 
 TEST_F(ClangRenameTest, RenameClassWithInlineMembers) {
-  std::string Before = R"(
+  std::string const Before = R"(
       class Old {
        public:
         Old() {}
@@ -453,7 +453,7 @@ TEST_F(ClangRenameTest, RenameClassWithInlineMembers) {
         Old* next_;
       };
     )";
-  std::string Expected = R"(
+  std::string const Expected = R"(
       class New {
        public:
         New() {}
@@ -465,12 +465,12 @@ TEST_F(ClangRenameTest, RenameClassWithInlineMembers) {
         New* next_;
       };
     )";
-  std::string After = runClangRenameOnCode(Before, "Old", "New");
+  std::string const After = runClangRenameOnCode(Before, "Old", "New");
   CompareSnippets(Expected, After);
 }
 
 TEST_F(ClangRenameTest, RenameClassWithNamespaceWithInlineMembers) {
-  std::string Before = R"(
+  std::string const Before = R"(
       namespace ns {
       class Old {
        public:
@@ -484,7 +484,7 @@ TEST_F(ClangRenameTest, RenameClassWithNamespaceWithInlineMembers) {
       };
       }  // namespace ns
     )";
-  std::string Expected = R"(
+  std::string const Expected = R"(
       namespace ns {
       class New {
        public:
@@ -498,12 +498,12 @@ TEST_F(ClangRenameTest, RenameClassWithNamespaceWithInlineMembers) {
       };
       }  // namespace ns
     )";
-  std::string After = runClangRenameOnCode(Before, "ns::Old", "ns::New");
+  std::string const After = runClangRenameOnCode(Before, "ns::Old", "ns::New");
   CompareSnippets(Expected, After);
 }
 
 TEST_F(ClangRenameTest, RenameClassWithNamespaceWithOutOfInlineMembers) {
-  std::string Before = R"(
+  std::string const Before = R"(
       namespace ns {
       class Old {
        public:
@@ -521,7 +521,7 @@ TEST_F(ClangRenameTest, RenameClassWithNamespaceWithOutOfInlineMembers) {
       Old* Old::next() { return next_; }
       }  // namespace ns
     )";
-  std::string Expected = R"(
+  std::string const Expected = R"(
       namespace ns {
       class New {
        public:
@@ -539,14 +539,14 @@ TEST_F(ClangRenameTest, RenameClassWithNamespaceWithOutOfInlineMembers) {
       New* New::next() { return next_; }
       }  // namespace ns
     )";
-  std::string After = runClangRenameOnCode(Before, "ns::Old", "ns::New");
+  std::string const After = runClangRenameOnCode(Before, "ns::Old", "ns::New");
   CompareSnippets(Expected, After);
 }
 
 TEST_F(ClangRenameTest, RenameClassInInheritedConstructor) {
   // `using Base::Base;` will generate an implicit constructor containing usage
   // of `::ns::Old` which should not be matched.
-  std::string Before = R"(
+  std::string const Before = R"(
       namespace ns {
       class Old;
       class Old {
@@ -568,7 +568,7 @@ TEST_F(ClangRenameTest, RenameClassInInheritedConstructor) {
         ::ns::Derived d(&foo);
         return 0;
       })";
-  std::string Expected = R"(
+  std::string const Expected = R"(
       namespace ns {
       class New;
       class New {
@@ -590,12 +590,12 @@ TEST_F(ClangRenameTest, RenameClassInInheritedConstructor) {
         ::ns::Derived d(&foo);
         return 0;
       })";
-  std::string After = runClangRenameOnCode(Before, "ns::Old", "ns::New");
+  std::string const After = runClangRenameOnCode(Before, "ns::Old", "ns::New");
   CompareSnippets(Expected, After);
 }
 
 TEST_F(ClangRenameTest, DontRenameReferencesInImplicitFunction) {
-  std::string Before = R"(
+  std::string const Before = R"(
       namespace ns {
       class Old {
       };
@@ -610,7 +610,7 @@ TEST_F(ClangRenameTest, DontRenameReferencesInImplicitFunction) {
         s1 = s2 = s3;
       }
       )";
-  std::string Expected = R"(
+  std::string const Expected = R"(
       namespace ns {
       class New {
       };
@@ -625,12 +625,12 @@ TEST_F(ClangRenameTest, DontRenameReferencesInImplicitFunction) {
         s1 = s2 = s3;
       }
       )";
-  std::string After = runClangRenameOnCode(Before, "ns::Old", "::new_ns::New");
+  std::string const After = runClangRenameOnCode(Before, "ns::Old", "::new_ns::New");
   CompareSnippets(Expected, After);
 }
 
 TEST_F(ClangRenameTest, ReferencesInLambdaFunctionParameters) {
-  std::string Before = R"(
+  std::string const Before = R"(
       template <class T>
       class function;
       template <class R, class... ArgTypes>
@@ -650,7 +650,7 @@ TEST_F(ClangRenameTest, ReferencesInLambdaFunctionParameters) {
         function<void(Old)> func;
       }
       }  // namespace ns)";
-  std::string Expected = R"(
+  std::string const Expected = R"(
       template <class T>
       class function;
       template <class R, class... ArgTypes>
@@ -670,12 +670,12 @@ TEST_F(ClangRenameTest, ReferencesInLambdaFunctionParameters) {
         function<void(::new_ns::New)> func;
       }
       }  // namespace ns)";
-  std::string After = runClangRenameOnCode(Before, "ns::Old", "::new_ns::New");
+  std::string const After = runClangRenameOnCode(Before, "ns::Old", "::new_ns::New");
   CompareSnippets(Expected, After);
 }
 
 TEST_F(ClangRenameTest, DontChangeIfSameName) {
-  std::string Before = R"(
+  std::string const Before = R"(
       namespace foo {
       class Old {
        public:
@@ -687,7 +687,7 @@ TEST_F(ClangRenameTest, DontChangeIfSameName) {
         foo::Old::foo() ;
       }
       using foo::Old;)";
-  std::string Expected = R"(
+  std::string const Expected = R"(
       namespace foo {
       class Old {
        public:
@@ -699,12 +699,12 @@ TEST_F(ClangRenameTest, DontChangeIfSameName) {
         foo::Old::foo() ;
       }
       using foo::Old;)";
-  std::string After = runClangRenameOnCode(Before, "foo::Old", "foo::Old");
+  std::string const After = runClangRenameOnCode(Before, "foo::Old", "foo::Old");
   CompareSnippets(Expected, After);
 }
 
 TEST_F(ClangRenameTest, ChangeIfNewNameWithLeadingDotDot) {
-  std::string Before = R"(
+  std::string const Before = R"(
       namespace foo {
       class Old {
        public:
@@ -716,7 +716,7 @@ TEST_F(ClangRenameTest, ChangeIfNewNameWithLeadingDotDot) {
         foo::Old::foo() ;
       }
       using foo::Old;)";
-  std::string Expected = R"(
+  std::string const Expected = R"(
       namespace foo {
       class Old {
        public:
@@ -728,12 +728,12 @@ TEST_F(ClangRenameTest, ChangeIfNewNameWithLeadingDotDot) {
         ::foo::Old::foo() ;
       }
       using ::foo::Old;)";
-  std::string After = runClangRenameOnCode(Before, "foo::Old", "::foo::Old");
+  std::string const After = runClangRenameOnCode(Before, "foo::Old", "::foo::Old");
   CompareSnippets(Expected, After);
 }
 
 TEST_F(ClangRenameTest, ChangeIfSameNameWithLeadingDotDot) {
-  std::string Before = R"(
+  std::string const Before = R"(
       namespace foo {
       class Old {
        public:
@@ -745,7 +745,7 @@ TEST_F(ClangRenameTest, ChangeIfSameNameWithLeadingDotDot) {
         foo::Old::foo() ;
       }
       using foo::Old;)";
-  std::string Expected = R"(
+  std::string const Expected = R"(
       namespace foo {
       class Old {
        public:
@@ -757,31 +757,31 @@ TEST_F(ClangRenameTest, ChangeIfSameNameWithLeadingDotDot) {
         ::foo::Old::foo() ;
       }
       using ::foo::Old;)";
-  std::string After = runClangRenameOnCode(Before, "::foo::Old", "::foo::Old");
+  std::string const After = runClangRenameOnCode(Before, "::foo::Old", "::foo::Old");
   CompareSnippets(Expected, After);
 }
 
 TEST_F(RenameClassTest, UsingAlias) {
-  std::string Before = R"(
+  std::string const Before = R"(
       namespace a { struct A {}; }
 
       namespace foo {
       using Alias = a::A;
       Alias a;
       })";
-  std::string Expected = R"(
+  std::string const Expected = R"(
       namespace a { struct B {}; }
 
       namespace foo {
       using Alias = b::B;
       Alias a;
       })";
-  std::string After = runClangRenameOnCode(Before, "a::A", "b::B");
+  std::string const After = runClangRenameOnCode(Before, "a::A", "b::B");
   CompareSnippets(Expected, After);
 }
 
 TEST_F(ClangRenameTest, FieldDesignatedInitializers) {
-  std::string Before = R"(
+  std::string const Before = R"(
       struct S {
         int a;
       };
@@ -789,7 +789,7 @@ TEST_F(ClangRenameTest, FieldDesignatedInitializers) {
         S s = { .a = 10 };
         s.a = 20;
       })";
-  std::string Expected = R"(
+  std::string const Expected = R"(
       struct S {
         int b;
       };
@@ -797,19 +797,19 @@ TEST_F(ClangRenameTest, FieldDesignatedInitializers) {
         S s = { .b = 10 };
         s.b = 20;
       })";
-  std::string After = runClangRenameOnCode(Before, "S::a", "S::b");
+  std::string const After = runClangRenameOnCode(Before, "S::a", "S::b");
   CompareSnippets(Expected, After);
 }
 
 // FIXME: investigate why the test fails when adding a new USR to the USRSet.
 TEST_F(ClangRenameTest, DISABLED_NestedTemplates) {
-  std::string Before = R"(
+  std::string const Before = R"(
       namespace a { template <typename T> struct A {}; }
       a::A<a::A<int>> foo;)";
-  std::string Expected = R"(
+  std::string const Expected = R"(
       namespace a { template <typename T> struct B {}; }
       b::B<b::B<int>> foo;)";
-  std::string After = runClangRenameOnCode(Before, "a::A", "b::B");
+  std::string const After = runClangRenameOnCode(Before, "a::A", "b::B");
   CompareSnippets(Expected, After);
 }
 

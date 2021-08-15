@@ -95,7 +95,7 @@ static bool getExtensionVersion(const Driver &D, const ArgList &Args,
 
     // Expected 'p' to be followed by minor version number.
     if (Minor.empty()) {
-      std::string Error =
+      std::string const Error =
         "minor version number missing after 'p' for extension";
       D.Diag(diag::err_drv_invalid_riscv_ext_arch_name)
         << MArch << Error << Ext;
@@ -107,7 +107,7 @@ static bool getExtensionVersion(const Driver &D, const ArgList &Args,
   // subsequent characters (i.e. must either end string or be followed by
   // an underscore).
   if (Ext.size() > 1 && In.size()) {
-    std::string Error =
+    std::string const Error =
         "multi-character extensions must be separated by underscores";
     D.Diag(diag::err_drv_invalid_riscv_ext_arch_name) << MArch << Error << In;
     return false;
@@ -116,13 +116,13 @@ static bool getExtensionVersion(const Driver &D, const ArgList &Args,
   // If experimental extension, require use of current version number number
   if (auto ExperimentalExtension = isExperimentalExtension(Ext)) {
     if (!Args.hasArg(options::OPT_menable_experimental_extensions)) {
-      std::string Error =
+      std::string const Error =
           "requires '-menable-experimental-extensions' for experimental extension";
       D.Diag(diag::err_drv_invalid_riscv_ext_arch_name)
           << MArch << Error << Ext;
       return false;
     } else if (Major.empty() && Minor.empty()) {
-      std::string Error =
+      std::string const Error =
           "experimental extension requires explicit version number";
       D.Diag(diag::err_drv_invalid_riscv_ext_arch_name)
           << MArch << Error << Ext;
@@ -186,18 +186,18 @@ static void getExtensionFeatures(const Driver &D,
 
   SmallVector<StringRef, 8> AllExts;
 
-  for (StringRef Ext : Split) {
+  for (StringRef const Ext : Split) {
     if (Ext.empty()) {
       D.Diag(diag::err_drv_invalid_riscv_arch_name) << MArch
         << "extension name missing after separator '_'";
       return;
     }
 
-    StringRef Type = getExtensionType(Ext);
-    StringRef Desc = getExtensionTypeDesc(Ext);
+    StringRef const Type = getExtensionType(Ext);
+    StringRef const Desc = getExtensionTypeDesc(Ext);
     auto Pos = Ext.find_if(isDigit);
-    StringRef Name(Ext.substr(0, Pos));
-    StringRef Vers(Ext.substr(Pos));
+    StringRef const Name(Ext.substr(0, Pos));
+    StringRef const Vers(Ext.substr(Pos));
 
     if (Type.empty()) {
       D.Diag(diag::err_drv_invalid_riscv_ext_arch_name)
@@ -251,7 +251,7 @@ static void getExtensionFeatures(const Driver &D,
   // TODO: Use version number when setting target features.
   for (auto Ext : AllExts) {
     if (!isSupportedExtension(Ext)) {
-      StringRef Desc = getExtensionTypeDesc(getExtensionType(Ext));
+      StringRef const Desc = getExtensionTypeDesc(getExtensionType(Ext));
       std::string Error = "unsupported ";
       Error += Desc;
       D.Diag(diag::err_drv_invalid_riscv_ext_arch_name)
@@ -291,13 +291,13 @@ static bool getArchFeatures(const Driver &D, StringRef MArch,
     return false;
   }
 
-  bool HasRV64 = MArch.startswith("rv64");
+  bool const HasRV64 = MArch.startswith("rv64");
 
   // The canonical order specified in ISA manual.
   // Ref: Table 22.1 in RISC-V User-Level ISA V2.2
   StringRef StdExts = "mafdqlcbjtpvn";
   bool HasF = false, HasD = false;
-  char Baseline = MArch[4];
+  char const Baseline = MArch[4];
 
   // First letter should be 'e', 'i' or 'g'.
   switch (Baseline) {
@@ -338,7 +338,7 @@ static bool getArchFeatures(const Driver &D, StringRef MArch,
   // Parse them at the end.
   // Find the very first occurrence of 's', 'x' or 'z'.
   StringRef OtherExts;
-  size_t Pos = Exts.find_first_of("zsx");
+  size_t const Pos = Exts.find_first_of("zsx");
   if (Pos != StringRef::npos) {
     OtherExts = Exts.substr(Pos);
     Exts = Exts.substr(0, Pos);
@@ -362,7 +362,7 @@ static bool getArchFeatures(const Driver &D, StringRef MArch,
   auto StdExtsEnd = StdExts.end();
 
   for (auto I = Exts.begin(), E = Exts.end(); I != E; ) {
-    char c = *I;
+    char const c = *I;
 
     // Check ISA extensions are specified in the canonical order.
     while (StdExtsItr != StdExtsEnd && *StdExtsItr != c)
@@ -471,8 +471,8 @@ static void getRISCFeaturesFromMcpu(const Driver &D, const llvm::Triple &Triple,
                                     const llvm::opt::ArgList &Args,
                                     const llvm::opt::Arg *A, StringRef Mcpu,
                                     std::vector<StringRef> &Features) {
-  bool Is64Bit = (Triple.getArch() == llvm::Triple::riscv64);
-  llvm::RISCV::CPUKind CPUKind = llvm::RISCV::parseCPUKind(Mcpu);
+  bool const Is64Bit = (Triple.getArch() == llvm::Triple::riscv64);
+  llvm::RISCV::CPUKind const CPUKind = llvm::RISCV::parseCPUKind(Mcpu);
   if (!llvm::RISCV::checkCPUKind(CPUKind, Is64Bit) ||
       !llvm::RISCV::getCPUFeaturesExceptStdExt(CPUKind, Features)) {
     D.Diag(clang::diag::err_drv_clang_unsupported) << A->getAsString(Args);
@@ -482,7 +482,7 @@ static void getRISCFeaturesFromMcpu(const Driver &D, const llvm::Triple &Triple,
 void riscv::getRISCVTargetFeatures(const Driver &D, const llvm::Triple &Triple,
                                    const ArgList &Args,
                                    std::vector<StringRef> &Features) {
-  StringRef MArch = getRISCVArch(Args, Triple);
+  StringRef const MArch = getRISCVArch(Args, Triple);
 
   if (!getArchFeatures(D, MArch, Features, Args))
     return;
@@ -610,7 +610,7 @@ StringRef riscv::getRISCVABI(const ArgList &Args, const llvm::Triple &Triple) {
   // rv32* -> ilp32
   // rv64g | rv64*d -> lp64d
   // rv64* -> lp64
-  StringRef MArch = getRISCVArch(Args, Triple);
+  StringRef const MArch = getRISCVArch(Args, Triple);
 
   if (MArch.startswith_insensitive("rv32")) {
     // FIXME: parse `March` to find `D` extension properly
@@ -698,7 +698,7 @@ StringRef riscv::getRISCVArch(const llvm::opt::ArgList &Args,
   // ilp32 | ilp32f | ilp32d -> rv32imafdc
   // lp64 | lp64f | lp64d -> rv64imafdc
   if (const Arg *A = Args.getLastArg(options::OPT_mabi_EQ)) {
-    StringRef MABI = A->getValue();
+    StringRef const MABI = A->getValue();
 
     if (MABI.equals_insensitive("ilp32e"))
       return "rv32e";

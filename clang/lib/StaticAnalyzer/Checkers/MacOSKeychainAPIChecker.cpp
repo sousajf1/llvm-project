@@ -181,7 +181,7 @@ const MacOSKeychainAPIChecker::ADFunctionInfo
 unsigned MacOSKeychainAPIChecker::getTrackedFunctionIndex(StringRef Name,
                                                           bool IsAllocator) {
   for (unsigned I = 0; I < FunctionsToTrackSize; ++I) {
-    ADFunctionInfo FI = FunctionsToTrack[I];
+    ADFunctionInfo const FI = FunctionsToTrack[I];
     if (FI.Name != Name)
       continue;
     // Make sure the function is of the right type (allocator vs deallocator).
@@ -207,8 +207,8 @@ static bool isBadDeallocationArgument(const MemRegion *Arg) {
 /// that value is itself an address, and return the corresponding symbol.
 static SymbolRef getAsPointeeSymbol(const Expr *Expr,
                                     CheckerContext &C) {
-  ProgramStateRef State = C.getState();
-  SVal ArgV = C.getSVal(Expr);
+  ProgramStateRef const State = C.getState();
+  SVal const ArgV = C.getSVal(Expr);
 
   if (Optional<loc::MemRegionVal> X = ArgV.getAs<loc::MemRegionVal>()) {
     StoreManager& SM = C.getStoreManager();
@@ -234,7 +234,7 @@ void MacOSKeychainAPIChecker::
   initBugType();
   SmallString<80> sbuf;
   llvm::raw_svector_ostream os(sbuf);
-  unsigned int PDeallocIdx =
+  unsigned int const PDeallocIdx =
                FunctionsToTrack[AP.second->AllocatorIdx].DeallocatorIdx;
 
   os << "Deallocator doesn't match the allocator: '"
@@ -255,14 +255,14 @@ void MacOSKeychainAPIChecker::checkPreStmt(const CallExpr *CE,
   if (!FD || FD->getKind() != Decl::Function)
     return;
 
-  StringRef funName = C.getCalleeName(FD);
+  StringRef const funName = C.getCalleeName(FD);
   if (funName.empty())
     return;
 
   // If it is a call to an allocator function, it could be a double allocation.
   idx = getTrackedFunctionIndex(funName, true);
   if (idx != InvalidIdx) {
-    unsigned paramIdx = FunctionsToTrack[idx].Param;
+    unsigned const paramIdx = FunctionsToTrack[idx].Param;
     if (CE->getNumArgs() <= paramIdx)
       return;
 
@@ -278,7 +278,7 @@ void MacOSKeychainAPIChecker::checkPreStmt(const CallExpr *CE,
         initBugType();
         SmallString<128> sbuf;
         llvm::raw_svector_ostream os(sbuf);
-        unsigned int DIdx = FunctionsToTrack[AS->AllocatorIdx].DeallocatorIdx;
+        unsigned int const DIdx = FunctionsToTrack[AS->AllocatorIdx].DeallocatorIdx;
         os << "Allocated data should be released before another call to "
             << "the allocator: missing a call to '"
             << FunctionsToTrack[DIdx].Name
@@ -298,13 +298,13 @@ void MacOSKeychainAPIChecker::checkPreStmt(const CallExpr *CE,
   if (idx == InvalidIdx)
     return;
 
-  unsigned paramIdx = FunctionsToTrack[idx].Param;
+  unsigned const paramIdx = FunctionsToTrack[idx].Param;
   if (CE->getNumArgs() <= paramIdx)
     return;
 
   // Check the argument to the deallocator.
   const Expr *ArgExpr = CE->getArg(paramIdx);
-  SVal ArgSVal = C.getSVal(ArgExpr);
+  SVal const ArgSVal = C.getSVal(ArgExpr);
 
   // Undef is reported by another checker.
   if (ArgSVal.isUndef())
@@ -361,7 +361,7 @@ void MacOSKeychainAPIChecker::checkPreStmt(const CallExpr *CE,
       }
       // One of the default allocators, so warn.
       if (const DeclRefExpr *DE = dyn_cast<DeclRefExpr>(DeallocatorExpr)) {
-        StringRef DeallocatorName = DE->getFoundDecl()->getName();
+        StringRef const DeallocatorName = DE->getFoundDecl()->getName();
         if (DeallocatorName == "kCFAllocatorDefault" ||
             DeallocatorName == "kCFAllocatorSystemDefault" ||
             DeallocatorName == "kCFAllocatorMalloc") {
@@ -389,7 +389,7 @@ void MacOSKeychainAPIChecker::checkPreStmt(const CallExpr *CE,
   State = State->remove<AllocatedData>(ArgSM);
 
   // Check if the proper deallocator is used.
-  unsigned int PDeallocIdx = FunctionsToTrack[AS->AllocatorIdx].DeallocatorIdx;
+  unsigned int const PDeallocIdx = FunctionsToTrack[AS->AllocatorIdx].DeallocatorIdx;
   if (PDeallocIdx != idx || (FunctionsToTrack[idx].Kind == ErrorAPI)) {
     const AllocationPair AP = std::make_pair(ArgSM, AS);
     generateDeallocatorMismatchReport(AP, ArgExpr, C);
@@ -406,10 +406,10 @@ void MacOSKeychainAPIChecker::checkPostStmt(const CallExpr *CE,
   if (!FD || FD->getKind() != Decl::Function)
     return;
 
-  StringRef funName = C.getCalleeName(FD);
+  StringRef const funName = C.getCalleeName(FD);
 
   // If a value has been allocated, add it to the set for tracking.
-  unsigned idx = getTrackedFunctionIndex(funName, true);
+  unsigned const idx = getTrackedFunctionIndex(funName, true);
   if (idx == InvalidIdx)
     return;
 
@@ -505,14 +505,14 @@ MacOSKeychainAPIChecker::generateAllocatedDataNotReleasedReport(
 ProgramStateRef MacOSKeychainAPIChecker::evalAssume(ProgramStateRef State,
                                                     SVal Cond,
                                                     bool Assumption) const {
-  AllocatedDataTy AMap = State->get<AllocatedData>();
+  AllocatedDataTy const AMap = State->get<AllocatedData>();
   if (AMap.isEmpty())
     return State;
 
   auto *CondBSE = dyn_cast_or_null<BinarySymExpr>(Cond.getAsSymbol());
   if (!CondBSE)
     return State;
-  BinaryOperator::Opcode OpCode = CondBSE->getOpcode();
+  BinaryOperator::Opcode const OpCode = CondBSE->getOpcode();
   if (OpCode != BO_EQ && OpCode != BO_NE)
     return State;
 
@@ -541,7 +541,7 @@ ProgramStateRef MacOSKeychainAPIChecker::evalAssume(ProgramStateRef State,
 void MacOSKeychainAPIChecker::checkDeadSymbols(SymbolReaper &SR,
                                                CheckerContext &C) const {
   ProgramStateRef State = C.getState();
-  AllocatedDataTy AMap = State->get<AllocatedData>();
+  AllocatedDataTy const AMap = State->get<AllocatedData>();
   if (AMap.isEmpty())
     return;
 
@@ -555,7 +555,7 @@ void MacOSKeychainAPIChecker::checkDeadSymbols(SymbolReaper &SR,
     State = State->remove<AllocatedData>(I->first);
     // If the allocated symbol is null do not report.
     ConstraintManager &CMgr = State->getConstraintManager();
-    ConditionTruthVal AllocFailed = CMgr.isNull(State, I.getKey());
+    ConditionTruthVal const AllocFailed = CMgr.isNull(State, I.getKey());
     if (AllocFailed.isConstrainedTrue())
       continue;
     Errors.push_back(std::make_pair(I->first, &I->second));
@@ -635,13 +635,13 @@ MacOSKeychainAPIChecker::SecKeychainBugVisitor::VisitNode(
       cast<CallExpr>(N->getLocation().castAs<StmtPoint>().getStmt());
   const FunctionDecl *funDecl = CE->getDirectCallee();
   assert(funDecl && "We do not support indirect function calls as of now.");
-  StringRef funName = funDecl->getName();
+  StringRef const funName = funDecl->getName();
 
   // Get the expression of the corresponding argument.
-  unsigned Idx = getTrackedFunctionIndex(funName, true);
+  unsigned const Idx = getTrackedFunctionIndex(funName, true);
   assert(Idx != InvalidIdx && "This should be a call to an allocator.");
   const Expr *ArgExpr = CE->getArg(FunctionsToTrack[Idx].Param);
-  PathDiagnosticLocation Pos(ArgExpr, BRC.getSourceManager(),
+  PathDiagnosticLocation const Pos(ArgExpr, BRC.getSourceManager(),
                              N->getLocationContext());
   return std::make_shared<PathDiagnosticEventPiece>(Pos,
                                                     "Data is allocated here.");
@@ -652,7 +652,7 @@ void MacOSKeychainAPIChecker::printState(raw_ostream &Out,
                                          const char *NL,
                                          const char *Sep) const {
 
-  AllocatedDataTy AMap = State->get<AllocatedData>();
+  AllocatedDataTy const AMap = State->get<AllocatedData>();
 
   if (!AMap.isEmpty()) {
     Out << Sep << "KeychainAPIChecker :" << NL;

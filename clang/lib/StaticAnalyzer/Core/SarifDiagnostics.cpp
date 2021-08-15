@@ -84,7 +84,7 @@ static std::string fileNameToURI(StringRef Filename) {
   llvm::SmallString<32> Ret = StringRef("file://");
 
   // Get the root name to see if it has a URI authority.
-  StringRef Root = sys::path::root_name(Filename);
+  StringRef const Root = sys::path::root_name(Filename);
   if (Root.startswith("//")) {
     // There is an authority, so add it to the URI.
     Ret += Root.drop_front(2).str();
@@ -109,7 +109,7 @@ static std::string fileNameToURI(StringRef Filename) {
     Ret += "/";
 
     // URI encode the part.
-    for (char C : Component) {
+    for (char const C : Component) {
       Ret += percentEncodeURICharacter(C);
     }
   });
@@ -157,7 +157,7 @@ static unsigned int adjustColumnPos(const SourceManager &SM, SourceLocation Loc,
                                     unsigned int TokenLen = 0) {
   assert(!Loc.isInvalid() && "invalid Loc when adjusting column position");
 
-  std::pair<FileID, unsigned> LocInfo = SM.getDecomposedExpansionLoc(Loc);
+  std::pair<FileID, unsigned> const LocInfo = SM.getDecomposedExpansionLoc(Loc);
   assert(LocInfo.second > SM.getExpansionColumnNumber(Loc) &&
          "position in file is before column number?");
 
@@ -329,7 +329,7 @@ static json::Object createRule(const PathDiagnostic &Diag) {
       {"name", CheckName},
       {"id", CheckName}};
 
-  std::string RuleURI = std::string(getRuleHelpURIStr(CheckName));
+  std::string const RuleURI = std::string(getRuleHelpURIStr(CheckName));
   if (!RuleURI.empty())
     Ret["helpUri"] = RuleURI;
 
@@ -342,8 +342,8 @@ static json::Array createRules(std::vector<const PathDiagnostic *> &Diags,
   llvm::StringSet<> Seen;
 
   llvm::for_each(Diags, [&](const PathDiagnostic *D) {
-    StringRef RuleID = D->getCheckerName();
-    std::pair<llvm::StringSet<>::iterator, bool> P = Seen.insert(RuleID);
+    StringRef const RuleID = D->getCheckerName();
+    std::pair<llvm::StringSet<>::iterator, bool> const P = Seen.insert(RuleID);
     if (P.second) {
       RuleMapping[RuleID] = Rules.size(); // Maps RuleID to an Array Index.
       Rules.push_back(createRule(*D));

@@ -37,12 +37,12 @@ StringRef clang::tooling::getText(CharSourceRange Range,
 CharSourceRange clang::tooling::maybeExtendRange(CharSourceRange Range,
                                                  tok::TokenKind Next,
                                                  ASTContext &Context) {
-  CharSourceRange R = Lexer::getAsCharRange(Range, Context.getSourceManager(),
+  CharSourceRange const R = Lexer::getAsCharRange(Range, Context.getSourceManager(),
                                             Context.getLangOpts());
   if (R.isInvalid())
     return Range;
   Token Tok;
-  bool Err =
+  bool const Err =
       Lexer::getRawToken(R.getEnd(), Tok, Context.getSourceManager(),
                          Context.getLangOpts(), /*IgnoreWhiteSpace=*/true);
   if (Err || !Tok.is(Next))
@@ -65,8 +65,8 @@ llvm::Error clang::tooling::validateEditRange(const CharSourceRange &Range,
     return llvm::make_error<StringError>(errc::invalid_argument,
                                          "Range is in system header");
 
-  std::pair<FileID, unsigned> BeginInfo = SM.getDecomposedLoc(Range.getBegin());
-  std::pair<FileID, unsigned> EndInfo = SM.getDecomposedLoc(Range.getEnd());
+  std::pair<FileID, unsigned> const BeginInfo = SM.getDecomposedLoc(Range.getBegin());
+  std::pair<FileID, unsigned> const EndInfo = SM.getDecomposedLoc(Range.getEnd());
   if (BeginInfo.first != EndInfo.first)
     return llvm::make_error<StringError>(
         errc::invalid_argument, "Range begins and ends in different files");
@@ -94,7 +94,7 @@ clang::tooling::getRangeForEdit(const CharSourceRange &EditRange,
   //    foo(DO_NOTHING(6))
   // Decide whether the current behavior is desirable and modify if not.
   CharSourceRange Range = Lexer::makeFileCharRange(EditRange, SM, LangOpts);
-  bool IsInvalid = llvm::errorToBool(validateEditRange(Range, SM));
+  bool const IsInvalid = llvm::errorToBool(validateEditRange(Range, SM));
   if (IsInvalid)
     return llvm::None;
   return Range;
@@ -135,7 +135,7 @@ getEntityEndLoc(const SourceManager &SM, SourceLocation EntityLast,
   std::unique_ptr<Lexer> Lexer = [&]() {
     bool Invalid = false;
     auto FileOffset = SM.getDecomposedLoc(ExpansionRange.getEnd());
-    llvm::StringRef File = SM.getBufferData(FileOffset.first, &Invalid);
+    llvm::StringRef const File = SM.getBufferData(FileOffset.first, &Invalid);
     assert(!Invalid && "Cannot get file/offset");
     return std::make_unique<clang::Lexer>(
         SM.getLocForStartOfFile(FileOffset.first), LangOpts, File.begin(),
@@ -299,7 +299,7 @@ static bool atOrBeforeSeparation(const SourceManager &SM, SourceLocation Loc,
   // We didn't find an empty line, so lex the next token, skipping past any
   // whitespace we just scanned.
   Token Tok;
-  bool Failed = Lexer::getRawToken(Loc, Tok, SM, LangOpts,
+  bool const Failed = Lexer::getRawToken(Loc, Tok, SM, LangOpts,
                                    /*IgnoreWhiteSpace=*/true);
   if (Failed)
     // Any text that confuses the lexer seems fair to consider a separation.
@@ -371,15 +371,15 @@ CharSourceRange tooling::getAssociatedRange(const Decl &Decl,
     // Extend to the left '[[' or '__attribute((' if we saw the attribute,
     // unless it is not a valid location.
     bool Invalid;
-    StringRef Source =
+    StringRef const Source =
         SM.getBufferData(SM.getFileID(Range.getBegin()), &Invalid);
     if (Invalid)
       continue;
-    llvm::StringRef BeforeAttr =
+    llvm::StringRef const BeforeAttr =
         Source.substr(0, SM.getFileOffset(Range.getBegin()));
-    llvm::StringRef BeforeAttrStripped = BeforeAttr.rtrim();
+    llvm::StringRef const BeforeAttrStripped = BeforeAttr.rtrim();
 
-    for (llvm::StringRef Prefix : {"[[", "__attribute__(("}) {
+    for (llvm::StringRef const Prefix : {"[[", "__attribute__(("}) {
       // Handle whitespace between attribute prefix and attribute value.
       if (BeforeAttrStripped.endswith(Prefix)) {
         // Move start to start position of prefix, which is

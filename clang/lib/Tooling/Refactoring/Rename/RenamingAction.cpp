@@ -44,9 +44,9 @@ namespace {
 
 Expected<SymbolOccurrences>
 findSymbolOccurrences(const NamedDecl *ND, RefactoringRuleContext &Context) {
-  std::vector<std::string> USRs =
+  std::vector<std::string> const USRs =
       getUSRsForDeclaration(ND, Context.getASTContext());
-  std::string PrevName = ND->getNameAsString();
+  std::string const PrevName = ND->getNameAsString();
   return getOccurrencesOfUSRs(USRs, PrevName,
                               Context.getASTContext().getTranslationUnitDecl());
 }
@@ -82,7 +82,7 @@ RenameOccurrences::createSourceReplacements(RefactoringRuleContext &Context) {
   if (!Occurrences)
     return Occurrences.takeError();
   // FIXME: Verify that the new name is valid.
-  SymbolName Name(NewName);
+  SymbolName const Name(NewName);
   return createRenameReplacements(
       *Occurrences, Context.getASTContext().getSourceManager(), Name);
 }
@@ -206,11 +206,11 @@ public:
                        const std::vector<std::string> &USRs) {
     const SourceManager &SourceMgr = Context.getSourceManager();
 
-    SymbolOccurrences Occurrences = tooling::getOccurrencesOfUSRs(
+    SymbolOccurrences const Occurrences = tooling::getOccurrencesOfUSRs(
         USRs, PrevName, Context.getTranslationUnitDecl());
     if (PrintLocations) {
       for (const auto &Occurrence : Occurrences) {
-        FullSourceLoc FullLoc(Occurrence.getNameRanges()[0].getBegin(),
+        FullSourceLoc const FullLoc(Occurrence.getNameRanges()[0].getBegin(),
                               SourceMgr);
         errs() << "clang-rename: renamed at: " << SourceMgr.getFilename(FullLoc)
                << ":" << FullLoc.getSpellingLineNumber() << ":"
@@ -219,7 +219,7 @@ public:
     }
     // FIXME: Support multi-piece names.
     // FIXME: better error handling (propagate error out).
-    SymbolName NewNameRef(NewName);
+    SymbolName const NewNameRef(NewName);
     Expected<std::vector<AtomicChange>> Change =
         createRenameReplacements(Occurrences, SourceMgr, NewNameRef);
     if (!Change) {

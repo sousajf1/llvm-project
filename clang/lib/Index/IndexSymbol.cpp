@@ -492,7 +492,7 @@ bool index::printSymbolName(const Decl *D, const LangOptions &LO,
     // the template argument names in constructors to make their name more
     // stable.
     Policy.SuppressTemplateArgsInCXXConstructors = true;
-    DeclarationName DeclName = ND->getDeclName();
+    DeclarationName const DeclName = ND->getDeclName();
     if (DeclName.isEmpty())
       return true;
     DeclName.print(OS, Policy);

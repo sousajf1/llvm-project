@@ -43,21 +43,21 @@ public:
       return true;
 
     Expr *E = Exp->getLHS();
-    SourceLocation OrigLoc = E->getExprLoc();
+    SourceLocation const OrigLoc = E->getExprLoc();
     SourceLocation Loc = OrigLoc;
     DeclRefExpr *declRef = dyn_cast<DeclRefExpr>(E->IgnoreParenCasts());
     if (declRef && isa<VarDecl>(declRef->getDecl())) {
       ASTContext &Ctx = Pass.Ctx;
-      Expr::isModifiableLvalueResult IsLV = E->isModifiableLvalue(Ctx, &Loc);
+      Expr::isModifiableLvalueResult const IsLV = E->isModifiableLvalue(Ctx, &Loc);
       if (IsLV != Expr::MLV_ConstQualified)
         return true;
       VarDecl *var = cast<VarDecl>(declRef->getDecl());
       if (var->isARCPseudoStrong()) {
-        Transaction Trans(Pass.TA);
+        Transaction const Trans(Pass.TA);
         if (Pass.TA.clearDiagnostic(diag::err_typecheck_arr_assign_enumeration,
                                     Exp->getOperatorLoc())) {
           if (!ModifiedVars.count(var)) {
-            TypeLoc TLoc = var->getTypeSourceInfo()->getTypeLoc();
+            TypeLoc const TLoc = var->getTypeSourceInfo()->getTypeLoc();
             Pass.TA.insert(TLoc.getBeginLoc(), "__strong ");
             ModifiedVars.insert(var);
           }

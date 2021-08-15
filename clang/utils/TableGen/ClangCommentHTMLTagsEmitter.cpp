@@ -20,7 +20,7 @@
 using namespace llvm;
 
 void clang::EmitClangCommentHTMLTags(RecordKeeper &Records, raw_ostream &OS) {
-  std::vector<Record *> Tags = Records.getAllDerivedDefinitions("Tag");
+  std::vector<Record *> const Tags = Records.getAllDerivedDefinitions("Tag");
   std::vector<StringMatcher::StringPair> Matches;
   for (Record *Tag : Tags) {
     Matches.emplace_back(std::string(Tag->getValueAsString("Spelling")),
@@ -37,12 +37,12 @@ void clang::EmitClangCommentHTMLTags(RecordKeeper &Records, raw_ostream &OS) {
 
 void clang::EmitClangCommentHTMLTagsProperties(RecordKeeper &Records,
                                                raw_ostream &OS) {
-  std::vector<Record *> Tags = Records.getAllDerivedDefinitions("Tag");
+  std::vector<Record *> const Tags = Records.getAllDerivedDefinitions("Tag");
   std::vector<StringMatcher::StringPair> MatchesEndTagOptional;
   std::vector<StringMatcher::StringPair> MatchesEndTagForbidden;
   for (Record *Tag : Tags) {
-    std::string Spelling = std::string(Tag->getValueAsString("Spelling"));
-    StringMatcher::StringPair Match(Spelling, "return true;");
+    std::string const Spelling = std::string(Tag->getValueAsString("Spelling"));
+    StringMatcher::StringPair const Match(Spelling, "return true;");
     if (Tag->getValueAsBit("EndTagOptional"))
       MatchesEndTagOptional.push_back(Match);
     if (Tag->getValueAsBit("EndTagForbidden"))

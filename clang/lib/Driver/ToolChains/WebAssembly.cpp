@@ -36,7 +36,7 @@ std::string WebAssembly::getMultiarchTriple(const Driver &D,
 std::string wasm::Linker::getLinkerPath(const ArgList &Args) const {
   const ToolChain &ToolChain = getToolChain();
   if (const Arg* A = Args.getLastArg(options::OPT_fuse_ld_EQ)) {
-    StringRef UseLinker = A->getValue();
+    StringRef const UseLinker = A->getValue();
     if (!UseLinker.empty()) {
       if (llvm::sys::path::is_absolute(UseLinker) &&
           llvm::sys::fs::can_execute(UseLinker))
@@ -88,7 +88,7 @@ void wasm::Linker::ConstructJob(Compilation &C, const JobAction &JA,
     Crt1 = "crt1-command.o";
 
   if (const Arg *A = Args.getLastArg(options::OPT_mexec_model_EQ)) {
-    StringRef CM = A->getValue();
+    StringRef const CM = A->getValue();
     if (CM == "command") {
       // Use default values.
     } else if (CM == "reactor") {
@@ -296,7 +296,7 @@ void WebAssembly::addClangTargetOptions(const ArgList &DriverArgs,
   }
 
   for (const Arg *A : DriverArgs.filtered(options::OPT_mllvm)) {
-    StringRef Opt = A->getValue(0);
+    StringRef const Opt = A->getValue(0);
     if (Opt.startswith("-emscripten-cxx-exceptions-allowed")) {
       // '-mllvm -emscripten-cxx-exceptions-allowed' should be used with
       // '-mllvm -enable-emscripten-cxx-exceptions'
@@ -314,7 +314,7 @@ void WebAssembly::addClangTargetOptions(const ArgList &DriverArgs,
 
       // Prevent functions specified in -emscripten-cxx-exceptions-allowed list
       // from being inlined before reaching the wasm backend.
-      StringRef FuncNamesStr = Opt.split('=').second;
+      StringRef const FuncNamesStr = Opt.split('=').second;
       SmallVector<StringRef, 4> FuncNames;
       FuncNamesStr.split(FuncNames, ',');
       for (auto Name : FuncNames) {
@@ -333,7 +333,7 @@ ToolChain::RuntimeLibType WebAssembly::GetDefaultRuntimeLibType() const {
 ToolChain::CXXStdlibType
 WebAssembly::GetCXXStdlibType(const ArgList &Args) const {
   if (Arg *A = Args.getLastArg(options::OPT_stdlib_EQ)) {
-    StringRef Value = A->getValue();
+    StringRef const Value = A->getValue();
     if (Value != "libc++")
       getDriver().Diag(diag::err_drv_invalid_stdlib_name)
           << A->getAsString(Args);
@@ -358,12 +358,12 @@ void WebAssembly::AddClangSystemIncludeArgs(const ArgList &DriverArgs,
     return;
 
   // Check for configure-time C include directories.
-  StringRef CIncludeDirs(C_INCLUDE_DIRS);
+  StringRef const CIncludeDirs(C_INCLUDE_DIRS);
   if (CIncludeDirs != "") {
     SmallVector<StringRef, 5> dirs;
     CIncludeDirs.split(dirs, ":");
-    for (StringRef dir : dirs) {
-      StringRef Prefix =
+    for (StringRef const dir : dirs) {
+      StringRef const Prefix =
           llvm::sys::path::is_absolute(dir) ? "" : StringRef(D.SysRoot);
       addExternCSystemInclude(DriverArgs, CC1Args, Prefix + dir);
     }

@@ -265,7 +265,7 @@ enum class NullConstraint { IsNull, IsNotNull, Unknown };
 
 static NullConstraint getNullConstraint(DefinedOrUnknownSVal Val,
                                         ProgramStateRef State) {
-  ConditionTruthVal Nullness = State->isNull(Val);
+  ConditionTruthVal const Nullness = State->isNull(Val);
   if (Nullness.isConstrainedFalse())
     return NullConstraint::IsNotNull;
   if (Nullness.isConstrainedTrue())
@@ -297,8 +297,8 @@ NullabilityChecker::getTrackRegion(SVal Val, bool CheckSuperRegion) const {
 PathDiagnosticPieceRef NullabilityChecker::NullabilityBugVisitor::VisitNode(
     const ExplodedNode *N, BugReporterContext &BRC,
     PathSensitiveBugReport &BR) {
-  ProgramStateRef State = N->getState();
-  ProgramStateRef StatePrev = N->getFirstPred()->getState();
+  ProgramStateRef const State = N->getState();
+  ProgramStateRef const StatePrev = N->getFirstPred()->getState();
 
   const NullabilityState *TrackedNullab = State->get<NullabilityMap>(Region);
   const NullabilityState *TrackedNullabPrev =
@@ -319,13 +319,13 @@ PathDiagnosticPieceRef NullabilityChecker::NullabilityBugVisitor::VisitNode(
   if (!S)
     return nullptr;
 
-  std::string InfoText =
+  std::string const InfoText =
       (llvm::Twine("Nullability '") +
        getNullabilityString(TrackedNullab->getValue()) + "' is inferred")
           .str();
 
   // Generate the extra diagnostic.
-  PathDiagnosticLocation Pos(S, BRC.getSourceManager(),
+  PathDiagnosticLocation const Pos(S, BRC.getSourceManager(),
                              N->getLocationContext());
   return std::make_shared<PathDiagnosticEventPiece>(Pos, InfoText, true);
 }
@@ -365,7 +365,7 @@ checkParamsForPreconditionViolation(ArrayRef<ParmVarDecl *> Params,
     if (ParamDecl->isParameterPack())
       break;
 
-    SVal LV = State->getLValue(ParamDecl, LocCtxt);
+    SVal const LV = State->getLValue(ParamDecl, LocCtxt);
     if (checkValueAtLValForInvariantViolation(State, LV,
                                               ParamDecl->getType())) {
       return true;
@@ -385,7 +385,7 @@ checkSelfIvarsForInvariantViolation(ProgramStateRef State,
   if (!SelfDecl)
     return false;
 
-  SVal SelfVal = State->getSVal(State->getRegion(SelfDecl, LocCtxt));
+  SVal const SelfVal = State->getSVal(State->getRegion(SelfDecl, LocCtxt));
 
   const ObjCObjectPointerType *SelfType =
       dyn_cast<ObjCObjectPointerType>(SelfDecl->getType());
@@ -397,7 +397,7 @@ checkSelfIvarsForInvariantViolation(ProgramStateRef State,
     return false;
 
   for (const auto *IvarDecl : ID->ivars()) {
-    SVal LV = State->getLValue(IvarDecl, SelfVal);
+    SVal const LV = State->getLValue(IvarDecl, SelfVal);
     if (checkValueAtLValForInvariantViolation(State, LV, IvarDecl->getType())) {
       return true;
     }
@@ -454,7 +454,7 @@ void NullabilityChecker::reportBugIfInvariantHolds(
 void NullabilityChecker::checkDeadSymbols(SymbolReaper &SR,
                                           CheckerContext &C) const {
   ProgramStateRef State = C.getState();
-  NullabilityMapTy Nullabilities = State->get<NullabilityMap>();
+  NullabilityMapTy const Nullabilities = State->get<NullabilityMap>();
   for (NullabilityMapTy::iterator I = Nullabilities.begin(),
                                   E = Nullabilities.end();
        I != E; ++I) {
@@ -485,7 +485,7 @@ void NullabilityChecker::checkEvent(ImplicitNullDerefEvent Event) const {
   if (!Region)
     return;
 
-  ProgramStateRef State = Event.SinkNode->getState();
+  ProgramStateRef const State = Event.SinkNode->getState();
   const NullabilityState *TrackedNullability =
       State->get<NullabilityMap>(Region);
 
@@ -538,19 +538,19 @@ void NullabilityChecker::checkLocation(SVal Location, bool IsLoad,
   if (!Region)
     return;
 
-  ProgramStateRef State = Context.getState();
+  ProgramStateRef const State = Context.getState();
 
   auto StoredVal = State->getSVal(Region).getAs<loc::MemRegionVal>();
   if (!StoredVal)
     return;
 
-  Nullability NullabilityOfTheLoadedValue =
+  Nullability const NullabilityOfTheLoadedValue =
       getNullabilityAnnotation(Region->getValueType());
 
   if (NullabilityOfTheLoadedValue == Nullability::Nonnull) {
     // It doesn't matter what we think about this particular pointer, it should
     // be considered non-null as annotated by the developer.
-    if (ProgramStateRef NewState = State->assume(*StoredVal, true)) {
+    if (ProgramStateRef const NewState = State->assume(*StoredVal, true)) {
       Context.addTransition(NewState);
     }
   }
@@ -594,7 +594,7 @@ void NullabilityChecker::checkPreStmt(const ReturnStmt *S,
     // nil checks in -init and -copy methods. We should add more sophisticated
     // logic here to suppress on common defensive idioms but still
     // warn when there is a likely problem.
-    ObjCMethodFamily Family = MD->getMethodFamily();
+    ObjCMethodFamily const Family = MD->getMethodFamily();
     if (OMF_init == Family || OMF_copy == Family || OMF_mutableCopy == Family)
       InSuppressedMethodFamily = true;
 
@@ -605,19 +605,19 @@ void NullabilityChecker::checkPreStmt(const ReturnStmt *S,
     return;
   }
 
-  NullConstraint Nullness = getNullConstraint(*RetSVal, State);
+  NullConstraint const Nullness = getNullConstraint(*RetSVal, State);
 
-  Nullability RequiredNullability = getNullabilityAnnotation(RequiredRetType);
+  Nullability const RequiredNullability = getNullabilityAnnotation(RequiredRetType);
 
   // If the returned value is null but the type of the expression
   // generating it is nonnull then we will suppress the diagnostic.
   // This enables explicit suppression when returning a nil literal in a
   // function with a _Nonnull return type:
   //    return (NSString * _Nonnull)0;
-  Nullability RetExprTypeLevelNullability =
+  Nullability const RetExprTypeLevelNullability =
         getNullabilityAnnotation(lookThroughImplicitCasts(RetExpr)->getType());
 
-  bool NullReturnedFromNonNull = (RequiredNullability == Nullability::Nonnull &&
+  bool const NullReturnedFromNonNull = (RequiredNullability == Nullability::Nonnull &&
                                   Nullness == NullConstraint::IsNull);
   if (ChecksEnabled[CK_NullReturnedFromNonnull] && NullReturnedFromNonNull &&
       RetExprTypeLevelNullability != Nullability::Nonnull &&
@@ -653,7 +653,7 @@ void NullabilityChecker::checkPreStmt(const ReturnStmt *S,
   const NullabilityState *TrackedNullability =
       State->get<NullabilityMap>(Region);
   if (TrackedNullability) {
-    Nullability TrackedNullabValue = TrackedNullability->getValue();
+    Nullability const TrackedNullabValue = TrackedNullability->getValue();
     if (ChecksEnabled[CK_NullableReturnedFromNonnull] &&
         Nullness != NullConstraint::IsNotNull &&
         TrackedNullabValue == Nullability::Nullable &&
@@ -686,11 +686,11 @@ void NullabilityChecker::checkPreCall(const CallEvent &Call,
   if (!Call.getDecl())
     return;
 
-  ProgramStateRef State = C.getState();
+  ProgramStateRef const State = C.getState();
   if (State->get<InvariantViolated>())
     return;
 
-  ProgramStateRef OrigState = State;
+  ProgramStateRef const OrigState = State;
 
   unsigned Idx = 0;
   for (const ParmVarDecl *Param : Call.parameters()) {
@@ -709,14 +709,14 @@ void NullabilityChecker::checkPreCall(const CallEvent &Call,
         !Param->getType()->isReferenceType())
       continue;
 
-    NullConstraint Nullness = getNullConstraint(*ArgSVal, State);
+    NullConstraint const Nullness = getNullConstraint(*ArgSVal, State);
 
-    Nullability RequiredNullability =
+    Nullability const RequiredNullability =
         getNullabilityAnnotation(Param->getType());
-    Nullability ArgExprTypeLevelNullability =
+    Nullability const ArgExprTypeLevelNullability =
         getNullabilityAnnotation(ArgExpr->getType());
 
-    unsigned ParamIdx = Param->getFunctionScopeIndex() + 1;
+    unsigned const ParamIdx = Param->getFunctionScopeIndex() + 1;
 
     if (ChecksEnabled[CK_NullPassedToNonnull] &&
         Nullness == NullConstraint::IsNull &&
@@ -791,7 +791,7 @@ void NullabilityChecker::checkPostCall(const CallEvent &Call,
   const FunctionType *FuncType = Decl->getFunctionType();
   if (!FuncType)
     return;
-  QualType ReturnType = FuncType->getReturnType();
+  QualType const ReturnType = FuncType->getReturnType();
   if (!ReturnType->isAnyPointerType())
     return;
   ProgramStateRef State = C.getState();
@@ -805,7 +805,7 @@ void NullabilityChecker::checkPostCall(const CallEvent &Call,
   // CG headers are misannotated. Do not warn for symbols that are the results
   // of CG calls.
   const SourceManager &SM = C.getSourceManager();
-  StringRef FilePath = SM.getFilename(SM.getSpellingLoc(Decl->getBeginLoc()));
+  StringRef const FilePath = SM.getFilename(SM.getSpellingLoc(Decl->getBeginLoc()));
   if (llvm::sys::path::filename(FilePath).startswith("CG")) {
     State = State->set<NullabilityMap>(Region, Nullability::Contradicted);
     C.addTransition(State);
@@ -830,11 +830,11 @@ static Nullability getReceiverNullability(const ObjCMethodCall &M,
     return Nullability::Nonnull;
   }
   // Otherwise look up nullability in the state.
-  SVal Receiver = M.getReceiverSVal();
+  SVal const Receiver = M.getReceiverSVal();
   if (auto DefOrUnknown = Receiver.getAs<DefinedOrUnknownSVal>()) {
     // If the receiver is constrained to be nonnull, assume that it is nonnull
     // regardless of its type.
-    NullConstraint Nullness = getNullConstraint(*DefOrUnknown, State);
+    NullConstraint const Nullness = getNullConstraint(*DefOrUnknown, State);
     if (Nullness == NullConstraint::IsNotNull)
       return Nullability::Nonnull;
   }
@@ -859,7 +859,7 @@ void NullabilityChecker::checkPostObjCMessage(const ObjCMethodCall &M,
   auto Decl = M.getDecl();
   if (!Decl)
     return;
-  QualType RetType = Decl->getReturnType();
+  QualType const RetType = Decl->getReturnType();
   if (!RetType->isAnyPointerType())
     return;
 
@@ -892,7 +892,7 @@ void NullabilityChecker::checkPostObjCMessage(const ObjCMethodCall &M,
       return;
     }
     // For similar reasons ignore some methods of Cocoa arrays.
-    StringRef FirstSelectorSlot = M.getSelector().getNameForSlot(0);
+    StringRef const FirstSelectorSlot = M.getSelector().getNameForSlot(0);
     if (Name.contains("Array") &&
         (FirstSelectorSlot == "firstObject" ||
          FirstSelectorSlot == "lastObject")) {
@@ -919,7 +919,7 @@ void NullabilityChecker::checkPostObjCMessage(const ObjCMethodCall &M,
   }
 
   const ObjCMessageExpr *Message = M.getOriginExpr();
-  Nullability SelfNullability = getReceiverNullability(M, State);
+  Nullability const SelfNullability = getReceiverNullability(M, State);
 
   const NullabilityState *NullabilityOfReturn =
       State->get<NullabilityMap>(ReturnRegion);
@@ -928,8 +928,8 @@ void NullabilityChecker::checkPostObjCMessage(const ObjCMethodCall &M,
     // When we have a nullability tracked for the return value, the nullability
     // of the expression will be the most nullable of the receiver and the
     // return value.
-    Nullability RetValTracked = NullabilityOfReturn->getValue();
-    Nullability ComputedNullab =
+    Nullability const RetValTracked = NullabilityOfReturn->getValue();
+    Nullability const ComputedNullab =
         getMostNullable(RetValTracked, SelfNullability);
     if (ComputedNullab != RetValTracked &&
         ComputedNullab != Nullability::Unspecified) {
@@ -954,7 +954,7 @@ void NullabilityChecker::checkPostObjCMessage(const ObjCMethodCall &M,
   if (M.getMessageKind() == OCM_PropertyAccess && !C.wasInlined)
     RetNullability = Nullability::Nonnull;
 
-  Nullability ComputedNullab = getMostNullable(RetNullability, SelfNullability);
+  Nullability const ComputedNullab = getMostNullable(RetNullability, SelfNullability);
   if (ComputedNullab == Nullability::Nullable) {
     const Stmt *NullabilitySource = ComputedNullab == RetNullability
                                         ? Message
@@ -971,8 +971,8 @@ void NullabilityChecker::checkPostObjCMessage(const ObjCMethodCall &M,
 /// suppress warnings.
 void NullabilityChecker::checkPostStmt(const ExplicitCastExpr *CE,
                                        CheckerContext &C) const {
-  QualType OriginType = CE->getSubExpr()->getType();
-  QualType DestType = CE->getType();
+  QualType const OriginType = CE->getSubExpr()->getType();
+  QualType const DestType = CE->getType();
   if (!OriginType->isAnyPointerType())
     return;
   if (!DestType->isAnyPointerType())
@@ -982,7 +982,7 @@ void NullabilityChecker::checkPostStmt(const ExplicitCastExpr *CE,
   if (State->get<InvariantViolated>())
     return;
 
-  Nullability DestNullability = getNullabilityAnnotation(DestType);
+  Nullability const DestNullability = getNullabilityAnnotation(DestType);
 
   // No explicit nullability in the destination type, so this cast does not
   // change the nullability.
@@ -996,7 +996,7 @@ void NullabilityChecker::checkPostStmt(const ExplicitCastExpr *CE,
 
   // When 0 is converted to nonnull mark it as contradicted.
   if (DestNullability == Nullability::Nonnull) {
-    NullConstraint Nullness = getNullConstraint(*RegionSVal, State);
+    NullConstraint const Nullness = getNullConstraint(*RegionSVal, State);
     if (Nullness == NullConstraint::IsNull) {
       State = State->set<NullabilityMap>(Region, Nullability::Contradicted);
       C.addTransition(State);
@@ -1098,7 +1098,7 @@ void NullabilityChecker::checkBind(SVal L, SVal V, const Stmt *S,
   if (!TVR)
     return;
 
-  QualType LocType = TVR->getValueType();
+  QualType const LocType = TVR->getValueType();
   if (!LocType->isAnyPointerType())
     return;
 
@@ -1110,13 +1110,13 @@ void NullabilityChecker::checkBind(SVal L, SVal V, const Stmt *S,
   if (!ValDefOrUnknown)
     return;
 
-  NullConstraint RhsNullness = getNullConstraint(*ValDefOrUnknown, State);
+  NullConstraint const RhsNullness = getNullConstraint(*ValDefOrUnknown, State);
 
   Nullability ValNullability = Nullability::Unspecified;
   if (SymbolRef Sym = ValDefOrUnknown->getAsSymbol())
     ValNullability = getNullabilityAnnotation(Sym->getType());
 
-  Nullability LocNullability = getNullabilityAnnotation(LocType);
+  Nullability const LocNullability = getNullabilityAnnotation(LocType);
 
   // If the type of the RHS expression is nonnull, don't warn. This
   // enables explicit suppression with a cast to nonnull.
@@ -1127,7 +1127,7 @@ void NullabilityChecker::checkBind(SVal L, SVal V, const Stmt *S,
       getNullabilityAnnotation(lookThroughImplicitCasts(ValueExpr)->getType());
   }
 
-  bool NullAssignedToNonNull = (LocNullability == Nullability::Nonnull &&
+  bool const NullAssignedToNonNull = (LocNullability == Nullability::Nonnull &&
                                 RhsNullness == NullConstraint::IsNull);
   if (ChecksEnabled[CK_NullPassedToNonnull] && NullAssignedToNonNull &&
       ValNullability != Nullability::Nonnull &&
@@ -1209,7 +1209,7 @@ void NullabilityChecker::checkBind(SVal L, SVal V, const Stmt *S,
 void NullabilityChecker::printState(raw_ostream &Out, ProgramStateRef State,
                                     const char *NL, const char *Sep) const {
 
-  NullabilityMapTy B = State->get<NullabilityMap>();
+  NullabilityMapTy const B = State->get<NullabilityMap>();
 
   if (State->get<InvariantViolated>())
     Out << Sep << NL

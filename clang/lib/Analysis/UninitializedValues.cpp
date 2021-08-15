@@ -45,7 +45,7 @@ static bool isTrackedVar(const VarDecl *vd, const DeclContext *dc) {
   if (vd->isLocalVarDecl() && !vd->hasGlobalStorage() &&
       !vd->isExceptionVariable() && !vd->isInitCapture() &&
       !vd->isImplicit() && vd->getDeclContext() == dc) {
-    QualType ty = vd->getType();
+    QualType const ty = vd->getType();
     return ty->isScalarType() || ty->isVectorType() || ty->isRecordType();
   }
   return false;
@@ -87,7 +87,7 @@ void DeclToIndex::computeMap(const DeclContext &dc) {
 }
 
 Optional<unsigned> DeclToIndex::getValueIndex(const VarDecl *d) const {
-  llvm::DenseMap<const VarDecl *, unsigned>::const_iterator I = map.find(d);
+  llvm::DenseMap<const VarDecl *, unsigned>::const_iterator const I = map.find(d);
   if (I == map.end())
     return None;
   return I->second;
@@ -159,9 +159,9 @@ CFGBlockValues::CFGBlockValues(const CFG &c) : cfg(c), vals(0) {}
 
 void CFGBlockValues::computeSetOfDeclarations(const DeclContext &dc) {
   declToIndex.computeMap(dc);
-  unsigned decls = declToIndex.size();
+  unsigned const decls = declToIndex.size();
   scratch.resize(decls);
-  unsigned n = cfg.getNumBlockIDs();
+  unsigned const n = cfg.getNumBlockIDs();
   if (!n)
     return;
   vals.resize(n);
@@ -194,7 +194,7 @@ void CFGBlockValues::mergeIntoScratch(ValueVector const &source,
 
 bool CFGBlockValues::updateValueVectorWithScratch(const CFGBlock *block) {
   ValueVector &dst = getValueVector(block);
-  bool changed = (dst != scratch);
+  bool const changed = (dst != scratch);
   if (changed)
     dst = scratch;
 #if DEBUG_LOGGING
@@ -295,7 +295,7 @@ public:
   void operator()(Stmt *S) { Visit(S); }
 
   Class get(const DeclRefExpr *DRE) const {
-    llvm::DenseMap<const DeclRefExpr*, Class>::const_iterator I
+    llvm::DenseMap<const DeclRefExpr*, Class>::const_iterator const I
         = Classification.find(DRE);
     if (I != Classification.end())
       return I->second;
@@ -363,7 +363,7 @@ void ClassifyRefs::classify(const Expr *E, Class C) {
     }
   }
 
-  FindVarResult Var = findVar(E, DC);
+  FindVarResult const Var = findVar(E, DC);
   if (const DeclRefExpr *DRE = Var.getDeclRefExpr())
     Classification[DRE] = std::max(Classification[DRE], C);
 }
@@ -422,7 +422,7 @@ void ClassifyRefs::VisitCallExpr(CallExpr *CE) {
       classify(CE->getArg(0), Use);
     return;
   }
-  bool isTrivialBody = hasTrivialBody(CE);
+  bool const isTrivialBody = hasTrivialBody(CE);
   // If a value is passed by const pointer to a function,
   // we should not assume that it is initialized by the call, and we
   // conservatively do not assume that it is used.
@@ -574,7 +574,7 @@ public:
         if (!Pred)
           continue;
 
-        Value AtPredExit = vals.getValue(Pred, B, vd);
+        Value const AtPredExit = vals.getValue(Pred, B, vd);
         if (AtPredExit == Initialized)
           // This block initializes the variable.
           continue;
@@ -632,7 +632,7 @@ public:
     // Scan the frontier, looking for blocks where the variable was
     // uninitialized.
     for (const auto *Block : cfg) {
-      unsigned BlockID = Block->getBlockID();
+      unsigned const BlockID = Block->getBlockID();
       const Stmt *Term = Block->getTerminatorStmt();
       if (SuccsVisited[BlockID] && SuccsVisited[BlockID] < Block->succ_size() &&
           Term) {
@@ -675,13 +675,13 @@ public:
 } // namespace
 
 void TransferFunctions::reportUse(const Expr *ex, const VarDecl *vd) {
-  Value v = vals[vd];
+  Value const v = vals[vd];
   if (isUninitialized(v))
     handler.handleUseOfUninitVariable(vd, getUninitUse(ex, vd, v));
 }
 
 void TransferFunctions::reportConstRefUse(const Expr *ex, const VarDecl *vd) {
-  Value v = vals[vd];
+  Value const v = vals[vd];
   if (isAlwaysUninit(v))
     handler.handleConstRefUseOfUninitVariable(vd, getUninitUse(ex, vd, v));
 }
@@ -763,7 +763,7 @@ void TransferFunctions::VisitDeclRefExpr(DeclRefExpr *dr) {
 
 void TransferFunctions::VisitBinaryOperator(BinaryOperator *BO) {
   if (BO->getOpcode() == BO_Assign) {
-    FindVarResult Var = findVar(BO->getLHS());
+    FindVarResult const Var = findVar(BO->getLHS());
     if (const VarDecl *VD = Var.getDecl())
       vals[VD] = Initialized;
   }
@@ -943,7 +943,7 @@ void clang::runUninitializedVariablesAnalysis(
     PBH.currentBlock = block->getBlockID();
 
     // Did the block change?
-    bool changed = runOnBlock(block, cfg, ac, vals,
+    bool const changed = runOnBlock(block, cfg, ac, vals,
                               classification, wasAnalyzed, PBH);
     ++stats.NumBlockVisits;
     if (changed || !previouslyVisited[block->getBlockID()])

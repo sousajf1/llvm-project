@@ -65,7 +65,7 @@ static size_t getFreeListIndexForSize(size_t size) {
 
 void *AttributeFactory::allocate(size_t size) {
   // Check for a previously reclaimed attribute.
-  size_t index = getFreeListIndexForSize(size);
+  size_t const index = getFreeListIndexForSize(size);
   if (index < FreeLists.size() && !FreeLists[index].empty()) {
     ParsedAttr *attr = FreeLists[index].back();
     FreeLists[index].pop_back();
@@ -77,8 +77,8 @@ void *AttributeFactory::allocate(size_t size) {
 }
 
 void AttributeFactory::deallocate(ParsedAttr *Attr) {
-  size_t size = Attr->allocated_size();
-  size_t freeListIndex = getFreeListIndexForSize(size);
+  size_t const size = Attr->allocated_size();
+  size_t const freeListIndex = getFreeListIndexForSize(size);
 
   // Expand FreeLists to the appropriate size, if required.
   if (freeListIndex >= FreeLists.size())
@@ -129,7 +129,7 @@ const ParsedAttrInfo &ParsedAttrInfo::get(const AttributeCommonInfo &A) {
       PluginAttrInstances->emplace_back(It.instantiate());
 
   // Search for a ParsedAttrInfo whose name and syntax match.
-  std::string FullName = A.getNormalizedFullName();
+  std::string const FullName = A.getNormalizedFullName();
   AttributeCommonInfo::Syntax SyntaxUsed = A.getSyntax();
   if (SyntaxUsed == AttributeCommonInfo::AS_ContextSensitiveKeyword)
     SyntaxUsed = AttributeCommonInfo::AS_Keyword;

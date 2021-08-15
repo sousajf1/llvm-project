@@ -62,7 +62,7 @@ void setBitsAccordingToFunctionAttributes(const CallType &Call,
     for (const ParamIdx &Idx : NonNull->args()) {
       // 'nonnull' attribute's parameters are 1-based and should be adjusted to
       // match actual AST parameter/argument indices.
-      unsigned IdxAST = Idx.getASTIndex();
+      unsigned const IdxAST = Idx.getASTIndex();
       if (IdxAST >= AttrNonNull.size())
         continue;
       AttrNonNull.set(IdxAST);
@@ -74,7 +74,7 @@ template <class CallType>
 void setBitsAccordingToParameterAttributes(const CallType &Call,
                                            llvm::SmallBitVector &AttrNonNull) {
   for (const ParmVarDecl *Parameter : Call.parameters()) {
-    unsigned ParameterIndex = Parameter->getFunctionScopeIndex();
+    unsigned const ParameterIndex = Parameter->getFunctionScopeIndex();
     if (ParameterIndex == AttrNonNull.size())
       break;
 
@@ -110,21 +110,21 @@ void NonNullParamChecker::checkPreCall(const CallEvent &Call,
   if (!Call.getDecl())
     return;
 
-  llvm::SmallBitVector AttrNonNull = getNonNullAttrs(Call);
-  unsigned NumArgs = Call.getNumArgs();
+  llvm::SmallBitVector const AttrNonNull = getNonNullAttrs(Call);
+  unsigned const NumArgs = Call.getNumArgs();
 
   ProgramStateRef state = C.getState();
-  ArrayRef<ParmVarDecl *> parms = Call.parameters();
+  ArrayRef<ParmVarDecl *> const parms = Call.parameters();
 
   for (unsigned idx = 0; idx < NumArgs; ++idx) {
     // For vararg functions, a corresponding parameter decl may not exist.
-    bool HasParam = idx < parms.size();
+    bool const HasParam = idx < parms.size();
 
     // Check if the parameter is a reference. We want to report when reference
     // to a null pointer is passed as a parameter.
-    bool HasRefTypeParam =
+    bool const HasRefTypeParam =
         HasParam ? parms[idx]->getType()->isReferenceType() : false;
-    bool ExpectedToBeNonNull = AttrNonNull.test(idx);
+    bool const ExpectedToBeNonNull = AttrNonNull.test(idx);
 
     if (!ExpectedToBeNonNull && !HasRefTypeParam)
       continue;
@@ -145,7 +145,7 @@ void NonNullParamChecker::checkPreCall(const CallEvent &Call,
       if (!ArgE)
         continue;
 
-      QualType T = ArgE->getType();
+      QualType const T = ArgE->getType();
       const RecordType *UT = T->getAsUnionType();
       if (!UT || !UT->getDecl()->hasAttr<TransparentUnionAttr>())
         continue;
@@ -198,7 +198,7 @@ void NonNullParamChecker::checkPreCall(const CallEvent &Call,
 
     if (stateNull) {
       if (ExplodedNode *N = C.generateSink(stateNull, C.getPredecessor())) {
-        ImplicitNullDerefEvent event = {
+        ImplicitNullDerefEvent const event = {
             V, false, N, &C.getBugReporter(),
             /*IsDirectDereference=*/HasRefTypeParam};
         dispatchEvent(event);
@@ -247,7 +247,7 @@ void NonNullParamChecker::checkBeginFunction(CheckerContext &Context) const {
     return;
 
   ProgramStateRef State = Context.getState();
-  llvm::SmallBitVector ParameterNonNullMarks = getNonNullAttrs(*AbstractCall);
+  llvm::SmallBitVector const ParameterNonNullMarks = getNonNullAttrs(*AbstractCall);
 
   for (const ParmVarDecl *Parameter : AbstractCall->parameters()) {
     // 1. Check parameter if it is annotated as non-null
@@ -260,13 +260,13 @@ void NonNullParamChecker::checkBeginFunction(CheckerContext &Context) const {
     if (!Parameter->getType()->isPointerType())
       continue;
 
-    Loc ParameterLoc = State->getLValue(Parameter, LocContext);
+    Loc const ParameterLoc = State->getLValue(Parameter, LocContext);
     // We never consider top-level function parameters undefined.
     auto StoredVal =
         State->getSVal(ParameterLoc).castAs<DefinedOrUnknownSVal>();
 
     // 3. Assume that it is indeed non-null
-    if (ProgramStateRef NewState = State->assume(StoredVal, true)) {
+    if (ProgramStateRef const NewState = State->assume(StoredVal, true)) {
       State = NewState;
     }
   }

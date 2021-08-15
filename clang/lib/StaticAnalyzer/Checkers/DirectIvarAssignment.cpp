@@ -174,7 +174,7 @@ void DirectIvarAssignment::MethodCrawler::VisitBinaryOperator(
     return;
 
   if (const ObjCIvarDecl *D = IvarRef->getDecl()) {
-    IvarToPropertyMapTy::const_iterator I = IvarToPropMap.find(D);
+    IvarToPropertyMapTy::const_iterator const I = IvarToPropMap.find(D);
 
     if (I != IvarToPropMap.end()) {
       const ObjCPropertyDecl *PD = I->second;

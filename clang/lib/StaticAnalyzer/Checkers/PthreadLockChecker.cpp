@@ -294,7 +294,7 @@ ProgramStateRef PthreadLockChecker::resolvePossiblyDestroyedMutex(
          lstate->isUnlockedAndPossiblyDestroyed());
 
   ConstraintManager &CMgr = state->getConstraintManager();
-  ConditionTruthVal retZero = CMgr.isNull(state, *sym);
+  ConditionTruthVal const retZero = CMgr.isNull(state, *sym);
   if (retZero.isConstrainedFalse()) {
     if (lstate->isUntouchedAndPossiblyDestroyed())
       state = state->remove<LockMap>(lockR);
@@ -311,7 +311,7 @@ ProgramStateRef PthreadLockChecker::resolvePossiblyDestroyedMutex(
 
 void PthreadLockChecker::printState(raw_ostream &Out, ProgramStateRef State,
                                     const char *NL, const char *Sep) const {
-  LockMapTy LM = State->get<LockMap>();
+  LockMapTy const LM = State->get<LockMap>();
   if (!LM.isEmpty()) {
     Out << Sep << "Mutex states:" << NL;
     for (auto I : LM) {
@@ -330,7 +330,7 @@ void PthreadLockChecker::printState(raw_ostream &Out, ProgramStateRef State,
     }
   }
 
-  LockSetTy LS = State->get<LockSet>();
+  LockSetTy const LS = State->get<LockSet>();
   if (!LS.isEmpty()) {
     Out << Sep << "Mutex lock order:" << NL;
     for (auto I : LS) {
@@ -339,7 +339,7 @@ void PthreadLockChecker::printState(raw_ostream &Out, ProgramStateRef State,
     }
   }
 
-  DestroyRetValTy DRV = State->get<DestroyRetVal>();
+  DestroyRetValTy const DRV = State->get<DestroyRetVal>();
   if (!DRV.isEmpty()) {
     Out << Sep << "Mutexes in unresolved possibly destroyed state:" << NL;
     for (auto I : DRV) {
@@ -423,7 +423,7 @@ void PthreadLockChecker::AcquireLockAux(const CallEvent &Call,
   ProgramStateRef lockSucc = state;
   if (IsTryLock) {
     // Bifurcate the state, and allow a mode where the lock acquisition fails.
-    SVal RetVal = Call.getReturnValue();
+    SVal const RetVal = Call.getReturnValue();
     if (auto DefinedRetVal = RetVal.getAs<DefinedSVal>()) {
       ProgramStateRef lockFail;
       switch (Semantics) {
@@ -443,7 +443,7 @@ void PthreadLockChecker::AcquireLockAux(const CallEvent &Call,
     // and returned an Unknown or Undefined value.
   } else if (Semantics == PthreadSemantics) {
     // Assume that the return value was 0.
-    SVal RetVal = Call.getReturnValue();
+    SVal const RetVal = Call.getReturnValue();
     if (auto DefinedRetVal = RetVal.getAs<DefinedSVal>()) {
       // FIXME: If the lock function was inlined and returned true,
       // we need to behave sanely - at least generate sink.
@@ -498,7 +498,7 @@ void PthreadLockChecker::ReleaseLockAux(const CallEvent &Call,
     }
   }
 
-  LockSetTy LS = state->get<LockSet>();
+  LockSetTy const LS = state->get<LockSet>();
 
   if (!LS.isEmpty()) {
     const MemRegion *firstLockR = LS.getHead();
@@ -577,7 +577,7 @@ void PthreadLockChecker::DestroyLockAux(const CallEvent &Call,
     }
   }
 
-  StringRef Message = LState->isLocked()
+  StringRef const Message = LState->isLocked()
                           ? "This lock is still locked"
                           : "This lock has already been destroyed";
 
@@ -612,7 +612,7 @@ void PthreadLockChecker::InitLockAux(const CallEvent &Call, CheckerContext &C,
     return;
   }
 
-  StringRef Message = LState->isLocked()
+  StringRef const Message = LState->isLocked()
                           ? "This lock is still being held"
                           : "This lock has already been initialized";
 

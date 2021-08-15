@@ -36,7 +36,7 @@ systemz::FloatABI systemz::getSystemZFloatABI(const Driver &D,
 
 std::string systemz::getSystemZTargetCPU(const ArgList &Args) {
   if (const Arg *A = Args.getLastArg(clang::driver::options::OPT_march_EQ)) {
-    llvm::StringRef CPUName = A->getValue();
+    llvm::StringRef const CPUName = A->getValue();
 
     if (CPUName == "native") {
       std::string CPU = std::string(llvm::sys::getHostCPUName());
@@ -68,7 +68,7 @@ void systemz::getSystemZTargetFeatures(const Driver &D, const ArgList &Args,
       Features.push_back("-vector");
   }
 
-  systemz::FloatABI FloatABI = systemz::getSystemZFloatABI(D, Args);
+  systemz::FloatABI const FloatABI = systemz::getSystemZFloatABI(D, Args);
   if (FloatABI == systemz::FloatABI::Soft)
     Features.push_back("+soft-float");
 }

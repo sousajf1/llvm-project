@@ -185,8 +185,8 @@ GenerateModuleAction::CreateASTConsumer(CompilerInstance &CI,
   if (!OS)
     return nullptr;
 
-  std::string OutputFile = CI.getFrontendOpts().OutputFile;
-  std::string Sysroot;
+  std::string const OutputFile = CI.getFrontendOpts().OutputFile;
+  std::string const Sysroot;
 
   auto Buffer = std::make_shared<PCHBuffer>();
   std::vector<std::unique_ptr<ASTConsumer>> Consumers;
@@ -309,7 +309,7 @@ bool GenerateHeaderModuleAction::BeginSourceFileAction(
   // Synthesize a Module object for the given headers.
   auto &HS = CI.getPreprocessor().getHeaderSearchInfo();
   SmallVector<Module::Header, 16> Headers;
-  for (StringRef Name : ModuleHeaders) {
+  for (StringRef const Name : ModuleHeaders) {
     const DirectoryLookup *CurDir = nullptr;
     Optional<FileEntryRef> FE = HS.LookupFile(
         Name, SourceLocation(), /*Angled*/ false, nullptr, CurDir, None,
@@ -354,7 +354,7 @@ VerifyPCHAction::CreateASTConsumer(CompilerInstance &CI, StringRef InFile) {
 
 void VerifyPCHAction::ExecuteAction() {
   CompilerInstance &CI = getCompilerInstance();
-  bool Preamble = CI.getPreprocessorOpts().PrecompiledPreambleBytes.first != 0;
+  bool const Preamble = CI.getPreprocessorOpts().PrecompiledPreambleBytes.first != 0;
   const std::string &Sysroot = CI.getHeaderSearchOpts().Sysroot;
   std::unique_ptr<ASTReader> Reader(new ASTReader(
       CI.getPreprocessor(), CI.getModuleCache(), &CI.getASTContext(),
@@ -575,7 +575,7 @@ namespace {
 
       if (!LangOpts.ModuleFeatures.empty()) {
         Out.indent(4) << "Module features:\n";
-        for (StringRef Feature : LangOpts.ModuleFeatures)
+        for (StringRef const Feature : LangOpts.ModuleFeatures)
           Out.indent(6) << Feature << "\n";
       }
 
@@ -741,7 +741,7 @@ bool DumpModuleInfoAction::BeginInvocation(CompilerInstance &CI) {
 void DumpModuleInfoAction::ExecuteAction() {
   // Set up the output file.
   std::unique_ptr<llvm::raw_fd_ostream> OutFile;
-  StringRef OutputFileName = getCompilerInstance().getFrontendOpts().OutputFile;
+  StringRef const OutputFileName = getCompilerInstance().getFrontendOpts().OutputFile;
   if (!OutputFileName.empty() && OutputFileName != "-") {
     std::error_code EC;
     OutFile.reset(new llvm::raw_fd_ostream(OutputFileName.str(), EC,
@@ -752,14 +752,14 @@ void DumpModuleInfoAction::ExecuteAction() {
   Out << "Information for module file '" << getCurrentFile() << "':\n";
   auto &FileMgr = getCompilerInstance().getFileManager();
   auto Buffer = FileMgr.getBufferForFile(getCurrentFile());
-  StringRef Magic = (*Buffer)->getMemBufferRef().getBuffer();
-  bool IsRaw = (Magic.size() >= 4 && Magic[0] == 'C' && Magic[1] == 'P' &&
+  StringRef const Magic = (*Buffer)->getMemBufferRef().getBuffer();
+  bool const IsRaw = (Magic.size() >= 4 && Magic[0] == 'C' && Magic[1] == 'P' &&
                 Magic[2] == 'C' && Magic[3] == 'H');
   Out << "  Module format: " << (IsRaw ? "raw" : "obj") << "\n";
 
-  Preprocessor &PP = getCompilerInstance().getPreprocessor();
+  Preprocessor  const&PP = getCompilerInstance().getPreprocessor();
   DumpModuleInfoListener Listener(Out);
-  HeaderSearchOptions &HSOpts =
+  HeaderSearchOptions  const&HSOpts =
       PP.getHeaderSearchInfo().getHeaderSearchOpts();
   ASTReader::readASTFileControlBlock(
       getCurrentFile(), FileMgr, getCompilerInstance().getPCHContainerReader(),
@@ -772,11 +772,11 @@ void DumpModuleInfoAction::ExecuteAction() {
 //===----------------------------------------------------------------------===//
 
 void DumpRawTokensAction::ExecuteAction() {
-  Preprocessor &PP = getCompilerInstance().getPreprocessor();
-  SourceManager &SM = PP.getSourceManager();
+  Preprocessor  const&PP = getCompilerInstance().getPreprocessor();
+  SourceManager  const&SM = PP.getSourceManager();
 
   // Start lexing the specified input file.
-  llvm::MemoryBufferRef FromFile = SM.getBufferOrFake(SM.getMainFileID());
+  llvm::MemoryBufferRef const FromFile = SM.getBufferOrFake(SM.getMainFileID());
   Lexer RawLex(SM.getMainFileID(), FromFile, SM, PP.getLangOpts());
   RawLex.SetKeepWhitespaceMode(true);
 
@@ -910,7 +910,7 @@ void PrintPreambleAction::ExecuteAction() {
   CompilerInstance &CI = getCompilerInstance();
   auto Buffer = CI.getFileManager().getBufferForFile(getCurrentFile());
   if (Buffer) {
-    unsigned Preamble =
+    unsigned const Preamble =
         Lexer::ComputePreamble((*Buffer)->getBuffer(), CI.getLangOpts()).Size;
     llvm::outs().write((*Buffer)->getBufferStart(), Preamble);
   }
@@ -966,8 +966,8 @@ void DumpCompilerOptionsAction::ExecuteAction() {
 
 void PrintDependencyDirectivesSourceMinimizerAction::ExecuteAction() {
   CompilerInstance &CI = getCompilerInstance();
-  SourceManager &SM = CI.getPreprocessor().getSourceManager();
-  llvm::MemoryBufferRef FromFile = SM.getBufferOrFake(SM.getMainFileID());
+  SourceManager  const&SM = CI.getPreprocessor().getSourceManager();
+  llvm::MemoryBufferRef const FromFile = SM.getBufferOrFake(SM.getMainFileID());
 
   llvm::SmallString<1024> Output;
   llvm::SmallVector<minimize_source_to_dependency_directives::Token, 32> Toks;

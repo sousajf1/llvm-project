@@ -30,7 +30,7 @@ inline std::enable_if_t<!std::is_pointer<T>::value, T> ReadArg(Program &P,
 template <typename T>
 inline std::enable_if_t<std::is_pointer<T>::value, T> ReadArg(Program &P,
                                                               CodePtr OpPC) {
-  uint32_t ID = OpPC.read<uint32_t>();
+  uint32_t const ID = OpPC.read<uint32_t>();
   return reinterpret_cast<T>(P.getNativePointer(ID));
 }
 
@@ -39,7 +39,7 @@ LLVM_DUMP_METHOD void Function::dump() const { dump(llvm::errs()); }
 LLVM_DUMP_METHOD void Function::dump(llvm::raw_ostream &OS) const {
   if (F) {
     if (auto *Cons = dyn_cast<CXXConstructorDecl>(F)) {
-      DeclarationName Name = Cons->getParent()->getDeclName();
+      DeclarationName const Name = Cons->getParent()->getDeclName();
       OS << Name << "::" << Name << ":\n";
     } else {
       OS << F->getDeclName() << ":\n";
@@ -60,7 +60,7 @@ LLVM_DUMP_METHOD void Function::dump(llvm::raw_ostream &OS) const {
   };
 
   for (CodePtr Start = getCodeBegin(), PC = Start; PC != getCodeEnd();) {
-    size_t Addr = PC - Start;
+    size_t const Addr = PC - Start;
     auto Op = PC.read<Opcode>();
     OS << llvm::format("%8d", Addr) << " ";
     switch (Op) {

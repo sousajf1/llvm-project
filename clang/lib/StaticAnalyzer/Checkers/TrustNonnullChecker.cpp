@@ -155,7 +155,7 @@ private:
   /// \returns Whether we trust the result of the method call to be
   /// a non-null pointer.
   bool isNonNullPtr(const CallEvent &Call, CheckerContext &C) const {
-    QualType ExprRetType = Call.getResultType();
+    QualType const ExprRetType = Call.getResultType();
     if (!ExprRetType->isAnyPointerType())
       return false;
 
@@ -174,7 +174,7 @@ private:
     if (isa<ObjCProtocolDecl>(MD->getDeclContext()))
       return false;
 
-    QualType DeclRetType = MD->getReturnType();
+    QualType const DeclRetType = MD->getReturnType();
     if (getNullabilityAnnotation(DeclRetType) != Nullability::Nonnull)
       return false;
 
@@ -184,8 +184,8 @@ private:
       return true;
 
     // Alternatively, the analyzer could know that the receiver is not null.
-    SVal Receiver = MCall->getReceiverSVal();
-    ConditionTruthVal TV = C.getState()->isNonNull(Receiver);
+    SVal const Receiver = MCall->getReceiverSVal();
+    ConditionTruthVal const TV = C.getState()->isNonNull(Receiver);
     if (TV.isConstrainedTrue())
       return true;
 
@@ -222,12 +222,12 @@ private:
     if (!Consequent)
       return InputState;
 
-    SVal AntecedentV = SVB.makeSymbolVal(Antecedent);
+    SVal const AntecedentV = SVB.makeSymbolVal(Antecedent);
     ProgramStateRef State = InputState;
 
     if ((Negated && InputState->isNonNull(AntecedentV).isConstrainedTrue())
         || (!Negated && InputState->isNull(AntecedentV).isConstrainedTrue())) {
-      SVal ConsequentS = SVB.makeSymbolVal(*Consequent);
+      SVal const ConsequentS = SVB.makeSymbolVal(*Consequent);
       State = InputState->assume(ConsequentS.castAs<DefinedSVal>(), Negated);
       if (!State)
         return nullptr;

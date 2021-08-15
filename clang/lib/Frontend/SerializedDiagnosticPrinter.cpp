@@ -382,8 +382,8 @@ unsigned SDiagsWriter::getEmitFile(const char *FileName){
 
   // Lazily generate the record for the file.
   entry = State->Files.size();
-  StringRef Name(FileName);
-  RecordData::value_type Record[] = {RECORD_FILENAME, entry, 0 /* For legacy */,
+  StringRef const Name(FileName);
+  RecordData::value_type const Record[] = {RECORD_FILENAME, entry, 0 /* For legacy */,
                                      0 /* For legacy */, Name.size()};
   State->Stream.EmitRecordWithBlob(State->Abbrevs.get(RECORD_FILENAME), Record,
                                    Name);
@@ -519,7 +519,7 @@ void SDiagsWriter::EmitMetaBlock() {
   AbbreviationMap &Abbrevs = State->Abbrevs;
 
   Stream.EnterSubblock(BLOCK_META, 3);
-  RecordData::value_type Record[] = {RECORD_VERSION, VersionNumber};
+  RecordData::value_type const Record[] = {RECORD_VERSION, VersionNumber};
   Stream.EmitRecordWithAbbrev(Abbrevs.get(RECORD_VERSION), Record);
   Stream.ExitBlock();
 }
@@ -530,8 +530,8 @@ unsigned SDiagsWriter::getEmitCategory(unsigned int category) {
 
   // We use a local version of 'Record' so that we can be generating
   // another record when we lazily generate one for the category entry.
-  StringRef catName = DiagnosticIDs::getCategoryNameFromID(category);
-  RecordData::value_type Record[] = {RECORD_CATEGORY, category, catName.size()};
+  StringRef const catName = DiagnosticIDs::getCategoryNameFromID(category);
+  RecordData::value_type const Record[] = {RECORD_CATEGORY, category, catName.size()};
   State->Stream.EmitRecordWithBlob(State->Abbrevs.get(RECORD_CATEGORY), Record,
                                    catName);
 
@@ -543,7 +543,7 @@ unsigned SDiagsWriter::getEmitDiagnosticFlag(DiagnosticsEngine::Level DiagLevel,
   if (DiagLevel == DiagnosticsEngine::Note)
     return 0; // No flag for notes.
 
-  StringRef FlagName = DiagnosticIDs::getWarningOptionForDiag(DiagID);
+  StringRef const FlagName = DiagnosticIDs::getWarningOptionForDiag(DiagID);
   return getEmitDiagnosticFlag(FlagName);
 }
 
@@ -560,7 +560,7 @@ unsigned SDiagsWriter::getEmitDiagnosticFlag(StringRef FlagName) {
     entry.second = FlagName;
 
     // Lazily emit the string in a separate record.
-    RecordData::value_type Record[] = {RECORD_DIAG_FLAG, entry.first,
+    RecordData::value_type const Record[] = {RECORD_DIAG_FLAG, entry.first,
                                        FlagName.size()};
     State->Stream.EmitRecordWithBlob(State->Abbrevs.get(RECORD_DIAG_FLAG),
                                      Record, FlagName);
@@ -655,7 +655,7 @@ void SDiagsWriter::EmitDiagnosticMessage(FullSourceLoc Loc, PresumedLoc PLoc,
 
   if (const Diagnostic *Info = D.dyn_cast<const Diagnostic*>()) {
     // Emit the category string lazily and get the category ID.
-    unsigned DiagID = DiagnosticIDs::getCategoryNumberForDiag(Info->getID());
+    unsigned const DiagID = DiagnosticIDs::getCategoryNumberForDiag(Info->getID());
     Record.push_back(getEmitCategory(DiagID));
     // Emit the diagnostic flag string lazily and get the mapped ID.
     Record.push_back(getEmitDiagnosticFlag(Level, Info->getID()));
@@ -734,7 +734,7 @@ void SDiagsRenderer::emitCodeContext(FullSourceLoc Loc,
 
 void SDiagsRenderer::emitNote(FullSourceLoc Loc, StringRef Message) {
   Writer.EnterDiagBlock();
-  PresumedLoc PLoc = Loc.hasManager() ? Loc.getPresumedLoc() : PresumedLoc();
+  PresumedLoc const PLoc = Loc.hasManager() ? Loc.getPresumedLoc() : PresumedLoc();
   Writer.EmitDiagnosticMessage(Loc, PLoc, DiagnosticsEngine::Note, Message,
                                DiagOrStoredDiag());
   Writer.ExitDiagBlock();
@@ -755,7 +755,7 @@ DiagnosticsEngine *SDiagsWriter::getMetaDiags() {
   //    to be distinct from the engine the writer was being added to and would
   //    normally not be used.
   if (!State->MetaDiagnostics) {
-    IntrusiveRefCntPtr<DiagnosticIDs> IDs(new DiagnosticIDs());
+    IntrusiveRefCntPtr<DiagnosticIDs> const IDs(new DiagnosticIDs());
     auto Client =
         new TextDiagnosticPrinter(llvm::errs(), State->DiagOpts.get());
     State->MetaDiagnostics = std::make_unique<DiagnosticsEngine>(
@@ -832,7 +832,7 @@ std::error_code SDiagsMerger::visitEndOfDiagnostic() {
 std::error_code
 SDiagsMerger::visitSourceRangeRecord(const serialized_diags::Location &Start,
                                      const serialized_diags::Location &End) {
-  RecordData::value_type Record[] = {
+  RecordData::value_type const Record[] = {
       RECORD_SOURCE_RANGE, FileLookup[Start.FileID], Start.Line, Start.Col,
       Start.Offset, FileLookup[End.FileID], End.Line, End.Col, End.Offset};
   Writer.State->Stream.EmitRecordWithAbbrev(
@@ -843,7 +843,7 @@ SDiagsMerger::visitSourceRangeRecord(const serialized_diags::Location &Start,
 std::error_code SDiagsMerger::visitDiagnosticRecord(
     unsigned Severity, const serialized_diags::Location &Location,
     unsigned Category, unsigned Flag, StringRef Message) {
-  RecordData::value_type Record[] = {
+  RecordData::value_type const Record[] = {
       RECORD_DIAG, Severity, FileLookup[Location.FileID], Location.Line,
       Location.Col, Location.Offset, CategoryLookup[Category],
       Flag ? DiagFlagLookup[Flag] : 0, Message.size()};
@@ -857,7 +857,7 @@ std::error_code
 SDiagsMerger::visitFixitRecord(const serialized_diags::Location &Start,
                                const serialized_diags::Location &End,
                                StringRef Text) {
-  RecordData::value_type Record[] = {RECORD_FIXIT, FileLookup[Start.FileID],
+  RecordData::value_type const Record[] = {RECORD_FIXIT, FileLookup[Start.FileID],
                                      Start.Line, Start.Col, Start.Offset,
                                      FileLookup[End.FileID], End.Line, End.Col,
                                      End.Offset, Text.size()};

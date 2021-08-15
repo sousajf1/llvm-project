@@ -81,19 +81,19 @@ TEST(FixItTest, createRemoval) {
   CallsVisitor Visitor;
 
   Visitor.OnCall = [](CallExpr *CE, ASTContext *Context) {
-    FixItHint Hint = createRemoval(*CE);
+    FixItHint const Hint = createRemoval(*CE);
     EXPECT_EQ("foo(x, y)", getText(Hint.RemoveRange.getAsRange(), *Context));
     EXPECT_TRUE(Hint.InsertFromRange.isInvalid());
     EXPECT_TRUE(Hint.CodeToInsert.empty());
 
     Expr *P0 = CE->getArg(0);
-    FixItHint Hint0 = createRemoval(*P0);
+    FixItHint const Hint0 = createRemoval(*P0);
     EXPECT_EQ("x", getText(Hint0.RemoveRange.getAsRange(), *Context));
     EXPECT_TRUE(Hint0.InsertFromRange.isInvalid());
     EXPECT_TRUE(Hint0.CodeToInsert.empty());
 
     Expr *P1 = CE->getArg(1);
-    FixItHint Hint1 = createRemoval(*P1);
+    FixItHint const Hint1 = createRemoval(*P1);
     EXPECT_EQ("y", getText(Hint1.RemoveRange.getAsRange(), *Context));
     EXPECT_TRUE(Hint1.InsertFromRange.isInvalid());
     EXPECT_TRUE(Hint1.CodeToInsert.empty());
@@ -102,11 +102,11 @@ TEST(FixItTest, createRemoval) {
 
   Visitor.OnCall = [](CallExpr *CE, ASTContext *Context) {
     Expr *P0 = CE->getArg(0);
-    FixItHint Hint0 = createRemoval(*P0);
+    FixItHint const Hint0 = createRemoval(*P0);
     EXPECT_EQ("x + y", getText(Hint0.RemoveRange.getAsRange(), *Context));
 
     Expr *P1 = CE->getArg(1);
-    FixItHint Hint1 = createRemoval(*P1);
+    FixItHint const Hint1 = createRemoval(*P1);
     EXPECT_EQ("y + x", getText(Hint1.RemoveRange.getAsRange(), *Context));
   };
   Visitor.runOver("void foo(int x, int y) { foo(x + y, y + x); }");
@@ -116,13 +116,13 @@ TEST(FixItTest, createRemovalWithMacro) {
   CallsVisitor Visitor;
 
   Visitor.OnCall = [](CallExpr *CE, ASTContext *Context) {
-    FixItHint Hint = createRemoval(*CE);
+    FixItHint const Hint = createRemoval(*CE);
     EXPECT_EQ("FOO", getText(Hint.RemoveRange.getAsRange(), *Context));
     EXPECT_TRUE(Hint.InsertFromRange.isInvalid());
     EXPECT_TRUE(Hint.CodeToInsert.empty());
 
     Expr *P0 = CE->getArg(0);
-    FixItHint Hint0 = createRemoval(*P0);
+    FixItHint const Hint0 = createRemoval(*P0);
     EXPECT_EQ("input.cc:2:26 <Spelling=input.cc:1:17>",
               LocationToString(Hint0.RemoveRange.getBegin(), Context));
     EXPECT_EQ("input.cc:2:26 <Spelling=input.cc:1:17>",
@@ -131,7 +131,7 @@ TEST(FixItTest, createRemovalWithMacro) {
     EXPECT_TRUE(Hint0.CodeToInsert.empty());
 
     Expr *P1 = CE->getArg(1);
-    FixItHint Hint1 = createRemoval(*P1);
+    FixItHint const Hint1 = createRemoval(*P1);
     EXPECT_EQ("input.cc:2:26 <Spelling=input.cc:1:20>",
               LocationToString(Hint1.RemoveRange.getBegin(), Context));
     EXPECT_EQ("input.cc:2:26 <Spelling=input.cc:1:20>",
@@ -143,7 +143,7 @@ TEST(FixItTest, createRemovalWithMacro) {
                   "void foo(int x, int y) { FOO; }");
 
   Visitor.OnCall = [](CallExpr *CE, ASTContext *Context) {
-    FixItHint Hint = createRemoval(*CE);
+    FixItHint const Hint = createRemoval(*CE);
     EXPECT_EQ("input.cc:2:26 <Spelling=input.cc:1:37>",
               LocationToString(Hint.RemoveRange.getBegin(), Context));
     EXPECT_EQ("input.cc:2:26 <Spelling=input.cc:1:45>",
@@ -161,8 +161,8 @@ TEST(FixItTest, createReplacement) {
   Visitor.OnCall = [](CallExpr *CE, ASTContext *Context) {
     Expr *P0 = CE->getArg(0);
     Expr *P1 = CE->getArg(1);
-    FixItHint Hint0 = createReplacement(*P0, *P1, *Context);
-    FixItHint Hint1 = createReplacement(*P1, *P0, *Context);
+    FixItHint const Hint0 = createReplacement(*P0, *P1, *Context);
+    FixItHint const Hint1 = createReplacement(*P1, *P0, *Context);
 
     // Validate Hint0 fields.
     EXPECT_EQ("x", getText(Hint0.RemoveRange.getAsRange(), *Context));
@@ -191,7 +191,7 @@ TEST(FixItTest, createReplacementWithMacro) {
   Visitor.OnCall = [](CallExpr *CE, ASTContext *Context) {
     Expr *P0 = CE->getArg(0);
     Expr *P1 = CE->getArg(1);
-    FixItHint Hint = createReplacement(*P0, *P1, *Context);
+    FixItHint const Hint = createReplacement(*P0, *P1, *Context);
     EXPECT_EQ("input.cc:2:26 <Spelling=input.cc:1:17>",
               LocationToString(Hint.RemoveRange.getBegin(), Context));
     EXPECT_EQ("input.cc:2:26 <Spelling=input.cc:1:17>",
@@ -206,7 +206,7 @@ TEST(FixItTest, createReplacementWithMacro) {
   Visitor.OnCall = [](CallExpr *CE, ASTContext *Context) {
     Expr *P0 = CE->getArg(0);
     Expr *P1 = CE->getArg(1);
-    FixItHint Hint = createReplacement(*P0, *P1, *Context);
+    FixItHint const Hint = createReplacement(*P0, *P1, *Context);
     EXPECT_EQ("input.cc:2:26 <Spelling=input.cc:2:30>",
               LocationToString(Hint.RemoveRange.getBegin(), Context));
     EXPECT_EQ("input.cc:2:26 <Spelling=input.cc:2:30>",
@@ -220,7 +220,7 @@ TEST(FixItTest, createReplacementWithMacro) {
   Visitor.OnCall = [](CallExpr *CE, ASTContext *Context) {
     Expr *P0 = CE->getArg(0);
     Expr *P1 = CE->getArg(1);
-    FixItHint Hint = createReplacement(*P0, *P1, *Context);
+    FixItHint const Hint = createReplacement(*P0, *P1, *Context);
     EXPECT_EQ("x + y", getText(Hint.RemoveRange.getAsRange(), *Context));
     EXPECT_TRUE(Hint.InsertFromRange.isInvalid());
     EXPECT_EQ("y + x", Hint.CodeToInsert);

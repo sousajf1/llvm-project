@@ -70,7 +70,7 @@ static RValue PerformReturnAdjustment(CodeGenFunction &CGF,
                                       QualType ResultType, RValue RV,
                                       const ThunkInfo &Thunk) {
   // Emit the return adjustment.
-  bool NullCheckValue = !ResultType->isReferenceType();
+  bool const NullCheckValue = !ResultType->isReferenceType();
 
   llvm::BasicBlock *AdjustNull = nullptr;
   llvm::BasicBlock *AdjustNotNull = nullptr;
@@ -159,7 +159,7 @@ CodeGenFunction::GenerateVarArgsThunk(llvm::Function *Fn,
                                       GlobalDecl GD, const ThunkInfo &Thunk) {
   const CXXMethodDecl *MD = cast<CXXMethodDecl>(GD.getDecl());
   const FunctionProtoType *FPT = MD->getType()->castAs<FunctionProtoType>();
-  QualType ResultType = FPT->getReturnType();
+  QualType const ResultType = FPT->getReturnType();
 
   // Get the original function
   assert(FnInfo.isVariadic());
@@ -200,7 +200,7 @@ CodeGenFunction::GenerateVarArgsThunk(llvm::Function *Fn,
   // with "this".
   Address ThisPtr(&*AI, CGM.getClassPointerAlignment(MD->getParent()));
   llvm::BasicBlock *EntryBB = &Fn->front();
-  llvm::BasicBlock::iterator ThisStore =
+  llvm::BasicBlock::iterator const ThisStore =
       std::find_if(EntryBB->begin(), EntryBB->end(), [&](llvm::Instruction &I) {
         return isa<llvm::StoreInst>(I) &&
                I.getOperand(0) == ThisPtr.getPointer();
@@ -242,7 +242,7 @@ void CodeGenFunction::StartThunk(llvm::Function *Fn, GlobalDecl GD,
 
   // Build FunctionArgs.
   const CXXMethodDecl *MD = cast<CXXMethodDecl>(GD.getDecl());
-  QualType ThisType = MD->getThisType();
+  QualType const ThisType = MD->getThisType();
   QualType ResultType;
   if (IsUnprototyped)
     ResultType = CGM.getContext().VoidTy;
@@ -323,14 +323,14 @@ void CodeGenFunction::EmitCallAndReturnForThunk(llvm::FunctionCallee Callee,
 
   // Start building CallArgs.
   CallArgList CallArgs;
-  QualType ThisType = MD->getThisType();
+  QualType const ThisType = MD->getThisType();
   CallArgs.add(RValue::get(AdjustedThisPtr), ThisType);
 
   if (isa<CXXDestructorDecl>(MD))
     CGM.getCXXABI().adjustCallArgsForDestructorThunk(*this, CurGD, CallArgs);
 
 #ifndef NDEBUG
-  unsigned PrefixArgs = CallArgs.size() - 1;
+  unsigned const PrefixArgs = CallArgs.size() - 1;
 #endif
   // Add the rest of the arguments.
   for (const ParmVarDecl *PD : MD->parameters())
@@ -356,7 +356,7 @@ void CodeGenFunction::EmitCallAndReturnForThunk(llvm::FunctionCallee Callee,
 #endif
 
   // Determine whether we have a return value slot to use.
-  QualType ResultType = CGM.getCXXABI().HasThisReturn(CurGD)
+  QualType const ResultType = CGM.getCXXABI().HasThisReturn(CurGD)
                             ? ThisType
                             : CGM.getCXXABI().hasMostDerivedReturn(CurGD)
                                   ? CGM.getContext().VoidPtrTy
@@ -404,14 +404,14 @@ void CodeGenFunction::EmitMustTailThunk(GlobalDecl GD,
   const ABIArgInfo &ThisAI = CurFnInfo->arg_begin()->info;
   if (ThisAI.isDirect()) {
     const ABIArgInfo &RetAI = CurFnInfo->getReturnInfo();
-    int ThisArgNo = RetAI.isIndirect() && !RetAI.isSRetAfterThis() ? 1 : 0;
+    int const ThisArgNo = RetAI.isIndirect() && !RetAI.isSRetAfterThis() ? 1 : 0;
     llvm::Type *ThisType = Args[ThisArgNo]->getType();
     if (ThisType != AdjustedThisPtr->getType())
       AdjustedThisPtr = Builder.CreateBitCast(AdjustedThisPtr, ThisType);
     Args[ThisArgNo] = AdjustedThisPtr;
   } else {
     assert(ThisAI.isInAlloca() && "this is passed directly or inalloca");
-    Address ThisAddr = GetAddrOfLocalVar(CXXABIThisDecl);
+    Address const ThisAddr = GetAddrOfLocalVar(CXXABIThisDecl);
     llvm::Type *ThisType = ThisAddr.getElementType();
     if (ThisType != AdjustedThisPtr->getType())
       AdjustedThisPtr = Builder.CreateBitCast(AdjustedThisPtr, ThisType);
@@ -508,7 +508,7 @@ llvm::Constant *CodeGenVTables::maybeEmitThunk(GlobalDecl GD,
   llvm::Constant *Thunk = CGM.GetAddrOfThunk(Name, ThunkVTableTy, GD);
 
   // If we don't need to emit a definition, return this declaration as is.
-  bool IsUnprototyped = !CGM.getTypes().isFuncTypeConvertible(
+  bool const IsUnprototyped = !CGM.getTypes().isFuncTypeConvertible(
       MD->getType()->castAs<FunctionType>());
   if (!shouldEmitVTableThunk(CGM, MD, IsUnprototyped, ForVTable))
     return Thunk;
@@ -545,8 +545,8 @@ llvm::Constant *CodeGenVTables::maybeEmitThunk(GlobalDecl GD,
     OldThunkFn->eraseFromParent();
   }
 
-  bool ABIHasKeyFunctions = CGM.getTarget().getCXXABI().hasKeyFunctions();
-  bool UseAvailableExternallyLinkage = ForVTable && ABIHasKeyFunctions;
+  bool const ABIHasKeyFunctions = CGM.getTarget().getCXXABI().hasKeyFunctions();
+  bool const UseAvailableExternallyLinkage = ForVTable && ABIHasKeyFunctions;
 
   if (!ThunkFn->isDeclaration()) {
     if (!ABIHasKeyFunctions || UseAvailableExternallyLinkage) {
@@ -728,7 +728,7 @@ void CodeGenVTables::addVTableComponent(ConstantArrayBuilder &builder,
   case VTableComponent::CK_FunctionPointer:
   case VTableComponent::CK_CompleteDtorPointer:
   case VTableComponent::CK_DeletingDtorPointer: {
-    GlobalDecl GD = component.getGlobalDecl();
+    GlobalDecl const GD = component.getGlobalDecl();
 
     if (CGM.getLangOpts().CUDA) {
       // Emit NULL for methods we can't codegen on this
@@ -737,7 +737,7 @@ void CodeGenVTables::addVTableComponent(ConstantArrayBuilder &builder,
       const CXXMethodDecl *MD = cast<CXXMethodDecl>(GD.getDecl());
       // OK on device side: functions w/ __device__ attribute
       // OK on host side: anything except __device__-only functions.
-      bool CanEmitMethod =
+      bool const CanEmitMethod =
           CGM.getLangOpts().CUDAIsDevice
               ? MD->hasAttr<CUDADeviceAttr>()
               : (MD->hasAttr<CUDAHostAttr>() || !MD->hasAttr<CUDADeviceAttr>());
@@ -841,8 +841,8 @@ void CodeGenVTables::createVTableInitializer(ConstantStructBuilder &builder,
        vtableIndex != endIndex; ++vtableIndex) {
     auto vtableElem = builder.beginArray(componentType);
 
-    size_t vtableStart = layout.getVTableOffset(vtableIndex);
-    size_t vtableEnd = vtableStart + layout.getVTableSize(vtableIndex);
+    size_t const vtableStart = layout.getVTableOffset(vtableIndex);
+    size_t const vtableEnd = vtableStart + layout.getVTableSize(vtableIndex);
     for (size_t componentIndex = vtableStart; componentIndex < vtableEnd;
          ++componentIndex) {
       addVTableComponent(vtableElem, layout, componentIndex, rtti,
@@ -875,8 +875,8 @@ llvm::GlobalVariable *CodeGenVTables::GenerateConstructionVTable(
                            Base.getBase(), Out);
   SmallString<256> Name(OutName);
 
-  bool UsingRelativeLayout = getItaniumVTableContext().isRelativeLayout();
-  bool VTableAliasExists =
+  bool const UsingRelativeLayout = getItaniumVTableContext().isRelativeLayout();
+  bool const VTableAliasExists =
       UsingRelativeLayout && CGM.getModule().getNamedAlias(Name);
   if (VTableAliasExists) {
     // We previously made the vtable hidden and changed its name.
@@ -893,7 +893,7 @@ llvm::GlobalVariable *CodeGenVTables::GenerateConstructionVTable(
   if (Linkage == llvm::GlobalVariable::AvailableExternallyLinkage)
     Linkage = llvm::GlobalVariable::InternalLinkage;
 
-  unsigned Align = CGM.getDataLayout().getABITypeAlignment(VTType);
+  unsigned const Align = CGM.getDataLayout().getABITypeAlignment(VTType);
 
   // Create the variable that will hold the construction vtable.
   llvm::GlobalVariable *VTable =
@@ -947,7 +947,7 @@ void CodeGenVTables::GenerateRelativeVTableAlias(llvm::GlobalVariable *VTable,
   // Create a new string in the event the alias is already the name of the
   // vtable. Using the reference directly could lead to use of an inititialized
   // value in the module's StringMap.
-  llvm::SmallString<256> AliasName(AliasNameRef);
+  llvm::SmallString<256> const AliasName(AliasNameRef);
   VTable->setName(AliasName + ".local");
 
   auto Linkage = VTable->getLinkage();
@@ -1118,7 +1118,7 @@ bool CodeGenVTables::isVTableExternal(const CXXRecordDecl *RD) {
 
   // If we have an explicit instantiation declaration (and not a
   // definition), the vtable is defined elsewhere.
-  TemplateSpecializationKind TSK = RD->getTemplateSpecializationKind();
+  TemplateSpecializationKind const TSK = RD->getTemplateSpecializationKind();
   if (TSK == TSK_ExplicitInstantiationDeclaration)
     return true;
 
@@ -1159,7 +1159,7 @@ void CodeGenModule::EmitDeferredVTables() {
 #ifndef NDEBUG
   // Remember the size of DeferredVTables, because we're going to assume
   // that this entire operation doesn't modify it.
-  size_t savedSize = DeferredVTables.size();
+  size_t const savedSize = DeferredVTables.size();
 #endif
 
   for (const CXXRecordDecl *RD : DeferredVTables)
@@ -1194,7 +1194,7 @@ bool CodeGenModule::HasLTOVisibilityPublicStd(const CXXRecordDecl *RD) {
 }
 
 bool CodeGenModule::HasHiddenLTOVisibility(const CXXRecordDecl *RD) {
-  LinkageInfo LV = RD->getLinkageAndVisibility();
+  LinkageInfo const LV = RD->getLinkageAndVisibility();
   if (!isExternallyVisible(LV.getLinkage()))
     return true;
 
@@ -1222,7 +1222,7 @@ llvm::GlobalObject::VCallVisibility CodeGenModule::GetVCallVisibilityLevel(
   if (!Visited.insert(RD).second)
     return llvm::GlobalObject::VCallVisibilityTranslationUnit;
 
-  LinkageInfo LV = RD->getLinkageAndVisibility();
+  LinkageInfo const LV = RD->getLinkageAndVisibility();
   llvm::GlobalObject::VCallVisibility TypeVis;
   if (!isExternallyVisible(LV.getLinkage()))
     TypeVis = llvm::GlobalObject::VCallVisibilityTranslationUnit;
@@ -1252,7 +1252,7 @@ void CodeGenModule::EmitVTableTypeMetadata(const CXXRecordDecl *RD,
   if (!getCodeGenOpts().LTOUnit)
     return;
 
-  CharUnits PointerWidth =
+  CharUnits const PointerWidth =
       Context.toCharUnitsFromBits(Context.getTargetInfo().getPointerWidth(0));
 
   typedef std::pair<const CXXRecordDecl *, unsigned> AddressPoint;
@@ -1288,7 +1288,7 @@ void CodeGenModule::EmitVTableTypeMetadata(const CXXRecordDecl *RD,
     return AP1.second < AP2.second;
   });
 
-  ArrayRef<VTableComponent> Comps = VTLayout.vtable_components();
+  ArrayRef<VTableComponent> const Comps = VTLayout.vtable_components();
   for (auto AP : AddressPoints) {
     // Create type metadata for the address point.
     AddVTableTypeMetadata(VTable, PointerWidth * AP.second, AP.first);
@@ -1311,7 +1311,7 @@ void CodeGenModule::EmitVTableTypeMetadata(const CXXRecordDecl *RD,
   if (getCodeGenOpts().VirtualFunctionElimination ||
       getCodeGenOpts().WholeProgramVTables) {
     llvm::DenseSet<const CXXRecordDecl *> Visited;
-    llvm::GlobalObject::VCallVisibility TypeVis =
+    llvm::GlobalObject::VCallVisibility const TypeVis =
         GetVCallVisibilityLevel(RD, Visited);
     if (TypeVis != llvm::GlobalObject::VCallVisibilityPublic)
       VTable->setVCallVisibilityMetadata(TypeVis);

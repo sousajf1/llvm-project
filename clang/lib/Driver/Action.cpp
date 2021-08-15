@@ -83,7 +83,7 @@ void Action::propagateHostOffloadInfo(unsigned OKinds, const char *OArch) {
 }
 
 void Action::propagateOffloadInfo(const Action *A) {
-  if (unsigned HK = A->getOffloadingHostActiveKinds())
+  if (unsigned const HK = A->getOffloadingHostActiveKinds())
     propagateHostOffloadInfo(HK, A->getOffloadingArch());
   else
     propagateDeviceOffloadInfo(A->getOffloadingDeviceKind(),

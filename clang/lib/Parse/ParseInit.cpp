@@ -70,7 +70,7 @@ bool Parser::MayBeDesignationStart() {
 
   // Parse up to (at most) the token after the closing ']' to determine
   // whether this is a C99 designator or a lambda.
-  RevertingTentativeParsingAction Tentative(*this);
+  RevertingTentativeParsingAction const Tentative(*this);
 
   LambdaIntroducer Intro;
   LambdaIntroducerTentativeParse ParseResult;
@@ -171,10 +171,10 @@ ExprResult Parser::ParseInitializerWithPotentialDesignator(
     llvm::raw_svector_ostream(NewSyntax) << '.' << FieldName->getName()
                                          << " = ";
 
-    SourceLocation NameLoc = ConsumeToken(); // Eat the identifier.
+    SourceLocation const NameLoc = ConsumeToken(); // Eat the identifier.
 
     assert(Tok.is(tok::colon) && "MayBeDesignationStart not working properly!");
-    SourceLocation ColonLoc = ConsumeToken();
+    SourceLocation const ColonLoc = ConsumeToken();
 
     Diag(NameLoc, diag::ext_gnu_old_style_field_designator)
       << FixItHint::CreateReplacement(SourceRange(NameLoc, ColonLoc),
@@ -197,7 +197,7 @@ ExprResult Parser::ParseInitializerWithPotentialDesignator(
   while (Tok.is(tok::period) || Tok.is(tok::l_square)) {
     if (Tok.is(tok::period)) {
       // designator: '.' identifier
-      SourceLocation DotLoc = ConsumeToken();
+      SourceLocation const DotLoc = ConsumeToken();
 
       if (Tok.is(tok::code_completion)) {
         cutOffParsing();
@@ -236,11 +236,11 @@ ExprResult Parser::ParseInitializerWithPotentialDesignator(
     // attribute. If it is a lambda-expression within an array-designator, then
     // it will be rejected because a constant-expression cannot begin with a
     // lambda-expression.
-    InMessageExpressionRAIIObject InMessage(*this, true);
+    InMessageExpressionRAIIObject const InMessage(*this, true);
 
     BalancedDelimiterTracker T(*this, tok::l_square);
     T.consumeOpen();
-    SourceLocation StartLoc = T.getOpenLocation();
+    SourceLocation const StartLoc = T.getOpenLocation();
 
     ExprResult Idx;
 
@@ -283,7 +283,7 @@ ExprResult Parser::ParseInitializerWithPotentialDesignator(
       Idx = ExprResult(static_cast<Expr*>(TypeOrExpr));
     } else if (getLangOpts().ObjC && Tok.is(tok::identifier)) {
       IdentifierInfo *II = Tok.getIdentifierInfo();
-      SourceLocation IILoc = Tok.getLocation();
+      SourceLocation const IILoc = Tok.getLocation();
       ParsedType ReceiverType;
       // Three cases. This is a message send to a type: [type foo]
       // This is a message send to super:  [super foo]
@@ -307,7 +307,7 @@ ExprResult Parser::ParseInitializerWithPotentialDesignator(
         // Parse type arguments and protocol qualifiers.
         if (Tok.is(tok::less)) {
           SourceLocation NewEndLoc;
-          TypeResult NewReceiverType
+          TypeResult const NewReceiverType
             = parseObjCTypeArgsAndProtocolQualifiers(IILoc, ReceiverType,
                                                      /*consumeLastToken=*/true,
                                                      NewEndLoc);
@@ -364,7 +364,7 @@ ExprResult Parser::ParseInitializerWithPotentialDesignator(
     } else {
       // Handle the gnu array range extension.
       Diag(Tok, diag::ext_gnu_array_range);
-      SourceLocation EllipsisLoc = ConsumeToken();
+      SourceLocation const EllipsisLoc = ConsumeToken();
 
       ExprResult RHS(ParseConstantExpression());
       if (RHS.isInvalid()) {
@@ -389,7 +389,7 @@ ExprResult Parser::ParseInitializerWithPotentialDesignator(
 
   // Handle a normal designator sequence end, which is an equal.
   if (Tok.is(tok::equal)) {
-    SourceLocation EqualLoc = ConsumeToken();
+    SourceLocation const EqualLoc = ConsumeToken();
     PreferredType.enterDesignatedInitializer(
         Tok.getLocation(), DesignatorCompletion.PreferredBaseType, Desig);
     return Actions.ActOnDesignatedInitializer(Desig, EqualLoc, false,
@@ -436,11 +436,11 @@ ExprResult Parser::ParseInitializerWithPotentialDesignator(
 ///         initializer-list ',' designation[opt] initializer ...[opt]
 ///
 ExprResult Parser::ParseBraceInitializer() {
-  InMessageExpressionRAIIObject InMessage(*this, false);
+  InMessageExpressionRAIIObject const InMessage(*this, false);
 
   BalancedDelimiterTracker T(*this, tok::l_brace);
   T.consumeOpen();
-  SourceLocation LBraceLoc = T.getOpenLocation();
+  SourceLocation const LBraceLoc = T.getOpenLocation();
 
   /// InitExprs - This is the actual list of expressions contained in the
   /// initializer.
@@ -455,11 +455,11 @@ ExprResult Parser::ParseBraceInitializer() {
   }
 
   // Enter an appropriate expression evaluation context for an initializer list.
-  EnterExpressionEvaluationContext EnterContext(
+  EnterExpressionEvaluationContext const EnterContext(
       Actions, EnterExpressionEvaluationContext::InitList);
 
   bool InitExprsOk = true;
-  DesignatorCompletionInfo DesignatorCompletion{
+  DesignatorCompletionInfo const DesignatorCompletion{
       InitExprs,
       PreferredType.get(T.getOpenLocation()),
   };
@@ -521,7 +521,7 @@ ExprResult Parser::ParseBraceInitializer() {
     if (Tok.is(tok::r_brace)) break;
   }
 
-  bool closed = !T.consumeClose();
+  bool const closed = !T.consumeClose();
 
   if (InitExprsOk && closed)
     return Actions.ActOnInitList(LBraceLoc, InitExprs,
@@ -562,7 +562,7 @@ bool Parser::ParseMicrosoftIfExistsBraceInitializer(ExprVector &InitExprs,
     return false;
   }
 
-  DesignatorCompletionInfo DesignatorCompletion{
+  DesignatorCompletionInfo const DesignatorCompletion{
       InitExprs,
       PreferredType.get(Braces.getOpenLocation()),
   };

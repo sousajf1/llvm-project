@@ -35,7 +35,7 @@ LangStandard::Kind LangStandard::getLangKind(StringRef Name) {
 }
 
 const LangStandard *LangStandard::getLangStandardForName(StringRef Name) {
-  Kind K = getLangKind(Name);
+  Kind const K = getLangKind(Name);
   if (K == lang_unspecified)
     return nullptr;
 

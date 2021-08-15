@@ -94,7 +94,7 @@ void ASTImporterLookupTable::add(DeclContext *DC, NamedDecl *ND) {
 
 void ASTImporterLookupTable::remove(DeclContext *DC, NamedDecl *ND) {
   DeclList &Decls = LookupTable[DC][ND->getDeclName()];
-  bool EraseResult = Decls.remove(ND);
+  bool const EraseResult = Decls.remove(ND);
   (void)EraseResult;
   assert(EraseResult == true && "Trying to remove not contained Decl");
 }
@@ -154,7 +154,7 @@ void ASTImporterLookupTable::dump(DeclContext *DC) const {
     llvm::errs() << "empty\n";
   const auto &FoundNameMap = DCI->second;
   for (const auto &Entry : FoundNameMap) {
-    DeclarationName Name = Entry.first;
+    DeclarationName const Name = Entry.first;
     llvm::errs() << "==== Name: ";
     Name.dump();
     const DeclList& List = Entry.second;
@@ -167,7 +167,7 @@ void ASTImporterLookupTable::dump(DeclContext *DC) const {
 void ASTImporterLookupTable::dump() const {
   for (const auto &Entry : LookupTable) {
     DeclContext *DC = Entry.first;
-    StringRef Primary = DC->getPrimaryContext() ? " primary" : "";
+    StringRef const Primary = DC->getPrimaryContext() ? " primary" : "";
     llvm::errs() << "== DC:" << cast<Decl>(DC) << Primary << "\n";
     dump(DC);
   }

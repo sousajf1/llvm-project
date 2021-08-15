@@ -52,12 +52,12 @@ struct TestVFO {
   }
 
   void map(const char *VPath, const char *RPath) {
-    CXErrorCode Err = clang_VirtualFileOverlay_addFileMapping(VFO, VPath, RPath);
+    CXErrorCode const Err = clang_VirtualFileOverlay_addFileMapping(VFO, VPath, RPath);
     EXPECT_EQ(Err, CXError_Success);
   }
 
   void mapError(const char *VPath, const char *RPath, CXErrorCode ExpErr) {
-    CXErrorCode Err = clang_VirtualFileOverlay_addFileMapping(VFO, VPath, RPath);
+    CXErrorCode const Err = clang_VirtualFileOverlay_addFileMapping(VFO, VPath, RPath);
     EXPECT_EQ(Err, ExpErr);
   }
 
@@ -66,7 +66,7 @@ struct TestVFO {
       char *BufPtr;
       unsigned BufSize;
       clang_VirtualFileOverlay_writeToBuffer(VFO, 0, &BufPtr, &BufSize);
-      std::string BufStr(BufPtr, BufSize);
+      std::string const BufStr(BufPtr, BufSize);
       EXPECT_STREQ(Contents, BufStr.c_str());
       clang_free(BufPtr);
     }
@@ -328,7 +328,7 @@ TEST(libclang, VirtualFileOverlay_Empty) {
       "  'roots': [\n"
       "  ]\n"
       "}\n";
-  TestVFO T(contents);
+  TestVFO const T(contents);
 }
 
 TEST(libclang, ModuleMapDescriptor) {
@@ -348,7 +348,7 @@ TEST(libclang, ModuleMapDescriptor) {
   char *BufPtr;
   unsigned BufSize;
   clang_ModuleMapDescriptor_writeToBuffer(MMD, 0, &BufPtr, &BufSize);
-  std::string BufStr(BufPtr, BufSize);
+  std::string const BufStr(BufPtr, BufSize);
   EXPECT_STREQ(Contents, BufStr.c_str());
   clang_free(BufPtr);
   clang_ModuleMapDescriptor_dispose(MMD);
@@ -400,7 +400,7 @@ TEST_F(LibclangParseTest, EvaluateChildExpression) {
   ClangTU = clang_parseTranslationUnit(Index, Main.c_str(), nullptr, 0, nullptr,
                                        0, TUFlags);
 
-  CXCursor C = clang_getTranslationUnitCursor(ClangTU);
+  CXCursor const C = clang_getTranslationUnitCursor(ClangTU);
   clang_visitChildren(
       C,
       [](CXCursor cursor, CXCursor parent,
@@ -436,7 +436,7 @@ TEST_F(LibclangParseTest, EvaluateChildExpression) {
 class LibclangReparseTest : public LibclangParseTest {
 public:
   void DisplayDiagnostics() {
-    unsigned NumDiagnostics = clang_getNumDiagnostics(ClangTU);
+    unsigned const NumDiagnostics = clang_getNumDiagnostics(ClangTU);
     for (unsigned i = 0; i < NumDiagnostics; ++i) {
       auto Diag = clang_getDiagnostic(ClangTU, i);
       LLVM_DEBUG(llvm::dbgs()
@@ -492,7 +492,7 @@ TEST_F(LibclangReparseTest, Reparse) {
   ASSERT_TRUE(ReparseTU(0, nullptr /* No unsaved files. */));
   EXPECT_EQ(1U, clang_getNumDiagnostics(ClangTU));
 
-  std::string NewHeaderContents =
+  std::string const NewHeaderContents =
       std::string(HeaderTop) + "int baz;" + HeaderBottom;
   WriteFile(HeaderName, NewHeaderContents);
 
@@ -514,10 +514,10 @@ TEST_F(LibclangReparseTest, ReparseWithModule) {
   WriteFile(HeaderName, std::string(HeaderTop) + HeaderBottom);
   WriteFile(ModName, ModFile);
 
-  std::string ModulesCache = std::string("-fmodules-cache-path=") + TestDir;
+  std::string const ModulesCache = std::string("-fmodules-cache-path=") + TestDir;
   const char *Args[] = { "-fmodules", ModulesCache.c_str(),
                          "-I", TestDir.c_str() };
-  int NumArgs = sizeof(Args) / sizeof(Args[0]);
+  int const NumArgs = sizeof(Args) / sizeof(Args[0]);
   ClangTU = clang_parseTranslationUnit(Index, MName.c_str(), Args, NumArgs,
                                        nullptr, 0, TUFlags);
   EXPECT_EQ(1U, clang_getNumDiagnostics(ClangTU));
@@ -527,7 +527,7 @@ TEST_F(LibclangReparseTest, ReparseWithModule) {
   ASSERT_TRUE(ReparseTU(0, nullptr /* No unsaved files. */));
   EXPECT_EQ(1U, clang_getNumDiagnostics(ClangTU));
 
-  std::string NewHeaderContents =
+  std::string const NewHeaderContents =
       std::string(HeaderTop) + "int baz;" + HeaderBottom;
   WriteFile(HeaderName, NewHeaderContents);
 
@@ -573,7 +573,7 @@ public:
     WriteFile(File, "int i;\n");
     ClangTU = clang_parseTranslationUnit(Index, File.c_str(), nullptr, 0,
                                          nullptr, 0, TUFlags);
-    CXCursor TUCursor = clang_getTranslationUnitCursor(ClangTU);
+    CXCursor const TUCursor = clang_getTranslationUnitCursor(ClangTU);
     Policy = clang_getCursorPrintingPolicy(TUCursor);
   }
   void TearDown() override {
@@ -677,7 +677,7 @@ TEST_F(LibclangReparseTest, PreprocessorSkippedRanges) {
 class LibclangSerializationTest : public LibclangParseTest {
 public:
   bool SaveAndLoadTU(const std::string &Filename) {
-    unsigned options = clang_defaultSaveOptions(ClangTU);
+    unsigned const options = clang_defaultSaveOptions(ClangTU);
     if (clang_saveTranslationUnit(ClangTU, Filename.c_str(), options) !=
         CXSaveError_None) {
       LLVM_DEBUG(llvm::dbgs() << "Saving failed\n");
@@ -710,7 +710,7 @@ TEST_F(LibclangSerializationTest, TokenKindsAreCorrectAfterLoading) {
                                        0, TUFlags);
 
   auto CheckTokenKinds = [=]() {
-    CXSourceRange Range =
+    CXSourceRange const Range =
         clang_getCursorExtent(clang_getTranslationUnitCursor(ClangTU));
 
     CXToken *Tokens;
@@ -744,7 +744,7 @@ TEST_F(LibclangParseTest, clang_getVarDeclInitializer) {
   ClangTU = clang_parseTranslationUnit(Index, Main.c_str(), nullptr, 0, nullptr,
                                        0, TUFlags);
 
-  CXCursor C = clang_getTranslationUnitCursor(ClangTU);
+  CXCursor const C = clang_getTranslationUnitCursor(ClangTU);
   clang_visitChildren(
       C,
       [](CXCursor cursor, CXCursor parent,
@@ -752,7 +752,7 @@ TEST_F(LibclangParseTest, clang_getVarDeclInitializer) {
         if (clang_getCursorKind(cursor) == CXCursor_VarDecl) {
           const CXCursor Initializer = clang_Cursor_getVarDeclInitializer(cursor);
           EXPECT_FALSE(clang_Cursor_isNull(Initializer));
-          CXString Spelling = clang_getCursorSpelling(Initializer);
+          CXString const Spelling = clang_getCursorSpelling(Initializer);
           const char* const SpellingCSstr = clang_getCString(Spelling);
           EXPECT_TRUE(SpellingCSstr);
           EXPECT_EQ(std::string(SpellingCSstr), std::string("foo"));
@@ -770,7 +770,7 @@ TEST_F(LibclangParseTest, clang_hasVarDeclGlobalStorageFalse) {
   ClangTU = clang_parseTranslationUnit(Index, Main.c_str(), nullptr, 0, nullptr,
                                        0, TUFlags);
 
-  CXCursor C = clang_getTranslationUnitCursor(ClangTU);
+  CXCursor const C = clang_getTranslationUnitCursor(ClangTU);
   clang_visitChildren(
       C,
       [](CXCursor cursor, CXCursor parent,
@@ -790,7 +790,7 @@ TEST_F(LibclangParseTest, clang_Cursor_hasVarDeclGlobalStorageTrue) {
   ClangTU = clang_parseTranslationUnit(Index, Main.c_str(), nullptr, 0, nullptr,
                                        0, TUFlags);
 
-  CXCursor C = clang_getTranslationUnitCursor(ClangTU);
+  CXCursor const C = clang_getTranslationUnitCursor(ClangTU);
   clang_visitChildren(
       C,
       [](CXCursor cursor, CXCursor parent,
@@ -810,7 +810,7 @@ TEST_F(LibclangParseTest, clang_Cursor_hasVarDeclExternalStorageFalse) {
   ClangTU = clang_parseTranslationUnit(Index, Main.c_str(), nullptr, 0, nullptr,
                                        0, TUFlags);
 
-  CXCursor C = clang_getTranslationUnitCursor(ClangTU);
+  CXCursor const C = clang_getTranslationUnitCursor(ClangTU);
   clang_visitChildren(
       C,
       [](CXCursor cursor, CXCursor parent,
@@ -830,7 +830,7 @@ TEST_F(LibclangParseTest, clang_Cursor_hasVarDeclExternalStorageTrue) {
   ClangTU = clang_parseTranslationUnit(Index, Main.c_str(), nullptr, 0, nullptr,
                                        0, TUFlags);
 
-  CXCursor C = clang_getTranslationUnitCursor(ClangTU);
+  CXCursor const C = clang_getTranslationUnitCursor(ClangTU);
   clang_visitChildren(
       C,
       [](CXCursor cursor, CXCursor parent,
@@ -879,9 +879,9 @@ static std::string getFileContent(const std::string& Filename) {
 }
 
 TEST_F(LibclangRewriteTest, RewriteReplace) {
-  CXSourceLocation B = clang_getLocation(ClangTU, File, 1, 5);
-  CXSourceLocation E = clang_getLocation(ClangTU, File, 1, 9);
-  CXSourceRange Rng	= clang_getRange(B, E);
+  CXSourceLocation const B = clang_getLocation(ClangTU, File, 1, 5);
+  CXSourceLocation const E = clang_getLocation(ClangTU, File, 1, 9);
+  CXSourceRange const Rng	= clang_getRange(B, E);
 
   clang_CXRewriter_replaceText(Rew, Rng, "MAIN");
 
@@ -890,9 +890,9 @@ TEST_F(LibclangRewriteTest, RewriteReplace) {
 }
 
 TEST_F(LibclangRewriteTest, RewriteReplaceShorter) {
-  CXSourceLocation B = clang_getLocation(ClangTU, File, 1, 5);
-  CXSourceLocation E = clang_getLocation(ClangTU, File, 1, 9);
-  CXSourceRange Rng	= clang_getRange(B, E);
+  CXSourceLocation const B = clang_getLocation(ClangTU, File, 1, 5);
+  CXSourceLocation const E = clang_getLocation(ClangTU, File, 1, 9);
+  CXSourceRange const Rng	= clang_getRange(B, E);
 
   clang_CXRewriter_replaceText(Rew, Rng, "foo");
 
@@ -901,9 +901,9 @@ TEST_F(LibclangRewriteTest, RewriteReplaceShorter) {
 }
 
 TEST_F(LibclangRewriteTest, RewriteReplaceLonger) {
-  CXSourceLocation B = clang_getLocation(ClangTU, File, 1, 5);
-  CXSourceLocation E = clang_getLocation(ClangTU, File, 1, 9);
-  CXSourceRange Rng	= clang_getRange(B, E);
+  CXSourceLocation const B = clang_getLocation(ClangTU, File, 1, 5);
+  CXSourceLocation const E = clang_getLocation(ClangTU, File, 1, 9);
+  CXSourceRange const Rng	= clang_getRange(B, E);
 
   clang_CXRewriter_replaceText(Rew, Rng, "patatino");
 
@@ -912,7 +912,7 @@ TEST_F(LibclangRewriteTest, RewriteReplaceLonger) {
 }
 
 TEST_F(LibclangRewriteTest, RewriteInsert) {
-  CXSourceLocation Loc = clang_getLocation(ClangTU, File, 1, 5);
+  CXSourceLocation const Loc = clang_getLocation(ClangTU, File, 1, 5);
 
   clang_CXRewriter_insertTextBefore(Rew, Loc, "ro");
 
@@ -921,9 +921,9 @@ TEST_F(LibclangRewriteTest, RewriteInsert) {
 }
 
 TEST_F(LibclangRewriteTest, RewriteRemove) {
-  CXSourceLocation B = clang_getLocation(ClangTU, File, 1, 5);
-  CXSourceLocation E = clang_getLocation(ClangTU, File, 1, 9);
-  CXSourceRange Rng	= clang_getRange(B, E);
+  CXSourceLocation const B = clang_getLocation(ClangTU, File, 1, 5);
+  CXSourceLocation const E = clang_getLocation(ClangTU, File, 1, 9);
+  CXSourceRange const Rng	= clang_getRange(B, E);
 
   clang_CXRewriter_removeText(Rew, Rng);
 

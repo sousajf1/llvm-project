@@ -232,7 +232,7 @@ static ScopePair GetDiagForGotoScopeDecl(Sema &S, const Decl *D) {
 /// Build scope information for a declaration that is part of a DeclStmt.
 void JumpScopeChecker::BuildScopeInformation(Decl *D, unsigned &ParentScope) {
   // If this decl causes a new scope, push and switch to it.
-  std::pair<unsigned,unsigned> Diags = GetDiagForGotoScopeDecl(S, D);
+  std::pair<unsigned,unsigned> const Diags = GetDiagForGotoScopeDecl(S, D);
   if (Diags.first || Diags.second) {
     Scopes.push_back(GotoScope(ParentScope, Diags.first, Diags.second,
                                D->getLocation()));
@@ -254,8 +254,8 @@ void JumpScopeChecker::BuildScopeInformation(VarDecl *D,
   // associated with the block literal for them.
   if (D->hasAttr<BlocksAttr>())
     return;
-  QualType T = D->getType();
-  QualType::DestructionKind destructKind = T.isDestructedType();
+  QualType const T = D->getType();
+  QualType::DestructionKind const destructKind = T.isDestructedType();
   if (destructKind != QualType::DK_none) {
     std::pair<unsigned,unsigned> Diags;
     switch (destructKind) {
@@ -291,8 +291,8 @@ void JumpScopeChecker::BuildScopeInformation(VarDecl *D,
 /// non-trivial to destruct.
 void JumpScopeChecker::BuildScopeInformation(CompoundLiteralExpr *CLE,
                                              unsigned &ParentScope) {
-  unsigned InDiag = diag::note_enters_compound_literal_scope;
-  unsigned OutDiag = diag::note_exits_compound_literal_scope;
+  unsigned const InDiag = diag::note_enters_compound_literal_scope;
+  unsigned const OutDiag = diag::note_exits_compound_literal_scope;
   Scopes.push_back(GotoScope(ParentScope, InDiag, OutDiag, CLE->getExprLoc()));
   ParentScope = Scopes.size() - 1;
 }
@@ -320,7 +320,7 @@ void JumpScopeChecker::BuildScopeInformation(Stmt *S,
 
   case Stmt::ObjCForCollectionStmtClass: {
     auto *CS = cast<ObjCForCollectionStmt>(S);
-    unsigned Diag = diag::note_protected_by_objc_fast_enumeration;
+    unsigned const Diag = diag::note_protected_by_objc_fast_enumeration;
     unsigned NewParentScope = Scopes.size();
     Scopes.push_back(GotoScope(ParentScope, Diag, 0, S->getBeginLoc()));
     BuildScopeInformation(CS->getBody(), NewParentScope);
@@ -380,7 +380,7 @@ void JumpScopeChecker::BuildScopeInformation(Stmt *S,
     if (!(IS->isConstexpr() || IS->isObjCAvailabilityCheck()))
       break;
 
-    unsigned Diag = IS->isConstexpr() ? diag::note_protected_by_constexpr_if
+    unsigned const Diag = IS->isConstexpr() ? diag::note_protected_by_constexpr_if
                                       : diag::note_protected_by_if_available;
 
     if (VarDecl *Var = IS->getConditionVariable())
@@ -734,7 +734,7 @@ void JumpScopeChecker::VerifyIndirectOrAsmJumps(bool IsAsmGoto) {
       Stmt *IG = *I;
       if (CHECK_PERMISSIVE(!LabelAndGotoScopes.count(IG)))
         continue;
-      unsigned IGScope = LabelAndGotoScopes[IG];
+      unsigned const IGScope = LabelAndGotoScopes[IG];
       Stmt *&Entry = JumpScopesMap[IGScope];
       if (!Entry) Entry = IG;
     }
@@ -755,7 +755,7 @@ void JumpScopeChecker::VerifyIndirectOrAsmJumps(bool IsAsmGoto) {
     LabelDecl *TheLabel = *I;
     if (CHECK_PERMISSIVE(!LabelAndGotoScopes.count(TheLabel->getStmt())))
       continue;
-    unsigned LabelScope = LabelAndGotoScopes[TheLabel->getStmt()];
+    unsigned const LabelScope = LabelAndGotoScopes[TheLabel->getStmt()];
     LabelDecl *&Target = TargetScopes[LabelScope];
     if (!Target) Target = TheLabel;
   }
@@ -771,7 +771,7 @@ void JumpScopeChecker::VerifyIndirectOrAsmJumps(bool IsAsmGoto) {
   llvm::BitVector Reachable(Scopes.size(), false);
   for (llvm::DenseMap<unsigned,LabelDecl*>::iterator
          TI = TargetScopes.begin(), TE = TargetScopes.end(); TI != TE; ++TI) {
-    unsigned TargetScope = TI->first;
+    unsigned const TargetScope = TI->first;
     LabelDecl *TargetLabel = TI->second;
 
     Reachable.reset();
@@ -852,7 +852,7 @@ static void DiagnoseIndirectOrAsmJumpStmt(Sema &S, Stmt *Jump,
                                           LabelDecl *Target, bool &Diagnosed) {
   if (Diagnosed)
     return;
-  bool IsAsmGoto = isa<GCCAsmStmt>(Jump);
+  bool const IsAsmGoto = isa<GCCAsmStmt>(Jump);
   S.Diag(Jump->getBeginLoc(), diag::err_indirect_goto_in_protected_scope)
       << IsAsmGoto;
   S.Diag(Target->getStmt()->getIdentLoc(), diag::note_indirect_goto_target)
@@ -876,7 +876,7 @@ void JumpScopeChecker::DiagnoseIndirectOrAsmJump(Stmt *Jump, unsigned JumpScope,
   if (CHECK_PERMISSIVE(JumpScope == TargetScope))
     return;
 
-  unsigned Common = GetDeepestCommonScope(JumpScope, TargetScope);
+  unsigned const Common = GetDeepestCommonScope(JumpScope, TargetScope);
   bool Diagnosed = false;
 
   // Walk out the scope chain until we reach the common ancestor.
@@ -899,7 +899,7 @@ void JumpScopeChecker::DiagnoseIndirectOrAsmJump(Stmt *Jump, unsigned JumpScope,
 
   // Diagnose this jump if it would be ill-formed in C++98.
   if (!Diagnosed && !ToScopesCXX98Compat.empty()) {
-    bool IsAsmGoto = isa<GCCAsmStmt>(Jump);
+    bool const IsAsmGoto = isa<GCCAsmStmt>(Jump);
     S.Diag(Jump->getBeginLoc(),
            diag::warn_cxx98_compat_indirect_goto_in_protected_scope)
         << IsAsmGoto;
@@ -919,8 +919,8 @@ void JumpScopeChecker::CheckJump(Stmt *From, Stmt *To, SourceLocation DiagLoc,
   if (CHECK_PERMISSIVE(!LabelAndGotoScopes.count(To)))
     return;
 
-  unsigned FromScope = LabelAndGotoScopes[From];
-  unsigned ToScope = LabelAndGotoScopes[To];
+  unsigned const FromScope = LabelAndGotoScopes[From];
+  unsigned const ToScope = LabelAndGotoScopes[To];
 
   // Common case: exactly the same scope, which is fine.
   if (FromScope == ToScope) return;
@@ -942,7 +942,7 @@ void JumpScopeChecker::CheckJump(Stmt *From, Stmt *To, SourceLocation DiagLoc,
     }
   }
 
-  unsigned CommonScope = GetDeepestCommonScope(FromScope, ToScope);
+  unsigned const CommonScope = GetDeepestCommonScope(FromScope, ToScope);
 
   // It's okay to jump out from a nested scope.
   if (CommonScope == ToScope) return;

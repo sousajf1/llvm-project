@@ -37,23 +37,23 @@ public:
 };
 
 TEST_F(RenameFunctionTest, RefactorsAFoo) {
-  std::string Before = R"(
+  std::string const Before = R"(
       void f() {
         A::Foo();
         ::A::Foo();
       })";
-  std::string Expected = R"(
+  std::string const Expected = R"(
       void f() {
         A::Bar();
         ::A::Bar();
       })";
 
-  std::string After = runClangRenameOnCode(Before, "A::Foo", "A::Bar");
+  std::string const After = runClangRenameOnCode(Before, "A::Foo", "A::Bar");
   CompareSnippets(Expected, After);
 }
 
 TEST_F(RenameFunctionTest, RefactorsNonCallingAFoo) {
-  std::string Before = R"(
+  std::string const Before = R"(
       bool g(bool (*func)()) {
         return func();
       }
@@ -62,7 +62,7 @@ TEST_F(RenameFunctionTest, RefactorsNonCallingAFoo) {
         auto *ref2 = ::A::Foo;
         g(A::Foo);
       })";
-  std::string Expected = R"(
+  std::string const Expected = R"(
       bool g(bool (*func)()) {
         return func();
       }
@@ -71,25 +71,25 @@ TEST_F(RenameFunctionTest, RefactorsNonCallingAFoo) {
         auto *ref2 = ::A::Bar;
         g(A::Bar);
       })";
-  std::string After = runClangRenameOnCode(Before, "A::Foo", "A::Bar");
+  std::string const After = runClangRenameOnCode(Before, "A::Foo", "A::Bar");
   CompareSnippets(Expected, After);
 }
 
 TEST_F(RenameFunctionTest, RefactorsEric) {
-  std::string Before = R"(
+  std::string const Before = R"(
       void f() {
         if (Eric(3)==4) ::Eric(2);
       })";
-  std::string Expected = R"(
+  std::string const Expected = R"(
       void f() {
         if (Larry(3)==4) ::Larry(2);
       })";
-  std::string After = runClangRenameOnCode(Before, "Eric", "Larry");
+  std::string const After = runClangRenameOnCode(Before, "Eric", "Larry");
   CompareSnippets(Expected, After);
 }
 
 TEST_F(RenameFunctionTest, RefactorsNonCallingEric) {
-  std::string Before = R"(
+  std::string const Before = R"(
         int g(int (*func)(int)) {
           return func(1);
         }
@@ -97,7 +97,7 @@ TEST_F(RenameFunctionTest, RefactorsNonCallingEric) {
           auto *ref = ::Eric;
           g(Eric);
         })";
-  std::string Expected = R"(
+  std::string const Expected = R"(
         int g(int (*func)(int)) {
           return func(1);
         }
@@ -105,57 +105,57 @@ TEST_F(RenameFunctionTest, RefactorsNonCallingEric) {
           auto *ref = ::Larry;
           g(Larry);
         })";
-  std::string After = runClangRenameOnCode(Before, "Eric", "Larry");
+  std::string const After = runClangRenameOnCode(Before, "Eric", "Larry");
   CompareSnippets(Expected, After);
 }
 
 TEST_F(RenameFunctionTest, DoesNotRefactorBFoo) {
-  std::string Before = R"(
+  std::string const Before = R"(
       void f() {
         B::Foo();
       })";
-  std::string After = runClangRenameOnCode(Before, "A::Foo", "A::Bar");
+  std::string const After = runClangRenameOnCode(Before, "A::Foo", "A::Bar");
   CompareSnippets(Before, After);
 }
 
 TEST_F(RenameFunctionTest, DoesNotRefactorBEric) {
-  std::string Before = R"(
+  std::string const Before = R"(
       void f() {
         B::Eric(2);
       })";
-  std::string After = runClangRenameOnCode(Before, "Eric", "Larry");
+  std::string const After = runClangRenameOnCode(Before, "Eric", "Larry");
   CompareSnippets(Before, After);
 }
 
 TEST_F(RenameFunctionTest, DoesNotRefactorCEric) {
-  std::string Before = R"(
+  std::string const Before = R"(
       namespace C { int Eric(int x); }
       void f() {
         if (C::Eric(3)==4) ::C::Eric(2);
       })";
-  std::string Expected = R"(
+  std::string const Expected = R"(
       namespace C { int Eric(int x); }
       void f() {
         if (C::Eric(3)==4) ::C::Eric(2);
       })";
-  std::string After = runClangRenameOnCode(Before, "Eric", "Larry");
+  std::string const After = runClangRenameOnCode(Before, "Eric", "Larry");
   CompareSnippets(Expected, After);
 }
 
 TEST_F(RenameFunctionTest, DoesNotRefactorEricInNamespaceC) {
-  std::string Before = R"(
+  std::string const Before = R"(
        namespace C {
        int Eric(int x);
        void f() {
          if (Eric(3)==4) Eric(2);
        }
        }  // namespace C)";
-  std::string After = runClangRenameOnCode(Before, "Eric", "Larry");
+  std::string const After = runClangRenameOnCode(Before, "Eric", "Larry");
   CompareSnippets(Before, After);
 }
 
 TEST_F(RenameFunctionTest, NamespaceQualified) {
-  std::string Before = R"(
+  std::string const Before = R"(
       void f() {
         base::ToNanoSeconds();
         ::base::ToNanoSeconds();
@@ -177,7 +177,7 @@ TEST_F(RenameFunctionTest, NamespaceQualified) {
           ::base::ToNanoSeconds();
         }
       })";
-  std::string Expected = R"(
+  std::string const Expected = R"(
       void f() {
         base::ToInt64NanoSeconds();
         ::base::ToInt64NanoSeconds();
@@ -199,64 +199,64 @@ TEST_F(RenameFunctionTest, NamespaceQualified) {
           ::base::ToInt64NanoSeconds();
         }
       })";
-  std::string After = runClangRenameOnCode(Before, "base::ToNanoSeconds",
+  std::string const After = runClangRenameOnCode(Before, "base::ToNanoSeconds",
                                            "base::ToInt64NanoSeconds");
   CompareSnippets(Expected, After);
 }
 
 TEST_F(RenameFunctionTest, RenameFunctionDecls) {
-  std::string Before = R"(
+  std::string const Before = R"(
       namespace na {
         void X();
         void X() {}
       })";
-  std::string Expected = R"(
+  std::string const Expected = R"(
       namespace na {
         void Y();
         void Y() {}
       })";
-  std::string After = runClangRenameOnCode(Before, "na::X", "na::Y");
+  std::string const After = runClangRenameOnCode(Before, "na::X", "na::Y");
   CompareSnippets(Expected, After);
 }
 
 TEST_F(RenameFunctionTest, RenameTemplateFunctions) {
-  std::string Before = R"(
+  std::string const Before = R"(
       namespace na {
       template<typename T> T X();
       }
       namespace na { void f() { X<int>(); } }
       namespace nb { void g() { na::X          <int>(); } }
       )";
-  std::string Expected = R"(
+  std::string const Expected = R"(
       namespace na {
       template<typename T> T Y();
       }
       namespace na { void f() { nb::Y<int>(); } }
       namespace nb { void g() { Y<int>(); } }
       )";
-  std::string After = runClangRenameOnCode(Before, "na::X", "nb::Y");
+  std::string const After = runClangRenameOnCode(Before, "na::X", "nb::Y");
   CompareSnippets(Expected, After);
 }
 
 TEST_F(RenameFunctionTest, RenameOutOfLineFunctionDecls) {
-  std::string Before = R"(
+  std::string const Before = R"(
       namespace na {
         void X();
       }
       void na::X() {}
       )";
-  std::string Expected = R"(
+  std::string const Expected = R"(
       namespace na {
         void Y();
       }
       void na::Y() {}
       )";
-  std::string After = runClangRenameOnCode(Before, "na::X", "na::Y");
+  std::string const After = runClangRenameOnCode(Before, "na::X", "na::Y");
   CompareSnippets(Expected, After);
 }
 
 TEST_F(RenameFunctionTest, NewNamespaceWithoutLeadingDotDot) {
-  std::string Before = R"(
+  std::string const Before = R"(
       namespace old_ns {
         void X();
         void X() {}
@@ -266,7 +266,7 @@ TEST_F(RenameFunctionTest, NewNamespaceWithoutLeadingDotDot) {
       namespace old_ns { void g() { X(); } }
       namespace new_ns { void h() { ::old_ns::X(); } }
       )";
-  std::string Expected = R"(
+  std::string const Expected = R"(
       namespace old_ns {
         void Y();
         void Y() {}
@@ -276,12 +276,12 @@ TEST_F(RenameFunctionTest, NewNamespaceWithoutLeadingDotDot) {
       namespace old_ns { void g() { new_ns::Y(); } }
       namespace new_ns { void h() { Y(); } }
       )";
-  std::string After = runClangRenameOnCode(Before, "::old_ns::X", "new_ns::Y");
+  std::string const After = runClangRenameOnCode(Before, "::old_ns::X", "new_ns::Y");
   CompareSnippets(Expected, After);
 }
 
 TEST_F(RenameFunctionTest, NewNamespaceWithLeadingDotDot) {
-  std::string Before = R"(
+  std::string const Before = R"(
       namespace old_ns {
         void X();
         void X() {}
@@ -291,7 +291,7 @@ TEST_F(RenameFunctionTest, NewNamespaceWithLeadingDotDot) {
       namespace old_ns { void g() { X(); } }
       namespace new_ns { void h() { ::old_ns::X(); } }
       )";
-  std::string Expected = R"(
+  std::string const Expected = R"(
       namespace old_ns {
         void Y();
         void Y() {}
@@ -301,13 +301,13 @@ TEST_F(RenameFunctionTest, NewNamespaceWithLeadingDotDot) {
       namespace old_ns { void g() { ::new_ns::Y(); } }
       namespace new_ns { void h() { Y(); } }
       )";
-  std::string After =
+  std::string const After =
       runClangRenameOnCode(Before, "::old_ns::X", "::new_ns::Y");
   CompareSnippets(Expected, After);
 }
 
 TEST_F(RenameFunctionTest, DontRenameSymbolsDefinedInAnonymousNamespace) {
-  std::string Before = R"(
+  std::string const Before = R"(
       namespace old_ns {
       class X {};
       namespace {
@@ -317,7 +317,7 @@ TEST_F(RenameFunctionTest, DontRenameSymbolsDefinedInAnonymousNamespace) {
       }
       }
       )";
-  std::string Expected = R"(
+  std::string const Expected = R"(
       namespace old_ns {
       class Y {};
       namespace {
@@ -327,13 +327,13 @@ TEST_F(RenameFunctionTest, DontRenameSymbolsDefinedInAnonymousNamespace) {
       }
       }
       )";
-  std::string After =
+  std::string const After =
       runClangRenameOnCode(Before, "::old_ns::X", "::old_ns::Y");
   CompareSnippets(Expected, After);
 }
 
 TEST_F(RenameFunctionTest, NewNestedNamespace) {
-  std::string Before = R"(
+  std::string const Before = R"(
       namespace old_ns {
         void X();
         void X() {}
@@ -343,7 +343,7 @@ TEST_F(RenameFunctionTest, NewNestedNamespace) {
       void f() { X(); }
       }
       )";
-  std::string Expected = R"(
+  std::string const Expected = R"(
       namespace old_ns {
         void X();
         void X() {}
@@ -353,13 +353,13 @@ TEST_F(RenameFunctionTest, NewNestedNamespace) {
       void f() { older_ns::X(); }
       }
       )";
-  std::string After =
+  std::string const After =
       runClangRenameOnCode(Before, "::old_ns::X", "::old_ns::older_ns::X");
   CompareSnippets(Expected, After);
 }
 
 TEST_F(RenameFunctionTest, MoveFromGlobalToNamespaceWithoutLeadingDotDot) {
-  std::string Before = R"(
+  std::string const Before = R"(
       void X();
       void X() {}
 
@@ -368,7 +368,7 @@ TEST_F(RenameFunctionTest, MoveFromGlobalToNamespaceWithoutLeadingDotDot) {
       void f() { X(); }
       }
       )";
-  std::string Expected = R"(
+  std::string const Expected = R"(
       void X();
       void X() {}
 
@@ -377,13 +377,13 @@ TEST_F(RenameFunctionTest, MoveFromGlobalToNamespaceWithoutLeadingDotDot) {
       void f() { ns::X(); }
       }
       )";
-  std::string After =
+  std::string const After =
       runClangRenameOnCode(Before, "::X", "ns::X");
   CompareSnippets(Expected, After);
 }
 
 TEST_F(RenameFunctionTest, MoveFromGlobalToNamespaceWithLeadingDotDot) {
-  std::string Before = R"(
+  std::string const Before = R"(
       void Y() {}
 
       // Assume that the reference is in another file.
@@ -391,7 +391,7 @@ TEST_F(RenameFunctionTest, MoveFromGlobalToNamespaceWithLeadingDotDot) {
       void f() { Y(); }
       }
       )";
-  std::string Expected = R"(
+  std::string const Expected = R"(
       void Y() {}
 
       // Assume that the reference is in another file.
@@ -399,14 +399,14 @@ TEST_F(RenameFunctionTest, MoveFromGlobalToNamespaceWithLeadingDotDot) {
       void f() { ::ns::Y(); }
       }
       )";
-  std::string After =
+  std::string const After =
       runClangRenameOnCode(Before, "::Y", "::ns::Y");
   CompareSnippets(Expected, After);
 }
 
 // FIXME: the rename of overloaded operator is not fully supported yet.
 TEST_F(RenameFunctionTest, DISABLED_DoNotRenameOverloadedOperatorCalls) {
-  std::string Before = R"(
+  std::string const Before = R"(
       namespace old_ns {
       class T { public: int x; };
       bool operator==(const T& lhs, const T& rhs) {
@@ -422,7 +422,7 @@ TEST_F(RenameFunctionTest, DISABLED_DoNotRenameOverloadedOperatorCalls) {
         return t1 == t2;
       }
       )";
-  std::string Expected = R"(
+  std::string const Expected = R"(
       namespace old_ns {
       class T { public: int x; };
       bool operator==(const T& lhs, const T& rhs) {
@@ -438,13 +438,13 @@ TEST_F(RenameFunctionTest, DISABLED_DoNotRenameOverloadedOperatorCalls) {
         return t1 == t2;
       }
       )";
-  std::string After =
+  std::string const After =
       runClangRenameOnCode(Before, "old_ns::operator==", "new_ns::operator==");
   CompareSnippets(Expected, After);
 }
 
 TEST_F(RenameFunctionTest, FunctionRefAsTemplate) {
-  std::string Before = R"(
+  std::string const Before = R"(
       void X();
 
       // Assume that the reference is in another file.
@@ -468,7 +468,7 @@ TEST_F(RenameFunctionTest, FunctionRefAsTemplate) {
       void f() { T<X> tx; tx.g(); }
       }  // namespace some_ns
       )";
-  std::string Expected = R"(
+  std::string const Expected = R"(
       void X();
 
       // Assume that the reference is in another file.
@@ -492,12 +492,12 @@ TEST_F(RenameFunctionTest, FunctionRefAsTemplate) {
       void f() { T<ns::X> tx; tx.g(); }
       }  // namespace some_ns
       )";
-  std::string After = runClangRenameOnCode(Before, "::X", "ns::X");
+  std::string const After = runClangRenameOnCode(Before, "::X", "ns::X");
   CompareSnippets(Expected, After);
 }
 
 TEST_F(RenameFunctionTest, RenameFunctionInUsingDecl) {
-  std::string Before = R"(
+  std::string const Before = R"(
       using base::ToNanoSeconds;
       namespace old_ns {
       using base::ToNanoSeconds;
@@ -506,7 +506,7 @@ TEST_F(RenameFunctionTest, RenameFunctionInUsingDecl) {
       }
       }
       )";
-  std::string Expected = R"(
+  std::string const Expected = R"(
       using base::ToInt64NanoSeconds;
       namespace old_ns {
       using base::ToInt64NanoSeconds;
@@ -515,7 +515,7 @@ TEST_F(RenameFunctionTest, RenameFunctionInUsingDecl) {
       }
       }
       )";
-  std::string After = runClangRenameOnCode(Before, "base::ToNanoSeconds",
+  std::string const After = runClangRenameOnCode(Before, "base::ToNanoSeconds",
                                            "base::ToInt64NanoSeconds");
   CompareSnippets(Expected, After);
 }
@@ -523,7 +523,7 @@ TEST_F(RenameFunctionTest, RenameFunctionInUsingDecl) {
 // FIXME: Fix the complex the case where the symbol being renamed is located in
 // `std::function<decltype<renamed_symbol>>`.
 TEST_F(ClangRenameTest, DISABLED_ReferencesInLambdaFunctionParameters) {
-  std::string Before = R"(
+  std::string const Before = R"(
       template <class T>
       class function;
       template <class R, class... ArgTypes>
@@ -543,7 +543,7 @@ TEST_F(ClangRenameTest, DISABLED_ReferencesInLambdaFunctionParameters) {
         function<decltype(Old)> func;
       }
       }  // namespace ns)";
-  std::string Expected = R"(
+  std::string const Expected = R"(
       template <class T>
       class function;
       template <class R, class... ArgTypes>
@@ -563,7 +563,7 @@ TEST_F(ClangRenameTest, DISABLED_ReferencesInLambdaFunctionParameters) {
         function<decltype(::new_ns::New)> func;
       }
       }  // namespace ns)";
-  std::string After = runClangRenameOnCode(Before, "ns::Old", "::new_ns::New");
+  std::string const After = runClangRenameOnCode(Before, "ns::Old", "::new_ns::New");
   CompareSnippets(Expected, After);
 }
 

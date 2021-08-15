@@ -225,7 +225,7 @@ private:
 
     // Try to recognize a floating point literal.
     while (Length < Code.size()) {
-      char c = Code[Length];
+      char const c = Code[Length];
       if (c == '-' || c == '+' || c == '.' || isHexDigit(c)) {
         isFloatingLiteral = true;
         Length++;
@@ -240,8 +240,8 @@ private:
     if (isFloatingLiteral) {
       char *end;
       errno = 0;
-      std::string Text = Result->Text.str();
-      double doubleValue = strtod(Text.c_str(), &end);
+      std::string const Text = Result->Text.str();
+      double const doubleValue = strtod(Text.c_str(), &end);
       if (*end == 0 && errno == 0) {
         Result->Kind = TokenInfo::TK_Literal;
         Result->Value = doubleValue;
@@ -288,7 +288,7 @@ private:
       }
     }
 
-    StringRef ErrorText = Code;
+    StringRef const ErrorText = Code;
     Code = Code.drop_front(Code.size());
     SourceRange Range;
     Range.Start = Result->Range.Start;
@@ -369,7 +369,7 @@ bool Parser::parseIdentifierPrefixImpl(VariantValue *Value) {
 
       std::string BindID;
       Tokenizer->consumeNextToken();
-      TokenInfo ChainCallToken = Tokenizer->consumeNextToken();
+      TokenInfo const ChainCallToken = Tokenizer->consumeNextToken();
       if (ChainCallToken.Kind == TokenInfo::TK_CodeCompletion) {
         addCompletion(ChainCallToken, MatcherCompletion("bind(\"", "bind", 1));
         return false;
@@ -384,7 +384,7 @@ bool Parser::parseIdentifierPrefixImpl(VariantValue *Value) {
       }
       if (ChainCallToken.Text == TokenInfo::ID_With) {
 
-        Diagnostics::Context Ctx(Diagnostics::Context::ConstructMatcher, Error,
+        Diagnostics::Context const Ctx(Diagnostics::Context::ConstructMatcher, Error,
                                  NameToken.Text, NameToken.Range);
 
         Error->addError(ChainCallToken.Range,
@@ -431,14 +431,14 @@ bool Parser::parseIdentifierPrefixImpl(VariantValue *Value) {
   Tokenizer->SkipNewlines();
 
   assert(NameToken.Kind == TokenInfo::TK_Ident);
-  TokenInfo OpenToken = Tokenizer->consumeNextToken();
+  TokenInfo const OpenToken = Tokenizer->consumeNextToken();
   if (OpenToken.Kind != TokenInfo::TK_OpenParen) {
     Error->addError(OpenToken.Range, Error->ET_ParserNoOpenParen)
         << OpenToken.Text;
     return false;
   }
 
-  llvm::Optional<MatcherCtor> Ctor = S->lookupMatcherCtor(NameToken.Text);
+  llvm::Optional<MatcherCtor> const Ctor = S->lookupMatcherCtor(NameToken.Text);
 
   // Parse as a matcher expression.
   return parseMatcherExpressionImpl(NameToken, OpenToken, Ctor, Value);
@@ -487,7 +487,7 @@ bool Parser::parseMatcherBuilder(MatcherCtor Ctor, const TokenInfo &NameToken,
       }
       if (!Args.empty()) {
         // We must find a , token to continue.
-        TokenInfo CommaToken = Tokenizer->consumeNextToken();
+        TokenInfo const CommaToken = Tokenizer->consumeNextToken();
         if (CommaToken.Kind != TokenInfo::TK_Comma) {
           Error->addError(CommaToken.Range, Error->ET_ParserNoComma)
               << CommaToken.Text;
@@ -495,7 +495,7 @@ bool Parser::parseMatcherBuilder(MatcherCtor Ctor, const TokenInfo &NameToken,
         }
       }
 
-      Diagnostics::Context Ctx(Diagnostics::Context::MatcherArg, Error,
+      Diagnostics::Context const Ctx(Diagnostics::Context::MatcherArg, Error,
                                NameToken.Text, NameToken.Range,
                                Args.size() + 1);
       ParserValue ArgValue;
@@ -506,7 +506,7 @@ bool Parser::parseMatcherBuilder(MatcherCtor Ctor, const TokenInfo &NameToken,
         return false;
       }
 
-      TokenInfo NodeMatcherToken = Tokenizer->consumeNextToken();
+      TokenInfo const NodeMatcherToken = Tokenizer->consumeNextToken();
 
       if (NodeMatcherToken.Kind != TokenInfo::TK_Ident) {
         Error->addError(NameToken.Range, Error->ET_ParserFailedToBuildMatcher)
@@ -527,7 +527,7 @@ bool Parser::parseMatcherBuilder(MatcherCtor Ctor, const TokenInfo &NameToken,
         return false;
       }
 
-      ASTNodeKind NK = S->nodeMatcherType(*MappedMatcher);
+      ASTNodeKind const NK = S->nodeMatcherType(*MappedMatcher);
 
       if (NK.isNone()) {
         Error->addError(NodeMatcherToken.Range,
@@ -562,7 +562,7 @@ bool Parser::parseMatcherBuilder(MatcherCtor Ctor, const TokenInfo &NameToken,
   std::string BindID;
   if (Tokenizer->peekNextToken().Kind == TokenInfo::TK_Period) {
     Tokenizer->consumeNextToken();
-    TokenInfo ChainCallToken = Tokenizer->consumeNextToken();
+    TokenInfo const ChainCallToken = Tokenizer->consumeNextToken();
     if (ChainCallToken.Kind == TokenInfo::TK_CodeCompletion) {
       addCompletion(ChainCallToken, MatcherCompletion("bind(\"", "bind", 1));
       addCompletion(ChainCallToken, MatcherCompletion("with(", "with", 1));
@@ -578,11 +578,11 @@ bool Parser::parseMatcherBuilder(MatcherCtor Ctor, const TokenInfo &NameToken,
     if (ChainCallToken.Text == TokenInfo::ID_Bind) {
       if (!parseBindID(BindID))
         return false;
-      Diagnostics::Context Ctx(Diagnostics::Context::ConstructMatcher, Error,
+      Diagnostics::Context const Ctx(Diagnostics::Context::ConstructMatcher, Error,
                                NameToken.Text, NameToken.Range);
       SourceRange MatcherRange = NameToken.Range;
       MatcherRange.End = ChainCallToken.Range.End;
-      VariantMatcher Result = S->actOnMatcherExpression(
+      VariantMatcher const Result = S->actOnMatcherExpression(
           BuiltCtor.get(), MatcherRange, BindID, {}, Error);
       if (Result.isNull())
         return false;
@@ -593,7 +593,7 @@ bool Parser::parseMatcherBuilder(MatcherCtor Ctor, const TokenInfo &NameToken,
       Tokenizer->SkipNewlines();
 
       if (Tokenizer->nextTokenKind() != TokenInfo::TK_OpenParen) {
-        StringRef ErrTxt = Tokenizer->nextTokenKind() == TokenInfo::TK_Eof
+        StringRef const ErrTxt = Tokenizer->nextTokenKind() == TokenInfo::TK_Eof
                                ? StringRef("EOF")
                                : Tokenizer->peekNextToken().Text;
         Error->addError(Tokenizer->peekNextToken().Range,
@@ -602,18 +602,18 @@ bool Parser::parseMatcherBuilder(MatcherCtor Ctor, const TokenInfo &NameToken,
         return false;
       }
 
-      TokenInfo WithOpenToken = Tokenizer->consumeNextToken();
+      TokenInfo const WithOpenToken = Tokenizer->consumeNextToken();
 
       return parseMatcherExpressionImpl(NameToken, WithOpenToken,
                                         BuiltCtor.get(), Value);
     }
   }
 
-  Diagnostics::Context Ctx(Diagnostics::Context::ConstructMatcher, Error,
+  Diagnostics::Context const Ctx(Diagnostics::Context::ConstructMatcher, Error,
                            NameToken.Text, NameToken.Range);
   SourceRange MatcherRange = NameToken.Range;
   MatcherRange.End = EndToken.Range.End;
-  VariantMatcher Result = S->actOnMatcherExpression(
+  VariantMatcher const Result = S->actOnMatcherExpression(
       BuiltCtor.get(), MatcherRange, BindID, {}, Error);
   if (Result.isNull())
     return false;
@@ -663,7 +663,7 @@ bool Parser::parseMatcherExpressionImpl(const TokenInfo &NameToken,
         }
       }
 
-      Diagnostics::Context Ctx(Diagnostics::Context::MatcherArg, Error,
+      Diagnostics::Context const Ctx(Diagnostics::Context::MatcherArg, Error,
                                NameToken.Text, NameToken.Range,
                                Args.size() + 1);
       ParserValue ArgValue;
@@ -688,7 +688,7 @@ bool Parser::parseMatcherExpressionImpl(const TokenInfo &NameToken,
   std::string BindID;
   if (Tokenizer->peekNextToken().Kind == TokenInfo::TK_Period) {
     Tokenizer->consumeNextToken();
-    TokenInfo ChainCallToken = Tokenizer->consumeNextToken();
+    TokenInfo const ChainCallToken = Tokenizer->consumeNextToken();
     if (ChainCallToken.Kind == TokenInfo::TK_CodeCompletion) {
       addCompletion(ChainCallToken, MatcherCompletion("bind(\"", "bind", 1));
       return false;
@@ -701,7 +701,7 @@ bool Parser::parseMatcherExpressionImpl(const TokenInfo &NameToken,
     }
     if (ChainCallToken.Text == TokenInfo::ID_With) {
 
-      Diagnostics::Context Ctx(Diagnostics::Context::ConstructMatcher, Error,
+      Diagnostics::Context const Ctx(Diagnostics::Context::ConstructMatcher, Error,
                                NameToken.Text, NameToken.Range);
 
       Error->addError(ChainCallToken.Range,
@@ -721,11 +721,11 @@ bool Parser::parseMatcherExpressionImpl(const TokenInfo &NameToken,
     return false;
 
   // Merge the start and end infos.
-  Diagnostics::Context Ctx(Diagnostics::Context::ConstructMatcher, Error,
+  Diagnostics::Context const Ctx(Diagnostics::Context::ConstructMatcher, Error,
                            NameToken.Text, NameToken.Range);
   SourceRange MatcherRange = NameToken.Range;
   MatcherRange.End = EndToken.Range.End;
-  VariantMatcher Result = S->actOnMatcherExpression(
+  VariantMatcher const Result = S->actOnMatcherExpression(
       *Ctor, MatcherRange, BindID, Args, Error);
   if (Result.isNull()) return false;
 
@@ -751,7 +751,7 @@ std::vector<MatcherCompletion> Parser::getNamedValueCompletions(
   for (const auto &Entry : *NamedValues) {
     unsigned Specificity;
     if (Entry.getValue().isConvertibleTo(AcceptedTypes, &Specificity)) {
-      std::string Decl =
+      std::string const Decl =
           (Entry.getValue().getTypeAsString() + " " + Entry.getKey()).str();
       Result.emplace_back(Entry.getKey(), Decl, Specificity);
     }

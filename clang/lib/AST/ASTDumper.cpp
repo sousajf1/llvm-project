@@ -33,19 +33,19 @@ void ASTDumper::dumpLookups(const DeclContext *DC, bool DumpDecls) {
       NodeDumper.dumpPointer(cast<Decl>(Primary));
     }
 
-    bool HasUndeserializedLookups = Primary->hasExternalVisibleStorage();
+    bool const HasUndeserializedLookups = Primary->hasExternalVisibleStorage();
 
     auto Range = getDeserialize()
                      ? Primary->lookups()
                      : Primary->noload_lookups(/*PreserveInternalState=*/true);
     for (auto I = Range.begin(), E = Range.end(); I != E; ++I) {
-      DeclarationName Name = I.getLookupName();
-      DeclContextLookupResult R = *I;
+      DeclarationName const Name = I.getLookupName();
+      DeclContextLookupResult const R = *I;
 
       NodeDumper.AddChild([=] {
         OS << "DeclarationName ";
         {
-          ColorScope Color(OS, ShowColors, DeclNameColor);
+          ColorScope const Color(OS, ShowColors, DeclNameColor);
           OS << '\'' << Name << '\'';
         }
 
@@ -74,7 +74,7 @@ void ASTDumper::dumpLookups(const DeclContext *DC, bool DumpDecls) {
 
     if (HasUndeserializedLookups) {
       NodeDumper.AddChild([=] {
-        ColorScope Color(OS, ShowColors, UndeserializedColor);
+        ColorScope const Color(OS, ShowColors, UndeserializedColor);
         OS << "<undeserialized lookups>";
       });
     }

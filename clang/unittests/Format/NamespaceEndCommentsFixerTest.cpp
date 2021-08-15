@@ -25,7 +25,7 @@ protected:
                           const FormatStyle &Style = getLLVMStyle()) {
     LLVM_DEBUG(llvm::errs() << "---\n");
     LLVM_DEBUG(llvm::errs() << Code << "\n\n");
-    tooling::Replacements Replaces =
+    tooling::Replacements const Replaces =
         clang::format::fixNamespaceEndComments(Style, Code, Ranges, "<stdin>");
     auto Result = applyAllReplacements(Code, Replaces);
     EXPECT_TRUE(static_cast<bool>(Result));

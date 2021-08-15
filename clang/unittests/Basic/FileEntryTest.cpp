@@ -56,7 +56,7 @@ struct RefMaps {
 };
 
 TEST(FileEntryTest, Constructor) {
-  FileEntry FE;
+  FileEntry const FE;
   EXPECT_EQ(0, FE.getSize());
   EXPECT_EQ(0, FE.getModificationTime());
   EXPECT_EQ(nullptr, FE.getDir());
@@ -68,9 +68,9 @@ TEST(FileEntryTest, Constructor) {
 
 TEST(FileEntryTest, FileEntryRef) {
   RefMaps Refs;
-  FileEntryRef R1 = Refs.addFile("1");
-  FileEntryRef R2 = Refs.addFile("2");
-  FileEntryRef R1Also = Refs.addFileAlias("1-also", R1);
+  FileEntryRef const R1 = Refs.addFile("1");
+  FileEntryRef const R2 = Refs.addFile("2");
+  FileEntryRef const R1Also = Refs.addFileAlias("1-also", R1);
 
   EXPECT_EQ("1", R1.getName());
   EXPECT_EQ("2", R2.getName());
@@ -85,10 +85,10 @@ TEST(FileEntryTest, FileEntryRef) {
 
 TEST(FileEntryTest, OptionalFileEntryRefDegradesToFileEntryPtr) {
   RefMaps Refs;
-  OptionalFileEntryRefDegradesToFileEntryPtr M0;
+  OptionalFileEntryRefDegradesToFileEntryPtr const M0;
   OptionalFileEntryRefDegradesToFileEntryPtr M1 = Refs.addFile("1");
   OptionalFileEntryRefDegradesToFileEntryPtr M2 = Refs.addFile("2");
-  OptionalFileEntryRefDegradesToFileEntryPtr M0Also = None;
+  OptionalFileEntryRefDegradesToFileEntryPtr const M0Also = None;
   OptionalFileEntryRefDegradesToFileEntryPtr M1Also =
       Refs.addFileAlias("1-also", *M1);
 
@@ -103,9 +103,9 @@ TEST(FileEntryTest, OptionalFileEntryRefDegradesToFileEntryPtr) {
 
 TEST(FileEntryTest, equals) {
   RefMaps Refs;
-  FileEntryRef R1 = Refs.addFile("1");
-  FileEntryRef R2 = Refs.addFile("2");
-  FileEntryRef R1Also = Refs.addFileAlias("1-also", R1);
+  FileEntryRef const R1 = Refs.addFile("1");
+  FileEntryRef const R2 = Refs.addFile("2");
+  FileEntryRef const R1Also = Refs.addFileAlias("1-also", R1);
 
   EXPECT_EQ(R1, &R1.getFileEntry());
   EXPECT_EQ(&R1.getFileEntry(), R1);
@@ -114,7 +114,7 @@ TEST(FileEntryTest, equals) {
   EXPECT_NE(&R2.getFileEntry(), R1);
   EXPECT_NE(R1, R2);
 
-  OptionalFileEntryRefDegradesToFileEntryPtr M1 = R1;
+  OptionalFileEntryRefDegradesToFileEntryPtr const M1 = R1;
 
   EXPECT_EQ(M1, &R1.getFileEntry());
   EXPECT_EQ(&R1.getFileEntry(), M1);
@@ -124,9 +124,9 @@ TEST(FileEntryTest, equals) {
 
 TEST(FileEntryTest, isSameRef) {
   RefMaps Refs;
-  FileEntryRef R1 = Refs.addFile("1");
-  FileEntryRef R2 = Refs.addFile("2");
-  FileEntryRef R1Also = Refs.addFileAlias("1-also", R1);
+  FileEntryRef const R1 = Refs.addFile("1");
+  FileEntryRef const R2 = Refs.addFile("2");
+  FileEntryRef const R1Also = Refs.addFileAlias("1-also", R1);
 
   EXPECT_TRUE(R1.isSameRef(FileEntryRef(R1)));
   EXPECT_TRUE(R1.isSameRef(FileEntryRef(R1.getMapEntry())));
@@ -136,9 +136,9 @@ TEST(FileEntryTest, isSameRef) {
 
 TEST(FileEntryTest, DenseMapInfo) {
   RefMaps Refs;
-  FileEntryRef R1 = Refs.addFile("1");
-  FileEntryRef R2 = Refs.addFile("2");
-  FileEntryRef R1Also = Refs.addFileAlias("1-also", R1);
+  FileEntryRef const R1 = Refs.addFile("1");
+  FileEntryRef const R2 = Refs.addFile("2");
+  FileEntryRef const R1Also = Refs.addFileAlias("1-also", R1);
 
   // Insert R1Also first and confirm it "wins".
   {
@@ -165,9 +165,9 @@ TEST(FileEntryTest, DenseMapInfo) {
 
 TEST(DirectoryEntryTest, isSameRef) {
   RefMaps Refs;
-  DirectoryEntryRef R1 = Refs.addDirectory("1");
-  DirectoryEntryRef R2 = Refs.addDirectory("2");
-  DirectoryEntryRef R1Also = Refs.addDirectoryAlias("1-also", R1);
+  DirectoryEntryRef const R1 = Refs.addDirectory("1");
+  DirectoryEntryRef const R2 = Refs.addDirectory("2");
+  DirectoryEntryRef const R1Also = Refs.addDirectoryAlias("1-also", R1);
 
   EXPECT_TRUE(R1.isSameRef(DirectoryEntryRef(R1)));
   EXPECT_TRUE(R1.isSameRef(DirectoryEntryRef(R1.getMapEntry())));
@@ -177,9 +177,9 @@ TEST(DirectoryEntryTest, isSameRef) {
 
 TEST(DirectoryEntryTest, DenseMapInfo) {
   RefMaps Refs;
-  DirectoryEntryRef R1 = Refs.addDirectory("1");
-  DirectoryEntryRef R2 = Refs.addDirectory("2");
-  DirectoryEntryRef R1Also = Refs.addDirectoryAlias("1-also", R1);
+  DirectoryEntryRef const R1 = Refs.addDirectory("1");
+  DirectoryEntryRef const R2 = Refs.addDirectory("2");
+  DirectoryEntryRef const R1Also = Refs.addDirectoryAlias("1-also", R1);
 
   // Insert R1Also first and confirm it "wins".
   {

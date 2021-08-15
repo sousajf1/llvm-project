@@ -249,7 +249,7 @@ public:
 CXDiagnosticSet DiagLoader::load(const char *file) {
   TopDiags = std::make_unique<CXLoadedDiagnosticSetImpl>();
 
-  std::error_code EC = readDiagnostics(file);
+  std::error_code const EC = readDiagnostics(file);
   if (EC) {
     switch (EC.value()) {
     case static_cast<int>(serialized_diags::SDError::HandlerFailed):
@@ -271,7 +271,7 @@ CXDiagnosticSet DiagLoader::load(const char *file) {
 std::error_code
 DiagLoader::readLocation(const serialized_diags::Location &SDLoc,
                          CXLoadedDiagnostic::Location &LoadedLoc) {
-  unsigned FileID = SDLoc.FileID;
+  unsigned const FileID = SDLoc.FileID;
   if (FileID == 0)
     LoadedLoc.file = nullptr;
   else {
@@ -299,8 +299,8 @@ DiagLoader::readRange(const serialized_diags::Location &SDStart,
   if ((EC = readLocation(SDEnd, *End)))
     return EC;
   
-  CXSourceLocation startLoc = makeLocation(Start);
-  CXSourceLocation endLoc = makeLocation(End);
+  CXSourceLocation const startLoc = makeLocation(Start);
+  CXSourceLocation const endLoc = makeLocation(End);
   SR = clang_getRange(startLoc, endLoc);
   return std::error_code();
 }

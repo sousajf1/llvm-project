@@ -115,7 +115,7 @@ void NoReturnFunctionChecker::checkPostObjCMessage(const ObjCMethodCall &Msg,
   if (!Receiver->getIdentifier()->isStr("NSAssertionHandler"))
     return;
 
-  Selector Sel = Msg.getSelector();
+  Selector const Sel = Msg.getSelector();
   switch (Sel.getNumArgs()) {
   default:
     return;

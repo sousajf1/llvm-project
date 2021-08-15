@@ -130,7 +130,7 @@ namespace clang {
 void ASTStmtReader::ReadTemplateKWAndArgsInfo(ASTTemplateKWAndArgsInfo &Args,
                                               TemplateArgumentLoc *ArgsLocArray,
                                               unsigned NumTemplateArgs) {
-  SourceLocation TemplateKWLoc = readSourceLocation();
+  SourceLocation const TemplateKWLoc = readSourceLocation();
   TemplateArgumentListInfo ArgInfo;
   ArgInfo.setLAngleLoc(readSourceLocation());
   ArgInfo.setRAngleLoc(readSourceLocation());
@@ -169,7 +169,7 @@ void ASTStmtReader::VisitSwitchCase(SwitchCase *S) {
 
 void ASTStmtReader::VisitCaseStmt(CaseStmt *S) {
   VisitSwitchCase(S);
-  bool CaseStmtIsGNURange = Record.readInt();
+  bool const CaseStmtIsGNURange = Record.readInt();
   S->setLHS(Record.readSubExpr());
   S->setSubStmt(Record.readSubStmt());
   if (CaseStmtIsGNURange) {
@@ -185,7 +185,7 @@ void ASTStmtReader::VisitDefaultStmt(DefaultStmt *S) {
 
 void ASTStmtReader::VisitLabelStmt(LabelStmt *S) {
   VisitStmt(S);
-  bool IsSideEntry = Record.readInt();
+  bool const IsSideEntry = Record.readInt();
   auto *LD = readDeclAs<LabelDecl>();
   LD->setStmt(S);
   S->setDecl(LD);
@@ -199,7 +199,7 @@ void ASTStmtReader::VisitAttributedStmt(AttributedStmt *S) {
   // NumAttrs in AttributedStmt is set when creating an empty
   // AttributedStmt in AttributedStmt::CreateEmpty, since it is needed
   // to allocate the right amount of space for the trailing Attr *.
-  uint64_t NumAttrs = Record.readInt();
+  uint64_t const NumAttrs = Record.readInt();
   AttrVec Attrs;
   Record.readAttributes(Attrs);
   (void)NumAttrs;
@@ -214,9 +214,9 @@ void ASTStmtReader::VisitIfStmt(IfStmt *S) {
   VisitStmt(S);
 
   S->setConstexpr(Record.readInt());
-  bool HasElse = Record.readInt();
-  bool HasVar = Record.readInt();
-  bool HasInit = Record.readInt();
+  bool const HasElse = Record.readInt();
+  bool const HasVar = Record.readInt();
+  bool const HasInit = Record.readInt();
 
   S->setCond(Record.readSubExpr());
   S->setThen(Record.readSubStmt());
@@ -237,9 +237,9 @@ void ASTStmtReader::VisitIfStmt(IfStmt *S) {
 void ASTStmtReader::VisitSwitchStmt(SwitchStmt *S) {
   VisitStmt(S);
 
-  bool HasInit = Record.readInt();
-  bool HasVar = Record.readInt();
-  bool AllEnumCasesCovered = Record.readInt();
+  bool const HasInit = Record.readInt();
+  bool const HasVar = Record.readInt();
+  bool const AllEnumCasesCovered = Record.readInt();
   if (AllEnumCasesCovered)
     S->setAllEnumCasesCovered();
 
@@ -269,7 +269,7 @@ void ASTStmtReader::VisitSwitchStmt(SwitchStmt *S) {
 void ASTStmtReader::VisitWhileStmt(WhileStmt *S) {
   VisitStmt(S);
 
-  bool HasVar = Record.readInt();
+  bool const HasVar = Record.readInt();
 
   S->setCond(Record.readSubExpr());
   S->setBody(Record.readSubStmt());
@@ -329,7 +329,7 @@ void ASTStmtReader::VisitBreakStmt(BreakStmt *S) {
 void ASTStmtReader::VisitReturnStmt(ReturnStmt *S) {
   VisitStmt(S);
 
-  bool HasNRVOCandidate = Record.readInt();
+  bool const HasNRVOCandidate = Record.readInt();
 
   S->setRetValue(Record.readSubExpr());
   if (HasNRVOCandidate)
@@ -348,7 +348,7 @@ void ASTStmtReader::VisitDeclStmt(DeclStmt *S) {
     S->setDeclGroup(DeclGroupRef(readDecl()));
   } else {
     SmallVector<Decl *, 16> Decls;
-    int N = Record.size() - Record.getIdx();
+    int const N = Record.size() - Record.getIdx();
     Decls.reserve(N);
     for (int I = 0; I < N; ++I)
       Decls.push_back(readDecl());
@@ -374,10 +374,10 @@ void ASTStmtReader::VisitGCCAsmStmt(GCCAsmStmt *S) {
   S->setRParenLoc(readSourceLocation());
   S->setAsmString(cast_or_null<StringLiteral>(Record.readSubStmt()));
 
-  unsigned NumOutputs = S->getNumOutputs();
-  unsigned NumInputs = S->getNumInputs();
-  unsigned NumClobbers = S->getNumClobbers();
-  unsigned NumLabels = S->getNumLabels();
+  unsigned const NumOutputs = S->getNumOutputs();
+  unsigned const NumInputs = S->getNumInputs();
+  unsigned const NumClobbers = S->getNumClobbers();
+  unsigned const NumLabels = S->getNumLabels();
 
   // Outputs and inputs
   SmallVector<IdentifierInfo *, 16> Names;
@@ -410,7 +410,7 @@ void ASTStmtReader::VisitMSAsmStmt(MSAsmStmt *S) {
   S->LBraceLoc = readSourceLocation();
   S->EndLoc = readSourceLocation();
   S->NumAsmToks = Record.readInt();
-  std::string AsmStr = readString();
+  std::string const AsmStr = readString();
 
   // Read the tokens.
   SmallVector<Token, 16> AsmToks;
@@ -433,7 +433,7 @@ void ASTStmtReader::VisitMSAsmStmt(MSAsmStmt *S) {
   }
 
   // Read the operands.
-  unsigned NumOperands = S->NumOutputs + S->NumInputs;
+  unsigned const NumOperands = S->NumOutputs + S->NumInputs;
   SmallVector<Expr*, 16> Exprs;
   SmallVector<std::string, 16> ConstraintsData;
   SmallVector<StringRef, 16> Constraints;
@@ -523,11 +523,11 @@ void ASTStmtReader::VisitExpr(Expr *E) {
   E->setType(Record.readType());
 
   // FIXME: write and read all DependentFlags with a single call.
-  bool TypeDependent = Record.readInt();
-  bool ValueDependent = Record.readInt();
-  bool InstantiationDependent = Record.readInt();
-  bool ContainsUnexpandedTemplateParameters = Record.readInt();
-  bool ContainsErrors = Record.readInt();
+  bool const TypeDependent = Record.readInt();
+  bool const ValueDependent = Record.readInt();
+  bool const InstantiationDependent = Record.readInt();
+  bool const ContainsUnexpandedTemplateParameters = Record.readInt();
+  bool const ContainsErrors = Record.readInt();
   auto Deps = ExprDependence::None;
   if (TypeDependent)
     Deps |= ExprDependence::Type;
@@ -593,7 +593,7 @@ void ASTStmtReader::VisitSYCLUniqueStableNameExpr(SYCLUniqueStableNameExpr *E) {
 
 void ASTStmtReader::VisitPredefinedExpr(PredefinedExpr *E) {
   VisitExpr(E);
-  bool HasFunctionName = Record.readInt();
+  bool const HasFunctionName = Record.readInt();
   E->PredefinedExprBits.HasFunctionName = HasFunctionName;
   E->PredefinedExprBits.Kind = Record.readInt();
   E->setLocation(readSourceLocation());
@@ -663,9 +663,9 @@ void ASTStmtReader::VisitStringLiteral(StringLiteral *E) {
 
   // NumConcatenated, Length and CharByteWidth are set by the empty
   // ctor since they are needed to allocate storage for the trailing objects.
-  unsigned NumConcatenated = Record.readInt();
-  unsigned Length = Record.readInt();
-  unsigned CharByteWidth = Record.readInt();
+  unsigned const NumConcatenated = Record.readInt();
+  unsigned const Length = Record.readInt();
+  unsigned const CharByteWidth = Record.readInt();
   assert((NumConcatenated == E->getNumConcatenated()) &&
          "Wrong number of concatenated tokens!");
   assert((Length == E->getLength()) && "Wrong Length!");
@@ -707,7 +707,7 @@ void ASTStmtReader::VisitParenExpr(ParenExpr *E) {
 
 void ASTStmtReader::VisitParenListExpr(ParenListExpr *E) {
   VisitExpr(E);
-  unsigned NumExprs = Record.readInt();
+  unsigned const NumExprs = Record.readInt();
   assert((NumExprs == E->getNumExprs()) && "Wrong NumExprs!");
   for (unsigned I = 0; I != NumExprs; ++I)
     E->getTrailingObjects<Stmt *>()[I] = Record.readSubStmt();
@@ -717,7 +717,7 @@ void ASTStmtReader::VisitParenListExpr(ParenListExpr *E) {
 
 void ASTStmtReader::VisitUnaryOperator(UnaryOperator *E) {
   VisitExpr(E);
-  bool hasFP_Features = Record.readInt();
+  bool const hasFP_Features = Record.readInt();
   assert(hasFP_Features == E->hasStoredFPFeatures());
   E->setSubExpr(Record.readSubExpr());
   E->setOpcode((UnaryOperator::Opcode)Record.readInt());
@@ -739,8 +739,8 @@ void ASTStmtReader::VisitOffsetOfExpr(OffsetOfExpr *E) {
   E->setTypeSourceInfo(readTypeSourceInfo());
   for (unsigned I = 0, N = E->getNumComponents(); I != N; ++I) {
     auto Kind = static_cast<OffsetOfNode::Kind>(Record.readInt());
-    SourceLocation Start = readSourceLocation();
-    SourceLocation End = readSourceLocation();
+    SourceLocation const Start = readSourceLocation();
+    SourceLocation const End = readSourceLocation();
     switch (Kind) {
     case OffsetOfNode::Array:
       E->setComponent(I, OffsetOfNode(Start, Record.readInt(), End));
@@ -788,12 +788,12 @@ readConstraintSatisfaction(ASTRecordReader &Record) {
   ConstraintSatisfaction Satisfaction;
   Satisfaction.IsSatisfied = Record.readInt();
   if (!Satisfaction.IsSatisfied) {
-    unsigned NumDetailRecords = Record.readInt();
+    unsigned const NumDetailRecords = Record.readInt();
     for (unsigned i = 0; i != NumDetailRecords; ++i) {
       Expr *ConstraintExpr = Record.readExpr();
       if (/* IsDiagnostic */Record.readInt()) {
-        SourceLocation DiagLocation = Record.readSourceLocation();
-        std::string DiagMessage = Record.readString();
+        SourceLocation const DiagLocation = Record.readSourceLocation();
+        std::string const DiagMessage = Record.readString();
         Satisfaction.Details.emplace_back(
             ConstraintExpr, new (Record.getContext())
                                 ConstraintSatisfaction::SubstitutionDiagnostic{
@@ -808,7 +808,7 @@ readConstraintSatisfaction(ASTRecordReader &Record) {
 void ASTStmtReader::VisitConceptSpecializationExpr(
         ConceptSpecializationExpr *E) {
   VisitExpr(E);
-  unsigned NumTemplateArgs = Record.readInt();
+  unsigned const NumTemplateArgs = Record.readInt();
   E->NestedNameSpec = Record.readNestedNameSpecifierLoc();
   E->TemplateKWLoc = Record.readSourceLocation();
   E->ConceptName = Record.readDeclarationNameInfo();
@@ -826,9 +826,9 @@ void ASTStmtReader::VisitConceptSpecializationExpr(
 
 static concepts::Requirement::SubstitutionDiagnostic *
 readSubstitutionDiagnostic(ASTRecordReader &Record) {
-  std::string SubstitutedEntity = Record.readString();
-  SourceLocation DiagLoc = Record.readSourceLocation();
-  std::string DiagMessage = Record.readString();
+  std::string const SubstitutedEntity = Record.readString();
+  SourceLocation const DiagLoc = Record.readSourceLocation();
+  std::string const DiagMessage = Record.readString();
   return new (Record.getContext())
       concepts::Requirement::SubstitutionDiagnostic{SubstitutedEntity, DiagLoc,
                                                     DiagMessage};
@@ -836,8 +836,8 @@ readSubstitutionDiagnostic(ASTRecordReader &Record) {
 
 void ASTStmtReader::VisitRequiresExpr(RequiresExpr *E) {
   VisitExpr(E);
-  unsigned NumLocalParameters = Record.readInt();
-  unsigned NumRequirements = Record.readInt();
+  unsigned const NumLocalParameters = Record.readInt();
+  unsigned const NumRequirements = Record.readInt();
   E->RequiresExprBits.RequiresKWLoc = Record.readSourceLocation();
   E->RequiresExprBits.IsSatisfied = Record.readInt();
   E->Body = Record.readDeclAs<RequiresExprBodyDecl>();
@@ -964,7 +964,7 @@ void ASTStmtReader::VisitOMPArraySectionExpr(OMPArraySectionExpr *E) {
 
 void ASTStmtReader::VisitOMPArrayShapingExpr(OMPArrayShapingExpr *E) {
   VisitExpr(E);
-  unsigned NumDims = Record.readInt();
+  unsigned const NumDims = Record.readInt();
   E->setBase(Record.readSubExpr());
   SmallVector<Expr *, 4> Dims(NumDims);
   for (unsigned I = 0; I < NumDims; ++I)
@@ -980,7 +980,7 @@ void ASTStmtReader::VisitOMPArrayShapingExpr(OMPArrayShapingExpr *E) {
 
 void ASTStmtReader::VisitOMPIteratorExpr(OMPIteratorExpr *E) {
   VisitExpr(E);
-  unsigned NumIters = Record.readInt();
+  unsigned const NumIters = Record.readInt();
   E->setIteratorKwLoc(readSourceLocation());
   E->setLParenLoc(readSourceLocation());
   E->setRParenLoc(readSourceLocation());
@@ -990,7 +990,7 @@ void ASTStmtReader::VisitOMPIteratorExpr(OMPIteratorExpr *E) {
     Expr *Begin = Record.readSubExpr();
     Expr *End = Record.readSubExpr();
     Expr *Step = Record.readSubExpr();
-    SourceLocation ColonLoc = readSourceLocation();
+    SourceLocation const ColonLoc = readSourceLocation();
     SourceLocation SecColonLoc;
     if (Step)
       SecColonLoc = readSourceLocation();
@@ -1007,8 +1007,8 @@ void ASTStmtReader::VisitOMPIteratorExpr(OMPIteratorExpr *E) {
 
 void ASTStmtReader::VisitCallExpr(CallExpr *E) {
   VisitExpr(E);
-  unsigned NumArgs = Record.readInt();
-  bool HasFPFeatures = Record.readInt();
+  unsigned const NumArgs = Record.readInt();
+  bool const HasFPFeatures = Record.readInt();
   assert((NumArgs == E->getNumArgs()) && "Wrong NumArgs!");
   E->setRParenLoc(readSourceLocation());
   E->setCallee(Record.readSubExpr());
@@ -1027,10 +1027,10 @@ void ASTStmtReader::VisitCXXMemberCallExpr(CXXMemberCallExpr *E) {
 void ASTStmtReader::VisitMemberExpr(MemberExpr *E) {
   VisitExpr(E);
 
-  bool HasQualifier = Record.readInt();
-  bool HasFoundDecl = Record.readInt();
-  bool HasTemplateInfo = Record.readInt();
-  unsigned NumTemplateArgs = Record.readInt();
+  bool const HasQualifier = Record.readInt();
+  bool const HasFoundDecl = Record.readInt();
+  bool const HasTemplateInfo = Record.readInt();
+  unsigned const NumTemplateArgs = Record.readInt();
 
   E->Base = Record.readSubExpr();
   E->MemberDecl = Record.readDeclAs<ValueDecl>();
@@ -1094,7 +1094,7 @@ void ASTStmtReader::VisitCastExpr(CastExpr *E) {
   VisitExpr(E);
   unsigned NumBaseSpecs = Record.readInt();
   assert(NumBaseSpecs == E->path_size());
-  unsigned HasFPFeatures = Record.readInt();
+  unsigned const HasFPFeatures = Record.readInt();
   assert(E->hasStoredFPFeatures() == HasFPFeatures);
   E->setSubExpr(Record.readSubExpr());
   E->setCastKind((CastKind)Record.readInt());
@@ -1186,7 +1186,7 @@ void ASTStmtReader::VisitInitListExpr(InitListExpr *E) {
     E->setSyntacticForm(SyntForm);
   E->setLBraceLoc(readSourceLocation());
   E->setRBraceLoc(readSourceLocation());
-  bool isArrayFiller = Record.readInt();
+  bool const isArrayFiller = Record.readInt();
   Expr *filler = nullptr;
   if (isArrayFiller) {
     filler = Record.readSubExpr();
@@ -1194,7 +1194,7 @@ void ASTStmtReader::VisitInitListExpr(InitListExpr *E) {
   } else
     E->ArrayFillerOrUnionFieldInit = readDeclAs<FieldDecl>();
   E->sawArrayRangeDesignator(Record.readInt());
-  unsigned NumInits = Record.readInt();
+  unsigned const NumInits = Record.readInt();
   E->reserveInits(Record.getContext(), NumInits);
   if (isArrayFiller) {
     for (unsigned I = 0; I != NumInits; ++I) {
@@ -1211,7 +1211,7 @@ void ASTStmtReader::VisitDesignatedInitExpr(DesignatedInitExpr *E) {
   using Designator = DesignatedInitExpr::Designator;
 
   VisitExpr(E);
-  unsigned NumSubExprs = Record.readInt();
+  unsigned const NumSubExprs = Record.readInt();
   assert(NumSubExprs == E->getNumSubExprs() && "Wrong number of subexprs");
   for (unsigned I = 0; I != NumSubExprs; ++I)
     E->setSubExpr(I, Record.readSubExpr());
@@ -1223,8 +1223,8 @@ void ASTStmtReader::VisitDesignatedInitExpr(DesignatedInitExpr *E) {
     switch ((DesignatorTypes)Record.readInt()) {
     case DESIG_FIELD_DECL: {
       auto *Field = readDeclAs<FieldDecl>();
-      SourceLocation DotLoc = readSourceLocation();
-      SourceLocation FieldLoc = readSourceLocation();
+      SourceLocation const DotLoc = readSourceLocation();
+      SourceLocation const FieldLoc = readSourceLocation();
       Designators.push_back(Designator(Field->getIdentifier(), DotLoc,
                                        FieldLoc));
       Designators.back().setField(Field);
@@ -1233,25 +1233,25 @@ void ASTStmtReader::VisitDesignatedInitExpr(DesignatedInitExpr *E) {
 
     case DESIG_FIELD_NAME: {
       const IdentifierInfo *Name = Record.readIdentifier();
-      SourceLocation DotLoc = readSourceLocation();
-      SourceLocation FieldLoc = readSourceLocation();
+      SourceLocation const DotLoc = readSourceLocation();
+      SourceLocation const FieldLoc = readSourceLocation();
       Designators.push_back(Designator(Name, DotLoc, FieldLoc));
       break;
     }
 
     case DESIG_ARRAY: {
-      unsigned Index = Record.readInt();
-      SourceLocation LBracketLoc = readSourceLocation();
-      SourceLocation RBracketLoc = readSourceLocation();
+      unsigned const Index = Record.readInt();
+      SourceLocation const LBracketLoc = readSourceLocation();
+      SourceLocation const RBracketLoc = readSourceLocation();
       Designators.push_back(Designator(Index, LBracketLoc, RBracketLoc));
       break;
     }
 
     case DESIG_ARRAY_RANGE: {
-      unsigned Index = Record.readInt();
-      SourceLocation LBracketLoc = readSourceLocation();
-      SourceLocation EllipsisLoc = readSourceLocation();
-      SourceLocation RBracketLoc = readSourceLocation();
+      unsigned const Index = Record.readInt();
+      SourceLocation const LBracketLoc = readSourceLocation();
+      SourceLocation const EllipsisLoc = readSourceLocation();
+      SourceLocation const RBracketLoc = readSourceLocation();
       Designators.push_back(Designator(Index, LBracketLoc, EllipsisLoc,
                                        RBracketLoc));
       break;
@@ -1361,7 +1361,7 @@ void ASTStmtReader::VisitBlockExpr(BlockExpr *E) {
 void ASTStmtReader::VisitGenericSelectionExpr(GenericSelectionExpr *E) {
   VisitExpr(E);
 
-  unsigned NumAssocs = Record.readInt();
+  unsigned const NumAssocs = Record.readInt();
   assert(NumAssocs == E->getNumAssocs() && "Wrong NumAssocs!");
   E->ResultIndex = Record.readInt();
   E->GenericSelectionExprBits.GenericLoc = readSourceLocation();
@@ -1382,7 +1382,7 @@ void ASTStmtReader::VisitGenericSelectionExpr(GenericSelectionExpr *E) {
 
 void ASTStmtReader::VisitPseudoObjectExpr(PseudoObjectExpr *E) {
   VisitExpr(E);
-  unsigned numSemanticExprs = Record.readInt();
+  unsigned const numSemanticExprs = Record.readInt();
   assert(numSemanticExprs + 1 == E->PseudoObjectExprBits.NumSubExprs);
   E->PseudoObjectExprBits.ResultIndex = Record.readInt();
 
@@ -1425,7 +1425,7 @@ void ASTStmtReader::VisitObjCBoxedExpr(ObjCBoxedExpr *E) {
 
 void ASTStmtReader::VisitObjCArrayLiteral(ObjCArrayLiteral *E) {
   VisitExpr(E);
-  unsigned NumElements = Record.readInt();
+  unsigned const NumElements = Record.readInt();
   assert(NumElements == E->getNumElements() && "Wrong number of elements");
   Expr **Elements = E->getElements();
   for (unsigned I = 0, N = NumElements; I != N; ++I)
@@ -1436,9 +1436,9 @@ void ASTStmtReader::VisitObjCArrayLiteral(ObjCArrayLiteral *E) {
 
 void ASTStmtReader::VisitObjCDictionaryLiteral(ObjCDictionaryLiteral *E) {
   VisitExpr(E);
-  unsigned NumElements = Record.readInt();
+  unsigned const NumElements = Record.readInt();
   assert(NumElements == E->getNumElements() && "Wrong number of elements");
-  bool HasPackExpansions = Record.readInt();
+  bool const HasPackExpansions = Record.readInt();
   assert(HasPackExpansions == E->HasPackExpansions &&"Pack expansion mismatch");
   auto *KeyValues =
       E->getTrailingObjects<ObjCDictionaryLiteral::KeyValuePair>();
@@ -1490,8 +1490,8 @@ void ASTStmtReader::VisitObjCIvarRefExpr(ObjCIvarRefExpr *E) {
 
 void ASTStmtReader::VisitObjCPropertyRefExpr(ObjCPropertyRefExpr *E) {
   VisitExpr(E);
-  unsigned MethodRefFlags = Record.readInt();
-  bool Implicit = Record.readInt() != 0;
+  unsigned const MethodRefFlags = Record.readInt();
+  bool const Implicit = Record.readInt() != 0;
   if (Implicit) {
     auto *Getter = readDeclAs<ObjCMethodDecl>();
     auto *Setter = readDeclAs<ObjCMethodDecl>();
@@ -1527,7 +1527,7 @@ void ASTStmtReader::VisitObjCMessageExpr(ObjCMessageExpr *E) {
   VisitExpr(E);
   assert(Record.peekInt() == E->getNumArgs());
   Record.skipInts(1);
-  unsigned NumStoredSelLocs = Record.readInt();
+  unsigned const NumStoredSelLocs = Record.readInt();
   E->SelLocsKind = Record.readInt();
   E->setDelegateInitCall(Record.readInt());
   E->IsImplicit = Record.readInt();
@@ -1543,8 +1543,8 @@ void ASTStmtReader::VisitObjCMessageExpr(ObjCMessageExpr *E) {
 
   case ObjCMessageExpr::SuperClass:
   case ObjCMessageExpr::SuperInstance: {
-    QualType T = Record.readType();
-    SourceLocation SuperLoc = readSourceLocation();
+    QualType const T = Record.readType();
+    SourceLocation const SuperLoc = readSourceLocation();
     E->setSuper(SuperLoc, T, Kind == ObjCMessageExpr::SuperInstance);
     break;
   }
@@ -1601,7 +1601,7 @@ void ASTStmtReader::VisitObjCAtTryStmt(ObjCAtTryStmt *S) {
   VisitStmt(S);
   assert(Record.peekInt() == S->getNumCatchStmts());
   Record.skipInts(1);
-  bool HasFinally = Record.readInt();
+  bool const HasFinally = Record.readInt();
   S->setTryBody(Record.readSubStmt());
   for (unsigned I = 0, N = S->getNumCatchStmts(); I != N; ++I)
     S->setCatchStmt(I, cast_or_null<ObjCAtCatchStmt>(Record.readSubStmt()));
@@ -1632,7 +1632,7 @@ void ASTStmtReader::VisitObjCBoolLiteralExpr(ObjCBoolLiteralExpr *E) {
 
 void ASTStmtReader::VisitObjCAvailabilityCheckExpr(ObjCAvailabilityCheckExpr *E) {
   VisitExpr(E);
-  SourceRange R = Record.readSourceRange();
+  SourceRange const R = Record.readSourceRange();
   E->AtLoc = R.getBegin();
   E->RParen = R.getEnd();
   E->VersionToCheck = Record.readVersionTuple();
@@ -1700,7 +1700,7 @@ void ASTStmtReader::VisitCXXRewrittenBinaryOperator(
 void ASTStmtReader::VisitCXXConstructExpr(CXXConstructExpr *E) {
   VisitExpr(E);
 
-  unsigned NumArgs = Record.readInt();
+  unsigned const NumArgs = Record.readInt();
   assert((NumArgs == E->getNumArgs()) && "Wrong NumArgs!");
 
   E->CXXConstructExprBits.Elidable = Record.readInt();
@@ -1732,7 +1732,7 @@ void ASTStmtReader::VisitCXXTemporaryObjectExpr(CXXTemporaryObjectExpr *E) {
 
 void ASTStmtReader::VisitLambdaExpr(LambdaExpr *E) {
   VisitExpr(E);
-  unsigned NumCaptures = Record.readInt();
+  unsigned const NumCaptures = Record.readInt();
   (void)NumCaptures;
   assert(NumCaptures == E->LambdaExprBits.NumCaptures);
   E->IntroducerRange = readSourceRange();
@@ -1866,10 +1866,10 @@ void ASTStmtReader::VisitCXXScalarValueInitExpr(CXXScalarValueInitExpr *E) {
 void ASTStmtReader::VisitCXXNewExpr(CXXNewExpr *E) {
   VisitExpr(E);
 
-  bool IsArray = Record.readInt();
-  bool HasInit = Record.readInt();
-  unsigned NumPlacementArgs = Record.readInt();
-  bool IsParenTypeId = Record.readInt();
+  bool const IsArray = Record.readInt();
+  bool const HasInit = Record.readInt();
+  unsigned const NumPlacementArgs = Record.readInt();
+  bool const IsParenTypeId = Record.readInt();
 
   E->CXXNewExprBits.IsGlobalNew = Record.readInt();
   E->CXXNewExprBits.ShouldPassAlignment = Record.readInt();
@@ -1932,10 +1932,10 @@ void ASTStmtReader::VisitCXXPseudoDestructorExpr(CXXPseudoDestructorExpr *E) {
 void ASTStmtReader::VisitExprWithCleanups(ExprWithCleanups *E) {
   VisitExpr(E);
 
-  unsigned NumObjects = Record.readInt();
+  unsigned const NumObjects = Record.readInt();
   assert(NumObjects == E->getNumObjects());
   for (unsigned i = 0; i != NumObjects; ++i) {
-    unsigned CleanupKind = Record.readInt();
+    unsigned const CleanupKind = Record.readInt();
     ExprWithCleanups::CleanupObject Obj;
     if (CleanupKind == COK_Block)
       Obj = readDeclAs<BlockDecl>();
@@ -1954,9 +1954,9 @@ void ASTStmtReader::VisitCXXDependentScopeMemberExpr(
     CXXDependentScopeMemberExpr *E) {
   VisitExpr(E);
 
-  bool HasTemplateKWAndArgsInfo = Record.readInt();
-  unsigned NumTemplateArgs = Record.readInt();
-  bool HasFirstQualifierFoundInScope = Record.readInt();
+  bool const HasTemplateKWAndArgsInfo = Record.readInt();
+  unsigned const NumTemplateArgs = Record.readInt();
+  bool const HasFirstQualifierFoundInScope = Record.readInt();
 
   assert((HasTemplateKWAndArgsInfo == E->hasTemplateKWAndArgsInfo()) &&
          "Wrong HasTemplateKWAndArgsInfo!");
@@ -2014,14 +2014,14 @@ ASTStmtReader::VisitCXXUnresolvedConstructExpr(CXXUnresolvedConstructExpr *E) {
 void ASTStmtReader::VisitOverloadExpr(OverloadExpr *E) {
   VisitExpr(E);
 
-  unsigned NumResults = Record.readInt();
-  bool HasTemplateKWAndArgsInfo = Record.readInt();
+  unsigned const NumResults = Record.readInt();
+  bool const HasTemplateKWAndArgsInfo = Record.readInt();
   assert((E->getNumDecls() == NumResults) && "Wrong NumResults!");
   assert((E->hasTemplateKWAndArgsInfo() == HasTemplateKWAndArgsInfo) &&
          "Wrong HasTemplateKWAndArgsInfo!");
 
   if (HasTemplateKWAndArgsInfo) {
-    unsigned NumTemplateArgs = Record.readInt();
+    unsigned const NumTemplateArgs = Record.readInt();
     ReadTemplateKWAndArgsInfo(*E->getTrailingASTTemplateKWAndArgsInfo(),
                               E->getTrailingTemplateArgumentLoc(),
                               NumTemplateArgs);
@@ -2037,7 +2037,7 @@ void ASTStmtReader::VisitOverloadExpr(OverloadExpr *E) {
   }
 
   DeclAccessPair *Results = E->getTrailingResults();
-  UnresolvedSetIterator Iter = Decls.begin();
+  UnresolvedSetIterator const Iter = Decls.begin();
   for (unsigned I = 0; I != NumResults; ++I) {
     Results[I] = (Iter + I).getPair();
   }
@@ -2067,7 +2067,7 @@ void ASTStmtReader::VisitTypeTraitExpr(TypeTraitExpr *E) {
   E->TypeTraitExprBits.NumArgs = Record.readInt();
   E->TypeTraitExprBits.Kind = Record.readInt();
   E->TypeTraitExprBits.Value = Record.readInt();
-  SourceRange Range = readSourceRange();
+  SourceRange const Range = readSourceRange();
   E->Loc = Range.getBegin();
   E->RParenLoc = Range.getEnd();
 
@@ -2080,7 +2080,7 @@ void ASTStmtReader::VisitArrayTypeTraitExpr(ArrayTypeTraitExpr *E) {
   VisitExpr(E);
   E->ATT = (ArrayTypeTrait)Record.readInt();
   E->Value = (unsigned int)Record.readInt();
-  SourceRange Range = readSourceRange();
+  SourceRange const Range = readSourceRange();
   E->Loc = Range.getBegin();
   E->RParen = Range.getEnd();
   E->QueriedType = readTypeSourceInfo();
@@ -2091,7 +2091,7 @@ void ASTStmtReader::VisitExpressionTraitExpr(ExpressionTraitExpr *E) {
   VisitExpr(E);
   E->ET = (ExpressionTrait)Record.readInt();
   E->Value = (bool)Record.readInt();
-  SourceRange Range = readSourceRange();
+  SourceRange const Range = readSourceRange();
   E->QueriedExpression = Record.readSubExpr();
   E->Loc = Range.getBegin();
   E->RParen = Range.getEnd();
@@ -2113,7 +2113,7 @@ void ASTStmtReader::VisitPackExpansionExpr(PackExpansionExpr *E) {
 
 void ASTStmtReader::VisitSizeOfPackExpr(SizeOfPackExpr *E) {
   VisitExpr(E);
-  unsigned NumPartialArgs = Record.readInt();
+  unsigned const NumPartialArgs = Record.readInt();
   E->OperatorLoc = readSourceLocation();
   E->PackLoc = readSourceLocation();
   E->RParenLoc = readSourceLocation();
@@ -2142,7 +2142,7 @@ void ASTStmtReader::VisitSubstNonTypeTemplateParmPackExpr(
                                           SubstNonTypeTemplateParmPackExpr *E) {
   VisitExpr(E);
   E->Param = readDeclAs<NonTypeTemplateParmDecl>();
-  TemplateArgument ArgPack = Record.readTemplateArgument();
+  TemplateArgument const ArgPack = Record.readTemplateArgument();
   if (ArgPack.getKind() != TemplateArgument::Pack)
     return;
 
@@ -2163,7 +2163,7 @@ void ASTStmtReader::VisitFunctionParmPackExpr(FunctionParmPackExpr *E) {
 
 void ASTStmtReader::VisitMaterializeTemporaryExpr(MaterializeTemporaryExpr *E) {
   VisitExpr(E);
-  bool HasMaterialzedDecl = Record.readInt();
+  bool const HasMaterialzedDecl = Record.readInt();
   if (HasMaterialzedDecl)
     E->State = cast<LifetimeExtendedTemporaryDecl>(Record.readDecl());
   else
@@ -2195,7 +2195,7 @@ void ASTStmtReader::VisitTypoExpr(TypoExpr *E) {
 
 void ASTStmtReader::VisitRecoveryExpr(RecoveryExpr *E) {
   VisitExpr(E);
-  unsigned NumArgs = Record.readInt();
+  unsigned const NumArgs = Record.readInt();
   E->BeginLoc = readSourceLocation();
   E->EndLoc = readSourceLocation();
   assert((NumArgs + 0LL ==
@@ -2653,7 +2653,7 @@ Expr *ASTReader::ReadSubExpr() {
 // stack. Evaluation terminates when we see a STMT_STOP record, and
 // the single remaining expression on the stack is our result.
 Stmt *ASTReader::ReadStmtFromStream(ModuleFile &F) {
-  ReadingKindTracker ReadingKind(Read_Stmt, *this);
+  ReadingKindTracker const ReadingKind(Read_Stmt, *this);
   llvm::BitstreamCursor &Cursor = F.DeclsCursor;
 
   // Map of offset to previously deserialized stmt. The offset points
@@ -2661,12 +2661,12 @@ Stmt *ASTReader::ReadStmtFromStream(ModuleFile &F) {
   llvm::DenseMap<uint64_t, Stmt *> StmtEntries;
 
 #ifndef NDEBUG
-  unsigned PrevNumStmts = StmtStack.size();
+  unsigned const PrevNumStmts = StmtStack.size();
 #endif
 
   ASTRecordReader Record(*this, F);
   ASTStmtReader Reader(Record, Cursor);
-  Stmt::EmptyShell Empty;
+  Stmt::EmptyShell const Empty;
 
   while (true) {
     llvm::Expected<llvm::BitstreamEntry> MaybeEntry =
@@ -2675,7 +2675,7 @@ Stmt *ASTReader::ReadStmtFromStream(ModuleFile &F) {
       Error(toString(MaybeEntry.takeError()));
       return nullptr;
     }
-    llvm::BitstreamEntry Entry = MaybeEntry.get();
+    llvm::BitstreamEntry const Entry = MaybeEntry.get();
 
     switch (Entry.Kind) {
     case llvm::BitstreamEntry::SubBlock: // Handled for us already.
@@ -3191,38 +3191,38 @@ Stmt *ASTReader::ReadStmtFromStream(ModuleFile &F) {
       break;
 
     case STMT_OMP_SIMD_DIRECTIVE: {
-      unsigned CollapsedNum = Record[ASTStmtReader::NumStmtFields];
-      unsigned NumClauses = Record[ASTStmtReader::NumStmtFields + 1];
+      unsigned const CollapsedNum = Record[ASTStmtReader::NumStmtFields];
+      unsigned const NumClauses = Record[ASTStmtReader::NumStmtFields + 1];
       S = OMPSimdDirective::CreateEmpty(Context, NumClauses,
                                         CollapsedNum, Empty);
       break;
     }
 
     case STMT_OMP_TILE_DIRECTIVE: {
-      unsigned NumLoops = Record[ASTStmtReader::NumStmtFields];
-      unsigned NumClauses = Record[ASTStmtReader::NumStmtFields + 1];
+      unsigned const NumLoops = Record[ASTStmtReader::NumStmtFields];
+      unsigned const NumClauses = Record[ASTStmtReader::NumStmtFields + 1];
       S = OMPTileDirective::CreateEmpty(Context, NumClauses, NumLoops);
       break;
     }
 
     case STMT_OMP_UNROLL_DIRECTIVE: {
       assert(Record[ASTStmtReader::NumStmtFields] == 1 && "Unroll directive accepts only a single loop");
-      unsigned NumClauses = Record[ASTStmtReader::NumStmtFields + 1];
+      unsigned const NumClauses = Record[ASTStmtReader::NumStmtFields + 1];
       S = OMPUnrollDirective::CreateEmpty(Context, NumClauses);
       break;
     }
 
     case STMT_OMP_FOR_DIRECTIVE: {
-      unsigned CollapsedNum = Record[ASTStmtReader::NumStmtFields];
-      unsigned NumClauses = Record[ASTStmtReader::NumStmtFields + 1];
+      unsigned const CollapsedNum = Record[ASTStmtReader::NumStmtFields];
+      unsigned const NumClauses = Record[ASTStmtReader::NumStmtFields + 1];
       S = OMPForDirective::CreateEmpty(Context, NumClauses, CollapsedNum,
                                        Empty);
       break;
     }
 
     case STMT_OMP_FOR_SIMD_DIRECTIVE: {
-      unsigned CollapsedNum = Record[ASTStmtReader::NumStmtFields];
-      unsigned NumClauses = Record[ASTStmtReader::NumStmtFields + 1];
+      unsigned const CollapsedNum = Record[ASTStmtReader::NumStmtFields];
+      unsigned const NumClauses = Record[ASTStmtReader::NumStmtFields + 1];
       S = OMPForSimdDirective::CreateEmpty(Context, NumClauses, CollapsedNum,
                                            Empty);
       break;
@@ -3252,16 +3252,16 @@ Stmt *ASTReader::ReadStmtFromStream(ModuleFile &F) {
       break;
 
     case STMT_OMP_PARALLEL_FOR_DIRECTIVE: {
-      unsigned CollapsedNum = Record[ASTStmtReader::NumStmtFields];
-      unsigned NumClauses = Record[ASTStmtReader::NumStmtFields + 1];
+      unsigned const CollapsedNum = Record[ASTStmtReader::NumStmtFields];
+      unsigned const NumClauses = Record[ASTStmtReader::NumStmtFields + 1];
       S = OMPParallelForDirective::CreateEmpty(Context, NumClauses,
                                                CollapsedNum, Empty);
       break;
     }
 
     case STMT_OMP_PARALLEL_FOR_SIMD_DIRECTIVE: {
-      unsigned CollapsedNum = Record[ASTStmtReader::NumStmtFields];
-      unsigned NumClauses = Record[ASTStmtReader::NumStmtFields + 1];
+      unsigned const CollapsedNum = Record[ASTStmtReader::NumStmtFields];
+      unsigned const NumClauses = Record[ASTStmtReader::NumStmtFields + 1];
       S = OMPParallelForSimdDirective::CreateEmpty(Context, NumClauses,
                                                    CollapsedNum, Empty);
       break;
@@ -3315,8 +3315,8 @@ Stmt *ASTReader::ReadStmtFromStream(ModuleFile &F) {
       break;
 
     case STMT_OMP_ORDERED_DIRECTIVE: {
-      unsigned NumClauses = Record[ASTStmtReader::NumStmtFields];
-      bool HasAssociatedStmt = Record[ASTStmtReader::NumStmtFields + 2];
+      unsigned const NumClauses = Record[ASTStmtReader::NumStmtFields];
+      bool const HasAssociatedStmt = Record[ASTStmtReader::NumStmtFields + 2];
       S = OMPOrderedDirective::CreateEmpty(Context, NumClauses,
                                            !HasAssociatedStmt, Empty);
       break;
@@ -3353,8 +3353,8 @@ Stmt *ASTReader::ReadStmtFromStream(ModuleFile &F) {
       break;
 
     case STMT_OMP_TARGET_PARALLEL_FOR_DIRECTIVE: {
-      unsigned CollapsedNum = Record[ASTStmtReader::NumStmtFields];
-      unsigned NumClauses = Record[ASTStmtReader::NumStmtFields + 1];
+      unsigned const CollapsedNum = Record[ASTStmtReader::NumStmtFields];
+      unsigned const NumClauses = Record[ASTStmtReader::NumStmtFields + 1];
       S = OMPTargetParallelForDirective::CreateEmpty(Context, NumClauses,
                                                      CollapsedNum, Empty);
       break;
@@ -3380,72 +3380,72 @@ Stmt *ASTReader::ReadStmtFromStream(ModuleFile &F) {
       break;
 
     case STMT_OMP_TASKLOOP_DIRECTIVE: {
-      unsigned CollapsedNum = Record[ASTStmtReader::NumStmtFields];
-      unsigned NumClauses = Record[ASTStmtReader::NumStmtFields + 1];
+      unsigned const CollapsedNum = Record[ASTStmtReader::NumStmtFields];
+      unsigned const NumClauses = Record[ASTStmtReader::NumStmtFields + 1];
       S = OMPTaskLoopDirective::CreateEmpty(Context, NumClauses, CollapsedNum,
                                             Empty);
       break;
     }
 
     case STMT_OMP_TASKLOOP_SIMD_DIRECTIVE: {
-      unsigned CollapsedNum = Record[ASTStmtReader::NumStmtFields];
-      unsigned NumClauses = Record[ASTStmtReader::NumStmtFields + 1];
+      unsigned const CollapsedNum = Record[ASTStmtReader::NumStmtFields];
+      unsigned const NumClauses = Record[ASTStmtReader::NumStmtFields + 1];
       S = OMPTaskLoopSimdDirective::CreateEmpty(Context, NumClauses,
                                                 CollapsedNum, Empty);
       break;
     }
 
     case STMT_OMP_MASTER_TASKLOOP_DIRECTIVE: {
-      unsigned CollapsedNum = Record[ASTStmtReader::NumStmtFields];
-      unsigned NumClauses = Record[ASTStmtReader::NumStmtFields + 1];
+      unsigned const CollapsedNum = Record[ASTStmtReader::NumStmtFields];
+      unsigned const NumClauses = Record[ASTStmtReader::NumStmtFields + 1];
       S = OMPMasterTaskLoopDirective::CreateEmpty(Context, NumClauses,
                                                   CollapsedNum, Empty);
       break;
     }
 
     case STMT_OMP_MASTER_TASKLOOP_SIMD_DIRECTIVE: {
-      unsigned CollapsedNum = Record[ASTStmtReader::NumStmtFields];
-      unsigned NumClauses = Record[ASTStmtReader::NumStmtFields + 1];
+      unsigned const CollapsedNum = Record[ASTStmtReader::NumStmtFields];
+      unsigned const NumClauses = Record[ASTStmtReader::NumStmtFields + 1];
       S = OMPMasterTaskLoopSimdDirective::CreateEmpty(Context, NumClauses,
                                                       CollapsedNum, Empty);
       break;
     }
 
     case STMT_OMP_PARALLEL_MASTER_TASKLOOP_DIRECTIVE: {
-      unsigned CollapsedNum = Record[ASTStmtReader::NumStmtFields];
-      unsigned NumClauses = Record[ASTStmtReader::NumStmtFields + 1];
+      unsigned const CollapsedNum = Record[ASTStmtReader::NumStmtFields];
+      unsigned const NumClauses = Record[ASTStmtReader::NumStmtFields + 1];
       S = OMPParallelMasterTaskLoopDirective::CreateEmpty(Context, NumClauses,
                                                           CollapsedNum, Empty);
       break;
     }
 
     case STMT_OMP_PARALLEL_MASTER_TASKLOOP_SIMD_DIRECTIVE: {
-      unsigned CollapsedNum = Record[ASTStmtReader::NumStmtFields];
-      unsigned NumClauses = Record[ASTStmtReader::NumStmtFields + 1];
+      unsigned const CollapsedNum = Record[ASTStmtReader::NumStmtFields];
+      unsigned const NumClauses = Record[ASTStmtReader::NumStmtFields + 1];
       S = OMPParallelMasterTaskLoopSimdDirective::CreateEmpty(
           Context, NumClauses, CollapsedNum, Empty);
       break;
     }
 
     case STMT_OMP_DISTRIBUTE_DIRECTIVE: {
-      unsigned CollapsedNum = Record[ASTStmtReader::NumStmtFields];
-      unsigned NumClauses = Record[ASTStmtReader::NumStmtFields + 1];
+      unsigned const CollapsedNum = Record[ASTStmtReader::NumStmtFields];
+      unsigned const NumClauses = Record[ASTStmtReader::NumStmtFields + 1];
       S = OMPDistributeDirective::CreateEmpty(Context, NumClauses, CollapsedNum,
                                               Empty);
       break;
     }
 
     case STMT_OMP_DISTRIBUTE_PARALLEL_FOR_DIRECTIVE: {
-      unsigned CollapsedNum = Record[ASTStmtReader::NumStmtFields];
-      unsigned NumClauses = Record[ASTStmtReader::NumStmtFields + 1];
+      unsigned const CollapsedNum = Record[ASTStmtReader::NumStmtFields];
+      unsigned const NumClauses = Record[ASTStmtReader::NumStmtFields + 1];
       S = OMPDistributeParallelForDirective::CreateEmpty(Context, NumClauses,
                                                          CollapsedNum, Empty);
       break;
     }
 
     case STMT_OMP_DISTRIBUTE_PARALLEL_FOR_SIMD_DIRECTIVE: {
-      unsigned CollapsedNum = Record[ASTStmtReader::NumStmtFields];
-      unsigned NumClauses = Record[ASTStmtReader::NumStmtFields + 1];
+      unsigned const CollapsedNum = Record[ASTStmtReader::NumStmtFields];
+      unsigned const NumClauses = Record[ASTStmtReader::NumStmtFields + 1];
       S = OMPDistributeParallelForSimdDirective::CreateEmpty(Context, NumClauses,
                                                              CollapsedNum,
                                                              Empty);
@@ -3453,56 +3453,56 @@ Stmt *ASTReader::ReadStmtFromStream(ModuleFile &F) {
     }
 
     case STMT_OMP_DISTRIBUTE_SIMD_DIRECTIVE: {
-      unsigned CollapsedNum = Record[ASTStmtReader::NumStmtFields];
-      unsigned NumClauses = Record[ASTStmtReader::NumStmtFields + 1];
+      unsigned const CollapsedNum = Record[ASTStmtReader::NumStmtFields];
+      unsigned const NumClauses = Record[ASTStmtReader::NumStmtFields + 1];
       S = OMPDistributeSimdDirective::CreateEmpty(Context, NumClauses,
                                                   CollapsedNum, Empty);
       break;
     }
 
     case STMT_OMP_TARGET_PARALLEL_FOR_SIMD_DIRECTIVE: {
-      unsigned CollapsedNum = Record[ASTStmtReader::NumStmtFields];
-      unsigned NumClauses = Record[ASTStmtReader::NumStmtFields + 1];
+      unsigned const CollapsedNum = Record[ASTStmtReader::NumStmtFields];
+      unsigned const NumClauses = Record[ASTStmtReader::NumStmtFields + 1];
       S = OMPTargetParallelForSimdDirective::CreateEmpty(Context, NumClauses,
                                                          CollapsedNum, Empty);
       break;
     }
 
     case STMT_OMP_TARGET_SIMD_DIRECTIVE: {
-      unsigned CollapsedNum = Record[ASTStmtReader::NumStmtFields];
-      unsigned NumClauses = Record[ASTStmtReader::NumStmtFields + 1];
+      unsigned const CollapsedNum = Record[ASTStmtReader::NumStmtFields];
+      unsigned const NumClauses = Record[ASTStmtReader::NumStmtFields + 1];
       S = OMPTargetSimdDirective::CreateEmpty(Context, NumClauses, CollapsedNum,
                                               Empty);
       break;
     }
 
      case STMT_OMP_TEAMS_DISTRIBUTE_DIRECTIVE: {
-       unsigned CollapsedNum = Record[ASTStmtReader::NumStmtFields];
-       unsigned NumClauses = Record[ASTStmtReader::NumStmtFields + 1];
+       unsigned const CollapsedNum = Record[ASTStmtReader::NumStmtFields];
+       unsigned const NumClauses = Record[ASTStmtReader::NumStmtFields + 1];
        S = OMPTeamsDistributeDirective::CreateEmpty(Context, NumClauses,
                                                     CollapsedNum, Empty);
        break;
     }
 
     case STMT_OMP_TEAMS_DISTRIBUTE_SIMD_DIRECTIVE: {
-      unsigned CollapsedNum = Record[ASTStmtReader::NumStmtFields];
-      unsigned NumClauses = Record[ASTStmtReader::NumStmtFields + 1];
+      unsigned const CollapsedNum = Record[ASTStmtReader::NumStmtFields];
+      unsigned const NumClauses = Record[ASTStmtReader::NumStmtFields + 1];
       S = OMPTeamsDistributeSimdDirective::CreateEmpty(Context, NumClauses,
                                                        CollapsedNum, Empty);
       break;
     }
 
     case STMT_OMP_TEAMS_DISTRIBUTE_PARALLEL_FOR_SIMD_DIRECTIVE: {
-      unsigned CollapsedNum = Record[ASTStmtReader::NumStmtFields];
-      unsigned NumClauses = Record[ASTStmtReader::NumStmtFields + 1];
+      unsigned const CollapsedNum = Record[ASTStmtReader::NumStmtFields];
+      unsigned const NumClauses = Record[ASTStmtReader::NumStmtFields + 1];
       S = OMPTeamsDistributeParallelForSimdDirective::CreateEmpty(
           Context, NumClauses, CollapsedNum, Empty);
       break;
     }
 
     case STMT_OMP_TEAMS_DISTRIBUTE_PARALLEL_FOR_DIRECTIVE: {
-      unsigned CollapsedNum = Record[ASTStmtReader::NumStmtFields];
-      unsigned NumClauses = Record[ASTStmtReader::NumStmtFields + 1];
+      unsigned const CollapsedNum = Record[ASTStmtReader::NumStmtFields];
+      unsigned const NumClauses = Record[ASTStmtReader::NumStmtFields + 1];
       S = OMPTeamsDistributeParallelForDirective::CreateEmpty(
           Context, NumClauses, CollapsedNum, Empty);
       break;
@@ -3514,32 +3514,32 @@ Stmt *ASTReader::ReadStmtFromStream(ModuleFile &F) {
       break;
 
     case STMT_OMP_TARGET_TEAMS_DISTRIBUTE_DIRECTIVE: {
-      unsigned CollapsedNum = Record[ASTStmtReader::NumStmtFields];
-      unsigned NumClauses = Record[ASTStmtReader::NumStmtFields + 1];
+      unsigned const CollapsedNum = Record[ASTStmtReader::NumStmtFields];
+      unsigned const NumClauses = Record[ASTStmtReader::NumStmtFields + 1];
       S = OMPTargetTeamsDistributeDirective::CreateEmpty(Context, NumClauses,
                                                          CollapsedNum, Empty);
       break;
     }
 
     case STMT_OMP_TARGET_TEAMS_DISTRIBUTE_PARALLEL_FOR_DIRECTIVE: {
-      unsigned CollapsedNum = Record[ASTStmtReader::NumStmtFields];
-      unsigned NumClauses = Record[ASTStmtReader::NumStmtFields + 1];
+      unsigned const CollapsedNum = Record[ASTStmtReader::NumStmtFields];
+      unsigned const NumClauses = Record[ASTStmtReader::NumStmtFields + 1];
       S = OMPTargetTeamsDistributeParallelForDirective::CreateEmpty(
           Context, NumClauses, CollapsedNum, Empty);
       break;
     }
 
     case STMT_OMP_TARGET_TEAMS_DISTRIBUTE_PARALLEL_FOR_SIMD_DIRECTIVE: {
-      unsigned CollapsedNum = Record[ASTStmtReader::NumStmtFields];
-      unsigned NumClauses = Record[ASTStmtReader::NumStmtFields + 1];
+      unsigned const CollapsedNum = Record[ASTStmtReader::NumStmtFields];
+      unsigned const NumClauses = Record[ASTStmtReader::NumStmtFields + 1];
       S = OMPTargetTeamsDistributeParallelForSimdDirective::CreateEmpty(
           Context, NumClauses, CollapsedNum, Empty);
       break;
     }
 
     case STMT_OMP_TARGET_TEAMS_DISTRIBUTE_SIMD_DIRECTIVE: {
-      unsigned CollapsedNum = Record[ASTStmtReader::NumStmtFields];
-      unsigned NumClauses = Record[ASTStmtReader::NumStmtFields + 1];
+      unsigned const CollapsedNum = Record[ASTStmtReader::NumStmtFields];
+      unsigned const NumClauses = Record[ASTStmtReader::NumStmtFields + 1];
       S = OMPTargetTeamsDistributeSimdDirective::CreateEmpty(
           Context, NumClauses, CollapsedNum, Empty);
       break;
@@ -3824,7 +3824,7 @@ Stmt *ASTReader::ReadStmtFromStream(ModuleFile &F) {
       break;
 
     case EXPR_PSEUDO_OBJECT: {
-      unsigned numSemanticExprs = Record[ASTStmtReader::NumExprFields];
+      unsigned const numSemanticExprs = Record[ASTStmtReader::NumExprFields];
       S = PseudoObjectExpr::Create(Context, Empty, numSemanticExprs);
       break;
     }
@@ -3834,13 +3834,13 @@ Stmt *ASTReader::ReadStmtFromStream(ModuleFile &F) {
       break;
 
     case EXPR_LAMBDA: {
-      unsigned NumCaptures = Record[ASTStmtReader::NumExprFields];
+      unsigned const NumCaptures = Record[ASTStmtReader::NumExprFields];
       S = LambdaExpr::CreateDeserialized(Context, NumCaptures);
       break;
     }
 
     case STMT_COROUTINE_BODY: {
-      unsigned NumParams = Record[ASTStmtReader::NumStmtFields];
+      unsigned const NumParams = Record[ASTStmtReader::NumStmtFields];
       S = CoroutineBodyStmt::Create(Context, Empty, NumParams);
       break;
     }
@@ -3862,14 +3862,14 @@ Stmt *ASTReader::ReadStmtFromStream(ModuleFile &F) {
       break;
 
     case EXPR_CONCEPT_SPECIALIZATION: {
-      unsigned numTemplateArgs = Record[ASTStmtReader::NumExprFields];
+      unsigned const numTemplateArgs = Record[ASTStmtReader::NumExprFields];
       S = ConceptSpecializationExpr::Create(Context, Empty, numTemplateArgs);
       break;
     }
 
     case EXPR_REQUIRES:
-      unsigned numLocalParameters = Record[ASTStmtReader::NumExprFields];
-      unsigned numRequirement = Record[ASTStmtReader::NumExprFields + 1];
+      unsigned const numLocalParameters = Record[ASTStmtReader::NumExprFields];
+      unsigned const numRequirement = Record[ASTStmtReader::NumExprFields + 1];
       S = RequiresExpr::Create(Context, Empty, numLocalParameters,
                                numRequirement);
       break;

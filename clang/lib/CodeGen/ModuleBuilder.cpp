@@ -50,7 +50,7 @@ namespace {
         ++Self.HandlingTopLevelDecls;
       }
       ~HandlingTopLevelDeclRAII() {
-        unsigned Level = --Self.HandlingTopLevelDecls;
+        unsigned const Level = --Self.HandlingTopLevelDecls;
         if (Level == 0 && EmitDeferred)
           Self.EmitDeferredDecls();
       }
@@ -163,7 +163,7 @@ namespace {
       if (Diags.hasErrorOccurred())
         return true;
 
-      HandlingTopLevelDeclRAII HandlingDecl(*this);
+      HandlingTopLevelDeclRAII const HandlingDecl(*this);
 
       // Make sure to emit all elements of a Decl.
       for (DeclGroupRef::iterator I = DG.begin(), E = DG.end(); I != E; ++I)
@@ -179,7 +179,7 @@ namespace {
       // Emit any deferred inline method definitions. Note that more deferred
       // methods may be added during this loop, since ASTConsumer callbacks
       // can be invoked if AST inspection results in declarations being added.
-      HandlingTopLevelDeclRAII HandlingDecl(*this);
+      HandlingTopLevelDeclRAII const HandlingDecl(*this);
       for (unsigned I = 0; I != DeferredInlineMemberFuncDefs.size(); ++I)
         Builder->EmitTopLevelDecl(DeferredInlineMemberFuncDefs[I]);
       DeferredInlineMemberFuncDefs.clear();
@@ -218,7 +218,7 @@ namespace {
 
       // Don't allow re-entrant calls to CodeGen triggered by PCH
       // deserialization to emit deferred decls.
-      HandlingTopLevelDeclRAII HandlingDecl(*this, /*EmitDeferred=*/false);
+      HandlingTopLevelDeclRAII const HandlingDecl(*this, /*EmitDeferred=*/false);
 
       Builder->UpdateCompletedType(D);
 
@@ -254,7 +254,7 @@ namespace {
 
       // Don't allow re-entrant calls to CodeGen triggered by PCH
       // deserialization to emit deferred decls.
-      HandlingTopLevelDeclRAII HandlingDecl(*this, /*EmitDeferred=*/false);
+      HandlingTopLevelDeclRAII const HandlingDecl(*this, /*EmitDeferred=*/false);
 
       if (CodeGen::CGDebugInfo *DI = Builder->getModuleDebugInfo())
         if (const RecordDecl *RD = dyn_cast<RecordDecl>(D))

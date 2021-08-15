@@ -101,7 +101,7 @@ TEST(HeaderMapTest, lookupFilename) {
   bool NeedsSwap;
   ASSERT_TRUE(HeaderMapImpl::checkHeader(*File.getBuffer(), NeedsSwap));
   ASSERT_FALSE(NeedsSwap);
-  HeaderMapImpl Map(File.getBuffer(), NeedsSwap);
+  HeaderMapImpl const Map(File.getBuffer(), NeedsSwap);
 
   SmallString<8> DestPath;
   ASSERT_EQ("bc", Map.lookupFilename("a", DestPath));
@@ -140,7 +140,7 @@ TEST(HeaderMapTest, lookupFilenameTruncatedSuffix) {
   bool NeedsSwap;
   ASSERT_TRUE(HeaderMapImpl::checkHeader(*File.getBuffer(), NeedsSwap));
   ASSERT_FALSE(NeedsSwap);
-  HeaderMapImpl Map(File.getBuffer(), NeedsSwap);
+  HeaderMapImpl const Map(File.getBuffer(), NeedsSwap);
 
   // The string for "c" runs to the end of File.  Check that the suffix
   // ("cxxxx...") is detected as truncated, and an empty string is returned.
@@ -176,7 +176,7 @@ TEST(HeaderMapTest, lookupFilenameTruncatedPrefix) {
   bool NeedsSwap;
   ASSERT_TRUE(HeaderMapImpl::checkHeader(*File.getBuffer(), NeedsSwap));
   ASSERT_FALSE(NeedsSwap);
-  HeaderMapImpl Map(File.getBuffer(), NeedsSwap);
+  HeaderMapImpl const Map(File.getBuffer(), NeedsSwap);
 
   // The string for "b" runs to the end of File.  Check that the prefix
   // ("bxxxx...") is detected as truncated, and an empty string is returned.

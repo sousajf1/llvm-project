@@ -82,14 +82,14 @@ class PCHContainerGenerator : public ASTConsumer {
         if (!TD->isCompleteDefinition())
           return true;
 
-      QualType QualTy = Ctx.getTypeDeclType(D);
+      QualType const QualTy = Ctx.getTypeDeclType(D);
       if (!QualTy.isNull() && CanRepresent(QualTy.getTypePtr()))
         DI.getOrCreateStandaloneType(QualTy, D->getLocation());
       return true;
     }
 
     bool VisitObjCInterfaceDecl(ObjCInterfaceDecl *D) {
-      QualType QualTy(D->getTypeForDecl(), 0);
+      QualType const QualTy(D->getTypeForDecl(), 0);
       if (!QualTy.isNull() && CanRepresent(QualTy.getTypePtr()))
         DI.getOrCreateStandaloneType(QualTy, D->getLocation());
       return true;
@@ -104,8 +104,8 @@ class PCHContainerGenerator : public ASTConsumer {
       SmallVector<QualType, 16> ArgTypes;
       for (auto i : D->parameters())
         ArgTypes.push_back(i->getType());
-      QualType RetTy = D->getReturnType();
-      QualType FnTy = Ctx.getFunctionType(RetTy, ArgTypes,
+      QualType const RetTy = D->getReturnType();
+      QualType const FnTy = Ctx.getFunctionType(RetTy, ArgTypes,
                                           FunctionProtoType::ExtProtoInfo());
       if (CanRepresent(FnTy.getTypePtr()))
         DI.EmitFunctionDecl(D, D->getLocation(), FnTy);
@@ -123,8 +123,8 @@ class PCHContainerGenerator : public ASTConsumer {
       ArgTypes.push_back(Ctx.getObjCSelType());
       for (auto i : D->parameters())
         ArgTypes.push_back(i->getType());
-      QualType RetTy = D->getReturnType();
-      QualType FnTy = Ctx.getFunctionType(RetTy, ArgTypes,
+      QualType const RetTy = D->getReturnType();
+      QualType const FnTy = Ctx.getFunctionType(RetTy, ArgTypes,
                                           FunctionProtoType::ExtProtoInfo());
       if (CanRepresent(FnTy.getTypePtr()))
         DI.EmitFunctionDecl(D, D->getLocation(), FnTy);
@@ -172,7 +172,7 @@ public:
 
     // Prepare CGDebugInfo to emit debug info for a clang module.
     auto *DI = Builder->getModuleDebugInfo();
-    StringRef ModuleName = llvm::sys::path::filename(MainFileName);
+    StringRef const ModuleName = llvm::sys::path::filename(MainFileName);
     DI->setPCHDescriptor(
         {ModuleName, "", OutputFileName, ASTFileSignature::createDISentinel()});
     DI->setModuleMap(MMap);
@@ -251,7 +251,7 @@ public:
     // but LLVM detects DWO CUs by looking for a non-zero DWO id.
     // We use the lower 64 bits for debug info.
 
-    uint64_t Signature =
+    uint64_t const Signature =
         Buffer->Signature ? Buffer->Signature.truncatedValue() : ~1ULL;
 
     Builder->getModuleDebugInfo()->setDwoId(Signature);
@@ -331,7 +331,7 @@ ObjectFilePCHContainerReader::ExtractPCH(llvm::MemoryBufferRef Buffer) const {
   auto OFOrErr = llvm::object::ObjectFile::createObjectFile(Buffer);
   if (OFOrErr) {
     auto &OF = OFOrErr.get();
-    bool IsCOFF = isa<llvm::object::COFFObjectFile>(*OF);
+    bool const IsCOFF = isa<llvm::object::COFFObjectFile>(*OF);
     // Find the clang AST section in the container.
     for (auto &Section : OF->sections()) {
       StringRef Name;

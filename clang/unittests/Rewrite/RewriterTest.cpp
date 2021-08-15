@@ -40,7 +40,7 @@ TEST(Rewriter, GetRewrittenTextRangeTypes) {
   // Check that correct text is retrieved for each range type.  Check again
   // after a modification.  Ranges remain in terms of the original text but
   // include the new text.
-  StringRef Code = "int main() { return 0; }";
+  StringRef const Code = "int main() { return 0; }";
   //              get char range ^~~    = "ret"
   //             get token range ^~~+++ = "return"
   //            get source range ^~~+++ = "return"
@@ -61,7 +61,7 @@ TEST(Rewriter, GetRewrittenTextRangeTypes) {
 TEST(Rewriter, ReplaceTextRangeTypes) {
   // Check that correct text is replaced for each range type.  Ranges remain in
   // terms of the original text but include the new text.
-  StringRef Code = "int main(int argc, char *argv[]) { return argc; }";
+  StringRef const Code = "int main(int argc, char *argv[]) { return argc; }";
   //                            replace char range with "foo" ^~
   //                                                      get ^~~~~ = "foogc;"
   //                           replace token range with "bar" ^~++

@@ -34,7 +34,7 @@ void FileRemapper::clear(StringRef outputDir) {
   FromToMappings.clear();
   assert(ToFromMappings.empty());
   if (!outputDir.empty()) {
-    std::string infoFile = getRemapInfoFile(outputDir);
+    std::string const infoFile = getRemapInfoFile(outputDir);
     llvm::sys::fs::remove(infoFile);
   }
 }
@@ -48,7 +48,7 @@ std::string FileRemapper::getRemapInfoFile(StringRef outputDir) {
 
 bool FileRemapper::initFromDisk(StringRef outputDir, DiagnosticsEngine &Diag,
                                 bool ignoreIfFilesChanged) {
-  std::string infoFile = getRemapInfoFile(outputDir);
+  std::string const infoFile = getRemapInfoFile(outputDir);
   return initFromFile(infoFile, Diag, ignoreIfFilesChanged);
 }
 
@@ -56,7 +56,7 @@ bool FileRemapper::initFromFile(StringRef filePath, DiagnosticsEngine &Diag,
                                 bool ignoreIfFilesChanged) {
   assert(FromToMappings.empty() &&
          "initFromDisk should be called before any remap calls");
-  std::string infoFile = std::string(filePath);
+  std::string const infoFile = std::string(filePath);
   if (!llvm::sys::fs::exists(infoFile))
     return false;
 
@@ -71,12 +71,12 @@ bool FileRemapper::initFromFile(StringRef filePath, DiagnosticsEngine &Diag,
   fileBuf.get()->getBuffer().split(lines, "\n");
 
   for (unsigned idx = 0; idx+3 <= lines.size(); idx += 3) {
-    StringRef fromFilename = lines[idx];
+    StringRef const fromFilename = lines[idx];
     unsigned long long timeModified;
     if (lines[idx+1].getAsInteger(10, timeModified))
       return report("Invalid file data: '" + lines[idx+1] + "' not a number",
                     Diag);
-    StringRef toFilename = lines[idx+2];
+    StringRef const toFilename = lines[idx+2];
 
     llvm::ErrorOr<const FileEntry *> origFE = FileMgr->getFile(fromFilename);
     if (!origFE) {
@@ -112,7 +112,7 @@ bool FileRemapper::flushToDisk(StringRef outputDir, DiagnosticsEngine &Diag) {
   if (fs::create_directory(outputDir))
     return report("Could not create directory: " + outputDir, Diag);
 
-  std::string infoFile = getRemapInfoFile(outputDir);
+  std::string const infoFile = getRemapInfoFile(outputDir);
   return flushToFile(infoFile, Diag);
 }
 
@@ -120,7 +120,7 @@ bool FileRemapper::flushToFile(StringRef outputPath, DiagnosticsEngine &Diag) {
   using namespace llvm::sys;
 
   std::error_code EC;
-  std::string infoFile = std::string(outputPath);
+  std::string const infoFile = std::string(outputPath);
   llvm::raw_fd_ostream infoOut(infoFile, EC, llvm::sys::fs::OF_Text);
   if (EC)
     return report(EC.message(), Diag);
@@ -248,7 +248,7 @@ const FileEntry *FileRemapper::getOriginalFile(StringRef filePath) {
   // If we are updating a file that overridden an original file,
   // actually update the original file.
   llvm::DenseMap<const FileEntry *, const FileEntry *>::iterator
-    I = ToFromMappings.find(file);
+    const I = ToFromMappings.find(file);
   if (I != ToFromMappings.end()) {
     file = I->second;
     assert(FromToMappings.find(file) != FromToMappings.end() &&

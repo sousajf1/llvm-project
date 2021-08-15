@@ -156,10 +156,10 @@ SVal SimpleSValBuilder::MakeSymIntVal(const SymExpr *LHS,
     // We're looking for a type big enough to compare the symbolic value
     // with the given constant.
     // FIXME: This is an approximation of Sema::UsualArithmeticConversions.
-    ASTContext &Ctx = getContext();
-    QualType SymbolType = LHS->getType();
-    uint64_t ValWidth = RHS.getBitWidth();
-    uint64_t TypeWidth = Ctx.getTypeSize(SymbolType);
+    ASTContext  const&Ctx = getContext();
+    QualType const SymbolType = LHS->getType();
+    uint64_t const ValWidth = RHS.getBitWidth();
+    uint64_t const TypeWidth = Ctx.getTypeSize(SymbolType);
 
     if (ValWidth < TypeWidth) {
       // If the value is too small, extend it.
@@ -181,7 +181,7 @@ SVal SimpleSValBuilder::MakeSymIntVal(const SymExpr *LHS,
 static bool isInRelation(BinaryOperator::Opcode Rel, SymbolRef Sym,
                          llvm::APSInt Bound, ProgramStateRef State) {
   SValBuilder &SVB = State->getStateManager().getSValBuilder();
-  SVal Result =
+  SVal const Result =
       SVB.evalBinOpNN(State, Rel, nonloc::SymbolVal(Sym),
                       nonloc::ConcreteInt(Bound), SVB.getConditionType());
   if (auto DV = Result.getAs<DefinedSVal>()) {
@@ -198,12 +198,12 @@ static bool isInRelation(BinaryOperator::Opcode Rel, SymbolRef Sym,
 static bool isWithinConstantOverflowBounds(SymbolRef Sym,
                                            ProgramStateRef State) {
   SValBuilder &SVB = State->getStateManager().getSValBuilder();
-  BasicValueFactory &BV = SVB.getBasicValueFactory();
+  BasicValueFactory  const&BV = SVB.getBasicValueFactory();
 
-  QualType T = Sym->getType();
+  QualType const T = Sym->getType();
   assert(T->isSignedIntegerOrEnumerationType() &&
          "This only works with signed integers!");
-  APSIntType AT = BV.getAPSIntType(T);
+  APSIntType const AT = BV.getAPSIntType(T);
 
   llvm::APSInt Max = AT.getMaxValue() / AT.getValue(4), Min = -Max;
   return isInRelation(BO_LE, Sym, Max, State) &&
@@ -212,7 +212,7 @@ static bool isWithinConstantOverflowBounds(SymbolRef Sym,
 
 // Same for the concrete integers: see if I is within [min/4, max/4].
 static bool isWithinConstantOverflowBounds(llvm::APSInt I) {
-  APSIntType AT(I);
+  APSIntType const AT(I);
   assert(!AT.isUnsigned() &&
          "This only works with signed integers!");
 
@@ -244,7 +244,7 @@ static NonLoc doRearrangeUnchecked(ProgramStateRef State,
   BasicValueFactory &BV = SVB.getBasicValueFactory();
   SymbolManager &SymMgr = SVB.getSymbolManager();
 
-  QualType SymTy = LSym->getType();
+  QualType const SymTy = LSym->getType();
   assert(SymTy == RSym->getType() &&
          "Symbols are not of the same type!");
   assert(APSIntType(LInt) == BV.getAPSIntType(SymTy) &&
@@ -315,7 +315,7 @@ static Optional<NonLoc> tryRearrange(ProgramStateRef State,
                                      BinaryOperator::Opcode Op, NonLoc Lhs,
                                      NonLoc Rhs, QualType ResultTy) {
   ProgramStateManager &StateMgr = State->getStateManager();
-  SValBuilder &SVB = StateMgr.getSValBuilder();
+  SValBuilder  const&SVB = StateMgr.getSValBuilder();
 
   // We expect everything to be of the same type - this type.
   QualType SingleTy;
@@ -373,8 +373,8 @@ SVal SimpleSValBuilder::evalBinOpNN(ProgramStateRef state,
                                   BinaryOperator::Opcode op,
                                   NonLoc lhs, NonLoc rhs,
                                   QualType resultTy)  {
-  NonLoc InputLHS = lhs;
-  NonLoc InputRHS = rhs;
+  NonLoc const InputLHS = lhs;
+  NonLoc const InputRHS = rhs;
 
   // Handle trivial case where left-side and right-side are the same.
   if (lhs == rhs)
@@ -420,7 +420,7 @@ SVal SimpleSValBuilder::evalBinOpNN(ProgramStateRef state,
       }
     }
     case nonloc::LocAsIntegerKind: {
-      Loc lhsL = lhs.castAs<nonloc::LocAsInteger>().getLoc();
+      Loc const lhsL = lhs.castAs<nonloc::LocAsInteger>().getLoc();
       switch (rhs.getSubKind()) {
         case nonloc::LocAsIntegerKind:
           // FIXME: at the moment the implementation
@@ -473,12 +473,12 @@ SVal SimpleSValBuilder::evalBinOpNN(ProgramStateRef state,
           // We're looking for a type big enough to compare the two values.
           // FIXME: This is not correct. char + short will result in a promotion
           // to int. Unfortunately we have lost types by this point.
-          APSIntType CompareType = std::max(APSIntType(LHSValue),
+          APSIntType const CompareType = std::max(APSIntType(LHSValue),
                                             APSIntType(RHSValue));
           CompareType.apply(LHSValue);
           CompareType.apply(RHSValue);
         } else if (!BinaryOperator::isShiftOp(op)) {
-          APSIntType IntType = BasicVals.getAPSIntType(resultTy);
+          APSIntType const IntType = BasicVals.getAPSIntType(resultTy);
           IntType.apply(LHSValue);
           IntType.apply(RHSValue);
         }
@@ -591,7 +591,7 @@ SVal SimpleSValBuilder::evalBinOpNN(ProgramStateRef state,
           // If both the LHS and the current expression are additive,
           // fold their constants and try again.
           if (BinaryOperator::isAdditiveOp(op)) {
-            BinaryOperator::Opcode lop = symIntExpr->getOpcode();
+            BinaryOperator::Opcode const lop = symIntExpr->getOpcode();
             if (BinaryOperator::isAdditiveOp(lop)) {
               // Convert the two constants to a common type, then combine them.
 
@@ -600,7 +600,7 @@ SVal SimpleSValBuilder::evalBinOpNN(ProgramStateRef state,
               // (such as x+1U+2LL). The rules for implicit conversions should
               // choose a reasonable type to preserve the expression, and will
               // at least match how the value is going to be used.
-              APSIntType IntType = BasicVals.getAPSIntType(resultTy);
+              APSIntType const IntType = BasicVals.getAPSIntType(resultTy);
               const llvm::APSInt &first = IntType.convert(symIntExpr->getRHS());
               const llvm::APSInt &second = IntType.convert(*RHSValue);
 
@@ -626,7 +626,7 @@ SVal SimpleSValBuilder::evalBinOpNN(ProgramStateRef state,
       // Does the symbolic expression simplify to a constant?
       // If so, "fold" the constant by setting 'lhs' to a ConcreteInt
       // and try again.
-      SVal simplifiedLhs = simplifySVal(state, lhs);
+      SVal const simplifiedLhs = simplifySVal(state, lhs);
       if (simplifiedLhs != lhs)
         if (auto simplifiedLhsAsNonLoc = simplifiedLhs.getAs<NonLoc>()) {
           lhs = *simplifiedLhsAsNonLoc;
@@ -682,7 +682,7 @@ static SVal evalBinOpFieldRegionFieldRegion(const FieldRegion *LeftFR,
   // [C99 6.7.2.1.13] "Within a structure object, the non-bit-field
   // members and the units in which bit-fields reside have addresses that
   // increase in the order in which they are declared."
-  bool leftFirst = (op == BO_LT || op == BO_LE);
+  bool const leftFirst = (op == BO_LT || op == BO_LE);
   for (const auto *I : RD->fields()) {
     if (I == LeftFD)
       return SVB.makeTruthVal(leftFirst, resultTy);
@@ -770,7 +770,7 @@ SVal SimpleSValBuilder::evalBinOpLL(ProgramStateRef state,
 
     // If both operands are constants, just perform the operation.
     if (Optional<loc::ConcreteInt> rInt = rhs.getAs<loc::ConcreteInt>()) {
-      SVal ResultVal =
+      SVal const ResultVal =
           lhs.castAs<loc::ConcreteInt>().evalBinOp(BasicVals, op, *rInt);
       if (Optional<NonLoc> Result = ResultVal.getAs<NonLoc>())
         return evalCast(*Result, resultTy, QualType{});
@@ -821,9 +821,9 @@ SVal SimpleSValBuilder::evalBinOpLL(ProgramStateRef state,
           return evalCast(lhs, resultTy, QualType{});
 
         if (BinaryOperator::isComparisonOp(op)) {
-          QualType boolType = getContext().BoolTy;
-          NonLoc l = evalCast(lhs, boolType, QualType{}).castAs<NonLoc>();
-          NonLoc r = makeTruthVal(false, boolType).castAs<NonLoc>();
+          QualType const boolType = getContext().BoolTy;
+          NonLoc const l = evalCast(lhs, boolType, QualType{}).castAs<NonLoc>();
+          NonLoc const r = makeTruthVal(false, boolType).castAs<NonLoc>();
           return evalBinOpNN(state, op, l, r, resultTy);
         }
       }
@@ -936,14 +936,14 @@ SVal SimpleSValBuilder::evalBinOpLL(ProgramStateRef state,
     }
 
     // Compare the regions using the raw offsets.
-    RegionOffset LeftOffset = LeftMR->getAsOffset();
-    RegionOffset RightOffset = RightMR->getAsOffset();
+    RegionOffset const LeftOffset = LeftMR->getAsOffset();
+    RegionOffset const RightOffset = RightMR->getAsOffset();
 
     if (LeftOffset.getRegion() != nullptr &&
         LeftOffset.getRegion() == RightOffset.getRegion() &&
         !LeftOffset.hasSymbolicOffset() && !RightOffset.hasSymbolicOffset()) {
-      int64_t left = LeftOffset.getOffset();
-      int64_t right = RightOffset.getOffset();
+      int64_t const left = LeftOffset.getOffset();
+      int64_t const right = RightOffset.getOffset();
 
       switch (op) {
         default:
@@ -1031,7 +1031,7 @@ SVal SimpleSValBuilder::evalBinOpLN(ProgramStateRef state,
 
       // Offset the increment by the pointer size.
       llvm::APSInt Multiplicand(rightI.getBitWidth(), /* isUnsigned */ true);
-      QualType pointeeType = resultTy->getPointeeType();
+      QualType const pointeeType = resultTy->getPointeeType();
       Multiplicand = getContext().getTypeSizeInChars(pointeeType).getQuantity();
       rightI *= Multiplicand;
 
@@ -1200,8 +1200,8 @@ SVal SimpleSValBuilder::simplifySVal(ProgramStateRef State, SVal V) {
           Loc::isLocType(S->getRHS()->getType()))
         return skip(S);
 
-      SVal LHS = Visit(S->getLHS());
-      SVal RHS = Visit(S->getRHS());
+      SVal const LHS = Visit(S->getLHS());
+      SVal const RHS = Visit(S->getRHS());
       if (isUnchanged(S->getLHS(), LHS) && isUnchanged(S->getRHS(), RHS))
         return skip(S);
 

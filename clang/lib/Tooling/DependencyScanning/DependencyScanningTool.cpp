@@ -109,7 +109,7 @@ llvm::Expected<std::string> DependencyScanningTool::getDependencyFile(
   // behavior.
   assert(Compilations.getAllCompileCommands().size() == 1 &&
          "Expected a compilation database with a single command!");
-  std::string Input = Compilations.getAllCompileCommands().front().Filename;
+  std::string const Input = Compilations.getAllCompileCommands().front().Filename;
 
   MakeDependencyPrinterConsumer Consumer;
   auto Result = Worker.computeDependencies(Input, CWD, Compilations, Consumer);
@@ -193,7 +193,7 @@ DependencyScanningTool::getFullDependencies(
   // behavior.
   assert(Compilations.getAllCompileCommands().size() == 1 &&
          "Expected a compilation database with a single command!");
-  std::string Input = Compilations.getAllCompileCommands().front().Filename;
+  std::string const Input = Compilations.getAllCompileCommands().front().Filename;
 
   FullDependencyPrinterConsumer Consumer(AlreadySeen);
   llvm::Error Result =

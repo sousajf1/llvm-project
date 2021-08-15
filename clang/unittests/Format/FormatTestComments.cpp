@@ -34,12 +34,12 @@ protected:
                      StatusCheck CheckComplete = SC_ExpectComplete) {
     LLVM_DEBUG(llvm::errs() << "---\n");
     LLVM_DEBUG(llvm::errs() << Code << "\n\n");
-    std::vector<tooling::Range> Ranges(1, tooling::Range(0, Code.size()));
+    std::vector<tooling::Range> const Ranges(1, tooling::Range(0, Code.size()));
     FormattingAttemptStatus Status;
-    tooling::Replacements Replaces =
+    tooling::Replacements const Replaces =
         reformat(Style, Code, Ranges, "<stdin>", &Status);
     if (CheckComplete != SC_DoNotCheck) {
-      bool ExpectedCompleteFormat = CheckComplete == SC_ExpectComplete;
+      bool const ExpectedCompleteFormat = CheckComplete == SC_ExpectComplete;
       EXPECT_EQ(ExpectedCompleteFormat, Status.FormatComplete)
           << Code << "\n\n";
     }
@@ -3277,7 +3277,7 @@ TEST_F(FormatTestComments, IndentsLongJavadocAnnotatedLines) {
 
 TEST_F(FormatTestComments, SpaceAtLineCommentBegin) {
   FormatStyle Style = getLLVMStyle();
-  StringRef NoTextInComment = " //       \n"
+  StringRef const NoTextInComment = " //       \n"
                               "\n"
                               "void foo() {// \n"
                               "// \n"
@@ -3307,7 +3307,7 @@ TEST_F(FormatTestComments, SpaceAtLineCommentBegin) {
             format(NoTextInComment, Style));
 
   Style = getLLVMStyle();
-  StringRef Code =
+  StringRef const Code =
       "//Free comment without space\n"
       "\n"
       "//   Free comment with 3 spaces\n"
@@ -3550,7 +3550,7 @@ TEST_F(FormatTestComments, SpaceAtLineCommentBegin) {
             format(Code, Style));
 
   Style = getLLVMStyleWithColumns(20);
-  StringRef WrapCode = "//Lorem ipsum dolor sit amet\n"
+  StringRef const WrapCode = "//Lorem ipsum dolor sit amet\n"
                        "\n"
                        "//  Lorem   ipsum   dolor   sit   amet\n"
                        "\n"
@@ -3606,7 +3606,7 @@ TEST_F(FormatTestComments, SpaceAtLineCommentBegin) {
             format(WrapCode, Style));
 
   Style = getLLVMStyleWithColumns(20);
-  StringRef AShitloadOfSpaces = "//                      This are more spaces "
+  StringRef const AShitloadOfSpaces = "//                      This are more spaces "
                                 "than the ColumnLimit, what now?\n"
                                 "\n"
                                 "//   Comment\n"

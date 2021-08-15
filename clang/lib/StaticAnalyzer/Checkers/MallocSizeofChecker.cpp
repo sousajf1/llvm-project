@@ -57,7 +57,7 @@ public:
     II_realloc(&Ctx->Idents.get("realloc")) {}
 
   void VisitChild(ExprParent Parent, const Stmt *S) {
-    TypeCallPair AllocCall = Visit(S);
+    TypeCallPair const AllocCall = Visit(S);
     if (AllocCall.second && AllocCall.second != S)
       Calls.push_back(CallRecord(Parent, cast<Expr>(S), AllocCall.first,
                                  AllocCall.second));
@@ -166,7 +166,7 @@ static bool typesCompatible(ASTContext &C, QualType A, QualType B) {
 static bool compatibleWithArrayType(ASTContext &C, QualType PT, QualType T) {
   // Ex: 'int a[10][2]' is compatible with 'int', 'int[2]', 'int[10][2]'.
   while (const ArrayType *AT = T->getAsArrayTypeUnsafe()) {
-    QualType ElemType = AT->getElementType();
+    QualType const ElemType = AT->getElementType();
     if (typesCompatible(C, PT, AT->getElementType()))
       return true;
     T = ElemType;
@@ -184,10 +184,10 @@ public:
     Finder.Visit(D->getBody());
     for (CastedAllocFinder::CallVec::iterator i = Finder.Calls.begin(),
          e = Finder.Calls.end(); i != e; ++i) {
-      QualType CastedType = i->CastedExpr->getType();
+      QualType const CastedType = i->CastedExpr->getType();
       if (!CastedType->isPointerType())
         continue;
-      QualType PointeeType = CastedType->getPointeeType();
+      QualType const PointeeType = CastedType->getPointeeType();
       if (PointeeType->isVoidType())
         continue;
 
@@ -201,7 +201,7 @@ public:
         if (SFinder.Sizeofs.size() != 1)
           continue;
 
-        QualType SizeofType = SFinder.Sizeofs[0]->getTypeOfArgument();
+        QualType const SizeofType = SFinder.Sizeofs[0]->getTypeOfArgument();
 
         if (typesCompatible(BR.getContext(), PointeeType, SizeofType))
           continue;
@@ -237,7 +237,7 @@ public:
         if (TSI)
           Ranges.push_back(TSI->getTypeLoc().getSourceRange());
 
-        PathDiagnosticLocation L =
+        PathDiagnosticLocation const L =
             PathDiagnosticLocation::createBegin(i->AllocCall->getCallee(),
                 BR.getSourceManager(), ADC);
 

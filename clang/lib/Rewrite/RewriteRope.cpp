@@ -256,10 +256,10 @@ RopePieceBTreeNode *RopePieceBTreeLeaf::split(unsigned Offset) {
 
   // Otherwise, we need to split piece 'i' at Offset-PieceOffs.  Convert Offset
   // to being Piece relative.
-  unsigned IntraPieceOffset = Offset-PieceOffs;
+  unsigned const IntraPieceOffset = Offset-PieceOffs;
 
   // We do this by shrinking the RopePiece and then doing an insert of the tail.
-  RopePiece Tail(Pieces[i].StrData, Pieces[i].StartOffs+IntraPieceOffset,
+  RopePiece const Tail(Pieces[i].StrData, Pieces[i].StartOffs+IntraPieceOffset,
                  Pieces[i].EndOffs);
   Size -= Pieces[i].size();
   Pieces[i].EndOffs = Pieces[i].StartOffs+IntraPieceOffset;
@@ -343,7 +343,7 @@ void RopePieceBTreeLeaf::erase(unsigned Offset, unsigned NumBytes) {
     PieceOffs += getPiece(i).size();
   assert(PieceOffs == Offset && "Split didn't occur before erase!");
 
-  unsigned StartPiece = i;
+  unsigned const StartPiece = i;
 
   // Figure out how many pieces completely cover 'NumBytes'.  We want to remove
   // all of them.
@@ -358,7 +358,7 @@ void RopePieceBTreeLeaf::erase(unsigned Offset, unsigned NumBytes) {
 
   // If we completely cover some RopePieces, erase them now.
   if (i != StartPiece) {
-    unsigned NumDeleted = i-StartPiece;
+    unsigned const NumDeleted = i-StartPiece;
     for (; i != getNumPieces(); ++i)
       Pieces[i-NumDeleted] = Pieces[i];
 
@@ -367,7 +367,7 @@ void RopePieceBTreeLeaf::erase(unsigned Offset, unsigned NumBytes) {
               RopePiece());
     NumPieces -= NumDeleted;
 
-    unsigned CoverBytes = PieceOffs-Offset;
+    unsigned const CoverBytes = PieceOffs-Offset;
     NumBytes -= CoverBytes;
     Size -= CoverBytes;
   }
@@ -593,7 +593,7 @@ void RopePieceBTreeInterior::erase(unsigned Offset, unsigned NumBytes) {
     // If this deletion request starts somewhere in the middle of the child, it
     // must be deleting to the end of the child.
     if (Offset) {
-      unsigned BytesFromChild = CurChild->size()-Offset;
+      unsigned const BytesFromChild = CurChild->size()-Offset;
       CurChild->erase(Offset, BytesFromChild);
       NumBytes -= BytesFromChild;
       // Start at the beginning of the next child.
@@ -772,7 +772,7 @@ void RopePieceBTree::erase(unsigned Offset, unsigned NumBytes) {
 /// the AllocBuffer object to aggregate requests for small strings into one
 /// allocation instead of doing tons of tiny allocations.
 RopePiece RewriteRope::MakeRopeString(const char *Start, const char *End) {
-  unsigned Len = End-Start;
+  unsigned const Len = End-Start;
   assert(Len && "Zero length RopePiece is invalid!");
 
   // If we have space for this string in the current alloc buffer, use it.
@@ -785,7 +785,7 @@ RopePiece RewriteRope::MakeRopeString(const char *Start, const char *End) {
   // If we don't have enough room because this specific allocation is huge,
   // just allocate a new rope piece for it alone.
   if (Len > AllocChunkSize) {
-    unsigned Size = End-Start+sizeof(RopeRefCountString)-1;
+    unsigned const Size = End-Start+sizeof(RopeRefCountString)-1;
     auto *Res = reinterpret_cast<RopeRefCountString *>(new char[Size]);
     Res->RefCount = 0;
     memcpy(Res->Data, Start, End-Start);
@@ -795,7 +795,7 @@ RopePiece RewriteRope::MakeRopeString(const char *Start, const char *End) {
   // Otherwise, this was a small request but we just don't have space for it
   // Make a new chunk and share it with later allocations.
 
-  unsigned AllocSize = offsetof(RopeRefCountString, Data) + AllocChunkSize;
+  unsigned const AllocSize = offsetof(RopeRefCountString, Data) + AllocChunkSize;
   auto *Res = reinterpret_cast<RopeRefCountString *>(new char[AllocSize]);
   Res->RefCount = 0;
   memcpy(Res->Data, Start, Len);

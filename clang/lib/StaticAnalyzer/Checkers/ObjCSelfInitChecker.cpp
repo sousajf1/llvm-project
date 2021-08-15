@@ -131,7 +131,7 @@ static bool hasSelfFlag(SVal val, SelfFlagEnum flag, CheckerContext &C) {
 /// points to and is an object that did not come from the result of calling
 /// an initializer.
 static bool isInvalidSelf(const Expr *E, CheckerContext &C) {
-  SVal exprVal = C.getSVal(E);
+  SVal const exprVal = C.getSVal(E);
   if (!hasSelfFlag(exprVal, SelfFlag_Self, C))
     return false; // value did not come from 'self'.
   if (hasSelfFlag(exprVal, SelfFlag_InitRes, C))
@@ -182,7 +182,7 @@ void ObjCSelfInitChecker::checkPostObjCMessage(const ObjCMethodCall &Msg,
     // value out when we return from this method.
     state = state->set<CalledInit>(true);
 
-    SVal V = C.getSVal(Msg.getOriginExpr());
+    SVal const V = C.getSVal(Msg.getOriginExpr());
     addSelfFlag(state, V, SelfFlag_InitRes, C);
     return;
   }
@@ -241,21 +241,21 @@ void ObjCSelfInitChecker::checkPreCall(const CallEvent &CE,
                                  C.getCurrentAnalysisDeclContext()->getDecl())))
     return;
 
-  ProgramStateRef state = C.getState();
-  unsigned NumArgs = CE.getNumArgs();
+  ProgramStateRef const state = C.getState();
+  unsigned const NumArgs = CE.getNumArgs();
   // If we passed 'self' as and argument to the call, record it in the state
   // to be propagated after the call.
   // Note, we could have just given up, but try to be more optimistic here and
   // assume that the functions are going to continue initialization or will not
   // modify self.
   for (unsigned i = 0; i < NumArgs; ++i) {
-    SVal argV = CE.getArgSVal(i);
+    SVal const argV = CE.getArgSVal(i);
     if (isSelfVar(argV, C)) {
-      unsigned selfFlags = getSelfFlags(state->getSVal(argV.castAs<Loc>()), C);
+      unsigned const selfFlags = getSelfFlags(state->getSVal(argV.castAs<Loc>()), C);
       C.addTransition(state->set<PreCallSelfFlags>(selfFlags));
       return;
     } else if (hasSelfFlag(argV, SelfFlag_Self, C)) {
-      unsigned selfFlags = getSelfFlags(argV, C);
+      unsigned const selfFlags = getSelfFlags(argV, C);
       C.addTransition(state->set<PreCallSelfFlags>(selfFlags));
       return;
     }
@@ -270,14 +270,14 @@ void ObjCSelfInitChecker::checkPostCall(const CallEvent &CE,
     return;
 
   ProgramStateRef state = C.getState();
-  SelfFlagEnum prevFlags = (SelfFlagEnum)state->get<PreCallSelfFlags>();
+  SelfFlagEnum const prevFlags = (SelfFlagEnum)state->get<PreCallSelfFlags>();
   if (!prevFlags)
     return;
   state = state->remove<PreCallSelfFlags>();
 
-  unsigned NumArgs = CE.getNumArgs();
+  unsigned const NumArgs = CE.getNumArgs();
   for (unsigned i = 0; i < NumArgs; ++i) {
-    SVal argV = CE.getArgSVal(i);
+    SVal const argV = CE.getArgSVal(i);
     if (isSelfVar(argV, C)) {
       // If the address of 'self' is being passed to the call, assume that the
       // 'self' after the call will have the same flags.
@@ -306,7 +306,7 @@ void ObjCSelfInitChecker::checkLocation(SVal location, bool isLoad,
 
   // Tag the result of a load from 'self' so that we can easily know that the
   // value is the object that 'self' points to.
-  ProgramStateRef state = C.getState();
+  ProgramStateRef const state = C.getState();
   if (isSelfVar(location, C))
     addSelfFlag(state, state->getSVal(location.castAs<Loc>()), SelfFlag_Self,
                 C);
@@ -336,9 +336,9 @@ void ObjCSelfInitChecker::checkBind(SVal loc, SVal val, const Stmt *S,
 
 void ObjCSelfInitChecker::printState(raw_ostream &Out, ProgramStateRef State,
                                      const char *NL, const char *Sep) const {
-  SelfFlagTy FlagMap = State->get<SelfFlag>();
-  bool DidCallInit = State->get<CalledInit>();
-  SelfFlagEnum PreCallFlags = (SelfFlagEnum)State->get<PreCallSelfFlags>();
+  SelfFlagTy const FlagMap = State->get<SelfFlag>();
+  bool const DidCallInit = State->get<CalledInit>();
+  SelfFlagEnum const PreCallFlags = (SelfFlagEnum)State->get<PreCallSelfFlags>();
 
   if (FlagMap.isEmpty() && !DidCallInit && !PreCallFlags)
     return;
@@ -414,7 +414,7 @@ static bool isSelfVar(SVal location, CheckerContext &C) {
   if (!location.getAs<loc::MemRegionVal>())
     return false;
 
-  loc::MemRegionVal MRV = location.castAs<loc::MemRegionVal>();
+  loc::MemRegionVal const MRV = location.castAs<loc::MemRegionVal>();
   if (const DeclRegion *DR = dyn_cast<DeclRegion>(MRV.stripCasts()))
     return (DR->getDecl() == analCtx->getSelfDecl());
 

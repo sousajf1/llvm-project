@@ -659,8 +659,8 @@ static bool IsStructurallyEquivalent(StructuralEquivalenceContext &Context,
   if (T1.isNull() || T2.isNull())
     return T1.isNull() && T2.isNull();
 
-  QualType OrigT1 = T1;
-  QualType OrigT2 = T2;
+  QualType const OrigT1 = T1;
+  QualType const OrigT2 = T2;
 
   if (!Context.StrictTypeSpelling) {
     // We aren't being strict about token-to-token equivalence of types,
@@ -991,9 +991,9 @@ static bool IsStructurallyEquivalent(StructuralEquivalenceContext &Context,
       if (Auto1->getTypeConstraintConcept() !=
           Auto2->getTypeConstraintConcept())
         return false;
-      ArrayRef<TemplateArgument> Auto1Args =
+      ArrayRef<TemplateArgument> const Auto1Args =
           Auto1->getTypeConstraintArguments();
-      ArrayRef<TemplateArgument> Auto2Args =
+      ArrayRef<TemplateArgument> const Auto2Args =
           Auto2->getTypeConstraintArguments();
       if (Auto1Args.size() != Auto2Args.size())
         return false;
@@ -1286,7 +1286,7 @@ static bool IsStructurallyEquivalent(StructuralEquivalenceContext &Context,
 static bool IsStructurallyEquivalent(StructuralEquivalenceContext &Context,
                                      CXXMethodDecl *Method1,
                                      CXXMethodDecl *Method2) {
-  bool PropertiesEqual =
+  bool const PropertiesEqual =
       Method1->getDeclKind() == Method2->getDeclKind() &&
       Method1->getRefQualifier() == Method2->getRefQualifier() &&
       Method1->getAccess() == Method2->getAccess() &&
@@ -1630,8 +1630,8 @@ static bool IsStructurallyEquivalent(StructuralEquivalenceContext &Context,
       return false;
     }
 
-    llvm::APSInt Val1 = EC1->getInitVal();
-    llvm::APSInt Val2 = EC2->getInitVal();
+    llvm::APSInt const Val1 = EC1->getInitVal();
+    llvm::APSInt const Val2 = EC2->getInitVal();
     if (!llvm::APSInt::isSameValue(Val1, Val2) ||
         !IsStructurallyEquivalent(EC1->getIdentifier(), EC2->getIdentifier())) {
       if (Context.Complain) {
@@ -1865,7 +1865,7 @@ static bool IsStructurallyEquivalent(StructuralEquivalenceContext &Context,
 
   D1 = D1->getCanonicalDecl();
   D2 = D2->getCanonicalDecl();
-  std::pair<Decl *, Decl *> P{D1, D2};
+  std::pair<Decl *, Decl *> const P{D1, D2};
 
   // Check whether we already know that these two declarations are not
   // structurally equivalent.
@@ -1875,7 +1875,7 @@ static bool IsStructurallyEquivalent(StructuralEquivalenceContext &Context,
   // Check if a check for these declarations is already pending.
   // If yes D1 and D2 will be checked later (from DeclsToCheck),
   // or these are already checked (and equivalent).
-  bool Inserted = Context.VisitedDecls.insert(P).second;
+  bool const Inserted = Context.VisitedDecls.insert(P).second;
   if (!Inserted)
     return true;
 
@@ -1904,8 +1904,8 @@ DiagnosticBuilder StructuralEquivalenceContext::Diag2(SourceLocation Loc,
 
 Optional<unsigned>
 StructuralEquivalenceContext::findUntaggedStructOrUnionIndex(RecordDecl *Anon) {
-  ASTContext &Context = Anon->getASTContext();
-  QualType AnonTy = Context.getRecordType(Anon);
+  ASTContext  const&Context = Anon->getASTContext();
+  QualType const AnonTy = Context.getRecordType(Anon);
 
   const auto *Owner = dyn_cast<RecordDecl>(Anon->getDeclContext());
   if (!Owner)
@@ -2065,13 +2065,13 @@ bool StructuralEquivalenceContext::CheckKindSpecificEquivalence(
 bool StructuralEquivalenceContext::Finish() {
   while (!DeclsToCheck.empty()) {
     // Check the next declaration.
-    std::pair<Decl *, Decl *> P = DeclsToCheck.front();
+    std::pair<Decl *, Decl *> const P = DeclsToCheck.front();
     DeclsToCheck.pop();
 
     Decl *D1 = P.first;
     Decl *D2 = P.second;
 
-    bool Equivalent =
+    bool const Equivalent =
         CheckCommonEquivalence(D1, D2) && CheckKindSpecificEquivalence(D1, D2);
 
     if (!Equivalent) {

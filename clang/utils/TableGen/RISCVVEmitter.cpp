@@ -344,7 +344,7 @@ bool RVVType::verifyType() const {
     return false;
   if (isFloat() && ElementBitwidth == 8)
     return false;
-  unsigned V = Scale.getValue();
+  unsigned const V = Scale.getValue();
   switch (ElementBitwidth) {
   case 1:
   case 8:
@@ -648,9 +648,9 @@ void RVVType::applyModifier(StringRef Transformer) {
 
   // Extract and compute complex type transformer. It can only appear one time.
   if (Transformer.startswith("(")) {
-    size_t Idx = Transformer.find(')');
+    size_t const Idx = Transformer.find(')');
     assert(Idx != StringRef::npos);
-    StringRef ComplexType = Transformer.slice(1, Idx);
+    StringRef const ComplexType = Transformer.slice(1, Idx);
     Transformer = Transformer.drop_front(Idx + 1);
     assert(Transformer.find('(') == StringRef::npos &&
            "Only allow one complex type transformer");
@@ -713,7 +713,7 @@ void RVVType::applyModifier(StringRef Transformer) {
   }
 
   // Compute the remain type transformers
-  for (char I : Transformer) {
+  for (char const I : Transformer) {
     switch (I) {
     case 'P':
       if (IsConstant)
@@ -930,14 +930,14 @@ void RVVEmitter::createHeader(raw_ostream &OS) {
 
   constexpr int Log2LMULs[] = {-3, -2, -1, 0, 1, 2, 3};
   // Print RVV boolean types.
-  for (int Log2LMUL : Log2LMULs) {
+  for (int const Log2LMUL : Log2LMULs) {
     auto T = computeType('c', Log2LMUL, "m");
     if (T.hasValue())
       printType(T.getValue());
   }
   // Print RVV int/float types.
-  for (char I : StringRef("csil")) {
-    for (int Log2LMUL : Log2LMULs) {
+  for (char const I : StringRef("csil")) {
+    for (int const Log2LMUL : Log2LMULs) {
       auto T = computeType(I, Log2LMUL, "v");
       if (T.hasValue()) {
         printType(T.getValue());
@@ -947,7 +947,7 @@ void RVVEmitter::createHeader(raw_ostream &OS) {
     }
   }
   OS << "#if defined(__riscv_zfh)\n";
-  for (int Log2LMUL : Log2LMULs) {
+  for (int const Log2LMUL : Log2LMULs) {
     auto T = computeType('x', Log2LMUL, "v");
     if (T.hasValue())
       printType(T.getValue());
@@ -955,7 +955,7 @@ void RVVEmitter::createHeader(raw_ostream &OS) {
   OS << "#endif\n";
 
   OS << "#if defined(__riscv_f)\n";
-  for (int Log2LMUL : Log2LMULs) {
+  for (int const Log2LMUL : Log2LMULs) {
     auto T = computeType('f', Log2LMUL, "v");
     if (T.hasValue())
       printType(T.getValue());
@@ -963,7 +963,7 @@ void RVVEmitter::createHeader(raw_ostream &OS) {
   OS << "#endif\n";
 
   OS << "#if defined(__riscv_d)\n";
-  for (int Log2LMUL : Log2LMULs) {
+  for (int const Log2LMUL : Log2LMULs) {
     auto T = computeType('d', Log2LMUL, "v");
     if (T.hasValue())
       printType(T.getValue());
@@ -1033,7 +1033,7 @@ void RVVEmitter::createCodeGen(raw_ostream &OS) {
   // iteration.
   RVVIntrinsic *PrevDef = Defs.begin()->get();
   for (auto &Def : Defs) {
-    StringRef CurIRName = Def->getIRName();
+    StringRef const CurIRName = Def->getIRName();
     if (CurIRName != PrevDef->getIRName() ||
         (Def->getManualCodegen() != PrevDef->getManualCodegen())) {
       PrevDef->emitCodeGenSwitchBody(OS);
@@ -1073,31 +1073,31 @@ std::string RVVEmitter::getSuffixStr(char Type, int Log2LMUL,
 
 void RVVEmitter::createRVVIntrinsics(
     std::vector<std::unique_ptr<RVVIntrinsic>> &Out) {
-  std::vector<Record *> RV = Records.getAllDerivedDefinitions("RVVBuiltin");
+  std::vector<Record *> const RV = Records.getAllDerivedDefinitions("RVVBuiltin");
   for (auto *R : RV) {
-    StringRef Name = R->getValueAsString("Name");
-    StringRef SuffixProto = R->getValueAsString("Suffix");
-    StringRef MangledName = R->getValueAsString("MangledName");
-    StringRef MangledSuffixProto = R->getValueAsString("MangledSuffix");
-    StringRef Prototypes = R->getValueAsString("Prototype");
-    StringRef TypeRange = R->getValueAsString("TypeRange");
-    bool HasMask = R->getValueAsBit("HasMask");
-    bool HasMaskedOffOperand = R->getValueAsBit("HasMaskedOffOperand");
-    bool HasVL = R->getValueAsBit("HasVL");
-    bool HasNoMaskedOverloaded = R->getValueAsBit("HasNoMaskedOverloaded");
-    bool HasSideEffects = R->getValueAsBit("HasSideEffects");
-    std::vector<int64_t> Log2LMULList = R->getValueAsListOfInts("Log2LMUL");
-    StringRef ManualCodegen = R->getValueAsString("ManualCodegen");
-    StringRef ManualCodegenMask = R->getValueAsString("ManualCodegenMask");
-    std::vector<int64_t> IntrinsicTypes =
+    StringRef const Name = R->getValueAsString("Name");
+    StringRef const SuffixProto = R->getValueAsString("Suffix");
+    StringRef const MangledName = R->getValueAsString("MangledName");
+    StringRef const MangledSuffixProto = R->getValueAsString("MangledSuffix");
+    StringRef const Prototypes = R->getValueAsString("Prototype");
+    StringRef const TypeRange = R->getValueAsString("TypeRange");
+    bool const HasMask = R->getValueAsBit("HasMask");
+    bool const HasMaskedOffOperand = R->getValueAsBit("HasMaskedOffOperand");
+    bool const HasVL = R->getValueAsBit("HasVL");
+    bool const HasNoMaskedOverloaded = R->getValueAsBit("HasNoMaskedOverloaded");
+    bool const HasSideEffects = R->getValueAsBit("HasSideEffects");
+    std::vector<int64_t> const Log2LMULList = R->getValueAsListOfInts("Log2LMUL");
+    StringRef const ManualCodegen = R->getValueAsString("ManualCodegen");
+    StringRef const ManualCodegenMask = R->getValueAsString("ManualCodegenMask");
+    std::vector<int64_t> const IntrinsicTypes =
         R->getValueAsListOfInts("IntrinsicTypes");
-    StringRef RequiredExtension = R->getValueAsString("RequiredExtension");
-    StringRef IRName = R->getValueAsString("IRName");
-    StringRef IRNameMask = R->getValueAsString("IRNameMask");
-    unsigned NF = R->getValueAsInt("NF");
+    StringRef const RequiredExtension = R->getValueAsString("RequiredExtension");
+    StringRef const IRName = R->getValueAsString("IRName");
+    StringRef const IRNameMask = R->getValueAsString("IRNameMask");
+    unsigned const NF = R->getValueAsInt("NF");
 
-    StringRef HeaderCodeStr = R->getValueAsString("HeaderCode");
-    bool HasAutoDef = HeaderCodeStr.empty();
+    StringRef const HeaderCodeStr = R->getValueAsString("HeaderCode");
+    bool const HasAutoDef = HeaderCodeStr.empty();
     if (!HeaderCodeStr.empty()) {
       HeaderCode += HeaderCodeStr.str();
     }
@@ -1145,8 +1145,8 @@ void RVVEmitter::createRVVIntrinsics(
     }
 
     // Create Intrinsics for each type and LMUL.
-    for (char I : TypeRange) {
-      for (int Log2LMUL : Log2LMULList) {
+    for (char const I : TypeRange) {
+      for (int const Log2LMUL : Log2LMULList) {
         Optional<RVVTypes> Types = computeTypes(I, Log2LMUL, NF, ProtoSeq);
         // Ignored to create new intrinsic if there are any illegal types.
         if (!Types.hasValue())
@@ -1195,7 +1195,7 @@ RVVEmitter::computeTypes(BasicType BT, int Log2LMUL, unsigned NF,
 
 Optional<RVVTypePtr> RVVEmitter::computeType(BasicType BT, int Log2LMUL,
                                              StringRef Proto) {
-  std::string Idx = Twine(Twine(BT) + Twine(Log2LMUL) + Proto).str();
+  std::string const Idx = Twine(Twine(BT) + Twine(Log2LMUL) + Proto).str();
   // Search first
   auto It = LegalTypes.find(Idx);
   if (It != LegalTypes.end())
@@ -1203,7 +1203,7 @@ Optional<RVVTypePtr> RVVEmitter::computeType(BasicType BT, int Log2LMUL,
   if (IllegalTypes.count(Idx))
     return llvm::None;
   // Compute type and record the result.
-  RVVType T(BT, Log2LMUL, Proto);
+  RVVType const T(BT, Log2LMUL, Proto);
   if (T.isValid()) {
     // Record legal type index and value.
     LegalTypes.insert({Idx, T});
@@ -1220,7 +1220,7 @@ void RVVEmitter::emitArchMacroAndBody(
   uint8_t PrevExt = (*Defs.begin())->getRISCVExtensions();
   bool NeedEndif = emitExtDefStr(PrevExt, OS);
   for (auto &Def : Defs) {
-    uint8_t CurExt = Def->getRISCVExtensions();
+    uint8_t const CurExt = Def->getRISCVExtensions();
     if (CurExt != PrevExt) {
       if (NeedEndif)
         OS << "#endif\n\n";

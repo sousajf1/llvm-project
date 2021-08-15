@@ -383,9 +383,9 @@ void TargetInfo::adjust(DiagnosticsEngine &Diags, LangOptions &Opts) {
     }
     LongDoubleWidth = LongDoubleAlign = 128;
 
-    unsigned MaxPointerWidth = getMaxPointerWidth();
+    unsigned const MaxPointerWidth = getMaxPointerWidth();
     assert(MaxPointerWidth == 32 || MaxPointerWidth == 64);
-    bool Is32BitArch = MaxPointerWidth == 32;
+    bool const Is32BitArch = MaxPointerWidth == 32;
     SizeType = Is32BitArch ? UnsignedInt : UnsignedLong;
     PtrDiffType = Is32BitArch ? SignedInt : SignedLong;
     IntPtrType = Is32BitArch ? SignedInt : SignedLong;
@@ -458,9 +458,9 @@ bool TargetInfo::initFeatureMap(
     llvm::StringMap<bool> &Features, DiagnosticsEngine &Diags, StringRef CPU,
     const std::vector<std::string> &FeatureVec) const {
   for (const auto &F : FeatureVec) {
-    StringRef Name = F;
+    StringRef const Name = F;
     // Apply the feature via the target.
-    bool Enabled = Name[0] == '+';
+    bool const Enabled = Name[0] == '+';
     setFeatureEnabled(Features, Name.substr(1), Enabled);
   }
   return true;
@@ -561,7 +561,7 @@ StringRef TargetInfo::getNormalizedGCCRegisterName(StringRef Name,
   // Get rid of any register prefix.
   Name = removeGCCRegisterPrefix(Name);
 
-  ArrayRef<const char *> Names = getGCCRegNames();
+  ArrayRef<const char *> const Names = getGCCRegNames();
 
   // First, check if we have a number.
   if (isDigit(Name[0])) {
@@ -683,7 +683,7 @@ bool TargetInfo::resolveSymbolicName(const char *&Name,
     return false;
   }
 
-  std::string SymbolicName(Start, Name - Start);
+  std::string const SymbolicName(Start, Name - Start);
 
   for (Index = 0; Index != OutputConstraints.size(); ++Index)
     if (SymbolicName == OutputConstraints[Index].getName())

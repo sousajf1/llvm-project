@@ -37,8 +37,8 @@ int compareLabels(StringRef A, StringRef B) {
   A.split(NamesA, "::", /*MaxSplit=*/-1, /*KeepEmpty=*/false);
   SmallVector<StringRef, 2> NamesB;
   B.split(NamesB, "::", /*MaxSplit=*/-1, /*KeepEmpty=*/false);
-  size_t SizeA = NamesA.size();
-  size_t SizeB = NamesB.size();
+  size_t const SizeA = NamesA.size();
+  size_t const SizeB = NamesB.size();
   for (size_t I = 0, E = std::min(SizeA, SizeB); I < E; ++I) {
     if (I + 1 == SizeA) {
       // I is the last index of NamesA and NamesA[I] is a non-namespace name.
@@ -57,7 +57,7 @@ int compareLabels(StringRef A, StringRef B) {
       return 1;
 
     // Two namespaces names within a group compare case-insensitively.
-    int C = NamesA[I].compare_insensitive(NamesB[I]);
+    int const C = NamesA[I].compare_insensitive(NamesB[I]);
     if (C != 0)
       return C;
   }
@@ -156,7 +156,7 @@ void endUsingDeclarationBlock(
     auto SortedBegin =
         SortedUsingDeclarations[I].Line->First->Tok.getLocation();
     auto SortedEnd = SortedUsingDeclarations[I].Line->Last->Tok.getEndLoc();
-    StringRef Text(SourceMgr.getCharacterData(SortedBegin),
+    StringRef const Text(SourceMgr.getCharacterData(SortedBegin),
                    SourceMgr.getCharacterData(SortedEnd) -
                        SourceMgr.getCharacterData(SortedBegin));
     LLVM_DEBUG({
@@ -199,7 +199,7 @@ std::pair<tooling::Replacements, unsigned> UsingDeclarationsSorter::analyze(
       endUsingDeclarationBlock(&UsingDeclarations, SourceMgr, &Fixes);
     const auto *UsingTok =
         FirstTok->is(tok::comment) ? FirstTok->getNextNonComment() : FirstTok;
-    std::string Label = computeUsingDeclarationLabel(UsingTok);
+    std::string const Label = computeUsingDeclarationLabel(UsingTok);
     if (Label.empty()) {
       endUsingDeclarationBlock(&UsingDeclarations, SourceMgr, &Fixes);
       continue;

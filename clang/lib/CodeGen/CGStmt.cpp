@@ -438,11 +438,11 @@ bool CodeGenFunction::EmitSimpleStmt(const Stmt *S,
 /// (for use by the statement expression extension).
 Address CodeGenFunction::EmitCompoundStmt(const CompoundStmt &S, bool GetLast,
                                           AggValueSlot AggSlot) {
-  PrettyStackTraceLoc CrashInfo(getContext().getSourceManager(),S.getLBracLoc(),
+  PrettyStackTraceLoc const CrashInfo(getContext().getSourceManager(),S.getLBracLoc(),
                              "LLVM IR generation of compound statement ('{}')");
 
   // Keep track of the current cleanup stack depth, including debug scopes.
-  LexicalScope Scope(*this, S.getSourceRange());
+  LexicalScope const Scope(*this, S.getSourceRange());
 
   return EmitCompoundStmtWithoutScope(S, GetLast, AggSlot);
 }
@@ -481,7 +481,7 @@ CodeGenFunction::EmitCompoundStmtWithoutScope(const CompoundStmt &S,
       EnsureInsertPoint();
 
       const Expr *E = cast<Expr>(ExprResult);
-      QualType ExprTy = E->getType();
+      QualType const ExprTy = E->getType();
       if (hasAggregateEvaluationKind(ExprTy)) {
         EmitAggExpr(E, AggSlot);
       } else {
@@ -627,7 +627,7 @@ void CodeGenFunction::EmitLabel(const LabelDecl *D) {
 /// match the scope of the enclosing context.
 void CodeGenFunction::LexicalScope::rescopeLabels() {
   assert(!Labels.empty());
-  EHScopeStack::stable_iterator innermostScope
+  EHScopeStack::stable_iterator const innermostScope
     = CGF.EHStack.getInnermostNormalCleanup();
 
   // Change the scope depth of all the labels.
@@ -671,8 +671,8 @@ void CodeGenFunction::EmitAttributedStmt(const AttributedStmt &S) {
       musttail = cast<CallExpr>(R->getRetValue()->IgnoreParens());
     }
   }
-  SaveAndRestore<bool> save_nomerge(InNoMergeAttributedStmt, nomerge);
-  SaveAndRestore<const CallExpr *> save_musttail(MustTailCall, musttail);
+  SaveAndRestore<bool> const save_nomerge(InNoMergeAttributedStmt, nomerge);
+  SaveAndRestore<const CallExpr *> const save_musttail(MustTailCall, musttail);
   EmitStmt(S.getSubStmt(), S.getAttrs());
 }
 
@@ -711,7 +711,7 @@ void CodeGenFunction::EmitIndirectGotoStmt(const IndirectGotoStmt &S) {
 void CodeGenFunction::EmitIfStmt(const IfStmt &S) {
   // C99 6.8.4.1: The first substatement is executed if the expression compares
   // unequal to 0.  The condition must be a scalar type.
-  LexicalScope ConditionScope(*this, S.getCond()->getSourceRange());
+  LexicalScope const ConditionScope(*this, S.getCond()->getSourceRange());
 
   if (S.getInit())
     EmitStmt(S.getInit());
@@ -736,7 +736,7 @@ void CodeGenFunction::EmitIfStmt(const IfStmt &S) {
       if (CondConstant)
         incrementProfileCounter(&S);
       if (Executed) {
-        RunCleanupsScope ExecutedScope(*this);
+        RunCleanupsScope const ExecutedScope(*this);
         EmitStmt(Executed);
       }
       return;
@@ -755,7 +755,7 @@ void CodeGenFunction::EmitIfStmt(const IfStmt &S) {
   // When the build isn't optimized the metadata isn't used, so don't generate
   // it.
   Stmt::Likelihood LH = Stmt::LH_None;
-  uint64_t Count = getProfileCount(S.getThen());
+  uint64_t const Count = getProfileCount(S.getThen());
   if (!Count && CGM.getCodeGenOpts().OptimizationLevel)
     LH = Stmt::getLikelihood(S.getThen(), S.getElse());
   EmitBranchOnBoolExpr(S.getCond(), ThenBlock, ElseBlock, Count, LH);
@@ -764,7 +764,7 @@ void CodeGenFunction::EmitIfStmt(const IfStmt &S) {
   EmitBlock(ThenBlock);
   incrementProfileCounter(&S);
   {
-    RunCleanupsScope ThenScope(*this);
+    RunCleanupsScope const ThenScope(*this);
     EmitStmt(S.getThen());
   }
   EmitBranch(ContBlock);
@@ -777,7 +777,7 @@ void CodeGenFunction::EmitIfStmt(const IfStmt &S) {
       EmitBlock(ElseBlock);
     }
     {
-      RunCleanupsScope ElseScope(*this);
+      RunCleanupsScope const ElseScope(*this);
       EmitStmt(Else);
     }
     {
@@ -795,12 +795,12 @@ void CodeGenFunction::EmitWhileStmt(const WhileStmt &S,
                                     ArrayRef<const Attr *> WhileAttrs) {
   // Emit the header for the loop, which will also become
   // the continue target.
-  JumpDest LoopHeader = getJumpDestInCurrentScope("while.cond");
+  JumpDest const LoopHeader = getJumpDestInCurrentScope("while.cond");
   EmitBlock(LoopHeader.getBlock());
 
   // Create an exit block for when the condition fails, which will
   // also become the break target.
-  JumpDest LoopExit = getJumpDestInCurrentScope("while.end");
+  JumpDest const LoopExit = getJumpDestInCurrentScope("while.end");
 
   // Store the blocks to use for break and continue.
   BreakContinueStack.push_back(BreakContinue(LoopExit, LoopHeader));
@@ -825,8 +825,8 @@ void CodeGenFunction::EmitWhileStmt(const WhileStmt &S,
   // while(1) is common, avoid extra exit blocks.  Be sure
   // to correctly handle break/continue though.
   llvm::ConstantInt *C = dyn_cast<llvm::ConstantInt>(BoolCondVal);
-  bool CondIsConstInt = C != nullptr;
-  bool EmitBoolCondBranch = !CondIsConstInt || !C->isOne();
+  bool const CondIsConstInt = C != nullptr;
+  bool const EmitBoolCondBranch = !CondIsConstInt || !C->isOne();
   const SourceRange &R = S.getSourceRange();
   LoopStack.push(LoopHeader.getBlock(), CGM.getContext(), CGM.getCodeGenOpts(),
                  WhileAttrs, SourceLocToDebugLoc(R.getBegin()),
@@ -863,7 +863,7 @@ void CodeGenFunction::EmitWhileStmt(const WhileStmt &S,
   // Emit the loop body.  We have to emit this in a cleanup scope
   // because it might be a singleton DeclStmt.
   {
-    RunCleanupsScope BodyScope(*this);
+    RunCleanupsScope const BodyScope(*this);
     EmitBlock(LoopBody);
     incrementProfileCounter(&S);
     EmitStmt(S.getBody());
@@ -891,10 +891,10 @@ void CodeGenFunction::EmitWhileStmt(const WhileStmt &S,
 
 void CodeGenFunction::EmitDoStmt(const DoStmt &S,
                                  ArrayRef<const Attr *> DoAttrs) {
-  JumpDest LoopExit = getJumpDestInCurrentScope("do.end");
-  JumpDest LoopCond = getJumpDestInCurrentScope("do.cond");
+  JumpDest const LoopExit = getJumpDestInCurrentScope("do.end");
+  JumpDest const LoopCond = getJumpDestInCurrentScope("do.cond");
 
-  uint64_t ParentCount = getCurrentProfileCount();
+  uint64_t const ParentCount = getCurrentProfileCount();
 
   // Store the blocks to use for break and continue.
   BreakContinueStack.push_back(BreakContinue(LoopExit, LoopCond));
@@ -904,7 +904,7 @@ void CodeGenFunction::EmitDoStmt(const DoStmt &S,
 
   EmitBlockWithFallThrough(LoopBody, &S);
   {
-    RunCleanupsScope BodyScope(*this);
+    RunCleanupsScope const BodyScope(*this);
     EmitStmt(S.getBody());
   }
 
@@ -923,8 +923,8 @@ void CodeGenFunction::EmitDoStmt(const DoStmt &S,
   // "do {} while (0)" is common in macros, avoid extra blocks.  Be sure
   // to correctly handle break/continue though.
   llvm::ConstantInt *C = dyn_cast<llvm::ConstantInt>(BoolCondVal);
-  bool CondIsConstInt = C;
-  bool EmitBoolCondBranch = !C || !C->isZero();
+  bool const CondIsConstInt = C;
+  bool const EmitBoolCondBranch = !C || !C->isZero();
 
   const SourceRange &R = S.getSourceRange();
   LoopStack.push(LoopBody, CGM.getContext(), CGM.getCodeGenOpts(), DoAttrs,
@@ -934,7 +934,7 @@ void CodeGenFunction::EmitDoStmt(const DoStmt &S,
 
   // As long as the condition is true, iterate the loop.
   if (EmitBoolCondBranch) {
-    uint64_t BackedgeCount = getProfileCount(S.getBody()) - ParentCount;
+    uint64_t const BackedgeCount = getProfileCount(S.getBody()) - ParentCount;
     Builder.CreateCondBr(
         BoolCondVal, LoopBody, LoopExit.getBlock(),
         createProfileWeightsForLoop(S.getCond(), BackedgeCount));
@@ -953,7 +953,7 @@ void CodeGenFunction::EmitDoStmt(const DoStmt &S,
 
 void CodeGenFunction::EmitForStmt(const ForStmt &S,
                                   ArrayRef<const Attr *> ForAttrs) {
-  JumpDest LoopExit = getJumpDestInCurrentScope("for.end");
+  JumpDest const LoopExit = getJumpDestInCurrentScope("for.end");
 
   LexicalScope ForScope(*this, S.getSourceRange());
 
@@ -964,12 +964,12 @@ void CodeGenFunction::EmitForStmt(const ForStmt &S,
   // Start the loop with a block that tests the condition.
   // If there's an increment, the continue scope will be overwritten
   // later.
-  JumpDest CondDest = getJumpDestInCurrentScope("for.cond");
+  JumpDest const CondDest = getJumpDestInCurrentScope("for.cond");
   llvm::BasicBlock *CondBlock = CondDest.getBlock();
   EmitBlock(CondBlock);
 
   Expr::EvalResult Result;
-  bool CondIsConstInt =
+  bool const CondIsConstInt =
       !S.getCond() || S.getCond()->EvaluateAsInt(Result, getContext());
 
   const SourceRange &R = S.getSourceRange();
@@ -1042,7 +1042,7 @@ void CodeGenFunction::EmitForStmt(const ForStmt &S,
   {
     // Create a separate cleanup scope for the body, in case it is not
     // a compound statement.
-    RunCleanupsScope BodyScope(*this);
+    RunCleanupsScope const BodyScope(*this);
     EmitStmt(S.getBody());
   }
 
@@ -1070,7 +1070,7 @@ void CodeGenFunction::EmitForStmt(const ForStmt &S,
 void
 CodeGenFunction::EmitCXXForRangeStmt(const CXXForRangeStmt &S,
                                      ArrayRef<const Attr *> ForAttrs) {
-  JumpDest LoopExit = getJumpDestInCurrentScope("for.end");
+  JumpDest const LoopExit = getJumpDestInCurrentScope("for.end");
 
   LexicalScope ForScope(*this, S.getSourceRange());
 
@@ -1120,14 +1120,14 @@ CodeGenFunction::EmitCXXForRangeStmt(const CXXForRangeStmt &S,
   incrementProfileCounter(&S);
 
   // Create a block for the increment. In case of a 'continue', we jump there.
-  JumpDest Continue = getJumpDestInCurrentScope("for.inc");
+  JumpDest const Continue = getJumpDestInCurrentScope("for.inc");
 
   // Store the blocks to use for break and continue.
   BreakContinueStack.push_back(BreakContinue(LoopExit, Continue));
 
   {
     // Create a separate cleanup scope for the loop variable and body.
-    LexicalScope BodyScope(*this, S.getSourceRange());
+    LexicalScope const BodyScope(*this, S.getSourceRange());
     EmitStmt(S.getLoopVarStmt());
     EmitStmt(S.getBody());
   }
@@ -1153,8 +1153,8 @@ void CodeGenFunction::EmitReturnOfRValue(RValue RV, QualType Ty) {
   if (RV.isScalar()) {
     Builder.CreateStore(RV.getScalarVal(), ReturnValue);
   } else if (RV.isAggregate()) {
-    LValue Dest = MakeAddrLValue(ReturnValue, Ty);
-    LValue Src = MakeAddrLValue(RV.getAggregateAddress(), Ty);
+    LValue const Dest = MakeAddrLValue(ReturnValue, Ty);
+    LValue const Src = MakeAddrLValue(RV.getAggregateAddress(), Ty);
     EmitAggregateCopy(Dest, Src, Ty, getOverlapForReturnValue());
   } else {
     EmitStoreOfComplex(RV.getComplexVal(), MakeAddrLValue(ReturnValue, Ty),
@@ -1241,7 +1241,7 @@ void CodeGenFunction::EmitReturnStmt(const ReturnStmt &S) {
   // This permits a small, easily-implemented exception to our over-conservative
   // rules about not jumping to statements following block literals with
   // non-trivial cleanups.
-  SaveRetExprRAII SaveRetExpr(RV, *this);
+  SaveRetExprRAII const SaveRetExpr(RV, *this);
 
   RunCleanupsScope cleanupScope(*this);
   if (const auto *EWC = dyn_cast_or_null<ExprWithCleanups>(RV))
@@ -1276,7 +1276,7 @@ void CodeGenFunction::EmitReturnStmt(const ReturnStmt &S) {
   } else if (FnRetTy->isReferenceType()) {
     // If this function returns a reference, take the address of the expression
     // rather than the value.
-    RValue Result = EmitReferenceBindingToExpr(RV);
+    RValue const Result = EmitReferenceBindingToExpr(RV);
     Builder.CreateStore(Result.getScalarVal(), ReturnValue);
   } else {
     switch (getEvaluationKind(RV->getType())) {
@@ -1348,7 +1348,7 @@ void CodeGenFunction::EmitCaseStmtRange(const CaseStmt &S,
   assert(S.getRHS() && "Expected RHS value in CaseStmt");
 
   llvm::APSInt LHS = S.getLHS()->EvaluateKnownConstInt(getContext());
-  llvm::APSInt RHS = S.getRHS()->EvaluateKnownConstInt(getContext());
+  llvm::APSInt const RHS = S.getRHS()->EvaluateKnownConstInt(getContext());
 
   // Emit the code for this case. We do this first to make sure it is
   // properly chained from our predecessor before generating the
@@ -1361,13 +1361,13 @@ void CodeGenFunction::EmitCaseStmtRange(const CaseStmt &S,
   if (LHS.isSigned() ? RHS.slt(LHS) : RHS.ult(LHS))
     return;
 
-  Stmt::Likelihood LH = Stmt::getLikelihood(Attrs);
-  llvm::APInt Range = RHS - LHS;
+  Stmt::Likelihood const LH = Stmt::getLikelihood(Attrs);
+  llvm::APInt const Range = RHS - LHS;
   // FIXME: parameters such as this should not be hardcoded.
   if (Range.ult(llvm::APInt(Range.getBitWidth(), 64))) {
     // Range is small enough to add multiple switch instruction cases.
-    uint64_t Total = getProfileCount(&S);
-    unsigned NCases = Range.getZExtValue() + 1;
+    uint64_t const Total = getProfileCount(&S);
+    unsigned const NCases = Range.getZExtValue() + 1;
     // We only have one region counter for the entire set of cases here, so we
     // need to divide the weights evenly between the generated cases, ensuring
     // that the total weight is preserved. E.g., a weight of 5 over three cases
@@ -1408,8 +1408,8 @@ void CodeGenFunction::EmitCaseStmtRange(const CaseStmt &S,
 
   llvm::MDNode *Weights = nullptr;
   if (SwitchWeights) {
-    uint64_t ThisCount = getProfileCount(&S);
-    uint64_t DefaultCount = (*SwitchWeights)[0];
+    uint64_t const ThisCount = getProfileCount(&S);
+    uint64_t const DefaultCount = (*SwitchWeights)[0];
     Weights = createProfileWeights(ThisCount, DefaultCount);
 
     // Since we're chaining the switch default through each large case range, we
@@ -1457,7 +1457,7 @@ void CodeGenFunction::EmitCaseStmt(const CaseStmt &S,
   if (!CGM.getCodeGenOpts().hasProfileClangInstr() &&
       CGM.getCodeGenOpts().OptimizationLevel > 0 &&
       isa<BreakStmt>(S.getSubStmt())) {
-    JumpDest Block = BreakContinueStack.back().BreakBlock;
+    JumpDest const Block = BreakContinueStack.back().BreakBlock;
 
     // Only do this optimization if there are no cleanups that need emitting.
     if (isObviouslyBranchWithoutCleanups(Block)) {
@@ -1601,8 +1601,8 @@ static CSFC_Result CollectStatementsForCase(const Stmt *S,
     // Handle this as two cases: we might be looking for the SwitchCase (if so
     // the skipped statements must be skippable) or we might already have it.
     CompoundStmt::const_body_iterator I = CS->body_begin(), E = CS->body_end();
-    bool StartedInLiveCode = FoundCase;
-    unsigned StartSize = ResultStmts.size();
+    bool const StartedInLiveCode = FoundCase;
+    unsigned const StartSize = ResultStmts.size();
 
     // If we've not found the case yet, scan through looking for it.
     if (Case) {
@@ -1849,7 +1849,7 @@ void CodeGenFunction::EmitSwitchStmt(const SwitchStmt &S) {
                                    getContext(), Case)) {
       if (Case)
         incrementProfileCounter(Case);
-      RunCleanupsScope ExecutedScope(*this);
+      RunCleanupsScope const ExecutedScope(*this);
 
       if (S.getInit())
         EmitStmt(S.getInit());
@@ -1878,7 +1878,7 @@ void CodeGenFunction::EmitSwitchStmt(const SwitchStmt &S) {
     }
   }
 
-  JumpDest SwitchExit = getJumpDestInCurrentScope("sw.epilog");
+  JumpDest const SwitchExit = getJumpDestInCurrentScope("sw.epilog");
 
   RunCleanupsScope ConditionScope(*this);
 
@@ -1986,7 +1986,7 @@ void CodeGenFunction::EmitSwitchStmt(const SwitchStmt &S) {
     Optional<SmallVector<uint64_t, 16>> LHW =
         getLikelihoodWeights(*SwitchLikelihood);
     if (LHW) {
-      llvm::MDBuilder MDHelper(CGM.getLLVMContext());
+      llvm::MDBuilder const MDHelper(CGM.getLLVMContext());
       SwitchInsn->setMetadata(llvm::LLVMContext::MD_prof,
                               createProfileWeights(*LHW));
     }
@@ -2035,7 +2035,7 @@ SimplifyConstraint(const char *Constraint, const TargetInfo &Target,
       assert(OutCons &&
              "Must pass output names to constraints with a symbolic name");
       unsigned Index;
-      bool result = Target.resolveSymbolicName(Constraint, *OutCons, Index);
+      bool const result = Target.resolveSymbolicName(Constraint, *OutCons, Index);
       assert(result && "Could not resolve symbolic name"); (void)result;
       Result += llvm::utostr(Index);
       break;
@@ -2096,7 +2096,7 @@ CodeGenFunction::EmitAsmInputLValue(const TargetInfo::ConstraintInfo &Info,
       Arg = EmitLoadOfLValue(InputValue, Loc).getScalarVal();
     } else {
       llvm::Type *Ty = ConvertType(InputType);
-      uint64_t Size = CGM.getDataLayout().getTypeSizeInBits(Ty);
+      uint64_t const Size = CGM.getDataLayout().getTypeSizeInBits(Ty);
       if ((Size <= 64 && llvm::isPowerOf2_64(Size)) ||
           getTargetHooks().isScalarizableAsmOperand(*this, Ty)) {
         Ty = llvm::IntegerType::get(getLLVMContext(), Size);
@@ -2145,7 +2145,7 @@ llvm::Value* CodeGenFunction::EmitAsmInput(
   if (InputExpr->getStmtClass() == Expr::CXXThisExprClass)
     return EmitScalarExpr(InputExpr);
   InputExpr = InputExpr->IgnoreParenNoopCasts(getContext());
-  LValue Dest = EmitLValue(InputExpr);
+  LValue const Dest = EmitLValue(InputExpr);
   return EmitAsmInputLValue(Info, Dest, InputExpr->getType(), ConstraintStr,
                             InputExpr->getExprLoc());
 }
@@ -2160,7 +2160,7 @@ static llvm::MDNode *getAsmSrcLocInfo(const StringLiteral *Str,
   // Add the location of the first line to the MDNode.
   Locs.push_back(llvm::ConstantAsMetadata::get(llvm::ConstantInt::get(
       CGF.Int64Ty, Str->getBeginLoc().getRawEncoding())));
-  StringRef StrVal = Str->getString();
+  StringRef const StrVal = Str->getString();
   if (!StrVal.empty()) {
     const SourceManager &SM = CGF.CGM.getContext().getSourceManager();
     const LangOptions &LangOpts = CGF.CGM.getLangOpts();
@@ -2171,7 +2171,7 @@ static llvm::MDNode *getAsmSrcLocInfo(const StringLiteral *Str,
     // MDNode.
     for (unsigned i = 0, e = StrVal.size() - 1; i != e; ++i) {
       if (StrVal[i] != '\n') continue;
-      SourceLocation LineLoc = Str->getLocationOfByte(
+      SourceLocation const LineLoc = Str->getLocationOfByte(
           i + 1, SM, LangOpts, CGF.getTarget(), &StartToken, &ByteOffset);
       Locs.push_back(llvm::ConstantAsMetadata::get(
           llvm::ConstantInt::get(CGF.Int64Ty, LineLoc.getRawEncoding())));
@@ -2249,7 +2249,7 @@ void CodeGenFunction::EmitAsmStmt(const AsmStmt &S) {
     if (const GCCAsmStmt *GAS = dyn_cast<GCCAsmStmt>(&S))
       Name = GAS->getOutputName(i);
     TargetInfo::ConstraintInfo Info(S.getOutputConstraint(i), Name);
-    bool IsValid = getTarget().validateOutputConstraint(Info); (void)IsValid;
+    bool const IsValid = getTarget().validateOutputConstraint(Info); (void)IsValid;
     assert(IsValid && "Failed to parse output constraint");
     OutputConstraintInfos.push_back(Info);
   }
@@ -2259,7 +2259,7 @@ void CodeGenFunction::EmitAsmStmt(const AsmStmt &S) {
     if (const GCCAsmStmt *GAS = dyn_cast<GCCAsmStmt>(&S))
       Name = GAS->getInputName(i);
     TargetInfo::ConstraintInfo Info(S.getInputConstraint(i), Name);
-    bool IsValid =
+    bool const IsValid =
       getTarget().validateInputConstraint(OutputConstraintInfos, Info);
     assert(IsValid && "Failed to parse input constraint"); (void)IsValid;
     InputConstraintInfos.push_back(Info);
@@ -2315,13 +2315,13 @@ void CodeGenFunction::EmitAsmStmt(const AsmStmt &S) {
       CGM.Error(S.getAsmLoc(), "multiple outputs to hard register: " + GCCReg);
 
     OutputConstraints.push_back(OutputConstraint);
-    LValue Dest = EmitLValue(OutExpr);
+    LValue const Dest = EmitLValue(OutExpr);
     if (!Constraints.empty())
       Constraints += ',';
 
     // If this is a register output, then make the inline asm return it
     // by-value.  If this is a memory result, return the value by-reference.
-    QualType QTy = OutExpr->getType();
+    QualType const QTy = OutExpr->getType();
     const bool IsScalarOrAggregate = hasScalarEvaluationKind(QTy) ||
                                      hasAggregateEvaluationKind(QTy);
     if (!Info.allowsMemory() && IsScalarOrAggregate) {
@@ -2339,7 +2339,7 @@ void CodeGenFunction::EmitAsmStmt(const AsmStmt &S) {
       ResultTypeRequiresCast.push_back(RequiresCast);
 
       if (RequiresCast) {
-        unsigned Size = getContext().getTypeSize(QTy);
+        unsigned const Size = getContext().getTypeSize(QTy);
         Ty = llvm::IntegerType::get(getLLVMContext(), Size);
       }
       ResultRegTypes.push_back(Ty);
@@ -2349,16 +2349,16 @@ void CodeGenFunction::EmitAsmStmt(const AsmStmt &S) {
       if (Info.hasMatchingInput()) {
         unsigned InputNo;
         for (InputNo = 0; InputNo != S.getNumInputs(); ++InputNo) {
-          TargetInfo::ConstraintInfo &Input = InputConstraintInfos[InputNo];
+          TargetInfo::ConstraintInfo  const&Input = InputConstraintInfos[InputNo];
           if (Input.hasTiedOperand() && Input.getTiedOperand() == i)
             break;
         }
         assert(InputNo != S.getNumInputs() && "Didn't find matching input!");
 
-        QualType InputTy = S.getInputExpr(InputNo)->getType();
-        QualType OutputType = OutExpr->getType();
+        QualType const InputTy = S.getInputExpr(InputNo)->getType();
+        QualType const OutputType = OutExpr->getType();
 
-        uint64_t InputSize = getContext().getTypeSize(InputTy);
+        uint64_t const InputSize = getContext().getTypeSize(InputTy);
         if (getContext().getTypeSize(OutputType) < InputSize) {
           // Form the asm to return the value as a larger integer or fp type.
           ResultRegTypes.back() = ConvertType(InputTy);
@@ -2435,7 +2435,7 @@ void CodeGenFunction::EmitAsmStmt(const AsmStmt &S) {
     const ABIArgInfo &RetAI = CurFnInfo->getReturnInfo();
     if (RetAI.isDirect() || RetAI.isExtend()) {
       // Make a fake lvalue for the return value slot.
-      LValue ReturnSlot = MakeAddrLValue(ReturnValue, FnRetTy);
+      LValue const ReturnSlot = MakeAddrLValue(ReturnValue, FnRetTy);
       CGM.getTargetCodeGenInfo().addReturnRegisterOutputs(
           *this, ReturnSlot, Constraints, ResultRegTypes, ResultTruncRegTypes,
           ResultRegDests, AsmString, S.getNumOutputs());
@@ -2446,7 +2446,7 @@ void CodeGenFunction::EmitAsmStmt(const AsmStmt &S) {
   for (unsigned i = 0, e = S.getNumInputs(); i != e; i++) {
     const Expr *InputExpr = S.getInputExpr(i);
 
-    TargetInfo::ConstraintInfo &Info = InputConstraintInfos[i];
+    TargetInfo::ConstraintInfo  const&Info = InputConstraintInfos[i];
 
     if (Info.allowsMemory())
       ReadNone = false;
@@ -2472,9 +2472,9 @@ void CodeGenFunction::EmitAsmStmt(const AsmStmt &S) {
     // that GCC does not define what the top bits are here.  We use zext because
     // that is usually cheaper, but LLVM IR should really get an anyext someday.
     if (Info.hasTiedOperand()) {
-      unsigned Output = Info.getTiedOperand();
-      QualType OutputType = S.getOutputExpr(Output)->getType();
-      QualType InputTy = InputExpr->getType();
+      unsigned const Output = Info.getTiedOperand();
+      QualType const OutputType = S.getOutputExpr(Output)->getType();
+      QualType const InputTy = InputExpr->getType();
 
       if (getContext().getTypeSize(OutputType) >
           getContext().getTypeSize(InputTy)) {
@@ -2521,7 +2521,7 @@ void CodeGenFunction::EmitAsmStmt(const AsmStmt &S) {
     IsGCCAsmGoto = GS->isAsmGoto();
     if (IsGCCAsmGoto) {
       for (const auto *E : GS->labels()) {
-        JumpDest Dest = getJumpDestForLabel(E->getLabel());
+        JumpDest const Dest = getJumpDestForLabel(E->getLabel());
         Transfer.push_back(Dest.getBlock());
         llvm::BlockAddress *BA =
             llvm::BlockAddress::get(CurFn, Dest.getBlock());
@@ -2566,13 +2566,13 @@ void CodeGenFunction::EmitAsmStmt(const AsmStmt &S) {
       if (Clobber == "eax" || Clobber == "edx") {
         if (Constraints.find("=&A") != std::string::npos)
           continue;
-        std::string::size_type position1 =
+        std::string::size_type const position1 =
             Constraints.find("={" + Clobber.str() + "}");
         if (position1 != std::string::npos) {
           Constraints.insert(position1 + 1, "&");
           continue;
         }
-        std::string::size_type position2 = Constraints.find("=A");
+        std::string::size_type const position2 = Constraints.find("=A");
         if (position2 != std::string::npos) {
           Constraints.insert(position2 + 1, "&");
           continue;
@@ -2591,7 +2591,7 @@ void CodeGenFunction::EmitAsmStmt(const AsmStmt &S) {
          "unwind clobber can't be used with asm goto");
 
   // Add machine specific clobbers
-  std::string MachineClobbers = getTarget().getClobbers();
+  std::string const MachineClobbers = getTarget().getClobbers();
   if (!MachineClobbers.empty()) {
     if (!Constraints.empty())
       Constraints += ',';
@@ -2609,8 +2609,8 @@ void CodeGenFunction::EmitAsmStmt(const AsmStmt &S) {
   llvm::FunctionType *FTy =
     llvm::FunctionType::get(ResultType, ArgTypes, false);
 
-  bool HasSideEffect = S.isVolatile() || S.getNumOutputs() == 0;
-  llvm::InlineAsm::AsmDialect AsmDialect = isa<MSAsmStmt>(&S) ?
+  bool const HasSideEffect = S.isVolatile() || S.getNumOutputs() == 0;
+  llvm::InlineAsm::AsmDialect const AsmDialect = isa<MSAsmStmt>(&S) ?
     llvm::InlineAsm::AD_Intel : llvm::InlineAsm::AD_ATT;
   llvm::InlineAsm *IA = llvm::InlineAsm::get(
       FTy, AsmString, Constraints, HasSideEffect,
@@ -2655,12 +2655,12 @@ void CodeGenFunction::EmitAsmStmt(const AsmStmt &S) {
       if (TruncTy->isFloatingPointTy())
         Tmp = Builder.CreateFPTrunc(Tmp, TruncTy);
       else if (TruncTy->isPointerTy() && Tmp->getType()->isIntegerTy()) {
-        uint64_t ResSize = CGM.getDataLayout().getTypeSizeInBits(TruncTy);
+        uint64_t const ResSize = CGM.getDataLayout().getTypeSizeInBits(TruncTy);
         Tmp = Builder.CreateTrunc(Tmp,
                    llvm::IntegerType::get(getLLVMContext(), (unsigned)ResSize));
         Tmp = Builder.CreateIntToPtr(Tmp, TruncTy);
       } else if (Tmp->getType()->isPointerTy() && TruncTy->isIntegerTy()) {
-        uint64_t TmpSize =CGM.getDataLayout().getTypeSizeInBits(Tmp->getType());
+        uint64_t const TmpSize =CGM.getDataLayout().getTypeSizeInBits(Tmp->getType());
         Tmp = Builder.CreatePtrToInt(Tmp,
                    llvm::IntegerType::get(getLLVMContext(), (unsigned)TmpSize));
         Tmp = Builder.CreateTrunc(Tmp, TruncTy);
@@ -2675,15 +2675,15 @@ void CodeGenFunction::EmitAsmStmt(const AsmStmt &S) {
     // ResultTypeRequiresCast elements correspond to the first
     // ResultTypeRequiresCast.size() elements of RegResults.
     if ((i < ResultTypeRequiresCast.size()) && ResultTypeRequiresCast[i]) {
-      unsigned Size = getContext().getTypeSize(ResultRegQualTys[i]);
-      Address A = Builder.CreateBitCast(Dest.getAddress(*this),
+      unsigned const Size = getContext().getTypeSize(ResultRegQualTys[i]);
+      Address const A = Builder.CreateBitCast(Dest.getAddress(*this),
                                         ResultRegTypes[i]->getPointerTo());
       if (getTargetHooks().isScalarizableAsmOperand(*this, TruncTy)) {
         Builder.CreateStore(Tmp, A);
         continue;
       }
 
-      QualType Ty = getContext().getIntTypeForBitwidth(Size, /*Signed*/ false);
+      QualType const Ty = getContext().getIntTypeForBitwidth(Size, /*Signed*/ false);
       if (Ty.isNull()) {
         const Expr *OutExpr = S.getOutputExpr(i);
         CGM.Error(
@@ -2699,7 +2699,7 @@ void CodeGenFunction::EmitAsmStmt(const AsmStmt &S) {
 
 LValue CodeGenFunction::InitCapturedStruct(const CapturedStmt &S) {
   const RecordDecl *RD = S.getCapturedRecordDecl();
-  QualType RecordTy = getContext().getRecordType(RD);
+  QualType const RecordTy = getContext().getRecordType(RD);
 
   // Initialize the captured struct.
   LValue SlotLV =
@@ -2709,7 +2709,7 @@ LValue CodeGenFunction::InitCapturedStruct(const CapturedStmt &S) {
   for (CapturedStmt::const_capture_init_iterator I = S.capture_init_begin(),
                                                  E = S.capture_init_end();
        I != E; ++I, ++CurField) {
-    LValue LV = EmitLValueForFieldInitialization(SlotLV, *CurField);
+    LValue const LV = EmitLValueForFieldInitialization(SlotLV, *CurField);
     if (CurField->hasCapturedVLAType()) {
       EmitLambdaVLACapture(CurField->getCapturedVLAType(), LV);
     } else {
@@ -2724,11 +2724,11 @@ LValue CodeGenFunction::InitCapturedStruct(const CapturedStmt &S) {
 /// captured variables into the captured struct, and call the outlined function.
 llvm::Function *
 CodeGenFunction::EmitCapturedStmt(const CapturedStmt &S, CapturedRegionKind K) {
-  LValue CapStruct = InitCapturedStruct(S);
+  LValue const CapStruct = InitCapturedStruct(S);
 
   // Emit the CapturedDecl
   CodeGenFunction CGF(CGM, true);
-  CGCapturedStmtRAII CapInfoRAII(CGF, new CGCapturedStmtInfo(S, K));
+  CGCapturedStmtRAII const CapInfoRAII(CGF, new CGCapturedStmtInfo(S, K));
   llvm::Function *F = CGF.GenerateCapturedStmtFunction(S);
   delete CGF.CapturedStmtInfo;
 
@@ -2739,7 +2739,7 @@ CodeGenFunction::EmitCapturedStmt(const CapturedStmt &S, CapturedRegionKind K) {
 }
 
 Address CodeGenFunction::GenerateCapturedStmtArgument(const CapturedStmt &S) {
-  LValue CapStruct = InitCapturedStruct(S);
+  LValue const CapStruct = InitCapturedStruct(S);
   return CapStruct.getAddress(*this);
 }
 
@@ -2750,11 +2750,11 @@ CodeGenFunction::GenerateCapturedStmtFunction(const CapturedStmt &S) {
     "CapturedStmtInfo should be set when generating the captured function");
   const CapturedDecl *CD = S.getCapturedDecl();
   const RecordDecl *RD = S.getCapturedRecordDecl();
-  SourceLocation Loc = S.getBeginLoc();
+  SourceLocation const Loc = S.getBeginLoc();
   assert(CD->hasBody() && "missing CapturedDecl body");
 
   // Build the argument list.
-  ASTContext &Ctx = CGM.getContext();
+  ASTContext  const&Ctx = CGM.getContext();
   FunctionArgList Args;
   Args.append(CD->param_begin(), CD->param_end());
 
@@ -2774,11 +2774,11 @@ CodeGenFunction::GenerateCapturedStmtFunction(const CapturedStmt &S) {
   StartFunction(CD, Ctx.VoidTy, F, FuncInfo, Args, CD->getLocation(),
                 CD->getBody()->getBeginLoc());
   // Set the context parameter in CapturedStmtInfo.
-  Address DeclPtr = GetAddrOfLocalVar(CD->getContextParam());
+  Address const DeclPtr = GetAddrOfLocalVar(CD->getContextParam());
   CapturedStmtInfo->setContextValue(Builder.CreateLoad(DeclPtr));
 
   // Initialize variable-length arrays.
-  LValue Base = MakeNaturalAlignAddrLValue(CapturedStmtInfo->getContextValue(),
+  LValue const Base = MakeNaturalAlignAddrLValue(CapturedStmtInfo->getContextValue(),
                                            Ctx.getTagDeclType(RD));
   for (auto *FD : RD->fields()) {
     if (FD->hasCapturedVLAType()) {
@@ -2793,7 +2793,7 @@ CodeGenFunction::GenerateCapturedStmtFunction(const CapturedStmt &S) {
   // If 'this' is captured, load it into CXXThisValue.
   if (CapturedStmtInfo->isCXXThisExprCaptured()) {
     FieldDecl *FD = CapturedStmtInfo->getThisFieldDecl();
-    LValue ThisLValue = EmitLValueForField(Base, FD);
+    LValue const ThisLValue = EmitLValueForField(Base, FD);
     CXXThisValue = EmitLoadOfLValue(ThisLValue, Loc).getScalarVal();
   }
 

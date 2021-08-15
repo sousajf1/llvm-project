@@ -89,7 +89,7 @@ void addCygMingDefines(const LangOptions &Opts, MacroBuilder &Builder) {
     // Provide macros for all the calling convention keywords.  Provide both
     // single and double underscore prefixed variants.  These are available on
     // x64 as well as x86, even though they have no effect.
-    const char *CCs[] = {"cdecl", "stdcall", "fastcall", "thiscall", "pascal"};
+    const char *const CCs[] = {"cdecl", "stdcall", "fastcall", "thiscall", "pascal"};
     for (const char *CC : CCs) {
       std::string GCCSpelling = "__attribute__((__";
       GCCSpelling += CC;
@@ -106,7 +106,7 @@ void addCygMingDefines(const LangOptions &Opts, MacroBuilder &Builder) {
 
 TargetInfo *AllocateTarget(const llvm::Triple &Triple,
                            const TargetOptions &Opts) {
-  llvm::Triple::OSType os = Triple.getOS();
+  llvm::Triple::OSType const os = Triple.getOS();
 
   switch (Triple.getArch()) {
   default:
@@ -655,7 +655,7 @@ using namespace clang::targets;
 TargetInfo *
 TargetInfo::CreateTargetInfo(DiagnosticsEngine &Diags,
                              const std::shared_ptr<TargetOptions> &Opts) {
-  llvm::Triple Triple(Opts->Triple);
+  llvm::Triple const Triple(Opts->Triple);
 
   // Construct the target
   std::unique_ptr<TargetInfo> Target(AllocateTarget(Triple, *Opts));

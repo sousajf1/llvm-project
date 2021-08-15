@@ -56,7 +56,7 @@ ProgramStateRef RangedConstraintManager::assumeSym(ProgramStateRef State,
       // "a != b" and "b != a" the same.
 
       SymbolManager &SymMgr = getSymbolManager();
-      QualType DiffTy = SymMgr.getContext().getPointerDiffType();
+      QualType const DiffTy = SymMgr.getContext().getPointerDiffType();
       SymbolRef Subtraction =
           SymMgr.getSymSymExpr(SSE->getRHS(), BO_Sub, SSE->getLHS(), DiffTy);
 
@@ -70,12 +70,12 @@ ProgramStateRef RangedConstraintManager::assumeSym(ProgramStateRef State,
     if (BinaryOperator::isEqualityOp(Op)) {
       SymbolManager &SymMgr = getSymbolManager();
 
-      QualType ExprType = SSE->getType();
+      QualType const ExprType = SSE->getType();
       SymbolRef CanonicalEquality =
           SymMgr.getSymSymExpr(SSE->getLHS(), BO_EQ, SSE->getRHS(), ExprType);
 
-      bool WasEqual = SSE->getOpcode() == BO_EQ;
-      bool IsExpectedEqual = WasEqual == Assumption;
+      bool const WasEqual = SSE->getOpcode() == BO_EQ;
+      bool const IsExpectedEqual = WasEqual == Assumption;
 
       const llvm::APSInt &Zero = getBasicVals().getValue(0, ExprType);
 
@@ -99,17 +99,17 @@ ProgramStateRef RangedConstraintManager::assumeSymInclusiveRange(
   Sym = simplify(State, Sym);
 
   // Get the type used for calculating wraparound.
-  BasicValueFactory &BVF = getBasicVals();
-  APSIntType WraparoundType = BVF.getAPSIntType(Sym->getType());
+  BasicValueFactory  const&BVF = getBasicVals();
+  APSIntType const WraparoundType = BVF.getAPSIntType(Sym->getType());
 
   llvm::APSInt Adjustment = WraparoundType.getZeroValue();
   SymbolRef AdjustedSym = Sym;
   computeAdjustment(AdjustedSym, Adjustment);
 
   // Convert the right-hand side integer as necessary.
-  APSIntType ComparisonType = std::max(WraparoundType, APSIntType(From));
-  llvm::APSInt ConvertedFrom = ComparisonType.convert(From);
-  llvm::APSInt ConvertedTo = ComparisonType.convert(To);
+  APSIntType const ComparisonType = std::max(WraparoundType, APSIntType(From));
+  llvm::APSInt const ConvertedFrom = ComparisonType.convert(From);
+  llvm::APSInt const ConvertedTo = ComparisonType.convert(To);
 
   // Prefer unsigned comparisons.
   if (ComparisonType.getBitWidth() == WraparoundType.getBitWidth() &&
@@ -129,7 +129,7 @@ RangedConstraintManager::assumeSymUnsupported(ProgramStateRef State,
   Sym = simplify(State, Sym);
 
   BasicValueFactory &BVF = getBasicVals();
-  QualType T = Sym->getType();
+  QualType const T = Sym->getType();
 
   // Non-integer types are not supported.
   if (!T->isIntegralOrEnumerationType())
@@ -162,8 +162,8 @@ ProgramStateRef RangedConstraintManager::assumeSymRel(ProgramStateRef State,
   }
 
   // Get the type used for calculating wraparound.
-  BasicValueFactory &BVF = getBasicVals();
-  APSIntType WraparoundType = BVF.getAPSIntType(Sym->getType());
+  BasicValueFactory  const&BVF = getBasicVals();
+  APSIntType const WraparoundType = BVF.getAPSIntType(Sym->getType());
 
   // We only handle simple comparisons of the form "$sym == constant"
   // or "($sym+constant1) == constant2".
@@ -176,8 +176,8 @@ ProgramStateRef RangedConstraintManager::assumeSymRel(ProgramStateRef State,
   computeAdjustment(Sym, Adjustment);
 
   // Convert the right-hand side integer as necessary.
-  APSIntType ComparisonType = std::max(WraparoundType, APSIntType(Int));
-  llvm::APSInt ConvertedInt = ComparisonType.convert(Int);
+  APSIntType const ComparisonType = std::max(WraparoundType, APSIntType(Int));
+  llvm::APSInt const ConvertedInt = ComparisonType.convert(Int);
 
   // Prefer unsigned comparisons.
   if (ComparisonType.getBitWidth() == WraparoundType.getBitWidth() &&
@@ -212,7 +212,7 @@ void RangedConstraintManager::computeAdjustment(SymbolRef &Sym,
                                                 llvm::APSInt &Adjustment) {
   // Is it a "($sym+constant1)" expression?
   if (const SymIntExpr *SE = dyn_cast<SymIntExpr>(Sym)) {
-    BinaryOperator::Opcode Op = SE->getOpcode();
+    BinaryOperator::Opcode const Op = SE->getOpcode();
     if (Op == BO_Add || Op == BO_Sub) {
       Sym = SE->getLHS();
       Adjustment = APSIntType(Adjustment).convert(SE->getRHS());
@@ -228,7 +228,7 @@ void RangedConstraintManager::computeAdjustment(SymbolRef &Sym,
 
 SymbolRef simplify(ProgramStateRef State, SymbolRef Sym) {
   SValBuilder &SVB = State->getStateManager().getSValBuilder();
-  SVal SimplifiedVal = SVB.simplifySVal(State, SVB.makeSymbolVal(Sym));
+  SVal const SimplifiedVal = SVB.simplifySVal(State, SVB.makeSymbolVal(Sym));
   if (SymbolRef SimplifiedSym = SimplifiedVal.getAsSymbol())
     return SimplifiedSym;
   return Sym;

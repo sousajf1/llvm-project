@@ -25,7 +25,7 @@ TEST(CFGDominatorTree, DomTree) {
                             break;
                           }
                         })";
-  BuildResult Result = BuildCFG(Code);
+  BuildResult const Result = BuildCFG(Code);
   EXPECT_EQ(BuildResult::BuiltCFG, Result.getStatus());
 
   //  [B3 (ENTRY)]  -> [B1] -> [B2] -> [B0 (EXIT)]
@@ -111,7 +111,7 @@ TEST(CFGDominatorTree, ControlDependency) {
                             (void)j;
                           }
                         };)";
-  BuildResult Result = BuildCFG(Code);
+  BuildResult const Result = BuildCFG(Code);
   EXPECT_EQ(BuildResult::BuiltCFG, Result.getStatus());
 
   //                  1st if  2nd if
@@ -163,7 +163,7 @@ TEST(CFGDominatorTree, ControlDependencyWithLoops) {
 
                           return 0;
                         })";
-  BuildResult Result = BuildCFG(Code);
+  BuildResult const Result = BuildCFG(Code);
   EXPECT_EQ(BuildResult::BuiltCFG, Result.getStatus());
 
   //                           <- [B2] <-

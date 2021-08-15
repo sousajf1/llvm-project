@@ -83,7 +83,7 @@ NVPTXTargetInfo::NVPTXTargetInfo(const llvm::Triple &Triple,
 
   // If possible, get a TargetInfo for our host triple, so we can match its
   // types.
-  llvm::Triple HostTriple(Opts.HostTriple);
+  llvm::Triple const HostTriple(Opts.HostTriple);
   if (!HostTriple.isNVPTX())
     HostTarget.reset(AllocateTarget(llvm::Triple(Opts.HostTriple), Opts));
 
@@ -180,7 +180,7 @@ void NVPTXTargetInfo::getTargetDefines(const LangOptions &Opts,
   Builder.defineMacro("__NVPTX__");
   if (Opts.CUDAIsDevice) {
     // Set __CUDA_ARCH__ for the GPU specified.
-    std::string CUDAArchCode = [this] {
+    std::string const CUDAArchCode = [this] {
       switch (GPU) {
       case CudaArch::GFX600:
       case CudaArch::GFX601:

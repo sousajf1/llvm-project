@@ -116,7 +116,7 @@ nonloc::ConcreteInt SValBuilder::makeBoolVal(const CXXBoolLiteralExpr *boolean){
 
 DefinedOrUnknownSVal
 SValBuilder::getRegionValueSymbolVal(const TypedValueRegion *region) {
-  QualType T = region->getValueType();
+  QualType const T = region->getValueType();
 
   if (T->isNullPtrType())
     return makeZeroVal(T);
@@ -143,7 +143,7 @@ DefinedOrUnknownSVal SValBuilder::conjureSymbolVal(const void *SymbolTag,
 
   // Compute the type of the result. If the expression is not an R-value, the
   // result should be a location.
-  QualType ExType = Ex->getType();
+  QualType const ExType = Ex->getType();
   if (Ex->isGLValue())
     T = LCtx->getAnalysisDeclContext()->getASTContext().getPointerType(ExType);
 
@@ -191,7 +191,7 @@ DefinedOrUnknownSVal
 SValBuilder::getConjuredHeapSymbolVal(const Expr *E,
                                       const LocationContext *LCtx,
                                       unsigned VisitCount) {
-  QualType T = E->getType();
+  QualType const T = E->getType();
   return getConjuredHeapSymbolVal(E, LCtx, T, VisitCount);
 }
 
@@ -227,7 +227,7 @@ DefinedSVal SValBuilder::getMetadataSymbolVal(const void *symbolTag,
 DefinedOrUnknownSVal
 SValBuilder::getDerivedRegionValueSymbolVal(SymbolRef parentSymbol,
                                              const TypedValueRegion *region) {
-  QualType T = region->getValueType();
+  QualType const T = region->getValueType();
 
   if (T->isNullPtrType())
     return makeZeroVal(T);
@@ -293,7 +293,7 @@ loc::MemRegionVal SValBuilder::getCXXThis(const CXXMethodDecl *D,
 loc::MemRegionVal SValBuilder::getCXXThis(const CXXRecordDecl *D,
                                           const StackFrameContext *SFC) {
   const Type *T = D->getTypeForDecl();
-  QualType PT = getContext().getPointerType(QualType(T, 0));
+  QualType const PT = getContext().getPointerType(QualType(T, 0));
   return loc::MemRegionVal(getRegionManager().getCXXThisRegion(PT, SFC));
 }
 
@@ -528,19 +528,19 @@ SVal SValBuilder::evalIntegralCast(ProgramStateRef state, SVal val,
     return evalCast(val, castTy, originalTy);
 
   // Find the maximum value of the target type.
-  APSIntType ToType(getContext().getTypeSize(castTy),
+  APSIntType const ToType(getContext().getTypeSize(castTy),
                     castTy->isUnsignedIntegerType());
-  llvm::APSInt ToTypeMax = ToType.getMaxValue();
-  NonLoc ToTypeMaxVal =
+  llvm::APSInt const ToTypeMax = ToType.getMaxValue();
+  NonLoc const ToTypeMaxVal =
       makeIntVal(ToTypeMax.isUnsigned() ? ToTypeMax.getZExtValue()
                                         : ToTypeMax.getSExtValue(),
                  castTy)
           .castAs<NonLoc>();
   // Check the range of the symbol being casted against the maximum value of the
   // target type.
-  NonLoc FromVal = val.castAs<NonLoc>();
-  QualType CmpTy = getConditionType();
-  NonLoc CompVal =
+  NonLoc const FromVal = val.castAs<NonLoc>();
+  QualType const CmpTy = getConditionType();
+  NonLoc const CompVal =
       evalBinOpNN(state, BO_LE, FromVal, ToTypeMaxVal, CmpTy).castAs<NonLoc>();
   ProgramStateRef IsNotTruncated, IsTruncated;
   std::tie(IsNotTruncated, IsTruncated) = state->assume(CompVal);
@@ -721,7 +721,7 @@ SVal SValBuilder::evalCastSubKind(loc::MemRegionVal V, QualType CastTy,
 
     if (const SymbolicRegion *SymR = R->getSymbolicBase()) {
       SymbolRef Sym = SymR->getSymbol();
-      QualType Ty = Sym->getType();
+      QualType const Ty = Sym->getType();
       // This change is needed for architectures with varying
       // pointer widths. See the amdgcn opencl reproducer with
       // this change as an example: solver-sym-simplification-ptr-bool.cl
@@ -749,7 +749,7 @@ SVal SValBuilder::evalCastSubKind(loc::MemRegionVal V, QualType CastTy,
     // Array to integer.
     if (ArrayTy) {
       // We will always decay to a pointer.
-      QualType ElemTy = ArrayTy->getElementType();
+      QualType const ElemTy = ArrayTy->getElementType();
       Val = StateMgr.ArrayToPointer(V, ElemTy);
       // FIXME: Keep these here for now in case we decide soon that we
       // need the original decayed type.
@@ -775,7 +775,7 @@ SVal SValBuilder::evalCastSubKind(loc::MemRegionVal V, QualType CastTy,
       const MemRegion *R = V.getRegion();
       if (CastTy->isPointerType() && !CastTy->isVoidPointerType()) {
         if (const auto *SR = dyn_cast<SymbolicRegion>(R)) {
-          QualType SRTy = SR->getSymbol()->getType();
+          QualType const SRTy = SR->getSymbol()->getType();
           if (!hasSameUnqualifiedPointeeType(SRTy, CastTy)) {
             if (auto OptMemRegV = getCastedMemRegionVal(SR, CastTy))
               return *OptMemRegV;
@@ -802,7 +802,7 @@ SVal SValBuilder::evalCastSubKind(loc::MemRegionVal V, QualType CastTy,
       // the decayed value.
       if (CastTy->isPointerType() || CastTy->isReferenceType()) {
         // We will always decay to a pointer.
-        QualType ElemTy = ArrayTy->getElementType();
+        QualType const ElemTy = ArrayTy->getElementType();
         return StateMgr.ArrayToPointer(V, ElemTy);
       }
       // Are we casting from an array to an integer?  If so, cast the decayed
@@ -962,7 +962,7 @@ SVal SValBuilder::evalCastSubKind(nonloc::SymbolVal V, QualType CastTy,
     }
   } else {
     // Symbol to integer, float.
-    QualType T = Context.getCanonicalType(SE->getType());
+    QualType const T = Context.getCanonicalType(SE->getType());
     // If types are the same or both are integers, ignore the cast.
     // FIXME: Remove this hack when we support symbolic truncation/extension.
     // HACK: If both castTy and T are integers, ignore the cast.  This is

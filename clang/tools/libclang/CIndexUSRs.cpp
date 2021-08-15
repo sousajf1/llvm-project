@@ -51,7 +51,7 @@ CXString clang_getCursorUSR(CXCursor C) {
     if (!buf)
       return cxstring::createEmpty();
 
-    bool Ignore = cxcursor::getDeclCursorUSR(D, buf->Data);
+    bool const Ignore = cxcursor::getDeclCursorUSR(D, buf->Data);
     if (Ignore) {
       buf->dispose();
       return cxstring::createEmpty();
@@ -72,7 +72,7 @@ CXString clang_getCursorUSR(CXCursor C) {
     if (!buf)
       return cxstring::createEmpty();
 
-    bool Ignore = generateUSRForMacro(cxcursor::getCursorMacroDefinition(C),
+    bool const Ignore = generateUSRForMacro(cxcursor::getCursorMacroDefinition(C),
                                       cxtu::getASTUnit(TU)->getSourceManager(),
                                       buf->Data);
     if (Ignore) {

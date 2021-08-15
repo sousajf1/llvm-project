@@ -41,7 +41,7 @@ static constexpr const char *InputFile = "/sources/foo.c";
 
 std::string concatPaths(llvm::ArrayRef<StringRef> Components) {
   llvm::SmallString<128> P;
-  for (StringRef C : Components)
+  for (StringRef const C : Components)
     llvm::sys::path::append(P, C);
   return std::string(P);
 }
@@ -52,7 +52,7 @@ protected:
                                           std::vector<std::string> ExtraFiles) {
     assert(!DriverInstance && "Running twice is not allowed");
 
-    llvm::IntrusiveRefCntPtr<DiagnosticOptions> Opts = new DiagnosticOptions;
+    llvm::IntrusiveRefCntPtr<DiagnosticOptions> const Opts = new DiagnosticOptions;
     DiagnosticsEngine Diags(
         new DiagnosticIDs, Opts,
         new TextDiagnosticPrinter(llvm::errs(), Opts.get()));
@@ -83,7 +83,7 @@ private:
         new llvm::vfs::InMemoryFileSystem;
     FS->addFile(ClangBinary, time_t(), llvm::MemoryBuffer::getMemBuffer(""));
     FS->addFile(InputFile, time_t(), llvm::MemoryBuffer::getMemBuffer(""));
-    for (llvm::StringRef F : ExtraFiles)
+    for (llvm::StringRef const F : ExtraFiles)
       FS->addFile(F, time_t(), llvm::MemoryBuffer::getMemBuffer(""));
     return FS;
   }

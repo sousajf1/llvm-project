@@ -59,7 +59,7 @@ int ListWarnings::run(unsigned int argc, char **argv, llvm::raw_ostream &out) {
     if (!DiagnosticIDs::isBuiltinWarningOrExtension(diagID))
       continue;
 
-    Entry entry(DR.getName(), DiagnosticIDs::getWarningOptionForDiag(diagID));
+    Entry const entry(DR.getName(), DiagnosticIDs::getWarningOptionForDiag(diagID));
 
     if (entry.Flag.empty())
       Unflagged.push_back(entry);
@@ -77,7 +77,7 @@ int ListWarnings::run(unsigned int argc, char **argv, llvm::raw_ostream &out) {
 
   out << "\nSTATISTICS:\n\n";
 
-  double percentFlagged =
+  double const percentFlagged =
       ((double)Flagged.size()) / (Flagged.size() + Unflagged.size()) * 100.0;
 
   out << "  Percentage of warnings with flags: "
@@ -86,7 +86,7 @@ int ListWarnings::run(unsigned int argc, char **argv, llvm::raw_ostream &out) {
   out << "  Number of unique flags: "
       << flagHistogram.size() << '\n';
 
-  double avgDiagsPerFlag = (double) Flagged.size() / flagHistogram.size();
+  double const avgDiagsPerFlag = (double) Flagged.size() / flagHistogram.size();
   out << "  Average number of diagnostics per flag: "
       << llvm::format("%.4g", avgDiagsPerFlag) << '\n';
 

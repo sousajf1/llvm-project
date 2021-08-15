@@ -99,7 +99,7 @@ void ProgramPoint::printJson(llvm::raw_ostream &Out, const char *NL) const {
     break;
 
   case ProgramPoint::PreImplicitCallKind: {
-    ImplicitCallPoint PC = castAs<ImplicitCallPoint>();
+    ImplicitCallPoint const PC = castAs<ImplicitCallPoint>();
     Out << "PreCall\", \"decl\": \""
         << PC.getDecl()->getAsFunction()->getQualifiedNameAsString()
         << "\", \"location\": ";
@@ -108,7 +108,7 @@ void ProgramPoint::printJson(llvm::raw_ostream &Out, const char *NL) const {
   }
 
   case ProgramPoint::PostImplicitCallKind: {
-    ImplicitCallPoint PC = castAs<ImplicitCallPoint>();
+    ImplicitCallPoint const PC = castAs<ImplicitCallPoint>();
     Out << "PostCall\", \"decl\": \""
         << PC.getDecl()->getAsFunction()->getQualifiedNameAsString()
         << "\", \"location\": ";

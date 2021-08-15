@@ -75,7 +75,7 @@ void ConversionChecker::checkPreStmt(const ImplicitCastExpr *Cast,
 
   // Loss of sign/precision in binary operation.
   if (const auto *B = dyn_cast<BinaryOperator>(Parent)) {
-    BinaryOperator::Opcode Opc = B->getOpcode();
+    BinaryOperator::Opcode const Opc = B->getOpcode();
     if (Opc == BO_Assign) {
       LossOfSign = isLossOfSign(Cast, C);
       LossOfPrecision = isLossOfPrecision(Cast, Cast->getType(), C);
@@ -132,7 +132,7 @@ bool ConversionChecker::isLossOfPrecision(const ImplicitCastExpr *Cast,
   if (Cast->isEvaluatable(C.getASTContext()))
     return false;
 
-  QualType SubType = Cast->IgnoreParenImpCasts()->getType();
+  QualType const SubType = Cast->IgnoreParenImpCasts()->getType();
 
   if (!DestType->isRealType() || !SubType->isIntegerType())
     return false;
@@ -183,8 +183,8 @@ bool ConversionChecker::isLossOfPrecision(const ImplicitCastExpr *Cast,
 
 bool ConversionChecker::isLossOfSign(const ImplicitCastExpr *Cast,
                                      CheckerContext &C) const {
-  QualType CastType = Cast->getType();
-  QualType SubType = Cast->IgnoreParenImpCasts()->getType();
+  QualType const CastType = Cast->getType();
+  QualType const SubType = Cast->IgnoreParenImpCasts()->getType();
 
   if (!CastType->isUnsignedIntegerType() || !SubType->isSignedIntegerType())
     return false;

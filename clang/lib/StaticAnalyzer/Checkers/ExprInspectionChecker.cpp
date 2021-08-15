@@ -82,7 +82,7 @@ bool ExprInspectionChecker::evalCall(const CallEvent &Call,
 
   // These checks should have no effect on the surrounding environment
   // (globals should not be invalidated, etc), hence the use of evalCall.
-  FnCheck Handler =
+  FnCheck const Handler =
       llvm::StringSwitch<FnCheck>(C.getCalleeName(CE))
           .Case("clang_analyzer_eval", &ExprInspectionChecker::analyzerEval)
           .Case("clang_analyzer_checkInlined",
@@ -129,10 +129,10 @@ static const char *getArgumentValueString(const CallExpr *CE,
 
   ExplodedNode *N = C.getPredecessor();
   const LocationContext *LC = N->getLocationContext();
-  ProgramStateRef State = N->getState();
+  ProgramStateRef const State = N->getState();
 
   const Expr *Assertion = CE->getArg(0);
-  SVal AssertionVal = State->getSVal(Assertion, LC);
+  SVal const AssertionVal = State->getSVal(Assertion, LC);
 
   if (AssertionVal.isUndef())
     return "UNDEFINED";
@@ -250,7 +250,7 @@ void ExprInspectionChecker::analyzerExplain(const CallExpr *CE,
   if (!Arg)
     return;
 
-  SVal V = C.getSVal(Arg);
+  SVal const V = C.getSVal(Arg);
   SValExplainer Ex(C.getASTContext());
   reportBug(Ex.Visit(V), C);
 }
@@ -261,7 +261,7 @@ void ExprInspectionChecker::analyzerDump(const CallExpr *CE,
   if (!Arg)
     return;
 
-  SVal V = C.getSVal(Arg);
+  SVal const V = C.getSVal(Arg);
 
   llvm::SmallString<32> Str;
   llvm::raw_svector_ostream OS(Str);
@@ -276,7 +276,7 @@ void ExprInspectionChecker::analyzerGetExtent(const CallExpr *CE,
     return;
 
   ProgramStateRef State = C.getState();
-  DefinedOrUnknownSVal Size = getDynamicExtent(State, MR, C.getSValBuilder());
+  DefinedOrUnknownSVal const Size = getDynamicExtent(State, MR, C.getSValBuilder());
 
   State = State->BindExpr(CE, C.getLocationContext(), Size);
   C.addTransition(State);
@@ -288,7 +288,7 @@ void ExprInspectionChecker::analyzerDumpExtent(const CallExpr *CE,
   if (!MR)
     return;
 
-  DefinedOrUnknownSVal Size =
+  DefinedOrUnknownSVal const Size =
       getDynamicExtent(C.getState(), MR, C.getSValBuilder());
 
   SmallString<64> Msg;
@@ -313,7 +313,7 @@ void ExprInspectionChecker::analyzerDumpElementCount(const CallExpr *CE,
 
   assert(!ElementTy->isPointerType());
 
-  DefinedOrUnknownSVal ElementCount =
+  DefinedOrUnknownSVal const ElementCount =
       getDynamicElementCount(C.getState(), MR, C.getSValBuilder(), ElementTy);
 
   SmallString<128> Msg;
@@ -333,7 +333,7 @@ void ExprInspectionChecker::analyzerWarnOnDeadSymbol(const CallExpr *CE,
   if (!Arg)
     return;
 
-  SVal Val = C.getSVal(Arg);
+  SVal const Val = C.getSVal(Arg);
   SymbolRef Sym = Val.getAsSymbol();
   if (!Sym)
     return;
@@ -371,7 +371,7 @@ void ExprInspectionChecker::checkDeadSymbols(SymbolReaper &SymReaper,
 void ExprInspectionChecker::checkEndAnalysis(ExplodedGraph &G, BugReporter &BR,
                                              ExprEngine &Eng) const {
   for (auto Item : ReachedStats) {
-    unsigned NumTimesReached = Item.second.NumTimesReached;
+    unsigned const NumTimesReached = Item.second.NumTimesReached;
     ExplodedNode *N = Item.second.ExampleNode;
 
     reportBug(llvm::to_string(NumTimesReached), BR, N);
@@ -388,8 +388,8 @@ void ExprInspectionChecker::analyzerHashDump(const CallExpr *CE,
                                              CheckerContext &C) const {
   const LangOptions &Opts = C.getLangOpts();
   const SourceManager &SM = C.getSourceManager();
-  FullSourceLoc FL(CE->getArg(0)->getBeginLoc(), SM);
-  std::string HashContent =
+  FullSourceLoc const FL(CE->getArg(0)->getBeginLoc(), SM);
+  std::string const HashContent =
       getIssueString(FL, getCheckerName().getName(), "Category",
                      C.getLocationContext()->getDecl(), Opts);
 
@@ -416,7 +416,7 @@ void ExprInspectionChecker::analyzerDenote(const CallExpr *CE,
     return;
   }
 
-  ProgramStateRef State = C.getState();
+  ProgramStateRef const State = C.getState();
 
   C.addTransition(C.getState()->set<DenotedSymbols>(Sym, E));
 }
@@ -477,7 +477,7 @@ void ExprInspectionChecker::analyzerExpress(const CallExpr *CE,
   if (!Arg)
     return;
 
-  SVal ArgVal = C.getSVal(CE->getArg(0));
+  SVal const ArgVal = C.getSVal(CE->getArg(0));
   SymbolRef Sym = ArgVal.getAsSymbol();
   if (!Sym) {
     reportBug("Not a symbol", C);

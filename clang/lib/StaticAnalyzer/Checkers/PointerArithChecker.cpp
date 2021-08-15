@@ -105,8 +105,8 @@ const MemRegion *
 PointerArithChecker::getPointedRegion(const MemRegion *Region,
                                       CheckerContext &C) const {
   assert(Region);
-  ProgramStateRef State = C.getState();
-  SVal S = State->getSVal(Region);
+  ProgramStateRef const State = C.getState();
+  SVal const S = State->getSVal(Region);
   return S.getAsRegion();
 }
 
@@ -127,7 +127,7 @@ const MemRegion *PointerArithChecker::getArrayRegion(const MemRegion *Region,
     Region = ElemRegion->getSuperRegion();
   }
 
-  ProgramStateRef State = C.getState();
+  ProgramStateRef const State = C.getState();
   if (const AllocKind *Kind = State->get<RegionState>(Region)) {
     AKind = *Kind;
     if (*Kind == AllocKind::Array)
@@ -148,11 +148,11 @@ const MemRegion *PointerArithChecker::getArrayRegion(const MemRegion *Region,
 void PointerArithChecker::reportPointerArithMisuse(const Expr *E,
                                                    CheckerContext &C,
                                                    bool PointedNeeded) const {
-  SourceRange SR = E->getSourceRange();
+  SourceRange const SR = E->getSourceRange();
   if (SR.isInvalid())
     return;
 
-  ProgramStateRef State = C.getState();
+  ProgramStateRef const State = C.getState();
   const MemRegion *Region = C.getSVal(E).getAsRegion();
   if (!Region)
     return;
@@ -225,7 +225,7 @@ void PointerArithChecker::checkPostStmt(const CallExpr *CE,
   if (AllocFunctions.count(FunI) == 0)
     return;
 
-  SVal SV = C.getSVal(CE);
+  SVal const SV = C.getSVal(CE);
   const MemRegion *Region = SV.getAsRegion();
   if (!Region)
     return;
@@ -243,10 +243,10 @@ void PointerArithChecker::checkPostStmt(const CXXNewExpr *NE,
   if (!FD)
     return;
 
-  AllocKind Kind = getKindOfNewOp(NE, FD);
+  AllocKind const Kind = getKindOfNewOp(NE, FD);
 
   ProgramStateRef State = C.getState();
-  SVal AllocedVal = C.getSVal(NE);
+  SVal const AllocedVal = C.getSVal(NE);
   const MemRegion *Region = AllocedVal.getAsRegion();
   if (!Region)
     return;
@@ -261,7 +261,7 @@ void PointerArithChecker::checkPostStmt(const CastExpr *CE,
 
   const Expr *CastedExpr = CE->getSubExpr();
   ProgramStateRef State = C.getState();
-  SVal CastedVal = C.getSVal(CastedExpr);
+  SVal const CastedVal = C.getSVal(CastedExpr);
 
   const MemRegion *Region = CastedVal.getAsRegion();
   if (!Region)
@@ -279,7 +279,7 @@ void PointerArithChecker::checkPreStmt(const CastExpr *CE,
 
   const Expr *CastedExpr = CE->getSubExpr();
   ProgramStateRef State = C.getState();
-  SVal CastedVal = C.getSVal(CastedExpr);
+  SVal const CastedVal = C.getSVal(CastedExpr);
 
   const MemRegion *Region = CastedVal.getAsRegion();
   if (!Region)
@@ -302,7 +302,7 @@ void PointerArithChecker::checkPreStmt(const UnaryOperator *UOp,
 
 void PointerArithChecker::checkPreStmt(const ArraySubscriptExpr *SubsExpr,
                                        CheckerContext &C) const {
-  SVal Idx = C.getSVal(SubsExpr->getIdx());
+  SVal const Idx = C.getSVal(SubsExpr->getIdx());
 
   // Indexing with 0 is OK.
   if (Idx.isZeroConstant())
@@ -316,23 +316,23 @@ void PointerArithChecker::checkPreStmt(const ArraySubscriptExpr *SubsExpr,
 
 void PointerArithChecker::checkPreStmt(const BinaryOperator *BOp,
                                        CheckerContext &C) const {
-  BinaryOperatorKind OpKind = BOp->getOpcode();
+  BinaryOperatorKind const OpKind = BOp->getOpcode();
   if (!BOp->isAdditiveOp() && OpKind != BO_AddAssign && OpKind != BO_SubAssign)
     return;
 
   const Expr *Lhs = BOp->getLHS();
   const Expr *Rhs = BOp->getRHS();
-  ProgramStateRef State = C.getState();
+  ProgramStateRef const State = C.getState();
 
   if (Rhs->getType()->isIntegerType() && Lhs->getType()->isPointerType()) {
-    SVal RHSVal = C.getSVal(Rhs);
+    SVal const RHSVal = C.getSVal(Rhs);
     if (State->isNull(RHSVal).isConstrainedTrue())
       return;
     reportPointerArithMisuse(Lhs, C, !BOp->isAdditiveOp());
   }
   // The int += ptr; case is not valid C++.
   if (Lhs->getType()->isIntegerType() && Rhs->getType()->isPointerType()) {
-    SVal LHSVal = C.getSVal(Lhs);
+    SVal const LHSVal = C.getSVal(Lhs);
     if (State->isNull(LHSVal).isConstrainedTrue())
       return;
     reportPointerArithMisuse(Rhs, C);

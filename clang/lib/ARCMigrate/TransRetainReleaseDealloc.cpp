@@ -121,7 +121,7 @@ public:
     default:
       return true;
     case ObjCMessageExpr::SuperInstance: {
-      Transaction Trans(Pass.TA);
+      Transaction const Trans(Pass.TA);
       clearDiagnostics(E->getSelectorLoc(0));
       if (tryRemoving(E))
         return true;
@@ -135,7 +135,7 @@ public:
     Expr *rec = E->getInstanceReceiver();
     if (!rec) return true;
 
-    Transaction Trans(Pass.TA);
+    Transaction const Trans(Pass.TA);
     clearDiagnostics(E->getSelectorLoc(0));
 
     ObjCMessageExpr *Msg = E;
@@ -259,7 +259,7 @@ private:
       return std::make_pair(prevStmt, nextStmt);
 
     Stmt::child_iterator currChildS = OuterS->child_begin();
-    Stmt::child_iterator childE = OuterS->child_end();
+    Stmt::child_iterator const childE = OuterS->child_end();
     Stmt::child_iterator prevChildS = childE;
     for (; currChildS != childE; ++currChildS) {
       if (*currChildS == InnerS)
@@ -324,13 +324,13 @@ private:
   /// expression.
   void checkForGCDOrXPC(ObjCMessageExpr *Msg, Expr *&RecContainer,
                         Expr *&Rec, SourceRange &RecRange) {
-    SourceLocation Loc = Msg->getExprLoc();
+    SourceLocation const Loc = Msg->getExprLoc();
     if (!Loc.isMacroID())
       return;
-    SourceManager &SM = Pass.Ctx.getSourceManager();
-    StringRef MacroName = Lexer::getImmediateMacroName(Loc, SM,
+    SourceManager  const&SM = Pass.Ctx.getSourceManager();
+    StringRef const MacroName = Lexer::getImmediateMacroName(Loc, SM,
                                                      Pass.Ctx.getLangOpts());
-    bool isGCDOrXPC = llvm::StringSwitch<bool>(MacroName)
+    bool const isGCDOrXPC = llvm::StringSwitch<bool>(MacroName)
         .Case("dispatch_retain", true)
         .Case("dispatch_release", true)
         .Case("xpc_retain", true)
@@ -352,14 +352,14 @@ private:
     if (!StmtE)
       return;
 
-    Stmt::child_range StmtExprChild = StmtE->children();
+    Stmt::child_range const StmtExprChild = StmtE->children();
     if (StmtExprChild.begin() == StmtExprChild.end())
       return;
     auto *CompS = dyn_cast_or_null<CompoundStmt>(*StmtExprChild.begin());
     if (!CompS)
       return;
 
-    Stmt::child_range CompStmtChild = CompS->children();
+    Stmt::child_range const CompStmtChild = CompS->children();
     if (CompStmtChild.begin() == CompStmtChild.end())
       return;
     auto *DeclS = dyn_cast_or_null<DeclStmt>(*CompStmtChild.begin());

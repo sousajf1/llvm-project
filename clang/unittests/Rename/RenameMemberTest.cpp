@@ -160,43 +160,43 @@ TEST_P(RenameMemberTest, RenameMembers) {
   auto Param = GetParam();
   assert(!Param.OldName.empty());
   assert(!Param.NewName.empty());
-  std::string Actual =
+  std::string const Actual =
       runClangRenameOnCode(Param.Before, Param.OldName, Param.NewName);
   CompareSnippets(Param.After, Actual);
 }
 
 TEST_F(RenameMemberTest, RenameMemberInsideClassMethods) {
-  std::string Before = R"(
+  std::string const Before = R"(
       struct X {
         int Moo;
         void Baz() { Moo = 1; }
       };)";
-  std::string Expected = R"(
+  std::string const Expected = R"(
       struct X {
         int Meh;
         void Baz() { Meh = 1; }
       };)";
-  std::string After = runClangRenameOnCode(Before, "X::Moo", "Y::Meh");
+  std::string const After = runClangRenameOnCode(Before, "X::Moo", "Y::Meh");
   CompareSnippets(Expected, After);
 }
 
 TEST_F(RenameMemberTest, RenameMethodInsideClassMethods) {
-  std::string Before = R"(
+  std::string const Before = R"(
       struct X {
         void Foo() {}
         void Baz() { Foo(); }
       };)";
-  std::string Expected = R"(
+  std::string const Expected = R"(
       struct X {
         void Bar() {}
         void Baz() { Bar(); }
       };)";
-  std::string After = runClangRenameOnCode(Before, "X::Foo", "X::Bar");
+  std::string const After = runClangRenameOnCode(Before, "X::Foo", "X::Bar");
   CompareSnippets(Expected, After);
 }
 
 TEST_F(RenameMemberTest, RenameCtorInitializer) {
-  std::string Before = R"(
+  std::string const Before = R"(
       class X {
       public:
        X();
@@ -207,7 +207,7 @@ TEST_F(RenameMemberTest, RenameCtorInitializer) {
 
       X::X():a(), b() {}
       )";
-  std::string Expected = R"(
+  std::string const Expected = R"(
       class X {
       public:
        X();
@@ -218,7 +218,7 @@ TEST_F(RenameMemberTest, RenameCtorInitializer) {
 
       X::X():bar(), b() {}
       )";
-  std::string After = runClangRenameOnCode(Before, "X::a", "X::bar");
+  std::string const After = runClangRenameOnCode(Before, "X::a", "X::bar");
   CompareSnippets(Expected, After);
 }
 

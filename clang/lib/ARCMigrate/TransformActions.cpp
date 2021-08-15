@@ -197,7 +197,7 @@ bool TransformActionsImpl::commitTransaction() {
   // Verify that all actions are possible otherwise abort the whole transaction.
   bool AllActionsPossible = true;
   for (unsigned i = 0, e = CachedActions.size(); i != e; ++i) {
-    ActionData &act = CachedActions[i];
+    ActionData  const&act = CachedActions[i];
     switch (act.Kind) {
     case Act_Insert:
       if (!canInsert(act.Loc))
@@ -241,7 +241,7 @@ bool TransformActionsImpl::commitTransaction() {
   }
 
   for (unsigned i = 0, e = CachedActions.size(); i != e; ++i) {
-    ActionData &act = CachedActions[i];
+    ActionData  const&act = CachedActions[i];
     switch (act.Kind) {
     case Act_Insert:
       commitInsert(act.Loc, act.Text1);
@@ -384,7 +384,7 @@ bool TransformActionsImpl::canInsert(SourceLocation loc) {
   if (loc.isInvalid())
     return false;
 
-  SourceManager &SM = Ctx.getSourceManager();
+  SourceManager  const&SM = Ctx.getSourceManager();
   if (SM.isInSystemHeader(SM.getExpansionLoc(loc)))
     return false;
 
@@ -397,7 +397,7 @@ bool TransformActionsImpl::canInsertAfterToken(SourceLocation loc) {
   if (loc.isInvalid())
     return false;
 
-  SourceManager &SM = Ctx.getSourceManager();
+  SourceManager  const&SM = Ctx.getSourceManager();
   if (SM.isInSystemHeader(SM.getExpansionLoc(loc)))
     return false;
 
@@ -419,15 +419,15 @@ bool TransformActionsImpl::canReplaceText(SourceLocation loc, StringRef text) {
   if (!canInsert(loc))
     return false;
 
-  SourceManager &SM = Ctx.getSourceManager();
+  SourceManager  const&SM = Ctx.getSourceManager();
   loc = SM.getExpansionLoc(loc);
 
   // Break down the source location.
-  std::pair<FileID, unsigned> locInfo = SM.getDecomposedLoc(loc);
+  std::pair<FileID, unsigned> const locInfo = SM.getDecomposedLoc(loc);
 
   // Try to load the file buffer.
   bool invalidTemp = false;
-  StringRef file = SM.getBufferData(locInfo.first, &invalidTemp);
+  StringRef const file = SM.getBufferData(locInfo.first, &invalidTemp);
   if (invalidTemp)
     return false;
 
@@ -463,7 +463,7 @@ void TransformActionsImpl::commitRemoveStmt(Stmt *S) {
 
 void TransformActionsImpl::commitReplace(SourceRange range,
                                          SourceRange replacementRange) {
-  RangeComparison comp = CharRange::compare(replacementRange, range,
+  RangeComparison const comp = CharRange::compare(replacementRange, range,
                                                Ctx.getSourceManager(), PP);
   assert(comp == Range_Contained);
   if (comp != Range_Contained)
@@ -480,10 +480,10 @@ void TransformActionsImpl::commitReplace(SourceRange range,
 void TransformActionsImpl::commitReplaceText(SourceLocation loc,
                                              StringRef text,
                                              StringRef replacementText) {
-  SourceManager &SM = Ctx.getSourceManager();
+  SourceManager  const&SM = Ctx.getSourceManager();
   loc = SM.getExpansionLoc(loc);
   // canReplaceText already checked if loc points at text.
-  SourceLocation afterText = loc.getLocWithOffset(text.size());
+  SourceLocation const afterText = loc.getLocWithOffset(text.size());
 
   addRemoval(CharSourceRange::getCharRange(loc, afterText));
   commitInsert(loc, replacementText);
@@ -504,7 +504,7 @@ void TransformActionsImpl::commitClearDiagnostic(ArrayRef<unsigned> IDs,
 }
 
 void TransformActionsImpl::addInsertion(SourceLocation loc, StringRef text) {
-  SourceManager &SM = Ctx.getSourceManager();
+  SourceManager  const&SM = Ctx.getSourceManager();
   loc = SM.getExpansionLoc(loc);
   for (const CharRange &I : llvm::reverse(Removals)) {
     if (!SM.isBeforeInTranslationUnit(loc, I.End))
@@ -528,7 +528,7 @@ void TransformActionsImpl::addRemoval(CharSourceRange range) {
   while (I != Removals.begin()) {
     std::list<CharRange>::iterator RI = I;
     --RI;
-    RangeComparison comp = newRange.compareWith(*RI);
+    RangeComparison const comp = newRange.compareWith(*RI);
     switch (comp) {
     case Range_Before:
       --I;
@@ -557,7 +557,7 @@ void TransformActionsImpl::addRemoval(CharSourceRange range) {
 void TransformActionsImpl::applyRewrites(
                                   TransformActions::RewriteReceiver &receiver) {
   for (InsertsMap::iterator I = Inserts.begin(), E = Inserts.end(); I!=E; ++I) {
-    SourceLocation loc = I->first;
+    SourceLocation const loc = I->first;
     for (TextsVec::iterator
            TI = I->second.begin(), TE = I->second.end(); TI != TE; ++TI) {
       receiver.insert(loc, *TI);
@@ -566,14 +566,14 @@ void TransformActionsImpl::applyRewrites(
 
   for (std::vector<std::pair<CharRange, SourceLocation> >::iterator
        I = IndentationRanges.begin(), E = IndentationRanges.end(); I!=E; ++I) {
-    CharSourceRange range = CharSourceRange::getCharRange(I->first.Begin,
+    CharSourceRange const range = CharSourceRange::getCharRange(I->first.Begin,
                                                           I->first.End);
     receiver.increaseIndentation(range, I->second);
   }
 
   for (std::list<CharRange>::iterator
          I = Removals.begin(), E = Removals.end(); I != E; ++I) {
-    CharSourceRange range = CharSourceRange::getCharRange(I->Begin, I->End);
+    CharSourceRange const range = CharSourceRange::getCharRange(I->Begin, I->End);
     receiver.remove(range);
   }
 }
@@ -592,7 +592,7 @@ SourceLocation TransformActionsImpl::getLocForEndOfToken(SourceLocation loc,
                                                          SourceManager &SM,
                                                          Preprocessor &PP) {
   if (loc.isMacroID()) {
-    CharSourceRange Exp = SM.getExpansionRange(loc);
+    CharSourceRange const Exp = SM.getExpansionRange(loc);
     if (Exp.isCharRange())
       return Exp.getEnd();
     loc = Exp.getEnd();

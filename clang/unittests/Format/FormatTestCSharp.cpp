@@ -22,8 +22,8 @@ protected:
                             unsigned Length, const FormatStyle &Style) {
     LLVM_DEBUG(llvm::errs() << "---\n");
     LLVM_DEBUG(llvm::errs() << Code << "\n\n");
-    std::vector<tooling::Range> Ranges(1, tooling::Range(Offset, Length));
-    tooling::Replacements Replaces = reformat(Style, Code, Ranges);
+    std::vector<tooling::Range> const Ranges(1, tooling::Range(Offset, Length));
+    tooling::Replacements const Replaces = reformat(Style, Code, Ranges);
     auto Result = applyAllReplacements(Code, Replaces);
     EXPECT_TRUE(static_cast<bool>(Result));
     LLVM_DEBUG(llvm::errs() << "\n" << *Result << "\n\n");
@@ -171,7 +171,7 @@ TEST_F(FormatTestCSharp, CSharpFatArrows) {
 }
 
 TEST_F(FormatTestCSharp, CSharpConditionalExpressions) {
-  FormatStyle Style = getGoogleStyle(FormatStyle::LK_CSharp);
+  FormatStyle const Style = getGoogleStyle(FormatStyle::LK_CSharp);
   // conditional expression is not seen as a NullConditional.
   verifyFormat("var y = A < B ? -1 : 1;", Style);
 }
@@ -567,7 +567,7 @@ TEST_F(FormatTestCSharp, CSharpSpaceAfterCStyleCast) {
 }
 
 TEST_F(FormatTestCSharp, CSharpEscapedQuotesInVerbatimStrings) {
-  FormatStyle Style = getGoogleStyle(FormatStyle::LK_CSharp);
+  FormatStyle const Style = getGoogleStyle(FormatStyle::LK_CSharp);
 
   verifyFormat(R"(string str = @"""";)", Style);
   verifyFormat(R"(string str = @"""Hello world""";)", Style);
@@ -575,7 +575,7 @@ TEST_F(FormatTestCSharp, CSharpEscapedQuotesInVerbatimStrings) {
 }
 
 TEST_F(FormatTestCSharp, CSharpQuotesInInterpolatedStrings) {
-  FormatStyle Style = getGoogleStyle(FormatStyle::LK_CSharp);
+  FormatStyle const Style = getGoogleStyle(FormatStyle::LK_CSharp);
 
   verifyFormat(R"(string str1 = $"{null ?? "null"}";)", Style);
   verifyFormat(R"(string str2 = $"{{{braceCount} braces";)", Style);
@@ -588,7 +588,7 @@ TEST_F(FormatTestCSharp, CSharpNewlinesInVerbatimStrings) {
   // verifyFormat does not understand multiline C# string-literals
   // so check the format explicitly.
 
-  FormatStyle Style = getMicrosoftStyle(FormatStyle::LK_CSharp);
+  FormatStyle const Style = getMicrosoftStyle(FormatStyle::LK_CSharp);
 
   std::string Code = R"(string s1 = $@"some code:
   class {className} {{
@@ -615,7 +615,7 @@ var x = foo(className, $@"some code:
 }
 
 TEST_F(FormatTestCSharp, CSharpLambdas) {
-  FormatStyle GoogleStyle = getGoogleStyle(FormatStyle::LK_CSharp);
+  FormatStyle const GoogleStyle = getGoogleStyle(FormatStyle::LK_CSharp);
   FormatStyle MicrosoftStyle = getMicrosoftStyle(FormatStyle::LK_CSharp);
 
   verifyFormat(R"(//
@@ -758,7 +758,7 @@ class MyClass
 }
 
 TEST_F(FormatTestCSharp, CSharpObjectInitializers) {
-  FormatStyle Style = getGoogleStyle(FormatStyle::LK_CSharp);
+  FormatStyle const Style = getGoogleStyle(FormatStyle::LK_CSharp);
 
   // Start code fragments with a comment line so that C++ raw string literals
   // as seen are identical to expected formatted code.
@@ -801,7 +801,7 @@ var myDict = new Dictionary<string, string> {
 }
 
 TEST_F(FormatTestCSharp, CSharpArrayInitializers) {
-  FormatStyle Style = getGoogleStyle(FormatStyle::LK_CSharp);
+  FormatStyle const Style = getGoogleStyle(FormatStyle::LK_CSharp);
 
   verifyFormat(R"(//
 private MySet<Node>[] setPoints = {
@@ -812,7 +812,7 @@ private MySet<Node>[] setPoints = {
 }
 
 TEST_F(FormatTestCSharp, CSharpNamedArguments) {
-  FormatStyle Style = getGoogleStyle(FormatStyle::LK_CSharp);
+  FormatStyle const Style = getGoogleStyle(FormatStyle::LK_CSharp);
 
   verifyFormat(R"(//
 PrintOrderDetails(orderNum: 31, productName: "Red Mug", sellerName: "Gift Shop");)",
@@ -1040,7 +1040,7 @@ public VeryLongType? Function(
 }
 
 TEST_F(FormatTestCSharp, CSharpArraySubscripts) {
-  FormatStyle Style = getGoogleStyle(FormatStyle::LK_CSharp);
+  FormatStyle const Style = getGoogleStyle(FormatStyle::LK_CSharp);
 
   // Do not format array subscript operators as attributes.
   verifyFormat(R"(//

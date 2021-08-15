@@ -47,14 +47,14 @@ public:
   } while (0)
 
   bool VisitTemplateTypeParmTypeLoc(TemplateTypeParmTypeLoc TTPL) {
-    SourceLocation Loc = TTPL.getNameLoc();
+    SourceLocation const Loc = TTPL.getNameLoc();
     TemplateTypeParmDecl *TTPD = TTPL.getDecl();
     return IndexCtx.handleReference(TTPD, Loc, Parent, ParentDC,
                                     SymbolRoleSet());
   }
 
   bool VisitTypedefTypeLoc(TypedefTypeLoc TL) {
-    SourceLocation Loc = TL.getNameLoc();
+    SourceLocation const Loc = TL.getNameLoc();
     TypedefNameDecl *ND = TL.getTypedefNameDecl();
     if (ND->isTransparentTag()) {
       TagDecl *Underlying = ND->getUnderlyingType()->getAsTagDecl();
@@ -206,7 +206,7 @@ public:
         T->getAs<TemplateSpecializationType>();
     if (!TST)
       return true;
-    TemplateName TN = TST->getTemplateName();
+    TemplateName const TN = TST->getTemplateName();
     const ClassTemplateDecl *TD =
         dyn_cast_or_null<ClassTemplateDecl>(TN.getAsTemplateDecl());
     if (!TD)
@@ -215,7 +215,7 @@ public:
     if (!RD->hasDefinition())
       return true;
     RD = RD->getDefinition();
-    DeclarationName Name(DNT->getIdentifier());
+    DeclarationName const Name(DNT->getIdentifier());
     std::vector<const NamedDecl *> Symbols = RD->lookupDependentName(
         Name, [](const NamedDecl *ND) { return isa<TypeDecl>(ND); });
     if (Symbols.size() != 1)
@@ -262,12 +262,12 @@ void IndexingContext::indexNestedNameSpecifierLoc(NestedNameSpecifierLoc NNS,
   if (!NNS)
     return;
 
-  if (NestedNameSpecifierLoc Prefix = NNS.getPrefix())
+  if (NestedNameSpecifierLoc const Prefix = NNS.getPrefix())
     indexNestedNameSpecifierLoc(Prefix, Parent, DC);
 
   if (!DC)
     DC = Parent->getLexicalDeclContext();
-  SourceLocation Loc = NNS.getLocalBeginLoc();
+  SourceLocation const Loc = NNS.getLocalBeginLoc();
 
   switch (NNS.getNestedNameSpecifier()->getKind()) {
   case NestedNameSpecifier::Identifier:

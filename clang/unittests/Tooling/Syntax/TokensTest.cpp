@@ -124,7 +124,7 @@ public:
     // Prepare to run a compiler.
     if (!Diags->getClient())
       Diags->setClient(new IgnoringDiagConsumer);
-    std::vector<const char *> Args = {"tok-test", "-std=c++03", "-fsyntax-only",
+    std::vector<const char *> const Args = {"tok-test", "-std=c++03", "-fsyntax-only",
                                       FileName};
     auto CI = createInvocationFromCommandLine(Args, Diags, FS);
     assert(CI);
@@ -160,7 +160,7 @@ public:
   /// Add a new file, run syntax::tokenize() on the range if any, run it on the
   /// whole file otherwise and return the results.
   std::vector<syntax::Token> tokenize(llvm::StringRef Text) {
-    llvm::Annotations Annot(Text);
+    llvm::Annotations const Annot(Text);
     auto FID = SourceMgr->createFileID(
         llvm::MemoryBuffer::getMemBufferCopy(Annot.code()));
     // FIXME: pass proper LangOptions.
@@ -350,7 +350,7 @@ file './input.cpp'
 
 TEST_F(TokenCollectorTest, Locations) {
   // Check locations of the tokens.
-  llvm::Annotations Code(R"cpp(
+  llvm::Annotations const Code(R"cpp(
     $r1[[int]] $r2[[a]] $r3[[=]] $r4[["foo bar baz"]] $r5[[;]]
   )cpp");
   recordTokens(Code.code());
@@ -381,7 +381,7 @@ TEST_F(TokenCollectorTest, Locations) {
 
 TEST_F(TokenCollectorTest, MacroDirectives) {
   // Macro directives are not stored anywhere at the moment.
-  std::string Code = R"cpp(
+  std::string const Code = R"cpp(
     #define FOO a
     #include "unresolved_file.h"
     #undef FOO
@@ -399,7 +399,7 @@ TEST_F(TokenCollectorTest, MacroDirectives) {
 
     int a;
   )cpp";
-  std::string Expected =
+  std::string const Expected =
       "expanded tokens:\n"
       "  int a ;\n"
       "file './input.cpp'\n"
@@ -523,7 +523,7 @@ file './input.cpp'
   };
 
   for (auto &Test : TestCases) {
-    std::string Dump = collectAndDump(Test.first);
+    std::string const Dump = collectAndDump(Test.first);
     EXPECT_EQ(Test.second, Dump) << Dump;
   }
 }
@@ -547,7 +547,7 @@ TEST_F(TokenCollectorTest, SpecialTokens) {
 TEST_F(TokenCollectorTest, LateBoundTokens) {
   // The parser eventually breaks the first '>>' into two tokens ('>' and '>'),
   // but we choose to record them as a single token (for now).
-  llvm::Annotations Code(R"cpp(
+  llvm::Annotations const Code(R"cpp(
     template <class T>
     struct foo { int a; };
     int bar = foo<foo<int$br[[>>]]().a;
@@ -562,7 +562,7 @@ TEST_F(TokenCollectorTest, LateBoundTokens) {
 }
 
 TEST_F(TokenCollectorTest, DelayedParsing) {
-  llvm::StringLiteral Code = R"cpp(
+  llvm::StringLiteral const Code = R"cpp(
     struct Foo {
       int method() {
         // Parser will visit method bodies and initializers multiple times, but
@@ -578,7 +578,7 @@ TEST_F(TokenCollectorTest, DelayedParsing) {
       };
     };
   )cpp";
-  std::string ExpectedTokens =
+  std::string const ExpectedTokens =
       "expanded tokens:\n"
       "  struct Foo { int method ( ) { return 100 ; } int a = 10 ; struct "
       "Subclass { void foo ( ) { Foo ( ) . method ( ) ; } } ; } ;\n";
@@ -595,12 +595,12 @@ TEST_F(TokenCollectorTest, MultiFile) {
     int b = ADD(1, 2);
     #define MULT(X, Y) X*Y
   )cpp");
-  llvm::StringLiteral Code = R"cpp(
+  llvm::StringLiteral const Code = R"cpp(
     #include "foo.h"
     int c = ADD(1, MULT(2,3));
   )cpp";
 
-  std::string Expected = R"(expanded tokens:
+  std::string const Expected = R"(expanded tokens:
   int a = 100 ; int b = 1 + 2 ; int c = 1 + 2 * 3 ;
 file './input.cpp'
   spelled tokens:
@@ -749,7 +749,7 @@ TEST_F(TokenBufferTest, ExpandedTokensForRange) {
     A SIGN(B) C SIGN(D) E SIGN(F) G
   )cpp");
 
-  SourceRange R(findExpanded("C").front().location(),
+  SourceRange const R(findExpanded("C").front().location(),
                 findExpanded("F_washere").front().location());
   // Sanity check: expanded and spelled tokens are stored separately.
   EXPECT_THAT(Buffer.expandedTokens(R),
@@ -765,7 +765,7 @@ TEST_F(TokenBufferTest, ExpansionsOverlapping) {
     int b = FOO 2;
   )cpp");
 
-  llvm::ArrayRef<syntax::Token> Foo1 = findSpelled("FOO 1");
+  llvm::ArrayRef<syntax::Token> const Foo1 = findSpelled("FOO 1");
   EXPECT_THAT(
       Buffer.expansionStartingAt(Foo1.data()),
       ValueIs(IsExpansion(SameRange(Foo1.drop_back()),
@@ -775,7 +775,7 @@ TEST_F(TokenBufferTest, ExpansionsOverlapping) {
       ElementsAre(IsExpansion(SameRange(Foo1.drop_back()),
                               SameRange(findExpanded("3 + 4 1").drop_back()))));
 
-  llvm::ArrayRef<syntax::Token> Foo2 = findSpelled("FOO 2");
+  llvm::ArrayRef<syntax::Token> const Foo2 = findSpelled("FOO 2");
   EXPECT_THAT(
       Buffer.expansionStartingAt(Foo2.data()),
       ValueIs(IsExpansion(SameRange(Foo2.drop_back()),
@@ -792,7 +792,7 @@ TEST_F(TokenBufferTest, ExpansionsOverlapping) {
     int b = ID(ID(2+3+4));
   )cpp");
 
-  llvm::ArrayRef<syntax::Token> ID1 = findSpelled("ID ( 1 + 2 + 3 )");
+  llvm::ArrayRef<syntax::Token> const ID1 = findSpelled("ID ( 1 + 2 + 3 )");
   EXPECT_THAT(Buffer.expansionStartingAt(&ID1.front()),
               ValueIs(IsExpansion(SameRange(ID1),
                                   SameRange(findExpanded("1 + 2 + 3")))));
@@ -800,7 +800,7 @@ TEST_F(TokenBufferTest, ExpansionsOverlapping) {
   for (const auto &T : ID1.drop_front())
     EXPECT_EQ(Buffer.expansionStartingAt(&T), llvm::None);
 
-  llvm::ArrayRef<syntax::Token> ID2 = findSpelled("ID ( ID ( 2 + 3 + 4 ) )");
+  llvm::ArrayRef<syntax::Token> const ID2 = findSpelled("ID ( ID ( 2 + 3 + 4 ) )");
   EXPECT_THAT(Buffer.expansionStartingAt(&ID2.front()),
               ValueIs(IsExpansion(SameRange(ID2),
                                   SameRange(findExpanded("2 + 3 + 4")))));
@@ -821,7 +821,7 @@ int a = FOO;
 int b = 1;
   )cpp");
 
-  llvm::ArrayRef<syntax::Token> DefineFoo = findSpelled("# define FOO 1");
+  llvm::ArrayRef<syntax::Token> const DefineFoo = findSpelled("# define FOO 1");
   EXPECT_THAT(
       Buffer.expansionStartingAt(&DefineFoo.front()),
       ValueIs(IsExpansion(SameRange(DefineFoo),
@@ -830,7 +830,7 @@ int b = 1;
   for (const auto &T : DefineFoo.drop_front())
     EXPECT_EQ(Buffer.expansionStartingAt(&T), llvm::None);
 
-  llvm::ArrayRef<syntax::Token> PragmaOnce = findSpelled("# pragma once");
+  llvm::ArrayRef<syntax::Token> const PragmaOnce = findSpelled("# pragma once");
   EXPECT_THAT(
       Buffer.expansionStartingAt(&PragmaOnce.front()),
       ValueIs(IsExpansion(SameRange(PragmaOnce),
@@ -847,7 +847,7 @@ int b = 1;
 
 TEST_F(TokenBufferTest, TokensToFileRange) {
   addFile("./foo.h", "token_from_header");
-  llvm::Annotations Code(R"cpp(
+  llvm::Annotations const Code(R"cpp(
     #define FOO token_from_expansion
     #include "./foo.h"
     $all[[$i[[int]] a = FOO;]]
@@ -868,7 +868,7 @@ TEST_F(TokenBufferTest, TokensToFileRange) {
 }
 
 TEST_F(TokenBufferTest, MacroExpansions) {
-  llvm::Annotations Code(R"cpp(
+  llvm::Annotations const Code(R"cpp(
     #define FOO B
     #define FOO2 BA
     #define CALL(X) int X
@@ -896,12 +896,12 @@ TEST_F(TokenBufferTest, Touching) {
   recordTokens(Code.code());
 
   auto Touching = [&](int Index) {
-    SourceLocation Loc = SourceMgr->getComposedLoc(SourceMgr->getMainFileID(),
+    SourceLocation const Loc = SourceMgr->getComposedLoc(SourceMgr->getMainFileID(),
                                                    Code.points()[Index]);
     return spelledTokensTouching(Loc, Buffer);
   };
   auto Identifier = [&](int Index) {
-    SourceLocation Loc = SourceMgr->getComposedLoc(SourceMgr->getMainFileID(),
+    SourceLocation const Loc = SourceMgr->getComposedLoc(SourceMgr->getMainFileID(),
                                                    Code.points()[Index]);
     const syntax::Token *Tok = spelledIdentifierTouching(Loc, Buffer);
     return Tok ? Tok->text(*SourceMgr) : "";

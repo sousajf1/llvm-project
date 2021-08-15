@@ -141,7 +141,7 @@ ArrayType::ArrayType(TypeClass tc, QualType et, QualType can,
 unsigned ConstantArrayType::getNumAddressingBits(const ASTContext &Context,
                                                  QualType ElementType,
                                                const llvm::APInt &NumElements) {
-  uint64_t ElementSize = Context.getTypeSizeInChars(ElementType).getQuantity();
+  uint64_t const ElementSize = Context.getTypeSizeInChars(ElementType).getQuantity();
 
   // Fast path the common cases so we can avoid the conservative computation
   // below, which in common cases allocates "large" APSInt values, which are
@@ -157,13 +157,13 @@ unsigned ConstantArrayType::getNumAddressingBits(const ASTContext &Context,
   // computation directly in 64-bits.
   if ((ElementSize >> 32) == 0 && NumElements.getBitWidth() <= 64 &&
       (NumElements.getZExtValue() >> 32) == 0) {
-    uint64_t TotalSize = NumElements.getZExtValue() * ElementSize;
+    uint64_t const TotalSize = NumElements.getZExtValue() * ElementSize;
     return 64 - llvm::countLeadingZeros(TotalSize);
   }
 
   // Otherwise, use APSInt to handle arbitrary sized values.
   llvm::APSInt SizeExtended(NumElements, true);
-  unsigned SizeTypeBits = Context.getTypeSize(Context.getSizeType());
+  unsigned const SizeTypeBits = Context.getTypeSize(Context.getSizeType());
   SizeExtended = SizeExtended.extend(std::max(SizeTypeBits,
                                               SizeExtended.getBitWidth()) * 2);
 
@@ -388,14 +388,14 @@ const Type *Type::getArrayElementTypeNoTypeQual() const {
 /// example, it returns "T*" as "T*", (not as "int*"), because the pointer is
 /// concrete.
 QualType QualType::getDesugaredType(QualType T, const ASTContext &Context) {
-  SplitQualType split = getSplitDesugaredType(T);
+  SplitQualType const split = getSplitDesugaredType(T);
   return Context.getQualifiedType(split.Ty, split.Quals);
 }
 
 QualType QualType::getSingleStepDesugaredTypeImpl(QualType type,
                                                   const ASTContext &Context) {
-  SplitQualType split = type.split();
-  QualType desugar = split.Ty->getLocallyUnqualifiedSingleStepDesugaredType();
+  SplitQualType const split = type.split();
+  QualType const desugar = split.Ty->getLocallyUnqualifiedSingleStepDesugaredType();
   return Context.getQualifiedType(desugar, split.Quals);
 }
 
@@ -809,7 +809,7 @@ QualType ObjCObjectType::stripObjCKindOfTypeAndQuals(
     return QualType(this, 0);
 
   // Recursively strip __kindof.
-  SplitQualType splitBaseType = getBaseType().split();
+  SplitQualType const splitBaseType = getBaseType().split();
   QualType baseType(splitBaseType.Ty, 0);
   if (const auto *baseObj = splitBaseType.Ty->getAs<ObjCObjectType>())
     baseType = baseObj->stripObjCKindOfTypeAndQuals(ctx);
@@ -826,7 +826,7 @@ const ObjCObjectPointerType *ObjCObjectPointerType::stripObjCKindOfTypeAndQuals(
   if (!isKindOfType() && qual_empty())
     return this;
 
-  QualType obj = getObjectType()->stripObjCKindOfTypeAndQuals(ctx);
+  QualType const obj = getObjectType()->stripObjCKindOfTypeAndQuals(ctx);
   return ctx.getObjCObjectPointerType(obj)->castAs<ObjCObjectPointerType>();
 }
 
@@ -840,7 +840,7 @@ struct SimpleTransformVisitor : public TypeVisitor<Derived, QualType> {
 
   QualType recurse(QualType type) {
     // Split out the qualifiers from the type.
-    SplitQualType splitType = type.split();
+    SplitQualType const splitType = type.split();
 
     // Visit the type itself.
     QualType result = static_cast<Derived *>(this)->Visit(splitType.Ty);
@@ -879,7 +879,7 @@ public:
   TRIVIAL_TYPE_CLASS(Builtin)
 
   QualType VisitComplexType(const ComplexType *T) {
-    QualType elementType = recurse(T->getElementType());
+    QualType const elementType = recurse(T->getElementType());
     if (elementType.isNull())
       return {};
 
@@ -890,7 +890,7 @@ public:
   }
 
   QualType VisitPointerType(const PointerType *T) {
-    QualType pointeeType = recurse(T->getPointeeType());
+    QualType const pointeeType = recurse(T->getPointeeType());
     if (pointeeType.isNull())
       return {};
 
@@ -901,7 +901,7 @@ public:
   }
 
   QualType VisitBlockPointerType(const BlockPointerType *T) {
-    QualType pointeeType = recurse(T->getPointeeType());
+    QualType const pointeeType = recurse(T->getPointeeType());
     if (pointeeType.isNull())
       return {};
 
@@ -912,7 +912,7 @@ public:
   }
 
   QualType VisitLValueReferenceType(const LValueReferenceType *T) {
-    QualType pointeeType = recurse(T->getPointeeTypeAsWritten());
+    QualType const pointeeType = recurse(T->getPointeeTypeAsWritten());
     if (pointeeType.isNull())
       return {};
 
@@ -924,7 +924,7 @@ public:
   }
 
   QualType VisitRValueReferenceType(const RValueReferenceType *T) {
-    QualType pointeeType = recurse(T->getPointeeTypeAsWritten());
+    QualType const pointeeType = recurse(T->getPointeeTypeAsWritten());
     if (pointeeType.isNull())
       return {};
 
@@ -936,7 +936,7 @@ public:
   }
 
   QualType VisitMemberPointerType(const MemberPointerType *T) {
-    QualType pointeeType = recurse(T->getPointeeType());
+    QualType const pointeeType = recurse(T->getPointeeType());
     if (pointeeType.isNull())
       return {};
 
@@ -947,7 +947,7 @@ public:
   }
 
   QualType VisitConstantArrayType(const ConstantArrayType *T) {
-    QualType elementType = recurse(T->getElementType());
+    QualType const elementType = recurse(T->getElementType());
     if (elementType.isNull())
       return {};
 
@@ -960,7 +960,7 @@ public:
   }
 
   QualType VisitVariableArrayType(const VariableArrayType *T) {
-    QualType elementType = recurse(T->getElementType());
+    QualType const elementType = recurse(T->getElementType());
     if (elementType.isNull())
       return {};
 
@@ -974,7 +974,7 @@ public:
   }
 
   QualType VisitIncompleteArrayType(const IncompleteArrayType *T) {
-    QualType elementType = recurse(T->getElementType());
+    QualType const elementType = recurse(T->getElementType());
     if (elementType.isNull())
       return {};
 
@@ -986,7 +986,7 @@ public:
   }
 
   QualType VisitVectorType(const VectorType *T) {
-    QualType elementType = recurse(T->getElementType());
+    QualType const elementType = recurse(T->getElementType());
     if (elementType.isNull())
       return {};
 
@@ -998,7 +998,7 @@ public:
   }
 
   QualType VisitExtVectorType(const ExtVectorType *T) {
-    QualType elementType = recurse(T->getElementType());
+    QualType const elementType = recurse(T->getElementType());
     if (elementType.isNull())
       return {};
 
@@ -1009,7 +1009,7 @@ public:
   }
 
   QualType VisitConstantMatrixType(const ConstantMatrixType *T) {
-    QualType elementType = recurse(T->getElementType());
+    QualType const elementType = recurse(T->getElementType());
     if (elementType.isNull())
       return {};
     if (elementType.getAsOpaquePtr() == T->getElementType().getAsOpaquePtr())
@@ -1020,7 +1020,7 @@ public:
   }
 
   QualType VisitFunctionNoProtoType(const FunctionNoProtoType *T) {
-    QualType returnType = recurse(T->getReturnType());
+    QualType const returnType = recurse(T->getReturnType());
     if (returnType.isNull())
       return {};
 
@@ -1031,7 +1031,7 @@ public:
   }
 
   QualType VisitFunctionProtoType(const FunctionProtoType *T) {
-    QualType returnType = recurse(T->getReturnType());
+    QualType const returnType = recurse(T->getReturnType());
     if (returnType.isNull())
       return {};
 
@@ -1039,7 +1039,7 @@ public:
     SmallVector<QualType, 4> paramTypes;
     bool paramChanged = false;
     for (auto paramType : T->getParamTypes()) {
-      QualType newParamType = recurse(paramType);
+      QualType const newParamType = recurse(paramType);
       if (newParamType.isNull())
         return {};
 
@@ -1055,7 +1055,7 @@ public:
     if (info.ExceptionSpec.Type == EST_Dynamic) {
       SmallVector<QualType, 4> exceptionTypes;
       for (auto exceptionType : info.ExceptionSpec.Exceptions) {
-        QualType newExceptionType = recurse(exceptionType);
+        QualType const newExceptionType = recurse(exceptionType);
         if (newExceptionType.isNull())
           return {};
 
@@ -1079,7 +1079,7 @@ public:
   }
 
   QualType VisitParenType(const ParenType *T) {
-    QualType innerType = recurse(T->getInnerType());
+    QualType const innerType = recurse(T->getInnerType());
     if (innerType.isNull())
       return {};
 
@@ -1094,11 +1094,11 @@ public:
   SUGARED_TYPE_CLASS(MacroQualified)
 
   QualType VisitAdjustedType(const AdjustedType *T) {
-    QualType originalType = recurse(T->getOriginalType());
+    QualType const originalType = recurse(T->getOriginalType());
     if (originalType.isNull())
       return {};
 
-    QualType adjustedType = recurse(T->getAdjustedType());
+    QualType const adjustedType = recurse(T->getAdjustedType());
     if (adjustedType.isNull())
       return {};
 
@@ -1111,7 +1111,7 @@ public:
   }
 
   QualType VisitDecayedType(const DecayedType *T) {
-    QualType originalType = recurse(T->getOriginalType());
+    QualType const originalType = recurse(T->getOriginalType());
     if (originalType.isNull())
       return {};
 
@@ -1133,11 +1133,11 @@ public:
   SUGARED_TYPE_CLASS(Elaborated)
 
   QualType VisitAttributedType(const AttributedType *T) {
-    QualType modifiedType = recurse(T->getModifiedType());
+    QualType const modifiedType = recurse(T->getModifiedType());
     if (modifiedType.isNull())
       return {};
 
-    QualType equivalentType = recurse(T->getEquivalentType());
+    QualType const equivalentType = recurse(T->getEquivalentType());
     if (equivalentType.isNull())
       return {};
 
@@ -1152,7 +1152,7 @@ public:
   }
 
   QualType VisitSubstTemplateTypeParmType(const SubstTemplateTypeParmType *T) {
-    QualType replacementType = recurse(T->getReplacementType());
+    QualType const replacementType = recurse(T->getReplacementType());
     if (replacementType.isNull())
       return {};
 
@@ -1171,7 +1171,7 @@ public:
     if (!T->isDeduced())
       return QualType(T, 0);
 
-    QualType deducedType = recurse(T->getDeducedType());
+    QualType const deducedType = recurse(T->getDeducedType());
     if (deducedType.isNull())
       return {};
 
@@ -1186,7 +1186,7 @@ public:
   }
 
   QualType VisitObjCObjectType(const ObjCObjectType *T) {
-    QualType baseType = recurse(T->getBaseType());
+    QualType const baseType = recurse(T->getBaseType());
     if (baseType.isNull())
       return {};
 
@@ -1194,7 +1194,7 @@ public:
     bool typeArgChanged = false;
     SmallVector<QualType, 4> typeArgs;
     for (auto typeArg : T->getTypeArgsAsWritten()) {
-      QualType newTypeArg = recurse(typeArg);
+      QualType const newTypeArg = recurse(typeArg);
       if (newTypeArg.isNull())
         return {};
 
@@ -1217,7 +1217,7 @@ public:
   TRIVIAL_TYPE_CLASS(ObjCInterface)
 
   QualType VisitObjCObjectPointerType(const ObjCObjectPointerType *T) {
-    QualType pointeeType = recurse(T->getPointeeType());
+    QualType const pointeeType = recurse(T->getPointeeType());
     if (pointeeType.isNull())
       return {};
 
@@ -1229,7 +1229,7 @@ public:
   }
 
   QualType VisitAtomicType(const AtomicType *T) {
-    QualType valueType = recurse(T->getValueType());
+    QualType const valueType = recurse(T->getValueType());
     if (valueType.isNull())
       return {};
 
@@ -1269,7 +1269,7 @@ struct SubstObjCTypeArgsVisitor
       bool hasError;
       SmallVector<ObjCProtocolDecl *, 8> protocolsVec;
       protocolsVec.append(OTPTy->qual_begin(), OTPTy->qual_end());
-      ArrayRef<ObjCProtocolDecl *> protocolsToApply = protocolsVec;
+      ArrayRef<ObjCProtocolDecl *> const protocolsToApply = protocolsVec;
       return Ctx.applyObjCProtocolQualifiers(
           argType, protocolsToApply, hasError, true/*allowOnPointerType*/);
     }
@@ -1294,7 +1294,7 @@ struct SubstObjCTypeArgsVisitor
 
       // Add __kindof.
       const auto *obj = objPtr->getObjectType();
-      QualType resultTy = Ctx.getObjCObjectType(
+      QualType const resultTy = Ctx.getObjCObjectType(
           obj->getBaseType(), obj->getTypeArgsAsWritten(), obj->getProtocols(),
           /*isKindOf=*/true);
 
@@ -1310,7 +1310,7 @@ struct SubstObjCTypeArgsVisitor
     // appropriately.
 
     //Substitute result type.
-    QualType returnType = funcType->getReturnType().substObjCTypeArgs(
+    QualType const returnType = funcType->getReturnType().substObjCTypeArgs(
         Ctx, TypeArgs, ObjCSubstitutionContext::Result);
     if (returnType.isNull())
       return {};
@@ -1333,7 +1333,7 @@ struct SubstObjCTypeArgsVisitor
     SmallVector<QualType, 4> paramTypes;
     bool paramChanged = false;
     for (auto paramType : funcProtoType->getParamTypes()) {
-      QualType newParamType = paramType.substObjCTypeArgs(
+      QualType const newParamType = paramType.substObjCTypeArgs(
           Ctx, TypeArgs, ObjCSubstitutionContext::Parameter);
       if (newParamType.isNull())
         return {};
@@ -1350,7 +1350,7 @@ struct SubstObjCTypeArgsVisitor
     if (info.ExceptionSpec.Type == EST_Dynamic) {
       SmallVector<QualType, 4> exceptionTypes;
       for (auto exceptionType : info.ExceptionSpec.Exceptions) {
-        QualType newExceptionType = exceptionType.substObjCTypeArgs(
+        QualType const newExceptionType = exceptionType.substObjCTypeArgs(
             Ctx, TypeArgs, ObjCSubstitutionContext::Ordinary);
         if (newExceptionType.isNull())
           return {};
@@ -1382,7 +1382,7 @@ struct SubstObjCTypeArgsVisitor
       SmallVector<QualType, 4> newTypeArgs;
       bool anyChanged = false;
       for (auto typeArg : objcObjectType->getTypeArgsAsWritten()) {
-        QualType newTypeArg = typeArg.substObjCTypeArgs(
+        QualType const newTypeArg = typeArg.substObjCTypeArgs(
             Ctx, TypeArgs, ObjCSubstitutionContext::Ordinary);
         if (newTypeArg.isNull())
           return {};
@@ -1390,7 +1390,7 @@ struct SubstObjCTypeArgsVisitor
         if (newTypeArg.getAsOpaquePtr() != typeArg.getAsOpaquePtr()) {
           // If we're substituting based on an unspecialized context type,
           // produce an unspecialized type.
-          ArrayRef<ObjCProtocolDecl *> protocols(
+          ArrayRef<ObjCProtocolDecl *> const protocols(
               objcObjectType->qual_begin(), objcObjectType->getNumProtocols());
           if (TypeArgs.empty() &&
               SubstContext != ObjCSubstitutionContext::Superclass) {
@@ -1406,7 +1406,7 @@ struct SubstObjCTypeArgsVisitor
       }
 
       if (anyChanged) {
-        ArrayRef<ObjCProtocolDecl *> protocols(
+        ArrayRef<ObjCProtocolDecl *> const protocols(
             objcObjectType->qual_begin(), objcObjectType->getNumProtocols());
         return Ctx.getObjCObjectType(objcObjectType->getBaseType(), newTypeArgs,
                                      protocols,
@@ -1464,7 +1464,7 @@ struct StripObjCKindOfTypeVisitor
     if (!objType->isKindOfType())
       return BaseType::VisitObjCObjectType(objType);
 
-    QualType baseType = objType->getBaseType().stripObjCKindOfType(Ctx);
+    QualType const baseType = objType->getBaseType().stripObjCKindOfType(Ctx);
     return Ctx.getObjCObjectType(baseType, objType->getTypeArgsAsWritten(),
                                  objType->getProtocols(),
                                  /*isKindOf=*/false);
@@ -1546,7 +1546,7 @@ Optional<ArrayRef<QualType>> Type::getObjCSubstitutions(
   if (const auto *objectPointerType = getAs<ObjCObjectPointerType>()) {
     objectType = objectPointerType->getObjectType();
   } else if (getAs<BlockPointerType>()) {
-    ASTContext &ctx = dc->getParentASTContext();
+    ASTContext  const&ctx = dc->getParentASTContext();
     objectType = ctx.getObjCObjectType(ctx.ObjCBuiltinIdTy, {}, {})
                    ->castAs<ObjCObjectType>();
   } else {
@@ -1566,7 +1566,7 @@ Optional<ArrayRef<QualType>> Type::getObjCSubstitutions(
   // to the same class as the context.
   while (curClassDecl != dcClassDecl) {
     // Map to the superclass type.
-    QualType superType = objectType->getSuperClassType();
+    QualType const superType = objectType->getSuperClassType();
     if (superType.isNull()) {
       objectType = nullptr;
       break;
@@ -1622,7 +1622,7 @@ void ObjCObjectType::computeSuperClassTypeSlow() const {
 
   // If the superclass doesn't have type parameters, then there is no
   // substitution to perform.
-  QualType superClassType(superClassObjTy, 0);
+  QualType const superClassType(superClassObjTy, 0);
   ObjCTypeParamList *superClassTypeParams = superClassDecl->getTypeParamList();
   if (!superClassTypeParams) {
     CachedSuperClassType.setPointerAndInt(
@@ -1648,7 +1648,7 @@ void ObjCObjectType::computeSuperClassTypeSlow() const {
   // If the subclass type isn't specialized, return the unspecialized
   // superclass.
   if (isUnspecialized()) {
-    QualType unspecializedSuper
+    QualType const unspecializedSuper
       = classDecl->getASTContext().getObjCInterfaceType(
           superClassObjTy->getInterface());
     CachedSuperClassType.setPointerAndInt(
@@ -1658,7 +1658,7 @@ void ObjCObjectType::computeSuperClassTypeSlow() const {
   }
 
   // Substitute the provided type arguments into the superclass type.
-  ArrayRef<QualType> typeArgs = getTypeArgs();
+  ArrayRef<QualType> const typeArgs = getTypeArgs();
   assert(typeArgs.size() == typeParams->size());
   CachedSuperClassType.setPointerAndInt(
     superClassType.substObjCTypeArgs(classDecl->getASTContext(), typeArgs,
@@ -1681,7 +1681,7 @@ QualType ObjCObjectPointerType::getSuperClassType() const {
   if (superObjectType.isNull())
     return superObjectType;
 
-  ASTContext &ctx = getInterfaceDecl()->getASTContext();
+  ASTContext  const&ctx = getInterfaceDecl()->getASTContext();
   return ctx.getObjCObjectPointerType(superObjectType);
 }
 
@@ -2252,7 +2252,7 @@ bool Type::isIncompleteType(NamedDecl **Def) const {
     if (ClassTy->isDependentType())
       return false;
     const CXXRecordDecl *RD = ClassTy->getAsCXXRecordDecl();
-    ASTContext &Context = RD->getASTContext();
+    ASTContext  const&Context = RD->getASTContext();
     // Member pointers not in the MS ABI don't get special treatment.
     if (!Context.getTargetInfo().getCXXABI().isMicrosoft())
       return false;
@@ -2411,7 +2411,7 @@ bool QualType::isTrivialType(const ASTContext &Context) const {
   if (hasNonTrivialObjCLifetime())
     return false;
 
-  QualType CanonicalType = getTypePtr()->CanonicalType;
+  QualType const CanonicalType = getTypePtr()->CanonicalType;
   if (CanonicalType->isDependentType())
     return false;
 
@@ -2453,7 +2453,7 @@ bool QualType::isTriviallyCopyableType(const ASTContext &Context) const {
   //   cv-qualified versions of these types are collectively
   //   called trivially copyable types.
 
-  QualType CanonicalType = getCanonicalType();
+  QualType const CanonicalType = getCanonicalType();
   if (CanonicalType->isDependentType())
     return false;
 
@@ -2522,7 +2522,7 @@ QualType::PrimitiveCopyKind QualType::isNonTrivialToPrimitiveCopy() const {
     if (RT->getDecl()->isNonTrivialToPrimitiveCopy())
       return PCK_Struct;
 
-  Qualifiers Qs = getQualifiers();
+  Qualifiers const Qs = getQualifiers();
   switch (Qs.getObjCLifetime()) {
   case Qualifiers::OCL_Strong:
     return PCK_ARCStrong;
@@ -3187,7 +3187,7 @@ FunctionProtoType::FunctionProtoType(QualType result, ArrayRef<QualType> params,
     auto *exnSlot =
         reinterpret_cast<QualType *>(getTrailingObjects<ExceptionType>());
     unsigned I = 0;
-    for (QualType ExceptionType : epi.ExceptionSpec.Exceptions) {
+    for (QualType const ExceptionType : epi.ExceptionSpec.Exceptions) {
       // Note that, before C++17, a dependent exception specification does
       // *not* make a type dependent; it's not even part of the C++ type
       // system.
@@ -3264,7 +3264,7 @@ FunctionProtoType::FunctionProtoType(QualType result, ArrayRef<QualType> params,
 bool FunctionProtoType::hasDependentExceptionSpec() const {
   if (Expr *NE = getNoexceptExpr())
     return NE->isValueDependent();
-  for (QualType ET : exceptions())
+  for (QualType const ET : exceptions())
     // A pack expansion with a non-dependent pattern is still dependent,
     // because we don't know whether the pattern is in the exception spec
     // or not (that depends on whether the pack has 0 expansions).
@@ -3276,7 +3276,7 @@ bool FunctionProtoType::hasDependentExceptionSpec() const {
 bool FunctionProtoType::hasInstantiationDependentExceptionSpec() const {
   if (Expr *NE = getNoexceptExpr())
     return NE->isInstantiationDependent();
-  for (QualType ET : exceptions())
+  for (QualType const ET : exceptions())
     if (ET->isInstantiationDependentType())
       return true;
   return false;
@@ -3359,7 +3359,7 @@ void FunctionProtoType::Profile(llvm::FoldingSetNodeID &ID, QualType Result,
                 (epi.ExceptionSpec.Type << 3));
   ID.Add(epi.TypeQuals);
   if (epi.ExceptionSpec.Type == EST_Dynamic) {
-    for (QualType Ex : epi.ExceptionSpec.Exceptions)
+    for (QualType const Ex : epi.ExceptionSpec.Exceptions)
       ID.AddPointer(Ex.getAsOpaquePtr());
   } else if (isComputedNoexcept(epi.ExceptionSpec.Type)) {
     epi.ExceptionSpec.NoexceptExpr->Profile(ID, Context, Canonical);
@@ -3756,7 +3756,7 @@ public:
   bool hasLocalOrUnnamedType() const { return local; }
 
   friend CachedProperties merge(CachedProperties L, CachedProperties R) {
-    Linkage MergedLinkage = minLinkage(L.L, R.L);
+    Linkage const MergedLinkage = minLinkage(L.L, R.L);
     return CachedProperties(MergedLinkage,
                          L.hasLocalOrUnnamedType() | R.hasLocalOrUnnamedType());
   }
@@ -3799,7 +3799,7 @@ public:
     }
 
     // Compute the cached properties and then set the cache.
-    CachedProperties Result = computeCachedProperties(T);
+    CachedProperties const Result = computeCachedProperties(T);
     T->TypeBits.CacheValid = true;
     T->TypeBits.CachedLinkage = Result.getLinkage();
     T->TypeBits.CachedLocalOrUnnamed = Result.hasLocalOrUnnamedType();
@@ -3856,8 +3856,8 @@ static CachedProperties computeCachedProperties(const Type *T) {
     //     - it is a class or enumeration type that is named (or has a name
     //       for linkage purposes (7.1.3)) and the name has linkage; or
     //     -  it is a specialization of a class template (14); or
-    Linkage L = Tag->getLinkageInternal();
-    bool IsLocalOrUnnamed =
+    Linkage const L = Tag->getLinkageInternal();
+    bool const IsLocalOrUnnamed =
       Tag->getDeclContext()->isFunctionOrMethod() ||
       !Tag->hasNameForLinkage();
     return CachedProperties(L, IsLocalOrUnnamed);
@@ -3899,7 +3899,7 @@ static CachedProperties computeCachedProperties(const Type *T) {
     return result;
   }
   case Type::ObjCInterface: {
-    Linkage L = cast<ObjCInterfaceType>(T)->getDecl()->getLinkageInternal();
+    Linkage const L = cast<ObjCInterfaceType>(T)->getDecl()->getLinkageInternal();
     return CachedProperties(L, false);
   }
   case Type::ObjCObject:
@@ -4007,7 +4007,7 @@ bool Type::isLinkageValid() const {
   if (!TypeBits.isCacheValid())
     return true;
 
-  Linkage L = LinkageComputer{}
+  Linkage const L = LinkageComputer{}
                   .computeTypeLinkageInfo(getCanonicalTypeInternal())
                   .getLinkage();
   return L == TypeBits.getLinkage();
@@ -4041,7 +4041,7 @@ Type::getNullability(const ASTContext &Context) const {
 }
 
 bool Type::canHaveNullability(bool ResultIfUnknown) const {
-  QualType type = getCanonicalTypeInternal();
+  QualType const type = getCanonicalTypeInternal();
 
   switch (type->getTypeClass()) {
   // We'll only see canonical types here.
@@ -4261,7 +4261,7 @@ bool Type::isObjCNSObjectType() const {
       return typedefType->getDecl()->hasAttr<ObjCNSObjectAttr>();
 
     // Single-step desugar until we run out of sugar.
-    QualType next = cur->getLocallyUnqualifiedSingleStepDesugaredType();
+    QualType const next = cur->getLocallyUnqualifiedSingleStepDesugaredType();
     if (next.getTypePtr() == cur) return false;
     cur = next.getTypePtr();
   }
@@ -4312,7 +4312,7 @@ bool Type::isCARCBridgableType() const {
   if (!Pointer)
     return false;
 
-  QualType Pointee = Pointer->getPointeeType();
+  QualType const Pointee = Pointer->getPointeeType();
   return Pointee->isVoidType() || Pointee->isRecordType();
 }
 
@@ -4385,7 +4385,7 @@ CXXRecordDecl *MemberPointerType::getMostRecentCXXRecordDecl() const {
 
 void clang::FixedPointValueToString(SmallVectorImpl<char> &Str,
                                     llvm::APSInt Val, unsigned Scale) {
-  llvm::FixedPointSemantics FXSema(Val.getBitWidth(), Scale, Val.isSigned(),
+  llvm::FixedPointSemantics const FXSema(Val.getBitWidth(), Scale, Val.isSigned(),
                                    /*IsSaturated=*/false,
                                    /*HasUnsignedPadding=*/false);
   llvm::APFixedPoint(Val, FXSema).toString(Str);

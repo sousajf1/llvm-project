@@ -143,7 +143,7 @@ TEST_F(SortIncludesTest, SortPriorityNotDefined) {
 
 TEST_F(SortIncludesTest, NoReplacementsForValidIncludes) {
   // Identical #includes have led to a failure with an unstable sort.
-  std::string Code = "#include <a>\n"
+  std::string const Code = "#include <a>\n"
                      "#include <b>\n"
                      "#include <c>\n"
                      "#include <d>\n"
@@ -153,7 +153,7 @@ TEST_F(SortIncludesTest, NoReplacementsForValidIncludes) {
 }
 
 TEST_F(SortIncludesTest, MainFileHeader) {
-  std::string Code = "#include <string>\n"
+  std::string const Code = "#include <string>\n"
                      "\n"
                      "#include \"a/extra_action.proto.h\"\n";
   FmtStyle = getGoogleStyle(FormatStyle::LK_Cpp);
@@ -210,7 +210,7 @@ TEST_F(SortIncludesTest, SupportClangFormatOff) {
                  "// clang-format on\n"));
 
   Style.IncludeBlocks = Style.IBS_Merge;
-  std::string Code = "// clang-format off\r\n"
+  std::string const Code = "// clang-format off\r\n"
                      "#include \"d.h\"\r\n"
                      "#include \"b.h\"\r\n"
                      "// clang-format on\r\n"
@@ -219,7 +219,7 @@ TEST_F(SortIncludesTest, SupportClangFormatOff) {
                      "#include \"a.h\"\r\n"
                      "#include \"e.h\"\r\n";
 
-  std::string Expected = "// clang-format off\r\n"
+  std::string const Expected = "// clang-format off\r\n"
                          "#include \"d.h\"\r\n"
                          "#include \"b.h\"\r\n"
                          "// clang-format on\r\n"
@@ -620,7 +620,7 @@ TEST_F(SortIncludesTest, SupportOptionalCaseSensitiveSorting) {
   Style.IncludeCategories = {
       {"^\"", 1, 0, false}, {"^<.*\\.h>$", 2, 0, false}, {"^<", 3, 0, false}};
 
-  StringRef UnsortedCode = "#include \"qt.h\"\n"
+  StringRef const UnsortedCode = "#include \"qt.h\"\n"
                            "#include <algorithm>\n"
                            "#include <qtwhatever.h>\n"
                            "#include <Qtwhatever.h>\n"
@@ -673,7 +673,7 @@ TEST_F(SortIncludesTest, SupportOptionalCaseSensitiveMachting) {
                              {"^<Qt[^\\.]*>", 4, 0, false},
                              {"^<", 5, 0, false}};
 
-  StringRef UnsortedCode = "#include <QWidget>\n"
+  StringRef const UnsortedCode = "#include <QWidget>\n"
                            "#include \"qt.h\"\n"
                            "#include <algorithm>\n"
                            "#include <windows.h>\n"
@@ -766,7 +766,7 @@ TEST_F(SortIncludesTest, PriorityGroupsAreSeparatedWhenRegroupping) {
 }
 
 TEST_F(SortIncludesTest, CalculatesCorrectCursorPosition) {
-  std::string Code = "#include <ccc>\n"    // Start of line: 0
+  std::string const Code = "#include <ccc>\n"    // Start of line: 0
                      "#include <bbbbbb>\n" // Start of line: 15
                      "#include <a>\n";     // Start of line: 33
   EXPECT_EQ(31u, newCursor(Code, 0));
@@ -851,13 +851,13 @@ TEST_F(SortIncludesTest, SortAndDeduplicateIncludes) {
 }
 
 TEST_F(SortIncludesTest, CalculatesCorrectCursorPositionAfterDeduplicate) {
-  std::string Code = "#include <b>\n"      // Start of line: 0
+  std::string const Code = "#include <b>\n"      // Start of line: 0
                      "#include <a>\n"      // Start of line: 13
                      "#include <b>\n"      // Start of line: 26
                      "#include <b>\n"      // Start of line: 39
                      "#include <c>\n"      // Start of line: 52
                      "#include <b>\n";     // Start of line: 65
-  std::string Expected = "#include <a>\n"  // Start of line: 0
+  std::string const Expected = "#include <a>\n"  // Start of line: 0
                          "#include <b>\n"  // Start of line: 13
                          "#include <c>\n"; // Start of line: 26
   EXPECT_EQ(Expected, sort(Code));
@@ -888,7 +888,7 @@ TEST_F(SortIncludesTest, DeduplicateLocallyInEachBlock) {
 }
 
 TEST_F(SortIncludesTest, ValidAffactedRangesAfterDeduplicatingIncludes) {
-  std::string Code = "#include <a>\n"
+  std::string const Code = "#include <a>\n"
                      "#include <b>\n"
                      "#include <a>\n"
                      "#include <a>\n"
@@ -916,7 +916,7 @@ TEST_F(SortIncludesTest, DoNotSortLikelyXml) {
 
 TEST_F(SortIncludesTest, DoNotOutputReplacementsForSortedBlocksWithRegrouping) {
   Style.IncludeBlocks = Style.IBS_Regroup;
-  std::string Code = R"(
+  std::string const Code = R"(
 #include "b.h"
 
 #include <a.h>
@@ -927,7 +927,7 @@ TEST_F(SortIncludesTest, DoNotOutputReplacementsForSortedBlocksWithRegrouping) {
 TEST_F(SortIncludesTest,
        DoNotOutputReplacementsForSortedBlocksWithRegroupingWindows) {
   Style.IncludeBlocks = Style.IBS_Regroup;
-  std::string Code = "#include \"b.h\"\r\n"
+  std::string const Code = "#include \"b.h\"\r\n"
                      "\r\n"
                      "#include <a.h>\r\n";
   EXPECT_EQ(Code, sort(Code, "input.h", 0));
@@ -985,14 +985,14 @@ TEST_F(SortIncludesTest, DoNotTreatPrecompiledHeadersAsFirstBlock) {
 
 TEST_F(SortIncludesTest, skipUTF8ByteOrderMarkMerge) {
   Style.IncludeBlocks = Style.IBS_Merge;
-  std::string Code = "\xEF\xBB\xBF#include \"d.h\"\r\n"
+  std::string const Code = "\xEF\xBB\xBF#include \"d.h\"\r\n"
                      "#include \"b.h\"\r\n"
                      "\r\n"
                      "#include \"c.h\"\r\n"
                      "#include \"a.h\"\r\n"
                      "#include \"e.h\"\r\n";
 
-  std::string Expected = "\xEF\xBB\xBF#include \"e.h\"\r\n"
+  std::string const Expected = "\xEF\xBB\xBF#include \"e.h\"\r\n"
                          "#include \"a.h\"\r\n"
                          "#include \"b.h\"\r\n"
                          "#include \"c.h\"\r\n"
@@ -1003,14 +1003,14 @@ TEST_F(SortIncludesTest, skipUTF8ByteOrderMarkMerge) {
 
 TEST_F(SortIncludesTest, skipUTF8ByteOrderMarkPreserve) {
   Style.IncludeBlocks = Style.IBS_Preserve;
-  std::string Code = "\xEF\xBB\xBF#include \"d.h\"\r\n"
+  std::string const Code = "\xEF\xBB\xBF#include \"d.h\"\r\n"
                      "#include \"b.h\"\r\n"
                      "\r\n"
                      "#include \"c.h\"\r\n"
                      "#include \"a.h\"\r\n"
                      "#include \"e.h\"\r\n";
 
-  std::string Expected = "\xEF\xBB\xBF#include \"b.h\"\r\n"
+  std::string const Expected = "\xEF\xBB\xBF#include \"b.h\"\r\n"
                          "#include \"d.h\"\r\n"
                          "\r\n"
                          "#include \"a.h\"\r\n"
@@ -1022,12 +1022,12 @@ TEST_F(SortIncludesTest, skipUTF8ByteOrderMarkPreserve) {
 
 TEST_F(SortIncludesTest, MergeLines) {
   Style.IncludeBlocks = Style.IBS_Merge;
-  std::string Code = "#include \"c.h\"\r\n"
+  std::string const Code = "#include \"c.h\"\r\n"
                      "#include \"b\\\r\n"
                      ".h\"\r\n"
                      "#include \"a.h\"\r\n";
 
-  std::string Expected = "#include \"a.h\"\r\n"
+  std::string const Expected = "#include \"a.h\"\r\n"
                          "#include \"b\\\r\n"
                          ".h\"\r\n"
                          "#include \"c.h\"\r\n";
@@ -1036,9 +1036,9 @@ TEST_F(SortIncludesTest, MergeLines) {
 }
 
 TEST_F(SortIncludesTest, DisableFormatDisablesIncludeSorting) {
-  StringRef Sorted = "#include <a.h>\n"
+  StringRef const Sorted = "#include <a.h>\n"
                      "#include <b.h>\n";
-  StringRef Unsorted = "#include <b.h>\n"
+  StringRef const Unsorted = "#include <b.h>\n"
                        "#include <a.h>\n";
   EXPECT_EQ(Sorted, sort(Unsorted));
   FmtStyle.DisableFormat = true;

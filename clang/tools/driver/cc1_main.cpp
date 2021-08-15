@@ -175,8 +175,8 @@ static int PrintSupportedCPUs(std::string TargetStr) {
   }
 
   // the target machine will handle the mcpu printing
-  llvm::TargetOptions Options;
-  std::unique_ptr<llvm::TargetMachine> TheTargetMachine(
+  llvm::TargetOptions const Options;
+  std::unique_ptr<llvm::TargetMachine> const TheTargetMachine(
       TheTarget->createTargetMachine(TargetStr, "", "+cpuhelp", Options, None));
   return 0;
 }
@@ -185,7 +185,7 @@ int cc1_main(ArrayRef<const char *> Argv, const char *Argv0, void *MainAddr) {
   ensureSufficientStack();
 
   std::unique_ptr<CompilerInstance> Clang(new CompilerInstance());
-  IntrusiveRefCntPtr<DiagnosticIDs> DiagID(new DiagnosticIDs());
+  IntrusiveRefCntPtr<DiagnosticIDs> const DiagID(new DiagnosticIDs());
 
   // Register the support for object-file-wrapped Clang modules.
   auto PCHOps = Clang->getPCHContainerOperations();
@@ -200,7 +200,7 @@ int cc1_main(ArrayRef<const char *> Argv, const char *Argv0, void *MainAddr) {
 
   // Buffer diagnostics from argument parsing so that we can output them using a
   // well formed diagnostic object.
-  IntrusiveRefCntPtr<DiagnosticOptions> DiagOpts = new DiagnosticOptions();
+  IntrusiveRefCntPtr<DiagnosticOptions> const DiagOpts = new DiagnosticOptions();
   TextDiagnosticBuffer *DiagsBuffer = new TextDiagnosticBuffer;
   DiagnosticsEngine Diags(DiagID, &*DiagOpts, DiagsBuffer);
 
@@ -242,7 +242,7 @@ int cc1_main(ArrayRef<const char *> Argv, const char *Argv0, void *MainAddr) {
 
   // Execute the frontend actions.
   {
-    llvm::TimeTraceScope TimeScope("ExecuteCompiler");
+    llvm::TimeTraceScope const TimeScope("ExecuteCompiler");
     Success = ExecuteCompilerInvocation(Clang.get());
   }
 

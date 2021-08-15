@@ -45,7 +45,7 @@ void openbsd::Assembler::ConstructJob(Compilation &C, const JobAction &JA,
 
   case llvm::Triple::sparcv9: {
     CmdArgs.push_back("-64");
-    std::string CPU = getCPUName(Args, getToolChain().getTriple());
+    std::string const CPU = getCPUName(Args, getToolChain().getTriple());
     CmdArgs.push_back(sparc::getSparcAsmModeForCPU(CPU, getToolChain().getTriple()));
     AddAssemblerKPIC(getToolChain(), Args, CmdArgs);
     break;
@@ -169,8 +169,8 @@ void openbsd::Linker::ConstructJob(Compilation &C, const JobAction &JA,
                             options::OPT_s, options::OPT_t,
                             options::OPT_Z_Flag, options::OPT_r});
 
-  bool NeedsSanitizerDeps = addSanitizerRuntimes(ToolChain, Args, CmdArgs);
-  bool NeedsXRayDeps = addXRayRuntime(ToolChain, Args, CmdArgs);
+  bool const NeedsSanitizerDeps = addSanitizerRuntimes(ToolChain, Args, CmdArgs);
+  bool const NeedsXRayDeps = addXRayRuntime(ToolChain, Args, CmdArgs);
   AddLinkerInputs(ToolChain, Inputs, Args, CmdArgs, JA);
 
   if (!Args.hasArg(options::OPT_nostdlib, options::OPT_nodefaultlibs)) {
@@ -269,12 +269,12 @@ void OpenBSD::AddClangSystemIncludeArgs(
     return;
 
   // Check for configure-time C include directories.
-  StringRef CIncludeDirs(C_INCLUDE_DIRS);
+  StringRef const CIncludeDirs(C_INCLUDE_DIRS);
   if (CIncludeDirs != "") {
     SmallVector<StringRef, 5> dirs;
     CIncludeDirs.split(dirs, ":");
-    for (StringRef dir : dirs) {
-      StringRef Prefix =
+    for (StringRef const dir : dirs) {
+      StringRef const Prefix =
           llvm::sys::path::is_absolute(dir) ? StringRef(D.SysRoot) : "";
       addExternCSystemInclude(DriverArgs, CC1Args, Prefix + dir);
     }
@@ -292,7 +292,7 @@ void OpenBSD::addLibCxxIncludePaths(const llvm::opt::ArgList &DriverArgs,
 
 void OpenBSD::AddCXXStdlibLibArgs(const ArgList &Args,
                                   ArgStringList &CmdArgs) const {
-  bool Profiling = Args.hasArg(options::OPT_pg);
+  bool const Profiling = Args.hasArg(options::OPT_pg);
 
   CmdArgs.push_back(Profiling ? "-lc++_p" : "-lc++");
   CmdArgs.push_back(Profiling ? "-lc++abi_p" : "-lc++abi");

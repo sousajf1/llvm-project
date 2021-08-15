@@ -32,7 +32,7 @@ Function::ParamDescriptor Function::getParamDescriptor(unsigned Offset) const {
 }
 
 SourceInfo Function::getSource(CodePtr PC) const {
-  unsigned Offset = PC - getCodeBegin();
+  unsigned const Offset = PC - getCodeBegin();
   using Elem = std::pair<unsigned, SourceInfo>;
   auto It = std::lower_bound(SrcMap.begin(), SrcMap.end(), Elem{Offset, {}},
                              [](Elem A, Elem B) { return A.first < B.first; });

@@ -120,7 +120,7 @@ public:
   static std::vector<TypeSpec> fromTypeSpecs(StringRef Str) {
     std::vector<TypeSpec> Ret;
     TypeSpec Acc;
-    for (char I : Str.str()) {
+    for (char const I : Str.str()) {
       if (islower(I)) {
         Acc.push_back(I);
         Ret.push_back(TypeSpec(Acc));
@@ -788,13 +788,13 @@ Type Type::fromTypedefName(StringRef Name) {
 }
 
 void Type::applyTypespec(bool &Quad) {
-  std::string S = TS;
+  std::string const S = TS;
   ScalarForMangling = false;
   Kind = SInt;
   ElementBitwidth = ~0U;
   NumVectors = 1;
 
-  for (char I : S) {
+  for (char const I : S) {
     switch (I) {
     case 'S':
       ScalarForMangling = true;
@@ -856,7 +856,7 @@ void Type::applyModifiers(StringRef Mods) {
   bool AppliedQuad = false;
   applyTypespec(AppliedQuad);
 
-  for (char Mod : Mods) {
+  for (char const Mod : Mods) {
     switch (Mod) {
     case '.':
       break;
@@ -940,8 +940,8 @@ StringRef Intrinsic::getNextModifiers(StringRef Proto, unsigned &Pos) const {
   else if (Proto[Pos] != '(')
     return Proto.substr(Pos++, 1);
 
-  size_t Start = Pos + 1;
-  size_t End = Proto.find(')', Start);
+  size_t const Start = Pos + 1;
+  size_t const End = Proto.find(')', Start);
   assert_with_loc(End != StringRef::npos, "unmatched modifier group paren");
   Pos = End + 1;
   return Proto.slice(Start, End);
@@ -949,7 +949,7 @@ StringRef Intrinsic::getNextModifiers(StringRef Proto, unsigned &Pos) const {
 
 std::string Intrinsic::getInstTypeCode(Type T, ClassKind CK) const {
   char typeCode = '\0';
-  bool printNumber = true;
+  bool const printNumber = true;
 
   if (CK == ClassB)
     return "";
@@ -989,7 +989,7 @@ std::string Intrinsic::getInstTypeCode(Type T, ClassKind CK) const {
 }
 
 std::string Intrinsic::getBuiltinTypeStr() {
-  ClassKind LocalCK = getClassKind(true);
+  ClassKind const LocalCK = getClassKind(true);
   std::string S;
 
   Type RetT = getReturnType();
@@ -1055,7 +1055,7 @@ std::string Intrinsic::getMangledName(bool ForceClassS) const {
 }
 
 std::string Intrinsic::mangleName(std::string Name, ClassKind LocalCK) const {
-  std::string typeCode = getInstTypeCode(BaseType, LocalCK);
+  std::string const typeCode = getInstTypeCode(BaseType, LocalCK);
   std::string S = Name;
 
   if (Name == "vcvt_f16_f32" || Name == "vcvt_f32_f16" ||
@@ -1083,7 +1083,7 @@ std::string Intrinsic::mangleName(std::string Name, ClassKind LocalCK) const {
   // Insert a 'q' before the first '_' character so that it ends up before
   // _lane or _n on vector-scalar operations.
   if (BaseType.getSizeInBits() == 128 && !BaseType.noManglingQ()) {
-    size_t Pos = S.find('_');
+    size_t const Pos = S.find('_');
     S.insert(Pos, "q");
   }
 
@@ -1098,7 +1098,7 @@ std::string Intrinsic::mangleName(std::string Name, ClassKind LocalCK) const {
     }
   }
   if (Suffix != '\0') {
-    size_t Pos = S.find('_');
+    size_t const Pos = S.find('_');
     S.insert(Pos, &Suffix, 1);
   }
 
@@ -1107,12 +1107,12 @@ std::string Intrinsic::mangleName(std::string Name, ClassKind LocalCK) const {
 
 std::string Intrinsic::replaceParamsIn(std::string S) {
   while (S.find('$') != std::string::npos) {
-    size_t Pos = S.find('$');
+    size_t const Pos = S.find('$');
     size_t End = Pos + 1;
     while (isalpha(S[End]))
       ++End;
 
-    std::string VarName = S.substr(Pos + 1, End - Pos - 1);
+    std::string const VarName = S.substr(Pos + 1, End - Pos - 1);
     assert_with_loc(Variables.find(VarName) != Variables.end(),
                     "Variable not defined!");
     S.replace(Pos, End - Pos, Variables.find(VarName)->second.getName());
@@ -1127,7 +1127,7 @@ void Intrinsic::initVariables() {
   // Modify the TypeSpec per-argument to get a concrete Type, and create
   // known variables for each.
   for (unsigned I = 1; I < Types.size(); ++I) {
-    char NameC = '0' + (I - 1);
+    char const NameC = '0' + (I - 1);
     std::string Name = "p";
     Name.push_back(NameC);
 
@@ -1148,11 +1148,11 @@ void Intrinsic::emitPrototype(StringRef NamePrefix) {
     if (I != 0)
       OS << ", ";
 
-    char NameC = '0' + I;
+    char const NameC = '0' + I;
     std::string Name = "p";
     Name.push_back(NameC);
     assert(Variables.find(Name) != Variables.end());
-    Variable &V = Variables[Name];
+    Variable  const&V = Variables[Name];
 
     if (!UseMacro)
       OS << V.getType().str() << " ";
@@ -1214,8 +1214,8 @@ void Intrinsic::emitArgumentReversal() {
 
   // Reverse all vector arguments.
   for (unsigned I = 0; I < getNumParams(); ++I) {
-    std::string Name = "p" + utostr(I);
-    std::string NewName = "rev" + utostr(I);
+    std::string const Name = "p" + utostr(I);
+    std::string const NewName = "rev" + utostr(I);
 
     Variable &V = Variables[Name];
     Variable NewV(V.getType(), NewName + VariablePostfix);
@@ -1254,13 +1254,13 @@ void Intrinsic::emitShadowedArgs() {
     if (getParamType(I).isPointer())
       continue;
 
-    std::string Name = "p" + utostr(I);
+    std::string const Name = "p" + utostr(I);
 
     assert(Variables.find(Name) != Variables.end());
     Variable &V = Variables[Name];
 
-    std::string NewName = "s" + utostr(I);
-    Variable V2(V.getType(), NewName + VariablePostfix);
+    std::string const NewName = "s" + utostr(I);
+    Variable const V2(V.getType(), NewName + VariablePostfix);
 
     OS << "  " << V2.getType().str() << " " << V2.getName() << " = "
        << V.getName() << ";";
@@ -1281,9 +1281,9 @@ void Intrinsic::emitBodyAsBuiltinCall() {
 
   // If this builtin returns a struct 2, 3, or 4 vectors, pass it as an implicit
   // sret-like argument.
-  bool SRet = getReturnType().getNumVectors() >= 2;
+  bool const SRet = getReturnType().getNumVectors() >= 2;
 
-  StringRef N = Name;
+  StringRef const N = Name;
   ClassKind LocalCK = CK;
   if (!protoHasScalar())
     LocalCK = ClassB;
@@ -1297,8 +1297,8 @@ void Intrinsic::emitBodyAsBuiltinCall() {
     S += "&" + RetVar.getName() + ", ";
 
   for (unsigned I = 0; I < getNumParams(); ++I) {
-    Variable &V = Variables["p" + utostr(I)];
-    Type T = V.getType();
+    Variable  const&V = Variables["p" + utostr(I)];
+    Type const T = V.getType();
 
     // Handle multiple-vector values specially, emitting each subvector as an
     // argument to the builtin.
@@ -1401,7 +1401,7 @@ void Intrinsic::emitReturn() {
 std::pair<Type, std::string> Intrinsic::DagEmitter::emitDag(DagInit *DI) {
   // At this point we should only be seeing a def.
   DefInit *DefI = cast<DefInit>(DI->getOperator());
-  std::string Op = DefI->getAsString();
+  std::string const Op = DefI->getAsString();
 
   if (Op == "cast" || Op == "bitcast")
     return emitDagCast(DI, Op == "bitcast");
@@ -1428,17 +1428,17 @@ std::pair<Type, std::string> Intrinsic::DagEmitter::emitDag(DagInit *DI) {
 }
 
 std::pair<Type, std::string> Intrinsic::DagEmitter::emitDagOp(DagInit *DI) {
-  std::string Op = cast<StringInit>(DI->getArg(0))->getAsUnquotedString();
+  std::string const Op = cast<StringInit>(DI->getArg(0))->getAsUnquotedString();
   if (DI->getNumArgs() == 2) {
     // Unary op.
-    std::pair<Type, std::string> R =
+    std::pair<Type, std::string> const R =
         emitDagArg(DI->getArg(1), std::string(DI->getArgNameStr(1)));
     return std::make_pair(R.first, Op + R.second);
   } else {
     assert(DI->getNumArgs() == 3 && "Can only handle unary and binary ops!");
-    std::pair<Type, std::string> R1 =
+    std::pair<Type, std::string> const R1 =
         emitDagArg(DI->getArg(1), std::string(DI->getArgNameStr(1)));
-    std::pair<Type, std::string> R2 =
+    std::pair<Type, std::string> const R2 =
         emitDagArg(DI->getArg(2), std::string(DI->getArgNameStr(2)));
     assert_with_loc(R1.first == R2.first, "Argument type mismatch!");
     return std::make_pair(R1.first, R1.second + " " + Op + " " + R2.second);
@@ -1450,7 +1450,7 @@ Intrinsic::DagEmitter::emitDagCall(DagInit *DI, bool MatchMangledName) {
   std::vector<Type> Types;
   std::vector<std::string> Values;
   for (unsigned I = 0; I < DI->getNumArgs() - 1; ++I) {
-    std::pair<Type, std::string> R =
+    std::pair<Type, std::string> const R =
         emitDagArg(DI->getArg(I + 1), std::string(DI->getArgNameStr(I + 1)));
     Types.push_back(R.first);
     Values.push_back(R.second);
@@ -1492,7 +1492,7 @@ Intrinsic::DagEmitter::emitDagCall(DagInit *DI, bool MatchMangledName) {
 std::pair<Type, std::string> Intrinsic::DagEmitter::emitDagCast(DagInit *DI,
                                                                 bool IsBitCast){
   // (cast MOD* VAL) -> cast VAL to type given by MOD.
-  std::pair<Type, std::string> R =
+  std::pair<Type, std::string> const R =
       emitDagArg(DI->getArg(DI->getNumArgs() - 1),
                  std::string(DI->getArgNameStr(DI->getNumArgs() - 1)));
   Type castToType = R.first;
@@ -1626,9 +1626,9 @@ std::pair<Type, std::string> Intrinsic::DagEmitter::emitDagShuffle(DagInit *DI){
   };
 
   // (shuffle arg1, arg2, sequence)
-  std::pair<Type, std::string> Arg1 =
+  std::pair<Type, std::string> const Arg1 =
       emitDagArg(DI->getArg(0), std::string(DI->getArgNameStr(0)));
-  std::pair<Type, std::string> Arg2 =
+  std::pair<Type, std::string> const Arg2 =
       emitDagArg(DI->getArg(1), std::string(DI->getArgNameStr(1)));
   assert_with_loc(Arg1.first == Arg2.first,
                   "Different types in arguments to shuffle!");
@@ -1645,7 +1645,7 @@ std::pair<Type, std::string> Intrinsic::DagEmitter::emitDagShuffle(DagInit *DI){
 
   std::string S = "__builtin_shufflevector(" + Arg1.second + ", " + Arg2.second;
   for (auto &E : Elts) {
-    StringRef Name = E->getName();
+    StringRef const Name = E->getName();
     assert_with_loc(Name.startswith("sv"),
                     "Incorrect element kind in shuffle mask!");
     S += ", " + Name.drop_front(2).str();
@@ -1671,11 +1671,11 @@ std::pair<Type, std::string> Intrinsic::DagEmitter::emitDagShuffle(DagInit *DI){
 
 std::pair<Type, std::string> Intrinsic::DagEmitter::emitDagDup(DagInit *DI) {
   assert_with_loc(DI->getNumArgs() == 1, "dup() expects one argument");
-  std::pair<Type, std::string> A =
+  std::pair<Type, std::string> const A =
       emitDagArg(DI->getArg(0), std::string(DI->getArgNameStr(0)));
   assert_with_loc(A.first.isScalar(), "dup() expects a scalar argument");
 
-  Type T = Intr.getBaseType();
+  Type const T = Intr.getBaseType();
   assert_with_loc(T.isVector(), "dup() used but default type is scalar!");
   std::string S = "(" + T.str() + ") {";
   for (unsigned I = 0; I < T.getNumElements(); ++I) {
@@ -1690,7 +1690,7 @@ std::pair<Type, std::string> Intrinsic::DagEmitter::emitDagDup(DagInit *DI) {
 
 std::pair<Type, std::string> Intrinsic::DagEmitter::emitDagDupTyped(DagInit *DI) {
   assert_with_loc(DI->getNumArgs() == 2, "dup_typed() expects two arguments");
-  std::pair<Type, std::string> B =
+  std::pair<Type, std::string> const B =
       emitDagArg(DI->getArg(1), std::string(DI->getArgNameStr(1)));
   assert_with_loc(B.first.isScalar(),
                   "dup_typed() requires a scalar as the second argument");
@@ -1716,9 +1716,9 @@ std::pair<Type, std::string> Intrinsic::DagEmitter::emitDagDupTyped(DagInit *DI)
 
 std::pair<Type, std::string> Intrinsic::DagEmitter::emitDagSplat(DagInit *DI) {
   assert_with_loc(DI->getNumArgs() == 2, "splat() expects two arguments");
-  std::pair<Type, std::string> A =
+  std::pair<Type, std::string> const A =
       emitDagArg(DI->getArg(0), std::string(DI->getArgNameStr(0)));
-  std::pair<Type, std::string> B =
+  std::pair<Type, std::string> const B =
       emitDagArg(DI->getArg(1), std::string(DI->getArgNameStr(1)));
 
   assert_with_loc(B.first.isScalar(),
@@ -1735,13 +1735,13 @@ std::pair<Type, std::string> Intrinsic::DagEmitter::emitDagSplat(DagInit *DI) {
 
 std::pair<Type, std::string> Intrinsic::DagEmitter::emitDagSaveTemp(DagInit *DI) {
   assert_with_loc(DI->getNumArgs() == 2, "save_temp() expects two arguments");
-  std::pair<Type, std::string> A =
+  std::pair<Type, std::string> const A =
       emitDagArg(DI->getArg(1), std::string(DI->getArgNameStr(1)));
 
   assert_with_loc(!A.first.isVoid(),
                   "Argument to save_temp() must have non-void type!");
 
-  std::string N = std::string(DI->getArgNameStr(0));
+  std::string const N = std::string(DI->getArgNameStr(0));
   assert_with_loc(!N.empty(),
                   "save_temp() expects a name as the first argument");
 
@@ -1749,7 +1749,7 @@ std::pair<Type, std::string> Intrinsic::DagEmitter::emitDagSaveTemp(DagInit *DI)
                   "Variable already defined!");
   Intr.Variables[N] = Variable(A.first, N + Intr.VariablePostfix);
 
-  std::string S =
+  std::string const S =
       A.first.str() + " " + Intr.Variables[N].getName() + " = " + A.second;
 
   return std::make_pair(Type::getVoid(), S);
@@ -1760,10 +1760,10 @@ Intrinsic::DagEmitter::emitDagNameReplace(DagInit *DI) {
   std::string S = Intr.Name;
 
   assert_with_loc(DI->getNumArgs() == 2, "name_replace requires 2 arguments!");
-  std::string ToReplace = cast<StringInit>(DI->getArg(0))->getAsUnquotedString();
-  std::string ReplaceWith = cast<StringInit>(DI->getArg(1))->getAsUnquotedString();
+  std::string const ToReplace = cast<StringInit>(DI->getArg(0))->getAsUnquotedString();
+  std::string const ReplaceWith = cast<StringInit>(DI->getArg(1))->getAsUnquotedString();
 
-  size_t Idx = S.find(ToReplace);
+  size_t const Idx = S.find(ToReplace);
 
   assert_with_loc(Idx != std::string::npos, "name should contain '" + ToReplace + "'!");
   S.replace(Idx, ToReplace.size(), ReplaceWith);
@@ -1772,8 +1772,8 @@ Intrinsic::DagEmitter::emitDagNameReplace(DagInit *DI) {
 }
 
 std::pair<Type, std::string> Intrinsic::DagEmitter::emitDagLiteral(DagInit *DI){
-  std::string Ty = cast<StringInit>(DI->getArg(0))->getAsUnquotedString();
-  std::string Value = cast<StringInit>(DI->getArg(1))->getAsUnquotedString();
+  std::string const Ty = cast<StringInit>(DI->getArg(0))->getAsUnquotedString();
+  std::string const Value = cast<StringInit>(DI->getArg(1))->getAsUnquotedString();
   return std::make_pair(Type::fromTypedefName(Ty), Value);
 }
 
@@ -1784,7 +1784,7 @@ Intrinsic::DagEmitter::emitDagArg(Init *Arg, std::string ArgName) {
                     "Arguments must either be DAGs or names, not both!");
     assert_with_loc(Intr.Variables.find(ArgName) != Intr.Variables.end(),
                     "Variable not defined!");
-    Variable &V = Intr.Variables[ArgName];
+    Variable  const&V = Intr.Variables[ArgName];
     return std::make_pair(V.getType(), V.getName());
   }
 
@@ -1916,7 +1916,7 @@ Intrinsic &NeonEmitter::getIntrinsic(StringRef Name, ArrayRef<Type> Types,
       continue;
 
     unsigned ArgNum = 0;
-    bool MatchingArgumentTypes =
+    bool const MatchingArgumentTypes =
         std::all_of(Types.begin(), Types.end(), [&](const auto &Type) {
           return Type == I.getParamType(ArgNum++);
         });
@@ -1934,14 +1934,14 @@ Intrinsic &NeonEmitter::getIntrinsic(StringRef Name, ArrayRef<Type> Types,
 
 void NeonEmitter::createIntrinsic(Record *R,
                                   SmallVectorImpl<Intrinsic *> &Out) {
-  std::string Name = std::string(R->getValueAsString("Name"));
-  std::string Proto = std::string(R->getValueAsString("Prototype"));
-  std::string Types = std::string(R->getValueAsString("Types"));
+  std::string const Name = std::string(R->getValueAsString("Name"));
+  std::string const Proto = std::string(R->getValueAsString("Prototype"));
+  std::string const Types = std::string(R->getValueAsString("Types"));
   Record *OperationRec = R->getValueAsDef("Operation");
-  bool BigEndianSafe  = R->getValueAsBit("BigEndianSafe");
-  std::string Guard = std::string(R->getValueAsString("ArchGuard"));
-  bool IsUnavailable = OperationRec->getValueAsBit("Unavailable");
-  std::string CartesianProductWith = std::string(R->getValueAsString("CartesianProductWith"));
+  bool const BigEndianSafe  = R->getValueAsBit("BigEndianSafe");
+  std::string const Guard = std::string(R->getValueAsString("ArchGuard"));
+  bool const IsUnavailable = OperationRec->getValueAsBit("Unavailable");
+  std::string const CartesianProductWith = std::string(R->getValueAsString("CartesianProductWith"));
 
   // Set the global current record. This allows assert_with_loc to produce
   // decent location information even when highly nested.
@@ -1949,7 +1949,7 @@ void NeonEmitter::createIntrinsic(Record *R,
 
   ListInit *Body = OperationRec->getValueAsListInit("Ops");
 
-  std::vector<TypeSpec> TypeSpecs = TypeSpec::fromTypeSpecs(Types);
+  std::vector<TypeSpec> const TypeSpecs = TypeSpec::fromTypeSpecs(Types);
 
   ClassKind CK = ClassNone;
   if (R->getSuperClasses().size() >= 2)
@@ -1957,11 +1957,11 @@ void NeonEmitter::createIntrinsic(Record *R,
 
   std::vector<std::pair<TypeSpec, TypeSpec>> NewTypeSpecs;
   if (!CartesianProductWith.empty()) {
-    std::vector<TypeSpec> ProductTypeSpecs = TypeSpec::fromTypeSpecs(CartesianProductWith);
+    std::vector<TypeSpec> const ProductTypeSpecs = TypeSpec::fromTypeSpecs(CartesianProductWith);
     for (auto TS : TypeSpecs) {
-      Type DefaultT(TS, ".");
+      Type const DefaultT(TS, ".");
       for (auto SrcTS : ProductTypeSpecs) {
-        Type DefaultSrcT(SrcTS, ".");
+        Type const DefaultSrcT(SrcTS, ".");
         if (TS == SrcTS ||
             DefaultSrcT.getSizeInBits() != DefaultT.getSizeInBits())
           continue;
@@ -2060,7 +2060,7 @@ void NeonEmitter::genOverloadTypeCheckCode(raw_ostream &OS,
     if (PtrArgNum >= 0 && Def->getReturnType().getNumVectors() > 1)
       PtrArgNum += 1;
 
-    std::string Name = Def->getName();
+    std::string const Name = Def->getName();
     // Omit type checking for the pointer arguments of vld1_lane, vld1_dup,
     // and vst1_lane intrinsics.  Using a pointer to the vector element
     // type with one of those operations causes codegen to select an aligned
@@ -2073,7 +2073,7 @@ void NeonEmitter::genOverloadTypeCheckCode(raw_ostream &OS,
     }
 
     if (Mask) {
-      std::string Name = Def->getMangledName();
+      std::string const Name = Def->getMangledName();
       OverloadMap.insert(std::make_pair(Name, OverloadInfo()));
       OverloadInfo &OI = OverloadMap[Name];
       OI.Mask |= Mask;
@@ -2083,7 +2083,7 @@ void NeonEmitter::genOverloadTypeCheckCode(raw_ostream &OS,
   }
 
   for (auto &I : OverloadMap) {
-    OverloadInfo &OI = I.second;
+    OverloadInfo  const&OI = I.second;
 
     OS << "case NEON::BI__builtin_neon_" << I.first << ": ";
     OS << "mask = 0x" << Twine::utohexstr(OI.Mask) << "ULL";
@@ -2157,7 +2157,7 @@ void NeonEmitter::genIntrinsicRangeCheckCode(raw_ostream &OS,
     } else {
       // The immediate generally refers to a lane in the preceding argument.
       assert(Def->getImmediateIdx() > 0);
-      Type T = Def->getParamType(Def->getImmediateIdx() - 1);
+      Type const T = Def->getParamType(Def->getImmediateIdx() - 1);
       UpperBound = utostr(T.getNumElements() - 1);
     }
 
@@ -2185,7 +2185,7 @@ void NeonEmitter::genIntrinsicRangeCheckCode(raw_ostream &OS,
 /// 2. the SemaChecking code for the type overload checking.
 /// 3. the SemaChecking code for validation of intrinsic immediate arguments.
 void NeonEmitter::runHeader(raw_ostream &OS) {
-  std::vector<Record *> RV = Records.getAllDerivedDefinitions("Inst");
+  std::vector<Record *> const RV = Records.getAllDerivedDefinitions("Inst");
 
   SmallVector<Intrinsic *, 128> Defs;
   for (auto *R : RV)
@@ -2202,14 +2202,14 @@ void NeonEmitter::runHeader(raw_ostream &OS) {
 }
 
 static void emitNeonTypeDefs(const std::string& types, raw_ostream &OS) {
-  std::string TypedefTypes(types);
-  std::vector<TypeSpec> TDTypeVec = TypeSpec::fromTypeSpecs(TypedefTypes);
+  std::string const TypedefTypes(types);
+  std::vector<TypeSpec> const TDTypeVec = TypeSpec::fromTypeSpecs(TypedefTypes);
 
   // Emit vector typedefs.
   bool InIfdef = false;
   for (auto &TS : TDTypeVec) {
     bool IsA64 = false;
-    Type T(TS, ".");
+    Type const T(TS, ".");
     if (T.isDouble())
       IsA64 = true;
 
@@ -2242,7 +2242,7 @@ static void emitNeonTypeDefs(const std::string& types, raw_ostream &OS) {
   for (unsigned NumMembers = 2; NumMembers <= 4; ++NumMembers) {
     for (auto &TS : TDTypeVec) {
       bool IsA64 = false;
-      Type T(TS, ".");
+      Type const T(TS, ".");
       if (T.isDouble())
         IsA64 = true;
 
@@ -2256,7 +2256,7 @@ static void emitNeonTypeDefs(const std::string& types, raw_ostream &OS) {
       }
 
       const char Mods[] = { static_cast<char>('2' + (NumMembers - 2)), 0};
-      Type VT(TS, Mods);
+      Type const VT(TS, Mods);
       OS << "typedef struct " << VT.str() << " {\n";
       OS << "  " << T.str() << " val";
       OS << "[" << NumMembers << "]";
@@ -2363,7 +2363,7 @@ void NeonEmitter::run(raw_ostream &OS) {
         "__nodebug__))\n\n";
 
   SmallVector<Intrinsic *, 128> Defs;
-  std::vector<Record *> RV = Records.getAllDerivedDefinitions("Inst");
+  std::vector<Record *> const RV = Records.getAllDerivedDefinitions("Inst");
   for (auto *R : RV)
     createIntrinsic(R, Defs);
 
@@ -2472,7 +2472,7 @@ void NeonEmitter::runFP16(raw_ostream &OS) {
         "__nodebug__))\n\n";
 
   SmallVector<Intrinsic *, 128> Defs;
-  std::vector<Record *> RV = Records.getAllDerivedDefinitions("Inst");
+  std::vector<Record *> const RV = Records.getAllDerivedDefinitions("Inst");
   for (auto *R : RV)
     createIntrinsic(R, Defs);
 
@@ -2549,7 +2549,7 @@ void NeonEmitter::runBF16(raw_ostream &OS) {
         "__nodebug__))\n\n";
 
   SmallVector<Intrinsic *, 128> Defs;
-  std::vector<Record *> RV = Records.getAllDerivedDefinitions("Inst");
+  std::vector<Record *> const RV = Records.getAllDerivedDefinitions("Inst");
   for (auto *R : RV)
     createIntrinsic(R, Defs);
 

@@ -45,7 +45,7 @@ static const enum raw_ostream::Colors savedColor =
 static void applyTemplateHighlighting(raw_ostream &OS, StringRef Str,
                                       bool &Normal, bool Bold) {
   while (1) {
-    size_t Pos = Str.find(ToggleHighlight);
+    size_t const Pos = Str.find(ToggleHighlight);
     OS << Str.slice(0, Pos);
     if (Pos == StringRef::npos)
       break;
@@ -103,8 +103,8 @@ printableTextForNextCharacter(StringRef SourceLine, size_t *i,
   if (SourceLine[*i]=='\t') {
     assert(0 < TabStop && TabStop <= DiagnosticOptions::MaxTabStop &&
            "Invalid -ftabstop value");
-    unsigned col = bytesSincePreviousTabOrLineBegin(SourceLine, *i);
-    unsigned NumSpaces = TabStop - col%TabStop;
+    unsigned const col = bytesSincePreviousTabOrLineBegin(SourceLine, *i);
+    unsigned const NumSpaces = TabStop - col%TabStop;
     assert(0 < NumSpaces && NumSpaces <= TabStop
            && "Invalid computation of space amt");
     ++(*i);
@@ -125,7 +125,7 @@ printableTextForNextCharacter(StringRef SourceLine, size_t *i,
     unsigned char const *cp_end =
         begin + llvm::getNumBytesForUTF8(SourceLine[*i]);
 
-    llvm::ConversionResult res = llvm::ConvertUTF8toUTF32(
+    llvm::ConversionResult const res = llvm::ConvertUTF8toUTF32(
         &begin, cp_end, &cptr, cptr + 1, llvm::strictConversion);
     (void)res;
     assert(llvm::conversionOK == res);
@@ -152,7 +152,7 @@ printableTextForNextCharacter(StringRef SourceLine, size_t *i,
 
   // If next byte is not valid UTF-8 (and therefore not printable)
   SmallString<16> expandedByte("<XX>");
-  unsigned char byte = SourceLine[*i];
+  unsigned char const byte = SourceLine[*i];
   expandedByte[1] = llvm::hexdigit(byte / 16);
   expandedByte[2] = llvm::hexdigit(byte % 16);
   ++(*i);
@@ -209,7 +209,7 @@ static void byteToColumn(StringRef SourceLine, unsigned TabStop,
   size_t i = 0;
   while (i<SourceLine.size()) {
     out[i] = columns;
-    std::pair<SmallString<16>,bool> res
+    std::pair<SmallString<16>,bool> const res
       = printableTextForNextCharacter(SourceLine, &i, TabStop);
     columns += llvm::sys::locale::columnWidth(res.first);
   }
@@ -242,7 +242,7 @@ static void columnToByte(StringRef SourceLine, unsigned TabStop,
   while (i<SourceLine.size()) {
     out.resize(columns+1, -1);
     out.back() = i;
-    std::pair<SmallString<16>,bool> res
+    std::pair<SmallString<16>,bool> const res
       = printableTextForNextCharacter(SourceLine, &i, TabStop);
     columns += llvm::sys::locale::columnWidth(res.first);
   }
@@ -323,9 +323,9 @@ static void selectInterestingSourceRegion(std::string &SourceLine,
                                           std::string &FixItInsertionLine,
                                           unsigned Columns,
                                           const SourceColumnMap &map) {
-  unsigned CaretColumns = CaretLine.size();
-  unsigned FixItColumns = llvm::sys::locale::columnWidth(FixItInsertionLine);
-  unsigned MaxColumns = std::max(static_cast<unsigned>(map.columns()),
+  unsigned const CaretColumns = CaretLine.size();
+  unsigned const FixItColumns = llvm::sys::locale::columnWidth(FixItInsertionLine);
+  unsigned const MaxColumns = std::max(static_cast<unsigned>(map.columns()),
                                  std::max(CaretColumns, FixItColumns));
   // if the number of columns is less than the desired number we're done
   if (MaxColumns <= Columns)
@@ -364,8 +364,8 @@ static void selectInterestingSourceRegion(std::string &SourceLine,
     // We can safely use the byte offset FixItStart as the column offset
     // because the characters up until FixItStart are all ASCII whitespace
     // characters.
-    unsigned FixItStartCol = FixItStart;
-    unsigned FixItEndCol
+    unsigned const FixItStartCol = FixItStart;
+    unsigned const FixItEndCol
       = llvm::sys::locale::columnWidth(FixItInsertionLine.substr(0, FixItEnd));
 
     CaretStart = std::min(FixItStartCol, CaretStart);
@@ -398,13 +398,13 @@ static void selectInterestingSourceRegion(std::string &SourceLine,
   unsigned SourceEnd = map.columnToByte(std::min<unsigned>(CaretEnd,
                                                            map.columns()));
 
-  unsigned CaretColumnsOutsideSource = CaretEnd-CaretStart
+  unsigned const CaretColumnsOutsideSource = CaretEnd-CaretStart
     - (map.byteToColumn(SourceEnd)-map.byteToColumn(SourceStart));
 
   char const *front_ellipse = "  ...";
   char const *front_space   = "     ";
   char const *back_ellipse = "...";
-  unsigned ellipses_space = strlen(front_ellipse) + strlen(back_ellipse);
+  unsigned const ellipses_space = strlen(front_ellipse) + strlen(back_ellipse);
 
   unsigned TargetColumns = Columns;
   // Give us extra room for the ellipses
@@ -426,14 +426,14 @@ static void selectInterestingSourceRegion(std::string &SourceLine,
 
       // Skip over this bit of "interesting" text.
       while (NewStart) {
-        unsigned Prev = map.startOfPreviousColumn(NewStart);
+        unsigned const Prev = map.startOfPreviousColumn(NewStart);
         if (isWhitespace(SourceLine[Prev]))
           break;
         NewStart = Prev;
       }
 
       assert(map.byteToColumn(NewStart) != -1);
-      unsigned NewColumns = map.byteToColumn(SourceEnd) -
+      unsigned const NewColumns = map.byteToColumn(SourceEnd) -
                               map.byteToColumn(NewStart);
       if (NewColumns <= TargetColumns) {
         SourceStart = NewStart;
@@ -455,7 +455,7 @@ static void selectInterestingSourceRegion(std::string &SourceLine,
         NewEnd = map.startOfNextColumn(NewEnd);
 
       assert(map.byteToColumn(NewEnd) != -1);
-      unsigned NewColumns = map.byteToColumn(NewEnd) -
+      unsigned const NewColumns = map.byteToColumn(NewEnd) -
                               map.byteToColumn(SourceStart);
       if (NewColumns <= TargetColumns) {
         SourceEnd = NewEnd;
@@ -479,10 +479,10 @@ static void selectInterestingSourceRegion(std::string &SourceLine,
   assert(SourceStart <= SourceEnd);
   assert(CaretStart <= CaretEnd);
 
-  unsigned BackColumnsRemoved
+  unsigned const BackColumnsRemoved
     = map.byteToColumn(SourceLine.size())-map.byteToColumn(SourceEnd);
-  unsigned FrontColumnsRemoved = CaretStart;
-  unsigned ColumnsKept = CaretEnd-CaretStart;
+  unsigned const FrontColumnsRemoved = CaretStart;
+  unsigned const ColumnsKept = CaretEnd-CaretStart;
 
   // We checked up front that the line needed truncation
   assert(FrontColumnsRemoved+ColumnsKept+BackColumnsRemoved > Columns);
@@ -554,7 +554,7 @@ static unsigned findEndOfWord(unsigned Start, StringRef Str,
 
   // Determine if the start of the string is actually opening
   // punctuation, e.g., a quote or parentheses.
-  char EndPunct = findMatchingPunctuation(Str[Start]);
+  char const EndPunct = findMatchingPunctuation(Str[Start]);
   if (!EndPunct) {
     // This is a normal word. Just find the first space character.
     while (End < Length && !isWhitespace(Str[End]))
@@ -569,7 +569,7 @@ static unsigned findEndOfWord(unsigned Start, StringRef Str,
   while (End < Length && !PunctuationEndStack.empty()) {
     if (Str[End] == PunctuationEndStack.back())
       PunctuationEndStack.pop_back();
-    else if (char SubEndPunct = findMatchingPunctuation(Str[End]))
+    else if (char const SubEndPunct = findMatchingPunctuation(Str[End]))
       PunctuationEndStack.push_back(SubEndPunct);
 
     ++End;
@@ -579,7 +579,7 @@ static unsigned findEndOfWord(unsigned Start, StringRef Str,
   while (End < Length && !isWhitespace(Str[End]))
     ++End;
 
-  unsigned PunctWordLength = End - Start;
+  unsigned const PunctWordLength = End - Start;
   if (// If the word fits on this line
       Column + PunctWordLength <= Columns ||
       // ... or the word is "short enough" to take up the next line
@@ -632,7 +632,7 @@ static bool printWordWrapped(raw_ostream &OS, StringRef Str,
     WordEnd = findEndOfWord(WordStart, Str, Length, Column, Columns);
 
     // Does this word fit on the current line?
-    unsigned WordLength = WordEnd - WordStart;
+    unsigned const WordLength = WordEnd - WordStart;
     if (Column + WordLength < Columns) {
       // This word fits on the current line; print it there.
       if (WordStart) {
@@ -674,7 +674,7 @@ void TextDiagnostic::emitDiagnosticMessage(
     FullSourceLoc Loc, PresumedLoc PLoc, DiagnosticsEngine::Level Level,
     StringRef Message, ArrayRef<clang::CharSourceRange> Ranges,
     DiagOrStoredDiag D) {
-  uint64_t StartOfLocationInfo = OS.tell();
+  uint64_t const StartOfLocationInfo = OS.tell();
 
   // Emit the location of this particular diagnostic.
   if (Loc.isValid())
@@ -796,7 +796,7 @@ void TextDiagnostic::emitDiagnosticLoc(FullSourceLoc Loc, PresumedLoc PLoc,
                                        ArrayRef<CharSourceRange> Ranges) {
   if (PLoc.isInvalid()) {
     // At least print the file name if available:
-    FileID FID = Loc.getFileID();
+    FileID const FID = Loc.getFileID();
     if (FID.isValid()) {
       const FileEntry *FE = Loc.getFileEntry();
       if (FE && FE->isValid()) {
@@ -806,7 +806,7 @@ void TextDiagnostic::emitDiagnosticLoc(FullSourceLoc Loc, PresumedLoc PLoc,
     }
     return;
   }
-  unsigned LineNo = PLoc.getLine();
+  unsigned const LineNo = PLoc.getLine();
 
   if (!DiagOpts->ShowLocation)
     return;
@@ -852,7 +852,7 @@ void TextDiagnostic::emitDiagnosticLoc(FullSourceLoc Loc, PresumedLoc PLoc,
   }
 
   if (DiagOpts->ShowSourceRanges && !Ranges.empty()) {
-    FileID CaretFileID = Loc.getExpansionLoc().getFileID();
+    FileID const CaretFileID = Loc.getExpansionLoc().getFileID();
     bool PrintedRange = false;
 
     for (ArrayRef<CharSourceRange>::const_iterator RI = Ranges.begin(),
@@ -862,13 +862,13 @@ void TextDiagnostic::emitDiagnosticLoc(FullSourceLoc Loc, PresumedLoc PLoc,
       if (!RI->isValid()) continue;
 
       auto &SM = Loc.getManager();
-      SourceLocation B = SM.getExpansionLoc(RI->getBegin());
-      CharSourceRange ERange = SM.getExpansionRange(RI->getEnd());
-      SourceLocation E = ERange.getEnd();
-      bool IsTokenRange = ERange.isTokenRange();
+      SourceLocation const B = SM.getExpansionLoc(RI->getBegin());
+      CharSourceRange const ERange = SM.getExpansionRange(RI->getEnd());
+      SourceLocation const E = ERange.getEnd();
+      bool const IsTokenRange = ERange.isTokenRange();
 
-      std::pair<FileID, unsigned> BInfo = SM.getDecomposedLoc(B);
-      std::pair<FileID, unsigned> EInfo = SM.getDecomposedLoc(E);
+      std::pair<FileID, unsigned> const BInfo = SM.getDecomposedLoc(B);
+      std::pair<FileID, unsigned> const EInfo = SM.getDecomposedLoc(E);
 
       // If the start or end of the range is in another file, just discard
       // it.
@@ -928,8 +928,8 @@ findLinesForRange(const CharSourceRange &R, FileID FID,
                   const SourceManager &SM) {
   if (!R.isValid()) return None;
 
-  SourceLocation Begin = R.getBegin();
-  SourceLocation End = R.getEnd();
+  SourceLocation const Begin = R.getBegin();
+  SourceLocation const End = R.getEnd();
   if (SM.getFileID(Begin) != FID || SM.getFileID(End) != FID)
     return None;
 
@@ -948,8 +948,8 @@ maybeAddRange(std::pair<unsigned, unsigned> A, std::pair<unsigned, unsigned> B,
     return A;
 
   // Easy case: merge succeeds within MaxRange.
-  unsigned Min = std::min(A.first, B.first);
-  unsigned Max = std::max(A.second, B.second);
+  unsigned const Min = std::min(A.first, B.first);
+  unsigned const Max = std::max(A.second, B.second);
   if (Max - Min + 1 <= MaxRange)
     return {Min, Max};
 
@@ -981,14 +981,14 @@ static void highlightRange(const CharSourceRange &R,
                            const LangOptions &LangOpts) {
   if (!R.isValid()) return;
 
-  SourceLocation Begin = R.getBegin();
-  SourceLocation End = R.getEnd();
+  SourceLocation const Begin = R.getBegin();
+  SourceLocation const End = R.getEnd();
 
-  unsigned StartLineNo = SM.getExpansionLineNumber(Begin);
+  unsigned const StartLineNo = SM.getExpansionLineNumber(Begin);
   if (StartLineNo > LineNo || SM.getFileID(Begin) != FID)
     return;  // No intersection.
 
-  unsigned EndLineNo = SM.getExpansionLineNumber(End);
+  unsigned const EndLineNo = SM.getExpansionLineNumber(End);
   if (EndLineNo < LineNo || SM.getFileID(End) != FID)
     return;  // No intersection.
 
@@ -1071,7 +1071,7 @@ static std::string buildFixItInsertionLine(FileID FID,
     if (!I->CodeToInsert.empty()) {
       // We have an insertion hint. Determine whether the inserted
       // code contains no newlines and is on the same line as the caret.
-      std::pair<FileID, unsigned> HintLocInfo
+      std::pair<FileID, unsigned> const HintLocInfo
         = SM.getDecomposedExpansionLoc(I->RemoveRange.getBegin());
       if (FID == HintLocInfo.first &&
           LineNo == SM.getLineNumber(HintLocInfo.first, HintLocInfo.second) &&
@@ -1081,7 +1081,7 @@ static std::string buildFixItInsertionLine(FileID FID,
         // Note: When modifying this function, be very careful about what is a
         // "column" (printed width, platform-dependent) and what is a
         // "byte offset" (SourceManager "column").
-        unsigned HintByteOffset
+        unsigned const HintByteOffset
           = SM.getColumnNumber(HintLocInfo.first, HintLocInfo.second) - 1;
 
         // The hint must start inside the source or right at the end
@@ -1100,7 +1100,7 @@ static std::string buildFixItInsertionLine(FileID FID,
 
         // This should NOT use HintByteOffset, because the source might have
         // Unicode characters in earlier columns.
-        unsigned NewFixItLineSize = FixItInsertionLine.size() +
+        unsigned const NewFixItLineSize = FixItInsertionLine.size() +
           (HintCol - PrevHintEndCol) + I->CodeToInsert.size();
         if (NewFixItLineSize > FixItInsertionLine.size())
           FixItInsertionLine.resize(NewFixItLineSize, ' ');
@@ -1145,17 +1145,17 @@ void TextDiagnostic::emitSnippetAndCaret(
     return;
 
   // Decompose the location into a FID/Offset pair.
-  std::pair<FileID, unsigned> LocInfo = Loc.getDecomposedLoc();
-  FileID FID = LocInfo.first;
+  std::pair<FileID, unsigned> const LocInfo = Loc.getDecomposedLoc();
+  FileID const FID = LocInfo.first;
   const SourceManager &SM = Loc.getManager();
 
   // Get information about the buffer it points into.
   bool Invalid = false;
-  StringRef BufData = Loc.getBufferData(&Invalid);
+  StringRef const BufData = Loc.getBufferData(&Invalid);
   if (Invalid)
     return;
 
-  unsigned CaretLineNo = Loc.getLineNumber();
+  unsigned const CaretLineNo = Loc.getLineNumber();
   unsigned CaretColNo = Loc.getColumnNumber();
 
   // Arbitrarily stop showing snippets when the line is too long.
@@ -1228,7 +1228,7 @@ void TextDiagnostic::emitSnippetAndCaret(
 
     // If the source line is too long for our terminal, select only the
     // "interesting" source region within that line.
-    unsigned Columns = DiagOpts->MessageLength;
+    unsigned const Columns = DiagOpts->MessageLength;
     if (Columns)
       selectInterestingSourceRegion(SourceLine, CaretLine, FixItInsertionLine,
                                     Columns, sourceColMap);
@@ -1283,9 +1283,9 @@ void TextDiagnostic::emitSnippet(StringRef line) {
   bool print_reversed = false;
 
   while (i<line.size()) {
-    std::pair<SmallString<16>,bool> res
+    std::pair<SmallString<16>,bool> const res
         = printableTextForNextCharacter(line, &i, DiagOpts->TabStop);
-    bool was_printable = res.second;
+    bool const was_printable = res.second;
 
     if (DiagOpts->ShowColors && was_printable == print_reversed) {
       if (print_reversed)
@@ -1326,10 +1326,10 @@ void TextDiagnostic::emitParseableFixits(ArrayRef<FixItHint> Hints,
 
   for (ArrayRef<FixItHint>::iterator I = Hints.begin(), E = Hints.end();
        I != E; ++I) {
-    SourceLocation BLoc = I->RemoveRange.getBegin();
-    SourceLocation ELoc = I->RemoveRange.getEnd();
+    SourceLocation const BLoc = I->RemoveRange.getBegin();
+    SourceLocation const ELoc = I->RemoveRange.getEnd();
 
-    std::pair<FileID, unsigned> BInfo = SM.getDecomposedLoc(BLoc);
+    std::pair<FileID, unsigned> const BInfo = SM.getDecomposedLoc(BLoc);
     std::pair<FileID, unsigned> EInfo = SM.getDecomposedLoc(ELoc);
 
     // Adjust for token ranges.
@@ -1338,7 +1338,7 @@ void TextDiagnostic::emitParseableFixits(ArrayRef<FixItHint> Hints,
 
     // We specifically do not do word-wrapping or tab-expansion here,
     // because this is supposed to be easy to parse.
-    PresumedLoc PLoc = SM.getPresumedLoc(BLoc);
+    PresumedLoc const PLoc = SM.getPresumedLoc(BLoc);
     if (PLoc.isInvalid())
       break;
 

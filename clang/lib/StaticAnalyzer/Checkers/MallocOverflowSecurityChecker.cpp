@@ -79,7 +79,7 @@ void MallocOverflowSecurityChecker::CheckMallocArgument(
     maxVal = 0;
     e = e->IgnoreParenImpCasts();
     if (const BinaryOperator *binop = dyn_cast<BinaryOperator>(e)) {
-      BinaryOperatorKind opc = binop->getOpcode();
+      BinaryOperatorKind const opc = binop->getOpcode();
       // TODO: ignore multiplications by 1, reject if multiplied by 0.
       if (mulop == nullptr && opc == BO_Mul)
         mulop = binop;

@@ -105,13 +105,13 @@ void ObjCSuperCallChecker::fillSelectors(ASTContext &Ctx,
   // Fill the Selectors SmallSet with all selectors we want to check.
   for (ArrayRef<SelectorDescriptor>::iterator I = Sel.begin(), E = Sel.end();
        I != E; ++I) {
-    SelectorDescriptor Descriptor = *I;
+    SelectorDescriptor const Descriptor = *I;
     assert(Descriptor.ArgumentCount <= 1); // No multi-argument selectors yet.
 
     // Get the selector.
     IdentifierInfo *II = &Ctx.Idents.get(Descriptor.SelectorName);
 
-    Selector Sel = Ctx.Selectors.getSelector(Descriptor.ArgumentCount, &II);
+    Selector const Sel = Ctx.Selectors.getSelector(Descriptor.ArgumentCount, &II);
     ClassSelectors.insert(Sel);
   }
 }
@@ -180,7 +180,7 @@ void ObjCSuperCallChecker::checkASTDecl(const ObjCImplementationDecl *D,
 
   // Iterate over all instance methods.
   for (auto *MD : D->instance_methods()) {
-    Selector S = MD->getSelector();
+    Selector const S = MD->getSelector();
     // Find out whether this is a selector that we want to check.
     if (!SelectorsForClass[SuperclassName].count(S))
       continue;
@@ -193,7 +193,7 @@ void ObjCSuperCallChecker::checkASTDecl(const ObjCImplementationDecl *D,
 
       // It doesn't call super, emit a diagnostic.
       if (!Visitor.DoesCallSuper) {
-        PathDiagnosticLocation DLoc =
+        PathDiagnosticLocation const DLoc =
           PathDiagnosticLocation::createEnd(MD->getBody(),
                                             BR.getSourceManager(),
                                             Mgr.getAnalysisDeclContext(D));

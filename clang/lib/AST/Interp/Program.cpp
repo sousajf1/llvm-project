@@ -23,7 +23,7 @@ unsigned Program::getOrCreateNativePointer(const void *Ptr) {
   if (It != NativePointerIndices.end())
     return It->second;
 
-  unsigned Idx = NativePointers.size();
+  unsigned const Idx = NativePointers.size();
   NativePointers.push_back(Ptr);
   NativePointerIndices[Ptr] = Idx;
   return Idx;
@@ -60,8 +60,8 @@ unsigned Program::createGlobalString(const StringLiteral *S) {
 
   // Allocate storage for the string.
   // The byte length does not include the null terminator.
-  unsigned I = Globals.size();
-  unsigned Sz = Desc->getAllocSize();
+  unsigned const I = Globals.size();
+  unsigned const Sz = Desc->getAllocSize();
   auto *G = new (Allocator, Sz) Global(Desc, /*isStatic=*/true,
                                        /*isExtern=*/false);
   Globals.push_back(G);
@@ -69,7 +69,7 @@ unsigned Program::createGlobalString(const StringLiteral *S) {
   // Construct the string in storage.
   const Pointer Ptr(G->block());
   for (unsigned I = 0, N = S->getLength(); I <= N; ++I) {
-    Pointer Field = Ptr.atIndex(I).narrow();
+    Pointer const Field = Ptr.atIndex(I).narrow();
     const uint32_t CodePoint = I == N ? 0 : S->getCodeUnit(I);
     switch (CharType) {
       case PT_Sint8: {
@@ -138,8 +138,8 @@ llvm::Optional<unsigned> Program::getOrCreateDummy(const ParmVarDecl *PD) {
   auto &ASTCtx = Ctx.getASTContext();
 
   // Create a pointer to an incomplete array of the specified elements.
-  QualType ElemTy = PD->getType()->castAs<PointerType>()->getPointeeType();
-  QualType Ty = ASTCtx.getIncompleteArrayType(ElemTy, ArrayType::Normal, 0);
+  QualType const ElemTy = PD->getType()->castAs<PointerType>()->getPointeeType();
+  QualType const Ty = ASTCtx.getIncompleteArrayType(ElemTy, ArrayType::Normal, 0);
 
   // Dedup blocks since they are immutable and pointers cannot be compared.
   auto It = DummyParams.find(PD);
@@ -285,7 +285,7 @@ Record *Program::getOrCreateRecord(const RecordDecl *RD) {
     Size += align(sizeof(InlineDescriptor));
 
     // Classify the field and add its metadata.
-    QualType FT = FD->getType();
+    QualType const FT = FD->getType();
     const bool IsConst = FT.isConstQualified();
     const bool IsMutable = FD->isMutable();
     Descriptor *Desc;
@@ -319,13 +319,13 @@ Descriptor *Program::createDescriptor(const DeclTy &D, const Type *Ty,
 
   // Arrays.
   if (auto ArrayType = Ty->getAsArrayTypeUnsafe()) {
-    QualType ElemTy = ArrayType->getElementType();
+    QualType const ElemTy = ArrayType->getElementType();
     // Array of well-known bounds.
     if (auto CAT = dyn_cast<ConstantArrayType>(ArrayType)) {
-      size_t NumElems = CAT->getSize().getZExtValue();
+      size_t const NumElems = CAT->getSize().getZExtValue();
       if (llvm::Optional<PrimType> T = Ctx.classify(ElemTy)) {
         // Arrays of primitives.
-        unsigned ElemSize = primSize(*T);
+        unsigned const ElemSize = primSize(*T);
         if (std::numeric_limits<unsigned>::max() / ElemSize <= NumElems) {
           return {};
         }
@@ -338,7 +338,7 @@ Descriptor *Program::createDescriptor(const DeclTy &D, const Type *Ty,
             createDescriptor(D, ElemTy.getTypePtr(), IsConst, IsTemporary);
         if (!Desc)
           return nullptr;
-        InterpSize ElemSize = Desc->getAllocSize() + sizeof(InlineDescriptor);
+        InterpSize const ElemSize = Desc->getAllocSize() + sizeof(InlineDescriptor);
         if (std::numeric_limits<unsigned>::max() / ElemSize <= NumElems)
           return {};
         return allocateDescriptor(D, Desc, NumElems, IsConst, IsTemporary,
@@ -371,7 +371,7 @@ Descriptor *Program::createDescriptor(const DeclTy &D, const Type *Ty,
 
   // Complex types - represented as arrays of elements.
   if (auto *CT = Ty->getAs<ComplexType>()) {
-    PrimType ElemTy = *Ctx.classify(CT->getElementType());
+    PrimType const ElemTy = *Ctx.classify(CT->getElementType());
     return allocateDescriptor(D, ElemTy, 2, IsConst, IsTemporary, IsMutable);
   }
 

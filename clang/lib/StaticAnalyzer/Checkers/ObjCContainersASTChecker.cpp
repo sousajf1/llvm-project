@@ -42,11 +42,11 @@ class WalkAST : public StmtVisitor<WalkAST> {
 
   /// Check if the type is a pointer/array to pointer sized values.
   inline bool hasPointerToPointerSizedType(const Expr *E) {
-    QualType T = E->getType();
+    QualType const T = E->getType();
 
     // The type could be either a pointer or array.
     const Type *TP = T.getTypePtr();
-    QualType PointeeT = TP->getPointeeType();
+    QualType const PointeeT = TP->getPointeeType();
     if (!PointeeT.isNull()) {
       // If the type is a pointer to an array, check the size of the array
       // elements. To avoid false positives coming from assumption that the
@@ -94,7 +94,7 @@ static StringRef getCalleeName(CallExpr *CE) {
 }
 
 void WalkAST::VisitCallExpr(CallExpr *CE) {
-  StringRef Name = getCalleeName(CE);
+  StringRef const Name = getCalleeName(CE);
   if (Name.empty())
     return;
 
@@ -139,7 +139,7 @@ void WalkAST::VisitCallExpr(CallExpr *CE) {
         << Name << "' must be a C array of pointer-sized values, not '"
         << Arg->getType().getAsString() << "'";
 
-    PathDiagnosticLocation CELoc =
+    PathDiagnosticLocation const CELoc =
         PathDiagnosticLocation::createBegin(CE, BR.getSourceManager(), AC);
     BR.EmitBasicReport(AC->getDecl(), Checker, OsName.str(),
                        categories::CoreFoundationObjectiveC, Os.str(), CELoc,

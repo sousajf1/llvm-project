@@ -60,7 +60,7 @@ M68kTargetInfo::M68kTargetInfo(const llvm::Triple &Triple,
 }
 
 bool M68kTargetInfo::setCPU(const std::string &Name) {
-  StringRef N = Name;
+  StringRef const N = Name;
   CPU = llvm::StringSwitch<CPUKind>(N)
             .Case("generic", CK_68000)
             .Case("M68000", CK_68000)

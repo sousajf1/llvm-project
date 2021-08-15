@@ -34,7 +34,7 @@ using namespace clang;
 static void EmitUnknownDiagWarning(DiagnosticsEngine &Diags,
                                    diag::Flavor Flavor, StringRef Prefix,
                                    StringRef Opt) {
-  StringRef Suggestion = DiagnosticIDs::getNearestOption(Flavor, Opt);
+  StringRef const Suggestion = DiagnosticIDs::getNearestOption(Flavor, Opt);
   Diags.Report(diag::warn_unknown_diag_option)
       << (Flavor == diag::Flavor::WarningOrError ? 0 : 1)
       << (Prefix.str() += std::string(Opt)) << !Suggestion.empty()
@@ -78,7 +78,7 @@ void clang::ProcessWarningOptions(DiagnosticsEngine &Diags,
   // we follow the more canonical "last option wins" paradigm when there are
   // conflicting options.
   for (unsigned Report = 0, ReportEnd = 2; Report != ReportEnd; ++Report) {
-    bool SetDiagnostic = (Report == 0);
+    bool const SetDiagnostic = (Report == 0);
 
     // If we've set the diagnostic state and are not reporting diagnostics then
     // we're done.
@@ -88,7 +88,7 @@ void clang::ProcessWarningOptions(DiagnosticsEngine &Diags,
     for (unsigned i = 0, e = Opts.Warnings.size(); i != e; ++i) {
       const auto Flavor = diag::Flavor::WarningOrError;
       StringRef Opt = Opts.Warnings[i];
-      StringRef OrigOpt = Opts.Warnings[i];
+      StringRef const OrigOpt = Opts.Warnings[i];
 
       // Treat -Wformat=0 as an alias for -Wno-format.
       if (Opt == "format=0")
@@ -104,7 +104,7 @@ void clang::ProcessWarningOptions(DiagnosticsEngine &Diags,
 
       // Figure out how this option affects the warning.  If -Wfoo, map the
       // diagnostic to a warning, if -Wno-foo, map it to ignore.
-      diag::Severity Mapping =
+      diag::Severity const Mapping =
           isPositive ? diag::Severity::Warning : diag::Severity::Ignored;
 
       // -Wsystem-headers is a special case, not driven by the option table.  It
@@ -204,7 +204,7 @@ void clang::ProcessWarningOptions(DiagnosticsEngine &Diags,
 
       // Check to see if this warning starts with "no-", if so, this is a
       // negative form of the option.
-      bool IsPositive = !Opt.startswith("no-");
+      bool const IsPositive = !Opt.startswith("no-");
       if (!IsPositive) Opt = Opt.substr(3);
 
       auto Severity = IsPositive ? diag::Severity::Remark

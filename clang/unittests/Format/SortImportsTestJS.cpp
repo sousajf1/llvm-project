@@ -20,10 +20,10 @@ namespace {
 class SortImportsTestJS : public ::testing::Test {
 protected:
   std::string sort(StringRef Code, unsigned Offset = 0, unsigned Length = 0) {
-    StringRef FileName = "input.js";
+    StringRef const FileName = "input.js";
     if (Length == 0U)
       Length = Code.size() - Offset;
-    std::vector<tooling::Range> Ranges(1, tooling::Range(Offset, Length));
+    std::vector<tooling::Range> const Ranges(1, tooling::Range(Offset, Length));
     auto Sorted =
         applyAllReplacements(Code, sortIncludes(Style, Code, Ranges, FileName));
     EXPECT_TRUE(static_cast<bool>(Sorted));
@@ -35,7 +35,7 @@ protected:
 
   void verifySort(llvm::StringRef Expected, llvm::StringRef Code,
                   unsigned Offset = 0, unsigned Length = 0) {
-    std::string Result = sort(Code, Offset, Length);
+    std::string const Result = sort(Code, Offset, Length);
     EXPECT_EQ(Expected.str(), Result) << "Expected:\n"
                                       << Expected << "\nActual:\n"
                                       << Result;

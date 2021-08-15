@@ -50,7 +50,7 @@ public:
       SelRange = SourceRange(SelectionRange->first.translate(SM),
                              SelectionRange->second.translate(SM));
     } else {
-      SourceLocation Loc = Location.translate(SM);
+      SourceLocation const Loc = Location.translate(SM);
       SelRange = SourceRange(Loc, Loc);
     }
     Consumer(SelRange, findSelectedASTNodes(Context, SelRange));
@@ -192,7 +192,7 @@ TEST(ASTSelectionFinder, EmptyRangeFallbackToCursor) {
 }
 
 TEST(ASTSelectionFinder, WholeFunctionSelection) {
-  StringRef Source = "int f(int x) { return x;\n}\nvoid f2() { }";
+  StringRef const Source = "int f(int x) { return x;\n}\nvoid f2() { }";
   // From 'int' until just after '}':
 
   findSelectedASTNodes(
@@ -271,7 +271,7 @@ TEST(ASTSelectionFinder, WholeFunctionSelection) {
 }
 
 TEST(ASTSelectionFinder, MultipleFunctionSelection) {
-  StringRef Source = R"(void f0() {
+  StringRef const Source = R"(void f0() {
 }
 void f1() { }
 void f2() { }
@@ -295,7 +295,7 @@ void f3() { }
 }
 
 TEST(ASTSelectionFinder, MultipleStatementSelection) {
-  StringRef Source = R"(void f(int x, int y) {
+  StringRef const Source = R"(void f(int x, int y) {
   int z = x;
   f(2, 3);
   if (x == 0) {
@@ -375,7 +375,7 @@ TEST(ASTSelectionFinder, MultipleStatementSelection) {
 }
 
 TEST(ASTSelectionFinder, SelectionInFunctionInObjCImplementation) {
-  StringRef Source = R"(
+  StringRef const Source = R"(
 @interface I
 @end
 @implementation I
@@ -465,7 +465,7 @@ void outerFunction() { }
 }
 
 TEST(ASTSelectionFinder, FunctionInObjCImplementationCarefulWithEarlyExit) {
-  StringRef Source = R"(
+  StringRef const Source = R"(
 @interface I
 @end
 @implementation I
@@ -494,7 +494,7 @@ void selected() {
 }
 
 TEST(ASTSelectionFinder, AvoidImplicitDeclarations) {
-  StringRef Source = R"(
+  StringRef const Source = R"(
 struct Copy {
   int x;
 };
@@ -518,7 +518,7 @@ void foo() {
 }
 
 TEST(ASTSelectionFinder, CorrectEndForObjectiveCImplementation) {
-  StringRef Source = R"(
+  StringRef const Source = R"(
 @interface I
 @end
 @implementation I
@@ -549,7 +549,7 @@ const SelectedASTNode &checkFnBody(const Optional<SelectedASTNode> &Node,
 }
 
 TEST(ASTSelectionFinder, SelectObjectiveCPseudoObjectExprs) {
-  StringRef Source = R"(
+  StringRef const Source = R"(
 @interface I
 @property(readwrite) int prop;
 @end
@@ -673,7 +673,7 @@ void selectSubscript(NSMutableArray *array, I *i) {
 }
 
 TEST(ASTSelectionFinder, SimpleCodeRangeASTSelection) {
-  StringRef Source = R"(void f(int x, int y) {
+  StringRef const Source = R"(void f(int x, int y) {
   int z = x;
   f(2, 3);
   if (x == 0) {
@@ -691,7 +691,7 @@ void f2() {
       Source, {2, 2}, None,
       [](SourceRange SelectionRange, Optional<SelectedASTNode> Node) {
         EXPECT_TRUE(Node);
-        Optional<CodeRangeASTSelection> SelectedCode =
+        Optional<CodeRangeASTSelection> const SelectedCode =
             CodeRangeASTSelection::create(SelectionRange, std::move(*Node));
         EXPECT_FALSE(SelectedCode);
       });
@@ -699,7 +699,7 @@ void f2() {
       Source, {2, 2}, FileRange{{2, 2}, {2, 2}},
       [](SourceRange SelectionRange, Optional<SelectedASTNode> Node) {
         EXPECT_TRUE(Node);
-        Optional<CodeRangeASTSelection> SelectedCode =
+        Optional<CodeRangeASTSelection> const SelectedCode =
             CodeRangeASTSelection::create(SelectionRange, std::move(*Node));
         EXPECT_FALSE(SelectedCode);
       });
@@ -708,7 +708,7 @@ void f2() {
       Source, {2, 2}, FileRange{{7, 2}, {12, 1}},
       [](SourceRange SelectionRange, Optional<SelectedASTNode> Node) {
         EXPECT_TRUE(Node);
-        Optional<CodeRangeASTSelection> SelectedCode =
+        Optional<CodeRangeASTSelection> const SelectedCode =
             CodeRangeASTSelection::create(SelectionRange, std::move(*Node));
         EXPECT_FALSE(SelectedCode);
       });
@@ -722,7 +722,7 @@ void f2() {
         EXPECT_TRUE(SelectedCode);
         EXPECT_EQ(SelectedCode->size(), 1u);
         EXPECT_TRUE(isa<DeclStmt>((*SelectedCode)[0]));
-        ArrayRef<SelectedASTNode::ReferenceType> Parents =
+        ArrayRef<SelectedASTNode::ReferenceType> const Parents =
             SelectedCode->getParents();
         EXPECT_EQ(Parents.size(), 3u);
         EXPECT_TRUE(
@@ -743,7 +743,7 @@ void f2() {
         EXPECT_EQ(SelectedCode->size(), 2u);
         EXPECT_TRUE(isa<CallExpr>((*SelectedCode)[0]));
         EXPECT_TRUE(isa<IfStmt>((*SelectedCode)[1]));
-        ArrayRef<SelectedASTNode::ReferenceType> Parents =
+        ArrayRef<SelectedASTNode::ReferenceType> const Parents =
             SelectedCode->getParents();
         EXPECT_EQ(Parents.size(), 3u);
         EXPECT_TRUE(
@@ -784,7 +784,7 @@ void f2() {
 }
 
 TEST(ASTSelectionFinder, OutOfBodyCodeRange) {
-  StringRef Source = R"(
+  StringRef const Source = R"(
 int codeRange = 2 + 3;
 )";
   // '2+3' expression.
@@ -797,7 +797,7 @@ int codeRange = 2 + 3;
         EXPECT_TRUE(SelectedCode);
         EXPECT_EQ(SelectedCode->size(), 1u);
         EXPECT_TRUE(isa<BinaryOperator>((*SelectedCode)[0]));
-        ArrayRef<SelectedASTNode::ReferenceType> Parents =
+        ArrayRef<SelectedASTNode::ReferenceType> const Parents =
             SelectedCode->getParents();
         EXPECT_EQ(Parents.size(), 2u);
         EXPECT_TRUE(
@@ -808,7 +808,7 @@ int codeRange = 2 + 3;
 }
 
 TEST(ASTSelectionFinder, SelectVarDeclStmt) {
-  StringRef Source = R"(
+  StringRef const Source = R"(
 void f() {
    {
        int a;
@@ -825,7 +825,7 @@ void f() {
         EXPECT_TRUE(SelectedCode);
         EXPECT_EQ(SelectedCode->size(), 1u);
         EXPECT_TRUE(isa<DeclStmt>((*SelectedCode)[0]));
-        ArrayRef<SelectedASTNode::ReferenceType> Parents =
+        ArrayRef<SelectedASTNode::ReferenceType> const Parents =
             SelectedCode->getParents();
         EXPECT_EQ(Parents.size(), 4u);
         EXPECT_TRUE(
@@ -840,7 +840,7 @@ void f() {
 }
 
 TEST(ASTSelectionFinder, SelectEntireDeclStmtRange) {
-  StringRef Source = R"(
+  StringRef const Source = R"(
 void f(int x, int y) {
    int a = x * y;
 }
@@ -855,7 +855,7 @@ void f(int x, int y) {
         EXPECT_TRUE(SelectedCode);
         EXPECT_EQ(SelectedCode->size(), 1u);
         EXPECT_TRUE(isa<DeclStmt>((*SelectedCode)[0]));
-        ArrayRef<SelectedASTNode::ReferenceType> Parents =
+        ArrayRef<SelectedASTNode::ReferenceType> const Parents =
             SelectedCode->getParents();
         EXPECT_EQ(Parents.size(), 3u);
         EXPECT_TRUE(
@@ -868,7 +868,7 @@ void f(int x, int y) {
 }
 
 TEST(ASTSelectionFinder, SelectEntireDeclStmtRangeWithMultipleDecls) {
-  StringRef Source = R"(
+  StringRef const Source = R"(
 void f(int x, int y) {
    int a = x * y, b = x - y;
 }
@@ -883,7 +883,7 @@ void f(int x, int y) {
         EXPECT_TRUE(SelectedCode);
         EXPECT_EQ(SelectedCode->size(), 1u);
         EXPECT_TRUE(isa<DeclStmt>((*SelectedCode)[0]));
-        ArrayRef<SelectedASTNode::ReferenceType> Parents =
+        ArrayRef<SelectedASTNode::ReferenceType> const Parents =
             SelectedCode->getParents();
         EXPECT_EQ(Parents.size(), 3u);
         EXPECT_TRUE(
@@ -896,7 +896,7 @@ void f(int x, int y) {
 }
 
 TEST(ASTSelectionFinder, SimpleCodeRangeASTSelectionInObjCMethod) {
-  StringRef Source = R"(@interface I @end
+  StringRef const Source = R"(@interface I @end
 @implementation I
 - (void) f:(int)x with:(int) y {
   int z = x;
@@ -917,7 +917,7 @@ TEST(ASTSelectionFinder, SimpleCodeRangeASTSelectionInObjCMethod) {
       Source, {9, 2}, FileRange{{9, 2}, {13, 1}},
       [](SourceRange SelectionRange, Optional<SelectedASTNode> Node) {
         EXPECT_TRUE(Node);
-        Optional<CodeRangeASTSelection> SelectedCode =
+        Optional<CodeRangeASTSelection> const SelectedCode =
             CodeRangeASTSelection::create(SelectionRange, std::move(*Node));
         EXPECT_FALSE(SelectedCode);
       },
@@ -932,7 +932,7 @@ TEST(ASTSelectionFinder, SimpleCodeRangeASTSelectionInObjCMethod) {
         EXPECT_TRUE(SelectedCode);
         EXPECT_EQ(SelectedCode->size(), 1u);
         EXPECT_TRUE(isa<DeclStmt>((*SelectedCode)[0]));
-        ArrayRef<SelectedASTNode::ReferenceType> Parents =
+        ArrayRef<SelectedASTNode::ReferenceType> const Parents =
             SelectedCode->getParents();
         EXPECT_EQ(Parents.size(), 4u);
         EXPECT_TRUE(
@@ -956,7 +956,7 @@ TEST(ASTSelectionFinder, SimpleCodeRangeASTSelectionInObjCMethod) {
         EXPECT_EQ(SelectedCode->size(), 2u);
         EXPECT_TRUE(isa<ObjCMessageExpr>((*SelectedCode)[0]));
         EXPECT_TRUE(isa<IfStmt>((*SelectedCode)[1]));
-        ArrayRef<SelectedASTNode::ReferenceType> Parents =
+        ArrayRef<SelectedASTNode::ReferenceType> const Parents =
             SelectedCode->getParents();
         EXPECT_EQ(Parents.size(), 4u);
         EXPECT_TRUE(
@@ -972,7 +972,7 @@ TEST(ASTSelectionFinder, SimpleCodeRangeASTSelectionInObjCMethod) {
 }
 
 TEST(ASTSelectionFinder, CanonicalizeObjCStringLiteral) {
-  StringRef Source = R"(
+  StringRef const Source = R"(
 void foo() {
   (void)@"test";
 }
@@ -1004,7 +1004,7 @@ void foo() {
 }
 
 TEST(ASTSelectionFinder, CanonicalizeMemberCalleeToCall) {
-  StringRef Source = R"(
+  StringRef const Source = R"(
 class AClass { public:
   void method();
   int afield;
@@ -1056,7 +1056,7 @@ void dontSelectArgument(AClass &a) {
 }
 
 TEST(ASTSelectionFinder, CanonicalizeFuncCalleeToCall) {
-  StringRef Source = R"(
+  StringRef const Source = R"(
 void function();
 
 void test() {

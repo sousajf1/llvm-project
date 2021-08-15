@@ -133,7 +133,7 @@ bool ByteCodeStmtGen<Emitter>::visitStmt(const Stmt *S) {
 template <class Emitter>
 bool ByteCodeStmtGen<Emitter>::visitCompoundStmt(
     const CompoundStmt *CompoundStmt) {
-  BlockScope<Emitter> Scope(this);
+  BlockScope<Emitter> const Scope(this);
   for (auto *InnerStmt : CompoundStmt->body())
     if (!visitStmt(InnerStmt))
       return false;
@@ -162,7 +162,7 @@ bool ByteCodeStmtGen<Emitter>::visitDeclStmt(const DeclStmt *DS) {
 template <class Emitter>
 bool ByteCodeStmtGen<Emitter>::visitReturnStmt(const ReturnStmt *RS) {
   if (const Expr *RE = RS->getRetValue()) {
-    ExprScope<Emitter> RetScope(this);
+    ExprScope<Emitter> const RetScope(this);
     if (ReturnType) {
       // Primitive types are simply returned.
       if (!this->visit(RE))
@@ -187,7 +187,7 @@ bool ByteCodeStmtGen<Emitter>::visitReturnStmt(const ReturnStmt *RS) {
 
 template <class Emitter>
 bool ByteCodeStmtGen<Emitter>::visitIfStmt(const IfStmt *IS) {
-  BlockScope<Emitter> IfScope(this);
+  BlockScope<Emitter> const IfScope(this);
   if (auto *CondInit = IS->getInit())
     if (!visitStmt(IS->getInit()))
       return false;
@@ -200,8 +200,8 @@ bool ByteCodeStmtGen<Emitter>::visitIfStmt(const IfStmt *IS) {
     return false;
 
   if (const Stmt *Else = IS->getElse()) {
-    LabelTy LabelElse = this->getLabel();
-    LabelTy LabelEnd = this->getLabel();
+    LabelTy const LabelElse = this->getLabel();
+    LabelTy const LabelEnd = this->getLabel();
     if (!this->jumpFalse(LabelElse))
       return false;
     if (!visitStmt(IS->getThen()))
@@ -213,7 +213,7 @@ bool ByteCodeStmtGen<Emitter>::visitIfStmt(const IfStmt *IS) {
       return false;
     this->emitLabel(LabelEnd);
   } else {
-    LabelTy LabelEnd = this->getLabel();
+    LabelTy const LabelEnd = this->getLabel();
     if (!this->jumpFalse(LabelEnd))
       return false;
     if (!visitStmt(IS->getThen()))
@@ -238,7 +238,7 @@ bool ByteCodeStmtGen<Emitter>::visitVarDecl(const VarDecl *VD) {
     auto Off = this->allocateLocalPrimitive(VD, *T, DT.isConstQualified());
     // Compile the initialiser in its own scope.
     {
-      ExprScope<Emitter> Scope(this);
+      ExprScope<Emitter> const Scope(this);
       if (!this->visit(VD->getInit()))
         return false;
     }

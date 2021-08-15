@@ -117,16 +117,16 @@ public:
   bool forAllRanges(const SourceManager &SM,
                     llvm::function_ref<void(SourceRange R)> Callback) override {
     auto FE = SM.getFileManager().getFile(Range.FileName);
-    FileID FID = FE ? SM.translateFile(*FE) : FileID();
+    FileID const FID = FE ? SM.translateFile(*FE) : FileID();
     if (!FE || FID.isInvalid()) {
       llvm::errs() << "error: -selection=" << Range.FileName
                    << ":... : given file is not in the target TU\n";
       return true;
     }
 
-    SourceLocation Start = SM.getMacroArgExpandedLocation(
+    SourceLocation const Start = SM.getMacroArgExpandedLocation(
         SM.translateLineCol(FID, Range.Begin.first, Range.Begin.second));
-    SourceLocation End = SM.getMacroArgExpandedLocation(
+    SourceLocation const End = SM.getMacroArgExpandedLocation(
         SM.translateLineCol(FID, Range.End.first, Range.End.second));
     if (Start.isInvalid() || End.isInvalid()) {
       llvm::errs() << "error: -selection=" << Range.FileName << ':'
@@ -146,7 +146,7 @@ private:
 std::unique_ptr<SourceSelectionArgument>
 SourceSelectionArgument::fromString(StringRef Value) {
   if (Value.startswith("test:")) {
-    StringRef Filename = Value.drop_front(strlen("test:"));
+    StringRef const Filename = Value.drop_front(strlen("test:"));
     Optional<TestSelectionRangesInFile> ParsedTestSelection =
         findTestSelectionRanges(Filename);
     if (!ParsedTestSelection)
@@ -322,7 +322,7 @@ public:
       return;
     }
     llvm::cantFail(std::move(Err)); // This is a success.
-    DiagnosticBuilder DB(
+    DiagnosticBuilder const DB(
         getDiags().Report(Diag->first, Diag->second.getDiagID()));
     Diag->second.Emit(DB);
   }
@@ -396,7 +396,7 @@ public:
     // If the selection option is test specific, we use a test-specific
     // consumer.
     std::unique_ptr<ClangRefactorToolConsumerInterface> TestConsumer;
-    bool HasSelection = MatchingRule->hasSelectionRequirement();
+    bool const HasSelection = MatchingRule->hasSelectionRequirement();
     if (HasSelection)
       TestConsumer = SelectedSubcommand->getSelection()->createCustomConsumer();
     ClangRefactorToolConsumerInterface *ActiveConsumer =
@@ -519,7 +519,7 @@ private:
                      const RefactoringRuleContext &Context) {
     llvm::outs() << "invoking action '" << Subcommand.getName() << "':\n";
     if (Context.getSelectionRange().isValid()) {
-      SourceRange R = Context.getSelectionRange();
+      SourceRange const R = Context.getSelectionRange();
       llvm::outs() << "  -selection=";
       R.getBegin().print(llvm::outs(), Context.getSources());
       llvm::outs() << " -> ";

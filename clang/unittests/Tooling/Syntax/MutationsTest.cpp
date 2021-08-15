@@ -25,7 +25,7 @@ protected:
                                             TranslationUnit * /*Root*/)>;
   void CheckTransformation(Transformation Transform, std::string Input,
                            std::string Expected) {
-    llvm::Annotations Source(Input);
+    llvm::Annotations const Source(Input);
     auto *Root = buildTree(Source.code(), GetParam());
 
     Transform(Source, Root);

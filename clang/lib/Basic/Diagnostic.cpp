@@ -79,7 +79,7 @@ static void DummyArgToStringFn(DiagnosticsEngine::ArgumentKind AK, intptr_t QT,
                             SmallVectorImpl<char> &Output,
                             void *Cookie,
                             ArrayRef<intptr_t> QualTypeVals) {
-  StringRef Str = "<can't format argument>";
+  StringRef const Str = "<can't format argument>";
   Output.append(Str.begin(), Str.end());
 }
 
@@ -168,7 +168,7 @@ void DiagnosticsEngine::SetDelayedDiagnostic(unsigned DiagID, StringRef Arg1,
 }
 
 void DiagnosticsEngine::ReportDelayed() {
-  unsigned ID = DelayedDiagID;
+  unsigned const ID = DelayedDiagID;
   DelayedDiagID = 0;
   Report(ID) << DelayedDiagArg1 << DelayedDiagArg2 << DelayedDiagArg3;
 }
@@ -185,7 +185,7 @@ void DiagnosticsEngine::DiagStateMap::append(SourceManager &SrcMgr,
   CurDiagState = State;
   CurDiagStateLoc = Loc;
 
-  std::pair<FileID, unsigned> Decomp = SrcMgr.getDecomposedLoc(Loc);
+  std::pair<FileID, unsigned> const Decomp = SrcMgr.getDecomposedLoc(Loc);
   unsigned Offset = Decomp.second;
   for (File *F = getFile(SrcMgr, Decomp.first); F;
        Offset = F->ParentOffset, F = F->Parent) {
@@ -211,7 +211,7 @@ DiagnosticsEngine::DiagStateMap::lookup(SourceManager &SrcMgr,
   if (Files.empty())
     return FirstDiagState;
 
-  std::pair<FileID, unsigned> Decomp = SrcMgr.getDecomposedLoc(Loc);
+  std::pair<FileID, unsigned> const Decomp = SrcMgr.getDecomposedLoc(Loc);
   const File *F = getFile(SrcMgr, Decomp.first);
   return F->lookup(Decomp.second);
 }
@@ -238,7 +238,7 @@ DiagnosticsEngine::DiagStateMap::getFile(SourceManager &SrcMgr,
   // We created a new File; look up the diagnostic state at the start of it and
   // initialize it.
   if (ID.isValid()) {
-    std::pair<FileID, unsigned> Decomp = SrcMgr.getDecomposedIncludedLoc(ID);
+    std::pair<FileID, unsigned> const Decomp = SrcMgr.getDecomposedIncludedLoc(ID);
     F.Parent = getFile(SrcMgr, Decomp.first);
     F.ParentOffset = Decomp.second;
     F.StateTransitions.push_back({F.Parent->lookup(Decomp.second), 0});
@@ -274,7 +274,7 @@ void DiagnosticsEngine::DiagStateMap::dump(SourceManager &SrcMgr,
                    << ">: " << SrcMgr.getBufferOrFake(ID).getBufferIdentifier();
 
       if (F.second.Parent) {
-        std::pair<FileID, unsigned> Decomp =
+        std::pair<FileID, unsigned> const Decomp =
             SrcMgr.getDecomposedIncludedLoc(ID);
         assert(File.ParentOffset == Decomp.second);
         llvm::errs() << " parent " << File.Parent << " <FileID "
@@ -309,7 +309,7 @@ void DiagnosticsEngine::DiagStateMap::dump(SourceManager &SrcMgr,
         PrintInnerHeading();
 
       for (auto &Mapping : *Transition.State) {
-        StringRef Option =
+        StringRef const Option =
             DiagnosticIDs::getWarningOptionForDiag(Mapping.first);
         if (!DiagName.empty() && DiagName != Option)
           continue;
@@ -364,7 +364,7 @@ void DiagnosticsEngine::setSeverity(diag::kind Diag, diag::Severity Map,
   // Don't allow a mapping to a warning override an error/fatal mapping.
   bool WasUpgradedFromWarning = false;
   if (Map == diag::Severity::Warning) {
-    DiagnosticMapping &Info = GetCurDiagState()->getOrAddMapping(Diag);
+    DiagnosticMapping  const&Info = GetCurDiagState()->getOrAddMapping(Diag);
     if (Info.getSeverity() == diag::Severity::Error ||
         Info.getSeverity() == diag::Severity::Fatal) {
       Map = Info.getSeverity();
@@ -402,7 +402,7 @@ bool DiagnosticsEngine::setSeverityForGroup(diag::Flavor Flavor,
     return true;
 
   // Set the mapping.
-  for (diag::kind Diag : GroupDiags)
+  for (diag::kind const Diag : GroupDiags)
     setSeverity(Diag, Map, Loc);
 
   return false;
@@ -426,7 +426,7 @@ bool DiagnosticsEngine::setDiagnosticGroupWarningAsError(StringRef Group,
     return true;
 
   // Perform the mapping change.
-  for (diag::kind Diag : GroupDiags) {
+  for (diag::kind const Diag : GroupDiags) {
     DiagnosticMapping &Info = GetCurDiagState()->getOrAddMapping(Diag);
 
     if (Info.getSeverity() == diag::Severity::Error ||
@@ -457,7 +457,7 @@ bool DiagnosticsEngine::setDiagnosticGroupErrorAsFatal(StringRef Group,
     return true;
 
   // Perform the mapping change.
-  for (diag::kind Diag : GroupDiags) {
+  for (diag::kind const Diag : GroupDiags) {
     DiagnosticMapping &Info = GetCurDiagState()->getOrAddMapping(Diag);
 
     if (Info.getSeverity() == diag::Severity::Fatal)
@@ -477,7 +477,7 @@ void DiagnosticsEngine::setSeverityForAll(diag::Flavor Flavor,
   DiagnosticIDs::getAllDiagnostics(Flavor, AllDiags);
 
   // Set the mapping.
-  for (diag::kind Diag : AllDiags)
+  for (diag::kind const Diag : AllDiags)
     if (Diags->isBuiltinWarningOrExtension(Diag))
       setSeverity(Diag, Map, Loc);
 }
@@ -499,8 +499,8 @@ void DiagnosticsEngine::Report(const StoredDiagnostic &storedDiag) {
                                 storedDiag.fixit_end());
 
   assert(Client && "DiagnosticConsumer not set!");
-  Level DiagLevel = storedDiag.getLevel();
-  Diagnostic Info(this, storedDiag.getMessage());
+  Level const DiagLevel = storedDiag.getLevel();
+  Diagnostic const Info(this, storedDiag.getMessage());
   Client->HandleDiagnostic(DiagLevel, Info);
   if (Client->IncludeInDiagnosticCounts()) {
     if (DiagLevel == DiagnosticsEngine::Warning)
@@ -515,10 +515,10 @@ bool DiagnosticsEngine::EmitCurrentDiagnostic(bool Force) {
 
   bool Emitted;
   if (Force) {
-    Diagnostic Info(this);
+    Diagnostic const Info(this);
 
     // Figure out the diagnostic level of this message.
-    DiagnosticIDs::Level DiagLevel
+    DiagnosticIDs::Level const DiagLevel
       = Diags->getDiagnosticLevel(Info.getID(), Info.getLocation(), *this);
 
     Emitted = (DiagLevel != DiagnosticIDs::Ignored);
@@ -654,15 +654,15 @@ static unsigned PluralNumber(const char *&Start, const char *End) {
 /// TestPluralRange - Test if Val is in the parsed range. Modifies Start.
 static bool TestPluralRange(unsigned Val, const char *&Start, const char *End) {
   if (*Start != '[') {
-    unsigned Ref = PluralNumber(Start, End);
+    unsigned const Ref = PluralNumber(Start, End);
     return Ref == Val;
   }
 
   ++Start;
-  unsigned Low = PluralNumber(Start, End);
+  unsigned const Low = PluralNumber(Start, End);
   assert(*Start == ',' && "Bad plural expression syntax: expected ,");
   ++Start;
-  unsigned High = PluralNumber(Start, End);
+  unsigned const High = PluralNumber(Start, End);
   assert(*Start == ']' && "Bad plural expression syntax: expected )");
   ++Start;
   return Low <= Val && Val <= High;
@@ -675,14 +675,14 @@ static bool EvalPluralExpr(unsigned ValNo, const char *Start, const char *End) {
     return true;
 
   while (true) {
-    char C = *Start;
+    char const C = *Start;
     if (C == '%') {
       // Modulo expression
       ++Start;
-      unsigned Arg = PluralNumber(Start, End);
+      unsigned const Arg = PluralNumber(Start, End);
       assert(*Start == '=' && "Bad plural expression syntax: expected =");
       ++Start;
-      unsigned ValMod = ValNo % Arg;
+      unsigned const ValMod = ValNo % Arg;
       if (TestPluralRange(ValMod, Start, End))
         return true;
     } else {
@@ -781,7 +781,7 @@ FormatDiagnostic(SmallVectorImpl<char> &OutStr) const {
     return;
   }
 
-  StringRef Diag =
+  StringRef const Diag =
     getDiags()->getDiagnosticIDs()->getDescription(getID());
 
   FormatDiagnostic(Diag.begin(), Diag.end(), OutStr);
@@ -797,7 +797,7 @@ FormatDiagnostic(const char *DiagStr, const char *DiagEnd,
       StringRef(DiagStr, DiagEnd - DiagStr).equals("%0") &&
       getArgKind(0) == DiagnosticsEngine::ak_std_string) {
     const std::string &S = getArgStdStr(0);
-    for (char c : S) {
+    for (char const c : S) {
       if (llvm::sys::locale::isPrint(c) || c == '\t') {
         OutStr.push_back(c);
       }
@@ -865,7 +865,7 @@ FormatDiagnostic(const char *DiagStr, const char *DiagEnd,
     }
 
     assert(isDigit(*DiagStr) && "Invalid format for argument in diagnostic");
-    unsigned ArgNo = *DiagStr++ - '0';
+    unsigned const ArgNo = *DiagStr++ - '0';
 
     // Only used for type diffing.
     unsigned ArgNo2 = ArgNo;
@@ -876,7 +876,7 @@ FormatDiagnostic(const char *DiagStr, const char *DiagEnd,
              "Invalid format for diff modifier");
       ++DiagStr;  // Comma.
       ArgNo2 = *DiagStr++ - '0';
-      DiagnosticsEngine::ArgumentKind Kind2 = getArgKind(ArgNo2);
+      DiagnosticsEngine::ArgumentKind const Kind2 = getArgKind(ArgNo2);
       if (Kind == DiagnosticsEngine::ak_qualtype &&
           Kind2 == DiagnosticsEngine::ak_qualtype)
         Kind = DiagnosticsEngine::ak_qualtype_pair;
@@ -924,7 +924,7 @@ FormatDiagnostic(const char *DiagStr, const char *DiagEnd,
     }
     // ---- INTEGERS ----
     case DiagnosticsEngine::ak_sint: {
-      int Val = getArgSInt(ArgNo);
+      int const Val = getArgSInt(ArgNo);
 
       if (ModifierIs(Modifier, ModifierLen, "select")) {
         HandleSelectModifier(*this, (unsigned)Val, Argument, ArgumentLen,
@@ -943,7 +943,7 @@ FormatDiagnostic(const char *DiagStr, const char *DiagEnd,
       break;
     }
     case DiagnosticsEngine::ak_uint: {
-      unsigned Val = getArgUInt(ArgNo);
+      unsigned const Val = getArgUInt(ArgNo);
 
       if (ModifierIs(Modifier, ModifierLen, "select")) {
         HandleSelectModifier(*this, Val, Argument, ArgumentLen, OutStr);
@@ -962,7 +962,7 @@ FormatDiagnostic(const char *DiagStr, const char *DiagEnd,
     }
     // ---- TOKEN SPELLINGS ----
     case DiagnosticsEngine::ak_tokenkind: {
-      tok::TokenKind Kind = static_cast<tok::TokenKind>(getRawArg(ArgNo));
+      tok::TokenKind const Kind = static_cast<tok::TokenKind>(getRawArg(ArgNo));
       assert(ModifierLen == 0 && "No modifiers for token kinds yet");
 
       llvm::raw_svector_ostream Out(OutStr);
@@ -1019,7 +1019,7 @@ FormatDiagnostic(const char *DiagStr, const char *DiagEnd,
       TDT.ElideType = getDiags()->ElideType;
       TDT.ShowColors = getDiags()->ShowColors;
       TDT.TemplateDiffUsed = false;
-      intptr_t val = reinterpret_cast<intptr_t>(&TDT);
+      intptr_t const val = reinterpret_cast<intptr_t>(&TDT);
 
       const char *ArgumentEnd = Argument + ArgumentLen;
       const char *Pipe = ScanFormat(Argument, ArgumentEnd, '|');

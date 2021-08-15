@@ -62,7 +62,7 @@ bool tooling::needParensAfterUnaryOperator(const Expr &E) {
 
 llvm::Optional<std::string> tooling::buildParens(const Expr &E,
                                                  const ASTContext &Context) {
-  StringRef Text = getText(E, Context);
+  StringRef const Text = getText(E, Context);
   if (Text.empty())
     return llvm::None;
   if (mayEverNeedParens(E))
@@ -75,14 +75,14 @@ tooling::buildDereference(const Expr &E, const ASTContext &Context) {
   if (const auto *Op = dyn_cast<UnaryOperator>(&E))
     if (Op->getOpcode() == UO_AddrOf) {
       // Strip leading '&'.
-      StringRef Text =
+      StringRef const Text =
           getText(*Op->getSubExpr()->IgnoreParenImpCasts(), Context);
       if (Text.empty())
         return llvm::None;
       return Text.str();
     }
 
-  StringRef Text = getText(E, Context);
+  StringRef const Text = getText(E, Context);
   if (Text.empty())
     return llvm::None;
   // Add leading '*'.
@@ -98,14 +98,14 @@ llvm::Optional<std::string> tooling::buildAddressOf(const Expr &E,
   if (const auto *Op = dyn_cast<UnaryOperator>(&E))
     if (Op->getOpcode() == UO_Deref) {
       // Strip leading '*'.
-      StringRef Text =
+      StringRef const Text =
           getText(*Op->getSubExpr()->IgnoreParenImpCasts(), Context);
       if (Text.empty())
         return llvm::None;
       return Text.str();
     }
   // Add leading '&'.
-  StringRef Text = getText(E, Context);
+  StringRef const Text = getText(E, Context);
   if (Text.empty())
     return llvm::None;
   if (needParensAfterUnaryOperator(E)) {
@@ -120,7 +120,7 @@ llvm::Optional<std::string> tooling::buildDot(const Expr &E,
     if (Op->getOpcode() == UO_Deref) {
       // Strip leading '*', add following '->'.
       const Expr *SubExpr = Op->getSubExpr()->IgnoreParenImpCasts();
-      StringRef DerefText = getText(*SubExpr, Context);
+      StringRef const DerefText = getText(*SubExpr, Context);
       if (DerefText.empty())
         return llvm::None;
       if (needParensBeforeDotOrArrow(*SubExpr))
@@ -129,7 +129,7 @@ llvm::Optional<std::string> tooling::buildDot(const Expr &E,
     }
 
   // Add following '.'.
-  StringRef Text = getText(E, Context);
+  StringRef const Text = getText(E, Context);
   if (Text.empty())
     return llvm::None;
   if (needParensBeforeDotOrArrow(E)) {
@@ -144,7 +144,7 @@ llvm::Optional<std::string> tooling::buildArrow(const Expr &E,
     if (Op->getOpcode() == UO_AddrOf) {
       // Strip leading '&', add following '.'.
       const Expr *SubExpr = Op->getSubExpr()->IgnoreParenImpCasts();
-      StringRef DerefText = getText(*SubExpr, Context);
+      StringRef const DerefText = getText(*SubExpr, Context);
       if (DerefText.empty())
         return llvm::None;
       if (needParensBeforeDotOrArrow(*SubExpr))
@@ -153,7 +153,7 @@ llvm::Optional<std::string> tooling::buildArrow(const Expr &E,
     }
 
   // Add following '->'.
-  StringRef Text = getText(E, Context);
+  StringRef const Text = getText(E, Context);
   if (Text.empty())
     return llvm::None;
   if (needParensBeforeDotOrArrow(E))

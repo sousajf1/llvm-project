@@ -57,7 +57,7 @@ struct SemaphorePipe {
 
   void signal() {
 #ifndef NDEBUG
-    ssize_t Result =
+    ssize_t const Result =
 #endif
     llvm::sys::RetryAfterSignal(-1, write, FDWrite, "A", 1);
     assert(Result != -1);
@@ -90,7 +90,7 @@ public:
   void push_back(const DirectoryWatcher::Event::EventKind K,
                  StringRef Filename) {
     {
-      std::unique_lock<std::mutex> L(Mtx);
+      std::unique_lock<std::mutex> const L(Mtx);
       Events.emplace(K, Filename);
     }
     NonEmpty.notify_one();
@@ -234,7 +234,7 @@ void DirectoryWatcherLinux::InotifyPollingLoop() {
 
     // epoll_wait() always return either error or >0 events. Since there was no
     // event for stopping, it must be an inotify event ready for reading.
-    ssize_t NumRead = llvm::sys::RetryAfterSignal(-1, read, InotifyFD, Buf,
+    ssize_t const NumRead = llvm::sys::RetryAfterSignal(-1, read, InotifyFD, Buf,
                                                   EventBufferLength);
     for (char *P = Buf; P < Buf + NumRead;) {
       if (P + sizeof(struct inotify_event) > Buf + NumRead) {
@@ -283,7 +283,7 @@ void DirectoryWatcherLinux::InitialScan() {
 
 void DirectoryWatcherLinux::EventReceivingLoop() {
   while (true) {
-    DirectoryWatcher::Event Event = this->Queue.pop_front_blocking();
+    DirectoryWatcher::Event const Event = this->Queue.pop_front_blocking();
     this->Receiver(Event, false);
     if (Event.Kind ==
         DirectoryWatcher::Event::EventKind::WatcherGotInvalidated) {

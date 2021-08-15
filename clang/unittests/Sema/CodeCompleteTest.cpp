@@ -91,10 +91,10 @@ private:
 
 ParsedSourceLocation offsetToPosition(llvm::StringRef Code, size_t Offset) {
   Offset = std::min(Code.size(), Offset);
-  StringRef Before = Code.substr(0, Offset);
-  int Lines = Before.count('\n');
-  size_t PrevNL = Before.rfind('\n');
-  size_t StartOfLine = (PrevNL == StringRef::npos) ? 0 : (PrevNL + 1);
+  StringRef const Before = Code.substr(0, Offset);
+  int const Lines = Before.count('\n');
+  size_t const PrevNL = Before.rfind('\n');
+  size_t const StartOfLine = (PrevNL == StringRef::npos) ? 0 : (PrevNL + 1);
   return {TestCCName, static_cast<unsigned>(Lines + 1),
           static_cast<unsigned>(Offset - StartOfLine + 1)};
 }
@@ -109,16 +109,16 @@ CompletionContext runCompletion(StringRef Code, size_t Offset) {
 }
 
 CompletionContext runCodeCompleteOnCode(StringRef AnnotatedCode) {
-  llvm::Annotations A(AnnotatedCode);
+  llvm::Annotations const A(AnnotatedCode);
   return runCompletion(A.code(), A.point());
 }
 
 std::vector<std::string>
 collectPreferredTypes(StringRef AnnotatedCode,
                       std::string *PtrDiffType = nullptr) {
-  llvm::Annotations A(AnnotatedCode);
+  llvm::Annotations const A(AnnotatedCode);
   std::vector<std::string> Types;
-  for (size_t Point : A.points()) {
+  for (size_t const Point : A.points()) {
     auto Results = runCompletion(A.code(), Point);
     if (PtrDiffType) {
       assert(PtrDiffType->empty() || *PtrDiffType == Results.PtrDiffType);
@@ -320,7 +320,7 @@ TEST(PreferredTypeTest, BinaryExpr) {
 }
 
 TEST(PreferredTypeTest, Members) {
-  StringRef Code = R"cpp(
+  StringRef const Code = R"cpp(
     struct vector {
       int *begin();
       vector clone();
@@ -334,7 +334,7 @@ TEST(PreferredTypeTest, Members) {
 }
 
 TEST(PreferredTypeTest, Conditions) {
-  StringRef Code = R"cpp(
+  StringRef const Code = R"cpp(
     struct vector {
       bool empty();
     };
@@ -349,7 +349,7 @@ TEST(PreferredTypeTest, Conditions) {
 }
 
 TEST(PreferredTypeTest, InitAndAssignment) {
-  StringRef Code = R"cpp(
+  StringRef const Code = R"cpp(
     struct vector {
       int* begin();
     };
@@ -413,7 +413,7 @@ TEST(PreferredTypeTest, UnaryExprs) {
 }
 
 TEST(PreferredTypeTest, ParenExpr) {
-  StringRef Code = R"cpp(
+  StringRef const Code = R"cpp(
     const int *i = ^(^(^(^10)));
   )cpp";
   EXPECT_THAT(collectPreferredTypes(Code), Each("const int *"));
@@ -483,7 +483,7 @@ TEST(PreferredTypeTest, FunctionArguments) {
 }
 
 TEST(PreferredTypeTest, NoCrashOnInvalidTypes) {
-  StringRef Code = R"cpp(
+  StringRef const Code = R"cpp(
     auto x = decltype(&1)(^);
     auto y = new decltype(&1)(^);
     // GNU decimal type extension is not supported in clang.

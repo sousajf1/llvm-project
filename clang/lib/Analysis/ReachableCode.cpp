@@ -98,7 +98,7 @@ static bool isDeadReturn(const CFGBlock *B, const Stmt *S) {
             RE = RE->IgnoreParenCasts();
             if (RE == S)
               return true;
-            ParentMap PM(const_cast<Expr *>(RE));
+            ParentMap const PM(const_cast<Expr *>(RE));
             // If 'S' is in the ParentMap, it is a subexpression of
             // the return statement.
             return PM.getParent(S);
@@ -153,21 +153,21 @@ static bool isExpandedFromConfigurationMacro(const Stmt *S,
   // value comes from a macro, but we can do much better.  This is likely
   // to be over conservative.  This logic is factored into a separate function
   // so that we can refine it later.
-  SourceLocation L = S->getBeginLoc();
+  SourceLocation const L = S->getBeginLoc();
   if (L.isMacroID()) {
     SourceManager &SM = PP.getSourceManager();
     if (IgnoreYES_NO) {
       // The Objective-C constant 'YES' and 'NO'
       // are defined as macros.  Do not treat them
       // as configuration values.
-      SourceLocation TopL = getTopMostMacro(L, SM);
-      StringRef MacroName = PP.getImmediateMacroName(TopL);
+      SourceLocation const TopL = getTopMostMacro(L, SM);
+      StringRef const MacroName = PP.getImmediateMacroName(TopL);
       if (MacroName == "YES" || MacroName == "NO")
         return false;
     } else if (!PP.getLangOpts().CPlusPlus) {
       // Do not treat C 'false' and 'true' macros as configuration values.
-      SourceLocation TopL = getTopMostMacro(L, SM);
-      StringRef MacroName = PP.getImmediateMacroName(TopL);
+      SourceLocation const TopL = getTopMostMacro(L, SM);
+      StringRef const MacroName = PP.getImmediateMacroName(TopL);
       if (MacroName == "false" || MacroName == "true")
         return false;
     }
@@ -250,9 +250,9 @@ static bool isConfigurationValue(const Stmt *S,
       const UnaryOperator *UO = cast<UnaryOperator>(S);
       if (UO->getOpcode() != UO_LNot && UO->getOpcode() != UO_Minus)
         return false;
-      bool SilenceableCondValNotSet =
+      bool const SilenceableCondValNotSet =
           SilenceableCondVal && SilenceableCondVal->getBegin().isInvalid();
-      bool IsSubExprConfigValue =
+      bool const IsSubExprConfigValue =
           isConfigurationValue(UO->getSubExpr(), PP, SilenceableCondVal,
                                IncludeIntegers, WrappedInParens);
       // Update the silenceable condition value source range only if the range
@@ -360,7 +360,7 @@ static unsigned scanFromBlock(const CFGBlock *Start,
       while (false);
 
       if (B) {
-        unsigned blockID = B->getBlockID();
+        unsigned const blockID = B->getBlockID();
         if (!Reachable[blockID]) {
           Reachable.set(blockID);
           WL.push_back(B);
@@ -416,7 +416,7 @@ namespace {
 }
 
 void DeadCodeScan::enqueue(const CFGBlock *block) {
-  unsigned blockID = block->getBlockID();
+  unsigned const blockID = block->getBlockID();
   if (Reachable[blockID] || Visited[blockID])
     return;
   Visited[blockID] = true;
@@ -429,7 +429,7 @@ bool DeadCodeScan::isDeadCodeRoot(const clang::CFGBlock *Block) {
   for (CFGBlock::const_pred_iterator I = Block->pred_begin(),
        E = Block->pred_end(); I != E; ++I) {
     if (const CFGBlock *PredBlock = *I) {
-      unsigned blockID = PredBlock->getBlockID();
+      unsigned const blockID = PredBlock->getBlockID();
       if (Visited[blockID]) {
         isDeadRoot = false;
         continue;
@@ -659,7 +659,7 @@ void DeadCodeScan::reportDeadCode(const CFGBlock *B,
   }
 
   SourceRange R1, R2;
-  SourceLocation Loc = GetUnreachableLoc(S, R1, R2);
+  SourceLocation const Loc = GetUnreachableLoc(S, R1, R2);
   CB.HandleUnreachable(UK, Loc, SilenceableCondVal, R1, R2);
 }
 

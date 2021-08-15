@@ -21,7 +21,7 @@ namespace {
 class HeaderIncludesTest : public ::testing::Test {
 protected:
   std::string insert(llvm::StringRef Code, llvm::StringRef Header) {
-    HeaderIncludes Includes(FileName, Code, Style);
+    HeaderIncludes const Includes(FileName, Code, Style);
     assert(Header.startswith("\"") || Header.startswith("<"));
     auto R = Includes.insert(Header.trim("\"<>"), Header.startswith("<"));
     if (!R)
@@ -32,7 +32,7 @@ protected:
   }
 
   std::string remove(llvm::StringRef Code, llvm::StringRef Header) {
-    HeaderIncludes Includes(FileName, Code, Style);
+    HeaderIncludes const Includes(FileName, Code, Style);
     assert(Header.startswith("\"") || Header.startswith("<"));
     auto Replaces = Includes.remove(Header.trim("\"<>"), Header.startswith("<"));
     auto Result = applyAllReplacements(Code, Replaces);
@@ -45,19 +45,19 @@ protected:
 };
 
 TEST_F(HeaderIncludesTest, NoExistingIncludeWithoutDefine) {
-  std::string Code = "int main() {}";
-  std::string Expected = "#include \"a.h\"\n"
+  std::string const Code = "int main() {}";
+  std::string const Expected = "#include \"a.h\"\n"
                          "int main() {}";
   EXPECT_EQ(Expected, insert(Code, "\"a.h\""));
 }
 
 TEST_F(HeaderIncludesTest, NoExistingIncludeWithDefine) {
-  std::string Code = "#ifndef A_H\n"
+  std::string const Code = "#ifndef A_H\n"
                      "#define A_H\n"
                      "class A {};\n"
                      "#define MMM 123\n"
                      "#endif";
-  std::string Expected = "#ifndef A_H\n"
+  std::string const Expected = "#ifndef A_H\n"
                          "#define A_H\n"
                          "#include \"b.h\"\n"
                          "class A {};\n"
@@ -68,7 +68,7 @@ TEST_F(HeaderIncludesTest, NoExistingIncludeWithDefine) {
 }
 
 TEST_F(HeaderIncludesTest, InsertBeforeCategoryWithLowerPriority) {
-  std::string Code = "#ifndef A_H\n"
+  std::string const Code = "#ifndef A_H\n"
                      "#define A_H\n"
                      "\n"
                      "\n"
@@ -77,7 +77,7 @@ TEST_F(HeaderIncludesTest, InsertBeforeCategoryWithLowerPriority) {
                      "class A {};\n"
                      "#define MMM 123\n"
                      "#endif";
-  std::string Expected = "#ifndef A_H\n"
+  std::string const Expected = "#ifndef A_H\n"
                          "#define A_H\n"
                          "\n"
                          "\n"
@@ -92,10 +92,10 @@ TEST_F(HeaderIncludesTest, InsertBeforeCategoryWithLowerPriority) {
 }
 
 TEST_F(HeaderIncludesTest, InsertAfterMainHeader) {
-  std::string Code = "#include \"fix.h\"\n"
+  std::string const Code = "#include \"fix.h\"\n"
                      "\n"
                      "int main() {}";
-  std::string Expected = "#include \"fix.h\"\n"
+  std::string const Expected = "#include \"fix.h\"\n"
                          "#include <a>\n"
                          "\n"
                          "int main() {}";
@@ -114,10 +114,10 @@ TEST_F(HeaderIncludesTest, InsertAfterMainHeader) {
 }
 
 TEST_F(HeaderIncludesTest, InsertBeforeSystemHeaderLLVM) {
-  std::string Code = "#include <memory>\n"
+  std::string const Code = "#include <memory>\n"
                      "\n"
                      "int main() {}";
-  std::string Expected = "#include \"z.h\"\n"
+  std::string const Expected = "#include \"z.h\"\n"
                          "#include <memory>\n"
                          "\n"
                          "int main() {}";
@@ -125,10 +125,10 @@ TEST_F(HeaderIncludesTest, InsertBeforeSystemHeaderLLVM) {
 }
 
 TEST_F(HeaderIncludesTest, InsertAfterSystemHeaderGoogle) {
-  std::string Code = "#include <memory>\n"
+  std::string const Code = "#include <memory>\n"
                      "\n"
                      "int main() {}";
-  std::string Expected = "#include <memory>\n"
+  std::string const Expected = "#include <memory>\n"
                          "#include \"z.h\"\n"
                          "\n"
                          "int main() {}";
@@ -138,12 +138,12 @@ TEST_F(HeaderIncludesTest, InsertAfterSystemHeaderGoogle) {
 }
 
 TEST_F(HeaderIncludesTest, InsertOneIncludeLLVMStyle) {
-  std::string Code = "#include \"x/fix.h\"\n"
+  std::string const Code = "#include \"x/fix.h\"\n"
                      "#include \"a.h\"\n"
                      "#include \"b.h\"\n"
                      "#include \"clang/Format/Format.h\"\n"
                      "#include <memory>\n";
-  std::string Expected = "#include \"x/fix.h\"\n"
+  std::string const Expected = "#include \"x/fix.h\"\n"
                          "#include \"a.h\"\n"
                          "#include \"b.h\"\n"
                          "#include \"clang/Format/Format.h\"\n"
@@ -153,11 +153,11 @@ TEST_F(HeaderIncludesTest, InsertOneIncludeLLVMStyle) {
 }
 
 TEST_F(HeaderIncludesTest, InsertIntoBlockSorted) {
-  std::string Code = "#include \"x/fix.h\"\n"
+  std::string const Code = "#include \"x/fix.h\"\n"
                      "#include \"a.h\"\n"
                      "#include \"c.h\"\n"
                      "#include <memory>\n";
-  std::string Expected = "#include \"x/fix.h\"\n"
+  std::string const Expected = "#include \"x/fix.h\"\n"
                          "#include \"a.h\"\n"
                          "#include \"b.h\"\n"
                          "#include \"c.h\"\n"
@@ -166,7 +166,7 @@ TEST_F(HeaderIncludesTest, InsertIntoBlockSorted) {
 }
 
 TEST_F(HeaderIncludesTest, InsertIntoFirstBlockOfSameKind) {
-  std::string Code = "#include \"x/fix.h\"\n"
+  std::string const Code = "#include \"x/fix.h\"\n"
                      "#include \"c.h\"\n"
                      "#include \"e.h\"\n"
                      "#include \"f.h\"\n"
@@ -174,7 +174,7 @@ TEST_F(HeaderIncludesTest, InsertIntoFirstBlockOfSameKind) {
                      "#include <vector>\n"
                      "#include \"m.h\"\n"
                      "#include \"n.h\"\n";
-  std::string Expected = "#include \"x/fix.h\"\n"
+  std::string const Expected = "#include \"x/fix.h\"\n"
                          "#include \"c.h\"\n"
                          "#include \"d.h\"\n"
                          "#include \"e.h\"\n"
@@ -187,12 +187,12 @@ TEST_F(HeaderIncludesTest, InsertIntoFirstBlockOfSameKind) {
 }
 
 TEST_F(HeaderIncludesTest, InsertIntoSystemBlockSorted) {
-  std::string Code = "#include \"x/fix.h\"\n"
+  std::string const Code = "#include \"x/fix.h\"\n"
                      "#include \"a.h\"\n"
                      "#include \"c.h\"\n"
                      "#include <a>\n"
                      "#include <z>\n";
-  std::string Expected = "#include \"x/fix.h\"\n"
+  std::string const Expected = "#include \"x/fix.h\"\n"
                          "#include \"a.h\"\n"
                          "#include \"c.h\"\n"
                          "#include <a>\n"
@@ -202,13 +202,13 @@ TEST_F(HeaderIncludesTest, InsertIntoSystemBlockSorted) {
 }
 
 TEST_F(HeaderIncludesTest, InsertNewSystemIncludeGoogleStyle) {
-  std::string Code = "#include \"x/fix.h\"\n"
+  std::string const Code = "#include \"x/fix.h\"\n"
                      "\n"
                      "#include \"y/a.h\"\n"
                      "#include \"z/b.h\"\n";
   // FIXME: inserting after the empty line following the main header might be
   // preferred.
-  std::string Expected = "#include \"x/fix.h\"\n"
+  std::string const Expected = "#include \"x/fix.h\"\n"
                          "#include <vector>\n"
                          "\n"
                          "#include \"y/a.h\"\n"
@@ -219,10 +219,10 @@ TEST_F(HeaderIncludesTest, InsertNewSystemIncludeGoogleStyle) {
 }
 
 TEST_F(HeaderIncludesTest, NotConfusedByDefine) {
-  std::string Code = "void f() {}\n"
+  std::string const Code = "void f() {}\n"
                      "#define A \\\n"
                      "  int i;";
-  std::string Expected = "#include <vector>\n"
+  std::string const Expected = "#include <vector>\n"
                          "void f() {}\n"
                          "#define A \\\n"
                          "  int i;";
@@ -230,10 +230,10 @@ TEST_F(HeaderIncludesTest, NotConfusedByDefine) {
 }
 
 TEST_F(HeaderIncludesTest, SkippedTopComment) {
-  std::string Code = "// comment\n"
+  std::string const Code = "// comment\n"
                      "\n"
                      "   // comment\n";
-  std::string Expected = "// comment\n"
+  std::string const Expected = "// comment\n"
                          "\n"
                          "   // comment\n"
                          "#include <vector>\n";
@@ -241,13 +241,13 @@ TEST_F(HeaderIncludesTest, SkippedTopComment) {
 }
 
 TEST_F(HeaderIncludesTest, SkippedMixedComments) {
-  std::string Code = "// comment\n"
+  std::string const Code = "// comment\n"
                      "// comment \\\n"
                      " comment continued\n"
                      "/*\n"
                      "* comment\n"
                      "*/\n";
-  std::string Expected = "// comment\n"
+  std::string const Expected = "// comment\n"
                          "// comment \\\n"
                          " comment continued\n"
                          "/*\n"
@@ -258,13 +258,13 @@ TEST_F(HeaderIncludesTest, SkippedMixedComments) {
 }
 
 TEST_F(HeaderIncludesTest, MultipleBlockCommentsInOneLine) {
-  std::string Code = "/*\n"
+  std::string const Code = "/*\n"
                      "* comment\n"
                      "*/ /* comment\n"
                      "*/\n"
                      "\n\n"
                      "/* c1 */ /*c2 */\n";
-  std::string Expected = "/*\n"
+  std::string const Expected = "/*\n"
                          "* comment\n"
                          "*/ /* comment\n"
                          "*/\n"
@@ -275,7 +275,7 @@ TEST_F(HeaderIncludesTest, MultipleBlockCommentsInOneLine) {
 }
 
 TEST_F(HeaderIncludesTest, CodeAfterComments) {
-  std::string Code = "/*\n"
+  std::string const Code = "/*\n"
                      "* comment\n"
                      "*/ /* comment\n"
                      "*/\n"
@@ -283,7 +283,7 @@ TEST_F(HeaderIncludesTest, CodeAfterComments) {
                      "/* c1 */ /*c2 */\n"
                      "\n"
                      "int x;\n";
-  std::string Expected = "/*\n"
+  std::string const Expected = "/*\n"
                          "* comment\n"
                          "*/ /* comment\n"
                          "*/\n"
@@ -296,10 +296,10 @@ TEST_F(HeaderIncludesTest, CodeAfterComments) {
 }
 
 TEST_F(HeaderIncludesTest, FakeHeaderGuardIfDef) {
-  std::string Code = "// comment \n"
+  std::string const Code = "// comment \n"
                      "#ifdef X\n"
                      "#define X\n";
-  std::string Expected = "// comment \n"
+  std::string const Expected = "// comment \n"
                          "#include <vector>\n"
                          "#ifdef X\n"
                          "#define X\n";
@@ -307,12 +307,12 @@ TEST_F(HeaderIncludesTest, FakeHeaderGuardIfDef) {
 }
 
 TEST_F(HeaderIncludesTest, RealHeaderGuardAfterComments) {
-  std::string Code = "// comment \n"
+  std::string const Code = "// comment \n"
                      "#ifndef X\n"
                      "#define X\n"
                      "int x;\n"
                      "#define Y 1\n";
-  std::string Expected = "// comment \n"
+  std::string const Expected = "// comment \n"
                          "#ifndef X\n"
                          "#define X\n"
                          "#include <vector>\n"
@@ -322,10 +322,10 @@ TEST_F(HeaderIncludesTest, RealHeaderGuardAfterComments) {
 }
 
 TEST_F(HeaderIncludesTest, PragmaOnce) {
-  std::string Code = "// comment \n"
+  std::string const Code = "// comment \n"
                      "#pragma once\n"
                      "int x;\n";
-  std::string Expected = "// comment \n"
+  std::string const Expected = "// comment \n"
                          "#pragma once\n"
                          "#include <vector>\n"
                          "int x;\n";
@@ -333,11 +333,11 @@ TEST_F(HeaderIncludesTest, PragmaOnce) {
 }
 
 TEST_F(HeaderIncludesTest, IfNDefWithNoDefine) {
-  std::string Code = "// comment \n"
+  std::string const Code = "// comment \n"
                      "#ifndef X\n"
                      "int x;\n"
                      "#define Y 1\n";
-  std::string Expected = "// comment \n"
+  std::string const Expected = "// comment \n"
                          "#include <vector>\n"
                          "#ifndef X\n"
                          "int x;\n"
@@ -346,10 +346,10 @@ TEST_F(HeaderIncludesTest, IfNDefWithNoDefine) {
 }
 
 TEST_F(HeaderIncludesTest, FakeHeaderGuard) {
-  std::string Code = "// comment \n"
+  std::string const Code = "// comment \n"
                      "#ifndef X\n"
                      "#define 1\n";
-  std::string Expected = "// comment \n"
+  std::string const Expected = "// comment \n"
                          "#include <vector>\n"
                          "#ifndef X\n"
                          "#define 1\n";
@@ -357,10 +357,10 @@ TEST_F(HeaderIncludesTest, FakeHeaderGuard) {
 }
 
 TEST_F(HeaderIncludesTest, FakeHeaderGuardIfnDef) {
-  std::string Code = "#ifndef A_H\n"
+  std::string const Code = "#ifndef A_H\n"
                      "#define A_H 1\n"
                      "#endif";
-  std::string Expected = "#include \"b.h\"\n"
+  std::string const Expected = "#include \"b.h\"\n"
                          "#ifndef A_H\n"
                          "#define A_H 1\n"
                          "#endif";
@@ -369,7 +369,7 @@ TEST_F(HeaderIncludesTest, FakeHeaderGuardIfnDef) {
 }
 
 TEST_F(HeaderIncludesTest, HeaderGuardWithComment) {
-  std::string Code = "// comment \n"
+  std::string const Code = "// comment \n"
                      "#ifndef X // comment\n"
                      "// comment\n"
                      "/* comment\n"
@@ -377,7 +377,7 @@ TEST_F(HeaderIncludesTest, HeaderGuardWithComment) {
                      "/* comment */ #define X\n"
                      "int x;\n"
                      "#define Y 1\n";
-  std::string Expected = "// comment \n"
+  std::string const Expected = "// comment \n"
                          "#ifndef X // comment\n"
                          "// comment\n"
                          "/* comment\n"
@@ -390,39 +390,39 @@ TEST_F(HeaderIncludesTest, HeaderGuardWithComment) {
 }
 
 TEST_F(HeaderIncludesTest, EmptyCode) {
-  std::string Code = "";
-  std::string Expected = "#include <vector>\n";
+  std::string const Code = "";
+  std::string const Expected = "#include <vector>\n";
   EXPECT_EQ(Expected, insert(Code, "<vector>"));
 }
 
 TEST_F(HeaderIncludesTest, NoNewLineAtTheEndOfCode) {
-  std::string Code = "#include <map>";
-  std::string Expected = "#include <map>\n#include <vector>\n";
+  std::string const Code = "#include <map>";
+  std::string const Expected = "#include <map>\n#include <vector>\n";
   EXPECT_EQ(Expected, insert(Code, "<vector>"));
 }
 
 TEST_F(HeaderIncludesTest, SkipExistingHeaders) {
-  std::string Code = "#include \"a.h\"\n"
+  std::string const Code = "#include \"a.h\"\n"
                      "#include <vector>\n";
-  std::string Expected = "#include \"a.h\"\n"
+  std::string const Expected = "#include \"a.h\"\n"
                          "#include <vector>\n";
   EXPECT_EQ(Expected, insert(Code, "<vector>"));
   EXPECT_EQ(Expected, insert(Code, "\"a.h\""));
 }
 
 TEST_F(HeaderIncludesTest, AddIncludesWithDifferentForms) {
-  std::string Code = "#include <vector>\n";
+  std::string const Code = "#include <vector>\n";
   // FIXME: this might not be the best behavior.
-  std::string Expected = "#include \"vector\"\n"
+  std::string const Expected = "#include \"vector\"\n"
                          "#include <vector>\n";
   EXPECT_EQ(Expected, insert(Code, "\"vector\""));
 }
 
 TEST_F(HeaderIncludesTest, NoInsertionAfterCode) {
-  std::string Code = "#include \"a.h\"\n"
+  std::string const Code = "#include \"a.h\"\n"
                      "void f() {}\n"
                      "#include \"b.h\"\n";
-  std::string Expected = "#include \"a.h\"\n"
+  std::string const Expected = "#include \"a.h\"\n"
                          "#include \"c.h\"\n"
                          "void f() {}\n"
                          "#include \"b.h\"\n";
@@ -430,11 +430,11 @@ TEST_F(HeaderIncludesTest, NoInsertionAfterCode) {
 }
 
 TEST_F(HeaderIncludesTest, NoInsertionInStringLiteral) {
-  std::string Code = "#include \"a.h\"\n"
+  std::string const Code = "#include \"a.h\"\n"
                      "const char[] = R\"(\n"
                      "#include \"b.h\"\n"
                      ")\";\n";
-  std::string Expected = "#include \"a.h\"\n"
+  std::string const Expected = "#include \"a.h\"\n"
                          "#include \"c.h\"\n"
                          "const char[] = R\"(\n"
                          "#include \"b.h\"\n"
@@ -443,11 +443,11 @@ TEST_F(HeaderIncludesTest, NoInsertionInStringLiteral) {
 }
 
 TEST_F(HeaderIncludesTest, NoInsertionAfterOtherDirective) {
-  std::string Code = "#include \"a.h\"\n"
+  std::string const Code = "#include \"a.h\"\n"
                      "#ifdef X\n"
                      "#include \"b.h\"\n"
                      "#endif\n";
-  std::string Expected = "#include \"a.h\"\n"
+  std::string const Expected = "#include \"a.h\"\n"
                          "#include \"c.h\"\n"
                          "#ifdef X\n"
                          "#include \"b.h\"\n"
@@ -456,10 +456,10 @@ TEST_F(HeaderIncludesTest, NoInsertionAfterOtherDirective) {
 }
 
 TEST_F(HeaderIncludesTest, CanInsertAfterLongSystemInclude) {
-  std::string Code = "#include \"a.h\"\n"
+  std::string const Code = "#include \"a.h\"\n"
                      "// comment\n\n"
                      "#include <a/b/c/d/e.h>\n";
-  std::string Expected = "#include \"a.h\"\n"
+  std::string const Expected = "#include \"a.h\"\n"
                          "// comment\n\n"
                          "#include <a/b/c/d/e.h>\n"
                          "#include <x.h>\n";
@@ -467,14 +467,14 @@ TEST_F(HeaderIncludesTest, CanInsertAfterLongSystemInclude) {
 }
 
 TEST_F(HeaderIncludesTest, CanInsertAfterComment) {
-  std::string Code = "#include \"a.h\"\n"
+  std::string const Code = "#include \"a.h\"\n"
                      "// Comment\n"
                      "\n"
                      "/* Comment */\n"
                      "// Comment\n"
                      "\n"
                      "#include \"b.h\"\n";
-  std::string Expected = "#include \"a.h\"\n"
+  std::string const Expected = "#include \"a.h\"\n"
                          "// Comment\n"
                          "\n"
                          "/* Comment */\n"
@@ -486,7 +486,7 @@ TEST_F(HeaderIncludesTest, CanInsertAfterComment) {
 }
 
 TEST_F(HeaderIncludesTest, LongCommentsInTheBeginningOfFile) {
-  std::string Code = "// Loooooooooooooooooooooooooong comment\n"
+  std::string const Code = "// Loooooooooooooooooooooooooong comment\n"
                      "// Loooooooooooooooooooooooooong comment\n"
                      "// Loooooooooooooooooooooooooong comment\n"
                      "#include <string>\n"
@@ -494,7 +494,7 @@ TEST_F(HeaderIncludesTest, LongCommentsInTheBeginningOfFile) {
                      "\n"
                      "#include \"a.h\"\n"
                      "#include \"b.h\"\n";
-  std::string Expected = "// Loooooooooooooooooooooooooong comment\n"
+  std::string const Expected = "// Loooooooooooooooooooooooooong comment\n"
                          "// Loooooooooooooooooooooooooong comment\n"
                          "// Loooooooooooooooooooooooooong comment\n"
                          "#include <string>\n"
@@ -509,43 +509,43 @@ TEST_F(HeaderIncludesTest, LongCommentsInTheBeginningOfFile) {
 }
 
 TEST_F(HeaderIncludesTest, SimpleDeleteInclude) {
-  std::string Code = "#include \"abc.h\"\n"
+  std::string const Code = "#include \"abc.h\"\n"
                      "#include \"xyz.h\" // comment\n"
                      "int x;\n";
-  std::string Expected = "#include \"abc.h\"\n"
+  std::string const Expected = "#include \"abc.h\"\n"
                          "int x;\n";
   EXPECT_EQ(Expected, remove(Code, "\"xyz.h\""));
 }
 
 TEST_F(HeaderIncludesTest, DeleteQuotedOnly) {
-  std::string Code = "#include \"abc.h\"\n"
+  std::string const Code = "#include \"abc.h\"\n"
                      "#include <abc.h>\n"
                      "int x;\n";
-  std::string Expected = "#include <abc.h>\n"
+  std::string const Expected = "#include <abc.h>\n"
                          "int x;\n";
   EXPECT_EQ(Expected, remove(Code, "\"abc.h\""));
 }
 
 TEST_F(HeaderIncludesTest, DeleteAllCode) {
-  std::string Code = "#include \"xyz.h\"\n";
-  std::string Expected = "";
+  std::string const Code = "#include \"xyz.h\"\n";
+  std::string const Expected = "";
   EXPECT_EQ(Expected, remove(Code, "\"xyz.h\""));
 }
 
 TEST_F(HeaderIncludesTest, DeleteOnlyIncludesWithSameQuote) {
-  std::string Code = "#include \"xyz.h\"\n"
+  std::string const Code = "#include \"xyz.h\"\n"
                      "#include \"xyz\"\n"
                      "#include <xyz.h>\n";
-  std::string Expected = "#include \"xyz.h\"\n"
+  std::string const Expected = "#include \"xyz.h\"\n"
                          "#include \"xyz\"\n";
   EXPECT_EQ(Expected, remove(Code, "<xyz.h>"));
 }
 
 TEST_F(HeaderIncludesTest, CanDeleteAfterCode) {
-  std::string Code = "#include \"a.h\"\n"
+  std::string const Code = "#include \"a.h\"\n"
                      "void f() {}\n"
                      "#include \"b.h\"\n";
-  std::string Expected = "#include \"a.h\"\n"
+  std::string const Expected = "#include \"a.h\"\n"
                          "void f() {}\n";
   EXPECT_EQ(Expected, remove(Code, "\"b.h\""));
 }

@@ -49,7 +49,7 @@ public:
           return true;
 
         if (FD->getIdentifier() == NSMakeCollectableII) {
-          Transaction Trans(TA);
+          Transaction const Trans(TA);
           TA.clearDiagnostic(diag::err_unavailable,
                              diag::err_unavailable_message,
                              diag::err_ovl_deleted_call, // ObjC++

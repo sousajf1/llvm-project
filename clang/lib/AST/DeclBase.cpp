@@ -99,7 +99,7 @@ void *Decl::operator new(std::size_t Size, const ASTContext &Ctx,
   if (Ctx.getLangOpts().trackLocalOwningModule() || !Parent) {
     // Ensure required alignment of the resulting object by adding extra
     // padding at the start if required.
-    size_t ExtraAlign =
+    size_t const ExtraAlign =
         llvm::offsetToAlignment(sizeof(Module *), llvm::Align(alignof(Decl)));
     auto *Buffer = reinterpret_cast<char *>(
         ::operator new(ExtraAlign + sizeof(Module *) + Size + Extra, Ctx));
@@ -520,7 +520,7 @@ static StringRef getRealizedPlatform(const AvailabilityAttr *A,
   StringRef RealizedPlatform = A->getPlatform()->getName();
   if (!Context.getLangOpts().AppExt)
     return RealizedPlatform;
-  size_t suffix = RealizedPlatform.rfind("_app_extension");
+  size_t const suffix = RealizedPlatform.rfind("_app_extension");
   if (suffix != StringRef::npos)
     return RealizedPlatform.slice(0, suffix);
   return RealizedPlatform;
@@ -545,8 +545,8 @@ static AvailabilityResult CheckAvailability(ASTContext &Context,
   if (EnclosingVersion.empty())
     return AR_Available;
 
-  StringRef ActualPlatform = A->getPlatform()->getName();
-  StringRef TargetPlatform = Context.getTargetInfo().getPlatformName();
+  StringRef const ActualPlatform = A->getPlatform()->getName();
+  StringRef const TargetPlatform = Context.getTargetInfo().getPlatformName();
 
   // Match the platform name.
   if (getRealizedPlatform(A, Context) != TargetPlatform)
@@ -582,7 +582,7 @@ static AvailabilityResult CheckAvailability(ASTContext &Context,
     if (Message) {
       Message->clear();
       llvm::raw_string_ostream Out(*Message);
-      VersionTuple VTI(A->getIntroduced());
+      VersionTuple const VTI(A->getIntroduced());
       Out << "introduced in " << PrettyPlatformName << ' '
           << VTI << HintMessage;
     }
@@ -595,7 +595,7 @@ static AvailabilityResult CheckAvailability(ASTContext &Context,
     if (Message) {
       Message->clear();
       llvm::raw_string_ostream Out(*Message);
-      VersionTuple VTO(A->getObsoleted());
+      VersionTuple const VTO(A->getObsoleted());
       Out << "obsoleted in " << PrettyPlatformName << ' '
           << VTO << HintMessage;
     }
@@ -608,7 +608,7 @@ static AvailabilityResult CheckAvailability(ASTContext &Context,
     if (Message) {
       Message->clear();
       llvm::raw_string_ostream Out(*Message);
-      VersionTuple VTD(A->getDeprecated());
+      VersionTuple const VTD(A->getDeprecated());
       Out << "first deprecated in " << PrettyPlatformName << ' '
           << VTD << HintMessage;
     }
@@ -648,7 +648,7 @@ AvailabilityResult Decl::getAvailability(std::string *Message,
     }
 
     if (const auto *Availability = dyn_cast<AvailabilityAttr>(A)) {
-      AvailabilityResult AR = CheckAvailability(getASTContext(), Availability,
+      AvailabilityResult const AR = CheckAvailability(getASTContext(), Availability,
                                                 Message, EnclosingVersion);
 
       if (AR == AR_Unavailable) {
@@ -673,7 +673,7 @@ AvailabilityResult Decl::getAvailability(std::string *Message,
 
 VersionTuple Decl::getVersionIntroduced() const {
   const ASTContext &Context = getASTContext();
-  StringRef TargetPlatform = Context.getTargetInfo().getPlatformName();
+  StringRef const TargetPlatform = Context.getTargetInfo().getPlatformName();
   for (const auto *A : attrs()) {
     if (const auto *Availability = dyn_cast<AvailabilityAttr>(A)) {
       if (getRealizedPlatform(Availability, Context) != TargetPlatform)
@@ -911,7 +911,7 @@ const AttrVec &Decl::getAttrs() const {
 }
 
 Decl *Decl::castFromDeclContext (const DeclContext *D) {
-  Decl::Kind DK = D->getDeclKind();
+  Decl::Kind const DK = D->getDeclKind();
   switch(DK) {
 #define DECL(NAME, BASE)
 #define DECL_CONTEXT(NAME) \
@@ -930,7 +930,7 @@ Decl *Decl::castFromDeclContext (const DeclContext *D) {
 }
 
 DeclContext *Decl::castToDeclContext(const Decl *D) {
-  Decl::Kind DK = D->getKind();
+  Decl::Kind const DK = D->getKind();
   switch(DK) {
 #define DECL(NAME, BASE)
 #define DECL_CONTEXT(NAME) \
@@ -1297,7 +1297,7 @@ void collectAllContextsImpl(T *Self, SmallVectorImpl<DeclContext *> &Contexts) {
 void DeclContext::collectAllContexts(SmallVectorImpl<DeclContext *> &Contexts) {
   Contexts.clear();
 
-  Decl::Kind Kind = getDeclKind();
+  Decl::Kind const Kind = getDeclKind();
 
   if (Kind == Decl::TranslationUnit)
     collectAllContextsImpl(static_cast<TranslationUnitDecl *>(this), Contexts);
@@ -1348,7 +1348,7 @@ DeclContext::LoadLexicalDeclsFromExternalStorage() const {
   assert(hasExternalLexicalStorage() && Source && "No external storage?");
 
   // Notify that we have a DeclContext that is initializing.
-  ExternalASTSource::Deserializing ADeclContext(Source);
+  ExternalASTSource::Deserializing const ADeclContext(Source);
 
   // Load the external declarations, if any.
   SmallVector<Decl*, 64> Decls;
@@ -1513,7 +1513,7 @@ void DeclContext::removeDecl(Decl *D) {
     do {
       StoredDeclsMap *Map = DC->getPrimaryContext()->LookupPtr;
       if (Map) {
-        StoredDeclsMap::iterator Pos = Map->find(ND->getDeclName());
+        StoredDeclsMap::iterator const Pos = Map->find(ND->getDeclName());
         assert(Pos != Map->end() && "no lookup entry for decl");
         Pos->second.remove(ND);
       }
@@ -1584,7 +1584,7 @@ StoredDeclsMap *DeclContext::buildLookup() {
     setHasLazyExternalLexicalLookups(false);
     for (auto *DC : Contexts) {
       if (DC->hasExternalLexicalStorage()) {
-        bool LoadedDecls = DC->LoadLexicalDeclsFromExternalStorage();
+        bool const LoadedDecls = DC->LoadLexicalDeclsFromExternalStorage();
         setHasLazyLocalLexicalLookups(
             hasLazyLocalLexicalLookups() | LoadedDecls );
       }
@@ -1666,14 +1666,14 @@ DeclContext::lookup(DeclarationName Name) const {
       Map = CreateStoredDeclsMap(getParentASTContext());
 
     // If we have a lookup result with no external decls, we are done.
-    std::pair<StoredDeclsMap::iterator, bool> R =
+    std::pair<StoredDeclsMap::iterator, bool> const R =
         Map->insert(std::make_pair(Name, StoredDeclsList()));
     if (!R.second && !R.first->second.hasExternalDecls())
       return R.first->second.getLookupResult();
 
     if (Source->FindExternalVisibleDeclsByName(this, Name) || !R.second) {
       if (StoredDeclsMap *Map = LookupPtr) {
-        StoredDeclsMap::iterator I = Map->find(Name);
+        StoredDeclsMap::iterator const I = Map->find(Name);
         if (I != Map->end())
           return I->second.getLookupResult();
       }
@@ -1690,7 +1690,7 @@ DeclContext::lookup(DeclarationName Name) const {
   if (!Map)
     return {};
 
-  StoredDeclsMap::iterator I = Map->find(Name);
+  StoredDeclsMap::iterator const I = Map->find(Name);
   if (I == Map->end())
     return {};
 
@@ -1712,7 +1712,7 @@ DeclContext::noload_lookup(DeclarationName Name) {
   if (!Map)
     return {};
 
-  StoredDeclsMap::iterator I = Map->find(Name);
+  StoredDeclsMap::iterator const I = Map->find(Name);
   return I != Map->end() ? I->second.getLookupResult()
                          : lookup_result();
 }
@@ -1747,7 +1747,7 @@ void DeclContext::localUncachedLookup(DeclarationName Name,
   if (Name && !hasLazyLocalLexicalLookups() &&
       !hasLazyExternalLexicalLookups()) {
     if (StoredDeclsMap *Map = LookupPtr) {
-      StoredDeclsMap::iterator Pos = Map->find(Name);
+      StoredDeclsMap::iterator const Pos = Map->find(Name);
       if (Pos != Map->end()) {
         Results.insert(Results.end(),
                        Pos->second.getLookupResult().begin(),
@@ -1776,7 +1776,7 @@ DeclContext *DeclContext::getRedeclContext() {
   // the record as well. Currently, this means skipping enumerations because
   // they're the only transparent context that can exist within a struct or
   // union.
-  bool SkipRecords = getDeclKind() == Decl::Kind::Enum &&
+  bool const SkipRecords = getDeclKind() == Decl::Kind::Enum &&
                      !getParentASTContext().getLangOpts().CPlusPlus;
 
   // Skip through contexts to get to the redeclaration context. Transparent
@@ -1937,7 +1937,7 @@ StoredDeclsMap *DeclContext::CreateStoredDeclsMap(ASTContext &C) const {
          "creating decls map on non-primary context");
 
   StoredDeclsMap *M;
-  bool Dependent = isDependentContext();
+  bool const Dependent = isDependentContext();
   if (Dependent)
     M = new DependentStoredDeclsMap();
   else
@@ -1958,7 +1958,7 @@ void ASTContext::ReleaseDeclContextMaps() {
 void StoredDeclsMap::DestroyAll(StoredDeclsMap *Map, bool Dependent) {
   while (Map) {
     // Advance the iteration before we invalidate memory.
-    llvm::PointerIntPair<StoredDeclsMap*,1> Next = Map->Previous;
+    llvm::PointerIntPair<StoredDeclsMap*,1> const Next = Map->Previous;
 
     if (Dependent)
       delete static_cast<DependentStoredDeclsMap*>(Map);

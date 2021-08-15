@@ -114,8 +114,8 @@ bool IndexingContext::importedModule(const ImportDecl *ImportD) {
   else
     Loc = ImportD->getLocation();
 
-  SourceManager &SM = Ctx->getSourceManager();
-  FileID FID = SM.getFileID(SM.getFileLoc(Loc));
+  SourceManager  const&SM = Ctx->getSourceManager();
+  FileID const FID = SM.getFileID(SM.getFileLoc(Loc));
   if (FID.isInvalid())
     return true;
 
@@ -369,8 +369,8 @@ bool IndexingContext::handleDeclOccurrence(const Decl *D, SourceLocation Loc,
   if (!isa<NamedDecl>(D) || shouldSkipNamelessDecl(cast<NamedDecl>(D)))
     return true;
 
-  SourceManager &SM = Ctx->getSourceManager();
-  FileID FID = SM.getFileID(SM.getFileLoc(Loc));
+  SourceManager  const&SM = Ctx->getSourceManager();
+  FileID const FID = SM.getFileID(SM.getFileLoc(Loc));
   if (FID.isInvalid())
     return true;
 
@@ -450,7 +450,7 @@ bool IndexingContext::handleDeclOccurrence(const Decl *D, SourceLocation Loc,
                                Rel.RelatedSymbol->getCanonicalDecl()));
   }
 
-  IndexDataConsumer::ASTNodeInfo Node{OrigE, OrigD, Parent, ContainerDC};
+  IndexDataConsumer::ASTNodeInfo const Node{OrigE, OrigD, Parent, ContainerDC};
   return DataConsumer.handleDeclOccurrence(D, Roles, FinalRelations, Loc, Node);
 }
 
@@ -459,7 +459,7 @@ void IndexingContext::handleMacroDefined(const IdentifierInfo &Name,
                                          const MacroInfo &MI) {
   if (!shouldIndexMacroOccurrence(/*IsRef=*/false, Loc))
     return;
-  SymbolRoleSet Roles = (unsigned)SymbolRole::Definition;
+  SymbolRoleSet const Roles = (unsigned)SymbolRole::Definition;
   DataConsumer.handleMacroOccurrence(&Name, &MI, Roles, Loc);
 }
 
@@ -468,7 +468,7 @@ void IndexingContext::handleMacroUndefined(const IdentifierInfo &Name,
                                            const MacroInfo &MI) {
   if (!shouldIndexMacroOccurrence(/*IsRef=*/false, Loc))
     return;
-  SymbolRoleSet Roles = (unsigned)SymbolRole::Undefinition;
+  SymbolRoleSet const Roles = (unsigned)SymbolRole::Undefinition;
   DataConsumer.handleMacroOccurrence(&Name, &MI, Roles, Loc);
 }
 
@@ -477,7 +477,7 @@ void IndexingContext::handleMacroReference(const IdentifierInfo &Name,
                                            const MacroInfo &MI) {
   if (!shouldIndexMacroOccurrence(/*IsRef=*/true, Loc))
     return;
-  SymbolRoleSet Roles = (unsigned)SymbolRole::Reference;
+  SymbolRoleSet const Roles = (unsigned)SymbolRole::Reference;
   DataConsumer.handleMacroOccurrence(&Name, &MI, Roles, Loc);
 }
 
@@ -497,8 +497,8 @@ bool IndexingContext::shouldIndexMacroOccurrence(bool IsRef,
     return true;
   }
 
-  SourceManager &SM = Ctx->getSourceManager();
-  FileID FID = SM.getFileID(SM.getFileLoc(Loc));
+  SourceManager  const&SM = Ctx->getSourceManager();
+  FileID const FID = SM.getFileID(SM.getFileLoc(Loc));
   if (FID.isInvalid())
     return false;
 

@@ -123,7 +123,7 @@ ObjCContainerDecl::getMethod(Selector Sel, bool isInstance,
 /// category's 'readwrite' property.
 bool ObjCContainerDecl::HasUserDeclaredSetterMethod(
     const ObjCPropertyDecl *Property) const {
-  Selector Sel = Property->getSetterName();
+  Selector const Sel = Property->getSetterName();
   lookup_result R = lookup(Sel);
   for (lookup_iterator Meth = R.begin(), MethEnd = R.end();
        Meth != MethEnd; ++Meth) {
@@ -877,7 +877,7 @@ void ObjCMethodDecl::setParamsAndSelLocs(ASTContext &C,
   static_assert(alignof(ParmVarDecl *) >= alignof(SourceLocation),
                 "Alignment not sufficient for SourceLocation");
 
-  unsigned Size = sizeof(ParmVarDecl *) * NumParams +
+  unsigned const Size = sizeof(ParmVarDecl *) * NumParams +
                   sizeof(SourceLocation) * SelLocs.size();
   ParamsAndSelLocs = C.Allocate(Size);
   std::copy(Params.begin(), Params.end(), getParams());
@@ -1139,7 +1139,7 @@ QualType ObjCMethodDecl::getSelfType(ASTContext &Context,
 void ObjCMethodDecl::createImplicitParams(ASTContext &Context,
                                           const ObjCInterfaceDecl *OID) {
   bool selfIsPseudoStrong, selfIsConsumed;
-  QualType selfTy =
+  QualType const selfTy =
     getSelfType(Context, OID, selfIsPseudoStrong, selfIsConsumed);
   auto *Self = ImplicitParamDecl::Create(Context, this, SourceLocation(),
                                          &Context.Idents.get("self"), selfTy,
@@ -1326,7 +1326,7 @@ void ObjCMethodDecl::getOverriddenMethods(
 const ObjCPropertyDecl *
 ObjCMethodDecl::findPropertyDecl(bool CheckOverrides) const {
   Selector Sel = getSelector();
-  unsigned NumArgs = Sel.getNumArgs();
+  unsigned const NumArgs = Sel.getNumArgs();
   if (NumArgs > 1)
     return nullptr;
 
@@ -1346,14 +1346,14 @@ ObjCMethodDecl::findPropertyDecl(bool CheckOverrides) const {
       [&](const ObjCContainerDecl *Container) -> const ObjCPropertyDecl * {
       if (IsInstance) {
         for (const auto *I : Container->instance_properties()) {
-          Selector NextSel = IsGetter ? I->getGetterName()
+          Selector const NextSel = IsGetter ? I->getGetterName()
                                       : I->getSetterName();
           if (NextSel == Sel)
             return I;
         }
       } else {
         for (const auto *I : Container->class_properties()) {
-          Selector NextSel = IsGetter ? I->getGetterName()
+          Selector const NextSel = IsGetter ? I->getGetterName()
                                       : I->getSetterName();
           if (NextSel == Sel)
             return I;
@@ -1430,7 +1430,7 @@ ObjCTypeParamDecl *ObjCTypeParamDecl::Create(ASTContext &ctx, DeclContext *dc,
   auto *TPDecl =
     new (ctx, dc) ObjCTypeParamDecl(ctx, dc, variance, varianceLoc, index,
                                     nameLoc, name, colonLoc, boundInfo);
-  QualType TPType = ctx.getObjCTypeParamType(TPDecl, {});
+  QualType const TPType = ctx.getObjCTypeParamType(TPDecl, {});
   TPDecl->setTypeForDecl(TPType.getTypePtr());
   return TPDecl;
 }

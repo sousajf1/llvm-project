@@ -22,7 +22,7 @@ CGCXXABI::~CGCXXABI() { }
 
 void CGCXXABI::ErrorUnsupportedABI(CodeGenFunction &CGF, StringRef S) {
   DiagnosticsEngine &Diags = CGF.CGM.getDiags();
-  unsigned DiagID = Diags.getCustomDiagID(DiagnosticsEngine::Error,
+  unsigned const DiagID = Diags.getCustomDiagID(DiagnosticsEngine::Error,
                                           "cannot yet compile %0 in this ABI");
   Diags.Report(CGF.getContext().getFullLoc(CGF.CurCodeDecl->getLocation()),
                DiagID)
@@ -217,7 +217,7 @@ void CGCXXABI::ReadArrayCookie(CodeGenFunction &CGF, Address ptr,
   }
 
   cookieSize = getArrayCookieSizeImpl(eltTy);
-  Address allocAddr =
+  Address const allocAddr =
     CGF.Builder.CreateConstInBoundsByteGEP(ptr, -cookieSize);
   allocPtr = allocAddr.getPointer();
   numElements = readArrayCookieImpl(CGF, allocAddr, cookieSize);

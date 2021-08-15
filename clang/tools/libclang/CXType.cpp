@@ -140,9 +140,9 @@ CXType cxtype::MakeCXType(QualType T, CXTranslationUnit TU) {
       return MakeCXType(PTT->getInnerType(), TU);
     }
 
-    ASTContext &Ctx = cxtu::getASTUnit(TU)->getASTContext();
+    ASTContext  const&Ctx = cxtu::getASTUnit(TU)->getASTContext();
     if (Ctx.getLangOpts().ObjC) {
-      QualType UnqualT = T.getUnqualifiedType();
+      QualType const UnqualT = T.getUnqualifiedType();
       if (Ctx.isObjCIdType(UnqualT))
         TK = CXType_ObjCId;
       else if (Ctx.isObjCClassType(UnqualT))
@@ -220,9 +220,9 @@ CXType clang_getCursorType(CXCursor C) {
   if (!TU)
     return MakeCXType(QualType(), TU);
 
-  ASTContext &Context = cxtu::getASTUnit(TU)->getASTContext();
+  ASTContext  const&Context = cxtu::getASTUnit(TU)->getASTContext();
   if (clang_isExpression(C.kind)) {
-    QualType T = cxcursor::getCursorExpr(C)->getType();
+    QualType const T = cxcursor::getCursorExpr(C)->getType();
     return MakeCXType(T, TU);
   }
 
@@ -249,18 +249,18 @@ CXType clang_getCursorType(CXCursor C) {
   if (clang_isReference(C.kind)) {
     switch (C.kind) {
     case CXCursor_ObjCSuperClassRef: {
-      QualType T
+      QualType const T
         = Context.getObjCInterfaceType(getCursorObjCSuperClassRef(C).first);
       return MakeCXType(T, TU);
     }
 
     case CXCursor_ObjCClassRef: {
-      QualType T = Context.getObjCInterfaceType(getCursorObjCClassRef(C).first);
+      QualType const T = Context.getObjCInterfaceType(getCursorObjCClassRef(C).first);
       return MakeCXType(T, TU);
     }
 
     case CXCursor_TypeRef: {
-      QualType T = Context.getTypeDeclType(getCursorTypeRef(C).first);
+      QualType const T = Context.getTypeDeclType(getCursorTypeRef(C).first);
       return MakeCXType(T, TU);
 
     }
@@ -289,14 +289,14 @@ CXType clang_getCursorType(CXCursor C) {
 }
 
 CXString clang_getTypeSpelling(CXType CT) {
-  QualType T = GetQualType(CT);
+  QualType const T = GetQualType(CT);
   if (T.isNull())
     return cxstring::createEmpty();
 
   CXTranslationUnit TU = GetTU(CT);
   SmallString<64> Str;
   llvm::raw_svector_ostream OS(Str);
-  PrintingPolicy PP(cxtu::getASTUnit(TU)->getASTContext().getLangOpts());
+  PrintingPolicy const PP(cxtu::getASTUnit(TU)->getASTContext().getLangOpts());
 
   T.print(OS, PP);
 
@@ -311,7 +311,7 @@ CXType clang_getTypedefDeclUnderlyingType(CXCursor C) {
     const Decl *D = cxcursor::getCursorDecl(C);
 
     if (const TypedefNameDecl *TD = dyn_cast_or_null<TypedefNameDecl>(D)) {
-      QualType T = TD->getUnderlyingType();
+      QualType const T = TD->getUnderlyingType();
       return MakeCXType(T, TU);
     }
 
@@ -329,7 +329,7 @@ CXType clang_getEnumDeclIntegerType(CXCursor C) {
     const Decl *D = cxcursor::getCursorDecl(C);
 
     if (const EnumDecl *TD = dyn_cast_or_null<EnumDecl>(D)) {
-      QualType T = TD->getIntegerType();
+      QualType const T = TD->getIntegerType();
       return MakeCXType(T, TU);
     }
 
@@ -390,7 +390,7 @@ CXType clang_getCanonicalType(CXType CT) {
   if (CT.kind == CXType_Invalid)
     return CT;
 
-  QualType T = GetQualType(CT);
+  QualType const T = GetQualType(CT);
   CXTranslationUnit TU = GetTU(CT);
 
   if (T.isNull())
@@ -402,22 +402,22 @@ CXType clang_getCanonicalType(CXType CT) {
 }
 
 unsigned clang_isConstQualifiedType(CXType CT) {
-  QualType T = GetQualType(CT);
+  QualType const T = GetQualType(CT);
   return T.isLocalConstQualified();
 }
 
 unsigned clang_isVolatileQualifiedType(CXType CT) {
-  QualType T = GetQualType(CT);
+  QualType const T = GetQualType(CT);
   return T.isLocalVolatileQualified();
 }
 
 unsigned clang_isRestrictQualifiedType(CXType CT) {
-  QualType T = GetQualType(CT);
+  QualType const T = GetQualType(CT);
   return T.isLocalRestrictQualified();
 }
 
 unsigned clang_getAddressSpace(CXType CT) {
-  QualType T = GetQualType(CT);
+  QualType const T = GetQualType(CT);
 
   // For non language-specific address space, use separate helper function.
   if (T.getAddressSpace() >= LangAS::FirstTargetAddressSpace) {
@@ -430,7 +430,7 @@ unsigned clang_getAddressSpace(CXType CT) {
 }
 
 CXString clang_getTypedefName(CXType CT) {
-  QualType T = GetQualType(CT);
+  QualType const T = GetQualType(CT);
   const TypedefType *TT = T->getAs<TypedefType>();
   if (TT) {
     TypedefNameDecl *TD = TT->getDecl();
@@ -482,7 +482,7 @@ CXCursor clang_getTypeDeclaration(CXType CT) {
   if (CT.kind == CXType_Invalid)
     return cxcursor::MakeCXCursorInvalid(CXCursor_NoDeclFound);
 
-  QualType T = GetQualType(CT);
+  QualType const T = GetQualType(CT);
   const Type *TP = T.getTypePtrOrNull();
 
   if (!TP)
@@ -629,7 +629,7 @@ unsigned clang_equalTypes(CXType A, CXType B) {
 }
 
 unsigned clang_isFunctionTypeVariadic(CXType X) {
-  QualType T = GetQualType(X);
+  QualType const T = GetQualType(X);
   if (T.isNull())
     return 0;
 
@@ -643,7 +643,7 @@ unsigned clang_isFunctionTypeVariadic(CXType X) {
 }
 
 CXCallingConv clang_getFunctionTypeCallingConv(CXType X) {
-  QualType T = GetQualType(X);
+  QualType const T = GetQualType(X);
   if (T.isNull())
     return CXCallingConv_Invalid;
   
@@ -678,7 +678,7 @@ CXCallingConv clang_getFunctionTypeCallingConv(CXType X) {
 }
 
 int clang_getNumArgTypes(CXType X) {
-  QualType T = GetQualType(X);
+  QualType const T = GetQualType(X);
   if (T.isNull())
     return -1;
   
@@ -694,12 +694,12 @@ int clang_getNumArgTypes(CXType X) {
 }
 
 CXType clang_getArgType(CXType X, unsigned i) {
-  QualType T = GetQualType(X);
+  QualType const T = GetQualType(X);
   if (T.isNull())
     return MakeCXType(QualType(), GetTU(X));
 
   if (const FunctionProtoType *FD = T->getAs<FunctionProtoType>()) {
-    unsigned numParams = FD->getNumParams();
+    unsigned const numParams = FD->getNumParams();
     if (i >= numParams)
       return MakeCXType(QualType(), GetTU(X));
 
@@ -710,7 +710,7 @@ CXType clang_getArgType(CXType X, unsigned i) {
 }
 
 CXType clang_getResultType(CXType X) {
-  QualType T = GetQualType(X);
+  QualType const T = GetQualType(X);
   if (T.isNull())
     return MakeCXType(QualType(), GetTU(X));
   
@@ -763,7 +763,7 @@ getExternalExceptionSpecificationKind(ExceptionSpecificationType EST) {
 }
 
 int clang_getExceptionSpecificationType(CXType X) {
-  QualType T = GetQualType(X);
+  QualType const T = GetQualType(X);
   if (T.isNull())
     return -1;
 
@@ -781,7 +781,7 @@ int clang_getCursorExceptionSpecificationType(CXCursor C) {
 }
 
 unsigned clang_isPODType(CXType X) {
-  QualType T = GetQualType(X);
+  QualType const T = GetQualType(X);
   if (T.isNull())
     return 0;
   
@@ -792,7 +792,7 @@ unsigned clang_isPODType(CXType X) {
 
 CXType clang_getElementType(CXType CT) {
   QualType ET = QualType();
-  QualType T = GetQualType(CT);
+  QualType const T = GetQualType(CT);
   const Type *TP = T.getTypePtrOrNull();
 
   if (TP) {
@@ -827,7 +827,7 @@ CXType clang_getElementType(CXType CT) {
 
 long long clang_getNumElements(CXType CT) {
   long long result = -1;
-  QualType T = GetQualType(CT);
+  QualType const T = GetQualType(CT);
   const Type *TP = T.getTypePtrOrNull();
 
   if (TP) {
@@ -850,7 +850,7 @@ long long clang_getNumElements(CXType CT) {
 
 CXType clang_getArrayElementType(CXType CT) {
   QualType ET = QualType();
-  QualType T = GetQualType(CT);
+  QualType const T = GetQualType(CT);
   const Type *TP = T.getTypePtrOrNull();
 
   if (TP) {
@@ -876,7 +876,7 @@ CXType clang_getArrayElementType(CXType CT) {
 
 long long clang_getArraySize(CXType CT) {
   long long result = -1;
-  QualType T = GetQualType(CT);
+  QualType const T = GetQualType(CT);
   const Type *TP = T.getTypePtrOrNull();
 
   if (TP) {
@@ -898,7 +898,7 @@ static bool isIncompleteTypeWithAlignment(QualType QT) {
 long long clang_Type_getAlignOf(CXType T) {
   if (T.kind == CXType_Invalid)
     return CXTypeLayoutError_Invalid;
-  ASTContext &Ctx = cxtu::getASTUnit(GetTU(T))->getASTContext();
+  ASTContext  const&Ctx = cxtu::getASTUnit(GetTU(T))->getASTContext();
   QualType QT = GetQualType(T);
   // [expr.alignof] p1: return size_t value for complete object type, reference
   //                    or array.
@@ -920,7 +920,7 @@ long long clang_Type_getAlignOf(CXType T) {
 
 CXType clang_Type_getClassType(CXType CT) {
   QualType ET = QualType();
-  QualType T = GetQualType(CT);
+  QualType const T = GetQualType(CT);
   const Type *TP = T.getTypePtrOrNull();
 
   if (TP && TP->getTypeClass() == Type::MemberPointer) {
@@ -932,7 +932,7 @@ CXType clang_Type_getClassType(CXType CT) {
 long long clang_Type_getSizeOf(CXType T) {
   if (T.kind == CXType_Invalid)
     return CXTypeLayoutError_Invalid;
-  ASTContext &Ctx = cxtu::getASTUnit(GetTU(T))->getASTContext();
+  ASTContext  const&Ctx = cxtu::getASTUnit(GetTU(T))->getASTContext();
   QualType QT = GetQualType(T);
   // [expr.sizeof] p2: if reference type, return size of referenced type
   if (QT->isReferenceType())
@@ -966,7 +966,7 @@ static bool isTypeIncompleteForLayout(QualType QT) {
 
 static long long visitRecordForValidation(const RecordDecl *RD) {
   for (const auto *I : RD->fields()){
-    QualType FQT = I->getType();
+    QualType const FQT = I->getType();
     if (isTypeIncompleteForLayout(FQT))
       return CXTypeLayoutError_Incomplete;
     if (FQT->isDependentType())
@@ -974,7 +974,7 @@ static long long visitRecordForValidation(const RecordDecl *RD) {
     // recurse
     if (const RecordType *ChildType = I->getType()->getAs<RecordType>()) {
       if (const RecordDecl *Child = ChildType->getDecl()) {
-        long long ret = visitRecordForValidation(Child);
+        long long const ret = visitRecordForValidation(Child);
         if (ret < 0)
           return ret;
       }
@@ -998,13 +998,13 @@ static long long validateFieldParentType(CXCursor PC, CXType PT){
   if (RD->isInvalidDecl())
     return CXTypeLayoutError_Invalid;
   // validate parent type
-  QualType RT = GetQualType(PT);
+  QualType const RT = GetQualType(PT);
   if (RT->isIncompleteType())
     return CXTypeLayoutError_Incomplete;
   if (RT->isDependentType())
     return CXTypeLayoutError_Dependent;
   // We recurse into all record fields to detect incomplete and dependent types.
-  long long Error = visitRecordForValidation(RD);
+  long long const Error = visitRecordForValidation(RD);
   if (Error < 0)
     return Error;
   return 0;
@@ -1012,8 +1012,8 @@ static long long validateFieldParentType(CXCursor PC, CXType PT){
 
 long long clang_Type_getOffsetOf(CXType PT, const char *S) {
   // check that PT is not incomplete/dependent
-  CXCursor PC = clang_getTypeDeclaration(PT);
-  long long Error = validateFieldParentType(PC,PT);
+  CXCursor const PC = clang_getTypeDeclaration(PT);
+  long long const Error = validateFieldParentType(PC,PT);
   if (Error < 0)
     return Error;
   if (!S)
@@ -1021,12 +1021,12 @@ long long clang_Type_getOffsetOf(CXType PT, const char *S) {
   // lookup field
   ASTContext &Ctx = cxtu::getASTUnit(GetTU(PT))->getASTContext();
   IdentifierInfo *II = &Ctx.Idents.get(S);
-  DeclarationName FieldName(II);
+  DeclarationName const FieldName(II);
   const RecordDecl *RD =
         dyn_cast_or_null<RecordDecl>(cxcursor::getCursorDecl(PC));
   // verified in validateFieldParentType
   RD = RD->getDefinition();
-  RecordDecl::lookup_result Res = RD->lookup(FieldName);
+  RecordDecl::lookup_result const Res = RD->lookup(FieldName);
   // If a field of the parent record is incomplete, lookup will fail.
   // and we would return InvalidFieldName instead of Incomplete.
   // But this erroneous results does protects again a hidden assertion failure
@@ -1042,7 +1042,7 @@ long long clang_Type_getOffsetOf(CXType PT, const char *S) {
 }
 
 CXType clang_Type_getModifiedType(CXType CT) {
-  QualType T = GetQualType(CT);
+  QualType const T = GetQualType(CT);
   if (T.isNull())
     return MakeCXType(QualType(), GetTU(CT));
 
@@ -1055,14 +1055,14 @@ CXType clang_Type_getModifiedType(CXType CT) {
 long long clang_Cursor_getOffsetOfField(CXCursor C) {
   if (clang_isDeclaration(C.kind)) {
     // we need to validate the parent type
-    CXCursor PC = clang_getCursorSemanticParent(C);
-    CXType PT = clang_getCursorType(PC);
-    long long Error = validateFieldParentType(PC,PT);
+    CXCursor const PC = clang_getCursorSemanticParent(C);
+    CXType const PT = clang_getCursorType(PC);
+    long long const Error = validateFieldParentType(PC,PT);
     if (Error < 0)
       return Error;
     // proceed with the offset calculation
     const Decl *D = cxcursor::getCursorDecl(C);
-    ASTContext &Ctx = cxcursor::getCursorContext(C);
+    ASTContext  const&Ctx = cxcursor::getCursorContext(C);
     if (const FieldDecl *FD = dyn_cast_or_null<FieldDecl>(D))
       return Ctx.getFieldOffset(FD);
     if (const IndirectFieldDecl *IFD = dyn_cast_or_null<IndirectFieldDecl>(D))
@@ -1072,7 +1072,7 @@ long long clang_Cursor_getOffsetOfField(CXCursor C) {
 }
 
 enum CXRefQualifierKind clang_Type_getCXXRefQualifier(CXType T) {
-  QualType QT = GetQualType(T);
+  QualType const QT = GetQualType(T);
   if (QT.isNull())
     return CXRefQualifier_None;
   const FunctionProtoType *FD = QT->getAs<FunctionProtoType>();
@@ -1103,7 +1103,7 @@ CXString clang_getDeclObjCTypeEncoding(CXCursor C) {
     return cxstring::createEmpty();
 
   const Decl *D = cxcursor::getCursorDecl(C);
-  ASTContext &Ctx = cxcursor::getCursorContext(C);
+  ASTContext  const&Ctx = cxcursor::getCursorContext(C);
   std::string encoding;
 
   if (const ObjCMethodDecl *OMD = dyn_cast<ObjCMethodDecl>(D))  {
@@ -1134,7 +1134,7 @@ static unsigned GetTemplateArgumentArraySize(ArrayRef<TemplateArgument> TA) {
 }
 
 int clang_Type_getNumTemplateArguments(CXType CT) {
-  QualType T = GetQualType(CT);
+  QualType const T = GetQualType(CT);
   if (T.isNull())
     return -1;
 
@@ -1146,7 +1146,7 @@ int clang_Type_getNumTemplateArguments(CXType CT) {
 }
 
 CXType clang_Type_getTemplateArgumentAsType(CXType CT, unsigned index) {
-  QualType T = GetQualType(CT);
+  QualType const T = GetQualType(CT);
   if (T.isNull())
     return MakeCXType(QualType(), GetTU(CT));
 
@@ -1154,7 +1154,7 @@ CXType clang_Type_getTemplateArgumentAsType(CXType CT, unsigned index) {
   if (!TA)
     return MakeCXType(QualType(), GetTU(CT));
 
-  Optional<QualType> QT = FindTemplateArgumentTypeAt(TA.getValue(), index);
+  Optional<QualType> const QT = FindTemplateArgumentTypeAt(TA.getValue(), index);
   return MakeCXType(QT.getValueOr(QualType()), GetTU(CT));
 }
 
@@ -1229,7 +1229,7 @@ CXType clang_Type_getObjCTypeArg(CXType CT, unsigned i) {
 unsigned clang_Type_visitFields(CXType PT,
                                 CXFieldVisitor visitor,
                                 CXClientData client_data){
-  CXCursor PC = clang_getTypeDeclaration(PT);
+  CXCursor const PC = clang_getTypeDeclaration(PT);
   if (clang_isInvalid(PC.kind))
     return false;
   const RecordDecl *RD =
@@ -1286,7 +1286,7 @@ unsigned clang_Cursor_isInlineNamespace(CXCursor C) {
 }
 
 CXType clang_Type_getNamedType(CXType CT){
-  QualType T = GetQualType(CT);
+  QualType const T = GetQualType(CT);
   const Type *TP = T.getTypePtrOrNull();
 
   if (TP && TP->getTypeClass() == Type::Elaborated)
@@ -1296,7 +1296,7 @@ CXType clang_Type_getNamedType(CXType CT){
 }
 
 unsigned clang_Type_isTransparentTagTypedef(CXType TT){
-  QualType T = GetQualType(TT);
+  QualType const T = GetQualType(TT);
   if (auto *TT = dyn_cast_or_null<TypedefType>(T.getTypePtrOrNull())) {
     if (auto *D = TT->getDecl())
       return D->isTransparentTag();
@@ -1305,11 +1305,11 @@ unsigned clang_Type_isTransparentTagTypedef(CXType TT){
 }
 
 enum CXTypeNullabilityKind clang_Type_getNullability(CXType CT) {
-  QualType T = GetQualType(CT);
+  QualType const T = GetQualType(CT);
   if (T.isNull())
     return CXTypeNullability_Invalid;
 
-  ASTContext &Ctx = cxtu::getASTUnit(GetTU(CT))->getASTContext();
+  ASTContext  const&Ctx = cxtu::getASTUnit(GetTU(CT))->getASTContext();
   if (auto nullability = T->getNullability(Ctx)) {
     switch (*nullability) {
       case NullabilityKind::NonNull:
@@ -1326,7 +1326,7 @@ enum CXTypeNullabilityKind clang_Type_getNullability(CXType CT) {
 }
 
 CXType clang_Type_getValueType(CXType CT) {
-  QualType T = GetQualType(CT);
+  QualType const T = GetQualType(CT);
 
   if (T.isNull() || !T->isAtomicType())
       return MakeCXType(QualType(), GetTU(CT));

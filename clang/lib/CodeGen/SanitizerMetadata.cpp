@@ -48,7 +48,7 @@ void SanitizerMetadata::reportGlobalToASan(llvm::GlobalVariable *GV,
       GlobalName = llvm::MDString::get(VMContext, Name);
   }
 
-  llvm::Metadata *GlobalMetadata[] = {
+  llvm::Metadata *const GlobalMetadata[] = {
       llvm::ConstantAsMetadata::get(GV), LocDescr, GlobalName,
       llvm::ConstantAsMetadata::get(
           llvm::ConstantInt::get(llvm::Type::getInt1Ty(VMContext), IsDynInit)),
@@ -90,11 +90,11 @@ void SanitizerMetadata::disableSanitizerForInstruction(llvm::Instruction *I) {
 }
 
 llvm::MDNode *SanitizerMetadata::getLocationMetadata(SourceLocation Loc) {
-  PresumedLoc PLoc = CGM.getContext().getSourceManager().getPresumedLoc(Loc);
+  PresumedLoc const PLoc = CGM.getContext().getSourceManager().getPresumedLoc(Loc);
   if (!PLoc.isValid())
     return nullptr;
   llvm::LLVMContext &VMContext = CGM.getLLVMContext();
-  llvm::Metadata *LocMetadata[] = {
+  llvm::Metadata *const LocMetadata[] = {
       llvm::MDString::get(VMContext, PLoc.getFilename()),
       llvm::ConstantAsMetadata::get(llvm::ConstantInt::get(
           llvm::Type::getInt32Ty(VMContext), PLoc.getLine())),

@@ -23,7 +23,7 @@ namespace {
 static std::string PrintDiag(const DiagnosticOptions &Opts, FullSourceLoc Loc) {
   std::string Out;
   llvm::raw_string_ostream OS(Out);
-  clang::LangOptions LangOpts;
+  clang::LangOptions const LangOpts;
   // Owned by TextDiagnostic.
   DiagnosticOptions *DiagOpts = new DiagnosticOptions(Opts);
   TextDiagnostic Diag(OS, LangOpts, DiagOpts);
@@ -36,9 +36,9 @@ static std::string PrintDiag(const DiagnosticOptions &Opts, FullSourceLoc Loc) {
 
 TEST(TextDiagnostic, ShowLine) {
   // Create dummy FileManager and SourceManager.
-  FileSystemOptions FSOpts;
+  FileSystemOptions const FSOpts;
   FileManager FileMgr(FSOpts);
-  IntrusiveRefCntPtr<DiagnosticIDs> DiagID(new DiagnosticIDs);
+  IntrusiveRefCntPtr<DiagnosticIDs> const DiagID(new DiagnosticIDs);
   DiagnosticsEngine DiagEngine(DiagID, new DiagnosticOptions,
                                new IgnoringDiagConsumer());
   SourceManager SrcMgr(DiagEngine, FileMgr);
@@ -58,12 +58,12 @@ TEST(TextDiagnostic, ShowLine) {
   SrcMgr.overrideFileContents(fe, std::move(file_contents));
 
   // Create the actual file id and use it as the main file.
-  clang::FileID fid =
+  clang::FileID const fid =
       SrcMgr.createFileID(fe, SourceLocation(), clang::SrcMgr::C_User);
   SrcMgr.setMainFileID(fid);
 
   // Create the source location for the test diagnostic.
-  FullSourceLoc Loc(SrcMgr.translateLineCol(fid, /*Line=*/1, /*Col=*/2),
+  FullSourceLoc const Loc(SrcMgr.translateLineCol(fid, /*Line=*/1, /*Col=*/2),
                     SrcMgr);
 
   DiagnosticOptions DiagOpts;

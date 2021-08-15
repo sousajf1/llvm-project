@@ -71,7 +71,7 @@ void NSErrorMethodChecker::checkASTDecl(const ObjCMethodDecl *D,
     const char *err = "Method accepting NSError** "
         "should have a non-void return value to indicate whether or not an "
         "error occurred";
-    PathDiagnosticLocation L =
+    PathDiagnosticLocation const L =
       PathDiagnosticLocation::create(D, BR.getSourceManager());
     BR.EmitBasicReport(D, this, "Bad return type when passing NSError**",
                        "Coding conventions (Apple)", err, L);
@@ -129,7 +129,7 @@ void CFErrorFunctionChecker::checkASTDecl(const FunctionDecl *D,
     const char *err = "Function accepting CFErrorRef* "
         "should have a non-void return value to indicate whether or not an "
         "error occurred";
-    PathDiagnosticLocation L =
+    PathDiagnosticLocation const L =
       PathDiagnosticLocation::create(D, BR.getSourceManager());
     BR.EmitBasicReport(D, this, "Bad return type when passing CFErrorRef*",
                        "Coding conventions (Apple)", err, L);
@@ -218,7 +218,7 @@ void NSOrCFErrorDerefChecker::checkLocation(SVal loc, bool isLoad,
     return;
 
   ASTContext &Ctx = C.getASTContext();
-  ProgramStateRef state = C.getState();
+  ProgramStateRef const state = C.getState();
 
   // If we are loading from NSError**/CFErrorRef* parameter, mark the resulting
   // SVal so that we can later check it when handling the
@@ -226,7 +226,7 @@ void NSOrCFErrorDerefChecker::checkLocation(SVal loc, bool isLoad,
   // FIXME: Cumbersome! Maybe add hook at construction of SVals at start of
   // function ?
 
-  QualType parmT = parameterTypeFromSVal(loc, C);
+  QualType const parmT = parameterTypeFromSVal(loc, C);
   if (parmT.isNull())
     return;
 
@@ -250,11 +250,11 @@ void NSOrCFErrorDerefChecker::checkEvent(ImplicitNullDerefEvent event) const {
   if (event.IsLoad)
     return;
 
-  SVal loc = event.Location;
-  ProgramStateRef state = event.SinkNode->getState();
+  SVal const loc = event.Location;
+  ProgramStateRef const state = event.SinkNode->getState();
   BugReporter &BR = *event.BR;
 
-  bool isNSError = hasFlag<NSErrorOut>(loc, state);
+  bool const isNSError = hasFlag<NSErrorOut>(loc, state);
   bool isCFError = false;
   if (!isNSError)
     isCFError = hasFlag<CFErrorOut>(loc, state);

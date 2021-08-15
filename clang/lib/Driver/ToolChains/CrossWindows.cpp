@@ -168,7 +168,7 @@ void tools::CrossWindows::Linker::ConstructJob(
   AddLinkerInputs(TC, Inputs, Args, CmdArgs, JA);
 
   if (TC.ShouldLinkCXXStdlib(Args)) {
-    bool StaticCXX = Args.hasArg(options::OPT_static_libstdcxx) &&
+    bool const StaticCXX = Args.hasArg(options::OPT_static_libstdcxx) &&
                      !Args.hasArg(options::OPT_static);
     if (StaticCXX)
       CmdArgs.push_back("-Bstatic");

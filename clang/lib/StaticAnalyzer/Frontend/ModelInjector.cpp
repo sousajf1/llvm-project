@@ -46,10 +46,10 @@ void ModelInjector::onBodySynthesis(const NamedDecl *D) {
     return;
 
   SourceManager &SM = CI.getSourceManager();
-  FileID mainFileID = SM.getMainFileID();
+  FileID const mainFileID = SM.getMainFileID();
 
-  AnalyzerOptionsRef analyzerOpts = CI.getAnalyzerOpts();
-  llvm::StringRef modelPath = analyzerOpts->ModelPath;
+  AnalyzerOptionsRef const analyzerOpts = CI.getAnalyzerOpts();
+  llvm::StringRef const modelPath = analyzerOpts->ModelPath;
 
   llvm::SmallString<128> fileName;
 
@@ -67,7 +67,7 @@ void ModelInjector::onBodySynthesis(const NamedDecl *D) {
   auto Invocation = std::make_shared<CompilerInvocation>(CI.getInvocation());
 
   FrontendOptions &FrontendOpts = Invocation->getFrontendOpts();
-  InputKind IK = Language::CXX; // FIXME
+  InputKind const IK = Language::CXX; // FIXME
   FrontendOpts.Inputs.clear();
   FrontendOpts.Inputs.emplace_back(fileName, IK);
   FrontendOpts.DisableFree = true;

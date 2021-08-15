@@ -96,7 +96,7 @@ void ChrootChecker::evalChdir(const CallEvent &Call, CheckerContext &C) const {
 
   // After chdir("/"), enter the jail, set the enum value JAIL_ENTERED.
   const Expr *ArgExpr = Call.getArgExpr(0);
-  SVal ArgVal = C.getSVal(ArgExpr);
+  SVal const ArgVal = C.getSVal(ArgExpr);
 
   if (const MemRegion *R = ArgVal.getAsRegion()) {
     R = R->StripCasts();

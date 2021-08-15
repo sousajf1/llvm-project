@@ -35,7 +35,7 @@ FileSystemStatCache::get(StringRef Path, llvm::vfs::Status &Status,
                          bool isFile, std::unique_ptr<llvm::vfs::File> *F,
                          FileSystemStatCache *Cache,
                          llvm::vfs::FileSystem &FS) {
-  bool isForDir = !isFile;
+  bool const isForDir = !isFile;
   std::error_code RetCode;
 
   // If we have a cache, use it to resolve the stat query.

@@ -159,10 +159,10 @@ void UninitializedObjectChecker::checkEndFunction(
 
   FindUninitializedFields F(Context.getState(), R, Opts);
 
-  std::pair<ProgramStateRef, const UninitFieldMap &> UninitInfo =
+  std::pair<ProgramStateRef, const UninitFieldMap &> const UninitInfo =
       F.getResults();
 
-  ProgramStateRef UpdatedState = UninitInfo.first;
+  ProgramStateRef const UpdatedState = UninitInfo.first;
   const UninitFieldMap &UninitFields = UninitInfo.second;
 
   if (UninitFields.empty()) {
@@ -300,7 +300,7 @@ bool FindUninitializedFields::isNonUnionUninit(const TypedValueRegion *R,
     const auto FieldVal =
         State->getLValue(I, loc::MemRegionVal(R)).castAs<loc::MemRegionVal>();
     const auto *FR = FieldVal.getRegionAs<FieldRegion>();
-    QualType T = I->getType();
+    QualType const T = I->getType();
 
     // If LocalChain already contains FR, then we encountered a cyclic
     // reference. In this case, region FR is already under checking at an
@@ -328,7 +328,7 @@ bool FindUninitializedFields::isNonUnionUninit(const TypedValueRegion *R,
       continue;
     }
 
-    SVal V = State->getSVal(FieldVal);
+    SVal const V = State->getSVal(FieldVal);
 
     if (isDereferencableType(T) || V.getAs<nonloc::LocAsInteger>()) {
       if (isDereferencableUninit(FR, LocalChain))
@@ -458,10 +458,10 @@ static const TypedValueRegion *
 getConstructedRegion(const CXXConstructorDecl *CtorDecl,
                      CheckerContext &Context) {
 
-  Loc ThisLoc =
+  Loc const ThisLoc =
       Context.getSValBuilder().getCXXThis(CtorDecl, Context.getStackFrame());
 
-  SVal ObjectV = Context.getState()->getSVal(ThisLoc);
+  SVal const ObjectV = Context.getState()->getSVal(ThisLoc);
 
   auto *R = ObjectV.getAsRegion()->getAs<TypedValueRegion>();
   if (R && !R->getValueType()->getAsCXXRecordDecl())
@@ -500,7 +500,7 @@ static bool willObjectBeAnalyzedLater(const CXXConstructorDecl *Ctor,
 }
 
 static bool shouldIgnoreRecord(const RecordDecl *RD, StringRef Pattern) {
-  llvm::Regex R(Pattern);
+  llvm::Regex const R(Pattern);
 
   for (const FieldDecl *FD : RD->fields()) {
     if (R.match(FD->getType().getAsString()))

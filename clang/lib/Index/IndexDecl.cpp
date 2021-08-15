@@ -154,7 +154,7 @@ public:
 
     // check for (getter=/setter=)
     if (AssociatedProp) {
-      bool isGetter = !D->param_size();
+      bool const isGetter = !D->param_size();
       AttrLoc = isGetter ?
         AssociatedProp->getGetterNameLoc():
         AssociatedProp->getSetterNameLoc();
@@ -206,10 +206,10 @@ public:
       return;
     llvm::PointerUnion<ClassTemplateDecl *,
                        ClassTemplatePartialSpecializationDecl *>
-        Template = CTSD->getSpecializedTemplateOrPartial();
+        const Template = CTSD->getSpecializedTemplateOrPartial();
     if (const auto *CTD = Template.dyn_cast<ClassTemplateDecl *>()) {
       const CXXRecordDecl *Pattern = CTD->getTemplatedDecl();
-      bool TypeOverride = isa<TypeDecl>(D);
+      bool const TypeOverride = isa<TypeDecl>(D);
       for (const NamedDecl *ND : Pattern->lookup(D->getDeclName())) {
         if (const auto *CTD = dyn_cast<ClassTemplateDecl>(ND))
           ND = CTD->getTemplatedDecl();
@@ -378,7 +378,7 @@ public:
     ObjCInterfaceDecl::protocol_loc_iterator LI = ProtList.loc_begin();
     for (ObjCInterfaceDecl::protocol_iterator
          I = ProtList.begin(), E = ProtList.end(); I != E; ++I, ++LI) {
-      SourceLocation Loc = *LI;
+      SourceLocation const Loc = *LI;
       ObjCProtocolDecl *PD = *I;
       SymbolRoleSet roles{};
       if (Loc == SuperLoc)
@@ -392,7 +392,7 @@ public:
   bool VisitObjCInterfaceDecl(const ObjCInterfaceDecl *D) {
     if (D->isThisDeclarationADefinition()) {
       TRY_DECL(D, IndexCtx.handleDecl(D));
-      SourceLocation SuperLoc = D->getSuperClassLoc();
+      SourceLocation const SuperLoc = D->getSuperClassLoc();
       if (auto *SuperD = D->getSuperClass()) {
         bool hasSuperTypedef = false;
         if (auto *TInfo = D->getSuperClassTInfo()) {
@@ -539,7 +539,7 @@ public:
       return true;
 
     assert(D->getPropertyImplementation() == ObjCPropertyImplDecl::Synthesize);
-    SymbolRoleSet AccessorMethodRoles =
+    SymbolRoleSet const AccessorMethodRoles =
       SymbolRoleSet(SymbolRole::Dynamic) | SymbolRoleSet(SymbolRole::Implicit);
     if (ObjCMethodDecl *MD = PD->getGetterMethodDecl()) {
       if (MD->isPropertyAccessor() && !hasUserDefined(MD, Container))
@@ -641,7 +641,7 @@ public:
     // instantiation.
     llvm::PointerUnion<ClassTemplateDecl *,
                        ClassTemplatePartialSpecializationDecl *>
-        Template = D->getSpecializedTemplateOrPartial();
+        const Template = D->getSpecializedTemplateOrPartial();
     const Decl *SpecializationOf =
         Template.is<ClassTemplateDecl *>()
             ? (Decl *)Template.get<ClassTemplateDecl *>()
@@ -741,7 +741,7 @@ bool IndexingContext::indexDecl(const Decl *D) {
     return true;
 
   IndexingDeclVisitor Visitor(*this);
-  bool ShouldContinue = Visitor.Visit(D);
+  bool const ShouldContinue = Visitor.Visit(D);
   if (!ShouldContinue)
     return false;
 

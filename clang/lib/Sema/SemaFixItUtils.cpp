@@ -93,7 +93,7 @@ bool ConversionFixItGenerator::tryToFixConversion(const Expr *FullExpr,
   if (const PointerType *FromPtrTy = dyn_cast<PointerType>(FromQTy)) {
     OverloadFixItKind FixKind = OFIK_Dereference;
 
-    bool CanConvert = CompareTypes(
+    bool const CanConvert = CompareTypes(
       S.Context.getCanonicalType(FromPtrTy->getPointeeType()), ToQTy,
                                  S, Begin, VK_LValue);
     if (CanConvert) {

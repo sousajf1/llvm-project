@@ -240,10 +240,10 @@ void JSONNodeDumper::writeIncludeStack(PresumedLoc Loc, bool JustFirst) {
 
 void JSONNodeDumper::writeBareSourceLocation(SourceLocation Loc,
                                              bool IsSpelling) {
-  PresumedLoc Presumed = SM.getPresumedLoc(Loc);
-  unsigned ActualLine = IsSpelling ? SM.getSpellingLineNumber(Loc)
+  PresumedLoc const Presumed = SM.getPresumedLoc(Loc);
+  unsigned const ActualLine = IsSpelling ? SM.getSpellingLineNumber(Loc)
                                    : SM.getExpansionLineNumber(Loc);
-  StringRef ActualFile = SM.getBufferName(Loc);
+  StringRef const ActualFile = SM.getBufferName(Loc);
 
   if (Presumed.isValid()) {
     JOS.attribute("offset", SM.getDecomposedLoc(Loc).second);
@@ -253,11 +253,11 @@ void JSONNodeDumper::writeBareSourceLocation(SourceLocation Loc,
     } else if (LastLocLine != ActualLine)
       JOS.attribute("line", ActualLine);
 
-    StringRef PresumedFile = Presumed.getFilename();
+    StringRef const PresumedFile = Presumed.getFilename();
     if (PresumedFile != ActualFile && LastLocPresumedFilename != PresumedFile)
       JOS.attribute("presumedFile", PresumedFile);
 
-    unsigned PresumedLine = Presumed.getLine();
+    unsigned const PresumedLine = Presumed.getLine();
     if (ActualLine != PresumedLine && LastLocPresumedLine != PresumedLine)
       JOS.attribute("presumedLine", PresumedLine);
 
@@ -278,8 +278,8 @@ void JSONNodeDumper::writeBareSourceLocation(SourceLocation Loc,
 }
 
 void JSONNodeDumper::writeSourceLocation(SourceLocation Loc) {
-  SourceLocation Spelling = SM.getSpellingLoc(Loc);
-  SourceLocation Expansion = SM.getExpansionLoc(Loc);
+  SourceLocation const Spelling = SM.getSpellingLoc(Loc);
+  SourceLocation const Expansion = SM.getExpansionLoc(Loc);
 
   if (Expansion != Spelling) {
     // If the expansion and the spelling are different, output subobjects
@@ -312,11 +312,11 @@ std::string JSONNodeDumper::createPointerRepresentation(const void *Ptr) {
 }
 
 llvm::json::Object JSONNodeDumper::createQualType(QualType QT, bool Desugar) {
-  SplitQualType SQT = QT.split();
+  SplitQualType const SQT = QT.split();
   llvm::json::Object Ret{{"qualType", QualType::getAsString(SQT, PrintPolicy)}};
 
   if (Desugar && !QT.isNull()) {
-    SplitQualType DSQT = QT.getSplitDesugaredType();
+    SplitQualType const DSQT = QT.getSplitDesugaredType();
     if (DSQT != SQT)
       Ret["desugaredQualType"] = QualType::getAsString(DSQT, PrintPolicy);
     if (const auto *TT = QT->getAs<TypedefType>())
@@ -533,7 +533,7 @@ void JSONNodeDumper::VisitTypedefType(const TypedefType *TT) {
 }
 
 void JSONNodeDumper::VisitFunctionType(const FunctionType *T) {
-  FunctionType::ExtInfo E = T->getExtInfo();
+  FunctionType::ExtInfo const E = T->getExtInfo();
   attributeOnlyIfTrue("noreturn", E.getNoReturn());
   attributeOnlyIfTrue("producesResult", E.getProducesResult());
   if (E.getHasRegParm())
@@ -542,7 +542,7 @@ void JSONNodeDumper::VisitFunctionType(const FunctionType *T) {
 }
 
 void JSONNodeDumper::VisitFunctionProtoType(const FunctionProtoType *T) {
-  FunctionProtoType::ExtProtoInfo E = T->getExtProtoInfo();
+  FunctionProtoType::ExtProtoInfo const E = T->getExtProtoInfo();
   attributeOnlyIfTrue("trailingReturn", E.HasTrailingReturn);
   attributeOnlyIfTrue("const", T->isConst());
   attributeOnlyIfTrue("volatile", T->isVolatile());
@@ -558,7 +558,7 @@ void JSONNodeDumper::VisitFunctionProtoType(const FunctionProtoType *T) {
   case EST_Dynamic: {
     JOS.attribute("exceptionSpec", "throw");
     llvm::json::Array Types;
-    for (QualType QT : E.ExceptionSpec.Exceptions)
+    for (QualType const QT : E.ExceptionSpec.Exceptions)
       Types.push_back(createQualType(QT));
     JOS.attribute("exceptionTypes", std::move(Types));
   } break;
@@ -609,7 +609,7 @@ void JSONNodeDumper::VisitArrayType(const ArrayType *AT) {
     break;
   }
 
-  std::string Str = AT->getIndexTypeQualifiers().getAsString();
+  std::string const Str = AT->getIndexTypeQualifiers().getAsString();
   if (!Str.empty())
     JOS.attribute("indexTypeQualifiers", Str);
 }
@@ -745,7 +745,7 @@ void JSONNodeDumper::VisitNamedDecl(const NamedDecl *ND) {
     // FIXME: There are likely other contexts in which it makes no sense to ask
     // for a mangled name.
     if (!isa<RequiresExprBodyDecl>(ND->getDeclContext())) {
-      std::string MangledName = ASTNameGen.getName(ND);
+      std::string const MangledName = ASTNameGen.getName(ND);
       if (!MangledName.empty())
         JOS.attribute("mangledName", MangledName);
     }
@@ -803,7 +803,7 @@ void JSONNodeDumper::VisitVarDecl(const VarDecl *VD) {
   VisitNamedDecl(VD);
   JOS.attribute("type", createQualType(VD->getType()));
 
-  StorageClass SC = VD->getStorageClass();
+  StorageClass const SC = VD->getStorageClass();
   if (SC != SC_None)
     JOS.attribute("storageClass", VarDecl::getStorageClassSpecifierString(SC));
   switch (VD->getTLSKind()) {
@@ -837,7 +837,7 @@ void JSONNodeDumper::VisitFieldDecl(const FieldDecl *FD) {
 void JSONNodeDumper::VisitFunctionDecl(const FunctionDecl *FD) {
   VisitNamedDecl(FD);
   JOS.attribute("type", createQualType(FD->getType()));
-  StorageClass SC = FD->getStorageClass();
+  StorageClass const SC = FD->getStorageClass();
   if (SC != SC_None)
     JOS.attribute("storageClass", VarDecl::getStorageClassSpecifierString(SC));
   attributeOnlyIfTrue("inline", FD->isInlineSpecified());
@@ -1052,7 +1052,7 @@ void JSONNodeDumper::VisitObjCPropertyDecl(const ObjCPropertyDecl *D) {
   case ObjCPropertyDecl::Optional: JOS.attribute("control", "optional"); break;
   }
 
-  ObjCPropertyAttribute::Kind Attrs = D->getPropertyAttributes();
+  ObjCPropertyAttribute::Kind const Attrs = D->getPropertyAttributes();
   if (Attrs != ObjCPropertyAttribute::kind_noattr) {
     if (Attrs & ObjCPropertyAttribute::kind_getter)
       JOS.attribute("getter", createBareDeclRef(D->getGetterMethodDecl()));
@@ -1125,7 +1125,7 @@ void JSONNodeDumper::VisitObjCMessageExpr(const ObjCMessageExpr *OME) {
     break;
   }
 
-  QualType CallReturnTy = OME->getCallReturnType(Ctx);
+  QualType const CallReturnTy = OME->getCallReturnType(Ctx);
   if (OME->getType() != CallReturnTy)
     JOS.attribute("callReturnType", createQualType(CallReturnTy));
 }
@@ -1322,8 +1322,8 @@ void JSONNodeDumper::VisitAddrLabelExpr(const AddrLabelExpr *ALE) {
 
 void JSONNodeDumper::VisitCXXTypeidExpr(const CXXTypeidExpr *CTE) {
   if (CTE->isTypeOperand()) {
-    QualType Adjusted = CTE->getTypeOperand(Ctx);
-    QualType Unadjusted = CTE->getTypeOperandSourceInfo()->getType();
+    QualType const Adjusted = CTE->getTypeOperand(Ctx);
+    QualType const Unadjusted = CTE->getTypeOperandSourceInfo()->getType();
     JOS.attribute("typeArg", createQualType(Unadjusted));
     if (Adjusted != Unadjusted)
       JOS.attribute("adjustedTypeArg", createQualType(Adjusted));

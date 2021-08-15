@@ -77,12 +77,12 @@ bool AffectedRangeManager::affectsTokenRange(const FormatToken &First,
     Start = Start.getLocWithOffset(First.LastNewlineOffset);
   SourceLocation End = Last.getStartOfNonWhitespace();
   End = End.getLocWithOffset(Last.TokenText.size());
-  CharSourceRange Range = CharSourceRange::getCharRange(Start, End);
+  CharSourceRange const Range = CharSourceRange::getCharRange(Start, End);
   return affectsCharSourceRange(Range);
 }
 
 bool AffectedRangeManager::affectsLeadingEmptyLines(const FormatToken &Tok) {
-  CharSourceRange EmptyLineRange = CharSourceRange::getCharRange(
+  CharSourceRange const EmptyLineRange = CharSourceRange::getCharRange(
       Tok.WhitespaceRange.getBegin(),
       Tok.WhitespaceRange.getBegin().getLocWithOffset(Tok.LastNewlineOffset));
   return affectsCharSourceRange(EmptyLineRange);
@@ -130,15 +130,15 @@ bool AffectedRangeManager::nonPPLineAffected(
 
   // Was this line moved, i.e. has it previously been on the same line as an
   // affected line?
-  bool LineMoved = PreviousLine && PreviousLine->Affected &&
+  bool const LineMoved = PreviousLine && PreviousLine->Affected &&
                    Line->First->NewlinesBefore == 0;
 
-  bool IsContinuedComment =
+  bool const IsContinuedComment =
       Line->First->is(tok::comment) && Line->First->Next == nullptr &&
       Line->First->NewlinesBefore < 2 && PreviousLine &&
       PreviousLine->Affected && PreviousLine->Last->is(tok::comment);
 
-  bool IsAffectedClosingBrace =
+  bool const IsAffectedClosingBrace =
       Line->First->is(tok::r_brace) &&
       Line->MatchingOpeningBlockLineIndex != UnwrappedLine::kInvalidIndex &&
       Lines[Line->MatchingOpeningBlockLineIndex]->Affected;

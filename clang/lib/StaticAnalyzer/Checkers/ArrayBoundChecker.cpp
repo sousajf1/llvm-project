@@ -45,21 +45,21 @@ void ArrayBoundChecker::checkLocation(SVal l, bool isLoad, const Stmt* LoadS,
     return;
 
   // Get the index of the accessed element.
-  DefinedOrUnknownSVal Idx = ER->getIndex().castAs<DefinedOrUnknownSVal>();
+  DefinedOrUnknownSVal const Idx = ER->getIndex().castAs<DefinedOrUnknownSVal>();
 
   // Zero index is always in bound, this also passes ElementRegions created for
   // pointer casts.
   if (Idx.isZeroConstant())
     return;
 
-  ProgramStateRef state = C.getState();
+  ProgramStateRef const state = C.getState();
 
   // Get the size of the array.
-  DefinedOrUnknownSVal ElementCount = getDynamicElementCount(
+  DefinedOrUnknownSVal const ElementCount = getDynamicElementCount(
       state, ER->getSuperRegion(), C.getSValBuilder(), ER->getValueType());
 
-  ProgramStateRef StInBound = state->assumeInBound(Idx, ElementCount, true);
-  ProgramStateRef StOutBound = state->assumeInBound(Idx, ElementCount, false);
+  ProgramStateRef const StInBound = state->assumeInBound(Idx, ElementCount, true);
+  ProgramStateRef const StOutBound = state->assumeInBound(Idx, ElementCount, false);
   if (StOutBound && !StInBound) {
     ExplodedNode *N = C.generateErrorNode(StOutBound);
     if (!N)

@@ -29,20 +29,20 @@ class CommentTextTest : public ::testing::Test {
 protected:
   std::string formatComment(llvm::StringRef CommentText) {
     SourceManagerForFile FileSourceMgr("comment-test.cpp", CommentText);
-    SourceManager& SourceMgr = FileSourceMgr.get();
+    SourceManager const& SourceMgr = FileSourceMgr.get();
 
     auto CommentStartOffset = CommentText.find("/");
     assert(CommentStartOffset != llvm::StringRef::npos);
-    FileID File = SourceMgr.getMainFileID();
+    FileID const File = SourceMgr.getMainFileID();
 
-    SourceRange CommentRange(
+    SourceRange const CommentRange(
         SourceMgr.getLocForStartOfFile(File).getLocWithOffset(
             CommentStartOffset),
         SourceMgr.getLocForEndOfFile(File));
-    CommentOptions EmptyOpts;
+    CommentOptions const EmptyOpts;
     // FIXME: technically, merged that we set here is incorrect, but that
     // shouldn't matter.
-    RawComment Comment(SourceMgr, CommentRange, EmptyOpts, /*Merged=*/true);
+    RawComment const Comment(SourceMgr, CommentRange, EmptyOpts, /*Merged=*/true);
     DiagnosticsEngine Diags(new DiagnosticIDs, new DiagnosticOptions);
     return Comment.getFormattedText(SourceMgr, Diags);
   }

@@ -27,14 +27,14 @@ using namespace clang::driver;
 namespace {
 
 TEST(ToolChainTest, VFSGCCInstallation) {
-  IntrusiveRefCntPtr<DiagnosticOptions> DiagOpts = new DiagnosticOptions();
+  IntrusiveRefCntPtr<DiagnosticOptions> const DiagOpts = new DiagnosticOptions();
 
-  IntrusiveRefCntPtr<DiagnosticIDs> DiagID(new DiagnosticIDs());
+  IntrusiveRefCntPtr<DiagnosticIDs> const DiagID(new DiagnosticIDs());
   struct TestDiagnosticConsumer : public DiagnosticConsumer {};
-  IntrusiveRefCntPtr<llvm::vfs::InMemoryFileSystem> InMemoryFileSystem(
+  IntrusiveRefCntPtr<llvm::vfs::InMemoryFileSystem> const InMemoryFileSystem(
       new llvm::vfs::InMemoryFileSystem);
 
-  const char *EmptyFiles[] = {
+  const char *const EmptyFiles[] = {
       "foo.cpp",
       "/bin/clang",
       "/usr/lib/gcc/arm-linux-gnueabi/4.6.1/crtbegin.o",
@@ -125,17 +125,17 @@ TEST(ToolChainTest, VFSGCCInstallation) {
 }
 
 TEST(ToolChainTest, VFSGCCInstallationRelativeDir) {
-  IntrusiveRefCntPtr<DiagnosticOptions> DiagOpts = new DiagnosticOptions();
+  IntrusiveRefCntPtr<DiagnosticOptions> const DiagOpts = new DiagnosticOptions();
 
-  IntrusiveRefCntPtr<DiagnosticIDs> DiagID(new DiagnosticIDs());
+  IntrusiveRefCntPtr<DiagnosticIDs> const DiagID(new DiagnosticIDs());
   struct TestDiagnosticConsumer : public DiagnosticConsumer {};
   DiagnosticsEngine Diags(DiagID, &*DiagOpts, new TestDiagnosticConsumer);
-  IntrusiveRefCntPtr<llvm::vfs::InMemoryFileSystem> InMemoryFileSystem(
+  IntrusiveRefCntPtr<llvm::vfs::InMemoryFileSystem> const InMemoryFileSystem(
       new llvm::vfs::InMemoryFileSystem);
   Driver TheDriver("/home/test/bin/clang", "arm-linux-gnueabi", Diags,
                    "clang LLVM compiler", InMemoryFileSystem);
 
-  const char *EmptyFiles[] = {
+  const char *const EmptyFiles[] = {
       "foo.cpp", "/home/test/lib/gcc/arm-linux-gnueabi/4.6.1/crtbegin.o",
       "/home/test/include/arm-linux-gnueabi/.keep"};
 
@@ -165,12 +165,12 @@ TEST(ToolChainTest, VFSGCCInstallationRelativeDir) {
 }
 
 TEST(ToolChainTest, DefaultDriverMode) {
-  IntrusiveRefCntPtr<DiagnosticOptions> DiagOpts = new DiagnosticOptions();
+  IntrusiveRefCntPtr<DiagnosticOptions> const DiagOpts = new DiagnosticOptions();
 
-  IntrusiveRefCntPtr<DiagnosticIDs> DiagID(new DiagnosticIDs());
+  IntrusiveRefCntPtr<DiagnosticIDs> const DiagID(new DiagnosticIDs());
   struct TestDiagnosticConsumer : public DiagnosticConsumer {};
   DiagnosticsEngine Diags(DiagID, &*DiagOpts, new TestDiagnosticConsumer);
-  IntrusiveRefCntPtr<llvm::vfs::InMemoryFileSystem> InMemoryFileSystem(
+  IntrusiveRefCntPtr<llvm::vfs::InMemoryFileSystem> const InMemoryFileSystem(
       new llvm::vfs::InMemoryFileSystem);
 
   Driver CCDriver("/home/test/bin/clang", "arm-linux-gnueabi", Diags,
@@ -183,11 +183,11 @@ TEST(ToolChainTest, DefaultDriverMode) {
                   "clang LLVM compiler", InMemoryFileSystem);
   CLDriver.setCheckInputsExist(false);
 
-  std::unique_ptr<Compilation> CC(CCDriver.BuildCompilation(
+  std::unique_ptr<Compilation> const CC(CCDriver.BuildCompilation(
       { "/home/test/bin/clang", "foo.cpp"}));
-  std::unique_ptr<Compilation> CXX(CXXDriver.BuildCompilation(
+  std::unique_ptr<Compilation> const CXX(CXXDriver.BuildCompilation(
       { "/home/test/bin/clang++", "foo.cpp"}));
-  std::unique_ptr<Compilation> CL(CLDriver.BuildCompilation(
+  std::unique_ptr<Compilation> const CL(CLDriver.BuildCompilation(
       { "/home/test/bin/clang-cl", "foo.cpp"}));
 
   EXPECT_TRUE(CC);
@@ -198,9 +198,9 @@ TEST(ToolChainTest, DefaultDriverMode) {
   EXPECT_TRUE(CLDriver.IsCLMode());
 }
 TEST(ToolChainTest, InvalidArgument) {
-  IntrusiveRefCntPtr<DiagnosticIDs> DiagID(new DiagnosticIDs());
+  IntrusiveRefCntPtr<DiagnosticIDs> const DiagID(new DiagnosticIDs());
   struct TestDiagnosticConsumer : public DiagnosticConsumer {};
-  IntrusiveRefCntPtr<DiagnosticOptions> DiagOpts = new DiagnosticOptions();
+  IntrusiveRefCntPtr<DiagnosticOptions> const DiagOpts = new DiagnosticOptions();
   DiagnosticsEngine Diags(DiagID, &*DiagOpts, new TestDiagnosticConsumer);
   Driver TheDriver("/bin/clang", "arm-linux-gnueabihf", Diags);
   std::unique_ptr<Compilation> C(TheDriver.BuildCompilation(
@@ -210,25 +210,25 @@ TEST(ToolChainTest, InvalidArgument) {
 }
 
 TEST(ToolChainTest, ParsedClangName) {
-  ParsedClangName Empty;
+  ParsedClangName const Empty;
   EXPECT_TRUE(Empty.TargetPrefix.empty());
   EXPECT_TRUE(Empty.ModeSuffix.empty());
   EXPECT_TRUE(Empty.DriverMode == nullptr);
   EXPECT_FALSE(Empty.TargetIsValid);
 
-  ParsedClangName DriverOnly("clang", nullptr);
+  ParsedClangName const DriverOnly("clang", nullptr);
   EXPECT_TRUE(DriverOnly.TargetPrefix.empty());
   EXPECT_TRUE(DriverOnly.ModeSuffix == "clang");
   EXPECT_TRUE(DriverOnly.DriverMode == nullptr);
   EXPECT_FALSE(DriverOnly.TargetIsValid);
 
-  ParsedClangName DriverOnly2("clang++", "--driver-mode=g++");
+  ParsedClangName const DriverOnly2("clang++", "--driver-mode=g++");
   EXPECT_TRUE(DriverOnly2.TargetPrefix.empty());
   EXPECT_TRUE(DriverOnly2.ModeSuffix == "clang++");
   EXPECT_STREQ(DriverOnly2.DriverMode, "--driver-mode=g++");
   EXPECT_FALSE(DriverOnly2.TargetIsValid);
 
-  ParsedClangName TargetAndMode("i386", "clang-g++", "--driver-mode=g++", true);
+  ParsedClangName const TargetAndMode("i386", "clang-g++", "--driver-mode=g++", true);
   EXPECT_TRUE(TargetAndMode.TargetPrefix == "i386");
   EXPECT_TRUE(TargetAndMode.ModeSuffix == "clang-g++");
   EXPECT_STREQ(TargetAndMode.DriverMode, "--driver-mode=g++");
@@ -305,12 +305,12 @@ TEST(ToolChainTest, GetTargetAndMode) {
 }
 
 TEST(ToolChainTest, CommandOutput) {
-  IntrusiveRefCntPtr<DiagnosticOptions> DiagOpts = new DiagnosticOptions();
+  IntrusiveRefCntPtr<DiagnosticOptions> const DiagOpts = new DiagnosticOptions();
 
-  IntrusiveRefCntPtr<DiagnosticIDs> DiagID(new DiagnosticIDs());
+  IntrusiveRefCntPtr<DiagnosticIDs> const DiagID(new DiagnosticIDs());
   struct TestDiagnosticConsumer : public DiagnosticConsumer {};
   DiagnosticsEngine Diags(DiagID, &*DiagOpts, new TestDiagnosticConsumer);
-  IntrusiveRefCntPtr<llvm::vfs::InMemoryFileSystem> InMemoryFileSystem(
+  IntrusiveRefCntPtr<llvm::vfs::InMemoryFileSystem> const InMemoryFileSystem(
       new llvm::vfs::InMemoryFileSystem);
 
   Driver CCDriver("/home/test/bin/clang", "arm-linux-gnueabi", Diags,
@@ -334,11 +334,11 @@ TEST(ToolChainTest, CommandOutput) {
 }
 
 TEST(ToolChainTest, PostCallback) {
-  IntrusiveRefCntPtr<DiagnosticOptions> DiagOpts = new DiagnosticOptions();
-  IntrusiveRefCntPtr<DiagnosticIDs> DiagID(new DiagnosticIDs());
+  IntrusiveRefCntPtr<DiagnosticOptions> const DiagOpts = new DiagnosticOptions();
+  IntrusiveRefCntPtr<DiagnosticIDs> const DiagID(new DiagnosticIDs());
   struct TestDiagnosticConsumer : public DiagnosticConsumer {};
   DiagnosticsEngine Diags(DiagID, &*DiagOpts, new TestDiagnosticConsumer);
-  IntrusiveRefCntPtr<llvm::vfs::InMemoryFileSystem> InMemoryFileSystem(
+  IntrusiveRefCntPtr<llvm::vfs::InMemoryFileSystem> const InMemoryFileSystem(
       new llvm::vfs::InMemoryFileSystem);
 
   // The executable path must not exist.

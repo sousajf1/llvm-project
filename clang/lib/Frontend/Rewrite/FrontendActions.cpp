@@ -184,7 +184,7 @@ RewriteObjCAction::CreateASTConsumer(CompilerInstance &CI, StringRef InFile) {
 
 void RewriteMacrosAction::ExecuteAction() {
   CompilerInstance &CI = getCompilerInstance();
-  std::unique_ptr<raw_ostream> OS =
+  std::unique_ptr<raw_ostream> const OS =
       CI.createDefaultOutputFile(/*Binary=*/true, getCurrentFileOrBufferName());
   if (!OS) return;
 
@@ -193,7 +193,7 @@ void RewriteMacrosAction::ExecuteAction() {
 
 void RewriteTestAction::ExecuteAction() {
   CompilerInstance &CI = getCompilerInstance();
-  std::unique_ptr<raw_ostream> OS =
+  std::unique_ptr<raw_ostream> const OS =
       CI.createDefaultOutputFile(/*Binary=*/false, getCurrentFileOrBufferName());
   if (!OS) return;
 

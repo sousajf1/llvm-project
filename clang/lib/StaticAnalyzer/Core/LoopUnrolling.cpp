@@ -283,7 +283,7 @@ bool madeNewBranch(ExplodedNode *N, const Stmt *LoopStmt) {
     if (N->succ_size() > 1)
       return true;
 
-    ProgramPoint P = N->getLocation();
+    ProgramPoint const P = N->getLocation();
     if (Optional<BlockEntrance> BE = P.getAs<BlockEntrance>())
       S = BE->getBlock()->getTerminatorStmt();
 
@@ -322,9 +322,9 @@ ProgramStateRef updateLoopStack(const Stmt *LoopStmt, ASTContext &ASTCtx,
     return State;
   }
 
-  unsigned outerStep = (LS.isEmpty() ? 1 : LS.getHead().getMaxStep());
+  unsigned const outerStep = (LS.isEmpty() ? 1 : LS.getHead().getMaxStep());
 
-  unsigned innerMaxStep = maxStep * outerStep;
+  unsigned const innerMaxStep = maxStep * outerStep;
   if (innerMaxStep > MAXIMUM_STEP_UNROLLED)
     State = State->add<LoopStack>(
         LoopState::getNormal(LoopStmt, LCtx, maxVisitOnPath));

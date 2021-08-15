@@ -35,7 +35,7 @@ CGOpenMPRuntimeAMDGCN::CGOpenMPRuntimeAMDGCN(CodeGenModule &CGM)
 llvm::Value *CGOpenMPRuntimeAMDGCN::getGPUWarpSize(CodeGenFunction &CGF) {
   CGBuilderTy &Bld = CGF.Builder;
   // return constant compile-time target-specific warp size
-  unsigned WarpSize = CGF.getTarget().getGridValue(llvm::omp::GV_Warp_Size);
+  unsigned const WarpSize = CGF.getTarget().getGridValue(llvm::omp::GV_Warp_Size);
   return Bld.getInt32(WarpSize);
 }
 

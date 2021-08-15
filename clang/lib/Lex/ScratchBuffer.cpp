@@ -77,7 +77,7 @@ void ScratchBuffer::AllocScratchBuffer(unsigned RequestLen) {
       llvm::WritableMemoryBuffer::getNewMemBuffer(RequestLen,
                                                   "<scratch space>");
   CurBuffer = OwnBuf->getBufferStart();
-  FileID FID = SourceMgr.createFileID(std::move(OwnBuf));
+  FileID const FID = SourceMgr.createFileID(std::move(OwnBuf));
   BufferStartLoc = SourceMgr.getLocForStartOfFile(FID);
   BytesUsed = 0;
 }

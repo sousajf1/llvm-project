@@ -30,7 +30,7 @@ IncrementalExecutor::IncrementalExecutor(llvm::orc::ThreadSafeContext &TSC,
                                          const llvm::Triple &Triple)
     : TSCtx(TSC) {
   using namespace llvm::orc;
-  llvm::ErrorAsOutParameter EAO(&Err);
+  llvm::ErrorAsOutParameter const EAO(&Err);
 
   auto JTMB = JITTargetMachineBuilder(Triple);
   if (auto JitOrErr = LLJITBuilder().setJITTargetMachineBuilder(JTMB).create())

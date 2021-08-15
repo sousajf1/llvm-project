@@ -84,7 +84,7 @@ static bool isNumericLiteralExpression(const Expr *E) {
 /// and is not a typedef, return the decl name.
 /// Otherwise, return the serialization of type.
 static std::string getPrettyTypeName(QualType QT) {
-  QualType PT = QT->getPointeeType();
+  QualType const PT = QT->getPointeeType();
   if (!PT.isNull() && !QT->getAs<TypedefType>())
     if (const auto *RD = PT->getAsCXXRecordDecl())
       return std::string(RD->getName());
@@ -98,7 +98,7 @@ static bool shouldGenerateNote(llvm::raw_string_ostream &os,
                                const RefVal &CurrV,
                                bool DeallocSent) {
   // Get the previous type state.
-  RefVal PrevV = *PrevT;
+  RefVal const PrevV = *PrevT;
 
   // Specially handle -dealloc.
   if (DeallocSent) {
@@ -133,7 +133,7 @@ static bool shouldGenerateNote(llvm::raw_string_ostream &os,
       else
         os << "Reference count incremented.";
 
-      if (unsigned Count = CurrV.getCount())
+      if (unsigned const Count = CurrV.getCount())
         os << " The object now has a +" << Count << " retain count.";
 
       return true;
@@ -219,7 +219,7 @@ static void generateDiagnosticsForCallLike(ProgramStateRef CurrSt,
   if (const CallExpr *CE = dyn_cast<CallExpr>(S)) {
     // Get the name of the callee (if it is available)
     // from the tracked SVal.
-    SVal X = CurrSt->getSValAsScalarOrLoc(CE->getCallee(), LCtx);
+    SVal const X = CurrSt->getSValAsScalarOrLoc(CE->getCallee(), LCtx);
     const FunctionDecl *FD = X.getAsFunctionDecl();
 
     // If failed, try to get it from AST.
@@ -237,7 +237,7 @@ static void generateDiagnosticsForCallLike(ProgramStateRef CurrSt,
     os << "Operator 'new'";
   } else {
     assert(isa<ObjCMessageExpr>(S));
-    CallEventRef<ObjCMethodCall> Call =
+    CallEventRef<ObjCMethodCall> const Call =
         Mgr.getObjCMethodCall(cast<ObjCMessageExpr>(S), CurrSt, LCtx);
 
     switch (Call->getMessageKind()) {
@@ -298,9 +298,9 @@ static void generateDiagnosticsForCallLike(ProgramStateRef CurrSt,
                               /*Qualified=*/false);
     os << "'";
 
-    QualType RT = (*CE)->getResultType();
+    QualType const RT = (*CE)->getResultType();
     if (!RT.isNull() && !RT->isVoidType()) {
-      SVal RV = (*CE)->getReturnValue();
+      SVal const RV = (*CE)->getReturnValue();
       if (CurrSt->isNull(RV).isConstrainedTrue()) {
         os << " (assuming the call returns zero)";
       } else if (CurrSt->isNonNull(RV).isConstrainedTrue()) {
@@ -385,11 +385,11 @@ annotateConsumedSummaryMismatch(const ExplodedNode *N,
   if (!CN)
     return nullptr;
 
-  CallEventRef<> Call = CEMgr.getCaller(N->getStackFrame(), N->getState());
+  CallEventRef<> const Call = CEMgr.getCaller(N->getStackFrame(), N->getState());
 
   std::string sbuf;
   llvm::raw_string_ostream os(sbuf);
-  ArrayRef<const ParmVarDecl *> Parameters = Call->parameters();
+  ArrayRef<const ParmVarDecl *> const Parameters = Call->parameters();
   for (unsigned I=0; I < Call->getNumArgs() && I < Parameters.size(); ++I) {
     const ParmVarDecl *PVD = Parameters[I];
 
@@ -403,10 +403,10 @@ annotateConsumedSummaryMismatch(const ExplodedNode *N,
       if (!CountBeforeCall || !CountAtExit)
         continue;
 
-      unsigned CountBefore = CountBeforeCall->getCount();
-      unsigned CountAfter = CountAtExit->getCount();
+      unsigned const CountBefore = CountBeforeCall->getCount();
+      unsigned const CountAfter = CountAtExit->getCount();
 
-      bool AsExpected = CountBefore > 0 && CountAfter == CountBefore - 1;
+      bool const AsExpected = CountBefore > 0 && CountAfter == CountBefore - 1;
       if (!AsExpected) {
         os << "Parameter '";
         PVD->getNameForDiagnostic(os, PVD->getASTContext().getPrintingPolicy(),
@@ -420,7 +420,7 @@ annotateConsumedSummaryMismatch(const ExplodedNode *N,
   if (os.str().empty())
     return nullptr;
 
-  PathDiagnosticLocation L = PathDiagnosticLocation::create(CallExitLoc, SM);
+  PathDiagnosticLocation const L = PathDiagnosticLocation::create(CallExitLoc, SM);
   return std::make_shared<PathDiagnosticEventPiece>(L, os.str());
 }
 
@@ -441,7 +441,7 @@ annotateStartParameter(const ExplodedNode *N, SymbolRef Sym,
 
   const auto *VR = cast<VarRegion>(cast<SymbolRegionValue>(Sym)->getRegion());
   const auto *PVD = cast<ParmVarDecl>(VR->getDecl());
-  PathDiagnosticLocation L = PathDiagnosticLocation(PVD, SM);
+  PathDiagnosticLocation const L = PathDiagnosticLocation(PVD, SM);
 
   std::string s;
   llvm::raw_string_ostream os(s);
@@ -461,7 +461,7 @@ RefCountReportVisitor::VisitNode(const ExplodedNode *N, BugReporterContext &BRC,
 
   const auto &BT = static_cast<const RefCountBug&>(BR.getBugType());
 
-  bool IsFreeUnowned = BT.getBugType() == RefCountBug::FreeNotOwned ||
+  bool const IsFreeUnowned = BT.getBugType() == RefCountBug::FreeNotOwned ||
                        BT.getBugType() == RefCountBug::DeallocNotOwned;
 
   const SourceManager &SM = BRC.getSourceManager();
@@ -480,8 +480,8 @@ RefCountReportVisitor::VisitNode(const ExplodedNode *N, BugReporterContext &BRC,
 
   // Check if the type state has changed.
   const ExplodedNode *PrevNode = N->getFirstPred();
-  ProgramStateRef PrevSt = PrevNode->getState();
-  ProgramStateRef CurrSt = N->getState();
+  ProgramStateRef const PrevSt = PrevNode->getState();
+  ProgramStateRef const CurrSt = N->getState();
   const LocationContext *LCtx = N->getLocationContext();
 
   const RefVal* CurrT = getRefBinding(CurrSt, Sym);
@@ -540,7 +540,7 @@ RefCountReportVisitor::VisitNode(const ExplodedNode *N, BugReporterContext &BRC,
       generateDiagnosticsForCallLike(CurrSt, LCtx, CurrV, Sym, S, os);
     }
 
-    PathDiagnosticLocation Pos(S, SM, N->getLocationContext());
+    PathDiagnosticLocation const Pos(S, SM, N->getLocationContext());
     return std::make_shared<PathDiagnosticEventPiece>(Pos, os.str());
   }
 
@@ -592,7 +592,7 @@ RefCountReportVisitor::VisitNode(const ExplodedNode *N, BugReporterContext &BRC,
     return nullptr; // We have nothing to say!
 
   const Stmt *S = N->getLocation().castAs<StmtPoint>().getStmt();
-  PathDiagnosticLocation Pos(S, BRC.getSourceManager(),
+  PathDiagnosticLocation const Pos(S, BRC.getSourceManager(),
                                 N->getLocationContext());
   auto P = std::make_shared<PathDiagnosticEventPiece>(Pos, os.str());
 
@@ -680,7 +680,7 @@ static AllocationInfo GetAllocationSite(ProgramStateManager &StateMgr,
   const LocationContext *InitMethodContext = nullptr;
 
   while (N) {
-    ProgramStateRef St = N->getState();
+    ProgramStateRef const St = N->getState();
     const LocationContext *NContext = N->getLocationContext();
 
     if (!getRefBinding(St, Sym))
@@ -719,7 +719,7 @@ static AllocationInfo GetAllocationSite(ProgramStateManager &StateMgr,
         if (const auto *ME = dyn_cast_or_null<ObjCMessageExpr>(CE)) {
           const Stmt *RecExpr = ME->getInstanceReceiver();
           if (RecExpr) {
-            SVal RecV = St->getSVal(RecExpr, NContext);
+            SVal const RecV = St->getSVal(RecExpr, NContext);
             if (ME->getMethodFamily() == OMF_init && RecV.getAsSymbol() == Sym)
               InitMethodContext = CEP->getCalleeContext();
           }
@@ -770,7 +770,7 @@ RefLeakReportVisitor::getEndPath(BugReporterContext &BRC,
   // assigned to different variables, etc.
   BR.markInteresting(Sym);
 
-  PathDiagnosticLocation L = cast<RefLeakReport>(BR).getEndOfPath();
+  PathDiagnosticLocation const L = cast<RefLeakReport>(BR).getEndOfPath();
 
   std::string sbuf;
   llvm::raw_string_ostream os(sbuf);
@@ -817,7 +817,7 @@ RefLeakReportVisitor::getEndPath(BugReporterContext &BRC,
         }
       } else {
         const FunctionDecl *FD = cast<FunctionDecl>(D);
-        ObjKind K = RV->getObjKind();
+        ObjKind const K = RV->getObjKind();
         if (K == ObjKind::ObjC || K == ObjKind::CF) {
           os << "whose name ('" << *FD
              << "') does not contain 'Copy' or 'Create'.  This violates the "
@@ -826,7 +826,7 @@ RefLeakReportVisitor::getEndPath(BugReporterContext &BRC,
                 "Core"
                 " Foundation";
         } else if (RV->getObjKind() == ObjKind::OS) {
-          std::string FuncName = FD->getNameAsString();
+          std::string const FuncName = FD->getNameAsString();
           os << "whose name ('" << FuncName << "') starts with '"
              << StringRef(FuncName).substr(0, 3) << "'";
         }
@@ -867,7 +867,7 @@ void RefLeakReport::deriveParamLocation(CheckerContext &Ctx) {
   if (Region) {
     const Decl *PDecl = Region->getDecl();
     if (isa_and_nonnull<ParmVarDecl>(PDecl)) {
-      PathDiagnosticLocation ParamLocation =
+      PathDiagnosticLocation const ParamLocation =
           PathDiagnosticLocation::create(PDecl, SMgr);
       Location = ParamLocation;
       UniqueingLocation = ParamLocation;
@@ -889,7 +889,7 @@ void RefLeakReport::deriveAllocLocation(CheckerContext &Ctx) {
 
   const SourceManager &SMgr = Ctx.getSourceManager();
 
-  AllocationInfo AllocI =
+  AllocationInfo const AllocI =
       GetAllocationSite(Ctx.getStateManager(), getErrorNode(), Sym);
 
   AllocNode = AllocI.N;
@@ -907,7 +907,7 @@ void RefLeakReport::deriveAllocLocation(CheckerContext &Ctx) {
     return;
   }
 
-  PathDiagnosticLocation AllocLocation = PathDiagnosticLocation::createBegin(
+  PathDiagnosticLocation const AllocLocation = PathDiagnosticLocation::createBegin(
       AllocStmt, SMgr, AllocNode->getLocationContext());
   Location = AllocLocation;
 

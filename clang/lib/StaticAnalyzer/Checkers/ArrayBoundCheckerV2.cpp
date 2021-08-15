@@ -87,7 +87,7 @@ getSimplifiedOffsets(NonLoc offset, nonloc::ConcreteInt extent,
   Optional<nonloc::SymbolVal> SymVal = offset.getAs<nonloc::SymbolVal>();
   if (SymVal && SymVal->isExpression()) {
     if (const SymIntExpr *SIE = dyn_cast<SymIntExpr>(SymVal->getSymbol())) {
-      llvm::APSInt constant =
+      llvm::APSInt const constant =
           APSIntType(extent.getValue()).convert(SIE->getRHS());
       switch (SIE->getOpcode()) {
       case BO_Mul:
@@ -141,11 +141,11 @@ void ArrayBoundCheckerV2::checkLocation(SVal location, bool isLoad,
   //  If so, we are doing a load/store
   //  before the first valid offset in the memory region.
 
-  SVal extentBegin = computeExtentBegin(svalBuilder, rawOffset.getRegion());
+  SVal const extentBegin = computeExtentBegin(svalBuilder, rawOffset.getRegion());
 
   if (Optional<NonLoc> NV = extentBegin.getAs<NonLoc>()) {
     if (NV->getAs<nonloc::ConcreteInt>()) {
-      std::pair<NonLoc, nonloc::ConcreteInt> simplifiedOffsets =
+      std::pair<NonLoc, nonloc::ConcreteInt> const simplifiedOffsets =
           getSimplifiedOffsets(rawOffset.getByteOffset(),
                                NV->castAs<nonloc::ConcreteInt>(),
                                svalBuilder);
@@ -153,7 +153,7 @@ void ArrayBoundCheckerV2::checkLocation(SVal location, bool isLoad,
       *NV = simplifiedOffsets.second;
     }
 
-    SVal lowerBound = svalBuilder.evalBinOpNN(state, BO_LT, rawOffsetVal, *NV,
+    SVal const lowerBound = svalBuilder.evalBinOpNN(state, BO_LT, rawOffsetVal, *NV,
                                               svalBuilder.getConditionType());
 
     Optional<NonLoc> lowerBoundToCheck = lowerBound.getAs<NonLoc>();
@@ -184,14 +184,14 @@ void ArrayBoundCheckerV2::checkLocation(SVal location, bool isLoad,
       break;
 
     if (Size.getAs<nonloc::ConcreteInt>()) {
-      std::pair<NonLoc, nonloc::ConcreteInt> simplifiedOffsets =
+      std::pair<NonLoc, nonloc::ConcreteInt> const simplifiedOffsets =
           getSimplifiedOffsets(rawOffset.getByteOffset(),
                                Size.castAs<nonloc::ConcreteInt>(), svalBuilder);
       rawOffsetVal = simplifiedOffsets.first;
       Size = simplifiedOffsets.second;
     }
 
-    SVal upperbound = svalBuilder.evalBinOpNN(state, BO_GE, rawOffsetVal,
+    SVal const upperbound = svalBuilder.evalBinOpNN(state, BO_GE, rawOffsetVal,
                                               Size.castAs<NonLoc>(),
                                               svalBuilder.getConditionType());
 
@@ -205,7 +205,7 @@ void ArrayBoundCheckerV2::checkLocation(SVal location, bool isLoad,
 
     // If we are under constrained and the index variables are tainted, report.
     if (state_exceedsUpperBound && state_withinUpperBound) {
-      SVal ByteOffset = rawOffset.getByteOffset();
+      SVal const ByteOffset = rawOffset.getByteOffset();
       if (isTainted(state, ByteOffset)) {
         reportOOB(checkerContext, state_exceedsUpperBound, OOB_Tainted,
                   std::make_unique<TaintBugVisitor>(ByteOffset));
@@ -323,12 +323,12 @@ RegionRawOffsetV2 RegionRawOffsetV2::computeOffset(ProgramStateRef state,
       }
       case MemRegion::ElementRegionKind: {
         const ElementRegion *elemReg = cast<ElementRegion>(region);
-        SVal index = elemReg->getIndex();
+        SVal const index = elemReg->getIndex();
         if (!index.getAs<NonLoc>())
           return RegionRawOffsetV2();
-        QualType elemType = elemReg->getElementType();
+        QualType const elemType = elemReg->getElementType();
         // If the element is an incomplete type, go no further.
-        ASTContext &astContext = svalBuilder.getContext();
+        ASTContext  const&astContext = svalBuilder.getContext();
         if (elemType->isIncompleteType())
           return RegionRawOffsetV2();
 

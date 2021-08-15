@@ -148,38 +148,38 @@ TEST_P(RenameEnumTest, RenameEnums) {
   auto Param = GetParam();
   assert(!Param.OldName.empty());
   assert(!Param.NewName.empty());
-  std::string Actual =
+  std::string const Actual =
       runClangRenameOnCode(Param.Before, Param.OldName, Param.NewName);
   CompareSnippets(Param.After, Actual);
 }
 
 TEST_F(RenameEnumTest, RenameEnumDecl) {
-  std::string Before = R"(
+  std::string const Before = R"(
       namespace ns {
       enum Old1 { Blue };
       }
   )";
-  std::string Expected = R"(
+  std::string const Expected = R"(
       namespace ns {
       enum New1 { Blue };
       }
   )";
-  std::string After = runClangRenameOnCode(Before, "ns::Old1", "ns::New1");
+  std::string const After = runClangRenameOnCode(Before, "ns::Old1", "ns::New1");
   CompareSnippets(Expected, After);
 }
 
 TEST_F(RenameEnumTest, RenameScopedEnumDecl) {
-  std::string Before = R"(
+  std::string const Before = R"(
       namespace ns {
       enum class Old1 { Blue };
       }
   )";
-  std::string Expected = R"(
+  std::string const Expected = R"(
       namespace ns {
       enum class New1 { Blue };
       }
   )";
-  std::string After = runClangRenameOnCode(Before, "ns::Old1", "ns::New1");
+  std::string const After = runClangRenameOnCode(Before, "ns::Old1", "ns::New1");
   CompareSnippets(Expected, After);
 }
 

@@ -194,7 +194,7 @@ break; \
                                                 ShouldAKA));
   } else if (const auto *Ty = QT->getAs<ObjCObjectType>()) {
     if (Ty->getBaseType().getTypePtr() != Ty && !ShouldAKA) {
-      QualType BaseType = Desugar(Context, Ty->getBaseType(), ShouldAKA);
+      QualType const BaseType = Desugar(Context, Ty->getBaseType(), ShouldAKA);
       QT = Context.getObjCObjectType(BaseType, Ty->getTypeArgsAsWritten(),
                                      llvm::makeArrayRef(Ty->qual_begin(),
                                                         Ty->getNumProtocols()),
@@ -235,29 +235,29 @@ ConvertTypeToDiagnosticString(ASTContext &Context, QualType Ty,
                             ArrayRef<intptr_t> QualTypeVals) {
   // FIXME: Playing with std::string is really slow.
   bool ForceAKA = false;
-  QualType CanTy = Ty.getCanonicalType();
+  QualType const CanTy = Ty.getCanonicalType();
   std::string S = Ty.getAsString(Context.getPrintingPolicy());
-  std::string CanS = CanTy.getAsString(Context.getPrintingPolicy());
+  std::string const CanS = CanTy.getAsString(Context.getPrintingPolicy());
 
   for (unsigned I = 0, E = QualTypeVals.size(); I != E; ++I) {
-    QualType CompareTy =
+    QualType const CompareTy =
         QualType::getFromOpaquePtr(reinterpret_cast<void*>(QualTypeVals[I]));
     if (CompareTy.isNull())
       continue;
     if (CompareTy == Ty)
       continue;  // Same types
-    QualType CompareCanTy = CompareTy.getCanonicalType();
+    QualType const CompareCanTy = CompareTy.getCanonicalType();
     if (CompareCanTy == CanTy)
       continue;  // Same canonical types
-    std::string CompareS = CompareTy.getAsString(Context.getPrintingPolicy());
+    std::string const CompareS = CompareTy.getAsString(Context.getPrintingPolicy());
     bool ShouldAKA = false;
-    QualType CompareDesugar = Desugar(Context, CompareTy, ShouldAKA);
-    std::string CompareDesugarStr =
+    QualType const CompareDesugar = Desugar(Context, CompareTy, ShouldAKA);
+    std::string const CompareDesugarStr =
         CompareDesugar.getAsString(Context.getPrintingPolicy());
     if (CompareS != S && CompareDesugarStr != S)
       continue;  // The type string is different than the comparison string
                  // and the desugared comparison string.
-    std::string CompareCanS =
+    std::string const CompareCanS =
         CompareCanTy.getAsString(Context.getPrintingPolicy());
 
     if (CompareCanS == CanS)
@@ -274,7 +274,7 @@ ConvertTypeToDiagnosticString(ASTContext &Context, QualType Ty,
     // TODO: Handle ak_declcontext case.
     if (PrevArgs[i].first == DiagnosticsEngine::ak_qualtype) {
       void *Ptr = (void*)PrevArgs[i].second;
-      QualType PrevTy(QualType::getFromOpaquePtr(Ptr));
+      QualType const PrevTy(QualType::getFromOpaquePtr(Ptr));
       if (PrevTy == Ty) {
         Repeated = true;
         break;
@@ -291,7 +291,7 @@ ConvertTypeToDiagnosticString(ASTContext &Context, QualType Ty,
       if (DesugaredTy == Ty) {
         DesugaredTy = Ty.getCanonicalType();
       }
-      std::string akaStr = DesugaredTy.getAsString(Context.getPrintingPolicy());
+      std::string const akaStr = DesugaredTy.getAsString(Context.getPrintingPolicy());
       if (akaStr != S) {
         S = "'" + S + "' (aka '" + akaStr + "')";
         return S;
@@ -332,7 +332,7 @@ void clang::FormatASTNodeDiagnosticArgument(
     ArrayRef<intptr_t> QualTypeVals) {
   ASTContext &Context = *static_cast<ASTContext*>(Cookie);
 
-  size_t OldEnd = Output.size();
+  size_t const OldEnd = Output.size();
   llvm::raw_svector_ostream OS(Output);
   bool NeedQuotes = true;
 
@@ -357,7 +357,7 @@ void clang::FormatASTNodeDiagnosticArgument(
       assert(Modifier.empty() && Argument.empty() &&
              "Invalid modifier for Qualfiers argument");
 
-      Qualifiers Q(Qualifiers::fromOpaqueValue(Val));
+      Qualifiers const Q(Qualifiers::fromOpaqueValue(Val));
       auto S = Q.getAsString();
       if (S.empty()) {
         OS << "unqualified";
@@ -369,9 +369,9 @@ void clang::FormatASTNodeDiagnosticArgument(
     }
     case DiagnosticsEngine::ak_qualtype_pair: {
       TemplateDiffTypes &TDT = *reinterpret_cast<TemplateDiffTypes*>(Val);
-      QualType FromType =
+      QualType const FromType =
           QualType::getFromOpaquePtr(reinterpret_cast<void*>(TDT.FromType));
-      QualType ToType =
+      QualType const ToType =
           QualType::getFromOpaquePtr(reinterpret_cast<void*>(TDT.ToType));
 
       if (FormatTemplateTypeDiff(Context, FromType, ToType, TDT.PrintTree,
@@ -399,7 +399,7 @@ void clang::FormatASTNodeDiagnosticArgument(
       assert(Modifier.empty() && Argument.empty() &&
              "Invalid modifier for QualType argument");
 
-      QualType Ty(QualType::getFromOpaquePtr(reinterpret_cast<void*>(Val)));
+      QualType const Ty(QualType::getFromOpaquePtr(reinterpret_cast<void*>(Val)));
       OS << ConvertTypeToDiagnosticString(Context, Ty, PrevArgs, QualTypeVals);
       NeedQuotes = false;
       break;
@@ -954,7 +954,7 @@ class TemplateDiff {
         if (isEnd()) return;
 
         // Set to first template argument.  If not a parameter pack, done.
-        TemplateArgument TA = TST->getArg(0);
+        TemplateArgument const TA = TST->getArg(0);
         if (TA.getKind() != TemplateArgument::Pack) return;
 
         // Start looking into the parameter pack.
@@ -999,7 +999,7 @@ class TemplateDiff {
             break;
 
           // If the TemplateArgument is not a parameter pack, done.
-          TemplateArgument TA = TST->getArg(Index);
+          TemplateArgument const TA = TST->getArg(Index);
           if (TA.getKind() != TemplateArgument::Pack)
             break;
 
@@ -1132,11 +1132,11 @@ class TemplateDiff {
 
   /// DiffTypes - Fills a DiffNode with information about a type difference.
   void DiffTypes(const TSTiterator &FromIter, const TSTiterator &ToIter) {
-    QualType FromType = GetType(FromIter);
-    QualType ToType = GetType(ToIter);
+    QualType const FromType = GetType(FromIter);
+    QualType const ToType = GetType(ToIter);
 
-    bool FromDefault = FromIter.isEnd() && !FromType.isNull();
-    bool ToDefault = ToIter.isEnd() && !ToType.isNull();
+    bool const FromDefault = FromIter.isEnd() && !FromType.isNull();
+    bool const ToDefault = ToIter.isEnd() && !ToType.isNull();
 
     const TemplateSpecializationType *FromArgTST = nullptr;
     const TemplateSpecializationType *ToArgTST = nullptr;
@@ -1189,8 +1189,8 @@ class TemplateDiff {
           return;
         case TemplateArgument::Declaration: {
           VD = Iter->getAsDecl();
-          QualType ArgType = Iter->getParamTypeForDecl();
-          QualType VDType = VD->getType();
+          QualType const ArgType = Iter->getParamTypeForDecl();
+          QualType const VDType = VD->getType();
           if (ArgType->isPointerType() &&
               Context.hasSameType(ArgType->getPointeeType(), VDType))
             NeedAddressOf = true;
@@ -1219,8 +1219,8 @@ class TemplateDiff {
         return;
       case TemplateArgument::Declaration: {
         VD = TA.getAsDecl();
-        QualType ArgType = TA.getParamTypeForDecl();
-        QualType VDType = VD->getType();
+        QualType const ArgType = TA.getParamTypeForDecl();
+        QualType const VDType = VD->getType();
         if (ArgType->isPointerType() &&
             Context.hasSameType(ArgType->getPointeeType(), VDType))
           NeedAddressOf = true;
@@ -1257,13 +1257,13 @@ class TemplateDiff {
                                    HasToInt, ToIntType, ToNullPtr, ToExpr,
                                    ToValueDecl, NeedToAddressOf);
 
-    bool FromDefault = FromIter.isEnd() &&
+    bool const FromDefault = FromIter.isEnd() &&
                        (FromExpr || FromValueDecl || HasFromInt || FromNullPtr);
-    bool ToDefault = ToIter.isEnd() &&
+    bool const ToDefault = ToIter.isEnd() &&
                      (ToExpr || ToValueDecl || HasToInt || ToNullPtr);
 
-    bool FromDeclaration = FromValueDecl || FromNullPtr;
-    bool ToDeclaration = ToValueDecl || ToNullPtr;
+    bool const FromDeclaration = FromValueDecl || FromNullPtr;
+    bool const ToDeclaration = ToValueDecl || ToNullPtr;
 
     if (FromDeclaration && HasToInt) {
       Tree.SetFromDeclarationAndToIntegerDiff(
@@ -1296,8 +1296,8 @@ class TemplateDiff {
       Tree.SetDeclarationDiff(FromValueDecl, ToValueDecl, NeedFromAddressOf,
                               NeedToAddressOf, FromNullPtr, ToNullPtr, FromExpr,
                               ToExpr, FromDefault, ToDefault);
-      bool BothNull = FromNullPtr && ToNullPtr;
-      bool SameValueDecl =
+      bool const BothNull = FromNullPtr && ToNullPtr;
+      bool const SameValueDecl =
           FromValueDecl && ToValueDecl &&
           NeedFromAddressOf == NeedToAddressOf &&
           FromValueDecl->getCanonicalDecl() == ToValueDecl->getCanonicalDecl();
@@ -1327,8 +1327,8 @@ class TemplateDiff {
       // Get the parameter at index TotalArgs.  If index is larger
       // than the total number of parameters, then there is an
       // argument pack, so re-use the last parameter.
-      unsigned FromParamIndex = std::min(TotalArgs, ParamsFrom->size() - 1);
-      unsigned ToParamIndex = std::min(TotalArgs, ParamsTo->size() - 1);
+      unsigned const FromParamIndex = std::min(TotalArgs, ParamsFrom->size() - 1);
+      unsigned const ToParamIndex = std::min(TotalArgs, ParamsTo->size() - 1);
       NamedDecl *FromParamND = ParamsFrom->getParam(FromParamIndex);
       NamedDecl *ToParamND = ParamsTo->getParam(ToParamIndex);
 
@@ -1652,9 +1652,9 @@ class TemplateDiff {
     // Switch to canonical typename if it is better.
     // TODO: merge this with other aka printing above.
     if (FromTypeStr == ToTypeStr) {
-      std::string FromCanTypeStr =
+      std::string const FromCanTypeStr =
           FromType.getCanonicalType().getAsString(Policy);
-      std::string ToCanTypeStr = ToType.getCanonicalType().getAsString(Policy);
+      std::string const ToCanTypeStr = ToType.getCanonicalType().getAsString(Policy);
       if (FromCanTypeStr != ToCanTypeStr) {
         FromTypeStr = FromCanTypeStr;
         ToTypeStr = ToCanTypeStr;
@@ -1762,7 +1762,7 @@ class TemplateDiff {
       return;
     }
 
-    bool PrintType = IsValidFromInt && IsValidToInt &&
+    bool const PrintType = IsValidFromInt && IsValidToInt &&
                      !Context.hasSameType(FromIntType, ToIntType);
 
     if (!PrintTree) {
@@ -1963,7 +1963,7 @@ class TemplateDiff {
     }
 
     // Find common qualifiers and strip them from FromQual and ToQual.
-    Qualifiers CommonQual = Qualifiers::removeCommonQualifiers(FromQual,
+    Qualifiers const CommonQual = Qualifiers::removeCommonQualifiers(FromQual,
                                                                ToQual);
 
     // The qualifiers are printed before the template name.

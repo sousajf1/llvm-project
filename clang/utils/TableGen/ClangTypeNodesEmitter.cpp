@@ -184,7 +184,7 @@ void TypeNodeEmitter::emitLastNodeInvocation(TypeNode type) {
 void TypeNodeEmitter::emitLeafNodeInvocations() {
   Out << "#ifdef " LeafTypeMacroName "\n";
 
-  for (TypeNode type : Types) {
+  for (TypeNode const type : Types) {
     if (!type.isSubClassOf(LeafTypeClassName)) continue;
     Out << LeafTypeMacroName "(" << type.getId() << ")\n";
   }

@@ -135,7 +135,7 @@ void tools::handleTargetFeaturesGroup(const ArgList &Args,
     assert(Name.startswith("m") && "Invalid feature name.");
     Name = Name.substr(1);
 
-    bool IsNegative = Name.startswith("no-");
+    bool const IsNegative = Name.startswith("no-");
     if (IsNegative)
       Name = Name.substr(3);
     Features.push_back(Args.MakeArgString((IsNegative ? "-" : "+") + Name));
@@ -148,17 +148,17 @@ tools::unifyTargetFeatures(const std::vector<StringRef> &Features) {
   // Find the last of each feature.
   llvm::StringMap<unsigned> LastOpt;
   for (unsigned I = 0, N = Features.size(); I < N; ++I) {
-    StringRef Name = Features[I];
+    StringRef const Name = Features[I];
     assert(Name[0] == '-' || Name[0] == '+');
     LastOpt[Name.drop_front(1)] = I;
   }
 
   for (unsigned I = 0, N = Features.size(); I < N; ++I) {
     // If this feature was overridden, ignore it.
-    StringRef Name = Features[I];
+    StringRef const Name = Features[I];
     llvm::StringMap<unsigned>::iterator LastI = LastOpt.find(Name.drop_front(1));
     assert(LastI != LastOpt.end());
-    unsigned Last = LastI->second;
+    unsigned const Last = LastI->second;
     if (Last != I)
       continue;
 
@@ -175,7 +175,7 @@ void tools::addDirectoryList(const ArgList &Args, ArgStringList &CmdArgs,
   if (!DirList)
     return; // Nothing to do.
 
-  StringRef Name(ArgName);
+  StringRef const Name(ArgName);
   if (Name.equals("-I") || Name.equals("-L") || Name.empty())
     CombinedArg = true;
 
@@ -290,7 +290,7 @@ void tools::addLinkerCompressDebugSectionsOption(
   // -gz is not translated since ld --compress-debug-sections option requires an
   // argument.
   if (const Arg *A = Args.getLastArg(options::OPT_gz_EQ)) {
-    StringRef V = A->getValue();
+    StringRef const V = A->getValue();
     if (V == "none" || V == "zlib" || V == "zlib-gnu")
       CmdArgs.push_back(Args.MakeArgString("--compress-debug-sections=" + V));
     else
@@ -510,7 +510,7 @@ void tools::addLTOOptions(const ToolChain &ToolChain, const ArgList &Args,
   // the plugin.
 
   // Handle flags for selecting CPU variants.
-  std::string CPU = getCPUName(Args, ToolChain.getTriple());
+  std::string const CPU = getCPUName(Args, ToolChain.getTriple());
   if (!CPU.empty())
     CmdArgs.push_back(Args.MakeArgString(Twine("-plugin-opt=mcpu=") + CPU));
 
@@ -542,7 +542,7 @@ void tools::addLTOOptions(const ToolChain &ToolChain, const ArgList &Args,
   if (IsThinLTO)
     CmdArgs.push_back("-plugin-opt=thinlto");
 
-  StringRef Parallelism = getLTOParallelism(Args, D);
+  StringRef const Parallelism = getLTOParallelism(Args, D);
   if (!Parallelism.empty())
     CmdArgs.push_back(
         Args.MakeArgString("-plugin-opt=jobs=" + Twine(Parallelism)));
@@ -560,7 +560,7 @@ void tools::addLTOOptions(const ToolChain &ToolChain, const ArgList &Args,
       CmdArgs.push_back("-plugin-opt=-debugger-tune=gdb");
   }
 
-  bool UseSeparateSections =
+  bool const UseSeparateSections =
       isUseSeparateSections(ToolChain.getEffectiveTriple());
 
   if (Args.hasFlag(options::OPT_ffunction_sections,
@@ -574,7 +574,7 @@ void tools::addLTOOptions(const ToolChain &ToolChain, const ArgList &Args,
   }
 
   if (Arg *A = getLastProfileSampleUseArg(Args)) {
-    StringRef FName = A->getValue();
+    StringRef const FName = A->getValue();
     if (!llvm::sys::fs::exists(FName))
       D.Diag(diag::err_drv_no_such_file) << FName;
     else
@@ -626,7 +626,7 @@ void tools::addLTOOptions(const ToolChain &ToolChain, const ArgList &Args,
     CmdArgs.push_back("-plugin-opt=pseudo-probe-for-profiling");
 
   // Setup statistics file output.
-  SmallString<128> StatsFile = getStatsFileName(Args, Output, Input, D);
+  SmallString<128> const StatsFile = getStatsFileName(Args, Output, Input, D);
   if (!StatsFile.empty())
     CmdArgs.push_back(
         Args.MakeArgString(Twine("-plugin-opt=stats-file=") + StatsFile));
@@ -653,12 +653,12 @@ void tools::addArchSpecificRPath(const ToolChain &TC, const ArgList &Args,
                                  ArgStringList &CmdArgs) {
   // Enable -frtlib-add-rpath by default for the case of VE.
   const bool IsVE = TC.getTriple().isVE();
-  bool DefaultValue = IsVE;
+  bool const DefaultValue = IsVE;
   if (!Args.hasFlag(options::OPT_frtlib_add_rpath,
                     options::OPT_fno_rtlib_add_rpath, DefaultValue))
     return;
 
-  std::string CandidateRPath = TC.getArchSpecificLibPath();
+  std::string const CandidateRPath = TC.getArchSpecificLibPath();
   if (TC.getVFS().exists(CandidateRPath)) {
     CmdArgs.push_back("-rpath");
     CmdArgs.push_back(Args.MakeArgString(CandidateRPath.c_str()));
@@ -672,7 +672,7 @@ bool tools::addOpenMPRuntime(ArgStringList &CmdArgs, const ToolChain &TC,
                     options::OPT_fno_openmp, false))
     return false;
 
-  Driver::OpenMPRuntimeKind RTKind = TC.getDriver().getOpenMPRuntime(Args);
+  Driver::OpenMPRuntimeKind const RTKind = TC.getDriver().getOpenMPRuntime(Args);
 
   if (RTKind == Driver::OMPRT_Unknown)
     // Already diagnosed.
@@ -733,7 +733,7 @@ static bool addSanitizerDynamicList(const ToolChain &TC, const ArgList &Args,
   // the option, so don't try to pass it.
   if (TC.getTriple().getOS() == llvm::Triple::Solaris)
     return true;
-  SmallString<128> SanRT(TC.getCompilerRT(Args, Sanitizer));
+  SmallString<128> const SanRT(TC.getCompilerRT(Args, Sanitizer));
   if (llvm::sys::fs::exists(SanRT + ".syms")) {
     CmdArgs.push_back(Args.MakeArgString("--dynamic-list=" + SanRT + ".syms"));
     return true;
@@ -936,7 +936,7 @@ bool tools::addSanitizerRuntimes(const ToolChain &TC, const ArgList &Args,
       addSanitizerRuntime(TC, Args, CmdArgs, "fuzzer_interceptors", false,
                           true);
     if (!Args.hasArg(clang::driver::options::OPT_nostdlibxx)) {
-      bool OnlyLibstdcxxStatic = Args.hasArg(options::OPT_static_libstdcxx) &&
+      bool const OnlyLibstdcxxStatic = Args.hasArg(options::OPT_static_libstdcxx) &&
                                  !Args.hasArg(options::OPT_static);
       if (OnlyLibstdcxxStatic)
         CmdArgs.push_back("-Bstatic");
@@ -1058,7 +1058,7 @@ void tools::SplitDebugInfo(const ToolChain &TC, Compilation &C, const Tool &T,
 
   const char *Exec =
       Args.MakeArgString(TC.GetProgramPath(CLANG_DEFAULT_OBJCOPY));
-  InputInfo II(types::TY_Object, Output.getFilename(), Output.getFilename());
+  InputInfo const II(types::TY_Object, Output.getFilename(), Output.getFilename());
 
   // First extract the dwo sections.
   C.addCommand(std::make_unique<Command>(JA, T,
@@ -1126,7 +1126,7 @@ tools::ParsePICArgs(const ToolChain &ToolChain, const ArgList &Args) {
     PIE = PIC = false;
   bool IsPICLevelTwo = PIC;
 
-  bool KernelOrKext =
+  bool const KernelOrKext =
       Args.hasArg(options::OPT_mkernel, options::OPT_fapple_kext);
 
   // Android-specific defaults for PIC/PIE
@@ -1204,7 +1204,7 @@ tools::ParsePICArgs(const ToolChain &ToolChain, const ArgList &Args) {
   // is forced, then neither PIC nor PIE flags will have no effect.
   if (!ToolChain.isPICDefaultForced()) {
     if (LastPICArg) {
-      Option O = LastPICArg->getOption();
+      Option const O = LastPICArg->getOption();
       if (O.matches(options::OPT_fPIC) || O.matches(options::OPT_fpic) ||
           O.matches(options::OPT_fPIE) || O.matches(options::OPT_fpie)) {
         PIE = O.matches(options::OPT_fPIE) || O.matches(options::OPT_fpie);
@@ -1216,7 +1216,7 @@ tools::ParsePICArgs(const ToolChain &ToolChain, const ArgList &Args) {
         PIE = PIC = false;
         if (EffectiveTriple.isPS4CPU()) {
           Arg *ModelArg = Args.getLastArg(options::OPT_mcmodel_EQ);
-          StringRef Model = ModelArg ? ModelArg->getValue() : "";
+          StringRef const Model = ModelArg ? ModelArg->getValue() : "";
           if (Model != "kernel") {
             PIC = true;
             ToolChain.getDriver().Diag(diag::warn_drv_ps4_force_pic)
@@ -1421,15 +1421,15 @@ static LibGccType getLibGccType(const ToolChain &TC, const Driver &D,
 
 static void AddUnwindLibrary(const ToolChain &TC, const Driver &D,
                              ArgStringList &CmdArgs, const ArgList &Args) {
-  ToolChain::UnwindLibType UNW = TC.GetUnwindLibType(Args);
+  ToolChain::UnwindLibType const UNW = TC.GetUnwindLibType(Args);
   // Targets that don't use unwind libraries.
   if ((TC.getTriple().isAndroid() && UNW == ToolChain::UNW_Libgcc) ||
       TC.getTriple().isOSIAMCU() || TC.getTriple().isOSBinFormatWasm() ||
       UNW == ToolChain::UNW_None)
     return;
 
-  LibGccType LGT = getLibGccType(TC, D, Args);
-  bool AsNeeded = LGT == LibGccType::UnspecifiedLibGcc &&
+  LibGccType const LGT = getLibGccType(TC, D, Args);
+  bool const AsNeeded = LGT == LibGccType::UnspecifiedLibGcc &&
                   !TC.getTriple().isAndroid() &&
                   !TC.getTriple().isOSCygMing() && !TC.getTriple().isOSAIX();
   if (AsNeeded)
@@ -1472,7 +1472,7 @@ static void AddUnwindLibrary(const ToolChain &TC, const Driver &D,
 
 static void AddLibgcc(const ToolChain &TC, const Driver &D,
                       ArgStringList &CmdArgs, const ArgList &Args) {
-  LibGccType LGT = getLibGccType(TC, D, Args);
+  LibGccType const LGT = getLibGccType(TC, D, Args);
   if (LGT != LibGccType::SharedLibGcc)
     CmdArgs.push_back("-lgcc");
   AddUnwindLibrary(TC, D, CmdArgs, Args);
@@ -1483,7 +1483,7 @@ static void AddLibgcc(const ToolChain &TC, const Driver &D,
 void tools::AddRunTimeLibs(const ToolChain &TC, const Driver &D,
                            ArgStringList &CmdArgs, const ArgList &Args) {
   // Make use of compiler-rt if --rtlib option is used
-  ToolChain::RuntimeLibType RLT = TC.GetRuntimeLibType(Args);
+  ToolChain::RuntimeLibType const RLT = TC.GetRuntimeLibType(Args);
 
   switch (RLT) {
   case ToolChain::RLT_CompilerRT:
@@ -1520,7 +1520,7 @@ SmallString<128> tools::getStatsFileName(const llvm::opt::ArgList &Args,
   if (!A)
     return {};
 
-  StringRef SaveStats = A->getValue();
+  StringRef const SaveStats = A->getValue();
   SmallString<128> StatsFile;
   if (SaveStats == "obj" && Output.isFilename()) {
     StatsFile.assign(Output.getFilename());
@@ -1530,7 +1530,7 @@ SmallString<128> tools::getStatsFileName(const llvm::opt::ArgList &Args,
     return {};
   }
 
-  StringRef BaseName = llvm::sys::path::filename(Input.getBaseInput());
+  StringRef const BaseName = llvm::sys::path::filename(Input.getBaseInput());
   llvm::sys::path::append(StatsFile, BaseName);
   llvm::sys::path::replace_extension(StatsFile, "stats");
   return StatsFile;
@@ -1556,7 +1556,7 @@ void tools::addX86AlignBranchArgs(const Driver &D, const ArgList &Args,
     addArg(Twine("-x86-branches-within-32B-boundaries"));
   }
   if (const Arg *A = Args.getLastArg(options::OPT_malign_branch_boundary_EQ)) {
-    StringRef Value = A->getValue();
+    StringRef const Value = A->getValue();
     unsigned Boundary;
     if (Value.getAsInteger(10, Boundary) || Boundary < 16 ||
         !llvm::isPowerOf2_64(Boundary)) {
@@ -1568,7 +1568,7 @@ void tools::addX86AlignBranchArgs(const Driver &D, const ArgList &Args,
   }
   if (const Arg *A = Args.getLastArg(options::OPT_malign_branch_EQ)) {
     std::string AlignBranch;
-    for (StringRef T : A->getValues()) {
+    for (StringRef const T : A->getValues()) {
       if (T != "fused" && T != "jcc" && T != "jmp" && T != "call" &&
           T != "ret" && T != "indirect")
         D.Diag(diag::err_drv_invalid_malign_branch_EQ)
@@ -1580,7 +1580,7 @@ void tools::addX86AlignBranchArgs(const Driver &D, const ArgList &Args,
     addArg("-x86-align-branch=" + Twine(AlignBranch));
   }
   if (const Arg *A = Args.getLastArg(options::OPT_mpad_max_prefix_size_EQ)) {
-    StringRef Value = A->getValue();
+    StringRef const Value = A->getValue();
     unsigned PrefixSize;
     if (Value.getAsInteger(10, PrefixSize)) {
       D.Diag(diag::err_drv_invalid_argument_to_option)
@@ -1695,7 +1695,7 @@ void tools::addOpenMPDeviceRTL(const Driver &D,
     SmallVector<StringRef, 8> Frags;
     const char EnvPathSeparatorStr[] = {llvm::sys::EnvPathSeparator, '\0'};
     llvm::SplitString(*LibPath, Frags, EnvPathSeparatorStr);
-    for (StringRef Path : Frags)
+    for (StringRef const Path : Frags)
       LibraryPaths.emplace_back(Path.trim());
   }
 
@@ -1704,14 +1704,14 @@ void tools::addOpenMPDeviceRTL(const Driver &D,
   llvm::sys::path::append(DefaultLibPath, Twine("lib") + CLANG_LIBDIR_SUFFIX);
   LibraryPaths.emplace_back(DefaultLibPath.c_str());
 
-  OptSpecifier LibomptargetBCPathOpt =
+  OptSpecifier const LibomptargetBCPathOpt =
       Triple.isAMDGCN() ? options::OPT_libomptarget_amdgcn_bc_path_EQ
                         : options::OPT_libomptarget_nvptx_bc_path_EQ;
 
-  StringRef ArchPrefix = Triple.isAMDGCN() ? "amdgcn" : "nvptx";
+  StringRef const ArchPrefix = Triple.isAMDGCN() ? "amdgcn" : "nvptx";
   // First check whether user specifies bc library
   if (const Arg *A = DriverArgs.getLastArg(LibomptargetBCPathOpt)) {
-    std::string LibOmpTargetName(A->getValue());
+    std::string const LibOmpTargetName(A->getValue());
     if (llvm::sys::fs::exists(LibOmpTargetName)) {
       CC1Args.push_back("-mlink-builtin-bitcode");
       CC1Args.push_back(DriverArgs.MakeArgString(LibOmpTargetName));
@@ -1722,10 +1722,10 @@ void tools::addOpenMPDeviceRTL(const Driver &D,
   } else {
     bool FoundBCLibrary = false;
 
-    std::string LibOmpTargetName =
+    std::string const LibOmpTargetName =
         "libomptarget-" + BitcodeSuffix.str() + ".bc";
 
-    for (StringRef LibraryPath : LibraryPaths) {
+    for (StringRef const LibraryPath : LibraryPaths) {
       SmallString<128> LibOmpTargetFile(LibraryPath);
       llvm::sys::path::append(LibOmpTargetFile, LibOmpTargetName);
       if (llvm::sys::fs::exists(LibOmpTargetFile)) {

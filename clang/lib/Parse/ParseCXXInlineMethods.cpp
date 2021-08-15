@@ -29,7 +29,7 @@ NamedDecl *Parser::ParseCXXInlineMethodDef(
   assert(Tok.isOneOf(tok::l_brace, tok::colon, tok::kw_try, tok::equal) &&
          "Current token not a '{', ':', '=', or 'try'!");
 
-  MultiTemplateParamsArg TemplateParams(
+  MultiTemplateParamsArg const TemplateParams(
       TemplateInfo.TemplateParams ? TemplateInfo.TemplateParams->data()
                                   : nullptr,
       TemplateInfo.TemplateParams ? TemplateInfo.TemplateParams->size() : 0);
@@ -62,7 +62,7 @@ NamedDecl *Parser::ParseCXXInlineMethodDef(
 
     bool Delete = false;
     SourceLocation KWLoc;
-    SourceLocation KWEndLoc = Tok.getEndLoc().getLocWithOffset(-1);
+    SourceLocation const KWEndLoc = Tok.getEndLoc().getLocWithOffset(-1);
     if (TryConsumeToken(tok::kw_delete, KWLoc)) {
       Diag(KWLoc, getLangOpts().CPlusPlus11
                       ? diag::warn_cxx98_compat_defaulted_deleted_function
@@ -135,7 +135,7 @@ NamedDecl *Parser::ParseCXXInlineMethodDef(
   getCurrentClass().LateParsedDeclarations.push_back(LM);
   CachedTokens &Toks = LM->Toks;
 
-  tok::TokenKind kind = Tok.getKind();
+  tok::TokenKind const kind = Tok.getKind();
   // Consume everything up to (and including) the left brace of the
   // function body.
   if (ConsumeAndStoreFunctionPrologue(Toks)) {
@@ -190,7 +190,7 @@ void Parser::ParseCXXNonStaticMemberInitializer(Decl *VarD) {
   getCurrentClass().LateParsedDeclarations.push_back(MI);
   CachedTokens &Toks = MI->Toks;
 
-  tok::TokenKind kind = Tok.getKind();
+  tok::TokenKind const kind = Tok.getKind();
   if (kind == tok::equal) {
     Toks.push_back(Tok);
     ConsumeToken();
@@ -319,7 +319,7 @@ struct Parser::ReenterClassScopeRAII : ReenterTemplateScopeRAII {
 /// stack of method declarations with some parts for which parsing was
 /// delayed (such as default arguments) and parse them.
 void Parser::ParseLexedMethodDeclarations(ParsingClass &Class) {
-  ReenterClassScopeRAII InClassScope(*this, Class);
+  ReenterClassScopeRAII const InClassScope(*this, Class);
 
   for (LateParsedDeclaration *LateD : Class.LateParsedDeclarations)
     LateD->ParseLexedMethodDeclarations();
@@ -340,15 +340,15 @@ void Parser::ParseLexedMethodDeclaration(LateParsedMethodDeclaration &LM) {
   for (unsigned I = 0, N = LM.DefaultArgs.size(); I != N; ++I) {
     auto Param = cast<ParmVarDecl>(LM.DefaultArgs[I].Param);
     // Introduce the parameter into scope.
-    bool HasUnparsed = Param->hasUnparsedDefaultArg();
+    bool const HasUnparsed = Param->hasUnparsedDefaultArg();
     Actions.ActOnDelayedCXXMethodParameter(getCurScope(), Param);
     std::unique_ptr<CachedTokens> Toks = std::move(LM.DefaultArgs[I].Toks);
     if (Toks) {
-      ParenBraceBracketBalancer BalancerRAIIObj(*this);
+      ParenBraceBracketBalancer const BalancerRAIIObj(*this);
 
       // Mark the end of the default argument so that we know when to stop when
       // we parse it later on.
-      Token LastDefaultArgToken = Toks->back();
+      Token const LastDefaultArgToken = Toks->back();
       Token DefArgEnd;
       DefArgEnd.startToken();
       DefArgEnd.setKind(tok::eof);
@@ -365,11 +365,11 @@ void Parser::ParseLexedMethodDeclaration(LateParsedMethodDeclaration &LM) {
 
       // Consume the '='.
       assert(Tok.is(tok::equal) && "Default argument not starting with '='");
-      SourceLocation EqualLoc = ConsumeToken();
+      SourceLocation const EqualLoc = ConsumeToken();
 
       // The argument isn't actually potentially evaluated unless it is
       // used.
-      EnterExpressionEvaluationContext Eval(
+      EnterExpressionEvaluationContext const Eval(
           Actions,
           Sema::ExpressionEvaluationContext::PotentiallyEvaluatedIfUsed, Param);
 
@@ -425,10 +425,10 @@ void Parser::ParseLexedMethodDeclaration(LateParsedMethodDeclaration &LM) {
 
   // Parse a delayed exception-specification, if there is one.
   if (CachedTokens *Toks = LM.ExceptionSpecTokens) {
-    ParenBraceBracketBalancer BalancerRAIIObj(*this);
+    ParenBraceBracketBalancer const BalancerRAIIObj(*this);
 
     // Add the 'stop' token.
-    Token LastExceptionSpecToken = Toks->back();
+    Token const LastExceptionSpecToken = Toks->back();
     Token ExceptionSpecEnd;
     ExceptionSpecEnd.startToken();
     ExceptionSpecEnd.setKind(tok::eof);
@@ -456,7 +456,7 @@ void Parser::ParseLexedMethodDeclaration(LateParsedMethodDeclaration &LM) {
     else
       Method = cast<CXXMethodDecl>(LM.Method);
 
-    Sema::CXXThisScopeRAII ThisScope(Actions, Method->getParent(),
+    Sema::CXXThisScopeRAII const ThisScope(Actions, Method->getParent(),
                                      Method->getMethodQualifiers(),
                                      getLangOpts().CPlusPlus11);
 
@@ -467,7 +467,7 @@ void Parser::ParseLexedMethodDeclaration(LateParsedMethodDeclaration &LM) {
     ExprResult NoexceptExpr;
     CachedTokens *ExceptionSpecTokens;
 
-    ExceptionSpecificationType EST
+    ExceptionSpecificationType const EST
       = tryParseExceptionSpecification(/*Delayed=*/false, SpecificationRange,
                                        DynamicExceptions,
                                        DynamicExceptionRanges, NoexceptExpr,
@@ -507,7 +507,7 @@ void Parser::ParseLexedMethodDeclaration(LateParsedMethodDeclaration &LM) {
 /// (non-nested) C++ class. Now go over the stack of lexed methods that were
 /// collected during its parsing and parse them all.
 void Parser::ParseLexedMethodDefs(ParsingClass &Class) {
-  ReenterClassScopeRAII InClassScope(*this, Class);
+  ReenterClassScopeRAII const InClassScope(*this, Class);
 
   for (LateParsedDeclaration *D : Class.LateParsedDeclarations)
     D->ParseLexedMethodDefs();
@@ -515,12 +515,12 @@ void Parser::ParseLexedMethodDefs(ParsingClass &Class) {
 
 void Parser::ParseLexedMethodDef(LexedMethod &LM) {
   // If this is a member template, introduce the template parameter scope.
-  ReenterTemplateScopeRAII InFunctionTemplateScope(*this, LM.D);
+  ReenterTemplateScopeRAII const InFunctionTemplateScope(*this, LM.D);
 
-  ParenBraceBracketBalancer BalancerRAIIObj(*this);
+  ParenBraceBracketBalancer const BalancerRAIIObj(*this);
 
   assert(!LM.Toks.empty() && "Empty body!");
-  Token LastBodyToken = LM.Toks.back();
+  Token const LastBodyToken = LM.Toks.back();
   Token BodyEnd;
   BodyEnd.startToken();
   BodyEnd.setKind(tok::eof);
@@ -596,7 +596,7 @@ void Parser::ParseLexedMethodDef(LexedMethod &LM) {
 /// of a top (non-nested) C++ class. Now go over the stack of lexed data member
 /// initializers that were collected during its parsing and parse them all.
 void Parser::ParseLexedMemberInitializers(ParsingClass &Class) {
-  ReenterClassScopeRAII InClassScope(*this, Class);
+  ReenterClassScopeRAII const InClassScope(*this, Class);
 
   if (!Class.LateParsedDeclarations.empty()) {
     // C++11 [expr.prim.general]p4:
@@ -605,7 +605,7 @@ void Parser::ParseLexedMemberInitializers(ParsingClass &Class) {
     //  to X" within the optional brace-or-equal-initializer. It shall not
     //  appear elsewhere in the member-declarator.
     // FIXME: This should be done in ParseLexedMemberInitializer, not here.
-    Sema::CXXThisScopeRAII ThisScope(Actions, Class.TagOrTemplate,
+    Sema::CXXThisScopeRAII const ThisScope(Actions, Class.TagOrTemplate,
                                      Qualifiers());
 
     for (LateParsedDeclaration *D : Class.LateParsedDeclarations)
@@ -619,7 +619,7 @@ void Parser::ParseLexedMemberInitializer(LateParsedMemberInitializer &MI) {
   if (!MI.Field || MI.Field->isInvalidDecl())
     return;
 
-  ParenBraceBracketBalancer BalancerRAIIObj(*this);
+  ParenBraceBracketBalancer const BalancerRAIIObj(*this);
 
   // Append the current token at the end of the new token stream so that it
   // doesn't get lost.
@@ -633,7 +633,7 @@ void Parser::ParseLexedMemberInitializer(LateParsedMemberInitializer &MI) {
 
   Actions.ActOnStartCXXInClassMemberInitializer();
 
-  ExprResult Init = ParseCXXMemberInitializer(MI.Field, /*IsFunction=*/false,
+  ExprResult const Init = ParseCXXMemberInitializer(MI.Field, /*IsFunction=*/false,
                                               EqualLoc);
 
   Actions.ActOnFinishCXXInClassMemberInitializer(MI.Field, EqualLoc,
@@ -661,7 +661,7 @@ void Parser::ParseLexedMemberInitializer(LateParsedMemberInitializer &MI) {
 /// Wrapper class which calls ParseLexedAttribute, after setting up the
 /// scope appropriately.
 void Parser::ParseLexedAttributes(ParsingClass &Class) {
-  ReenterClassScopeRAII InClassScope(*this, Class);
+  ReenterClassScopeRAII const InClassScope(*this, Class);
 
   for (LateParsedDeclaration *LateD : Class.LateParsedDeclarations)
     LateD->ParseLexedAttributes();
@@ -713,7 +713,7 @@ void Parser::ParseLexedAttribute(LateParsedAttribute &LA,
     RecordDecl *RD = dyn_cast_or_null<RecordDecl>(D->getDeclContext());
 
     // Allow 'this' within late-parsed attributes.
-    Sema::CXXThisScopeRAII ThisScope(Actions, RD, Qualifiers(),
+    Sema::CXXThisScopeRAII const ThisScope(Actions, RD, Qualifiers(),
                                      ND && ND->isCXXInstanceMember());
 
     if (LA.Decls.size() == 1) {
@@ -721,7 +721,7 @@ void Parser::ParseLexedAttribute(LateParsedAttribute &LA,
       ReenterTemplateScopeRAII InDeclScope(*this, D, EnterScope);
 
       // If the Decl is on a function, add function parameters to the scope.
-      bool HasFunScope = EnterScope && D->isFunctionOrFunctionTemplate();
+      bool const HasFunScope = EnterScope && D->isFunctionOrFunctionTemplate();
       if (HasFunScope) {
         InDeclScope.Scopes.Enter(Scope::FnScope | Scope::DeclScope |
                                  Scope::CompoundStmtScope);
@@ -763,7 +763,7 @@ void Parser::ParseLexedAttribute(LateParsedAttribute &LA,
 }
 
 void Parser::ParseLexedPragmas(ParsingClass &Class) {
-  ReenterClassScopeRAII InClassScope(*this, Class);
+  ReenterClassScopeRAII const InClassScope(*this, Class);
 
   for (LateParsedDeclaration *D : Class.LateParsedDeclarations)
     D->ParseLexedPragmas();
@@ -925,7 +925,7 @@ bool Parser::ConsumeAndStoreFunctionPrologue(CachedTokens &Toks) {
     // Skip over the mem-initializer-id, if possible.
     if (Tok.is(tok::kw_decltype)) {
       Toks.push_back(Tok);
-      SourceLocation OpenLoc = ConsumeToken();
+      SourceLocation const OpenLoc = ConsumeToken();
       if (Tok.isNot(tok::l_paren))
         return Diag(Tok.getLocation(), diag::err_expected_lparen_after)
                  << "decltype";
@@ -999,10 +999,10 @@ bool Parser::ConsumeAndStoreFunctionPrologue(CachedTokens &Toks) {
         return Diag(Tok.getLocation(), diag::err_expected) << tok::l_paren;
     }
 
-    tok::TokenKind kind = Tok.getKind();
+    tok::TokenKind const kind = Tok.getKind();
     Toks.push_back(Tok);
-    bool IsLParen = (kind == tok::l_paren);
-    SourceLocation OpenLoc = Tok.getLocation();
+    bool const IsLParen = (kind == tok::l_paren);
+    SourceLocation const OpenLoc = Tok.getLocation();
 
     if (IsLParen) {
       ConsumeParen();
@@ -1038,7 +1038,7 @@ bool Parser::ConsumeAndStoreFunctionPrologue(CachedTokens &Toks) {
     // Grab the initializer (or the subexpression of the template argument).
     // FIXME: If we support lambdas here, we'll need to set StopAtSemi to false
     //        if we might be inside the braces of a lambda-expression.
-    tok::TokenKind CloseKind = IsLParen ? tok::r_paren : tok::r_brace;
+    tok::TokenKind const CloseKind = IsLParen ? tok::r_paren : tok::r_brace;
     if (!ConsumeAndStoreUntil(CloseKind, Toks, /*StopAtSemi=*/true)) {
       Diag(Tok, diag::err_expected) << CloseKind;
       Diag(OpenLoc, diag::note_matching) << kind;
@@ -1181,7 +1181,7 @@ bool Parser::ConsumeAndStoreInitializer(CachedTokens &Toks,
         UnannotatedTentativeParsingAction PA(*this,
                                              CIK == CIK_DefaultInitializer
                                                ? tok::semi : tok::r_paren);
-        Sema::TentativeAnalysisScope Scope(Actions);
+        Sema::TentativeAnalysisScope const Scope(Actions);
 
         TPResult Result = TPResult::Error;
         ConsumeToken();

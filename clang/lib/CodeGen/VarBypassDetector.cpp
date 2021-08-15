@@ -136,7 +136,7 @@ bool VarBypassDetector::BuildScopeInformation(const Stmt *S,
 void VarBypassDetector::Detect() {
   for (const auto &S : FromScopes) {
     const Stmt *St = S.first;
-    unsigned from = S.second;
+    unsigned const from = S.second;
     if (const GotoStmt *GS = dyn_cast<GotoStmt>(St)) {
       if (const LabelStmt *LS = GS->getLabel()->getStmt())
         Detect(from, ToScopes[LS]);

@@ -97,7 +97,7 @@ bool violatesColumnLimit(llvm::StringRef Code, unsigned ColumnLimit,
 
   llvm::SmallVector<llvm::StringRef, 8> Lines;
   Code.substr(StartPos, EndPos - StartPos).split(Lines, '\n');
-  for (llvm::StringRef Line : Lines)
+  for (llvm::StringRef const Line : Lines)
     if (Line.size() > ColumnLimit)
       return true;
   return false;
@@ -116,7 +116,7 @@ getRangesForFormating(llvm::StringRef Code, unsigned ColumnLimit,
   // at the end of an insertion in affected ranges.
   int Offset = 0;
   for (const clang::tooling::Replacement &R : Replaces) {
-    int Start = R.getOffset() + Offset;
+    int const Start = R.getOffset() + Offset;
     int End = Start + R.getReplacementText().size();
     if (!R.getReplacementText().empty() &&
         R.getReplacementText().back() == '\n' && R.getLength() == 0 &&
@@ -148,12 +148,12 @@ createReplacementsForHeaders(llvm::StringRef FilePath, llvm::StringRef Code,
   // (i.e. converted to real insertion/deletion replacements).
   Replacements HeaderReplacements;
   for (const auto &Change : Changes) {
-    for (llvm::StringRef Header : Change.getInsertedHeaders()) {
-      std::string EscapedHeader =
+    for (llvm::StringRef const Header : Change.getInsertedHeaders()) {
+      std::string const EscapedHeader =
           Header.startswith("<") || Header.startswith("\"")
               ? Header.str()
               : ("\"" + Header + "\"").str();
-      std::string ReplacementText = "#include " + EscapedHeader;
+      std::string const ReplacementText = "#include " + EscapedHeader;
       // Offset UINT_MAX and length 0 indicate that the replacement is a header
       // insertion.
       llvm::Error Err = HeaderReplacements.add(
@@ -196,7 +196,7 @@ combineReplacementsInChanges(llvm::StringRef FilePath,
 AtomicChange::AtomicChange(const SourceManager &SM,
                            SourceLocation KeyPosition) {
   const FullSourceLoc FullKeyPosition(KeyPosition, SM);
-  std::pair<FileID, unsigned> FileIDAndOffset =
+  std::pair<FileID, unsigned> const FileIDAndOffset =
       FullKeyPosition.getSpellingLoc().getDecomposedLoc();
   const FileEntry *FE = SM.getFileEntryForID(FileIDAndOffset.first);
   assert(FE && "Cannot create AtomicChange with invalid location.");
@@ -281,7 +281,7 @@ llvm::Error AtomicChange::insert(const SourceManager &SM, SourceLocation Loc,
           if (!InsertAfter)
             NewOffset -=
                 RE.getExistingReplacement()->getReplacementText().size();
-          Replacement NewR(R.getFilePath(), NewOffset, 0, Text);
+          Replacement const NewR(R.getFilePath(), NewOffset, 0, Text);
           Replaces = Replaces.merge(Replacements(NewR));
           return llvm::Error::success();
         });
@@ -342,7 +342,7 @@ applyAtomicChanges(llvm::StringRef FilePath, llvm::StringRef Code,
   // Sort inserted headers. This is done even if other formatting is turned off
   // as incorrectly sorted headers are always just wrong, it's not a matter of
   // taste.
-  Replacements HeaderSortingReplacements = format::sortIncludes(
+  Replacements const HeaderSortingReplacements = format::sortIncludes(
       Spec.Style, *ChangedCode, AllReplaces.getAffectedRanges(), FilePath);
   ChangedCode = applyAllReplacements(*ChangedCode, HeaderSortingReplacements);
   if (!ChangedCode)
@@ -352,10 +352,10 @@ applyAtomicChanges(llvm::StringRef FilePath, llvm::StringRef Code,
 
   AllReplaces = AllReplaces.merge(HeaderSortingReplacements);
 
-  std::vector<Range> FormatRanges = getRangesForFormating(
+  std::vector<Range> const FormatRanges = getRangesForFormating(
       *ChangedCode, Spec.Style.ColumnLimit, Spec.Format, AllReplaces);
   if (!FormatRanges.empty()) {
-    Replacements FormatReplacements =
+    Replacements const FormatReplacements =
         format::reformat(Spec.Style, *ChangedCode, FormatRanges, FilePath);
     ChangedCode = applyAllReplacements(*ChangedCode, FormatReplacements);
     if (!ChangedCode)

@@ -119,7 +119,7 @@ void solaris::Linker::ConstructJob(Compilation &C, const JobAction &JA,
   Args.AddAllArgs(CmdArgs, {options::OPT_L, options::OPT_T_Group,
                             options::OPT_e, options::OPT_r});
 
-  bool NeedsSanitizerDeps = addSanitizerRuntimes(getToolChain(), Args, CmdArgs);
+  bool const NeedsSanitizerDeps = addSanitizerRuntimes(getToolChain(), Args, CmdArgs);
   AddLinkerInputs(getToolChain(), Inputs, Args, CmdArgs, JA);
 
   if (!Args.hasArg(options::OPT_nostdlib, options::OPT_nodefaultlibs)) {
@@ -178,7 +178,7 @@ Solaris::Solaris(const Driver &D, const llvm::Triple &Triple,
 
   GCCInstallation.init(Triple, Args);
 
-  StringRef LibSuffix = getSolarisLibSuffix(Triple);
+  StringRef const LibSuffix = getSolarisLibSuffix(Triple);
   path_list &Paths = getFilePaths();
   if (GCCInstallation.isValid()) {
     // On Solaris gcc uses both an architecture-specific path with triple in it
@@ -240,12 +240,12 @@ void Solaris::AddClangSystemIncludeArgs(const ArgList &DriverArgs,
     return;
 
   // Check for configure-time C include directories.
-  StringRef CIncludeDirs(C_INCLUDE_DIRS);
+  StringRef const CIncludeDirs(C_INCLUDE_DIRS);
   if (CIncludeDirs != "") {
     SmallVector<StringRef, 5> dirs;
     CIncludeDirs.split(dirs, ":");
-    for (StringRef dir : dirs) {
-      StringRef Prefix =
+    for (StringRef const dir : dirs) {
+      StringRef const Prefix =
           llvm::sys::path::is_absolute(dir) ? "" : StringRef(D.SysRoot);
       addExternCSystemInclude(DriverArgs, CC1Args, Prefix + dir);
     }
@@ -277,8 +277,8 @@ void Solaris::addLibStdCxxIncludePaths(
   // By default, look for the C++ headers in an include directory adjacent to
   // the lib directory of the GCC installation.
   // On Solaris this usually looks like /usr/gcc/X.Y/include/c++/X.Y.Z
-  StringRef LibDir = GCCInstallation.getParentLibPath();
-  StringRef TripleStr = GCCInstallation.getTriple().str();
+  StringRef const LibDir = GCCInstallation.getParentLibPath();
+  StringRef const TripleStr = GCCInstallation.getTriple().str();
   const Multilib &Multilib = GCCInstallation.getMultilib();
   const GCCVersion &Version = GCCInstallation.getVersion();
 

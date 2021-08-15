@@ -65,7 +65,7 @@ void freebsd::Assembler::ConstructJob(Compilation &C, const JobAction &JA,
       CmdArgs.push_back("-EB");
 
     if (Arg *A = Args.getLastArg(options::OPT_G)) {
-      StringRef v = A->getValue();
+      StringRef const v = A->getValue();
       CmdArgs.push_back(Args.MakeArgString("-G" + v));
       A->claim();
     }
@@ -77,7 +77,7 @@ void freebsd::Assembler::ConstructJob(Compilation &C, const JobAction &JA,
   case llvm::Triple::armeb:
   case llvm::Triple::thumb:
   case llvm::Triple::thumbeb: {
-    arm::FloatABI ABI = arm::getARMFloatABI(getToolChain(), Args);
+    arm::FloatABI const ABI = arm::getARMFloatABI(getToolChain(), Args);
 
     if (ABI == arm::FloatABI::Hard)
       CmdArgs.push_back("-mfpu=vfp");
@@ -99,7 +99,7 @@ void freebsd::Assembler::ConstructJob(Compilation &C, const JobAction &JA,
   case llvm::Triple::sparc:
   case llvm::Triple::sparcel:
   case llvm::Triple::sparcv9: {
-    std::string CPU = getCPUName(Args, getToolChain().getTriple());
+    std::string const CPU = getCPUName(Args, getToolChain().getTriple());
     CmdArgs.push_back(
         sparc::getSparcAsmModeForCPU(CPU, getToolChain().getTriple()));
     AddAssemblerKPIC(getToolChain(), Args, CmdArgs);
@@ -109,7 +109,7 @@ void freebsd::Assembler::ConstructJob(Compilation &C, const JobAction &JA,
 
   for (const Arg *A : Args.filtered(options::OPT_ffile_prefix_map_EQ,
                                     options::OPT_fdebug_prefix_map_EQ)) {
-    StringRef Map = A->getValue();
+    StringRef const Map = A->getValue();
     if (Map.find('=') == StringRef::npos)
       D.Diag(diag::err_drv_invalid_argument_to_option)
           << Map << A->getOption().getName();
@@ -234,7 +234,7 @@ void freebsd::Linker::ConstructJob(Compilation &C, const JobAction &JA,
 
   if (Arg *A = Args.getLastArg(options::OPT_G)) {
     if (ToolChain.getTriple().isMIPS()) {
-      StringRef v = A->getValue();
+      StringRef const v = A->getValue();
       CmdArgs.push_back(Args.MakeArgString("-G" + v));
       A->claim();
     }
@@ -288,16 +288,16 @@ void freebsd::Linker::ConstructJob(Compilation &C, const JobAction &JA,
                   D.getLTOMode() == LTOK_Thin);
   }
 
-  bool NeedsSanitizerDeps = addSanitizerRuntimes(ToolChain, Args, CmdArgs);
-  bool NeedsXRayDeps = addXRayRuntime(ToolChain, Args, CmdArgs);
+  bool const NeedsSanitizerDeps = addSanitizerRuntimes(ToolChain, Args, CmdArgs);
+  bool const NeedsXRayDeps = addXRayRuntime(ToolChain, Args, CmdArgs);
   addLinkerCompressDebugSectionsOption(ToolChain, Args, CmdArgs);
   AddLinkerInputs(ToolChain, Inputs, Args, CmdArgs, JA);
 
-  bool Profiling = Args.hasArg(options::OPT_pg) &&
+  bool const Profiling = Args.hasArg(options::OPT_pg) &&
                    ToolChain.getTriple().getOSMajorVersion() < 14;
   if (!Args.hasArg(options::OPT_nostdlib, options::OPT_nodefaultlibs)) {
     // Use the static OpenMP runtime with -static-openmp
-    bool StaticOpenMP = Args.hasArg(options::OPT_static_openmp) &&
+    bool const StaticOpenMP = Args.hasArg(options::OPT_static_openmp) &&
                         !Args.hasArg(options::OPT_static);
     addOpenMPRuntime(CmdArgs, ToolChain, Args, StaticOpenMP);
 
@@ -417,8 +417,8 @@ void FreeBSD::addLibStdCxxIncludePaths(
 
 void FreeBSD::AddCXXStdlibLibArgs(const ArgList &Args,
                                   ArgStringList &CmdArgs) const {
-  CXXStdlibType Type = GetCXXStdlibType(Args);
-  bool Profiling =
+  CXXStdlibType const Type = GetCXXStdlibType(Args);
+  bool const Profiling =
       Args.hasArg(options::OPT_pg) && getTriple().getOSMajorVersion() < 14;
 
   switch (Type) {

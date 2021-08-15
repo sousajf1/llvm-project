@@ -110,7 +110,7 @@ void STLAlgorithmModeling::Find(CheckerContext &C, const CallExpr *CE,
   auto &SVB = C.getSValBuilder();
   const auto *LCtx = C.getLocationContext();
 
-  SVal RetVal = SVB.conjureSymbolVal(nullptr, CE, LCtx, C.blockCount());
+  SVal const RetVal = SVB.conjureSymbolVal(nullptr, CE, LCtx, C.blockCount());
   SVal Param = State->getSVal(CE->getArg(paramNum), LCtx);
 
   auto StateFound = State->BindExpr(CE, LCtx, RetVal);
@@ -126,7 +126,7 @@ void STLAlgorithmModeling::Find(CheckerContext &C, const CallExpr *CE,
     const auto *NewPos = getIteratorPosition(StateFound, RetVal);
     assert(NewPos && "Failed to create new iterator position.");
 
-    SVal GreaterOrEqual = SVB.evalBinOp(StateFound, BO_GE,
+    SVal const GreaterOrEqual = SVB.evalBinOp(StateFound, BO_GE,
                                         nonloc::SymbolVal(NewPos->getOffset()),
                                         nonloc::SymbolVal(Pos->getOffset()),
                                         SVB.getConditionType());
@@ -148,7 +148,7 @@ void STLAlgorithmModeling::Find(CheckerContext &C, const CallExpr *CE,
     const auto *NewPos = getIteratorPosition(StateFound, RetVal);
     assert(NewPos && "Failed to create new iterator position.");
 
-    SVal Less = SVB.evalBinOp(StateFound, BO_LT,
+    SVal const Less = SVB.evalBinOp(StateFound, BO_LT,
                               nonloc::SymbolVal(NewPos->getOffset()),
                               nonloc::SymbolVal(Pos->getOffset()),
                               SVB.getConditionType());

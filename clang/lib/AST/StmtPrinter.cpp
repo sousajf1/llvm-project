@@ -643,7 +643,7 @@ void StmtPrinter::VisitOMPCanonicalLoop(OMPCanonicalLoop *Node) {
 void StmtPrinter::PrintOMPExecutableDirective(OMPExecutableDirective *S,
                                               bool ForceNoStmt) {
   OMPClausePrinter Printer(OS, Policy);
-  ArrayRef<OMPClause *> Clauses = S->clauses();
+  ArrayRef<OMPClause *> const Clauses = S->clauses();
   for (auto *Clause : Clauses)
     if (Clause && !Clause->isImplicit()) {
       OS << ' ';
@@ -1109,7 +1109,7 @@ static bool printExprAsWritten(raw_ostream &OS, Expr *E,
   if (!Context)
     return false;
   bool Invalid = false;
-  StringRef Source = Lexer::getSourceText(
+  StringRef const Source = Lexer::getSourceText(
       CharSourceRange::getTokenRange(E->getSourceRange()),
       Context->getSourceManager(), Context->getLangOpts(), &Invalid);
   if (!Invalid) {
@@ -1122,7 +1122,7 @@ static bool printExprAsWritten(raw_ostream &OS, Expr *E,
 void StmtPrinter::VisitIntegerLiteral(IntegerLiteral *Node) {
   if (Policy.ConstantsAsWritten && printExprAsWritten(OS, Node, Context))
     return;
-  bool isSigned = Node->getType()->isSignedIntegerType();
+  bool const isSigned = Node->getType()->isSignedIntegerType();
   OS << toString(Node->getValue(), 10, isSigned);
 
   // Emit suffixes.  Integer literals are always a builtin integer type.
@@ -1244,7 +1244,7 @@ void StmtPrinter::VisitOffsetOfExpr(OffsetOfExpr *Node) {
   OS << ", ";
   bool PrintedSomething = false;
   for (unsigned i = 0, n = Node->getNumComponents(); i < n; ++i) {
-    OffsetOfNode ON = Node->getComponent(i);
+    OffsetOfNode const ON = Node->getComponent(i);
     if (ON.getKind() == OffsetOfNode::Array) {
       // Array node
       OS << "[";
@@ -1301,7 +1301,7 @@ void StmtPrinter::VisitGenericSelectionExpr(GenericSelectionExpr *Node) {
   PrintExpr(Node->getControllingExpr());
   for (const GenericSelectionExpr::Association Assoc : Node->associations()) {
     OS << ", ";
-    QualType T = Assoc.getType();
+    QualType const T = Assoc.getType();
     if (T.isNull())
       OS << "default";
     else
@@ -1695,7 +1695,7 @@ void StmtPrinter::VisitAtomicExpr(AtomicExpr *Node) {
 
 // C++
 void StmtPrinter::VisitCXXOperatorCallExpr(CXXOperatorCallExpr *Node) {
-  OverloadedOperatorKind Kind = Node->getOperator();
+  OverloadedOperatorKind const Kind = Node->getOperator();
   if (Kind == OO_PlusPlus || Kind == OO_MinusMinus) {
     if (Node->getNumArgs() == 1) {
       OS << getOperatorSpelling(Kind) << ' ';
@@ -1754,7 +1754,7 @@ void StmtPrinter::VisitCUDAKernelCallExpr(CUDAKernelCallExpr *Node) {
 
 void StmtPrinter::VisitCXXRewrittenBinaryOperator(
     CXXRewrittenBinaryOperator *Node) {
-  CXXRewrittenBinaryOperator::DecomposedForm Decomposed =
+  CXXRewrittenBinaryOperator::DecomposedForm const Decomposed =
       Node->getDecomposedForm();
   PrintExpr(const_cast<Expr*>(Decomposed.LHS));
   OS << ' ' << BinaryOperator::getOpcodeStr(Decomposed.Opcode) << ' ';
@@ -1860,7 +1860,7 @@ void StmtPrinter::VisitUserDefinedLiteral(UserDefinedLiteral *Node) {
 
     const TemplateArgument &Pack = Args->get(0);
     for (const auto &P : Pack.pack_elements()) {
-      char C = (char)P.getAsIntegral().getZExtValue();
+      char const C = (char)P.getAsIntegral().getZExtValue();
       OS << C;
     }
     break;
@@ -2044,7 +2044,7 @@ void StmtPrinter::VisitLambdaExpr(LambdaExpr *Node) {
       } else {
         NeedComma = true;
       }
-      std::string ParamStr = P->getNameAsString();
+      std::string const ParamStr = P->getNameAsString();
       P->getOriginalType().print(OS, Policy, ParamStr);
     }
     if (Method->isVariadic()) {
@@ -2089,7 +2089,7 @@ void StmtPrinter::VisitCXXNewExpr(CXXNewExpr *E) {
   if (E->isGlobalNew())
     OS << "::";
   OS << "new ";
-  unsigned NumPlace = E->getNumPlacementArgs();
+  unsigned const NumPlace = E->getNumPlacementArgs();
   if (NumPlace > 0 && !isa<CXXDefaultArgExpr>(E->getPlacementArg(0))) {
     OS << "(";
     PrintExpr(E->getPlacementArg(0));
@@ -2115,7 +2115,7 @@ void StmtPrinter::VisitCXXNewExpr(CXXNewExpr *E) {
   if (E->isParenTypeId())
     OS << ")";
 
-  CXXNewExpr::InitializationStyle InitStyle = E->getInitializationStyle();
+  CXXNewExpr::InitializationStyle const InitStyle = E->getInitializationStyle();
   if (InitStyle) {
     if (InitStyle == CXXNewExpr::CallInit)
       OS << "(";
@@ -2296,7 +2296,7 @@ void StmtPrinter::VisitCXXFoldExpr(CXXFoldExpr *E) {
 }
 
 void StmtPrinter::VisitConceptSpecializationExpr(ConceptSpecializationExpr *E) {
-  NestedNameSpecifierLoc NNS = E->getNestedNameSpecifierLoc();
+  NestedNameSpecifierLoc const NNS = E->getNestedNameSpecifierLoc();
   if (NNS)
     NNS.getNestedNameSpecifier()->print(OS, Policy);
   if (E->getTemplateKWLoc().isValid())
@@ -2405,7 +2405,7 @@ void StmtPrinter::VisitObjCBoxedExpr(ObjCBoxedExpr *E) {
 
 void StmtPrinter::VisitObjCArrayLiteral(ObjCArrayLiteral *E) {
   OS << "@[ ";
-  ObjCArrayLiteral::child_range Ch = E->children();
+  ObjCArrayLiteral::child_range const Ch = E->children();
   for (auto I = Ch.begin(), E = Ch.end(); I != E; ++I) {
     if (I != Ch.begin())
       OS << ", ";
@@ -2420,7 +2420,7 @@ void StmtPrinter::VisitObjCDictionaryLiteral(ObjCDictionaryLiteral *E) {
     if (I > 0)
       OS << ", ";
 
-    ObjCDictionaryElement Element = E->getKeyValueElement(I);
+    ObjCDictionaryElement const Element = E->getKeyValueElement(I);
     Visit(Element.Key);
     OS << " : ";
     Visit(Element.Value);
@@ -2464,7 +2464,7 @@ void StmtPrinter::VisitObjCMessageExpr(ObjCMessageExpr *Mess) {
   }
 
   OS << ' ';
-  Selector selector = Mess->getSelector();
+  Selector const selector = Mess->getSelector();
   if (selector.isUnarySelector()) {
     OS << selector.getNameForSlot(0);
   } else {
@@ -2514,7 +2514,7 @@ void StmtPrinter::VisitBlockExpr(BlockExpr *Node) {
     for (BlockDecl::param_iterator AI = BD->param_begin(),
          E = BD->param_end(); AI != E; ++AI) {
       if (AI != BD->param_begin()) OS << ", ";
-      std::string ParamStr = (*AI)->getNameAsString();
+      std::string const ParamStr = (*AI)->getNameAsString();
       (*AI)->getType().print(OS, Policy, ParamStr);
     }
 

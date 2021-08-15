@@ -125,7 +125,7 @@ ProgramStateRef setDynamicTypeAndCastInfo(ProgramStateRef State,
   unbox(CastFromTy);
   unbox(CastToTy);
 
-  DynamicCastInfo::CastResult ResultKind =
+  DynamicCastInfo::CastResult const ResultKind =
       CastSucceeds ? DynamicCastInfo::CastResult::Success
                    : DynamicCastInfo::CastResult::Failure;
 

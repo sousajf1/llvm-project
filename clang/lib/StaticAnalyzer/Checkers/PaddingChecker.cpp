@@ -91,7 +91,7 @@ public:
     const ASTRecordLayout &RL = ASTContext.getASTRecordLayout(RD);
     assert(llvm::isPowerOf2_64(RL.getAlignment().getQuantity()));
 
-    CharUnits BaselinePad = calculateBaselinePad(RD, ASTContext, RL);
+    CharUnits const BaselinePad = calculateBaselinePad(RD, ASTContext, RL);
     if (BaselinePad.isZero())
       return;
 
@@ -100,7 +100,7 @@ public:
     std::tie(OptimalPad, OptimalFieldsOrder) =
         calculateOptimalPad(RD, ASTContext, RL);
 
-    CharUnits DiffPad = PadMultiplier * (BaselinePad - OptimalPad);
+    CharUnits const DiffPad = PadMultiplier * (BaselinePad - OptimalPad);
     if (DiffPad.getQuantity() <= AllowedPad) {
       assert(!DiffPad.isNegative() && "DiffPad should not be negative");
       // There is not enough excess padding to trigger a warning.
@@ -138,7 +138,7 @@ public:
     // we want to diagnose.
     if (!Location.isValid())
       return true;
-    SrcMgr::CharacteristicKind Kind =
+    SrcMgr::CharacteristicKind const Kind =
         BR->getSourceManager().getFileCharacteristic(Location);
     // Throw out all records that come from system headers.
     if (Kind != SrcMgr::C_User)
@@ -176,7 +176,7 @@ public:
         return true;
 
       // Variable length arrays are tricky too.
-      QualType Ty = FD->getType();
+      QualType const Ty = FD->getType();
       if (Ty->isIncompleteArrayType())
         return true;
       return false;
@@ -202,9 +202,9 @@ public:
       // field, and not the data size. If the field is a record
       // with tail padding, then we won't put that number in our
       // total because reordering fields won't fix that problem.
-      CharUnits FieldSize = ASTContext.getTypeSizeInChars(FD->getType());
+      CharUnits const FieldSize = ASTContext.getTypeSizeInChars(FD->getType());
       auto FieldOffsetBits = RL.getFieldOffset(FD->getFieldIndex());
-      CharUnits FieldOffset = ASTContext.toCharUnitsFromBits(FieldOffsetBits);
+      CharUnits const FieldOffset = ASTContext.toCharUnitsFromBits(FieldOffsetBits);
       PaddingSum += (FieldOffset - Offset);
       Offset = FieldOffset + FieldSize;
     }
@@ -272,14 +272,14 @@ public:
     CharUnits NewPad;
     SmallVector<const FieldDecl *, 20> OptimalFieldsOrder;
     while (!Fields.empty()) {
-      unsigned TrailingZeros =
+      unsigned const TrailingZeros =
           llvm::countTrailingZeros((unsigned long long)NewOffset.getQuantity());
       // If NewOffset is zero, then countTrailingZeros will be 64. Shifting
       // 64 will overflow our unsigned long long. Shifting 63 will turn
       // our long long (and CharUnits internal type) negative. So shift 62.
-      long long CurAlignmentBits = 1ull << (std::min)(TrailingZeros, 62u);
-      CharUnits CurAlignment = CharUnits::fromQuantity(CurAlignmentBits);
-      FieldInfo InsertPoint = {CurAlignment, CharUnits::Zero(), nullptr};
+      long long const CurAlignmentBits = 1ull << (std::min)(TrailingZeros, 62u);
+      CharUnits const CurAlignment = CharUnits::fromQuantity(CurAlignmentBits);
+      FieldInfo const InsertPoint = {CurAlignment, CharUnits::Zero(), nullptr};
 
       // In the typical case, this will find the last element
       // of the vector. We won't find a middle element unless
@@ -296,13 +296,13 @@ public:
         // We are poorly aligned, and we need to pad in order to layout another
         // field. Round up to at least the smallest field alignment that we
         // currently have.
-        CharUnits NextOffset = NewOffset.alignTo(Fields[0].Align);
+        CharUnits const NextOffset = NewOffset.alignTo(Fields[0].Align);
         NewPad += NextOffset - NewOffset;
         NewOffset = NextOffset;
       }
     }
     // Calculate tail padding.
-    CharUnits NewSize = NewOffset.alignTo(RL.getAlignment());
+    CharUnits const NewSize = NewOffset.alignTo(RL.getAlignment());
     NewPad += NewSize - NewOffset;
     return {NewPad, std::move(OptimalFieldsOrder)};
   }
@@ -325,7 +325,7 @@ public:
       // TODO: make this show up better in the console output and in
       // the HTML. Maybe just make it show up in HTML like the path
       // diagnostics show.
-      SourceLocation ILoc = TSD->getPointOfInstantiation();
+      SourceLocation const ILoc = TSD->getPointOfInstantiation();
       if (ILoc.isValid())
         Os << " instantiated here: "
            << ILoc.printToString(BR->getSourceManager());
@@ -339,7 +339,7 @@ public:
     Os << "consider reordering the fields or adding explicit padding "
           "members.";
 
-    PathDiagnosticLocation CELoc =
+    PathDiagnosticLocation const CELoc =
         PathDiagnosticLocation::create(RD, BR->getSourceManager());
     auto Report =
         std::make_unique<BasicBugReport>(*PaddingBug, Os.str(), CELoc);

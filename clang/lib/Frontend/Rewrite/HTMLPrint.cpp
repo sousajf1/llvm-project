@@ -61,7 +61,7 @@ void HTMLPrinter::HandleTranslationUnit(ASTContext &Ctx) {
     return;
 
   // Format the file.
-  FileID FID = R.getSourceMgr().getMainFileID();
+  FileID const FID = R.getSourceMgr().getMainFileID();
   const FileEntry* Entry = R.getSourceMgr().getFileEntryForID(FID);
   StringRef Name;
   // In some cases, in particular the case where the input is from stdin,
@@ -85,7 +85,7 @@ void HTMLPrinter::HandleTranslationUnit(ASTContext &Ctx) {
 
   // Emit the HTML.
   const RewriteBuffer &RewriteBuf = R.getEditBuffer(FID);
-  std::unique_ptr<char[]> Buffer(new char[RewriteBuf.size()]);
+  std::unique_ptr<char[]> const Buffer(new char[RewriteBuf.size()]);
   std::copy(RewriteBuf.begin(), RewriteBuf.end(), Buffer.get());
   Out->write(Buffer.get(), RewriteBuf.size());
 }

@@ -173,7 +173,7 @@ template <class T>
 static bool isNodeExcluded(const SourceManager &SrcMgr, T *N) {
   if (!N)
     return true;
-  SourceLocation SLoc = N->getSourceRange().getBegin();
+  SourceLocation const SLoc = N->getSourceRange().getBegin();
   if (SLoc.isValid()) {
     // Ignore everything from other files.
     if (!SrcMgr.isInMainFile(SLoc))
@@ -195,7 +195,7 @@ struct PreorderVisitor : public RecursiveASTVisitor<PreorderVisitor> {
   PreorderVisitor(SyntaxTree::Impl &Tree) : Tree(Tree) {}
 
   template <class T> std::tuple<NodeId, NodeId> PreTraverse(T *ASTNode) {
-    NodeId MyId = Id;
+    NodeId const MyId = Id;
     Tree.Nodes.emplace_back();
     Node &N = Tree.getMutableNode(MyId);
     N.Parent = Parent;
@@ -226,7 +226,7 @@ struct PreorderVisitor : public RecursiveASTVisitor<PreorderVisitor> {
     if (N.isLeaf())
       Tree.Leaves.push_back(MyId);
     N.Height = 1;
-    for (NodeId Child : N.Children)
+    for (NodeId const Child : N.Children)
       N.Height = std::max(N.Height, 1 + Tree.getNode(Child).Height);
   }
   bool TraverseDecl(Decl *D) {
@@ -283,7 +283,7 @@ static std::vector<NodeId> getSubtreePostorder(const SyntaxTree::Impl &Tree,
   std::vector<NodeId> Postorder;
   std::function<void(NodeId)> Traverse = [&](NodeId Id) {
     const Node &N = Tree.getNode(Id);
-    for (NodeId Child : N.Children)
+    for (NodeId const Child : N.Children)
       Traverse(Child);
     Postorder.push_back(Id);
   };
@@ -297,7 +297,7 @@ static std::vector<NodeId> getSubtreeBfs(const SyntaxTree::Impl &Tree,
   size_t Expanded = 0;
   Ids.push_back(Root);
   while (Expanded < Ids.size())
-    for (NodeId Child : Tree.getNode(Ids[Expanded++]).Children)
+    for (NodeId const Child : Tree.getNode(Ids[Expanded++]).Children)
       Ids.push_back(Child);
   return Ids;
 }
@@ -307,7 +307,7 @@ void SyntaxTree::Impl::initTree() {
   int PostorderId = 0;
   PostorderIds.resize(getSize());
   std::function<void(NodeId)> PostorderTraverse = [&](NodeId Id) {
-    for (NodeId Child : getNode(Id).Children)
+    for (NodeId const Child : getNode(Id).Children)
       PostorderTraverse(Child);
     PostorderIds[Id] = PostorderId;
     ++PostorderId;
@@ -317,7 +317,7 @@ void SyntaxTree::Impl::initTree() {
 }
 
 void SyntaxTree::Impl::setLeftMostDescendants() {
-  for (NodeId Leaf : Leaves) {
+  for (NodeId const Leaf : Leaves) {
     getMutableNode(Leaf).LeftMostDescendant = Leaf;
     NodeId Parent, Cur = Leaf;
     while ((Parent = getNode(Cur).Parent).isValid() &&
@@ -337,7 +337,7 @@ bool SyntaxTree::Impl::isInSubtree(NodeId Id, NodeId SubtreeRoot) const {
 }
 
 int SyntaxTree::Impl::findPositionInParent(NodeId Id, bool Shifted) const {
-  NodeId Parent = getNode(Id).Parent;
+  NodeId const Parent = getNode(Id).Parent;
   if (Parent.isInvalid())
     return 0;
   const auto &Siblings = getNode(Parent).Children;
@@ -437,7 +437,7 @@ std::string SyntaxTree::Impl::getDeclValue(const Decl *D) const {
   if (auto *U = dyn_cast<UsingDirectiveDecl>(D))
     return std::string(U->getNominatedNamespace()->getName());
   if (auto *A = dyn_cast<AccessSpecDecl>(D)) {
-    CharSourceRange Range(A->getSourceRange(), false);
+    CharSourceRange const Range(A->getSourceRange(), false);
     return std::string(
         Lexer::getSourceText(Range, AST.getSourceManager(), AST.getLangOpts()));
   }
@@ -497,7 +497,7 @@ public:
 
   Subtree(const SyntaxTree::Impl &Tree, NodeId SubtreeRoot) : Tree(Tree) {
     RootIds = getSubtreePostorder(Tree, SubtreeRoot);
-    int NumLeaves = setLeftMostDescendants();
+    int const NumLeaves = setLeftMostDescendants();
     computeKeyRoots(NumLeaves);
   }
   int getSize() const { return RootIds.size(); }
@@ -526,7 +526,7 @@ private:
     int NumLeaves = 0;
     LeftMostDescendants.resize(getSize());
     for (int I = 0; I < getSize(); ++I) {
-      SNodeId SI(I + 1);
+      SNodeId const SI(I + 1);
       const Node &N = getNode(SI);
       NumLeaves += N.isLeaf();
       assert(I == Tree.PostorderIds[getIdInRoot(SI)] - getPostorderOffset() &&
@@ -542,7 +542,7 @@ private:
     std::unordered_set<int> Visited;
     int K = Leaves - 1;
     for (SNodeId I(getSize()); I > 0; --I) {
-      SNodeId LeftDesc = getLeftMostDescendant(I);
+      SNodeId const LeftDesc = getLeftMostDescendant(I);
       if (Visited.count(LeftDesc))
         continue;
       assert(K >= 0 && "K should be non-negative");
@@ -611,12 +611,12 @@ public:
                    ForestDist[Row][Col - 1] + 1 == ForestDist[Row][Col]) {
           --Col;
         } else {
-          SNodeId LMD1 = S1.getLeftMostDescendant(Row);
-          SNodeId LMD2 = S2.getLeftMostDescendant(Col);
+          SNodeId const LMD1 = S1.getLeftMostDescendant(Row);
+          SNodeId const LMD2 = S2.getLeftMostDescendant(Col);
           if (LMD1 == S1.getLeftMostDescendant(LastRow) &&
               LMD2 == S2.getLeftMostDescendant(LastCol)) {
-            NodeId Id1 = S1.getIdInRoot(Row);
-            NodeId Id2 = S2.getIdInRoot(Col);
+            NodeId const Id1 = S1.getIdInRoot(Row);
+            NodeId const Id2 = S2.getIdInRoot(Col);
             assert(DiffImpl.isMatchingPossible(Id1, Id2) &&
                    "These nodes must not be matched.");
             Matches.emplace_back(Id1, Id2);
@@ -649,25 +649,25 @@ private:
   }
 
   void computeTreeDist() {
-    for (SNodeId Id1 : S1.KeyRoots)
-      for (SNodeId Id2 : S2.KeyRoots)
+    for (SNodeId const Id1 : S1.KeyRoots)
+      for (SNodeId const Id2 : S2.KeyRoots)
         computeForestDist(Id1, Id2);
   }
 
   void computeForestDist(SNodeId Id1, SNodeId Id2) {
     assert(Id1 > 0 && Id2 > 0 && "Expecting offsets greater than 0.");
-    SNodeId LMD1 = S1.getLeftMostDescendant(Id1);
-    SNodeId LMD2 = S2.getLeftMostDescendant(Id2);
+    SNodeId const LMD1 = S1.getLeftMostDescendant(Id1);
+    SNodeId const LMD2 = S2.getLeftMostDescendant(Id2);
 
     ForestDist[LMD1][LMD2] = 0;
     for (SNodeId D1 = LMD1 + 1; D1 <= Id1; ++D1) {
       ForestDist[D1][LMD2] = ForestDist[D1 - 1][LMD2] + DeletionCost;
       for (SNodeId D2 = LMD2 + 1; D2 <= Id2; ++D2) {
         ForestDist[LMD1][D2] = ForestDist[LMD1][D2 - 1] + InsertionCost;
-        SNodeId DLMD1 = S1.getLeftMostDescendant(D1);
-        SNodeId DLMD2 = S2.getLeftMostDescendant(D2);
+        SNodeId const DLMD1 = S1.getLeftMostDescendant(D1);
+        SNodeId const DLMD2 = S2.getLeftMostDescendant(D2);
         if (DLMD1 == LMD1 && DLMD2 == LMD2) {
-          double UpdateCost = getUpdateCost(D1, D2);
+          double const UpdateCost = getUpdateCost(D1, D2);
           ForestDist[D1][D2] =
               std::min({ForestDist[D1 - 1][D2] + DeletionCost,
                         ForestDist[D1][D2 - 1] + InsertionCost,
@@ -730,7 +730,7 @@ public:
   void push(NodeId id) { List.push(id); }
 
   std::vector<NodeId> pop() {
-    int Max = peekMax();
+    int const Max = peekMax();
     std::vector<NodeId> Result;
     if (Max == 0)
       return Result;
@@ -748,7 +748,7 @@ public:
     return Tree.getNode(List.top()).Height;
   }
   void open(NodeId Id) {
-    for (NodeId Child : Tree.getNode(Id).Children)
+    for (NodeId const Child : Tree.getNode(Id).Children)
       push(Child);
   }
 };
@@ -773,8 +773,8 @@ bool ASTDiff::Impl::isMatchingPossible(NodeId Id1, NodeId Id2) const {
 
 bool ASTDiff::Impl::haveSameParents(const Mapping &M, NodeId Id1,
                                     NodeId Id2) const {
-  NodeId P1 = T1.getNode(Id1).Parent;
-  NodeId P2 = T2.getNode(Id2).Parent;
+  NodeId const P1 = T1.getNode(Id1).Parent;
+  NodeId const P2 = T2.getNode(Id2).Parent;
   return (P1.isInvalid() && P2.isInvalid()) ||
          (P1.isValid() && P2.isValid() && M.getDst(P1) == P2);
 }
@@ -785,10 +785,10 @@ void ASTDiff::Impl::addOptimalMapping(Mapping &M, NodeId Id1,
       Options.MaxSize)
     return;
   ZhangShashaMatcher Matcher(*this, T1, T2, Id1, Id2);
-  std::vector<std::pair<NodeId, NodeId>> R = Matcher.getMatchingNodes();
+  std::vector<std::pair<NodeId, NodeId>> const R = Matcher.getMatchingNodes();
   for (const auto &Tuple : R) {
-    NodeId Src = Tuple.first;
-    NodeId Dst = Tuple.second;
+    NodeId const Src = Tuple.first;
+    NodeId const Dst = Tuple.second;
     if (!M.hasSrc(Src) && !M.hasDst(Dst))
       M.link(Src, Dst);
   }
@@ -800,11 +800,11 @@ double ASTDiff::Impl::getJaccardSimilarity(const Mapping &M, NodeId Id1,
   const Node &N1 = T1.getNode(Id1);
   // Count the common descendants, excluding the subtree root.
   for (NodeId Src = Id1 + 1; Src <= N1.RightMostDescendant; ++Src) {
-    NodeId Dst = M.getDst(Src);
+    NodeId const Dst = M.getDst(Src);
     CommonDescendants += int(Dst.isValid() && T2.isInSubtree(Dst, Id2));
   }
   // We need to subtract 1 to get the number of descendants excluding the root.
-  double Denominator = T1.getNumberOfDescendants(Id1) - 1 +
+  double const Denominator = T1.getNumberOfDescendants(Id1) - 1 +
                        T2.getNumberOfDescendants(Id2) - 1 - CommonDescendants;
   // CommonDescendants is less than the size of one subtree.
   assert(Denominator >= 0 && "Expected non-negative denominator.");
@@ -816,12 +816,12 @@ double ASTDiff::Impl::getJaccardSimilarity(const Mapping &M, NodeId Id1,
 NodeId ASTDiff::Impl::findCandidate(const Mapping &M, NodeId Id1) const {
   NodeId Candidate;
   double HighestSimilarity = 0.0;
-  for (NodeId Id2 : T2) {
+  for (NodeId const Id2 : T2) {
     if (!isMatchingPossible(Id1, Id2))
       continue;
     if (M.hasDst(Id2))
       continue;
-    double Similarity = getJaccardSimilarity(M, Id1, Id2);
+    double const Similarity = getJaccardSimilarity(M, Id1, Id2);
     if (Similarity >= Options.MinSimilarity && Similarity > HighestSimilarity) {
       HighestSimilarity = Similarity;
       Candidate = Id2;
@@ -831,8 +831,8 @@ NodeId ASTDiff::Impl::findCandidate(const Mapping &M, NodeId Id1) const {
 }
 
 void ASTDiff::Impl::matchBottomUp(Mapping &M) const {
-  std::vector<NodeId> Postorder = getSubtreePostorder(T1, T1.getRootId());
-  for (NodeId Id1 : Postorder) {
+  std::vector<NodeId> const Postorder = getSubtreePostorder(T1, T1.getRootId());
+  for (NodeId const Id1 : Postorder) {
     if (Id1 == T1.getRootId() && !M.hasSrc(T1.getRootId()) &&
         !M.hasDst(T2.getRootId())) {
       if (isMatchingPossible(T1.getRootId(), T2.getRootId())) {
@@ -841,13 +841,13 @@ void ASTDiff::Impl::matchBottomUp(Mapping &M) const {
       }
       break;
     }
-    bool Matched = M.hasSrc(Id1);
+    bool const Matched = M.hasSrc(Id1);
     const Node &N1 = T1.getNode(Id1);
-    bool MatchedChildren = llvm::any_of(
+    bool const MatchedChildren = llvm::any_of(
         N1.Children, [&](NodeId Child) { return M.hasSrc(Child); });
     if (Matched || !MatchedChildren)
       continue;
-    NodeId Id2 = findCandidate(M, Id1);
+    NodeId const Id2 = findCandidate(M, Id1);
     if (Id2.isValid()) {
       M.link(Id1, Id2);
       addOptimalMapping(M, Id1, Id2);
@@ -868,31 +868,31 @@ Mapping ASTDiff::Impl::matchTopDown() const {
   while (std::min(Max1 = L1.peekMax(), Max2 = L2.peekMax()) >
          Options.MinHeight) {
     if (Max1 > Max2) {
-      for (NodeId Id : L1.pop())
+      for (NodeId const Id : L1.pop())
         L1.open(Id);
       continue;
     }
     if (Max2 > Max1) {
-      for (NodeId Id : L2.pop())
+      for (NodeId const Id : L2.pop())
         L2.open(Id);
       continue;
     }
     std::vector<NodeId> H1, H2;
     H1 = L1.pop();
     H2 = L2.pop();
-    for (NodeId Id1 : H1) {
-      for (NodeId Id2 : H2) {
+    for (NodeId const Id1 : H1) {
+      for (NodeId const Id2 : H2) {
         if (identical(Id1, Id2) && !M.hasSrc(Id1) && !M.hasDst(Id2)) {
           for (int I = 0, E = T1.getNumberOfDescendants(Id1); I < E; ++I)
             M.link(Id1 + I, Id2 + I);
         }
       }
     }
-    for (NodeId Id1 : H1) {
+    for (NodeId const Id1 : H1) {
       if (!M.hasSrc(Id1))
         L1.open(Id1);
     }
-    for (NodeId Id2 : H2) {
+    for (NodeId const Id2 : H2) {
       if (!M.hasDst(Id2))
         L2.open(Id2);
     }
@@ -915,20 +915,20 @@ void ASTDiff::Impl::computeMapping() {
 }
 
 void ASTDiff::Impl::computeChangeKinds(Mapping &M) {
-  for (NodeId Id1 : T1) {
+  for (NodeId const Id1 : T1) {
     if (!M.hasSrc(Id1)) {
       T1.getMutableNode(Id1).Change = Delete;
       T1.getMutableNode(Id1).Shift -= 1;
     }
   }
-  for (NodeId Id2 : T2) {
+  for (NodeId const Id2 : T2) {
     if (!M.hasDst(Id2)) {
       T2.getMutableNode(Id2).Change = Insert;
       T2.getMutableNode(Id2).Shift -= 1;
     }
   }
-  for (NodeId Id1 : T1.NodesBfs) {
-    NodeId Id2 = M.getDst(Id1);
+  for (NodeId const Id1 : T1.NodesBfs) {
+    NodeId const Id2 = M.getDst(Id1);
     if (Id2.isInvalid())
       continue;
     if (!haveSameParents(M, Id1, Id2) ||
@@ -938,8 +938,8 @@ void ASTDiff::Impl::computeChangeKinds(Mapping &M) {
       T2.getMutableNode(Id2).Shift -= 1;
     }
   }
-  for (NodeId Id2 : T2.NodesBfs) {
-    NodeId Id1 = M.getSrc(Id2);
+  for (NodeId const Id2 : T2.NodesBfs) {
+    NodeId const Id1 = M.getSrc(Id2);
     if (Id1.isInvalid())
       continue;
     Node &N1 = T1.getMutableNode(Id1);
@@ -993,16 +993,16 @@ int SyntaxTree::findPositionInParent(NodeId Id) const {
 std::pair<unsigned, unsigned>
 SyntaxTree::getSourceRangeOffsets(const Node &N) const {
   const SourceManager &SrcMgr = TreeImpl->AST.getSourceManager();
-  SourceRange Range = N.ASTNode.getSourceRange();
-  SourceLocation BeginLoc = Range.getBegin();
+  SourceRange const Range = N.ASTNode.getSourceRange();
+  SourceLocation const BeginLoc = Range.getBegin();
   SourceLocation EndLoc = Lexer::getLocForEndOfToken(
       Range.getEnd(), /*Offset=*/0, SrcMgr, TreeImpl->AST.getLangOpts());
   if (auto *ThisExpr = N.ASTNode.get<CXXThisExpr>()) {
     if (ThisExpr->isImplicit())
       EndLoc = BeginLoc;
   }
-  unsigned Begin = SrcMgr.getFileOffset(SrcMgr.getExpansionLoc(BeginLoc));
-  unsigned End = SrcMgr.getFileOffset(SrcMgr.getExpansionLoc(EndLoc));
+  unsigned const Begin = SrcMgr.getFileOffset(SrcMgr.getExpansionLoc(BeginLoc));
+  unsigned const End = SrcMgr.getFileOffset(SrcMgr.getExpansionLoc(EndLoc));
   return {Begin, End};
 }
 

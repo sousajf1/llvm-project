@@ -95,7 +95,7 @@ unsigned TypeLoc::getFullDataSizeForType(QualType Ty) {
   TypeLoc TyLoc(Ty, nullptr);
   unsigned MaxAlign = 1;
   while (!TyLoc.isNull()) {
-    unsigned Align = getLocalAlignmentForType(TyLoc.getType());
+    unsigned const Align = getLocalAlignmentForType(TyLoc.getType());
     MaxAlign = std::max(Align, MaxAlign);
     Total = llvm::alignTo(Total, Align);
     Total += TypeSizer().Visit(TyLoc);
@@ -420,7 +420,7 @@ TypeSpecifierType BuiltinTypeLoc::getWrittenTypeSpec() const {
 }
 
 TypeLoc TypeLoc::IgnoreParensImpl(TypeLoc TL) {
-  while (ParenTypeLoc PTL = TL.getAs<ParenTypeLoc>())
+  while (ParenTypeLoc const PTL = TL.getAs<ParenTypeLoc>())
     TL = PTL.getInnerLoc();
   return TL;
 }
@@ -441,7 +441,7 @@ TypeLoc TypeLoc::findExplicitQualifierLoc() const {
   if (auto qual = getAs<QualifiedTypeLoc>())
     return qual;
 
-  TypeLoc loc = IgnoreParens();
+  TypeLoc const loc = IgnoreParens();
 
   // Attributed types.
   if (auto attr = loc.getAs<AttributedTypeLoc>()) {
@@ -580,7 +580,7 @@ void TemplateSpecializationTypeLoc::initializeArgLocs(ASTContext &Context,
     case TemplateArgument::Template:
     case TemplateArgument::TemplateExpansion: {
       NestedNameSpecifierLocBuilder Builder;
-      TemplateName Template = Args[i].getAsTemplateOrTemplatePattern();
+      TemplateName const Template = Args[i].getAsTemplateOrTemplatePattern();
       if (DependentTemplateName *DTN = Template.getAsDependentTemplateName())
         Builder.MakeTrivial(Context, DTN->getQualifier(), Loc);
       else if (QualifiedTemplateName *QTN = Template.getAsQualifiedTemplateName())
@@ -688,7 +688,7 @@ namespace {
 } // namespace
 
 AutoTypeLoc TypeLoc::getContainedAutoTypeLoc() const {
-  TypeLoc Res = GetContainedAutoTypeLocVisitor().Visit(*this);
+  TypeLoc const Res = GetContainedAutoTypeLocVisitor().Visit(*this);
   if (Res.isNull())
     return AutoTypeLoc();
   return Res.getAs<AutoTypeLoc>();

@@ -138,7 +138,7 @@ bool isStdSmartPtr(const CXXRecordDecl *RD) {
     return false;
 
   if (RD->getDeclName().isIdentifier()) {
-    StringRef Name = RD->getName();
+    StringRef const Name = RD->getName();
     return Name == "shared_ptr" || Name == "unique_ptr" || Name == "weak_ptr";
   }
   return false;
@@ -476,12 +476,12 @@ bool SmartPtrModeling::handleComparisionOp(const CallEvent &Call,
     const MemRegion *Reg = S.getAsRegion();
     assert(Reg &&
            "this pointer of std::unique_ptr should be obtainable as MemRegion");
-    QualType Type = getInnerPointerType(C, E->getType()->getAsCXXRecordDecl());
+    QualType const Type = getInnerPointerType(C, E->getType()->getAsCXXRecordDecl());
     return retrieveOrConjureInnerPtrVal(State, Reg, E, Type, C);
   };
 
-  SVal First = Call.getArgSVal(0);
-  SVal Second = Call.getArgSVal(1);
+  SVal const First = Call.getArgSVal(0);
+  SVal const Second = Call.getArgSVal(1);
   const auto *FirstExpr = Call.getArgExpr(0);
   const auto *SecondExpr = Call.getArgExpr(1);
 
@@ -493,7 +493,7 @@ bool SmartPtrModeling::handleComparisionOp(const CallEvent &Call,
   SVal FirstPtrVal, SecondPtrVal;
   std::tie(FirstPtrVal, State) = makeSValFor(State, FirstExpr, First);
   std::tie(SecondPtrVal, State) = makeSValFor(State, SecondExpr, Second);
-  BinaryOperatorKind BOK =
+  BinaryOperatorKind const BOK =
       operationKindFromOverloadedOperator(OOK, true).GetBinaryOpUnsafe();
   auto RetVal = Bldr.evalBinOp(State, BOK, FirstPtrVal, SecondPtrVal,
                                Call.getResultType());
@@ -542,10 +542,10 @@ void SmartPtrModeling::checkDeadSymbols(SymbolReaper &SymReaper,
                                         CheckerContext &C) const {
   ProgramStateRef State = C.getState();
   // Clean up dead regions from the region map.
-  TrackedRegionMapTy TrackedRegions = State->get<TrackedRegionMap>();
+  TrackedRegionMapTy const TrackedRegions = State->get<TrackedRegionMap>();
   for (auto E : TrackedRegions) {
     const MemRegion *Region = E.first;
-    bool IsRegDead = !SymReaper.isLiveRegion(Region);
+    bool const IsRegDead = !SymReaper.isLiveRegion(Region);
 
     if (IsRegDead)
       State = State->remove<TrackedRegionMap>(Region);
@@ -555,7 +555,7 @@ void SmartPtrModeling::checkDeadSymbols(SymbolReaper &SymReaper,
 
 void SmartPtrModeling::printState(raw_ostream &Out, ProgramStateRef State,
                                   const char *NL, const char *Sep) const {
-  TrackedRegionMapTy RS = State->get<TrackedRegionMap>();
+  TrackedRegionMapTy const RS = State->get<TrackedRegionMap>();
 
   if (!RS.isEmpty()) {
     Out << Sep << "Smart ptr regions :" << NL;
@@ -587,9 +587,9 @@ ProgramStateRef SmartPtrModeling::checkRegionChanges(
 void SmartPtrModeling::checkLiveSymbols(ProgramStateRef State,
                                         SymbolReaper &SR) const {
   // Marking tracked symbols alive
-  TrackedRegionMapTy TrackedRegions = State->get<TrackedRegionMap>();
+  TrackedRegionMapTy const TrackedRegions = State->get<TrackedRegionMap>();
   for (auto I = TrackedRegions.begin(), E = TrackedRegions.end(); I != E; ++I) {
-    SVal Val = I->second;
+    SVal const Val = I->second;
     for (auto si = Val.symbol_begin(), se = Val.symbol_end(); si != se; ++si) {
       SR.markLive(*si);
     }
@@ -735,7 +735,7 @@ bool SmartPtrModeling::handleAssignOp(const CallEvent &Call,
   const auto *OC = dyn_cast<CXXMemberOperatorCall>(&Call);
   if (!OC)
     return false;
-  OverloadedOperatorKind OOK = OC->getOverloadedOperator();
+  OverloadedOperatorKind const OOK = OC->getOverloadedOperator();
   if (OOK != OO_Equal)
     return false;
   const MemRegion *ThisRegion = OC->getCXXThisVal().getAsRegion();
@@ -745,7 +745,7 @@ bool SmartPtrModeling::handleAssignOp(const CallEvent &Call,
   const MemRegion *OtherSmartPtrRegion = OC->getArgSVal(0).getAsRegion();
   // In case of 'nullptr' or '0' assigned
   if (!OtherSmartPtrRegion) {
-    bool AssignedNull = Call.getArgSVal(0).isZeroConstant();
+    bool const AssignedNull = Call.getArgSVal(0).isZeroConstant();
     if (!AssignedNull)
       return false;
     auto NullVal = C.getSValBuilder().makeNull();
@@ -783,7 +783,7 @@ bool SmartPtrModeling::updateMovedSmartPointers(
     State = State->set<TrackedRegionMap>(ThisRegion, *OtherInnerPtr);
     auto NullVal = C.getSValBuilder().makeNull();
     State = State->set<TrackedRegionMap>(OtherSmartPtrRegion, NullVal);
-    bool IsArgValNull = OtherInnerPtr->isZeroConstant();
+    bool const IsArgValNull = OtherInnerPtr->isZeroConstant();
 
     C.addTransition(
         State,

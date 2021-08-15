@@ -45,7 +45,7 @@ inline void TaintTesterChecker::initBugType() const {
 
 void TaintTesterChecker::checkPostStmt(const Expr *E,
                                        CheckerContext &C) const {
-  ProgramStateRef State = C.getState();
+  ProgramStateRef const State = C.getState();
   if (!State)
     return;
 

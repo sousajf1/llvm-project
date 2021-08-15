@@ -99,7 +99,7 @@ bool ExplodedGraph::shouldCollect(const ExplodedNode *node) {
 
   // Now reclaim any nodes that are (by definition) not essential to
   // analysis history and are not consulted by any client code.
-  ProgramPoint progPoint = node->getLocation();
+  ProgramPoint const progPoint = node->getLocation();
   if (progPoint.getAs<PreStmtPurgeDeadSymbols>())
     return !progPoint.getTag();
 
@@ -112,8 +112,8 @@ bool ExplodedGraph::shouldCollect(const ExplodedNode *node) {
     return false;
 
   // Conditions 5, 6, and 7.
-  ProgramStateRef state = node->getState();
-  ProgramStateRef pred_state = pred->getState();
+  ProgramStateRef const state = node->getState();
+  ProgramStateRef const pred_state = pred->getState();
   if (state->store != pred_state->store || state->GDM != pred_state->GDM ||
       progPoint.getLocationContext() != pred->getLocationContext())
     return false;
@@ -289,7 +289,7 @@ bool ExplodedNode::isTrivial() const {
 }
 
 const CFGBlock *ExplodedNode::getCFGBlock() const {
-  ProgramPoint P = getLocation();
+  ProgramPoint const P = getLocation();
   if (auto BEP = P.getAs<BlockEntrance>())
     return BEP->getBlock();
 
@@ -330,7 +330,7 @@ const Stmt *ExplodedNode::getStmtForDiagnostics() const {
   }
   // Otherwise, see if the node's program point directly points to a statement.
   // FIXME: Refactor into a ProgramPoint method?
-  ProgramPoint P = getLocation();
+  ProgramPoint const P = getLocation();
   if (auto SP = P.getAs<StmtPoint>())
     return SP->getStmt();
   if (auto BE = P.getAs<BlockEdge>())
@@ -360,7 +360,7 @@ const Stmt *ExplodedNode::getNextStmtForDiagnostics() const {
         case Stmt::ConditionalOperatorClass:
           continue;
         case Stmt::BinaryOperatorClass: {
-          BinaryOperatorKind Op = cast<BinaryOperator>(S)->getOpcode();
+          BinaryOperatorKind const Op = cast<BinaryOperator>(S)->getOpcode();
           if (Op == BO_LAnd || Op == BO_LOr)
             continue;
           break;
@@ -512,7 +512,7 @@ ExplodedGraph::trim(ArrayRef<const NodeTy *> Sinks,
     // nodes in the new graph (if any) to the freshly created node.
     for (ExplodedNode::pred_iterator I = N->Preds.begin(), E = N->Preds.end();
          I != E; ++I) {
-      Pass2Ty::iterator PI = Pass2.find(*I);
+      Pass2Ty::iterator const PI = Pass2.find(*I);
       if (PI == Pass2.end())
         continue;
 
@@ -525,7 +525,7 @@ ExplodedGraph::trim(ArrayRef<const NodeTy *> Sinks,
     // in the new graph.
     for (ExplodedNode::succ_iterator I = N->Succs.begin(), E = N->Succs.end();
          I != E; ++I) {
-      Pass2Ty::iterator PI = Pass2.find(*I);
+      Pass2Ty::iterator const PI = Pass2.find(*I);
       if (PI != Pass2.end()) {
         const_cast<ExplodedNode *>(PI->second)->addPredecessor(NewN, *G);
         continue;

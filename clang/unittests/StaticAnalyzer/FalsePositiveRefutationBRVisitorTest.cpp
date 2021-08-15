@@ -63,11 +63,11 @@ class FalsePositiveGenerator : public Checker<eval::Call> {
     if (C.getPredecessor()->getLocationContext()->getStackFrame()->getParent())
       return false;
 
-    SVal AssertionVal = Call.getArgSVal(0);
+    SVal const AssertionVal = Call.getArgSVal(0);
     if (AssertionVal.isUndef())
       return false;
 
-    ProgramStateRef State = C.getPredecessor()->getState();
+    ProgramStateRef const State = C.getPredecessor()->getState();
     ProgramStateRef StTrue;
     std::tie(StTrue, std::ignore) =
         State->assume(AssertionVal.castAs<DefinedOrUnknownSVal>());

@@ -92,7 +92,7 @@ protected:
       // Example error handling.
       DiagnosticsEngine &D = CI.getDiagnostics();
       if (args[i] == "-an-error") {
-        unsigned DiagID = D.getCustomDiagID(DiagnosticsEngine::Error,
+        unsigned const DiagID = D.getCustomDiagID(DiagnosticsEngine::Error,
                                             "invalid argument '%0'");
         D.Report(DiagID) << args[i];
         return false;

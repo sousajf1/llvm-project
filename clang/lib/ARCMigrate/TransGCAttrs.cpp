@@ -46,7 +46,7 @@ public:
     if (!D || D->isImplicit())
       return true;
 
-    SaveAndRestore<bool> Save(FullyMigratable, isMigratable(D));
+    SaveAndRestore<bool> const Save(FullyMigratable, isMigratable(D));
 
     if (ObjCPropertyDecl *PropD = dyn_cast<ObjCPropertyDecl>(D)) {
       lookForAttribute(PropD, PropD->getTypeSourceInfo());
@@ -62,20 +62,20 @@ public:
       return;
     TypeLoc TL = TInfo->getTypeLoc();
     while (TL) {
-      if (QualifiedTypeLoc QL = TL.getAs<QualifiedTypeLoc>()) {
+      if (QualifiedTypeLoc const QL = TL.getAs<QualifiedTypeLoc>()) {
         TL = QL.getUnqualifiedLoc();
-      } else if (AttributedTypeLoc Attr = TL.getAs<AttributedTypeLoc>()) {
+      } else if (AttributedTypeLoc const Attr = TL.getAs<AttributedTypeLoc>()) {
         if (handleAttr(Attr, D))
           break;
         TL = Attr.getModifiedLoc();
-      } else if (MacroQualifiedTypeLoc MDTL =
+      } else if (MacroQualifiedTypeLoc const MDTL =
                      TL.getAs<MacroQualifiedTypeLoc>()) {
         TL = MDTL.getInnerLoc();
-      } else if (ArrayTypeLoc Arr = TL.getAs<ArrayTypeLoc>()) {
+      } else if (ArrayTypeLoc const Arr = TL.getAs<ArrayTypeLoc>()) {
         TL = Arr.getElementLoc();
-      } else if (PointerTypeLoc PT = TL.getAs<PointerTypeLoc>()) {
+      } else if (PointerTypeLoc const PT = TL.getAs<PointerTypeLoc>()) {
         TL = PT.getPointeeLoc();
-      } else if (ReferenceTypeLoc RT = TL.getAs<ReferenceTypeLoc>())
+      } else if (ReferenceTypeLoc const RT = TL.getAs<ReferenceTypeLoc>())
         TL = RT.getPointeeLoc();
       else
         break;
@@ -88,15 +88,15 @@ public:
       return false;
 
     SourceLocation Loc = OwnershipAttr->getLocation();
-    SourceLocation OrigLoc = Loc;
+    SourceLocation const OrigLoc = Loc;
     if (MigrateCtx.AttrSet.count(OrigLoc))
       return true;
 
     ASTContext &Ctx = MigrateCtx.Pass.Ctx;
-    SourceManager &SM = Ctx.getSourceManager();
+    SourceManager  const&SM = Ctx.getSourceManager();
     if (Loc.isMacroID())
       Loc = SM.getImmediateExpansionRange(Loc).getBegin();
-    StringRef Spell = OwnershipAttr->getKind()->getName();
+    StringRef const Spell = OwnershipAttr->getKind()->getName();
     MigrationContext::GCAttrOccurrence::AttrKind Kind;
     if (Spell == "strong")
       Kind = MigrationContext::GCAttrOccurrence::Strong;
@@ -169,7 +169,7 @@ public:
     if (Loc.isInvalid())
       return false;
 
-    SourceManager &SM = MigrateCtx.Pass.Ctx.getSourceManager();
+    SourceManager  const&SM = MigrateCtx.Pass.Ctx.getSourceManager();
     return SM.isInFileID(SM.getExpansionLoc(Loc), SM.getMainFileID());
   }
 };
@@ -180,7 +180,7 @@ static void errorForGCAttrsOnNonObjC(MigrationContext &MigrateCtx) {
   TransformActions &TA = MigrateCtx.Pass.TA;
 
   for (unsigned i = 0, e = MigrateCtx.GCAttrs.size(); i != e; ++i) {
-    MigrationContext::GCAttrOccurrence &Attr = MigrateCtx.GCAttrs[i];
+    MigrationContext::GCAttrOccurrence  const&Attr = MigrateCtx.GCAttrs[i];
     if (Attr.FullyMigratable && Attr.Dcl) {
       if (Attr.ModifiedType.isNull())
         continue;
@@ -196,14 +196,14 @@ static void checkWeakGCAttrs(MigrationContext &MigrateCtx) {
   TransformActions &TA = MigrateCtx.Pass.TA;
 
   for (unsigned i = 0, e = MigrateCtx.GCAttrs.size(); i != e; ++i) {
-    MigrationContext::GCAttrOccurrence &Attr = MigrateCtx.GCAttrs[i];
+    MigrationContext::GCAttrOccurrence  const&Attr = MigrateCtx.GCAttrs[i];
     if (Attr.Kind == MigrationContext::GCAttrOccurrence::Weak) {
       if (Attr.ModifiedType.isNull() ||
           !Attr.ModifiedType->isObjCRetainableType())
         continue;
       if (!canApplyWeak(MigrateCtx.Pass.Ctx, Attr.ModifiedType,
                         /*AllowOnUnknownClass=*/true)) {
-        Transaction Trans(TA);
+        Transaction const Trans(TA);
         if (!MigrateCtx.RemovedAttrSet.count(Attr.Loc))
           TA.replaceText(Attr.Loc, "__weak", "__unsafe_unretained");
         TA.clearDiagnostic(diag::err_arc_weak_no_runtime,
@@ -224,7 +224,7 @@ static void checkAllAtProps(MigrationContext &MigrateCtx,
 
   for (IndivPropsTy::iterator
          PI = IndProps.begin(), PE = IndProps.end(); PI != PE; ++PI) {
-    QualType T = (*PI)->getType();
+    QualType const T = (*PI)->getType();
     if (T.isNull() || !T->isObjCRetainableType())
       return;
   }
@@ -239,8 +239,8 @@ static void checkAllAtProps(MigrationContext &MigrateCtx,
     TypeSourceInfo *TInfo = PD->getTypeSourceInfo();
     if (!TInfo)
       return;
-    TypeLoc TL = TInfo->getTypeLoc();
-    if (AttributedTypeLoc ATL =
+    TypeLoc const TL = TInfo->getTypeLoc();
+    if (AttributedTypeLoc const ATL =
             TL.getAs<AttributedTypeLoc>()) {
       ATLs.push_back(std::make_pair(ATL, PD));
       if (TInfo->getType().getObjCLifetime() == Qualifiers::OCL_Weak) {
@@ -257,7 +257,7 @@ static void checkAllAtProps(MigrationContext &MigrateCtx,
     return;
 
   TransformActions &TA = MigrateCtx.Pass.TA;
-  Transaction Trans(TA);
+  Transaction const Trans(TA);
 
   if (GCAttrsCollector::hasObjCImpl(
                               cast<Decl>(IndProps.front()->getDeclContext()))) {
@@ -303,7 +303,7 @@ static void checkAllProps(MigrationContext &MigrateCtx,
     if (PD->getPropertyAttributesAsWritten() &
         (ObjCPropertyAttribute::kind_assign |
          ObjCPropertyAttribute::kind_readonly)) {
-      SourceLocation AtLoc = PD->getAtLoc();
+      SourceLocation const AtLoc = PD->getAtLoc();
       if (AtLoc.isInvalid())
         continue;
       AtProps[AtLoc].push_back(PD);
@@ -311,7 +311,7 @@ static void checkAllProps(MigrationContext &MigrateCtx,
   }
 
   for (auto I = AtProps.begin(), E = AtProps.end(); I != E; ++I) {
-    SourceLocation AtLoc = I->first;
+    SourceLocation const AtLoc = I->first;
     IndivPropsTy &IndProps = I->second;
     checkAllAtProps(MigrateCtx, AtLoc, IndProps);
   }
@@ -330,7 +330,7 @@ void GCAttrsTraverser::traverseTU(MigrationContext &MigrateCtx) {
 void MigrationContext::dumpGCAttrs() {
   llvm::errs() << "\n################\n";
   for (unsigned i = 0, e = GCAttrs.size(); i != e; ++i) {
-    GCAttrOccurrence &Attr = GCAttrs[i];
+    GCAttrOccurrence  const&Attr = GCAttrs[i];
     llvm::errs() << "KIND: "
         << (Attr.Kind == GCAttrOccurrence::Strong ? "strong" : "weak");
     llvm::errs() << "\nLOC: ";

@@ -51,7 +51,7 @@ void CXXSelfAssignmentChecker::checkBeginFunction(CheckerContext &C) const {
   auto Param = SVB.makeLoc(State->getRegion(MD->getParamDecl(0), LCtx));
   auto ParamVal = State->getSVal(Param);
 
-  ProgramStateRef SelfAssignState = State->bindLoc(Param, ThisVal, LCtx);
+  ProgramStateRef const SelfAssignState = State->bindLoc(Param, ThisVal, LCtx);
   const NoteTag *SelfAssignTag =
     C.getNoteTag([MD](PathSensitiveBugReport &BR) -> std::string {
         SmallString<256> Msg;
@@ -61,7 +61,7 @@ void CXXSelfAssignmentChecker::checkBeginFunction(CheckerContext &C) const {
       });
   C.addTransition(SelfAssignState, SelfAssignTag);
 
-  ProgramStateRef NonSelfAssignState = State->bindLoc(Param, ParamVal, LCtx);
+  ProgramStateRef const NonSelfAssignState = State->bindLoc(Param, ParamVal, LCtx);
   const NoteTag *NonSelfAssignTag =
     C.getNoteTag([MD](PathSensitiveBugReport &BR) -> std::string {
         SmallString<256> Msg;

@@ -73,16 +73,16 @@ void NonnullGlobalConstantsChecker::checkLocation(SVal location, bool isLoad,
   if (!isLoad || !location.isValid())
     return;
 
-  ProgramStateRef State = C.getState();
+  ProgramStateRef const State = C.getState();
 
   if (isGlobalConstString(location)) {
-    SVal V = State->getSVal(location.castAs<Loc>());
+    SVal const V = State->getSVal(location.castAs<Loc>());
     Optional<DefinedOrUnknownSVal> Constr = V.getAs<DefinedOrUnknownSVal>();
 
     if (Constr) {
 
       // Assume that the variable is non-null.
-      ProgramStateRef OutputState = State->assume(*Constr, true);
+      ProgramStateRef const OutputState = State->assume(*Constr, true);
       C.addTransition(OutputState);
     }
   }

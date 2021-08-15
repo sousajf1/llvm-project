@@ -192,21 +192,21 @@ static FileID createInMemoryFile(StringRef FileName, MemoryBufferRef Source,
 // Returns true on error.
 static bool parseLineRange(StringRef Input, unsigned &FromLine,
                            unsigned &ToLine) {
-  std::pair<StringRef, StringRef> LineRange = Input.split(':');
+  std::pair<StringRef, StringRef> const LineRange = Input.split(':');
   return LineRange.first.getAsInteger(0, FromLine) ||
          LineRange.second.getAsInteger(0, ToLine);
 }
 
 static bool fillRanges(MemoryBuffer *Code,
                        std::vector<tooling::Range> &Ranges) {
-  IntrusiveRefCntPtr<llvm::vfs::InMemoryFileSystem> InMemoryFileSystem(
+  IntrusiveRefCntPtr<llvm::vfs::InMemoryFileSystem> const InMemoryFileSystem(
       new llvm::vfs::InMemoryFileSystem);
   FileManager Files(FileSystemOptions(), InMemoryFileSystem);
   DiagnosticsEngine Diagnostics(
       IntrusiveRefCntPtr<DiagnosticIDs>(new DiagnosticIDs),
       new DiagnosticOptions);
   SourceManager Sources(Diagnostics, Files);
-  FileID ID = createInMemoryFile("<irrelevant>", *Code, Sources, Files,
+  FileID const ID = createInMemoryFile("<irrelevant>", *Code, Sources, Files,
                                  InMemoryFileSystem.get());
   if (!LineRanges.empty()) {
     if (!Offsets.empty() || !Lengths.empty()) {
@@ -224,12 +224,12 @@ static bool fillRanges(MemoryBuffer *Code,
         errs() << "error: start line should be less than end line\n";
         return true;
       }
-      SourceLocation Start = Sources.translateLineCol(ID, FromLine, 1);
-      SourceLocation End = Sources.translateLineCol(ID, ToLine, UINT_MAX);
+      SourceLocation const Start = Sources.translateLineCol(ID, FromLine, 1);
+      SourceLocation const End = Sources.translateLineCol(ID, ToLine, UINT_MAX);
       if (Start.isInvalid() || End.isInvalid())
         return true;
-      unsigned Offset = Sources.getFileOffset(Start);
-      unsigned Length = Sources.getFileOffset(End) - Offset;
+      unsigned const Offset = Sources.getFileOffset(Start);
+      unsigned const Length = Sources.getFileOffset(End) - Offset;
       Ranges.push_back(tooling::Range(Offset, Length));
     }
     return false;
@@ -247,7 +247,7 @@ static bool fillRanges(MemoryBuffer *Code,
       errs() << "error: offset " << Offsets[i] << " is outside the file\n";
       return true;
     }
-    SourceLocation Start =
+    SourceLocation const Start =
         Sources.getLocForStartOfFile(ID).getLocWithOffset(Offsets[i]);
     SourceLocation End;
     if (i < Lengths.size()) {
@@ -261,8 +261,8 @@ static bool fillRanges(MemoryBuffer *Code,
     } else {
       End = Sources.getLocForEndOfFile(ID);
     }
-    unsigned Offset = Sources.getFileOffset(Start);
-    unsigned Length = Sources.getFileOffset(End) - Offset;
+    unsigned const Offset = Sources.getFileOffset(Start);
+    unsigned const Length = Sources.getFileOffset(End) - Offset;
     Ranges.push_back(tooling::Range(Offset, Length));
   }
   return false;
@@ -320,7 +320,7 @@ emitReplacementWarnings(const Replacements &Replaces, StringRef AssumedFileName,
     Mgr.AddNewSourceBuffer(
         MemoryBuffer::getMemBuffer(StartBuf, AssumedFileName), SMLoc());
     for (const auto &R : Replaces) {
-      SMDiagnostic Diag = Mgr.GetMessage(
+      SMDiagnostic const Diag = Mgr.GetMessage(
           SMLoc::getFromPointer(StartBuf + R.getOffset()),
           WarningsAsErrors ? SourceMgr::DiagKind::DK_Error
                            : SourceMgr::DiagKind::DK_Warning,
@@ -364,7 +364,7 @@ static bool format(StringRef FileName) {
   ErrorOr<std::unique_ptr<MemoryBuffer>> CodeOrErr =
       !OutputXML && Inplace ? MemoryBuffer::getFileAsStream(FileName)
                             : MemoryBuffer::getFileOrSTDIN(FileName);
-  if (std::error_code EC = CodeOrErr.getError()) {
+  if (std::error_code const EC = CodeOrErr.getError()) {
     errs() << EC.message() << "\n";
     return true;
   }
@@ -372,7 +372,7 @@ static bool format(StringRef FileName) {
   if (Code->getBufferSize() == 0)
     return false; // Empty files are formatted correctly.
 
-  StringRef BufStr = Code->getBuffer();
+  StringRef const BufStr = Code->getBuffer();
 
   const char *InvalidBOM = SrcMgr::ContentCache::getInvalidBOM(BufStr);
 
@@ -388,7 +388,7 @@ static bool format(StringRef FileName) {
   std::vector<tooling::Range> Ranges;
   if (fillRanges(Code.get(), Ranges))
     return true;
-  StringRef AssumedFileName = (FileName == "-") ? AssumeFileName : FileName;
+  StringRef const AssumedFileName = (FileName == "-") ? AssumeFileName : FileName;
   if (AssumedFileName.empty()) {
     llvm::errs() << "error: empty filenames are not allowed\n";
     return true;
@@ -430,7 +430,7 @@ static bool format(StringRef FileName) {
   // Get new affected ranges after sorting `#includes`.
   Ranges = tooling::calculateRangesAfterReplacements(Replaces, Ranges);
   FormattingAttemptStatus Status;
-  Replacements FormatChanges =
+  Replacements const FormatChanges =
       reformat(*FormatStyle, *ChangedCode, Ranges, AssumedFileName, &Status);
   Replaces = Replaces.merge(FormatChanges);
   if (OutputXML || DryRun) {
@@ -440,14 +440,14 @@ static bool format(StringRef FileName) {
       outputXML(Replaces, FormatChanges, Status, Cursor, CursorPosition);
     }
   } else {
-    IntrusiveRefCntPtr<llvm::vfs::InMemoryFileSystem> InMemoryFileSystem(
+    IntrusiveRefCntPtr<llvm::vfs::InMemoryFileSystem> const InMemoryFileSystem(
         new llvm::vfs::InMemoryFileSystem);
     FileManager Files(FileSystemOptions(), InMemoryFileSystem);
     DiagnosticsEngine Diagnostics(
         IntrusiveRefCntPtr<DiagnosticIDs>(new DiagnosticIDs),
         new DiagnosticOptions);
     SourceManager Sources(Diagnostics, Files);
-    FileID ID = createInMemoryFile(AssumedFileName, *Code, Sources, Files,
+    FileID const ID = createInMemoryFile(AssumedFileName, *Code, Sources, Files,
                                    InMemoryFileSystem.get());
     Rewriter Rewrite(Sources, LangOptions());
     tooling::applyAllReplacements(Replaces, Rewrite);
@@ -490,7 +490,7 @@ static int dumpConfig() {
     // detect the language.
     ErrorOr<std::unique_ptr<MemoryBuffer>> CodeOrErr =
         MemoryBuffer::getFileOrSTDIN(FileNames[0]);
-    if (std::error_code EC = CodeOrErr.getError()) {
+    if (std::error_code const EC = CodeOrErr.getError()) {
       llvm::errs() << EC.message() << "\n";
       return 1;
     }
@@ -504,13 +504,13 @@ static int dumpConfig() {
     llvm::errs() << llvm::toString(FormatStyle.takeError()) << "\n";
     return 1;
   }
-  std::string Config = clang::format::configurationAsText(*FormatStyle);
+  std::string const Config = clang::format::configurationAsText(*FormatStyle);
   outs() << Config << "\n";
   return 0;
 }
 
 int main(int argc, const char **argv) {
-  llvm::InitLLVM X(argc, argv);
+  llvm::InitLLVM const X(argc, argv);
 
   cl::HideUnrelatedOptions(ClangFormatCategory);
 

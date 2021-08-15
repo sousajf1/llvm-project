@@ -332,7 +332,7 @@ bool X86TargetInfo::handleTargetFeatures(std::vector<std::string> &Features,
       HasUINTR = true;
     }
 
-    X86SSEEnum Level = llvm::StringSwitch<X86SSEEnum>(Feature)
+    X86SSEEnum const Level = llvm::StringSwitch<X86SSEEnum>(Feature)
                            .Case("+avx512f", AVX512F)
                            .Case("+avx2", AVX2)
                            .Case("+avx", AVX)
@@ -345,14 +345,14 @@ bool X86TargetInfo::handleTargetFeatures(std::vector<std::string> &Features,
                            .Default(NoSSE);
     SSELevel = std::max(SSELevel, Level);
 
-    MMX3DNowEnum ThreeDNowLevel = llvm::StringSwitch<MMX3DNowEnum>(Feature)
+    MMX3DNowEnum const ThreeDNowLevel = llvm::StringSwitch<MMX3DNowEnum>(Feature)
                                       .Case("+3dnowa", AMD3DNowAthlon)
                                       .Case("+3dnow", AMD3DNow)
                                       .Case("+mmx", MMX)
                                       .Default(NoMMX3DNow);
     MMX3DNowLevel = std::max(MMX3DNowLevel, ThreeDNowLevel);
 
-    XOPEnum XLevel = llvm::StringSwitch<XOPEnum>(Feature)
+    XOPEnum const XLevel = llvm::StringSwitch<XOPEnum>(Feature)
                          .Case("+xop", XOP)
                          .Case("+fma4", FMA4)
                          .Case("+sse4a", SSE4A)
@@ -1074,9 +1074,9 @@ unsigned X86TargetInfo::multiVersionSortPriority(StringRef Name) const {
   // Valid CPUs have a 'key feature' that compares just better than its key
   // feature.
   using namespace llvm::X86;
-  CPUKind Kind = parseArchX86(Name);
+  CPUKind const Kind = parseArchX86(Name);
   if (Kind != CK_None) {
-    ProcessorFeatures KeyFeature = getKeyFeature(Kind);
+    ProcessorFeatures const KeyFeature = getKeyFeature(Kind);
     return (getFeaturePriority(KeyFeature) << 1) + 1;
   }
 
@@ -1109,7 +1109,7 @@ char X86TargetInfo::CPUSpecificManglingCharacter(StringRef Name) const {
 
 void X86TargetInfo::getCPUSpecificCPUDispatchFeatures(
     StringRef Name, llvm::SmallVectorImpl<StringRef> &Features) const {
-  StringRef WholeList =
+  StringRef const WholeList =
       llvm::StringSwitch<StringRef>(CPUSpecificCPUDispatchNameDealias(Name))
 #define CPU_SPECIFIC(NAME, MANGLING, FEATURES) .Case(NAME, FEATURES)
 #include "clang/Basic/X86Target.def"
@@ -1505,7 +1505,7 @@ std::string X86TargetInfo::convertConstraint(const char *&Constraint) const {
 }
 
 void X86TargetInfo::fillValidCPUList(SmallVectorImpl<StringRef> &Values) const {
-  bool Only64Bit = getTriple().getArch() != llvm::Triple::x86;
+  bool const Only64Bit = getTriple().getArch() != llvm::Triple::x86;
   llvm::X86::fillValidCPUArchList(Values, Only64Bit);
 }
 

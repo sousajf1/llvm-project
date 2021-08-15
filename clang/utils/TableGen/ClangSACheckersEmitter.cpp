@@ -76,7 +76,7 @@ static inline uint64_t getValueFromBitsInit(const BitsInit *B, const Record &R) 
 static std::string getCheckerDocs(const Record &R) {
   StringRef LandingPage;
   if (BitsInit *BI = R.getValueAsBitsInit("Documentation")) {
-    uint64_t V = getValueFromBitsInit(BI, R);
+    uint64_t const V = getValueFromBitsInit(BI, R);
     if (V == 1)
       LandingPage = "available_checks.html";
     else if (V == 2)
@@ -176,7 +176,7 @@ static void printOption(llvm::raw_ostream &OS, StringRef FullName,
 }
 
 void clang::EmitClangSACheckers(RecordKeeper &Records, raw_ostream &OS) {
-  std::vector<Record*> checkers = Records.getAllDerivedDefinitions("Checker");
+  std::vector<Record*> const checkers = Records.getAllDerivedDefinitions("Checker");
   std::vector<Record*> packages = Records.getAllDerivedDefinitions("Package");
 
   using SortedRecords = llvm::StringMap<const Record *>;
@@ -229,7 +229,7 @@ void clang::EmitClangSACheckers(RecordKeeper &Records, raw_ostream &OS) {
     if (Package->isValueUnset("PackageOptions"))
       continue;
 
-    std::vector<Record *> PackageOptions = Package
+    std::vector<Record *> const PackageOptions = Package
                                        ->getValueAsListOfDefs("PackageOptions");
     for (Record *PackageOpt : PackageOptions) {
       OS << "PACKAGE_OPTION(";
@@ -329,7 +329,7 @@ void clang::EmitClangSACheckers(RecordKeeper &Records, raw_ostream &OS) {
     if (Checker->isValueUnset("CheckerOptions"))
       continue;
 
-    std::vector<Record *> CheckerOptions = Checker
+    std::vector<Record *> const CheckerOptions = Checker
                                        ->getValueAsListOfDefs("CheckerOptions");
     for (Record *CheckerOpt : CheckerOptions) {
       OS << "CHECKER_OPTION(";

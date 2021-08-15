@@ -160,10 +160,10 @@ parseCrossTUIndex(StringRef IndexPath) {
   std::string Line;
   unsigned LineNo = 1;
   while (std::getline(ExternalMapFile, Line)) {
-    StringRef LineRef{Line};
+    StringRef const LineRef{Line};
     const size_t Delimiter = LineRef.find(' ');
     if (Delimiter > 0 && Delimiter != std::string::npos) {
-      StringRef LookupName = LineRef.substr(0, Delimiter);
+      StringRef const LookupName = LineRef.substr(0, Delimiter);
 
       // Store paths with posix-style directory separator.
       SmallString<32> FilePath(LineRef.substr(Delimiter + 1));
@@ -192,7 +192,7 @@ createCrossTUIndexString(const llvm::StringMap<std::string> &Index) {
 }
 
 bool containsConst(const VarDecl *VD, const ASTContext &ACtx) {
-  CanQualType CT = ACtx.getCanonicalType(VD->getType());
+  CanQualType const CT = ACtx.getCanonicalType(VD->getType());
   if (!CT.isConstQualified()) {
     const RecordType *RTy = CT->getAs<RecordType>();
     if (!RTy || !RTy->hasConstFields())
@@ -220,7 +220,7 @@ CrossTranslationUnitContext::~CrossTranslationUnitContext() {}
 llvm::Optional<std::string>
 CrossTranslationUnitContext::getLookupName(const NamedDecl *ND) {
   SmallString<128> DeclUSR;
-  bool Ret = index::generateUSRForDecl(ND, DeclUSR);
+  bool const Ret = index::generateUSRForDecl(ND, DeclUSR);
   if (Ret)
     return {};
   return std::string(DeclUSR.str());
@@ -535,11 +535,11 @@ CrossTranslationUnitContext::ASTLoader::load(StringRef Identifier) {
 
 CrossTranslationUnitContext::LoadResultTy
 CrossTranslationUnitContext::ASTLoader::loadFromDump(StringRef ASTDumpPath) {
-  IntrusiveRefCntPtr<DiagnosticOptions> DiagOpts = new DiagnosticOptions();
+  IntrusiveRefCntPtr<DiagnosticOptions> const DiagOpts = new DiagnosticOptions();
   TextDiagnosticPrinter *DiagClient =
       new TextDiagnosticPrinter(llvm::errs(), &*DiagOpts);
-  IntrusiveRefCntPtr<DiagnosticIDs> DiagID(new DiagnosticIDs());
-  IntrusiveRefCntPtr<DiagnosticsEngine> Diags(
+  IntrusiveRefCntPtr<DiagnosticIDs> const DiagID(new DiagnosticIDs());
+  IntrusiveRefCntPtr<DiagnosticsEngine> const Diags(
       new DiagnosticsEngine(DiagID, &*DiagOpts, DiagClient));
   return ASTUnit::LoadFromASTFile(
       std::string(ASTDumpPath.str()),
@@ -578,11 +578,11 @@ CrossTranslationUnitContext::ASTLoader::loadFromSource(
                  CommandLineArgs.begin(),
                  [](auto &&CmdPart) { return CmdPart.c_str(); });
 
-  IntrusiveRefCntPtr<DiagnosticOptions> DiagOpts{&CI.getDiagnosticOpts()};
+  IntrusiveRefCntPtr<DiagnosticOptions> const DiagOpts{&CI.getDiagnosticOpts()};
   auto *DiagClient = new ForwardingDiagnosticConsumer{CI.getDiagnosticClient()};
-  IntrusiveRefCntPtr<DiagnosticIDs> DiagID{
+  IntrusiveRefCntPtr<DiagnosticIDs> const DiagID{
       CI.getDiagnostics().getDiagnosticIDs()};
-  IntrusiveRefCntPtr<DiagnosticsEngine> Diags(
+  IntrusiveRefCntPtr<DiagnosticsEngine> const Diags(
       new DiagnosticsEngine{DiagID, &*DiagOpts, DiagClient});
 
   return std::unique_ptr<ASTUnit>(ASTUnit::LoadFromCommandLine(
@@ -628,13 +628,13 @@ parseInvocationList(StringRef FileContent, llvm::sys::path::Style PathStyle) {
           index_error_code::invocation_list_wrong_format);
 
     SmallString<32> ValueStorage;
-    StringRef SourcePath = Key->getValue(ValueStorage);
+    StringRef const SourcePath = Key->getValue(ValueStorage);
 
     // Store paths with PathStyle directory separator.
     SmallString<32> NativeSourcePath(SourcePath);
     llvm::sys::path::native(NativeSourcePath, PathStyle);
 
-    StringRef InvocationKey = NativeSourcePath;
+    StringRef const InvocationKey = NativeSourcePath;
 
     if (InvocationList.find(InvocationKey) != InvocationList.end())
       return llvm::make_error<IndexError>(

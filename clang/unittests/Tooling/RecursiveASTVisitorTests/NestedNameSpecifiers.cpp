@@ -35,7 +35,7 @@ public:
 
 TEST(RecursiveASTVisitor,
      NestedNameSpecifiersForTemplateSpecializationsAreVisited) {
-  StringRef Source = R"(
+  StringRef const Source = R"(
 namespace ns {
 struct Outer {
     template<typename T, typename U>

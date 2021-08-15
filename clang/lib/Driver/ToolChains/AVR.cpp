@@ -315,13 +315,13 @@ AVRToolChain::AVRToolChain(const Driver &D, const llvm::Triple &Triple,
   if (!Args.hasArg(options::OPT_nostdlib) &&
       !Args.hasArg(options::OPT_nodefaultlibs) &&
       !Args.hasArg(options::OPT_c /* does not apply when not linking */)) {
-    std::string CPU = getCPUName(Args, Triple);
+    std::string const CPU = getCPUName(Args, Triple);
 
     if (CPU.empty()) {
       // We cannot link any standard libraries without an MCU specified.
       D.Diag(diag::warn_drv_avr_mcu_not_specified);
     } else {
-      Optional<StringRef> FamilyName = GetMCUFamilyName(CPU);
+      Optional<StringRef> const FamilyName = GetMCUFamilyName(CPU);
       Optional<std::string> AVRLibcRoot = findAVRLibcInstallation();
 
       if (!FamilyName.hasValue()) {
@@ -336,10 +336,10 @@ AVRToolChain::AVRToolChain(const Driver &D, const llvm::Triple &Triple,
         // No avr-libc found and so no runtime linked.
         D.Diag(diag::warn_drv_avr_libc_not_found);
       } else { // We have enough information to link stdlibs
-        std::string GCCRoot(GCCInstallation.getInstallPath());
-        std::string GCCParentPath(GCCInstallation.getParentLibPath());
-        std::string LibcRoot = AVRLibcRoot.getValue();
-        std::string SubPath = GetMCUSubPath(CPU);
+        std::string const GCCRoot(GCCInstallation.getInstallPath());
+        std::string const GCCParentPath(GCCInstallation.getParentLibPath());
+        std::string const LibcRoot = AVRLibcRoot.getValue();
+        std::string const SubPath = GetMCUSubPath(CPU);
 
         getProgramPaths().push_back(GCCParentPath + "/../bin");
         getFilePaths().push_back(LibcRoot + std::string("/lib/") + SubPath);
@@ -366,7 +366,7 @@ void AVRToolChain::AddClangSystemIncludeArgs(const ArgList &DriverArgs,
     return;
 
   // Add 'avr-libc/include' to clang system include paths if applicable.
-  std::string AVRInc = AVRLibcRoot.getValue() + "/include";
+  std::string const AVRInc = AVRLibcRoot.getValue() + "/include";
   if (llvm::sys::fs::is_directory(AVRInc))
     addSystemInclude(DriverArgs, CC1Args, AVRInc);
 }
@@ -390,11 +390,11 @@ void AVR::Linker::ConstructJob(Compilation &C, const JobAction &JA,
                                const InputInfoList &Inputs, const ArgList &Args,
                                const char *LinkingOutput) const {
   // Compute information about the target AVR.
-  std::string CPU = getCPUName(Args, getToolChain().getTriple());
+  std::string const CPU = getCPUName(Args, getToolChain().getTriple());
   llvm::Optional<StringRef> FamilyName = GetMCUFamilyName(CPU);
   llvm::Optional<unsigned> SectionAddressData = GetMCUSectionAddressData(CPU);
 
-  std::string Linker = getToolChain().GetProgramPath(getShortName());
+  std::string const Linker = getToolChain().GetProgramPath(getShortName());
   ArgStringList CmdArgs;
   AddLinkerInputs(getToolChain(), Inputs, Args, CmdArgs, JA);
 
@@ -409,7 +409,7 @@ void AVR::Linker::ConstructJob(Compilation &C, const JobAction &JA,
   getToolChain().AddFilePathLibArgs(Args, CmdArgs);
 
   if (SectionAddressData.hasValue()) {
-    std::string DataSectionArg = std::string("-Tdata=0x") +
+    std::string const DataSectionArg = std::string("-Tdata=0x") +
                                  llvm::utohexstr(SectionAddressData.getValue());
     CmdArgs.push_back(Args.MakeArgString(DataSectionArg));
   } else {
@@ -428,7 +428,7 @@ void AVR::Linker::ConstructJob(Compilation &C, const JobAction &JA,
     CmdArgs.push_back("--start-group");
 
     // Add the object file for the CRT.
-    std::string CrtFileName = std::string("-l:crt") + CPU + std::string(".o");
+    std::string const CrtFileName = std::string("-l:crt") + CPU + std::string(".o");
     CmdArgs.push_back(Args.MakeArgString(CrtFileName));
 
     CmdArgs.push_back("-lgcc");
@@ -453,8 +453,8 @@ void AVR::Linker::ConstructJob(Compilation &C, const JobAction &JA,
 }
 
 llvm::Optional<std::string> AVRToolChain::findAVRLibcInstallation() const {
-  for (StringRef PossiblePath : PossibleAVRLibcLocations) {
-    std::string Path = getDriver().SysRoot + PossiblePath.str();
+  for (StringRef const PossiblePath : PossibleAVRLibcLocations) {
+    std::string const Path = getDriver().SysRoot + PossiblePath.str();
     // Return the first avr-libc installation that exists.
     if (llvm::sys::fs::is_directory(Path))
       return Optional<std::string>(Path);

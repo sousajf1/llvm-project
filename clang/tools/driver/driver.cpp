@@ -121,7 +121,7 @@ static void ApplyOneQAOverride(raw_ostream &OS,
     Args.push_back(Str);
   } else if (Edit[0] == 's' && Edit[1] == '/' && Edit.endswith("/") &&
              Edit.slice(2, Edit.size()-1).find('/') != StringRef::npos) {
-    StringRef MatchPattern = Edit.substr(2).split('/').first;
+    StringRef const MatchPattern = Edit.substr(2).split('/').first;
     StringRef ReplPattern = Edit.substr(2).split('/').second;
     ReplPattern = ReplPattern.slice(0, ReplPattern.size()-1);
 
@@ -129,7 +129,7 @@ static void ApplyOneQAOverride(raw_ostream &OS,
       // Ignore end-of-line response file markers
       if (Args[i] == nullptr)
         continue;
-      std::string Repl = llvm::Regex(MatchPattern).sub(ReplPattern, Args[i]);
+      std::string const Repl = llvm::Regex(MatchPattern).sub(ReplPattern, Args[i]);
 
       if (Repl != Args[i]) {
         OS << "### Replacing '" << Args[i] << "' with '" << Repl << "'\n";
@@ -246,7 +246,7 @@ static void getCLEnvVarOptions(std::string &EnvValue, llvm::StringSaver &Saver,
 static void SetBackdoorDriverOutputsFromEnvVars(Driver &TheDriver) {
   auto CheckEnvVar = [](const char *EnvOptSet, const char *EnvOptFile,
                         std::string &OptFile) {
-    bool OptSet = !!::getenv(EnvOptSet);
+    bool const OptSet = !!::getenv(EnvOptSet);
     if (OptSet) {
       if (const char *Var = ::getenv(EnvOptFile))
         OptFile = Var;
@@ -316,7 +316,7 @@ static void SetInstallDir(SmallVectorImpl<const char *> &argv,
   if (CanonicalPrefixes)
     llvm::sys::fs::make_absolute(InstalledPath);
 
-  StringRef InstalledPathParent(llvm::sys::path::parent_path(InstalledPath));
+  StringRef const InstalledPathParent(llvm::sys::path::parent_path(InstalledPath));
   if (llvm::sys::fs::exists(InstalledPathParent))
     TheDriver.setInstalledDir(InstalledPathParent);
 }
@@ -332,7 +332,7 @@ static int ExecuteCC1Tool(SmallVectorImpl<const char *> &ArgV) {
   llvm::StringSaver Saver(A);
   llvm::cl::ExpandResponseFiles(Saver, &llvm::cl::TokenizeGNUCommandLine, ArgV,
                                 /*MarkEOLs=*/false);
-  StringRef Tool = ArgV[1];
+  StringRef const Tool = ArgV[1];
   void *GetExecutablePathVP = (void *)(intptr_t)GetExecutablePath;
   if (Tool == "-cc1")
     return cc1_main(makeArrayRef(ArgV).slice(1), ArgV[0], GetExecutablePathVP);
@@ -350,7 +350,7 @@ static int ExecuteCC1Tool(SmallVectorImpl<const char *> &ArgV) {
 
 int main(int Argc, const char **Argv) {
   noteBottomOfStack();
-  llvm::InitLLVM X(Argc, Argv);
+  llvm::InitLLVM const X(Argc, Argv);
   llvm::setBugReportMsg("PLEASE submit a bug report to " BUG_REPORT_URL
                         " and include the crash backtrace, preprocessed "
                         "source, and associated run script.\n");
@@ -371,7 +371,7 @@ int main(int Argc, const char **Argv) {
   // have to manually search for a --driver-mode=cl argument the hard way.
   // Finally, our -cc1 tools don't care which tokenization mode we use because
   // response files written by clang will tokenize the same way in either mode.
-  bool ClangCLMode =
+  bool const ClangCLMode =
       IsClangCL(getDriverMode(Args[0], llvm::makeArrayRef(Args).slice(1)));
   enum { Default, POSIX, Windows } RSPQuoting = Default;
   for (const char *F : Args) {
@@ -453,7 +453,7 @@ int main(int Argc, const char **Argv) {
     ApplyQAOverride(Args, OverrideStr, SavedStrings);
   }
 
-  std::string Path = GetExecutablePath(Args[0], CanonicalPrefixes);
+  std::string const Path = GetExecutablePath(Args[0], CanonicalPrefixes);
 
   // Whether the cc1 tool should be called inside the current process, or if we
   // should spawn a new clang subprocess (old behavior).
@@ -461,14 +461,14 @@ int main(int Argc, const char **Argv) {
   // and makes debugging and profiling easier.
   bool UseNewCC1Process;
 
-  IntrusiveRefCntPtr<DiagnosticOptions> DiagOpts =
+  IntrusiveRefCntPtr<DiagnosticOptions> const DiagOpts =
       CreateAndPopulateDiagOpts(Args, UseNewCC1Process);
 
   TextDiagnosticPrinter *DiagClient
     = new TextDiagnosticPrinter(llvm::errs(), &*DiagOpts);
   FixupDiagPrefixExeName(DiagClient, Path);
 
-  IntrusiveRefCntPtr<DiagnosticIDs> DiagID(new DiagnosticIDs());
+  IntrusiveRefCntPtr<DiagnosticIDs> const DiagID(new DiagnosticIDs());
 
   DiagnosticsEngine Diags(DiagID, &*DiagOpts, DiagClient);
 
@@ -522,7 +522,7 @@ int main(int Argc, const char **Argv) {
     }
 
     for (const auto &P : FailingCommands) {
-      int CommandRes = P.first;
+      int const CommandRes = P.first;
       const Command *FailingCommand = P.second;
       if (!Res)
         Res = CommandRes;

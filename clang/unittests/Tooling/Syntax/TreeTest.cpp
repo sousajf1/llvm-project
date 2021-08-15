@@ -108,7 +108,7 @@ INSTANTIATE_TEST_SUITE_P(TreeTests, TreeTest,
 
 TEST_P(TreeTest, FirstLeaf) {
   buildTree("", GetParam());
-  std::vector<const Node *> Leafs = {createLeaf(*Arena, tok::l_paren),
+  std::vector<const Node *> const Leafs = {createLeaf(*Arena, tok::l_paren),
                                      createLeaf(*Arena, tok::r_paren)};
   for (const auto *Tree : generateAllTreesWithShape(Leafs, {3u})) {
     ASSERT_TRUE(Tree->findFirstLeaf() != nullptr);
@@ -118,7 +118,7 @@ TEST_P(TreeTest, FirstLeaf) {
 
 TEST_P(TreeTest, LastLeaf) {
   buildTree("", GetParam());
-  std::vector<const Node *> Leafs = {createLeaf(*Arena, tok::l_paren),
+  std::vector<const Node *> const Leafs = {createLeaf(*Arena, tok::l_paren),
                                      createLeaf(*Arena, tok::r_paren)};
   for (const auto *Tree : generateAllTreesWithShape(Leafs, {3u})) {
     ASSERT_TRUE(Tree->findLastLeaf() != nullptr);

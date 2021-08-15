@@ -22,8 +22,8 @@ CharSourceRange getLexicalDeclRange(Decl *D, const SourceManager &SM,
     return CharSourceRange::getTokenRange(D->getSourceRange());
   // Objective-C implementation declarations end at the '@' instead of the 'end'
   // keyword. Use the lexer to find the location right after 'end'.
-  SourceRange R = D->getSourceRange();
-  SourceLocation LocAfterEnd = Lexer::findLocationAfterToken(
+  SourceRange const R = D->getSourceRange();
+  SourceLocation const LocAfterEnd = Lexer::findLocationAfterToken(
       R.getEnd(), tok::raw_identifier, SM, LangOpts,
       /*SkipTrailingWhitespaceAndNewLine=*/false);
   return LocAfterEnd.isValid()
@@ -63,14 +63,14 @@ public:
     // Avoid traversing the semantic expressions. They should be handled by
     // looking through the appropriate opaque expressions in order to build
     // a meaningful selection tree.
-    llvm::SaveAndRestore<bool> LookThrough(LookThroughOpaqueValueExprs, true);
+    llvm::SaveAndRestore<bool> const LookThrough(LookThroughOpaqueValueExprs, true);
     return TraverseStmt(E->getSyntacticForm());
   }
 
   bool TraverseOpaqueValueExpr(OpaqueValueExpr *E) {
     if (!LookThroughOpaqueValueExprs)
       return true;
-    llvm::SaveAndRestore<bool> LookThrough(LookThroughOpaqueValueExprs, false);
+    llvm::SaveAndRestore<bool> const LookThrough(LookThroughOpaqueValueExprs, false);
     return TraverseStmt(E->getSourceExpr());
   }
 
@@ -91,7 +91,7 @@ public:
     if (SM.getFileID(FileLoc) != TargetFile)
       return true;
 
-    SourceSelectionKind SelectionKind =
+    SourceSelectionKind const SelectionKind =
         selectionKindFor(getLexicalDeclRange(D, SM, Context.getLangOpts()));
     SelectionStack.push_back(
         SelectedASTNode(DynTypedNode::create(*D), SelectionKind));
@@ -119,7 +119,7 @@ public:
         return true;
     }
     // FIXME (Alex Lorenz): Improve handling for macro locations.
-    SourceSelectionKind SelectionKind =
+    SourceSelectionKind const SelectionKind =
         selectionKindFor(CharSourceRange::getTokenRange(S->getSourceRange()));
     SelectionStack.push_back(
         SelectedASTNode(DynTypedNode::create(*S), SelectionKind));
@@ -149,8 +149,8 @@ private:
         return SourceSelectionKind::ContainsSelection;
       return SourceSelectionKind::None;
     }
-    bool HasStart = SM.isPointWithin(SelectionBegin, Range.getBegin(), End);
-    bool HasEnd = SM.isPointWithin(SelectionEnd, Range.getBegin(), End);
+    bool const HasStart = SM.isPointWithin(SelectionBegin, Range.getBegin(), End);
+    bool const HasEnd = SM.isPointWithin(SelectionEnd, Range.getBegin(), End);
     if (HasStart && HasEnd)
       return SourceSelectionKind::ContainsSelection;
     if (SM.isPointWithin(Range.getBegin(), SelectionBegin, SelectionEnd) &&
@@ -185,7 +185,7 @@ clang::tooling::findSelectedASTNodes(const ASTContext &Context,
          SourceLocation::isPairOfFileLocations(SelectionRange.getBegin(),
                                                SelectionRange.getEnd()) &&
          "Expected a file range");
-  FileID TargetFile =
+  FileID const TargetFile =
       Context.getSourceManager().getFileID(SelectionRange.getBegin());
   assert(Context.getSourceManager().getFileID(SelectionRange.getEnd()) ==
              TargetFile &&

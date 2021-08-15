@@ -63,7 +63,7 @@ void UndefBranchChecker::checkBranchCondition(const Stmt *Condition,
   // ObjCForCollection is a loop, but has no actual condition.
   if (isa<ObjCForCollectionStmt>(Condition))
     return;
-  SVal X = Ctx.getSVal(Condition);
+  SVal const X = Ctx.getSVal(Condition);
   if (X.isUndef()) {
     // Generate a sink node, which implicitly marks both outgoing branches as
     // infeasible.
@@ -90,7 +90,7 @@ void UndefBranchChecker::checkBranchCondition(const Stmt *Condition,
       assert (!N->pred_empty());
       const Expr *Ex = cast<Expr>(Condition);
       ExplodedNode *PrevN = *N->pred_begin();
-      ProgramPoint P = PrevN->getLocation();
+      ProgramPoint const P = PrevN->getLocation();
       ProgramStateRef St = N->getState();
 
       if (Optional<PostStmt> PS = P.getAs<PostStmt>())

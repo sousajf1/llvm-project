@@ -140,9 +140,9 @@ void GTestChecker::modelAssertionResultBoolConstructor(
     BooleanArgVal = C.getState()->getSVal(BooleanArgVal.castAs<Loc>());
   }
 
-  SVal ThisVal = Call->getCXXThisVal();
+  SVal const ThisVal = Call->getCXXThisVal();
 
-  SVal ThisSuccess = getAssertionResultSuccessFieldValue(
+  SVal const ThisSuccess = getAssertionResultSuccessFieldValue(
       Call->getDecl()->getParent(), ThisVal, State);
 
   State = assumeValuesEqual(ThisSuccess, BooleanArgVal, State, C);
@@ -162,15 +162,15 @@ void GTestChecker::modelAssertionResultCopyConstructor(
 
   // The first parameter of the copy constructor must be the other
   // instance to initialize this instances fields from.
-  SVal OtherVal = Call->getArgSVal(0);
-  SVal ThisVal = Call->getCXXThisVal();
+  SVal const OtherVal = Call->getArgSVal(0);
+  SVal const ThisVal = Call->getCXXThisVal();
 
   const CXXRecordDecl *AssertResultClassDecl = Call->getDecl()->getParent();
   ProgramStateRef State = C.getState();
 
-  SVal ThisSuccess = getAssertionResultSuccessFieldValue(AssertResultClassDecl,
+  SVal const ThisSuccess = getAssertionResultSuccessFieldValue(AssertResultClassDecl,
                                                          ThisVal, State);
-  SVal OtherSuccess = getAssertionResultSuccessFieldValue(AssertResultClassDecl,
+  SVal const OtherSuccess = getAssertionResultSuccessFieldValue(AssertResultClassDecl,
                                                           OtherVal, State);
 
   State = assumeValuesEqual(ThisSuccess, OtherSuccess, State, C);
@@ -195,7 +195,7 @@ void GTestChecker::checkPostCall(const CallEvent &Call,
   if (CtorParent->getIdentifier() != AssertionResultII)
     return;
 
-  unsigned ParamCount = CtorDecl->getNumParams();
+  unsigned const ParamCount = CtorDecl->getNumParams();
 
   // Call the appropriate modeling method based the parameters and their
   // types.
@@ -219,7 +219,7 @@ void GTestChecker::checkPostCall(const CallEvent &Call,
   //                          !internal::ImplicitlyConvertible<T,
   //                              AssertionResult>::value>::type*)
   //
-  CanQualType BoolTy = C.getASTContext().BoolTy;
+  CanQualType const BoolTy = C.getASTContext().BoolTy;
   if (ParamCount == 1 && CtorDecl->getParamDecl(0)->getType() == BoolTy) {
     // We have AssertionResult(bool)
     modelAssertionResultBoolConstructor(CtorCall, /*IsRef=*/false, C);
@@ -250,7 +250,7 @@ SVal GTestChecker::getAssertionResultSuccessFieldValue(
     const CXXRecordDecl *AssertionResultDecl, SVal Instance,
     ProgramStateRef State) const {
 
-  DeclContext::lookup_result Result = AssertionResultDecl->lookup(SuccessII);
+  DeclContext::lookup_result const Result = AssertionResultDecl->lookup(SuccessII);
   if (Result.empty())
     return UnknownVal();
 

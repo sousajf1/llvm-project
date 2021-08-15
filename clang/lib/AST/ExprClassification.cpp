@@ -262,7 +262,7 @@ static Cl::Kinds ClassifyInternal(ASTContext &Ctx, const Expr *E) {
     case UO_Real:
     case UO_Imag: {
       const Expr *Op = cast<UnaryOperator>(E)->getSubExpr()->IgnoreParens();
-      Cl::Kinds K = ClassifyInternal(Ctx, Op);
+      Cl::Kinds const K = ClassifyInternal(Ctx, Op);
       if (K != Cl::CL_LValue) return K;
 
       if (isa<ObjCPropertyRefExpr>(Op))
@@ -391,7 +391,7 @@ static Cl::Kinds ClassifyInternal(ASTContext &Ctx, const Expr *E) {
   case Expr::ObjCMessageExprClass:
     if (const ObjCMethodDecl *Method =
           cast<ObjCMessageExpr>(E)->getMethodDecl()) {
-      Cl::Kinds kind = ClassifyUnnamed(Ctx, Method->getReturnType());
+      Cl::Kinds const kind = ClassifyUnnamed(Ctx, Method->getReturnType());
       return (kind == Cl::CL_PRValue) ? Cl::CL_ObjCMessageRValue : kind;
     }
     return Cl::CL_PRValue;
@@ -601,8 +601,8 @@ static Cl::Kinds ClassifyConditional(ASTContext &Ctx, const Expr *True,
     // The second or the third operand (but not both) is a (possibly
     // parenthesized) throw-expression; the result is of the [...] value
     // category of the other.
-    bool TrueIsThrow = isa<CXXThrowExpr>(True->IgnoreParenImpCasts());
-    bool FalseIsThrow = isa<CXXThrowExpr>(False->IgnoreParenImpCasts());
+    bool const TrueIsThrow = isa<CXXThrowExpr>(True->IgnoreParenImpCasts());
+    bool const FalseIsThrow = isa<CXXThrowExpr>(False->IgnoreParenImpCasts());
     if (const Expr *NonThrow = TrueIsThrow ? (FalseIsThrow ? nullptr : False)
                                            : (FalseIsThrow ? True : nullptr))
       return ClassifyInternal(Ctx, NonThrow);
@@ -651,7 +651,7 @@ static Cl::ModifiableType IsModifiable(ASTContext &Ctx, const Expr *E,
       return Cl::CM_NoSetterProperty;
   }
 
-  CanQualType CT = Ctx.getCanonicalType(E->getType());
+  CanQualType const CT = Ctx.getCanonicalType(E->getType());
   // Const stuff is obviously not modifiable.
   if (CT.isConstQualified())
     return Cl::CM_ConstQualified;
@@ -675,7 +675,7 @@ static Cl::ModifiableType IsModifiable(ASTContext &Ctx, const Expr *E,
 }
 
 Expr::LValueClassification Expr::ClassifyLValue(ASTContext &Ctx) const {
-  Classification VC = Classify(Ctx);
+  Classification const VC = Classify(Ctx);
   switch (VC.getKind()) {
   case Cl::CL_LValue: return LV_Valid;
   case Cl::CL_XValue: return LV_InvalidExpression;
@@ -696,7 +696,7 @@ Expr::LValueClassification Expr::ClassifyLValue(ASTContext &Ctx) const {
 Expr::isModifiableLvalueResult
 Expr::isModifiableLvalue(ASTContext &Ctx, SourceLocation *Loc) const {
   SourceLocation dummy;
-  Classification VC = ClassifyModifiable(Ctx, Loc ? *Loc : dummy);
+  Classification const VC = ClassifyModifiable(Ctx, Loc ? *Loc : dummy);
   switch (VC.getKind()) {
   case Cl::CL_LValue: break;
   case Cl::CL_XValue: return MLV_InvalidExpression;

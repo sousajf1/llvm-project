@@ -38,7 +38,7 @@ struct DocumentedGroup : Documentation {
 
 // Reorganize the records into a suitable form for emitting documentation.
 Documentation extractDocumentation(RecordKeeper &Records) {
-  Documentation Result;
+  Documentation const Result;
 
   // Build the tree of groups. The root in the tree is the fake option group
   // (Record*)nullptr, which contains all top-level groups and options.
@@ -170,7 +170,7 @@ bool hasFlag(const Record *OptionOrGroup, StringRef OptionFlag) {
 
 bool isExcluded(const Record *OptionOrGroup, const Record *DocInfo) {
   // FIXME: Provide a flag to specify the set of exclusions.
-  for (StringRef Exclusion : DocInfo->getValueAsListOfStrings("ExcludedFlags"))
+  for (StringRef const Exclusion : DocInfo->getValueAsListOfStrings("ExcludedFlags"))
     if (hasFlag(OptionOrGroup, Exclusion))
       return true;
   return false;
@@ -196,7 +196,7 @@ StringRef getSphinxOptionID(StringRef OptionName) {
 bool canSphinxCopeWithOption(const Record *Option) {
   // HACK: Work arond sphinx's inability to cope with punctuation-only options
   // such as /? by suppressing them from the option list.
-  for (char C : Option->getValueAsString("Name"))
+  for (char const C : Option->getValueAsString("Name"))
     if (isalnum(C))
       return true;
   return false;
@@ -228,7 +228,7 @@ void emitOptionWithArgs(StringRef Prefix, const Record *Option,
                         ArrayRef<StringRef> Args, raw_ostream &OS) {
   OS << Prefix << escapeRST(Option->getValueAsString("Name"));
 
-  std::pair<StringRef, StringRef> Separators =
+  std::pair<StringRef, StringRef> const Separators =
       getSeparatorsForKind(Option->getValueAsDef("Kind"));
 
   StringRef Separator = Separators.first;
@@ -240,8 +240,8 @@ void emitOptionWithArgs(StringRef Prefix, const Record *Option,
 
 void emitOptionName(StringRef Prefix, const Record *Option, raw_ostream &OS) {
   // Find the arguments to list after the option.
-  unsigned NumArgs = getNumArgsForKind(Option->getValueAsDef("Kind"), Option);
-  bool HasMetaVarName = !Option->isValueUnset("MetaVarName");
+  unsigned const NumArgs = getNumArgsForKind(Option->getValueAsDef("Kind"), Option);
+  bool const HasMetaVarName = !Option->isValueUnset("MetaVarName");
 
   std::vector<std::string> Args;
   if (HasMetaVarName)
@@ -319,7 +319,7 @@ void emitOption(const DocumentedOption &Option, const Record *DocInfo,
   });
   assert(!SphinxOptionIDs.empty() && "no flags for option");
   static std::map<std::string, int> NextSuffix;
-  int SphinxWorkaroundSuffix = NextSuffix[*std::max_element(
+  int const SphinxWorkaroundSuffix = NextSuffix[*std::max_element(
       SphinxOptionIDs.begin(), SphinxOptionIDs.end(),
       [&](const std::string &A, const std::string &B) {
         return NextSuffix[A] < NextSuffix[B];
@@ -341,7 +341,7 @@ void emitOption(const DocumentedOption &Option, const Record *DocInfo,
   OS << "\n\n";
 
   // Emit the description, if we have one.
-  std::string Description =
+  std::string const Description =
       getRSTStringWithTextFallback(Option.Option, "DocBrief", "HelpText");
   if (!Description.empty())
     OS << Description << "\n\n";
@@ -359,7 +359,7 @@ void emitGroup(int Depth, const DocumentedGroup &Group, const Record *DocInfo,
               getRSTStringWithTextFallback(Group.Group, "DocName", "Name"), OS);
 
   // Emit the description, if we have one.
-  std::string Description =
+  std::string const Description =
       getRSTStringWithTextFallback(Group.Group, "DocBrief", "HelpText");
   if (!Description.empty())
     OS << Description << "\n\n";

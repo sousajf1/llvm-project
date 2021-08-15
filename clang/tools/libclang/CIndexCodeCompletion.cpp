@@ -331,7 +331,7 @@ CXString clang_getCompletionFixIt(CXCodeCompleteResults *results,
     return cxstring::createNull();
   }
 
-  ArrayRef<FixItHint> FixIts = allocated_results->FixItsVector[completion_index];
+  ArrayRef<FixItHint> const FixIts = allocated_results->FixItsVector[completion_index];
   if (FixIts.size() <= fixit_index) {
     if (replacement_range)
       *replacement_range = clang_getNullRange();
@@ -593,13 +593,13 @@ namespace {
           AllocatedResults.FixItsVector.emplace_back(std::move(Results[I].FixIts));
       }
 
-      enum CodeCompletionContext::Kind contextKind = Context.getKind();
+      enum CodeCompletionContext::Kind const contextKind = Context.getKind();
       
       AllocatedResults.ContextKind = contextKind;
       AllocatedResults.Contexts = getContextsForContextKind(contextKind, S);
       
       AllocatedResults.Selector = "";
-      ArrayRef<IdentifierInfo *> SelIdents = Context.getSelIdents();
+      ArrayRef<IdentifierInfo *> const SelIdents = Context.getSelIdents();
       for (ArrayRef<IdentifierInfo *>::iterator I = SelIdents.begin(),
                                                 E = SelIdents.end();
            I != E; ++I) {
@@ -608,7 +608,7 @@ namespace {
         AllocatedResults.Selector += ":";
       }
       
-      QualType baseType = Context.getBaseType();
+      QualType const baseType = Context.getBaseType();
       NamedDecl *D = nullptr;
 
       if (!baseType.isNull()) {
@@ -630,11 +630,11 @@ namespace {
       }
 
       if (D != nullptr) {
-        CXCursor cursor = cxcursor::MakeCXCursor(D, *TU);
+        CXCursor const cursor = cxcursor::MakeCXCursor(D, *TU);
 
         AllocatedResults.ContainerKind = clang_getCursorKind(cursor);
 
-        CXString CursorUSR = clang_getCursorUSR(cursor);
+        CXString const CursorUSR = clang_getCursorUSR(cursor);
         AllocatedResults.ContainerUSR = clang_getCString(CursorUSR);
         clang_disposeString(CursorUSR);
 
@@ -693,16 +693,16 @@ clang_codeCompleteAt_Impl(CXTranslationUnit TU, const char *complete_filename,
                           unsigned complete_line, unsigned complete_column,
                           ArrayRef<CXUnsavedFile> unsaved_files,
                           unsigned options) {
-  bool IncludeBriefComments = options & CXCodeComplete_IncludeBriefComments;
-  bool SkipPreamble = options & CXCodeComplete_SkipPreamble;
-  bool IncludeFixIts = options & CXCodeComplete_IncludeCompletionsWithFixIts;
+  bool const IncludeBriefComments = options & CXCodeComplete_IncludeBriefComments;
+  bool const SkipPreamble = options & CXCodeComplete_SkipPreamble;
+  bool const IncludeFixIts = options & CXCodeComplete_IncludeCompletionsWithFixIts;
 
 #ifdef UDP_CODE_COMPLETION_LOGGER
 #ifdef UDP_CODE_COMPLETION_LOGGER_PORT
   const llvm::TimeRecord &StartTime =  llvm::TimeRecord::getCurrentTime();
 #endif
 #endif
-  bool EnableLogging = getenv("LIBCLANG_CODE_COMPLETION_LOGGING") != nullptr;
+  bool const EnableLogging = getenv("LIBCLANG_CODE_COMPLETION_LOGGING") != nullptr;
 
   if (cxtu::isNotUsableTU(TU)) {
     LOG_BAD_TU(TU);
@@ -717,7 +717,7 @@ clang_codeCompleteAt_Impl(CXTranslationUnit TU, const char *complete_filename,
   if (CXXIdx->isOptEnabled(CXGlobalOpt_ThreadBackgroundPriorityForEditing))
     setThreadBackgroundPriority();
 
-  ASTUnit::ConcurrencyCheck Check(*AST);
+  ASTUnit::ConcurrencyCheck const Check(*AST);
 
   // Perform the remapping of source files.
   SmallVector<ASTUnit::RemappedFile, 4> RemappedFiles;
@@ -749,11 +749,11 @@ clang_codeCompleteAt_Impl(CXTranslationUnit TU, const char *complete_filename,
   std::vector<const char *> CArgs;
   for (const auto &Arg : TU->Arguments)
     CArgs.push_back(Arg.c_str());
-  std::string CompletionInvocation =
+  std::string const CompletionInvocation =
       llvm::formatv("-code-completion-at={0}:{1}:{2}", complete_filename,
                     complete_line, complete_column)
           .str();
-  LibclangInvocationReporter InvocationReporter(
+  LibclangInvocationReporter const InvocationReporter(
       *CXXIdx, LibclangInvocationReporter::OperationKind::CompletionOperation,
       TU->ParsingOptions, CArgs, CompletionInvocation, unsaved_files);
   AST->CodeComplete(complete_filename, complete_line, complete_column,
@@ -1020,9 +1020,9 @@ namespace {
         = (CodeCompletionString *)YR.CompletionString;
 
       SmallString<256> XBuffer;
-      StringRef XText = GetTypedName(X, XBuffer);
+      StringRef const XText = GetTypedName(X, XBuffer);
       SmallString<256> YBuffer;
-      StringRef YText = GetTypedName(Y, YBuffer);
+      StringRef const YText = GetTypedName(Y, YBuffer);
       
       if (XText.empty() || YText.empty())
         return !XText.empty();

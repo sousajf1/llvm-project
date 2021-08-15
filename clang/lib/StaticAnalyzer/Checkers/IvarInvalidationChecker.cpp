@@ -278,7 +278,7 @@ void IvarInvalidationCheckerImpl::containsInvalidationMethod(
 bool IvarInvalidationCheckerImpl::trackIvar(const ObjCIvarDecl *Iv,
                                         IvarSet &TrackedIvars,
                                         const ObjCIvarDecl **FirstIvarDecl) {
-  QualType IvQTy = Iv->getType();
+  QualType const IvQTy = Iv->getType();
   const ObjCObjectPointerType *IvTy = IvQTy->getAs<ObjCObjectPointerType>();
   if (!IvTy)
     return false;
@@ -317,11 +317,11 @@ const ObjCIvarDecl *IvarInvalidationCheckerImpl::findPropertyBackingIvar(
   }
 
   // Lookup IVars named "_PropName"or "PropName" among the tracked Ivars.
-  StringRef PropName = Prop->getIdentifier()->getName();
+  StringRef const PropName = Prop->getIdentifier()->getName();
   for (IvarSet::const_iterator I = TrackedIvars.begin(),
                                E = TrackedIvars.end(); I != E; ++I) {
     const ObjCIvarDecl *Iv = I->first;
-    StringRef IvarName = Iv->getName();
+    StringRef const IvarName = Iv->getName();
 
     if (IvarName == PropName)
       return Iv;
@@ -540,7 +540,7 @@ void IvarInvalidationCheckerImpl::reportNoInvalidationMethod(
     os << "no invalidation method is defined in the @implementation for ";
   os << InterfaceD->getName();
 
-  PathDiagnosticLocation IvarDecLocation =
+  PathDiagnosticLocation const IvarDecLocation =
     PathDiagnosticLocation::createBegin(FirstIvarDecl, BR.getSourceManager());
 
   BR.EmitBasicReport(FirstIvarDecl, CheckName, "Incomplete invalidation",
@@ -557,7 +557,7 @@ reportIvarNeedsInvalidation(const ObjCIvarDecl *IvarD,
   printIvar(os, IvarD, IvarToPopertyMap);
   os << "needs to be invalidated or set to nil";
   if (MethodD) {
-    PathDiagnosticLocation MethodDecLocation =
+    PathDiagnosticLocation const MethodDecLocation =
                            PathDiagnosticLocation::createEnd(MethodD->getBody(),
                            BR.getSourceManager(),
                            Mgr.getAnalysisDeclContext(MethodD));
@@ -576,7 +576,7 @@ reportIvarNeedsInvalidation(const ObjCIvarDecl *IvarD,
 
 void IvarInvalidationCheckerImpl::MethodCrawler::markInvalidated(
     const ObjCIvarDecl *Iv) {
-  IvarSet::iterator I = IVars.find(Iv);
+  IvarSet::iterator const I = IVars.find(Iv);
   if (I != IVars.end()) {
     // If InvalidationMethod is present, we are processing the message send and
     // should ensure we are invalidating with the appropriate method,
@@ -606,7 +606,7 @@ void IvarInvalidationCheckerImpl::MethodCrawler::checkObjCMessageExpr(
   const ObjCMethodDecl *MD = ME->getMethodDecl();
   if (MD) {
     MD = MD->getCanonicalDecl();
-    MethToIvarMapTy::const_iterator IvI = PropertyGetterToIvarMap.find(MD);
+    MethToIvarMapTy::const_iterator const IvI = PropertyGetterToIvarMap.find(MD);
     if (IvI != PropertyGetterToIvarMap.end())
       markInvalidated(IvI->second);
   }
@@ -619,7 +619,7 @@ void IvarInvalidationCheckerImpl::MethodCrawler::checkObjCPropertyRefExpr(
     const ObjCPropertyDecl *PD = PA->getExplicitProperty();
     if (PD) {
       PD = cast<ObjCPropertyDecl>(PD->getCanonicalDecl());
-      PropToIvarMapTy::const_iterator IvI = PropertyToIvarMap.find(PD);
+      PropToIvarMapTy::const_iterator const IvI = PropertyToIvarMap.find(PD);
       if (IvI != PropertyToIvarMap.end())
         markInvalidated(IvI->second);
       return;
@@ -630,7 +630,7 @@ void IvarInvalidationCheckerImpl::MethodCrawler::checkObjCPropertyRefExpr(
     const ObjCMethodDecl *MD = PA->getImplicitPropertySetter();
     if (MD) {
       MD = MD->getCanonicalDecl();
-      MethToIvarMapTy::const_iterator IvI =PropertyGetterToIvarMap.find(MD);
+      MethToIvarMapTy::const_iterator const IvI =PropertyGetterToIvarMap.find(MD);
       if (IvI != PropertyGetterToIvarMap.end())
         markInvalidated(IvI->second);
       return;
@@ -670,7 +670,7 @@ void IvarInvalidationCheckerImpl::MethodCrawler::VisitBinaryOperator(
 
   // Do we assign/compare against zero? If yes, check the variable we are
   // assigning to.
-  BinaryOperatorKind Opcode = BO->getOpcode();
+  BinaryOperatorKind const Opcode = BO->getOpcode();
   if (Opcode != BO_Assign &&
       Opcode != BO_EQ &&
       Opcode != BO_NE)
@@ -702,7 +702,7 @@ void IvarInvalidationCheckerImpl::MethodCrawler::VisitObjCMessageExpr(
   // Check if we call a setter and set the property to 'nil'.
   if (MD && (ME->getNumArgs() == 1) && isZero(ME->getArg(0))) {
     MD = MD->getCanonicalDecl();
-    MethToIvarMapTy::const_iterator IvI = PropertySetterToIvarMap.find(MD);
+    MethToIvarMapTy::const_iterator const IvI = PropertySetterToIvarMap.find(MD);
     if (IvI != PropertySetterToIvarMap.end()) {
       markInvalidated(IvI->second);
       return;
@@ -729,7 +729,7 @@ public:
 public:
   void checkASTDecl(const ObjCImplementationDecl *D, AnalysisManager& Mgr,
                     BugReporter &BR) const {
-    IvarInvalidationCheckerImpl Walker(Mgr, BR, Filter);
+    IvarInvalidationCheckerImpl const Walker(Mgr, BR, Filter);
     Walker.visit(D);
   }
 };

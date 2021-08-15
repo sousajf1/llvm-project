@@ -363,7 +363,7 @@ StringRef Preprocessor::getLastMacroWithSpelling(
       continue;
     if (!MacroDefinitionEquals(Def.getMacroInfo(), Tokens))
       continue;
-    SourceLocation Location = Def.getLocation();
+    SourceLocation const Location = Def.getLocation();
     // Choose the macro defined latest.
     if (BestLocation.isInvalid() ||
         (Location.isValid() &&
@@ -471,7 +471,7 @@ StringRef Preprocessor::getSpelling(const Token &Tok,
     Buffer.resize(Tok.getLength());
 
   const char *Ptr = Buffer.data();
-  unsigned Len = getSpelling(Tok, Ptr, Invalid);
+  unsigned const Len = getSpelling(Tok, Ptr, Invalid);
   return StringRef(Ptr, Len);
 }
 
@@ -500,16 +500,16 @@ void Preprocessor::CreateString(StringRef Str, Token &Tok,
 
 SourceLocation Preprocessor::SplitToken(SourceLocation Loc, unsigned Length) {
   auto &SM = getSourceManager();
-  SourceLocation SpellingLoc = SM.getSpellingLoc(Loc);
-  std::pair<FileID, unsigned> LocInfo = SM.getDecomposedLoc(SpellingLoc);
+  SourceLocation const SpellingLoc = SM.getSpellingLoc(Loc);
+  std::pair<FileID, unsigned> const LocInfo = SM.getDecomposedLoc(SpellingLoc);
   bool Invalid = false;
-  StringRef Buffer = SM.getBufferData(LocInfo.first, &Invalid);
+  StringRef const Buffer = SM.getBufferData(LocInfo.first, &Invalid);
   if (Invalid)
     return SourceLocation();
 
   // FIXME: We could consider re-using spelling for tokens we see repeatedly.
   const char *DestPtr;
-  SourceLocation Spelling =
+  SourceLocation const Spelling =
       ScratchBuf->getToken(Buffer.data() + LocInfo.second, Length, DestPtr);
   return SM.createTokenSplitLoc(Spelling, Loc, Loc.getLocWithOffset(Length));
 }
@@ -532,7 +532,7 @@ void Preprocessor::EnterMainSourceFile() {
   // cause FileID's to accumulate information from both runs (e.g. #line
   // information) and predefined macros aren't guaranteed to be set properly.
   assert(NumEnteredSourceFiles == 0 && "Cannot reenter the main file!");
-  FileID MainFileID = SourceMgr.getMainFileID();
+  FileID const MainFileID = SourceMgr.getMainFileID();
 
   // If MainFileID is loaded it means we loaded an AST file, no need to enter
   // a main file.
@@ -556,7 +556,7 @@ void Preprocessor::EnterMainSourceFile() {
   std::unique_ptr<llvm::MemoryBuffer> SB =
     llvm::MemoryBuffer::getMemBufferCopy(Predefines, "<built-in>");
   assert(SB && "Cannot create predefined source buffer");
-  FileID FID = SourceMgr.createFileID(std::move(SB));
+  FileID const FID = SourceMgr.createFileID(std::move(SB));
   assert(FID.isValid() && "Could not create FileID for predefines?");
   setPredefinesFileID(FID);
 
@@ -625,11 +625,11 @@ bool Preprocessor::usingPCHWithPragmaHdrStop() {
 /// main file is reached, it's a fatal error.
 void Preprocessor::SkipTokensWhileUsingPCH() {
   bool ReachedMainFileEOF = false;
-  bool UsingPCHThroughHeader = SkippingUntilPCHThroughHeader;
-  bool UsingPragmaHdrStop = SkippingUntilPragmaHdrStop;
+  bool const UsingPCHThroughHeader = SkippingUntilPCHThroughHeader;
+  bool const UsingPragmaHdrStop = SkippingUntilPragmaHdrStop;
   Token Tok;
   while (true) {
-    bool InPredefines =
+    bool const InPredefines =
         (CurLexer && CurLexer->getFileID() == getPredefinesFileID());
     switch (CurLexerKind) {
     case CLK_Lexer:
@@ -704,7 +704,7 @@ IdentifierInfo *Preprocessor::LookUpIdentifierInfo(Token &Identifier) const {
   } else {
     // Cleaning needed, alloca a buffer, clean into it, then use the buffer.
     SmallString<64> IdentifierBuffer;
-    StringRef CleanedStr = getSpelling(Identifier, IdentifierBuffer);
+    StringRef const CleanedStr = getSpelling(Identifier, IdentifierBuffer);
 
     if (Identifier.hasUCN()) {
       SmallString<64> UCNIdentifierBuffer;
@@ -753,7 +753,7 @@ void Preprocessor::PoisonSEHIdentifiers(bool Poison) {
 void Preprocessor::HandlePoisonedIdentifier(Token & Identifier) {
   assert(Identifier.getIdentifierInfo() &&
          "Can't handle identifiers without identifier info!");
-  llvm::DenseMap<IdentifierInfo*,unsigned>::const_iterator it =
+  llvm::DenseMap<IdentifierInfo*,unsigned>::const_iterator const it =
     PoisonReasons.find(Identifier.getIdentifierInfo());
   if(it == PoisonReasons.end())
     Diag(Identifier, diag::err_pp_used_poisoned_id);
@@ -829,7 +829,7 @@ bool Preprocessor::HandleIdentifier(Token &Identifier) {
   }
 
   // If this is a macro to be expanded, do it.
-  if (MacroDefinition MD = getMacroDefinition(&II)) {
+  if (MacroDefinition const MD = getMacroDefinition(&II)) {
     auto *MI = MD.getMacroInfo();
     assert(MI && "macro definition with no macro info?");
     if (!DisableMacroExpansion) {
@@ -1001,11 +1001,11 @@ bool Preprocessor::LexHeaderName(Token &FilenameTok, bool AllowMacroExpansion) {
   // case, glue the tokens together into an angle_string_literal token.
   SmallString<128> FilenameBuffer;
   if (FilenameTok.is(tok::less) && AllowMacroExpansion) {
-    bool StartOfLine = FilenameTok.isAtStartOfLine();
-    bool LeadingSpace = FilenameTok.hasLeadingSpace();
-    bool LeadingEmptyMacro = FilenameTok.hasLeadingEmptyMacro();
+    bool const StartOfLine = FilenameTok.isAtStartOfLine();
+    bool const LeadingSpace = FilenameTok.hasLeadingSpace();
+    bool const LeadingEmptyMacro = FilenameTok.hasLeadingEmptyMacro();
 
-    SourceLocation Start = FilenameTok.getLocation();
+    SourceLocation const Start = FilenameTok.getLocation();
     SourceLocation End;
     FilenameBuffer.push_back('<');
 
@@ -1037,11 +1037,11 @@ bool Preprocessor::LexHeaderName(Token &FilenameTok, bool AllowMacroExpansion) {
 
       // Get the spelling of the token, directly into FilenameBuffer if
       // possible.
-      size_t PreAppendSize = FilenameBuffer.size();
+      size_t const PreAppendSize = FilenameBuffer.size();
       FilenameBuffer.resize(PreAppendSize + FilenameTok.getLength());
 
       const char *BufPtr = &FilenameBuffer[PreAppendSize];
-      unsigned ActualLen = getSpelling(FilenameTok, BufPtr);
+      unsigned const ActualLen = getSpelling(FilenameTok, BufPtr);
 
       // If the token was spelled somewhere else, copy it into FilenameBuffer.
       if (BufPtr != &FilenameBuffer[PreAppendSize])
@@ -1069,7 +1069,7 @@ bool Preprocessor::LexHeaderName(Token &FilenameTok, bool AllowMacroExpansion) {
     // A string-literal with a prefix or suffix is not translated into a
     // header-name. This could theoretically be observable via the C++20
     // context-sensitive header-name formation rules.
-    StringRef Str = getSpelling(FilenameTok, FilenameBuffer);
+    StringRef const Str = getSpelling(FilenameTok, FilenameBuffer);
     if (Str.size() >= 2 && Str.front() == '"' && Str.back() == '"')
       FilenameTok.setKind(tok::header_name);
   }
@@ -1178,7 +1178,7 @@ bool Preprocessor::LexAfterModuleImport(Token &Result) {
     // C++2a [cpp.module]p1:
     //   The ';' preprocessing-token terminating a pp-import shall not have
     //   been produced by macro replacement.
-    SourceLocation SemiLoc = Suffix.back().getLocation();
+    SourceLocation const SemiLoc = Suffix.back().getLocation();
     if (SemiLoc.isMacroID())
       Diag(SemiLoc, diag::err_header_import_semi_in_macro);
 
@@ -1282,7 +1282,7 @@ bool Preprocessor::LexAfterModuleImport(Token &Result) {
         FlatModuleName += ".";
       FlatModuleName += Piece.first->getName();
     }
-    SourceLocation FirstPathLoc = ModuleImportPath[0].second;
+    SourceLocation const FirstPathLoc = ModuleImportPath[0].second;
     ModuleImportPath.clear();
     ModuleImportPath.push_back(
         std::make_pair(getIdentifierInfo(FlatModuleName), FirstPathLoc));
@@ -1349,7 +1349,7 @@ bool Preprocessor::FinishLexStringLiteral(Token &Result, std::string &String,
   } while (Result.is(tok::string_literal));
 
   // Concatenate and parse the strings.
-  StringLiteralParser Literal(StrToks, *this);
+  StringLiteralParser const Literal(StrToks, *this);
   assert(Literal.isAscii() && "Didn't allow wide strings in");
 
   if (Literal.hadError)
@@ -1369,7 +1369,7 @@ bool Preprocessor::parseSimpleIntegerLiteral(Token &Tok, uint64_t &Value) {
   assert(Tok.is(tok::numeric_constant));
   SmallString<8> IntegerBuffer;
   bool NumberInvalid = false;
-  StringRef Spelling = getSpelling(Tok, IntegerBuffer, &NumberInvalid);
+  StringRef const Spelling = getSpelling(Tok, IntegerBuffer, &NumberInvalid);
   if (NumberInvalid)
     return false;
   NumericLiteralParser Literal(Spelling, Tok.getLocation(), getSourceManager(),
@@ -1393,7 +1393,7 @@ void Preprocessor::addCommentHandler(CommentHandler *Handler) {
 }
 
 void Preprocessor::removeCommentHandler(CommentHandler *Handler) {
-  std::vector<CommentHandler *>::iterator Pos =
+  std::vector<CommentHandler *>::iterator const Pos =
       llvm::find(CommentHandlers, Handler);
   assert(Pos != CommentHandlers.end() && "Comment handler not registered");
   CommentHandlers.erase(Pos);

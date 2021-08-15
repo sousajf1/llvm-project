@@ -107,7 +107,7 @@ const llvm::APSInt& BasicValueFactory::getValue(const llvm::APSInt& X) {
 
 const llvm::APSInt& BasicValueFactory::getValue(const llvm::APInt& X,
                                                 bool isUnsigned) {
-  llvm::APSInt V(X, isUnsigned);
+  llvm::APSInt const V(X, isUnsigned);
   return getValue(V);
 }
 
@@ -181,7 +181,7 @@ LLVM_ATTRIBUTE_UNUSED bool hasNoRepeatedElements(
     llvm::ImmutableList<const CXXBaseSpecifier *> BaseSpecList) {
   llvm::SmallPtrSet<QualType, 16> BaseSpecSeen;
   for (const CXXBaseSpecifier *BaseSpec : BaseSpecList) {
-    QualType BaseType = BaseSpec->getType();
+    QualType const BaseType = BaseSpec->getType();
     // Check whether inserted
     if (!BaseSpecSeen.insert(BaseType).second)
       return false;
@@ -196,7 +196,7 @@ const PointerToMemberData *BasicValueFactory::accumCXXBase(
           kind == CK_BaseToDerivedMemberPointer ||
           kind == CK_ReinterpretMemberPointer) &&
          "accumCXXBase called with wrong CastKind");
-  nonloc::PointerToMember::PTMDataType PTMDT = PTM.getPTMData();
+  nonloc::PointerToMember::PTMDataType const PTMDT = PTM.getPTMData();
   const NamedDecl *ND = nullptr;
   llvm::ImmutableList<const CXXBaseSpecifier *> BaseSpecList;
 
@@ -279,7 +279,7 @@ BasicValueFactory::evalAPSInt(BinaryOperator::Opcode Op,
       if (V2.isSigned() && V2.isNegative())
         return nullptr;
 
-      uint64_t Amt = V2.getZExtValue();
+      uint64_t const Amt = V2.getZExtValue();
 
       if (Amt >= V1.getBitWidth())
         return nullptr;
@@ -302,7 +302,7 @@ BasicValueFactory::evalAPSInt(BinaryOperator::Opcode Op,
       if (V2.isSigned() && V2.isNegative())
         return nullptr;
 
-      uint64_t Amt = V2.getZExtValue();
+      uint64_t const Amt = V2.getZExtValue();
 
       if (Amt >= V1.getBitWidth())
         return nullptr;

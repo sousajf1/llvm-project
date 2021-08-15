@@ -37,7 +37,7 @@ CXRemapping clang_getRemappings(const char *migrate_dir_path) {
   llvm::errs() << "error: feature not enabled in this build\n";
   return nullptr;
 #else
-  bool Logging = ::getenv("LIBCLANG_LOGGING");
+  bool const Logging = ::getenv("LIBCLANG_LOGGING");
 
   if (!migrate_dir_path) {
     if (Logging)
@@ -57,7 +57,7 @@ CXRemapping clang_getRemappings(const char *migrate_dir_path) {
   TextDiagnosticBuffer diagBuffer;
   std::unique_ptr<Remap> remap(new Remap());
 
-  bool err = arcmt::getFileRemappings(remap->Vec, migrate_dir_path,&diagBuffer);
+  bool const err = arcmt::getFileRemappings(remap->Vec, migrate_dir_path,&diagBuffer);
 
   if (err) {
     if (Logging) {
@@ -80,7 +80,7 @@ CXRemapping clang_getRemappingsFromFileList(const char **filePaths,
   llvm::errs() << "error: feature not enabled in this build\n";
   return nullptr;
 #else
-  bool Logging = ::getenv("LIBCLANG_LOGGING");
+  bool const Logging = ::getenv("LIBCLANG_LOGGING");
 
   std::unique_ptr<Remap> remap(new Remap());
 
@@ -99,9 +99,9 @@ CXRemapping clang_getRemappingsFromFileList(const char **filePaths,
   }
 
   TextDiagnosticBuffer diagBuffer;
-  SmallVector<StringRef, 32> Files(filePaths, filePaths + numFiles);
+  SmallVector<StringRef, 32> const Files(filePaths, filePaths + numFiles);
 
-  bool err = arcmt::getFileRemappingsFromFileList(remap->Vec, Files,
+  bool const err = arcmt::getFileRemappingsFromFileList(remap->Vec, Files,
                                                   &diagBuffer);
 
   if (err) {

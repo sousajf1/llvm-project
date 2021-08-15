@@ -114,8 +114,8 @@ void ClangOpcodesEmitter::EmitInterp(raw_ostream &OS, StringRef N, Record *R) {
   OS << "#ifdef GET_INTERP\n";
 
   Enumerate(R, N, [this, R, &OS, &N](ArrayRef<Record *> TS, const Twine &ID) {
-    bool CanReturn = R->getValueAsBit("CanReturn");
-    bool ChangesPC = R->getValueAsBit("ChangesPC");
+    bool const CanReturn = R->getValueAsBit("CanReturn");
+    bool const ChangesPC = R->getValueAsBit("ChangesPC");
     auto Args = R->getValueAsListOfDefs("Args");
 
     OS << "case OP_" << ID << ": {\n";

@@ -38,8 +38,8 @@ void PointerSubChecker::checkPreStmt(const BinaryOperator *B,
   if (B->getOpcode() != BO_Sub)
     return;
 
-  SVal LV = C.getSVal(B->getLHS());
-  SVal RV = C.getSVal(B->getRHS());
+  SVal const LV = C.getSVal(B->getLHS());
+  SVal const RV = C.getSVal(B->getRHS());
 
   const MemRegion *LR = LV.getAsRegion();
   const MemRegion *RR = RV.getAsRegion();

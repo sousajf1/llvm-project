@@ -115,7 +115,7 @@ namespace {
         return true;
 
       for (unsigned I = 0, N = E->getNumElements(); I != N; ++I) {
-        ObjCDictionaryElement Element = E->getKeyValueElement(I);
+        ObjCDictionaryElement const Element = E->getKeyValueElement(I);
         if (Element.isPackExpansion())
           continue;
 
@@ -245,8 +245,8 @@ namespace {
       if (!Lambda->containsUnexpandedParameterPack())
         return true;
 
-      bool WasInLambda = InLambda;
-      unsigned OldDepthLimit = DepthLimit;
+      bool const WasInLambda = InLambda;
+      unsigned const OldDepthLimit = DepthLimit;
 
       InLambda = true;
       if (auto *TPL = Lambda->getTemplateParameterList())
@@ -419,7 +419,7 @@ bool Sema::DiagnoseUnexpandedParameterPackInRequiresExpr(RequiresExpr *RE) {
   // We only care about unexpanded references to the RequiresExpr's own
   // parameter packs.
   auto Parms = RE->getLocalParameters();
-  llvm::SmallPtrSet<NamedDecl*, 8> ParmSet(Parms.begin(), Parms.end());
+  llvm::SmallPtrSet<NamedDecl*, 8> const ParmSet(Parms.begin(), Parms.end());
   SmallVector<UnexpandedParameterPack, 2> UnexpandedParms;
   for (auto Parm : Unexpanded)
     if (ParmSet.contains(Parm.first.dyn_cast<NamedDecl*>()))
@@ -556,7 +556,7 @@ Sema::ActOnPackExpansion(const ParsedTemplateArgument &Arg,
 
   switch (Arg.getKind()) {
   case ParsedTemplateArgument::Type: {
-    TypeResult Result = ActOnPackExpansion(Arg.getAsType(), EllipsisLoc);
+    TypeResult const Result = ActOnPackExpansion(Arg.getAsType(), EllipsisLoc);
     if (Result.isInvalid())
       return ParsedTemplateArgument();
 
@@ -565,7 +565,7 @@ Sema::ActOnPackExpansion(const ParsedTemplateArgument &Arg,
   }
 
   case ParsedTemplateArgument::NonType: {
-    ExprResult Result = ActOnPackExpansion(Arg.getAsExpr(), EllipsisLoc);
+    ExprResult const Result = ActOnPackExpansion(Arg.getAsExpr(), EllipsisLoc);
     if (Result.isInvalid())
       return ParsedTemplateArgument();
 
@@ -606,7 +606,7 @@ TypeSourceInfo *
 Sema::CheckPackExpansion(TypeSourceInfo *Pattern, SourceLocation EllipsisLoc,
                          Optional<unsigned> NumExpansions) {
   // Create the pack expansion type and source-location information.
-  QualType Result = CheckPackExpansion(Pattern->getType(),
+  QualType const Result = CheckPackExpansion(Pattern->getType(),
                                        Pattern->getTypeLoc().getSourceRange(),
                                        EllipsisLoc, NumExpansions);
   if (Result.isNull())
@@ -805,7 +805,7 @@ bool Sema::CheckParameterPacksForExpansion(
 
 Optional<unsigned> Sema::getNumArgumentsInExpansion(QualType T,
                           const MultiLevelTemplateArgumentList &TemplateArgs) {
-  QualType Pattern = cast<PackExpansionType>(T)->getPattern();
+  QualType const Pattern = cast<PackExpansionType>(T)->getPattern();
   SmallVector<UnexpandedParameterPack, 2> Unexpanded;
   CollectUnexpandedParameterPacksVisitor(Unexpanded).TraverseType(Pattern);
 
@@ -833,7 +833,7 @@ Optional<unsigned> Sema::getNumArgumentsInExpansion(QualType T,
           // this pack yet.
           return None;
 
-        unsigned Size = Instantiation->get<DeclArgumentPack *>()->size();
+        unsigned const Size = Instantiation->get<DeclArgumentPack *>()->size();
         assert((!Result || *Result == Size) && "inconsistent pack sizes");
         Result = Size;
         continue;
@@ -848,7 +848,7 @@ Optional<unsigned> Sema::getNumArgumentsInExpansion(QualType T,
       return None;
 
     // Determine the size of the argument pack.
-    unsigned Size = TemplateArgs(Depth, Index).pack_size();
+    unsigned const Size = TemplateArgs(Depth, Index).pack_size();
     assert((!Result || *Result == Size) && "inconsistent pack sizes");
     Result = Size;
   }
@@ -863,7 +863,7 @@ bool Sema::containsUnexpandedParameterPacks(Declarator &D) {
   case TST_typeofType:
   case TST_underlyingType:
   case TST_atomic: {
-    QualType T = DS.getRepAsType().get();
+    QualType const T = DS.getRepAsType().get();
     if (!T.isNull() && T->containsUnexpandedParameterPack())
       return true;
     break;
@@ -932,7 +932,7 @@ bool Sema::containsUnexpandedParameterPacks(Declarator &D) {
     case DeclaratorChunk::Function:
       for (unsigned i = 0, e = Chunk.Fun.NumParams; i != e; ++i) {
         ParmVarDecl *Param = cast<ParmVarDecl>(Chunk.Fun.Params[i].Param);
-        QualType ParamTy = Param->getType();
+        QualType const ParamTy = Param->getType();
         assert(!ParamTy.isNull() && "Couldn't parse type?");
         if (ParamTy->containsUnexpandedParameterPack()) return true;
       }
@@ -949,7 +949,7 @@ bool Sema::containsUnexpandedParameterPacks(Declarator &D) {
         return true;
 
       if (Chunk.Fun.hasTrailingReturnType()) {
-        QualType T = Chunk.Fun.getTrailingReturnType().get();
+        QualType const T = Chunk.Fun.getTrailingReturnType().get();
         if (!T.isNull() && T->containsUnexpandedParameterPack())
           return true;
       }
@@ -1020,7 +1020,7 @@ ExprResult Sema::ActOnSizeofParameterPackExpr(Scope *S,
   case LookupResult::NotFound:
   case LookupResult::NotFoundInCurrentInstantiation: {
     ParameterPackValidatorCCC CCC{};
-    if (TypoCorrection Corrected =
+    if (TypoCorrection const Corrected =
             CorrectTypo(R.getLookupNameInfo(), R.getLookupKind(), S, nullptr,
                         CCC, CTK_ErrorRecovery)) {
       diagnoseTypo(Corrected,
@@ -1065,11 +1065,11 @@ Sema::getTemplateArgumentPackExpansionPattern(
     if (!ExpansionTSInfo)
       ExpansionTSInfo = Context.getTrivialTypeSourceInfo(Argument.getAsType(),
                                                          Ellipsis);
-    PackExpansionTypeLoc Expansion =
+    PackExpansionTypeLoc const Expansion =
         ExpansionTSInfo->getTypeLoc().castAs<PackExpansionTypeLoc>();
     Ellipsis = Expansion.getEllipsisLoc();
 
-    TypeLoc Pattern = Expansion.getPatternLoc();
+    TypeLoc const Pattern = Expansion.getPatternLoc();
     NumExpansions = Expansion.getTypePtr()->getNumExpansions();
 
     // We need to copy the TypeLoc because TemplateArgumentLocs store a
@@ -1159,7 +1159,7 @@ Optional<unsigned> Sema::getFullyPackExpandedSize(TemplateArgument Arg) {
   }
 
   // Check that no argument in the pack is itself a pack expansion.
-  for (TemplateArgument Elem : Pack.pack_elements()) {
+  for (TemplateArgument const Elem : Pack.pack_elements()) {
     // There's no point recursing in this case; we would have already
     // expanded this pack expansion into the enclosing pack if we could.
     if (Elem.isPackExpansion())
@@ -1224,7 +1224,7 @@ ExprResult Sema::ActOnCXXFoldExpr(Scope *S, SourceLocation LParenLoc, Expr *LHS,
              << Pack->getSourceRange();
   }
 
-  BinaryOperatorKind Opc = ConvertTokenKindToBinaryOpcode(Operator);
+  BinaryOperatorKind const Opc = ConvertTokenKindToBinaryOpcode(Operator);
 
   // Perform first-phase name lookup now.
   UnresolvedLookupExpr *ULE = nullptr;
@@ -1232,9 +1232,9 @@ ExprResult Sema::ActOnCXXFoldExpr(Scope *S, SourceLocation LParenLoc, Expr *LHS,
     UnresolvedSet<16> Functions;
     LookupBinOp(S, EllipsisLoc, Opc, Functions);
     if (!Functions.empty()) {
-      DeclarationName OpName = Context.DeclarationNames.getCXXOperatorName(
+      DeclarationName const OpName = Context.DeclarationNames.getCXXOperatorName(
           BinaryOperator::getOverloadedOperator(Opc));
-      ExprResult Callee = CreateUnresolvedLookupExpr(
+      ExprResult const Callee = CreateUnresolvedLookupExpr(
           /*NamingClass*/ nullptr, NestedNameSpecifierLoc(),
           DeclarationNameInfo(OpName, EllipsisLoc), Functions);
       if (Callee.isInvalid())

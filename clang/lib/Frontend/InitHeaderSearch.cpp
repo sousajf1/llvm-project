@@ -124,7 +124,7 @@ bool InitHeaderSearch::AddPath(const Twine &Path, IncludeDirGroup Group,
   // group.
   if (HasSysroot) {
     SmallString<256> MappedPathStorage;
-    StringRef MappedPathStr = Path.toStringRef(MappedPathStorage);
+    StringRef const MappedPathStr = Path.toStringRef(MappedPathStorage);
     if (CanPrefixSysroot(MappedPathStr)) {
       return AddUnmappedPath(IncludeSysroot + Path, Group, isFramework);
     }
@@ -139,7 +139,7 @@ bool InitHeaderSearch::AddUnmappedPath(const Twine &Path, IncludeDirGroup Group,
 
   FileManager &FM = Headers.getFileMgr();
   SmallString<256> MappedPathStorage;
-  StringRef MappedPathStr = Path.toStringRef(MappedPathStorage);
+  StringRef const MappedPathStr = Path.toStringRef(MappedPathStorage);
 
   // If use system headers while cross-compiling, emit the warning.
   if (HasSysroot && (MappedPathStr.startswith("/usr/include") ||
@@ -189,11 +189,11 @@ bool InitHeaderSearch::AddGnuCPlusPlusIncludePaths(StringRef Base,
                                                    StringRef Dir64,
                                                    const llvm::Triple &triple) {
   // Add the base dir
-  bool IsBaseFound = AddPath(Base, CXXSystem, false);
+  bool const IsBaseFound = AddPath(Base, CXXSystem, false);
 
   // Add the multilib dirs
-  llvm::Triple::ArchType arch = triple.getArch();
-  bool is64bit = arch == llvm::Triple::ppc64 || arch == llvm::Triple::x86_64;
+  llvm::Triple::ArchType const arch = triple.getArch();
+  bool const is64bit = arch == llvm::Triple::ppc64 || arch == llvm::Triple::x86_64;
   if (is64bit)
     AddPath(Base + "/" + ArchDir + "/" + Dir64, CXXSystem, false);
   else
@@ -217,7 +217,7 @@ void InitHeaderSearch::AddMinGWCPlusPlusIncludePaths(StringRef Base,
 
 void InitHeaderSearch::AddDefaultCIncludePaths(const llvm::Triple &triple,
                                             const HeaderSearchOptions &HSOpts) {
-  llvm::Triple::OSType os = triple.getOS();
+  llvm::Triple::OSType const os = triple.getOS();
 
   if (triple.isOSDarwin()) {
     llvm_unreachable("Include management is handled in the driver.");
@@ -261,11 +261,11 @@ void InitHeaderSearch::AddDefaultCIncludePaths(const llvm::Triple &triple,
     return;
 
   // Add dirs specified via 'configure --with-c-include-dirs'.
-  StringRef CIncludeDirs(C_INCLUDE_DIRS);
+  StringRef const CIncludeDirs(C_INCLUDE_DIRS);
   if (CIncludeDirs != "") {
     SmallVector<StringRef, 5> dirs;
     CIncludeDirs.split(dirs, ":");
-    for (StringRef dir : dirs)
+    for (StringRef const dir : dirs)
       AddPath(dir, ExternCSystem, false);
     return;
   }
@@ -375,7 +375,7 @@ void InitHeaderSearch::AddDefaultCIncludePaths(const llvm::Triple &triple,
 void InitHeaderSearch::AddDefaultCPlusPlusIncludePaths(
     const LangOptions &LangOpts, const llvm::Triple &triple,
     const HeaderSearchOptions &HSOpts) {
-  llvm::Triple::OSType os = triple.getOS();
+  llvm::Triple::OSType const os = triple.getOS();
   // FIXME: temporary hack: hard-coded paths.
 
   if (triple.isOSDarwin()) {
@@ -567,7 +567,7 @@ void InitHeaderSearch::Realize(const LangOptions &Lang) {
 
   // Deduplicate and remember index.
   RemoveDuplicates(SearchList, 0, Verbose);
-  unsigned NumQuoted = SearchList.size();
+  unsigned const NumQuoted = SearchList.size();
 
   for (auto &Include : IncludePath)
     if (Include.Group == Angled || Include.Group == IndexHeaderMap)
@@ -592,10 +592,10 @@ void InitHeaderSearch::Realize(const LangOptions &Lang) {
   // Remove duplicates across both the Angled and System directories.  GCC does
   // this and failing to remove duplicates across these two groups breaks
   // #include_next.
-  unsigned NonSystemRemoved = RemoveDuplicates(SearchList, NumQuoted, Verbose);
+  unsigned const NonSystemRemoved = RemoveDuplicates(SearchList, NumQuoted, Verbose);
   NumAngled -= NonSystemRemoved;
 
-  bool DontSearchCurDir = false;  // TODO: set to true if -I- is set?
+  bool const DontSearchCurDir = false;  // TODO: set to true if -I- is set?
   Headers.SetSearchPaths(SearchList, NumQuoted, NumAngled, DontSearchCurDir);
 
   Headers.SetSystemHeaderPrefixes(SystemHeaderPrefixes);
@@ -606,7 +606,7 @@ void InitHeaderSearch::Realize(const LangOptions &Lang) {
     for (unsigned i = 0, e = SearchList.size(); i != e; ++i) {
       if (i == NumQuoted)
         llvm::errs() << "#include <...> search starts here:\n";
-      StringRef Name = SearchList[i].getName();
+      StringRef const Name = SearchList[i].getName();
       const char *Suffix;
       if (SearchList[i].isNormalDir())
         Suffix = "";

@@ -198,7 +198,7 @@ void AIX::AddClangSystemIncludeArgs(const ArgList &DriverArgs,
   if (DriverArgs.hasArg(options::OPT_nostdinc))
     return;
 
-  llvm::StringRef Sysroot = GetHeaderSysroot(DriverArgs);
+  llvm::StringRef const Sysroot = GetHeaderSysroot(DriverArgs);
   const Driver &D = getDriver();
 
   // Add the Clang builtin headers (<resource>/include).

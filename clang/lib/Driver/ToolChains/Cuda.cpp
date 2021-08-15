@@ -86,7 +86,7 @@ CudaVersionInfo parseCudaHFile(llvm::StringRef Input) {
   auto StartsWithWords =
       [](llvm::StringRef Line,
          const SmallVector<StringRef, 3> words) -> llvm::Optional<StringRef> {
-    for (StringRef word : words) {
+    for (StringRef const word : words) {
       if (!Line.consume_front(word))
         return {};
       Line = Line.ltrim();
@@ -131,7 +131,7 @@ CudaInstallationDetector::CudaInstallationDetector(
   SmallVector<Candidate, 4> Candidates;
 
   // In decreasing order so we prefer newer versions to older versions.
-  std::initializer_list<const char *> Versions = {"8.0", "7.5", "7.0"};
+  std::initializer_list<const char *> const Versions = {"8.0", "7.5", "7.0"};
   auto &FS = D.getVFS();
 
   if (Args.hasArg(clang::driver::options::OPT_cuda_path_EQ)) {
@@ -157,7 +157,7 @@ CudaInstallationDetector::CudaInstallationDetector(
         SmallString<256> ptxasAbsolutePath;
         llvm::sys::fs::real_path(*ptxas, ptxasAbsolutePath);
 
-        StringRef ptxasDir = llvm::sys::path::parent_path(ptxasAbsolutePath);
+        StringRef const ptxasDir = llvm::sys::path::parent_path(ptxasAbsolutePath);
         if (llvm::sys::path::filename(ptxasDir) == "bin")
           Candidates.emplace_back(
               std::string(llvm::sys::path::parent_path(ptxasDir)),
@@ -169,14 +169,14 @@ CudaInstallationDetector::CudaInstallationDetector(
     for (const char *Ver : Versions)
       Candidates.emplace_back(D.SysRoot + "/usr/local/cuda-" + Ver);
 
-    Distro Dist(FS, llvm::Triple(llvm::sys::getProcessTriple()));
+    Distro const Dist(FS, llvm::Triple(llvm::sys::getProcessTriple()));
     if (Dist.IsDebian() || Dist.IsUbuntu())
       // Special case for Debian to have nvidia-cuda-toolkit work
       // out of the box. More info on http://bugs.debian.org/882505
       Candidates.emplace_back(D.SysRoot + "/usr/lib/cuda");
   }
 
-  bool NoCudaLib = Args.hasArg(options::OPT_nogpulib);
+  bool const NoCudaLib = Args.hasArg(options::OPT_nogpulib);
 
   for (const auto &Candidate : Candidates) {
     InstallPath = Candidate.Path;
@@ -189,7 +189,7 @@ CudaInstallationDetector::CudaInstallationDetector(
 
     if (!(FS.exists(IncludePath) && FS.exists(BinPath)))
       continue;
-    bool CheckLibDevice = (!NoCudaLib || Candidate.StrictChecking);
+    bool const CheckLibDevice = (!NoCudaLib || Candidate.StrictChecking);
     if (CheckLibDevice && !FS.exists(LibDevicePath))
       continue;
 
@@ -232,14 +232,14 @@ CudaInstallationDetector::CudaInstallationDetector(
 
     if (Version >= CudaVersion::CUDA_90) {
       // CUDA-9+ uses single libdevice file for all GPU variants.
-      std::string FilePath = LibDevicePath + "/libdevice.10.bc";
+      std::string const FilePath = LibDevicePath + "/libdevice.10.bc";
       if (FS.exists(FilePath)) {
         for (int Arch = (int)CudaArch::SM_30, E = (int)CudaArch::LAST; Arch < E;
              ++Arch) {
-          CudaArch GpuArch = static_cast<CudaArch>(Arch);
+          CudaArch const GpuArch = static_cast<CudaArch>(Arch);
           if (!IsNVIDIAGpuArch(GpuArch))
             continue;
-          std::string GpuArchName(CudaArchToString(GpuArch));
+          std::string const GpuArchName(CudaArchToString(GpuArch));
           LibDeviceMap[GpuArchName] = FilePath;
         }
       }
@@ -248,14 +248,14 @@ CudaInstallationDetector::CudaInstallationDetector(
       for (llvm::vfs::directory_iterator LI = FS.dir_begin(LibDevicePath, EC),
                                          LE;
            !EC && LI != LE; LI = LI.increment(EC)) {
-        StringRef FilePath = LI->path();
-        StringRef FileName = llvm::sys::path::filename(FilePath);
+        StringRef const FilePath = LI->path();
+        StringRef const FileName = llvm::sys::path::filename(FilePath);
         // Process all bitcode filenames that look like
         // libdevice.compute_XX.YY.bc
         const StringRef LibDeviceName = "libdevice.";
         if (!(FileName.startswith(LibDeviceName) && FileName.endswith(".bc")))
           continue;
-        StringRef GpuArch = FileName.slice(
+        StringRef const GpuArch = FileName.slice(
             LibDeviceName.size(), FileName.find('.', LibDeviceName.size()));
         LibDeviceMap[GpuArch] = FilePath.str();
         // Insert map entries for specific devices with this compute
@@ -371,7 +371,7 @@ enum DeviceDebugInfoLevel {
 /// supported DWARF2 standard).
 static DeviceDebugInfoLevel mustEmitDebugInfo(const ArgList &Args) {
   const Arg *A = Args.getLastArg(options::OPT_O_Group);
-  bool IsDebugEnabled = !A || A->getOption().matches(options::OPT_O0) ||
+  bool const IsDebugEnabled = !A || A->getOption().matches(options::OPT_O0) ||
                         Args.hasFlag(options::OPT_cuda_noopt_device_debug,
                                      options::OPT_no_cuda_noopt_device_debug,
                                      /*Default=*/false);
@@ -408,7 +408,7 @@ void NVPTX::Assembler::ConstructJob(Compilation &C, const JobAction &JA,
     GPUArchName = JA.getOffloadingArch();
 
   // Obtain architecture from the action.
-  CudaArch gpu_arch = StringToCudaArch(GPUArchName);
+  CudaArch const gpu_arch = StringToCudaArch(GPUArchName);
   assert(gpu_arch != CudaArch::UNKNOWN &&
          "Device action expected to have an architecture.");
 
@@ -419,7 +419,7 @@ void NVPTX::Assembler::ConstructJob(Compilation &C, const JobAction &JA,
 
   ArgStringList CmdArgs;
   CmdArgs.push_back(TC.getTriple().isArch64Bit() ? "-m64" : "-m32");
-  DeviceDebugInfoLevel DIKind = mustEmitDebugInfo(Args);
+  DeviceDebugInfoLevel const DIKind = mustEmitDebugInfo(Args);
   if (DIKind == EmitSameDebugInfoAsHost) {
     // ptxas does not accept -g option if optimization is enabled, so
     // we ignore the compiler's -O* options if we want debug info.
@@ -542,7 +542,7 @@ void NVPTX::Linker::ConstructJob(Compilation &C, const JobAction &JA,
     const char *gpu_arch_str = A->getOffloadingArch();
     assert(gpu_arch_str &&
            "Device action expected to have associated a GPU architecture!");
-    CudaArch gpu_arch = StringToCudaArch(gpu_arch_str);
+    CudaArch const gpu_arch = StringToCudaArch(gpu_arch_str);
 
     if (II.getType() == types::TY_PP_Asm &&
         !shouldIncludePTX(Args, gpu_arch_str))
@@ -594,7 +594,7 @@ void NVPTX::OpenMPLinker::ConstructJob(Compilation &C, const JobAction &JA,
   if (Args.hasArg(options::OPT_v))
     CmdArgs.push_back("-v");
 
-  StringRef GPUArch =
+  StringRef const GPUArch =
       Args.getLastArgValue(options::OPT_march_EQ);
   assert(!GPUArch.empty() && "At least one GPU Arch required for ptxas.");
 
@@ -678,7 +678,7 @@ void CudaToolChain::addClangTargetOptions(
     Action::OffloadKind DeviceOffloadingKind) const {
   HostTC.addClangTargetOptions(DriverArgs, CC1Args, DeviceOffloadingKind);
 
-  StringRef GpuArch = DriverArgs.getLastArgValue(options::OPT_march_EQ);
+  StringRef const GpuArch = DriverArgs.getLastArgValue(options::OPT_march_EQ);
   assert(!GpuArch.empty() && "Must have an explicit GPU arch.");
   assert((DeviceOffloadingKind == Action::OFK_OpenMP ||
           DeviceOffloadingKind == Action::OFK_Cuda) &&
@@ -700,7 +700,7 @@ void CudaToolChain::addClangTargetOptions(
       DriverArgs.hasArg(options::OPT_S))
     return;
 
-  std::string LibDeviceFile = CudaInstallation.getLibDeviceFile(GpuArch);
+  std::string const LibDeviceFile = CudaInstallation.getLibDeviceFile(GpuArch);
   if (LibDeviceFile.empty()) {
     getDriver().Diag(diag::err_drv_no_cuda_libdevice) << GpuArch;
     return;
@@ -709,7 +709,7 @@ void CudaToolChain::addClangTargetOptions(
   CC1Args.push_back("-mlink-builtin-bitcode");
   CC1Args.push_back(DriverArgs.MakeArgString(LibDeviceFile));
 
-  clang::CudaVersion CudaInstallationVersion = CudaInstallation.version();
+  clang::CudaVersion const CudaInstallationVersion = CudaInstallation.version();
 
   // New CUDA versions often introduce new instructions that are only supported
   // by new PTX version, so we need to raise PTX level to enable them in NVPTX
@@ -809,7 +809,7 @@ void CudaToolChain::AddCudaIncludeArgs(const ArgList &DriverArgs,
   // Check our CUDA version if we're going to include the CUDA headers.
   if (!DriverArgs.hasArg(options::OPT_nogpuinc) &&
       !DriverArgs.hasArg(options::OPT_no_cuda_version_check)) {
-    StringRef Arch = DriverArgs.getLastArgValue(options::OPT_march_EQ);
+    StringRef const Arch = DriverArgs.getLastArgValue(options::OPT_march_EQ);
     assert(!Arch.empty() && "Must have an explicit GPU arch.");
     CudaInstallation.CheckCudaVersionSupportsArch(StringToCudaArch(Arch));
   }
@@ -843,7 +843,7 @@ CudaToolChain::TranslateArgs(const llvm::opt::DerivedArgList &Args,
         DAL->append(A);
     }
 
-    StringRef Arch = DAL->getLastArgValue(options::OPT_march_EQ);
+    StringRef const Arch = DAL->getLastArgValue(options::OPT_march_EQ);
     if (Arch.empty())
       DAL->AddJoinedArg(nullptr, Opts.getOption(options::OPT_march_EQ),
                         CLANG_OPENMP_NVPTX_DEFAULT_ARCH);

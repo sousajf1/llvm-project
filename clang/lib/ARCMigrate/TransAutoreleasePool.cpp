@@ -109,7 +109,7 @@ public:
     for (unsigned i = 0, e = VarsToHandle.size(); i != e; ++i) {
       PoolVarInfo &info = PoolVars[VarsToHandle[i]];
 
-      Transaction Trans(Pass.TA);
+      Transaction const Trans(Pass.TA);
 
       clearUnavailableDiags(info.Dcl);
       Pass.TA.removeStmt(info.Dcl);
@@ -118,7 +118,7 @@ public:
       for (SmallVectorImpl<PoolScope>::iterator
              scpI = info.Scopes.begin(),
              scpE = info.Scopes.end(); scpI != scpE; ++scpI) {
-        PoolScope &scope = *scpI;
+        PoolScope  const&scope = *scpI;
         clearUnavailableDiags(*scope.Begin);
         clearUnavailableDiags(*scope.End);
         if (scope.IsFollowedBySimpleReturnStmt) {
@@ -127,7 +127,7 @@ public:
           Pass.TA.removeStmt(*scope.End);
           Stmt::child_iterator retI = scope.End;
           ++retI;
-          SourceLocation afterSemi =
+          SourceLocation const afterSemi =
               findLocationAfterSemi((*retI)->getEndLoc(), Pass.Ctx);
           assert(afterSemi.isValid() &&
                  "Didn't we check before setting IsFollowedBySimpleReturnStmt "
@@ -285,7 +285,7 @@ private:
       if (loc.isInvalid())
         return false;
 
-      SourceManager &SM = Ctx.getSourceManager();
+      SourceManager  const&SM = Ctx.getSourceManager();
       if (SM.isBeforeInTranslationUnit(loc, ScopeRange.getBegin()))
         return false;
       return SM.isBeforeInTranslationUnit(loc, ScopeRange.getEnd());
@@ -390,7 +390,7 @@ private:
   }
 
   bool isNSAutoreleasePool(QualType Ty) {
-    QualType pointee = Ty->getPointeeType();
+    QualType const pointee = Ty->getPointeeType();
     if (pointee.isNull())
       return false;
     if (const ObjCInterfaceType *interT = pointee->getAs<ObjCInterfaceType>())

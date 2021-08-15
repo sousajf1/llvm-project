@@ -16,7 +16,7 @@ using namespace tooling;
 SymbolOccurrence::SymbolOccurrence(const SymbolName &Name, OccurrenceKind Kind,
                                    ArrayRef<SourceLocation> Locations)
     : Kind(Kind) {
-  ArrayRef<std::string> NamePieces = Name.getNamePieces();
+  ArrayRef<std::string> const NamePieces = Name.getNamePieces();
   assert(Locations.size() == NamePieces.size() &&
          "mismatching number of locations and lengths");
   assert(!Locations.empty() && "no locations");

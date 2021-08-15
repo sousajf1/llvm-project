@@ -39,11 +39,11 @@ void FixedAddressChecker::checkPreStmt(const BinaryOperator *B,
   if (B->getOpcode() != BO_Assign)
     return;
 
-  QualType T = B->getType();
+  QualType const T = B->getType();
   if (!T->isPointerType())
     return;
 
-  SVal RV = C.getSVal(B->getRHS());
+  SVal const RV = C.getSVal(B->getRHS());
 
   if (!RV.isConstant() || RV.isZeroConstant())
     return;

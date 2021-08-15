@@ -17,7 +17,7 @@
 namespace clang {
 
 XRayInstrMask parseXRayInstrValue(StringRef Value) {
-  XRayInstrMask ParsedKind =
+  XRayInstrMask const ParsedKind =
       llvm::StringSwitch<XRayInstrMask>(Value)
           .Case("all", XRayInstrKind::All)
           .Case("custom", XRayInstrKind::Custom)

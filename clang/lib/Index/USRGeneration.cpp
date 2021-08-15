@@ -116,7 +116,7 @@ public:
     VisitDeclContext(D->getDeclContext());
     Out << "@UD@";
 
-    bool EmittedDeclName = !EmitDeclName(D);
+    bool const EmittedDeclName = !EmitDeclName(D);
     assert(EmittedDeclName && "EmitDeclName can not fail for UsingDecls");
     (void)EmittedDeclName;
   }
@@ -189,7 +189,7 @@ bool USRGenerator::ShouldGenerateLocation(const NamedDecl *D) {
     return false;
   if (D->getParentFunctionOrMethod())
     return true;
-  SourceLocation Loc = D->getLocation();
+  SourceLocation const Loc = D->getLocation();
   if (Loc.isInvalid())
     return false;
   const SourceManager &SM = Context->getSourceManager();
@@ -241,7 +241,7 @@ void USRGenerator::VisitFunctionDecl(const FunctionDecl *D) {
   Policy.SuppressTemplateArgsInCXXConstructors = true;
   D->getDeclName().print(Out, Policy);
 
-  ASTContext &Ctx = *Context;
+  ASTContext  const&Ctx = *Context;
   if ((!Ctx.getLangOpts().CPlusPlus || D->isExternC()) &&
       !D->hasAttr<OverloadableAttr>())
     return;
@@ -277,7 +277,7 @@ void USRGenerator::VisitFunctionDecl(const FunctionDecl *D) {
     if (MD->isStatic())
       Out << 'S';
     // FIXME: OpenCL: Need to consider address spaces
-    if (unsigned quals = MD->getMethodQualifiers().getCVRUQualifiers())
+    if (unsigned const quals = MD->getMethodQualifiers().getCVRUQualifiers())
       Out << (char)('0' + quals);
     switch (MD->getRefQualifier()) {
     case RQ_None: break;
@@ -319,7 +319,7 @@ void USRGenerator::VisitVarDecl(const VarDecl *D) {
   }
 
   // Variables always have simple names.
-  StringRef s = D->getName();
+  StringRef const s = D->getName();
 
   // The string can be empty if the declaration has no name; e.g., it is
   // the ParmDecl with no name for declaration of a function pointer type, e.g.:
@@ -593,7 +593,7 @@ void USRGenerator::VisitTemplateTypeParmDecl(const TemplateTypeParmDecl *D) {
 }
 
 void USRGenerator::GenExtSymbolContainer(const NamedDecl *D) {
-  StringRef Container = GetExternalSourceContainer(D);
+  StringRef const Container = GetExternalSourceContainer(D);
   if (!Container.empty())
     Out << "@M@" << Container;
 }
@@ -637,7 +637,7 @@ void USRGenerator::VisitType(QualType T) {
 
   do {
     T = Ctx.getCanonicalType(T);
-    Qualifiers Q = T.getQualifiers();
+    Qualifiers const Q = T.getQualifiers();
     unsigned qVal = 0;
     if (Q.hasConst())
       qVal |= 0x1;
@@ -774,14 +774,14 @@ void USRGenerator::VisitType(QualType T) {
 
     // If we have already seen this (non-built-in) type, use a substitution
     // encoding.
-    llvm::DenseMap<const Type *, unsigned>::iterator Substitution
+    llvm::DenseMap<const Type *, unsigned>::iterator const Substitution
       = TypeSubstitutions.find(T.getTypePtr());
     if (Substitution != TypeSubstitutions.end()) {
       Out << 'S' << Substitution->second << '_';
       return;
     } else {
       // Record this as a substitution.
-      unsigned Number = TypeSubstitutions.size();
+      unsigned const Number = TypeSubstitutions.size();
       TypeSubstitutions[T.getTypePtr()] = Number;
     }
 
@@ -1110,7 +1110,7 @@ bool clang::index::generateUSRForMacro(StringRef MacroName, SourceLocation Loc,
 
   // Assume that system headers are sane.  Don't put source location
   // information into the USR if the macro comes from a system header.
-  bool ShouldGenerateLocation = Loc.isValid() && !SM.isInSystemHeader(Loc);
+  bool const ShouldGenerateLocation = Loc.isValid() && !SM.isInSystemHeader(Loc);
 
   Out << getUSRSpacePrefix();
   if (ShouldGenerateLocation)

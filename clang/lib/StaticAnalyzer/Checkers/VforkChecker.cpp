@@ -144,7 +144,7 @@ void VforkChecker::checkPostCall(const CallEvent &Call,
                                  CheckerContext &C) const {
   // We can't call vfork in child so don't bother
   // (corresponding warning has already been emitted in checkPreCall).
-  ProgramStateRef State = C.getState();
+  ProgramStateRef const State = C.getState();
   if (isChildProcess(State))
     return;
 
@@ -152,7 +152,7 @@ void VforkChecker::checkPostCall(const CallEvent &Call,
     return;
 
   // Get return value of vfork.
-  SVal VforkRetVal = Call.getReturnValue();
+  SVal const VforkRetVal = Call.getReturnValue();
   Optional<DefinedOrUnknownSVal> DVal =
     VforkRetVal.getAs<DefinedOrUnknownSVal>();
   if (!DVal)
@@ -182,7 +182,7 @@ void VforkChecker::checkPostCall(const CallEvent &Call,
 // Prohibit calls to non-whitelist functions in child process.
 void VforkChecker::checkPreCall(const CallEvent &Call,
                                 CheckerContext &C) const {
-  ProgramStateRef State = C.getState();
+  ProgramStateRef const State = C.getState();
   if (isChildProcess(State)
       && !isCallWhitelisted(Call.getCalleeIdentifier(), C))
     reportBug("This function call", C);
@@ -191,7 +191,7 @@ void VforkChecker::checkPreCall(const CallEvent &Call,
 // Prohibit writes in child process (except for vfork's lhs).
 void VforkChecker::checkBind(SVal L, SVal V, const Stmt *S,
                              CheckerContext &C) const {
-  ProgramStateRef State = C.getState();
+  ProgramStateRef const State = C.getState();
   if (!isChildProcess(State))
     return;
 
@@ -208,7 +208,7 @@ void VforkChecker::checkBind(SVal L, SVal V, const Stmt *S,
 
 // Prohibit return from function in child process.
 void VforkChecker::checkPreStmt(const ReturnStmt *RS, CheckerContext &C) const {
-  ProgramStateRef State = C.getState();
+  ProgramStateRef const State = C.getState();
   if (isChildProcess(State))
     reportBug("Return", C, "call _exit() instead");
 }

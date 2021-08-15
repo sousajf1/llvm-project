@@ -92,7 +92,7 @@ unsigned CommaSeparatedList::formatAfterToken(LineState &State,
 
   // Calculate the number of code points we have to format this list. As the
   // first token is already placed, we have to subtract it.
-  unsigned RemainingCodePoints =
+  unsigned const RemainingCodePoints =
       Style.ColumnLimit - State.Column + State.NextToken->Previous->ColumnWidth;
 
   // Find the best ColumnFormat, i.e. the best number of columns to use.
@@ -236,7 +236,7 @@ void CommaSeparatedList::precomputeFormattingInfos(const FormatToken *Token) {
 
   // We can never place more than ColumnLimit / 3 items in a row (because of the
   // spaces and the comma).
-  unsigned MaxItems = Style.ColumnLimit / 3;
+  unsigned const MaxItems = Style.ColumnLimit / 3;
   std::vector<unsigned> MinSizeInColumn;
   MinSizeInColumn.reserve(MaxItems);
   for (unsigned Columns = 1; Columns <= MaxItems; ++Columns) {
@@ -255,7 +255,7 @@ void CommaSeparatedList::precomputeFormattingInfos(const FormatToken *Token) {
       }
       if (Column == Columns - 1)
         HasRowWithSufficientColumns = true;
-      unsigned Length =
+      unsigned const Length =
           (Column == Columns - 1) ? EndOfLineItemLength[i] : ItemLengths[i];
       Format.ColumnSizes[Column] = std::max(Format.ColumnSizes[Column], Length);
       MinSizeInColumn[Column] = std::min(MinSizeInColumn[Column], Length);

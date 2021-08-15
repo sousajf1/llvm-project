@@ -105,7 +105,7 @@ void VirtualCallChecker::checkPreCall(const CallEvent &Call,
   if (!MD)
     return;
 
-  ProgramStateRef State = C.getState();
+  ProgramStateRef const State = C.getState();
   // Member calls are always represented by a call-expression.
   const auto *CE = cast<CallExpr>(Call.getOriginExpr());
   if (!isVirtualCall(CE))
@@ -116,7 +116,7 @@ void VirtualCallChecker::checkPreCall(const CallEvent &Call,
   if (!ObState)
     return;
 
-  bool IsPure = MD->isPure();
+  bool const IsPure = MD->isPure();
 
   // At this point we're sure that we're calling a virtual method
   // during construction or destruction, so we'll emit a report.
@@ -154,7 +154,7 @@ void VirtualCallChecker::checkPreCall(const CallEvent &Call,
     // directly from the constructor/destructor. Otherwise the dispatch
     // will work just fine from other callees, and the fix may break
     // the otherwise correct program.
-    FixItHint Fixit = FixItHint::CreateInsertion(
+    FixItHint const Fixit = FixItHint::CreateInsertion(
         CE->getBeginLoc(), MD->getParent()->getNameAsString() + "::");
     Report->addFixItHint(Fixit);
   }

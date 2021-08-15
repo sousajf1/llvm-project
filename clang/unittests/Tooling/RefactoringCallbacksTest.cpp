@@ -28,43 +28,43 @@ void expectRewritten(const std::string &Code, const std::string &Expected,
   ASSERT_TRUE(tooling::runToolOnCode(Factory->create(), Code))
       << "Parsing error in \"" << Code << "\"";
   RewriterTestContext Context;
-  FileID ID = Context.createInMemoryFile("input.cc", Code);
+  FileID const ID = Context.createInMemoryFile("input.cc", Code);
   EXPECT_TRUE(tooling::applyAllReplacements(FileToReplace["input.cc"],
                                             Context.Rewrite));
   EXPECT_EQ(Expected, Context.getRewrittenText(ID));
 }
 
 TEST(RefactoringCallbacksTest, ReplacesStmtsWithString) {
-  std::string Code = "void f() { int i = 1; }";
-  std::string Expected = "void f() { ; }";
+  std::string const Code = "void f() { int i = 1; }";
+  std::string const Expected = "void f() { ; }";
   ReplaceStmtWithText Callback("id", ";");
   expectRewritten(Code, Expected, declStmt().bind("id"), Callback);
 }
 
 TEST(RefactoringCallbacksTest, ReplacesStmtsInCalledMacros) {
-  std::string Code = "#define A void f() { int i = 1; }\nA";
-  std::string Expected = "#define A void f() { ; }\nA";
+  std::string const Code = "#define A void f() { int i = 1; }\nA";
+  std::string const Expected = "#define A void f() { ; }\nA";
   ReplaceStmtWithText Callback("id", ";");
   expectRewritten(Code, Expected, declStmt().bind("id"), Callback);
 }
 
 TEST(RefactoringCallbacksTest, IgnoresStmtsInUncalledMacros) {
-  std::string Code = "#define A void f() { int i = 1; }";
-  std::string Expected = "#define A void f() { int i = 1; }";
+  std::string const Code = "#define A void f() { int i = 1; }";
+  std::string const Expected = "#define A void f() { int i = 1; }";
   ReplaceStmtWithText Callback("id", ";");
   expectRewritten(Code, Expected, declStmt().bind("id"), Callback);
 }
 
 TEST(RefactoringCallbacksTest, ReplacesInteger) {
-  std::string Code = "void f() { int i = 1; }";
-  std::string Expected = "void f() { int i = 2; }";
+  std::string const Code = "void f() { int i = 1; }";
+  std::string const Expected = "void f() { int i = 2; }";
   ReplaceStmtWithText Callback("id", "2");
   expectRewritten(Code, Expected, expr(integerLiteral()).bind("id"), Callback);
 }
 
 TEST(RefactoringCallbacksTest, ReplacesStmtWithStmt) {
-  std::string Code = "void f() { int i = false ? 1 : i * 2; }";
-  std::string Expected = "void f() { int i = i * 2; }";
+  std::string const Code = "void f() { int i = false ? 1 : i * 2; }";
+  std::string const Expected = "void f() { int i = i * 2; }";
   ReplaceStmtWithStmt Callback("always-false", "should-be");
   expectRewritten(
       Code, Expected,
@@ -75,8 +75,8 @@ TEST(RefactoringCallbacksTest, ReplacesStmtWithStmt) {
 }
 
 TEST(RefactoringCallbacksTest, ReplacesIfStmt) {
-  std::string Code = "bool a; void f() { if (a) f(); else a = true; }";
-  std::string Expected = "bool a; void f() { f(); }";
+  std::string const Code = "bool a; void f() { if (a) f(); else a = true; }";
+  std::string const Expected = "bool a; void f() { f(); }";
   ReplaceIfStmtWithItsBody Callback("id", true);
   expectRewritten(Code, Expected,
                   ifStmt(hasCondition(implicitCastExpr(hasSourceExpression(
@@ -86,8 +86,8 @@ TEST(RefactoringCallbacksTest, ReplacesIfStmt) {
 }
 
 TEST(RefactoringCallbacksTest, RemovesEntireIfOnEmptyElse) {
-  std::string Code = "void f() { if (false) int i = 0; }";
-  std::string Expected = "void f() {  }";
+  std::string const Code = "void f() { if (false) int i = 0; }";
+  std::string const Expected = "void f() {  }";
   ReplaceIfStmtWithItsBody Callback("id", false);
   expectRewritten(
       Code, Expected,
@@ -95,16 +95,16 @@ TEST(RefactoringCallbacksTest, RemovesEntireIfOnEmptyElse) {
 }
 
 TEST(RefactoringCallbacksTest, TemplateJustText) {
-  std::string Code = "void f() { int i = 1; }";
-  std::string Expected = "void f() { FOO }";
+  std::string const Code = "void f() { int i = 1; }";
+  std::string const Expected = "void f() { FOO }";
   auto Callback = ReplaceNodeWithTemplate::create("id", "FOO");
   EXPECT_FALSE(Callback.takeError());
   expectRewritten(Code, Expected, declStmt().bind("id"), **Callback);
 }
 
 TEST(RefactoringCallbacksTest, TemplateSimpleSubst) {
-  std::string Code = "void f() { int i = 1; }";
-  std::string Expected = "void f() { long x = 1; }";
+  std::string const Code = "void f() { int i = 1; }";
+  std::string const Expected = "void f() { long x = 1; }";
   auto Callback = ReplaceNodeWithTemplate::create("decl", "long x = ${init}");
   EXPECT_FALSE(Callback.takeError());
   expectRewritten(Code, Expected,
@@ -113,8 +113,8 @@ TEST(RefactoringCallbacksTest, TemplateSimpleSubst) {
 }
 
 TEST(RefactoringCallbacksTest, TemplateLiteral) {
-  std::string Code = "void f() { int i = 1; }";
-  std::string Expected = "void f() { string x = \"$-1\"; }";
+  std::string const Code = "void f() { int i = 1; }";
+  std::string const Expected = "void f() { string x = \"$-1\"; }";
   auto Callback = ReplaceNodeWithTemplate::create("decl",
                                                   "string x = \"$$-${init}\"");
   EXPECT_FALSE(Callback.takeError());

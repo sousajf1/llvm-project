@@ -67,21 +67,21 @@ ProgramStateRef SimpleConstraintManager::assumeAux(ProgramStateRef State,
     llvm_unreachable("'Assume' not implemented for this NonLoc");
 
   case nonloc::SymbolValKind: {
-    nonloc::SymbolVal SV = Cond.castAs<nonloc::SymbolVal>();
+    nonloc::SymbolVal const SV = Cond.castAs<nonloc::SymbolVal>();
     SymbolRef Sym = SV.getSymbol();
     assert(Sym);
     return assumeSym(State, Sym, Assumption);
   }
 
   case nonloc::ConcreteIntKind: {
-    bool b = Cond.castAs<nonloc::ConcreteInt>().getValue() != 0;
-    bool isFeasible = b ? Assumption : !Assumption;
+    bool const b = Cond.castAs<nonloc::ConcreteInt>().getValue() != 0;
+    bool const isFeasible = b ? Assumption : !Assumption;
     return isFeasible ? State : nullptr;
   }
 
   case nonloc::PointerToMemberKind: {
-    bool IsNull = !Cond.castAs<nonloc::PointerToMember>().isNullMemberPointer();
-    bool IsFeasible = IsNull ? Assumption : !Assumption;
+    bool const IsNull = !Cond.castAs<nonloc::PointerToMember>().isNullMemberPointer();
+    bool const IsFeasible = IsNull ? Assumption : !Assumption;
     return IsFeasible ? State : nullptr;
   }
 
@@ -120,8 +120,8 @@ ProgramStateRef SimpleConstraintManager::assumeInclusiveRange(
 
   case nonloc::ConcreteIntKind: {
     const llvm::APSInt &IntVal = Value.castAs<nonloc::ConcreteInt>().getValue();
-    bool IsInRange = IntVal >= From && IntVal <= To;
-    bool isFeasible = (IsInRange == InRange);
+    bool const IsInRange = IntVal >= From && IntVal <= To;
+    bool const isFeasible = (IsInRange == InRange);
     return isFeasible ? State : nullptr;
   }
   } // end switch

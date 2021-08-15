@@ -188,9 +188,9 @@ Optional<FileEntryRef> ModuleMap::findHeader(
   };
 
   auto GetFrameworkFile = [&]() -> Optional<FileEntryRef> {
-    unsigned FullPathLength = FullPathName.size();
+    unsigned const FullPathLength = FullPathName.size();
     appendSubframeworkPaths(M, RelativePathName);
-    unsigned RelativePathLength = RelativePathName.size();
+    unsigned const RelativePathLength = RelativePathName.size();
 
     // Check whether this file is in the public headers.
     llvm::sys::path::append(RelativePathName, "Headers", Header.FileName);
@@ -262,7 +262,7 @@ void ModuleMap::resolveHeader(Module *Mod,
         // Record this umbrella header.
         setUmbrellaHeader(Mod, *File, Header.FileName, RelativePathName.str());
     } else {
-      Module::Header H = {Header.FileName, std::string(RelativePathName.str()),
+      Module::Header const H = {Header.FileName, std::string(RelativePathName.str()),
                           *File};
       if (Header.Kind == Module::HK_Excluded)
         excludeHeader(Mod, H);
@@ -306,7 +306,7 @@ bool ModuleMap::resolveAsBuiltinHeader(
     return false;
 
   auto Role = headerKindToRole(Header.Kind);
-  Module::Header H = {Header.FileName, std::string(Path.str()), *File};
+  Module::Header const H = {Header.FileName, std::string(Path.str()), *File};
   addHeader(Mod, H, Role);
   return true;
 }
@@ -452,7 +452,7 @@ static bool violatesPrivateInclude(Module *RequestingModule,
     // as obtained from the lookup and as obtained from the module.
     // This check is not cheap, so enable it only for debugging.
     bool IsPrivate = false;
-    SmallVectorImpl<Module::Header> *HeaderList[] = {
+    SmallVectorImpl<Module::Header> *const HeaderList[] = {
         &Header.getModule()->Headers[Module::HK_Private],
         &Header.getModule()->Headers[Module::HK_PrivateTextual]};
     for (auto *Hs : HeaderList)
@@ -489,7 +489,7 @@ void ModuleMap::diagnoseHeaderInclusion(Module *RequestingModule,
   Module *Private = nullptr;
   Module *NotUsed = nullptr;
 
-  HeadersMap::iterator Known = findKnownHeader(File);
+  HeadersMap::iterator const Known = findKnownHeader(File);
   if (Known != Headers.end()) {
     for (const KnownHeader &Header : Known->second) {
       // Remember private headers for later printing of a diagnostic.
@@ -538,7 +538,7 @@ void ModuleMap::diagnoseHeaderInclusion(Module *RequestingModule,
   } else if (RequestingModule && RequestingModuleIsModuleInterface &&
              LangOpts.isCompilingModule()) {
     // Do not diagnose when we are not compiling a module.
-    diag::kind DiagID = RequestingModule->getTopLevelModule()->IsFramework ?
+    diag::kind const DiagID = RequestingModule->getTopLevelModule()->IsFramework ?
         diag::warn_non_modular_include_in_framework_module :
         diag::warn_non_modular_include_in_module;
     Diags.Report(FilenameLoc, DiagID) << RequestingModule->getFullModuleName()
@@ -577,11 +577,11 @@ ModuleMap::KnownHeader ModuleMap::findModuleForHeader(const FileEntry *File,
     return R;
   };
 
-  HeadersMap::iterator Known = findKnownHeader(File);
+  HeadersMap::iterator const Known = findKnownHeader(File);
   if (Known != Headers.end()) {
     ModuleMap::KnownHeader Result;
     // Iterate over all modules that 'File' is part of to find the best fit.
-    for (KnownHeader &H : Known->second) {
+    for (KnownHeader  const&H : Known->second) {
       // Prefer a header from the source module over all others.
       if (H.getModule()->getTopLevelModule() == SourceModule)
         return MakeResult(H);
@@ -599,7 +599,7 @@ ModuleMap::findOrCreateModuleForHeaderInUmbrellaDir(const FileEntry *File) {
   assert(!Headers.count(File) && "already have a module for this header");
 
   SmallVector<const DirectoryEntry *, 2> SkippedDirs;
-  KnownHeader H = findHeaderInUmbrellaDirs(File, SkippedDirs);
+  KnownHeader const H = findHeaderInUmbrellaDirs(File, SkippedDirs);
   if (H) {
     Module *Result = H.getModule();
 
@@ -616,12 +616,12 @@ ModuleMap::findOrCreateModuleForHeaderInUmbrellaDir(const FileEntry *File) {
       // Infer submodules for each of the directories we found between
       // the directory of the umbrella header and the directory where
       // the actual header is located.
-      bool Explicit = UmbrellaModule->InferExplicitSubmodules;
+      bool const Explicit = UmbrellaModule->InferExplicitSubmodules;
 
       for (unsigned I = SkippedDirs.size(); I != 0; --I) {
         // Find or create the module that corresponds to this directory name.
         SmallString<32> NameBuf;
-        StringRef Name = sanitizeFilenameAsIdentifier(
+        StringRef const Name = sanitizeFilenameAsIdentifier(
             llvm::sys::path::stem(SkippedDirs[I-1]->getName()), NameBuf);
         Result = findOrCreateModule(Name, Result, /*IsFramework=*/false,
                                     Explicit).first;
@@ -639,7 +639,7 @@ ModuleMap::findOrCreateModuleForHeaderInUmbrellaDir(const FileEntry *File) {
 
       // Infer a submodule with the same name as this header file.
       SmallString<32> NameBuf;
-      StringRef Name = sanitizeFilenameAsIdentifier(
+      StringRef const Name = sanitizeFilenameAsIdentifier(
                          llvm::sys::path::stem(File->getName()), NameBuf);
       Result = findOrCreateModule(Name, Result, /*IsFramework=*/false,
                                   Explicit).first;
@@ -668,7 +668,7 @@ ModuleMap::findOrCreateModuleForHeaderInUmbrellaDir(const FileEntry *File) {
 
 ArrayRef<ModuleMap::KnownHeader>
 ModuleMap::findAllModulesForHeader(const FileEntry *File) {
-  HeadersMap::iterator Known = findKnownHeader(File);
+  HeadersMap::iterator const Known = findKnownHeader(File);
   if (Known != Headers.end())
     return Known->second;
 
@@ -696,7 +696,7 @@ bool
 ModuleMap::isHeaderUnavailableInModule(const FileEntry *Header,
                                        const Module *RequestingModule) const {
   resolveHeaderDirectives(Header);
-  HeadersMap::const_iterator Known = Headers.find(Header);
+  HeadersMap::const_iterator const Known = Headers.find(Header);
   if (Known != Headers.end()) {
     for (SmallVectorImpl<KnownHeader>::const_iterator
              I = Known->second.begin(),
@@ -731,7 +731,7 @@ ModuleMap::isHeaderUnavailableInModule(const FileEntry *Header,
   // Keep walking up the directory hierarchy, looking for a directory with
   // an umbrella header.
   do {
-    llvm::DenseMap<const DirectoryEntry *, Module *>::const_iterator KnownDir
+    llvm::DenseMap<const DirectoryEntry *, Module *>::const_iterator const KnownDir
       = UmbrellaDirs.find(Dir);
     if (KnownDir != UmbrellaDirs.end()) {
       Module *Found = KnownDir->second;
@@ -748,7 +748,7 @@ ModuleMap::isHeaderUnavailableInModule(const FileEntry *Header,
         for (unsigned I = SkippedDirs.size(); I != 0; --I) {
           // Find or create the module that corresponds to this directory name.
           SmallString<32> NameBuf;
-          StringRef Name = sanitizeFilenameAsIdentifier(
+          StringRef const Name = sanitizeFilenameAsIdentifier(
                              llvm::sys::path::stem(SkippedDirs[I-1]->getName()),
                              NameBuf);
           Found = lookupModuleQualified(Name, Found);
@@ -760,7 +760,7 @@ ModuleMap::isHeaderUnavailableInModule(const FileEntry *Header,
 
         // Infer a submodule with the same name as this header file.
         SmallString<32> NameBuf;
-        StringRef Name = sanitizeFilenameAsIdentifier(
+        StringRef const Name = sanitizeFilenameAsIdentifier(
                            llvm::sys::path::stem(Header->getName()),
                            NameBuf);
         Found = lookupModuleQualified(Name, Found);
@@ -940,14 +940,14 @@ Module *ModuleMap::inferFrameworkModule(const DirectoryEntry *FrameworkDir,
   // we might be looking at an embedded framework that symlinks out to a
   // top-level framework, and we need to infer as if we were naming the
   // top-level framework.
-  StringRef FrameworkDirName =
+  StringRef const FrameworkDirName =
       SourceMgr.getFileManager().getCanonicalName(FrameworkDir);
 
   // In case this is a case-insensitive filesystem, use the canonical
   // directory name as the ModuleName, since modules are case-sensitive.
   // FIXME: we should be able to give a fix-it hint for the correct spelling.
   SmallString<32> ModuleNameStorage;
-  StringRef ModuleName = sanitizeFilenameAsIdentifier(
+  StringRef const ModuleName = sanitizeFilenameAsIdentifier(
       llvm::sys::path::stem(FrameworkDirName), ModuleNameStorage);
 
   // Check whether we've already found this module.
@@ -964,7 +964,7 @@ Module *ModuleMap::inferFrameworkModule(const DirectoryEntry *FrameworkDir,
     bool canInfer = false;
     if (llvm::sys::path::has_parent_path(FrameworkDirName)) {
       // Figure out the parent path.
-      StringRef Parent = llvm::sys::path::parent_path(FrameworkDirName);
+      StringRef const Parent = llvm::sys::path::parent_path(FrameworkDirName);
       if (auto ParentDir = FileMgr.getDirectory(Parent)) {
         // Check whether we have already looked into the parent directory
         // for a module map.
@@ -973,7 +973,7 @@ Module *ModuleMap::inferFrameworkModule(const DirectoryEntry *FrameworkDir,
         if (inferred == InferredDirectories.end()) {
           // We haven't looked here before. Load a module map, if there is
           // one.
-          bool IsFrameworkDir = Parent.endswith(".framework");
+          bool const IsFrameworkDir = Parent.endswith(".framework");
           if (const FileEntry *ModMapFile =
                 HeaderInfo.lookupModuleMapFile(*ParentDir, IsFrameworkDir)) {
             parseModuleMapFile(ModMapFile, Attrs.IsSystem, *ParentDir);
@@ -988,7 +988,7 @@ Module *ModuleMap::inferFrameworkModule(const DirectoryEntry *FrameworkDir,
         if (inferred->second.InferModules) {
           // We're allowed to infer for this directory, but make sure it's okay
           // to infer this particular module.
-          StringRef Name = llvm::sys::path::stem(FrameworkDirName);
+          StringRef const Name = llvm::sys::path::stem(FrameworkDirName);
           canInfer = std::find(inferred->second.ExcludedModules.begin(),
                                inferred->second.ExcludedModules.end(),
                                Name) == inferred->second.ExcludedModules.end();
@@ -1212,7 +1212,7 @@ void ModuleMap::resolveHeaderDirectives(Module *Mod) const {
 
 void ModuleMap::addHeader(Module *Mod, Module::Header Header,
                           ModuleHeaderRole Role, bool Imported) {
-  KnownHeader KH(Mod, Role);
+  KnownHeader const KH(Mod, Role);
 
   // Only add each header to the headers list once.
   // FIXME: Should we diagnose if a header is listed twice in the
@@ -1225,7 +1225,7 @@ void ModuleMap::addHeader(Module *Mod, Module::Header Header,
   HeaderList.push_back(KH);
   Mod->Headers[headerRoleToKind(Role)].push_back(Header);
 
-  bool isCompilingModuleHeader =
+  bool const isCompilingModuleHeader =
       LangOpts.isCompilingModule() && Mod->getTopLevelModule() == SourceModule;
   if (!Imported || isCompilingModuleHeader) {
     // When we import HeaderFileInfo, the external source is expected to
@@ -1302,7 +1302,7 @@ bool ModuleMap::resolveExports(Module *Mod, bool Complain) {
   auto Unresolved = std::move(Mod->UnresolvedExports);
   Mod->UnresolvedExports.clear();
   for (auto &UE : Unresolved) {
-    Module::ExportDecl Export = resolveExport(Mod, UE, Complain);
+    Module::ExportDecl const Export = resolveExport(Mod, UE, Complain);
     if (Export.getPointer() || Export.getInt())
       Mod->Exports.push_back(Export);
     else
@@ -1522,7 +1522,7 @@ retry:
   Tok.Location = LToken.getLocation().getRawEncoding();
   switch (LToken.getKind()) {
   case tok::raw_identifier: {
-    StringRef RI = LToken.getRawIdentifier();
+    StringRef const RI = LToken.getRawIdentifier();
     Tok.StringData = RI.data();
     Tok.StringLength = RI.size();
     Tok.Kind = llvm::StringSwitch<MMToken::TokenKind>(RI)
@@ -1590,13 +1590,13 @@ retry:
     }
 
     // Parse the string literal.
-    LangOptions LangOpts;
-    StringLiteralParser StringLiteral(LToken, SourceMgr, LangOpts, *Target);
+    LangOptions const LangOpts;
+    StringLiteralParser const StringLiteral(LToken, SourceMgr, LangOpts, *Target);
     if (StringLiteral.hadError)
       goto retry;
 
     // Copy the string literal into our string data allocator.
-    unsigned Length = StringLiteral.GetStringLength();
+    unsigned const Length = StringLiteral.GetStringLength();
     char *Saved = StringData.Allocate<char>(Length + 1);
     memcpy(Saved, StringLiteral.GetString().data(), Length);
     Saved[Length] = 0;
@@ -1613,7 +1613,7 @@ retry:
     SmallString<32> SpellingBuffer;
     SpellingBuffer.resize(LToken.getLength() + 1);
     const char *Start = SpellingBuffer.data();
-    unsigned Length =
+    unsigned const Length =
         Lexer::getSpelling(LToken, Start, SourceMgr, L.getLangOpts());
     uint64_t Value;
     if (StringRef(Start, Length).getAsInteger(0, Value)) {
@@ -1773,7 +1773,7 @@ void ModuleMapParser::diagnosePrivateModules(SourceLocation ExplicitLoc,
     if (M->Directory != ActiveModule->Directory)
       continue;
 
-    SmallString<128> FullName(ActiveModule->getFullModuleName());
+    SmallString<128> const FullName(ActiveModule->getFullModuleName());
     if (!FullName.startswith(M->Name) && !FullName.endswith("Private"))
       continue;
     SmallString<128> FixedPrivModDecl;
@@ -1927,8 +1927,8 @@ void ModuleMapParser::parseModuleDecl() {
     }
   }
 
-  StringRef ModuleName = Id.back().first;
-  SourceLocation ModuleNameLoc = Id.back().second;
+  StringRef const ModuleName = Id.back().first;
+  SourceLocation const ModuleNameLoc = Id.back().second;
 
   // Parse the optional attribute list.
   Attributes Attrs;
@@ -1942,7 +1942,7 @@ void ModuleMapParser::parseModuleDecl() {
     HadError = true;
     return;
   }
-  SourceLocation LBraceLoc = consumeToken();
+  SourceLocation const LBraceLoc = consumeToken();
 
   // Determine whether this (sub)module has already been defined.
   Module *ShadowingModule = nullptr;
@@ -1951,10 +1951,10 @@ void ModuleMapParser::parseModuleDecl() {
     // definition for in two cases:
     //  - If we loaded one definition from an AST file and we've just found a
     //    corresponding definition in a module map file, or
-    bool LoadedFromASTFile = Existing->DefinitionLoc.isInvalid();
+    bool const LoadedFromASTFile = Existing->DefinitionLoc.isInvalid();
     //  - If we're building a (preprocessed) module and we've just loaded the
     //    module map file from which it was created.
-    bool ParsedAsMainInput =
+    bool const ParsedAsMainInput =
         Map.LangOpts.getCompilingModule() == LangOptions::CMK_ModuleMap &&
         Map.LangOpts.CurrentModule == ModuleName &&
         SourceMgr.getDecomposedLoc(ModuleNameLoc).first !=
@@ -2010,7 +2010,7 @@ void ModuleMapParser::parseModuleDecl() {
     ActiveModule->NoUndeclaredIncludes = true;
   ActiveModule->Directory = Directory;
 
-  StringRef MapFileName(ModuleMapFile->getName());
+  StringRef const MapFileName(ModuleMapFile->getName());
   if (MapFileName.endswith("module.private.modulemap") ||
       MapFileName.endswith("module_private.map")) {
     ActiveModule->ModuleMapIsPrivate = true;
@@ -2019,7 +2019,7 @@ void ModuleMapParser::parseModuleDecl() {
   // Private modules named as FooPrivate, Foo.Private or similar are likely a
   // user error; provide warnings, notes and fixits to direct users to use
   // Foo_Private instead.
-  SourceLocation StartLoc =
+  SourceLocation const StartLoc =
       SourceMgr.getLocForStartOfFile(SourceMgr.getMainFileID());
   if (Map.HeaderInfo.getHeaderSearchOpts().ImplicitModuleMaps &&
       !Diags.isIgnored(diag::warn_mmap_mismatched_private_submodule,
@@ -2073,7 +2073,7 @@ void ModuleMapParser::parseModuleDecl() {
       break;
 
     case MMToken::UmbrellaKeyword: {
-      SourceLocation UmbrellaLoc = consumeToken();
+      SourceLocation const UmbrellaLoc = consumeToken();
       if (Tok.is(MMToken::HeaderKeyword))
         parseHeaderDecl(MMToken::UmbrellaKeyword, UmbrellaLoc);
       else
@@ -2138,7 +2138,7 @@ void ModuleMapParser::parseModuleDecl() {
 ///     'extern' 'module' module-id string-literal
 void ModuleMapParser::parseExternModuleDecl() {
   assert(Tok.is(MMToken::ExternKeyword));
-  SourceLocation ExternLoc = consumeToken(); // 'extern' keyword
+  SourceLocation const ExternLoc = consumeToken(); // 'extern' keyword
 
   // Parse 'module' keyword.
   if (!Tok.is(MMToken::ModuleKeyword)) {
@@ -2162,7 +2162,7 @@ void ModuleMapParser::parseExternModuleDecl() {
     HadError = true;
     return;
   }
-  std::string FileName = std::string(Tok.getString());
+  std::string const FileName = std::string(Tok.getString());
   consumeToken(); // filename
 
   StringRef FileNameRef = FileName;
@@ -2242,11 +2242,11 @@ void ModuleMapParser::parseRequiresDecl() {
     }
 
     // Consume the feature name.
-    std::string Feature = std::string(Tok.getString());
+    std::string const Feature = std::string(Tok.getString());
     consumeToken();
 
     bool IsRequiresExcludedHack = false;
-    bool ShouldAddRequirement =
+    bool const ShouldAddRequirement =
         shouldAddRequirement(ActiveModule, Feature, IsRequiresExcludedHack);
 
     if (IsRequiresExcludedHack)
@@ -2334,12 +2334,12 @@ void ModuleMapParser::parseHeaderDecl(MMToken::TokenKind LeadingToken,
   // If we were given stat information, parse it so we can skip looking for
   // the file.
   if (Tok.is(MMToken::LBrace)) {
-    SourceLocation LBraceLoc = consumeToken();
+    SourceLocation const LBraceLoc = consumeToken();
 
     while (!Tok.is(MMToken::RBrace) && !Tok.is(MMToken::EndOfFile)) {
       enum Attribute { Size, ModTime, Unknown };
-      StringRef Str = Tok.getString();
-      SourceLocation Loc = consumeToken();
+      StringRef const Str = Tok.getString();
+      SourceLocation const Loc = consumeToken();
       switch (llvm::StringSwitch<Attribute>(Str)
                   .Case("size", Size)
                   .Case("mtime", ModTime)
@@ -2413,9 +2413,9 @@ void ModuleMapParser::parseUmbrellaDirDecl(SourceLocation UmbrellaLoc) {
     return;
   }
 
-  std::string DirName = std::string(Tok.getString());
-  std::string DirNameAsWritten = DirName;
-  SourceLocation DirNameLoc = consumeToken();
+  std::string const DirName = std::string(Tok.getString());
+  std::string const DirNameAsWritten = DirName;
+  SourceLocation const DirNameLoc = consumeToken();
 
   // Check whether we already have an umbrella.
   if (ActiveModule->Umbrella) {
@@ -2491,7 +2491,7 @@ void ModuleMapParser::parseUmbrellaDirDecl(SourceLocation UmbrellaLoc) {
 ///     identifier '.' wildcard-module-id
 void ModuleMapParser::parseExportDecl() {
   assert(Tok.is(MMToken::ExportKeyword));
-  SourceLocation ExportLoc = consumeToken();
+  SourceLocation const ExportLoc = consumeToken();
 
   // Parse the module-id with an optional wildcard at the end.
   ModuleId ParsedModuleId;
@@ -2522,7 +2522,7 @@ void ModuleMapParser::parseExportDecl() {
     return;
   } while (true);
 
-  Module::UnresolvedExportDecl Unresolved = {
+  Module::UnresolvedExportDecl const Unresolved = {
     ExportLoc, ParsedModuleId, Wildcard
   };
   ActiveModule->UnresolvedExports.push_back(Unresolved);
@@ -2588,7 +2588,7 @@ void ModuleMapParser::parseUseDecl() {
 ///     'link' 'framework'[opt] string-literal
 void ModuleMapParser::parseLinkDecl() {
   assert(Tok.is(MMToken::LinkKeyword));
-  SourceLocation LinkLoc = consumeToken();
+  SourceLocation const LinkLoc = consumeToken();
 
   // Parse the optional 'framework' keyword.
   bool IsFramework = false;
@@ -2605,7 +2605,7 @@ void ModuleMapParser::parseLinkDecl() {
     return;
   }
 
-  std::string LibraryName = std::string(Tok.getString());
+  std::string const LibraryName = std::string(Tok.getString());
   consumeToken();
   ActiveModule->LinkLibraries.push_back(Module::LinkLibrary(LibraryName,
                                                             IsFramework));
@@ -2620,7 +2620,7 @@ void ModuleMapParser::parseLinkDecl() {
 ///     identifier (',' identifier)?
 void ModuleMapParser::parseConfigMacros() {
   assert(Tok.is(MMToken::ConfigMacros));
-  SourceLocation ConfigMacrosLoc = consumeToken();
+  SourceLocation const ConfigMacrosLoc = consumeToken();
 
   // Only top-level modules can have configuration macros.
   if (ActiveModule->Parent) {
@@ -2690,7 +2690,7 @@ static std::string formatModuleId(const ModuleId &Id) {
 ///     'conflict' module-id ',' string-literal
 void ModuleMapParser::parseConflict() {
   assert(Tok.is(MMToken::Conflict));
-  SourceLocation ConflictLoc = consumeToken();
+  SourceLocation const ConflictLoc = consumeToken();
   Module::UnresolvedConflict Conflict;
 
   // Parse the module-id.
@@ -2729,7 +2729,7 @@ void ModuleMapParser::parseConflict() {
 ///     'exclude' identifier
 void ModuleMapParser::parseInferredModuleDecl(bool Framework, bool Explicit) {
   assert(Tok.is(MMToken::Star));
-  SourceLocation StarLoc = consumeToken();
+  SourceLocation const StarLoc = consumeToken();
   bool Failed = false;
 
   // Inferred modules must be submodules.
@@ -2801,7 +2801,7 @@ void ModuleMapParser::parseInferredModuleDecl(bool Framework, bool Explicit) {
     HadError = true;
     return;
   }
-  SourceLocation LBraceLoc = consumeToken();
+  SourceLocation const LBraceLoc = consumeToken();
 
   // Parse the body of the inferred submodule.
   bool Done = false;
@@ -2888,7 +2888,7 @@ bool ModuleMapParser::parseOptionalAttributes(Attributes &Attrs) {
 
   while (Tok.is(MMToken::LSquare)) {
     // Consume the '['.
-    SourceLocation LSquareLoc = consumeToken();
+    SourceLocation const LSquareLoc = consumeToken();
 
     // Check whether we have an attribute name here.
     if (!Tok.is(MMToken::Identifier)) {
@@ -2900,7 +2900,7 @@ bool ModuleMapParser::parseOptionalAttributes(Attributes &Attrs) {
     }
 
     // Decode the attribute name.
-    AttributeKind Attribute
+    AttributeKind const Attribute
       = llvm::StringSwitch<AttributeKind>(Tok.getString())
           .Case("exhaustive", AT_exhaustive)
           .Case("extern_c", AT_extern_c)
@@ -2999,7 +2999,7 @@ bool ModuleMap::parseModuleMapFile(const FileEntry *File, bool IsSystem,
                                    unsigned *Offset,
                                    SourceLocation ExternModuleLoc) {
   assert(Target && "Missing target information");
-  llvm::DenseMap<const FileEntry *, bool>::iterator Known
+  llvm::DenseMap<const FileEntry *, bool>::iterator const Known
     = ParsedModuleMap.find(File);
   if (Known != ParsedModuleMap.end())
     return Known->second;
@@ -3023,10 +3023,10 @@ bool ModuleMap::parseModuleMapFile(const FileEntry *File, bool IsSystem,
           Buffer->getBufferStart(),
           Buffer->getBufferStart() + (Offset ? *Offset : 0),
           Buffer->getBufferEnd());
-  SourceLocation Start = L.getSourceLocation();
+  SourceLocation const Start = L.getSourceLocation();
   ModuleMapParser Parser(L, SourceMgr, Target, Diags, *this, File, Dir,
                          IsSystem);
-  bool Result = Parser.parseModuleMapFile();
+  bool const Result = Parser.parseModuleMapFile();
   ParsedModuleMap[File] = Result;
 
   if (Offset) {

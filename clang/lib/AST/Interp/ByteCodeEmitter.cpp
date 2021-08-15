@@ -31,7 +31,7 @@ Expected<Function *> ByteCodeEmitter::compileFunc(const FunctionDecl *F) {
 
   // If the return is not a primitive, a pointer to the storage where the value
   // is initialized in is passed as the first argument.
-  QualType Ty = F->getReturnType();
+  QualType const Ty = F->getReturnType();
   if (!Ty->isVoidType() && !Ctx.classify(Ty)) {
     ParamTypes.push_back(PT_Ptr);
     ParamOffset += align(primSize(PT_Ptr));
@@ -80,7 +80,7 @@ Expected<Function *> ByteCodeEmitter::compileFunc(const FunctionDecl *F) {
 
 Scope::Local ByteCodeEmitter::createLocal(Descriptor *D) {
   NextLocalOffset += sizeof(Block);
-  unsigned Location = NextLocalOffset;
+  unsigned const Location = NextLocalOffset;
   NextLocalOffset += align(D->getAllocSize());
   return {Location, D};
 }
@@ -90,7 +90,7 @@ void ByteCodeEmitter::emitLabel(LabelTy Label) {
   LabelOffsets.insert({Label, Target});
   auto It = LabelRelocs.find(Label);
   if (It != LabelRelocs.end()) {
-    for (unsigned Reloc : It->second) {
+    for (unsigned const Reloc : It->second) {
       using namespace llvm::support;
 
       /// Rewrite the operand of all jumps to this label.
@@ -128,7 +128,7 @@ bool ByteCodeEmitter::bail(const SourceLocation &Loc) {
 template <typename T>
 static std::enable_if_t<!std::is_pointer<T>::value, void>
 emit(Program &P, std::vector<char> &Code, const T &Val, bool &Success) {
-  size_t Size = sizeof(Val);
+  size_t const Size = sizeof(Val);
   if (Code.size() + Size > std::numeric_limits<unsigned>::max()) {
     Success = false;
     return;
@@ -141,7 +141,7 @@ emit(Program &P, std::vector<char> &Code, const T &Val, bool &Success) {
 template <typename T>
 static std::enable_if_t<std::is_pointer<T>::value, void>
 emit(Program &P, std::vector<char> &Code, const T &Val, bool &Success) {
-  size_t Size = sizeof(uint32_t);
+  size_t const Size = sizeof(uint32_t);
   if (Code.size() + Size > std::numeric_limits<unsigned>::max()) {
     Success = false;
     return;

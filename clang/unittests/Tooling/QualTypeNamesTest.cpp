@@ -22,7 +22,7 @@ struct TypeNameVisitor : TestVisitor<TypeNameVisitor> {
   }
 
   bool VisitValueDecl(const ValueDecl *VD) {
-    std::string ExpectedName =
+    std::string const ExpectedName =
         ExpectedQualTypeNames.lookup(VD->getNameAsString());
     if (ExpectedName != "") {
       PrintingPolicy Policy(Context->getPrintingPolicy());
@@ -30,7 +30,7 @@ struct TypeNameVisitor : TestVisitor<TypeNameVisitor> {
       Policy.AnonymousTagLocations = true;
       Policy.PolishForDeclaration = true;
       Policy.SuppressUnwrittenScope = true;
-      std::string ActualName = TypeName::getFullyQualifiedName(
+      std::string const ActualName = TypeName::getFullyQualifiedName(
           VD->getType(), *Context, Policy, WithGlobalNsPrefix);
       if (ExpectedName != ActualName) {
         // A custom message makes it much easier to see what declaration

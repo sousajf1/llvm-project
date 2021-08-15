@@ -33,7 +33,7 @@ static void printMacroName(llvm::raw_string_ostream &MacroStack,
 std::string getMacroStack(SourceLocation Loc, ASTContext &Context) {
   std::string MacroStack;
   llvm::raw_string_ostream MacroStackStream(MacroStack);
-  SourceManager &SM = Context.getSourceManager();
+  SourceManager  const&SM = Context.getSourceManager();
 
   // Iterate over all macros that expanded into the given SourceLocation.
   while (Loc.isMacroID()) {

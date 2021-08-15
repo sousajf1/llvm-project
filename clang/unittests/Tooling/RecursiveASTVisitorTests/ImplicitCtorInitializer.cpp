@@ -38,10 +38,10 @@ private:
 // should not be visited and that it is visited when implicit code should be
 // visited.
 TEST(RecursiveASTVisitor, CXXCtorInitializerVisitNoImplicit) {
-  for (bool VisitImplCode : {true, false}) {
+  for (bool const VisitImplCode : {true, false}) {
     CXXCtorInitializerVisitor Visitor(VisitImplCode);
     Visitor.ExpectMatch("initializer", 7, 17);
-    llvm::StringRef Code = R"cpp(
+    llvm::StringRef const Code = R"cpp(
         class A {};
         class B : public A {
           B() {};

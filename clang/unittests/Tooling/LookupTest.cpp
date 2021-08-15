@@ -30,7 +30,7 @@ struct GetDeclsVisitor : TestVisitor<GetDeclsVisitor> {
 
   bool TraverseDecl(Decl *D) {
     DeclStack.push_back(D);
-    bool Ret = TestVisitor::TraverseDecl(D);
+    bool const Ret = TestVisitor::TraverseDecl(D);
     DeclStack.pop_back();
     return Ret;
   }

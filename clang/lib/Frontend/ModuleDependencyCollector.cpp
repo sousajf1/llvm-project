@@ -68,7 +68,7 @@ struct ModuleDependencyMMCallbacks : public ModuleMapCallbacks {
   }
   void moduleMapAddUmbrellaHeader(FileManager *FileMgr,
                                   const FileEntry *Header) override {
-    StringRef HeaderFilename = Header->getName();
+    StringRef const HeaderFilename = Header->getName();
     moduleMapAddHeader(HeaderFilename);
     // The FileManager can find and cache the symbolic link for a framework
     // header before its real path, this means a module can have some of its
@@ -83,9 +83,9 @@ struct ModuleDependencyMMCallbacks : public ModuleMapCallbacks {
     // FIXME: this shouldn't be necessary once we have FileName instances
     // around instead of FileEntry ones. For now, make sure we collect all
     // that we need for the reproducer to work correctly.
-    StringRef UmbreallDirFromHeader =
+    StringRef const UmbreallDirFromHeader =
         llvm::sys::path::parent_path(HeaderFilename);
-    StringRef UmbrellaDir = Header->getDir()->getName();
+    StringRef const UmbrellaDir = Header->getDir()->getName();
     if (!UmbrellaDir.equals(UmbreallDirFromHeader)) {
       SmallString<128> AltHeaderFilename;
       llvm::sys::path::append(AltHeaderFilename, UmbrellaDir,
@@ -131,7 +131,7 @@ void ModuleDependencyCollector::writeFileMap() {
   if (Seen.empty())
     return;
 
-  StringRef VFSDir = getDest();
+  StringRef const VFSDir = getDest();
 
   // Default to use relative overlay directories in the VFS yaml file. This
   // allows crash reproducer scripts to work across machines.

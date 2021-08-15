@@ -163,7 +163,7 @@ static void CreateAndRunJITFunc(const std::string &IR, CodeGenOpt::Level OLvl) {
     ErrorAndExit("Function not found in module");
 
   std::string ErrorMsg;
-  Triple ModuleTriple(M->getTargetTriple());
+  Triple const ModuleTriple(M->getTargetTriple());
 
   EngineBuilder builder(std::move(M));
   builder.setMArch(codegen::getMArch());
@@ -220,7 +220,7 @@ void clang_fuzzer::HandleLLVM(const std::string &IR,
   getOptLevel(ExtraArgs, OLvl);
 
   // First we optimize the IR by running a loop vectorizer pass
-  std::string OptIR = OptLLVM(IR, OLvl);
+  std::string const OptIR = OptLLVM(IR, OLvl);
 
   CreateAndRunJITFunc(OptIR, OLvl);
   CreateAndRunJITFunc(IR, CodeGenOpt::None);

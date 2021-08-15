@@ -69,8 +69,8 @@ TEST_F(ASTVectorTest, InsertEmpty) {
   ASTVector<double> V;
 
   // Ensure no pointer overflow when inserting empty range
-  int Values[] = { 0, 1, 2, 3 };
-  ArrayRef<int> IntVec(Values);
+  int const Values[] = { 0, 1, 2, 3 };
+  ArrayRef<int> const IntVec(Values);
   auto I = V.insert(Ctxt, V.begin(), IntVec.begin(), IntVec.begin());
   ASSERT_EQ(V.begin(), I);
   ASSERT_TRUE(V.empty());

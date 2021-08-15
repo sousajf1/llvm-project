@@ -124,7 +124,7 @@ TEST_P(RedirectingImporterTest, InterceptImport) {
   // Make sure our importer prevented the importing of the decl.
   auto *ToTU = Imported->getTranslationUnitDecl();
   auto Pattern = functionDecl(hasName("shouldNotBeImported"));
-  unsigned count =
+  unsigned const count =
       DeclCounterWithPredicate<CXXRecordDecl>().match(ToTU, Pattern);
   EXPECT_EQ(0U, count);
 }
@@ -141,7 +141,7 @@ TEST_P(RedirectingImporterTest, InterceptIndirectImport) {
   // Make sure our ASTImporter prevented the importing of the decl.
   auto *ToTU = To->getTranslationUnitDecl();
   auto Pattern = functionDecl(hasName("shouldNotBeImported"));
-  unsigned count =
+  unsigned const count =
       DeclCounterWithPredicate<CXXRecordDecl>().match(ToTU, Pattern);
   EXPECT_EQ(0U, count);
 }
@@ -982,7 +982,7 @@ TEST_P(ASTImporterOptionSpecificTestBase, TemplateTypeParmDeclDefaultArg) {
       FromTU, templateTypeParmDecl(hasName("T")));
   TemplateTypeParmDecl *To = Import(From, Lang_CXX03);
   ASSERT_TRUE(To->hasDefaultArgument());
-  QualType ToArg = To->getDefaultArgument();
+  QualType const ToArg = To->getDefaultArgument();
   ASSERT_EQ(ToArg, QualType(To->getASTContext().IntTy));
 }
 
@@ -2214,7 +2214,7 @@ TEST_P(ImportFunctions,
 }
 
 TEST_P(ASTImporterOptionSpecificTestBase, ImportVariableChainInC) {
-    std::string Code = "static int v; static int v = 0;";
+    std::string const Code = "static int v; static int v = 0;";
     auto Pattern = varDecl(hasName("v"));
 
     TranslationUnitDecl *FromTu = getTuDecl(Code, Lang_C99, "input0.c");
@@ -2806,7 +2806,7 @@ AST_MATCHER_P(TagDecl, hasTypedefForAnonDecl, Matcher<TypedefNameDecl>,
 }
 
 TEST_P(ImportDecl, ImportEnumSequential) {
-  CodeFiles Samples{{"main.c",
+  CodeFiles const Samples{{"main.c",
                      {"void foo();"
                       "void moo();"
                       "int main() { foo(); moo(); }",
@@ -3273,7 +3273,7 @@ TEST_P(ASTImporterOptionSpecificTestBase, ImportUnnamedFieldsInCorrectOrder) {
 
 TEST_P(ASTImporterOptionSpecificTestBase,
        MergeFieldDeclsOfClassTemplateSpecialization) {
-  std::string ClassTemplate =
+  std::string const ClassTemplate =
       R"(
       template <typename T>
       struct X {
@@ -3319,7 +3319,7 @@ TEST_P(ASTImporterOptionSpecificTestBase,
 
 TEST_P(ASTImporterOptionSpecificTestBase,
        MergeFunctionOfClassTemplateSpecialization) {
-  std::string ClassTemplate =
+  std::string const ClassTemplate =
       R"(
       template <typename T>
       struct X {
@@ -3360,7 +3360,7 @@ TEST_P(ASTImporterOptionSpecificTestBase,
 }
 
 TEST_P(ASTImporterOptionSpecificTestBase, MergeTemplateSpecWithForwardDecl) {
-  std::string ClassTemplate =
+  std::string const ClassTemplate =
       R"(
       template<typename T>
       struct X { int m; };
@@ -3380,7 +3380,7 @@ TEST_P(ASTImporterOptionSpecificTestBase, MergeTemplateSpecWithForwardDecl) {
 
 TEST_P(ASTImporterOptionSpecificTestBase,
        ODRViolationOfClassTemplateSpecializationsShouldBeReported) {
-  std::string ClassTemplate =
+  std::string const ClassTemplate =
       R"(
       template <typename T>
       struct X {};
@@ -3425,7 +3425,7 @@ TEST_P(ASTImporterOptionSpecificTestBase,
 
 TEST_P(ASTImporterOptionSpecificTestBase,
        MergeCtorOfClassTemplateSpecialization) {
-  std::string ClassTemplate =
+  std::string const ClassTemplate =
       R"(
       template <typename T>
       struct X {
@@ -3539,7 +3539,7 @@ TEST_P(ASTImporterOptionSpecificTestBase,
 
 TEST_P(ASTImporterOptionSpecificTestBase,
        ClassTemplateFullAndPartialSpecsShouldNotBeMixed) {
-  std::string PrimaryTemplate =
+  std::string const PrimaryTemplate =
       R"(
     template<class T1, class T2, int I>
     class A {};
@@ -3742,8 +3742,8 @@ TEST_P(ImportVariables, ImportDecompositionDeclArray) {
   auto *ToDecomp = Import(FromDecomp, Lang_CXX17);
   EXPECT_TRUE(ToDecomp);
 
-  ArrayRef<BindingDecl *> FromB = FromDecomp->bindings();
-  ArrayRef<BindingDecl *> ToB = ToDecomp->bindings();
+  ArrayRef<BindingDecl *> const FromB = FromDecomp->bindings();
+  ArrayRef<BindingDecl *> const ToB = ToDecomp->bindings();
   EXPECT_EQ(FromB.size(), ToB.size());
   for (unsigned int I = 0; I < FromB.size(); ++I) {
     auto *ToBI = Import(FromB[I], Lang_CXX17);
@@ -4698,7 +4698,7 @@ struct ASTImporterLookupTableTest : ASTImporterOptionSpecificTestBase {};
 TEST_P(ASTImporterLookupTableTest, OneDecl) {
   auto *ToTU = getToTuDecl("int a;", Lang_CXX03);
   auto *D = FirstDeclMatcher<VarDecl>().match(ToTU, varDecl(hasName("a")));
-  ASTImporterLookupTable LT(*ToTU);
+  ASTImporterLookupTable const LT(*ToTU);
   auto Res = LT.lookup(ToTU, D->getDeclName());
   ASSERT_EQ(Res.size(), 1u);
   EXPECT_EQ(*Res.begin(), D);
@@ -4730,7 +4730,7 @@ TEST_P(ASTImporterLookupTableTest,
   DeclContext *FooLexicalDC = Foo->getLexicalDeclContext();
   ASSERT_EQ(cast<Decl>(FooLexicalDC), X->getTemplatedDecl());
   ASSERT_EQ(cast<Decl>(FooDC), ToTU);
-  DeclarationName FooName = Foo->getDeclName();
+  DeclarationName const FooName = Foo->getDeclName();
 
   // Cannot find in the LookupTable of its DC (TUDecl)
   SmallVector<NamedDecl *, 2> FoundDecls;
@@ -4748,7 +4748,7 @@ TEST_P(ASTImporterLookupTableTest,
   EXPECT_EQ(findInDeclListOfDC(FooLexicalDC, FooName), nullptr);
 
   // ASTImporter specific lookup finds it.
-  ASTImporterLookupTable LT(*ToTU);
+  ASTImporterLookupTable const LT(*ToTU);
   auto Res = LT.lookup(FooDC, Foo->getDeclName());
   ASSERT_EQ(Res.size(), 1u);
   EXPECT_EQ(*Res.begin(), Foo);
@@ -4766,7 +4766,7 @@ TEST_P(ASTImporterLookupTableTest,
   DeclContext *FooLexicalDC = Foo->getLexicalDeclContext();
   ASSERT_EQ(cast<Decl>(FooLexicalDC), A);
   ASSERT_EQ(cast<Decl>(FooDC), ToTU);
-  DeclarationName FooName = Foo->getDeclName();
+  DeclarationName const FooName = Foo->getDeclName();
 
   // Cannot find in the LookupTable of its DC (TUDecl).
   SmallVector<NamedDecl *, 2> FoundDecls;
@@ -4784,7 +4784,7 @@ TEST_P(ASTImporterLookupTableTest,
   EXPECT_EQ(findInDeclListOfDC(FooLexicalDC, FooName), Foo);
 
   // ASTImporter specific lookup finds it.
-  ASTImporterLookupTable LT(*ToTU);
+  ASTImporterLookupTable const LT(*ToTU);
   auto Res = LT.lookup(FooDC, Foo->getDeclName());
   ASSERT_EQ(Res.size(), 1u);
   EXPECT_EQ(*Res.begin(), Foo);
@@ -4793,7 +4793,7 @@ TEST_P(ASTImporterLookupTableTest,
 TEST_P(ASTImporterLookupTableTest, LookupFindsNamesInDifferentDC) {
   TranslationUnitDecl *ToTU =
       getToTuDecl("int V; struct A { int V; }; struct B { int V; };", Lang_C99);
-  DeclarationName VName = FirstDeclMatcher<VarDecl>()
+  DeclarationName const VName = FirstDeclMatcher<VarDecl>()
                               .match(ToTU, varDecl(hasName("V")))
                               ->getDeclName();
   auto *A =
@@ -4801,7 +4801,7 @@ TEST_P(ASTImporterLookupTableTest, LookupFindsNamesInDifferentDC) {
   auto *B =
       FirstDeclMatcher<RecordDecl>().match(ToTU, recordDecl(hasName("B")));
 
-  ASTImporterLookupTable LT(*ToTU);
+  ASTImporterLookupTable const LT(*ToTU);
 
   auto Res = LT.lookup(cast<DeclContext>(A), VName);
   ASSERT_EQ(Res.size(), 1u);
@@ -4829,10 +4829,10 @@ TEST_P(ASTImporterLookupTableTest, LookupFindsOverloadedNames) {
       )",
       Lang_CXX03);
 
-  ASTImporterLookupTable LT(*ToTU);
+  ASTImporterLookupTable const LT(*ToTU);
   auto *F0 = FirstDeclMatcher<FunctionDecl>().match(ToTU, functionDecl());
   auto *F2 = LastDeclMatcher<FunctionDecl>().match(ToTU, functionDecl());
-  DeclarationName Name = F0->getDeclName();
+  DeclarationName const Name = F0->getDeclName();
   auto Res = LT.lookup(ToTU, Name);
   EXPECT_EQ(Res.size(), 3u);
   EXPECT_EQ(Res.count(F0), 1u);
@@ -4849,17 +4849,17 @@ TEST_P(ASTImporterLookupTableTest,
       )",
       Lang_CXX03);
 
-  ASTImporterLookupTable LT(*ToTU);
+  ASTImporterLookupTable const LT(*ToTU);
   auto *FPlus = FirstDeclMatcher<FunctionDecl>().match(
       ToTU, functionDecl(hasOverloadedOperatorName("+")));
   auto *FMinus = FirstDeclMatcher<FunctionDecl>().match(
       ToTU, functionDecl(hasOverloadedOperatorName("-")));
-  DeclarationName NamePlus = FPlus->getDeclName();
+  DeclarationName const NamePlus = FPlus->getDeclName();
   auto ResPlus = LT.lookup(ToTU, NamePlus);
   EXPECT_EQ(ResPlus.size(), 1u);
   EXPECT_EQ(ResPlus.count(FPlus), 1u);
   EXPECT_EQ(ResPlus.count(FMinus), 0u);
-  DeclarationName NameMinus = FMinus->getDeclName();
+  DeclarationName const NameMinus = FMinus->getDeclName();
   auto ResMinus = LT.lookup(ToTU, NameMinus);
   EXPECT_EQ(ResMinus.size(), 1u);
   EXPECT_EQ(ResMinus.count(FMinus), 1u);
@@ -4889,7 +4889,7 @@ TEST_P(ASTImporterLookupTableTest, LookupDeclNamesFromDifferentTUs) {
   // FromPlus have a different TU, thus its DeclarationName is different too.
   ASSERT_NE(ToPlus->getDeclName(), FromPlus->getDeclName());
 
-  ASTImporterLookupTable LT(*ToTU);
+  ASTImporterLookupTable const LT(*ToTU);
   auto Res = LT.lookup(ToTU, ToPlus->getDeclName());
   ASSERT_EQ(Res.size(), 1u);
   EXPECT_EQ(*Res.begin(), ToPlus);
@@ -4909,13 +4909,13 @@ TEST_P(ASTImporterLookupTableTest,
 
   // In this case, the CXXRecordDecl is hidden, the FriendDecl is not a parent.
   // So we must dig up the underlying CXXRecordDecl.
-  ASTImporterLookupTable LT(*ToTU);
+  ASTImporterLookupTable const LT(*ToTU);
   auto *FriendD = FirstDeclMatcher<FriendDecl>().match(ToTU, friendDecl());
   const RecordDecl *RD = getRecordDeclOfFriend(FriendD);
   auto *Y = FirstDeclMatcher<CXXRecordDecl>().match(
       ToTU, cxxRecordDecl(hasName("Y")));
 
-  DeclarationName Name = RD->getDeclName();
+  DeclarationName const Name = RD->getDeclName();
   auto Res = LT.lookup(ToTU, Name);
   EXPECT_EQ(Res.size(), 1u);
   EXPECT_EQ(*Res.begin(), RD);
@@ -4935,12 +4935,12 @@ TEST_P(ASTImporterLookupTableTest,
 
   // In this case, the CXXRecordDecl is hidden, the FriendDecl is not a parent.
   // So we must dig up the underlying CXXRecordDecl.
-  ASTImporterLookupTable LT(*ToTU);
+  ASTImporterLookupTable const LT(*ToTU);
   auto *FriendD = FirstDeclMatcher<FriendDecl>().match(ToTU, friendDecl());
   const RecordDecl *RD = getRecordDeclOfFriend(FriendD);
   auto *Y = FirstDeclMatcher<CXXRecordDecl>().match(ToTU, cxxRecordDecl(hasName("Y")));
 
-  DeclarationName Name = RD->getDeclName();
+  DeclarationName const Name = RD->getDeclName();
   auto Res = LT.lookup(ToTU, Name);
   EXPECT_EQ(Res.size(), 1u);
   EXPECT_EQ(*Res.begin(), RD);
@@ -4961,11 +4961,11 @@ TEST_P(ASTImporterLookupTableTest,
 
   // ASTImporterLookupTable constructor handles using declarations correctly,
   // no assert is expected.
-  ASTImporterLookupTable LT(*ToTU);
+  ASTImporterLookupTable const LT(*ToTU);
 
   auto *Alias = FirstDeclMatcher<TypeAliasDecl>().match(
       ToTU, typeAliasDecl(hasName("alias_of_f")));
-  DeclarationName Name = Alias->getDeclName();
+  DeclarationName const Name = Alias->getDeclName();
   auto Res = LT.lookup(ToTU, Name);
   EXPECT_EQ(Res.count(Alias), 1u);
 }
@@ -4977,10 +4977,10 @@ TEST_P(ASTImporterLookupTableTest, LookupFindsFwdFriendClassTemplateDecl) {
       )",
       Lang_CXX03);
 
-  ASTImporterLookupTable LT(*ToTU);
+  ASTImporterLookupTable const LT(*ToTU);
   auto *F = FirstDeclMatcher<ClassTemplateDecl>().match(
       ToTU, classTemplateDecl(hasName("F")));
-  DeclarationName Name = F->getDeclName();
+  DeclarationName const Name = F->getDeclName();
   auto Res = LT.lookup(ToTU, Name);
   EXPECT_EQ(Res.size(), 2u);
   EXPECT_EQ(Res.count(F), 1u);
@@ -5000,10 +5000,10 @@ TEST_P(ASTImporterLookupTableTest, DependentFriendClass) {
       )",
       Lang_CXX03);
 
-  ASTImporterLookupTable LT(*ToTU);
+  ASTImporterLookupTable const LT(*ToTU);
   auto *F = FirstDeclMatcher<ClassTemplateDecl>().match(
       ToTU, classTemplateDecl(hasName("F")));
-  DeclarationName Name = F->getDeclName();
+  DeclarationName const Name = F->getDeclName();
   auto Res = LT.lookup(ToTU, Name);
   EXPECT_EQ(Res.size(), 2u);
   EXPECT_EQ(Res.count(F), 1u);
@@ -5022,10 +5022,10 @@ TEST_P(ASTImporterLookupTableTest, FriendClassTemplateSpecialization) {
       )",
       Lang_CXX03);
 
-  ASTImporterLookupTable LT(*ToTU);
+  ASTImporterLookupTable const LT(*ToTU);
   auto *F = FirstDeclMatcher<ClassTemplateDecl>().match(
       ToTU, classTemplateDecl(hasName("F")));
-  DeclarationName Name = F->getDeclName();
+  DeclarationName const Name = F->getDeclName();
   auto Res = LT.lookup(ToTU, Name);
   ASSERT_EQ(Res.size(), 3u);
   EXPECT_EQ(Res.count(F), 1u);
@@ -5040,10 +5040,10 @@ TEST_P(ASTImporterLookupTableTest, LookupFindsFwdFriendFunctionDecl) {
       )",
       Lang_CXX03);
 
-  ASTImporterLookupTable LT(*ToTU);
+  ASTImporterLookupTable const LT(*ToTU);
   auto *F =
       FirstDeclMatcher<FunctionDecl>().match(ToTU, functionDecl(hasName("F")));
-  DeclarationName Name = F->getDeclName();
+  DeclarationName const Name = F->getDeclName();
   auto Res = LT.lookup(ToTU, Name);
   EXPECT_EQ(Res.size(), 1u);
   EXPECT_EQ(*Res.begin(), F);
@@ -5063,7 +5063,7 @@ TEST_P(ASTImporterLookupTableTest,
       )",
       Lang_CXX03);
 
-  ASTImporterLookupTable LT(*ToTU);
+  ASTImporterLookupTable const LT(*ToTU);
 
   auto *Template = FirstDeclMatcher<ClassTemplateDecl>().match(
       ToTU, classTemplateDecl(hasName("X")));
@@ -5076,7 +5076,7 @@ TEST_P(ASTImporterLookupTableTest,
   FieldDecl *FieldInSpec = *Spec->field_begin();
   ASSERT_TRUE(FieldInSpec);
 
-  DeclarationName Name = FieldInSpec->getDeclName();
+  DeclarationName const Name = FieldInSpec->getDeclName();
   auto TemplateDC = cast<DeclContext>(Template->getTemplatedDecl());
 
   SmallVector<NamedDecl *, 2> FoundDecls;
@@ -5105,10 +5105,10 @@ TEST_P(ASTImporterLookupTableTest, LookupFindsFwdFriendFunctionTemplateDecl) {
       )",
       Lang_CXX03);
 
-  ASTImporterLookupTable LT(*ToTU);
+  ASTImporterLookupTable const LT(*ToTU);
   auto *F = FirstDeclMatcher<FunctionTemplateDecl>().match(
       ToTU, functionTemplateDecl(hasName("F")));
-  DeclarationName Name = F->getDeclName();
+  DeclarationName const Name = F->getDeclName();
   auto Res = LT.lookup(ToTU, Name);
   EXPECT_EQ(Res.size(), 2u);
   EXPECT_EQ(Res.count(F), 1u);
@@ -5128,7 +5128,7 @@ TEST_P(ASTImporterLookupTableTest, MultipleBefriendingClasses) {
       )",
       Lang_CXX03);
 
-  ASTImporterLookupTable LT(*ToTU);
+  ASTImporterLookupTable const LT(*ToTU);
   auto *X = FirstDeclMatcher<CXXRecordDecl>().match(
       ToTU, cxxRecordDecl(hasName("X")));
   auto *FriendD0 = FirstDeclMatcher<FriendDecl>().match(ToTU, friendDecl());
@@ -5138,7 +5138,7 @@ TEST_P(ASTImporterLookupTableTest, MultipleBefriendingClasses) {
   ASSERT_EQ(RD0, RD1);
   ASSERT_EQ(RD1, X);
 
-  DeclarationName Name = X->getDeclName();
+  DeclarationName const Name = X->getDeclName();
   auto Res = LT.lookup(ToTU, Name);
   EXPECT_EQ(Res.size(), 1u);
   EXPECT_EQ(*Res.begin(), X);
@@ -5154,12 +5154,12 @@ TEST_P(ASTImporterLookupTableTest, EnumConstantDecl) {
       )",
       Lang_C99);
 
-  ASTImporterLookupTable LT(*ToTU);
+  ASTImporterLookupTable const LT(*ToTU);
   auto *E = FirstDeclMatcher<EnumDecl>().match(ToTU, enumDecl(hasName("E")));
   auto *A = FirstDeclMatcher<EnumConstantDecl>().match(
       ToTU, enumConstantDecl(hasName("A")));
 
-  DeclarationName Name = A->getDeclName();
+  DeclarationName const Name = A->getDeclName();
   // Redecl context is the TU.
   ASSERT_EQ(E->getRedeclContext(), ToTU);
 
@@ -5196,9 +5196,9 @@ TEST_P(ASTImporterLookupTableTest, LookupSearchesInTheWholeRedeclChain) {
   auto *N1 =
       LastDeclMatcher<NamespaceDecl>().match(ToTU, namespaceDecl(hasName("N")));
   auto *A = FirstDeclMatcher<VarDecl>().match(ToTU, varDecl(hasName("A")));
-  DeclarationName Name = A->getDeclName();
+  DeclarationName const Name = A->getDeclName();
 
-  ASTImporterLookupTable LT(*ToTU);
+  ASTImporterLookupTable const LT(*ToTU);
   auto Res = LT.lookup(N1, Name);
   ASSERT_EQ(Res.size(), 1u);
   EXPECT_EQ(*Res.begin(), A);
@@ -5740,8 +5740,8 @@ TEST_P(ASTImporterOptionSpecificTestBase, LambdaInFunctionBody) {
       FirstDeclMatcher<LambdaExpr>().match(FromTU, Pattern)->getLambdaClass();
 
   auto ToL = Import(FromL, Lang_CXX11);
-  unsigned ToLSize = std::distance(ToL->decls().begin(), ToL->decls().end());
-  unsigned FromLSize =
+  unsigned const ToLSize = std::distance(ToL->decls().begin(), ToL->decls().end());
+  unsigned const FromLSize =
       std::distance(FromL->decls().begin(), FromL->decls().end());
   EXPECT_NE(ToLSize, 0u);
   EXPECT_EQ(ToLSize, FromLSize);
@@ -5759,8 +5759,8 @@ TEST_P(ASTImporterOptionSpecificTestBase, LambdaInFunctionParam) {
       FirstDeclMatcher<LambdaExpr>().match(FromTU, Pattern)->getLambdaClass();
 
   auto ToL = Import(FromL, Lang_CXX11);
-  unsigned ToLSize = std::distance(ToL->decls().begin(), ToL->decls().end());
-  unsigned FromLSize =
+  unsigned const ToLSize = std::distance(ToL->decls().begin(), ToL->decls().end());
+  unsigned const FromLSize =
       std::distance(FromL->decls().begin(), FromL->decls().end());
   EXPECT_NE(ToLSize, 0u);
   EXPECT_EQ(ToLSize, FromLSize);
@@ -5895,13 +5895,13 @@ TEST_P(SVEBuiltins, ImportTypes) {
   for (auto *TypeName : TypeNames) {
     auto *ToTypedef = FirstDeclMatcher<TypedefDecl>().match(
       ToTU, typedefDecl(hasName(TypeName)));
-    QualType ToType = ToTypedef->getUnderlyingType();
+    QualType const ToType = ToTypedef->getUnderlyingType();
 
     auto *FromTypedef = FirstDeclMatcher<TypedefDecl>().match(
       FromTU, typedefDecl(hasName(TypeName)));
-    QualType FromType = FromTypedef->getUnderlyingType();
+    QualType const FromType = FromTypedef->getUnderlyingType();
 
-    QualType ImportedType = ImportType(FromType, FromTypedef, Lang_CXX03);
+    QualType const ImportedType = ImportType(FromType, FromTypedef, Lang_CXX03);
     EXPECT_EQ(ImportedType, ToType);
   }
 }
@@ -6098,12 +6098,12 @@ TEST_P(ImportAutoFunctions, ReturnWithTypedefDeclaredInside) {
   // parsed libcxx/src/filesystem/directory_iterator.cpp, but could not reduce
   // that with creduce, because after preprocessing, the AST no longer
   // contained the TypeAlias as a return type of the lambda.
-  ASTContext &Ctx = From->getASTContext();
+  ASTContext  const&Ctx = From->getASTContext();
   TypeAliasDecl *FromTA =
       FirstDeclMatcher<TypeAliasDecl>().match(FromTU, typeAliasDecl());
-  QualType TT = Ctx.getTypedefType(FromTA);
+  QualType const TT = Ctx.getTypedefType(FromTA);
   const FunctionProtoType *FPT = cast<FunctionProtoType>(From->getType());
-  QualType NewFunType =
+  QualType const NewFunType =
       Ctx.getFunctionType(TT, FPT->getParamTypes(), FPT->getExtProtoInfo());
   From->setType(NewFunType);
 
@@ -6281,13 +6281,13 @@ TEST_P(ImportSourceLocations, PreserveFileIDTreeStructure) {
     Location2 = Import(FromD, Lang_C99)->getLocation();
   }
 
-  SourceManager &ToSM = ToAST->getSourceManager();
-  FileID FileID1 = ToSM.getFileID(Location1);
-  FileID FileID2 = ToSM.getFileID(Location2);
+  SourceManager  const&ToSM = ToAST->getSourceManager();
+  FileID const FileID1 = ToSM.getFileID(Location1);
+  FileID const FileID2 = ToSM.getFileID(Location2);
 
   // Check that the imported files look like as if they were included from the
   // start of the main file.
-  SourceLocation FileStart = ToSM.getLocForStartOfFile(ToSM.getMainFileID());
+  SourceLocation const FileStart = ToSM.getLocForStartOfFile(ToSM.getMainFileID());
   EXPECT_NE(FileID1, ToSM.getMainFileID());
   EXPECT_NE(FileID2, ToSM.getMainFileID());
   EXPECT_EQ(ToSM.getIncludeLoc(FileID1), FileStart);
@@ -6302,8 +6302,8 @@ TEST_P(ImportSourceLocations, PreserveFileIDTreeStructure) {
 TEST_P(ImportSourceLocations, NormalFileBuffer) {
   // Test importing normal file buffers.
 
-  std::string Path = "input0.c";
-  std::string Source = "int X;";
+  std::string const Path = "input0.c";
+  std::string const Source = "int X;";
   TranslationUnitDecl *FromTU = getTuDecl(Source, Lang_C99, Path);
 
   SourceLocation ImportedLoc;
@@ -6315,8 +6315,8 @@ TEST_P(ImportSourceLocations, NormalFileBuffer) {
   }
 
   // Make sure the imported buffer has the original contents.
-  SourceManager &ToSM = ToAST->getSourceManager();
-  FileID ImportedID = ToSM.getFileID(ImportedLoc);
+  SourceManager  const&ToSM = ToAST->getSourceManager();
+  FileID const ImportedID = ToSM.getFileID(ImportedLoc);
   EXPECT_EQ(Source,
             ToSM.getBufferOrFake(ImportedID, SourceLocation()).getBuffer());
 }
@@ -6324,7 +6324,7 @@ TEST_P(ImportSourceLocations, NormalFileBuffer) {
 TEST_P(ImportSourceLocations, OverwrittenFileBuffer) {
   // Test importing overwritten file buffers.
 
-  std::string Path = "input0.c";
+  std::string const Path = "input0.c";
   TranslationUnitDecl *FromTU = getTuDecl("int X;", Lang_C99, Path);
 
   // Overwrite the file buffer for our input file with new content.
@@ -6349,8 +6349,8 @@ TEST_P(ImportSourceLocations, OverwrittenFileBuffer) {
   }
 
   // Make sure the imported buffer has the overwritten contents.
-  SourceManager &ToSM = ToAST->getSourceManager();
-  FileID ImportedID = ToSM.getFileID(ImportedLoc);
+  SourceManager  const&ToSM = ToAST->getSourceManager();
+  FileID const ImportedID = ToSM.getFileID(ImportedLoc);
   EXPECT_EQ(Contents,
             ToSM.getBufferOrFake(ImportedID, SourceLocation()).getBuffer());
 }

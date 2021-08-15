@@ -34,8 +34,8 @@ static void EmitDeclInit(CodeGenFunction &CGF, const VarDecl &D,
   assert(!D.getType()->isReferenceType() &&
          "Should not call EmitDeclInit on a reference!");
 
-  QualType type = D.getType();
-  LValue lv = CGF.MakeAddrLValue(DeclPtr, type);
+  QualType const type = D.getType();
+  LValue const lv = CGF.MakeAddrLValue(DeclPtr, type);
 
   const Expr *Init = D.getInit();
   switch (CGF.getEvaluationKind(type)) {
@@ -75,7 +75,7 @@ static void EmitDeclDestroy(CodeGenFunction &CGF, const VarDecl &D,
   // that isn't balanced out by a destructor call as intended by the
   // attribute. This also checks for -fno-c++-static-destructors and
   // bails even if the attribute is not present.
-  QualType::DestructionKind DtorKind = D.needsDestruction(CGF.getContext());
+  QualType::DestructionKind const DtorKind = D.needsDestruction(CGF.getContext());
 
   // FIXME:  __attribute__((cleanup)) ?
 
@@ -98,21 +98,21 @@ static void EmitDeclDestroy(CodeGenFunction &CGF, const VarDecl &D,
   llvm::Constant *Argument;
 
   CodeGenModule &CGM = CGF.CGM;
-  QualType Type = D.getType();
+  QualType const Type = D.getType();
 
   // Special-case non-array C++ destructors, if they have the right signature.
   // Under some ABIs, destructors return this instead of void, and cannot be
   // passed directly to __cxa_atexit if the target does not allow this
   // mismatch.
   const CXXRecordDecl *Record = Type->getAsCXXRecordDecl();
-  bool CanRegisterDestructor =
+  bool const CanRegisterDestructor =
       Record && (!CGM.getCXXABI().HasThisReturn(
                      GlobalDecl(Record->getDestructor(), Dtor_Complete)) ||
                  CGM.getCXXABI().canCallMismatchedFunctionType());
   // If __cxa_atexit is disabled via a flag, a different helper function is
   // generated elsewhere which uses atexit instead, and it takes the destructor
   // directly.
-  bool UsingExternalHelper = !CGM.getCodeGenOpts().CXAAtExit;
+  bool const UsingExternalHelper = !CGM.getCodeGenOpts().CXAAtExit;
   if (Record && (CanRegisterDestructor || UsingExternalHelper)) {
     assert(!Record->hasTrivialDestructor());
     CXXDestructorDecl *Dtor = Record->getDestructor();
@@ -159,14 +159,14 @@ void CodeGenFunction::EmitInvariantStart(llvm::Constant *Addr, CharUnits Size) {
     return;
 
   // Grab the llvm.invariant.start intrinsic.
-  llvm::Intrinsic::ID InvStartID = llvm::Intrinsic::invariant_start;
+  llvm::Intrinsic::ID const InvStartID = llvm::Intrinsic::invariant_start;
   // Overloaded address space type.
-  llvm::Type *ObjectPtr[1] = {Int8PtrTy};
+  llvm::Type *const ObjectPtr[1] = {Int8PtrTy};
   llvm::Function *InvariantStart = CGM.getIntrinsic(InvStartID, ObjectPtr);
 
   // Emit a call with the size in bytes of the object.
-  uint64_t Width = Size.getQuantity();
-  llvm::Value *Args[2] = { llvm::ConstantInt::getSigned(Int64Ty, Width),
+  uint64_t const Width = Size.getQuantity();
+  llvm::Value *const Args[2] = { llvm::ConstantInt::getSigned(Int64Ty, Width),
                            llvm::ConstantExpr::getBitCast(Addr, Int8PtrTy)};
   Builder.CreateCall(InvariantStart, Args);
 }
@@ -176,7 +176,7 @@ void CodeGenFunction::EmitCXXGlobalVarDeclInit(const VarDecl &D,
                                                bool PerformInit) {
 
   const Expr *Init = D.getInit();
-  QualType T = D.getType();
+  QualType const T = D.getType();
 
   // The address space of a static local variable (DeclPtr) may be different
   // from the address space of the "this" argument of the constructor. In that
@@ -193,15 +193,15 @@ void CodeGenFunction::EmitCXXGlobalVarDeclInit(const VarDecl &D,
   // For example, in the above CUDA code, the static local variable s has a
   // "shared" address space qualifier, but the constructor of StructWithCtor
   // expects "this" in the "generic" address space.
-  unsigned ExpectedAddrSpace = getContext().getTargetAddressSpace(T);
-  unsigned ActualAddrSpace = DeclPtr->getType()->getPointerAddressSpace();
+  unsigned const ExpectedAddrSpace = getContext().getTargetAddressSpace(T);
+  unsigned const ActualAddrSpace = DeclPtr->getType()->getPointerAddressSpace();
   if (ActualAddrSpace != ExpectedAddrSpace) {
     llvm::Type *LTy = CGM.getTypes().ConvertTypeForMem(T);
     llvm::PointerType *PTy = llvm::PointerType::get(LTy, ExpectedAddrSpace);
     DeclPtr = llvm::ConstantExpr::getAddrSpaceCast(DeclPtr, PTy);
   }
 
-  ConstantAddress DeclAddr(DeclPtr, getContext().getDeclAlign(&D));
+  ConstantAddress const DeclAddr(DeclPtr, getContext().getDeclAlign(&D));
 
   if (!T->isReferenceType()) {
     if (getLangOpts().OpenMP && !getLangOpts().OpenMPSimd &&
@@ -221,7 +221,7 @@ void CodeGenFunction::EmitCXXGlobalVarDeclInit(const VarDecl &D,
 
   assert(PerformInit && "cannot have constant initializer which needs "
          "destruction for reference");
-  RValue RV = EmitReferenceBindingToExpr(Init);
+  RValue const RV = EmitReferenceBindingToExpr(Init);
   EmitStoreOfScalar(RV.getScalarVal(), DeclAddr, false, T);
 }
 
@@ -290,7 +290,7 @@ llvm::Function *CodeGenFunction::createTLSAtExitStub(
   ImplicitParamDecl IPD(CGM.getContext(), CGM.getContext().IntTy,
                         ImplicitParamDecl::Other);
   Args.push_back(&IPD);
-  QualType ResTy = CGM.getContext().IntTy;
+  QualType const ResTy = CGM.getContext().IntTy;
 
   CGF.StartFunction(GlobalDecl(&D, DynamicInitKind::AtExit), ResTy, DtorStub,
                     FI, Args, D.getLocation(), D.getInit()->getExprLoc());
@@ -551,7 +551,7 @@ CodeGenModule::EmitCXXGlobalVarDeclInitFunc(const VarDecl *D,
   } else if (PerformInit && ISA) {
     EmitPointerToInitFunc(D, Addr, Fn, ISA);
   } else if (auto *IPA = D->getAttr<InitPriorityAttr>()) {
-    OrderGlobalInitsOrStermFinalizers Key(IPA->getPriority(),
+    OrderGlobalInitsOrStermFinalizers const Key(IPA->getPriority(),
                                           PrioritizedCXXGlobalInits.size());
     PrioritizedCXXGlobalInits.push_back(std::make_pair(Key, Fn));
   } else if (isTemplateInstantiation(D->getTemplateSpecializationKind()) ||
@@ -659,7 +659,7 @@ CodeGenModule::EmitCXXGlobalInitFunc() {
 
       LocalCXXGlobalInits.clear();
 
-      unsigned int Priority = I->first.priority;
+      unsigned int const Priority = I->first.priority;
       llvm::Function *Fn = CreateGlobalInitOrCleanUpFunction(
           FTy, "_GLOBAL__I_" + getPrioritySuffix(Priority), FI);
 
@@ -733,7 +733,7 @@ void CodeGenModule::EmitCXXGlobalCleanUpFunc() {
 
       LocalCXXStermFinalizers.clear();
 
-      unsigned int Priority = I->first.priority;
+      unsigned int const Priority = I->first.priority;
       llvm::Function *Fn = CreateGlobalInitOrCleanUpFunction(
           FTy, "_GLOBAL__a_" + getPrioritySuffix(Priority), FI);
 

@@ -148,11 +148,11 @@ void foo() {
   int x = 42;
   int *y = nullptr;
 })") {
-  SVal X = getByName("x");
+  SVal const X = getByName("x");
   ASSERT_FALSE(X.getType(Context).isNull());
   EXPECT_EQ(Context.IntTy, X.getType(Context));
 
-  SVal Y = getByName("y");
+  SVal const Y = getByName("y");
   ASSERT_FALSE(Y.getType(Context).isNull());
   EXPECT_EQ(Context.getUIntPtrType(), Y.getType(Context));
 }
@@ -163,16 +163,16 @@ void foo(int *x) {
   unsigned b = (long unsigned)&a;
   int c = (long int)nullptr;
 })") {
-  SVal A = getByName("a");
+  SVal const A = getByName("a");
   ASSERT_FALSE(A.getType(Context).isNull());
   // TODO: Turn it into signed long
   EXPECT_EQ(Context.getUIntPtrType(), A.getType(Context));
 
-  SVal B = getByName("b");
+  SVal const B = getByName("b");
   ASSERT_FALSE(B.getType(Context).isNull());
   EXPECT_EQ(Context.UnsignedIntTy, B.getType(Context));
 
-  SVal C = getByName("c");
+  SVal const C = getByName("c");
   ASSERT_FALSE(C.getType(Context).isNull());
   EXPECT_EQ(Context.IntTy, C.getType(Context));
 }
@@ -183,18 +183,18 @@ void foo(int a, int b) {
   int y = a + b;
   long z = a;
 })") {
-  QualType Int = Context.IntTy;
+  QualType const Int = Context.IntTy;
 
-  SVal X = getByName("x");
+  SVal const X = getByName("x");
   ASSERT_FALSE(X.getType(Context).isNull());
   EXPECT_EQ(Int, X.getType(Context));
 
-  SVal Y = getByName("y");
+  SVal const Y = getByName("y");
   ASSERT_FALSE(Y.getType(Context).isNull());
   EXPECT_EQ(Int, Y.getType(Context));
 
   // TODO: Change to Long when we support symbolic casts
-  SVal Z = getByName("z");
+  SVal const Z = getByName("z");
   ASSERT_FALSE(Z.getType(Context).isNull());
   EXPECT_EQ(Int, Z.getType(Context));
 }
@@ -214,39 +214,39 @@ void foo(int x, int *y, Z z) {
   int &e = z.a;
   int &f = *z.b;
 })") {
-  QualType Int = Context.IntTy;
+  QualType const Int = Context.IntTy;
 
-  SVal A = getByName("a");
+  SVal const A = getByName("a");
   ASSERT_FALSE(A.getType(Context).isNull());
   const auto *APtrTy = dyn_cast<PointerType>(A.getType(Context));
   ASSERT_NE(APtrTy, nullptr);
   EXPECT_EQ(Int, APtrTy->getPointeeType());
 
-  SVal B = getByName("b");
+  SVal const B = getByName("b");
   ASSERT_FALSE(B.getType(Context).isNull());
   const auto *BPtrTy = dyn_cast<PointerType>(B.getType(Context));
   ASSERT_NE(BPtrTy, nullptr);
   EXPECT_EQ(Int, BPtrTy->getPointeeType());
 
-  SVal C = getByName("c");
+  SVal const C = getByName("c");
   ASSERT_FALSE(C.getType(Context).isNull());
   const auto *CPtrTy = dyn_cast<PointerType>(C.getType(Context));
   ASSERT_NE(CPtrTy, nullptr);
   EXPECT_EQ(Int, CPtrTy->getPointeeType());
 
-  SVal D = getByName("d");
+  SVal const D = getByName("d");
   ASSERT_FALSE(D.getType(Context).isNull());
   const auto *DRefTy = dyn_cast<LValueReferenceType>(D.getType(Context));
   ASSERT_NE(DRefTy, nullptr);
   EXPECT_EQ(Int, DRefTy->getPointeeType());
 
-  SVal E = getByName("e");
+  SVal const E = getByName("e");
   ASSERT_FALSE(E.getType(Context).isNull());
   const auto *EPtrTy = dyn_cast<PointerType>(E.getType(Context));
   ASSERT_NE(EPtrTy, nullptr);
   EXPECT_EQ(Int, EPtrTy->getPointeeType());
 
-  SVal F = getByName("f");
+  SVal const F = getByName("f");
   ASSERT_FALSE(F.getType(Context).isNull());
   const auto *FPtrTy = dyn_cast<PointerType>(F.getType(Context));
   ASSERT_NE(FPtrTy, nullptr);
@@ -269,19 +269,19 @@ void foo(int x) {
   TestUnion d = {.c=b};
 }
 )") {
-  SVal A = getByName("a");
+  SVal const A = getByName("a");
   ASSERT_FALSE(A.getType(Context).isNull());
   const auto *AArrayType = dyn_cast<ArrayType>(A.getType(Context));
   ASSERT_NE(AArrayType, nullptr);
   EXPECT_EQ(Context.IntTy, AArrayType->getElementType());
 
-  SVal B = getByName("b");
+  SVal const B = getByName("b");
   ASSERT_FALSE(B.getType(Context).isNull());
   const auto *BRecordType = dyn_cast<RecordType>(B.getType(Context));
   ASSERT_NE(BRecordType, nullptr);
   EXPECT_EQ("TestStruct", BRecordType->getDecl()->getName());
 
-  SVal C = getByName("c");
+  SVal const C = getByName("c");
   ASSERT_FALSE(C.getType(Context).isNull());
   const auto *CRecordType = dyn_cast<RecordType>(C.getType(Context));
   ASSERT_NE(CRecordType, nullptr);
@@ -307,7 +307,7 @@ void foo() {
   const char *a = "Hello, world!";
 }
 )") {
-  SVal A = getByName("a");
+  SVal const A = getByName("a");
   ASSERT_FALSE(A.getType(Context).isNull());
   const auto *APtrTy = dyn_cast<PointerType>(A.getType(Context));
   ASSERT_NE(APtrTy, nullptr);
@@ -322,7 +322,7 @@ void TestClass::foo() {
   const auto *a = this;
 }
 )") {
-  SVal A = getByName("a");
+  SVal const A = getByName("a");
   ASSERT_FALSE(A.getType(Context).isNull());
   const auto *APtrTy = dyn_cast<PointerType>(A.getType(Context));
   ASSERT_NE(APtrTy, nullptr);
@@ -337,7 +337,7 @@ void foo() {
   auto *a = &bar;
 }
 )") {
-  SVal A = getByName("a");
+  SVal const A = getByName("a");
   ASSERT_FALSE(A.getType(Context).isNull());
   const auto *APtrTy = dyn_cast<PointerType>(A.getType(Context));
   ASSERT_NE(APtrTy, nullptr);
@@ -351,11 +351,11 @@ void foo() {
   char *b = (char *)&&entry;
 }
 )") {
-  SVal A = getByName("a");
+  SVal const A = getByName("a");
   ASSERT_FALSE(A.getType(Context).isNull());
   EXPECT_EQ(Context.VoidPtrTy, A.getType(Context));
 
-  SVal B = getByName("a");
+  SVal const B = getByName("a");
   ASSERT_FALSE(B.getType(Context).isNull());
   // TODO: Change to CharTy when we support symbolic casts
   EXPECT_EQ(Context.VoidPtrTy, B.getType(Context));

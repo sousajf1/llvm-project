@@ -34,7 +34,7 @@ ArgumentsAdjuster getDefaultArgumentsAdjusters() {
 class ThreadSafeToolResults : public ToolResults {
 public:
   void addResult(StringRef Key, StringRef Value) override {
-    std::unique_lock<std::mutex> LockGuard(Mutex);
+    std::unique_lock<std::mutex> const LockGuard(Mutex);
     Results.addResult(Key, Value);
   }
 
@@ -89,17 +89,17 @@ llvm::Error AllTUsToolExecutor::execute(
   std::string ErrorMsg;
   std::mutex TUMutex;
   auto AppendError = [&](llvm::Twine Err) {
-    std::unique_lock<std::mutex> LockGuard(TUMutex);
+    std::unique_lock<std::mutex> const LockGuard(TUMutex);
     ErrorMsg += Err.str();
   };
 
   auto Log = [&](llvm::Twine Msg) {
-    std::unique_lock<std::mutex> LockGuard(TUMutex);
+    std::unique_lock<std::mutex> const LockGuard(TUMutex);
     llvm::errs() << Msg.str() << "\n";
   };
 
   std::vector<std::string> Files;
-  llvm::Regex RegexFilter(Filter);
+  llvm::Regex const RegexFilter(Filter);
   for (const auto& File : Compilations.getAllFiles()) {
     if (RegexFilter.match(File))
       Files.push_back(File);
@@ -108,7 +108,7 @@ llvm::Error AllTUsToolExecutor::execute(
   const std::string TotalNumStr = std::to_string(Files.size());
   unsigned Counter = 0;
   auto Count = [&]() {
-    std::unique_lock<std::mutex> LockGuard(TUMutex);
+    std::unique_lock<std::mutex> const LockGuard(TUMutex);
     return ++Counter;
   };
 
@@ -116,14 +116,14 @@ llvm::Error AllTUsToolExecutor::execute(
 
   {
     llvm::ThreadPool Pool(llvm::hardware_concurrency(ThreadCount));
-    for (std::string File : Files) {
+    for (std::string const File : Files) {
       Pool.async(
           [&](std::string Path) {
             Log("[" + std::to_string(Count()) + "/" + TotalNumStr +
                 "] Processing file " + Path);
             // Each thread gets an indepent copy of a VFS to allow different
             // concurrent working directories.
-            IntrusiveRefCntPtr<llvm::vfs::FileSystem> FS =
+            IntrusiveRefCntPtr<llvm::vfs::FileSystem> const FS =
                 llvm::vfs::createPhysicalFileSystem();
             ClangTool Tool(Compilations, {Path},
                            std::make_shared<PCHContainerOperations>(), FS);

@@ -113,14 +113,14 @@ TEST(JSONCompilationDatabase, GetAllCompileCommands) {
               .size())
       << ErrorMessage;
 
-  StringRef Directory1("//net/dir1");
-  StringRef FileName1("file1");
-  StringRef Command1("command1");
-  StringRef Output1("file1.o");
-  StringRef Directory2("//net/dir2");
-  StringRef FileName2("file2");
-  StringRef Command2("command2");
-  StringRef Output2("");
+  StringRef const Directory1("//net/dir1");
+  StringRef const FileName1("file1");
+  StringRef const Command1("command1");
+  StringRef const Output1("file1.o");
+  StringRef const Directory2("//net/dir2");
+  StringRef const FileName2("file2");
+  StringRef const Command2("command2");
+  StringRef const Output2("");
 
   std::vector<CompileCommand> Commands = getAllCompileCommands(
       JSONCommandLineSyntax::Gnu,
@@ -189,11 +189,11 @@ static CompileCommand findCompileArgsInJsonDatabase(StringRef FileName,
 }
 
 TEST(JSONCompilationDatabase, ArgumentsPreferredOverCommand) {
-   StringRef Directory("//net/dir");
-   StringRef FileName("//net/dir/filename");
-   StringRef Command("command");
-   StringRef Arguments = "arguments";
-   Twine ArgumentsAccumulate;
+   StringRef const Directory("//net/dir");
+   StringRef const FileName("//net/dir/filename");
+   StringRef const Command("command");
+   StringRef const Arguments = "arguments";
+   Twine const ArgumentsAccumulate;
    std::string ErrorMessage;
    CompileCommand FoundCommand = findCompileArgsInJsonDatabase(
       FileName,
@@ -294,16 +294,16 @@ TEST_F(FileMatchTrieTest, SingleFile) {
 
 TEST(findCompileArgsInJsonDatabase, FindsNothingIfEmpty) {
   std::string ErrorMessage;
-  CompileCommand NotFound = findCompileArgsInJsonDatabase(
+  CompileCommand const NotFound = findCompileArgsInJsonDatabase(
     "a-file.cpp", "", ErrorMessage);
   EXPECT_TRUE(NotFound.CommandLine.empty()) << ErrorMessage;
   EXPECT_TRUE(NotFound.Directory.empty()) << ErrorMessage;
 }
 
 TEST(findCompileArgsInJsonDatabase, ReadsSingleEntry) {
-  StringRef Directory("//net/some/directory");
-  StringRef FileName("//net/path/to/a-file.cpp");
-  StringRef Command("//net/path/to/compiler and some arguments");
+  StringRef const Directory("//net/some/directory");
+  StringRef const FileName("//net/path/to/a-file.cpp");
+  StringRef const Command("//net/path/to/compiler and some arguments");
   std::string ErrorMessage;
   CompileCommand FoundCommand = findCompileArgsInJsonDatabase(
     FileName,
@@ -319,7 +319,7 @@ TEST(findCompileArgsInJsonDatabase, ReadsSingleEntry) {
   EXPECT_EQ("some", FoundCommand.CommandLine[2]) << ErrorMessage;
   EXPECT_EQ("arguments", FoundCommand.CommandLine[3]) << ErrorMessage;
 
-  CompileCommand NotFound = findCompileArgsInJsonDatabase(
+  CompileCommand const NotFound = findCompileArgsInJsonDatabase(
     "a-file.cpp",
     ("[{\"directory\":\"" + Directory + "\"," +
        "\"command\":\"" + Command + "\","
@@ -330,9 +330,9 @@ TEST(findCompileArgsInJsonDatabase, ReadsSingleEntry) {
 }
 
 TEST(findCompileArgsInJsonDatabase, ReadsCompileCommandLinesWithSpaces) {
-  StringRef Directory("//net/some/directory");
-  StringRef FileName("//net/path/to/a-file.cpp");
-  StringRef Command("\\\"//net/path to compiler\\\" \\\"and an argument\\\"");
+  StringRef const Directory("//net/some/directory");
+  StringRef const FileName("//net/path/to/a-file.cpp");
+  StringRef const Command("\\\"//net/path to compiler\\\" \\\"and an argument\\\"");
   std::string ErrorMessage;
   CompileCommand FoundCommand = findCompileArgsInJsonDatabase(
     FileName,
@@ -347,11 +347,11 @@ TEST(findCompileArgsInJsonDatabase, ReadsCompileCommandLinesWithSpaces) {
 }
 
 TEST(findCompileArgsInJsonDatabase, ReadsDirectoryWithSpaces) {
-  StringRef Directory("//net/some directory / with spaces");
-  StringRef FileName("//net/path/to/a-file.cpp");
-  StringRef Command("a command");
+  StringRef const Directory("//net/some directory / with spaces");
+  StringRef const FileName("//net/path/to/a-file.cpp");
+  StringRef const Command("a command");
   std::string ErrorMessage;
-  CompileCommand FoundCommand = findCompileArgsInJsonDatabase(
+  CompileCommand const FoundCommand = findCompileArgsInJsonDatabase(
     FileName,
     ("[{\"directory\":\"" + Directory + "\"," +
        "\"command\":\"" + Command + "\","
@@ -361,9 +361,9 @@ TEST(findCompileArgsInJsonDatabase, ReadsDirectoryWithSpaces) {
 }
 
 TEST(findCompileArgsInJsonDatabase, FindsEntry) {
-  StringRef Directory("//net/directory");
-  StringRef FileName("file");
-  StringRef Command("command");
+  StringRef const Directory("//net/directory");
+  StringRef const FileName("file");
+  StringRef const Command("command");
   std::string JsonDatabase = "[";
   for (int I = 0; I < 10; ++I) {
     if (I > 0) JsonDatabase += ",";
@@ -382,7 +382,7 @@ TEST(findCompileArgsInJsonDatabase, FindsEntry) {
 }
 
 TEST(findCompileArgsInJsonDatabase, ParsesCompilerWrappers) {
-  std::vector<std::pair<std::string, std::string>> Cases = {
+  std::vector<std::pair<std::string, std::string>> const Cases = {
       {"distcc gcc foo.c", "gcc foo.c"},
       {"gomacc clang++ foo.c", "clang++ foo.c"},
       {"sccache clang++ foo.c", "clang++ foo.c"},
@@ -397,7 +397,7 @@ TEST(findCompileArgsInJsonDatabase, ParsesCompilerWrappers) {
   std::string ErrorMessage;
 
   for (const auto &Case : Cases) {
-    std::string DB =
+    std::string const DB =
         R"([{"directory":"//net/dir", "file":"//net/dir/foo.c", "command":")" +
         Case.first + "\"}]";
     CompileCommand FoundCommand =
@@ -408,18 +408,18 @@ TEST(findCompileArgsInJsonDatabase, ParsesCompilerWrappers) {
 }
 
 static std::vector<std::string> unescapeJsonCommandLine(StringRef Command) {
-  std::string JsonDatabase =
+  std::string const JsonDatabase =
     ("[{\"directory\":\"//net/root\", \"file\":\"test\", \"command\": \"" +
      Command + "\"}]").str();
   std::string ErrorMessage;
-  CompileCommand FoundCommand = findCompileArgsInJsonDatabase(
+  CompileCommand const FoundCommand = findCompileArgsInJsonDatabase(
     "//net/root/test", JsonDatabase, ErrorMessage);
   EXPECT_TRUE(ErrorMessage.empty()) << ErrorMessage;
   return FoundCommand.CommandLine;
 }
 
 TEST(unescapeJsonCommandLine, ReturnsEmptyArrayOnEmptyString) {
-  std::vector<std::string> Result = unescapeJsonCommandLine("");
+  std::vector<std::string> const Result = unescapeJsonCommandLine("");
   EXPECT_TRUE(Result.empty());
 }
 
@@ -514,8 +514,8 @@ TEST(unescapeJsonCommandLine, ParsesSingleQuotedString) {
 }
 
 TEST(FixedCompilationDatabase, ReturnsFixedCommandLine) {
-  FixedCompilationDatabase Database(".", /*CommandLine*/ {"one", "two"});
-  StringRef FileName("source");
+  FixedCompilationDatabase const Database(".", /*CommandLine*/ {"one", "two"});
+  StringRef const FileName("source");
   std::vector<CompileCommand> Result =
     Database.getCompileCommands(FileName);
   ASSERT_EQ(1ul, Result.size());
@@ -529,7 +529,7 @@ TEST(FixedCompilationDatabase, GetAllFiles) {
   std::vector<std::string> CommandLine;
   CommandLine.push_back("one");
   CommandLine.push_back("two");
-  FixedCompilationDatabase Database(".", CommandLine);
+  FixedCompilationDatabase const Database(".", CommandLine);
 
   EXPECT_EQ(0ul, Database.getAllFiles().size());
 }
@@ -538,7 +538,7 @@ TEST(FixedCompilationDatabase, GetAllCompileCommands) {
   std::vector<std::string> CommandLine;
   CommandLine.push_back("one");
   CommandLine.push_back("two");
-  FixedCompilationDatabase Database(".", CommandLine);
+  FixedCompilationDatabase const Database(".", CommandLine);
 
   EXPECT_EQ(0ul, Database.getAllCompileCommands().size());
 }
@@ -567,7 +567,7 @@ TEST(FixedCompilationDatabase, FromBuffer) {
 TEST(ParseFixedCompilationDatabase, ReturnsNullOnEmptyArgumentList) {
   int Argc = 0;
   std::string ErrorMsg;
-  std::unique_ptr<FixedCompilationDatabase> Database =
+  std::unique_ptr<FixedCompilationDatabase> const Database =
       FixedCompilationDatabase::loadFromCommandLine(Argc, nullptr, ErrorMsg);
   EXPECT_FALSE(Database);
   EXPECT_TRUE(ErrorMsg.empty());
@@ -578,7 +578,7 @@ TEST(ParseFixedCompilationDatabase, ReturnsNullWithoutDoubleDash) {
   int Argc = 2;
   const char *Argv[] = { "1", "2" };
   std::string ErrorMsg;
-  std::unique_ptr<FixedCompilationDatabase> Database(
+  std::unique_ptr<FixedCompilationDatabase> const Database(
       FixedCompilationDatabase::loadFromCommandLine(Argc, Argv, ErrorMsg));
   EXPECT_FALSE(Database);
   EXPECT_TRUE(ErrorMsg.empty());
@@ -668,7 +668,7 @@ TEST(ParseFixedCompilationDatabase, HandlesArgv0) {
     Database->getCompileCommands("source");
   ASSERT_EQ(1ul, Result.size());
   ASSERT_EQ(".", Result[0].Directory);
-  std::vector<std::string> Expected;
+  std::vector<std::string> const Expected;
   ASSERT_THAT(Result[0].CommandLine,
               ElementsAre(EndsWith("clang-tool"), "source"));
   EXPECT_EQ(2, Argc);
@@ -876,7 +876,7 @@ TEST(TransferCompileCommandTest, Smoke) {
   Cmd.Filename = "foo.cc";
   Cmd.CommandLine = {"clang", "-Wall", "foo.cc"};
   Cmd.Directory = "dir";
-  CompileCommand Transferred = transferCompileCommand(std::move(Cmd), "foo.h");
+  CompileCommand const Transferred = transferCompileCommand(std::move(Cmd), "foo.h");
   EXPECT_EQ(Transferred.Filename, "foo.h");
   EXPECT_THAT(Transferred.CommandLine,
               ElementsAre("clang", "-Wall", "-x", "c++-header", "foo.h"));
@@ -884,7 +884,7 @@ TEST(TransferCompileCommandTest, Smoke) {
 }
 
 TEST(CompileCommandTest, EqualityOperator) {
-  CompileCommand CCRef("/foo/bar", "hello.c", {"a", "b"}, "hello.o");
+  CompileCommand const CCRef("/foo/bar", "hello.c", {"a", "b"}, "hello.o");
   CompileCommand CCTest = CCRef;
 
   EXPECT_TRUE(CCRef == CCTest);

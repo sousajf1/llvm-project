@@ -33,7 +33,7 @@ void nacltools::AssemblerARM::ConstructJob(Compilation &C, const JobAction &JA,
                                            const char *LinkingOutput) const {
   const toolchains::NaClToolChain &ToolChain =
       static_cast<const toolchains::NaClToolChain &>(getToolChain());
-  InputInfo NaClMacros(types::TY_PP_Asm, ToolChain.GetNaClArmMacrosPath(),
+  InputInfo const NaClMacros(types::TY_PP_Asm, ToolChain.GetNaClArmMacrosPath(),
                        "nacl-arm-macros.s");
   InputInfoList NewInputs;
   NewInputs.push_back(NaClMacros);
@@ -133,7 +133,7 @@ void nacltools::Linker::ConstructJob(Compilation &C, const JobAction &JA,
   if (D.CCCIsCXX() &&
       !Args.hasArg(options::OPT_nostdlib, options::OPT_nodefaultlibs)) {
     if (ToolChain.ShouldLinkCXXStdlib(Args)) {
-      bool OnlyLibstdcxxStatic =
+      bool const OnlyLibstdcxxStatic =
           Args.hasArg(options::OPT_static_libstdcxx) && !IsStatic;
       if (OnlyLibstdcxxStatic)
         CmdArgs.push_back("-Bstatic");
@@ -213,13 +213,13 @@ NaClToolChain::NaClToolChain(const Driver &D, const llvm::Triple &Triple,
   prog_paths.clear();
 
   // Path for library files (libc.a, ...)
-  std::string FilePath(getDriver().Dir + "/../");
+  std::string const FilePath(getDriver().Dir + "/../");
 
   // Path for tools (clang, ld, etc..)
-  std::string ProgPath(getDriver().Dir + "/../");
+  std::string const ProgPath(getDriver().Dir + "/../");
 
   // Path for toolchain libraries (libgcc.a, ...)
-  std::string ToolPath(getDriver().ResourceDir + "/lib/");
+  std::string const ToolPath(getDriver().ResourceDir + "/lib/");
 
   switch (Triple.getArch()) {
   case llvm::Triple::x86:
@@ -341,7 +341,7 @@ void NaClToolChain::addLibCxxIncludePaths(
 ToolChain::CXXStdlibType
 NaClToolChain::GetCXXStdlibType(const ArgList &Args) const {
   if (Arg *A = Args.getLastArg(options::OPT_stdlib_EQ)) {
-    StringRef Value = A->getValue();
+    StringRef const Value = A->getValue();
     if (Value == "libc++")
       return ToolChain::CST_Libcxx;
     getDriver().Diag(clang::diag::err_drv_invalid_stdlib_name)
