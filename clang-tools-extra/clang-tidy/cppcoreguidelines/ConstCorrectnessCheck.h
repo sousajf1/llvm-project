@@ -11,6 +11,7 @@
 
 #include "../ClangTidyCheck.h"
 #include "clang/Analysis/Analyses/ExprMutationAnalyzer.h"
+#include "llvm/ADT/DenseSet.h"
 
 namespace clang {
 namespace tidy {
@@ -42,6 +43,7 @@ private:
 
   using MutationAnalyzer = std::unique_ptr<ExprMutationAnalyzer>;
   llvm::DenseMap<const CompoundStmt *, MutationAnalyzer> ScopesCache;
+  llvm::DenseSet<SourceLocation> TemplateDiagnosticsCache;
 
   const bool AnalyzeValues;
   const bool AnalyzeReferences;

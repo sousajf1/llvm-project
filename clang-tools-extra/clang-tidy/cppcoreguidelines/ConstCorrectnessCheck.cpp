@@ -130,9 +130,23 @@ void ConstCorrectnessCheck::check(const MatchFinder::MatchResult &Result) {
   if (ScopesCache[LocalScope]->isMutated(Variable))
     return;
 
+  /// If the variable was declared in a template it might be analyzed multiple
+  /// times. Only one of those instantiations shall emit a warning. NOTE: This
+  /// shall only deduplicate warnings for variables that are not instantiation
+  /// dependent. Variables like 'int x = 42;' in a template that can become
+  /// const emit multiple warnings otherwise.
+  const bool isNormalVariableInTemplate =
+      Variable->getDeclContext()->isDependentContext();
+  if (isNormalVariableInTemplate) {
+    if (TemplateDiagnosticsCache.contains(Variable->getBeginLoc()))
+      return;
+  }
+
   auto Diag = diag(Variable->getBeginLoc(),
                    "variable %0 of type %1 can be declared 'const'")
               << Variable << Variable->getType();
+  if (isNormalVariableInTemplate)
+    TemplateDiagnosticsCache.insert(Variable->getBeginLoc());
 
   const auto *VarDeclStmt = Result.Nodes.getNodeAs<DeclStmt>("decl-stmt");
 
