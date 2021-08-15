@@ -46,10 +46,10 @@ declarations. You may want to prepare your code base with
 Known Limitations
 -----------------
 
-The fixing part of this check might emit multiple fixes for templated variables. Each instantiation
-is analyzed separately. If there are instantiations that modify a variable and some don't, e.g.
-through overloaded operators that lack const correctness, the variable might be wrongly diagnosed
-as ``const`` candidate.
+The check will not analyze templated variables or variables that are instantiation dependent.
+Different instantiations can result in different ``const`` correctness properties and it is
+not possible to find all instantiations of a template. It might be used differently in an
+independent translation unit.
 
 Pointees can not be analyzed for constness yet. That means that the following code:
 
@@ -66,27 +66,6 @@ Pointees can not be analyzed for constness yet. That means that the following co
   int result = 520 * 120 * (*pointer_to_constant);
 
 This limitation affects the capability to add ``const`` to methods which is not possible, too.
-
-The last known limitation is related to ``auto`` variables. If the analysis is deactivated for
-reference variables but an ``auto`` variable deduces to a reference it is still analyzed.
-The results are not incorrect but were not requests.
-
-.. code-block:: c++
-
-  template <typename T>
-  void auto_usage_variants() {
-    // FIXME: Currently all 'auto's that deduce to a reference are not ignored
-    // for the analysis. That results in bad transformations.
-    auto auto_val0 = T{};
-    auto &auto_val1 = auto_val0; // Bad analysis for 'value-only' mode.
-    // CHECK-MESSAGES:[[@LINE-1]]:3: warning: variable 'auto_val1' of type 'System &' can be declared 'const'
-    // CHECK-MESSAGES:[[@LINE-2]]:3: warning: variable 'auto_val1' of type 'int &' can be declared 'const'
-    auto *auto_val2 = &auto_val0; // Not miss-judged.
-  }
-  void instantiate_auto_cases() {
-    auto_usage_variants<int>();
-    auto_usage_variants<System>();
-  }
 
 Options
 -------
