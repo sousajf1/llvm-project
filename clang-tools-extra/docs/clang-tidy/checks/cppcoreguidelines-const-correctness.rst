@@ -7,11 +7,11 @@ This check implements detection of local variables which could be declared as
 ``const``, but are not. Declaring variables as ``const`` is required by many
 coding guidelines, such as:
 `CppCoreGuidelines ES.25 <https://github.com/isocpp/CppCoreGuidelines/blob/master/CppCoreGuidelines.md#es25-declare-an-object-const-or-constexpr-unless-you-want-to-modify-its-value-later-on>`_
-and `High Integrity C++ 7.1.2 <http://www.codingstandard.com/rule/7-1-2-use-const-whenever-possible/>`_.
+and `AUTOSAR C++14 Rule A7-1-1 (6.7.1 Specifiers) <https://www.autosar.org/fileadmin/user_upload/standards/adaptive/17-03/AUTOSAR_RS_CPP14Guidelines.pdf>`_.
 
 Please note that this analysis is type-based only. Variables that are not modified
-but non-const handles might escape out of the scope are not diagnosed as potential
-``const``.
+but used to create a non-const handle that might escape the scope are not diagnosed
+as potential ``const``.
 
 .. code-block:: c++
   
@@ -20,26 +20,73 @@ but non-const handles might escape out of the scope are not diagnosed as potenti
   // but use it as read-only. This means that `i` can be declared ``const``.
   int result = i * i;
 
-The check analyzes values, pointers and references (if configured that way).
-For better understanding some code samples:
+The check can analyzes values, pointers and references but not pointees:
 
 .. code-block:: c++
 
   // Normal values like built-ins or objects.
-  int potential_const_int = 42;
+  int potential_const_int = 42; // 'const int potential_const_int = 42' suggestion.
   int copy_of_value = potential_const_int;
 
-  MyClass could_be_const;
+  MyClass could_be_const; // 'const MyClass could_be_const' suggestion;
   could_be_const.const_qualified_method();
 
   // References can be declared const as well.
-  int &reference_value = potential_const_int;
+  int &reference_value = potential_const_int; // 'const int &reference_value' suggestion.
   int another_copy = reference_value;
 
-  // Similar behaviour for pointers.
-  int *pointer_variable = &potential_const_int;
+  // The similar semantics of pointers are not (yet) analyzed.
+  int *pointer_variable = &potential_const_int; // Not 'const int *pointer_variable' suggestion.
   int last_copy = *pointer_variable;
 
+The automatic code transformation is only applied to variables that are declared in single
+declarations. You may want to prepare your code base with
+`readability-isolate-declaration <readability-isolate-declaration.html>`_ first.
+
+Known Limitations
+-----------------
+
+The fixing part of this check might emit multiple fixes for templated variables. Each instantiation
+is analyzed separately. If there are instantiations that modify a variable and some don't, e.g.
+through overloaded operators that lack const correctness, the variable might be wrongly diagnosed
+as ``const`` candidate.
+
+Pointees can not be analyzed for constness yet. That means that the following code:
+
+.. code-block:: c++
+
+  // Declare a variable that will not be modified.
+  int constant_value = 42;
+
+  // Declare a pointer to that variable, that does not modify either, but misses 'const'.
+  // Could be 'const int *pointer_to_constant = &constant_value;'
+  int *pointer_to_constant = &constant_value;
+
+  // Usage:
+  int result = 520 * 120 * (*pointer_to_constant);
+
+This limitation affects the capability to add ``const`` to methods which is not possible, too.
+
+The last known limitation is related to ``auto`` variables. If the analysis is deactivated for
+reference variables but an ``auto`` variable deduces to a reference it is still analyzed.
+The results are not incorrect but were not requests.
+
+.. code-block:: c++
+
+  template <typename T>
+  void auto_usage_variants() {
+    // FIXME: Currently all 'auto's that deduce to a reference are not ignored
+    // for the analysis. That results in bad transformations.
+    auto auto_val0 = T{};
+    auto &auto_val1 = auto_val0; // Bad analysis for 'value-only' mode.
+    // CHECK-MESSAGES:[[@LINE-1]]:3: warning: variable 'auto_val1' of type 'System &' can be declared 'const'
+    // CHECK-MESSAGES:[[@LINE-2]]:3: warning: variable 'auto_val1' of type 'int &' can be declared 'const'
+    auto *auto_val2 = &auto_val0; // Not miss-judged.
+  }
+  void instantiate_auto_cases() {
+    auto_usage_variants<int>();
+    auto_usage_variants<System>();
+  }
 
 Options
 -------
@@ -66,3 +113,54 @@ Options
     // The following operations are forbidden for `pointer_variable`.
     // *pointer_variable = 44;
     // pointer_variable = nullptr;
+
+.. option:: TransformValues (default = 0)
+
+  **Experimental** Provides fixit-hints for value types that automatically adds ``const``
+
+  .. code-block:: c++
+    
+    // Emits a hint for 'value' to become 'const int value = 42;'.
+    int value = 42;
+    // Result is modified later in its life-time. No diagnostic and fixit hint will be emitted.
+    int result = value * 3;
+    result -= 10;
+
+.. option:: TransformReferences (default = 0)
+
+  **Experimental** Provides fixit-hints for reference types that automatically adds ``const``
+
+  .. code-block:: c++
+    
+    // This variable could still be a constant. But because there is a non-const reference to
+    // it, it can not be transformed (yet).
+    int value = 42;
+    // The reference 'ref_value' is not modified and can be made 'const int &ref_value = value;'
+    int &ref_value = value;
+
+    // Result is modified later in its life-time. No diagnostic and fixit hint will be emitted.
+    int result = ref_value * 3;
+    result -= 10;
+
+.. option:: TransformPointersAsValues (default = 0)
+
+  **Experimental** Provides fixit-hints for pointers if their pointee is not changed. This does not
+  analyze if the value-pointed-to is unchanged!
+
+  Requires 'WarnPointersAsValues' to be 1.
+
+  .. code-block:: c++
+    
+    int value = 42;
+    // Emits a hint that 'ptr_value' may become 'int *const ptr_value = &value' because its pointee
+    // is not changed.
+    int *ptr_value = &value;
+
+    int result = 100 * (*ptr_value);
+    // This modification of the pointee is still allowed and not analyzed/diagnosed.
+    *ptr_value = 0;
+
+    // The following pointer may not become a 'int *const'.
+    int *changing_pointee = &value;
+    changing_pointee = &result;
+
