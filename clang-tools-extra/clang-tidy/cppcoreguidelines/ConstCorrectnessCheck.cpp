@@ -12,6 +12,8 @@
 #include "clang/ASTMatchers/ASTMatchFinder.h"
 #include "clang/ASTMatchers/ASTMatchers.h"
 
+#include <iostream>
+
 using namespace clang::ast_matchers;
 
 namespace clang {
@@ -79,12 +81,16 @@ void ConstCorrectnessCheck::registerMatchers(MatchFinder *Finder) {
 
   // Match the function scope for which the analysis of all local variables
   // shall be run.
-  const auto FunctionScope = functionDecl(hasBody(
-      compoundStmt(findAll(declStmt(allOf(containsDeclaration2(
-                                              LocalValDecl.bind("local-value")),
-                                          unless(has(decompositionDecl()))))
-                               .bind("decl-stmt")))
-          .bind("scope")));
+  const auto FunctionScope =
+      functionDecl(
+          hasBody(
+              compoundStmt(
+                  findAll(declStmt(allOf(containsDeclaration2(
+                                             LocalValDecl.bind("local-value")),
+                                         unless(has(decompositionDecl()))))
+                              .bind("decl-stmt")))
+                  .bind("scope")))
+          .bind("function-decl");
 
   Finder->addMatcher(FunctionScope, this);
 }
@@ -95,6 +101,7 @@ enum class VariableCategory { Value, Reference, Pointer };
 void ConstCorrectnessCheck::check(const MatchFinder::MatchResult &Result) {
   const auto *LocalScope = Result.Nodes.getNodeAs<CompoundStmt>("scope");
   const auto *Variable = Result.Nodes.getNodeAs<VarDecl>("local-value");
+  const auto *Function = Result.Nodes.getNodeAs<FunctionDecl>("function-decl");
 
   // There have been crashes on 'Variable == nullptr', even though the matcher
   // is not conditional. This comes probably from 'findAll'-matching.
@@ -135,17 +142,17 @@ void ConstCorrectnessCheck::check(const MatchFinder::MatchResult &Result) {
   /// shall only deduplicate warnings for variables that are not instantiation
   /// dependent. Variables like 'int x = 42;' in a template that can become
   /// const emit multiple warnings otherwise.
-  const bool isNormalVariableInTemplate =
-      Variable->getDeclContext()->isDependentContext();
-  if (isNormalVariableInTemplate) {
-    if (TemplateDiagnosticsCache.contains(Variable->getBeginLoc()))
+  const bool IsNormalVariableInTemplate = Function->isTemplateInstantiation();
+  if (IsNormalVariableInTemplate) {
+    if (TemplateDiagnosticsCache.contains(Variable->getBeginLoc())) {
       return;
+    }
   }
 
   auto Diag = diag(Variable->getBeginLoc(),
                    "variable %0 of type %1 can be declared 'const'")
               << Variable << Variable->getType();
-  if (isNormalVariableInTemplate)
+  if (IsNormalVariableInTemplate)
     TemplateDiagnosticsCache.insert(Variable->getBeginLoc());
 
   const auto *VarDeclStmt = Result.Nodes.getNodeAs<DeclStmt>("decl-stmt");
