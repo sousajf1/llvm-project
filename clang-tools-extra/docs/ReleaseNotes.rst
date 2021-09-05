@@ -75,7 +75,7 @@ New checks
 - New :doc:`cppcoreguidelines-const-correctness
   <clang-tidy/checks/cppcoreguidelines-const-correctness>` check.
 
-  Suggest adding ``const`` to unmodified local variables.
+  Detects unmodified local variables and suggest adding ``const`` if the transformation is possible.
 
 - New :doc:`readability-identifier-length
   <clang-tidy/checks/readability-identifier-length>` check.

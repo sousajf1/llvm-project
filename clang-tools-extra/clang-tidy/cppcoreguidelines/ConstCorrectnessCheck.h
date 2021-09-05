@@ -29,8 +29,8 @@ public:
         AnalyzeValues(Options.get("AnalyzeValues", 1)),
         AnalyzeReferences(Options.get("AnalyzeReferences", 1)),
         WarnPointersAsValues(Options.get("WarnPointersAsValues", 0)),
-        TransformValues(Options.get("TransformValues", 0)),
-        TransformReferences(Options.get("TransformReferences", 0)),
+        TransformValues(Options.get("TransformValues", 1)),
+        TransformReferences(Options.get("TransformReferences", 1)),
         TransformPointersAsValues(Options.get("TransformPointersAsValues", 0)) {
   }
 

@@ -108,6 +108,16 @@ void ConstCorrectnessCheck::check(const MatchFinder::MatchResult &Result) {
   if (!Variable || !LocalScope)
     return;
 
+  /// If the variable was declared in a template it might be analyzed multiple
+  /// times. Only one of those instantiations shall emit a warning. NOTE: This
+  /// shall only deduplicate warnings for variables that are not instantiation
+  /// dependent. Variables like 'int x = 42;' in a template that can become
+  /// const emit multiple warnings otherwise.
+  const bool IsNormalVariableInTemplate = Function->isTemplateInstantiation();
+  if (IsNormalVariableInTemplate &&
+      TemplateDiagnosticsCache.contains(Variable->getBeginLoc()))
+    return;
+
   VariableCategory VC = VariableCategory::Value;
   if (Variable->getType()->isReferenceType())
     VC = VariableCategory::Reference;
@@ -135,16 +145,6 @@ void ConstCorrectnessCheck::check(const MatchFinder::MatchResult &Result) {
 
   // Offload const-analysis to utility function.
   if (ScopesCache[LocalScope]->isMutated(Variable))
-    return;
-
-  /// If the variable was declared in a template it might be analyzed multiple
-  /// times. Only one of those instantiations shall emit a warning. NOTE: This
-  /// shall only deduplicate warnings for variables that are not instantiation
-  /// dependent. Variables like 'int x = 42;' in a template that can become
-  /// const emit multiple warnings otherwise.
-  const bool IsNormalVariableInTemplate = Function->isTemplateInstantiation();
-  if (IsNormalVariableInTemplate &&
-      TemplateDiagnosticsCache.contains(Variable->getBeginLoc()))
     return;
 
   auto Diag = diag(Variable->getBeginLoc(),
