@@ -396,7 +396,7 @@ public:
   ///
   /// This is the greatest alignment value supported by load, store, and alloca
   /// instructions, and global values.
-  static const unsigned MaxAlignmentExponent = 29;
+  static const unsigned MaxAlignmentExponent = 30;
   static const unsigned MaximumAlignment = 1u << MaxAlignmentExponent;
 
   typedef OpaquePtr<DeclGroupRef> DeclGroupPtrTy;
@@ -1502,15 +1502,19 @@ public:
   /// statements.
   class FPFeaturesStateRAII {
   public:
-    FPFeaturesStateRAII(Sema &S);
-    ~FPFeaturesStateRAII();
+    FPFeaturesStateRAII(Sema &S) : S(S), OldFPFeaturesState(S.CurFPFeatures) {
+      OldOverrides = S.FpPragmaStack.CurrentValue;
+    }
+    ~FPFeaturesStateRAII() {
+      S.CurFPFeatures = OldFPFeaturesState;
+      S.FpPragmaStack.CurrentValue = OldOverrides;
+    }
     FPOptionsOverride getOverrides() { return OldOverrides; }
 
   private:
     Sema& S;
     FPOptions OldFPFeaturesState;
     FPOptionsOverride OldOverrides;
-    int OldEvalMethod;
   };
 
   void addImplicitTypedef(StringRef Name, QualType T);
@@ -3338,6 +3342,8 @@ public:
                                             const AttributeCommonInfo &CI,
                                             bool BestCase,
                                             MSInheritanceModel Model);
+  ErrorAttr *mergeErrorAttr(Decl *D, const AttributeCommonInfo &CI,
+                            StringRef NewUserDiagnostic);
   FormatAttr *mergeFormatAttr(Decl *D, const AttributeCommonInfo &CI,
                               IdentifierInfo *Format, int FormatIdx,
                               int FirstArg);
@@ -10566,6 +10572,11 @@ public:
   /// an OpenMP loop directive.
   StmtResult ActOnOpenMPCanonicalLoop(Stmt *AStmt);
 
+  /// Process a canonical OpenMP loop nest that can either be a canonical
+  /// literal loop (ForStmt or CXXForRangeStmt), or the generated loop of an
+  /// OpenMP loop transformation construct.
+  StmtResult ActOnOpenMPLoopnest(Stmt *AStmt);
+
   /// End of OpenMP region.
   ///
   /// \param S Statement associated with the current OpenMP region.
@@ -11246,15 +11257,14 @@ public:
                                      SourceLocation ModifierLoc,
                                      SourceLocation EndLoc);
   /// Called on well-formed 'map' clause.
-  OMPClause *
-  ActOnOpenMPMapClause(ArrayRef<OpenMPMapModifierKind> MapTypeModifiers,
-                       ArrayRef<SourceLocation> MapTypeModifiersLoc,
-                       CXXScopeSpec &MapperIdScopeSpec,
-                       DeclarationNameInfo &MapperId,
-                       OpenMPMapClauseKind MapType, bool IsMapTypeImplicit,
-                       SourceLocation MapLoc, SourceLocation ColonLoc,
-                       ArrayRef<Expr *> VarList, const OMPVarListLocTy &Locs,
-                       ArrayRef<Expr *> UnresolvedMappers = llvm::None);
+  OMPClause *ActOnOpenMPMapClause(
+      ArrayRef<OpenMPMapModifierKind> MapTypeModifiers,
+      ArrayRef<SourceLocation> MapTypeModifiersLoc,
+      CXXScopeSpec &MapperIdScopeSpec, DeclarationNameInfo &MapperId,
+      OpenMPMapClauseKind MapType, bool IsMapTypeImplicit,
+      SourceLocation MapLoc, SourceLocation ColonLoc, ArrayRef<Expr *> VarList,
+      const OMPVarListLocTy &Locs, bool NoDiagnose = false,
+      ArrayRef<Expr *> UnresolvedMappers = llvm::None);
   /// Called on well-formed 'num_teams' clause.
   OMPClause *ActOnOpenMPNumTeamsClause(Expr *NumTeams, SourceLocation StartLoc,
                                        SourceLocation LParenLoc,

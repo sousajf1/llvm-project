@@ -682,6 +682,9 @@ def warn_unreachable_return : Warning<
 def warn_unreachable_loop_increment : Warning<
   "loop will run at most once (loop increment never executed)">,
   InGroup<UnreachableCodeLoopIncrement>, DefaultIgnore;
+def warn_unreachable_fallthrough_attr : Warning<
+  "fallthrough annotation in unreachable code">,
+  InGroup<UnreachableCodeFallthrough>, DefaultIgnore;
 def note_unreachable_silence : Note<
   "silence by adding parentheses to mark code as explicitly dead">;
 
@@ -7424,7 +7427,7 @@ def note_member_first_declared_here : Note<
 def warn_bitwise_negation_bool : Warning<
   "bitwise negation of a boolean expression%select{;| always evaluates to 'true';}0 "
   "did you mean logical negation?">,
-  InGroup<DiagGroup<"bool-operation">>;
+  InGroup<BoolOperation>, DefaultIgnore;
 def err_decrement_bool : Error<"cannot decrement expression of type bool">;
 def warn_increment_bool : Warning<
   "incrementing expression of type bool is deprecated and "
@@ -9578,9 +9581,6 @@ def err_fallthrough_attr_outside_switch : Error<
   "fallthrough annotation is outside switch statement">;
 def err_fallthrough_attr_invalid_placement : Error<
   "fallthrough annotation does not directly precede switch label">;
-def warn_fallthrough_attr_unreachable : Warning<
-  "fallthrough annotation in unreachable code">,
-  InGroup<ImplicitFallthrough>, DefaultIgnore;
 
 def warn_unreachable_default : Warning<
   "default label in switch which covers all enumeration values">,
@@ -10534,6 +10534,8 @@ def err_omp_map_shared_storage : Error<
   "variable already marked as mapped in current construct">;
 def err_omp_invalid_map_type_for_directive : Error<
   "%select{map type '%1' is not allowed|map type must be specified}0 for '#pragma omp %2'">;
+def err_omp_invalid_map_type_modifier_for_directive : Error<
+  "map type modifier '%0' is not allowed for '#pragma omp %1'">;
 def err_omp_no_clause_for_directive : Error<
   "expected at least one %0 clause for '#pragma omp %1'">;
 def err_omp_threadprivate_in_clause : Error<

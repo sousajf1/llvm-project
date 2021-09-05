@@ -59,7 +59,6 @@ namespace {
 
   class AtomicExpand: public FunctionPass {
     const TargetLowering *TLI = nullptr;
-    OptimizationRemarkEmitter *ORE;
 
   public:
     static char ID; // Pass identification, replacement for typeid
@@ -71,7 +70,6 @@ namespace {
     bool runOnFunction(Function &F) override;
 
   private:
-    void getAnalysisUsage(AnalysisUsage &AU) const override;
     bool bracketInstWithFences(Instruction *I, AtomicOrdering Order);
     IntegerType *getCorrespondingIntegerType(Type *T, const DataLayout &DL);
     LoadInst *convertAtomicLoadToIntegerType(LoadInst *LI);
@@ -168,16 +166,11 @@ static bool atomicSizeSupported(const TargetLowering *TLI, Inst *I) {
          Size <= TLI->getMaxAtomicSizeInBitsSupported() / 8;
 }
 
-void AtomicExpand::getAnalysisUsage(AnalysisUsage &AU) const {
-  AU.addRequired<OptimizationRemarkEmitterWrapperPass>();
-}
-
 bool AtomicExpand::runOnFunction(Function &F) {
   auto *TPC = getAnalysisIfAvailable<TargetPassConfig>();
   if (!TPC)
     return false;
 
-  ORE = &getAnalysis<OptimizationRemarkEmitterWrapperPass>().getORE();
   auto &TM = TPC->getTM<TargetMachine>();
   if (!TM.getSubtargetImpl(F)->enableAtomicExpand())
     return false;
@@ -615,8 +608,9 @@ bool AtomicExpand::tryExpandAtomicRMW(AtomicRMWInst *AI) {
       auto MemScope = SSNs[AI->getSyncScopeID()].empty()
                           ? "system"
                           : SSNs[AI->getSyncScopeID()];
-      ORE->emit([&]() {
-        return OptimizationRemark(DEBUG_TYPE, "Passed", AI->getFunction())
+      OptimizationRemarkEmitter ORE(AI->getFunction());
+      ORE.emit([&]() {
+        return OptimizationRemark(DEBUG_TYPE, "Passed", AI)
                << "A compare and swap loop was generated for an atomic "
                << AI->getOperationName(AI->getOperation()) << " operation at "
                << MemScope << " memory scope";
@@ -1871,7 +1865,7 @@ bool AtomicExpand::expandAtomicOpToLibcall(
   // Now, the return type.
   if (CASExpected) {
     ResultTy = Type::getInt1Ty(Ctx);
-    Attr = Attr.addAttribute(Ctx, AttributeList::ReturnIndex, Attribute::ZExt);
+    Attr = Attr.addRetAttribute(Ctx, Attribute::ZExt);
   } else if (HasResult && UseSizedLibcall)
     ResultTy = SizedIntTy;
   else

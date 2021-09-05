@@ -72,6 +72,11 @@ The improvements are...
 New checks
 ^^^^^^^^^^
 
+- New :doc:`bugprone-suspicious-memory-comparison
+  <clang-tidy/checks/bugprone-suspicious-memory-comparison>` check.
+
+  Finds potentially incorrect calls to ``memcmp()`` based on properties of the arguments.
+
 - New :doc:`cppcoreguidelines-const-correctness
   <clang-tidy/checks/cppcoreguidelines-const-correctness>` check.
 
@@ -84,6 +89,16 @@ New checks
 
 New check aliases
 ^^^^^^^^^^^^^^^^^
+
+- New alias :doc:`cert-exp42-c
+  <clang-tidy/checks/cert-exp42-c>` to
+  :doc:`bugprone-suspicious-memory-comparison
+  <clang-tidy/checks/bugprone-suspicious-memory-comparison>` was added.
+
+- New alias :doc:`cert-flp37-c
+  <clang-tidy/checks/cert-flp37-c>` to
+  :doc:`bugprone-suspicious-memory-comparison
+  <clang-tidy/checks/bugprone-suspicious-memory-comparison>` was added.
 
 Changes in existing checks
 ^^^^^^^^^^^^^^^^^^^^^^^^^^

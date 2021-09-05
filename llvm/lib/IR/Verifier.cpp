@@ -1983,7 +1983,7 @@ void Verifier::verifyFunctionAttrs(FunctionType *FT, AttributeList Attrs,
 
   if (Attrs.hasFnAttr(Attribute::AllocSize)) {
     std::pair<unsigned, Optional<unsigned>> Args =
-        Attrs.getAllocSizeArgs(AttributeList::FunctionIndex);
+        Attrs.getFnAttrs().getAllocSizeArgs();
 
     auto CheckParam = [&](StringRef Name, unsigned ParamNo) {
       if (ParamNo >= FT->getNumParams()) {
@@ -2010,7 +2010,7 @@ void Verifier::verifyFunctionAttrs(FunctionType *FT, AttributeList Attrs,
 
   if (Attrs.hasFnAttr(Attribute::VScaleRange)) {
     std::pair<unsigned, unsigned> Args =
-        Attrs.getVScaleRangeArgs(AttributeList::FunctionIndex);
+        Attrs.getFnAttrs().getVScaleRangeArgs();
 
     if (Args.first > Args.second && Args.second != 0)
       CheckFailed("'vscale_range' minimum cannot be greater than maximum", V);
@@ -2691,6 +2691,7 @@ void Verifier::visitReturnInst(ReturnInst &RI) {
 }
 
 void Verifier::visitSwitchInst(SwitchInst &SI) {
+  Assert(SI.getType()->isVoidTy(), "Switch must have void result type!", &SI);
   // Check to make sure that all of the constants in the switch instruction
   // have the same type as the switched-on value.
   Type *SwitchTy = SI.getCondition()->getType();
@@ -4467,6 +4468,11 @@ void Verifier::visitInstruction(Instruction &I) {
     Assert(isa<LoadInst>(I) || isa<CallInst>(I) || isa<InvokeInst>(I),
            "Ranges are only for loads, calls and invokes!", &I);
     visitRangeMetadata(I, Range, I.getType());
+  }
+
+  if (I.hasMetadata(LLVMContext::MD_invariant_group)) {
+    Assert(isa<LoadInst>(I) || isa<StoreInst>(I),
+           "invariant.group metadata is only for loads and stores", &I);
   }
 
   if (I.getMetadata(LLVMContext::MD_nonnull)) {

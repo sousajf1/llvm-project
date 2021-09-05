@@ -15,6 +15,7 @@
 #include "llvm/CodeGen/GlobalISel/LegalizerInfo.h"
 #include "llvm/CodeGen/GlobalISel/MIPatternMatch.h"
 #include "llvm/CodeGen/GlobalISel/MachineIRBuilder.h"
+#include "llvm/CodeGen/GlobalISel/RegisterBankInfo.h"
 #include "llvm/CodeGen/GlobalISel/Utils.h"
 #include "llvm/CodeGen/LowLevelType.h"
 #include "llvm/CodeGen/MachineBasicBlock.h"
@@ -46,8 +47,9 @@ CombinerHelper::CombinerHelper(GISelChangeObserver &Observer,
                                MachineIRBuilder &B, GISelKnownBits *KB,
                                MachineDominatorTree *MDT,
                                const LegalizerInfo *LI)
-    : Builder(B), MRI(Builder.getMF().getRegInfo()), Observer(Observer),
-      KB(KB), MDT(MDT), LI(LI) {
+    : Builder(B), MRI(Builder.getMF().getRegInfo()), Observer(Observer), KB(KB),
+      MDT(MDT), LI(LI), RBI(Builder.getMF().getSubtarget().getRegBankInfo()),
+      TRI(Builder.getMF().getSubtarget().getRegisterInfo()) {
   (void)this->KB;
 }
 
@@ -141,6 +143,15 @@ void CombinerHelper::replaceRegOpWith(MachineRegisterInfo &MRI,
   FromRegOp.setReg(ToReg);
 
   Observer.changedInstr(*FromRegOp.getParent());
+}
+
+const RegisterBank *CombinerHelper::getRegBank(Register Reg) const {
+  return RBI->getRegBank(Reg, MRI, *TRI);
+}
+
+void CombinerHelper::setRegBank(Register Reg, const RegisterBank *RegBank) {
+  if (RegBank)
+    MRI.setRegBank(Reg, *RegBank);
 }
 
 bool CombinerHelper::tryCombineCopy(MachineInstr &MI) {
@@ -486,10 +497,7 @@ bool CombinerHelper::matchCombineExtendingLoads(MachineInstr &MI,
         continue;
       // Check for legality.
       if (LI) {
-        LegalityQuery::MemDesc MMDesc;
-        MMDesc.MemoryTy = MMO.getMemoryType();
-        MMDesc.AlignInBits = MMO.getAlign().value() * 8;
-        MMDesc.Ordering = MMO.getSuccessOrdering();
+        LegalityQuery::MemDesc MMDesc(MMO);
         LLT UseTy = MRI.getType(UseMI.getOperand(0).getReg());
         LLT SrcTy = MRI.getType(LoadMI->getPointerReg());
         if (LI->getAction({LoadMI->getOpcode(), {UseTy, SrcTy}, {MMDesc}})
@@ -711,6 +719,16 @@ bool CombinerHelper::matchSextInRegOfLoad(
   // anyway for most targets.
   if (!isPowerOf2_32(NewSizeBits))
     return false;
+
+  const MachineMemOperand &MMO = LoadDef->getMMO();
+  LegalityQuery::MemDesc MMDesc(MMO);
+  MMDesc.MemoryTy = LLT::scalar(NewSizeBits);
+  if (!isLegalOrBeforeLegalizer({TargetOpcode::G_SEXTLOAD,
+                                 {MRI.getType(LoadDef->getDstReg()),
+                                  MRI.getType(LoadDef->getPointerReg())},
+                                 {MMDesc}}))
+    return false;
+
   MatchInfo = std::make_tuple(LoadDef->getDstReg(), NewSizeBits);
   return true;
 }
@@ -1407,7 +1425,6 @@ bool CombinerHelper::optimizeMemcpy(MachineInstr &MI, Register Dst,
 
     // Don't promote to an alignment that would require dynamic stack
     // realignment.
-    const TargetRegisterInfo *TRI = MF.getSubtarget().getRegisterInfo();
     if (!TRI->hasStackRealignment(MF))
       while (NewAlign > Alignment && DL.exceedsNaturalStackAlignment(NewAlign))
         NewAlign = NewAlign / 2;
@@ -1512,7 +1529,6 @@ bool CombinerHelper::optimizeMemmove(MachineInstr &MI, Register Dst,
 
     // Don't promote to an alignment that would require dynamic stack
     // realignment.
-    const TargetRegisterInfo *TRI = MF.getSubtarget().getRegisterInfo();
     if (!TRI->hasStackRealignment(MF))
       while (NewAlign > Alignment && DL.exceedsNaturalStackAlignment(NewAlign))
         NewAlign = NewAlign / 2;
@@ -1710,7 +1726,7 @@ bool CombinerHelper::matchPtrAddImmedChain(MachineInstr &MI,
   if (!MaybeImmVal)
     return false;
 
-  MachineInstr *Add2Def = MRI.getUniqueVRegDef(Add2);
+  MachineInstr *Add2Def = MRI.getVRegDef(Add2);
   if (!Add2Def || Add2Def->getOpcode() != TargetOpcode::G_PTR_ADD)
     return false;
 
@@ -1751,6 +1767,7 @@ bool CombinerHelper::matchPtrAddImmedChain(MachineInstr &MI,
   // Pass the combined immediate to the apply function.
   MatchInfo.Imm = AMNew.BaseOffs;
   MatchInfo.Base = Base;
+  MatchInfo.Bank = getRegBank(Imm2);
   return true;
 }
 
@@ -1760,6 +1777,7 @@ void CombinerHelper::applyPtrAddImmedChain(MachineInstr &MI,
   MachineIRBuilder MIB(MI);
   LLT OffsetTy = MRI.getType(MI.getOperand(2).getReg());
   auto NewOffset = MIB.buildConstant(OffsetTy, MatchInfo.Imm);
+  setRegBank(NewOffset.getReg(0), MatchInfo.Bank);
   Observer.changingInstr(MI);
   MI.getOperand(1).setReg(MatchInfo.Base);
   MI.getOperand(2).setReg(NewOffset.getReg(0));
@@ -3735,10 +3753,8 @@ bool CombinerHelper::matchLoadOrCombine(
   // may not use index 0.
   Register Ptr = LowestIdxLoad->getPointerReg();
   const MachineMemOperand &MMO = LowestIdxLoad->getMMO();
-  LegalityQuery::MemDesc MMDesc;
+  LegalityQuery::MemDesc MMDesc(MMO);
   MMDesc.MemoryTy = Ty;
-  MMDesc.AlignInBits = MMO.getAlign().value() * 8;
-  MMDesc.Ordering = MMO.getSuccessOrdering();
   if (!isLegalOrBeforeLegalizer(
           {TargetOpcode::G_LOAD, {Ty, MRI.getType(Ptr)}, {MMDesc}}))
     return false;
@@ -4092,6 +4108,48 @@ bool CombinerHelper::matchICmpToTrueFalseKnownBits(MachineInstr &MI,
                            MRI.getType(MI.getOperand(0).getReg()).isVector(),
                            /* IsFP = */ false)
           : 0;
+  return true;
+}
+
+bool CombinerHelper::matchICmpToLHSKnownBits(
+    MachineInstr &MI, std::function<void(MachineIRBuilder &)> &MatchInfo) {
+  assert(MI.getOpcode() == TargetOpcode::G_ICMP);
+  // Given:
+  //
+  // %x = G_WHATEVER (... x is known to be 0 or 1 ...)
+  // %cmp = G_ICMP ne %x, 0
+  //
+  // Or:
+  //
+  // %x = G_WHATEVER (... x is known to be 0 or 1 ...)
+  // %cmp = G_ICMP eq %x, 1
+  //
+  // We can replace %cmp with %x assuming true is 1 on the target.
+  auto Pred = static_cast<CmpInst::Predicate>(MI.getOperand(1).getPredicate());
+  if (!CmpInst::isEquality(Pred))
+    return false;
+  Register Dst = MI.getOperand(0).getReg();
+  LLT DstTy = MRI.getType(Dst);
+  if (getICmpTrueVal(getTargetLowering(), DstTy.isVector(),
+                     /* IsFP = */ false) != 1)
+    return false;
+  int64_t OneOrZero = Pred == CmpInst::ICMP_EQ;
+  if (!mi_match(MI.getOperand(3).getReg(), MRI, m_SpecificICst(OneOrZero)))
+    return false;
+  Register LHS = MI.getOperand(2).getReg();
+  auto KnownLHS = KB->getKnownBits(LHS);
+  if (KnownLHS.getMinValue() != 0 || KnownLHS.getMaxValue() != 1)
+    return false;
+  // Make sure replacing Dst with the LHS is a legal operation.
+  LLT LHSTy = MRI.getType(LHS);
+  unsigned LHSSize = LHSTy.getSizeInBits();
+  unsigned DstSize = DstTy.getSizeInBits();
+  unsigned Op = TargetOpcode::COPY;
+  if (DstSize != LHSSize)
+    Op = DstSize < LHSSize ? TargetOpcode::G_TRUNC : TargetOpcode::G_ZEXT;
+  if (!isLegalOrBeforeLegalizer({Op, {DstTy, LHSTy}}))
+    return false;
+  MatchInfo = [=](MachineIRBuilder &B) { B.buildInstr(Op, {Dst}, {LHS}); };
   return true;
 }
 

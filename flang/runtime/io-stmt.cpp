@@ -1,4 +1,4 @@
-//===-- runtime/io-stmt.cpp -------------------------------------*- C++ -*-===//
+//===-- runtime/io-stmt.cpp -----------------------------------------------===//
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
@@ -9,9 +9,9 @@
 #include "io-stmt.h"
 #include "connection.h"
 #include "format.h"
-#include "memory.h"
 #include "tools.h"
 #include "unit.h"
+#include "flang/Runtime/memory.h"
 #include <algorithm>
 #include <cstdio>
 #include <cstring>
@@ -242,6 +242,10 @@ int OpenStatementState::EndIoStatement() {
       SignalError("FORM= may not be changed on an open unit");
     }
     unit().isUnformatted = *isUnformatted_;
+  }
+  if (!unit().isUnformatted) {
+    // Set default format (C.7.4 point 2).
+    unit().isUnformatted = unit().access != Access::Sequential;
   }
   return ExternalIoStatementBase::EndIoStatement();
 }
@@ -653,7 +657,11 @@ ListDirectedStatementState<Direction::Input>::GetNextDataEdit(
     comma = ';';
   }
   if (remaining_ > 0 && !realPart_) { // "r*c" repetition in progress
-    while (connection.currentRecordNumber > repeatRecordNumber_) {
+    RUNTIME_CHECK(
+        io.GetIoErrorHandler(), connection.resumptionRecordNumber.has_value());
+    while (connection.currentRecordNumber >
+        connection.resumptionRecordNumber.value_or(
+            connection.currentRecordNumber)) {
       io.BackspaceRecord();
     }
     connection.HandleAbsolutePosition(repeatPositionInRecord_);
@@ -666,6 +674,9 @@ ListDirectedStatementState<Direction::Input>::GetNextDataEdit(
       }
     }
     remaining_ -= edit.repeat;
+    if (remaining_ <= 0) {
+      connection.resumptionRecordNumber.reset();
+    }
     return edit;
   }
   // Skip separators, handle a "r*c" repeat count; see 13.10.2 in Fortran 2018
@@ -726,7 +737,11 @@ ListDirectedStatementState<Direction::Input>::GetNextDataEdit(
       }
       edit.repeat = std::min<int>(r, maxRepeat);
       remaining_ = r - edit.repeat;
-      repeatRecordNumber_ = connection.currentRecordNumber;
+      if (remaining_ > 0) {
+        connection.resumptionRecordNumber = connection.currentRecordNumber;
+      } else {
+        connection.resumptionRecordNumber.reset();
+      }
       repeatPositionInRecord_ = connection.positionInRecord;
     } else { // not a repetition count, just an integer value; rewind
       connection.positionInRecord = start;
@@ -958,7 +973,7 @@ bool InquireUnitState::Inquire(
                                               : "ASCII";
     break;
   case HashInquiryKeyword("FORM"):
-    str = !unit().isUnformatted ? "UNKNOWN"
+    str = !unit().isUnformatted ? "UNDEFINED"
         : *unit().isUnformatted ? "UNFORMATTED"
                                 : "FORMATTED";
     break;
